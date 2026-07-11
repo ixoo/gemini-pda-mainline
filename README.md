@@ -80,22 +80,31 @@ If you own hardware:
 
 1. Read [Safety and recovery](docs/SAFETY.md) before connecting flashing tools.
 2. Identify the exact device variant and record non-sensitive evidence.
-3. Choose an issue with `status: ready` and `hardware: required`, or add research to an existing issue.
-4. Never publish NVRAM dumps, IMEI values, serial numbers, keys, or calibration blobs.
+3. Record durable facts in the [hardware knowledge base](docs/hardware/README.md)
+   and reproducible investigations with their code under
+   [`experiments/`](experiments/README.md).
+4. Choose an issue with `status: ready` and `hardware: required`, or add research to an existing issue.
+5. Never publish NVRAM dumps, IMEI values, serial numbers, keys, or calibration blobs.
 
 If you work on kernels:
 
 1. Read [Architecture and ownership](docs/ARCHITECTURE.md) and [Contributing](CONTRIBUTING.md).
-2. Start from a pinned upstream commit and preserve the complete build configuration.
-3. Keep one logical change per patch and identify its upstream subsystem and maintainers.
-4. Attach boot logs and test conditions; compile success alone is not hardware support.
+2. Set up the supported [ARM64 development VM](docs/DEV_VM.md).
+3. Use the [pinned stable-kernel patch workflow](docs/KERNEL_WORKFLOW.md).
+4. Start from a pinned upstream release and preserve the complete build configuration.
+5. Keep one logical change per patch and identify its upstream subsystem and maintainers.
+6. Attach boot logs and test conditions; compile success alone is not hardware support.
 
 ## Repository layout
 
 ```text
+configs/              Gemini kernel configuration fragments
 docs/                 Architecture, roadmap, safety, references, and support matrix
+experiments/           Reproducible investigations, associated code, and sanitized evidence
+kernel/               Pinned stable-kernel source and configuration manifest
 patches/              Temporary patch series grouped by upstream base (added when needed)
 scripts/              Reproducible build, packaging, and test helpers (added when verified)
+vm/                   ARM64 development VM definition and provisioning inputs
 project/              Declarative labels, milestones, and initial backlog
 .github/              Contribution, issue, and pull-request workflows
 ```

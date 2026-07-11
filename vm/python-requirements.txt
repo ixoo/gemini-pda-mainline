@@ -1,0 +1,3 @@
+# Keep the top-level Device Tree schema tool version explicit. Provisioning
+# records the fully resolved Python environment inside the guest.
+dtschema==2026.6

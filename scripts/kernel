@@ -1,0 +1,427 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+readonly SCRIPT_DIR
+REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd -P)"
+readonly REPO_DIR
+readonly MANIFEST="${REPO_DIR}/kernel/manifest.json"
+
+die() {
+  echo "error: $*" >&2
+  exit 1
+}
+
+require_command() {
+  command -v "$1" >/dev/null 2>&1 || die "required command not found: $1"
+}
+
+require_linux() {
+  [[ "$(uname -s)" == Linux ]] || die "run this command inside the development VM"
+  [[ "$(uname -m)" == aarch64 ]] || die "expected an aarch64 development VM"
+}
+
+manifest_value() {
+  jq -er "$1" "${MANIFEST}"
+}
+
+VERSION="$(manifest_value '.kernel.version')"
+readonly VERSION
+RELEASED="$(manifest_value '.kernel.released')"
+readonly RELEASED
+SOURCE_URL="$(manifest_value '.kernel.source_url')"
+readonly SOURCE_URL
+SOURCE_SHA256="$(manifest_value '.kernel.sha256')"
+readonly SOURCE_SHA256
+ARCH="$(manifest_value '.architecture')"
+readonly ARCH
+BASE_CONFIG="$(manifest_value '.config.base')"
+readonly BASE_CONFIG
+SERIES_REL="$(manifest_value '.patch_series')"
+readonly SERIES_REL
+readonly SERIES_FILE="${REPO_DIR}/${SERIES_REL}"
+PATCH_DIR="$(dirname "${SERIES_FILE}")"
+readonly PATCH_DIR
+
+readonly SOURCE_ROOT="${GEMINI_SOURCE_ROOT:-${HOME}/src/gemini-pda}"
+readonly BUILD_ROOT="${GEMINI_BUILD_ROOT:-${HOME}/build/gemini-pda}"
+readonly ARTIFACT_ROOT="${GEMINI_ARTIFACT_ROOT:-${HOME}/artifacts/gemini-pda}"
+readonly CACHE_ROOT="${GEMINI_CACHE_ROOT:-${HOME}/.cache/gemini-pda}"
+readonly SOURCE_DIR="${SOURCE_ROOT}/linux-${VERSION}"
+readonly BUILD_DIR="${BUILD_ROOT}/linux-${VERSION}"
+readonly ARCHIVE="${CACHE_ROOT}/linux-${VERSION}.tar.xz"
+
+usage() {
+  cat <<'EOF'
+Usage: ./scripts/kernel COMMAND
+
+Commands:
+  prepare       Download, verify, extract, and apply the ordered patch series
+  configure     Prepare and generate the merged arm64 kernel configuration
+  build         Prepare, configure, compile Image + DTBs, and package artifacts
+  paths         Print the managed source, build, cache, and artifact locations
+  status        Show the pinned version, patch state, and prepared-tree state
+  check-latest  Compare the pinned version with kernel.org's latest stable release
+
+Environment:
+  KERNEL_JOBS           Parallel build jobs (default: guest CPU count)
+  BUILD_MODULES=1       Also compile modules
+  GEMINI_SOURCE_ROOT    Override the managed source root
+  GEMINI_BUILD_ROOT     Override the out-of-tree build root
+  GEMINI_ARTIFACT_ROOT  Override the artifact root
+  GEMINI_CACHE_ROOT     Override the verified-download cache
+EOF
+}
+
+for_each_patch() {
+  local callback="$1"
+  local line
+  local line_number=0
+
+  [[ -f "${SERIES_FILE}" ]] || die "patch series not found: ${SERIES_FILE}"
+  while IFS= read -r line || [[ -n "${line}" ]]; do
+    line_number=$((line_number + 1))
+    [[ -z "${line}" || "${line}" == \#* ]] && continue
+    [[ "${line}" != *[[:space:]]* ]] || \
+      die "${SERIES_FILE}:${line_number}: patch paths may not contain whitespace"
+    [[ "${line}" != /* && "${line}" != *..* ]] || \
+      die "${SERIES_FILE}:${line_number}: patch path must remain below patches/"
+    "${callback}" "${line}" "${PATCH_DIR}/${line}"
+  done < "${SERIES_FILE}"
+}
+
+hash_patch() {
+  local relative="$1"
+  local path="$2"
+  [[ -f "${path}" ]] || die "patch listed in series does not exist: ${relative}"
+  printf '%s  %s\n' "$(sha256sum "${path}" | awk '{print $1}')" "${relative}"
+}
+
+patchset_hash() {
+  {
+    printf '%s  %s\n' "$(sha256sum "${SERIES_FILE}" | awk '{print $1}')" "${SERIES_REL}"
+    for_each_patch hash_patch
+  } | sha256sum | awk '{print $1}'
+}
+
+hash_config_fragment() {
+  local relative="$1"
+  local path="${REPO_DIR}/${relative}"
+  [[ -f "${path}" ]] || die "config fragment does not exist: ${relative}"
+  printf '%s  %s\n' "$(sha256sum "${path}" | awk '{print $1}')" "${relative}"
+}
+
+config_hash() {
+  {
+    printf '%s\n' "base=${BASE_CONFIG}"
+    while IFS= read -r fragment; do
+      hash_config_fragment "${fragment}"
+    done < <(jq -er '.config.fragments[]' "${MANIFEST}")
+  } | sha256sum | awk '{print $1}'
+}
+
+source_state_hash() {
+  printf '%s\n%s\n%s\n' "${VERSION}" "${SOURCE_SHA256}" "$(patchset_hash)" \
+    | sha256sum | awk '{print $1}'
+}
+
+build_state_hash() {
+  {
+    source_state_hash
+    config_hash
+    gcc -dumpfullversion -dumpversion
+    ld --version | head -n 1
+  } | sha256sum | awk '{print $1}'
+}
+
+download_source() {
+  mkdir -p "${CACHE_ROOT}"
+  if [[ ! -f "${ARCHIVE}" ]]; then
+    echo "Downloading Linux ${VERSION} from kernel.org"
+    curl --fail --location --retry 3 --output "${ARCHIVE}.partial" "${SOURCE_URL}"
+    mv "${ARCHIVE}.partial" "${ARCHIVE}"
+  fi
+
+  if ! printf '%s  %s\n' "${SOURCE_SHA256}" "${ARCHIVE}" | sha256sum --check --status; then
+    rm -f "${ARCHIVE}"
+    die "kernel archive checksum mismatch; removed ${ARCHIVE}"
+  fi
+}
+
+apply_patch_file() {
+  local relative="$1"
+  local path="$2"
+  echo "Applying ${relative}"
+  git -C "${PREPARED_TREE}" apply --check "${path}"
+  git -C "${PREPARED_TREE}" apply "${path}"
+}
+
+prepare_kernel() {
+  local expected_state
+  local temporary
+  expected_state="$(source_state_hash)"
+
+  if [[ -f "${SOURCE_DIR}/.gemini-source-state" ]] && \
+     [[ "$(< "${SOURCE_DIR}/.gemini-source-state")" == "${expected_state}" ]]; then
+    echo "Linux ${VERSION} source is already prepared at ${SOURCE_DIR}"
+    return
+  fi
+
+  download_source
+  mkdir -p "${SOURCE_ROOT}"
+  temporary="$(mktemp -d "${SOURCE_ROOT}/.prepare-${VERSION}.XXXXXX")"
+  PREPARED_TREE="${temporary}/linux-${VERSION}"
+  export PREPARED_TREE
+
+  cleanup_prepare() {
+    rm -rf "${temporary}"
+  }
+  trap cleanup_prepare RETURN
+
+  echo "Extracting Linux ${VERSION}"
+  tar -xJf "${ARCHIVE}" -C "${temporary}"
+  [[ -d "${PREPARED_TREE}" ]] || die "archive did not contain linux-${VERSION}"
+  git -C "${PREPARED_TREE}" init --quiet
+  for_each_patch apply_patch_file
+  printf '%s\n' "${expected_state}" > "${PREPARED_TREE}/.gemini-source-state"
+
+  case "${SOURCE_DIR}" in
+    "${SOURCE_ROOT}"/linux-*) ;;
+    *) die "refusing to replace unexpected source path: ${SOURCE_DIR}" ;;
+  esac
+  rm -rf "${SOURCE_DIR}"
+  mv "${PREPARED_TREE}" "${SOURCE_DIR}"
+  trap - RETURN
+  rm -rf "${temporary}"
+  echo "Prepared Linux ${VERSION} at ${SOURCE_DIR}"
+}
+
+configure_kernel() {
+  local expected_state
+  local fragment
+  local -a fragments=()
+
+  prepare_kernel
+  expected_state="$(build_state_hash)"
+  if [[ -f "${BUILD_DIR}/.gemini-build-state" ]] && \
+     [[ "$(< "${BUILD_DIR}/.gemini-build-state")" != "${expected_state}" ]]; then
+    case "${BUILD_DIR}" in
+      "${BUILD_ROOT}"/linux-*) rm -rf "${BUILD_DIR}" ;;
+      *) die "refusing to replace unexpected build path: ${BUILD_DIR}" ;;
+    esac
+  fi
+
+  mkdir -p "${BUILD_DIR}"
+  make -C "${SOURCE_DIR}" O="${BUILD_DIR}" ARCH="${ARCH}" "${BASE_CONFIG}"
+  while IFS= read -r fragment; do
+    fragments+=("${REPO_DIR}/${fragment}")
+  done < <(jq -er '.config.fragments[]' "${MANIFEST}")
+
+  if [[ "${#fragments[@]}" -gt 0 ]]; then
+    (
+      cd "${BUILD_DIR}"
+      "${SOURCE_DIR}/scripts/kconfig/merge_config.sh" \
+        -m -O "${BUILD_DIR}" "${BUILD_DIR}/.config" "${fragments[@]}"
+    )
+  fi
+  make -C "${SOURCE_DIR}" O="${BUILD_DIR}" ARCH="${ARCH}" olddefconfig
+  while IFS= read -r fragment; do
+    validate_config_fragment "${fragment}"
+  done < <(jq -er '.config.fragments[]' "${MANIFEST}")
+  printf '%s\n' "${expected_state}" > "${BUILD_DIR}/.gemini-build-state"
+  echo "Configured Linux ${VERSION} at ${BUILD_DIR}"
+}
+
+validate_config_fragment() {
+  local relative="$1"
+  local path="${REPO_DIR}/${relative}"
+  local line
+  local line_number=0
+
+  while IFS= read -r line || [[ -n "${line}" ]]; do
+    line_number=$((line_number + 1))
+    case "${line}" in
+      CONFIG_*=*|'# CONFIG_'*' is not set')
+        grep -Fqx "${line}" "${BUILD_DIR}/.config" || \
+          die "${relative}:${line_number}: requested value was not retained: ${line}"
+        ;;
+      ''|'# '*)
+        ;;
+      *)
+        die "${relative}:${line_number}: unsupported config-fragment line: ${line}"
+        ;;
+    esac
+  done < "${path}"
+}
+
+copy_patch_to_provenance() {
+  local relative="$1"
+  local path="$2"
+  mkdir -p "${PACKAGE_DIR}/provenance/patches/$(dirname "${relative}")"
+  cp "${path}" "${PACKAGE_DIR}/provenance/patches/${relative}"
+}
+
+package_artifacts() {
+  local kernel_release="$1"
+  local patch_hash
+  local package_name
+  local temporary
+  local sums_file
+  local fragment
+
+  patch_hash="$(patchset_hash)"
+  package_name="linux-${VERSION}-gemini-${patch_hash:0:12}"
+  PACKAGE_DIR="${ARTIFACT_ROOT}/${package_name}"
+  export PACKAGE_DIR
+  temporary="${PACKAGE_DIR}.partial"
+
+  rm -rf "${temporary}"
+  mkdir -p "${temporary}/dtbs/mediatek" "${temporary}/provenance/configs"
+  PACKAGE_DIR="${temporary}"
+  export PACKAGE_DIR
+
+  install -m 0644 "${BUILD_DIR}/arch/arm64/boot/Image" "${PACKAGE_DIR}/Image"
+  install -m 0644 "${BUILD_DIR}/.config" "${PACKAGE_DIR}/kernel.config"
+  install -m 0644 "${BUILD_DIR}/System.map" "${PACKAGE_DIR}/System.map"
+  rsync -a \
+    --include='*/' --include='*.dtb' --exclude='*' \
+    "${BUILD_DIR}/arch/arm64/boot/dts/mediatek/" \
+    "${PACKAGE_DIR}/dtbs/mediatek/"
+
+  cp "${MANIFEST}" "${PACKAGE_DIR}/provenance/kernel-manifest.json"
+  cp "${SERIES_FILE}" "${PACKAGE_DIR}/provenance/series"
+  while IFS= read -r fragment; do
+    cp "${REPO_DIR}/${fragment}" "${PACKAGE_DIR}/provenance/configs/$(basename "${fragment}")"
+  done < <(jq -er '.config.fragments[]' "${MANIFEST}")
+  for_each_patch copy_patch_to_provenance
+
+  jq -n \
+    --arg generated "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    --arg kernel_release "${kernel_release}" \
+    --arg source_sha256 "${SOURCE_SHA256}" \
+    --arg patchset_sha256 "${patch_hash}" \
+    --arg config_sha256 "$(sha256sum "${BUILD_DIR}/.config" | awk '{print $1}')" \
+    --arg compiler "$(gcc --version | head -n 1)" \
+    --arg linker "$(ld --version | head -n 1)" \
+    '{
+      schema: 1,
+      generated_utc: $generated,
+      kernel_release: $kernel_release,
+      source_sha256: $source_sha256,
+      patchset_sha256: $patchset_sha256,
+      config_sha256: $config_sha256,
+      compiler: $compiler,
+      linker: $linker
+    }' > "${PACKAGE_DIR}/provenance/build.json"
+
+  sums_file="${temporary}.SHA256SUMS"
+  (
+    cd "${PACKAGE_DIR}"
+    find . -type f ! -name SHA256SUMS -print0 \
+      | sort -z \
+      | xargs -0 sha256sum > "${sums_file}"
+  )
+  mv "${sums_file}" "${PACKAGE_DIR}/SHA256SUMS"
+
+  PACKAGE_DIR="${ARTIFACT_ROOT}/${package_name}"
+  rm -rf "${PACKAGE_DIR}"
+  mv "${temporary}" "${PACKAGE_DIR}"
+  echo "Packaged artifacts at ${PACKAGE_DIR}"
+}
+
+build_kernel() {
+  local jobs="${KERNEL_JOBS:-$(nproc)}"
+  local -a targets=(Image dtbs)
+  local kernel_release
+
+  configure_kernel
+  if [[ "${BUILD_MODULES:-0}" == 1 ]]; then
+    targets+=(modules)
+  fi
+
+  export KBUILD_BUILD_USER=gemini-pda
+  export KBUILD_BUILD_HOST=devvm
+  export KBUILD_BUILD_TIMESTAMP="${RELEASED} 00:00:00 UTC"
+  export KCONFIG_NOTIMESTAMP=1
+
+  make -C "${SOURCE_DIR}" \
+    O="${BUILD_DIR}" \
+    ARCH="${ARCH}" \
+    -j "${jobs}" \
+    "${targets[@]}"
+  kernel_release="$(make -s -C "${SOURCE_DIR}" O="${BUILD_DIR}" ARCH="${ARCH}" kernelrelease)"
+  package_artifacts "${kernel_release}"
+}
+
+show_paths() {
+  cat <<EOF
+source=${SOURCE_DIR}
+build=${BUILD_DIR}
+artifacts=${ARTIFACT_ROOT}
+cache=${CACHE_ROOT}
+EOF
+}
+
+show_status() {
+  local count=0
+  count_patches() {
+    count=$((count + 1))
+  }
+  for_each_patch count_patches
+
+  echo "Pinned stable kernel: ${VERSION} (${RELEASED})"
+  echo "Patch count:          ${count}"
+  echo "Patchset SHA-256:     $(patchset_hash)"
+  if [[ -f "${SOURCE_DIR}/.gemini-source-state" ]] && \
+     [[ "$(< "${SOURCE_DIR}/.gemini-source-state")" == "$(source_state_hash)" ]]; then
+    echo "Prepared source:      current"
+  else
+    echo "Prepared source:      absent or stale"
+  fi
+  show_paths
+}
+
+check_latest() {
+  local latest
+  latest="$(curl --fail --location --silent https://www.kernel.org/releases.json \
+    | jq -er '.latest_stable.version')"
+  echo "Pinned: ${VERSION}"
+  echo "Latest: ${latest}"
+  [[ "${VERSION}" == "${latest}" ]] || return 1
+}
+
+require_linux
+for command in curl git jq make sha256sum tar; do
+  require_command "${command}"
+done
+[[ -f "${MANIFEST}" ]] || die "kernel manifest not found: ${MANIFEST}"
+
+readonly COMMAND="${1:-}"
+case "${COMMAND}" in
+  prepare)
+    prepare_kernel
+    ;;
+  configure)
+    configure_kernel
+    ;;
+  build)
+    build_kernel
+    ;;
+  paths)
+    show_paths
+    ;;
+  status)
+    show_status
+    ;;
+  check-latest)
+    check_latest
+    ;;
+  help|-h|--help)
+    usage
+    ;;
+  *)
+    usage >&2
+    exit 2
+    ;;
+esac

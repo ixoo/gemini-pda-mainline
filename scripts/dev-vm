@@ -1,0 +1,224 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+readonly SCRIPT_DIR
+REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd -P)"
+readonly REPO_DIR
+readonly CONFIG_FILE="${REPO_DIR}/vm/lima.yaml"
+readonly INSTANCE="${DEV_VM_NAME:-gemini-pda-dev}"
+readonly CPUS="${DEV_VM_CPUS:-8}"
+readonly MEMORY_GIB="${DEV_VM_MEMORY_GIB:-8}"
+readonly DISK_GIB="${DEV_VM_DISK_GIB:-100}"
+
+usage() {
+  cat <<'EOF'
+Usage: ./scripts/dev-vm COMMAND [ARGUMENTS]
+
+Commands:
+  setup                 Install Lima if needed, create the VM, and start it
+  install-host          Install Lima with Homebrew
+  start                 Start an existing VM
+  stop                  Stop the VM
+  shell                 Open an interactive guest shell
+  run COMMAND...        Run a command in the guest
+  provision             Re-run system and user provisioning
+  doctor                Validate the host and guest setup
+  status                Show VM status
+  kernel COMMAND...     Run the pinned-kernel workflow (prepare/configure/build)
+  build-kernel          Prepare, configure, build, and package the kernel
+  export-artifacts [DIR]
+                        Copy ~/artifacts to a new host directory
+  remove --force        Permanently delete the VM and its guest filesystem
+
+Creation overrides:
+  DEV_VM_NAME           Instance name (default: gemini-pda-dev)
+  DEV_VM_CPUS           Virtual CPUs (default: 8)
+  DEV_VM_MEMORY_GIB     Memory in GiB (default: 8)
+  DEV_VM_DISK_GIB       Disk in GiB (default: 100)
+EOF
+}
+
+die() {
+  echo "error: $*" >&2
+  exit 1
+}
+
+require_supported_host() {
+  [[ "$(uname -s)" == Darwin ]] || die "the managed VM currently supports macOS only"
+  [[ "$(uname -m)" == arm64 ]] || die "the managed VM currently supports Apple Silicon only"
+}
+
+require_lima() {
+  command -v limactl >/dev/null 2>&1 || die "Lima is not installed; run ./scripts/dev-vm install-host"
+}
+
+instance_exists() {
+  limactl list --format '{{.Name}}' 2>/dev/null | grep -Fxq "${INSTANCE}"
+}
+
+install_host() {
+  require_supported_host
+  if command -v limactl >/dev/null 2>&1; then
+    echo "Lima is already installed: $(limactl --version)"
+    return
+  fi
+  command -v brew >/dev/null 2>&1 || die "Homebrew is required to install Lima"
+  brew install lima
+}
+
+create_vm() {
+  if instance_exists; then
+    echo "VM ${INSTANCE} already exists"
+    return
+  fi
+
+  limactl create \
+    --tty=false \
+    --name="${INSTANCE}" \
+    --cpus="${CPUS}" \
+    --memory="${MEMORY_GIB}" \
+    --disk="${DISK_GIB}" \
+    --param="repoDir=${REPO_DIR}" \
+    "${CONFIG_FILE}"
+}
+
+start_vm() {
+  instance_exists || die "VM ${INSTANCE} does not exist; run ./scripts/dev-vm setup"
+  limactl start "${INSTANCE}"
+}
+
+run_provisioning() {
+  start_vm
+  limactl shell --workdir=/tmp "${INSTANCE}" -- \
+    sudo bash /mnt/gemini-pda-mainline/vm/provision.sh system
+  limactl shell --workdir=/tmp "${INSTANCE}" -- \
+    bash /mnt/gemini-pda-mainline/vm/provision.sh user
+}
+
+doctor() {
+  require_supported_host
+  require_lima
+  instance_exists || die "VM ${INSTANCE} does not exist; run ./scripts/dev-vm setup"
+
+  echo "Host:  $(uname -s) $(uname -m)"
+  echo "Lima:  $(limactl --version)"
+  limactl list "${INSTANCE}"
+  # The quoted variables below are expanded by the guest shell.
+  # shellcheck disable=SC2016
+  limactl shell --workdir=/tmp "${INSTANCE}" -- bash -lc '
+    set -euo pipefail
+    test "$(uname -m)" = aarch64
+    test -r /mnt/gemini-pda-mainline/README.md
+    test ! -w /mnt/gemini-pda-mainline
+    command -v make >/dev/null
+    command -v dtc >/dev/null
+    command -v pahole >/dev/null
+    command -v dt-doc-validate >/dev/null
+    printf "Guest: %s %s\n" "$(. /etc/os-release; printf %s "$PRETTY_NAME")" "$(uname -m)"
+    printf "Tools: make=%s dtc=%s dtschema=%s\n" \
+      "$(make --version | head -n 1)" \
+      "$(dtc --version)" \
+      "$("$HOME/.local/share/venvs/dtschema/bin/python" -m pip show dtschema | awk "/^Version:/ { print \$2 }")"
+  '
+}
+
+export_artifacts() {
+  local destination="${1:-${REPO_DIR}/artifacts/$(date -u +%Y%m%dT%H%M%SZ)}"
+  start_vm
+  mkdir -p "${destination}"
+  # HOME is expanded by the guest shell.
+  # shellcheck disable=SC2016
+  limactl shell --workdir=/tmp "${INSTANCE}" -- bash -lc 'tar -C "$HOME/artifacts" -cf - .' \
+    | tar -C "${destination}" -xf -
+  echo "Artifacts exported to ${destination}"
+}
+
+readonly COMMAND="${1:-}"
+[[ -n "${COMMAND}" ]] || {
+  usage
+  exit 2
+}
+shift
+
+case "${COMMAND}" in
+  setup)
+    require_supported_host
+    install_host
+    require_lima
+    create_vm
+    start_vm
+    doctor
+    ;;
+  install-host)
+    install_host
+    ;;
+  start)
+    require_lima
+    start_vm
+    ;;
+  stop)
+    require_lima
+    instance_exists || die "VM ${INSTANCE} does not exist"
+    limactl stop "${INSTANCE}"
+    ;;
+  shell)
+    require_lima
+    start_vm
+    # HOME and SHELL are expanded by the guest shell.
+    # shellcheck disable=SC2016
+    exec limactl shell --workdir=/tmp "${INSTANCE}" -- \
+      bash -lc 'cd "$HOME" && exec "${SHELL:-/bin/bash}" -l'
+    ;;
+  run)
+    require_lima
+    [[ "$#" -gt 0 ]] || die "run requires a command"
+    start_vm
+    exec limactl shell --workdir=/mnt/gemini-pda-mainline "${INSTANCE}" -- "$@"
+    ;;
+  provision)
+    require_lima
+    run_provisioning
+    ;;
+  doctor)
+    doctor
+    ;;
+  status)
+    require_lima
+    limactl list "${INSTANCE}"
+    ;;
+  kernel)
+    require_lima
+    [[ "$#" -gt 0 ]] || die "kernel requires a command; try: ./scripts/dev-vm kernel status"
+    start_vm
+    exec limactl shell --workdir=/mnt/gemini-pda-mainline "${INSTANCE}" -- \
+      ./scripts/kernel "$@"
+    ;;
+  build-kernel)
+    require_lima
+    [[ "$#" -eq 0 ]] || die "build-kernel does not accept arguments"
+    start_vm
+    exec limactl shell --workdir=/mnt/gemini-pda-mainline "${INSTANCE}" -- \
+      ./scripts/kernel build
+    ;;
+  export-artifacts)
+    require_lima
+    [[ "$#" -le 1 ]] || die "export-artifacts accepts at most one destination"
+    export_artifacts "${1:-}"
+    ;;
+  remove)
+    require_lima
+    [[ "${1:-}" == --force ]] || die "remove is destructive; repeat with: ./scripts/dev-vm remove --force"
+    instance_exists || die "VM ${INSTANCE} does not exist"
+    limactl stop "${INSTANCE}" 2>/dev/null || true
+    limactl delete --tty=false "${INSTANCE}"
+    ;;
+  help|-h|--help)
+    usage
+    ;;
+  *)
+    usage >&2
+    exit 2
+    ;;
+esac

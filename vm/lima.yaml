@@ -1,0 +1,62 @@
+minimumLimaVersion: 2.0.0
+
+vmType: vz
+arch: aarch64
+
+# Ubuntu 24.04 LTS release image 20260615. The dated URL and digest make the
+# initial guest filesystem reproducible even after Ubuntu publishes an update.
+images:
+  - location: https://cloud-images.ubuntu.com/releases/noble/release-20260615/ubuntu-24.04-server-cloudimg-arm64.img
+    arch: aarch64
+    digest: sha256:cafa1a965b591b7c4184b484ffd8e625981a79d48f9b4ae8a4adf7b4c5ade927
+
+cpus: 8
+memory: 8GiB
+disk: 100GiB
+
+mountType: virtiofs
+mounts:
+  - location: "{{.Param.repoDir}}"
+    mountPoint: /mnt/gemini-pda-mainline
+    writable: false
+
+containerd:
+  system: false
+  user: false
+
+ssh:
+  loadDotSSHPubKeys: false
+  forwardAgent: false
+
+param:
+  repoDir: .
+
+provision:
+  - mode: system
+    script: |
+      #!/usr/bin/env bash
+      exec bash /mnt/gemini-pda-mainline/vm/provision.sh system
+  - mode: user
+    script: |
+      #!/usr/bin/env bash
+      exec bash /mnt/gemini-pda-mainline/vm/provision.sh user
+
+probes:
+  - mode: readiness
+    description: kernel and Device Tree development tools to be installed
+    script: |
+      #!/usr/bin/env bash
+      set -euo pipefail
+      command -v make >/dev/null
+      command -v dtc >/dev/null
+      command -v pahole >/dev/null
+      test -x "$HOME/.local/bin/dt-doc-validate"
+    hint: |
+      Provisioning did not finish successfully. Inspect the guest log with:
+        ./scripts/dev-vm run sudo tail -n 200 /var/log/cloud-init-output.log
+
+message: |
+  Gemini PDA development VM is ready.
+  Host repository (read-only): /mnt/gemini-pda-mainline
+  Guest workspaces:             ~/src, ~/build, ~/artifacts
+  Enter the VM with:            ./scripts/dev-vm shell

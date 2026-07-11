@@ -22,6 +22,14 @@ State:
 
 Do not copy proprietary documents or source code into this repository. Record facts, offsets, bindings, and independently written descriptions with a source reference.
 
+- Put durable, provenance-backed facts in [`docs/hardware/`](docs/hardware/README.md).
+- Put each reproducible investigation and its associated code in
+  [`experiments/`](experiments/README.md), starting from the experiment template.
+- Link experiment conclusions to the hardware document, support-matrix row,
+  patch, and tracking issue they affect.
+- Preserve negative and inconclusive results; distinguish direct observation
+  from inference and secondary reports.
+
 ### Kernel and Device Tree work
 
 The normal lifecycle is:

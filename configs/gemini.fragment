@@ -1,0 +1,10 @@
+# Reproducible project identity. Hardware-specific options should be added with
+# the patch that makes them usable and validated by scripts/kernel configure.
+CONFIG_LOCALVERSION="-gemini"
+# CONFIG_LOCALVERSION_AUTO is not set
+CONFIG_ARCH_MEDIATEK=y
+CONFIG_SERIAL_8250=y
+CONFIG_SERIAL_8250_CONSOLE=y
+CONFIG_SERIAL_8250_MT6577=y
+CONFIG_IKCONFIG=y
+CONFIG_IKCONFIG_PROC=y

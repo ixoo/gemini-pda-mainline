@@ -2,6 +2,10 @@
 
 This matrix separates what runs on real hardware from what exists upstream. A compile-only result is not runtime support, and a local hardware result is not upstream support.
 
+Detailed component facts and provenance belong in the
+[hardware knowledge base](hardware/README.md). Reproducible investigations and
+their associated code belong in [`experiments/`](../experiments/README.md).
+
 ## State definitions
 
 Runtime state:
@@ -84,5 +88,8 @@ Every status change must cite a tracking issue containing:
 - test protocol and repeat count;
 - redacted log or measurement;
 - upstream series/commit when the upstream state changes.
+
+The tracking issue should link the supporting experiment record and detailed
+hardware document when either exists.
 
 Use `stable` only when the result is present in a released upstream kernel and passes the project's regression protocol.
