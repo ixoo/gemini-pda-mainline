@@ -72,6 +72,8 @@ The full rationale and ownership boundaries are in [Architecture and ownership](
 
 Detailed exit criteria and sequencing are in the [roadmap](docs/ROADMAP.md).
 
+Live planning is tracked in the pinned [project plan](https://github.com/ixoo/gemini-pda-mainline/issues/1), the [milestones](https://github.com/ixoo/gemini-pda-mainline/milestones), and the [open issue backlog](https://github.com/ixoo/gemini-pda-mainline/issues).
+
 ## Start here
 
 If you own hardware:
