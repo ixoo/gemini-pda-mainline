@@ -1,0 +1,41 @@
+# Build and kernel trees
+/build/
+/output/
+/downloads/
+/toolchains/
+/linux/
+/rootfs/
+/artifacts/
+/logs/private/
+
+# Images, dumps, and firmware
+*.img
+*.bin
+*.raw
+*.dump
+*.dtbo
+*.cpio
+*.cpio.gz
+*.ext4
+*.sparse
+*.mbn
+*.elf
+
+# Kernel/build by-products
+*.o
+*.ko
+*.cmd
+*.mod
+*.mod.c
+*.order
+*.symvers
+*.dtb
+*.dts.tmp
+.config
+
+# Editor and OS files
+.DS_Store
+.idea/
+.vscode/
+*~
+*.swp

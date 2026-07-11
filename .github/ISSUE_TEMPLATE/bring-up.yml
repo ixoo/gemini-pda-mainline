@@ -1,0 +1,76 @@
+name: Subsystem bring-up
+description: Plan or report work that enables a Gemini hardware subsystem.
+title: "[BRING-UP] "
+labels:
+  - "type: implementation"
+  - "hardware: required"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Read `docs/SAFETY.md` first. Never attach device dumps, NVRAM, identifiers, credentials, or proprietary firmware.
+  - type: input
+    id: subsystem
+    attributes:
+      label: Subsystem and component
+      description: Include the component identity and confidence level if known.
+      placeholder: "USB gadget via MT6797 USB controller; controller identity confirmed, PHY wiring inferred"
+    validations:
+      required: true
+  - type: dropdown
+    id: variant
+    attributes:
+      label: Device variant
+      multiple: true
+      options:
+        - X25
+        - X27
+        - Wi-Fi-only
+        - LTE variant (exact model in notes)
+        - Unknown / research needed
+    validations:
+      required: true
+  - type: input
+    id: base
+    attributes:
+      label: Upstream base
+      placeholder: "Linux tag or commit SHA"
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Existing evidence and dependencies
+      description: Link sources and distinguish observation from inference.
+    validations:
+      required: true
+  - type: textarea
+    id: approach
+    attributes:
+      label: Minimal upstream-oriented approach
+      description: Separate binding, generic driver, SoC, and board changes.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Runtime and upstream acceptance criteria
+      description: Include repeat count, logs, regression checks, and upstream destination.
+    validations:
+      required: true
+  - type: textarea
+    id: safety
+    attributes:
+      label: Safety and recovery impact
+      description: Name the boot slot, rollback path, destructive operations, and stop conditions.
+    validations:
+      required: true
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmations
+      options:
+        - label: I will not publish secrets, identifiers, calibration/NVRAM data, proprietary firmware, or unredacted dumps.
+          required: true
+        - label: I understand that compile success alone does not change the hardware support matrix.
+          required: true

@@ -1,0 +1,66 @@
+name: Regression report
+description: Report behavior that worked on an earlier revision and now fails.
+title: "[REGRESSION] "
+labels:
+  - "type: bug"
+body:
+  - type: input
+    id: subsystem
+    attributes:
+      label: Subsystem
+    validations:
+      required: true
+  - type: input
+    id: variant
+    attributes:
+      label: Exact device variant
+    validations:
+      required: true
+  - type: input
+    id: good
+    attributes:
+      label: Last known-good commit/release
+    validations:
+      required: true
+  - type: input
+    id: bad
+    attributes:
+      label: First known-bad commit/release
+    validations:
+      required: true
+  - type: textarea
+    id: stack
+    attributes:
+      label: Tree, config, toolchain, and patch stack
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction protocol
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and observed behavior
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Redacted logs and measurements
+    validations:
+      required: true
+  - type: textarea
+    id: bisect
+    attributes:
+      label: Bisect status
+      description: Include tested points or explain why a bisect is not yet possible.
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety
+      options:
+        - label: I removed secrets, identifiers, calibration values, and private device data from all evidence.
+          required: true

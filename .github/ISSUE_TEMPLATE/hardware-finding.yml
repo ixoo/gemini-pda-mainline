@@ -1,0 +1,60 @@
+name: Hardware finding
+description: Record evidence about a component, bus, address, interrupt, pin, regulator, or variant.
+title: "[HARDWARE] "
+labels:
+  - "type: research"
+  - "status: needs evidence"
+body:
+  - type: textarea
+    id: fact
+    attributes:
+      label: Observed fact
+      description: State the smallest fact supported directly by evidence.
+    validations:
+      required: true
+  - type: textarea
+    id: inference
+    attributes:
+      label: Inference or hypothesis
+      description: Keep interpretation separate from observation; say `none` if not applicable.
+    validations:
+      required: true
+  - type: textarea
+    id: provenance
+    attributes:
+      label: Provenance
+      description: Give URL/revision/file/symbol, measurement method, or redacted log reference and licensing status.
+    validations:
+      required: true
+  - type: dropdown
+    id: confidence
+    attributes:
+      label: Confidence
+      options:
+        - Reported candidate; unverified
+        - Corroborated by two independent sources
+        - Observed on one device
+        - Reproduced across devices/variants
+    validations:
+      required: true
+  - type: input
+    id: variants
+    attributes:
+      label: Applicable variants
+      placeholder: "X27 LTE; X25 and Wi-Fi-only unknown"
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Safe validation method
+      description: Explain how another contributor can confirm the finding without unsafe writes.
+    validations:
+      required: true
+  - type: checkboxes
+    id: redaction
+    attributes:
+      label: Data handling
+      options:
+        - label: Evidence is redistributable or linked rather than copied, and contains no personal identifiers, keys, calibration data, or device dumps.
+          required: true

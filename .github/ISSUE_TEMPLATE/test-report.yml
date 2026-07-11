@@ -1,0 +1,58 @@
+name: Hardware test report
+description: Submit reproducible positive or negative test evidence.
+title: "[TEST] "
+labels:
+  - "type: testing"
+  - "hardware: required"
+body:
+  - type: input
+    id: variant
+    attributes:
+      label: Exact device variant
+    validations:
+      required: true
+  - type: textarea
+    id: build
+    attributes:
+      label: Kernel, patch stack, configuration, and toolchain
+    validations:
+      required: true
+  - type: textarea
+    id: artifacts
+    attributes:
+      label: Artifact identities
+      description: Provide filenames and cryptographic hashes, not images or dumps.
+    validations:
+      required: true
+  - type: textarea
+    id: protocol
+    attributes:
+      label: Test protocol and environment
+    validations:
+      required: true
+  - type: input
+    id: cycles
+    attributes:
+      label: Repetition count
+      placeholder: "10 cold boots, 10 warm boots"
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Outcome and deviations
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Redacted evidence links
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety and privacy
+      options:
+        - label: I used a documented recovery path and removed personal identifiers, credentials, keys, calibration data, and device dumps.
+          required: true

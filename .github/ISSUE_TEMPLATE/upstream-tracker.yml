@@ -1,0 +1,57 @@
+name: Upstream patch tracker
+description: Track a patch series from local/RFC through a released kernel.
+title: "[UPSTREAM] "
+labels:
+  - "type: upstream"
+body:
+  - type: input
+    id: topic
+    attributes:
+      label: Patch-series topic
+    validations:
+      required: true
+  - type: input
+    id: target
+    attributes:
+      label: Target tree and maintainers
+    validations:
+      required: true
+  - type: input
+    id: url
+    attributes:
+      label: Public series URL
+      placeholder: "https://lore.kernel.org/..."
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Current revision and base commit
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+  - type: textarea
+    id: feedback
+    attributes:
+      label: Maintainer feedback and next action
+    validations:
+      required: true
+  - type: input
+    id: accepted
+    attributes:
+      label: Accepted commit/tree
+      description: Leave blank until accepted.
+  - type: input
+    id: release
+    attributes:
+      label: First released kernel
+      description: Leave blank until present in a tagged upstream release.
+  - type: textarea
+    id: removal
+    attributes:
+      label: Local patch removal condition
+    validations:
+      required: true

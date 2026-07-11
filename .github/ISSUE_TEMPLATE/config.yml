@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Project discussions
+    url: https://github.com/ixoo/gemini-pda-mainline/discussions
+    about: Ask usage questions or discuss ideas that are not yet actionable issues.
+  - name: Safety and recovery policy
+    url: https://github.com/ixoo/gemini-pda-mainline/blob/main/docs/SAFETY.md
+    about: Read this before flashing or testing on hardware.
+  - name: Sensitive security report
+    url: https://github.com/ixoo/gemini-pda-mainline/security/policy
+    about: Do not publish credentials, identifiers, device dumps, or exploitable security details.
