@@ -1,0 +1,144 @@
+#!/usr/bin/env bash
+
+# Extract the Gemini vendor userspace into a private, Git-ignored local folder.
+
+set -euo pipefail
+export LC_ALL=C
+
+usage() {
+  cat <<'EOF'
+usage: scripts/extract-device-userspace --target USER@HOST [options]
+
+Options:
+  --target USER@HOST  SSH target (or set GEMINI_SSH_TARGET)
+  --output DIR        Destination below a Git-ignored path
+  --vendor-only       Exclude native Gemian compatibility packages
+  --dry-run           List selected remote paths without copying
+  -h, --help          Show this help
+
+The default destination is:
+  artifacts/device-userspace/YYYYMMDDTHHMMSSZ/
+
+The extractor is read-only on the device. It never reads NVRAM, calibration,
+protection partitions, user data, block devices, or firmware partitions.
+EOF
+}
+
+die() {
+  printf 'error: %s\n' "$*" >&2
+  exit 1
+}
+
+readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+readonly LIST_HELPER="${REPO_ROOT}/experiments/2026-07-11-gemian-hardware-userspace-inventory/scripts/list-extract-files.sh"
+
+target="${GEMINI_SSH_TARGET:-}"
+output=""
+mode="all"
+dry_run=false
+
+while (($#)); do
+  case "$1" in
+    --target)
+      (($# >= 2)) || die "--target requires USER@HOST"
+      target="$2"
+      shift 2
+      ;;
+    --output)
+      (($# >= 2)) || die "--output requires a directory"
+      output="$2"
+      shift 2
+      ;;
+    --vendor-only)
+      mode="vendor-only"
+      shift
+      ;;
+    --dry-run)
+      dry_run=true
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      die "unknown argument: $1"
+      ;;
+  esac
+done
+
+[[ -n "${target}" ]] || die "provide --target USER@HOST or GEMINI_SSH_TARGET"
+[[ -r "${LIST_HELPER}" ]] || die "missing extraction-list helper: ${LIST_HELPER}"
+
+if [[ -z "${output}" ]]; then
+  output="${REPO_ROOT}/artifacts/device-userspace/$(date -u +%Y%m%dT%H%M%SZ)"
+elif [[ "${output}" != /* ]]; then
+  output="${REPO_ROOT}/${output}"
+fi
+
+mkdir -p "${output}"
+output="$(cd "${output}" && pwd)"
+
+git -C "${REPO_ROOT}" check-ignore -q "${output}" \
+  || die "destination is not ignored by Git: ${output}"
+
+if find "${output}" -mindepth 1 -maxdepth 1 -print -quit | grep -q .; then
+  die "destination is not empty: ${output}"
+fi
+
+readonly FILE_LIST="${output}/FILES.nul"
+
+printf 'Discovering files on %s...\n' "${target}"
+ssh -o BatchMode=yes -o ConnectTimeout=10 "${target}" "bash -s -- ${mode}" \
+  < "${LIST_HELPER}" > "${FILE_LIST}"
+
+file_count="$(tr -cd '\000' < "${FILE_LIST}" | wc -c | tr -d ' ')"
+[[ "${file_count}" != 0 ]] || die "remote selection was empty"
+printf 'Selected %s files and symbolic links.\n' "${file_count}"
+
+if [[ "${dry_run}" == true ]]; then
+  tr '\000' '\n' < "${FILE_LIST}"
+  rm -f "${FILE_LIST}"
+  rmdir "${output}" 2>/dev/null || true
+  exit 0
+fi
+
+printf 'Extracting to %s...\n' "${output}"
+ssh -o BatchMode=yes -o ConnectTimeout=10 "${target}" \
+  'cd / && tar --null --no-recursion -T - -cf -' \
+  < "${FILE_LIST}" \
+  | tar -xf - -C "${output}"
+
+(
+  cd "${output}"
+  find . -type f ! -name FILES.nul ! -name FILES.sha256 ! -name SOURCE.txt \
+    -exec shasum -a 256 {} + \
+    | sort -k2 > FILES.sha256
+  find . -type l -exec ls -ld {} + | sort -k9 > SYMLINKS.txt
+)
+
+{
+  printf 'source=%s\n' "${target}"
+  printf 'collected_at_utc=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  printf 'mode=%s\n' "${mode}"
+  printf 'selected_entries=%s\n' "${file_count}"
+  printf 'collector=%s\n' "scripts/extract-device-userspace"
+} > "${output}/SOURCE.txt"
+
+chmod -R go-rwx "${output}"
+
+printf 'Verifying extracted files...\n'
+(
+  cd "${output}"
+  shasum -a 256 -c FILES.sha256 >/dev/null
+)
+
+readonly ARTIFACT_ROOT="${REPO_ROOT}/artifacts/device-userspace"
+if [[ "$(dirname "${output}")" == "${ARTIFACT_ROOT}" && "$(basename "${output}")" != latest ]]; then
+  ln -sfn "$(basename "${output}")" "${ARTIFACT_ROOT}/latest"
+  printf 'Stable link: %s/latest\n' "${ARTIFACT_ROOT}"
+fi
+
+printf 'Done. Private extraction: %s\n' "${output}"
+printf 'Manifest: %s/FILES.sha256\n' "${output}"

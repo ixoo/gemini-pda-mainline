@@ -5,6 +5,9 @@ This matrix separates what runs on real hardware from what exists upstream. A co
 Detailed component facts and provenance belong in the
 [hardware knowledge base](hardware/README.md). Reproducible investigations and
 their associated code belong in [`experiments/`](../experiments/README.md).
+The [Gemian hardware baseline](hardware/gemini-gemian-baseline.md) records
+vendor-kernel component and wiring evidence without promoting it to current
+mainline runtime support.
 
 ## State definitions
 

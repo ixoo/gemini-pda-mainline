@@ -4,6 +4,16 @@ This directory is the canonical record of Gemini PDA hardware facts. It expands
 the concise [hardware support matrix](../HARDWARE_SUPPORT.md) without conflating
 component identity with runtime support.
 
+## Inventory
+
+- [Gemini PDA Gemian hardware baseline](gemini-gemian-baseline.md) — sanitized,
+  read-only observations from the 2019 vendor kernel on one physical device.
+- [Firmware boundary](firmware.md) — installed vendor blobs, observed load
+  evidence, private-artifact policy, and protected exclusions.
+- [Gemian hardware-specific userspace](vendor-userspace.md) — Android HALs,
+  MediaTek services/libraries, native compatibility bridges, and mainline
+  migration implications.
+
 ## What belongs here
 
 Create one focused Markdown document per stable subject, such as a device

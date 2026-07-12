@@ -5,6 +5,15 @@ software-visible hardware. The write-up, probe code, and sanitized evidence for
 an investigation stay together so another contributor can repeat or challenge
 the result.
 
+## Index
+
+- [2026-07-11 Gemian hardware inventory](2026-07-11-gemian-hardware-inventory/README.md)
+  — read-only whole-device discovery baseline and reusable collector.
+- [2026-07-11 Gemian firmware inventory](2026-07-11-gemian-firmware-inventory/README.md)
+  — private vendor-firmware capture, sanitized hashes, and load evidence.
+- [2026-07-11 Gemian hardware-userspace inventory](2026-07-11-gemian-hardware-userspace-inventory/README.md)
+  — Android HAL, vendor library/daemon, and native compatibility-boundary map.
+
 ## Layout
 
 Create a directory named with the start date and a short subject:

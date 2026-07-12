@@ -35,6 +35,9 @@ configuration, safe tooling, hardware knowledge, and reproducible evidence.
 - Redact serials, IMEI values, keys, calibration data, credentials, and personal
   identifiers. Do not commit firmware, partition dumps, proprietary source or
   documents, or other material without verified redistribution rights.
+- Use `scripts/extract-device-userspace --target USER@HOST` only for private
+  local analysis. Its output must remain under a Git-ignored, access-restricted
+  path and must never be staged without a file-by-file license review.
 
 ## Safety and validation
 
