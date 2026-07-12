@@ -22,6 +22,7 @@ Commands:
   start                 Start an existing VM
   stop                  Stop the VM
   shell                 Open an interactive guest shell
+  re-shell              Open a shell in the extracted vendor payload
   run COMMAND...        Run a command in the guest
   provision             Re-run system and user provisioning
   doctor                Validate the host and guest setup
@@ -116,11 +117,32 @@ doctor() {
     command -v dtc >/dev/null
     command -v pahole >/dev/null
     command -v dt-doc-validate >/dev/null
+    command -v gdb-multiarch >/dev/null
+    command -v r2 >/dev/null
+    command -v rabin2 >/dev/null
+    command -v eu-readelf >/dev/null
+    command -v qemu-arm-static >/dev/null
+    command -v qemu-aarch64-static >/dev/null
+    command -v apktool >/dev/null
+    command -v binwalk >/dev/null
+    command -v yara >/dev/null
+    command -v ghidra-analyze >/dev/null
+    test -x "$HOME/.local/opt/ghidra_12.1.2_PUBLIC/Ghidra/Features/Decompiler/build/os/linux_arm_64/decompile"
     printf "Guest: %s %s\n" "$(. /etc/os-release; printf %s "$PRETTY_NAME")" "$(uname -m)"
     printf "Tools: make=%s dtc=%s dtschema=%s\n" \
       "$(make --version | head -n 1)" \
       "$(dtc --version)" \
       "$("$HOME/.local/share/venvs/dtschema/bin/python" -m pip show dtschema | awk "/^Version:/ { print \$2 }")"
+    printf "RE:    gdb=%s radare2=%s Ghidra=%s\n" \
+      "$(gdb-multiarch --version | head -n 1)" \
+      "$(r2 -v | head -n 1)" \
+      "$(awk -F= "/^application.version=/ { print \$2 }" "$HOME/.local/opt/ghidra_12.1.2_PUBLIC/Ghidra/application.properties")"
+    if test -r /mnt/gemini-pda-mainline/artifacts/device-userspace/latest/FILES.sha256; then
+      test -r "$HOME/reverse-engineering/gemini-vendor/FILES.sha256"
+      printf "Payload: %s\n" "$HOME/reverse-engineering/gemini-vendor"
+    else
+      printf "Payload: not extracted on host; run scripts/extract-device-userspace\n"
+    fi
   '
 }
 
@@ -170,6 +192,14 @@ case "${COMMAND}" in
     # shellcheck disable=SC2016
     exec limactl shell --workdir=/tmp "${INSTANCE}" -- \
       bash -lc 'cd "$HOME" && exec "${SHELL:-/bin/bash}" -l'
+    ;;
+  re-shell)
+    require_lima
+    start_vm
+    # HOME and SHELL are expanded by the guest shell.
+    # shellcheck disable=SC2016
+    exec limactl shell --workdir=/tmp "${INSTANCE}" -- \
+      bash -lc 'test -d "$HOME/reverse-engineering/gemini-vendor" || { echo "vendor payload unavailable; run scripts/extract-device-userspace on the host" >&2; exit 1; }; cd "$HOME/reverse-engineering/gemini-vendor" && exec "${SHELL:-/bin/bash}" -l'
     ;;
   run)
     require_lima

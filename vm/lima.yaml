@@ -50,7 +50,11 @@ probes:
       command -v make >/dev/null
       command -v dtc >/dev/null
       command -v pahole >/dev/null
+      command -v gdb-multiarch >/dev/null
+      command -v r2 >/dev/null
+      command -v binwalk >/dev/null
       test -x "$HOME/.local/bin/dt-doc-validate"
+      test -x "$HOME/.local/bin/ghidra-analyze"
     hint: |
       Provisioning did not finish successfully. Inspect the guest log with:
         ./scripts/dev-vm run sudo tail -n 200 /var/log/cloud-init-output.log
@@ -59,4 +63,5 @@ message: |
   Gemini PDA development VM is ready.
   Host repository (read-only): /mnt/gemini-pda-mainline
   Guest workspaces:             ~/src, ~/build, ~/artifacts
+  Reverse-engineering payload:  ~/reverse-engineering/gemini-vendor
   Enter the VM with:            ./scripts/dev-vm shell

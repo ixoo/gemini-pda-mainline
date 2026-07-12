@@ -38,6 +38,9 @@ configuration, safe tooling, hardware knowledge, and reproducible evidence.
 - Use `scripts/extract-device-userspace --target USER@HOST` only for private
   local analysis. Its output must remain under a Git-ignored, access-restricted
   path and must never be staged without a file-by-file license review.
+- Run `./scripts/dev-vm re-shell` for binary analysis. Treat
+  `~/reverse-engineering/gemini-vendor` as immutable evidence and store Ghidra,
+  Radare2, and other analysis databases in guest-owned work directories.
 
 ## Safety and validation
 

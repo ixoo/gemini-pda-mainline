@@ -48,6 +48,9 @@ variables later does not resize an existing instance.
 # Enter an interactive Linux shell.
 ./scripts/dev-vm shell
 
+# Enter directly in the private vendor-binary extraction.
+./scripts/dev-vm re-shell
+
 # Run one Linux command from macOS.
 ./scripts/dev-vm run uname -a
 
@@ -69,6 +72,42 @@ The guest creates these directories:
 
 The project checkout is available as both `/mnt/gemini-pda-mainline` and the
 `~/gemini-pda-mainline-host` symlink. It is intentionally not writable.
+
+## Reverse engineering
+
+Run the host-side extraction first, then reprovision the VM:
+
+```sh
+./scripts/extract-device-userspace --target gemini@DEVICE
+./scripts/dev-vm provision
+./scripts/dev-vm re-shell
+```
+
+The private, Git-ignored payload is exposed read-only at
+`~/reverse-engineering/gemini-vendor`. Analysis notes and generated databases
+should go in a separate guest-owned directory such as
+`~/reverse-engineering/work/`; tools cannot modify the source extraction.
+
+Provisioned tools include:
+
+- Ghidra 12.1.2 headless, pinned by the official release SHA-256 with native
+  Linux ARM64 components built during provisioning, running on OpenJDK 21;
+- Radare2, GDB multiarch, AArch64/ARM32 binutils, elfutils, Capstone, checksec,
+  patchelf, pax-utils, strace, and ltrace;
+- QEMU AArch64/ARM user-mode emulation and an ARMHF cross libc;
+- APKTool, AAPT, Android build tools, and ADB for Android formats;
+- Binwalk, YARA, ssdeep/hashdeep, Sleuth Kit, Foremost, archive/compression
+  tools, SQLite, and fast text/hex inspection utilities;
+- Python bindings for ELF parsing, Capstone disassembly, and Unicorn emulation.
+
+Ghidra is wired as `ghidra-analyze` for headless projects and `ghidra` for the
+GUI launcher. The VM does not configure a graphical display by default, so
+headless analysis is the reproducible path. Ghidra's local project databases
+must be created under the guest filesystem, not the read-only payload mount.
+The version and digest come from the
+[official Ghidra 12.1.2 release](https://github.com/NationalSecurityAgency/ghidra/releases/tag/Ghidra_12.1.2_build),
+and provisioning follows the project's
+[Linux ARM64 native-build guidance](https://github.com/NationalSecurityAgency/ghidra/blob/master/GhidraDocs/GettingStarted.md).
 
 ## Build the patched stable kernel
 
