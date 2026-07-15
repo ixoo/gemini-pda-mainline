@@ -10,6 +10,11 @@ component identity with runtime support.
   read-only observations from the 2019 vendor kernel on one physical device.
 - [Firmware boundary](firmware.md) — installed vendor blobs, observed load
   evidence, private-artifact policy, and protected exclusions.
+- [Private MMC partition captures](partition-backup.md) — read-only,
+  checksummed partition backup tooling and the handling boundary for raw device
+  state.
+- [MMC partition backup experiment](../../experiments/2026-07-14-mmc-partition-backup/README.md)
+  — inventory and provenance for the private all-partition capture.
 - [Gemian hardware-specific userspace](vendor-userspace.md) — Android HALs,
   MediaTek services/libraries, native compatibility bridges, and mainline
   migration implications.

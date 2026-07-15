@@ -1,0 +1,342 @@
+#!/usr/bin/env bash
+
+# Read every discoverable MMC partition into a private, Git-ignored artifact.
+# This script never opens the whole MMC disk node and never writes to the
+# device. Partition contents can contain credentials, identifiers, calibration
+# data, firmware, and user data; keep the output private and encrypted.
+
+set -euo pipefail
+export LC_ALL=C
+umask 077
+
+usage() {
+  cat <<'EOF'
+usage: scripts/backup-device-mmc --target USER@HOST --all --confirm-read [options]
+
+Options:
+  --target USER@HOST       SSH target (or set GEMINI_SSH_TARGET)
+  --output DIR             Destination below a Git-ignored path
+  --sudo-password-file F   Local mode-0600 file containing the device sudo password
+  --sudo-password-stdin   Read one sudo password line from stdin (not stored)
+  --all                    Select every MMC partition node, including userdata,
+                           protected partitions, eMMC boot areas, and RPMB
+  --confirm-read           Required before any partition bytes are copied
+  --dry-run                Discover and print the inventory without copying
+  -h, --help               Show this help
+
+The default destination is:
+  artifacts/device-partitions/YYYYMMDDTHHMMSSZ/
+
+The script is read-only on the device. It captures named partition nodes such
+as /dev/mmcblk0p1 and /dev/mmcblk0boot0, but deliberately never captures the
+whole-disk /dev/mmcblk0 node. A failed or short read is retained as a .partial
+file and marked in MANIFEST.tsv; it must not be used as a complete image.
+
+Without --dry-run, both --all and --confirm-read are required. This prevents a
+new operator from accidentally copying private user data or protected state.
+EOF
+}
+
+die() {
+  printf 'error: %s\n' "$*" >&2
+  exit 1
+}
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly SCRIPT_DIR
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+readonly REPO_ROOT
+readonly LOCAL_IDENTITY="${REPO_ROOT}/artifacts/credentials/gemini_ed25519"
+
+target="${GEMINI_SSH_TARGET:-}"
+output=""
+sudo_password_file=""
+sudo_password_stdin=false
+all_partitions=false
+confirm_read=false
+dry_run=false
+
+while (($#)); do
+  case "$1" in
+    --target)
+      (($# >= 2)) || die "--target requires USER@HOST"
+      target="$2"
+      shift 2
+      ;;
+    --output)
+      (($# >= 2)) || die "--output requires a directory"
+      output="$2"
+      shift 2
+      ;;
+    --sudo-password-file)
+      (($# >= 2)) || die "--sudo-password-file requires a local file"
+      sudo_password_file="$2"
+      shift 2
+      ;;
+    --sudo-password-stdin)
+      sudo_password_stdin=true
+      shift
+      ;;
+    --all)
+      all_partitions=true
+      shift
+      ;;
+    --confirm-read)
+      confirm_read=true
+      shift
+      ;;
+    --dry-run)
+      dry_run=true
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      die "unknown argument: $1"
+      ;;
+  esac
+done
+
+[[ -n "${target}" ]] || die "provide --target USER@HOST or GEMINI_SSH_TARGET"
+
+if [[ -z "${output}" ]]; then
+  output="${REPO_ROOT}/artifacts/device-partitions/$(date -u +%Y%m%dT%H%M%SZ)"
+elif [[ "${output}" != /* ]]; then
+  output="${REPO_ROOT}/${output}"
+fi
+
+if [[ -n "${sudo_password_file}" && "${sudo_password_stdin}" == true ]]; then
+  die "choose only one of --sudo-password-file and --sudo-password-stdin"
+elif [[ "${sudo_password_stdin}" == true ]]; then
+  if [[ -t 0 ]]; then
+    printf 'sudo password: ' >&2
+    IFS= read -r -s sudo_password
+    printf '\n' >&2
+  else
+    IFS= read -r sudo_password || true
+  fi
+  [[ -n "${sudo_password}" ]] || die "sudo password read from stdin is empty"
+elif [[ -n "${sudo_password_file}" ]]; then
+  [[ -f "${sudo_password_file}" ]] || die "sudo password file is not a regular file"
+  password_mode="$(stat -f '%Lp' "${sudo_password_file}" 2>/dev/null || stat -c '%a' "${sudo_password_file}")"
+  [[ "${password_mode}" == "600" ]] || die "sudo password file must have mode 0600"
+  IFS= read -r sudo_password < "${sudo_password_file}" || true
+  [[ -n "${sudo_password}" ]] || die "sudo password file is empty"
+else
+  sudo_password=""
+fi
+
+ssh_options=(
+  -o BatchMode=yes
+  -o ConnectTimeout=10
+  -o ServerAliveInterval=5
+  -o ServerAliveCountMax=60
+)
+if [[ -r "${LOCAL_IDENTITY}" ]]; then
+  ssh_options+=(
+    -o IdentitiesOnly=yes
+    -o IdentityAgent=none
+    -i "${LOCAL_IDENTITY}"
+  )
+fi
+
+mkdir -p "${output}"
+output="$(cd "${output}" && pwd)"
+git -C "${REPO_ROOT}" check-ignore -q "${output}" \
+  || die "destination is not ignored by Git: ${output}"
+
+if find "${output}" -mindepth 1 -maxdepth 1 -print -quit | grep -q .; then
+  die "destination is not empty: ${output}"
+fi
+
+readonly LOG_FILE="${output}/collector.log"
+readonly REMOTE_INVENTORY="${output}/REMOTE_INVENTORY.tsv"
+readonly MANIFEST="${output}/MANIFEST.tsv"
+
+# Run a root-owned, text-producing script on the device. When a password file
+# is supplied, sudo consumes exactly the first line and sh consumes the rest
+# of stdin as its script. No password is placed in an argument or log.
+remote_root_script() {
+  if [[ -n "${sudo_password}" ]]; then
+    {
+      printf '%s\n' "${sudo_password}"
+      cat
+    } | ssh "${ssh_options[@]}" "${target}" 'sudo -S -p "" -- sh -s'
+  else
+    ssh "${ssh_options[@]}" "${target}" 'sudo -n -- sh -s'
+  fi
+}
+
+printf 'Discovering MMC partition nodes on %s...\n' "${target}"
+if ! remote_root_script > "${REMOTE_INVENTORY}" 2>>"${LOG_FILE}" <<'REMOTE_INVENTORY_SCRIPT'
+set -eu
+
+# The whole-disk nodes (mmcblkN) are intentionally excluded. The patterns
+# include numbered GPT partitions, eMMC boot hardware partitions, and RPMB.
+for sysdev in /sys/class/block/mmcblk*; do
+    [ -e "${sysdev}" ] || continue
+    name=${sysdev##*/}
+    case "${name}" in
+        mmcblk[0-9]*p[0-9]*|mmcblk[0-9]*boot[0-1]|mmcblk[0-9]*rpmb) ;;
+        *) continue ;;
+    esac
+    [ -b "/dev/${name}" ] || continue
+
+    bytes=$(blockdev --getsize64 "/dev/${name}" 2>/dev/null || true)
+    case "${bytes}" in
+        ''|*[!0-9]*) continue ;;
+    esac
+
+    read_only=$(cat "${sysdev}/ro" 2>/dev/null || printf '?')
+    partlabel=''
+    for link in /dev/disk/by-partlabel/*; do
+        [ -e "${link}" ] || continue
+        resolved=$(readlink -f "${link}" 2>/dev/null || true)
+        if [ "${resolved}" = "/dev/${name}" ]; then
+            partlabel=${link##*/}
+            break
+        fi
+    done
+    # Labels are metadata, not shell input. Keep the TSV unambiguous if a
+    # vendor ever uses whitespace in one.
+    partlabel=$(printf '%s' "${partlabel}" | tr '\t\r\n' '___')
+    printf '%s\t%s\t%s\t%s\n' "${name}" "${bytes}" "${partlabel}" "${read_only}"
+done | sort
+REMOTE_INVENTORY_SCRIPT
+then
+  die "MMC inventory failed; see ${LOG_FILE}"
+fi
+
+inventory="$(cat "${REMOTE_INVENTORY}")"
+[[ -n "${inventory}" ]] || die "no MMC partition nodes were discovered"
+
+printf 'Discovered partition inventory:\n'
+printf 'device\tbytes\tpartlabel\tread_only\n'
+printf '%s\n' "${inventory}" | sed 's/^/  /'
+
+if [[ "${dry_run}" == true ]]; then
+  printf 'Dry run complete; no partition bytes were copied.\n'
+  exit 0
+fi
+
+[[ "${all_partitions}" == true ]] \
+  || die "refusing to copy without --all (use --dry-run to inspect the inventory)"
+[[ "${confirm_read}" == true ]] \
+  || die "refusing to copy without --confirm-read (partition contents are private)"
+
+file_size() {
+  if stat -c '%s' "$1" >/dev/null 2>&1; then
+    stat -c '%s' "$1"
+  else
+    stat -f '%z' "$1"
+  fi
+}
+
+read_partition() {
+  local name="$1"
+  local destination="$2"
+  local command="sudo -n -- sh -c 'dd if=/dev/${name} bs=4M iflag=fullblock status=none | gzip -1'"
+
+  if [[ -n "${sudo_password}" ]]; then
+    command="sudo -S -p \"\" -- sh -c 'dd if=/dev/${name} bs=4M iflag=fullblock status=none | gzip -1'"
+    # command is intentionally expanded locally into the remote command;
+    # gzip is transport-only and the local file is decompressed raw bytes.
+    # shellcheck disable=SC2029
+    printf '%s\n' "${sudo_password}" |
+      ssh "${ssh_options[@]}" "${target}" "${command}" 2>>"${LOG_FILE}" |
+      gzip -d > "${destination}" 2>>"${LOG_FILE}"
+  else
+    # command is intentionally expanded locally into the remote command;
+    # gzip is transport-only and the local file is decompressed raw bytes.
+    # shellcheck disable=SC2029
+    ssh "${ssh_options[@]}" "${target}" "${command}" 2>>"${LOG_FILE}" |
+      gzip -d > "${destination}" 2>>"${LOG_FILE}"
+  fi
+}
+
+printf 'device\texpected_bytes\tactual_bytes\tpartlabel\tread_only\timage\tstatus\tsha256\n' > "${MANIFEST}"
+partition_count=0
+success_count=0
+failure_count=0
+
+while IFS=$'\t' read -r name expected_bytes partlabel read_only; do
+  [[ -n "${name}" ]] || continue
+  [[ "${name}" =~ ^mmcblk[0-9]+(p[0-9]+|boot[01]|rpmb)$ ]] \
+    || die "unexpected remote partition name: ${name}"
+  [[ "${expected_bytes}" =~ ^[0-9]+$ ]] \
+    || die "invalid size for /dev/${name}: ${expected_bytes}"
+
+  ((partition_count += 1))
+  image="${name}.img"
+  partial="${image}.partial"
+  printf '[%d] Reading /dev/%s (%s bytes)...\n' "${partition_count}" "${name}" "${expected_bytes}"
+
+  status="read-error"
+  actual_bytes=0
+  sha256=''
+  rm -f "${output}/${image}" "${output}/${partial}"
+  if read_partition "${name}" "${output}/${partial}"; then
+    actual_bytes="$(file_size "${output}/${partial}")"
+    if [[ "${actual_bytes}" == "${expected_bytes}" ]]; then
+      mv "${output}/${partial}" "${output}/${image}"
+      sha256="$(shasum -a 256 "${output}/${image}" | awk '{print $1}')"
+      status="ok"
+      ((success_count += 1))
+    else
+      status="short-read"
+      ((failure_count += 1))
+    fi
+  else
+    if [[ -e "${output}/${partial}" ]]; then
+      actual_bytes="$(file_size "${output}/${partial}")"
+      if ((actual_bytes > 0)); then
+        sha256="$(shasum -a 256 "${output}/${partial}" | awk '{print $1}')"
+      fi
+    fi
+    ((failure_count += 1))
+  fi
+  if [[ "${status}" != ok ]]; then
+    image="${partial}"
+  fi
+  printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+    "${name}" "${expected_bytes}" "${actual_bytes}" "${partlabel}" \
+    "${read_only}" "${image}" "${status}" "${sha256}" >> "${MANIFEST}"
+done <<< "${inventory}"
+
+{
+  printf 'source_target=%s\n' "${target}"
+  printf 'collected_at_utc=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  printf 'collector=%s\n' "scripts/backup-device-mmc"
+  printf 'scope=MMC partition nodes only; whole-disk nodes were excluded\n'
+  printf 'transport=gzip stream; local image files are uncompressed raw bytes\n'
+  printf 'partition_nodes=%s\n' "${partition_count}"
+  printf 'successful_images=%s\n' "${success_count}"
+  printf 'failed_or_short_reads=%s\n' "${failure_count}"
+  printf 'warning=private raw state; do not publish or commit this directory\n'
+} > "${output}/SOURCE.txt"
+
+cat > "${output}/README.txt" <<'EOF'
+This directory contains a private, read-only MMC partition capture.
+
+MANIFEST.tsv maps each remote block node to its expected and captured byte
+counts, partition label, image filename, status, and SHA-256. Only rows with
+status=ok are complete images. A .partial file is retained when a read fails
+or returns fewer bytes than the remote block-device size.
+
+The whole-disk node was deliberately excluded. These files may contain IMEI,
+serial numbers, MAC addresses, keys, calibration, proprietary firmware,
+credentials, filesystem metadata, and user data. Keep them encrypted and do
+not attach them to issues or commit them to Git.
+EOF
+
+chmod -R go-rwx "${output}"
+shasum -a 256 "${MANIFEST}" > "${MANIFEST}.sha256"
+printf 'Capture complete: %s successful, %s failed/short, %s total.\n' \
+  "${success_count}" "${failure_count}" "${partition_count}"
+printf 'Manifest: %s\n' "${MANIFEST}"
+if ((failure_count > 0)); then
+  printf 'warning: inspect %s and collector.log before using the capture.\n' "${MANIFEST}" >&2
+  exit 2
+fi
