@@ -20,9 +20,10 @@ That command performs the complete workflow inside the ARM64 development VM:
 4. creates a managed source tree on the guest ext4 filesystem;
 5. applies every patch named in `patches/series`, in order;
 6. starts from arm64 `defconfig` and merges the project fragments;
-7. builds `Image` and all arm64 DTBs out-of-tree;
-8. packages the Image, MediaTek DTBs, configuration, provenance, and checksums
-   under `~/artifacts/gemini-pda/`.
+7. builds `Image`, the LK-compatible gzip-compressed `Image.gz`, and all arm64
+   DTBs out-of-tree;
+8. packages both kernel forms, the MediaTek DTBs, configuration, provenance,
+   and checksums under `~/artifacts/gemini-pda/`.
 
 The download, source, build, and artifact locations never live in the macOS
 checkout. Print their exact guest paths with:
@@ -67,6 +68,12 @@ fragments. The current fragment is `configs/gemini.fragment`. Add a symbol with
 the patch that requires it. Kernel `merge_config.sh` reports redundant or
 overridden values, and `olddefconfig` resolves new dependencies.
 
+The Gemini fragment also disables EFI, ACPI, virtualization/Xen, SCSI, and ATA
+for this DT-only Android/LK handoff. Those host-oriented stacks are not part of
+the device boot contract and keeping them out of the built-in image leaves room
+under the MT6797 LK platform's fixed 50 MiB decompression buffer. This is a
+Gemini packaging constraint, not an upstream arm64 default.
+
 ## Individual stages
 
 ```sh
@@ -80,8 +87,53 @@ overridden values, and `olddefconfig` resolves new dependencies.
 The manifest remains pinned until reviewed and changed in Git. `check-latest`
 only compares it to kernel.org; it never changes build inputs automatically.
 
-Set `BUILD_MODULES=1` inside a guest shell when modules are needed. The default
-early-bring-up build produces the uncompressed arm64 Image and DTBs only.
+Set `BUILD_MODULES=1` inside a guest shell when modules are needed. The
+resulting package contains them below `modules/lib/modules/<release>/` and
+records `modules_built=true` in `provenance/build.json`. Linux 7.1.3
+builds `Image.gz` as an explicit arm64 boot target; no `CONFIG_KERNEL_GZIP`
+symbol is required. The package retains the uncompressed arm64 `Image` for
+inspection and generic loaders, plus `Image.gz` for the retained Planet LK
+handoff. The Android 8 LK source selects
+its 64-bit path from `bootopt`, scans the compressed kernel payload for an
+appended DTB, and calls its gzip decompressor before entering the kernel; a raw
+`Image` is therefore not a valid Gemini LK kernel payload.
+
+Validate the newest package after a build (or pass an explicit guest artifact
+directory):
+
+```sh
+./scripts/dev-vm validate-kernel
+```
+
+The validator checks the complete `SHA256SUMS` manifest, required
+`Image`/`Image.gz`/DTB and provenance files, and the recorded source, patchset,
+and configuration hashes.
+It is an integrity check only; it does not imply that the kernel boots or that
+any peripheral driver works on a device.
+
+For the retained Planet LK handoff, build the non-flashing Android v0 candidate
+only through the VM wrapper documented in [DEV_VM.md](DEV_VM.md):
+`experiments/2026-07-12-boot-contract-recovery/scripts/build-current-lk-candidate.sh`.
+It revalidates the package, creates a byte-reproducible minimal UART initramfs,
+serializes gzip+appended-DTB output, and records parser evidence. The wrapper
+does not select a partition or write hardware; a successful parse is not a
+runtime boot result.
+
+Before treating the series as submission-ready, run the pinned tree's review
+checker over every patch:
+
+```sh
+./scripts/dev-vm run experiments/2026-07-14-patch-quality-audit/scripts/audit-checkpatch.sh
+```
+
+This is a review gate, not a build gate. The current 77-patch audit found
+ten missing sign-offs, 64 warnings, and 18 check-only diagnostics, including
+new binding/driver review items in patch 0075; see the [recorded result](../experiments/2026-07-14-patch-quality-audit/results/checkpatch-current-77-20260714.txt).
+The [review action plan](../experiments/2026-07-14-patch-quality-audit/results/review-action-plan-current-74-20260714.md)
+separates provenance blockers from cleanup work. Do not fabricate sign-offs:
+the actual contributor must provide them before submission. The companion
+[provenance audit](../experiments/2026-07-14-patch-quality-audit/results/patch-provenance-current-77-20260714.txt)
+also rejects placeholder authors and synthetic all-zero patch object IDs.
 
 ## Moving artifacts to the flashing machine
 

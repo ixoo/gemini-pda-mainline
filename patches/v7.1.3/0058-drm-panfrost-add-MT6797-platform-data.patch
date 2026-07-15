@@ -1,0 +1,77 @@
+From 0000000000000000000000000000000000000058 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 13 Jul 2026 06:35:00 -0400
+Subject: [PATCH] drm: panfrost: add MT6797 platform data
+
+The Gemini's runtime GPU identification is Mali-T88x MP4 product 0x0880,
+which is covered by Panfrost's Midgard model code. MT6797 nevertheless has
+four independently described MFG core power domains, so it cannot use the
+single-domain default data without losing part of the vendor resource
+contract.
+
+Describe the four named domains behind an explicit MT6797 compatible. Do not
+add vendor Kbase, GED, SPM-DVFS, reset, or OPP policy here; the Gemini node
+remains disabled until those ownership and voltage contracts are validated.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ Documentation/devicetree/bindings/gpu/arm,mali-midgard.yaml | 7 +++++--
+ drivers/gpu/drm/panfrost/panfrost_drv.c                    | 11 +++++++++++
+ 2 files changed, 19 insertions(+), 2 deletions(-)
+
+diff --git a/Documentation/devicetree/bindings/gpu/arm,mali-midgard.yaml b/Documentation/devicetree/bindings/gpu/arm,mali-midgard.yaml
+--- a/Documentation/devicetree/bindings/gpu/arm,mali-midgard.yaml
++++ b/Documentation/devicetree/bindings/gpu/arm,mali-midgard.yaml
+@@ -57,6 +57,9 @@
+           - enum:
+               - samsung,exynos8890-mali
+           - const: arm,mali-t880
++      - items:
++          - const: mediatek,mt6797-mali
++          - const: arm,mali-t880
+ 
+   reg:
+     maxItems: 1
+@@ -88,7 +91,10 @@
+     type: object
+ 
+-  power-domains:
+-    maxItems: 1
++  power-domains:
++    minItems: 1
++    maxItems: 5
++
++  power-domain-names: true
+ 
+   resets:
+     minItems: 1
+diff --git a/drivers/gpu/drm/panfrost/panfrost_drv.c b/drivers/gpu/drm/panfrost/panfrost_drv.c
+--- a/drivers/gpu/drm/panfrost/panfrost_drv.c
++++ b/drivers/gpu/drm/panfrost/panfrost_drv.c
+@@ -1091,6 +1091,16 @@
+ 	.vendor_quirk = panfrost_gpu_amlogic_quirk,
+ };
+ 
++static const char * const mediatek_mt6797_pm_domains[] = {
++	"core0", "core1", "core2", "core3",
++};
++static const struct panfrost_compatible mediatek_mt6797_data = {
++	.num_supplies = ARRAY_SIZE(default_supplies) - 1,
++	.supply_names = default_supplies,
++	.num_pm_domains = ARRAY_SIZE(mediatek_mt6797_pm_domains),
++	.pm_domain_names = mediatek_mt6797_pm_domains,
++};
++
+ static const char * const mediatek_pm_domains[] = { "core0", "core1", "core2",
+ 						    "core3", "core4" };
+ /*
+@@ -1170,6 +1180,7 @@
+ 	{ .compatible = "arm,mali-t880", .data = &default_data, },
+ 	{ .compatible = "arm,mali-bifrost", .data = &default_data, },
+ 	{ .compatible = "arm,mali-valhall-jm", .data = &default_data, },
++	{ .compatible = "mediatek,mt6797-mali", .data = &mediatek_mt6797_data },
+ 	{ .compatible = "mediatek,mt8183-mali", .data = &mediatek_mt8183_data },
+ 	{ .compatible = "mediatek,mt8183b-mali", .data = &mediatek_mt8183_b_data },
+ 	{ .compatible = "mediatek,mt8186-mali", .data = &mediatek_mt8186_data },
+-- 
+2.43.0

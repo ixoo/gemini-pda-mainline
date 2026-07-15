@@ -1,0 +1,37 @@
+Live Novatek touchscreen identity attempt (read-only)
+
+Device: Gemini/Gemian at `gemini@192.168.1.50`
+Kernel: vendor Linux 3.18.41+
+Transport: I2C4, address 0x62
+
+Observed:
+- `/sys/bus/i2c/devices/4-0062/name` is `cap_touch`.
+- `/sys/bus/i2c/devices/4-0062/driver` resolves to vendor `NVT-ts`.
+- `/dev/i2c-4` is absent, so a userspace register read was not available.
+- `/proc/NVTflash` exists with mode 0444, but the vendor source shows its read
+  handler interprets caller data as an I2C command and a high bit selects a
+  write. It was not opened.
+- The bounded dmesg query emitted no NVT identity or trim-ID line in this
+  sample.
+- A bounded search of readable `/var/log` files (`syslog`, `kern.log`,
+  `messages`, `dmesg`, and `boot.log` when present) also found no retained NVT
+  trim-ID line. The private search output is
+  `artifacts/device-inventory/20260713-live/nvt-log-search.txt`.
+
+Interpretation:
+- The binding and vendor driver are strong live software evidence, but they do
+  not identify the NT36xxx silicon or prove compatibility with Linux's
+  `novatek-nvt-ts` NT11205/NT36672A parameter protocol.
+- The vendor probe returns an identification error when no trim-table entry
+  matches. Therefore the successful `NVT-ts` binding implies that one of the
+  eleven source/ELF-validated masked NT36xxx signatures matched during probe,
+  although the raw six bytes and selected memory map are not retained here.
+- No reset, xdata selection, firmware update, I2C write, client unbind, or
+  hardware state change was attempted.
+
+Next safe gate:
+- Use a separately reviewed, owner-authorized instrumented mainline/vendor
+  probe that can perform only the documented reset/xdata parameter reads. Keep
+  firmware-update work and `/proc/NVTflash` out of the path. If the trim ID is
+  NT36772 or another family absent from the upstream table, add a separate
+  NT36xxx data/backend or driver rather than aliasing `novatek,nt36672a-ts`.

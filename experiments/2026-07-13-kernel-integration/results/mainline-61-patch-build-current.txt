@@ -1,0 +1,18 @@
+Linux 7.1.3 Gemini patched-tree integration build (current)
+
+validation=kernel-artifact
+artifact=linux-7.1.3-gemini-d66ebebb0501
+kernel_release=7.1.3-gemini
+generated_utc=2026-07-13T12:17:18Z
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patch_count=61
+patchset_sha256=d66ebebb05015039f6b408fe949be621c775777c91d5e29b3d96bc8e1eb5e64c
+config_sha256=01f1ce5e6f1a64d29d72e3e01c88cbe0a8f769a10b226f0b79cbbc4d92206b59
+dtb_count=119
+sha256sums=passed
+patch_application=passed
+gemini_dtb=present
+thermal_fallback_vts_initialization=MAX_NUM_VTS_including_VTSABB
+hardware_write=none
+
+scope=source_preparation_configuration_compilation_packaging_and_integrity_only;no_device_boot_or_runtime_driver_validation

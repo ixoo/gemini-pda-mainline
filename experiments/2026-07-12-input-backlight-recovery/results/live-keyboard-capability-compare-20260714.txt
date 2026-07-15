@@ -1,0 +1,56 @@
+validation=live-keyboard-capability-vs-source-map
+generated_utc=2026-07-14T22:16:21Z
+device=Gemini_PDA_running_Gemian
+live_kernel=3.18.41+
+live_kernel_build=Linux_version_3.18.41+_(dguidi@nowhere)_(gcc_6.3.0)_#7_SMP_PREEMPT_Fri_Mar_29_10:39:03_GMT_2019
+vendor_source_commit=c5b0be85017ad0c599725e8273842efdbecdd88a
+vendor_source_commit_date=2019-04-02T13:17:08+01:00
+source_header=include/uapi/linux/input.h
+source_header_sha256=474dab5a0dcbf646c084442531faba58d98c375132381f3fbe385f053502d665
+vendor_source_capability_anchor_fn=drivers/misc/mediatek/aw9523/aw9523_key.c:788
+vendor_source_capability_anchor_unknown=drivers/misc/mediatek/aw9523/aw9523_key.c:797
+mainline_header=include/uapi/linux/input-event-codes.h
+mainline_header_sha256=0aa175af6b02a096e7dc172bd31e81d499eba9083777515e8c20aa915ab79dec
+capture=artifacts/device-inventory/20260714T215934Z-input-refresh/input-backlight.txt
+capture_sha256=947fb4a1cd850002d954f637522c97901e3b94faef20681ce530a286b3d50a5c
+collector=experiments/2026-07-12-input-backlight-recovery/scripts/collect-live-input-backlight.sh
+capability_decoder=experiments/2026-07-12-input-backlight-recovery/scripts/decode-input-capabilities.py
+capability_decoder_sha256=200153ccb5fe24f4fd6f870a41394bd4c67e4798ee26aa6249ef39d0ea9a62cb
+keymap=experiments/2026-07-12-input-backlight-recovery/results/keyboard-keymap.txt
+keymap_sha256=ea088dbe2f7b9a78fd7805611d27e1ac0384e451a8559b68473b4415bee6e6ee
+input_device=Integrated_keyboard
+input_node=input2
+sysfs_bitmap_order=most_significant_word_first;decoder_reverses_words
+observed_code_count=53
+observed_codes=KEY_1;KEY_2;KEY_3;KEY_4;KEY_5;KEY_6;KEY_7;KEY_8;KEY_9;KEY_0;KEY_BACKSPACE;KEY_TAB;KEY_Q;KEY_W;KEY_E;KEY_R;KEY_T;KEY_Y;KEY_U;KEY_I;KEY_O;KEY_P;KEY_ENTER;KEY_LEFTCTRL;KEY_A;KEY_S;KEY_D;KEY_F;KEY_G;KEY_H;KEY_J;KEY_K;KEY_L;KEY_APOSTROPHE;KEY_LEFTSHIFT;KEY_Z;KEY_X;KEY_C;KEY_V;KEY_B;KEY_N;KEY_M;KEY_COMMA;KEY_DOT;KEY_RIGHTSHIFT;KEY_LEFTALT;KEY_SPACE;KEY_UP;KEY_LEFT;KEY_RIGHT;KEY_DOWN;KEY_LEFTMETA;KEY_UNKNOWN
+source_matrix_assigned_count=52
+source_matrix_unknown_positions=4
+source_assigned_codes=KEY_0;KEY_1;KEY_2;KEY_3;KEY_4;KEY_5;KEY_6;KEY_7;KEY_8;KEY_9;KEY_A;KEY_APOSTROPHE;KEY_B;KEY_BACKSPACE;KEY_C;KEY_COMMA;KEY_D;KEY_DOT;KEY_DOWN;KEY_E;KEY_ENTER;KEY_F;KEY_FN;KEY_G;KEY_H;KEY_I;KEY_J;KEY_K;KEY_L;KEY_LEFT;KEY_LEFTALT;KEY_LEFTCTRL;KEY_LEFTSHIFT;KEY_M;KEY_N;KEY_O;KEY_P;KEY_Q;KEY_R;KEY_RIGHT;KEY_RIGHTSHIFT;KEY_S;KEY_SPACE;KEY_T;KEY_TAB;KEY_U;KEY_UP;KEY_V;KEY_W;KEY_X;KEY_Y;KEY_Z
+observed_not_in_source_assigned=KEY_LEFTMETA;KEY_UNKNOWN
+source_assigned_not_observed=KEY_FN
+vendor_source_capability_count=53
+vendor_source_not_observed=KEY_FN
+observed_not_in_vendor_source=KEY_LEFTMETA
+vendor_source_capability_anchors=drivers/misc/mediatek/aw9523/aw9523_key.c:754-797
+xkb_modifier=key_<LWIN>_maps_to_ISO_Level3_Shift
+xkb_file=/usr/share/X11/xkb/symbols/planet_vndr/gemini
+runtime_event_test=not_attempted
+hardware_write=none
+
+active_boot_elf_sha256=cc66df06194d3315335462760962165e1dcb2e50221574aeb45a0805bb17a162
+active_boot_elf_map_result=physical_(row=4,col=3)_compiled_as_KEY_LEFTMETA;four_(row=7,col=3..6)_compiled_as_KEY_UNKNOWN
+active_boot_elf_capability_result=KEY_LEFTMETA_and_KEY_UNKNOWN_present;KEY_FN_absent
+active_boot_elf_provenance_result=compiled_active_image_matches_live_build_string
+source_build_discrepancy=resolved_for_mainline_map;physical_transition_still_unattempted
+
+[decision]
+The passive runtime capability bitmap does not exactly match the later
+source-derived map: it reports KEY_LEFTMETA and KEY_UNKNOWN, but not KEY_FN.
+The installed XKB file intentionally binds LWIN to ISO_Level3_Shift, which is
+consistent with the live capability bitmap and not with a literal KEY_FN
+event. The live kernel was built on 2019-03-29 while the retained source HEAD
+is dated 2019-04-02, so the source checkout cannot be assumed to be the exact
+input-driver build. Keep the mainline keymap disabled and treat KEY_FN versus
+KEY_LEFTMETA as an unresolved provenance/runtime question; resolve it with a
+named-binary build match and an owner-assisted evdev press/release capture
+before changing the DT keycode.

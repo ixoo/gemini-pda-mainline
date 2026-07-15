@@ -1,0 +1,50 @@
+# Sanitized MT6797 DRM component runtime contract
+
+Private capture:
+  artifacts/device-inventory/20260712-drm-components/live-components.txt
+SHA-256:
+  06a984b5f1837fbe643c5567b3bb55a63d94b982000539a09bcb055724541903
+
+Mechanical result:
+  PASS clocks=13 irqs=6 components=11 clocks=prepared ufoe=bypass dsi=4-lane-burst
+
+Prepared clocks at the screen-sleep snapshot:
+  mm_disp_ovl0                   325000000 Hz  enable=1 prepare=1
+  mm_disp_ovl0_2l                325000000 Hz  enable=1 prepare=1
+  mm_disp_ovl1_2l                325000000 Hz  enable=1 prepare=1
+  mm_disp_rdma0                  325000000 Hz  enable=0 prepare=1
+  mm_disp_color                  325000000 Hz  enable=0 prepare=1
+  mm_disp_ccorr                  325000000 Hz  enable=0 prepare=1
+  mm_disp_aal                    325000000 Hz  enable=0 prepare=1
+  mm_disp_gamma                  325000000 Hz  enable=0 prepare=1
+  mm_disp_od                     325000000 Hz  enable=0 prepare=1
+  mm_disp_dither                 325000000 Hz  enable=0 prepare=1
+  mm_disp_ufoe                   325000000 Hz  enable=0 prepare=1
+  mm_dsi0_mm clock               325000000 Hz  enable=0 prepare=1
+  mm_dsi0_interface_clock                0 Hz  enable=0 prepare=1
+
+Registered component IRQs (Linux IRQ = SPI + 32):
+  245 / SPI213  ovl0
+  247 / SPI215  ovl0_2l
+  248 / SPI216  ovl1_2l
+  249 / SPI217  rdma0
+  255 / SPI223  aal
+  261 / SPI229  dsi0
+
+Retained active-state facts:
+  OVL0 layer 0: 1080x2160, pitch 4352, format register 0x010020ff
+  OVL0, OVL0_2L, OVL1_2L: enabled; OVL-2L instances have no active layers
+  COLOR0: 1080x2160, start=1
+  AAL: enable=1, configuration=0x16, size=1080x2160
+  RDMA0: direct-link mode, 1080x2160, FIFO minimum 238
+  UFOE: start=0x4 (bypass)
+  DSI0: four-lane mask 15, burst video mode, MIPI TX clock 435 MHz
+
+Static fixed-function contract result:
+  PASS vendor-registers=11 aal-output-size=absent ccorr=2.10
+       gamma=512x10 defaults=relay od-dither=separate compatibles=7
+
+Static DSI/PHY contract result:
+  PASS host=0x200/0x130 phy-fields=mt6797-native rate=50M..1.25G
+       calibration=preserved pcw-latch=pulsed compatibles=2
+       pipeline=12-components nodes=12-disabled

@@ -1,0 +1,17 @@
+validation=gemini-dtb-direct-schema-current-68
+generated_utc=2026-07-13T14:45:00Z
+source_revision=7.1.3
+patch_series_count=68
+artifact=linux-7.1.3-gemini-c2b30928161b
+patchset_sha256=c2b30928161b7afdc92f3f7c5cdbfb5fa80aad50a0fb32d537fb2cba59c7e2f1
+dtb=mediatek/mt6797-gemini-pda.dtb
+dtb_sha256=e618fa0cedc2de354e72ced47dcf97f2f02cdbd82a4cd6fba349d2a95cdeb329
+processed_schema_sha256=not-captured
+focused_dt_validate_exit=0
+tphy_schema=passed
+mtu3_schema=passed_with_existing_quoted_string_lint_warning
+xhci_schema=passed_with_existing_quoted_string_lint_warning
+dtbs=passed
+disabled_usb3_topology=passed
+full_artifact_checksum_validation=passed
+hardware_write=none

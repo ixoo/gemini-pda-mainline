@@ -1,0 +1,77 @@
+Current Linux 7.1.3 Gemini CPU/PSCI/GIC/architectural-timer package audit
+
+validation=mt6797-cpu-psci-timer-current-package-76
+generated_utc=2026-07-14T19:43:52Z
+package=linux-7.1.3-gemini-db59a88057b4
+linux_version=7.1.3
+patch_series_count=76
+patchset_sha256=db59a88057b4c0505cf6dfd80e990f38b74eb0e2a855799d926cf1d20e681306
+package_image_sha256=9975b0faf659ddd91e33607de47a4814b9ad4c72292f4c8f7af39582f1a49362
+package_config_sha256=c46e0d135ed290420362638ca36448055e19bb7029deaa7aad897d885275f7db
+package_system_map_sha256=9beb0d1cbd2a7e32a96c02f7103d776e330c70e7e6e68893521c075afeef5822
+package_dtb_sha256=21529f78282cbf3a48f9260b8981f005f3643d54e729ab676384880c6ace1d4c
+audit_script_sha256=84a55f5146ed65cf9aedb7e065913625151c951bbe00bcafaebd1a020eb5d28a
+modules_tree=no
+dtc_warning_lines=2
+runtime_mainline_boot=not_attempted
+hardware_write=none
+
+[configuration]
+CONFIG_ARM64=y
+CONFIG_ARM_PSCI_FW=y
+CONFIG_ARM_PSCI_CPUIDLE=y
+CONFIG_ARM_ARCH_TIMER=y
+CONFIG_ARM_ARCH_TIMER_EVTSTREAM=y
+CONFIG_ARM_GIC_V3=y
+CONFIG_CPU_IDLE=y
+CONFIG_CPU_FREQ=y
+CONFIG_MTK_CPUFREQ=absent
+CONFIG_MTK_SVS=m
+CONFIG_COMMON_CLK_MT6797=y
+CONFIG_SUSPEND=y
+
+[device_tree_counts]
+cpu_nodes=10
+psci_nodes=1
+psci_enable_method_count=10
+architectural_timer_nodes=1
+opp_table_matches=0
+idle_state_matches=0
+per_cpu_clock_frequency_matches=0
+cpu_release_address_matches=0
+psci_compatible=arm,psci-0.2
+psci_method=smc
+timer_compatible=arm,armv8-timer
+timer_ppi_cells=13,14,11,10
+
+[linked_symbols]
+psci_symbol_matches=86
+arch_timer_symbol_matches=50
+timer_probe_symbol_matches=4
+
+[decision]
+generic_arm64_cpu_topology_psci_and_arch_timer=present_in_current_package
+mt6797_cpu_frequency_consumer=absent
+cpu_opp_table=absent_from_current_gemini_dtb
+vendor_idle_state_and_release_address=absent_from_current_gemini_dtb
+per_cpu_clock_frequency=absent_from_current_gemini_dtb
+generic_pm_modules=package_only_without_gemini_consumer;modules_tree_not_built
+frequency_voltage_transition=not_attempted
+cpu_hotplug_psci_runtime=not_attempted
+architectural_timer_runtime=not_attempted
+
+[live_loader_comparison]
+vendor_bootargs_maxcpus=maxcpus=5
+vendor_bootargs_console=console=ttyMT0,921600n1
+vendor_bootargs_uart_policy=printk.disable_uart=1
+live_online_cpus=0,1
+mainline_header_maxcpus=absent
+mainline_header_console=console=ttyS0,921600n8;earlycon=uart8250,mmio32,0x11002000
+safe_policy=retain_all_10_PSCI_nodes;diagnostic_maxcpus_only_after_reproduction
+
+The current package preserves the intended generic first-boot boundary:
+standard ARM64/PSCI/GIC/timer support is linked in for the ten-node topology,
+while MT6797 DVFS, OPPs, vendor idle states, and suspend transitions remain
+unbound. The vendor `maxcpus=5` and UART policy are LK-injected observations;
+they do not justify changing the mainline patch layer before a 7.1.3 boot
+captures actual CPU_ON and console behavior.

@@ -1,0 +1,129 @@
+validation=mt6797-sensor-iio-current-72-package-audit
+generated_utc=2026-07-14T08:30:41-04:00
+source_revision=7.1.3
+patch_count=72
+patchset_sha256=c2d9eea95daa25dd8faddef4f9822e663db67d5d0946f06f0251cc52c92cf08c
+package=linux-7.1.3-gemini-c2d9eea95daa
+audit_script=experiments/2026-07-12-sensor-iio-recovery/scripts/audit-current-package-sensors.sh
+audit_script_sha256=d55ade95d2024e90c009e54e2761babe8aba96e5706f68a824c874f74dca0a89
+audit_output_sha256=2c8e2278c89f7ce1694cc871ce6af29f81807d422760cfb72144e65cf021e82d
+repeatability=byte-identical_second_run
+shellcheck=passed_in_dev_vm
+bash_n=passed
+runtime_probe=not_attempted
+hardware_write=none
+
+[captured_audit_output]
+validation=mt6797-sensor-iio-current-package-audit
+package=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa
+package_image_sha256=3fb6ac3043dff85dc2b6e68a2bba26d36fedf748e6f7c1bf6b6630f87446be7c
+package_config_sha256=831289dd3b53c6cec09e6c614fd83d3ab5988a4c30090bf9ec172348ec9487d5
+package_dtb_sha256=b41580263940b47226e9819c97afbdaa9a35d4c721c471d2e8a0a3d597c553c5
+package_system_map_sha256=c883efb3c8b09166a0765017712ec79e182f929ee50b3907f0279384ab2a22b2
+linux_tree=/home/julien.guest/src/gemini-pda/linux-7.1.3
+linux_version=7.1.3
+dtc_warning_lines=2
+
+[configuration]
+CONFIG_IIO=y
+CONFIG_IIO_BUFFER=y
+CONFIG_IIO_TRIGGER=y
+CONFIG_IIO_TRIGGERED_BUFFER=m
+CONFIG_BMI160=m
+CONFIG_BMI160_I2C=m
+CONFIG_IIO_ST_LSM6DSX=m
+CONFIG_IIO_ST_LSM6DSX_I2C=m
+CONFIG_STK3310=m
+CONFIG_BMP280=unset
+CONFIG_HTS221=unset
+CONFIG_MMC35240=unset
+
+[packaged_sensor_modules]
+module=bmi160_core
+path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa/modules/lib/modules/7.1.3-gemini/kernel/drivers/iio/imu/bmi160/bmi160_core.ko
+sha256=7ba50688922f71e7a1a82c69e759d2a542542ed768211331c9ba95ec530dce9c
+module=bmi160_i2c
+path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa/modules/lib/modules/7.1.3-gemini/kernel/drivers/iio/imu/bmi160/bmi160_i2c.ko
+sha256=9812098b036d5541ca82c24fc59815dda7d366e97c715076fd07a49596211969
+module=stk3310
+path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa/modules/lib/modules/7.1.3-gemini/kernel/drivers/iio/light/stk3310.ko
+sha256=141e60ebfc565e3daef91eb4eca8a9648dd4b237a69e90a0c4bd5c84853eb47e
+module=st_lsm6dsx
+path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa/modules/lib/modules/7.1.3-gemini/kernel/drivers/iio/imu/st_lsm6dsx/st_lsm6dsx.ko
+sha256=0128338c03c60c3c45dbbbb612a1ba175869fd49c9572b20efd0ed5e3f973530
+module=st_lsm6dsx_i2c
+path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa/modules/lib/modules/7.1.3-gemini/kernel/drivers/iio/imu/st_lsm6dsx/st_lsm6dsx_i2c.ko
+sha256=343ce64c8db7d64defc067d6cf6cea93deeaf825e9e375822ccc191bb7f17b61
+module=bmp280
+path=absent
+module=hts221
+path=absent
+module=mmc35240
+path=absent
+
+[device_tree]
+sensor_i2c1_node_matches=1
+sensor_i2c1_disabled_status_matches=1
+bmi160_node_matches=1
+bmi160_disabled_status_matches=1
+bmi160_mount_matrix_matches=1
+bmi160_interrupt_property_matches=0
+bmi160_supply_property_matches=0
+stk3310_or_stk3x_node_matches=0
+lsm6ds3_node_matches=0
+bmp280_or_barometer_node_matches=0
+hts221_or_humidity_node_matches=0
+mmc3530_or_magnetometer_node_matches=0
+sensor_resource_context:
+517-	};
+518-
+519:	i2c@11008000 {
+520-		compatible = "mediatek,mt6797-i2c\0mediatek,mt6577-i2c";
+521-		reg = <0x00 0x11008000 0x00 0x1000 0x00 0x11000180 0x00 0x80>;
+522-		interrupts = <0x00 0x55 0x08>;
+523-		clocks = <0x02 0x0d 0x02 0x2e>;
+524-		clock-names = "main\0dma";
+525-		clock-div = <0x0a>;
+526-		#address-cells = <0x01>;
+527-		#size-cells = <0x00>;
+528-		status = "disabled";
+529-
+530:		bmi160@69 {
+531-			compatible = "bosch,bmi160";
+532-			reg = <0x69>;
+533-			mount-matrix = "0\0-1\00\0-1\00\00\00\00\0-1";
+534-			status = "disabled";
+535-		};
+536-	};
+537-
+538-	i2c@11009000 {
+539-		compatible = "mediatek,mt6797-i2c\0mediatek,mt6577-i2c";
+540-		reg = <0x00 0x11009000 0x00 0x1000 0x00 0x11000200 0x00 0x80>;
+541-		interrupts = <0x00 0x56 0x08>;
+542-		clocks = <0x02 0x0e 0x02 0x2e 0x02 0x39>;
+543-		clock-names = "main\0dma\0arb";
+544-		clock-div = <0x0a>;
+545-		#address-cells = <0x01>;
+546-		#size-cells = <0x00>;
+547-		status = "disabled";
+548-	};
+
+[local_sensor_patches]
+patch=/mnt/gemini-pda-mainline/patches/v7.1.3/0052-arm64-dts-mediatek-add-disabled-Gemini-BMI160-candidate.patch
+sha256=d55ebcf56b8a573b98b97419ec35ba110bffba65e7f6ff594578818aad89e3d4
+sensor_match_lines=8
+
+[decision]
+iio_core=selected_builtin
+bmi160_driver=packaged_as_modules
+lsm6dsx_driver=packaged_as_modules
+stk3310_driver=packaged_as_module
+bmi160_dt_candidate=present_but_disabled
+bmi160_identity=not_read_by_this_audit
+bmi160_interrupt_and_rails=absent_from_candidate_dt
+stk3x1x_dt_consumer=absent
+mmc3530_dt_consumer=absent
+bmp280_hts221_dt_consumers=absent
+virtual_sensor_hal=not_a_kernel_chip_driver
+sensor_runtime_probe=not_attempted
+hardware_write=none

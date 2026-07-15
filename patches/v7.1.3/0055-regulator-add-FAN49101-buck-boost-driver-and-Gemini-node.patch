@@ -1,0 +1,260 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 12 Jul 2026 04:00:00 -0400
+Subject: [PATCH] regulator: add FAN49101 buck-boost driver and Gemini node
+
+The Gemini contains a FAN49101 at I2C0 address 0x70. Its manufacturer
+identity register (0x40 = 0x83), voltage register (0x01), and six-bit
+603 mV + 12.826 mV selector are not the FAN53555 protocol. Add a small
+regmap regulator driver using the standard regulator framework instead of
+making fan53555 emulate this device.
+
+The probe reads and validates the manufacturer ID and logs, but does not
+write the control or reset registers. Voltage and enable writes are exposed
+only through a regulator consumer. The Gemini Device Tree node and its
+consumer remain disabled until the die ID, rail owner, control semantics,
+and safe voltage/rollback limits are validated on hardware.
+
+Do not carry the vendor fan49101_access sysfs ABI or its boot-time voltage
+initialization into mainline.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ Documentation/devicetree/bindings/regulator/onsemi,fan49101.yaml |  58 ++++++
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts              |  17 +++
+ drivers/regulator/Kconfig                                      |  10 ++
+ drivers/regulator/Makefile                                     |   1 +
+ drivers/regulator/fan49101.c                                   | 118 +++++++++++++++++++
+ 5 files changed, 203 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/regulator/onsemi,fan49101.yaml
+ create mode 100644 drivers/regulator/fan49101.c
+
+diff --git a/Documentation/devicetree/bindings/regulator/onsemi,fan49101.yaml b/Documentation/devicetree/bindings/regulator/onsemi,fan49101.yaml
+new file mode 100644
+--- /dev/null
++++ b/Documentation/devicetree/bindings/regulator/onsemi,fan49101.yaml
+@@ -0,0 +1,58 @@
++# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
++%YAML 1.2
++---
++$id: http://devicetree.org/schemas/regulator/onsemi,fan49101.yaml#
++$schema: http://devicetree.org/meta-schemas/core.yaml#
++
++title: onsemi FAN49101 buck-boost regulator
++
++maintainers:
++  - Julien Etienne <julien.etienne@gmail.com>
++
++description: |
++  The FAN49101 is an I2C-controlled buck-boost regulator with one output.
++  The output selector uses 64 codes from 603 mV in 12.826 mV steps. Its
++  register protocol is distinct from the FAN53555 family.
++
++properties:
++  compatible:
++    const: onsemi,fan49101
++
++  reg:
++    maxItems: 1
++
++  regulators:
++    type: object
++    additionalProperties: false
++    properties:
++      vout:
++        type: object
++        $ref: /schemas/regulator/regulator.yaml#
++        unevaluatedProperties: false
++
++required:
++  - compatible
++  - reg
++  - regulators
++
++additionalProperties: false
++
++examples:
++  - |
++    i2c {
++      #address-cells = <1>;
++      #size-cells = <0>;
++
++      regulator@70 {
++        compatible = "onsemi,fan49101";
++        reg = <0x70>;
++
++        regulators {
++          vout {
++            regulator-name = "fan49101-vout";
++            regulator-min-microvolt = <603000>;
++            regulator-max-microvolt = <1413000>;
++          };
++        };
++      };
++    };
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -354,3 +354,20 @@
+ 		status = "disabled";
+ 	};
+ };
++
++&i2c0 {
++	/* FAN49101 is populated, but keep the regulator and consumer disabled. */
++	fan49101: regulator@70 {
++		compatible = "onsemi,fan49101";
++		reg = <0x70>;
++		status = "disabled";
++
++		regulators {
++			fan49101_vout: vout {
++				regulator-name = "fan49101-vout";
++				regulator-min-microvolt = <603000>;
++				regulator-max-microvolt = <1413000>;
++			};
++		};
++	};
++};
+diff --git a/drivers/regulator/Kconfig b/drivers/regulator/Kconfig
+--- a/drivers/regulator/Kconfig
++++ b/drivers/regulator/Kconfig
+@@ -431,0 +432,8 @@
++config REGULATOR_FAN49101
++	tristate "onsemi FAN49101 buck-boost regulator"
++	depends on I2C && OF
++	select REGMAP_I2C
++	help
++	  This driver supports the onsemi FAN49101 I2C buck-boost regulator.
++	  It has a register protocol distinct from the FAN53555 family and
++	  provides one standard regulator output.
+diff --git a/drivers/regulator/Makefile b/drivers/regulator/Makefile
+--- a/drivers/regulator/Makefile
++++ b/drivers/regulator/Makefile
+@@ -53,0 +54,1 @@
++obj-$(CONFIG_REGULATOR_FAN49101) += fan49101.o
+diff --git a/drivers/regulator/fan49101.c b/drivers/regulator/fan49101.c
+new file mode 100644
+--- /dev/null
++++ b/drivers/regulator/fan49101.c
+@@ -0,0 +1,118 @@
++// SPDX-License-Identifier: GPL-2.0-only
++//
++// onsemi FAN49101 I2C buck-boost regulator
++
++#include <linux/bitops.h>
++#include <linux/err.h>
++#include <linux/i2c.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/regmap.h>
++#include <linux/regulator/driver.h>
++
++#define FAN49101_VOUT		0x01
++#define FAN49101_ID1		0x40
++#define FAN49101_ID2		0x41
++#define FAN49101_MANUFACTURER_ID	0x83
++#define FAN49101_VOUT_MASK	GENMASK(5, 0)
++#define FAN49101_ENABLE		BIT(7)
++
++#define FAN49101_MIN_UV		603000
++#define FAN49101_STEP_UV		12826
++#define FAN49101_NVOLTAGES	64
++
++static const struct regmap_config fan49101_regmap_config = {
++	.reg_bits = 8,
++	.val_bits = 8,
++	.max_register = FAN49101_ID2,
++};
++
++static const struct regulator_ops fan49101_regulator_ops = {
++	.enable = regulator_enable_regmap,
++	.disable = regulator_disable_regmap,
++	.is_enabled = regulator_is_enabled_regmap,
++	.set_voltage_sel = regulator_set_voltage_sel_regmap,
++	.get_voltage_sel = regulator_get_voltage_sel_regmap,
++	.map_voltage = regulator_map_voltage_linear,
++	.list_voltage = regulator_list_voltage_linear,
++};
++
++static const struct regulator_desc fan49101_regulator_desc = {
++	.name = "fan49101-vout",
++	.of_match = "vout",
++	.regulators_node = "regulators",
++	.owner = THIS_MODULE,
++	.type = REGULATOR_VOLTAGE,
++	.ops = &fan49101_regulator_ops,
++	.n_voltages = FAN49101_NVOLTAGES,
++	.min_uV = FAN49101_MIN_UV,
++	.uV_step = FAN49101_STEP_UV,
++	.vsel_reg = FAN49101_VOUT,
++	.vsel_mask = FAN49101_VOUT_MASK,
++	.enable_reg = FAN49101_VOUT,
++	.enable_mask = FAN49101_ENABLE,
++};
++
++static const struct of_device_id fan49101_of_match[] = {
++	{ .compatible = "onsemi,fan49101" },
++	{ }
++};
++MODULE_DEVICE_TABLE(of, fan49101_of_match);
++
++static const struct i2c_device_id fan49101_i2c_id[] = {
++	{ "fan49101" },
++	{ }
++};
++MODULE_DEVICE_TABLE(i2c, fan49101_i2c_id);
++
++static int fan49101_probe(struct i2c_client *client)
++{
++	struct regulator_config config = { };
++	struct regulator_dev *rdev;
++	struct regmap *regmap;
++	unsigned int value;
++	int ret;
++
++	regmap = devm_regmap_init_i2c(client, &fan49101_regmap_config);
++	if (IS_ERR(regmap))
++		return dev_err_probe(&client->dev, PTR_ERR(regmap),
++				     "failed to initialize regmap\n");
++
++	ret = regmap_read(regmap, FAN49101_ID1, &value);
++	if (ret)
++		return dev_err_probe(&client->dev, ret,
++				     "failed to read manufacturer ID\n");
++	if (value != FAN49101_MANUFACTURER_ID)
++		return dev_err_probe(&client->dev, -ENODEV,
++				     "unexpected manufacturer ID 0x%02x\n", value);
++
++	ret = regmap_read(regmap, FAN49101_ID2, &value);
++	if (ret)
++		return dev_err_probe(&client->dev, ret,
++				     "failed to read die ID\n");
++	dev_info(&client->dev, "FAN49101 detected, die ID 0x%02x\n", value);
++
++	config.dev = &client->dev;
++	config.of_node = client->dev.of_node;
++	config.regmap = regmap;
++
++	rdev = devm_regulator_register(&client->dev,
++				       &fan49101_regulator_desc, &config);
++	if (IS_ERR(rdev))
++		return PTR_ERR(rdev);
++
++	return 0;
++}
++
++static struct i2c_driver fan49101_driver = {
++	.driver = {
++		.name = "fan49101-regulator",
++		.of_match_table = fan49101_of_match,
++	},
++	.probe = fan49101_probe,
++	.id_table = fan49101_i2c_id,
++};
++module_i2c_driver(fan49101_driver);
++
++MODULE_DESCRIPTION("onsemi FAN49101 buck-boost regulator");
++MODULE_LICENSE("GPL");
+-- 
+2.43.0

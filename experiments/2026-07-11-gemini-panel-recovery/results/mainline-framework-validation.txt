@@ -1,0 +1,34 @@
+# Mainline panel-framework validation (2026-07-12)
+
+Patch:
+  patches/v7.1.3/0043-drm-panel-novatek-nt36672e-add-gemini-descriptor.patch
+
+Source:
+  Planet vendor Git commit c5b0be85017ad0c599725e8273842efdbecdd88a
+  table entries=167; retained panel-register writes=165
+  omitted only page-0x10 DCS 0x11/0x29 entries owned by the framework
+
+Static checks:
+  checkpatch.pl --strict: PASS (0 errors, 2 advisory warnings: new binding
+  MAINTAINERS review and the kernel convention suggesting binding-only patches)
+  dt-doc-validate for planet,gemini-pda-nt36672.yaml: PASS
+  canonical patch reconstruction through 0043: PASS
+  focused arm64 panel object compile: PASS
+  full ./scripts/dev-vm build-kernel (43 patches): PASS
+  package: artifacts/20260712T153052Z/gemini-pda/linux-7.1.3-gemini-9b11c7717287
+  package patchset SHA-256=9b11c7717287ddc4f4e80ef3f3ae993974a30439679896cef8e67ada97008593
+  Image SHA-256=bcfb473f96f58ea7a77eef783fd4bce4927374f0b715dcdffa78d2760dade33c
+  Gemini DTB SHA-256=3a0ca2dbc94b4c6efd1d6e4d178f5766644cbc2f1578b247358f29590d26746a
+  SHA256SUMS verification: PASS
+
+Descriptor inference (not hardware proof):
+  mode=1080x2160 totals=1174x2188 clock=138839kHz
+  lanes=4 format=RGB888 flags=video+burst+LPM+non-continuous-clock
+  supplies=outp,outn reset=10/10/20ms bias-settle=20ms
+  display-off/sleep-in/exit-sleep/display-on=50/120/120/10ms
+  active-area=68x136mm inferred from published 5.99in 2:1 specification
+
+Hardware status:
+  No Gemini panel DT consumer was enabled and no DSI/GPIO/I2C transaction was
+  issued. Bias silicon identity and equivalence of reset-gpios to vendor MMSYS
+  LCM_RST_B remain unresolved.

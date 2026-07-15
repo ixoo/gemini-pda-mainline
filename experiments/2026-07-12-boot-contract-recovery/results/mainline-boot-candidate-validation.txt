@@ -1,0 +1,45 @@
+validation=mainline-android-boot-v0-candidates
+generated_utc=2026-07-13T03:38:31Z
+source_revision=7.1.3
+patch_series_count=56
+patchset_sha256=1004404081252c1314e5e521f6daa63f80177618f1cf25a6a751169094993498
+package=linux-7.1.3-gemini-100440408125
+kernel_sha256=4dd751f641456f224e10c41dad413aa52f58bbae8fe57831f0d434a7fbe91c83
+dtb_sha256=20fca3428c4f161f4aa38b3f88532073d2d0e5e5ee915c060ad1f6b0c64cfb9f
+page_size=2048
+kernel_addr=0x40080000
+ramdisk_addr=0x45000000
+tags_addr=0x44000100
+cmdline=console=ttyMT0,115200n8 earlycon root=/dev/ram0 rw
+empty_ramdisk=/dev/null (layout-only synthetic test payload)
+minimal_initramfs_sha256=c785ca81253666a53833749ec6f4256e62c6e41ceb49abe8d8af7a6f2355fa85
+minimal_initramfs_size=1006078
+append_candidate_sha256=e12bf224fbb2643d55680c827220d2b7d626e906e7b8568548708ec4d139ef7f
+append_candidate_file_size=52590592
+append_candidate_kernel_size=52586616
+append_candidate_dtb_size=20088
+append_candidate_parser=complete; appended_dtb_offset=52568576
+field_candidate_sha256=72c49a7797949284ca9cb21178e3843881ad0c22063bfcf4c82be2f69d0a0540
+field_candidate_file_size=52590592
+field_candidate_kernel_size=52566528
+field_candidate_dtb_size=20088
+field_candidate_parser=complete; header_dtb_offset=52570112
+initramfs_candidate_sha256=e71035894ebf3b5cbaf05d9bb64517445cc70cebd17e05c6e34edb0e4a60e5f5
+initramfs_candidate_file_size=53598208
+initramfs_candidate_kernel_size=52586616
+initramfs_candidate_ramdisk_size=1006078
+initramfs_candidate_parser=complete; appended_dtb_offset=52568576
+parser_fdt_validation=passed
+lk_acceptance=unknown
+runtime_boot=not_attempted
+flash=none
+hardware_write=none
+
+The observed vendor image uses Android boot v0, page size 2048, the recovered
+kernel/ramdisk addresses, and `dt_size=0` with a DTB appended inside the
+kernel payload. The repository serializer can produce that layout or the
+header-DT-field alternative. The minimal initramfs contains only static
+ARM64 BusyBox and a UART shell; a successful parser result is not evidence
+that the retained LK accepts an uncompressed mainline Image. A named
+development boot target and recovery path are still required before a
+reversible UART boot experiment.

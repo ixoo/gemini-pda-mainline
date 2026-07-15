@@ -1,0 +1,34 @@
+From 0000000000000000000000000000000000000016 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 12 Jul 2026 01:10:00 -0400
+Subject: [PATCH] dt-bindings: mmc: mtk-sd: add MT6797
+
+Add the MT6797 MSDC compatible. Its controllers use the standard source,
+HCLK, and optional independent source-gate clock layout.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ Documentation/devicetree/bindings/mmc/mtk-sd.yaml | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/Documentation/devicetree/bindings/mmc/mtk-sd.yaml b/Documentation/devicetree/bindings/mmc/mtk-sd.yaml
+--- a/Documentation/devicetree/bindings/mmc/mtk-sd.yaml
++++ b/Documentation/devicetree/bindings/mmc/mtk-sd.yaml
+@@ -23,6 +23,7 @@ properties:
+           - mediatek,mt2712-mmc
+           - mediatek,mt6779-mmc
+           - mediatek,mt6795-mmc
++          - mediatek,mt6797-mmc
+           - mediatek,mt7620-mmc
+           - mediatek,mt7622-mmc
+           - mediatek,mt7986-mmc
+@@ -181,6 +182,7 @@ allOf:
+             - mediatek,mt2701-mmc
+             - mediatek,mt6779-mmc
+             - mediatek,mt6795-mmc
++            - mediatek,mt6797-mmc
+             - mediatek,mt7620-mmc
+             - mediatek,mt7622-mmc
+             - mediatek,mt7623-mmc
+-- 
+2.43.0

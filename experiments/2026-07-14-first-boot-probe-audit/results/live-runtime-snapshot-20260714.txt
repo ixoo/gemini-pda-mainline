@@ -1,0 +1,75 @@
+# Sanitized, read-only runtime snapshot from the owner-authorized Gemini device.
+
+capture_date=2026-07-14
+target=gemini@192.168.1.50
+access=ssh_key_only
+running_kernel=3.18.41+
+architecture=aarch64
+hardware_write=none
+mainline_boot=not_attempted
+stateful_probe_flags=not_used
+
+# Private raw captures are Git-ignored and mode 0600 under
+# artifacts/device-inventory/20260714-live/.
+capture.boot_contract.sha256=4a328b6b9b7de1b7bd2a62a79e2ecfdc0a76c2d0c6635cb44491b2a4a457d422
+capture.uart.sha256=c0f19a07932f522635b0c82bbaf348ef47e5fedfbbe94a532430fc92fc34ce18
+capture.pmic.sha256=80ab18609347ee6b93b692b1f86e9ea1b8cbd0b28711705dcd5d071b18fb82a8
+capture.msdc.sha256=fef063ef8b226e29f3f29b6e1b59204c865d7299fc3a67d778175541d1960425
+
+# Collector script provenance.
+script.collect_live_boot_contract.sha256=ac5cc60a7f59b762fc8fdb2a328036fbc9da52d8b1e2fe91025cc92829c7e092
+script.collect_live_uart.sha256=d5177c9dd8b95758c16ba5daeb840bd3a07d14b1d958b0fcba01033643677277
+script.collect_live_pmic.sha256=32b88fa25816cf1056ec7fe1840eadb428452f977054bcb6d7909b9498564b50
+script.collect_live_msdc.sha256=60d245efcb56c85edd5b33b1ae04bd334a0a2628fda244132c554474bb9931c3
+
+# Boot and console handoff.
+device.model=MT6797X
+device.compatible=mediatek,MT6797
+chosen.console=ttyMT0,921600n1
+chosen.initrd_start=0x45000000
+chosen.initrd_end=0x4560f6bd
+chosen.root=/dev/ram
+chosen.maxcpus=5
+chosen.bootreason=wdt_by_pass_pwk
+console.active=ttyMT0
+console.active_flags=-W-
+console.pstore=pstore-1
+uart0.vendor_node=11002000.apuart0
+uart0.vendor_driver=mtk-uart
+uart0.vendor_compatible=mediatek,mt6797-uart
+uart0.vendor_status=okay
+
+# Storage path.
+msdc0.provider=/sys/devices/mtk-msdc.0/11230000.msdc0
+mmc0.type=MMC
+mmc0.name=DF4064
+mmc0.manufacturer_id=0x000045
+mmc0.date=10/2017
+msdc0.irq_lines=GICv3-111,GICv3-112
+msdc1.card_detect_irq=mt-eint-6
+msdc0.infrastructure_clock_hz=383999878
+storage.vemc_3v3=enabled,3000000uV
+storage.vmch=enabled,3000000uV
+storage.vmc=enabled,3000000uV
+eMMC.unique_identifiers=redacted
+msdc.register_snapshot=not_read
+
+# PMIC path.
+pmic.wrapper_irq=GICv3-210
+pmic.external_irq=mt-eint-176
+pmic.driver=mt-pmic
+rtc.driver=mt-rtc
+pmic.clock.pmicspi_sel=26000000
+pmic.clock.infra_pmic_ap=26000000
+pmic.chip_identity=not_read_in_this_snapshot
+pmic.regulator_control_registers=not_read_in_this_snapshot
+
+# Comparison with the normalized records from 2026-07-11 through 2026-07-13.
+# The device still presents the same vendor-kernel baseline: 3.18.41+, MT6797X,
+# ttyMT0 as the write-capable console, MT6351-backed regulator storage, and an
+# eMMC DF4064 on MSDC0. Runtime interrupt counts, rail user counts, and PMIC
+# hardware status are point-in-time observations and are not promoted to board
+# invariants. No contradiction requiring a DTS or driver change was found.
+# The earlier PMIC HWCID/SWCID and MSDC register captures used explicit,
+# stateful read paths and were not repeated here; this snapshot intentionally
+# leaves those fields as not_read.

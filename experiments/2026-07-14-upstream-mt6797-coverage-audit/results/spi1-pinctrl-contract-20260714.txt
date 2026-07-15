@@ -1,0 +1,40 @@
+validation=mt6797-spi1-pinctrl-contract
+generated_utc=2026-07-14T14:54:00Z
+capture=artifacts/device-inventory/20260711-live/device-tree-v5.txt
+capture_sha256=dba7fb6dda20dc36b167386cbc8196b60a9ff7f36b11d6778a36990ee3f10b2d
+pinfunc_header=prepared Linux 7.1.3 mt6797-pinfunc.h
+audit_script=experiments/2026-07-14-upstream-mt6797-coverage-audit/scripts/audit-spi1-pinctrl-contract.sh
+audit_script_sha256=f0e2a2c2fee7ff00a5eb1e760bc1bf0a5e82634ee3a16d98799748fe411d1e08
+audit_output_sha256=fbfa5c0e9b6ce03136fb06fc4550bb72ea1705912a5f2b34b81d8056db9d938f
+repeatability=byte-identical_two_direct_vm_runs
+hardware_write=none
+
+[controller]
+compatible=mediatek,mt6797-spi
+reg=0x11012000+0x1000
+irq=vendor_interrupt_cell_0x83=SPI131_level_low
+vendor_clock_handle=0x3e_named_spi-main
+pinctrl_names=spi1_gpio_def,spi1_cs_set,spi1_cs_clr,spi1_clk_set,spi1_clk_clr,spi1_miso_set,spi1_miso_clr,spi1_mosi_set,spi1_mosi_clr
+
+[signals]
+signal=SPI1_CLK_B gpio=234 mainline_function=1 vendor_set=0x0000ea01 vendor_clear=0x0000ea00
+signal=SPI1_CS_B gpio=237 mainline_function=1 vendor_set=0x0000ed01 vendor_clear=0x0000ed00
+signal=SPI1_MI_B gpio=235 mainline_function=1 vendor_set=0x0000eb01 vendor_clear=0x0000eb00
+signal=SPI1_MO_B gpio=236 mainline_function=1 vendor_set=0x0000ec01 vendor_clear=0x0000ec00
+
+[child_evidence]
+compatible=fpc,fpc1020
+node=fpc1145@0
+reg=0
+spi_max_frequency=16000000
+status=okay_in_vendor_capture
+runtime_presence=unproven
+
+[interpretation]
+vendor_default_state=spi1_gpio_default is empty in the captured DT
+vendor_transfer_model=each signal is explicitly switched between GPIO function 0 and SPI function 1
+mainline_reuse=spi-mt65xx expects a stable pinctrl default and owns hardware chip-select/timing
+mainline_pinfunc=all four SPI1_B symbols exist in the prepared MT6797 pinfunc header
+not_proven=the capture does not prove that a static function-1 group is electrically safe for a mainline transfer
+safe_boundary=do not port vendor pinctrl state-machine names, fpc1020, or test_spi ABI from this evidence
+next_gate=validate one controlled SPI1 probe/loopback only after a recovery-backed mainline boot

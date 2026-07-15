@@ -1,0 +1,12 @@
+source_tree=planet-mt6797-3.18
+source_commit=c5b0be85017ad0c599725e8273842efdbecdd88a
+vendor_source=drivers/misc/mediatek/aw9523/aw9523_key.c
+live_i2c_bus=5
+live_i2c_address=0x5b
+vendor_chip_id_register=0x10
+vendor_expected_chip_id=0x23
+vendor_probe_behavior=read_chip_id_until_0x23_then_initialize
+vendor_software_reset_register=0x7f
+vendor_software_reset_value=0x00
+runtime_chip_id_capture=not_available_in_sanitized_logs
+identity_status=source_confirmed_live_address_and_driver_bound_runtime_id_unmeasured

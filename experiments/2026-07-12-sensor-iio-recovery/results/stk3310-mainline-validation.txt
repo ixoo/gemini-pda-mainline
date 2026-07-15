@@ -1,0 +1,25 @@
+STK3310-family preparation validation
+
+kernel_version=7.1.3
+patch_count=56
+patchset_sha256=1004404081252c1314e5e521f6daa63f80177618f1cf25a6a751169094993498
+package=linux-7.1.3-gemini-100440408125
+generated_utc=2026-07-13T03:06:47Z
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+config_sha256=9fcf423b5581f93a27b0a5ce8a03481c4e601b34c8913b38d7cd25b57967a8a1
+compiler=gcc 13.3.0
+linker=GNU ld (binutils) 2.42
+config_fragment_symbols=CONFIG_IIO=y,CONFIG_STK3310=m
+driver_object_compile=passed (drivers/iio/light/stk3310.o)
+driver_object_warnings=none observed
+full_build=passed (Image and all DTBs)
+packaged_image_sha256=680753154ccfc9954a2596d4a92d9f0649d8f0c07aab0358a88fccc8449d51d8
+packaged_gemini_dtb_sha256=20fca3428c4f161f4aa38b3f88532073d2d0e5e5ee915c060ad1f6b0c64cfb9f
+packaged_kernel_config_sha256=9fcf423b5581f93a27b0a5ce8a03481c4e601b34c8913b38d7cd25b57967a8a1
+board_nodes=not_added
+runtime_probe=not_attempted
+hardware_write=none
+
+The full build intentionally did not enable or instantiate a Gemini STK3X1X
+node. The module was compiled at object level; module packaging was not
+requested by the default Image+DTB build command.

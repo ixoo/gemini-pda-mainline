@@ -1,0 +1,25 @@
+# Sanitized provenance for private vendor-kernel analysis artifacts.
+# No boot image, initramfs, device identifier, or private path is committed.
+
+running.release=3.18.41+
+running.build=#7 SMP PREEMPT Fri Mar 29 10:39:03 GMT 2019
+running.config.sha256=53b53b62fa5a111cb7d6ea4f513aec1e8a6b436c8c17bfd86cb00a9bc4bf6ae1
+
+active_boot.partitions=boot,boot2,boot3
+active_boot.partitions_identical=yes
+active_boot.partition_bytes=16777216
+active_boot.sha256=1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513
+active_boot.android_page_size=2048
+active_boot.kernel_bytes=8429825
+active_boot.ramdisk_bytes=6354621
+active_boot.appended_dtb_offset=8301128
+active_boot.appended_dtb_bytes=130745
+
+installed_package.name=gemian-modular-kernel
+installed_package.version=0.2+0~20190524140301.1~1.gbp59e00a
+installed_package.matches_active_boot=no
+installed_package.image_gz_dtb.sha256=a480e1459da6cbb5affe9f013163c6723b642869996c9b3974c5f3005e42c24e
+installed_package.initrd.sha256=e86dc52b50af5b2cd03a7cd6a73eb478fa74ce7cc80374248e69fb5625d3be4c
+installed_package.boot_image.sha256=5e128809f9ff8d8799619ae014640d679979f28de65591979014571f3a7ad5b2
+
+private_artifact_root=artifacts/vendor-kernel/gemian-2019

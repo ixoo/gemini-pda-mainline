@@ -1,0 +1,107 @@
+CCCI/CLDMA source validation
+============================
+
+Date: 2026-07-13
+VM: gemini-pda-dev
+
+Commands:
+  shellcheck experiments/2026-07-13-modem-ccci-recovery/scripts/*.sh
+  bash experiments/2026-07-13-modem-ccci-recovery/scripts/analyze-ccci-contract.sh
+
+Both commands passed. The analyzer confirms that the live Gemini has separate
+MD1 CCCI and MD3/C2K CCCI domains, while the vendor MT6797 transport uses
+APB-mapped CLDMA/CCIF windows, vendor clocks, bootloader-owned shared memory,
+and EMI MPU/remap policy. Linux 7.1.3 `t7xx` is a PCIe/DPMAIF T700 driver and is
+not a transport match.
+
+Vendor source commit:
+  c5b0be85017ad0c599725e8273842efdbecdd88a
+
+Vendor source SHA-256:
+  drivers/misc/mediatek/eccci/mt6797/ccci_config.h
+    b357a3315115cc62c2e240d357eb1635ae4f308e32e4fccb1d310cf91d94c56e
+  drivers/misc/mediatek/eccci/ccci_modem.c
+    5cbc4e9e23f76040356ee0c70b088d06f02c840e0cbece4318573e597297c281
+  drivers/misc/mediatek/eccci/mt6797/cldma_platform.c
+    ada25c673de99cf648955cc782fabf7ab98af1c6bf3227ca7883d5ff44792125
+  drivers/misc/mediatek/eccci/mt6797/cldma_reg.h
+    a6f0119e5db899aa0657f95794f703fd8f00b3fbc0889325d87cdd17938bb32b
+  drivers/misc/mediatek/eccci/port_cfg.c
+    feabc1a20dd4a149daeac5d275b4894e9b13ef6cdd1a1afc1dd46458db213a8f
+  arch/arm64/boot/dts/mt6797.dtsi
+    eaac86c8752ebd8ddf18b831eb3bc52a08f87475a213bb521650bf95dabb3e5e
+
+Linux 7.1.3 source SHA-256:
+  drivers/net/wwan/Kconfig
+    afb8ac60dc1fecd9cba3a183d821b29782e39832302598017dea2ead243c0e57
+  drivers/net/wwan/wwan_core.c
+    693d0f411a036e71ed6e68b6c645fd36a3f06119a30076650093081783769f6d
+  include/linux/wwan.h
+    77f02cee70fbae531a45677c3f6eddaabd7d3951949f89218c293ed484a6303c
+  drivers/net/wwan/t7xx/t7xx_hif_cldma.c
+    39e107b1b45b50f4f53d413f74661c992ee3ed0d4de37032dd075788f62a3cdf
+  drivers/net/wwan/t7xx/t7xx_port_proxy.c
+    2a218c90db4fa24b0ab06525ec11fff490b048b68b59c6a18264683df3ba9749
+  drivers/net/wwan/t7xx/t7xx_netdev.c
+    ee47018fd8a0edcc95512e4f1e7ba6768dbcacb7b28995cf98e2f2a3c114aa1e
+  drivers/net/wwan/t7xx/t7xx_port_proxy.h
+    e253fa1ae8044995f99dfc840a886af66e0e42393fb8086e0accb7b8e05db225
+  drivers/net/wwan/rpmsg_wwan_ctrl.c
+    481313c1162f0a64f7a6f1aa5dd36c98f2fbc99510c1cf0ec687225d4832167f
+  drivers/net/wwan/mhi_wwan_ctrl.c
+    92ea004051aa6b05d76d0dabf9b861bdc4cac4459109ca8189db4c7844306327
+  drivers/net/wwan/mhi_wwan_mbim.c
+    8e87e14c15f7a4bb28e1bdcbe4bc2b28780201c85f897d74dcdd31e888379852
+  drivers/net/usb/qmi_wwan.c
+    69d67fd142be49f35effbbde0ba0bc6139c42231abc4066eae522c7a3cdacf8d
+  drivers/net/usb/cdc_mbim.c
+    2dcea76b472a7a03692975dfb78c1c594b65adc22c75d3afb76500a0db06ca03
+
+Repository script SHA-256:
+  scripts/analyze-ccci-contract.sh
+    fbbc2a2b4013cf1a143a549343abedf11aefc13f4d65f41fc2ad8923544b89c7
+  scripts/collect-live-ccci.sh
+    4c94b144eaa906633d69491cbf463b10f303bdce9d77390e67fff84b896ea72f
+
+Decision: do not reuse `t7xx` as a Gemini modem driver. Add a new MT6797
+CCCI/CLDMA transport/backend only after shared-memory, reset/handshake, and EMI
+MPU ownership are recovered; reuse standard WWAN/TTY/netdev interfaces above
+that transport.
+
+WWAN reuse boundary:
+  `include/linux/wwan.h` exposes `wwan_create_port`, `wwan_remove_port`,
+  `wwan_port_rx`, `wwan_port_txoff`/`wwan_port_txon`, and
+  `wwan_register_ops`; a transport supplies `wwan_port_ops` start/stop/tx
+  callbacks and a `wwan_port_caps` framing description. The generic core
+  exposes AT/MBIM/QMI/QCDM/FIREHOSE/XMMRPC/FASTBOOT/ADB/MIPC/NMEA ports,
+  while a modem-specific backend owns only channel mapping, queueing,
+  lifecycle, and protocol framing.
+  `rpmsg_wwan_ctrl` is a concrete adapter pattern: it receives on its lower
+  endpoint and calls `wwan_port_rx`, then creates a port with
+  `wwan_create_port`. MHI and USB QMI/MBIM drivers demonstrate other lower
+  layers, but their MHI/USB dependencies do not match the APB CCCI device. A
+  future MT6797 CCCI backend should follow this WWAN port boundary and add a
+  normal netdev for `ccmni` data, without exposing vendor `/dev/ccci*` or
+  ioctl ABI.
+
+Linux 7.1.3 object validation:
+  `wwan_core.o` and `rpmsg_wwan_ctrl.o` compile in the prepared arm64 VM
+  output tree. `t7xx_hif_cldma.o`, `t7xx_port_proxy.o`, and `t7xx_netdev.o`
+  also compile for source comparison; this validates build contracts only and
+  does not imply that the PCIe/DPMAIF driver can probe Gemini.
+
+Normalized contract assertions also pass: 16-byte CCCI header; 8+8 CLDMA and
+CCIF queue families; packed 16-byte TGPD/RGPD/TBD/RBD descriptors with 36-bit
+address metadata; MD1/MD3 port ranges; six DT windows; and staged EMI-MPU
+regions 11/14/16/17. The complete sanitized design record is
+`results/mt6797-ccci-mainline-contract.md`.
+
+runtime_modem_probe=not_added
+firmware_handshake=not_attempted
+hardware_write=none
+wwan_core_object_compile=passed
+rpmsg_wwan_object_compile=passed
+t7xx_object_compile=passed_source_comparison_only
+wwan_core_api=wwan_create_port;wwan_remove_port;wwan_port_rx;wwan_port_txoff;wwan_port_txon;wwan_register_ops
+wwan_transport_patterns=rpmsg;MHI;USB_QMI;USB_MBIM
+ccci_upper_layer_boundary=wwan_port_ops_and_wwan_ops;standard_netdev_and_tty

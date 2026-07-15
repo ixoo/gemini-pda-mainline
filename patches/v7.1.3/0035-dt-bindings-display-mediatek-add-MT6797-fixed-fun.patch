@@ -1,0 +1,109 @@
+From f5cb7a067d495589104715b8d215ea24878e9ae3 Mon Sep 17 00:00:00 2001
+From: Gemini PDA Mainline Project <noreply@example.com>
+Date: Sun, 12 Jul 2026 08:52:32 -0400
+Subject: [PATCH 35/36] dt-bindings: display: mediatek: add MT6797 fixed
+ functions
+
+MT6797 has COLOR, CCORR, AAL, GAMMA, OD, DITHER, and UFOE blocks in its
+primary display pipeline. Their resource layouts and register generations
+have been recovered independently from the retained source and running
+Gemini state. Add dedicated compatibles for those blocks.
+
+Signed-off-by: Gemini PDA Mainline Project <noreply@example.com>
+---
+ .../devicetree/bindings/display/mediatek/mediatek,aal.yaml       | 1 +
+ .../devicetree/bindings/display/mediatek/mediatek,ccorr.yaml     | 1 +
+ .../devicetree/bindings/display/mediatek/mediatek,color.yaml     | 1 +
+ .../devicetree/bindings/display/mediatek/mediatek,dither.yaml    | 1 +
+ .../devicetree/bindings/display/mediatek/mediatek,gamma.yaml     | 1 +
+ .../devicetree/bindings/display/mediatek/mediatek,od.yaml        | 1 +
+ .../devicetree/bindings/display/mediatek/mediatek,ufoe.yaml      | 1 +
+ 7 files changed, 7 insertions(+)
+
+diff --git a/Documentation/devicetree/bindings/display/mediatek/mediatek,aal.yaml b/Documentation/devicetree/bindings/display/mediatek/mediatek,aal.yaml
+index 4bbea72b2..3f2e5ecfa 100644
+--- a/Documentation/devicetree/bindings/display/mediatek/mediatek,aal.yaml
++++ b/Documentation/devicetree/bindings/display/mediatek/mediatek,aal.yaml
+@@ -22,6 +22,7 @@ properties:
+   compatible:
+     oneOf:
+       - enum:
++          - mediatek,mt6797-disp-aal
+           - mediatek,mt8173-disp-aal
+           - mediatek,mt8183-disp-aal
+           - mediatek,mt8195-mdp3-aal
+diff --git a/Documentation/devicetree/bindings/display/mediatek/mediatek,ccorr.yaml b/Documentation/devicetree/bindings/display/mediatek/mediatek,ccorr.yaml
+index 5c5068128..9770d2e1a 100644
+--- a/Documentation/devicetree/bindings/display/mediatek/mediatek,ccorr.yaml
++++ b/Documentation/devicetree/bindings/display/mediatek/mediatek,ccorr.yaml
+@@ -22,6 +22,7 @@ properties:
+   compatible:
+     oneOf:
+       - enum:
++          - mediatek,mt6797-disp-ccorr
+           - mediatek,mt8183-disp-ccorr
+           - mediatek,mt8192-disp-ccorr
+       - items:
+diff --git a/Documentation/devicetree/bindings/display/mediatek/mediatek,color.yaml b/Documentation/devicetree/bindings/display/mediatek/mediatek,color.yaml
+index 5564f4063..2742e0dd5 100644
+--- a/Documentation/devicetree/bindings/display/mediatek/mediatek,color.yaml
++++ b/Documentation/devicetree/bindings/display/mediatek/mediatek,color.yaml
+@@ -26,6 +26,7 @@ properties:
+           - mediatek,mt2701-disp-color
+           - mediatek,mt8167-disp-color
+           - mediatek,mt8173-disp-color
++          - mediatek,mt6797-disp-color
+           - mediatek,mt8195-mdp3-color
+       - items:
+           - enum:
+diff --git a/Documentation/devicetree/bindings/display/mediatek/mediatek,dither.yaml b/Documentation/devicetree/bindings/display/mediatek/mediatek,dither.yaml
+index 891c95be1..4f5316b1e 100644
+--- a/Documentation/devicetree/bindings/display/mediatek/mediatek,dither.yaml
++++ b/Documentation/devicetree/bindings/display/mediatek/mediatek,dither.yaml
+@@ -23,6 +23,7 @@ properties:
+   compatible:
+     oneOf:
+       - enum:
++          - mediatek,mt6797-disp-dither
+           - mediatek,mt8183-disp-dither
+       - items:
+           - enum:
+diff --git a/Documentation/devicetree/bindings/display/mediatek/mediatek,gamma.yaml b/Documentation/devicetree/bindings/display/mediatek/mediatek,gamma.yaml
+index ec1054bb0..c7421467d 100644
+--- a/Documentation/devicetree/bindings/display/mediatek/mediatek,gamma.yaml
++++ b/Documentation/devicetree/bindings/display/mediatek/mediatek,gamma.yaml
+@@ -22,6 +22,7 @@ properties:
+   compatible:
+     oneOf:
+       - enum:
++          - mediatek,mt6797-disp-gamma
+           - mediatek,mt8173-disp-gamma
+           - mediatek,mt8183-disp-gamma
+           - mediatek,mt8195-disp-gamma
+diff --git a/Documentation/devicetree/bindings/display/mediatek/mediatek,od.yaml b/Documentation/devicetree/bindings/display/mediatek/mediatek,od.yaml
+index 930c088a7..ed1786d3a 100644
+--- a/Documentation/devicetree/bindings/display/mediatek/mediatek,od.yaml
++++ b/Documentation/devicetree/bindings/display/mediatek/mediatek,od.yaml
+@@ -24,6 +24,7 @@ properties:
+       - enum:
+           - mediatek,mt2712-disp-od
+           - mediatek,mt8173-disp-od
++          - mediatek,mt6797-disp-od
+       - items:
+           - const: mediatek,mt6795-disp-od
+           - const: mediatek,mt8173-disp-od
+diff --git a/Documentation/devicetree/bindings/display/mediatek/mediatek,ufoe.yaml b/Documentation/devicetree/bindings/display/mediatek/mediatek,ufoe.yaml
+index 036a66ed4..0d40fdbe5 100644
+--- a/Documentation/devicetree/bindings/display/mediatek/mediatek,ufoe.yaml
++++ b/Documentation/devicetree/bindings/display/mediatek/mediatek,ufoe.yaml
+@@ -23,6 +23,7 @@ properties:
+   compatible:
+     oneOf:
+       - enum:
++          - mediatek,mt6797-disp-ufoe
+           - mediatek,mt8173-disp-ufoe
+       - items:
+           - const: mediatek,mt6795-disp-ufoe
+-- 
+2.43.0
+

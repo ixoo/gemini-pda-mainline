@@ -1,0 +1,28 @@
+validation=gemini-vendor-baseline-runtime-capture
+generated_utc=2026-07-14T09:16:01Z
+target=gemini@192.168.1.50
+capture_kind=vendor-baseline
+artifact=artifacts/device-inventory/20260714T091601Z-vendor-baseline/mainline-runtime.txt
+artifact_sha256=c62d067e69a4ff25f0a742798dec8d0a18cbf827f4ff79d396458d0354768504
+artifact_mode=0600
+kernel_release=3.18.41+
+model=MT6797X
+compatible=mediatek,MT6797
+cpu_online=0-1
+cpu_possible=0-9
+cpu_present=0-9
+cpufreq_driver=mt-cpufreq
+proc_modules=absent
+pwrap_platform_driver=unbound
+pmic_platform_driver=mt-pmic
+rtc_platform_driver=mt-rtc
+pinctrl_driver=mediatek-mt6797-pinctrl
+uart_driver=mtk-uart
+active_vendor_irqs=mtk-msdc;mtk-uart;mtk-btif-tx/rx/irq;mt_wdt;mtk_cmdq;mtk-kpd;MD_WDT/MD2_WDT
+dynamic_vendor_reservations=consys-reserve-memory;reserve-memory-scp_share;spm-reserve-memory;mblock-1-log-store;mblock-2-atf-log-reserved;mblock-3-framebuffer;mblock-4-SCP-reserved;mblock-5/6/7-ccci
+runtime_mainline_boot=not_mainline_vendor_kernel
+hardware_write=none
+
+# This is a sanitized index for the mode-0600 raw capture under artifacts/.
+# Physical reservation ranges, regulator values, identifiers, and other
+# device-private values remain only in that Git-ignored artifact.

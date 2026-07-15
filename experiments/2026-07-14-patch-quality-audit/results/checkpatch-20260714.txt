@@ -1,0 +1,41 @@
+validation=checkpatch-71-series
+generated_utc=2026-07-14T04:17:37Z
+checkpatch_version=0.32
+patch_count=71
+checkpatch_nonzero=38
+errors=7
+warnings=56
+checks=10
+script_sha256=44a18fbf975e129b6ea5578437520753ad6c3c0d687e4f5e98daeace4faef3b7
+runtime_mainline_boot=not_attempted
+hardware_write=none
+
+[blocking_review_diagnostics]
+0044-pwm-mediatek-add-MT6797-display-PWM-support.patch=ERROR:MISSING_SIGN_OFF
+0046-arm64-dts-mediatek-mt6797-add-disabled-thermal-dvfsp-resources.patch=ERROR:MISSING_SIGN_OFF
+0047-pmdomain-mediatek-add-MT6797-MFG-domains.patch=ERROR:MISSING_SIGN_OFF
+0048-clk-mediatek-add-MT6797-MFGSYS.patch=ERROR:MISSING_SIGN_OFF
+0049-arm64-dts-mediatek-add-disabled-MFG-clock.patch=ERROR:MISSING_SIGN_OFF
+0050-pmdomain-mediatek-use-MT6797-MFG-52MHz-preclock.patch=ERROR:MISSING_SIGN_OFF
+0051-regulator-add-Richtek-RT5735-VSEL0-support.patch=ERROR:MISSING_SIGN_OFF
+
+[warning_classes]
+FILE_PATH_CHANGES=added_or_changed_paths_need_MAINTAINERS_review
+DT_SPLIT_BINDING_PATCH=binding_and_driver_or_DTS_changes_are_combined
+COMMIT_MESSAGE=missing_or_placeholder_commit_description
+COMMIT_LOG_LONG_LINE=commit_subject_or_body_exceeds_75_columns
+CONFIG_DESCRIPTION=Kconfig_help_text_is_too_short
+
+[check_classes]
+OPEN_ENDED_LINE=two_EINT_source_lines_end_with_open_parenthesis
+MACRO_ARG_REUSE=two_MT6351_regulator_macro_arguments_are_reused
+PARENTHESIS_ALIGNMENT=alignment_in_MFG_and_FUSB301_code
+LINE_SPACING=one_Panfrost_declaration_spacing_case
+
+[interpretation]
+The seven missing sign-offs are release/upstream-review blockers, not runtime
+failures. They must be supplied by the actual patch author or contributor; no
+signature is fabricated here. The DT split and MAINTAINERS findings indicate
+series restructuring and ownership review before submission. The source still
+compiled and the packaged artifact checksum/provenance validation passed, but
+that does not waive these review requirements.

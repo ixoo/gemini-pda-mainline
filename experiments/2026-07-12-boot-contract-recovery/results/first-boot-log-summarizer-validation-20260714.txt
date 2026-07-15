@@ -1,0 +1,13 @@
+validation=first-boot-log-summarizer
+generated_utc=2026-07-14T20:12:00Z
+script=experiments/2026-07-12-boot-contract-recovery/scripts/summarize-first-boot-log.py
+script_sha256=36b169dc62459b138a6366f11f17d2c6bf4983e9b0ef5ea0a1db6c02162979cc
+test_input=synthetic_stdin_fixture
+python_compile=passed
+stdin_summary=passed
+identifier_redaction=passed
+decision=manual_review_required
+hardware_write=none
+
+This validates the parser and redaction boundary only. It is not a device boot
+result and does not assert any mainline hardware support.

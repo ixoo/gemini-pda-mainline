@@ -1,0 +1,28 @@
+From 6a1690be0cb0c9b4f04cdaf69dc4b78cc3bd6708 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 11 Jul 2026 22:47:48 -0400
+Subject: [PATCH 3/3] arm64: dts: mediatek: mt6797: expose infracfg resets
+
+Advertise the reset controller now provided by the MT6797
+infracfg driver so SoC peripherals can reference its reset lines.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ arch/arm64/boot/dts/mediatek/mt6797.dtsi | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+index 8ac98a378..56183425f 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797.dtsi
++++ b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+@@ -121,6 +121,7 @@ infrasys: syscon@10001000 {
+ 		compatible = "mediatek,mt6797-infracfg", "syscon";
+ 		reg = <0 0x10001000 0 0x1000>;
+ 		#clock-cells = <1>;
++		#reset-cells = <1>;
+ 	};
+ 
+ 	pio: pinctrl@10005000 {
+-- 
+2.43.0
+

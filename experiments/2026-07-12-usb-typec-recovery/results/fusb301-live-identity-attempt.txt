@@ -1,0 +1,28 @@
+FUSB301 live identity/read-only access attempt
+===============================================
+
+The running device exposes two already-bound FUSB301-family I2C clients, but
+the vendor kernel does not expose an I2C character device or a register-dump
+sysfs/debugfs attribute to an unprivileged collector.
+
+device=gemini@192.168.1.50
+kernel=3.18.41+
+client0=/sys/bus/i2c/devices/0-0025 name=fusb301a driver=FUSB301_1
+client1=/sys/bus/i2c/devices/1-0025 name=fusb301 driver=FUSB301_0
+device_nodes=/dev/i2c*=absent
+sysfs_register_attributes=none
+debugfs_fusb_attributes=none
+kernel_config=CONFIG_I2C_CHARDEV is not set
+dmesg_device_id=not_logged
+direct_i2c_read=not_attempted
+write_operations=none
+
+The bounded SSH inventory also confirmed both drivers remain bound and the
+FUSB301 interrupt path is present, but it cannot recover register 0x01 without
+loading a character-device interface or changing the vendor kernel. Loading
+or installing an ad-hoc I2C tool was intentionally not done: the vendor driver
+owns both addresses, and the physical port/VBUS switch mapping is unresolved.
+
+The public onsemi datasheets identify the reset Device ID as 0x12 for both
+FUSB301 and FUSB301A. That is a source/datasheet expectation, not a live
+readback result for this board. References: https://www.onsemi.com/download/data-sheet/pdf/fusb301-d.pdf and https://www.onsemi.com/download/data-sheet/pdf/fusb301a-d.pdf

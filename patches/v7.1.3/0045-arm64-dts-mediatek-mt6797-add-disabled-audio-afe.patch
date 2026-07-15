@@ -1,0 +1,57 @@
+From 0000000000000000000000000000000000000045 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 12 Jul 2026 12:58:00 -0400
+Subject: [PATCH] arm64: dts: mediatek: mt6797: add disabled audio AFE resource
+
+Describe the MT6797 audio front end at the live Gemini register and interrupt
+boundary using the existing mainline AFE driver's clock contract. Keep the
+node disabled: the Gemini analog codec graph, machine-card phandles, and
+external amplifier/jack wiring still require board-specific recovery.
+
+The binding lists eight clocks, including the MTKAIF 26 MHz gate. The MT6797
+platform clock helper requests the seven clocks it manages directly, while the
+ADDA DAPM clock-supply widget obtains `mtkaif_26m_clk` by name when the audio
+path is instantiated. Retain all eight in the resource node; the split between
+platform and DAPM clock consumers is intentional.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ arch/arm64/boot/dts/mediatek/mt6797.dtsi | 24 ++++++++++++++++++++++++
+ 1 file changed, 24 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+--- a/arch/arm64/boot/dts/mediatek/mt6797.dtsi
++++ b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+@@ -263,6 +263,30 @@ pwrap: pwrap@1000d000 {
+ 		};
+ 	};
+ 
++	afe: audio-controller@11220000 {
++		compatible = "mediatek,mt6797-audio";
++		reg = <0 0x11220000 0 0x1000>;
++		interrupts = <GIC_SPI 151 IRQ_TYPE_LEVEL_LOW>;
++		power-domains = <&scpsys MT6797_POWER_DOMAIN_AUDIO>;
++		clocks = <&infrasys CLK_INFRA_AUDIO>,
++			 <&infrasys CLK_INFRA_AUDIO_26M>,
++			 <&infrasys CLK_INFRA_AUDIO_26M_PAD_TOP>,
++			 <&topckgen CLK_TOP_MUX_AUDIO>,
++			 <&topckgen CLK_TOP_MUX_AUD_INTBUS>,
++			 <&topckgen CLK_TOP_SYSPLL3_D4>,
++			 <&topckgen CLK_TOP_SYSPLL1_D4>,
++			 <&clk26m>;
++		clock-names = "infra_sys_audio_clk",
++			      "infra_sys_audio_26m",
++			      "mtkaif_26m_clk",
++			      "top_mux_audio",
++			      "top_mux_aud_intbus",
++			      "top_sys_pll3_d4",
++			      "top_sys_pll1_d4",
++			      "top_clk26m_clk";
++		status = "disabled";
++	};
++
+ 	sysirq: interrupt-controller@10200620 {
+ 		compatible = "mediatek,mt6797-sysirq",
+ 			     "mediatek,mt6577-sysirq";
+-- 
+2.43.0

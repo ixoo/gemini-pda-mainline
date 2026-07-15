@@ -1,0 +1,64 @@
+From 808beb0ed748d188a76ce76de5fe8cc2b1c4d8b2 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 12 Jul 2026 00:10:46 -0400
+Subject: [PATCH] Input: mtk-pmic-keys - add MT6351 support
+
+MT6351 uses TOPSTATUS bits 1 and 2 for power and home key debounce
+state, and INT_MISC_CON bits 2 and 1 for interrupt selection. Its
+long-press reset controls use the MT6331-style bit layout, while the
+interrupt controller supplies distinct press and release sources.
+
+Add the register data and enable separate release IRQ handling. The
+default long-press mode remains disabled unless a board explicitly
+requests it.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ drivers/input/keyboard/mtk-pmic-keys.c | 18 ++++++++++++++++++
+ 1 file changed, 18 insertions(+)
+
+diff --git a/drivers/input/keyboard/mtk-pmic-keys.c b/drivers/input/keyboard/mtk-pmic-keys.c
+index c78d9f6d9..5c228aea2 100644
+--- a/drivers/input/keyboard/mtk-pmic-keys.c
++++ b/drivers/input/keyboard/mtk-pmic-keys.c
+@@ -10,6 +10,7 @@
+ #include <linux/kernel.h>
+ #include <linux/mfd/mt6323/registers.h>
+ #include <linux/mfd/mt6331/registers.h>
++#include <linux/mfd/mt6351/registers.h>
+ #include <linux/mfd/mt6357/registers.h>
+ #include <linux/mfd/mt6358/registers.h>
+ #include <linux/mfd/mt6359/registers.h>
+@@ -93,6 +94,20 @@ static const struct mtk_pmic_regs mt6331_regs = {
+ 	.rst_lprst_mask = MTK_PMIC_MT6331_RST_DU_MASK,
+ };
+ 
++static const struct mtk_pmic_regs mt6351_regs = {
++	.keys_regs[MTK_PMIC_PWRKEY_INDEX] =
++		MTK_PMIC_KEYS_REGS(MT6351_TOPSTATUS, 0x2,
++				   MT6351_INT_MISC_CON, 0x4,
++				   MTK_PMIC_MT6331_PWRKEY_RST),
++	.keys_regs[MTK_PMIC_HOMEKEY_INDEX] =
++		MTK_PMIC_KEYS_REGS(MT6351_TOPSTATUS, 0x4,
++				   MT6351_INT_MISC_CON, 0x2,
++				   MTK_PMIC_MT6331_HOMEKEY_RST),
++	.pmic_rst_reg = MT6351_TOP_RST_MISC,
++	.rst_lprst_mask = MTK_PMIC_MT6331_RST_DU_MASK,
++	.key_release_irq = true,
++};
++
+ static const struct mtk_pmic_regs mt6357_regs = {
+ 	.keys_regs[MTK_PMIC_PWRKEY_INDEX] =
+ 		MTK_PMIC_KEYS_REGS(MT6357_TOPSTATUS,
+@@ -307,6 +322,9 @@ static const struct of_device_id of_mtk_pmic_keys_match_tbl[] = {
+ 	}, {
+ 		.compatible = "mediatek,mt6331-keys",
+ 		.data = &mt6331_regs,
++	}, {
++		.compatible = "mediatek,mt6351-keys",
++		.data = &mt6351_regs,
+ 	}, {
+ 		.compatible = "mediatek,mt6357-keys",
+ 		.data = &mt6357_regs,
+-- 
+2.43.0

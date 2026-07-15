@@ -1,0 +1,42 @@
+From 2c7f8d746cbf31a5f40ccf4c06a72e1e2d6ab6a1 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Maintainers <gemini-mainline@example.invalid>
+Date: Mon, 13 Jul 2026 10:16:00 -0400
+Subject: [PATCH 66/68] phy: mediatek: tphy: add MT6797 V1 compatible
+
+The MT6797 vendor tree places the USB2/USB3 T-PHY V1 banks in the SIF2
+window at the same offsets used by the generic V1 implementation. Add an
+explicit compatible and use the existing V1 data; electrical tuning and
+board power ownership remain outside this change.
+
+Signed-off-by: Gemini Mainline Maintainers <gemini-mainline@example.invalid>
+---
+ Documentation/devicetree/bindings/phy/mediatek,tphy.yaml | 1 +
+ drivers/phy/mediatek/phy-mtk-tphy.c                     | 1 +
+ 2 files changed, 2 insertions(+)
+
+diff --git a/Documentation/devicetree/bindings/phy/mediatek,tphy.yaml b/Documentation/devicetree/bindings/phy/mediatek,tphy.yaml
+--- a/Documentation/devicetree/bindings/phy/mediatek,tphy.yaml
++++ b/Documentation/devicetree/bindings/phy/mediatek,tphy.yaml
+@@ -72,7 +72,8 @@ properties:
+               - mediatek,mt2701-tphy
+               - mediatek,mt7623-tphy
+               - mediatek,mt7622-tphy
+               - mediatek,mt8516-tphy
++              - mediatek,mt6797-tphy
+           - const: mediatek,generic-tphy-v1
+       - items:
+           - enum:
+diff --git a/drivers/phy/mediatek/phy-mtk-tphy.c b/drivers/phy/mediatek/phy-mtk-tphy.c
+--- a/drivers/phy/mediatek/phy-mtk-tphy.c
++++ b/drivers/phy/mediatek/phy-mtk-tphy.c
+@@ -1552,7 +1552,8 @@ static const struct of_device_id mtk_tphy_id_table[] = {
+ 	{ .compatible = "mediatek,mt2701-u3phy", .data = &tphy_v1_pdata },
+ 	{ .compatible = "mediatek,mt2712-u3phy", .data = &tphy_v2_pdata },
+ 	{ .compatible = "mediatek,mt8173-u3phy", .data = &mt8173_pdata },
+ 	{ .compatible = "mediatek,mt8195-tphy", .data = &mt8195_pdata },
++	{ .compatible = "mediatek,mt6797-tphy", .data = &tphy_v1_pdata },
+ 	{ .compatible = "mediatek,generic-tphy-v1", .data = &tphy_v1_pdata },
+ 	{ .compatible = "mediatek,generic-tphy-v2", .data = &tphy_v2_pdata },
+ 	{ .compatible = "mediatek,generic-tphy-v3", .data = &tphy_v3_pdata },
+-- 
+2.45.2

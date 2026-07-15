@@ -1,0 +1,78 @@
+Current Linux 7.1.3 Gemini package CCCI/CLDMA validation
+=========================================================
+
+Date: 2026-07-14
+Package: linux-7.1.3-gemini-c2d9eea95daa
+Linux source manifest SHA-256: be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+Patch count: 72
+Patchset SHA-256: c2d9eea95daa25dd8faddef4f9822e663db67d5d0946f06f0251cc52c92cf08c
+Package Image SHA-256: 3fb6ac3043dff85dc2b6e68a2bba26d36fedf748e6f7c1bf6b6630f87446be7c
+Package config SHA-256: 831289dd3b53c6cec09e6c614fd83d3ab5988a4c30090bf9ec172348ec9487d5
+Package Gemini DTB SHA-256: b41580263940b47226e9819c97afbdaa9a35d4c721c471d2e8a0a3d597c553c5
+Package audit output SHA-256: 13720db3b98a9c74b451f5ad1f9b09df8e223a23d36d2aa088cd9793d866944c
+Source analyzer output SHA-256: 34ee2da6d44f944385cbb27169a68de3dd91bb6f05d3a3d13403c635a4059c3c
+Analyzer script SHA-256: 28efc50405e86fe1837ce0cd0d129ab5f1cec9c1660693dbc9c92cb73e9d5b3a
+Package-audit script SHA-256: 3e164e13f464c88d7f0dafb109a9737941d434f148d2a79e858284c2233c8f64
+Collector script SHA-256: 4c94b144eaa906633d69491cbf463b10f303bdce9d77390e67fff84b896ea72f
+
+The package audit was rerun in the prepared arm64 VM against the corrected
+c2d9eea95daa artifact and was byte-identical on rerun. The source-contract
+hash above is retained from the vendor-tree audit;
+that comparison is independent of the package identity. ShellCheck and
+`bash -n` passed for all three CCCI experiment scripts. This record supersedes
+the earlier 71-patch package with the same filename; the package identity and
+audit hash above are authoritative.
+
+Package configuration
+---------------------
+
+  CONFIG_WWAN=m
+  CONFIG_WWAN_DEBUGFS=y
+  CONFIG_MTK_T7XX is not set
+  CONFIG_MHI_WWAN_CTRL=m
+  CONFIG_RPMSG_WWAN_CTRL is not set
+  CONFIG_USB_NET_QMI_WWAN is not set
+  CONFIG_USB_NET_CDC_MBIM is not set
+  CONFIG_MFD_MT6397=y
+
+The package contains these relevant WWAN modules:
+
+  wwan.ko          770a7a2aab3986166281947c8d90988c848659d28aa666c1fbd4b73a15397ad7
+  mhi_wwan_ctrl.ko 5c0ccdd4ef933315d8810ab700875df14379c9baf794ab0fa5b801fb859dd930
+  mhi_wwan_mbim.ko 75651792c3edd37a02b3639917f65c2f43560071dc1ba7e46640fad282dab70b
+
+`rpmsg_wwan_ctrl.ko`, `qmi_wwan.ko`, and `cdc_mbim.ko` are absent. No
+CCCI/CLDMA/CCIF module is packaged. This is package evidence only; no module
+was loaded.
+
+Gemini DTB boundary
+-------------------
+
+The decompiled `mt6797-gemini-pda.dtb` contains two CCCI reserved-memory
+nodes, both `no-map`:
+
+  reserve-memory-ccci_md1: size 0xa100000, alignment 0x2000000,
+    alloc-ranges 0x40000000..0xc0000000
+  reserve-memory-ccci_share: size 0x600000, alignment 0x4000000
+
+It contains zero matches for active `mdcldma`, `ap2c2k_ccif`, `ccif_modem`,
+`cldma_modem`, or `ccci_modem` transport nodes. The board patch adds only the
+two reservation nodes. Thus the package preserves firmware/modem carve-outs
+without attempting to own the modem transport.
+
+Decision
+--------
+
+The current package can provide generic WWAN port infrastructure, but it has
+no Gemini modem transport. Linux `t7xx` remains unselected because it is the
+PCIe/DPMAIF T700 backend; MHI helpers are not a match for APB CCCI. A future
+MT6797 driver must own the CCCI header, CLDMA/CCIF rings, channel map,
+firmware handshake, reset, shared-memory lifetime, clocks, and EMI-MPU policy,
+then expose standard WWAN/TTY/netdev interfaces above that transport. Keep the
+two reservations intact and the modem transport nodes absent until those
+ownership contracts are recovered.
+
+runtime_mainline_boot=not_attempted
+runtime_modem_probe=not_attempted
+firmware_handshake=not_attempted
+hardware_write=none

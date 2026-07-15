@@ -1,0 +1,41 @@
+#!/bin/busybox sh
+# shellcheck shell=dash
+
+export PATH=/bin
+
+mount -t devtmpfs -o nosuid,mode=0755 devtmpfs /dev 2>/dev/null || true
+mount -t proc -o nosuid,nodev,noexec proc /proc 2>/dev/null || true
+mount -t sysfs -o nosuid,nodev,noexec sysfs /sys 2>/dev/null || true
+
+echo "gemini mainline initramfs"
+echo "kernel=$(uname -r)"
+echo "candidate_console=ttyS0"
+echo "vendor_console_token=ttyMT0 (LK observation only)"
+echo "optional_consumers=disabled"
+echo "storage probe is intentionally not automated"
+
+# Print only non-unique boot diagnostics. Do not echo the complete command line:
+# retained LK may append serial numbers, identifiers, or other private values.
+if [ -r /proc/cmdline ]; then
+	for token in $(cat /proc/cmdline); do
+		case "$token" in
+			console=*|earlycon=*|maxcpus=*|printk.disable_uart=*|root=*)
+				echo "cmdline_$token"
+				;;
+		esac
+	done
+fi
+if [ -r /sys/devices/system/cpu/online ]; then
+	echo "cpu_online=$(cat /sys/devices/system/cpu/online)"
+fi
+if [ -r /sys/devices/system/cpu/present ]; then
+	echo "cpu_present=$(cat /sys/devices/system/cpu/present)"
+fi
+if [ -r /proc/meminfo ]; then
+	awk '/^MemTotal:/ { print "mem_total_kb=" $2; exit }' /proc/meminfo
+fi
+
+if [ -c /dev/console ]; then
+	exec </dev/console >/dev/console 2>&1
+fi
+exec /bin/sh

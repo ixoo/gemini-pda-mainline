@@ -1,0 +1,62 @@
+From 0000000000000000000000000000000000000074 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 14 Jul 2026 12:56:00 -0400
+Subject: [PATCH] arm64: dts: mediatek: gemini: add disabled hall gpio-keys
+ candidate
+
+The vendor hall handler reads MT6797 GPIO66, treats a raw low level as
+FCOVER_CLOSE, and reports SW_LID=1. Represent that standard input contract
+with gpio-keys, retaining the observed 64 ms debounce interval. Keep the
+consumer disabled until a controlled hardware transition confirms the
+polarity and the mainline IRQ/wake behavior. Do not enable a wake source or
+copy the vendor Android switch-class ABI.
+
+Use only pinmux here. The MT6797 pinctrl implementation in this kernel
+revision does not provide the vendor pull/drive pinconf operations needed to
+reproduce the raw vendor pin configuration.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts | 24 ++++++++++++++++++++++++
+ 1 file changed, 24 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -179,5 +179,11 @@
+ 		pins-rst {
+ 			pinmux = <MT6797_GPIO125__FUNC_MSDC0_RSTB>;
+ 		};
+ 	};
++
++	hall_pins: hall-pins {
++		pins-hall {
++			pinmux = <MT6797_GPIO66__FUNC_GPIO66>;
++		};
++	};
+ };
+@@ -378,4 +384,22 @@
+ /* The RT5735 VGPU rail remains disabled until a fixed OPP is validated. */
+ &gpu {
+ 	mali-supply = <&rt5735_vgpu>;
+ };
++
++&{/} {
++	hall_gpio_keys: gpio-keys {
++		compatible = "gpio-keys";
++		pinctrl-names = "default";
++		pinctrl-0 = <&hall_pins>;
++		status = "disabled";
++
++		hall-switch {
++			/* Vendor hall.c maps raw low to FCOVER_CLOSE/SW_LID=1. */
++			label = "Hall lid";
++			linux,input-type = <EV_SW>;
++			linux,code = <SW_LID>;
++			gpios = <&pio 66 GPIO_ACTIVE_LOW>;
++			debounce-interval = <64>;
++		};
++	};
++};
+-- 
+2.43.0

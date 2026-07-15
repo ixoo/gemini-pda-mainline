@@ -1,0 +1,38 @@
+MT6797 thermal/AUXADC mainline variant validation
+linux_version=7.1.3
+patch_count=57
+artifact=linux-7.1.3-gemini-86ba1cdc647e
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=86ba1cdc647e8dc5620cc00e411617f94097b5faa9e029fbe4e04fee23bdc964
+config_sha256=01f1ce5e6f1a64d29d72e3e01c88cbe0a8f769a10b226f0b79cbbc4d92206b59
+
+[patch]
+patch=v7.1.3/0057-thermal-mediatek-add-MT6797-AUXADC-support.patch
+architecture=generic_mediatek_auxadc_thermal_framework_with_mt6797_v4_data
+calibration=vendor_efuse_bitfields_and_adc_oe_formula_selected
+auxadc=mt6797_compatible_mapped_to_mt8173_register_shape_candidate
+runtime_enablement=disabled
+
+[validation]
+patch_application=passed
+thermal_object=passed
+auxadc_object=passed
+full_dtbs=passed
+gemini_dtb=mt6797-gemini-pda.dtb
+dt_doc_validate=passed
+gemini_auxadc_binding_check=passed
+gemini_thermal_binding_check=passed
+kernel_artifact_validation=passed
+dtb_count=119
+hardware_write=none
+runtime_probe=not_attempted
+
+[limitations]
+The AUXADC mapping reuses the existing mt8173-compatible register shape as a
+compile-time candidate; MT6797 idle/wakeup semantics have not been observed.
+The vendor thermal zones were disabled on the live device, so no temperature
+reading, IRQ, trip, or cooling claim is made. The DT nodes remain disabled and
+no MT6797 efuse provider is claimed. The patch now initializes all
+`MAX_NUM_VTS` fallback slots, including `VTSABB`, before any future runtime
+enablement; calibrated NVMEM data and the no-calibration policy still require
+hardware validation.

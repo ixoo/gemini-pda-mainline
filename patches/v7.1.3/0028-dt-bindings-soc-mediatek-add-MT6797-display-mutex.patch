@@ -1,0 +1,27 @@
+From: Gemini PDA Mainline Project <noreply@example.com>
+Date: Sun, 12 Jul 2026 03:10:00 -0400
+Subject: [PATCH 28/30] dt-bindings: soc: mediatek: add MT6797 display
+ mutex
+
+MT6797 has the original MediaTek display mutex register layout, but unlike
+MT6795 and MT8173 it has no dedicated mutex clock gate. Add its compatible
+without adding it to the conditional clock requirement.
+
+Signed-off-by: Gemini PDA Mainline Project <noreply@example.com>
+---
+ .../bindings/soc/mediatek/mediatek,mutex.yaml                 | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mutex.yaml b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mutex.yaml
+--- a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mutex.yaml
++++ b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mutex.yaml
+@@ -33,6 +33,7 @@ properties:
+       - mediatek,mt2701-disp-mutex
+       - mediatek,mt2712-disp-mutex
+       - mediatek,mt6795-disp-mutex
++      - mediatek,mt6797-disp-mutex
+       - mediatek,mt8167-disp-mutex
+       - mediatek,mt8173-disp-mutex
+       - mediatek,mt8183-disp-mutex
+-- 
+2.47.2

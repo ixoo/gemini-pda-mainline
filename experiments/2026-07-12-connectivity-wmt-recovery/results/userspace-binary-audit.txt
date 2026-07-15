@@ -1,0 +1,340 @@
+audit=gemini-connectivity-userspace-static
+analysis=metadata_strings_exports_and_bounded_ioctl_call_sites
+execution=none
+payload_root=/home/julien.guest/reverse-engineering/gemini-vendor
+
+[file]
+path=system/vendor/bin/wmt_launcher
+present=yes
+size_bytes=32272
+sha256=79ec10a6cc96642c042a6ae160d838e5b5a9cb63e6447f1761fc6a78000ac8bc
+elf=ELF 64-bit LSB shared object, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /system/bin/linker64, BuildID[md5/uuid]=a3b3ba54ee27784becbbab77b84fb4a9, stripped
+needed=libcutils.so,libc++.so,libdl.so,libc.so,libm.so
+exports=
+string_anchors=        -3: BTIF mode (common interface: BTIF);        -4: SDIO mode (common interface: SDIO);        -e.g. /dev/ttyMT1, /dev/ttyMT2, /dev/ttyHS2, etc.;    -b (Baudrate set when BT/GPS/FM runs under UART mode, no needed under SDIO mode);    -d (UART device node, when under UART mode, no needed under SDIO mode);    -m (BT/GPS/FM common interface mode selection, optional);%s:invalid wmt fd;/dev/stpwmt;/dev/ttyMT2;/system/vendor/firmware/WMT.cfg;Can't set ldisc to N_MTKSTP;Invalid stpUartConfig;STP Mode is not set, fetching default mode...;Stp Mode is not set, common interface use default: BTIF Mode;Stp Mode is not set, common interface use default: SDIO Mode;Usage: wmt_launcher [-m mode] -p patchfolderpath [-d uartdevicenode] [-b baudrate] [-c uartflowcontrol];chip_id from kernel by ioctl:0x%04x;chip_id(0x%04x), default Mode(%d), strlen(g_wmt_cfg_name)(%zd), g_wmt_cfg_name(%s);close_stp;e.g. wmt_launcher -m 1 -n /system/etc/firmware/mt6628_patch_hdr.bin;e.g. wmt_launcher -m 3 -p /system/etc/firmware/;e.g. wmt_launcher -m 4 -d /dev/ttyMT2 -b 4000000 -n /system/etc/firmware/mt6628_patch_hdr.bin;get chip_id property(%s) failed;get coredump_mode property(%s) failed;get property (%s) is %s;get property(%s) failed i_ret:%d;get property(%s) failed ret:%d;get property(%s) is %s;ioctl;ioctl error: err msg: %s;launcher_get_wmt_cfg_infor fail;open_stp;property_get;property_set;rst_stp;set property(%s) to %s failed,ret:%d, errno:%d;set property(%s) to %s succeed.;stp mode:%d;stp param is invalid, use default:;stp uart baud rate:%d;stp uart dev:%s;stp uart fc:%d;stp uart parity:%d;stp uart stop bit:%d;stp_close fail: stp_mode(%d) real_tty_fd(%d) ;stp_open fail: stp_mode(%d) real_tty_fd(%d) ;stpuartconfig->fc= %d (0:none,sw,hw,linux);ttyMT2;wmt_launcher
+[ioctl_call_sites]
+    1640:	d0000030 	adrp	x16, 7000 <pthread_setname_np@plt+0x56d0>
+    1644:	f9474211 	ldr	x17, [x16, #3712]
+    1648:	913a0210 	add	x16, x16, #0xe80
+    164c:	d61f0220 	br	x17
+--
+    1c2c:	528a8461 	mov	w1, #0x5423                	// #21539
+    1c30:	910013e2 	add	x2, sp, #0x4
+    1c34:	b90007e8 	str	w8, [sp, #4]
+    1c38:	97fffe86 	bl	1650 <ioctl@plt>
+--
+    1c44:	52a80081 	mov	w1, #0x40040000            	// #1074003968
+    1c48:	2a1f03e2 	mov	w2, wzr
+    1c4c:	728ab901 	movk	w1, #0x55c8
+    1c50:	97fffe80 	bl	1650 <ioctl@plt>
+--
+    1d2c:	b90007ff 	str	wzr, [sp, #4]
+    1d30:	910013e2 	add	x2, sp, #0x4
+    1d34:	2a0803e0 	mov	w0, w8
+    1d38:	97fffe46 	bl	1650 <ioctl@plt>
+--
+    1e5c:	72940193 	movk	w19, #0xa00c
+    1e60:	2a1f03e2 	mov	w2, wzr
+    1e64:	2a1303e1 	mov	w1, w19
+    1e68:	97fffdfa 	bl	1650 <ioctl@plt>
+--
+    1f60:	b9450300 	ldr	w0, [x24, #1280]
+    1f64:	321f03e2 	orr	w2, wzr, #0x2
+    1f68:	2a1303e1 	mov	w1, w19
+    1f6c:	97fffdb9 	bl	1650 <ioctl@plt>
+--
+    2268:	52a80081 	mov	w1, #0x40040000            	// #1074003968
+    226c:	729401c1 	movk	w1, #0xa00e
+    2270:	2a1303e2 	mov	w2, w19
+    2274:	97fffcf7 	bl	1650 <ioctl@plt>
+--
+    22c8:	910743e2 	add	x2, sp, #0x1d0
+    22cc:	390b5fff 	strb	wzr, [sp, #727]
+    22d0:	729401e1 	movk	w1, #0xa00f
+    22d4:	97fffcdf 	bl	1650 <ioctl@plt>
+--
+    281c:	52b00081 	mov	w1, #0x80040000            	// #-2147221504
+    2820:	aa1f03e2 	mov	x2, xzr
+    2824:	729402c1 	movk	w1, #0xa016
+    2828:	97fffb8a 	bl	1650 <ioctl@plt>
+--
+    2b78:	b9450300 	ldr	w0, [x24, #1280]
+    2b7c:	52b8011c 	mov	w28, #0xc0080000            	// #-1073217536
+    2b80:	7294029c 	movk	w28, #0xa014
+    2b84:	97fffab3 	bl	1650 <ioctl@plt>
+--
+    30b0:	11000781 	add	w1, w28, #0x1
+    30b4:	aa1603e2 	mov	x2, x22
+    30b8:	b9450100 	ldr	w0, [x8, #1280]
+    30bc:	97fff965 	bl	1650 <ioctl@plt>
+--
+    3148:	2a1c03e1 	mov	w1, w28
+    314c:	aa1403e2 	mov	x2, x20
+    3150:	b9450100 	ldr	w0, [x8, #1280]
+    3154:	97fff93f 	bl	1650 <ioctl@plt>
+--
+
+[file]
+path=system/vendor/bin/wmt_loader
+present=yes
+size_bytes=10368
+sha256=446a1318e29c0515cde62c0a335ffb604adc0a955f990d009646e291330d11aa
+elf=ELF 64-bit LSB shared object, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /system/bin/linker64, BuildID[md5/uuid]=ba54424190a5805c7ba9c52515a4c2ee, stripped
+needed=libcutils.so,libc++.so,libdl.so,libc.so,libm.so
+exports=
+string_anchors=/dev/wmtdetect;/proc/driver/wmt_aee;/proc/driver/wmt_dbg;chip id from property:%d;chown wmt_dbg or wmt_aee fail:%s;do SDIO3.0 autok %s;do WMT-DETECT module cleanup failed: %d;get property(%s) failed iRet:%d or property is %s;ioctl;property_get;property_set;set property(%s) to %s failed ret:%d;set property(%s) to %s failed,ret:%d, errno:%d;set property(%s) to %s succeed;set property(%s) to %s succeed.;wmt_loader
+[ioctl_call_sites]
+ 980:	d0000010 	adrp	x16, 2000 <__stack_chk_fail@plt+0x15f0>
+ 984:	f947da11 	ldr	x17, [x16, #4016]
+ 988:	913ec210 	add	x16, x16, #0xfb0
+ 98c:	d61f0220 	br	x17
+--
+     ea4:	2a1b03f3 	mov	w19, w27
+     ea8:	11001a61 	add	w1, w19, #0x6
+     eac:	2a1603e0 	mov	w0, w22
+     eb0:	97fffeb8 	bl	990 <ioctl@plt>
+--
+     ed4:	11000a61 	add	w1, w19, #0x2
+     ed8:	aa1f03e2 	mov	x2, xzr
+     edc:	2a1603e0 	mov	w0, w22
+     ee0:	97fffeac 	bl	990 <ioctl@plt>
+--
+     efc:	aa1f03e2 	mov	x2, xzr
+     f00:	2a1603e0 	mov	w0, w22
+     f04:	2a1303e1 	mov	w1, w19
+     f08:	97fffea2 	bl	990 <ioctl@plt>
+--
+     f30:	11002281 	add	w1, w20, #0x8
+     f34:	2a1603e0 	mov	w0, w22
+     f38:	2a1303e2 	mov	w2, w19
+     f3c:	97fffe95 	bl	990 <ioctl@plt>
+--
+     f58:	97fffe7e 	bl	950 <__android_log_print@plt>
+     f5c:	11001e81 	add	w1, w20, #0x7
+     f60:	2a1603e0 	mov	w0, w22
+     f64:	97fffe8b 	bl	990 <ioctl@plt>
+--
+     fe8:	97fffe52 	bl	930 <memset@plt>
+     fec:	11001a61 	add	w1, w19, #0x6
+     ff0:	2a1603e0 	mov	w0, w22
+     ff4:	97fffe67 	bl	990 <ioctl@plt>
+--
+    103c:	11000a61 	add	w1, w19, #0x2
+    1040:	aa1f03e2 	mov	x2, xzr
+    1044:	2a1603e0 	mov	w0, w22
+    1048:	97fffe52 	bl	990 <ioctl@plt>
+--
+    106c:	aa1f03e2 	mov	x2, xzr
+    1070:	2a1603e0 	mov	w0, w22
+    1074:	2a1303f5 	mov	w21, w19
+    1078:	97fffe46 	bl	990 <ioctl@plt>
+--
+    1134:	11002261 	add	w1, w19, #0x8
+    1138:	2a1603e0 	mov	w0, w22
+    113c:	2a1803e2 	mov	w2, w24
+    1140:	97fffe14 	bl	990 <ioctl@plt>
+--
+    1178:	97fffdf6 	bl	950 <__android_log_print@plt>
+    117c:	11001ee1 	add	w1, w23, #0x7
+    1180:	2a1603e0 	mov	w0, w22
+    1184:	97fffe03 	bl	990 <ioctl@plt>
+--
+    11dc:	52a80081 	mov	w1, #0x40040000            	// #1074003968
+    11e0:	728ee021 	movk	w1, #0x7701
+    11e4:	2a1803e2 	mov	w2, w24
+    11e8:	97fffdea 	bl	990 <ioctl@plt>
+--
+
+[file]
+path=system/vendor/bin/wmt_loopback
+present=yes
+size_bytes=10368
+sha256=8a5996c934b5ca8ef88f194e25de0a867d91c9eac0cba3f938430c739b38a1b5
+elf=ELF 64-bit LSB shared object, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /system/bin/linker64, BuildID[md5/uuid]=d3f5fd0e2ff04411e152963906e71bc7, stripped
+needed=libc++.so,libdl.so,libc.so,libm.so
+exports=
+string_anchors=/dev/stpwmt;[%s] Can't open stpwmt ;[%s] WMT_TEST_LPBK_CMD payload compare error;[%s] exec WMT_TEST_LPBK_CMD succeed(loop = %d, size = %ld) ;ioctl;wmt_loopback;wmt_loopback type count length delay
+[ioctl_call_sites]
+ 7e0:	d0000010 	adrp	x16, 2000 <__stack_chk_fail@plt+0x17b0>
+ 7e4:	f947e211 	ldr	x17, [x16, #4032]
+ 7e8:	913f0210 	add	x16, x16, #0xfc0
+ 7ec:	d61f0220 	br	x17
+--
+     be0:	321f03e2 	orr	w2, wzr, #0x2
+     be4:	2a1403e0 	mov	w0, w20
+     be8:	2a1803e1 	mov	w1, w24
+     bec:	97ffff01 	bl	7f0 <ioctl@plt>
+--
+     c28:	320007e2 	orr	w2, wzr, #0x3
+     c2c:	2a1403e0 	mov	w0, w20
+     c30:	2a1803e1 	mov	w1, w24
+     c34:	97fffeef 	bl	7f0 <ioctl@plt>
+--
+     c58:	321f03e2 	orr	w2, wzr, #0x2
+     c5c:	2a1403e0 	mov	w0, w20
+     c60:	2a1803e1 	mov	w1, w24
+     c64:	97fffee3 	bl	7f0 <ioctl@plt>
+--
+     de4:	910083e2 	add	x2, sp, #0x20
+     de8:	2a1403e0 	mov	w0, w20
+     dec:	72940101 	movk	w1, #0xa008
+     df0:	97fffe80 	bl	7f0 <ioctl@plt>
+--
+     f20:	11004901 	add	w1, w8, #0x12
+     f24:	910083e2 	add	x2, sp, #0x20
+     f28:	2a1403e0 	mov	w0, w20
+     f2c:	97fffe31 	bl	7f0 <ioctl@plt>
+--
+
+[file]
+path=system/vendor/bin/wmt_concurrency
+present=yes
+size_bytes=10488
+sha256=f1e5415d6b46bea75038070c1cf7be9b87a0d418579ba54935266bb0df189a84
+elf=ELF 64-bit LSB shared object, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /system/bin/linker64, BuildID[md5/uuid]=30838e1d470c4fa3b36e4310652e8cc4, stripped
+needed=libc++.so,libdl.so,libc.so,libm.so
+exports=
+string_anchors=		    -4:GPS on<->off test;		    -8:WIFI on<->off test;		wmt_concurrency looptimes  bitmask  on2offtime off2ontime;%d: %s:g_state:[BT]%d, [FM]:%d, [GPS]:%d, [WIFI]:%d;/dev/stpwmt;ioctl;wmt_concurrency;wmt_concurrency usage:
+[ioctl_call_sites]
+ a28:	d0000010 	adrp	x16, 2000 <waitpid@plt+0x14c8>
+ a2c:	f947ba11 	ldr	x17, [x16, #3952]
+ a30:	913dc210 	add	x16, x16, #0xf70
+ a34:	d61f0220 	br	x17
+--
+     c90:	2a1403e1 	mov	w1, w20
+     c94:	2a1503e2 	mov	w2, w21
+     c98:	2a1303f7 	mov	w23, w19
+     c9c:	97ffff67 	bl	a38 <ioctl@plt>
+--
+     ce4:	b9403f60 	ldr	w0, [x27, #60]
+     ce8:	2a1403e1 	mov	w1, w20
+     cec:	2a1303e2 	mov	w2, w19
+     cf0:	97ffff52 	bl	a38 <ioctl@plt>
+--
+     d3c:	b9403f60 	ldr	w0, [x27, #60]
+     d40:	2a1403e1 	mov	w1, w20
+     d44:	2a1503e2 	mov	w2, w21
+     d48:	97ffff3c 	bl	a38 <ioctl@plt>
+--
+
+[file]
+path=system/vendor/bin/stp_dump3
+present=yes
+size_bytes=35080
+sha256=29e74aa91ba28149f93c445ee9fe6567265511a7d77261ca84886e6280791dfd
+elf=ELF 64-bit LSB shared object, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /system/bin/linker64, BuildID[md5/uuid]=b13f991a413c2243efce39e5ac60e663, stripped
+needed=libc.so,libcutils.so,libc++.so,libdl.so,libm.so
+exports=
+string_anchors=/dev/stpwmt;/sdcard/mtklog/stp_dump/;Could not unlink existing ctrl_iface socket '%s';DIR=/data/misc/stp_dump GROUP=stp;ELOOP: remaining socket: sock=%d eloop_data=%p user_data=%p handler=%p;STP_DBG;Successfully replaced leftover ctrl_iface socket '%s';Unable to bind uevent socket: %s;Unable to create uevent socket: %s;Unable to set uevent socket options: %s;You may have another stp_dump process already running or the file was;[%s] Can't open stpwmt ;[STP_DBG] family id = %d;create socket failed;ioctl;left by an unclean termination of stp_dump in which case you will need;memory allocation for stp_dump failed;property_get;select on socket failed;socket;socket(PF_UNIX);stp_%s;stp_d->ctrl_interface = NULL;stp_dump;stp_dump3;stp_dump_ctrl_iface_deinit;stp_dump_ctrl_iface_init;stp_dump_ctrl_iface_init succeed.;stp_dump_ctrl_iface_path failed;stp_dump_ctrl_iface_trace_logger_get_family_id;stp_dump_ctrl_iface_trace_logger_sendto_fd;used by stp_dump
+[ioctl_call_sites]
+    1a08:	f0000030 	adrp	x16, 8000 <__vsnprintf_chk@plt+0x63f8>
+    1a0c:	f9477e11 	ldr	x17, [x16, #3832]
+    1a10:	913be210 	add	x16, x16, #0xef8
+    1a14:	d61f0220 	br	x17
+--
+    29fc:	91002702 	add	x2, x24, #0x9
+    2a00:	52800141 	mov	w1, #0xa                   	// #10
+    2a04:	b9401900 	ldr	w0, [x8, #24]
+    2a08:	97fffc04 	bl	1a18 <ioctl@plt>
+--
+    2a74:	2a1f03e2 	mov	w2, wzr
+    2a78:	52800161 	mov	w1, #0xb                   	// #11
+    2a7c:	b9401900 	ldr	w0, [x8, #24]
+    2a80:	97fffbe6 	bl	1a18 <ioctl@plt>
+--
+
+[file]
+path=system/vendor/bin/wifi2agps
+present=yes
+size_bytes=18624
+sha256=7029ad4d8b88b502b8b70b3d2fcb8e6869ee6037fab4b7c35940a246cb2e87f3
+elf=ELF 64-bit LSB shared object, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /system/bin/linker64, BuildID[md5/uuid]=f606143eddbb99c49ba9faad42e9e1a9, stripped
+needed=libc.so,liblog.so,libcutils.so,libnl.so,libc++.so,libdl.so,libm.so
+exports=
+string_anchors= ERR: [WIFI2AGPS];/data/agps_supl/wifi_2_agps;[WIFI2AGPS];nl_socket_add_membership;nl_socket_alloc_cb;nl_socket_free;nl_socket_get_fd;socket;wifi off;wifi on;wifi2agps;wifi2agps_associated;wifi2agps_disabled;wifi2agps_disassociated;wifi2agps_enabled;wifi2agps_scanned
+[ioctl_call_sites]
+
+[file]
+path=system/vendor/bin/mtk_agpsd
+present=yes
+size_bytes=1494624
+sha256=1ab44c91859ed105f3a4b4d8e4e5e51b07197972b55c6e410e2d5c9430c9477f
+elf=ELF 32-bit LSB shared object, ARM, EABI5 version 1 (SYSV), dynamically linked, interpreter /system/bin/linker, BuildID[md5/uuid]=db0fb275f8cf1d319759f0678d547a7b, stripped
+needed=libcutils.so,libcrypto.so,libssl.so,libdl.so,libicuuc.so,libnetd_client.so,liblog.so,libc++.so,libc.so,libm.so
+exports=
+string_anchors= ============= common_mnl2agps_update_configuration_test =============; ============= cp_fd_1_disconnect_test  ccci_delay=%d agps_hdlr_ready_count=%d =============; ============= cp_fd_2_disconnect_test  ccci_delay=%d agps_hdlr_ready_count=%d =============; ============= cp_molr_open_gps_test [%d] =============; ============= evdo_gps_off_ni_test =============; ============= up_ni_supl_1_gps_disabled_test =============; ============= up_ni_supl_lpp_provide_gps_glonass_bds_data_test%d =============; ============= up_ni_supl_lpp_request_cap_test1_1 - Request AGNSS (gps+glonass) =============; ============= up_ni_supl_lpp_request_cap_test1_1b - Request AGNSS (gps+glonass+bds) =============; ============= up_ni_supl_lpp_request_cap_test1_1c - Request AGNSS (gps+bds) =============; ============= up_ni_supl_lpp_request_cap_test1_5 - Request AGNSS (gps only) =============; =================== agps_xml_dump ===================; =TEST evdo_test_c2k_agps_is_available=; ERR: [AGPS2WIFI]; ERR: [MNL2AGPS]; ERR: [WIFI2AGPS]; WARNING: [AGPS2WIFI]; WARNING: [MNL2AGPS];# a-gps session ends;# a-gps session starts;#GPS cannot produce position within resp_time;%s():%d mtk_socket_expected_bool() failed, read=[%d], expected=[%d];%s():%d mtk_socket_expected_char() failed, read=[%d], expected=[%d];%s():%d mtk_socket_expected_double() failed, read=[%f], expected=[%f];%s():%d mtk_socket_expected_float() failed, read=[%f], expected=[%f];%s():%d mtk_socket_expected_int() failed, read=[%d], expected=[%d];%s():%d mtk_socket_expected_int64_t() failed, read=[%lld], expected=[%lld];%s():%d mtk_socket_expected_short() failed, read=[%d], expected=[%d];%s():%d mtk_socket_expected_string() failed, read=[%s], expected=[%s];%u.0.0, SUPL_END;%u.0.0, SUPL_INIT  # SUPL_MODE: %s;%u.0.0, SUPL_POS;%u.0.0, SUPL_POSINIT;%u.0.0, SUPL_POSINIT  #CELLID_PCI_TAC: %d, %d, %d ;%u.0.0, SUPL_POSINIT  #LAC_CELLID: %d, %d;%u.0.0, SUPL_RESPONSE  # SUPL_MODE: %s;%u.0.0, SUPL_START;-->mtk_agps_debug_init(): create a log file with new time suffix !;/data/agps_supl;/data/agps_supl/3rd_party_apk;/data/agps_supl/agps2_mgr;/data/agps_supl/agps_profiles_conf2.xml;/data/agps_supl/agps_to_evdo_emulator;/data/agps_supl/agps_to_mnl;/data/agps_supl/agps_to_mnl_emulator;/data/agps_supl/auto_test_enabled;/data/agps_supl/cdma_mgr_handler_soc;/data/agps_supl/cdma_mgr_recv_soc;/data/agps_supl/conn_%02d;/data/agps_supl/conn_%02d/authnames.der;/data/agps_supl/conn_%02d/peer_cert.der;/data/agps_supl/cp2_mgr;/data/agps_supl/cp_service_cmd_disabled;/data/agps_supl/ctwap;/data/agps_supl/ctx_%d;/data/agps_supl/ctx_%d/priv_key;/data/agps_supl/ctx_%d/root_cert;/data/agps_supl/ctx_%d/user_cert;/data/agps_supl/emulator2_mgr;/data/agps_supl/isESUPL;/data/agps_supl/isEmergencyCallDialed;/data/agps_supl/log;/data/agps_supl/log/A-GPS.LOG;/data/agps_supl/log/mtk_agps_dbg_%s.log;/data/agps_supl/log/mtk_supl_dbg_%s.log;/data/agps_supl/mnl_to_agps;/data/agps_supl/op01;/data/agps_supl/soc_gps;/data/agps_supl/soc_is801;/data/agps_supl/soc_l4c;/data/agps_supl/soc_lpp;/data/agps_supl/soc_main;/data/agps_supl/soc_mmi;/data/agps_supl/soc_rrlp;/data/agps_supl/soc_soc;/data/agps_supl/soc_supl;/data/agps_supl/soc_tls;/data/agps_supl/supl_raw_enabled;/data/agps_supl/ulp.txt;/data/agps_supl/wifi_2_agps
+[ioctl_call_sites]
+
+[file]
+path=system/vendor/lib/hw/gps.mt6797.so
+present=yes
+size_bytes=46936
+sha256=e6aeed49842a8c4b32a46b4cd7716e9b9de0d321151c87c9a523a328012039cf
+elf=ELF 32-bit LSB shared object, ARM, EABI5 version 1 (SYSV), dynamically linked, interpreter /system/bin/linker, BuildID[md5/uuid]=16f7db6e8a34c584706798d2ec9aae0e, stripped
+needed=liblog.so,libcutils.so,libhardware.so,libc++.so,libdl.so,libc.so,libm.so
+exports=gpshal2mnl_gps_cleanup,gpshal2mnl_gps_init,gpshal2mnl_gps_start,gpshal2mnl_gps_stop,gpshal_gpscbs_save,gpshal_set_gps_state_intent,gpshal_state_to_string,gpshal_worker_thread,hal2mnl_data_conn_closed,hal2mnl_data_conn_failed,hal2mnl_data_conn_open,hal2mnl_data_conn_open_with_apn_ip_type,hal2mnl_gps_cleanup,hal2mnl_gps_delete_aiding_data,hal2mnl_gps_init,hal2mnl_gps_inject_location,hal2mnl_gps_inject_time,hal2mnl_gps_set_position_mode,hal2mnl_gps_start,hal2mnl_gps_stop,hal2mnl_hal_reboot,hal2mnl_ni_message,hal2mnl_ni_respond,hal2mnl_set_gps_measurement,hal2mnl_set_gps_navigation,hal2mnl_set_id,hal2mnl_set_ref_location,hal2mnl_set_server,hal2mnl_update_network_availability,hal2mnl_update_network_state
+string_anchors=%s: hal2mnl_gps_cleanup;%s: hal2mnl_gps_delete_aiding_data  flag=0x%x;%s: hal2mnl_gps_init;%s: hal2mnl_gps_inject_location  lat,lng %f,%f acc=%f;%s: hal2mnl_gps_inject_time  time=%llu time_reference=%llu uncertainty=%d;%s: hal2mnl_gps_set_position_mode  mode=%d recurrence=%d min_interval=%d preferred_acc=%d preferred_time=%d;%s: hal2mnl_gps_start;%s: hal2mnl_gps_stop;%s: hal2mnl_set_gps_measurement  enabled=%d;%s: hal2mnl_set_gps_navigation   enabled=%d;%s: mnl2hal_hdlr() gps_capabilities is NULL;%s: mnl2hal_hdlr() gps_measurements is NULL;%s: mnl2hal_hdlr() gps_navigation is NULL;%s: mnl2hal_hdlr() gps_status is NULL;%s: mnl2hal_hdlr() gps_sv is NULL;%s: safe_sendto() socket() failed reason=[%s]%d;%s: socket_bind_udp() bind() failed path=[%s] reason=[%s]%d;%s: socket_bind_udp() socket() failed reason=[%s]%d;%s: socket_set_blocking() fcntl() failed invalid flags=%d reason=[%s]%d;%s: socket_set_blocking() invalid fd=%d;===== dump_gps_clock ====;===== dump_gps_data ====;===== dump_gps_location ====;===== dump_gps_measurement ====;===== dump_gps_nav_msg ====;Current gps_state_intent: %s (%d);MediaTek GPS Hardware Module;[gpshal] ERR: [Default];[gpshal] WARNING: [Default];[gpshal][Default];agps_ril;agps_ril_set_ref_location;dump_gps_clock;dump_gps_data;dump_gps_location;dump_gps_measurement;dump_gps_nav_msg;g_gpshal_ctx;gps-ni;gps.mt6797.so;gps_measurement;gps_navigation_message;gps_state: %s (intent: %s -> %s);gps_state: %s -> %s (intent: %s);gpshal2mnl_gps_cleanup;gpshal2mnl_gps_init;gpshal2mnl_gps_start;gpshal2mnl_gps_stop;gpshal_gpscbs_save;gpshal_set_gps_state_intent;gpshal_state_to_string;gpshal_worker_thread;hal2mnl_gps_cleanup;hal2mnl_gps_delete_aiding_data;hal2mnl_gps_init;hal2mnl_gps_inject_location;hal2mnl_gps_inject_time;hal2mnl_gps_set_position_mode;hal2mnl_gps_start;hal2mnl_gps_stop;hal2mnl_set_gps_measurement;hal2mnl_set_gps_navigation;mtk_agps_inf;mtk_agps_ril_inf;mtk_gps_meas_inf;mtk_gps_ni_inf;received_gps_tow_ns=%lld;received_gps_tow_uncertainty_ns=%lld;socket;socket_bind_udp;socket_set_blocking;we have a location when gps_state_intent: %s (%d)
+[ioctl_call_sites]
+
+[file]
+path=system/vendor/lib64/hw/gps.mt6797.so
+present=yes
+size_bytes=51832
+sha256=a461bbe5ab075565435299a067a7c82eee75fb559569b6f6dd8e245f761fb5b3
+elf=ELF 64-bit LSB shared object, ARM aarch64, version 1 (SYSV), dynamically linked, BuildID[md5/uuid]=41094a72f6c46161cb340298843f333a, stripped
+needed=liblog.so,libcutils.so,libhardware.so,libc++.so,libdl.so,libc.so,libm.so
+exports=gpshal2mnl_gps_cleanup,gpshal2mnl_gps_init,gpshal2mnl_gps_start,gpshal2mnl_gps_stop,gpshal_gpscbs_save,gpshal_set_gps_state_intent,gpshal_state_to_string,gpshal_worker_thread,hal2mnl_data_conn_closed,hal2mnl_data_conn_failed,hal2mnl_data_conn_open,hal2mnl_data_conn_open_with_apn_ip_type,hal2mnl_gps_cleanup,hal2mnl_gps_delete_aiding_data,hal2mnl_gps_init,hal2mnl_gps_inject_location,hal2mnl_gps_inject_time,hal2mnl_gps_set_position_mode,hal2mnl_gps_start,hal2mnl_gps_stop,hal2mnl_hal_reboot,hal2mnl_ni_message,hal2mnl_ni_respond,hal2mnl_set_gps_measurement,hal2mnl_set_gps_navigation,hal2mnl_set_id,hal2mnl_set_ref_location,hal2mnl_set_server,hal2mnl_update_network_availability,hal2mnl_update_network_state
+string_anchors=%s: hal2mnl_gps_cleanup;%s: hal2mnl_gps_delete_aiding_data  flag=0x%x;%s: hal2mnl_gps_init;%s: hal2mnl_gps_inject_location  lat,lng %f,%f acc=%f;%s: hal2mnl_gps_inject_time  time=%llu time_reference=%llu uncertainty=%d;%s: hal2mnl_gps_set_position_mode  mode=%d recurrence=%d min_interval=%d preferred_acc=%d preferred_time=%d;%s: hal2mnl_gps_start;%s: hal2mnl_gps_stop;%s: hal2mnl_set_gps_measurement  enabled=%d;%s: hal2mnl_set_gps_navigation   enabled=%d;%s: mnl2hal_hdlr() gps_capabilities is NULL;%s: mnl2hal_hdlr() gps_measurements is NULL;%s: mnl2hal_hdlr() gps_navigation is NULL;%s: mnl2hal_hdlr() gps_status is NULL;%s: mnl2hal_hdlr() gps_sv is NULL;%s: safe_sendto() socket() failed reason=[%s]%d;%s: socket_bind_udp() bind() failed path=[%s] reason=[%s]%d;%s: socket_bind_udp() socket() failed reason=[%s]%d;%s: socket_set_blocking() fcntl() failed invalid flags=%d reason=[%s]%d;%s: socket_set_blocking() invalid fd=%d;===== dump_gps_clock ====;===== dump_gps_data ====;===== dump_gps_location ====;===== dump_gps_measurement ====;===== dump_gps_nav_msg ====;Current gps_state_intent: %s (%d);MediaTek GPS Hardware Module;[gpshal] ERR: [Default];[gpshal] WARNING: [Default];[gpshal][Default];agps_ril;agps_ril_set_ref_location;dump_gps_clock;dump_gps_data;dump_gps_location;dump_gps_measurement;dump_gps_nav_msg;g_gpshal_ctx;gps-ni;gps.mt6797.so;gps_measurement;gps_navigation_message;gps_state: %s (intent: %s -> %s);gps_state: %s -> %s (intent: %s);gpshal2mnl_gps_cleanup;gpshal2mnl_gps_init;gpshal2mnl_gps_start;gpshal2mnl_gps_stop;gpshal_gpscbs_save;gpshal_set_gps_state_intent;gpshal_state_to_string;gpshal_worker_thread;hal2mnl_gps_cleanup;hal2mnl_gps_delete_aiding_data;hal2mnl_gps_init;hal2mnl_gps_inject_location;hal2mnl_gps_inject_time;hal2mnl_gps_set_position_mode;hal2mnl_gps_start;hal2mnl_gps_stop;hal2mnl_set_gps_measurement;hal2mnl_set_gps_navigation;mtk_agps_inf;mtk_agps_ril_inf;mtk_gps_meas_inf;mtk_gps_ni_inf;received_gps_tow_ns=%lld;received_gps_tow_uncertainty_ns=%lld;socket;socket_bind_udp;socket_set_blocking;we have a location when gps_state_intent: %s (%d)
+[ioctl_call_sites]
+
+[file]
+path=system/vendor/lib64/libwifitest.so
+present=yes
+size_bytes=26928
+sha256=b77e988e6040bc67d7e59192a7df98d309516d2829dabed25ccc5a2f31355fc5
+elf=ELF 64-bit LSB shared object, ARM aarch64, version 1 (SYSV), dynamically linked, BuildID[md5/uuid]=9a00f3ef25fe56f26b7a2519a192d78a, stripped
+needed=libcutils.so,libnvram.so,libc++.so,libdl.so,libc.so,libm.so
+exports=WIFI_TEST_CW_MODE,WIFI_TEST_CW_MODE_START,WIFI_TEST_Channel,WIFI_TEST_ClearResult,WIFI_TEST_CloseDUT,WIFI_TEST_EFUSE_Read,WIFI_TEST_EFUSE_Write,WIFI_TEST_FRError,WIFI_TEST_FRGood,WIFI_TEST_FrequencyAccuracy,WIFI_TEST_FrequencyAccuracy_Stop,WIFI_TEST_GetResult,WIFI_TEST_GetSupportedMode,WIFI_TEST_IsRunning,WIFI_TEST_IsUp,WIFI_TEST_MCR_Read,WIFI_TEST_MCR_Write,WIFI_TEST_OpenDUT,WIFI_TEST_RSSI,WIFI_TEST_RxStart,WIFI_TEST_RxStop,WIFI_TEST_SetBandwidth,WIFI_TEST_SetBandwidthV2,WIFI_TEST_SetFrequency,WIFI_TEST_SetJMode,WIFI_TEST_SetMode,WIFI_TEST_SetPreamble,WIFI_TEST_SetPriChannelSetting,WIFI_TEST_SetRX,WIFI_TEST_SetRate,WIFI_TEST_SetRxDefaultAnt,WIFI_TEST_SetTX,WIFI_TEST_SetTXPower,WIFI_TEST_SetTxBandwidth,WIFI_TEST_SetTxCodingMode,WIFI_TEST_TxBurstFrames,WIFI_TEST_TxBurstInterval,WIFI_TEST_TxCount,WIFI_TEST_TxDataRate,WIFI_TEST_TxDataRate11ac,WIFI_TEST_TxDataRate11n,WIFI_TEST_TxDestAddress,WIFI_TEST_TxGain,WIFI_TEST_TxGoodCount,WIFI_TEST_TxPayloadLength,WIFI_TEST_TxStart,WIFI_TEST_TxStop,WIFI_TEST_TxTraining,WIFI_TEST_deinit,WIFI_TEST_init,WIFI_TEST_set,wifi_set_power
+string_anchors=/dev/wmtWifi;WIFI_IF_NAME;WIFI_TEST_CW_MODE;WIFI_TEST_CW_MODE_START;WIFI_TEST_Channel;WIFI_TEST_ClearResult;WIFI_TEST_CloseDUT;WIFI_TEST_EFUSE_Read;WIFI_TEST_EFUSE_Write;WIFI_TEST_FRError;WIFI_TEST_FRGood;WIFI_TEST_FrequencyAccuracy;WIFI_TEST_FrequencyAccuracy_Stop;WIFI_TEST_GetResult;WIFI_TEST_GetSupportedMode;WIFI_TEST_IsRunning;WIFI_TEST_IsUp;WIFI_TEST_MCR_Read;WIFI_TEST_MCR_Write;WIFI_TEST_OpenDUT;WIFI_TEST_RSSI;WIFI_TEST_RxStart;WIFI_TEST_RxStop;WIFI_TEST_SetBandwidth;WIFI_TEST_SetBandwidthV2;WIFI_TEST_SetFrequency;WIFI_TEST_SetJMode;WIFI_TEST_SetMode;WIFI_TEST_SetPreamble;WIFI_TEST_SetPriChannelSetting;WIFI_TEST_SetRX;WIFI_TEST_SetRate;WIFI_TEST_SetRxDefaultAnt;WIFI_TEST_SetTX;WIFI_TEST_SetTXPower;WIFI_TEST_SetTxBandwidth;WIFI_TEST_SetTxCodingMode;WIFI_TEST_TxBurstFrames;WIFI_TEST_TxBurstInterval;WIFI_TEST_TxCount;WIFI_TEST_TxDataRate;WIFI_TEST_TxDataRate11ac;WIFI_TEST_TxDataRate11n;WIFI_TEST_TxDestAddress;WIFI_TEST_TxGain;WIFI_TEST_TxGoodCount;WIFI_TEST_TxPayloadLength;WIFI_TEST_TxStart;WIFI_TEST_TxStop;WIFI_TEST_TxTraining;WIFI_TEST_deinit;WIFI_TEST_init;WIFI_TEST_set;[%s] failed to open net socket;[%s] find wifi device;find_wifi_device;ioctl;libwifitest.so;socket;wifi_set_power
+[ioctl_call_sites]
+    16c0:	b0000030 	adrp	x16, 6000 <WIFI_TEST_MCR_Write@@Base+0x1e88>
+    16c4:	f947a611 	ldr	x17, [x16, #3912]
+    16c8:	913d2210 	add	x16, x16, #0xf48
+    16cc:	d61f0220 	br	x17
+--
+    1a54:	b9410ae0 	ldr	w0, [x23, #264]
+    1a58:	52917d01 	mov	w1, #0x8be8                	// #35816
+    1a5c:	9100a3e2 	add	x2, sp, #0x28
+    1a60:	97ffff1c 	bl	16d0 <ioctl@plt>
+--
+    1d24:	b9410a60 	ldr	w0, [x19, #264]
+    1d28:	52917d01 	mov	w1, #0x8be8                	// #35816
+    1d2c:	910023e2 	add	x2, sp, #0x8
+    1d30:	97fffe68 	bl	16d0 <ioctl@plt>
+--
+    1e4c:	b9410a80 	ldr	w0, [x20, #264]
+    1e50:	52917d01 	mov	w1, #0x8be8                	// #35816
+    1e54:	9100a3e2 	add	x2, sp, #0x28
+    1e58:	97fffe1e 	bl	16d0 <ioctl@plt>
+--
+    232c:	b9410ac0 	ldr	w0, [x22, #264]
+    2330:	52917d21 	mov	w1, #0x8be9                	// #35817
+    2334:	9100a3e2 	add	x2, sp, #0x28
+    2338:	97fffce6 	bl	16d0 <ioctl@plt>
+--
+    2554:	39003fff 	strb	wzr, [sp, #15]
+    2558:	910003e2 	mov	x2, sp
+    255c:	2a1303e0 	mov	w0, w19
+    2560:	97fffc5c 	bl	16d0 <ioctl@plt>
+--
+    4124:	b9410aa0 	ldr	w0, [x21, #264]
+    4128:	52917d21 	mov	w1, #0x8be9                	// #35817
+    412c:	9100a3e2 	add	x2, sp, #0x28
+    4130:	97fff568 	bl	16d0 <ioctl@plt>
+--
+    4200:	b9410a80 	ldr	w0, [x20, #264]
+    4204:	52917d01 	mov	w1, #0x8be8                	// #35816
+    4208:	9100a3e2 	add	x2, sp, #0x28
+    420c:	97fff531 	bl	16d0 <ioctl@plt>
+--
+

@@ -1,0 +1,87 @@
+FUSB301/FUSB301A register and Type-C contract audit — 2026-07-13
+
+Scope
+-----
+Read-only comparison of the refreshed live topology, immutable vendor source,
+the Linux 7.1.3 Type-C API, and the public onsemi register specifications. No
+I2C register was read or written on the device and no VBUS, role, or redriver
+control was exercised. The private live capture is
+`artifacts/device-inventory/20260713-live/usb-typec.txt`, SHA-256
+`15fad36a4c554d375fd40b475b73608586384ff95b3eaf13bf7f2bc7d084dd82`.
+
+Live evidence
+-------------
+
+* Device: Gemian `3.18.41+`, AArch64, model `MT6797X`.
+* I2C0 `0x25`: `fusb301a`, vendor compatible `mediatek,fusb301a`, bound to
+  `FUSB301_1`.
+* I2C1 `0x25`: `fusb301`, vendor compatible `mediatek,fusb301`, bound to
+  `FUSB301_0`.
+* The same capture shows USB1 `mediatek,mt6797-usb11` bound to `musb11_dts`,
+  USB3 `mediatek,usb3` bound to `musb-mtu3d`, and the vendor `usb3_phy`.
+  The idle USB bus contains only the root hub.
+* Vendor pseudo-nodes expose `fusb301a-pin` and `fusb301-eint`; the physical
+  connector mapping and VBUS/redriver ownership are not resolved.
+
+Register facts
+--------------
+
+The vendor header and both onsemi datasheets agree on this compact map:
+
+| Address | Register | Main fields |
+| ---: | --- | --- |
+| `0x01` | Device ID | version/revision; reset value `0x12` |
+| `0x02` | Modes | source, source+accessory, sink, sink+accessory, DRP, DRP+accessory |
+| `0x03` | Control | DRP toggle bits 5:4, `HOST_CUR` bits 2:1, global `INT_MASK` bit 0 |
+| `0x04` | Manual | unattached source/sink, disabled, error recovery; write/clear |
+| `0x05` | Reset | software reset bit 0; write/clear |
+| `0x10` | Mask | accessory, BC-level, detach, attach masks |
+| `0x11` | Status | orientation bits 5:4, VBUSOK bit 3, BC-level bits 2:1, attach bit 0 |
+| `0x12` | Type | sink bit 4, source bit 3, debug accessory bit 1, audio accessory bit 0 |
+| `0x13` | Interrupt | accessory, BC-level, detach, attach; read/clear |
+
+The FUSB301A datasheet has the same register contract and a configurable I2C
+address bit; the live `0x25` address is therefore not sufficient to distinguish
+the two devices without the returned ID byte. References:
+
+* https://www.onsemi.com/download/data-sheet/pdf/fusb301-d.pdf
+* https://www.onsemi.com/download/data-sheet/pdf/fusb301a-d.pdf
+
+Driver review
+-------------
+
+The vendor probe reads `0x01` and writes mode `0x02 = 0x01`, but its interrupt
+work is a stub and its legacy callback registration is a no-op. Linux 7.1.3
+has no FUSB301 driver or binding, so a new backend is justified rather than a
+compatibility alias for the vendor callback ABI.
+
+The repository candidate uses regmap and the Type-C class, validates ID `0x12`,
+configures only documented mode/current/mask fields, and reports attach,
+partner type, BC current, and orientation. It deliberately does not own VBUS,
+USB role switching, or the SuperSpeed switch. The review found two safety and
+state issues and corrected them in patch 0056:
+
+1. probe now rejects a missing IRQ before unmasking controller interrupts or
+   performing the hardware initialization sequence;
+2. detach now unregisters the partner and restores the neutral/default power,
+   data, VCONN, power-opmode, and orientation state instead of leaving stale
+   attached roles in the Type-C class.
+
+The candidate remains disabled-only on Gemini. It must not be enabled until the
+two physical ports, interrupt polarity, `SS_SW`/redriver relationship, VBUS
+source/sink switch, and USB1/USB3 role ownership are verified. Device-ID and
+status reads require a mainline image or an owner-approved instrumented test;
+the vendor kernel exposes no safe unprivileged I2C register interface.
+
+Reproduction
+------------
+
+Run the source audit in the VM:
+
+```sh
+./scripts/dev-vm run bash -lc \
+  experiments/2026-07-12-usb-typec-recovery/scripts/analyze-fusb301-contract.sh
+```
+
+The live collector is the existing
+`scripts/collect-live-usb-typec.sh`; its output is private and Git-ignored.

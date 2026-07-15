@@ -1,0 +1,10 @@
+validation=gemini-panel-bias-protocol-audit
+schema=1
+generated_utc=2026-07-14T02:21:53Z
+comparison=PASS
+candidate=tps65132
+protocol=addr-3e-regs-00-01
+selector_0f=5500mV
+enables=per-output
+identity=unproven
+decision=do_not_add_ti_tps65132_compatible_without_board_or_electrical_identity_evidence

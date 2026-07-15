@@ -1,0 +1,28 @@
+From 5f93bbd62cab98c440243b81f32067612d2cc29a Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 12 Jul 2026 00:12:15 -0400
+Subject: [PATCH] rtc: mt6397: add MT6351 support
+
+The MT6351 RTC block starts at offset 0x4000 and uses the older MediaTek
+register layout with its write-trigger register at offset 0x3c. Reuse
+the MT6397 RTC data for the MT6351 MFD child.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ drivers/rtc/rtc-mt6397.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/rtc/rtc-mt6397.c b/drivers/rtc/rtc-mt6397.c
+index 692c00ff5..41325bd96 100644
+--- a/drivers/rtc/rtc-mt6397.c
++++ b/drivers/rtc/rtc-mt6397.c
+@@ -332,6 +332,7 @@ static const struct mtk_rtc_data mt6397_rtc_data = {
+ 
+ static const struct of_device_id mt6397_rtc_of_match[] = {
+ 	{ .compatible = "mediatek,mt6323-rtc", .data = &mt6397_rtc_data },
++	{ .compatible = "mediatek,mt6351-rtc", .data = &mt6397_rtc_data },
+ 	{ .compatible = "mediatek,mt6357-rtc", .data = &mt6358_rtc_data },
+ 	{ .compatible = "mediatek,mt6358-rtc", .data = &mt6358_rtc_data },
+ 	{ .compatible = "mediatek,mt6397-rtc", .data = &mt6397_rtc_data },
+-- 
+2.43.0

@@ -1,0 +1,39 @@
+From: Gemini PDA Mainline Project <noreply@example.com>
+Date: Sun, 12 Jul 2026 03:12:00 -0400
+Subject: [PATCH 30/30] arm64: dts: mediatek: mt6797: add display mutex
+
+Describe the MT6797 display hardware mutex. It belongs to the MM power
+domain and has no independent clock. Expose the first two stream-EOF GCE
+events used by the display paths and the command-engine client window for
+the 0x1401xxxx subsystem selector.
+
+The provider is safe to bind before DRM consumers are described: probe only
+maps the register aperture and records the optional GCE tuple.
+
+Signed-off-by: Gemini PDA Mainline Project <noreply@example.com>
+---
+ arch/arm64/boot/dts/mediatek/mt6797.dtsi | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+--- a/arch/arm64/boot/dts/mediatek/mt6797.dtsi
++++ b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+@@ -540,6 +540,16 @@ mmsys: syscon@14000000 {
+ 		#clock-cells = <1>;
+ 	};
+ 
++	mutex: mutex@1401f000 {
++		compatible = "mediatek,mt6797-disp-mutex";
++		reg = <0 0x1401f000 0 0x1000>;
++		interrupts = <GIC_SPI 202 IRQ_TYPE_LEVEL_LOW>;
++		power-domains = <&scpsys MT6797_POWER_DOMAIN_MM>;
++		mediatek,gce-events = <CMDQ_EVENT_MUTEX0_STREAM_EOF>,
++				      <CMDQ_EVENT_MUTEX1_STREAM_EOF>;
++		mediatek,gce-client-reg = <&gce SUBSYS_1401XXXX 0xf000 0x1000>;
++	};
++
+ 	larb0: larb@14020000 {
+ 		compatible = "mediatek,mt6797-smi-larb";
+ 		reg = <0 0x14020000 0 0x1000>;
+-- 
+2.47.2

@@ -1,0 +1,22 @@
+validation=mt6797-audio-current-72-package-audit
+generated_utc=2026-07-14T06:47:13Z
+package=linux-7.1.3-gemini-a9a7c5002038
+patchset_sha256=a9a7c5002038022c5df87ed48f61cd68778b422370f7d038d07e73a086490632
+package_image_sha256=3fb6ac3043dff85dc2b6e68a2bba26d36fedf748e6f7c1bf6b6630f87446be7c
+package_config_sha256=831289dd3b53c6cec09e6c614fd83d3ab5988a4c30090bf9ec172348ec9487d5
+package_dtb_sha256=b41580263940b47226e9819c97afbdaa9a35d4c721c471d2e8a0a3d597c553c5
+package_system_map_sha256=c883efb3c8b09166a0765017712ec79e182f929ee50b3907f0279384ab2a22b2
+audit_script_sha256=b970daaeda22dc17e893b50603c2e83ea5969423750217746e1f5a26ada3c8d0
+audit_output_sha256=7237565ae32df8b0f163882c88a1d721f9d2892d8aadb5bdedb29528f63fdeb2
+repeatability=byte-identical_second_run
+shellcheck=passed_in_dev_vm
+bash_n=passed
+
+The current package selects the AFE, codec, and machine drivers as modules
+(CONFIG_SND_SOC_MT6797=m, CONFIG_SND_SOC_MT6351=m, and
+CONFIG_SND_SOC_MT6797_MT6351=m), and modules_built=true packages 1,570 .ko
+objects (1,583 files including metadata). The Gemini DTB still contains one
+disabled mediatek,mt6797-audio resource node with the exact eight-clock
+contract; no machine-card, codec graph, analog route, amplifier, or jack node
+is present. The existing Linux ASoC drivers remain the reuse path. No PCM,
+mixer/codec, clock, regulator, or hardware write was attempted.

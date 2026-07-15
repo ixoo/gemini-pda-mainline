@@ -1,0 +1,126 @@
+From: Gemini PDA Mainline Project <noreply@example.com>
+Date: Sun, 12 Jul 2026 02:03:00 -0400
+Subject: [PATCH 24/25] iommu: mediatek: add MT6797 M4U and SMI support
+
+Add platform records for the MT6797 multimedia IOMMU and its SMI fabric.
+
+The M4U uses generation-one invalidate selection, legacy IVRP encoding,
+4-GiB remapping, write throttling, and the STANDARD_AXI_MODE reset path.
+Unlike MT6795 and MT8173, the block has no separately exposed bclk and uses
+the generic translation-fault protection field at bits 5:4. It also retains
+the older separate coherence, in-order-write, and table-walk controls.
+
+The seven larbs use the bitmap MMU-enable register at 0xfc0, matching the
+existing MT8167 configuration callback. SMI common routes larbs 1 through 6
+to its second M4U path with the downstream initialization value 0x1554.
+
+Signed-off-by: Gemini PDA Mainline Project <noreply@example.com>
+---
+ drivers/iommu/mtk_iommu.c | 27 +++++++++++++++++++++++++++
+ drivers/memory/mtk-smi.c  |  8 ++++++++
+ 2 files changed, 35 insertions(+)
+
+diff --git a/drivers/iommu/mtk_iommu.c b/drivers/iommu/mtk_iommu.c
+--- a/drivers/iommu/mtk_iommu.c
++++ b/drivers/iommu/mtk_iommu.c
+@@ -55,6 +55,9 @@
+ #define REG_MMU_WR_LEN_CTRL			0x054
+ #define F_MMU_WR_THROT_DIS_MASK			(BIT(5) | BIT(21))
+ 
++#define REG_MMU_COHERENCE_EN			0x080
++#define REG_MMU_IN_ORDER_WR_EN			0x084
++#define REG_MMU_TABLE_WALK_DIS			0x088
+ #define REG_MMU_CTRL_REG			0x110
+ #define F_MMU_TF_PROT_TO_PROGRAM_ADDR		(2 << 4)
+ #define F_MMU_PREFETCH_RT_REPLACE_MOD		BIT(4)
+@@ -149,4 +152,5 @@
+ #define INT_ID_PORT_WIDTH_6		BIT(19)
+ #define CFG_IFA_MASTER_IN_ATF		BIT(20)
+ #define DL_WITH_MULTI_LARB		BIT(21)
++#define HAS_LEGACY_MMU_MISC		BIT(22)
+ 
+@@ -170,6 +174,7 @@ enum mtk_iommu_plat {
+ 	M4U_MT2712,
+ 	M4U_MT6779,
+ 	M4U_MT6795,
++	M4U_MT6797,
+ 	M4U_MT8167,
+ 	M4U_MT8173,
+ 	M4U_MT8183,
+@@ -1111,6 +1116,12 @@ static int mtk_iommu_hw_init(const struct mtk_iommu_data *data, unsigned int bankid)
+ 		writel_relaxed(regval, bank0->base + REG_MMU_WR_LEN_CTRL);
+ 	}
+ 
++	if (MTK_IOMMU_HAS_FLAG(data->plat_data, HAS_LEGACY_MMU_MISC)) {
++		writel_relaxed(0x3, bank0->base + REG_MMU_COHERENCE_EN);
++		writel_relaxed(0, bank0->base + REG_MMU_IN_ORDER_WR_EN);
++		writel_relaxed(0, bank0->base + REG_MMU_TABLE_WALK_DIS);
++	}
++
+ 	if (MTK_IOMMU_HAS_FLAG(data->plat_data, RESET_AXI)) {
+ 		/* The register is called STANDARD_AXI_MODE in this case */
+ 		regval = 0;
+@@ -1601,6 +1612,21 @@ static const struct mtk_iommu_plat_data mt6795_data = {
+ 	.larbid_remap = {{0}, {1}, {2}, {3}, {4}}, /* Linear mapping. */
+ };
+ 
++static const struct mtk_iommu_plat_data mt6797_data = {
++	.m4u_plat     = M4U_MT6797,
++	.flags        = HAS_4GB_MODE | RESET_AXI | WR_THROT_EN |
++			HAS_LEGACY_IVRP_PADDR | HAS_LEGACY_MMU_MISC |
++			MTK_IOMMU_TYPE_MM,
++	.inv_sel_reg  = REG_MMU_INV_SEL_GEN1,
++	.banks_num    = 1,
++	.banks_enable = {true},
++	.iova_region  = single_domain,
++	.iova_region_nr = ARRAY_SIZE(single_domain),
++	.larbid_remap = {
++		{0}, {1}, {2}, {3}, {4}, {5}, {6}
++	},
++};
++
+ static const unsigned int mt8192_larb_region_msk[MT8192_MULTI_REGION_NR_MAX][MTK_LARB_NR_MAX] = {
+ 	[0] = {~0, ~0},				/* Region0: larb0/1 */
+ 	[1] = {0, 0, 0, 0, ~0, ~0, 0, ~0},	/* Region1: larb4/5/7 */
+@@ -1903,6 +1929,7 @@ static const struct of_device_id mtk_iommu_of_ids[] = {
+ 	{ .compatible = "mediatek,mt2712-m4u", .data = &mt2712_data},
+ 	{ .compatible = "mediatek,mt6779-m4u", .data = &mt6779_data},
+ 	{ .compatible = "mediatek,mt6795-m4u", .data = &mt6795_data},
++	{ .compatible = "mediatek,mt6797-m4u", .data = &mt6797_data},
+ 	{ .compatible = "mediatek,mt6893-iommu-mm", .data = &mt6893_data},
+ 	{ .compatible = "mediatek,mt8167-m4u", .data = &mt8167_data},
+ 	{ .compatible = "mediatek,mt8173-m4u", .data = &mt8173_data},
+diff --git a/drivers/memory/mtk-smi.c b/drivers/memory/mtk-smi.c
+--- a/drivers/memory/mtk-smi.c
++++ b/drivers/memory/mtk-smi.c
+@@ -550,6 +550,7 @@ static const struct of_device_id mtk_smi_larb_of_ids[] = {
+ 	{.compatible = "mediatek,mt2712-smi-larb", .data = &mtk_smi_larb_mt2712},
+ 	{.compatible = "mediatek,mt6779-smi-larb", .data = &mtk_smi_larb_mt6779},
+ 	{.compatible = "mediatek,mt6795-smi-larb", .data = &mtk_smi_larb_mt8173},
++	{.compatible = "mediatek,mt6797-smi-larb", .data = &mtk_smi_larb_mt8167},
+ 	{.compatible = "mediatek,mt6893-smi-larb", .data = &mtk_smi_larb_mt6893},
+ 	{.compatible = "mediatek,mt8167-smi-larb", .data = &mtk_smi_larb_mt8167},
+ 	{.compatible = "mediatek,mt8173-smi-larb", .data = &mtk_smi_larb_mt8173},
+@@ -772,6 +773,12 @@ static const struct mtk_smi_common_plat mtk_smi_common_mt6795 = {
+ 	.init     = mtk_smi_common_mt6795_init,
+ };
+ 
++static const struct mtk_smi_common_plat mtk_smi_common_mt6797 = {
++	.type     = MTK_SMI_GEN2,
++	.bus_sel  = F_MMU1_LARB(1) | F_MMU1_LARB(2) | F_MMU1_LARB(3) |
++		    F_MMU1_LARB(4) | F_MMU1_LARB(5) | F_MMU1_LARB(6),
++};
++
+ static const struct mtk_smi_common_plat mtk_smi_common_mt6893 = {
+ 	.type     = MTK_SMI_GEN2,
+ 	.has_gals = true,
+@@ -846,6 +854,7 @@ static const struct of_device_id mtk_smi_common_of_ids[] = {
+ 	{.compatible = "mediatek,mt2712-smi-common", .data = &mtk_smi_common_gen2},
+ 	{.compatible = "mediatek,mt6779-smi-common", .data = &mtk_smi_common_mt6779},
+ 	{.compatible = "mediatek,mt6795-smi-common", .data = &mtk_smi_common_mt6795},
++	{.compatible = "mediatek,mt6797-smi-common", .data = &mtk_smi_common_mt6797},
+ 	{.compatible = "mediatek,mt6893-smi-common", .data = &mtk_smi_common_mt6893},
+ 	{.compatible = "mediatek,mt8167-smi-common", .data = &mtk_smi_common_gen2},
+ 	{.compatible = "mediatek,mt8173-smi-common", .data = &mtk_smi_common_gen2},
+-- 
+2.47.2

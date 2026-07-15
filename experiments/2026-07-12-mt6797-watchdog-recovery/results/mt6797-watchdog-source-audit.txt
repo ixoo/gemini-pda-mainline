@@ -1,0 +1,194 @@
+MT6797 TOPRGU watchdog contract audit
+vendor_tree=/home/julien.guest/src/reference/gemian-linux-kernel-3.18
+vendor_commit=d388d350cb2dda8f23b99be6fa5db9628896e87f
+linux_tree=/home/julien.guest/src/gemini-pda/linux-7.1.3
+linux_version=7.1.3
+local_patch_sha256=276f567d04a029a33386082c756228ede01190bb408ab1c15d68ba7b5dbfc8da
+
+[source identities]
+vendor_blob drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c 42c396ca9816dc3f7b5c572c963428ff5bfe62ca
+vendor_blob drivers/watchdog/mediatek/wdt/mt6797/mt_wdt.h 8abce566a326bc59704f33bd5c1f1f16dd1dbd9c
+vendor_blob drivers/watchdog/mediatek/wdt/common/mtk_wdt.c 59d97e54f684aa356fb5184cc183d2413e7ef8f2
+vendor_blob drivers/watchdog/mediatek/wdt/common/mt_wdt.h 15bafe1c0fc78db3916e878c20cc41dd29f4c194
+vendor_blob arch/arm64/boot/dts/mt6797.dts 35e6938650c50d24604ce1258c580cd021e4b344
+linux_sha256 drivers/watchdog/mtk_wdt.c 6e8230dff7db590f16bdc83918220da48be57c8a594cd3f0917f4c0e0018da9b
+linux_sha256 drivers/watchdog/Kconfig 1e93a140ca95c1e70e6a499bc8cb9e6b3c691b5649b455bf940e90cdf3bed0c3
+linux_sha256 drivers/watchdog/Makefile aa4ea667cf51cd2a04cc106cfe111db3ec01b7f605fe9eb0573dbdcce8a161e6
+linux_sha256 Documentation/devicetree/bindings/watchdog/mediatek,mtk-wdt.yaml 99d3401f93a450f9bc23eb2d2b2a06baf7308ff0d70628737c5362372e158249
+linux_sha256 arch/arm64/boot/dts/mediatek/mt6797.dtsi 35d0414a91f6798d1f9ebfee0086a4dfb2de85ea3317132536915ae347372531
+
+[vendor MT6797 TOPRGU]
+55:	{ .compatible = "mediatek,mt6797-toprgu", },
+89:static void spm_wdt_init(void);
+98:void mtk_wdt_set_time_out_value(unsigned int value)
+107:	spm_wdt_set_timeout(value);
+126:void mtk_wdt_mode_config(bool dual_mode_en,
+139:		spm_wdt_enable_timer();
+142:		spm_wdt_disable_timer();
+145:	/* pr_debug(" mtk_wdt_mode_config  mode value=%x,pid=%d\n",DRV_Reg32(MTK_WDT_MODE),current->pid); */
+186:	pr_debug(" mtk_wdt_mode_config  mode value=%x, tmp:%x,pid=%d\n", __raw_readl(MTK_WDT_MODE), tmp, current->pid);
+190:/* EXPORT_SYMBOL(mtk_wdt_mode_config); */
+192:int mtk_wdt_enable(enum wk_wdt_en en)
+199:		spm_wdt_enable_timer();
+209:		spm_wdt_disable_timer();
+230:	pr_debug("mtk_wdt_enable value=%x,pid=%d\n", tmp, current->pid);
+236:int  mtk_wdt_confirm_hwreboot(void)
+240:	mtk_wdt_mode_config(TRUE, TRUE, TRUE, FALSE, TRUE);
+245:void mtk_wdt_restart(enum wd_restart_type type)
+251:	np_rgu = of_find_compatible_node(NULL, NULL, rgu_of_match[0].compatible);
+263:    /* pr_debug("WDT:[mtk_wdt_restart] type  =%d, pid=%d\n",type,current->pid); */
+269:		spm_wdt_restart_timer();
+276:		spm_wdt_restart_timer_nolock();
+281:		pr_debug("WDT:[mtk_wdt_restart] type=%d error pid =%d\n", type, current->pid);
+284:void wdt_dump_reg(void)
+303:void aee_wdt_dump_reg(void)
+20:#define MTK_WDT_MODE			(MTK_WDT_BASE+0x0000)
+21:#define MTK_WDT_LENGTH			(MTK_WDT_BASE+0x0004)
+22:#define MTK_WDT_RESTART			(MTK_WDT_BASE+0x0008)
+23:#define MTK_WDT_STATUS			(MTK_WDT_BASE+0x000C)
+25:#define MTK_WDT_SWRST			(MTK_WDT_BASE+0x0014)
+26:#define MTK_WDT_SWSYSRST		(MTK_WDT_BASE+0x0018)
+29:#define MTK_WDT_REQ_MODE		(MTK_WDT_BASE+0x0030)
+30:#define MTK_WDT_REQ_IRQ_EN		(MTK_WDT_BASE+0x0034)
+31:#define MTK_WDT_EXT_REQ_CON		(MTK_WDT_BASE+0x0038)
+32:#define MTK_WDT_DRAMC_CTL		(MTK_WDT_BASE+0x0040)
+33:#define MTK_WDT_LATCH_CTL		(MTK_WDT_BASE+0x0044)
+34:#define MTK_WDT_DEBUG_2_REG		(MTK_WDT_BASE+0x0508)
+43:#define MTK_WDT_MODE_KEYMASK		(0xff00)
+44:#define MTK_WDT_MODE_KEY		(0x22000000)
+46:#define MTK_WDT_MODE_DDR_RESERVE  (0x0080)
+47:#define MTK_WDT_MODE_DUAL_MODE  (0x0040)
+48:#define MTK_WDT_MODE_IN_DIS		(0x0020) /* Reserved */
+49:#define MTK_WDT_MODE_AUTO_RESTART	(0x0010) /* Reserved */
+50:#define MTK_WDT_MODE_IRQ		(0x0008)
+51:#define MTK_WDT_MODE_EXTEN		(0x0004)
+52:#define MTK_WDT_MODE_EXT_POL		(0x0002)
+53:#define MTK_WDT_MODE_ENABLE		(0x0001)
+57:#define MTK_WDT_LENGTH_TIME_OUT		(0xffe0)
+58:#define MTK_WDT_LENGTH_KEYMASK		(0x001f)
+74:struct toprgu_reset {
+78:	struct reset_controller_dev rcdev;
+81:static int toprgu_reset_assert(struct reset_controller_dev *rcdev,
+86:	struct toprgu_reset *data = container_of(rcdev, struct toprgu_reset, rcdev);
+100:static int toprgu_reset_deassert(struct reset_controller_dev *rcdev,
+105:	struct toprgu_reset *data = container_of(rcdev, struct toprgu_reset, rcdev);
+119:static int toprgu_reset(struct reset_controller_dev *rcdev,
+124:	ret = toprgu_reset_assert(rcdev, id);
+128:	return toprgu_reset_deassert(rcdev, id);
+131:static struct reset_control_ops toprgu_reset_ops = {
+132:	.assert = toprgu_reset_assert,
+133:	.deassert = toprgu_reset_deassert,
+134:	.reset = toprgu_reset,
+137:static void toprgu_register_reset_controller(struct device_node *np,
+140:	struct toprgu_reset *data;
+152:	data->rcdev.nr_resets = 15;
+153:	data->rcdev.ops = &toprgu_reset_ops;
+156:	ret = reset_controller_register(&data->rcdev);
+169:void mtk_wdt_set_time_out_value(unsigned int value)
+194:void mtk_wdt_mode_config(bool dual_mode_en, bool irq, bool ext_en, bool ext_pol, bool wdt_en)
+200:	/* pr_debug(" mtk_wdt_mode_config  mode value=%x,pid=%d\n",DRV_Reg32(MTK_WDT_MODE),current->pid); */
+241:	pr_debug(" mtk_wdt_mode_config  mode value=%x, tmp:%x,pid=%d\n", __raw_readl(MTK_WDT_MODE), tmp, current->pid);
+246:/* EXPORT_SYMBOL(mtk_wdt_mode_config); */
+274:	mtk_wdt_mode_config(TRUE, TRUE, TRUE, FALSE, TRUE);
+406:		mediatek,wdt_irq = <169>;
+407:		mediatek,reg_len_pol0 = <8>; // 8*32 irq polarity setting in INTPOL0
+907:		toprgu: toprgu@10007000 {
+908:			compatible = "mediatek,mt6797-toprgu";
+909:			reg = <0x10007000 0x1000>;
+910:			interrupts = <GIC_SPI 137 IRQ_TYPE_EDGE_FALLING>;
+3770:			      <0x10007000 0x0100>,  /*AP_RGU_BASE */
+
+[Linux watchdog core]
+35:#define WDT_MAX_TIMEOUT		31
+36:#define WDT_MIN_TIMEOUT		2
+37:#define WDT_LENGTH_TIMEOUT(n)	((n) << 5)
+39:#define WDT_LENGTH		0x04
+40:#define WDT_LENGTH_KEY		0x8
+42:#define WDT_RST			0x08
+43:#define WDT_RST_RELOAD		0x1971
+45:#define WDT_MODE		0x00
+46:#define WDT_MODE_EN		(1 << 0)
+47:#define WDT_MODE_EXT_POL_LOW	(0 << 1)
+48:#define WDT_MODE_EXT_POL_HIGH	(1 << 1)
+49:#define WDT_MODE_EXRST_EN	(1 << 2)
+50:#define WDT_MODE_IRQ_EN		(1 << 3)
+51:#define WDT_MODE_AUTO_START	(1 << 4)
+52:#define WDT_MODE_DUAL_EN	(1 << 6)
+53:#define WDT_MODE_CNT_SEL	(1 << 8)
+54:#define WDT_MODE_KEY		0x22000000
+56:#define WDT_SWRST		0x14
+57:#define WDT_SWRST_KEY		0x1209
+59:#define WDT_SWSYSRST		0x18U
+62:#define WDT_SWSYSRST_EN		0xfc
+75:	spinlock_t lock; /* protects WDT_SWSYSRST reg */
+76:	struct reset_controller_dev rcdev;
+95:static const struct mtk_wdt_data mt6795_data = {
+33:config WATCHDOG_CORE
+88:	depends on WATCHDOG_CORE
+102:	depends on WATCHDOG_CORE
+103:	default WATCHDOG_CORE
+110:	depends on WATCHDOG_CORE
+111:	default WATCHDOG_CORE
+154:	select WATCHDOG_CORE
+174:	select WATCHDOG_CORE
+187:	select WATCHDOG_CORE
+199:	select WATCHDOG_CORE
+211:	select WATCHDOG_CORE
+223:	select WATCHDOG_CORE
+235:	select WATCHDOG_CORE
+245:	select WATCHDOG_CORE
+254:	select WATCHDOG_CORE
+274:	select WATCHDOG_CORE
+286:	select WATCHDOG_CORE
+298:	select WATCHDOG_CORE
+308:	select WATCHDOG_CORE
+318:	select WATCHDOG_CORE
+332:	select WATCHDOG_CORE
+340:	select WATCHDOG_CORE
+348:	select WATCHDOG_CORE
+359:	select WATCHDOG_CORE
+14:  timeout-sec/2 before the expiry.
+24:          - mediatek,mt6589-wdt
+39:              - mediatek,mt6797-wdt
+48:          - const: mediatek,mt6589-wdt
+50:  reg:
+53:  interrupts:
+57:  mediatek,disable-extrst:
+61:  mediatek,reset-by-toprgu:
+87:            interrupts = <GIC_SPI 139 IRQ_TYPE_LEVEL_LOW>;
+88:            mediatek,disable-extrst;
+89:            timeout-sec = <10>;
+117:		interrupts = <GIC_PPI 13 IRQ_TYPE_LEVEL_LOW>,
+133:		#reset-cells = <1>;
+151:		interrupts = <GIC_SPI 170 IRQ_TYPE_LEVEL_HIGH>;
+243:	watchdog: watchdog@10007000 {
+244:		compatible = "mediatek,mt6797-wdt", "mediatek,mt6589-wdt";
+245:		reg = <0 0x10007000 0 0x100>;
+258:		interrupts = <GIC_SPI 178 IRQ_TYPE_LEVEL_HIGH>;
+268:			interrupts = <176 IRQ_TYPE_LEVEL_HIGH>;
+285:		interrupts = <GIC_SPI 151 IRQ_TYPE_LEVEL_LOW>;
+319:		interrupts = <GIC_SPI 156 IRQ_TYPE_LEVEL_LOW>;
+331:		interrupts = <GIC_SPI 152 IRQ_TYPE_LEVEL_LOW>;
+352:		interrupts = <GIC_SPI 91 IRQ_TYPE_LEVEL_LOW>;
+363:		interrupts = <GIC_SPI 92 IRQ_TYPE_LEVEL_LOW>;
+374:		interrupts = <GIC_SPI 93 IRQ_TYPE_LEVEL_LOW>;
+385:		interrupts = <GIC_SPI 94 IRQ_TYPE_LEVEL_LOW>;
+397:		interrupts = <GIC_SPI 84 IRQ_TYPE_LEVEL_LOW>;
+412:		interrupts = <GIC_SPI 85 IRQ_TYPE_LEVEL_LOW>;
+427:		interrupts = <GIC_SPI 86 IRQ_TYPE_LEVEL_LOW>;
+443:		interrupts = <GIC_SPI 87 IRQ_TYPE_LEVEL_LOW>;
+459:		interrupts = <GIC_SPI 88 IRQ_TYPE_LEVEL_LOW>;
+474:		interrupts = <GIC_SPI 89 IRQ_TYPE_LEVEL_LOW>;
+489:		interrupts = <GIC_SPI 90 IRQ_TYPE_LEVEL_LOW>;
+504:		interrupts = <GIC_SPI 95 IRQ_TYPE_LEVEL_LOW>;
+520:		interrupts = <GIC_SPI 96 IRQ_TYPE_LEVEL_LOW>;
+
+[decision]
+Reuse Linux drivers/watchdog/mtk_wdt.c and the standard watchdog core.
+The existing mt6797-wdt/mt6589-wdt compatible pair already covers the
+MT6797 register protocol and TOPRGU reset-controller shape. The Gemini
+board-specific missing resource is the vendor-confirmed bark IRQ: SPI137
+with IRQ_TYPE_EDGE_FALLING. Keep vendor WDK/WD_API character interfaces,
+SPM request side channels, modem watchdogs, and reset policy out of the
+mainline ABI. Do not test start/stop/restart until an external console,
+known-good boot image, and recovery owner are ready.

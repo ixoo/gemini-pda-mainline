@@ -57,7 +57,7 @@ provision_user() {
     --upgrade \
     --requirement "${SCRIPT_DIR}/python-requirements.txt"
 
-  for tool in "${venv}"/bin/dt-*; do
+  for tool in "${venv}"/bin/dt-* "${venv}/bin/vmlinux-to-elf"; do
     [[ -e "${tool}" ]] || continue
     ln -sfn "${tool}" "${HOME}/.local/bin/$(basename "${tool}")"
   done

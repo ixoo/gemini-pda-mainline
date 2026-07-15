@@ -29,6 +29,7 @@ Commands:
   status                Show VM status
   kernel COMMAND...     Run the pinned-kernel workflow (prepare/configure/build)
   build-kernel          Prepare, configure, build, and package the kernel
+  validate-kernel [DIR] Verify a packaged kernel artifact and its provenance
   export-artifacts [DIR]
                         Copy ~/artifacts to a new host directory
   remove --force        Permanently delete the VM and its guest filesystem
@@ -38,6 +39,10 @@ Creation overrides:
   DEV_VM_CPUS           Virtual CPUs (default: 8)
   DEV_VM_MEMORY_GIB     Memory in GiB (default: 8)
   DEV_VM_DISK_GIB       Disk in GiB (default: 100)
+
+Build overrides:
+  BUILD_MODULES=1       Also install CONFIG_*=m outputs into modules/
+  KERNEL_JOBS=N          Parallel kernel build jobs (default: guest policy)
 EOF
 }
 
@@ -117,6 +122,7 @@ doctor() {
     command -v dtc >/dev/null
     command -v pahole >/dev/null
     command -v dt-doc-validate >/dev/null
+    command -v yamllint >/dev/null
     command -v gdb-multiarch >/dev/null
     command -v r2 >/dev/null
     command -v rabin2 >/dev/null
@@ -127,15 +133,18 @@ doctor() {
     command -v binwalk >/dev/null
     command -v yara >/dev/null
     command -v ghidra-analyze >/dev/null
+    command -v vmlinux-to-elf >/dev/null
+    python3 -c "import git, ply"
     test -x "$HOME/.local/opt/ghidra_12.1.2_PUBLIC/Ghidra/Features/Decompiler/build/os/linux_arm_64/decompile"
     printf "Guest: %s %s\n" "$(. /etc/os-release; printf %s "$PRETTY_NAME")" "$(uname -m)"
     printf "Tools: make=%s dtc=%s dtschema=%s\n" \
       "$(make --version | head -n 1)" \
       "$(dtc --version)" \
       "$("$HOME/.local/share/venvs/dtschema/bin/python" -m pip show dtschema | awk "/^Version:/ { print \$2 }")"
-    printf "RE:    gdb=%s radare2=%s Ghidra=%s\n" \
+    printf "RE:    gdb=%s radare2=%s vmlinux-to-elf=%s Ghidra=%s\n" \
       "$(gdb-multiarch --version | head -n 1)" \
       "$(r2 -v | head -n 1)" \
+      "$(vmlinux-to-elf --help | head -n 1)" \
       "$(awk -F= "/^application.version=/ { print \$2 }" "$HOME/.local/opt/ghidra_12.1.2_PUBLIC/Ghidra/application.properties")"
     if test -r /mnt/gemini-pda-mainline/artifacts/device-userspace/latest/FILES.sha256; then
       test -r "$HOME/reverse-engineering/gemini-vendor/FILES.sha256"
@@ -229,8 +238,28 @@ case "${COMMAND}" in
     require_lima
     [[ "$#" -eq 0 ]] || die "build-kernel does not accept arguments"
     start_vm
+    # Forward only the documented build controls; the repository mount remains
+    # read-only and all generated sources/artifacts stay in the guest.
+    build_env=()
+    for variable in BUILD_MODULES KERNEL_JOBS; do
+      if [[ -n "${!variable:-}" ]]; then
+        build_env+=("${variable}=${!variable}")
+      fi
+    done
+    if ((${#build_env[@]} > 0)); then
+      exec limactl shell --workdir=/mnt/gemini-pda-mainline "${INSTANCE}" -- \
+        env "${build_env[@]}" ./scripts/kernel build
+    else
+      exec limactl shell --workdir=/mnt/gemini-pda-mainline "${INSTANCE}" -- \
+        ./scripts/kernel build
+    fi
+    ;;
+  validate-kernel)
+    require_lima
+    [[ "$#" -le 1 ]] || die "validate-kernel accepts at most one artifact directory"
+    start_vm
     exec limactl shell --workdir=/mnt/gemini-pda-mainline "${INSTANCE}" -- \
-      ./scripts/kernel build
+      ./scripts/validate-kernel-artifact "$@"
     ;;
   export-artifacts)
     require_lima

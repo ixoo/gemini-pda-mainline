@@ -1,0 +1,62 @@
+# Normalized from the exact active vendor boot ELF.
+# Rows are AW9523 P0 input bits; columns are P1 output bits.
+# The active image compiles the physical Fn position as KEY_LEFTMETA.
+# Four NULL positions retain KEY_UNKNOWN in the vendor map.
+
+row col key
+0 0 KEY_1
+1 0 KEY_U
+2 0 KEY_S
+3 0 KEY_Z
+4 0 KEY_COMMA
+5 0 KEY_APOSTROPHE
+6 0 KEY_8
+7 0 KEY_J
+0 1 KEY_2
+1 1 KEY_W
+2 1 KEY_D
+3 1 KEY_C
+4 1 KEY_LEFTALT
+5 1 KEY_LEFT
+6 1 KEY_9
+7 1 KEY_K
+0 2 KEY_3
+1 2 KEY_Y
+2 2 KEY_TAB
+3 2 KEY_N
+4 2 KEY_M
+5 2 KEY_DOWN
+6 2 KEY_BACKSPACE
+7 2 KEY_I
+0 3 KEY_4
+1 3 KEY_T
+2 3 KEY_F
+3 3 KEY_X
+4 3 KEY_LEFTMETA
+5 3 KEY_RIGHTSHIFT
+6 3 KEY_P
+7 3 KEY_UNKNOWN
+0 4 KEY_5
+1 4 KEY_E
+2 4 KEY_G
+3 4 KEY_V
+4 4 KEY_SPACE
+5 4 KEY_UP
+6 4 KEY_O
+7 4 KEY_UNKNOWN
+0 5 KEY_6
+1 5 KEY_Q
+2 5 KEY_A
+3 5 KEY_B
+4 5 KEY_DOT
+5 5 KEY_RIGHT
+6 5 KEY_ENTER
+7 5 KEY_UNKNOWN
+0 6 KEY_7
+1 6 KEY_R
+2 6 KEY_H
+3 6 KEY_LEFTSHIFT
+4 6 KEY_LEFTCTRL
+5 6 KEY_L
+6 6 KEY_0
+7 6 KEY_UNKNOWN

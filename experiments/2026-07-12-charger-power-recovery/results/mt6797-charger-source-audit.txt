@@ -1,0 +1,275 @@
+MT6797 charger/fuel-gauge contract audit
+vendor_tree=/home/julien.guest/src/reference/gemian-linux-kernel-3.18
+vendor_commit=d388d350cb2dda8f23b99be6fa5db9628896e87f
+linux_tree=/home/julien.guest/src/gemini-pda/linux-7.1.3
+linux_version=7.1.3
+
+[source identities]
+vendor_blob drivers/misc/mediatek/power/mt6797/bq25890.c d66a43f88153ee0c03b66f4f8bcaf9e6e2b7633c
+vendor_blob drivers/misc/mediatek/power/mt6797/bq25890.h e7e433f6b93aa8855deffb74ddf83a222834fddf
+vendor_blob drivers/misc/mediatek/power/mt6797/charging_hw_bq25890.c 35f58791626967fdd8a0d3e25b4a1fce96e15bfb
+vendor_blob drivers/misc/mediatek/power/mt6797/fan49101.c bee84a67680c01724279b7d13ab37ca73c2dc00e
+vendor_blob drivers/misc/mediatek/power/mt6797/fan49101.h b457ed344cd9dea5a7e62598f9c0b507bdecf616
+vendor_blob drivers/misc/mediatek/power/mt6797/rt9466.c 7654c61dfc4ab1cae36b2fbc7a2ae2073aa250e8
+vendor_blob drivers/misc/mediatek/power/mt6797/rt9466.h a7f9df401158f85b1bea262f002bdb2ad2ae4043
+vendor_blob drivers/misc/mediatek/power/mt6797/battery_meter_hal.c f78195ac02f69de5ebb362ff1ac5afd96b0d21ca
+vendor_blob drivers/misc/mediatek/power/mt6797/mtk_charger_intf.c 597f502b834c4543ab19df772a0aa8f70d31d1a4
+vendor_blob arch/arm64/boot/dts/rt9466.dtsi 8b9f4ac6ae67b31acf439323d63b1424f536ed93
+vendor_blob arch/arm64/boot/dts/mt6797.dts 35e6938650c50d24604ce1258c580cd021e4b344
+linux_sha256 drivers/power/supply/bq25890_charger.c ef2cfbdd6e3c67abe1dbd5583f329d1a93539f48fb15ebd9a27e201b08ddbf90
+linux_sha256 Documentation/devicetree/bindings/power/supply/bq25890.yaml 05fc506c2d0bbf059fee6a3dbe8b4aa6e37c3eac5695f3ecffbdf10261cdf03c
+linux_sha256 drivers/regulator/fan53555.c 85d81789a5fe438d544c13726d4b61c4cadb4131359d9d274a06531b47155af9
+linux_sha256 drivers/power/supply/rt9467-charger.c abb15de8e2b355d5cc7cf2113499a078768ce7e45f3001505ec4547583b64ff5
+linux_sha256 drivers/iio/adc/mt6577_auxadc.c 28885190819e7c5bc66aed04f0279dcf29b86783203dbaeb8fb759d18f9d7661
+linux_sha256 drivers/power/supply/mt6351_battery.c missing
+linux_sha256 drivers/power/supply/mt6370-charger.c 9c7449bdcd138f6abfd7c92ed3dcd749e2d1fa5fb1419e5749b1c9b25f967032
+
+[vendor BQ25890 charger]
+297:void bq25890_set_iinlim(unsigned int val)
+453:void bq25890_set_ichg(unsigned int val)
+506:void bq25890_set_vreg(unsigned int val)
+676:	bq25890_set_iinlim(0x08);
+679:	bq25890_set_ichg(0x20);
+958:void bq25890_hw_component_detect(void)
+973:	pr_debug("[bq25890_hw_component_detect] exist=%d, Reg[0x03]=0x%x\n",
+984:void bq25890_dump_register(void)
+1038:	bq25890_dump_register();
+1048:	bq25890_hw_component_detect();
+1049:	bq25890_dump_register();
+1168:static const struct of_device_id bq25890_of_match[] = {
+1174:	I2C_BOARD_INFO("bq25890", (bq25890_SLAVE_ADDR_WRITE >> 1))
+1182:		   .of_match_table = bq25890_of_match,
+vendor_bq25890_helper_call_hits=103
+284:	bq25890_config_interface(bq25890_COND, 0x1, 0x1, 7);	/* vindpm vth 0:relative 1:absolute */
+316:	bq25890_dump_register();
+332:		/* bq25890_config_interface(bq25890_CON3, 0x1, 0x1, 4); //enable charging */
+333:		bq25890_set_en_hiz(0x0);
+334:		bq25890_chg_en(enable);
+336:		/* bq25890_config_interface(bq25890_CON3, 0x0, 0x1, 4); //enable charging */
+337:		bq25890_chg_en(enable);
+341:		/*bq25890_set_en_hiz(0x1);*/
+363:	bq25890_set_vreg(0x24);//(register_value);
+378:	val = bq25890_get_reg_ichg();
+398:	bq25890_set_ichg(register_value);
+417:	bq25890_set_iinlim(register_value);
+438:	bq25890_read_interface(bq25890_CONB, &reg_value, 0x3, 3);	/* ICHG to BAT */
+452:	bq25890_config_interface(bq25890_CON3, 0x1, 0x1, 6);	/* reset watchdog timer */
+668:	bq25890_pumpx_up(increase);
+673:		bq25890_set_ichg(0x0);	/* 64mA */
+676:		bq25890_set_ichg(0x8);	/* 512mA */
+680:		bq25890_set_ichg(0x0);	/* 64mA */
+
+[vendor FAN49101 buck-boost]
+15:#include <linux/i2c.h>
+42:static struct i2c_client *new_client;
+43:static const struct i2c_device_id fan49101_i2c_id[] = { {"fan49101", 0}, {} };
+52:static int fan49101_driver_probe(struct i2c_client *client, const struct i2c_device_id *id);
+54:static struct i2c_driver fan49101_driver = {
+58:		   .of_match_table = fan49101_of_ids,
+62:	.id_table = fan49101_i2c_id,
+70:static DEFINE_MUTEX(fan49101_i2c_access);
+97:	mutex_lock(&fan49101_i2c_access);
+111:	ret = i2c_master_send(new_client, &cmd_buf[0], (1 << 8 | 1));
+116:		mutex_unlock(&fan49101_i2c_access);
+125:	mutex_unlock(&fan49101_i2c_access);
+134:	mutex_lock(&fan49101_i2c_access);
+147:	ret = i2c_master_send(new_client, write_data, 2);
+152:		mutex_unlock(&fan49101_i2c_access);
+157:	mutex_unlock(&fan49101_i2c_access);
+166:	mutex_lock(&fan49101_i2c_access);
+169:		struct i2c_msg msgs[2] = {
+vendor_fan49101_write_path_hits=15
+
+[vendor RT9466 alternative]
+34:#include <mt-plat/rt-regmap.h>
+37:#include "mtk_charger_intf.h"
+204:	int regmap_represent_slave_addr;
+205:	const char *regmap_name;
+228:	.regmap_represent_slave_addr = RT9466_SLAVE_ADDR,
+229:	.regmap_name = "rt9466",
+234:	struct mtk_charger_info mchr_info;
+259:	struct rt_regmap_device *regmap_dev;
+260:	struct rt_regmap_properties *regmap_prop;
+357:static const rt_register_map_t rt9466_regmap_map[] = {
+426:static struct rt_regmap_fops rt9466_regmap_fops = {
+431:static int rt9466_register_rt_regmap(struct rt9466_info *info)
+435:	struct rt_regmap_properties *prop = NULL;
+440:		sizeof(struct rt_regmap_properties), GFP_KERNEL);
+444:	prop->name = info->desc->regmap_name;
+445:	prop->aliases = info->desc->regmap_name;
+446:	prop->register_num = ARRAY_SIZE(rt9466_regmap_map);
+447:	prop->rm = rt9466_regmap_map;
+13:	rt9466@53 {
+14:		compatible = "richtek,rt9466";
+18:		interrupt-names = "wdtmri", "chg_mivr", "chg_aiclmeasi",
+20:		status = "okay";
+21:		charger_name = "primary_charger";
+22:		ichg = <2000000>;	/* uA */
+23:		aicr = <500000>;	/* uA */
+24:		mivr = <4400000>;	/* uV */
+25:		cv = <4350000>;		/* uV */
+26:		ieoc = <250000>;	/* uA */
+
+[vendor battery meter and charger ABI]
+21:#include <mt-plat/battery_meter_hal.h>
+312:static signed int fgauge_read_current(void *data);
+377:			fgauge_read_current(&current_temp);
+391:static signed int fgauge_read_current(void *data)
+425:				"[fgauge_read_current] fg_get_data_ready_status timeout 1 !\r\n");
+439:	bm_print(BM_LOG_FULL, "[fgauge_read_current] : FG_CURRENT = %x\r\n", uvalue16);
+458:				 "[fgauge_read_current] fg_get_data_ready_status timeout 2 !\r\n");
+491:		bm_print(BM_LOG_FULL, "[fgauge_read_current] current(charging) = %d mA\r\n",
+494:		bm_print(BM_LOG_FULL, "[fgauge_read_current] current(discharging) = %d mA\r\n",
+500:			"[fgauge_read_current] Auto adjust value due to the Rfg is %d\n Ori current=%d, ",
+505:			bm_print(BM_LOG_FULL, "[fgauge_read_current] new current=%d\n", dvalue);
+522:		bm_print(BM_LOG_FULL, "[fgauge_read_current] ori current=%d\n", dvalue);
+528:		bm_print(BM_LOG_FULL, "[fgauge_read_current] final current=%d (ratio=%d)\n",
+539:signed int fgauge_read_IM_current(void *data)
+556:		bm_print(BM_LOG_FULL, "[fgauge_read_IM_current] : FG_CURRENT = %x\r\n",
+580:			"[fgauge_read_IM_current] current(charging) = %d mA\r\n",
+584:			"[fgauge_read_IM_current] current(discharging) = %d mA\r\n",
+590:			"[fgauge_read_IM_current] Auto adjust value due to the Rfg is %d\n Ori current=%d, ",
+19:#include <mt-plat/battery_meter.h>
+40:unsigned int wireless_charger_gpio_number = GPIO_PWR_AVAIL_WLC;
+42:unsigned int wireless_charger_gpio_number;
+49:static CHARGER_TYPE g_charger_type = CHARGER_UNKNOWN;
+580:	vbus = battery_meter_get_charger_voltage();
+716:int mtk_charger_get_charger_type(struct mtk_charger_info *info, void *data)
+726:	if (wireless_charger_gpio_number != 0) {
+728:		wireless_state = mt_get_gpio_in(wireless_charger_gpio_number);
+738:		battery_log(BAT_LOG_CRTI, "wireless_charger_gpio_number=%d\n",
+739:			wireless_charger_gpio_number);
+742:	if (g_charger_type != CHARGER_UNKNOWN &&
+743:		g_charger_type != WIRELESS_CHARGER) {
+744:		*(CHARGER_TYPE *) (data) = g_charger_type;
+745:		battery_log(BAT_LOG_CRTI, "return %d!\n", g_charger_type);
+751:		g_charger_type = CHARGER_UNKNOWN;
+752:		*(CHARGER_TYPE *) (data) = CHARGER_UNKNOWN;
+753:		battery_log(BAT_LOG_CRTI, "%s: return CHARGER_UNKNOWN\n", __func__);
+758:	*(CHARGER_TYPE *) (data) = hw_charging_get_charger_type();
+
+[vendor DT alternatives]
+50:			status = "disabled";
+59:			status = "disabled";
+1025:			usb_charger_current_suspend = <0 >;	/* Unit: 0.01 mA */
+1026:			usb_charger_current_unconfigured = <7000 >;	/* Unit: 0.01 mA */
+1027:			usb_charger_current_configured = <50000 >;	/* Unit: 0.01 mA */
+1028:			usb_charger_current = <50000 >;	/* Unit: 0.01 mA */
+1029:			ac_charger_current = <80000 >;	/* Unit: 0.01 mA */
+1030:			non_std_ac_charger_current = <50000 >;	/* Unit: 0.01 mA */
+1031:			charging_host_charger_current = <65000 >;	/* Unit: 0.01 mA */
+1032:			apple_0_5a_charger_current = <50000 >;	/* Unit: 0.01 mA */
+1033:			apple_1_0a_charger_current = <65000 >;	/* Unit: 0.01 mA */
+1034:			apple_2_1a_charger_current = <80000 >;	/* Unit: 0.01 mA */
+1045:			/* High battery support */
+1046:			high_battery_voltage_support = <0 >;
+1047:			/* cust_battery_meter.h */
+1095:			batterypseudo100 = <95>;
+1096:			batterypseudo1 = <11>;
+1116:			/* Fixed battery temperature */
+
+[Linux BQ25890 power-supply contract]
+444:	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
+445:	case POWER_SUPPLY_PROP_CURRENT_NOW:
+488:static int bq25890_power_supply_get_property(struct power_supply *psy,
+499:	case POWER_SUPPLY_PROP_STATUS:
+535:	case POWER_SUPPLY_PROP_ONLINE:
+568:	case POWER_SUPPLY_PROP_CURRENT_NOW:	/* I_BAT now */
+584:	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:	/* I_BAT user limit */
+592:		 * The POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT_MAX is the
+613:	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT_MAX:	/* I_BAT max */
+624:	case POWER_SUPPLY_PROP_VOLTAGE_NOW:	/* V_BAT now */
+640:	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE:	/* V_BAT user limit */
+648:		 * The POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX is the
+658:	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX:	/* V_BAT max */
+685:static int bq25890_power_supply_set_property(struct power_supply *psy,
+695:	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
+699:	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE:
+706:	case POWER_SUPPLY_PROP_ONLINE:
+717:static int bq25890_power_supply_property_is_writeable(struct power_supply *psy,
+17:  compatible:
+28:  reg:
+31:  interrupts:
+34:  ti,battery-regulation-voltage:
+38:  ti,charge-current:
+42:  ti,termination-current:
+48:  ti,precharge-current:
+52:  ti,minimum-sys-voltage:
+58:  ti,boost-voltage:
+89:  - compatible
+91:  - interrupts
+92:  - ti,battery-regulation-voltage
+93:  - ti,charge-current
+94:  - ti,termination-current
+95:  - ti,precharge-current
+96:  - ti,minimum-sys-voltage
+97:  - ti,boost-voltage
+110:        compatible = "ti,bq25890";
+
+[Linux nearest-but-not-equivalent regulator and charger drivers]
+18:#include <linux/regmap.h>
+70:	FAN53555_VENDOR_FAIRCHILD,
+71:	FAN53555_VENDOR_ROCKCHIP,	/* RK8600, RK8601 */
+73:	FAN53555_VENDOR_SILERGY,
+137:	unsigned int vsel_min;
+138:	unsigned int vsel_step;
+139:	unsigned int vsel_count;
+164:	ret = regmap_update_bits(rdev->regmap, di->sleep_reg,
+165:				 di->desc.vsel_mask, ret);
+179:	return regmap_update_bits(rdev->regmap, di->sleep_en_reg,
+187:	return regmap_update_bits(rdev->regmap, di->sleep_en_reg,
+197:		regmap_update_bits(rdev->regmap, di->mode_reg,
+201:		regmap_update_bits(rdev->regmap, di->vol_reg, di->mode_mask, 0);
+215:	ret = regmap_read(rdev->regmap, di->mode_reg, &val);
+243:	.set_voltage_sel = regulator_set_voltage_sel_regmap,
+244:	.get_voltage_sel = regulator_get_voltage_sel_regmap,
+249:	.enable = regulator_enable_regmap,
+250:	.disable = regulator_disable_regmap,
+24:#include <linux/regmap.h>
+106:enum rt9467_fields {
+144:static const struct regmap_irq rt9467_irqs[] = {
+172:static const struct regmap_irq_chip rt9467_irq_chip = {
+173:	.name = "rt9467-irqs",
+177:	.irqs = rt9467_irqs,
+178:	.num_irqs = ARRAY_SIZE(rt9467_irqs),
+181:enum rt9467_ranges {
+192:static const struct linear_range rt9467_ranges[RT9467_RANGES_MAX] = {
+202:static const struct reg_field rt9467_chg_fields[] = {
+238:enum rt9467_adc_chan {
+250:enum rt9467_chg_type {
+260:enum rt9467_iin_limit_sel {
+267:struct rt9467_chg_data {
+269:	struct regmap *regmap;
+270:	struct regmap_field *rm_field[F_MAX_FIELDS];
+271:	struct regmap_irq_chip_data *irq_chip_data;
+285:static int rt9467_otg_of_parse_cb(struct device_node *of,
+37:struct mtk_auxadc_compatible {
+43:	void __iomem *reg_base;
+46:	const struct mtk_auxadc_compatible *dev_comp;
+49:static const struct mtk_auxadc_compatible mt8186_compat = {
+54:static const struct mtk_auxadc_compatible mt8173_compat = {
+59:static const struct mtk_auxadc_compatible mt6765_compat = {
+71:static const struct iio_chan_spec mt6577_auxadc_iio_channels[] = {
+110:static int mt6577_auxadc_read(struct iio_dev *indio_dev,
+111:			      struct iio_chan_spec const *chan)
+118:	reg_channel = adc_dev->reg_base + MT6577_AUXADC_DAT0 +
+123:	mt6577_auxadc_mod_reg(adc_dev->reg_base + MT6577_AUXADC_CON1,
+139:	mt6577_auxadc_mod_reg(adc_dev->reg_base + MT6577_AUXADC_CON1,
+147:		ret = readl_poll_timeout(adc_dev->reg_base + MT6577_AUXADC_CON2,
+184:static int mt6577_auxadc_read_raw(struct iio_dev *indio_dev,
+185:				  struct iio_chan_spec const *chan,
+194:		*val = mt6577_auxadc_read(indio_dev, chan);
+215:	.read_raw = &mt6577_auxadc_read_raw,
+230:	mt6577_auxadc_mod_reg(adc_dev->reg_base + MT6577_AUXADC_MISC,
+
+[decision]
+Reuse the upstream BQ25890 power-supply core only after the live ID, IRQ,
+battery/system-rail wiring, and safe charge limits are proven. The vendor
+mediatek,sw_charger ABI and stale bq24261 DT node are not Linux bindings.
+FAN49101 is a distinct buck-boost protocol: its ID registers, VSEL and
+enable behavior do not establish compatibility with fan53555. Add a new
+regulator driver/binding unless a verified register-level match is found.
+Keep the unbound RT9466 node disabled until population and IRQ wiring are
+proven; its DT values are not charge-safety evidence. Replace the vendor
+battery meter/HAL with standard power_supply plus IIO/fuel-gauge pieces,
+and do not copy vendor battery profiles without calibration and provenance.

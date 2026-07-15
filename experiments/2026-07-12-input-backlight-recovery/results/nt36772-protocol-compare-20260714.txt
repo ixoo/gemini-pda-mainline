@@ -1,0 +1,57 @@
+Experiment: 2026-07-12-input-backlight-recovery
+Record: NT36772 vendor-source to mainline-backend protocol comparison
+Date: 2026-07-14
+
+Evidence inputs:
+- Immutable vendor source: Planet MT6797 commit
+  c5b0be85017ad0c599725e8273842efdbecdd88a
+- Live filtered vendor log: trim bytes 00 00 03 72 66 03, PID 0x0101,
+  firmware 0x05/bar 0xFA, IRQ 392; sanitized record is
+  results/nvt-live-trim-identity-20260714.txt.
+- Mainline patch: patches/v7.1.3/0075-input-touchscreen-novatek-add-NT36772-backend.patch
+  SHA-256 13b28952b04e2be6c781f4595f92b2ff14fb6c8af3492668e195aa9aad6d5b56.
+
+Equivalent protocol fields:
+- The vendor has one physical I2C client at 0x62. Its CTP_I2C_READ helper
+  sends one command byte and reads len-1 data bytes; CTP_I2C_WRITE sends all
+  bytes. The backend keeps one client and writes the supplied target directly
+  into each transfer message, preserving the vendor's alternate 0x01 target.
+- Each vendor trim attempt writes 0x69/35 ms, 0xa5/15 ms, and 0x35/10 ms at
+  0x62, selects xdata 0x01f600 at 0x01, then reads command 0x4e. The backend
+  performs the same bounded five-attempt sequence and accepts only the live
+  NT36772 suffix 72 66 03.
+- The vendor probe performs a second 0x69/35 ms bootloader reset after trim
+  identification. The backend now does the same before reset-state polling;
+  this was a deliberate correction to the first draft.
+- Vendor reset-state command 0x60 reads five data bytes after the command and
+  accepts state >= 0xa0 and < 0xff. The backend reads the same five data bytes
+  with a bounded 100-iteration poll.
+- Vendor firmware-info command 0x78 requests 17 bytes including the command,
+  leaving 16 data bytes. The backend requests those 16 data bytes, checks the
+  version/complement pair, and uses the same data offsets for raw X/Y maxima.
+  It fails closed on invalid dimensions instead of applying the vendor's
+  1080x1920 fallback.
+- The NT36772 map uses event xdata 0x11e00. Vendor reads 66 bytes including
+  the command, leaving 65 event bytes. The backend reads those 65 bytes,
+  parses ten six-byte records, uses pressure high bytes at data offsets 62/63
+  for the first two contacts, clamps pressure/width, swaps X/Y, reverses Y,
+  reports BTN_TOUCH, and drops absent slots.
+
+Intentional mainline differences:
+- No vendor firmware loader, delayed update worker, /proc/NVTflash interface,
+  display notifier, real-time kthread, gesture path, or vendor fallback
+  dimensions are included. The firmware-update behavior observed in dmesg is
+  therefore evidence only, not a permission to ship a writer.
+- PID 0x0101 is retained as live evidence but is not used as a second match;
+  the DT compatible and masked trim suffix select the disabled backend.
+- The board node is not enabled. Touch rails, reset polarity, alternate
+  address transition, firmware-info contents, and event frames still require
+  a controlled hardware runtime probe.
+
+Validation:
+- Focused arm64 object compile: pass.
+- Module link with KBUILD_MODPOST_WARN=1: pass; unresolved-symbol warnings
+  are expected because vmlinux.o was not produced by the stopped broad build.
+- Focused Devicetree binding schema/lint/example DTB check: pass.
+- checkpatch strict: 0 errors, 0 warnings, 7 alignment checks.
+- No complete Image/DTB package or device runtime probe is claimed.

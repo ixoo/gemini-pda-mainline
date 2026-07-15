@@ -1,0 +1,28 @@
+validation=mainline-74-patch-integration-current
+kernel_version=7.1.3
+kernel_release=7.1.3-gemini
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=c2feb465d6c6debf6f333516ce360cf8a1259da5dde631e828e7efac92ed33ae
+config_sha256=831289dd3b53c6cec09e6c614fd83d3ab5988a4c30090bf9ec172348ec9487d5
+package=linux-7.1.3-gemini-c2feb465d6c6
+generated_utc=2026-07-14T15:22:58Z
+compiler='gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0'
+linker='GNU ld (GNU Binutils for Ubuntu) 2.42'
+image_sha256=3a124e4d30034ea5473ab04f9747b697ff7c588862d6adb2e1cf33d7f97585d2
+image_gz_sha256=79ba744da209d262c99e07b23aded1770688f0e9fd0fac8ee0868d920bc8fddc
+gemini_dtb_sha256=5aa78993406f597d9d565e7af35a731699f0c1d39f3e05826b4362af4501c9f9
+kernel_config_sha256=831289dd3b53c6cec09e6c614fd83d3ab5988a4c30090bf9ec172348ec9487d5
+system_map_sha256=8e569b3c0741c60a95b2aa3e97e3dc5b5a0c07bac4779566f4b96b1ce6206cbd
+dtb_count=119
+modules_built=true
+module_object_count=1570
+image_gz_decompressed_size=48547848
+sha256sums=passed
+runtime_mainline_boot=not_attempted
+hardware_write=none
+
+[interpretation]
+source_and_patch_integration=confirmed
+lk_gzip_payload_contract=confirmed_by_private_parse_only_candidate
+hardware_driver_support=not_claimed
+next_test=owner-authorized_non-primary_boot_with_external_uart_capture

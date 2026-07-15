@@ -1,0 +1,806 @@
+binary=artifacts/device-userspace/gemian-2019/system/vendor/lib64/hw/sensors.mt6797.so
+artifacts/device-userspace/gemian-2019/system/vendor/lib64/hw/sensors.mt6797.so: ELF 64-bit LSB shared object, ARM aarch64, version 1 (SYSV), dynamically linked, BuildID[md5/uuid]=b88131c740b26899e13fe2df87f41dca, stripped
+8e1ed59dcf5938191974d30da2e6b5a993d2e1eebe6aa9452d8f89fe99f0d528  artifacts/device-userspace/gemian-2019/system/vendor/lib64/hw/sensors.mt6797.so
+  Class:                             ELF64
+  Type:                              DYN (Shared object file)
+  Machine:                           AArch64
+  Entry point address:               0x0
+
+===== physical and virtual sensor symbols =====
+000000000000ea08 T SensorBase::open_device()
+000000000000ea7c T SensorBase::close_device()
+000000000000eafc T SensorBase::getTimestamp()
+000000000000eab8 T SensorBase::setDelay(int, long)
+000000000000e954 T SensorBase::SensorBase(char const*, char const*)
+000000000000e9c0 T SensorBase::~SensorBase()
+000000000000e974 T SensorBase::~SensorBase()
+000000000000e974 T SensorBase::~SensorBase()
+000000000001aca8 T TiltSensor::FindDataFd()
+000000000001552c T BatchSensor::FindDataFd()
+00000000000172dc T ShakeSensor::FindDataFd()
+00000000000199cc T PickUpSensor::FindDataFd()
+0000000000022e0c T GestureSensor::FindDataFd()
+000000000001fe60 T GravitySensor::FindDataFd()
+0000000000017c08 T ActivitySensor::FindDataFd()
+00000000000186a4 T FaceDownSensor::FindDataFd()
+000000000001c7d4 T HumiditySensor::FindDataFd()
+000000000001cddc T HumiditySensor::readEvents(sensors_event_t*, int)
+000000000001d074 T HumiditySensor::processEvent(int, int)
+000000000001cc4c T HumiditySensor::batch(int, int, long, long)
+000000000001cda0 T HumiditySensor::flush(int)
+000000000001c9b0 T HumiditySensor::enable(int, int)
+000000000001cb24 T HumiditySensor::setDelay(int, long)
+000000000001c594 T HumiditySensor::HumiditySensor()
+000000000001c594 T HumiditySensor::HumiditySensor()
+000000000001c964 T HumiditySensor::~HumiditySensor()
+000000000001c920 T HumiditySensor::~HumiditySensor()
+000000000001c920 T HumiditySensor::~HumiditySensor()
+0000000000010ab8 T MagneticSensor::FindDataFd()
+0000000000011238 T MagneticSensor::readEvents(sensors_event_t*, int)
+0000000000010c94 T MagneticSensor::write_attr(char*, char*, int)
+0000000000011450 T MagneticSensor::processEvent(int, int, int)
+0000000000011088 T MagneticSensor::batch(int, int, long, long)
+00000000000111fc T MagneticSensor::flush(int)
+0000000000010d34 T MagneticSensor::enable(int, int)
+0000000000010f10 T MagneticSensor::setDelay(int, long)
+0000000000010774 T MagneticSensor::MagneticSensor()
+0000000000010774 T MagneticSensor::MagneticSensor()
+0000000000010c48 T MagneticSensor::~MagneticSensor()
+0000000000010c04 T MagneticSensor::~MagneticSensor()
+0000000000010c04 T MagneticSensor::~MagneticSensor()
+00000000000138d0 T PressureSensor::FindDataFd()
+0000000000013ed0 T PressureSensor::readEvents(sensors_event_t*, int)
+0000000000014098 T PressureSensor::processEvent(int, int, int)
+0000000000013d40 T PressureSensor::batch(int, int, long, long)
+0000000000013e94 T PressureSensor::flush(int)
+0000000000013aac T PressureSensor::enable(int, int)
+0000000000013c1c T PressureSensor::setDelay(int, long)
+0000000000013698 T PressureSensor::PressureSensor()
+0000000000013698 T PressureSensor::PressureSensor()
+0000000000013a60 T PressureSensor::~PressureSensor()
+0000000000013a1c T PressureSensor::~PressureSensor()
+0000000000013a1c T PressureSensor::~PressureSensor()
+0000000000012484 T AmbiLightSensor::FindDataFd()
+0000000000012a8c T AmbiLightSensor::readEvents(sensors_event_t*, int)
+0000000000012c64 T AmbiLightSensor::processEvent(int, int)
+0000000000012900 T AmbiLightSensor::batch(int, int, long, long)
+0000000000012a50 T AmbiLightSensor::flush(int)
+0000000000012680 T AmbiLightSensor::enable(int, int)
+00000000000127e0 T AmbiLightSensor::setDelay(int, long)
+0000000000012268 T AmbiLightSensor::AmbiLightSensor()
+0000000000012268 T AmbiLightSensor::AmbiLightSensor()
+0000000000012634 T AmbiLightSensor::~AmbiLightSensor()
+00000000000125f0 T AmbiLightSensor::~AmbiLightSensor()
+00000000000125f0 T AmbiLightSensor::~AmbiLightSensor()
+0000000000011880 T GyroscopeSensor::FindDataFd()
+0000000000011fb8 T GyroscopeSensor::readEvents(sensors_event_t*, int)
+000000000001214c T GyroscopeSensor::processEvent(int, int, int)
+0000000000011a5c T GyroscopeSensor::enableNoHALData(int)
+0000000000011e28 T GyroscopeSensor::batch(int, int, long, long)
+0000000000011f7c T GyroscopeSensor::flush(int)
+0000000000011b94 T GyroscopeSensor::enable(int, int)
+0000000000011d04 T GyroscopeSensor::setDelay(int, long)
+000000000001166c T GyroscopeSensor::GyroscopeSensor()
+000000000001166c T GyroscopeSensor::GyroscopeSensor()
+0000000000011a10 T GyroscopeSensor::~GyroscopeSensor()
+00000000000119cc T GyroscopeSensor::~GyroscopeSensor()
+00000000000119cc T GyroscopeSensor::~GyroscopeSensor()
+000000000001a2d8 T HeartRateSensor::FindDataFd()
+0000000000018f90 T PedometerSensor::FindDataFd()
+0000000000012e98 T ProximitySensor::FindDataFd()
+0000000000013480 T ProximitySensor::readEvents(sensors_event_t*, int)
+0000000000013630 T ProximitySensor::processEvent(int, int)
+00000000000132f8 T ProximitySensor::batch(int, int, long, long)
+0000000000013444 T ProximitySensor::flush(int)
+0000000000013078 T ProximitySensor::enable(int, int)
+00000000000131dc T ProximitySensor::setDelay(int, long)
+0000000000012c74 T ProximitySensor::ProximitySensor()
+0000000000012c74 T ProximitySensor::ProximitySensor()
+000000000001302c T ProximitySensor::~ProximitySensor()
+0000000000012fe8 T ProximitySensor::~ProximitySensor()
+0000000000012fe8 T ProximitySensor::~ProximitySensor()
+0000000000021288 T UncalimagSensor::FindDataFd()
+0000000000021d2c T AnswerCallSensor::FindDataFd()
+000000000001f560 T BringtoseeSensor::FindDataFd()
+0000000000014378 T TempratureSensor::FindDataFd()
+00000000000207e0 T UncaligyroSensor::FindDataFd()
+000000000001dac8 T LinearaccelSensor::FindDataFd()
+0000000000014b00 T SensorDebugObject::SensorDebugObject(SensorBase*, int)
+0000000000014b00 T SensorDebugObject::SensorDebugObject(SensorBase*, int)
+00000000000168d0 T StepCounterSensor::FindDataFd()
+000000000001b59c T WakeGestureSensor::FindDataFd()
+000000000000fd68 T AccelerationSensor::FindDataFd()
+0000000000010498 T AccelerationSensor::readEvents(sensors_event_t*, int)
+0000000000010658 T AccelerationSensor::processEvent(int, int, int)
+000000000000ff44 T AccelerationSensor::enableNoHALDataAcc(int)
+0000000000010300 T AccelerationSensor::batch(int, int, long, long)
+000000000001045c T AccelerationSensor::flush(int)
+0000000000010074 T AccelerationSensor::enable(int, int)
+00000000000101e0 T AccelerationSensor::setDelay(int, long)
+000000000000fb50 T AccelerationSensor::AccelerationSensor()
+000000000000fb50 T AccelerationSensor::AccelerationSensor()
+000000000000fef8 T AccelerationSensor::~AccelerationSensor()
+000000000000feb4 T AccelerationSensor::~AccelerationSensor()
+000000000000feb4 T AccelerationSensor::~AccelerationSensor()
+000000000001beb8 T GlanceGestureSensor::FindDataFd()
+000000000001ec7c T RotationVectorSensor::FindDataFd()
+000000000001d22c T GameRotationVectorSensor::FindDataFd()
+000000000001e3b4 T GeomagneticRotationVectorSensor::FindDataFd()
+000000000000ec50 T Hwmsen::FindDataFd()
+000000000000f1d4 T Hwmsen::readEvents(sensors_event_t*, int)
+000000000000f57c T Hwmsen::processEvent(int, int)
+000000000000f990 T Hwmsen::update_delay(int)
+000000000000f5e8 T Hwmsen::readSensorData()
+000000000000ee0c T Hwmsen::enableNoHALDataAcc(int)
+000000000000fac0 T Hwmsen::batch(int, int, long, long)
+000000000000fb14 T Hwmsen::flush(int)
+000000000000eee4 T Hwmsen::enable(int, int)
+000000000000f8ec T Hwmsen::setDelay(int, long)
+000000000000eb00 T Hwmsen::Hwmsen()
+000000000000eb00 T Hwmsen::Hwmsen()
+000000000000edbc T Hwmsen::~Hwmsen()
+000000000000ed74 T Hwmsen::~Hwmsen()
+000000000000ed74 T Hwmsen::~Hwmsen()
+00000000000225f8 T PdrSensor::FindDataFd()
+000000000000eaf4 T SensorBase::hasPendingEvents() const
+000000000000eab0 T SensorBase::getFd() const
+000000000000f8d0 T Hwmsen::indexToValue(unsigned long) const
+000000000000f1cc T Hwmsen::hasPendingEvents() const
+000000000002d628 D vtable for SensorBase
+000000000002dd28 D vtable for HumiditySensor
+000000000002d730 D vtable for MagneticSensor
+000000000002d890 D vtable for PressureSensor
+000000000002d7e0 D vtable for AmbiLightSensor
+000000000002d788 D vtable for GyroscopeSensor
+000000000002d838 D vtable for ProximitySensor
+000000000002d6d8 D vtable for AccelerationSensor
+000000000002d680 D vtable for Hwmsen
+                 U ioctl@LIBC
+
+===== legacy device and control paths =====
+_ZN11BatchSensorC1Ev
+_ZN18AccelerationSensor18enableNoHALDataAccEi
+_ZN22sensors_poll_context_t5batchEiill
+_ZN22sensors_poll_context_t5flushEi
+_ZN22sensors_poll_context_t8setDelayEil
+_ZN6Hwmsen18enableNoHALDataAccEi
+_ZN10SensorBase8setDelayEil
+_ZN6Hwmsen12update_delayEi
+_ZN6Hwmsen5batchEiill
+_ZN6Hwmsen5flushEi
+_ZN6Hwmsen6enableEii
+_ZN6Hwmsen8setDelayEil
+_ZN18AccelerationSensor5batchEiill
+_ZN18AccelerationSensor5flushEi
+_ZN18AccelerationSensor6enableEii
+_ZN18AccelerationSensor8setDelayEil
+_ZN14MagneticSensor5batchEiill
+_ZN14MagneticSensor5flushEi
+_ZN14MagneticSensor6enableEii
+_ZN14MagneticSensor8setDelayEil
+_ZN15GyroscopeSensor15enableNoHALDataEi
+_ZN15GyroscopeSensor5batchEiill
+_ZN15GyroscopeSensor5flushEi
+_ZN15GyroscopeSensor6enableEii
+_ZN15GyroscopeSensor8setDelayEil
+_ZN15AmbiLightSensor5batchEiill
+_ZN15AmbiLightSensor5flushEi
+_ZN15AmbiLightSensor6enableEii
+_ZN15AmbiLightSensor8setDelayEil
+_ZN15ProximitySensor5batchEiill
+_ZN15ProximitySensor5flushEi
+_ZN15ProximitySensor6enableEii
+_ZN15ProximitySensor8setDelayEil
+_ZN14PressureSensor5batchEiill
+_ZN14PressureSensor5flushEi
+_ZN14PressureSensor6enableEii
+_ZN14PressureSensor8setDelayEil
+_ZN16TempratureSensor5batchEiill
+_ZN16TempratureSensor5flushEi
+_ZN16TempratureSensor6enableEii
+_ZN16TempratureSensor8setDelayEil
+_ZN11BatchSensor10FindDataFdEv
+_ZN11BatchSensor10readEventsEP15sensors_event_ti
+_ZN11BatchSensor11handleEventEP15sensors_event_tP15hwm_sensor_data
+_ZN11BatchSensor12TypeToSensorEi
+_ZN11BatchSensor12processEventEii
+_ZN11BatchSensor5batchEiill
+_ZN11BatchSensor5flushEi
+_ZN11BatchSensor6enableEii
+_ZN11BatchSensor8setDelayEil
+_ZN11BatchSensorC2Ev
+_ZN11BatchSensorD0Ev
+_ZN11BatchSensorD1Ev
+_ZN11BatchSensorD2Ev
+_ZNK11BatchSensor16hasPendingEventsEv
+_ZTV11BatchSensor
+_ZN17StepCounterSensor5batchEiill
+_ZN17StepCounterSensor5flushEi
+_ZN17StepCounterSensor6enableEii
+_ZN17StepCounterSensor8setDelayEil
+_ZN11ShakeSensor5batchEiill
+_ZN11ShakeSensor5flushEi
+_ZN11ShakeSensor6enableEii
+_ZN11ShakeSensor8setDelayEil
+_ZN14ActivitySensor5batchEiill
+_ZN14ActivitySensor5flushEi
+_ZN14ActivitySensor6enableEii
+_ZN14ActivitySensor8setDelayEil
+_ZN14FaceDownSensor5batchEiill
+_ZN14FaceDownSensor5flushEi
+_ZN14FaceDownSensor6enableEii
+_ZN14FaceDownSensor8setDelayEil
+_ZN15PedometerSensor5batchEiill
+_ZN15PedometerSensor5flushEi
+_ZN15PedometerSensor6enableEii
+_ZN15PedometerSensor8setDelayEil
+_ZN12PickUpSensor5batchEiill
+_ZN12PickUpSensor5flushEi
+_ZN12PickUpSensor6enableEii
+_ZN12PickUpSensor8setDelayEil
+_ZN15HeartRateSensor5batchEiill
+_ZN15HeartRateSensor5flushEi
+_ZN15HeartRateSensor6enableEii
+_ZN15HeartRateSensor8setDelayEil
+_ZN10TiltSensor5batchEiill
+_ZN10TiltSensor5flushEi
+_ZN10TiltSensor6enableEii
+_ZN10TiltSensor8setDelayEil
+_ZN17WakeGestureSensor5batchEiill
+_ZN17WakeGestureSensor5flushEi
+_ZN17WakeGestureSensor6enableEii
+_ZN17WakeGestureSensor8setDelayEil
+_ZN19GlanceGestureSensor5batchEiill
+_ZN19GlanceGestureSensor5flushEi
+_ZN19GlanceGestureSensor6enableEii
+_ZN19GlanceGestureSensor8setDelayEil
+_ZN14HumiditySensor5batchEiill
+_ZN14HumiditySensor5flushEi
+_ZN14HumiditySensor6enableEii
+_ZN14HumiditySensor8setDelayEil
+_ZN24GameRotationVectorSensor5batchEiill
+_ZN24GameRotationVectorSensor5flushEi
+_ZN24GameRotationVectorSensor6enableEii
+_ZN24GameRotationVectorSensor8setDelayEil
+_ZN17LinearaccelSensor18enableNoHALDataAccEi
+_ZN17LinearaccelSensor5batchEiill
+_ZN17LinearaccelSensor5flushEi
+_ZN17LinearaccelSensor6enableEii
+_ZN17LinearaccelSensor8setDelayEil
+_ZN31GeomagneticRotationVectorSensor5batchEiill
+_ZN31GeomagneticRotationVectorSensor5flushEi
+_ZN31GeomagneticRotationVectorSensor6enableEii
+_ZN31GeomagneticRotationVectorSensor8setDelayEil
+_ZN20RotationVectorSensor5batchEiill
+_ZN20RotationVectorSensor5flushEi
+_ZN20RotationVectorSensor6enableEii
+_ZN20RotationVectorSensor8setDelayEil
+_ZN16BringtoseeSensor5batchEiill
+_ZN16BringtoseeSensor5flushEi
+_ZN16BringtoseeSensor6enableEii
+_ZN16BringtoseeSensor8setDelayEil
+_ZN13GravitySensor18enableNoHALDataAccEi
+_ZN13GravitySensor5batchEiill
+_ZN13GravitySensor5flushEi
+_ZN13GravitySensor6enableEii
+_ZN13GravitySensor8setDelayEil
+_ZN16UncaligyroSensor5batchEiill
+_ZN16UncaligyroSensor5flushEi
+_ZN16UncaligyroSensor6enableEii
+_ZN16UncaligyroSensor8setDelayEil
+_ZN15UncalimagSensor5batchEiill
+_ZN15UncalimagSensor5flushEi
+_ZN15UncalimagSensor6enableEii
+_ZN15UncalimagSensor8setDelayEil
+_ZN16AnswerCallSensor5batchEiill
+_ZN16AnswerCallSensor5flushEi
+_ZN16AnswerCallSensor6enableEii
+_ZN16AnswerCallSensor8setDelayEil
+_ZN9PdrSensor5batchEiill
+_ZN9PdrSensor5flushEi
+_ZN9PdrSensor6enableEii
+_ZN9PdrSensor8setDelayEil
+_ZN13GestureSensor5batchEiill
+_ZN13GestureSensor5flushEi
+_ZN13GestureSensor6enableEii
+_ZN13GestureSensor8setDelayEil
+activate handle =%d, enable = %d
+support batch active 
+new setDelay handle error(%d)
+new setDelay handle(%d),ns(%lld)m, error(%d), index(%d)
+new setDelay handle(%d),ns(%lld) err! go to hwmsen
+batch handle =%d, flag=%d, sampling=%lld, batchtimeout=%lld
+sensor %d go to common batch
+flush handle =%d
+go to batchsensor(%d)
+/dev/hwmsensor
+/sys/class/misc/hwmsensor/hwmsensordevnum
+/dev/input/event%d
+%s: Enable  nodata old acc error!
+int Hwmsen::enableNoHALDataAcc(int)
+Hwmsen_Enable: handle:%d, en:%d 
+enable: (handle=%d) is not hwmsen driver command
+%s: handle %d, enable or disable %d!
+virtual int Hwmsen::enable(int32_t, int)
+%s: Enable sensor %d error!
+%s: Enable ACCELEROMETR sensor error!
+%s: Enable MAGNETIC sensor error!
+active_sensors =%x
+setDelay: (handle=%d, ns=%lld)
+setDelay: (handle=%d, ns=%lld) is not hwmsen driver command
+setDelay: (what=%d, ms=%d)
+Control set delay %d ms is too small 
+really setDelay: (what=%d, ms=%d)
+%s: Set delay %d ms error 
+int Hwmsen::update_delay(int)
+handle=%d,flags=%d,samplingPeriodNs=%lld,maxBatchReportLatencyNs=%lld
+m_acc_input
+/sys/class/misc/m_acc_misc/
+/sys/class/misc/m_acc_misc/accdevnum
+read devnum err, len = %d
+ACC enable nodata en(%d) 
+accenablenodata
+no ACC enable nodata control attr
+ACC enable nodata done
+ACC enable: handle:%d, en:%d 
+accactive
+no ACC enable control attr
+ACC enable(%d) done
+accdelay
+no ACC setDelay control attr 
+ACC batch: handle:%d, en:%d,samplingPeriodNs:%lld maxBatchReportLatencyNs:%lld 
+accbatch
+no ACC batch control attr
+ACC batch(%d) done
+/sys/class/misc/m_mag_misc/
+/sys/class/misc/m_mag_misc/magdevnum
+fwq enable: handle:%d, en:%d 
+magoactive
+magactive
+no magntic enable attr 
+mag(%d)  mEnabled(0x%x) ----
+magodelay
+magdelay
+no MAG setDelay control attr
+setDelay: (handle=%d, ms=%lld)
+really setDelay: (handle=%d, ns=%lld)
+Mag batch: handle:%d, en:%d, samplingPeriodNs:%lld,maxBatchReportLatencyNs:%lld 
+magobatch
+magbatch
+m_gyro_input
+/sys/class/misc/m_gyro_misc/
+/sys/class/misc/m_gyro_misc/gyrodevnum
+GYRO enable nodata en(%d) 
+gyroenablenodata
+no GYRO enable nodata control attr
+GYRO enable nodata done
+Gyro enable: handle:%d, en:%d 
+gyroactive
+no Gyro enable control attr
+Gyro enable(%d) done
+gyrodelay
+no GYRO setDelay control attr 
+GYRO batch: handle:%d, en:%d,samplingPeriodNs:%lld, maxBatchReportLatencyNs:%lld 
+gyrobatch
+no gyro batch control attr
+GYRO batch(%d) done
+m_alsps_input
+/sys/class/misc/m_alsps_misc/
+/sys/class/misc/m_alsps_misc/alsdevnum
+read devnum err buf(%s)
+ALS enable: handle:%d, en:%d 
+alsactive
+no ALS enable control attr
+alsdelay
+no ALS setDelay control attr 
+ALS batch: handle:%d, en:%d,samplingPeriodNs:%lld, maxBatchReportLatencyNs:%lld 
+alsbatch
+no ALSbatch control attr
+ALS batch(%d) done
+/sys/class/misc/m_alsps_misc/psdevnum
+PS enable: handle:%d, en:%d 
+psactive
+no PS enable control attr
+PS enable(%d) done
+no PS setDelay control attr 
+PS batch: handle:%d, en:%d,samplingPeriodNs:%lld, maxBatchReportLatencyNs:%lld 
+no PS batch control attr
+PS batch(%d) done
+/sys/class/misc/m_baro_misc/
+/sys/class/misc/m_baro_misc/barodevnum
+PRESS enable: handle:%d, en:%d 
+baroactive
+no PRESS enable control attr
+PRESS enable(%d) done
+barodelay
+no PRESS setDelay control attr 
+PRESS batch: handle:%d, en:%d,samplingPeriodNs:%lld, maxBatchReportLatencyNs:%lld 
+barobatch
+no PRESS batch control attr
+PRESS batch(%d) done
+
+===== selected AArch64 event decoder disassembly =====
+The offsets are symbol-relative ELF virtual addresses from the stripped-but-symbol-preserving HAL.
+
+artifacts/device-userspace/gemian-2019/system/vendor/lib64/hw/sensors.mt6797.so:     file format elf64-littleaarch64
+
+
+Disassembly of section .text:
+
+0000000000010498 <AccelerationSensor::readEvents(sensors_event_t*, int)@@Base>:
+   10498:	a9ba6ffc 	stp	x28, x27, [sp, #-96]!
+   1049c:	a90167fa 	stp	x26, x25, [sp, #16]
+   104a0:	a9025ff8 	stp	x24, x23, [sp, #32]
+   104a4:	a90357f6 	stp	x22, x21, [sp, #48]
+   104a8:	a9044ff4 	stp	x20, x19, [sp, #64]
+   104ac:	a9057bfd 	stp	x29, x30, [sp, #80]
+   104b0:	910143fd 	add	x29, sp, #0x50
+   104b4:	d10083ff 	sub	sp, sp, #0x20
+   104b8:	d00000f8 	adrp	x24, 2e000 <vtable for UncalimagSensor@@Base+0x18>
+   104bc:	2a0203f4 	mov	w20, w2
+   104c0:	aa0103f7 	mov	x23, x1
+   104c4:	f941cb18 	ldr	x24, [x24, #912]
+   104c8:	aa0003f5 	mov	x21, x0
+   104cc:	7100069f 	cmp	w20, #0x1
+   104d0:	f9400318 	ldr	x24, [x24]
+   104d4:	f9000ff8 	str	x24, [sp, #24]
+   104d8:	54000a4b 	b.lt	10620 <AccelerationSensor::readEvents(sensors_event_t*, int)@@Base+0x188>  // b.tstop
+   104dc:	b9506ea1 	ldr	w1, [x21, #4204]
+   104e0:	9100a2b6 	add	x22, x21, #0x28
+   104e4:	aa1603e0 	mov	x0, x22
+   104e8:	97fff046 	bl	c600 <InputEventCircularReader::fill(int)@plt>
+   104ec:	aa0003f3 	mov	x19, x0
+   104f0:	b7f809b3 	tbnz	x19, #63, 10624 <AccelerationSensor::readEvents(sensors_event_t*, int)@@Base+0x18c>
+   104f4:	52820e08 	mov	w8, #0x1070                	// #4208
+   104f8:	f000009a 	adrp	x26, 23000 <GestureSensor::HandleToIndex(int)@@Base+0x40>
+   104fc:	900000bb 	adrp	x27, 24000 <GestureSensor::SelectGestureEvent(int)@@Base+0x8e8>
+   10500:	900000bc 	adrp	x28, 24000 <GestureSensor::SelectGestureEvent(int)@@Base+0x8e8>
+   10504:	2a1f03f3 	mov	w19, wzr
+   10508:	8b0802b9 	add	x25, x21, x8
+   1050c:	913fa35a 	add	x26, x26, #0xfe8
+   10510:	9108c37b 	add	x27, x27, #0x230
+   10514:	910a179c 	add	x28, x28, #0x285
+   10518:	14000003 	b	10524 <AccelerationSensor::readEvents(sensors_event_t*, int)@@Base+0x8c>
+   1051c:	aa1603e0 	mov	x0, x22
+   10520:	97fff044 	bl	c630 <InputEventCircularReader::next()@plt>
+   10524:	910043e1 	add	x1, sp, #0x10
+   10528:	aa1603e0 	mov	x0, x22
+   1052c:	97fff039 	bl	c610 <InputEventCircularReader::readEvent(input_event const**)@plt>
+   10530:	b40007a0 	cbz	x0, 10624 <AccelerationSensor::readEvents(sensors_event_t*, int)@@Base+0x18c>
+   10534:	f9400bea 	ldr	x10, [sp, #16]
+   10538:	f9400949 	ldr	x9, [x10, #16]
+   1053c:	12003d28 	and	w8, w9, #0xffff
+   10540:	3200012b 	orr	w11, w9, #0x1
+   10544:	12003d6b 	and	w11, w11, #0xffff
+   10548:	71000d7f 	cmp	w11, #0x3
+   1054c:	540000e1 	b.ne	10568 <AccelerationSensor::readEvents(sensors_event_t*, int)@@Base+0xd0>  // b.any
+   10550:	79402542 	ldrh	w2, [x10, #18]
+   10554:	aa1503e0 	mov	x0, x21
+   10558:	2a0803e1 	mov	w1, w8
+   1055c:	d360fd23 	lsr	x3, x9, #32
+   10560:	97fff068 	bl	c700 <AccelerationSensor::processEvent(int, int, int)@plt>
+   10564:	17ffffee 	b	1051c <AccelerationSensor::readEvents(sensors_event_t*, int)@@Base+0x84>
+   10568:	71000d1f 	cmp	w8, #0x3
+   1056c:	54fffd80 	b.eq	1051c <AccelerationSensor::readEvents(sensors_event_t*, int)@@Base+0x84>  // b.none
+   10570:	350003e8 	cbnz	w8, 105ec <AccelerationSensor::readEvents(sensors_event_t*, int)@@Base+0x154>
+   10574:	97ffefe3 	bl	c500 <android::elapsedRealtimeNano()@plt>
+   10578:	b94022a8 	ldr	w8, [x21, #32]
+   1057c:	34fffd08 	cbz	w8, 1051c <AccelerationSensor::readEvents(sensors_event_t*, int)@@Base+0x84>
+   10580:	f9402aa8 	ldr	x8, [x21, #80]
+   10584:	eb08001f 	cmp	x0, x8
+   10588:	54fffcab 	b.lt	1051c <AccelerationSensor::readEvents(sensors_event_t*, int)@@Base+0x84>  // b.tstop
+   1058c:	b9506aa3 	ldr	w3, [x21, #4200]
+   10590:	71001c7f 	cmp	w3, #0x7
+   10594:	540003c1 	b.ne	1060c <AccelerationSensor::readEvents(sensors_event_t*, int)@@Base+0x174>  // b.any
+   10598:	f94842a9 	ldr	x9, [x21, #4224]
+   1059c:	b9106abf 	str	wzr, [x21, #4200]
+   105a0:	b5000069 	cbnz	x9, 105ac <AccelerationSensor::readEvents(sensors_event_t*, int)@@Base+0x114>
+   105a4:	aa0003e9 	mov	x9, x0
+   105a8:	f90842a0 	str	x0, [x21, #4224]
+   105ac:	eb08013f 	cmp	x9, x8
+   105b0:	54fffb6d 	b.le	1051c <AccelerationSensor::readEvents(sensors_event_t*, int)@@Base+0x84>
+   105b4:	9101a2e8 	add	x8, x23, #0x68
+   105b8:	aa1703e0 	mov	x0, x23
+   105bc:	aa1903e1 	mov	x1, x25
+   105c0:	52800d02 	mov	w2, #0x68                  	// #104
+   105c4:	f90007e8 	str	x8, [sp, #8]
+   105c8:	97ffefc6 	bl	c4e0 <memcpy@plt>
+   105cc:	aa1603e0 	mov	x0, x22
+   105d0:	f90842bf 	str	xzr, [x21, #4224]
+   105d4:	11000673 	add	w19, w19, #0x1
+   105d8:	51000694 	sub	w20, w20, #0x1
+   105dc:	97fff015 	bl	c630 <InputEventCircularReader::next()@plt>
+   105e0:	f94007f7 	ldr	x23, [sp, #8]
+   105e4:	35fffa14 	cbnz	w20, 10524 <AccelerationSensor::readEvents(sensors_event_t*, int)@@Base+0x8c>
+   105e8:	1400000f 	b	10624 <AccelerationSensor::readEvents(sensors_event_t*, int)@@Base+0x18c>
+   105ec:	d3507d24 	ubfx	x4, x9, #16, #16
+   105f0:	34fff964 	cbz	w4, 1051c <AccelerationSensor::readEvents(sensors_event_t*, int)@@Base+0x84>
+   105f4:	321f07e0 	orr	w0, wzr, #0x6
+   105f8:	aa1a03e1 	mov	x1, x26
+   105fc:	aa1c03e2 	mov	x2, x28
+   10600:	2a0803e3 	mov	w3, w8
+   10604:	97ffef73 	bl	c3d0 <__android_log_print@plt>
+   10608:	17ffffc5 	b	1051c <AccelerationSensor::readEvents(sensors_event_t*, int)@@Base+0x84>
+   1060c:	321f07e0 	orr	w0, wzr, #0x6
+   10610:	aa1a03e1 	mov	x1, x26
+   10614:	aa1b03e2 	mov	x2, x27
+   10618:	97ffef6e 	bl	c3d0 <__android_log_print@plt>
+   1061c:	17ffffc0 	b	1051c <AccelerationSensor::readEvents(sensors_event_t*, int)@@Base+0x84>
+   10620:	128002b3 	mov	w19, #0xffffffea            	// #-22
+   10624:	f9400fe8 	ldr	x8, [sp, #24]
+   10628:	cb080308 	sub	x8, x24, x8
+   1062c:	b5000148 	cbnz	x8, 10654 <AccelerationSensor::readEvents(sensors_event_t*, int)@@Base+0x1bc>
+   10630:	2a1303e0 	mov	w0, w19
+   10634:	d10143bf 	sub	sp, x29, #0x50
+   10638:	a9457bfd 	ldp	x29, x30, [sp, #80]
+   1063c:	a9444ff4 	ldp	x20, x19, [sp, #64]
+   10640:	a94357f6 	ldp	x22, x21, [sp, #48]
+   10644:	a9425ff8 	ldp	x24, x23, [sp, #32]
+   10648:	a94167fa 	ldp	x26, x25, [sp, #16]
+   1064c:	a8c66ffc 	ldp	x28, x27, [sp], #96
+   10650:	d65f03c0 	ret
+   10654:	97ffef63 	bl	c3e0 <__stack_chk_fail@plt>
+
+artifacts/device-userspace/gemian-2019/system/vendor/lib64/hw/sensors.mt6797.so:     file format elf64-littleaarch64
+
+
+Disassembly of section .text:
+
+0000000000010658 <AccelerationSensor::processEvent(int, int, int)@@Base>:
+   10658:	2a0203e8 	mov	w8, w2
+   1065c:	7100083f 	cmp	w1, #0x2
+   10660:	54000260 	b.eq	106ac <AccelerationSensor::processEvent(int, int, int)@@Base+0x54>  // b.none
+   10664:	71000c3f 	cmp	w1, #0x3
+   10668:	54000841 	b.ne	10770 <AccelerationSensor::processEvent(int, int, int)@@Base+0x118>  // b.any
+   1066c:	2a0803e9 	mov	w9, w8
+   10670:	7100211f 	cmp	w8, #0x8
+   10674:	54000668 	b.hi	10740 <AccelerationSensor::processEvent(int, int, int)@@Base+0xe8>  // b.pmore
+   10678:	f00000aa 	adrp	x10, 27000 <GestureSensor::SelectGestureEvent(int)@@Base+0x38e8>
+   1067c:	9129814a 	add	x10, x10, #0xa60
+   10680:	b8a97949 	ldrsw	x9, [x10, x9, lsl #2]
+   10684:	8b0a0129 	add	x9, x9, x10
+   10688:	d61f0120 	br	x9
+   1068c:	bd505c00 	ldr	s0, [x0, #4188]
+   10690:	1e220061 	scvtf	s1, w3
+   10694:	320003e8 	orr	w8, wzr, #0x1
+   10698:	5e21d800 	scvtf	s0, s0
+   1069c:	b9106808 	str	w8, [x0, #4200]
+   106a0:	1e201820 	fdiv	s0, s1, s0
+   106a4:	bd108800 	str	s0, [x0, #4232]
+   106a8:	d65f03c0 	ret
+   106ac:	34000628 	cbz	w8, 10770 <AccelerationSensor::processEvent(int, int, int)@@Base+0x118>
+   106b0:	71001d1f 	cmp	w8, #0x7
+   106b4:	540000e0 	b.eq	106d0 <AccelerationSensor::processEvent(int, int, int)@@Base+0x78>  // b.none
+   106b8:	7100191f 	cmp	w8, #0x6
+   106bc:	54000121 	b.ne	106e0 <AccelerationSensor::processEvent(int, int, int)@@Base+0x88>  // b.any
+   106c0:	321f07e8 	orr	w8, wzr, #0x6
+   106c4:	b9108403 	str	w3, [x0, #4228]
+   106c8:	b9106808 	str	w8, [x0, #4200]
+   106cc:	d65f03c0 	ret
+   106d0:	32000be8 	orr	w8, wzr, #0x7
+   106d4:	b9108003 	str	w3, [x0, #4224]
+   106d8:	b9106808 	str	w8, [x0, #4200]
+   106dc:	d65f03c0 	ret
+   106e0:	f0000081 	adrp	x1, 23000 <GestureSensor::HandleToIndex(int)@@Base+0x40>
+   106e4:	900000a2 	adrp	x2, 24000 <GestureSensor::SelectGestureEvent(int)@@Base+0x8e8>
+   106e8:	913fa021 	add	x1, x1, #0xfe8
+   106ec:	910a1442 	add	x2, x2, #0x285
+   106f0:	321f07e0 	orr	w0, wzr, #0x6
+   106f4:	321f03e3 	orr	w3, wzr, #0x2
+   106f8:	2a0803e4 	mov	w4, w8
+   106fc:	17ffef35 	b	c3d0 <__android_log_print@plt>
+   10700:	bd505c00 	ldr	s0, [x0, #4188]
+   10704:	1e220061 	scvtf	s1, w3
+   10708:	321f03e8 	orr	w8, wzr, #0x2
+   1070c:	5e21d800 	scvtf	s0, s0
+   10710:	b9106808 	str	w8, [x0, #4200]
+   10714:	1e201820 	fdiv	s0, s1, s0
+   10718:	bd108c00 	str	s0, [x0, #4236]
+   1071c:	d65f03c0 	ret
+   10720:	bd505c00 	ldr	s0, [x0, #4188]
+   10724:	1e220061 	scvtf	s1, w3
+   10728:	320007e8 	orr	w8, wzr, #0x3
+   1072c:	5e21d800 	scvtf	s0, s0
+   10730:	b9106808 	str	w8, [x0, #4200]
+   10734:	1e201820 	fdiv	s0, s1, s0
+   10738:	bd109000 	str	s0, [x0, #4240]
+   1073c:	d65f03c0 	ret
+   10740:	f0000081 	adrp	x1, 23000 <GestureSensor::HandleToIndex(int)@@Base+0x40>
+   10744:	900000a2 	adrp	x2, 24000 <GestureSensor::SelectGestureEvent(int)@@Base+0x8e8>
+   10748:	913fa021 	add	x1, x1, #0xfe8
+   1074c:	910a1442 	add	x2, x2, #0x285
+   10750:	321f07e0 	orr	w0, wzr, #0x6
+   10754:	320007e3 	orr	w3, wzr, #0x3
+   10758:	2a0803e4 	mov	w4, w8
+   1075c:	17ffef1d 	b	c3d0 <__android_log_print@plt>
+   10760:	52821288 	mov	w8, #0x1094                	// #4244
+   10764:	321e03e9 	orr	w9, wzr, #0x4
+   10768:	38286803 	strb	w3, [x0, x8]
+   1076c:	b9106809 	str	w9, [x0, #4200]
+   10770:	d65f03c0 	ret
+
+artifacts/device-userspace/gemian-2019/system/vendor/lib64/hw/sensors.mt6797.so:     file format elf64-littleaarch64
+
+
+Disassembly of section .text:
+
+0000000000011fb8 <GyroscopeSensor::readEvents(sensors_event_t*, int)@@Base>:
+   11fb8:	a9ba6ffc 	stp	x28, x27, [sp, #-96]!
+   11fbc:	a90167fa 	stp	x26, x25, [sp, #16]
+   11fc0:	a9025ff8 	stp	x24, x23, [sp, #32]
+   11fc4:	a90357f6 	stp	x22, x21, [sp, #48]
+   11fc8:	a9044ff4 	stp	x20, x19, [sp, #64]
+   11fcc:	a9057bfd 	stp	x29, x30, [sp, #80]
+   11fd0:	910143fd 	add	x29, sp, #0x50
+   11fd4:	d10083ff 	sub	sp, sp, #0x20
+   11fd8:	b00000fc 	adrp	x28, 2e000 <vtable for UncalimagSensor@@Base+0x18>
+   11fdc:	2a0203f4 	mov	w20, w2
+   11fe0:	aa0103f7 	mov	x23, x1
+   11fe4:	f941cb9c 	ldr	x28, [x28, #912]
+   11fe8:	aa0003f5 	mov	x21, x0
+   11fec:	7100069f 	cmp	w20, #0x1
+   11ff0:	f940039c 	ldr	x28, [x28]
+   11ff4:	f9000ffc 	str	x28, [sp, #24]
+   11ff8:	540008eb 	b.lt	12114 <GyroscopeSensor::readEvents(sensors_event_t*, int)@@Base+0x15c>  // b.tstop
+   11ffc:	b95066a1 	ldr	w1, [x21, #4196]
+   12000:	9100a2b6 	add	x22, x21, #0x28
+   12004:	aa1603e0 	mov	x0, x22
+   12008:	97ffe97e 	bl	c600 <InputEventCircularReader::fill(int)@plt>
+   1200c:	aa0003f3 	mov	x19, x0
+   12010:	b7f80853 	tbnz	x19, #63, 12118 <GyroscopeSensor::readEvents(sensors_event_t*, int)@@Base+0x160>
+   12014:	52820d08 	mov	w8, #0x1068                	// #4200
+   12018:	d000009a 	adrp	x26, 24000 <GestureSensor::SelectGestureEvent(int)@@Base+0x8e8>
+   1201c:	d000009b 	adrp	x27, 24000 <GestureSensor::SelectGestureEvent(int)@@Base+0x8e8>
+   12020:	2a1f03f3 	mov	w19, wzr
+   12024:	8b0802b8 	add	x24, x21, x8
+   12028:	52800d19 	mov	w25, #0x68                  	// #104
+   1202c:	9117db5a 	add	x26, x26, #0x5f6
+   12030:	911f437b 	add	x27, x27, #0x7d0
+   12034:	14000003 	b	12040 <GyroscopeSensor::readEvents(sensors_event_t*, int)@@Base+0x88>
+   12038:	aa1603e0 	mov	x0, x22
+   1203c:	97ffe97d 	bl	c630 <InputEventCircularReader::next()@plt>
+   12040:	910043e1 	add	x1, sp, #0x10
+   12044:	aa1603e0 	mov	x0, x22
+   12048:	97ffe972 	bl	c610 <InputEventCircularReader::readEvent(input_event const**)@plt>
+   1204c:	b4000660 	cbz	x0, 12118 <GyroscopeSensor::readEvents(sensors_event_t*, int)@@Base+0x160>
+   12050:	f9400be8 	ldr	x8, [sp, #16]
+   12054:	f9400908 	ldr	x8, [x8, #16]
+   12058:	32000109 	orr	w9, w8, #0x1
+   1205c:	12003d29 	and	w9, w9, #0xffff
+   12060:	71000d3f 	cmp	w9, #0x3
+   12064:	540000e1 	b.ne	12080 <GyroscopeSensor::readEvents(sensors_event_t*, int)@@Base+0xc8>  // b.any
+   12068:	12003d01 	and	w1, w8, #0xffff
+   1206c:	aa1503e0 	mov	x0, x21
+   12070:	d360fd03 	lsr	x3, x8, #32
+   12074:	d3507d02 	ubfx	x2, x8, #16, #16
+   12078:	97ffe9ea 	bl	c820 <GyroscopeSensor::processEvent(int, int, int)@plt>
+   1207c:	17ffffef 	b	12038 <GyroscopeSensor::readEvents(sensors_event_t*, int)@@Base+0x80>
+   12080:	12003d08 	and	w8, w8, #0xffff
+   12084:	35fffda8 	cbnz	w8, 12038 <GyroscopeSensor::readEvents(sensors_event_t*, int)@@Base+0x80>
+   12088:	97ffe91e 	bl	c500 <android::elapsedRealtimeNano()@plt>
+   1208c:	b94022a8 	ldr	w8, [x21, #32]
+   12090:	34fffd48 	cbz	w8, 12038 <GyroscopeSensor::readEvents(sensors_event_t*, int)@@Base+0x80>
+   12094:	f9402aa8 	ldr	x8, [x21, #80]
+   12098:	eb08001f 	cmp	x0, x8
+   1209c:	54fffceb 	b.lt	12038 <GyroscopeSensor::readEvents(sensors_event_t*, int)@@Base+0x80>  // b.tstop
+   120a0:	b95062a3 	ldr	w3, [x21, #4192]
+   120a4:	71001c7f 	cmp	w3, #0x7
+   120a8:	540002c1 	b.ne	12100 <GyroscopeSensor::readEvents(sensors_event_t*, int)@@Base+0x148>  // b.any
+   120ac:	f9483ea9 	ldr	x9, [x21, #4216]
+   120b0:	b91062bf 	str	wzr, [x21, #4192]
+   120b4:	b5000069 	cbnz	x9, 120c0 <GyroscopeSensor::readEvents(sensors_event_t*, int)@@Base+0x108>
+   120b8:	aa0003e9 	mov	x9, x0
+   120bc:	f9083ea0 	str	x0, [x21, #4216]
+   120c0:	eb08013f 	cmp	x9, x8
+   120c4:	54fffbad 	b.le	12038 <GyroscopeSensor::readEvents(sensors_event_t*, int)@@Base+0x80>
+   120c8:	9101a2e8 	add	x8, x23, #0x68
+   120cc:	aa1703e0 	mov	x0, x23
+   120d0:	aa1803e1 	mov	x1, x24
+   120d4:	aa1903e2 	mov	x2, x25
+   120d8:	f90007e8 	str	x8, [sp, #8]
+   120dc:	97ffe901 	bl	c4e0 <memcpy@plt>
+   120e0:	aa1603e0 	mov	x0, x22
+   120e4:	f9083ebf 	str	xzr, [x21, #4216]
+   120e8:	11000673 	add	w19, w19, #0x1
+   120ec:	51000694 	sub	w20, w20, #0x1
+   120f0:	97ffe950 	bl	c630 <InputEventCircularReader::next()@plt>
+   120f4:	f94007f7 	ldr	x23, [sp, #8]
+   120f8:	35fffa54 	cbnz	w20, 12040 <GyroscopeSensor::readEvents(sensors_event_t*, int)@@Base+0x88>
+   120fc:	14000007 	b	12118 <GyroscopeSensor::readEvents(sensors_event_t*, int)@@Base+0x160>
+   12100:	321f07e0 	orr	w0, wzr, #0x6
+   12104:	aa1a03e1 	mov	x1, x26
+   12108:	aa1b03e2 	mov	x2, x27
+   1210c:	97ffe8b1 	bl	c3d0 <__android_log_print@plt>
+   12110:	17ffffca 	b	12038 <GyroscopeSensor::readEvents(sensors_event_t*, int)@@Base+0x80>
+   12114:	128002b3 	mov	w19, #0xffffffea            	// #-22
+   12118:	f9400fe8 	ldr	x8, [sp, #24]
+   1211c:	cb080388 	sub	x8, x28, x8
+   12120:	b5000148 	cbnz	x8, 12148 <GyroscopeSensor::readEvents(sensors_event_t*, int)@@Base+0x190>
+   12124:	2a1303e0 	mov	w0, w19
+   12128:	d10143bf 	sub	sp, x29, #0x50
+   1212c:	a9457bfd 	ldp	x29, x30, [sp, #80]
+   12130:	a9444ff4 	ldp	x20, x19, [sp, #64]
+   12134:	a94357f6 	ldp	x22, x21, [sp, #48]
+   12138:	a9425ff8 	ldp	x24, x23, [sp, #32]
+   1213c:	a94167fa 	ldp	x26, x25, [sp, #16]
+   12140:	a8c66ffc 	ldp	x28, x27, [sp], #96
+   12144:	d65f03c0 	ret
+   12148:	97ffe8a6 	bl	c3e0 <__stack_chk_fail@plt>
+
+artifacts/device-userspace/gemian-2019/system/vendor/lib64/hw/sensors.mt6797.so:     file format elf64-littleaarch64
+
+
+Disassembly of section .text:
+
+000000000001214c <GyroscopeSensor::processEvent(int, int, int)@@Base>:
+   1214c:	2a0203e8 	mov	w8, w2
+   12150:	7100083f 	cmp	w1, #0x2
+   12154:	54000260 	b.eq	121a0 <GyroscopeSensor::processEvent(int, int, int)@@Base+0x54>  // b.none
+   12158:	71000c3f 	cmp	w1, #0x3
+   1215c:	54000841 	b.ne	12264 <GyroscopeSensor::processEvent(int, int, int)@@Base+0x118>  // b.any
+   12160:	2a0803e9 	mov	w9, w8
+   12164:	7100211f 	cmp	w8, #0x8
+   12168:	54000668 	b.hi	12234 <GyroscopeSensor::processEvent(int, int, int)@@Base+0xe8>  // b.pmore
+   1216c:	b00000aa 	adrp	x10, 27000 <GestureSensor::SelectGestureEvent(int)@@Base+0x38e8>
+   12170:	912e414a 	add	x10, x10, #0xb90
+   12174:	b8a97949 	ldrsw	x9, [x10, x9, lsl #2]
+   12178:	8b0a0129 	add	x9, x9, x10
+   1217c:	d61f0120 	br	x9
+   12180:	bd505c00 	ldr	s0, [x0, #4188]
+   12184:	1e220061 	scvtf	s1, w3
+   12188:	320003e8 	orr	w8, wzr, #0x1
+   1218c:	5e21d800 	scvtf	s0, s0
+   12190:	b9106008 	str	w8, [x0, #4192]
+   12194:	1e201820 	fdiv	s0, s1, s0
+   12198:	bd108000 	str	s0, [x0, #4224]
+   1219c:	d65f03c0 	ret
+   121a0:	34000628 	cbz	w8, 12264 <GyroscopeSensor::processEvent(int, int, int)@@Base+0x118>
+   121a4:	71001d1f 	cmp	w8, #0x7
+   121a8:	540000e0 	b.eq	121c4 <GyroscopeSensor::processEvent(int, int, int)@@Base+0x78>  // b.none
+   121ac:	7100191f 	cmp	w8, #0x6
+   121b0:	54000121 	b.ne	121d4 <GyroscopeSensor::processEvent(int, int, int)@@Base+0x88>  // b.any
+   121b4:	321f07e8 	orr	w8, wzr, #0x6
+   121b8:	b9107c03 	str	w3, [x0, #4220]
+   121bc:	b9106008 	str	w8, [x0, #4192]
+   121c0:	d65f03c0 	ret
+   121c4:	32000be8 	orr	w8, wzr, #0x7
+   121c8:	b9107803 	str	w3, [x0, #4216]
+   121cc:	b9106008 	str	w8, [x0, #4192]
+   121d0:	d65f03c0 	ret
+   121d4:	d0000081 	adrp	x1, 24000 <GestureSensor::SelectGestureEvent(int)@@Base+0x8e8>
+   121d8:	d0000082 	adrp	x2, 24000 <GestureSensor::SelectGestureEvent(int)@@Base+0x8e8>
+   121dc:	9117d821 	add	x1, x1, #0x5f6
+   121e0:	91208442 	add	x2, x2, #0x821
+   121e4:	321f07e0 	orr	w0, wzr, #0x6
+   121e8:	321f03e3 	orr	w3, wzr, #0x2
+   121ec:	2a0803e4 	mov	w4, w8
+   121f0:	17ffe878 	b	c3d0 <__android_log_print@plt>
+   121f4:	bd505c00 	ldr	s0, [x0, #4188]
+   121f8:	1e220061 	scvtf	s1, w3
+   121fc:	321f03e8 	orr	w8, wzr, #0x2
+   12200:	5e21d800 	scvtf	s0, s0
+   12204:	b9106008 	str	w8, [x0, #4192]
+   12208:	1e201820 	fdiv	s0, s1, s0
+   1220c:	bd108400 	str	s0, [x0, #4228]
+   12210:	d65f03c0 	ret
+   12214:	bd505c00 	ldr	s0, [x0, #4188]
+   12218:	1e220061 	scvtf	s1, w3
+   1221c:	320007e8 	orr	w8, wzr, #0x3
+   12220:	5e21d800 	scvtf	s0, s0
+   12224:	b9106008 	str	w8, [x0, #4192]
+   12228:	1e201820 	fdiv	s0, s1, s0
+   1222c:	bd108800 	str	s0, [x0, #4232]
+   12230:	d65f03c0 	ret
+   12234:	d0000081 	adrp	x1, 24000 <GestureSensor::SelectGestureEvent(int)@@Base+0x8e8>
+   12238:	d0000082 	adrp	x2, 24000 <GestureSensor::SelectGestureEvent(int)@@Base+0x8e8>
+   1223c:	9117d821 	add	x1, x1, #0x5f6
+   12240:	91208442 	add	x2, x2, #0x821
+   12244:	321f07e0 	orr	w0, wzr, #0x6
+   12248:	320007e3 	orr	w3, wzr, #0x3
+   1224c:	2a0803e4 	mov	w4, w8
+   12250:	17ffe860 	b	c3d0 <__android_log_print@plt>
+   12254:	52821188 	mov	w8, #0x108c                	// #4236
+   12258:	321e03e9 	orr	w9, wzr, #0x4
+   1225c:	38286803 	strb	w3, [x0, x8]
+   12260:	b9106009 	str	w9, [x0, #4192]
+   12264:	d65f03c0 	ret

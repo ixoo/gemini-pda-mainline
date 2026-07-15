@@ -1,0 +1,41 @@
+validation=gemini-live-usb-typec-read-only-capture
+generated_utc=2026-07-14T11:52:00Z
+device_kernel=3.18.41+
+device_arch=aarch64
+raw_capture=artifacts/device-inventory/20260714-live/usb-typec.txt
+raw_capture_sha256=d50e255115fbe44600851bc422c3b864b4ac5c49aa90b79fca1a49dd70db1ea1
+raw_capture_mode=0600
+collector=experiments/2026-07-12-usb-typec-recovery/scripts/collect-live-usb-typec.sh
+collector_behavior=read_only
+hardware_write=none
+
+[controller_bindings]
+usb1=mediatek,mt6797-usb11;driver=musb11_dts;resource=0x11200000+0x1000;irq=GICv3-105;clocks=infra_icusb,sssub_ref_clk
+usb1_sif=mediatek,usb1p_sif;resource=0x11210000+0x1000
+usb3_musb=mediatek,usb3;driver=musb-mtu3d;resource_windows=0x11270000/0x11280000/0x11290000 each 0x10000;irq=GICv3-159
+usb3_xhci=mediatek,usb3_xhci;driver=unbound;irq=SPI126 (no /proc/interrupts line observed)
+usb3_iddig=mediatek,usb_iddig_bi_eint;irq=EINT186;debounce_gpio=181
+usb3_phy=mediatek,usb3_phy;driver=mt_dts_mu3phy;clocks=ssusb_bus_clk,ssusb_sys_clk,ssusb_ref_clk,ssusb_top_sys_sel_clk,ssusb_univpll3_d2_clk
+
+[typec_bindings]
+i2c0_0x25=fusb301a;driver=FUSB301_1;compatible=mediatek,fusb301a
+i2c1_0x25=fusb301;driver=FUSB301_0;compatible=mediatek,fusb301
+fusb301_interrupt=mt-eint line 3 (vendor name fusb300-eint)
+fusb301a_interrupt=GPIO64/EINT-style;debounce tuple captured in raw DT
+typec_class_devices=none
+usb_role_class_devices=none
+phy_class_devices=none
+
+[idle_usb_state]
+root_hub=usb1;product=MUSBFSH HDRC host driver;speed=480;attached_accessory=none_observed
+usb3_xhci_runtime=unbound_in_idle_capture
+focused_dmesg=none
+
+[interpretation]
+The fresh capture reproduces the prior vendor topology: USB1 owns the only
+observed idle root hub, USB3 MUSB is bound, USB3 xHCI is unbound, both FUSB301
+I2C clients are bound, and the vendor image exposes no Type-C/role/PHY class
+devices. It does not identify which physical connector maps to each FUSB301,
+which GPIO owns VBUS/redriver control, or whether xHCI activates on a cable.
+No I2C register read, role transition, PHY probe, accessory insertion, or
+controller write was attempted.

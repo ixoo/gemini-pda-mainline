@@ -60,6 +60,12 @@ Exact regular-file HAL hashes are in
 [`results/hal-manifest.sha256`](results/hal-manifest.sha256). Vulkan symlinks are
 documented separately because their contents are the Mali library targets.
 
+The owner-authorized vendor-only extraction was rerun on 2026-07-14 after SSH
+reconnect. Its 621-entry private corpus, manifest verification, and bounded
+transfer behavior are recorded in
+[`results/vendor-only-extraction-20260714.txt`](results/vendor-only-extraction-20260714.txt).
+The corpus remains below the Git-ignored `artifacts/` tree.
+
 ## Conclusion
 
 `confirmed` that Gemian depends on a substantial Android vendor compatibility

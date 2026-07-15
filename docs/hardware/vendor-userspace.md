@@ -75,6 +75,16 @@ proprietary camera stack: `libcamalgo.so` is about 18 MB and
 sensor, tuning, and board policy that cannot be inferred merely from exported
 HAL symbols.
 
+The later read-only camera audit correlates the active runtime string
+`sp5509mipirawsls` with vendor registration symbols in `libcameracustom.so`;
+`OV5675` and `S5K5E2YA` strings are compiled-in alternatives, not proof of
+populated sensors. The private HAL is stripped, while the pinned vendor kernel
+tree supplies the SP5509 register/mode tables and a separate private
+CAM/SENINF/ISP ABI. Mainline work must translate those source-derived
+contracts and replace the private camera/ISP ABI with standard V4L2/media-
+controller interfaces. See the
+[camera recovery experiment](../../experiments/2026-07-13-camera-recovery/README.md).
+
 ## Graphics and display
 
 The Android graphics path consists of:
@@ -106,6 +116,21 @@ Audio depends on `libaudiocustparam.so` and `libcustom_nvram.so`; camera include
 `libcam.hal3a.v3.nvram.so`. Those names demonstrate a calibration/configuration
 boundary. They are not permission to extract or publish the associated NVRAM.
 
+The extracted 64-bit `power.mt6797.so` was also disassembled without
+execution. It imports only Android logging/runtime finalizers and its
+`power_init`, `power_set_interactive`, and sustained/VR hint callbacks do not
+open or write kernel interfaces. The Android power HAL is therefore a thin
+callback shim, not the vendor cpufreq/thermal implementation; the latter must
+be recovered from kernel drivers, firmware handoff, and runtime evidence. See
+the [power-HAL ELF audit](../../experiments/2026-07-12-cpufreq-thermal-suspend-recovery/results/power-hal-elf-audit-20260714.txt).
+
+The paired thermal HAL only reads the vendor `/proc/mtktz/mtktscpu`,
+`mtktsbattery`, and `mtktsAP` files (plus CPU status), while the lights HAL
+writes ordinary `/sys/class/leds/{red,green,blue,...}` brightness/trigger/delay
+attributes. These are compatibility consumers, not new kernel drivers. The
+exact paths and mainline translation boundary are recorded in the
+[thermal/lights ELF audit](../../experiments/2026-07-12-cpufreq-thermal-suspend-recovery/results/android-thermal-lights-hal-audit-20260714.txt).
+
 ## Connectivity and telephony
 
 The installed vendor executables include:
@@ -122,6 +147,16 @@ The installed vendor executables include:
 Related libraries include `libccci_util`, `mtk-rilproxy`, `librilproxy`,
 `libmal_rilproxy`, `libviagpsrpc`, and the `libnvram*` family in one or both
 ABIs.
+
+The connectivity-specific ELF paths, hashes, and static string findings are
+preserved in the [connectivity/WMT recovery experiment](../../experiments/2026-07-12-connectivity-wmt-recovery/README.md),
+its [userspace summary](../../experiments/2026-07-12-connectivity-wmt-recovery/results/userspace-summary.txt),
+and the [static binary audit](../../experiments/2026-07-12-connectivity-wmt-recovery/results/userspace-binary-audit.txt).
+That audit confirms that `wmt_launcher` selects UART/BTIF/SDIO and uses
+`/dev/stpwmt` ioctls, `mtk_agpsd` is an ARM32 SUPL/TLS daemon with local
+`agpsd2`/`agpsd3` sockets, and `libwifitest.so` exposes write-capable
+factory TX/RX, MCR/eFuse, and power controls. None of these private Android
+interfaces is a mainline driver ABI.
 
 Native Gemian uses `ofono`, `telepathy-ofono`, `libgrilio`, and related UI
 packages for telephony. Wi-Fi management uses `connman` plus
@@ -184,7 +219,10 @@ state, expose identifiers, transmit radio signals, or stress hardware.
 
 ## Private extraction
 
-Run from the repository root using SSH-agent authentication:
+Run from the repository root. When the Git-ignored
+`artifacts/credentials/gemini_ed25519` exists, the extractor uses it directly
+with agent access disabled; otherwise it falls back to ordinary SSH
+configuration and agent authentication:
 
 ```sh
 ./scripts/extract-device-userspace --target gemini@DEVICE

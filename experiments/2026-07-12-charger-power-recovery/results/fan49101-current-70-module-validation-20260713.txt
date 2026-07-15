@@ -1,0 +1,31 @@
+validation=fan49101-current-70-module-and-binding-validation
+generated_local=2026-07-13
+source_revision=7.1.3
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patch_series_count=70
+patchset_sha256=98bcfeafed40d08553d9fa434ecfe87175a12b0346683ce082f5f0b93013761e
+patch=0055-regulator-add-FAN49101-buck-boost-driver-and-Gemini-node.patch
+patch_hunk_declared_new_file_lines=118
+fan49101_object_compile=passed
+fan49101_object_sha256=deb8f6f8ec6427617390f3d613fd7c50fd3f312cccf03f95788b41d3452bd06a
+mt6351_object_compile=passed
+mt6397_core_object_compile=passed
+mt6397_irq_object_compile=passed
+fan49101_module_license=present_in_applied_source
+mt6351_binding_dt_doc_validate=passed
+fan49101_binding_dt_doc_validate=passed
+binding_yamllint=passed_relaxed_profile
+artifact=linux-7.1.3-gemini-98bcfeafed40
+image_sha256=9681c44bbcc026e5d8c7923a2c23568ac8433d6b7abec40f324c1e2e4dce216
+gemini_dtb_sha256=79f3be3015c95e0efa04af1aefaf51af6ffed2a94d0d14b82732b342100dc6db
+config_sha256=7a0f3243391db2ee8b56f031f88569ff604618b7030c78b4466b175a226c8f7e
+full_image_and_dtb_build=passed
+packaged_artifact_checksum_validation=passed
+runtime_probe=not_attempted
+hardware_write=none
+
+The previous 0055 patch hunk declared 117 new-file lines while carrying 118;
+the final MODULE_LICENSE line was therefore omitted by git apply. The hunk
+count is now corrected, and the focused source/object checks above were run
+against the refreshed prepared Linux tree. This result does not promote the
+disabled Gemini node to runtime support.

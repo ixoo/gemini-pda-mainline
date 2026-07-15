@@ -1,0 +1,1607 @@
+From a5e3c6e31e88cb467740a22e54fc1c37cc382478 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 11 Jul 2026 23:17:44 -0400
+Subject: [PATCH 5/6] pinctrl: mediatek: add MT6797 EINT support
+
+MT6797 has a six-bank, 192-line EINT controller and a non-linear map
+between its physical GPIOs and EINT lines. The first 16 lines have
+hardware debounce counters with MT6797-specific timing steps.
+
+Populate the recovered per-pin mapping and controller data. Represent
+the dedicated PMIC input and built-in EINT186 as virtual GPIOs, using
+the existing MediaTek mechanism for internal EINT inputs. Their null
+mux functions ensure that the core never accesses nonexistent GPIO
+mode or direction registers.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ drivers/pinctrl/mediatek/pinctrl-mt6797.c     |  14 +
+ drivers/pinctrl/mediatek/pinctrl-mtk-mt6797.h | 356 +++++++++---------
+ 2 files changed, 199 insertions(+), 171 deletions(-)
+
+diff --git a/drivers/pinctrl/mediatek/pinctrl-mt6797.c b/drivers/pinctrl/mediatek/pinctrl-mt6797.c
+index 53f240491..ff8f0e0b9 100644
+--- a/drivers/pinctrl/mediatek/pinctrl-mt6797.c
++++ b/drivers/pinctrl/mediatek/pinctrl-mt6797.c
+@@ -47,11 +47,24 @@ static const char * const mt6797_pinctrl_register_base_names[] = {
+ 	"gpio", "iocfgl", "iocfgb", "iocfgr", "iocfgt",
+ };
+ 
++static const unsigned int mt6797_debounce_time[] = {
++	128, 256, 512, 1024, 16384, 32768, 65536, 131072, 262144, 524288, 0
++};
++
++static const struct mtk_eint_hw mt6797_eint_hw = {
++	.port_mask = 7,
++	.ports = 6,
++	.ap_num = 192,
++	.db_cnt = 16,
++	.db_time = mt6797_debounce_time,
++};
++
+ static const struct mtk_pin_soc mt6797_data = {
+ 	.reg_cal = mt6797_reg_cals,
+ 	.pins = mtk_pins_mt6797,
+ 	.npins = ARRAY_SIZE(mtk_pins_mt6797),
+ 	.ngrps = ARRAY_SIZE(mtk_pins_mt6797),
++	.eint_hw = &mt6797_eint_hw,
+ 	.gpio_m = 0,
+ 	.base_names = mt6797_pinctrl_register_base_names,
+ 	.nbase_names = ARRAY_SIZE(mt6797_pinctrl_register_base_names),
+@@ -66,6 +79,7 @@ static struct platform_driver mt6797_pinctrl_driver = {
+ 	.driver = {
+ 		.name = "mt6797-pinctrl",
+ 		.of_match_table = mt6797_pinctrl_of_match,
++		.pm = pm_sleep_ptr(&mtk_paris_pinctrl_pm_ops),
+ 	},
+ 	.probe = mtk_paris_pinctrl_probe,
+ };
+diff --git a/drivers/pinctrl/mediatek/pinctrl-mtk-mt6797.h b/drivers/pinctrl/mediatek/pinctrl-mtk-mt6797.h
+index 86ab78e80..60c75f0ad 100644
+--- a/drivers/pinctrl/mediatek/pinctrl-mtk-mt6797.h
++++ b/drivers/pinctrl/mediatek/pinctrl-mtk-mt6797.h
+@@ -213,7 +213,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		28, "GPIO28",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 17),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO28"),
+ 		MTK_FUNCTION(1, "SPI5_CLK_A"),
+@@ -226,7 +226,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		29, "GPIO29",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 18),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO29"),
+ 		MTK_FUNCTION(1, "SPI5_MI_A"),
+@@ -247,7 +247,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		31, "GPIO31",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 19),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO31"),
+ 		MTK_FUNCTION(1, "CMMCLK1"),
+@@ -255,7 +255,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		32, "GPIO32",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 20),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO32"),
+ 		MTK_FUNCTION(1, "SPI5_CS_A"),
+@@ -268,7 +268,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		33, "GPIO33",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 21),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO33"),
+ 		MTK_FUNCTION(1, "SPI5_MO_A"),
+@@ -281,7 +281,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		34, "GPIO34",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 22),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO34"),
+ 		MTK_FUNCTION(1, "CMFLASH"),
+@@ -294,7 +294,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		35, "GPIO35",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 23),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO35"),
+ 		MTK_FUNCTION(1, "CMMCLK3"),
+@@ -307,7 +307,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		36, "GPIO36",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 24),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO36"),
+ 		MTK_FUNCTION(1, "CMMCLK2"),
+@@ -320,21 +320,21 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		37, "GPIO37",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 25),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO37"),
+ 		MTK_FUNCTION(1, "SCL0_0")
+ 	),
+ 	MTK_PIN(
+ 		38, "GPIO38",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 26),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO38"),
+ 		MTK_FUNCTION(1, "SDA0_0")
+ 	),
+ 	MTK_PIN(
+ 		39, "GPIO39",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 27),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO39"),
+ 		MTK_FUNCTION(1, "DPI_D0"),
+@@ -347,7 +347,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		40, "GPIO40",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 28),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO40"),
+ 		MTK_FUNCTION(1, "DPI_D1"),
+@@ -360,7 +360,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		41, "GPIO41",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 29),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO41"),
+ 		MTK_FUNCTION(1, "DPI_D2"),
+@@ -373,7 +373,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		42, "GPIO42",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 30),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO42"),
+ 		MTK_FUNCTION(1, "DPI_D3"),
+@@ -386,7 +386,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		43, "GPIO43",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 31),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO43"),
+ 		MTK_FUNCTION(1, "DPI_D4"),
+@@ -399,7 +399,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		44, "GPIO44",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 32),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO44"),
+ 		MTK_FUNCTION(1, "DPI_D5"),
+@@ -412,7 +412,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		45, "GPIO45",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 33),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO45"),
+ 		MTK_FUNCTION(1, "DPI_D6"),
+@@ -424,7 +424,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		46, "GPIO46",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 34),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO46"),
+ 		MTK_FUNCTION(1, "DPI_D7"),
+@@ -436,7 +436,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		47, "GPIO47",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 35),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO47"),
+ 		MTK_FUNCTION(1, "DPI_D8"),
+@@ -449,7 +449,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		48, "GPIO48",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 36),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO48"),
+ 		MTK_FUNCTION(1, "DPI_D9"),
+@@ -462,7 +462,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		49, "GPIO49",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 37),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO49"),
+ 		MTK_FUNCTION(1, "DPI_D10"),
+@@ -474,7 +474,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		50, "GPIO50",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 38),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO50"),
+ 		MTK_FUNCTION(1, "DPI_D11"),
+@@ -486,7 +486,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		51, "GPIO51",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 39),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO51"),
+ 		MTK_FUNCTION(1, "DPI_DE"),
+@@ -498,7 +498,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		52, "GPIO52",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 40),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO52"),
+ 		MTK_FUNCTION(1, "DPI_CK"),
+@@ -510,7 +510,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		53, "GPIO53",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 41),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO53"),
+ 		MTK_FUNCTION(1, "DPI_HSYNC"),
+@@ -523,7 +523,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		54, "GPIO54",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 42),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO54"),
+ 		MTK_FUNCTION(1, "DPI_VSYNC"),
+@@ -536,21 +536,21 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		55, "GPIO55",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 43),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO55"),
+ 		MTK_FUNCTION(1, "SCL1_0")
+ 	),
+ 	MTK_PIN(
+ 		56, "GPIO56",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 44),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO56"),
+ 		MTK_FUNCTION(1, "SDA1_0")
+ 	),
+ 	MTK_PIN(
+ 		57, "GPIO57",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 45),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO57"),
+ 		MTK_FUNCTION(1, "SPI0_CLK"),
+@@ -561,7 +561,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		58, "GPIO58",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 46),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO58"),
+ 		MTK_FUNCTION(1, "SPI0_MI"),
+@@ -572,7 +572,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		59, "GPIO59",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 47),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO59"),
+ 		MTK_FUNCTION(1, "SPI0_MO"),
+@@ -583,7 +583,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		60, "GPIO60",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 48),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO60"),
+ 		MTK_FUNCTION(1, "SPI0_CS"),
+@@ -594,7 +594,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		61, "GPIO61",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 0),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO61"),
+ 		MTK_FUNCTION(1, "EINT0"),
+@@ -606,7 +606,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		62, "GPIO62",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 1),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO62"),
+ 		MTK_FUNCTION(1, "EINT1"),
+@@ -618,7 +618,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		63, "GPIO63",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 2),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO63"),
+ 		MTK_FUNCTION(1, "EINT2"),
+@@ -630,7 +630,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		64, "GPIO64",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 3),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO64"),
+ 		MTK_FUNCTION(1, "EINT3"),
+@@ -642,7 +642,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		65, "GPIO65",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 4),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO65"),
+ 		MTK_FUNCTION(1, "EINT4"),
+@@ -654,7 +654,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		66, "GPIO66",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 5),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO66"),
+ 		MTK_FUNCTION(1, "EINT5"),
+@@ -666,7 +666,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		67, "GPIO67",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 6),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO67"),
+ 		MTK_FUNCTION(1, "EINT6"),
+@@ -678,7 +678,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		68, "GPIO68",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 7),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO68"),
+ 		MTK_FUNCTION(1, "EINT7"),
+@@ -690,7 +690,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		69, "GPIO69",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 49),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO69"),
+ 		MTK_FUNCTION(1, "I2S0_LRCK"),
+@@ -701,7 +701,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		70, "GPIO70",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 50),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO70"),
+ 		MTK_FUNCTION(1, "I2S0_BCK"),
+@@ -712,7 +712,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		71, "GPIO71",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 51),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO71"),
+ 		MTK_FUNCTION(1, "I2S0_MCK"),
+@@ -723,7 +723,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		72, "GPIO72",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 52),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO72"),
+ 		MTK_FUNCTION(1, "I2S0_DI"),
+@@ -734,7 +734,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		73, "GPIO73",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 53),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO73"),
+ 		MTK_FUNCTION(1, "I2S3_DO"),
+@@ -745,7 +745,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		74, "GPIO74",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 54),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO74"),
+ 		MTK_FUNCTION(1, "SCL3_0"),
+@@ -753,7 +753,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		75, "GPIO75",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 55),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO75"),
+ 		MTK_FUNCTION(1, "SDA3_0"),
+@@ -761,7 +761,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		76, "GPIO76",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 56),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO76"),
+ 		MTK_FUNCTION(1, "CONN_HRST_B"),
+@@ -769,7 +769,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		77, "GPIO77",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 57),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO77"),
+ 		MTK_FUNCTION(1, "CONN_TOP_CLK"),
+@@ -777,7 +777,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		78, "GPIO78",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 58),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO78"),
+ 		MTK_FUNCTION(1, "CONN_TOP_DATA"),
+@@ -785,7 +785,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		79, "GPIO79",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 59),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO79"),
+ 		MTK_FUNCTION(1, "CONN_WB_PTA"),
+@@ -793,7 +793,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		80, "GPIO80",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 60),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO80"),
+ 		MTK_FUNCTION(1, "CONN_WF_HB0"),
+@@ -801,7 +801,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		81, "GPIO81",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 61),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO81"),
+ 		MTK_FUNCTION(1, "CONN_WF_HB1"),
+@@ -809,7 +809,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		82, "GPIO82",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 62),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO82"),
+ 		MTK_FUNCTION(1, "CONN_WF_HB2"),
+@@ -817,7 +817,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		83, "GPIO83",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 63),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO83"),
+ 		MTK_FUNCTION(1, "CONN_BT_CLK"),
+@@ -825,14 +825,14 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		84, "GPIO84",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 64),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO84"),
+ 		MTK_FUNCTION(1, "CONN_BT_DATA")
+ 	),
+ 	MTK_PIN(
+ 		85, "GPIO85",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 8),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO85"),
+ 		MTK_FUNCTION(1, "EINT8"),
+@@ -844,7 +844,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		86, "GPIO86",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 9),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO86"),
+ 		MTK_FUNCTION(1, "EINT9"),
+@@ -856,7 +856,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		87, "GPIO87",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 10),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO87"),
+ 		MTK_FUNCTION(1, "EINT10"),
+@@ -868,7 +868,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		88, "GPIO88",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 11),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO88"),
+ 		MTK_FUNCTION(1, "EINT11"),
+@@ -880,7 +880,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		89, "GPIO89",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 12),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO89"),
+ 		MTK_FUNCTION(1, "EINT12"),
+@@ -892,7 +892,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		90, "GPIO90",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 13),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO90"),
+ 		MTK_FUNCTION(1, "EINT13"),
+@@ -904,7 +904,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		91, "GPIO91",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 14),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO91"),
+ 		MTK_FUNCTION(1, "EINT14"),
+@@ -916,7 +916,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		92, "GPIO92",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 15),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO92"),
+ 		MTK_FUNCTION(1, "EINT15"),
+@@ -927,7 +927,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		93, "GPIO93",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 16),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO93"),
+ 		MTK_FUNCTION(1, "EINT16"),
+@@ -939,7 +939,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		94, "GPIO94",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 65),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO94"),
+ 		MTK_FUNCTION(1, "USB_DRVVBUS"),
+@@ -948,7 +948,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		95, "GPIO95",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 66),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO95"),
+ 		MTK_FUNCTION(1, "SDA2_0"),
+@@ -956,7 +956,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		96, "GPIO96",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 67),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO96"),
+ 		MTK_FUNCTION(1, "SCL2_0"),
+@@ -964,7 +964,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		97, "GPIO97",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 68),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO97"),
+ 		MTK_FUNCTION(1, "URXD0"),
+@@ -977,7 +977,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		98, "GPIO98",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 69),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO98"),
+ 		MTK_FUNCTION(1, "UTXD0"),
+@@ -1039,7 +1039,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		106, "GPIO106",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 73),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO106"),
+ 		MTK_FUNCTION(1, "KPROW0"),
+@@ -1050,7 +1050,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		107, "GPIO107",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 74),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO107"),
+ 		MTK_FUNCTION(1, "KPROW1"),
+@@ -1062,7 +1062,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		108, "GPIO108",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 75),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO108"),
+ 		MTK_FUNCTION(1, "KPROW2"),
+@@ -1074,14 +1074,14 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		109, "GPIO109",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 76),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO109"),
+ 		MTK_FUNCTION(1, "KPCOL0")
+ 	),
+ 	MTK_PIN(
+ 		110, "GPIO110",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 77),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO110"),
+ 		MTK_FUNCTION(1, "KPCOL1"),
+@@ -1093,7 +1093,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		111, "GPIO111",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 78),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO111"),
+ 		MTK_FUNCTION(1, "KPCOL2"),
+@@ -1105,7 +1105,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		112, "GPIO112",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 79),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO112"),
+ 		MTK_FUNCTION(1, "MD_INT1_C2K_UIM1_HOT_PLUG_IN"),
+@@ -1113,7 +1113,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		113, "GPIO113",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 80),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO113"),
+ 		MTK_FUNCTION(1, "MD_INT0_C2K_UIM0_HOT_PLUG_IN"),
+@@ -1205,7 +1205,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		126, "GPIO126",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 81),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO126"),
+ 		MTK_FUNCTION(1, "MD1_SIM1_SCLK"),
+@@ -1215,7 +1215,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		127, "GPIO127",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 82),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO127"),
+ 		MTK_FUNCTION(1, "MD1_SIM1_SRST"),
+@@ -1225,7 +1225,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		128, "GPIO128",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 83),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO128"),
+ 		MTK_FUNCTION(1, "MD1_SIM1_SIO"),
+@@ -1235,7 +1235,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		129, "GPIO129",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 84),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO129"),
+ 		MTK_FUNCTION(1, "MSDC1_CMD"),
+@@ -1246,7 +1246,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		130, "GPIO130",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 85),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO130"),
+ 		MTK_FUNCTION(1, "MSDC1_DAT0"),
+@@ -1257,7 +1257,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		131, "GPIO131",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 86),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO131"),
+ 		MTK_FUNCTION(1, "MSDC1_DAT1"),
+@@ -1268,7 +1268,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		132, "GPIO132",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 87),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO132"),
+ 		MTK_FUNCTION(1, "MSDC1_DAT2"),
+@@ -1276,7 +1276,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		133, "GPIO133",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 88),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO133"),
+ 		MTK_FUNCTION(1, "MSDC1_DAT3"),
+@@ -1287,7 +1287,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		134, "GPIO134",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 89),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO134"),
+ 		MTK_FUNCTION(1, "MSDC1_CLK"),
+@@ -1298,7 +1298,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		135, "GPIO135",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 90),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO135"),
+ 		MTK_FUNCTION(1, "TDM_LRCK"),
+@@ -1310,7 +1310,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		136, "GPIO136",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 91),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO136"),
+ 		MTK_FUNCTION(1, "TDM_BCK"),
+@@ -1322,7 +1322,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		137, "GPIO137",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 92),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO137"),
+ 		MTK_FUNCTION(1, "TDM_MCK"),
+@@ -1334,7 +1334,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		138, "GPIO138",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 93),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO138"),
+ 		MTK_FUNCTION(1, "TDM_DATA0"),
+@@ -1347,7 +1347,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		139, "GPIO139",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 94),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO139"),
+ 		MTK_FUNCTION(1, "TDM_DATA1"),
+@@ -1360,7 +1360,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		140, "GPIO140",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 95),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO140"),
+ 		MTK_FUNCTION(1, "TDM_DATA2"),
+@@ -1373,7 +1373,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		141, "GPIO141",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 96),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO141"),
+ 		MTK_FUNCTION(1, "TDM_DATA3"),
+@@ -1454,35 +1454,35 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		151, "GPIO151",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 97),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO151"),
+ 		MTK_FUNCTION(1, "SCL6_0")
+ 	),
+ 	MTK_PIN(
+ 		152, "GPIO152",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 98),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO152"),
+ 		MTK_FUNCTION(1, "SDA6_0")
+ 	),
+ 	MTK_PIN(
+ 		153, "GPIO153",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 99),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO153"),
+ 		MTK_FUNCTION(1, "SCL7_0")
+ 	),
+ 	MTK_PIN(
+ 		154, "GPIO154",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 100),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO154"),
+ 		MTK_FUNCTION(1, "SDA7_0")
+ 	),
+ 	MTK_PIN(
+ 		155, "GPIO155",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 101),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO155"),
+ 		MTK_FUNCTION(1, "MD1_SIM2_SCLK"),
+@@ -1492,7 +1492,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		156, "GPIO156",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 102),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO156"),
+ 		MTK_FUNCTION(1, "MD1_SIM2_SRST"),
+@@ -1502,7 +1502,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		157, "GPIO157",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 103),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO157"),
+ 		MTK_FUNCTION(1, "MD1_SIM2_SIO"),
+@@ -1662,7 +1662,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		179, "GPIO179",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 104),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO179"),
+ 		MTK_FUNCTION(1, "DSI_TE0"),
+@@ -1670,7 +1670,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		180, "GPIO180",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 105),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO180"),
+ 		MTK_FUNCTION(1, "LCM_RST"),
+@@ -1679,7 +1679,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		181, "GPIO181",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 106),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO181"),
+ 		MTK_FUNCTION(1, "IDDIG"),
+@@ -1695,7 +1695,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		183, "GPIO183",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 107),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO183"),
+ 		MTK_FUNCTION(1, "RFIC0_BSI_CK"),
+@@ -1704,7 +1704,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		184, "GPIO184",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 108),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO184"),
+ 		MTK_FUNCTION(1, "RFIC0_BSI_EN"),
+@@ -1713,7 +1713,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		185, "GPIO185",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 109),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO185"),
+ 		MTK_FUNCTION(1, "RFIC0_BSI_D0"),
+@@ -1722,7 +1722,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		186, "GPIO186",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 110),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO186"),
+ 		MTK_FUNCTION(1, "RFIC0_BSI_D1"),
+@@ -1731,7 +1731,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		187, "GPIO187",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 111),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO187"),
+ 		MTK_FUNCTION(1, "RFIC0_BSI_D2"),
+@@ -1740,7 +1740,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		188, "GPIO188",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 112),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO188"),
+ 		MTK_FUNCTION(1, "MIPI0_SCLK"),
+@@ -1748,35 +1748,35 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		189, "GPIO189",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 113),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO189"),
+ 		MTK_FUNCTION(1, "MIPI0_SDATA")
+ 	),
+ 	MTK_PIN(
+ 		190, "GPIO190",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 114),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO190"),
+ 		MTK_FUNCTION(1, "MIPI1_SCLK")
+ 	),
+ 	MTK_PIN(
+ 		191, "GPIO191",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 115),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO191"),
+ 		MTK_FUNCTION(1, "MIPI1_SDATA")
+ 	),
+ 	MTK_PIN(
+ 		192, "GPIO192",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 116),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO192"),
+ 		MTK_FUNCTION(1, "BPI_BUS4")
+ 	),
+ 	MTK_PIN(
+ 		193, "GPIO193",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 117),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO193"),
+ 		MTK_FUNCTION(1, "BPI_BUS5"),
+@@ -1784,7 +1784,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		194, "GPIO194",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 118),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO194"),
+ 		MTK_FUNCTION(1, "BPI_BUS6"),
+@@ -1792,7 +1792,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		195, "GPIO195",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 119),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO195"),
+ 		MTK_FUNCTION(1, "BPI_BUS7"),
+@@ -1800,7 +1800,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		196, "GPIO196",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 120),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO196"),
+ 		MTK_FUNCTION(1, "BPI_BUS8"),
+@@ -1808,7 +1808,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		197, "GPIO197",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 121),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO197"),
+ 		MTK_FUNCTION(1, "BPI_BUS9"),
+@@ -1816,7 +1816,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		198, "GPIO198",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 122),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO198"),
+ 		MTK_FUNCTION(1, "BPI_BUS10"),
+@@ -1824,7 +1824,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		199, "GPIO199",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 123),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO199"),
+ 		MTK_FUNCTION(1, "BPI_BUS11"),
+@@ -1832,7 +1832,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		200, "GPIO200",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 124),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO200"),
+ 		MTK_FUNCTION(1, "BPI_BUS12"),
+@@ -1840,7 +1840,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		201, "GPIO201",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 125),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO201"),
+ 		MTK_FUNCTION(1, "BPI_BUS13"),
+@@ -1848,7 +1848,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		202, "GPIO202",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 126),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO202"),
+ 		MTK_FUNCTION(1, "BPI_BUS14"),
+@@ -1856,7 +1856,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		203, "GPIO203",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 127),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO203"),
+ 		MTK_FUNCTION(1, "BPI_BUS15"),
+@@ -1864,7 +1864,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		204, "GPIO204",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 128),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO204"),
+ 		MTK_FUNCTION(1, "BPI_BUS16"),
+@@ -1873,7 +1873,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		205, "GPIO205",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 129),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO205"),
+ 		MTK_FUNCTION(1, "BPI_BUS17"),
+@@ -1882,7 +1882,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		206, "GPIO206",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 130),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO206"),
+ 		MTK_FUNCTION(1, "BPI_BUS18"),
+@@ -1891,7 +1891,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		207, "GPIO207",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 131),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO207"),
+ 		MTK_FUNCTION(1, "BPI_BUS19"),
+@@ -1900,7 +1900,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		208, "GPIO208",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 132),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO208"),
+ 		MTK_FUNCTION(1, "BPI_BUS20"),
+@@ -1909,7 +1909,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		209, "GPIO209",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 133),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO209"),
+ 		MTK_FUNCTION(1, "BPI_BUS21"),
+@@ -1918,7 +1918,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		210, "GPIO210",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 134),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO210"),
+ 		MTK_FUNCTION(1, "BPI_BUS22"),
+@@ -1927,7 +1927,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		211, "GPIO211",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 135),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO211"),
+ 		MTK_FUNCTION(1, "BPI_BUS23"),
+@@ -1936,7 +1936,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		212, "GPIO212",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 136),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO212"),
+ 		MTK_FUNCTION(1, "BPI_BUS0"),
+@@ -1944,7 +1944,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		213, "GPIO213",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 137),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO213"),
+ 		MTK_FUNCTION(1, "BPI_BUS1"),
+@@ -1952,7 +1952,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		214, "GPIO214",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 138),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO214"),
+ 		MTK_FUNCTION(1, "BPI_BUS2"),
+@@ -1960,7 +1960,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		215, "GPIO215",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 139),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO215"),
+ 		MTK_FUNCTION(1, "BPI_BUS3"),
+@@ -1968,7 +1968,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		216, "GPIO216",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 140),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO216"),
+ 		MTK_FUNCTION(1, "MIPI2_SCLK"),
+@@ -1976,7 +1976,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		217, "GPIO217",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 141),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO217"),
+ 		MTK_FUNCTION(1, "MIPI2_SDATA"),
+@@ -1984,7 +1984,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		218, "GPIO218",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 142),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO218"),
+ 		MTK_FUNCTION(1, "MIPI3_SCLK"),
+@@ -1992,7 +1992,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		219, "GPIO219",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 143),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO219"),
+ 		MTK_FUNCTION(1, "MIPI3_SDATA"),
+@@ -2084,7 +2084,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		232, "GPIO232",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 144),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO232"),
+ 		MTK_FUNCTION(1, "URXD1"),
+@@ -2097,7 +2097,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		233, "GPIO233",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 145),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO233"),
+ 		MTK_FUNCTION(1, "UTXD1"),
+@@ -2110,7 +2110,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		234, "GPIO234",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 146),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO234"),
+ 		MTK_FUNCTION(1, "SPI1_CLK_B"),
+@@ -2122,7 +2122,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		235, "GPIO235",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 147),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO235"),
+ 		MTK_FUNCTION(1, "SPI1_MI_B"),
+@@ -2134,7 +2134,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		236, "GPIO236",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 148),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO236"),
+ 		MTK_FUNCTION(1, "SPI1_MO_B"),
+@@ -2146,7 +2146,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		237, "GPIO237",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 149),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO237"),
+ 		MTK_FUNCTION(1, "SPI1_CS_B"),
+@@ -2158,35 +2158,35 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		238, "GPIO238",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 150),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO238"),
+ 		MTK_FUNCTION(1, "SDA4_0")
+ 	),
+ 	MTK_PIN(
+ 		239, "GPIO239",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 151),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO239"),
+ 		MTK_FUNCTION(1, "SCL4_0")
+ 	),
+ 	MTK_PIN(
+ 		240, "GPIO240",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 152),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO240"),
+ 		MTK_FUNCTION(1, "SDA5_0")
+ 	),
+ 	MTK_PIN(
+ 		241, "GPIO241",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 153),
+ 		DRV_GRP3,
+ 				MTK_FUNCTION(0, "GPIO241"),
+ 		MTK_FUNCTION(1, "SCL5_0")
+ 	),
+ 	MTK_PIN(
+ 		242, "GPIO242",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 154),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO242"),
+ 		MTK_FUNCTION(1, "SPI2_CLK_B"),
+@@ -2199,7 +2199,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		243, "GPIO243",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 155),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO243"),
+ 		MTK_FUNCTION(1, "SPI2_MI_B"),
+@@ -2212,7 +2212,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		244, "GPIO244",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 156),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO244"),
+ 		MTK_FUNCTION(1, "SPI2_MO_B"),
+@@ -2225,7 +2225,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		245, "GPIO245",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 157),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO245"),
+ 		MTK_FUNCTION(1, "SPI2_CS_B"),
+@@ -2238,7 +2238,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		246, "GPIO246",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 158),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO246"),
+ 		MTK_FUNCTION(1, "I2S1_LRCK"),
+@@ -2251,7 +2251,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		247, "GPIO247",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 159),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO247"),
+ 		MTK_FUNCTION(1, "I2S1_BCK"),
+@@ -2264,7 +2264,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		248, "GPIO248",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 160),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO248"),
+ 		MTK_FUNCTION(1, "I2S2_DI"),
+@@ -2276,7 +2276,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		249, "GPIO249",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 161),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO249"),
+ 		MTK_FUNCTION(1, "I2S1_DO"),
+@@ -2289,7 +2289,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		250, "GPIO250",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 162),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO250"),
+ 		MTK_FUNCTION(1, "SPI3_MI"),
+@@ -2300,7 +2300,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		251, "GPIO251",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 163),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO251"),
+ 		MTK_FUNCTION(1, "SPI3_MO"),
+@@ -2311,7 +2311,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		252, "GPIO252",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 164),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO252"),
+ 		MTK_FUNCTION(1, "SPI3_CLK"),
+@@ -2321,7 +2321,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		253, "GPIO253",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 165),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO253"),
+ 		MTK_FUNCTION(1, "SPI3_CS"),
+@@ -2331,7 +2331,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		254, "GPIO254",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 166),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO254"),
+ 		MTK_FUNCTION(1, "I2S1_MCK"),
+@@ -2343,7 +2343,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		255, "GPIO255",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 167),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO255"),
+ 		MTK_FUNCTION(1, "CLKM1"),
+@@ -2354,7 +2354,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		256, "GPIO256",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 168),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO256"),
+ 		MTK_FUNCTION(1, "CLKM2"),
+@@ -2365,7 +2365,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		257, "GPIO257",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 169),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO257"),
+ 		MTK_FUNCTION(1, "IO_JTAG_TMS"),
+@@ -2378,7 +2378,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		258, "GPIO258",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 170),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO258"),
+ 		MTK_FUNCTION(1, "IO_JTAG_TCK"),
+@@ -2391,7 +2391,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		259, "GPIO259",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 171),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO259"),
+ 		MTK_FUNCTION(1, "IO_JTAG_TDI"),
+@@ -2403,7 +2403,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		260, "GPIO260",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 172),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO260"),
+ 		MTK_FUNCTION(1, "IO_JTAG_TDO"),
+@@ -2415,7 +2415,7 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 	),
+ 	MTK_PIN(
+ 		261, "GPIO261",
+-		MTK_EINT_FUNCTION(NO_EINT_SUPPORT, NO_EINT_SUPPORT),
++		MTK_EINT_FUNCTION(0, 173),
+ 		DRV_GRP3,
+ 		MTK_FUNCTION(0, "GPIO261"),
+ 		MTK_FUNCTION(2, "LTE_JTAG_TRSTN"),
+@@ -2424,6 +2424,20 @@ static const struct mtk_pin_desc mtk_pins_mt6797[] = {
+ 		MTK_FUNCTION(6, "SCP_JTAG_TRSTN"),
+ 		MTK_FUNCTION(7, "C2K_DM_JTINTP")
+ 	),
++	/* Dedicated PMIC input, represented by downstream as pseudo-GPIO262. */
++	MTK_PIN(
++		262, "GPIO262",
++		MTK_EINT_FUNCTION(0, 176),
++		DRV_FIXED,
++		MTK_FUNCTION(0, NULL)
++	),
++	/* Built-in EINT selected by alternate mux modes on four physical pins. */
++	MTK_PIN(
++		263, "VEINT186",
++		MTK_EINT_FUNCTION(0, 186),
++		DRV_FIXED,
++		MTK_FUNCTION(0, NULL)
++	)
+ };
+ 
+ #endif /* __PINCTRL_MTK_MT6797_H */
+-- 
+2.43.0
+

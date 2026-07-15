@@ -1,0 +1,26 @@
+Gemini fixed reserved-memory range audit
+========================================
+
+Date: 2026-07-13
+Patch series: 71 patches
+Patchset SHA-256: 86145c09fc00fd3c65fb822f7834c5bb3dc08eb76f5117b90538141a429a1623
+Base board patch: patches/v7.1.3/0020-arm64-dts-mediatek-add-Planet-Gemini-PDA.patch
+
+The parser found the fixed pre-LK firmware ranges without overlap. The
+post-LK `mblock-*` addresses are intentionally absent from the input board DT;
+the retained LK allocates/appends them after its conflict check. The five
+vendor dynamic reservations remain represented by size/alignment/alloc-range
+nodes and are not assigned fixed addresses.
+
+Live fixed-range result: pre-LK ranges covered, post-LK static snapshots omitted,
+overlaps=0.
+Dynamic live regions remain unresolved: consys-reserve-memory,
+reserve-memory-scp_share, spm-reserve-memory, and the two dummy-read nodes.
+
+Commands:
+  python3 experiments/2026-07-13-memory-carveout-recovery/scripts/audit-memory-ranges.py
+  python3 -m py_compile experiments/2026-07-13-memory-carveout-recovery/scripts/audit-memory-ranges.py
+  experiments/2026-07-13-lk-fdt-fixup-recovery/scripts/audit-lk-fdt-fixup.sh
+
+Results: all source/DT audits passed; mainline boot remains unattempted.
+hardware_write=none

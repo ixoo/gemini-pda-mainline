@@ -1,0 +1,76 @@
+Live runtime evidence (sanitized)
+
+Device: Gemini PDA, model MT6797X
+Kernel: Linux 3.18.41+ (AArch64)
+Platform properties: ro.board.platform=mt6797; ro.mediatek.platform=MT6797
+
+I2C1 sensor children and vendor binding state:
+- 0x30 msensor_mmc3530 / i2c:msensor_mmc3530 — unbound
+- 0x48 alsps / i2c:alsps — bound to vendor stk3x1x
+- 0x5f humidity / i2c:humidity — unbound
+- 0x68 gsensor_bmi160 / i2c:gsensor_bmi160 — bound to vendor bmi160_acc
+- 0x69 gyro_bmi160 / i2c:gyro_bmi160 — bound to vendor bmi160_gyro
+- 0x6a gsensor / i2c:gsensor — unbound alternate
+- 0x6b gyro / i2c:gyro — unbound alternate
+- 0x77 barometer / i2c:barometer — unbound
+
+No IIO device directory was exposed under /sys/bus/iio/devices.
+The vendor kernel exposes # CONFIG_IIO is not set.
+
+Sensor-named input devices:
+- m_gyro_input
+- m_step_c_input
+
+Sensor-related vendor misc classes:
+- gsensor
+- gyroscope
+- hwmsensor
+- m_gyro_misc
+- m_step_c_misc
+- step_counter
+
+Live DT physical-node names:
+- barometer@77: compatible mediatek,barometer, status okay
+- gsensor_bmi160@68: compatible mediatek,gsensor_bmi160, status okay
+- humidity@5f: compatible mediatek,humidity, status okay
+- msensor_mmc3530@30: compatible mediatek,msensor_mmc3530, status okay
+- gyro_bmi160@69: compatible mediatek,gyro_bmi160, status okay
+- gsensor@6a and gyro@6b: alternate vendor nodes, status okay
+- alsps@48: compatible mediatek,alsps, status okay
+
+The live vendor configuration also includes logical physical-candidate nodes
+for bmi160, lsm6ds3, stk3x1x, mmc3530, bmp280, and hts221. These candidate
+nodes are not equivalent to a standard Linux DT binding.
+
+Legacy sensor ABI mapping from read-only sysfs metadata:
+- m_alsps_misc: ALS and PS both use input event 4
+- m_acc_misc: accelerometer uses input event 5
+- m_gyro_misc: gyroscope uses input event 6
+- input event 7 is m_step_c_input
+- hwmsensor uses input event 3
+
+Read-only vendor platform metadata captured after the initial topology pass:
+- `/sys/bus/platform/drivers/gsensor/chipinfo` reports `bmi160_acc`.
+- `/sys/bus/platform/drivers/gyroscope/chipinfo` reports `bmi160_gyro`.
+- The gyroscope status reports `i2c addr:0x69,ver:V1.0`; its preceding CUST
+  line is `CUST: 1 7 (-1 0)`.
+- The accelerometer status is `CUST: 1 7 (-1 0)` and exposes `acc_range=5`;
+  the gyroscope exposes `gyro_range=0`. These are driver configuration
+  metadata, not a direct chip-ID register read.
+- The collector deliberately excludes raw sensor, calibration, register,
+  and factory-value attributes.
+
+The captured vendor kernel exposes no m_mag_misc/m_mag_input path in this
+sample. The HAL binary still contains a MagneticSensor class, so this is
+negative runtime evidence rather than proof that the magnetometer package is
+unpopulated.
+
+Interrupt evidence:
+- I2C controller lines 115-128 are active in the sample.
+- ALS/proximity EINT11 is present with zero count.
+- The separate gyroscope pseudo-node exposes a raw vendor interrupt tuple and
+  GPIO/pinctrl states; no standard BMI160 interrupt mapping is inferred.
+
+Filtered dmesg produced no sensor-specific lines in this sample. This is a
+negative observation only and does not prove that the vendor drivers never
+probed.

@@ -1,0 +1,46 @@
+# Android thermal and lights HAL ELF audit — 2026-07-14
+
+## Provenance
+
+- Inputs: private extracted `system/vendor/lib64/hw/thermal.mt6797.so` and
+  `system/vendor/lib64/hw/lights.mt6797.so`.
+- SHA-256: thermal
+  `cf56b41a7e9cd5723e0834fe658f17a82b97eb9424b42ea6e9ea2821662403b5`;
+  lights
+  `a95fda097300eac1f3186bc361f244f5e4ebd6e7e4e798da71ae0e44b4ccac56`.
+- Analysis: Linux VM Radare2 5.5.0 import/string inspection; static only.
+- No vendor binary was executed and no device state was changed.
+
+## Thermal HAL observations
+
+- Imports are limited to libc file/parsing helpers (`fopen`, `getline`,
+  `fscanf`, `sscanf`, `fclose`, `free`, `strerror`, and related checks) plus
+  Android logging. No write, ioctl, or device-driver API is imported.
+- It names the vendor procfs readers `/proc/mtktz/mtktscpu`,
+  `/proc/mtktz/mtktsbattery`, and `/proc/mtktz/mtktsAP`, plus `/proc/stat` and
+  CPU-online information.
+- This is a read-only Android compatibility consumer of the vendor thermal
+  ABI; it is not a thermal-controller implementation or a source for Linux
+  trip values.
+
+## Lights HAL observations
+
+- The HAL imports `open` and checked writes and names standard LED-class paths:
+  `/sys/class/leds/red/brightness`, `/sys/class/leds/green/brightness`,
+  `/sys/class/leds/blue/brightness`, and their `trigger`, `delay_on`, and
+  `delay_off` attributes.
+- It also names `/sys/class/leds/jogball-backlight/brightness`,
+  `lcd-backlight/brightness`, `keyboard-backlight/brightness`, and
+  `button-backlight/brightness`. These are ABI strings, not proof that every
+  LED or backlight is populated on this unit.
+- The `set_led_state` and `write_int` strings show RGB pattern/timing and
+  integer brightness writes through the standard LED sysfs surface.
+
+## Mainline implication
+
+The Android thermal HAL should not be ported: expose validated MT6797 thermal
+and AUXADC data through Linux thermal/IIO providers, with conservative trips.
+The lights HAL confirms that board policy can sit above ordinary LED and
+backlight class devices; mainline should implement those providers and avoid a
+vendor `/proc` or Android HAL ABI. Runtime ownership and exact LED population
+still require live evidence.

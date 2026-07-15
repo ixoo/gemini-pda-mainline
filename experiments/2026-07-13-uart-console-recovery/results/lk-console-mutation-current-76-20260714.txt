@@ -1,0 +1,54 @@
+validation=lk-console-mutation
+generated_utc=2026-07-14T19:49:20Z
+patchset_entries=76_noncomment_series_entries
+audit_script=experiments/2026-07-13-uart-console-recovery/scripts/audit-lk-console-mutation.sh
+audit_script_sha256=16cfe34c0499410b459b51db2b7657bb3936eea915c40c1925c42f5a2810d0a6
+lk_source_revision=f4988d74bb70a0a15d7f362f412afba7e7fcda46
+lk_uart_source_sha256=28aa1f70f1ae6b03eefab246b3a15960d67300284d2598d31a2766aaa96fb02e
+lk_reg_base_source_sha256=4ae32d900b0a146555fbaaeecb45d5477330016fdf082a973a659d0dfdc68f16
+lk_boot_source_sha256=9380b89d367770acf29f1c5b7f4856cc87bc4b64afd17aa9fa1fd621c213ecda
+lk_source_anchor_uart_switch_guard=platform/mt6797/uart.c:92
+lk_source_anchor_uart_selection=platform/mt6797/uart.c:103
+lk_source_anchor_uart_change_first_token=platform/mt6797/uart.c:163
+lk_source_anchor_custom_port=platform/mt6797/uart.c:169
+lk_source_anchor_default_bootargs=platform/mt6797/include/platform/mt_reg_base.h:526
+lk_source_anchor_printk_disable_uart=app/mt_boot/mt_boot.c:1590
+lk_source_anchor_boot_header_append=app/mt_boot/mt_boot.c:2353
+lk_source_anchor_bootargs_write=app/mt_boot/mt_boot.c:1697
+package=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-db59a88057b4
+dtb_sha256=21529f78282cbf3a48f9260b8981f005f3643d54e729ab676384880c6ace1d4c
+system_map_sha256=9beb0d1cbd2a7e32a96c02f7103d776e330c70e7e6e68893521c075afeef5822
+lk_default_console=ttyMT3,921600n1
+lk_uart_selection=preloader_log_enable_and_log_port
+lk_console_mapping=UART1->ttyMT0;UART2->ttyMT1;UART3->ttyMT2;UART4->ttyMT3
+lk_selection_default=UART2_when_log_disabled_or_unknown
+lk_default_bootargs=console=tty0_console=ttyMT3,921600n1_root=/dev/ram_vmalloc=496M_slub_max_order=0_slub_debug=OFZPU_androidboot.hardware=mt6797_maxcpus=5
+lk_printk_disable_uart=appended_by_build_type_and_meta_log_policy
+lk_console_mutation=first_ttyMT_token_only
+lk_handoff_mutates_bootargs=yes
+lk_custom_port_before_boot_header_cmdline=yes
+lk_bootargs_mutation_order=static_default;runtime_appends;custom_port;boot_header_cmdline;final_atag_and_chosen_bootargs_write
+lk_bootargs_source=final_LK_cmdline
+mainline_serial0=/serial@11002000
+mainline_stdout_path=serial0:921600n8
+mainline_console=ttyS0
+live_identity=artifacts/device-inventory/20260714T-handoff-refresh/identity.txt
+live_identity_sha256=6db7b2233ae426d8e3ba56e9d949e1ba18bda065f733b57104841ef39e8987dd
+live_bootargs=console=tty0_console=ttyMT0,921600n1_root=/dev/ram_vmalloc=496M_slub_max_order=0_slub_debug=OFZPU_androidboot.hardware=mt6797_maxcpus=5_androidboot.verifiedbootstate=green_bootopt=64S3,32N2,64N2_log_buf_len=4M_androidboot.veritymode=enforcing_printk.disable_uart=1_bootprof.pl_t=1462_bootprof.lk_t=4129_boot_reason=4_androidboot.serialno=<redacted>_androidboot.bootreason=wdt_by_pass_pwk_gpt=1_usb2jtag_mode=0_mrdump_ddrsv=yes_mrdump_rsvmem=0x46000000,0x400000,0x44800000,0xa0e80,0x44000000,0x80000,0x448a0e40,0x1671
+live_has_console_ttyMT0=yes
+live_has_maxcpus5=yes
+live_has_printk_disable_uart1=yes
+
+[decision]
+The retained LK source does not pass the DTB bootargs through unchanged.
+Its non-FPGA default already contains maxcpus=5; runtime policy appends
+printk.disable_uart and rewrites only the first ttyMT token from preloader log
+settings, then appends the boot-image command line. The fresh vendor capture
+contains console=ttyMT0, maxcpus=5, and printk.disable_uart=1, matching the
+retained LK mutation path but not proving any mainline policy.
+
+Therefore a mainline console=ttyS0 token must be validated from a booted image;
+stdout-path alone is not authoritative for the console token. The current
+76-patch package remains a static candidate only:
+runtime_mainline_boot=not_attempted
+hardware_write=none

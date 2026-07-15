@@ -1,0 +1,51 @@
+Gemini vendor LK handoff/resource refresh
+
+validation=gemini-live-handoff-refresh
+captured_utc=2026-07-14T19:39:00Z
+device=gemini@192.168.1.50
+kernel=3.18.41+
+method=read_only_collect_identity_device_tree_kernel
+raw_capture_dir=artifacts/device-inventory/20260714T-handoff-refresh
+raw_device_tree_sha256=c06060492bc77f8d8e5348965718f7978674901f4839ac0e605db308f01780c3
+raw_kernel_sha256=cfe02f50cd40a27ffef409a8d4537f01992714ef1d257a8e04b9c6ca495d6e9c
+raw_identity_sha256=6db7b2233ae426d8e3ba56e9d949e1ba18bda065f733b57104841ef39e8987dd
+hardware_write=none
+
+[live_identity]
+model=MT6797X
+compatible=mediatek,MT6797
+memtotal_kb=3860680
+cpu_nodes=10
+online_cpus=0,1
+offline_cpus=2-9
+
+[lk_handoff_bootargs]
+bootargs=console=tty0 console=ttyMT0,921600n1 root=/dev/ram vmalloc=496M slub_max_order=0 slub_debug=OFZPU androidboot.hardware=mt6797 maxcpus=5 androidboot.verifiedbootstate=green bootopt=64S3,32N2,64N2 log_buf_len=4M androidboot.veritymode=enforcing printk.disable_uart=1 bootprof.pl_t=1462 bootprof.lk_t=4129 boot_reason=4 usb2jtag_mode=0 mrdump_ddrsv=yes
+bootargs_redaction=serial number removed; remaining policy tokens retained verbatim
+
+[live_memory]
+device_tree_memory_0=address=0x40000000;size=0x10000000
+device_tree_memory_1=address=0x40000000;size=0x1e605000
+fixed_mblock_ranges=log-store@0x7ff80000/0x80000;atf-log@0x7ff40000/0x40000;framebuffer@0x7dfb0000/0x1f90000;scp@0xbfdf0000/0x200000;ccci@0x88000000/0x6000000;ccci@0xb4000000/0xa000000;ccci@0xbe000000/0xc00000
+fixed_pre_lk_ranges=spm-dummy@0x40000000/0x1000;ram-console@0x44400000/0x10000;pstore@0x44410000/0xe0000;minirdump@0x444f0000/0x10000;atf@0x44600000/0x10000;atf-ramdump@0x44610000/0x30000;cache-dump@0x44640000/0x30000;preloader@0x44800000/0x100000;lk@0x46000000/0x400000
+dynamic_reserved_nodes=consys-reserve-memory;reserve-memory-scp_share;spm-reserve-memory;reserve-memory-dram_r0_dummy_read;reserve-memory-dram_r1_dummy_read
+dynamic_reserved_addresses=not_exposed_by_collector
+
+[comparison_to_current_76_candidate]
+candidate_package=linux-7.1.3-gemini-db59a88057b4
+candidate_header_cmdline=bootopt=64S3,32N2,64N2 console=ttyS0,921600n8 earlycon=uart8250,mmio32,0x11002000 root=/dev/ram0 rw
+candidate_board_memory=address=0x40000000;size=0x100000000
+candidate_board_dt=preserves_fixed_pre_lk_ranges_and_dynamic_reservation_contract;omits_post_lk_mblock_snapshots
+candidate_lk_behavior=retained_source_shows_LK_rewrites_/chosen_and_/memory_and_appends_runtime_mblocks
+
+[interpretation]
+The live snapshot confirms that LK controls the effective console and CPU
+policy. The candidate header command line and input DT are only pre-LK inputs;
+they cannot establish that `ttyS0`, `maxcpus`, UART logging, or the final
+memory map will reach Linux unchanged. The first mainline boot must capture
+the final `/chosen/bootargs`, `/memory`, `/reserved-memory`, online CPU list,
+and early UART output before enabling optional consumers.
+
+live_vendor_capture=read_only
+mainline_boot=not_attempted
+flash=none

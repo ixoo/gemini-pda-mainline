@@ -59,7 +59,7 @@ Usage: ./scripts/kernel COMMAND
 Commands:
   prepare       Download, verify, extract, and apply the ordered patch series
   configure     Prepare and generate the merged arm64 kernel configuration
-  build         Prepare, configure, compile Image + DTBs, and package artifacts
+  build         Prepare, configure, compile Image + Image.gz + DTBs, and package artifacts
   paths         Print the managed source, build, cache, and artifact locations
   status        Show the pinned version, patch state, and prepared-tree state
   check-latest  Compare the pinned version with kernel.org's latest stable release
@@ -242,9 +242,17 @@ validate_config_fragment() {
   while IFS= read -r line || [[ -n "${line}" ]]; do
     line_number=$((line_number + 1))
     case "${line}" in
-      CONFIG_*=*|'# CONFIG_'*' is not set')
+      CONFIG_*=*)
         grep -Fqx "${line}" "${BUILD_DIR}/.config" || \
           die "${relative}:${line_number}: requested value was not retained: ${line}"
+        ;;
+      '# CONFIG_'*' is not set')
+        if ! grep -Fqx "${line}" "${BUILD_DIR}/.config"; then
+          local symbol="${line#\# CONFIG_}"
+          symbol="${symbol% is not set}"
+          grep -Eq "^CONFIG_${symbol}=" "${BUILD_DIR}/.config" && \
+            die "${relative}:${line_number}: requested value was not retained: ${line}"
+        fi
         ;;
       ''|'# '*)
         ;;
@@ -262,15 +270,35 @@ copy_patch_to_provenance() {
   cp "${path}" "${PACKAGE_DIR}/provenance/patches/${relative}"
 }
 
+assert_build_inputs_unchanged() {
+  local expected_source_state="$1"
+  local expected_build_state="$2"
+
+  [[ -f "${SOURCE_DIR}/.gemini-source-state" ]] || \
+    die "prepared source state disappeared during build"
+  [[ -f "${BUILD_DIR}/.gemini-build-state" ]] || \
+    die "configured build state disappeared during build"
+  [[ "$(< "${SOURCE_DIR}/.gemini-source-state")" == "${expected_source_state}" ]] || \
+    die "prepared source was replaced during build; rerun the build"
+  [[ "$(< "${BUILD_DIR}/.gemini-build-state")" == "${expected_build_state}" ]] || \
+    die "configured build was replaced during build; rerun the build"
+  [[ "$(source_state_hash)" == "${expected_source_state}" ]] || \
+    die "kernel or patch inputs changed during build; rerun the build"
+  [[ "$(build_state_hash)" == "${expected_build_state}" ]] || \
+    die "configuration or toolchain inputs changed during build; rerun the build"
+}
+
 package_artifacts() {
   local kernel_release="$1"
-  local patch_hash
+  local expected_source_state="$2"
+  local expected_build_state="$3"
+  local patch_hash="$4"
   local package_name
   local temporary
   local sums_file
   local fragment
+  local modules_built=false
 
-  patch_hash="$(patchset_hash)"
   package_name="linux-${VERSION}-gemini-${patch_hash:0:12}"
   PACKAGE_DIR="${ARTIFACT_ROOT}/${package_name}"
   export PACKAGE_DIR
@@ -282,8 +310,17 @@ package_artifacts() {
   export PACKAGE_DIR
 
   install -m 0644 "${BUILD_DIR}/arch/arm64/boot/Image" "${PACKAGE_DIR}/Image"
+  install -m 0644 "${BUILD_DIR}/arch/arm64/boot/Image.gz" "${PACKAGE_DIR}/Image.gz"
   install -m 0644 "${BUILD_DIR}/.config" "${PACKAGE_DIR}/kernel.config"
   install -m 0644 "${BUILD_DIR}/System.map" "${PACKAGE_DIR}/System.map"
+  if [[ "${BUILD_MODULES:-0}" == 1 ]]; then
+    modules_built=true
+    make -C "${SOURCE_DIR}" \
+      O="${BUILD_DIR}" \
+      ARCH="${ARCH}" \
+      INSTALL_MOD_PATH="${PACKAGE_DIR}/modules" \
+      modules_install
+  fi
   rsync -a \
     --include='*/' --include='*.dtb' --exclude='*' \
     "${BUILD_DIR}/arch/arm64/boot/dts/mediatek/" \
@@ -302,6 +339,7 @@ package_artifacts() {
     --arg source_sha256 "${SOURCE_SHA256}" \
     --arg patchset_sha256 "${patch_hash}" \
     --arg config_sha256 "$(sha256sum "${BUILD_DIR}/.config" | awk '{print $1}')" \
+    --argjson modules_built "${modules_built}" \
     --arg compiler "$(gcc --version | head -n 1)" \
     --arg linker "$(ld --version | head -n 1)" \
     '{
@@ -311,6 +349,7 @@ package_artifacts() {
       source_sha256: $source_sha256,
       patchset_sha256: $patchset_sha256,
       config_sha256: $config_sha256,
+      modules_built: $modules_built,
       compiler: $compiler,
       linker: $linker
     }' > "${PACKAGE_DIR}/provenance/build.json"
@@ -324,6 +363,9 @@ package_artifacts() {
   )
   mv "${sums_file}" "${PACKAGE_DIR}/SHA256SUMS"
 
+  assert_build_inputs_unchanged \
+    "${expected_source_state}" "${expected_build_state}"
+
   PACKAGE_DIR="${ARTIFACT_ROOT}/${package_name}"
   rm -rf "${PACKAGE_DIR}"
   mv "${temporary}" "${PACKAGE_DIR}"
@@ -332,10 +374,16 @@ package_artifacts() {
 
 build_kernel() {
   local jobs="${KERNEL_JOBS:-$(nproc)}"
-  local -a targets=(Image dtbs)
+  local -a targets=(Image Image.gz dtbs)
+  local expected_build_state
+  local expected_source_state
   local kernel_release
+  local patch_hash
 
   configure_kernel
+  expected_source_state="$(< "${SOURCE_DIR}/.gemini-source-state")"
+  expected_build_state="$(< "${BUILD_DIR}/.gemini-build-state")"
+  patch_hash="$(patchset_hash)"
   if [[ "${BUILD_MODULES:-0}" == 1 ]]; then
     targets+=(modules)
   fi
@@ -350,8 +398,11 @@ build_kernel() {
     ARCH="${ARCH}" \
     -j "${jobs}" \
     "${targets[@]}"
+  assert_build_inputs_unchanged \
+    "${expected_source_state}" "${expected_build_state}"
   kernel_release="$(make -s -C "${SOURCE_DIR}" O="${BUILD_DIR}" ARCH="${ARCH}" kernelrelease)"
-  package_artifacts "${kernel_release}"
+  package_artifacts "${kernel_release}" \
+    "${expected_source_state}" "${expected_build_state}" "${patch_hash}"
 }
 
 show_paths() {

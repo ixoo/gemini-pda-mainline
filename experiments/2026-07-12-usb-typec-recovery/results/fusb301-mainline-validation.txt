@@ -1,0 +1,41 @@
+FUSB301 mainline candidate validation
+=====================================
+
+The generic controller driver is a disabled-board candidate. No Gemini FUSB301
+DT node is enabled, and no live FUSB301 register or Type-C/VBUS control was
+written.
+
+The normal Image/dtbs package target does not build loadable modules, so the
+driver object was compiled separately after prepare/modules_prepare.
+
+patch=v7.1.3/0056-usb-typec-add-FUSB301-autonomous-controller-driver.patch
+patch_count=56
+patchset_sha256=1004404081252c1314e5e521f6daa63f80177618f1cf25a6a751169094993498
+kernel_version=7.1.3
+package=linux-7.1.3-gemini-100440408125
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+config_sha256=907db89c4a6c9cd4b15bdf5df2a487594f9941e73e28275d07b6b1f896daaf06
+compiler=gcc 13.3.0
+linker=GNU ld (binutils) 2.42
+generated_utc=2026-07-13T02:40:59Z
+
+config_fragment_symbols=CONFIG_TYPEC_FUSB301=m
+full_build=passed (Image and all DTBs)
+driver_object_compile=passed (drivers/usb/typec/fusb301.o)
+driver_object_warnings=none
+binding_doc_validate=passed (dt-doc-validate)
+focused_dt_binding_check=passed (make dt_binding_check; example DTB compiled)
+packaged_image_sha256=fd3f15c104666d7fc8ca3bb0958b3b19095ad25a91d50eae9734582299dd1411
+packaged_gemini_dtb_sha256=20fca3428c4f161f4aa38b3f88532073d2d0e5e5ee915c060ad1f6b0c64cfb9f
+packaged_kernel_config_sha256=907db89c4a6c9cd4b15bdf5df2a487594f9941e73e28275d07b6b1f896daaf06
+
+board_nodes=not_added
+runtime_probe=not_attempted
+hardware_write=none
+
+The driver validates Device ID 0x12, configures the documented mode/current
+and interrupt registers when an enabled connector node is supplied, and
+reports attach, partner type, BC current, and CC orientation through the
+standard Type-C class. It deliberately does not own VBUS or the Gemini
+SuperSpeed redriver GPIOs. Physical port mapping, VBUS safety, and role-switch
+integration remain runtime gates.

@@ -1,0 +1,181 @@
+From: Gemini PDA Mainline Project <noreply@example.com>
+Date: Sun, 12 Jul 2026 01:51:00 -0400
+Subject: [PATCH 22/22] clk: mediatek: add MT6797 CAM and MJC clocks
+
+Add the two missing MT6797 multimedia gate providers. The gate layout, bit
+positions, names and parents match the public downstream clock driver and
+the live Gemian clock tree. These clocks are prerequisites for SMI larb2
+and larb4 runtime management.
+
+Signed-off-by: Gemini PDA Mainline Project <noreply@example.com>
+---
+ drivers/clk/mediatek/Kconfig          | 18 +++++++++
+ drivers/clk/mediatek/Makefile         |  2 +
+ drivers/clk/mediatek/clk-mt6797-cam.c | 53 +++++++++++++++++++++++++++
+ drivers/clk/mediatek/clk-mt6797-mjc.c | 52 ++++++++++++++++++++++++++
+ 4 files changed, 125 insertions(+)
+
+diff --git a/drivers/clk/mediatek/Kconfig b/drivers/clk/mediatek/Kconfig
+--- a/drivers/clk/mediatek/Kconfig
++++ b/drivers/clk/mediatek/Kconfig
+@@ -349,6 +349,15 @@ config COMMON_CLK_MT6797
+ 	help
+ 	  This driver supports MediaTek MT6797 basic clocks.
+ 
++config COMMON_CLK_MT6797_CAMSYS
++	tristate "Clock driver for MediaTek MT6797 camsys"
++	depends on COMMON_CLK_MT6797
++	help
++	  This driver supports the gate clocks in the camera subsystem on
++	  MediaTek MT6797. These clocks feed the camera engines and the
++	  camera SMI local arbiter used for DMA traffic through the
++	  multimedia IOMMU.
++
+ config COMMON_CLK_MT6797_MMSYS
+ 	tristate "Clock driver for MediaTek MT6797 mmsys"
+ 	depends on COMMON_CLK_MT6797
+@@ -361,6 +370,15 @@ config COMMON_CLK_MT6797_IMGSYS
+ 	help
+ 	  This driver supports MediaTek MT6797 imgsys clocks.
+ 
++config COMMON_CLK_MT6797_MJCSYS
++	tristate "Clock driver for MediaTek MT6797 mjcsys"
++	depends on COMMON_CLK_MT6797
++	help
++	  This driver supports the gate clocks in the motion judder
++	  compensation subsystem on MediaTek MT6797. These clocks feed the
++	  MJC engines and SMI local arbiter used for DMA traffic through the
++	  multimedia IOMMU.
++
+ config COMMON_CLK_MT6797_VDECSYS
+ 	tristate "Clock driver for MediaTek MT6797 vdecsys"
+ 	depends on COMMON_CLK_MT6797
+diff --git a/drivers/clk/mediatek/Makefile b/drivers/clk/mediatek/Makefile
+--- a/drivers/clk/mediatek/Makefile
++++ b/drivers/clk/mediatek/Makefile
+@@ -31,6 +31,8 @@ obj-$(CONFIG_COMMON_CLK_MT6795_VDECSYS) += clk-mt6795-vdecsys.o
+ obj-$(CONFIG_COMMON_CLK_MT6795_VENCSYS) += clk-mt6795-vencsys.o
+ obj-$(CONFIG_COMMON_CLK_MT6797) += clk-mt6797.o
++obj-$(CONFIG_COMMON_CLK_MT6797_CAMSYS) += clk-mt6797-cam.o
+ obj-$(CONFIG_COMMON_CLK_MT6797_IMGSYS) += clk-mt6797-img.o
++obj-$(CONFIG_COMMON_CLK_MT6797_MJCSYS) += clk-mt6797-mjc.o
+ obj-$(CONFIG_COMMON_CLK_MT6797_MMSYS) += clk-mt6797-mm.o
+ obj-$(CONFIG_COMMON_CLK_MT6797_VDECSYS) += clk-mt6797-vdec.o
+ obj-$(CONFIG_COMMON_CLK_MT6797_VENCSYS) += clk-mt6797-venc.o
+diff --git a/drivers/clk/mediatek/clk-mt6797-cam.c b/drivers/clk/mediatek/clk-mt6797-cam.c
+new file mode 100644
+--- /dev/null
++++ b/drivers/clk/mediatek/clk-mt6797-cam.c
+@@ -0,0 +1,53 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/* Copyright (c) 2026 Gemini PDA Mainline Project */
++
++#include <linux/clk-provider.h>
++#include <linux/platform_device.h>
++#include <dt-bindings/clock/mt6797-clk.h>
++
++#include "clk-gate.h"
++#include "clk-mtk.h"
++
++static const struct mtk_gate_regs cam_cg_regs = {
++	.set_ofs = 0x0004,
++	.clr_ofs = 0x0008,
++	.sta_ofs = 0x0000,
++};
++
++#define GATE_CAM(_id, _name, _parent, _shift) \
++	GATE_MTK(_id, _name, _parent, &cam_cg_regs, _shift, \
++		 &mtk_clk_gate_ops_setclr)
++
++static const struct mtk_gate cam_clks[] = {
++	GATE_CAM(CLK_CAM_CAMSV2, "cam_camsv2", "mm_sel", 11),
++	GATE_CAM(CLK_CAM_CAMSV1, "cam_camsv1", "mm_sel", 10),
++	GATE_CAM(CLK_CAM_CAMSV0, "cam_camsv0", "mm_sel", 9),
++	GATE_CAM(CLK_CAM_SENINF, "cam_seninf", "mm_sel", 8),
++	GATE_CAM(CLK_CAM_CAMTG, "cam_camtg", "camtg_sel", 7),
++	GATE_CAM(CLK_CAM_CAMSYS, "cam_camsys", "mm_sel", 6),
++	GATE_CAM(CLK_CAM_LARB2, "cam_larb2", "mm_sel", 0),
++};
++
++static const struct mtk_clk_desc cam_desc = {
++	.clks = cam_clks,
++	.num_clks = ARRAY_SIZE(cam_clks),
++};
++
++static const struct of_device_id of_match_clk_mt6797_cam[] = {
++	{ .compatible = "mediatek,mt6797-camsys", .data = &cam_desc },
++	{ /* sentinel */ }
++};
++MODULE_DEVICE_TABLE(of, of_match_clk_mt6797_cam);
++
++static struct platform_driver clk_mt6797_cam_drv = {
++	.probe = mtk_clk_simple_probe,
++	.remove = mtk_clk_simple_remove,
++	.driver = {
++		.name = "clk-mt6797-cam",
++		.of_match_table = of_match_clk_mt6797_cam,
++	},
++};
++module_platform_driver(clk_mt6797_cam_drv);
++
++MODULE_DESCRIPTION("MediaTek MT6797 camsys clocks driver");
++MODULE_LICENSE("GPL");
+diff --git a/drivers/clk/mediatek/clk-mt6797-mjc.c b/drivers/clk/mediatek/clk-mt6797-mjc.c
+new file mode 100644
+--- /dev/null
++++ b/drivers/clk/mediatek/clk-mt6797-mjc.c
+@@ -0,0 +1,52 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/* Copyright (c) 2026 Gemini PDA Mainline Project */
++
++#include <linux/clk-provider.h>
++#include <linux/platform_device.h>
++#include <dt-bindings/clock/mt6797-clk.h>
++
++#include "clk-gate.h"
++#include "clk-mtk.h"
++
++static const struct mtk_gate_regs mjc_cg_regs = {
++	.set_ofs = 0x0004,
++	.clr_ofs = 0x0008,
++	.sta_ofs = 0x0000,
++};
++
++#define GATE_MJC(_id, _name, _shift) \
++	GATE_MTK(_id, _name, "mjc_sel", &mjc_cg_regs, _shift, \
++		 &mtk_clk_gate_ops_setclr)
++
++static const struct mtk_gate mjc_clks[] = {
++	GATE_MJC(CLK_MJC_SMI_LARB, "mjc_smi_larb", 0),
++	GATE_MJC(CLK_MJC_TOP_CLK_0, "mjc_top_clk_0", 1),
++	GATE_MJC(CLK_MJC_TOP_CLK_1, "mjc_top_clk_1", 2),
++	GATE_MJC(CLK_MJC_TOP_CLK_2, "mjc_top_clk_2", 3),
++	GATE_MJC(CLK_MJC_FAKE_ENGINE, "mjc_fake_engine", 4),
++	GATE_MJC(CLK_MJC_LARB4_ASIF, "mjc_larb4_asif", 5),
++};
++
++static const struct mtk_clk_desc mjc_desc = {
++	.clks = mjc_clks,
++	.num_clks = ARRAY_SIZE(mjc_clks),
++};
++
++static const struct of_device_id of_match_clk_mt6797_mjc[] = {
++	{ .compatible = "mediatek,mt6797-mjcsys", .data = &mjc_desc },
++	{ /* sentinel */ }
++};
++MODULE_DEVICE_TABLE(of, of_match_clk_mt6797_mjc);
++
++static struct platform_driver clk_mt6797_mjc_drv = {
++	.probe = mtk_clk_simple_probe,
++	.remove = mtk_clk_simple_remove,
++	.driver = {
++		.name = "clk-mt6797-mjc",
++		.of_match_table = of_match_clk_mt6797_mjc,
++	},
++};
++module_platform_driver(clk_mt6797_mjc_drv);
++
++MODULE_DESCRIPTION("MediaTek MT6797 mjcsys clocks driver");
++MODULE_LICENSE("GPL");
+-- 
+2.47.2

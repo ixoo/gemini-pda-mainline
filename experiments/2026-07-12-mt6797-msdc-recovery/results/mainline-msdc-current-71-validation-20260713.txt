@@ -1,0 +1,124 @@
+Current Linux 7.1.3 MT6797 MSDC validation
+==========================================
+
+Date: 2026-07-13
+VM: gemini-pda-dev
+Vendor tree commit: c5b0be85017ad0c599725e8273842efdbecdd88a
+Linux source: /home/julien.guest/src/gemini-pda/linux-7.1.3
+Linux source SHA-256: be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+Patch count: 71
+Patchset SHA-256: 86145c09fc00fd3c65fb822f7834c5bb3dc08eb76f5117b90538141a429a1623
+Package: /home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-86145c09fc00
+Package Image SHA-256: bb326cfc3189828ff623a224dbc65aa9aace32474109dc116cd915d7bea4a09a
+Package Image.gz SHA-256: e99d3d74c88ce657ef73da4c7aafe8d3bb3567d837b692adf9414bd99d1f194b
+Package config SHA-256: c11ddd57c1fc643202b15bcfac9564edbba61e42a0a08879369b52592ba31d7a
+Package Gemini DTB SHA-256: fb910c8d96b7d4f533c750ce0717ced8998c992834abc44a4ed86ec5a9cf1f97
+Package modules_built: true (1,582 optional module files; 349M module tree)
+
+Source analyzer output SHA-256: f82f9aab5541d37c208fe7a79656b2f0be5ab110f2f98d17961467cbadc05855
+Analyzer script SHA-256: 362dc710dfa993381502ba762990434effac83529d87bef3fbfe15b0a9c9023a
+Probe-safety audit output SHA-256: 687cbd7362293d558195d2a0736b1398666215078e9b0e81d8b120d406b0a042
+Probe-safety script SHA-256: 65d1fcb29ac2a0c0befdffebdb37249e65e39b3885e7a55687467fefe0b522d8
+Pinctrl audit output SHA-256: 5fdab69a6b6fec41d057b182a6272d1a86354550e814a84161d236317dcf15e3
+Pinctrl audit script SHA-256: af1748525d70e39a1afc2e00abd6aa24a54c7384e6c6fe08fb4b756c78daa5e4
+Live raw capture: artifacts/device-inventory/20260713-msdc-live/msdc.txt
+Live raw capture SHA-256: d748a21647cd079cf2203faa3df7b041ccbc4a6f6f3d925c945d51101822914b
+Collector script SHA-256: 60d245efcb56c85edd5b33b1ae04bd334a0a2628fda244132c554474bb9931c3
+
+Live storage state
+------------------
+
+The owner-authorized collector was rerun over SSH using the private,
+Git-ignored key and `sudo -S`. It reads sysfs/debugfs/proc state and invokes
+the already audited vendor `/proc/msdc_debug` register snapshot path. It
+excludes CID/CSD/serial identifiers and never writes a controller, card,
+regulator, or pin register.
+
+  * `mmc0` is the internal SanDisk DF4064, a 64 GB-class eMMC (manufacturer
+    ID `0x45`, date 10/2017; unique identifiers are intentionally omitted).
+  * eMMC IOS is 200,000,000 Hz, 8-bit push-pull MMC HS400 at 1.80 V with the
+    3.2–3.3 V VDD window. Its controller version is `0x20141118` and
+    `MSDC_CFG` is `0x03700099`.
+  * `mmc1` has no card: 0 Hz, power off, 1-bit legacy reset state, and 3.30 V
+    signaling default. Its controller version is `0x20140512`; its card
+    detect IRQ has no activity in this capture.
+  * `vemc_3v3`, `vmch`, and `vmc` report enabled at 3.0 V. The vendor
+    framework keeps VMCH/VMC users present even while the empty microSD host
+    is off, so MMC IOS is the stronger observation for slot power.
+  * MSDC0 IRQ activity is nonzero (265287 and 88842 on the two reported CPU
+    columns); MSDC1 and card-detect IRQs are idle. This is vendor-runtime
+    activity evidence, not mainline probe success.
+
+Register evidence and compatibility decision
+---------------------------------------------
+
+The live snapshot reproduces the MT6797 register contract recovered from the
+Planet source. `PATCH_BIT1=0xfffe00c0` has bit 7 set; `PATCH_BIT2=0xa48d180d`
+has the support-64G bit clear; DMA high-address register `0x8c` is zero; and
+`PAD_TUNE0=0x002b2100` is active while `PAD_TUNE1=0`. The vendor map defines a
+12-bit clock divider, asynchronous FIFO/data tuning, and `0xf0` PAD_TUNE0.
+Register `0x228` is `EMMC50_BLOCK_LENGTH`, not the newer `SDC_FIFO_CFG`, and
+the map has no `SDC_ADV_CFG0` at `0x64`.
+
+Linux 7.1.3's existing `mtk-sd` driver therefore remains the correct driver;
+the dedicated `mt6797_compat` record is required and `mt6779_compat` is not a
+safe substitute:
+
+  * `clk_div_bits=12`, `pad_tune_reg=MSDC_PAD_TUNE0`, `async_fifo=true`, and
+    `data_tune=true`;
+  * `busy_check=false`, `stop_clk_fix=false`, and `enhance_rx=false`;
+  * `support_64g=false` until descriptor high-address use is proven. The
+    downstream implementation truncates descriptor/payload addresses and the
+    live high-address register is zero.
+
+Mainline package and board boundary
+-----------------------------------
+
+The current package links `CONFIG_MMC=y`, `CONFIG_MMC_MTK=y`, and
+`CONFIG_MTK_PMIC_WRAP=y`; `System.map` contains `msdc_drv_probe`,
+`msdc_ops_set_ios`, `msdc_ops_switch_volt`, and the PMIC wrapper/regulator
+probes. The Gemini DTB contains:
+
+  * `mmc@11230000`, `mediatek,mt6797-mmc`, SPI 79, `source`/`hclk`/`source_cg`
+    clocks, status okay, 8-bit, `max-frequency = 25 MHz`, `vmmc = vemc_3v3`,
+    `vqmmc = vio18`, `non-removable`, `no-sd`, and `no-sdio`;
+  * identical pinmux-only default and `state_uhs` groups, with all generic
+    input-enable/drive/bias properties removed by patch 0071;
+  * `mmc@11240000`, SPI 80 and the MT6797 compatibility data, disabled.
+
+The source-only probe audit confirms that `msdc_drv_probe()` enables clocks,
+allocates DMA descriptors, resets/programs FIFO/interrupt/DMA/tuning/timeout
+registers, requests the IRQ, enables runtime PM, and calls `mmc_add_host()`.
+MMC core can then power up the eMMC, enable VEMC/VIO18, identify the card, and
+later change VQMMC/pinctrl during a signal-voltage switch. This is a stateful
+probe, not a read-only check. The first runtime attempt must use an external
+or non-primary recovery path and a read-only rootfs/storage policy.
+
+The MT6797 pinctrl descriptor exposes mode, direction, data-in, and data-out
+register maps only; no source-backed pull, IES, or drive callbacks exist.
+The pinmux-only board correction is therefore retained. High-speed eMMC,
+MSDC1/card-detect, UHS voltage switching, and 64G descriptor mode remain
+disabled until controlled runtime evidence exists.
+
+Cross-repository comparison
+---------------------------
+
+The early [bsg100/gemini-linux](https://github.com/bsg100/gemini-linux) report
+and our pinned [comparison audit](../../2026-07-13-bsg100-gemini-linux-comparison/README.md)
+are consistent with the current source audit where they say generic pinconf
+properties prevented the first eMMC boot:
+the current 7.1.3 MT6797 descriptor still has the same four register maps and
+no generic pinconf callbacks. It is treated as a hypothesis and compatibility
+clue, not as proof of pad values or a reason to copy the old vendor tree.
+
+Status
+------
+
+`source_contract_analyzer=passed`
+`probe_safety_audit=passed`
+`pinctrl_contract_audit=passed`
+`focused_mtk_sd_compile=passed_in_current_package`
+`package_sha256sums=passed`
+`runtime_mainline_boot=not_attempted`
+`runtime_mainline_mmc_io=not_attempted`
+`hardware_write=none`

@@ -1,0 +1,49 @@
+validation=gemini-live-pmic-read-only-repeat
+generated_utc=2026-07-14T12:02:00Z
+device_kernel=3.18.41+
+collector=experiments/2026-07-11-mt6351-pmic-recovery/scripts/collect-live-pmic.sh
+collector_mode=default_read_only
+raw_capture=artifacts/device-inventory/20260714-live/pmic-latest.txt
+raw_capture_sha256=ddb561cd8d58ef18bacc89baaac0d39a2fcd7211d38f03f1713a5cd7eacb0494
+prior_capture=artifacts/device-inventory/20260714-live/pmic.txt
+prior_capture_sha256=80ab18609347ee6b93b692b1f86e9ea1b8cbd0b28711705dcd5d071b18fb82a8
+hardware_write=none
+chip_id_read=not_attempted
+regulator_control_read=not_attempted
+
+[stable_topology]
+pmic_driver=mt-pmic
+rtc_driver=mt-rtc
+pmic_wrap_irq=GICv3-210
+pmic_eint=EINT176
+pmicspi_sel_hz=26000000
+infra_pmic_ap_hz=26000000
+rtc=rtc0;name=mt-rtc;hctosys=1
+pmic_identity=MT6351_E2_from_prior_authorized_read
+
+[changed_read_only_observations]
+pmic_eint_issue_count=22_to_36
+vemc_3v3_num_users=13_to_21
+battery_high_interrupt_issue_count=0_to_26
+battery_low_interrupt_issue_count=0_to_26
+fuel_gauge_battery_low_interrupt_issue_count=8_to_15
+
+[current_rail_snapshot]
+vemc_3v3=enabled;3000000uV;users=21
+vio18=enabled;1800000uV;users=0
+vmc=enabled;3000000uV;users=2
+vusb33=enabled;3300000uV;users=0
+vcn33_bt=enabled;3300000uV;users=1
+vcn33_wifi=enabled;3300000uV;users=1
+vcore=enabled;900000uV
+vsram_proc=enabled;1050000uV
+
+[interpretation]
+The repeated default collector confirms the PMIC wrapper, MT6351 child, RTC,
+26 MHz clock topology, and storage rails are stable, while interrupt counters
+and the eMMC rail consumer count change during ordinary device operation. The
+counter deltas are not evidence of a new interrupt source or a safe write path;
+they show that a mainline before/after probe comparison must sample dynamic
+PMIC state and consumer counts, not compare a single static dump. No optional
+chip-ID or regulator-control read was repeated, and no PMIC register write was
+issued.

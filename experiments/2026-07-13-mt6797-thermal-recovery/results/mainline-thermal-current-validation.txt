@@ -1,0 +1,34 @@
+MT6797 thermal current-series validation
+========================================
+
+Date: 2026-07-13
+VM: gemini-pda-dev
+Kernel: Linux 7.1.3
+Patch count: 61
+Artifact: linux-7.1.3-gemini-d66ebebb0501
+
+Source SHA-256:
+  be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+Patchset SHA-256:
+  d66ebebb05015039f6b408fe949be621c775777c91d5e29b3d96bc8e1eb5e64c
+Configuration SHA-256:
+  01f1ce5e6f1a64d29d72e3e01c88cbe0a8f769a10b226f0b79cbbc4d92206b59
+
+Validation:
+  full 61-patch Image + DTB build: passed
+  packaged artifact checksum validation: passed
+  thermal object compile: passed
+  AUXADC object compile: passed
+  Gemini DTB present: passed
+  DTB count: 119
+  thermal/AUXADC runtime probe: not attempted
+  hardware write: none
+
+Safety correction carried by patch 0057:
+  The generic calibration fallback now initializes all `MAX_NUM_VTS` slots,
+  including MT6797's separate `VTSABB` slot. This removes an uninitialized
+  fallback value without enabling the disabled thermal nodes or claiming that
+  uncalibrated operation is safe. NVMEM calibration, IRQ/protection behavior,
+  and idle/wakeup semantics remain hardware gates.
+
+The artifact is build evidence only. No mainline image was booted on Gemini.

@@ -1,0 +1,29 @@
+validation=mt6797-msdc-current-c2d-reconciliation
+generated_utc=2026-07-14T13:05:00Z
+source_revision=7.1.3
+patchset=72_noncomment_series_entries
+patchset_sha256=c2d9eea95daa25dd8faddef4f9822e663db67d5d0946f06f0251cc52c92cf08c
+current_package=linux-7.1.3-gemini-c2d9eea95daa
+current_image_sha256=3fb6ac3043dff85dc2b6e68a2bba26d36fedf748e6f7c1bf6b6630f87446be7c
+current_image_gzip_sha256=56028395387320500525ad9aeb31b4237d2001326f30a0a030db682d57aee7ed
+current_config_sha256=831289dd3b53c6cec09e6c614fd83d3ab5988a4c30090bf9ec172348ec9487d5
+current_gemini_dtb_sha256=b41580263940b47226e9819c97afbdaa9a35d4c721c471d2e8a0a3d597c553c5
+prior_package=linux-7.1.3-gemini-a9a7c5002038
+package_delta=experiments/2026-07-14-mainline-module-closure-audit/results/package-delta-a9a7-to-c2d9-20260714.txt
+package_delta_sha256=c61dc6d6e95512a752d08e10378b0d2b3154e5ce6c69cbbe90a6351acc893937
+package_delta_scope=Image,Image.gz,System.map,config,DTB,and_all_1570_unrelated_modules_unchanged;panel_module_only_difference
+msdc_source_contract_sha256=f82f9aab5541d37c208fe7a79656b2f0be5ab110f2f98d17961467cbadc05855
+msdc_probe_safety_sha256=687cbd7362293d558195d2a0736b1398666215078e9b0e81d8b120d406b0a042
+msdc_pinctrl_audit_sha256=5fdab69a6b6fec41d057b182a6272d1a86354550e814a84161d236317dcf15e3
+compatibility_decision=existing_mtk_sd_driver_with_dedicated_mt6797_record
+board_policy=8bit_nonremovable_25MHz_pinmux_only_vmmc_vqmmc
+runtime_mainline_boot=not_attempted
+runtime_mainline_mmc_io=not_attempted
+hardware_write=none
+
+The prior MSDC package audit predates the corrected panel packet-semantics
+rebuild. The package-delta audit proves that its Image, DTB, configuration,
+System.map, and all unrelated modules are identical in the current c2d
+package. Therefore the source-contract, probe-safety, and pinctrl conclusions
+remain authoritative for the MSDC boundary, while this file is the current
+package provenance record.

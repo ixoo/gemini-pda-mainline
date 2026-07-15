@@ -1,0 +1,27 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 13 Jul 2026 08:50:00 -0400
+Subject: [PATCH] arm64: dts: mediatek: gemini: keep MT6351 rails in regulator node
+
+Patch 0051 adds the disabled RT5735 candidate but accidentally changes the
+existing eMMC regulator consumers from the MT6351 `regulators` child to the
+PMIC parent. That produces invalid `mediatek,mt6397` schema placement and
+would prevent the MT6351 regulator binding from owning the rails. Restore the
+existing regulator-container parent; the RT5735 node remains on I2C7.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -123,4 +123,4 @@
+-&pmic {
++&mt6351regulator {
+ 	mt6351_vemc_reg: ldo-vemc {
+ 		regulator-name = "vemc_3v3";
+ 		regulator-min-microvolt = <3000000>;
+-- 
+2.43.0

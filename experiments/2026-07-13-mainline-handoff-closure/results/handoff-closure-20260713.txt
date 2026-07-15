@@ -1,0 +1,30 @@
+Static mainline handoff-closure audit
+=====================================
+
+Date: 2026-07-13
+VM: gemini-pda-dev
+Command:
+  ./scripts/dev-vm run env CURRENT_PACKAGE=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-86145c09fc00 \
+    experiments/2026-07-13-mainline-handoff-closure/scripts/validate-handoff-closure.sh
+
+package=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-86145c09fc00
+package_sha256=4f63ac9ccfd97d83abcfb2fd51b045998e6f5539e68974b361c376f6abd8ab59
+config_sha256=c11ddd57c1fc643202b15bcfac9564edbba61e42a0a08879369b52592ba31d7a
+dtb_sha256=fb910c8d96b7d4f533c750ce0717ced8998c992834abc44a4ed86ec5a9cf1f97
+
+The audit passed all required built-in configuration entries and System.map
+symbols for arm64/OF handoff, PSCI, timer/GIC, early 8250 console, devtmpfs,
+eMMC, and the MediaTek watchdog. The decoded Gemini DTB passed the model and
+compatible checks, `serial0:921600n8` stdout path, PSCI SMC method, 4 GiB
+memory window, UART0 PIO resource/IRQ/clocks, and the enabled 8-bit 25 MHz
+eMMC resource. It also retained the five pre-LK dynamic reservation nodes and
+contained none of the removed post-LK static snapshot names (`framebuffer`,
+`atf-log`, or `log-store`).
+
+This is a static package closure only. It does not establish that LK will pass
+the DTB unchanged, that dynamic reservations will be placed safely at boot,
+or that a mainline kernel will reach the console/eMMC on hardware.
+
+validation=static-mainline-handoff-closure
+runtime_mainline_boot=not_attempted
+hardware_write=none

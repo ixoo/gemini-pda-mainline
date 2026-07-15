@@ -1,0 +1,34 @@
+# Current Linux 7.1.3 Gemini LK candidate — 75-patch package
+
+generated_utc=2026-07-14T17:52:43Z
+package=linux-7.1.3-gemini-a21fac4139df
+patchset_sha256=a21fac4139dfff0f448d5e8a30a15530bf3c9bb8ae7d04f17355062478c857e3
+package_image_gz_sha256=30c4f370382de1d2ba82417061b2712a5edc12fd16a0ab766358e7952a27d39c
+package_gemini_dtb_sha256=21529f78282cbf3a48f9260b8981f005f3643d54e729ab676384880c6ace1d4c
+initramfs_sha256=4d4bbe05fa7c11a39d5e6341e551458d787344fd311cbefcb82e071f83ce5ef4
+candidate_sha256=03642410126f4e10d71ae55d05539eadf1a15effc2227d3561324459b4eaf080
+candidate_guest_path=guest:~/artifacts/boot-candidates/20260714-75/linux-7.1.3-gemini-a21fac4139df.boot.img
+initramfs_guest_path=guest:~/artifacts/boot-candidates/20260714-75/linux-7.1.3-gemini-a21fac4139df-uart-initramfs.img
+cmdline=bootopt=64S3,32N2,64N2 console=ttyS0,921600n8 earlycon=uart8250,mmio32,0x11002000 root=/dev/ram0 rw
+source_date_epoch=0
+validator=passed
+
+[lk_parser]
+kernel_size=14704277
+ramdisk_size=1006029
+page_size=2048
+dt_size=0
+kernel_gzip_magic=yes
+kernel_addr_aligned_512k=yes
+bootopt_64=yes
+gzip_stream_size=14679381
+decompressed_kernel_size=48545800
+decompressed_within_mt6797_limit=yes
+appended_dtb_offset=14681429
+appended_dtb_size=24896
+fdt_starts_at_gzip_stream_end=yes
+header_dt_size=0
+
+hardware_write=none
+flash=none
+boot_acceptance=not_attempted

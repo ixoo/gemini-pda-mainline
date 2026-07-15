@@ -1,0 +1,332 @@
+validation=bsg100-gemini-linux-comparison
+generated_utc=2026-07-14T08:25:19Z
+reference_revision=82321ce64752d5bf006fe7c40c331edbd0dfb702
+audit_script=experiments/2026-07-13-bsg100-gemini-linux-comparison/audit-reference.sh
+audit_script_sha256=aefeba2bfaa14425bd5d082bdfed5ae6fea406cfa3ac3a593d62855f64fab07a
+audit_output_sha256=e90a4d92e07b1b2b69cc55af0d8c36c8f0b45cf5dc065aee87b9b8713cd063e9
+repeatability=byte-identical_second_run
+bash_n=passed
+hardware_write=none
+source_import=none
+
+[captured_audit_output]
+reference=/private/tmp/bsg100-gemini-linux-ref
+commit=82321ce64752d5bf006fe7c40c331edbd0dfb702
+date=2026-07-13T08:52:33+08:00
+subject=Merge driver-review-fixes: B-18 resolved (keyboard + USB gadget SSH together), WiFi plan recorded
+1dd1af71cf8fcb13fc7269a206a2e9d20bb3c3da716a7d47934e4e2b6522ecd9  /private/tmp/bsg100-gemini-linux-ref/README.md
+e232319b7a1811e87e5ecd6b592b30295dd8a5a0023c9f640214d277e8b161d4  /private/tmp/bsg100-gemini-linux-ref/hardware.md
+9b2c295b374d1ec47acf0bed74621ba428a95f4b3dbe07acb545c322452500b4  /private/tmp/bsg100-gemini-linux-ref/kernel.md
+f11080331546f2a2ab05654a6571710656503b7f8ada2890bcf04d211b5eb126  /private/tmp/bsg100-gemini-linux-ref/driver_ports.md
+7af5211dda1bda207edf3c71f3eb604050b2d18acbaee498392325eccd56998b  /private/tmp/bsg100-gemini-linux-ref/blockers.md
+c4577392bdfc5d7a0f1429d3965f22e33318c18b4479e1f4a90113387244664f  /private/tmp/bsg100-gemini-linux-ref/boot.md
+2ab88042c9a4e3f98bec51ff21ad62c26d48d2aafee6fb219c7e52ad92851280  /private/tmp/bsg100-gemini-linux-ref/claude.md
+eafd3ecc8f12f18e9aa98bfa77b0b2d001ebebfad967385cabcf577ad1a7cd4d  /private/tmp/bsg100-gemini-linux-ref/patches/README.md
+4a52299f17e1eb06bc9bc5708461edbfaa9e789c89e164408eca1841c58e0857  /private/tmp/bsg100-gemini-linux-ref/patches/STANDARDS.md
+a978fabb76d1c5c5c7bac61b921ed3aa2f0ce2af2a7bd9a7701a1079cf226521  /private/tmp/bsg100-gemini-linux-ref/configs/gemini-cmdline.config
+patch_count=35
+patches_sha256_manifest=2ff3e1fdc7c4bbf3afc4e75dd349df339096bd919ba3d0437a54e7f59d7c6966
+
+selected_claim_markers:
+[README.md]
+4:(MediaTek MT6797X / Helio X27) from its legacy Android/Linux 3.18 kernel to
+5:**Linux 6.6 LTS**, maximising upstream Linux support and minimising vendor
+16:- Console question resolved: UART0 @ `0x11002000`, 921600 baud, pins
+17:  GPIO97/98 — triple-sourced ([kernel.md](kernel.md)).
+35:| [research.md](research.md) | Deep-dive research notes (e.g. CONSYS WiFi/BT architecture) |
+68:- Only targeted writes: `mtk w boot2 <image>` (Linux kernel). `boot` is
+76:| SoC | MediaTek MT6797X (Helio X27), 10-core big.LITTLE, GIC-v3 |
+78:| Display | 5.99″ 1440×2560 Renesas R63419, dual-DSI CMD mode |
+79:| Keyboard | QWERTY matrix via AWINIC AW9523B I2C GPIO expander |
+80:| Debug | UART0 @ 0x11002000, 921600 baud, GPIO97 RX / GPIO98 TX (FTDI) |
+[hardware.md]
+4:SoC: MediaTek MT6797X (Helio X27)
+16:| **CPU** | MT6797X — 2× Cortex-A72 @2.6 GHz + 4× Cortex-A53 @2.0 GHz + 4× Cortex-A53 @1.6 GHz | Application processor (10-core big.LITTLE) | MTK kernel / PSCI | `compatible = "arm,cortex-a72"` / `"arm,cortex-a53"` / `"arm,psci-0.2"` | Upstreamed | Boot Critical | Use Upstream | Kali/Gemian — Android/MTK vendor driver — custom MTK HMP scheduler + `arch/arm64/mach-mediatek/` BSP glue in 3.18; Jasu buildroot uses mainline `mt6797.dtsi` with upstream PSCI | `arch/arm64/boot/dts/mediatek/mt6797.dtsi` exists in mainline. PSCI supported. Mainline drops HMP scheduler; standard EAS used instead. |
+21:| **PMIC** | MT6351 | Power management IC — regulators, RTC, fuel gauge | vendor `drivers/misc/mediatek/pmic/` | `compatible = "mediatek,mt6351-pmic"` — via PMIC wrapper | **Not Upstreamed** (CORRECTED 2026-06-10) | Boot Critical | Port Driver (deferred) / fixed-regulator stubs for bring-up | Kali/Gemian — Android/MTK vendor driver — custom MTK PMIC framework (`drivers/misc/mediatek/pmic/`) replacing standard regulator API | **CORRECTION (2026-06-10, verified against v6.6 tree):** no `mt6351` MFD, regulator, or RTC driver exists in mainline — only the ASoC audio codec (`sound/soc/codecs/mt6351.c`). Prior "Upstreamed" claim was wrong (mt6357/58/59 exist; 6351 never landed). Bring-up path: LK leaves rails configured; use `regulator-fixed` stubs (as already done for vproc). Real driver = new `mt6397`-family MFD cell + regulator driver port, post-freeze. PWRAP itself **is** mainlined. |
+22:| **PMIC Wrapper** | MediaTek PMIC Wrapper (PWRAP) | SPI-like bus to MT6351 | `drivers/soc/mediatek/mtk-pmic-wrap.c` | `pwrap@1000d000` | Upstreamed | Boot Critical | Use Upstream | Kali/Gemian — Android/MTK vendor driver — vendor `pwrap` driver in 3.18 BSP; mainline `mtk-pmic-wrap.c` covers MT6797 | Required for any PMIC access. Mainlined. |
+28:| **Display Panel** | Solomon SSD2092 — FHD MIPI DSI video mode, 1080×2160 | 1080×2160 MIPI DSI display panel | MTK LCM framework (vendor only) | Confirmed by direct DCS interrogation on real hardware (Phase 5, 2026-07-10, boot.md) | Not Upstreamed | Usability Critical | Port Driver | `panel-solomon-ssd2092.c`, `patches/v6.6/panel/0005-...` — active Phase 5 driver, DSI video mode, DRM-bound and producing pixels on real hardware | Port Driver — **in active use, functional** (backlight/pixels confirmed on hardware; a fade-to-black issue is mitigated with a userspace workaround, and a thin-line timing artifact is under investigation — see boot.md). **Correction (2026-07-11):** this row previously named the panel "Renesas R63419 — WQHD (1440×2560), CMD mode," based on `atag,videolfb-lcmname = "r63419_wqhd_truly_phantom_2k_cmd_ok"` in the real device's extracted DTB and matching entries in both public vendor kernel source trees (`dguidipc/gemini-android-kernel-3.18` and its `gemian` fork). **The user has directly confirmed the real physical Gemini panel is 1080×2160, not WQHD** — so that vendor-DTB/source entry describes a different hardware/panel revision, not this actual unit. Note "SSD2092"/"solomon_touch" in every vendor source found is actually the *touchscreen* controller's name, not the display's — the SSD2092 *panel* identity used here was established independently via direct hardware interrogation on this device, not from any vendor source tree. Do not revert to R63419/CMD-mode based on the vendor DTB alone. |
+30:| **Keyboard Matrix Controller** | AWINIC AW9523B (GPIO expander / LED driver, I2C `0x58`) | Physical QWERTY keyboard matrix | Vendor AW9523 driver | `aw9523_key` / `compatible = "mediatek,aw9523_key"` | Not Upstreamed | Usability Critical | Port Driver | Gemian — Downstream Linux driver — Gemian ships a custom keyboard input driver for Linux using AW9523B; key mappings in `symbols/planet_vndr/gemini`; Kali uses same Gemian-derived driver | CORRECTION: AW9523B not in mainline Linux 6.6 (no `aw9523` entries in `drivers/gpio/`; prior claim "mainlined ~6.0" is incorrect). `matrix_keypad.c` exists and uses standard gpiolib consumer API — could work if AW9523B GPIO driver is written. Two paths: (A) write AW9523B GPIO driver + use `matrix-keypad` (clean, upstreamable); (B) port Gemian custom keyboard driver directly (Linux input driver, most direct path). See [driver_ports.md](driver_ports.md#aw9523b-keyboard). |
+33:| **USB-C CC Controller** | ON Semi FUSB301A (I2C `0x25`) | USB Type-C CC logic, VBUS control | Vendor FUSB301 driver | `fusb301a@25` / `compatible = "mediatek,fusb301a"` | Not Upstreamed | Usability Critical | Port Driver | Kali/Gemian — Android/MTK vendor driver — vendor FUSB301/FUSB301A driver from ON Semi Android BSP; no known downstream Linux port | FUSB301A not in mainline. FUSB302 exists (`drivers/usb/typec/tcpm/fusb302.c`) but is a full TCPM — different chip architecture, not adaptable for FUSB301A. FUSB301A is CC-only (presence/orientation detection; no Power Delivery). USB2 host mode works without CC controller (fixed polarity, 500 mA default). For Phase 3: defer entirely. Phase 4+: minimal CC detection driver reading I2C orientation registers and signalling USB controller. See [driver_ports.md](driver_ports.md#fusb301a-cc-controller). |
+34:| **Wi-Fi / Bluetooth / GPS** | MediaTek CONSYS (integrated in MT6797X SoC) | 802.11ac Wi-Fi, BT 4.1, A-GPS | Vendor CONSYS driver | `consys@18070000` / `compatible = "mediatek,mt6797-consys"` | Not Upstreamed | Usability Critical | Port Driver (deferred — Phase 9) | Kali (Re4son) — Android/MTK vendor driver with downstream patches — `drivers/misc/mediatek/connectivity/` CONSYS driver + `wlan_drv_gen2` Wi-Fi driver; Re4son adds monitor mode / injection patches on top; Gemian uses same driver stack; no mainline port known | **Architecture confirmed (2026-06-08 research):** CONSYS is an AHB-mapped hard-IP block — NOT a discrete SDIO chip. WiFi uses AHB bus (not SDIO); BT uses BTIF (on-chip UART) via STP multiplexer. conninfra is NOT applicable (MT7921-era Filogic architecture only). btmtksdio does NOT support MT6625 (device table covers MT7663/MT7668/MT7921/MT7902 only). mt76 is PCIe/USB-only. Zero mainline coverage. Last known working out-of-tree: kernel 5.6 (frank-w BPI-Router-Linux). Broken on 6.0+ with unidentified API changes. Driver requires userspace daemon (`wmt_launcher`) + firmware blobs from `/system/etc/firmware/`. Full driver stack: ~75–103 KLOC (gen2 path). See [driver_ports.md — CONSYS WiFi/BT](driver_ports.md#mt6797-consys-wifibt) and [research.md](research.md#mt6797-consys-wifi--bluetooth--gps--deep-research). USB-Ethernet (USB dongle via `xhci-mtk`) is the Phase 8 networking solution. WiFi/BT port is Phase 9 optional. |
+35:| **Battery Charger** | Richtek RT9466 (I2C `0x53`) | Li-ion battery charger | Vendor Richtek driver | `rt9466@53` | Upstreamed | Usability Critical | Use Upstream | Kali/Gemian — Android/MTK vendor driver — `drivers/misc/mediatek/power/` Richtek RT9466 driver from Android BSP; mainline `drivers/power/supply/rt9467-charger.c` covers RT9466 and RT9467 | Mainline `rt9467-charger.c` explicitly supports RT9466 (vendor ID 0x8 checked in probe). Required DTS change: `compatible = "richtek,rt9467"` (no separate `"richtek,rt9466"` binding exists in 6.6). IRQ line must be defined in DTS. Driver exposes full charging control: CC voltage/current, input limits, precharge, termination current. **Caveat (2026-06-10):** charger IRQ is GPIO246, but mainline `pinctrl-mt6797.c` has no EINT support — the IRQ cannot resolve until EINT is added (vendor: `eintc@1000b000`, GIC SPI 170). DTS node present but `disabled`. See [blockers.md](blockers.md) B-11. |
+36:| **Fuel Gauge / Battery** | MT6351 integrated (via PMIC wrapper) | Battery state-of-charge, voltage/current | Vendor MT6351 battery meter | `compatible = "mediatek,battery"` / `"mediatek,bat_meter"` | Partial | Usability Critical | Research Further | Kali/Gemian — Android/MTK vendor driver — `drivers/misc/mediatek/battery/` MTK battery meter, tightly coupled to Android power HAL | No mainline MT6351 fuel gauge or ADC driver. `mt6360-adc.c` and `mt6370-adc.c` exist for different PMICs; MT6351 ADC not mainlined. `generic-adc-battery.c` exists but needs an IIO ADC input not available for MT6351. Use charger-only mode (RT9467 driver) initially. Minimum safe operation: charger-only + userspace voltage monitor. Full SoC reporting requires new `mt6351-adc.c` driver (~200–500 LOC). Defer fuel gauge to Phase 7 post-charger bring-up. |
+39:| **Audio Codec** | MT6351 integrated audio (AFE + codec) | Speaker, microphone, headphone | `sound/soc/mediatek/mt6797/`, `sound/soc/codecs/mt6351.c` | `compatible = "mediatek,audio"` | Upstreamed | Optional | Use Upstream | Kali/Gemian — Android/MTK vendor driver — `sound/soc/mediatek/mt6797/` vendor AFE driver tied to Android AudioFlinger; mainline ASoC driver is a clean rewrite | `CONFIG_SND_SOC_MT6797_MT6351` — ASoC driver in mainline (4.18+). Defer until after boot stabilisation. |
+54:| **Buck-Boost** | Integrated / MT6351 | Boost converter for display bias | Vendor | `compatible = "mediatek,buck_boost"` | Not Required | Usability Critical | Stub / Disable | Kali/Gemian — Android/MTK vendor driver — controlled via MTK PMIC framework; no standalone driver | Not required. LCD bias is supplied by TPS65132 (I2C1/0x3E), not this node. `mediatek,buck_boost` is an LCM framework abstraction node — not a real hardware driver needed for mainline. Ignore. |
+55:| **I2C LCD Bias** | TI TPS65132 (±5 V dual output) | LCD panel AVDD/AVEE bias supply | Vendor `mediatek,i2c_lcd_bias` → `tps65132_write_bytes()` | `i2c_lcd_bias@3e` on I2C1 | Not Upstreamed | Usability Critical | Use Upstream (gpio-regulator) | Kali/Gemian — Android/MTK vendor driver — TPS65132 at I2C1 (0x11008000), address 0x3E; vendor driver writes 0x0E to registers 0x00 (AVDD) and 0x01 (AVEE) to set ±5V; mainline `tps65132` regulator driver exists | **Resolved.** TPS65132 identified from vendor LCM source `r63419_wqhd_truly_phantom_2k_cmd_ok_mt6797.c`. I2C1 at address 0x3E. For Phase 5 bring-up: using `regulator-fixed` with GPIO60 (ENP) and GPIO251 (ENN) enable pins — avoids dependency on a TPS65132 I2C driver. Mainline `drivers/regulator/tps65132-regulator.c` exists and could be used for full voltage control later. Panel DTS wires `avdd-supply` and `avee-supply` to these regulators. Not blocking. |
+56:| **RTC** | MT6351 integrated RTC | Real-time clock | PMIC RTC driver | Via PMIC wrapper | **Not Upstreamed** (CORRECTED 2026-06-10) | Optional | Defer | Kali/Gemian — Android/MTK vendor driver — RTC accessed via MTK PMIC framework in vendor 3.18 | **CORRECTION:** no mt6351 RTC driver in v6.6 (`drivers/rtc/` has no mt6351 entries; depends on the missing MT6351 MFD — see PMIC row). System can run without RTC (NTP after networking). Defer with the PMIC port. |
+70:| CPU (MT6797X) | Upstreamed | Android/MTK vendor | Use Upstream |
+75:| PMIC MT6351 (via PWRAP) | **Not Upstreamed** (corrected 2026-06-10) | Android/MTK vendor | Fixed-regulator stubs for bring-up; port later |
+89:| Display Panel (R63419) | Not Upstreamed | Android/MTK vendor | Port Driver — **code complete, compiles** — [details](driver_ports.md#r63419-panel) |
+91:| Keyboard Matrix (AW9523B) | Not Upstreamed | Downstream Linux (Gemian) | Port Driver — **WORKING ON HARDWARE 2026-07-12** (typing at panel console, build #164/#168; polled via `patches/v6.6/input/0001` until EINT/B-11; Fn layer + B-18 USB regression outstanding) — [details](driver_ports.md#aw9523b-keyboard) |
+93:| USB-C CC (FUSB301A) | Not Upstreamed | Android/MTK vendor | Port Driver — **code complete, compiles; I2C0/0x25 confirmed** — [details](driver_ports.md#fusb301a-cc-controller) |
+94:| Wi-Fi / BT (MT6797 CONSYS) | Not Upstreamed | Android/MTK vendor + Re4son patches | Port Driver — deferred to Phase 9; USB-Ethernet for Phase 8 — [details](driver_ports.md#mt6797-consys-wifibt) |
+95:| Battery Charger (RT9466) | Upstreamed | Android/MTK vendor | Use Upstream |
+96:| Fuel Gauge (MT6351) | Partial | Android/MTK vendor | Research Further |
+104:| Audio (MT6351 ASoC) | Upstreamed | Android/MTK vendor | Use Upstream |
+133:4. **Wi-Fi/BT is deferred to Phase 9.** MT6797 CONSYS (integrated Wi-Fi/BT/GPS) is entirely proprietary. Architecture confirmed: WiFi uses AHB bus (not SDIO), BT uses BTIF/STP. conninfra, mt76, and btmtksdio are all inapplicable. The vendor driver stack is ~75–103 KLOC and requires a userspace daemon (`wmt_launcher`). The last known working out-of-tree port (frank-w BPI-Router-Linux) ran on kernel 5.6 and is broken on 6.0+. USB-Ethernet (USB dongle via `xhci-mtk`) covers Phase 8 networking. See [research.md](research.md) for full findings.
+135:5. **Display requires significant work and MT6797 has no upstream DRM path.** The mainline MTK DRM driver supports mt2701/mt8173/mt8183/mt8186/mt8195 — MT6797 is absent from every component. MMSYS clocks exist in `clk-mt6797-mm.c`. At minimum, four files require new MT6797 variants: DDP topology (`mtk_drm_drv.c`), MIPITX PHY (`phy-mtk-mipi-dsi.c`), DSI controller (`mtk_dsi.c`), and display pipeline DTS nodes in `mt6797.dtsi`. The R63419 panel init sequence is fully documented in vendor DTS/LCM source. Display bias IC identity is unknown and needs hardware investigation before display bring-up can proceed.
+137:6. **AW9523B GPIO driver is NOT in mainline** — the prior note claiming "mainlined ~6.0" is incorrect (no `aw9523` entries found in `drivers/gpio/` in Linux 6.6). This changes the keyboard plan: `matrix_keypad.c` exists and uses standard gpiolib, but requires an AW9523B GPIO driver first. Two paths: write AW9523B GPIO driver + use `matrix_keypad` (clean, upstreamable), or port Gemian's custom input driver directly (most direct). Gemian's driver remains the best reference implementation.
+141:8. **RT9466 charger uses `richtek,rt9467` binding.** The mainline `rt9467-charger.c` explicitly supports RT9466 (VID 0x8). Only change needed: DTS `compatible` from `"richtek,rt9466"` to `"richtek,rt9467"`. This is the simplest use-upstream path in the usability-critical tier.
+143:9. **USB2 host mode works without FUSB301A.** Basic USB2 (D+/D-, VBUS) does not require the CC controller. Fixed polarity and 500 mA default, but USB networking adapters and host-mode peripherals function. FUSB301A can be deferred to Phase 4+ for a minimal CC-detection driver; full Power Delivery support is not needed.
+145:10. **MT6351 fuel gauge has no mainline support.** No MT6351 ADC or coulomb counter driver exists in Linux 6.6. Use charger-only mode (RT9467 driver) plus userspace voltage monitoring for minimum safe operation. Full fuel gauge requires a new `mt6351-adc.c` driver; defer to Phase 7.
+147:11. **CONSYS Wi-Fi porting starting point is kernel 5.6, not 3.18.** The frank-w BPI-Router-Linux project already ported `wlan_drv_gen2` to kernel 5.6 (last known working). The breakage at 5.7 (BT) and 6.0 (WiFi) is the actual gap to close — not a full 3.18→6.6 leap. Starting from the frank-w 5.6 tree and identifying the 5.7/6.0 API breakages is the correct approach if this is ever attempted. Note: BPI-R2 uses external SDIO MT6625 (different HIF than MT6797 AHB), so the wifi gen2 driver core is shared but the HIF layer would need MT6797 AHB path work. USB-Ethernet remains the Phase 8 plan.
+149:12. **Recommended minimum kernel version: 6.1 LTS** — mature Panfrost T860, MT6797 DTS support, and RT9467 charger driver (which supports RT9466). AW9523B GPIO driver is not in mainline; keyboard port is required. ~~covers MT6351 regulator (6.2)~~ **CORRECTION (2026-06-10): the MT6351 regulator never landed in mainline at any version** — verified against the v6.6 tree (only the ASoC codec exists). See PMIC row.
+151:13. **MT6351 PMIC is NOT upstreamed (correction, 2026-06-10).** Earlier rows claimed the regulator and RTC were mainline; direct inspection of v6.6 shows no MT6351 MFD/regulator/RTC anywhere — only `sound/soc/codecs/mt6351.c`. Bring-up consequence: all MT6351 rails must be `regulator-fixed` stubs (LK leaves them configured); eMMC `vmmc`/`vqmmc` stubs needed for Phase 4; RTC deferred. A real MT6351 MFD+regulator port (mt6397-family pattern) is a new post-freeze driver-port item.
+[kernel.md]
+3:Target: **Linux 6.6 LTS**. This document records kernel configuration and
+18:| Physical UART | UART0 @ `0x11002000` | Vendor DTB `apuart0@11002000`; mainline `mt6797.dtsi` `uart0: serial@11002000` |
+20:| Mainline console name | `ttyS0` (8250_mtk) | `serial0 = &uart0` alias in board DTS |
+23:| RX pin | GPIO97, aux function 1 = URXD0 | MT6797 spec Table 2-7 p.64; vendor DTB `uart0_rx_set@gpio97` |
+24:| TX pin | GPIO98, aux function 1 = UTXD0 | MT6797 spec Table 2-7 p.64; vendor DTB `uart0_tx_set@gpio98` |
+33:Note that mainline `mt6797.dtsi`'s default `uart0_pins_a` muxes GPIO234/235 —
+34:**wrong for the Gemini**. The board DTS overrides with GPIO97/98
+35:(`uart0_gemini_pins`).
+39:No mainboard soldering is required. The MediaTek preloader muxes UART0 onto
+139:| Flash | `mtk w boot2 <image>` only (CLAUDE.md flashing rules) |
+173:[boot.md](boot.md). The vendor's dynamic carve-outs (ccci modem, consys,
+186:- Source: Linux 6.6 LTS; patched at build time from `patches/v6.6/` (never
+208:| Console / earlycon | 8250_mtk on uart0, 921600, earlycon via stdout-path | Decided (above) |
+214:| PMIC MT6351 | No mainline driver exists (blockers.md B-12) — all rails as `regulator-fixed` stubs; `CONFIG_REGULATOR_MT6351` does not exist, do not look for it | Decided 2026-06-10 |
+[driver_ports.md]
+14:- [R63419 Display Panel](#r63419-panel)
+15:- [AW9523B Keyboard Matrix](#aw9523b-keyboard)
+16:- [FUSB301A USB-C CC Controller](#fusb301a-cc-controller)
+17:- [MT6351 Fuel Gauge](#mt6351-fuel-gauge)
+19:- [MT6797 CONSYS WiFi/BT](#mt6797-consys-wifibt)
+356:The MediaTek DRM driver (`CONFIG_DRM_MEDIATEK`) supports multiple SoCs using a common DDP (Display Data Path) framework but MT6797 is absent from every component in Linux 6.6. The supported list in `mtk_drm_drv.c` is: mt2701, mt7623, mt2712, mt8167, mt8173, mt8183, mt8186, mt8188, mt8192, mt8195.
+421:- Dual-DSI not yet implemented. The R63419 panel uses two DSI ports (port0 + port1) for 1440×2560 at full bandwidth. Single-DSI bring-up will work at reduced resolution or reduced lane rate. Full dual-DSI requires `mipi_tx1` node (0x1021e000) and second DSI controller — defer until single-DSI verified working.
+427:## R63419 Panel
+431:**Status:** Code complete — **compiled as module in full kernel build 2026-06-10** (`DRM_PANEL_RENESAS_R63419=m`); not yet tested on hardware
+436:The Gemini PDA display is a 5.99-inch Renesas R63419 WQHD (1440×2560) MIPI DSI CMD-mode panel ("Truly Phantom 2K"). The vendor driver lives in the MTK LCM framework (`drivers/misc/mediatek/lcm/r63419_wqhd_truly_phantom_2k_cmd/`) which is an Android-only abstraction that cannot be ported. A new DRM panel driver must be written.
+445:| `drivers/gpu/drm/panel/panel-jdi-fhd-r63452.c` | Renesas R634xx family (FHD variant of same controller family as R63419) |
+459:| Controller | Renesas R63419 |
+461:| Panel name in vendor | `r63419_wqhd_truly_phantom_2k_cmd_ok` |
+465:1. Extract init command sequence from `r63419_wqhd_truly_phantom_2k_cmd/` LCM source
+495:Full DRM panel driver written from scratch. Init sequence (`lcm_initialization_setting[]`) extracted verbatim from vendor LCM source and translated to `mipi_dsi_dcs_write_buffer()` calls. Power sequence and panel parameters all confirmed from `r63419_wqhd_truly_phantom_2k_cmd_ok_mt6797.c`.
+498:- `patches/v6.6/panel/0005-drm-panel-add-renesas-r63419-wqhd-panel.patch` — new `panel-renesas-r63419.c` + Kconfig + Makefile
+510:## AW9523B Keyboard
+514:**Status:** **WORKING ON HARDWARE 2026-07-12 (Phase 6 Stage A complete)** — physical typing at the panel console confirmed (build #164; baseline #168). Full root-cause chain: (1) LK hands over with SHDN (GPIO58) low → chip in reset; the driver's `reset-gpios` deassert at probe is mandatory (chip validated live first via i2c-dev: bus i2c-3 = i2c5 hw @0x1101c000, ACKs at 0x5b, ID 0x23); (2) the keyboard DT node carried a second hidden `status="disabled"` after the keymap — no platform device; (3) matrix polarity — legacy `matrix_keypad` ignores GPIO_ACTIVE_LOW flags in row-/col-gpios and requires the `gpio-activelow` property (live register proof: idle cols out-high vs pulled-up rows, logs/2026-07-12-163 session). **IRQ blocked by missing EINT (B-11)** — polling via local patch `patches/v6.6/input/0001` (`poll-interval = <20>`; v6.6 matrix_keypad is otherwise IRQ-only, the earlier "can poll" claim was wrong). **Known side-effect: enabling the expander breaks the USB gadget (B-18)** — USB currently disabled by decision. Remaining: Fn layer (base keymap = 53 keys; all other punctuation needs it), keymap verification, B-18, EINT (Stage B).
+519:The Gemini PDA physical QWERTY keyboard uses an AWINIC AW9523B GPIO expander / LED driver (I2C `0x5b`, address 0x5b = 0x58 base | AD0=AD1=1) on I2C bus 5 to scan the keyboard matrix. The vendor driver uses a proprietary `mediatek,aw9523_key` binding incompatible with mainline.
+521:**CORRECTION from hardware.md:** AW9523B is not in mainline Linux 6.6. A prior project note claimed "AW9523B GPIO driver mainlined (~6.0)" — this was incorrect. No `aw9523` entries exist in `drivers/gpio/`, `drivers/mfd/`, or any other location in Linux 6.6.
+523:The Gemian project ships a custom Linux input driver for the AW9523B keyboard, which is a Linux input driver (not an Android HAL). This is the best available porting reference.
+527:#### Path A — AW9523B GPIO Driver + `matrix-keypad` (Recommended)
+529:Write an AW9523B GPIO driver that integrates with standard Linux `gpiolib`, then use the existing `matrix_keypad.c` driver for keyboard scanning.
+534:- AW9523B GPIO driver is independently upstreamable
+539:drivers/gpio/gpio-aw9523b.c        ← new: AW9523B gpiolib driver
+546:    compatible = "awinic,aw9523b";
+564:**AW9523B GPIO Driver Checklist (follows Porting Methodology above):**
+569:Step 3  Implement: struct aw9523b_chip, regmap_config, gpiochip_add_data
+571:Step 5  Write YAML DT binding: Documentation/devicetree/bindings/gpio/awinic,aw9523b.yaml
+579:Port the Gemian keyboard driver directly. It is a Linux input driver targeting the Gemini PDA hardware specifically, not an Android HAL. It handles both AW9523B communication and keyboard matrix scanning in a single driver.
+590:### AW9523B Register Map
+614:Path A chosen and implemented. The AW9523B GPIO driver (`drivers/gpio/gpio-aw9523b.c`) is written and compiles cleanly. The keyboard matrix is wired in DTS as a `gpio-matrix-keypad` child node.
+617:- AW9523B on I2C bus 5 (0x1101c000), address 0x5b (AD0=1, AD1=1; base 0x58)
+626:- `patches/v6.6/gpio/0001-gpio-add-awinic-aw9523b-gpio-expander.patch`
+628:- `scripts/test-aw9523b.sh` — driver validation test
+638:## FUSB301A CC Controller
+642:**Status:** Code complete — **compiled as module in full kernel build 2026-06-10** (`TYPEC_FUSB301A=m`; the prior review's `devm_usb_role_switch_get` "fix" used a nonexistent API — replaced with `usb_role_switch_get` + devm action, see findings.md); DTS node added (disabled); role-decode FIXME still needs the datasheet; not yet tested on hardware
+647:The Gemini PDA uses an ON Semiconductor FUSB301A (I2C `0x25`) for USB Type-C CC logic. This chip is CC-only: it detects connector orientation and VBUS presence but does **not** implement Power Delivery negotiation.
+649:**Important distinction:** The mainline FUSB302 driver (`drivers/usb/typec/tcpm/fusb302.c`) is a completely different chip — a full TCPM (USB Type-C Port Manager) with PD support. It is not adaptable for FUSB301A.
+653:USB2 host mode works without the FUSB301A. No orientation detection, fixed polarity, 500 mA default. Sufficient for Phase 3 (FTDI serial console) and Phase 4 (storage).
+665:The FUSB301A exposes CC detection state via I2C registers. A minimal driver reads these and reports them to the kernel's USB role switch framework.
+668:1. Probe: read device ID register, verify FUSB301A presence
+678:### Key FUSB301A Registers (from ON Semi application note)
+691:Driver written from scratch using mainline idioms (regmap, devm_*, usb_role_switch). Compiles cleanly against Linux 6.6.
+695:- Confirmed from vendor DTS: aeon6797_6m_n.dts &i2c0 block, fusb301a@25
+698:- `patches/v6.6/usb/0001-usb-typec-add-fusb301a-cc-controller.patch`
+703:- FUSB301A IRQ GPIO: not found in vendor DTS. Driver operates poll-less (status read on connect) until IRQ GPIO is identified via hardware probing.
+704:- Orientation switch GPIO: vendor DTS references `fusb301a_sw_en` and `fusb301a_sw_sel` GPIOs (lines 5213–5229 of vendor DTS tmp). These control an external USB switch for CC orientation — need GPIO numbers extracted and wired into DTS before orientation switching works.
+708:## MT6351 Fuel Gauge
+717:The MT6351 PMIC contains an integrated coulomb counter. In the Android vendor driver this is exposed via `drivers/misc/mediatek/battery/` — a custom battery meter tightly coupled to the Android power HAL and not portable.
+719:**Mainline status:** No MT6351 fuel gauge or ADC driver exists in Linux 6.6. The `mt6360-adc.c` and `mt6370-adc.c` drivers cover different PMICs. `generic-adc-battery.c` requires an IIO ADC input that MT6351 does not expose in mainline.
+724:1. Load `rt9467-charger.c` driver (covers RT9466).
+727:4. The RT9466 charger hardware manages voltage and current limits safely.
+734:# (requires RT9466 ADC register access via sysfs or i2c-dev)
+739:A complete MT6351 fuel gauge requires:
+740:1. **`mt6351-adc.c`** — expose MT6351 PMIC ADC channels via IIO (battery voltage, BATSNS current, temperature). Estimated ~200–500 LOC.
+741:2. **IIO channel binding** — link ADC channel to `generic-adc-battery` or a dedicated MT6351 fuel gauge driver.
+742:3. Alternatively, a standalone `mt6351-fg.c` that reads the coulomb counter directly.
+748:- Identify MT6351 ADC register offsets from vendor PMIC source (`drivers/misc/mediatek/pmic/`).
+749:- Determine whether the MT6351 MFD driver in mainline can be extended to register an ADC sub-device, or whether a standalone driver is needed.
+750:- Assess whether RT9466 registers expose a battery voltage ADC that could serve as a minimal voltage source for userspace.
+794:## MT6797 CONSYS WiFi/BT
+803:The MT6797X CONSYS is a **hard-IP block integrated into the SoC die**. It is not a discrete external chip. It contains a WiFi MAC/baseband, a BGF block (BT + GPS + FM + ANT), and their shared RF front-end.
+806:MT6797X SoC
+809:│   ├── AHB bus ──────────────────── WiFi MAC/baseband (memory-mapped registers)
+810:│   ├── BTIF (on-chip UART) ─────── CONSYS control CPU + BT/GPS/FM mux (STP framing)
+811:│   └── /dev/mtk_stp_wmt (ioctl) ─── wmt_launcher daemon (firmware + coexistence mgmt)
+813:└── CONSYS block
+814:    ├── WiFi MAC (AHB-mapped)
+815:    ├── BT BGF (via BTIF/STP)
+816:    ├── GPS (via BTIF/STP)
+817:    ├── FM radio (via BTIF/STP)
+818:    └── CONSYS control CPU (runs MCU firmware patches)
+822:- WiFi uses **AHB bus** (NOT SDIO). The gen2 driver registers as a `platform_driver` with `"mediatek,wifi"` compatible and uses AHB memory-mapped register access + PDMA DMA engine.
+823:- BT/GPS/FM are multiplexed over a single BTIF channel using **STP** (Serial Transport Protocol, a proprietary MTK framing layer). STP is a kernel TTY line discipline (`N_MTKSTP`, ID=16).
+824:- The `wmt_launcher` userspace daemon must run before any RF function is usable. It opens `/dev/mtk_stp_wmt` and loads MCU firmware patches into the CONSYS control CPU.
+830:| `mt76` | PCIe/USB chips only (MT7603/MT7615/MT7921). No AHB or integrated variants |
+832:| `conninfra` | MT7921-era Filogic PCIe architecture. Completely different from WMT/STP stack |
+833:| `hci_uart` | BTIF is not a standard TTY; STP framing required; WMT must be running first |
+834:| `btmtkuart` | For external UART chips; does not match CONSYS BTIF architecture |
+[blockers.md]
+26:against real hardware running Linux 6.6 (that requires B-2, the first 6.6
+46:  hardware") is now satisfied. Next: flash a Linux 6.6 `boot2` image and
+57:- **Treat the first 6.6 flash as an experiment about LK, not about Linux 6.6.**
+78:  5. ⬜ Flash only `boot2`: `mtk w boot2
+139:  15. ✅ Found our explicit-address `earlycon=uart8250,mmio32,0x11002000`
+141:      `early_mtk8250_setup` (only reachable via DT-node match on uart0's
+143:      `"mediatek,mt6577-uart"` at `0x11002000`). Switched to the bare
+185:  2. `earlycon` variants (explicit `earlycon=uart8250,mmio32,0x11002000`).
+236:     #62/#65/#67/#69". Summary: the clock that hangs is `infra_uart0` — the
+249:     completes, `infra_uart0` is skipped (enable_count now > 0), boot
+260:  With both workarounds, Linux 6.6 reached `Run /init as init process` —
+265:  Linux 6.6 boot with diagnostic serial output) is met.**
+297:| ON Semi FUSB301A | `usb/0001` | TYPE-register role decode (current logic FIXME-flagged, likely inverted) |
+298:| AWINIC AW9523B | `gpio/0001` | ID value 0x23, CTL bit semantics |
+315:userspace boots fully under Linux 6.6 — systemd 239, udev, sshd, connman,
+330:  B-2 now resolved and Linux 6.6 reaching `Run /init as init process`, init's
+436:## 🟡 B-8 — R63419 panel requires dual-DSI for native resolution
+494:| RT9466 charger | 7 | GPIO246 |
+495:| AW9523B keyboard | 6 | GPIO87 (EINT10) |
+496:| FUSB301A USB-C CC | 4+ | TBD |
+518:  `poll-interval = <20>`; the aw9523b DTS node has its interrupt
+523:  prerequisite (RT9466 charger IRQ).
+525:## 🟡 B-12 — MT6351 PMIC has no mainline support (hardware.md was wrong)
+528:`CONFIG_REGULATOR_MT6351` does not exist — direct inspection of v6.6 shows
+529:**no MT6351 MFD, regulator, or RTC driver anywhere in mainline** (only the
+530:ASoC codec `sound/soc/codecs/mt6351.c`). hardware.md previously marked the
+539:- **Long-term:** a real MT6351 MFD + regulator driver port (mt6397-family
+628:panel-solomon-ssd2092 1401c000.dsi.0: failed to attach DSI: -517
+651:registers (`panel-solomon-ssd2092 1401c000.dsi.0: Solomon SSD2092 FHD DSI
+717:`CONFIG_DRM_MEDIATEK`/`CONFIG_PHY_MTK_MIPI_DSI`/`CONFIG_DRM_PANEL_RENESAS_R63419`/
+757:This is a genuine upstream Linux 6.6 gap in MT6797 support, not a Gemini
+803:(`panel-renesas-r63419 ... registered`) — but the kernel then hard-hangs and
+842:build #79 (`panel-renesas-r63419 ... registered`), then hard-hangs with the
+880:   still `panel-renesas-r63419 ... registered` (0.4569s) — the moment the
+929:returning (`probe of 1401c000.dsi.0 returned 0`, `r63419_driver_init
+1262:PDN/HOST_SEL → PMIC MT6351 rails (VUSB33/VA10) all ruled out in turn by
+1417:`panel-solomon-ssd2092 1401c000.dsi.0: Solomon SSD2092 FHD DSI panel
+1435:`panel-solomon-ssd2092.c` or `mtk_dsi.c`), not evidence they were skipped.
+1440:   invoked by the DSI bridge's atomic enable path, and whether the SSD2092
+1441:   init command sequence (`panel/0005-drm-panel-add-solomon-ssd2092-fhd-panel.patch`)
+1443:   `panel-solomon-ssd2092.c` on the next boot to see this.
+1469:callbacks, and `ssd2092_prepare`/`enable`/`get_modes`). Packed as build #164
+1605:Linux 6.6 on this device that coincidentally overlapped with the low-battery
+1616:`ovl0`→`dsi0` and loading `lcmname = aeon_ssd2092_fhd_dsi_solomon` around the
+1856:# auto-detect — NEVER use `mtk wl`, only `mtk w linux ...`)
+1871:`mtk w linux ~/gemini-build/OUTPUT/debian13-rootfs.img`, boot2 left untouched at build #71). Serial capture
+1893:| 2026-06-10 | Console identity contradiction (ttyMT0 vs ttyMT3 vs ttyS0) — risk of silent dead boot | **ttyMT0 = UART0 @ 0x11002000 @ 921600**, triple-sourced (vendor DTB bootargs + spec Table 2-7 pinmux + mainline dtsi). ttyMT3 was a never-used `CONFIG_CMDLINE` fallback. See kernel.md. |
+1963:two images above (`mtk w boot2 ...` / `mtk w linux ...`), leave all other
+2074:- Our Linux 6.6 kernel's text starts at `0xffff800080000000` (`_text`,
+2417:## 🟢 B-18 — AW9523B keyboard enablement breaks USB gadget (SSH-over-USB) — RESOLVED 2026-07-13
+2420:AW9523B GPIO expander enabled (`GPIO_AW9523B=y` + DTS node okay) AND
+2428:- Baseline #145 (no aw9523b) boots + SSH works with the same USB config,
+2429:  so the regression tracks the aw9523b bring-up, NOT key scanning (the
+2434:**Suspects (untested):** GPIO58 (SHDN) high or the AW9523B INT line
+2457:state, `aw9523b_pins` (`patches/v6.6/dts/0001-...patch`: SHDN/GPIO58
+2459:referenced by any `pinctrl-0` property on the `aw9523b` i2c node, so it was
+2464:**Fix:** add `pinctrl-names = "default"; pinctrl-0 = <&aw9523b_pins>;` to
+2465:the `aw9523b: gpio@5b` node. One-line functional change; regenerated the
+2472:`logs/2026-07-13-175-b18-aw9523b-pinctrl-fix/`):** clean boot to prompt,
+2475:three B-18 symptoms cleared in one fix, no diagnostic matrix needed.
+2479:now coexist). **New baseline:** display + keyboard + USB gadget SSH, all
+[boot.md]
+24:- The Kali userspace (`linux.img`) was built against kernel 3.18. Compatibility with Linux 6.6 is an open question — see CLAUDE.md Open Questions.
+38:The effective console on the known-good boot is **ttyMT0 = UART0 @ 0x11002000
+42:Pinmux GPIO97=URXD0 / GPIO98=UTXD0 confirmed by both the vendor DTB pinctrl
+73:DTS): ccci_md1 (0xa100000), ccci_share (0x600000), consys (0x200000),
+84:**Goal:** produce the first Linux 6.6 `boot2` image for B-2 (blockers.md).
+119:listening *before* touching the device, flash with `mtk w boot2
+128:**Flash:** `mtk w boot2` of `new_kali_boot.img` (checksums above) via
+172:`CONFIG_CMDLINE="console=ttyS0,921600n1 earlycon=uart8250,mmio32,0x11002000"`
+175:`0x11002000` regardless of what the bootloader passes. Reflash and recapture
+314:  kernel.md's documented UART0/921600 console.
+328:revisited — next step is flashing a Linux 6.6 `boot2` image and capturing
+403:explicit-address form we were using (`earlycon=uart8250,mmio32,0x11002000`)
+409:`arch/arm64/boot/dts/mediatek/mt6797.dtsi`: `uart0` (at `0x11002000`) has
+417:explicit address), which should resolve via `stdout-path` to `uart0` and
+433:(bare DT-node `earlycon`, resolving to `early_mtk8250_setup` via uart0's
+453:right before the final DRAM/cmdline dump and jump) may restrict UART0 MMIO
+455:kernel. ATF and LK both write UART0 registers directly throughout boot, so
+522:UART0 MMIO access to the secure world once ATF exits to a non-secure EL1
+593:map). Also newly learned: `mtk w boot2` writes were verified but never
+673:for the first time, the possibility of real Linux 6.6 serial output.
+782:## FIFTH 6.6 ATTEMPT — FIRST jump to K64: Linux 6.6 RUNS, hangs at SMP secondary bringup (2026-07-04)
+787:Linux 6.6 executed. Raw log: `logs/2026-07-04-21-scp-node-boot.log`.
+791:What Linux printed over earlycon mtk8250 @ 0x11002000 (921600n8):
+794:- `Machine model: MT6797X`
+859:## SEVENTH RESULT — MILESTONE: first full Linux 6.6 boot to userspace; panics in switch_root (no eMMC node) (2026-07-04)
+865:the first time a Linux 6.6 kernel has run end-to-end on the Gemini PDA:
+951:R63419 panel driver). Enabled the whole chain in the board DTS: `disp_ovl0`,
+957:`CONFIG_PHY_MTK_MIPI_DSI=y`, `CONFIG_DRM_PANEL_RENESAS_R63419=y`,
+969:  `panel-renesas-r63419.o` — `CONFIG_BACKLIGHT_CLASS_DEVICE` was `=m` while
+999:Root-caused to a genuine upstream Linux 6.6 bug, not a Gemini DTS mistake —
+1195:drove the MT6351 PMIC rails from hardcoded platform code, an interface the
+1201:- `vemc_fixed` 3.0 V (PMIC MT6351 VEMC) → `vmmc-supply`
+1333:under Linux 6.6?
+1508:Recovery: `mtk w linux planet/linux.img` restores the 2019 Kali userspace.
+1755:unconditionally enable **PMIC MT6351 rails before any SIF access**:
+1765:Mainline support check: pwrap driver supports mt6797 host + mt6351 slave protocol,
+1766:but there is **no MT6351 MFD/regulator driver in mainline 6.6** — a proper fix
+1772:experiment — mtu3 probe pokes MT6351 directly via raw pwrap WACS2 transactions
+1779:the proper fix is pwrap + MT6351 regulator support (new driver_ports.md
+1793:Build #47 turns the MT6351 rails on directly (raw pwrap WACS2 writes:
+1974:[    0.631355] GEMINI-DEBUG: clk_disable_unused: disabling 'infra_uart0'
+1977:hangs on disabling is `infra_uart0` — the debug console's own baud clock.**
+1981:`"baud"` clock (our board DTS: `clocks = <&infrasys CLK_INFRA_UART0>, <&infrasys
+2006:`infra_uart3`/`infra_uart2`/`infra_uart1` disabled and OK, then **`infra_uart0`
+2188:[    0.379044] panel-renesas-r63419 1401c000.dsi.0: Renesas R63419 WQHD DSI panel registered
+2194:`panel-renesas-r63419 ... registered` line before dying. One cycle produced
+2308:cleanly with `dtc`, confirming the same MT6797/`mt6351` PMIC/`bq24261`
+2322:Renesas R63419 our Phase 5 work targets. Checked against our own vendor DTB
+2325:declares `lcm_params-r63419_wqhd_truly_phantom_2k_cmd_ok` and
+2326:`atag,videolfb-lcmname = "r63419_wqhd_truly_phantom_2k_cmd_ok"`. So R63419 is
+2360:- **WiFi:** confirmed integrated AHB hard-IP (`mediatek,mt6797-consys`
+2361:  compatible, `consys@18070000`/`wifi@180f0000` in the vendor DTB;
+2363:  driver), matching hardware.md's row 34 "AHB bus (not SDIO)" finding.
+2381:  Panel identity (R63419) reconfirmed correct for this hardware, as above.
+2407:[    0.380807] panel-renesas-r63419 1401c000.dsi.0: Renesas R63419 WQHD DSI panel registered
+2457:`panel-renesas-r63419 1401c000.dsi.0: ... registered` (0.4569s) followed by
+2478:`panel-renesas-r63419 ... registered` (0.4486s) then ATF watchdog. **None of
+2517:  - `panel-renesas-r63419 ... registered` at 0.4533s, then total silence
+2550:    `initcall r63419_driver_init returned 0 after 2476 usecs`.
+2648:  `SSD2092` LCM i2c writes, framebuffer fill) is what the user saw on-screen
+2983:  (`panel-renesas-r63419 ... registered`), `topology_sysfs_init` and
+3049:heartbeat, raw UART0 console, scpsys MM power-on as first-cut control).
+3083:UART0 every ~100 ms, each beat dumping every nonzero `GICD_ISPENDR`/
+3251:  complete` at 2.610s; R63419 panel registered at 2.616s.
+3325:- Flash: `mtk w boot`/`mtk w boot2` with that image
+3330:complete` at 2.608s, R63419 panel registered), serial ends at the mtu3 mux
+3418:r63419 panel probe → `mipi_dsi_attach` → `component_add` →
+3457:-06/-08) says `we will use lcm: aeon_ssd2092_fhd_dsi_solomon` with panel
+3458:ID read 0x01572098. The "r63419_wqhd_truly_phantom_2k_cmd" name in
+3461:driver from the wrong LCM. The real panel is a Solomon SSD2092, FHD
+3465:(`drivers/misc/mediatek/lcm/aeon_ssd2092_fhd_dsi_solomon/`). A
+3469:Fix (build #151): `panel/0005` rewritten as `panel-solomon-ssd2092.c`
+3472:`solomon,ssd2092`; `gemini-display.config` →
+3473:`CONFIG_DRM_PANEL_SOLOMON_SSD2092=y`.
+3477:## BUILD #151 (banner #42) — ssd2092 panel validated at DSI level; live forensics find TWO further blockers: SMI runtime-PM gating + backlight architecture (2026-07-07)
+3479:- Provenance: `logs/2026-07-07-151-ssd2092-panel/` (sha256 8de7198f…), capture `logs/2026-07-07-152-ssd2092-panel-boot.log`; later same-flash reboot observed via `logs/2026-07-07-153-reboot-observe-boot.log` (clean boot to the usual mtu3 console-mux cutoff at 2.97s — B-15).
+3504:on the ball**. Conclusion (backed by the gemian r63419_fhd LCM source's
+3512:known-present chips (rt9466 @0/0x53, lp3101 @1/0x3e) fails — I2C is not
+3674:  panel-solomon-ssd2092 1401c000.dsi.0: failed to attach DSI: -517
+3758:`mtk_drm_bind` completes, `panel-solomon-ssd2092 1401c000.dsi.0: Solomon
+[claude.md]
+5:Port the Gemini PDA (MediaTek Helio X27) from its legacy Android/Linux 3.18 kernel to the newest practical Linux kernel while maximizing the use of upstream Linux support and minimizing reliance on vendor-specific code.
+25:**Console (resolved 2026-06-10):** debug console is UART0 @ 0x11002000
+26:(vendor `ttyMT0`, mainline `ttyS0`), 921600 baud, RX=GPIO97 / TX=GPIO98.
+61:| 3 | Minimal kernel bring-up (serial console over FTDI) | **Complete 2026-07-04.** First full Linux 6.6 boot to userspace achieved (`Run /init as init process`) with diagnostic serial output throughout. See blockers.md B-2 (resolved) and boot.md's "SEVENTH RESULT" entry. |
+63:| 5 | Display enablement | **COMPLETE 2026-07-12.** Readable landscape text console (fbcon, rotate:3, TER16x32 font) on the physical SSD2092 panel, clean boot, zero display errors. Root-cause chain, in order discovered: (1) B-13 cpu0 hang = mtk_dsi unmasking asserted level-low IRQ at probe (fixed drm/0008); (2) flip_done/vblank pipeline stall = OD_CFG clobbered by dither (fixed drm/0014); (3) panel dark/banding = THREE stacked defects — manufacturer init commands ≥0xB0 must be GENERIC packets not DCS (vendor DSI_set_cmdq_V2 behavior; folded into panel/0005), D-PHY LP/turnaround timing ~40% too short from mainline's formula (LK's TIMCON values, drm/0015), and mode timings must come from the vendor KERNEL video-mode LCM driver (HFP26/HSA4/HBP20, VFP76/VSA1/VBP43, 167333 kHz), not LK's command-mode leftovers (folded into panel/0005). Production build #145 (banner #126): zz-debug stripped, USB restored, clk_ignore_unused dropped. Remaining follow-ups (not blockers): command-mode per-frame push is NOT needed (video mode); ESD/recovery, brightness control (Phase 9). See boot.md builds #105–#145 and blockers.md B-13/B-17 closure notes. |
+64:| 6 | Keyboard enablement | **Stage A COMPLETE 2026-07-12 — the keyboard types on the physical device** (build #164, baseline rebuild #168/banner #135). Three stacked root causes, in discovery order: (1) LK hands over with the AW9523B (i2c-3/0x5b, ID 0x23) held in reset — SHDN/GPIO58 low; driver `reset-gpios` deassert covers it; (2) the keyboard DT node carried a hidden second `status="disabled"` after the 53-key keymap — no platform device was ever created; (3) matrix polarity inverted — legacy `matrix_keypad` ignores GPIO_ACTIVE_LOW flags and needs the `gpio-activelow` property. Supporting work: local matrix_keypad polling-mode patch (`patches/v6.6/input/0001`, `poll-interval = <20>`) because v6.6 matrix_keypad is IRQ-only and pinctrl-mt6797 has no EINT (B-11); `console=tty0` added permanently (kernel log on panel). **B-18 RESOLVED 2026-07-13** (build #175/banner #140): the `aw9523b_pins` pinctrl state existed in the DTS but was never wired to the `aw9523b` node's `pinctrl-0`, leaving GPIO87/INT floating next to USB/mtu3 IRQ activity — one-line fix (`pinctrl-0 = <&aw9523b_pins>;`); `configs/gemini-usb.config` restored. Verified on hardware: keyboard + display + USB gadget SSH all working together for the first time. Fn layer also complete (2026-07-12, Fn=AltGr). Remaining: keymap niceties (Esc, media keys), Stage B = EINT in pinctrl-mt6797 (B-11; also unblocks RT9466 charger, FUSB301A, touchscreen). |
+65:| 7 | Power management | **Researched 2026-07-12** (research.md "Battery & Charging Research") — queued after Phase 6 keyboard completion (user decision). Key facts: RT9466 charger (I2C 0x53) is covered by mainline `rt9467-charger.c` (VID 0x8), but the driver hard-requires its IRQ → GPIO246/EINT → **blocked by B-11** (same EINT gap as the keyboard IRQ); plan = fix B-11 first (also upgrades keyboard to IRQ-driven) or patch the driver IRQ-optional. Today the Linux boot path charges (if at all) on RT9466 hardware defaults only — LK on the Kali slot cannot even reach the charger (I2C errors in every capture); Android charges because its vendor driver runs. Fuel gauge (MT6351) has no mainline support — charger-only + userspace voltage monitor is the Phase 7 minimum. |
+66:| 8 | Networking | **B-18 RESOLVED 2026-07-13 (build #175/banner #140): USB gadget/SSH restored, working alongside the keyboard** — root cause was a dead `pinctrl-0` reference on the `aw9523b` DTS node (GPIO87/INT left floating next to USB/mtu3 IRQ activity); one-line fix, `configs/gemini-usb.config` restored, `configs/gemini-serial-console.config` retired to `.disabled`. Verified on hardware: boot, keyboard, gadget enumeration (`en12`, fixed MAC), ping, SSH all working together — see boot.md "BUILD #175" and blockers.md B-18 (now 🟢). This unblocks WiFi Stage 1 (USB host mode). History: **SSH-over-USB fast-track VERIFIED WORKING 2026-07-06:** build #53 (clean, no debug instrumentation) confirmed end-to-end on hardware — RNDIS/Ethernet gadget enumerates on the host, static IP + ping + `ssh root@10.15.19.82` all succeed (boot.md TWENTY-SIXTH RESULT). An apparent hang across builds #40–#52 was chased through clock/IPPC/PMIC forensics before being root-caused to the documented UART/USB console mux switching mid-boot, not a driver defect (B-15, resolved). Note the left USB-C port is shared with the UART console mux: serial and direct-to-Mac USB are mutually exclusive — verification requires a single-cable-swap protocol. WiFi (no mainline driver) remains not started. **Update 2026-07-08:** `g_ether` gadget now has a fixed MAC (`g_ether.dev_addr`/`host_addr` in `configs/gemini-cmdline.config`) instead of randomizing one every boot, so macOS no longer treats each boot as a new device — folded into build #178 (banner #63). **B-17 gadget/SSH sub-issue root-caused and CLOSED 2026-07-08:** a full SP Flash Tool scatter-file restore (done to reset the device to a clean baseline) wiped p29 (`linux` partition), replacing the Debian 13 rootfs with the factory Kali image — this, not any kernel/driver regression, was why builds #71/#159/#178 all appeared to have identical gadget failures afterward (confirmed via cross-host isolation on a Linux workstation, ruling out Mac-specific causes, before the rootfs was identified as the actual variable). **Current known-good baseline (2026-07-08):** `boot2` = build #71 kernel (banner #5, sha256 `c38e176bf18870a17636d66d22081c2e463384f9587c322bd4de2d8fe484d98e`), `linux` (p29) = freshly rebuilt `debian13-rootfs.img` (sha256 `a87d4780e7ccbbdba0a281b7e174c60f0eff181c1e470c5bdc8c5b3e8cd8c79e`) via `scripts/mkrootfs.sh` — SSH-over-USB reconfirmed working end-to-end (`logs/2026-07-09-185-freshrootfs-boot-check.log`, boot.md "FRESH DEBIAN 13 ROOTFS REFLASH"). Root password is `toor` (no key auth on a fresh rootfs); expect a one-time SSH host-key-changed warning after any rootfs reflash (`ssh-keygen -R 10.15.19.82` clears it) — this is expected, not a MITM. On the Mac, `en12` (RNDIS/Ethernet Gadget) may only self-assign an APIPA address after a fresh rootfs flash; add a static IP manually if so: `sudo ifconfig en12 alias 10.15.19.1 netmask 255.255.255.0`. The B-13 display sub-issue that also lives under B-17's heading (DRM atomic commit / `flip_done` timeout, panel dark) remains open. `CONFIG_PSTORE_RAM` also newly enabled (`configs/gemini-pstore.config`) so future crashes are diagnosable via `/sys/fs/pstore/` on the next boot. **WiFi plan adopted 2026-07-12 (user decision, WiFi only — no BT):** staged plan recorded in plan.md Phase 8 "WiFi plan" and research.md — Stage 0 fix B-18 (five-build single-variable diagnostic matrix, gate G0 = keyboard + gadget SSH in one build), Stage 1 USB dongle WiFi via mtu3 `dr_mode="host"` + xhci-mtk + upstream mt76 (recommended MT7921U, fallback MT7612U; gates G1a right-port enumeration, G1b SSH-over-WiFi — which frees the left port for serial permanently), Stage 2 time-boxed (~5 day) CONSYS feasibility spike (CONN power domain/clock/regulator bring-up + MCU firmware handshake, gates G2a/G2b) producing a go/no-go on porting the vendor gen2 stack (~150 KLOC; internal WiFi otherwise stays Phase 9). |
+152:Target: **Linux 6.6 LTS**
+162:a real, buildable Linux 3.18.41 kernel source tree for this exact device —
+171:(`docs/vendor-dtb/gemini_kali_boot.dts`) — e.g. it lacks the `fusb301a@25`
+191:  v6.6/                   — patches against Linux 6.6
+251:GCC 15.2.0 in the VM is confirmed working with both Linux 6.6 LTS and the 3.18 BSP kernel (Kali/Gemian). The GCC ≤ 4.9 requirement mentioned in earlier project notes was not substantiated by testing.
+255:**Conclusion:** GCC 15.2.0 can be used for both 3.18 BSP reference builds and Linux 6.6 development. No separate toolchain is required.
+362:booted fully under Linux 6.6 first (blockers.md B-7, boot.md SIXTEENTH
+369:partition (p29, 25.8 GiB) with `mtk w linux <img>`. This is what's currently
+384:`mtk w linux planet/linux.img` (5.5 GB, slow but proven).
+

@@ -1,0 +1,51 @@
+Planet Gemini LK-compatible mainline candidate (76 patches)
+
+validation=private-lk-candidate-wrapper
+generated_utc=2026-07-14T19:34:14Z
+source_revision=7.1.3
+package=linux-7.1.3-gemini-db59a88057b4
+patch_series_count=76
+patchset_sha256=db59a88057b4c0505cf6dfd80e990f38b74eb0e2a855799d926cf1d20e681306
+package_source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+config_sha256=c46e0d135ed290420362638ca36448055e19bb7029deaa7aad897d885275f7db
+guest_candidate_dir=/home/julien.guest/artifacts/boot-candidates/20260714-76
+candidate=linux-7.1.3-gemini-db59a88057b4.boot.img
+candidate_sha256=1e95bd92f654128620b284c7ea03595fdbc9d1a4ca693570de86ea6dfe55d408
+candidate_size_bytes=15714304
+initramfs=linux-7.1.3-gemini-db59a88057b4-uart-initramfs.img
+initramfs_sha256=4d4bbe05fa7c11a39d5e6341e551458d787344fd311cbefcb82e071f83ce5ef4
+initramfs_size_bytes=1006029
+image_gz_sha256=cd1b762413342f9fb0201c1689464f29d359e803f186c03857d12eb97e943ecb
+gemini_dtb_sha256=21529f78282cbf3a48f9260b8981f005f3643d54e729ab676384880c6ace1d4c
+cmdline=bootopt=64S3,32N2,64N2 console=ttyS0,921600n8 earlycon=uart8250,mmio32,0x11002000 root=/dev/ram0 rw
+image_name=gemini-mainline
+source_date_epoch=0
+
+[lk_parser]
+android_header_version=v0
+kernel_addr=0x40080000
+kernel_addr_aligned_512k=yes
+ramdisk_addr=0x45000000
+page_size=2048
+header_dt_size=0
+kernel_gzip_magic=yes
+gzip_stream_size=14679336
+decompressed_kernel_size=48545800
+lk_mt6797_decompress_limit=52428800
+decompressed_within_mt6797_limit=yes
+bootopt_64=yes
+appended_dtb_offset=14681384
+appended_dtb_size=24896
+fdt_starts_at_gzip_stream_end=yes
+
+package_checksum_validation=passed
+lk_parser_validation=passed
+hardware_write=none
+transferred_to_flashing_machine=no
+flash=none
+booted_on_hardware=no
+
+This is a private, VM-owned, non-flashing candidate. It is suitable for a
+future explicitly authorized recovery-backed boot experiment, but parser
+compatibility is not LK acceptance and does not establish mainline runtime
+support. Preserve the vendor boot path and recovery image before any transfer.

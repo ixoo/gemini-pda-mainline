@@ -1,0 +1,95 @@
+Current Linux 7.1.3 Gemini connectivity/WMT package validation
+===============================================================
+
+Date: 2026-07-14
+Package: linux-7.1.3-gemini-c2d9eea95daa
+Vendor tree commit: c5b0be85017ad0c599725e8273842efdbecdd88a
+Linux source manifest SHA-256: be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+Patch count: 72
+Patchset SHA-256: c2d9eea95daa25dd8faddef4f9822e663db67d5d0946f06f0251cc52c92cf08c
+Package Image SHA-256: 3fb6ac3043dff85dc2b6e68a2bba26d36fedf748e6f7c1bf6b6630f87446be7c
+Package config SHA-256: 831289dd3b53c6cec09e6c614fd83d3ab5988a4c30090bf9ec172348ec9487d5
+Package Gemini DTB SHA-256: b41580263940b47226e9819c97afbdaa9a35d4c721c471d2e8a0a3d597c553c5
+Source analyzer output SHA-256: f7f6311aa341e3dadb67d0bf63128476f2d7fe47a93b6b78b499a5cf9c3a7a5a
+Userspace analyzer output SHA-256: 65b228c058c95b042b601459824f418b1031615e4e2e75ef46e2bd78b56bac65
+Package audit output SHA-256: daf4e8de6c079e2538f38ad5e8a8350d92ec03ae0928eebd6de4769fe1237edd
+Source analyzer script SHA-256: 9740c48042c2e995a7fd09b7dbb00ee40cb67545608378dddf5dcbadd6fd059d
+Userspace analyzer script SHA-256: dc78a543e7fe0b45a1410fcd53ad9bf5a50e760f639961219309488298329d01
+Package-audit script SHA-256: 4adc7d1c8a2fed9275d056d93c196f37836ff2c46d8b82951d26d153edbfc9ba
+Collector script SHA-256: 1a1915f10e1c1bed8b06588104f990f24929c91d941afa218c00981464dcec34
+
+The package audit was rerun in the prepared arm64 VM and was byte-identical on
+rerun. The source-contract hash above is retained from the vendor-tree audit;
+that comparison is independent of the package identity. ShellCheck and
+`bash -n` passed for the connectivity scripts. This record supersedes the
+earlier 71-patch package with the same filename; the package identity and
+audit hash above are authoritative.
+
+Configuration boundary
+----------------------
+
+  CONFIG_BT=m
+  CONFIG_BT_MTK=m
+  CONFIG_BT_HCIUART=m
+  CONFIG_BT_HCIUART_SERDEV=y
+  CONFIG_BT_MTKUART is not set
+  CONFIG_BT_MTKSDIO is not set
+  CONFIG_BT_HCIBTSDIO is not set
+  CONFIG_CFG80211=m
+  CONFIG_MAC80211=m
+  CONFIG_MT76_CORE=m
+  CONFIG_GNSS=m
+  CONFIG_GNSS_SERIAL=m
+  CONFIG_GNSS_MTK_SERIAL=m
+  CONFIG_MTK_WMT is absent
+  CONFIG_MTK_BTIF is absent
+  CONFIG_MT6797_CONSYS is absent
+  CONFIG_MMC_MTK=y
+  CONFIG_FW_LOADER=y
+
+Packaged modules include generic `btmtk.ko`, `hci_uart.ko`, GNSS core/serial/
+MTK-serial modules, and `mt76`/Connac/MT7921 modules. `btmtkuart.ko` and
+`btmtksdio.ko` are absent, and no vendor WMT/BTIF/CONSYS/Wi-Fi transport is
+packaged. The `mt76` objects target other MediaTek families and are not proof
+of a Gemini MAC match.
+
+Device-tree boundary
+--------------------
+
+The packaged Gemini DTB has one retained `consys-reserve-memory` node:
+
+  compatible = "mediatek,consys-reserve-memory";
+  no-map; size = 0x200000; alignment = 0x200000;
+  alloc-ranges = 0x40000000..0xc0000000
+
+It has zero active `consys`, `wifi`, `btif`, `gps`, `gps_emi`, STP, or WMT
+transport nodes. The board patch adds only the reserved-memory declaration.
+This preserves firmware-owned space without exposing an unverified transport.
+
+Source/runtime interpretation
+-----------------------------
+
+The source audit confirms the vendor transport discrepancy: the observed
+legacy SDIO path uses function-2 IDs `0x6628/0x6630/0x6632`, a four-byte header,
+512-byte blocks, and a 2080-byte FIFO, while Linux `btmtksdio` targets newer
+IDs with a five-byte header and 256-byte blocks. The active live path also has
+MT6797 BTIF DMA windows at `0x1100c000`, custom WMT firmware loading, CONSYS
+supplies/clocks, and BGF/WDT IRQ ownership. The userspace audit confirms that
+`wmt_launcher`, `wmt_loader`, `mtk_agpsd`, and Wi-Fi factory tools use private
+WMT/BTIF/GNSS character/ioctl and firmware boundaries.
+
+Decision
+--------
+
+The package can provide standard HCI/STP, cfg80211/mac80211, SDIO, firmware-
+helper, and GNSS framework code, but it cannot bind the Gemini connectivity
+hardware. A future implementation needs a new MT6797 CONSYS owner and BTIF or
+legacy-SDIO transport, a firmware/retained-memory contract, and standard HCI,
+cfg80211, and GNSS interfaces above those transports. Do not reuse `mt76`,
+`btmtksdio`, or `gnss-mtk` by compatible-string similarity, and do not expose
+the vendor `/dev/stpwmt`, `/dev/wmtWifi`, or `/dev/stpgps` ABI as mainline UAPI.
+
+runtime_radio_bringup=not_attempted
+firmware_load=not_attempted
+radio_transmit=none
+hardware_write=none

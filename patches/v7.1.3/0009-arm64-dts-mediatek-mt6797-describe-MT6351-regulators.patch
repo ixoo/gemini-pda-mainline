@@ -1,0 +1,31 @@
+From 59fafb41ed0f34a63cd70e262bcba7df9faa37fd Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 12 Jul 2026 00:00:25 -0400
+Subject: [PATCH] arm64: dts: mediatek: mt6797: describe MT6351 regulators
+
+Add the regulator function container below the MT6351 companion.
+Individual rails and their board constraints remain the responsibility
+of board-level device trees.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ arch/arm64/boot/dts/mediatek/mt6797.dtsi | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+index cccfef6f9..de945ad2c 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797.dtsi
++++ b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+@@ -252,6 +252,10 @@ pmic: pmic {
+ 			interrupts = <176 IRQ_TYPE_LEVEL_HIGH>;
+ 			interrupt-controller;
+ 			#interrupt-cells = <2>;
++
++			mt6351regulator: regulators {
++				compatible = "mediatek,mt6351-regulator";
++			};
+ 		};
+ 	};
+ 
+-- 
+2.43.0

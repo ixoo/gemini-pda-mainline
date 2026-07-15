@@ -1,0 +1,20 @@
+Historical Linux 7.1.3 build validation after patch 46
+
+This historical record predates the current 72-patch series. See
+`mainline-pm-current-validation.txt` for the current build and source audit.
+
+- command: `./scripts/dev-vm build-kernel`
+- result: success; full arm64 Image and DTB package
+- patch count: 46
+- patchset SHA-256: `3b41ceb34a2c0c92538ee94608fc7148ff41b988705ab00b4c5dc32f40bcb007`
+- package: `linux-7.1.3-gemini-3b41ceb34a2c`
+- source SHA-256: `be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc`
+- config SHA-256: `0f98f03129508907261efaa6f1b195799313530628505e319d48427105ac385f`
+- Image SHA-256: `bcfb473f96f58ea7a77eef783fd4bce4927374f0b715dcdffa78d2760dade33c`
+- Gemini DTB SHA-256: `c1cc1023f9b2e6390b92f2164e8fdce06ff7830e861af892683b2defeab753b5`
+- compiler: GCC 13.3.0 (Ubuntu 24.04.1)
+- linker: GNU ld 2.42
+- checksum verification: `sha256sum -c SHA256SUMS` passed for all package files
+
+This is a compile/DTB result only. The image was not flashed or booted on the
+Gemini, and no cpufreq, thermal, idle, or suspend operation was attempted.

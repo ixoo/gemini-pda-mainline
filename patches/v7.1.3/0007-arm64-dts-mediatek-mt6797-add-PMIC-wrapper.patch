@@ -1,0 +1,60 @@
+From df1e3c6a8716da0dbc1841462cb4ceaf7670d06a Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 11 Jul 2026 23:25:01 -0400
+Subject: [PATCH] arm64: dts: mediatek: mt6797: add PMIC wrapper
+
+MT6797 has a PMIC wrapper at 0x1000d000 on GIC SPI 178. Its real
+clock inputs are the 26 MHz PMICSPI mux and PMIC_AP gate, and its
+mandatory reset is infracfg reset 64.
+
+Describe the wrapper and its MT6351 companion. Route the companion's
+level-high interrupt through EINT176, represented by the pinctrl
+driver's virtual pseudo-GPIO262 input.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ arch/arm64/boot/dts/mediatek/mt6797.dtsi | 21 +++++++++++++++++++++
+ 1 file changed, 21 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+index 5b02b7ebb..cccfef6f9 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797.dtsi
++++ b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+@@ -8,6 +8,7 @@
+ #include <dt-bindings/interrupt-controller/irq.h>
+ #include <dt-bindings/interrupt-controller/arm-gic.h>
+ #include <dt-bindings/pinctrl/mt6797-pinfunc.h>
++#include <dt-bindings/reset/mt6797-resets.h>
+ 
+ / {
+ 	compatible = "mediatek,mt6797";
+@@ -234,6 +235,26 @@ apmixedsys: apmixed@1000c000 {
+ 		#clock-cells = <1>;
+ 	};
+ 
++	pwrap: pwrap@1000d000 {
++		compatible = "mediatek,mt6797-pwrap";
++		reg = <0 0x1000d000 0 0x1000>;
++		reg-names = "pwrap";
++		interrupts = <GIC_SPI 178 IRQ_TYPE_LEVEL_HIGH>;
++		clocks = <&topckgen CLK_TOP_MUX_PMICSPI>,
++			 <&infrasys CLK_INFRA_PMIC_AP>;
++		clock-names = "spi", "wrap";
++		resets = <&infrasys MT6797_INFRA_PMIC_WRAP_RST>;
++		reset-names = "pwrap";
++
++		pmic: pmic {
++			compatible = "mediatek,mt6351";
++			interrupt-parent = <&pio>;
++			interrupts = <176 IRQ_TYPE_LEVEL_HIGH>;
++			interrupt-controller;
++			#interrupt-cells = <2>;
++		};
++	};
++
+ 	sysirq: interrupt-controller@10200620 {
+ 		compatible = "mediatek,mt6797-sysirq",
+ 			     "mediatek,mt6577-sysirq";
+-- 
+2.43.0
+

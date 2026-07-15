@@ -1,0 +1,106 @@
+Vendor sensor HAL axis, scaling, and timestamp contract
+
+Artifact and method
+--------------------
+- Artifact: sensors.mt6797.so, AArch64, SHA-256
+  8e1ed59dcf5938191974d30da2e6b5a993d2e1eebe6aa9452d8f89fe99f0d528.
+- Kernel artifact: `/usr/share/kernel/Image.gz-dtb` from the same device,
+  SHA-256 `a480e1459da6cbb5affe9f013163c6723b642869996c9b3974c5f3005e42c24e`.
+  It is retained only under the Git-ignored, owner-only device inventory.
+- The analysis is static only. It uses the preserved dynamic C++ symbols and
+  AArch64 objdump output from analyze-sensor-hal.sh plus a symbol-bearing ELF
+  reconstructed from the kernel image with `vmlinux-to-elf`; neither binary
+  was executed in the VM and no device sensor values were read.
+- The vendor input ABI is the packed Linux input_event tail at offset 16:
+  type is the low 16 bits, code is the next 16 bits, and value is the high
+  32 bits. The HAL does not use the input_event time fields in its decoder.
+
+Acceleration
+------------
+- AccelerationSensor::processEvent accepts EV_ABS (type 3), codes 0, 1, and
+  2, and stores the integer value as float(value) / mdiv. The three values are
+  stored in order in the HAL event's X, Y, and Z slots; the method contains no
+  axis permutation or sign change.
+- The constructor initializes mdiv to 1 and then reads a decimal value from
+  `/sys/class/misc/m_acc_misc/accactive`; the log strings call this value
+  `mdiv`. The live capture reports `accactive=1000`, so this is a captured
+  vendor scaling contract, not an assumed SI conversion.
+- EV_REL codes 6 and 7 carry metadata/status markers. They do not replace the
+  three ABS axes. Unknown event codes are logged and dropped.
+
+Gyroscope
+---------
+- GyroscopeSensor::processEvent has the same EV_ABS code 0/1/2 decoder and
+  float(value) / mdiv scaling. It stores the values in gyro X/Y/Z slots and
+  likewise contains no axis permutation or sign change.
+- Its constructor reads mdiv from
+  `/sys/class/misc/m_gyro_misc/gyroactive`; the live capture reports
+  `gyroactive=7467`. The attribute name is vendor-specific and must not be
+  treated as a stable Linux unit definition without a controlled physical
+  calibration test.
+- EV_REL codes 6 and 7 again carry metadata/status markers. The HAL accepts
+  only the expected type/code combinations.
+
+Event completion and timestamps
+-------------------------------
+- AccelerationSensor::readEvents and GyroscopeSensor::readEvents read the
+  packed type/code/value word and call processEvent for ABS/REL events.
+- On EV_SYN (type 0), the HAL calls android::elapsedRealtimeNano(). It emits
+  the assembled 104-byte Android sensors_event_t only after the marker state
+  indicates a complete sample and the timestamp is newer than the previous
+  one. The decoder therefore provides no evidence that the vendor input
+  event's timeval is preserved; mainline should use the IIO timestamp for the
+  physical sample and keep any compatibility conversion in userspace.
+
+Mounting transform
+------------------
+- The absence of a transform in both HAL processEvent methods is important:
+  the vendor `direction=7` values in the Gemini sensor configuration must be
+  applied in the vendor kernel driver (or an earlier sensor layer), not by
+  these HAL methods.
+- The recovered vendor kernel `hwmsen_get_convert()` indexes eight packed
+  conversion records (directions 0 through 7). Its table at kernel virtual
+  address `0xffffffc00138dc30` stores four signed values followed by four map
+  indices. Direction 7 is the record bytes
+  `ff ff ff 00 01 00 02 00`, therefore:
+  `sign = {-1, -1, -1}`, `map = {1, 0, 2}`, and
+  `out = {-raw_y, -raw_x, -raw_z}`.
+- MediaTek's public hwmsen helper defines the same `sign[]` plus `map[]`
+  conversion and describes `output[i] = sign[i] * input[map[i]]`. Its public
+  header is:
+  https://android.googlesource.com/kernel/mediatek/+/android-mtk-3.18/drivers/misc/mediatek/hwmon/include/hwmsen_helper.h
+  Public MediaTek sensor drivers call `hwmsen_get_convert()` with the DT
+  direction. The recovered Gemini kernel confirms that both the BMI160
+  accelerometer and gyroscope configuration nodes use direction 7.
+- The recovered vendor BMI160 code consumes the `cvt` record before the HAL
+  boundary: `bmi160_acc_read_sensor_data()` applies `sign[]`/`map[]`, scales
+  by the sensitivity using the embedded `9807` (0x264f) constant, and formats
+  the transformed integer triplet; the gyro `bmg_read_sensor_data()` follows
+  the same sign/map path and uses its embedded `131` (0x83) scale constant.
+  This proves the direction transform is kernel-side for both live vendor
+  BMI160 driver paths, rather than an artifact of the userspace decoder.
+- This is a kernel-side transform, not a HAL rewrite. Linux IIO's documented
+  mount-matrix operation multiplies the scaled sensor vector by the 3x3
+  matrix, so the equivalent mainline property is:
+  `mount-matrix = "0", "-1", "0", "-1", "0", "0", "0", "0", "-1";`.
+  The upstream layout/equations are documented at
+  https://www.kernel.org/doc/Documentation/devicetree/bindings/iio/mount-matrix.txt.
+
+Implication for Linux 7.1.3
+---------------------------
+- Static probe disassembly adds an address caveat: both vendor IMU probe
+  functions overwrite the incoming `struct i2c_client.addr` with `0x69`.
+  The live logical clients at `0x68` and `0x69` are therefore not evidence of
+  two physical BMI160 chips. The gyro initializer validates an ID in the
+  inclusive range `0xd0`–`0xd3`; the accelerometer path reads register `0x00`
+  but does not visibly reject a mismatch. The full interpretation is in
+  [`vendor-imu-probe.txt`](vendor-imu-probe.txt).
+- The upstream BMI160 IIO driver is still the preferred physical driver for
+  the live BMI160-compatible vendor path, if a safe identity probe confirms
+  that part. Its standard raw scale and IIO timestamps should be retained;
+  the direction-7 matrix above, supplies, and interrupt resources are the
+  remaining board-specific DT contract. Do not instantiate two BMI160 nodes
+  merely because the legacy DT has clients at both 0x68 and 0x69.
+- A physically different sensor is a valid reason for a new IIO driver. Do
+  not preserve the legacy misc/input ABI in the kernel merely to satisfy the
+  old HAL; that ABI is a userspace compatibility boundary.

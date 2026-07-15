@@ -1,0 +1,71 @@
+# Live Gemian inventory rerun — 2026-07-13
+
+## Provenance
+
+- Device: owner-authorized `gemini@192.168.1.50` over SSH.
+- Access: read-only regular-user probes; no sudo, writes, driver bind/unbind,
+  bus scans, suspend, reboot, or flashing operation.
+- Kernel: vendor `3.18.41+`, Debian 9 stretch, AArch64.
+- Collection code: [`scripts/collect.sh`](../scripts/collect.sh), plus the
+  focused USB/Type-C and UART collectors linked below.
+- Raw output is private and Git-ignored under
+  `artifacts/device-inventory/20260713-live/`; it is not an artifact for
+  staging or redistribution.
+
+## Captures
+
+| Capture | SHA-256 |
+| --- | --- |
+| [`hardware-inventory-buses.txt`](../../../artifacts/device-inventory/20260713-live/hardware-inventory-buses.txt) | `25573a3666e465f64b2978a5b3682256974bafe7185557fb886fa7abc9a743f5` |
+| [`hardware-inventory-peripherals.txt`](../../../artifacts/device-inventory/20260713-live/hardware-inventory-peripherals.txt) | `61ae8c1df7a2eecdff75ee3dae694417937c1e6c72ff6d97bfca7f6a81e2d67a` |
+| [`hardware-inventory-kernel.txt`](../../../artifacts/device-inventory/20260713-live/hardware-inventory-kernel.txt) | `dca2deaac19f493ba950e0cf6815cab661039d923c4e46c9d29bdd97131d9b68` |
+| [`usb-typec.txt`](../../../artifacts/device-inventory/20260713-live/usb-typec.txt) | `d50e255115fbe44600851bc422c3b864b4ac5c49aa90b79fca1a49dd70db1ea1` |
+| [`uart-console.txt`](../../../artifacts/device-inventory/20260713-live/uart-console.txt) | `48f6fa7c48f1956aec17a14eba17efbf096056e97e5d7a6594eab460e1358662` |
+| [`driver-resource-current-20260713.txt`](../../../artifacts/device-inventory/20260713-live/driver-resource-current-20260713.txt) | `8693381d25118e7db81eb61f7918c7e8d0f83a10958976272dfa7b24603a36b6` |
+
+## Durable observations
+
+- Platform identity remains `MT6797X` / `mediatek,MT6797`; the sanitized
+  device-tree bootargs expose `ttyMT0,921600n1`, `maxcpus=5`, and Android/LK
+  handoff fields. The serial value was redacted by the collector.
+- The live platform bus binds vendor drivers to all four `mt6797-uart` nodes,
+  both `mt6797-mmc` nodes, USB1 `musb11_dts`, USB3 `musb-mtu3d`, the MT6797
+  M4U, CMDQ, thermal controller, MTK BTIF, WMT combo, and Mali. The USB3 xHCI
+  child is present but has no driver link in this snapshot.
+- USB1 reports a `musbfsh` root hub at high speed with no attached device.
+  FUSB301 clients are bound at I2C0/I2C1 address `0x25`; no
+  `/sys/class/typec`, USB-role, or PHY class entries were exposed by the
+  vendor kernel. This reinforces the current disabled-only USB11/Type-C
+  mainline boundary; it does not prove a port or VBUS mapping.
+- The vendor thermal class exposes 13 zones. This snapshot reports ordinary
+  battery/CPU/PMIC temperatures plus known sentinel values (`-127 C`, `-275 C`,
+  and near-zero DRAM), so it is telemetry evidence only and not a calibrated
+  thermal contract.
+- The regulator class exposes 31 named PMIC rails plus the dummy regulator;
+  enabled rails include `vusb33`, `vcn18`, `vcn28`, `vcn33_bt`, `vcn33_wifi`,
+  `vemc_3v3`, `vmc`, and `vmch`. Values are vendor snapshots and must not be
+  used to authorize voltage changes.
+- The vendor cpufreq class reports `mt-cpufreq` with an interactive governor,
+  221–1547 MHz LITTLE entries, and a separate 338–2587 MHz big-cluster
+  policy. This remains evidence for the existing MT6797 DVFS boundary, not a
+  mainline OPP/voltage table.
+- The vendor kernel configuration confirms the downstream-only boundaries
+  already documented: MT6797 thermal/EEM, M4U, MUSB/MTU3/xHCI, WMT combo,
+  CCCI, vendor camera/display, and MTK serial/USB-switch symbols are enabled.
+  `/proc/modules` is absent on this installation, so no loaded-module list is
+  inferred from this rerun.
+- A focused owner-authorized read-only probe taken later the same day records
+  platform and I2C/SPI/MMC/USB driver links plus filtered interrupt ownership.
+  It reconfirms `11002000.apuart0`–`11005000.apuart3` bound to `mtk-uart`,
+  `11230000.msdc0`/`11240000.msdc1` bound to the vendor MSDC driver, and the
+  existing vendor watchdog, M4U, pinctrl, keypad, AUXADC, and modem transport
+  bindings. Sysfs did not expose per-platform `resource` files in this
+  userspace view, so no MMIO range is inferred from their absence.
+
+## Mainline consequence
+
+The rerun adds no justification for enabling a new consumer in the current
+Linux 7.1.3 board DT. It strengthens the evidence for reusing generic 8250,
+MUSB, MTU3/xHCI, regulator, thermal, MMC, and Type-C framework layers while
+keeping MT6797 glue, PHY/role/VBUS wiring, calibration, and modem/WMT paths
+disabled until a reversible mainline boot and controlled hardware tests exist.

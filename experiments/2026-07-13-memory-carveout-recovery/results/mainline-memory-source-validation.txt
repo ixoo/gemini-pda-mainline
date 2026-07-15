@@ -1,0 +1,38 @@
+Memory ownership source validation
+==================================
+
+Date: 2026-07-13
+VM: gemini-pda-dev
+
+Commands:
+  shellcheck experiments/2026-07-13-memory-carveout-recovery/scripts/*.sh
+  bash experiments/2026-07-13-memory-carveout-recovery/scripts/analyze-memory-contract.sh
+  ./experiments/2026-07-13-memory-carveout-recovery/scripts/audit-memory-ranges.py
+
+The vendor MT6797 DTS has fixed ATF/preloader/LK/CCCI declarations and dynamic
+CONSYS/SCP-share/SPM nodes; the generic Linux EVB DTS only declares a
+contiguous memory range. The current Gemini patch preserves the fixed pre-LK
+regions and all five dynamic reservation contracts. It does not snapshot the
+post-LK mblock addresses observed in one live handoff.
+
+The retained LK source audit additionally proves that LK rewrites `/memory`,
+`/chosen`, model/CPU metadata, and Android firmware properties, then appends
+runtime mblock reservations. Its `mblock_sanity_check()` compares existing
+reserved-memory `reg` nodes against those runtime entries before appending them;
+duplicating a post-LK snapshot in the input DT is therefore unsafe.
+
+Source SHA-256:
+  vendor arch/arm64/boot/dts/mt6797.dtsi
+    eaac86c8752ebd8ddf18b831eb3bc52a08f87475a213bb521650bf95dabb3e5e
+  Linux 7.1.3 arch/arm64/boot/dts/mediatek/mt6797.dtsi
+    35d0414a91f6798d1f9ebfee0086a4dfb2de85ea3317132536915ae347372531
+  Linux 7.1.3 arch/arm64/boot/dts/mediatek/mt6797-evb.dts
+    ace973acc8e7b761e83cf8d3095dcdffa5f8d872a8ab53400f2a86c2b920fa2a
+  local patch 0020-arm64-dts-mediatek-add-Planet-Gemini-PDA.patch
+    (recomputed in the package provenance)
+
+Decision: do not use the generic MT6797 EVB contiguous-memory declaration for
+Gemini. Keep firmware-owned regions protected, preserve dynamic placement, and
+resolve the final post-LK handoff before enabling modem, connectivity, SCP,
+camera, display, or other DMA users.
+hardware_write=none

@@ -1,0 +1,60 @@
+validation=gemini-live-usb-typec-uart-capture
+captured_utc=2026-07-13T17:32:00Z
+device=gemini@192.168.1.50
+live_kernel=3.18.41+_aarch64
+usb_capture=artifacts/device-inventory/20260713-live/usb-typec.txt
+usb_capture_sha256=d50e255115fbe44600851bc422c3b864b4ac5c49aa90b79fca1a49dd70db1ea1
+uart_capture=artifacts/device-inventory/20260713-live/uart-console.txt
+uart_capture_sha256=48f6fa7c48f1956aec17a14eba17efbf096056e97e5d7a6594eab460e1358662
+
+usb1_platform=11200000.usb1
+usb1_compatible=mediatek,mt6797-usb11
+usb1_driver=musb11_dts
+usb1_child_driver=musbfsh
+usb1_mac_resource=0x11200000+0x1000
+usb1_sif_resource=0x11210000+0x1000
+usb1_linux_irq=105
+usb1_irq_trigger=level-low
+usb1_clock_names=infra_icusb,sssub_ref_clk
+usb1_root_hub=present
+usb1_attached_devices=none
+
+usb3_platform=11270000.usb3
+usb3_musb_driver=musb-mtu3d
+usb3_musb_irq=159
+usb3_xhci_platform=11270000.usb3_xhci
+usb3_xhci_driver=unbound_in_capture
+usb3_xhci_irq_line=not_observed
+usb3_root_hub=not_observed
+
+typec_i2c_clients=0-0025_fusb301a,1-0025_fusb301
+typec_clients_driver_bound=FUSB301_1,FUSB301_0
+typec_class_state=none_exposed_in_capture
+typec_interrupts=fusb300-eint_EINT3,iddig_eint_EINT186
+usb1_interrupt_counter=0
+usb3_musb_interrupt_counter=0
+iddig_interrupt_counter=1
+
+uart_ports=ttyMT0,ttyMT1,ttyMT2,ttyMT3
+uart_driver=mtk-uart
+uart_console=ttyMT0
+uart0_compatible=mediatek,mt6797-uart
+uart0_resource=0x11002000+0x1000_plus_vendor_dma_windows
+uart0_interrupts=GIC123_plus_vendor_dma_lines
+uart0_clock_names=uart0-main,uart-apdma
+mainline_uart_decision=8250_mtk_pio_early_console_reuse
+command_line_console=not_captured_sudo_required
+
+runtime_writes=none
+runtime_mainline_candidate=not_booted
+hardware_write=none
+
+The bounded collectors were run over the authorized SSH key with no device
+writes. The USB capture confirms the earlier live topology and adds an explicit
+negative result for the newly added Type-C/USB-role/PHY class paths: no class
+devices were exposed by the vendor kernel. The USB1 root hub is present but
+has no attached device, so this capture does not test VBUS, role switching,
+PHY calibration, or cable transitions. The UART capture confirms four vendor
+`mtk-uart` ports and the `ttyMT0` console; the command line was omitted because
+the unprivileged account's `sudo -n` check was not permitted. No mainline image
+was flashed or booted.

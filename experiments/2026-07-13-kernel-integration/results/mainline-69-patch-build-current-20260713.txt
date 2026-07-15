@@ -1,0 +1,16 @@
+validation=linux-7.1.3-current-69-patch-build
+generated_utc=2026-07-13T16:25:10Z
+source_revision=7.1.3
+patch_series_count=69
+new_patch=0069-usb-musb-mediatek-add-MT6797-USB11-data.patch
+artifact=linux-7.1.3-gemini-e632d05762ce
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=e632d05762cec3b22d45bcf4e48cb56a19ccffe7e0e413f6ced8c97d7d5f5f37
+config_sha256=01f1ce5e6f1a64d29d72e3e01c88cbe0a8f769a10b226f0b79cbbc4d92206b59
+image_sha256=69192bf577cb41b01aab9f73cd3cf4730a9734df2442947116dc4d686bd9f519
+gemini_dtb_sha256=e618fa0cedc2de354e72ced47dcf97f2f02cdbd82a4cd6fba349d2a95cdeb329
+dtb_count=119
+full_image_and_dtb_build=passed
+packaged_artifact_checksum_validation=passed
+gemini_dtb=mediatek/mt6797-gemini-pda.dtb
+hardware_write=none

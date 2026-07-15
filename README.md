@@ -39,6 +39,7 @@ The project is at **M0: safe reproducible lab**.
 - Current upstream Linux contains a skeletal MT6797 SoC description, but no upstream Gemini PDA board Device Tree.
 - Historical work in [`Jasu/gemini-pda-buildroot`](https://github.com/Jasu/gemini-pda-buildroot) reached BusyBox over UART. That result is valuable prior art, but must be reproduced against a current upstream kernel.
 - [`bsg100/gemini-linux`](https://github.com/bsg100/gemini-linux) is an active modern bring-up effort with substantial hardware research. Coordination and reuse-by-reference come before parallel driver work.
+- The current Linux 7.1.3 77-patch package and private LK-compatible gzip/appended-DTB candidate validate in the ARM64 VM; neither has been transferred, flashed, or booted.
 - No subsystem is marked working here until a reproducible log from real Gemini hardware supports the claim.
 
 See the [hardware support matrix](docs/HARDWARE_SUPPORT.md) for the evidence model and current inventory.

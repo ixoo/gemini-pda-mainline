@@ -1,0 +1,79 @@
+MT6797 BQ25890 reuse audit — 2026-07-13
+
+Scope
+-----
+This is a read-only source and metadata comparison. It does not read charger
+registers on the live device, change charge state, or enable a mainline DT
+consumer. The private live capture remains at
+`artifacts/device-inventory/20260713-live/charger-power.txt` with SHA-256
+`14fe94fc8f2d5df0dd690b5c33bd62521d63f85a9a68abd44f898cc247968ba9`.
+
+Evidence inputs
+---------------
+
+* Device: Gemian `3.18.41+`, model `MT6797X`, compatible
+  `mediatek,MT6797`.
+* Live I2C0 `0x6b`: `sw_charger`, vendor compatible
+  `mediatek,sw_charger`, bound to `/sys/bus/i2c/drivers/bq25890`.
+* Live I2C0 `0x70`: `buck_boost`, bound to `fan49101`.
+* Live I2C0 `0x53`: `richtek,rt9466`, unbound. The second I2C1 `0x6b`
+  `gyro` node is also unbound and is not charger evidence.
+* Vendor source is immutable Git commit
+  `d388d350cb2dda8f23b99be6fa5db9628896e87f` in the VM. The BQ files have
+  blob IDs `bq25890.c=d66a43f88153ee0c03b66f4f8bcaf9e6e2b7633c`,
+  `bq25890.h=e7e433f6b93aa8855deffb74ddf83a222834fddf`, and
+  `charging_hw_bq25890.c=35f58791626967fdd8a0d3e25b4a1fce96e15bfb`.
+* Linux source is the pinned `7.1.3` tree. Its BQ driver SHA-256 is
+  `ef2cfbdd6e3c67abe1dbd5583f329d1a93539f48fb15ebd9a27e201b08ddbf90` and
+  its binding SHA-256 is
+  `05fc506c2d0bbf059fee6a3dbe8b4aa6e37c3eac5695f3ecffbdf10261cdf03c`.
+
+Register/protocol comparison
+----------------------------
+
+The vendor header describes a 21-byte BQ register window (`0x00`–`0x14`)
+with the standard BQ25890 field layout: HIZ/ILIM/IINLIM at `CON0`, charge
+current at `CON4`, precharge/termination at `CON5`, charge voltage at `CON6`,
+and status/input-limit fields through `CON13`. This supports reusing the
+upstream BQ25890 register map and power-supply implementation.
+
+The vendor `bq25890_hw_component_detect()` is not a sufficient identity test:
+it reads register `0x03` and treats any nonzero value as “exists”. It does not
+read the part-number/revision field at register `0x14`. Linux 7.1.3 instead
+reads `F_PN` (`0x14`, bits 3–5) and `F_DEV_REV` (`0x14`, bits 0–1), accepts the
+known BQ25890/92/95/96 combinations, and returns `-ENODEV` for an unknown
+part. This is a materially safer reuse boundary than carrying the vendor
+presence heuristic.
+
+Linux integration gates
+-----------------------
+
+The upstream binding requires `compatible`, `reg`, one IRQ, and explicit
+battery-regulation, charge-current, termination, precharge, minimum-system,
+boost-voltage, and boost-current limits. The live vendor node only exposes
+`mediatek,sw_charger` and `reg=<0x6b>`; the collector did not recover a
+mainline-compatible interrupt resource or validated rail/limit contract.
+The stale vendor `bq24261@6b` node is an alternate description at the same
+address and must not be enabled alongside the BQ node.
+
+Decision
+--------
+
+Reuse the Linux BQ25890 power-supply driver and standard regmap fields after a
+controlled mainline identity/IRQ/rail test. Do not create a compatibility
+driver for `mediatek,sw_charger`, do not infer electrical limits from the
+vendor battery HAL or a full-battery snapshot, and do not enable charge
+control in the current DT. The remaining work is board-resource recovery and
+read-only runtime validation; no new BQ protocol driver is justified.
+
+Reproduction
+------------
+
+Run the existing source audit in the development VM:
+
+```sh
+./experiments/2026-07-12-charger-power-recovery/scripts/analyze-mt6797-charger-contract.sh
+```
+
+The live metadata was collected with the existing read-only script over the
+authorized SSH key; its output is private and Git-ignored.

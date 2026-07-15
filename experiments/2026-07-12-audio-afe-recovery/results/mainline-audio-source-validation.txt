@@ -1,0 +1,15 @@
+MT6797 ASoC source-contract validation
+linux_version=7.1.3
+vendor_commit=c5b0be85017ad0c599725e8273842efdbecdd88a
+binding_clock_names=8
+platform_clock_helper_requests=7
+dapm_clock_supply=mtkaif_26m_clk
+dapm_clock_lookup=devm_clk_get_widget_name
+reuse_decision=existing_mt6797_afe_codec_and_machine_framework
+new_audio_silicon_driver=not_justified
+aperture_vendor=0x10000
+aperture_mainline_node=0x1000
+mainline_afe_register_ceiling=0x84c
+runtime_probe=not_attempted
+hardware_write=none
+source_only=passed

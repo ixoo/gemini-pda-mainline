@@ -1,0 +1,319 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini PDA Mainline Project <noreply@example.com>
+Date: Tue, 14 Jul 2026 01:40:00 -0400
+Subject: [PATCH] nvmem: mediatek: add MT6797 LK calibration provider
+
+The retained MT6797 LK passes a 103-word opaque
+``/chosen/atag,devinfo`` property to Linux.  The vendor thermal driver
+consumes words 32, 31, and 33 from its 100-word payload; the vendor AUXADC
+efuse reader is compile-time disabled for this platform.
+
+Add a read-only NVMEM provider that validates the LK tag and exposes only the
+ordered 12-byte thermal calibration cell.  It never maps or writes the
+efusec resource and rejects missing or malformed handoff data.  Wire the cell
+into the Gemini thermal node while keeping that node disabled; this provides a
+reviewable calibration boundary without claiming runtime thermal support.
+
+---
+ .../bindings/nvmem/mediatek,mt6797-atag.yaml       | 74 +++++++++++++++++++++
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts | 18 ++++++
+ drivers/nvmem/Kconfig                               |  9 +++
+ drivers/nvmem/Makefile                              |  1 +
+ drivers/nvmem/mediatek-atag-devinfo.c               | 140 ++++++++++++++++++++
+ 5 files changed, 242 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/nvmem/mediatek,mt6797-atag.yaml
+ create mode 100644 drivers/nvmem/mediatek-atag-devinfo.c
+
+diff --git a/Documentation/devicetree/bindings/nvmem/mediatek,mt6797-atag.yaml b/Documentation/devicetree/bindings/nvmem/mediatek,mt6797-atag.yaml
+new file mode 100644
+--- /dev/null
++++ b/Documentation/devicetree/bindings/nvmem/mediatek,mt6797-atag.yaml
+@@ -0,0 +1,74 @@
++# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
++%YAML 1.2
++---
++$id: http://devicetree.org/schemas/nvmem/mediatek,mt6797-atag.yaml#
++$schema: http://devicetree.org/meta-schemas/core.yaml#
++
++title: MediaTek MT6797 LK devinfo thermal calibration
++
++description: |
++  The retained MT6797 Little Kernel bootloader appends a fixed-format,
++  read-only devinfo payload to /chosen/atag,devinfo.  This provider validates
++  that handoff property and exposes the ordered thermal calibration cell.
++  It does not access the efuse MMIO block.
++
++maintainers:
++  - Julien Etienne <julien.etienne@gmail.com>
++
++allOf:
++  - $ref: nvmem.yaml#
++  - $ref: nvmem-provider.yaml#
++
++properties:
++  $nodename:
++    const: atag-devinfo
++
++  compatible:
++    const: mediatek,mt6797-atag-devinfo
++
++  "#address-cells":
++    const: 1
++
++  "#size-cells":
++    const: 1
++
++  read-only:
++    type: boolean
++
++patternProperties:
++  "^calibration-data@0$":
++    type: object
++    properties:
++      reg:
++        minItems: 1
++        maxItems: 1
++        items:
++          - items:
++              - const: 0
++              - const: 12
++    required:
++      - reg
++    additionalProperties: false
++
++required:
++  - compatible
++  - "#address-cells"
++  - "#size-cells"
++  - read-only
++
++unevaluatedProperties: false
++
++examples:
++  - |
++    firmware {
++      atag_devinfo: atag-devinfo {
++        compatible = "mediatek,mt6797-atag-devinfo";
++        #address-cells = <1>;
++        #size-cells = <1>;
++        read-only;
++
++        thermal_calibration: calibration-data@0 {
++          reg = <0 12>;
++        };
++      };
++    };
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -20,7 +20,20 @@
+ 	chosen {
+ 		stdout-path = "serial0:921600n8";
+ 	};
+ 
++	firmware {
++		mt6797_atag_devinfo: atag-devinfo {
++			compatible = "mediatek,mt6797-atag-devinfo";
++			#address-cells = <1>;
++			#size-cells = <1>;
++			read-only;
++
++			mt6797_thermal_calibration: calibration-data@0 {
++				reg = <0 12>;
++			};
++		};
++	};
++
+ 	memory@40000000 {
+ 		device_type = "memory";
+ 		reg = <0 0x40000000 1 0>;
+@@ -342,2 +355,7 @@
+ 
++&thermal {
++	nvmem-cells = <&mt6797_thermal_calibration>;
++	nvmem-cell-names = "calibration-data";
++};
++
+ &i2c0 {
+diff --git a/drivers/nvmem/Kconfig b/drivers/nvmem/Kconfig
+--- a/drivers/nvmem/Kconfig
++++ b/drivers/nvmem/Kconfig
+@@ -219,12 +219,21 @@
+ config NVMEM_MTK_EFUSE
+ 	tristate "Mediatek SoCs EFUSE support"
+ 	depends on ARCH_MEDIATEK || COMPILE_TEST
+ 	depends on HAS_IOMEM
+ 	help
+ 	  This is a driver to access hardware related data like sensor
+ 	  calibration, HDMI impedance etc.
+ 
+ 	  This driver can also be built as a module. If so, the module
+ 	  will be called efuse-mtk.
+ 
++config NVMEM_MTK_ATAG_DEVINFO
++	tristate "MediaTek MT6797 LK devinfo calibration support"
++	depends on OF
++	help
++	  Say Y or M here to expose the validated, read-only MT6797 LK
++	  /chosen/atag,devinfo thermal calibration payload through NVMEM.
++	  This provider does not access or write the efuse MMIO block.  It
++	  can be built as a module named mediatek-atag-devinfo.
++
+ config NVMEM_MXS_OCOTP
+ 	tristate "Freescale MXS OCOTP driver"
+ 	depends on ARCH_MXS || COMPILE_TEST
+diff --git a/drivers/nvmem/Makefile b/drivers/nvmem/Makefile
+--- a/drivers/nvmem/Makefile
++++ b/drivers/nvmem/Makefile
+@@ -47,5 +47,6 @@
+ obj-$(CONFIG_NVMEM_MICROCHIP_OTPC)	+= nvmem-microchip-otpc.o
+ nvmem-microchip-otpc-y			:= microchip-otpc.o
+ obj-$(CONFIG_NVMEM_MTK_EFUSE)		+= nvmem_mtk-efuse.o
+ nvmem_mtk-efuse-y			:= mtk-efuse.o
++obj-$(CONFIG_NVMEM_MTK_ATAG_DEVINFO)	+= mediatek-atag-devinfo.o
+ obj-$(CONFIG_NVMEM_MXS_OCOTP)		+= nvmem-mxs-ocotp.o
+diff --git a/drivers/nvmem/mediatek-atag-devinfo.c b/drivers/nvmem/mediatek-atag-devinfo.c
+new file mode 100644
+--- /dev/null
++++ b/drivers/nvmem/mediatek-atag-devinfo.c
+@@ -0,0 +1,140 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * MediaTek MT6797 LK devinfo thermal calibration provider.
++ *
++ * The retained MT6797 LK appends an opaque, little-endian 103-word property
++ * at /chosen/atag,devinfo.  Only the three words consumed by the MT6797
++ * thermal extractor are retained here; the efuse MMIO block is never mapped.
++ */
++
++#include <linux/init.h>
++#include <linux/kernel.h>
++#include <linux/module.h>
++#include <linux/nvmem-provider.h>
++#include <linux/of.h>
++#include <linux/platform_device.h>
++#include <linux/slab.h>
++#include <linux/unaligned.h>
++
++#define MT6797_ATAG_DEVINFO_TAG		0x41000804
++#define MT6797_ATAG_HEADER_WORDS	2
++#define MT6797_ATAG_PAYLOAD_WORDS	100
++#define MT6797_ATAG_TRAILER_WORDS	1
++#define MT6797_ATAG_TOTAL_WORDS		(MT6797_ATAG_HEADER_WORDS + \
++					 MT6797_ATAG_PAYLOAD_WORDS + \
++					 MT6797_ATAG_TRAILER_WORDS)
++#define MT6797_THERMAL_CELL_BYTES	(3 * sizeof(u32))
++
++struct mt6797_atag_devinfo {
++	u8 calibration[MT6797_THERMAL_CELL_BYTES];
++};
++
++static const unsigned int mt6797_thermal_word_order[] = { 32, 31, 33 };
++
++static u32 mt6797_atag_word(const u8 *property, unsigned int index)
++{
++	return get_unaligned_le32(property + index * sizeof(u32));
++}
++
++static int mt6797_atag_parse(struct mt6797_atag_devinfo *data)
++{
++	struct device_node *chosen;
++	const u8 *property;
++	int length;
++	int i;
++	int ret = 0;
++
++	chosen = of_find_node_by_path("/chosen");
++	if (!chosen)
++		return -ENODEV;
++
++	property = of_get_property(chosen, "atag,devinfo", &length);
++	if (!property) {
++		ret = -ENODEV;
++		goto out;
++	}
++
++	if (length != MT6797_ATAG_TOTAL_WORDS * sizeof(u32) ||
++	    mt6797_atag_word(property, 0) != MT6797_ATAG_TOTAL_WORDS ||
++	    mt6797_atag_word(property, 1) != MT6797_ATAG_DEVINFO_TAG ||
++	    mt6797_atag_word(property, MT6797_ATAG_HEADER_WORDS +
++					 MT6797_ATAG_PAYLOAD_WORDS) !=
++					MT6797_ATAG_PAYLOAD_WORDS) {
++		ret = -EINVAL;
++		goto out;
++	}
++
++	for (i = 0; i < ARRAY_SIZE(mt6797_thermal_word_order); i++) {
++		u32 value = mt6797_atag_word(property,
++					MT6797_ATAG_HEADER_WORDS +
++					mt6797_thermal_word_order[i]);
++
++		put_unaligned_le32(value, &data->calibration[i * sizeof(u32)]);
++	}
++
++out:
++	of_node_put(chosen);
++	return ret;
++}
++
++static int mt6797_atag_read(void *context, unsigned int offset,
++				void *value, size_t bytes)
++{
++	struct mt6797_atag_devinfo *data = context;
++
++	if (offset > sizeof(data->calibration) ||
++	    bytes > sizeof(data->calibration) - offset)
++		return -EINVAL;
++
++	memcpy(value, data->calibration + offset, bytes);
++	return 0;
++}
++
++static int mt6797_atag_devinfo_probe(struct platform_device *pdev)
++{
++	struct mt6797_atag_devinfo *data;
++	struct nvmem_config config = {
++		.dev = &pdev->dev,
++		.name = "mt6797-atag-calibration",
++		.owner = THIS_MODULE,
++		.add_legacy_fixed_of_cells = true,
++		.read_only = true,
++		.root_only = true,
++		.reg_read = mt6797_atag_read,
++		.size = MT6797_THERMAL_CELL_BYTES,
++		.word_size = sizeof(u32),
++		.stride = sizeof(u32),
++	};
++	struct nvmem_device *nvmem;
++	int ret;
++
++	data = devm_kzalloc(&pdev->dev, sizeof(*data), GFP_KERNEL);
++	if (!data)
++		return -ENOMEM;
++
++	ret = mt6797_atag_parse(data);
++	if (ret)
++		return ret;
++
++	config.priv = data;
++	nvmem = devm_nvmem_register(&pdev->dev, &config);
++	return PTR_ERR_OR_ZERO(nvmem);
++}
++
++static const struct of_device_id mt6797_atag_devinfo_of_match[] = {
++	{ .compatible = "mediatek,mt6797-atag-devinfo" },
++	{ }
++};
++MODULE_DEVICE_TABLE(of, mt6797_atag_devinfo_of_match);
++
++static struct platform_driver mt6797_atag_devinfo_driver = {
++	.probe = mt6797_atag_devinfo_probe,
++	.driver = {
++		.name = "mediatek-mt6797-atag-devinfo",
++		.of_match_table = mt6797_atag_devinfo_of_match,
++	},
++};
++module_platform_driver(mt6797_atag_devinfo_driver);
++
++MODULE_DESCRIPTION("MediaTek MT6797 LK devinfo calibration provider");
++MODULE_LICENSE("GPL");

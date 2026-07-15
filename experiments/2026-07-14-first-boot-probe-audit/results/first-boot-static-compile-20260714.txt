@@ -1,0 +1,24 @@
+validation=first-boot-static-compile
+generated_utc=2026-07-14T04:30:03Z
+source=/home/julien.guest/src/gemini-pda/linux-7.1.3
+build=/home/julien.guest/build/gemini-pda/linux-7.1.3
+compiler='gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0'
+sparse=/usr/bin/sparse
+warnings=enabled
+sparse_check=enabled
+script_sha256=05c6aa5e650c021bbac92fb198b73351abf3e1c2ef800df1715860cbfeb52461
+
+[target_results]
+drivers/tty/serial/8250=status=pass;diagnostics=0
+drivers/pinctrl/mediatek=status=pass;diagnostics=0
+drivers/soc/mediatek=status=pass;diagnostics=0
+drivers/mfd=status=pass;diagnostics=0
+drivers/regulator=status=pass;diagnostics=0
+drivers/watchdog=status=pass;diagnostics=0
+drivers/mmc/host=status=pass;diagnostics=0
+
+[diagnostics]
+output=empty
+result=pass
+runtime_mainline_boot=not_attempted
+hardware_write=none

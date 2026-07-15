@@ -1,0 +1,36 @@
+From 0000000000000000000000000000000000000076 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 14 Jul 2026 16:24:00 -0400
+Subject: [PATCH] arm64: dts: gemini: fix AW9523 matrix polarity
+
+The Planet vendor AW9523 scan drives the selected column physically low,
+drives inactive columns physically high, and treats a low row level as a
+pressed key.  Linux's gpio-matrix-keypad already models this state machine:
+gpio-activelow inverts logical GPIO values; drive-inactive-cols keeps
+non-selected columns driven instead of changing them to inputs.
+
+Keep the keyboard and expander disabled.  This correction makes the
+candidate scan electrically faithful without claiming that the AW9523 GPIO
+range, reset,
+interrupt, debounce, rollover, wake, or keymap behavior has been validated;
+hardware evidence is still required.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -285,6 +285,8 @@
+ 	keyboard-matrix {
+ 		compatible = "gpio-matrix-keypad";
+ 		pinctrl-names = "default";
++		gpio-activelow;
++		drive-inactive-cols;
+ 		pinctrl-0 = <&keyboard_matrix_row_pins
+ 				     &keyboard_matrix_col_pins>;
+ 		row-gpios = <&aw9523 0 GPIO_ACTIVE_HIGH>,
+-- 
+2.43.0

@@ -1,0 +1,164 @@
+From 080efa2012092d50144465c72b4e48c1f6a2345c Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 12 Jul 2026 10:01:00 -0400
+Subject: [PATCH] arm64: dts: mediatek: mt6797: add primary display blocks
+
+Add the three cascaded overlay engines, RDMA0, and the fixed-function
+blocks in the primary MT6797 display path. Describe their exact clocks,
+interrupts, IOMMU ports, power domain, and GCE windows.
+
+Keep every block disabled because the SoC description does not yet attach
+the complete board pipeline. Add explicit OVL-2L aliases so the DRM master
+assigns the two instances distinct component IDs when enabled.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ arch/arm64/boot/dts/mediatek/mt6797.dtsi | 119 +++++++++++++++++++++++
+ 1 file changed, 119 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+index 3c8e8fe93..0c20ab1d9 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797.dtsi
++++ b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+@@ -8,6 +8,7 @@
+ #include <dt-bindings/gce/mediatek,mt6797-gce.h>
+ #include <dt-bindings/interrupt-controller/irq.h>
+ #include <dt-bindings/interrupt-controller/arm-gic.h>
++#include <dt-bindings/memory/mt6797-larb-port.h>
+ #include <dt-bindings/pinctrl/mt6797-pinfunc.h>
+ #include <dt-bindings/power/mt6797-power.h>
+ #include <dt-bindings/reset/mt6797-resets.h>
+@@ -18,6 +19,11 @@
+ 	#address-cells = <2>;
+ 	#size-cells = <2>;
+ 
++	aliases {
++		ovl-2l0 = &ovl0_2l;
++		ovl-2l1 = &ovl1_2l;
++	};
++
+ 	psci {
+ 		compatible = "arm,psci-0.2";
+ 		method = "smc";
+@@ -552,6 +558,119 @@ mmsys: syscon@14000000 {
+ 		mediatek,gce-client-reg = <&gce SUBSYS_1400XXXX 0 0x1000>;
+ 	};
+ 
++	ovl0: ovl@1400b000 {
++		compatible = "mediatek,mt6797-disp-ovl";
++		reg = <0 0x1400b000 0 0x1000>;
++		interrupts = <GIC_SPI 213 IRQ_TYPE_LEVEL_LOW>;
++		power-domains = <&scpsys MT6797_POWER_DOMAIN_MM>;
++		clocks = <&mmsys CLK_MM_DISP_OVL0>;
++		iommus = <&m4u M4U_PORT_DISP_OVL0>;
++		mediatek,gce-client-reg = <&gce SUBSYS_1400XXXX 0xb000 0x1000>;
++		status = "disabled";
++	};
++
++	ovl0_2l: ovl@1400d000 {
++		compatible = "mediatek,mt6797-disp-ovl-2l";
++		reg = <0 0x1400d000 0 0x1000>;
++		interrupts = <GIC_SPI 215 IRQ_TYPE_LEVEL_LOW>;
++		power-domains = <&scpsys MT6797_POWER_DOMAIN_MM>;
++		clocks = <&mmsys CLK_MM_DISP_OVL0_2L>;
++		iommus = <&m4u M4U_PORT_DISP_2L_OVL0_LARB0>;
++		mediatek,gce-client-reg = <&gce SUBSYS_1400XXXX 0xd000 0x1000>;
++		status = "disabled";
++	};
++
++	ovl1_2l: ovl@1400e000 {
++		compatible = "mediatek,mt6797-disp-ovl-2l";
++		reg = <0 0x1400e000 0 0x1000>;
++		interrupts = <GIC_SPI 216 IRQ_TYPE_LEVEL_LOW>;
++		power-domains = <&scpsys MT6797_POWER_DOMAIN_MM>;
++		clocks = <&mmsys CLK_MM_DISP_OVL1_2L>;
++		iommus = <&m4u M4U_PORT_DISP_2L_OVL1>;
++		mediatek,gce-client-reg = <&gce SUBSYS_1400XXXX 0xe000 0x1000>;
++		status = "disabled";
++	};
++
++	rdma0: rdma@1400f000 {
++		compatible = "mediatek,mt6797-disp-rdma";
++		reg = <0 0x1400f000 0 0x1000>;
++		interrupts = <GIC_SPI 217 IRQ_TYPE_LEVEL_LOW>;
++		power-domains = <&scpsys MT6797_POWER_DOMAIN_MM>;
++		clocks = <&mmsys CLK_MM_DISP_RDMA0>;
++		iommus = <&m4u M4U_PORT_DISP_RDMA0>;
++		mediatek,gce-client-reg = <&gce SUBSYS_1400XXXX 0xf000 0x1000>;
++		status = "disabled";
++	};
++
++	color0: color@14013000 {
++		compatible = "mediatek,mt6797-disp-color";
++		reg = <0 0x14013000 0 0x1000>;
++		interrupts = <GIC_SPI 221 IRQ_TYPE_LEVEL_LOW>;
++		power-domains = <&scpsys MT6797_POWER_DOMAIN_MM>;
++		clocks = <&mmsys CLK_MM_DISP_COLOR>;
++		mediatek,gce-client-reg = <&gce SUBSYS_1401XXXX 0x3000 0x1000>;
++		status = "disabled";
++	};
++
++	ccorr0: ccorr@14014000 {
++		compatible = "mediatek,mt6797-disp-ccorr";
++		reg = <0 0x14014000 0 0x1000>;
++		interrupts = <GIC_SPI 222 IRQ_TYPE_LEVEL_LOW>;
++		power-domains = <&scpsys MT6797_POWER_DOMAIN_MM>;
++		clocks = <&mmsys CLK_MM_DISP_CCORR>;
++		mediatek,gce-client-reg = <&gce SUBSYS_1401XXXX 0x4000 0x1000>;
++		status = "disabled";
++	};
++
++	aal0: aal@14015000 {
++		compatible = "mediatek,mt6797-disp-aal";
++		reg = <0 0x14015000 0 0x1000>;
++		interrupts = <GIC_SPI 223 IRQ_TYPE_LEVEL_LOW>;
++		power-domains = <&scpsys MT6797_POWER_DOMAIN_MM>;
++		clocks = <&mmsys CLK_MM_DISP_AAL>;
++		mediatek,gce-client-reg = <&gce SUBSYS_1401XXXX 0x5000 0x1000>;
++		status = "disabled";
++	};
++
++	gamma0: gamma@14016000 {
++		compatible = "mediatek,mt6797-disp-gamma";
++		reg = <0 0x14016000 0 0x1000>;
++		interrupts = <GIC_SPI 224 IRQ_TYPE_LEVEL_LOW>;
++		power-domains = <&scpsys MT6797_POWER_DOMAIN_MM>;
++		clocks = <&mmsys CLK_MM_DISP_GAMMA>;
++		mediatek,gce-client-reg = <&gce SUBSYS_1401XXXX 0x6000 0x1000>;
++		status = "disabled";
++	};
++
++	od0: od@14017000 {
++		compatible = "mediatek,mt6797-disp-od";
++		reg = <0 0x14017000 0 0x1000>;
++		interrupts = <GIC_SPI 225 IRQ_TYPE_LEVEL_LOW>;
++		clocks = <&mmsys CLK_MM_DISP_OD>;
++		mediatek,gce-client-reg = <&gce SUBSYS_1401XXXX 0x7000 0x1000>;
++		status = "disabled";
++	};
++
++	dither0: dither@14018000 {
++		compatible = "mediatek,mt6797-disp-dither";
++		reg = <0 0x14018000 0 0x1000>;
++		interrupts = <GIC_SPI 226 IRQ_TYPE_LEVEL_LOW>;
++		power-domains = <&scpsys MT6797_POWER_DOMAIN_MM>;
++		clocks = <&mmsys CLK_MM_DISP_DITHER>;
++		mediatek,gce-client-reg = <&gce SUBSYS_1401XXXX 0x8000 0x1000>;
++		status = "disabled";
++	};
++
++	ufoe: ufoe@14019000 {
++		compatible = "mediatek,mt6797-disp-ufoe";
++		reg = <0 0x14019000 0 0x1000>;
++		interrupts = <GIC_SPI 227 IRQ_TYPE_LEVEL_LOW>;
++		power-domains = <&scpsys MT6797_POWER_DOMAIN_MM>;
++		clocks = <&mmsys CLK_MM_DISP_UFOE>;
++		mediatek,gce-client-reg = <&gce SUBSYS_1401XXXX 0x9000 0x1000>;
++		status = "disabled";
++	};
++
+ 	dsi0: dsi@1401c000 {
+ 		compatible = "mediatek,mt6797-dsi";
+ 		reg = <0 0x1401c000 0 0x1000>;
+-- 
+2.43.0

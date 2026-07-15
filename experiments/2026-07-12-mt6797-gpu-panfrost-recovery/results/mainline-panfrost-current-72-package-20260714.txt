@@ -1,0 +1,199 @@
+validation=mt6797-panfrost-current-72-package-audit
+generated_utc=2026-07-14T08:18:46Z
+source_revision=7.1.3
+patch_count=72
+package=linux-7.1.3-gemini-a9a7c5002038
+audit_script=experiments/2026-07-12-mt6797-gpu-panfrost-recovery/scripts/audit-current-package-panfrost.sh
+audit_script_sha256=3b1bfe710f2a74212e976cd22cec63808f17d1fdbf05ba6f4df2953d553eb503
+audit_output_sha256=9557eb10add3f2b2af1658b23b8053757b975e63170577f417509bda22d0fa17
+repeatability=byte-identical_second_run
+shellcheck=passed_in_dev_vm
+bash_n=passed
+runtime_probe=not_attempted
+hardware_write=none
+
+[captured_audit_output]
+validation=mt6797-panfrost-current-package-audit
+package=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-a9a7c5002038
+package_image_sha256=3fb6ac3043dff85dc2b6e68a2bba26d36fedf748e6f7c1bf6b6630f87446be7c
+package_config_sha256=831289dd3b53c6cec09e6c614fd83d3ab5988a4c30090bf9ec172348ec9487d5
+package_dtb_sha256=b41580263940b47226e9819c97afbdaa9a35d4c721c471d2e8a0a3d597c553c5
+package_system_map_sha256=c883efb3c8b09166a0765017712ec79e182f929ee50b3907f0279384ab2a22b2
+linux_tree=/home/julien.guest/src/gemini-pda/linux-7.1.3
+linux_version=7.1.3
+dtc_warning_lines=2
+
+[configuration]
+CONFIG_DRM=m
+CONFIG_DRM_PANFROST=m
+CONFIG_DRM_MEDIATEK=m
+CONFIG_MTK_SCPSYS=y
+CONFIG_MTK_SCPSYS_PM_DOMAINS=y
+CONFIG_MTK_MFG_PM_DOMAIN=y
+CONFIG_COMMON_CLK_MT6797_MFGSYS=y
+CONFIG_REGULATOR_RT5735=y
+CONFIG_REGULATOR_FAN53555=y
+CONFIG_PM_GENERIC_DOMAINS=y
+CONFIG_MTK_IOMMU=y
+
+[packaged_gpu_modules]
+module=panfrost
+path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-a9a7c5002038/modules/lib/modules/7.1.3-gemini/kernel/drivers/gpu/drm/panfrost/panfrost.ko
+sha256=89591ea272afdb88622e991267cb74d9089149140f21d4a41e82c8036b00dbec
+module=mali-dp
+path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-a9a7c5002038/modules/lib/modules/7.1.3-gemini/kernel/drivers/gpu/drm/arm/mali-dp.ko
+sha256=0b25c0e6f941e5ecb27756f8286fc9e2085a32bcf99d5dd7a27636ebf9c6108f
+module=rt5735-regulator
+path=absent
+module=fan53555
+path=absent
+
+[device_tree]
+gpu_node_matches=1
+gpu_disabled_status_matches=1
+gpu_compatible_matches=1
+gpu_opp_property_matches=0
+gpu_reset_property_matches=0
+gpu_iommu_property_matches=0
+mfg_clock_node_matches=1
+mfg_clock_disabled_status_matches=1
+mfg_power_domain_provider_matches=1
+mfg_power_domain_provider_status=implicit-okay
+rt5735_parent_node_matches=1
+rt5735_parent_disabled_status_matches=1
+rt5735_node_matches=1
+rt5735_node_disabled_status_matches=1
+gpu_resource_context:
+314-	};
+315-
+316:	power-controller@10006000 {
+317-		compatible = "mediatek,mt6797-scpsys";
+318-		#power-domain-cells = <0x01>;
+319-		reg = <0x00 0x10006000 0x00 0x1000>;
+320-		clocks = <0x08 0x0a 0x08 0x22 0x08 0x06 0x08 0x08>;
+321-		clock-names = "mfg\0mfg_52m\0mm\0vdec";
+322-		infracfg = <0x02>;
+323-		phandle = <0x0a>;
+324-	};
+325-
+326:	syscon@13000000 {
+327-		compatible = "mediatek,mt6797-mfgsys\0syscon";
+328-		reg = <0x00 0x13000000 0x00 0x1000>;
+329-		#clock-cells = <0x01>;
+330-		status = "disabled";
+331-		phandle = <0x09>;
+332-	};
+333-
+334:	gpu@13040000 {
+335-		compatible = "mediatek,mt6797-mali\0arm,mali-t880";
+336-		reg = <0x00 0x13040000 0x00 0x4000>;
+337-		interrupts = <0x00 0x108 0x08 0x00 0x107 0x08 0x00 0x106 0x08>;
+338-		interrupt-names = "job\0mmu\0gpu";
+339-		clocks = <0x09 0x01>;
+340-		clock-names = "core";
+341-		power-domains = <0x0a 0x07 0x0a 0x08 0x0a 0x09 0x0a 0x0a>;
+342-		power-domain-names = "core0\0core1\0core2\0core3";
+343-		status = "disabled";
+344-		mali-supply = <0x0b>;
+345-	};
+346-
+347-	watchdog@10007000 {
+348-		compatible = "mediatek,mt6797-wdt\0mediatek,mt6589-wdt";
+349-		reg = <0x00 0x10007000 0x00 0x100>;
+350-		interrupts = <0x00 0x89 0x02>;
+351-	};
+352-
+353-	apmixed@1000c000 {
+354-		compatible = "mediatek,mt6797-apmixedsys";
+355-		reg = <0x00 0x1000c000 0x00 0x1000>;
+356-		#clock-cells = <0x01>;
+357-		phandle = <0x17>;
+358-	};
+359-
+360-	pwrap@1000d000 {
+361-		compatible = "mediatek,mt6797-pwrap";
+362-		reg = <0x00 0x1000d000 0x00 0x1000>;
+--
+572-	};
+573-
+574:	i2c@11010000 {
+575-		compatible = "mediatek,mt6797-i2c\0mediatek,mt6577-i2c";
+576-		reg = <0x00 0x11010000 0x00 0x1000 0x00 0x11000580 0x00 0x80>;
+577-		interrupts = <0x00 0x59 0x08>;
+578-		clocks = <0x02 0x37 0x02 0x2e>;
+579-		clock-names = "main\0dma";
+580-		clock-div = <0x0a>;
+581-		#address-cells = <0x01>;
+582-		#size-cells = <0x00>;
+583-		status = "disabled";
+584-		pinctrl-names = "default";
+585-		pinctrl-0 = <0x15>;
+586-
+587:		regulator@1c {
+588-			compatible = "richtek,rt5735";
+589-			reg = <0x1c>;
+590-			regulator-name = "vgpu";
+591-			regulator-min-microvolt = <0x927c0>;
+592-			regulator-max-microvolt = <0x154456>;
+593-			status = "disabled";
+594-			phandle = <0x0b>;
+595-		};
+596-	};
+597-
+598-	i2c@11011000 {
+599-		compatible = "mediatek,mt6797-i2c\0mediatek,mt6577-i2c";
+600-		reg = <0x00 0x11011000 0x00 0x1000 0x00 0x11000300 0x00 0x80>;
+601-		interrupts = <0x00 0x5a 0x08>;
+602-		clocks = <0x02 0x35 0x02 0x2e>;
+603-		clock-names = "main\0dma";
+604-		clock-div = <0x0a>;
+605-		#address-cells = <0x01>;
+606-		#size-cells = <0x00>;
+607-		status = "disabled";
+608-	};
+609-
+610-	i2c@11013000 {
+611-		compatible = "mediatek,mt6797-i2c\0mediatek,mt6577-i2c";
+612-		reg = <0x00 0x11013000 0x00 0x1000 0x00 0x11000400 0x00 0x80>;
+613-		interrupts = <0x00 0x5f 0x08>;
+614-		clocks = <0x02 0x38 0x02 0x2e 0x02 0x39>;
+615-		clock-names = "main\0dma\0arb";
+
+[local_gpu_patches]
+patch=/mnt/gemini-pda-mainline/patches/v7.1.3/0047-pmdomain-mediatek-add-MT6797-MFG-domains.patch
+sha256=1954a387b3ac1fe57e1cd8395fe3543f8a4d2cf48d10f01361aaea039ec4d6a6
+gpu_match_lines=49
+patch=/mnt/gemini-pda-mainline/patches/v7.1.3/0048-clk-mediatek-add-MT6797-MFGSYS.patch
+sha256=57f184288f5b4f8f10a9d64fed6d54d079c02a9271b83d808036c713a687052b
+gpu_match_lines=27
+patch=/mnt/gemini-pda-mainline/patches/v7.1.3/0049-arm64-dts-mediatek-mt6797-add-disabled-MFG-clock.patch
+sha256=ffc165c73a364669f0b8ce8d4bc61f6ea3991d93307017fbc77a9960a054d6ff
+gpu_match_lines=4
+patch=/mnt/gemini-pda-mainline/patches/v7.1.3/0050-pmdomain-mediatek-use-MT6797-MFG-52MHz-preclock.patch
+sha256=34cdeffedd7ebef02012941b28cbe5cb42f4996ca3daae26f9e7d254d17540d0
+gpu_match_lines=38
+patch=/mnt/gemini-pda-mainline/patches/v7.1.3/0051-regulator-add-Richtek-RT5735-VSEL0-support.patch
+sha256=ff600260e15a7b8945d2a7a2f89c9436f24038241fe761dea1bf043c4d4cecfd
+gpu_match_lines=72
+patch=/mnt/gemini-pda-mainline/patches/v7.1.3/0058-drm-panfrost-add-MT6797-platform-data.patch
+sha256=43c5dbd9fcc2ff0cb294abacbf062b4af5260991870076ab545931e9f9c08d27
+gpu_match_lines=17
+patch=/mnt/gemini-pda-mainline/patches/v7.1.3/0059-arm64-dts-mediatek-add-disabled-MT6797-Panfrost-node.patch
+sha256=8ebda7688aaadd979e4b8afdea71b3b9cad681cfaf6d4f0ace3cb01d33d6154a
+gpu_match_lines=16
+
+[decision]
+panfrost_core=packaged_as_module
+live_gpu_model_reuse=midgard_t880_product_0x0880
+mt6797_panfrost_platform_data=packaged_in_panfrost_module
+mt6797_mfg_clock_provider=packaged_built_in_but_dt_disabled
+mt6797_mfg_power_domains=packaged_built_in_provider
+rt5735_vgpu=packaged_built_in_but_i2c_parent_and_node_disabled
+gpu_dt_consumer=present_but_disabled
+gpu_opp_contract=absent
+gpu_reset_contract=absent
+gpu_iommu_contract=absent
+gpu_runtime_probe=not_attempted
+gpu_job_submission=not_attempted
+hardware_write=none
+

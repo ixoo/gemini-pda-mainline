@@ -1,0 +1,124 @@
+validation=mt6797-cpu-psci-timer-current-package-72
+generated_utc=2026-07-14T07:17:45Z
+source_revision=7.1.3
+patchset=72_noncomment_series_entries
+patchset_sha256=a9a7c5002038022c5df87ed48f61cd68778b422370f7d038d07e73a086490632
+package=linux-7.1.3-gemini-a9a7c5002038
+package_image_sha256=3fb6ac3043dff85dc2b6e68a2bba26d36fedf748e6f7c1bf6b6630f87446be7c
+package_config_sha256=831289dd3b53c6cec09e6c614fd83d3ab5988a4c30090bf9ec172348ec9487d5
+package_dtb_sha256=b41580263940b47226e9819c97afbdaa9a35d4c721c471d2e8a0a3d597c553c5
+audit_script=experiments/2026-07-13-cpu-psci-timer-recovery/scripts/audit-current-package-cpu-psci-timer.sh
+audit_script_sha256=17f0b82d4f0abcb38245c8166393f7af4f207ce215895ac9b94d77ea5d802c3c
+audit_output_sha256=d6d84d6efa3314cbf43918556d812b56c18e9904550209a2cea0e7fbe7a368c7
+repeatability=byte-identical_second_run
+shellcheck=passed_in_dev_vm
+bash_n=passed
+runtime_mainline_boot=not_attempted
+hardware_write=none
+
+[raw_audit_output]
+validation=mt6797-cpu-psci-timer-current-package-audit
+package=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-a9a7c5002038
+package_image_sha256=3fb6ac3043dff85dc2b6e68a2bba26d36fedf748e6f7c1bf6b6630f87446be7c
+package_config_sha256=831289dd3b53c6cec09e6c614fd83d3ab5988a4c30090bf9ec172348ec9487d5
+package_system_map_sha256=c883efb3c8b09166a0765017712ec79e182f929ee50b3907f0279384ab2a22b2
+package_dtb_sha256=b41580263940b47226e9819c97afbdaa9a35d4c721c471d2e8a0a3d597c553c5
+linux_tree=/home/julien.guest/src/gemini-pda/linux-7.1.3
+linux_version=7.1.3
+dtc_warning_lines=2
+
+[configuration]
+CONFIG_ARM64=y
+CONFIG_ARM_PSCI_FW=y
+CONFIG_ARM_PSCI_CPUIDLE=y
+CONFIG_ARM_ARCH_TIMER=y
+CONFIG_ARM_ARCH_TIMER_EVTSTREAM=y
+CONFIG_ARM_GIC_V3=y
+CONFIG_CPU_IDLE=y
+CONFIG_CPU_FREQ=y
+CONFIG_MTK_CPUFREQ=absent
+CONFIG_MTK_SVS=m
+CONFIG_COMMON_CLK_MT6797=y
+CONFIG_SUSPEND=y
+
+[packaged_pm_modules]
+module=mediatek-cpufreq-hw
+path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-a9a7c5002038/modules/lib/modules/7.1.3-gemini/kernel/drivers/cpufreq/mediatek-cpufreq-hw.ko
+sha256=20edbcfe94907c4e96eeb1380421913be856092186b68d7b57b0d044d8aef268
+module=mtk-svs
+path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-a9a7c5002038/modules/lib/modules/7.1.3-gemini/kernel/drivers/soc/mediatek/mtk-svs.ko
+sha256=ff8532c658e21b8d98c169c4b947ad18ed2bc7e39cdb941419438cdeffa27594
+
+[device_tree_counts]
+cpu_nodes=10
+psci_nodes=1
+psci_enable_method_count=10
+architectural_timer_nodes=1
+opp_table_matches=0
+idle_state_matches=0
+per_cpu_clock_frequency_matches=0
+cpu_release_address_matches=0
+
+[device_tree_contract]
+16-
+17:	psci {
+18-		compatible = "arm,psci-0.2";
+19-		method = "smc";
+20-	};
+21-
+22:	cpus {
+23-		#address-cells = <0x01>;
+24-		#size-cells = <0x00>;
+25-
+26-		cpu@0 {
+27-			device_type = "cpu";
+28-			compatible = "arm,cortex-a53";
+29-			enable-method = "psci";
+30-			reg = <0x00>;
+31-		};
+32-
+33-		cpu@1 {
+34-			device_type = "cpu";
+--
+189-
+190:	timer {
+191:		compatible = "arm,armv8-timer";
+192-		interrupt-parent = <0x06>;
+193-		interrupts = <0x01 0x0d 0x08 0x01 0x0e 0x08 0x01 0x0b 0x08 0x01 0x0a 0x08>;
+194-	};
+195-
+196-	topckgen@10000000 {
+197-		compatible = "mediatek,mt6797-topckgen";
+198-		reg = <0x00 0x10000000 0x00 0x1000>;
+199-		#clock-cells = <0x01>;
+200-		phandle = <0x08>;
+201-	};
+202-
+203-	syscon@10001000 {
+
+[linked_symbols]
+psci_symbol_matches=86
+arch_timer_symbol_matches=50
+timer_probe_symbol_matches=4
+
+[source_hashes]
+drivers/firmware/psci/psci.c=310ec046e86d4eafbe326234c1998611eba9d83af6696589d75e5838a94d6a5c
+drivers/clocksource/arm_arch_timer.c=0613e2f5d21a736e98fb993db17e8db5c8e050b813c59035fb5bd4a696dd7ead
+drivers/clocksource/timer-probe.c=1c855c57d30e26e10e350a4b0ceef803bfc4648a53a22a29bf70d95d4aa05f23
+drivers/of/cpu.c=8a8b41b58cbb64572750e95969b426c1f42e2cc333a40baca83f10ab2c19bca6
+Documentation/devicetree/bindings/arm/cpus.yaml=882f07d1088119ee48c31c0e3d48be00f1ecb4185e6769c2faa6ad1e860252e5
+Documentation/devicetree/bindings/arm/psci.yaml=246be7d27430b1c5ef6917dd9b4ce19f679df6e888c2913aebd49e89065bab93
+Documentation/devicetree/bindings/timer/arm,arch_timer.yaml=871cee8c7251869661fdb0c0fea1aff3e33087c69625ab672c00515a90ca50d4
+
+[decision]
+generic_arm64_cpu_topology_psci_and_arch_timer=present_in_current_package
+mt6797_cpu_frequency_consumer=absent
+cpu_opp_table=absent_from_current_gemini_dtb
+vendor_idle_state_and_release_address=absent_from_current_gemini_dtb
+per_cpu_clock_frequency=absent_from_current_gemini_dtb
+generic_pm_modules=package_only_without_gemini_consumer
+frequency_voltage_transition=not_attempted
+cpu_hotplug_psci_runtime=not_attempted
+architectural_timer_runtime=not_attempted
+hardware_write=none
+

@@ -1,0 +1,13 @@
+validation=linux-7.1.3-current-62-patch-build
+generated_utc=2026-07-13T13:01:15Z
+source_revision=7.1.3
+patch_series_count=62
+artifact=linux-7.1.3-gemini-f58393ad5d8e
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=f58393ad5d8eaac1f044d3ad4eeef704337e78908ee0a5275e0a12c9fdef3777
+config_sha256=01f1ce5e6f1a64d29d72e3e01c88cbe0a8f769a10b226f0b79cbbc4d92206b59
+dtb_count=119
+full_image_and_dtb_build=passed
+packaged_artifact_checksum_validation=passed
+gemini_dtb=mediatek/mt6797-gemini-pda.dtb
+hardware_write=none

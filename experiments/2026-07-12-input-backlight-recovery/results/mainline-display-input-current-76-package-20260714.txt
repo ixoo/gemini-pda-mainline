@@ -1,0 +1,35 @@
+Linux 7.1.3 Gemini patched-tree integration package (76 patches)
+
+validation=linux-7.1.3-current-76-image-dtb-package
+generated_utc=2026-07-14T19:25:50Z
+source_revision=7.1.3
+patch_series_count=76
+artifact=linux-7.1.3-gemini-db59a88057b4
+guest_artifact_path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-db59a88057b4
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=db59a88057b4c0505cf6dfd80e990f38b74eb0e2a855799d926cf1d20e681306
+config_sha256=c46e0d135ed290420362638ca36448055e19bb7029deaa7aad897d885275f7db
+kernel_release=7.1.3-gemini
+compiler=gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+linker=GNU ld (GNU Binutils for Ubuntu) 2.42
+image_sha256=9975b0faf659ddd91e33607de47a4814b9ad4c72292f4c8f7af39582f1a49362
+image_size_bytes=48545800
+image_gzip_sha256=cd1b762413342f9fb0201c1689464f29d359e803f186c03857d12eb97e943ecb
+image_gzip_size_bytes=14679336
+system_map_sha256=9beb0d1cbd2a7e32a96c02f7103d776e330c70e7e6e68893521c075afeef5822
+gemini_dtb=mediatek/mt6797-gemini-pda.dtb
+gemini_dtb_sha256=21529f78282cbf3a48f9260b8981f005f3643d54e729ab676384880c6ace1d4c
+gemini_dtb_size_bytes=24896
+dtb_count=119
+config_touchscreen_novatek_nvt_ts=not_set
+config_touchscreen_novatek_nt36xxx=m
+full_image_and_dtb_build=passed
+packaged_artifact_checksum_validation=passed
+modules_built=false
+module_package_note=The package contains no modules/ tree because BUILD_MODULES=1 was not requested. Focused NT36772 object/module compilation and binding checks are recorded in nt36772-mainline-boundary-20260714.txt.
+hardware_write=none
+runtime_boot_or_touch_probe=not_attempted
+
+This is build, packaging, provenance, and integrity evidence only. The Gemini
+touchscreen DT node remains disabled/absent from the current board DT, so this
+result does not claim hardware support or firmware-update compatibility.

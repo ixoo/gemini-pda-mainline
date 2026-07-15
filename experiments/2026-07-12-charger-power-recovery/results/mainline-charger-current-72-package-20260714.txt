@@ -1,0 +1,136 @@
+validation=mt6797-charger-current-72-package-audit
+generated_utc=2026-07-14T08:18:46Z
+source_revision=7.1.3
+patch_count=72
+package=linux-7.1.3-gemini-a9a7c5002038
+audit_script=experiments/2026-07-12-charger-power-recovery/scripts/audit-current-package-charger.sh
+audit_script_sha256=7e446e04991f9ec9c1ff2e7e74011de5d433364af0c0a768a73b42ce3ba5ec68
+audit_output_sha256=127396b1fd87a389b2da01586eaaba4e0433134eba61c7093849f82770e5bcfd
+repeatability=byte-identical_second_run
+shellcheck=passed_in_dev_vm
+bash_n=passed
+runtime_probe=not_attempted
+hardware_write=none
+
+[captured_audit_output]
+validation=mt6797-charger-current-package-audit
+package=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-a9a7c5002038
+package_image_sha256=3fb6ac3043dff85dc2b6e68a2bba26d36fedf748e6f7c1bf6b6630f87446be7c
+package_config_sha256=831289dd3b53c6cec09e6c614fd83d3ab5988a4c30090bf9ec172348ec9487d5
+package_dtb_sha256=b41580263940b47226e9819c97afbdaa9a35d4c721c471d2e8a0a3d597c553c5
+package_system_map_sha256=c883efb3c8b09166a0765017712ec79e182f929ee50b3907f0279384ab2a22b2
+linux_tree=/home/julien.guest/src/gemini-pda/linux-7.1.3
+linux_version=7.1.3
+dtc_warning_lines=2
+
+[configuration]
+CONFIG_POWER_SUPPLY=y
+CONFIG_CHARGER_BQ25890=m
+CONFIG_REGULATOR_FAN49101=m
+CONFIG_REGULATOR_FAN53555=y
+CONFIG_CHARGER_RT9467=unset
+CONFIG_CHARGER_RT9466=absent
+CONFIG_BATTERY_BQ27XXX=y
+CONFIG_BATTERY_BQ27XXX_I2C=y
+CONFIG_BATTERY_MAX17042=m
+CONFIG_IIO=y
+CONFIG_MTK_PMIC_WRAP=y
+
+[packaged_charger_modules]
+module=bq25890_charger
+path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-a9a7c5002038/modules/lib/modules/7.1.3-gemini/kernel/drivers/power/supply/bq25890_charger.ko
+sha256=cbadedb56b80810f7c99c73305e50be94546d641bd3c9dc81b688dc77a23fc3b
+module=fan49101
+path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-a9a7c5002038/modules/lib/modules/7.1.3-gemini/kernel/drivers/regulator/fan49101.ko
+sha256=e3ce6d9a60d84a1b533cc4e9a1dee5e6a414dbd702ce13590b536aecc838c480
+module=bq27xxx_battery
+path=absent
+module=max17042_battery
+path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-a9a7c5002038/modules/lib/modules/7.1.3-gemini/kernel/drivers/power/supply/max17042_battery.ko
+sha256=8d4c07ae2e7a6c56d4932c0671706e31e51159e97e3647b52563176289b88699
+module=rt9467_charger
+path=absent
+module=fan53555
+path=absent
+
+[device_tree]
+charger_i2c0_node_matches=1
+charger_i2c0_and_child_disabled_status_matches=2
+fan49101_node_matches=1
+fan49101_disabled_status_matches=1
+fan49101_regulator_child_matches=1
+bq25890_or_sw_charger_node_matches=0
+rt9466_or_primary_charger_node_matches=0
+battery_power_supply_node_matches=0
+charger_resource_context:
+490-	};
+491-
+492:	i2c@11007000 {
+493-		compatible = "mediatek,mt6797-i2c\0mediatek,mt6577-i2c";
+494-		reg = <0x00 0x11007000 0x00 0x1000 0x00 0x11000100 0x00 0x80>;
+495-		interrupts = <0x00 0x54 0x08>;
+496-		clocks = <0x02 0x0c 0x02 0x2e>;
+497-		clock-names = "main\0dma";
+498-		clock-div = <0x0a>;
+499-		#address-cells = <0x01>;
+500-		#size-cells = <0x00>;
+501-		status = "disabled";
+502-
+503:		regulator@70 {
+504-			compatible = "onsemi,fan49101";
+505-			reg = <0x70>;
+506-			status = "disabled";
+507-
+508-			regulators {
+509-
+510:				vout {
+511-					regulator-name = "fan49101-vout";
+512-					regulator-min-microvolt = <0x93378>;
+513-					regulator-max-microvolt = <0x158f88>;
+514-				};
+515-			};
+516-		};
+517-	};
+518-
+519-	i2c@11008000 {
+520-		compatible = "mediatek,mt6797-i2c\0mediatek,mt6577-i2c";
+521-		reg = <0x00 0x11008000 0x00 0x1000 0x00 0x11000180 0x00 0x80>;
+522-		interrupts = <0x00 0x55 0x08>;
+523-		clocks = <0x02 0x0d 0x02 0x2e>;
+524-		clock-names = "main\0dma";
+525-		clock-div = <0x0a>;
+526-		#address-cells = <0x01>;
+527-		#size-cells = <0x00>;
+528-		status = "disabled";
+529-
+530-		bmi160@69 {
+531-			compatible = "bosch,bmi160";
+532-			reg = <0x69>;
+533-			mount-matrix = "0\0-1\00\0-1\00\00\00\00\0-1";
+534-			status = "disabled";
+
+[source_contract]
+charger_source_audit=experiments/2026-07-12-charger-power-recovery/results/mt6797-charger-source-audit.txt
+bq25890_reuse_audit=experiments/2026-07-12-charger-power-recovery/results/bq25890-reuse-audit-20260713.txt
+fan49101_contract=experiments/2026-07-12-charger-power-recovery/results/fan49101-register-contract.txt
+vendor_bq_identity_gate=register_0x03_nonzero_only
+linux_bq_identity_gate=register_0x14_PN_and_DEV_REV
+vendor_fan_identity_gate=dedicated_manufacturer_and_die_ID_registers
+
+[local_charger_patches]
+patch=/mnt/gemini-pda-mainline/patches/v7.1.3/0055-regulator-add-FAN49101-buck-boost-driver-and-Gemini-node.patch
+sha256=03a143d7af0a2d9f9a7fe012d40fd093d4fb1cbe745ac8b041017f57c6d61576
+charger_match_lines=106
+
+[decision]
+power_supply_core=selected_builtin
+bq25890_driver=packaged_as_module_but_no_gemini_dt_consumer
+fan49101_driver=packaged_as_module_with_disabled_gemini_node
+fan53555_driver=packaged_but_not_protocol_equivalent
+rt9467_driver=not_selected
+rt9466_consumer=absent_from_package_dtb
+bq27xxx_battery_core=packaged_builtin_without_board_consumer
+charger_runtime_probe=not_attempted
+charge_control=not_attempted
+hardware_write=none
+

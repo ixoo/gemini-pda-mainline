@@ -1,0 +1,12 @@
+validation=kernel-artifact
+generated_utc=2026-07-13T08:58:13Z
+artifact=linux-7.1.3-gemini-100440408125
+kernel_release=7.1.3-gemini
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=1004404081252c1314e5e521f6daa63f80177618f1cf25a6a751169094993498
+config_sha256=01f1ce5e6f1a64d29d72e3e01c88cbe0a8f769a10b226f0b79cbbc4d92206b59
+compiler=gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+linker=GNU ld (GNU Binutils for Ubuntu) 2.42
+dtb_count=119
+sha256sums=passed
+hardware_write=none

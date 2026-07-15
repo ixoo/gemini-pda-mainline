@@ -1,0 +1,31 @@
+validation=mainline-console-contract
+generated_utc=2026-07-14T19:50:26Z
+patchset_entries=76_noncomment_series_entries
+audit_script=experiments/2026-07-13-uart-console-recovery/scripts/audit-mainline-console-contract.sh
+script_sha256=fb064e8bab9a8f3adf9869d9dfd26021090496c478d098a4594a2b71572e1d29
+package=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-db59a88057b4
+dtb_sha256=21529f78282cbf3a48f9260b8981f005f3643d54e729ab676384880c6ace1d4c
+system_map_sha256=9beb0d1cbd2a7e32a96c02f7103d776e330c70e7e6e68893521c075afeef5822
+serial0=/serial@11002000
+stdout_path=serial0:921600n8
+uart0_compatible=mediatek,mt6797-uart mediatek,mt6577-uart
+uart0_status=okay
+uart0_reg=0 11002000 0 400
+uart0_interrupts=0 5b 8
+kernel_console=ttyS0
+earlycon=uart8250,mmio32,0x11002000
+vendor_console=ttyMT0_not_reused
+dma=deferred;PIO_first
+
+[linked_symbols]
+mtk8250_probe=present
+early_serial8250_setup=present
+serial8250_register_8250_port=present
+
+[decision]
+alias_and_stdout_path=consistent_with_UART0
+mainline_console_name=ttyS0
+vendor_console_name=ttyMT0_not_safe_to_copy
+early_console=8250_mmio32
+runtime_mainline_boot=not_attempted
+hardware_write=none

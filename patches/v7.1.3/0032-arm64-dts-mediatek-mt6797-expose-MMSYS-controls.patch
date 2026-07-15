@@ -1,0 +1,30 @@
+From 91f00ab9e8e926612a1f3c8e0d85004ec132c791 Mon Sep 17 00:00:00 2001
+From: Gemini PDA Mainline Project <noreply@example.com>
+Date: Sun, 12 Jul 2026 03:39:38 -0400
+Subject: [PATCH 32/32] arm64: dts: mediatek: mt6797: expose MMSYS controls
+
+Advertise the MMSYS reset controller and its source-verified GCE client
+window. The complete 4 KiB block maps through SUBSYS_1400XXXX at offset
+zero; mailbox channels remain deferred until a DRM consumer has an
+independently verified thread and priority contract.
+
+Signed-off-by: Gemini PDA Mainline Project <noreply@example.com>
+---
+ arch/arm64/boot/dts/mediatek/mt6797.dtsi | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+index 347750990..182ea6abf 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797.dtsi
++++ b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+@@ -537,6 +537,8 @@ mmsys: syscon@14000000 {
+ 		compatible = "mediatek,mt6797-mmsys", "syscon";
+ 		reg = <0 0x14000000 0 0x1000>;
+ 		#clock-cells = <1>;
++		#reset-cells = <1>;
++		mediatek,gce-client-reg = <&gce SUBSYS_1400XXXX 0 0x1000>;
+ 	};
+ 
+ 	mutex: mutex@1401f000 {
+-- 
+2.43.0

@@ -1,0 +1,430 @@
+From 5b09f1278f07b12f3b162a111826198f93a1f009 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 11 Jul 2026 23:59:18 -0400
+Subject: [PATCH] mfd: mt6397: add MT6351 core and interrupt support
+
+MT6351 exposes four flat 16-bit interrupt enable and status banks. Its
+status registers are write-one-to-clear, while the enable registers can
+be written directly or through set/clear aliases. The PMIC reports
+software ID 0x51 at register 0x202.
+
+Generalize the legacy MT6397 interrupt controller by its configured bank
+count, then add the four MT6351 banks and 64-source IRQ domain. Register
+regulator, RTC, sound, and key MFD cells, including distinct power/home
+press and release IRQ resources.
+
+The register map and source enumeration are cross-checked against the
+public Gemian MT6797 vendor source and live MT6351 E2 behavior.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ drivers/mfd/mt6397-core.c            | 48 ++++++++++++++++++
+ drivers/mfd/mt6397-irq.c             | 66 +++++++++++++------------
+ include/linux/mfd/mt6351/core.h      | 73 ++++++++++++++++++++++++++++
+ include/linux/mfd/mt6351/registers.h | 27 ++++++++++
+ include/linux/mfd/mt6397/core.h      | 12 +++--
+ 5 files changed, 191 insertions(+), 35 deletions(-)
+ create mode 100644 include/linux/mfd/mt6351/core.h
+ create mode 100644 include/linux/mfd/mt6351/registers.h
+
+diff --git a/drivers/mfd/mt6397-core.c b/drivers/mfd/mt6397-core.c
+index 1bdacda9a..ef859f655 100644
+--- a/drivers/mfd/mt6397-core.c
++++ b/drivers/mfd/mt6397-core.c
+@@ -15,6 +15,7 @@
+ #include <linux/mfd/mt6323/core.h>
+ #include <linux/mfd/mt6328/core.h>
+ #include <linux/mfd/mt6331/core.h>
++#include <linux/mfd/mt6351/core.h>
+ #include <linux/mfd/mt6357/core.h>
+ #include <linux/mfd/mt6358/core.h>
+ #include <linux/mfd/mt6359/core.h>
+@@ -22,6 +23,7 @@
+ #include <linux/mfd/mt6323/registers.h>
+ #include <linux/mfd/mt6328/registers.h>
+ #include <linux/mfd/mt6331/registers.h>
++#include <linux/mfd/mt6351/registers.h>
+ #include <linux/mfd/mt6357/registers.h>
+ #include <linux/mfd/mt6358/registers.h>
+ #include <linux/mfd/mt6359/registers.h>
+@@ -36,6 +38,9 @@
+ #define MT6331_RTC_BASE		0x4000
+ #define MT6331_RTC_SIZE		0x40
+ 
++#define MT6351_RTC_BASE		0x4000
++#define MT6351_RTC_SIZE		0x40
++
+ #define MT6358_RTC_BASE		0x0588
+ #define MT6358_RTC_SIZE		0x3c
+ 
+@@ -60,6 +65,11 @@ static const struct resource mt6331_rtc_resources[] = {
+ 	DEFINE_RES_IRQ(MT6331_IRQ_STATUS_RTC),
+ };
+ 
++static const struct resource mt6351_rtc_resources[] = {
++	DEFINE_RES_MEM(MT6351_RTC_BASE, MT6351_RTC_SIZE),
++	DEFINE_RES_IRQ(MT6351_IRQ_RTC),
++};
++
+ static const struct resource mt6358_rtc_resources[] = {
+ 	DEFINE_RES_MEM(MT6358_RTC_BASE, MT6358_RTC_SIZE),
+ 	DEFINE_RES_IRQ(MT6358_IRQ_RTC),
+@@ -114,6 +124,13 @@ static const struct resource mt6331_keys_resources[] = {
+ 	DEFINE_RES_IRQ_NAMED(MT6331_IRQ_STATUS_HOMEKEY, "homekey"),
+ };
+ 
++static const struct resource mt6351_keys_resources[] = {
++	DEFINE_RES_IRQ_NAMED(MT6351_IRQ_PWRKEY, "powerkey"),
++	DEFINE_RES_IRQ_NAMED(MT6351_IRQ_HOMEKEY, "homekey"),
++	DEFINE_RES_IRQ_NAMED(MT6351_IRQ_PWRKEY_R, "powerkey_r"),
++	DEFINE_RES_IRQ_NAMED(MT6351_IRQ_HOMEKEY_R, "homekey_r"),
++};
++
+ static const struct resource mt6397_keys_resources[] = {
+ 	DEFINE_RES_IRQ_NAMED(MT6397_IRQ_PWRKEY, "powerkey"),
+ 	DEFINE_RES_IRQ_NAMED(MT6397_IRQ_HOMEKEY, "homekey"),
+@@ -203,6 +220,26 @@ static const struct mfd_cell mt6331_mt6332_devs[] = {
+ 	},
+ };
+ 
++static const struct mfd_cell mt6351_devs[] = {
++	{
++		.name = "mt6351-regulator",
++		.of_compatible = "mediatek,mt6351-regulator",
++	}, {
++		.name = "mt6351-rtc",
++		.num_resources = ARRAY_SIZE(mt6351_rtc_resources),
++		.resources = mt6351_rtc_resources,
++		.of_compatible = "mediatek,mt6351-rtc",
++	}, {
++		.name = "mt6351-sound",
++		.of_compatible = "mediatek,mt6351-sound",
++	}, {
++		.name = "mt6351-keys",
++		.num_resources = ARRAY_SIZE(mt6351_keys_resources),
++		.resources = mt6351_keys_resources,
++		.of_compatible = "mediatek,mt6351-keys",
++	},
++};
++
+ static const struct mfd_cell mt6358_devs[] = {
+ 	{
+ 		.name = "mt6359-auxadc",
+@@ -319,6 +356,14 @@ static const struct chip_data mt6331_mt6332_core = {
+ 	.irq_init = mt6397_irq_init,
+ };
+ 
++static const struct chip_data mt6351_core = {
++	.cid_addr = MT6351_SWCID,
++	.cid_shift = 8,
++	.cells = mt6351_devs,
++	.cell_size = ARRAY_SIZE(mt6351_devs),
++	.irq_init = mt6397_irq_init,
++};
++
+ static const struct chip_data mt6358_core = {
+ 	.cid_addr = MT6358_SWCID,
+ 	.cid_shift = 8,
+@@ -407,6 +452,9 @@ static const struct of_device_id mt6397_of_match[] = {
+ 	}, {
+ 		.compatible = "mediatek,mt6331",
+ 		.data = &mt6331_mt6332_core,
++	}, {
++		.compatible = "mediatek,mt6351",
++		.data = &mt6351_core,
+ 	}, {
+ 		.compatible = "mediatek,mt6357",
+ 		.data = &mt6357_core,
+diff --git a/drivers/mfd/mt6397-irq.c b/drivers/mfd/mt6397-irq.c
+index 5d2e5459f..386071c21 100644
+--- a/drivers/mfd/mt6397-irq.c
++++ b/drivers/mfd/mt6397-irq.c
+@@ -15,6 +15,8 @@
+ #include <linux/mfd/mt6328/registers.h>
+ #include <linux/mfd/mt6331/core.h>
+ #include <linux/mfd/mt6331/registers.h>
++#include <linux/mfd/mt6351/core.h>
++#include <linux/mfd/mt6351/registers.h>
+ #include <linux/mfd/mt6397/core.h>
+ #include <linux/mfd/mt6397/registers.h>
+ 
+@@ -28,14 +30,11 @@ static void mt6397_irq_lock(struct irq_data *data)
+ static void mt6397_irq_sync_unlock(struct irq_data *data)
+ {
+ 	struct mt6397_chip *mt6397 = irq_data_get_irq_chip_data(data);
++	unsigned int i;
+ 
+-	regmap_write(mt6397->regmap, mt6397->int_con[0],
+-		     mt6397->irq_masks_cur[0]);
+-	regmap_write(mt6397->regmap, mt6397->int_con[1],
+-		     mt6397->irq_masks_cur[1]);
+-	if (mt6397->int_con[2])
+-		regmap_write(mt6397->regmap, mt6397->int_con[2],
+-			     mt6397->irq_masks_cur[2]);
++	for (i = 0; i < mt6397->num_irq_regs; i++)
++		regmap_write(mt6397->regmap, mt6397->int_con[i],
++			     mt6397->irq_masks_cur[i]);
+ 
+ 	mutex_unlock(&mt6397->irqlock);
+ }
+@@ -107,11 +106,10 @@ static void mt6397_irq_handle_reg(struct mt6397_chip *mt6397, int reg,
+ static irqreturn_t mt6397_irq_thread(int irq, void *data)
+ {
+ 	struct mt6397_chip *mt6397 = data;
++	unsigned int i;
+ 
+-	mt6397_irq_handle_reg(mt6397, mt6397->int_status[0], 0);
+-	mt6397_irq_handle_reg(mt6397, mt6397->int_status[1], 16);
+-	if (mt6397->int_status[2])
+-		mt6397_irq_handle_reg(mt6397, mt6397->int_status[2], 32);
++	for (i = 0; i < mt6397->num_irq_regs; i++)
++		mt6397_irq_handle_reg(mt6397, mt6397->int_status[i], i * 16);
+ 
+ 	return IRQ_HANDLED;
+ }
+@@ -138,27 +136,20 @@ static int mt6397_irq_pm_notifier(struct notifier_block *notifier,
+ {
+ 	struct mt6397_chip *chip =
+ 		container_of(notifier, struct mt6397_chip, pm_nb);
++	unsigned int i;
+ 
+ 	switch (pm_event) {
+ 	case PM_SUSPEND_PREPARE:
+-		regmap_write(chip->regmap,
+-			     chip->int_con[0], chip->wake_mask[0]);
+-		regmap_write(chip->regmap,
+-			     chip->int_con[1], chip->wake_mask[1]);
+-		if (chip->int_con[2])
+-			regmap_write(chip->regmap,
+-				     chip->int_con[2], chip->wake_mask[2]);
++		for (i = 0; i < chip->num_irq_regs; i++)
++			regmap_write(chip->regmap, chip->int_con[i],
++				     chip->wake_mask[i]);
+ 		enable_irq_wake(chip->irq);
+ 		break;
+ 
+ 	case PM_POST_SUSPEND:
+-		regmap_write(chip->regmap,
+-			     chip->int_con[0], chip->irq_masks_cur[0]);
+-		regmap_write(chip->regmap,
+-			     chip->int_con[1], chip->irq_masks_cur[1]);
+-		if (chip->int_con[2])
+-			regmap_write(chip->regmap,
+-				     chip->int_con[2], chip->irq_masks_cur[2]);
++		for (i = 0; i < chip->num_irq_regs; i++)
++			regmap_write(chip->regmap, chip->int_con[i],
++				     chip->irq_masks_cur[i]);
+ 		disable_irq_wake(chip->irq);
+ 		break;
+ 
+@@ -171,18 +162,21 @@ static int mt6397_irq_pm_notifier(struct notifier_block *notifier,
+ 
+ int mt6397_irq_init(struct mt6397_chip *chip)
+ {
++	unsigned int i;
+ 	int ret;
+ 
+ 	mutex_init(&chip->irqlock);
+ 
+ 	switch (chip->chip_id) {
+ 	case MT6323_CHIP_ID:
++		chip->num_irq_regs = 2;
+ 		chip->int_con[0] = MT6323_INT_CON0;
+ 		chip->int_con[1] = MT6323_INT_CON1;
+ 		chip->int_status[0] = MT6323_INT_STATUS0;
+ 		chip->int_status[1] = MT6323_INT_STATUS1;
+ 		break;
+ 	case MT6328_CHIP_ID:
++		chip->num_irq_regs = 3;
+ 		chip->int_con[0] = MT6328_INT_CON0;
+ 		chip->int_con[1] = MT6328_INT_CON1;
+ 		chip->int_con[2] = MT6328_INT_CON2;
+@@ -191,13 +185,26 @@ int mt6397_irq_init(struct mt6397_chip *chip)
+ 		chip->int_status[2] = MT6328_INT_STATUS2;
+ 		break;
+ 	case MT6331_CHIP_ID:
++		chip->num_irq_regs = 2;
+ 		chip->int_con[0] = MT6331_INT_CON0;
+ 		chip->int_con[1] = MT6331_INT_CON1;
+ 		chip->int_status[0] = MT6331_INT_STATUS_CON0;
+ 		chip->int_status[1] = MT6331_INT_STATUS_CON1;
+ 		break;
++	case MT6351_CHIP_ID:
++		chip->num_irq_regs = 4;
++		chip->int_con[0] = MT6351_INT_CON0;
++		chip->int_con[1] = MT6351_INT_CON1;
++		chip->int_con[2] = MT6351_INT_CON2;
++		chip->int_con[3] = MT6351_INT_CON3;
++		chip->int_status[0] = MT6351_INT_STATUS0;
++		chip->int_status[1] = MT6351_INT_STATUS1;
++		chip->int_status[2] = MT6351_INT_STATUS2;
++		chip->int_status[3] = MT6351_INT_STATUS3;
++		break;
+ 	case MT6391_CHIP_ID:
+ 	case MT6397_CHIP_ID:
++		chip->num_irq_regs = 2;
+ 		chip->int_con[0] = MT6397_INT_CON0;
+ 		chip->int_con[1] = MT6397_INT_CON1;
+ 		chip->int_status[0] = MT6397_INT_STATUS0;
+@@ -210,13 +217,12 @@ int mt6397_irq_init(struct mt6397_chip *chip)
+ 	}
+ 
+ 	/* Mask all interrupt sources */
+-	regmap_write(chip->regmap, chip->int_con[0], 0x0);
+-	regmap_write(chip->regmap, chip->int_con[1], 0x0);
+-	if (chip->int_con[2])
+-		regmap_write(chip->regmap, chip->int_con[2], 0x0);
++	for (i = 0; i < chip->num_irq_regs; i++)
++		regmap_write(chip->regmap, chip->int_con[i], 0x0);
+ 
+ 	chip->pm_nb.notifier_call = mt6397_irq_pm_notifier;
+-	chip->irq_domain = irq_domain_create_linear(dev_fwnode(chip->dev), MT6397_IRQ_NR,
++	chip->irq_domain = irq_domain_create_linear(dev_fwnode(chip->dev),
++						    chip->num_irq_regs * 16,
+ 						    &mt6397_irq_domain_ops, chip);
+ 	if (!chip->irq_domain) {
+ 		dev_err(chip->dev, "could not create irq domain\n");
+diff --git a/include/linux/mfd/mt6351/core.h b/include/linux/mfd/mt6351/core.h
+new file mode 100644
+index 000000000..a85a7ccf2
+--- /dev/null
++++ b/include/linux/mfd/mt6351/core.h
+@@ -0,0 +1,73 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __MFD_MT6351_CORE_H__
++#define __MFD_MT6351_CORE_H__
++
++enum mt6351_irq_numbers {
++	MT6351_IRQ_PWRKEY = 0,
++	MT6351_IRQ_HOMEKEY,
++	MT6351_IRQ_PWRKEY_R,
++	MT6351_IRQ_HOMEKEY_R,
++	MT6351_IRQ_THR_H,
++	MT6351_IRQ_THR_L,
++	MT6351_IRQ_BAT_H,
++	MT6351_IRQ_BAT_L,
++	MT6351_IRQ_RESERVED_8,
++	MT6351_IRQ_RTC,
++	MT6351_IRQ_AUDIO,
++	MT6351_IRQ_MAD,
++	MT6351_IRQ_ACCDET,
++	MT6351_IRQ_ACCDET_EINT,
++	MT6351_IRQ_ACCDET_NEGV,
++	MT6351_IRQ_NI_LBAT,
++	MT6351_IRQ_VCORE_OC,
++	MT6351_IRQ_VGPU_OC,
++	MT6351_IRQ_VSRAM_MD_OC,
++	MT6351_IRQ_VMODEM_OC,
++	MT6351_IRQ_VM1_OC,
++	MT6351_IRQ_VS1_OC,
++	MT6351_IRQ_VS2_OC,
++	MT6351_IRQ_VPA_OC,
++	MT6351_IRQ_VCORE_PREOC,
++	MT6351_IRQ_VGPU_PREOC,
++	MT6351_IRQ_VSRAM_MD_PREOC,
++	MT6351_IRQ_VMODEM_PREOC,
++	MT6351_IRQ_VM1_PREOC,
++	MT6351_IRQ_VS1_PREOC,
++	MT6351_IRQ_VS2_PREOC,
++	MT6351_IRQ_LDO_OC,
++	MT6351_IRQ_JEITA_HOT,
++	MT6351_IRQ_JEITA_WARM,
++	MT6351_IRQ_JEITA_COOL,
++	MT6351_IRQ_JEITA_COLD,
++	MT6351_IRQ_AUXADC_IMP,
++	MT6351_IRQ_NAG_C_DLTV,
++	MT6351_IRQ_RESERVED_38,
++	MT6351_IRQ_RESERVED_39,
++	MT6351_IRQ_OV,
++	MT6351_IRQ_BVALID_DET,
++	MT6351_IRQ_BATON_HV,
++	MT6351_IRQ_VBATON_UNDET,
++	MT6351_IRQ_WATCHDOG,
++	MT6351_IRQ_PCHR_CM_VDEC,
++	MT6351_IRQ_CHRDET,
++	MT6351_IRQ_PCHR_CM_VINC,
++	MT6351_IRQ_FG_BAT_H,
++	MT6351_IRQ_FG_BAT_L,
++	MT6351_IRQ_FG_CUR_H,
++	MT6351_IRQ_FG_CUR_L,
++	MT6351_IRQ_FG_ZCV,
++	MT6351_IRQ_RESERVED_53,
++	MT6351_IRQ_RESERVED_54,
++	MT6351_IRQ_RESERVED_55,
++	MT6351_IRQ_RESERVED_56,
++	MT6351_IRQ_RESERVED_57,
++	MT6351_IRQ_RESERVED_58,
++	MT6351_IRQ_RESERVED_59,
++	MT6351_IRQ_RESERVED_60,
++	MT6351_IRQ_RESERVED_61,
++	MT6351_IRQ_RESERVED_62,
++	MT6351_IRQ_RESERVED_63,
++	MT6351_IRQ_NR,
++};
++
++#endif /* __MFD_MT6351_CORE_H__ */
+diff --git a/include/linux/mfd/mt6351/registers.h b/include/linux/mfd/mt6351/registers.h
+new file mode 100644
+index 000000000..e9de220b2
+--- /dev/null
++++ b/include/linux/mfd/mt6351/registers.h
+@@ -0,0 +1,27 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __MFD_MT6351_REGISTERS_H__
++#define __MFD_MT6351_REGISTERS_H__
++
++#define MT6351_HWCID			0x0200
++#define MT6351_SWCID			0x0202
++#define MT6351_TOPSTATUS		0x0220
++#define MT6351_TOP_RST_MISC		0x02b6
++#define MT6351_INT_CON0			0x02c2
++#define MT6351_INT_CON0_SET		0x02c4
++#define MT6351_INT_CON0_CLR		0x02c6
++#define MT6351_INT_CON1			0x02c8
++#define MT6351_INT_CON1_SET		0x02ca
++#define MT6351_INT_CON1_CLR		0x02cc
++#define MT6351_INT_CON2			0x02ce
++#define MT6351_INT_CON2_SET		0x02d0
++#define MT6351_INT_CON2_CLR		0x02d2
++#define MT6351_INT_CON3			0x02d4
++#define MT6351_INT_CON3_SET		0x02d6
++#define MT6351_INT_CON3_CLR		0x02d8
++#define MT6351_INT_MISC_CON		0x02da
++#define MT6351_INT_STATUS0		0x02e0
++#define MT6351_INT_STATUS1		0x02e2
++#define MT6351_INT_STATUS2		0x02e4
++#define MT6351_INT_STATUS3		0x02e6
++
++#endif /* __MFD_MT6351_REGISTERS_H__ */
+diff --git a/include/linux/mfd/mt6397/core.h b/include/linux/mfd/mt6397/core.h
+index 340fc72e2..64ae17c7a 100644
+--- a/include/linux/mfd/mt6397/core.h
++++ b/include/linux/mfd/mt6397/core.h
+@@ -15,6 +15,7 @@ enum chip_id {
+ 	MT6328_CHIP_ID = 0x28,
+ 	MT6331_CHIP_ID = 0x31,
+ 	MT6332_CHIP_ID = 0x32,
++	MT6351_CHIP_ID = 0x51,
+ 	MT6357_CHIP_ID = 0x57,
+ 	MT6358_CHIP_ID = 0x58,
+ 	MT6359_CHIP_ID = 0x59,
+@@ -66,11 +67,12 @@ struct mt6397_chip {
+ 	int irq;
+ 	struct irq_domain *irq_domain;
+ 	struct mutex irqlock;
+-	u16 wake_mask[3];
+-	u16 irq_masks_cur[3];
+-	u16 irq_masks_cache[3];
+-	u16 int_con[3];
+-	u16 int_status[3];
++	u16 wake_mask[4];
++	u16 irq_masks_cur[4];
++	u16 irq_masks_cache[4];
++	u16 int_con[4];
++	u16 int_status[4];
++	u8 num_irq_regs;
+ 	u16 chip_id;
+ 	void *irq_data;
+ };
+-- 
+2.43.0

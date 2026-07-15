@@ -20,7 +20,7 @@ heading() {
 read_text() {
   local path="$1"
   if [[ -r "${path}" ]]; then
-    tr '\000' ' ' < "${path}" 2>/dev/null
+    tr '\000' ' ' < "${path}" 2>/dev/null | sed 's/[[:space:]]*$//'
   fi
 }
 
@@ -36,6 +36,39 @@ read_first() {
   if [[ -r "${path}" ]]; then
     head -n 1 "${path}" 2>/dev/null
   fi
+}
+
+dt_relative() {
+  local node="$1"
+  if [[ "${node}" == "${DT_ROOT}" ]]; then
+    printf '/'
+  else
+    printf '/%s' "${node#"${DT_ROOT}"/}"
+  fi
+}
+
+emit_dt_property() {
+  local node="$1"
+  local property="$2"
+  local name="${property##*/}"
+  local relative=""
+  local value=""
+
+  relative="$(dt_relative "${node}")"
+
+  if [[ ! -s "${property}" ]]; then
+    value="<present>"
+  else
+    case "${name}" in
+      compatible|status|model|device_type|label|charger_name|regulator-name|*-names)
+        value="$(read_text "${property}")"
+        ;;
+      *)
+        value="$(read_hex "${property}")"
+        ;;
+    esac
+  fi
+  printf '%s|%s=%s\n' "${relative}" "${name}" "${value}"
 }
 
 sanitize_bootargs() {
@@ -83,7 +116,7 @@ device_tree() {
 
   find "${DT_ROOT}" -type f -name compatible -print 2>/dev/null | sort | while IFS= read -r compatible; do
     local node="${compatible%/compatible}"
-    local relative="/${node#"${DT_ROOT}"/}"
+    local relative=""
     local status="okay"
     local reg=""
     local interrupts=""
@@ -93,6 +126,7 @@ device_tree() {
     [[ -r "${node}/reg" ]] && reg="$(read_hex "${node}/reg")"
     [[ -r "${node}/interrupts" ]] && interrupts="$(read_hex "${node}/interrupts")"
     [[ -r "${node}/interrupt-parent" ]] && interrupt_parent="$(read_hex "${node}/interrupt-parent")"
+    relative="$(dt_relative "${node}")"
     printf '%s|compatible=%s|status=%s|reg=%s|interrupts=%s|interrupt-parent=%s\n' \
       "${relative}" \
       "$(read_text "${compatible}")" \
@@ -100,6 +134,45 @@ device_tree() {
       "${reg}" \
       "${interrupts}" \
       "${interrupt_parent}"
+  done
+
+  heading "selected device tree property values"
+  find "${DT_ROOT}" -type f -print 2>/dev/null | sort | while IFS= read -r property; do
+    local node="${property%/*}"
+    local name="${property##*/}"
+
+    case "${name}" in
+      '#address-cells'|'#size-cells'|'#clock-cells'|'#reset-cells'|'#power-domain-cells'|'#iommu-cells'|'#phy-cells'|'#dma-cells'|'#gpio-cells'|'#interrupt-cells'|\
+      compatible|status|model|device_type|label|phandle|linux,phandle|reg|ranges|dma-ranges|\
+      interrupts|interrupts-extended|interrupt-parent|interrupt-names|\
+      clocks|clock-names|assigned-clocks|assigned-clock-parents|assigned-clock-rates|\
+      resets|reset-names|power-domains|iommus|phys|phy-names|dmas|dma-names|\
+      pinctrl-[0-9]*|pinctrl-names|*-gpios|*-gpio|*_gpio|*-supply|\
+      pins|pinmux|output-high|output-low|slew-rate|drive-strength|bias-disable|\
+      bus-width|max-frequency|clock-frequency|spi-max-frequency|reg-names|\
+      clk_src|clock-div|host_function|cd_level|cell-index|id|debounce|\
+      register_setting|pinctl|pinctl_*|bootable|mmc-ddr-1_8v|\
+      cap-sd-highspeed|sd-uhs-*|mediatek,use-*|mediatek,*_used|\
+      mediatek,max_eint_num|mediatek,max_hw_deb_cnt|mediatek,mapping_table_entry|mediatek,mapping_table|\
+      mediatek,max_deint_cnt|mediatek,deint_possible_irq|mediatek,builtin_eint_hw_deb|\
+      mediatek,builtin_entry|mediatek,builtin_mapping|mediatek,debtime_setting_entry|mediatek,debtime_setting_array|\
+      mediatek,kpd-*|\
+      regulator-name|regulator-min-microvolt|regulator-max-microvolt|regulator-always-on|regulator-boot-on|\
+      non-removable|cap-mmc-highspeed|mmc-hs200-1_8v|mmc-hs400-1_8v|broken-cd|disable-wp|cd-inverted|\
+      charger_name|aicr|cv|ichg|ieoc|mivr|ircmp_resistor|ircmp_vclamp|safety_timer|en_te|en_wdt|rt,intr_gpio_num|\
+      lcm_params-*|\
+      gpio-controller|interrupt-controller|wakeup-source|enable-active-high)
+        emit_dt_property "${node}" "${property}"
+        ;;
+    esac
+
+    if [[ "$(dt_relative "${node}")" == /lcm_ops ]]; then
+      case "${name}" in
+        init|compare_id|suspend|backlight|backlight_cmdq)
+          emit_dt_property "${node}" "${property}"
+          ;;
+      esac
+    fi
   done
 
   heading "device tree property inventory"

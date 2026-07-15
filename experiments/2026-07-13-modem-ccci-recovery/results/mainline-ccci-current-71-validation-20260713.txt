@@ -1,0 +1,80 @@
+Current Linux 7.1.3 MT6797 CCCI/CLDMA validation
+=================================================
+
+Date: 2026-07-13
+Vendor tree commit: c5b0be85017ad0c599725e8273842efdbecdd88a
+Linux source manifest SHA-256: be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+Patch count: 71
+Patchset SHA-256: 86145c09fc00fd3c65fb822f7834c5bb3dc08eb76f5117b90538141a429a1623
+Package Image SHA-256: bb326cfc3189828ff623a224dbc65aa9aace32474109dc116cd915d7bea4a09a
+Package Image.gz SHA-256: e99d3d74c88ce657ef73da4c7aafe8d3bb3567d837b692adf9414bd99d1f194b
+Package Gemini DTB SHA-256: fb910c8d96b7d4f533c750ce0717ced8998c992834abc44a4ed86ec5a9cf1f97
+Package config SHA-256: c11ddd57c1fc643202b15bcfac9564edbba61e42a0a08879369b52592ba31d7a
+Package modules_built: true (1,582 optional module files; 349M module tree)
+Live raw CCCI capture SHA-256: 6943a9548235391c0a1b58212fe4cd78695d91a612f4a1ee94855289a065a407
+Analyzer output SHA-256: ada5c2cabcb9afb2387a5bc6dc7686dd12b608d903e75be1cf5cff461455258e
+Analyzer script SHA-256: 28efc50405e86fe1837ce0cd0d129ab5f1cec9c1660693dbc9c92cb73e9d5b3a
+Collector script SHA-256: 4c94b144eaa906633d69491cbf463b10f303bdce9d77390e67fff84b896ea72f
+
+Live topology recheck
+---------------------
+
+The bounded collector was rerun against `gemini@192.168.1.50`. It reproduced
+the existing read-only capture: MD1 major `237` exposes `ccmni0`–`ccmni17`,
+`ttyC0`–`ttyC3`, and private CCCI control/raw nodes; MD3/C2K major `236`
+exposes `cc3mni0`–`cc3mni7` and its private control/TTY nodes. The platform
+owners remain `cldma_modem`, `ccif_modem`, and the vendor modem support
+objects. CCIF1 and CLDMA interrupt counters are nonzero in the capture; this
+is topology/activity evidence only, not proof of a safe handshake.
+
+The observed MT6797 resource contract remains:
+
+  mdcldma aggregate: 0x10014000+0x1e00
+  AP/MD CLDMA windows: 0x10219000+0x1e00 and 0x1021a000+0x1e00
+  AP/MD CCIF windows: 0x10209000+0x1000 through 0x1020c000+0x1000
+  AP-to-C2K CCIF: 0x1020b000 plus MD-to-MD windows at 0x10211000/0x10213000
+  CLDMA capability: 6; declared MD1 shared-memory size: 0x100000
+  C2K shared-memory declaration: 0x400000
+
+Mainline configuration and source boundary
+-------------------------------------------
+
+The first-boot Image remains an Image-only runtime boundary; the revalidated
+package also carries optional modules (`modules_built=true`) for later rootfs
+integration:
+
+  CONFIG_WWAN=m
+  CONFIG_MHI_WWAN_CTRL=m
+  CONFIG_MTK_T7XX is not set
+  CONFIG_RPMSG_WWAN_CTRL is not set
+  CONFIG_USB_NET_QMI_WWAN is not set
+  CONFIG_USB_NET_CDC_MBIM is not set
+
+The focused source-compilation check was run in the prepared arm64 build tree
+with the current 7.1.3 source/configuration. It passed for these comparison
+objects; they were not packaged or loaded:
+
+  wwan_core.o              bcf5f34a8b42a07c72f1a59878d29aff6a49d2ba0a6cb9709857b9065330b3f2
+  rpmsg_wwan_ctrl.o        fbce292621fcd6702cc92f31cfb09e3f767c84e3342970f57108a706723af6d9
+  t7xx_hif_cldma.o         31dede54a502b0673443e3a17fd25dfcb99cc90936989f986c8d6f345faae6af
+  t7xx_port_proxy.o        b5bc37d31ad45154eba53cf49deabb8e56f5bccba4a3aff047464b800fce1c5f
+  t7xx_netdev.o            fadf0d10ba181e0a31f38050fd2ab178e1f9391c3b723761f5e7d8b856a2abda
+
+Decision
+--------
+
+The vendor contract is a platform MMIO CCCI/CLDMA/CCIF modem with a 16-byte
+version-3 CCCI header, 8+8 queue families, 16-byte TGPD/RGPD/TBD/RBD
+descriptors, 36-bit address metadata, bootloader-owned shared memory, and
+staged EMI-MPU/remap ownership. Linux `t7xx` is a PCIe/DPMAIF T700 backend;
+its source compiling here does not make it a Gemini driver. Reuse belongs at
+the standard WWAN/TTY/netdev API boundary, with a new MT6797 transport owning
+the descriptor rings, CCIF flow-control, clocks, modem state machine, reset,
+shared-memory lifetime, and EMI-MPU permissions. Keep all modem DT consumers
+disabled until a non-transmitting bootloader reservation and handshake trace
+is recovered.
+
+runtime_modem_probe=not_attempted
+firmware_handshake=not_attempted
+wwan_transmit=none
+hardware_write=none

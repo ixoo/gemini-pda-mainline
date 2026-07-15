@@ -1,0 +1,16 @@
+validation=gemini-dtb-direct-schema-current
+generated_utc=2026-07-13T13:02:30Z
+source_revision=7.1.3
+patch_series_count=62
+artifact=linux-7.1.3-gemini-f58393ad5d8e
+patchset_sha256=f58393ad5d8eaac1f044d3ad4eeef704337e78908ee0a5275e0a12c9fdef3777
+dtb=mediatek/mt6797-gemini-pda.dtb
+dtb_sha256=50c8b5199f8a5bab4b7f5af29f72aba72ae6e6a985de3509b15baf72627b9a1c
+processed_schema_sha256=d5a97a62453beb8803bd44dcb01842742fce1cc462b151da30c8ad31fca8903f
+focused_dt_validate_exit=0
+pmic_regulator_child_placement_warning=resolved
+decompiled_pmic_hierarchy=regulators/ldo-vemc,ldo-vio18;passed
+remaining_unmatched_schema_warnings=mediatek,mt6797-scpsys;mediatek,mt6797-audio;mediatek,mt6797-dvfsp
+remaining_warnings_are_disabled_candidate_nodes=confirmed
+full_artifact_checksum_validation=passed
+hardware_write=none
