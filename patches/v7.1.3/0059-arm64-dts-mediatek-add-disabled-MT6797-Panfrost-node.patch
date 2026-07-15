@@ -1,0 +1,61 @@
+From 0000000000000000000000000000000000000059 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 13 Jul 2026 06:40:00 -0400
+Subject: [PATCH] arm64: dts: mediatek: add disabled MT6797 Panfrost node
+
+Describe the live MT6797 Mali-T88x register and interrupt resources using the
+new Panfrost platform-data compatible. The four MFG core domains are explicit
+so the generic Panfrost runtime can attach each domain and let the SCPSYS
+hierarchy handle its parents.
+
+Keep the node disabled. The RT5735 rail, reset ownership, fixed operating
+point, and M4U relationship are not runtime-validated; this patch must not
+turn on GPU clocks, voltage, or jobs by default.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts |  5 +++++
+ arch/arm64/boot/dts/mediatek/mt6797.dtsi           | 17 +++++++++++++++++
+ 2 files changed, 22 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+--- a/arch/arm64/boot/dts/mediatek/mt6797.dtsi
++++ b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+@@ -240,6 +240,23 @@
+ 		status = "disabled";
+ 	};
+ 
++	gpu: gpu@13040000 {
++		compatible = "mediatek,mt6797-mali", "arm,mali-t880";
++		reg = <0 0x13040000 0 0x4000>;
++		interrupts = <GIC_SPI 264 IRQ_TYPE_LEVEL_LOW>,
++			     <GIC_SPI 263 IRQ_TYPE_LEVEL_LOW>,
++			     <GIC_SPI 262 IRQ_TYPE_LEVEL_LOW>;
++		interrupt-names = "job", "mmu", "gpu";
++		clocks = <&mfgsys CLK_MFG_BG3D>;
++		clock-names = "core";
++		power-domains = <&scpsys MT6797_POWER_DOMAIN_MFG_CORE0>,
++				 <&scpsys MT6797_POWER_DOMAIN_MFG_CORE1>,
++				 <&scpsys MT6797_POWER_DOMAIN_MFG_CORE2>,
++				 <&scpsys MT6797_POWER_DOMAIN_MFG_CORE3>;
++		power-domain-names = "core0", "core1", "core2", "core3";
++		status = "disabled";
++	};
++
+ 	watchdog: watchdog@10007000 {
+ 		compatible = "mediatek,mt6797-wdt", "mediatek,mt6589-wdt";
+ 		reg = <0 0x10007000 0 0x100>;
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -371,3 +371,8 @@
+ 		};
+ 	};
+ };
++
++/* The RT5735 VGPU rail remains disabled until a fixed OPP is validated. */
++&gpu {
++	mali-supply = <&rt5735_vgpu>;
++};
+-- 
+2.43.0

@@ -1,0 +1,47 @@
+From 0000000000000000000000000000000000000052 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 12 Jul 2026 18:00:00 -0400
+Subject: [PATCH] arm64: dts: mediatek: add disabled Gemini BMI160 candidate
+
+The live Gemini vendor stack exposes BMI160-named clients at I2C1 0x68 and
+0x69, but both vendor probes rewrite the Linux i2c_client address to 0x69.
+The gyro path validates Bosch-family IDs and the accelerometer path reads the
+BMI160 ID register; the electrical part has not been directly probed yet.
+
+Describe one standard upstream BMI160 instance at the likely physical address
+and keep it disabled. Do not guess supplies or interrupt wiring: the vendor
+configuration reports no controlled sensor rail and the legacy clients use
+polling. The direction-7 transform is the recovered board orientation and is
+safe as metadata, but enabling this node still requires a direct ID, rail, and
+runtime recovery test.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -219,3 +219,19 @@
+ 		status = "disabled";
+ 	};
+ };
++
++&i2c1 {
++	/*
++	 * Keep this candidate disabled until the physical ID, rails, and
++	 * interrupt/polling contract are verified on a recoverable image.
++	 * The vendor's logical 0x68 client is rewritten to 0x69 in probe.
++	 */
++	bmi160_candidate: bmi160@69 {
++		compatible = "bosch,bmi160";
++		reg = <0x69>;
++		mount-matrix = "0", "-1", "0",
++				       "-1", "0", "0",
++				       "0", "0", "-1";
++		status = "disabled";
++	};
++};
+-- 
+2.43.0

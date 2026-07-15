@@ -1,0 +1,18 @@
+validation=gemini-keyboard-keymap-consistency
+keymap=experiments/2026-07-12-input-backlight-recovery/results/keyboard-keymap-active-boot.txt
+keymap_sha256=7681599d2b16d2093e660cc4c438bbd427da80f7e6a233a44ab26b0e2f266a9d
+patch=patches/v7.1.3/0054-arm64-dts-mediatek-add-disabled-Gemini-AW9523-keyboard-candidate.patch
+patch_sha256=19e80e7f33339484193df6c934886223d89e1c10ee56a7600523d6d2c760036b
+matrix_rows=8
+matrix_columns=7
+matrix_positions=56
+assigned_positions=52
+unknown_positions=4
+active_boot_override=(row=4,col=3):KEY_LEFTMETA
+status=pass
+hardware_write=none
+
+The retained-source validator result remains in
+`keymap-consistency-20260714.txt` as historical evidence. This result validates
+the current disabled DT candidate against the exact active-boot ELF-normalized
+map instead.

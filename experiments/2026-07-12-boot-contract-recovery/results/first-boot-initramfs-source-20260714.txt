@@ -1,0 +1,24 @@
+validation=first-boot-initramfs-source
+generated_utc=2026-07-14T20:10:44Z
+source=experiments/2026-07-12-boot-contract-recovery/initramfs/init
+source_sha256=0f59ddaf81e6cfbf7d07ee9a1b14101ce9799aa93b5c2bd1f7ab48a211da53f6
+purpose=minimal_UART_first_boot_diagnostics
+candidate_console=ttyS0
+vendor_console_token=ttyMT0_LK_observation_only
+optional_consumers=disabled
+storage_probe=manual_read_only_only
+cmdline_output=filtered_to_console_earlycon_maxcpus_printk_disable_uart_root
+cmdline_unique_values=redacted_not_printed
+runtime_state_output=cpu_online_cpu_present_mem_total_only
+normal_rootfs_mount=disabled
+hardware_write=none
+candidate_rebuild_required=yes
+
+[decision]
+The initramfs remains a static BusyBox shell with no firmware, rootfs, or
+write-capable board tooling. It now emits only filtered non-unique boot
+diagnostics so the first UART capture can distinguish the mainline `ttyS0`
+candidate from LK's downstream `ttyMT0` token without printing complete
+bootargs. The previously recorded private 76-patch candidate embeds the prior
+initramfs and must not be transferred; regenerate and rehash it before any
+device test.

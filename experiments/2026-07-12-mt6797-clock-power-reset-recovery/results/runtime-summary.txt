@@ -1,0 +1,74 @@
+# Sanitized MT6797 clock/power/reset runtime summary
+
+Capture date: 2026-07-12
+Device: Gemini PDA running Gemian Linux 3.18.41+
+
+## Live platform/provider links
+
+- 10001000.scpsys
+- 10001000.infracfg_ao
+- 13000000.g3d_config
+- 13040000.mali
+- 14000000.mmsys_config
+- 11230000.msdc0
+- 11240000.msdc1
+
+## Clock summary highlights
+
+| Clock | Rate | Enable/prepare observation |
+| --- | ---: | --- |
+| mfgpll / mfgpll_ck / mfg_sel / mfg_bg3d | 500500000 Hz | gated, zero active enable count |
+| mfg_52m_sel | 156000000 Hz | gated |
+| infra_mfg_vcg | 156000000 Hz | gated |
+| infra_dvfs_spm1 / infra_i2c_gpupm / infra_ap_dma | 136500000 Hz | infrastructure clocks; AP DMA has one prepared consumer |
+| pg_mfg_async / pg_mfg / pg_mfg_core0..3 | — | zero active power-gate count |
+| mm_sel | 325000000 Hz | active display/MM tree |
+| infra_therm | 136500000 Hz | active thermal clock |
+| infra_msdc0 | 383999878 Hz | active eMMC clock source |
+| infra_msdc1 | 191999939 Hz | card-slot source |
+| infra_icusb | 78000000 Hz | active USB clock |
+
+## Resource contract
+
+The flattened vendor tree describes SCPSYS resources at `0x10001000`,
+`0x10006000`, and `0x10201000`; the vendor clock-gate source uses them as
+infracfg, SPM, and infra bases respectively. Linux 7.1.3's generic SCPSYS
+driver maps `0x10006000` as its power-control resource and resolves
+`0x10001000` through the `infracfg` syscon, which is the correct equivalent
+for its generic API.
+
+Vendor MFG control registers are `0x334`, `0x338`, `0x340`, `0x344`, `0x348`,
+and `0x34c`, with the shared SRAM control/ack register at `0x33c`. Status bits
+are MFG async 13, MFG 12, and cores 0--3 at 11, 10, 9, and 8.
+
+## SPM firmware boundary
+
+The vendor debugfs endpoint reports PCM images named `pcm_suspend`,
+`pcm_suspend_by_mp1`, `pcm_vcorefs_lpm`, `pcm_vcorefs_hpm`,
+`pcm_vcorefs_ultra`, `pcm_sodi`, `pcm_sodi_by_mp1`, `pcm_deepidle`, and
+`pcm_deepidle_by_mp1`. Only names and sizes were retained in private raw
+capture; no image contents are included here.
+
+## Interpretation
+
+Panfrost can reuse the Midgard GPU core model, but Linux 7.1.3 lacks the
+MT6797 MFG clock provider and the MFG/core SCPSYS data. The generic providers
+can be extended with the separate SRAM register offsets; no new GPU silicon
+driver is implied by this platform gap.
+
+## Build evidence
+
+The resulting disabled-only implementation is patches 47–50 in the 50-patch
+series. Linux 7.1.3 compiled in the development VM as package
+`linux-7.1.3-gemini-a0d79855dcb8`; patchset SHA-256
+`a0d79855dcb8365e10ab64ad090bf67d80f58e1f78d1dfcdd3c6f6d298f66188`,
+configuration SHA-256
+`b573886673370ced1d68cfaaea5a55647177e4bb4275cc8d0d0e432964e758da`,
+`Image` SHA-256
+`9663aaaaa5d422c5cd85333c67d8bd0f052dabe1aa575eee7cac7413a1f80e56`, and
+Gemini DTB SHA-256
+`70681c8a5a10f264d2431a5d31176efaa5b592ec75f15cfedc0b6d8700a0ce66`.
+No image was flashed or booted.
+The subsequent RT5735 VGPU patch is recorded separately in experiment
+`2026-07-12-rt5735-vgpu-recovery`; the current ordered series is 52 patches,
+with the later disabled BMI160 candidate recorded in the sensor experiment.

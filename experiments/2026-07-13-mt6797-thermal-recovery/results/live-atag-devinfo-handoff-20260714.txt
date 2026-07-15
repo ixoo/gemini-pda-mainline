@@ -1,0 +1,32 @@
+MT6797 LK /chosen/atag,devinfo live handoff — 2026-07-14
+
+Target
+------
+Device: owner-authorized Gemini at 192.168.1.50
+Model: MT6797X
+Kernel: 3.18.41+
+Access: read-only SSH; private key selected with IdentitiesOnly and no agent
+
+Observation
+-----------
+The live post-LK device tree contains `/proc/device-tree/chosen/atag,devinfo`.
+Property byte length: 412
+Property word count: 103
+Header word 0 (size): 103
+Header word 1 (tag): 0x41000804
+Payload byte length: 400 (100 words)
+Trailer word (payload count): 100
+Property SHA-256: fe2cbb48a78f247e1477afd750dab51ba7b0e1fae33cd6a58502350fc977b037
+
+Interpretation
+--------------
+This confirms the expected opaque little-endian LK tag shape on the named
+Gemian boot. Only structural metadata and a whole-property hash were recorded;
+no calibration payload words were printed or copied. The observation does not
+prove that every supported Gemini boot path preserves the property, nor that
+the proposed provider's consumer-side invalid-calibration policy is safe.
+
+Safety
+------
+No device state was changed. No firmware, calibration value, partition, or
+raw property dump is stored in this repository.

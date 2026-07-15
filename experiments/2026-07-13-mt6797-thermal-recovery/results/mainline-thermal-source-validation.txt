@@ -1,0 +1,385 @@
+MT6797 thermal and AUXADC contract audit
+vendor_tree=/home/julien.guest/src/reference/planet-mt6797-3.18
+vendor_commit=c5b0be85017ad0c599725e8273842efdbecdd88a
+linux_tree=/home/julien.guest/src/gemini-pda/linux-7.1.3
+linux_version=7.1.3
+
+[source hashes]
+vendor_blob arch/arm64/boot/dts/mt6797.dtsi 6a03d1c43d4f2ae3f5e4701135386f9a825b4381
+vendor_blob drivers/misc/mediatek/thermal/mt6797/src/mtk_tc.c 440040aae862b36a1746656c1ca4389105aaeb9f
+vendor_blob drivers/misc/mediatek/thermal/mt6797/inc/tscpu_settings.h c441e6c4d5dac97a313eed4150a154c063e52a7c
+vendor_blob drivers/misc/mediatek/thermal/mt6797/inc/mt_ts_setting.h eaef428de475f6e7d7180fd8b97518f8a4f14f96
+vendor_blob drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/mt_thermal.h 2358fda71c0807606235ff4888714154dfcf7169
+vendor_blob drivers/misc/mediatek/auxadc/mt6797/mt_auxadc_hw.h dad631de2a063787cf2b4067f392dc66c814d243
+vendor_blob drivers/misc/mediatek/thermal/common/thermal_zones/mtk_ts_cpu.c ae8349326d3e2b27991dba1061d80296419dfc28
+vendor_blob drivers/misc/mediatek/auxadc/mt_auxadc.c 7897da4fe78d3a98a2abb86c7c02f280ac8ee02a
+linux_sha256 drivers/thermal/mediatek/auxadc_thermal.c 7b4a7ae9956f95a2eacae5d5448fe528c32c53498600d8bd96c15dd8adeb0312
+linux_sha256 drivers/iio/adc/mt6577_auxadc.c 28885190819e7c5bc66aed04f0279dcf29b86783203dbaeb8fb759d18f9d7661
+linux_sha256 Documentation/devicetree/bindings/thermal/mediatek,thermal.yaml 499e1495b44c0584328bcef264b3603b6402f15191ea8fe05fc419418fe01f34
+linux_sha256 Documentation/devicetree/bindings/iio/adc/mediatek,mt2701-auxadc.yaml 97f426dc5a444e98a994b7e7905fefcfc72ceb89704aa820234c275dcf24ecb1
+linux_sha256 arch/arm64/boot/dts/mediatek/mt6797.dtsi 35d0414a91f6798d1f9ebfee0086a4dfb2de85ea3317132536915ae347372531
+
+[vendor device-tree resources]
+38:			interrupts = <GIC_SPI 79 IRQ_TYPE_LEVEL_LOW>;
+40:			clock-names = "msdc0-clock";
+47:			interrupts = <GIC_SPI 80 IRQ_TYPE_LEVEL_LOW>;
+49:			clock-names = "msdc1-clock";
+70:		interrupts = <GIC_SPI 292 IRQ_TYPE_EDGE_RISING>;
+76:		interrupts = <GIC_SPI 293 IRQ_TYPE_EDGE_RISING>;
+81:		interrupts = <GIC_SPI 302 IRQ_TYPE_EDGE_RISING>,
+382:		interrupts = <GIC_PPI 7 IRQ_TYPE_LEVEL_LOW>;
+396:		interrupts = <GIC_PPI 9 IRQ_TYPE_LEVEL_HIGH>;
+828:			interrupts = <GIC_SPI 286 IRQ_TYPE_LEVEL_LOW>;
+895:			interrupts = <GIC_SPI 180 IRQ_TYPE_LEVEL_LOW>;
+901:			interrupts = <GIC_SPI 137 IRQ_TYPE_EDGE_FALLING>;
+907:			interrupts = <GIC_SPI 169 IRQ_TYPE_LEVEL_LOW>;
+913:			interrupts = <GIC_PPI 13 IRQ_TYPE_LEVEL_LOW>, /*Secure Physical Timer Event*/
+928:			interrupts = <GIC_SPI 196 IRQ_TYPE_LEVEL_LOW>;
+934:			interrupts = <GIC_SPI 170 IRQ_TYPE_LEVEL_HIGH>;
+968:			interrupts = <GIC_SPI 178 IRQ_TYPE_LEVEL_HIGH>;
+972:				interrupts = <262 4>;
+992:			interrupts = <GIC_SPI 179 IRQ_TYPE_EDGE_FALLING>;
+1790:			interrupts = <GIC_SPI 265 IRQ_TYPE_LEVEL_HIGH>, /*IRQ_CLDMA*/
+1807:			clock-names = "scp-sys-md1-main",
+1866:			interrupts = <GIC_SPI 199 IRQ_TYPE_LEVEL_HIGH>;
+1891:			interrupts = <GIC_SPI 143 IRQ_TYPE_LEVEL_LOW>;
+1897:			interrupts = <GIC_SPI 291 IRQ_TYPE_LEVEL_LOW>;
+1906:			interrupts = <GIC_SPI 156 IRQ_TYPE_LEVEL_LOW>;
+1922:			clock-names = "m4u_mm_smi_common",
+1939:		efusec@10206000 {
+1940:			compatible = "mediatek,efusec";
+1947:			interrupts = <GIC_SPI 141 IRQ_TYPE_LEVEL_LOW>;
+1953:			interrupts = <GIC_SPI 140 IRQ_TYPE_LEVEL_LOW>;
+1959:			interrupts = <GIC_SPI 147 IRQ_TYPE_LEVEL_LOW>;
+1970:			interrupts = <GIC_SPI 149 IRQ_TYPE_LEVEL_LOW>;
+1978:			interrupts = <GIC_SPI 149 IRQ_TYPE_LEVEL_LOW>, // C2K_CCIF
+1986:			clock-names = "scp-sys-c2k-main";
+2002:			interrupts = <GIC_SPI 158 IRQ_TYPE_EDGE_FALLING>;
+2008:			interrupts = <GIC_SPI 148 IRQ_TYPE_LEVEL_LOW>;
+2014:			interrupts = <GIC_SPI 159 IRQ_TYPE_LEVEL_LOW>;
+2025:			interrupts = <GIC_SPI 152 IRQ_TYPE_LEVEL_LOW>,
+2168:			clock-names = "GCE";
+2175:			interrupts = <GIC_SPI 118 IRQ_TYPE_LEVEL_LOW>,
+
+[vendor sensor-bank and calibration anchors]
+14:#ifndef _MT6797_THERMAL_H
+15:#define _MT6797_THERMAL_H
+30:Bank0 : BIG     (TS_MCU1)
+31:Bank1 : GPU     (TS_MCU4)
+32:Bank2 : SOC     (TS_MCU2)
+33:Bank3 : CPU-L   (TS_MCU2)
+34:Bank4 : CPU-LL  (TS_MCU2)
+35:Bank5 : MCUCCI  (TS_MCU2)
+38:	THERMAL_SENSOR1     = 0,/*TS_MCU1*/
+39:	THERMAL_SENSOR2     = 1,/*TS_MCU2*/
+40:	THERMAL_SENSOR3     = 2,/*TS_MCU3*/
+41:	THERMAL_SENSOR4     = 3,/*TS_MCU4*/
+42:	THERMAL_SENSOR_ABB  = 4,/*TS_ABB*/
+43:	THERMAL_SENSOR_NUM
+47:	THERMAL_BANK0     = 0,
+48:	THERMAL_BANK1     = 1,
+49:	THERMAL_BANK2     = 2,
+50:	THERMAL_BANK3     = 3,
+51:	THERMAL_BANK4     = 4,
+52:	THERMAL_BANK5     = 5,
+53:	THERMAL_BANK_NUM
+71:#define THERMAL_WRAP_WR32(val, addr)        mt_reg_sync_writel((val), ((void *)addr))
+87:	MTK_THERMAL_SENSOR_TS1 = 0,
+88:	MTK_THERMAL_SENSOR_TS2,
+89:	MTK_THERMAL_SENSOR_TS3,
+90:	MTK_THERMAL_SENSOR_TS4,
+91:	MTK_THERMAL_SENSOR_TSABB,
+96:	MTK_THERMAL_SENSOR_CPU_COUNT
+97:} MTK_THERMAL_SENSOR_CPU_ID_MET;
+101:extern int tscpu_get_cpu_temp_met(MTK_THERMAL_SENSOR_CPU_ID_MET id);
+75:#define THERMAL_CONTROLLER_HW_FILTER        (2) /* 1, 2, 4, 8, 16*/
+78:#define THERMAL_CONTROLLER_HW_TP            (1)
+122:#define ADDRESS_INDEX_0  32  /*0x10206184*/
+123:#define ADDRESS_INDEX_1	 31  /*0x10206180*/
+124:#define ADDRESS_INDEX_2	 33  /*0x10206188*/
+154:#define TEMPADC_MCU1    ((0x30&TSCON1_bit_4_5_00)|(0x07&TSCON1_bit_0_2_000))
+155:#define TEMPADC_MCU2    ((0x30&TSCON1_bit_4_5_00)|(0x07&TSCON1_bit_0_2_001))
+156:#define TEMPADC_MCU3    ((0x30&TSCON1_bit_4_5_00)|(0x07&TSCON1_bit_0_2_010))
+157:#define TEMPADC_MCU4    ((0x30&TSCON1_bit_4_5_00)|(0x07&TSCON1_bit_0_2_011))
+158:#define TEMPADC_ABB     ((0x30&TSCON1_bit_4_5_01)|(0x07&TSCON1_bit_0_2_000))
+424:#define AUXADC_BASE_2        auxadc_ts_base
+429:#define AUXADC_BASE_2     AUXADC_BASE
+438: * AUXADC Register Definition
+440:/*K2 AUXADC_BASE: 0xF1001000 from Vincent Liang 2014.5.8*/
+442:#define AUXADC_CON0_V       (AUXADC_BASE_2 + 0x000)	/*yes, 0x11003000*/
+443:#define AUXADC_CON1_V       (AUXADC_BASE_2 + 0x004)
+444:#define AUXADC_CON1_SET_V   (AUXADC_BASE_2 + 0x008)
+445:#define AUXADC_CON1_CLR_V   (AUXADC_BASE_2 + 0x00C)
+446:#define AUXADC_CON2_V       (AUXADC_BASE_2 + 0x010)
+447:/*#define AUXADC_CON3_V       (AUXADC_BASE_2 + 0x014)*/
+448:#define AUXADC_DAT0_V       (AUXADC_BASE_2 + 0x014)
+449:#define AUXADC_DAT1_V       (AUXADC_BASE_2 + 0x018)
+450:#define AUXADC_DAT2_V       (AUXADC_BASE_2 + 0x01C)
+451:#define AUXADC_DAT3_V       (AUXADC_BASE_2 + 0x020)
+452:#define AUXADC_DAT4_V       (AUXADC_BASE_2 + 0x024)
+453:#define AUXADC_DAT5_V       (AUXADC_BASE_2 + 0x028)
+454:#define AUXADC_DAT6_V       (AUXADC_BASE_2 + 0x02C)
+455:#define AUXADC_DAT7_V       (AUXADC_BASE_2 + 0x030)
+456:#define AUXADC_DAT8_V       (AUXADC_BASE_2 + 0x034)
+457:#define AUXADC_DAT9_V       (AUXADC_BASE_2 + 0x038)
+458:#define AUXADC_DAT10_V       (AUXADC_BASE_2 + 0x03C)
+459:#define AUXADC_DAT11_V       (AUXADC_BASE_2 + 0x040)
+460:#define AUXADC_MISC_V       (AUXADC_BASE_2 + 0x094)
+462:#define AUXADC_CON0_P       (auxadc_ts_phy_base + 0x000)
+463:#define AUXADC_CON1_P       (auxadc_ts_phy_base + 0x004)
+464:#define AUXADC_CON1_SET_P   (auxadc_ts_phy_base + 0x008)
+465:#define AUXADC_CON1_CLR_P   (auxadc_ts_phy_base + 0x00C)
+466:#define AUXADC_CON2_P       (auxadc_ts_phy_base + 0x010)
+467:/*#define AUXADC_CON3_P       (auxadc_ts_phy_base + 0x014)*/
+468:#define AUXADC_DAT0_P       (auxadc_ts_phy_base + 0x014)
+105:const struct of_device_id mt_thermal_of_match[2] = {
+106:	{.compatible = "mediatek,mt6797-therm_ctrl",},
+134:static __s32 g_x_roomt[THERMAL_SENSOR_NUM] = { 0 };
+136:static __u32 calefuse1;
+137:static __u32 calefuse2;
+138:static __u32 calefuse3;
+262:	__s32 x_roomt;
+277:	   If there are two or more sensors in a bank, choose the sensor calibration value of
+287:		x_roomt = g_x_roomt[0];
+290:		x_roomt = g_x_roomt[3];
+293:		x_roomt = g_x_roomt[1];
+296:		x_roomt = g_x_roomt[1];
+299:		x_roomt = g_x_roomt[1];
+302:		x_roomt = g_x_roomt[1];
+305:		x_roomt = g_x_roomt[0];
+324:	temp1 = ((10000 * 100000 / 4096 / g_gain) * g_oe + x_roomt * 10) * 15 / 18;
+361:	   ADC_GE_T [9:0]      Default:512   265 ~ 758
+362:	   ADC_OE_T [9:0]      Default:512   265 ~ 758
+363:	   O_VTSMCU1 (9b)      Default:260   -8 ~ 484
+364:	   O_VTSMCU2 (9b)      Default:260   -8 ~ 484
+365:	   O_VTSMCU3 (9b)      Default:260   -8 ~ 484
+366:	   O_VTS MCU4(9b)      Default:260   -8 ~ 484
+367:	   O_VTS ABB(9b)       Default:260   -8 ~ 484
+368:	   DEGC_cali(6b)       Default:40    1 ~ 63
+370:	   O_SLOPE_SIGN (1b)   Default:0
+371:	   O_SLOPE (6b)        Default:0
+375:		tscpu_warn("[thermal] Bad efuse data, g_adc_ge_t\n");
+379:		tscpu_warn("[thermal] Bad efuse data, g_adc_oe_t\n");
+383:		tscpu_warn("[thermal] Bad efuse data, g_o_vtsmcu1\n");
+387:		tscpu_warn("[thermal] Bad efuse data, g_o_vtsmcu2\n");
+391:		tscpu_warn("[thermal] Bad efuse data, g_o_vtsmcu3\n");
+395:		tscpu_warn("[thermal] Bad efuse data, g_o_vtsmcu4\n");
+399:		tscpu_warn("[thermal] Bad efuse data, g_o_vtsabb\n");
+403:		tscpu_warn("[thermal] Bad efuse data, g_degc_cali\n");
+416:	pr_debug("[calibration] temp0=0x%x, temp1=0x%x, temp2=0x%x\n", temp0, temp1, temp2);
+420:	   ADC_GE_T    [9:0] *(0x10206184)[31:22]
+421:	   ADC_OE_T    [9:0] *(0x10206184)[21:12]
+427:	   O_VTSMCU1    (9b) *(0x10206180)[25:17]
+428:	   O_VTSMCU2    (9b) *(0x10206180)[16:8]
+429:	   O_VTSMCU3    (9b) *(0x10206184)[8:0]
+21:#undef AUXADC_BASE
+24:#define AUXADC_BASE auxadc_base
+33:#define ADC_GE_A_MASK 0xffc00000
+35:#define ADC_OE_A_MASK 0x3ff000
+37:#define ADC_CALI_EN_A_MASK 0x1
+39:#define ADC_CALI_EN_A_REG		(EFUSEC_BASE + 0x188)
+40:#define ADC_GE_A_REG            (EFUSEC_BASE + 0x18C)
+41:#define ADC_OE_A_REG            (EFUSEC_BASE + 0x18C)
+51:#define AUXADC_CON0             (AUXADC_BASE + 0x000)
+52:#define AUXADC_CON1             (AUXADC_BASE + 0x004)
+53:#define AUXADC_CON2             (AUXADC_BASE + 0x010)
+54:#define AUXADC_DAT0             (AUXADC_BASE + 0x014)
+55:#define AUXADC_TP_CMD           (AUXADC_BASE + 0x005c)
+56:#define AUXADC_TP_ADDR          (AUXADC_BASE + 0x0060)
+57:#define AUXADC_TP_CON0          (AUXADC_BASE + 0x0064)
+58:#define AUXADC_TP_DATA0         (AUXADC_BASE + 0x0074)
+59:#define AUXADC_DET_VOLT         (AUXADC_BASE + 0x084)
+60:#define AUXADC_DET_SEL          (AUXADC_BASE + 0x088)
+61:#define AUXADC_DET_PERIOD       (AUXADC_BASE + 0x08C)
+62:#define AUXADC_DET_DEBT         (AUXADC_BASE + 0x090)
+66:#define TP_CMD_ADDR_X			0x0005
+68:#define AUXADC_CON_RTP			(APMIXED_BASE + 0x0404)
+
+[source-complete implementation]
+vendor_source_present drivers/misc/mediatek/thermal/mt6797/src/mtk_tc.c yes sha256=9fd0d2a64d874c59d17a0f154b80b8d6c3050b67e881180fe3ef9ec878fc1cc2
+vendor_source_present drivers/misc/mediatek/thermal/common/thermal_zones/mtk_ts_cpu.c yes sha256=06d3cf2799661b38b9c3298d4167f359c812a369e8d9cd7b635273ed38d4e7c3
+vendor_source_present drivers/misc/mediatek/auxadc/mt_auxadc.c yes sha256=fa7ab5cfe1daef57fe3f06cb7822a17e684f103fffd11411f9d852c25e1f8e92
+
+[recovered MT6797 constants]
+vendor_bank_map=bank0:MCU1;bank1:MCU4;bank2:MCU2,MCU3;bank3:MCU2;bank4:MCU2;bank5:MCU2
+vendor_auxadc_channel=11
+vendor_auxadc_dat_register=0x40
+vendor_valid_mask=0x2c
+vendor_sampling_filter=0x492
+vendor_ahb_poll=0x30d
+vendor_thermal_irq=SPI78_level_low
+vendor_efuse_words=0x10206180,0x10206184,0x10206188
+linux_v1_auxadc_channel=11
+linux_v1_valid_mask=0x1020
+linux_v1_sampling_filter=0x0
+linux_v1_ahb_poll=0x300
+linux_v1_calibration_constant=165
+linux_v1_formula_uses_adc_ge_without_vendor_adc_oe=true
+
+[safety review]
+mt6797_fallback_vts_initialization=MAX_NUM_VTS_including_VTSABB
+runtime_no_calibration_policy=still_requires_hardware_validation
+
+[Linux 7.1.3 thermal and AUXADC matches]
+15:#include <linux/nvmem-consumer.h>
+115:/* The calibration coefficient of sensor  */
+123: * Layout of the fuses providing the calibration data
+125: * MT8183 has 6 sensors and needs 6 VTS calibration data.
+126: * MT8173 has 5 sensors and needs 5 VTS calibration data.
+127: * MT2701 has 3 sensors and needs 3 VTS calibration data.
+128: * MT2712 has 4 sensors and needs 4 VTS calibration data.
+144: * Layout of the fuses providing the calibration data
+158: * Layout of the fuses providing the calibration data
+204:/* The calibration coefficient of sensor  */
+225:/* The calibration coefficient of sensor  */
+238:/* The calibration coefficient of sensor  */
+264:/* The calibration coefficient of sensor  */
+285:/* The calibration coefficient of sensor  */
+314:	s32 auxadc_channel;
+335:	struct clk *clk_auxadc;
+350:	int (*raw_to_mcelsius)(struct mtk_thermal *mt, int sensno, s32 raw);
+354:static const int mt8183_bank_data[MT8183_NUM_SENSORS] = {
+358:static const int mt8183_msr[MT8183_NUM_SENSORS_PER_ZONE] = {
+362:static const int mt8183_adcpnp[MT8183_NUM_SENSORS_PER_ZONE] = {
+367:static const int mt8183_mux_values[MT8183_NUM_SENSORS] = { 0, 1, 2, 3, 4, 0 };
+368:static const int mt8183_tc_offset[MT8183_NUM_CONTROLLER] = {0x0, 0x100};
+370:static const int mt8183_vts_index[MT8183_NUM_SENSORS] = {
+375:static const int mt8173_bank_data[MT8173_NUM_ZONES][3] = {
+382:static const int mt8173_msr[MT8173_NUM_SENSORS_PER_ZONE] = {
+386:static const int mt8173_adcpnp[MT8173_NUM_SENSORS_PER_ZONE] = {
+390:static const int mt8173_mux_values[MT8173_NUM_SENSORS] = { 0, 1, 2, 3, 16 };
+391:static const int mt8173_tc_offset[MT8173_NUM_CONTROLLER] = { 0x0, };
+393:static const int mt8173_vts_index[MT8173_NUM_SENSORS] = {
+398:static const int mt2701_bank_data[MT2701_NUM_SENSORS] = {
+402:static const int mt2701_msr[MT2701_NUM_SENSORS_PER_ZONE] = {
+406:static const int mt2701_adcpnp[MT2701_NUM_SENSORS_PER_ZONE] = {
+410:static const int mt2701_mux_values[MT2701_NUM_SENSORS] = { 0, 1, 16 };
+411:static const int mt2701_tc_offset[MT2701_NUM_CONTROLLER] = { 0x0, };
+413:static const int mt2701_vts_index[MT2701_NUM_SENSORS] = {
+418:static const int mt2712_bank_data[MT2712_NUM_SENSORS] = {
+422:static const int mt2712_msr[MT2712_NUM_SENSORS_PER_ZONE] = {
+426:static const int mt2712_adcpnp[MT2712_NUM_SENSORS_PER_ZONE] = {
+430:static const int mt2712_mux_values[MT2712_NUM_SENSORS] = { 0, 1, 2, 3 };
+431:static const int mt2712_tc_offset[MT2712_NUM_CONTROLLER] = { 0x0, };
+37:struct mtk_auxadc_compatible {
+38:	bool sample_data_cali;
+46:	const struct mtk_auxadc_compatible *dev_comp;
+49:static const struct mtk_auxadc_compatible mt8186_compat = {
+50:	.sample_data_cali = false,
+54:static const struct mtk_auxadc_compatible mt8173_compat = {
+55:	.sample_data_cali = false,
+59:static const struct mtk_auxadc_compatible mt6765_compat = {
+60:	.sample_data_cali = true,
+201:		if (adc_dev->dev_comp->sample_data_cali)
+226:		pr_err("failed to enable auxadc clock\n");
+283:				     "failed to enable auxadc clock\n");
+287:		return dev_err_probe(&pdev->dev, -EINVAL, "null clock rate\n");
+314:	{ .compatible = "mediatek,mt2701-auxadc", .data = &mt8173_compat },
+315:	{ .compatible = "mediatek,mt2712-auxadc", .data = &mt8173_compat },
+316:	{ .compatible = "mediatek,mt7622-auxadc", .data = &mt8173_compat },
+317:	{ .compatible = "mediatek,mt8173-auxadc", .data = &mt8173_compat },
+318:	{ .compatible = "mediatek,mt8186-auxadc", .data = &mt8186_compat },
+319:	{ .compatible = "mediatek,mt6765-auxadc", .data = &mt6765_compat },
+22:  compatible:
+29:          - mediatek,mt8173-thermal
+44:  interrupts:
+47:  clocks:
+52:  clock-names:
+55:      - const: auxadc
+57:  mediatek,auxadc:
+65:  resets:
+68:  nvmem-cells:
+74:  nvmem-cell-names:
+80:  - interrupts
+81:  - clocks
+82:  - clock-names
+83:  - mediatek,auxadc
+91:    #include <dt-bindings/clock/mt8173-clk.h>
+92:    #include <dt-bindings/reset/mt8173-resets.h>
+95:        compatible = "mediatek,mt8173-thermal";
+97:        interrupts = <0 70 IRQ_TYPE_LEVEL_LOW>;
+98:        clocks = <&pericfg CLK_PERI_THERM>, <&pericfg CLK_PERI_AUXADC>;
+99:        clock-names = "therm", "auxadc";
+100:        resets = <&pericfg MT8173_PERI_THERM_SW_RST>;
+101:        mediatek,auxadc = <&auxadc>;
+103:        nvmem-cells = <&thermal_calibration_data>;
+104:        nvmem-cell-names = "calibration-data";
+4:$id: http://devicetree.org/schemas/iio/adc/mediatek,mt2701-auxadc.yaml#
+22:  compatible:
+25:          - mediatek,mt2701-auxadc
+26:          - mediatek,mt2712-auxadc
+27:          - mediatek,mt6765-auxadc
+28:          - mediatek,mt7622-auxadc
+30:          - mediatek,mt8173-auxadc
+34:          - const: mediatek,mt2701-auxadc
+43:              - mediatek,mt8186-auxadc
+48:          - const: mediatek,mt8173-auxadc
+56:  clock-names:
+59:  "#io-channel-cells":
+65:  - compatible
+68:  - clock-names
+69:  - "#io-channel-cells"
+79:            compatible = "mediatek,mt8183-auxadc",
+80:                         "mediatek,mt8173-auxadc";
+83:            clock-names = "main";
+84:            #io-channel-cells = <1>;
+
+Linux generic data model anchors:
+drivers/thermal/mediatek/auxadc_thermal.c contains `struct mtk_thermal_data`
+fields for `num_banks`, `num_sensors`, `auxadc_channel`, `sensor_mux_values`,
+`need_switch_bank`, and optional `apmixed_buffer_ctl_*` controls. Its V1 path
+uses a different hardcoded valid mask/filter/poll sequence and omits the vendor
+ADC-OE term, so an MT6797 compatible cannot be added by aliasing another SoC.
+
+[formula comparison]
+command: compare-thermal-formulas.py (sanitized defaults; raw values 500..4095)
+vendor_formula=MT6797_raw_to_temperature_roomt_with_ADC_OE
+mainline_formula=auxadc_thermal_raw_to_mcelsius_v1_with_ADC_GE_only
+max_abs_delta_mcelsius=11293
+interpretation=conversion_difference_reaches_about_11C_at_low_sampled_raw_values
+
+[local patch boundary]
+11-diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+12-index 7d6f3c595..638ddb21a 100644
+13---- a/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+14-+++ b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+15-@@ -520,6 +520,25 @@ i2c3: i2c@11014000 {
+16: 		status = "disabled";
+17- 	};
+18-
+19-+	thermal: thermal@1100b000 {
+20:+		compatible = "mediatek,mt6797-therm_ctrl";
+21-+		reg = <0 0x1100b000 0 0x1000>;
+22-+		interrupts = <GIC_SPI 78 IRQ_TYPE_LEVEL_LOW>;
+23-+		clocks = <&infrasys CLK_INFRA_THERM>;
+24-+		clock-names = "therm-main";
+25:+		status = "disabled";
+26-+	};
+27-+
+28-+	dvfsp: dvfsp@11015000 {
+29-+		compatible = "mediatek,mt6797-dvfsp";
+30-+		reg = <0 0x11015000 0 0x1000>,
+31-+		      <0 0x0012a000 0 0x3000>;
+32-+		interrupts = <GIC_SPI 161 IRQ_TYPE_LEVEL_LOW>;
+33-+		clocks = <&infrasys CLK_INFRA_I2C_APPM>;
+34-+		clock-names = "i2c";
+35:+		status = "disabled";
+36-+	};
+37-+
+38- 	i2c5: i2c@1101c000 {
+39- 		compatible = "mediatek,mt6797-i2c",
+40- 			     "mediatek,mt6577-i2c";
+
+[decision]
+live_mt6797_thermal_controller_uses_six_logical_banks_and_five_sensor_inputs
+live_calibration_uses_three_efuse_words_with_id_dependent_slope_and_vendor_raw_to_temperature_formula
+vendor_mt6797_thermal_source_implementation_is_present_and_complete
+vendor_thermal_uses_auxadc_channel_11_and_six_banked_views_of_five_sensors
+vendor_thermal_programs_valid_mask_0x2c_filter_0x492_and_ahbpoll_0x30d
+linux_7.1.3_generic_auxadc_and_thermal_data_has_no_mt6797_match
+linux_auxadc_thermal_data_model_can_represent_mt6797_bank_and_sensor_topology
+linux_7.1.3_has_no_mt6797_compatible_and_hardcodes_different_variant_parameters
+reuse_linux_auxadc_thermal_framework_and_calibration_architecture
+add_mt6797_variant_data_or_backend_for_register_parameters_and_adc_oe_formula
+do_not_add_mt6797_compatible_to_another_soc_data_without_register_and_calibration_proof
+keep_current_disabled_only_until_read_only_raw_register_or_mainline_sensor_validation

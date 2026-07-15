@@ -1,0 +1,13 @@
+# MT6351 live buck state decoded from explicitly allowlisted control-register reads.
+# Voltage formula is 600000 uV + selector * 6250 uV; VPA's proven selector ceiling is 0x3f.
+# CON7 is analog Gray-code readback. Every decoded value matched the selected active bank.
+name	enable_request	effective_enable	voltage_control	direct_selector	on_selector	sleep_selector	active_selector	active_microvolts	gray_readback
+vcore	1	1	hardware-on/sleep	48	40	0	40	850000	0x3c
+vgpu	1	1	software-direct	99	100	100	99	1218750	0x52
+vmodem	1	1	hardware-on/sleep	48	64	0	64	1000000	0x60
+vmd1	1	1	hardware-on/sleep	48	40	0	40	850000	0x3c
+vsram_md	1	1	hardware-on/sleep	64	80	0	80	1100000	0x78
+vs1	1	1	software-direct	64	64	64	64	1000000	0x60
+vs2	1	1	software-direct	12	12	12	12	675000	0x0a
+vpa	0	0	software-direct	0	0	0	0	600000	0x00
+vsram_proc	1	1	hardware-on/sleep	72	80	16	80	1100000	0x78

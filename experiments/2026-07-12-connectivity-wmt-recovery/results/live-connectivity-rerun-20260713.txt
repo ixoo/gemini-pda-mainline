@@ -1,0 +1,77 @@
+Read-only live connectivity inventory rerun
+===========================================
+
+Date: 2026-07-13
+Target: gemini@192.168.1.50 (Gemian, authorized lab device)
+Collector: scripts/collect-live-connectivity.sh
+Raw capture: Git-ignored artifacts/device-inventory/20260713-connectivity-live/connectivity-capture.txt
+Raw capture SHA-256: b0df5e72646ba97bc22cf8bc0fca943891463fc94c8ab6537c5c6f07401fce24
+Raw capture mode: 0600
+
+The collector is bounded and read-only. It reads procfs/sysfs/device-tree,
+hashes named installed firmware files, and filters identifiers. It does not
+change rfkill, invoke HCI/WMT ioctls, scan networks, load firmware, write
+debugfs, or transmit a radio packet.
+
+Observed runtime contract
+-------------------------
+
+kernel=3.18.41+_aarch64
+model=MT6797X
+combo=CONSYS_MT6797_chipid=0x6797_wmt=MT279_ROM=E1_branch=W1715MP_patch=20180307
+services=wmt_launcher:running_wmt_loader:stopped_stp_dump:running
+interfaces=wlan0:up/carrier=1/driver=mt-wifi;ccmni0-17:dormant/carrier=1;cc3mni0-7:down
+
+platform_drivers=
+  11000a00.btif_tx -> vendor BTIF DMA driver (driver link present)
+  11000a80.btif_rx -> vendor BTIF DMA driver (driver link present)
+  1100c000.btif -> mtk_btif
+  18070000.consys -> mtk_wmt
+  180f0000.wifi -> mt-wifi
+  soc:gps -> gps
+  soc:gps_emi -> vendor GPS EMI driver (driver link present)
+  fm -> fm
+
+device_tree=
+  consys@18070000: 0x18070000+0x200, 0x10007000+0x100,
+    0x10000000+0x2000, 0x10006000+0x1000; GIC SPIs 284/285;
+    clock conn; supplies vcn18/vcn28/vcn33_bt/vcn33_wifi
+  btif@1100c000: 0x1100c000+0x1000; GIC SPI 130;
+    clocks btifc/apdmac
+  btif_tx@11000a00: 0x11000a00+0x80; GIC SPI 116
+  btif_rx@11000a80: 0x11000a80+0x80; GIC SPI 117
+  wifi@180f0000: 0x180f0000+0x1100; GIC SPI 283; clock wifi-dma
+  consys-reserve-memory: dynamic no-map 2 MiB allocation, 2 MiB alignment,
+    alloc-range 0x40000000-0xc0000000
+
+interrupt_activity=
+  vendor /proc/interrupts shows BTIF TX DMA=38880, RX DMA=21806,
+  BTIF core=5, and BTIF_WAKEUP=0 at capture time. Printed vendor IRQs are
+  32 above the DT SPI values (148/149/162/316 versus 116/117/130/284),
+  preserving the earlier IRQ-domain offset inference.
+
+firmware_hashes=
+  WMT_SOC.cfg size=80 sha256=f4a59b622a4e0c1470e475ce33f3edae43b27f1fbdeba54dc7cf07503d132880
+  ROMv3_patch_1_0_hdr.bin size=210904 sha256=450c2b0949cf879217ac9aef81b18b860982f0e69340784b448b54365d8cf630
+  ROMv3_patch_1_1_hdr.bin size=46472 sha256=5732c0730380e937b48ad169f2805b65e8d4a178265566c5083cb2cc2d249f1e
+  WIFI_RAM_CODE_6797 size=411632 sha256=a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd
+  fm_cust.cfg size=304 sha256=0f24efadab3d3e8286774cb50495f65d26ed96b280d9d684f54fdd1d4f6c72d7
+  mt6631_fm_v1_coeff.bin size=1092 sha256=d32f4a16b35f950ed1a57f2ae88f77ac4b5674d5c4210b65f6fe7912901fd8db
+  mt6631_fm_v1_patch.bin size=1028 sha256=ba35c74d26660729caf83b41a567e700f633b6c99384dfa6cbb3c17ceb767e26
+
+Interpretation
+--------------
+
+This rerun confirms that the observed Gemian image currently has the vendor
+Wi-Fi interface up and the vendor WMT/BTIF/GPS platform owners bound. It also
+confirms active BTIF DMA interrupts without requiring a new transaction. The
+zero BTIF wake count is not evidence that the wake path is absent; no wake
+event occurred during this bounded snapshot. The SDIO/WMT debug files were
+empty, so no SDIO ownership state is promoted to a fact. Firmware presence and
+hashes remain evidence of an installed boundary, not redistribution rights or
+proof that every image was loaded.
+
+mainline_radio_bringup=not_attempted
+firmware_load=not_attempted
+radio_transmit=none
+hardware_write=none

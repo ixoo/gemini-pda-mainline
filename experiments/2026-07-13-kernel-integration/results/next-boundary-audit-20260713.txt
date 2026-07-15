@@ -1,0 +1,26 @@
+validation=mt6797-next-mainline-boundary-audit
+status=historical_superseded_by_lk_fdt_fixup_audit
+generated_utc=2026-07-13T20:36:00Z
+source_revision=7.1.3
+current_patch_series_count=72
+current_patchset_sha256=363bf3942a1b08144a47a27e11a3c1f6075b0e160bcf78b33843fb7b89f39ba9
+current_artifact=linux-7.1.3-gemini-363bf3942a1b
+superseded_by=experiments/2026-07-13-kernel-integration/results/mainline-71-patch-lk-fdt-build-20260713.txt
+
+priority_area=UART/timers/PSCI/watchdog/RAM boot gate
+reuse_decision=existing_8250_mtk_and_architectural_frameworks
+new_driver_justified=no
+usb11_runtime_gate=not_reached_mainline_runtime;vendor_read_only_reachable
+next_safe_action=boot_non_primary_candidate_and_capture_earlycon_normal_console
+hardware_write=none
+
+The roadmap audit compared the highest-priority remaining areas with the
+recovered vendor contracts and the current Linux 7.1.3 APIs. UART0 already has
+a source-backed PIO/early-console reuse decision and the current 72-patch
+package contains the required 8250 configuration; its active pin group is
+pinmux-only and AP-DMA remains an optional, unmapped optimization. USB11 has a
+disabled, compile-tested MUSB/T-PHY shape,
+but its PHY, VBUS, role, and boot behavior require device evidence. No new
+driver patch is justified until a reversible non-primary boot or reachable
+runtime capture distinguishes a missing software contract from a bootloader or
+electrical issue.

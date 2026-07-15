@@ -1,0 +1,68 @@
+Binary and live-ABI evidence
+
+Captured HAL:
+- sensors.mt6797.so is an AArch64 stripped shared object with preserved C++
+  dynamic symbols. The binary contains distinct classes for acceleration,
+  gyroscope, magnetic, light, proximity, pressure, humidity, temperature,
+  step-counter, and virtual/fused sensors.
+- Its Hwmsen path opens /dev/hwmsensor, reads
+  /sys/class/misc/hwmsensor/hwmsensordevnum, and then constructs a
+  /dev/input/eventN path. The per-sensor classes use legacy misc attributes,
+  not IIO.
+- On this device the read-only devnum mapping is:
+    m_alsps_misc: alsdevnum=4, psdevnum=4
+    m_acc_misc:   accdevnum=5
+    m_gyro_misc:  gyrodevnum=6
+    hwmsensor:    hwmsensordevnum=3
+  Static input names are m_alsps_input (event4), m_acc_input (event5),
+  m_gyro_input (event6), and m_step_c_input (event7).
+- The binary's control strings identify the legacy attributes:
+  m_acc_misc/{accactive,accdelay,accbatch,accflush,accenablenodata},
+  m_alsps_misc/{alsactive,alsdelay,alsbatch,alsflush,psactive,psdelay,
+  psbatch,psflush}, and m_gyro_misc/{gyroactive,gyrodelay,gyrobatch,
+  gyroflush,gyroenablenodata}. These are compatibility interfaces; no
+  register protocol should be copied from them into mainline.
+- msensord only looks for the vendor platform daemon paths
+  /sys/bus/platform/drivers/msensor/daemon and daemon2. It does not provide
+  an independent I2C implementation.
+
+Kernel symbol evidence:
+- /proc/kallsyms exposes a substantial vendor stk3x1x implementation:
+  register read/write, state/flag/ID access, LED/ALS/PS threshold control,
+  interrupt setup/handler/workqueue, suspend/resume, and ALS/PS operate hooks.
+- It also exposes bmi160_acc, bmi160_gyro, and bmi160_stc implementations,
+  including FIFO, calibration, self-test, step detector/counter, and register
+  access helpers.
+- No mmc3530 or mmc35240 symbol is exposed, and no m_mag_input or m_mag_misc
+  input stream exists in the current capture. This is negative evidence against
+  a running magnetometer driver, not proof that the sensor package is absent.
+
+STK3X1X protocol source comparison:
+- The public GPLv2 Android driver
+  https://android.googlesource.com/kernel/msm/+/android-wear-5.1.1_r0.11/drivers/input/misc/stk3x1x.c
+  identifies the same Sensortek STK301x/STK321x/STK331x family and uses the
+  standard byte-register map: state 0x00, PS/ALS/LED/interrupt/wait 0x01-0x05,
+  PS/ALS thresholds 0x06-0x0d, flags 0x10, PS/ALS/IR data 0x11-0x18,
+  product ID 0x3e, reserved/revision 0x3f, and software reset 0x80.
+- That driver uses separate VDD and VIO rails (2.0-3.3 V and 1.75-1.95 V
+  ranges in its platform data), can use a GPIO interrupt, and supports polling
+  workqueues. The Gemini vendor DTS selects GPIO88/EINT11 for the ALS/PS line
+  and says PS polling disabled/ALS polling enabled, while the live symbol set
+  includes both EINT and polling paths.
+- This is strong evidence that the Gemini ALS/PS part can reuse the existing
+  Linux 7.1.3 STK3310-family IIO driver if its explicit product ID and board
+  resources match. It does not identify the exact STK331x/STK321x revision; a
+  generic compatible or board node must not be enabled until the
+  product/revision register is captured. A genuinely different register
+  contract should receive a new chip-specific driver instead of a vendor-HAL
+  compatibility port.
+
+MMC3530 boundary:
+- Linux 7.1.3's closest existing driver is MMC35240 at I2C address 0x30. It
+  uses a MEMSIC register model with data 0x00-0x05, status 0x06, control
+  0x07/0x08, product ID 0x20, SET/RESET and charge-pump sequencing, OTP
+  compensation, and a measurement-ready bit.
+- The Gemini has a vendor DT candidate at 0x30 but no bound driver, no
+  mmc3530 symbols, and no magnetic input stream. Treat MMC35240 compatibility
+  as a hypothesis only. A future identity probe must be read-only and must not
+  issue SET/RESET or measurement commands until the board is understood.

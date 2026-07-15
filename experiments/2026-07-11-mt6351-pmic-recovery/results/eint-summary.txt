@@ -1,0 +1,22 @@
+# Decoded from the private device-tree-v5 capture with decode-eint-capture.py.
+
+eint.address=0x1000b000
+eint.size=0x1000
+eint.parent_spi=170
+eint.parent_trigger=level-high
+eint.channels=192
+eint.gpio_map_entries=172
+eint.hardware_debounce_channels=16
+eint.debounce_us=128,256,512,1024,16384,32768,65536,131072,262144,524288
+eint.direct_irq_count=4
+eint.direct_parent_irqs=206,207,208,209
+eint.builtin.186=gpio61:mode2,gpio93:mode2,gpio107:mode2,gpio181:mode1
+
+gpio.67.eint=6
+gpio.85.eint=8
+gpio.88.eint=11
+gpio.262.eint=176
+
+pmic.vendor_gpio=262
+pmic.eint=176
+pmic.note=GPIO262 is a downstream pseudo-line beyond physical GPIO0..261

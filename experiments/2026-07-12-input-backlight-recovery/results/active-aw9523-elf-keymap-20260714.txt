@@ -1,0 +1,51 @@
+validation=active-aw9523-elf-keymap-contract
+active_boot_image_sha256=1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513
+active_kernel_payload_sha256=b53d191dc41d3f7364b0fa62b4bc920b1d013a1942b2e6b06727263fc56fcf4d
+active_vmlinux_sha256=cc66df06194d3315335462760962165e1dcb2e50221574aeb45a0805bb17a162
+build_string=Linux_version_3.18.41+_(dguidi@nowhere)_(gcc_version_6.3.0_20170516_(Debian_6.3.0-18))_#7_SMP_PREEMPT_Fri_Mar_29_10:39:03_GMT_2019
+vendor_source_commit=c5b0be85017ad0c599725e8273842efdbecdd88a
+vendor_source_keymap_file=drivers/misc/mediatek/aw9523/aw9523_key.c
+vendor_source_keymap_file_sha256=01599f2fc072145138bb87d0486841cd1f75e5ff8b0877e8cbfe2615db36da5f
+
+## Active ELF anchors
+
+The active boot payload was extracted from the captured Android boot image at
+offset `2048`, length `8429825` bytes, then reconstructed with
+`vmlinux-to-elf` in the VM. Its embedded Linux build string matches the live
+device's `/proc/version` exactly. The active image is distinct from the later
+May 2019 installed modular-kernel package; that package's ELF is not used for
+this conclusion.
+
+The active `aw9523_i2c_probe()` capability sequence contains `0x7d`
+(`KEY_LEFTMETA`) and `0xf0` (`KEY_UNKNOWN`), and contains no `0x1d0`
+(`KEY_FN`). The probe stores a 56-entry keymap pointer at the driver state
+offset used by the event worker. The recovered table has 28-byte entries with
+the keycode at byte offset 12. The `META-L` record is entry 28, which is
+`(row=4,col=3)` in the vendor's column-major table—the physical position that
+the retained source checkout labels `FN`. The four `NULL` records at
+`(row=7,col=3..6)` retain keycode `0xf0`.
+
+active_capability_leftmeta=0x7d
+active_capability_unknown=0xf0
+active_capability_fn=absent
+compiled_keymap_address=0xffffffc001233a38
+compiled_keymap_entries=56
+compiled_keymap_entry_stride_bytes=28
+compiled_keymap_keycode_offset_bytes=12
+compiled_keymap_leftmeta_coordinate=(row=4,col=3)
+compiled_keymap_unknown_coordinates=(row=7,col=3..6)
+active_boot_keymap_matches_live_disputed_capability_bits=yes
+retained_source_keymap_matches_active_boot=no
+runtime_key_press_trace=not_attempted
+hardware_write=none
+
+## Decision
+
+The exact active boot binary is stronger provenance than the later retained
+source checkout for the disputed keycode. The mainline disabled DT candidate
+should use `KEY_LEFTMETA` at `(4,3)` to match the active image, while the
+retained source-derived table remains evidence of the source/build discrepancy.
+An owner-assisted evdev press/release trace is still required to verify the
+physical legend, modifier behavior, and userspace function layer before
+enabling the consumer; it is no longer necessary to choose between `KEY_FN`
+and `KEY_LEFTMETA` for the candidate map.

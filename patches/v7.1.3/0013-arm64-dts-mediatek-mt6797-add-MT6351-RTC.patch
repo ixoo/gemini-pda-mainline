@@ -1,0 +1,30 @@
+From c27d992544f2261844bf968d14d0f7963afb15b7 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 12 Jul 2026 00:13:23 -0400
+Subject: [PATCH] arm64: dts: mediatek: mt6797: add MT6351 RTC
+
+Describe the fixed RTC function of the MT6351 companion so the shared
+MediaTek RTC driver can match the MFD child.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ arch/arm64/boot/dts/mediatek/mt6797.dtsi | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+index de945ad2c..9bb7fcdb9 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797.dtsi
++++ b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+@@ -256,6 +256,10 @@ pmic: pmic {
+ 			mt6351regulator: regulators {
+ 				compatible = "mediatek,mt6351-regulator";
+ 			};
++
++			rtc {
++				compatible = "mediatek,mt6351-rtc";
++			};
+ 		};
+ 	};
+ 
+-- 
+2.43.0

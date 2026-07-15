@@ -2,9 +2,76 @@
 # the patch that makes them usable and validated by scripts/kernel configure.
 CONFIG_LOCALVERSION="-gemini"
 # CONFIG_LOCALVERSION_AUTO is not set
+
+# Planet LK boots the Gemini through its Android/DT path, not EFI or ACPI.
+# Keep host-only hypervisor and SCSI/ATA stacks out of the decompressed Image;
+# the MT6797 LK build allocates a fixed 0x03200000 (50 MiB) output buffer.
+# These options are intentionally Gemini-specific and do not alter upstream
+# defaults outside this fragment.
+# CONFIG_ACPI is not set
+# CONFIG_EFI is not set
+# CONFIG_VIRTUALIZATION is not set
+# CONFIG_XEN is not set
+# CONFIG_SCSI is not set
+# CONFIG_ATA is not set
 CONFIG_ARCH_MEDIATEK=y
+CONFIG_COMMON_CLK_MT6797_CAMSYS=y
+CONFIG_COMMON_CLK_MT6797_MJCSYS=y
+CONFIG_COMMON_CLK_MT6797_MFGSYS=y
+CONFIG_MTK_IOMMU=y
+CONFIG_MTK_SMI=y
+CONFIG_MTK_CMDQ=y
+CONFIG_MTK_CMDQ_MBOX=y
+CONFIG_MTK_MMSYS=y
 CONFIG_SERIAL_8250=y
 CONFIG_SERIAL_8250_CONSOLE=y
 CONFIG_SERIAL_8250_MT6577=y
 CONFIG_IKCONFIG=y
 CONFIG_IKCONFIG_PROC=y
+
+# Standard IIO path prepared for the disabled BMI160 candidate node.
+CONFIG_IIO=y
+CONFIG_BMI160_I2C=m
+# Build the generic MediaTek AUXADC thermal framework.  The MT6797 variant
+# remains disabled in the board DT until calibration and runtime reads are
+# validated, but the module must be present for controlled bring-up.
+CONFIG_MTK_THERMAL=m
+CONFIG_MTK_SOC_THERMAL=m
+# Parse LK's validated /chosen/atag,devinfo thermal calibration into a
+# read-only NVMEM cell.  The thermal and AUXADC DT nodes remain disabled.
+CONFIG_NVMEM_MTK_ATAG_DEVINFO=y
+# Existing STK3310-family driver is prepared for the STK3X1X reuse candidate;
+# no Gemini DT child is enabled until product ID and board resources are known.
+CONFIG_STK3310=m
+
+# MT6797/MT6351 platform foundation carried by the local patch series.
+CONFIG_PINCTRL_MT6797=y
+CONFIG_EINT_MTK=y
+CONFIG_MFD_MT6397=y
+CONFIG_REGULATOR_MT6351=y
+CONFIG_REGULATOR_RT5735=y
+CONFIG_REGULATOR_FAN49101=m
+CONFIG_TYPEC_FUSB301=m
+CONFIG_PINCTRL_AW9523=m
+# Standard GPIO/EV_SW path for the disabled hall/lid candidate.
+CONFIG_KEYBOARD_GPIO=m
+CONFIG_KEYBOARD_MATRIX=m
+CONFIG_KEYBOARD_MTK_PMIC=y
+# Compile the disabled-only NT36772 backend.  The Gemini touchscreen node is
+# intentionally absent until the 0x62-to-0x01 target transition, rails, reset,
+# and event ranges are validated on hardware.
+CONFIG_TOUCHSCREEN_NOVATEK_NT36XXX=m
+CONFIG_RTC_DRV_MT6397=y
+
+# USB11 uses the existing MUSB core/glue with a recovered MT6797 data table.
+# Keep transfers PIO-only until DMA and the USB11 PHY/runtime lifecycle are
+# proven on hardware; the DT nodes remain disabled.
+CONFIG_USB_MUSB_HDRC=y
+CONFIG_USB_MUSB_DUAL_ROLE=y
+CONFIG_USB_MUSB_MEDIATEK=y
+CONFIG_MUSB_PIO_ONLY=y
+
+# Standard MT6797/MT6351 ASoC drivers are prepared for the disabled AFE
+# resource node; no Gemini machine-card or analog route is enabled yet.
+CONFIG_SND_SOC_MT6797=m
+CONFIG_SND_SOC_MT6797_MT6351=m

@@ -1,0 +1,124 @@
+From 905c572f037bf171054e6198dc75aa51667db8d7 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 12 Jul 2026 14:26:08 -0400
+Subject: [PATCH] clk: mediatek: add MT6797 MFGSYS
+
+---
+ .../bindings/clock/mediatek,syscon.yaml       |  1 +
+ drivers/clk/mediatek/Kconfig                  |  7 +++
+ drivers/clk/mediatek/Makefile                 |  1 +
+ drivers/clk/mediatek/clk-mt6797-mfg.c         | 44 +++++++++++++++++++
+ include/dt-bindings/clock/mt6797-clk.h        |  4 ++
+ 5 files changed, 57 insertions(+)
+ create mode 100644 drivers/clk/mediatek/clk-mt6797-mfg.c
+
+diff --git a/Documentation/devicetree/bindings/clock/mediatek,syscon.yaml b/Documentation/devicetree/bindings/clock/mediatek,syscon.yaml
+index be43cd8ad..f0e829ca3 100644
+--- a/Documentation/devicetree/bindings/clock/mediatek,syscon.yaml
++++ b/Documentation/devicetree/bindings/clock/mediatek,syscon.yaml
+@@ -45,6 +45,7 @@ properties:
+               - mediatek,mt6797-camsys
+               - mediatek,mt6797-imgsys
+               - mediatek,mt6797-mjcsys
++              - mediatek,mt6797-mfgsys
+               - mediatek,mt6797-vdecsys
+               - mediatek,mt6797-vencsys
+               - mediatek,mt8167-imgsys
+diff --git a/drivers/clk/mediatek/Kconfig b/drivers/clk/mediatek/Kconfig
+index bcaab31ec..a405dba22 100644
+--- a/drivers/clk/mediatek/Kconfig
++++ b/drivers/clk/mediatek/Kconfig
+@@ -358,6 +358,13 @@ config COMMON_CLK_MT6797_CAMSYS
+ 	  camera SMI local arbiter used for DMA traffic through the
+ 	  multimedia IOMMU.
+ 
++config COMMON_CLK_MT6797_MFGSYS
++	tristate "Clock driver for MediaTek MT6797 MFGSYS"
++	depends on COMMON_CLK_MT6797
++	help
++	  This driver supports the MFG gate clock used by the Mali block
++	  on MediaTek MT6797.
++
+ config COMMON_CLK_MT6797_MMSYS
+ 	tristate "Clock driver for MediaTek MT6797 mmsys"
+ 	depends on COMMON_CLK_MT6797
+diff --git a/drivers/clk/mediatek/Makefile b/drivers/clk/mediatek/Makefile
+index a7a1a1493..0adf0b0aa 100644
+--- a/drivers/clk/mediatek/Makefile
++++ b/drivers/clk/mediatek/Makefile
+@@ -33,6 +33,7 @@ obj-$(CONFIG_COMMON_CLK_MT6797) += clk-mt6797.o
+ obj-$(CONFIG_COMMON_CLK_MT6797_CAMSYS) += clk-mt6797-cam.o
+ obj-$(CONFIG_COMMON_CLK_MT6797_IMGSYS) += clk-mt6797-img.o
+ obj-$(CONFIG_COMMON_CLK_MT6797_MJCSYS) += clk-mt6797-mjc.o
++obj-$(CONFIG_COMMON_CLK_MT6797_MFGSYS) += clk-mt6797-mfg.o
+ obj-$(CONFIG_COMMON_CLK_MT6797_MMSYS) += clk-mt6797-mm.o
+ obj-$(CONFIG_COMMON_CLK_MT6797_VDECSYS) += clk-mt6797-vdec.o
+ obj-$(CONFIG_COMMON_CLK_MT6797_VENCSYS) += clk-mt6797-venc.o
+diff --git a/drivers/clk/mediatek/clk-mt6797-mfg.c b/drivers/clk/mediatek/clk-mt6797-mfg.c
+new file mode 100644
+index 000000000..2b6739bc8
+--- /dev/null
++++ b/drivers/clk/mediatek/clk-mt6797-mfg.c
+@@ -0,0 +1,44 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/* Copyright (c) 2026 Gemini PDA Mainline Project */
++
++#include <linux/clk-provider.h>
++#include <linux/platform_device.h>
++#include <dt-bindings/clock/mt6797-clk.h>
++
++#include "clk-gate.h"
++#include "clk-mtk.h"
++
++static const struct mtk_gate_regs mfg_cg_regs = {
++	.set_ofs = 0x0004,
++	.clr_ofs = 0x0008,
++	.sta_ofs = 0x0000,
++};
++
++static const struct mtk_gate mfg_clks[] = {
++	GATE_MTK(CLK_MFG_BG3D, "mfg_bg3d", "mfg_sel", &mfg_cg_regs, 0,
++		 &mtk_clk_gate_ops_setclr),
++};
++
++static const struct mtk_clk_desc mfg_desc = {
++	.clks = mfg_clks,
++	.num_clks = ARRAY_SIZE(mfg_clks),
++};
++
++static const struct of_device_id of_match_clk_mt6797_mfg[] = {
++	{ .compatible = "mediatek,mt6797-mfgsys", .data = &mfg_desc },
++	{ /* sentinel */ }
++};
++MODULE_DEVICE_TABLE(of, of_match_clk_mt6797_mfg);
++
++static struct platform_driver clk_mt6797_mfg_drv = {
++	.probe = mtk_clk_simple_probe,
++	.remove = mtk_clk_simple_remove,
++	.driver = {
++		.name = "clk-mt6797-mfg",
++		.of_match_table = of_match_clk_mt6797_mfg,
++	},
++};
++module_platform_driver(clk_mt6797_mfg_drv);
++
++MODULE_DESCRIPTION("MediaTek MT6797 MFGSYS clock driver");
++MODULE_LICENSE("GPL");
+diff --git a/include/dt-bindings/clock/mt6797-clk.h b/include/dt-bindings/clock/mt6797-clk.h
+index d868c50f6..15c601444 100644
+--- a/include/dt-bindings/clock/mt6797-clk.h
++++ b/include/dt-bindings/clock/mt6797-clk.h
+@@ -275,6 +275,10 @@
+ #define CLK_MJC_LARB4_ASIF			6
+ #define CLK_MJC_NR				7
+ 
++/* MFG_SYS */
++#define CLK_MFG_BG3D				1
++#define CLK_MFG_NR				2
++
+ /* VDEC_SYS */
+ #define	CLK_VDEC_CKEN_ENG			1
+ #define	CLK_VDEC_ACTIVE				2
+-- 
+2.43.0
+

@@ -1,0 +1,45 @@
+From 9557512b724e214ae43fe8f066561bf3822a4460 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 12 Jul 2026 09:11:06 -0400
+Subject: [PATCH] dt-bindings: display: mediatek: add MT6797 DSI
+
+The MT6797 DSI host uses the MT8173 register generation. Its command queue
+starts at 0x200 and its VM command registers start at 0x130. It has neither
+the newer size nor shadow control registers.
+
+The MIPI TX aperture uses the same externally visible register offsets. Its
+bandgap and PLL divider fields are MT6797-specific. Add native compatibles
+so the host and PHY can select their SoC data directly.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ .../devicetree/bindings/display/mediatek/mediatek,dsi.yaml       | 1 +
+ Documentation/devicetree/bindings/phy/mediatek,dsi-phy.yaml      | 1 +
+ 2 files changed, 2 insertions(+)
+
+diff --git a/Documentation/devicetree/bindings/display/mediatek/mediatek,dsi.yaml b/Documentation/devicetree/bindings/display/mediatek/mediatek,dsi.yaml
+index 27ffbccc2..dc69be3c6 100644
+--- a/Documentation/devicetree/bindings/display/mediatek/mediatek,dsi.yaml
++++ b/Documentation/devicetree/bindings/display/mediatek/mediatek,dsi.yaml
+@@ -25,6 +25,7 @@ properties:
+       - enum:
+           - mediatek,mt2701-dsi
+           - mediatek,mt7623-dsi
++          - mediatek,mt6797-dsi
+           - mediatek,mt8167-dsi
+           - mediatek,mt8173-dsi
+           - mediatek,mt8183-dsi
+diff --git a/Documentation/devicetree/bindings/phy/mediatek,dsi-phy.yaml b/Documentation/devicetree/bindings/phy/mediatek,dsi-phy.yaml
+index c6d0bbdbe..ac7f2c965 100644
+--- a/Documentation/devicetree/bindings/phy/mediatek,dsi-phy.yaml
++++ b/Documentation/devicetree/bindings/phy/mediatek,dsi-phy.yaml
+@@ -37,6 +37,7 @@ properties:
+               - mediatek,mt8365-mipi-tx
+           - const: mediatek,mt8183-mipi-tx
+       - const: mediatek,mt2701-mipi-tx
++      - const: mediatek,mt6797-mipi-tx
+       - const: mediatek,mt8173-mipi-tx
+       - const: mediatek,mt8183-mipi-tx
+ 
+-- 
+2.43.0

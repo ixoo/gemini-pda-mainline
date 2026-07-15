@@ -1,0 +1,184 @@
+From: Gemini PDA Mainline Project <noreply@example.com>
+Date: Sun, 12 Jul 2026 02:00:00 -0400
+Subject: [PATCH 23/25] dt-bindings: iommu: mediatek: add MT6797 M4U and SMI
+
+MT6797 has one multimedia M4U connected to seven SMI local arbiters. Add
+the three compatibles and a complete port-ID header recovered from the
+public vendor port table.
+
+The DT IDs use the standard compact MTK_M4U_ID encoding. They intentionally
+do not copy the differently shifted transaction-fault IDs used by the M4U
+interrupt registers.
+
+Signed-off-by: Gemini PDA Mainline Project <noreply@example.com>
+---
+ .../bindings/iommu/mediatek,iommu.yaml        |  3 +
+ .../memory-controllers/mediatek,smi-common.yaml |  2 +
+ .../memory-controllers/mediatek,smi-larb.yaml |  1 +
+ .../dt-bindings/memory/mt6797-larb-port.h      | 100 +++++++++++++++++
+ 4 files changed, 106 insertions(+)
+
+diff --git a/Documentation/devicetree/bindings/iommu/mediatek,iommu.yaml b/Documentation/devicetree/bindings/iommu/mediatek,iommu.yaml
+--- a/Documentation/devicetree/bindings/iommu/mediatek,iommu.yaml
++++ b/Documentation/devicetree/bindings/iommu/mediatek,iommu.yaml
+@@ -74,6 +74,7 @@ properties:
+           - mediatek,mt2712-m4u  # generation two
+           - mediatek,mt6779-m4u  # generation two
+           - mediatek,mt6795-m4u  # generation two
++          - mediatek,mt6797-m4u  # generation two
+           - mediatek,mt6893-iommu-mm         # generation two
+           - mediatek,mt8167-m4u  # generation two
+           - mediatek,mt8173-m4u  # generation two
+@@ -136,6 +137,7 @@ properties:
+       dt-binding/memory/mt2712-larb-port.h for mt2712,
+       dt-binding/memory/mt6779-larb-port.h for mt6779,
+       dt-binding/memory/mt6795-larb-port.h for mt6795,
++      dt-binding/memory/mt6797-larb-port.h for mt6797,
+       dt-binding/memory/mediatek,mt6893-memory-port.h for mt6893,
+       dt-binding/memory/mt8167-larb-port.h for mt8167,
+       dt-binding/memory/mt8173-larb-port.h for mt8173,
+@@ -201,6 +203,7 @@ allOf:
+             enum:
+               - mediatek,mt2712-m4u
+               - mediatek,mt6795-m4u
++              - mediatek,mt6797-m4u
+               - mediatek,mt8173-m4u
+ 
+     then:
+diff --git a/Documentation/devicetree/bindings/memory-controllers/mediatek,smi-common.yaml b/Documentation/devicetree/bindings/memory-controllers/mediatek,smi-common.yaml
+--- a/Documentation/devicetree/bindings/memory-controllers/mediatek,smi-common.yaml
++++ b/Documentation/devicetree/bindings/memory-controllers/mediatek,smi-common.yaml
+@@ -33,6 +33,7 @@ properties:
+           - mediatek,mt2712-smi-common
+           - mediatek,mt6779-smi-common
+           - mediatek,mt6795-smi-common
++          - mediatek,mt6797-smi-common
+           - mediatek,mt6893-smi-common
+           - mediatek,mt8167-smi-common
+           - mediatek,mt8173-smi-common
+@@ -155,6 +156,7 @@ allOf:
+           enum:
+             - mediatek,mt2712-smi-common
+             - mediatek,mt6795-smi-common
++            - mediatek,mt6797-smi-common
+             - mediatek,mt8167-smi-common
+             - mediatek,mt8173-smi-common
+ 
+diff --git a/Documentation/devicetree/bindings/memory-controllers/mediatek,smi-larb.yaml b/Documentation/devicetree/bindings/memory-controllers/mediatek,smi-larb.yaml
+--- a/Documentation/devicetree/bindings/memory-controllers/mediatek,smi-larb.yaml
++++ b/Documentation/devicetree/bindings/memory-controllers/mediatek,smi-larb.yaml
+@@ -21,6 +21,7 @@ properties:
+           - mediatek,mt2712-smi-larb
+           - mediatek,mt6779-smi-larb
+           - mediatek,mt6795-smi-larb
++          - mediatek,mt6797-smi-larb
+           - mediatek,mt6893-smi-larb
+           - mediatek,mt8167-smi-larb
+           - mediatek,mt8173-smi-larb
+diff --git a/include/dt-bindings/memory/mt6797-larb-port.h b/include/dt-bindings/memory/mt6797-larb-port.h
+new file mode 100644
+--- /dev/null
++++ b/include/dt-bindings/memory/mt6797-larb-port.h
+@@ -0,0 +1,100 @@
++/* SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause) */
++#ifndef _DT_BINDINGS_MEMORY_MT6797_LARB_PORT_H_
++#define _DT_BINDINGS_MEMORY_MT6797_LARB_PORT_H_
++
++#include <dt-bindings/memory/mtk-memory-port.h>
++
++#define M4U_LARB0_ID			0
++#define M4U_LARB1_ID			1
++#define M4U_LARB2_ID			2
++#define M4U_LARB3_ID			3
++#define M4U_LARB4_ID			4
++#define M4U_LARB5_ID			5
++#define M4U_LARB6_ID			6
++
++/* larb0: display and MDP */
++#define M4U_PORT_DISP_OVL0		MTK_M4U_ID(M4U_LARB0_ID, 0)
++#define M4U_PORT_DISP_2L_OVL0_LARB0	MTK_M4U_ID(M4U_LARB0_ID, 1)
++#define M4U_PORT_DISP_RDMA0		MTK_M4U_ID(M4U_LARB0_ID, 2)
++#define M4U_PORT_DISP_WDMA0		MTK_M4U_ID(M4U_LARB0_ID, 3)
++#define M4U_PORT_MDP_RDMA0		MTK_M4U_ID(M4U_LARB0_ID, 4)
++#define M4U_PORT_MDP_WDMA0		MTK_M4U_ID(M4U_LARB0_ID, 5)
++#define M4U_PORT_MDP_WROT0		MTK_M4U_ID(M4U_LARB0_ID, 6)
++#define M4U_PORT_DISP_FAKE_LARB0	MTK_M4U_ID(M4U_LARB0_ID, 7)
++
++/* larb1: video decoder */
++#define M4U_PORT_VDEC_MC		MTK_M4U_ID(M4U_LARB1_ID, 0)
++#define M4U_PORT_VDEC_PP		MTK_M4U_ID(M4U_LARB1_ID, 1)
++#define M4U_PORT_VDEC_UFO		MTK_M4U_ID(M4U_LARB1_ID, 2)
++#define M4U_PORT_VDEC_VLD		MTK_M4U_ID(M4U_LARB1_ID, 3)
++#define M4U_PORT_VDEC_VLD2		MTK_M4U_ID(M4U_LARB1_ID, 4)
++#define M4U_PORT_VDEC_AVC_MV		MTK_M4U_ID(M4U_LARB1_ID, 5)
++#define M4U_PORT_VDEC_PRED_RD		MTK_M4U_ID(M4U_LARB1_ID, 6)
++#define M4U_PORT_VDEC_PRED_WR		MTK_M4U_ID(M4U_LARB1_ID, 7)
++#define M4U_PORT_VDEC_PPWRAP		MTK_M4U_ID(M4U_LARB1_ID, 8)
++#define M4U_PORT_VDEC_TILE		MTK_M4U_ID(M4U_LARB1_ID, 9)
++
++/* larb2: camera */
++#define M4U_PORT_CAM_IMGO		MTK_M4U_ID(M4U_LARB2_ID, 0)
++#define M4U_PORT_CAM_RRZO		MTK_M4U_ID(M4U_LARB2_ID, 1)
++#define M4U_PORT_CAM_AAO		MTK_M4U_ID(M4U_LARB2_ID, 2)
++#define M4U_PORT_CAM_AFO		MTK_M4U_ID(M4U_LARB2_ID, 3)
++#define M4U_PORT_CAM_LSCI_0		MTK_M4U_ID(M4U_LARB2_ID, 4)
++#define M4U_PORT_CAM_LSCI_1		MTK_M4U_ID(M4U_LARB2_ID, 5)
++#define M4U_PORT_CAM_SV0		MTK_M4U_ID(M4U_LARB2_ID, 6)
++#define M4U_PORT_CAM_SV1		MTK_M4U_ID(M4U_LARB2_ID, 7)
++#define M4U_PORT_CAM_SV2		MTK_M4U_ID(M4U_LARB2_ID, 8)
++#define M4U_PORT_CAM_LCSO		MTK_M4U_ID(M4U_LARB2_ID, 9)
++#define M4U_PORT_CAM_UFEO		MTK_M4U_ID(M4U_LARB2_ID, 10)
++#define M4U_PORT_CAM_BPCI		MTK_M4U_ID(M4U_LARB2_ID, 11)
++#define M4U_PORT_CAM_PDO		MTK_M4U_ID(M4U_LARB2_ID, 12)
++#define M4U_PORT_CAM_RAWI		MTK_M4U_ID(M4U_LARB2_ID, 13)
++
++/* larb3: video and JPEG codecs */
++#define M4U_PORT_VENC_RCPU		MTK_M4U_ID(M4U_LARB3_ID, 0)
++#define M4U_PORT_VENC_REC		MTK_M4U_ID(M4U_LARB3_ID, 1)
++#define M4U_PORT_VENC_BSDMA		MTK_M4U_ID(M4U_LARB3_ID, 2)
++#define M4U_PORT_VENC_SV_COMV		MTK_M4U_ID(M4U_LARB3_ID, 3)
++#define M4U_PORT_VENC_RD_COMV		MTK_M4U_ID(M4U_LARB3_ID, 4)
++#define M4U_PORT_JPGENC_RDMA		MTK_M4U_ID(M4U_LARB3_ID, 5)
++#define M4U_PORT_JPGENC_BSDMA		MTK_M4U_ID(M4U_LARB3_ID, 6)
++#define M4U_PORT_JPGDEC_WDMA		MTK_M4U_ID(M4U_LARB3_ID, 7)
++#define M4U_PORT_JPGDEC_BSDMA		MTK_M4U_ID(M4U_LARB3_ID, 8)
++#define M4U_PORT_VENC_CUR_LUMA		MTK_M4U_ID(M4U_LARB3_ID, 9)
++#define M4U_PORT_VENC_CUR_CHROMA	MTK_M4U_ID(M4U_LARB3_ID, 10)
++#define M4U_PORT_VENC_REF_LUMA		MTK_M4U_ID(M4U_LARB3_ID, 11)
++#define M4U_PORT_VENC_REF_CHROMA	MTK_M4U_ID(M4U_LARB3_ID, 12)
++#define M4U_PORT_VENC_NBM_RDMA		MTK_M4U_ID(M4U_LARB3_ID, 13)
++#define M4U_PORT_VENC_NBM_WDMA		MTK_M4U_ID(M4U_LARB3_ID, 14)
++
++/* larb4: motion judder compensation */
++#define M4U_PORT_MJC_MV_RD		MTK_M4U_ID(M4U_LARB4_ID, 0)
++#define M4U_PORT_MJC_MV_WR		MTK_M4U_ID(M4U_LARB4_ID, 1)
++#define M4U_PORT_MJC_DMA_RD		MTK_M4U_ID(M4U_LARB4_ID, 2)
++#define M4U_PORT_MJC_DMA_WR		MTK_M4U_ID(M4U_LARB4_ID, 3)
++
++/* larb5: secondary display and MDP */
++#define M4U_PORT_DISP_OVL1		MTK_M4U_ID(M4U_LARB5_ID, 0)
++#define M4U_PORT_DISP_2L_OVL1		MTK_M4U_ID(M4U_LARB5_ID, 1)
++#define M4U_PORT_DISP_RDMA1		MTK_M4U_ID(M4U_LARB5_ID, 2)
++#define M4U_PORT_DISP_WDMA1		MTK_M4U_ID(M4U_LARB5_ID, 3)
++#define M4U_PORT_DISP_OD_R		MTK_M4U_ID(M4U_LARB5_ID, 4)
++#define M4U_PORT_DISP_OD_W		MTK_M4U_ID(M4U_LARB5_ID, 5)
++#define M4U_PORT_DISP_2L_OVL0_LARB5	MTK_M4U_ID(M4U_LARB5_ID, 6)
++#define M4U_PORT_MDP_RDMA1		MTK_M4U_ID(M4U_LARB5_ID, 7)
++#define M4U_PORT_MDP_WROT1		MTK_M4U_ID(M4U_LARB5_ID, 8)
++#define M4U_PORT_DISP_FAKE_LARB5	MTK_M4U_ID(M4U_LARB5_ID, 9)
++
++/* larb6: image processor and DPE */
++#define M4U_PORT_CAM_IMGI		MTK_M4U_ID(M4U_LARB6_ID, 0)
++#define M4U_PORT_CAM_IMG2O		MTK_M4U_ID(M4U_LARB6_ID, 1)
++#define M4U_PORT_CAM_IMG3O		MTK_M4U_ID(M4U_LARB6_ID, 2)
++#define M4U_PORT_CAM_VIPI		MTK_M4U_ID(M4U_LARB6_ID, 3)
++#define M4U_PORT_CAM_ICEI		MTK_M4U_ID(M4U_LARB6_ID, 4)
++#define M4U_PORT_CAM_RP		MTK_M4U_ID(M4U_LARB6_ID, 5)
++#define M4U_PORT_CAM_WR		MTK_M4U_ID(M4U_LARB6_ID, 6)
++#define M4U_PORT_CAM_RB		MTK_M4U_ID(M4U_LARB6_ID, 7)
++#define M4U_PORT_CAM_DPE_RDMA		MTK_M4U_ID(M4U_LARB6_ID, 8)
++#define M4U_PORT_CAM_DPE_WDMA		MTK_M4U_ID(M4U_LARB6_ID, 9)
++
++#endif
+-- 
+2.47.2

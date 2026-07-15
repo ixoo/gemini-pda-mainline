@@ -1,0 +1,13 @@
+validation=gemini-dtb-schema
+generated_utc=2026-07-14T04:14:27Z
+package=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-ca17601dcdeb
+dtb=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-ca17601dcdeb/dtbs/mediatek/mt6797-gemini-pda.dtb
+dtb_sha256=fb910c8d96b7d4f533c750ce0717ced8998c992834abc44a4ed86ec5a9cf1f97
+schema=/home/julien.guest/build/gemini-pda/linux-7.1.3/Documentation/devicetree/bindings/processed-schema.json
+schema_sha256=1635b85779f3f89680e2b47983184e8c9bf7c47f29420adb8c855dbc5ebd003c
+dt_validate=2026.6
+validator_output=empty
+result=pass
+script_sha256=aa2111121ab27593cc3306fe9971edfd4eaba8cca19ae2afc80cc85586605c41
+runtime_mainline_boot=not_attempted
+hardware_write=none

@@ -1,0 +1,45 @@
+# Vendor-only userspace extraction — 2026-07-14
+
+## Provenance
+
+- Target: owner-supplied Gemini PDA at `gemini@192.168.1.50`.
+- Collector: `scripts/extract-device-userspace`, SHA-256
+  `a84b30030e5bbba7e6bdc076f6e2c1485bac7030b3542255d934c8f7f94bdba7`.
+- Mode: `--vendor-only`; device-side selection was read-only.
+- Selected entries: 621 (619 regular files and two symbolic links).
+- Private output: `artifacts/device-userspace/gemian-vendor-20260714-session/`.
+  It is Git-ignored, owner-only, and the stable ignored link
+  `artifacts/device-userspace/latest` points to it.
+- `FILES.sha256` SHA-256:
+  `9767c309f0decb8dea53a5da5ba134415e6ce4f69a9080b6e849f5366b89f213`.
+- Manifest validation: `shasum -a 256 -c FILES.sha256` passed from the
+  extraction directory after regenerating the manifest with the corrected
+  self-exclusion logic described below.
+- `SYMLINKS.txt` SHA-256:
+  `8e516522e4d3a3d96f3810da3f8c068ea0fa89592a3503d75f79d8c512467ea3`.
+
+The Linux VM doctor passed with the pinned Ghidra 12.1.2, Radare2 5.5.0,
+`vmlinux-to-elf`, binutils, and related analysis tools. A read-only VM smoke
+test reported `wmt_launcher` as an ELF64 AArch64 C++ executable and
+`libcamalgo.so` as an ELF32 ARM C++ library, confirming that both ABI families
+in the private corpus are available to the analysis workflow.
+
+## Coverage
+
+The private corpus contains the selected MT6797 Android HALs and vendor
+executables, shared libraries, firmware/configuration files, and their two
+Vulkan-to-Mali symlinks. It is intended for local static analysis only; no
+file is copied into Git or redistributed.
+
+## Extraction reliability
+
+The collector now uses explicit SSH keepalives, NUL-safe batches of 64 paths,
+per-batch retries, and writes its temporary checksum file outside the payload
+tree. This avoids the desktop wrapper's long single-stream timeout and the
+initial run's self-hashing bug while preserving the original path allow-list
+and read-only device behavior. The transferred corpus completed all ten
+batches; its final manifest was regenerated with the corrected logic and
+verified file-by-file.
+
+No vendor binary was executed, no firmware was loaded, and no device state was
+modified during this capture.

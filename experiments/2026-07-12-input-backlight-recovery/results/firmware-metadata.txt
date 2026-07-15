@@ -1,0 +1,10 @@
+path=private/artifacts/firmware/gemian-2019-vendor/etc/firmware/novatek_ts_fw.bin
+size=118784
+expected_size=118784
+size_match=True
+sha256=4cab8b83dfabe89864521539fb4da9ee0fbea1737b03d5f0d3e159cd076f4f1c
+version_offset=0x1a000
+version=0x05
+version_bar=0xfa
+version_sum=0xff
+version_pair_valid=True

@@ -1,0 +1,42 @@
+RT5735 external VGPU source/live summary
+capture-date=2026-07-12
+vendor-tree-commit=d388d350cb2dda8f23b99be6fa5db9628896e87f
+mainline-comparison=linux-7.1.3
+
+Live DT
+- i2c controller: 0x11010000 (I2C7 / GPU-PM bus)
+- RT5735 node: address 0x1c, compatible rt,rt5735-regulator, status ok
+- separate candidate: vgpu_buck@0x60, compatible mediatek,vgpu_buck, unbound
+- vendor gpufreq: compatible mediatek,mt6797-gpufreq
+
+Vendor RT5735 contract
+- product-id register: 0x03
+- product-id value: 0x10
+- VSEL0 register: 0x11
+- VSEL0 voltage mask: 0x7f
+- VSEL0 enable mask: 0x80
+- voltage range: 600000..1393750 uV
+- voltage step: 6250 uV
+- selector count: 128
+- active-discharge register/mask: 0x12 / 0x10
+- VSEL0 forced-PWM register/mask: 0x14 / 0x80
+
+Safety
+- no I2C probe or register write performed by this experiment
+- no regulator enable/disable or voltage transition performed
+- GPU consumer remains disabled
+
+Mainline result
+- local patch: 0051-regulator-add-Richtek-RT5735-VSEL0-support.patch
+- provider compile: passed with CONFIG_REGULATOR_RT5735=y
+- DT binding check: passed
+- Gemini DTB build: passed
+- Gemini DTB SHA-256: 766c1855327b4d99ef531ae4b4b49f074d853b9ca5c25585325577b34de80899
+- DTB validation also required the existing board override to reference the
+  SoC's `pmic` label instead of stale `mt6351regulator`.
+- full package: linux-7.1.3-gemini-a3270f43cdfa
+- full build jobs: `KERNEL_JOBS=2` (the initial unrestricted VM build hit a
+  transient fixdep dependency-file race; the low-parallelism retry passed)
+- patchset SHA-256: a3270f43cdfa51e61cefa6ba5ebbb353fa1c766f959aa9f380914cd88a9ccb42
+- merged config SHA-256: 34ecccb066354cf1644d3f4f0146f36b7a3f7085389599c13d997ed29eef48fa
+- Image SHA-256: 5e5937f3c1d8146bb58f1a0d827fa6dfc91d3a8eed493e15370a6d45e3c706ae

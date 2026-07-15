@@ -29,9 +29,70 @@ die() {
   exit 1
 }
 
-readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-readonly REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+extract_file_list() {
+  local batch_dir=""
+  local batch_file=""
+  local batch_number=0
+  local entry_count=0
+  local batch
+  local attempt
+
+  batch_dir="$(mktemp -d "${output}/.extract-batches.XXXXXX")"
+  batch_file="${batch_dir}/batch-$(printf '%04d' "${batch_number}").nul"
+  : > "${batch_file}"
+
+  # Keep each archive bounded.  This avoids losing a large transfer as one
+  # long SSH/tar stream while preserving NUL-safe names and symlinks.
+  while IFS= read -r -d '' entry; do
+    printf '%s\0' "${entry}" >> "${batch_file}"
+    ((entry_count += 1))
+    if ((entry_count % 64 == 0)); then
+      ((batch_number += 1))
+      batch_file="${batch_dir}/batch-$(printf '%04d' "${batch_number}").nul"
+      : > "${batch_file}"
+    fi
+  done < "${FILE_LIST}"
+
+  for batch in "${batch_dir}"/batch-*.nul; do
+    [[ -s "${batch}" ]] || continue
+    printf 'Extracting batch %s...\n' "$(basename "${batch}")"
+    for attempt in 1 2 3; do
+      if ssh "${ssh_options[@]}" "${target}" \
+        'cd / && tar --null --no-recursion -T - -cf -' \
+        < "${batch}" \
+        | tar -xf - -C "${output}"; then
+        break
+      fi
+      if ((attempt == 3)); then
+        die "failed to extract $(basename "${batch}") after ${attempt} attempts"
+      fi
+      printf 'Retrying %s (attempt %d/3)...\n' "$(basename "${batch}")" "$((attempt + 1))" >&2
+    done
+  done
+
+  rm -rf "${batch_dir}"
+}
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly SCRIPT_DIR
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+readonly REPO_ROOT
 readonly LIST_HELPER="${REPO_ROOT}/experiments/2026-07-11-gemian-hardware-userspace-inventory/scripts/list-extract-files.sh"
+readonly LOCAL_IDENTITY="${REPO_ROOT}/artifacts/credentials/gemini_ed25519"
+
+ssh_options=(
+  -o BatchMode=yes
+  -o ConnectTimeout=10
+  -o ServerAliveInterval=5
+  -o ServerAliveCountMax=60
+)
+if [[ -r "${LOCAL_IDENTITY}" ]]; then
+  ssh_options+=(
+    -o IdentitiesOnly=yes
+    -o IdentityAgent=none
+    -i "${LOCAL_IDENTITY}"
+  )
+fi
 
 target="${GEMINI_SSH_TARGET:-}"
 output=""
@@ -90,7 +151,9 @@ fi
 readonly FILE_LIST="${output}/FILES.nul"
 
 printf 'Discovering files on %s...\n' "${target}"
-ssh -o BatchMode=yes -o ConnectTimeout=10 "${target}" "bash -s -- ${mode}" \
+# mode is restricted above to the two literal values accepted by the helper.
+# shellcheck disable=SC2029
+ssh "${ssh_options[@]}" "${target}" "bash -s -- ${mode}" \
   < "${LIST_HELPER}" > "${FILE_LIST}"
 
 file_count="$(tr -cd '\000' < "${FILE_LIST}" | wc -c | tr -d ' ')"
@@ -105,16 +168,15 @@ if [[ "${dry_run}" == true ]]; then
 fi
 
 printf 'Extracting to %s...\n' "${output}"
-ssh -o BatchMode=yes -o ConnectTimeout=10 "${target}" \
-  'cd / && tar --null --no-recursion -T - -cf -' \
-  < "${FILE_LIST}" \
-  | tar -xf - -C "${output}"
+extract_file_list
 
 (
   cd "${output}"
+  hash_manifest="$(mktemp "${TMPDIR:-/tmp}/gemini-files-sha256.XXXXXX")"
   find . -type f ! -name FILES.nul ! -name FILES.sha256 ! -name SOURCE.txt \
     -exec shasum -a 256 {} + \
-    | sort -k2 > FILES.sha256
+    | sort -k2 > "${hash_manifest}"
+  mv "${hash_manifest}" FILES.sha256
   find . -type l -exec ls -ld {} + | sort -k9 > SYMLINKS.txt
 )
 

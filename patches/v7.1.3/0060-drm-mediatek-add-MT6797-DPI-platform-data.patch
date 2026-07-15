@@ -1,0 +1,80 @@
+From 0000000000000000000000000000000000000060 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 13 Jul 2026 07:31:00 -0400
+Subject: [PATCH] drm/mediatek: add MT6797 DPI platform data
+
+The MT6797 vendor display block at 0x1401e000 uses the same DPI register
+layout as the upstream MediaTek DPI driver, including the timing generator,
+output format, size, status, and test-pattern registers. Its vendor clock
+path exposes a TVDPLL with D2/D4/D8/D16 factors and separate MM/interface
+gates, which maps to the generic driver's three clock contract.
+
+Reuse the generic Linux DPI implementation with an MT6797-specific factor
+table and keep the horizontal-frequency and edge-selection features off
+until the board is runtime validated. The board node remains disabled in a
+separate patch.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ Documentation/devicetree/bindings/display/mediatek/mediatek,dpi.yaml | 1 +
+ drivers/gpu/drm/mediatek/mtk_dpi.c                                   | 22 ++++++++++++++++++++++
+ 2 files changed, 23 insertions(+)
+
+diff --git a/Documentation/devicetree/bindings/display/mediatek/mediatek,dpi.yaml b/Documentation/devicetree/bindings/display/mediatek/mediatek,dpi.yaml
+--- a/Documentation/devicetree/bindings/display/mediatek/mediatek,dpi.yaml
++++ b/Documentation/devicetree/bindings/display/mediatek/mediatek,dpi.yaml
+@@ -22,5 +22,6 @@ properties:
+           - mediatek,mt7623-dpi
+           - mediatek,mt8173-dpi
++          - mediatek,mt6797-dpi
+           - mediatek,mt8183-dpi
+           - mediatek,mt8186-dpi
+           - mediatek,mt8188-dp-intf
+diff --git a/drivers/gpu/drm/mediatek/mtk_dpi.c b/drivers/gpu/drm/mediatek/mtk_dpi.c
+--- a/drivers/gpu/drm/mediatek/mtk_dpi.c
++++ b/drivers/gpu/drm/mediatek/mtk_dpi.c
+@@ -1112,6 +1112,10 @@ static const struct mtk_dpi_factor dpi_factor_mt8173[] = {
+ 	{ 27000, 48 }, { 84000, 24 }, { 167000, 12 }, { U32_MAX, 6 }
+ };
+ 
++static const struct mtk_dpi_factor dpi_factor_mt6797[] = {
++	{ 27000, 48 }, { 84000, 24 }, { 167000, 12 }, { U32_MAX, 6 }
++};
++
+ static const struct mtk_dpi_factor dpi_factor_mt8183[] = {
+ 	{ 27000, 8 }, { 167000, 4 }, { U32_MAX, 2 }
+ };
+@@ -1140,6 +1144,23 @@ static const struct mtk_dpi_conf mt8173_conf = {
+ 	.csc_enable_bit = CSC_ENABLE,
+ };
+ 
++static const struct mtk_dpi_conf mt6797_conf = {
++	.dpi_factor = dpi_factor_mt6797,
++	.num_dpi_factor = ARRAY_SIZE(dpi_factor_mt6797),
++	.max_clock_khz = 300000,
++	.output_fmts = mt8173_output_fmts,
++	.num_output_fmts = ARRAY_SIZE(mt8173_output_fmts),
++	.pixels_per_iter = 1,
++	.is_ck_de_pol = true,
++	.swap_input_support = true,
++	.support_direct_pin = true,
++	.dimension_mask = HPW_MASK,
++	.hvsize_mask = HSIZE_MASK,
++	.channel_swap_shift = CH_SWAP,
++	.yuv422_en_bit = YUV422_EN,
++	.csc_enable_bit = CSC_ENABLE,
++};
++
+ static const struct mtk_dpi_conf mt2701_conf = {
+ 	.dpi_factor = dpi_factor_mt2701,
+ 	.num_dpi_factor = ARRAY_SIZE(dpi_factor_mt2701),
+@@ -1338,6 +1353,7 @@ static const struct of_device_id mtk_dpi_of_ids[] = {
+ static const struct of_device_id mtk_dpi_of_ids[] = {
+ 	{ .compatible = "mediatek,mt2701-dpi", .data = &mt2701_conf },
+ 	{ .compatible = "mediatek,mt8173-dpi", .data = &mt8173_conf },
++	{ .compatible = "mediatek,mt6797-dpi", .data = &mt6797_conf },
+ 	{ .compatible = "mediatek,mt8183-dpi", .data = &mt8183_conf },
+ 	{ .compatible = "mediatek,mt8186-dpi", .data = &mt8186_conf },
+ 	{ .compatible = "mediatek,mt8188-dp-intf", .data = &mt8195_dpintf_conf },
+-- 
+2.43.0

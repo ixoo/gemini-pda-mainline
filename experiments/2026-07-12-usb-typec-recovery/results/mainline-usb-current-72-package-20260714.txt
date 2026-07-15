@@ -1,0 +1,214 @@
+validation=mt6797-usb-typec-current-72-package-audit
+generated_utc=2026-07-14T11:52:00Z
+source_revision=7.1.3
+patch_count=72
+package=linux-7.1.3-gemini-c2d9eea95daa
+audit_script=experiments/2026-07-12-usb-typec-recovery/scripts/audit-current-package-usb.sh
+audit_script_sha256=8b9549bc287c7f525da5d2d7e1f65e8345491ed8da068a350850bd8e2acb2471
+audit_output_sha256=d99fee7ee2e19a2c24344de3bd1286d6f1dcdc7ed28cdf93472e9734ccd74e79
+repeatability=byte-identical_second_run
+shellcheck=passed_in_dev_vm
+bash_n=passed
+runtime_probe=not_attempted
+hardware_write=none
+
+[captured_audit_output]
+validation=mt6797-usb-typec-current-package-audit
+package=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa
+package_image_sha256=3fb6ac3043dff85dc2b6e68a2bba26d36fedf748e6f7c1bf6b6630f87446be7c
+package_config_sha256=831289dd3b53c6cec09e6c614fd83d3ab5988a4c30090bf9ec172348ec9487d5
+package_dtb_sha256=b41580263940b47226e9819c97afbdaa9a35d4c721c471d2e8a0a3d597c553c5
+package_system_map_sha256=c883efb3c8b09166a0765017712ec79e182f929ee50b3907f0279384ab2a22b2
+linux_tree=/home/julien.guest/src/gemini-pda/linux-7.1.3
+linux_version=7.1.3
+dtc_warning_lines=2
+
+[configuration]
+CONFIG_USB=y
+CONFIG_USB_XHCI_HCD=y
+CONFIG_USB_XHCI_PLATFORM=y
+CONFIG_USB_XHCI_MTK=y
+CONFIG_USB_MTU3=y
+CONFIG_USB_MTU3_DUAL_ROLE=y
+CONFIG_USB_MUSB_HDRC=y
+CONFIG_USB_MUSB_DUAL_ROLE=y
+CONFIG_USB_MUSB_MEDIATEK=y
+CONFIG_MUSB_PIO_ONLY=y
+CONFIG_USB_GADGET=y
+CONFIG_TYPEC=m
+CONFIG_TYPEC_TCPM=m
+CONFIG_TYPEC_TCPCI=m
+CONFIG_TYPEC_FUSB302=m
+CONFIG_TYPEC_FUSB301=m
+CONFIG_USB_ROLE_SWITCH=y
+CONFIG_EXTCON=y
+CONFIG_PHY_MTK_TPHY=y
+
+[packaged_usb_typec_modules]
+module=fusb301
+path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa/modules/lib/modules/7.1.3-gemini/kernel/drivers/usb/typec/fusb301.ko
+sha256=b3a86a401ab6d7bb2c98ef8c1883e21b0754a47c7c209fb8d743ee58bb429b83
+module=fusb302
+path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa/modules/lib/modules/7.1.3-gemini/kernel/drivers/usb/typec/tcpm/fusb302.ko
+sha256=86a6b23683cc2d068d3c02b10b98e0bb987c03f07faf482d72541292c1c15cdf
+module=tcpci
+path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa/modules/lib/modules/7.1.3-gemini/kernel/drivers/usb/typec/tcpm/tcpci.ko
+sha256=469e68515aeda80c32fabdb4b86c58091cc982226a148afc6d57e111c88158b9
+module=tcpm
+path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa/modules/lib/modules/7.1.3-gemini/kernel/drivers/usb/typec/tcpm/tcpm.ko
+sha256=77c370fea2fdd3ebcdab0b7f78754a52e201a4666e9bc98460dd6e9c04001087
+module=typec
+path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-c2d9eea95daa/modules/lib/modules/7.1.3-gemini/kernel/drivers/usb/typec/typec.ko
+sha256=f2f31d9464814c902f0742762638858b9eff14b23998bc234fd1c245803d51ee
+module=mtu3
+path=absent
+module=mtu3-drd
+path=absent
+module=xhci-mtk
+path=absent
+module=musb-mtk
+path=absent
+module=phy-mtk-tphy
+path=absent
+
+[device_tree]
+usb11_node_matches=1
+usb11_disabled_status_matches=1
+mtu3_parent_node_matches=1
+mtu3_parent_disabled_status_matches=1
+xhci_child_node_matches=1
+xhci_child_disabled_status_matches=1
+tphy_node_matches=2
+tphy_disabled_status_matches=6
+fusb_or_typec_node_matches=0
+usb_role_switch_property_matches=0
+vbus_supply_property_matches=0
+usb_phy_reference_matches=3
+usb_resource_context:
+103-	};
+104-
+105:	t-phy@11290000 {
+106-		compatible = "mediatek,mt6797-tphy\0mediatek,generic-tphy-v1";
+107-		reg = <0x00 0x11290000 0x00 0x800>;
+108-		#address-cells = <0x02>;
+109-		#size-cells = <0x02>;
+110-		ranges;
+111-		status = "disabled";
+112-
+113-		usb-phy@11290800 {
+114-			reg = <0x00 0x11290800 0x00 0x100>;
+115-			clocks = <0x02 0x4c>;
+116-			clock-names = "ref";
+117-			#phy-cells = <0x01>;
+118-			status = "disabled";
+119-			phandle = <0x04>;
+120-		};
+121-
+122-		usb-phy@11290900 {
+123-			reg = <0x00 0x11290900 0x00 0x700>;
+124-			clocks = <0x02 0x4c>;
+125-			clock-names = "ref";
+126-			#phy-cells = <0x01>;
+127-			status = "disabled";
+128-			phandle = <0x05>;
+129-		};
+130-	};
+131-
+132:	t-phy@11210000 {
+133-		compatible = "mediatek,mt6797-tphy\0mediatek,generic-tphy-v1";
+134-		reg = <0x00 0x11210000 0x00 0x1000>;
+135-		#address-cells = <0x02>;
+136-		#size-cells = <0x02>;
+137-		ranges;
+138-		status = "disabled";
+139-
+140-		usb-phy@11210800 {
+141-			reg = <0x00 0x11210800 0x00 0x100>;
+142-			clocks = <0x02 0x4c>;
+143-			clock-names = "ref";
+144-			mediatek,eye-src = <0x04>;
+145-			#phy-cells = <0x01>;
+146-			status = "disabled";
+147-			phandle = <0x03>;
+148-		};
+149-	};
+150-
+151:	usb@11200000 {
+152-		compatible = "mediatek,mt6797-usb11\0mediatek,mtk-musb";
+153-		reg = <0x00 0x11200000 0x00 0x1000>;
+154-		interrupts = <0x00 0x49 0x08>;
+155-		interrupt-names = "mc";
+156-		clocks = <0x02 0x09 0x02 0x4c>;
+157-		clock-names = "infra_icusb\0sssub_ref_clk";
+158-		phys = <0x03 0x03>;
+159-		dr_mode = "host";
+160-		status = "disabled";
+161-	};
+162-
+163:	usb@11271000 {
+164-		compatible = "mediatek,mt6797-mtu3\0mediatek,mtu3";
+165-		reg = <0x00 0x11271000 0x00 0x3000 0x00 0x11280700 0x00 0x100>;
+166-		reg-names = "mac\0ippc";
+167-		interrupts = <0x00 0x7f 0x08>;
+168-		interrupt-names = "device";
+169-		phys = <0x04 0x03 0x05 0x04>;
+170-		clocks = <0x02 0x4b 0x02 0x4c 0x02 0x45>;
+171-		clock-names = "sys_ck\0ref_ck\0mcu_ck";
+172-		#address-cells = <0x01>;
+173-		#size-cells = <0x01>;
+174-		ranges;
+175-		status = "disabled";
+176-
+177:		usb@11270000 {
+178-			compatible = "mediatek,mt6797-xhci\0mediatek,mtk-xhci";
+179-			reg = <0x11270000 0x1000>;
+180-			reg-names = "mac";
+181-			interrupts = <0x00 0x7e 0x08>;
+182-			interrupt-names = "host";
+183-			phys = <0x04 0x03 0x05 0x04>;
+184-			clocks = <0x02 0x4b 0x02 0x4c 0x02 0x45>;
+185-			clock-names = "sys_ck\0ref_ck\0mcu_ck";
+186-			status = "disabled";
+187-		};
+188-	};
+189-
+190-	timer {
+191-		compatible = "arm,armv8-timer";
+192-		interrupt-parent = <0x06>;
+193-		interrupts = <0x01 0x0d 0x08 0x01 0x0e 0x08 0x01 0x0b 0x08 0x01 0x0a 0x08>;
+194-	};
+195-
+196-	topckgen@10000000 {
+197-		compatible = "mediatek,mt6797-topckgen";
+198-		reg = <0x00 0x10000000 0x00 0x1000>;
+199-		#clock-cells = <0x01>;
+200-		phandle = <0x08>;
+201-	};
+202-
+203-	syscon@10001000 {
+204-		compatible = "mediatek,mt6797-infracfg\0syscon";
+205-		reg = <0x00 0x10001000 0x00 0x1000>;
+
+[local_usb_patches]
+patch=/mnt/gemini-pda-mainline/patches/v7.1.3/0056-usb-typec-add-FUSB301-autonomous-controller-driver.patch
+sha256=7b638f414401e06dcf984a25d696bae5ca9a5e9b00ce400229dd7963eac86559
+usb_match_lines=243
+patch=/mnt/gemini-pda-mainline/patches/v7.1.3/0068-arm64-dts-mediatek-add-disabled-MT6797-USB3-topology.patch
+sha256=c0043e9e2e1308eb26310cdd65520de198021eac5235ea4bca6f4a3e54c09ec6
+usb_match_lines=23
+patch=/mnt/gemini-pda-mainline/patches/v7.1.3/0070-arm64-dts-mediatek-add-disabled-MT6797-USB11-topology.patch
+sha256=3d9dac7e08ea87089512df905f1a5aaec5a83cda130f9ed6251c3539221be4b5
+usb_match_lines=16
+
+[decision]
+usb_core_and_controller_code=packaged_built_in
+mediatek_tphy_code=packaged_built_in
+fusb301_driver=packaged_as_module
+usb11_musb_dt_consumer=present_but_disabled
+mtu3_parent_and_xhci_dt_consumers=present_but_disabled
+mt6797_tphy_dt_consumers=present_but_disabled
+usb_role_switch_and_vbus_owner=not_proven
+gemini_fusb301_dt_consumer=absent_from_package_dtb
+usb_runtime_probe=not_attempted
+phy_runtime_probe=not_attempted
+hardware_write=none

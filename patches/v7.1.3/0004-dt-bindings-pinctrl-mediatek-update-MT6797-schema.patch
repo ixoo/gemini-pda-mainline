@@ -1,0 +1,63 @@
+From 92c69cd28be7508b37127f88da1225fa63d1eecf Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 11 Jul 2026 23:17:44 -0400
+Subject: [PATCH 4/6] dt-bindings: pinctrl: mediatek: update MT6797 schema
+
+The MT6797 pinctrl schema currently describes only the GPIO and four
+IOCFG register windows. This prevents the standard MediaTek EINT
+resource and interrupt-controller properties from being supplied.
+
+Add the sixth, named EINT window. The existing conditional then
+requires the interrupt-controller properties whenever it is present.
+
+The existing MT6797 DTS also uses a -pins suffix for groups and a
+pins- prefix for their configuration nodes, while the shared schema
+accepts only numeric groups and suffixed configuration nodes. Accept
+both established forms so the existing nodes validate.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ .../bindings/pinctrl/mediatek,mt6779-pinctrl.yaml        | 9 +++++----
+ 1 file changed, 5 insertions(+), 4 deletions(-)
+
+diff --git a/Documentation/devicetree/bindings/pinctrl/mediatek,mt6779-pinctrl.yaml b/Documentation/devicetree/bindings/pinctrl/mediatek,mt6779-pinctrl.yaml
+index f4bab7a13..b1b8087df 100644
+--- a/Documentation/devicetree/bindings/pinctrl/mediatek,mt6779-pinctrl.yaml
++++ b/Documentation/devicetree/bindings/pinctrl/mediatek,mt6779-pinctrl.yaml
+@@ -89,8 +89,8 @@ allOf:
+     then:
+       properties:
+         reg:
+-          minItems: 5
+-          maxItems: 5
++          minItems: 6
++          maxItems: 6
+ 
+         reg-names:
+           items:
+@@ -99,6 +99,7 @@ allOf:
+             - const: iocfgb
+             - const: iocfgr
+             - const: iocfgt
++            - const: eint
+   - if:
+       properties:
+         reg-names:
+@@ -111,12 +112,12 @@ allOf:
+         - "#interrupt-cells"
+ 
+ patternProperties:
+-  '-[0-9]*$':
++  '(-[0-9]+|-pins)$':
+     type: object
+     additionalProperties: false
+ 
+     patternProperties:
+-      '-pins*$':
++      '(^pins-|-(pin|pins)$)':
+         type: object
+         description:
+           A pinctrl node should contain at least one subnodes representing the
+-- 
+2.43.0
+

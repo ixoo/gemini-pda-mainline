@@ -1,0 +1,49 @@
+From: Gemini PDA Mainline Project <noreply@example.com>
+Date: Sun, 12 Jul 2026 02:40:00 -0400
+Subject: [PATCH 27/27] arm64: dts: mediatek: mt6797: add CMDQ GCE
+
+Describe the MT6797 Global Command Engine as a 16-channel CMDQ mailbox
+provider. Its register layout and unshifted command-buffer address format
+match MT8173, so retain that compatible as the driver fallback.
+
+Use only normal-world SPI 152. The downstream tree's second SPI is
+reserved for its proprietary secure CMDQ path and is not part of the
+upstream mailbox binding. The GCE is a standalone infrastructure block and
+is safe to bind without consumers; multimedia clients will be added
+separately after their event and subsystem-address contracts are verified.
+
+Signed-off-by: Gemini PDA Mainline Project <noreply@example.com>
+---
+ arch/arm64/boot/dts/mediatek/mt6797.dtsi | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+--- a/arch/arm64/boot/dts/mediatek/mt6797.dtsi
++++ b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+@@ -5,6 +5,7 @@
+  */
+ 
+ #include <dt-bindings/clock/mt6797-clk.h>
++#include <dt-bindings/gce/mediatek,mt6797-gce.h>
+ #include <dt-bindings/interrupt-controller/irq.h>
+ #include <dt-bindings/interrupt-controller/arm-gic.h>
+ #include <dt-bindings/pinctrl/mt6797-pinfunc.h>
+@@ -287,6 +288,16 @@ m4u: iommu@10205000 {
+ 		status = "disabled";
+ 	};
+ 
++	gce: mailbox@10212000 {
++		compatible = "mediatek,mt6797-gce",
++			     "mediatek,mt8173-gce";
++		reg = <0 0x10212000 0 0x1000>;
++		interrupts = <GIC_SPI 152 IRQ_TYPE_LEVEL_LOW>;
++		clocks = <&infrasys CLK_INFRA_GCE>;
++		clock-names = "gce";
++		#mbox-cells = <2>;
++	};
++
+ 	uart0: serial@11002000 {
+ 		compatible = "mediatek,mt6797-uart",
+ 			     "mediatek,mt6577-uart";
+-- 
+2.47.2

@@ -1,0 +1,18 @@
+validation=gemini-usb-runtime-access-attempt
+generated_utc=2026-07-13T17:24:00Z
+target=gemini@192.168.1.50
+transport=ssh_tcp_22
+identity=artifacts/credentials/gemini_ed25519
+ssh_options=IdentitiesOnly=yes,IdentityAgent=none,BatchMode=yes,ConnectTimeout=8
+result=not_reached
+error=no_route_to_host
+read_only_probe=not_run
+mainline_design_comparison=not_possible_without_runtime_state
+required_next_evidence=platform_drivers_typec_usb_role_phy_dt_interrupts_dmesg
+hardware_write=none
+
+The authorized read-only SSH retry could not reach the target because the host
+reported `No route to host` for 192.168.1.50:22. No device state was changed,
+and no runtime conclusion is drawn from this network failure. When the device
+is reachable, run `scripts/collect-live-usb-typec.sh` over SSH and append its
+sanitized output here or in a private ignored capture directory.

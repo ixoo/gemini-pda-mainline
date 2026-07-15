@@ -1,0 +1,39 @@
+# Output from analyze-android-boot-image.py; payloads remain private.
+
+active.path=artifacts/vendor-kernel/gemian-2019/boot.img
+active.file_size=16777216
+active.sha256=1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513
+active.page_size=2048
+active.kernel_size=8429825
+active.kernel_addr=0x40080000
+active.kernel_offset=2048
+active.ramdisk_size=6354621
+active.ramdisk_addr=0x45000000
+active.ramdisk_offset=8433664
+active.second_size=0
+active.dt_header_size=0
+active.appended_dtb_offset=8301128
+active.appended_dtb_size=130745
+active.header_payload_end=14788608
+active.layout=complete_with_partition_padding
+active.header_cmdline=bootopt=64S3,32N2,64N2 log_buf_len=4M
+
+installed_package.path=artifacts/vendor-kernel/gemian-2019/installed-package/linux-boot.img
+installed_package.file_size=14880768
+installed_package.sha256=5e128809f9ff8d8799619ae014640d679979f28de65591979014571f3a7ad5b2
+installed_package.page_size=2048
+installed_package.kernel_size=8989818
+installed_package.kernel_addr=0x40080000
+installed_package.kernel_offset=2048
+installed_package.ramdisk_size=5886393
+installed_package.ramdisk_addr=0x45000000
+installed_package.ramdisk_offset=8992768
+installed_package.second_size=0
+installed_package.dt_header_size=0
+installed_package.appended_dtb_offset=8861121
+installed_package.appended_dtb_size=130745
+installed_package.header_payload_end=14880768
+installed_package.layout=complete
+installed_package.header_cmdline=bootopt=64S3,32N2,64N2 log_buf_len=4M
+
+comparison=installed_package_does_not_match_active_boot

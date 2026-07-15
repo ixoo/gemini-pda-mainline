@@ -1,0 +1,28 @@
+Gemian live audio idle status — 2026-07-14
+
+Target
+------
+Device: owner-authorized Gemini at 192.168.1.50
+Kernel: 3.18.41+
+Access: read-only SSH with the repository's mode-0600 key
+
+Observation
+-----------
+ALSA card id: mtsndcard
+PCM subdevice status files: 40
+Closed subdevices: 40
+Non-closed subdevices: 0
+amixer installed: no
+tinymix installed: no
+
+Interpretation
+--------------
+The live audio card is enumerated, but every observed PCM subdevice was idle
+and closed at capture time. This is not playback/capture proof and does not
+identify the physical speaker, microphone, jack, or amplifier graph. The
+absence of mixer utilities also means no control readback was attempted.
+
+Safety
+------
+No PCM stream was opened. No mixer control, codec register, clock, rail,
+firmware, or hardware state was changed. No raw device dump is stored here.

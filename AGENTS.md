@@ -32,12 +32,21 @@ configuration, safe tooling, hardware knowledge, and reproducible evidence.
   `experiments/TEMPLATE.md` and keep its scripts/source beside the write-up.
 - Distinguish observation from inference. Record negative and inconclusive
   results; never silently promote a guess to a fact.
+- Reuse an upstream driver only when the observed chip identity, register
+  protocol, transport, and resource contract match. If the chipset differs,
+  select another matching family driver or add a new driver/binding; do not
+  make the closest driver emulate the vendor ABI.
 - Redact serials, IMEI values, keys, calibration data, credentials, and personal
   identifiers. Do not commit firmware, partition dumps, proprietary source or
   documents, or other material without verified redistribution rights.
 - Use `scripts/extract-device-userspace --target USER@HOST` only for private
   local analysis. Its output must remain under a Git-ignored, access-restricted
   path and must never be staged without a file-by-file license review.
+- For device access, prefer the mode-0600, Git-ignored local key at
+  `artifacts/credentials/gemini_ed25519`. Its recovery source is the 1Password
+  item `codex-gemini-192.168.1.50`; use `IdentitiesOnly=yes` and
+  `IdentityAgent=none` to avoid transient agent failures. Never print or commit
+  the private key.
 - Run `./scripts/dev-vm re-shell` for binary analysis. Treat
   `~/reverse-engineering/gemini-vendor` as immutable evidence and store Ghidra,
   Radare2, and other analysis databases in guest-owned work directories.

@@ -1,0 +1,573 @@
+From 40f98e8f7d13f286f3de553313bc12bf5ccab6fd Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 12 Jul 2026 00:49:45 -0400
+Subject: [PATCH] regulator: mt6351: add regulator driver
+
+Add support for the nine bucks and 30 unique LDO controls in the evidenced
+MT6351 E2 revision. Select each buck active voltage register from its
+hardware-control bit, preserve raw LDO selector ordering, and limit VPA to
+its physical six-bit selector.
+
+Do not expose the vendor framework duplicate VLDO28 alias or its invalid
+VSRAM_PROC LDO entry. The descriptor table is mechanically checked against
+the exact vendor register map and live MT6351 E2 state.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ drivers/regulator/Kconfig                  |   9 +
+ drivers/regulator/Makefile                 |   1 +
+ drivers/regulator/mt6351-regulator.c       | 352 +++++++++++++++++++++
+ include/linux/mfd/mt6351/registers.h       |  93 ++++++
+ include/linux/regulator/mt6351-regulator.h |  48 +++
+ 5 files changed, 503 insertions(+)
+ create mode 100644 drivers/regulator/mt6351-regulator.c
+ create mode 100644 include/linux/regulator/mt6351-regulator.h
+
+diff --git a/drivers/regulator/Kconfig b/drivers/regulator/Kconfig
+index 87554ab92..6f1c4aa0d 100644
+--- a/drivers/regulator/Kconfig
++++ b/drivers/regulator/Kconfig
+@@ -937,6 +937,15 @@ config REGULATOR_MT6332
+ 	  This driver supports the control of different power rails of device
+ 	  through regulator interface
+ 
++config REGULATOR_MT6351
++	tristate "MediaTek MT6351 PMIC"
++	depends on MFD_MT6397
++	help
++	  Say y here to select this option to enable the power regulators of
++	  the MediaTek MT6351 PMIC.
++	  This driver supports the control of the buck and LDO rails through
++	  the regulator interface.
++
+ config REGULATOR_MT6357
+ 	tristate "MediaTek MT6357 PMIC"
+ 	depends on MFD_MT6397
+diff --git a/drivers/regulator/Makefile b/drivers/regulator/Makefile
+index 35639f311..fcdef9d5f 100644
+--- a/drivers/regulator/Makefile
++++ b/drivers/regulator/Makefile
+@@ -111,6 +111,7 @@ obj-$(CONFIG_REGULATOR_MT6315)  += mt6316-regulator.o
+ obj-$(CONFIG_REGULATOR_MT6323)	+= mt6323-regulator.o
+ obj-$(CONFIG_REGULATOR_MT6331)	+= mt6331-regulator.o
+ obj-$(CONFIG_REGULATOR_MT6332)	+= mt6332-regulator.o
++obj-$(CONFIG_REGULATOR_MT6351)	+= mt6351-regulator.o
+ obj-$(CONFIG_REGULATOR_MT6357)	+= mt6357-regulator.o
+ obj-$(CONFIG_REGULATOR_MT6358)	+= mt6358-regulator.o
+ obj-$(CONFIG_REGULATOR_MT6359)	+= mt6359-regulator.o
+diff --git a/drivers/regulator/mt6351-regulator.c b/drivers/regulator/mt6351-regulator.c
+new file mode 100644
+index 000000000..e9e1e573f
+--- /dev/null
++++ b/drivers/regulator/mt6351-regulator.c
+@@ -0,0 +1,352 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Copyright (c) 2026 Julien Etienne
++ */
++
++#include <linux/bits.h>
++#include <linux/mfd/mt6351/registers.h>
++#include <linux/mfd/mt6397/core.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/platform_device.h>
++#include <linux/regmap.h>
++#include <linux/regulator/driver.h>
++#include <linux/regulator/mt6351-regulator.h>
++#include <linux/regulator/of_regulator.h>
++
++#define MT6351_BUCK_QI		BIT(13)
++#define MT6351_BUCK_VOSEL_CTRL	BIT(1)
++#define MT6351_LDO_EN		BIT(1)
++
++struct mt6351_regulator_info {
++	struct regulator_desc desc;
++	u16 qi;
++	u16 vsel_on_reg;
++	u16 vsel_ctrl_reg;
++};
++
++static const struct regulator_ops mt6351_buck_ops;
++static const struct regulator_ops mt6351_ldo_ops;
++static const struct regulator_ops mt6351_fixed_ops;
++
++#define MT6351_BUCK(_match, _name, _range, _max_sel, _ctrl, _en, _vsel, _on, _mask) \
++[MT6351_ID_##_name] = { \
++	.desc = { \
++		.name = #_name, \
++		.of_match = of_match_ptr(_match), \
++		.ops = &mt6351_buck_ops, \
++		.type = REGULATOR_VOLTAGE, \
++		.id = MT6351_ID_##_name, \
++		.owner = THIS_MODULE, \
++		.n_voltages = (_max_sel) + 1, \
++		.linear_ranges = _range, \
++		.n_linear_ranges = ARRAY_SIZE(_range), \
++		.vsel_reg = _vsel, \
++		.vsel_mask = _mask, \
++		.enable_reg = _en, \
++		.enable_mask = BIT(0), \
++	}, \
++	.qi = MT6351_BUCK_QI, \
++	.vsel_on_reg = _on, \
++	.vsel_ctrl_reg = _ctrl, \
++}
++
++#define MT6351_LDO(_match, _name, _table, _en, _vsel, _mask) \
++[MT6351_ID_##_name] = { \
++	.desc = { \
++		.name = #_name, \
++		.of_match = of_match_ptr(_match), \
++		.ops = &mt6351_ldo_ops, \
++		.type = REGULATOR_VOLTAGE, \
++		.id = MT6351_ID_##_name, \
++		.owner = THIS_MODULE, \
++		.n_voltages = ARRAY_SIZE(_table), \
++		.volt_table = _table, \
++		.vsel_reg = _vsel, \
++		.vsel_mask = _mask, \
++		.enable_reg = _en, \
++		.enable_mask = MT6351_LDO_EN, \
++	}, \
++}
++
++#define MT6351_FIXED(_match, _name, _en, _voltage) \
++[MT6351_ID_##_name] = { \
++	.desc = { \
++		.name = #_name, \
++		.of_match = of_match_ptr(_match), \
++		.ops = &mt6351_fixed_ops, \
++		.type = REGULATOR_VOLTAGE, \
++		.id = MT6351_ID_##_name, \
++		.owner = THIS_MODULE, \
++		.n_voltages = 1, \
++		.min_uV = _voltage, \
++		.enable_reg = _en, \
++		.enable_mask = MT6351_LDO_EN, \
++	}, \
++}
++
++static const struct linear_range mt6351_buck_range[] = {
++	REGULATOR_LINEAR_RANGE(600000, 0, 0x7f, 6250),
++};
++
++static const struct linear_range mt6351_vpa_range[] = {
++	REGULATOR_LINEAR_RANGE(600000, 0, 0x3f, 6250),
++};
++
++/* Tables are indexed by the raw hardware selector. */
++static const unsigned int mt6351_ldo_voltages_rev4[] = {
++	2800000, 2375000, 2200000, 1800000,
++};
++
++static const unsigned int mt6351_ldo_voltages_vcama[] = {
++	1500000, 1800000, 2500000, 2800000,
++};
++
++static const unsigned int mt6351_ldo_voltages_sim[] = {
++	1200000, 1300000, 1700000, 1800000,
++	1860000, 2760000, 3000000, 3100000,
++};
++
++static const unsigned int mt6351_ldo_voltages_3v[] = {
++	3000000, 3300000,
++};
++
++static const unsigned int mt6351_ldo_voltages_vibr[] = {
++	1200000, 1300000, 1500000, 1800000,
++	2000000, 2800000, 3000000, 3300000,
++};
++
++static const unsigned int mt6351_ldo_voltages_vcamd[] = {
++	900000, 950000, 1000000, 1050000,
++	1100000, 1200000, 1210000,
++};
++
++static const unsigned int mt6351_ldo_voltages_rf[] = {
++	1000000, 1050000, 1100000, 1220000,
++	1300000, 1500000, 1800000, 1810000,
++};
++
++static const unsigned int mt6351_ldo_voltages_1v8[] = {
++	900000, 950000, 1000000, 1050000,
++	1200000, 1500000, 1800000,
++};
++
++static const unsigned int mt6351_ldo_voltages_vcn33[] = {
++	3300000, 3400000, 3500000, 3600000,
++};
++
++static const unsigned int mt6351_ldo_voltages_vmc[] = {
++	1200000, 1300000, 1500000, 1800000,
++	2000000, 2900000, 3000000, 3300000,
++};
++
++static int mt6351_buck_get_status(struct regulator_dev *rdev)
++{
++	struct mt6351_regulator_info *info = rdev_get_drvdata(rdev);
++	unsigned int value;
++	int ret;
++
++	ret = regmap_read(rdev->regmap, info->desc.enable_reg, &value);
++	if (ret)
++		return ret;
++
++	return value & info->qi ? REGULATOR_STATUS_ON : REGULATOR_STATUS_OFF;
++}
++
++static const struct regulator_ops mt6351_buck_ops = {
++	.list_voltage = regulator_list_voltage_linear_range,
++	.map_voltage = regulator_map_voltage_linear_range,
++	.set_voltage_sel = regulator_set_voltage_sel_regmap,
++	.get_voltage_sel = regulator_get_voltage_sel_regmap,
++	.set_voltage_time_sel = regulator_set_voltage_time_sel,
++	.enable = regulator_enable_regmap,
++	.disable = regulator_disable_regmap,
++	.is_enabled = regulator_is_enabled_regmap,
++	.get_status = mt6351_buck_get_status,
++};
++
++static const struct regulator_ops mt6351_ldo_ops = {
++	.list_voltage = regulator_list_voltage_table,
++	.map_voltage = regulator_map_voltage_iterate,
++	.set_voltage_sel = regulator_set_voltage_sel_regmap,
++	.get_voltage_sel = regulator_get_voltage_sel_regmap,
++	.set_voltage_time_sel = regulator_set_voltage_time_sel,
++	.enable = regulator_enable_regmap,
++	.disable = regulator_disable_regmap,
++	.is_enabled = regulator_is_enabled_regmap,
++};
++
++static const struct regulator_ops mt6351_fixed_ops = {
++	.list_voltage = regulator_list_voltage_linear,
++	.enable = regulator_enable_regmap,
++	.disable = regulator_disable_regmap,
++	.is_enabled = regulator_is_enabled_regmap,
++};
++
++static struct mt6351_regulator_info mt6351_regulators[] = {
++	MT6351_BUCK("buck-vcore", VCORE, mt6351_buck_range, 0x7f,
++		    MT6351_BUCK_VCORE_CON0, MT6351_BUCK_VCORE_CON2,
++		    MT6351_BUCK_VCORE_CON4, MT6351_BUCK_VCORE_CON5, GENMASK(6, 0)),
++	MT6351_BUCK("buck-vgpu", VGPU, mt6351_buck_range, 0x7f,
++		    MT6351_BUCK_VGPU_CON0, MT6351_BUCK_VGPU_CON2,
++		    MT6351_BUCK_VGPU_CON4, MT6351_BUCK_VGPU_CON5, GENMASK(6, 0)),
++	MT6351_BUCK("buck-vmodem", VMODEM, mt6351_buck_range, 0x7f,
++		    MT6351_BUCK_VMODEM_CON0, MT6351_BUCK_VMODEM_CON2,
++		    MT6351_BUCK_VMODEM_CON4, MT6351_BUCK_VMODEM_CON5, GENMASK(6, 0)),
++	MT6351_BUCK("buck-vmd1", VMD1, mt6351_buck_range, 0x7f,
++		    MT6351_BUCK_VMD1_CON0, MT6351_BUCK_VMD1_CON2,
++		    MT6351_BUCK_VMD1_CON4, MT6351_BUCK_VMD1_CON5, GENMASK(6, 0)),
++	MT6351_BUCK("buck-vsram-md", VSRAM_MD, mt6351_buck_range, 0x7f,
++		    MT6351_BUCK_VSRAM_MD_CON0, MT6351_BUCK_VSRAM_MD_CON2,
++		    MT6351_BUCK_VSRAM_MD_CON4, MT6351_BUCK_VSRAM_MD_CON5, GENMASK(6, 0)),
++	MT6351_BUCK("buck-vs1", VS1, mt6351_buck_range, 0x7f,
++		    MT6351_BUCK_VS1_CON0, MT6351_BUCK_VS1_CON2,
++		    MT6351_BUCK_VS1_CON4, MT6351_BUCK_VS1_CON5, GENMASK(6, 0)),
++	MT6351_BUCK("buck-vs2", VS2, mt6351_buck_range, 0x7f,
++		    MT6351_BUCK_VS2_CON0, MT6351_BUCK_VS2_CON2,
++		    MT6351_BUCK_VS2_CON4, MT6351_BUCK_VS2_CON5, GENMASK(6, 0)),
++	MT6351_BUCK("buck-vpa", VPA, mt6351_vpa_range, 0x3f,
++		    MT6351_BUCK_VPA_CON0, MT6351_BUCK_VPA_CON2,
++		    MT6351_BUCK_VPA_CON4, MT6351_BUCK_VPA_CON5, GENMASK(5, 0)),
++	MT6351_BUCK("buck-vsram-proc", VSRAM_PROC, mt6351_buck_range, 0x7f,
++		    MT6351_BUCK_VSRAM_PROC_CON0, MT6351_BUCK_VSRAM_PROC_CON2,
++		    MT6351_BUCK_VSRAM_PROC_CON4, MT6351_BUCK_VSRAM_PROC_CON5,
++		    GENMASK(6, 0)),
++	MT6351_LDO("ldo-va18", VA18, mt6351_ldo_voltages_rev4,
++		   MT6351_LDO_VA18_CON0, MT6351_LDO_VA18_VOSEL, GENMASK(9, 8)),
++	MT6351_LDO("ldo-vtcxo24", VTCXO24, mt6351_ldo_voltages_rev4,
++		   MT6351_LDO_VTCXO24_CON0, MT6351_LDO_VTCXO24_VOSEL, GENMASK(9, 8)),
++	MT6351_LDO("ldo-vtcxo28", VTCXO28, mt6351_ldo_voltages_rev4,
++		   MT6351_LDO_VTCXO28_CON0, MT6351_LDO_VTCXO28_VOSEL, GENMASK(9, 8)),
++	MT6351_LDO("ldo-vcn28", VCN28, mt6351_ldo_voltages_rev4,
++		   MT6351_LDO_VCN28_CON0, MT6351_LDO_VCN28_VOSEL, GENMASK(9, 8)),
++	MT6351_LDO("ldo-vcama", VCAMA, mt6351_ldo_voltages_vcama,
++		   MT6351_LDO_VCAMA_CON0, MT6351_LDO_VCAMA_VOSEL, GENMASK(10, 8)),
++	MT6351_FIXED("ldo-vusb33", VUSB33, MT6351_LDO_VUSB33_CON0, 3300000),
++	MT6351_LDO("ldo-vsim1", VSIM1, mt6351_ldo_voltages_sim,
++		   MT6351_LDO_VSIM1_CON0, MT6351_LDO_VSIM1_VOSEL, GENMASK(10, 8)),
++	MT6351_LDO("ldo-vsim2", VSIM2, mt6351_ldo_voltages_sim,
++		   MT6351_LDO_VSIM2_CON0, MT6351_LDO_VSIM2_VOSEL, GENMASK(10, 8)),
++	MT6351_LDO("ldo-vemc", VEMC, mt6351_ldo_voltages_3v,
++		   MT6351_LDO_VEMC_CON0, MT6351_LDO_VEMC_VOSEL, BIT(8)),
++	MT6351_LDO("ldo-vmch", VMCH, mt6351_ldo_voltages_3v,
++		   MT6351_LDO_VMCH_CON0, MT6351_LDO_VMCH_VOSEL, BIT(8)),
++	MT6351_FIXED("ldo-vio28", VIO28, MT6351_LDO_VIO28_CON0, 2800000),
++	MT6351_LDO("ldo-vibr", VIBR, mt6351_ldo_voltages_vibr,
++		   MT6351_LDO_VIBR_CON0, MT6351_LDO_VIBR_VOSEL, GENMASK(10, 8)),
++	MT6351_LDO("ldo-vcamd", VCAMD, mt6351_ldo_voltages_vcamd,
++		   MT6351_LDO_VCAMD_CON0, MT6351_LDO_VCAMD_VOSEL, GENMASK(10, 8)),
++	MT6351_LDO("ldo-vrf18", VRF18, mt6351_ldo_voltages_rf,
++		   MT6351_LDO_VRF18_CON0, MT6351_LDO_VRF18_VOSEL, GENMASK(10, 8)),
++	MT6351_FIXED("ldo-vio18", VIO18, MT6351_LDO_VIO18_CON0, 1800000),
++	MT6351_LDO("ldo-vcn18", VCN18, mt6351_ldo_voltages_1v8,
++		   MT6351_LDO_VCN18_CON0, MT6351_LDO_VCN18_VOSEL, GENMASK(10, 8)),
++	MT6351_LDO("ldo-vcamio", VCAMIO, mt6351_ldo_voltages_1v8,
++		   MT6351_LDO_VCAMIO_CON0, MT6351_LDO_VCAMIO_VOSEL, GENMASK(10, 8)),
++	MT6351_LDO("ldo-vxo22", VXO22, mt6351_ldo_voltages_rev4,
++		   MT6351_LDO_VXO22_CON0, MT6351_LDO_VXO22_VOSEL, GENMASK(9, 8)),
++	MT6351_LDO("ldo-vrf12", VRF12, mt6351_ldo_voltages_1v8,
++		   MT6351_LDO_VRF12_CON0, MT6351_LDO_VRF12_VOSEL, GENMASK(10, 8)),
++	MT6351_LDO("ldo-va10", VA10, mt6351_ldo_voltages_1v8,
++		   MT6351_LDO_VA10_CON0, MT6351_LDO_VA10_VOSEL, GENMASK(10, 8)),
++	MT6351_LDO("ldo-vdram", VDRAM, mt6351_ldo_voltages_vcamd,
++		   MT6351_LDO_VDRAM_CON0, MT6351_LDO_VDRAM_VOSEL, GENMASK(10, 8)),
++	MT6351_LDO("ldo-vmipi", VMIPI, mt6351_ldo_voltages_1v8,
++		   MT6351_LDO_VMIPI_CON0, MT6351_LDO_VMIPI_VOSEL, GENMASK(10, 8)),
++	MT6351_LDO("ldo-vgp3", VGP3, mt6351_ldo_voltages_rf,
++		   MT6351_LDO_VGP3_CON0, MT6351_LDO_VGP3_VOSEL, GENMASK(10, 8)),
++	MT6351_LDO("ldo-vbif28", VBIF28, mt6351_ldo_voltages_rev4,
++		   MT6351_LDO_VBIF28_CON0, MT6351_LDO_VBIF28_VOSEL, GENMASK(9, 8)),
++	MT6351_LDO("ldo-vefuse", VEFUSE, mt6351_ldo_voltages_sim,
++		   MT6351_LDO_VEFUSE_CON0, MT6351_LDO_VEFUSE_VOSEL, GENMASK(10, 8)),
++	MT6351_LDO("ldo-vcn33-bt", VCN33_BT, mt6351_ldo_voltages_vcn33,
++		   MT6351_LDO_VCN33_BT_CON0, MT6351_LDO_VCN33_VOSEL, GENMASK(10, 9)),
++	MT6351_LDO("ldo-vcn33-wifi", VCN33_WIFI, mt6351_ldo_voltages_vcn33,
++		   MT6351_LDO_VCN33_WIFI_CON0, MT6351_LDO_VCN33_VOSEL, GENMASK(10, 9)),
++	MT6351_FIXED("ldo-vldo28", VLDO28, MT6351_LDO_VLDO28_CON0, 2800000),
++	MT6351_LDO("ldo-vmc", VMC, mt6351_ldo_voltages_vmc,
++		   MT6351_LDO_VMC_CON0, MT6351_LDO_VMC_VOSEL, GENMASK(10, 8)),
++	MT6351_FIXED("ldo-vldo28-1", VLDO28_1, MT6351_LDO_VLDO28_1_CON0, 2800000),
++};
++
++static int mt6351_select_buck_vsel_regs(struct device *dev,
++					struct regmap *regmap)
++{
++	unsigned int value;
++	int i, ret;
++
++	for (i = 0; i < MT6351_ID_VREG_MAX; i++) {
++		struct mt6351_regulator_info *info = &mt6351_regulators[i];
++
++		if (!info->vsel_ctrl_reg)
++			continue;
++
++		ret = regmap_read(regmap, info->vsel_ctrl_reg, &value);
++		if (ret) {
++			dev_err(dev, "failed to read %s voltage control: %d\n",
++				info->desc.name, ret);
++			return ret;
++		}
++
++		if (value & MT6351_BUCK_VOSEL_CTRL)
++			info->desc.vsel_reg = info->vsel_on_reg;
++	}
++
++	return 0;
++}
++
++static int mt6351_regulator_probe(struct platform_device *pdev)
++{
++	struct mt6397_chip *mt6351 = dev_get_drvdata(pdev->dev.parent);
++	struct regulator_config config = {};
++	struct regulator_dev *rdev;
++	unsigned int swcid;
++	int i, ret;
++
++	ret = regmap_read(mt6351->regmap, MT6351_SWCID, &swcid);
++	if (ret)
++		return dev_err_probe(&pdev->dev, ret, "failed to read chip revision\n");
++
++	if (swcid != 0x5120) {
++		dev_err(&pdev->dev, "unsupported MT6351 revision 0x%04x\n", swcid);
++		return -EINVAL;
++	}
++
++	ret = mt6351_select_buck_vsel_regs(&pdev->dev, mt6351->regmap);
++	if (ret)
++		return ret;
++
++	config.dev = &pdev->dev;
++	config.regmap = mt6351->regmap;
++	for (i = 0; i < MT6351_ID_VREG_MAX; i++) {
++		config.driver_data = &mt6351_regulators[i];
++		rdev = devm_regulator_register(&pdev->dev,
++					       &mt6351_regulators[i].desc, &config);
++		if (IS_ERR(rdev))
++			return dev_err_probe(&pdev->dev, PTR_ERR(rdev),
++					     "failed to register %s\n",
++					     mt6351_regulators[i].desc.name);
++	}
++
++	return 0;
++}
++
++static const struct platform_device_id mt6351_platform_ids[] = {
++	{ "mt6351-regulator", 0 },
++	{ }
++};
++MODULE_DEVICE_TABLE(platform, mt6351_platform_ids);
++
++static struct platform_driver mt6351_regulator_driver = {
++	.driver = {
++		.name = "mt6351-regulator",
++		.probe_type = PROBE_PREFER_ASYNCHRONOUS,
++	},
++	.probe = mt6351_regulator_probe,
++	.id_table = mt6351_platform_ids,
++};
++module_platform_driver(mt6351_regulator_driver);
++
++MODULE_AUTHOR("Julien Etienne <julien.etienne@gmail.com>");
++MODULE_DESCRIPTION("Regulator driver for MediaTek MT6351 PMIC");
++MODULE_LICENSE("GPL");
+diff --git a/include/linux/mfd/mt6351/registers.h b/include/linux/mfd/mt6351/registers.h
+index e9de220b2..ca9e5c174 100644
+--- a/include/linux/mfd/mt6351/registers.h
++++ b/include/linux/mfd/mt6351/registers.h
+@@ -24,4 +24,97 @@
+ #define MT6351_INT_STATUS2		0x02e4
+ #define MT6351_INT_STATUS3		0x02e6
+ 
++#define MT6351_BUCK_VCORE_CON0		0x0600
++#define MT6351_BUCK_VCORE_CON2		0x0604
++#define MT6351_BUCK_VCORE_CON4		0x0608
++#define MT6351_BUCK_VCORE_CON5		0x060a
++#define MT6351_BUCK_VGPU_CON0		0x0614
++#define MT6351_BUCK_VGPU_CON2		0x0618
++#define MT6351_BUCK_VGPU_CON4		0x061c
++#define MT6351_BUCK_VGPU_CON5		0x061e
++#define MT6351_BUCK_VMODEM_CON0	0x0628
++#define MT6351_BUCK_VMODEM_CON2	0x062c
++#define MT6351_BUCK_VMODEM_CON4	0x0630
++#define MT6351_BUCK_VMODEM_CON5	0x0632
++#define MT6351_BUCK_VMD1_CON0		0x063c
++#define MT6351_BUCK_VMD1_CON2		0x0640
++#define MT6351_BUCK_VMD1_CON4		0x0644
++#define MT6351_BUCK_VMD1_CON5		0x0646
++#define MT6351_BUCK_VSRAM_MD_CON0	0x0650
++#define MT6351_BUCK_VSRAM_MD_CON2	0x0654
++#define MT6351_BUCK_VSRAM_MD_CON4	0x0658
++#define MT6351_BUCK_VSRAM_MD_CON5	0x065a
++#define MT6351_BUCK_VS1_CON0		0x0664
++#define MT6351_BUCK_VS1_CON2		0x0668
++#define MT6351_BUCK_VS1_CON4		0x066c
++#define MT6351_BUCK_VS1_CON5		0x066e
++#define MT6351_BUCK_VS2_CON0		0x0678
++#define MT6351_BUCK_VS2_CON2		0x067c
++#define MT6351_BUCK_VS2_CON4		0x0680
++#define MT6351_BUCK_VS2_CON5		0x0682
++#define MT6351_BUCK_VPA_CON0		0x068c
++#define MT6351_BUCK_VPA_CON2		0x0690
++#define MT6351_BUCK_VPA_CON4		0x0694
++#define MT6351_BUCK_VPA_CON5		0x0696
++#define MT6351_BUCK_VSRAM_PROC_CON0	0x06a0
++#define MT6351_BUCK_VSRAM_PROC_CON2	0x06a4
++#define MT6351_BUCK_VSRAM_PROC_CON4	0x06a8
++#define MT6351_BUCK_VSRAM_PROC_CON5	0x06aa
++
++#define MT6351_LDO_VA18_CON0		0x0a00
++#define MT6351_LDO_VTCXO24_CON0	0x0a04
++#define MT6351_LDO_VTCXO28_CON0	0x0a08
++#define MT6351_LDO_VCN28_CON0		0x0a0c
++#define MT6351_LDO_VCAMA_CON0		0x0a12
++#define MT6351_LDO_VUSB33_CON0		0x0a16
++#define MT6351_LDO_VSIM1_CON0		0x0a1c
++#define MT6351_LDO_VSIM2_CON0		0x0a22
++#define MT6351_LDO_VEMC_CON0		0x0a28
++#define MT6351_LDO_VMCH_CON0		0x0a2e
++#define MT6351_LDO_VIO28_CON0		0x0a34
++#define MT6351_LDO_VIBR_CON0		0x0a3a
++#define MT6351_LDO_VCAMD_CON0		0x0a40
++#define MT6351_LDO_VRF18_CON0		0x0a46
++#define MT6351_LDO_VIO18_CON0		0x0a4c
++#define MT6351_LDO_VCN18_CON0		0x0a52
++#define MT6351_LDO_VCAMIO_CON0		0x0a58
++#define MT6351_LDO_VXO22_CON0		0x0a64
++#define MT6351_LDO_VRF12_CON0		0x0a68
++#define MT6351_LDO_VA10_CON0		0x0a6e
++#define MT6351_LDO_VDRAM_CON0		0x0a74
++#define MT6351_LDO_VMIPI_CON0		0x0a7a
++#define MT6351_LDO_VGP3_CON0		0x0a80
++#define MT6351_LDO_VBIF28_CON0		0x0a86
++#define MT6351_LDO_VEFUSE_CON0		0x0a8c
++#define MT6351_LDO_VCN33_BT_CON0	0x0a98
++#define MT6351_LDO_VCN33_WIFI_CON0	0x0a9a
++#define MT6351_LDO_VLDO28_CON0		0x0aa2
++#define MT6351_LDO_VLDO28_1_CON0	0x0aa4
++#define MT6351_LDO_VMC_CON0		0x0aaa
++
++#define MT6351_LDO_VXO22_VOSEL		0x0ac4
++#define MT6351_LDO_VTCXO28_VOSEL	0x0ac6
++#define MT6351_LDO_VTCXO24_VOSEL	0x0ac8
++#define MT6351_LDO_VBIF28_VOSEL	0x0aca
++#define MT6351_LDO_VCN28_VOSEL		0x0acc
++#define MT6351_LDO_VMCH_VOSEL		0x0ace
++#define MT6351_LDO_VEMC_VOSEL		0x0ad2
++#define MT6351_LDO_VCAMA_VOSEL		0x0ad6
++#define MT6351_LDO_VCN33_VOSEL		0x0ada
++#define MT6351_LDO_VMC_VOSEL		0x0ae2
++#define MT6351_LDO_VIBR_VOSEL		0x0ae6
++#define MT6351_LDO_VSIM1_VOSEL		0x0aee
++#define MT6351_LDO_VSIM2_VOSEL		0x0af2
++#define MT6351_LDO_VEFUSE_VOSEL	0x0af6
++#define MT6351_LDO_VA18_VOSEL		0x0afa
++#define MT6351_LDO_VGP3_VOSEL		0x0afc
++#define MT6351_LDO_VCAMD_VOSEL		0x0b00
++#define MT6351_LDO_VRF18_VOSEL		0x0b08
++#define MT6351_LDO_VRF12_VOSEL		0x0b0c
++#define MT6351_LDO_VA10_VOSEL		0x0b10
++#define MT6351_LDO_VCAMIO_VOSEL	0x0b14
++#define MT6351_LDO_VCN18_VOSEL		0x0b18
++#define MT6351_LDO_VMIPI_VOSEL		0x0b1c
++#define MT6351_LDO_VDRAM_VOSEL		0x0b22
++
+ #endif /* __MFD_MT6351_REGISTERS_H__ */
+diff --git a/include/linux/regulator/mt6351-regulator.h b/include/linux/regulator/mt6351-regulator.h
+new file mode 100644
+index 000000000..b42e5a521
+--- /dev/null
++++ b/include/linux/regulator/mt6351-regulator.h
+@@ -0,0 +1,48 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __LINUX_REGULATOR_MT6351_H
++#define __LINUX_REGULATOR_MT6351_H
++
++enum {
++	MT6351_ID_VCORE,
++	MT6351_ID_VGPU,
++	MT6351_ID_VMODEM,
++	MT6351_ID_VMD1,
++	MT6351_ID_VSRAM_MD,
++	MT6351_ID_VS1,
++	MT6351_ID_VS2,
++	MT6351_ID_VPA,
++	MT6351_ID_VSRAM_PROC,
++	MT6351_ID_VA18,
++	MT6351_ID_VTCXO24,
++	MT6351_ID_VTCXO28,
++	MT6351_ID_VCN28,
++	MT6351_ID_VCAMA,
++	MT6351_ID_VUSB33,
++	MT6351_ID_VSIM1,
++	MT6351_ID_VSIM2,
++	MT6351_ID_VEMC,
++	MT6351_ID_VMCH,
++	MT6351_ID_VIO28,
++	MT6351_ID_VIBR,
++	MT6351_ID_VCAMD,
++	MT6351_ID_VRF18,
++	MT6351_ID_VIO18,
++	MT6351_ID_VCN18,
++	MT6351_ID_VCAMIO,
++	MT6351_ID_VXO22,
++	MT6351_ID_VRF12,
++	MT6351_ID_VA10,
++	MT6351_ID_VDRAM,
++	MT6351_ID_VMIPI,
++	MT6351_ID_VGP3,
++	MT6351_ID_VBIF28,
++	MT6351_ID_VEFUSE,
++	MT6351_ID_VCN33_BT,
++	MT6351_ID_VCN33_WIFI,
++	MT6351_ID_VLDO28,
++	MT6351_ID_VMC,
++	MT6351_ID_VLDO28_1,
++	MT6351_ID_VREG_MAX,
++};
++
++#endif /* __LINUX_REGULATOR_MT6351_H */
+-- 
+2.43.0

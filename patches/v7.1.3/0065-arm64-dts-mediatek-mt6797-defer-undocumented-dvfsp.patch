@@ -1,0 +1,37 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 13 Jul 2026 09:17:00 -0400
+Subject: [PATCH] arm64: dts: mediatek: mt6797: defer undocumented DVFSP node
+
+The MT6797 DVFSP candidate was recovered from the vendor device tree, but
+Linux 7.1 has no driver or binding for its compatible.  Do not carry an
+unvalidated disabled node into the mainline DTS; retain the register and IRQ
+observations in the Gemini reverse-engineering experiment for a future driver.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ arch/arm64/boot/dts/mediatek/mt6797.dtsi | 9 ---------
+ 1 file changed, 9 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+--- a/arch/arm64/boot/dts/mediatek/mt6797.dtsi
++++ b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+@@ -567,16 +567,6 @@
+ 		status = "disabled";
+ 	};
+ 
+-	dvfsp: dvfsp@11015000 {
+-		compatible = "mediatek,mt6797-dvfsp";
+-		reg = <0 0x11015000 0 0x1000>,
+-		      <0 0x0012a000 0 0x3000>;
+-		interrupts = <GIC_SPI 161 IRQ_TYPE_LEVEL_LOW>;
+-		clocks = <&infrasys CLK_INFRA_I2C_APPM>;
+-		clock-names = "i2c";
+-		status = "disabled";
+-	};
+-
+ 	i2c5: i2c@1101c000 {
+ 		compatible = "mediatek,mt6797-i2c",
+ 			     "mediatek,mt6577-i2c";
+-- 
+2.43.0

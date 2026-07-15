@@ -1,0 +1,71 @@
+From 0000000000000000000000000000000000000071 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 13 Jul 2026 15:45:00 -0400
+Subject: [PATCH] arm64: dts: mediatek: gemini: use pinmux-only MSDC groups
+
+The Linux MT6797 pinctrl descriptor currently provides mode, direction,
+data-in, and data-out fields only. It has no MT6797 pull, input-enable, or
+drive-strength register maps, so applying those generic pinconf properties
+returns an unsupported configuration error when the eMMC state is selected.
+
+Leave the pad state established by the boot firmware unchanged during the
+conservative legacy-speed bring-up. A source-backed pinconf map can be added
+later once it is recovered and validated independently.
+
+This matches the independently documented bsg100/gemini-linux MT6797 eMMC
+bring-up, where removing unsupported pinconf properties allowed enumeration.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts | 14 +++++---------
+ 1 file changed, 5 insertions(+), 9 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -67,38 +67,34 @@
+ };
+ 
+ &pio {
++	/*
++	 * MT6797 pinctrl currently supports pinmux only for these pads:
++	 * its descriptor has no pull, IES, or drive-strength register maps.
++	 * Keep boot-firmware pad configuration until those maps are recovered.
++	 */
+ 	mmc0_pins_default: mmc0-default-pins {
+ 		pins-cmd-dat {
+ 			pinmux = <MT6797_GPIO114__FUNC_MSDC0_DAT0>,
+ 				 <MT6797_GPIO115__FUNC_MSDC0_DAT1>,
+ 				 <MT6797_GPIO116__FUNC_MSDC0_DAT2>,
+ 				 <MT6797_GPIO117__FUNC_MSDC0_DAT3>,
+ 				 <MT6797_GPIO118__FUNC_MSDC0_DAT4>,
+ 				 <MT6797_GPIO119__FUNC_MSDC0_DAT5>,
+ 				 <MT6797_GPIO120__FUNC_MSDC0_DAT6>,
+ 				 <MT6797_GPIO121__FUNC_MSDC0_DAT7>,
+ 				 <MT6797_GPIO122__FUNC_MSDC0_CMD>;
+-			input-enable;
+-			drive-strength = <4>;
+-			bias-pull-up = <MTK_PUPD_SET_R1R0_01>;
+ 		};
+ 
+ 		pins-clk {
+ 			pinmux = <MT6797_GPIO123__FUNC_MSDC0_CLK>;
+-			drive-strength = <4>;
+-			bias-pull-down = <MTK_PUPD_SET_R1R0_10>;
+ 		};
+ 
+ 		pins-ds {
+ 			pinmux = <MT6797_GPIO124__FUNC_MSDC0_DSL>;
+-			drive-strength = <4>;
+-			bias-pull-down = <MTK_PUPD_SET_R1R0_10>;
+ 		};
+ 
+ 		pins-rst {
+ 			pinmux = <MT6797_GPIO125__FUNC_MSDC0_RSTB>;
+-			drive-strength = <4>;
+-			bias-pull-up = <MTK_PUPD_SET_R1R0_10>;
+ 		};
+ 	};
+ };
+-- 
+2.43.0

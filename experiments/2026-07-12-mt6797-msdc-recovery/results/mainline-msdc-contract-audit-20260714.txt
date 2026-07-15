@@ -1,0 +1,532 @@
+vendor_tree=/home/julien.guest/src/reference/planet-mt6797-3.18
+vendor_commit=c5b0be85017ad0c599725e8273842efdbecdd88a
+vendor_blob_sha256[drivers/mmc/host/mediatek/mt6797/msdc_reg.h]=895415e03d287fd7c9f37b318927ad4f25694e5fac764108bb7ce238f5fe1f9c
+vendor_blob_sha256[drivers/mmc/host/mediatek/mt6797/msdc_io.c]=b87966fb3bb7be7e9c7c273cc58e92e7c19ed6a3b09a503afbaedb529c890e07
+vendor_blob_sha256[drivers/mmc/host/mediatek/mt6797/msdc_io.h]=e3c97a2930ac29dd46838c170c733fb05d5d87b5aa139ee7837da9b9f242ce65
+vendor_blob_sha256[drivers/mmc/host/mediatek/mt6797/msdc_tune.c]=2e3cde55d6f6765ee1a523b9f6c99286be9c56cd2373bc6d488446d26e82de2d
+vendor_blob_sha256[drivers/mmc/host/mediatek/mt6797/sd.c]=e8cc38b57f18b0a8c8e6476d3c11c333f999326297538d35e7f93585daf63cba
+vendor_blob_sha256[drivers/mmc/host/mediatek/mt6797/mt_sd.h]=07270f8c4dd3fab89e51bead04b21d167c7bcf1013ba22394d706fae9c45505e
+vendor_blob_sha256[drivers/mmc/host/mediatek/mt6797/dbg.c]=6d41d490914738425d4b5e2ce82dc2d493c7f5e8405719d197981edf84df06d6
+vendor_blob_sha256[arch/arm64/boot/dts/mt6797.dtsi]=eaac86c8752ebd8ddf18b831eb3bc52a08f87475a213bb521650bf95dabb3e5e
+linux_tree=/home/julien.guest/src/gemini-pda/linux-7.1.3
+linux_revision=7.1.3 (prepared source; no Git metadata required)
+linux_blob_sha256[drivers/mmc/host/mtk-sd.c]=2044a80b01c0fc94091deeb5bf127ccc5d0b613fcb64ade2014d861f2813e876
+linux_blob_sha256[Documentation/devicetree/bindings/mmc/mtk-sd.yaml]=a4eb5b4bc878141a0b6cc62c98cfa817ca31ea242624831ffcab7dc88668acf9
+
+[vendor register contract]
+31:#define	OFFSET_MSDC_CFG			(0x0)
+59:#define	OFFSET_MSDC_DMA_SA_HIGH		(0x8C)
+60:#define	OFFSET_MSDC_DMA_SA		(0x90)
+61:#define	OFFSET_MSDC_DMA_CA		(0x94)
+62:#define	OFFSET_MSDC_DMA_CTRL		(0x98)
+63:#define	OFFSET_MSDC_DMA_CFG		(0x9c)
+66:#define	OFFSET_MSDC_DMA_LEN		(0xa8)
+67:#define	OFFSET_MSDC_PATCH_BIT0		(0xb0)
+68:#define	OFFSET_MSDC_PATCH_BIT1		(0xb4)
+69:#define	OFFSET_MSDC_PATCH_BIT2		(0xb8)
+76:#define	OFFSET_MSDC_PAD_TUNE0		(0xf0)
+77:#define	OFFSET_MSDC_PAD_TUNE1		(0xf4)
+204:#define	MSDC_CFG_CKDIV			(0xfff << 8)	/* RW */
+205:#define	MSDC_CFG_CKDIV_BITS		(12)
+208:#define	MSDC_CFG_CKMOD_HS400		(0x1  << 22)	/* RW */
+624:#define	MSDC_EMMC50_BLOCK_LENGTH_MASK		(0x1FF << 0)
+37:#define TUNE_ASYNC_CMD           (0x1 << 0) /* async transfer cmd crc */
+38:#define TUNE_ASYNC_DATA_WRITE    (0x1 << 1) /* async transfer data crc */
+39:#define TUNE_ASYNC_DATA_READ     (0x1 << 2) /* async transfer data crc */
+68:#define HOST_MAX_MCLK			(200000000)
+70:#define HOST_MAX_MCLK			(200000000)
+72:#define HOST_MIN_MCLK			(260000)
+79:#define CLK_SRC_MAX_NUM                 (1)
+84:/*#define MSDC_CLKSRC_REG               (0xf100000C)*/
+126:#define MSDC_MODE_DMA_ENHANCED  (4)
+197:#define MSDC_INTERNAL_CLK   (1 << 11)	/* Force Internal clock          */
+694:#define CLK_TIMEOUT             (HZ    * 5)     /* 5s    */
+
+[vendor DT and controller setup]
+32-		#address-cells = <1>;
+33-		#size-cells = <1>;
+34-		ranges = <0 0 0 0xffffffff>;
+35:		mmc0:msdc0@11230000 {
+36-			compatible = "mediatek,mt6797-mmc";
+37:			reg = <0x11230000 0x10000>;
+38-			interrupts = <GIC_SPI 79 IRQ_TYPE_LEVEL_LOW>;
+39-			clocks = <&infrasys INFRA_MSDC0>;
+40:			clock-names = "msdc0-clock";
+41-			status = "disabled";
+42-		};
+43-
+44:		mmc1:msdc1@11240000 {
+45-			compatible = "mediatek,mt6797-mmc";
+46:			reg = <0x11240000 0x10000>;
+47-			interrupts = <GIC_SPI 80 IRQ_TYPE_LEVEL_LOW>;
+48-			clocks = <&infrasys INFRA_MSDC1>;
+49:			clock-names = "msdc1-clock";
+50-			status = "disabled";
+51-		};
+52-
+53-	};
+54-
+55:	msdc1_ins: msdc1_ins@0 {
+56-		compatible = "mediatek,mt6797-sdcard-ins";
+57-	};
+58-
+59-	psci {
+60-		compatible	= "arm,psci-0.2";
+61-		method		= "smc";
+62-		cpu_suspend	= <0x84000001>;
+63-		cpu_off		= <0x84000002>;
+64-		cpu_on		= <0x84000003>;
+65-		affinity_info	= <0x84000004>;
+66-	};
+67-
+68-	mobicore {
+69-		compatible = "trustonic,mobicore";
+70-		interrupts = <GIC_SPI 292 IRQ_TYPE_EDGE_RISING>;
+71-	};
+72-
+73-	/* ATF logger SW IRQ number 325 = 32 + 293 */
+74-	atf_logger {
+75-		compatible = "mediatek,atf_logger";
+76-		interrupts = <GIC_SPI 293 IRQ_TYPE_EDGE_RISING>;
+77-	};
+--
+1804-				<&infrasys INFRA_MD2MD_CCIF_3>,
+1805-				<&infrasys INFRA_MD2MD_CCIF_4>,
+1806-				<&infrasys INFRA_MD2MD_CCIF_5>;
+1807:			clock-names = "scp-sys-md1-main",
+1808-				"infra-ccif-ap",
+1809-				"infra-ccif-md",
+1810-				"infra-ap-c2k-ccif-0",
+1811-				"infra-ap-c2k-ccif-1",
+1812-				"infra-md2md-ccif-0",
+1813-				"infra-md2md-ccif-1",
+1814-				"infra-md2md-ccif-2",
+1815-				"infra-md2md-ccif-3",
+1816-				"infra-md2md-ccif-4",
+1817-				"infra-md2md-ccif-5";
+1818-		};
+1819-
+1820-		aes_top0@10016000 {
+1821-			compatible = "mediatek,aes_top0";
+1822-			reg = <0x10016000 0x1000>;
+1823-		};
+1824-
+1825-		aes_top1@10017000 {
+1826-			compatible = "mediatek,aes_top1";
+1827-			reg = <0x10017000 0x1000>;
+1828-		};
+1829-
+--
+1919-				<&scpsys SCP_SYS_VEN>,
+1920-				<&scpsys SCP_SYS_MJC>,
+1921-				<&scpsys SCP_SYS_ISP>;
+1922:			clock-names = "m4u_mm_smi_common",
+1923-				"m4u_mm_smi_larb0",
+1924-				"m4u_vdec_cken",
+1925-				"m4u_vdec_larb1_cken",
+1926-				"m4u_cam_larb2",
+1927-				"m4u_venc_1",
+1928-				"m4u_mjc_smi_larb",
+1929-				"m4u_mjc_larb4_asif",
+1930-				"m4u_mm_smi_larb5",
+1931-				"m4u_img_larb6",
+1932-				"m4u_mtcmos_dis",
+1933-				"m4u_mtcmos_vde",
+1934-				"m4u_mtcmos_ven",
+1935-				"m4u_mtcmos_mjc",
+1936-				"m4u_mtcmos_isp";
+1937-		};
+1938-
+1939-		efusec@10206000 {
+1940-			compatible = "mediatek,efusec";
+1941-			reg = <0x10206000 0x1000>;
+1942-		};
+1943-
+1944-		devapc@10207000 {
+--
+1983-			ccif,capability = <2>;	//tx busy stop
+1984-			mediatek,md_smem_size = <0x400000>; //md share memory size
+1985-			clocks = <&scpsys SCP_SYS_C2K>;
+1986:			clock-names = "scp-sys-c2k-main";
+1987-		};
+1988-
+1989-		md_ccif1@1020c000 {
+1990-			compatible = "mediatek,md_ccif1";
+1991-			reg = <0x1020c000 0x1000>;
+1992-		};
+1993-
+1994-		infra_mbist@1020d000 {
+1995-			compatible = "mediatek,infra_mbist";
+1996-			reg = <0x1020d000 0x1000>;
+1997-		};
+1998-
+1999-		dramc_nao@1020e000 {
+2000-			compatible = "mediatek,dramc_nao";
+2001-			reg = <0x1020e000 0x1000>;
+2002-			interrupts = <GIC_SPI 158 IRQ_TYPE_EDGE_FALLING>;
+2003-		};
+2004-
+2005-		trng@1020f000 {
+2006-			compatible = "mediatek,trng";
+2007-			reg = <0x1020f000 0x1000>;
+2008-			interrupts = <GIC_SPI 148 IRQ_TYPE_LEVEL_LOW>;
+--
+2044-			usb0_base = <0x11200000 16 0xffff0000>;
+2045-			usb_sif_base = <0x11210000 17 0xffff0000>;
+2046-			audio_base = <0x11220000 18 0xffff0000>;
+2047:			msdc0_base = <0x11230000 19 0xffff0000>;
+2048:			msdc1_base = <0x11240000 20 0xffff0000>;
+2049-			msdc2_base = <0x11250000 21 0xffff0000>;
+2050-			msdc3_base = <0x11260000 22 0xffff0000>;
+2051-			ap_dma_base = <0x11000000 23 0xffff0000>;
+2052-			camsys_base = <0x1A000000 24 0xffff0000>;
+2053-			dip_a0_sw_base = <0x15020000 99 0xffff0000>;
+2054-			mdp_rdma0_sof = <0>;
+2055-			mdp_rdma1_sof = <1>;
+2056-			mdp_rsz0_sof = <2>;
+2057-			mdp_rsz1_sof = <3>;
+2058-			mdp_rsz2_sof = <4>;
+2059-			mdp_tdshp_sof = <5>;
+2060-			mdp_color_sof = <6>;
+2061-			mdp_wdma_sof = <7>;
+2062-			mdp_wrot0_sof = <8>;
+2063-			mdp_wrot1_sof = <9>;
+2064-			disp_ovl0_sof = <10>;
+2065-			disp_ovl1_sof = <11>;
+2066-			disp_2l_ovl0_sof = <12>;
+2067-			disp_2l_ovl1_sof = <15>;
+2068-			disp_rdma0_sof = <13>;
+2069-			disp_rdma1_sof = <14>;
+2070-			disp_wdma0_sof = <16>;
+--
+2165-			sram_share_engine = <11 12>;
+2166-			sram_share_event = <460 461>;
+2167-			clocks = <&infrasys INFRA_GCE>;
+2168:			clock-names = "GCE";
+2169-		};
+2170-
+2171-		cqdma@10212c00 {
+2172-			compatible = "mediatek,mt-cqdma-v1";
+2173-			reg = <0x10212c00 0x100>,
+2174-			      <0x10212d00 0x100>;
+2175-			interrupts = <GIC_SPI 118 IRQ_TYPE_LEVEL_LOW>,
+2176-				     <GIC_SPI 119 IRQ_TYPE_LEVEL_LOW>;
+2177-			nr_channel = <2>;
+2178-		};
+2179-
+2180-		md2md_md2_ccif0@10213000 {
+2181-			compatible = "mediatek,md2md_md2_ccif0";
+2182-			reg = <0x10213000 0x1000>;
+2183-		};
+2184-
+2185-		mipi_tx0@10215000 {
+2186-			compatible = "mediatek,mipi_tx0";
+2187-			reg = <0x10215000 0x1000>;
+2188-		};
+2189-
+2190-		dramc_b_nao@10216000 {
+--
+2287-				<0x10206000 0x1000>; /* Big eFUSE register */
+2288-			interrupts = <GIC_SPI 331 IRQ_TYPE_LEVEL_HIGH>;
+2289-			clocks = <&infrasys INFRA_I2C_APPM>;
+2290:			clock-names = "i2c";
+2291-		};
+2292-
+2293-		ptpotp@10222000 {
+2294-			compatible = "mediatek,ptpotp";
+2295-			reg = <0x10222000 0x1000>;
+2296-		};
+2297-
+2298-		bpi_bsi_slv0@10228000 {
+2299-			compatible = "mediatek,bpi_bsi_slv0";
+2300-			reg = <0x10228000 0x1000>;
+2301-		};
+2302-
+2303-		bpi_bsi_slv1@10229000 {
+2304-			compatible = "mediatek,bpi_bsi_slv1";
+2305-			reg = <0x10229000 0x6000>;
+2306-		};
+2307-
+2308-		bpi_bsi_slv2@1022f000 {
+2309-			compatible = "mediatek,bpi_bsi_slv2";
+2310-			reg = <0x1022f000 0x1000>;
+2311-		};
+2312-
+--
+2364-			reg = <0x11001000 0x1000>;
+2365-			interrupts = <GIC_SPI 74 0x2>;
+2366-			clocks = <&infrasys INFRA_AUXADC>;
+2367:			clock-names = "auxadc-main";
+2368-		};
+2369-
+2370-		apuart0: apuart0@11002000 {
+2371-			cell-index = <0>;
+2372-			compatible = "mediatek,mt6797-uart";
+2373-			reg =	<0x11002000 0x1000>, /* UART base */
+83:#include "msdc_tune.h"
+116:int src_clk_control;
+136:					1048576 * 3 sclk. */
+203:u8 msdc_clock_src[HOST_MAX_NUM] = {
+260:#define msdc_dma_on()           MSDC_CLR_BIT32(MSDC_CFG, MSDC_CFG_PIO)
+261:#define msdc_dma_off()          MSDC_SET_BIT32(MSDC_CFG, MSDC_CFG_PIO)
+262:#define msdc_dma_status()       ((MSDC_READ32(MSDC_CFG) & MSDC_CFG_PIO) >> 3)
+312:	save_register(i, OFFSET_MSDC_CFG,                 MSDC_CFG);
+344:	save_register(i, OFFSET_MSDC_DMA_SA_HIGH,         MSDC_DMA_SA_HIGH);
+345:	save_register(i, OFFSET_MSDC_DMA_SA,              MSDC_DMA_SA);
+348:	save_register(i, OFFSET_MSDC_DMA_CA,              MSDC_DMA_CA);
+349:	save_register(i, OFFSET_MSDC_DMA_CTRL,            MSDC_DMA_CTRL);
+350:	save_register(i, OFFSET_MSDC_DMA_CFG,             MSDC_DMA_CFG);
+351:	save_register(i, OFFSET_MSDC_DMA_LEN,             MSDC_DMA_LEN);
+354:	save_register(i, OFFSET_MSDC_PATCH_BIT0,          MSDC_PATCH_BIT0);
+355:	save_register(i, OFFSET_MSDC_PATCH_BIT1,          MSDC_PATCH_BIT1);
+356:	save_register(i, OFFSET_MSDC_PATCH_BIT2,          MSDC_PATCH_BIT2);
+359:		goto skip_sdio_tune_reg;
+368:skip_sdio_tune_reg:
+370:	save_register(i, OFFSET_MSDC_PAD_TUNE0,           MSDC_PAD_TUNE0);
+371:	save_register(i, OFFSET_MSDC_PAD_TUNE1,           MSDC_PAD_TUNE1);
+458:	/* 2: check msdc clock gate and clock source */
+461:	msdc_dump_clock_sts(host);
+507:	if (MSDC_READ32(MSDC_DMA_CFG) & MSDC_DMA_CFG_STS) {
+508:		pr_err("<<<WARN>>>: msdc%d, clear FIFO when DMA active, MSDC_DMA_CFG=0x%x\n",
+509:			id, MSDC_READ32(MSDC_DMA_CFG));
+511:		MSDC_SET_FIELD(MSDC_DMA_CTRL, MSDC_DMA_CTRL_STOP, 1);
+512:		msdc_retry((MSDC_READ32(MSDC_DMA_CFG) & MSDC_DMA_CFG_STS),
+515:			pr_err("<<<WARN>>>: msdc%d, faield to stop DMA before clear FIFO, MSDC_DMA_CFG=0x%x\n",
+516:				id, MSDC_READ32(MSDC_DMA_CFG));
+527:int msdc_clk_stable(struct msdc_host *host, u32 mode, u32 div,
+536:		MSDC_SET_FIELD(MSDC_CFG, MSDC_CFG_CKDIV, 0);
+537:		MSDC_SET_FIELD(MSDC_CFG, MSDC_CFG_CKMOD, 1);
+544:		MSDC_SET_FIELD(MSDC_CFG,
+545:			MSDC_CFG_CKMOD_HS400 | MSDC_CFG_CKMOD | MSDC_CFG_CKDIV,
+548:		/* MSDC_SET_FIELD(MSDC_CFG, MSDC_CFG_CKMOD, mode); */
+549:		msdc_retry(!(MSDC_READ32(MSDC_CFG) & MSDC_CFG_CKSTB), retry,
+552:			pr_err("msdc%d host->onclock(%d)\n", host->id,
+553:				host->core_clkon);
+554:			pr_err("msdc%d on clock failed ===> retry twice\n",
+557:			msdc_clk_disable(host);
+558:			if (msdc_clk_enable(host))
+559:				pr_err("%s msdc_clk_enable error\n", __func__);
+563:		MSDC_SET_FIELD(MSDC_CFG, MSDC_CFG_CKDIV, div);
+564:		msdc_retry(!(MSDC_READ32(MSDC_CFG) & MSDC_CFG_CKSTB), retry,
+592:	MSDC_SET_FIELD(MSDC_CFG, MSDC_CFG_START_BIT, start_bit);
+597:void msdc_set_smpl(struct msdc_host *host, u8 HS400, u8 mode, u8 type, u8 *edge)
+604:		if (HS400) {
+606:				MSDC_EMMC50_CFG_PADCMD_LATCHCK, 0);
+608:				MSDC_EMMC50_CFG_CMD_RESP_SEL, 0);
+614:			ERR_MSG("invalid resp parameter: HS400=%d, type=%d, mode=%d\n",
+615:				HS400, type, mode);
+618:		if (HS400) {
+621:				MSDC_EMMC50_CFG_CRC_STS_SEL, 1);
+625:				MSDC_EMMC50_CFG_CRC_STS_SEL, 0);
+628:			if (HS400) {
+630:					MSDC_EMMC50_CFG_CRC_STS_EDGE, mode);
+632:				MSDC_SET_FIELD(MSDC_PATCH_BIT2,
+641:			ERR_MSG("invalid crc parameter: HS400=%d, type=%d, mode=%d\n", HS400, type, mode);
+645:		if (HS400) {
+646:			/*for HS400, start bit is output on both edge*/
+656:			MSDC_SET_FIELD(MSDC_PATCH_BIT0,
+663:			ERR_MSG("invalid read parameter: HS400=%d, type=%d, mode=%d\n", HS400, type, mode);
+668:		MSDC_SET_FIELD(EMMC50_CFG0, MSDC_EMMC50_CFG_CRC_STS_SEL, 0);
+683:			ERR_MSG("invalid write parameter: HS400=%d, type=%d, mode=%d\n",
+684:				HS400, type, mode);
+688:		ERR_MSG("invalid parameter: HS400=%d, type=%d, mode=%d\n",
+689:			HS400, type, mode);
+692:	/*pr_err("finished, HS400=%d, type=%d, mode=%d\n", HS400, type, mode);*/
+696:void msdc_set_smpl_all(struct msdc_host *host, u8 HS400)
+700:	msdc_set_smpl(host, HS400, hw->cmd_edge, TYPE_CMD_RESP_EDGE, NULL);
+701:	msdc_set_smpl(host, HS400, hw->rdata_edge, TYPE_READ_DATA_EDGE, NULL);
+702:	msdc_set_smpl(host, HS400, hw->wdata_edge, TYPE_WRITE_CRC_EDGE, NULL);
+751:	struct mmc_command *cmd, int tune, unsigned long timeout);
+754:static void msdc_clksrc_onoff(struct msdc_host *host, u32 on)
+759:	if ((on) && (0 == host->core_clkon)) {
+762:		if (msdc_clk_enable(host)) {
+763:			pr_err("retry msdc%d clock on once\n", host->id);
+764:			msdc_clk_disable(host);
+765:			if (msdc_clk_enable(host))
+766:				pr_err("%s msdc_clk_enable error\n", __func__);
+770:		host->core_clkon = 1;
+773:		MSDC_SET_FIELD(MSDC_CFG, MSDC_CFG_MODE, MSDC_SDMMC);
+775:		MSDC_GET_FIELD(MSDC_CFG, MSDC_CFG_CKMOD, mode);
+776:		MSDC_GET_FIELD(MSDC_CFG, MSDC_CFG_CKDIV, div);
+777:		MSDC_GET_FIELD(MSDC_CFG, MSDC_CFG_CKMOD_HS400, hs400_src);
+778:		msdc_clk_stable(host, mode, div, hs400_src);
+786:		&& (!((host->hw->flags & MSDC_SDIO_IRQ) && src_clk_control))) {
+787:		if (1 == host->core_clkon) {
+788:			MSDC_SET_FIELD(MSDC_CFG, MSDC_CFG_MODE, MSDC_MS);
+790:			msdc_clk_disable(host);
+792:			host->core_clkon = 0;
+798:/*host doesn't need the clock on*/
+799:void msdc_gate_clock(struct msdc_host *host, int delay)
+812:	spin_lock_irqsave(&host->clk_gate_lock, flags);
+813:	if ((suspend == 0) && (host->clk_gate_count > 0))
+814:		host->clk_gate_count--;
+817:		N_MSG(CLK, "[%s]: msdc%d, clk_gate_count=%d, delay=%d",
+818:			__func__, host->id, host->clk_gate_count, delay);
+819:	} else if (host->clk_gate_count == 0) {
+821:		msdc_clksrc_onoff(host, 0);
+822:		N_MSG(CLK, "[%s]: msdc%d, successfully gate clock, clk_gate_count=%d, delay=%d",
+823:			__func__, host->id, host->clk_gate_count, delay);
+827:		ERR_MSG("[%s]: msdc%d, clock is still needed by host, clk_gate_count=%d, delay=%d",
+828:			__func__, host->id, host->clk_gate_count, delay);
+830:	spin_unlock_irqrestore(&host->clk_gate_lock, flags);
+833:/* host does need the clock on */
+834:void msdc_ungate_clock(struct msdc_host *host)
+837:	spin_lock_irqsave(&host->clk_gate_lock, flags);
+838:	host->clk_gate_count++;
+839:	N_MSG(CLK, "[%s]: msdc%d, clk_gate_count=%d", __func__, host->id,
+840:		host->clk_gate_count);
+841:	if (host->clk_gate_count == 1)
+842:		msdc_clksrc_onoff(host, 1);
+843:	spin_unlock_irqrestore(&host->clk_gate_lock, flags);
+916:static void msdc_set_timeout(struct msdc_host *host, u32 ns, u32 clks)
+919:	u32 timeout, clk_ns;
+923:	host->timeout_clks = clks;
+924:	if (host->sclk == 0) {
+927:		clk_ns  = 1000000000UL / host->sclk;
+928:		timeout = (ns + clk_ns - 1) / clk_ns + clks;
+929:		/* in 1048576 sclk cycle unit */
+931:		MSDC_GET_FIELD(MSDC_CFG, MSDC_CFG_CKMOD, mode);
+932:		/*DDR mode will double the clk cycles for data timeout*/
+939:	N_MSG(OPS, "msdc%d, Set read data timeout: %dns %dclks -> %d x 1048576 cycles, mode:%d, clk_freq=%dKHz\n",
+940:		host->id, ns, clks, timeout + 1, mode, (host->sclk / 1000));
+957:void msdc_set_mclk(struct msdc_host *host, unsigned char timing, u32 hz)
+963:	u32 sclk;
+964:	u32 hclk = host->hclk;
+967:	if (!hz) { /* set mmc system clock to 0*/
+975:		host->mclk = 0;
+988:	if (timing ==  MMC_TIMING_MMC_HS400) {
+989:		mode = 0x3; /* HS400 mode */
+990:		if (PLLCLK_400M == hclk) {
+993:			sclk = hclk/2;
+994:		} else { /* 800M clock source ? is not supported */
+996:			if (hz >= (hclk >> 2)) {
+998:				sclk = hclk >> 2; /* sclk = clk / 4 */
+1000:				div  = (hclk + ((hz << 2) - 1)) / (hz << 2);
+1001:				sclk = (hclk >> 2) / div;
+1008:		if (hz >= (hclk >> 2)) {
+1010:			sclk = hclk >> 2; /* sclk = clk / 4 */
+1012:			div  = (hclk + ((hz << 2) - 1)) / (hz << 2);
+1013:			sclk = (hclk >> 2) / div;
+1017:	} else if (hz >= hclk) {
+1020:		sclk = hclk;
+1024:		if (hz >= (hclk >> 1)) {
+1026:			sclk = hclk >> 1; /* sclk = clk / 2 */
+1028:			div  = (hclk + ((hz << 2) - 1)) / (hz << 2);
+1029:			sclk = (hclk >> 2) / div;
+1033:	msdc_clk_stable(host, mode, div, hs400_src);
+1035:	host->sclk = sclk;
+1036:	host->mclk = hz;
+1039:	/* need because clk changed.*/
+1040:	msdc_set_timeout(host, host->timeout_ns, host->timeout_clks);
+1060:	pr_err("msdc%d -> !!! Set<%dKHz> Source<%dKHz> -> sclk<%dKHz> timing<%d> mode<%d> div<%d> hs400_src<%d>",
+1061:		host->id, hz/1000, hclk/1000, sclk/1000, timing, mode, div,
+1067:void msdc_send_stop(struct msdc_host *host)
+1069:	struct mmc_command stop = {0};
+1073:	stop.opcode = MMC_STOP_TRANSMISSION;
+1074:	stop.arg = 0;
+1075:	stop.flags = MMC_RSP_R1B | MMC_CMD_AC;
+1077:	mrq.cmd = &stop;
+1078:	stop.mrq = &mrq;
+1079:	stop.data = NULL;
+1081:	err = msdc_do_command(host, &stop, 0, CMD_TIMEOUT);
+1118:	/* tune until CMD13 pass. */
+1124:	/* tune until CMD13 pass. */
+1159:		ERR_MSG("4.Gate clock");
+1160:		msdc_gate_clock(host, 0);
+1178:			} else if (msdc_tune_cmdrsp(host)) {
+1187:			ERR_MSG("state<%d> need cmd12 to stop", state);
+1188:			msdc_send_stop(host);   /* don't tuning */
+1189:		} else if (state == 7) {        /* busy in programing */
+1190:			ERR_MSG("state<%d> card is busy", state);
+1278:	msdc_ungate_clock(host);
+1357:		msdc_gate_clock(host, 0);
+1359:		msdc_gate_clock(host, 1);
+1506:	/* tune until CMD13 pass. */
+1644:	int                 tune,   /* not used */
+
+[Linux compatibility data]
+568-};
+569-
+570:static const struct mtk_mmc_compatible mt6795_compat = {
+571-	.clk_div_bits = 8,
+572-	.recheck_sdio_irq = false,
+573-	.hs400_tune = true,
+574-	.pad_tune_reg = MSDC_PAD_TUNE,
+575-	.async_fifo = false,
+576-	.data_tune = false,
+577-	.busy_check = false,
+578-	.stop_clk_fix = false,
+579-	.enhance_rx = false,
+580-	.support_64g = false,
+581-};
+582-
+583:static const struct mtk_mmc_compatible mt6797_compat = {
+584-	.clk_div_bits = 12,
+585-	.recheck_sdio_irq = false,
+586-	.hs400_tune = false,
+587-	.pad_tune_reg = MSDC_PAD_TUNE0,
+588-	.async_fifo = true,
+589-	.data_tune = true,
+590-	.busy_check = false,
+591-	.stop_clk_fix = false,
+592-	.enhance_rx = false,
+593-	.support_64g = false,
+594-};
+595-
+596-static const struct mtk_mmc_compatible mt7620_compat = {
+597-	.clk_div_bits = 8,
+598-	.recheck_sdio_irq = true,
+599-	.hs400_tune = false,
+--
+731-	{ .compatible = "mediatek,mt6779-mmc", .data = &mt6779_compat},
+732-	{ .compatible = "mediatek,mt6795-mmc", .data = &mt6795_compat},
+733:	{ .compatible = "mediatek,mt6797-mmc", .data = &mt6797_compat},
+734-	{ .compatible = "mediatek,mt7620-mmc", .data = &mt7620_compat},
+735-	{ .compatible = "mediatek,mt7622-mmc", .data = &mt7622_compat},
+736-	{ .compatible = "mediatek,mt7986-mmc", .data = &mt7986_compat},
+737-	{ .compatible = "mediatek,mt7988-mmc", .data = &mt7986_compat},
+738-	{ .compatible = "mediatek,mt8135-mmc", .data = &mt8135_compat},
+739-	{ .compatible = "mediatek,mt8173-mmc", .data = &mt8173_compat},
+740-	{ .compatible = "mediatek,mt8183-mmc", .data = &mt8183_compat},
+741-	{ .compatible = "mediatek,mt8189-mmc", .data = &mt8189_compat},
+742-	{ .compatible = "mediatek,mt8196-mmc", .data = &mt8196_compat},
+743-	{ .compatible = "mediatek,mt8516-mmc", .data = &mt8516_compat},
+744-
+745-	{}
+746-};
+747-MODULE_DEVICE_TABLE(of, msdc_of_ids);
+748-
+749-static void sdr_set_bits(void __iomem *reg, u32 bs)
+21:          - mediatek,mt6797-mmc
+57:  clock-names:
+173:  - clock-names
+177:  - vmmc-supply
+178:  - vqmmc-supply
+189:            - mediatek,mt6797-mmc
+210:        clock-names:
+215:            - const: source_cg
+231:        clock-names:
+236:            - const: source_cg
+274:        clock-names:
+279:            - const: source_cg
+297:        clock-names:
+320:        clock-names:
+324:            - const: source_cg
+343:        clock-names:
+347:            - const: source_cg
+364:        vmmc-supply = <&mt6397_vemc_3v3_reg>;
+365:        vqmmc-supply = <&mt6397_vio18_reg>;
+368:        clock-names = "source", "hclk";
+383:        clock-names = "source", "hclk";
+393:        bus-width = <4>;
+395:        cap-sd-highspeed;
+399:        cap-sdio-irq;
+403:        vmmc-supply = <&sdio_fixed_3v3>;
+404:        vqmmc-supply = <&mt6397_vgp3_reg>;
+
+[decision]
+MT6797 uses the existing Linux mtk-sd protocol with a distinct compatibility record; a new storage controller driver is not indicated.
+Use 12-bit clock divider, PAD_TUNE0, asynchronous FIFO, and data tuning; keep stop_clk_fix and enhance_rx disabled because 0x228 is EMMC50_BLOCK_LENGTH and SDC_ADV_CFG0 is absent.
+Keep support_64g disabled until descriptor high-address use is proven; the downstream driver truncates descriptors and the live high-address register is zero.
+Reuse Linux MMC core, mtk-sd, regulator, and pinctrl layers; the first Gemini board path remains conservative eMMC legacy timing with no HS200/HS400 flags.
+Keep MSDC1 and voltage switching disabled until card-detect polarity, VMCH/VMC rails, pin drive, and removable-card behavior are validated.

@@ -1,0 +1,76 @@
+From bcb6b4cb99fb7d529aaec6409043889f7b874297 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 12 Jul 2026 09:39:01 -0400
+Subject: [PATCH] arm64: dts: mediatek: mt6797: add DSI0 and MIPI TX
+
+Describe the primary DSI host and its MIPI TX clock and PHY provider. Use
+the recovered host address, interrupt, MM power domain, gate clocks and
+native MT6797 compatibles.
+
+Keep both nodes disabled until a board supplies the complete display graph,
+panel, bias, reset and backlight contract.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ arch/arm64/boot/dts/mediatek/mt6797.dtsi | 39 ++++++++++++++++++++++++
+ 1 file changed, 39 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+index 26255e83e..3c8e8fe93 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797.dtsi
++++ b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+@@ -296,6 +296,17 @@ gce: mailbox@10212000 {
+ 		#mbox-cells = <2>;
+ 	};
+ 
++	mipi_tx0: dsi-phy@10215000 {
++		compatible = "mediatek,mt6797-mipi-tx";
++		reg = <0 0x10215000 0 0x1000>;
++		clocks = <&clk26m>;
++		clock-output-names = "mipi_tx0_pll";
++		#clock-cells = <0>;
++		#phy-cells = <0>;
++
++		status = "disabled";
++	};
++
+ 	uart0: serial@11002000 {
+ 		compatible = "mediatek,mt6797-uart",
+ 			     "mediatek,mt6577-uart";
+@@ -541,6 +552,34 @@ mmsys: syscon@14000000 {
+ 		mediatek,gce-client-reg = <&gce SUBSYS_1400XXXX 0 0x1000>;
+ 	};
+ 
++	dsi0: dsi@1401c000 {
++		compatible = "mediatek,mt6797-dsi";
++		reg = <0 0x1401c000 0 0x1000>;
++		interrupts = <GIC_SPI 229 IRQ_TYPE_LEVEL_LOW>;
++		power-domains = <&scpsys MT6797_POWER_DOMAIN_MM>;
++		clocks = <&mmsys CLK_MM_DSI0_MM_CLOCK>,
++			 <&mmsys CLK_MM_DSI0_INTERFACE_CLOCK>,
++			 <&mipi_tx0>;
++		clock-names = "engine", "digital", "hs";
++		phys = <&mipi_tx0>;
++		phy-names = "dphy";
++
++		status = "disabled";
++
++		ports {
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			dsi0_in: port@0 {
++				reg = <0>;
++			};
++
++			dsi0_out: port@1 {
++				reg = <1>;
++			};
++		};
++	};
++
+ 	mutex: mutex@1401f000 {
+ 		compatible = "mediatek,mt6797-disp-mutex";
+ 		reg = <0 0x1401f000 0 0x1000>;
+-- 
+2.43.0

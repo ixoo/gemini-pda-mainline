@@ -1,0 +1,51 @@
+First-boot dependency and DT schema audit (current 77-patch package)
+
+validation=first-boot-probe-dependency-audit-and-schema
+generated_utc=2026-07-14T23:06:37Z
+package=linux-7.1.3-gemini-6116c9e7da3f
+source_revision=7.1.3
+patch_series_count=77
+patchset_sha256=6116c9e7da3fc2f56612029236a3bcd370c61f91b3c0951dd4e2c1915537f55e
+supersedes_artifact=linux-7.1.3-gemini-b7721ab55e41
+supersedes_patchset_sha256=b7721ab55e41e5c19df07b6f542354dca1e39d9d236087a6caf725f31317a963
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+config_sha256=c46e0d135ed290420362638ca36448055e19bb7029deaa7aad897d885275f7db
+image_sha256=9975b0faf659ddd91e33607de47a4814b9ad4c72292f4c8f7af39582f1a49362
+gemini_dtb_sha256=8fd50d0f9defa5014d34614300a5537f1252559d996a5adb5d61368a5781f39d
+dt_validate=2026.6
+dtc_warning_lines=2
+artifact_validator=passed
+dtb_count=119
+
+[built_in_first_boot_chain]
+psci=CONFIG_ARM_PSCI_FW=y;builtin
+psci_cpuidle=CONFIG_ARM_PSCI_CPUIDLE=y;builtin
+arch_timer=CONFIG_ARM_ARCH_TIMER=y;builtin
+gic_v3=CONFIG_ARM_GIC_V3=y;builtin
+uart0=CONFIG_SERIAL_8250_MT6577=y;builtin
+pinctrl=CONFIG_PINCTRL_MT6797=y;builtin
+watchdog=CONFIG_MEDIATEK_WATCHDOG=y;builtin
+pwrap=CONFIG_MTK_PMIC_WRAP=y;builtin
+mt6351_mfd=CONFIG_MFD_MT6397=y;builtin
+mt6351_regulator=CONFIG_REGULATOR_MT6351=y;builtin
+mmc=CONFIG_MMC_MTK=y;builtin
+mmc0_status=okay
+mmc1_status=disabled
+mmc0_bus_width=8
+mmc0_max_frequency_hz=25000000
+mmc0_vmmc_supply=ldo-vemc
+mmc0_vqmmc_supply=ldo-vio18
+
+[decisions]
+generic_arm64_cpu_psci_timer_gic_support_is_built_in_before_board_consumers
+eMMC_supply_consumers_make_PMIC_part_of_storage_probe
+pwrap_probe_is_stateful_even_when_INIT_DONE2_is_already_set
+mainline_first_runtime_test_requires_external_recovery_and_before_after_register_capture
+schema_validation=passed
+first_boot_static_dependency_audit=passed
+runtime_mainline_boot=not_attempted
+hardware_write=none
+
+The 0076 keyboard polarity correction is disabled in this DT and does not
+alter the first-boot dependency chain. This record is static package/source/DT
+evidence only; it does not prove LK acceptance, UART output, or driver probe.

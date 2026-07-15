@@ -1,0 +1,37 @@
+# MT6797 Android power HAL ELF audit — 2026-07-14
+
+## Provenance
+
+- Input: private extracted
+  `system/vendor/lib64/hw/power.mt6797.so`.
+- SHA-256: `c04be6b2617dfb5683c069b92c307b44f79e2d94edee3d392eb90c17deffff7c`.
+- Analysis: Linux VM Radare2 5.5.0 and AArch64 objdump; static only.
+- No vendor binary was executed and no device state was changed.
+
+## Observations
+
+- The ELF imports only `__cxa_finalize`, `__register_atfork`,
+  `__cxa_atexit`, and `__android_log_print`. There are no imported
+  `open`, `read`, `write`, `ioctl`, property-service, sysfs, or procfs helpers.
+- The exported Android HAL data object is `HMI` (304 bytes). The text section
+  contains callbacks corresponding to `power_init`, `power_set_interactive`,
+  and a power-hint handler.
+- `power_init` and `power_set_interactive` only call Android logging with the
+  `PowerHAL`/`power_init`/`power_set_interactive` strings and return.
+- The hint handler branches only for hint values 6 and 7, logging
+  `POWER_HINT_SUSTAINED_PERFORMANCE` and `POWER_HINT_VR_MODE`; other values
+  return without a kernel-facing action.
+- The only dynamic library dependencies are the small Android runtime set
+  (`libc.so`, `liblog.so`, `libc++.so`, `libdl.so`, and `libm.so`).
+
+## Mainline implication
+
+This Android power HAL is a callback/logging shim, not the implementation of
+MT6797 cpufreq, thermal, idle, regulator, or suspend policy. Porting it or
+using its callback names as evidence for a kernel ABI would add no hardware
+support. Mainline power behavior must instead be recovered from the bound
+vendor kernel drivers, DT/resource ownership, firmware handoff, and measured
+runtime transitions, then exposed through standard cpufreq, thermal, regulator,
+PM QoS, and suspend interfaces. This result is strong static evidence for that
+boundary; it does not prove that vendor daemons or the vendor kernel perform no
+power transitions elsewhere.

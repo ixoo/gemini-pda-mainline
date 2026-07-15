@@ -1,0 +1,66 @@
+Current Linux 7.1.3 Gemini CPU/DVFS/thermal/idle package validation
+===================================================================
+
+Date: 2026-07-14
+Package: linux-7.1.3-gemini-ca17601dcdeb
+Linux source manifest SHA-256: be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+Patch count: 71
+Patchset SHA-256: ca17601dcdeb8e3a8226b83c7ea0fdc693ff3085b1dbaafd9fec2d8ab8e03f6f
+Package Image SHA-256: 6d162f2d729827ecadfa5640d16f9e4c8325e67817d9c638b0cb1fcc9670bef4
+Package config SHA-256: 60a84aa5ac3b3aeb17d5357508ac123089d97d7d5ed9164458dee3ce6ded8159
+Package Gemini DTB SHA-256: fb910c8d96b7d4f533c750ce0717ced8998c992834abc44a4ed86ec5a9cf1f97
+Package audit output SHA-256: 7b39b34e860d3cc1dac6419dc0486a2e409486b15f1b16745e96d4776eca9be7
+Package-audit script SHA-256: 0e076959c591199a7c9186eaa3d4e0ea79b20f2fc99e944082e4fed11b58553f
+
+The audit was run twice in the prepared arm64 VM and produced byte-identical
+output. ShellCheck and `bash -n` passed.
+
+Configuration boundary
+----------------------
+
+  CONFIG_CPU_FREQ=y
+  CONFIG_CPU_FREQ_DEFAULT_GOV_SCHEDUTIL=y
+  CONFIG_CPU_IDLE=y
+  CONFIG_ARM_PSCI_CPUIDLE=y
+  CONFIG_PM_SLEEP=y
+  CONFIG_SUSPEND=y
+  CONFIG_MTK_CPUFREQ is absent (no MT6797 cpufreq symbol)
+  CONFIG_MTK_SVS=m
+  CONFIG_THERMAL=y
+  CONFIG_MTK_SOC_THERMAL=m
+  CONFIG_COMMON_CLK_MT6797=y
+  CONFIG_COMMON_CLK_MT6797_CAMSYS=y
+  CONFIG_COMMON_CLK_MT6797_IMGSYS is not set
+  CONFIG_REGULATOR_MT6351=y
+
+The module tree contains generic `mediatek-cpufreq-hw.ko`, `mtk-svs.ko`,
+`auxadc_thermal.ko`, and `mt6577_auxadc.ko`. Their presence is not a Gemini
+consumer binding: no MT6797 cpufreq driver or SVS/OPP consumer is selected by
+the board DT, and the thermal/AUXADC nodes remain disabled.
+
+Device-tree boundary
+--------------------
+
+The packaged DTB has one PSCI node and ten CPU nodes. It has zero
+`operating-points-v2`/OPP-table matches and zero idle-state descriptions. The
+only thermal node is `thermal@1100b000` (`mediatek,mt6797-thermal`) and it is
+disabled; its paired `adc@11001000` AUXADC node is also disabled. No DVFSP/SPM
+consumer, CPU cluster clock handle, regulator consumer, CCI coupling, or
+vendor idle-state table is present in the board DTB.
+
+Decision
+--------
+
+The current package can describe generic ARM64 CPU topology/PSCI and carries
+generic PM/thermal building blocks, but it deliberately does not make a
+frequency, voltage, thermal-trip, deep-idle, or suspend transition on Gemini.
+The vendor MT6797 path still requires efuse/PTP calibration, external-buck and
+SRAM tracking, PLL/mux ownership, CCI coupling, thermal-bank mapping, and SPM/
+firmware state contracts. Keep those consumers disabled; do not infer support
+from generic module presence or the `mem`/PSCI configuration alone.
+
+frequency_voltage_transition=not_attempted
+thermal_probe=not_attempted
+deep_idle=not_attempted
+suspend=not_attempted
+hardware_write=none

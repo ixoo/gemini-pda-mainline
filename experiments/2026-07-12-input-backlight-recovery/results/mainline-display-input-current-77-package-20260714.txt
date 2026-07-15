@@ -1,0 +1,38 @@
+Linux 7.1.3 Gemini patched-tree integration package (77 patches)
+
+validation=linux-7.1.3-current-77-image-dtb-package
+generated_utc=2026-07-14T23:06:37Z
+source_revision=7.1.3
+patch_series_count=77
+artifact=linux-7.1.3-gemini-6116c9e7da3f
+guest_artifact_path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-6116c9e7da3f
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=6116c9e7da3fc2f56612029236a3bcd370c61f91b3c0951dd4e2c1915537f55e
+supersedes_artifact=linux-7.1.3-gemini-b7721ab55e41
+supersedes_patchset_sha256=b7721ab55e41e5c19df07b6f542354dca1e39d9d236087a6caf725f31317a963
+config_sha256=c46e0d135ed290420362638ca36448055e19bb7029deaa7aad897d885275f7db
+kernel_release=7.1.3-gemini
+compiler=gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+linker=GNU ld (GNU Binutils for Ubuntu) 2.42
+image_sha256=9975b0faf659ddd91e33607de47a4814b9ad4c72292f4c8f7af39582f1a49362
+image_gzip_sha256=cd1b762413342f9fb0201c1689464f29d359e803f186c03857d12eb97e943ecb
+gemini_dtb=mediatek/mt6797-gemini-pda.dtb
+gemini_dtb_sha256=8fd50d0f9defa5014d34614300a5537f1252559d996a5adb5d61368a5781f39d
+config_touchscreen_novatek_nvt_ts=not_set
+config_touchscreen_novatek_nt36xxx=m
+full_image_and_dtb_build=passed
+packaged_artifact_checksum_validation=passed
+modules_built=false
+keyboard_matrix_consumer=disabled
+keyboard_polarity_properties=gpio-activelow;drive-inactive-cols
+aw9523_bus_and_expander=disabled
+touchscreen_node=disabled_or_absent
+display_consumers=disabled
+hardware_write=none
+runtime_boot_or_input_probe=not_attempted
+
+This is build, packaging, provenance, and static DT evidence only. Patch 0076
+is present in this package; it corrects the disabled keyboard candidate's
+active-low scan polarity and inactive-column drive semantics. No keyboard,
+touchscreen, display, or backlight consumer has been enabled or tested on
+hardware.

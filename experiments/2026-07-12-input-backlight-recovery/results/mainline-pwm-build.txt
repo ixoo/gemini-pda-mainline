@@ -1,0 +1,8 @@
+kernel_version=7.1.3
+patchset_sha256=4aa5b069dfd7ad85c2b4769f9a4653e33baa309a9893a5bfa3177a80db18298d
+package=linux-7.1.3-gemini-4aa5b069dfd7
+image_sha256=bcfb473f96f58ea7a77eef783fd4bce4927374f0b715dcdffa78d2760dade33c
+gemini_dtb_sha256=dbd2a99539568a06c1884634a8fe671c226d7d04d7ff07b75fec7e8e75ebc62f
+binding_validation=dt-doc-validate_and_yamllint_passed
+driver_object=drivers/pwm/pwm-mtk-disp.o_compiled
+runtime_status=disabled_dt_node_no_hardware_test

@@ -1,0 +1,32 @@
+validation=nvt-identity-surface-inventory
+captured_utc=2026-07-14
+device_kernel=3.18.41+
+raw_capture=artifacts/device-inventory/20260714-nvt-live/identity-surfaces.txt
+raw_capture_sha256=b0a96ca7db0d925e5c1048dc603aec1321e725a52e485503bb709d37788f3e0c
+raw_capture_policy=private_git_ignored_mode_0600
+collector=experiments/2026-07-12-input-backlight-recovery/scripts/list-nvt-identity-surfaces.sh
+
+[surface_inventory]
+client_attribute_files=none
+driver_attribute_files=bind;uevent;unbind
+proc_endpoint=NVTflash_mode_0444_regular_empty_file
+safe_identity_attribute=absent
+
+[interpretation]
+The bound `4-0062` client exposes no readable identity, firmware-version,
+project-ID, trim-ID, or parameter attribute. The `NVT-ts` driver directory
+exposes only generic bind/uevent/unbind controls. `/proc/NVTflash` is not a
+safe fallback: the audited vendor read handler interprets the caller buffer as
+an I2C command and can select a write path, despite its 0444 mode.
+
+[safety]
+attribute_reads=none
+i2c_transactions=none
+driver_unbind=none
+firmware_update=none
+hardware_write=none
+
+[decision]
+read_only_identity_gate=unresolved
+next_identity_gate=separately_reviewed_owner_authorized_instrumented_probe
+mainline_driver_policy=do_not_alias_NT36xxx_vendor_node_to_NT36672A_without_protocol_evidence

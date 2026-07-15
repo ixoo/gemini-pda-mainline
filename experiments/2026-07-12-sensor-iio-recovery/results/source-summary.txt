@@ -1,0 +1,49 @@
+Static vendor source evidence
+
+Planet MT6797 source:
+- Repository commit: c5b0be85017ad0c599725e8273842efdbecdd88a
+- DTS: arch/arm64/boot/dts/aeon6797_6m_n.dts
+- SoC DTS: arch/arm64/boot/dts/mt6797.dtsi
+
+Sensor candidate descriptions in aeon6797_6m_n.dts:
+- cust_accel@0: mediatek,lsm6ds3_acc, I2C bus 1, direction 6
+- cust_accel@1: mediatek,bmi160_acc, I2C bus 1, direction 7
+- cust_alsps@0: mediatek,stk3x1x, I2C bus 1, address 0x48, ALS polling enabled,
+  PS polling disabled
+- cust_mag@0: mediatek,mmc3530, I2C bus 1, address 0x30, direction 7
+- cust_gyro@0: mediatek,lsm6ds3_gyro, I2C bus 1, direction 6
+- cust_gyro@1: mediatek,bmi160_gyro, I2C bus 1, direction 7
+- cust_baro@0: mediatek,bmp280, I2C bus 1, address 0x77
+- cust_hmdy@0: mediatek,hts221, I2C bus 1, address 0x5f
+
+Sensor GPIO source:
+- ALS/proximity interrupt pin: GPIO88 muxed to EINT11, pull-up configuration.
+- Gyro pin: GPIO65 configured as GPIO with pull-down; exact interrupt
+  consumer mapping is not established from this source alone.
+- I2C1 controller: 0x11008000 + 0x1000, DMA 0x11000180 + 0x80,
+  controller SPI 85 LOW, clocks INFRA_I2C1 and INFRA_AP_DMA.
+
+The vendor source contains many logical/fused sensor nodes (batchsensor,
+pdrsensor, uncalibrated channels, step/pickup/rotation/gesture classes). They
+are HAL composition points and should not be copied as physical kernel devices.
+
+Public protocol references used for comparison:
+- The GPLv2 Android STK3X1X implementation at
+  https://android.googlesource.com/kernel/msm/+/android-wear-5.1.1_r0.11/drivers/input/misc/stk3x1x.c
+  covers the Sensortek STK301x/STK321x/STK331x family and documents the
+  standard register map, separate VDD/VIO rails, product/revision reads, and
+  polling/interrupt paths. This is a protocol reference, not proof of the
+  exact Gemini product revision.
+- Linux 7.1.3's MMC35240 driver is the closest current MEMSIC implementation:
+  it uses address 0x30, registers 0x00-0x08 and 0x20, SET/RESET sequencing,
+  measurement-ready polling, and OTP compensation. The Gemini MMC3530 node is
+  unbound and no corresponding vendor symbols were observed, so equivalence is
+  not assumed.
+
+Gemian reference source:
+- Repository commit: d388d350cb2dda8f23b99be6fa5db9628896e87f
+- Used as a cross-check for the vendor DT/configuration boundary.
+- The public [Gemian hardware inventory](https://github.com/gemian/gemian/wiki/HardwareHacking)
+  records early X25 units using BMI160 instead of LSM6DS3 and downstream
+  support for both alternatives. This supports treating the vendor candidate
+  nodes as variant evidence, not a universal Gemini bill of materials.

@@ -1,0 +1,34 @@
+validation=kernel-artifact-and-lk-fdt-contract
+artifact=linux-7.1.3-gemini-86145c09fc00
+kernel_release=7.1.3-gemini
+generated_utc=2026-07-13T23:08:52Z
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patch_series_count=71
+patchset_sha256=86145c09fc00fd3c65fb822f7834c5bb3dc08eb76f5117b90538141a429a1623
+config_sha256=c11ddd57c1fc643202b15bcfac9564edbba61e42a0a08879369b52592ba31d7a
+image_sha256=4f63ac9ccfd97d83abcfb2fd51b045998e6f5539e68974b361c376f6abd8ab59
+image_size=48547848
+image_gzip_sha256=a7b4a05497d780e1929be7448927d4039b21e0831c6d54390be2333ce3d4c405
+image_gzip_size=14685979
+gemini_dtb_sha256=fb910c8d96b7d4f533c750ce0717ced8998c992834abc44a4ed86ec5a9cf1f97
+gemini_dtb_size=22713
+dtb_count=119
+sha256sums=passed
+full_image_and_dtb_build=passed
+package_provenance=passed
+lk_fdt_fixup_audit=passed
+post_lk_static_mblock_overlap=none
+pre_lk_dynamic_reservation_contract=preserved
+hardware_write=none
+runtime_boot=not_attempted
+
+private_lk_candidate=guest:~/artifacts/boot-candidates/20260713-lk-fdt-audit/gemini-mainline-lk-fdt-20260713.boot.img
+private_lk_candidate_sha256=b9dd7d0d2b78d9f9ed680a1c84a0fd26fad5f53db254c04195cf546f849caf4f
+private_lk_candidate_size=15718400
+private_lk_candidate_contract=passed
+private_lk_candidate_hardware_write=none
+
+The 71-patch package is the current candidate after removing the unsafe static
+post-LK log-store/mblock snapshot. The board DT retains the shipping pre-LK
+dynamic reservation contract. The retained LK requires the gzip payload and
+appended DTB; this package's decompressed Image fits its 50 MiB MT6797 buffer.

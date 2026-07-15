@@ -1,0 +1,95 @@
+MT6797 vendor Mali/Panfrost boundary analysis
+analysis-date=2026-07-13
+status=source_and_elf_contract_recovered;runtime_mainline_support_not_tested
+
+Reproduction
+- Script: ../scripts/analyze-mali-vendor-elf.sh
+- Vendor tree commit: c5b0be85017ad0c599725e8273842efdbecdd88a
+- Vendor ELF SHA-256: e185566db67405c7747c01dbfe840ab9df69288c03f71eacacba9617827546f0
+- Vendor DT source SHA-256: eaac86c8752ebd8ddf18b831eb3bc52a08f87475a213bb521650bf95dabb3e5e
+- Vendor mt_gpufreq.c SHA-256: 45634b5c9c54c27c1409da2758a5c157152fcc2507177b68abd85c26931d6c46
+- Vendor autoconf header SHA-256: 73ebaaf95f7a8233635c739dc83972ff0a5062cb3246432d4af569a1a352018d
+- r12p1 MT6797 platform config SHA-256: 39b859ad88cfb9c66ccfbf825e9a2785564001514fa31ea5c3d04fe7095f1a7e
+- r12p1 MT6797 SPM source SHA-256: f7e69e7c32b6bd53d6171449f15d30f6597f3c666d893cf80affb1feabad3283
+- r12p1 MT6797 SPM header SHA-256: f1ca82195179cb3ccb4d5be3df9f8f02cbdbecc8a401e7d20f78c1085e824409
+- r12p1 MT6797 SPM firmware SHA-256: f83f375614cabb6267c8fdbec2dc1fee91bf111d9c0c617103d8f0b0bd397b35
+- r12p1 MT6797 SPM HAL SHA-256: 6cf7c31aa4f4f4fddaee0acecfe7da7b9b7a1544bc7c052abeb603d05972e557
+- r12p1 MTK platform-common SHA-256: 2b806c169cf35b692807ce35cca4420a0773bf96d06d1df2e2c09746d32db97f
+- r12p1 Kbase core SHA-256: 25dd2db94214902e39684128811f98ad0e98cefd0ca113869897d3780d2d3ad9
+
+Source identity
+- The pinned public tree contains both generic Arm Mali Midgard/Kbase `mali-r12p0`
+  and the configured `mali-r12p1` tree. `include/uapi/linux/autoconf.h` records
+  `CONFIG_MTK_GPU_VERSION="mali midgard r12p1"` and GPU support enabled.
+- The exact MT6797 platform source is present under the r12p1 tree:
+  `platform/mt6797/mtk_config_platform.c`, `mtk_kbase_spm.c`,
+  `mtk_kbase_spm_fw.c`, `mtk_kbase_spm_hal.c`, and the matching headers.
+  `mali_kbase_core_linux.c` calls `mtk_platform_init()` during probe.
+- The source is vendor GPL-era Kbase/GED code and is evidence for interfaces,
+  register ownership, and sequencing. It is not copied into this repository.
+
+Recovered vendor DT/DVFS contract
+- `mali@13040000` has the three job/MMU/GPU interrupts, a 700 MHz property, and
+  thirteen clock/domain handles: MFG main/VCG, async/MFG/four MFG-core domains,
+  two 52 MHz/universal-PLL muxes, GPU DVFS/SPM, GPU-PM I2C, and AP-DMA.
+- The separate `gpufreq` node requests `clk_mux`, `clk_main_parent`, and
+  `clk_sub_parent` from the MT6797 topckgen/26 MHz tree.
+- `mt_gpufreq.c` selects `VGPU_SET_BY_EXTIC`, maps GPU-LDO base `0x10001000`,
+  and contains RT5735 and FAN53555 alternatives. The live board evidence
+  selects the RT5735 path; voltage policy remains separate from the GPU core.
+
+Recovered vendor source and ELF contract
+- `mtk_platform_init()` maps compatible nodes `mediatek,infracfg_ao`,
+  `mediatek,g3d_config`, `mediatek,g3d_dfp_config`, `mediatek,dvfs_proc2`, and
+  `mediatek,topckgen`; the ELF contains the same five mapping calls.
+- The source requests ten named clocks. With `MTK_GPU_SPM`, the DVFS clock is
+  treated as always-on, while GPU-PM and AP-DMA handles are acquired. It seeds
+  max/min voltage bounds (1150/850) and max/min frequencies from the vendor
+  table, selects the async timing value from the max frequency, initializes
+  the SPM DVFS PCM, programs LDO reserve registers, parents the MFG 52 MHz mux
+  to `univpll2-d8`, and asserts MFG top-axis protection.
+- The captured autoconf omits `CONFIG_MTK_GPU_SPM_DVFS_SUPPORT`, and the
+  captured ELF requests only the ten base clocks: optional GPU-PM and AP-DMA
+  clock requests are not observed. The SPM files and PCM sequence are therefore
+  source evidence for a possible platform feature, not proof that this live
+  image executes the optional SPM path.
+- Power-on writes the LDO reserve at `0xfbc`, enables VGPU, prepares the MFG
+  52 MHz VCG, async/MFG/core0-3, and MFG-main; the source has additional
+  GPU-PM/DVFS clock and PCM operations under the optional SPM build guard.
+  It releases MFG top-axis protection and sets timing/PMU registers. Power-off
+  polls MFG idle, unwinds the base clocks, disables VGPU, and clears the LDO
+  reserve; optional SPM/GPU-PM teardown is likewise build-guarded.
+- `mtk_debug_mfg_reset()` writes `3` then `0` at G3D-config offset `0x0c` with
+  a source-level `udelay(1)`. The ELF immediate `0x10c7` is the ARM64
+  `__const_udelay` encoding of that one-microsecond delay, not a 4.3 ms sleep.
+- `toprgu_mfg_reset()` toggles watchdog system-reset bit `0x0004` with the same
+  source-level `udelay(1)`.
+- The source does not expose a standard Linux reset-controller contract for the
+  Mali node.
+- `kbase_platform_early_init()` defers until PTPOD/EEM is ready and until any
+  FAN53555/RT5735 external power controller is hardware- and software-ready.
+- The r12p1 SPM code directly owns the DVFS GPU PCM, semaphore offsets
+  `0x410 + sem * 0x10 + user * 4`, reserve/ceiling/floor/boost registers, and
+  writes the vendor frequency/voltage table into the SPM table. This is a
+  platform DVFS/firmware contract, not part of the Panfrost job/MMU model.
+
+Linux 7.1.3 comparison
+- Panfrost contains the generic `arm,mali-t860` and `arm,mali-t880` matches and
+  a model entry for product `0x880`; the live product `0x0880` is therefore a
+  Midgard/T880 core-model match, not evidence for a new GPU register driver.
+- The 7.1.3 binding allows one or two clocks, optional `mali-supply`, one
+  power-domain, optional reset controls, and standard OPP data. The vendor's
+  thirteen-handle plus SPM/PLL/PMIC contract cannot be copied into that binding
+  unchanged.
+
+Decision
+- Reuse Panfrost's core model and DRM/MMU/job code when the runtime ID remains
+  `0x0880`.
+- Add an MT6797-specific platform integration/backend only for the recovered
+  clock, SCPSYS, regulator, reset, and safe-fixed-OPP contract; do not port the
+  vendor Kbase or GED userspace ABI or SPM firmware interface wholesale.
+- If another board revision reports a GPU ID outside Panfrost's supported
+  Midgard models, treat that as a new-driver decision boundary rather than
+  forcing a generic match.
+- Keep the Gemini GPU node disabled until reset ownership, power-domain order,
+  RT5735 rail wiring, and a conservative fixed OPP are validated on hardware.

@@ -1,0 +1,69 @@
+From 608be39daf30c6685d1571f7ea9933c59854a96e Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 12 Jul 2026 09:56:00 -0400
+Subject: [PATCH] drm/mediatek: add MT6797 display pipeline
+
+The MT6797 primary display path cascades its full-size overlay and two
+two-layer overlays before the color-processing chain. It then passes
+through RDMA and the UFOE bypass block to DSI0.
+
+Describe that path with the existing MediaTek DRM components and register
+the MMSYS compatible with the DRM master. Virtual routing blocks and the
+panel backlight PWM are not pixel-processing components, so omit them from
+the DRM path.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ drivers/gpu/drm/mediatek/mtk_drm_drv.c | 23 +++++++++++++++++++++++
+ 1 file changed, 23 insertions(+)
+
+diff --git a/drivers/gpu/drm/mediatek/mtk_drm_drv.c b/drivers/gpu/drm/mediatek/mtk_drm_drv.c
+index df5ae489f..87f9af6d4 100644
+--- a/drivers/gpu/drm/mediatek/mtk_drm_drv.c
++++ b/drivers/gpu/drm/mediatek/mtk_drm_drv.c
+@@ -112,6 +112,21 @@ static unsigned int mt8167_mtk_ddp_main[] = {
+ 	DDP_COMPONENT_DSI0,
+ };
+ 
++static const unsigned int mt6797_mtk_ddp_main[] = {
++	DDP_COMPONENT_OVL0,
++	DDP_COMPONENT_OVL_2L0,
++	DDP_COMPONENT_OVL_2L1,
++	DDP_COMPONENT_COLOR0,
++	DDP_COMPONENT_CCORR,
++	DDP_COMPONENT_AAL0,
++	DDP_COMPONENT_GAMMA,
++	DDP_COMPONENT_OD0,
++	DDP_COMPONENT_DITHER0,
++	DDP_COMPONENT_RDMA0,
++	DDP_COMPONENT_UFOE,
++	DDP_COMPONENT_DSI0,
++};
++
+ static const unsigned int mt8173_mtk_ddp_main[] = {
+ 	DDP_COMPONENT_OVL0,
+ 	DDP_COMPONENT_COLOR0,
+@@ -265,6 +280,12 @@ static const struct mtk_mmsys_driver_data mt8167_mmsys_driver_data = {
+ 	.mmsys_dev_num = 1,
+ };
+ 
++static const struct mtk_mmsys_driver_data mt6797_mmsys_driver_data = {
++	.main_path = mt6797_mtk_ddp_main,
++	.main_len = ARRAY_SIZE(mt6797_mtk_ddp_main),
++	.mmsys_dev_num = 1,
++};
++
+ static const struct mtk_mmsys_driver_data mt8173_mmsys_driver_data = {
+ 	.main_path = mt8173_mtk_ddp_main,
+ 	.main_len = ARRAY_SIZE(mt8173_mtk_ddp_main),
+@@ -340,6 +361,8 @@ static const struct of_device_id mtk_drm_of_ids[] = {
+ 	  .data = &mt2712_mmsys_driver_data},
+ 	{ .compatible = "mediatek,mt8167-mmsys",
+ 	  .data = &mt8167_mmsys_driver_data},
++	{ .compatible = "mediatek,mt6797-mmsys",
++	  .data = &mt6797_mmsys_driver_data},
+ 	{ .compatible = "mediatek,mt8173-mmsys",
+ 	  .data = &mt8173_mmsys_driver_data},
+ 	{ .compatible = "mediatek,mt8183-mmsys",
+-- 
+2.43.0

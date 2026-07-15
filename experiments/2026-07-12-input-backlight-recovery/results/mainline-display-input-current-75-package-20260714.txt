@@ -1,0 +1,273 @@
+validation=gemini-display-input-current-package-audit
+package=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-a21fac4139df
+package_image_sha256=6ece1b2d412ae4d4c30359ad1ec855a05de388733abda5ed0a263c6ab9d4f168
+package_config_sha256=dd922033ec1bfdb623e14f46c1cd3ca885540af1dd76d64b9e33953bc8e18dbf
+package_dtb_sha256=21529f78282cbf3a48f9260b8981f005f3643d54e729ab676384880c6ace1d4c
+package_system_map_sha256=afb71ee8962b6c2008c6ec193e04cd042aa226736001b5fd0596e0b5502bbe70
+linux_tree=/home/julien.guest/src/gemini-pda/linux-7.1.3
+linux_version=7.1.3
+dtc_warning_lines=2
+
+[configuration]
+CONFIG_INPUT_TOUCHSCREEN=y
+CONFIG_TOUCHSCREEN_NOVATEK_NVT_TS=unset
+CONFIG_PINCTRL_AW9523=m
+CONFIG_KEYBOARD_GPIO=m
+CONFIG_KEYBOARD_MATRIX=m
+CONFIG_BACKLIGHT_PWM=m
+CONFIG_PWM_MEDIATEK=m
+CONFIG_PWM_MTK_DISP=m
+CONFIG_DRM_MEDIATEK=m
+CONFIG_DRM_MIPI_DSI=y
+CONFIG_PHY_MTK_MIPI_DSI=m
+CONFIG_DRM_PANEL_NOVATEK_NT36672E=m
+CONFIG_MTK_CMDQ=y
+CONFIG_MTK_IOMMU=y
+CONFIG_MTK_MMSYS=y
+CONFIG_MTK_SMI=y
+
+[packaged_modules]
+module=pinctrl-aw9523
+path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-a21fac4139df/modules/lib/modules/7.1.3-gemini/kernel/drivers/pinctrl/pinctrl-aw9523.ko
+sha256=1083bfe109ec599cdca843c0ef96d4562f41ceab0112d5040fe97c8e2b72b881
+module=matrix_keypad
+path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-a21fac4139df/modules/lib/modules/7.1.3-gemini/kernel/drivers/input/keyboard/matrix_keypad.ko
+sha256=953d177f00d4a589bca5523396032499312acd28c758cd57c5745659862aeb77
+module=gpio_keys
+path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-a21fac4139df/modules/lib/modules/7.1.3-gemini/kernel/drivers/input/keyboard/gpio_keys.ko
+sha256=cff403052975163cac612b1ada24ec68cd042ba05c4240cede864957f9f771f7
+module=pwm-mtk-disp
+path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-a21fac4139df/modules/lib/modules/7.1.3-gemini/kernel/drivers/pwm/pwm-mtk-disp.ko
+sha256=88c64b6be04b2cbc5d0988b17b5bee3cbcf15933aeb60371e79caa8e3e12eb1b
+module=pwm-mediatek
+path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-a21fac4139df/modules/lib/modules/7.1.3-gemini/kernel/drivers/pwm/pwm-mediatek.ko
+sha256=547c4ca32643c4867475b0d6d5f093f0de2f5e3005c0c2a7a4a19ecac7ac380e
+module=pwm_bl
+path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-a21fac4139df/modules/lib/modules/7.1.3-gemini/kernel/drivers/video/backlight/pwm_bl.ko
+sha256=c94dfa6f6f22d6adbe2b80d9e693849a5330accd1c8ca239fead0d050cf437d4
+module=mediatek-drm
+path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-a21fac4139df/modules/lib/modules/7.1.3-gemini/kernel/drivers/gpu/drm/mediatek/mediatek-drm.ko
+sha256=165db92f2e0ef754418499f88a0d178c1d02911c809ff1ddb7e43419e8a81659
+module=panel-novatek-nt36672e
+path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-a21fac4139df/modules/lib/modules/7.1.3-gemini/kernel/drivers/gpu/drm/panel/panel-novatek-nt36672e.ko
+sha256=71535d94133509cb749985a3b7272a12a02bd6a1e132fcd11565cc647ddc91f5
+module=phy-mtk-mipi-dsi-drv
+path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-a21fac4139df/modules/lib/modules/7.1.3-gemini/kernel/drivers/phy/mediatek/phy-mtk-mipi-dsi-drv.ko
+sha256=78d005af962f2f23170d41a6cc3016aa703c605e519f83c0ff57f34aec12c747
+module=novatek-nvt-ts
+path=absent
+
+[keyboard_tree]
+i2c5_node_matches=1
+i2c5_disabled_status_matches=1
+aw9523_node_matches=1
+aw9523_disabled_status_matches=1
+keyboard_matrix_node_matches=1
+keyboard_matrix_disabled_status_matches=2
+keyboard_matrix_keymap_matches=1
+
+[hall_tree]
+gpio_keys_node_matches=1
+gpio_keys_disabled_status_matches=1
+hall_switch_child_matches=1
+hall_switch_gpio_matches=1
+hall_switch_debounce_matches=1
+hall_switch_code_matches=1
+
+[display_tree]
+display_pwm_node_matches=1
+display_pwm_disabled_status_matches=1
+dsi_node_matches=1
+dsi_disabled_status_matches=1
+dsi_phy_node_matches=1
+dsi_phy_disabled_status_matches=1
+display_component_node_matches=11
+display_component_disabled_status_matches=11
+panel_consumer_matches=0
+touchscreen_node_matches=0
+display_resource_context:
+449-	};
+450-
+451:	dsi-phy@10215000 {
+452-		compatible = "mediatek,mt6797-mipi-tx";
+453-		reg = <0x00 0x10215000 0x00 0x1000>;
+454-		clocks = <0x0c>;
+455-		clock-output-names = "mipi_tx0_pll";
+456-		#clock-cells = <0x00>;
+457-		#phy-cells = <0x00>;
+458-		status = "disabled";
+459-		phandle = <0x21>;
+460-	};
+461-
+462-	serial@11002000 {
+463-		compatible = "mediatek,mt6797-uart\0mediatek,mt6577-uart";
+464-		reg = <0x00 0x11002000 0x00 0x400>;
+465-		interrupts = <0x00 0x5b 0x08>;
+466-		clocks = <0x02 0x16 0x02 0x2e>;
+467-		clock-names = "baud\0bus";
+468-		status = "okay";
+469-		pinctrl-names = "default";
+--
+747-		status = "disabled";
+748-
+749:		gpio-expander@5b {
+750-			compatible = "awinic,aw9523-pinctrl";
+751-			reg = <0x5b>;
+752-			interrupt-parent = <0x07>;
+753-			interrupts = <0x57 0x08>;
+754-			gpio-controller;
+755-			#gpio-cells = <0x02>;
+756-			gpio-ranges = <0x07 0x00 0x00 0x10>;
+757-			interrupt-controller;
+758-			#interrupt-cells = <0x02>;
+759-			reset-gpios = <0x07 0x3a 0x00>;
+760-			status = "disabled";
+761-			phandle = <0x28>;
+762-
+763-			keyboard-matrix-row-pins {
+764-				pins = "gpio0\0gpio1\0gpio2\0gpio3\0gpio4\0gpio5\0gpio6\0gpio7";
+765-				function = "gpio";
+766-				bias-pull-up;
+767-				drive-open-drain;
+--
+835-	};
+836-
+837:	pwm@1100f000 {
+838-		compatible = "mediatek,mt6797-disp-pwm";
+839-		reg = <0x00 0x1100f000 0x00 0x1000>;
+840-		#pwm-cells = <0x02>;
+841-		clocks = <0x02 0x2d>;
+842-		clock-names = "main";
+843-		power-domains = <0x0a 0x03>;
+844-		status = "disabled";
+845-	};
+846-
+847:	ovl@1400b000 {
+848-		compatible = "mediatek,mt6797-disp-ovl";
+849-		reg = <0x00 0x1400b000 0x00 0x1000>;
+850-		interrupts = <0x00 0xd5 0x08>;
+851-		power-domains = <0x0a 0x03>;
+852-		clocks = <0x1f 0x10>;
+853-		iommus = <0x20 0x00>;
+854-		mediatek,gce-client-reg = <0x1e 0x01 0xb000 0x1000>;
+855-		status = "disabled";
+856-	};
+857-
+858:	ovl@1400d000 {
+859-		compatible = "mediatek,mt6797-disp-ovl-2l";
+860-		reg = <0x00 0x1400d000 0x00 0x1000>;
+861-		interrupts = <0x00 0xd7 0x08>;
+862-		power-domains = <0x0a 0x03>;
+863-		clocks = <0x1f 0x12>;
+864-		iommus = <0x20 0x01>;
+865-		mediatek,gce-client-reg = <0x1e 0x01 0xd000 0x1000>;
+866-		status = "disabled";
+867-	};
+868-
+869:	ovl@1400e000 {
+870-		compatible = "mediatek,mt6797-disp-ovl-2l";
+871-		reg = <0x00 0x1400e000 0x00 0x1000>;
+872-		interrupts = <0x00 0xd8 0x08>;
+873-		power-domains = <0x0a 0x03>;
+874-		clocks = <0x1f 0x13>;
+875-		iommus = <0x20 0xa1>;
+876-		mediatek,gce-client-reg = <0x1e 0x01 0xe000 0x1000>;
+877-		status = "disabled";
+878-	};
+879-
+880:	rdma@1400f000 {
+881-		compatible = "mediatek,mt6797-disp-rdma";
+882-		reg = <0x00 0x1400f000 0x00 0x1000>;
+883-		interrupts = <0x00 0xd9 0x08>;
+884-		power-domains = <0x0a 0x03>;
+885-		clocks = <0x1f 0x14>;
+886-		iommus = <0x20 0x02>;
+887-		mediatek,gce-client-reg = <0x1e 0x01 0xf000 0x1000>;
+888-		status = "disabled";
+889-	};
+890-
+891-	color@14013000 {
+892-		compatible = "mediatek,mt6797-disp-color";
+893-		reg = <0x00 0x14013000 0x00 0x1000>;
+894-		interrupts = <0x00 0xdd 0x08>;
+895-		power-domains = <0x0a 0x03>;
+896-		clocks = <0x1f 0x18>;
+897-		mediatek,gce-client-reg = <0x1e 0x02 0x3000 0x1000>;
+898-		status = "disabled";
+--
+958-	};
+959-
+960:	dsi@1401c000 {
+961-		compatible = "mediatek,mt6797-dsi";
+962-		reg = <0x00 0x1401c000 0x00 0x1000>;
+963-		interrupts = <0x00 0xe5 0x08>;
+964-		power-domains = <0x0a 0x03>;
+965-		clocks = <0x1f 0x21 0x1f 0x29 0x21>;
+966-		clock-names = "engine\0digital\0hs";
+967-		phys = <0x21>;
+968-		phy-names = "dphy";
+969-		status = "disabled";
+970-
+971-		ports {
+972-			#address-cells = <0x01>;
+973-			#size-cells = <0x00>;
+974-
+975-			port@0 {
+976-				reg = <0x00>;
+977-			};
+978-
+--
+1244-	};
+1245-
+1246:	keyboard-matrix {
+1247-		compatible = "gpio-matrix-keypad";
+1248-		pinctrl-names = "default";
+1249-		pinctrl-0 = <0x26 0x27>;
+1250-		row-gpios = <0x28 0x00 0x00 0x28 0x01 0x00 0x28 0x02 0x00 0x28 0x03 0x00 0x28 0x04 0x00 0x28 0x05 0x00 0x28 0x06 0x00 0x28 0x07 0x00>;
+1251-		col-gpios = <0x28 0x08 0x00 0x28 0x09 0x00 0x28 0x0a 0x00 0x28 0x0b 0x00 0x28 0x0c 0x00 0x28 0x0d 0x00 0x28 0x0e 0x00>;
+1252-		linux,keymap = <0x02 0x1000016 0x200001f 0x300002c 0x4000033 0x5000028 0x6000009 0x7000024 0x10003 0x1010011 0x2010020 0x301002e 0x4010038 0x5010069 0x601000a 0x7010025 0x20004 0x1020015 0x202000f 0x3020031 0x4020032 0x502006c 0x602000e 0x7020017 0x30005 0x1030014 0x2030021 0x303002d 0x40301d0 0x5030036 0x6030019 0x40006 0x1040012 0x2040022 0x304002f 0x4040039 0x5040067 0x6040018 0x50007 0x1050010 0x205001e 0x3050030 0x4050034 0x505006a 0x605001c 0x60008 0x1060013 0x2060023 0x306002a 0x406001d 0x5060026 0x606000b>;
+1253-		status = "disabled";
+1254-	};
+1255-
+1256-	gpio-keys {
+1257-		compatible = "gpio-keys";
+1258-		pinctrl-names = "default";
+1259-		pinctrl-0 = <0x29>;
+1260-		status = "disabled";
+1261-
+1262-		hall-switch {
+1263-			label = "Hall lid";
+1264-			linux,input-type = <0x05>;
+
+[source_contract]
+input_validation=experiments/2026-07-12-input-backlight-recovery/results/mainline-input-current-71-validation-20260714.txt
+display_validation=experiments/2026-07-12-mt6797-drm-component-recovery/results/mainline-display-current-71-validation-20260714.txt
+touch_protocol=live_NT36772_identity_observed;vendor_transport_runtime_unvalidated
+keyboard_reuse=AW9523_pinctrl_plus_gpio_matrix_keypad
+backlight_reuse=MT6797_display_PWM_plus_standard_pwm_backlight
+display_reuse=MT6797_specific_DRM_DSI_PHY_platform_data
+
+[local_display_input_patches]
+patch=/mnt/gemini-pda-mainline/patches/v7.1.3/0054-arm64-dts-mediatek-add-disabled-Gemini-AW9523-keyboard-candidate.patch
+sha256=3d91aaa3378f9485b09da0583c586c19adcd31bdd109944b97565124f8960e5c
+match_lines=30
+patch=/mnt/gemini-pda-mainline/patches/v7.1.3/0074-arm64-dts-mediatek-gemini-add-disabled-hall-gpio-keys-candidate.patch
+sha256=8a253bbd7b01efaf8b8f38bcd24255edb8bc6cff6bb6a850703f34a99ac756c3
+match_lines=8
+patch=/mnt/gemini-pda-mainline/patches/v7.1.3/0060-drm-mediatek-add-MT6797-DPI-platform-data.patch
+sha256=a80e7bfa9d3223ccfbf54fcf869928c4f354522d34586865407b7c341e9b5588
+match_lines=35
+patch=/mnt/gemini-pda-mainline/patches/v7.1.3/0061-arm64-dts-mediatek-add-disabled-MT6797-DPI-node.patch
+sha256=1bd57774d92d8abdff5bc121541a2a13af57ca455bbfe3744e86fad942cad992
+match_lines=19
+
+[decision]
+keyboard=packaged_upstream_AW9523_and_matrix_keypad_with_disabled_bus_expander_consumer
+hall=packaged_disabled_gpio_keys_SW_LID_candidate_on_GPIO66_active_low_64ms
+touch=separate_NT36772_backend_not_selected;vendor_transport_runtime_unvalidated
+backlight=packaged_PWM_providers_but_no_standard_backlight_consumer
+display=packaged_MT6797_DRM_DSI_PHY_panel_objects_but_all_consumers_disabled
+panel=nt36672e_module_packaged_but_panel_node_absent
+display_runtime=not_attempted
+input_runtime=not_attempted
+hardware_write=none

@@ -1,0 +1,37 @@
+MT6797 TOPRGU watchdog validation against current Gemini package
+===============================================================
+
+Date: 2026-07-13
+VM: gemini-pda-dev
+Package: linux-7.1.3-gemini-363bf3942a1b
+Patchset SHA-256: 363bf3942a1b08144a47a27e11a3c1f6075b0e160bcf78b33843fb7b89f39ba9
+
+Prepared build:
+  build=/home/julien.guest/build/gemini-pda/linux-7.1.3
+  dtb=arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dtb
+  dtb_sha256=dbbf94f09b3dd8b001440a0662f7980a673e77bd3108c1c5d9582f3d9a827241
+  config_sha256=7a0f3243391db2ee8b56f031f88569ff604618b7030c78b4466b175a226c8f7e
+
+Generated DTB node:
+  compatible=mediatek,mt6797-wdt + mediatek,mt6589-wdt
+  reg=0x10007000/0x100
+  interrupts=GIC SPI 137, IRQ_TYPE_EDGE_FALLING
+
+Validation:
+  CONFIG_WATCHDOG=y
+  CONFIG_WATCHDOG_CORE=y
+  CONFIG_MEDIATEK_WATCHDOG=y
+  CONFIG_RESET_CONTROLLER=y
+  watchdog_dt_binding_check=passed_exit0
+  full_schema_dt_validate=passed_exit0
+  checkpatch_0053=passed_exit0
+  hardware_write=none
+  watchdog_start_stop_ping_restart=not_attempted
+  runtime_mainline_boot=not_attempted
+
+The current package preserves the generic Linux `mtk_wdt` reuse decision and
+the board-specific bark IRQ. Static validation proves the DT/resource and
+configuration contract only; it does not prove that probing or the
+pretimeout path is safe under the retained firmware. Do not open
+`/dev/watchdog0` or test reset behavior until an external console and
+independent recovery path are present.

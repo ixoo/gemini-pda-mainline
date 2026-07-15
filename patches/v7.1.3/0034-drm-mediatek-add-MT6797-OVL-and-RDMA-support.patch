@@ -1,0 +1,124 @@
+From 3953b5e33e9ad440dd4df4a38946b096d7801ddd Mon Sep 17 00:00:00 2001
+From: Gemini PDA Mainline Project <noreply@example.com>
+Date: Sun, 12 Jul 2026 08:33:34 -0400
+Subject: [PATCH 34/34] drm/mediatek: add MT6797 OVL and RDMA support
+
+The MT6797 OVL register layout and eight-bit GMC fields match the MT8173
+generation, while its LAYER_SMI_ID_EN requirement matches MT8167. Model
+the four-layer and two-layer variants separately. The live Gemini
+framebuffer format also matches the existing MT8173 format table.
+
+MT6797 RDMA uses the MT8173 register generation and an 8 KiB FIFO,
+confirmed by both the retained source and the running controller FIFO-size
+field. Add the corresponding platform data and make all three component
+compatibles visible to the DRM component matcher.
+
+Signed-off-by: Gemini PDA Mainline Project <noreply@example.com>
+---
+ drivers/gpu/drm/mediatek/mtk_disp_ovl.c  | 24 ++++++++++++++++++++++++
+ drivers/gpu/drm/mediatek/mtk_disp_rdma.c |  8 ++++++++
+ drivers/gpu/drm/mediatek/mtk_drm_drv.c   |  6 ++++++
+ 3 files changed, 38 insertions(+)
+
+diff --git a/drivers/gpu/drm/mediatek/mtk_disp_ovl.c b/drivers/gpu/drm/mediatek/mtk_disp_ovl.c
+index 97a899e4b..c0342734d 100644
+--- a/drivers/gpu/drm/mediatek/mtk_disp_ovl.c
++++ b/drivers/gpu/drm/mediatek/mtk_disp_ovl.c
+@@ -690,6 +690,26 @@ static const struct mtk_disp_ovl_data mt8173_ovl_driver_data = {
+ 	.num_formats = ARRAY_SIZE(mt8173_formats),
+ };
+ 
++static const struct mtk_disp_ovl_data mt6797_ovl_driver_data = {
++	.addr = DISP_REG_OVL_ADDR_MT8173,
++	.gmc_bits = 8,
++	.layer_nr = 4,
++	.fmt_rgb565_is_0 = true,
++	.smi_id_en = true,
++	.formats = mt8173_formats,
++	.num_formats = ARRAY_SIZE(mt8173_formats),
++};
++
++static const struct mtk_disp_ovl_data mt6797_ovl_2l_driver_data = {
++	.addr = DISP_REG_OVL_ADDR_MT8173,
++	.gmc_bits = 8,
++	.layer_nr = 2,
++	.fmt_rgb565_is_0 = true,
++	.smi_id_en = true,
++	.formats = mt8173_formats,
++	.num_formats = ARRAY_SIZE(mt8173_formats),
++};
++
+ static const struct mtk_disp_ovl_data mt8183_ovl_driver_data = {
+ 	.addr = DISP_REG_OVL_ADDR_MT8173,
+ 	.gmc_bits = 10,
+@@ -756,6 +776,10 @@ static const struct of_device_id mtk_disp_ovl_driver_dt_match[] = {
+ 	  .data = &mt8167_ovl_driver_data},
+ 	{ .compatible = "mediatek,mt8173-disp-ovl",
+ 	  .data = &mt8173_ovl_driver_data},
++	{ .compatible = "mediatek,mt6797-disp-ovl",
++	  .data = &mt6797_ovl_driver_data},
++	{ .compatible = "mediatek,mt6797-disp-ovl-2l",
++	  .data = &mt6797_ovl_2l_driver_data},
+ 	{ .compatible = "mediatek,mt8183-disp-ovl",
+ 	  .data = &mt8183_ovl_driver_data},
+ 	{ .compatible = "mediatek,mt8183-disp-ovl-2l",
+diff --git a/drivers/gpu/drm/mediatek/mtk_disp_rdma.c b/drivers/gpu/drm/mediatek/mtk_disp_rdma.c
+index c9d41d75e..f4c348194 100644
+--- a/drivers/gpu/drm/mediatek/mtk_disp_rdma.c
++++ b/drivers/gpu/drm/mediatek/mtk_disp_rdma.c
+@@ -388,6 +388,12 @@ static const struct mtk_disp_rdma_data mt8173_rdma_driver_data = {
+ 	.num_formats = ARRAY_SIZE(mt8173_formats),
+ };
+ 
++static const struct mtk_disp_rdma_data mt6797_rdma_driver_data = {
++	.fifo_size = SZ_8K,
++	.formats = mt8173_formats,
++	.num_formats = ARRAY_SIZE(mt8173_formats),
++};
++
+ static const struct mtk_disp_rdma_data mt8183_rdma_driver_data = {
+ 	.fifo_size = 5 * SZ_1K,
+ 	.formats = mt8173_formats,
+@@ -405,6 +411,8 @@ static const struct of_device_id mtk_disp_rdma_driver_dt_match[] = {
+ 	  .data = &mt2701_rdma_driver_data},
+ 	{ .compatible = "mediatek,mt8173-disp-rdma",
+ 	  .data = &mt8173_rdma_driver_data},
++	{ .compatible = "mediatek,mt6797-disp-rdma",
++	  .data = &mt6797_rdma_driver_data},
+ 	{ .compatible = "mediatek,mt8183-disp-rdma",
+ 	  .data = &mt8183_rdma_driver_data},
+ 	{ .compatible = "mediatek,mt8195-disp-rdma",
+diff --git a/drivers/gpu/drm/mediatek/mtk_drm_drv.c b/drivers/gpu/drm/mediatek/mtk_drm_drv.c
+index c86a3f54f..2565e357e 100644
+--- a/drivers/gpu/drm/mediatek/mtk_drm_drv.c
++++ b/drivers/gpu/drm/mediatek/mtk_drm_drv.c
+@@ -766,6 +766,8 @@ static const struct of_device_id mtk_ddp_comp_dt_ids[] = {
+ 	  .data = (void *)MTK_DISP_OVL },
+ 	{ .compatible = "mediatek,mt8173-disp-ovl",
+ 	  .data = (void *)MTK_DISP_OVL },
++	{ .compatible = "mediatek,mt6797-disp-ovl",
++	  .data = (void *)MTK_DISP_OVL },
+ 	{ .compatible = "mediatek,mt8183-disp-ovl",
+ 	  .data = (void *)MTK_DISP_OVL },
+ 	{ .compatible = "mediatek,mt8192-disp-ovl",
+@@ -774,6 +776,8 @@ static const struct of_device_id mtk_ddp_comp_dt_ids[] = {
+ 	  .data = (void *)MTK_DISP_OVL },
+ 	{ .compatible = "mediatek,mt8183-disp-ovl-2l",
+ 	  .data = (void *)MTK_DISP_OVL_2L },
++	{ .compatible = "mediatek,mt6797-disp-ovl-2l",
++	  .data = (void *)MTK_DISP_OVL_2L },
+ 	{ .compatible = "mediatek,mt8192-disp-ovl-2l",
+ 	  .data = (void *)MTK_DISP_OVL_2L },
+ 	{ .compatible = "mediatek,mt8192-disp-postmask",
+@@ -790,6 +794,8 @@ static const struct of_device_id mtk_ddp_comp_dt_ids[] = {
+ 	  .data = (void *)MTK_DISP_RDMA },
+ 	{ .compatible = "mediatek,mt8173-disp-rdma",
+ 	  .data = (void *)MTK_DISP_RDMA },
++	{ .compatible = "mediatek,mt6797-disp-rdma",
++	  .data = (void *)MTK_DISP_RDMA },
+ 	{ .compatible = "mediatek,mt8183-disp-rdma",
+ 	  .data = (void *)MTK_DISP_RDMA },
+ 	{ .compatible = "mediatek,mt8195-disp-rdma",
+-- 
+2.43.0
+

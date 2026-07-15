@@ -1,0 +1,20 @@
+validation=mt6797-usb11-fixed-slew-mainline-shape
+captured_utc=2026-07-13T16:11:00Z
+linux_comparison=7.1.3
+method=read-only_source_comparison;no_MMIO_access;no_hardware_writes
+vendor_config=artifacts/device-inventory/20260712-live/vendor-kernel.config
+vendor_config_MTK_ICUSB_SUPPORT=unset
+vendor_config_MTK_DT_USB_SUPPORT=unset
+vendor_source=drivers/misc/mediatek/usb11/mt6797/musbfsh_mt65xx.c
+vendor_helper=usb11_hs_slew_rate_cal
+vendor_meter_window=USB11_PHY+0x700+0x01,+0x03,+0x0c,+0x11 (SIF+0xf01..0xf14)
+vendor_helper_semantics=sets_timeout_flag_unconditionally;skips_FM_OUT_read;programs_value_0x4;DT_USB_build_returns_before_helper
+vendor_active_path=poweron_volt_50(icusb=0) enters helper in captured config
+vendor_phy_child=USB_SIF_BASE+0x800=0x11210800
+linux_generic_child_bank=V1_U2PHY_COM=child+0x000
+linux_generic_fmreg=parent_SIF+0x100 (must_not_be_touched_for_USB11)
+linux_escape=mediatek,eye-src=4 causes hs_slew_rate_calibrate early return and u2_phy_props_set writes PA5_RG_U2_HSTX_SRCTRL=4
+decision=use_existing_T-PHY_V1_U2_helpers plus explicit MT6797_USB11 compatible/resource mapping and eye-src=4 first; defer meter-hook and opaque savecurrent/recover writes until runtime evidence
+driver_boundary=small_MUSB_glue_data_variant remains required for infra_icusb/sssub_ref_clk, six endpoints, non-multipoint host FIFO configuration
+runtime_gate=live_SSH_retry_timed_out;no_USB11_register_or_transfer_test;node_remains_disabled
+validation=analyze-mt6797-tphy-contract.sh rerun;output_sha256=d8f474e0002d10342a7c62efe9f3196d13be03f280a00eb6141c9378ff5fba1f;git_diff_check=pass;bash_n=pass

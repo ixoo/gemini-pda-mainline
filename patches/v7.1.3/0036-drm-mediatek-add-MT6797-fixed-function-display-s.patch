@@ -1,0 +1,343 @@
+From 04e69750a83ae6525a109d9b2bf30e0a12034224 Mon Sep 17 00:00:00 2001
+From: Gemini PDA Mainline Project <noreply@example.com>
+Date: Sun, 12 Jul 2026 08:52:54 -0400
+Subject: [PATCH 36/36] drm/mediatek: add MT6797 fixed-function display support
+
+Add MT6797 platform data and component matches for the fixed-function
+blocks in its primary display pipeline. COLOR uses the MT8173 register
+window. CCORR uses 2.10 fixed-point coefficients, matching its 12-bit
+fields, and remains in relay until a CTM is supplied.
+
+The MT6797 AAL register map has no output-size register at 0x4d8, so skip
+that write and start AAL in relay. Do not expose the unevidenced integrated
+gamma capability. The separate GAMMA block has one 512-entry 10-bit LUT
+and also starts in relay until a LUT is installed.
+
+MT6797 has a separate DITHER block. Keep OD in relay instead of enabling
+its internal dither as the generic MT8173 path does. The generic DITHER
+programming and UFOE bypass operation match the retained register fields
+and active Gemini state directly.
+
+Signed-off-by: Gemini PDA Mainline Project <noreply@example.com>
+---
+ drivers/gpu/drm/mediatek/mtk_ddp_comp.c   | 22 +++++++++++++++++++++-
+ drivers/gpu/drm/mediatek/mtk_disp_aal.c   | 16 +++++++++++++++-
+ drivers/gpu/drm/mediatek/mtk_disp_ccorr.c | 22 ++++++++++++++++++++--
+ drivers/gpu/drm/mediatek/mtk_disp_color.c |  6 ++++++
+ drivers/gpu/drm/mediatek/mtk_disp_gamma.c | 14 ++++++++++++++
+ drivers/gpu/drm/mediatek/mtk_drm_drv.c    | 14 ++++++++++++++
+ 6 files changed, 90 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/gpu/drm/mediatek/mtk_ddp_comp.c b/drivers/gpu/drm/mediatek/mtk_ddp_comp.c
+index 9672ea1f9..7b19be0d3 100644
+--- a/drivers/gpu/drm/mediatek/mtk_ddp_comp.c
++++ b/drivers/gpu/drm/mediatek/mtk_ddp_comp.c
+@@ -60,10 +60,19 @@
+ #define DISP_REG_UFO_START			0x0000
+ #define UFO_BYPASS				BIT(2)
+ 
++struct mtk_ddp_comp_data {
++	bool no_od_dither;
++};
++
+ struct mtk_ddp_comp_dev {
+ 	struct clk *clk;
+ 	void __iomem *regs;
+ 	struct cmdq_client_reg cmdq_reg;
++	const struct mtk_ddp_comp_data *data;
++};
++
++static const struct mtk_ddp_comp_data mt6797_od_data = {
++	.no_od_dither = true,
+ };
+ 
+ void mtk_ddp_write(struct cmdq_pkt *cmdq_pkt, unsigned int value,
+@@ -225,7 +234,8 @@ static void mtk_od_config(struct device *dev, unsigned int w,
+ 
+ 	mtk_ddp_write(cmdq_pkt, w << 16 | h, &priv->cmdq_reg, priv->regs, DISP_REG_OD_SIZE);
+ 	mtk_ddp_write(cmdq_pkt, OD_RELAYMODE, &priv->cmdq_reg, priv->regs, DISP_REG_OD_CFG);
+-	mtk_dither_set(dev, bpc, DISP_REG_OD_CFG, cmdq_pkt);
++	if (!priv->data || !priv->data->no_od_dither)
++		mtk_dither_set(dev, bpc, DISP_REG_OD_CFG, cmdq_pkt);
+ }
+ 
+ static void mtk_od_start(struct device *dev)
+@@ -424,6 +434,11 @@ static const struct mtk_ddp_comp_funcs ddp_ovl_adaptor = {
+ 	.mode_valid = mtk_ovl_adaptor_mode_valid,
+ };
+ 
++static const struct of_device_id mtk_ddp_comp_dt_ids[] = {
++	{ .compatible = "mediatek,mt6797-disp-od", .data = &mt6797_od_data },
++	{ /* sentinel */ }
++};
++
+ static const char * const mtk_ddp_comp_stem[MTK_DDP_COMP_TYPE_MAX] = {
+ 	[MTK_DISP_AAL] = "aal",
+ 	[MTK_DISP_BLS] = "bls",
+@@ -641,6 +656,7 @@ int mtk_ddp_comp_init(struct device *dev, struct device_node *node, struct mtk_d
+ 	struct platform_device *comp_pdev;
+ 	enum mtk_ddp_comp_type type;
+ 	struct mtk_ddp_comp_dev *priv;
++	const struct of_device_id *match;
+ 	int ret;
+ 
+ 	if (comp_id >= DDP_COMPONENT_DRM_ID_MAX)
+@@ -686,6 +702,10 @@ int mtk_ddp_comp_init(struct device *dev, struct device_node *node, struct mtk_d
+ 	if (!priv)
+ 		return -ENOMEM;
+ 
++	match = of_match_node(mtk_ddp_comp_dt_ids, node);
++	if (match)
++		priv->data = match->data;
++
+ 	priv->regs = devm_of_iomap(dev, node, 0, NULL);
+ 	if (IS_ERR(priv->regs))
+ 		return PTR_ERR(priv->regs);
+diff --git a/drivers/gpu/drm/mediatek/mtk_disp_aal.c b/drivers/gpu/drm/mediatek/mtk_disp_aal.c
+index abc9e5525..9b4b3f2bf 100644
+--- a/drivers/gpu/drm/mediatek/mtk_disp_aal.c
++++ b/drivers/gpu/drm/mediatek/mtk_disp_aal.c
+@@ -34,6 +34,8 @@
+ 
+ struct mtk_disp_aal_data {
+ 	bool has_gamma;
++	bool skip_output_size;
++	bool default_relay;
+ };
+ 
+  /**
+@@ -75,7 +77,13 @@ void mtk_aal_config(struct device *dev, unsigned int w,
+ 	sz |= FIELD_PREP(DISP_AAL_SIZE_VSIZE, h);
+ 
+ 	mtk_ddp_write(cmdq_pkt, sz, &aal->cmdq_reg, aal->regs, DISP_AAL_SIZE);
+-	mtk_ddp_write(cmdq_pkt, sz, &aal->cmdq_reg, aal->regs, DISP_AAL_OUTPUT_SIZE);
++	if (!(aal->data && aal->data->skip_output_size))
++		mtk_ddp_write(cmdq_pkt, sz, &aal->cmdq_reg, aal->regs,
++			      DISP_AAL_OUTPUT_SIZE);
++
++	if (aal->data && aal->data->default_relay)
++		mtk_ddp_write(cmdq_pkt, AAL_RELAY_MODE, &aal->cmdq_reg,
++			      aal->regs, DISP_AAL_CFG);
+ }
+ 
+ /**
+@@ -209,8 +217,14 @@ static const struct mtk_disp_aal_data mt8173_aal_driver_data = {
+ 	.has_gamma = true,
+ };
+ 
++static const struct mtk_disp_aal_data mt6797_aal_driver_data = {
++	.skip_output_size = true,
++	.default_relay = true,
++};
++
+ static const struct of_device_id mtk_disp_aal_driver_dt_match[] = {
+ 	{ .compatible = "mediatek,mt8173-disp-aal", .data = &mt8173_aal_driver_data },
++	{ .compatible = "mediatek,mt6797-disp-aal", .data = &mt6797_aal_driver_data },
+ 	{ .compatible = "mediatek,mt8183-disp-aal" },
+ 	{ /* sentinel */ }
+ };
+diff --git a/drivers/gpu/drm/mediatek/mtk_disp_ccorr.c b/drivers/gpu/drm/mediatek/mtk_disp_ccorr.c
+index 6d7bf4afa..a420b4754 100644
+--- a/drivers/gpu/drm/mediatek/mtk_disp_ccorr.c
++++ b/drivers/gpu/drm/mediatek/mtk_disp_ccorr.c
+@@ -31,6 +31,7 @@
+ 
+ struct mtk_disp_ccorr_data {
+ 	u32 matrix_bits;
++	bool default_relay;
+ };
+ 
+ struct mtk_disp_ccorr {
+@@ -59,10 +60,14 @@ void mtk_ccorr_config(struct device *dev, unsigned int w,
+ 			     unsigned int bpc, struct cmdq_pkt *cmdq_pkt)
+ {
+ 	struct mtk_disp_ccorr *ccorr = dev_get_drvdata(dev);
++	u32 cfg = CCORR_ENGINE_EN;
++
++	if (ccorr->data->default_relay)
++		cfg = CCORR_RELAY_MODE;
+ 
+ 	mtk_ddp_write(cmdq_pkt, w << 16 | h, &ccorr->cmdq_reg, ccorr->regs,
+ 		      DISP_CCORR_SIZE);
+-	mtk_ddp_write(cmdq_pkt, CCORR_ENGINE_EN, &ccorr->cmdq_reg, ccorr->regs,
++	mtk_ddp_write(cmdq_pkt, cfg, &ccorr->cmdq_reg, ccorr->regs,
+ 		      DISP_CCORR_CFG);
+ }
+ 
+@@ -91,8 +96,11 @@ void mtk_ccorr_ctm_set(struct device *dev, struct drm_crtc_state *state)
+ 	struct cmdq_pkt *cmdq_pkt = NULL;
+ 	u32 matrix_bits = ccorr->data->matrix_bits;
+ 
+-	if (!blob)
++	if (!blob) {
++		if (ccorr->data->default_relay)
++			writel(CCORR_RELAY_MODE, ccorr->regs + DISP_CCORR_CFG);
+ 		return;
++	}
+ 
+ 	ctm = (struct drm_color_ctm *)blob->data;
+ 	input = ctm->matrix;
+@@ -110,6 +118,9 @@ void mtk_ccorr_ctm_set(struct device *dev, struct drm_crtc_state *state)
+ 		      &ccorr->cmdq_reg, ccorr->regs, DISP_CCORR_COEF_3);
+ 	mtk_ddp_write(cmdq_pkt, coeffs[8] << 16,
+ 		      &ccorr->cmdq_reg, ccorr->regs, DISP_CCORR_COEF_4);
++
++	if (ccorr->data->default_relay)
++		writel(CCORR_ENGINE_EN, ccorr->regs + DISP_CCORR_CFG);
+ }
+ 
+ static int mtk_disp_ccorr_bind(struct device *dev, struct device *master,
+@@ -173,6 +184,11 @@ static const struct mtk_disp_ccorr_data mt8183_ccorr_driver_data = {
+ 	.matrix_bits = 10,
+ };
+ 
++static const struct mtk_disp_ccorr_data mt6797_ccorr_driver_data = {
++	.matrix_bits = 10,
++	.default_relay = true,
++};
++
+ static const struct mtk_disp_ccorr_data mt8192_ccorr_driver_data = {
+ 	.matrix_bits = 11,
+ };
+@@ -180,6 +196,8 @@ static const struct mtk_disp_ccorr_data mt8192_ccorr_driver_data = {
+ static const struct of_device_id mtk_disp_ccorr_driver_dt_match[] = {
+ 	{ .compatible = "mediatek,mt8183-disp-ccorr",
+ 	  .data = &mt8183_ccorr_driver_data},
++	{ .compatible = "mediatek,mt6797-disp-ccorr",
++	  .data = &mt6797_ccorr_driver_data},
+ 	{ .compatible = "mediatek,mt8192-disp-ccorr",
+ 	  .data = &mt8192_ccorr_driver_data},
+ 	{},
+diff --git a/drivers/gpu/drm/mediatek/mtk_disp_color.c b/drivers/gpu/drm/mediatek/mtk_disp_color.c
+index 39c7de4cd..74c73f7ed 100644
+--- a/drivers/gpu/drm/mediatek/mtk_disp_color.c
++++ b/drivers/gpu/drm/mediatek/mtk_disp_color.c
+@@ -144,6 +144,10 @@ static const struct mtk_disp_color_data mt8173_color_driver_data = {
+ 	.color_offset = DISP_COLOR_START_MT8173,
+ };
+ 
++static const struct mtk_disp_color_data mt6797_color_driver_data = {
++	.color_offset = DISP_COLOR_START_MT8173,
++};
++
+ static const struct of_device_id mtk_disp_color_driver_dt_match[] = {
+ 	{ .compatible = "mediatek,mt2701-disp-color",
+ 	  .data = &mt2701_color_driver_data},
+@@ -151,6 +155,8 @@ static const struct of_device_id mtk_disp_color_driver_dt_match[] = {
+ 	  .data = &mt8167_color_driver_data},
+ 	{ .compatible = "mediatek,mt8173-disp-color",
+ 	  .data = &mt8173_color_driver_data},
++	{ .compatible = "mediatek,mt6797-disp-color",
++	  .data = &mt6797_color_driver_data},
+ 	{},
+ };
+ MODULE_DEVICE_TABLE(of, mtk_disp_color_driver_dt_match);
+diff --git a/drivers/gpu/drm/mediatek/mtk_disp_gamma.c b/drivers/gpu/drm/mediatek/mtk_disp_gamma.c
+index 8afd15006..0999691e3 100644
+--- a/drivers/gpu/drm/mediatek/mtk_disp_gamma.c
++++ b/drivers/gpu/drm/mediatek/mtk_disp_gamma.c
+@@ -48,6 +48,7 @@ struct mtk_disp_gamma_data {
+ 	u16 lut_bank_size;
+ 	u16 lut_size;
+ 	u8 lut_bits;
++	bool default_relay;
+ };
+ 
+ /**
+@@ -217,6 +218,10 @@ void mtk_gamma_config(struct device *dev, unsigned int w,
+ 	sz |= FIELD_PREP(DISP_GAMMA_SIZE_VSIZE, h);
+ 
+ 	mtk_ddp_write(cmdq_pkt, sz, &gamma->cmdq_reg, gamma->regs, DISP_GAMMA_SIZE);
++	if (gamma->data && gamma->data->default_relay)
++		mtk_ddp_write(cmdq_pkt, GAMMA_RELAY_MODE, &gamma->cmdq_reg,
++			      gamma->regs, DISP_GAMMA_CFG);
++
+ 	if (gamma->data && gamma->data->has_dither)
+ 		mtk_dither_set_common(gamma->regs, &gamma->cmdq_reg, bpc,
+ 				      DISP_GAMMA_CFG, GAMMA_DITHERING, cmdq_pkt);
+@@ -300,6 +305,13 @@ static const struct mtk_disp_gamma_data mt8173_gamma_driver_data = {
+ 	.lut_size = 512,
+ };
+ 
++static const struct mtk_disp_gamma_data mt6797_gamma_driver_data = {
++	.lut_bank_size = 512,
++	.lut_bits = 10,
++	.lut_size = 512,
++	.default_relay = true,
++};
++
+ static const struct mtk_disp_gamma_data mt8183_gamma_driver_data = {
+ 	.lut_bank_size = 512,
+ 	.lut_bits = 10,
+@@ -317,6 +329,8 @@ static const struct mtk_disp_gamma_data mt8195_gamma_driver_data = {
+ static const struct of_device_id mtk_disp_gamma_driver_dt_match[] = {
+ 	{ .compatible = "mediatek,mt8173-disp-gamma",
+ 	  .data = &mt8173_gamma_driver_data},
++	{ .compatible = "mediatek,mt6797-disp-gamma",
++	  .data = &mt6797_gamma_driver_data},
+ 	{ .compatible = "mediatek,mt8183-disp-gamma",
+ 	  .data = &mt8183_gamma_driver_data},
+ 	{ .compatible = "mediatek,mt8195-disp-gamma",
+diff --git a/drivers/gpu/drm/mediatek/mtk_drm_drv.c b/drivers/gpu/drm/mediatek/mtk_drm_drv.c
+index 2565e357e..b48312117 100644
+--- a/drivers/gpu/drm/mediatek/mtk_drm_drv.c
++++ b/drivers/gpu/drm/mediatek/mtk_drm_drv.c
+@@ -706,6 +706,8 @@ static const struct of_device_id mtk_ddp_comp_dt_ids[] = {
+ 	  .data = (void *)MTK_DISP_AAL},
+ 	{ .compatible = "mediatek,mt8173-disp-aal",
+ 	  .data = (void *)MTK_DISP_AAL},
++	{ .compatible = "mediatek,mt6797-disp-aal",
++	  .data = (void *)MTK_DISP_AAL},
+ 	{ .compatible = "mediatek,mt8183-disp-aal",
+ 	  .data = (void *)MTK_DISP_AAL},
+ 	{ .compatible = "mediatek,mt8192-disp-aal",
+@@ -714,6 +716,8 @@ static const struct of_device_id mtk_ddp_comp_dt_ids[] = {
+ 	  .data = (void *)MTK_DISP_CCORR },
+ 	{ .compatible = "mediatek,mt8183-disp-ccorr",
+ 	  .data = (void *)MTK_DISP_CCORR },
++	{ .compatible = "mediatek,mt6797-disp-ccorr",
++	  .data = (void *)MTK_DISP_CCORR },
+ 	{ .compatible = "mediatek,mt8192-disp-ccorr",
+ 	  .data = (void *)MTK_DISP_CCORR },
+ 	{ .compatible = "mediatek,mt2701-disp-color",
+@@ -722,6 +726,10 @@ static const struct of_device_id mtk_ddp_comp_dt_ids[] = {
+ 	  .data = (void *)MTK_DISP_COLOR },
+ 	{ .compatible = "mediatek,mt8173-disp-color",
+ 	  .data = (void *)MTK_DISP_COLOR },
++	{ .compatible = "mediatek,mt6797-disp-color",
++	  .data = (void *)MTK_DISP_COLOR },
++	{ .compatible = "mediatek,mt6797-disp-dither",
++	  .data = (void *)MTK_DISP_DITHER },
+ 	{ .compatible = "mediatek,mt8167-disp-dither",
+ 	  .data = (void *)MTK_DISP_DITHER },
+ 	{ .compatible = "mediatek,mt8183-disp-dither",
+@@ -732,6 +740,8 @@ static const struct of_device_id mtk_ddp_comp_dt_ids[] = {
+ 	  .data = (void *)MTK_DISP_GAMMA, },
+ 	{ .compatible = "mediatek,mt8173-disp-gamma",
+ 	  .data = (void *)MTK_DISP_GAMMA, },
++	{ .compatible = "mediatek,mt6797-disp-gamma",
++	  .data = (void *)MTK_DISP_GAMMA, },
+ 	{ .compatible = "mediatek,mt8183-disp-gamma",
+ 	  .data = (void *)MTK_DISP_GAMMA, },
+ 	{ .compatible = "mediatek,mt8195-disp-gamma",
+@@ -760,6 +770,8 @@ static const struct of_device_id mtk_ddp_comp_dt_ids[] = {
+ 	  .data = (void *)MTK_DISP_MUTEX },
+ 	{ .compatible = "mediatek,mt8173-disp-od",
+ 	  .data = (void *)MTK_DISP_OD },
++	{ .compatible = "mediatek,mt6797-disp-od",
++	  .data = (void *)MTK_DISP_OD },
+ 	{ .compatible = "mediatek,mt2701-disp-ovl",
+ 	  .data = (void *)MTK_DISP_OVL },
+ 	{ .compatible = "mediatek,mt8167-disp-ovl",
+@@ -802,6 +814,8 @@ static const struct of_device_id mtk_ddp_comp_dt_ids[] = {
+ 	  .data = (void *)MTK_DISP_RDMA },
+ 	{ .compatible = "mediatek,mt8173-disp-ufoe",
+ 	  .data = (void *)MTK_DISP_UFOE },
++	{ .compatible = "mediatek,mt6797-disp-ufoe",
++	  .data = (void *)MTK_DISP_UFOE },
+ 	{ .compatible = "mediatek,mt8173-disp-wdma",
+ 	  .data = (void *)MTK_DISP_WDMA },
+ 	{ .compatible = "mediatek,mt2701-dpi",
+-- 
+2.43.0
+

@@ -1,0 +1,37 @@
+audit=mt6797-pinctrl-msdc
+generated_utc=2026-07-13T19:39:58Z
+linux_tree=/home/julien.guest/src/gemini-pda/linux-7.1.3
+pinctrl_sha256=9db5d34a434b1d10c382eb319ad37370584992d843582d105c1c57d23ea596b0
+base_dts_patch_sha256=0645db11ed98b2b090bc8668c220ce9aa59e9466264a3150ecc491ce6d27e4a6
+pinmux_only_fix_patch_sha256=626134139b4d03ebd7a9ba21d5b7076cc61906c10da1295188bcdca31b4a076e
+
+[mt6797 register maps]
+static const struct mtk_pin_reg_calc mt6797_reg_cals[PINCTRL_PIN_REG_MAX] = {
+        [PINCTRL_PIN_REG_MODE] = MTK_RANGE(mt6797_pin_mode_range),
+        [PINCTRL_PIN_REG_DIR] = MTK_RANGE(mt6797_pin_dir_range),
+        [PINCTRL_PIN_REG_DI] = MTK_RANGE(mt6797_pin_di_range),
+        [PINCTRL_PIN_REG_DO] = MTK_RANGE(mt6797_pin_do_range),
+};
+
+[mt6797 pinconf callbacks]
+descriptor_callbacks=absent
+
+[base Gemini MSDC pinconf]
+199:+                      input-enable;
+200:+                      drive-strength = <4>;
+201:+                      bias-pull-up = <MTK_PUPD_SET_R1R0_01>;
+206:+                      drive-strength = <4>;
+207:+                      bias-pull-down = <MTK_PUPD_SET_R1R0_10>;
+212:+                      drive-strength = <4>;
+213:+                      bias-pull-down = <MTK_PUPD_SET_R1R0_10>;
+218:+                      drive-strength = <4>;
+219:+                      bias-pull-up = <MTK_PUPD_SET_R1R0_10>;
+
+[decision]
+Linux 7.1.3 can parse generic pinconf syntax, but MT6797 has no source-backed pull, IES, or drive register maps/callbacks.
+Keep the first Gemini MSDC state pinmux-only and retain boot-firmware pad configuration.
+Revisit pinconf only after recovering and validating MT6797-specific register fields; do not infer them from a neighboring SoC.
+
+status=static-warning-corrected
+runtime_boot=not_attempted
+hardware_write=none

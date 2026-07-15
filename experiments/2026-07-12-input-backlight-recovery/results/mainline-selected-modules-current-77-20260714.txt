@@ -1,0 +1,37 @@
+validation=targeted-mainline-module-integration-current-77
+source_revision=7.1.3
+package=linux-7.1.3-gemini-b7721ab55e41
+package_image_sha256=9975b0faf659ddd91e33607de47a4814b9ad4c72292f4c8f7af39582f1a49362
+package_config_sha256=c46e0d135ed290420362638ca36448055e19bb7029deaa7aad897d885275f7db
+package_dtb_sha256=7a95f79eb39e25d56c1f8407ecee3d606cf9397f8522c3ca1d17e01d3865672b
+build_tree=guest:/home/julien.guest/build/gemini-pda/linux-7.1.3
+targeted_make=pass
+full_image_and_dtb_package=pass
+full_module_package=not_produced;BUILD_MODULES=1_was_stopped_after_unrelated_upstream_module_expansion
+
+[modules]
+module=pinctrl_aw9523
+path=drivers/pinctrl/pinctrl-aw9523.ko
+sha256=1083bfe109ec599cdca843c0ef96d4562f41ceab0112d5040fe97c8e2b72b881
+vermagic=7.1.3-gemini_SMP_preempt_mod_unload_aarch64
+aliases= i2c:aw9523_i2c;of:awinic,aw9523-pinctrl
+module=matrix_keypad
+path=drivers/input/keyboard/matrix_keypad.ko
+sha256=953d177f00d4a589bca5523396032499312acd28c758cd57c5745659862aeb77
+vermagic=7.1.3-gemini_SMP_preempt_mod_unload_aarch64
+aliases= platform:matrix-keypad;of:gpio-matrix-keypad
+module=novatek_nt36xxx
+path=drivers/input/touchscreen/novatek-nt36xxx.ko
+sha256=c5435ced3ed110b2dfd3fe546b1ce23b0b49d667c43733da44fab35914c7fe0b
+vermagic=7.1.3-gemini_SMP_preempt_mod_unload_aarch64
+aliases=of:novatek,nt36772-ts;i2c:nt36772-ts
+
+[decision]
+aw9523_silicon_driver=upstream_module_compiles
+matrix_consumer=upstream_module_compiles
+nt36772_backend=mainline_candidate_module_compiles_and_links
+device_tree_consumers=disabled
+module_install=not_attempted
+device_probe=not_attempted
+firmware_update=not_implemented
+hardware_write=none

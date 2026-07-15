@@ -1,0 +1,56 @@
+SP5509 vendor-kernel ELF contract audit
+vmlinux=/home/julien.guest/reverse-engineering/work/gemini-kernel/vmlinux.elf
+vmlinux_sha256=e185566db67405c7747c01dbfe840ab9df69288c03f71eacacba9617827546f0
+
+[registration symbols]
+symbol=sp5509_MIPI_RAW_SensorInit_sls address=0xffffffc00068c000
+symbol=sp5509_MAIN_MIPI_RAW_SensorInit address=0xffffffc000693628
+
+[SLS identity helpers]
+sls_read_cmos_sensor=0xffffffc000689c70
+sls_open=0xffffffc00068b3b0
+read-helper (two-byte register, two-byte response, runtime slave ID, 300 kHz):
+10:ffffffc000689c78:	52802580 	mov	w0, #0x12c                 	// #300
+12:ffffffc000689c80:	390067a1 	strb	w1, [x29, #25]
+14:ffffffc000689c88:	79003fbf 	strh	wzr, [x29, #30]
+15:ffffffc000689c8c:	390063a1 	strb	w1, [x29, #24]
+16:ffffffc000689c90:	97ffe0d4 	bl	ffffffc000681fe0 <kdSetI2CSpeed>
+18:ffffffc000689c98:	52800043 	mov	w3, #0x2                   	// #2
+22:ffffffc000689ca8:	3955b084 	ldrb	w4, [x4, #1388]
+23:ffffffc000689cac:	97ffdf13 	bl	ffffffc0006818f8 <iReadRegI2C>
+open/probe constants (register, accepted ID, and candidate slave IDs):
+26:ffffffc00068b3f8:	52800813 	mov	w19, #0x40                  	// #64
+32:ffffffc00068b410:	710006bf 	cmp	w21, #0x1
+39:ffffffc00068b42c:	7103fe7f 	cmp	w19, #0xff
+46:ffffffc00068b448:	3900d033 	strb	w19, [x1, #52]
+50:ffffffc00068b458:	5281e2c0 	mov	w0, #0xf16                 	// #3862
+51:ffffffc00068b45c:	97fffa05 	bl	ffffffc000689c70 <read_cmos_sensor>
+53:ffffffc00068b464:	71155adf 	cmp	w22, #0x556
+candidate-I2C-table-bytes (vendor ELF, bounded):
+
+/home/julien.guest/reverse-engineering/work/gemini-kernel/vmlinux.elf:     file format elf64-littleaarch64
+
+Contents of section .kernel:
+ ffffffc000dcc520 02180140 50ff0000                    ...@P...
+
+[camera resource labels]
+vendor_elf_power_labels=vcamd_sub;vcamaf;vcama_sub;vcama_main2;vcamd_main2;vcamio_sub;vcamio_main2
+vendor_elf_gpio_labels=cam0_pnd1;cam0_pnd0;cam0_rst1;cam0_rst0;cam1_pnd1;cam1_pnd0;cam1_rst1;cam1_rst0;cam2_pnd1;cam2_pnd0;cam2_rst1;cam2_rst0;cam_ldo_vcama_1;cam_ldo_vcama_0;cam_ldo_vcamd2_1;cam_ldo_vcamd2_0;cam_ldo_vcamd_1;cam_ldo_vcamd_0
+vendor_elf_power_sequence=table_driven_kdCISModulePowerOn;exact_SP5509_order_unproven
+
+[live topology cross-check]
+live_camera_adapters=i2c2@0x11013000;i2c3@0x11014000;i2c8@0x11009000
+live_candidate_client_objects=absent_on_bus2_bus3_bus8_for_7bit_0x20_and_0x28
+live_candidate_check=sysfs_existence_only_no_I2C_transaction
+
+[main registration boundary]
+main_registration=0xffffffc000693628
+main and SLS registrations point to separate vendor function tables; the
+tables are not a Linux-compatible sensor binding or mode description.
+
+[decision]
+vendor_ELF_confirms_SP5509_SLS_probes_register_0x0f16_for_raw_ID_0x0556
+vendor_ELF_identity_read_uses_16bit_register_and_16bit_response_at_300_kHz
+vendor_ELF_candidate_write_ID_bytes_include_0x40_and_0x50_(7bit_0x20_or_0x28)
+mainline_driver_must_still_validate_board_power_reset_and_MIPI_endpoint
+do_not_probe_the_live_device_without_explicit_rails_reset_and_rollback_plan

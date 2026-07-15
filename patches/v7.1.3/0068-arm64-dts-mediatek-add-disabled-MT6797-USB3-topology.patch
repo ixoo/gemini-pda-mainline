@@ -1,0 +1,97 @@
+From 9b1c2c224a0a5f9f3a5ed13aa2e49f70dc4c6e3b Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Maintainers <gemini-mainline@example.invalid>
+Date: Mon, 13 Jul 2026 10:18:00 -0400
+Subject: [PATCH 68/68] arm64: dts: mediatek: add disabled MT6797 USB3 topology
+
+Describe the source-derived MT6797 USB3 resource split using the existing
+MTU3, xHCI, and T-PHY frameworks. The vendor three-window block is split into
+the MTU3 device MAC, its IPPC window, and the xHCI host MAC. The T-PHY SIF2
+banks are represented as generic V1 shared and per-port resources.
+
+All nodes remain disabled. This patch intentionally omits VBUS regulators,
+power domains, role switching, Type-C connectors, IDDIG, redriver GPIOs, and
+electrical tuning until those board contracts are independently verified.
+
+Signed-off-by: Gemini Mainline Maintainers <gemini-mainline@example.invalid>
+---
+ arch/arm64/boot/dts/mediatek/mt6797.dtsi | 59 ++++++++++++++++++++++++++++++++
+ 1 file changed, 59 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+--- a/arch/arm64/boot/dts/mediatek/mt6797.dtsi
++++ b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+@@ -10,4 +10,5 @@
+ #include <dt-bindings/memory/mt6797-larb-port.h>
+ #include <dt-bindings/pinctrl/mt6797-pinfunc.h>
+ #include <dt-bindings/power/mt6797-power.h>
++#include <dt-bindings/phy/phy.h>
+ #include <dt-bindings/reset/mt6797-resets.h>
+@@ -107,8 +107,66 @@
+ 	clk26m: oscillator-26m {
+ 		compatible = "fixed-clock";
+ 		#clock-cells = <0>;
+ 		clock-frequency = <26000000>;
+ 		clock-output-names = "clk26m";
+ 	};
+ 
++	u3phy: t-phy@11290000 {
++		compatible = "mediatek,mt6797-tphy", "mediatek,generic-tphy-v1";
++		reg = <0 0x11290000 0 0x800>;
++		#address-cells = <2>;
++		#size-cells = <2>;
++		ranges;
++		status = "disabled";
++
++		u2port0: usb-phy@11290800 {
++			reg = <0 0x11290800 0 0x100>;
++			clocks = <&infrasys CLK_INFRA_SSUSB_REF>;
++			clock-names = "ref";
++			#phy-cells = <1>;
++			status = "disabled";
++		};
++
++		u3port0: usb-phy@11290900 {
++			reg = <0 0x11290900 0 0x700>;
++			clocks = <&infrasys CLK_INFRA_SSUSB_REF>;
++			clock-names = "ref";
++			#phy-cells = <1>;
++			status = "disabled";
++		};
++	};
++
++	ssusb: usb@11271000 {
++		compatible = "mediatek,mt6797-mtu3", "mediatek,mtu3";
++		reg = <0 0x11271000 0 0x3000>,
++		      <0 0x11280700 0 0x0100>;
++		reg-names = "mac", "ippc";
++		interrupts = <GIC_SPI 127 IRQ_TYPE_LEVEL_LOW>;
++		interrupt-names = "device";
++		phys = <&u2port0 PHY_TYPE_USB2>,
++		       <&u3port0 PHY_TYPE_USB3>;
++		clocks = <&infrasys CLK_INFRA_SSUSB_SYS>,
++			 <&infrasys CLK_INFRA_SSUSB_REF>,
++			 <&infrasys CLK_INFRA_SSUSB_BUS>;
++		clock-names = "sys_ck", "ref_ck", "mcu_ck";
++		#address-cells = <1>;
++		#size-cells = <1>;
++		ranges;
++		status = "disabled";
++
++		xhci: usb@11270000 {
++			compatible = "mediatek,mt6797-xhci", "mediatek,mtk-xhci";
++			reg = <0x11270000 0x1000>;
++			reg-names = "mac";
++			interrupts = <GIC_SPI 126 IRQ_TYPE_LEVEL_LOW>;
++			interrupt-names = "host";
++			phys = <&u2port0 PHY_TYPE_USB2>,
++			       <&u3port0 PHY_TYPE_USB3>;
++			clocks = <&infrasys CLK_INFRA_SSUSB_SYS>,
++				 <&infrasys CLK_INFRA_SSUSB_REF>,
++				 <&infrasys CLK_INFRA_SSUSB_BUS>;
++			clock-names = "sys_ck", "ref_ck", "mcu_ck";
++			status = "disabled";
++		};
++	};
+ 	timer {
+-- 
+2.45.2

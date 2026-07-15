@@ -1,0 +1,92 @@
+Current Linux 7.1.3 MT6351/pwrap validation
+===========================================
+
+Date: 2026-07-13
+Vendor tree commit: c5b0be85017ad0c599725e8273842efdbecdd88a
+Linux source manifest SHA-256: be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+Patch count: 71
+Patchset SHA-256: 86145c09fc00fd3c65fb822f7834c5bb3dc08eb76f5117b90538141a429a1623
+Package Image SHA-256: bb326cfc3189828ff623a224dbc65aa9aace32474109dc116cd915d7bea4a09a
+Package Image.gz SHA-256: e99d3d74c88ce657ef73da4c7aafe8d3bb3567d837b692adf9414bd99d1f194b
+Package Gemini DTB SHA-256: fb910c8d96b7d4f533c750ce0717ced8998c992834abc44a4ed86ec5a9cf1f97
+Package config SHA-256: c11ddd57c1fc643202b15bcfac9564edbba61e42a0a08879369b52592ba31d7a
+Package modules_built: true (1,582 optional module files; 349M module tree)
+Live PMIC capture SHA-256: 49965a7dd896619c9a477b877ede938cc07e6971acf6630f089a3e7742fab590
+Probe-safety analyzer SHA-256: 91b0cea99292654f5e41d5428954f78ec38b15f2ba2fa80a15288f403240791c
+Regulator decode output SHA-256: 2d348a85c0f7dd9cc7ec18aae7d7e5f0cbf4fb2842f7970d9be02c166fca07ec
+Regulator descriptor CSV SHA-256: 55075acefbc128e8e903371c39014427f398ea39ea65233883def08e106a1338
+
+Live identity and ownership
+---------------------------
+
+The read-only PMIC collector was rerun on `gemini@192.168.1.50` using the
+audited single-token `pmic_access` read path. It returned HWCID `0x5140` and
+SWCID `0x5120`, confirming MT6351 E2. It did not issue a PMIC write, toggle a
+rail, set an alarm, or change an interrupt mask.
+
+The current vendor image still binds `mt-pmic` and `mt-rtc`. The pwrap IRQ
+line was idle in this snapshot, while the downstream `pmic-eint` line showed
+activity; the zero pwrap counter is not evidence that the wrapper is absent.
+The 26 MHz `pmicspi_sel`, `infra_pmic_ap`, `infra_pmic_md`, and
+`infra_pmic_conn` clock rates remain visible. Existing vendor regulator users
+include storage rails `vemc_3v3`, `vmch`, and `vmc`, plus connectivity rails
+`vcn18`, `vcn28`, `vcn33_bt`, and `vcn33_wifi`.
+
+The allowlisted buck control readback decodes to the same active selectors as
+the prior capture: VCORE 0.850 V, VGPU 1.21875 V, VMODEM 1.000 V, VMD1
+0.850 V, VSRAM_MD 1.100 V, VS1 1.000 V, VS2 0.675 V, VPA disabled at the
+0.600 V floor, and VSRAM_PROC 1.100 V. These are selector-derived transient
+observations, not electrical measurements or safe OPP limits. The vendor
+`dump_ldo_status` direct-selector display still differs from hardware-selected
+ON-bank values for hardware-controlled bucks; mainline must retain the active
+selector ownership logic.
+
+Mainline package and DT
+-----------------------
+
+The authoritative current DTB contains:
+
+  pwrap@1000d000: compatible mediatek,mt6797-pwrap; SPI 178 level-high;
+    clocks `spi`/`wrap`; reset ID 64; 0x1000-byte register window
+  child PMIC: compatible mediatek,mt6351; PMIC IRQ 176 level-high;
+    interrupt-controller with two-cell IRQs
+  child regulators: compatible mediatek,mt6351-regulator; conservative
+    `vemc_3v3` boot-on and `vio18` always-on constraints
+  child RTC: compatible mediatek,mt6351-rtc
+
+The package configuration links the critical infrastructure into the Image:
+
+  CONFIG_MTK_PMIC_WRAP=y
+  CONFIG_MFD_MT6397=y
+  CONFIG_REGULATOR_MT6351=y
+  CONFIG_KEYBOARD_MTK_PMIC=y
+  CONFIG_RTC_DRV_MT6397=y
+
+System.map contains `pwrap_probe`, `mt6397_probe`, `mt6397_irq_init`,
+`mt6351_regulator_probe`, `mtk_pmic_keys_probe`, and `mtk_rtc_probe` as linked
+symbols. This proves build/link representation only; no mainline probe has run
+on the device.
+
+Source and descriptor decisions
+-------------------------------
+
+The current probe-safety audit confirms that pwrap probe is stateful: it
+enables clocks, may reset/reinitialize the serial bus, and writes watchdog,
+timer, dynamic-clock, and interrupt-enable registers. MT6351 MFD probe masks
+all four PMIC interrupt-enable banks before creating its IRQ domain. The
+regulator probe reads revision/VSEL state without enabling a rail; key and RTC
+operations can write later. Therefore the current DT is an active boot-risk
+boundary, not a passive description.
+
+The vendor-to-mainline descriptor extractor validates all 39 unique rails
+(nine bucks plus 30 unique LDO controls), explicitly excluding the duplicate
+`vldo28_0` and invalid vendor `vsram_proc` LDO artifacts. MT6351 E2 is accepted;
+the unvalidated E3 revision remains rejected. Existing Linux pwrap, MFD,
+regulator, key, and RTC frameworks are reusable with MT6797/MT6351 data, but
+runtime ownership, interrupt masking, constraints, coupling, ramp behavior,
+and suspend/OPP policy still require controlled hardware validation.
+
+runtime_mainline_probe=not_attempted
+rail_control=not_attempted
+rtc_write_or_alarm=not_attempted
+hardware_write=none

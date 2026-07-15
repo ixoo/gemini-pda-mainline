@@ -1,0 +1,12 @@
+validation=gemini-keyboard-keymap-consistency
+keymap=/Users/julien/Documents/gemini-pda-mainline/experiments/2026-07-12-input-backlight-recovery/results/keyboard-keymap.txt
+keymap_sha256=ea088dbe2f7b9a78fd7805611d27e1ac0384e451a8559b68473b4415bee6e6ee
+patch=/Users/julien/Documents/gemini-pda-mainline/patches/v7.1.3/0054-arm64-dts-mediatek-add-disabled-Gemini-AW9523-keyboard-candidate.patch
+patch_sha256=3d91aaa3378f9485b09da0583c586c19adcd31bdd109944b97565124f8960e5c
+matrix_rows=8
+matrix_columns=7
+matrix_positions=56
+assigned_positions=52
+unknown_positions=4
+status=pass
+hardware_write=none

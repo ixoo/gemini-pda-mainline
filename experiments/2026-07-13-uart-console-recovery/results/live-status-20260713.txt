@@ -1,0 +1,24 @@
+validation=live-gemian-status-read-only
+date=2026-07-13
+target=gemini@192.168.1.50
+access=owner_authorized_ssh_key_only
+kernel=3.18.41+
+architecture=aarch64
+uptime_seconds=167094
+device_model=MT6797X
+device_compatible=mediatek,MT6797
+mem_total_kb=3860680
+mem_available_kb=2652248
+active_serial_console=ttyMT0
+active_serial_console_flags=-W-
+pstore_console=pstore-1
+framebuffer_console=tty0
+hardware_write=none
+mainline_boot=not_attempted
+
+This point-in-time probe read only uname, the flattened-device-tree model and
+compatible strings, `/proc/meminfo`, `/proc/uptime`, and `/proc/consoles`. It
+did not open a serial device, alter termios, change a driver binding, access
+PMIC or storage registers, or modify the device. The live vendor baseline is
+therefore still distinct from the current Linux 7.1.3 package, which has not
+been booted on Gemini.

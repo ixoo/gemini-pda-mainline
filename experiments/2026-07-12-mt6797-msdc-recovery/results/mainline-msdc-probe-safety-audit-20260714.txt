@@ -1,0 +1,327 @@
+validation=mt6797-mainline-msdc-probe-safety-source-audit
+linux_tree=/home/julien.guest/src/gemini-pda/linux-7.1.3
+linux_version=7.1.3
+mtk_sd_sha256=2044a80b01c0fc94091deeb5bf127ccc5d0b613fcb64ade2014d861f2813e876
+mmc_host_sha256=c0568b26ba393f2f8efc96f6d576dc37f4522a2a5a4a26075b0ca618cd1e4821
+mmc_core_sha256=56678ec9c220d952b63f4e2af7072f7d3b815cd867c7809c937b5f38cddd5304
+board_patch_sha256=6aee8e45d2498479c9231fdd98d678c780cff93a08e6da5ef17664f993f6bb24
+pinmux_patch_sha256=5c3c85222f2f7ff3a2cfca6960bf61c31d16e6567e429293f9ffb102ff18ac61
+
+[compatibility_record]
+583:static const struct mtk_mmc_compatible mt6797_compat = {
+733:	{ .compatible = "mediatek,mt6797-mmc", .data = &mt6797_compat},
+
+[probe_lifecycle_anchors]
+969:static int msdc_ungate_clock(struct msdc_host *host)
+1888:static void msdc_init_hw(struct msdc_host *host)
+2166:			msdc_init_hw(host);
+2943:static int msdc_of_clock_parse(struct platform_device *pdev,
+2996:static int msdc_drv_probe(struct platform_device *pdev)
+3029:	ret = mmc_regulator_get_supply(mmc);
+3033:	ret = msdc_of_clock_parse(pdev, host);
+3037:	host->reset = devm_reset_control_get_optional_exclusive(&pdev->dev,
+3129:	host->dma.gpd = dma_alloc_coherent(&pdev->dev,
+3132:	host->dma.bd = dma_alloc_coherent(&pdev->dev,
+3144:	ret = msdc_ungate_clock(host);
+3149:	msdc_init_hw(host);
+3186:	ret = devm_request_irq(&pdev->dev, host->irq, msdc_irq,
+3191:	pm_runtime_set_active(host->dev);
+3195:	ret = mmc_add_host(mmc);
+3349:	ret = msdc_ungate_clock(host);
+
+[controller_write_paths]
+55:#define MSDC_IOCON       0x04
+77:#define MSDC_PATCH_BIT   0xb0
+78:#define MSDC_PATCH_BIT1  0xb4
+79:#define MSDC_PATCH_BIT2  0xb8
+106:#define MSDC_CFG_CKPDN          BIT(1)	/* RW */
+107:#define MSDC_CFG_RST            BIT(2)	/* RW */
+114:#define MSDC_CFG_CKMOD          GENMASK(17, 16)	/* RW */
+118:#define MSDC_CFG_CKMOD_EXTRA    GENMASK(21, 20)	/* RW */
+120:/* MSDC_IOCON mask */
+121:#define MSDC_IOCON_SDR104CKS    BIT(0)	/* RW */
+122:#define MSDC_IOCON_RSPL         BIT(1)	/* RW */
+123:#define MSDC_IOCON_DSPL         BIT(2)	/* RW */
+124:#define MSDC_IOCON_DDLSEL       BIT(3)	/* RW */
+125:#define MSDC_IOCON_DDR50CKD     BIT(4)	/* RW */
+126:#define MSDC_IOCON_DSPLSEL      BIT(5)	/* RW */
+127:#define MSDC_IOCON_W_DSPL       BIT(8)	/* RW */
+128:#define MSDC_IOCON_D0SPL        BIT(16)	/* RW */
+129:#define MSDC_IOCON_D1SPL        BIT(17)	/* RW */
+130:#define MSDC_IOCON_D2SPL        BIT(18)	/* RW */
+131:#define MSDC_IOCON_D3SPL        BIT(19)	/* RW */
+132:#define MSDC_IOCON_D4SPL        BIT(20)	/* RW */
+133:#define MSDC_IOCON_D5SPL        BIT(21)	/* RW */
+134:#define MSDC_IOCON_D6SPL        BIT(22)	/* RW */
+135:#define MSDC_IOCON_D7SPL        BIT(23)	/* RW */
+136:#define MSDC_IOCON_RISCSZ       GENMASK(25, 24)	/* RW */
+193:#define MSDC_FIFOCS_CLR         BIT(31)	/* RW */
+237:/* MSDC_PATCH_BIT mask */
+238:#define MSDC_PATCH_BIT_ODDSUPP    BIT(1)	/* RW */
+239:#define MSDC_PATCH_BIT_DIS_WRMON  BIT(2)	/* RW */
+240:#define MSDC_PATCH_BIT_RD_DAT_SEL BIT(3)	/* RW */
+241:#define MSDC_PATCH_BIT_DESCUP_SEL BIT(6)	/* RW */
+244:#define MSDC_PATCH_BIT_IODSSEL    BIT(16)	/* RW */
+245:#define MSDC_PATCH_BIT_IOINTSEL   BIT(17)	/* RW */
+246:#define MSDC_PATCH_BIT_BUSYDLY    GENMASK(21, 18)	/* RW */
+247:#define MSDC_PATCH_BIT_WDOD       GENMASK(25, 22)	/* RW */
+248:#define MSDC_PATCH_BIT_IDRTSEL    BIT(26)	/* RW */
+249:#define MSDC_PATCH_BIT_CMDFSEL    BIT(27)	/* RW */
+250:#define MSDC_PATCH_BIT_INTDLSEL   BIT(28)	/* RW */
+251:#define MSDC_PATCH_BIT_SPCPUSH    BIT(29)	/* RW */
+252:#define MSDC_PATCH_BIT_DECRCTMO   BIT(30)	/* RW */
+254:/* MSDC_PATCH_BIT1 mask */
+256:#define MSDC_PATCH_BIT1_CMDTA     GENMASK(5, 3)     /* RW */
+258:#define MSDC_PATCH_BIT1_STOP_DLY  GENMASK(11, 8)    /* RW */
+269:/* MSDC_PATCH_BIT2 mask */
+270:#define MSDC_PATCH_BIT2_CFGRESP   BIT(15)   /* RW */
+271:#define MSDC_PATCH_BIT2_CFGCRCSTS BIT(28)   /* RW */
+781:static void msdc_reset_hw(struct msdc_host *host)
+785:	sdr_set_bits(host->base + MSDC_CFG, MSDC_CFG_RST);
+786:	readl_poll_timeout_atomic(host->base + MSDC_CFG, val, !(val & MSDC_CFG_RST), 0, 0);
+788:	sdr_set_bits(host->base + MSDC_FIFOCS, MSDC_FIFOCS_CLR);
+790:				  !(val & MSDC_FIFOCS_CLR), 0, 0);
+926:				      MSDC_CFG_CKMOD, &mode);
+929:				      MSDC_CFG_CKMOD_EXTRA, &mode);
+1038:		sdr_clr_bits(host->base + MSDC_CFG, MSDC_CFG_CKPDN);
+1096:	sdr_clr_bits(host->base + MSDC_CFG, MSDC_CFG_CKPDN);
+1101:			      MSDC_CFG_CKMOD | MSDC_CFG_CKDIV,
+1105:			      MSDC_CFG_CKMOD_EXTRA | MSDC_CFG_CKDIV_EXTRA,
+1110:	sdr_set_bits(host->base + MSDC_CFG, MSDC_CFG_CKPDN);
+1123:		writel(host->def_tune_para.iocon, host->base + MSDC_IOCON);
+1134:		writel(host->saved_tune_para.iocon, host->base + MSDC_IOCON);
+1912:	sdr_set_bits(host->base + MSDC_CFG, MSDC_CFG_MODE | MSDC_CFG_CKPDN);
+1918:	writel(0, host->base + MSDC_INTEN);
+1941:	writel(0, host->base + MSDC_IOCON);
+1942:	sdr_set_field(host->base + MSDC_IOCON, MSDC_IOCON_DDLSEL, 0);
+1949:	pb2_val = readl(host->base + MSDC_PATCH_BIT2);
+1952:	val = MSDC_PATCH_BIT_ODDSUPP;
+1955:	val |= MSDC_PATCH_BIT_DIS_WRMON;
+1958:	val |= MSDC_PATCH_BIT_DESCUP_SEL;
+1961:	val |= FIELD_PREP(MSDC_PATCH_BIT_BUSYDLY, 15);
+1964:	val |= MSDC_PATCH_BIT_DECRCTMO;
+1969:	/* First MSDC_PATCH_BIT setup is done: pull the trigger! */
+1970:	writel(val, host->base + MSDC_PATCH_BIT);
+1974:	pb1_val |= FIELD_PREP(MSDC_PATCH_BIT1_CMDTA, 1);
+1995:			pb1_val |= FIELD_PREP(MSDC_PATCH_BIT1_STOP_DLY,
+2014:		pb2_val &= ~MSDC_PATCH_BIT2_CFGRESP;
+2015:		pb2_val |= MSDC_PATCH_BIT2_CFGCRCSTS;
+2033:	writel(pb1_val, host->base + MSDC_PATCH_BIT1);
+2034:	writel(pb2_val, host->base + MSDC_PATCH_BIT2);
+2087:	host->def_tune_para.iocon = readl(host->base + MSDC_IOCON);
+2088:	host->saved_tune_para.iocon = readl(host->base + MSDC_IOCON);
+
+[mmc_power_and_voltage_paths]
+1677:static int msdc_ops_switch_volt(struct mmc_host *mmc, struct mmc_ios *ios)
+1689:		ret = mmc_regulator_set_vqmmc(mmc, ios);
+1698:			pinctrl_select_state(host->pinctrl, host->pins_uhs);
+1700:			pinctrl_select_state(host->pinctrl, host->pins_default);
+1770:			pinctrl_select_state(host->pinctrl, host->pins_eint);
+1781:			pinctrl_select_state(host->pinctrl, host->pins_uhs);
+2155:static void msdc_ops_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
+2164:	case MMC_POWER_UP:
+2167:			ret = mmc_regulator_set_ocr(mmc, mmc->supply.vmmc,
+2175:	case MMC_POWER_ON:
+2177:			ret = regulator_enable(mmc->supply.vqmmc);
+2184:	case MMC_POWER_OFF:
+2186:			mmc_regulator_set_ocr(mmc, mmc->supply.vmmc, 0);
+2189:			regulator_disable(mmc->supply.vqmmc);
+3330:			pinctrl_select_state(host->pinctrl, host->pins_eint);
+3356:		pinctrl_select_state(host->pinctrl, host->pins_uhs);
+
+[mmc_core_start_anchors]
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-53-
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-54-static void mmc_host_class_complete(struct device *dev)
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-55-{
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-56-	struct mmc_host *host = cls_dev_to_mmc_host(dev);
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-57-
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c:58:	_mmc_detect_change(host, 0, false);
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-59-}
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-60-
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-61-static const struct dev_pm_ops mmc_host_class_dev_pm_ops = {
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-62-	.prepare = pm_sleep_ptr(mmc_host_class_prepare),
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-63-	.complete = pm_sleep_ptr(mmc_host_class_complete),
+--
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-644- *
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-645- *	Register the host with the driver model. The host must be
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-646- *	prepared to start servicing requests before this function
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-647- *	completes.
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-648- */
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c:649:int mmc_add_host(struct mmc_host *host)
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-650-{
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-651-	int err;
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-652-
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-653-	err = mmc_validate_host_caps(host);
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/host.c-654-	if (err)
+--
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1394-void mmc_power_cycle(struct mmc_host *host, u32 ocr)
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1395-{
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1396-	mmc_power_off(host);
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1397-	/* Wait at least 1 ms according to SD spec */
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1398-	mmc_delay(1);
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c:1399:	mmc_power_up(host, ocr);
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1400-}
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1401-
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1402-/**
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1403- * mmc_handle_undervoltage - Handle an undervoltage event on the MMC bus
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1404- * @host: The MMC host that detected the undervoltage condition
+--
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1437-void mmc_detach_bus(struct mmc_host *host)
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1438-{
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1439-	host->bus_ops = NULL;
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1440-}
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1441-
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c:1442:void _mmc_detect_change(struct mmc_host *host, unsigned long delay, bool cd_irq)
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1443-{
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1444-	/*
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1445-	 * Prevent system sleep for 5s to allow user space to consume the
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1446-	 * corresponding uevent. This is especially useful, when CD irq is used
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1447-	 * as a system wakeup, but doesn't hurt in other cases.
+--
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1463- *	present card is still functional, and initialize any newly
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1464- *	inserted.
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1465- */
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1466-void mmc_detect_change(struct mmc_host *host, unsigned long delay)
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1467-{
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c:1468:	_mmc_detect_change(host, delay, true);
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1469-}
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1470-EXPORT_SYMBOL(mmc_detect_change);
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1471-
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1472-void mmc_init_erase(struct mmc_card *card)
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-1473-{
+--
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2094-
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2095-	return ret;
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2096-}
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2097-EXPORT_SYMBOL(mmc_sw_reset);
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2098-
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c:2099:static int mmc_rescan_try_freq(struct mmc_host *host, unsigned freq)
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2100-{
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2101-	host->f_init = freq;
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2102-
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2103-	pr_debug("%s: %s: trying to init card at %u Hz\n",
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2104-		mmc_hostname(host), __func__, host->f_init);
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2105-
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c:2106:	mmc_power_up(host, host->ocr_avail);
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2107-
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2108-	/*
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2109-	 * Some eMMCs (with VCCQ always on) may not be reset after power up, so
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2110-	 * do a hardware reset if possible.
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2111-	 */
+--
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2118-	 * Skip it if we already know that we do not support SDIO commands
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2119-	 */
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2120-	if (!(host->caps2 & MMC_CAP2_NO_SDIO))
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2121-		sdio_reset(host);
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2122-
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c:2123:	mmc_go_idle(host);
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2124-
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2125-	if (!(host->caps2 & MMC_CAP2_NO_SD)) {
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2126-		if (mmc_send_if_cond_pcie(host, host->ocr_avail))
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2127-			goto out;
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2128-		if (mmc_card_sd_express(host))
+--
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2137-	if (!(host->caps2 & MMC_CAP2_NO_SD))
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2138-		if (!mmc_attach_sd(host))
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2139-			return 0;
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2140-
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2141-	if (!(host->caps2 & MMC_CAP2_NO_MMC))
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c:2142:		if (!mmc_attach_mmc(host))
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2143-			return 0;
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2144-
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2145-out:
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2146-	mmc_power_off(host);
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2147-	return -EIO;
+--
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2204-			/*
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2205-			 * Schedule a detect work as soon as possible to let a
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2206-			 * rescan handle the card removal.
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2207-			 */
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2208-			cancel_delayed_work(&host->detect);
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c:2209:			_mmc_detect_change(host, 0, false);
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2210-		}
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2211-	}
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2212-
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2213-	return ret;
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2214-}
+--
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2311-		if (freq > host->f_max) {
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2312-			if (i + 1 < ARRAY_SIZE(freqs))
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2313-				continue;
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2314-			freq = host->f_max;
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2315-		}
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c:2316:		if (!mmc_rescan_try_freq(host, max(freq, host->f_min)))
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2317-			break;
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2318-		if (freqs[i] <= host->f_min)
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2319-			break;
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2320-	}
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2321-
+--
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2334- out:
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2335-	if (host->caps & MMC_CAP_NEEDS_POLL)
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2336-		mmc_schedule_delayed_work(&host->detect, HZ);
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2337-}
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2338-
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c:2339:void mmc_start_host(struct mmc_host *host)
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2340-{
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2341-	bool power_up = !(host->caps2 &
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2342-			 (MMC_CAP2_NO_PRESCAN_POWERUP | MMC_CAP2_SD_UHS2));
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2343-
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2344-	host->f_init = max(min(freqs[0], host->f_max), host->f_min);
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2345-	host->rescan_disable = 0;
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2346-
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2347-	if (power_up) {
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2348-		mmc_claim_host(host);
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c:2349:		mmc_power_up(host, host->ocr_avail);
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2350-		mmc_release_host(host);
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2351-	}
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2352-
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2353-	mmc_gpiod_request_cd_irq(host);
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c:2354:	_mmc_detect_change(host, 0, false);
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2355-}
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2356-
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2357-void __mmc_stop_host(struct mmc_host *host)
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2358-{
+/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/mmc/core/core.c-2359-	if (host->rescan_disable)
+
+[current_gemini_board_contract]
+214-+
+215-+&uart0 {
+216-+	pinctrl-names = "default";
+217-+	pinctrl-0 = <&uart0_pins_a>;
+218:+	status = "okay";
+219-+};
+220-+
+221-+&mmc0 {
+222-+	pinctrl-names = "default", "state_uhs";
+223-+	pinctrl-0 = <&mmc0_pins_default>;
+224-+	pinctrl-1 = <&mmc0_pins_default>;
+225:+	bus-width = <8>;
+226:+	max-frequency = <25000000>;
+227:+	vmmc-supply = <&mt6351_vemc_reg>;
+228:+	vqmmc-supply = <&mt6351_vio18_reg>;
+229:+	non-removable;
+230:+	no-sd;
+231:+	no-sdio;
+232:+	status = "okay";
+233-+};
+234--- 
+235-2.43.0
+board_has_hs200_or_hs400_capability=no
+board_has_reset_property=no
+board_uhs_and_default_groups_same=inspect_generated_dtb
+
+[decision]
+mt6797_mtk_sd_probe_is_stateful_and_not_read_only
+probe_enables_controller_clocks_and_waits_for_clock_stable
+probe_programs_controller_reset_fifo_interrupt_dma_tuning_and_timeout_registers
+gemini_board_does_not_declare_external_msdc_reset;internal_controller_reset_still_runs
+mmc_add_host_can_start_card_identification_after_probe
+mmc_power_up_may_set_and_enable_vemc_through_regulator_core
+mmc_power_on_may_enable_vio18_through_regulator_core
+signal_voltage_switch_may_change_vqmmc_and_select_pinctrl_state
+current_gemini_board_caps_legacy_25mhz_and_8bit_nonremovable_only
+current_gemini_board_uses_pinmux_only_for_default_and_uhs_states
+first_runtime_storage_test_requires_non_primary_boot_external_recovery_and_read_only_rootfs_policy
+hardware_write=none
+runtime_mainline_boot=not_attempted

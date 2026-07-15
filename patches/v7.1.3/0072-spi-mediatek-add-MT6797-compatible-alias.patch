@@ -1,0 +1,46 @@
+From 0000000000000000000000000000000000000072 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Maintainers <gemini-mainline@example.invalid>
+Date: Tue, 14 Jul 2026 10:20:00 -0400
+Subject: [PATCH] spi: mediatek: add MT6797 compatible alias
+
+The MT6797 vendor controller uses the legacy SPI register block with
+16-bit chip-select and clock timing fields, pad selection, mandatory TX
+dummy data, and extended DMA addressing.  These properties match the
+existing spi-mt65xx mt6765_compat profile.
+
+Add the MT6797 compatible to the binding and select that profile in the
+driver.  Board nodes remain disabled until their pinctrl, clocks, and a
+safe runtime transfer are validated.
+
+---
+ Documentation/devicetree/bindings/spi/mediatek,spi-mt65xx.yaml | 1 +
+ drivers/spi/spi-mt65xx.c                                      | 2 ++
+ 2 files changed, 3 insertions(+)
+
+diff --git a/Documentation/devicetree/bindings/spi/mediatek,spi-mt65xx.yaml b/Documentation/devicetree/bindings/spi/mediatek,spi-mt65xx.yaml
+--- a/Documentation/devicetree/bindings/spi/mediatek,spi-mt65xx.yaml
++++ b/Documentation/devicetree/bindings/spi/mediatek,spi-mt65xx.yaml
+@@ -27,6 +27,7 @@ properties:
+       - items:
+           - enum:
+               - mediatek,mt6779-spi
++              - mediatek,mt6797-spi
+               - mediatek,mt8186-spi
+               - mediatek,mt8192-spi
+               - mediatek,mt8195-spi
+diff --git a/drivers/spi/spi-mt65xx.c b/drivers/spi/spi-mt65xx.c
+--- a/drivers/spi/spi-mt65xx.c
++++ b/drivers/spi/spi-mt65xx.c
+@@ -251,7 +251,10 @@ static const struct of_device_id mtk_spi_of_match[] = {
+ 	},
+ 	{ .compatible = "mediatek,mt6765-spi",
+ 		.data = (void *)&mt6765_compat,
+ 	},
++	{ .compatible = "mediatek,mt6797-spi",
++		.data = (void *)&mt6765_compat,
++	},
+ 	{ .compatible = "mediatek,mt6991-spi",
+ 		.data = (void *)&mt6991_compat,
+ 	},
+-- 
+2.43.0

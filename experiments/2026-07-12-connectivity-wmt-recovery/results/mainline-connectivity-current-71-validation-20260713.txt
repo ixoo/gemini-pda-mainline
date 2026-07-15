@@ -1,0 +1,51 @@
+Current Linux 7.1.3 MT6797 connectivity source validation
+===========================================================
+
+Date: 2026-07-13
+VM: gemini-pda-dev
+Vendor tree commit: c5b0be85017ad0c599725e8273842efdbecdd88a
+Linux source: /home/julien.guest/src/gemini-pda/linux-7.1.3
+Linux source SHA-256: be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+Patch count: 71
+Patchset SHA-256: 86145c09fc00fd3c65fb822f7834c5bb3dc08eb76f5117b90538141a429a1623
+Package: /home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-86145c09fc00
+Package Image SHA-256: 4f63ac9ccfd97d83abcfb2fd51b045998e6f5539e68974b361c376f6abd8ab59
+Package config SHA-256: c11ddd57c1fc643202b15bcfac9564edbba61e42a0a08879369b52592ba31d7a
+Package Gemini DTB SHA-256: fb910c8d96b7d4f533c750ce0717ced8998c992834abc44a4ed86ec5a9cf1f97
+Analyzer output SHA-256: f7f6311aa341e3dadb67d0bf63128476f2d7fe47a93b6b78b499a5cf9c3a7a5a
+Linux btmtksdio.c SHA-256: 4cf63fbc0c63cd8fb489c6426dcf90994dbfa0fae6900180ea819ceeb2ea7dc1
+Live read-only rerun: results/live-connectivity-rerun-20260713.txt
+Live raw capture SHA-256: b0df5e72646ba97bc22cf8bc0fca943891463fc94c8ab6537c5c6f07401fce24
+
+The source-only analyzer passed against the current prepared tree. It
+reconfirmed the vendor consys power/identity offsets, WMT/STP framing, BTIF
+and legacy SDIO transport anchors, MT6797 Wi-Fi AP-DMA HIF, and Linux 7.1.3
+BT/WMT/GNSS comparison sources. No code was copied from the vendor tree.
+
+The current package does not enable a connectivity consumer. The reuse boundary
+is standard STP/HCI, firmware-helper, cfg80211, serdev, SDIO, regulator, clock,
+and GNSS framework code behind a new MT6797 consys owner and BTIF/legacy-SDIO
+transport. Linux `btmtkuart` is a protocol reference only because the observed
+active path is BTIF/SDIO, not a standard serdev UART. Linux `btmtksdio` is not a
+drop-in match: Gemini evidence is 0x6628/0x6630/0x6632 function 2, a 4-byte
+transport header, 512-byte blocks, and a 2080-byte FIFO versus Linux's newer
+ID table, 5-byte header, and 256-byte blocks. `mt76` and generic `gnss-mtk`
+are likewise not compatible by family name.
+
+vendor_stp_sdio_supported_ids=0x037a:0x6628:function2;0x037a:0x6630:function2;0x037a:0x6632:function2
+vendor_stp_sdio_block_size=512
+vendor_stp_sdio_fifo_size=2080
+vendor_stp_sdio_transport_header_bytes=4
+vendor_btif_register_window=0x1100c000+0x1000
+vendor_btif_dma_windows=tx:0x11000a00+0x80;rx:0x11000a80+0x80
+vendor_btif_spis=130;116;117
+linux_btmtksdio_supported_ids=MT7663;MT7668;MT7921;MT7902
+linux_btmtksdio_block_size=256
+linux_btmtksdio_transport_header_bytes=5
+
+source_contract_analyzer=passed
+mainline_connectivity_driver=not_enabled
+runtime_radio_bringup=not_attempted
+firmware_load=not_attempted
+radio_transmit=none
+hardware_write=none

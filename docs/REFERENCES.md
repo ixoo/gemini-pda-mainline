@@ -11,7 +11,7 @@ This index points to evidence sources and related efforts. Linked content may be
 
 ## Active and historical Gemini work
 
-- [`bsg100/gemini-linux`](https://github.com/bsg100/gemini-linux) — active modern-kernel bring-up, hardware inventory, and patch research. Coordinate before duplicating work.
+- [`bsg100/gemini-linux`](https://github.com/bsg100/gemini-linux) — independent MT6797X/Helio X27 Linux 6.6 bring-up, hardware inventory, and patch research. Treat its revisioned claims as comparative evidence; see the [2026-07-13 comparison audit](../experiments/2026-07-13-bsg100-gemini-linux-comparison/README.md). Coordinate before duplicating work.
 - [`Jasu/gemini-pda-buildroot`](https://github.com/Jasu/gemini-pda-buildroot) — historical mainline/Buildroot experiment that reported UART-only BusyBox boot.
 - [`gemian/gemini-linux-kernel-3.18`](https://github.com/gemian/gemini-linux-kernel-3.18) — downstream Gemini Linux 3.18 tree.
 - [`ali1234/linux-gemini`](https://github.com/ali1234/linux-gemini) — legacy Gemini kernel history.

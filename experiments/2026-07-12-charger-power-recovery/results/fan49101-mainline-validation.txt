@@ -1,0 +1,37 @@
+FAN49101 mainline candidate validation
+======================================
+
+This is build and schema evidence only.  The regulator node remains disabled
+and the driver has not been probed on the Gemini.
+
+patch=v7.1.3/0055-regulator-add-FAN49101-buck-boost-driver-and-Gemini-node.patch
+patch_count=55
+patchset_sha256=e3f7843686cc8e7eb108fc78cab85dcdb8370af1517dfad4ba4e839f047a3594
+kernel_version=7.1.3
+package=linux-7.1.3-gemini-e3f7843686cc
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+config_sha256=82c33f2184a6bbd98a6172b89d7414ab2e074065f9182003283b5e3b4d346e19
+compiler=gcc 13.3.0
+linker=GNU ld (binutils) 2.42
+generated_utc=2026-07-13T02:11:38Z
+
+config_fragment_symbols=CONFIG_REGULATOR_FAN49101=m
+full_build=passed (Image and all DTBs)
+gemini_dtb_compile=passed
+driver_object_compile=passed (drivers/regulator/fan49101.o)
+driver_object_warnings=none
+binding_doc_validate=passed (dt-doc-validate)
+focused_dtb_schema_validate=passed (dt-validate, onsemi,fan49101)
+packaged_image_sha256=6a01bc2ff006317131d829c2004fa14a14f3369ec46520aa24af9c20f12d6
+packaged_gemini_dtb_sha256=20fca3428c4f161f4aa38b3f88532073d2d0e5e5ee915c060ad1f6b0c64cfb9f
+
+runtime_node_status=disabled
+runtime_probe=not attempted
+probe_writes=none (the candidate probe reads ID1/ID2 only)
+hardware_write=none
+
+The normal Image/dtbs package target does not compile loadable modules, so the
+driver object was compiled separately after prepare/modules_prepare.  The
+focused schema check validates the generated Gemini DTB against the processed
+binding schema; this is not a substitute for a mainline boot or a live
+identity/readback test.

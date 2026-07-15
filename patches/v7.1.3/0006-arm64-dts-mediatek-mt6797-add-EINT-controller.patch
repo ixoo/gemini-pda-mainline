@@ -1,0 +1,43 @@
+From f8af5b61399aaed305821e4b3165998d52c448a6 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 11 Jul 2026 23:17:44 -0400
+Subject: [PATCH 6/6] arm64: dts: mediatek: mt6797: add EINT controller
+
+Expose the MT6797 EINT register window and its level-high summary
+interrupt on GIC SPI 170 through the pin controller.
+
+Limit gpio-ranges to physical GPIO0 through GPIO261. The EINT-only
+virtual pins remain available to the interrupt translation code but
+are intentionally excluded from the physical pin range.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ arch/arm64/boot/dts/mediatek/mt6797.dtsi | 9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+index 56183425f..5b02b7ebb 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797.dtsi
++++ b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+@@ -130,11 +130,16 @@ pio: pinctrl@10005000 {
+ 		      <0 0x10002000 0 0x400>,
+ 		      <0 0x10002400 0 0x400>,
+ 		      <0 0x10002800 0 0x400>,
+-		      <0 0x10002C00 0 0x400>;
++		      <0 0x10002c00 0 0x400>,
++		      <0 0x1000b000 0 0x1000>;
+ 		reg-names = "gpio", "iocfgl", "iocfgb",
+-			    "iocfgr", "iocfgt";
++			    "iocfgr", "iocfgt", "eint";
+ 		gpio-controller;
+ 		#gpio-cells = <2>;
++		gpio-ranges = <&pio 0 0 262>;
++		interrupt-controller;
++		#interrupt-cells = <2>;
++		interrupts = <GIC_SPI 170 IRQ_TYPE_LEVEL_HIGH>;
+ 
+ 		uart0_pins_a: uart0-pins {
+ 			pins-bus {
+-- 
+2.43.0
+

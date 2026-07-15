@@ -1,0 +1,28 @@
+MT6797/MT6351 ASoC build-only candidate validation
+
+kernel_version=7.1.3
+patch_count=56
+patchset_sha256=1004404081252c1314e5e521f6daa63f80177618f1cf25a6a751169094993498
+package=linux-7.1.3-gemini-100440408125
+generated_utc=2026-07-13T03:17:13Z
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+config_sha256=01f1ce5e6f1a64d29d72e3e01c88cbe0a8f769a10b226f0b79cbbc4d92206b59
+compiler=gcc 13.3.0
+linker=GNU ld (binutils) 2.42
+config_fragment_symbols=CONFIG_SND_SOC_MT6797=m,CONFIG_SND_SOC_MT6797_MT6351=m
+resolved_symbols=CONFIG_SND_SOC_MEDIATEK=m,CONFIG_SND_SOC_MT6351=m
+afe_object_compile=passed (snd-soc-mt6797-afe.o)
+machine_object_compile=passed (mt6797-mt6351.o)
+codec_object_compile=passed (mt6351.o)
+focused_object_warnings=none observed
+full_build=passed (Image and all DTBs)
+packaged_image_sha256=4dd751f641456f224e10c41dad413aa52f58bbae8fe57831f0d434a7fbe91c83
+packaged_gemini_dtb_sha256=20fca3428c4f161f4aa38b3f88532073d2d0e5e5ee915c060ad1f6b0c64cfb9f
+packaged_kernel_config_sha256=01f1ce5e6f1a64d29d72e3e01c88cbe0a8f769a10b226f0b79cbbc4d92206b59
+board_machine_card=not_added
+analog_route=not_verified
+runtime_probe=not_attempted
+hardware_write=none
+
+The AFE resource node remains disabled. No MT6797/MT6351 machine-card,
+codec route, amplifier, jack-detect, or playback/capture test was enabled.

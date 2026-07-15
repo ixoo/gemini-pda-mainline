@@ -1,0 +1,1255 @@
+vendor_tree=/home/julien.guest/src/reference/planet-mt6797-3.18
+vendor_commit=c5b0be85017ad0c599725e8273842efdbecdd88a
+vendor_blob_sha256[drivers/misc/mediatek/connectivity/common/common_main/mt6797/include/mtk_wcn_consys_hw.h]=3ee7631a95a12f5cddd860c213e51e75e1cb3146ca858a892aaae55b4d22fad1
+vendor_blob_sha256[drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c]=0ec8e9c1594626d0b31f2d2623927d614f63af4437c16df838e10e11258663ce
+vendor_blob_sha256[drivers/misc/mediatek/connectivity/common/common_main/mt6797/wmt_plat_alps.c]=b81db9778bfebf0230cf67a924f25270112ef2c369fb221328f3f4aef3bea1ec
+vendor_blob_sha256[drivers/misc/mediatek/connectivity/common/common_main/core/include/stp_core.h]=78abfa5601723b0dd2aac93b2c79d5e7fb6a75a948aa06d516df7dfc5102b30f
+vendor_blob_sha256[drivers/misc/mediatek/connectivity/common/common_main/core/stp_core.c]=7bc7a5bf3f2231b6fca8eac1fa8744eb792de75c79f6e859f6109a50008956ea
+vendor_blob_sha256[drivers/misc/mediatek/connectivity/common/common_main/linux/stp_btif.c]=cadce8870cf8b1933862064ea91832a37abd071663c88d9c38c204ead5774b34
+vendor_blob_sha256[drivers/misc/mediatek/connectivity/common/common_main/linux/stp_sdio.c]=bb564d19938c807af3ae7a173e0378c791d93d04a0b898606e95dc348f87cd45
+vendor_blob_sha256[drivers/misc/mediatek/connectivity/common/common_main/linux/stp_uart.c]=83ff2ed18e614f4739c30de68fcb111a27f41ce684d786b69f34d0e7cb4b24b3
+vendor_blob_sha256[drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c]=d7be291ca5e2962be24def406260b5bb21a4b85438f64a1064944686a84fd62e
+vendor_blob_sha256[drivers/misc/mediatek/connectivity/common/common_main/linux/hif_sdio.c]=04c528ce589400194dc1f206b3f5e9478a1903059493e7f0bec8c31fb2d3ec90
+vendor_blob_sha256[drivers/misc/mediatek/connectivity/common/common_detect/sdio_detect.c]=62aa85cf82777be34084ff2c9b5cb70f89627a4a9eb00dfa3d9719065a5afc48
+vendor_blob_sha256[drivers/misc/mediatek/btif/common/inc/mtk_btif.h]=4003126064e7b156de137af6e0b1a03e66169a0397d962aa448c0d99c210dfaf
+vendor_blob_sha256[drivers/misc/mediatek/btif/common/plat_inc/btif_priv.h]=3cb7cc939b2d59be36f48f6c0d4093acd552e7cd7058bf736ec83c398db82110
+vendor_blob_sha256[drivers/misc/mediatek/btif/common/btif_plat.c]=91744beb769a3414cba3cfc2920fffd7b2254b8e6a7861ea0abafa37e90c5872
+vendor_blob_sha256[drivers/misc/mediatek/btif/common/btif_dma_plat.c]=2f247d8a7a6ee60913f318a5db43da7813c047cb8980790d15073dd269ee693a
+vendor_blob_sha256[drivers/misc/mediatek/connectivity/wlan/gen2/os/linux/hif/ahb/include/hif_pdma.h]=28424fd8e1bff338ed9297709f990fe067c6ecc81b155a0f0fd80519d23930a8
+vendor_blob_sha256[drivers/misc/mediatek/connectivity/wlan/gen2/os/linux/hif/ahb/mt6797/ahb_pdma.c]=b2db0e01ccae1ad21da8236adb49b7edfe82152df82e665eecf0f4cdd7273046
+linux_tree=/home/julien.guest/src/gemini-pda/linux-7.1.3
+linux_revision=7.1.3 (prepared source; no Git metadata required)
+linux_blob_sha256[drivers/bluetooth/btmtkuart.c]=f0ed75c1de8a08bcf543975c927078be5d8de988bb25bc37898a8c37a29914af
+linux_blob_sha256[drivers/bluetooth/btmtk.c]=032bc289e8da1f3114b9a56894bb8ab7abfa82950c0d618ad26ed5d8be43af66
+linux_blob_sha256[drivers/gnss/mtk.c]=662889ca84f6b703a8a9e802501a0fb30994fff9edd5b348902e164551f790bb
+
+[vendor consys power and identity]
+46:#define CONSYS_AFE_REG_SETTING          1
+74:#define CONSYS_CPU_SW_RST_OFFSET		0x00000018
+77:#define CONSYS_TOP1_PWR_CTRL_OFFSET	0x0000032c
+78:#define CONSYS_PWR_CONN_ACK_OFFSET		0x00000180
+79:#define CONSYS_PWR_CONN_ACK_S_OFFSET	0x00000184
+81:#define CONSYS_CHIP_ID_OFFSET			0x00000008
+86:#define CONSYS_TOPAXI_PROT_EN_OFFSET		0x1220
+87:#define CONSYS_TOPAXI_PROT_STA1_OFFSET		0x1228
+128:#define CONSYS_CPU_SW_RST_REG				(AP_RGU_BASE + 0x00000018)
+129:#define CONSYS_TOP1_PWR_CTRL_REG			(SPM_BASE + 0x0000032c)
+130:#define CONSYS_PWR_CONN_ACK_REG			(SPM_BASE + 0x00000180)
+131:#define CONSYS_PWR_CONN_ACK_S_REG			(SPM_BASE + 0x00000184)
+134:#define CONSYS_CHIP_ID_REG					(CONN_MCU_CONFIG_BASE + 0x00000008)
+138:#if CONSYS_AFE_REG_SETTING
+139:#define CONSYS_AFE_REG_BASE					(0x180B6000)
+140:#define CONSYS_AFE_REG_GPS_SINGLE_OFFSET	(0x00000014)
+141:#define CONSYS_AFE_REG_WBG_RCK_01_OFFSET	(0x00000020)
+142:#define CONSYS_AFE_REG_WBG_GPS_01_OFFSET	(0x00000050)
+143:#define CONSYS_AFE_REG_WBG_GPS_02_OFFSET	(0x00000054)
+144:#define CONSYS_AFE_REG_WBG_BT_RX_01_OFFSET	(0x00000060)
+145:#define CONSYS_AFE_REG_WBG_BT_RX_02_OFFSET	(0x00000064)
+146:#define CONSYS_AFE_REG_WBG_BT_TX_01_OFFSET	(0x00000068)
+147:#define CONSYS_AFE_REG_WBG_BT_TX_02_OFFSET	(0x0000006C)
+148:#define CONSYS_AFE_REG_WBG_BT_TX_03_OFFSET	(0x00000070)
+149:#define CONSYS_AFE_REG_WBG_WF_RX_02_OFFSET	(0x00000084)
+150:#define CONSYS_AFE_REG_WBG_WF_TX_01_OFFSET	(0x00000088)
+151:#define CONSYS_AFE_REG_WBG_WF_TX_02_OFFSET	(0x0000008C)
+152:#define CONSYS_AFE_REG_WBG_WF_TX_03_OFFSET	(0x00000090)
+153:#define CONSYS_AFE_REG_DIG_RCK_01_VALUE		(0x180B0160)
+154:#define CONSYS_AFE_REG_WBG_RX_01_VALUE		(0xB8925421)
+155:#define CONSYS_AFE_REG_WBG_RX_02_VALUE		(0x00006401)
+156:#define CONSYS_AFE_REG_WBG_TX_01_VALUE		(0x08400000)
+157:#define CONSYS_AFE_REG_WBG_TX_02_VALUE		(0x0C110200)
+158:#define CONSYS_AFE_REG_WBG_TX_03_VALUE		(0x012A020A)
+159:#define CONSYS_AFE_REG_GPS_SINGLE_12_VALUE	(0x00001000)
+162:#define CONSYS_TOPAXI_PROT_EN				(TOPCKGEN_BASE + 0x1220)
+163:#define CONSYS_TOPAXI_PROT_STA1				(TOPCKGEN_BASE + 0x1228)
+166:/*CONSYS_CPU_SW_RST_REG*/
+167:#define CONSYS_CPU_SW_RST_BIT				(0x1 << 12)
+168:#define CONSYS_CPU_SW_RST_CTRL_KEY			(0x88 << 24)
+170:/*CONSYS_TOP1_PWR_CTRL_REG*/
+171:#define CONSYS_SPM_PWR_RST_BIT				(0x1 << 0)
+172:#define CONSYS_SPM_PWR_ISO_S_BIT			(0x1 << 1)
+173:#define CONSYS_SPM_PWR_ON_BIT				(0x1 << 2)
+174:#define CONSYS_SPM_PWR_ON_S_BIT			(0x1 << 3)
+176:#define CONSYS_SRAM_CONN_PD_BIT			(0x1 << 8)
+178:/*CONSYS_PWR_CONN_ACK_REG*/
+179:#define CONSYS_PWR_ON_ACK_BIT				(0x1 << 1)
+181:/*CONSYS_PWR_CONN_ACK_S_REG*/
+182:#define CONSYS_PWR_CONN_ACK_S_BIT			(0x1 << 1)
+95:struct clk *clk_scp_conn_main;	/*ctrl conn_power_on/off */
+103:	{.compatible = "mediatek,mt6797-consys",},
+115:		   .of_match_table = apwmt_of_ids,
+171:	jtag_addr1 = ioremap(JTAG_ADDR1_BASE, 0x1000);
+177:	jtag_addr2 = ioremap(JTAG_ADDR2_BASE, 0x1000);
+248:	reg_VCN18 = regulator_get(&pdev->dev, "vcn18");
+251:	reg_VCN28 = regulator_get(&pdev->dev, "vcn28");
+254:	reg_VCN33_BT = regulator_get(&pdev->dev, "vcn33_bt");
+257:	reg_VCN33_WIFI = regulator_get(&pdev->dev, "vcn33_wifi");
+346:		iRet = conn_power_on();	/* consult clkmgr owner. */
+348:			WMT_PLAT_ERR_FUNC("conn_power_on fail(%d)\n", iRet);
+349:		WMT_PLAT_DBG_FUNC("conn_power_on ok\n");
+417:			consysHwChipId = CONSYS_REG_READ(conn_reg.mcu_base + CONSYS_CHIP_ID_OFFSET);
+453:		consys_afe_reg_base = ioremap_nocache(CONSYS_AFE_REG_BASE, 0x100);
+507:		iRet = conn_power_on();	/* consult clkmgr owner */
+509:			WMT_PLAT_ERR_FUNC("conn_power_on fail(%d)\n", iRet);
+510:		WMT_PLAT_DBG_FUNC("conn_power_on ok\n");
+562:			WMT_PLAT_DBG_FUNC("CONSYS_CHIP_ID_REG(0x%08x)", CONSYS_REG_READ(CONSYS_CHIP_ID_REG));
+563:			consysHwChipId = CONSYS_REG_READ(CONSYS_CHIP_ID_REG);
+626:		/*power off connsys by API (MT6582, MT6572 are different) API: conn_power_off() */
+627:		iRet = conn_power_off();	/* consult clkmgr owner */
+629:			WMT_PLAT_ERR_FUNC("conn_power_off fail(%d)\n", iRet);
+630:		WMT_PLAT_DBG_FUNC("conn_power_off ok\n");
+683:		/*power off connsys by API: conn_power_off() */
+684:		iRet = conn_power_off();	/* consult clkmgr owner */
+686:			WMT_PLAT_ERR_FUNC("conn_power_off fail(%d)\n", iRet);
+687:		WMT_PLAT_DBG_FUNC("conn_power_off ok\n");
+862:			mt6351_upmu_set_rg_vcn33_on_ctrl(1);
+873:			mt6351_upmu_set_rg_vcn33_on_ctrl(0);
+977:INT32 mtk_wcn_consys_hw_vcn28_ctrl(UINT32 enable)
+980:		/*in co-clock mode,need to turn on vcn28 when fm on */
+992:		WMT_PLAT_INFO_FUNC("turn on vcn28 for fm/gps usage in co-clock mode\n");
+994:		/*in co-clock mode,need to turn off vcn28 when fm off */
+1003:		WMT_PLAT_INFO_FUNC("turn off vcn28 for fm/gps usage in co-clock mode\n");
+1047:		pEmibaseaddr = ioremap_nocache(gConEmiPhyBase + SZ_1M / 2, CONSYS_EMI_MEM_SIZE);
+1049:		pEmibaseaddr = ioremap_nocache(CONSYS_EMI_AP_PHY_BASE, CONSYS_EMI_MEM_SIZE);
+1082:	node = of_find_compatible_node(NULL, NULL, "mediatek,mt6797-consys");
+1130:		pEmibaseaddr = ioremap_nocache(gConEmiPhyBase + SZ_1M / 2, CONSYS_EMI_MEM_SIZE);
+1132:		pEmibaseaddr = ioremap_nocache(CONSYS_EMI_AP_PHY_BASE, CONSYS_EMI_MEM_SIZE);
+1134:		/* pEmibaseaddr = ioremap_nocache(0x80090400,270*KBYTE); */
+63:#ifdef	GPIO_GPS_LNA_PIN
+64:#undef	GPIO_GPS_LNA_PIN
+67:#define GPIO_GPS_LNA_PIN GPIO7
+150:	[PIN_BGF_EINT] = wmt_plat_bgf_eint_ctrl,
+153:	[PIN_GPS_LNA] = wmt_plat_gps_lna_ctrl,
+273:	wmt_plat_eirq_ctrl(PIN_BGF_EINT, PIN_STA_EINT_DIS);
+434:#ifdef GPIO_GPS_LNA_PIN
+435:	WMT_PLAT_INFO_FUNC("GPS_LNA(GPIO%d)\n", GPIO_GPS_LNA_PIN);
+437:	WMT_PLAT_INFO_FUNC("GPS_LNA(not defined)\n");
+476:INT32 wmt_plat_eirq_ctrl(ENUM_PIN_ID id, ENUM_PIN_STATE state)
+496:	case PIN_BGF_EINT:
+500:			node = of_find_compatible_node(NULL, NULL, "mediatek,mt6797-consys");
+502:				bgf_irq_num = irq_of_parse_and_map(node, 0);
+516:			bgf_irq_num = MT_CONN2AP_BTIF_WAKEUP_IRQ_ID;
+519:			iret = request_irq(bgf_irq_num, wmt_plat_bgf_irq_isr, bgf_irq_flag, "BTIF_WAKEUP_IRQ", NULL);
+562:EXPORT_SYMBOL(wmt_plat_eirq_ctrl);
+660:/* MT6306 GPIO7 is GPIO_GPS_LNA_EN, for K2 common phone pin modification	*/
+663:#ifdef GPIO_GPS_LNA_PIN
+668:		mt6306_set_gpio_dir(GPIO_GPS_LNA_PIN, GPIO_DIR_OUT);
+669:		mt6306_set_gpio_out(GPIO_GPS_LNA_PIN, GPIO_OUT_ZERO);
+673:		mt6306_set_gpio_out(GPIO_GPS_LNA_PIN, GPIO_OUT_ONE);
+677:		mt6306_set_gpio_out(GPIO_GPS_LNA_PIN, GPIO_OUT_ZERO);
+694:	static struct pinctrl_state *gps_lna_init;
+695:	static struct pinctrl_state *gps_lna_oh;
+696:	static struct pinctrl_state *gps_lna_ol;
+697:	static struct pinctrl *consys_pinctrl;
+700:	consys_pinctrl = mtk_wcn_consys_get_pinctrl();
+701:	if (NULL == consys_pinctrl) {
+702:		WMT_PLAT_ERR_FUNC("get consys pinctrl fail\n");
+706:	gps_lna_init = pinctrl_lookup_state(consys_pinctrl, "gps_lna_state_init");
+712:	gps_lna_oh = pinctrl_lookup_state(consys_pinctrl, "gps_lna_state_oh");
+718:	gps_lna_ol = pinctrl_lookup_state(consys_pinctrl, "gps_lna_state_ol");
+727:		pinctrl_select_state(consys_pinctrl, gps_lna_init);
+731:		pinctrl_select_state(consys_pinctrl, gps_lna_oh);
+735:		pinctrl_select_state(consys_pinctrl, gps_lna_ol);
+745:#ifdef GPIO_GPS_LNA_PIN
+749:		mt_set_gpio_pull_enable(GPIO_GPS_LNA_PIN, GPIO_PULL_DISABLE);
+750:		mt_set_gpio_dir(GPIO_GPS_LNA_PIN, GPIO_DIR_OUT);
+751:		mt_set_gpio_mode(GPIO_GPS_LNA_PIN, GPIO_GPS_LNA_PIN_M_GPIO);
+752:		mt_set_gpio_out(GPIO_GPS_LNA_PIN, GPIO_OUT_ZERO);
+755:		mt_set_gpio_out(GPIO_GPS_LNA_PIN, GPIO_OUT_ONE);
+758:		mt_set_gpio_out(GPIO_GPS_LNA_PIN, GPIO_OUT_ZERO);
+
+[vendor STP framing and transports]
+87:#define MTKSTP_UART_FULL_MODE	  STP_MODE_BIT(0)
+88:#define MTKSTP_UART_MAND_MODE	  STP_MODE_BIT(1)
+89:#define MTKSTP_BTIF_FULL_MODE	  STP_MODE_BIT(2)
+90:#define MTKSTP_BTIF_MAND_MODE	  STP_MODE_BIT(3)
+91:#define MTKSTP_SDIO_MODE          STP_MODE_BIT(4)
+93:#define MTKSTP_BUFFER_SIZE  (16384)
+106:#define MTKSTP_CRC_SIZE     (2)
+107:#define MTKSTP_HEADER_SIZE  (4)
+108:#define MTKSTP_SEQ_SIZE     (8)
+110:/*#define MTKSTP_WINSIZE      (4)*/
+111:#define MTKSTP_WINSIZE      (7)
+167:	MTKSTP_SYNC = 0,
+168:	MTKSTP_SEQ,
+169:	MTKSTP_ACK,
+170:	MTKSTP_NAK,
+171:	MTKSTP_TYPE,
+172:	MTKSTP_LENGTH,
+173:	MTKSTP_CHECKSUM,
+174:	MTKSTP_DATA,
+175:	MTKSTP_CRC1,
+176:	MTKSTP_CRC2,
+207:	UINT8 buffer[MTKSTP_BUFFER_SIZE];
+215:	UINT8 rx_buf[MTKSTP_BUFFER_SIZE];	/* input buffer of STP, room for current processing pkt */
+218:	UINT8 tx_buf[MTKSTP_BUFFER_SIZE];	/* output buffer of STP */
+219:	UINT32 tx_start_addr[MTKSTP_SEQ_SIZE];	/* ptr of each pkt in tx_buf[] */
+220:	UINT32 tx_length[MTKSTP_SEQ_SIZE];	/* length of each pkt in tx_buf[] */
+272:INT32 stp_send_data_no_ps(PUINT8 buffer, UINT32 length, UINT8 type);
+350:*  mtk_wcn_stp_send_data_raw
+360:extern INT32 mtk_wcn_stp_send_data_raw(const PUINT8 buffer, const UINT32 length, const UINT8 type);
+54:static IF_TX sys_if_tx;
+267:	if (type == BT_TASK_INDX)
+271:	else if (type == WMT_TASK_INDX)
+285:	if ((stp_core_ctx.parser.type == BT_TASK_INDX) && STP_BT_STK_IS_BLUEZ(stp_core_ctx)) {
+299:			if (stp_core_ctx.parser.type == WMT_TASK_INDX)
+530:	checksum = osal_crc16(buffer, length);
+668:		(*sys_if_tx) (&resync[0], 4, &ret);
+839:		{0x05, WMT_TASK_INDX, {0x01, 0x03, 0x01, 0x00, 0x01} },	/* sleep command */
+840:		{0x05, WMT_TASK_INDX, {0x01, 0x03, 0x01, 0x00, 0x02} },	/* host_awake command */
+1033:		(*sys_if_tx) (&stp_core_ctx.tx_buf[tx_read], tx_length, &ret);
+1041:		(*sys_if_tx) (&stp_core_ctx.tx_buf[tx_read], last_len, &ret);
+1048:		(*sys_if_tx) (&stp_core_ctx.tx_buf[0], tx_length - last_len, &ret);
+1071:	UINT8 mtkstp_header[MTKSTP_HEADER_SIZE];
+1075:	mtkstp_header[0] = 0x80 + (0 << 3) + txAck;	/* stp_core_ctx.sequence.txack; */
+1083:	mtkstp_header[3] = (mtkstp_header[0] + mtkstp_header[1] + mtkstp_header[2]) & 0xff;
+1088:		iStatus = (*sys_if_tx) ((const PUINT8)(&stp_delimiter[0]), STP_DEL_SIZE, &ret);
+1096:	iStatus = (*sys_if_tx) (&mtkstp_header[0], MTKSTP_HEADER_SIZE, &ret);
+1098:	if (ret != MTKSTP_HEADER_SIZE) {
+1099:		STP_ERR_FUNC("stp_send_ack, %d/%d status %d\n", MTKSTP_HEADER_SIZE, ret, iStatus);
+1106:INT32 stp_send_data_no_ps(PUINT8 buffer, UINT32 length, UINT8 type)
+1108:	UINT8 mtkstp_header[MTKSTP_HEADER_SIZE], temp[2];
+1116:	if (STP_NOT_ENABLE(stp_core_ctx) && WMT_TASK_INDX != type) {
+1118:	} else if (STP_NOT_ENABLE(stp_core_ctx) && WMT_TASK_INDX == type) {
+1125:		mtkstp_header[0] = 0x80;
+1131:		osal_memcpy(p_tx_buf, mtkstp_header, MTKSTP_HEADER_SIZE);
+1132:		p_tx_buf += MTKSTP_HEADER_SIZE;
+1143:		(*sys_if_tx) (&stp_core_ctx.tx_buf[0], (MTKSTP_HEADER_SIZE + length + 2), &ret);
+1144:		if ((MTKSTP_HEADER_SIZE + length + 2) != ret) {
+1155:		    (stp_is_tx_res_available(MTKSTP_HEADER_SIZE + length + MTKSTP_CRC_SIZE))) {
+1156:			mtkstp_header[0] =
+1161:			    (mtkstp_header[0] + mtkstp_header[1] + mtkstp_header[2]) & 0xff;
+1166:			    MTKSTP_HEADER_SIZE + length + 2;
+1174:			stp_add_to_tx_queue(mtkstp_header, MTKSTP_HEADER_SIZE);
+1180:			crc = osal_crc16(buffer, length);
+1289:		(stp_core_ctx.parser.type == BT_TASK_INDX) && STP_BT_STK_IS_BLUEZ(stp_core_ctx)) {
+1319:			if (stp_core_ctx.parser.type == BT_TASK_INDX) {
+1338:			if (stp_core_ctx.parser.type == WMT_TASK_INDX)
+1373:			if (stp_core_ctx.parser.type != WMT_TASK_INDX)
+1466:	sys_if_tx = cb_func->cb_if_tx;
+1557:	sys_if_tx = NULL;
+2396:	if (STP_NOT_ENABLE(stp_core_ctx) && WMT_TASK_INDX == STP_PENDING_TYPE(stp_core_ctx)) {
+2579:	UINT8 mtkstp_header[MTKSTP_HEADER_SIZE], temp[2];
+2597:	if (type != WMT_TASK_INDX) {
+2607:			if (type == WMT_TASK_INDX)
+2609:			if ((type == BT_TASK_INDX) && (STP_SDIO_IF_TX == wmt_plat_get_comm_if_type())) {
+2640:			if (type == WMT_TASK_INDX)
+2683:	if (type == BT_TASK_INDX) {
+2697:	if (STP_NOT_ENABLE(stp_core_ctx) && WMT_TASK_INDX != type) {
+2699:	} else if (STP_NOT_ENABLE(stp_core_ctx) && WMT_TASK_INDX == type) {
+2706:		/*mtkstp_header[0] = 0x80;*/
+2707:		mtkstp_header[0] = 0x80 + (stp_core_ctx.sequence.txseq << 3);	/* for debug purpose */
+2714:		osal_memcpy(p_tx_buf, mtkstp_header, MTKSTP_HEADER_SIZE);
+2715:		p_tx_buf += MTKSTP_HEADER_SIZE;
+2726:		(*sys_if_tx) (&stp_core_ctx.tx_buf[0], (MTKSTP_HEADER_SIZE + length + 2), &ret);
+2728:		if ((MTKSTP_HEADER_SIZE + length + 2) != ret) {
+2746:		    (stp_is_tx_res_available(MTKSTP_HEADER_SIZE + length + MTKSTP_CRC_SIZE))) {
+2750:			mtkstp_header[0] =
+2755:			    (mtkstp_header[0] + mtkstp_header[1] + mtkstp_header[2]) & 0xff;
+2759:			    MTKSTP_HEADER_SIZE + length + 2;
+2765:			stp_add_to_tx_queue(mtkstp_header, MTKSTP_HEADER_SIZE);
+2771:			crc = osal_crc16(buffer, length);
+2813:		if ((type == BT_TASK_INDX) && (STP_SDIO_IF_TX == wmt_plat_get_comm_if_type())) {
+2815:		} else if (type != WMT_TASK_INDX) {
+2821:		if (type != WMT_TASK_INDX)
+2866:	(*sys_if_tx) (&buffer[0], length, &written);
+2946:	if ((MTK_WCN_BOOL_TRUE == stp_psm_is_quick_ps_support()) && (type != WMT_TASK_INDX)) {
+3166:	crc = osal_crc16(&reset_payload[0], reset_payload_len);
+3170:	(*sys_if_tx)(&inband_reset_packet[0], 14 + reset_payload_len, &ret);
+3223:		crc = osal_crc16(&test_payload[0], reset_payload_len);
+3227:		(*sys_if_tx)(&test_packet[0], 14 + reset_payload_len, &ret);
+46:#define STP_MAX_PACKAGE_ALLOWED (2000)
+76:INT32 mtk_wcn_consys_stp_btif_open(VOID)
+80:	iRet = mtk_wcn_btif_open(BTIF_OWNER_NAME, pBtifRef);
+87:	mtk_wcn_stp_register_if_tx(STP_BTIF_IF_TX, (MTK_WCN_STP_IF_TX) mtk_wcn_consys_stp_btif_tx);
+113:INT32 mtk_wcn_consys_stp_btif_rx_cb_register(MTK_WCN_BTIF_RX_CB rx_cb)
+132:INT32 mtk_wcn_consys_stp_btif_tx(const PUINT8 pBuf, const UINT32 len, PUINT32 written_len)
+134:	INT32 retry_left = STP_BTIF_TX_RTY_LMT;
+151:	if (len > STP_MAX_PACKAGE_ALLOWED) {
+155:	wr_count = mtk_wcn_btif_write(stpBtifId, pBuf, len);
+158:		WMT_ERR_FUNC("mtk_wcn_btif_write err(%d)\n", wr_count);
+168:	while ((retry_left--) && (wr_count < len)) {
+170:		written = mtk_wcn_btif_write(stpBtifId, pBuf + wr_count, len - wr_count);
+172:			WMT_ERR_FUNC("mtk_wcn_btif_write err(%d)when do recovered\n", written);
+179:		WMT_INFO_FUNC("recovered,len(%d),retry_left(%d)\n", len, retry_left);
+185:	WMT_ERR_FUNC("stp btif write fail,len(%d),written(%d),retry_left(%d),pid[%d/%s]\n",
+186:		     len, wr_count, retry_left, current->pid, current->comm);
+192:INT32 mtk_wcn_consys_stp_btif_rx(PUINT8 pBuf, UINT32 len)
+205:		iRet = mtk_wcn_btif_wakeup_consys(stpBtifId);
+105:		const MTK_WCN_HIF_SDIO_FUNCINFO *sdio_func_infop);
+135:static const MTK_WCN_HIF_SDIO_FUNCINFO mtk_stp_sdio_id_tbl[] = {
+137:	{MTK_WCN_HIF_SDIO_FUNC(0x037A, 0x018B, 1, STP_SDIO_BLK_SIZE)},
+138:	{MTK_WCN_HIF_SDIO_FUNC(0x037A, 0x018C, 1, STP_SDIO_BLK_SIZE)},	/* 2-function */
+141:	{MTK_WCN_HIF_SDIO_FUNC(0x037A, 0x6619, 1, STP_SDIO_BLK_SIZE)},
+144:	{MTK_WCN_HIF_SDIO_FUNC(0x037A, 0x020B, 1, STP_SDIO_BLK_SIZE)},
+145:	{MTK_WCN_HIF_SDIO_FUNC(0x037A, 0x020C, 1, STP_SDIO_BLK_SIZE)},	/* 2-function */
+148:	{MTK_WCN_HIF_SDIO_FUNC(0x037A, 0x6628, 2, STP_SDIO_BLK_SIZE)},	/* 2-function */
+151:	{MTK_WCN_HIF_SDIO_FUNC(0x037A, 0x6630, 2, STP_SDIO_BLK_SIZE)},	/* 2-function */
+154:	{MTK_WCN_HIF_SDIO_FUNC(0x037A, 0x6632, 2, STP_SDIO_BLK_SIZE)},	/* 2-function */
+165:	.func_tbl_size = (sizeof(mtk_stp_sdio_id_tbl) / sizeof(MTK_WCN_HIF_SDIO_FUNCINFO) - 1),
+258:#define STPSDIO_LOUD_FUNC(fmt, arg...) \
+264:#define STPSDIO_DBG_FUNC(fmt, arg...) \
+270:#define STPSDIO_HINT_FUNC(fmt, arg...) \
+276:#define STPSDIO_INFO_FUNC(fmt, arg...) \
+282:#define STPSDIO_WARN_FUNC(fmt, arg...)	\
+288:#define STPSDIO_ERR_FUNC(fmt, arg...)	\
+294:#define STPSDIO_TRC_FUNC(f) \
+316:			STPSDIO_ERR_FUNC
+320:			STPSDIO_INFO_FUNC
+325:		STPSDIO_INFO_FUNC
+332:			STPSDIO_ERR_FUNC
+336:			STPSDIO_INFO_FUNC
+341:		STPSDIO_INFO_FUNC
+352:		STPSDIO_ERR_FUNC("iRet (%d)!\n", iRet);
+372:	STPSDIO_DBG_FUNC("clear g_stp_sdio_host_count end\n");
+423:	STPSDIO_ERR_FUNC("trigger fake coredump with str:[%s] finished\n", str);
+444:	i_ret = stp_sdio_rw_retry(HIF_TYPE_READL, STP_SDIO_RETRY_LIMIT, clt_ctx, CHLPCR, &chlcpr_value,
+448:		STPSDIO_ERR_FUNC("read CHLPCR fail(%d), return\n", ret);
+482:	STPSDIO_DBG_FUNC("Do FW-Own back!(Wakeup)\n");
+491:   using CMD52 write instead of CMD53 write for CCIR, CHLPCR, CSDIOCSR */
+495:		ret = stp_sdio_rw_retry(HIF_TYPE_WRITEB, STP_SDIO_RETRY_LIMIT, clt_ctx,
+496:				(UINT32)(CHLPCR+0x1), &write_value, 0);
+499:		ret = stp_sdio_rw_retry(HIF_TYPE_WRITEL, STP_SDIO_RETRY_LIMIT, clt_ctx, CHLPCR,
+503:			STPSDIO_ERR_FUNC("request firmware own back fail(%d)\n", ret);
+504:			osal_dbg_assert_aee("<HIF_SDIO> sdio_write ERROR",
+505:					"write CHLPCR by SDIO report error");
+513:		ret = stp_sdio_rw_retry(HIF_TYPE_READL, STP_SDIO_RETRY_LIMIT, clt_ctx, CHLPCR,
+516:			/* 4 <1.1> get CHISR Rx error handling */
+517:			STPSDIO_ERR_FUNC("get CHLPCR information rx error!(%d)\n", ret);
+523:			STPSDIO_DBG_FUNC("firmware ownback is polled!(%d)\n",
+528:		STPSDIO_DBG_FUNC("firmware ownback is no polled, wait for (%d us) and retry\n", delay_us);
+531:			STPSDIO_ERR_FUNC("own back failed in %d us, something might goes wrong\n",
+537:			ret = stp_sdio_rw_retry(HIF_TYPE_WRITEB, STP_SDIO_RETRY_LIMIT, clt_ctx,
+538:					(UINT32)(CHLPCR+0x1), &write_value, 0);
+541:			ret = stp_sdio_rw_retry(HIF_TYPE_WRITEL, STP_SDIO_RETRY_LIMIT, clt_ctx, CHLPCR,
+545:				STPSDIO_ERR_FUNC("request firmware own back fail(%d)\n", ret);
+546:			STPSDIO_ERR_FUNC("own back failed in %d us, write again\n", 200*delay_us);
+556:			STPSDIO_INFO_FUNC("Do FW-Own back!(Wakeup) succeed\n");
+559:			STPSDIO_ERR_FUNC("Do FW-Own back!(Wakeup) fail\n");
+585:		STPSDIO_WARN_FUNC("g_stp_sdio_host_count is 0, do nothing!\n");
+597:		STPSDIO_LOUD_FUNC("before op(%d)\n", op);
+599:		STPSDIO_LOUD_FUNC("after op(%d)\n", op);
+608:		STPSDIO_LOUD_FUNC("before op(%d)\n", op);
+610:		STPSDIO_LOUD_FUNC("after op(%d)\n", op);
+615:		STPSDIO_INFO_FUNC("omit op(%d)\n", op);
+619:		STPSDIO_WARN_FUNC("omit op(%d)\n", op);
+633:	STPSDIO_LOUD_FUNC
+644:	STPSDIO_LOUD_FUNC
+670:	STPSDIO_INFO_FUNC("stp_tx_rx_thread start running...\n");
+672:		STPSDIO_WARN_FUNC("sanity check fail, (pInfo == NULL)\n");
+676:	STPSDIO_INFO_FUNC("stp_tx_rx_thread runns\n");
+680:		/* <0> get CHLPCR information */
+682:			STPSDIO_DBG_FUNC("OWN on fw side!\n");
+687:				STPSDIO_DBG_FUNC("set OWN to driver side ok!\n");
+694:					STPSDIO_WARN_FUNC("clr fw own fail,signal for sleep/wakeup to return\n");
+698:					STPSDIO_ERR_FUNC("set OWN to driver side error!\n");
+700:					mtk_wcn_hif_sdio_readl(clt_ctx, CCIR, &val);
+701:					STPSDIO_INFO_FUNC("read CCIR value(0x%x)\n", val);
+711:			STPSDIO_DBG_FUNC("OWN on driver side!\n");
+717:			STPSDIO_DBG_FUNC("clr firmware own! (wakeup) ok\n");
+726:			/* <1> get CHISR information */
+727:			iRet = mtk_wcn_hif_sdio_readl(clt_ctx, CHISR, &chisr);
+729:				/* 4       <1.1> get CHISR Rx error handling */
+731:				STPSDIO_ERR_FUNC("get CHISR information rx error, ret:%d\n", iRet);
+741:				STPSDIO_ERR_FUNC("CHISR(0x%08x)\n", chisr);
+743:				STPSDIO_DBG_FUNC("CHISR(0x%08x)\n", chisr);
+747:				STPSDIO_ERR_FUNC("******CHISR == 0*****\n");
+749:				stp_sdio_rw_retry(HIF_TYPE_READL, STP_SDIO_RETRY_LIMIT, clt_ctx, CCIR,
+751:				STPSDIO_ERR_FUNC("******CCIR == 0x%x*****\n", val);
+752:				stp_sdio_rw_retry(HIF_TYPE_READL, STP_SDIO_RETRY_LIMIT, clt_ctx, CHLPCR,
+754:				STPSDIO_ERR_FUNC("******CHLPCR == 0x%x*****\n", val);
+755:				stp_sdio_rw_retry(HIF_TYPE_READL, STP_SDIO_RETRY_LIMIT, clt_ctx, CSDIOCSR,
+757:				STPSDIO_ERR_FUNC("******CSDIOCSR == 0x%x*****\n", val);
+758:				stp_sdio_rw_retry(HIF_TYPE_READL, STP_SDIO_RETRY_LIMIT, clt_ctx, CHCR,
+760:				STPSDIO_ERR_FUNC("******CHCR == 0x%x*****\n", val);
+761:				stp_sdio_rw_retry(HIF_TYPE_READL, STP_SDIO_RETRY_LIMIT, clt_ctx, CHISR,
+763:				STPSDIO_ERR_FUNC("******CHISR == 0x%x*****\n", val);
+764:				stp_sdio_rw_retry(HIF_TYPE_READL, STP_SDIO_RETRY_LIMIT, clt_ctx, CHIER,
+766:				STPSDIO_ERR_FUNC("******CHIER == 0x%x*****\n", val);
+767:				stp_sdio_rw_retry(HIF_TYPE_READL, STP_SDIO_RETRY_LIMIT, clt_ctx, CTFSR,
+769:				STPSDIO_ERR_FUNC("******CTFSR == 0x%x*****\n", val);
+770:				stp_sdio_rw_retry(HIF_TYPE_READL, STP_SDIO_RETRY_LIMIT, clt_ctx, CRPLR,
+772:				STPSDIO_ERR_FUNC("******CRPLR == 0x%x*****\n", val);
+776:				STPSDIO_HINT_FUNC("FW_OWN_BACK_INT\n");
+781:				STPSDIO_DBG_FUNC("Tx interrupt\n");
+788:					STPSDIO_ERR_FUNC
+796:				/* STPSDIO_INFO_FUNC("RX_DONE_INT\n"); */
+798:					STPSDIO_ERR_FUNC("rx worker is not finished yet!\n");
+802:				STPSDIO_HINT_FUNC("rx_pkt_len(%d)\n", pInfo->rx_pkt_len);
+806:					STPSDIO_ERR_FUNC
+807:					    ("abnormal rx_pkt_len(%d) in CHISR(0x%08x) skip rx_worker\n",
+816:						STPSDIO_WARN_FUNC("rx len not 4 bytes, CHISR(0x%08x), rx len (%d).\n",
+832:		/*Disable Common interrupt output in CHLPCR */
+833:		STPSDIO_DBG_FUNC("enable COM IRQ\n");
+837:   using CMD52 write instead of CMD53 write for CCIR, CHLPCR, CSDIOCSR */
+840:		iRet = stp_sdio_rw_retry(HIF_TYPE_WRITEB, STP_SDIO_RETRY_LIMIT, clt_ctx, CHLPCR,
+844:		iRet = stp_sdio_rw_retry(HIF_TYPE_WRITEL, STP_SDIO_RETRY_LIMIT, clt_ctx, CHLPCR,
+848:			STPSDIO_ERR_FUNC("enable IRQ fail. iRet:%d\n", iRet);
+851:			STPSDIO_HINT_FUNC("enable COM IRQ\n");
+852:			iRet = stp_sdio_rw_retry(HIF_TYPE_READL, STP_SDIO_RETRY_LIMIT, clt_ctx, CHLPCR,
+855:				STPSDIO_ERR_FUNC("read CHLPCR fail. iRet:%d\n", iRet);
+858:					STPSDIO_HINT_FUNC("enable COM IRQ okay (0x%x)\n",
+865:					iRet = stp_sdio_rw_retry(HIF_TYPE_WRITEL, STP_SDIO_RETRY_LIMIT,
+868:					iRet = stp_sdio_rw_retry(HIF_TYPE_READL, STP_SDIO_RETRY_LIMIT,
+869:							clt_ctx, CHISR, &chisr, 0);
+870:					STPSDIO_INFO_FUNC("Query CHISR(0x%08x)\n", chisr);
+873:					iRet = stp_sdio_rw_retry(HIF_TYPE_WRITEL, STP_SDIO_RETRY_LIMIT,
+888:			/* STPSDIO_INFO_FUNC("set firmware own! (sleeping)\n"); */
+890:   using CMD52 write instead of CMD53 write for CCIR, CHLPCR, CSDIOCSR */
+895:			iRet = stp_sdio_rw_retry(HIF_TYPE_WRITEB, STP_SDIO_RETRY_LIMIT, clt_ctx,
+896:					(UINT32)(CHLPCR + 0x01), &write_value, 0);
+899:			iRet = stp_sdio_rw_retry(HIF_TYPE_WRITEL, STP_SDIO_RETRY_LIMIT, clt_ctx, CHLPCR,
+903:				STPSDIO_ERR_FUNC("set firmware own! (sleeping) fail\n");
+905:					mtk_wcn_hif_sdio_readl(clt_ctx, CCIR, &val);
+906:					STPSDIO_INFO_FUNC("read CCIR value(0x%x)\n", val);
+909:				iRet = stp_sdio_rw_retry(HIF_TYPE_READL, STP_SDIO_RETRY_LIMIT, clt_ctx,
+910:						CHLPCR, &chlcpr_value, 0);
+912:					STPSDIO_ERR_FUNC("get firmware own! (sleeping) fail iRet:%d\n",
+917:						STPSDIO_DBG_FUNC
+926:						STPSDIO_ERR_FUNC("set firmware own! (sleeping) fail, set CLR BACK\n");
+930:						mtk_wcn_hif_sdio_readl(clt_ctx, CCIR, &val);
+931:						STPSDIO_INFO_FUNC("read CCIR value(0x%x)\n", val);
+936:   using CMD52 write instead of CMD53 write for CCIR, CHLPCR, CSDIOCSR */
+939:						iRet = stp_sdio_rw_retry(HIF_TYPE_WRITEB, STP_SDIO_RETRY_LIMIT,
+940:								clt_ctx, (UINT32)(CHLPCR + 0x01),
+944:						iRet = stp_sdio_rw_retry(HIF_TYPE_WRITEL, STP_SDIO_RETRY_LIMIT,
+945:								clt_ctx, CHLPCR, &write_value, 0);
+957:			STPSDIO_ERR_FUNC("stp_is_ready(%d) irq_pending(%d) tx_packet_num(%d) rx_pkt_len(%d)\n",
+963:			/*make fake irq flag to dump CHISR information */
+972:					STPSDIO_ERR_FUNC("STP-SDIO can't handle tx request. tx_packet_num:%d\n",
+982:		STPSDIO_DBG_FUNC("stp_tx_rx_thread receive signal\n");
+988:		STPSDIO_WARN_FUNC("someone is wait for sleep/wakeup event, signal it to return\n");
+992:		STPSDIO_WARN_FUNC("is_check_complete signal in active state, wait for a moment.\n");
+995:	STPSDIO_INFO_FUNC("stp_tx_rx_thread exit\n");
+1026:	STPSDIO_LOUD_FUNC("enter\n");
+1034:		STPSDIO_LOUD_FUNC("invalid size(%ld) > fifo(%d) or data(0x%p)\n",
+1051:		pb->tx_buf_sz[idx] = size + STP_SDIO_HDR_SIZE;
+1053:		pkt_bufp = pb->tx_buf + idx * STP_SDIO_TX_ENTRY_SIZE + STP_SDIO_HDR_SIZE;
+1055:		pkt_bufp = &pb->tx_buf[idx][STP_SDIO_HDR_SIZE];
+1062:		STPSDIO_DBG_FUNC("(Empty) Enqueue done\n");
+1085:			STPSDIO_DBG_FUNC("(Not empty-aggre) Enqueue done\n");
+1104:			pb->tx_buf_sz[idx] = size + STP_SDIO_HDR_SIZE;
+1106:			pkt_bufp = pb->tx_buf + idx * STP_SDIO_TX_ENTRY_SIZE + STP_SDIO_HDR_SIZE;
+1108:			pkt_bufp = &pb->tx_buf[idx][STP_SDIO_HDR_SIZE];
+1113:			STPSDIO_DBG_FUNC("(Not empty-no aggre) Enqueue done\n");
+1121:			STPSDIO_ERR_FUNC
+1135:				STPSDIO_ERR_FUNC("abnormal, wr_cnt(0x%x), rd_cnt(0x%x), prev(%d), prev_size(%d)\n",
+1151:			STPSDIO_DBG_FUNC("(full-aggre) Enqueue done\n");
+1159:			STPSDIO_WARN_FUNC("Local Tx buffer is full !\n");
+1168:			STPSDIO_INFO_FUNC("wait event return\n");
+1179:			pb->tx_buf_sz[idx] = size + STP_SDIO_HDR_SIZE;
+1181:			pkt_bufp = pb->tx_buf + idx * STP_SDIO_TX_ENTRY_SIZE + STP_SDIO_HDR_SIZE;
+1183:			pkt_bufp = &pb->tx_buf[idx][STP_SDIO_HDR_SIZE];
+1198:	STPSDIO_DBG_FUNC("osal_trigger_event gp_info->tx_rx_event\n");
+1216:	STPSDIO_LOUD_FUNC("enter\n");
+1230:		    (UINT8) ((size + STP_SDIO_HDR_SIZE) & 0xff);
+1232:		    (UINT8) ((size + STP_SDIO_HDR_SIZE) >> 8);
+1235:		    (UINT8) ((size + STP_SDIO_HDR_SIZE) & 0xff);
+1237:		    (UINT8) ((size + STP_SDIO_HDR_SIZE) >> 8);
+1241:		STPSDIO_DBG_FUNC("(Empty) Enqueue done\n");
+1245:		    STP_SDIO_HDR_SIZE;
+1247:		pkt_bufp = &gp_info->pkt_buf.tx_buf[gp_info->pkt_buf.wr_idx][STP_SDIO_HDR_SIZE];
+1296:			STPSDIO_DBG_FUNC("(Not empty-aggre) Enqueue done\n");
+1323:				(UINT8) ((size + STP_SDIO_HDR_SIZE) & 0xff);
+1326:				(UINT8) ((size + STP_SDIO_HDR_SIZE) >> 8);
+1331:			    gp_info->pkt_buf.wr_idx * STP_SDIO_TX_ENTRY_SIZE + STP_SDIO_HDR_SIZE;
+1334:			    (UINT8) ((size + STP_SDIO_HDR_SIZE) & 0xff);
+1336:			    (UINT8) ((size + STP_SDIO_HDR_SIZE) >> 8);
+1340:			    &gp_info->pkt_buf.tx_buf[gp_info->pkt_buf.wr_idx][STP_SDIO_HDR_SIZE];
+43:#define N_MTKSTP              (15 + 1)	/* refer to linux tty.h use N_HCI. */
+45:#define HCIUARTSETPROTO        _IOW('U', 200, int)
+116:struct tty_struct *stp_tty = 0x0;
+230:	stp_tty = tty;
+231:	mtk_wcn_stp_register_if_tx(STP_UART_IF_TX, (MTK_WCN_STP_IF_TX) mtk_wcn_uart_tx);
+244:	mtk_wcn_stp_register_if_tx(STP_UART_IF_TX, NULL);
+593:	case HCIUARTSETPROTO:
+638:	if (stp_tty == NULL)
+687:			ret = stp_uart_tx_wakeup(stp_tty);
+784:	err = tty_register_ldisc(N_MTKSTP, &stp_uart_ldisc);
+791:	   mtk_wcn_stp_register_if_tx( mtk_wcn_uart_tx);
+823:	mtk_wcn_stp_register_if_tx(STP_UART_IF_TX, NULL);	/* unregister if_tx function */
+826:	err = tty_unregister_ldisc(N_MTKSTP);
+70:#define COMPAT_WMT_IOCTL_SET_PATCH_NAME		_IOW(WMT_IOC_MAGIC, 4, compat_uptr_t)
+71:#define COMPAT_WMT_IOCTL_LPBK_TEST		_IOWR(WMT_IOC_MAGIC, 8, compat_uptr_t)
+72:#define COMPAT_WMT_IOCTL_SET_PATCH_INFO		_IOW(WMT_IOC_MAGIC, 15, compat_uptr_t)
+73:#define COMPAT_WMT_IOCTL_PORT_NAME		_IOWR(WMT_IOC_MAGIC, 20, compat_uptr_t)
+74:#define COMPAT_WMT_IOCTL_WMT_CFG_NAME		_IOWR(WMT_IOC_MAGIC, 21, compat_uptr_t)
+75:#define COMPAT_WMT_IOCTL_SEND_BGW_DS_CMD	_IOW(WMT_IOC_MAGIC, 25, compat_uptr_t)
+76:#define COMPAT_WMT_IOCTL_ADIE_LPBK_TEST		_IOWR(WMT_IOC_MAGIC, 26, compat_uptr_t)
+80:#define WMT_IOCTL_SET_PATCH_NAME	_IOW(WMT_IOC_MAGIC, 4, char*)
+81:#define WMT_IOCTL_SET_STP_MODE		_IOW(WMT_IOC_MAGIC, 5, int)
+82:#define WMT_IOCTL_FUNC_ONOFF_CTRL	_IOW(WMT_IOC_MAGIC, 6, int)
+83:#define WMT_IOCTL_LPBK_POWER_CTRL	_IOW(WMT_IOC_MAGIC, 7, int)
+84:#define WMT_IOCTL_LPBK_TEST		_IOWR(WMT_IOC_MAGIC, 8, char*)
+85:#define WMT_IOCTL_GET_CHIP_INFO		_IOR(WMT_IOC_MAGIC, 12, int)
+86:#define WMT_IOCTL_SET_LAUNCHER_KILL	_IOW(WMT_IOC_MAGIC, 13, int)
+87:#define WMT_IOCTL_SET_PATCH_NUM		_IOW(WMT_IOC_MAGIC, 14, int)
+88:#define WMT_IOCTL_SET_PATCH_INFO	_IOW(WMT_IOC_MAGIC, 15, char*)
+89:#define WMT_IOCTL_PORT_NAME		_IOWR(WMT_IOC_MAGIC, 20, char*)
+90:#define WMT_IOCTL_WMT_CFG_NAME		_IOWR(WMT_IOC_MAGIC, 21, char*)
+91:#define WMT_IOCTL_WMT_QUERY_CHIPID	_IOR(WMT_IOC_MAGIC, 22, int)
+92:#define WMT_IOCTL_WMT_TELL_CHIPID	_IOW(WMT_IOC_MAGIC, 23, int)
+93:#define WMT_IOCTL_WMT_COREDUMP_CTRL	_IOW(WMT_IOC_MAGIC, 24, int)
+94:#define WMT_IOCTL_SEND_BGW_DS_CMD	_IOW(WMT_IOC_MAGIC, 25, char*)
+95:#define WMT_IOCTL_ADIE_LPBK_TEST	_IOWR(WMT_IOC_MAGIC, 26, char*)
+96:#define WMT_IOCTL_WMT_STP_ASSERT_CTRL	_IOW(WMT_IOC_MAGIC, 27, int)
+97:#define WMT_IOCTL_FW_DBGLOG_CTRL	_IOR(WMT_IOC_MAGIC, 29, int)
+98:#define WMT_IOCTL_DYNAMIC_DUMP_CTRL	_IOR(WMT_IOC_MAGIC, 30, char*)
+107:#define WMT_DRIVER_NAME "mtk_stp_wmt"
+429:INT32 wmt_dev_patch_get(PUINT8 pPatchName, osal_firmware **ppPatch)
+450:INT32 wmt_dev_patch_put(osal_firmware **ppPatch)
+459:VOID wmt_dev_patch_info_free(VOID)
+678:ssize_t WMT_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
+710:ssize_t WMT_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
+762:LONG WMT_unlocked_ioctl(struct file *filp, UINT32 cmd, ULONG arg)
+769:	case WMT_IOCTL_SET_PATCH_NAME:	/* patch location */
+786:	case WMT_IOCTL_SET_STP_MODE:	/* stp/hif/fm mode */
+823:	case WMT_IOCTL_FUNC_ONOFF_CTRL:	/* test turn on/off func */
+835:	case WMT_IOCTL_LPBK_POWER_CTRL:
+858:	case WMT_IOCTL_LPBK_TEST:
+923:	case WMT_IOCTL_ADIE_LPBK_TEST:
+984:	case WMT_IOCTL_GET_CHIP_INFO:
+992:	case WMT_IOCTL_WMT_CFG_NAME:
+1004:	case WMT_IOCTL_SET_LAUNCHER_KILL:
+1011:	case WMT_IOCTL_SET_PATCH_NUM:
+1029:	case WMT_IOCTL_SET_PATCH_INFO:
+1070:	case WMT_IOCTL_WMT_COREDUMP_CTRL:
+1073:	case WMT_IOCTL_WMT_STP_ASSERT_CTRL:
+1082:	case WMT_IOCTL_WMT_QUERY_CHIPID:
+1086:	case WMT_IOCTL_WMT_TELL_CHIPID:
+1097:	case WMT_IOCTL_SEND_BGW_DS_CMD:
+1140:	case WMT_IOCTL_FW_DBGLOG_CTRL:
+1145:	case WMT_IOCTL_DYNAMIC_DUMP_CTRL:
+1202:		case COMPAT_WMT_IOCTL_SET_PATCH_NAME:
+1203:			ret = WMT_unlocked_ioctl(filp, WMT_IOCTL_SET_PATCH_NAME, (ULONG)compat_ptr(arg));
+1205:		case COMPAT_WMT_IOCTL_LPBK_TEST:
+1206:			ret = WMT_unlocked_ioctl(filp, WMT_IOCTL_LPBK_TEST, (ULONG)compat_ptr(arg));
+1208:		case COMPAT_WMT_IOCTL_SET_PATCH_INFO:
+1209:			ret = WMT_unlocked_ioctl(filp, WMT_IOCTL_SET_PATCH_INFO, (ULONG)compat_ptr(arg));
+1211:		case COMPAT_WMT_IOCTL_PORT_NAME:
+1212:			ret = WMT_unlocked_ioctl(filp, WMT_IOCTL_PORT_NAME, (ULONG)compat_ptr(arg));
+1214:		case COMPAT_WMT_IOCTL_WMT_CFG_NAME:
+1215:			ret = WMT_unlocked_ioctl(filp, WMT_IOCTL_WMT_CFG_NAME, (ULONG)compat_ptr(arg));
+1217:		case COMPAT_WMT_IOCTL_SEND_BGW_DS_CMD:
+1218:			ret = WMT_unlocked_ioctl(filp, WMT_IOCTL_SEND_BGW_DS_CMD, (ULONG)compat_ptr(arg));
+1221:			ret = WMT_unlocked_ioctl(filp, cmd, arg);
+1260:	.read = WMT_read,
+1261:	.write = WMT_write,
+1263:	.unlocked_ioctl = WMT_unlocked_ioctl,
+1300:	ret = register_chrdev_region(devID, WMT_DEV_NUM, WMT_DRIVER_NAME);
+1317:	wmt_class = class_create(THIS_MODULE, "stpwmt");
+1320:	wmt_dev = device_create(wmt_class, NULL, devID, NULL, "stpwmt");
+1408:		unregister_chrdev_region(devID, WMT_DEV_NUM);
+1453:	unregister_chrdev_region(dev, WMT_DEV_NUM);
+
+[vendor SDIO identity and Wi-Fi HIF]
+31:	{{SDIO_DEVICE(0x037A, 0x020A)}, 0x6620},	/* SDIO1:FUNC1:WIFI */
+32:	{{SDIO_DEVICE(0x037A, 0x020B)}, 0x6620},	/* SDIO2:FUNC1:BT+FM+GPS */
+33:	{{SDIO_DEVICE(0x037A, 0x020C)}, 0x6620},	/* 2-function (SDIO2:FUNC1:BT+FM+GPS, FUNC2:WIFI) */
+36:	{{SDIO_DEVICE(0x037A, 0x6628)}, 0x6628},
+39:	{{SDIO_DEVICE(0x037A, 0x6630)}, 0x6630},
+42:	{{SDIO_DEVICE(0x037A, 0x6602)}, 0x6632},
+45:	{{SDIO_DEVICE(0x037A, 0x6632)}, 0x6632},
+52:	{SDIO_DEVICE(0x037A, 0x018A)},	/* SDIO1:WIFI */
+53:	{SDIO_DEVICE(0x037A, 0x018B)},	/* SDIO2:FUNC1:BT+FM */
+54:	{SDIO_DEVICE(0x037A, 0x018C)},	/* 2-function (SDIO2:FUNC1:BT+FM, FUNC2:WIFI) */
+57:	{SDIO_DEVICE(0x037A, 0x6619)},	/* SDIO2:FUNC1:BT+FM+GPS */
+60:	{SDIO_DEVICE(0x037A, 0x020A)},	/* SDIO1:FUNC1:WIFI */
+61:	{SDIO_DEVICE(0x037A, 0x020B)},	/* SDIO2:FUNC1:BT+FM+GPS */
+62:	{SDIO_DEVICE(0x037A, 0x020C)},	/* 2-function (SDIO2:FUNC1:BT+FM+GPS, FUNC2:WIFI) */
+65:	{SDIO_DEVICE(0x037A, 0x5921)},
+68:	{SDIO_DEVICE(0x037A, 0x6628)},
+71:	{SDIO_DEVICE(0x037A, 0x6630)},
+74:	{SDIO_DEVICE(0x037A, 0x6602)},
+77:	{SDIO_DEVICE(0x037A, 0x6632)},
+159:	/* gComboChipId = 0x6628; */
+190:	if (0x6630 == chipId || 0x6632 == chipId) {
+238:	if ((0x6630 == chipId || 0x6632 == chipId) && (1 == func->num)) {
+245:		ret = sdio_enable_func(func);
+248:			WMT_DETECT_ERR_FUNC("sdio_enable_func failed!\n");
+269:	ret = sdio_register_driver(&mtk_sdio_client_drv);
+270:	WMT_DETECT_INFO_FUNC("sdio_register_driver() ret=%d\n", ret);
+39:typedef enum _MTK_WCN_HIF_PDMA_BURST_LEN {
+40:	HIF_PDMA_BURST_1_4 = 0,
+41:	HIF_PDMA_BURST_2_4,
+42:	HIF_PDMA_BURST_3_4,
+43:	HIF_PDMA_BURST_4_4
+44:} MTK_WCN_HIF_PDMA_BURST_LEN;
+49:#define AP_DMA_HIF_BASE             0x11000080
+52:#define AP_DMA_HIF_BASE             0x11000180
+55:#define AP_DMA_HIF_0_INT_FLAG       (0x0000)
+56:#define AP_DMA_HIF_0_INT_EN         (0x0004)
+57:#define AP_DMA_HIF_0_EN             (0x0008)
+58:#define AP_DMA_HIF_0_RST            (0x000C)
+61:#define AP_DMA_HIF_0_CON            (0x0018)
+62:#define AP_DMA_HIF_0_SRC_ADDR       (0x001C)
+63:#define AP_DMA_HIF_0_DST_ADDR       (0x0020)
+64:#define AP_DMA_HIF_0_LEN            (0x0024)
+67:#define AP_DMA_HIF_0_SRC_ADDR2		(0x0054)
+68:#define AP_DMA_HIF_0_DST_ADDR2		(0x0058)
+70:#define AP_DMA_HIF_0_LENGTH         0x0080
+72:/* AP_DMA_HIF_0_INT_FLAG */
+75:/* AP_DMA_HIF_0_INT_EN */
+78:/* AP_DMA_HIF_0_EN */
+81:/* AP_DMA_HIF_0_RST */
+92:/* AP_DMA_HIF_0_CON */
+101:/* AP_DMA_HIF_0_LEN */
+104:/* AP_DMA_HIF_0_SRC_ADDR2 */
+106:/* AP_DMA_HIF_0_DST_ADDR2 */
+24:#define MODULE_AHB_DMA
+38:#include <linux/irq.h>		/* IRQT_FALLING */
+72:#include <mach/mt_clkmgr.h>
+74:#include <linux/clk.h>
+81:#include <mach/emi_mpu.h>
+83:/* #if (CONF_MTK_AHB_DMA == 1) */
+85:/* #define PDMA_DEBUG_SUP */
+87:#ifdef PDMA_DEBUG_SUP
+88:#define PDMA_DBG	pr_debug
+90:#define PDMA_DBG(_fmt, ...)
+91:#endif /* PDMA_DEBUG_SUP */
+94:struct clk *g_clk_wifi_pdma;
+116:static VOID HifPdmaConfig(IN void *HifInfoSrc, IN void *Conf);
+118:static VOID HifPdmaStart(IN void *HifInfoSrc);
+120:static VOID HifPdmaStop(IN void *HifInfoSrc);
+122:static MTK_WCN_BOOL HifPdmaPollStart(IN void *HifInfoSrc);
+124:static MTK_WCN_BOOL HifPdmaPollIntr(IN void *HifInfoSrc);
+126:static VOID HifPdmaAckIntr(IN void *HifInfoSrc);
+128:static VOID HifPdmaClockCtrl(IN UINT_32 FlgIsEnabled);
+130:static VOID HifPdmaRegDump(IN void *HifInfoSrc);
+132:static VOID HifPdmaReset(IN void *HifInfoSrc);
+143:GL_HIF_DMA_OPS_T HifPdmaOps = {
+144:	.DmaConfig = HifPdmaConfig,
+145:	.DmaStart = HifPdmaStart,
+146:	.DmaStop = HifPdmaStop,
+147:	.DmaPollStart = HifPdmaPollStart,
+148:	.DmaPollIntr = HifPdmaPollIntr,
+149:	.DmaAckIntr = HifPdmaAckIntr,
+150:	.DmaClockCtrl = HifPdmaClockCtrl,
+151:	.DmaRegDump = HifPdmaRegDump,
+152:	.DmaReset = HifPdmaReset
+162:* \brief Config PDMA TX/RX.
+170:VOID HifPdmaInit(GL_HIF_INFO_T *HifInfo)
+172:	/* IO remap PDMA register memory */
+173:	HifInfo->DmaRegBaseAddr = ioremap(AP_DMA_HIF_BASE, AP_DMA_HIF_0_LENGTH);
+175:	/* assign PDMA operators */
+176:	HifInfo->DmaOps = &HifPdmaOps;
+178:	/* enable PDMA mode */
+187:	emi_mpu_set_region_protection(gConEmiPhyBase,
+193:/* emi_mpu_set_region_protection(gConEmiPhyBase, */
+201:	g_clk_wifi_pdma = HifInfo->clk_wifi_dma;
+204:	PDMA_DBG("PDMA> HifPdmaInit ok!\n");
+214:* \brief Config PDMA TX/RX.
+222:static VOID HifPdmaConfig(IN void *HifInfoSrc, IN void *Param)
+225:	MTK_WCN_HIF_DMA_CONF *Conf = (MTK_WCN_HIF_DMA_CONF *) Param;
+229:	Conf->Burst = HIF_PDMA_BURST_4_4;	/* vs. HIF_BURST_4DW */
+232:	/* AP_P_DMA_G_DMA_2_CON */
+233:	PDMA_DBG("PDMA> Conf->Dir = %d\n", Conf->Dir);
+235:	/* AP_DMA_HIF_0_CON */
+236:	RegVal = HIF_DMAR_READL(HifInfo, AP_DMA_HIF_0_CON);
+240:	HIF_DMAR_WRITEL(HifInfo, AP_DMA_HIF_0_CON, RegVal);
+241:	PDMA_DBG("PDMA> AP_DMA_HIF_0_CON = 0x%08x\n", RegVal);
+243:	/* AP_DMA_HIF_0_SRC_ADDR */
+244:	HIF_DMAR_WRITEL(HifInfo, AP_DMA_HIF_0_SRC_ADDR, Conf->Src);
+245:	PDMA_DBG("PDMA> AP_DMA_HIF_0_SRC_ADDR = 0x%08x\n", Conf->Src);
+247:	/* AP_DMA_HIF_0_DST_ADDR */
+248:	HIF_DMAR_WRITEL(HifInfo, AP_DMA_HIF_0_DST_ADDR, Conf->Dst);
+249:	PDMA_DBG("PDMA> AP_DMA_HIF_0_DST_ADDR = 0x%08x\n", Conf->Dst);
+251:	/* AP_DMA_HIF_0_LEN */
+252:	HIF_DMAR_WRITEL(HifInfo, AP_DMA_HIF_0_LEN, (Conf->Count & ADH_CR_LEN));
+253:	PDMA_DBG("PDMA> AP_DMA_HIF_0_LEN = %u\n", (Conf->Count & ADH_CR_LEN));
+255:}				/* End of HifPdmaConfig */
+259:* \brief Start PDMA TX/RX.
+266:static VOID HifPdmaStart(IN void *HifInfoSrc)
+272:	RegVal = HIF_DMAR_READL(HifInfo, AP_DMA_HIF_0_INT_EN);
+273:	HIF_DMAR_WRITEL(HifInfo, AP_DMA_HIF_0_INT_EN, (RegVal | ADH_CR_INTEN_FLAG_0));
+275:	/* Start DMA */
+276:	RegVal = HIF_DMAR_READL(HifInfo, AP_DMA_HIF_0_EN);
+277:	HIF_DMAR_WRITEL(HifInfo, AP_DMA_HIF_0_EN, (RegVal | ADH_CR_EN));
+279:	PDMA_DBG("PDMA> HifPdmaStart...\n");
+281:}				/* End of HifPdmaStart */
+285:* \brief Stop PDMA TX/RX.
+292:static VOID HifPdmaStop(IN void *HifInfoSrc)
+299:	RegVal = HIF_DMAR_READL(HifInfo, AP_DMA_HIF_0_INT_EN);
+300:	HIF_DMAR_WRITEL(HifInfo, AP_DMA_HIF_0_INT_EN, (RegVal & ~(ADH_CR_INTEN_FLAG_0)));
+303:	/* Stop DMA */
+304:	RegVal = HIF_DMAR_READL(HifInfo, AP_DMA_HIF_0_STOP);
+305:	HIF_DMAR_WRITEL(HifInfo, AP_DMA_HIF_0_STOP, (RegVal | ADH_CR_STOP));
+310:		RegVal = HIF_DMAR_READL(HifInfo, AP_DMA_HIF_0_EN);
+312:			; /* TODO: warm reset PDMA */
+316:}				/* End of HifPdmaStop */
+320:* \brief Enable PDMA TX/RX.
+327:static MTK_WCN_BOOL HifPdmaPollStart(IN void *HifInfoSrc)
+332:	RegVal = HIF_DMAR_READL(HifInfo, AP_DMA_HIF_0_EN);
+335:}				/* End of HifPdmaPollStart */
+339:* \brief Poll PDMA TX/RX done.
+346:static MTK_WCN_BOOL HifPdmaPollIntr(IN void *HifInfoSrc)
+351:	RegVal = HIF_DMAR_READL(HifInfo, AP_DMA_HIF_0_INT_FLAG);
+354:}				/* End of HifPdmaPollIntr */
+358:* \brief Acknowledge PDMA TX/RX done.
+365:static VOID HifPdmaAckIntr(IN void *HifInfoSrc)
+371:	RegVal = HIF_DMAR_READL(HifInfo, AP_DMA_HIF_0_INT_FLAG);
+372:	HIF_DMAR_WRITEL(HifInfo, AP_DMA_HIF_0_INT_FLAG, (RegVal & ~ADH_CR_FLAG_0));
+374:}				/* End of HifPdmaAckIntr */
+378:* \brief Acknowledge PDMA TX/RX done.
+385:static VOID HifPdmaClockCtrl(IN UINT_32 FlgIsEnabled)
+393:		enable_clock(MT_CG_PERI_APDMA, "WLAN");
+395:		disable_clock(MT_CG_PERI_APDMA, "WLAN");
+398:		ret = clk_prepare_enable(g_clk_wifi_pdma);
+400:			DBGLOG(INIT, INFO, "[CCF]clk_prepare_enable ret= %d\n", ret);
+402:		clk_disable_unprepare(g_clk_wifi_pdma);
+409:* \brief Dump PDMA related registers.
+416:static VOID HifPdmaRegDump(IN void *HifInfoSrc)
+422:	DBGLOG(INIT, INFO, "PDMA> Register content 0x%x=\n\t", AP_DMA_HIF_BASE);
+423:	for (RegId = 0; RegId < AP_DMA_HIF_0_LENGTH; RegId += 4) {
+424:		RegVal = HIF_DMAR_READL(HifInfo, RegId);
+429:			DBGLOG(INIT, INFO, "PDMA> Register content 0x%x=\n\t", AP_DMA_HIF_BASE + RegId + 4);
+434:	DBGLOG(INIT, INFO, "\nPDMA> clock status = 0x%x\n\n", *(volatile unsigned int *)0xF0003018);
+439:* \brief Reset DMA.
+446:static VOID HifPdmaReset(IN void *HifInfoSrc)
+451:	/* do warm reset: DMA will wait for current traction finished */
+452:	DBGLOG(INIT, INFO, "\nDMA> do warm reset...\n");
+454:	/* normally, we need to sure that bit0 of AP_P_DMA_G_DMA_2_EN is 1 here */
+456:	HIF_DMAR_WRITEL(HifInfo, AP_DMA_HIF_0_RST, 0x01);
+459:		if (!HifPdmaPollStart(HifInfo))
+460:			break;	/* reset ok */
+463:	if (HifPdmaPollStart(HifInfo)) {
+464:		/* do hard reset because warm reset fails */
+465:		DBGLOG(INIT, INFO, "\nDMA> do hard reset...\n");
+466:		HIF_DMAR_WRITEL(HifInfo, AP_DMA_HIF_0_RST, 0x02);
+468:		HIF_DMAR_WRITEL(HifInfo, AP_DMA_HIF_0_RST, 0x00);
+472:/* #endif */ /* CONF_MTK_AHB_DMA */
+
+[vendor BTIF register/DMA contract]
+46:#define BTIF_RX_BUFFER_SIZE (1024 * 32)
+48:#define BTIF_RX_BUFFER_SIZE (1024 * 64)
+50:#define BTIF_TX_FIFO_SIZE (1024 * 4)
+77:#define ENABLE_BTIF_RX_DMA 1
+78:#define ENABLE_BTIF_TX_DMA 1
+80:#ifdef ENABLE_BTIF_TX_DMA
+81:#define BTIF_TX_MODE BTIF_MODE_DMA
+83:#define BTIF_TX_MODE BTIF_MODE_PIO
+86:#ifdef ENABLE_BTIF_RX_DMA
+87:#define BTIF_RX_MODE BTIF_MODE_DMA
+89:#define BTIF_RX_MODE BTIF_MODE_PIO
+100:#define ENABLE_BTIF_RX_THREAD_RT_SCHED 0
+196:	unsigned int open_counter;	/*open counter */
+218:/* unsigned char rx_buf[BTIF_RX_BUFFER_SIZE]; */
+246:	MTK_WCN_BTIF_RX_CB rx_cb;	/*Rx callback function */
+323:(ptr)->size = BTIF_RX_BUFFER_SIZE; \
+337:int btif_rx_cb_reg(p_mtk_btif p_btif, MTK_WCN_BTIF_RX_CB rx_cb);
+32:#define BTIF_RBR(base)         (unsigned long)(base + 0x0)	/*RX Buffer Register: read only */
+33:#define BTIF_THR(base)         (unsigned long)(base + 0x0) /*Rx Holding Register: write only */
+34:#define BTIF_IER(base)         (unsigned long)(base + 0x4) /*Interrupt Enable Register: read/write */
+35:#define BTIF_IIR(base)         (unsigned long)(base + 0x8)	/*Interrupt Identification Register: read only */
+36:#define BTIF_FIFOCTRL(base)    (unsigned long)(base + 0x8)	/*FIFO Control Register: write only */
+38:#define BTIF_LSR(base)         (unsigned long)(base + 0x14)	/*Line Status Register: read only */
+40:#define BTIF_DMA_EN(base)      (unsigned long)(base + 0x4C)	/*DMA Enable Register: read/write */
+41:#define BTIF_RTOCNT(base)      (unsigned long)(base + 0x54)	/*Rx Timeout Count Register: read/write */
+42:#define BTIF_TRI_LVL(base)     (unsigned long)(base + 0x60)	/*Tx/Rx Trigger Level Control Register: read/write */
+43:#define BTIF_WAK(base)         (unsigned long)(base + 0x64)	/*BTIF module wakeup Register: write only */
+45:#define BTIF_HANDSHAKE(base)   (unsigned long)(base + 0x6C)	/*BTIF New Handshake Control Register: read/write */
+47:/*BTIF_IER bits*/
+48:#define BTIF_IER_TXEEN (0x1 << 1)	/*1: Tx holding register is empty */
+49:#define BTIF_IER_RXFEN (0x1 << 0)	/*1: Rx buffer contains data */
+51:/*BTIF_IIR bits*/
+52:#define BTIF_IIR_NINT        (0x1 << 0)	/*No INT Pending */
+53:#define BTIF_IIR_TX_EMPTY    (0x1 << 1)	/*Tx Holding Register empty */
+54:#define BTIF_IIR_RX          (0x1 << 2)	/*Rx data received */
+55:#define BTIF_IIR_RX_TIMEOUT  (0x11 << 2)	/*Rx data received */
+57:/*BTIF_LSR bits*/
+58:#define BTIF_LSR_DR_BIT (0x1 << 0)
+59:#define BTIF_LSR_THRE_BIT (0x1 << 5)
+60:#define BTIF_LSR_TEMT_BIT (0x1 << 6)
+62:/*BTIF_FIFOCTRL bits*/
+63:#define BTIF_FIFOCTRL_CLR_TX (0x1 << 2)	/*Clear Tx FIRO */
+64:#define BTIF_FIFOCTRL_CLR_RX (0x1 << 1)	/*Clear Rx FIRO */
+73:/*BTIF_DMA_EN bits*/
+74:#define BTIF_DMA_EN_RX  (0x1 << 0)	/*Enable Rx DMA */
+75:#define BTIF_DMA_EN_TX  (0x1 << 1)	/*Enable Tx DMA */
+76:#define BTIF_DMA_EN_AUTORST_EN  (0x1 << 2)	/*1: timeout counter will be auto reset */
+77:#define BTIF_DMA_EN_AUTORST_DIS  (0x0 << 2)	/*0: after Rx timeout happens,
+80:/*BTIF_TRI_LVL bits*/
+81:#define BTIF_TRI_LVL_TX_MASK ((0xf) << 0)
+82:#define BTIF_TRI_LVL_RX_MASK ((0x7) << 4)
+84:#define BTIF_TRI_LVL_TX(x) ((x & 0xf) << 0)
+85:#define BTIF_TRI_LVL_RX(x) ((x & 0x7) << 4)
+90:/*BTIF_WAK bits*/
+91:#define BTIF_WAK_BIT (0x1 << 0)
+93:/*BTIF_HANDSHAKE bits*/
+94:#define BTIF_HANDSHAKE_EN_HANDSHAKE 1
+95:#define BTIF_HANDSHAKE_DIS_HANDSHAKE 0
+97:#define BTIF_TX_FIFO_SIZE 16
+98:#define BTIF_RX_FIFO_SIZE 8
+100:#define BTIF_TX_FIFO_THRE (BTIF_TX_FIFO_SIZE / 2)
+49:	.base = MTK_BTIF_REG_BASE,
+52:	.tx_fifo_size = BTIF_TX_FIFO_SIZE,
+53:	.rx_fifo_size = BTIF_RX_FIFO_SIZE,
+196:	node = of_find_compatible_node(NULL, NULL, "mediatek,btif");
+198:		mtk_btif.p_irq->irq_id = irq_of_parse_and_map(node, 0);
+200:		mtk_btif.base = (unsigned long)of_iomap(node, 0);
+883:	char local_buf[BTIF_TX_FIFO_SIZE];
+894:		ava_len = BTIF_TX_FIFO_SIZE;
+897:		ava_len = BTIF_TX_FIFO_SIZE - BTIF_TX_FIFO_THRE;
+1044:			ava_len = BTIF_TX_FIFO_SIZE;
+1047:			ava_len = BTIF_TX_FIFO_SIZE - BTIF_TX_FIFO_THRE;
+1276:	unsigned int wait_us = (BTIF_TX_FIFO_SIZE - BTIF_TX_FIFO_THRE) / MIN_TX_MB; /*only ava length */
+28:static MTK_BTIF_DMA_VFIFO mtk_tx_dma_vfifo = {
+29:	.vfifo = {
+32:		  .vfifo_size = TX_DMA_VFF_SIZE,
+33:		  .thre = DMA_TX_THRE(TX_DMA_VFF_SIZE),
+41:static MTK_BTIF_IRQ_STR mtk_btif_tx_dma_irq = {
+46:	.irq_flags = IRQF_TRIGGER_NONE,
+48:	.irq_id = MT_DMA_BTIF_TX_IRQ_ID,
+49:	.sens_type = IRQ_SENS_LVL,
+50:	.lvl_type = IRQ_LVL_LOW,
+55:static MTK_BTIF_DMA_VFIFO mtk_rx_dma_vfifo = {
+56:	.vfifo = {
+59:		  .vfifo_size = RX_DMA_VFF_SIZE,
+60:		  .thre = DMA_RX_THRE(RX_DMA_VFF_SIZE),
+69:static MTK_BTIF_IRQ_STR mtk_btif_rx_dma_irq = {
+74:	.irq_flags = IRQF_TRIGGER_NONE,
+76:	.irq_id = MT_DMA_BTIF_RX_IRQ_ID,
+77:	.sens_type = IRQ_SENS_LVL,
+78:	.lvl_type = IRQ_LVL_LOW,
+85:	.base = AP_DMA_BASE + BTIF_TX_DMA_OFFSET,
+89:	.p_vfifo = &(mtk_tx_dma_vfifo.vfifo),
+94:	.base = AP_DMA_BASE + BTIF_RX_DMA_OFFSET,
+98:	.p_vfifo = &(mtk_rx_dma_vfifo.vfifo),
+163:		node = of_find_compatible_node(NULL, NULL, "mediatek,btif_rx");
+165:			mtk_btif_rx_dma.p_irq->irq_id = irq_of_parse_and_map(node, 0);
+167:			mtk_btif_rx_dma.base = (unsigned long)of_iomap(node, 0);
+192:		node = of_find_compatible_node(NULL, NULL, "mediatek,btif_tx");
+194:			mtk_btif_tx_dma.p_irq->irq_id = irq_of_parse_and_map(node, 0);
+196:			mtk_btif_tx_dma.base = (unsigned long)of_iomap(node, 0);
+407:	P_DMA_VFIFO p_vfifo = p_dma_info->p_vfifo;
+408:	P_MTK_BTIF_DMA_VFIFO p_mtk_dma_vfifo = container_of(p_vfifo,
+410:							    vfifo);
+421:		/*write vfifo base address to VFF_ADDR*/
+422:		btif_reg_sync_writel(p_vfifo->phy_addr, RX_DMA_VFF_ADDR(base));
+426:			addr_h = p_vfifo->phy_addr >> 16;
+428:			btif_reg_sync_writel(addr_h, RX_DMA_VFF_ADDR_H(base));
+430:		/*write vfifo length to VFF_LEN*/
+431:		btif_reg_sync_writel(p_vfifo->vfifo_size, RX_DMA_VFF_LEN(base));
+432:		/*write wpt to VFF_WPT*/
+433:		btif_reg_sync_writel(p_mtk_dma_vfifo->wpt,
+434:				     RX_DMA_VFF_WPT(base));
+435:		btif_reg_sync_writel(p_mtk_dma_vfifo->rpt,
+436:					 RX_DMA_VFF_RPT(base));
+437:		/*write vff_thre to VFF_THRESHOLD*/
+438:		btif_reg_sync_writel(p_vfifo->thre, RX_DMA_VFF_THRE(base));
+454:/*write vfifo base address to VFF_ADDR*/
+455:		btif_reg_sync_writel(p_vfifo->phy_addr, TX_DMA_VFF_ADDR(base));
+459:			addr_h = p_vfifo->phy_addr >> 16;
+461:			btif_reg_sync_writel(addr_h, TX_DMA_VFF_ADDR_H(base));
+463:/*write vfifo length to VFF_LEN*/
+464:		btif_reg_sync_writel(p_vfifo->vfifo_size, TX_DMA_VFF_LEN(base));
+465:/*write wpt to VFF_WPT*/
+466:		btif_reg_sync_writel(p_mtk_dma_vfifo->wpt,
+467:				     TX_DMA_VFF_WPT(base));
+468:		btif_reg_sync_writel(p_mtk_dma_vfifo->rpt,
+469:				     TX_DMA_VFF_RPT(base));
+470:/*write vff_thre to VFF_THRESHOLD*/
+471:		btif_reg_sync_writel(p_vfifo->thre, TX_DMA_VFF_THRE(base));
+587:*  hal_tx_vfifo_reset
+595:int hal_btif_vfifo_reset(P_MTK_DMA_INFO_STR p_dma_info)
+598:	P_DMA_VFIFO p_vfifo = p_dma_info->p_vfifo;
+599:	P_MTK_BTIF_DMA_VFIFO p_mtk_dma_vfifo = container_of(p_vfifo,
+601:							    vfifo);
+604:	p_mtk_dma_vfifo->rpt = 0;
+605:	p_mtk_dma_vfifo->last_rpt_wrap = 0;
+606:	p_mtk_dma_vfifo->wpt = 0;
+607:	p_mtk_dma_vfifo->last_wpt_wrap = 0;
+680:/*if we enable this clock reference couner, just return , because when enter IRQ handler, DMA's clock will be opened*/
+730:/*check if Tx VFF Left Size equal to VFIFO size or not*/
+731:	vff_len = BTIF_READ32(TX_DMA_VFF_LEN(base));
+732:	valid_size = BTIF_READ32(TX_DMA_VFF_VALID_SIZE(base));
+733:	left_len = BTIF_READ32(TX_DMA_VFF_LEFT_SIZE(base));
+741:/*when btif tx fifo cannot accept any data and counts of bytes left in tx vfifo < 8 for a while
+754:			    ("BTIF Tx IRQ happened %d times (continiously), between %d.%d and %d.%d\n",
+773:		    ("superious IRQ occurs, vff_len(%d), valid_size(%d), left_len(%d)\n",
+799:	P_DMA_VFIFO p_vfifo = p_dma_info->p_vfifo;
+806:	P_MTK_BTIF_DMA_VFIFO p_mtk_vfifo = container_of(p_vfifo,
+808:							vfifo);
+822:	vff_size = p_mtk_vfifo->vfifo.vfifo_size;
+823:	ava_len = BTIF_READ32(TX_DMA_VFF_LEFT_SIZE(base));
+824:	wpt = BTIF_READ32(TX_DMA_VFF_WPT(base)) & DMA_WPT_MASK;
+825:	last_wpt_wrap = BTIF_READ32(TX_DMA_VFF_WPT(base)) & DMA_WPT_WRAP;
+840:		memcpy((p_mtk_vfifo->vfifo.p_vir_addr + wpt), p_data, tail_len);
+842:		memcpy(p_mtk_vfifo->vfifo.p_vir_addr,
+844:/*make sure all data write to memory area tx vfifo locates*/
+851:		memcpy((p_mtk_vfifo->vfifo.p_vir_addr + wpt),
+853:/*make sure all data write to memory area tx vfifo locates*/
+859:	p_mtk_vfifo->wpt = wpt;
+860:	p_mtk_vfifo->last_wpt_wrap = last_wpt_wrap;
+868:		btif_reg_sync_writel(wpt | last_wpt_wrap, TX_DMA_VFF_WPT(base));
+870:		if ((8 > BTIF_READ32(TX_DMA_VFF_VALID_SIZE(base))) &&
+871:		    (0 < BTIF_READ32(TX_DMA_VFF_VALID_SIZE(base)))) {
+906:	unsigned int valid_size = BTIF_READ32(TX_DMA_VFF_VALID_SIZE(base));
+919:		    ("DMA tx is in process. vfifo valid size(%d), dma internal size (%d), tx_done(%d)\n",
+943:	i_ret = BTIF_READ32(TX_DMA_VFF_LEFT_SIZE(base));
+946:		BTIF_INFO_FUNC("DMA tx vfifo is full.\n");
+1005:	P_DMA_VFIFO p_vfifo = p_dma_info->p_vfifo;
+1008:	unsigned char *vff_base = p_vfifo->p_vir_addr;
+1009:	unsigned int vff_size = p_vfifo->vfifo_size;
+1010:	P_MTK_BTIF_DMA_VFIFO p_mtk_vfifo = container_of(p_vfifo,
+1012:							vfifo);
+1030:	valid_len = BTIF_READ32(RX_DMA_VFF_VALID_SIZE(base));
+1031:	rpt = BTIF_READ32(RX_DMA_VFF_RPT(base));
+1032:	wpt = BTIF_READ32(RX_DMA_VFF_WPT(base));
+1048:		if (wpt_wrap != p_mtk_vfifo->last_wpt_wrap)
+1076:		p_mtk_vfifo->wpt = wpt;
+1077:		p_mtk_vfifo->last_wpt_wrap = wpt_wrap;
+1079:		p_mtk_vfifo->rpt = rpt;
+1080:		p_mtk_vfifo->last_rpt_wrap = rpt_wrap;
+1083:		btif_reg_sync_writel(rpt, RX_DMA_VFF_RPT(base));
+1086:		valid_len = BTIF_READ32(RX_DMA_VFF_VALID_SIZE(base));
+1088:		rpt = BTIF_READ32(RX_DMA_VFF_RPT(base));
+1089:		wpt = BTIF_READ32(RX_DMA_VFF_WPT(base));
+1128:	wpt = BTIF_READ32(TX_DMA_VFF_WPT(base));
+1129:	rpt = BTIF_READ32(TX_DMA_VFF_RPT(base));
+1131:	valid_size = BTIF_READ32(TX_DMA_VFF_VALID_SIZE(base));
+1149:		BTIF_INFO_FUNC("VFF_ADDR:0x%x\n",
+1150:			       BTIF_READ32(TX_DMA_VFF_ADDR(base)));
+1151:		BTIF_INFO_FUNC("VFF_LEN:0x%x\n",
+1152:			       BTIF_READ32(TX_DMA_VFF_LEN(base)));
+1154:			       BTIF_READ32(TX_DMA_VFF_THRE(base)));
+1158:			       BTIF_READ32(TX_DMA_VFF_LEFT_SIZE(base)));
+1204:	wpt = BTIF_READ32(RX_DMA_VFF_WPT(base));
+1205:	rpt = BTIF_READ32(RX_DMA_VFF_RPT(base));
+1207:	valid_size = BTIF_READ32(RX_DMA_VFF_VALID_SIZE(base));
+1225:		BTIF_INFO_FUNC("VFF_ADDR:0x%x\n",
+1226:			       BTIF_READ32(RX_DMA_VFF_ADDR(base)));
+1227:		BTIF_INFO_FUNC("VFF_LEN:0x%x\n",
+1228:			       BTIF_READ32(RX_DMA_VFF_LEN(base)));
+1230:			       BTIF_READ32(RX_DMA_VFF_THRE(base)));
+1234:			       BTIF_READ32(RX_DMA_VFF_LEFT_SIZE(base)));
+1323:	case BTIF_PM_RESTORE_NOIRQ:{
+1325:			P_MTK_BTIF_IRQ_STR p_irq = p_dma_info->p_irq;
+1331:			case IRQ_SENS_EDGE:
+1332:				if (IRQ_EDGE_FALL == p_irq->edge_type)
+1333:					flag = IRQF_TRIGGER_FALLING;
+1334:				else if (IRQ_EDGE_RAISE == p_irq->edge_type)
+1335:					flag = IRQF_TRIGGER_RISING;
+1336:				else if (IRQ_EDGE_BOTH == p_irq->edge_type)
+1337:					flag = IRQF_TRIGGER_RISING |
+1338:					    IRQF_TRIGGER_FALLING;
+1340:					flag = IRQF_TRIGGER_FALLING;	/*make this as default type */
+1342:			case IRQ_SENS_LVL:
+1343:				if (IRQ_LVL_LOW == p_irq->lvl_type)
+1344:					flag = IRQF_TRIGGER_LOW;
+1345:				else if (IRQ_LVL_HIGH == p_irq->lvl_type)
+1346:					flag = IRQF_TRIGGER_HIGH;
+1348:					flag = IRQF_TRIGGER_LOW;	/*make this as default type */
+1351:				flag = IRQF_TRIGGER_LOW;	/*make this as default type */
+1434:	BTIF_SET_BIT(TX_DMA_VFF_ADDR_H(mtk_btif_tx_dma.base), DMA_VFF_BIT29_OFFSET);
+1435:	BTIF_DBG_FUNC("Dump value of bit29 0x%x:(0x%x)\n", TX_DMA_VFF_ADDR_H(mtk_btif_tx_dma.base),
+1436:					BTIF_READ32(TX_DMA_VFF_ADDR_H(mtk_btif_tx_dma.base)));
+1441:	BTIF_SET_BIT(RX_DMA_VFF_ADDR_H(mtk_btif_rx_dma.base), DMA_VFF_BIT29_OFFSET);
+1442:	BTIF_DBG_FUNC("Dump value of bit29 0x%x:(0x%x)\n", RX_DMA_VFF_ADDR_H(mtk_btif_rx_dma.base),
+1443:					BTIF_READ32(RX_DMA_VFF_ADDR_H(mtk_btif_rx_dma.base)));
+
+[Linux reusable layers]
+23:#include <linux/serdev.h>
+35:#define MTK_STP_TLR_SIZE	2
+45:	u8	prefix;
+46:	__be16	dlen;
+52:	const char *fwname;
+57:	struct serdev_device *serdev;
+79:	u16	stp_dlen;
+95:	u32 hlen, status = BTMTK_WMT_INVALID;
+102:	hlen = sizeof(*hdr) + wmt_params->dlen;
+117:	hdr->dlen = cpu_to_le16(wmt_params->dlen + 1);
+119:	memcpy(wc->data, wmt_params->data, wmt_params->dlen);
+163:	case BTMTK_WMT_SEMAPHORE:
+165:			status = BTMTK_WMT_PATCH_UNDONE;
+167:			status = BTMTK_WMT_PATCH_DONE;
+169:	case BTMTK_WMT_FUNC_CTRL:
+172:			status = BTMTK_WMT_ON_DONE;
+174:			status = BTMTK_WMT_ON_PROGRESS;
+176:			status = BTMTK_WMT_ON_UNDONE;
+233:	{ H4_RECV_ACL,      .recv = hci_recv_frame },
+234:	{ H4_RECV_SCO,      .recv = hci_recv_frame },
+235:	{ H4_RECV_EVENT,    .recv = btmtkuart_recv_event },
+242:	struct serdev_device *serdev = bdev->serdev;
+255:			len = serdev_device_write_buf(serdev, skb->data,
+302:	if (!bdev->stp_dlen && bdev->stp_cursor >= 6)
+314:	if (!bdev->stp_dlen && bdev->stp_cursor >= 6) {
+316:		bdev->stp_dlen = be16_to_cpu(shdr->dlen) & 0x0fff;
+319:		if (shdr->prefix != 0x80 || bdev->stp_dlen > 2048) {
+321:				   shdr->prefix, bdev->stp_dlen);
+323:			bdev->stp_dlen = 0;
+332:	*sz_h4 = min_t(int, count, bdev->stp_dlen);
+335:	bdev->stp_dlen -= *sz_h4;
+388:static size_t btmtkuart_receive_buf(struct serdev_device *serdev,
+391:	struct btmtkuart_dev *bdev = serdev_device_get_drvdata(serdev);
+400:static void btmtkuart_write_wakeup(struct serdev_device *serdev)
+402:	struct btmtkuart_dev *bdev = serdev_device_get_drvdata(serdev);
+407:static const struct serdev_device_ops btmtkuart_client_ops = {
+418:	err = serdev_device_open(bdev->serdev);
+421:			   dev_name(&bdev->serdev->dev));
+427:			err = serdev_device_set_baudrate(bdev->serdev,
+430:			err = serdev_device_set_baudrate(bdev->serdev,
+435:				   dev_name(&bdev->serdev->dev));
+436:			goto  err_serdev_close;
+439:		serdev_device_set_flow_control(bdev->serdev, false);
+443:	bdev->stp_dlen = 0;
+445:	dev = &bdev->serdev->dev;
+463:err_serdev_close:
+464:	serdev_device_close(bdev->serdev);
+472:	struct device *dev = &bdev->serdev->dev;
+479:	serdev_device_close(bdev->serdev);
+489:	serdev_device_write_flush(bdev->serdev);
+498:	bdev->stp_dlen = 0;
+510:	wmt_params.op = BTMTK_WMT_FUNC_CTRL;
+512:	wmt_params.dlen = sizeof(param);
+537:	wmt_params.op = BTMTK_WMT_HIF;
+539:	wmt_params.dlen = 4;
+549:	err = serdev_device_set_baudrate(bdev->serdev,
+557:	serdev_device_set_flow_control(bdev->serdev, false);
+561:	err = serdev_device_write_buf(bdev->serdev, &param, sizeof(param));
+565:	serdev_device_wait_until_sent(bdev->serdev, 0);
+571:	wmt_params.op = BTMTK_WMT_TEST;
+573:	wmt_params.dlen = 0;
+606:		wmt_params.op = BTMTK_WMT_WAKEUP;
+608:		wmt_params.dlen = 0;
+625:	wmt_params.op = BTMTK_WMT_SEMAPHORE;
+627:	wmt_params.dlen = 0;
+637:	if (status == BTMTK_WMT_PATCH_DONE) {
+643:	err = btmtk_setup_firmware(hdev, bdev->data->fwname, mtk_hci_wmt_sync);
+650:				 status < 0 || status != BTMTK_WMT_ON_PROGRESS,
+660:	if (status == BTMTK_WMT_ON_DONE) {
+666:	wmt_params.op = BTMTK_WMT_FUNC_CTRL;
+668:	wmt_params.dlen = sizeof(param);
+711:	wmt_params.op = BTMTK_WMT_FUNC_CTRL;
+713:	wmt_params.dlen = sizeof(param);
+730:	int err, dlen, type = 0;
+737:	    (skb_tailroom(skb) < MTK_STP_TLR_SIZE)) {
+738:		err = pskb_expand_head(skb, sizeof(*shdr), MTK_STP_TLR_SIZE,
+745:	dlen = skb->len;
+747:	shdr->prefix = 0x80;
+748:	shdr->dlen = cpu_to_be16((dlen & 0x0fff) | (type << 12));
+752:	skb_put_zero(skb, MTK_STP_TLR_SIZE);
+760:static int btmtkuart_parse_dt(struct serdev_device *serdev)
+762:	struct btmtkuart_dev *bdev = serdev_device_get_drvdata(serdev);
+763:	struct device_node *node = serdev->dev.of_node;
+772:		bdev->vcc = devm_regulator_get(&serdev->dev, "vcc");
+778:		bdev->osc = devm_clk_get_optional(&serdev->dev, "osc");
+784:		bdev->boot = devm_gpiod_get_optional(&serdev->dev, "boot",
+791:		bdev->pinctrl = devm_pinctrl_get(&serdev->dev);
+801:			dev_err(&serdev->dev,
+813:		bdev->reset = devm_gpiod_get_optional(&serdev->dev, "reset",
+820:		bdev->clk = devm_clk_get(&serdev->dev, "ref");
+828:static int btmtkuart_probe(struct serdev_device *serdev)
+834:	bdev = devm_kzalloc(&serdev->dev, sizeof(*bdev), GFP_KERNEL);
+838:	bdev->data = of_device_get_match_data(&serdev->dev);
+842:	bdev->serdev = serdev;
+843:	serdev_device_set_drvdata(serdev, bdev);
+845:	serdev_device_set_client_ops(serdev, &btmtkuart_client_ops);
+847:	err = btmtkuart_parse_dt(serdev);
+857:		dev_err(&serdev->dev, "Can't allocate HCI device\n");
+874:	SET_HCIDEV_DEV(hdev, &serdev->dev);
+913:			devm_gpiod_put(&serdev->dev, bdev->boot);
+920:		pm_runtime_no_callbacks(&serdev->dev);
+927:		dev_err(&serdev->dev, "Can't register HCI device\n");
+945:static void btmtkuart_remove(struct serdev_device *serdev)
+947:	struct btmtkuart_dev *bdev = serdev_device_get_drvdata(serdev);
+960:	.fwname = FIRMWARE_MT7622,
+965:	.fwname = FIRMWARE_MT7663,
+970:	.fwname = FIRMWARE_MT7668,
+974:static const struct of_device_id mtk_of_match_table[] = {
+975:	{ .compatible = "mediatek,mt7622-bluetooth", .data = &mt7622_data},
+976:	{ .compatible = "mediatek,mt7663u-bluetooth", .data = &mt7663_data},
+977:	{ .compatible = "mediatek,mt7668u-bluetooth", .data = &mt7668_data},
+983:static struct serdev_device_driver btmtkuart_driver = {
+992:module_serdev_device_driver(btmtkuart_driver);
+6:#include <linux/firmware.h>
+12:#include <net/bluetooth/hci_core.h>
+62:static void btmtk_coredump(struct hci_dev *hdev)
+66:	err = __hci_cmd_send(hdev, 0xfd5b, 0, NULL);
+71:static void btmtk_coredump_hdr(struct hci_dev *hdev, struct sk_buff *skb)
+73:	struct btmtk_data *data = hci_get_priv(hdev);
+92:static void btmtk_coredump_notify(struct hci_dev *hdev, int state)
+94:	struct btmtk_data *data = hci_get_priv(hdev);
+117:			 "mediatek/mt7927/BT_RAM_CODE_MT%04x_2_%x_hdr.bin",
+121:			 "mediatek/mt%04x/BT_RAM_CODE_MT%04x_1_%x_hdr.bin",
+125:			 "mediatek/BT_RAM_CODE_MT%04x_1a_%x_hdr.bin",
+129:			 "mediatek/BT_RAM_CODE_MT%04x_1_%x_hdr.bin",
+134:int btmtk_setup_firmware_79xx(struct hci_dev *hdev, const char *fwname,
+138:	struct btmtk_hci_wmt_params wmt_params;
+142:	const struct firmware *fw;
+150:	err = request_firmware(&fw, fwname, &hdev->dev);
+152:		bt_dev_err(hdev, "Failed to load firmware file (%d)", err);
+193:				wmt_params.op = BTMTK_WMT_PATCH_DWNLD;
+206:				if (status == BTMTK_WMT_PATCH_UNDONE) {
+208:				} else if (status == BTMTK_WMT_PATCH_PROGRESS) {
+211:				} else if (status == BTMTK_WMT_PATCH_DONE) {
+228:			wmt_params.op = BTMTK_WMT_PATCH_DWNLD;
+246:				/* Status BTMTK_WMT_PATCH_PROGRESS indicates firmware is
+250:				if (status == BTMTK_WMT_PATCH_PROGRESS) {
+266:	/* Wait a few moments for firmware activation done */
+270:	release_firmware(fw);
+274:EXPORT_SYMBOL_GPL(btmtk_setup_firmware_79xx);
+276:int btmtk_setup_firmware(struct hci_dev *hdev, const char *fwname,
+279:	struct btmtk_hci_wmt_params wmt_params;
+280:	const struct firmware *fw;
+286:	err = request_firmware(&fw, fwname, &hdev->dev);
+288:		bt_dev_err(hdev, "Failed to load firmware file (%d)", err);
+292:	/* Power on data RAM the firmware relies on. */
+294:	wmt_params.op = BTMTK_WMT_FUNC_CTRL;
+319:	wmt_params.op = BTMTK_WMT_PATCH_DWNLD;
+346:	wmt_params.op = BTMTK_WMT_RST;
+352:	/* Activate function the firmware providing to */
+359:	/* Wait a few moments for firmware activation done */
+363:	release_firmware(fw);
+367:EXPORT_SYMBOL_GPL(btmtk_setup_firmware);
+369:int btmtk_set_bdaddr(struct hci_dev *hdev, const bdaddr_t *bdaddr)
+374:	skb = __hci_cmd_sync(hdev, 0xfc1a, 6, bdaddr, HCI_INIT_TIMEOUT);
+387:void btmtk_reset_sync(struct hci_dev *hdev)
+389:	struct btmtk_data *reset_work = hci_get_priv(hdev);
+392:	hci_dev_lock(hdev);
+394:	err = hci_cmd_sync_queue(hdev, reset_work->reset_sync, NULL, NULL);
+398:	hci_dev_unlock(hdev);
+402:int btmtk_register_coredump(struct hci_dev *hdev, const char *name,
+405:	struct btmtk_data *data = hci_get_priv(hdev);
+414:	return hci_devcd_register(hdev, btmtk_coredump, btmtk_coredump_hdr,
+419:int btmtk_process_coredump(struct hci_dev *hdev, struct sk_buff *skb)
+421:	struct btmtk_data *data = hci_get_priv(hdev);
+432:		err = hci_devcd_init(hdev, MTK_COREDUMP_SIZE);
+452:		err = hci_devcd_append(hdev, skb);
+459:			hci_devcd_complete(hdev);
+488:	struct hci_dev *hdev = urb->context;
+489:	struct btmtk_data *data = hci_get_priv(hdev);
+496:		/* WMT event shouldn't be fragmented and the size should be
+497:		 * less than HCI_WMT_MAX_EVENT_SIZE.
+499:		skb = bt_skb_alloc(HCI_WMT_MAX_EVENT_SIZE, GFP_ATOMIC);
+506:		hci_skb_pkt_type(skb) = HCI_EVENT_PKT;
+509:		/* When someone waits for the WMT event, the skb is being cloned
+521:		err = hci_recv_frame(hdev, skb);
+548:	 * URB until WMT event returns, Also, It's necessary to wait some time
+550:	 * to generate the event. Otherwise, the WMT event cannot return from
+569:static int btmtk_usb_submit_wmt_recv_urb(struct hci_dev *hdev)
+571:	struct btmtk_data *data = hci_get_priv(hdev);
+623:static int btmtk_usb_hci_wmt_sync(struct hci_dev *hdev,
+624:				  struct btmtk_hci_wmt_params *wmt_params)
+626:	struct btmtk_data *data = hci_get_priv(hdev);
+627:	struct btmtk_hci_wmt_evt_funcc *wmt_evt_funcc;
+628:	u32 hlen, status = BTMTK_WMT_INVALID;
+629:	struct btmtk_hci_wmt_evt *wmt_evt;
+630:	struct btmtk_hci_wmt_cmd *wc;
+634:	/* Send the WMT command and wait until the WMT event returns */
+652:	/* WMT cmd/event doesn't follow up the generic HCI cmd/event handling,
+654:	 * WMT event, thus, we should require to specifically acquire PM counter
+656:	 * while WMT cmd/event in progress.
+662:	err = __hci_cmd_send(hdev, 0xfc6f, hlen, wc);
+670:	/* Submit control IN URB on demand to process the WMT event */
+678:	/* The vendor specific WMT commands are all answered by a vendor
+685:	 * WMT command.
+702:		bt_dev_err(hdev, "WMT event too short (%u bytes)",
+715:	case BTMTK_WMT_SEMAPHORE:
+717:			status = BTMTK_WMT_PATCH_UNDONE;
+719:			status = BTMTK_WMT_PATCH_DONE;
+721:	case BTMTK_WMT_FUNC_CTRL:
+724:			status = BTMTK_WMT_ON_UNDONE;
+728:		wmt_evt_funcc = (struct btmtk_hci_wmt_evt_funcc *)wmt_evt;
+730:			status = BTMTK_WMT_ON_DONE;
+732:			status = BTMTK_WMT_ON_PROGRESS;
+734:			status = BTMTK_WMT_ON_UNDONE;
+736:	case BTMTK_WMT_PATCH_DWNLD:
+738:			status = BTMTK_WMT_PATCH_DONE;
+740:			status = BTMTK_WMT_PATCH_PROGRESS;
+742:			status = BTMTK_WMT_PATCH_UNDONE;
+757:static int btmtk_usb_func_query(struct hci_dev *hdev)
+759:	struct btmtk_hci_wmt_params wmt_params;
+764:	wmt_params.op = BTMTK_WMT_FUNC_CTRL;
+770:	err = btmtk_usb_hci_wmt_sync(hdev, &wmt_params);
+779:static int btmtk_usb_uhw_reg_write(struct hci_dev *hdev, u32 reg, u32 val)
+781:	struct btmtk_data *data = hci_get_priv(hdev);
+804:static int btmtk_usb_uhw_reg_read(struct hci_dev *hdev, u32 reg, u32 *val)
+806:	struct btmtk_data *data = hci_get_priv(hdev);
+833:static int btmtk_usb_reg_read(struct hci_dev *hdev, u32 reg, u32 *val)
+835:	struct btmtk_data *data = hci_get_priv(hdev);
+859:static int btmtk_usb_id_get(struct hci_dev *hdev, u32 reg, u32 *id)
+864:static u32 btmtk_usb_reset_done(struct hci_dev *hdev)
+873:int btmtk_usb_subsys_reset(struct hci_dev *hdev, u32 dev_id)
+990:int btmtk_usb_recv_acl(struct hci_dev *hdev, struct sk_buff *skb)
+992:	struct btmtk_data *data = hci_get_priv(hdev);
+993:	u16 handle = le16_to_cpu(hci_acl_hdr(skb)->handle);
+997:		/* When the firmware hangs, the device can no longer
+1016:		return hci_recv_diag(hdev, skb);
+1019:	return hci_recv_frame(hdev, skb);
+1023:static int btmtk_isopkt_pad(struct hci_dev *hdev, struct sk_buff *skb)
+1036:static int __set_mtk_intr_interface(struct hci_dev *hdev)
+1038:	struct btmtk_data *btmtk_data = hci_get_priv(hdev);
+1063:struct urb *alloc_mtk_intr_urb(struct hci_dev *hdev, struct sk_buff *skb,
+1066:	struct btmtk_data *btmtk_data = hci_get_priv(hdev);
+1093:static int btmtk_recv_isopkt(struct hci_dev *hdev, void *buffer, int count)
+1095:	struct btmtk_data *btmtk_data = hci_get_priv(hdev);
+1113:			hci_skb_pkt_type(skb) = HCI_ISODATA_PKT;
+1114:			hci_skb_expect(skb) = HCI_ISO_HDR_SIZE;
+1117:		len = min_t(uint, hci_skb_expect(skb), count);
+1122:		hci_skb_expect(skb) -= len;
+1125:			__le16 dlen = ((struct hci_iso_hdr *)skb->data)->dlen;
+1128:			hci_skb_expect(skb) = __le16_to_cpu(dlen);
+1130:			if (skb_tailroom(skb) < hci_skb_expect(skb)) {
+1139:		if (!hci_skb_expect(skb)) {
+1141:			hci_recv_frame(hdev, skb);
+1154:	struct hci_dev *hdev = urb->context;
+1155:	struct btmtk_data *btmtk_data = hci_get_priv(hdev);
+1192:			hci_cmd_sync_cancel(hdev, -err);
+1197:static int btmtk_submit_intr_urb(struct hci_dev *hdev, gfp_t mem_flags)
+1199:	struct btmtk_data *btmtk_data = hci_get_priv(hdev);
+1246:static int btmtk_usb_isointf_init(struct hci_dev *hdev)
+1248:	struct btmtk_data *btmtk_data = hci_get_priv(hdev);
+1264:	skb = __hci_cmd_sync(hdev, 0xfd98, sizeof(iso_param), iso_param,
+1275:int btmtk_usb_resume(struct hci_dev *hdev)
+9:#include <linux/gnss.h>
+15:#include <linux/serdev.h>
+20:	struct regulator *vbackup;
+21:	struct regulator *vcc;
+24:static int mtk_set_active(struct gnss_serial *gserial)
+26:	struct mtk_data *data = gnss_serial_get_drvdata(gserial);
+29:	ret = regulator_enable(data->vcc);
+36:static int mtk_set_standby(struct gnss_serial *gserial)
+38:	struct mtk_data *data = gnss_serial_get_drvdata(gserial);
+41:	ret = regulator_disable(data->vcc);
+48:static int mtk_set_power(struct gnss_serial *gserial,
+49:			 enum gnss_serial_pm_state state)
+62:static const struct gnss_serial_ops mtk_gserial_ops = {
+66:static int mtk_probe(struct serdev_device *serdev)
+68:	struct gnss_serial *gserial;
+72:	gserial = gnss_serial_allocate(serdev, sizeof(*data));
+82:	data = gnss_serial_get_drvdata(gserial);
+84:	data->vcc = devm_regulator_get(&serdev->dev, "vcc");
+85:	if (IS_ERR(data->vcc)) {
+86:		ret = PTR_ERR(data->vcc);
+90:	data->vbackup = devm_regulator_get_optional(&serdev->dev, "vbackup");
+91:	if (IS_ERR(data->vbackup)) {
+92:		ret = PTR_ERR(data->vbackup);
+94:			data->vbackup = NULL;
+99:	if (data->vbackup) {
+100:		ret = regulator_enable(data->vbackup);
+105:	ret = gnss_serial_register(gserial);
+107:		goto err_disable_vbackup;
+111:err_disable_vbackup:
+112:	if (data->vbackup)
+113:		regulator_disable(data->vbackup);
+115:	gnss_serial_free(gserial);
+120:static void mtk_remove(struct serdev_device *serdev)
+122:	struct gnss_serial *gserial = serdev_device_get_drvdata(serdev);
+123:	struct mtk_data *data = gnss_serial_get_drvdata(gserial);
+125:	gnss_serial_deregister(gserial);
+126:	if (data->vbackup)
+127:		regulator_disable(data->vbackup);
+128:	gnss_serial_free(gserial);
+132:static const struct of_device_id mtk_of_match[] = {
+133:	{ .compatible = "globaltop,pa6h" },
+139:static struct serdev_device_driver mtk_driver = {
+141:		.name		= "gnss-mtk",
+143:		.pm		= &gnss_serial_pm_ops,
+148:module_serdev_device_driver(mtk_driver);
+
+[decision]
+The vendor STP wire format is a reusable protocol layer: four-byte 0x80-prefixed length/type header, H:4 payload, two-byte trailer, and WMT vendor events align with Linux btmtkuart framing.
+Gemini does not present that transport as a standard serdev UART in the recovered active path; BTIF and SDIO are the concrete transports, with custom DMA, wake, ownership, and IRQ handling.
+Reuse Linux HCI, STP framing, firmware-loader, and cfg80211/GNSS cores where contracts match, but add an MT6797 consys power/firmware owner and a BTIF/SDIO transport driver or targeted extensions.
+The vendor Wi-Fi gen2 code is a complete proprietary MAC/CFG80211 stack over an MT6797 AP-DMA HIF; it is not an mt76-compatible MAC. A new Wi-Fi driver/firmware boundary is required unless a separately documented upstream protocol implementation is found.
+Keep WMT character devices, raw ioctl surfaces, radio power-on, firmware loading, and SDIO transactions out of the mainline default until ownership, licensing, and a non-transmitting bring-up protocol are proven.

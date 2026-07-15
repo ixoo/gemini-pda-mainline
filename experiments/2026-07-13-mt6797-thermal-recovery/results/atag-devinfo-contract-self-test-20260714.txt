@@ -1,0 +1,15 @@
+script_sha256=bdb4575817757fad9026be259a23ac027eeb9d16d4a1fe4d4a2d6f66c5f18db9
+output_sha256=47ee8faf1efc8884bb43b7ef660edc3dc0cf40104af5949e7a3a74268a2662a9
+rerun_comparison=byte-identical
+
+validation=mt6797-atag-devinfo-contract
+status=pass
+source=synthetic
+tag=0x41000804
+property_words=103
+payload_words=100
+property_word_encoding=little-endian-opaque-bytes
+thermal_word_indices=31,32,33
+thermal_cell_word_order=32,31,33
+raw_values_printed=no
+

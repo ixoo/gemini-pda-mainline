@@ -1,0 +1,244 @@
+From 44ae438de0038546802f540e06535a5b6b5e66cd Mon Sep 17 00:00:00 2001
+From: Gemini PDA Mainline Project <noreply@example.com>
+Date: Sun, 12 Jul 2026 03:39:38 -0400
+Subject: [PATCH 31/32] soc: mediatek: mtk-mmsys: add MT6797 routes and resets
+
+MT6797 has a distinct MMSYS mux layout. Add the 29 high-level routes
+representable by the current DDP component model, including the internal
+virtual OVL and PATH0 writes needed by the active Gemini path. SPLIT0 and
+dual-DSI remain outside the model because no corresponding component ID
+exists.
+
+Also expose the two active-low software-reset banks at offsets 0x140 and
+0x144 as 64 linear resets. The offsets, selector values, masks, and reset
+width are recovered from the exact Gemian source and cross-checked against
+its retained active display dump.
+
+Signed-off-by: Gemini PDA Mainline Project <noreply@example.com>
+---
+ drivers/soc/mediatek/mt6797-mmsys.h | 190 ++++++++++++++++++++++++++++
+ drivers/soc/mediatek/mtk-mmsys.c    |   5 +
+ 2 files changed, 195 insertions(+)
+ create mode 100644 drivers/soc/mediatek/mt6797-mmsys.h
+
+diff --git a/drivers/soc/mediatek/mt6797-mmsys.h b/drivers/soc/mediatek/mt6797-mmsys.h
+new file mode 100644
+index 000000000..2673a1a03
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-mmsys.h
+@@ -0,0 +1,190 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++
++#ifndef __SOC_MEDIATEK_MT6797_MMSYS_H
++#define __SOC_MEDIATEK_MT6797_MMSYS_H
++
++#define MT6797_DISP_OVL0_MOUT_EN	0x034
++#define MT6797_DISP_OVL1_MOUT_EN	0x038
++#define MT6797_DISP_DITHER_MOUT_EN	0x03c
++#define MT6797_DISP_UFOE_MOUT_EN	0x040
++#define MT6797_DISP_DSC_MOUT_EN		0x044
++#define MT6797_DISP_COLOR0_SEL_IN	0x068
++#define MT6797_DISP_WDMA0_SEL_IN	0x06c
++#define MT6797_DISP_WDMA1_SEL_IN	0x070
++#define MT6797_DISP_UFOE_SEL_IN		0x074
++#define MT6797_DISP_DSC_SEL_IN		0x078
++#define MT6797_DSI0_SEL_IN		0x07c
++#define MT6797_DSI1_SEL_IN		0x080
++#define MT6797_DPI0_SEL_IN		0x084
++#define MT6797_DISP_PATH0_SEL_IN	0x088
++#define MT6797_DISP_PATH0_SOUT_SEL	0x08c
++#define MT6797_DISP_RDMA0_SOUT_SEL	0x090
++#define MT6797_DISP_RDMA1_SOUT_SEL	0x094
++#define MT6797_DISP_OVL0_SOUT_SEL	0x098
++#define MT6797_DISP_OVL0_SEL_IN		0x09c
++#define MT6797_DISP_OVL1_SOUT_SEL	0x0a0
++#define MT6797_MMSYS_SW0_RST_B		0x140
++
++static const struct mtk_mmsys_routes mt6797_mmsys_routing_table[] = {
++	/* OVL0-2L -> OVL1-2L -> virtual OVL0 -> COLOR0/WDMA0 */
++	MMSYS_ROUTE(OVL_2L0, OVL_2L1,
++		    MT6797_DISP_OVL0_SOUT_SEL, 0x1, 0x1),
++	MMSYS_ROUTE(OVL_2L1, COLOR0,
++		    MT6797_DISP_OVL1_SOUT_SEL, 0x1, 0x1),
++	MMSYS_ROUTE(OVL_2L1, COLOR0,
++		    MT6797_DISP_OVL0_SEL_IN, 0x3, 0x2),
++	MMSYS_ROUTE(OVL_2L1, COLOR0,
++		    MT6797_DISP_OVL0_MOUT_EN, 0x1, 0x1),
++	MMSYS_ROUTE(OVL_2L1, COLOR0,
++		    MT6797_DISP_COLOR0_SEL_IN, 0x1, 0x1),
++	MMSYS_ROUTE(OVL_2L1, WDMA0,
++		    MT6797_DISP_OVL1_SOUT_SEL, 0x1, 0x1),
++	MMSYS_ROUTE(OVL_2L1, WDMA0,
++		    MT6797_DISP_OVL0_SEL_IN, 0x3, 0x2),
++	MMSYS_ROUTE(OVL_2L1, WDMA0,
++		    MT6797_DISP_OVL0_MOUT_EN, 0x2, 0x2),
++	MMSYS_ROUTE(OVL_2L1, WDMA0,
++		    MT6797_DISP_WDMA0_SEL_IN, 0x3, 0x0),
++	MMSYS_ROUTE(OVL_2L0, COLOR0,
++		    MT6797_DISP_OVL0_SOUT_SEL, 0x1, 0x0),
++	MMSYS_ROUTE(OVL_2L0, COLOR0,
++		    MT6797_DISP_OVL0_SEL_IN, 0x3, 0x0),
++	MMSYS_ROUTE(OVL_2L0, COLOR0,
++		    MT6797_DISP_OVL0_MOUT_EN, 0x1, 0x1),
++	MMSYS_ROUTE(OVL_2L0, COLOR0,
++		    MT6797_DISP_COLOR0_SEL_IN, 0x1, 0x1),
++	MMSYS_ROUTE(OVL_2L0, WDMA0,
++		    MT6797_DISP_OVL0_SOUT_SEL, 0x1, 0x0),
++	MMSYS_ROUTE(OVL_2L0, WDMA0,
++		    MT6797_DISP_OVL0_SEL_IN, 0x3, 0x0),
++	MMSYS_ROUTE(OVL_2L0, WDMA0,
++		    MT6797_DISP_OVL0_MOUT_EN, 0x2, 0x2),
++	MMSYS_ROUTE(OVL_2L0, WDMA0,
++		    MT6797_DISP_WDMA0_SEL_IN, 0x3, 0x0),
++
++	/* OVL1 can feed RDMA1/WDMA1 or join the virtual OVL0 path. */
++	MMSYS_ROUTE(OVL1, RDMA1,
++		    MT6797_DISP_OVL1_MOUT_EN, 0x1, 0x1),
++	MMSYS_ROUTE(OVL1, WDMA1,
++		    MT6797_DISP_OVL1_MOUT_EN, 0x2, 0x2),
++	MMSYS_ROUTE(OVL1, WDMA1,
++		    MT6797_DISP_WDMA1_SEL_IN, 0x1, 0x0),
++	MMSYS_ROUTE(OVL1, COLOR0,
++		    MT6797_DISP_OVL1_MOUT_EN, 0x4, 0x4),
++	MMSYS_ROUTE(OVL1, COLOR0,
++		    MT6797_DISP_OVL0_SEL_IN, 0x3, 0x1),
++	MMSYS_ROUTE(OVL1, COLOR0,
++		    MT6797_DISP_OVL0_MOUT_EN, 0x1, 0x1),
++	MMSYS_ROUTE(OVL1, COLOR0,
++		    MT6797_DISP_COLOR0_SEL_IN, 0x1, 0x1),
++	MMSYS_ROUTE(OVL1, WDMA0,
++		    MT6797_DISP_OVL1_MOUT_EN, 0x4, 0x4),
++	MMSYS_ROUTE(OVL1, WDMA0,
++		    MT6797_DISP_OVL0_SEL_IN, 0x3, 0x1),
++	MMSYS_ROUTE(OVL1, WDMA0,
++		    MT6797_DISP_OVL0_MOUT_EN, 0x2, 0x2),
++	MMSYS_ROUTE(OVL1, WDMA0,
++		    MT6797_DISP_WDMA0_SEL_IN, 0x3, 0x0),
++
++	/* DITHER can feed RDMA0, WDMA0, or PATH0. */
++	MMSYS_ROUTE(DITHER0, RDMA0,
++		    MT6797_DISP_DITHER_MOUT_EN, 0x1, 0x1),
++	MMSYS_ROUTE(DITHER0, WDMA0,
++		    MT6797_DISP_DITHER_MOUT_EN, 0x4, 0x4),
++	MMSYS_ROUTE(DITHER0, WDMA0,
++		    MT6797_DISP_WDMA0_SEL_IN, 0x3, 0x1),
++	MMSYS_ROUTE(DITHER0, UFOE,
++		    MT6797_DISP_DITHER_MOUT_EN, 0x2, 0x2),
++	MMSYS_ROUTE(DITHER0, UFOE,
++		    MT6797_DISP_PATH0_SEL_IN, 0x1, 0x1),
++	MMSYS_ROUTE(DITHER0, UFOE,
++		    MT6797_DISP_PATH0_SOUT_SEL, 0x1, 0x0),
++	MMSYS_ROUTE(DITHER0, UFOE,
++		    MT6797_DISP_UFOE_SEL_IN, 0x1, 0x0),
++	MMSYS_ROUTE(DITHER0, DSC0,
++		    MT6797_DISP_DITHER_MOUT_EN, 0x2, 0x2),
++	MMSYS_ROUTE(DITHER0, DSC0,
++		    MT6797_DISP_PATH0_SEL_IN, 0x1, 0x1),
++	MMSYS_ROUTE(DITHER0, DSC0,
++		    MT6797_DISP_PATH0_SOUT_SEL, 0x1, 0x1),
++	MMSYS_ROUTE(DITHER0, DSC0,
++		    MT6797_DISP_DSC_SEL_IN, 0x1, 0x0),
++
++	/* RDMA output selection; PATH0 is collapsed into UFOE/DSC routes. */
++	MMSYS_ROUTE(RDMA0, COLOR0,
++		    MT6797_DISP_RDMA0_SOUT_SEL, 0x7, 0x1),
++	MMSYS_ROUTE(RDMA0, COLOR0,
++		    MT6797_DISP_COLOR0_SEL_IN, 0x1, 0x0),
++	MMSYS_ROUTE(RDMA0, UFOE,
++		    MT6797_DISP_RDMA0_SOUT_SEL, 0x7, 0x0),
++	MMSYS_ROUTE(RDMA0, UFOE,
++		    MT6797_DISP_PATH0_SEL_IN, 0x1, 0x0),
++	MMSYS_ROUTE(RDMA0, UFOE,
++		    MT6797_DISP_PATH0_SOUT_SEL, 0x1, 0x0),
++	MMSYS_ROUTE(RDMA0, UFOE,
++		    MT6797_DISP_UFOE_SEL_IN, 0x1, 0x0),
++	MMSYS_ROUTE(RDMA0, DSC0,
++		    MT6797_DISP_RDMA0_SOUT_SEL, 0x7, 0x0),
++	MMSYS_ROUTE(RDMA0, DSC0,
++		    MT6797_DISP_PATH0_SEL_IN, 0x1, 0x0),
++	MMSYS_ROUTE(RDMA0, DSC0,
++		    MT6797_DISP_PATH0_SOUT_SEL, 0x1, 0x1),
++	MMSYS_ROUTE(RDMA0, DSC0,
++		    MT6797_DISP_DSC_SEL_IN, 0x1, 0x0),
++	MMSYS_ROUTE(RDMA0, DSI0,
++		    MT6797_DISP_RDMA0_SOUT_SEL, 0x7, 0x2),
++	MMSYS_ROUTE(RDMA0, DSI0,
++		    MT6797_DSI0_SEL_IN, 0x3, 0x2),
++	MMSYS_ROUTE(RDMA0, DSI1,
++		    MT6797_DISP_RDMA0_SOUT_SEL, 0x7, 0x3),
++	MMSYS_ROUTE(RDMA0, DSI1,
++		    MT6797_DSI1_SEL_IN, 0x3, 0x1),
++	MMSYS_ROUTE(RDMA0, DPI0,
++		    MT6797_DISP_RDMA0_SOUT_SEL, 0x7, 0x4),
++	MMSYS_ROUTE(RDMA0, DPI0,
++		    MT6797_DPI0_SEL_IN, 0x3, 0x1),
++	MMSYS_ROUTE(RDMA1, UFOE,
++		    MT6797_DISP_RDMA1_SOUT_SEL, 0x1, 0x0),
++	MMSYS_ROUTE(RDMA1, UFOE,
++		    MT6797_DISP_UFOE_SEL_IN, 0x1, 0x1),
++	MMSYS_ROUTE(RDMA1, DSC0,
++		    MT6797_DISP_RDMA1_SOUT_SEL, 0x1, 0x1),
++	MMSYS_ROUTE(RDMA1, DSC0,
++		    MT6797_DISP_DSC_SEL_IN, 0x1, 0x1),
++
++	/* Terminal output and memory-output selections. */
++	MMSYS_ROUTE(UFOE, DSI0,
++		    MT6797_DISP_UFOE_MOUT_EN, 0x1, 0x1),
++	MMSYS_ROUTE(UFOE, DSI0,
++		    MT6797_DSI0_SEL_IN, 0x3, 0x0),
++	MMSYS_ROUTE(UFOE, DSI1,
++		    MT6797_DISP_UFOE_MOUT_EN, 0x10, 0x10),
++	MMSYS_ROUTE(UFOE, DSI1,
++		    MT6797_DSI1_SEL_IN, 0x3, 0x3),
++	MMSYS_ROUTE(UFOE, DPI0,
++		    MT6797_DISP_UFOE_MOUT_EN, 0x4, 0x4),
++	MMSYS_ROUTE(UFOE, DPI0,
++		    MT6797_DPI0_SEL_IN, 0x3, 0x0),
++	MMSYS_ROUTE(UFOE, WDMA0,
++		    MT6797_DISP_UFOE_MOUT_EN, 0x8, 0x8),
++	MMSYS_ROUTE(UFOE, WDMA0,
++		    MT6797_DISP_WDMA0_SEL_IN, 0x3, 0x2),
++	MMSYS_ROUTE(DSC0, DSI0,
++		    MT6797_DISP_DSC_MOUT_EN, 0x1, 0x1),
++	MMSYS_ROUTE(DSC0, DSI0,
++		    MT6797_DSI0_SEL_IN, 0x3, 0x3),
++	MMSYS_ROUTE(DSC0, DSI1,
++		    MT6797_DISP_DSC_MOUT_EN, 0x2, 0x2),
++	MMSYS_ROUTE(DSC0, DSI1,
++		    MT6797_DSI1_SEL_IN, 0x3, 0x2),
++	MMSYS_ROUTE(DSC0, DPI0,
++		    MT6797_DISP_DSC_MOUT_EN, 0x4, 0x4),
++	MMSYS_ROUTE(DSC0, DPI0,
++		    MT6797_DPI0_SEL_IN, 0x3, 0x2),
++	MMSYS_ROUTE(DSC0, WDMA1,
++		    MT6797_DISP_DSC_MOUT_EN, 0x8, 0x8),
++	MMSYS_ROUTE(DSC0, WDMA1,
++		    MT6797_DISP_WDMA1_SEL_IN, 0x1, 0x1),
++};
++
++#endif /* __SOC_MEDIATEK_MT6797_MMSYS_H */
+diff --git a/drivers/soc/mediatek/mtk-mmsys.c b/drivers/soc/mediatek/mtk-mmsys.c
+index bb4639ca0..77a35ac17 100644
+--- a/drivers/soc/mediatek/mtk-mmsys.c
++++ b/drivers/soc/mediatek/mtk-mmsys.c
+@@ -16,6 +16,7 @@
+ #include "mtk-mmsys.h"
+ #include "mt8167-mmsys.h"
+ #include "mt8173-mmsys.h"
++#include "mt6797-mmsys.h"
+ #include "mt8183-mmsys.h"
+ #include "mt8186-mmsys.h"
+ #include "mt8188-mmsys.h"
+@@ -51,6 +52,10 @@ static const struct mtk_mmsys_driver_data mt6795_mmsys_driver_data = {
+ 
+ static const struct mtk_mmsys_driver_data mt6797_mmsys_driver_data = {
+ 	.clk_driver = "clk-mt6797-mm",
++	.routes = mt6797_mmsys_routing_table,
++	.num_routes = ARRAY_SIZE(mt6797_mmsys_routing_table),
++	.sw0_rst_offset = MT6797_MMSYS_SW0_RST_B,
++	.num_resets = 64,
+ };
+ 
+ static const struct mtk_mmsys_driver_data mt8167_mmsys_driver_data = {
+-- 
+2.43.0

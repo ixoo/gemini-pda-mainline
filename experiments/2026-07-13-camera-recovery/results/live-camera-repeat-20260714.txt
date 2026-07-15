@@ -1,0 +1,42 @@
+validation=gemini-live-camera-read-only-repeat
+generated_utc=2026-07-14T12:20:00Z
+device_kernel=3.18.41+
+collector=experiments/2026-07-13-camera-recovery/scripts/collect-live-camera.sh
+collector_mode=read_only
+raw_capture=artifacts/device-inventory/20260714-camera-live/camera.txt
+raw_capture_sha256=4c8609955baa1f898d49d9574d63a4f5c942a9b15aca5876be1b7de1a306d529
+prior_capture=artifacts/device-inventory/20260713-live/camera.txt
+prior_capture_sha256=699805ebe9727026c5939d9d30353108176efa6dc6f25e82fc3034bdae77d0b8
+hardware_write=none
+i2c_transaction=none
+camera_stream=not_attempted
+
+[runtime_identity]
+camera0=non_sensor
+camera1=sp5509mipirawsls
+camera0_tuning_version=0
+camera1_tuning_version=0
+sensor_entrypoints=sp5509_MIPI_RAW_SensorInit_sls,sp5509_MAIN_MIPI_RAW_SensorInit,OV5675_MIPI_RAW_SensorInit,S5K5E2YA_MIPI_RAW_SensorInit
+
+[wrapper_topology]
+camera_main_wrapper=i2c-2@0x2d;compatible=mediatek,camera_main;driver=kd_camera_hw
+camera_sub_wrapper=i2c-3@0x36;compatible=mediatek,camera_sub;driver=kd_camera_hw_bus2
+camera_main_hw_trigger=i2c-8@0x36;compatible=mediatek,camera_main_hw;driver=kd_camera_hw_trigger
+main_autofocus=i2c-2@0x72;driver=MAINAF
+sub_autofocus=i2c-3@0x0c;driver=SUBAF
+candidate_sensor_clients=2-0x20,2-0x28,3-0x20,3-0x28,8-0x20,8-0x28;all_absent
+
+[platform_topology]
+camera_hw1=1a040000.kd_camera_hw1;driver=image_sensor
+camera_hw2=1a040000.kd_camera_hw2;driver=image_sensor_bus2
+seninf_nodes=seninf0..seninf7_present
+camera_devices=/dev/camera-isp,/dev/camera-fdvt,/dev/camera-dpe,/dev/kd_camera_hw,/dev/kd_camera_hw_bus2,/dev/kd_camera_flashlight
+
+[interpretation]
+The direct runtime identity remains stable: camera 1 selects the SP5509 SLS
+path and camera 0 reports no sensor. The additional bus-8 camera-main-hw
+wrapper is a vendor trigger/control object, not a sensor identity; no candidate
+SP5509 client appeared in sysfs. The filtered kernel-message section was
+dominated by unrelated suspend/CPUHVFS messages, so it supplies no new camera
+stream evidence. The wrapper addresses must not be copied into a mainline
+sensor `reg` property, and no I2C or camera transaction was attempted.

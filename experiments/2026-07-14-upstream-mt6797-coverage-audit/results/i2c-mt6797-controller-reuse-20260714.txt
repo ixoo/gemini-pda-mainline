@@ -1,0 +1,36 @@
+validation=i2c-mt6797-controller-reuse
+generated_utc=2026-07-14T13:51:00Z
+method=read-only source comparison plus bounded live sysfs inventory
+hardware_writes=none
+runtime_kernel=Linux 3.18.41+ on the authorized Gemini at 192.168.1.50
+
+[inputs]
+linux_source=/home/julien.guest/src/gemini-pda/linux-7.1.3
+linux_i2c_driver_sha256=892e63f9e33d7639bb30ec7e36cbb8e656ad9159f1c583c2d7233eb694dab1cd
+linux_mt6797_dtsi_sha256=f4f516e439be403ce743898f30ff224dec3ae5393ddfd09d0053157e8146b200
+linux_i2c_binding_sha256=b627b81993f0828b6e86cffaea8620167758a859196041b03387f212f99e2b55
+historical_tree=/home/julien.guest/src/reference/planet-mt6797-3.18
+historical_commit=c5b0be85017ad0c599725e8273842efdbecdd88a
+historical_i2c_driver_sha256=04d228c18b902a5bd775e9d664c47036e3bf966b5f754618ea0481d3fe64c935
+historical_mt6797_dtsi_sha256=eaac86c8752ebd8ddf18b831eb3bc52a08f87475a213bb521650bf95dabb3e5e
+
+[source_observations]
+historical_driver_match=The Planet driver has no MT6797-specific match entry. Its MT6797-compatible path is the legacy mt6577_compat data: v1 register offsets, pmic_i2c=0, dcm=1, auto_restart=0, no timing_adjust, and the 255-byte/31-byte combined-transfer limits.
+current_driver_match=Linux 7.1.3 retains the same mt6577_compat semantics and adds modern v1 register tables, optional arbitration-clock handling, bulk clock management, DMA-width handling, and current transfer/recovery code. The OF match table contains mediatek,mt6577-i2c rather than a direct mediatek,mt6797-i2c entry.
+binding_contract=Documentation/devicetree/bindings/i2c/i2c-mt65xx.yaml explicitly accepts mediatek,mt6797-i2c only as the first string followed by mediatek,mt6577-i2c. A bare MT6797 compatible is not the current binding contract.
+current_dts=All ten MT6797 I2C nodes use the required two-string compatible. They retain the historical controller and AP-DMA windows, IRQs 83/84/85/86/87/88/89/90/95/96, clock-div=<10>, main+dma clocks, and optional arb clocks on I2C2/I2C3/I2C8/I2C9. Nodes remain disabled in the Gemini board description.
+vendor_private_properties=The historical DTS also carries id, mediatek,buffermode_used, mediatek,appm_used, and mediatek,gpupm_used. The upstream driver does not need these vendor policy flags for the generic controller path; it consumes the standard resources, clock-div, and optional arb clock.
+
+[live_observation]
+adapter_count=10
+adapter_names=i2c-0..i2c-9 all report mt-i2c under the vendor kernel
+active_clients=I2C0 FUSB301/charger/regulator clients; I2C1 FUSB301/sensor clients; I2C2/3/8 camera wrappers; I2C4 NVT touch; I2C5 AW9523 keyboard; I2C6/7 regulators
+topology_evidence=The live client placement agrees with the MT6797 controller windows and the existing sanitized hardware inventory. This confirms board topology, not mainline transfer success.
+live_capture_adapters=i2c-0:mt-i2c;i2c-1:mt-i2c;i2c-2:mt-i2c;i2c-3:mt-i2c;i2c-4:mt-i2c;i2c-5:mt-i2c;i2c-6:mt-i2c;i2c-7:mt-i2c;i2c-8:mt-i2c;i2c-9:mt-i2c
+live_capture_clients=0-0025:fusb301a/FUSB301_1,0-0031:speaker_amp/unbound,0-0053:rt9466/unbound,0-0063:strobe_main/unbound,0-006b:sw_charger/bq25890,0-0070:buck_boost/fan49101,1-0025:fusb301/FUSB301_0,1-0030:msensor_mmc3530/unbound,1-003e:i2c_lcd_bias/lp3101,1-0048:alsps/stk3x1x,1-005f:humidity/unbound,1-0068:gsensor_bmi160/bmi160_acc,1-0069:gyro_bmi160/bmi160_gyro,1-006a:gsensor/unbound,1-006b:gyro/unbound,1-0077:barometer/unbound,2-002d:camera_main/kd_camera_hw,2-0072:camera_main_af/MAINAF,3-000c:camera_sub_af/SUBAF,3-002c:aw9120_led/aw9120_led,3-0036:camera_sub/kd_camera_hw_bus2,3-0039:sii9022_hdmi/unbound,3-0050:siiedid/unbound,4-0053:solomon_touch/unbound,4-0062:cap_touch/NVT-ts,5-0028:nfc/unbound,5-005b:aw9523_key/Integrated_keyboard,6-0068:vproc_buck/da9214,7-001c:rt5735-regulator/rt5735-regulator,7-0060:vgpu_buck/unbound,8-0036:camera_main_hw/kd_camera_hw_trigger
+
+[decision]
+reuse=Use Linux 7.1.3 drivers/i2c/busses/i2c-mt65xx.c with the generic mt6577 fallback. Do not add an MT6797-specific I2C driver or compatibility data based on the available evidence.
+reason=Historical source already selected the mt6577 register/quirk profile for MT6797, and current upstream binding/DTS preserve that relationship. Current driver support covers the MT6797 clock-div and optional arb-clock resources.
+remaining_gate=Runtime boot and one-at-a-time I2C enablement are still required. First tests must observe probe/clock/IRQ/transfer behavior for a low-risk client; do not enable all ten buses or issue arbitrary transactions. Verify regulators, pinctrl, reset/wake, and bus recovery before enabling populated children.
+negative_evidence=No claim is made that every vendor private client has a mainline-compatible child driver, that camera transactions work, or that the current DT is electrically complete.

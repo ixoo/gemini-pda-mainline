@@ -1,0 +1,56 @@
+From 0000000000000000000000000000000000000061 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 13 Jul 2026 07:32:00 -0400
+Subject: [PATCH] arm64: dts: mediatek: add disabled MT6797 DPI node
+
+Describe the MT6797 DPI0 register and interrupt resources recovered from the
+vendor display tree. The MM and interface gates plus TVDPLL clock are already
+provided by the mainline MT6797 clock providers, and the existing MMSYS
+routing table contains RDMA/UFOE/DSC-to-DPI0 routes.
+
+Keep the node disabled and leave both graph ports unconnected. The Gemini
+board's SII9022-family bridge, reset/power rails, DPI pinmux, HPD, audio path,
+and external-monitor mode-setting have not been runtime validated.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ arch/arm64/boot/dts/mediatek/mt6797.dtsi | 25 +++++++++++++++++++++++++
+ 1 file changed, 25 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+--- a/arch/arm64/boot/dts/mediatek/mt6797.dtsi
++++ b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+@@ -791,6 +791,31 @@ dsi0: dsi@1401c000 {
+ 		};
+ 	};
+ 
++	dpi0: dpi@1401e000 {
++		compatible = "mediatek,mt6797-dpi";
++		reg = <0 0x1401e000 0 0x1000>;
++		interrupts = <GIC_SPI 231 IRQ_TYPE_LEVEL_LOW>;
++		power-domains = <&scpsys MT6797_POWER_DOMAIN_MM>;
++		clocks = <&mmsys CLK_MM_DPI_INTERFACE_CLOCK>,
++			 <&mmsys CLK_MM_DPI_MM_CLOCK>,
++			 <&topckgen CLK_TOP_TVDPLL_CK>;
++		clock-names = "pixel", "engine", "pll";
++		status = "disabled";
++
++		ports {
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			dpi0_in: port@0 {
++				reg = <0>;
++			};
++
++			dpi0_out: port@1 {
++				reg = <1>;
++			};
++		};
++	};
++
+ 	mutex: mutex@1401f000 {
+ 		compatible = "mediatek,mt6797-disp-mutex";
+ 		reg = <0 0x1401f000 0 0x1000>;
+-- 
+2.43.0

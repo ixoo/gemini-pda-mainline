@@ -1,0 +1,51 @@
+From 0000000000000000000000000000000000000018 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 12 Jul 2026 01:14:00 -0400
+Subject: [PATCH] arm64: dts: mediatek: mt6797: add MSDC controllers
+
+Describe the two storage controllers present in MT6797. MSDC0 has its own
+HCLK mux and is used for eMMC on Gemini-class boards. MSDC1 uses the AXI
+clock for HCLK and serves the removable SD slot.
+
+Leave both controllers disabled for board device trees to provide pinctrl,
+regulator, bus-width, and capability data.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ arch/arm64/boot/dts/mediatek/mt6797.dtsi | 22 ++++++++++++++++++++++
+ 1 file changed, 22 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+--- a/arch/arm64/boot/dts/mediatek/mt6797.dtsi
++++ b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+@@ -453,6 +453,28 @@ i2c5: i2c@1101c000 {
+ 		status = "disabled";
+ 	};
+ 
++	mmc0: mmc@11230000 {
++		compatible = "mediatek,mt6797-mmc";
++		reg = <0 0x11230000 0 0x10000>;
++		interrupts = <GIC_SPI 79 IRQ_TYPE_LEVEL_LOW>;
++		clocks = <&infrasys CLK_INFRA_MSDC0>,
++			 <&topckgen CLK_TOP_MUX_MSDC50_0_HCLK>,
++			 <&topckgen CLK_TOP_MUX_MSDC50_0>;
++		clock-names = "source", "hclk", "source_cg";
++		status = "disabled";
++	};
++
++	mmc1: mmc@11240000 {
++		compatible = "mediatek,mt6797-mmc";
++		reg = <0 0x11240000 0 0x10000>;
++		interrupts = <GIC_SPI 80 IRQ_TYPE_LEVEL_LOW>;
++		clocks = <&infrasys CLK_INFRA_MSDC1>,
++			 <&topckgen CLK_TOP_MUX_AXI>,
++			 <&topckgen CLK_TOP_MUX_MSDC30_1>;
++		clock-names = "source", "hclk", "source_cg";
++		status = "disabled";
++	};
++
+ 	mmsys: syscon@14000000 {
+ 		compatible = "mediatek,mt6797-mmsys", "syscon";
+ 		reg = <0 0x14000000 0 0x1000>;
+-- 
+2.43.0

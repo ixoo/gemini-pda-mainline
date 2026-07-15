@@ -1,0 +1,114 @@
+From 0000000000000000000000000000000000000073 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Maintainers <gemini-mainline@example.invalid>
+Date: Tue, 14 Jul 2026 10:20:00 -0400
+Subject: [PATCH] arm64: dts: mediatek: mt6797: add disabled SPI controllers
+
+Describe the six MT6797 SPI controller windows and interrupts recovered
+from the vendor device tree.  The upstream driver requires the top-clock
+parent, SPI selector, and per-controller infrastructure gate clocks, so
+describe those using the MT6797 common clock provider rather than the
+vendor's single spi-main clock handle.
+
+Keep every controller disabled.  Board pinctrl groups, chip-select wiring,
+rails, and a safe runtime transfer must be validated before enabling one.
+
+---
+ arch/arm64/boot/dts/mediatek/mt6797.dtsi | 84 ++++++++++++++++++++++++++++++++
+ 1 file changed, 84 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+--- a/arch/arm64/boot/dts/mediatek/mt6797.dtsi
++++ b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+@@ -495,6 +495,90 @@ uart3: serial@11005000 {
+ 		status = "disabled";
+ 	};
+ 
++	spi0: spi@1100a000 {
++		compatible = "mediatek,mt6797-spi";
++		reg = <0 0x1100a000 0 0x1000>;
++		interrupts = <GIC_SPI 122 IRQ_TYPE_LEVEL_LOW>;
++		clocks = <&topckgen CLK_TOP_SYSPLL3_D2>,
++			 <&topckgen CLK_TOP_MUX_SPI>,
++			 <&infrasys CLK_INFRA_SPI>;
++		clock-names = "parent-clk", "sel-clk", "spi-clk";
++		mediatek,pad-select = <0>;
++		#address-cells = <1>;
++		#size-cells = <0>;
++		status = "disabled";
++	};
++
++	spi1: spi@11012000 {
++		compatible = "mediatek,mt6797-spi";
++		reg = <0 0x11012000 0 0x1000>;
++		interrupts = <GIC_SPI 131 IRQ_TYPE_LEVEL_LOW>;
++		clocks = <&topckgen CLK_TOP_SYSPLL3_D2>,
++			 <&topckgen CLK_TOP_MUX_SPI>,
++			 <&infrasys CLK_INFRA_SPI1>;
++		clock-names = "parent-clk", "sel-clk", "spi-clk";
++		mediatek,pad-select = <1>;
++		#address-cells = <1>;
++		#size-cells = <0>;
++		status = "disabled";
++	};
++
++	spi2: spi@11018000 {
++		compatible = "mediatek,mt6797-spi";
++		reg = <0 0x11018000 0 0x1000>;
++		interrupts = <GIC_SPI 132 IRQ_TYPE_LEVEL_LOW>;
++		clocks = <&topckgen CLK_TOP_SYSPLL3_D2>,
++			 <&topckgen CLK_TOP_MUX_SPI>,
++			 <&infrasys CLK_INFRA_SPI2>;
++		clock-names = "parent-clk", "sel-clk", "spi-clk";
++		mediatek,pad-select = <1>;
++		#address-cells = <1>;
++		#size-cells = <0>;
++		status = "disabled";
++	};
++
++	spi3: spi@11019000 {
++		compatible = "mediatek,mt6797-spi";
++		reg = <0 0x11019000 0 0x1000>;
++		interrupts = <GIC_SPI 133 IRQ_TYPE_LEVEL_LOW>;
++		clocks = <&topckgen CLK_TOP_SYSPLL3_D2>,
++			 <&topckgen CLK_TOP_MUX_SPI>,
++			 <&infrasys CLK_INFRA_SPI3>;
++		clock-names = "parent-clk", "sel-clk", "spi-clk";
++		mediatek,pad-select = <0>;
++		#address-cells = <1>;
++		#size-cells = <0>;
++		status = "disabled";
++	};
++
++	spi4: spi@1101a000 {
++		compatible = "mediatek,mt6797-spi";
++		reg = <0 0x1101a000 0 0x1000>;
++		interrupts = <GIC_SPI 134 IRQ_TYPE_LEVEL_LOW>;
++		clocks = <&topckgen CLK_TOP_SYSPLL3_D2>,
++			 <&topckgen CLK_TOP_MUX_SPI>,
++			 <&infrasys CLK_INFRA_SPI4>;
++		clock-names = "parent-clk", "sel-clk", "spi-clk";
++		mediatek,pad-select = <0>;
++		#address-cells = <1>;
++		#size-cells = <0>;
++		status = "disabled";
++	};
++
++	spi5: spi@1101b000 {
++		compatible = "mediatek,mt6797-spi";
++		reg = <0 0x1101b000 0 0x1000>;
++		interrupts = <GIC_SPI 135 IRQ_TYPE_LEVEL_LOW>;
++		clocks = <&topckgen CLK_TOP_SYSPLL3_D2>,
++			 <&topckgen CLK_TOP_MUX_SPI>,
++			 <&infrasys CLK_INFRA_SPI5>;
++		clock-names = "parent-clk", "sel-clk", "spi-clk";
++		mediatek,pad-select = <0>;
++		#address-cells = <1>;
++		#size-cells = <0>;
++		status = "disabled";
++	};
++
+ 	i2c0: i2c@11007000 {
+ 		compatible = "mediatek,mt6797-i2c",
+ 			     "mediatek,mt6577-i2c";
+-- 
+2.43.0

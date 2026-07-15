@@ -1,0 +1,64 @@
+From: Gemini PDA Mainline Project <noreply@example.com>
+Date: Sun, 12 Jul 2026 01:50:00 -0400
+Subject: [PATCH 21/22] dt-bindings: clock: mediatek: add MT6797 CAM and MJC clocks
+
+Add the missing camera and motion-judder-compensation clock IDs recovered
+from the public MT6797 vendor tree and allow both provider compatibles.
+
+Signed-off-by: Gemini PDA Mainline Project <noreply@example.com>
+---
+ Documentation/devicetree/bindings/clock/mediatek,syscon.yaml | 2 ++
+ include/dt-bindings/clock/mt6797-clk.h | 19 +++++++++++++++++++
+ 2 files changed, 21 insertions(+)
+
+diff --git a/Documentation/devicetree/bindings/clock/mediatek,syscon.yaml b/Documentation/devicetree/bindings/clock/mediatek,syscon.yaml
+--- a/Documentation/devicetree/bindings/clock/mediatek,syscon.yaml
++++ b/Documentation/devicetree/bindings/clock/mediatek,syscon.yaml
+@@ -42,7 +42,9 @@ properties:
+               - mediatek,mt6779-mfgcfg
+               - mediatek,mt6779-vdecsys
+               - mediatek,mt6779-vencsys
++              - mediatek,mt6797-camsys
+               - mediatek,mt6797-imgsys
++              - mediatek,mt6797-mjcsys
+               - mediatek,mt6797-vdecsys
+               - mediatek,mt6797-vencsys
+               - mediatek,mt8167-imgsys
+diff --git a/include/dt-bindings/clock/mt6797-clk.h b/include/dt-bindings/clock/mt6797-clk.h
+--- a/include/dt-bindings/clock/mt6797-clk.h
++++ b/include/dt-bindings/clock/mt6797-clk.h
+@@ -211,6 +211,16 @@
+ #define	CLK_IMG_LARB6				4
+ #define	CLK_IMG_NR				5
+ 
++/* CAM_SYS */
++#define CLK_CAM_CAMSV2				1
++#define CLK_CAM_CAMSV1				2
++#define CLK_CAM_CAMSV0				3
++#define CLK_CAM_SENINF				4
++#define CLK_CAM_CAMTG				5
++#define CLK_CAM_CAMSYS				6
++#define CLK_CAM_LARB2				7
++#define CLK_CAM_NR				8
++
+ /* MM_SYS */
+ #define	CLK_MM_SMI_COMMON			1
+ #define	CLK_MM_SMI_LARB0			2
+@@ -257,6 +267,15 @@
+ #define	CLK_MM_DSI1_INTERFACE_CLOCK		42
+ #define	CLK_MM_NR				43
+ 
++/* MJC_SYS */
++#define CLK_MJC_SMI_LARB			1
++#define CLK_MJC_TOP_CLK_0			2
++#define CLK_MJC_TOP_CLK_1			3
++#define CLK_MJC_TOP_CLK_2			4
++#define CLK_MJC_FAKE_ENGINE			5
++#define CLK_MJC_LARB4_ASIF			6
++#define CLK_MJC_NR				7
++
+ /* VDEC_SYS */
+ #define	CLK_VDEC_CKEN_ENG			1
+ #define	CLK_VDEC_ACTIVE				2
+-- 
+2.47.2

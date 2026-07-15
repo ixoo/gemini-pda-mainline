@@ -1,0 +1,46 @@
+validation=series-static-compile
+generated_utc=2026-07-14T08:48:01-04:00
+source=/home/julien.guest/src/gemini-pda/linux-7.1.3
+build=/home/julien.guest/build/gemini-pda/linux-7.1.3
+compiler=gcc_13.3.0
+sparse=/usr/bin/sparse
+warnings=enabled
+sparse_check=enabled
+script=experiments/2026-07-14-patch-quality-audit/scripts/audit-series-static-check.sh
+script_sha256=aee22b6cdcea7d1d656d91ca1ca1177ff72980a53e872348af211e16ce745cbf
+output_sha256=b2951b30c607baa0e083fd81fa228f92ea53a65842124d288fe4dbdad8af95d1
+target_count=22
+diagnostics=0
+result=pass
+repeatability=byte-identical_second_run
+runtime_mainline_boot=not_attempted
+hardware_write=none
+
+[targets]
+drivers/clk/mediatek
+drivers/gpu/drm/mediatek
+drivers/gpu/drm/panel
+drivers/gpu/drm/panfrost
+drivers/iio/adc
+drivers/input/keyboard
+drivers/iommu
+drivers/mfd
+drivers/mmc/host
+drivers/nvmem
+drivers/phy/mediatek
+drivers/pinctrl/mediatek
+drivers/pmdomain/mediatek
+drivers/pwm
+drivers/regulator
+drivers/rtc
+drivers/soc/mediatek
+drivers/thermal/mediatek
+drivers/usb/host
+drivers/usb/mtu3
+drivers/usb/musb
+drivers/usb/typec
+
+The audit covers every kernel subsystem directory touched by a C source in the
+72-patch series, including newly added MT6797 clock, display, NVMEM, power,
+USB, regulator, sensor-adjacent, and Type-C paths. It is static source evidence
+only: no module was loaded and no Device Tree consumer was enabled.

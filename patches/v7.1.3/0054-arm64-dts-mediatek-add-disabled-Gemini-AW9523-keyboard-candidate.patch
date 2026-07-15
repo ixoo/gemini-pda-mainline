@@ -1,0 +1,145 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 12 Jul 2026 02:30:00 -0400
+Subject: [PATCH] arm64: dts: mediatek: add disabled Gemini AW9523 keyboard
+
+Describe the populated Gemini AW9523 keyboard as the existing Linux GPIO
+expander plus gpio-matrix-keypad consumer.  The vendor source identifies
+AW9523 silicon (chip ID 0x23), eight P0 row inputs, seven P1 column outputs,
+GPIO58 hardware-enable/reset, and GPIO87/EINT10 interrupt wiring.  The exact
+active boot ELF compiles the physical (row 4, column 3) entry as
+KEY_LEFTMETA; the retained source checkout labels that position KEY_FN, so
+the DT follows the named active image while preserving the source discrepancy
+in the hardware record.
+
+Keep both devices disabled: the keymap and register protocol are source and
+live-topology evidence, but row/column polarity, electrical timing, wake
+behavior, and the expander GPIO-range mapping still require a recoverable
+hardware test.  Do not preserve the vendor polling or private input ABI.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts | 115 +++++++++++++++++++++++
+ 1 file changed, 115 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -239,3 +239,115 @@
+ &watchdog {
+ 	interrupts = <GIC_SPI 137 IRQ_TYPE_EDGE_FALLING>;
+ };
++
++&i2c5 {
++	/* Keep the bus and both consumers disabled until a safe keyboard test. */
++	aw9523: gpio-expander@5b {
++		compatible = "awinic,aw9523-pinctrl";
++		reg = <0x5b>;
++		interrupt-parent = <&pio>;
++		interrupts = <87 IRQ_TYPE_LEVEL_LOW>;
++		gpio-controller;
++		#gpio-cells = <2>;
++		gpio-ranges = <&pio 0 0 16>;
++		interrupt-controller;
++		#interrupt-cells = <2>;
++		reset-gpios = <&pio 58 GPIO_ACTIVE_HIGH>;
++		status = "disabled";
++
++		keyboard_matrix_row_pins: keyboard-matrix-row-pins {
++			pins = "gpio0", "gpio1", "gpio2", "gpio3",
++			       "gpio4", "gpio5", "gpio6", "gpio7";
++			function = "gpio";
++			bias-pull-up;
++			drive-open-drain;
++			input-enable;
++		};
++
++		keyboard_matrix_col_pins: keyboard-matrix-col-pins {
++			pins = "gpio8", "gpio9", "gpio10", "gpio11",
++			       "gpio12", "gpio13", "gpio14";
++			function = "gpio";
++			input-disable;
++			output-low;
++		};
++	};
++};
++
++&{/} {
++	keyboard-matrix {
++		compatible = "gpio-matrix-keypad";
++		pinctrl-names = "default";
++		pinctrl-0 = <&keyboard_matrix_row_pins
++				     &keyboard_matrix_col_pins>;
++		row-gpios = <&aw9523 0 GPIO_ACTIVE_HIGH>,
++			    <&aw9523 1 GPIO_ACTIVE_HIGH>,
++			    <&aw9523 2 GPIO_ACTIVE_HIGH>,
++			    <&aw9523 3 GPIO_ACTIVE_HIGH>,
++			    <&aw9523 4 GPIO_ACTIVE_HIGH>,
++			    <&aw9523 5 GPIO_ACTIVE_HIGH>,
++			    <&aw9523 6 GPIO_ACTIVE_HIGH>,
++			    <&aw9523 7 GPIO_ACTIVE_HIGH>;
++		col-gpios = <&aw9523 8 GPIO_ACTIVE_HIGH>,
++			    <&aw9523 9 GPIO_ACTIVE_HIGH>,
++			    <&aw9523 10 GPIO_ACTIVE_HIGH>,
++			    <&aw9523 11 GPIO_ACTIVE_HIGH>,
++			    <&aw9523 12 GPIO_ACTIVE_HIGH>,
++			    <&aw9523 13 GPIO_ACTIVE_HIGH>,
++			    <&aw9523 14 GPIO_ACTIVE_HIGH>;
++		linux,keymap = <
++			MATRIX_KEY(0, 0, KEY_1)
++			MATRIX_KEY(1, 0, KEY_U)
++			MATRIX_KEY(2, 0, KEY_S)
++			MATRIX_KEY(3, 0, KEY_Z)
++			MATRIX_KEY(4, 0, KEY_COMMA)
++			MATRIX_KEY(5, 0, KEY_APOSTROPHE)
++			MATRIX_KEY(6, 0, KEY_8)
++			MATRIX_KEY(7, 0, KEY_J)
++			MATRIX_KEY(0, 1, KEY_2)
++			MATRIX_KEY(1, 1, KEY_W)
++			MATRIX_KEY(2, 1, KEY_D)
++			MATRIX_KEY(3, 1, KEY_C)
++			MATRIX_KEY(4, 1, KEY_LEFTALT)
++			MATRIX_KEY(5, 1, KEY_LEFT)
++			MATRIX_KEY(6, 1, KEY_9)
++			MATRIX_KEY(7, 1, KEY_K)
++			MATRIX_KEY(0, 2, KEY_3)
++			MATRIX_KEY(1, 2, KEY_Y)
++			MATRIX_KEY(2, 2, KEY_TAB)
++			MATRIX_KEY(3, 2, KEY_N)
++			MATRIX_KEY(4, 2, KEY_M)
++			MATRIX_KEY(5, 2, KEY_DOWN)
++			MATRIX_KEY(6, 2, KEY_BACKSPACE)
++			MATRIX_KEY(7, 2, KEY_I)
++			MATRIX_KEY(0, 3, KEY_4)
++			MATRIX_KEY(1, 3, KEY_T)
++			MATRIX_KEY(2, 3, KEY_F)
++			MATRIX_KEY(3, 3, KEY_X)
++			MATRIX_KEY(4, 3, KEY_LEFTMETA)
++			MATRIX_KEY(5, 3, KEY_RIGHTSHIFT)
++			MATRIX_KEY(6, 3, KEY_P)
++			MATRIX_KEY(0, 4, KEY_5)
++			MATRIX_KEY(1, 4, KEY_E)
++			MATRIX_KEY(2, 4, KEY_G)
++			MATRIX_KEY(3, 4, KEY_V)
++			MATRIX_KEY(4, 4, KEY_SPACE)
++			MATRIX_KEY(5, 4, KEY_UP)
++			MATRIX_KEY(6, 4, KEY_O)
++			MATRIX_KEY(0, 5, KEY_6)
++			MATRIX_KEY(1, 5, KEY_Q)
++			MATRIX_KEY(2, 5, KEY_A)
++			MATRIX_KEY(3, 5, KEY_B)
++			MATRIX_KEY(4, 5, KEY_DOT)
++			MATRIX_KEY(5, 5, KEY_RIGHT)
++			MATRIX_KEY(6, 5, KEY_ENTER)
++			MATRIX_KEY(0, 6, KEY_7)
++			MATRIX_KEY(1, 6, KEY_R)
++			MATRIX_KEY(2, 6, KEY_H)
++			MATRIX_KEY(3, 6, KEY_LEFTSHIFT)
++			MATRIX_KEY(4, 6, KEY_LEFTCTRL)
++			MATRIX_KEY(5, 6, KEY_L)
++			MATRIX_KEY(6, 6, KEY_0)>;
++		status = "disabled";
++	};
++};
+--
+2.43.0

@@ -1,0 +1,193 @@
+validation=first-boot-probe-dependency-audit
+package=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-ca17601dcdeb
+package_image_sha256=6d162f2d729827ecadfa5640d16f9e4c8325e67817d9c638b0cb1fcc9670bef4
+config_sha256=60a84aa5ac3b3aeb17d5357508ac123089d97d7d5ed9164458dee3ce6ded8159
+dtb_sha256=fb910c8d96b7d4f533c750ce0717ced8998c992834abc44a4ed86ec5a9cf1f97
+linux_tree=/home/julien.guest/src/gemini-pda/linux-7.1.3
+linux_version=7.1.3
+dtc_warning_lines=2
+dtc_warnings=usb@11271000 empty_ranges_cell_count_mismatch_x2
+dtc_warnings_first_boot_graph_relevance=none
+audit_script_sha256=c7d7873b70eb94e331a3449428de668fe2aeed88fd502bd3c04f960e78036caa
+normalized_audit_output_sha256=f1129b7773b64e0ef6c3204ce7340fddfd90370e21db6edfec78cd9e4bb7865a
+rerun_comparison=byte-identical
+
+[configuration_and_image]
+CONFIG_ARM_PSCI_FW=y|probe=psci_probe|image=builtin
+CONFIG_ARM_PSCI_CPUIDLE=y|probe=psci_cpuidle_probe|image=builtin
+CONFIG_ARM_ARCH_TIMER=y|probe=arch_timer_of_init|image=builtin
+CONFIG_ARM_GIC_V3=y|probe=gic_of_init|image=builtin
+CONFIG_CPU_IDLE=y|probe=cpuidle_init|image=builtin
+CONFIG_SERIAL_8250_MT6577=y|probe=mtk8250_probe|image=builtin
+CONFIG_PINCTRL_MT6797=y|probe=mt6797_pinctrl_init|image=builtin
+CONFIG_MEDIATEK_WATCHDOG=y|probe=mtk_wdt_probe|image=builtin
+CONFIG_WATCHDOG_HANDLE_BOOT_ENABLED=y|probe=watchdog_dev_register|image=builtin
+CONFIG_MTK_PMIC_WRAP=y|probe=pwrap_probe|image=builtin
+CONFIG_MFD_MT6397=y|probe=mt6397_probe|image=builtin
+CONFIG_REGULATOR_MT6351=y|probe=mt6351_regulator_probe|image=builtin
+CONFIG_MMC_MTK=y|probe=msdc_drv_probe|image=builtin
+
+[device_tree_status]
+/psci|status=implicit-okay|compatible=arm,psci-0.2
+/timer|status=implicit-okay|compatible=arm,armv8-timer
+/cpus|status=implicit-okay|compatible=absent
+/pwrap@1000d000|status=implicit-okay|compatible=mediatek,mt6797-pwrap
+/pwrap@1000d000/pmic|status=implicit-okay|compatible=mediatek,mt6351
+/pwrap@1000d000/pmic/regulators|status=implicit-okay|compatible=mediatek,mt6351-regulator
+/pwrap@1000d000/pmic/regulators/ldo-vemc|status=implicit-okay|compatible=absent
+/pwrap@1000d000/pmic/regulators/ldo-vio18|status=implicit-okay|compatible=absent
+/serial@11002000|status=okay|compatible=mediatek,mt6797-uart mediatek,mt6577-uart
+/mmc@11230000|status=okay|compatible=mediatek,mt6797-mmc
+/mmc@11240000|status=disabled|compatible=mediatek,mt6797-mmc
+/watchdog@10007000|status=implicit-okay|compatible=mediatek,mt6797-wdt mediatek,mt6589-wdt
+/cpus|cpu_nodes=10|psci_enable_methods=10|per_cpu_clock_frequency=0|idle_state_refs=0
+/timer|arch_timer_compatible=1|interrupt_property=yes
+/mmc@11230000|vmmc_supply_phandle=19|vqmmc_supply_phandle=1a|bus_width=8|max_frequency=17d7840
+/ldo-vemc|name=vemc_3v3|min=2dc6c0|max=325aa0|boot_on=yes
+/ldo-vio18|name=vio18|min=1b7740|max=1b7740|always_on=yes
+
+[probe_source_anchors]
+
+[drivers/soc/mediatek/mtk-pmic-wrap.c]
+1075:	[PWRAP_TIMER_EN] =			0xE4,
+1077:	[PWRAP_WDT_SRC_EN] =			0xF0,
+1078:	[PWRAP_WDT_SRC_EN_1] =			0xF4,
+1091:	[PWRAP_INIT_DONE2] =		0x0,
+1093:	[PWRAP_TIMER_EN] =		0x3E4,
+1094:	[PWRAP_INT_EN] =		0x420,
+1135:	[PWRAP_INIT_DONE2] =		0xa0,
+1139:	[PWRAP_INT_EN] =		0xb4,
+1148:	[PWRAP_TIMER_EN] =		0xe8,
+1151:	[PWRAP_WDT_SRC_EN] =		0xf4,
+1166:	[PWRAP_WDT_SRC_EN_1] =		0xf8,
+1205:	[PWRAP_INIT_DONE2] =		0x9c,
+1209:	[PWRAP_INT_EN] =		0xac,
+1218:	[PWRAP_TIMER_EN] =		0xd0,
+1221:	[PWRAP_WDT_SRC_EN] =		0xdc,
+1277:	[PWRAP_INIT_DONE2] =		0xA0,
+1278:	[PWRAP_INT_EN] =		0xBC,
+1282:	[PWRAP_TIMER_EN] =		0xF0,
+1284:	[PWRAP_WDT_SRC_EN] =		0xFC,
+1285:	[PWRAP_WDT_SRC_EN_1] =		0x100,
+2129:	pwrap_writel(wrp, 1, PWRAP_INIT_DONE2);
+2466:static int pwrap_probe(struct platform_device *pdev)
+2521:	ret = devm_clk_bulk_get_all_enabled(wrp->dev, &clk);
+2536:	if (!pwrap_readl(wrp, PWRAP_INIT_DONE2)) {
+2564:	pwrap_writel(wrp, wrp->master->wdt_src, PWRAP_WDT_SRC_EN);
+2566:		pwrap_writel(wrp, wrp->master->wdt_src, PWRAP_WDT_SRC_EN_1);
+2569:		pwrap_writel(wrp, 0x3, PWRAP_TIMER_EN);
+2571:		pwrap_writel(wrp, 0x1, PWRAP_TIMER_EN);
+2573:	pwrap_writel(wrp, wrp->master->int_en_all, PWRAP_INT_EN);
+2595:	ret = of_platform_populate(np, NULL, NULL, wrp->dev);
+
+[drivers/tty/serial/8250/8250_mtk.c]
+473:static int mtk8250_probe_of(struct platform_device *pdev, struct uart_port *p,
+480:	data->uart_clk = devm_clk_get_enabled(&pdev->dev, "baud");
+486:		data->uart_clk = devm_clk_get_enabled(&pdev->dev, NULL);
+495:	data->bus_clk = devm_clk_get_enabled(&pdev->dev, "bus");
+518:static int mtk8250_probe(struct platform_device *pdev)
+578:	data->line = serial8250_register_8250_port(&uart);
+
+[drivers/watchdog/mtk_wdt.c]
+46:#define WDT_MODE_EN		(1 << 0)
+250:static int mtk_wdt_ping(struct watchdog_device *wdt_dev)
+260:static int mtk_wdt_set_timeout(struct watchdog_device *wdt_dev,
+283:	mtk_wdt_ping(wdt_dev);
+288:static void mtk_wdt_init(struct watchdog_device *wdt_dev)
+295:	if (readl(wdt_base + WDT_MODE) & WDT_MODE_EN) {
+297:		mtk_wdt_set_timeout(wdt_dev, wdt_dev->timeout);
+308:	reg &= ~WDT_MODE_EN;
+322:	ret = mtk_wdt_set_timeout(wdt_dev, wdt_dev->timeout);
+335:	reg |= (WDT_MODE_EN | WDT_MODE_KEY);
+361:	return mtk_wdt_set_timeout(wdd, wdd->timeout);
+392:	.ping		= mtk_wdt_ping,
+393:	.set_timeout	= mtk_wdt_set_timeout,
+398:static int mtk_wdt_probe(struct platform_device *pdev)
+417:		err = devm_request_irq(&pdev->dev, irq, mtk_wdt_isr, 0, "wdt_bark",
+443:	mtk_wdt_init(&mtk_wdt->wdt_dev);
+488:		mtk_wdt_ping(&mtk_wdt->wdt_dev);
+
+[drivers/watchdog/watchdog_dev.c]
+60:static bool handle_boot_enabled =
+96:		(t && !watchdog_active(wdd) && watchdog_hw_running(wdd));
+137:			hrtimer_start(&wd_data->timer, t,
+144:static int __watchdog_ping(struct watchdog_device *wdd)
+155:		hrtimer_start(&wd_data->timer,
+195:	if (!watchdog_hw_running(wdd))
+201:	return __watchdog_ping(wdd);
+214:	return watchdog_hw_running(wdd) && !watchdog_past_open_deadline(wd_data);
+225:		__watchdog_ping(wd_data->wdd);
+260:	if (watchdog_hw_running(wdd) && wdd->ops->ping) {
+261:		err = __watchdog_ping(wdd);
+883:	hw_running = watchdog_hw_running(wdd);
+973:	running = wdd && watchdog_hw_running(wdd);
+1094:	if (watchdog_hw_running(wdd)) {
+1097:		if (handle_boot_enabled)
+1098:			hrtimer_start(&wd_data->timer, 0,
+1209:	if (watchdog_hw_running(wdd) && handle_boot_enabled)
+1210:		return __watchdog_ping(wdd);
+1278:		ret = __watchdog_ping(wd_data->wdd);
+1303:	 * __watchdog_ping will also retrigger hrtimer and therefore restore the
+1308:		ret = __watchdog_ping(wd_data->wdd);
+1314:module_param(handle_boot_enabled, bool, 0444);
+1315:MODULE_PARM_DESC(handle_boot_enabled,
+
+[drivers/mfd/mt6397-core.c]
+332:	.irq_init = mt6397_irq_init,
+340:	.irq_init = mt6397_irq_init,
+356:	.irq_init = mt6397_irq_init,
+364:	.irq_init = mt6397_irq_init,
+388:	.irq_init = mt6397_irq_init,
+391:static int mt6397_probe(struct platform_device *pdev)
+416:	ret = regmap_read(pmic->regmap, pmic_core->cid_addr, &id);
+434:	ret = devm_mfd_add_devices(&pdev->dev, PLATFORM_DEVID_NONE,
+
+[drivers/mfd/mt6397-irq.c]
+144:			regmap_write(chip->regmap, chip->int_con[i],
+151:			regmap_write(chip->regmap, chip->int_con[i],
+219:	/* Mask all interrupt sources */
+221:		regmap_write(chip->regmap, chip->int_con[i], 0x0);
+232:	ret = devm_request_threaded_irq(chip->dev, chip->irq, NULL,
+
+[drivers/regulator/mt6351-regulator.c]
+298:static int mt6351_regulator_probe(struct platform_device *pdev)
+306:	ret = regmap_read(mt6351->regmap, MT6351_SWCID, &swcid);
+323:		rdev = devm_regulator_register(&pdev->dev,
+
+[drivers/mmc/host/mtk-sd.c]
+2167:			ret = mmc_regulator_set_ocr(mmc, mmc->supply.vmmc,
+2177:			ret = regulator_enable(mmc->supply.vqmmc);
+2186:			mmc_regulator_set_ocr(mmc, mmc->supply.vmmc, 0);
+2996:static int msdc_drv_probe(struct platform_device *pdev)
+3029:	ret = mmc_regulator_get_supply(mmc);
+
+[source_hashes]
+arch/arm64/boot/dts/mediatek/mt6797.dtsi=f4f516e439be403ce743898f30ff224dec3ae5393ddfd09d0053157e8146b200
+arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts=1787a5ef7c67036c972961abf968aab0fe8920832817c227f7d4b031cc774947
+drivers/firmware/psci/psci.c=310ec046e86d4eafbe326234c1998611eba9d83af6696589d75e5838a94d6a5c
+drivers/clocksource/arm_arch_timer.c=0613e2f5d21a736e98fb993db17e8db5c8e050b813c59035fb5bd4a696dd7ead
+drivers/clocksource/timer-probe.c=1c855c57d30e26e10e350a4b0ceef803bfc4648a53a22a29bf70d95d4aa05f23
+drivers/of/cpu.c=8a8b41b58cbb64572750e95969b426c1f42e2cc333a40baca83f10ab2c19bca6
+drivers/tty/serial/8250/8250_mtk.c=9ed47647ccf4c2cada2b09d61d088b04cbc80b92f9455673b41fd645e5dfe821
+drivers/watchdog/mtk_wdt.c=6e8230dff7db590f16bdc83918220da48be57c8a594cd3f0917f4c0e0018da9b
+drivers/watchdog/watchdog_dev.c=0b6958a598045e4c64b54632a98efb8bbc87a3783b93ae865ed0ea0a5cfc7932
+drivers/soc/mediatek/mtk-pmic-wrap.c=80173dd03ba85c5f900d27d35a2b6d0bd60bb5cf4bd801295e9953a0e4eaec12
+drivers/mfd/mt6397-core.c=a2c9d6ac7f5c884b7d47c5be69e485d12c2e730f050974223c3b1be9601a07d3
+drivers/mfd/mt6397-irq.c=d3ad66804d1b53df0a6a77fdeec406c863cf536f69eb55a33e7486ee694ab53d
+drivers/regulator/mt6351-regulator.c=5f231c705f8bdf3c357f92fc735ff48df44d7203bda15da106740f18f99d9f06
+drivers/mmc/host/mtk-sd.c=2044a80b01c0fc94091deeb5bf127ccc5d0b613fcb64ade2014d861f2813e876
+
+[decision]
+first_boot_chain=arm64_entry -> gic|psci|arch_timer -> uart0|pinctrl_and_clocks -> pwrap -> mt6351_mfd_and_regulator -> mmc0
+generic_arm64_cpu_psci_timer_support_is_built_in_before_board_consumers
+eMMC_supply_consumers_make_PMIC_part_of_storage_probe
+uart_probe_enables_baud_and_bus_clocks_then_registers_8250_port
+watchdog_probe_reads_MODE_and_if_firmware_enabled_rewrites_LENGTH_and_pings
+WATCHDOG_HANDLE_BOOT_ENABLED_starts_kernel_ping_worker_for_boot_running_watchdog
+pwrap_probe_is_stateful_even_when_INIT_DONE2_is_already_set
+mt6397_irq_init_writes_all_four_MT6351_interrupt_mask_banks
+mt6351_regulator_probe_reads_revision_and_vsel_control_without_selecting_a_rail
+mmc_power_transition_may_enable_vemc_and_vio18_after_host_registration
+first_runtime_test_requires_external_recovery_and_before_after_register_capture
+runtime_mainline_boot=not_attempted
+hardware_write=none

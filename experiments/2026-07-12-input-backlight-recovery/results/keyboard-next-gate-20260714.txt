@@ -1,0 +1,43 @@
+Gemini keyboard next evidence gate
+
+record=keyboard-matrix-runtime-gate
+date=2026-07-14
+selected_gap=mainline-runtime-and-electrical-validation-of-the-AW9523-matrix
+current_live_evidence=passive-only;Integrated_keyboard_EV_KEY;I2C5_0x5b;GPIO87_EINT10;GPIO58_shutdown_reset
+source_contract=8_rows_x_7_columns;100_Hz_rescan;52_assigned_positions;4_KEY_UNKNOWN
+runtime_capability_contract=53_codes;KEY_LEFTMETA_and_KEY_UNKNOWN_present;KEY_FN_absent
+runtime_source_provenance=active_boot_ELF_matches_live_build_string;retained_source_HEAD_2019-04-02;source_checkout_differs
+active_boot_map_contract=(row=4,col=3):KEY_LEFTMETA;unknown_positions=(row=7,col=3..6)
+kernel_decision=reuse_upstream_pinctrl-aw9523_and_gpio-matrix-keypad;do_not_clone_vendor_silicon_driver
+current_candidate=patch_0054_disabled_AW9523_matrix_consumer
+mainline_package=linux-7.1.3-gemini-db59a88057b4
+mainline_package_state=Image_and_DTB_checksum_validated;keyboard_nodes_disabled;modules_not_included
+timing_contract=vendor_1ms_irq_work;vendor_1ms_first_scan;vendor_10ms_rescan;vendor_100_cycle_followup;mainline_optional_delays_omitted
+timing_result=keyboard-timing-contract-20260714.txt
+hardware_write=none
+
+Required owner-assisted test, only after a recoverable mainline boot path exists:
+
+1. Keep touch, display, USB host/VBUS, charger, and other optional consumers
+   disabled; enable only the already-described AW9523 and matrix-keypad nodes.
+2. Capture the input device capabilities and interrupt counters before any
+   key press. Press each assigned key once, then test the modifier pairs,
+   arrows, function layer, and four-key rollover. Record evdev key codes and
+   whether any ghost or stuck key appears. In particular, verify that the
+   physical `(row=4,col=3)` position emits `KEY_LEFTMETA`, as recovered from
+   the exact active boot ELF, and that the four `KEY_UNKNOWN` positions do not
+   create unintended key events.
+3. Repeat with the lid closed/open and across suspend/resume only if recovery
+   remains available. Check that the parent EINT polarity, GPIO58 reset level,
+   debounce, wake behavior, and userspace XKB layer agree with the evidence.
+   Capture monotonic timestamps for the parent IRQ, first event, release, and
+   any repeated events so the vendor 1-ms/10-ms cadence is not confused with
+   Linux `debounce-delay-ms`, `col-scan-delay-us`, or
+   `all-cols-on-delay-us`.
+4. Do not promote the candidate to enabled-by-default until the one-key and
+   modifier results are reproducible on the named device.
+
+This gate is intentionally a plan, not a claim that transitions were
+stimulated. The current capture and keymap validator establish topology and
+source agreement but cannot establish row/column polarity, debounce/settling,
+rollover, LED behavior, timing equivalence, or wake semantics.

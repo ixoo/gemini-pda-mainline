@@ -1,0 +1,16 @@
+validation=series-static-compile-current-74
+generated_utc=2026-07-14T16:05:00Z
+source_revision=7.1.3
+patch_count=74
+audit_script=experiments/2026-07-14-patch-quality-audit/scripts/audit-series-static-check.sh
+audit_script_sha256=0c3b1bd4edbca97844631ed04da1f6c3720013bc3ff3460d00274c539adb9370
+audit_output_sha256=7f486346b1350a5b6ef8507d6f8b4598e4533d5e4a98c7fd76ccc72b34523595
+target_count=23
+diagnostics=0
+result=pass
+initial_run=drivers_pwm_and_usb_typec_returned_transient_failure_before_target_objects_were_fresh
+rerun=all_23_targets_passed_with_W1_and_sparse_enabled_including_drivers_spi
+coverage_change=drivers_spi_added_for_current_74_SPI_patches
+repeatability=byte-identical_second_run
+runtime_mainline_boot=not_attempted
+hardware_write=none

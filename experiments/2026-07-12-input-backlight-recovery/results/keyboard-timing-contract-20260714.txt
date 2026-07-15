@@ -1,0 +1,70 @@
+validation=keyboard-timing-contract
+audit_script=experiments/2026-07-12-input-backlight-recovery/scripts/audit-keyboard-timing.sh
+audit_script_sha256=6765d7dcef8ec4cbfd59d20fd52cb80131180eff9688be8cce3d4f4b76d5e526
+vendor_tree=/home/julien.guest/src/reference/planet-mt6797-3.18
+vendor_commit=c5b0be85017ad0c599725e8273842efdbecdd88a
+vendor_source_sha256=01599f2fc072145138bb87d0486841cd1f75e5ff8b0877e8cbfe2615db36da5f
+vendor_dt_sha256=eaac86c8752ebd8ddf18b831eb3bc52a08f87475a213bb521650bf95dabb3e5e
+linux_tree=/home/julien.guest/src/gemini-pda/linux-7.1.3
+linux_revision=7.1.3
+linux_matrix_source_sha256=a593777db9fb8b3f07054605f5b387461abe7eb52127103aad7b90de3d039b70
+linux_matrix_binding_sha256=8aa5453a692c1783b5066f731a1c10dc03ceda9948370f807da6d937e786f9aa
+linux_aw9523_source_sha256=82957ed806a73fa81fa37a31d53f8cd5897c610d0b3ad865b14f890e04d4a64b
+candidate_dts=/home/julien.guest/src/gemini-pda/linux-7.1.3/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+candidate_dts_sha256=7c883d2444046e13019b14b3f62e54ee84226e8fedef1e79da512a5b8499e145
+rerun=byte-identical
+
+[vendor timing contract]
+vendor_timer_frame_hz=100
+vendor_irq_delayed_work_ms=1
+vendor_first_scan_delay_ms=1
+vendor_steady_rescan_ms=10
+vendor_force_rescan_cycles=100
+vendor_force_rescan_window_ms=1000
+vendor_ghost_suppression_skip_cycles=50
+vendor_ghost_suppression_window_ms=500
+vendor_reset_low_ms=5
+vendor_reset_high_ms=5
+vendor_chip_id_retry_delay_ms=10
+vendor_eint_debounce_property=aw9523_eint_debounce_tuple
+vendor_dt_debounce_property=absent
+vendor_dt_debounce_fallback=source_initializes_tuple_to_0_0_and_ignores_read_error
+
+[Linux 7.1.3 consumer timing contract]
+mainline_scan_model=row_irq_to_delayed_work_then_full_matrix_scan
+mainline_debounce_property=debounce-delay-ms_optional
+mainline_debounce_default_ms=0
+mainline_col_scan_delay_property=col-scan-delay-us_optional
+mainline_col_scan_delay_default_us=0
+mainline_all_cols_on_delay_property=all-cols-on-delay-us_optional
+mainline_all_cols_on_delay_default_us=0
+mainline_periodic_rescan=none
+mainline_candidate_gpio_activelow=present
+mainline_candidate_drive_inactive_cols=present
+mainline_candidate_timing_properties=absent
+mainline_aw9523_hard_reset_pulse_us=50
+mainline_aw9523_reset_recovery_us=20
+mainline_aw9523_nested_irq_default=EDGE_BOTH
+
+[source anchors]
+vendor_timer=drivers/misc/mediatek/aw9523/aw9523_key.c:111
+vendor_irq_to_work=drivers/misc/mediatek/aw9523/aw9523_key.c:573-585
+vendor_rescan=drivers/misc/mediatek/aw9523/aw9523_key.c:482-486,542-544
+vendor_ghost_suppression=drivers/misc/mediatek/aw9523/aw9523_key.c:393-397,490-492
+vendor_reset=drivers/misc/mediatek/aw9523/aw9523_key.c:285-293
+vendor_debounce=drivers/misc/mediatek/aw9523/aw9523_key.c:601-607
+vendor_dt_node=arch/arm64/boot/dts/mt6797.dtsi:4049-4054
+linux_matrix_timing=drivers/input/keyboard/matrix_keypad.c:53-78,102-181,317-318,414-415
+linux_matrix_binding=Documentation/devicetree/bindings/input/gpio-matrix-keypad.yaml:44-68
+linux_aw9523_reset=drivers/pinctrl/pinctrl-aw9523.c:704-744
+linux_aw9523_irq=drivers/pinctrl/pinctrl-aw9523.c:406-414,453-485,802-829
+
+[decision]
+The vendor timing values are policy, not a direct equivalent of matrix-keypad debounce or scan-delay properties.
+The retained vendor DT supplies no debounce property inside the AW9523 EINT pseudo-node; the source nevertheless passes an initialized 0,0 tuple to gpio_set_debounce after ignoring the read error.
+Linux matrix-keypad currently has zero debounce/settling delays and no periodic rescan because the candidate omits all three optional timing properties.
+Do not add debounce-delay-ms, col-scan-delay-us, or all-cols-on-delay-us until an owner-assisted mainline event trace measures bounce, settling, and key-release behavior.
+The Linux AW9523 reset path is materially shorter than the vendor GPIO reset sequence and must be validated with GPIO58 state and chip-ID readback.
+consumer_timing_decision=keep_disabled_pending_runtime_trace
+runtime_key_transition=not_attempted
+hardware_write=none

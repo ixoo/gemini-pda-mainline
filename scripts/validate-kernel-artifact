@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+die() {
+  echo "error: $*" >&2
+  exit 1
+}
+
+usage() {
+  cat <<'EOF'
+Usage: ./scripts/validate-kernel-artifact [ARTIFACT_DIR]
+
+Validate a packaged kernel artifact in the development VM. With no argument,
+the newest package below ~/artifacts/gemini-pda is selected.
+EOF
+}
+
+require_command() {
+  command -v "$1" >/dev/null 2>&1 || die "required command not found: $1"
+}
+
+[[ "$(uname -s)" == Linux ]] || die "run this command inside the development VM"
+[[ "$(uname -m)" == aarch64 ]] || die "expected an aarch64 development VM"
+
+for command in basename find gzip jq sha256sum sort tail wc; do
+  require_command "${command}"
+done
+
+case "${1:-}" in
+  -h|--help)
+    usage
+    exit 0
+    ;;
+  "")
+    artifact_root="${GEMINI_ARTIFACT_ROOT:-${HOME}/artifacts/gemini-pda}"
+    artifact_record="$(find "${artifact_root}" -mindepth 1 -maxdepth 1 \
+      -type d -name 'linux-*-gemini-*' -printf '%T@ %p\n' \
+      | sort -n | tail -n 1)"
+    artifact_dir="${artifact_record#* }"
+    [[ -n "${artifact_dir}" ]] || die "no packaged kernel artifacts found below ${artifact_root}"
+    ;;
+  *)
+    [[ "$#" -eq 1 ]] || die "accepts at most one artifact directory"
+    artifact_dir="$1"
+    ;;
+esac
+
+[[ -d "${artifact_dir}" ]] || die "artifact directory does not exist: ${artifact_dir}"
+[[ -f "${artifact_dir}/SHA256SUMS" ]] || die "missing SHA256SUMS in ${artifact_dir}"
+[[ -f "${artifact_dir}/provenance/build.json" ]] || \
+  die "missing provenance/build.json in ${artifact_dir}"
+
+for file in Image Image.gz kernel.config System.map provenance/build.json \
+  provenance/kernel-manifest.json provenance/series; do
+  [[ -s "${artifact_dir}/${file}" ]] || die "missing or empty artifact file: ${file}"
+done
+
+gzip -t "${artifact_dir}/Image.gz" || die "Image.gz is not a valid gzip stream"
+image_gzip_decompressed_size="$(gzip -cd "${artifact_dir}/Image.gz" | wc -c)"
+(( image_gzip_decompressed_size <= 0x03200000 )) || \
+  die "Image.gz decompresses beyond the MT6797 LK 50 MiB buffer: ${image_gzip_decompressed_size}"
+
+dtb_count="$(find "${artifact_dir}/dtbs/mediatek" -type f -name '*.dtb' | wc -l)"
+[[ "${dtb_count}" -gt 0 ]] || die "no MediaTek DTBs found in ${artifact_dir}/dtbs/mediatek"
+
+(
+  cd "${artifact_dir}"
+  sha256sum --check SHA256SUMS
+)
+
+jq -e '
+  .schema == 1 and
+  (.kernel_release | length > 0) and
+  (.source_sha256 | test("^[0-9a-f]{64}$")) and
+  (.patchset_sha256 | test("^[0-9a-f]{64}$")) and
+  (.config_sha256 | test("^[0-9a-f]{64}$")) and
+  ((.modules_built == null) or (.modules_built | type == "boolean")) and
+  (.compiler | length > 0) and
+  (.linker | length > 0)
+' "${artifact_dir}/provenance/build.json" >/dev/null || \
+  die "invalid provenance/build.json"
+
+printf 'validation=kernel-artifact\n'
+printf 'artifact=%s\n' "$(basename "${artifact_dir}")"
+printf 'kernel_release=%s\n' "$(jq -er '.kernel_release' "${artifact_dir}/provenance/build.json")"
+printf 'generated_utc=%s\n' "$(jq -er '.generated_utc' "${artifact_dir}/provenance/build.json")"
+printf 'source_sha256=%s\n' "$(jq -er '.source_sha256' "${artifact_dir}/provenance/build.json")"
+printf 'patchset_sha256=%s\n' "$(jq -er '.patchset_sha256' "${artifact_dir}/provenance/build.json")"
+printf 'config_sha256=%s\n' "$(jq -er '.config_sha256' "${artifact_dir}/provenance/build.json")"
+printf 'modules_built=%s\n' "$(jq -er '.modules_built // false' "${artifact_dir}/provenance/build.json")"
+printf 'image_gzip_sha256=%s\n' "$(sha256sum "${artifact_dir}/Image.gz" | awk '{print $1}')"
+printf 'image_gzip_decompressed_size=%s\n' "${image_gzip_decompressed_size}"
+printf 'dtb_count=%s\n' "${dtb_count}"
+printf 'sha256sums=passed\n'
+printf 'hardware_write=none\n'

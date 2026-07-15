@@ -1,0 +1,103 @@
+From ba6db9f981a3d82bb6e75079b81905a224bda4ca Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 12 Jul 2026 14:44:39 -0400
+Subject: [PATCH] pmdomain: mediatek: use MT6797 MFG 52 MHz preclock
+
+---
+ arch/arm64/boot/dts/mediatek/mt6797.dtsi |  3 ++-
+ drivers/pmdomain/mediatek/mtk-scpsys.c   | 14 ++++++++------
+ 2 files changed, 10 insertions(+), 7 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+index bfbc8d084..0c9fb3ee2 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797.dtsi
++++ b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+@@ -226,9 +226,10 @@ scpsys: power-controller@10006000 {
+ 		#power-domain-cells = <1>;
+ 		reg = <0 0x10006000 0 0x1000>;
+ 		clocks = <&topckgen CLK_TOP_MUX_MFG>,
++			 <&topckgen CLK_TOP_MUX_MFG_52M>,
+ 			 <&topckgen CLK_TOP_MUX_MM>,
+ 			 <&topckgen CLK_TOP_MUX_VDEC>;
+-		clock-names = "mfg", "mm", "vdec";
++		clock-names = "mfg", "mfg_52m", "mm", "vdec";
+ 		infracfg = <&infrasys>;
+ 	};
+ 
+diff --git a/drivers/pmdomain/mediatek/mtk-scpsys.c b/drivers/pmdomain/mediatek/mtk-scpsys.c
+index adb8ee09e..bf99c4cbe 100644
+--- a/drivers/pmdomain/mediatek/mtk-scpsys.c
++++ b/drivers/pmdomain/mediatek/mtk-scpsys.c
+@@ -82,6 +82,7 @@ enum clk_id {
+ 	CLK_NONE,
+ 	CLK_MM,
+ 	CLK_MFG,
++	CLK_MFG_52M,
+ 	CLK_VENC,
+ 	CLK_VENC_LT,
+ 	CLK_ETHIF,
+@@ -96,6 +97,7 @@ static const char * const clk_names[] = {
+ 	NULL,
+ 	"mm",
+ 	"mfg",
++	"mfg_52m",
+ 	"venc",
+ 	"venc_lt",
+ 	"ethif",
+@@ -816,7 +818,7 @@ static const struct scp_domain_data scp_domain_data_mt6797[] = {
+ 		.ctl_offs = 0x334,
+ 		.sram_pdn_bits = 0,
+ 		.sram_pdn_ack_bits = 0,
+-		.clk_id = {CLK_MFG},
++		.clk_id = {CLK_MFG_52M},
+ 	},
+ 	[MT6797_POWER_DOMAIN_MFG] = {
+ 		.name = "mfg",
+@@ -826,7 +828,7 @@ static const struct scp_domain_data scp_domain_data_mt6797[] = {
+ 		.sram_pdn_ack_offs = SPM_MFG_SRAM_CON_MT6797,
+ 		.sram_pdn_bits = GENMASK(1, 0),
+ 		.sram_pdn_ack_bits = GENMASK(17, 16),
+-		.clk_id = {CLK_NONE},
++		.clk_id = {CLK_MFG_52M},
+ 	},
+ 	[MT6797_POWER_DOMAIN_MFG_CORE0] = {
+ 		.name = "mfg_core0",
+@@ -836,7 +838,7 @@ static const struct scp_domain_data scp_domain_data_mt6797[] = {
+ 		.sram_pdn_ack_offs = SPM_MFG_SRAM_CON_MT6797,
+ 		.sram_pdn_bits = BIT(8),
+ 		.sram_pdn_ack_bits = BIT(20),
+-		.clk_id = {CLK_NONE},
++		.clk_id = {CLK_MFG_52M},
+ 	},
+ 	[MT6797_POWER_DOMAIN_MFG_CORE1] = {
+ 		.name = "mfg_core1",
+@@ -846,7 +848,7 @@ static const struct scp_domain_data scp_domain_data_mt6797[] = {
+ 		.sram_pdn_ack_offs = SPM_MFG_SRAM_CON_MT6797,
+ 		.sram_pdn_bits = BIT(8),
+ 		.sram_pdn_ack_bits = BIT(21),
+-		.clk_id = {CLK_NONE},
++		.clk_id = {CLK_MFG_52M},
+ 	},
+ 	[MT6797_POWER_DOMAIN_MFG_CORE2] = {
+ 		.name = "mfg_core2",
+@@ -856,7 +858,7 @@ static const struct scp_domain_data scp_domain_data_mt6797[] = {
+ 		.sram_pdn_ack_offs = SPM_MFG_SRAM_CON_MT6797,
+ 		.sram_pdn_bits = BIT(8),
+ 		.sram_pdn_ack_bits = BIT(22),
+-		.clk_id = {CLK_NONE},
++		.clk_id = {CLK_MFG_52M},
+ 	},
+ 	[MT6797_POWER_DOMAIN_MFG_CORE3] = {
+ 		.name = "mfg_core3",
+@@ -866,7 +868,7 @@ static const struct scp_domain_data scp_domain_data_mt6797[] = {
+ 		.sram_pdn_ack_offs = SPM_MFG_SRAM_CON_MT6797,
+ 		.sram_pdn_bits = BIT(8),
+ 		.sram_pdn_ack_bits = BIT(23),
+-		.clk_id = {CLK_NONE},
++		.clk_id = {CLK_MFG_52M},
+ 	},
+ 	[MT6797_POWER_DOMAIN_MJC] = {
+ 		.name = "mjc",
+-- 
+2.43.0
+

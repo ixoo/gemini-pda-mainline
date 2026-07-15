@@ -83,6 +83,9 @@ Run the host-side extraction first, then reprovision the VM:
 ./scripts/dev-vm re-shell
 ```
 
+If `artifacts/credentials/gemini_ed25519` exists, the extractor automatically
+uses that Git-ignored key with `IdentitiesOnly=yes` and `IdentityAgent=none`.
+
 The private, Git-ignored payload is exposed read-only at
 `~/reverse-engineering/gemini-vendor`. Analysis notes and generated databases
 should go in a separate guest-owned directory such as
@@ -94,6 +97,8 @@ Provisioned tools include:
   Linux ARM64 components built during provisioning, running on OpenJDK 21;
 - Radare2, GDB multiarch, AArch64/ARM32 binutils, elfutils, Capstone, checksec,
   patchelf, pax-utils, strace, and ltrace;
+- `vmlinux-to-elf` 1.3.6 in the pinned Python environment for reconstructing
+  symbol-bearing ELFs from raw or compressed vendor kernel images;
 - QEMU AArch64/ARM user-mode emulation and an ARMHF cross libc;
 - APKTool, AAPT, Android build tools, and ADB for Android formats;
 - Binwalk, YARA, ssdeep/hashdeep, Sleuth Kit, Foremost, archive/compression
@@ -109,6 +114,16 @@ The version and digest come from the
 and provisioning follows the project's
 [Linux ARM64 native-build guidance](https://github.com/NationalSecurityAgency/ghidra/blob/master/GhidraDocs/GettingStarted.md).
 
+Validation snapshot (2026-07-13): `./scripts/dev-vm doctor` passed on the
+ARM64 Ubuntu 24.04 guest with Ghidra 12.1.2, Radare2 5.5.0, GDB 15.1,
+`vmlinux-to-elf`, DTC, dtschema, and the cross-analysis utilities available.
+From the payload root, `sha256sum -c FILES.sha256` passed for all 696 extracted
+files with zero failures. The guest-visible payload is a read-only mount, so
+its mode-0777 mount presentation cannot be tightened from inside the VM; the
+host target remains mode 0700 and its manifest remains mode 0600. Keep analysis
+databases and temporary decompilation output in guest-owned
+`~/reverse-engineering/work/`, never beside the evidence payload.
+
 ## Build the patched stable kernel
 
 The repository is already wired into the guest's native source, build, and
@@ -118,8 +133,57 @@ artifact directories. Run the complete verified pipeline from macOS:
 ./scripts/dev-vm build-kernel
 ```
 
+To package the optional `CONFIG_*=m` outputs as well, use the same wrapper
+with the documented build override:
+
+```sh
+BUILD_MODULES=1 KERNEL_JOBS=8 ./scripts/dev-vm build-kernel
+```
+
+The wrapper forwards only `BUILD_MODULES` and `KERNEL_JOBS`; generated source,
+build, and module files remain guest-owned.
+
 See the [pinned stable-kernel patch workflow](KERNEL_WORKFLOW.md) for the
 manifest, patch-series, configuration, provenance, and artifact contracts.
+
+Validate the newest guest-owned package, including every file in its checksum
+manifest and the required provenance fields:
+
+```sh
+./scripts/dev-vm validate-kernel
+```
+
+This is still a compile-and-package check, not evidence that the image boots or
+that a driver works on hardware. Built-in symbols are the only drivers
+available to the current first-boot Image; when `BUILD_MODULES=1` is used,
+optional modules are exported under the package's `modules/` tree for a later
+rootfs integration. The latest authoritative package record is
+[the 2026-07-14 77-patch package result](../experiments/2026-07-12-input-backlight-recovery/results/mainline-display-input-current-77-package-20260714.txt);
+the current Image/DTB package intentionally has no module tree. A separate
+74-patch module-bearing package remains available for later rootfs integration
+and is not the first boot candidate.
+
+## Build a non-flashing LK candidate
+
+The retained Planet LK path needs an Android v0 gzip+appended-DTB container,
+not the raw `Image`. Build one from a validated guest package with the
+read-only wrapper:
+
+```sh
+./scripts/dev-vm run bash -lc \
+  'experiments/2026-07-12-boot-contract-recovery/scripts/build-current-lk-candidate.sh \
+     --package "$HOME/artifacts/gemini-pda/linux-7.1.3-gemini-6116c9e7da3f" \
+     --output "$HOME/artifacts/boot-candidates/<new-directory>"'
+```
+
+The wrapper builds a deterministic minimal ARM64 UART initramfs, validates the
+package, serializes the candidate, and records parser evidence and SHA-256
+values. It refuses an existing output directory and exposes no device,
+partition, fastboot, or flashing operation. Its output is guest-owned and
+Git-ignored; transfer to the separate Windows flashing machine remains a
+separate, explicitly reviewed step. Regenerate the candidate after changes to
+`experiments/2026-07-12-boot-contract-recovery/initramfs/init`; the initramfs
+is part of the candidate hash and provenance.
 
 ## Updating provisioning
 

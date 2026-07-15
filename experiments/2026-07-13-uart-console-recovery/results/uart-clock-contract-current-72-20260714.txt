@@ -1,0 +1,21 @@
+validation=uart-clock-contract-current-72
+audit_script=experiments/2026-07-13-uart-console-recovery/scripts/audit-uart-clock-contract.sh
+audit_script_sha256=30846d27eafd0d1c2cb3ed9b8a1b90ff6ea64376758dcf590fc81616afc78623
+linux_revision=7.1.3
+linux_source=drivers/tty/serial/8250/8250_mtk.c
+linux_source_sha256=9ed47647ccf4c2cada2b09d61d088b04cbc80b92f9455673b41fd645e5dfe821
+bsg100_reference_revision=82321ce64752d5bf006fe7c40c331edbd0dfb702
+bsg100_uart_fix_log_sha256=9f61db8b8d16c9ee849fe6d443871e3a7e5431ad3833517d68aa95e6ca9fd041
+bsg100_uart_usb_validation_log_sha256=8e5f583c3fa41d58cc34948d072d93d74d285285321a199520fe54f27124baa0
+bsg100_observation=6.6_late_clk_cleanup_disabled_infra_uart0_until_baud_clock_was_held
+current_baud_clock=devm_clk_get_enabled
+current_unnamed_clock_fallback=devm_clk_get_enabled
+current_bus_clock=devm_clk_get_enabled
+current_clk_ignore_unused=not_required_by_this_driver_fix
+runtime_mainline_boot=not_attempted
+hardware_write=none
+
+[decision]
+The hardware-tested bsg100 UART clock failure was a generic 8250_mtk clock-lifetime bug, not a Gemini-specific need for clk_ignore_unused.
+Linux 7.1.3 already holds both the named baud clock and unnamed fallback through devm_clk_get_enabled(), so no local UART clock workaround should be added.
+The current Gemini board still needs a mainline boot to prove clock rates, console handoff, and late clock cleanup in this image.

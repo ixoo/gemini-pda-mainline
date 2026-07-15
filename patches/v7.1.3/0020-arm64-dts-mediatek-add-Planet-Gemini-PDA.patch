@@ -1,0 +1,235 @@
+From 0000000000000000000000000000000000000020 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 12 Jul 2026 01:23:30 -0400
+Subject: [PATCH] arm64: dts: mediatek: add Planet Gemini PDA
+
+Add an initial board description for the Planet Computers Gemini PDA.
+Preserve the pre-LK firmware reservations and dynamic reserved-memory contract
+observed in the shipping boot image, and provide the UART0 console. The
+retained MT6797 LK appends its runtime mblock reservations after this DT is
+loaded, so those post-LK ranges are deliberately not duplicated here.
+
+Enable only the internal eMMC controller, capped at 25 MHz legacy timing
+for the first mainline bring-up. Describe the known VEMC core and VIO18
+signaling rails and the dedicated MT6797 MSDC0 pins. Higher speed modes and
+the removable card slot remain disabled until they can be tested independently.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ arch/arm64/boot/dts/mediatek/Makefile          |   1 +
+ .../boot/dts/mediatek/mt6797-gemini-pda.dts    | 194 ++++++++++++++++++++
+ 2 files changed, 195 insertions(+)
+ create mode 100644 arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+
+diff --git a/arch/arm64/boot/dts/mediatek/Makefile b/arch/arm64/boot/dts/mediatek/Makefile
+--- a/arch/arm64/boot/dts/mediatek/Makefile
++++ b/arch/arm64/boot/dts/mediatek/Makefile
+@@ -5,6 +5,7 @@ dtb-$(CONFIG_ARCH_MEDIATEK) += mt6779-evb.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt6795-evb.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt6795-sony-xperia-m5.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt6797-evb.dtb
++dtb-$(CONFIG_ARCH_MEDIATEK) += mt6797-gemini-pda.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt6797-x20-dev.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt7622-rfb1.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt7622-bananapi-bpi-r64.dtb
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+new file mode 100644
+--- /dev/null
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -0,0 +1,194 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Copyright (c) 2026 Julien Etienne
++ */
++
++/dts-v1/;
++
++#include "mt6797.dtsi"
++#include <dt-bindings/gpio/gpio.h>
++#include <dt-bindings/input/input.h>
++#include <dt-bindings/interrupt-controller/irq.h>
++
++/ {
++	model = "Planet Computers Gemini PDA";
++	chassis-type = "handset";
++	compatible = "planet,gemini-pda", "mediatek,mt6797";
++
++	aliases {
++		serial0 = &uart0;
++	};
++
++	chosen {
++		stdout-path = "serial0:921600n8";
++	};
++
++	memory@40000000 {
++		device_type = "memory";
++		reg = <0 0x40000000 1 0>;
++	};
++
++	reserved-memory {
++		#address-cells = <2>;
++		#size-cells = <2>;
++		ranges;
++
++		memory@40000000 {
++			reg = <0 0x40000000 0 0x1000>;
++			no-map;
++		};
++
++		memory@44400000 {
++			reg = <0 0x44400000 0 0x10000>;
++			no-map;
++		};
++
++		memory@44410000 {
++			reg = <0 0x44410000 0 0xe0000>;
++			no-map;
++		};
++
++		memory@444f0000 {
++			reg = <0 0x444f0000 0 0x10000>;
++			no-map;
++		};
++
++		memory@44600000 {
++			reg = <0 0x44600000 0 0x10000>;
++			no-map;
++		};
++
++		memory@44610000 {
++			reg = <0 0x44610000 0 0x30000>;
++			no-map;
++		};
++
++		memory@44640000 {
++			reg = <0 0x44640000 0 0x30000>;
++			no-map;
++		};
++
++		memory@44800000 {
++			reg = <0 0x44800000 0 0x100000>;
++			no-map;
++		};
++
++		memory@46000000 {
++			reg = <0 0x46000000 0 0x400000>;
++			no-map;
++		};
++
++		reserve-memory-ccci_md1 {
++			compatible = "mediatek,reserve-memory-ccci_md1";
++			no-map;
++			size = <0 0xa100000>;
++			alignment = <0 0x2000000>;
++			alloc-ranges = <0 0x40000000 0 0x80000000>;
++		};
++
++		reserve-memory-ccci_share {
++			compatible = "mediatek,reserve-memory-ccci_share";
++			no-map;
++			size = <0 0x600000>;
++			alignment = <0 0x4000000>;
++			alloc-ranges = <0 0x40000000 0 0x50000000>;
++		};
++
++		consys-reserve-memory {
++			compatible = "mediatek,consys-reserve-memory";
++			no-map;
++			size = <0 0x200000>;
++			alignment = <0 0x200000>;
++			alloc-ranges = <0 0x40000000 0 0x80000000>;
++		};
++
++		spm-reserve-memory {
++			compatible = "mediatek,spm-reserve-memory";
++			no-map;
++			size = <0 0x16000>;
++			alignment = <0 0x10000>;
++			alloc-ranges = <0 0x40000000 0 0x80000000>;
++		};
++
++		reserve-memory-scp_share {
++			compatible = "mediatek,reserve-memory-scp_share";
++			no-map;
++			size = <0 0x1000000>;
++			alignment = <0 0x1000000>;
++			alloc-ranges = <0 0x40000000 0 0x50000000>;
++		};
++	};
++};
++
++&mt6351regulator {
++	mt6351_vemc_reg: ldo-vemc {
++		regulator-name = "vemc_3v3";
++		regulator-min-microvolt = <3000000>;
++		regulator-max-microvolt = <3300000>;
++		regulator-boot-on;
++	};
++
++	mt6351_vio18_reg: ldo-vio18 {
++		regulator-name = "vio18";
++		regulator-min-microvolt = <1800000>;
++		regulator-max-microvolt = <1800000>;
++		regulator-always-on;
++	};
++};
++
++&pio {
++	mmc0_pins_default: mmc0-default-pins {
++		pins-cmd-dat {
++			pinmux = <MT6797_GPIO114__FUNC_MSDC0_DAT0>,
++				 <MT6797_GPIO115__FUNC_MSDC0_DAT1>,
++				 <MT6797_GPIO116__FUNC_MSDC0_DAT2>,
++				 <MT6797_GPIO117__FUNC_MSDC0_DAT3>,
++				 <MT6797_GPIO118__FUNC_MSDC0_DAT4>,
++				 <MT6797_GPIO119__FUNC_MSDC0_DAT5>,
++				 <MT6797_GPIO120__FUNC_MSDC0_DAT6>,
++				 <MT6797_GPIO121__FUNC_MSDC0_DAT7>,
++				 <MT6797_GPIO122__FUNC_MSDC0_CMD>;
++			input-enable;
++			drive-strength = <4>;
++			bias-pull-up = <MTK_PUPD_SET_R1R0_01>;
++		};
++
++		pins-clk {
++			pinmux = <MT6797_GPIO123__FUNC_MSDC0_CLK>;
++			drive-strength = <4>;
++			bias-pull-down = <MTK_PUPD_SET_R1R0_10>;
++		};
++
++		pins-ds {
++			pinmux = <MT6797_GPIO124__FUNC_MSDC0_DSL>;
++			drive-strength = <4>;
++			bias-pull-down = <MTK_PUPD_SET_R1R0_10>;
++		};
++
++		pins-rst {
++			pinmux = <MT6797_GPIO125__FUNC_MSDC0_RSTB>;
++			drive-strength = <4>;
++			bias-pull-up = <MTK_PUPD_SET_R1R0_10>;
++		};
++	};
++};
++
++&uart0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&uart0_pins_a>;
++	status = "okay";
++};
++
++&mmc0 {
++	pinctrl-names = "default", "state_uhs";
++	pinctrl-0 = <&mmc0_pins_default>;
++	pinctrl-1 = <&mmc0_pins_default>;
++	bus-width = <8>;
++	max-frequency = <25000000>;
++	vmmc-supply = <&mt6351_vemc_reg>;
++	vqmmc-supply = <&mt6351_vio18_reg>;
++	non-removable;
++	no-sd;
++	no-sdio;
++	status = "okay";
++};
+-- 
+2.43.0

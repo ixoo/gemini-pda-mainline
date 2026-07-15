@@ -1,0 +1,95 @@
+Vendor BMI160 probe and address split
+
+Artifact and method
+--------------------
+- Artifact: the same reconstructed symbol-bearing ELF derived from the
+  Git-ignored `vendor-Image.gz-dtb`; SHA-256 of the compressed image is
+  `a480e1459da6cbb5affe9f013163c6723b642869996c9b3974c5f3005e42c24e`.
+- Method: static AArch64 disassembly only. The selected output is reproduced
+  by `scripts/analyze-vendor-kernel.sh` and retained in
+  `kernel-analysis-tool-output.txt`. No kernel image or driver was executed.
+- The recovered ELF base is `0xffffffc000080000`; function addresses below
+  are useful for this exact captured image and are not stable ABI addresses.
+
+Live metadata
+-------------
+- The active platform metadata reports `gsensor/chipinfo=bmi160_acc` and
+  `gyroscope/chipinfo=bmi160_gyro`.
+- Both vendor status records contain the CUST direction `7`; the gyroscope
+  status also reports `i2c addr:0x69,ver:V1.0`.
+- The live DT nevertheless exposes logical clients named `gsensor_bmi160` at
+  `0x68` and `gyro_bmi160` at `0x69`. Names and client addresses are not by
+  themselves proof of two physical parts.
+
+Static probe findings
+---------------------
+- `bmi160_acc_i2c_probe` (`0xffffffc0004d4098`) and
+  `bmi160_gyro_i2c_probe` (`0xffffffc0004da5b0`) both write the literal
+  `0x69` to offset `2` of the incoming `struct i2c_client`. Linux places the
+  client's 7-bit `addr` at that offset. The vendor accelerometer therefore
+  rewrites the logical `0x68` client to `0x69` before calling its common
+  initialization, and the gyro path does the same. This is strong evidence
+  that the two legacy nodes are split software clients for one address, or
+  otherwise rely on a non-standard address workaround; it is not evidence of
+  two physical BMI160 chips.
+- The accelerometer probe calls `bmi160_init` and then
+  `bmi160_acc_init_client`. `bmi160_init` reads register `0x00` through the
+  vendor I2C callback and then reads register `0x6c`; it returns the sum of
+  callback status values and has no visible chip-ID comparison. The init
+  client function reads register `0x00` twice, checks only the second bus
+  operation for an error, then writes the normal BMI160 reset/configuration
+  registers. The static path therefore establishes an ID-register read but
+  not an accelerometer-side rejection of a different part.
+- `bmg_init_client` (`0xffffffc0004d9fe8`) reads register `0x00` twice,
+  checks the second operation, and compares the returned byte against the
+  inclusive range `0xd0` through `0xd3`. Values outside that range take the
+  unknown-chip path. This is direct gyro-side Bosch-family identity evidence,
+  but it still does not prove that the accelerometer and gyro clients are two
+  physical devices.
+- The vendor data paths read accelerometer data from the BMI160 data block and
+  gyro data from registers `0x0c` through `0x11`, then apply the recovered
+  direction-7 sign/map before emitting legacy input events. This is consistent
+  with one BMI160-compatible register map rather than an LSM6DS3 register map.
+
+Diagnostic sysfs boundary
+-------------------------
+- The vendor symbol `bmi160_bmi_value_show` is not a chip-ID accessor. Static
+  disassembly passes register `0x0c` and a length of 12 bytes to the I2C read
+  callback, then formats six signed 16-bit words. It is a raw gyro/accelerometer
+  data view despite its name.
+- `bmi160_show_reg_val` uses the selected register and length from driver state
+  and calls the low-level read callback. `bmi160_read_reg` exposes the same
+  arbitrary-register read helper, while `bmi160_write_reg` and
+  `bmi160_store_reg_val` pass a selected register and caller-provided bytes to
+  the write callback. These interfaces are register diagnostics, not a safe
+  identity API; the collector correctly excludes them.
+- A future direct ID capture must use a source-audited, read-only probe that
+  reads only register `0x00` and leaves configuration untouched. Do not infer
+  identity from `bmi160_bmi_value` or replay the register-selection/write
+  attributes.
+
+Mainline comparison
+-------------------
+- Linux 7.1.3's `drivers/iio/imu/bmi160` accepts Bosch IDs `0xd3` (BMI160)
+  and `0xd1` (BMI120), handles either I2C address (`0x68` when SDO is low or
+  `0x69` when SDO is high), enables `vdd`/`vddio`, and exposes one IIO device
+  containing both accelerometer and gyroscope channels.
+- In the pinned 7.1.3 source, `bmi160_chip_init()` logs a warning when the
+  chip ID is not recognized but continues initialization. A Gemini bring-up
+  should therefore record the actual ID and register behavior before treating
+  a successful probe as proof of compatibility; tightening that upstream
+  behavior can be a separate, reviewable fix if testing shows it is needed.
+- If a future bounded identity test shows LSM6DS3 (or another register map),
+  use its existing upstream ST driver or add a new chip-specific driver. Do
+  not make BMI160 emulate a different part or preserve the vendor misc/input
+  ABI in the physical driver.
+
+Conclusion
+----------
+`bmi160_acc`/`bmi160_gyro` are now `strong software evidence` for a single
+BMI160-compatible IMU path, with a likely 0x69 address workaround. The
+electrical identity remains `not yet directly observed` because the capture
+did not read a live chip-ID register. Mainline should create one standard
+`bosch,bmi160` node only after a safe probe confirms the ID, rails, interrupt,
+and orientation; a different ID or register behavior is an explicit trigger
+to select or write a different driver.

@@ -1,0 +1,53 @@
+STK3X1X versus Linux 7.1.3 STK3310-family reuse audit
+
+Evidence scope:
+- Live device: Gemini/Gemian at I2C1 address 0x48, sysfs name `alsps`,
+  vendor driver name `stk3x1x`.
+- Vendor evidence: pinned STK3X1X header and read-only disassembly of the
+  reconstructed vendor kernel ELF. The ELF was inspected with nm/objdump and
+  was not executed.
+- Mainline comparison: Linux 7.1.3 `drivers/iio/light/stk3310.c` and
+  `Documentation/devicetree/bindings/iio/light/stk33xx.yaml`.
+
+Register/protocol overlap:
+- Vendor and mainline use an 8-bit register address and 8-bit values.
+- Both define state/control registers 0x00-0x05, PS/ALS thresholds 0x06-0x0d,
+  status/flag 0x10, PS data 0x11-0x12, ALS data 0x13-0x14, and product ID at
+  0x3e. The vendor also exposes offset/IR registers 0x15-0x18 and software
+  reset at 0x80; these are outside the current upstream IIO feature set.
+- State bits, PS/ALS gain and integration fields, interrupt fields, and flag
+  meanings match the STK3310-family definitions used by the upstream driver.
+- The overlap is strong protocol evidence for reusing the existing STK3310
+  IIO driver, not evidence that every part named STK3X1X is interchangeable.
+
+Identity boundary:
+- The vendor `read_id` path reads two bytes beginning at 0x3e. Its recovered
+  acceptance test permits product-ID high nibbles 0x10, 0x20, and 0x30, which
+  is broader than the explicit upstream IDs: 0x31, 0x13, 0x1d, 0x15, 0x1e,
+  0x12, and 0x51.
+- The vendor path has special handling for product ID 0x1d or revision 0xc3
+  that writes 0x02 to 0x00, writes 0x25/0x82 to 0x90/0x92, reads 0x91, and
+  restores 0x00. This calibration/OTP sequence is not a read-only identity
+  probe and must not be replayed during inventory.
+- Linux 7.1.3's `stk3310_init()` reads 0x3e but logs and continues for an
+  unknown ID. A successful probe therefore cannot substitute for recording
+  the actual ID/revision, especially if a generic compatible is proposed.
+
+Current decision:
+- Do not add a new STK3X1X driver or a generic `sensortek,stk3x1x` alias yet.
+- Prepare the existing `STK3310` module in the reproducible configuration, but
+  keep the Gemini board node absent/disabled until a safe direct 0x3e read,
+  product/revision match, rail contract, and GPIO88/EINT11 electrical mode
+  are captured.
+- If the live product ID matches an upstream-supported ID and the remaining
+  resources match, use the upstream `sensortek,stk3310`/`stk3311`/`stk3335`
+  binding as appropriate. If it does not, add a chip-specific driver or a
+  narrowly justified extension based on the actual register contract; do not
+  make STK3310 emulate the vendor input/misc ABI.
+
+Safety and limits:
+- The vendor kernel exposes no `/dev/i2c-*` or I2C character-device class, so
+  this capture does not include a live register read. Installing a new kernel
+  or unbinding the active vendor client solely to read 0x3e was not attempted.
+- The vendor probe writes configuration and starts measurements; those writes
+  are intentionally not replayed on the live device.

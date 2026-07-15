@@ -1,0 +1,58 @@
+validation=mt6797-usb11-musb-glue-current-validation
+generated_utc=2026-07-13T20:36:00Z
+source_revision=7.1.3
+patch_series_count=72
+patch=patches/v7.1.3/0069-usb-musb-mediatek-add-MT6797-USB11-data.patch
+disposable_source_commit=9137362f3818aa5f8cef82102f8f19c6fa849908
+generated_patch_sha256=not-regenerated-after-commit-message-wrap
+generated_patch_sha256_pre_wrap=9ae798ddbe2865362a7db9c077eeee6b1b108d11985f4e84657056fff3a027a5
+repository_patch_sha256=45ba5f74255ec19c1c856a6f165731bf3eed743dd4919e9f4f4b510236ad877e
+musb_object_sha256=c4b4c0fe9668c578e3bc724d842ae955e32292857e046a33673bc39adbf2be0a
+focused_musb_object_compile=passed
+full_kernel_config_usb_musb_mediatek=y
+full_kernel_config_musb_pio_only=y
+config_fragment_usb_musb_mediatek=added
+config_fragment_musb_pio_only=added
+dt_patch=patches/v7.1.3/0070-arm64-dts-mediatek-add-disabled-MT6797-USB11-topology.patch
+dt_patch_sha256=3d9dac7e08ea87089512df905f1a5aaec5a83cda130f9ed6251c3539221be4b5
+usb11_dtb_compile=passed
+usb11_dtb_sha256=dbbf94f09b3dd8b001440a0662f7980a673e77bd3108c1c5d9582f3d9a827241
+binding_schema_validation=passed
+mtu3_interrupt_names_min_items=1
+gemini_dtb_full_schema_validation=passed
+dt_binding_check=passed_exit0_existing_line231_quoted_string_lint
+binding_yaml_lint=passed_with_existing_quoted_string_warning
+checkpatch=passed_with_binding_separation_warning
+dt_checkpatch=passed
+pristine_linux_git_apply_check=passed
+full_69_patch_build=stale_before_config_and_dt_patch
+full_70_patch_build=historical_superseded_by_72
+full_72_patch_build=passed
+kernel_artifact=linux-7.1.3-gemini-363bf3942a1b
+kernel_patchset_sha256=363bf3942a1b08144a47a27e11a3c1f6075b0e160bcf78b33843fb7b89f39ba9
+kernel_image_sha256=9681c44bbcc026e5d8c7923a2c23568ac8433d6b7abec40f324c1e2e4dce216
+kernel_config_sha256=7a0f3243391db2ee8b56f031f88569ff604618b7030c78b4466b175a226c8f7e
+kernel_gemini_dtb_sha256=dbbf94f09b3dd8b001440a0662f7980a673e77bd3108c1c5d9582f3d9a827241
+dtb_count=119
+usb11_dt_node=status-disabled
+usb11_tphy_parent=0x11210000+0x1000
+usb11_tphy_u2_child=0x11210800+0x100
+usb11_tphy_fixed_slew=mediatek,eye-src=<4>
+usb11_phy_tphy_variant=generic-v1-with-fixed-slew-property
+runtime_usb11_probe=not-attempted
+runtime_typec_or_vbus=not-attempted
+runtime_ssh_attempt_20260713=success_read_only_capture
+runtime_capture_script=experiments/2026-07-12-usb-typec-recovery/scripts/collect-live-usb-typec.sh
+runtime_vendor_capture_result=experiments/2026-07-12-usb-typec-recovery/results/live-usb-typec-uart-capture-20260713-latest.txt
+runtime_vendor_usb1_root_hub=present_no_attached_device
+runtime_vendor_typec_clients=FUSB301_1,FUSB301_0
+hardware_write=none
+
+The patch keeps Linux MUSB/Inventra core code and supplies MT6797 match data
+for the two legacy clocks, six endpoints, non-multipoint mode, and the vendor
+8-KiB single-buffer FIFO layout. Patch 0070 adds the recovered USB11 MUSB and
+V1 T-PHY resources, but leaves both nodes disabled and uses the existing
+fixed-slew property to suppress the unsafe generic FMREG calibration. This
+does not claim PHY, VBUS, role, DMA, or runtime support. The repository patch
+was normalized through the host worktree, so its checksum is recorded
+separately from the disposable Git-generated patch.

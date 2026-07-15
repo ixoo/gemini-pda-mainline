@@ -1,0 +1,65 @@
+validation=mt6797-cpufreq-eem-source-contract
+generated_utc=2026-07-13T08:02:17Z
+planet_vendor_commit=c5b0be85017ad0c599725e8273842efdbecdd88a
+gemian_vendor_commit=d388d350cb2dda8f23b99be6fa5db9628896e87f
+linux_source_revision=7.1.3
+linux_mtk_cpufreq_sha256=2b251ca6a28525619e8bf2fd13064836df7b07beec8e571ae5a85652f91fb56d
+linux_cpufreq_dt_sha256=a0ee2ef7866e2882116a3f66c605ae5df6161448d7bf33c87020099bde0b2d25
+linux_mtk_svs_sha256=a4c23b8767cf3bf1a0152abb0587ab9377c28965775ece108e96f67c161867fc
+linux_opp_core_sha256=7abb501d648d74e6d6313cdb3346c0ecb6e31b14202e818ae49d6421008e7014
+linux_mtk_svs_binding_sha256=7aad4f5ee81571cebd4ee782ad711f9d18d19dc42466808817829ce2f2634816
+linux_mt6797_clk_sha256=aea5041078556536d0bac36fb76e5b3fcd2746fbae78c4a730c70fae0ab76b4a
+linux_mt6797_clk_binding_sha256=20341c99924a7e9e71370eef12817f9d4fafee601692ce26c069eddc4ca40b60
+planet_mt_cpufreq_blob=14ede3e45894efae9287120fd17314ebd204e453
+gemian_mt_cpufreq_blob=2a3c757a85f6fb10679a9e929523fd9745f995a0
+planet_mt_cpufreq_hybrid_blob=a61b6defcec1abae5ef282c9fa4aad64e7542438
+gemian_mt_cpufreq_hybrid_blob=673b116a2a27f81f946feb79d352111eb31eb5dc
+planet_mt_eem_blob=267f9eea4516d527c36df35bea965867b2e67430
+planet_mt_eem2_blob=277df83b996f32bb64fe3a81eba1f3a5f7c857c6
+gemian_mt_eem2_blob=missing
+planet_mt_eem2_header_blob=e45d09db3e6ee6e0e37ba7f3a9dff058a1b3b4a4
+gemian_mt_eem2_header_blob=missing
+planet_mt_ptp_header_blob=ae82e167d54df3c7936344428e4e7c93f8755c50
+gemian_mt_ptp_header_blob=6ec161e0476b39e6e4ace0960fd98ae34143ad56
+planet_mt_defptp_header_blob=080ebd51cfab02aba6d37fe2e99e9af5752f84a9
+gemian_mt_defptp_header_blob=36fbc2f324dc35fc74140a99d5607aa7d4f68a64
+planet_mt6797_pll_blob=b0116c070491efaa1328f9d75436a5681a202315
+gemian_mt6797_pll_blob=b0116c070491efaa1328f9d75436a5681a202315
+vendor_clusters=LL:L:B:CCI
+vendor_pll_windows=LL:0x200/0x204/0x208,L:0x210/0x214/0x218,CCI:0x220/0x224/0x228,backup:0x230/0x234/0x238;B=special-BigiDVFS
+vendor_divider_registers=muxsel:0x270,ckdiv:0x274
+vendor_pll_access=mt6797_0x1001AXXX_reg_read/write/set
+vendor_efuse_selection=function:index22[3:0],date:index61[7:4]
+vendor_table_variants=date:1221|0119;levels:0|1|2|3;tt_override=B:level1
+vendor_voltage_contract=DA9214-vproc+SRAM;vsram-vproc:10000..30000;vsram:100000..120000
+vendor_hybrid_contract=CSPM:0x11015000;CSRAM:0x0012a000;embedded-PCM
+vendor_eem_detectors=BIG:bank0,L:bank3,2L:bank4,CCI:bank5;GPU/SOC=separate
+vendor_eem_register_window=0x1100b000+0x1000;shared-with=thermal-controller
+vendor_eem_phases=INIT01:DC+AGE;INIT02:VOP30+VOP74+interpolate16;MON=thermal-adjusted-voltage
+vendor_eem_units=eem:base70000_step625;cpu-pmic:base30000_step1000;sram:base90000_step2500;10uV
+vendor_eem_adjustment=temperature<=33000-or-invalid:+6250;clamp=VMIN..VMAX;cap=recordTbl;callback=mt_cpufreq_update_volt
+linux_mtk_cpufreq_mt6797_match=no
+linux_cpufreq_dt_mt6797_match=no
+linux_mtk_cpufreq_reusable=OPP+proc/sram-regulators+intermediate-clock+clock-reparent
+linux_mtk_cpufreq_missing=MT6797-PLL-mux+efuse/date/calibration+CCI/DA9214-board-contract
+linux_mtk_svs_mt6797_match=no
+linux_mtk_svs_reusable=phase-machine+NVMEM-calibration+thermal-offset+dev_pm_opp_adjust_voltage+default-voltage-rollback
+linux_mtk_svs_missing=MT6797-EEM-registers+efuse-layout+DA9214/CCI/PLL-contract
+linux_mt6797_clock_provider=peripheral-plls-present;armpll=missing;cpu-mux=missing;cci-clock=missing
+linux_mt6797_dts_cpu_contract=static-clock-frequency-only;cpu-clocks=missing;regulators=missing;opp=missing;cci=missing
+cpufreq_dt_gap_result=results/mainline-cpufreq-dt-gap.md
+runtime_eem_capture=private-only;raw-calibration-tables-not-published
+runtime_eem_detectors=BIG/L/2L/CCI-enabled;banks:0/3/4/5;offsets:zero-at-capture
+runtime_cpufreq_transition=not_attempted
+hardware_write=none
+shellcheck=passed
+bash_n=passed
+
+The Planet tree contains the complete MT6797 CPU-DVFS source inventory,
+including the EEM2 calibration path that is absent from the older Gemian tree.
+Linux 7.1.3's generic OPP/regulator and clock-reparenting transition helpers,
+plus the newer SVS phase/error and mutable-OPP pattern, are reusable, but its
+MediaTek match tables do not include MT6797. A future MT6797 variant or new
+EEM/cpufreq provider is justified only after the shared EEM/thermal window,
+clock, PMIC, efuse/calibration, CCI, and rollback contracts are proven. The
+live table is not promoted to a board-default OPP set.

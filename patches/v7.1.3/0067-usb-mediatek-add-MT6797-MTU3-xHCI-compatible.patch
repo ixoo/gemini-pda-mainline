@@ -1,0 +1,83 @@
+From 6a55e2bcf5f9acb1d8fd1b3fca0189055a9d9d85 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Maintainers <gemini-mainline@example.invalid>
+Date: Mon, 13 Jul 2026 10:17:00 -0400
+Subject: [PATCH 67/68] usb: mediatek: add MT6797 MTU3/xHCI compatible
+
+The MT6797 USB3 controller uses the MTU3/xHCI register protocol. The vendor
+tree exposes three shared windows; the board description in a later patch
+splits them into the MTU3 MAC, IPPC, and xHCI MAC resources expected by the
+mainline drivers.
+
+No MT6797-specific controller operation is added here. Role, VBUS, PHY, and
+redriver ownership remain explicit board integration work.
+
+Signed-off-by: Gemini Mainline Maintainers <gemini-mainline@example.invalid>
+---
+ Documentation/devicetree/bindings/usb/mediatek,mtu3.yaml    | 1 +
+ Documentation/devicetree/bindings/usb/mediatek,mtk-xhci.yaml | 1 +
+ drivers/usb/host/xhci-mtk.c                                 | 1 +
+ drivers/usb/mtu3/mtu3_plat.c                                | 1 +
+ 4 files changed, 5 insertions(+)
+
+diff --git a/Documentation/devicetree/bindings/usb/mediatek,mtu3.yaml b/Documentation/devicetree/bindings/usb/mediatek,mtu3.yaml
+--- a/Documentation/devicetree/bindings/usb/mediatek,mtu3.yaml
++++ b/Documentation/devicetree/bindings/usb/mediatek,mtu3.yaml
+@@ -22,9 +22,10 @@ properties:
+           - mediatek,mt2712-mtu3
+           - mediatek,mt8173-mtu3
+           - mediatek,mt8183-mtu3
+           - mediatek,mt8186-mtu3
+           - mediatek,mt8188-mtu3
+           - mediatek,mt8192-mtu3
+           - mediatek,mt8195-mtu3
+           - mediatek,mt8365-mtu3
++          - mediatek,mt6797-mtu3
+       - const: mediatek,mtu3
+@@ -54,4 +54,5 @@ properties:
+   interrupt-names:
++    minItems: 1
+     items:
+       - const: device
+       - const: wakeup
+diff --git a/Documentation/devicetree/bindings/usb/mediatek,mtk-xhci.yaml b/Documentation/devicetree/bindings/usb/mediatek,mtk-xhci.yaml
+--- a/Documentation/devicetree/bindings/usb/mediatek,mtk-xhci.yaml
++++ b/Documentation/devicetree/bindings/usb/mediatek,mtk-xhci.yaml
+@@ -28,14 +28,15 @@ properties:
+           - mediatek,mt7622-xhci
+           - mediatek,mt7623-xhci
+           - mediatek,mt7629-xhci
+           - mediatek,mt7986-xhci
+           - mediatek,mt7988-xhci
+           - mediatek,mt8173-xhci
+           - mediatek,mt8183-xhci
+           - mediatek,mt8186-xhci
+           - mediatek,mt8188-xhci
+           - mediatek,mt8189-xhci
+           - mediatek,mt8192-xhci
+           - mediatek,mt8195-xhci
+           - mediatek,mt8365-xhci
++          - mediatek,mt6797-xhci
+       - const: mediatek,mtk-xhci
+diff --git a/drivers/usb/host/xhci-mtk.c b/drivers/usb/host/xhci-mtk.c
+--- a/drivers/usb/host/xhci-mtk.c
++++ b/drivers/usb/host/xhci-mtk.c
+@@ -845,6 +845,7 @@ static const struct of_device_id mtk_xhci_of_match[] = {
+ static const struct of_device_id mtk_xhci_of_match[] = {
+ 	{ .compatible = "mediatek,mt8173-xhci"},
+ 	{ .compatible = "mediatek,mt8195-xhci"},
++	{ .compatible = "mediatek,mt6797-xhci"},
+ 	{ .compatible = "mediatek,mtk-xhci"},
+ 	{ },
+ };
+diff --git a/drivers/usb/mtu3/mtu3_plat.c b/drivers/usb/mtu3/mtu3_plat.c
+--- a/drivers/usb/mtu3/mtu3_plat.c
++++ b/drivers/usb/mtu3/mtu3_plat.c
+@@ -613,5 +613,6 @@ static const struct of_device_id mtu3_of_match[] = {
+ static const struct of_device_id mtu3_of_match[] = {
+ 	{.compatible = "mediatek,mt8173-mtu3",},
++	{.compatible = "mediatek,mt6797-mtu3",},
+ 	{.compatible = "mediatek,mtu3",},
+ 	{},
+ };
+-- 
+2.45.2

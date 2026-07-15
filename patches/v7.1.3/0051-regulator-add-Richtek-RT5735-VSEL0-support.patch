@@ -1,0 +1,264 @@
+From be2ec10270f10827932add26deee7ae19eb22c88 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 12 Jul 2026 15:19:29 -0400
+Subject: [PATCH] regulator: add Richtek RT5735 VSEL0 support
+
+---
+ .../bindings/regulator/richtek,rt5735.yaml    |  44 ++++++
+ .../boot/dts/mediatek/mt6797-gemini-pda.dts   |  21 ++-
+ drivers/regulator/Kconfig                     |   8 ++
+ drivers/regulator/Makefile                    |   1 +
+ drivers/regulator/rt5735-regulator.c          | 127 ++++++++++++++++++
+ 5 files changed, 200 insertions(+), 1 deletion(-)
+ create mode 100644 Documentation/devicetree/bindings/regulator/richtek,rt5735.yaml
+ create mode 100644 drivers/regulator/rt5735-regulator.c
+
+diff --git a/Documentation/devicetree/bindings/regulator/richtek,rt5735.yaml b/Documentation/devicetree/bindings/regulator/richtek,rt5735.yaml
+new file mode 100644
+index 000000000..900324020
+--- /dev/null
++++ b/Documentation/devicetree/bindings/regulator/richtek,rt5735.yaml
+@@ -0,0 +1,44 @@
++# SPDX-License-Identifier: GPL-2.0-only OR BSD-2-Clause
++%YAML 1.2
++---
++$id: http://devicetree.org/schemas/regulator/richtek,rt5735.yaml#
++$schema: http://devicetree.org/meta-schemas/core.yaml#
++
++title: Richtek RT5735 Step-Down Buck Converter
++
++description: |
++  The RT5735 is an I2C-controlled buck converter. This binding describes the
++  VSEL0 output used by the MT6797 Gemini GPU. The VSEL0 voltage selector has
++  128 linear steps from 600 mV to 1.39375 V in 6.25 mV increments.
++
++allOf:
++  - $ref: regulator.yaml#
++
++properties:
++  compatible:
++    const: richtek,rt5735
++
++  reg:
++    maxItems: 1
++
++required:
++  - compatible
++  - reg
++
++unevaluatedProperties: false
++
++examples:
++  - |
++    i2c {
++      #address-cells = <1>;
++      #size-cells = <0>;
++
++      regulator@1c {
++        compatible = "richtek,rt5735";
++        reg = <0x1c>;
++        regulator-name = "vgpu";
++        regulator-min-microvolt = <600000>;
++        regulator-max-microvolt = <1393750>;
++        regulator-boot-on;
++      };
++    };
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+index 2fa2acd0d..29865cc8e 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -123,4 +123,4 @@
+-&mt6351regulator {
++&pmic {
+ 	mt6351_vemc_reg: ldo-vemc {
+ 		regulator-name = "vemc_3v3";
+ 		regulator-min-microvolt = <3000000>;
+@@ -200,3 +200,22 @@ &mmc0 {
+ 	no-sdio;
+ 	status = "okay";
+ };
++
++&i2c7 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&i2c7_pins_a>;
++
++	/*
++	 * Live Gemian identifies the external GPU buck as RT5735 at 0x1c.
++	 * Keep the provider disabled until the board rail and OPP sequence
++	 * have a recovery-tested runtime bring-up plan.
++	 */
++	rt5735_vgpu: regulator@1c {
++		compatible = "richtek,rt5735";
++		reg = <0x1c>;
++		regulator-name = "vgpu";
++		regulator-min-microvolt = <600000>;
++		regulator-max-microvolt = <1393750>;
++		status = "disabled";
++	};
++};
+diff --git a/drivers/regulator/Kconfig b/drivers/regulator/Kconfig
+index 6f1c4aa0d..56cadcdba 100644
+--- a/drivers/regulator/Kconfig
++++ b/drivers/regulator/Kconfig
+@@ -1371,6 +1371,14 @@ config REGULATOR_RT5739
+ 	  This driver can also be built as a module. If so, the module
+ 	  will be called rt5739.
+ 
++config REGULATOR_RT5735
++	tristate "Richtek RT5735 regulator"
++	depends on I2C
++	select REGMAP_I2C
++	help
++	  This driver supports the VSEL0 output of the Richtek RT5735
++	  regulator used by the MT6797 Gemini GPU.
++
+ config REGULATOR_RT5759
+ 	tristate "Richtek RT5759 Regulator"
+ 	depends on I2C
+diff --git a/drivers/regulator/Makefile b/drivers/regulator/Makefile
+index fcdef9d5f..bc880b569 100644
+--- a/drivers/regulator/Makefile
++++ b/drivers/regulator/Makefile
+@@ -159,6 +159,7 @@ obj-$(CONFIG_REGULATOR_RT5120)	+= rt5120-regulator.o
+ obj-$(CONFIG_REGULATOR_RT5133)	+= rt5133-regulator.o
+ obj-$(CONFIG_REGULATOR_RT5190A) += rt5190a-regulator.o
+ obj-$(CONFIG_REGULATOR_RT5739)	+= rt5739.o
++obj-$(CONFIG_REGULATOR_RT5735)	+= rt5735-regulator.o
+ obj-$(CONFIG_REGULATOR_RT5759)	+= rt5759-regulator.o
+ obj-$(CONFIG_REGULATOR_RT6160)	+= rt6160-regulator.o
+ obj-$(CONFIG_REGULATOR_RT6190)	+= rt6190-regulator.o
+diff --git a/drivers/regulator/rt5735-regulator.c b/drivers/regulator/rt5735-regulator.c
+new file mode 100644
+index 000000000..43e94b232
+--- /dev/null
++++ b/drivers/regulator/rt5735-regulator.c
+@@ -0,0 +1,127 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Richtek RT5735 regulator driver
++ *
++ * The RT5735 contract in this driver is limited to the VSEL0 output used by
++ * the MT6797 Gemini GPU. Protection and external-buck GPIO workarounds from
++ * downstream kernels are intentionally left to board firmware and userspace.
++ */
++
++#include <linux/bits.h>
++#include <linux/i2c.h>
++#include <linux/kernel.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/regmap.h>
++#include <linux/regulator/driver.h>
++#include <linux/regulator/of_regulator.h>
++
++#define RT5735_REG_PRODUCT_ID		0x03
++#define RT5735_REG_VSEL0		0x11
++#define RT5735_REG_PGOOD		0x12
++
++#define RT5735_PRODUCT_ID		0x10
++#define RT5735_VSEL_MASK		GENMASK(6, 0)
++#define RT5735_ENABLE_MASK		BIT(7)
++#define RT5735_ACTIVE_DISCHARGE_MASK	BIT(4)
++
++#define RT5735_MIN_UV			600000
++#define RT5735_STEP_UV			6250
++#define RT5735_N_VOLTAGES		128
++
++static const struct regulator_ops rt5735_regulator_ops = {
++	.list_voltage = regulator_list_voltage_linear,
++	.get_voltage_sel = regulator_get_voltage_sel_regmap,
++	.set_voltage_sel = regulator_set_voltage_sel_regmap,
++	.enable = regulator_enable_regmap,
++	.disable = regulator_disable_regmap,
++	.is_enabled = regulator_is_enabled_regmap,
++	.set_active_discharge = regulator_set_active_discharge_regmap,
++};
++
++static const struct regulator_desc rt5735_regulator_desc = {
++	.name = "rt5735-vsel0",
++	.type = REGULATOR_VOLTAGE,
++	.owner = THIS_MODULE,
++	.ops = &rt5735_regulator_ops,
++	.min_uV = RT5735_MIN_UV,
++	.uV_step = RT5735_STEP_UV,
++	.n_voltages = RT5735_N_VOLTAGES,
++	.vsel_reg = RT5735_REG_VSEL0,
++	.vsel_mask = RT5735_VSEL_MASK,
++	.enable_reg = RT5735_REG_VSEL0,
++	.enable_mask = RT5735_ENABLE_MASK,
++	.active_discharge_reg = RT5735_REG_PGOOD,
++	.active_discharge_mask = RT5735_ACTIVE_DISCHARGE_MASK,
++	.active_discharge_on = RT5735_ACTIVE_DISCHARGE_MASK,
++};
++
++static const struct regmap_config rt5735_regmap_config = {
++	.reg_bits = 8,
++	.val_bits = 8,
++	.max_register = 0x16,
++};
++
++static int rt5735_probe(struct i2c_client *client)
++{
++	struct regulator_config config = { };
++	struct regulator_dev *rdev;
++	struct regmap *regmap;
++	unsigned int product_id;
++	int ret;
++
++	regmap = devm_regmap_init_i2c(client, &rt5735_regmap_config);
++	if (IS_ERR(regmap))
++		return dev_err_probe(&client->dev, PTR_ERR(regmap),
++				     "failed to initialize regmap\n");
++
++	ret = regmap_read(regmap, RT5735_REG_PRODUCT_ID, &product_id);
++	if (ret)
++		return dev_err_probe(&client->dev, ret,
++				     "failed to read product ID\n");
++
++	if (product_id != RT5735_PRODUCT_ID)
++		return dev_err_probe(&client->dev, -ENODEV,
++				     "unexpected product ID 0x%02x\n", product_id);
++
++	config.dev = &client->dev;
++	config.of_node = dev_of_node(&client->dev);
++	config.regmap = regmap;
++	config.init_data = of_get_regulator_init_data(&client->dev,
++							config.of_node,
++							&rt5735_regulator_desc);
++
++	rdev = devm_regulator_register(&client->dev, &rt5735_regulator_desc,
++					       &config);
++	if (IS_ERR(rdev))
++		return dev_err_probe(&client->dev, PTR_ERR(rdev),
++				     "failed to register regulator\n");
++
++	return 0;
++}
++
++static const struct of_device_id rt5735_of_match[] = {
++	{ .compatible = "richtek,rt5735" },
++	{ }
++};
++MODULE_DEVICE_TABLE(of, rt5735_of_match);
++
++static const struct i2c_device_id rt5735_i2c_ids[] = {
++	{ "rt5735", 0 },
++	{ }
++};
++MODULE_DEVICE_TABLE(i2c, rt5735_i2c_ids);
++
++static struct i2c_driver rt5735_driver = {
++	.driver = {
++		.name = "rt5735-regulator",
++		.of_match_table = rt5735_of_match,
++	},
++	.probe = rt5735_probe,
++	.id_table = rt5735_i2c_ids,
++};
++module_i2c_driver(rt5735_driver);
++
++MODULE_AUTHOR("Gemini PDA mainline contributors");
++MODULE_DESCRIPTION("Richtek RT5735 VSEL0 regulator driver");
++MODULE_LICENSE("GPL");
+-- 
+2.43.0

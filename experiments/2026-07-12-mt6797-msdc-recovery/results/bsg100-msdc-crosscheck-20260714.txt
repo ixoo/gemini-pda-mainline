@@ -1,0 +1,23 @@
+validation=bsg100-msdc-crosscheck
+reference_revision=82321ce64752d5bf006fe7c40c331edbd0dfb702
+reference_success_log_sha256=30d416d80312d298e516e4e462e7b088d5b2cc7b602021ec1a2aa75c6780a223
+reference_irq_polarity_log_sha256=884373121e4f1fff041eea0e54795a31d17ad6ca961fc2d587f0a51d03eff388
+reference_kernel=6.6
+reference_runtime=hardware_boot_confirmed
+reference_compat=mediatek,mt2701-mmc
+reference_irq=MSDC0_SPI79_level_low
+reference_eMMC=DF4064_high_speed_partitions_p1_to_p33
+current_kernel=7.1.3
+current_compat=mediatek,mt6797-mmc
+current_register_profile=MT2701_generation_equivalent;recheck_sdio_irq_false
+current_irq=MSDC0_SPI79_level_low
+current_eMMC_boundary=8bit_nonremovable_25MHz_vmmc_vqmmc
+current_pad_boundary=pinmux_only;firmware_pad_state_retained
+current_runtime_mainline_boot=not_attempted
+
+[decision]
+The independently tracked bsg100 hardware boot validates the level-low MSDC0 IRQ, explicit rail contract, and pinmux-only boundary on this hardware family.
+Its mt2701 compatible is evidence about register generation, not a requirement to discard the more specific MT6797 compatible in the 7.1.3 tree.
+The local MT6797 record deliberately preserves the same register profile while keeping the SoC identity and disabling SDIO-only recheck behavior.
+The cross-check strengthens the first-boot design but does not prove that the current 7.1.3 package has booted.
+hardware_write=none

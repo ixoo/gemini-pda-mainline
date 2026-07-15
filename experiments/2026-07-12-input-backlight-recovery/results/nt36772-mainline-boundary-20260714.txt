@@ -1,0 +1,31 @@
+Experiment: 2026-07-12-input-backlight-recovery
+Record: NT36772 mainline boundary (static compile and binding checks)
+Date: 2026-07-14
+
+Inputs:
+- Linux 7.1.3, arm64 dev VM
+- repository patch series SHA-256: db59a88057b4c0505cf6dfd80e990f38b74eb0e2a855799d926cf1d20e681306
+- NT36772 patch SHA-256: 13b28952b04e2be6c781f4595f92b2ff14fb6c8af3492668e195aa9aad6d5b56
+- prepared source content state: 157b0f180de1fc7a0870c70c400a7e904667a824fb39314610e2e0479d5b08ca
+- CONFIG_TOUCHSCREEN_NOVATEK_NVT_TS is not set
+- CONFIG_TOUCHSCREEN_NOVATEK_NT36XXX=m
+
+Checks:
+- `make O=... ARCH=arm64 drivers/input/touchscreen/novatek-nt36xxx.o`: pass
+- `KBUILD_MODPOST_WARN=1 make O=... ARCH=arm64 drivers/input/touchscreen/novatek-nt36xxx.ko`: link pass
+- module SHA-256: 869e62229e22bc56534ca1b9132db7b622dbf6f744e9c0025843aea1a1823e2c
+- object SHA-256: fffe5f0dad02fe9eaa7223368865bac7024a367577f562f9bf7324343137fda8
+- focused `dt_binding_check` for `novatek,nt36xxx.yaml`: pass, including example DTB
+- `checkpatch.pl --no-tree --strict`: 0 errors, 0 warnings, 7 alignment checks
+
+The module link used `KBUILD_MODPOST_WARN=1` because the focused module check
+was run without the complete kernel `Module.symvers`; the resulting unresolved
+symbol warnings are an artifact of that focused symbol table, not a source
+compile failure. The driver object itself compiled cleanly. A complete
+Image/DTB package was subsequently built and checksum-validated with the same
+76-patch series; see
+[`mainline-display-input-current-76-package-20260714.txt`](mainline-display-input-current-76-package-20260714.txt).
+That package intentionally omits `modules/` (`modules_built=false`), while
+this record covers the focused NT36772 object/module checks. Hardware runtime
+probe and firmware update support remain unvalidated and intentionally
+excluded; the DT node is still absent/disabled.

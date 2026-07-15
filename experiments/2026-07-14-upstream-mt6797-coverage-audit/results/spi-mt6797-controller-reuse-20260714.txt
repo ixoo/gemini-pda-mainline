@@ -1,0 +1,48 @@
+validation=spi-mt6797-controller-reuse
+generated_utc=2026-07-14T14:04:00Z
+method=read-only source comparison plus bounded live sysfs inventory
+hardware_writes=none
+runtime_kernel=Linux 3.18.41+ on the authorized Gemini at 192.168.1.50
+
+[inputs]
+linux_source=/home/julien.guest/src/gemini-pda/linux-7.1.3
+linux_spi_driver_sha256=3bf08891169e0429a0cfba432f1bd6c239082c3294cd8dd0cc7e06f445c74c13
+linux_spi_binding_sha256=26b06e61380d4318de94f9298b670593e4784de5dba8a9e87756b1571c5c1e77
+linux_mt6797_clock_driver_sha256=aea5041078556536d0bac36fb76e5b3fcd2746fbae78c4a730c70fae0ab76b4a
+linux_mt6797_clock_binding_sha256=20341c99924a7e9e71370eef12817f9d4fafee601692ce26c069eddc4ca40b60
+historical_tree=/home/julien.guest/src/reference/planet-mt6797-3.18
+historical_commit=c5b0be85017ad0c599725e8273842efdbecdd88a
+historical_spi_driver_sha256=ae1e6bd86603a75853b31b30f7e560e4c1c7b63a8b7a2fb3948ebfe5d28a78cf
+historical_spi_header_sha256=2fa5bf71468b588786d0e804ee8e1f7444bb51bf0736c3822d17afb095e68e6a
+historical_spi_hal_header_sha256=f30efa1da51e23e7600a931046a25b314a4bb2f0572068344a5888dc8a4ef02f
+historical_spi_dtsi_sha256=eaac86c8752ebd8ddf18b831eb3bc52a08f87475a213bb521650bf95dabb3e5e
+
+[source_observations]
+vendor_driver=The historical driver matches mediatek,mt6797-spi and exposes six masters. It uses the legacy 0x00..0x28 register block, 32-byte FIFO, 0x400-byte packet size, pad-macro selection, finish/pause IRQs, and DMA/FIFO transfer modes. It also carries vendor-only mt_chip_conf/controller_data, wake-lock, clock-manager, address-remapping, and test interfaces.
+register_layout=The vendor HAL puts CS hold/setup in 16-bit halves of SPI_CFG0, SCK high/low in 16-bit halves of SPI_CFG2, and tick delay in SPI_CFG1 bits 29..31. Linux 7.1.3's mt6765_compat selects need_pad_sel=true, must_tx=true, enhance_timing=true, and dma_ext=true, which programs the same timing/register layout and supports 36-bit DMA addresses.
+common_profile_boundary=Linux's default/common SPI profile is not equivalent: it programs SCK timing as 8-bit halves of SPI_CFG0 and lacks the MT6797 pad/timing profile. Do not alias MT6797 to mt6589/mt2701 common data without proving the register layout.
+upstream_match=spi-mt65xx.c has no mediatek,mt6797-spi entry. Its binding has no bare MT6797 compatible, but its mt6765-compatible group already models the recovered enhanced-timing/pad-select family.
+clock_tree=The current MT6797 CCF already exposes CLK_TOP_MUX_SPI (spi_sel), SYSPLL3_D2 as a SPI parent, and CLK_INFRA_SPI plus CLK_INFRA_SPI1..SPI5 gates. The vendor DT exposed only one spi-main gate; a mainline node must provide parent-clk, sel-clk, and spi-clk as expected by spi-mt65xx.
+pad_contract=The vendor SPI1 board wiring uses pad macro 1 and GPIO237 CS_B, GPIO234 CLK_B, GPIO235 MI_B, and GPIO236 MO_B. Current mt6797-pinfunc.h contains those exact symbols. The mainline property is mediatek,pad-select, not spi-padmacro.
+
+[live_observation]
+master_count=6
+masters=spi0,spi1,spi2,spi3,spi4,spi5 are present under the vendor kernel
+children=spi0.1 spi:spi-ut0 bound to test_spi; spi1.1 spi:spi-ut1 bound to test_spi; spi2.1 spi:spi-ut2 bound to test_spi; spi3.1 spi:spi-ut3 bound to test_spi; spi4.1 spi:spi-ut4 bound to test_spi; spi5.1 spi:spi-ut5 bound to test_spi
+unbound_candidate=spi1.0 modalias=spi:fpc1020 is unbound. The vendor board DTS names it fpc1145@0 with compatible fpc,fpc1020, spi-max-frequency 16000000, and reset GPIO256; this is a candidate only, not proof that a fingerprint sensor is fitted.
+runtime_limit=The probe read sysfs only; it did not access SPI registers, issue transfers, toggle GPIOs, or load the test/fingerprint drivers.
+
+[live_device_tree_probe]
+probe_script=experiments/2026-07-14-upstream-mt6797-coverage-audit/scripts/probe-live-spi-dt.sh
+probe_script_sha256=760507e266ec1a494b945328b5d0158514369fe9bf4e984d43a60fd3404a7687
+probe_command=probe-live-spi-dt.sh --target gemini@192.168.1.50
+probe_output_sha256=73efb60ab35d0f8d5382954dd681721b477477fa2210bb188ec446e507327345
+live_dt_contract=The running flattened device tree contains six mediatek,mt6797-spi nodes at 0x1100a000, 0x11012000, 0x11018000, 0x11019000, 0x1101a000, and 0x1101b000, each with a 0x1000 window and clock-names=spi-main. Their GIC SPI numbers are 122, 131, 132, 133, 134, and 135; cell-index values are 0..5; and spi-padmacro is 0,1,1,0,0,0 respectively. Only spi@11012000 explicitly carries status=okay; the other nodes omit status, which is the vendor DT's effective-enabled default.
+live_sysfs_contract=The running kernel exposes spi0..spi5. Children are spi0.1, spi1.1, spi2.1, spi3.1, spi4.1, and spi5.1 with test_spi bound; spi1.0 has modalias spi:fpc1020 and no driver. This matches the topology inventory while remaining only an observation.
+probe_limit=The probe read /proc/device-tree and /sys only. It did not access SPI registers, issue transfers, toggle GPIOs, load drivers, or write hardware state.
+
+[decision]
+reuse=Extend the upstream spi-mt65xx binding and OF match table with an MT6797 compatible that selects the existing mt6765_compat data, then describe clocks, pad-select, pinctrl, and disabled controller nodes in a Gemini DT.
+new_driver=No separate MT6797 SPI controller implementation is justified by the recovered register contract. Keep the vendor mt_chip_conf, test_spi, fpc1020 policy, DMA address remapping, and wake-lock ABI out of the mainline controller.
+first_dt_gate=Start with one disabled-to-enabled controller only after adding standard pinctrl groups and clock triplets. Preserve the six vendor windows/IRQs (SPI0..5 at 0x1100a000/0x11012000/0x11018000/0x11019000/0x1101a000/0x1101b000; IRQs 122/131/132/133/134/135), then validate probe and a loopback or known-safe child before considering fpc1020.
+remaining_gate=No mainline runtime boot or SPI transfer has been observed. The `fpc1020` candidate remains unverified and must not be enabled from this evidence alone.

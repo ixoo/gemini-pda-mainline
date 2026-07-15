@@ -1,0 +1,13 @@
+validation=gemini-live-nvt-trim-consistency
+live_result=experiments/2026-07-12-input-backlight-recovery/results/nvt-live-trim-identity-20260714.txt
+live_result_sha256=c59f256e874951739b2a2944e943897d0f4e1bf5cfbc6c4196571ade1667e58e
+source_metadata=experiments/2026-07-12-input-backlight-recovery/results/nt36xxx-trim-map-metadata-20260714.txt
+source_metadata_sha256=d460ae1b2472e28ff2db41efe7a4c4661109cfa3f2c0e9bc55fbdc5dcf01e7f3
+live_trim_bytes=00_00_03_72_66_03
+source_entry=8
+source_map=NT36772
+source_event_map=0x11e00
+masked_bytes_match=yes
+identity_match=yes
+hardware_write=none
+status=pass

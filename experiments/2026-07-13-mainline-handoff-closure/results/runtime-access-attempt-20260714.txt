@@ -1,0 +1,33 @@
+validation=gemini-mainline-runtime-access-attempt
+generated_utc=2026-07-14T08:27:12Z
+target=gemini@192.168.1.50
+transport=ssh_tcp_22
+identity=artifacts/credentials/gemini_ed25519
+ssh_options=IdentitiesOnly=yes,IdentityAgent=none,BatchMode=yes,ConnectTimeout=8
+command=uname_and_identity_read_only_probe
+result=not_reached
+error=operation_timeout
+read_only_probe=not_run
+mainline_design_comparison=not_possible_without_runtime_state
+required_next_evidence=booted_mainline_console_cpu_psci_timer_storage_dmesg_and_driver_state
+hardware_write=none
+
+follow_up_attempt_generated_utc=2026-07-14T10:31:07Z
+follow_up_ssh_options=IdentitiesOnly=yes,IdentityAgent=none,BatchMode=yes,ConnectTimeout=6,ServerAliveInterval=3,ServerAliveCountMax=1
+follow_up_result=not_reached
+follow_up_error=operation_timeout
+follow_up_read_only_probe=not_run
+follow_up_hardware_write=none
+
+latest_attempt_generated_utc=2026-07-14T10:44:33Z
+latest_ssh_options=IdentitiesOnly=yes,IdentityAgent=none,BatchMode=yes,ConnectTimeout=6,ServerAliveInterval=3,ServerAliveCountMax=1
+latest_result=not_reached
+latest_error=operation_timeout
+latest_read_only_probe=not_run
+latest_hardware_write=none
+
+The authorized read-only SSH retry timed out while connecting to port 22.
+No device state was changed, and this network result is not evidence about
+mainline driver behavior. When the device is reachable, run the bounded
+`collect-mainline-runtime-evidence.sh` harness against a non-primary boot and
+store its sanitized output only below the Git-ignored artifacts tree.

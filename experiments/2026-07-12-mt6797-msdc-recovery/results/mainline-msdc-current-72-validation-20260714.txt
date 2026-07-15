@@ -1,0 +1,24 @@
+validation=mt6797-msdc-current-package-72
+package=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-a9a7c5002038
+schema=1
+patchset_entries=72_noncomment_series_entries
+generated_utc=2026-07-14T07:12:00Z
+kernel_release=7.1.3-gemini
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=a9a7c5002038022c5df87ed48f61cd68778b422370f7d038d07e73a086490632
+config_sha256=831289dd3b53c6cec09e6c614fd83d3ab5988a4c30090bf9ec172348ec9487d5
+modules_built=true
+compiler=gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+linker=GNU ld (GNU Binutils for Ubuntu) 2.42
+image_sha256=3fb6ac3043dff85dc2b6e68a2bba26d36fedf748e6f7c1bf6b6630f87446be7c
+image_gzip_sha256=56028395387320500525ad9aeb31b4237d2001326f30a0a030db682d57aee7ed
+gemini_dtb_sha256=b41580263940b47226e9819c97afbdaa9a35d4c721c471d2e8a0a3d597c553c5
+dtb_count=119
+module_count=1570
+msdc_source_audit_sha256=f82f9aab5541d37c208fe7a79656b2f0be5ab110f2f98d17961467cbadc05855
+probe_safety_audit_sha256=687cbd7362293d558195d2a0736b1398666215078e9b0e81d8b120d406b0a042
+pinctrl_audit_sha256=5fdab69a6b6fec41d057b182a6272d1a86354550e814a84161d236317dcf15e3
+runtime_mainline_boot=not_attempted
+runtime_mainline_mmc_io=not_attempted
+hardware_write=none
+

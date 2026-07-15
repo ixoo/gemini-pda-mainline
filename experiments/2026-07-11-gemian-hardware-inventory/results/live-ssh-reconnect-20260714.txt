@@ -1,0 +1,32 @@
+# Live SSH reconnect probe — 2026-07-14
+
+## Provenance
+
+- Target: owner-supplied private-LAN Gemini PDA (`gemini@192.168.1.50`).
+- Authentication: `artifacts/credentials/gemini_ed25519`, with
+  `IdentitiesOnly=yes` and `IdentityAgent=none`.
+- Command: `bash -s -- identity` with
+  `experiments/2026-07-11-gemian-hardware-inventory/scripts/collect.sh`.
+- Local artifact: `artifacts/device-inventory/20260714-reconnect/identity.txt`
+  (Git-ignored; SHA-256
+  `b5b438917382f76152779c16d8860b15715deec123e87bb08fdc977017fc6ef9`).
+- Access was read-only. No sysfs controls, device nodes, block devices,
+  firmware partitions, driver bindings, suspend, reboot, or flash operations
+  were attempted.
+
+## Observed
+
+- SSH authentication and command execution succeeded.
+- Device model/compatible: `MT6797X` / `mediatek,MT6797`.
+- Running kernel: `3.18.41+`, AArch64, build `#7 SMP PREEMPT Fri Mar 29
+  10:39:03 GMT 2019`.
+- The collector reported ten logical CPUs with CPUs 0–1 online at capture
+  time; this is a runtime snapshot, not a hardware support claim.
+- Boot arguments were sanitized by the collector; serial-like values remain
+  redacted and are not part of this repository evidence.
+
+## Interpretation
+
+The pinned SSH path is usable again for bounded, read-only evidence capture.
+This confirms access to the vendor Gemian runtime only; it does not validate a
+mainline kernel boot or authorize any hardware-writing operation.

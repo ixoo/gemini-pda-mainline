@@ -1,0 +1,58 @@
+From b33446ac27245cf8c932c712900a21a38fb0a94b Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Maintainers <gemini-mainline@example.invalid>
+Date: Mon, 13 Jul 2026 13:00:01 -0400
+Subject: [PATCH] arm64: dts: mediatek: add disabled MT6797 USB11 topology
+
+Describe source-derived USB11 MUSB and T-PHY resources while keeping both
+controllers disabled. Use the existing V1 child mapping and fixed eye-src=4
+escape to avoid generic FMREG calibration at the USB11 parent SIF.
+
+Signed-off-by: Gemini Mainline Maintainers <gemini-mainline@example.invalid>
+---
+ arch/arm64/boot/dts/mediatek/mt6797.dtsi | 31 ++++++++++++++++++++++++
+ 1 file changed, 31 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+index 0b09588..ae289db 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797.dtsi
++++ b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+@@ -137,6 +137,37 @@ u3port0: usb-phy@11290900 {
+ 		};
+ 	};
+ 
++	usb11_tphy: t-phy@11210000 {
++		compatible = "mediatek,mt6797-tphy", "mediatek,generic-tphy-v1";
++		reg = <0 0x11210000 0 0x1000>;
++		#address-cells = <2>;
++		#size-cells = <2>;
++		ranges;
++		status = "disabled";
++
++		usb11_u2: usb-phy@11210800 {
++			reg = <0 0x11210800 0 0x100>;
++			clocks = <&infrasys CLK_INFRA_SSUSB_REF>;
++			clock-names = "ref";
++			mediatek,eye-src = <4>;
++			#phy-cells = <1>;
++			status = "disabled";
++		};
++	};
++
++	usb11: usb@11200000 {
++		compatible = "mediatek,mt6797-usb11", "mediatek,mtk-musb";
++		reg = <0 0x11200000 0 0x1000>;
++		interrupts = <GIC_SPI 73 IRQ_TYPE_LEVEL_LOW>;
++		interrupt-names = "mc";
++		clocks = <&infrasys CLK_INFRA_ICUSB>,
++				 <&infrasys CLK_INFRA_SSUSB_REF>;
++		clock-names = "infra_icusb", "sssub_ref_clk";
++		phys = <&usb11_u2 PHY_TYPE_USB2>;
++		dr_mode = "host";
++		status = "disabled";
++	};
++
+ 	ssusb: usb@11271000 {
+ 		compatible = "mediatek,mt6797-mtu3", "mediatek,mtu3";
+ 		reg = <0 0x11271000 0 0x3000>,
+-- 
+2.43.0

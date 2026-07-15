@@ -1,0 +1,295 @@
+audit_script_sha256=5ec9aa877413e0f8ba18ded90dafde76469fc4f518d4ccdcc00d7802900ff2a7
+normalized_audit_output_sha256=7d43762ab7ac94e86ed248962c040cbe50cbfddf4960c63483804f0086545484
+rerun_comparison=byte-identical
+validation=mt6797-thermal-safety-contract-audit
+package=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-ca17601dcdeb
+package_image_sha256=6d162f2d729827ecadfa5640d16f9e4c8325e67817d9c638b0cb1fcc9670bef4
+package_config_sha256=60a84aa5ac3b3aeb17d5357508ac123089d97d7d5ed9164458dee3ce6ded8159
+package_dtb_sha256=fb910c8d96b7d4f533c750ce0717ced8998c992834abc44a4ed86ec5a9cf1f97
+linux_tree=/home/julien.guest/src/gemini-pda/linux-7.1.3
+linux_version=7.1.3
+
+[configuration_and_modules]
+CONFIG_THERMAL=y
+CONFIG_THERMAL_OF=y
+CONFIG_MTK_THERMAL=m
+CONFIG_MTK_SOC_THERMAL=m
+CONFIG_MEDIATEK_MT6577_AUXADC=m
+module=auxadc_thermal|path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-ca17601dcdeb/modules/lib/modules/7.1.3-gemini/kernel/drivers/thermal/mediatek/auxadc_thermal.ko
+module=mt6577_auxadc|path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-ca17601dcdeb/modules/lib/modules/7.1.3-gemini/kernel/drivers/iio/adc/mt6577_auxadc.ko
+
+[calibration_path]
+
+[/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/thermal/mediatek/auxadc_thermal.c]
+1175:static int mtk_thermal_extract_efuse_v4(struct mtk_thermal *mt, u32 *buf)
+1210:static int mtk_thermal_get_calibration_data(struct device *dev,
+1216:	int i, ret = 0;
+1219:	mt->adc_ge = 512;
+1220:	mt->adc_oe = 512;
+1222:		mt->vts[i] = 260;
+1223:	mt->degc_cali = 40;
+1226:	cell = nvmem_cell_get(dev, "calibration-data");
+1228:		if (PTR_ERR(cell) == -EPROBE_DEFER)
+1257:		ret = mtk_thermal_extract_efuse_v4(mt, buf);
+1265:		dev_info(dev, "Device not calibrated, using default calibration values\n");
+1266:		ret = 0;
+1359:	ret = mtk_thermal_get_calibration_data(&pdev->dev, mt);
+gemini_dt_calibration_cell_property=
+mt6797_dtsi_calibration_cell_property=
+missing_or_invalid_calibration_probe_behavior=continues_with_defaults
+default_calibration_is_runtime_safe=not_established
+
+[sensor_bank_contract]
+
+[/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/thermal/mediatek/auxadc_thermal.c]
+595:static const int mt6797_bank_data[MT6797_NUM_ZONES][MT6797_NUM_SENSORS_PER_ZONE] = {
+612:static const int mt6797_mux_values[MT6797_NUM_SENSORS] = {
+616:static const int mt6797_vts_index[MT6797_NUM_SENSORS] = {
+626:	.vts_index = mt6797_vts_index,
+631:		{ .num_sensors = 1, .sensors = mt6797_bank_data[0] },
+632:		{ .num_sensors = 1, .sensors = mt6797_bank_data[1] },
+633:		{ .num_sensors = 2, .sensors = mt6797_bank_data[2] },
+634:		{ .num_sensors = 1, .sensors = mt6797_bank_data[3] },
+635:		{ .num_sensors = 1, .sensors = mt6797_bank_data[4] },
+636:		{ .num_sensors = 1, .sensors = mt6797_bank_data[5] },
+640:	.sensor_mux_values = mt6797_mux_values,
+909: * mtk_thermal_bank_temperature - get the temperature of a bank
+915:static int mtk_thermal_bank_temperature(struct mtk_thermal_bank *bank)
+922:	for (i = 0; i < conf->bank_data[bank->id].num_sensors; i++) {
+925:		temp = mt->raw_to_mcelsius(
+926:			mt, conf->bank_data[bank->id].sensors[i], raw);
+958:		tempmax = max(tempmax, mtk_thermal_bank_temperature(bank));
+expected_bank_sensor_ids=bank0:[0];bank1:[3];bank2:[1,2];bank3:[1];bank4:[1];bank5:[1]
+expected_mux_values_by_sensor=TS_MCU1:0,TS_MCU2:1,TS_MCU3:2,TS_MCU4:3,TS_ABB:0
+expected_vts_indices_by_sensor=TS_MCU1:VTS1,TS_MCU2:VTS2,TS_MCU3:VTS3,TS_MCU4:VTS4,TS_ABB:VTSABB
+sensor_index_scope=global_sensor_id_passed_to_raw_to_mcelsius
+shared_sensor_mapping=TS_MCU2_is_used_by_banks_2,3,4,5
+
+[conversion_and_controller_contract]
+
+[/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/thermal/mediatek/auxadc_thermal.c]
+37:#define TEMP_MONCTL0		0x000
+338:	u32 apmixed_buffer_ctl_reg;
+339:	u32 apmixed_buffer_ctl_mask;
+340:	u32 apmixed_buffer_ctl_set;
+341:	u32 temp_ahbpoll;
+342:	u32 temp_msrctl0;
+343:	u32 temp_adcvalidmask;
+590:	.apmixed_buffer_ctl_reg = APMIXED_SYS_TS_CON0,
+591:	.apmixed_buffer_ctl_mask = (u32) ~GENMASK(29, 28),
+592:	.apmixed_buffer_ctl_set = 0,
+642:	.apmixed_buffer_ctl_reg = APMIXED_SYS_TS_CON1,
+643:	.apmixed_buffer_ctl_mask = GENMASK(31, 6) | BIT(3),
+644:	.apmixed_buffer_ctl_set = BIT(0),
+645:	.temp_ahbpoll = 0x30d,
+646:	.temp_msrctl0 = 0x492,
+647:	.temp_adcvalidmask = 0x2c,
+704:	.apmixed_buffer_ctl_reg = APMIXED_SYS_TS_CON1,
+705:	.apmixed_buffer_ctl_mask = GENMASK(31, 6) | BIT(3),
+706:	.apmixed_buffer_ctl_set = BIT(0),
+764:	.apmixed_buffer_ctl_reg = APMIXED_SYS_TS_CON1,
+765:	.apmixed_buffer_ctl_mask = GENMASK(31, 6) | BIT(3),
+766:	.apmixed_buffer_ctl_set = BIT(0),
+844:static int raw_to_mcelsius_v4(struct mtk_thermal *mt, int sensno, s32 raw)
+846:	s64 gain, x_roomt, measured, delta, slope_denominator;
+861:	slope_denominator = 1663 +
+863:	if (slope_denominator <= 0)
+866:	delta = (delta * 1000) / slope_denominator;
+1000:	writel(TEMP_AHBPOLL_ADC_POLL_INTERVAL(mt->conf->temp_ahbpoll ?
+1001:					     mt->conf->temp_ahbpoll : 768),
+1005:	writel(mt->conf->temp_msrctl0, controller_base + TEMP_MSRCTL0);
+1058:	writel(mt->conf->temp_adcvalidmask ?
+1059:	       mt->conf->temp_adcvalidmask :
+1075:	       controller_base + TEMP_MONCTL0);
+1319:	if (!mt->conf->apmixed_buffer_ctl_reg)
+1322:	tmp = readl(apmixed_base + mt->conf->apmixed_buffer_ctl_reg);
+1323:	tmp &= mt->conf->apmixed_buffer_ctl_mask;
+1324:	tmp |= mt->conf->apmixed_buffer_ctl_set;
+1325:	writel(tmp, apmixed_base + mt->conf->apmixed_buffer_ctl_reg);
+1329:static void mtk_thermal_release_periodic_ts(struct mtk_thermal *mt,
+1335:	writel(0x1, mt->thermal_base + TEMP_MONCTL0);
+1420:		mtk_thermal_release_periodic_ts(mt, auxadc_base);
+1427:		mt->raw_to_mcelsius = raw_to_mcelsius_v4;
+mt6797_variant_constants=TEMP_AHBPOLL:0x30d,TEMP_MSRCTL0:0x492,TEMP_ADCVALIDMASK:0x2c,auxadc_channel:11
+runtime_controller_side_effects=clocks,APMIXED_buffer,AUXADC_power_and_periodic_sampling,thermal_bank_registers
+hardware_trip_and_irq_semantics=not_recovered_in_generic_candidate
+
+[auxadc_compatibility_contract]
+
+[/home/julien.guest/src/gemini-pda/linux-7.1.3/drivers/iio/adc/mt6577_auxadc.c]
+22:#define MT6577_AUXADC_CON2                    0x10
+29:#define MT6577_AUXADC_PDN_EN                  BIT(14)
+39:	bool check_global_idle;
+51:	.check_global_idle = false,
+54:static const struct mtk_auxadc_compatible mt8173_compat = {
+56:	.check_global_idle = true,
+61:	.check_global_idle = false,
+145:	if (adc_dev->dev_comp->check_global_idle) {
+147:		ret = readl_poll_timeout(adc_dev->reg_base + MT6577_AUXADC_CON2,
+231:			      MT6577_AUXADC_PDN_EN, 0);
+243:			      0, MT6577_AUXADC_PDN_EN);
+249:static void mt6577_power_off(void *data)
+254:			      0, MT6577_AUXADC_PDN_EN);
+257:static int mt6577_auxadc_probe(struct platform_device *pdev)
+280:	adc_dev->adc_clk = devm_clk_get_enabled(&pdev->dev, "main");
+294:			      MT6577_AUXADC_PDN_EN, 0);
+298:	ret = devm_add_action_or_reset(&pdev->dev, mt6577_power_off, adc_dev);
+314:	{ .compatible = "mediatek,mt2701-auxadc", .data = &mt8173_compat },
+315:	{ .compatible = "mediatek,mt6797-auxadc", .data = &mt8173_compat },
+316:	{ .compatible = "mediatek,mt2712-auxadc", .data = &mt8173_compat },
+317:	{ .compatible = "mediatek,mt7622-auxadc", .data = &mt8173_compat },
+318:	{ .compatible = "mediatek,mt8173-auxadc", .data = &mt8173_compat },
+331:	.probe	= mt6577_auxadc_probe,
+mt6797_auxadc_mapping=mt8173_compat_candidate
+global_idle_polling=enabled_by_candidate_mapping
+auxadc_power_state=probe_clears_PDN_and_devres_cleanup_sets_PDN
+auxadc_register_shape_validation=source_candidate_only
+
+[device_tree_gate]
+
+[/home/julien.guest/src/gemini-pda/linux-7.1.3/arch/arm64/boot/dts/mediatek/mt6797.dtsi]
+18:	compatible = "mediatek,mt6797";
+116:		compatible = "mediatek,mt6797-tphy", "mediatek,generic-tphy-v1";
+121:		status = "disabled";
+128:			status = "disabled";
+136:			status = "disabled";
+141:		compatible = "mediatek,mt6797-tphy", "mediatek,generic-tphy-v1";
+146:		status = "disabled";
+154:			status = "disabled";
+159:		compatible = "mediatek,mt6797-usb11", "mediatek,mtk-musb";
+168:		status = "disabled";
+172:		compatible = "mediatek,mt6797-mtu3", "mediatek,mtu3";
+187:		status = "disabled";
+190:			compatible = "mediatek,mt6797-xhci", "mediatek,mtk-xhci";
+201:			status = "disabled";
+214:		compatible = "mediatek,mt6797-topckgen";
+220:		compatible = "mediatek,mt6797-infracfg", "syscon";
+227:		compatible = "mediatek,mt6797-pinctrl";
+315:		compatible = "mediatek,mt6797-scpsys";
+327:		compatible = "mediatek,mt6797-mfgsys", "syscon";
+330:		status = "disabled";
+334:		compatible = "mediatek,mt6797-mali", "arm,mali-t880";
+347:		status = "disabled";
+351:		compatible = "mediatek,mt6797-wdt", "mediatek,mt6589-wdt";
+356:		compatible = "mediatek,mt6797-apmixedsys";
+362:		compatible = "mediatek,mt6797-pwrap";
+390:		compatible = "mediatek,mt6797-audio";
+410:		status = "disabled";
+414:		compatible = "mediatek,mt6797-sysirq",
+424:		compatible = "mediatek,mt6797-m4u";
+431:		status = "disabled";
+435:		compatible = "mediatek,mt6797-gce",
+445:		compatible = "mediatek,mt6797-mipi-tx";
+452:		status = "disabled";
+456:		compatible = "mediatek,mt6797-uart",
+463:		status = "disabled";
+467:		compatible = "mediatek,mt6797-uart",
+474:		status = "disabled";
+478:		compatible = "mediatek,mt6797-uart",
+485:		status = "disabled";
+489:		compatible = "mediatek,mt6797-uart",
+496:		status = "disabled";
+500:		compatible = "mediatek,mt6797-i2c",
+511:		status = "disabled";
+515:		compatible = "mediatek,mt6797-i2c",
+526:		status = "disabled";
+530:		compatible = "mediatek,mt6797-i2c",
+542:		status = "disabled";
+546:		compatible = "mediatek,mt6797-i2c",
+558:		status = "disabled";
+562:		compatible = "mediatek,mt6797-i2c",
+573:		status = "disabled";
+577:		compatible = "mediatek,mt6797-i2c",
+588:		status = "disabled";
+592:		compatible = "mediatek,mt6797-i2c",
+603:		status = "disabled";
+607:		compatible = "mediatek,mt6797-i2c",
+619:		status = "disabled";
+623:		compatible = "mediatek,mt6797-i2c",
+635:		status = "disabled";
+638:	auxadc: adc@11001000 {
+639:		compatible = "mediatek,mt6797-auxadc";
+644:		status = "disabled";
+647:	thermal: thermal@1100b000 {
+648:		compatible = "mediatek,mt6797-thermal";
+654:		mediatek,auxadc = <&auxadc>;
+655:		mediatek,apmixedsys = <&apmixedsys>;
+657:		status = "disabled";
+661:		compatible = "mediatek,mt6797-i2c",
+672:		status = "disabled";
+676:		compatible = "mediatek,mt6797-mmc";
+683:		status = "disabled";
+687:		compatible = "mediatek,mt6797-mmc";
+694:		status = "disabled";
+698:		compatible = "mediatek,mt6797-mjcsys", "syscon";
+704:		compatible = "mediatek,mt6797-smi-larb";
+711:		status = "disabled";
+715:		compatible = "mediatek,mt6797-mmsys", "syscon";
+723:		compatible = "mediatek,mt6797-disp-pwm";
+729:		status = "disabled";
+733:		compatible = "mediatek,mt6797-disp-ovl";
+740:		status = "disabled";
+744:		compatible = "mediatek,mt6797-disp-ovl-2l";
+751:		status = "disabled";
+755:		compatible = "mediatek,mt6797-disp-ovl-2l";
+762:		status = "disabled";
+766:		compatible = "mediatek,mt6797-disp-rdma";
+773:		status = "disabled";
+777:		compatible = "mediatek,mt6797-disp-color";
+783:		status = "disabled";
+787:		compatible = "mediatek,mt6797-disp-ccorr";
+793:		status = "disabled";
+797:		compatible = "mediatek,mt6797-disp-aal";
+803:		status = "disabled";
+807:		compatible = "mediatek,mt6797-disp-gamma";
+813:		status = "disabled";
+817:		compatible = "mediatek,mt6797-disp-od";
+822:		status = "disabled";
+826:		compatible = "mediatek,mt6797-disp-dither";
+832:		status = "disabled";
+836:		compatible = "mediatek,mt6797-disp-ufoe";
+842:		status = "disabled";
+846:		compatible = "mediatek,mt6797-dsi";
+857:		status = "disabled";
+874:		compatible = "mediatek,mt6797-dpi";
+882:		status = "disabled";
+899:		compatible = "mediatek,mt6797-disp-mutex";
+909:		compatible = "mediatek,mt6797-smi-larb";
+916:		status = "disabled";
+920:		compatible = "mediatek,mt6797-smi-larb";
+927:		status = "disabled";
+931:		compatible = "mediatek,mt6797-smi-common";
+937:		status = "disabled";
+941:		compatible = "mediatek,mt6797-imgsys", "syscon";
+947:		compatible = "mediatek,mt6797-smi-larb";
+954:		status = "disabled";
+958:		compatible = "mediatek,mt6797-vdecsys", "syscon";
+964:		compatible = "mediatek,mt6797-smi-larb";
+971:		status = "disabled";
+975:		compatible = "mediatek,mt6797-vencsys", "syscon";
+981:		compatible = "mediatek,mt6797-smi-larb";
+988:		status = "disabled";
+1003:		compatible = "mediatek,mt6797-camsys", "syscon";
+1009:		compatible = "mediatek,mt6797-smi-larb";
+1016:		status = "disabled";
+thermal_node_enablement=disabled
+auxadc_node_enablement=disabled
+calibration_provider_wired=no
+
+[source_hashes]
+drivers/thermal/mediatek/auxadc_thermal.c=2f1eb2d2ed1a4f09dd5370eb35a26b52ffc122660d737ba241ef5ce93172874e
+drivers/iio/adc/mt6577_auxadc.c=e91f516325d1d5b2596c916d367c8947f733b4bd317c8dd0351ee80af818efe8
+arch/arm64/boot/dts/mediatek/mt6797.dtsi=f4f516e439be403ce743898f30ff224dec3ae5393ddfd09d0053157e8146b200
+arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts=1787a5ef7c67036c972961abf968aab0fe8920832817c227f7d4b031cc774947
+
+[decision]
+generic_bank_and_conversion_framework=source-compatible_candidate
+mt6797_bank_topology=represented_with_shared_TS_MCU2_mapping
+gemini_calibration_data_path=absent
+invalid_or_missing_calibration=nonfatal_default_fallback
+runtime_enablement_without_calibration=blocked_as_unsafe
+mt6797_auxadc_mt8173_compat=unproven_register_shape_candidate
+auxadc_probe_and_thermal_probe_have_mmio_clock_power_side_effects
+board_nodes=disabled
+hardware_write=none
+runtime_mainline_boot=not_attempted

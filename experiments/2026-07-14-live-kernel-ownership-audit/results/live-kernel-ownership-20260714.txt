@@ -1,0 +1,64 @@
+validation=live-kernel-ownership-vs-mainline-71
+vendor_uname=Linux localhost 3.18.41+ #7 SMP PREEMPT Fri Mar 29 10:39:03 GMT 2019 aarch64 GNU/Linux
+analyzer_sha256=1fef49dbc18397d92de45b2235863efeff42798c5de7af500a4c4b2e3f8e3d41
+capture_sha256=4c3f5aaf6d59920a08ed93b0bc20b9344d6afb84a4b6eb0d3c1ded80a8c0b9cf
+identity_sha256=8fcf96754f065236e8904a877978b263871c7aa8cfc354f2a71a14f73693ecd0
+vendor_config_sha256=231d8a2ffe7afac3a4cc62c27d0eb6fe8bd9165ebd096e3e3346dd6df35c18f4
+mainline_config_sha256=60a84aa5ac3b3aeb17d5357508ac123089d97d7d5ed9164458dee3ce6ded8159
+system_map_sha256=5c8249df6d398eaedbde7e2447e4105b219ec30b3b39fc5c9f694d887dd0b6a9
+build_json_sha256=246758b33abbebf6496e469c0ac3d110a70f8e1876a82ff34cc0b2d23cf557e4
+mainline_modules_built=True
+runtime_module_namespace=absent
+capture_config_matches_vendor=22
+capture_config_disagreements=0
+hardware_write=none
+runtime_mainline_boot=not_attempted
+
+[config_boundary]
+CONFIG_MODULES|purpose=loadable-module infrastructure|vendor=n|capture=n|mainline=y|classification=mainline-only
+CONFIG_MTK_PLATFORM|purpose=vendor platform selector|vendor="mt6797"|capture="mt6797"|mainline=n|classification=value-delta
+CONFIG_MTK_EVB_BOARD|purpose=vendor board glue|vendor=y|capture=y|mainline=n|classification=vendor-enabled/mainline-unset
+CONFIG_MTK_PSCI|purpose=vendor PSCI glue|vendor=y|capture=y|mainline=n|classification=vendor-enabled/mainline-unset
+CONFIG_MTK_PMIC_WRAP|purpose=PMIC wrapper|vendor=y|capture=y|mainline=y|classification=same
+CONFIG_MTK_PMIC|purpose=vendor PMIC framework|vendor=y|capture=y|mainline=n|classification=vendor-enabled/mainline-unset
+CONFIG_MTK_COMBO_CHIP_CONSYS_6797|purpose=CONSYS combo backend|vendor=y|capture=y|mainline=n|classification=vendor-enabled/mainline-unset
+CONFIG_MTK_BTIF|purpose=BTIF transport|vendor=y|capture=y|mainline=n|classification=vendor-enabled/mainline-unset
+CONFIG_MTK_ECCCI_DRIVER|purpose=CCCI modem transport|vendor=y|capture=y|mainline=n|classification=vendor-enabled/mainline-unset
+CONFIG_MTK_ECCCI_CLDMA|purpose=CCCI CLDMA transport|vendor=y|capture=y|mainline=n|classification=vendor-enabled/mainline-unset
+CONFIG_MTK_CCCI_DEVICES|purpose=CCCI character devices|vendor=y|capture=y|mainline=n|classification=vendor-enabled/mainline-unset
+CONFIG_MTK_AW9523|purpose=vendor keyboard expander|vendor=y|capture=y|mainline=n|classification=vendor-enabled/mainline-unset
+CONFIG_PINCTRL_AW9523|purpose=mainline AW9523 pinctrl|vendor=n|capture=n|mainline=m|classification=mainline-only
+CONFIG_USB_MU3D_DRV|purpose=vendor USB3 core|vendor=y|capture=y|mainline=n|classification=vendor-enabled/mainline-unset
+CONFIG_USB_MUSB_MEDIATEK|purpose=mainline USB11 MUSB glue|vendor=n|capture=n|mainline=y|classification=mainline-only
+CONFIG_USB_XHCI_MTK|purpose=mainline USB3 xHCI|vendor=y|capture=y|mainline=y|classification=same
+CONFIG_MMC_MTK|purpose=MediaTek MSDC host|vendor=y|capture=y|mainline=y|classification=same
+CONFIG_MTK_EMMC_SUPPORT|purpose=vendor eMMC extensions|vendor=y|capture=y|mainline=n|classification=vendor-enabled/mainline-unset
+CONFIG_SERIAL_8250_MT6577|purpose=mainline MTK 8250 UART|vendor=n|capture=n|mainline=y|classification=mainline-only
+CONFIG_MTK_SERIAL|purpose=vendor serial driver|vendor=y|capture=y|mainline=n|classification=vendor-enabled/mainline-unset
+CONFIG_MTK_WATCHDOG|purpose=vendor watchdog|vendor=y|capture=y|mainline=n|classification=vendor-enabled/mainline-unset
+CONFIG_MEDIATEK_WATCHDOG|purpose=mainline watchdog|vendor=n|capture=n|mainline=y|classification=mainline-only
+CONFIG_PINCTRL_MT6797|purpose=MT6797 pinctrl|vendor=y|capture=y|mainline=y|classification=same
+CONFIG_EINT_MTK|purpose=mainline MTK EINT framework|vendor=n|capture=n|mainline=y|classification=mainline-only
+CONFIG_MTK_IOMMU|purpose=mainline MTK IOMMU|vendor=n|capture=n|mainline=y|classification=mainline-only
+CONFIG_MTK_SMI|purpose=mainline MTK SMI|vendor=n|capture=n|mainline=y|classification=mainline-only
+CONFIG_MTK_FB|purpose=vendor framebuffer|vendor=y|capture=y|mainline=n|classification=vendor-enabled/mainline-unset
+CONFIG_DRM_MEDIATEK|purpose=mainline DRM Mediatek|vendor=n|capture=n|mainline=m|classification=mainline-only
+CONFIG_MTK_LCM|purpose=vendor panel framework|vendor=y|capture=y|mainline=n|classification=vendor-enabled/mainline-unset
+CONFIG_MTK_IMGSENSOR|purpose=vendor camera framework|vendor=y|capture=y|mainline=n|classification=vendor-enabled/mainline-unset
+CONFIG_SND_SOC_MT6797|purpose=mainline MT6797 audio|vendor=n|capture=n|mainline=m|classification=mainline-only
+CONFIG_MTK_THERMAL|purpose=mainline MTK thermal|vendor=n|capture=n|mainline=m|classification=mainline-only
+
+[mainline_linked_probe_paths]
+UART|symbol=mtk8250_probe|linked_in_image=yes
+eMMC/MSDC|symbol=msdc_drv_probe|linked_in_image=yes
+watchdog|symbol=mtk_wdt_probe|linked_in_image=yes
+PMIC wrapper|symbol=pwrap_probe|linked_in_image=yes
+MT6351 regulator|symbol=mt6351_regulator_probe|linked_in_image=yes
+pinctrl|symbol=mt6797_pinctrl_init|linked_in_image=yes
+USB11 MUSB|symbol=mtk_musb_probe|linked_in_image=yes
+
+[decision]
+vendor_runtime_is_builtin_only=confirmed_by_missing_CONFIG_MODULES_and_empty_proc_modules
+mainline_module_presence_is_package_only=do_not_treat_as_probe_evidence
+first_boot_boundary=builtin_psci_timer_gic_uart_pinctrl_watchdog_emmc_only
+vendor_only_transport_blocks=require_new_backend_or_firmware_boundary

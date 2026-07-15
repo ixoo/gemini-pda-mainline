@@ -1,0 +1,68 @@
+Experiment: 2026-07-12-cpufreq-thermal-suspend-recovery
+Device: Gemini PDA running Gemian (private capture 2026-07-12)
+Kernel: Linux 3.18.41+ aarch64
+
+CPU topology
+- possible/present: 0-9
+- online: 0-1
+- offline: 2-9
+
+Live cpufreq policy
+- driver: mt-cpufreq
+- policy directories: per-CPU cpu0/cpufreq and cpu1/cpufreq (no policy* ABI)
+- affected CPUs: 0 1
+- related CPUs: 0 1 2 3
+- governor: interactive
+- CPU0 table: 221000..1547000 kHz, 16 frequencies
+- current min/max: 624000/1547000 kHz
+- transition latency: 1000 ns as reported by sysfs
+- sampled current frequency: CPU0 1222000 kHz; CPU1 1339000 kHz
+- vendor procfs reports per-cluster OPP/frequency and voltage diagnostics;
+  the calibration-dependent numeric values remain in the private capture and
+  are not proposed as mainline OPP values.
+- vendor procfs reports cpuhvfs enabled and hardware governor disabled.
+
+cpuidle
+- state0 dpidle/deepidle: latency 2000, usage 0
+- state1 SODI3: latency 5000, usage 0
+- state2 SODI: latency 2000, usage 0
+- state3 MCDI: latency 2000, usage 0
+- state4 slidle: latency 2000, usage 0
+- state5 rgidle/WFI: latency 2000, usage 18716961, time 64403186348
+
+Thermal zones
+- 13 zones are enumerated; every zone reports mode=disabled and policy=
+  backward_compatible.
+- named zones include mtktsbattery (24000 mC), mtktscpu (27200 mC), mtktspmic
+  (26248 mC), mtktswmt (21000 mC), tsda9214 (60000 mC), mtktsAP (27000 mC),
+  and mtktsbtsmdpa (26000 mC).
+- invalid/sentinel readings include mtktspa=-127000 mC, mtktsdram=2 mC, and
+  mtktsimgsensor=-275000 mC.
+- the captured thermal IRQ line is GIC IRQ110 (mtk-thermal) with zero count.
+
+Power and suspend
+- power supplies: AC online=1; battery Full, capacity=100, health=Good;
+  USB and wireless offline.
+- /sys/power/state: freeze mem; /sys/power/pm_async: 1.
+- no suspend, freeze, governor, frequency, voltage, CPU-hotplug, or thermal
+  mode operation was attempted.
+
+Interrupt/message context
+- SPM line GIC IRQ212 had one count; AFE line 183 had 27/25 counts in the
+  sample; arch_timer line 30 was active.
+- recurring vendor messages report DP/SODI3/SODI "No enter" and dpidle/SODI
+  block counters. This is evidence of vendor idle gating, not a mainline
+  suspend result.
+
+Static source contract
+- `drivers/misc/mediatek/base/power/spm_v2/mt_spm.c` maps the vendor
+  `mediatek,sleep` block plus MT6797 topckgen, infracfg, mcucfg, apmixed,
+  efuse, thermal, DDRPHY, vcorefs, and CIRQ nodes. Its dynamic PCM path calls
+  `request_firmware`; this is separate from the embedded vcorefs PCM image in
+  `mt_spm_vcorefs_mt6797.c`.
+- `mt_idle_mt6797.c` gates dpidle/soidle/mcidle using multimedia clock,
+  power-domain, and PLL status. `mt_spm_dpidle_mt6797.c` also changes
+  PMIC-wrapper state and 26 MHz MIPID/MIPIC/MDPLLGP/SSUSB clocks around deep
+  idle. These vendor contracts are not represented by the generic PSCI node.
+
+Private raw evidence: artifacts/device-inventory/20260712-live/cpufreq-thermal.txt

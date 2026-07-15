@@ -1,0 +1,24 @@
+MT6797 external-display bridge live ID-probe availability check
+
+date=2026-07-13
+target=gemini@192.168.1.50
+intent=bounded_read_only_SII9022_ID_probe
+target_clients=i2c-3_0x39_sii9022_hdmi;i2c-3_0x50_siiedid
+
+ssh_transport=passed
+sudo_noninteractive=failed_password_required
+device_user_password_was_not_printed_or_used
+
+available_tools=i2cget=no;i2ctransfer=no;i2cdetect=no;i2cdump=no
+python_smbus_modules=smbus_missing;smbus2_missing;periphery_missing
+i2c_char_devices=/dev/i2c-* absent
+sysfs_i2c_dev=/sys/class/i2c-dev absent
+private_hdmitx=/dev/hdmitx present_but_not_used
+
+outcome=not_attempted_due_to_missing_i2c_char_device_and_tooling
+reason=Installing_i2c_tools_alone_would_not_create_an_I2C_kernel_character_device_and_using_the_private_hdmitx_ABI_would_not_be_a_chip_ID_probe
+register_read=none
+gpio_or_power_change=none
+hardware_write=none
+
+next_gate=obtain_a_read_only_I2C_access_path_with_explicit_rollback_and_verify_the_board_reset_rail_contract_before_any_SII9022_register_transaction
