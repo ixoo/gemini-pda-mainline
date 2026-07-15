@@ -43,9 +43,12 @@ configuration, safe tooling, hardware knowledge, and reproducible evidence.
   local analysis. Its output must remain under a Git-ignored, access-restricted
   path and must never be staged without a file-by-file license review.
 - Use `scripts/backup-device-mmc --target USER@HOST --dry-run` to inventory
-  partition labels. A real all-partition read requires explicit
+  partition labels. Pass `--layout-config FILE` to reuse a MediaTek flash
+  layout's logical names. A real all-partition read requires explicit
   `--all --confirm-read`; keep its raw output under the Git-ignored,
   access-restricted `artifacts/device-partitions/` path and never stage it.
+  `scripts/rename-device-mmc` migrates older captures whose filenames lack
+  logical names.
 - For device access, prefer the mode-0600, Git-ignored local key at
   `artifacts/credentials/gemini_ed25519`. Its recovery source is the 1Password
   item `codex-gemini-192.168.1.50`; use `IdentitiesOnly=yes` and

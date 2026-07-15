@@ -1,0 +1,162 @@
+#!/usr/bin/env bash
+
+# Add logical MediaTek flash-layout names to an existing private MMC capture.
+
+set -euo pipefail
+export LC_ALL=C
+umask 077
+
+usage() {
+  cat <<'EOF'
+usage: scripts/rename-device-mmc --capture DIR [--layout-config FILE]
+
+Rename an older capture whose files are named mmcblk*.img using the logical
+partition names from its manifest and, optionally, a MediaTek flash config.
+New captures made by scripts/backup-device-mmc already use this naming.
+EOF
+}
+
+die() {
+  printf 'error: %s\n' "$*" >&2
+  exit 1
+}
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+readonly REPO_ROOT
+capture=""
+layout_config=""
+
+while (($#)); do
+  case "$1" in
+    --capture)
+      (($# >= 2)) || die "--capture requires a directory"
+      capture="$2"
+      shift 2
+      ;;
+    --layout-config)
+      (($# >= 2)) || die "--layout-config requires a file"
+      layout_config="$2"
+      shift 2
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      die "unknown argument: $1"
+      ;;
+  esac
+done
+
+[[ -n "${capture}" ]] || die "provide --capture DIR"
+[[ -d "${capture}" ]] || die "capture directory does not exist: ${capture}"
+[[ -f "${capture}/MANIFEST.tsv" ]] || die "capture has no MANIFEST.tsv"
+[[ -z "${layout_config}" || -f "${layout_config}" ]] \
+  || die "layout config does not exist: ${layout_config}"
+git -C "${REPO_ROOT}" check-ignore -q "${capture}" \
+  || die "capture is not Git-ignored: ${capture}"
+
+header="$(head -n 1 "${capture}/MANIFEST.tsv")"
+[[ "${header}" == device$'\t'* ]] || die "unrecognized manifest header"
+if [[ "${header}" == *$'\tlogical_name\t'* ]]; then
+  printf 'Manifest already has logical names; no files renamed.\n'
+  exit 0
+fi
+
+layout_has_name() {
+  local wanted="$1"
+  [[ -z "${layout_config}" ]] || awk -v wanted="${wanted}" \
+    '$1 == "partition_name:" && $2 == wanted { found=1 } END { exit !found }' \
+    "${layout_config}"
+}
+
+logical_name_for() {
+  local device="$1"
+  local partlabel="$2"
+  case "${device}" in
+    mmcblk[0-9]*boot0)
+      layout_has_name preloader && printf 'preloader-boot1' || printf 'boot1'
+      ;;
+    mmcblk[0-9]*boot1)
+      layout_has_name preloader && printf 'preloader-boot2' || printf 'boot2'
+      ;;
+    mmcblk[0-9]*rpmb)
+      printf 'rpmb'
+      ;;
+    *)
+      printf '%s' "${partlabel:-unlabelled}"
+      ;;
+  esac | tr -c 'A-Za-z0-9._-' '_'
+}
+
+RENAMES="$(mktemp "${capture}/.renames.XXXXXX")"
+readonly RENAMES
+UPDATED="$(mktemp "${capture}/.manifest.XXXXXX")"
+readonly UPDATED
+cleanup() {
+  rm -f "${RENAMES}" "${UPDATED}"
+}
+trap cleanup EXIT
+
+# Build device -> old filename, new filename, logical name, and read-only flag.
+while IFS=$'\t' read -r device old_image new_image logical_name read_only; do
+  [[ -n "${device}" ]] || continue
+  old_path="${capture}/${old_image}"
+  new_path="${capture}/${new_image}"
+  [[ -e "${old_path}" ]] || die "manifest image is missing: ${old_image}"
+  if [[ "${old_image}" != "${new_image}" ]]; then
+    [[ ! -e "${new_path}" ]] || die "rename destination already exists: ${new_image}"
+    mv "${old_path}" "${new_path}"
+  fi
+done < <(
+  awk -F '\t' -v OFS='\t' '
+    NR == 1 { next }
+    {
+      print $1, $6, $4, $5
+    }
+  ' "${capture}/MANIFEST.tsv" \
+  | while IFS=$'\t' read -r device old_image label read_only; do
+      logical_name="$(logical_name_for "${device}" "${label}")"
+      case "${device}" in
+        mmcblk[0-9]*boot0|mmcblk[0-9]*boot1) read_only='1' ;;
+        mmcblk[0-9]*rpmb) read_only='0' ;;
+        *) read_only="${read_only:-0}" ;;
+      esac
+      [[ "${old_image}" == *.partial ]] && suffix='.img.partial' || suffix='.img'
+      printf '%s\t%s\t%s\t%s\t%s\n' \
+        "${device}" "${old_image}" "${device}-${logical_name}${suffix}" \
+        "${logical_name}" "${read_only}"
+    done
+) > "${RENAMES}"
+
+# The first pass above needs the logical name before renaming. Re-run the
+# actual rename from the deterministic mapping file, then rewrite the manifest
+# with a logical_name column while preserving all checksums.
+while IFS=$'\t' read -r device old_image new_image logical_name read_only; do
+  [[ -n "${device}" ]] || continue
+  if [[ -e "${capture}/${old_image}" && "${old_image}" != "${new_image}" ]]; then
+    [[ ! -e "${capture}/${new_image}" ]] || die "rename destination already exists: ${new_image}"
+    mv "${capture}/${old_image}" "${capture}/${new_image}"
+  fi
+done < "${RENAMES}"
+
+awk -F '\t' -v OFS='\t' '
+  FILENAME == ARGV[1] {
+    new[$1]=$3; logical[$1]=$4; ro[$1]=$5
+    next
+  }
+  FNR == 1 {
+    print "device", "expected_bytes", "actual_bytes", "partlabel", "logical_name", "read_only", "image", "status", "sha256"
+    next
+  }
+  {
+    print $1, $2, $3, $4, logical[$1], ro[$1], new[$1], $7, $8
+  }
+' "${RENAMES}" "${capture}/MANIFEST.tsv" > "${UPDATED}"
+mv "${UPDATED}" "${capture}/MANIFEST.tsv"
+shasum -a 256 "${capture}/MANIFEST.tsv" > "${capture}/MANIFEST.tsv.sha256"
+chmod -R go-rwx "${capture}"
+
+printf 'Renamed capture files using logical partition names.\n'
+printf 'Manifest: %s\n' "${capture}/MANIFEST.tsv"

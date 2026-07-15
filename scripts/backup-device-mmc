@@ -16,6 +16,7 @@ usage: scripts/backup-device-mmc --target USER@HOST --all --confirm-read [option
 Options:
   --target USER@HOST       SSH target (or set GEMINI_SSH_TARGET)
   --output DIR             Destination below a Git-ignored path
+  --layout-config FILE     MediaTek scatter/flash config with partition names
   --sudo-password-file F   Local mode-0600 file containing the device sudo password
   --sudo-password-stdin   Read one sudo password line from stdin (not stored)
   --all                    Select every MMC partition node, including userdata,
@@ -50,6 +51,7 @@ readonly LOCAL_IDENTITY="${REPO_ROOT}/artifacts/credentials/gemini_ed25519"
 
 target="${GEMINI_SSH_TARGET:-}"
 output=""
+layout_config=""
 sudo_password_file=""
 sudo_password_stdin=false
 all_partitions=false
@@ -66,6 +68,11 @@ while (($#)); do
     --output)
       (($# >= 2)) || die "--output requires a directory"
       output="$2"
+      shift 2
+      ;;
+    --layout-config)
+      (($# >= 2)) || die "--layout-config requires a file"
+      layout_config="$2"
       shift 2
       ;;
     --sudo-password-file)
@@ -100,6 +107,9 @@ while (($#)); do
 done
 
 [[ -n "${target}" ]] || die "provide --target USER@HOST or GEMINI_SSH_TARGET"
+if [[ -n "${layout_config}" ]]; then
+  [[ -f "${layout_config}" ]] || die "layout config is not a regular file: ${layout_config}"
+fi
 
 if [[ -z "${output}" ]]; then
   output="${REPO_ROOT}/artifacts/device-partitions/$(date -u +%Y%m%dT%H%M%SZ)"
@@ -202,6 +212,7 @@ for sysdev in /sys/class/block/mmcblk*; do
     # Labels are metadata, not shell input. Keep the TSV unambiguous if a
     # vendor ever uses whitespace in one.
     partlabel=$(printf '%s' "${partlabel}" | tr '\t\r\n' '___')
+    [ -n "${partlabel}" ] || partlabel='-'
     printf '%s\t%s\t%s\t%s\n' "${name}" "${bytes}" "${partlabel}" "${read_only}"
 done | sort
 REMOTE_INVENTORY_SCRIPT
@@ -256,20 +267,53 @@ read_partition() {
   fi
 }
 
-printf 'device\texpected_bytes\tactual_bytes\tpartlabel\tread_only\timage\tstatus\tsha256\n' > "${MANIFEST}"
+layout_has_name() {
+  local wanted="$1"
+  [[ -z "${layout_config}" ]] || awk -v wanted="${wanted}" \
+    '$1 == "partition_name:" && $2 == wanted { found=1 } END { exit !found }' \
+    "${layout_config}"
+}
+
+logical_name_for() {
+  local name="$1"
+  local partlabel="$2"
+  if [[ -n "${partlabel}" ]] && layout_has_name "${partlabel}"; then
+    printf '%s' "${partlabel}"
+    return
+  fi
+  case "${name}" in
+    mmcblk[0-9]*boot0)
+      layout_has_name preloader && printf 'preloader-boot1' || printf 'boot1'
+      ;;
+    mmcblk[0-9]*boot1)
+      layout_has_name preloader && printf 'preloader-boot2' || printf 'boot2'
+      ;;
+    mmcblk[0-9]*rpmb)
+      printf 'rpmb'
+      ;;
+    *)
+      printf '%s' "${partlabel:-unlabelled}"
+      ;;
+  esac
+}
+
+printf 'device\texpected_bytes\tactual_bytes\tpartlabel\tlogical_name\tread_only\timage\tstatus\tsha256\n' > "${MANIFEST}"
 partition_count=0
 success_count=0
 failure_count=0
 
 while IFS=$'\t' read -r name expected_bytes partlabel read_only; do
   [[ -n "${name}" ]] || continue
+  [[ "${partlabel}" == '-' ]] && partlabel=''
   [[ "${name}" =~ ^mmcblk[0-9]+(p[0-9]+|boot[01]|rpmb)$ ]] \
     || die "unexpected remote partition name: ${name}"
   [[ "${expected_bytes}" =~ ^[0-9]+$ ]] \
     || die "invalid size for /dev/${name}: ${expected_bytes}"
 
   ((partition_count += 1))
-  image="${name}.img"
+  logical_name="$(logical_name_for "${name}" "${partlabel}")"
+  logical_name="$(printf '%s' "${logical_name}" | tr -c 'A-Za-z0-9._-' '_')"
+  image="${name}-${logical_name}.img"
   partial="${image}.partial"
   printf '[%d] Reading /dev/%s (%s bytes)...\n' "${partition_count}" "${name}" "${expected_bytes}"
 
@@ -300,9 +344,9 @@ while IFS=$'\t' read -r name expected_bytes partlabel read_only; do
   if [[ "${status}" != ok ]]; then
     image="${partial}"
   fi
-  printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+  printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
     "${name}" "${expected_bytes}" "${actual_bytes}" "${partlabel}" \
-    "${read_only}" "${image}" "${status}" "${sha256}" >> "${MANIFEST}"
+    "${logical_name}" "${read_only}" "${image}" "${status}" "${sha256}" >> "${MANIFEST}"
 done <<< "${inventory}"
 
 {
@@ -311,6 +355,7 @@ done <<< "${inventory}"
   printf 'collector=%s\n' "scripts/backup-device-mmc"
   printf 'scope=MMC partition nodes only; whole-disk nodes were excluded\n'
   printf 'transport=gzip stream; local image files are uncompressed raw bytes\n'
+  printf 'layout_config=%s\n' "${layout_config:-none}"
   printf 'partition_nodes=%s\n' "${partition_count}"
   printf 'successful_images=%s\n' "${success_count}"
   printf 'failed_or_short_reads=%s\n' "${failure_count}"
@@ -321,8 +366,8 @@ cat > "${output}/README.txt" <<'EOF'
 This directory contains a private, read-only MMC partition capture.
 
 MANIFEST.tsv maps each remote block node to its expected and captured byte
-counts, partition label, image filename, status, and SHA-256. Only rows with
-status=ok are complete images. A .partial file is retained when a read fails
+counts, partition label, logical layout name, image filename, status, and
+SHA-256. Only rows with status=ok are complete images. A .partial file is retained when a read fails
 or returns fewer bytes than the remote block-device size.
 
 The whole-disk node was deliberately excluded. These files may contain IMEI,

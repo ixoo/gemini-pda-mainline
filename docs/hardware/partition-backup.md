@@ -24,6 +24,11 @@ presented as a complete image. RPMB access may be unavailable on a given
 kernel; that is an expected, recorded negative result rather than a reason to
 retry with a write-capable tool.
 
+`--layout-config` is a naming aid only. The live `blockdev` size and sysfs
+partition node remain authoritative; a flash file may describe a different
+capacity or layout revision and must never be used as a write recipe without a
+fresh reconciliation.
+
 ## Usage
 
 First inspect the target and partition labels without copying bytes:
@@ -45,6 +50,7 @@ chmod 600 /private/tmp/gemini-sudo-password
 
 ./scripts/backup-device-mmc \
   --target gemini@192.168.1.50 \
+  --layout-config /path/to/Gemini_WIFI_A16GB_L40GB_Multi_Boot.txt \
   --sudo-password-file /private/tmp/gemini-sudo-password \
   --all \
   --confirm-read
@@ -58,6 +64,7 @@ the SSH session starts and does not create a local password file:
 ```sh
 ./scripts/backup-device-mmc \
   --target gemini@192.168.1.50 \
+  --layout-config /path/to/Gemini_WIFI_A16GB_L40GB_Multi_Boot.txt \
   --sudo-password-stdin \
   --all \
   --confirm-read
@@ -70,7 +77,8 @@ The default output is
   partition label, and read-only flag;
 - `*.img` — complete images whose manifest row has `status=ok`;
 - `*.partial` — incomplete or failed reads retained for diagnosis;
-- `MANIFEST.tsv` — expected/captured byte counts and SHA-256 checksums;
+- `MANIFEST.tsv` — expected/captured byte counts, physical `mmcblk` node,
+  flash-config logical name, and SHA-256 checksums;
 - `MANIFEST.tsv.sha256` — checksum of the manifest itself;
 - `SOURCE.txt`, `README.txt`, and `collector.log` — provenance, warnings, and
   transport errors.
@@ -78,6 +86,11 @@ The default output is
 The capture is not a flash package. In particular, do not use it as input to a
 preloader, GPT, NVRAM, or whole-device write command. Preserve a separate
 known-good recovery path and keep offline copies of the checksummed images.
+
+For an older capture made before logical naming was added, use
+[`scripts/rename-device-mmc`](../../scripts/rename-device-mmc) with the same
+flash config. It only renames files inside the Git-ignored capture directory
+and rewrites its manifest; it does not contact the device.
 
 ## Interpreting labels
 

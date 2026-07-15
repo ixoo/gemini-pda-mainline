@@ -9,6 +9,7 @@ opening a whole-disk write path?
 ## Method
 
 [`scripts/backup-device-mmc`](../../scripts/backup-device-mmc) connects over SSH,
+optionally consumes a MediaTek scatter/flash layout with `--layout-config`,
 uses root only for `blockdev`, sysfs label discovery, and `dd`, and writes the
 stream into a mode-0700 Git-ignored directory below
 `artifacts/device-partitions/`. It excludes `/dev/mmcblk0` itself and handles
@@ -33,13 +34,24 @@ and `p31` on this device. The `linux` partition (`p29`) reported
 
 The complete private result is under
 `artifacts/device-partitions/20260715T020041Z/`. Thirty-five nodes produced
-complete raw images with SHA-256 entries in `MANIFEST.tsv`; the RPMB node
+complete raw images with SHA-256 entries in `MANIFEST.tsv`; the captured files
+use the physical node followed by the logical name (for example,
+`mmcblk0p22-boot.img` and `mmcblk0p30-boot2.img`). The RPMB node
 returned `Input/output error` and is recorded as a zero-byte `.partial` with
 `status=short-read`. The manifest checksum itself is in
 `MANIFEST.tsv.sha256`. Inspect these files locally; they are intentionally not
 linked or hashed here. A row with `status=ok` is a complete image; a `.partial`
 row is not. The RPMB refusal is a useful negative result and must not be
 “fixed” by trying a write-capable utility.
+
+The supplied `Gemini_WIFI_A16GB_L40GB_Multi_Boot.txt` was used only as a
+logical-name source. Its geometry is not identical to the live partition
+inventory: for example, it declares `linux` as `42,353,033,216` bytes while
+the device reported `61,765,303,808`, and it declares `userdata` as
+`3,221,225,472` bytes while the device reported `16,777,216`. The live
+`blockdev` sizes in `MANIFEST.tsv` therefore take precedence for this capture;
+the flash file must not be used as a partition-write recipe without a fresh
+device-specific reconciliation.
 
 ## Interpretation and limits
 
