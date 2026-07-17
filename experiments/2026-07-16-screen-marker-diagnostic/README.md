@@ -219,8 +219,14 @@ The [Candidate G follow-up](../2026-07-16-fbcon-text-diagnostic/README.md)
 keeps F's exact kernel and DTB while replacing only initramfs, removing the raw
 marker and all framebuffer-device access, and holding a distinctive tty0
 banner. Its attended boot reproduced sideways scrolling for 1–2 seconds before
-black with the backlight apparently off. Candidate H preserves G's exact
-kernel/initramfs and appends only the MM-root simplefb clock reference; it is
-built reproducibly and fully read back from `boot2`, with runtime pending.
+black with the backlight apparently off. Candidate H preserved G's exact
+kernel/initramfs and appended only the MM-root simplefb clock reference. Two
+attempts visibly progressed farther and approximately exposed its
+initramfs-only marker before the screen and backlight went off; later attempts
+did not reproduce the progress. Candidate I now keeps H's exact kernel/DTB and
+changes only `/init` to emit a one-second counter through `T+60` before a
+silent hold. It is built reproducibly, exported and fully read back from
+`boot2`, with runtime pending. Broad `clk_ignore_unused` is deferred because
+unused-clock cleanup completes before external `/init`.
 Native DRM, DSI, PWM, panel, regulators and display-domain consumers remain
 disabled.

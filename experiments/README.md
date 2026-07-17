@@ -148,8 +148,18 @@ the result.
 - [2026-07-16 simplefb MM-root retention](2026-07-16-simplefb-mm-root-retention/README.md)
   — Candidate H keeps exact G's kernel and initramfs and appends only
   `CLK_TOP_MUX_MM` to simplefb's retained clocks. Two builds are recursively
-  byte-identical; the image is synchronized and fully read back from `boot2`,
-  with runtime pending.
+  byte-identical. In one attended series, two attempts visibly progressed
+  farther and the owner approximately recognized H's initramfs-only marker;
+  the backlight remained on with the text and went off at the black transition.
+  Later attempts did not reproduce the progress, so stable retention remains
+  unresolved.
+- [2026-07-16 fbcon refresh-timing diagnostic](2026-07-16-fbcon-refresh-timing-diagnostic/README.md)
+  — Candidate I keeps H's exact kernel and DTB and exact initramfs tree except
+  `/init`, then emits one tty0 line per second through `T+60` before a silent
+  static hold. Two builds are byte-identical; the exact image is exported,
+  synchronized and fully read back from `boot2`, with runtime pending. This is
+  the next gate; broad `clk_ignore_unused` is deferred because clock cleanup
+  completes before external `/init`.
 - [2026-07-14 live vendor-to-mainline gap audit](2026-07-14-live-vendor-mainline-gap-audit/README.md)
   — read-only comparison of the live Gemian vendor contracts with the current
   Linux 7.1.3 handoff and first-boot boundaries.

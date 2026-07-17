@@ -176,10 +176,26 @@ It reconstructs and hash-pins exact Candidate G, keeps `Image.gz` and initramfs
 byte-for-byte, resolves both providers from the pinned DTB, and permits only
 `CLK_TOP_MUX_MM` to be appended to the existing simplefb clocks property. Build
 it twice into new directories, require complete directory equality, and export
-one exact directory. H is the next runtime gate. If it still loses the display,
-use one separate temporary `clk_ignore_unused` candidate as the broad CCF
-discriminator. Rotation requires a later configuration-only candidate after
-display retention is stable.
+one exact directory. In Candidate H's attended series, two attempts visibly
+progressed farther and the owner approximately recognized its initramfs-only
+marker before the screen and backlight went off; later attempts did not
+reproduce the progress. This strongly attributes those attempts to external
+`/init`, but does not establish stable display retention.
+
+Candidate I must be produced by
+`experiments/2026-07-16-fbcon-refresh-timing-diagnostic/scripts/build-fbcon-refresh-candidate.sh`.
+It reconstructs and hash-pins exact Candidate H, keeps `Image.gz` and its
+appended DTB kernel segment byte-for-byte, and preserves the exact initramfs
+archive tree except for tracked `/init`. That init emits one tty0 line per
+second through `T+60`, then enters a silent static hold. Its validator permits
+only the ramdisk-derived Android-v0 fields to change. Build it twice into new
+directories, require complete directory equality, and export one exact
+directory. The validated image is synchronized and fully read back from
+logical `boot2`; runtime is the next gate. Since unused-clock cleanup is a
+synchronous late initcall that completes before external `/init`, defer the
+broad `clk_ignore_unused` discriminator until later evidence makes it specific.
+Rotation requires a separate configuration-only candidate after display
+retention is stable.
 
 Before treating the series as submission-ready, run the pinned tree's review
 checker over every patch:

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-16-simplefb-mm-root-retention` |
-| Status | Candidate H built reproducibly, validated, exported and synchronized to logical `boot2`; runtime pending |
+| Status | Candidate H attempted in one owner-attended series; two attempts visibly progressed farther than G and ended black with the backlight off, while later attempts did not reproduce that progress |
 | Subsystem | LK display handoff, MT6797 CCF, simplefb, framebuffer console |
 | Device variant | Current Gemini PDA unit; exact retail sub-variant not independently established |
 | Date(s) | 2026-07-16 |
@@ -110,18 +110,38 @@ full boot2 SHA-256: a878bfce9d7335965cb60c3016f2dfac9f12d51550a17ba46e82af35183c
 No reboot occurred and no other partition was touched. See
 [`results/boot2-write-candidate-h-20260716.txt`](results/boot2-write-candidate-h-20260716.txt).
 
-## Runtime procedure and interpretation
+## Runtime result and interpretation
 
-On one owner-attended silver-button selection of logical `boot2`, record:
+In one owner-attended series of logical-`boot2` attempts, Candidate H visibly
+progressed somewhat farther than Candidate G twice. On both of those attempts,
+the backlight remained on while text was visible and then went off when the
+screen became black. The exact visible duration was not reported. Later
+attempts did not reproduce the same visible progress; their count and
+backlight behavior were not reported, and there is no independent visual proof
+that every no-output attempt reached the same boot stage.
 
-1. whether sideways fbcon appears;
-2. whether the backlight and text remain visible for at least 30 seconds;
-3. whether Candidate G's heartbeat line can be recognized;
-4. the final power state and recovery action.
+The owner recalls a line approximately as `GEMINI FBCON TEST`. This is not an
+exact transcription or photograph, but it is consistent with H's unchanged,
+tracked initramfs marker `GEMINI_FBCON_TEXT_20260716_G`. No other tracked H path
+emits a `GEMINI_FBCON` string. The content attribution therefore strongly
+supports `/init` execution on at least one visible attempt, while the
+approximate recollection does not establish which exact marker characters were
+rendered. No heartbeat was reported as recognized. The kernel's final runtime
+and power state after black remain unknown. See the sanitized
+[`Candidate H runtime record`](results/runtime-candidate-h-20260716.txt).
 
-Persistent output supports late cleanup of `mm_sel` or its selected parent as
-the Candidate G failure. The exact failed clock still requires runtime evidence
-before becoming a durable hardware fact. If H still loses the display, use a
-temporary `clk_ignore_unused` candidate as the broad CCF discriminator; do not
-accumulate additional guessed simplefb clock consumers. Rotation remains a
-separate change after display retention is stable.
+The unreported duration does not establish whether either attempt reached the
+30-second observation threshold. The eventual black screen and failed
+reproduction do establish that appending only `CLK_TOP_MUX_MM` is insufficient
+to produce a stable visible console. The intermittent result is compatible
+with timing-sensitive retained bootloader state, but it does not identify a
+particular clock or distinguish display-clock cleanup from an earlier,
+variably reached boot stage. Because external `/init` runs after the synchronous
+late-initcall unused-clock sweep, the content-attributed marker also makes a
+broad `clk_ignore_unused` candidate a lower-value next step: the sweep had
+already completed before the marker was drawn. Candidate I therefore keeps H's
+kernel and DTB byte-identical and changes only `/init` to emit one timestamped
+fbcon line per second before a silent hold. That test can place the
+black/backlight-off transition relative to active console writes without adding
+another guessed clock consumer. Rotation and broad clock retention remain
+separate follow-ups until the timing boundary is measured.
