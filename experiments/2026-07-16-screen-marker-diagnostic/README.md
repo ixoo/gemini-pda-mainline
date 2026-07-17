@@ -218,6 +218,9 @@ prove `/init`, and no expected marker bands were recognized.
 The [Candidate G follow-up](../2026-07-16-fbcon-text-diagnostic/README.md)
 keeps F's exact kernel and DTB while replacing only initramfs, removing the raw
 marker and all framebuffer-device access, and holding a distinctive tty0
-banner. It is built reproducibly and fully read back from `boot2`; runtime is
-the next gate. Native DRM, DSI, PWM, panel, regulators and display-domain
-consumers remain disabled.
+banner. Its attended boot reproduced sideways scrolling for 1–2 seconds before
+black with the backlight apparently off. Candidate H preserves G's exact
+kernel/initramfs and appends only the MM-root simplefb clock reference; it is
+built reproducibly and fully read back from `boot2`, with runtime pending.
+Native DRM, DSI, PWM, panel, regulators and display-domain consumers remain
+disabled.

@@ -142,8 +142,14 @@ the result.
 - [2026-07-16 fbcon text retention diagnostic](2026-07-16-fbcon-text-diagnostic/README.md)
   — Candidate G keeps exact F's kernel, DTB and simplefb clock reference while
   replacing only initramfs, removing all raw framebuffer access, and holding a
-  distinctive sideways console banner. Two builds are byte-identical and the
-  synchronized `boot2` image has a matching complete readback.
+  distinctive sideways console banner. Its attended boot reproduced sideways
+  scrolling for 1–2 seconds before black with the backlight apparently off,
+  rejecting Candidate F's raw-write explanation but not confirming `/init`.
+- [2026-07-16 simplefb MM-root retention](2026-07-16-simplefb-mm-root-retention/README.md)
+  — Candidate H keeps exact G's kernel and initramfs and appends only
+  `CLK_TOP_MUX_MM` to simplefb's retained clocks. Two builds are recursively
+  byte-identical; the image is synchronized and fully read back from `boot2`,
+  with runtime pending.
 - [2026-07-14 live vendor-to-mainline gap audit](2026-07-14-live-vendor-mainline-gap-audit/README.md)
   — read-only comparison of the live Gemian vendor contracts with the current
   Linux 7.1.3 handoff and first-boot boundaries.

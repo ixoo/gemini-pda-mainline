@@ -167,8 +167,19 @@ and `bin/wc` are removed. Its validator rejects framebuffer-device, storage,
 raw-memory and reset access. Build it twice into new directories, require
 complete byte equality and export one exact directory. Candidate G deliberately
 does not rotate fbcon because the exact tested kernel compiles rotation out;
-rotation requires a separate kernel configuration and forced-command-line
-candidate after G's runtime result.
+its attended boot reproduced sideways output for 1–2 seconds before the screen
+and apparent backlight went black.
+
+Candidate H must be produced by
+`experiments/2026-07-16-simplefb-mm-root-retention/scripts/build-mm-root-candidate.sh`.
+It reconstructs and hash-pins exact Candidate G, keeps `Image.gz` and initramfs
+byte-for-byte, resolves both providers from the pinned DTB, and permits only
+`CLK_TOP_MUX_MM` to be appended to the existing simplefb clocks property. Build
+it twice into new directories, require complete directory equality, and export
+one exact directory. H is the next runtime gate. If it still loses the display,
+use one separate temporary `clk_ignore_unused` candidate as the broad CCF
+discriminator. Rotation requires a later configuration-only candidate after
+display retention is stable.
 
 Before treating the series as submission-ready, run the pinned tree's review
 checker over every patch:

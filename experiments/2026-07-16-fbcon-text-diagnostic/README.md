@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-16-fbcon-text-diagnostic` |
-| Status | Candidate G built reproducibly and synchronized to `boot2`; runtime not attempted |
+| Status | Candidate G attempted once from `boot2`; sideways fbcon appeared for 1–2 seconds, then the display went black with the backlight apparently off |
 | Subsystem | LK display handoff, simplefb, framebuffer console, initramfs |
 | Device variant | Current Gemini PDA unit; exact retail sub-variant not independently established |
 | Date(s) | 2026-07-16 |
@@ -42,9 +42,10 @@ The exact Candidate F kernel has `CONFIG_FRAMEBUFFER_CONSOLE=y`, but
 Linux still creates fbcon rotation sysfs attributes in that configuration, but
 their handlers call compiled no-op stubs. Candidate G therefore does not write
 those attributes or claim rotation; sideways text is expected. A later
-Candidate H can isolate the kernel change by enabling rotation and adding
-`fbcon=rotate:3` to the forced built-in command line. Font enlargement should
-remain separately attributable.
+configuration-only candidate can isolate rotation by enabling it and adding
+`fbcon=rotate:3` to the forced built-in command line. Candidate H instead tests
+MM-root clock retention. Font enlargement should remain separately
+attributable.
 
 ## Provenance and safety
 
@@ -127,9 +128,21 @@ full boot2 SHA-256: 9380cba612f4512922564b79062403b2b8bc143c422bfea7fa84dec1c1ba
 No boot, reboot or shutdown occurred and no other partition was touched. See
 [`results/boot2-write-candidate-g-20260716.txt`](results/boot2-write-candidate-g-20260716.txt).
 
-## Next observation
+## Runtime result and interpretation
 
-Candidate G is ready for an owner-attended silver-button `boot2` selection.
-The expected result is console text that remains visible sideways, followed by
-an in-place heartbeat-number update every 30 seconds. Rotation is intentionally
-deferred until this initramfs-only A/B has a recorded result.
+On one owner-attended logical-`boot2` selection, sideways console text scrolled
+for an estimated 1–2 seconds. The display then went black and the owner reported
+that the backlight appeared off. The text was not readable or photographed, no
+heartbeat was observed, and the kernel's final runtime and power state are
+unknown. See the sanitized
+[`Candidate G runtime record`](results/runtime-candidate-g-20260716.txt).
+
+Candidate G contains no raw framebuffer access, marker image, `dd`, or `wc`.
+Its black transition therefore rejects the leading Candidate F explanation
+that the bounded raw framebuffer overwrite caused the display loss. The repeat
+positive visual signal strongly supports kernel/simplefb/fbcon output, but the
+unread text still does not attribute the output to `/init`. The reported
+backlight-off transition is compatible with late cleanup of an unclaimed
+backlight or display clock; that is an inference, not a confirmed cause. The
+next candidate should isolate display/backlight-state retention while keeping
+rotation deferred until the output remains stable.

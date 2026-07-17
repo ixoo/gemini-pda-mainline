@@ -79,12 +79,16 @@ Priorities for the next controlled test are:
    moved across the display for about one second before black. That is the first
    positive visual Linux 7.1.3 handoff signal and strongly supports
    simplefb/fbcon output; unread text does not independently prove `/init`.
-   Candidate G now keeps F's exact kernel and DTB while removing only the raw
-   marker access and holding a distinctive console banner. Its two builds are
-   identical and its synchronized `boot2` image has a matching complete
-   readback. Run this initramfs-only A/B before enabling fbcon rotation; the
-   exact kernel compiles rotation out. Do not combine either discriminator with
-   native display programming or broad `clk_ignore_unused`.
+   Candidate G kept F's exact kernel and DTB while removing only the raw marker
+   access. Its attended boot reproduced sideways scrolling for 1–2 seconds
+   before black with the backlight apparently off, rejecting the raw-write
+   explanation. Candidate H now keeps G's exact kernel and initramfs and appends
+   only `CLK_TOP_MUX_MM` to the simplefb clock references. Two builds are
+   identical, all semantic/container gates pass, and its synchronized `boot2`
+   image has a matching complete readback. Run H before enabling fbcon rotation.
+   If H still loses the display, use one temporary `clk_ignore_unused` candidate
+   as the broad CCF discriminator; do not combine either test with native
+   display programming.
 6. **P5 — isolate the restart path before widening the platform.**
    `reboot -f` requests `RB_AUTOBOOT`. Linux 7.1.3 invokes PSCI
    `SYSTEM_RESET` before the MT6797 TOPRGU watchdog fallback. The off-like state
@@ -178,8 +182,11 @@ Candidate E retained that exact `Image.gz`, added an allowlisted simplefb node,
 and wrote one validated frame from `/init`; it remained black. Candidate F
 added only `CLK_INFRA_DISP_PWM` retention and produced about one second of
 sideways fbcon text before black, the first positive visual Linux 7.1.3 signal.
-Candidate G retains F's exact kernel/DTB, removes all raw framebuffer access,
-and is fully read back from `boot2`; its runtime result is the next gate.
+Candidate G retained F's exact kernel/DTB, removed all raw framebuffer access,
+and reproduced sideways scrolling for 1–2 seconds before black with the
+backlight apparently off. Candidate H preserves G's exact kernel/initramfs and
+adds only the `CLK_TOP_MUX_MM` simplefb reference; its two builds are identical
+and its exact padded image is fully read back from `boot2`. H is the next gate.
 The normal UART prerequisite remains unmet; the experiment records the
 one-time alternative-recovery exception, observation, and stop path.
 The prior 76-patch package has a regenerated private gzip+appended-DTB
