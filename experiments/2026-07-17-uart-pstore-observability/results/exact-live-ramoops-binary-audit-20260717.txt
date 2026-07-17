@@ -1,0 +1,168 @@
+experiment=2026-07-17-uart-pstore-observability
+stage=exact-live-kernel-binary-audit
+date_utc=2026-07-17
+operation=read-only-local-binary-reconstruction-disassembly-and-live-header-capture
+device=named-Gemini-PDA-unit
+result=PARTIAL-PASS-WITH-FILENAME-CONTRADICTION
+
+[identity]
+private_input=artifacts/vendor-kernel/gemian-2019/boot.img
+private_input_git_ignored=yes
+android_boot_format=v0
+android_kernel_offset=0x800
+android_kernel_size=8429825
+boot_image_sha256=1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513
+kernel_payload_sha256=b53d191dc41d3f7364b0fa62b4bc920b1d013a1942b2e6b06727263fc56fcf4d
+decompressed_image_size=20013248
+decompressed_image_sha256=0570480c28bce1583636a240904df8da3af0b5e5b4bcc6254f5719b42bd723d0
+reconstructed_elf_sha256=cc66df06194d3315335462760962165e1dcb2e50221574aeb45a0805bb17a162
+kernel_release=3.18.41+
+kernel_build_identity=#7-SMP-PREEMPT-2019-03-29T10:39:03Z
+live_identity_match=release-and-build-tuple-match-captured-baseline
+personal_builder_identity=redacted
+
+[method]
+1=Read the Android v0 header and extract exactly kernel_size bytes beginning at the page-size offset 0x800.
+2=Gzip-decompress the kernel member; the expected trailing data is the appended FDT and is not part of the reconstructed Image hash above.
+3=Run vmlinux-to-elf 1.3.6 with --bit-size 64 --e-machine 183 on the decompressed Image.
+4=Verify the reconstructed ELF is an AArch64 ELF with extracted kallsyms, then inspect it with aarch64-linux-gnu-nm and aarch64-linux-gnu-objdump.
+5=Compare the control flow with the live sysfs ramoops parameters captured before Candidate L.
+6=Read only the 12-byte persistent-RAM header at each live downstream console-zone start through /dev/mem. No payload bytes were retained, no memory was written, and the sudo credential was neither echoed nor stored.
+
+[exact-live-symbols]
+pstore_mkfile=0xffffffc0002d0490
+pstore_bconsole_write=0xffffffc0002d0df0
+ramoops_get_next_prz=0xffffffc0002d1888
+ramoops_pstore_read=0xffffffc0002d1930
+ramoops_probe=0xffffffc0002d1ce8
+ramoops_console_write_buf=0xffffffc0002d2188
+persistent_ram_new=0xffffffc0002d2a00
+
+[binary-evidence-two-console-layout]
+ramoops_probe[0xffffffc0002d1e40]=load-total-size
+ramoops_probe[0xffffffc0002d1e44]=load-ftrace-size
+ramoops_probe[0xffffffc0002d1e48]=remaining=total_size-(console_size<<1)
+ramoops_probe[0xffffffc0002d1e50]=remaining-=ftrace_size
+ramoops_probe[0xffffffc0002d1e54]=remaining-=pmsg_size
+ramoops_probe[0xffffffc0002d2094]=initialize-first-console-PRZ-with-zero-type-signature
+ramoops_probe[0xffffffc0002d20b8]=initialize-second-console-PRZ-with-zero-type-signature
+pstore_bconsole_write[0xffffffc0002d0e20]=backend-type-argument=PSTORE_TYPE_CONSOLE(2)
+interpretation=The exact active binary independently confirms a downstream bconsole path and reserves two console_size zones. This is not merely inferred from the 3.18.79 reference source.
+
+[live-parameter-input]
+source=artifacts/device-pstore/pre-candidate-L-20260717/metadata.txt
+mem_address=0x44410000
+mem_size=0x000e0000
+record_size=0x00001000
+console_size=0x00010000
+pmsg_size=0x00010000
+ftrace_size=0x00001000
+mem_type=0
+ecc=0
+
+[confirmed-exact-live-layout]
+formula[dmesg]=0xe0000-(2*0x10000)-0x1000-0x10000=0xaf000
+dmesg=[0x44410000,0x444bf000)
+console=[0x444bf000,0x444cf000)
+bconsole=[0x444cf000,0x444df000)
+ftrace=[0x444df000,0x444e0000)
+pmsg=[0x444e0000,0x444f0000)
+original_candidate_L_mainline_console=[0x444cf000,0x444df000)
+original_candidate_L_alignment=exact-live-bconsole-zone-confirmed
+
+[live-console-header-capture]
+capture_utc=2026-07-17T20:44Z
+capture_operation=read-only-12-byte-header-at-each-console-zone-start
+primary_header_words[sig,start,size]=0x43474244,0x0000e756,0x0000fff4
+primary_capacity=0x0000fff4
+primary_state=valid-full-ring
+bconsole_header_words[sig,start,size]=0x43474244,0x000000d8,0x000000d8
+bconsole_capacity=0x0000fff4
+bconsole_state=valid-nonempty-216-byte-ring
+payload_captured=no
+interpretation=The running Gemian system has valid, nonempty current buffers in both downstream console zones. The primary normal-console ring is full; the bconsole ring contains 216 bytes.
+
+[gemian-boot-write-and-clear-semantics]
+exact_binary_primary_writer=ramoops_console_write_buf
+exact_binary_secondary_writer=pstore_bconsole_write-through-ramoops_pstore_write_buf
+normal_console_registration=pstore_register-registers-the-console-frontend-before-its-own-registration-printk
+valid_buffer_boot_behavior=save-old-snapshot-and-return-without-zapping-current-header
+invalid_buffer_boot_behavior=set-signature-and-zap-start-and-size
+same_boot_sysfs_behavior=reads-the-old-snapshot-not-subsequent-current-ring-writes
+current_boot_observation=Both current rings are nonempty while the preflight old-record mount was empty, consistent with both writer paths running after ramoops probe on this boot.
+unconditional_console_clear_on_gemian_boot=no
+conditional_clear=only-missing-signature-or-invalid-size/start
+
+[binary-evidence-record-id]
+ramoops_pstore_read[0xffffffc0002d1b30..0xffffffc0002d1b54]=select-second-console-PRZ-as-PSTORE_TYPE_CONSOLE-with-one-record
+ramoops_get_next_prz[0xffffffc0002d18dc]=store-PSTORE_TYPE_CONSOLE-through-type-pointer
+ramoops_get_next_prz[0xffffffc0002d18e4]=store-record-array-index-zero-through-id-pointer
+post-second-console-call=direct-branch-with-no-id-override
+expected-reference-instruction=store-constant-two-through-id-pointer
+expected-reference-instruction_present=no
+pinned_3.18.79_reference_source=sets-*id=2-after-reading-bconsole
+exact_live_3.18.41+_binary=does-not-set-*id=2
+live_binary_reference_equivalence=disproved-for-bconsole-id-assignment
+
+[filename-consequence]
+pstore_mkfile[0xffffffc0002d080c]=choose-suffixed-console-name-only-when-id-is-nonzero
+format_nonzero_id=console-%s-%lld
+format_zero_id=console-%s
+backend_name=ramoops
+second_console_expected_id=0
+second_console_expected_filename_when-first-console-is-invalid=console-ramoops
+console-ramoops-2_expectation=contradicted-by-exact-live-binary
+duplicate_boundary=If both downstream console zones contain valid records, both are returned as type CONSOLE/id 0. The exact pstore duplicate check can reject the later second-console record as EEXIST, so successful exposure is not guaranteed merely by correct zone alignment.
+
+[primary-zone-redesign-evaluation]
+recommended_candidate_layout=mainline-console-on-exact-live-primary-console
+recommended_mainline_dmesg=[0x44410000,0x444bf000)
+recommended_mainline_console=[0x444bf000,0x444cf000)
+recommended_mainline_pmsg_alignment=[0x444cf000,0x444ef000)
+recommended_mainline_ftrace=[0x444ef000,0x444f0000)
+recommended_sizes[console,pmsg,ftrace]=0x10000,0x20000,0x1000
+recommended_formula[dmesg]=0xe0000-0x10000-0x20000-0x1000=0xaf000
+primary_recovery_filename=console-ramoops
+primary_recovery_id=0
+primary_recovery_collision_before_read=no
+primary_recovery_assessment=source-and-exact-live-binary-validated-pending-warm-reset-runtime
+reason=Mainline and Gemian use the same zero-type persistent-RAM header and the same 0x10000 zone at the primary address. Mainline snapshots the inherited Gemian primary ring, clears its active header under PRZ_FLAG_ZAP_OLD, and then CON_PRINTBUFFER plus Candidate L writes repopulate that exact ring. Gemian snapshots the resulting Candidate L ring first on the recovery boot as type CONSOLE/id 0.
+
+[pmsg-alignment-interference-analysis]
+alignment_zone_starts_at_live_bconsole=yes
+live_bconsole_header_valid=yes-size-216
+mainline_pmsg_signature=zero-type-0x43474244-same-as-live-bconsole
+mainline_pmsg_capacity=0x1fff4-greater-than-live-bconsole-size
+mainline_probe_effect=accept-and-snapshot-existing-bconsole-then-zap-active-header
+automatic_mainline_pmsg_payload_writes=no-frontend-disabled
+candidate_initramfs_pmsg_writes=no
+expected_header_change_before-watchdog=mainline-pmsg-initialization-clears-bconsole-start-and-size
+gemian_recovery_effect=The former bconsole header is empty after mainline single-zone initialization, so it should not create a later duplicate type-CONSOLE/id-0 record. This removes rather than relies on the old collision, while leaving the earlier primary Candidate L console record unchanged.
+internal_overlap_boundary=The 0x20000 alignment allocation also spans the live ftrace header and most of the live pmsg area. Mainline pmsg initialization writes only its header at 0x444cf000 after snapshotting the old bconsole payload; the disabled frontend performs no later pmsg payload writes. The separate mainline ftrace PRZ at 0x444ef000 can initialize a header only in the tail of the live pmsg zone. None of these writes overlap the recommended primary console evidence.
+pmsg_alignment_allocation_interferes_with_primary_console_recovery=no-address-disjoint
+
+[decision]
+layout_decision=Use the recommended primary-zone layout, not the original second-zone layout. It avoids the live binary's duplicate-ID ambiguity and maps the evidence to the first console record that Gemian exposes.
+collector_decision=Capture and inspect every console-ramoops* file, with console-ramoops as the required primary Candidate L evidence. Never require console-ramoops-2 from this exact live kernel.
+runtime_boundary=A warm-reset test is still required to establish physical retention and actual sysfs exposure. The exact binary, current live headers, and unchanged primary-zone contract make console-ramoops recoverable by design; they do not substitute for that runtime result.
+source_decision=Do not upgrade the pinned 3.18.79 reference's bconsole-id behavior to live equivalence. The live binary supersedes it for filename prediction.
+
+[confidence]
+two_console_allocation=high-exact-active-binary-plus-live-parameters
+original_candidate_L_second_zone_alignment=high-exact-active-binary-plus-live-parameters
+bconsole_id_zero=high-exact-control-flow-and-helper-store
+console-ramoops_filename_prediction=high-when-first-console-is-invalid
+recommended_primary_zone_recovery_contract=high-exact-binary-live-header-and-source-semantics
+pmsg_alignment_noninterference_with_primary=high-address-disjoint
+warm_reset_retention=unknown-runtime-required
+exact_live_exposure_when-both-console-records-valid=collision-risk-confirmed
+
+[provenance-and-safety]
+proprietary_or_private_binary_committed=no
+binary_bytes_in_result=no
+result_contains=hashes-symbol-addresses-pseudocode-and-derived-ranges-only
+credentials_or_device_identifiers_recorded=no
+hardware_write=none
+device_memory_read=two-12-byte-headers
+pstore_or_reserved_memory_mutation=none
+device_reboot=none

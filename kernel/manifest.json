@@ -37,6 +37,15 @@
           "configs/gemini-usbdiag.fragment",
           "configs/gemini-clk-ignore-unused.fragment"
         ]
+      },
+      "observability": {
+        "base": "defconfig",
+        "fragments": [
+          "configs/gemini-handoff.fragment",
+          "configs/gemini-usbdiag.fragment",
+          "configs/gemini-clk-ignore-unused.fragment",
+          "configs/gemini-observability.fragment"
+        ]
       }
     }
   }

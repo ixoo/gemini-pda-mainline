@@ -429,7 +429,7 @@ package_artifacts() {
   sums_file="${temporary}.SHA256SUMS"
   (
     cd "${PACKAGE_DIR}"
-    find . -type f ! -name SHA256SUMS -print0 \
+    find . -type f ! -path ./SHA256SUMS -print0 \
       | sort -z \
       | xargs -0 sha256sum > "${sums_file}"
   )

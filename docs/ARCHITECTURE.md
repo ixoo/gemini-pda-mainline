@@ -130,7 +130,7 @@ Once merged upstream, remove the patches and replace them with the first contain
 The subsystem audit baseline is Linux 7.1.3 with 72 non-comment entries and
 patchset SHA-256
 `c2d9eea95daa25dd8faddef4f9822e663db67d5d0946f06f0251cc52c92cf08c`.
-The current working series extends through patch 0078. Patches 0072–0076 add
+The current working series extends through patch 0081. Patches 0072–0076 add
 disabled SPI and input candidates; the latest validated package for that
 boundary is `linux-7.1.3-gemini-6116c9e7da3f` with patchset SHA-256
 `6116c9e7da3fc2f56612029236a3bcd370c61f91b3c0951dd4e2c1915537f55e`.
@@ -203,20 +203,21 @@ disables, or retain regulators or power domains, and it is not a normal boot
 policy. The exact kernel compiles fbcon rotation out, so rotation remains a
 separate later configuration test.
 
-The completed reassessment selected
-[Candidate K](../experiments/2026-07-17-fbcon-newline-boundary-diagnostic/README.md),
-an exact-J kernel, appended-DTB, forced-command-line and Android-v0-layout
-derivative whose initramfs changes only `/init`. It emits 20 one-second
-fixed-width carriage-return updates without deliberate newlines, then a
-distinct transition and 12 controlled one-second newline lines. Asynchronous
-kernel printk remains a confounder. Two final VM builds are byte-identical; the
-raw image SHA-256 is
-`83704cde0e3e4ed897990b230a817a1c7618201a6b8a33a86a2e19c8e07a07cb`.
-After a fresh exact-J backup, K was synchronized, flushed and fully read back
-from logical `boot2` with padded SHA-256
-`959092428f849c5ee2612c352ac4e4f707a4e0ec8696bda6632252e7194a7927`.
-The device remains in known-good Gemian; one attended K selection is the next
-gate. No matched-I rollback is authorized.
+Candidate K was a reproducible exact-J initramfs-only newline/scroll
+derivative. Its synchronized `boot2` write/readback record remains historical
+evidence, but a strategy review cancelled its device test without a runtime
+selection: K changes no kernel, DT, or configuration input, and no outcome
+would change the next prerequisite.
+
+[Candidate L](../experiments/2026-07-17-uart-pstore-observability/README.md)
+is the current observability gate. It changes the board UART0 pinmux to the
+captured GPIO97 RX/GPIO98 TX state, maps the mainline ramoops console exactly
+onto the active Gemian kernel's primary console zone, and adds MT6797 TOPRGU dual-stage and
+auto-restart policy so a controlled watchdog expiry can leave persistent
+evidence. The exact binary and pinned source independently support the primary
+layout. Mainline pmsg supplies address alignment and is not a recovery
+channel. Candidate L is not runtime-tested. Build and device-write status must be
+recorded only after those operations complete.
 The following map is the implementation boundary for the baseline candidate; it is
 deliberately grouped by dependency rather than treating every patch as a new
 driver.
@@ -234,9 +235,9 @@ driver.
 | 0058–0065 | Panfrost, DPI, PMIC parent fix, SCPSYS/AFE bindings, DVFSP deferral | Reuse Panfrost/DRM/PMIC/SCPSYS/ASoC frameworks; keep undocumented DVFSP out | Panfrost/DPI/AFE consumers remain disabled or module-only | Validate each consumer’s clocks, resets, IOMMU, supplies, and firmware boundary independently |
 | 0066–0071 | USB T-PHY/MTU3/xHCI/MUSB and MSDC pinmux policy | Reuse generic USB cores with MT6797 glue and source-derived split windows; use pinmux-only MSDC state | USB nodes remain disabled; built-in code is package capability, not probe evidence | Gadget-only console first, then role/VBUS and PHY tests with external recovery |
 | 0072–0076 | SPI aliases/nodes, hall input, NT36772 boundary, keyboard polarity | Reuse generic SPI and input frameworks where the captured protocol matches; keep every new board consumer disabled | The 77-patch package validates, but these additions have no current-mainline runtime result | Test one bounded consumer at a time with exact identity and recovery evidence |
-| 0077–0078 | MTU3 peripheral diagnostic | Extend the existing MediaTek T-PHY with an opt-in forced B-device session and describe Gemini peripheral wiring while leaving base nodes disabled | The exact USB image was fully read back and runtime-tested from `boot2`; two bounded host checks found no USB child. A ramdisk-only timed-reboot follow-up produced strong indirect `/init` evidence but no automatic restart, which does not promote USB support. Candidate E's marker remained black. Candidate F's sole simplefb clock-reference delta then produced about one second of visible sideways fbcon text before black, strongly supporting kernel/simplefb/fbcon execution. Candidate G removed only the raw framebuffer overwrite and reproduced sideways scrolling for 1–2 seconds before black with the backlight apparently off. Candidate H appended only the MM-root clock reference; two attempts visibly progressed farther and approximately exposed its initramfs marker before the screen and backlight went off, while later attempts did not reproduce the progress. Candidate I is an exact-H initramfs-only timing derivative, fully read back from `boot2`; the reported intended selection was directly black with no I marker or counter, so its timing hypothesis remains untested. Candidate J rebuilds I's kernel with `clk_ignore_unused` in forced `CONFIG_CMDLINE`; its reports provisionally describe two tick-04-compatible visible-to-black outcomes and one direct-black/no-console outcome. Candidate K keeps exact J's kernel/DTB/container layout and changes only `/init` to separate 20 fixed-width CR/no-newline updates from 12 controlled newline lines; asynchronous printk remains a confounder. K is reproducibly built, exported, synchronized, flushed and fully read back from logical `boot2`; runtime is pending | Perform one attended K selection after a known-good boot and normal temperature; record exact K phase/counter, black/backlight behavior, power state and recovery. Stop further J repetition and do not roll back to I without separate authorization. Treat J/K only as broad-clock and newline-boundary discriminators. Rotate only after retention is stable. Resolve PSCI versus TOPRGU independently; prove USB host enumeration before ping and the TCP marker shell. Infer nothing about host mode, VBUS, Type-C policy, or charging |
+| 0077–0081 | MTU3 diagnostic, UART/pstore/restart observability | Reuse generic MediaTek USB, 8250, pstore, and watchdog facilities; add only captured board data and narrowly scoped MT6797 watchdog policy | The USB candidate remains a failed host-observation gate. K was an initramfs-only derivative and is cancelled without runtime. Candidate L adds GPIO97/98 UART0 pinmux, exact mainline-console/active-Gemian primary `console-ramoops` alignment, and watchdog auto-restart plus IRQ-dependent dual-stage policy as build-only changes; pmsg supplies address alignment and is explicitly not cross-version evidence | Build and validate L, then perform one attended boot that can discriminate UART output, surviving console evidence after watchdog reset, and no-entry/no-reset. Do not repeat K. Keep USB host, VBUS, Type-C, and charging conclusions separate. |
 
-The [current driver-coverage audit](../experiments/2026-07-13-driver-coverage-audit/results/driver-coverage-current-77-package-20260714.txt), [first-boot dependency audit](../experiments/2026-07-14-first-boot-probe-audit/results/first-boot-probe-audit-current-77-package-20260714.txt), [module-closure audit](../experiments/2026-07-14-mainline-module-closure-audit/results/module-closure-current-72-20260714.txt), [77-patch package validation](../experiments/2026-07-12-input-backlight-recovery/results/mainline-display-input-current-77-package-20260714.txt), [USB diagnostic experiment](../experiments/2026-07-16-usb-gadget-diagnostic/README.md), [timed-reboot follow-up](../experiments/2026-07-16-timed-reboot-diagnostic/README.md), [screen-marker follow-up](../experiments/2026-07-16-screen-marker-diagnostic/README.md), [clock-retention result](../experiments/2026-07-16-screen-clock-retention-diagnostic/README.md), [fbcon-text follow-up](../experiments/2026-07-16-fbcon-text-diagnostic/README.md), [MM-root-retention follow-up](../experiments/2026-07-16-simplefb-mm-root-retention/README.md), [fbcon refresh-timing follow-up](../experiments/2026-07-16-fbcon-refresh-timing-diagnostic/README.md), [broad unused-clock diagnostic](../experiments/2026-07-17-clk-ignore-unused-diagnostic/README.md), and [newline-boundary diagnostic](../experiments/2026-07-17-fbcon-newline-boundary-diagnostic/README.md) provide the corresponding evidence boundaries. The older subsystem records remain content audits where later patches do not touch their inputs. This table is a design map, not a claim that any disabled, module-only, or diagnostic path works on hardware.
+The [current driver-coverage audit](../experiments/2026-07-13-driver-coverage-audit/results/driver-coverage-current-77-package-20260714.txt), [first-boot dependency audit](../experiments/2026-07-14-first-boot-probe-audit/results/first-boot-probe-audit-current-77-package-20260714.txt), [77-patch package validation](../experiments/2026-07-12-input-backlight-recovery/results/mainline-display-input-current-77-package-20260714.txt), [USB diagnostic experiment](../experiments/2026-07-16-usb-gadget-diagnostic/README.md), [broad unused-clock diagnostic](../experiments/2026-07-17-clk-ignore-unused-diagnostic/README.md), [cancelled newline-boundary diagnostic](../experiments/2026-07-17-fbcon-newline-boundary-diagnostic/README.md), and [UART/pstore observability experiment](../experiments/2026-07-17-uart-pstore-observability/README.md) provide the corresponding evidence boundaries. The older subsystem records remain content audits where later patches do not touch their inputs. This table is a design map, not a claim that any disabled, module-only, or diagnostic path works on hardware.
 Candidate J's partition operation is separately recorded in its
 [full write/readback result](../experiments/2026-07-17-clk-ignore-unused-diagnostic/results/boot2-write-candidate-j-20260717.txt).
 Its attended observations are recorded in the
@@ -244,7 +245,7 @@ Its attended observations are recorded in the
 and [repeat report](../experiments/2026-07-17-clk-ignore-unused-diagnostic/results/runtime-candidate-j-repeat-report-20260717.txt).
 Candidate K's synchronization is recorded in its
 [full write/readback result](../experiments/2026-07-17-fbcon-newline-boundary-diagnostic/results/boot2-write-candidate-k-20260717.txt);
-runtime is pending.
+it was not runtime-tested and is superseded by Candidate L.
 
 ## Decision records
 

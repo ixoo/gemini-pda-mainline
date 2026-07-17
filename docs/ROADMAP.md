@@ -126,33 +126,43 @@ Priorities for the next controlled test are:
    output with broad clock retention, but stable visibility, causality, and
    clock identity remain unestablished. `clk_ignore_unused` neither turns on
    already-off clocks nor prevents explicit disables or retains
-   regulators/power domains. Stop further J repetition. The completed
-   reassessment selected Candidate K rather than a matched-I rollback. K keeps
-   exact J's kernel, appended DTB, forced command line and container layout and
-   changes only `/init`: 20 one-second fixed-width carriage-return updates with
-   no deliberate newline, then a distinct transition and 12 controlled
-   one-second newline lines. Asynchronous kernel printk remains a confounder.
-   Its two final VM builds are byte-identical; raw SHA-256 is
-   `83704cde0e3e4ed897990b230a817a1c7618201a6b8a33a86a2e19c8e07a07cb`.
-   K is synchronized, flushed and fully read back from logical `boot2` after a
-   fresh exact-J backup; the padded SHA-256 is
-   `959092428f849c5ee2612c352ac4e4f707a4e0ec8696bda6632252e7194a7927`.
-   The device remains in Gemian. Perform one attended K selection after a
-   known-good boot and normal temperature; runtime is pending.
-6. **P5 — isolate the restart path before widening the platform.**
+   regulators/power domains. Stop further J repetition. Candidate K was built
+   and synchronized as an exact-J initramfs-only newline/scroll derivative,
+   but the strategy review cancelled it without a runtime selection. It has no
+   kernel, DT, or configuration delta, and no plausible result would change
+   the next action. Its historical write/readback record is retained; do not
+   boot it.
+6. **P5 — Candidate L observability gate.** Candidate L introduces three
+   decision-changing, source-backed deltas: UART0 board pinmux correction to
+   GPIO97 RX/GPIO98 TX; an exact Linux 7.1.3 console to the active Gemian
+   primary `console-ramoops` zone inside `ramoops@44410000`; and normalized
+   MT6797 TOPRGU dual-stage/auto-restart mode to bypass the power-key gate.
+   A `0x20000` mainline pmsg allocation supplies address alignment, initializes
+   its backend header, and is explicitly not cross-version evidence.
+   Its initramfs logs to the kernel console, opens the watchdog, sends one ownership-handoff ping to cancel the
+   inherited kernel keepalive, and then sends no further pings. The resulting
+   reset and subsequent pstore collection are independently meaningful. A
+   successful UART trace, recovered pstore record, watchdog reset, or absence
+   of all three lead to different next work. Candidate L is not yet
+   runtime-tested; do not claim a build or write until its validators and
+   device operation complete.
+7. **P6 — use Candidate L to isolate restart before widening the platform.**
    `reboot -f` requests `RB_AUTOBOOT`. Linux 7.1.3 invokes PSCI
    `SYSTEM_RESET` before the MT6797 TOPRGU watchdog fallback. The off-like state
    could therefore be a PSCI off/key-gated result, a successful TOPRGU reset
    that waits for the power key, or a quiesced hang if reset never asserts.
-   The second branch has a concrete source discrepancy: Gemian sets TOPRGU mode
-   bit 4 to bypass the power key for normal reboot, while mainline preserves
-   its inherited value. The following manual Gemian boot reported `power_key`
+   The second branch exposed a concrete source discrepancy: Gemian sets TOPRGU
+   mode bit 4 to bypass the power key for normal reboot, while unmodified
+   mainline preserves its inherited value. The following manual Gemian boot reported `power_key`
    with zero PMIC watchdog, AED watchdog, exception, and battery-removal flags,
-   which is compatible with that key-gated reset. Use the existing 5–10-second
-   owner estimate only as supporting evidence, then design a bounded test that
-   distinguishes PSCI from TOPRGU and tests bit-4 policy; only then repeat the
-   exact candidate hash and record
-   recovery behavior. Then test PSCI with two CPUs and then the
+   which is compatible with that key-gated reset. Candidate L is the bounded
+   direct-TOPRGU test: it normalizes auto-restart, makes dual-stage
+   conditional on successful bark-IRQ/pretimeout setup, and leaves a
+   primary-console recovery hypothesis validated against pinned
+   source, the exact active binary, and live ring headers.
+   Its single attended result selects either reset-path repair or a distinct
+   follow-up; do not repeat an identical L artifact. After an observable
+   TOPRGU return is established, test PSCI with two CPUs and then the
    eight Cortex-A53 cores; keep the Cortex-A72 pair deferred if the reported
    secure-firmware `CPU_ON` hang reproduces. Next add read-only eMMC discovery
    and safe battery telemetry. Native DRM/panel, keyboard, charging policy,
@@ -178,9 +188,9 @@ Candidate J's safe synchronization is captured in its
 Its attended observations are captured in the
 [Candidate J first runtime record](../experiments/2026-07-17-clk-ignore-unused-diagnostic/results/runtime-candidate-j-attempt-1-20260717.txt)
 and [repeat report](../experiments/2026-07-17-clk-ignore-unused-diagnostic/results/runtime-candidate-j-repeat-report-20260717.txt).
-The completed reassessment and next attended gate are recorded in the
-[Candidate K newline-boundary experiment](../experiments/2026-07-17-fbcon-newline-boundary-diagnostic/README.md)
-and its [write/readback record](../experiments/2026-07-17-fbcon-newline-boundary-diagnostic/results/boot2-write-candidate-k-20260717.txt).
+The cancelled Candidate K design and its historical write/readback are recorded
+in the [newline-boundary experiment](../experiments/2026-07-17-fbcon-newline-boundary-diagnostic/README.md).
+The current decision-changing gate is [Candidate L UART/pstore observability](../experiments/2026-07-17-uart-pstore-observability/README.md).
 
 ## Current evidence snapshot (2026-07-17)
 
@@ -270,14 +280,12 @@ same boundary, and one direct-black/no-console outcome that cannot establish
 kernel or `/init` execution. Provisionally, two of three intended selections
 had tick-04-compatible visible output, but stable visibility and clock
 causality remain unestablished. Stop further J repetition; no matched-I
-rollback is authorized. The completed reassessment selected Candidate K, an
-exact-J initramfs-only derivative with 20 fixed-width CR/no-newline updates and
-12 controlled newline lines. Its raw SHA-256 is
-`83704cde0e3e4ed897990b230a817a1c7618201a6b8a33a86a2e19c8e07a07cb`;
-it is synchronized and fully read back from `boot2` with padded SHA-256
-`959092428f849c5ee2612c352ac4e4f707a4e0ec8696bda6632252e7194a7927`.
-The device remains in Gemian. One attended K selection is the next gate;
-runtime is pending and asynchronous printk remains a confounder.
+rollback is authorized. Candidate K, an exact-J initramfs-only derivative, was
+synchronized and fully read back from `boot2`, then cancelled without a runtime
+selection because it offers no kernel/DT/configuration hypothesis. Candidate L
+   is now the next gate: corrected UART0 GPIO97/98 pinmux, cross-version
+   ramoops console recovery, and normalized watchdog dual-stage/auto-restart
+   provide independent, persistent observations.
 The normal UART prerequisite remains unmet; the experiment records the
 one-time alternative-recovery exception, observation, and stop path.
 The prior 76-patch package has a regenerated private gzip+appended-DTB

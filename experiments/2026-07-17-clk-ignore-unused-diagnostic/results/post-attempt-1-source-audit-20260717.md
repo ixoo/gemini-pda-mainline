@@ -28,8 +28,11 @@ generic description of Linux initialization.
 > repetition is stopped, and no Candidate I rollback is authorized. The
 > completed reassessment selected
 > [Candidate K](../../2026-07-17-fbcon-newline-boundary-diagnostic/README.md),
-> an exact-J initramfs-only newline-boundary diagnostic now synchronized to
-> `boot2`; its single attended runtime gate is pending.
+> an exact-J initramfs-only newline-boundary diagnostic synchronized to
+> `boot2`. A later strategy review cancelled K without a runtime selection
+> because it changes no kernel, DT, or configuration input and cannot change
+> the next action. Candidate L supersedes it with explicit UART, persistent-log,
+> and watchdog hypotheses; do not boot J or K again.
 
 ## Observation and exact marker boundary
 

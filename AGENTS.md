@@ -18,12 +18,21 @@ configuration, safe tooling, hardware knowledge, and reproducible evidence.
 - Pin upstream inputs in `kernel/manifest.json`.
 - Store `git format-patch` files below `patches/` and order them in
   `patches/series`; keep one logical upstream change per patch.
-- Add required kernel options to `configs/gemini.fragment`.
+- Add reusable board options to `configs/gemini.fragment`; keep intentionally
+  isolated experiment policy in a named profile fragment and pin that profile
+  in `kernel/manifest.json`.
 - Build with `./scripts/dev-vm build-kernel`. Generated Linux sources, builds,
   and artifacts belong in the VM, not Git.
 - “Latest kernel” means the boot candidate explicitly selected for the active
   experiment after package, checksum, LK-container, and experiment-specific
   validation—not the newest file by timestamp or a compile-only artifact.
+- Before any device boot, state the kernel/DT/configuration hypothesis, the
+  unique attributable evidence, and how each result changes the next action.
+  Do not repeat an identical artifact unless repeatability is itself the
+  hypothesis and a new measurement can distinguish the outcomes.
+- Do not spend a device boot on a kernel/DT/config-identical derivative unless
+  it adds a durable independent observation path with a decision-changing
+  result; marker text alone is insufficient.
 - A compile result is not hardware support. Update `docs/HARDWARE_SUPPORT.md`
   only from reproducible evidence on a named device and exact revision.
 
@@ -79,6 +88,11 @@ configuration, safe tooling, hardware knowledge, and reproducible evidence.
   does not cover primary `boot`, `boot3`, preloader, NVRAM, GPT, or whole-device
   writes.
 - Prefer read-only probes, bounded operations, and dry-run defaults.
+- Recover Candidate L ramoops evidence with
+  `scripts/collect-device-pstore --target USER@HOST --wait-for-cycle`; add
+  `--ask-sudo-password` when sudo is not passwordless. The helper requires a
+  confirmed disconnect, reconnect, and changed boot ID and never removes remote
+  pstore records.
 - Run `bash -n` and ShellCheck for shell changes, `git diff --check`, the relevant
   kernel checks, and the smallest meaningful VM build. Document what was and was
   not tested.

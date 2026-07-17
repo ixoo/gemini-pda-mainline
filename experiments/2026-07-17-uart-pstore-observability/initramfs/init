@@ -1,0 +1,137 @@
+#!/bin/busybox sh
+# shellcheck shell=dash
+
+export PATH=/bin
+readonly MARKER="GEMINI_OBSERVABILITY_20260717_L"
+readonly STATUS_FILE=/run/observability-status
+readonly WATCHDOG_WAIT_SECONDS=10
+readonly WATCHDOG_TIMEOUT_SECONDS=31
+readonly WATCHDOG_FAILURE_SECONDS=40
+
+# /dev/null does not exist until devtmpfs is mounted. This must be the first
+# mount and must not be redirected.
+if ! mount -t devtmpfs -o nosuid,mode=0755 devtmpfs /dev; then
+	printf '%s\n' "$MARKER devtmpfs=failed; STATIC HOLD"
+	while :; do
+		sleep 3600
+	done
+fi
+mount -t proc -o ro,nosuid,nodev,noexec proc /proc 2>/dev/null || true
+mount -t sysfs -o ro,nosuid,nodev,noexec sysfs /sys 2>/dev/null || true
+
+emit_tty() {
+	for output in /dev/console /dev/tty0 /dev/ttyS0; do
+		if [ -c "$output" ]; then
+			printf '%s\n' "$*" >"$output" 2>/dev/null || true
+		fi
+	done
+}
+
+record() {
+	printf '%s\n' "$*" >>"$STATUS_FILE"
+	if [ -c /dev/kmsg ]; then
+		printf '<6>%s\n' "$*" >/dev/kmsg 2>/dev/null || true
+	fi
+	emit_tty "$*"
+}
+
+: >"$STATUS_FILE"
+record "$MARKER stage=initramfs-entered"
+record "$MARKER kernel=$(uname -r)"
+record "$MARKER storage_access=none"
+record "$MARKER uart0_expected_pins=GPIO97-RX,GPIO98-TX"
+if [ -d /sys/fs/pstore ]; then
+	record "$MARKER pstore_mountpoint=present"
+else
+	record "$MARKER pstore_mountpoint=absent"
+fi
+if [ -c /dev/pmsg0 ]; then
+	record "$MARKER pmsg0=present unused=cross-version-incompatible"
+else
+	record "$MARKER pmsg0=absent"
+fi
+
+usb_service() {
+	remaining=25
+	while [ "$remaining" -gt 0 ] && [ ! -d /sys/class/net/usb0 ]; do
+		sleep 1
+		remaining=$((remaining - 1))
+	done
+	if [ ! -d /sys/class/net/usb0 ]; then
+		record "$MARKER usb0=absent-after-25s"
+		return
+	fi
+	record "$MARKER usb0=present"
+	if ip link set usb0 up && ip address add 10.15.19.82/24 dev usb0; then
+		record "$MARKER usb0_address=10.15.19.82/24"
+	else
+		record "$MARKER usb0_address=failed"
+		return
+	fi
+	nc -ll -p 2323 -e /bin/usb-report &
+	record "$MARKER tcp_report=10.15.19.82:2323 interactive_shell=none"
+}
+
+usb_service &
+
+remaining=$WATCHDOG_WAIT_SECONDS
+while [ "$remaining" -gt 0 ] && [ ! -c /dev/watchdog0 ]; do
+	record "$MARKER watchdog0=waiting remaining=${remaining}s"
+	sleep 1
+	remaining=$((remaining - 1))
+done
+
+if [ ! -c /dev/watchdog0 ]; then
+	record "$MARKER watchdog0=missing; STATIC HOLD"
+	while :; do
+		sleep 3600
+	done
+fi
+
+for watchdog_attribute in identity timeout pretimeout status; do
+	watchdog_attribute_path="/sys/class/watchdog/watchdog0/${watchdog_attribute}"
+	if [ -r "$watchdog_attribute_path" ]; then
+		watchdog_attribute_value="$(cat "$watchdog_attribute_path" 2>/dev/null || true)"
+		record "$MARKER watchdog_${watchdog_attribute}=${watchdog_attribute_value:-unreadable}"
+	else
+		record "$MARKER watchdog_${watchdog_attribute}=unavailable"
+	fi
+done
+
+record "$MARKER watchdog0=opening"
+# Opening an inherited watchdog can leave one kernel keepalive scheduled before
+# the core marks it active. One immediate ownership-handoff ping cancels that
+# worker. Keeping fd 3 open without any further pings then bypasses PSCI and
+# requests a bounded TOPRGU expiry. The MT6797 driver sets its firmware-defined
+# bypass-power-key bit on both fresh-start and inherited-running paths.
+if exec 3>/dev/watchdog0; then
+	if printf '.' >&3; then
+		record "$MARKER watchdog0=armed handoff_ping=sent timeout_seconds=$WATCHDOG_TIMEOUT_SECONDS failure_boundary_seconds=$WATCHDOG_FAILURE_SECONDS"
+	else
+		record "$MARKER watchdog0=handoff-ping-failed; STATIC HOLD"
+		while :; do
+			sleep 3600
+		done
+	fi
+else
+	record "$MARKER watchdog0=open-failed; STATIC HOLD"
+	while :; do
+		sleep 3600
+	done
+fi
+
+elapsed=0
+while [ "$elapsed" -lt "$WATCHDOG_FAILURE_SECONDS" ]; do
+	sleep 1
+	elapsed=$((elapsed + 1))
+	case "$elapsed" in
+		5|10|15|20|25|30|35|40)
+			record "$MARKER watchdog_wait=${elapsed}s"
+			;;
+	esac
+done
+
+record "$MARKER watchdog_expiry_failed; STATIC HOLD"
+while :; do
+	sleep 3600
+done

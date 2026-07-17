@@ -1,0 +1,50 @@
+From 44eb09a1717808110b4851237081b34b870e2b68 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 17 Jul 2026 13:30:00 -0400
+Subject: [PATCH 79/81] arm64: dts: mediatek: gemini: fix UART0 pinmux
+
+The generic MT6797 uart0_pins_a group selects GPIO234 and GPIO235.  Those
+pads are not the UART0 route used by the Gemini PDA.
+
+The active Gemini vendor DT selects GPIO97 as URXD0 and GPIO98 as UTXD0,
+both in function 1.  The MT6797 pin-function binding describes the same
+route, and the independent Gemini Linux bring-up reports working UART0 on
+these pads.
+
+Add the board-specific pin group and use it for the diagnostic console.
+Keep it pinmux-only because the upstream MT6797 pinctrl data does not yet
+describe the pad configuration registers for these pins.
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+index 86c5898a3..605090f6e 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -155,6 +155,13 @@ &pio {
+ 	 * its descriptor has no pull, IES, or drive-strength register maps.
+ 	 * Keep boot-firmware pad configuration until those maps are recovered.
+ 	 */
++	uart0_gemini_pins: uart0-gemini-pins {
++		pins-rx-tx {
++			pinmux = <MT6797_GPIO97__FUNC_URXD0>,
++				 <MT6797_GPIO98__FUNC_UTXD0>;
++		};
++	};
++
+ 	mmc0_pins_default: mmc0-default-pins {
+ 		pins-cmd-dat {
+ 			pinmux = <MT6797_GPIO114__FUNC_MSDC0_DAT0>,
+@@ -190,7 +197,7 @@ pins-hall {
+ 
+ &uart0 {
+ 	pinctrl-names = "default";
+-	pinctrl-0 = <&uart0_pins_a>;
++	pinctrl-0 = <&uart0_gemini_pins>;
+ 	status = "okay";
+ };
+ 
+-- 
+2.43.0
+

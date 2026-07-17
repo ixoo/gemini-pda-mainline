@@ -109,11 +109,13 @@ new_candidate_build_or_flash=not-authorized-by-this-observation-record
 [subsequent_disposition]
 date=2026-07-17
 reassessment=completed
-selected_follow_up=Candidate K exact-J initramfs-only newline-boundary diagnostic
+initially_selected_follow_up=Candidate K exact-J initramfs-only newline-boundary diagnostic
 candidate_k_raw_boot_sha256=83704cde0e3e4ed897990b230a817a1c7618201a6b8a33a86a2e19c8e07a07cb
 candidate_k_full_partition_sha256=959092428f849c5ee2612c352ac4e4f707a4e0ec8696bda6632252e7194a7927
 candidate_k_boot2_write_sync_flush=pass
 candidate_k_full_partition_readback=pass-byte-identical-to-padded-candidate
 device_state_after_write=known-good Gemian; no reboot or shutdown performed
-candidate_k_runtime=pending-one-attended-selection
-historical_next_action_above=superseded-by-this-disposition
+candidate_k_runtime=cancelled-without-selection
+candidate_k_cancellation_reason=no-kernel-DT-or-configuration-delta-and-no-decision-changing-outcome
+current_follow_up=Candidate-L-UART-primary-ramoops-watchdog-observability
+historical_next_action_above=superseded-by-candidate-K-cancellation-and-Candidate-L-strategy

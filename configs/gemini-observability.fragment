@@ -1,0 +1,31 @@
+# Candidate L observability additions. Apply after the exact Candidate J
+# usbdiag-clkignore profile so its known-entering one-CPU/clock policy stays
+# unchanged while persistent logging is added.
+CONFIG_LOCALVERSION="-gemini-observability-L"
+CONFIG_CMDLINE="console=tty0 console=ttyS0,921600n8 earlycon maxcpus=1 nokaslr ignore_loglevel loglevel=8 log_buf_len=1M initcall_debug rdinit=/init panic=0 g_ether.dev_addr=42:00:15:19:82:01 g_ether.host_addr=42:00:15:19:82:00 g_ether.iManufacturer=gemini-pda-mainline g_ether.iProduct=Gemini-L-Observability g_ether.iSerialNumber=GEMINI_OBSERVABILITY_20260717_L clk_ignore_unused"
+
+CONFIG_PSTORE=y
+CONFIG_PSTORE_RAM=y
+CONFIG_PSTORE_CONSOLE=y
+# CONFIG_PSTORE_PMSG is not set
+# Keep the cross-version console record uncompressed. The dedicated ftrace
+# and pmsg slices are described in DT to place the mainline console on Gemian's
+# exact primary console range. The 0x20000 pmsg allocation exists for address
+# alignment, not the downstream 0x10000 pmsg contract. Its backend zone is
+# initialized and can clear the inherited header even when the pmsg frontend is
+# compiled out; no `/dev/pmsg0` payload writes occur, and the allocation is
+# never treated as cross-version evidence.
+# CONFIG_PSTORE_COMPRESS is not set
+# CONFIG_PSTORE_FTRACE is not set
+# CONFIG_PSTORE_BLK is not set
+
+# Keep a firmware-enabled TOPRGU alive until /init takes ownership. Candidate L
+# depends on the watchdog core adopting that state. /init opens the device,
+# sends one ownership-handoff ping to cancel the inherited keepalive worker,
+# then holds the descriptor without any further pings.
+CONFIG_WATCHDOG_HANDLE_BOOT_ENABLED=y
+CONFIG_WATCHDOG_OPEN_TIMEOUT=0
+CONFIG_WATCHDOG_SYSFS=y
+# Keep the persisted pretimeout message specific to the MT6797 bark IRQ rather
+# than allowing the generic hrtimer governor to synthesize the same event.
+# CONFIG_WATCHDOG_HRTIMER_PRETIMEOUT is not set

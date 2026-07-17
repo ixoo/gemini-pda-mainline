@@ -187,22 +187,22 @@ the result.
   and [repeat report](2026-07-17-clk-ignore-unused-diagnostic/results/runtime-candidate-j-repeat-report-20260717.txt)
   preserve the unknowns. Stable visibility and clock causality are not
   established. Further J repetition is stopped; the completed reassessment
-  selected Candidate K rather than a matched-I rollback. This broad control
+  initially selected Candidate K rather than a matched-I rollback, then the
+  strategy review cancelled K without runtime. This broad control
   does not enable already-off clocks, prevent explicit disables, or retain
   regulators or power domains.
 - [2026-07-17 fbcon newline-boundary diagnostic](2026-07-17-fbcon-newline-boundary-diagnostic/README.md)
-  — Candidate K retains exact J's kernel, appended DTB, forced command line and
-  Android-v0 layout while changing only initramfs `/init`. It emits 20
-  one-second fixed-width carriage-return updates with no deliberate newline,
-  then a distinct transition and 12 controlled one-second newline lines;
-  asynchronous kernel printk remains a confounder. Two final VM builds are
-  byte-identical. Its raw image is
-  `83704cde0e3e4ed897990b230a817a1c7618201a6b8a33a86a2e19c8e07a07cb`,
-  and the mode-`0600` export is synchronized, flushed and fully read back from
-  logical `boot2` with padded SHA-256
-  `959092428f849c5ee2612c352ac4e4f707a4e0ec8696bda6632252e7194a7927`
-  after a fresh exact-J backup. The device remains in Gemian; one attended K
-  runtime selection is the next gate.
+  — Candidate K is a reproducible exact-J initramfs-only newline/scroll
+  derivative. Its write/readback record is retained, but the strategy review
+  cancelled the device test without a runtime selection because it changes no
+  kernel, DT, or configuration input and would not alter the next action.
+- [2026-07-17 UART/pstore observability](2026-07-17-uart-pstore-observability/README.md)
+— Candidate L is the current, not-yet-runtime-tested observability gate:
+  UART0 GPIO97/98 correction, exact mainline-console/Gemian
+  primary `console-ramoops` alignment validated from pinned source and the
+  exact active binary, and MT6797 watchdog auto-restart plus IRQ-dependent dual-stage
+  policy with persistent post-reset evidence. Pmsg supplies address alignment,
+  not a cross-version recovery channel.
 - [2026-07-14 live vendor-to-mainline gap audit](2026-07-14-live-vendor-mainline-gap-audit/README.md)
   — read-only comparison of the live Gemian vendor contracts with the current
   Linux 7.1.3 handoff and first-boot boundaries.

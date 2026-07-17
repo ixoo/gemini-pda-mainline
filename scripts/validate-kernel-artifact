@@ -23,7 +23,7 @@ require_command() {
 [[ "$(uname -s)" == Linux ]] || die "run this command inside the development VM"
 [[ "$(uname -m)" == aarch64 ]] || die "expected an aarch64 development VM"
 
-for command in basename cmp find gzip jq od sha256sum sort tail tr wc; do
+for command in awk basename cmp find gzip head jq od sha256sum sort tail tr uniq wc; do
   require_command "${command}"
 done
 
@@ -47,9 +47,14 @@ case "${1:-}" in
 esac
 
 [[ -d "${artifact_dir}" ]] || die "artifact directory does not exist: ${artifact_dir}"
-[[ -f "${artifact_dir}/SHA256SUMS" ]] || die "missing SHA256SUMS in ${artifact_dir}"
+[[ -f "${artifact_dir}/SHA256SUMS" && ! -L "${artifact_dir}/SHA256SUMS" ]] || \
+  die "missing or non-regular SHA256SUMS in ${artifact_dir}"
 [[ -f "${artifact_dir}/provenance/build.json" ]] || \
   die "missing provenance/build.json in ${artifact_dir}"
+unexpected_entry="$(find "${artifact_dir}" -mindepth 1 \
+  ! -type d ! -type f -print -quit)"
+[[ -z "${unexpected_entry}" ]] || \
+  die "artifact tree contains a non-regular entry: ${unexpected_entry}"
 
 for file in Image Image.gz kernel.config System.map provenance/build.json \
   provenance/kernel-manifest.json provenance/series; do
@@ -80,9 +85,28 @@ image_effective_size="$(od -An -tu8 -N8 -j16 "${artifact_dir}/Image" | tr -d ' '
 dtb_count="$(find "${artifact_dir}/dtbs/mediatek" -type f -name '*.dtb' | wc -l)"
 [[ "${dtb_count}" -gt 0 ]] || die "no MediaTek DTBs found in ${artifact_dir}/dtbs/mediatek"
 
+invalid_manifest_line="$(awk '
+  length($1) != 64 || $1 ~ /[^0-9a-f]/ || NF != 2 ||
+  $2 !~ /^\.\// || $2 == "./SHA256SUMS" ||
+  $2 ~ /(^|\/)\.\.($|\/)/ || $2 ~ /\/\// {
+    print NR ":" $0
+    exit
+  }
+' "${artifact_dir}/SHA256SUMS")"
+[[ -z "${invalid_manifest_line}" ]] || \
+  die "unsafe or malformed SHA256SUMS line: ${invalid_manifest_line}"
+manifest_paths="$(awk '{ print $2 }' "${artifact_dir}/SHA256SUMS" | sort)"
+duplicate_manifest_path="$(printf '%s\n' "${manifest_paths}" | uniq -d | head -n 1)"
+[[ -z "${duplicate_manifest_path}" ]] || \
+  die "duplicate SHA256SUMS path: ${duplicate_manifest_path}"
+actual_paths="$(cd "${artifact_dir}" && \
+  find . -type f ! -path ./SHA256SUMS -print | sort)"
+[[ "${manifest_paths}" == "${actual_paths}" ]] || \
+  die "SHA256SUMS is not an exact inventory of the artifact's regular files"
+
 (
   cd "${artifact_dir}"
-  sha256sum --check SHA256SUMS
+  sha256sum --check --strict SHA256SUMS
 )
 
 jq -e '
@@ -100,6 +124,9 @@ jq -e '
   (.linker | length > 0)
 ' "${artifact_dir}/provenance/build.json" >/dev/null || \
   die "invalid provenance/build.json"
+[[ "$(jq -er '.config_sha256' "${artifact_dir}/provenance/build.json")" == \
+  "$(sha256sum "${artifact_dir}/kernel.config" | awk '{print $1}')" ]] || \
+  die "provenance config_sha256 does not match kernel.config"
 
 printf 'validation=kernel-artifact\n'
 printf 'artifact=%s\n' "$(basename "${artifact_dir}")"

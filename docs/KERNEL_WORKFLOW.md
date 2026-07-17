@@ -248,34 +248,32 @@ At runtime, `clk_ignore_unused` only prevents the Common Clock Framework's
 automatic unused-clock cleanup: it does not enable clocks that are already off,
 prevent explicit driver disables, or retain regulators or power domains. Treat
 J as a bounded attended discriminator, never as a default or a complete
-display-power solution. Stop further J repetition. Return to the known-good OS
-and normal temperature. The completed reassessment selected Candidate K rather
-than a matched exact-I rollback; rollback remains unauthorized by the standing
-`boot2` opt-in.
+display-power solution. Stop further J repetition. Candidate K was a
+reproducible exact-J initramfs-only derivative, but the strategy review
+cancelled it without a runtime selection: it has no kernel, DT, or configuration
+delta and cannot supply a decision-changing observation. Its write/readback
+record remains historical evidence; do not boot it.
 
-Candidate K must be built with
-`experiments/2026-07-17-fbcon-newline-boundary-diagnostic/scripts/build-fbcon-newline-boundary-candidate.sh`.
-It reconstructs exact J and retains J's kernel, appended DTB, forced command
-line, Android-v0 name, addresses and page layout. The canonical initramfs
-changes only `/init`; ramdisk size and payload-derived header ID may therefore
-change. The tracked program emits 20 one-second fixed-width carriage-return
-updates without a deliberate newline, then a distinct transition and 12
-controlled one-second newline lines. J's `ignore_loglevel loglevel=8` remains,
-so asynchronous kernel printk is an explicit newline confounder.
-
-Two final VM output directories are byte-identical. K's initramfs SHA-256 is
-`c6356f895579b8d0cac516f3a6618ab70d7d4bc33c8c15cc052a71445607dda8`
-and raw boot-image SHA-256 is
-`83704cde0e3e4ed897990b230a817a1c7618201a6b8a33a86a2e19c8e07a07cb`.
-The mode-`0600` export was synchronized to logical `boot2` after preserving a
-fresh exact-J backup. Sync, block flush and complete readback match padded
-SHA-256
-`959092428f849c5ee2612c352ac4e4f707a4e0ec8696bda6632252e7194a7927`.
-The device remains in known-good Gemian. See the
-[Candidate K experiment](../experiments/2026-07-17-fbcon-newline-boundary-diagnostic/README.md)
-and [write/readback record](../experiments/2026-07-17-fbcon-newline-boundary-diagnostic/results/boot2-write-candidate-k-20260717.txt).
-Runtime is pending; perform one attended K selection after a known-good boot and
-normal temperature, then return to the known-good OS.
+Candidate L is the current observability workflow. It multiplexes three
+source-backed changes with distinct intended signals into one expensive boot;
+this is an observability acceptance gate, not a single-variable causal test.
+UART0's board pins use GPIO97 RX and GPIO98 TX;
+`ramoops@44410000` maps the Linux 7.1.3 console exactly onto the primary
+`console-ramoops` zone confirmed by the pinned Gemian source and exact active
+binary; MT6797 watchdog start and inherited-running paths normalize
+auto-restart (bypass-power-key) mode and select dual-stage only when the
+requested bark IRQ establishes a pretimeout, while the immediate
+software-restart path sets
+auto-restart before issuing SWRST. The
+observability configuration uses a `0x20000` mainline pmsg allocation only for
+address alignment to preserve that primary-console address; the pmsg frontend
+is compiled out and is not a cross-version recovery channel. Its initramfs writes durable kernel-console markers, opens the watchdog, sends one
+ownership-handoff ping to cancel the inherited kernel keepalive, and then holds
+the fd without further pings. The subsequent known-good Gemian boot can collect
+surviving pstore evidence. This must not be represented as runtime support
+before the candidate is built, validated, written, booted, and its evidence
+recovered. See the
+[Candidate L experiment](../experiments/2026-07-17-uart-pstore-observability/README.md).
 
 Before treating the series as submission-ready, run the pinned tree's review
 checker over every patch:

@@ -1,0 +1,3 @@
+# Format-patch payload lines and the mail signature delimiter look like outer
+# diff whitespace to `git diff --check`; check their contents with checkpatch.
+*.patch whitespace=-trailing-space,-space-before-tab

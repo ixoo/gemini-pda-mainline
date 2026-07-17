@@ -1,0 +1,22 @@
+#!/bin/busybox sh
+# shellcheck shell=dash
+
+export PATH=/bin
+readonly MARKER="GEMINI_OBSERVABILITY_20260717_L"
+
+printf '%s\n' "$MARKER"
+printf 'kernel=%s\n' "$(uname -r)"
+printf '%s\n' "stage=read-only-usb-report"
+printf '%s\n' "storage_access=none"
+if [ -r /run/observability-status ]; then
+	cat /run/observability-status
+fi
+if [ -r /proc/uptime ]; then
+	printf 'uptime='
+	cat /proc/uptime
+fi
+if [ -r /proc/cmdline ]; then
+	printf 'cmdline='
+	cat /proc/cmdline
+fi
+printf '%s\n' "interactive_shell=none"

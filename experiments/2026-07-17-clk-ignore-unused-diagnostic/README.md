@@ -6,7 +6,7 @@
 | --- | --- |
 | ID | `2026-07-17-clk-ignore-unused-diagnostic` |
 | Candidate | J |
-| Status | Kernel payload and boot image independently reproduced and previously installed to `boot2` with full readback; owner reports provisionally map to three intended selections: two tick-04-compatible visible-to-black outcomes and one direct-black/no-console outcome; stable visibility and causality are not established; reassessment selected initramfs-only Candidate K, which replaced J on `boot2`; no further J repetition |
+| Status | Kernel payload and boot image independently reproduced and previously installed to `boot2` with full readback; owner reports provisionally map to three intended selections: two tick-04-compatible visible-to-black outcomes and one direct-black/no-console outcome; stable visibility and causality are not established; initramfs-only Candidate K later replaced J on `boot2` but was cancelled without runtime; no further J/K repetition |
 | Subsystem | Common Clock Framework, LK display handoff, simplefb/fbcon |
 | Device variant | Current Gemini PDA unit; exact retail sub-variant not independently established |
 | Date | 2026-07-17 |
@@ -51,15 +51,14 @@ output and one of three had no visible console and is unattributable beyond the
 owner's intended selection. Stable visibility, clock-cleanup causality, and a
 specific clock identity remain unestablished.
 
-The completed reassessment selected [Candidate K](../2026-07-17-fbcon-newline-boundary-diagnostic/README.md),
-an exact-J kernel, appended DTB, forced command line and container-layout
-derivative whose initramfs changes only `/init`. K isolates deliberate
-newline/scroll activity with 20 one-second fixed-width carriage-return updates
-without newlines, followed by a distinct transition and 12 controlled
-one-second newline lines. Asynchronous kernel printk remains a confounder. K is
-now synchronized and fully read back from logical `boot2`; J was preserved in a
-fresh backup. No further J selection or matched-I rollback is authorized. K's
-single attended runtime gate is pending.
+Candidate K was a reproducible exact-J initramfs-only newline/scroll derivative
+and its logical-`boot2` synchronization/readback remains recorded. A strategy
+review cancelled it before any runtime selection: it carries no kernel, DT, or
+configuration delta, and no outcome would change the next prerequisite. No
+further J selection, K boot, or matched-I rollback is authorized. The current
+gate is [Candidate L UART/pstore observability](../2026-07-17-uart-pstore-observability/README.md),
+which adds independently attributable UART pinmux, persistent pstore, and
+watchdog-restart changes.
 
 ## Why an Android-header-only candidate is invalid
 
@@ -231,12 +230,13 @@ rejects several tempting no-op follow-ups. Its one-repeat gate has now been
 consumed by the owner's later report. The report is provisionally mapped to two
 additional intended selections: one reached iteration 4 before black and one
 went directly black with no visible console. Further J repetition is stopped.
-The reassessment selected the narrower Candidate K newline-boundary test. K is
-now synchronized to `boot2` with a full matching readback while the device
-remains in the known-good Gemian OS. Perform only K's one attended runtime gate
-after normal temperature and power are restored. A matched exact-I rollback is
-not authorized by the standing `boot2` opt-in. No boot or partition write is
-implicit in the J build.
+The reassessment initially prepared Candidate K, whose synchronized `boot2`
+write/readback remains historical evidence. It was then cancelled without a
+runtime selection because its initramfs-only delta cannot change the next
+action. Candidate L, with UART pinmux, pstore, and watchdog-restart changes,
+is the current observability gate. A matched exact-I rollback is not authorized
+by the standing `boot2` opt-in. No boot or partition write is implicit in the J
+build.
 
 The numbered sequence below is retained as the protocol that governed this
 experiment. Its J-repeat gate is complete; it is not a current instruction to
@@ -277,9 +277,9 @@ select J again.
    are mixed and the direct-black attempt is not attributable to `/init`.
    Reinstalling I remains unauthorized. The standing `boot2` opt-in covers only
    the latest validated candidate and does not authorize rollback. The completed
-   reassessment selected Candidate K, an initramfs-only newline-boundary
-   derivative of exact J. K has replaced J on `boot2`; its one attended runtime
-   gate is the next action.
+   reassessment initially prepared Candidate K, an initramfs-only
+   newline-boundary derivative of exact J. Its write/readback is retained, but
+   K was cancelled without runtime; Candidate L is the next action.
 7. Finish in the known-good OS and record every attempt, including negative and
    unconfirmed results. Expected outcomes are: marker-confirmed visible output,
    marker-confirmed transition to black, or no-marker/unconfirmed handoff. None
@@ -291,8 +291,8 @@ select J again.
   Provisionally, two of three intended J selections produced tick-04-compatible
   visible output before black, while one of three showed no console and cannot
   establish J kernel or `/init` execution. This reports recurrence of the
-  visible boundary, not stable visibility or clock causality. Candidate K is
-  the selected newline/scroll discriminator; its runtime remains pending.
+  visible boundary, not stable visibility or clock causality. Candidate K was
+  cancelled without runtime; Candidate L is the selected observability gate.
 - If both attributable J attempts show visible output while both matched
   exact-I attempts remain directly black, broad unused-clock retention changes
   the early display outcome. Follow with narrow provider/clock tests; do not
@@ -342,8 +342,9 @@ and
 The exact Candidate J source/configuration audit and its now-consumed
 post-attempt-1 repeat gate are in
 [`results/post-attempt-1-source-audit-20260717.md`](results/post-attempt-1-source-audit-20260717.md).
-The completed reassessment and exact next gate are documented in the
-[Candidate K newline-boundary experiment](../2026-07-17-fbcon-newline-boundary-diagnostic/README.md).
+The cancelled Candidate K design is documented in the
+[newline-boundary experiment](../2026-07-17-fbcon-newline-boundary-diagnostic/README.md);
+the current next gate is [Candidate L UART/pstore observability](../2026-07-17-uart-pstore-observability/README.md).
 
 Two isolated `usbdiag-clkignore` kernel builds passed the normal kernel
 artifact validator and independently reproduced `Image`, `Image.gz`,
@@ -389,5 +390,5 @@ its known-good Gemian kernel with root on `mmcblk0p29` and did not reboot or
 shut it down. The later owner-attended Candidate J selections are recorded in
 the linked attempt-1 and repeat-report results. Further J repetition is
 stopped. Candidate K subsequently preserved a fresh exact-J backup and replaced
-J on logical `boot2` with a matching full readback; the device remains in
-known-good Gemian and K runtime is pending.
+J on logical `boot2` with a matching full readback. It was not runtime-tested
+and is superseded by Candidate L observability work.

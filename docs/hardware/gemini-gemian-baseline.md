@@ -548,6 +548,35 @@ signal.
 | ATF log | `0x7ff40000` | `0x00040000` |
 | log-store | `0x7ff80000` | `0x00080000` |
 
+### Exact active ramoops layout
+
+For the named Gemini PDA running the captured Gemian `3.18.41+` build, the
+active kernel binary and live module parameters establish this downstream
+layout inside the pstore reservation:
+
+| Zone | Range |
+| --- | --- |
+| dmesg (175 × `0x1000`) | `[0x44410000, 0x444bf000)` |
+| primary console | `[0x444bf000, 0x444cf000)` |
+| secondary `bconsole` | `[0x444cf000, 0x444df000)` |
+| ftrace | `[0x444df000, 0x444e0000)` |
+| pmsg | `[0x444e0000, 0x444f0000)` |
+
+Confidence is high for this unit: the result comes from reconstructing and
+disassembling the exact active boot-image kernel, combining its allocation
+formula with captured live parameters, and reading only the 12-byte headers at
+the two console starts. Both headers were valid and nonempty at capture time.
+The active binary returns both console zones as console ID zero, so both target
+the name `console-ramoops`; a later secondary record can be rejected as a
+duplicate. This contradicts the pinned downstream `3.18.79` reference source,
+which overrides the secondary ID to 2 and would call it `console-ramoops-2`.
+Use the exact active binary for filename behavior and keep the reference source
+only as separately labeled evidence. Candidate L therefore aligns its console
+with the primary zone. Warm-reset retention is still a runtime hypothesis, not
+a hardware-support claim. See the
+[exact-binary audit](../../experiments/2026-07-17-uart-pstore-observability/results/exact-live-ramoops-binary-audit-20260717.txt)
+and [source/layout validation](../../experiments/2026-07-17-uart-pstore-observability/results/cross-version-ramoops-layout-20260717.txt).
+
 The live FDT also contains dynamic, size/alignment-based reservations: a
 2 MiB `consys-reserve-memory` block (`no-map`), a 16 MiB `scp_share` block
 (`no-map`), a `0x16000`-byte SPM block (`no-map`), and two 4 KiB dummy-read

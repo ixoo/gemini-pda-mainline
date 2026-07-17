@@ -85,7 +85,12 @@ def yes(value: bool) -> str:
 
 
 def parse(
-    path: pathlib.Path, expected_dtb: pathlib.Path | None = None
+    path: pathlib.Path,
+    expected_dtb: pathlib.Path | None = None,
+    expected_image_gz: pathlib.Path | None = None,
+    expected_ramdisk: pathlib.Path | None = None,
+    expected_name: str | None = None,
+    expected_cmdline: str | None = None,
 ) -> tuple[dict[str, int | str], list[str]]:
     payload = path.read_bytes()
     if len(payload) < 2048 or payload[:8] != MAGIC:
@@ -115,6 +120,7 @@ def parse(
     ramdisk = payload[ramdisk_offset:ramdisk_end]
     second = payload[second_offset:second_end]
     dt_payload = payload[dt_offset:dt_end]
+    name = payload[48:64].split(b"\0", 1)[0].decode("ascii", "replace")
     cmdline = (payload[64:576] + payload[608:1632]).split(b"\0", 1)[0].decode(
         "ascii", "replace"
     )
@@ -144,6 +150,7 @@ def parse(
         kernel_gzip_magic=yes(kernel.startswith(b"\x1f\x8b")),
         boot_image_within_16m=yes(len(payload) <= LK_ANDROID_BOOT_IMAGE_LIMIT),
         kernel_addr_aligned_512k=yes((int(result["kernel_addr"]) & 0x7FFFF) == 0),
+        name=name,
         cmdline=cmdline,
         bootopt_64=yes(has_lk_64_bootopt(cmdline)),
         stored_sha1_id=stored_id.hex(),
@@ -269,6 +276,45 @@ def parse(
     else:
         result.update(expected_dtb_sha256="not_supplied", expected_dtb_matches="not_checked")
 
+    if expected_image_gz is not None:
+        expected = expected_image_gz.read_bytes()
+        result.update(
+            expected_image_gz_sha256=hashlib.sha256(expected).hexdigest(),
+            expected_image_gz_matches=yes(kernel == expected + appended_dtb),
+        )
+    else:
+        result.update(
+            expected_image_gz_sha256="not_supplied",
+            expected_image_gz_matches="not_checked",
+        )
+
+    if expected_ramdisk is not None:
+        expected = expected_ramdisk.read_bytes()
+        result.update(
+            expected_ramdisk_sha256=hashlib.sha256(expected).hexdigest(),
+            expected_ramdisk_matches=yes(ramdisk == expected),
+        )
+    else:
+        result.update(
+            expected_ramdisk_sha256="not_supplied",
+            expected_ramdisk_matches="not_checked",
+        )
+
+    result.update(
+        expected_name=expected_name if expected_name is not None else "not_supplied",
+        expected_name_matches=(
+            yes(name == expected_name) if expected_name is not None else "not_checked"
+        ),
+        expected_cmdline=(
+            expected_cmdline if expected_cmdline is not None else "not_supplied"
+        ),
+        expected_cmdline_matches=(
+            yes(cmdline == expected_cmdline)
+            if expected_cmdline is not None
+            else "not_checked"
+        ),
+    )
+
     result["header_dt_size"] = int(result["dt_size"])
     gates = {
         "android_page_size_2048": page == 2048,
@@ -301,6 +347,20 @@ def parse(
     }
     if expected_dtb is not None:
         gates["expected_dtb_matches"] = result.get("expected_dtb_matches") == "yes"
+    if expected_image_gz is not None:
+        gates["expected_image_gz_matches"] = (
+            result.get("expected_image_gz_matches") == "yes"
+        )
+    if expected_ramdisk is not None:
+        gates["expected_ramdisk_matches"] = (
+            result.get("expected_ramdisk_matches") == "yes"
+        )
+    if expected_name is not None:
+        gates["expected_name_matches"] = result.get("expected_name_matches") == "yes"
+    if expected_cmdline is not None:
+        gates["expected_cmdline_matches"] = (
+            result.get("expected_cmdline_matches") == "yes"
+        )
     for gate, passed in gates.items():
         result[f"gate_{gate}"] = yes(passed)
         if not passed:
@@ -319,13 +379,38 @@ def main() -> int:
         help="require the appended DTB to match this file byte-for-byte",
     )
     parser.add_argument(
+        "--expected-image-gz",
+        type=pathlib.Path,
+        help="require the embedded gzip stream to match this file byte-for-byte",
+    )
+    parser.add_argument(
+        "--expected-ramdisk",
+        type=pathlib.Path,
+        help="require the embedded ramdisk to match this file byte-for-byte",
+    )
+    parser.add_argument(
+        "--expected-name",
+        help="require the exact Android v0 header name",
+    )
+    parser.add_argument(
+        "--expected-cmdline",
+        help="require the exact Android v0 header command line",
+    )
+    parser.add_argument(
         "--validate-lk",
         action="store_true",
         help="exit nonzero unless every retained-LK packaging gate passes",
     )
     args = parser.parse_args()
     try:
-        result, failures = parse(args.image, args.expected_dtb)
+        result, failures = parse(
+            args.image,
+            args.expected_dtb,
+            args.expected_image_gz,
+            args.expected_ramdisk,
+            args.expected_name,
+            args.expected_cmdline,
+        )
     except (OSError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2

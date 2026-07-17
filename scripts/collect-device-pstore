@@ -1,0 +1,559 @@
+#!/usr/bin/env bash
+# Constant remote programs are intentionally single-quoted and expanded once
+# by the local shell as a single SSH command argument.
+# shellcheck disable=SC2016,SC2029
+
+set -euo pipefail
+export LC_ALL=C
+umask 077
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+readonly SCRIPT_DIR
+REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd -P)"
+readonly REPO_DIR
+
+die() {
+	echo "error: $*" >&2
+	exit 2
+}
+
+usage() {
+	cat <<'EOF'
+Usage: scripts/collect-device-pstore --target USER@HOST [OPTIONS]
+
+Read the target's pstore and ramoops metadata into a private, Git-ignored
+directory. The capture does not write or delete pstore entries and never
+accesses partitions; normal SSH/sudo authentication may update OS audit data.
+
+Options:
+  --identity FILE       SSH private key (default: artifacts/credentials/gemini_ed25519)
+  --output DIR          New destination directory (default: timestamped artifact)
+  --wait-seconds N      Poll deadline for the complete cycle (default: 300;
+                        one active SSH probe can add at most 5 seconds)
+  --wait-for-cycle      Require SSH to go down and return before capture
+  --ask-sudo-password   Read a sudo password once, without echo, before waiting
+  --expected-kernel R   Required recovery-kernel release (default: 3.18.41+)
+  -h, --help            Show this help
+EOF
+}
+
+target=
+identity="${REPO_DIR}/artifacts/credentials/gemini_ed25519"
+output=
+wait_seconds=300
+wait_for_cycle=0
+ask_sudo_password=0
+expected_kernel=3.18.41+
+while (($#)); do
+	case "$1" in
+		--target)
+			(($# >= 2)) || die "--target requires USER@HOST"
+			target=$2
+			shift 2
+			;;
+		--identity)
+			(($# >= 2)) || die "--identity requires FILE"
+			identity=$2
+			shift 2
+			;;
+		--output)
+			(($# >= 2)) || die "--output requires DIR"
+			output=$2
+			shift 2
+			;;
+		--wait-seconds)
+			(($# >= 2)) || die "--wait-seconds requires N"
+			wait_seconds=$2
+			shift 2
+			;;
+		--wait-for-cycle)
+			wait_for_cycle=1
+			shift
+			;;
+		--ask-sudo-password)
+			ask_sudo_password=1
+			shift
+			;;
+		--expected-kernel)
+			(($# >= 2)) || die "--expected-kernel requires RELEASE"
+			expected_kernel=$2
+			shift 2
+			;;
+		-h|--help)
+			usage
+			exit 0
+			;;
+		*)
+			usage >&2
+			die "unknown option: $1"
+			;;
+	esac
+done
+
+[[ "$target" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*@[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || \
+	die "--target must be a simple USER@HOST value"
+[[ "$wait_seconds" =~ ^[1-9][0-9]*$ ]] || die "--wait-seconds must be positive"
+[[ "$expected_kernel" =~ ^[A-Za-z0-9._+-]+$ ]] || \
+	die "--expected-kernel must be a simple kernel release"
+[[ -f "$identity" ]] || die "SSH identity not found: $identity"
+identity_mode="$(stat -f '%Lp' "$identity" 2>/dev/null || stat -c '%a' "$identity")"
+[[ "$identity_mode" == 600 ]] || die "SSH identity must have mode 0600: $identity"
+for command in awk base64 basename chmod date dirname find git grep mkdir \
+	mktemp mv rm sleep sort ssh stat tail tar tr xargs; do
+	command -v "$command" >/dev/null 2>&1 || die "required command not found: $command"
+done
+if command -v sha256sum >/dev/null 2>&1; then
+	HASH_COMMAND=(sha256sum)
+elif command -v shasum >/dev/null 2>&1; then
+	HASH_COMMAND=(shasum -a 256)
+else
+	die "required SHA-256 command not found: sha256sum or shasum"
+fi
+readonly HASH_COMMAND
+
+sha256_stream() {
+	"${HASH_COMMAND[@]}" | awk '{print $1}'
+}
+
+artifacts_root="${REPO_DIR}/artifacts"
+private_root="${artifacts_root}/device-pstore"
+if [[ -z "$output" ]]; then
+	output_name="$(date -u +%Y%m%dT%H%M%SZ)"
+elif [[ "$output" != /* ]]; then
+	output="${REPO_DIR}/${output#./}"
+fi
+if [[ -n "$output" ]]; then
+	[[ "$(dirname "$output")" == "$private_root" ]] || \
+		die "--output must be an immediate child of private artifacts/device-pstore"
+	output_name="$(basename "$output")"
+fi
+[[ "$output_name" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || \
+	die "--output must use a simple capture-directory name"
+[[ ! -L "$artifacts_root" ]] || die "private artifacts path must not be a symlink"
+[[ ! -e "$artifacts_root" || -d "$artifacts_root" ]] || \
+	die "private artifacts path is not a directory"
+if [[ ! -d "$artifacts_root" ]]; then
+	mkdir -m 700 "$artifacts_root"
+fi
+artifacts_root_resolved="$(cd "$artifacts_root" && pwd -P)"
+[[ "$artifacts_root_resolved" == "$artifacts_root" ]] || \
+	die "private artifacts path contains a symlink"
+[[ ! -L "$private_root" ]] || \
+	die "private artifacts/device-pstore path must not be a symlink"
+[[ ! -e "$private_root" || -d "$private_root" ]] || \
+	die "private artifacts/device-pstore path is not a directory"
+if [[ ! -d "$private_root" ]]; then
+	mkdir -m 700 "$private_root"
+fi
+private_root_resolved="$(cd "$private_root" && pwd -P)"
+[[ "$private_root_resolved" == "$private_root" ]] || \
+	die "private artifacts/device-pstore path contains a symlink"
+private_root_mode="$(stat -f '%Lp' "$private_root" 2>/dev/null || stat -c '%a' "$private_root")"
+[[ "$private_root_mode" == 700 ]] || \
+	die "private artifacts/device-pstore must have mode 0700"
+output="${private_root}/${output_name}"
+git -C "$REPO_DIR" check-ignore -q -- "$output" || \
+	die "--output is not covered by repository ignore rules: $output"
+[[ ! -e "$output" ]] || die "refusing to overwrite output: $output"
+staging="$(mktemp -d "$(dirname "$output")/.pstore-capture.XXXXXX")"
+cleanup() {
+	[[ ! -d "$staging" ]] || rm -rf "$staging"
+}
+trap cleanup EXIT
+
+ssh_options=(
+	-o BatchMode=yes
+	-o ConnectTimeout=5
+	-o IdentitiesOnly=yes
+	-o IdentityAgent=none
+	-o StrictHostKeyChecking=accept-new
+	-i "$identity"
+)
+
+ssh_up() {
+	ssh -n "${ssh_options[@]}" "$target" true >/dev/null 2>&1
+}
+
+ssh_boot_id() {
+	ssh -n "${ssh_options[@]}" "$target" \
+		'cat /proc/sys/kernel/random/boot_id' 2>/dev/null
+}
+
+wait_for_stable_disconnect() {
+	local consecutive=0
+	local now remaining
+	while (( $(date +%s) < wait_deadline_epoch )); do
+		if ssh_up; then
+			consecutive=0
+		else
+			consecutive=$((consecutive + 1))
+			if ((consecutive >= 2)); then
+				return 0
+			fi
+		fi
+		now="$(date +%s)"
+		remaining=$((wait_deadline_epoch - now))
+		((remaining > 0)) || break
+		((remaining > 3)) && remaining=3
+		sleep "$remaining"
+	done
+	die "target did not remain disconnected before the ${wait_seconds}s cycle deadline"
+}
+
+wait_for_boot_id_change() {
+	local initial=$1
+	local current=
+	local now remaining
+	while (( $(date +%s) < wait_deadline_epoch )); do
+		current="$(ssh_boot_id || true)"
+		if [[ -n "$current" && "$current" != "$initial" ]]; then
+			printf '%s\n' "$current"
+			return 0
+		fi
+		now="$(date +%s)"
+		remaining=$((wait_deadline_epoch - now))
+		((remaining > 0)) || break
+		((remaining > 3)) && remaining=3
+		sleep "$remaining"
+	done
+	die "known-good SSH with a changed boot ID did not return before the ${wait_seconds}s cycle deadline"
+}
+
+ssh_up || die "target must be reachable before collection starts: $target"
+if ((ask_sudo_password)); then
+	ssh -n "${ssh_options[@]}" "$target" \
+		'command -v base64 >/dev/null 2>&1' || \
+		die "target lacks base64 required for authenticated metadata capture"
+fi
+sudo_mode=direct
+sudo_password=
+if ((ask_sudo_password)); then
+	[[ -t 0 ]] || die "--ask-sudo-password requires an interactive terminal"
+	IFS= read -r -s -p "sudo password for ${target}: " sudo_password
+	printf '\n'
+	[[ -n "$sudo_password" ]] || die "sudo password cannot be empty"
+	if ! printf '%s\n' "$sudo_password" | ssh "${ssh_options[@]}" "$target" \
+		'sudo -k -S -p "" true' >/dev/null 2>&1; then
+		sudo_password=
+		die "sudo authentication failed before the device cycle"
+	fi
+	sudo_mode=password
+elif ssh -n "${ssh_options[@]}" "$target" 'sudo -n true' >/dev/null 2>&1; then
+	sudo_mode=noninteractive
+elif ((wait_for_cycle)); then
+	die "the cycle capture requires root; pass --ask-sudo-password"
+fi
+
+cycle_started_utc="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+disconnect_observed_utc=not-requested
+reconnect_observed_utc=not-requested
+initial_boot_id="$(ssh_boot_id)"
+[[ -n "$initial_boot_id" && "$initial_boot_id" != *$'\n'* ]] || \
+	die "could not capture the initial boot ID"
+final_boot_id=$initial_boot_id
+if ((wait_for_cycle)); then
+	wait_deadline_epoch=$(( $(date +%s) + wait_seconds ))
+	echo "Waiting for $target to remain disconnected across two probes..."
+	wait_for_stable_disconnect
+	disconnect_observed_utc="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+	echo "Disconnect observed; waiting for the known-good OS and a new boot ID..."
+	final_boot_id="$(wait_for_boot_id_change "$initial_boot_id")"
+	[[ "$final_boot_id" != "$initial_boot_id" ]] || die "boot ID did not change"
+	reconnect_observed_utc="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+	echo "Observed boot ID change."
+fi
+
+capture_kernel="$(ssh -n "${ssh_options[@]}" "$target" 'uname -r')"
+capture_arch="$(ssh -n "${ssh_options[@]}" "$target" 'uname -m')"
+[[ "$capture_kernel" == "$expected_kernel" ]] || \
+	die "recovery kernel is $capture_kernel, expected $expected_kernel"
+[[ "$capture_arch" == aarch64 ]] || \
+	die "recovery architecture is $capture_arch, expected aarch64"
+capture_boot_id="$(ssh_boot_id)"
+[[ "$capture_boot_id" == "$final_boot_id" ]] || \
+	die "boot ID changed again before capture"
+initial_boot_id_sha256="$(printf '%s\n' "$initial_boot_id" | sha256_stream)"
+final_boot_id_sha256="$(printf '%s\n' "$final_boot_id" | sha256_stream)"
+if ((wait_for_cycle)); then
+	wait_for_cycle_record=yes
+	boot_id_changed=yes
+else
+	wait_for_cycle_record=no
+	boot_id_changed=no
+fi
+{
+	printf 'wait_for_cycle=%s\n' "$wait_for_cycle_record"
+	printf 'cycle_started_utc=%s\n' "$cycle_started_utc"
+	printf 'disconnect_observed_utc=%s\n' "$disconnect_observed_utc"
+	printf 'reconnect_observed_utc=%s\n' "$reconnect_observed_utc"
+	printf 'initial_boot_id_sha256=%s\n' "$initial_boot_id_sha256"
+	printf 'final_boot_id_sha256=%s\n' "$final_boot_id_sha256"
+	printf 'boot_id_changed=%s\n' "$boot_id_changed"
+	printf 'capture_kernel=%s\n' "$capture_kernel"
+	printf 'capture_arch=%s\n' "$capture_arch"
+	printf 'expected_kernel=%s\n' "$expected_kernel"
+} >"${staging}/cycle.txt"
+
+metadata_probe() {
+	cat <<'REMOTE'
+set -eu
+printf 'capture_user=%s\n' "$(id -un)"
+printf 'kernel=%s\n' "$(uname -r)"
+printf 'architecture=%s\n' "$(uname -m)"
+printf 'boot_id_sha256='; sha256sum /proc/sys/kernel/random/boot_id | awk '{print $1}'
+printf 'pstore_directory='; if test -d /sys/fs/pstore; then echo present; else echo absent; fi
+printf 'pstore_files='; find /sys/fs/pstore -maxdepth 1 -type f -printf '%f ' 2>/dev/null || true; echo
+for parameter in mem_address mem_size record_size console_size pmsg_size ftrace_size mem_type ecc; do
+	path="/sys/module/ramoops/parameters/$parameter"
+	if test -r "$path"; then
+		printf 'ramoops_%s=' "$parameter"
+		cat "$path"
+	fi
+done
+for path in /sys/devices/platform/mtk-wdt/boot_status /sys/class/watchdog/watchdog0/bootstatus; do
+	if test -r "$path"; then
+		printf 'watchdog_boot_status[%s]=' "$path"
+		cat "$path"
+	fi
+done
+REMOTE
+}
+
+metadata_payload_b64="$(metadata_probe | base64 | tr -d '\n')"
+[[ -n "$metadata_payload_b64" ]] || die "could not encode the metadata probe"
+remote_sudo_shell="$(cat <<'REMOTE'
+set -eu
+IFS= read -r sudo_password || exit 90
+IFS= read -r metadata_payload_b64 || exit 91
+printf '%s\n' "$sudo_password" | sudo -k -S -p "" sh -c \
+	'printf "%s" "$1" | base64 -d | sh -s' sh "$metadata_payload_b64"
+unset sudo_password metadata_payload_b64
+REMOTE
+)"
+remote_sudo_tar="$(cat <<'REMOTE'
+set -eu
+IFS= read -r sudo_password || exit 90
+printf '%s\n' "$sudo_password" | \
+	sudo -k -S -p "" tar -C /sys/fs/pstore -cf - .
+unset sudo_password
+REMOTE
+)"
+
+case "$sudo_mode" in
+	password)
+		{
+			printf '%s\n' "$sudo_password"
+			printf '%s\n' "$metadata_payload_b64"
+		} | ssh "${ssh_options[@]}" "$target" "$remote_sudo_shell" \
+			>"${staging}/metadata.txt" || die "authenticated metadata capture failed"
+		;;
+	noninteractive)
+		metadata_probe | ssh "${ssh_options[@]}" "$target" 'sudo -n sh -s' \
+			>"${staging}/metadata.txt" || die "passwordless metadata capture failed"
+		;;
+	direct)
+		metadata_probe | ssh "${ssh_options[@]}" "$target" 'sh -s' \
+			>"${staging}/metadata.txt" || die "metadata capture failed"
+		;;
+	*)
+		die "internal sudo mode error"
+		;;
+esac
+
+metadata_boot_id_sha256="$(awk -F= '$1 == "boot_id_sha256" { print $2 }' "${staging}/metadata.txt")"
+[[ "$metadata_boot_id_sha256" == "$final_boot_id_sha256" ]] || \
+	die "metadata capture is not bound to the observed final boot ID"
+archive_pre_boot_id="$(ssh_boot_id)"
+[[ "$archive_pre_boot_id" == "$final_boot_id" ]] || \
+	die "boot ID changed before the pstore archive capture"
+
+case "$sudo_mode" in
+	password)
+		if ! printf '%s\n' "$sudo_password" | \
+			ssh "${ssh_options[@]}" "$target" "$remote_sudo_tar" \
+			>"${staging}/pstore.tar"; then
+			die "authenticated pstore capture failed"
+		fi
+		;;
+	noninteractive)
+		ssh "${ssh_options[@]}" "$target" \
+			'sudo -n tar -C /sys/fs/pstore -cf - .' \
+			>"${staging}/pstore.tar" || die "passwordless pstore capture failed"
+		;;
+	direct)
+		ssh "${ssh_options[@]}" "$target" \
+			'tar -C /sys/fs/pstore -cf - .' \
+			>"${staging}/pstore.tar" || \
+			die "pstore is not readable; retry with --ask-sudo-password"
+		;;
+	*)
+		die "internal sudo mode error"
+		;;
+esac
+archive_post_boot_id="$(ssh_boot_id)"
+[[ "$archive_post_boot_id" == "$final_boot_id" ]] || \
+	die "boot ID changed during the pstore archive capture"
+printf 'archive_pre_boot_id_sha256=%s\n' \
+	"$(printf '%s\n' "$archive_pre_boot_id" | sha256_stream)" \
+	>>"${staging}/cycle.txt"
+printf 'archive_post_boot_id_sha256=%s\n' \
+	"$(printf '%s\n' "$archive_post_boot_id" | sha256_stream)" \
+	>>"${staging}/cycle.txt"
+sudo_password=
+readonly MAX_PSTORE_TAR_BYTES=4194304
+pstore_tar_size="$(stat -f '%z' "${staging}/pstore.tar" 2>/dev/null || \
+	stat -c '%s' "${staging}/pstore.tar")"
+[[ "$pstore_tar_size" =~ ^[0-9]+$ && "$pstore_tar_size" -le "$MAX_PSTORE_TAR_BYTES" ]] || \
+	die "pstore archive exceeds the ${MAX_PSTORE_TAR_BYTES}-byte safety bound"
+tar -tf "${staging}/pstore.tar" >"${staging}/pstore-members.txt" || \
+	die "pstore archive member listing failed"
+while IFS= read -r member || [[ -n "$member" ]]; do
+	if [[ "$member" == . || "$member" == ./ ]]; then
+		continue
+	fi
+	[[ "$member" == ./* ]] || die "unsafe pstore archive member: $member"
+	member_name=${member#./}
+	[[ "$member_name" =~ ^[A-Za-z0-9][A-Za-z0-9._+-]*$ ]] || \
+		die "unsafe pstore archive member: $member"
+done <"${staging}/pstore-members.txt"
+tar -tvf "${staging}/pstore.tar" >"${staging}/pstore-members-verbose.txt" || \
+	die "pstore archive type listing failed"
+while IFS= read -r member_line || [[ -n "$member_line" ]]; do
+	member_type=${member_line:0:1}
+	case "$member_type" in
+		-) ;;
+		d) [[ "$member_line" == *' ./' ]] || die "unexpected directory in pstore archive" ;;
+		*) die "non-regular entry in pstore archive" ;;
+	esac
+done <"${staging}/pstore-members-verbose.txt"
+mkdir "${staging}/pstore"
+tar -C "${staging}/pstore" -xf "${staging}/pstore.tar"
+[[ -z "$(find "${staging}/pstore" -mindepth 1 ! -type f -print -quit)" ]] || \
+	die "pstore archive extracted a non-regular entry"
+find "${staging}/pstore" -type f -exec chmod 0600 {} +
+candidate_l_marker=GEMINI_OBSERVABILITY_20260717_L
+candidate_l_console="${staging}/pstore/console-ramoops"
+candidate_l_init_marker="${candidate_l_marker} stage=initramfs-entered"
+candidate_l_watchdog_armed_marker="${candidate_l_marker} watchdog0=armed handoff_ping=sent"
+{
+	printf 'marker=%s\n' "$candidate_l_marker"
+	printf 'required_cross_version_file=console-ramoops\n'
+	if [[ -f "$candidate_l_console" ]]; then
+		printf 'console-ramoops=present\n'
+		if grep -aFq -- '-gemini-observability-L' "$candidate_l_console"; then
+			printf 'candidate_kernel_identity=present\n'
+		else
+			printf 'candidate_kernel_identity=absent\n'
+		fi
+		if grep -aFq "$candidate_l_init_marker" "$candidate_l_console"; then
+			printf 'initramfs_entered=present\n'
+		else
+			printf 'initramfs_entered=absent\n'
+		fi
+		if grep -aFq "$candidate_l_marker" "$candidate_l_console"; then
+			printf 'observability_marker_token=present\n'
+			printf 'observability_lines_begin\n'
+			grep -aF "$candidate_l_marker" "$candidate_l_console"
+			printf 'observability_lines_end\n'
+			last_observability_line="$(grep -aF "$candidate_l_marker" \
+				"$candidate_l_console" | tail -n 1)"
+			printf 'last_observability_line=%s\n' "$last_observability_line"
+		else
+			printf 'observability_marker_token=absent\n'
+			printf 'last_observability_line=none\n'
+		fi
+		watchdog_event_order="$(awk \
+			-v armed_marker="$candidate_l_watchdog_armed_marker" \
+			-v wait15_marker="${candidate_l_marker} watchdog_wait=15s" \
+			-v wait20_marker="${candidate_l_marker} watchdog_wait=20s" '
+			index($0, armed_marker) {
+				armed = 1
+				next
+			}
+			index($0, wait15_marker) && armed {
+				wait15 = 1
+				next
+			}
+			index($0, wait20_marker) && armed {
+				wait20 = 1
+				next
+			}
+			index($0, "watchdog0: pretimeout event") {
+				any = 1
+				if (!armed)
+					before = 1
+				else if (wait15 && !wait20)
+					bounded = 1
+				else if (!wait15)
+					early = 1
+				else
+					late = 1
+			}
+			END {
+				printf "%d %d %d %d %d %d\n", any, armed, before,
+				       bounded, early, late
+			}
+		' "$candidate_l_console")"
+		read -r watchdog_event_any watchdog_armed_seen \
+			watchdog_event_before_handoff watchdog_event_bounded \
+			watchdog_event_early watchdog_event_late <<<"$watchdog_event_order"
+		printf 'watchdog_handoff_marker=%s\n' \
+			"$([[ "$watchdog_armed_seen" == 1 ]] && printf present || printf absent)"
+		printf 'watchdog_pretimeout_event_any=%s\n' \
+			"$([[ "$watchdog_event_any" == 1 ]] && printf present || printf absent)"
+		printf 'watchdog_pretimeout_event_before_handoff=%s\n' \
+			"$([[ "$watchdog_event_before_handoff" == 1 ]] && printf present || printf absent)"
+		printf 'watchdog_pretimeout_event_after_handoff_before_wait15=%s\n' \
+			"$([[ "$watchdog_event_early" == 1 ]] && printf present || printf absent)"
+		printf 'watchdog_pretimeout_event_after_wait15_before_wait20=%s\n' \
+			"$([[ "$watchdog_event_bounded" == 1 ]] && printf present || printf absent)"
+		printf 'watchdog_pretimeout_event_after_wait20=%s\n' \
+			"$([[ "$watchdog_event_late" == 1 ]] && printf present || printf absent)"
+		if [[ "$watchdog_event_bounded" == 1 ]]; then
+			printf 'watchdog_pretimeout_attribution=candidate-L-bark-window\n'
+		else
+			printf 'watchdog_pretimeout_attribution=not-established\n'
+		fi
+	else
+		printf 'console-ramoops=absent\n'
+		printf 'candidate_kernel_identity=absent\n'
+		printf 'initramfs_entered=absent\n'
+		printf 'observability_marker_token=absent\n'
+		printf 'last_observability_line=none\n'
+		printf 'watchdog_handoff_marker=absent\n'
+		printf 'watchdog_pretimeout_event_any=absent\n'
+		printf 'watchdog_pretimeout_event_before_handoff=absent\n'
+		printf 'watchdog_pretimeout_event_after_handoff_before_wait15=absent\n'
+		printf 'watchdog_pretimeout_event_after_wait15_before_wait20=absent\n'
+		printf 'watchdog_pretimeout_event_after_wait20=absent\n'
+		printf 'watchdog_pretimeout_attribution=not-established\n'
+	fi
+	printf 'marker_token_files='
+	for console_file in "${staging}"/pstore/console-ramoops*; do
+		[[ -f "$console_file" ]] || continue
+		if grep -aFq "$candidate_l_marker" "$console_file"; then
+			printf '%s ' "${console_file##*/}"
+		fi
+	done
+	printf '\n'
+	printf 'pmsg_cross_version_evidence=unsupported\n'
+} >"${staging}/candidate-l-evidence.txt"
+(
+	cd "$staging"
+		find . -type f ! -path ./SHA256SUMS -print0 | sort -z | \
+		xargs -0 "${HASH_COMMAND[@]}"
+) >"${staging}/SHA256SUMS"
+chmod 0600 "${staging}/cycle.txt" "${staging}/metadata.txt" \
+	"${staging}/pstore.tar" "${staging}/pstore-members.txt" \
+	"${staging}/pstore-members-verbose.txt" \
+	"${staging}/candidate-l-evidence.txt" "${staging}/SHA256SUMS"
+mv "$staging" "$output"
+staging=
+trap - EXIT
+chmod 0700 "$output"
+output_mode="$(stat -f '%Lp' "$output" 2>/dev/null || stat -c '%a' "$output")"
+[[ "$output_mode" == 700 ]] || die "capture directory mode is not 0700: $output"
+
+echo "Pstore capture saved to $output"
+echo "Pstore entries and partitions were not modified or removed."
+echo "SSH/sudo authentication may have updated normal OS audit metadata."

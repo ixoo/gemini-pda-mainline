@@ -1,0 +1,53 @@
+From a5a749e1846d3029bd5749650d18069c1471991b Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 17 Jul 2026 13:31:00 -0400
+Subject: [PATCH 80/81] arm64: dts: mediatek: gemini: add ramoops backend
+
+The shipping Gemini software reserves 0xe0000 bytes at 0x44410000 for
+pstore.  The running Gemian kernel exposes the same region through a
+modified ramoops driver with 0x1000-byte crash records and 0x10000-byte
+console and pmsg sizes.  It also uses a 0x1000-byte ftrace size,
+write-combined mappings, and no ECC.
+
+That downstream driver reserves two console-size zones, unlike upstream.
+Its exact active binary gives both console records ID zero, so a record in
+the second zone can be hidden by a duplicate filename.  Use an otherwise
+unconsumed 0x20000-byte pmsg allocation to align the upstream dmesg and
+primary console ranges with their downstream counterparts.  Even with
+CONFIG_PSTORE_PMSG=n, ramoops performs its PRZ_FLAG_ZAP_OLD single-zone
+initialization for that allocation.  Probe may therefore snapshot the old
+contents and clear the inherited downstream bconsole header.  The disabled
+frontend prevents subsequent pmsg payload writes.  This allocation is never
+cross-version pmsg evidence.
+
+The board DT currently reserves the range but does not instantiate a pstore
+backend.  A mainline kernel therefore cannot yet leave console output for
+the known-good Gemian system to recover after a warm reset.  Describe the
+observed parameters without changing the reservation.
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+index 605090f6e..f829a6d06 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -56,8 +56,14 @@ memory@44400000 {
+ 			no-map;
+ 		};
+ 
+-		memory@44410000 {
++		ramoops@44410000 {
++			compatible = "ramoops";
+ 			reg = <0 0x44410000 0 0xe0000>;
++			record-size = <0x1000>;
++			console-size = <0x10000>;
++			ftrace-size = <0x1000>;
++			pmsg-size = <0x20000>;
++			mem-type = <0>;
+ 			no-map;
+ 		};
+ 
+-- 
+2.43.0
+
