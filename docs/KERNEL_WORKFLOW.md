@@ -226,13 +226,22 @@ battery reported 100%, Full, and Good. The old exact-I partition was backed up,
 the write was
 synced and block-flushed, and the complete target plus local readback match SHA-256
 `465e4c747138e12191d38fd6b4cde68cd0b9a19f918030dea05c9b8dbdd4d3fc`.
-No reboot or shutdown was part of that operation, and runtime is pending. See
-the [write/readback record](../experiments/2026-07-17-clk-ignore-unused-diagnostic/results/boot2-write-candidate-j-20260717.txt).
+No reboot or shutdown was part of that operation. On the first later
+owner-attended intended `boot2` selection, the last visible suffix before black
+was reported as `4/60`. Since only the tracked shared I/J `/init` emits that counter,
+the verified target/readback and intended selection strongly support Linux
+entry, fbcon/tty0 output, and shared `/init` execution through tick 04 for this
+attempt. The full line and marker were not exactly transcribed, and one attempt
+does not establish causality or repeatability. See the
+[write/readback record](../experiments/2026-07-17-clk-ignore-unused-diagnostic/results/boot2-write-candidate-j-20260717.txt)
+and [first runtime record](../experiments/2026-07-17-clk-ignore-unused-diagnostic/results/runtime-candidate-j-attempt-1-20260717.txt).
 At runtime, `clk_ignore_unused` only prevents the Common Clock Framework's
 automatic unused-clock cleanup: it does not enable clocks that are already off,
 prevent explicit driver disables, or retain regulators or power domains. Treat
 J as a bounded attended discriminator, never as a default or a complete
-display-power solution.
+display-power solution. Return to the known-good OS and normal temperature,
+then perform one more attended J selection before considering any new candidate
+or matched exact-I control.
 
 Before treating the series as submission-ready, run the pinned tree's review
 checker over every patch:

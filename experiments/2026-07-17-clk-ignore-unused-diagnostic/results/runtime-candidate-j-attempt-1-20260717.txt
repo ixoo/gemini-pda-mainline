@@ -1,0 +1,60 @@
+[record]
+date=2026-07-17
+source=owner-attended visual observation
+candidate=J
+attempt=1
+intended_boot_target=logical boot2
+device_variant=current Gemini PDA unit; exact retail sub-variant not independently established
+
+[artifact_and_target_evidence]
+raw_boot_image_sha256=6d5bad08c2f93eba7fbd66ea5c54de2437f81e44832426a97d4d65d550c659f4
+installed_full_partition_bytes=16777216
+installed_full_partition_sha256=465e4c747138e12191d38fd6b4cde68cd0b9a19f918030dea05c9b8dbdd4d3fc
+write_sync_flush=pass
+full_partition_readback=pass-byte-identical-to-padded-candidate
+candidate_j_selection=intended-by-owner
+
+[observation]
+owner_report=That worked somehow ;) The last line I saw before the screen went dark is 4/60.
+last_visible_text_reported=4/60
+exact_full_line_transcription=no
+exact_marker_recognition=no
+screen_transition=visible-console-output-then-black
+attempt_count=1
+
+[attribution]
+tracked_shared_init_line_for_tick_04=GEMINI_FBCON_REFRESH_20260716_I T+04 ACTIVE REFRESH 04/60
+counter_uniqueness=only the tracked shared Candidate I/J initramfs /init emits the NN/60 sequence
+attribution_strength=strong-combined-evidence
+attribution_basis=verified Candidate J boot2 write/readback plus intended boot2 selection plus unique visible 4/60 suffix
+kernel_entry=strongly-supported-for-this-attempt
+fbcon_tty0_visible_output=strongly-supported-for-this-attempt
+shared_i_j_init_execution=strongly-attributed-through-tick-04-for-this-attempt
+minimum_refresh_loop_progress=at least four one-second sleeps completed after the init refresh loop began
+black_transition_boundary=after visible tick 04; exact transition tick and any upper bound on loop progress are unknown
+selection_to_black_wall_time=unknown
+
+[unknowns]
+backlight_state=unknown
+screen_orientation=unknown
+first_visible_tick=unknown
+exact_black_transition_time=unknown
+final_power_or_runtime_state=unknown
+heat=unknown
+recovery_action=unknown
+reboot=unknown
+repeatability=unknown-single-attempt
+
+[interpretation]
+combined_evidence_result=the reported suffix is strongly attributed to Candidate J Linux fbcon output and shared initramfs tick 04 before the screen became black
+clock_cleanup_association=material-positive-association-for-one-attempt
+clock_cleanup_causality=not-established
+specific_clock_identity=not-established
+exact_i_control=unconfirmed-and-not-a-matched-control
+display_retention=not-established
+native_display_support=not-established
+
+[next_action]
+action=return to known-good OS, allow normal temperature and power conditions, then perform one more owner-attended Candidate J attempt
+stop_conditions=unexpected heat, charging anomaly, instability, watchdog loop, filesystem symptoms, or changed recovery behavior
+new_candidate_build_or_flash=not-yet

@@ -108,10 +108,18 @@ Priorities for the next controlled test are:
    metadata manifests differ. J is synchronized to logical `boot2`; its full
    16 MiB target and readback match SHA-256
    `465e4c747138e12191d38fd6b4cde68cd0b9a19f918030dea05c9b8dbdd4d3fc`.
-   The write did not reboot or shut down the device, and runtime is pending.
-   `clk_ignore_unused` neither turns on already-off clocks nor prevents explicit
-   disables or retains regulators/power domains, so any positive result must
-   lead back to narrower ownership tests rather than adoption as a fix.
+   The write did not reboot or shut down the device. On the first later
+   owner-attended intended `boot2` selection, the last visible suffix before
+   black was reported as `4/60`. Only the tracked shared I/J `/init` emits that
+   counter, so the verified target/readback and intended selection strongly
+   support Linux entry, fbcon/tty0 output, and `/init` execution through tick
+   04 for that attempt. The full line and marker were not exactly transcribed.
+   This one positive attempt is materially associated with broad clock
+   retention, but does not establish causality, repeatability, or clock
+   identity. `clk_ignore_unused` neither turns on already-off clocks nor
+   prevents explicit disables or retains regulators/power domains. Return to
+   the known-good OS and normal temperature, perform one more attended J
+   selection, and reassess before building or installing anything else.
 6. **P5 — isolate the restart path before widening the platform.**
    `reboot -f` requests `RB_AUTOBOOT`. Linux 7.1.3 invokes PSCI
    `SYSTEM_RESET` before the MT6797 TOPRGU watchdog fallback. The off-like state
@@ -148,6 +156,8 @@ The current no-marker observation and broad clock control are recorded in the
 and [Candidate J clock diagnostic](../experiments/2026-07-17-clk-ignore-unused-diagnostic/README.md).
 Candidate J's safe synchronization is captured in its
 [write/readback record](../experiments/2026-07-17-clk-ignore-unused-diagnostic/results/boot2-write-candidate-j-20260717.txt).
+Its first positive-but-transient observation is captured in the
+[Candidate J runtime record](../experiments/2026-07-17-clk-ignore-unused-diagnostic/results/runtime-candidate-j-attempt-1-20260717.txt).
 
 ## Current evidence snapshot (2026-07-17)
 
@@ -230,7 +240,12 @@ payload, `System.map`, all 119 DTBs, and boot image. J is synchronized and
 fully read back from logical `boot2` under the standing safety policy; the full
 partition/readback SHA-256 is
 `465e4c747138e12191d38fd6b4cde68cd0b9a19f918030dea05c9b8dbdd4d3fc`.
-It has not been runtime-tested and is only a broad early-handoff discriminator.
+Its first intended selection visibly reached the shared `/init` counter suffix
+`4/60` before black. This strongly supports Linux/fbcon/tty0 and tick 04 for
+that attempt, but neither repeatability nor clock causality. It remains only a
+broad early-handoff discriminator; perform one more attended J attempt after a
+known-good boot and return to normal temperature before considering another
+candidate.
 The normal UART prerequisite remains unmet; the experiment records the
 one-time alternative-recovery exception, observation, and stop path.
 The prior 76-patch package has a regenerated private gzip+appended-DTB

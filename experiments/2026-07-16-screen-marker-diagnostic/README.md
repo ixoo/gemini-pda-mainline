@@ -229,7 +229,10 @@ silent hold, but the reported intended selection went directly to black with
 no I marker or counter. Its timing hypothesis therefore remains untested.
 Candidate J rebuilds that kernel with `clk_ignore_unused` in forced
 `CONFIG_CMDLINE`, retains exact I's DTB/initramfs/header command line, and has
-been synchronized and fully read back from logical `boot2`; runtime is pending.
-It is a broad diagnostic control, not a proposed fix.
+been synchronized and fully read back from logical `boot2`. Its first intended
+selection visibly reached the shared `/init` counter suffix `4/60` before
+black. This strongly supports Linux/fbcon/tty0 and tick 04 for that attempt,
+but does not establish clock causality or repeatability. It is a broad
+diagnostic control, not a proposed fix.
 Native DRM, DSI, PWM, panel, regulators and display-domain consumers remain
 disabled.

@@ -170,7 +170,7 @@ reported intended selection went directly to black with no I marker, counter,
 or other text. Its selection, `/init`, active-refresh interval, and static hold
 are therefore unestablished; the timing hypothesis remains untested.
 
-Candidate J is the next broad early-handoff control. It rebuilds the kernel to
+Candidate J is the broad early-handoff control. It rebuilds the kernel to
 append `clk_ignore_unused` to the forced `CONFIG_CMDLINE`, while keeping exact
 I's DTB, initramfs, and Android header command line. A header-only draft was
 rejected because `CONFIG_CMDLINE_FORCE=y` makes that loader-provided addition a
@@ -182,11 +182,17 @@ raw J image SHA-256 is
 it is synchronized to logical `boot2`, and the full 16 MiB target/readback
 matches SHA-256
 `465e4c747138e12191d38fd6b4cde68cd0b9a19f918030dea05c9b8dbdd4d3fc`.
-The write did not reboot the device and runtime remains pending. This
-deliberately broad diagnostic does not enable clocks that are already off,
-prevent explicit clock disables, or retain regulators or power domains, and it
-is not a normal boot policy. The exact kernel compiles fbcon rotation out, so
-rotation remains a separate later configuration test.
+The write did not reboot the device. On the first later owner-attended intended
+`boot2` selection, the last visible suffix before black was reported as
+`4/60`. Only the tracked shared I/J `/init` emits that counter. Combined with the
+verified J target/readback and intended selection, this strongly supports
+Linux entry, visible fbcon/tty0 output, and shared `/init` execution through
+tick 04 for this attempt. The full line and marker were not exactly
+transcribed, and the single result does not establish causality or
+repeatability. This deliberately broad diagnostic does not enable clocks that
+are already off, prevent explicit clock disables, or retain regulators or
+power domains, and it is not a normal boot policy. The exact kernel compiles
+fbcon rotation out, so rotation remains a separate later configuration test.
 The following map is the implementation boundary for the baseline candidate; it is
 deliberately grouped by dependency rather than treating every patch as a new
 driver.
@@ -204,11 +210,13 @@ driver.
 | 0058–0065 | Panfrost, DPI, PMIC parent fix, SCPSYS/AFE bindings, DVFSP deferral | Reuse Panfrost/DRM/PMIC/SCPSYS/ASoC frameworks; keep undocumented DVFSP out | Panfrost/DPI/AFE consumers remain disabled or module-only | Validate each consumer’s clocks, resets, IOMMU, supplies, and firmware boundary independently |
 | 0066–0071 | USB T-PHY/MTU3/xHCI/MUSB and MSDC pinmux policy | Reuse generic USB cores with MT6797 glue and source-derived split windows; use pinmux-only MSDC state | USB nodes remain disabled; built-in code is package capability, not probe evidence | Gadget-only console first, then role/VBUS and PHY tests with external recovery |
 | 0072–0076 | SPI aliases/nodes, hall input, NT36772 boundary, keyboard polarity | Reuse generic SPI and input frameworks where the captured protocol matches; keep every new board consumer disabled | The 77-patch package validates, but these additions have no current-mainline runtime result | Test one bounded consumer at a time with exact identity and recovery evidence |
-| 0077–0078 | MTU3 peripheral diagnostic | Extend the existing MediaTek T-PHY with an opt-in forced B-device session and describe Gemini peripheral wiring while leaving base nodes disabled | The exact USB image was fully read back and runtime-tested from `boot2`; two bounded host checks found no USB child. A ramdisk-only timed-reboot follow-up produced strong indirect `/init` evidence but no automatic restart, which does not promote USB support. Candidate E's marker remained black. Candidate F's sole simplefb clock-reference delta then produced about one second of visible sideways fbcon text before black, strongly supporting kernel/simplefb/fbcon execution. Candidate G removed only the raw framebuffer overwrite and reproduced sideways scrolling for 1–2 seconds before black with the backlight apparently off. Candidate H appended only the MM-root clock reference; two attempts visibly progressed farther and approximately exposed its initramfs marker before the screen and backlight went off, while later attempts did not reproduce the progress. Candidate I is an exact-H initramfs-only timing derivative, fully read back from `boot2`; the reported intended selection was directly black with no I marker or counter, so its timing hypothesis remains untested. Candidate J rebuilds I's kernel with `clk_ignore_unused` in forced `CONFIG_CMDLINE`, keeps exact I's DTB/initramfs/header cmdline, and is reproducibly built, synchronized, flushed, and fully read back from logical `boot2`; runtime is pending | Run J's bounded attended no-marker/marker procedure. Treat it only as a broad clock-cleanup discriminator: it neither enables already-off clocks nor covers explicit disables, regulators, or power domains. Rotate only after retention is stable. Resolve PSCI versus TOPRGU independently; prove USB host enumeration before ping and the TCP marker shell. Infer nothing about host mode, VBUS, Type-C policy, or charging |
+| 0077–0078 | MTU3 peripheral diagnostic | Extend the existing MediaTek T-PHY with an opt-in forced B-device session and describe Gemini peripheral wiring while leaving base nodes disabled | The exact USB image was fully read back and runtime-tested from `boot2`; two bounded host checks found no USB child. A ramdisk-only timed-reboot follow-up produced strong indirect `/init` evidence but no automatic restart, which does not promote USB support. Candidate E's marker remained black. Candidate F's sole simplefb clock-reference delta then produced about one second of visible sideways fbcon text before black, strongly supporting kernel/simplefb/fbcon execution. Candidate G removed only the raw framebuffer overwrite and reproduced sideways scrolling for 1–2 seconds before black with the backlight apparently off. Candidate H appended only the MM-root clock reference; two attempts visibly progressed farther and approximately exposed its initramfs marker before the screen and backlight went off, while later attempts did not reproduce the progress. Candidate I is an exact-H initramfs-only timing derivative, fully read back from `boot2`; the reported intended selection was directly black with no I marker or counter, so its timing hypothesis remains untested. Candidate J rebuilds I's kernel with `clk_ignore_unused` in forced `CONFIG_CMDLINE`, keeps exact I's DTB/initramfs/header cmdline, and is reproducibly built, synchronized, flushed, and fully read back from logical `boot2`. Its first intended selection visibly reached the shared `/init` counter suffix `4/60` before black, strongly supporting Linux/fbcon/tty0 and tick 04 for that attempt but not clock causality or repeatability | Return to known-good OS and normal temperature, then run exactly one more attended J attempt and reassess before any new candidate or rollback. Treat J only as a broad clock-cleanup discriminator: it neither enables already-off clocks nor covers explicit disables, regulators, or power domains. Rotate only after retention is stable. Resolve PSCI versus TOPRGU independently; prove USB host enumeration before ping and the TCP marker shell. Infer nothing about host mode, VBUS, Type-C policy, or charging |
 
 The [current driver-coverage audit](../experiments/2026-07-13-driver-coverage-audit/results/driver-coverage-current-77-package-20260714.txt), [first-boot dependency audit](../experiments/2026-07-14-first-boot-probe-audit/results/first-boot-probe-audit-current-77-package-20260714.txt), [module-closure audit](../experiments/2026-07-14-mainline-module-closure-audit/results/module-closure-current-72-20260714.txt), [77-patch package validation](../experiments/2026-07-12-input-backlight-recovery/results/mainline-display-input-current-77-package-20260714.txt), [USB diagnostic experiment](../experiments/2026-07-16-usb-gadget-diagnostic/README.md), [timed-reboot follow-up](../experiments/2026-07-16-timed-reboot-diagnostic/README.md), [screen-marker follow-up](../experiments/2026-07-16-screen-marker-diagnostic/README.md), [clock-retention result](../experiments/2026-07-16-screen-clock-retention-diagnostic/README.md), [fbcon-text follow-up](../experiments/2026-07-16-fbcon-text-diagnostic/README.md), [MM-root-retention follow-up](../experiments/2026-07-16-simplefb-mm-root-retention/README.md), [fbcon refresh-timing follow-up](../experiments/2026-07-16-fbcon-refresh-timing-diagnostic/README.md), and [broad unused-clock diagnostic](../experiments/2026-07-17-clk-ignore-unused-diagnostic/README.md) provide the corresponding evidence boundaries. The older subsystem records remain content audits where later patches do not touch their inputs. This table is a design map, not a claim that any disabled, module-only, or diagnostic path works on hardware.
 Candidate J's partition operation is separately recorded in its
 [full write/readback result](../experiments/2026-07-17-clk-ignore-unused-diagnostic/results/boot2-write-candidate-j-20260717.txt).
+Its first attended observation is recorded in the
+[Candidate J runtime result](../experiments/2026-07-17-clk-ignore-unused-diagnostic/results/runtime-candidate-j-attempt-1-20260717.txt).
 
 ## Decision records
 

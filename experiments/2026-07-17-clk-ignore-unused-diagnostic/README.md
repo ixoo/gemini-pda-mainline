@@ -6,7 +6,7 @@
 | --- | --- |
 | ID | `2026-07-17-clk-ignore-unused-diagnostic` |
 | Candidate | J |
-| Status | Kernel payload and boot image independently reproduced; installed to `boot2` with full readback; runtime not tested |
+| Status | Kernel payload and boot image independently reproduced; installed to `boot2` with full readback; first attended attempt reported `4/60`, strongly attributed to shared `/init` tick 04 before black; repeat pending |
 | Subsystem | Common Clock Framework, LK display handoff, simplefb/fbcon |
 | Device variant | Current Gemini PDA unit; exact retail sub-variant not independently established |
 | Date | 2026-07-17 |
@@ -27,6 +27,15 @@ visible on an otherwise exact Candidate I boot? A positive result would support
 an undeclared clock dependency somewhere in early handoff, but would not
 identify the correct clock, provider, consumer or Device Tree contract.
 `clk_ignore_unused` is a diagnostic, not a proposed default.
+
+The first owner-attended intended `boot2` attempt displayed console output, and
+the last visible suffix reported before the screen went black was `4/60`. The
+shared I/J `/init` is the only tracked source of that counter and emits
+`GEMINI_FBCON_REFRESH_20260716_I T+04 ACTIVE REFRESH 04/60`. Combined with the
+verified J write/readback and intended slot selection, this strongly attributes
+the visible output to J reaching the shared `/init` through tick 04. The owner
+did not report an exact full-line transcription or exact marker recognition.
+This is one positive attempt, not a repeatability or causal result.
 
 ## Why an Android-header-only candidate is invalid
 
@@ -186,14 +195,21 @@ and an independently recoverable boot path, and stopped immediately for heat,
 charging anomalies, instability or changed recovery behavior. Do not leave J
 running unattended or adopt the option as a normal default.
 
-## Bounded future runtime procedure
+## Bounded runtime procedure
 
-The planned limit is three owner-attended Candidate J selections, with an
-optional two-attempt exact-I comparison only after two consistent,
-marker-confirmed J results. Thus the complete experiment permits at most five
-development-slot boots. No boot or partition write is implicit in the build.
-For the currently installed J image, steps 1–2 are complete with a matching
-full-partition readback; the first runtime attempt begins at step 3.
+The first owner-attended Candidate J selection is now complete. It produced the
+reported `4/60` suffix from the distinctive `NN/60` counter and then black,
+strongly supporting shared `/init` execution through tick 04 for that
+attempt. Tick 04 proves that at least four one-second sleeps completed after
+the refresh loop began; it does not measure time from slot selection or provide
+an upper bound on loop progress before visibility was lost. The
+[exact-tree source audit](results/post-attempt-1-source-audit-20260717.md)
+rejects several tempting no-op follow-ups. The next action is one more J
+selection after returning to the known-good OS and allowing the unit to reach
+normal temperature and power conditions. Stop after that attempt and reassess;
+do not build or install a new candidate, perform an exact-I rollback, or add a
+third J attempt automatically. No boot or partition write is implicit in the
+build.
 
 1. Confirm the device can still enter its known-good OS and recovery path. Use
    stable external power and begin only with the unit at normal temperature and
@@ -211,18 +227,23 @@ full-partition readback; the first runtime attempt begins at step 3.
    Because the initramfs is shared, attribute a visible marker to J only in
    combination with the verified J write/readback and intended `boot2`
    selection. No marker is an unconfirmed selection or early-handoff result,
-   not a post-`/init` J failure.
+   not a post-`/init` J failure. Attempt 1 completed with the last visible suffix
+   reported as `4/60`, followed by black. This is strongly attributable to the
+   shared `/init` tick 04 even though the full line and marker were not exactly
+   transcribed.
 4. Return to the known-good OS after the attempt. Stop immediately and perform
    no repetition after unexpected heat, a charging anomaly, instability,
    watchdog looping, filesystem symptoms, or changed recovery behavior.
    Otherwise wait until power and temperature are normal before another
    owner-attended selection.
-5. Repeat steps 3–4 until either two marker-confirmed J attempts show the same
-   display outcome or three total J selections have been attempted. Stop at
-   either boundary. If all attempts lack the marker, report J runtime as
-   inconclusive and do not infer a clock result.
-6. Only if two marker-confirmed J attempts consistently retain or recover
-   visible output, request fresh explicit owner authorization before
+5. After returning to the known-good OS and confirming normal temperature and
+   power conditions, repeat step 3 exactly once for Candidate J. Stop after
+   this second attempt and record it, whether its outcome agrees or disagrees.
+   Do not build or install a new candidate yet. If an anomaly occurred during
+   attempt 1 or recovery, do not repeat.
+6. Only after the second J result has been recorded and reviewed, and only if
+   both J attempts are attributable and show a consistent display outcome that
+   justifies a matched control, request fresh explicit owner authorization before
    reinstalling the older Candidate I image. The standing `boot2` opt-in covers
    only the latest validated candidate and therefore does not authorize this
    rollback control. After authorization, install exact I to the same logical
@@ -239,7 +260,7 @@ full-partition readback; the first runtime attempt begins at step 3.
 
 ## Interpretation
 
-- If both marker-confirmed J attempts show visible output while both matched
+- If both attributable J attempts show visible output while both matched
   exact-I attempts remain directly black, broad unused-clock retention changes
   the early display outcome. Follow with narrow provider/clock tests; do not
   retain the broad option as a fix.
@@ -251,6 +272,30 @@ full-partition readback; the first runtime attempt begins at step 3.
   Candidate I timing result.
 
 ## Results
+
+The first owner-attended intended `boot2` selection displayed console text and
+then became black. The owner reported `4/60` as the last visible suffix, not an
+exact transcription of the complete line or marker. Only the tracked shared I/J
+initramfs `/init` emits that counter; at tick 04 its exact source line is
+`GEMINI_FBCON_REFRESH_20260716_I T+04 ACTIVE REFRESH 04/60`. Together with the
+verified Candidate J write/readback and intended `boot2` selection, this is
+strong evidence that J entered Linux, produced fbcon/tty0 output, and executed
+the shared `/init` through tick 04. It proves that at least four one-second
+sleeps completed after `/init`'s refresh loop began; selection-to-black time
+and any upper bound on loop progress before visibility was lost remain unknown.
+Backlight state, orientation, first visible tick, selection-to-black time,
+final power/runtime state, heat, recovery action, reboot behavior, and
+repeatability were not reported.
+
+This single positive attempt is materially associated with broad unused-clock
+retention, but causality is not established: the earlier exact-I attempt did
+not establish selection or `/init` and is not a matched control. No particular
+clock, regulator, power domain, or native display path is identified. The
+sanitized observation is in
+[`results/runtime-candidate-j-attempt-1-20260717.txt`](results/runtime-candidate-j-attempt-1-20260717.txt).
+The exact Candidate J source/configuration audit and the resulting second-test
+gate are in
+[`results/post-attempt-1-source-audit-20260717.md`](results/post-attempt-1-source-audit-20260717.md).
 
 Two isolated `usbdiag-clkignore` kernel builds passed the normal kernel
 artifact validator and independently reproduced `Image`, `Image.gz`,
@@ -278,7 +323,7 @@ rebuild-derived boot:    PASS — byte-identical; same SHA-256
 boot-container equality: PASS — two builds from the same pinned packages
 LK/container gates:     PASS
 boot2 write/readback:    PASS — 16,777,216-byte full image
-runtime:                 NOT TESTED
+runtime attempt 1:       OBSERVED — reported 4/60 suffix strongly attributed to shared /init tick 04, then black
 ```
 
 The sanitized record is
@@ -290,6 +335,7 @@ The three misleading VM directories produced by the rejected header-only draft
 were moved out of the normal candidate namespace and into a clearly named
 `rejected-header-only-noop-20260717/` quarantine. Candidate J was installed
 only to logical `boot2`; the write, sync, flush and complete readback are
-captured in the linked write record above. The device remained in its known-good
-Gemian kernel with root on `mmcblk0p29`; no reboot, shutdown or Candidate J
-runtime selection was performed.
+captured in the linked write record above. The write itself left the device in
+its known-good Gemian kernel with root on `mmcblk0p29` and did not reboot or
+shut it down. The later first owner-attended Candidate J selection is recorded
+separately in the linked runtime result.

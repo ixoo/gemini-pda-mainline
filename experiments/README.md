@@ -171,9 +171,15 @@ the result.
   all 119 DTBs, and boot image byte-for-byte. It is synchronized, flushed, and
   fully read back from logical `boot2`; its full 16 MiB partition/readback hash
   is `465e4c747138e12191d38fd6b4cde68cd0b9a19f918030dea05c9b8dbdd4d3fc`.
-  No reboot was part of the [write/readback operation](2026-07-17-clk-ignore-unused-diagnostic/results/boot2-write-candidate-j-20260717.txt)
-  and runtime is pending. This broad control does not enable already-off
-  clocks, prevent explicit disables, or retain regulators or power domains.
+  No reboot was part of the [write/readback operation](2026-07-17-clk-ignore-unused-diagnostic/results/boot2-write-candidate-j-20260717.txt).
+  On the first later owner-attended intended selection, the last visible suffix
+  before black was reported as `4/60`. Only the tracked shared I/J `/init` emits that
+  counter, so this strongly supports Linux/fbcon/tty0 and `/init` tick 04
+  for the verified J target in that attempt, without an exact full-line or
+  marker transcription. The [runtime record](2026-07-17-clk-ignore-unused-diagnostic/results/runtime-candidate-j-attempt-1-20260717.txt)
+  preserves the unknowns. One attempt does not establish clock causality or
+  repeatability. This broad control does not enable already-off clocks, prevent
+  explicit disables, or retain regulators or power domains.
 - [2026-07-14 live vendor-to-mainline gap audit](2026-07-14-live-vendor-mainline-gap-audit/README.md)
   — read-only comparison of the live Gemian vendor contracts with the current
   Linux 7.1.3 handoff and first-boot boundaries.
