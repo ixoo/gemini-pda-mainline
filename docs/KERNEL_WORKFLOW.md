@@ -70,7 +70,11 @@ uses `configs/gemini-handoff.fragment` and is intentionally built-in-only and
 probe-minimal for the first LK-to-Linux execution test. The `usbdiag` profile
 applies `configs/gemini-usbdiag.fragment` after that baseline and adds the
 gadget-only MTU3/T-PHY and IPv4 path without enabling storage, host-mode USB,
-Type-C policy, or unrelated network devices. Kernel
+Type-C policy, or unrelated network devices. The diagnostic-only
+`usbdiag-clkignore` profile then applies
+`configs/gemini-clk-ignore-unused.fragment`; its sole request appends
+`clk_ignore_unused` to the forced kernel `CONFIG_CMDLINE`. This broad profile is
+not a normal boot configuration. Kernel
 `merge_config.sh` reports redundant or overridden values, and `olddefconfig`
 resolves new dependencies. The repository validator checks the final requested
 value for each symbol, so a later profile fragment may intentionally override
@@ -191,11 +195,44 @@ second through `T+60`, then enters a silent static hold. Its validator permits
 only the ramdisk-derived Android-v0 fields to change. Build it twice into new
 directories, require complete directory equality, and export one exact
 directory. The validated image is synchronized and fully read back from
-logical `boot2`; runtime is the next gate. Since unused-clock cleanup is a
-synchronous late initcall that completes before external `/init`, defer the
-broad `clk_ignore_unused` discriminator until later evidence makes it specific.
-Rotation requires a separate configuration-only candidate after display
-retention is stable.
+logical `boot2`. The reported intended selection went directly to black and
+showed no Candidate I marker, counter, or other console text. Because the exact
+attempt count, backlight, final state, and recovery action were not recorded,
+selection and `/init` execution remain unconfirmed and the active-refresh
+versus static-hold hypothesis remains untested. Rotation requires a separate
+configuration-only candidate after display retention is stable.
+
+Candidate J must be built from the `usbdiag-clkignore` package with
+`experiments/2026-07-17-clk-ignore-unused-diagnostic/scripts/build-clk-ignore-unused-candidate.sh`.
+Pass the exact usbdiag baseline package and the new package explicitly. The
+builder reconstructs exact Candidate I and requires byte-identical I DTB and
+initramfs inputs plus an unchanged Android header command line; only the newly
+compiled kernel payload and its payload-derived header fields may change. Do
+not append the option only to the Android header: Candidate I has
+`CONFIG_CMDLINE_FORCE=y`, so Linux replaces loader-provided bootargs and that
+header-only delta is a runtime no-op. The validator explicitly rejects the
+discarded no-op artifact.
+
+J's raw boot-image SHA-256 is
+`6d5bad08c2f93eba7fbd66ea5c54de2437f81e44832426a97d4d65d550c659f4`.
+The final kernel package and an isolated clean rebuild produced byte-identical
+resolved config, `Image`, `Image.gz`, `System.map`, all 119 DTBs, and the same
+boot image. Only the generated `build.json` timestamp and therefore its package
+checksum manifest differ. J is exported and synchronized to logical `boot2`.
+At `20260717T111314Z`, the live label resolved to `/dev/mmcblk0p30`, not an
+assumed partition number. The exact 16 MiB target was writable, unmounted, and
+had no holders; active root was `/dev/mmcblk0p29`, AC was online, and the
+battery reported 100%, Full, and Good. The old exact-I partition was backed up,
+the write was
+synced and block-flushed, and the complete target plus local readback match SHA-256
+`465e4c747138e12191d38fd6b4cde68cd0b9a19f918030dea05c9b8dbdd4d3fc`.
+No reboot or shutdown was part of that operation, and runtime is pending. See
+the [write/readback record](../experiments/2026-07-17-clk-ignore-unused-diagnostic/results/boot2-write-candidate-j-20260717.txt).
+At runtime, `clk_ignore_unused` only prevents the Common Clock Framework's
+automatic unused-clock cleanup: it does not enable clocks that are already off,
+prevent explicit driver disables, or retain regulators or power domains. Treat
+J as a bounded attended discriminator, never as a default or a complete
+display-power solution.
 
 Before treating the series as submission-ready, run the pinned tree's review
 checker over every patch:

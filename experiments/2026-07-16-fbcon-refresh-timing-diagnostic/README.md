@@ -6,10 +6,10 @@
 | --- | --- |
 | ID | `2026-07-16-fbcon-refresh-timing-diagnostic` |
 | Candidate | I |
-| Status | Built reproducibly, exported, and synchronized to logical `boot2`; runtime observation pending |
+| Status | Built reproducibly, exported, and synchronized to logical `boot2`; reported runtime attempt(s) showed no attributable Candidate I output |
 | Subsystem | LK display handoff, simplefb, framebuffer console, initramfs timing |
 | Device variant | Current Gemini PDA unit; exact retail sub-variant not independently established |
-| Date(s) | 2026-07-16 |
+| Date(s) | 2026-07-16 to 2026-07-17 |
 | Investigator(s) | Project maintainers |
 | Tracking issue | Not yet assigned |
 
@@ -180,8 +180,9 @@ Interpretation is deliberately bounded:
 Build, export and logical-`boot2` synchronization are complete. Detailed,
 sanitized evidence is in:
 
-- `results/candidate-i-build-20260716.txt`; and
-- `results/boot2-write-candidate-i-20260716.txt`.
+- `results/candidate-i-build-20260716.txt`;
+- `results/boot2-write-candidate-i-20260716.txt`; and
+- `results/runtime-candidate-i-20260717.txt`.
 
 ```text
 exact Candidate H input:        594a83d4b48ad33688abb3e0c5ffd1914d6027c680d7799322f9379bef8f4b09
@@ -190,9 +191,23 @@ Candidate I initramfs:          1,006,187 bytes; 85059d3128e643deaafc3989c745ed2
 Candidate I full boot2 image:   16,777,216 bytes; d823c5b619f4199ff596a38b3f3aa0cd1f6139fd73f6d4e3ad64c9fd0dd5c0e7
 independent build equality:     PASS — two final directories recursively byte-identical
 boot2 full-readback match:      PASS — full 16 MiB readback byte-identical to padded candidate
-marker-confirmed attempts:      PENDING
-black-transition counters:      PENDING
+marker-confirmed attempts:      NONE REPORTED — exact attempt count was not recorded
+black-transition counters:      NOT OBSERVED — Candidate I output was never visible
 ```
+
+For the reported owner-attended test, the intended `boot2` selection went
+directly to a black screen and did not display the console again. No unique
+Candidate I marker, counter line or other console text was visible. The exact
+attempt count, backlight state, final power/runtime state and recovery action
+were not reported.
+
+Because no Candidate I marker appeared, this observation does not confirm that
+Candidate I `/init` ran and cannot measure the active-refresh or static-hold
+intervals. It is an unconfirmed selection or early-handoff observation, not a
+failed active-refresh timing result. The previously verified build, partition
+write, flush and full-partition readback remain valid evidence about the bytes
+installed on logical `boot2`; they do not establish which stage the attempted
+boot reached.
 
 The exported files remain under the Git-ignored
 `artifacts/vm-export/boot-candidates/gemini-fbcon-refresh-I-final1/` path. The
@@ -204,11 +219,14 @@ do not constitute a runtime result.
 
 ## Conclusion and follow-up
 
-Current conclusion: `built, exported, and synchronized; runtime pending`.
-Logical `boot2` contains the exact validated Candidate I full-partition image,
-but no Candidate I boot attempt has yet been recorded.
+Current conclusion: built, exported and synchronized, with runtime output not
+attributed. Logical `boot2` contains the exact validated Candidate I
+full-partition image, but the reported intended selection produced only a black
+screen with no unique marker. Candidate I's refresh-versus-static hypothesis
+therefore remains untested.
 
-After marker-confirmed repetitions, select the next experiment from the timing
-result. Keep fbcon rotation, native DRM/panel enablement, broad clock retention,
-USB networking and storage access out of this A/B so the observed transition
-remains attributable.
+Do not select a follow-up based on a nonexistent transition counter. A future
+marker-confirmed repetition would be needed before interpreting the active
+refresh/static-hold A/B. Keep fbcon rotation, native DRM/panel enablement, broad
+clock retention, USB networking and storage access out of that A/B so any
+observed transition remains attributable.

@@ -223,10 +223,13 @@ black with the backlight apparently off. Candidate H preserved G's exact
 kernel/initramfs and appended only the MM-root simplefb clock reference. Two
 attempts visibly progressed farther and approximately exposed its
 initramfs-only marker before the screen and backlight went off; later attempts
-did not reproduce the progress. Candidate I now keeps H's exact kernel/DTB and
-changes only `/init` to emit a one-second counter through `T+60` before a
-silent hold. It is built reproducibly, exported and fully read back from
-`boot2`, with runtime pending. Broad `clk_ignore_unused` is deferred because
-unused-clock cleanup completes before external `/init`.
+did not reproduce the progress. Candidate I kept H's exact kernel/DTB and
+changed only `/init` to emit a one-second counter through `T+60` before a
+silent hold, but the reported intended selection went directly to black with
+no I marker or counter. Its timing hypothesis therefore remains untested.
+Candidate J rebuilds that kernel with `clk_ignore_unused` in forced
+`CONFIG_CMDLINE`, retains exact I's DTB/initramfs/header command line, and has
+been synchronized and fully read back from logical `boot2`; runtime is pending.
+It is a broad diagnostic control, not a proposed fix.
 Native DRM, DSI, PWM, panel, regulators and display-domain consumers remain
 disabled.

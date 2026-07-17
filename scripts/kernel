@@ -454,7 +454,7 @@ build_kernel() {
   local patch_hash
 
   case "${KERNEL_PROFILE}:${BUILD_MODULES:-0}" in
-    handoff:1|usbdiag:1)
+    handoff:1|usbdiag:1|usbdiag-clkignore:1)
       die "the ${KERNEL_PROFILE} profile is built-in-only; BUILD_MODULES=1 is not supported"
       ;;
   esac

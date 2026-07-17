@@ -157,9 +157,23 @@ the result.
   — Candidate I keeps H's exact kernel and DTB and exact initramfs tree except
   `/init`, then emits one tty0 line per second through `T+60` before a silent
   static hold. Two builds are byte-identical; the exact image is exported,
-  synchronized and fully read back from `boot2`, with runtime pending. This is
-  the next gate; broad `clk_ignore_unused` is deferred because clock cleanup
-  completes before external `/init`.
+  synchronized and fully read back from `boot2`. The reported intended
+  selection went directly to black without I's marker, counter, or other text;
+  selection and `/init` remain unconfirmed and the timing hypothesis is
+  untested.
+- [2026-07-17 unused-clock cleanup diagnostic](2026-07-17-clk-ignore-unused-diagnostic/README.md)
+  — Candidate J rebuilds the kernel to append `clk_ignore_unused` to forced
+  `CONFIG_CMDLINE` while retaining exact I's DTB, initramfs, and Android header
+  command line. A header-only draft was rejected as a no-op under
+  `CONFIG_CMDLINE_FORCE=y`. The raw image is
+  `6d5bad08c2f93eba7fbd66ea5c54de2437f81e44832426a97d4d65d550c659f4`;
+  an isolated clean build reproduced the config, kernel payload, `System.map`,
+  all 119 DTBs, and boot image byte-for-byte. It is synchronized, flushed, and
+  fully read back from logical `boot2`; its full 16 MiB partition/readback hash
+  is `465e4c747138e12191d38fd6b4cde68cd0b9a19f918030dea05c9b8dbdd4d3fc`.
+  No reboot was part of the [write/readback operation](2026-07-17-clk-ignore-unused-diagnostic/results/boot2-write-candidate-j-20260717.txt)
+  and runtime is pending. This broad control does not enable already-off
+  clocks, prevent explicit disables, or retain regulators or power domains.
 - [2026-07-14 live vendor-to-mainline gap audit](2026-07-14-live-vendor-mainline-gap-audit/README.md)
   — read-only comparison of the live Gemian vendor contracts with the current
   Linux 7.1.3 handoff and first-boot boundaries.

@@ -71,6 +71,7 @@ fi
 
 artifact_validator="${repo_root}/scripts/validate-kernel-artifact"
 current_manifest="${repo_root}/kernel/manifest.json"
+manifest_validator="${script_dir}/validate-usbdiag-manifest.py"
 handoff_fragment="${repo_root}/configs/gemini-handoff.fragment"
 usbdiag_fragment="${repo_root}/configs/gemini-usbdiag.fragment"
 serializer="${repo_root}/experiments/2026-07-12-boot-contract-recovery/scripts/build-android-boot-v0.py"
@@ -85,7 +86,8 @@ mandatory_overlay="${repo_root}/experiments/2026-07-16-lk-handoff-alignment/dts/
 usb_overlay="${script_dir}/../dts/usb-gadget.dtso"
 busybox=/usr/bin/busybox
 for input in \
-	"$artifact_validator" "$current_manifest" "$handoff_fragment" \
+	"$artifact_validator" "$current_manifest" "$manifest_validator" \
+	"$handoff_fragment" \
 	"$usbdiag_fragment" "$serializer" "$analyzer" "$dtb_builder" \
 	"$initramfs_builder" "$dtb_validator" "$candidate_builder" \
 	"$init_source" "$shell_source" "$mandatory_overlay" "$usb_overlay" \
@@ -114,8 +116,8 @@ jq -e '
     "configs/gemini-usbdiag.fragment"
   ]
 ' "$current_manifest" >/dev/null || die "current manifest has an unexpected usbdiag profile"
-cmp -s "$current_manifest" "$package_manifest" || \
-	die "package manifest does not match the current repository manifest"
+python3 "$manifest_validator" --current "$current_manifest" \
+	--packaged "$package_manifest" >/dev/null
 cmp -s "$handoff_fragment" "$package_handoff_fragment" || \
 	die "packaged handoff fragment does not match the repository"
 cmp -s "$usbdiag_fragment" "$package_usbdiag_fragment" || \
@@ -313,7 +315,8 @@ repo_status_sha256="$(printf '%s\n' "$repo_status" | sha256sum | awk '{print $1}
 	printf 'handoff_fragment_sha256=%s\n' "$handoff_fragment_sha256"
 	printf 'usbdiag_fragment_sha256=%s\n' "$usbdiag_fragment_sha256"
 	for input in \
-		"$current_manifest" "$candidate_builder" "$artifact_validator" \
+		"$current_manifest" "$manifest_validator" "$candidate_builder" \
+		"$artifact_validator" \
 		"$serializer" "$analyzer" "$dtb_builder" "$dtb_validator" \
 		"$initramfs_builder" "$mandatory_overlay" "$usb_overlay" \
 		"$init_source" "$shell_source" "$busybox"; do

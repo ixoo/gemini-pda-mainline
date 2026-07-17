@@ -2,7 +2,7 @@
 
 Milestones are evidence gates, not release dates. Work may proceed in parallel when it does not compromise a safe boot loop, but a milestone is complete only when all exit criteria are demonstrated on real hardware and documented.
 
-## Immediate priority: first attributable Linux 7.1.3 handoff (2026-07-16)
+## Immediate priority: first attributable Linux 7.1.3 handoff (2026-07-17)
 
 The latest reviewed `bsg100/gemini-linux` main revision is
 `9d1e565a5ba11ae9585340e3e4bf4cacc233d13c`. Its hardware logs establish a
@@ -58,8 +58,8 @@ Priorities for the next controlled test are:
    The owner later estimated 5–10 seconds from backlight-on to off, compatible
    with the 10-second timer, but this was not stopwatch measured or repeated
    and no candidate log survived.
-5. **P4 — retained simplefb/fbcon visibility: first positive signal; controlled
-   follow-up ready.**
+5. **P4 — retained simplefb/fbcon visibility: first positive signal; broad
+   control ready.**
    Candidate E reconstructs and hash-pins candidate D, retains
    its byte-identical `Image.gz`, adds only the allowlisted LK simplefb node,
    and uses `/init` to validate `simple`, 1080×2160, 32 bpp, and 4352-byte
@@ -88,13 +88,30 @@ Priorities for the next controlled test are:
    recognized H's initramfs-only marker; the backlight stayed on with the text
    and went off at the black transition. Later attempts did not reproduce the
    progress. This strongly attributes those visible attempts to external
-   `/init`, but H did not provide a repeatable stable console. Unused-clock
-   cleanup completes before external `/init`, so the broad `clk_ignore_unused`
-   discriminator is deferred. Candidate I instead preserves H's exact kernel
-   and DTB and exact initramfs tree except `/init`, emits one tty0 line per
-   second through `T+60`, and then holds silently. It is reproducibly built,
-   exported, synchronized and fully read back from `boot2`; run I before
-   enabling fbcon rotation or native display programming.
+   `/init`, but H did not provide a repeatable stable console. Candidate I
+   preserved H's exact kernel and DTB and exact initramfs tree except `/init`,
+   emitted one tty0 line per second through `T+60`, and then held silently. Its
+   reported intended `boot2` selection went directly to black with no unique I
+   marker, counter, or other text. Exact attempts, backlight state, final state,
+   and recovery were not recorded, so I selection and `/init` remain
+   unconfirmed and its timing hypothesis is untested.
+
+   Candidate J is now the bounded broad control. It appends
+   `clk_ignore_unused` to forced kernel `CONFIG_CMDLINE` through a rebuilt
+   kernel; a header-only variant was rejected as a no-op under
+   `CONFIG_CMDLINE_FORCE=y`. It retains exact I's DTB, initramfs, and header
+   command line and changes only the kernel payload plus payload-derived header
+   fields. The raw image SHA-256 is
+   `6d5bad08c2f93eba7fbd66ea5c54de2437f81e44832426a97d4d65d550c659f4`.
+   An isolated clean build reproduced the config, kernel payload, `System.map`,
+   all 119 DTBs, and boot image byte-for-byte; only timestamp-derived build
+   metadata manifests differ. J is synchronized to logical `boot2`; its full
+   16 MiB target and readback match SHA-256
+   `465e4c747138e12191d38fd6b4cde68cd0b9a19f918030dea05c9b8dbdd4d3fc`.
+   The write did not reboot or shut down the device, and runtime is pending.
+   `clk_ignore_unused` neither turns on already-off clocks nor prevents explicit
+   disables or retains regulators/power domains, so any positive result must
+   lead back to narrower ownership tests rather than adoption as a fix.
 6. **P5 — isolate the restart path before widening the platform.**
    `reboot -f` requests `RB_AUTOBOOT`. Linux 7.1.3 invokes PSCI
    `SYSTEM_RESET` before the MT6797 TOPRGU watchdog fallback. The off-like state
@@ -126,8 +143,13 @@ The [restart-path source audit](../experiments/2026-07-16-timed-reboot-diagnosti
 records the PSCI ordering and TOPRGU bit-4 discrepancy.
 The failed visible gate, exact image hash, and runtime observation are recorded in the
 [deterministic screen-marker experiment](../experiments/2026-07-16-screen-marker-diagnostic/README.md).
+The current no-marker observation and broad clock control are recorded in the
+[Candidate I timing experiment](../experiments/2026-07-16-fbcon-refresh-timing-diagnostic/README.md)
+and [Candidate J clock diagnostic](../experiments/2026-07-17-clk-ignore-unused-diagnostic/README.md).
+Candidate J's safe synchronization is captured in its
+[write/readback record](../experiments/2026-07-17-clk-ignore-unused-diagnostic/results/boot2-write-candidate-j-20260717.txt).
 
-## Current evidence snapshot (2026-07-16)
+## Current evidence snapshot (2026-07-17)
 
 The repository has a reproducible Linux `7.1.3` baseline with a prepared arm64
 configuration and packaged kernel/DTB artifacts. The latest complete Image/DTB
@@ -196,7 +218,19 @@ more progress and an approximately recognized initramfs-only marker before the
 screen and backlight went off; later attempts did not reproduce that progress.
 Candidate I preserves H's exact kernel/DTB and changes only initramfs `/init`
 to emit one line per second through `T+60` before a silent hold. Its exact
-padded image is fully read back from `boot2`; I is the next runtime gate.
+padded image is fully read back from `boot2`, but the reported intended
+selection went directly to black with no unique I marker, counter, or other
+text. Selection and `/init` are not established, so the timing hypothesis
+remains untested. Candidate J rebuilds that kernel with `clk_ignore_unused` in
+forced `CONFIG_CMDLINE`, retaining I's exact DTB, initramfs, and header command
+line. Its raw SHA-256 is
+`6d5bad08c2f93eba7fbd66ea5c54de2437f81e44832426a97d4d65d550c659f4`;
+the original and isolated clean build produced the same config, kernel
+payload, `System.map`, all 119 DTBs, and boot image. J is synchronized and
+fully read back from logical `boot2` under the standing safety policy; the full
+partition/readback SHA-256 is
+`465e4c747138e12191d38fd6b4cde68cd0b9a19f918030dea05c9b8dbdd4d3fc`.
+It has not been runtime-tested and is only a broad early-handoff discriminator.
 The normal UART prerequisite remains unmet; the experiment records the
 one-time alternative-recovery exception, observation, and stop path.
 The prior 76-patch package has a regenerated private gzip+appended-DTB

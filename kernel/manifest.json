@@ -29,6 +29,14 @@
           "configs/gemini-handoff.fragment",
           "configs/gemini-usbdiag.fragment"
         ]
+      },
+      "usbdiag-clkignore": {
+        "base": "defconfig",
+        "fragments": [
+          "configs/gemini-handoff.fragment",
+          "configs/gemini-usbdiag.fragment",
+          "configs/gemini-clk-ignore-unused.fragment"
+        ]
       }
     }
   }
