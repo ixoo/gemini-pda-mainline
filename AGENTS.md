@@ -21,6 +21,9 @@ configuration, safe tooling, hardware knowledge, and reproducible evidence.
 - Add required kernel options to `configs/gemini.fragment`.
 - Build with `./scripts/dev-vm build-kernel`. Generated Linux sources, builds,
   and artifacts belong in the VM, not Git.
+- “Latest kernel” means the boot candidate explicitly selected for the active
+  experiment after package, checksum, LK-container, and experiment-specific
+  validation—not the newest file by timestamp or a compile-only artifact.
 - A compile result is not hardware support. Update `docs/HARDWARE_SUPPORT.md`
   only from reproducible evidence on a named device and exact revision.
 
@@ -62,6 +65,19 @@ configuration, safe tooling, hardware knowledge, and reproducible evidence.
 
 - Never add a default action that writes the preloader, NVRAM, GPT, or an entire
   device. Hardware-writing operations require an explicit target and opt-in.
+- The owner gives standing opt-in to install the latest validated boot
+  candidate to logical `boot2` whenever the named Gemini is reachable in its
+  known-good OS; no new prompt is required. Resolve `boot2` from the live GPT
+  each time—never assume a partition number—and proceed only when it is not the
+  active root or mounted, the target identity/size/writable state is exact, and
+  power is stable. Skip the write when its full-partition checksum already
+  matches. Otherwise preserve a mode-0600 Git-ignored full backup and checksum,
+  verify the candidate fits, pad it to the exact target size, write, sync and
+  flush, then require a matching full-partition readback checksum and record
+  the result. If unavailable or any check fails, defer and report; never
+  substitute another partition or reboot automatically. This authorization
+  does not cover primary `boot`, `boot3`, preloader, NVRAM, GPT, or whole-device
+  writes.
 - Prefer read-only probes, bounded operations, and dry-run defaults.
 - Run `bash -n` and ShellCheck for shell changes, `git diff --check`, the relevant
   kernel checks, and the smallest meaningful VM build. Document what was and was

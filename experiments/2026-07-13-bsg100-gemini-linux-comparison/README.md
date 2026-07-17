@@ -33,6 +33,16 @@ The repository is treated as an independent report, not as an authority. A claim
   `a9a7c5002038022c5df87ed48f61cd68778b422370f7d038d07e73a086490632`.
 - Live device baseline: Gemian Debian 9 userspace on the user's Gemini at 192.168.1.50; observations are linked from docs/hardware/ and subsystem experiments.
 
+### 2026-07-16 native-fbcon follow-up
+
+A later reference commit, `035d4b0ba386076e5b4c7cbca344f0807ac51f24`,
+reports a working physical fbcon through the native MediaTek DRM path. The
+focused [follow-up audit](results/fbcon-commit-035d4b0-20260716.md) compares
+its successful display handoff, DSI, D-PHY, PHY, panel and configuration work
+with the current Linux 7.1.3 series. The generic MT6797 fixes are strong porting
+input; its SSD2092 panel data remains gated by the unresolved panel identity on
+the user's named unit.
+
 ## Safety assessment
 
 This audit is read-only. It inspected a public Git repository and local sanitized notes only. It did not connect to the device, run a reference binary, access private firmware, or write any partition. The reference repository contains flashing utilities, vendor-derived material, and binary artifacts; none are imported or executed.
@@ -105,6 +115,9 @@ confirmed as a comparative evidence audit, scoped to revision 82321ce64752d5bf00
 ## Follow-up
 
 - Keep this revision and its file hashes as the reproducibility anchor for future comparisons; re-audit if the upstream repository changes.
+- Use the later native-fbcon commit's generic MediaTek handoff and PHY findings
+  as the starting point for a staged Linux 7.1.3 display port; do not import its
+  SSD2092 consumer without a direct panel-identity result from the named unit.
 - When a non-primary Linux 7.1.3 image is boot-tested, compare UART, CPU/PSCI, eMMC, AW9523B, panel, and USB observations against the contracts above.
 - Before enabling the local panel consumer, capture a bounded panel ID/SEEPROM result on the named device and resolve the NT36672-versus-SSD2092 conflict.
 - Continue the MT6797-specific PMIC, EINT, USB, display, sensor, and CONSYS experiments in their existing directories; do not enable a subsystem solely because bsg100 enabled it.

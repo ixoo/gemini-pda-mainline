@@ -98,12 +98,52 @@ the result.
 - [2026-07-13 driver coverage audit](2026-07-13-driver-coverage-audit/README.md)
   — linked-in/module-only driver ownership and live vendor-driver comparison
   for the packaged Linux 7.1.3 candidate.
+- [2026-07-13 bsg100 comparison](2026-07-13-bsg100-gemini-linux-comparison/README.md)
+  — independent-reference audit, including a focused review of the later
+  native-fbcon milestone, the portable MT6797 DRM/PHY findings, the targeted
+  simplefb backlight-clock test, and the unresolved SSD2092/NT36672 variant
+  boundary.
 - [2026-07-14 first-boot probe audit](2026-07-14-first-boot-probe-audit/README.md)
   — static PWRAP/MT6351/regulator/MSDC probe ordering and write-side-effect
   boundary for the conservative first boot.
 - [2026-07-14 mainline module closure audit](2026-07-14-mainline-module-closure-audit/README.md)
   — built-in versus optional-module availability and exact packaged dependency
   closures for the current 7.1.3 kernel artifact.
+- [2026-07-16 LK handoff alignment](2026-07-16-lk-handoff-alignment/README.md)
+  — modern arm64 placement, LK pre-jump DT properties, a probe-minimal kernel
+  profile, reproducible serial/simplefb Android v0 test candidates, and the
+  dark/serial-silent/non-looping `boot2` attempt whose Linux runtime remains
+  unknown.
+- [2026-07-16 USB gadget diagnostic](2026-07-16-usb-gadget-diagnostic/README.md)
+  — MTU3/T-PHY peripheral candidate and storage-inert initramfs, now written
+  and fully read back from `boot2`; two bounded host checks found no USB child
+  while the device remained dark and steady, leaving Linux execution unknown.
+- [2026-07-16 fixed-delay reboot diagnostic](2026-07-16-timed-reboot-diagnostic/README.md)
+  — reproducible ramdisk-only follow-up that preserves the tested USB kernel
+  and DTB while arming a 10-second reset request from `/init`; owner-approved
+  `boot2` write is synchronized and fully read back. Its first boot changed
+  from the baseline's dark steady state to a delayed backlight-off, off-like
+  state after an owner-estimated 5–10 seconds with no automatic restart. The
+  timing and one-file delta strongly support `/init` execution but do not yet
+  directly confirm it.
+- [2026-07-16 deterministic screen marker](2026-07-16-screen-marker-diagnostic/README.md)
+  — preserves exact candidate D's kernel while adding an allowlisted LK
+  simplefb node and one bounded early-userspace framebuffer fill; two builds
+  are byte-identical. The image was written and fully read back from `boot2`,
+  but its first owner-run boot remained black with no expected marker. This is
+  a failed positive screen test, not proof of kernel failure. The next
+  one-variable derivative retains `CLK_INFRA_DISP_PWM` through simplefb based
+  on the hardware-working bsg100 history.
+- [2026-07-16 simplefb clock-retention diagnostic](2026-07-16-screen-clock-retention-diagnostic/README.md)
+  — Candidate F reconstructs exact Candidate E and adds only its path-resolved
+  `CLK_INFRA_DISP_PWM` simplefb reference. Its first boot showed sideways
+  console text for about one second before black, the first positive visual
+  Linux 7.1.3 handoff signal on this unit; unread text does not prove `/init`.
+- [2026-07-16 fbcon text retention diagnostic](2026-07-16-fbcon-text-diagnostic/README.md)
+  — Candidate G keeps exact F's kernel, DTB and simplefb clock reference while
+  replacing only initramfs, removing all raw framebuffer access, and holding a
+  distinctive sideways console banner. Two builds are byte-identical and the
+  synchronized `boot2` image has a matching complete readback.
 - [2026-07-14 live vendor-to-mainline gap audit](2026-07-14-live-vendor-mainline-gap-audit/README.md)
   — read-only comparison of the live Gemian vendor contracts with the current
   Linux 7.1.3 handoff and first-boot boundaries.

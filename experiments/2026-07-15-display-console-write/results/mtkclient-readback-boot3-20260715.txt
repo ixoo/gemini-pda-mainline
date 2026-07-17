@@ -1,0 +1,20 @@
+experiment=2026-07-15-display-console-write
+observation=independent-mtkclient-readback
+device_variant=Gemini PDA running Gemian; exact retail sub-variant not independently established
+transport=MediaTek preloader/DA over USB
+tool=mtkclient 2.1.4
+target_logical_name=boot3
+target_physical_node=/dev/mmcblk0p31
+target_size_bytes=16777216
+observed_size_bytes=16777216
+observed_sha256=0e168671b31b0c754d560f9c4437870fd72399ef92c9913b7fd466104b09a220
+expected_padded_candidate_sha256=0e168671b31b0c754d560f9c4437870fd72399ef92c9913b7fd466104b09a220
+android_boot_magic=ANDROID!
+android_boot_page_size=2048
+android_boot_kernel_address=0x40080000
+android_boot_ramdisk_address=0x45000000
+android_boot_cmdline_prefix=bootopt=64S3,32N2,64N2 console=tty0 root=/dev/ram0 rw
+readback_result=exact-byte-match-to-padded-candidate
+hardware_write=none-during-this-observation
+runtime_boot_result=not-tested
+notes=The mtkclient FUSE warning is unrelated to raw partition readback. GPT UUIDs, eMMC CID, and personal identifiers are intentionally omitted.

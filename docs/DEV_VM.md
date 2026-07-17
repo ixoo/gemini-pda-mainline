@@ -140,8 +140,32 @@ with the documented build override:
 BUILD_MODULES=1 KERNEL_JOBS=8 ./scripts/dev-vm build-kernel
 ```
 
-The wrapper forwards only `BUILD_MODULES` and `KERNEL_JOBS`; generated source,
-build, and module files remain guest-owned.
+The default `full` profile is the hardware-development build. For a first LK
+handoff test, build the separate built-in-only profile instead:
+
+```sh
+KERNEL_JOBS=8 ./scripts/dev-vm build-handoff-kernel
+```
+
+That profile keeps only the early console, framebuffer console, architectural
+boot foundation, MT6797 clocks/pinctrl/timers, and watchdog. It deliberately
+omits storage, PMIC/regulator, DMA/IOMMU, SCP, USB, network, and other
+peripheral probes. `KERNEL_PROFILE`, `BUILD_MODULES`, and `KERNEL_JOBS` are
+also forwarded by the lower-level `./scripts/dev-vm kernel COMMAND` form;
+generated source, build, and module files remain guest-owned.
+
+For the next host-observable handoff diagnostic, use the separate `usbdiag`
+profile:
+
+```sh
+KERNEL_JOBS=8 ./scripts/dev-vm build-usbdiag-kernel
+```
+
+It applies after the handoff fragment and adds only IPv4, gadget-only MTU3,
+the MT6797 USB2 T-PHY, regulator core, and built-in `g_ether`. Storage, USB
+host/dual-role mode, xHCI, Type-C policy, mass-storage gadgets, and unrelated
+network-device families remain disabled. This is still a build result, not a
+USB runtime claim.
 
 See the [pinned stable-kernel patch workflow](KERNEL_WORKFLOW.md) for the
 manifest, patch-series, configuration, provenance, and artifact contracts.
@@ -157,33 +181,55 @@ This is still a compile-and-package check, not evidence that the image boots or
 that a driver works on hardware. Built-in symbols are the only drivers
 available to the current first-boot Image; when `BUILD_MODULES=1` is used,
 optional modules are exported under the package's `modules/` tree for a later
-rootfs integration. The latest authoritative package record is
+rootfs integration. The latest authoritative full-profile package record is
 [the 2026-07-14 77-patch package result](../experiments/2026-07-12-input-backlight-recovery/results/mainline-display-input-current-77-package-20260714.txt);
-the current Image/DTB package intentionally has no module tree. A separate
-74-patch module-bearing package remains available for later rootfs integration
-and is not the first boot candidate.
+that Image/DTB package intentionally has no module tree. The separate current
+handoff package is recorded in the
+[2026-07-16 LK handoff result](../experiments/2026-07-16-lk-handoff-alignment/results/lk-handoff-candidate-20260716.txt).
+A 74-patch module-bearing package remains available for later rootfs
+integration and is not the first boot candidate.
 
 ## Build a non-flashing LK candidate
 
 The retained Planet LK path needs an Android v0 gzip+appended-DTB container,
-not the raw `Image`. Build one from a validated guest package with the
-read-only wrapper:
+not the raw `Image`. Build the two controlled variants from an explicit
+`handoff` package with the read-only wrapper:
 
 ```sh
 ./scripts/dev-vm run bash -lc \
-  'experiments/2026-07-12-boot-contract-recovery/scripts/build-current-lk-candidate.sh \
-     --package "$HOME/artifacts/gemini-pda/linux-7.1.3-gemini-6116c9e7da3f" \
+  'experiments/2026-07-16-lk-handoff-alignment/scripts/build-lk-handoff-candidate.sh \
+     --package "$HOME/artifacts/gemini-pda/EXACT-HANDOFF-PACKAGE" \
      --output "$HOME/artifacts/boot-candidates/<new-directory>"'
 ```
 
-The wrapper builds a deterministic minimal ARM64 UART initramfs, validates the
-package, serializes the candidate, and records parser evidence and SHA-256
-values. It refuses an existing output directory and exposes no device,
-partition, fastboot, or flashing operation. Its output is guest-owned and
-Git-ignored; transfer to the separate Windows flashing machine remains a
-separate, explicitly reviewed step. Regenerate the candidate after changes to
-`experiments/2026-07-12-boot-contract-recovery/initramfs/init`; the initramfs
-is part of the candidate hash and provenance.
+The wrapper builds one storage-inert ARM64 initramfs and emits a mandatory-LK
+serial candidate plus an otherwise identical candidate with optional
+`simple-framebuffer` instrumentation. It binds the package to the current
+handoff profile, validates the exact LK/arm64 placement and appended-DTB byte
+contract, records all input hashes, and refuses an existing output directory.
+It exposes no device, partition, fastboot, or flashing operation. Its output is
+guest-owned and Git-ignored; transfer to the separate Windows flashing machine
+remains a separate, explicitly reviewed step.
+
+The USB diagnostic has its own equally non-flashing wrapper and also requires
+an exact package rather than selecting the newest build implicitly:
+
+```sh
+./scripts/dev-vm run bash -lc \
+  'experiments/2026-07-16-usb-gadget-diagnostic/scripts/build-usb-diagnostic-candidate.sh \
+     --package "$HOME/artifacts/gemini-pda/EXACT-USBDIAG-PACKAGE" \
+     --output "$HOME/artifacts/boot-candidates/<new-directory>" \
+     --source-date-epoch 0'
+```
+
+That wrapper enables the three pre-described left-port peripheral nodes only
+in the candidate DTB, builds a deterministic storage-inert initramfs, and
+checks the restricted config, exact DT delta, LK container, arm64 placement,
+appended DTB, hashes, and provenance. Its output includes the unique USB
+serial `GEMINI_USB_DIAG_20260716_B`; enumeration proves the kernel gadget path,
+while ping and the TCP marker are separate `/init` gates. See the
+[experiment record](../experiments/2026-07-16-usb-gadget-diagnostic/README.md)
+for the bounded macOS procedure.
 
 ## Updating provisioning
 
@@ -209,8 +255,16 @@ Export candidates are copied to a new ignored directory on the host:
 
 An explicit destination can be supplied as the only argument. Create and check
 SHA-256 manifests before transferring artifacts to the Windows flashing
-machine. Never include the preloader, NVRAM, a partition table, or a whole-device
-image in the normal workflow.
+machine. Prefer the bounded form when only one reviewed candidate is needed:
+
+```sh
+./scripts/dev-vm export-artifact boot-candidates/EXACT-DIRECTORY
+```
+
+It copies only that path below guest `~/artifacts` to host
+`artifacts/vm-export/`, rejects traversal and absolute paths, and refuses to
+overwrite an existing host target. Never include the preloader, NVRAM, a
+partition table, or a whole-device image in the normal workflow.
 
 ## Deleting the VM
 

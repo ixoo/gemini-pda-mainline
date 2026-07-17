@@ -1,0 +1,16 @@
+observation=post-attempt-live-snapshot
+user_report=mainline boot attempt appeared to enter recovery; exact key sequence unknown
+device_model=MT6797X
+running_kernel=3.18.41+
+boot_mode=normal
+root_device=/dev/mmcblk0p29
+boot_reason=4
+android_bootreason=wdt_by_pass_pwk
+cmdline_sanitized=console=tty0 console=ttyMT0,921600n1 root=/dev/ram vmalloc=496M slub_max_order=0 slub_debug=OFZPU androidboot.hardware=mt6797 maxcpus=5 androidboot.verifiedbootstate=green bootopt=64S3,32N2,64N2 log_buf_len=4M androidboot.veritymode=enforcing printk.disable_uart=1 gpt=1
+boot2_device=/dev/mmcblk0p30
+boot3_device=/dev/mmcblk0p31
+boot2_sha256=0e168671b31b0c754d560f9c4437870fd72399ef92c9913b7fd466104b09a220
+boot3_sha256=0e168671b31b0c754d560f9c4437870fd72399ef92c9913b7fd466104b09a220
+candidate_padded_sha256=0e168671b31b0c754d560f9c4437870fd72399ef92c9913b7fd466104b09a220
+mainline_runtime_result=inconclusive
+hardware_write=none_during_snapshot

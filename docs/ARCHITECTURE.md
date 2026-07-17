@@ -130,11 +130,33 @@ Once merged upstream, remove the patches and replace them with the first contain
 The subsystem audit baseline is Linux 7.1.3 with 72 non-comment entries and
 patchset SHA-256
 `c2d9eea95daa25dd8faddef4f9822e663db67d5d0946f06f0251cc52c92cf08c`.
-The current working series adds patches 0072–0073 for MT6797 SPI reuse and
-disabled SoC nodes, producing package `linux-7.1.3-gemini-c2feb465d6c6` with
-patchset SHA-256
-`c2feb465d6c6debf6f333516ce360cf8a1259da5dde631e828e7efac92ed33ae`; see the
-[SPI patch validation](../experiments/2026-07-14-upstream-mt6797-coverage-audit/results/spi-mainline-patch-validation-c2feb-20260714.txt).
+The current working series extends through patch 0078. Patches 0072–0076 add
+disabled SPI and input candidates; the latest validated package for that
+boundary is `linux-7.1.3-gemini-6116c9e7da3f` with patchset SHA-256
+`6116c9e7da3fc2f56612029236a3bcd370c61f91b3c0951dd4e2c1915537f55e`.
+Patches 0077–0078 add an opt-in T-PHY B-device-session capability and disabled
+Gemini MTU3 peripheral wiring for the separate USB diagnostic. The exact USB
+image was tested from non-primary `boot2` and did not enumerate. A follow-up
+that retained its kernel and DTB while changing only initramfs `/init` reached
+a delayed off-like state after an owner-estimated 5–10 seconds instead of
+remaining dark and steady. This is strong indirect evidence for external
+`/init` execution, but it is not a stopwatch measurement, repeat, or surviving
+log and does not establish that the USB driver probed or works. A subsequent
+screen-marker candidate retains the same `Image.gz`, adds only a validated
+simplefb description, and performs one bounded framebuffer fill. It was
+written, flushed, fully read back from `boot2`, and attempted once; the display
+was black and showed none of the expected bands. This fails the positive test
+but does not distinguish kernel entry, simplefb, the write, or LK scanout
+retention. Candidate F keeps that exact Image and initramfs while adding only a
+path-resolved `CLK_INFRA_DISP_PWM` simplefb reference. Its first attended boot
+showed sideways console text for about one second before black. This is the
+first positive visual Linux 7.1.3 signal and strongly supports simplefb/fbcon
+output, although the unread text does not independently prove `/init`.
+Candidate G keeps F's exact kernel segment and DTB, removes all raw framebuffer
+access through an initramfs-only delta, and holds a distinctive tty0 banner.
+Its two builds are byte-identical and its logical-`boot2` write has a matching
+full readback; runtime is pending. The exact kernel compiles fbcon rotation out,
+so sideways output is expected until a separate configuration-only follow-up.
 The following map is the implementation boundary for the baseline candidate; it is
 deliberately grouped by dependency rather than treating every patch as a new
 driver.
@@ -151,8 +173,10 @@ driver.
 | 0052–0057a | BMI160, watchdog, AW9523, FAN49101, FUSB301, thermal, LK calibration | Reuse standard BMI160/watchdog/AW9523 foundations; new chip driver/data only where register contract differs; NVMEM provider is a narrow LK ABI adapter | Watchdog is implicitly enabled; other candidates are disabled or module-only; calibration provider is read-only/root-only | Hardware ID/readback with explicit recovery; never promote a compatible string from indirect evidence |
 | 0058–0065 | Panfrost, DPI, PMIC parent fix, SCPSYS/AFE bindings, DVFSP deferral | Reuse Panfrost/DRM/PMIC/SCPSYS/ASoC frameworks; keep undocumented DVFSP out | Panfrost/DPI/AFE consumers remain disabled or module-only | Validate each consumer’s clocks, resets, IOMMU, supplies, and firmware boundary independently |
 | 0066–0071 | USB T-PHY/MTU3/xHCI/MUSB and MSDC pinmux policy | Reuse generic USB cores with MT6797 glue and source-derived split windows; use pinmux-only MSDC state | USB nodes remain disabled; built-in code is package capability, not probe evidence | Gadget-only console first, then role/VBUS and PHY tests with external recovery |
+| 0072–0076 | SPI aliases/nodes, hall input, NT36772 boundary, keyboard polarity | Reuse generic SPI and input frameworks where the captured protocol matches; keep every new board consumer disabled | The 77-patch package validates, but these additions have no current-mainline runtime result | Test one bounded consumer at a time with exact identity and recovery evidence |
+| 0077–0078 | MTU3 peripheral diagnostic | Extend the existing MediaTek T-PHY with an opt-in forced B-device session and describe Gemini peripheral wiring while leaving base nodes disabled | The exact USB image was fully read back and runtime-tested from `boot2`; two bounded host checks found no USB child. A ramdisk-only timed-reboot follow-up produced strong indirect `/init` evidence but no automatic restart, which does not promote USB support. Candidate E's marker remained black. Candidate F's sole simplefb clock-reference delta then produced about one second of visible sideways fbcon text before black, strongly supporting kernel/simplefb/fbcon execution. Candidate G removes only the raw framebuffer overwrite and is fully read back from `boot2`, with runtime pending | Run Candidate G's no-raw-write A/B. If console persists, enable fbcon rotation in a separate kernel configuration and only then widen toward native display. Resolve PSCI versus TOPRGU independently; prove USB host enumeration before ping and the TCP marker shell. Infer nothing about host mode, VBUS, Type-C policy, or charging |
 
-The [current driver-coverage audit](../experiments/2026-07-13-driver-coverage-audit/results/driver-coverage-current-77-package-20260714.txt), [first-boot dependency audit](../experiments/2026-07-14-first-boot-probe-audit/results/first-boot-probe-audit-current-77-package-20260714.txt), [module-closure audit](../experiments/2026-07-14-mainline-module-closure-audit/results/module-closure-current-72-20260714.txt), and [current 74-patch package validation](../experiments/2026-07-13-kernel-integration/results/mainline-74-patch-current-20260714.txt) provide the corresponding hashes and linked-in/module-only evidence. The 72-patch subsystem records remain valid content audits because patches 0072–0073 only add disabled SPI support. This table is a design map, not a claim that any disabled or module-only path works on hardware.
+The [current driver-coverage audit](../experiments/2026-07-13-driver-coverage-audit/results/driver-coverage-current-77-package-20260714.txt), [first-boot dependency audit](../experiments/2026-07-14-first-boot-probe-audit/results/first-boot-probe-audit-current-77-package-20260714.txt), [module-closure audit](../experiments/2026-07-14-mainline-module-closure-audit/results/module-closure-current-72-20260714.txt), [77-patch package validation](../experiments/2026-07-12-input-backlight-recovery/results/mainline-display-input-current-77-package-20260714.txt), [USB diagnostic experiment](../experiments/2026-07-16-usb-gadget-diagnostic/README.md), [timed-reboot follow-up](../experiments/2026-07-16-timed-reboot-diagnostic/README.md), [screen-marker follow-up](../experiments/2026-07-16-screen-marker-diagnostic/README.md), [clock-retention result](../experiments/2026-07-16-screen-clock-retention-diagnostic/README.md), and [fbcon-text follow-up](../experiments/2026-07-16-fbcon-text-diagnostic/README.md) provide the corresponding evidence boundaries. The older subsystem records remain content audits where later patches do not touch their inputs. This table is a design map, not a claim that any disabled, module-only, or diagnostic path works on hardware.
 
 ## Decision records
 

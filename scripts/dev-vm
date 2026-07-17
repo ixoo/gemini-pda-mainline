@@ -29,9 +29,13 @@ Commands:
   status                Show VM status
   kernel COMMAND...     Run the pinned-kernel workflow (prepare/configure/build)
   build-kernel          Prepare, configure, build, and package the kernel
+  build-handoff-kernel  Build the built-in-only LK handoff kernel profile
+  build-usbdiag-kernel  Build the minimal left-port USB diagnostic profile
   validate-kernel [DIR] Verify a packaged kernel artifact and its provenance
   export-artifacts [DIR]
                         Copy ~/artifacts to a new host directory
+  export-artifact PATH [DIR]
+                        Copy one path below ~/artifacts to the host
   remove --force        Permanently delete the VM and its guest filesystem
 
 Creation overrides:
@@ -41,6 +45,7 @@ Creation overrides:
   DEV_VM_DISK_GIB       Disk in GiB (default: 100)
 
 Build overrides:
+  KERNEL_PROFILE=NAME   Select a manifest kernel profile (default: full)
   BUILD_MODULES=1       Also install CONFIG_*=m outputs into modules/
   KERNEL_JOBS=N          Parallel kernel build jobs (default: guest policy)
 EOF
@@ -119,6 +124,7 @@ doctor() {
     test -r /mnt/gemini-pda-mainline/README.md
     test ! -w /mnt/gemini-pda-mainline
     command -v make >/dev/null
+    command -v busybox >/dev/null
     command -v dtc >/dev/null
     command -v pahole >/dev/null
     command -v dt-doc-validate >/dev/null
@@ -164,6 +170,34 @@ export_artifacts() {
   limactl shell --workdir=/tmp "${INSTANCE}" -- bash -lc 'tar -C "$HOME/artifacts" -cf - .' \
     | tar -C "${destination}" -xf -
   echo "Artifacts exported to ${destination}"
+}
+
+export_artifact() {
+  local relative="$1"
+  local destination="${2:-${REPO_DIR}/artifacts/vm-export}"
+  local host_target
+
+  case "${relative}" in
+    ''|/*|.|..|../*|*/../*|*/..)
+      die "export-artifact PATH must be a child path below guest ~/artifacts"
+      ;;
+  esac
+  [[ "${relative}" != *$'\n'* ]] || die "export-artifact PATH must be one line"
+
+  host_target="${destination}/${relative}"
+  [[ ! -e "${host_target}" ]] || die "refusing to overwrite ${host_target}"
+  start_vm
+  mkdir -p "${destination}"
+  # The quoted variables below are expanded by the guest shell.
+  # shellcheck disable=SC2016
+  limactl shell --workdir=/tmp "${INSTANCE}" -- \
+    env GEMINI_ARTIFACT_RELATIVE="${relative}" bash -lc '
+      set -euo pipefail
+      cd "$HOME/artifacts"
+      test -e "$GEMINI_ARTIFACT_RELATIVE"
+      tar -cf - -- "$GEMINI_ARTIFACT_RELATIVE"
+    ' | tar -C "${destination}" -xf -
+  echo "Artifact exported to ${host_target}"
 }
 
 readonly COMMAND="${1:-}"
@@ -231,8 +265,19 @@ case "${COMMAND}" in
     require_lima
     [[ "$#" -gt 0 ]] || die "kernel requires a command; try: ./scripts/dev-vm kernel status"
     start_vm
-    exec limactl shell --workdir=/mnt/gemini-pda-mainline "${INSTANCE}" -- \
-      ./scripts/kernel "$@"
+    kernel_env=()
+    for variable in KERNEL_PROFILE BUILD_MODULES KERNEL_JOBS; do
+      if [[ -n "${!variable:-}" ]]; then
+        kernel_env+=("${variable}=${!variable}")
+      fi
+    done
+    if ((${#kernel_env[@]} > 0)); then
+      exec limactl shell --workdir=/mnt/gemini-pda-mainline "${INSTANCE}" -- \
+        env "${kernel_env[@]}" ./scripts/kernel "$@"
+    else
+      exec limactl shell --workdir=/mnt/gemini-pda-mainline "${INSTANCE}" -- \
+        ./scripts/kernel "$@"
+    fi
     ;;
   build-kernel)
     require_lima
@@ -241,7 +286,7 @@ case "${COMMAND}" in
     # Forward only the documented build controls; the repository mount remains
     # read-only and all generated sources/artifacts stay in the guest.
     build_env=()
-    for variable in BUILD_MODULES KERNEL_JOBS; do
+    for variable in KERNEL_PROFILE BUILD_MODULES KERNEL_JOBS; do
       if [[ -n "${!variable:-}" ]]; then
         build_env+=("${variable}=${!variable}")
       fi
@@ -254,6 +299,32 @@ case "${COMMAND}" in
         ./scripts/kernel build
     fi
     ;;
+  build-handoff-kernel)
+    require_lima
+    [[ "$#" -eq 0 ]] || die "build-handoff-kernel does not accept arguments"
+    start_vm
+    build_env=("KERNEL_PROFILE=handoff")
+    for variable in BUILD_MODULES KERNEL_JOBS; do
+      if [[ -n "${!variable:-}" ]]; then
+        build_env+=("${variable}=${!variable}")
+      fi
+    done
+    exec limactl shell --workdir=/mnt/gemini-pda-mainline "${INSTANCE}" -- \
+      env "${build_env[@]}" ./scripts/kernel build
+    ;;
+  build-usbdiag-kernel)
+    require_lima
+    [[ "$#" -eq 0 ]] || die "build-usbdiag-kernel does not accept arguments"
+    start_vm
+    build_env=("KERNEL_PROFILE=usbdiag")
+    for variable in BUILD_MODULES KERNEL_JOBS; do
+      if [[ -n "${!variable:-}" ]]; then
+        build_env+=("${variable}=${!variable}")
+      fi
+    done
+    exec limactl shell --workdir=/mnt/gemini-pda-mainline "${INSTANCE}" -- \
+      env "${build_env[@]}" ./scripts/kernel build
+    ;;
   validate-kernel)
     require_lima
     [[ "$#" -le 1 ]] || die "validate-kernel accepts at most one artifact directory"
@@ -265,6 +336,11 @@ case "${COMMAND}" in
     require_lima
     [[ "$#" -le 1 ]] || die "export-artifacts accepts at most one destination"
     export_artifacts "${1:-}"
+    ;;
+  export-artifact)
+    require_lima
+    [[ "$#" -ge 1 && "$#" -le 2 ]] || die "export-artifact requires PATH and accepts an optional destination"
+    export_artifact "$1" "${2:-}"
     ;;
   remove)
     require_lima

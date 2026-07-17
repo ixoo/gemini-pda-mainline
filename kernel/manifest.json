@@ -9,9 +9,27 @@
   "architecture": "arm64",
   "patch_series": "patches/series",
   "config": {
-    "base": "defconfig",
-    "fragments": [
-      "configs/gemini.fragment"
-    ]
+    "default_profile": "full",
+    "profiles": {
+      "full": {
+        "base": "defconfig",
+        "fragments": [
+          "configs/gemini.fragment"
+        ]
+      },
+      "handoff": {
+        "base": "defconfig",
+        "fragments": [
+          "configs/gemini-handoff.fragment"
+        ]
+      },
+      "usbdiag": {
+        "base": "defconfig",
+        "fragments": [
+          "configs/gemini-handoff.fragment",
+          "configs/gemini-usbdiag.fragment"
+        ]
+      }
+    }
   }
 }

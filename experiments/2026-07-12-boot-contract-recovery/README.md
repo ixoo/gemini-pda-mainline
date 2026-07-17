@@ -43,15 +43,18 @@ python3 experiments/2026-07-12-boot-contract-recovery/scripts/analyze-android-bo
 The repository also contains a non-flashing Android boot-image v0 serializer:
 [`build-android-boot-v0.py`](scripts/build-android-boot-v0.py). It requires
 explicit kernel, ramdisk, DTB, and command-line inputs and refuses to overwrite
-an existing output. Its defaults reproduce the recovered LK addresses
-(`kernel_addr=0x40080000`, `ramdisk_addr=0x45000000`, `tags_addr=0x44000100`,
-page size 2048). The default `--dtb-mode append` matches the observed v0 image
+an existing output. Its modern-Image defaults use
+`kernel_addr=0x40200000`, `ramdisk_addr=0x45000000`,
+`second_addr=0x40f00000`, `tags_addr=0x44000000`, and page size 2048. The
+stock Gemian header instead uses `kernel_addr=0x40080000`; that legacy address
+is valid for its Image's nonzero `text_offset`, not for the current Image. The
+default `--dtb-mode append` matches the observed v0 image
 shape (`dt_size=0` with a DTB appended to the kernel payload); `--dtb-mode
 field` is available for loaders that explicitly support the header DT field.
 The `--lk-android8` guard mirrors LK's `bootopt` token offset (`+0x12` from
-the token start), additionally validates the 512 KiB kernel-address alignment,
-checks the gzip stream, and rejects a decompressed Image larger than the MT6797
-LK 50 MiB buffer.
+the token start), checks the complete gzip stream and arm64 Image header,
+requires `(kernel_addr - text_offset)` to be 2 MiB aligned, and rejects a
+decompressed Image larger than the MT6797 LK 50 MiB buffer.
 The serializer does not flash, select a partition, or prove that LK accepts a
 candidate. Do not reuse the vendor ramdisk or command line without a separate
 review.
@@ -67,8 +70,31 @@ MT6797 platform rules override the generic 28 MiB decompression buffer with
 `0x03200000` (50 MiB). The 64-bit path is selected only when `bootopt` contains
 `64`; it passes the Android kernel payload to `gunzip`, scans the loaded payload
 for the last valid appended FDT, and does not use the Android header `dt_size`
-field. The kernel address must satisfy the `0x7ffff` alignment mask; the
-observed `0x40080000` address does.
+field. LK's own kernel address passes a `0x7ffff` mask, but that is not the
+complete arm64 placement contract. The Image must also be placed so
+`(kernel_addr - text_offset)` is 2 MiB aligned. The stock Gemian Image has
+`text_offset=0x80000`; its observed `kernel_addr=0x40080000` therefore maps to
+the aligned base `0x40000000`. The current modern Image has `text_offset=0`, so
+its candidate address is `0x40200000`. Reusing `0x40080000` for it would fail
+the arm64 alignment rule even though it passes LK's narrower mask.
+
+This placement correction, established on 2026-07-16, supersedes every
+pre-2026-07-16 candidate described below. Those artifacts and parser results
+remain historical evidence of the gzip/appended-DTB work, but they used the
+legacy `0x40080000` default and must not be reused for another boot test.
+
+The bsg100 chronology contains an important self-correction here. Its first
+aligned-address attempt was interpreted as LK ignoring the boot-header
+`kernel_addr`, but the later B-17 capture audit showed the relevant
+`0x40080000` cycles had selected the Android `boot` partition. Captures that
+selected its Linux `boot2` image reported `jump to K64 0x40200000` and reached
+Linux. The same chronology also contains a genuine earlier Linux/default-slot
+handoff at `0x40080000`, so the address alone is not payload identity. The
+retained Planet LK source independently rejects a misaligned header address,
+decompresses to that address, and passes it to `boot_linux`. Therefore, treat
+the header as operative and require selected-partition, jump-address, and
+payload evidence for every attempt; do not infer loader behavior from a dark
+screen.
 
 The active vendor image matches that contract: gzip kernel, `bootopt=64...`,
 `dt_size=0`, and a 130,745-byte FDT immediately after the gzip stream. The
@@ -127,7 +153,7 @@ sanitized record is
 [`mainline-75-lk-candidate-current-20260714.txt`](results/mainline-75-lk-candidate-current-20260714.txt).
 It remains private, non-flashed, and unbooted.
 
-The authoritative current 77-patch package is now wrapped as
+The historical 77-patch package was wrapped as
 `guest:~/artifacts/boot-candidates/20260714-77-diagnostics4/linux-7.1.3-gemini-6116c9e7da3f.boot.img`.
 Its candidate SHA-256 is
 `4cc0cc0df784e7ff79633884e2b093e3c2bc1d9c6f74f01af972a7034e88997c`; the
@@ -137,7 +163,11 @@ matching Image.gz and Gemini DTB hashes are
 The candidate parses as gzip plus an appended DTB, has a 48,545,800-byte
 decompressed kernel below LK's 50 MiB MT6797 limit, and is recorded in
 [`mainline-77-lk-candidate-diagnostics-current-20260714.txt`](results/mainline-77-lk-candidate-diagnostics-current-20260714.txt).
-It remains VM-private, untransferred, unflashed, and unbooted.
+It was later written to non-primary `boot3` and read back byte-for-byte, but it
+was not independently boot-tested before another image replaced those bytes.
+Its older parser did not enforce modern arm64 Image placement, so this artifact
+is not a current boot candidate. See the
+[write record](../2026-07-15-boot3-mainline-write/README.md).
 
 The prior 76-patch package is retained as historical evidence and is wrapped as
 `guest:~/artifacts/boot-candidates/20260714-76/linux-7.1.3-gemini-db59a88057b4.boot.img`.
@@ -219,6 +249,9 @@ records that `boot`, `boot2`, and `boot3` were byte-identical, with a 2048-byte
 page size, an 8,429,825-byte kernel, a 6,354,621-byte ramdisk, and a 130,745-byte
 appended DTB. The installed `gemian-modular-kernel` package's `linux-boot.img`
 is a different image and must not be used as evidence for the running kernel.
+The host-side payload and FDT re-analysis is recorded in
+[`boot-partition-re-analysis-20260715.txt`](results/boot-partition-re-analysis-20260715.txt);
+raw images and extracted trees remain private and Git-ignored.
 
 The live handoff provides:
 
@@ -244,53 +277,54 @@ mainline board DTS. Mainline should describe memory reservations and console
 requirements declaratively, then use a minimal initramfs command line that is
 appropriate for the chosen rootfs and recovery path.
 
-The Android boot header's physical load addresses (`kernel_addr=0x40080000`
-and `ramdisk_addr=0x45000000`) are supplied by the retained loader. They are
-not a requirement to modify Linux's AArch64 image format or to write a
-partition. The first mainline boot test should preserve LK and use a named
-development boot partition, with a kernel/DTB/initramfs package that is
-independently hashed before transfer.
+The stock Android boot header's physical load addresses
+(`kernel_addr=0x40080000` and `ramdisk_addr=0x45000000`) are inputs to the
+retained loader. The stock kernel address is coupled to its arm64 Image
+`text_offset=0x80000`; it is not a universal Gemini address. For the current
+Image (`text_offset=0`), use `kernel_addr=0x40200000` so the calculated image
+base is 2 MiB aligned. These addresses do not require modifying Linux's arm64
+image format or writing a partition. A mainline boot test should preserve LK
+and use a named, explicitly authorized target with a proven selection method,
+with the kernel header, calculated placement, DTB, initramfs, and complete
+package independently validated and hashed before transfer.
 
 ## Bring-up gates
 
-### First-test go/no-go decision (2026-07-14)
+### First-test go/no-go decision (updated 2026-07-16)
 
-`GO` for a minimal, non-primary UART boot test once the owner names the exact
-development target and confirms an independently bootable recovery path. The
-current 77-patch package and matching candidate satisfy the static loader contract: it emits
-`Image.gz`, carries the Gemini DTB as an appended FDT, and can be wrapped with
-a minimal static ARM64 initramfs that parses under the retained MT6797 LK
-rules. The UART/PSCI/timer/watchdog and conservative PWRAP/eMMC chain are
-represented; optional display, touch, keyboard, USB, camera, modem, DVFS, and
-thermal consumers remain disabled. The matching private candidate has been
-regenerated because the initramfs source now prints redacted console,
-CPU, and memory diagnostics. The source hash and filtering boundary are
-recorded in [`first-boot-initramfs-source-20260714.txt`](results/first-boot-initramfs-source-20260714.txt).
+The 2026-07-14 `GO` decision is superseded. Its candidate passed the known
+gzip/appended-DTB checks but used the stock kernel address with a modern Image;
+the later write and attempted framebuffer boot produced no attributable Linux
+evidence. `HOLD` that artifact and every other pre-correction candidate.
 
-`HOLD` for a normal userspace boot or peripheral testing. LK's final
+`GO` is limited to a newly generated diagnostic candidate after its
+decompressed arm64 header proves that `(kernel_addr - text_offset)` is 2 MiB
+aligned, its complete gzip stream and appended DTB boundaries pass, and the
+required pre-jump LK DT contract is validated. A non-primary target is useful
+only when its selection method is proven, so the next prerequisite is to audit
+the retained LK selector and map its physical key state to `boot2` or `boot3`.
+The primary `boot` slot remains protected by project policy; any proposal to
+use it needs a separate exception design and explicit maintainer review. Use
+the focused handoff configuration and a minimal initramfs marker; treat an
+optional simplefb overlay as separate instrumentation rather than an upstream
+board-DT change.
+
+`HOLD` remains in force for normal userspace boot or peripheral testing. LK's final
 `/chosen/bootargs`, memory reservations, CPU online mask, and watchdog state
 are still unobserved for a mainline kernel. The AW9523 matrix candidate now
 contains the source-derived `gpio-activelow` and `drive-inactive-cols`
-correction but remains disabled. No transfer, flash, reboot, or serial transmission
-is authorized by this static decision.
+correction but remains disabled. This static decision does not authorize a
+transfer, flash, reboot, or serial transmission.
 
 The first test should change one variable only: boot the exact hashed candidate
-through the retained LK development path, capture early and normal UART output,
-then collect `/proc/cmdline`, `/proc/device-tree/chosen`, CPU/memory state,
-reserved-memory nodes, watchdog status, and read-only eMMC identity. Do not
-mount the normal root filesystem or enable optional consumers in this pass.
-Repeat cold boots only after the first capture is internally consistent.
-
-For the storage portion, “read-only” means kernel enumeration and metadata only:
-capture `/sys/class/mmc_host`, `/sys/bus/mmc/devices` identity fields with
-serial/CID/CSD values redacted, and the MMC debug IOS/status if available. Do
-not open or mount `/dev/mmcblk*`, issue `mmc write`, change boot partitions,
-run filesystem repair, or use a userspace probe that can alter eMMC state.
-Remember that the built-in MMC probe itself is stateful: it enables clocks,
-programs controller registers and IRQs, transitions VEMC/VIO18, and sends card
-identification commands before these read-only observations are possible. If
-the probe is unstable, stop and return to external recovery; do not retry with
-HS200/HS400, MSDC1, or normal root mounting.
+through the retained LK development path and look for the unique initramfs
+marker. On this UART-silent unit, use the optional simplefb variant first; if
+UART unexpectedly becomes observable, capture the selected partition, jump
+address, early console, and normal console. The handoff profile excludes MMC,
+PMIC/regulator, USB, network, native display, and other stateful consumers. Do
+not add eMMC identity collection or mount the normal root filesystem in this
+pass. Repeat only after the first observation and restore are internally
+consistent.
 
 After retrieving a private UART log, summarize it without publishing the raw
 capture or identifiers:
@@ -305,25 +339,27 @@ markers, broad watchdog/eMMC evidence, and failure indicators. It always ends
 in `decision=manual_review_required`; a parser result never promotes runtime
 support by itself.
 
-1. Obtain a UART log from a non-primary development boot choice and confirm
-   whether LK accepts the regenerated gzip+appended-DTB candidate. Keep the
-   vendor boot image untouched and retain a recovery copy.
-2. Use the recorded 77-patch candidate from explicit package, DTB, initramfs,
-   and command-line inputs; recheck its hashes before any future transfer to
-   the separate flashing machine. Do not reuse the historical raw-Image
-   candidates.
-3. Compare LK's resulting chosen DT and command line against the sanitized
-   vendor baseline. Confirm console, memory, initrd, PSCI, GIC, and CPU
-   topology before enabling any peripheral nodes.
-4. Boot through UART first, then test eMMC root mounting. Never use the
-   ordinary workflow to target a whole disk or protected partition.
-5. Record cold-boot repeat count, exact image/header hashes, and every failed
-   boot. A successful image parse is not a boot result.
+1. Prove the retained LK key/partition selector and name a non-primary
+   development target. Verify its stock image, recovery path, and exact restore
+   command; then obtain separate authorization for one named partition write.
+2. Recheck the selected display candidate hash and full parser evidence. Do
+   not reuse historical raw-Image or legacy-address candidates.
+3. Make one boot attempt and look only for the unique marker. When UART is
+   available, require selected-partition and `jump to K64 0x40200000` evidence
+   before attributing output to Linux.
+4. Restore the stock image immediately and verify the read-back before any
+   repeat or new variable.
+5. After repeatable handoff, compare final chosen DT, bootargs, memory, initrd,
+   PSCI, GIC, and CPU state. Add USB serviceability and then read-only eMMC in
+   separate later candidates; never target a whole disk or protected
+   partition in the ordinary workflow.
 
 ## Conclusion
 
 The existing Linux patches describe hardware support, but the device still
 needs a validated Android boot-image/LK handoff before those patches can be
-tested. The safest next boot artifact is a reversible development image that
-retains the known LK/preloader path and carries only the upstream-derived
-kernel, Gemini DTB, and minimal initramfs.
+tested. Historical writes and the inconclusive display attempt do not prove
+that LK or Linux executed. The safest next boot artifact is a reversible
+development image that retains the known LK/preloader path, uses the correct
+modern arm64 placement, and carries only the upstream-derived kernel,
+LK-compatible DTB, and minimal initramfs.

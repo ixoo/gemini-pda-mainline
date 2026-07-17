@@ -2,7 +2,122 @@
 
 Milestones are evidence gates, not release dates. Work may proceed in parallel when it does not compromise a safe boot loop, but a milestone is complete only when all exit criteria are demonstrated on real hardware and documented.
 
-## Current evidence snapshot (2026-07-14)
+## Immediate priority: first attributable Linux 7.1.3 handoff (2026-07-16)
+
+The latest reviewed `bsg100/gemini-linux` main revision is
+`9d1e565a5ba11ae9585340e3e4bf4cacc233d13c`. Its hardware logs establish a
+useful sequence: satisfy LK's pre-jump DT assumptions first, prove the selected
+partition and jump address, start with one CPU, and only then enable storage or
+serviceability drivers. Its later B-17 audit also corrects an early false
+conclusion: some `0x40080000` cycles in that investigation had selected Android
+`boot`, while the corresponding Linux `boot2` cycles jumped to `0x40200000`.
+The project also records a genuine earlier Linux/default-`boot` handoff at
+`0x40080000`, so the address alone never identifies the payload. Treat the
+project as corroborating evidence, not as a patch source or proof for this
+unit.
+
+Priorities for the next controlled test are:
+
+1. **P0 — static handoff candidate: complete.** Linux 7.1.3 is still the
+   pinned/latest stable release. The `handoff` profile builds a little-endian,
+   4 KiB-page, relocatable kernel with `maxcpus=1`, a storage-inert initramfs,
+   and no modules or stateful PMIC, storage, DMA/IOMMU, SCP, thermal, USB,
+   network, or multimedia probes. A packaging-only DT overlay supplies LK's
+   ten CPU frequencies, the causally isolated ATF-ramdump compatible, two
+   conservatively co-restored secure-memory compatibles, and a disabled SCP
+   node without polluting the upstream-facing board DT.
+2. **P1 — one reversible display-first boot: complete but inconclusive.** The
+   display candidate was selected from non-primary `boot2` with the silver
+   button. The screen remained dark, serial produced no output, and neither the
+   initramfs marker nor an interaction path appeared. No boot loop was
+   observed, unlike earlier attempts. A post-test fixture audit found that the
+   initial `devtmpfs` mount could not run, so marker absence is not a valid
+   negative signal. The non-looping difference remains useful evidence, but it
+   cannot distinguish Linux execution from a silent early hang or panic;
+   runtime remains unknown.
+3. **P2 — host-observable USB enumeration: complete but inconclusive.** The
+   exact MTU3/T-PHY image was written and fully read back from non-primary
+   `boot2`. During the owner-run boot the device remained dark and steady; a
+   90-second check and 60-second retry found no USB child, unique identity, or
+   network interface. That is a failed USB test, not proof that Linux failed to
+   execute: slot selection, the physical data path, LK handoff, early kernel
+   execution, T-PHY, MTU3, and gadget binding remain indistinguishable.
+4. **P3 — attended fixed-delay reboot marker: complete, interpretation
+   provisional.** A reproducible follow-up
+   retains the exact USB candidate kernel and DTB and changes only initramfs
+   `/init` to call `/bin/busybox reboot -f` after 10 seconds. It is built,
+   validated, synchronized, and fully read back from non-primary `boot2`.
+   Because UART remains unavailable, the owner
+   approved a documented alternative-recovery exception based on known-good
+   primary Gemian boot, private backups, and the proven MediaTek restore path.
+   On the first attended boot, the screen was dark with the backlight initially
+   on; it later entered an off-like state with the backlight off and did not
+   restart automatically. Manual power-key start was required. Because this is
+   a one-file `/init` delta from the dark, steady USB baseline, `/init`, timer,
+   and reboot-path execution have strong indirect support, not confirmation.
+   The owner later estimated 5–10 seconds from backlight-on to off, compatible
+   with the 10-second timer, but this was not stopwatch measured or repeated
+   and no candidate log survived.
+5. **P4 — retained simplefb/fbcon visibility: first positive signal; controlled
+   follow-up ready.**
+   Candidate E reconstructs and hash-pins candidate D, retains
+   its byte-identical `Image.gz`, adds only the allowlisted LK simplefb node,
+   and uses `/init` to validate `simple`, 1080×2160, 32 bpp, and 4352-byte
+   stride before one `0x8f7000`-byte striped framebuffer write. Two builds are
+   byte-identical; the candidate was written, flushed, and fully read back
+   from `boot2`. Its first owner-run boot was black and showed none of the
+   expected bands. The positive criterion therefore failed, but the result is
+   inconclusive because every fail-closed `/init` branch is black and the
+   simplefb node names no display clocks. A focused audit of bsg100's working
+   native-fbcon history identifies unused-clock cleanup of
+   `CLK_INFRA_DISP_PWM`/`pwm_sel` as a concrete loader-backlight failure. The
+   resulting Candidate F preserves Candidate E's Image, initramfs and marker
+   byte-for-byte and adds only one path-resolved simplefb
+   `clocks = <&infrasys CLK_INFRA_DISP_PWM>;` property. Two builds are
+   identical, all static gates pass, and its synchronized `boot2` write has a
+   matching full readback. On the first attended boot, sideways console text
+   moved across the display for about one second before black. That is the first
+   positive visual Linux 7.1.3 handoff signal and strongly supports
+   simplefb/fbcon output; unread text does not independently prove `/init`.
+   Candidate G now keeps F's exact kernel and DTB while removing only the raw
+   marker access and holding a distinctive console banner. Its two builds are
+   identical and its synchronized `boot2` image has a matching complete
+   readback. Run this initramfs-only A/B before enabling fbcon rotation; the
+   exact kernel compiles rotation out. Do not combine either discriminator with
+   native display programming or broad `clk_ignore_unused`.
+6. **P5 — isolate the restart path before widening the platform.**
+   `reboot -f` requests `RB_AUTOBOOT`. Linux 7.1.3 invokes PSCI
+   `SYSTEM_RESET` before the MT6797 TOPRGU watchdog fallback. The off-like state
+   could therefore be a PSCI off/key-gated result, a successful TOPRGU reset
+   that waits for the power key, or a quiesced hang if reset never asserts.
+   The second branch has a concrete source discrepancy: Gemian sets TOPRGU mode
+   bit 4 to bypass the power key for normal reboot, while mainline preserves
+   its inherited value. The following manual Gemian boot reported `power_key`
+   with zero PMIC watchdog, AED watchdog, exception, and battery-removal flags,
+   which is compatible with that key-gated reset. Use the existing 5–10-second
+   owner estimate only as supporting evidence, then design a bounded test that
+   distinguishes PSCI from TOPRGU and tests bit-4 policy; only then repeat the
+   exact candidate hash and record
+   recovery behavior. Then test PSCI with two CPUs and then the
+   eight Cortex-A53 cores; keep the Cortex-A72 pair deferred if the reported
+   secure-firmware `CPU_ON` hang reproduces. Next add read-only eMMC discovery
+   and safe battery telemetry. Native DRM/panel, keyboard, charging policy,
+   storage writes, and connectivity follow only after each dependency has its
+   own reversible experiment.
+
+The exact handoff package, candidates, hashes, parser gates, and first runtime
+observation are recorded in the [LK handoff alignment result](../experiments/2026-07-16-lk-handoff-alignment/results/lk-handoff-candidate-20260716.txt)
+and [boot2 observation](../experiments/2026-07-16-lk-handoff-alignment/results/runtime-boot2-silver-button-20260716.txt).
+The failed USB gate is recorded in the [USB gadget diagnostic](../experiments/2026-07-16-usb-gadget-diagnostic/README.md).
+The fixed-delay observation and next reset-path gate are recorded in the
+[fixed-delay reboot diagnostic](../experiments/2026-07-16-timed-reboot-diagnostic/README.md)
+and its [sanitized runtime record](../experiments/2026-07-16-timed-reboot-diagnostic/results/runtime-timed-reboot-attempt-20260716.txt).
+The [restart-path source audit](../experiments/2026-07-16-timed-reboot-diagnostic/results/restart-path-source-audit-20260716.txt)
+records the PSCI ordering and TOPRGU bit-4 discrepancy.
+The failed visible gate, exact image hash, and runtime observation are recorded in the
+[deterministic screen-marker experiment](../experiments/2026-07-16-screen-marker-diagnostic/README.md).
+
+## Current evidence snapshot (2026-07-16)
 
 The repository has a reproducible Linux `7.1.3` baseline with a prepared arm64
 configuration and packaged kernel/DTB artifacts. The latest complete Image/DTB
@@ -26,7 +141,48 @@ against the retained LK contract; its non-flashing provenance is recorded in
 the [75-patch LK candidate result](../experiments/2026-07-12-boot-contract-recovery/results/mainline-75-lk-candidate-current-20260714.txt).
 The current 77-patch package now has a regenerated private gzip+appended-DTB
 candidate; its parser and hash record are in the [77-patch LK candidate diagnostics result](../experiments/2026-07-12-boot-contract-recovery/results/mainline-77-lk-candidate-diagnostics-current-20260714.txt).
-It remains VM-private, untransferred, unflashed, and unbooted. The prior 76-patch package has a regenerated private gzip+appended-DTB
+It was written to non-primary `boot3` and read back byte-for-byte, but was not
+independently boot-tested before a later prototype replaced those bytes; see
+the [77-patch boot3 write](../experiments/2026-07-15-boot3-mainline-write/README.md).
+A separate framebuffer-console prototype was then written to non-primary
+`boot2` and `boot3`, with matching full-partition checksums. The subsequent
+boot attempt was inconclusive: a later snapshot showed the vendor 3.18 kernel,
+but the exact key sequence, selected slot, LK acceptance, and Linux execution
+were not established. See the [prototype boot2 write](../experiments/2026-07-15-display-console-write-boot2/README.md),
+[prototype boot3 write](../experiments/2026-07-15-display-console-write/README.md),
+and [runtime snapshot](../experiments/2026-07-15-display-console-recovery/results/runtime-boot-attempt-20260715.txt).
+Both artifacts used the legacy `0x40080000` kernel-address default and are now
+historical. The corrected handoff Image uses `0x40200000` so
+`(kernel_addr - text_offset)` is 2 MiB aligned. Its display candidate was later
+selected from `boot2` with the silver button; the observed dark screen, silent
+serial path, absent interaction, and lack of a boot loop leave Linux runtime
+unknown. The historical fixture's broken initial `devtmpfs` mount makes its
+absent marker non-evidence. Patches 0077–0078 and the USB diagnostic were then
+tested from `boot2`: the device remained dark and steady, and no USB child was
+observed during a 90-second host check or 60-second retry. Linux execution is
+still unconfirmed. The next diagnostic candidate preserves that exact kernel
+and DTB and changes only initramfs `/init` to request a forced reset after 10
+seconds. It was validated, fully read back from `boot2`, and booted once under
+the recorded exception. Unlike the baseline's dark steady state, its backlight
+later turned off and it entered an off-like state without automatically
+restarting. That one-variable delta gives external `/init` execution strong
+indirect support, reinforced by the owner's later 5–10-second estimate;
+the timing was not measured by stopwatch, the test was not repeated, and no
+candidate log survived. The
+next manual Gemian boot reported `power_key` and zero watchdog/exception flags.
+Gemian explicitly sets TOPRGU mode bit 4 to bypass the power key for normal
+restart, while mainline does not. Physical poweroff, a successful key-gated
+reset, and a quiesced failed restart handler remain unresolved; the bit-4
+policy is the leading source-backed discrepancy.
+Candidate E retained that exact `Image.gz`, added an allowlisted simplefb node,
+and wrote one validated frame from `/init`; it remained black. Candidate F
+added only `CLK_INFRA_DISP_PWM` retention and produced about one second of
+sideways fbcon text before black, the first positive visual Linux 7.1.3 signal.
+Candidate G retains F's exact kernel/DTB, removes all raw framebuffer access,
+and is fully read back from `boot2`; its runtime result is the next gate.
+The normal UART prerequisite remains unmet; the experiment records the
+one-time alternative-recovery exception, observation, and stop path.
+The prior 76-patch package has a regenerated private gzip+appended-DTB
 candidate that also parses against the retained LK contract; its candidate,
 initramfs, Image.gz, and Gemini DTB hashes are recorded in the [diagnostic
 76-patch LK candidate result](../experiments/2026-07-12-boot-contract-recovery/results/mainline-76-lk-candidate-diagnostics-current-20260714.txt).
@@ -50,8 +206,10 @@ the [LK boot-contract audit](../experiments/2026-07-12-boot-contract-recovery/re
 The full source/config/DTB validation passes, including the bounded
 [Gemini-only schema validation](../experiments/2026-07-14-first-boot-probe-audit/results/gemini-dtb-schema-current-72-package-20260714.txt), as does a retained-LK source/DT audit proving that LK rewrites the handoff FDT and appends runtime mblock reservations. Static post-LK snapshots were removed from the board DT to avoid
 LK's pre-Linux reservation-conflict loop; the pre-LK dynamic reservation
-contract is preserved. No generated mainline image has booted on Gemini
-hardware yet. The patches therefore describe and compile candidate SoC/board
+contract is preserved. No generated mainline image has a confirmed Linux
+runtime result on Gemini hardware yet; the timed-reboot result is the first
+strong indirect `/init` execution evidence, not confirmation. The patches therefore
+describe and compile candidate SoC/board
 support; they do not claim runtime support. The earlier baseline package is
 `linux-7.1.3-gemini-c2d9eea95daa` with patchset SHA-256
 `c2d9eea95daa25dd8faddef4f9822e663db67d5d0946f06f0251cc52c92cf08c`.
@@ -246,6 +404,10 @@ Links below whose filenames contain `current-71` are retained historical
 source/build evidence; the adjacent `current-72` or `current-package` record
 is authoritative for the present artifact.
 
+The table is the longer-term subsystem order. For the next boot's target,
+observability, and one-CPU scope, the 2026-07-16 P0–P4 plan at the top of this
+document supersedes the older first-row wording.
+
 | Priority | Area | Linux 7.1.3 reuse decision | Required new work or gate |
 | --- | --- | --- | --- |
 | 1 | UART, timers, PSCI, watchdog, RAM | Reuse `8250_mtk`, architectural timer, generic PSCI, and `mtk_wdt`; current DT/resource patches are disabled or boot-only | Boot a non-primary candidate, first resolve LK's command-line mutation and capture early/normal logs, verify ten CPUs, reserved memory, watchdog behavior, and repeated recovery before enabling consumers. bsg100's hardware-tested 6.6 logs show CPU1–7 PSCI success but a CPU8/A72 `CPU_ON` boundary; use `maxcpus=8` only as a diagnostic if 7.1.3 reproduces it, not as a default yet. The current package's PM audit confirms generic PSCI topology only—no OPP or idle-state table—while `WATCHDOG_HANDLE_BOOT_ENABLED` means firmware-running TOPRGU state must be explicitly monitored. See [UART](../experiments/2026-07-13-uart-console-recovery/README.md), [CPU/PSCI/timer](../experiments/2026-07-13-cpu-psci-timer-recovery/README.md), [CPU cross-check](../experiments/2026-07-13-cpu-psci-timer-recovery/results/bsg100-cpu-psci-crosscheck-20260714.txt), [current PM package audit](../experiments/2026-07-12-cpufreq-thermal-suspend-recovery/results/mainline-pm-current-72-package-20260714.txt), [memory](../experiments/2026-07-13-memory-carveout-recovery/README.md), and [watchdog policy audit](../experiments/2026-07-12-mt6797-watchdog-recovery/results/mainline-watchdog-current-72-policy-20260714.txt). |
@@ -278,11 +440,17 @@ Exit criteria:
 
 ## M1 — Current-mainline UART boot
 
-**Outcome:** a current upstream-derived arm64 kernel boots from a non-primary Gemini boot slot and reaches an initramfs shell over UART without vendor kernel code.
+**Outcome:** a current upstream-derived arm64 kernel boots repeatedly from a
+named, non-primary Gemini development target and reaches an observable initramfs
+without vendor kernel code. UART remains the preferred evidence channel, but
+an attributable on-screen or USB initramfs marker is acceptable on a unit
+whose serial path is independently known to be unavailable.
 
 Exit criteria:
 
-- early console and normal UART logs captured;
+- early and normal UART logs captured when the hardware path is available; on
+  this unit, record USB enumeration separately from ping and the TCP initramfs
+  marker, without treating enumeration alone as `/init` evidence;
 - RAM size, reserved memory, timer, interrupts, PSCI, watchdog, and all CPUs checked;
 - LK Device Tree and command-line mutations documented;
 - minimal Planet vendor prefix and Gemini board Device Tree work is on a public upstream path;
@@ -318,6 +486,17 @@ Exit criteria:
 ## M4 — Native display and touch
 
 **Outcome:** the Gemini is locally interactive with an upstream DRM/KMS display pipeline.
+
+The archived display prototype explored a narrower diagnostic gate: an
+LK-initialized `simple-framebuffer` plus built-in fbcon without enabling the
+native DRM/DSI/panel graph. Its historical experiment fixture used the number
+0077, which is now assigned to the active T-PHY patch and must not be confused
+with that fixture. The VM candidate validated statically and was written to
+non-primary slots, but its first selection attempt was inconclusive and the
+later corrected `boot2`/silver-button attempt remained dark and silent without
+a marker. The display patch is not active; future instrumentation belongs in
+an optional handoff overlay. In every form this is diagnostic output, not
+native display support, so the exit criteria below remain unchanged.
 
 Exit criteria:
 

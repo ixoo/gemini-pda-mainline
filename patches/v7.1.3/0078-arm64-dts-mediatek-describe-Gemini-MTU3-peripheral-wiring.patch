@@ -1,0 +1,56 @@
+From df45c8247929878e6875915c3d4d44e638207ba8 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 16 Jul 2026 07:39:07 -0400
+Subject: [PATCH] arm64: dts: mediatek: describe Gemini MTU3 peripheral wiring
+
+Describe the left USB-C data path as a high-speed-only MTU3
+peripheral using the first USB2 T-PHY. Select the proven 26 MHz PHY
+reference and SSUSB system-clock parent, and opt this board into
+software-forced B-device session state.
+
+Keep every controller and PHY node disabled in the base board
+description. A separate diagnostic overlay may enable the three nodes
+for a bounded boot test; host mode, VBUS sourcing, Type-C policy,
+charging control, xHCI and the USB3 PHY remain out of scope.
+
+The resource choices and peripheral-mode behavior are corroborated by
+bsg100/gemini-linux commits
+fd5b10277198356d8c9b93478af6054b1c643597 and
+76cd816b3da62ab918b2eed1312c5b18f6538c31. They remain unconfirmed on
+this unit.
+---
+ .../boot/dts/mediatek/mt6797-gemini-pda.dts    | 18 ++++++++++++++++++
+ 1 file changed, 18 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+index 75c55af..86c5898 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -361,6 +361,24 @@
+ 	};
+ };
+ 
++/*
++ * The left USB-C connector is wired to the MTU3 device controller. Keep the
++ * controller disabled in the normal board description; a bounded diagnostic
++ * overlay may enable these already-described resources for bring-up.
++ */
++&u2port0 {
++	clocks = <&clk26m>;
++	mediatek,force-b-session-valid;
++};
++
++&ssusb {
++	assigned-clocks = <&topckgen CLK_TOP_MUX_SSUSB_TOP_SYS>;
++	assigned-clock-parents = <&topckgen CLK_TOP_UNIVPLL3_D2>;
++	phys = <&u2port0 PHY_TYPE_USB2>;
++	dr_mode = "peripheral";
++	maximum-speed = "high-speed";
++};
++
+ &thermal {
+ 	nvmem-cells = <&mt6797_thermal_calibration>;
+ 	nvmem-cell-names = "calibration-data";
+-- 
+2.50.1 (Apple Git-155)
+

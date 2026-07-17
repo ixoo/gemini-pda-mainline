@@ -48,6 +48,7 @@ probes:
       #!/usr/bin/env bash
       set -euo pipefail
       command -v make >/dev/null
+      command -v busybox >/dev/null
       command -v dtc >/dev/null
       command -v pahole >/dev/null
       command -v gdb-multiarch >/dev/null

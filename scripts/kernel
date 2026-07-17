@@ -36,8 +36,24 @@ SOURCE_SHA256="$(manifest_value '.kernel.sha256')"
 readonly SOURCE_SHA256
 ARCH="$(manifest_value '.architecture')"
 readonly ARCH
-BASE_CONFIG="$(manifest_value '.config.base')"
+DEFAULT_PROFILE="$(manifest_value '.config.default_profile')"
+readonly DEFAULT_PROFILE
+KERNEL_PROFILE="${KERNEL_PROFILE:-${DEFAULT_PROFILE}}"
+readonly KERNEL_PROFILE
+[[ "${KERNEL_PROFILE}" =~ ^[a-z0-9][a-z0-9_-]*$ ]] || \
+  die "invalid kernel profile name: ${KERNEL_PROFILE}"
+jq -e --arg profile "${KERNEL_PROFILE}" '
+  (.config.profiles[$profile] | type) == "object" and
+  (.config.profiles[$profile].base | type) == "string" and
+  (.config.profiles[$profile].base | length) > 0 and
+  (.config.profiles[$profile].fragments | type) == "array" and
+  (.config.profiles[$profile].fragments | all(.[]; type == "string" and length > 0))
+' "${MANIFEST}" >/dev/null || die "kernel profile is not defined correctly: ${KERNEL_PROFILE}"
+BASE_CONFIG="$(jq -er --arg profile "${KERNEL_PROFILE}" \
+  '.config.profiles[$profile].base' "${MANIFEST}")"
 readonly BASE_CONFIG
+[[ "${BASE_CONFIG}" =~ ^[A-Za-z0-9_.+-]+$ ]] || \
+  die "invalid base configuration for profile ${KERNEL_PROFILE}: ${BASE_CONFIG}"
 SERIES_REL="$(manifest_value '.patch_series')"
 readonly SERIES_REL
 readonly SERIES_FILE="${REPO_DIR}/${SERIES_REL}"
@@ -49,7 +65,12 @@ readonly BUILD_ROOT="${GEMINI_BUILD_ROOT:-${HOME}/build/gemini-pda}"
 readonly ARTIFACT_ROOT="${GEMINI_ARTIFACT_ROOT:-${HOME}/artifacts/gemini-pda}"
 readonly CACHE_ROOT="${GEMINI_CACHE_ROOT:-${HOME}/.cache/gemini-pda}"
 readonly SOURCE_DIR="${SOURCE_ROOT}/linux-${VERSION}"
-readonly BUILD_DIR="${BUILD_ROOT}/linux-${VERSION}"
+if [[ "${KERNEL_PROFILE}" == full ]]; then
+  BUILD_DIR="${BUILD_ROOT}/linux-${VERSION}"
+else
+  BUILD_DIR="${BUILD_ROOT}/linux-${VERSION}-${KERNEL_PROFILE}"
+fi
+readonly BUILD_DIR
 readonly ARCHIVE="${CACHE_ROOT}/linux-${VERSION}.tar.xz"
 
 usage() {
@@ -65,6 +86,7 @@ Commands:
   check-latest  Compare the pinned version with kernel.org's latest stable release
 
 Environment:
+  KERNEL_PROFILE        Config profile from the manifest (default: full)
   KERNEL_JOBS           Parallel build jobs (default: guest CPU count)
   BUILD_MODULES=1       Also compile modules
   GEMINI_SOURCE_ROOT    Override the managed source root
@@ -72,6 +94,11 @@ Environment:
   GEMINI_ARTIFACT_ROOT  Override the artifact root
   GEMINI_CACHE_ROOT     Override the verified-download cache
 EOF
+}
+
+for_each_config_fragment() {
+  jq -er --arg profile "${KERNEL_PROFILE}" \
+    '.config.profiles[$profile].fragments[]' "${MANIFEST}"
 }
 
 for_each_patch() {
@@ -108,16 +135,19 @@ patchset_hash() {
 hash_config_fragment() {
   local relative="$1"
   local path="${REPO_DIR}/${relative}"
+  [[ "${relative}" != /* && "${relative}" != *..* ]] || \
+    die "config fragment must remain below the repository: ${relative}"
   [[ -f "${path}" ]] || die "config fragment does not exist: ${relative}"
   printf '%s  %s\n' "$(sha256sum "${path}" | awk '{print $1}')" "${relative}"
 }
 
 config_hash() {
   {
+    printf '%s\n' "profile=${KERNEL_PROFILE}"
     printf '%s\n' "base=${BASE_CONFIG}"
     while IFS= read -r fragment; do
       hash_config_fragment "${fragment}"
-    done < <(jq -er '.config.fragments[]' "${MANIFEST}")
+    done < <(for_each_config_fragment)
   } | sha256sum | awk '{print $1}'
 }
 
@@ -216,7 +246,7 @@ configure_kernel() {
   make -C "${SOURCE_DIR}" O="${BUILD_DIR}" ARCH="${ARCH}" "${BASE_CONFIG}"
   while IFS= read -r fragment; do
     fragments+=("${REPO_DIR}/${fragment}")
-  done < <(jq -er '.config.fragments[]' "${MANIFEST}")
+  done < <(for_each_config_fragment)
 
   if [[ "${#fragments[@]}" -gt 0 ]]; then
     (
@@ -226,41 +256,66 @@ configure_kernel() {
     )
   fi
   make -C "${SOURCE_DIR}" O="${BUILD_DIR}" ARCH="${ARCH}" olddefconfig
-  while IFS= read -r fragment; do
-    validate_config_fragment "${fragment}"
-  done < <(jq -er '.config.fragments[]' "${MANIFEST}")
+  validate_config_fragments
   printf '%s\n' "${expected_state}" > "${BUILD_DIR}/.gemini-build-state"
   echo "Configured Linux ${VERSION} at ${BUILD_DIR}"
 }
 
-validate_config_fragment() {
-  local relative="$1"
-  local path="${REPO_DIR}/${relative}"
+validate_config_fragments() {
+  local relative
+  local path
   local line
-  local line_number=0
+  local line_number
+  local symbol
+  local -a symbols=()
+  local -A expected=()
+  local -A origin=()
 
-  while IFS= read -r line || [[ -n "${line}" ]]; do
-    line_number=$((line_number + 1))
+  while IFS= read -r relative; do
+    path="${REPO_DIR}/${relative}"
+    line_number=0
+    while IFS= read -r line || [[ -n "${line}" ]]; do
+      line_number=$((line_number + 1))
+      case "${line}" in
+        CONFIG_*=*)
+          symbol="${line%%=*}"
+          ;;
+        '# CONFIG_'*' is not set')
+          symbol="${line#\# }"
+          symbol="${symbol% is not set}"
+          ;;
+        ''|'# '*)
+          continue
+          ;;
+        *)
+          die "${relative}:${line_number}: unsupported config-fragment line: ${line}"
+          ;;
+      esac
+      if [[ -z "${expected[${symbol}]+present}" ]]; then
+        symbols+=("${symbol}")
+      fi
+      expected["${symbol}"]="${line}"
+      origin["${symbol}"]="${relative}:${line_number}"
+    done < "${path}"
+  done < <(for_each_config_fragment)
+
+  # merge_config.sh applies fragments in order. Validate the final request for
+  # each symbol so a narrow profile may intentionally override common policy.
+  for symbol in "${symbols[@]}"; do
+    line="${expected[${symbol}]}"
     case "${line}" in
       CONFIG_*=*)
         grep -Fqx "${line}" "${BUILD_DIR}/.config" || \
-          die "${relative}:${line_number}: requested value was not retained: ${line}"
+          die "${origin[${symbol}]}: requested value was not retained: ${line}"
         ;;
       '# CONFIG_'*' is not set')
         if ! grep -Fqx "${line}" "${BUILD_DIR}/.config"; then
-          local symbol="${line#\# CONFIG_}"
-          symbol="${symbol% is not set}"
-          grep -Eq "^CONFIG_${symbol}=" "${BUILD_DIR}/.config" && \
-            die "${relative}:${line_number}: requested value was not retained: ${line}"
+          grep -Eq "^${symbol}=" "${BUILD_DIR}/.config" && \
+            die "${origin[${symbol}]}: requested value was not retained: ${line}"
         fi
         ;;
-      ''|'# '*)
-        ;;
-      *)
-        die "${relative}:${line_number}: unsupported config-fragment line: ${line}"
-        ;;
     esac
-  done < "${path}"
+  done
 }
 
 copy_patch_to_provenance() {
@@ -293,13 +348,19 @@ package_artifacts() {
   local expected_source_state="$2"
   local expected_build_state="$3"
   local patch_hash="$4"
+  local config_input_hash="$5"
+  local config_fragments_json
   local package_name
   local temporary
   local sums_file
   local fragment
   local modules_built=false
 
-  package_name="linux-${VERSION}-gemini-${patch_hash:0:12}"
+  if [[ "${KERNEL_PROFILE}" == full ]]; then
+    package_name="linux-${VERSION}-gemini-${patch_hash:0:12}"
+  else
+    package_name="linux-${VERSION}-gemini-${KERNEL_PROFILE}-${patch_hash:0:8}-${config_input_hash:0:8}"
+  fi
   PACKAGE_DIR="${ARTIFACT_ROOT}/${package_name}"
   export PACKAGE_DIR
   temporary="${PACKAGE_DIR}.partial"
@@ -330,12 +391,19 @@ package_artifacts() {
   cp "${SERIES_FILE}" "${PACKAGE_DIR}/provenance/series"
   while IFS= read -r fragment; do
     cp "${REPO_DIR}/${fragment}" "${PACKAGE_DIR}/provenance/configs/$(basename "${fragment}")"
-  done < <(jq -er '.config.fragments[]' "${MANIFEST}")
+  done < <(for_each_config_fragment)
   for_each_patch copy_patch_to_provenance
+
+  config_fragments_json="$(jq -cer --arg profile "${KERNEL_PROFILE}" \
+    '.config.profiles[$profile].fragments' "${MANIFEST}")"
 
   jq -n \
     --arg generated "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
     --arg kernel_release "${kernel_release}" \
+    --arg build_profile "${KERNEL_PROFILE}" \
+    --arg base_config "${BASE_CONFIG}" \
+    --argjson config_fragments "${config_fragments_json}" \
+    --arg config_inputs_sha256 "${config_input_hash}" \
     --arg source_sha256 "${SOURCE_SHA256}" \
     --arg patchset_sha256 "${patch_hash}" \
     --arg config_sha256 "$(sha256sum "${BUILD_DIR}/.config" | awk '{print $1}')" \
@@ -346,6 +414,10 @@ package_artifacts() {
       schema: 1,
       generated_utc: $generated,
       kernel_release: $kernel_release,
+      build_profile: $build_profile,
+      base_config: $base_config,
+      config_fragments: $config_fragments,
+      config_inputs_sha256: $config_inputs_sha256,
       source_sha256: $source_sha256,
       patchset_sha256: $patchset_sha256,
       config_sha256: $config_sha256,
@@ -375,15 +447,23 @@ package_artifacts() {
 build_kernel() {
   local jobs="${KERNEL_JOBS:-$(nproc)}"
   local -a targets=(Image Image.gz dtbs)
+  local config_input_hash
   local expected_build_state
   local expected_source_state
   local kernel_release
   local patch_hash
 
+  case "${KERNEL_PROFILE}:${BUILD_MODULES:-0}" in
+    handoff:1|usbdiag:1)
+      die "the ${KERNEL_PROFILE} profile is built-in-only; BUILD_MODULES=1 is not supported"
+      ;;
+  esac
+
   configure_kernel
   expected_source_state="$(< "${SOURCE_DIR}/.gemini-source-state")"
   expected_build_state="$(< "${BUILD_DIR}/.gemini-build-state")"
   patch_hash="$(patchset_hash)"
+  config_input_hash="$(config_hash)"
   if [[ "${BUILD_MODULES:-0}" == 1 ]]; then
     targets+=(modules)
   fi
@@ -402,11 +482,13 @@ build_kernel() {
     "${expected_source_state}" "${expected_build_state}"
   kernel_release="$(make -s -C "${SOURCE_DIR}" O="${BUILD_DIR}" ARCH="${ARCH}" kernelrelease)"
   package_artifacts "${kernel_release}" \
-    "${expected_source_state}" "${expected_build_state}" "${patch_hash}"
+    "${expected_source_state}" "${expected_build_state}" "${patch_hash}" \
+    "${config_input_hash}"
 }
 
 show_paths() {
   cat <<EOF
+profile=${KERNEL_PROFILE}
 source=${SOURCE_DIR}
 build=${BUILD_DIR}
 artifacts=${ARTIFACT_ROOT}
@@ -422,6 +504,12 @@ show_status() {
   for_each_patch count_patches
 
   echo "Pinned stable kernel: ${VERSION} (${RELEASED})"
+  echo "Build profile:        ${KERNEL_PROFILE}"
+  echo "Base configuration:   ${BASE_CONFIG}"
+  echo "Config inputs SHA-256: $(config_hash)"
+  while IFS= read -r fragment; do
+    echo "Config fragment:      ${fragment}"
+  done < <(for_each_config_fragment)
   echo "Patch count:          ${count}"
   echo "Patchset SHA-256:     $(patchset_hash)"
   if [[ -f "${SOURCE_DIR}/.gemini-source-state" ]] && \

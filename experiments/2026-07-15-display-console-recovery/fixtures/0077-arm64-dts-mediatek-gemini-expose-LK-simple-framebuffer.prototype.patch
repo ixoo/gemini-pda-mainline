@@ -1,0 +1,43 @@
+From 0000000000000000000000000000000000000077 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Maintainers <gemini-mainline@example.invalid>
+Date: Wed, 15 Jul 2026 04:00:00 -0400
+Subject: [PATCH] arm64: dts: mediatek: gemini: expose LK simple framebuffer
+
+Expose the framebuffer already initialized by the retained Gemini LK as a
+generic simple-framebuffer console. LK's final handoff adds the matching
+runtime framebuffer reservation below /reserved-memory; this node intentionally
+does not duplicate that reservation in the input board DT.
+
+The address, geometry, stride, and ARGB8888 format come from the sanitized
+Gemian capture and the retained LK display source. This is a handoff console
+only: it does not enable the unvalidated MT6797 DRM/DSI/panel pipeline.
+
+Signed-off-by: Gemini Mainline Maintainers <gemini-mainline@example.invalid>
+---
+ .../boot/dts/mediatek/mt6797-gemini-pda.dts       | 11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -18,7 +18,17 @@
+ 	aliases {
+ 		serial0 = &uart0;
++		display0 = &framebuffer0;
+ 	};
+ 
+ 	chosen {
+-		stdout-path = "serial0:921600n8";
++		stdout-path = "display0";
++
++		framebuffer0: framebuffer@7dfb0000 {
++			compatible = "simple-framebuffer";
++			reg = <0 0x7dfb0000 0 0x1f90000>;
++			width = <1080>;
++			height = <2160>;
++			stride = <4352>;
++			format = "a8r8g8b8";
++		};
+ 	};
+-- 
+2.43.0

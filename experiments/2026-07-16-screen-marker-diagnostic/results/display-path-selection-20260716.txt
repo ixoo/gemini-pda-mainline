@@ -1,0 +1,62 @@
+record=screen-marker-path-selection
+date=2026-07-16
+device_variant=current Gemini PDA unit; retail sub-variant not independently established
+
+[direct_live_evidence]
+private_capture=artifacts/device-inventory/20260712-live/display-state-mtkfb.txt
+framebuffer_pa=0x7dfb0000
+framebuffer_mva=0x7dfb0000
+framebuffer_reservation_size=0x1f90000
+width=1080
+height=2160
+stride=4352
+reported_vendor_format=RGBA8888
+ovl0_layer0_source=0x7dfb0000
+visible_frame_bytes=9400320
+visible_frame_bytes_hex=0x8f7000
+minimum_visible_row_bytes=4320
+stride_contract=4352 >= 1080 * 4
+visible_span_contract=0x8f7000 <= 0x1f90000
+reservation_end=0x7ff40000
+reservation_end_contract=immediately before fixed ATF log reservation
+private_capture_committed=no
+
+[candidate_D_static_audit]
+boot_image_sha256=61fb961a8de48a7e0a9acf83447b90cc7012b741a10b0707cb7e73d33e8081c8
+dtb_sha256=5717a8c2f3f4f02533fae4dad8c9f9137f0f78cb0986fd6908a74309722e7db4
+config_FB=y
+config_FB_SIMPLE=y
+config_FRAMEBUFFER_CONSOLE=y
+config_VT=y
+config_VT_CONSOLE=y
+dt_simple_framebuffer_node=absent
+simplefb_probe_possible=no
+
+[prior_simplefb_attempt]
+runtime_result=dark; no attributable marker
+initramfs_defect=first devtmpfs mount redirected to nonexistent /dev/null
+direct_framebuffer_write=none
+interpretation=inconclusive; not evidence that the fixed mapping is invalid
+
+[selected_probe]
+method=Linux simplefb plus one bounded /dev/fb0 write
+format=a8r8g8b8
+pattern=8 horizontal bands alternating opaque white and dark gray
+write_bytes=9400320
+write_scope=stride times height only
+display_register_write=none
+panel_power_sequence=none
+pmic_access=none
+i2c_access=none
+storage_access=none
+reboot_request=none
+runtime_result=not-tested
+
+[led_alternative]
+controller=AWINIC AW9120
+live_bus=i2c3
+live_address=0x2c
+live_chip_id=0xb223
+enable_reset_gpio=245 active high; low then high with at least 5 ms settling
+mainline_7_1_3_driver=absent
+decision=defer to a separate upstream-style LED-class driver and binding; do not use raw initramfs register writes by default

@@ -1,0 +1,60 @@
+#!/bin/busybox sh
+# shellcheck shell=dash
+
+export PATH=/bin
+readonly MARKER="GEMINI_USB_DIAG_20260716_B"
+readonly STATUS_FILE=/run/usbdiag-status
+
+# /dev/null does not exist until devtmpfs is mounted. Keep this first mount
+# unredirected; redirecting it would make the shell fail before mount executes.
+if ! mount -t devtmpfs -o nosuid,mode=0755 devtmpfs /dev; then
+	printf '%s\n' "$MARKER devtmpfs=failed"
+	while :; do
+		sleep 30
+	done
+fi
+mount -t proc -o ro,nosuid,nodev,noexec proc /proc 2>/dev/null || true
+mount -t sysfs -o ro,nosuid,nodev,noexec sysfs /sys 2>/dev/null || true
+
+emit() {
+	for output in /dev/console /dev/tty0 /dev/ttyS0; do
+		if [ -c "$output" ]; then
+			printf '%s\n' "$*" >"$output" 2>/dev/null || true
+		fi
+	done
+}
+
+record() {
+	printf '%s\n' "$*" >>"$STATUS_FILE"
+	emit "$*"
+}
+
+: >"$STATUS_FILE"
+record "$MARKER"
+record "kernel=$(uname -r)"
+record "stage=initramfs"
+record "storage_access=none"
+
+usb_service() {
+	record "usb0=waiting"
+	while [ ! -d /sys/class/net/usb0 ]; do
+		sleep 1
+	done
+	record "usb0=present"
+	if ip link set usb0 up && \
+	   ip address add 10.15.19.82/24 dev usb0; then
+		record "usb0_address=10.15.19.82/24"
+	else
+		record "usb0_address=failed"
+		return
+	fi
+	nc -ll -p 2323 -e /bin/usb-shell &
+	record "tcp_shell=10.15.19.82:2323"
+}
+
+usb_service &
+
+while :; do
+	sleep 30
+	record "$MARKER heartbeat"
+done

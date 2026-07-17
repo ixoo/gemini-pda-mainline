@@ -1,0 +1,129 @@
+# Narrow override for the first host-observable LK handoff diagnostic.
+# Apply after gemini-handoff.fragment; storage and unrelated peripherals stay
+# disabled. This is a gadget/peripheral build, never a USB host or VBUS source.
+CONFIG_LOCALVERSION="-gemini-usbdiag"
+CONFIG_CMDLINE="console=tty0 console=ttyS0,921600n8 earlycon maxcpus=1 nokaslr ignore_loglevel loglevel=8 log_buf_len=1M initcall_debug rdinit=/init panic=0 g_ether.dev_addr=42:00:15:19:82:01 g_ether.host_addr=42:00:15:19:82:00 g_ether.iManufacturer=gemini-pda-mainline g_ether.iProduct=Gemini-LK-USB-Diagnostic-B g_ether.iSerialNumber=GEMINI_USB_DIAG_20260716_B"
+
+# Minimal IPv4 stack for one directly attached g_ether link.
+CONFIG_NET=y
+CONFIG_UNIX=y
+CONFIG_INET=y
+CONFIG_NETDEVICES=y
+# CONFIG_AUDIT is not set
+# NET selects the non-syscall BPF core for socket filtering.
+CONFIG_BPF=y
+# CONFIG_BPF_JIT is not set
+# CONFIG_PACKET is not set
+# CONFIG_POSIX_MQUEUE is not set
+# CONFIG_NET_NS is not set
+# CONFIG_IPV6 is not set
+# CONFIG_NETFILTER is not set
+# CONFIG_NET_CORE is not set
+# CONFIG_NET_DSA is not set
+# CONFIG_NET_SCHED is not set
+# CONFIG_BQL is not set
+# CONFIG_NET_9P is not set
+# CONFIG_NETWORK_FILESYSTEMS is not set
+# CONFIG_BRIDGE is not set
+# CONFIG_VLAN_8021Q is not set
+# CONFIG_HSR is not set
+# CONFIG_BT is not set
+# CONFIG_CAN is not set
+# CONFIG_NFC is not set
+# CONFIG_QRTR is not set
+# CONFIG_RFKILL is not set
+# CONFIG_TYPEC is not set
+# CONFIG_PHYLIB is not set
+# CONFIG_PHYLINK is not set
+# CONFIG_PCS_XPCS is not set
+# CONFIG_PTP_1588_CLOCK is not set
+# CONFIG_CRYPTO_USER_API is not set
+# CONFIG_CRYPTO_USER_API_RNG is not set
+# CONFIG_CRYPTO_USER is not set
+# CONFIG_IP_PNP is not set
+# CONFIG_IP_MULTICAST is not set
+# CONFIG_INET_DIAG is not set
+# CONFIG_DNS_RESOLVER is not set
+# CONFIG_ETHTOOL_NETLINK is not set
+# CONFIG_NET_HANDSHAKE is not set
+# CONFIG_NET_PTP_CLASSIFY is not set
+# CONFIG_NET_SWITCHDEV is not set
+# NET_RX_BUSY_POLL is a non-user-visible NET default in this kernel.
+CONFIG_NET_RX_BUSY_POLL=y
+# CONFIG_NET_FLOW_LIMIT is not set
+# CONFIG_NET_SELFTESTS is not set
+# CONFIG_NET_FAILOVER is not set
+# CONFIG_ROOT_NFS is not set
+# CONFIG_BLK_DEV_NBD is not set
+# CONFIG_9P_FS is not set
+# CONFIG_RPMSG_CHAR is not set
+# CONFIG_TASKSTATS is not set
+# CONFIG_ETHERNET is not set
+# CONFIG_WIRELESS is not set
+# CONFIG_WLAN is not set
+# CONFIG_WWAN is not set
+
+# Left-port MTU3 peripheral only. No host core, dual role, USB3 PHY, xHCI,
+# Type-C policy, VBUS control, charger driver, storage gadget, or configfs.
+CONFIG_USB_SUPPORT=y
+# CONFIG_USB is not set
+CONFIG_USB_GADGET=y
+CONFIG_USB_MTU3=y
+CONFIG_USB_MTU3_GADGET=y
+# CONFIG_USB_MTU3_HOST is not set
+# CONFIG_USB_MTU3_DUAL_ROLE is not set
+CONFIG_GENERIC_PHY=y
+CONFIG_PHY_MTK_TPHY=y
+# CONFIG_PHY_CAN_TRANSCEIVER is not set
+# CONFIG_PHY_CADENCE_TORRENT is not set
+# CONFIG_PHY_CADENCE_DPHY is not set
+# CONFIG_PHY_CADENCE_DPHY_RX is not set
+# CONFIG_PHY_CADENCE_SIERRA is not set
+# CONFIG_PHY_CADENCE_SALVO is not set
+CONFIG_REGULATOR=y
+# MTK_REGULATOR_COUPLER has no user-visible prompt on ARCH_MEDIATEK and is
+# unconditionally selected by its Kconfig default once REGULATOR is enabled.
+CONFIG_MTK_REGULATOR_COUPLER=y
+# CONFIG_REGULATOR_FIXED_VOLTAGE is not set
+# CONFIG_REGULATOR_ARM_SCMI is not set
+# CONFIG_REGULATOR_CROS_EC is not set
+# CONFIG_REGULATOR_GPIO is not set
+# CONFIG_REGULATOR_HI6421V530 is not set
+# CONFIG_REGULATOR_MT6315 is not set
+# CONFIG_REGULATOR_PWM is not set
+# CONFIG_REGULATOR_QCOM_SPMI is not set
+# CONFIG_REGULATOR_QCOM_USB_VBUS is not set
+# CONFIG_REGULATOR_VCTRL is not set
+# CONFIG_USB_CDNS_SUPPORT is not set
+# CONFIG_USB_MUSB_HDRC is not set
+# CONFIG_USB_DWC3 is not set
+# CONFIG_USB_DWC2 is not set
+# CONFIG_USB_CHIPIDEA is not set
+# CONFIG_USB_ISP1760 is not set
+# CONFIG_USB_PHY is not set
+# CONFIG_NOP_USB_XCEIV is not set
+# CONFIG_USB_ULPI is not set
+# CONFIG_USB_ROLE_SWITCH is not set
+# CONFIG_USB_CONN_GPIO is not set
+# CONFIG_USB_ULPI_BUS is not set
+# CONFIG_USB_SNP_CORE is not set
+# CONFIG_USB_SNP_UDC_PLAT is not set
+# CONFIG_USB_BDC_UDC is not set
+# CONFIG_PHY_QCOM_USB_HS is not set
+# CONFIG_PHY_SAMSUNG_USB2 is not set
+# CONFIG_ROCKCHIP_PHY is not set
+CONFIG_USB_ETH=y
+CONFIG_USB_ETH_RNDIS=y
+# CONFIG_USB_ETH_EEM is not set
+# CONFIG_USB_CONFIGFS is not set
+# CONFIG_USB_GADGETFS is not set
+# CONFIG_USB_MASS_STORAGE is not set
+# CONFIG_USB_G_MULTI is not set
+
+# Keep the physically scoped diagnostic shell usable without enabling another
+# transport. The initramfs still performs no storage discovery or mounts.
+CONFIG_TTY=y
+CONFIG_UNIX98_PTYS=y
+# CONFIG_LEGACY_PTYS is not set
+# CONFIG_DEVMEM is not set
+# CONFIG_DEVPORT is not set

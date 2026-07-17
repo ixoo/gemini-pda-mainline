@@ -223,6 +223,55 @@ exact chip revision.
 | 7/`0x60` | `VGPU_BUCK` | unbound | GPU buck candidate | `described` |
 | 8/`0x36` | `camera_main_hw` | generic vendor camera binding | Main-camera hardware path | `described` |
 
+### AW9120 indicator LEDs
+
+The bound I2C3 client at `0x2c` is now identified more precisely than the
+inventory label alone:
+
+- live sysfs binds `3-002c` to `aw9120_led`, and the captured vendor boot log
+  reads chip ID `0xb223`;
+- live pinctrl assigns GPIO245 to the AW9120 and reports the active
+  `aw9120_pdn_high` state; retained Planet board source drives that pin low for
+  5 ms, then high, and waits 5 ms before I2C;
+- I2C3 uses GPIO74/SCL3 and GPIO75/SDA3; the controller is shared with the
+  unbound HDMI/EDID clients at `0x39` and `0x50`, so a diagnostic must address
+  only the known `0x2c` child and must not scan the bus;
+- AW9120 registers use an 8-bit address followed by a big-endian 16-bit value.
+  Register `0x00` returns `0xb223`; `0x01` globally enables outputs;
+  `0x50`/`0x51` gate channels; `0x55`/`0x56` select direct-I2C versus SRAM
+  control; `0x57`–`0x5b` set maximum current; and `0x61` carries immediate PWM
+  commands.
+
+The installed Gemian daemon version matches public
+[`gemian/gemian-leds` commit `02e0508`](https://github.com/gemian/gemian-leds/commit/02e05085e680d8be51722351a462bf3081e6aa03).
+Combined with retained Planet
+[`NotKit/kernel-3.18-geminipda` commit `c5b0be8`](https://github.com/NotKit/kernel-3.18-geminipda/commit/c5b0be85017ad0c599725e8273842efdbecdd88a),
+it maps the five visible RGB array blocks as follows:
+
+| Visible block | AW9120 outputs R/G/B |
+| --- | --- |
+| 1 | 1 / 2 / 3 |
+| 2 | 13 / 14 / 15 |
+| 3 | 4 / 5 / 6 |
+| 4 | 7 / 8 / 9 |
+| 5 | 10 / 11 / 12 |
+
+Outputs 16–18 form an extra RGB indicator. Outputs 19–20 form a two-color
+Caps/power indicator, but the retained vendor source and Gemian userspace
+disagree on the name/color of output 20; do not treat that color as confirmed.
+The [AW9120 V1.4 data sheet](https://static.chipdip.ru/lib/858/DOC014858495.pdf)
+corroborates the `0xb223` identity, PDN timing, direct-PWM encoding, and
+minimum current code `1` = 3.5 mA.
+
+Linux 7.1.3 has no AW9120 driver. A future implementation should therefore be
+a new generic LED-class/multicolor driver and binding using regmap, an
+active-high enable GPIO, and explicit child channels—not the vendor `/proc`
+register ABI. The first bounded marker should use the unambiguous block-1 green
+output 2 at the minimum 3.5 mA current and capped PWM, after an attended Gemian
+visibility check. The exact evidence, safe command composition, and screen-first
+decision are recorded in the
+[screen-marker path selection](../../experiments/2026-07-16-screen-marker-diagnostic/results/display-path-selection-20260716.txt).
+
 The generic camera wrapper labels above are not sensor identities. A read-only
 runtime capture reports `/proc/AEON_CAMERA0=non_sensor` and
 `/proc/AEON_CAMERA1=sp5509mipirawsls`; the corresponding vendor symbols include

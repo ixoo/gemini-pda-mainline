@@ -1,0 +1,17 @@
+experiment=2026-07-15-display-console-write
+observation=owner-reported-runtime-boot-loop-after-boot3-test
+date=2026-07-15
+target=boot3 (/dev/mmcblk0p31)
+candidate=linux-7.1.3-gemini-b885d52ffc58
+display=none-observed
+serial=unavailable
+runtime_result=owner-reported-no-display-and-apparent-boot-loop; whether the
+candidate reached LK or Linux is unknown
+evidence_limit=no loader splash, UART, framebuffer, or kernel log was observed;
+this does not distinguish image authentication/rejection, LK parser failure,
+early kernel fault, watchdog reset, or initramfs/root handoff failure
+interpretation=the synchronized write/readback remains valid, but runtime
+support is not established
+next_safe_step=restore the saved boot3 image before further candidate changes,
+then test a smaller diagnostic image with a loader-compatible framebuffer or a
+known-good recovery path

@@ -1,0 +1,31 @@
+--- init
++++ init
+@@ -4,7 +4,20 @@
+ export PATH=/bin
+ readonly MARKER="GEMINI_USB_DIAG_20260716_B"
+ readonly STATUS_FILE=/run/usbdiag-status
++readonly REBOOT_DELAY_SECONDS=10
++
++# Arm the only intentional runtime difference before any mount or device-node
++# dependency. If /init executes and scheduling plus the generic reboot syscall
++# work, this child requests a reset after a short, fixed delay.
++timed_reboot() {
++	/bin/busybox sleep "$REBOOT_DELAY_SECONDS"
++	/bin/busybox reboot -f
++	while :; do
++		/bin/busybox sleep 30
++	done
++}
++timed_reboot &
+ 
+ # /dev/null does not exist until devtmpfs is mounted. Keep this first mount
+ # unredirected; redirecting it would make the shell fail before mount executes.
+ if ! mount -t devtmpfs -o nosuid,mode=0755 devtmpfs /dev; then
+@@ -34,6 +47,7 @@
+ record "kernel=$(uname -r)"
+ record "stage=initramfs"
+ record "storage_access=none"
++record "timed_reboot=armed delay_seconds=$REBOOT_DELAY_SECONDS"
+ 
+ usb_service() {
+ 	record "usb0=waiting"

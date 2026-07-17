@@ -1,0 +1,70 @@
+experiment=2026-07-16-usb-gadget-diagnostic
+date=2026-07-16
+observation_time_utc=2026-07-16T13:33:26Z
+result=usb-enumeration-not-observed-runtime-unconfirmed
+evidence_source=read-only-host-observation-after-owner-reported-connection
+
+[candidate-context]
+candidate_sha256=41b97a83c53e76cc0fc117660dd4f7189b397f63ea5f6545fc00ef89af0263ca
+target=/dev/mmcblk0p30
+logical_name=boot2
+full_partition_readback_sha256=5b3c81a0f9e50340a5a46d01094e3fd6233e7ca0e6ac0e91f9523839126fd038
+expected_usb_product=Gemini-LK-USB-Diagnostic-B
+expected_usb_serial=GEMINI_USB_DIAG_20260716_B
+expected_host_mac=42:00:15:19:82:00
+expected_device_mac=42:00:15:19:82:01
+
+[host]
+os=macOS-26.5.2
+architecture=arm64
+network_configuration_changed=no
+internet_sharing_enabled_by_test=no
+
+[procedure]
+owner_report=device-plugged-into-this-mac
+boot2_selection=not-independently-confirmed
+gemini_physical_port=not-independently-confirmed
+cable_data_capability=not-independently-confirmed
+unique_marker_wait_seconds=90
+usb_tree_command=ioreg -p IOUSB -w0
+network_interface_command=ifconfig -l
+
+[observations]
+expected_usb_marker_observed=no
+generic_usb_child_device_observed=no
+usb_tree_children=none
+fixed_mac_interface_observed=no
+new_interface_attribution=none
+vendor_ssh_endpoint=timeout
+ping=not-attempted-no-interface
+tcp_marker=not-attempted-no-interface
+
+[interpretation]
+Host enumeration was not observed during this bounded check. The empty host USB
+tree places the observable failure before CDC-ECM interface creation, but it
+does not distinguish boot-slot selection, cable or physical-port data path, LK
+handoff, a pre-USB kernel failure, T-PHY setup, MTU3 probe, or gadget binding.
+The unavailable former Gemian SSH endpoint is consistent with a reboot away
+from the vendor system but does not identify the selected payload.
+kernel_execution=unconfirmed
+initramfs_execution=unconfirmed
+usb_gadget_runtime=unknown
+
+[retry]
+observation_time_utc=2026-07-16T13:38:43Z
+owner_prompt=try-again
+bounded_wait_seconds=60
+any_usb_child_observed=no
+expected_usb_marker_observed=no
+fixed_mac_interface_observed=no
+result=usb-enumeration-not-observed-again
+
+[owner-confirmation]
+observation_time_utc=2026-07-16T13:42:59Z
+statement=it-did-not-work
+test_outcome=failed-no-usable-usb-access
+display=dark
+steady_powered_state=yes
+reboot_observed=no
+reboot_loop_observed=no
+scope=confirms-negative-test-result-not-root-cause

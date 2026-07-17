@@ -1,0 +1,81 @@
+/dts-v1/;
+/plugin/;
+
+/*
+ * Packaging-only compatibility overlay for the retained Planet Android 8 LK.
+ * These properties are consumed by LK before Linux is entered. They are not
+ * proposed as Linux binding additions and must not be merged into the base DT.
+ */
+/ {
+	fragment@0 {
+		target-path = "/cpus/cpu@0";
+		__overlay__ { clock-frequency = <0x52e8f9c0>; };
+	};
+	fragment@1 {
+		target-path = "/cpus/cpu@1";
+		__overlay__ { clock-frequency = <0x52e8f9c0>; };
+	};
+	fragment@2 {
+		target-path = "/cpus/cpu@2";
+		__overlay__ { clock-frequency = <0x52e8f9c0>; };
+	};
+	fragment@3 {
+		target-path = "/cpus/cpu@3";
+		__overlay__ { clock-frequency = <0x52e8f9c0>; };
+	};
+	fragment@4 {
+		target-path = "/cpus/cpu@100";
+		__overlay__ { clock-frequency = <0x743aa380>; };
+	};
+	fragment@5 {
+		target-path = "/cpus/cpu@101";
+		__overlay__ { clock-frequency = <0x743aa380>; };
+	};
+	fragment@6 {
+		target-path = "/cpus/cpu@102";
+		__overlay__ { clock-frequency = <0x743aa380>; };
+	};
+	fragment@7 {
+		target-path = "/cpus/cpu@103";
+		__overlay__ { clock-frequency = <0x743aa380>; };
+	};
+	fragment@8 {
+		target-path = "/cpus/cpu@200";
+		__overlay__ { clock-frequency = <0x88601c00>; };
+	};
+	fragment@9 {
+		target-path = "/cpus/cpu@201";
+		__overlay__ { clock-frequency = <0x88601c00>; };
+	};
+	fragment@10 {
+		target-path = "/reserved-memory/memory@44600000";
+		__overlay__ {
+			compatible = "mediatek,mt6797-atf-reserved-memory";
+		};
+	};
+	fragment@11 {
+		target-path = "/reserved-memory/memory@44610000";
+		__overlay__ {
+			compatible = "mediatek,mt6797-atf-ramdump-memory";
+		};
+	};
+	fragment@12 {
+		target-path = "/reserved-memory/memory@44640000";
+		__overlay__ {
+			compatible = "mediatek,cache-dump-memory";
+		};
+	};
+	fragment@13 {
+		target-path = "/";
+		__overlay__ {
+			scp@10020000 {
+				compatible = "mediatek,scp";
+				reg = <0 0x10020000 0 0x80000>,
+				      <0 0x100a0000 0 0x1000>,
+				      <0 0x100a4000 0 0x1000>;
+				interrupts = <0 199 4>;
+				status = "disabled";
+			};
+		};
+	};
+};

@@ -1,0 +1,23 @@
+/dts-v1/;
+/plugin/;
+
+/* Optional diagnostic overlay. This is not part of the LK handoff contract. */
+/ {
+	fragment@0 {
+		target-path = "/chosen";
+		__overlay__ {
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+
+			framebuffer@7dfb0000 {
+				compatible = "simple-framebuffer";
+				reg = <0 0x7dfb0000 0 0x1f90000>;
+				width = <1080>;
+				height = <2160>;
+				stride = <4352>;
+				format = "a8r8g8b8";
+			};
+		};
+	};
+};

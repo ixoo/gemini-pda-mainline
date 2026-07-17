@@ -1,0 +1,14 @@
+experiment=2026-07-15-display-console-write
+observation=owner-reported-stock-primary-boot-recovery
+date=2026-07-15
+target=boot (/dev/mmcblk0p22)
+image=restored-original-vendor-boot-image
+stage1_splash=visible; exact owner/stage attribution not independently proven
+stage2_splash=Gemian-splash-visible
+runtime_result=stock-primary-boot-path-works
+implication=display-hardware, preloader/LK path, and stock Gemian handoff are
+healthy; this does not establish that a candidate stored only in boot2 or boot3
+was selected by the normal boot path
+authentication=stock image acceptance is confirmed; candidate authentication
+remains unresolved
+hardware_write=owner-performed-restoration; no write performed by this analysis

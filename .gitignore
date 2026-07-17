@@ -7,6 +7,8 @@
 /rootfs/
 /artifacts/
 /logs/private/
+/.state
+/hwparam.json
 
 # Images, dumps, and firmware
 *.img

@@ -1,0 +1,29 @@
+experiment=2026-07-15-display-console-write
+observation=offline-boot-authentication-surface-check
+date=2026-07-15
+safety=read-only-host-side-analysis; device-not-accessed-or-modified
+
+The original boot dump and the candidate boot3 readback both have an
+ANDROID! Android-v0 header, a zero dt_size field, and a zeroed legacy header
+id/hash area. Neither 16 MiB image contains an AVB0/AVBf footer. The captured
+partition labels include recovery, lk, lk2, boot, linux, boot2, and boot3, but
+no vbmeta partition.
+
+The retained Planet LK audit establishes the observed 64-bit boot path as
+Android-v0 parsing, bootopt=64 selection, gzip decompression, and scanning for
+an appended FDT, but that audit did not prove that the separate security path is
+disabled. Offline strings from both captured LK and LK2 images contain
+`img_auth_required`, `SECLIB_IMG_VERIFY`, certificate-chain checks, OEM/custom
+image-auth paths, and verified-boot signature failure messages. The live vendor
+handoff also reports `androidboot.verifiedbootstate=green` and
+`androidboot.veritymode=enforcing`.
+
+The earlier MediaTek download session reported SBC/SLA/DAA disabled; that is
+evidence about the download/preloader authentication path only and is not proof
+that LK accepts an unsigned boot partition. Standard AVB metadata is absent,
+but this device may use MediaTek's separate seccfg/secure-library policy.
+
+conclusion=signing/authentication is now a serious hypothesis for the missing
+loader splash; the runtime failure cannot yet be attributed to framebuffer,
+kernel, initramfs, or signing without a loader diagnostic or a static auth-path
+audit

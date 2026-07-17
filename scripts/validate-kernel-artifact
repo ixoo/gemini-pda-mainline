@@ -23,7 +23,7 @@ require_command() {
 [[ "$(uname -s)" == Linux ]] || die "run this command inside the development VM"
 [[ "$(uname -m)" == aarch64 ]] || die "expected an aarch64 development VM"
 
-for command in basename find gzip jq sha256sum sort tail wc; do
+for command in basename cmp find gzip jq od sha256sum sort tail tr wc; do
   require_command "${command}"
 done
 
@@ -60,6 +60,22 @@ gzip -t "${artifact_dir}/Image.gz" || die "Image.gz is not a valid gzip stream"
 image_gzip_decompressed_size="$(gzip -cd "${artifact_dir}/Image.gz" | wc -c)"
 (( image_gzip_decompressed_size <= 0x03200000 )) || \
   die "Image.gz decompresses beyond the MT6797 LK 50 MiB buffer: ${image_gzip_decompressed_size}"
+gzip -cd "${artifact_dir}/Image.gz" | cmp -s - "${artifact_dir}/Image" || \
+  die "Image.gz does not decompress byte-for-byte to the packaged Image"
+
+image_size="$(wc -c < "${artifact_dir}/Image")"
+[[ "${image_size}" -eq "${image_gzip_decompressed_size}" ]] || \
+  die "packaged Image size does not match the gzip stream"
+image_magic="$(od -An -tx1 -N4 -j56 "${artifact_dir}/Image" | tr -d ' \n')"
+[[ "${image_magic}" == 41524d64 ]] || \
+  die "packaged Image is missing the ARM64 Image magic at offset 56"
+image_text_offset="$(od -An -tu8 -N8 -j8 "${artifact_dir}/Image" | tr -d ' ')"
+image_effective_size="$(od -An -tu8 -N8 -j16 "${artifact_dir}/Image" | tr -d ' ')"
+[[ "${image_text_offset}" =~ ^[0-9]+$ ]] || die "invalid ARM64 Image text offset"
+[[ "${image_effective_size}" =~ ^[0-9]+$ && "${image_effective_size}" -gt 0 ]] || \
+  die "invalid ARM64 Image effective size"
+(( image_effective_size <= 0x03200000 )) || \
+  die "ARM64 Image effective size exceeds the MT6797 LK 50 MiB region: ${image_effective_size}"
 
 dtb_count="$(find "${artifact_dir}/dtbs/mediatek" -type f -name '*.dtb' | wc -l)"
 [[ "${dtb_count}" -gt 0 ]] || die "no MediaTek DTBs found in ${artifact_dir}/dtbs/mediatek"
@@ -72,6 +88,10 @@ dtb_count="$(find "${artifact_dir}/dtbs/mediatek" -type f -name '*.dtb' | wc -l)
 jq -e '
   .schema == 1 and
   (.kernel_release | length > 0) and
+  ((.build_profile == null) or (.build_profile | test("^[a-z0-9][a-z0-9_-]*$"))) and
+  ((.base_config == null) or (.base_config | length > 0)) and
+  ((.config_fragments == null) or (.config_fragments | type == "array")) and
+  ((.config_inputs_sha256 == null) or (.config_inputs_sha256 | test("^[0-9a-f]{64}$"))) and
   (.source_sha256 | test("^[0-9a-f]{64}$")) and
   (.patchset_sha256 | test("^[0-9a-f]{64}$")) and
   (.config_sha256 | test("^[0-9a-f]{64}$")) and
@@ -84,6 +104,7 @@ jq -e '
 printf 'validation=kernel-artifact\n'
 printf 'artifact=%s\n' "$(basename "${artifact_dir}")"
 printf 'kernel_release=%s\n' "$(jq -er '.kernel_release' "${artifact_dir}/provenance/build.json")"
+printf 'build_profile=%s\n' "$(jq -er '.build_profile // "legacy"' "${artifact_dir}/provenance/build.json")"
 printf 'generated_utc=%s\n' "$(jq -er '.generated_utc' "${artifact_dir}/provenance/build.json")"
 printf 'source_sha256=%s\n' "$(jq -er '.source_sha256' "${artifact_dir}/provenance/build.json")"
 printf 'patchset_sha256=%s\n' "$(jq -er '.patchset_sha256' "${artifact_dir}/provenance/build.json")"
@@ -91,6 +112,8 @@ printf 'config_sha256=%s\n' "$(jq -er '.config_sha256' "${artifact_dir}/provenan
 printf 'modules_built=%s\n' "$(jq -er '.modules_built // false' "${artifact_dir}/provenance/build.json")"
 printf 'image_gzip_sha256=%s\n' "$(sha256sum "${artifact_dir}/Image.gz" | awk '{print $1}')"
 printf 'image_gzip_decompressed_size=%s\n' "${image_gzip_decompressed_size}"
+printf 'image_text_offset=%s\n' "${image_text_offset}"
+printf 'image_effective_size=%s\n' "${image_effective_size}"
 printf 'dtb_count=%s\n' "${dtb_count}"
 printf 'sha256sums=passed\n'
 printf 'hardware_write=none\n'

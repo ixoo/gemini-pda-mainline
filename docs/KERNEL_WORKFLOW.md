@@ -64,9 +64,17 @@ changes in a separate Git clone and export them back into this repository.
 ## Kernel configuration
 
 The manifest names an upstream base configuration and an ordered list of config
-fragments. The current fragment is `configs/gemini.fragment`. Add a symbol with
-the patch that requires it. Kernel `merge_config.sh` reports redundant or
-overridden values, and `olddefconfig` resolves new dependencies.
+profiles. The default `full` profile uses `configs/gemini.fragment`; add a
+symbol there with the patch that requires it. The separate `handoff` profile
+uses `configs/gemini-handoff.fragment` and is intentionally built-in-only and
+probe-minimal for the first LK-to-Linux execution test. The `usbdiag` profile
+applies `configs/gemini-usbdiag.fragment` after that baseline and adds the
+gadget-only MTU3/T-PHY and IPv4 path without enabling storage, host-mode USB,
+Type-C policy, or unrelated network devices. Kernel
+`merge_config.sh` reports redundant or overridden values, and `olddefconfig`
+resolves new dependencies. The repository validator checks the final requested
+value for each symbol, so a later profile fragment may intentionally override
+an earlier profile baseline without hiding an unresolved Kconfig change.
 
 The Gemini fragment also disables EFI, ACPI, virtualization/Xen, SCSI, and ATA
 for this DT-only Android/LK handoff. Those host-oriented stacks are not part of
@@ -86,6 +94,13 @@ Gemini packaging constraint, not an upstream arm64 default.
 
 The manifest remains pinned until reviewed and changed in Git. `check-latest`
 only compares it to kernel.org; it never changes build inputs automatically.
+Select a non-default profile with `KERNEL_PROFILE=NAME`, or use the dedicated
+handoff and USB-diagnostic build shortcuts:
+
+```sh
+./scripts/dev-vm build-handoff-kernel
+./scripts/dev-vm build-usbdiag-kernel
+```
 
 Set `BUILD_MODULES=1` inside a guest shell when modules are needed. The
 resulting package contains them below `modules/lib/modules/<release>/` and
@@ -113,11 +128,47 @@ any peripheral driver works on a device.
 
 For the retained Planet LK handoff, build the non-flashing Android v0 candidate
 only through the VM wrapper documented in [DEV_VM.md](DEV_VM.md):
-`experiments/2026-07-12-boot-contract-recovery/scripts/build-current-lk-candidate.sh`.
-It revalidates the package, creates a byte-reproducible minimal UART initramfs,
-serializes gzip+appended-DTB output, and records parser evidence. The wrapper
-does not select a partition or write hardware; a successful parse is not a
-runtime boot result.
+`experiments/2026-07-16-lk-handoff-alignment/scripts/build-lk-handoff-candidate.sh`.
+It requires an explicit package from the current `handoff` profile, creates a
+byte-reproducible storage-inert initramfs, serializes mandatory-LK and optional
+simplefb variants, and records parser and input-hash evidence. The wrapper does
+not select a partition or write hardware; a successful parse is not a runtime
+boot result.
+
+Build the USB diagnostic Android v0 image only with
+`experiments/2026-07-16-usb-gadget-diagnostic/scripts/build-usb-diagnostic-candidate.sh`.
+It requires an explicit package from the current `usbdiag` profile and an
+explicit new output directory. The wrapper rejects storage, host/dual-role USB,
+Type-C, and unrelated probe families; applies only the validated USB status
+overlay after the mandatory LK overlay; embeds a deterministic static-BusyBox
+initramfs; and checks the exact LK/arm64 container contract. It has no device
+or flashing interface. Enumeration, ping, and the TCP marker remain three
+distinct hardware gates and must not be inferred from a successful build.
+
+The visible handoff diagnostics are packaging-only derivatives of that exact
+package. Candidate E is produced by
+`experiments/2026-07-16-screen-marker-diagnostic/scripts/build-screen-marker-candidate.sh`.
+Candidate F must be produced by
+`experiments/2026-07-16-screen-clock-retention-diagnostic/scripts/build-clock-retention-candidate.sh`;
+it reconstructs and hash-pins exact Candidate E, reuses its Image and initramfs
+byte-for-byte, derives the infra-clock phandle from the pinned DTB, and permits
+only one added simplefb `CLK_INFRA_DISP_PWM` reference. Build it twice into new
+directories and require complete directory equality before exporting one. Both
+wrappers remain non-flashing; the separate standing `boot2` synchronization
+policy in `AGENTS.md` applies only after their manifests and experiment gates
+pass.
+
+Candidate G must be produced by
+`experiments/2026-07-16-fbcon-text-diagnostic/scripts/build-fbcon-text-candidate.sh`.
+It reconstructs and hash-pins exact Candidate F, requires an identical
+`Image.gz` plus DTB kernel segment, and changes only the initramfs: tracked
+`/init` bytes replace the raw marker path while `screen-marker.raw`, `bin/dd`
+and `bin/wc` are removed. Its validator rejects framebuffer-device, storage,
+raw-memory and reset access. Build it twice into new directories, require
+complete byte equality and export one exact directory. Candidate G deliberately
+does not rotate fbcon because the exact tested kernel compiles rotation out;
+rotation requires a separate kernel configuration and forced-command-line
+candidate after G's runtime result.
 
 Before treating the series as submission-ready, run the pinned tree's review
 checker over every patch:
@@ -141,9 +192,12 @@ After reviewing the guest artifacts:
 
 ```sh
 ./scripts/dev-vm export-artifacts
+./scripts/dev-vm export-artifact boot-candidates/EXACT-DIRECTORY
 ```
 
-This creates a timestamped, Git-ignored host directory. Verify its
-`SHA256SUMS` and the provenance metadata before transferring selected files to
-the separate Windows flashing machine. The normal workflow must never package
-or write the preloader, NVRAM, GPT, or a whole-device image.
+The first command creates a timestamped, Git-ignored copy of every guest
+artifact. The second copies only one exact path to host
+`artifacts/vm-export/` and refuses to overwrite it. Verify `SHA256SUMS` and the
+provenance metadata before transferring selected files to the separate Windows
+flashing machine. The normal workflow must never package or write the
+preloader, NVRAM, GPT, or a whole-device image.

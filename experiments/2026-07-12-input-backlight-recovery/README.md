@@ -552,6 +552,17 @@ consumer is still required before the panel graph can be enabled. The ordinary `
 `0x11006000` is a separate four-channel infrastructure PWM and must not be
 confused with the display PWM.
 
+A 2026-07-16 audit of bsg100's hardware-working native-fbcon commit adds
+contradictory but stronger runtime evidence for the mainline consumer
+contract: its successful DTS uses `CLK_TOP_MUX_PWM` as `main` and
+`CLK_INFRA_DISP_PWM` as `mm`, matching the upstream driver's two-clock
+interface. It also records unused-clock cleanup gating the infra clock and
+backlight. Patch `0044` therefore remains a disabled, source-derived
+hypothesis and its optional-`mm` design must be re-audited before native
+enablement. This does not contradict the narrow Candidate-E diagnostic: a
+simplefb reference to `CLK_INFRA_DISP_PWM` enables its `pwm_sel` parent through
+the clock tree without probing or programming the PWM controller.
+
 ## Analysis
 
 The chipset split is real at the contract boundary, not just a naming issue:
@@ -560,7 +571,7 @@ The chipset split is real at the contract boundary, not just a naming issue:
 | --- | --- | --- |
 | NVT touch protocol | `novatek-nvt-ts`, NT11205/NT36672A | vendor node split, reset/rail names, alternate `0x01` target and NT36772 event protocol, display power coupling |
 | AW9523 silicon | `pinctrl-aw9523` GPIO/IRQ | matrix keymap and board shutdown/IRQ policy |
-| Display PWM | `pwm-mtk-disp` register/data framework | MT6797 one-clock topology, display power-domain sequencing, and backlight graph |
+| Display PWM | `pwm-mtk-disp` register/data framework | Resolve the vendor one-handle evidence against the hardware-working two-clock mainline consumer, then validate display-domain sequencing and the backlight graph |
 
 No claim of runtime mainline input or backlight support is made by this
 experiment. The live identity gate is now closed at the family level: the
@@ -588,8 +599,9 @@ enabled.
 - Validate the disabled AW9523 and matrix-keymap description on hardware after
   confirming GPIO range, row/column polarity, IRQ behavior, and reset timing;
   only then consider enabling the I2C bus and consumer.
-- The local series now adds the MT6797 display-PWM compatible, one-clock
-  contract, and disabled resource node; model a standard PWM backlight
-  consumer only after a full display power test is authorized.
+- The local series currently adds an MT6797 display-PWM compatible, provisional
+  one-clock contract, and disabled resource node. Re-audit it against the
+  hardware-working two-clock reference before modelling a standard PWM
+  backlight consumer or authorizing a full display power test.
 - Link any resulting patches from `docs/HARDWARE_SUPPORT.md` and
   `docs/hardware/mt6797-live-resource-map.md`.

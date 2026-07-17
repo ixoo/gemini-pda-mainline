@@ -1,0 +1,232 @@
+# Minimal, built-in-only diagnostic kernel for the retained Planet LK handoff.
+# This profile boots an external initramfs and deliberately excludes storage,
+# networking, USB, and peripheral stacks. It is not the hardware-support build.
+CONFIG_LOCALVERSION="-gemini-handoff"
+# CONFIG_LOCALVERSION_AUTO is not set
+CONFIG_CC_OPTIMIZE_FOR_SIZE=y
+CONFIG_DEBUG_INFO_NONE=y
+# CONFIG_MODULES is not set
+
+# Build only the MediaTek platform family needed by the Gemini PDA.
+# CONFIG_ARCH_ACTIONS is not set
+# CONFIG_ARCH_AIROHA is not set
+# CONFIG_ARCH_SUNXI is not set
+# CONFIG_ARCH_ALPINE is not set
+# CONFIG_ARCH_APPLE is not set
+# CONFIG_ARCH_ARTPEC is not set
+# CONFIG_ARCH_AXIADO is not set
+# CONFIG_ARCH_BCM is not set
+# CONFIG_ARCH_BERLIN is not set
+# CONFIG_ARCH_BLAIZE is not set
+# CONFIG_ARCH_BST is not set
+# CONFIG_ARCH_CIX is not set
+# CONFIG_ARCH_EXYNOS is not set
+# CONFIG_ARCH_K3 is not set
+# CONFIG_ARCH_LG1K is not set
+# CONFIG_ARCH_HISI is not set
+# CONFIG_ARCH_KEEMBAY is not set
+CONFIG_ARCH_MEDIATEK=y
+# CONFIG_ARCH_MESON is not set
+# CONFIG_ARCH_MICROCHIP is not set
+# CONFIG_ARCH_MVEBU is not set
+# CONFIG_ARCH_NXP is not set
+# CONFIG_ARCH_MA35 is not set
+# CONFIG_ARCH_NPCM is not set
+# CONFIG_ARCH_QCOM is not set
+# CONFIG_ARCH_REALTEK is not set
+# CONFIG_ARCH_RENESAS is not set
+# CONFIG_ARCH_ROCKCHIP is not set
+# CONFIG_ARCH_SEATTLE is not set
+# CONFIG_ARCH_INTEL_SOCFPGA is not set
+# CONFIG_ARCH_SOPHGO is not set
+# CONFIG_ARCH_STM32 is not set
+# CONFIG_ARCH_SYNQUACER is not set
+# CONFIG_ARCH_TEGRA is not set
+# CONFIG_ARCH_TESLA_FSD is not set
+# CONFIG_ARCH_SPRD is not set
+# CONFIG_ARCH_THUNDER is not set
+# CONFIG_ARCH_THUNDER2 is not set
+# CONFIG_ARCH_UNIPHIER is not set
+# CONFIG_ARCH_VEXPRESS is not set
+# CONFIG_ARCH_VISCONTI is not set
+# CONFIG_ARCH_XGENE is not set
+# CONFIG_ARCH_ZYNQMP is not set
+
+# Preserve the arm64 Image placement contract while keeping the test repeatable.
+CONFIG_ARM64_4K_PAGES=y
+CONFIG_CPU_LITTLE_ENDIAN=y
+# CONFIG_CPU_BIG_ENDIAN is not set
+CONFIG_RELOCATABLE=y
+# CONFIG_RANDOMIZE_BASE is not set
+CONFIG_CMDLINE="console=tty0 console=ttyS0,921600n8 earlycon maxcpus=1 nokaslr ignore_loglevel loglevel=8 rdinit=/init panic=0"
+CONFIG_CMDLINE_FORCE=y
+CONFIG_PRINTK=y
+CONFIG_PRINTK_TIME=y
+CONFIG_KALLSYMS=y
+CONFIG_BUG=y
+
+# Flattened DT, PSCI, interrupt controller, and architectural timer foundation.
+CONFIG_OF=y
+CONFIG_SMP=y
+CONFIG_ARM_PSCI_FW=y
+CONFIG_ARM_ARCH_TIMER=y
+CONFIG_ARM_GIC=y
+CONFIG_ARM_GIC_V3=y
+CONFIG_MTK_TIMER=y
+CONFIG_MTK_CPUX_TIMER=y
+
+# UART0 is the primary diagnostic path; earlycon resolves it from /chosen.
+CONFIG_SERIAL_EARLYCON=y
+CONFIG_SERIAL_8250=y
+CONFIG_SERIAL_8250_CONSOLE=y
+CONFIG_SERIAL_8250_MT6577=y
+
+# Only MT6797 boot clocks and pin control are required in this profile.
+CONFIG_COMMON_CLK_MEDIATEK=y
+CONFIG_COMMON_CLK_MT6797=y
+# CONFIG_COMMON_CLK_MT6797_CAMSYS is not set
+# CONFIG_COMMON_CLK_MT6797_MFGSYS is not set
+# CONFIG_COMMON_CLK_MT6797_MMSYS is not set
+# CONFIG_COMMON_CLK_MT6797_IMGSYS is not set
+# CONFIG_COMMON_CLK_MT6797_MJCSYS is not set
+# CONFIG_COMMON_CLK_MT6797_VDECSYS is not set
+# CONFIG_COMMON_CLK_MT6797_VENCSYS is not set
+# CONFIG_COMMON_CLK_MT2712 is not set
+# CONFIG_COMMON_CLK_MT6765 is not set
+# CONFIG_COMMON_CLK_MT6779 is not set
+# CONFIG_COMMON_CLK_MT6795 is not set
+# CONFIG_COMMON_CLK_MT7622 is not set
+# CONFIG_COMMON_CLK_MT7981 is not set
+# CONFIG_COMMON_CLK_MT7986 is not set
+# CONFIG_COMMON_CLK_MT7988 is not set
+# CONFIG_COMMON_CLK_MT8167 is not set
+# CONFIG_COMMON_CLK_MT8173 is not set
+# CONFIG_COMMON_CLK_MT8183 is not set
+# CONFIG_COMMON_CLK_MT8186 is not set
+# CONFIG_COMMON_CLK_MT8188 is not set
+# CONFIG_COMMON_CLK_MT8192 is not set
+# CONFIG_COMMON_CLK_MT8195 is not set
+# CONFIG_COMMON_CLK_MT8196 is not set
+# CONFIG_COMMON_CLK_MT8365 is not set
+# CONFIG_COMMON_CLK_MT8516 is not set
+CONFIG_PINCTRL=y
+CONFIG_PINCTRL_MT6797=y
+# CONFIG_PINCTRL_MT2712 is not set
+# CONFIG_PINCTRL_MT6765 is not set
+# CONFIG_PINCTRL_MT6779 is not set
+# CONFIG_PINCTRL_MT6795 is not set
+# CONFIG_PINCTRL_MT6878 is not set
+# CONFIG_PINCTRL_MT6893 is not set
+# CONFIG_PINCTRL_MT7622 is not set
+# CONFIG_PINCTRL_MT7981 is not set
+# CONFIG_PINCTRL_MT7986 is not set
+# CONFIG_PINCTRL_MT7988 is not set
+# CONFIG_PINCTRL_MT8167 is not set
+# CONFIG_PINCTRL_MT8173 is not set
+# CONFIG_PINCTRL_MT8183 is not set
+# CONFIG_PINCTRL_MT8186 is not set
+# CONFIG_PINCTRL_MT8188 is not set
+# CONFIG_PINCTRL_MT8189 is not set
+# CONFIG_PINCTRL_MT8192 is not set
+# CONFIG_PINCTRL_MT8195 is not set
+# CONFIG_PINCTRL_MT8196 is not set
+# CONFIG_PINCTRL_MT8365 is not set
+# CONFIG_PINCTRL_MT8516 is not set
+# CONFIG_PINCTRL_MT6397 is not set
+
+# Preserve LK's watchdog reset path for a diagnostic kernel that may hang.
+CONFIG_WATCHDOG=y
+CONFIG_MEDIATEK_WATCHDOG=y
+
+# External gzip initramfs with a tiny /init and both diagnostic consoles.
+CONFIG_BLK_DEV_INITRD=y
+CONFIG_RD_GZIP=y
+CONFIG_BINFMT_ELF=y
+CONFIG_BINFMT_SCRIPT=y
+CONFIG_DEVTMPFS=y
+CONFIG_DEVTMPFS_MOUNT=y
+CONFIG_PROC_FS=y
+CONFIG_SYSFS=y
+CONFIG_TMPFS=y
+CONFIG_VT=y
+CONFIG_VT_CONSOLE=y
+CONFIG_DUMMY_CONSOLE=y
+CONFIG_FB=y
+CONFIG_FB_SIMPLE=y
+CONFIG_FRAMEBUFFER_CONSOLE=y
+CONFIG_FONTS=y
+CONFIG_FONT_8x16=y
+
+# Keep the first handoff test read-only and free of peripheral probe noise.
+# CONFIG_ACPI is not set
+# CONFIG_EFI is not set
+# CONFIG_VIRTUALIZATION is not set
+# CONFIG_XEN is not set
+# CONFIG_KEXEC is not set
+# CONFIG_HIBERNATION is not set
+# CONFIG_SUSPEND is not set
+# CONFIG_BPF_SYSCALL is not set
+# CONFIG_PROFILING is not set
+# CONFIG_CORESIGHT is not set
+# CONFIG_PERF_EVENTS is not set
+# CONFIG_DEBUG_FS is not set
+# CONFIG_SCSI is not set
+# CONFIG_ATA is not set
+# CONFIG_MTD is not set
+# CONFIG_MD is not set
+# CONFIG_NET is not set
+# CONFIG_PCI is not set
+# CONFIG_MMC is not set
+# CONFIG_USB_SUPPORT is not set
+# CONFIG_DRM is not set
+# CONFIG_SOUND is not set
+# CONFIG_MEDIA_SUPPORT is not set
+# CONFIG_I2C is not set
+# CONFIG_SPI is not set
+# CONFIG_RTC_CLASS is not set
+# CONFIG_CPU_FREQ is not set
+# CONFIG_CPU_IDLE is not set
+
+# arm64 defconfig enables many MediaTek providers by default.  None of these
+# may probe in the LK-handoff test: PWRAP, PM domains, regulators, DMA, IOMMU,
+# SCP, multimedia, PHY, thermal, and calibration are later bring-up stages.
+# CONFIG_DMADEVICES is not set
+# CONFIG_IOMMU_SUPPORT is not set
+# CONFIG_MAILBOX is not set
+# CONFIG_REMOTEPROC is not set
+# CONFIG_REGULATOR is not set
+# CONFIG_MFD_MT6397 is not set
+# CONFIG_THERMAL is not set
+# CONFIG_IIO is not set
+# CONFIG_NVMEM is not set
+# CONFIG_DEVFREQ is not set
+# CONFIG_TEE is not set
+# CONFIG_MTK_ADSP_IPC is not set
+# CONFIG_MTK_ADSP_MBOX is not set
+# CONFIG_MTK_CMDQ is not set
+# CONFIG_MTK_CMDQ_MBOX is not set
+# CONFIG_MTK_DEVAPC is not set
+# CONFIG_MTK_GPUEB_MBOX is not set
+# CONFIG_MTK_INFRACFG is not set
+# CONFIG_MTK_IOMMU is not set
+# CONFIG_MTK_LVTS_THERMAL is not set
+# CONFIG_MTK_MFG_PM_DOMAIN is not set
+# CONFIG_MTK_MMSYS is not set
+# CONFIG_MTK_PMIC_WRAP is not set
+# CONFIG_MTK_REGULATOR_COUPLER is not set
+# CONFIG_MTK_SCP is not set
+# CONFIG_MTK_SCPSYS is not set
+# CONFIG_MTK_SCPSYS_PM_DOMAINS is not set
+# CONFIG_MTK_SMI is not set
+# CONFIG_MTK_SOCINFO is not set
+# CONFIG_MTK_SVS is not set
+# CONFIG_MTK_THERMAL is not set
+# CONFIG_MTK_UART_APDMA is not set
+# CONFIG_MEDIATEK_MT6359_AUXADC is not set
+# CONFIG_MEDIATEK_MT6577_AUXADC is not set
+# CONFIG_PHY_MTK_DP is not set
+# CONFIG_PHY_MTK_HDMI is not set
+# CONFIG_PHY_MTK_MIPI_DSI is not set
+# CONFIG_PHY_MTK_PCIE is not set
+# CONFIG_PHY_MTK_TPHY is not set
+# CONFIG_PHY_MTK_UFS is not set

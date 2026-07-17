@@ -1,0 +1,42 @@
+experiment=2026-07-12-boot-contract-recovery
+observation=offline-re-analysis-of-private-boot-partition-dump
+date=2026-07-15
+scope=original-logical-boot-image-and-independent-boot3-readback
+safety=read-only-host-side-analysis; device-not-accessed-or-modified
+
+The original logical boot, boot2, and boot3 captures are byte-identical 16 MiB
+Android boot-image-v0 containers. The original header reports a 2048-byte page,
+an 8,429,825-byte kernel field, a 6,354,621-byte ramdisk field, and dt_size=0.
+
+The original kernel field is not a plain Linux Image: it contains an 8,299,080-
+byte gzip stream followed immediately by a 130,745-byte appended FDT. The gzip
+payload identifies Linux 3.18.41+ (Gemian vendor build). The zero dt_size is
+consistent with the retained Planet LK loader, which scans the loaded gzip
+payload for an appended FDT. The 16 MiB partition has normal zero padding after
+the serialized image.
+
+The original ramdisk is a gzip-compressed Debian/initramfs-tools cpio archive.
+It has 404 entries and expands to approximately 14 MiB. It contains initramfs
+mount/local scripts, systemd-udevd, AArch64 glibc, Gemian/Halium partition and
+LVM handling, and a panic/telnet RNDIS debug helper. It is therefore a vendor
+Debian boot environment, not an Android system ramdisk or a corrupt payload.
+
+The original FDT identifies MT6797 and uses the vendor LK video handoff under
+/chosen: console=tty0 and ttyMT0,921600n1, root=/dev/ram, the atag,videolfb-*
+properties, framebuffer base 0x5e605000, VRAM size 0x017bb000, and panel name
+r63419_wqhd_truly_phantom_2k_cmd_ok. A decompiled raw-address property may be
+printed by dtc as a short string; fdtget with an explicit hexadecimal type gives
+the numeric value and shows this is a property-typing display issue, not DTB
+corruption.
+
+The independent boot3 readback is also a valid Android v0 image, but is a
+different mainline candidate: Linux 7.1.3-gemini, a 14,713,572-byte gzip plus
+appended 25,185-byte FDT, and a 1,006,405-byte ramdisk expanding to about 1.9
+MiB. Its ramdisk is a 19-entry BusyBox shell environment. Its FDT uses a
+simple-framebuffer at 0x7dfb0000 (1080x2160, a8r8g8b8) and does not carry the
+vendor atag,videolfb handoff. The two framebuffer contracts are not equivalent;
+this is a runtime bring-up risk, not evidence that either image is malformed.
+
+private_evidence=raw images and extracted DTB/DTS files remain under the
+Git-ignored artifacts/device-partitions/ tree
+runtime_result=not inferred from offline parsing; no reboot or write performed

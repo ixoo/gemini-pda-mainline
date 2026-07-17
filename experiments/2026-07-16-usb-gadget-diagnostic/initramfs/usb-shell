@@ -1,0 +1,13 @@
+#!/bin/busybox sh
+# shellcheck shell=dash
+
+export PATH=/bin
+printf '%s\n' "GEMINI_USB_DIAG_20260716_B"
+printf 'kernel=%s\n' "$(uname -r)"
+printf '%s\n' "stage=interactive-initramfs"
+printf '%s\n' "storage_access=none"
+if [ -r /run/usbdiag-status ]; then
+	cat /run/usbdiag-status
+fi
+printf '%s\n' "Use 'dmesg' and /proc or /sys for read-only diagnostics."
+exec /bin/sh

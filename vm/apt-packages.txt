@@ -36,6 +36,7 @@ yamllint
 
 # Boot artifact inspection and packaging
 android-sdk-libsparse-utils
+busybox-static
 dosfstools
 file
 genimage
