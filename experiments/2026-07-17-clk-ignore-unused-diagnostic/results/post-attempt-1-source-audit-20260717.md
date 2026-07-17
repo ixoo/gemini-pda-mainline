@@ -18,6 +18,19 @@ This audit changes no candidate, package, partition or device. Its purpose is
 to constrain the next test using the code that was actually built, not a
 generic description of Linux initialization.
 
+> [!IMPORTANT]
+> Follow-up on 2026-07-17: the one-repeat gate described at the end of this
+> post-attempt-1 audit has been consumed. The owner's subsequent two-bullet
+> report is provisionally interpreted as two additional intended Candidate J
+> selections, with owner confirmation pending; see the
+> [repeat report](runtime-candidate-j-repeat-report-20260717.txt). Do not use the
+> historical gate below as authorization for another J selection. Further J
+> repetition is stopped, and no Candidate I rollback is authorized. The
+> completed reassessment selected
+> [Candidate K](../../2026-07-17-fbcon-newline-boundary-diagnostic/README.md),
+> an exact-J initramfs-only newline-boundary diagnostic now synchronized to
+> `boot2`; its single attended runtime gate is pending.
+
 ## Observation and exact marker boundary
 
 The only direct runtime observation supplied for attempt 1 was:

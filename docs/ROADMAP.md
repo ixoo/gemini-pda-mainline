@@ -96,7 +96,8 @@ Priorities for the next controlled test are:
    and recovery were not recorded, so I selection and `/init` remain
    unconfirmed and its timing hypothesis is untested.
 
-   Candidate J is now the bounded broad control. It appends
+   Candidate J was the bounded broad control for the completed J series. It
+   appends
    `clk_ignore_unused` to forced kernel `CONFIG_CMDLINE` through a rebuilt
    kernel; a header-only variant was rejected as a no-op under
    `CONFIG_CMDLINE_FORCE=y`. It retains exact I's DTB, initramfs, and header
@@ -105,8 +106,8 @@ Priorities for the next controlled test are:
    `6d5bad08c2f93eba7fbd66ea5c54de2437f81e44832426a97d4d65d550c659f4`.
    An isolated clean build reproduced the config, kernel payload, `System.map`,
    all 119 DTBs, and boot image byte-for-byte; only timestamp-derived build
-   metadata manifests differ. J is synchronized to logical `boot2`; its full
-   16 MiB target and readback match SHA-256
+   metadata manifests differ. J was synchronized to logical `boot2`; that full
+   16 MiB target and readback matched SHA-256
    `465e4c747138e12191d38fd6b4cde68cd0b9a19f918030dea05c9b8dbdd4d3fc`.
    The write did not reboot or shut down the device. On the first later
    owner-attended intended `boot2` selection, the last visible suffix before
@@ -114,12 +115,30 @@ Priorities for the next controlled test are:
    counter, so the verified target/readback and intended selection strongly
    support Linux entry, fbcon/tty0 output, and `/init` execution through tick
    04 for that attempt. The full line and marker were not exactly transcribed.
-   This one positive attempt is materially associated with broad clock
-   retention, but does not establish causality, repeatability, or clock
-   identity. `clk_ignore_unused` neither turns on already-off clocks nor
-   prevents explicit disables or retains regulators/power domains. Return to
-   the known-good OS and normal temperature, perform one more attended J
-   selection, and reassess before building or installing anything else.
+   A later two-bullet report is provisionally interpreted as two additional
+   intended J/`boot2` selections because the outcomes are mutually exclusive,
+   with owner confirmation pending. One reached "iteration 4" before black,
+   compatible with and corroborating tick 04 without an exact marker
+   transcription. One went directly black with no console and cannot establish
+   selected slot, kernel entry, or `/init`. Provisionally, two of three intended
+   selections had tick-04-compatible visible output and one of three was
+   no-console and unattributable. This materially associates transient visible
+   output with broad clock retention, but stable visibility, causality, and
+   clock identity remain unestablished. `clk_ignore_unused` neither turns on
+   already-off clocks nor prevents explicit disables or retains
+   regulators/power domains. Stop further J repetition. The completed
+   reassessment selected Candidate K rather than a matched-I rollback. K keeps
+   exact J's kernel, appended DTB, forced command line and container layout and
+   changes only `/init`: 20 one-second fixed-width carriage-return updates with
+   no deliberate newline, then a distinct transition and 12 controlled
+   one-second newline lines. Asynchronous kernel printk remains a confounder.
+   Its two final VM builds are byte-identical; raw SHA-256 is
+   `83704cde0e3e4ed897990b230a817a1c7618201a6b8a33a86a2e19c8e07a07cb`.
+   K is synchronized, flushed and fully read back from logical `boot2` after a
+   fresh exact-J backup; the padded SHA-256 is
+   `959092428f849c5ee2612c352ac4e4f707a4e0ec8696bda6632252e7194a7927`.
+   The device remains in Gemian. Perform one attended K selection after a
+   known-good boot and normal temperature; runtime is pending.
 6. **P5 — isolate the restart path before widening the platform.**
    `reboot -f` requests `RB_AUTOBOOT`. Linux 7.1.3 invokes PSCI
    `SYSTEM_RESET` before the MT6797 TOPRGU watchdog fallback. The off-like state
@@ -156,8 +175,12 @@ The current no-marker observation and broad clock control are recorded in the
 and [Candidate J clock diagnostic](../experiments/2026-07-17-clk-ignore-unused-diagnostic/README.md).
 Candidate J's safe synchronization is captured in its
 [write/readback record](../experiments/2026-07-17-clk-ignore-unused-diagnostic/results/boot2-write-candidate-j-20260717.txt).
-Its first positive-but-transient observation is captured in the
-[Candidate J runtime record](../experiments/2026-07-17-clk-ignore-unused-diagnostic/results/runtime-candidate-j-attempt-1-20260717.txt).
+Its attended observations are captured in the
+[Candidate J first runtime record](../experiments/2026-07-17-clk-ignore-unused-diagnostic/results/runtime-candidate-j-attempt-1-20260717.txt)
+and [repeat report](../experiments/2026-07-17-clk-ignore-unused-diagnostic/results/runtime-candidate-j-repeat-report-20260717.txt).
+The completed reassessment and next attended gate are recorded in the
+[Candidate K newline-boundary experiment](../experiments/2026-07-17-fbcon-newline-boundary-diagnostic/README.md)
+and its [write/readback record](../experiments/2026-07-17-fbcon-newline-boundary-diagnostic/results/boot2-write-candidate-k-20260717.txt).
 
 ## Current evidence snapshot (2026-07-17)
 
@@ -236,16 +259,25 @@ forced `CONFIG_CMDLINE`, retaining I's exact DTB, initramfs, and header command
 line. Its raw SHA-256 is
 `6d5bad08c2f93eba7fbd66ea5c54de2437f81e44832426a97d4d65d550c659f4`;
 the original and isolated clean build produced the same config, kernel
-payload, `System.map`, all 119 DTBs, and boot image. J is synchronized and
-fully read back from logical `boot2` under the standing safety policy; the full
-partition/readback SHA-256 is
+payload, `System.map`, all 119 DTBs, and boot image. J was synchronized and
+fully read back from logical `boot2` under the standing safety policy; that
+full partition/readback SHA-256 was
 `465e4c747138e12191d38fd6b4cde68cd0b9a19f918030dea05c9b8dbdd4d3fc`.
 Its first intended selection visibly reached the shared `/init` counter suffix
-`4/60` before black. This strongly supports Linux/fbcon/tty0 and tick 04 for
-that attempt, but neither repeatability nor clock causality. It remains only a
-broad early-handoff discriminator; perform one more attended J attempt after a
-known-good boot and return to normal temperature before considering another
-candidate.
+`4/60` before black. A later report is provisionally mapped to two additional
+intended selections: one iteration-4-then-black outcome compatible with that
+same boundary, and one direct-black/no-console outcome that cannot establish
+kernel or `/init` execution. Provisionally, two of three intended selections
+had tick-04-compatible visible output, but stable visibility and clock
+causality remain unestablished. Stop further J repetition; no matched-I
+rollback is authorized. The completed reassessment selected Candidate K, an
+exact-J initramfs-only derivative with 20 fixed-width CR/no-newline updates and
+12 controlled newline lines. Its raw SHA-256 is
+`83704cde0e3e4ed897990b230a817a1c7618201a6b8a33a86a2e19c8e07a07cb`;
+it is synchronized and fully read back from `boot2` with padded SHA-256
+`959092428f849c5ee2612c352ac4e4f707a4e0ec8696bda6632252e7194a7927`.
+The device remains in Gemian. One attended K selection is the next gate;
+runtime is pending and asynchronous printk remains a confounder.
 The normal UART prerequisite remains unmet; the experiment records the
 one-time alternative-recovery exception, observation, and stop path.
 The prior 76-patch package has a regenerated private gzip+appended-DTB

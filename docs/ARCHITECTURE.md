@@ -179,8 +179,8 @@ kernel payload, `System.map`, all 119 DTBs, and raw boot image byte-for-byte;
 only timestamp-bearing build provenance and its checksum manifest differ. The
 raw J image SHA-256 is
 `6d5bad08c2f93eba7fbd66ea5c54de2437f81e44832426a97d4d65d550c659f4`;
-it is synchronized to logical `boot2`, and the full 16 MiB target/readback
-matches SHA-256
+it was synchronized to logical `boot2`, and the full 16 MiB target/readback
+matched SHA-256
 `465e4c747138e12191d38fd6b4cde68cd0b9a19f918030dea05c9b8dbdd4d3fc`.
 The write did not reboot the device. On the first later owner-attended intended
 `boot2` selection, the last visible suffix before black was reported as
@@ -188,11 +188,35 @@ The write did not reboot the device. On the first later owner-attended intended
 verified J target/readback and intended selection, this strongly supports
 Linux entry, visible fbcon/tty0 output, and shared `/init` execution through
 tick 04 for this attempt. The full line and marker were not exactly
-transcribed, and the single result does not establish causality or
-repeatability. This deliberately broad diagnostic does not enable clocks that
-are already off, prevent explicit clock disables, or retain regulators or
-power domains, and it is not a normal boot policy. The exact kernel compiles
-fbcon rotation out, so rotation remains a separate later configuration test.
+transcribed. A later two-bullet report is provisionally interpreted as two
+additional intended J/`boot2` selections because its outcomes are mutually
+exclusive, with owner confirmation pending. One reached "iteration 4" before
+black, compatible with and corroborating tick 04 without an exact marker or
+full-line transcription. One went directly black with no console; that
+observation cannot establish selected slot, kernel entry, or `/init`.
+Provisionally, two of three intended selections had tick-04-compatible visible
+output and one of three was no-console and unattributable. Stable visibility,
+clock causality, and a specific clock identity remain unestablished. Further J
+repetition is stopped. This deliberately broad
+diagnostic does not enable clocks that are already off, prevent explicit clock
+disables, or retain regulators or power domains, and it is not a normal boot
+policy. The exact kernel compiles fbcon rotation out, so rotation remains a
+separate later configuration test.
+
+The completed reassessment selected
+[Candidate K](../experiments/2026-07-17-fbcon-newline-boundary-diagnostic/README.md),
+an exact-J kernel, appended-DTB, forced-command-line and Android-v0-layout
+derivative whose initramfs changes only `/init`. It emits 20 one-second
+fixed-width carriage-return updates without deliberate newlines, then a
+distinct transition and 12 controlled one-second newline lines. Asynchronous
+kernel printk remains a confounder. Two final VM builds are byte-identical; the
+raw image SHA-256 is
+`83704cde0e3e4ed897990b230a817a1c7618201a6b8a33a86a2e19c8e07a07cb`.
+After a fresh exact-J backup, K was synchronized, flushed and fully read back
+from logical `boot2` with padded SHA-256
+`959092428f849c5ee2612c352ac4e4f707a4e0ec8696bda6632252e7194a7927`.
+The device remains in known-good Gemian; one attended K selection is the next
+gate. No matched-I rollback is authorized.
 The following map is the implementation boundary for the baseline candidate; it is
 deliberately grouped by dependency rather than treating every patch as a new
 driver.
@@ -210,13 +234,17 @@ driver.
 | 0058–0065 | Panfrost, DPI, PMIC parent fix, SCPSYS/AFE bindings, DVFSP deferral | Reuse Panfrost/DRM/PMIC/SCPSYS/ASoC frameworks; keep undocumented DVFSP out | Panfrost/DPI/AFE consumers remain disabled or module-only | Validate each consumer’s clocks, resets, IOMMU, supplies, and firmware boundary independently |
 | 0066–0071 | USB T-PHY/MTU3/xHCI/MUSB and MSDC pinmux policy | Reuse generic USB cores with MT6797 glue and source-derived split windows; use pinmux-only MSDC state | USB nodes remain disabled; built-in code is package capability, not probe evidence | Gadget-only console first, then role/VBUS and PHY tests with external recovery |
 | 0072–0076 | SPI aliases/nodes, hall input, NT36772 boundary, keyboard polarity | Reuse generic SPI and input frameworks where the captured protocol matches; keep every new board consumer disabled | The 77-patch package validates, but these additions have no current-mainline runtime result | Test one bounded consumer at a time with exact identity and recovery evidence |
-| 0077–0078 | MTU3 peripheral diagnostic | Extend the existing MediaTek T-PHY with an opt-in forced B-device session and describe Gemini peripheral wiring while leaving base nodes disabled | The exact USB image was fully read back and runtime-tested from `boot2`; two bounded host checks found no USB child. A ramdisk-only timed-reboot follow-up produced strong indirect `/init` evidence but no automatic restart, which does not promote USB support. Candidate E's marker remained black. Candidate F's sole simplefb clock-reference delta then produced about one second of visible sideways fbcon text before black, strongly supporting kernel/simplefb/fbcon execution. Candidate G removed only the raw framebuffer overwrite and reproduced sideways scrolling for 1–2 seconds before black with the backlight apparently off. Candidate H appended only the MM-root clock reference; two attempts visibly progressed farther and approximately exposed its initramfs marker before the screen and backlight went off, while later attempts did not reproduce the progress. Candidate I is an exact-H initramfs-only timing derivative, fully read back from `boot2`; the reported intended selection was directly black with no I marker or counter, so its timing hypothesis remains untested. Candidate J rebuilds I's kernel with `clk_ignore_unused` in forced `CONFIG_CMDLINE`, keeps exact I's DTB/initramfs/header cmdline, and is reproducibly built, synchronized, flushed, and fully read back from logical `boot2`. Its first intended selection visibly reached the shared `/init` counter suffix `4/60` before black, strongly supporting Linux/fbcon/tty0 and tick 04 for that attempt but not clock causality or repeatability | Return to known-good OS and normal temperature, then run exactly one more attended J attempt and reassess before any new candidate or rollback. Treat J only as a broad clock-cleanup discriminator: it neither enables already-off clocks nor covers explicit disables, regulators, or power domains. Rotate only after retention is stable. Resolve PSCI versus TOPRGU independently; prove USB host enumeration before ping and the TCP marker shell. Infer nothing about host mode, VBUS, Type-C policy, or charging |
+| 0077–0078 | MTU3 peripheral diagnostic | Extend the existing MediaTek T-PHY with an opt-in forced B-device session and describe Gemini peripheral wiring while leaving base nodes disabled | The exact USB image was fully read back and runtime-tested from `boot2`; two bounded host checks found no USB child. A ramdisk-only timed-reboot follow-up produced strong indirect `/init` evidence but no automatic restart, which does not promote USB support. Candidate E's marker remained black. Candidate F's sole simplefb clock-reference delta then produced about one second of visible sideways fbcon text before black, strongly supporting kernel/simplefb/fbcon execution. Candidate G removed only the raw framebuffer overwrite and reproduced sideways scrolling for 1–2 seconds before black with the backlight apparently off. Candidate H appended only the MM-root clock reference; two attempts visibly progressed farther and approximately exposed its initramfs marker before the screen and backlight went off, while later attempts did not reproduce the progress. Candidate I is an exact-H initramfs-only timing derivative, fully read back from `boot2`; the reported intended selection was directly black with no I marker or counter, so its timing hypothesis remains untested. Candidate J rebuilds I's kernel with `clk_ignore_unused` in forced `CONFIG_CMDLINE`; its reports provisionally describe two tick-04-compatible visible-to-black outcomes and one direct-black/no-console outcome. Candidate K keeps exact J's kernel/DTB/container layout and changes only `/init` to separate 20 fixed-width CR/no-newline updates from 12 controlled newline lines; asynchronous printk remains a confounder. K is reproducibly built, exported, synchronized, flushed and fully read back from logical `boot2`; runtime is pending | Perform one attended K selection after a known-good boot and normal temperature; record exact K phase/counter, black/backlight behavior, power state and recovery. Stop further J repetition and do not roll back to I without separate authorization. Treat J/K only as broad-clock and newline-boundary discriminators. Rotate only after retention is stable. Resolve PSCI versus TOPRGU independently; prove USB host enumeration before ping and the TCP marker shell. Infer nothing about host mode, VBUS, Type-C policy, or charging |
 
-The [current driver-coverage audit](../experiments/2026-07-13-driver-coverage-audit/results/driver-coverage-current-77-package-20260714.txt), [first-boot dependency audit](../experiments/2026-07-14-first-boot-probe-audit/results/first-boot-probe-audit-current-77-package-20260714.txt), [module-closure audit](../experiments/2026-07-14-mainline-module-closure-audit/results/module-closure-current-72-20260714.txt), [77-patch package validation](../experiments/2026-07-12-input-backlight-recovery/results/mainline-display-input-current-77-package-20260714.txt), [USB diagnostic experiment](../experiments/2026-07-16-usb-gadget-diagnostic/README.md), [timed-reboot follow-up](../experiments/2026-07-16-timed-reboot-diagnostic/README.md), [screen-marker follow-up](../experiments/2026-07-16-screen-marker-diagnostic/README.md), [clock-retention result](../experiments/2026-07-16-screen-clock-retention-diagnostic/README.md), [fbcon-text follow-up](../experiments/2026-07-16-fbcon-text-diagnostic/README.md), [MM-root-retention follow-up](../experiments/2026-07-16-simplefb-mm-root-retention/README.md), [fbcon refresh-timing follow-up](../experiments/2026-07-16-fbcon-refresh-timing-diagnostic/README.md), and [broad unused-clock diagnostic](../experiments/2026-07-17-clk-ignore-unused-diagnostic/README.md) provide the corresponding evidence boundaries. The older subsystem records remain content audits where later patches do not touch their inputs. This table is a design map, not a claim that any disabled, module-only, or diagnostic path works on hardware.
+The [current driver-coverage audit](../experiments/2026-07-13-driver-coverage-audit/results/driver-coverage-current-77-package-20260714.txt), [first-boot dependency audit](../experiments/2026-07-14-first-boot-probe-audit/results/first-boot-probe-audit-current-77-package-20260714.txt), [module-closure audit](../experiments/2026-07-14-mainline-module-closure-audit/results/module-closure-current-72-20260714.txt), [77-patch package validation](../experiments/2026-07-12-input-backlight-recovery/results/mainline-display-input-current-77-package-20260714.txt), [USB diagnostic experiment](../experiments/2026-07-16-usb-gadget-diagnostic/README.md), [timed-reboot follow-up](../experiments/2026-07-16-timed-reboot-diagnostic/README.md), [screen-marker follow-up](../experiments/2026-07-16-screen-marker-diagnostic/README.md), [clock-retention result](../experiments/2026-07-16-screen-clock-retention-diagnostic/README.md), [fbcon-text follow-up](../experiments/2026-07-16-fbcon-text-diagnostic/README.md), [MM-root-retention follow-up](../experiments/2026-07-16-simplefb-mm-root-retention/README.md), [fbcon refresh-timing follow-up](../experiments/2026-07-16-fbcon-refresh-timing-diagnostic/README.md), [broad unused-clock diagnostic](../experiments/2026-07-17-clk-ignore-unused-diagnostic/README.md), and [newline-boundary diagnostic](../experiments/2026-07-17-fbcon-newline-boundary-diagnostic/README.md) provide the corresponding evidence boundaries. The older subsystem records remain content audits where later patches do not touch their inputs. This table is a design map, not a claim that any disabled, module-only, or diagnostic path works on hardware.
 Candidate J's partition operation is separately recorded in its
 [full write/readback result](../experiments/2026-07-17-clk-ignore-unused-diagnostic/results/boot2-write-candidate-j-20260717.txt).
-Its first attended observation is recorded in the
-[Candidate J runtime result](../experiments/2026-07-17-clk-ignore-unused-diagnostic/results/runtime-candidate-j-attempt-1-20260717.txt).
+Its attended observations are recorded in the
+[Candidate J first runtime result](../experiments/2026-07-17-clk-ignore-unused-diagnostic/results/runtime-candidate-j-attempt-1-20260717.txt)
+and [repeat report](../experiments/2026-07-17-clk-ignore-unused-diagnostic/results/runtime-candidate-j-repeat-report-20260717.txt).
+Candidate K's synchronization is recorded in its
+[full write/readback result](../experiments/2026-07-17-fbcon-newline-boundary-diagnostic/results/boot2-write-candidate-k-20260717.txt);
+runtime is pending.
 
 ## Decision records
 

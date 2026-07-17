@@ -231,8 +231,18 @@ Candidate J rebuilds that kernel with `clk_ignore_unused` in forced
 `CONFIG_CMDLINE`, retains exact I's DTB/initramfs/header command line, and has
 been synchronized and fully read back from logical `boot2`. Its first intended
 selection visibly reached the shared `/init` counter suffix `4/60` before
-black. This strongly supports Linux/fbcon/tty0 and tick 04 for that attempt,
-but does not establish clock causality or repeatability. It is a broad
-diagnostic control, not a proposed fix.
+black. A later report is provisionally interpreted as two additional intended
+selections because its outcomes are mutually exclusive, with owner
+confirmation pending: one reached "iteration 4" before black, compatible with
+and corroborating tick 04, and one went directly black with no console and
+cannot establish kernel or `/init` execution. Provisionally, two of three
+intended selections had tick-04-compatible visible output, but stable
+visibility and clock causality are not established. Further J repetition is
+stopped. The completed reassessment selected [Candidate K](../2026-07-17-fbcon-newline-boundary-diagnostic/README.md),
+which retains exact J's kernel/DTB/container layout and changes only `/init` to
+separate 20 fixed-width carriage-return updates without deliberate newlines
+from 12 controlled newline lines. Asynchronous printk remains a confounder. K
+is synchronized and fully read back from `boot2`; one attended runtime selection
+is pending. J remains a broad diagnostic control, not a proposed fix.
 Native DRM, DSI, PWM, panel, regulators and display-domain consumers remain
 disabled.

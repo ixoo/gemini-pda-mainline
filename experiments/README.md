@@ -168,18 +168,41 @@ the result.
   `CONFIG_CMDLINE_FORCE=y`. The raw image is
   `6d5bad08c2f93eba7fbd66ea5c54de2437f81e44832426a97d4d65d550c659f4`;
   an isolated clean build reproduced the config, kernel payload, `System.map`,
-  all 119 DTBs, and boot image byte-for-byte. It is synchronized, flushed, and
-  fully read back from logical `boot2`; its full 16 MiB partition/readback hash
-  is `465e4c747138e12191d38fd6b4cde68cd0b9a19f918030dea05c9b8dbdd4d3fc`.
+  all 119 DTBs, and boot image byte-for-byte. It was synchronized, flushed, and
+  fully read back from logical `boot2`; that full 16 MiB partition/readback hash
+  was `465e4c747138e12191d38fd6b4cde68cd0b9a19f918030dea05c9b8dbdd4d3fc`.
   No reboot was part of the [write/readback operation](2026-07-17-clk-ignore-unused-diagnostic/results/boot2-write-candidate-j-20260717.txt).
   On the first later owner-attended intended selection, the last visible suffix
-  before black was reported as `4/60`. Only the tracked shared I/J `/init` emits that
-  counter, so this strongly supports Linux/fbcon/tty0 and `/init` tick 04
+  before black was reported as `4/60`. Only the tracked shared I/J `/init` emits
+  that counter, so this strongly supports Linux/fbcon/tty0 and `/init` tick 04
   for the verified J target in that attempt, without an exact full-line or
-  marker transcription. The [runtime record](2026-07-17-clk-ignore-unused-diagnostic/results/runtime-candidate-j-attempt-1-20260717.txt)
-  preserves the unknowns. One attempt does not establish clock causality or
-  repeatability. This broad control does not enable already-off clocks, prevent
-  explicit disables, or retain regulators or power domains.
+  marker transcription. A later two-bullet report is provisionally interpreted
+  as two additional intended J/`boot2` selections because the outcomes are
+  mutually exclusive, with owner confirmation pending. One reached "iteration
+  4" before black, compatible with and corroborating tick 04; one went directly
+  black with no console and cannot establish selected slot, kernel entry, or
+  `/init`. Provisionally, two of three intended selections had
+  tick-04-compatible visible output and one of three was no-console and
+  unattributable. The [first runtime](2026-07-17-clk-ignore-unused-diagnostic/results/runtime-candidate-j-attempt-1-20260717.txt)
+  and [repeat report](2026-07-17-clk-ignore-unused-diagnostic/results/runtime-candidate-j-repeat-report-20260717.txt)
+  preserve the unknowns. Stable visibility and clock causality are not
+  established. Further J repetition is stopped; the completed reassessment
+  selected Candidate K rather than a matched-I rollback. This broad control
+  does not enable already-off clocks, prevent explicit disables, or retain
+  regulators or power domains.
+- [2026-07-17 fbcon newline-boundary diagnostic](2026-07-17-fbcon-newline-boundary-diagnostic/README.md)
+  — Candidate K retains exact J's kernel, appended DTB, forced command line and
+  Android-v0 layout while changing only initramfs `/init`. It emits 20
+  one-second fixed-width carriage-return updates with no deliberate newline,
+  then a distinct transition and 12 controlled one-second newline lines;
+  asynchronous kernel printk remains a confounder. Two final VM builds are
+  byte-identical. Its raw image is
+  `83704cde0e3e4ed897990b230a817a1c7618201a6b8a33a86a2e19c8e07a07cb`,
+  and the mode-`0600` export is synchronized, flushed and fully read back from
+  logical `boot2` with padded SHA-256
+  `959092428f849c5ee2612c352ac4e4f707a4e0ec8696bda6632252e7194a7927`
+  after a fresh exact-J backup. The device remains in Gemian; one attended K
+  runtime selection is the next gate.
 - [2026-07-14 live vendor-to-mainline gap audit](2026-07-14-live-vendor-mainline-gap-audit/README.md)
   — read-only comparison of the live Gemian vendor contracts with the current
   Linux 7.1.3 handoff and first-boot boundaries.

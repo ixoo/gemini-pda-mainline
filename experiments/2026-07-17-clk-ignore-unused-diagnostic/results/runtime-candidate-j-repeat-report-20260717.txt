@@ -1,0 +1,119 @@
+[record]
+date=2026-07-17
+source=owner-attended visual report
+candidate=J
+report_scope=follow-up after recorded runtime attempt 1
+device_variant=current Gemini PDA unit; exact retail sub-variant not independently established
+interpretation_status=provisional-owner-confirmation-pending
+
+[artifact_and_target_context]
+raw_boot_image_sha256=6d5bad08c2f93eba7fbd66ea5c54de2437f81e44832426a97d4d65d550c659f4
+previously_verified_installed_full_partition_bytes=16777216
+previously_verified_installed_full_partition_sha256=465e4c747138e12191d38fd6b4cde68cd0b9a19f918030dea05c9b8dbdd4d3fc
+previous_write_sync_flush=pass
+previous_full_partition_readback=pass-byte-identical-to-padded-candidate
+repeat_context=owner described these outcomes as repeats of the Candidate J test
+intended_boot_target=logical boot2
+new_partition_write_or_readback_for_this_report=none
+independent_slot_selection_confirmation=none
+
+[owner_report_verbatim]
+line_1=I’ve repeated it with the following outcome:
+bullet_1=goes to iteration 4 and screens blacks out
+bullet_2=screen blacks out directly at boot and I see no console
+
+[attempt_mapping]
+provisional_additional_attempt_count=2
+provisional_total_intended_selection_count_including_attempt_1=3
+mapping_basis=the two bullets describe mutually exclusive display outcomes
+provisional_attempt_2=owner-report bullet 1
+provisional_attempt_3=owner-report bullet 2
+chronology=provisionally list order; not explicitly confirmed by owner
+owner_confirmation=pending
+
+[provisional_attempt_2_observation]
+intended_candidate_and_target=Candidate J on logical boot2 under the stated repeat context
+visible_progress_reported=iteration 4
+exact_counter_suffix_transcription=no
+exact_full_line_transcription=no
+exact_marker_recognition=no
+screen_transition=visible iteration 4 then black
+selection_to_first_text_wall_time=unknown
+selection_to_black_wall_time=unknown
+backlight_state=unknown
+final_power_or_runtime_state=unknown
+heat=unknown
+recovery_action=unknown
+reboot=unknown
+
+[provisional_attempt_2_attribution]
+tracked_shared_init_line_for_tick_04=GEMINI_FBCON_REFRESH_20260716_I T+04 ACTIVE REFRESH 04/60
+compatibility=the reported iteration 4 is compatible with the tracked shared I/J initramfs tick 04
+combined_context=previously verified Candidate J boot2 write/readback plus intended repeat selection
+attribution_boundary=corroborating but not an exact marker or full-line transcription
+kernel_entry=strongly-supported-if-the-stated-repeat-selected-the-unchanged-J-target
+fbcon_tty0_visible_output=strongly-supported-under-that-condition
+shared_i_j_init_execution=compatible-with-and-corroborates-tick-04-under-that-condition
+
+[provisional_attempt_3_observation]
+intended_candidate_and_target=Candidate J on logical boot2 under the stated repeat context
+owner_timing_description=directly at boot
+timing_precision=qualitative-only
+visible_console=no
+visible_marker_or_counter=no
+screen_state=black
+selection_to_black_wall_time=unknown
+backlight_state=unknown
+final_power_or_runtime_state=unknown
+heat=unknown
+recovery_action=unknown
+reboot=unknown
+
+[provisional_attempt_3_attribution]
+candidate_selection=intended-but-not-independently-confirmed
+kernel_entry=not-established-by-the-display-observation
+fbcon_tty0_output=not-observed
+shared_i_j_init_execution=not-established
+kernel_failure=not-established
+display_only_loss_vs_reset_poweroff_or_hang=unresolved
+
+[combined_interpretation]
+provisional_total_intended_selections=3
+visible_tick_04_compatible_outcomes=2_of_3
+no_console_unattributable_outcomes=1_of_3
+tick_04_visible_behavior=reported-once-again-after-attempt-1
+stable_console_visibility=not-established
+display_retention=not-established
+clock_cleanup_association=material-but-mixed
+clock_cleanup_causality=not-established
+specific_clock_identity=not-established
+native_display_support=not-established
+exact_i_control=not-performed-and-not-authorized
+
+[unknowns]
+explicit_confirmation_that_the_bullets_are_two_distinct_attempts=pending
+exact_attempt_order=pending-owner-confirmation
+exact_marker_or_full_counter_line_for_repeat=not-reported
+backlight_state_for_both_reported_outcomes=unknown
+screen_orientation=unknown
+selection_to_first_text_and_black_times=unknown
+final_power_runtime_and_recovery_state=unknown
+temperature_and_charging_state=unknown
+
+[next_action]
+additional_candidate_j_repetition=stop
+action=return to the known-good OS, restore normal temperature and power conditions, and reassess the mixed Candidate J outcomes before any new candidate or rollback
+matched_candidate_i_rollback=not-authorized; the standing boot2 opt-in does not cover rollback and the mixed J outcomes require reassessment first
+new_candidate_build_or_flash=not-authorized-by-this-observation-record
+
+[subsequent_disposition]
+date=2026-07-17
+reassessment=completed
+selected_follow_up=Candidate K exact-J initramfs-only newline-boundary diagnostic
+candidate_k_raw_boot_sha256=83704cde0e3e4ed897990b230a817a1c7618201a6b8a33a86a2e19c8e07a07cb
+candidate_k_full_partition_sha256=959092428f849c5ee2612c352ac4e4f707a4e0ec8696bda6632252e7194a7927
+candidate_k_boot2_write_sync_flush=pass
+candidate_k_full_partition_readback=pass-byte-identical-to-padded-candidate
+device_state_after_write=known-good Gemian; no reboot or shutdown performed
+candidate_k_runtime=pending-one-attended-selection
+historical_next_action_above=superseded-by-this-disposition

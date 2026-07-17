@@ -218,7 +218,7 @@ J's raw boot-image SHA-256 is
 The final kernel package and an isolated clean rebuild produced byte-identical
 resolved config, `Image`, `Image.gz`, `System.map`, all 119 DTBs, and the same
 boot image. Only the generated `build.json` timestamp and therefore its package
-checksum manifest differ. J is exported and synchronized to logical `boot2`.
+checksum manifest differ. J was exported and synchronized to logical `boot2`.
 At `20260717T111314Z`, the live label resolved to `/dev/mmcblk0p30`, not an
 assumed partition number. The exact 16 MiB target was writable, unmounted, and
 had no holders; active root was `/dev/mmcblk0p29`, AC was online, and the
@@ -231,17 +231,51 @@ owner-attended intended `boot2` selection, the last visible suffix before black
 was reported as `4/60`. Since only the tracked shared I/J `/init` emits that counter,
 the verified target/readback and intended selection strongly support Linux
 entry, fbcon/tty0 output, and shared `/init` execution through tick 04 for this
-attempt. The full line and marker were not exactly transcribed, and one attempt
-does not establish causality or repeatability. See the
+attempt. The full line and marker were not exactly transcribed. A later
+two-bullet report is provisionally interpreted as two additional intended
+J/`boot2` selections because its outcomes are mutually exclusive, with owner
+confirmation pending. One reached "iteration 4" before black, compatible with
+and corroborating tick 04 without an exact marker transcription. One went
+directly black with no console and cannot establish selected slot, kernel entry,
+or `/init`. Provisionally, two of three intended selections had
+tick-04-compatible visible output and one of three was no-console and
+unattributable. Stable visibility and causality are not established. See the
 [write/readback record](../experiments/2026-07-17-clk-ignore-unused-diagnostic/results/boot2-write-candidate-j-20260717.txt)
-and [first runtime record](../experiments/2026-07-17-clk-ignore-unused-diagnostic/results/runtime-candidate-j-attempt-1-20260717.txt).
+and the [first runtime](../experiments/2026-07-17-clk-ignore-unused-diagnostic/results/runtime-candidate-j-attempt-1-20260717.txt)
+and [repeat](../experiments/2026-07-17-clk-ignore-unused-diagnostic/results/runtime-candidate-j-repeat-report-20260717.txt)
+records.
 At runtime, `clk_ignore_unused` only prevents the Common Clock Framework's
 automatic unused-clock cleanup: it does not enable clocks that are already off,
 prevent explicit driver disables, or retain regulators or power domains. Treat
 J as a bounded attended discriminator, never as a default or a complete
-display-power solution. Return to the known-good OS and normal temperature,
-then perform one more attended J selection before considering any new candidate
-or matched exact-I control.
+display-power solution. Stop further J repetition. Return to the known-good OS
+and normal temperature. The completed reassessment selected Candidate K rather
+than a matched exact-I rollback; rollback remains unauthorized by the standing
+`boot2` opt-in.
+
+Candidate K must be built with
+`experiments/2026-07-17-fbcon-newline-boundary-diagnostic/scripts/build-fbcon-newline-boundary-candidate.sh`.
+It reconstructs exact J and retains J's kernel, appended DTB, forced command
+line, Android-v0 name, addresses and page layout. The canonical initramfs
+changes only `/init`; ramdisk size and payload-derived header ID may therefore
+change. The tracked program emits 20 one-second fixed-width carriage-return
+updates without a deliberate newline, then a distinct transition and 12
+controlled one-second newline lines. J's `ignore_loglevel loglevel=8` remains,
+so asynchronous kernel printk is an explicit newline confounder.
+
+Two final VM output directories are byte-identical. K's initramfs SHA-256 is
+`c6356f895579b8d0cac516f3a6618ab70d7d4bc33c8c15cc052a71445607dda8`
+and raw boot-image SHA-256 is
+`83704cde0e3e4ed897990b230a817a1c7618201a6b8a33a86a2e19c8e07a07cb`.
+The mode-`0600` export was synchronized to logical `boot2` after preserving a
+fresh exact-J backup. Sync, block flush and complete readback match padded
+SHA-256
+`959092428f849c5ee2612c352ac4e4f707a4e0ec8696bda6632252e7194a7927`.
+The device remains in known-good Gemian. See the
+[Candidate K experiment](../experiments/2026-07-17-fbcon-newline-boundary-diagnostic/README.md)
+and [write/readback record](../experiments/2026-07-17-fbcon-newline-boundary-diagnostic/results/boot2-write-candidate-k-20260717.txt).
+Runtime is pending; perform one attended K selection after a known-good boot and
+normal temperature, then return to the known-good OS.
 
 Before treating the series as submission-ready, run the pinned tree's review
 checker over every patch:
