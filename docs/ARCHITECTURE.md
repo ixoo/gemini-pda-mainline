@@ -270,9 +270,18 @@ Candidate N retains that exact kernel, configuration, no-IRQ DTB, and LK
 container and changes only external `/init` to request CPU1 online after arming
 the proven watchdog. Its two builds are byte-identical, and its exact padded
 image was synchronized, flushed, and fully read back from logical `boot2`.
-This establishes artifact and partition identity only; CPU1 remains untested.
+Its one retained runtime record then proves that the standard ARM64 hotplug
+request returned, logical CPU1 mapped to DT `cpu@1`, initialized its GICv3
+redistributor, booted as MPIDR `0x1` / Cortex-A53, entered online mask `0-1`,
+and advanced its accounting. It remained online through the last 25-second
+marker before the watchdog returned the device to Gemian automatically. This
+promotes only the first secondary Cortex-A53 path in one run; every other core
+and broader SMP behavior remain untested. A changed follow-up may request the
+remaining A53s sequentially if it emits a durable execution checkpoint and
+fail-stops after each core; keep the Cortex-A72 pair in a separate gate.
 See the [Candidate N build record](../experiments/2026-07-18-cpu1-online-diagnostic/results/final-build-reproduction-20260718.txt)
-and [write/readback](../experiments/2026-07-18-cpu1-online-diagnostic/results/boot2-write-candidate-n-20260718.txt).
+[write/readback](../experiments/2026-07-18-cpu1-online-diagnostic/results/boot2-write-candidate-n-20260718.txt),
+and [runtime result](../experiments/2026-07-18-cpu1-online-diagnostic/results/runtime-candidate-n-attempt-1-20260718.txt).
 
 ## Decision records
 

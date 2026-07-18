@@ -2,7 +2,7 @@
 
 Milestones are evidence gates, not release dates. Work may proceed in parallel when it does not compromise a safe boot loop, but a milestone is complete only when all exit criteria are demonstrated on real hardware and documented.
 
-## Immediate priority: use the proven recovery loop to test CPU1 (2026-07-18)
+## Immediate priority: widen the Cortex-A53 path behind the proven recovery loop (2026-07-18)
 
 The latest reviewed `bsg100/gemini-linux` main revision is
 `9d1e565a5ba11ae9585340e3e4bf4cacc233d13c`. Its hardware logs establish a
@@ -174,7 +174,8 @@ Priorities for the next controlled test are:
    IRQ-bearing path as L's registration blocker; it does not identify the
    request errno or prove SPI137 polarity, bark, or pretimeout delivery. Do not
    repeat unchanged M.
-8. **P7 — next gate: online CPU1 only after arming the proven watchdog; ready.** Keep
+8. **P7 — online CPU1 only after arming the proven watchdog: complete and
+   passed.** Keep
    M's one-CPU boot, no-IRQ watchdog, pstore layout, loader-simplefb/fbcon
    observation path, storage-inert policy, kernel, DTB, and configuration. In
    the external initramfs, mount only the sysfs instance required for CPU
@@ -196,7 +197,29 @@ Priorities for the next controlled test are:
    and all static gates pass. Its exact padded image was synchronized, flushed,
    and fully read back from live-resolved logical `boot2` with SHA-256
    `a5cc12372ece5e50364a88bc0bf4401ff092e335281352b062ed0ad229fbb7bf`.
-   Candidate N is ready for one attended selection but is not runtime-tested.
+   Candidate N's retained exact-marker record proves that the standard
+   CPU-hotplug request returned success, logical CPU1 mapped to DT `cpu@1`,
+   initialized its GICv3 redistributor, and booted as MPIDR `0x1` / Cortex-A53.
+   The online mask changed from `0` to `0-1`, two `/proc/stat` samples showed
+   advancing CPU1 accounting, and CPU1 remained online through the 25-second
+   marker. The watchdog then returned the device to Gemian automatically with
+   no owner intervention. This passes only the first secondary Cortex-A53 path
+   in one run; it does not establish repeatability, boot-time SMP, any other
+   core, stress, coherency, DVFS, idle, or thermal behavior. Do not repeat
+   unchanged N.
+9. **P8 — next gate: all remaining Cortex-A53s, sequentially checkpointed.**
+   Preserve N's exact kernel, DTB, configuration, storage-inert policy,
+   watchdog, pstore, and fbcon observation paths. Statically verify live Linux
+   CPU-to-DT mappings for CPU1 through CPU7, then use one changed candidate to
+   request them online in order. Emit durable begin/return/mask markers and a
+   per-CPU execution sample after every request; stop on the first failure and
+   never retry. A hang remains bounded by the same watchdog, while the last
+   retained checkpoint identifies the failed core. If all requests pass, the
+   result promotes only the eight Cortex-A53 online paths. Bisect only if a
+   grouped dependency remains ambiguous; a core-specific stopped boundary
+   already supplies the narrower diagnosis. Keep both Cortex-A72 cores and
+   every unrelated subsystem for a separate candidate. An unchanged N rerun
+   is not the next action.
 
 The exact handoff package, candidates, hashes, parser gates, and first runtime
 observation are recorded in the [LK handoff alignment result](../experiments/2026-07-16-lk-handoff-alignment/results/lk-handoff-candidate-20260716.txt)
@@ -232,13 +255,21 @@ defines Candidate M's optional-IRQ omission and bounded decision oracle.
 Candidate M's exact [build reproduction](../experiments/2026-07-18-watchdog-registration-diagnostic/results/final-build-reproduction-20260718.txt)
 and [logical-`boot2` write/readback](../experiments/2026-07-18-watchdog-registration-diagnostic/results/boot2-write-candidate-m-20260718.txt)
 are complete. Its [one attended runtime result](../experiments/2026-07-18-watchdog-registration-diagnostic/results/runtime-candidate-m-attempt-1-20260718.txt)
-passes the basic watchdog/reset/pstore decision oracle. The next device action
-must be the exact changed Candidate N CPU1-online image with the watchdog armed
-before the request; unchanged M repetition is closed. Candidate N's exact
+passes the basic watchdog/reset/pstore decision oracle; unchanged M repetition
+is closed. Candidate N's exact
 [build reproduction](../experiments/2026-07-18-cpu1-online-diagnostic/results/final-build-reproduction-20260718.txt)
 and [logical-`boot2` write/readback](../experiments/2026-07-18-cpu1-online-diagnostic/results/boot2-write-candidate-n-20260718.txt)
-are complete. The next device action is its one attended selection with
-cycle-aware pstore collection; do not rebuild or rewrite it unchanged.
+are complete. Its one [runtime result](../experiments/2026-07-18-cpu1-online-diagnostic/results/runtime-candidate-n-attempt-1-20260718.txt)
+passes the CPU1 decision oracle and records the automatic watchdog return. The
+next device artifact should request the remaining Cortex-A53s sequentially,
+with a durable execution checkpoint after each core and fail-stop behavior;
+do not rebuild, rewrite, or select N unchanged. The exact captured LK's
+[software-selection audit](../experiments/2026-07-12-boot-contract-recovery/results/lk-boot2-software-selection-audit-20260718.txt)
+finds hardware-key branches for `boot2` and `boot3` and found no direct software
+destination from Gemian in the audited paths, so the currently supported test
+loop still requires manual silver-button selection. A modified one-shot
+selector is separate bootloader work, outside the standing `boot2`
+synchronization authorization.
 
 ## Current evidence snapshot (2026-07-18)
 

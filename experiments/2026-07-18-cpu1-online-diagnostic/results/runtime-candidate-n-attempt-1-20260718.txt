@@ -1,0 +1,171 @@
+[record]
+date=2026-07-18
+source=owner-attended visual observation, owner photograph, immediate authenticated post-reset pstore, and sanitized Gemian boot-reason capture
+candidate=N
+attempt=1
+intended_boot_target=logical boot2 selected with the silver button
+device_variant=current Gemini PDA unit; exact retail sub-variant not independently established
+
+[artifact_and_target_evidence]
+source_revision=7cdb4b994075fa009ae5a52a0b35fe038df4b650
+raw_boot_image_sha256=43aea71224f6261001ff00904b30dae29063334172a2f6b0163b424a84c0e3aa
+installed_full_partition_bytes=16777216
+installed_full_partition_sha256=a5cc12372ece5e50364a88bc0bf4401ff092e335281352b062ed0ad229fbb7bf
+write_sync_flush=pass
+full_partition_readback=pass-byte-identical-to-padded-candidate
+candidate_n_selection=intended-by-owner
+independent_selected_image_identity=established-by-exact-candidate-n-marker-in-surviving-console-ramoops
+
+[owner_observation]
+reported_exact_result=cpu1_result=online SUCCESS
+photograph=provided
+photograph_private_original=artifacts/device-photos/candidate-N-runtime-1-20260718/IMG_2383.HEIC
+photograph_private_original_bytes=3323401
+photograph_private_original_sha256=e10394f0e07b8926208260d54d84fd928b5390bebe33533d15e3adcf4b719238
+photograph_private_png=artifacts/device-photos/candidate-N-runtime-1-20260718/IMG_2383.png
+photograph_private_png_sha256=9e0690aa16aa65ae0766f425650747afa4de74179406ca630681723ff5e489ff
+photograph_git_ignored=yes
+photograph_visible_boundary=exact-N marker, returned-success, CPU1 online, accounting-advanced, result-success, and post-action waits through 25s
+console_visible_through_at_least_post_action_wait=25s
+automatic_return_to_gemian=observed
+manual_power_press_or_other_help=none
+known_good_os_after_return=Gemian Linux 3.18.41+
+repeat_count=1
+
+[retained_console_ramoops]
+private_file=artifacts/device-pstore/candidate-N-runtime-1-post-auto-reset-20260718/pstore/console-ramoops
+private_file_bytes=65524
+private_file_sha256=178d3f051ebcaec4310f7e5a1aaa38223129ee582f89d8862a4f42c34c8f9630
+candidate_marker=GEMINI_CPU1_ONLINE_20260718_N
+kernel_identity=7.1.3-gemini-observability-L
+storage_access=none
+runtime_networking=none
+kernel_dtb_config=exact-candidate-M
+cpu_test=cpu1-only
+procfs=mounted
+sysfs=mounted-rw
+live_watchdog_interrupts=absent
+live_cpu1_compatible=arm,cortex-a53
+live_cpu1_enable_method=psci
+watchdog_identity=mtk-wdt
+watchdog_timeout_seconds=31
+watchdog_pretimeout=unavailable
+watchdog_status=0x0
+watchdog_open=success
+watchdog_handoff_ping=sent-once-before-cpu1-request
+watchdog_armed_marker_kernel_time_seconds=5.425038
+watchdog_armed_marker_timing=emitted-after-open-and-handoff-ping; not-the-exact-hardware-arm-instant
+
+[cpu1_pre_request]
+possible=0-9
+present=0-9
+online=0
+offline=1-9
+cpu1_device=present
+cpu1_online=0
+cpu1_of_node=../../../../firmware/devicetree/base/cpus/cpu@1
+psci_version=0.2
+psci_conduit=smc
+
+[cpu1_request]
+request_interface=/sys/devices/system/cpu/cpu1/online
+requested_value=1
+request_begin_kernel_time_seconds=5.740290
+request_return_kernel_time_seconds=5.782744
+request_status=success
+write_error=none
+cpu1_icache=VIPT
+cpu1_gicv3_redistributor_index=1
+cpu1_gicv3_redistributor_region=0
+cpu1_gicv3_redistributor_address=0x0000000019220000
+cpu1_booted_mpidr=0x0000000001
+cpu1_midr=0x410fd034
+cpu1_part=0xd03
+cpu1_part_interpretation=Cortex-A53
+
+[cpu1_post_request]
+possible=0-9
+present=0-9
+online=0-1
+offline=2-9
+cpu1_device=present
+cpu1_online=1
+cpu1_stat_sample_1=cpu1 0 0 19 15 0 0 0 0 0 0
+cpu1_stat_sample_2=cpu1 0 0 19 217 0 0 0 0 0 0
+cpu1_accounting=advanced
+cpu1_result=online-SUCCESS
+last_complete_wait_marker=post_action_wait=25s reason=cpu1-online cpu1_online=1 global_online=0-1
+last_complete_wait_kernel_time_seconds=33.378249
+post_action_wait_30s=absent
+watchdog_expiry_failed=absent
+
+[post_reset_capture]
+collector_started_utc=2026-07-18T21:19:41Z
+collector_waited_for_cycle=no; collection began after the owner had already observed the automatic Gemian return
+collector_disconnect_reconnect_observation=not-requested
+capture_kernel=3.18.41+
+capture_arch=aarch64
+post_reset_boot_id_sha256=0e66fb51cf2b3b541f1b472a36fc58d7f76ead471561a53aca4e1ac2780be681
+powerup_reason=reboot
+boot_reason_numeric=4
+android_bootreason=wdt_by_pass_pwk
+pmic_battery_remove=0
+pmic_wdt_reboot=0
+pmic_wdt_reboot_check=0
+pstore_directory=present
+pstore_files=console-ramoops,pmsg-ramoops-0
+private_capture=artifacts/device-pstore/candidate-N-runtime-1-post-auto-reset-20260718
+private_capture_sha256s_manifest_sha256=312ef1f6eea73c79d8f2b823f312eaa88e449ee4179d95e43cc6c72e6cbad914
+private_capture_manifest_verification=pass
+collector_candidate_l_evidence_file=not-applicable-hard-coded-candidate-l-parser; ignored for candidate-n attribution
+
+[reset_interpretation]
+approximate_nominal_expiry_from_post_ping_marker_kernel_time_seconds=36.425038
+last_wait_marker_precedes_approximate_nominal_expiry_seconds=3.046789
+next_5s_wait_marker_would_follow_approximate_nominal_expiry=yes
+owner_observed_automatic_return=yes
+gemian_bootloader_watchdog_class_reason=wdt_by_pass_pwk
+interpretation=the exact-N mtk-wdt trace ends in the expected interval for its 31-second TOPRGU timeout and the post-reset boot reports a watchdog-class reason; together with the automatic return these attribute the reset to the tested TOPRGU path
+pmic_discrepancy=Candidate-M-reported-wdt-reboot-and-wdt-reboot-check-as-1; Candidate-N-reports-both-as-0
+pmic_discrepancy_effect=retain-as-a-reset-propagation-question; do-not-use-PMIC-flags-alone-to-reject-the-exact-N-TOPRGU-evidence
+
+[attribution]
+candidate_n_kernel_entry=established
+external_initramfs_entry=established
+live_linux_cpu1_to_dt_cpu_at_1_mapping=established
+standard_arm64_cpu_hotplug_request_return=established
+psci_cpu_on_for_mpidr_0x1=established
+first_secondary_cortex_a53_boot=established
+cpu1_gicv3_redistributor_initialization=established
+cpu1_online_mask_transition=established-from-0-to-0-1
+cpu1_execution=established-by-advanced-proc-stat-accounting
+cpu1_remained_online_through_wait_25s=established
+watchdog_timeout_reset=established
+automatic_return_to_gemian=established
+cross_version_console_ramoops_retention=established-for-this-cycle
+loader_simplefb_fbcon_visibility=established-through-at-least-wait-25s-for-this-cycle
+
+[boundaries]
+cpu1_repeatability=not-established-beyond-one-run
+cpu1_boot_time_auto_online=not-tested; maxcpus=1-remained-forced
+cpu2_through_cpu9=not-tested
+remaining_cortex_a53_cores=not-tested
+cortex_a72_cores=not-tested
+multi_cpu_stress_or_coherency=not-tested
+cpu_frequency_dvfs=not-tested
+cpu_idle_or_suspend=not-tested
+thermal_behavior=not-tested
+spi137_bark_or_pretimeout=not-tested
+pmic_watchdog_flag_difference=unresolved
+native_display_panel_backlight_rotation=not-tested
+uart_or_usb=not-established
+storage_or_rootfs=not-accessed
+general_userspace=not-tested
+
+[decision]
+candidate_n_decision_oracle=pass-request-success-cpu1-online-accounting-advanced-auto-watchdog-return-and-surviving-console-ramoops
+unchanged_candidate_n_retry=stop
+cpu_topology_runtime_state=partial-first-secondary-cortex-a53-only
+generic_psci_reuse_decision=retain; no-MT6797-specific-CPU_ON-driver-needed-for-MPIDR-0x1
+next_gate=sequentially-request-the-remaining-Cortex-A53s-behind-the-same-proven-watchdog-and-pstore-recovery
+next_gate_requirement=preserve-exact-kernel-dtb-config-and-storage-inert-policy; emit-a-durable-boundary-and-execution-sample-after-each-core; stop-on-first-failure; bisect-only-any-grouped-dependency-that-remains-ambiguous; defer-Cortex-A72

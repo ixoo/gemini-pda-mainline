@@ -1,0 +1,100 @@
+[record]
+date=2026-07-18
+purpose=determine-whether-running-Gemian-can-request-a-one-shot-direct-reboot-to-logical-boot2
+method=read-only-live-inventory-plus-static-string-xref-and-Thumb-disassembly-of-the-private-captured-LK-partition
+runtime_mutation=none
+partition_write=none
+reboot=none
+
+[input]
+lk_partition_capture=artifacts/device-partitions/20260715T020041Z/mmcblk0p20-lk.img
+lk2_partition_capture=artifacts/device-partitions/20260715T020041Z/mmcblk0p21-lk2.img
+capture_size_each=524288
+lk_sha256=75ec9f0ba97af9e68d964b304e0de809f9b4546982570bd16b2e7fe88823282c
+lk2_sha256=75ec9f0ba97af9e68d964b304e0de809f9b4546982570bd16b2e7fe88823282c
+lk_and_lk2_identical=yes
+mediatek_header_magic_le=0x58881688
+payload_file_offset=0x200
+payload_load_address=0x46000000
+raw_file_map_base=0x45fffe00
+analysis_architecture=ARM32-Thumb
+analysis_tool=radare2
+analysis_tool_version=5.5.0-linux-arm64
+
+[reproduction]
+guest_input=/mnt/gemini-pda-mainline/artifacts/device-partitions/20260715T020041Z/mmcblk0p20-lk.img
+version_command=r2 -v
+strings_and_primary_branch_command=r2 -q -a arm -b 16 -m 0x45fffe00 -c 'e scr.color=false; izz~boot2; izz~boot3; s 0x46001fec; pd 20; q' GUEST_INPUT
+boot3_and_key_decoder_command=r2 -q -a arm -b 16 -m 0x45fffe00 -c 'e scr.color=false; s 0x460021f0; pd 20; s 0x46004904; pd 16; q' GUEST_INPUT
+xref_command=r2 -q -a arm -b 16 -m 0x45fffe00 -c 'e scr.color=false; aaa; axt @ 0x46047b80; axt @ 0x46047b64; q' GUEST_INPUT
+secondary_key_path_command=r2 -q -a arm -b 16 -m 0x45fffe00 -c 'e scr.color=false; aaa; s 0x46027914; pd 112; q' GUEST_INPUT
+primary_excerpt=0x46001fec movs r0,0x11; 0x46001fee bl 0x46004904; 0x46001ff4 movs r0,8; 0x46001ff6 bl 0x46004904; 0x46001ffc bne.w 0x460021f8
+boot2_excerpt=0x46002000 movs r0,0x11; 0x46002002 bl 0x46004904; 0x46002008 beq.w 0x460021e0; 0x4600200c ldr partition-string; 0x46002010 bl 0x460259f4
+boot3_excerpt=0x460021f8 ldr partition-string; 0x460021fc bl 0x460259f4
+key_decoder_excerpt=0x46004916 cmp r4,8; 0x4600491a cmp r4,0x11
+secondary_key_excerpt=0x46027918 movs r0,0x11; 0x4602791a bl 0x46004904; 0x46027952 movs r0,0x11; 0x4602795a movs r0,8; 0x46027962 movs r0,0x11
+
+[partition_strings]
+boot3_file_offset=0x47d64
+boot3_virtual_address=0x46047b64
+boot2_file_offset=0x47d80
+boot2_virtual_address=0x46047b80
+recovery_string=present
+reboot_string=present
+reboot_bootloader_string=present
+oem_reboot_recovery_string=present
+reboot_boot2_string=absent-in-bounded-string-inventory
+
+[boot_selection_disassembly]
+key_detection_function=0x46004904
+key_detection_name=inferred-from-behavior; binary-is-stripped
+boot2_key_code=0x11
+boot3_key_code=0x08
+boot2_key_test=0x46002000-call-key-detection; branch-on-not-pressed-at-0x46002008
+boot2_partition_lookup=0x4600200c-load-boot2; 0x46002010-call-partition-lookup
+boot3_key_test=0x46001ff4-call-key-detection; branch-on-pressed-at-0x46001ffc
+boot3_partition_lookup=0x460021f8-load-boot3; 0x460021fc-call-partition-lookup
+partition_lookup_function=0x460259f4
+boot2_xrefs=0x4600200e,0x4602792c,0x4602796e
+boot3_xrefs=0x460021fa,0x460279c4,0x460279e4
+secondary_xref_interpretation=0x46027664 function contains the same 0x11/0x08 key tests around partition I/O calls; no persistent software selector was identified there
+interpretation=the current LK chooses boot2 and boot3 from hardware key state before their partition lookups
+
+[live_gemian_inventory]
+proc_boot_mode=MTK-BOOT-MODE-NORMAL-BOOT
+boot_target_sysfs=absent-in-bounded-search
+reboot_mode_sysfs=absent-in-bounded-search
+boot_slot_sysfs=absent-in-bounded-search
+kexec_binary=absent
+enabled_config_kexec_entry=absent
+bootctl_binary=present-but-systemd-boot-UEFI-tool; not-an-MTK-LK-slot-selector
+fw_printenv=absent
+efibootmgr=absent
+
+[supported_software_destinations]
+normal_reboot=compiled-in
+recovery=compiled-in
+fastboot_or_bootloader=compiled-in
+direct_boot2=not-found-in-audited-paths
+direct_boot3=not-found-in-audited-paths
+
+[conclusion]
+direct_gemian_reboot_to_boot2=not-found-or-exposed-by-audited-paths
+current_supported_workflow=hold-the-silver-button-during-LK-selection
+confidence=medium-for-absence; high-that-the-observed-boot2-path-is-hardware-key-gated
+kexec_current_support=no
+kexec_suitability_even_if-added=poor-for-current-bringup-because-it-bypasses-LK-DT-memory-reserved-memory-fixups
+
+[future-options]
+preferred_current_policy=manual-key-selection-plus-proven-watchdog-auto-return
+possible_bootloader_work=add-an-explicit-one-shot-self-clearing-boot2-flag-to-a-recoverable-LK-or-chainloader
+bootloader_work_authorized_by-standing_boot2_policy=no
+bootloader_work_prerequisite=separate-design, exact-recovery-path, fail-safe-default-to-known-good-boot, and explicit-owner-authorization
+external_hardware_option=electrically-emulate-the-silver-button; not-investigated
+
+[boundaries]
+no_live_reboot_command_was_attempted=yes
+no_key_line_was_driven=yes
+no_misc_para_or_bootloader_partition_was_written=yes
+absence_claim=bounded-to-the-exact-captured-LK-and-live-Gemian-inventory
+unexcluded_selector=encoded-persistent-boot-mode-or-PMIC-flag, ioctl, or software-path-that-reuses-the-key-state-branch-without-a-second-boot2-string-reference

@@ -288,6 +288,18 @@ and use a named, explicitly authorized target with a proven selection method,
 with the kernel header, calculated placement, DTB, initramfs, and complete
 package independently validated and hashed before transfer.
 
+### Current LK partition selector (2026-07-18)
+
+A read-only audit of the exact captured `lk`/`lk2` image maps the observed
+`boot2` and `boot3` partition lookups to hardware-key tests (codes `0x11` and
+`0x08`). A bounded string, xref, disassembly, live-sysfs, and kernel-config
+inventory found no exposed direct Gemian reboot destination for either
+partition. It does not exclude an encoded persistent mode, ioctl, or path that
+reuses the same key branch, but the currently supported test workflow still
+requires the silver button. Gemian's kernel also has no enabled kexec path;
+kexec would bypass LK's DT and memory fixups even if added. See the
+[reproducible software-selection audit](results/lk-boot2-software-selection-audit-20260718.txt).
+
 ## Bring-up gates
 
 ### First-test go/no-go decision (updated 2026-07-16)

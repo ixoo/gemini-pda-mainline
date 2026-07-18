@@ -6,7 +6,7 @@
 | --- | --- |
 | ID | `2026-07-18-cpu1-online-diagnostic` |
 | Candidate | N |
-| Status | Built reproducibly and synchronized to logical `boot2`; runtime test pending |
+| Status | Completed; first runtime decision oracle passed |
 | Subsystem | ARM64 CPU hotplug, PSCI `CPU_ON`, first MT6797 Cortex-A53 secondary |
 | Device variant | Current Gemini PDA unit; exact retail sub-variant not independently established |
 | Date | 2026-07-18 |
@@ -80,7 +80,7 @@ reset command, or command shell is accessed.
 | Precondition fails before the write, followed by watchdog return and retained pstore | Correct the exact live CPU enumeration or sysfs assumption; do not fall back to boot-time `maxcpus=2`. |
 | `cpu1_request=begin` survives with no returned marker, followed by watchdog return | The request blocked inside CPU hotplug or PSCI. Audit the last durable CPU/PSCI boundary before another device cycle. |
 | Request returns failure | Use the captured status/error and kernel lines to isolate policy, firmware denial, feature mismatch, or secondary timeout. Do not retry unchanged. |
-| Request returns success, CPU1 is online, and its `/proc/stat` accounting advances | CPU1 completed the standard CPU-hotplug path and executed. Promote only the first secondary Cortex-A53 path; then design one changed next step for another A53. |
+| Request returns success, CPU1 is online, and its `/proc/stat` accounting advances | CPU1 completed the standard CPU-hotplug path and executed. Promote only the first secondary Cortex-A53 path; a changed follow-up may request the remaining A53s sequentially if it checkpoints and fail-stops after every core. |
 | Automatic return plus surviving exact N `console-ramoops` | The M recovery channel remains valid with CPU1 online or with the captured failure boundary. |
 | No automatic return or no exact N record | Treat as a recovery regression or unattributable selection. Stop platform widening and recover the exact partition/pstore state. |
 
@@ -108,8 +108,9 @@ hardware or flashing interface and writes only guest-owned build artifacts.
 
 ## Attended procedure
 
-This procedure is active only for the exact candidate whose independent builds
-and logical-`boot2` write/readback are recorded below.
+This procedure was executed once for the exact candidate whose independent
+builds and logical-`boot2` write/readback are recorded below. The result was
+attributable, so unchanged N repetition is closed.
 
 1. Keep external power connected and start the cycle-aware private collector
    from known-good Gemian:
@@ -175,6 +176,30 @@ the complete target and local readback both match padded SHA-256
 `a5cc12372ece5e50364a88bc0bf4401ff092e335281352b062ed0ad229fbb7bf`.
 No other partition was targeted and no reboot or shutdown was performed.
 
-See `results/final-build-reproduction-20260718.txt` and
-`results/boot2-write-candidate-n-20260718.txt`. Candidate N is ready for its
-one attended runtime selection but has not yet been boot-tested.
+On its one attended selection, retained `console-ramoops` established the exact
+N marker and live CPU1-to-`cpu@1` mapping. The standard CPU-hotplug write
+returned success: CPU1 initialized its GICv3 redistributor, booted as MPIDR
+`0x1` / MIDR `0x410fd034` (Cortex-A53), changed the global online mask from
+`0` to `0-1`, and advanced its `/proc/stat` accounting between two samples.
+CPU1 remained online through the last complete 25-second wait marker. The
+owner saw the same success on fbcon, and the already armed watchdog returned
+the device to Gemian automatically without a power press or other help.
+
+Gemian then reported `wdt_by_pass_pwk`, `powerup_reason=reboot`, and boot reason
+4. Its two PMIC watchdog-reboot fields were zero, unlike Candidate M's value
+of one; retain that difference as a reset-propagation question rather than
+using those fields alone to reject the exact TOPRGU trace and automatic return.
+This passes N's decision oracle only for the first secondary Cortex-A53. It
+does not establish repeatability, boot-time SMP, any other core, CPU stress,
+coherency, DVFS, idle, or thermal behavior. Do not repeat unchanged N.
+
+With this recovery loop proven, the next candidate may request CPU1 through
+CPU7 sequentially rather than spending one manual cycle per A53. It must emit
+a durable begin/return/mask and execution checkpoint after each core, stop on
+the first failure, and leave CPU8–9 (the Cortex-A72 pair) untouched. The last
+surviving checkpoint supplies the failure boundary; bisect only a grouped
+dependency that remains ambiguous.
+
+See `results/final-build-reproduction-20260718.txt`,
+`results/boot2-write-candidate-n-20260718.txt`, and the sanitized
+`results/runtime-candidate-n-attempt-1-20260718.txt`.

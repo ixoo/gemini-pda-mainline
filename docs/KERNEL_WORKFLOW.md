@@ -162,6 +162,17 @@ wrappers remain non-flashing; the separate standing `boot2` synchronization
 policy in `AGENTS.md` applies only after their manifests and experiment gates
 pass.
 
+Synchronization does not select `boot2` for the next reboot. Static analysis
+of the exact captured LK maps its observed `boot2` and `boot3` partition
+lookups to hardware-key tests (codes `0x11` and `0x08`) and found no direct
+software reboot destination for either partition in the audited paths. The
+live Gemian inventory likewise found no exposed matching boot-target control
+and no enabled kexec path. Until a separately
+designed, recoverable, one-shot bootloader selector exists, the owner must use
+the silver button for each `boot2` test. Do not substitute kexec: it would also
+bypass LK's required DT, memory, and reserved-memory fixups. See the
+[exact-LK selection audit](../experiments/2026-07-12-boot-contract-recovery/results/lk-boot2-software-selection-audit-20260718.txt).
+
 Candidate G must be produced by
 `experiments/2026-07-16-fbcon-text-diagnostic/scripts/build-fbcon-text-candidate.sh`.
 It reconstructs and hash-pins exact Candidate F, requires an identical
@@ -301,13 +312,23 @@ gate: it retains M's exact kernel/configuration/DTB, changes only initramfs
 `/init`, arms the watchdog before requesting only CPU1 online, and records the
 pre/post CPU masks and PSCI lines. Two builds are byte-identical and its exact
 padded image is synchronized, flushed, and fully read back from logical
-`boot2`; it is the selected candidate for one attended runtime cycle. See
+`boot2`. Its one runtime cycle passed: the standard hotplug request returned,
+CPU1 booted as MPIDR `0x1` / Cortex-A53, its accounting advanced, and it stayed
+online through the 25-second marker before the watchdog returned the unit to
+Gemian automatically. This proves only the first secondary Cortex-A53 in one
+run. Close unchanged N. The next changed candidate may move faster by
+requesting CPU1 through CPU7 sequentially, provided it records a durable
+begin/return/mask and execution checkpoint after every request, stops at the
+first failure, and leaves both Cortex-A72s for a separate gate. This makes the
+last retained checkpoint the failure boundary without sacrificing the proven
+watchdog recovery path. See
 [attempt 1](../experiments/2026-07-17-uart-pstore-observability/results/runtime-candidate-l-attempt-1-20260718.txt)
 and [attempt 2](../experiments/2026-07-17-uart-pstore-observability/results/runtime-candidate-l-attempt-2-20260718.txt),
 the [registration audit](../experiments/2026-07-17-uart-pstore-observability/results/watchdog-registration-audit-20260718.txt),
 the [Candidate M runtime record](../experiments/2026-07-18-watchdog-registration-diagnostic/results/runtime-candidate-m-attempt-1-20260718.txt),
 the [Candidate N build record](../experiments/2026-07-18-cpu1-online-diagnostic/results/final-build-reproduction-20260718.txt),
-and its [logical-`boot2` write/readback](../experiments/2026-07-18-cpu1-online-diagnostic/results/boot2-write-candidate-n-20260718.txt).
+its [logical-`boot2` write/readback](../experiments/2026-07-18-cpu1-online-diagnostic/results/boot2-write-candidate-n-20260718.txt),
+and its [runtime record](../experiments/2026-07-18-cpu1-online-diagnostic/results/runtime-candidate-n-attempt-1-20260718.txt).
 
 Before treating the series as submission-ready, run the pinned tree's review
 checker over every patch:

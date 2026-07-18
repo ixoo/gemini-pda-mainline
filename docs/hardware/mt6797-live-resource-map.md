@@ -205,6 +205,17 @@ semantics. The global downstream CPU masks were observed to disagree
 transiently with per-CPU sysfs and `/proc/stat`; this is recorded as a reporting
 contradiction rather than a stable CPU-count fact.
 
+Candidate N supplies the first mainline runtime result for a secondary core on
+this unit. With boot-time `maxcpus=1` retained, the live Linux CPU1 `of_node`
+resolved to `/cpus/cpu@1`; one standard hotplug request returned success.
+Kernel lines identify GICv3 redistributor index 1 in region 0 and MPIDR `0x1`
+with MIDR `0x410fd034` (Cortex-A53). The online mask changed from `0` to `0-1`,
+two early `/proc/stat` samples showed advancing CPU1 accounting, and CPU1
+remained online through the last 25-second marker before watchdog recovery.
+This establishes generic PSCI reuse for that one CPU_ON path in one run, not
+repeatability, boot-time SMP, CPU2–9, stress, coherency, DVFS, idle, or thermal
+behavior. See the [Candidate N runtime record](../../experiments/2026-07-18-cpu1-online-diagnostic/results/runtime-candidate-n-attempt-1-20260718.txt).
+
 See the [CPU/PSCI/timer recovery experiment](../../experiments/2026-07-13-cpu-psci-timer-recovery/README.md)
 and its [source validation](../../experiments/2026-07-13-cpu-psci-timer-recovery/results/mainline-cpu-psci-timer-validation.txt).
 
@@ -324,6 +335,16 @@ SPI137 polarity, bark, or pretimeout delivery. Retain the basic watchdog for
 early recovery and investigate the optional bark path separately only when it
 has a decision-changing consumer. See the [registration audit](../../experiments/2026-07-17-uart-pstore-observability/results/watchdog-registration-audit-20260718.txt)
 and [Candidate M runtime record](../../experiments/2026-07-18-watchdog-registration-diagnostic/results/runtime-candidate-m-attempt-1-20260718.txt).
+
+Candidate N retained that no-IRQ watchdog path, armed it before requesting
+CPU1 online, and stayed observable through 25 seconds with CPU1 online before
+the owner observed an automatic, unaided return. Gemian again reported
+`wdt_by_pass_pwk` and `powerup_reason=reboot`; unlike M, both PMIC
+watchdog-reboot fields were zero. Preserve this as a reset-reason propagation
+discrepancy. The exact N `mtk-wdt` trace, its end near the nominal expiry
+interval, the automatic return, and the watchdog-class boot reason together
+still attribute recovery to the tested TOPRGU path. See the
+[Candidate N runtime record](../../experiments/2026-07-18-cpu1-online-diagnostic/results/runtime-candidate-n-attempt-1-20260718.txt).
 
 The live kernel enumerates 13 vendor thermal zones, all with
 `mode=disabled` and `policy=backward_compatible`. `mtktscpu` was about 25.1 °C
