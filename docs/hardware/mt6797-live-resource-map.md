@@ -77,7 +77,7 @@ before upstream submission.
 | SPI0–5 | `0x1100a000`, `0x11012000`, `0x11018000`–`0x1101b000` + `0x1000` each | SPIs 122, 131–135 LOW | `CLK_TOP_MUX_SPI`/`syspll3_d2` parent and `INFRA_SPI`/`SPI1`–`SPI5` gates; vendor pad macros 0/1 | Patches 0072–0073 now map the recovered register/timing layout to Linux `spi-mt65xx` `mt6765_compat` (enhanced 16-bit timing, pad selection, mandatory TX, extended DMA) and add six disabled DT nodes with standard three-clock descriptions. SPI1 wiring is recovered as GPIO234–237 (`SPI1_*_B`), but the vendor DT's empty default plus explicit GPIO/SPI function switching is not yet reducible to a proven static mainline pinctrl state. Runtime transfer remains unproven. See the [SPI reuse audit](../../experiments/2026-07-14-upstream-mt6797-coverage-audit/results/spi-mt6797-controller-reuse-20260714.txt), [SPI1 pinctrl contract](../../experiments/2026-07-14-upstream-mt6797-coverage-audit/results/spi1-pinctrl-contract-20260714.txt), and [patch validation](../../experiments/2026-07-14-upstream-mt6797-coverage-audit/results/spi-mainline-patch-validation-c2feb-20260714.txt) |
 | Hall/lid input | GPIO66; no MMIO block | EINT5, level-low initial | Pinctrl pull-up; debounce `0xfa00` (64 ms); vendor switch class `hall`, shared `ACCDET` EV_SW | Standard `gpio-keys` `EV_SW/SW_LID` candidate; verify polarity, debounce units, and wake policy before enabling |
 | Toggle input | GPIO93; no MMIO block | EINT16, level-low initial | Pinctrl pull-up; debounce `0x7d000` (512 ms); vendor source labels the board node `anti-tamper`, emits F9/F10 pulses, and exposes switch class `switch` | Do not copy Android switch class; identify physical function, then choose a standard EV_SW or key policy |
-| TOPRGU watchdog | `0x10007000` + `0x1000` | 137 EDGE_FALLING | Vendor WDK keepalive; application TOPRGU bark line global IRQ169 | Linux 7.1.3 generic `mtk_wdt` is protocol-compatible; the Gemini board DTS patch adds SPI137 as the optional pretimeout IRQ; no reset/restart test yet |
+| TOPRGU watchdog | `0x10007000` + `0x1000` | 137 EDGE_FALLING | Vendor WDK keepalive; application TOPRGU bark line global IRQ169 | Linux 7.1.3 generic `mtk_wdt` is protocol-compatible; Candidate M proved basic no-IRQ registration and a 31-second timeout reset with automatic Gemian return, while SPI137 bark/pretimeout remains untested |
 | M4U | `0x10205000` + `0x1000` | 156 LOW | seven SMI larbs; 15 vendor clock/domain handles | Add MT6797 IOMMU platform data, binding, port header, SMI relationships, and DTS |
 | CMDQ/GCE | `0x10212000` + `0x1000` | 152 LOW normal; 153 LOW vendor secure path | `infra_gce` ID 10, 136.5 MHz, gated when idle; live normal IRQ activity | Local binding/header and standalone mailbox provider use the 16-thread MT8173 register/address fallback; expose only normal SPI152 |
 | USB 1 | `0x11200000` + `0x1000`; SIF `0x11210000` + `0x1000` | 73 LOW | infra ICUSB and SSUSB reference clocks | Standard MUSB-like core, but distinct MT6797 USB11 SIF/PHY, `0xa0`/`0xa4`/`0xa8` level-1 IRQ block, six-endpoint host contract, and two-clock glue; reuse MUSB core only after the USB11 boundary is modeled |
@@ -302,15 +302,28 @@ and the [current 72-patch boot-policy audit](../../experiments/2026-07-12-mt6797
 The current config also sets `CONFIG_WATCHDOG_HANDLE_BOOT_ENABLED=y`, which
 keeps a firmware-running timer pinged before userspace takes over.
 
-Candidate L runtime evidence now shows that `/dev/watchdog0` was still absent
+Candidate L runtime evidence showed that `/dev/watchdog0` was still absent
 about five seconds into its external-init discovery loop. This does not make
 the vendor/live falling-edge description invalid: the exact mainline tree
 inherits MediaTek SYSIRQ, whose driver programs the polarity inverter and
 translates falling edge to rising for the parent GIC. The optional bark mapping
 and request remain unproven, however, and `mtk_wdt_probe()` returns before
-watchdog registration if that request fails. Candidate M therefore omits the
-optional IRQ only in its diagnostic DTB, retains the basic MMIO watchdog, and
-records binding/probe state. See the [registration audit](../../experiments/2026-07-17-uart-pstore-observability/results/watchdog-registration-audit-20260718.txt).
+watchdog registration if that request fails.
+
+Candidate M kept L's exact kernel and omitted the optional IRQ only in its
+diagnostic DTB. Its surviving `console-ramoops` proves that the live omission
+survived LK, `10007000.watchdog` successfully bound to `mtk-wdt`,
+`/dev/watchdog0` appeared with a 31-second timeout and no pretimeout interface,
+and one userspace handoff ping armed the timer. The durable sequence reached
+30 seconds after the handoff and the owner observed an automatic return to
+Gemian; Gemian then reported `wdt_by_pass_pwk`, `powerup_reason=reboot`, and
+both PMIC watchdog-reboot flags set. This establishes the basic single-stage
+TOPRGU timeout/reset path and strongly isolates the optional IRQ-bearing path
+as L's registration blocker. It does not identify the request errno or prove
+SPI137 polarity, bark, or pretimeout delivery. Retain the basic watchdog for
+early recovery and investigate the optional bark path separately only when it
+has a decision-changing consumer. See the [registration audit](../../experiments/2026-07-17-uart-pstore-observability/results/watchdog-registration-audit-20260718.txt)
+and [Candidate M runtime record](../../experiments/2026-07-18-watchdog-registration-diagnostic/results/runtime-candidate-m-attempt-1-20260718.txt).
 
 The live kernel enumerates 13 vendor thermal zones, all with
 `mode=disabled` and `policy=backward_compatible`. `mtktscpu` was about 25.1 °C

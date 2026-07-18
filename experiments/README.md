@@ -226,7 +226,16 @@ the result.
   Its synchronized, flushed logical-`boot2` target and complete readback match
   padded SHA-256
   `53234ca7e81b23c77b0910e1e2bcdf54dc7a2984e28bbe9baac30ad26eeb7c2b`.
-  Runtime is not tested.
+  Its first controlled runtime passed the decision oracle: retained
+  `console-ramoops` proves the live IRQ omission, successful `mtk-wdt` probe,
+  `/dev/watchdog0`, one handoff ping, a 31-second timeout, and progress through
+  `watchdog_wait=30s`. The console remained visible and the device returned to
+  Gemian automatically; Gemian reported `wdt_by_pass_pwk`, `reboot`, and set
+  PMIC watchdog-reboot flags. This establishes the basic no-IRQ TOPRGU reset
+  and cross-version console retention for this revision, not bark/pretimeout,
+  native display, SMP, or repeatability. See the
+  [runtime record](2026-07-18-watchdog-registration-diagnostic/results/runtime-candidate-m-attempt-1-20260718.txt);
+  do not repeat unchanged M.
 - [2026-07-14 live vendor-to-mainline gap audit](2026-07-14-live-vendor-mainline-gap-audit/README.md)
   — read-only comparison of the live Gemian vendor contracts with the current
   Linux 7.1.3 handoff and first-boot boundaries.

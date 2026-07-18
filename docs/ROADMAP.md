@@ -2,7 +2,7 @@
 
 Milestones are evidence gates, not release dates. Work may proceed in parallel when it does not compromise a safe boot loop, but a milestone is complete only when all exit criteria are demonstrated on real hardware and documented.
 
-## Immediate priority: isolate the optional watchdog IRQ path (2026-07-18)
+## Immediate priority: use the proven recovery loop to test CPU1 (2026-07-18)
 
 The latest reviewed `bsg100/gemini-linux` main revision is
 `9d1e565a5ba11ae9585340e3e4bf4cacc233d13c`. Its hardware logs establish a
@@ -155,45 +155,41 @@ Priorities for the next controlled test are:
    not occur, manual power recovery was required, and pstore was empty. Do not
    infer bark, expiry, auto-return, UART function, ramoops retention, or native
    display support, and do not repeat unchanged L.
-7. **P6 — use Candidate L to isolate restart before widening the platform.**
-   `reboot -f` requests `RB_AUTOBOOT`. Linux 7.1.3 invokes PSCI
-   `SYSTEM_RESET` before the MT6797 TOPRGU watchdog fallback. The off-like state
-   could therefore be a PSCI off/key-gated result, a successful TOPRGU reset
-   that waits for the power key, or a quiesced hang if reset never asserts.
-   The second branch exposed a concrete source discrepancy: Gemian sets TOPRGU
-   mode bit 4 to bypass the power key for normal reboot, while unmodified
-   mainline preserves its inherited value. The following manual Gemian boot reported `power_key`
-   with zero PMIC watchdog, AED watchdog, exception, and battery-removal flags,
-   which is compatible with that key-gated reset. Candidate L is the bounded
-   direct-TOPRGU test: it normalizes auto-restart, makes dual-stage
-   conditional on successful bark-IRQ/pretimeout setup, and leaves a
-   primary-console recovery hypothesis validated against pinned
-   source, the exact active binary, and live ring headers.
-   Its second attended attempt reached the watchdog-device discovery loop but
-   still had no `/dev/watchdog0` at `remaining=5s`. The next cycle must first
-   isolate that exact registration/probe boundary. Source inspection rejects a
-   blind polarity change: the falling-edge consumer flag is handled by
-   MediaTek SYSIRQ, which programs its inverter and presents rising edge to the
-   parent GIC. Candidate M keeps the exact L kernel/config, deletes only the
-   optional bark IRQ from the final DTB, and prints platform-device, binding,
-   class, device-node, ramoops, kmsg-write, and filtered probe-log state before
-   opening the watchdog. It first requires the live kernel DT node to exist and
-   its `interrupts` property to remain absent, so an LK mutation cannot produce
-   a false registration conclusion. Two clean VM builds are recursively
-   identical; raw SHA-256 is
-   `a0a6c520fcc170ee0a422e66384559c50100ee65645811c331149beec8c347da`.
-   Its padded SHA-256
-   `53234ca7e81b23c77b0910e1e2bcdf54dc7a2984e28bbe9baac30ad26eeb7c2b`
-   was synchronized, block-flushed, and fully read back from live-resolved
-   logical `boot2`. Runtime remains untested. If `/dev/watchdog0` appears, the
-   optional IRQ path was causal; if it remains absent, instrument the exact
-   probe stages next. Do not repeat an identical L artifact. After an observable
-   TOPRGU return is established, test PSCI with two CPUs and then the
-   eight Cortex-A53 cores; keep the Cortex-A72 pair deferred if the reported
-   secure-firmware `CPU_ON` hang reproduces. Next add read-only eMMC discovery
-   and safe battery telemetry. Native DRM/panel, keyboard, charging policy,
-   storage writes, and connectivity follow only after each dependency has its
-   own reversible experiment.
+7. **P6 — Candidate M optional-IRQ discriminator: complete and passed.**
+   Candidate M kept Candidate L's exact kernel/configuration, deleted only the
+   optional bark IRQ from the final DTB as its hardware hypothesis, and added
+   a measurement-only `/init`. Two builds were identical and the exact padded
+   image was synchronized and fully read back from logical `boot2`. On its one
+   controlled selection, the console scrolled and stayed visible through the
+   watchdog progress, then returned to Gemian automatically. The recovered
+   `console-ramoops` contains the exact M marker and proves that the live DT
+   omission survived LK, `10007000.watchdog` bound to `mtk-wdt`, the probe
+   returned zero, `/dev/watchdog0` appeared, the timeout was 31 seconds,
+   pretimeout was unavailable, and one handoff ping armed the timer. The trace
+   reached `watchdog_wait=30s` and ended before the 35-second marker. Gemian
+   independently reported `wdt_by_pass_pwk`, `powerup_reason=reboot`, and both
+   PMIC watchdog-reboot flags set. This establishes the basic single-stage
+   TOPRGU timeout/reset and cross-version console-ramoops retention for this
+   exact revision. The L/M comparison strongly isolates the optional
+   IRQ-bearing path as L's registration blocker; it does not identify the
+   request errno or prove SPI137 polarity, bark, or pretimeout delivery. Do not
+   repeat unchanged M.
+8. **P7 — next gate: online CPU1 only after arming the proven watchdog.** Keep
+   M's one-CPU boot, no-IRQ watchdog, pstore layout, loader-simplefb/fbcon
+   observation path, storage-inert policy, kernel, DTB, and configuration. In
+   the external initramfs, mount only the sysfs instance required for CPU
+   hotplug, record `present`, `possible`, and `online`, arm the 31-second
+   watchdog first, and then request CPU1 online through its standard sysfs
+   control. Record the write result, post-request masks, CPU1 state, and bounded
+   PSCI/CPU kernel lines to the console and pstore; do not ping again. This
+   keeps any `CPU_ON` stall behind the already proven automatic recovery path
+   and avoids moving the failure boundary into pre-init boot with
+   `maxcpus=2`. A successful CPU1 online is the gate to test the remaining
+   Cortex-A53 cores incrementally. A failed or stalled request gets one source
+   audit before another device cycle. Keep both Cortex-A72 cores deferred until
+   the eight A53 path is understood. Read-only eMMC discovery and safe battery
+   telemetry follow; native DRM/panel, keyboard, charging policy, storage
+   writes, and connectivity remain separate reversible experiments.
 
 The exact handoff package, candidates, hashes, parser gates, and first runtime
 observation are recorded in the [LK handoff alignment result](../experiments/2026-07-16-lk-handoff-alignment/results/lk-handoff-candidate-20260716.txt)
@@ -228,7 +224,10 @@ pstore was empty. The unchanged gate is closed. The
 defines Candidate M's optional-IRQ omission and bounded decision oracle.
 Candidate M's exact [build reproduction](../experiments/2026-07-18-watchdog-registration-diagnostic/results/final-build-reproduction-20260718.txt)
 and [logical-`boot2` write/readback](../experiments/2026-07-18-watchdog-registration-diagnostic/results/boot2-write-candidate-m-20260718.txt)
-are complete; its one attended runtime selection is the next device action.
+are complete. Its [one attended runtime result](../experiments/2026-07-18-watchdog-registration-diagnostic/results/runtime-candidate-m-attempt-1-20260718.txt)
+passes the basic watchdog/reset/pstore decision oracle. The next device action
+must be a changed CPU1-online candidate with the watchdog armed before the
+request; unchanged M repetition is closed.
 
 ## Current evidence snapshot (2026-07-18)
 
@@ -329,12 +328,15 @@ was reproduced and fully read back from logical `boot2`. Its first intended
 selection was unattributable; its second strongly reached the unique tracked
 `watchdog0=waiting remaining=5s` initramfs line before the screen switched off.
 The adapter was connected but serial stayed silent. Manual power recovery led
-to Gemian with empty pstore and no watchdog-reset indicators. Candidate M now
-isolates that exact registration/probe boundary by omitting only the optional
-bark IRQ and adding a live-DT gate plus durable platform/binding/class/devnode
-diagnostics. It is built reproducibly and fully read back from logical
-`boot2`; one attended selection is next. Unchanged L is stopped, and the
-normal UART prerequisite remains operationally unmet.
+to Gemian with empty pstore and no watchdog-reset indicators. Candidate M then
+isolated that registration boundary by omitting only the optional bark IRQ as
+its hardware hypothesis. Its one attended run kept the console visible,
+registered and armed the basic watchdog, reached the durable 30-second marker,
+and returned automatically. Gemian recovered the exact M `console-ramoops` and
+reported a PMIC watchdog reset. Unchanged L and M are stopped. The normal UART
+prerequisite remains operationally unmet, but fbcon plus pstore plus the proven
+watchdog now provide the recovery-backed observation loop for the next CPU1
+gate.
 The prior 76-patch package has a regenerated private gzip+appended-DTB
 candidate that also parses against the retained LK contract; its candidate,
 initramfs, Image.gz, and Gemini DTB hashes are recorded in the [diagnostic

@@ -6,7 +6,7 @@
 | --- | --- |
 | ID | `2026-07-18-watchdog-registration-diagnostic` |
 | Candidate | M |
-| Status | Built reproducibly; synchronized and fully read back from logical `boot2`; runtime not tested |
+| Status | Runtime pass: watchdog registered without the optional IRQ, reset automatically, and retained `console-ramoops` survived into Gemian |
 | Subsystem | MT6797 TOPRGU watchdog platform probe, optional bark IRQ, ramoops observation |
 | Device variant | Current Gemini PDA unit; exact retail sub-variant not independently established |
 | Date | 2026-07-18 |
@@ -198,8 +198,32 @@ root, mount, holder, writable, size, and power gates passed. A fresh full
 mode-0600 private backup was preserved before the write. The write completed
 with `conv=fsync,notrunc`, explicit sync and block flush, and both the complete
 device checksum and a separately copied full readback match the padded image.
-The device remains in Gemian; no reboot or shutdown was performed.
+The write itself left the device in Gemian and did not reboot or shut it down.
 
 See the [independent build record](results/final-build-reproduction-20260718.txt)
 and [logical-`boot2` write/readback record](results/boot2-write-candidate-m-20260718.txt).
-Runtime remains untested, so no hardware-support state changes.
+
+The owner then selected logical `boot2` once. The console scrolled and remained
+visible while Candidate M reported watchdog progress, then the device returned
+to Gemian automatically. The immediate private capture recovered the exact M
+marker from `console-ramoops`. It records that the live DT had no watchdog
+`interrupts` property, `10007000.watchdog` probed successfully with `mtk-wdt`,
+`/dev/watchdog0` existed, the reported timeout was 31 seconds, and one handoff
+ping armed the timer. The durable trace reached `watchdog_wait=30s` and ended
+before the 35-second marker. Gemian independently reported
+`androidboot.bootreason=wdt_by_pass_pwk`, `powerup_reason=reboot`, and both PMIC
+watchdog-reboot indicators set.
+
+This passes the decision oracle: the basic no-IRQ TOPRGU watchdog registers,
+expires, automatically returns to the known-good OS, and preserves the mainline
+console across that warm reset. The exact Candidate L/M comparison strongly
+isolates the optional IRQ-bearing path as the registration blocker, but does
+not identify the request errno or prove anything about SPI137 polarity, bark,
+or pretimeout delivery. The retained loader simplefb/fbcon console worked for
+this complete bounded cycle; native display support and repeatability remain
+unproven. Do not repeat unchanged M.
+
+The complete sanitized evidence and claim boundaries are in the
+[runtime record](results/runtime-candidate-m-attempt-1-20260718.txt). Raw pstore
+remains mode `0600` below the Git-ignored
+`artifacts/device-pstore/candidate-M-runtime-1-post-auto-reset-20260718/`.
