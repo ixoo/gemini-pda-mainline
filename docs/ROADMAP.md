@@ -143,9 +143,12 @@ Priorities for the next controlled test are:
    inherited kernel keepalive, and then sends no further pings. The resulting
    reset and subsequent pstore collection are independently meaningful. A
    successful UART trace, recovered pstore record, watchdog reset, or absence
-   of all three lead to different next work. Candidate L is not yet
-   runtime-tested; do not claim a build or write until its validators and
-   device operation complete.
+   of all three lead to different next work. Its clean independent source
+   rebuild reproduced every non-timestamp package and candidate file, and its
+   exact padded image was synchronized, block-flushed, and fully read back from
+   live-resolved logical `boot2`. Candidate L is not yet runtime-tested; do not
+   infer kernel entry, UART, pstore retention, watchdog reset, or display
+   behavior from the successful write.
 7. **P6 — use Candidate L to isolate restart before widening the platform.**
    `reboot -f` requests `RB_AUTOBOOT`. Linux 7.1.3 invokes PSCI
    `SYSTEM_RESET` before the MT6797 TOPRGU watchdog fallback. The off-like state
@@ -190,18 +193,25 @@ Its attended observations are captured in the
 and [repeat report](../experiments/2026-07-17-clk-ignore-unused-diagnostic/results/runtime-candidate-j-repeat-report-20260717.txt).
 The cancelled Candidate K design and its historical write/readback are recorded
 in the [newline-boundary experiment](../experiments/2026-07-17-fbcon-newline-boundary-diagnostic/README.md).
-The current decision-changing gate is [Candidate L UART/pstore observability](../experiments/2026-07-17-uart-pstore-observability/README.md).
+The current decision-changing gate is [Candidate L UART/pstore observability](../experiments/2026-07-17-uart-pstore-observability/README.md). Its exact
+[independent reproduction](../experiments/2026-07-17-uart-pstore-observability/results/final-build-reproduction-20260717.txt)
+and [logical-`boot2` write/readback](../experiments/2026-07-17-uart-pstore-observability/results/boot2-write-candidate-l-20260717.txt)
+are complete; the one-shot attended runtime gate remains pending.
 
 ## Current evidence snapshot (2026-07-17)
 
 The repository has a reproducible Linux `7.1.3` baseline with a prepared arm64
-configuration and packaged kernel/DTB artifacts. The latest complete Image/DTB
-package is `linux-7.1.3-gemini-6116c9e7da3f` (77 patches, patchset SHA-256
-`6116c9e7da3fc2f56612029236a3bcd370c61f91b3c0951dd4e2c1915537f55e`); it was
-validated with `modules_built=false`, so it is an Image/DTB package rather
-than a module-inclusive rootfs artifact. Patch 0076 adds disabled-only AW9523
-matrix polarity properties. The 76-patch and 72-patch packages described below
-remains the baseline for most subsystem audits; the working series adds
+configuration and packaged kernel/DTB artifacts. The latest purpose-built
+observability package is
+`linux-7.1.3-gemini-observability-e1d4f6f3-a73fd870` (82 patches, patchset
+SHA-256 `e1d4f6f36b49c5f6064bd7344e31c69b05903ef2f37fa8d9af736035faf47a8a`).
+It was independently rebuilt from a fresh source extraction and validated with
+`modules_built=false`, so it is an Image/DTB package rather than a
+module-inclusive rootfs artifact. The broad 77-patch package
+`linux-7.1.3-gemini-6116c9e7da3f` remains the broad general subsystem-audit
+baseline, while the 76-patch and 72-patch packages described below retain
+their narrower historical evidence. Patch 0076 adds disabled-only AW9523
+matrix polarity properties; the working series also adds
 patches 0072–0073 for MT6797 SPI reuse and disabled SoC nodes, patch 0074 for
 the disabled hall candidate, and patch 0075 for the disabled NT36772 backend.
 The focused input follow-up is package
@@ -283,9 +293,10 @@ causality remain unestablished. Stop further J repetition; no matched-I
 rollback is authorized. Candidate K, an exact-J initramfs-only derivative, was
 synchronized and fully read back from `boot2`, then cancelled without a runtime
 selection because it offers no kernel/DT/configuration hypothesis. Candidate L
-   is now the next gate: corrected UART0 GPIO97/98 pinmux, cross-version
-   ramoops console recovery, and normalized watchdog dual-stage/auto-restart
-   provide independent, persistent observations.
+is already reproduced and fully read back from logical `boot2`; its one-shot
+attended selection is now the next gate. Corrected UART0 GPIO97/98 pinmux,
+cross-version ramoops console recovery, and normalized watchdog
+dual-stage/auto-restart provide independent, persistent observation paths.
 The normal UART prerequisite remains unmet; the experiment records the
 one-time alternative-recovery exception, observation, and stop path.
 The prior 76-patch package has a regenerated private gzip+appended-DTB
@@ -511,7 +522,7 @@ source/build evidence; the adjacent `current-72` or `current-package` record
 is authoritative for the present artifact.
 
 The table is the longer-term subsystem order. For the next boot's target,
-observability, and one-CPU scope, the 2026-07-16 P0–P4 plan at the top of this
+observability, and one-CPU scope, the 2026-07-16 P0–P6 plan at the top of this
 document supersedes the older first-row wording.
 
 | Priority | Area | Linux 7.1.3 reuse decision | Required new work or gate |

@@ -6,7 +6,7 @@
 | --- | --- |
 | ID | `2026-07-17-uart-pstore-observability` |
 | Candidate | L |
-| Status | Exploratory build and static validation passed; clean independent rebuild and runtime not tested |
+| Status | Clean independent rebuild and exact candidate reproduction passed; exported and synchronized to logical `boot2` with a matching full readback; runtime not tested |
 | Subsystem | UART0 pinctrl, ramoops/pstore, MT6797 watchdog restart, initramfs diagnostics |
 | Device variant | Current Gemini PDA unit; exact retail sub-variant not independently established |
 | Date | 2026-07-17 |
@@ -115,8 +115,9 @@ is recorded.
      --output artifacts/device-pstore/candidate-L-runtime-1
    ```
 
-2. After Candidate L's exact `boot2` write/readback record exists, select that
-   verified logical `boot2` once with the silver button.
+2. Candidate L's exact `boot2` write/readback is now recorded in
+   `results/boot2-write-candidate-l-20260717.txt`. Select that verified logical
+   `boot2` once with the silver button.
    Record any UART, screen, backlight, LED, USB, and automatic-return timing.
    Screen, backlight, and LED behavior are contextual observations only in this
    experiment: they neither establish a Candidate L kernel delta nor justify an
@@ -173,9 +174,19 @@ reboot during the write operation.
   `results/exact-live-ramoops-binary-audit-20260717.txt`
 - exploratory build, DT schema, exact LK binding, and negative-validator evidence
   in `results/exploratory-build-validation-20260717.txt`
+- clean independent source rebuild, normalized package/candidate comparison,
+  final negative-validator run, and host export evidence in
+  `results/final-build-reproduction-20260717.txt`
+- logical-`boot2` backup, write, sync, block flush, and full local readback
+  evidence in `results/boot2-write-candidate-l-20260717.txt`
 
-The exploratory raw image is 6,522,880 bytes with SHA-256
+The final fresh-source raw image is 6,522,880 bytes with SHA-256
 `5291832296106d36bc919671960b6150e530467057540a195bcf59e582ebb4c9`.
-That value is an exact builder gate, not yet a device claim. Clean independent
-build equality, write/readback evidence, and runtime observations will be added
-only after their respective gates pass.
+It was independently reproduced from a distinct fresh Linux 7.1.3 extraction,
+exported under the Git-ignored host artifacts tree, zero-padded to 16 MiB, and
+written only to the live-resolved logical `boot2`. The synchronized and
+block-flushed partition plus a separate full local readback both have SHA-256
+`22d6ea23053514c4b5ad5cc2cf9ecb41fb800318533cbe94604302134e80daea`.
+This proves artifact identity and partition synchronization only. Candidate L
+has not been selected or runtime-tested, so UART, pstore retention, watchdog
+restart, kernel entry, and display behavior remain unproven.

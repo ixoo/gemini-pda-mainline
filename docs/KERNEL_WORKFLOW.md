@@ -271,9 +271,13 @@ is compiled out and is not a cross-version recovery channel. Its initramfs write
 ownership-handoff ping to cancel the inherited kernel keepalive, and then holds
 the fd without further pings. The subsequent known-good Gemian boot can collect
 surviving pstore evidence. This must not be represented as runtime support
-before the candidate is built, validated, written, booted, and its evidence
-recovered. See the
-[Candidate L experiment](../experiments/2026-07-17-uart-pstore-observability/README.md).
+before the candidate is booted and its evidence recovered. Its distinct
+fresh-source rebuild, exact candidate reproduction, export, and full logical
+`boot2` write/readback are complete; those operations establish artifact and
+partition identity only. See the
+[Candidate L experiment](../experiments/2026-07-17-uart-pstore-observability/README.md),
+[reproduction result](../experiments/2026-07-17-uart-pstore-observability/results/final-build-reproduction-20260717.txt),
+and [write/readback result](../experiments/2026-07-17-uart-pstore-observability/results/boot2-write-candidate-l-20260717.txt).
 
 Before treating the series as submission-ready, run the pinned tree's review
 checker over every patch:
