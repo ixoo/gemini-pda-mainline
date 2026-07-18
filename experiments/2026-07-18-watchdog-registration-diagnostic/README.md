@@ -6,7 +6,7 @@
 | --- | --- |
 | ID | `2026-07-18-watchdog-registration-diagnostic` |
 | Candidate | M |
-| Status | Implementing and validating; not yet a boot candidate |
+| Status | Built reproducibly; synchronized and fully read back from logical `boot2`; runtime not tested |
 | Subsystem | MT6797 TOPRGU watchdog platform probe, optional bark IRQ, ramoops observation |
 | Device variant | Current Gemini PDA unit; exact retail sub-variant not independently established |
 | Date | 2026-07-18 |
@@ -173,6 +173,33 @@ remain mandatory.
 
 ## Result
 
-Not built or tested yet. Artifact hashes, independent reproduction, exact
-logical-`boot2` synchronization, and runtime evidence must be added before any
-support state changes.
+Two clean Linux/aarch64 VM builds from repository revision
+`2bcb668e566e1cee39da3bc002172c1d219da22c` are recursively byte-identical.
+The final artifact is:
+
+- raw boot image: `gemini-watchdog-registration.boot.img`;
+- raw size: `6522880` bytes;
+- raw SHA-256:
+  `a0a6c520fcc170ee0a422e66384559c50100ee65645811c331149beec8c347da`;
+- exact Candidate L `Image.gz` SHA-256:
+  `0c0d0e22c78b5b0d89b7a7363be55850b3f3474d3b4e7f922946747efbe164d3`;
+- Candidate M DTB SHA-256:
+  `c574762aa178cb5a7238400b499d2edcdd3acb3538d2255e916b041f2074c379`;
+  and
+- Candidate M initramfs SHA-256:
+  `e0edeceb127e08cd0b01749e289474479ccebe8f33995d39014d7dcf8c5b25fc`.
+
+The artifact is exported privately under
+`artifacts/vm-export/boot-candidates/candidate-M-watchdog-registration-2bcb668e/`.
+Its exact 16 MiB padded image SHA-256 is
+`53234ca7e81b23c77b0910e1e2bcdf54dc7a2984e28bbe9baac30ad26eeb7c2b`.
+The live GPT resolved one logical `boot2` at `/dev/mmcblk0p30`; all identity,
+root, mount, holder, writable, size, and power gates passed. A fresh full
+mode-0600 private backup was preserved before the write. The write completed
+with `conv=fsync,notrunc`, explicit sync and block flush, and both the complete
+device checksum and a separately copied full readback match the padded image.
+The device remains in Gemian; no reboot or shutdown was performed.
+
+See the [independent build record](results/final-build-reproduction-20260718.txt)
+and [logical-`boot2` write/readback record](results/boot2-write-candidate-m-20260718.txt).
+Runtime remains untested, so no hardware-support state changes.

@@ -177,9 +177,17 @@ Priorities for the next controlled test are:
    parent GIC. Candidate M keeps the exact L kernel/config, deletes only the
    optional bark IRQ from the final DTB, and prints platform-device, binding,
    class, device-node, ramoops, kmsg-write, and filtered probe-log state before
-   opening the watchdog. If `/dev/watchdog0` appears, the optional IRQ path was
-   causal; if it remains absent, instrument the exact probe stages next. Do not
-   repeat an identical L artifact. After an observable
+   opening the watchdog. It first requires the live kernel DT node to exist and
+   its `interrupts` property to remain absent, so an LK mutation cannot produce
+   a false registration conclusion. Two clean VM builds are recursively
+   identical; raw SHA-256 is
+   `a0a6c520fcc170ee0a422e66384559c50100ee65645811c331149beec8c347da`.
+   Its padded SHA-256
+   `53234ca7e81b23c77b0910e1e2bcdf54dc7a2984e28bbe9baac30ad26eeb7c2b`
+   was synchronized, block-flushed, and fully read back from live-resolved
+   logical `boot2`. Runtime remains untested. If `/dev/watchdog0` appears, the
+   optional IRQ path was causal; if it remains absent, instrument the exact
+   probe stages next. Do not repeat an identical L artifact. After an observable
    TOPRGU return is established, test PSCI with two CPUs and then the
    eight Cortex-A53 cores; keep the Cortex-A72 pair deferred if the reported
    secure-firmware `CPU_ON` hang reproduces. Next add read-only eMMC discovery
@@ -218,8 +226,11 @@ lost the screen and required manual recovery; connected serial was silent and
 pstore was empty. The unchanged gate is closed. The
 [registration audit](../experiments/2026-07-17-uart-pstore-observability/results/watchdog-registration-audit-20260718.txt)
 defines Candidate M's optional-IRQ omission and bounded decision oracle.
+Candidate M's exact [build reproduction](../experiments/2026-07-18-watchdog-registration-diagnostic/results/final-build-reproduction-20260718.txt)
+and [logical-`boot2` write/readback](../experiments/2026-07-18-watchdog-registration-diagnostic/results/boot2-write-candidate-m-20260718.txt)
+are complete; its one attended runtime selection is the next device action.
 
-## Current evidence snapshot (2026-07-17)
+## Current evidence snapshot (2026-07-18)
 
 The repository has a reproducible Linux `7.1.3` baseline with a prepared arm64
 configuration and packaged kernel/DTB artifacts. The latest purpose-built
@@ -318,10 +329,12 @@ was reproduced and fully read back from logical `boot2`. Its first intended
 selection was unattributable; its second strongly reached the unique tracked
 `watchdog0=waiting remaining=5s` initramfs line before the screen switched off.
 The adapter was connected but serial stayed silent. Manual power recovery led
-to Gemian with empty pstore and no watchdog-reset indicators. The next gate is
-the exact watchdog registration/probe boundary: make one source-backed
-kernel/DT/configuration fix with a durable discriminator. Unchanged L is
-stopped, and the normal UART prerequisite remains operationally unmet.
+to Gemian with empty pstore and no watchdog-reset indicators. Candidate M now
+isolates that exact registration/probe boundary by omitting only the optional
+bark IRQ and adding a live-DT gate plus durable platform/binding/class/devnode
+diagnostics. It is built reproducibly and fully read back from logical
+`boot2`; one attended selection is next. Unchanged L is stopped, and the
+normal UART prerequisite remains operationally unmet.
 The prior 76-patch package has a regenerated private gzip+appended-DTB
 candidate that also parses against the retained LK contract; its candidate,
 initramfs, Image.gz, and Gemini DTB hashes are recorded in the [diagnostic

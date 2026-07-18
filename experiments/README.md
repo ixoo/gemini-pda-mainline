@@ -221,6 +221,12 @@ the result.
   appended DTB, and replaces only initramfs `/init`. A live-DT gate plus
   platform, driver, class, devnode, ramoops, kmsg, and filtered-dmesg evidence
   distinguishes an IRQ-blocked registration from the next probe-stage fault.
+  Two clean VM builds are recursively identical; raw SHA-256 is
+  `a0a6c520fcc170ee0a422e66384559c50100ee65645811c331149beec8c347da`.
+  Its synchronized, flushed logical-`boot2` target and complete readback match
+  padded SHA-256
+  `53234ca7e81b23c77b0910e1e2bcdf54dc7a2984e28bbe9baac30ad26eeb7c2b`.
+  Runtime is not tested.
 - [2026-07-14 live vendor-to-mainline gap audit](2026-07-14-live-vendor-mainline-gap-audit/README.md)
   — read-only comparison of the live Gemian vendor contracts with the current
   Linux 7.1.3 handoff and first-boot boundaries.
