@@ -236,6 +236,16 @@ the result.
   native display, SMP, or repeatability. See the
   [runtime record](2026-07-18-watchdog-registration-diagnostic/results/runtime-candidate-m-attempt-1-20260718.txt);
   do not repeat unchanged M.
+- [2026-07-18 CPU1 online diagnostic](2026-07-18-cpu1-online-diagnostic/README.md)
+  — Candidate N is the next bounded gate. It retains Candidate M's exact
+  kernel, embedded configuration, no-IRQ DTB, LK container contract, pstore,
+  fbcon, and 31-second recovery timer, changing only initramfs `/init`. The
+  exact kernel already has SMP, CPU hotplug, PSCI, and sysfs; the intended
+  first secondary DT CPU is Cortex-A53 MPIDR `0x1`, and N gates the live CPU1
+  `of_node` against it. N arms the watchdog before writing
+  `1` exactly once to CPU1's standard `online` control, then records the return,
+  masks, kernel lines, and CPU1 accounting without retrying or pinging again.
+  Static validation and reproducible packaging are pending.
 - [2026-07-14 live vendor-to-mainline gap audit](2026-07-14-live-vendor-mainline-gap-audit/README.md)
   — read-only comparison of the live Gemian vendor contracts with the current
   Linux 7.1.3 handoff and first-boot boundaries.

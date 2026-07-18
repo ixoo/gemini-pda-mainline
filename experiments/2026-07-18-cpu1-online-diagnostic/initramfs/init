@@ -1,0 +1,267 @@
+#!/bin/busybox sh
+# shellcheck shell=dash
+
+export PATH=/bin
+readonly MARKER="GEMINI_CPU1_ONLINE_20260718_N"
+readonly STATUS_FILE=/run/cpu1-online-status
+readonly CPU1_ERROR_FILE=/run/cpu1-online-error
+readonly CPU1_ONLINE_PATH=/sys/devices/system/cpu/cpu1/online
+readonly WATCHDOG_WAIT_SECONDS=10
+readonly WATCHDOG_TIMEOUT_SECONDS=31
+readonly WATCHDOG_FAILURE_SECONDS=40
+
+# /dev/null does not exist until devtmpfs is mounted. This must be first and
+# must not be redirected.
+if ! mount -t devtmpfs -o nosuid,mode=0755 devtmpfs /dev; then
+	printf '%s\n' "$MARKER devtmpfs=failed; STATIC HOLD"
+	while :; do
+		sleep 3600
+	done
+fi
+procfs_status=failed
+sysfs_status=failed
+if mount -t proc -o ro,nosuid,nodev,noexec proc /proc 2>/dev/null; then
+	procfs_status=mounted
+fi
+# Candidate N requires one standard CPU-hotplug write. No other sysfs path is
+# written by this initramfs.
+if mount -t sysfs -o rw,nosuid,nodev,noexec sysfs /sys 2>/dev/null; then
+	sysfs_status=mounted-rw
+fi
+
+emit_tty() {
+	for output in /dev/console /dev/tty0 /dev/ttyS0; do
+		if [ -c "$output" ]; then
+			printf '%s\n' "$*" >"$output" 2>/dev/null || true
+		fi
+	done
+}
+
+record() {
+	printf '%s\n' "$*" >>"$STATUS_FILE"
+	if [ -c /dev/kmsg ]; then
+		printf '<6>%s\n' "$*" >/dev/kmsg 2>/dev/null || true
+	fi
+	emit_tty "$*"
+}
+
+driver_name() {
+	driver_link=$1
+	if [ ! -L "$driver_link" ]; then
+		printf '%s' unbound
+		return
+	fi
+	driver_target="$(/bin/busybox readlink "$driver_link" 2>/dev/null || true)"
+	printf '%s' "${driver_target##*/}"
+}
+
+read_value() {
+	value_path=$1
+	if [ -r "$value_path" ]; then
+		value="$(cat "$value_path" 2>/dev/null || true)"
+		printf '%s' "${value:-unreadable}"
+	else
+		printf '%s' unavailable
+	fi
+}
+
+read_dt_string() {
+	dt_path=$1
+	if [ -r "$dt_path" ]; then
+		/bin/busybox tr -d '\000' <"$dt_path" 2>/dev/null || true
+	fi
+}
+
+record_cpu_state() {
+	state_phase=$1
+	for cpu_attribute in possible present online offline; do
+		cpu_value="$(read_value "/sys/devices/system/cpu/$cpu_attribute")"
+		record "$MARKER cpu_state=$state_phase $cpu_attribute=$cpu_value"
+	done
+	if [ -d /sys/devices/system/cpu/cpu1 ]; then
+		record "$MARKER cpu_state=$state_phase cpu1_device=present cpu1_online=$(read_value "$CPU1_ONLINE_PATH")"
+	else
+		record "$MARKER cpu_state=$state_phase cpu1_device=absent cpu1_online=unavailable"
+	fi
+}
+
+record_cpu_log() {
+	dmesg | grep -Ei 'psci|CPU[[:space:]]*1|CPU1|cpu1|secondary processor|smp:' \
+		| grep -Fv "$MARKER" \
+		| /bin/busybox tail -n 20 \
+		| while IFS= read -r cpu_line; do
+			record "$MARKER cpu_log=$cpu_line"
+		done
+}
+
+record_cpu1_stat_samples() {
+	cpu1_stat_first="$(grep '^cpu1 ' /proc/stat 2>/dev/null || true)"
+	record "$MARKER cpu1_stat_sample=1 value=${cpu1_stat_first:-absent}"
+	sleep 2
+	cpu1_stat_second="$(grep '^cpu1 ' /proc/stat 2>/dev/null || true)"
+	record "$MARKER cpu1_stat_sample=2 value=${cpu1_stat_second:-absent}"
+	if [ -n "$cpu1_stat_first" ] && [ "$cpu1_stat_first" != "$cpu1_stat_second" ]; then
+		record "$MARKER cpu1_accounting=advanced"
+	else
+		record "$MARKER cpu1_accounting=not-established"
+	fi
+}
+
+validate_live_dtb_contract() {
+	live_watchdog_node=/sys/firmware/devicetree/base/watchdog@10007000
+	live_cpu1_node=/sys/firmware/devicetree/base/cpus/cpu@1
+	if [ ! -d "$live_watchdog_node" ]; then
+		record "$MARKER live_watchdog_node=unavailable"
+		return 1
+	fi
+	if [ -e "$live_watchdog_node/interrupts" ]; then
+		record "$MARKER live_watchdog_interrupts=present"
+		return 1
+	fi
+	record "$MARKER live_watchdog_interrupts=absent"
+	if [ ! -d "$live_cpu1_node" ]; then
+		record "$MARKER live_cpu1_node=unavailable"
+		return 1
+	fi
+	cpu1_compatible="$(read_dt_string "$live_cpu1_node/compatible")"
+	cpu1_enable_method="$(read_dt_string "$live_cpu1_node/enable-method")"
+	record "$MARKER live_cpu1 compatible=${cpu1_compatible:-unavailable} enable_method=${cpu1_enable_method:-unavailable}"
+	[ "$cpu1_compatible" = arm,cortex-a53 ] || return 1
+	[ "$cpu1_enable_method" = psci ] || return 1
+	return 0
+}
+
+wait_for_watchdog_reset() {
+	wait_reason=$1
+	elapsed=0
+	while [ "$elapsed" -lt "$WATCHDOG_FAILURE_SECONDS" ]; do
+		sleep 1
+		elapsed=$((elapsed + 1))
+		case "$elapsed" in
+			5|10|15|20|25|30|35|40)
+			record "$MARKER post_action_wait=${elapsed}s reason=$wait_reason cpu1_online=$(read_value "$CPU1_ONLINE_PATH") global_online=$(read_value /sys/devices/system/cpu/online)"
+			;;
+		esac
+	done
+	record "$MARKER watchdog_expiry_failed; STATIC HOLD"
+	while :; do
+		sleep 3600
+	done
+}
+
+: >"$STATUS_FILE"
+emit_tty "$MARKER stage=initramfs-entered"
+if [ -c /dev/kmsg ] && \
+	printf '<6>%s\n' "$MARKER kmsg_probe=write" >/dev/kmsg 2>/dev/null; then
+	emit_tty "$MARKER kmsg_write=success"
+else
+	emit_tty "$MARKER kmsg_write=failed"
+fi
+record "$MARKER kernel=$(uname -r)"
+record "$MARKER storage_access=none runtime_networking=none"
+record "$MARKER kernel_dtb_config=exact-candidate-M cpu_test=cpu1-only"
+record "$MARKER procfs=$procfs_status sysfs=$sysfs_status"
+if [ "$sysfs_status" != mounted-rw ]; then
+	record "$MARKER sysfs=failed diagnostic=invalid; STATIC HOLD"
+	while :; do
+		sleep 3600
+	done
+fi
+if ! validate_live_dtb_contract; then
+	record "$MARKER live_dtb_contract=invalid; STATIC HOLD"
+	while :; do
+		sleep 3600
+	done
+fi
+
+watchdog_platform=/sys/bus/platform/devices/10007000.watchdog
+remaining=$WATCHDOG_WAIT_SECONDS
+while [ "$remaining" -gt 0 ] && [ ! -c /dev/watchdog0 ]; do
+	record "$MARKER watchdog_wait_for_device=${remaining}s platform=$([ -d "$watchdog_platform" ] && printf present || printf absent) driver=$(driver_name "$watchdog_platform/driver")"
+	sleep 1
+	remaining=$((remaining - 1))
+done
+if [ ! -c /dev/watchdog0 ]; then
+	record "$MARKER watchdog0=missing; STATIC HOLD"
+	while :; do
+		sleep 3600
+	done
+fi
+for watchdog_attribute in identity timeout pretimeout status; do
+	record "$MARKER watchdog_${watchdog_attribute}=$(read_value "/sys/class/watchdog/watchdog0/$watchdog_attribute")"
+done
+
+record "$MARKER watchdog0=opening"
+# Arm recovery before the only CPU_ON request. One immediate ownership-handoff
+# ping cancels the inherited keepalive; fd 3 remains open and is never pinged
+# again, so a blocked PSCI call still has a hardware reset boundary.
+if exec 3>/dev/watchdog0; then
+	if printf '.' >&3; then
+		record "$MARKER watchdog0=armed handoff_ping=sent timeout_seconds=$WATCHDOG_TIMEOUT_SECONDS cpu1_request_after_arm=yes"
+	else
+		record "$MARKER watchdog0=handoff-ping-failed; STATIC HOLD"
+		while :; do
+			sleep 3600
+		done
+	fi
+else
+	record "$MARKER watchdog0=open-failed; STATIC HOLD"
+	while :; do
+		sleep 3600
+	done
+fi
+
+record_cpu_state pre-request
+record_cpu_log
+if [ ! -d /sys/devices/system/cpu/cpu1 ]; then
+	record "$MARKER cpu1_precondition=device-absent"
+	wait_for_watchdog_reset precondition-failed
+fi
+if [ ! -L /sys/devices/system/cpu/cpu1/of_node ]; then
+	record "$MARKER cpu1_precondition=of-node-link-absent"
+	wait_for_watchdog_reset precondition-failed
+fi
+cpu1_of_node="$(/bin/busybox readlink /sys/devices/system/cpu/cpu1/of_node 2>/dev/null || true)"
+record "$MARKER cpu1_of_node=${cpu1_of_node:-unavailable}"
+case "$cpu1_of_node" in
+	*/cpus/cpu@1) ;;
+	*)
+		record "$MARKER cpu1_precondition=unexpected-of-node"
+		wait_for_watchdog_reset precondition-failed
+		;;
+esac
+if [ ! -w "$CPU1_ONLINE_PATH" ]; then
+	record "$MARKER cpu1_precondition=online-control-not-writable value=$(read_value "$CPU1_ONLINE_PATH")"
+	wait_for_watchdog_reset precondition-failed
+fi
+cpu1_initial="$(read_value "$CPU1_ONLINE_PATH")"
+if [ "$cpu1_initial" != 0 ]; then
+	record "$MARKER cpu1_precondition=expected-offline actual=$cpu1_initial"
+	wait_for_watchdog_reset precondition-failed
+fi
+
+: >"$CPU1_ERROR_FILE"
+record "$MARKER cpu1_request=begin target=cpu1 requested_state=online"
+if printf '1\n' >"$CPU1_ONLINE_PATH" 2>"$CPU1_ERROR_FILE"; then
+	cpu1_request_status=success
+else
+	cpu1_request_status="failed-exit-$?"
+fi
+record "$MARKER cpu1_request=returned status=$cpu1_request_status"
+if [ -s "$CPU1_ERROR_FILE" ]; then
+	/bin/busybox tail -n 4 "$CPU1_ERROR_FILE" | while IFS= read -r error_line; do
+		record "$MARKER cpu1_write_error=$error_line"
+	done
+else
+	record "$MARKER cpu1_write_error=none"
+fi
+record_cpu_state post-request
+record_cpu_log
+cpu1_final="$(read_value "$CPU1_ONLINE_PATH")"
+if [ "$cpu1_request_status" = success ] && [ "$cpu1_final" = 1 ]; then
+	record_cpu1_stat_samples
+	record "$MARKER cpu1_result=online SUCCESS"
+	wait_for_watchdog_reset cpu1-online
+fi
+record "$MARKER cpu1_result=not-online request_status=$cpu1_request_status final=$cpu1_final"
+wait_for_watchdog_reset cpu1-not-online
