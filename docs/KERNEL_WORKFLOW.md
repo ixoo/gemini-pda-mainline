@@ -278,6 +278,23 @@ partition identity only. See the
 [Candidate L experiment](../experiments/2026-07-17-uart-pstore-observability/README.md),
 [reproduction result](../experiments/2026-07-17-uart-pstore-observability/results/final-build-reproduction-20260717.txt),
 and [write/readback result](../experiments/2026-07-17-uart-pstore-observability/results/boot2-write-candidate-l-20260717.txt).
+Attempt 1 showed the LK splash and then black; manual recovery and delayed
+collection found no pstore marker. Attempt 2 showed console output through the
+exact suffix `remaining 5s`, unique to Candidate L's tracked
+`watchdog0=waiting` loop. Combined with the verified target, this strongly
+supports kernel, loader-simplefb/fbcon, devtmpfs, and `/init` entry and
+establishes that `/dev/watchdog0` was absent at that check. Connected serial
+was silent. The screen switched off, automatic return was not observed, manual
+power recovery was required, and immediate pstore was empty. Do not rebuild or
+select unchanged L. The source audit found that the falling-edge SPI is
+correctly translated by the inherited MediaTek SYSIRQ hierarchy, so changing
+its polarity would be an unsupported guess. Candidate M instead removes only
+the optional bark IRQ from the final diagnostic DTB, keeps the exact L kernel
+and config, and emits the platform/driver/class/probe state before attempting
+the basic watchdog reset. See
+[attempt 1](../experiments/2026-07-17-uart-pstore-observability/results/runtime-candidate-l-attempt-1-20260718.txt)
+and [attempt 2](../experiments/2026-07-17-uart-pstore-observability/results/runtime-candidate-l-attempt-2-20260718.txt),
+plus the [registration audit](../experiments/2026-07-17-uart-pstore-observability/results/watchdog-registration-audit-20260718.txt).
 
 Before treating the series as submission-ready, run the pinned tree's review
 checker over every patch:

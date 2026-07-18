@@ -218,9 +218,14 @@ evidence. The exact binary and pinned source independently support the primary
 layout. Mainline pmsg supplies address alignment and is not a recovery
 channel. A distinct fresh-source build reproduced all non-timestamp package and
 candidate content, and the final image was exported, synchronized to logical
-`boot2`, block-flushed, and fully read back. Candidate L has not been selected
-or runtime-tested; the successful partition operation establishes no boot,
-console, reset, pstore, USB, or display behavior.
+`boot2`, block-flushed, and fully read back. Attempt 1 showed LK splash then
+black and was unattributable. Attempt 2 showed console output through exact
+suffix `remaining 5s`, unique to Candidate L's tracked watchdog-device wait
+loop. This strongly supports kernel, loader-simplefb/fbcon, and `/init` entry,
+and establishes that `/dev/watchdog0` was absent at that check. Connected
+serial was silent; manual recovery was required, and immediate pstore was
+empty. No watchdog open, bark, expiry, automatic return, UART function, pstore
+retention, USB, or native-display behavior is established.
 The following map is the implementation boundary for the baseline candidate; it is
 deliberately grouped by dependency rather than treating every patch as a new
 driver.
@@ -238,7 +243,7 @@ driver.
 | 0058–0065 | Panfrost, DPI, PMIC parent fix, SCPSYS/AFE bindings, DVFSP deferral | Reuse Panfrost/DRM/PMIC/SCPSYS/ASoC frameworks; keep undocumented DVFSP out | Panfrost/DPI/AFE consumers remain disabled or module-only | Validate each consumer’s clocks, resets, IOMMU, supplies, and firmware boundary independently |
 | 0066–0071 | USB T-PHY/MTU3/xHCI/MUSB and MSDC pinmux policy | Reuse generic USB cores with MT6797 glue and source-derived split windows; use pinmux-only MSDC state | USB nodes remain disabled; built-in code is package capability, not probe evidence | Gadget-only console first, then role/VBUS and PHY tests with external recovery |
 | 0072–0076 | SPI aliases/nodes, hall input, NT36772 boundary, keyboard polarity | Reuse generic SPI and input frameworks where the captured protocol matches; keep every new board consumer disabled | The 77-patch package validates, but these additions have no current-mainline runtime result | Test one bounded consumer at a time with exact identity and recovery evidence |
-| 0077–0081 | MTU3 diagnostic, UART/pstore/restart observability | Reuse generic MediaTek USB, 8250, pstore, and watchdog facilities; add only captured board data and narrowly scoped MT6797 watchdog policy | The USB candidate remains a failed host-observation gate. K was an initramfs-only derivative and is cancelled without runtime. Candidate L adds GPIO97/98 UART0 pinmux, exact mainline-console/active-Gemian primary `console-ramoops` alignment, and watchdog auto-restart plus IRQ-dependent dual-stage policy. Its clean fresh-source rebuild and exact candidate reproduction pass, and its logical-`boot2` write has a matching full readback; pmsg supplies address alignment and is explicitly not cross-version evidence. No L runtime behavior is established. | Perform one attended L boot that can discriminate UART output, surviving console evidence after watchdog reset, and no-entry/no-reset. Do not repeat K or unchanged L. Keep USB host, VBUS, Type-C, and charging conclusions separate. |
+| 0077–0081 | MTU3 diagnostic, UART/pstore/restart observability | Reuse generic MediaTek USB, 8250, pstore, and watchdog facilities; add only captured board data and narrowly scoped MT6797 watchdog policy | The USB candidate remains a failed host-observation gate. K was an initramfs-only derivative and is cancelled without runtime. Candidate L adds GPIO97/98 UART0 pinmux, exact mainline-console/active-Gemian primary `console-ramoops` alignment, and watchdog auto-restart plus IRQ-dependent dual-stage policy. Its clean fresh-source rebuild and exact candidate reproduction pass, and its logical-`boot2` write has a matching full readback; pmsg supplies address alignment and is explicitly not cross-version evidence. L attempt 2 strongly reached the tracked `/init` suffix `watchdog0=waiting remaining=5s`; connected serial was silent, the screen switched off, manual recovery was required, and pstore was empty. Kernel/fbcon/`/init` entry is strongly supported, while `/dev/watchdog0` was absent at the last visible check and no watchdog, UART, retention, USB, or native-display result is established. | Do not repeat K or unchanged L. Candidate M keeps L's exact kernel/config, omits only the optional bark IRQ from its final DTB, and adds early watchdog binding/probe diagnostics. A blind rising- or level-trigger change is rejected because MediaTek SYSIRQ translates the evidenced falling edge for its parent GIC. Keep USB host, VBUS, Type-C, and charging conclusions separate. |
 
 The [current driver-coverage audit](../experiments/2026-07-13-driver-coverage-audit/results/driver-coverage-current-77-package-20260714.txt), [first-boot dependency audit](../experiments/2026-07-14-first-boot-probe-audit/results/first-boot-probe-audit-current-77-package-20260714.txt), [77-patch package validation](../experiments/2026-07-12-input-backlight-recovery/results/mainline-display-input-current-77-package-20260714.txt), [USB diagnostic experiment](../experiments/2026-07-16-usb-gadget-diagnostic/README.md), [broad unused-clock diagnostic](../experiments/2026-07-17-clk-ignore-unused-diagnostic/README.md), [cancelled newline-boundary diagnostic](../experiments/2026-07-17-fbcon-newline-boundary-diagnostic/README.md), and [UART/pstore observability experiment](../experiments/2026-07-17-uart-pstore-observability/README.md) provide the corresponding evidence boundaries. The older subsystem records remain content audits where later patches do not touch their inputs. This table is a design map, not a claim that any disabled, module-only, or diagnostic path works on hardware.
 Candidate J's partition operation is separately recorded in its
@@ -253,7 +258,12 @@ Candidate L's final software identity is recorded in its
 [independent reproduction result](../experiments/2026-07-17-uart-pstore-observability/results/final-build-reproduction-20260717.txt),
 and its partition operation is separately recorded in its
 [full write/readback result](../experiments/2026-07-17-uart-pstore-observability/results/boot2-write-candidate-l-20260717.txt).
-It has not been selected or runtime-tested.
+Its first unattributable observation is recorded in
+[attempt 1](../experiments/2026-07-17-uart-pstore-observability/results/runtime-candidate-l-attempt-1-20260718.txt),
+and the strongly attributed initramfs/watchdog-discovery boundary is recorded
+in [attempt 2](../experiments/2026-07-17-uart-pstore-observability/results/runtime-candidate-l-attempt-2-20260718.txt).
+The exact interrupt hierarchy and Candidate M discriminator are recorded in
+the [watchdog registration audit](../experiments/2026-07-17-uart-pstore-observability/results/watchdog-registration-audit-20260718.txt).
 
 ## Decision records
 

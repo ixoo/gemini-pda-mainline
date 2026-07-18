@@ -161,12 +161,24 @@ board data; do not write a new MT6797 watchdog implementation. The vendor
 watchdog’s active keepalive and absence of a standard watchdog node make a
 mainline boot test safety-sensitive, not evidence of a missing driver.
 
+Runtime evidence on 2026-07-18 supersedes the earlier assumption that adding
+the bark IRQ was ready for first use. Candidate L reached external `/init`, but
+`/dev/watchdog0` was absent through its reported `remaining=5s` check. The
+falling edge is not itself invalid: the inherited MediaTek SYSIRQ driver
+programs the polarity inverter and translates it to a rising edge for the
+parent GIC. The optional mapping/request path remains unproven, however, and
+`mtk_wdt_probe()` returns before watchdog registration if that request fails.
+The next diagnostic therefore omits the optional IRQ while retaining the
+generic MMIO watchdog; it does not guess a different polarity. See the
+[registration audit](../2026-07-17-uart-pstore-observability/results/watchdog-registration-audit-20260718.txt).
+
 ## Follow-up
 
 - [Mainline watchdog design result](results/mt6797-watchdog-mainline-design.md)
 - [Source audit output](results/mt6797-watchdog-source-audit.txt)
 - [Hardware support matrix](../../docs/HARDWARE_SUPPORT.md)
 - [Live resource map](../../docs/hardware/mt6797-live-resource-map.md)
+- [Candidate L registration audit](../2026-07-17-uart-pstore-observability/results/watchdog-registration-audit-20260718.txt)
 
 The next test is a mainline boot with an explicit watchdog safety decision:
 either keep the node/driver disabled until TOPRGU state is known quiescent, or

@@ -1,0 +1,115 @@
+[record]
+date=2026-07-18
+source=owner-attended visual and serial observation plus immediate authenticated post-recovery capture
+candidate=L
+attempt=2
+intended_boot_target=logical boot2 selected with the silver button
+device_variant=current Gemini PDA unit; exact retail sub-variant not independently established
+
+[artifact_and_target_evidence]
+raw_boot_image_sha256=5291832296106d36bc919671960b6150e530467057540a195bcf59e582ebb4c9
+installed_full_partition_bytes=16777216
+installed_full_partition_sha256=22d6ea23053514c4b5ad5cc2cf9ecb41fb800318533cbe94604302134e80daea
+write_sync_flush=pass
+full_partition_readback=pass-byte-identical-to-padded-candidate
+candidate_l_selection=intended-by-owner
+independent_selected-image_identity=not-established-before-kernel-output
+
+[owner_observation]
+lk_splash=not-explicitly-reported-for-attempt-2
+console_after_boot2_selection=visible-briefly
+console_content=boot-output-followed-by-a-countdown-like-line
+last_visible_suffix=... remaining 5s
+exact_full_line_transcription=no
+photograph_or_video=none
+screen_transition=console-visible-through-remaining-5s-then-screen-off
+selection_to_screen_off_wall_time=not-stopwatch-measured
+screen_off_to_manual_power_press_wall_time=not-recorded
+serial_adapter=connected
+serial_capture_parameters=not-recorded
+serial_wiring_and_adapter_provenance=not-recorded-in-this-attempt
+serial_bytes_observed=none
+automatic_return=not-observed
+recovery_action=owner pressed the power button
+known_good_os_after_recovery=Gemian Linux 3.18.41+
+backlight_after_screen_off=not-recorded
+usb_after_screen_off=not-recorded
+led_state=not-recorded
+heat_or_power_anomaly=not-reported
+
+[tracked_line_attribution]
+tracked_candidate_l_line=GEMINI_OBSERVABILITY_20260717_L watchdog0=waiting remaining=5s
+tracked_source=experiments/2026-07-17-uart-pstore-observability/initramfs/init
+tracked_source_sha256=70f4074656acd073e8146d25047ad7e3af09674bb67b6801418e04cdf8573130
+repository_uniqueness=watchdog0=waiting occurs only in tracked Candidate L init
+line_position=after devtmpfs mount, initial Candidate L records, and five completed one-second waits in the watchdog-device discovery loop
+attribution_strength=strong-combined-evidence
+attribution_basis=verified exact Candidate L boot2 write/readback plus intended selection plus exact unique visible suffix
+candidate_l_kernel_entry=strongly-supported-for-this-attempt
+fbcon_tty0_visible_output=strongly-supported-for-this-attempt
+candidate_l_initramfs_entry=strongly-attributed-for-this-attempt
+devtmpfs_mount=strongly-attributed-success
+minimum_watchdog_discovery_loop_progress=five-completed-one-second-sleeps
+watchdog0_at_last_visible_check=absent
+watchdog0_later_registration=unknown-after-screen-loss
+
+[immediate_post_recovery_capture]
+known_good_gemian_boot_time_utc=2026-07-18T13:41:22Z
+collector_started_utc=2026-07-18T13:45:45Z
+collector_waited_for_cycle=no; collection began after the owner had already recovered Gemian
+capture_kernel=3.18.41+
+capture_arch=aarch64
+post_recovery_boot_id_sha256=b04d09b76df2b5626383779058131b38b7651b372dd2efdbaef8cd9f15926cf3
+boot_reason=power_key
+powerup_reason=keypad
+boot_reason_interpretation=matches-the-owner-reported-manual-power-button-recovery; not Candidate L watchdog evidence
+pmic_battery_remove=0
+pmic_wdt_reboot=0
+pmic_wdt_reboot_check=0
+aed_wdt_status=0
+aed_fiq_step=0
+aed_exception_type=0
+last_kmsg_ram_console_status=zero
+pstore_directory=present
+pstore_files=none
+console_ramoops=absent
+candidate_kernel_identity_in_pstore=absent
+initramfs_marker_in_pstore=absent
+watchdog_handoff_marker_in_pstore=absent
+watchdog_pretimeout_evidence=absent
+ramoops_mem_address=0x44410000
+ramoops_mem_size=0x000e0000
+ramoops_record_size=0x00001000
+ramoops_console_size=0x00010000
+ramoops_pmsg_size=0x00010000
+ramoops_ftrace_size=0x00001000
+private_capture=artifacts/device-pstore/candidate-L-runtime-2-post-console-20260718
+private_capture_sha256s_manifest_sha256=ea8fc23940631332b56cb84bddfe41c691bc8e34c5a3821e4956e1cee7a9c2d9
+private_capture_manifest_verification=pass
+
+[attribution_boundaries]
+watchdog_device_available_by_remaining_5s=no
+watchdog_open=not-established
+watchdog_handoff_ping=not-established
+watchdog_bark=not-established
+watchdog_expiry=not-established
+watchdog_auto_return=not-achieved-as-observed
+serial_path=connected-but-silent; physical fault versus tty registration, console naming, baud, pinmux, or electrical path remains unresolved
+ramoops_warm_reset_retention=not-established; manual power recovery can erase or invalidate the only candidate record
+display_result=loader-simplefb/fbcon output strongly supported for this attempt; native display support remains untested
+screen_off_cause=unresolved between display-path loss and wider off-like or halted state
+screen_off_temporal_causality=not-established; following the remaining-5s line does not show that the line or watchdog caused it
+
+[interpretation]
+primary_result=Candidate L strongly reached its tracked initramfs watchdog-device discovery loop through the unique remaining-5s line
+watchdog_result=/dev/watchdog0 was absent at the last visible check, so the intended open, handoff ping, bark, and expiry path cannot be claimed
+recovery_result=automatic return was not observed; the subsequent known-good boot was manually power-key initiated and carries no watchdog-reset indicator
+pstore_result=empty after manual recovery; negative recovery observation but not proof that Candidate L ramoops failed to initialize or retain across a true warm reset
+uart_result=no serial bytes under the connected test setup; retire UART as the primary observation path on this unit unless a separate electrical or console-specific change is tested
+support_matrix_promotion=none-categorical; bounded boot and loader-simplefb-fbcon narrative updated only
+
+[next_action]
+unchanged_candidate_l_retry=stop
+immediate_engineering_gate=audit why the built-in MT6797 watchdog did not create /dev/watchdog0 before the tracked remaining-5s line
+required_next_candidate=one source-backed kernel/DT/configuration fix for watchdog registration or a durable independent probe-failure channel; no marker-only derivative
+serial_policy=may be recorded as a secondary channel on a changed candidate but must not be the sole success criterion

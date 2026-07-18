@@ -6,7 +6,7 @@
 | --- | --- |
 | ID | `2026-07-17-uart-pstore-observability` |
 | Candidate | L |
-| Status | Clean independent rebuild and exact candidate reproduction passed; exported and synchronized to logical `boot2` with a matching full readback; runtime not tested |
+| Status | Attempt 1 was unattributable; attempt 2 strongly reached tracked `/init` line `watchdog0=waiting remaining=5s`, then the screen switched off; connected serial was silent, manual power recovery was required, and pstore remained empty; Candidate M's optional-IRQ discriminator is defined and unchanged L repetition is stopped |
 | Subsystem | UART0 pinctrl, ramoops/pstore, MT6797 watchdog restart, initramfs diagnostics |
 | Device variant | Current Gemini PDA unit; exact retail sub-variant not independently established |
 | Date | 2026-07-17 |
@@ -99,11 +99,49 @@ when a later watchdog marker survives.
 | Only USB becomes reachable | Capture the persistent markers and USB evidence, then keep USB as a secondary channel; it does not replace the pstore/watchdog gate. |
 | No unique marker on any channel | The attempt is unattributable; do not repeat the same image. Improve pre-kernel selection evidence or the observation mechanism first. |
 
-One attended selection is sufficient for this gate. Hardware support remains
-unconfirmed until the exact built artifact is tested and its surviving evidence
-is recorded.
+The first attended selection produced no attributable Candidate L marker. A
+second owner attempt then exposed the exact unique suffix `remaining 5s`,
+strongly attributing kernel, fbcon, and tracked `/init` execution through the
+watchdog-device discovery loop. The unchanged image must not be selected again.
+Hardware support beyond that narrow boundary remains unconfirmed.
+
+## Runtime results
+
+The protocol predeclared one selection. Attempt 1 followed that protocol and
+was unattributable. The owner later performed one unchanged second selection;
+it is preserved because its unique visible suffix materially changed the
+evidence, but it does not authorize another unchanged attempt.
+
+- [Attempt 1](results/runtime-candidate-l-attempt-1-20260718.txt): LK splash,
+  then black; manual recovery; delayed pstore empty; serial unobserved.
+- [Attempt 2](results/runtime-candidate-l-attempt-2-20260718.txt): console
+  visible through reported suffix `remaining 5s`, strongly attributable to the
+  tracked watchdog-device discovery loop; serial adapter connected but silent;
+  screen off, manual recovery, and immediate pstore empty.
+
+Attempt 2 selects the early `/init`-entry outcome. It does not select the
+terminal `watchdog0=missing` row because the remaining countdown was not
+observed through zero. It does not establish watchdog registration after the
+last visible check, open, handoff ping, bark, expiry, automatic return, or
+warm-reset retention.
+
+The subsequent [watchdog registration audit](results/watchdog-registration-audit-20260718.txt)
+confirms that the built-in driver, config, and enabled platform node were all
+present before external `/init`. The falling-edge SPI is routed through
+MediaTek SYSIRQ, which programs the polarity inverter and presents a rising
+edge to the parent GIC; changing the consumer flag to rising or level-high is
+therefore not justified. Because `mtk_wdt` requests the optional bark IRQ
+before registering the watchdog, the next decision-changing candidate removes
+only that optional IRQ from the final diagnostic DTB and records exact probe
+and binding state. Independent bsg100 hardware evidence also registers the
+same upstream watchdog with that optional property omitted. If the device
+still does not enumerate, the IRQ path is exonerated and the next change must
+instrument the exact probe return stage.
 
 ## One-shot attended procedure
+
+This procedure was consumed by the two 2026-07-18 attempts and is retained only
+as the historical protocol. Do not run it again for unchanged Candidate L.
 
 1. Boot known-good Gemian, keep external power connected, and start the private
    collector before selecting `boot2`:
@@ -179,6 +217,15 @@ reboot during the write operation.
   `results/final-build-reproduction-20260717.txt`
 - logical-`boot2` backup, write, sync, block flush, and full local readback
   evidence in `results/boot2-write-candidate-l-20260717.txt`
+- owner observation, delayed authenticated pstore recovery, attribution
+  boundary, and stop decision in
+  `results/runtime-candidate-l-attempt-1-20260718.txt`
+- unique visible initramfs suffix, connected-silent serial observation, manual
+  recovery, immediate pstore capture, and watchdog-discovery gate in
+  `results/runtime-candidate-l-attempt-2-20260718.txt`
+- exact DT interrupt hierarchy, upstream probe path, independent reference,
+  rejected polarity guesses, and Candidate M decision oracle in
+  `results/watchdog-registration-audit-20260718.txt`
 
 The final fresh-source raw image is 6,522,880 bytes with SHA-256
 `5291832296106d36bc919671960b6150e530467057540a195bcf59e582ebb4c9`.
@@ -187,6 +234,23 @@ exported under the Git-ignored host artifacts tree, zero-padded to 16 MiB, and
 written only to the live-resolved logical `boot2`. The synchronized and
 block-flushed partition plus a separate full local readback both have SHA-256
 `22d6ea23053514c4b5ad5cc2cf9ecb41fb800318533cbe94604302134e80daea`.
-This proves artifact identity and partition synchronization only. Candidate L
-has not been selected or runtime-tested, so UART, pstore retention, watchdog
-restart, kernel entry, and display behavior remain unproven.
+This proves artifact identity and partition synchronization only. The first
+owner-intended selection showed the LK splash and then black; manual recovery
+and delayed collection found no pstore marker. On a second intended selection,
+the console appeared and the last visible suffix was exactly `remaining 5s`
+before the screen switched off. Only tracked Candidate L `/init` emits
+`GEMINI_OBSERVABILITY_20260717_L watchdog0=waiting remaining=5s`. Combined with
+the verified target and intended selection, this strongly supports Candidate L
+kernel entry, loader-simplefb/fbcon output, devtmpfs mount, and `/init`
+execution through five one-second waits. It also establishes that
+`/dev/watchdog0` was absent at that check; later registration is unknown.
+The serial adapter was connected but received no bytes. The owner had to press
+power to recover. Gemian reports `power_key`/`keypad`, all inspected PMIC/AED
+watchdog indicators are zero, and the immediate pstore capture is empty.
+Therefore no watchdog open, handoff ping, bark, expiry, automatic return,
+ramoops retention, or UART function is established. Do not repeat unchanged L;
+Candidate M will omit only the optional bark IRQ in its final DTB and add
+early binding diagnostics before the existing single-stage 31-second TOPRGU
+test. See [attempt 1](results/runtime-candidate-l-attempt-1-20260718.txt),
+[attempt 2](results/runtime-candidate-l-attempt-2-20260718.txt), and the
+[registration audit](results/watchdog-registration-audit-20260718.txt).

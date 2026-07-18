@@ -1,0 +1,92 @@
+[record]
+date=2026-07-18
+source=owner-attended visual report plus delayed authenticated post-recovery capture
+candidate=L
+attempt=1
+intended_boot_target=logical boot2 selected with the silver button
+device_variant=current Gemini PDA unit; exact retail sub-variant not independently established
+
+[artifact_and_target_evidence]
+raw_boot_image_sha256=5291832296106d36bc919671960b6150e530467057540a195bcf59e582ebb4c9
+installed_full_partition_bytes=16777216
+installed_full_partition_sha256=22d6ea23053514c4b5ad5cc2cf9ecb41fb800318533cbe94604302134e80daea
+write_sync_flush=pass
+full_partition_readback=pass-byte-identical-to-padded-candidate
+candidate_l_selection=intended-by-owner
+independent_selected-image_identity=not-established
+
+[owner_observation]
+lk_splash=visible
+screen_after_lk_splash=black
+candidate_l_marker_on_screen=not-observed
+serial_capture=not-performed
+automatic_return=not-established
+selection_to_black_wall_time=not-recorded
+black_state_duration_before_recovery=not-recorded
+recovery_action=owner pressed the power button
+recovery_press_duration=not-recorded
+known_good_os_after_recovery=Gemian Linux 3.18.41+
+backlight_after_black=not-recorded
+usb_after_black=not-recorded
+led_state=not-recorded
+heat_or_power_anomaly=not-reported
+
+[delayed_post_recovery_capture]
+candidate_l_write_completed_utc=2026-07-18T00:50:05Z
+known_good_gemian_boot_time_utc=2026-07-18T00:57:36Z
+write_to_known_good_boot_interval_seconds=451
+collector_started_utc=2026-07-18T12:25:34Z
+collector_timing=more-than-eleven-hours-after-the-device-test
+collector_waited_for_cycle=no
+capture_kernel=3.18.41+
+capture_arch=aarch64
+pre_candidate_l_boot_id_sha256=4f2521f7cd7e04f4316b4f573977d71b2b4c43db8f779e6b01cf590821504c96
+post_recovery_boot_id_sha256=7f73bc56cc75b62cb0ba4198031d6bd4f6deba69ed013c046ccb67c06e734540
+intervening_boot_since_pre_candidate_capture=yes
+boot_reason=power_key
+powerup_reason=keypad
+boot_mode=0
+boot_reason_interpretation=consistent-with-the-owner-reported-manual-power-button-recovery; not Candidate L watchdog evidence
+pstore_directory=present
+pstore_files=none
+console_ramoops=absent
+candidate_kernel_identity=absent
+initramfs_entered_marker=absent
+observability_marker=absent
+watchdog_handoff_marker=absent
+watchdog_pretimeout_evidence=absent
+ramoops_mem_address=0x44410000
+ramoops_mem_size=0x000e0000
+ramoops_record_size=0x00001000
+ramoops_console_size=0x00010000
+ramoops_pmsg_size=0x00010000
+ramoops_ftrace_size=0x00001000
+private_capture=artifacts/device-pstore/candidate-L-runtime-1-post-dark-20260718T122501Z
+private_capture_sha256s_manifest_sha256=cb017c0c1a1e7cc5d39d25ed1b360befe47183deadc0720db63ce90b71d3c2b5
+private_capture_manifest_verification=pass
+
+[attribution]
+loader_display_before_black=observed-from-owner-identified-LK-splash
+loader_to_candidate_handoff=not-established
+candidate_l_kernel_entry=not-established
+candidate_l_initramfs_entry=not-established
+uart_behavior=unobserved
+ramoops_warm_reset_retention=not-established
+watchdog_bark=not-established
+watchdog_reset=not-established
+watchdog_auto_return=not-established
+display_regression=not-established; Candidate L intentionally has no display-specific delta
+primary_outcome=no-unique-marker-on-any-observed-or-recovered-channel
+decision_table_classification=unattributable
+
+[interpretation]
+result=LK displayed its splash and the screen then became black; the later Gemian boot followed a manual power-button press, while delayed recovery found no Candidate L marker or pstore file
+manual_power_boundary=the current Gemian power_key/keypad reason describes recovery and cannot be promoted to Candidate L reset behavior
+empty_pstore_boundary=negative delayed recovery observation only; it does not prove Candidate L entered Linux or that its ramoops backend initialized
+support_matrix_promotion=none
+
+[next_action]
+unchanged_candidate_l_retry=stop
+serial_only_repeat=do-not-spend-an-unchanged-device-cycle; deliberately capture serial with the next changed candidate
+required_before_next_device_cycle=add a new decision-changing kernel/DT/configuration delta and an attributable observation at or before the presently unobserved handoff boundary
+screen_role=context-only-until-an-attributable-Candidate-marker-is-seen

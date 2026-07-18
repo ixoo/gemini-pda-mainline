@@ -197,14 +197,24 @@ the result.
   cancelled the device test without a runtime selection because it changes no
   kernel, DT, or configuration input and would not alter the next action.
 - [2026-07-17 UART/pstore observability](2026-07-17-uart-pstore-observability/README.md)
-  — Candidate L is the current, not-yet-runtime-tested observability gate:
+  — Candidate L was the bounded observability gate:
   UART0 GPIO97/98 correction, exact mainline-console/Gemian
   primary `console-ramoops` alignment validated from pinned source and the
   exact active binary, and MT6797 watchdog auto-restart plus IRQ-dependent dual-stage
   policy with persistent post-reset evidence. Pmsg supplies address alignment,
   not a cross-version recovery channel. A clean fresh-source rebuild reproduced
   the candidate exactly; it is exported and its synchronized logical-`boot2`
-  write has a matching full readback. It has not been selected or booted.
+  write has a matching full readback. Attempt 1 showed the LK splash then black
+  and was unattributable. Attempt 2 strongly reached tracked `/init` suffix
+  `watchdog0=waiting remaining=5s`; connected serial stayed silent, the screen
+  switched off, manual power recovery was required, and pstore was empty.
+  Unchanged repetition is stopped. A source audit rejects changing the
+  falling-edge flag because MediaTek SYSIRQ translates it for the parent GIC.
+  Candidate M therefore omits only the optional bark IRQ and adds early
+  binding diagnostics, matching an independent hardware-tested basic-watchdog
+  configuration. See [attempt 1](2026-07-17-uart-pstore-observability/results/runtime-candidate-l-attempt-1-20260718.txt),
+  [attempt 2](2026-07-17-uart-pstore-observability/results/runtime-candidate-l-attempt-2-20260718.txt),
+  and the [registration audit](2026-07-17-uart-pstore-observability/results/watchdog-registration-audit-20260718.txt).
 - [2026-07-14 live vendor-to-mainline gap audit](2026-07-14-live-vendor-mainline-gap-audit/README.md)
   — read-only comparison of the live Gemian vendor contracts with the current
   Linux 7.1.3 handoff and first-boot boundaries.

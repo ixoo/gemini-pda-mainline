@@ -54,6 +54,20 @@ No reset-output disable, timeout, nowayout, SPM request, or modem-watchdog
 property is added. The inherited node remains available to the generic driver,
 but no user-space watchdog action is implied by the DTS change alone.
 
+## Runtime correction (2026-07-18)
+
+Candidate L strongly reached its tracked external `/init`, where
+`/dev/watchdog0` was absent through the visible `remaining=5s` check. The
+consumer's falling-edge flag is routed through MediaTek SYSIRQ, which programs
+the polarity inverter and presents a rising edge to the parent GIC; replacing
+it with rising or level-high would therefore be unsupported. Because the
+upstream watchdog probe requests an optional IRQ before registering the device
+and returns if that request fails, the next diagnostic omits the optional bark
+IRQ while retaining the basic upstream watchdog and reset path. This does not
+retract the vendor/live SPI137 observation; it defers pretimeout support until
+the mapping/request failure is captured. See the
+[registration audit](../../2026-07-17-uart-pstore-observability/results/watchdog-registration-audit-20260718.txt).
+
 ## Bring-up gates
 
 1. Build the board DT with `CONFIG_MEDIATEK_WATCHDOG=y` and verify the driver

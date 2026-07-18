@@ -302,6 +302,16 @@ and the [current 72-patch boot-policy audit](../../experiments/2026-07-12-mt6797
 The current config also sets `CONFIG_WATCHDOG_HANDLE_BOOT_ENABLED=y`, which
 keeps a firmware-running timer pinged before userspace takes over.
 
+Candidate L runtime evidence now shows that `/dev/watchdog0` was still absent
+about five seconds into its external-init discovery loop. This does not make
+the vendor/live falling-edge description invalid: the exact mainline tree
+inherits MediaTek SYSIRQ, whose driver programs the polarity inverter and
+translates falling edge to rising for the parent GIC. The optional bark mapping
+and request remain unproven, however, and `mtk_wdt_probe()` returns before
+watchdog registration if that request fails. Candidate M therefore omits the
+optional IRQ only in its diagnostic DTB, retains the basic MMIO watchdog, and
+records binding/probe state. See the [registration audit](../../experiments/2026-07-17-uart-pstore-observability/results/watchdog-registration-audit-20260718.txt).
+
 The live kernel enumerates 13 vendor thermal zones, all with
 `mode=disabled` and `policy=backward_compatible`. `mtktscpu` was about 25.1 °C
 and `mtktsbattery` 23.0 °C; `mtktspa=-127.0 °C`, `mtktsdram=2 m°C`, and
