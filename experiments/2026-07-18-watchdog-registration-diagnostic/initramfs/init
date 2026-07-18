@@ -1,0 +1,210 @@
+#!/bin/busybox sh
+# shellcheck shell=dash
+
+export PATH=/bin
+readonly MARKER="GEMINI_WATCHDOG_REGISTRATION_20260718_M"
+readonly STATUS_FILE=/run/watchdog-registration-status
+readonly WATCHDOG_WAIT_SECONDS=10
+readonly WATCHDOG_TIMEOUT_SECONDS=31
+readonly WATCHDOG_FAILURE_SECONDS=40
+
+# /dev/null does not exist until devtmpfs is mounted. This must be the first
+# mount and must not be redirected.
+if ! mount -t devtmpfs -o nosuid,mode=0755 devtmpfs /dev; then
+	printf '%s\n' "$MARKER devtmpfs=failed; STATIC HOLD"
+	while :; do
+		sleep 3600
+	done
+fi
+procfs_status=failed
+sysfs_status=failed
+if mount -t proc -o ro,nosuid,nodev,noexec proc /proc 2>/dev/null; then
+	procfs_status=mounted
+fi
+if mount -t sysfs -o ro,nosuid,nodev,noexec sysfs /sys 2>/dev/null; then
+	sysfs_status=mounted
+fi
+
+emit_tty() {
+	for output in /dev/console /dev/tty0 /dev/ttyS0; do
+		if [ -c "$output" ]; then
+			printf '%s\n' "$*" >"$output" 2>/dev/null || true
+		fi
+	done
+}
+
+record() {
+	printf '%s\n' "$*" >>"$STATUS_FILE"
+	if [ -c /dev/kmsg ]; then
+		printf '<6>%s\n' "$*" >/dev/kmsg 2>/dev/null || true
+	fi
+	emit_tty "$*"
+}
+
+driver_name() {
+	driver_link=$1
+	if [ ! -L "$driver_link" ]; then
+		printf '%s' unbound
+		return
+	fi
+	driver_target="$(/bin/busybox readlink "$driver_link" 2>/dev/null || true)"
+	printf '%s' "${driver_target##*/}"
+}
+
+record_probe_state() {
+	watchdog_platform=/sys/bus/platform/devices/10007000.watchdog
+	if [ -d "$watchdog_platform" ]; then
+		record "$MARKER watchdog_platform=present driver=$(driver_name "$watchdog_platform/driver")"
+	else
+		record "$MARKER watchdog_platform=absent"
+	fi
+
+	if [ -d /sys/class/watchdog/watchdog0 ]; then
+		record "$MARKER watchdog_class=present"
+	else
+		record "$MARKER watchdog_class=absent"
+	fi
+	if [ -c /dev/watchdog0 ]; then
+		record "$MARKER watchdog0=present"
+	else
+		record "$MARKER watchdog0=absent"
+	fi
+
+	ramoops_count=0
+	for ramoops_platform in /sys/bus/platform/devices/*ramoops*; do
+		[ -e "$ramoops_platform" ] || continue
+		ramoops_count=$((ramoops_count + 1))
+		record "$MARKER ramoops_platform=${ramoops_platform##*/} driver=$(driver_name "$ramoops_platform/driver")"
+	done
+	if [ "$ramoops_count" -eq 0 ]; then
+		record "$MARKER ramoops_platform=absent"
+	fi
+
+	dmesg | /bin/busybox grep -Ei 'mtk-wdt|watchdog|ramoops|pstore|10007000' \
+		| /bin/busybox grep -Fv "$MARKER" \
+		| /bin/busybox tail -n 12 \
+		| while IFS= read -r probe_line; do
+			record "$MARKER probe_log=$probe_line"
+		done
+}
+
+record_wait_state() {
+	wait_remaining=$1
+	wait_platform=0
+	wait_driver=absent
+	wait_class=0
+	wait_devnode=0
+	if [ -d /sys/bus/platform/devices/10007000.watchdog ]; then
+		wait_platform=1
+		wait_driver="$(driver_name /sys/bus/platform/devices/10007000.watchdog/driver)"
+	fi
+	if [ -d /sys/class/watchdog/watchdog0 ]; then
+		wait_class=1
+	fi
+	if [ -c /dev/watchdog0 ]; then
+		wait_devnode=1
+	fi
+	record "$MARKER wait=${wait_remaining}s platform=$wait_platform driver=$wait_driver class=$wait_class devnode=$wait_devnode"
+}
+
+validate_live_dtb_contract() {
+	live_watchdog_node=/sys/firmware/devicetree/base/watchdog@10007000
+	if [ ! -d "$live_watchdog_node" ]; then
+		record "$MARKER live_watchdog_node=unavailable"
+		return 1
+	fi
+	if [ -e "$live_watchdog_node/interrupts" ]; then
+		record "$MARKER live_watchdog_interrupts=present"
+		return 1
+	fi
+	record "$MARKER live_watchdog_interrupts=absent"
+	return 0
+}
+
+: >"$STATUS_FILE"
+emit_tty "$MARKER stage=initramfs-entered"
+if [ -c /dev/kmsg ] && \
+	printf '<6>%s\n' "$MARKER kmsg_probe=write" >/dev/kmsg 2>/dev/null; then
+	emit_tty "$MARKER kmsg_write=success"
+else
+	emit_tty "$MARKER kmsg_write=failed"
+fi
+record "$MARKER kernel=$(uname -r)"
+record "$MARKER storage_access=none runtime_networking=none"
+record "$MARKER watchdog_irq=omitted pretimeout_expected=0"
+record "$MARKER procfs=$procfs_status sysfs=$sysfs_status"
+if [ "$sysfs_status" != mounted ]; then
+	record "$MARKER sysfs=failed diagnostic=invalid; STATIC HOLD"
+	while :; do
+		sleep 3600
+	done
+fi
+if ! validate_live_dtb_contract; then
+	record "$MARKER live_dtb_contract=invalid; STATIC HOLD"
+	while :; do
+		sleep 3600
+	done
+fi
+record_probe_state
+
+remaining=$WATCHDOG_WAIT_SECONDS
+while [ "$remaining" -gt 0 ] && [ ! -c /dev/watchdog0 ]; do
+	record_wait_state "$remaining"
+	sleep 1
+	remaining=$((remaining - 1))
+done
+
+if [ ! -c /dev/watchdog0 ]; then
+	record_probe_state
+	record "$MARKER watchdog0=missing; STATIC HOLD"
+	while :; do
+		sleep 3600
+	done
+fi
+
+for watchdog_attribute in identity timeout pretimeout status; do
+	watchdog_attribute_path="/sys/class/watchdog/watchdog0/${watchdog_attribute}"
+	if [ -r "$watchdog_attribute_path" ]; then
+		watchdog_attribute_value="$(cat "$watchdog_attribute_path" 2>/dev/null || true)"
+		record "$MARKER watchdog_${watchdog_attribute}=${watchdog_attribute_value:-unreadable}"
+	else
+		record "$MARKER watchdog_${watchdog_attribute}=unavailable"
+	fi
+done
+
+record "$MARKER watchdog0=opening"
+# Opening an inherited watchdog can leave one kernel keepalive scheduled before
+# the core marks it active. One immediate ownership-handoff ping cancels that
+# worker. Keeping fd 3 open without any further pings then requests the basic
+# single-stage TOPRGU expiry. Candidate M deliberately has no bark IRQ.
+if exec 3>/dev/watchdog0; then
+	if printf '.' >&3; then
+		record "$MARKER watchdog0=armed handoff_ping=sent timeout_seconds=$WATCHDOG_TIMEOUT_SECONDS failure_boundary_seconds=$WATCHDOG_FAILURE_SECONDS"
+	else
+		record "$MARKER watchdog0=handoff-ping-failed; STATIC HOLD"
+		while :; do
+			sleep 3600
+		done
+	fi
+else
+	record "$MARKER watchdog0=open-failed; STATIC HOLD"
+	while :; do
+		sleep 3600
+	done
+fi
+
+elapsed=0
+while [ "$elapsed" -lt "$WATCHDOG_FAILURE_SECONDS" ]; do
+	sleep 1
+	elapsed=$((elapsed + 1))
+	case "$elapsed" in
+		5|10|15|20|25|30|35|40)
+			record "$MARKER watchdog_wait=${elapsed}s"
+			;;
+	esac
+done
+
+record "$MARKER watchdog_expiry_failed; STATIC HOLD"
+while :; do
+	sleep 3600
+done

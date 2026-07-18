@@ -215,6 +215,12 @@ the result.
   configuration. See [attempt 1](2026-07-17-uart-pstore-observability/results/runtime-candidate-l-attempt-1-20260718.txt),
   [attempt 2](2026-07-17-uart-pstore-observability/results/runtime-candidate-l-attempt-2-20260718.txt),
   and the [registration audit](2026-07-17-uart-pstore-observability/results/watchdog-registration-audit-20260718.txt).
+- [2026-07-18 watchdog registration diagnostic](2026-07-18-watchdog-registration-diagnostic/README.md)
+  — Candidate M keeps Candidate L's exact Linux `Image.gz` and LK header
+  contract, deletes only the optional watchdog bark interrupt from the
+  appended DTB, and replaces only initramfs `/init`. A live-DT gate plus
+  platform, driver, class, devnode, ramoops, kmsg, and filtered-dmesg evidence
+  distinguishes an IRQ-blocked registration from the next probe-stage fault.
 - [2026-07-14 live vendor-to-mainline gap audit](2026-07-14-live-vendor-mainline-gap-audit/README.md)
   — read-only comparison of the live Gemian vendor contracts with the current
   Linux 7.1.3 handoff and first-boot boundaries.
