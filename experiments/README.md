@@ -248,8 +248,12 @@ the result.
   Two clean VM builds are recursively byte-for-byte identical; the raw image
   SHA-256 is
   `43aea71224f6261001ff00904b30dae29063334172a2f6b0163b424a84c0e3aa`.
-  It is privately exported but not yet written or runtime-tested. See the
-  [build reproduction](2026-07-18-cpu1-online-diagnostic/results/final-build-reproduction-20260718.txt).
+  It was synchronized to live-resolved logical `boot2`, flushed, and fully
+  read back with exact padded SHA-256
+  `a5cc12372ece5e50364a88bc0bf4401ff092e335281352b062ed0ad229fbb7bf`.
+  It is ready for one attended selection but is not runtime-tested. See the
+  [build reproduction](2026-07-18-cpu1-online-diagnostic/results/final-build-reproduction-20260718.txt)
+  and [write/readback](2026-07-18-cpu1-online-diagnostic/results/boot2-write-candidate-n-20260718.txt).
 - [2026-07-14 live vendor-to-mainline gap audit](2026-07-14-live-vendor-mainline-gap-audit/README.md)
   — read-only comparison of the live Gemian vendor contracts with the current
   Linux 7.1.3 handoff and first-boot boundaries.

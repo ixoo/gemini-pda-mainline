@@ -6,7 +6,7 @@
 | --- | --- |
 | ID | `2026-07-18-cpu1-online-diagnostic` |
 | Candidate | N |
-| Status | Built reproducibly and exported; device write and runtime test pending |
+| Status | Built reproducibly and synchronized to logical `boot2`; runtime test pending |
 | Subsystem | ARM64 CPU hotplug, PSCI `CPU_ON`, first MT6797 Cortex-A53 secondary |
 | Device variant | Current Gemini PDA unit; exact retail sub-variant not independently established |
 | Date | 2026-07-18 |
@@ -108,9 +108,8 @@ hardware or flashing interface and writes only guest-owned build artifacts.
 
 ## Attended procedure
 
-This procedure becomes active only after two independent builds match and the
-exact candidate is safely written and fully read back from live-resolved
-logical `boot2`.
+This procedure is active only for the exact candidate whose independent builds
+and logical-`boot2` write/readback are recorded below.
 
 1. Keep external power connected and start the cycle-aware private collector
    from known-good Gemian:
@@ -167,5 +166,15 @@ initramfs `/init`. All foundation, archive-delta, container-delta, syntax, and
 ShellCheck gates pass. The private host export is
 `artifacts/vm-export/boot-candidates/candidate-N-cpu1-online-7cdb4b99/`.
 
-See `results/final-build-reproduction-20260718.txt`. Candidate N has not yet
-been written or tested on hardware.
+The raw image was zero-padded to the exact 16 MiB target size and written only
+to live-resolved logical `boot2` while Gemian remained on `mmcblk0p29`. AC was
+online and the battery was 100%, Full, and Good. A fresh mode-0600 full backup
+matched the prior Candidate M partition checksum. The write was synchronized,
+block-cache flushed, and independently read back to a mode-0600 local file;
+the complete target and local readback both match padded SHA-256
+`a5cc12372ece5e50364a88bc0bf4401ff092e335281352b062ed0ad229fbb7bf`.
+No other partition was targeted and no reboot or shutdown was performed.
+
+See `results/final-build-reproduction-20260718.txt` and
+`results/boot2-write-candidate-n-20260718.txt`. Candidate N is ready for its
+one attended runtime selection but has not yet been boot-tested.

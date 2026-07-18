@@ -266,6 +266,13 @@ The exact interrupt hierarchy and Candidate M discriminator are recorded in
 the [watchdog registration audit](../experiments/2026-07-17-uart-pstore-observability/results/watchdog-registration-audit-20260718.txt),
 and its successful runtime outcome is recorded in the
 [Candidate M runtime record](../experiments/2026-07-18-watchdog-registration-diagnostic/results/runtime-candidate-m-attempt-1-20260718.txt).
+Candidate N retains that exact kernel, configuration, no-IRQ DTB, and LK
+container and changes only external `/init` to request CPU1 online after arming
+the proven watchdog. Its two builds are byte-identical, and its exact padded
+image was synchronized, flushed, and fully read back from logical `boot2`.
+This establishes artifact and partition identity only; CPU1 remains untested.
+See the [Candidate N build record](../experiments/2026-07-18-cpu1-online-diagnostic/results/final-build-reproduction-20260718.txt)
+and [write/readback](../experiments/2026-07-18-cpu1-online-diagnostic/results/boot2-write-candidate-n-20260718.txt).
 
 ## Decision records
 

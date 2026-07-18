@@ -296,13 +296,18 @@ the basic watchdog reset. Its first runtime passed: retained
 `/dev/watchdog0`, a 31-second timeout, one handoff ping, and progress through
 30 seconds before the automatic Gemian return. Gemian's boot reason and PMIC
 flags independently report a watchdog reset. Retain that basic watchdog and
-pstore foundation; do not repeat unchanged M. The next candidate must arm the
-watchdog before requesting only CPU1 online and must record the pre/post CPU
-masks and PSCI lines. See
+pstore foundation; do not repeat unchanged M. Candidate N implements the next
+gate: it retains M's exact kernel/configuration/DTB, changes only initramfs
+`/init`, arms the watchdog before requesting only CPU1 online, and records the
+pre/post CPU masks and PSCI lines. Two builds are byte-identical and its exact
+padded image is synchronized, flushed, and fully read back from logical
+`boot2`; it is the selected candidate for one attended runtime cycle. See
 [attempt 1](../experiments/2026-07-17-uart-pstore-observability/results/runtime-candidate-l-attempt-1-20260718.txt)
 and [attempt 2](../experiments/2026-07-17-uart-pstore-observability/results/runtime-candidate-l-attempt-2-20260718.txt),
 the [registration audit](../experiments/2026-07-17-uart-pstore-observability/results/watchdog-registration-audit-20260718.txt),
-and the [Candidate M runtime record](../experiments/2026-07-18-watchdog-registration-diagnostic/results/runtime-candidate-m-attempt-1-20260718.txt).
+the [Candidate M runtime record](../experiments/2026-07-18-watchdog-registration-diagnostic/results/runtime-candidate-m-attempt-1-20260718.txt),
+the [Candidate N build record](../experiments/2026-07-18-cpu1-online-diagnostic/results/final-build-reproduction-20260718.txt),
+and its [logical-`boot2` write/readback](../experiments/2026-07-18-cpu1-online-diagnostic/results/boot2-write-candidate-n-20260718.txt).
 
 Before treating the series as submission-ready, run the pinned tree's review
 checker over every patch:
