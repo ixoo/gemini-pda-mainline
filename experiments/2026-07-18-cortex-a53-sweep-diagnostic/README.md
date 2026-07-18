@@ -2,8 +2,8 @@
 
 ## Status
 
-Build validation is complete only after the clean-tree, two-build reproducibility
-check described below. Hardware result: **not tested**.
+Build validation: **complete**. Two clean-tree VM outputs are recursively
+byte-identical. Hardware result: **not tested**.
 
 | Field | Value |
 | --- | --- |
@@ -133,6 +133,9 @@ Pinned Candidate O payload values are:
 - boot image size: `6526976` bytes
 
 These are build facts, not hardware results.
+
+The exact two-build comparison and validated host export are recorded in the
+[final build reproduction](results/final-build-reproduction-20260718.txt).
 
 ## Scope and safety
 

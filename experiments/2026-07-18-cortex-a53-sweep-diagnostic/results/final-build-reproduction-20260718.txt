@@ -1,0 +1,57 @@
+Candidate O final build reproduction
+Date: 2026-07-18
+Runtime result: not tested
+Hardware write: none
+Flash: none
+
+Repository
+----------
+
+revision=e35dc9a2fc94b331c3bc0ce866d7f78baa7b88aa
+status=clean
+experiment=2026-07-18-cortex-a53-sweep-diagnostic
+candidate_label=O
+baseline=candidate-N-cpu1-online-7cdb4b99
+
+Build environment
+-----------------
+
+vm=gemini-pda-build-recovery-20260717
+guest_architecture=aarch64
+source_date_epoch=0
+
+First output:
+/home/julien.guest/artifacts/boot-candidates/candidate-O-a53-sweep-e35dc9a
+
+Independent second output:
+/home/julien.guest/artifacts/boot-candidates/candidate-O-a53-sweep-repro-e35dc9a
+
+Result
+------
+
+recursive_comparison=byte-identical
+file_count=14
+manifest_sha256=d57319532822ee89bd435114e3119a7ebf4cb009553dab4b1682f88c3534be2e
+candidate_file=gemini-a53-sweep.boot.img
+candidate_size=6526976
+candidate_sha256=4376579c3b1a9ddfbec485eb62ba6cfc0af38183527924b5a250246345cb2146
+initramfs_sha256=3f19afd81632fbe654c024b9f865180b42caf61163bb26ea26211884271a11d8
+image_gz_sha256=0c0d0e22c78b5b0d89b7a7363be55850b3f3474d3b4e7f922946747efbe164d3
+dtb_sha256=c574762aa178cb5a7238400b499d2edcdd3acb3538d2255e916b041f2074c379
+embedded_config_sha256=5a0c442c67b64cbabd4d030c93d50837bfc93e34d8878b413805457bfcd8e7cd
+
+Both SHA256SUMS manifests passed in full. A recursive comparison found no
+path, metadata-file, or byte difference. Both builders reported the exact N
+kernel segment, DTB, and embedded configuration unchanged and the initramfs
+`/init` as the only payload delta. The Android-v0 validator accepted only the
+ramdisk-size and canonical payload-ID header changes; addresses, layout, name,
+command line, kernel segment, and appended DTB remain exact N.
+
+Validated host export
+---------------------
+
+artifacts/vm-export/boot-candidates/candidate-O-a53-sweep-e35dc9a
+
+The export is mode-restricted, Git-ignored, and its complete SHA256SUMS
+manifest passed on the host. This record establishes deterministic software
+identity only. It does not establish boot selection or any hardware behavior.

@@ -277,7 +277,9 @@ the result.
   the first failure and never writes the deferred Cortex-A72 CPU8/9 controls.
   The raw image is pinned to SHA-256
   `4376579c3b1a9ddfbec485eb62ba6cfc0af38183527924b5a250246345cb2146`;
-  build reproducibility and hardware result remain to be recorded.
+  two clean VM builds are recursively byte-identical and the exact artifact is
+  available in the Git-ignored host export. Hardware result remains untested.
+  See the [build reproduction](2026-07-18-cortex-a53-sweep-diagnostic/results/final-build-reproduction-20260718.txt).
 - [2026-07-14 live vendor-to-mainline gap audit](2026-07-14-live-vendor-mainline-gap-audit/README.md)
   — read-only comparison of the live Gemian vendor contracts with the current
   Linux 7.1.3 handoff and first-boot boundaries.
