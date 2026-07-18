@@ -117,7 +117,12 @@ the result.
 - [2026-07-16 USB gadget diagnostic](2026-07-16-usb-gadget-diagnostic/README.md)
   — MTU3/T-PHY peripheral candidate and storage-inert initramfs, now written
   and fully read back from `boot2`; two bounded host checks found no USB child
-  while the device remained dark and steady, leaving Linux execution unknown.
+  while the device remained dark and steady, leaving that cycle's Linux
+  execution unknown. Later exact M/N retained pstore independently proves the
+  T-PHY and MTU3 probes, forced B-device session, `g_ether` registration, and
+  MTU3 gadget pull-up log on the inherited path, but not electrical D+ state
+  or host enumeration; see the
+  [sanitized retained-pstore result](2026-07-16-usb-gadget-diagnostic/results/retained-pstore-mtu3-gadget-evidence-20260718.txt).
 - [2026-07-16 fixed-delay reboot diagnostic](2026-07-16-timed-reboot-diagnostic/README.md)
   — reproducible ramdisk-only follow-up that preserves the tested USB kernel
   and DTB while arming a 10-second reset request from `/init`; owner-approved
@@ -264,6 +269,15 @@ the result.
   [build reproduction](2026-07-18-cpu1-online-diagnostic/results/final-build-reproduction-20260718.txt),
   [write/readback](2026-07-18-cpu1-online-diagnostic/results/boot2-write-candidate-n-20260718.txt),
   and [runtime record](2026-07-18-cpu1-online-diagnostic/results/runtime-candidate-n-attempt-1-20260718.txt).
+- [2026-07-18 Cortex-A53 sweep diagnostic](2026-07-18-cortex-a53-sweep-diagnostic/README.md)
+  — Candidate O is the deterministic initramfs-only derivative of exact N for
+  the next controlled boot. It validates all CPU1–9 logical-to-DT mappings,
+  arms the proven no-IRQ watchdog, and requests CPU1 through CPU7 online in
+  sequence with a durable boot/accounting checkpoint after each. It stops at
+  the first failure and never writes the deferred Cortex-A72 CPU8/9 controls.
+  The raw image is pinned to SHA-256
+  `4376579c3b1a9ddfbec485eb62ba6cfc0af38183527924b5a250246345cb2146`;
+  build reproducibility and hardware result remain to be recorded.
 - [2026-07-14 live vendor-to-mainline gap audit](2026-07-14-live-vendor-mainline-gap-audit/README.md)
   — read-only comparison of the live Gemian vendor contracts with the current
   Linux 7.1.3 handoff and first-boot boundaries.

@@ -59,8 +59,29 @@ See the
 [`keyboard-polarity-contract-20260714.txt`](../../experiments/2026-07-12-input-backlight-recovery/results/keyboard-polarity-contract-20260714.txt).
 The patch decision and dry-run are recorded in
 [`keyboard-polarity-mainline-patch-20260714.txt`](../../experiments/2026-07-12-input-backlight-recovery/results/keyboard-polarity-mainline-patch-20260714.txt).
-Do not enable the bus, expander, or matrix consumer as part of a firmware or
-boot experiment.
+Do not enable the bus, expander, or matrix consumer outside a dedicated,
+recoverable keyboard experiment.
+
+### SoC pinctrl and USB coexistence boundary
+
+The current disabled board candidate describes GPIO58 as `reset-gpios` and
+GPIO87/EINT10 as the interrupt, but it does not yet select a default SoC
+pinctrl state for those two lines on the AW9523 I2C node. This must be resolved
+before enabling the node; child AW9523 pin states describe expander pins and
+cannot substitute for the MT6797-side GPIO58/GPIO87 mux and bias contract.
+
+The independent bsg100 Linux 6.6 effort is useful cautionary cross-device
+evidence. Its retained B-18 audit reports that enabling AW9523 while the defined
+`aw9523b_pins` state was not referenced by the I2C node broke its previously
+working USB gadget/SSH path. Adding `pinctrl-names = "default"` and the matching
+`pinctrl-0` reference reportedly restored keyboard and USB gadget coexistence.
+That does not prove the same causal electrical mechanism or exact pin settings
+on this unit, and the audit's earlier suspects were explicitly untested. It
+does establish a concrete integration hazard: the first keyboard candidate
+must use a source-backed MT6797 state for both GPIO58 and GPIO87 and must retain
+T-PHY/MTU3/`g_ether` registration as a negative-regression checkpoint. See the
+[retained related-project audit](../../experiments/2026-07-13-bsg100-gemini-linux-comparison/results/audit-current-20260714.txt)
+and this unit's [sanitized gadget evidence](../../experiments/2026-07-16-usb-gadget-diagnostic/results/retained-pstore-mtu3-gadget-evidence-20260718.txt).
 
 ### Timing boundary
 

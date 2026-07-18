@@ -283,6 +283,26 @@ See the [Candidate N build record](../experiments/2026-07-18-cpu1-online-diagnos
 [write/readback](../experiments/2026-07-18-cpu1-online-diagnostic/results/boot2-write-candidate-n-20260718.txt),
 and [runtime result](../experiments/2026-07-18-cpu1-online-diagnostic/results/runtime-candidate-n-attempt-1-20260718.txt).
 
+Candidate O is the next diagnostic layer over that foundation. It reuses the
+exact N kernel, embedded configuration, DTB, and LK container and changes only
+external `/init`. It validates every live logical CPU1–9 `of_node` mapping,
+then requests the complete Cortex-A53 CPU1–7 set sequentially with a durable
+checkpoint and fail-stop after each request; CPU8/9 remain offline and
+untouched. This is deliberately a CPU-topology experiment, not a convenience
+image. Console rotation, AW9523 keyboard input, a supervised local shell, the
+real PMIC/eMMC dependency closure, and USB networking are separate staged
+layers over the last hardware-proven runtime baseline. In particular, the
+keyboard layer must model the SoC pinctrl for its reset/interrupt GPIOs and
+retain USB coexistence as a gate, while eMMC must use the real PWRAP/MT6351
+providers rather than fixed-regulator approximations. Retained M/N pstore now
+shows that the existing T-PHY/MTU3/`g_ether` path reaches the driver's gadget
+pull-up log, so USB serviceability work starts at host enumeration and
+initramfs configuration,
+not another controller rewrite. See the
+[Candidate O experiment](../experiments/2026-07-18-cortex-a53-sweep-diagnostic/README.md),
+[staged roadmap](ROADMAP.md#immediate-priority-widen-the-cortex-a53-path-behind-the-proven-recovery-loop-2026-07-18),
+and [sanitized USB evidence](../experiments/2026-07-16-usb-gadget-diagnostic/results/retained-pstore-mtu3-gadget-evidence-20260718.txt).
+
 ## Decision records
 
 Material decisions belong in issues labeled `type: decision`. A decision must state context, options considered, safety impact, upstream impact, and reversal conditions. This prevents repository-local convention from silently becoming a new downstream ABI.

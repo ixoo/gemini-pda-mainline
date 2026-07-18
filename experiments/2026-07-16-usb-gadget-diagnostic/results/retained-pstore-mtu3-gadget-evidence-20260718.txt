@@ -1,0 +1,100 @@
+Gemini PDA retained-pstore MTU3/g_ether evidence
+Capture review date: 2026-07-18
+Device: named Gemini PDA Wi-Fi unit
+Method: read-only review of private post-reset console-ramoops captures
+Sensitive identifiers: none retained
+
+Sources
+-------
+
+Candidate M artifact: candidate-M-watchdog-registration-2bcb668e
+Candidate M boot image SHA-256:
+a0a6c520fcc170ee0a422e66384559c50100ee65645811c331149beec8c347da
+
+Candidate N artifact: candidate-N-cpu1-online-7cdb4b99
+Candidate N boot image SHA-256:
+43aea71224f6261001ff00904b30dae29063334172a2f6b0163b424a84c0e3aa
+
+Shared Image.gz SHA-256:
+0c0d0e22c78b5b0d89b7a7363be55850b3f3474d3b4e7f922946747efbe164d3
+
+Shared appended DTB SHA-256:
+c574762aa178cb5a7238400b499d2edcdd3acb3538d2255e916b041f2074c379
+
+Shared embedded configuration SHA-256:
+5a0c442c67b64cbabd4d030c93d50837bfc93e34d8878b413805457bfcd8e7cd
+
+Candidate M post-reset private console-ramoops SHA-256:
+235206a9f6aacc4586597be80b98204dfe682c942e8263a450803afb3abcfe5f
+
+Candidate N post-reset private console-ramoops SHA-256:
+178d3f051ebcaec4310f7e5a1aaa38223129ee582f89d8862a4f42c34c8f9630
+
+Both captures came from the exact Candidate M/N kernel and DT foundation. The
+private raw records remain Git-ignored. This file retains only the bounded USB
+messages needed to support the conclusions below.
+
+Candidate N bounded observations
+--------------------------------
+
+[    1.401829] probe of 11290000.t-phy returned 0 after 612 usecs
+[    1.747091] calling  mtu3_driver_init+0x0/0x28 @ 1
+[    1.753551] mtu3 11271000.usb: supply vusb33 not found, using dummy regulator
+[    1.760474] mtu3 11271000.usb: dr_mode: 2, drd: auto
+[    1.773198] mtk-tphy 11290000.t-phy: u2 phy0: forcing valid B-device session
+[    1.786062] mtu3 11271000.usb: irq 208
+[    1.798334] mtu3 11271000.usb: max_speed: high-speed
+[    1.806028] mtu3 11271000.usb: fifosz/epnum: Tx=0x3000/8, Rx=0x3000/8
+[    1.812383] mtu3 11271000.usb: dma mask: 32 bits
+[    1.819092] probe of 11271000.usb returned 0 after 65657 usecs
+[    1.894459] g_ether gadget.0: HOST MAC 42:00:15:19:82:00
+[    1.906699] g_ether gadget.0: MAC 42:00:15:19:82:01
+[    1.919161] g_ether gadget.0: g_ether ready
+[    1.925089] mtu3 11271000.usb: gadget (high-speed) pullup D+
+
+Candidate M independently contains the same sequence: T-PHY and MTU3 probe
+return zero, the forced B-device session is applied, g_ether reports ready,
+and MTU3 prints the same high-speed gadget pull-up action.
+
+Observation boundary
+--------------------
+
+Established for the exact Candidate M/N kernel and DT foundation:
+
+- the 11290000 T-PHY probe returned success;
+- MTU3 at 11271000 bound with IRQ 208, high-speed limit, DMA32, and the logged
+  FIFO geometry;
+- the board's forced B-device session path executed;
+- the built-in g_ether function registered with the pinned local MAC pair; and
+- MTU3 logged its gadget pull-up action.
+
+Not established:
+
+- host detection, SET_ADDRESS, configuration selection, or USB enumeration;
+- the electrical D+ state; the retained evidence is a driver log, not a line
+  measurement or host observation;
+- a host network interface, carrier, packet transfer, IP reachability, or a
+  remote shell;
+- which physical Gemini connector was used for these retained boot records;
+- a real vusb33 supply (the probe explicitly used a dummy regulator);
+- host mode, Type-C role switching, VBUS sourcing, or charging behavior.
+
+Decision
+--------
+
+Do not rebuild the USB driver or DT merely to repeat probe registration. The
+next USB serviceability candidate can retain an exact hardware-tested kernel
+and DT, configure usb0 in its initramfs, and use a coordinated host observation
+to distinguish these gates in order:
+
+1. USB device appears with the pinned identity;
+2. host network interface appears;
+3. device and host report carrier;
+4. fixed-address ICMP succeeds; and
+5. the exact TCP marker and bounded remote-shell command/response succeed.
+
+The initial shell may be unauthenticated only on the physically direct,
+no-bridge laboratory link, with PID 1 retaining watchdog ownership and a finite
+session/deadman; authentication is a later hardening delta. Failure must be
+recorded at the first missing gate. Keep host/VBUS/Type-C and charging work
+outside this gadget-only experiment.

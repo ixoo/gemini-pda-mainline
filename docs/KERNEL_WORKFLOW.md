@@ -330,6 +330,31 @@ the [Candidate N build record](../experiments/2026-07-18-cpu1-online-diagnostic/
 its [logical-`boot2` write/readback](../experiments/2026-07-18-cpu1-online-diagnostic/results/boot2-write-candidate-n-20260718.txt),
 and its [runtime record](../experiments/2026-07-18-cpu1-online-diagnostic/results/runtime-candidate-n-attempt-1-20260718.txt).
 
+Candidate O uses a narrower deterministic path than a full kernel rebuild. Its
+builder accepts only the pinned Candidate N artifact, extracts and revalidates
+the exact N `Image.gz`, embedded configuration, and DTB CPU/PSCI/watchdog
+contract, replaces only initramfs `/init`, and reconstructs the Android-v0
+image with the unchanged LK addresses, name, and command line. Run it twice
+from a clean repository into different guest directories and require a
+recursive byte-for-byte comparison:
+
+```sh
+DEV_VM_NAME=gemini-pda-build-recovery-20260717 ./scripts/dev-vm run \
+  /mnt/gemini-pda-mainline/experiments/2026-07-18-cortex-a53-sweep-diagnostic/scripts/build-cortex-a53-sweep-candidate.sh \
+  --baseline /home/julien.guest/artifacts/boot-candidates/candidate-N-cpu1-online-7cdb4b99
+```
+
+Do not turn the quality-of-life sequence into one permanent catch-all kernel
+profile. Rotation is a config/cmdline derivative; keyboard input is a built-in
+I2C/AW9523/matrix plus board-DT derivative; the supervised shell is an
+initramfs derivative after input proof; eMMC is an explicit real
+PWRAP/MT6351/MMC built-in profile plus conservative board DT; and gadget
+networking begins as an initramfs-only derivative because the exact N kernel
+already reaches `g_ether` ready and the MTU3 gadget pull-up log. Pin every
+selected profile in `kernel/manifest.json`, validate its resolved config, and keep its experiment
+oracle and artifact builder beside the write-up. Do not promote any of these
+layers to the reusable board fragment until its named hardware gate passes.
+
 Before treating the series as submission-ready, run the pinned tree's review
 checker over every patch:
 

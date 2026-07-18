@@ -188,9 +188,11 @@ Priorities for the next controlled test are:
    `maxcpus=2`. A successful CPU1 online is the gate to test the remaining
    Cortex-A53 cores incrementally. A failed or stalled request gets one source
    audit before another device cycle. Keep both Cortex-A72 cores deferred until
-   the eight A53 path is understood. Read-only eMMC discovery and safe battery
-   telemetry follow; native DRM/panel, keyboard, charging policy, storage
-   writes, and connectivity remain separate reversible experiments. Candidate
+   the eight A53 path is understood. After that CPU gate, the immediate
+   quality-of-life sequence is console rotation, bounded keyboard events, and
+   a supervised local shell; read-only eMMC discovery follows those gates.
+   Safe battery telemetry, native DRM/panel, charging policy, storage writes,
+   and connectivity remain separate reversible experiments. Candidate
    N implements this exact initramfs-only delta. Two clean VM builds are
    recursively identical, the raw Android-v0 image SHA-256 is
    `43aea71224f6261001ff00904b30dae29063334172a2f6b0163b424a84c0e3aa`,
@@ -207,19 +209,101 @@ Priorities for the next controlled test are:
    in one run; it does not establish repeatability, boot-time SMP, any other
    core, stress, coherency, DVFS, idle, or thermal behavior. Do not repeat
    unchanged N.
-9. **P8 — next gate: all remaining Cortex-A53s, sequentially checkpointed.**
-   Preserve N's exact kernel, DTB, configuration, storage-inert policy,
-   watchdog, pstore, and fbcon observation paths. Statically verify live Linux
-   CPU-to-DT mappings for CPU1 through CPU7, then use one changed candidate to
-   request them online in order. Emit durable begin/return/mask markers and a
-   per-CPU execution sample after every request; stop on the first failure and
-   never retry. A hang remains bounded by the same watchdog, while the last
-   retained checkpoint identifies the failed core. If all requests pass, the
-   result promotes only the eight Cortex-A53 online paths. Bisect only if a
-   grouped dependency remains ambiguous; a core-specific stopped boundary
-   already supplies the narrower diagnosis. Keep both Cortex-A72 cores and
-   every unrelated subsystem for a separate candidate. An unchanged N rerun
-   is not the next action.
+9. **P8 — Candidate O: all Cortex-A53s, sequentially checkpointed.**
+   Candidate O implements the changed gate after N. It pins and reuses N's
+   exact kernel, DTB, configuration, LK container, storage-inert policy,
+   watchdog, pstore, and fbcon paths, changing only initramfs `/init`. After
+   the watchdog is armed and before the first CPU-online write, it validates
+   all live CPU1–9 logical-to-DT mappings. It then requests CPU1 through CPU7
+   online in order, once each, with a durable
+   begin/return/mask, boot-line, accounting, and pass checkpoint after every
+   request. It stops at the first failure. CPU8 and CPU9 are verified as the
+   deferred Cortex-A72 pair, remain offline, and are never written. One
+   ownership-handoff watchdog ping precedes the sweep; request/accounting
+   budget gates keep the pass inside the proven 31-second reset window. If all
+   requests pass, the result promotes only the eight Cortex-A53 online paths.
+   Bisect only when the stopped checkpoint leaves a grouped dependency
+   ambiguous. Build validation is separate from the pending hardware result;
+   see the [Candidate O experiment](../experiments/2026-07-18-cortex-a53-sweep-diagnostic/README.md).
+10. **P9 — Candidate P: rotate the proven loader framebuffer console.**
+    Use the exact hardware-tested O runtime artifact as the baseline only after
+    O's oracle passes. Rebuild with built-in
+    `CONFIG_FRAMEBUFFER_CONSOLE_ROTATION=y` and force `fbcon=rotate:3`, retaining
+    the current 8×16 font and every other kernel, DT, initramfs, and watchdog
+    policy input. The positive result is the unique marker readable in the
+    Gemini's normal landscape orientation while the reset/pstore loop still
+    passes. Do not mix a font change, native DRM, panel, or backlight work into
+    this gate.
+11. **P10 — Candidate Q: keyboard events before a shell.** Layer Q on the exact
+    hardware-passed P baseline, retaining its readable rotation, watchdog,
+    pstore, LK container, and unrelated DT/configuration inputs. Enable the
+    exact built-in MT65XX I2C, AW9523 pinctrl/GPIO, and matrix-keypad closure because
+    the diagnostic kernel has `CONFIG_MODULES=n`. Enable I2C5 and the board's
+    AW9523/matrix nodes only with source-backed SoC pinctrl for shutdown GPIO58
+    and interrupt GPIO87. A prior related-board audit reports that enabling
+    AW9523 without referencing its defined pinctrl state coincided with loss of
+    its previously working USB gadget/SSH path; adding that reference restored
+    coexistence, but the electrical cause was not proven. USB coexistence is
+    therefore a required negative-regression gate. The initramfs first reports
+    a bounded set of press,
+    release, modifier, disputed `(row=4,column=3)` `KEY_LEFTMETA`, and rollover
+    observations. It exposes no interactive shell. Promote the map only from
+    photographed/transcribed physical-key evidence matched to retained input
+    events.
+12. **P11 — Candidate R: supervised local initramfs shell.** After Q proves
+    keyboard events, make an initramfs-only derivative. PID 1 remains a
+    supervisor that owns and services the exact MediaTek watchdog; its child
+    gets `/dev/tty1` as the controlling terminal and runs the inherited BusyBox
+    shell with `TERM=linux`, without inheriting the watchdog fd. Provide a
+    bounded inactivity/deadman policy and a visible command to return through
+    the watchdog recovery loop. Start with the kernel console's standard key
+    translation; add a pinned initramfs console keymap only from Q's physical
+    event evidence, and keep the installed Gemian XKB symbols out of the kernel
+    contract. A prompt alone is insufficient: prove typed command input,
+    output, and automatic recovery. This is a lab interface, not a distro init
+    design.
+13. **P12 — Candidate S series: eMMC identity, read-only root, then bounded
+    diagnostics writes.** The current DT already describes conservative MSDC0
+    eMMC at 25 MHz with the real VEMC/VIO18 dependencies, but Candidate N/O's
+    exact config deliberately compiles out MMC, PWRAP, MT6351 MFD, and the
+    MT6351 regulator provider. First make one explicit built-in config
+    derivative with `MMC`, `MMC_BLOCK`, `MMC_MTK`, `MTK_PMIC_WRAP`,
+    `MFD_MT6397`, and `REGULATOR_MT6351`; validate the resolved dependency
+    closure. Because the PMIC/MMC probe is already the state-changing boundary
+    and `ro,noload` requests no filesystem write, the first aggressive but
+    bounded S candidate may combine discovery and read-only access. It records
+    durable checkpoints for the PWRAP → MT6351 E2/regulator → MSDC0 →
+    DF4064/mmc0 → unique GPT `PARTNAME=linux` chain, resolves `linux` by live
+    PARTNAME rather than a remembered partition number, requires ext4, mounts
+    `ro,noload,nosuid,nodev,noexec`, performs one bounded benign read, unmounts,
+    and recovers automatically. It must not expose CID/CSD/serial values or
+    accept PMIC/MMC/filesystem/I/O errors; the first failed checkpoint supplies
+    the later bisect boundary. Repeat that cold-boot read-only gate before the
+    write derivative. That derivative may create only a
+    new mode-0700
+    `/var/lib/gemini-mainline/diagnostics/<candidate-attempt>/`, cap its payload,
+    sync and unmount, remount read-only, and verify the file hash. Never use raw
+    writes, fsck, discard, or overwrite an existing path in this series.
+14. **P13 — Candidate T: USB gadget Ethernet serviceability.** Retained M and
+    N pstore records already prove that the exact T-PHY and MTU3 probes returned
+    zero, the forced B-device session ran, built-in `g_ether` reported ready,
+    and MTU3 logged its high-speed gadget pull-up action. They do not prove the
+    electrical D+ state or host enumeration.
+    Therefore start with an initramfs-only derivative: wait for UDC/`usb0`, log
+    their state, configure fixed address `10.15.19.82/24`, and expose a unique
+    noninteractive TCP marker. Coordinate the host and record, in order, the
+    exact USB identity, fixed-MAC network interface, carrier, ping, TCP marker,
+    and shell command/response; stop at the first missing gate. To avoid an
+    extra costly device cycle, the same bounded candidate may print its exact
+    marker and then offer a shell only on that physically direct link, while
+    PID 1 retains watchdog ownership and enforces a finite session/deadman.
+    Authentication is a later hardening delta, not a prerequisite for this
+    isolated no-bridge laboratory gate. Use a known data cable, leave the UART
+    cable off the left port, and do not enable bridging, Internet Sharing,
+    host/dual-role mode, VBUS, Type-C, charging, or
+    mass storage. Preserve the current dummy-`vusb33` warning until supply
+    ownership is evidenced. See the
+    [sanitized retained-pstore USB result](../experiments/2026-07-16-usb-gadget-diagnostic/results/retained-pstore-mtu3-gadget-evidence-20260718.txt).
 
 The exact handoff package, candidates, hashes, parser gates, and first runtime
 observation are recorded in the [LK handoff alignment result](../experiments/2026-07-16-lk-handoff-alignment/results/lk-handoff-candidate-20260716.txt)
@@ -261,9 +345,11 @@ is closed. Candidate N's exact
 and [logical-`boot2` write/readback](../experiments/2026-07-18-cpu1-online-diagnostic/results/boot2-write-candidate-n-20260718.txt)
 are complete. Its one [runtime result](../experiments/2026-07-18-cpu1-online-diagnostic/results/runtime-candidate-n-attempt-1-20260718.txt)
 passes the CPU1 decision oracle and records the automatic watchdog return. The
-next device artifact should request the remaining Cortex-A53s sequentially,
-with a durable execution checkpoint after each core and fail-stop behavior;
-do not rebuild, rewrite, or select N unchanged. The exact captured LK's
+changed [Candidate O artifact](../experiments/2026-07-18-cortex-a53-sweep-diagnostic/README.md)
+implements the next device gate: it requests the Cortex-A53 CPU1–7 set
+sequentially with a durable execution checkpoint and fail-stop after each core,
+while leaving CPU8/9 offline and untouched. Do not rebuild, rewrite, or select
+N unchanged. The exact captured LK's
 [software-selection audit](../experiments/2026-07-12-boot-contract-recovery/results/lk-boot2-software-selection-audit-20260718.txt)
 finds hardware-key branches for `boot2` and `boot3` and found no direct software
 destination from Gemian in the audited paths, so the currently supported test
