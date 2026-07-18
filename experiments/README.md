@@ -245,7 +245,11 @@ the result.
   `of_node` against it. N arms the watchdog before writing
   `1` exactly once to CPU1's standard `online` control, then records the return,
   masks, kernel lines, and CPU1 accounting without retrying or pinging again.
-  Static validation and reproducible packaging are pending.
+  Two clean VM builds are recursively byte-for-byte identical; the raw image
+  SHA-256 is
+  `43aea71224f6261001ff00904b30dae29063334172a2f6b0163b424a84c0e3aa`.
+  It is privately exported but not yet written or runtime-tested. See the
+  [build reproduction](2026-07-18-cpu1-online-diagnostic/results/final-build-reproduction-20260718.txt).
 - [2026-07-14 live vendor-to-mainline gap audit](2026-07-14-live-vendor-mainline-gap-audit/README.md)
   — read-only comparison of the live Gemian vendor contracts with the current
   Linux 7.1.3 handoff and first-boot boundaries.

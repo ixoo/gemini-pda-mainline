@@ -174,7 +174,7 @@ Priorities for the next controlled test are:
    IRQ-bearing path as L's registration blocker; it does not identify the
    request errno or prove SPI137 polarity, bark, or pretimeout delivery. Do not
    repeat unchanged M.
-8. **P7 — next gate: online CPU1 only after arming the proven watchdog.** Keep
+8. **P7 — next gate: online CPU1 only after arming the proven watchdog; built.** Keep
    M's one-CPU boot, no-IRQ watchdog, pstore layout, loader-simplefb/fbcon
    observation path, storage-inert policy, kernel, DTB, and configuration. In
    the external initramfs, mount only the sysfs instance required for CPU
@@ -189,7 +189,12 @@ Priorities for the next controlled test are:
    audit before another device cycle. Keep both Cortex-A72 cores deferred until
    the eight A53 path is understood. Read-only eMMC discovery and safe battery
    telemetry follow; native DRM/panel, keyboard, charging policy, storage
-   writes, and connectivity remain separate reversible experiments.
+   writes, and connectivity remain separate reversible experiments. Candidate
+   N implements this exact initramfs-only delta. Two clean VM builds are
+   recursively identical, the raw Android-v0 image SHA-256 is
+   `43aea71224f6261001ff00904b30dae29063334172a2f6b0163b424a84c0e3aa`,
+   and all static gates pass. It is privately exported but not yet written or
+   runtime-tested.
 
 The exact handoff package, candidates, hashes, parser gates, and first runtime
 observation are recorded in the [LK handoff alignment result](../experiments/2026-07-16-lk-handoff-alignment/results/lk-handoff-candidate-20260716.txt)
@@ -226,8 +231,10 @@ Candidate M's exact [build reproduction](../experiments/2026-07-18-watchdog-regi
 and [logical-`boot2` write/readback](../experiments/2026-07-18-watchdog-registration-diagnostic/results/boot2-write-candidate-m-20260718.txt)
 are complete. Its [one attended runtime result](../experiments/2026-07-18-watchdog-registration-diagnostic/results/runtime-candidate-m-attempt-1-20260718.txt)
 passes the basic watchdog/reset/pstore decision oracle. The next device action
-must be a changed CPU1-online candidate with the watchdog armed before the
-request; unchanged M repetition is closed.
+must be the exact changed Candidate N CPU1-online image with the watchdog armed
+before the request; unchanged M repetition is closed. Candidate N's exact
+[build reproduction](../experiments/2026-07-18-cpu1-online-diagnostic/results/final-build-reproduction-20260718.txt)
+is complete.
 
 ## Current evidence snapshot (2026-07-18)
 

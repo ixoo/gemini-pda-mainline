@@ -6,7 +6,7 @@
 | --- | --- |
 | ID | `2026-07-18-cpu1-online-diagnostic` |
 | Candidate | N |
-| Status | Designed; static validation and reproducible build pending |
+| Status | Built reproducibly and exported; device write and runtime test pending |
 | Subsystem | ARM64 CPU hotplug, PSCI `CPU_ON`, first MT6797 Cortex-A53 secondary |
 | Device variant | Current Gemini PDA unit; exact retail sub-variant not independently established |
 | Date | 2026-07-18 |
@@ -156,4 +156,16 @@ scope.
 
 ## Result
 
-Not built or tested yet.
+Two clean aarch64 VM builds from repository revision
+`7cdb4b994075fa009ae5a52a0b35fe038df4b650` are recursively byte-for-byte
+identical, and both complete manifests verify. The raw Android-v0 image is
+6,524,928 bytes with SHA-256
+`43aea71224f6261001ff00904b30dae29063334172a2f6b0163b424a84c0e3aa`.
+The exact Candidate M kernel segment, DTB, embedded configuration, LK addresses,
+name, command line, and layout are unchanged; the only payload delta is
+initramfs `/init`. All foundation, archive-delta, container-delta, syntax, and
+ShellCheck gates pass. The private host export is
+`artifacts/vm-export/boot-candidates/candidate-N-cpu1-online-7cdb4b99/`.
+
+See `results/final-build-reproduction-20260718.txt`. Candidate N has not yet
+been written or tested on hardware.
