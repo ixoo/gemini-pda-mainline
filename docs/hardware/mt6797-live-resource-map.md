@@ -77,7 +77,7 @@ before upstream submission.
 | SPI0–5 | `0x1100a000`, `0x11012000`, `0x11018000`–`0x1101b000` + `0x1000` each | SPIs 122, 131–135 LOW | `CLK_TOP_MUX_SPI`/`syspll3_d2` parent and `INFRA_SPI`/`SPI1`–`SPI5` gates; vendor pad macros 0/1 | Patches 0072–0073 now map the recovered register/timing layout to Linux `spi-mt65xx` `mt6765_compat` (enhanced 16-bit timing, pad selection, mandatory TX, extended DMA) and add six disabled DT nodes with standard three-clock descriptions. SPI1 wiring is recovered as GPIO234–237 (`SPI1_*_B`), but the vendor DT's empty default plus explicit GPIO/SPI function switching is not yet reducible to a proven static mainline pinctrl state. Runtime transfer remains unproven. See the [SPI reuse audit](../../experiments/2026-07-14-upstream-mt6797-coverage-audit/results/spi-mt6797-controller-reuse-20260714.txt), [SPI1 pinctrl contract](../../experiments/2026-07-14-upstream-mt6797-coverage-audit/results/spi1-pinctrl-contract-20260714.txt), and [patch validation](../../experiments/2026-07-14-upstream-mt6797-coverage-audit/results/spi-mainline-patch-validation-c2feb-20260714.txt) |
 | Hall/lid input | GPIO66; no MMIO block | EINT5, level-low initial | Pinctrl pull-up; debounce `0xfa00` (64 ms); vendor switch class `hall`, shared `ACCDET` EV_SW | Standard `gpio-keys` `EV_SW/SW_LID` candidate; verify polarity, debounce units, and wake policy before enabling |
 | Toggle input | GPIO93; no MMIO block | EINT16, level-low initial | Pinctrl pull-up; debounce `0x7d000` (512 ms); vendor source labels the board node `anti-tamper`, emits F9/F10 pulses, and exposes switch class `switch` | Do not copy Android switch class; identify physical function, then choose a standard EV_SW or key policy |
-| TOPRGU watchdog | `0x10007000` + `0x1000` | 137 EDGE_FALLING | Vendor WDK keepalive; application TOPRGU bark line global IRQ169 | Linux 7.1.3 generic `mtk_wdt` is protocol-compatible; Candidate M proved basic no-IRQ registration and a 31-second timeout reset with automatic Gemian return, while SPI137 bark/pretimeout remains untested |
+| TOPRGU watchdog | `0x10007000` + `0x1000` | 137 EDGE_FALLING | Vendor WDK keepalive; application TOPRGU bark line global IRQ169 | Linux 7.1.3 generic `mtk_wdt` is protocol-compatible; Candidate M proved basic no-IRQ registration and a 31-second timeout reset with automatic Gemian return, and Candidate O retained that recovery through one complete CPU1–7 hotplug sweep. SPI137 bark/pretimeout remains untested |
 | M4U | `0x10205000` + `0x1000` | 156 LOW | seven SMI larbs; 15 vendor clock/domain handles | Add MT6797 IOMMU platform data, binding, port header, SMI relationships, and DTS |
 | CMDQ/GCE | `0x10212000` + `0x1000` | 152 LOW normal; 153 LOW vendor secure path | `infra_gce` ID 10, 136.5 MHz, gated when idle; live normal IRQ activity | Local binding/header and standalone mailbox provider use the 16-thread MT8173 register/address fallback; expose only normal SPI152 |
 | USB 1 | `0x11200000` + `0x1000`; SIF `0x11210000` + `0x1000` | 73 LOW | infra ICUSB and SSUSB reference clocks | Standard MUSB-like core, but distinct MT6797 USB11 SIF/PHY, `0xa0`/`0xa4`/`0xa8` level-1 IRQ block, six-endpoint host contract, and two-clock glue; reuse MUSB core only after the USB11 boundary is modeled |
@@ -205,16 +205,36 @@ semantics. The global downstream CPU masks were observed to disagree
 transiently with per-CPU sysfs and `/proc/stat`; this is recorded as a reporting
 contradiction rather than a stable CPU-count fact.
 
-Candidate N supplies the first mainline runtime result for a secondary core on
+Candidate N supplied the first mainline runtime result for a secondary core on
 this unit. With boot-time `maxcpus=1` retained, the live Linux CPU1 `of_node`
 resolved to `/cpus/cpu@1`; one standard hotplug request returned success.
 Kernel lines identify GICv3 redistributor index 1 in region 0 and MPIDR `0x1`
 with MIDR `0x410fd034` (Cortex-A53). The online mask changed from `0` to `0-1`,
 two early `/proc/stat` samples showed advancing CPU1 accounting, and CPU1
 remained online through the last 25-second marker before watchdog recovery.
-This establishes generic PSCI reuse for that one CPU_ON path in one run, not
-repeatability, boot-time SMP, CPU2–9, stress, coherency, DVFS, idle, or thermal
-behavior. See the [Candidate N runtime record](../../experiments/2026-07-18-cpu1-online-diagnostic/results/runtime-candidate-n-attempt-1-20260718.txt).
+
+Candidate O extended that exact kernel, DT, and recovery foundation in one
+changed initramfs-only run. Its initial live masks were `possible=0-9`,
+`present=0-9`, `online=0`, and `offline=1-9`. Read-only runtime checks mapped
+logical CPU1–9 respectively to DT nodes `cpu@1`, `cpu@2`, `cpu@3`, `cpu@100`,
+`cpu@101`, `cpu@102`, `cpu@103`, `cpu@200`, and `cpu@201`; the first seven are
+Cortex-A53 and the last two Cortex-A72. Sequential standard hotplug requests
+for CPU1–7 all returned success with no write error. Kernel lines reported
+GICv3 redistributor indices `1`, `2`, `3`, `100`, `101`, `102`, and `103`, the
+corresponding MPIDRs, and MIDR `0x410fd034` for every requested core. Each core
+advanced between its two bounded `/proc/stat` samples, and the cumulative
+online masks reached `0-1` through `0-7`. The final retained marker records
+`online-0-7 SUCCESS`; CPU8/9 remained offline and were never written. The same
+record contains the 5- and 10-second post-success waits before the automatic
+watchdog recovery cycle.
+
+This establishes generic PSCI reuse for the seven secondary Cortex-A53
+hotplug paths in one run. It does not establish repeatability, boot-time SMP,
+stress, coherency, DVFS, idle states, thermal behavior, or either Cortex-A72
+online path. Candidate P changes only framebuffer-console rotation and must
+preserve these CPU and recovery inputs; it is not a broader SMP test. See the
+[Candidate N runtime record](../../experiments/2026-07-18-cpu1-online-diagnostic/results/runtime-candidate-n-attempt-1-20260718.txt)
+and [Candidate O runtime record](../../experiments/2026-07-18-cortex-a53-sweep-diagnostic/results/runtime-candidate-o-attempt-1-20260718.txt).
 
 See the [CPU/PSCI/timer recovery experiment](../../experiments/2026-07-13-cpu-psci-timer-recovery/README.md)
 and its [source validation](../../experiments/2026-07-13-cpu-psci-timer-recovery/results/mainline-cpu-psci-timer-validation.txt).
@@ -345,6 +365,20 @@ discrepancy. The exact N `mtk-wdt` trace, its end near the nominal expiry
 interval, the automatic return, and the watchdog-class boot reason together
 still attribute recovery to the tested TOPRGU path. See the
 [Candidate N runtime record](../../experiments/2026-07-18-cpu1-online-diagnostic/results/runtime-candidate-n-attempt-1-20260718.txt).
+
+Candidate O retained the exact no-IRQ watchdog implementation and opened it
+before the CPU1–7 sweep. Its recovered console records identity and driver
+`mtk-wdt`, timeout 31 seconds, one ownership-handoff ping, all seven successful
+CPU checkpoints, the final `online=0-7` result, and unchanged masks at the 5-
+and 10-second post-success waits. The collector observed a disconnect,
+reconnect, and changed boot ID before recovering that record; immediate
+non-identifying Gemian fields reported boot reason 4 and `wdt_by_pass_pwk`.
+This passes O's recovery oracle for one run and confirms that the basic
+watchdog remained usable with all eight Cortex-A53s online. It does not add
+evidence for SPI137, bark, pretimeout, repeatability, or any power-management
+behavior. Candidate P must preserve this watchdog policy while changing only
+fbcon rotation. See the
+[Candidate O runtime record](../../experiments/2026-07-18-cortex-a53-sweep-diagnostic/results/runtime-candidate-o-attempt-1-20260718.txt).
 
 The live kernel enumerates 13 vendor thermal zones, all with
 `mode=disabled` and `policy=backward_compatible`. `mtktscpu` was about 25.1 °C

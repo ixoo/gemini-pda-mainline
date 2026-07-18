@@ -270,11 +270,11 @@ the result.
   [write/readback](2026-07-18-cpu1-online-diagnostic/results/boot2-write-candidate-n-20260718.txt),
   and [runtime record](2026-07-18-cpu1-online-diagnostic/results/runtime-candidate-n-attempt-1-20260718.txt).
 - [2026-07-18 Cortex-A53 sweep diagnostic](2026-07-18-cortex-a53-sweep-diagnostic/README.md)
-  — Candidate O is the deterministic initramfs-only derivative of exact N for
-  the next controlled boot. It validates all CPU1–9 logical-to-DT mappings,
-  arms the proven no-IRQ watchdog, and requests CPU1 through CPU7 online in
-  sequence with a durable boot/accounting checkpoint after each. It stops at
-  the first failure and never writes the deferred Cortex-A72 CPU8/9 controls.
+  — Candidate O is the deterministic initramfs-only derivative of exact N. It
+  validates all CPU1–9 logical-to-DT mappings, arms the proven no-IRQ watchdog,
+  and requests CPU1 through CPU7 online in sequence with a durable
+  boot/accounting checkpoint after each. It stops at the first failure and
+  never writes the deferred Cortex-A72 CPU8/9 controls.
   The raw image is pinned to SHA-256
   `4376579c3b1a9ddfbec485eb62ba6cfc0af38183527924b5a250246345cb2146`;
   two clean VM builds are recursively byte-identical and the exact artifact is
@@ -282,9 +282,17 @@ the result.
   synchronized, block-flushed, and fully read back from live-resolved logical
   `boot2`; the full target matches SHA-256
   `5efda7d18ebb99d0152d872d6dd23e7e6345c56920a77fb1129c350e8e02102d`.
-  No reboot was performed and the runtime result remains untested. See the
-  [build reproduction](2026-07-18-cortex-a53-sweep-diagnostic/results/final-build-reproduction-20260718.txt)
-  and [write/readback](2026-07-18-cortex-a53-sweep-diagnostic/results/boot2-write-candidate-o-20260718.txt).
+  Its first controlled run passed: retained `console-ramoops` proves every
+  CPU1–7 request returned, every Cortex-A53 booted and advanced accounting, the
+  cumulative online mask reached `0-7`, and CPU8/9 remained offline. The
+  cycle-aware collector observed a changed-cycle return to Gemian, whose
+  sanitized boot reason was watchdog-class. This is one successful hotplug
+  run, not boot-time SMP, repeatability, stress, A72, DVFS, idle, or thermal
+  evidence. Do not repeat unchanged O; proceed to rotation-only Candidate P.
+  See the
+  [build reproduction](2026-07-18-cortex-a53-sweep-diagnostic/results/final-build-reproduction-20260718.txt),
+  [write/readback](2026-07-18-cortex-a53-sweep-diagnostic/results/boot2-write-candidate-o-20260718.txt),
+  and [runtime record](2026-07-18-cortex-a53-sweep-diagnostic/results/runtime-candidate-o-attempt-1-20260718.txt).
 - [2026-07-14 live vendor-to-mainline gap audit](2026-07-14-live-vendor-mainline-gap-audit/README.md)
   — read-only comparison of the live Gemian vendor contracts with the current
   Linux 7.1.3 handoff and first-boot boundaries.

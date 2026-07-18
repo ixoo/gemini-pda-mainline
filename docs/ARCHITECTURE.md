@@ -243,7 +243,7 @@ driver.
 | 0058–0065 | Panfrost, DPI, PMIC parent fix, SCPSYS/AFE bindings, DVFSP deferral | Reuse Panfrost/DRM/PMIC/SCPSYS/ASoC frameworks; keep undocumented DVFSP out | Panfrost/DPI/AFE consumers remain disabled or module-only | Validate each consumer’s clocks, resets, IOMMU, supplies, and firmware boundary independently |
 | 0066–0071 | USB T-PHY/MTU3/xHCI/MUSB and MSDC pinmux policy | Reuse generic USB cores with MT6797 glue and source-derived split windows; use pinmux-only MSDC state | USB nodes remain disabled; built-in code is package capability, not probe evidence | Gadget-only console first, then role/VBUS and PHY tests with external recovery |
 | 0072–0076 | SPI aliases/nodes, hall input, NT36772 boundary, keyboard polarity | Reuse generic SPI and input frameworks where the captured protocol matches; keep every new board consumer disabled | The 77-patch package validates, but these additions have no current-mainline runtime result | Test one bounded consumer at a time with exact identity and recovery evidence |
-| 0077–0081 | MTU3 diagnostic, UART/pstore/restart observability | Reuse generic MediaTek USB, 8250, pstore, and watchdog facilities; add only captured board data and narrowly scoped MT6797 watchdog policy | The USB candidate remains a failed host-observation gate. K was cancelled without runtime. Candidate L added GPIO97/98 UART0 pinmux, exact mainline-console/active-Gemian primary `console-ramoops` alignment, and watchdog auto-restart plus IRQ-dependent dual-stage policy. L attempt 2 reached tracked external `/init`, but the optional IRQ-bearing watchdog did not register. Candidate M retained L's exact kernel and omitted only that optional IRQ as its hardware hypothesis. Its surviving exact marker proves the no-IRQ `mtk-wdt` probe, `/dev/watchdog0`, one handoff ping, progress through 30 seconds, automatic watchdog return, and cross-version console retention. Gemian independently reported the watchdog reset. UART remained silent and bark/pretimeout, USB, and native display remain unproven. | Retain the basic no-IRQ watchdog and pstore as the early recovery foundation. Do not repeat K, L, or unchanged M. Investigate bark separately without guessing polarity; use the proven recovery loop to test CPU1 online next. Keep USB host, VBUS, Type-C, and charging conclusions separate. |
+| 0077–0081 | MTU3 diagnostic, UART/pstore/restart observability | Reuse generic MediaTek USB, 8250, pstore, and watchdog facilities; add only captured board data and narrowly scoped MT6797 watchdog policy | The USB candidate remains a failed host-observation gate. K was cancelled without runtime. Candidate L reached tracked external `/init`, but the optional IRQ-bearing watchdog did not register. Candidate M proved the no-IRQ `mtk-wdt`, 31-second automatic recovery, and cross-version console retention. Candidate O retained that exact recovery foundation while sequential standard hotplug requests brought logical CPU1–7 online; all seven checkpoints and the final `online=0-7` marker survived one automatic recovery cycle. UART remained silent and bark/pretimeout, USB, and native display remain unproven. | Retain the basic no-IRQ watchdog and pstore as the early recovery foundation. Do not repeat K–O unchanged. Candidate P changes only built-in fbcon rotation support and the forced rotation parameter; investigate bark separately without guessing polarity and keep USB host, VBUS, Type-C, and charging conclusions separate. |
 
 The [current driver-coverage audit](../experiments/2026-07-13-driver-coverage-audit/results/driver-coverage-current-77-package-20260714.txt), [first-boot dependency audit](../experiments/2026-07-14-first-boot-probe-audit/results/first-boot-probe-audit-current-77-package-20260714.txt), [77-patch package validation](../experiments/2026-07-12-input-backlight-recovery/results/mainline-display-input-current-77-package-20260714.txt), [USB diagnostic experiment](../experiments/2026-07-16-usb-gadget-diagnostic/README.md), [broad unused-clock diagnostic](../experiments/2026-07-17-clk-ignore-unused-diagnostic/README.md), [cancelled newline-boundary diagnostic](../experiments/2026-07-17-fbcon-newline-boundary-diagnostic/README.md), and [UART/pstore observability experiment](../experiments/2026-07-17-uart-pstore-observability/README.md) provide the corresponding evidence boundaries. The older subsystem records remain content audits where later patches do not touch their inputs. This table is a design map, not a claim that any disabled, module-only, or diagnostic path works on hardware.
 Candidate J's partition operation is separately recorded in its
@@ -276,31 +276,45 @@ redistributor, booted as MPIDR `0x1` / Cortex-A53, entered online mask `0-1`,
 and advanced its accounting. It remained online through the last 25-second
 marker before the watchdog returned the device to Gemian automatically. This
 promotes only the first secondary Cortex-A53 path in one run; every other core
-and broader SMP behavior remain untested. A changed follow-up may request the
-remaining A53s sequentially if it emits a durable execution checkpoint and
-fail-stops after each core; keep the Cortex-A72 pair in a separate gate.
+and broader SMP behavior were untested by N. Candidate O applied the changed
+sequential A53 gate with a durable execution checkpoint and fail-stop after
+each core while keeping the Cortex-A72 pair separate.
 See the [Candidate N build record](../experiments/2026-07-18-cpu1-online-diagnostic/results/final-build-reproduction-20260718.txt)
 [write/readback](../experiments/2026-07-18-cpu1-online-diagnostic/results/boot2-write-candidate-n-20260718.txt),
 and [runtime result](../experiments/2026-07-18-cpu1-online-diagnostic/results/runtime-candidate-n-attempt-1-20260718.txt).
 
-Candidate O is the next diagnostic layer over that foundation. It reuses the
-exact N kernel, embedded configuration, DTB, and LK container and changes only
-external `/init`. It validates every live logical CPU1–9 `of_node` mapping,
-then requests the complete Cortex-A53 CPU1–7 set sequentially with a durable
-checkpoint and fail-stop after each request; CPU8/9 remain offline and
-untouched. This is deliberately a CPU-topology experiment, not a convenience
-image. Console rotation, AW9523 keyboard input, a supervised local shell, the
-real PMIC/eMMC dependency closure, and USB networking are separate staged
-layers over the last hardware-proven runtime baseline. In particular, the
-keyboard layer must model the SoC pinctrl for its reset/interrupt GPIOs and
-retain USB coexistence as a gate, while eMMC must use the real PWRAP/MT6351
-providers rather than fixed-regulator approximations. Retained M/N pstore now
-shows that the existing T-PHY/MTU3/`g_ether` path reaches the driver's gadget
-pull-up log, so USB serviceability work starts at host enumeration and
-initramfs configuration,
-not another controller rewrite. See the
-[Candidate O experiment](../experiments/2026-07-18-cortex-a53-sweep-diagnostic/README.md),
-[staged roadmap](ROADMAP.md#immediate-priority-widen-the-cortex-a53-path-behind-the-proven-recovery-loop-2026-07-18),
+Candidate O is now the hardware-proven diagnostic layer over that foundation.
+It reused the exact N kernel, embedded configuration, DTB, and LK container and
+changed only external `/init`. In its one retained run, every live logical
+CPU1–9 `of_node` mapping matched the expected DT node. Standard hotplug requests
+then brought the complete Cortex-A53 CPU1–7 set online sequentially: each
+request returned success, emitted its GICv3/MPIDR boot line, advanced its
+`/proc/stat` accounting, and left a durable cumulative checkpoint through
+`online=0-7`. CPU8/9 mapped to the Cortex-A72 nodes, remained offline, and were
+not written. The final success marker and two subsequent wait markers survived
+the automatic watchdog recovery. This establishes the eight Cortex-A53 online
+paths only for one hotplug run. It does not establish repeatability, boot-time
+SMP, stress, coherency, DVFS, idle states, thermal behavior, or either
+Cortex-A72 online path.
+
+Candidate P is the next changed gate. It must rebuild from the exact
+hardware-tested O baseline with built-in
+`CONFIG_FRAMEBUFFER_CONSOLE_ROTATION=y` and forced `fbcon=rotate:3`, retaining
+the current 8×16 font and every other kernel, DT, initramfs, LK-container, and
+watchdog-policy input. Its positive result is a unique marker readable in the
+Gemini's normal landscape orientation while the same pstore/reset oracle still
+passes. Do not combine a font change, native DRM, panel, or backlight work with
+P. AW9523 keyboard input, a supervised local shell, the real PMIC/eMMC
+dependency closure, and USB networking remain later, separate layers. In
+particular, the keyboard layer must model the SoC pinctrl for its
+reset/interrupt GPIOs and retain USB coexistence as a gate, while eMMC must use
+the real PWRAP/MT6351 providers rather than fixed-regulator approximations.
+Retained pstore shows that the existing T-PHY/MTU3/`g_ether` path reaches the
+driver's gadget pull-up log, so USB serviceability work starts at host
+enumeration and initramfs configuration, not another controller rewrite. See
+the [Candidate O experiment](../experiments/2026-07-18-cortex-a53-sweep-diagnostic/README.md),
+[Candidate O runtime result](../experiments/2026-07-18-cortex-a53-sweep-diagnostic/results/runtime-candidate-o-attempt-1-20260718.txt),
+[staged roadmap](ROADMAP.md#immediate-priority-rotate-the-console-on-the-proven-cortex-a53-baseline-2026-07-18),
 and [sanitized USB evidence](../experiments/2026-07-16-usb-gadget-diagnostic/results/retained-pstore-mtu3-gadget-evidence-20260718.txt).
 
 ## Decision records

@@ -316,12 +316,11 @@ padded image is synchronized, flushed, and fully read back from logical
 CPU1 booted as MPIDR `0x1` / Cortex-A53, its accounting advanced, and it stayed
 online through the 25-second marker before the watchdog returned the unit to
 Gemian automatically. This proves only the first secondary Cortex-A53 in one
-run. Close unchanged N. The next changed candidate may move faster by
-requesting CPU1 through CPU7 sequentially, provided it records a durable
-begin/return/mask and execution checkpoint after every request, stops at the
-first failure, and leaves both Cortex-A72s for a separate gate. This makes the
-last retained checkpoint the failure boundary without sacrificing the proven
-watchdog recovery path. See
+run. Close unchanged N. Candidate O then requested CPU1 through CPU7
+sequentially with a durable begin/return/mask and execution checkpoint after
+every request, a first-failure stop, and both Cortex-A72s left for a separate
+gate. This retained the proven watchdog recovery path while making the last
+checkpoint the failure boundary. See
 [attempt 1](../experiments/2026-07-17-uart-pstore-observability/results/runtime-candidate-l-attempt-1-20260718.txt)
 and [attempt 2](../experiments/2026-07-17-uart-pstore-observability/results/runtime-candidate-l-attempt-2-20260718.txt),
 the [registration audit](../experiments/2026-07-17-uart-pstore-observability/results/watchdog-registration-audit-20260718.txt),
@@ -334,15 +333,36 @@ Candidate O uses a narrower deterministic path than a full kernel rebuild. Its
 builder accepts only the pinned Candidate N artifact, extracts and revalidates
 the exact N `Image.gz`, embedded configuration, and DTB CPU/PSCI/watchdog
 contract, replaces only initramfs `/init`, and reconstructs the Android-v0
-image with the unchanged LK addresses, name, and command line. Run it twice
-from a clean repository into different guest directories and require a
-recursive byte-for-byte comparison:
+image with the unchanged LK addresses, name, and command line. Its two clean
+builds were recursively byte-identical. Its one retained runtime cycle passed:
+all live logical CPU1–9 mappings matched their expected DT nodes, each standard
+CPU1–7 hotplug request returned success, every target emitted a boot line and
+advancing accounting checkpoint, and the final online mask was `0-7` while the
+Cortex-A72 CPU8/9 pair remained offline and untouched. The final success marker
+and 5- and 10-second wait markers survived the automatic watchdog recovery.
+This is one hotplug run only; it does not establish repeatability, boot-time
+SMP, stress, coherency, DVFS, idle states, thermal behavior, or either
+Cortex-A72 online path. Close unchanged O. The reproducible build remains:
 
 ```sh
 DEV_VM_NAME=gemini-pda-build-recovery-20260717 ./scripts/dev-vm run \
   /mnt/gemini-pda-mainline/experiments/2026-07-18-cortex-a53-sweep-diagnostic/scripts/build-cortex-a53-sweep-candidate.sh \
   --baseline /home/julien.guest/artifacts/boot-candidates/candidate-N-cpu1-online-7cdb4b99
 ```
+
+See the
+[Candidate O runtime result](../experiments/2026-07-18-cortex-a53-sweep-diagnostic/results/runtime-candidate-o-attempt-1-20260718.txt).
+
+Candidate P is the next kernel rebuild. Use the exact hardware-tested O
+runtime artifact as the baseline, enable built-in
+`CONFIG_FRAMEBUFFER_CONSOLE_ROTATION=y`, and add forced `fbcon=rotate:3` while
+retaining the current 8×16 font and every other kernel, DT, initramfs,
+LK-container, and watchdog-policy input. Require the normal package validators,
+two clean build comparisons, and a P-specific Android-v0 derivative validator
+before device selection. P passes only when its unique marker is readable in
+the Gemini's normal landscape orientation and the same watchdog/pstore recovery
+oracle succeeds. Do not combine a font change, native DRM, panel, backlight,
+keyboard, shell, eMMC, or USB-networking change with this gate.
 
 Do not turn the quality-of-life sequence into one permanent catch-all kernel
 profile. Rotation is a config/cmdline derivative; keyboard input is a built-in

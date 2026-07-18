@@ -1,0 +1,261 @@
+[record]
+date=2026-07-18
+source=cycle-aware authenticated post-reset pstore capture and immediate sanitized Gemian boot-reason query
+candidate=O
+attempt=1
+intended_boot_target=logical boot2 selected by the owner with the silver button
+device_variant=current Gemini PDA unit; exact retail sub-variant not independently established
+
+[artifact_and_target_evidence]
+source_revision=e35dc9a2fc94b331c3bc0ce866d7f78baa7b88aa
+raw_boot_image_sha256=4376579c3b1a9ddfbec485eb62ba6cfc0af38183527924b5a250246345cb2146
+installed_full_partition_bytes=16777216
+installed_full_partition_sha256=5efda7d18ebb99d0152d872d6dd23e7e6345c56920a77fb1129c350e8e02102d
+write_sync_flush=pass
+full_partition_readback=pass-byte-identical-to-padded-candidate
+candidate_o_selection=intended-by-owner
+independent_selected_image_identity=established-by-exact-candidate-o-marker-in-surviving-console-ramoops
+
+[cycle_aware_capture]
+private_capture=artifacts/device-pstore/candidate-O-runtime-1-post-auto-reset-20260718
+private_capture_git_ignored=yes
+cycle_started_utc=2026-07-18T23:30:10Z
+disconnect_observed_utc=2026-07-18T23:30:24Z
+reconnect_observed_utc=2026-07-18T23:33:15Z
+initial_boot_id_sha256=0e66fb51cf2b3b541f1b472a36fc58d7f76ead471561a53aca4e1ac2780be681
+final_boot_id_sha256=07d1875e5a9e92905947dafcdac77d9392355ffbe88184b3cf60684e9d3f489f
+boot_id_changed=yes
+capture_kernel=3.18.41+
+capture_arch=aarch64
+archive_boot_id_stable_during_capture=yes
+private_capture_sha256s_file_sha256=814bbd51c1c266ca9d06067439a4f91fdbab511aa1adf03f5e7df83c951b4d6d
+private_capture_manifest_verification=pass-all-listed-members
+collector_candidate_l_evidence_file=not-applicable-hard-coded-candidate-l-parser; ignored-for-candidate-o-attribution
+assistant_issued_reboot_or_power_action=none
+owner_intervention_during_cycle=not-independently-observed; none-reported
+
+[retained_console_ramoops]
+private_file=artifacts/device-pstore/candidate-O-runtime-1-post-auto-reset-20260718/pstore/console-ramoops
+private_file_bytes=65524
+private_file_lines=895
+private_file_sha256=f6e568e7ec4f5b8d3133bb8883664953fa04e587fa79a5b399c86d9494b31688
+candidate_marker=GEMINI_A53_SWEEP_20260718_O
+kernel_identity=7.1.3-gemini-observability-L
+kernel_dtb_config=exact-candidate-N
+storage_access=none
+runtime_networking=none
+procfs=mounted
+sysfs=mounted-rw
+live_watchdog_interrupts=absent
+watchdog_identity=mtk-wdt
+watchdog_timeout_seconds=31
+watchdog_pretimeout=unavailable
+watchdog_status=0x0
+watchdog_open=success
+watchdog_handoff_ping=sent-once-before-cpu-sweep
+watchdog_armed_marker_kernel_time_seconds=5.388347
+watchdog_armed_marker_timing=emitted-after-open-and-handoff-ping; not-the-exact-hardware-arm-instant
+
+[pre_sweep_contract]
+possible=0-9
+present=0-9
+online=0
+offline=1-9
+cpu1_mapping=logical-1-to-cpu@1-arm,cortex-a53-psci
+cpu2_mapping=logical-2-to-cpu@2-arm,cortex-a53-psci
+cpu3_mapping=logical-3-to-cpu@3-arm,cortex-a53-psci
+cpu4_mapping=logical-4-to-cpu@100-arm,cortex-a53-psci
+cpu5_mapping=logical-5-to-cpu@101-arm,cortex-a53-psci
+cpu6_mapping=logical-6-to-cpu@102-arm,cortex-a53-psci
+cpu7_mapping=logical-7-to-cpu@103-arm,cortex-a53-psci
+cpu8_mapping=logical-8-to-cpu@200-arm,cortex-a72-psci
+cpu9_mapping=logical-9-to-cpu@201-arm,cortex-a72-psci
+
+[cpu1]
+of_node=cpu@1
+request_begin_kernel_time_seconds=6.028519
+request_return_kernel_time_seconds=6.087248
+request_status=success
+write_error=none
+booted_mpidr=0x0000000001
+midr=0x410fd034
+part_interpretation=Cortex-A53
+gicv3_redistributor_address=0x0000000019220000
+stat_sample_1=cpu1 7 0 4 11 0 0 0 0 0 0
+stat_sample_2=cpu1 7 0 4 213 0 0 0 0 0 0
+accounting=advanced
+checkpoint_kernel_time_seconds=8.380619
+checkpoint=PASS
+global_online=0-1
+
+[cpu2]
+of_node=cpu@2
+request_begin_kernel_time_seconds=8.443518
+request_return_kernel_time_seconds=8.536939
+request_status=success
+write_error=none
+booted_mpidr=0x0000000002
+midr=0x410fd034
+part_interpretation=Cortex-A53
+gicv3_redistributor_address=0x0000000019240000
+stat_sample_1=cpu2 5 0 3 16 0 0 0 0 0 0
+stat_sample_2=cpu2 5 0 5 216 0 0 0 0 0 0
+accounting=advanced
+checkpoint_kernel_time_seconds=10.843932
+checkpoint=PASS
+global_online=0-2
+
+[cpu3]
+of_node=cpu@3
+request_begin_kernel_time_seconds=10.910022
+request_return_kernel_time_seconds=11.007121
+request_status=success
+write_error=none
+booted_mpidr=0x0000000003
+midr=0x410fd034
+part_interpretation=Cortex-A53
+gicv3_redistributor_address=0x0000000019260000
+stat_sample_1=cpu3 5 0 3 17 0 0 0 0 0 0
+stat_sample_2=cpu3 5 0 3 220 0 0 0 0 0 0
+accounting=advanced
+checkpoint_kernel_time_seconds=13.328016
+checkpoint=PASS
+global_online=0-3
+
+[cpu4]
+of_node=cpu@100
+request_begin_kernel_time_seconds=13.397125
+request_return_kernel_time_seconds=13.497086
+request_status=success
+write_error=none
+booted_mpidr=0x0000000100
+midr=0x410fd034
+part_interpretation=Cortex-A53
+gicv3_redistributor_address=0x0000000019280000
+stat_sample_1=cpu4 1 0 1 22 0 0 0 0 0 0
+stat_sample_2=cpu4 1 0 1 225 0 0 0 0 0 0
+accounting=advanced
+checkpoint_kernel_time_seconds=15.819048
+checkpoint=PASS
+global_online=0-4
+
+[cpu5]
+of_node=cpu@101
+request_begin_kernel_time_seconds=15.886356
+request_return_kernel_time_seconds=15.979728
+request_status=success
+write_error=none
+booted_mpidr=0x0000000101
+midr=0x410fd034
+part_interpretation=Cortex-A53
+gicv3_redistributor_address=0x00000000192a0000
+stat_sample_1=cpu5 1 0 2 22 0 0 0 0 0 0
+stat_sample_2=cpu5 1 0 2 225 0 0 0 0 0 0
+accounting=advanced
+checkpoint_kernel_time_seconds=18.302886
+checkpoint=PASS
+global_online=0-5
+
+[cpu6]
+of_node=cpu@102
+request_begin_kernel_time_seconds=18.370416
+request_return_kernel_time_seconds=18.466906
+request_status=success
+write_error=none
+booted_mpidr=0x0000000102
+midr=0x410fd034
+part_interpretation=Cortex-A53
+gicv3_redistributor_address=0x00000000192c0000
+stat_sample_1=cpu6 1 0 1 21 0 0 0 0 0 0
+stat_sample_2=cpu6 1 0 1 224 0 0 0 0 0 0
+accounting=advanced
+checkpoint_kernel_time_seconds=20.779182
+checkpoint=PASS
+global_online=0-6
+
+[cpu7]
+of_node=cpu@103
+request_begin_kernel_time_seconds=20.847008
+request_return_kernel_time_seconds=20.943050
+request_status=success
+write_error=none
+booted_mpidr=0x0000000103
+midr=0x410fd034
+part_interpretation=Cortex-A53
+gicv3_redistributor_address=0x00000000192e0000
+stat_sample_1=cpu7 0 0 1 24 0 0 0 0 0 0
+stat_sample_2=cpu7 0 0 1 226 0 0 0 0 0 0
+accounting=advanced
+checkpoint_kernel_time_seconds=23.256294
+checkpoint=PASS
+global_online=0-7
+
+[sweep_result]
+final_marker_kernel_time_seconds=23.301308
+final_marker=GEMINI_A53_SWEEP_20260718_O sweep_result=online-0-7 SUCCESS cpu8=offline cpu9=offline
+cpu1_through_cpu7_requests=success
+cpu1_through_cpu7_write_errors=none
+cpu1_through_cpu7_boot_lines=present
+cpu1_through_cpu7_gicv3_redistributor_lines=present
+cpu1_through_cpu7_icache_lines=present
+cpu1_through_cpu7_accounting=advanced
+cpu1_through_cpu7_checkpoints=PASS
+final_online=0-7
+cpu8_online=0
+cpu9_online=0
+last_complete_wait_marker=post_action_wait=10s reason=sweep-success last_completed_cpu=7 global_online=0-7
+last_complete_wait_kernel_time_seconds=33.358412
+candidate_o_stop_or_failure_marker=absent
+candidate_o_budget_failure_marker=absent
+panic_oops_bug_stall_or_hung_task_marker=absent
+
+[post_reset_boot_reason]
+query=immediate authenticated read of only non-identifying boot-reason fields after cycle capture
+query_utc=not-recorded; performed immediately after the completed cycle-aware capture
+capture_kernel=3.18.41+
+powerup_reason=reboot
+boot_reason_numeric=4
+android_bootreason=wdt_by_pass_pwk
+serial_and_personal_boot_fields=not-read-or-recorded
+pmic_watchdog_flags=not-captured-for-this-cycle
+
+[reset_interpretation]
+approximate_nominal_expiry_from_post_ping_marker_kernel_time_seconds=36.388347
+last_wait_marker_precedes_approximate_nominal_expiry_seconds=3.029935
+next_5s_wait_marker_would_follow_approximate_nominal_expiry=yes
+collector_observed_disconnect_reconnect_and_changed_boot_id=yes
+gemian_bootloader_watchdog_class_reason=wdt_by_pass_pwk
+interpretation=the exact-O trace ends in the expected interval for its 31-second TOPRGU timeout, the cycle-aware collector then sees Gemian on a changed boot ID, and Gemian reports a watchdog-class boot reason; together these establish the intended watchdog recovery without relying on display text
+
+[attribution]
+candidate_o_kernel_and_external_initramfs_entry=established
+live_linux_cpu1_through_cpu9_dt_mapping=established
+standard_arm64_cpu_hotplug_return_for_cpu1_through_cpu7=established
+psci_cpu_on_for_mpidr_0x1_0x2_0x3_0x100_0x101_0x102_0x103=established
+all_eight_cortex_a53_cores_online_concurrently=established-by-final-online-mask-0-7
+cpu1_through_cpu7_execution=established-by-advanced-per-cpu-proc-stat-accounting
+cpu8_and_cpu9_offline_and_not-written=established
+watchdog_timeout_recovery=established
+cross_version_console_ramoops_retention=established-for-this-cycle
+
+[boundaries]
+repeatability=not-established-beyond-one-run
+boot_time_smp=not-tested; maxcpus=1-remained-forced
+cortex_a72_cpu8_and_cpu9_cpu_on=not-tested
+multi_cpu_stress_or_coherency=not-tested
+cpu_frequency_dvfs=not-tested
+cpu_idle_or_suspend=not-tested
+thermal_behavior=not-tested
+native_display_panel_backlight_or_rotation=not-tested
+keyboard_or_interactive_shell=not-tested
+emmc_or_rootfs=not-accessed
+usb_host_enumeration_networking_or_remote_shell=not-established
+uart=not-established
+
+[decision]
+candidate_o_decision_oracle=pass-cpu1-through-cpu7-online-accounting-advanced-cpu8-and-cpu9-offline-watchdog-recovery-and-surviving-console-ramoops
+unchanged_candidate_o_retry=stop
+cpu_topology_runtime_state=partial-all-eight-cortex-a53-online-by-hotplug-in-one-run
+generic_psci_reuse_decision=retain; no-MT6797-specific-CPU_ON-driver-needed-for-the-eight-cortex-a53-path
+next_gate=candidate-P-rotation-only-on-exact-hardware-passed-O-baseline
+next_gate_requirement=enable-built-in-fbcon-rotation-and-force-rotate-3-without-mixing-keyboard-shell-storage-usb-or-native-display-changes

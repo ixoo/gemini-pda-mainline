@@ -4,7 +4,8 @@
 
 Build validation: **complete**. Two clean-tree VM outputs are recursively
 byte-identical. Logical `boot2` synchronization: **complete**, including full
-backup, flush, and byte-identical full readback. Runtime result: **not tested**.
+backup, flush, and byte-identical full readback. Runtime decision oracle:
+**passed once on the current Gemini PDA unit**.
 
 | Field | Value |
 | --- | --- |
@@ -106,6 +107,41 @@ infer success from display text alone.
 | inventory, DT, or watchdog gate fails | experiment did not reach a valid CPU request | fix that observation/contract path; do not blame SMP |
 | no O marker in changed-cycle pstore | Candidate O execution was not established | verify the selected slot and `boot2` full-partition checksum before changing kernel code |
 | no watchdog recovery after an O marker | recovery oracle failed | restore the last proven recovery path before another SMP expansion |
+
+## Runtime result
+
+Candidate O passed its first attributable run. A cycle-aware collector started
+from known-good Gemian, observed the device disconnect, then observed Gemian
+return with a changed boot ID. The recovered `console-ramoops` has SHA-256
+`f6e568e7ec4f5b8d3133bb8883664953fa04e587fa79a5b399c86d9494b31688`
+and contains the exact O marker stream.
+
+The live topology mapped logical CPUs 1–7 to `cpu@1`, `cpu@2`, `cpu@3`,
+`cpu@100`, `cpu@101`, `cpu@102`, and `cpu@103`, all
+`arm,cortex-a53`; CPUs 8–9 mapped to the deferred `cpu@200` and `cpu@201`
+`arm,cortex-a72` nodes. Each single CPU1–7 online request returned success with
+no write error. For every core, the retained record contains its GICv3
+redistributor initialization, MPIDR boot line with MIDR `0x410fd034`, two
+advancing `/proc/stat` samples, the expected cumulative online mask, and
+`checkpoint=PASS`. It then emitted:
+
+```text
+GEMINI_A53_SWEEP_20260718_O sweep_result=online-0-7 SUCCESS cpu8=offline cpu9=offline
+```
+
+The mask remained `0-7` through the last retained 10-second wait marker. The
+log ends in the expected interval before the unserviced 31-second watchdog
+expiry; the changed-cycle Gemian boot reports `boot_reason=4`,
+`androidboot.bootreason=wdt_by_pass_pwk`, and `powerup_reason=reboot`. This
+completes the recovery-backed oracle without relying on display text.
+
+This is one hotplug run with forced `maxcpus=1`, not proof of repeatability,
+boot-time SMP, stress or coherency, DVFS, idle, thermal behavior, or either
+Cortex-A72 `CPU_ON` path. Unchanged O repetition is closed. Candidate P may now
+change only the kernel configuration and forced command line needed for
+landscape fbcon rotation while retaining O's exact tested hardware baseline.
+The complete sanitized record is the
+[Candidate O runtime result](results/runtime-candidate-o-attempt-1-20260718.txt).
 
 ## Build and validation
 

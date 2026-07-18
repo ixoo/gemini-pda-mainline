@@ -2,7 +2,7 @@
 
 Milestones are evidence gates, not release dates. Work may proceed in parallel when it does not compromise a safe boot loop, but a milestone is complete only when all exit criteria are demonstrated on real hardware and documented.
 
-## Immediate priority: widen the Cortex-A53 path behind the proven recovery loop (2026-07-18)
+## Immediate priority: rotate the console on the proven Cortex-A53 baseline (2026-07-18)
 
 The latest reviewed `bsg100/gemini-linux` main revision is
 `9d1e565a5ba11ae9585340e3e4bf4cacc233d13c`. Its hardware logs establish a
@@ -209,8 +209,7 @@ Priorities for the next controlled test are:
    in one run; it does not establish repeatability, boot-time SMP, any other
    core, stress, coherency, DVFS, idle, or thermal behavior. Do not repeat
    unchanged N.
-9. **P8 — Candidate O: all Cortex-A53s, sequentially checkpointed.**
-   Candidate O implements the changed gate after N. It pins and reuses N's
+9. **P8 — Candidate O: complete and passed.** Candidate O pins and reuses N's
    exact kernel, DTB, configuration, LK container, storage-inert policy,
    watchdog, pstore, and fbcon paths, changing only initramfs `/init`. After
    the watchdog is armed and before the first CPU-online write, it validates
@@ -220,19 +219,29 @@ Priorities for the next controlled test are:
    request. It stops at the first failure. CPU8 and CPU9 are verified as the
    deferred Cortex-A72 pair, remain offline, and are never written. One
    ownership-handoff watchdog ping precedes the sweep; request/accounting
-   budget gates keep the pass inside the proven 31-second reset window. If all
-   requests pass, the result promotes only the eight Cortex-A53 online paths.
-   Bisect only when the stopped checkpoint leaves a grouped dependency
-   ambiguous. Two clean VM builds are recursively byte-identical. The exact
+   budget gates keep the pass inside the proven 31-second reset window. Two
+   clean VM builds are recursively byte-identical. The exact
    padded image has been synchronized, flushed, and fully read back from
-   live-resolved logical `boot2` without rebooting the device. These artifact
-   and partition results are separate from the pending runtime result. See the
+   live-resolved logical `boot2`.
+
+   Its first controlled run passed. Retained exact-marker pstore proves every
+   CPU1–7 request returned success, each target booted with Cortex-A53 MIDR
+   `0x410fd034`, initialized its GICv3 redistributor, advanced its accounting,
+   and reached the expected cumulative checkpoint. The final mask was `0-7`;
+   CPU8/9 remained offline and untouched. The cycle-aware collector observed
+   return to Gemian with a changed boot ID, and Gemian reported a
+   watchdog-class boot reason. This promotes only the eight-A53 hotplug path
+   from one run. It does not establish repeatability, boot-time SMP,
+   stress/coherency, DVFS, idle, thermal behavior, or either A72 `CPU_ON` path.
+   Do not repeat unchanged O; bisect only if a later changed candidate
+   regresses one of its exact checkpoints. See the
    [Candidate O experiment](../experiments/2026-07-18-cortex-a53-sweep-diagnostic/README.md),
    [build reproduction](../experiments/2026-07-18-cortex-a53-sweep-diagnostic/results/final-build-reproduction-20260718.txt),
-   and [write/readback](../experiments/2026-07-18-cortex-a53-sweep-diagnostic/results/boot2-write-candidate-o-20260718.txt).
-10. **P9 — Candidate P: rotate the proven loader framebuffer console.**
-    Use the exact hardware-tested O runtime artifact as the baseline only after
-    O's oracle passes. Rebuild with built-in
+   [write/readback](../experiments/2026-07-18-cortex-a53-sweep-diagnostic/results/boot2-write-candidate-o-20260718.txt),
+   and [runtime result](../experiments/2026-07-18-cortex-a53-sweep-diagnostic/results/runtime-candidate-o-attempt-1-20260718.txt).
+10. **P9 — Candidate P: active next gate; rotate the proven loader framebuffer
+    console.** Use the exact hardware-passed O kernel/DT/config/initramfs and
+    recovery behavior as the baseline. Rebuild with built-in
     `CONFIG_FRAMEBUFFER_CONSOLE_ROTATION=y` and force `fbcon=rotate:3`, retaining
     the current 8×16 font and every other kernel, DT, initramfs, and watchdog
     policy input. The positive result is the unique marker readable in the
@@ -351,10 +360,12 @@ and [logical-`boot2` write/readback](../experiments/2026-07-18-cpu1-online-diagn
 are complete. Its one [runtime result](../experiments/2026-07-18-cpu1-online-diagnostic/results/runtime-candidate-n-attempt-1-20260718.txt)
 passes the CPU1 decision oracle and records the automatic watchdog return. The
 changed [Candidate O artifact](../experiments/2026-07-18-cortex-a53-sweep-diagnostic/README.md)
-implements the next device gate: it requests the Cortex-A53 CPU1–7 set
-sequentially with a durable execution checkpoint and fail-stop after each core,
-while leaving CPU8/9 offline and untouched. Do not rebuild, rewrite, or select
-N unchanged. The exact captured LK's
+also passed its one [runtime result](../experiments/2026-07-18-cortex-a53-sweep-diagnostic/results/runtime-candidate-o-attempt-1-20260718.txt):
+all CPU1–7 hotplug requests returned success, every target booted and advanced
+accounting, the mask reached `0-7`, CPU8/9 remained offline, and the watchdog
+cycle returned to Gemian. Do not rebuild, rewrite, or select N or O unchanged.
+Candidate P's isolated console-rotation rebuild is the next device gate. The
+exact captured LK's
 [software-selection audit](../experiments/2026-07-12-boot-contract-recovery/results/lk-boot2-software-selection-audit-20260718.txt)
 finds hardware-key branches for `boot2` and `boot3` and found no direct software
 destination from Gemian in the audited paths, so the currently supported test
