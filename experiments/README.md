@@ -278,8 +278,13 @@ the result.
   The raw image is pinned to SHA-256
   `4376579c3b1a9ddfbec485eb62ba6cfc0af38183527924b5a250246345cb2146`;
   two clean VM builds are recursively byte-identical and the exact artifact is
-  available in the Git-ignored host export. Hardware result remains untested.
-  See the [build reproduction](2026-07-18-cortex-a53-sweep-diagnostic/results/final-build-reproduction-20260718.txt).
+  available in the Git-ignored host export. The exact padded image was then
+  synchronized, block-flushed, and fully read back from live-resolved logical
+  `boot2`; the full target matches SHA-256
+  `5efda7d18ebb99d0152d872d6dd23e7e6345c56920a77fb1129c350e8e02102d`.
+  No reboot was performed and the runtime result remains untested. See the
+  [build reproduction](2026-07-18-cortex-a53-sweep-diagnostic/results/final-build-reproduction-20260718.txt)
+  and [write/readback](2026-07-18-cortex-a53-sweep-diagnostic/results/boot2-write-candidate-o-20260718.txt).
 - [2026-07-14 live vendor-to-mainline gap audit](2026-07-14-live-vendor-mainline-gap-audit/README.md)
   — read-only comparison of the live Gemian vendor contracts with the current
   Linux 7.1.3 handoff and first-boot boundaries.

@@ -3,7 +3,8 @@
 ## Status
 
 Build validation: **complete**. Two clean-tree VM outputs are recursively
-byte-identical. Hardware result: **not tested**.
+byte-identical. Logical `boot2` synchronization: **complete**, including full
+backup, flush, and byte-identical full readback. Runtime result: **not tested**.
 
 | Field | Value |
 | --- | --- |
@@ -136,6 +137,8 @@ These are build facts, not hardware results.
 
 The exact two-build comparison and validated host export are recorded in the
 [final build reproduction](results/final-build-reproduction-20260718.txt).
+The standing-authorized logical-`boot2` operation is recorded separately in the
+[full write/readback result](results/boot2-write-candidate-o-20260718.txt).
 
 ## Scope and safety
 

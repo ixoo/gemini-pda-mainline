@@ -223,10 +223,13 @@ Priorities for the next controlled test are:
    budget gates keep the pass inside the proven 31-second reset window. If all
    requests pass, the result promotes only the eight Cortex-A53 online paths.
    Bisect only when the stopped checkpoint leaves a grouped dependency
-   ambiguous. Two clean VM builds are recursively byte-identical and the raw
-   image is pinned; this build result is separate from the pending hardware
-   result. See the [Candidate O experiment](../experiments/2026-07-18-cortex-a53-sweep-diagnostic/README.md)
-   and [build reproduction](../experiments/2026-07-18-cortex-a53-sweep-diagnostic/results/final-build-reproduction-20260718.txt).
+   ambiguous. Two clean VM builds are recursively byte-identical. The exact
+   padded image has been synchronized, flushed, and fully read back from
+   live-resolved logical `boot2` without rebooting the device. These artifact
+   and partition results are separate from the pending runtime result. See the
+   [Candidate O experiment](../experiments/2026-07-18-cortex-a53-sweep-diagnostic/README.md),
+   [build reproduction](../experiments/2026-07-18-cortex-a53-sweep-diagnostic/results/final-build-reproduction-20260718.txt),
+   and [write/readback](../experiments/2026-07-18-cortex-a53-sweep-diagnostic/results/boot2-write-candidate-o-20260718.txt).
 10. **P9 — Candidate P: rotate the proven loader framebuffer console.**
     Use the exact hardware-tested O runtime artifact as the baseline only after
     O's oracle passes. Rebuild with built-in
