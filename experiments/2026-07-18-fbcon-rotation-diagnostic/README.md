@@ -6,7 +6,7 @@
 | --- | --- |
 | ID | `2026-07-18-fbcon-rotation-diagnostic` |
 | Candidate | P |
-| Status | Planned; configuration/profile scaffold only, with no P package, boot artifact, device write, or runtime result yet |
+| Status | Reproducibly built and validated; exported and synchronized to logical `boot2` with a matching full readback; runtime not tested |
 | Subsystem | simplefb/fbcon console orientation |
 | Device variant | Current Gemini PDA unit; exact retail sub-variant not independently established |
 | Date | 2026-07-18 |
@@ -30,8 +30,8 @@ USB networking.
 The baseline is the exported Candidate O artifact
 `candidate-O-a53-sweep-e35dc9a`, whose one attributable hardware run completed
 the Cortex-A53 CPU1--7 sweep and returned automatically through the watchdog.
-Before a P derivative is assembled, the future builder must require the exact
-O artifact inventory and verify its `SHA256SUMS` file, whose SHA-256 is:
+The P builder requires the exact O artifact inventory and verifies its
+`SHA256SUMS` file, whose SHA-256 is:
 
 ```text
 d57319532822ee89bd435114e3119a7ebf4cb009553dab4b1682f88c3534be2e
@@ -121,8 +121,8 @@ embedded configuration, artifact provenance, and exact target readback.
 
 ## Required artifact validation
 
-The dedicated P builder and validators are not part of this initial scaffold.
-Before any device selection they must establish all of the following:
+The dedicated P builder and validators establish all of the following before
+any device selection:
 
 1. Source tarball, patch series, architecture, compiler, linker, base config,
    existing fragment inputs, and `modules_built=false` match Candidate O's
@@ -147,6 +147,75 @@ Negative mutation tests must reject an omitted or wrong rotation value, a
 header-only rotation token, any extra configuration change, a font change, an
 altered initramfs or DTB, and any non-derived LK-container change.
 
+Both focused regressions pass against the exact O/P inputs:
+`scripts/test-package-validator-mutations.sh` rejects omitted or wrong
+rotation configuration, omitted or wrong `fbcon=rotate`, extra configuration,
+font/local-version, packaged-fragment, and DTB mutations;
+`scripts/test-validator-mutations.sh` rejects changed O pins, initramfs, DTB,
+header identity/addressing, canonical ID, padding, and an unchanged kernel.
+Their temporary mutations never access a device.
+
+## Build, export, and `boot2` synchronization result
+
+Candidate P was built from clean repository revision
+`170a6403ef41438e01a512d65eb9ad9c223118b0` using package:
+
+```text
+linux-7.1.3-gemini-observability-fbcon-rotation-e1d4f6f3-03ac37f8
+```
+
+Its source tarball SHA-256 is
+`be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc`,
+and its 82-patch series SHA-256 is
+`e1d4f6f36b49c5f6064bd7344e31c69b05903ef2f37fa8d9af736035faf47a8a`.
+Two independent VM packages generated at `2026-07-19T00:35:56Z` and
+`2026-07-19T00:49:55Z` have the same 214-file inventory, including 119 DTBs,
+and every file not carrying the generated timestamp is byte-identical. The
+two `build.json` files and checksum manifests become byte-identical after
+normalizing only `generated_utc` and its dependent digest. The complete DTB
+trees match, and the resolved configuration has only the two permitted line
+changes. A second final candidate-artifact directory is recursively identical
+to the selected one.
+
+The selected validated output is:
+
+| Output | Value |
+| --- | --- |
+| `Image` SHA-256 | `695eff12f7fb3b210b2d9814cc1cf0ea2250d1e8277bb552fb695c87782a1a4b` |
+| `Image.gz` SHA-256 | `7f9421e41eca296cc757c18c7cce0203fb53bbe9b5afa9eb890314a5ce1dea69` |
+| Resolved configuration SHA-256 | `0759fdb25abf25008ecf967736316a2d16d227c80c6835dad5875e8a612ef424` |
+| `System.map` SHA-256 | `098c703d382b13386b6fa40c6130f8b77d8b8905c39de8e80445d753b297ea07` |
+| Raw Android-v0 image | `gemini-fbcon-rotation.boot.img` |
+| Raw image size | `6531072` bytes |
+| Raw image SHA-256 | `d192dac9e4516eac9319da2a885abaf3203da6c357c574e7f1f6deef2208d341` |
+| Candidate `SHA256SUMS` SHA-256 | `e063bf5ddeb576deaec8aea3fa050f23a890027c7cf58b0133e3672f1ad07835` |
+| Exact inherited O DTB SHA-256 | `c574762aa178cb5a7238400b499d2edcdd3acb3538d2255e916b041f2074c379` |
+| Exact inherited O initramfs SHA-256 | `3f19afd81632fbe654c024b9f865180b42caf61163bb26ea26211884271a11d8` |
+
+The Android-v0 delta validator found only the payload-derived kernel size and
+canonical ID fields changed. Header name and command line, addresses, layout,
+zero padding, appended O DTB, and O initramfs remain exact. The LK parser and
+arm64 placement/decompression gates pass. The exact host export is:
+
+```text
+artifacts/vm-export/boot-candidates/candidate-P-fbcon-rotation-170a640
+```
+
+The raw image was then zero-padded to the exact 16 MiB target size and
+synchronized only to live-resolved logical `boot2`. Before the write, the full
+partition matched exact padded Candidate O SHA-256
+`5efda7d18ebb99d0152d872d6dd23e7e6345c56920a77fb1129c350e8e02102d`.
+A fresh private backup was preserved. The Candidate P padded image, flushed
+target, and separate full local readback all match SHA-256
+`cea00d591e74a29d74200f4d292a92aaca2f890bd965af37a7673ab906f4afbc`.
+No reboot, shutdown, or boot selection was performed. See the
+[final build reproduction](results/final-build-reproduction-20260718.txt) and
+[full write/readback result](results/boot2-write-candidate-p-20260718.txt).
+
+These results establish software and partition identity only. They do not
+establish that P boots, that `fbcon=rotate:3` takes effect, that the console is
+readable, or that the inherited watchdog/pstore recovery still works.
+
 ## Runtime oracle and decision table
 
 One owner-attended intended `boot2` selection is sufficient for this changed
@@ -164,16 +233,15 @@ changed boot ID before recovering pstore.
 
 ## Safety
 
-The configuration and documentation changes are build-only and do not access
-hardware. The future candidate builder must likewise have no device or
-flashing interface.
+The configuration, builder, and validators have no device or flashing
+interface. The completed build and export did not access hardware.
 
-Installing a validated P artifact is a separate operation governed by
-`docs/SAFETY.md` and `AGENTS.md`: resolve logical `boot2` from the live GPT,
-verify it is inactive and unmounted, preserve a full private backup, pad to the
-exact partition size, write and flush, and require a matching full-partition
-readback checksum. Never substitute `boot`, `boot3`, or a remembered partition
-number, and never reboot automatically.
+The completed installation was a separate operation governed by
+`docs/SAFETY.md` and `AGENTS.md`: logical `boot2` was resolved from the live
+GPT, verified inactive and unmounted, fully backed up, written only after exact
+padding, synchronized and flushed, and checked through a matching full local
+readback. Never substitute `boot`, `boot3`, or a remembered partition number,
+and never reboot automatically.
 
 At runtime, retain stable power and the proven watchdog recovery path. Stop
 for unexpected heat, charging anomalies, filesystem errors, repeated recovery
@@ -181,9 +249,10 @@ failure, or any changed recovery behavior.
 
 ## Observations and conclusion
 
-No Candidate P package or boot image has been built, written, or selected at
-the time of this scaffold. The hypothesis remains untested; no hardware
-support claim follows from the manifest or fragment changes.
+Candidate P has been reproducibly built, validated, exported, synchronized,
+flushed, and fully read back from logical `boot2`. It has not been selected or
+runtime-tested. The rotation hypothesis therefore remains untested, and no
+hardware-support claim follows from the successful build or partition write.
 
 If P passes, keyboard event capture is the next separate kernel/DT gate, and a
 supervised local initramfs shell follows only after keyboard input is proven.

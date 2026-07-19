@@ -1,0 +1,128 @@
+Candidate P final build reproduction
+Date: 2026-07-18 local / 2026-07-19 UTC
+Runtime result: not tested
+Hardware write: separately recorded boot2 only
+Flash: none during build or export
+
+Repository
+----------
+
+revision=170a6403ef41438e01a512d65eb9ad9c223118b0
+status=clean
+experiment=2026-07-18-fbcon-rotation-diagnostic
+candidate_label=P
+baseline_artifact=candidate-O-a53-sweep-e35dc9a
+baseline_package=linux-7.1.3-gemini-observability-e1d4f6f3-a73fd870
+package=linux-7.1.3-gemini-observability-fbcon-rotation-e1d4f6f3-03ac37f8
+kernel_version=7.1.3
+config_profile=observability-fbcon-rotation
+config_inputs_sha256=03ac37f8ba4493ce973784e845ad73dee20e125e9465b291547fac8fbd042735
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patch_count=82
+patchset_sha256=e1d4f6f36b49c5f6064bd7344e31c69b05903ef2f37fa8d9af736035faf47a8a
+compiler=gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+linker=GNU ld (GNU Binutils for Ubuntu) 2.42
+modules_built=false
+source_date_epoch=0
+
+Independent package builds
+--------------------------
+
+vm=gemini-pda-build-recovery-20260717
+guest_architecture=aarch64
+first_package=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-observability-fbcon-rotation-e1d4f6f3-03ac37f8
+first_package_generated_utc=2026-07-19T00:35:56Z
+first_package_sha256s_sha256=bdda1fa61aad0c13ee00092525ee750353f70e1e97248c620a7222c0fd56bb02
+first_package_build_json_sha256=802c34b3bcb9ca5f122b7efe16d57ecb466154681cd8dfab38ada94f7320d0e9
+second_package=/home/julien.guest/artifacts/gemini-pda-P-repro/linux-7.1.3-gemini-observability-fbcon-rotation-e1d4f6f3-03ac37f8
+second_package_generated_utc=2026-07-19T00:49:55Z
+second_package_sha256s_sha256=63c3d586a2b80381871f96fbf9e154af7670c4c7ab9e7fceea6cbc0ba0e1c95e
+second_package_build_json_sha256=d9c9e4f893aa0dd8a0f6c69058d5f7c627652f2d7d8cc6b27f3ac86a13eeaf94
+package_file_inventory_count=214
+package_file_inventory_equal=yes
+mediatek_dtb_count_each=119
+dtb_tree_equal=yes
+all_non_generated_timestamp_files_byte_identical=yes
+build_json_equal_after_removing_generated_utc=yes
+sha256s_equal_after_masking_only_build_json_digest=yes
+independent_build_result=passed
+package_validator_mutation_regression=passed
+boot_validator_mutation_regression=passed
+mutation_test_hardware_write=none
+
+Pinned package outputs
+----------------------
+
+image_sha256=695eff12f7fb3b210b2d9814cc1cf0ea2250d1e8277bb552fb695c87782a1a4b
+image_gz_sha256=7f9421e41eca296cc757c18c7cce0203fb53bbe9b5afa9eb890314a5ce1dea69
+resolved_config_sha256=0759fdb25abf25008ecf967736316a2d16d227c80c6835dad5875e8a612ef424
+system_map_sha256=098c703d382b13386b6fa40c6130f8b77d8b8905c39de8e80445d753b297ea07
+resolved_config_delta_count=2
+resolved_config_delta_1=CONFIG_FRAMEBUFFER_CONSOLE_ROTATION:y
+resolved_config_delta_2=CONFIG_CMDLINE:append-fbcon=rotate:3
+config_cmdline_force=yes
+framebuffer_console=yes
+font_8x16_unchanged=yes
+localversion_unchanged=-gemini-observability-L
+
+Candidate result
+----------------
+
+candidate_directory=/home/julien.guest/artifacts/boot-candidates/candidate-P-fbcon-rotation-170a640
+candidate_file=gemini-fbcon-rotation.boot.img
+candidate_size=6531072
+candidate_sha256=d192dac9e4516eac9319da2a885abaf3203da6c357c574e7f1f6deef2208d341
+candidate_manifest_sha256=e063bf5ddeb576deaec8aea3fa050f23a890027c7cf58b0133e3672f1ad07835
+candidate_manifest_internal_check=passed
+second_candidate_artifact_recursive_comparison=byte-identical
+baseline_o_boot_sha256=4376579c3b1a9ddfbec485eb62ba6cfc0af38183527924b5a250246345cb2146
+baseline_o_image_gz_sha256=0c0d0e22c78b5b0d89b7a7363be55850b3f3474d3b4e7f922946747efbe164d3
+candidate_image_gz_sha256=7f9421e41eca296cc757c18c7cce0203fb53bbe9b5afa9eb890314a5ce1dea69
+exact_o_dtb_sha256=c574762aa178cb5a7238400b499d2edcdd3acb3538d2255e916b041f2074c379
+exact_o_initramfs_sha256=3f19afd81632fbe654c024b9f865180b42caf61163bb26ea26211884271a11d8
+header_name=gemini-obs-L
+header_cmdline=bootopt=64S3,32N2,64N2
+kernel_addr=0x40200000
+ramdisk_addr=0x45000000
+second_addr=0x40f00000
+tags_addr=0x44000000
+page_size=2048
+observed_header_delta=kernel_size,canonical_sha1_id
+unchanged_header_name_and_cmdline=yes
+unchanged_addresses_and_layout=yes
+unchanged_appended_candidate_o_dtb=yes
+unchanged_candidate_o_initramfs=yes
+zero_payload_padding_verified=yes
+canonical_sha1_id_verified=yes
+lk_validation=passed
+
+Attribution boundary
+--------------------
+
+inherited_marker=GEMINI_A53_SWEEP_20260718_O
+inherited_marker_identifies_candidate_p_by_itself=no
+inherited_kernel_dtb_config_label=historical-not-P-config-evidence
+candidate_p_identity_requires=validated-package,raw-image-hash,full-boot2-readback,intended-selection,changed-cycle-recovery
+
+Validated host export
+---------------------
+
+host_relative_directory=artifacts/vm-export/boot-candidates/candidate-P-fbcon-rotation-170a640
+manifest_check=passed
+raw_candidate_mode=0600
+raw_candidate_size=6531072
+raw_candidate_sha256=d192dac9e4516eac9319da2a885abaf3203da6c357c574e7f1f6deef2208d341
+git_ignored=yes
+
+Scope
+-----
+
+result=PASS-independent-package-build-and-validated-candidate
+hardware_write=separately-recorded-boot2-only
+hardware_write_record=results/boot2-write-candidate-p-20260718.txt
+device_boot=not-run
+runtime_result=not-tested
+
+This record establishes deterministic software identity and the exact
+rotation-only configuration delta. It does not establish kernel entry,
+effective fbcon rotation, readable orientation, or watchdog/pstore recovery.

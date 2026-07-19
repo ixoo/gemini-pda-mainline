@@ -243,7 +243,7 @@ driver.
 | 0058–0065 | Panfrost, DPI, PMIC parent fix, SCPSYS/AFE bindings, DVFSP deferral | Reuse Panfrost/DRM/PMIC/SCPSYS/ASoC frameworks; keep undocumented DVFSP out | Panfrost/DPI/AFE consumers remain disabled or module-only | Validate each consumer’s clocks, resets, IOMMU, supplies, and firmware boundary independently |
 | 0066–0071 | USB T-PHY/MTU3/xHCI/MUSB and MSDC pinmux policy | Reuse generic USB cores with MT6797 glue and source-derived split windows; use pinmux-only MSDC state | USB nodes remain disabled; built-in code is package capability, not probe evidence | Gadget-only console first, then role/VBUS and PHY tests with external recovery |
 | 0072–0076 | SPI aliases/nodes, hall input, NT36772 boundary, keyboard polarity | Reuse generic SPI and input frameworks where the captured protocol matches; keep every new board consumer disabled | The 77-patch package validates, but these additions have no current-mainline runtime result | Test one bounded consumer at a time with exact identity and recovery evidence |
-| 0077–0081 | MTU3 diagnostic, UART/pstore/restart observability | Reuse generic MediaTek USB, 8250, pstore, and watchdog facilities; add only captured board data and narrowly scoped MT6797 watchdog policy | The USB candidate remains a failed host-observation gate. K was cancelled without runtime. Candidate L reached tracked external `/init`, but the optional IRQ-bearing watchdog did not register. Candidate M proved the no-IRQ `mtk-wdt`, 31-second automatic recovery, and cross-version console retention. Candidate O retained that exact recovery foundation while sequential standard hotplug requests brought logical CPU1–7 online; all seven checkpoints and the final `online=0-7` marker survived one automatic recovery cycle. UART remained silent and bark/pretimeout, USB, and native display remain unproven. | Retain the basic no-IRQ watchdog and pstore as the early recovery foundation. Do not repeat K–O unchanged. Candidate P changes only built-in fbcon rotation support and the forced rotation parameter; investigate bark separately without guessing polarity and keep USB host, VBUS, Type-C, and charging conclusions separate. |
+| 0077–0081 | MTU3 diagnostic, UART/pstore/restart observability | Reuse generic MediaTek USB, 8250, pstore, and watchdog facilities; add only captured board data and narrowly scoped MT6797 watchdog policy | The USB candidate remains a failed host-observation gate. K was cancelled without runtime. Candidate L reached tracked external `/init`, but the optional IRQ-bearing watchdog did not register. Candidate M proved the no-IRQ `mtk-wdt`, 31-second automatic recovery, and cross-version console retention. Candidate O retained that exact recovery foundation while sequential standard hotplug requests brought logical CPU1–7 online; all seven checkpoints and the final `online=0-7` marker survived one automatic recovery cycle. Candidate P's exact two-line rotation configuration derivative is reproducibly built, exported, and fully synchronized/read back from logical `boot2`, but has not been selected at runtime. UART remained silent and bark/pretimeout, rotation, USB, and native display remain unproven. | Retain the basic no-IRQ watchdog and pstore as the early recovery foundation. Do not repeat K–O unchanged. Select exact P once to test only fbcon rotation while preserving O's recovery oracle; investigate bark separately without guessing polarity and keep USB host, VBUS, Type-C, and charging conclusions separate. |
 
 The [current driver-coverage audit](../experiments/2026-07-13-driver-coverage-audit/results/driver-coverage-current-77-package-20260714.txt), [first-boot dependency audit](../experiments/2026-07-14-first-boot-probe-audit/results/first-boot-probe-audit-current-77-package-20260714.txt), [77-patch package validation](../experiments/2026-07-12-input-backlight-recovery/results/mainline-display-input-current-77-package-20260714.txt), [USB diagnostic experiment](../experiments/2026-07-16-usb-gadget-diagnostic/README.md), [broad unused-clock diagnostic](../experiments/2026-07-17-clk-ignore-unused-diagnostic/README.md), [cancelled newline-boundary diagnostic](../experiments/2026-07-17-fbcon-newline-boundary-diagnostic/README.md), and [UART/pstore observability experiment](../experiments/2026-07-17-uart-pstore-observability/README.md) provide the corresponding evidence boundaries. The older subsystem records remain content audits where later patches do not touch their inputs. This table is a design map, not a claim that any disabled, module-only, or diagnostic path works on hardware.
 Candidate J's partition operation is separately recorded in its
@@ -297,14 +297,29 @@ paths only for one hotplug run. It does not establish repeatability, boot-time
 SMP, stress, coherency, DVFS, idle states, thermal behavior, or either
 Cortex-A72 online path.
 
-Candidate P is the next changed gate. It must rebuild from the exact
-hardware-tested O baseline with built-in
-`CONFIG_FRAMEBUFFER_CONSOLE_ROTATION=y` and forced `fbcon=rotate:3`, retaining
-the current 8×16 font and every other kernel, DT, initramfs, LK-container, and
-watchdog-policy input. Its positive result is a unique marker readable in the
-Gemini's normal landscape orientation while the same pstore/reset oracle still
-passes. Do not combine a font change, native DRM, panel, or backlight work with
-P. AW9523 keyboard input, a supervised local shell, the real PMIC/eMMC
+Candidate P is the prepared next runtime gate. It rebuilds from the exact
+hardware-tested O baseline with exactly two resolved configuration changes:
+`# CONFIG_FRAMEBUFFER_CONSOLE_ROTATION is not set` becomes
+`CONFIG_FRAMEBUFFER_CONSOLE_ROTATION=y`, and forced `CONFIG_CMDLINE` gains only
+`fbcon=rotate:3`. The current 8×16 font and every other resolved configuration,
+source, patch, DTB, initramfs, LK-container, and watchdog-policy input remain
+exact. Independent VM builds reproduced the substantive package and candidate
+outputs. The exported raw image SHA-256 is
+`d192dac9e4516eac9319da2a885abaf3203da6c357c574e7f1f6deef2208d341`.
+It was synchronized and block-flushed to live-resolved logical `boot2`; the
+exact padded target and full readback both have SHA-256
+`cea00d591e74a29d74200f4d292a92aaca2f890bd965af37a7673ab906f4afbc`.
+The write did not reboot the device, no P runtime selection has occurred, and
+rotation remains unproven; this preparation does not promote hardware support.
+
+P intentionally preserves O's exact initramfs and
+`GEMINI_A53_SWEEP_20260718_O` marker. Readability of that inherited marker in
+normal landscape orientation is P's visual behavior oracle, not its identity.
+Attribution requires the exact validated P artifact, matching full-partition
+readback, an intended `boot2` selection, and a changed recovery cycle; the O
+CPU/watchdog checkpoints and pstore/reset oracle must also pass. Do not combine
+a font change, native DRM, panel, or backlight work with P. AW9523 keyboard
+input, a supervised local shell, the real PMIC/eMMC
 dependency closure, and USB networking remain later, separate layers. In
 particular, the keyboard layer must model the SoC pinctrl for its
 reset/interrupt GPIOs and retain USB coexistence as a gate, while eMMC must use
@@ -314,6 +329,9 @@ driver's gadget pull-up log, so USB serviceability work starts at host
 enumeration and initramfs configuration, not another controller rewrite. See
 the [Candidate O experiment](../experiments/2026-07-18-cortex-a53-sweep-diagnostic/README.md),
 [Candidate O runtime result](../experiments/2026-07-18-cortex-a53-sweep-diagnostic/results/runtime-candidate-o-attempt-1-20260718.txt),
+[Candidate P experiment](../experiments/2026-07-18-fbcon-rotation-diagnostic/README.md),
+[Candidate P build reproduction](../experiments/2026-07-18-fbcon-rotation-diagnostic/results/final-build-reproduction-20260718.txt),
+[Candidate P write/readback](../experiments/2026-07-18-fbcon-rotation-diagnostic/results/boot2-write-candidate-p-20260718.txt),
 [staged roadmap](ROADMAP.md#immediate-priority-rotate-the-console-on-the-proven-cortex-a53-baseline-2026-07-18),
 and [sanitized USB evidence](../experiments/2026-07-16-usb-gadget-diagnostic/results/retained-pstore-mtu3-gadget-evidence-20260718.txt).
 

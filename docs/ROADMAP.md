@@ -239,15 +239,36 @@ Priorities for the next controlled test are:
    [build reproduction](../experiments/2026-07-18-cortex-a53-sweep-diagnostic/results/final-build-reproduction-20260718.txt),
    [write/readback](../experiments/2026-07-18-cortex-a53-sweep-diagnostic/results/boot2-write-candidate-o-20260718.txt),
    and [runtime result](../experiments/2026-07-18-cortex-a53-sweep-diagnostic/results/runtime-candidate-o-attempt-1-20260718.txt).
-10. **P9 — Candidate P: active next gate; rotate the proven loader framebuffer
-    console.** Use the exact hardware-passed O kernel/DT/config/initramfs and
-    recovery behavior as the baseline. Rebuild with built-in
-    `CONFIG_FRAMEBUFFER_CONSOLE_ROTATION=y` and force `fbcon=rotate:3`, retaining
-    the current 8×16 font and every other kernel, DT, initramfs, and watchdog
-    policy input. The positive result is the unique marker readable in the
-    Gemini's normal landscape orientation while the reset/pstore loop still
-    passes. Do not mix a font change, native DRM, panel, or backlight work into
-    this gate.
+10. **P9 — Candidate P: reproducibly built, exported, and synchronized;
+    runtime selection pending.** P uses the exact hardware-passed O package
+    and runtime artifact as its baseline. Its resolved kernel configuration
+    changes exactly two lines: `# CONFIG_FRAMEBUFFER_CONSOLE_ROTATION is not set` becomes
+    `CONFIG_FRAMEBUFFER_CONSOLE_ROTATION=y`, and the forced `CONFIG_CMDLINE`
+    gains only the final token `fbcon=rotate:3`. The current 8×16 font and all
+    other resolved configuration, source, patch, DTB, initramfs, LK-container,
+    and watchdog-policy inputs remain exact. Independent VM builds reproduced
+    the substantive package outputs and boot artifact before export to
+    `artifacts/vm-export/boot-candidates/candidate-P-fbcon-rotation-170a640`.
+    The raw image SHA-256 is
+    `d192dac9e4516eac9319da2a885abaf3203da6c357c574e7f1f6deef2208d341`.
+    It was written to live-resolved logical `boot2`, synchronized,
+    block-flushed, and fully read back; the exact padded target and full
+    readback SHA-256 is
+    `cea00d591e74a29d74200f4d292a92aaca2f890bd965af37a7673ab906f4afbc`.
+    No reboot or runtime selection was part of that operation, so the rotation
+    hypothesis remains untested and no hardware-support state advances.
+
+    P preserves O's exact initramfs and therefore its
+    `GEMINI_A53_SWEEP_20260718_O` marker. That inherited marker is the visual
+    behavior oracle when it is readable in the Gemini's normal landscape
+    orientation, but it does not identify P. Runtime attribution requires the
+    exact validated P artifact, its matching full-`boot2` readback, an intended
+    `boot2` selection, and a changed recovery cycle. The O CPU/watchdog
+    checkpoints and reset/pstore loop must also remain intact. Do not mix a
+    font change, native DRM, panel, or backlight work into this gate. See the
+    [Candidate P experiment](../experiments/2026-07-18-fbcon-rotation-diagnostic/README.md),
+    [build reproduction](../experiments/2026-07-18-fbcon-rotation-diagnostic/results/final-build-reproduction-20260718.txt),
+    and [write/readback](../experiments/2026-07-18-fbcon-rotation-diagnostic/results/boot2-write-candidate-p-20260718.txt).
 11. **P10 — Candidate Q: keyboard events before a shell.** Layer Q on the exact
     hardware-passed P baseline, retaining its readable rotation, watchdog,
     pstore, LK container, and unrelated DT/configuration inputs. Enable the
@@ -364,8 +385,9 @@ also passed its one [runtime result](../experiments/2026-07-18-cortex-a53-sweep-
 all CPU1–7 hotplug requests returned success, every target booted and advanced
 accounting, the mask reached `0-7`, CPU8/9 remained offline, and the watchdog
 cycle returned to Gemian. Do not rebuild, rewrite, or select N or O unchanged.
-Candidate P's isolated console-rotation rebuild is the next device gate. The
-exact captured LK's
+Candidate P's isolated console-rotation rebuild is now the exact synchronized
+`boot2` image and the next runtime gate; its build and partition identity do
+not establish that it has executed. The exact captured LK's
 [software-selection audit](../experiments/2026-07-12-boot-contract-recovery/results/lk-boot2-software-selection-audit-20260718.txt)
 finds hardware-key branches for `boot2` and `boot3` and found no direct software
 destination from Gemian in the audited paths, so the currently supported test

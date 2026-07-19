@@ -74,7 +74,12 @@ Type-C policy, or unrelated network devices. The diagnostic-only
 `usbdiag-clkignore` profile then applies
 `configs/gemini-clk-ignore-unused.fragment`; its sole request appends
 `clk_ignore_unused` to the forced kernel `CONFIG_CMDLINE`. This broad profile is
-not a normal boot configuration. Kernel
+not a normal boot configuration. Separately, the
+`observability-fbcon-rotation` profile retains the exact observability inputs
+and changes exactly two resolved
+configuration lines: it enables `CONFIG_FRAMEBUFFER_CONSOLE_ROTATION=y` and
+appends only `fbcon=rotate:3` to forced `CONFIG_CMDLINE`. It intentionally does
+not change the font or add display, input, storage, or networking policy. Kernel
 `merge_config.sh` reports redundant or overridden values, and `olddefconfig`
 resolves new dependencies. The repository validator checks the final requested
 value for each symbol, so a later profile fragment may intentionally override
@@ -353,16 +358,44 @@ DEV_VM_NAME=gemini-pda-build-recovery-20260717 ./scripts/dev-vm run \
 See the
 [Candidate O runtime result](../experiments/2026-07-18-cortex-a53-sweep-diagnostic/results/runtime-candidate-o-attempt-1-20260718.txt).
 
-Candidate P is the next kernel rebuild. Use the exact hardware-tested O
-runtime artifact as the baseline, enable built-in
-`CONFIG_FRAMEBUFFER_CONSOLE_ROTATION=y`, and add forced `fbcon=rotate:3` while
-retaining the current 8×16 font and every other kernel, DT, initramfs,
-LK-container, and watchdog-policy input. Require the normal package validators,
-two clean build comparisons, and a P-specific Android-v0 derivative validator
-before device selection. P passes only when its unique marker is readable in
-the Gemini's normal landscape orientation and the same watchdog/pstore recovery
-oracle succeeds. Do not combine a font change, native DRM, panel, backlight,
-keyboard, shell, eMMC, or USB-networking change with this gate.
+Candidate P is the next runtime gate and is complete through artifact and
+partition preparation. It uses the exact hardware-tested O package and runtime
+artifact as its baseline. Its resolved configuration differs by exactly two
+lines: `# CONFIG_FRAMEBUFFER_CONSOLE_ROTATION is not set` becomes
+`CONFIG_FRAMEBUFFER_CONSOLE_ROTATION=y`, and the forced `CONFIG_CMDLINE` gains
+only the final token `fbcon=rotate:3`. The current 8×16 font and every other
+resolved configuration, source, patch, DTB, initramfs, LK-container, and
+watchdog-policy input remain exact. Build the profile explicitly with:
+
+```sh
+KERNEL_PROFILE=observability-fbcon-rotation ./scripts/dev-vm build-kernel
+```
+
+The normal package validators, P-specific package/Android-v0 delta validators,
+negative mutation suite, and two independent VM builds pass. The exported
+artifact is
+`artifacts/vm-export/boot-candidates/candidate-P-fbcon-rotation-170a640`;
+its raw boot-image SHA-256 is
+`d192dac9e4516eac9319da2a885abaf3203da6c357c574e7f1f6deef2208d341`.
+It was written to live-resolved logical `boot2`, synchronized,
+block-flushed, and fully read back. The exact padded target and full readback
+SHA-256 is
+`cea00d591e74a29d74200f4d292a92aaca2f890bd965af37a7673ab906f4afbc`.
+No reboot or runtime selection was part of the write; P remains runtime
+untested and no hardware-support state advances.
+
+P preserves O's exact initramfs, including marker
+`GEMINI_A53_SWEEP_20260718_O`. That inherited marker is the visual behavior
+oracle if it is readable in the Gemini's normal landscape orientation, but it
+does not identify Candidate P. Attribution requires the exact validated P
+artifact, its matching full-`boot2` readback, an intended `boot2` selection,
+and a changed recovery cycle. The same O CPU/watchdog checkpoints and
+pstore/reset oracle must also succeed. Do not combine a font change, native
+DRM, panel, backlight, keyboard, shell, eMMC, or USB-networking change with
+this gate. See the
+[Candidate P experiment](../experiments/2026-07-18-fbcon-rotation-diagnostic/README.md),
+[build reproduction](../experiments/2026-07-18-fbcon-rotation-diagnostic/results/final-build-reproduction-20260718.txt),
+and [write/readback](../experiments/2026-07-18-fbcon-rotation-diagnostic/results/boot2-write-candidate-p-20260718.txt).
 
 Do not turn the quality-of-life sequence into one permanent catch-all kernel
 profile. Rotation is a config/cmdline derivative; keyboard input is a built-in

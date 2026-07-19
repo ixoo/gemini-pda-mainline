@@ -293,6 +293,23 @@ the result.
   [build reproduction](2026-07-18-cortex-a53-sweep-diagnostic/results/final-build-reproduction-20260718.txt),
   [write/readback](2026-07-18-cortex-a53-sweep-diagnostic/results/boot2-write-candidate-o-20260718.txt),
   and [runtime record](2026-07-18-cortex-a53-sweep-diagnostic/results/runtime-candidate-o-attempt-1-20260718.txt).
+- [2026-07-18 framebuffer-console rotation diagnostic](2026-07-18-fbcon-rotation-diagnostic/README.md)
+  — Candidate P was reproducibly built from exact O's DTB, initramfs, and
+  Android-v0/LK container contract. Its only resolved kernel-configuration
+  changes enable framebuffer-console rotation and append forced
+  `fbcon=rotate:3`. The raw artifact is
+  `artifacts/vm-export/boot-candidates/candidate-P-fbcon-rotation-170a640`
+  with SHA-256
+  `d192dac9e4516eac9319da2a885abaf3203da6c357c574e7f1f6deef2208d341`.
+  It was synchronized, block-flushed, and fully read back from live-resolved
+  logical `boot2`; the padded target SHA-256 is
+  `cea00d591e74a29d74200f4d292a92aaca2f890bd965af37a7673ab906f4afbc`.
+  No reboot was performed and runtime is not tested. The inherited
+  `GEMINI_A53_SWEEP_20260718_O` marker identifies only the preserved O
+  initramfs, not P; exact configuration, artifact, and readback hashes provide
+  Candidate P identity. See the
+  [build reproduction](2026-07-18-fbcon-rotation-diagnostic/results/final-build-reproduction-20260718.txt)
+  and [write/readback](2026-07-18-fbcon-rotation-diagnostic/results/boot2-write-candidate-p-20260718.txt).
 - [2026-07-14 live vendor-to-mainline gap audit](2026-07-14-live-vendor-mainline-gap-audit/README.md)
   — read-only comparison of the live Gemian vendor contracts with the current
   Linux 7.1.3 handoff and first-boot boundaries.
