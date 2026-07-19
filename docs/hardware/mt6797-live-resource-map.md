@@ -77,7 +77,7 @@ before upstream submission.
 | SPI0–5 | `0x1100a000`, `0x11012000`, `0x11018000`–`0x1101b000` + `0x1000` each | SPIs 122, 131–135 LOW | `CLK_TOP_MUX_SPI`/`syspll3_d2` parent and `INFRA_SPI`/`SPI1`–`SPI5` gates; vendor pad macros 0/1 | Patches 0072–0073 now map the recovered register/timing layout to Linux `spi-mt65xx` `mt6765_compat` (enhanced 16-bit timing, pad selection, mandatory TX, extended DMA) and add six disabled DT nodes with standard three-clock descriptions. SPI1 wiring is recovered as GPIO234–237 (`SPI1_*_B`), but the vendor DT's empty default plus explicit GPIO/SPI function switching is not yet reducible to a proven static mainline pinctrl state. Runtime transfer remains unproven. See the [SPI reuse audit](../../experiments/2026-07-14-upstream-mt6797-coverage-audit/results/spi-mt6797-controller-reuse-20260714.txt), [SPI1 pinctrl contract](../../experiments/2026-07-14-upstream-mt6797-coverage-audit/results/spi1-pinctrl-contract-20260714.txt), and [patch validation](../../experiments/2026-07-14-upstream-mt6797-coverage-audit/results/spi-mainline-patch-validation-c2feb-20260714.txt) |
 | Hall/lid input | GPIO66; no MMIO block | EINT5, level-low initial | Pinctrl pull-up; debounce `0xfa00` (64 ms); vendor switch class `hall`, shared `ACCDET` EV_SW | Standard `gpio-keys` `EV_SW/SW_LID` candidate; verify polarity, debounce units, and wake policy before enabling |
 | Toggle input | GPIO93; no MMIO block | EINT16, level-low initial | Pinctrl pull-up; debounce `0x7d000` (512 ms); vendor source labels the board node `anti-tamper`, emits F9/F10 pulses, and exposes switch class `switch` | Do not copy Android switch class; identify physical function, then choose a standard EV_SW or key policy |
-| TOPRGU watchdog | `0x10007000` + `0x1000` | 137 EDGE_FALLING | Vendor WDK keepalive; application TOPRGU bark line global IRQ169 | Linux 7.1.3 generic `mtk_wdt` is protocol-compatible; Candidate M proved basic no-IRQ registration and a 31-second timeout reset with automatic Gemian return, and Candidate O retained that recovery through one complete CPU1–7 hotplug sweep. SPI137 bark/pretimeout remains untested |
+| TOPRGU watchdog | `0x10007000` + `0x1000` | 137 EDGE_FALLING | Vendor WDK keepalive; application TOPRGU bark line global IRQ169 | Linux 7.1.3 generic `mtk_wdt` is protocol-compatible; Candidate M proved basic no-IRQ registration and a 31-second timeout reset with automatic Gemian return, Candidate O retained that recovery through one complete CPU1–7 hotplug sweep, and Candidate P preserved the exact timer trace plus an owner-observed unassisted return. P's post-return collector did not independently capture its reset reason. SPI137 bark/pretimeout remains untested; Q deliberately does not open a userspace watchdog |
 | M4U | `0x10205000` + `0x1000` | 156 LOW | seven SMI larbs; 15 vendor clock/domain handles | Add MT6797 IOMMU platform data, binding, port header, SMI relationships, and DTS |
 | CMDQ/GCE | `0x10212000` + `0x1000` | 152 LOW normal; 153 LOW vendor secure path | `infra_gce` ID 10, 136.5 MHz, gated when idle; live normal IRQ activity | Local binding/header and standalone mailbox provider use the 16-thread MT8173 register/address fallback; expose only normal SPI152 |
 | USB 1 | `0x11200000` + `0x1000`; SIF `0x11210000` + `0x1000` | 73 LOW | infra ICUSB and SSUSB reference clocks | Standard MUSB-like core, but distinct MT6797 USB11 SIF/PHY, `0xa0`/`0xa4`/`0xa8` level-1 IRQ block, six-endpoint host contract, and two-clock glue; reuse MUSB core only after the USB11 boundary is modeled |
@@ -231,10 +231,14 @@ watchdog recovery cycle.
 This establishes generic PSCI reuse for the seven secondary Cortex-A53
 hotplug paths in one run. It does not establish repeatability, boot-time SMP,
 stress, coherency, DVFS, idle states, thermal behavior, or either Cortex-A72
-online path. Candidate P changes only framebuffer-console rotation and must
-preserve these CPU and recovery inputs; it is not a broader SMP test. See the
+online path. Candidate P changed only framebuffer-console rotation and its
+post-return pstore retained every O success checkpoint and final `online=0-7`
+marker in one attributable run. Candidate Q returns to CPU0-only execution and
+performs no CPU-online writes so its keyboard/shell observations are not a new
+SMP test. See the
 [Candidate N runtime record](../../experiments/2026-07-18-cpu1-online-diagnostic/results/runtime-candidate-n-attempt-1-20260718.txt)
-and [Candidate O runtime record](../../experiments/2026-07-18-cortex-a53-sweep-diagnostic/results/runtime-candidate-o-attempt-1-20260718.txt).
+and [Candidate O runtime record](../../experiments/2026-07-18-cortex-a53-sweep-diagnostic/results/runtime-candidate-o-attempt-1-20260718.txt),
+plus the [Candidate P runtime record](../../experiments/2026-07-18-fbcon-rotation-diagnostic/results/runtime-candidate-p-attempt-1-20260718.txt).
 
 See the [CPU/PSCI/timer recovery experiment](../../experiments/2026-07-13-cpu-psci-timer-recovery/README.md)
 and its [source validation](../../experiments/2026-07-13-cpu-psci-timer-recovery/results/mainline-cpu-psci-timer-validation.txt).
@@ -376,9 +380,18 @@ non-identifying Gemian fields reported boot reason 4 and `wdt_by_pass_pwk`.
 This passes O's recovery oracle for one run and confirms that the basic
 watchdog remained usable with all eight Cortex-A53s online. It does not add
 evidence for SPI137, bark, pretimeout, repeatability, or any power-management
-behavior. Candidate P must preserve this watchdog policy while changing only
-fbcon rotation. See the
-[Candidate O runtime record](../../experiments/2026-07-18-cortex-a53-sweep-diagnostic/results/runtime-candidate-o-attempt-1-20260718.txt).
+behavior. Candidate P preserved the exact identity, 31-second timeout,
+single-handoff-ping, sweep, and wait trace; the owner observed an unassisted
+Gemian return and post-return pstore retained the last line about 3.7 seconds
+before nominal expiry. Its collector began after recovery, so no tested-cycle
+boot-ID transition or independent reset reason was captured. Candidate Q must
+not open or ping `/dev/watchdog*` and must not deliberately auto-reset on its
+normal path. It retains `WATCHDOG_HANDLE_BOOT_ENABLED=y` and must re-audit the
+pinned kernel's boot-time keepalive worker before build so an inherited active
+hardware timer does not expire merely because userspace abstains. See the
+[Candidate O runtime record](../../experiments/2026-07-18-cortex-a53-sweep-diagnostic/results/runtime-candidate-o-attempt-1-20260718.txt),
+[Candidate P runtime record](../../experiments/2026-07-18-fbcon-rotation-diagnostic/results/runtime-candidate-p-attempt-1-20260718.txt),
+and [Candidate Q handoff](../../experiments/2026-07-18-keyboard-shell-diagnostic/README.md).
 
 The live kernel enumerates 13 vendor thermal zones, all with
 `mode=disabled` and `policy=backward_compatible`. `mtktscpu` was about 25.1 °C

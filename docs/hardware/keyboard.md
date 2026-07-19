@@ -8,7 +8,7 @@
 | Interrupt/reset | GPIO87/EINT10 interrupt; GPIO58 expander shutdown/reset | Observed in the device tree/source; polarity and timing still need hardware validation |
 | Matrix wiring | Port 0: eight rows; port 1 bits 0–6: seven columns | Source-derived from the vendor driver; not electrically stimulated |
 | Scan behavior | Vendor path delays the external IRQ by 1 ms, scans after another 1 ms, then rescans at 100 Hz; a normal transition can keep IRQ masked for up to 100 cycles | Source-derived; runtime input transition not performed. This is not a direct `matrix-keypad` debounce value |
-| Keymap | 8×7 = 56 positions, 52 assigned codes, four intentional `KEY_UNKNOWN` spares | The exact active boot ELF compiles physical `(row=4,col=3)` as `KEY_LEFTMETA`; the retained source checkout labels that position `KEY_FN`, so the source/build discrepancy is documented rather than silently copied |
+| Keymap | 8×7 = 56 positions, 52 assigned codes, four `KEY_UNKNOWN` spares in the active binary | The exact active boot ELF compiles physical `(row=4,col=3)` as `KEY_LEFTMETA`; the retained source checkout labels that position `KEY_FN`. The disabled mainline candidate intentionally omits the four unproven contacts, yielding `KEY_RESERVED`, so both distinctions are explicit |
 | Userspace layout | XKB model `planetgemini`, layout `us`, symbols `planet_vndr/gemini` | Fresh passive capture; XKB file hash is recorded in the input experiment |
 
 The complete sanitized matrix table is in
@@ -69,6 +69,20 @@ GPIO87/EINT10 as the interrupt, but it does not yet select a default SoC
 pinctrl state for those two lines on the AW9523 I2C node. This must be resolved
 before enabling the node; child AW9523 pin states describe expander pins and
 cannot substitute for the MT6797-side GPIO58/GPIO87 mux and bias contract.
+Its current `gpio-ranges = <&pio 0 0 16>` is also not the binding-validated
+combined-controller form; Candidate Q must correct it to the expected
+`gpio-ranges = <&aw9523 0 0 16>` before enablement. Preserve the upstream
+driver's `GPIO_ACTIVE_HIGH` reset contract: its logical 0-to-1 sequence yields
+the required physical low pulse and high release, so copying a vendor
+active-low label would invert the behavior.
+
+The Q correction must assign the existing `i2c5_pins_a` state to I2C5 and add
+a source-backed SoC state with GPIO58 in GPIO/output-high mode and GPIO87 in
+EINT10 mode, selected by the AW9523 node. The current MT6797 pinctrl data lacks
+the generic pull and input-enable register maps needed to honor
+`bias-pull-up` or `input-enable` on GPIO87. Its retained electrical state is a
+named runtime risk; do not mask it with unsupported properties, guessed
+polling, or fabricated timing.
 
 The independent bsg100 Linux 6.6 effort is useful cautionary cross-device
 evidence. Its retained B-18 audit reports that enabling AW9523 while the defined
@@ -107,11 +121,24 @@ release, and reset behavior first. See the reproducible
 [`timing contract`](../../experiments/2026-07-12-input-backlight-recovery/results/keyboard-timing-contract-20260714.txt)
 and its [`audit script`](../../experiments/2026-07-12-input-backlight-recovery/scripts/audit-keyboard-timing.sh).
 
-The next highest-value evidence gate is an owner-assisted matrix runtime test:
-boot a recoverable candidate with only the AW9523 and matrix consumer enabled,
-then record one-key, modifier, rollover, debounce, wake, reset-polarity, and
-the physical `(row=4,col=3)` `KEY_LEFTMETA` press/release. The exact bounded
-protocol and current non-claim are in
+The exact next gate is planned
+[Candidate Q](../../experiments/2026-07-18-keyboard-shell-diagnostic/README.md),
+based only on hardware-passed Candidate P. By owner decision Q combines the
+keyboard-event gate and a supervised local `tty1` BusyBox shell in one device
+cycle, but a bounded no-grab evdev probe must run and report first so keyboard
+registration and raw events remain independently attributable. Q enables only
+I2C5, its AW9523 child, and the matrix consumer; it retains CPU0-only execution,
+performs no storage or network access, and has no deliberate normal-path
+automatic reboot. The old shell-only Candidate R was never implemented and is
+retired into Q.
+
+The attended Q protocol covers one-key press/release, Shift, Enter, the
+physical `(row=4,col=3)` Meta/Fn-position key, a simultaneous-key combination,
+typed shell commands, shell respawn, and a 15-minute idle-console check. It
+does not attempt wake, LED control, or a full physical legend map. Promote
+only the raw events and shell behavior actually observed; later work may use
+that evidence to design focused debounce, rollover, wake, or keymap tests. The
+older bounded matrix protocol and historical non-claim remain in
 [`keyboard-next-gate-20260714.txt`](../../experiments/2026-07-12-input-backlight-recovery/results/keyboard-next-gate-20260714.txt).
 
 The independent bsg100 Linux 6.6 effort reports successful physical typing on

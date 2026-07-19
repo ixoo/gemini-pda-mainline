@@ -571,11 +571,14 @@ the name `console-ramoops`; a later secondary record can be rejected as a
 duplicate. This contradicts the pinned downstream `3.18.79` reference source,
 which overrides the secondary ID to 2 and would call it `console-ramoops-2`.
 Use the exact active binary for filename behavior and keep the reference source
-only as separately labeled evidence. Candidate L therefore aligns its console
-with the primary zone. Warm-reset retention is still a runtime hypothesis, not
-a hardware-support claim. See the
+only as separately labeled evidence. Candidate L therefore aligned its console
+with the primary zone. Later Candidates M, N, O, and P all recovered mainline
+console records through Gemian after warm reset, establishing cross-version
+retention for that primary layout on this unit. This does not establish every
+reset type, the duplicate secondary zone, or pmsg compatibility. See the
 [exact-binary audit](../../experiments/2026-07-17-uart-pstore-observability/results/exact-live-ramoops-binary-audit-20260717.txt)
-and [source/layout validation](../../experiments/2026-07-17-uart-pstore-observability/results/cross-version-ramoops-layout-20260717.txt).
+and [source/layout validation](../../experiments/2026-07-17-uart-pstore-observability/results/cross-version-ramoops-layout-20260717.txt),
+plus the [Candidate P runtime record](../../experiments/2026-07-18-fbcon-rotation-diagnostic/results/runtime-candidate-p-attempt-1-20260718.txt).
 
 The live FDT also contains dynamic, size/alignment-based reservations: a
 2 MiB `consys-reserve-memory` block (`no-map`), a 16 MiB `scp_share` block

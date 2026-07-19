@@ -6,7 +6,7 @@
 | --- | --- |
 | ID | `2026-07-18-fbcon-rotation-diagnostic` |
 | Candidate | P |
-| Status | Reproducibly built and validated; exported and synchronized to logical `boot2` with a matching full readback; runtime not tested |
+| Status | Reproducibly built, validated, synchronized, and passed once on hardware with readable landscape fbcon, an intact A53 sweep, automatic return, and retained pstore |
 | Subsystem | simplefb/fbcon console orientation |
 | Device variant | Current Gemini PDA unit; exact retail sub-variant not independently established |
 | Date | 2026-07-18 |
@@ -212,24 +212,64 @@ No reboot, shutdown, or boot selection was performed. See the
 [final build reproduction](results/final-build-reproduction-20260718.txt) and
 [full write/readback result](results/boot2-write-candidate-p-20260718.txt).
 
-These results establish software and partition identity only. They do not
-establish that P boots, that `fbcon=rotate:3` takes effect, that the console is
-readable, or that the inherited watchdog/pstore recovery still works.
+These build and partition results establish software and target identity only.
+The later, separately recorded runtime result below establishes execution,
+rotation, inherited-sweep non-regression, automatic return, and pstore
+retention for one exact P selection.
 
 ## Runtime oracle and decision table
 
 One owner-attended intended `boot2` selection is sufficient for this changed
 gate when the exact artifact and full-partition readback are already verified.
-The standard cycle-aware collector must observe disconnect, reconnect, and a
-changed boot ID before recovering pstore.
+The preferred cycle-aware collector observes disconnect, reconnect, and a
+changed boot ID before recovering pstore. For this completed run, collection
+started only after the owner-observed unassisted return; attribution therefore
+also requires the P-only correct orientation plus the exact artifact/readback
+and surviving inherited trace, and the missing cycle measurement remains an
+explicit limitation.
 
 | Observation | Conclusion | Next action |
 | --- | --- | --- |
-| Exact O marker is readable in normal landscape orientation and the O CPU/watchdog checkpoints plus automatic recovery remain intact | Rotation gate passes on this exact P revision | Preserve P as the readable-console baseline and proceed to keyboard events as a separate candidate |
+| Exact O marker is readable in normal landscape orientation and the O CPU/watchdog checkpoints plus automatic recovery remain intact | Rotation gate passes on this exact P revision | Preserve P as the readable-console baseline and proceed to the combined Candidate Q keyboard/shell gate |
 | Exact O marker remains sideways, with otherwise valid O recovery evidence | P ran, but `rotate:3` did not produce the expected orientation | Inspect the embedded config, effective command line, fbcon rotation parsing, and simplefb geometry before changing other inputs |
 | Output is rotated but wrong by 90 or 180 degrees | Rotation support ran with the wrong orientation assumption | Make a new rotation-value-only derivative; do not add font or display-driver work |
 | No attributable P record or unchanged-cycle pstore only | P execution was not established | Reverify exact `boot2` target/readback and intended slot selection; do not infer a display regression |
 | O CPU or watchdog checkpoint regresses | The new kernel build regressed the proven baseline or the run is incomplete | Stop the quality-of-life sequence and bisect against exact O before adding keyboard or shell layers |
+
+## Runtime result
+
+Candidate P passed its first attributable owner-attended `boot2` selection.
+The owner observed readable console text in the Gemini's normal landscape
+orientation, confirmed that the complete sweep succeeded, and observed the
+device return to Gemian without a power press or other intervention.
+
+An authenticated read-only collection after that return recovered a private,
+Git-ignored 65,524-byte `console-ramoops` record. It contains the exact
+inherited `GEMINI_A53_SWEEP_20260718_O` marker, all CPU1--7 request-return,
+boot, GICv3, advancing-accounting, and `PASS` checkpoints, the final
+`online-0-7 SUCCESS cpu8=offline cpu9=offline` marker, and the 5- and
+10-second post-success waits. It also records the exact no-IRQ `mtk-wdt`, a
+31-second timeout, successful open, and one handoff ping. The private console
+SHA-256 is
+`9d25f28bef3d1107594ec90aab575bb890f42fd9eb22cc3a332fee6affff16f2`.
+
+P attribution does not rely on the inherited O marker alone. It combines the
+exact P configuration and boot-image hash, matching full logical-`boot2`
+readback, intended owner selection, the P-only correct rotation behavior, and
+the surviving exact inherited trace.
+
+Collection began after the owner-observed return, so it did not span the
+tested cycle: disconnect/reconnect and a changed boot ID were not requested or
+measured. No post-reset boot-reason or PMIC-watchdog fields were captured.
+Those are procedural limitations, not negative observations. The exact
+watchdog arm/timing sequence plus the unassisted return strongly establish the
+inherited timeout recovery, while repeatability remains untested. See the
+[sanitized runtime record](results/runtime-candidate-p-attempt-1-20260718.txt).
+
+This closes unchanged P. It establishes loader-retained simplefb/fbcon output
+with the correct readable orientation for this exact one-run revision. It does
+not establish native DRM, DSI, panel/backlight ownership, long-term display
+retention, or repeatability.
 
 ## Safety
 
@@ -243,17 +283,21 @@ padding, synchronized and flushed, and checked through a matching full local
 readback. Never substitute `boot`, `boot3`, or a remembered partition number,
 and never reboot automatically.
 
-At runtime, retain stable power and the proven watchdog recovery path. Stop
+At runtime, stable power and the proven watchdog recovery path were retained. Stop
 for unexpected heat, charging anomalies, filesystem errors, repeated recovery
 failure, or any changed recovery behavior.
 
 ## Observations and conclusion
 
-Candidate P has been reproducibly built, validated, exported, synchronized,
-flushed, and fully read back from logical `boot2`. It has not been selected or
-runtime-tested. The rotation hypothesis therefore remains untested, and no
-hardware-support claim follows from the successful build or partition write.
+Candidate P passed its first attributable run. The owner observed readable
+console text in normal landscape orientation, the retained trace proves every
+CPU1--7 checkpoint and final `online=0-7` success survived the rebuilt kernel,
+and the device returned to Gemian without intervention. Gemian exposed that
+trace through `console-ramoops`. No identical P retry is warranted.
 
-If P passes, keyboard event capture is the next separate kernel/DT gate, and a
-supervised local initramfs shell follows only after keyboard input is proven.
+By subsequent owner decision, Candidate Q combines the next keyboard-event and
+supervised local-shell layers while preserving independent pre-shell
+diagnostics and removing every normal-path automatic reboot. Its exact planned
+contract is the
+[Candidate Q keyboard/shell experiment](../2026-07-18-keyboard-shell-diagnostic/README.md).
 eMMC diagnostics and USB gadget networking remain later independent layers.

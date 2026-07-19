@@ -2,7 +2,7 @@
 
 Milestones are evidence gates, not release dates. Work may proceed in parallel when it does not compromise a safe boot loop, but a milestone is complete only when all exit criteria are demonstrated on real hardware and documented.
 
-## Immediate priority: rotate the console on the proven Cortex-A53 baseline (2026-07-18)
+## Immediate priority: keyboard and a supervised shell on the readable console baseline (2026-07-18)
 
 The latest reviewed `bsg100/gemini-linux` main revision is
 `9d1e565a5ba11ae9585340e3e4bf4cacc233d13c`. Its hardware logs establish a
@@ -188,9 +188,10 @@ Priorities for the next controlled test are:
    `maxcpus=2`. A successful CPU1 online is the gate to test the remaining
    Cortex-A53 cores incrementally. A failed or stalled request gets one source
    audit before another device cycle. Keep both Cortex-A72 cores deferred until
-   the eight A53 path is understood. After that CPU gate, the immediate
-   quality-of-life sequence is console rotation, bounded keyboard events, and
-   a supervised local shell; read-only eMMC discovery follows those gates.
+   the eight A53 path is understood. That CPU gate and the isolated console
+   rotation gate subsequently passed. By owner decision the immediate next
+   gate now combines bounded keyboard events and a supervised local shell as
+   Candidate Q; read-only eMMC discovery follows it.
    Safe battery telemetry, native DRM/panel, charging policy, storage writes,
    and connectivity remain separate reversible experiments. Candidate
    N implements this exact initramfs-only delta. Two clean VM builds are
@@ -239,64 +240,65 @@ Priorities for the next controlled test are:
    [build reproduction](../experiments/2026-07-18-cortex-a53-sweep-diagnostic/results/final-build-reproduction-20260718.txt),
    [write/readback](../experiments/2026-07-18-cortex-a53-sweep-diagnostic/results/boot2-write-candidate-o-20260718.txt),
    and [runtime result](../experiments/2026-07-18-cortex-a53-sweep-diagnostic/results/runtime-candidate-o-attempt-1-20260718.txt).
-10. **P9 — Candidate P: reproducibly built, exported, and synchronized;
-    runtime selection pending.** P uses the exact hardware-passed O package
-    and runtime artifact as its baseline. Its resolved kernel configuration
-    changes exactly two lines: `# CONFIG_FRAMEBUFFER_CONSOLE_ROTATION is not set` becomes
-    `CONFIG_FRAMEBUFFER_CONSOLE_ROTATION=y`, and the forced `CONFIG_CMDLINE`
-    gains only the final token `fbcon=rotate:3`. The current 8×16 font and all
-    other resolved configuration, source, patch, DTB, initramfs, LK-container,
-    and watchdog-policy inputs remain exact. Independent VM builds reproduced
-    the substantive package outputs and boot artifact before export to
-    `artifacts/vm-export/boot-candidates/candidate-P-fbcon-rotation-170a640`.
-    The raw image SHA-256 is
-    `d192dac9e4516eac9319da2a885abaf3203da6c357c574e7f1f6deef2208d341`.
-    It was written to live-resolved logical `boot2`, synchronized,
-    block-flushed, and fully read back; the exact padded target and full
-    readback SHA-256 is
+10. **P9 — Candidate P: passed once; rotation gate closed.** P is the exact
+    two-line configuration derivative of hardware-passed O: it enables
+    `CONFIG_FRAMEBUFFER_CONSOLE_ROTATION=y` and appends only
+    `fbcon=rotate:3` to the forced command line. The raw image SHA-256 is
+    `d192dac9e4516eac9319da2a885abaf3203da6c357c574e7f1f6deef2208d341`;
+    the synchronized, flushed, padded logical-`boot2` target and full readback
+    SHA-256 is
     `cea00d591e74a29d74200f4d292a92aaca2f890bd965af37a7673ab906f4afbc`.
-    No reboot or runtime selection was part of that operation, so the rotation
-    hypothesis remains untested and no hardware-support state advances.
-
-    P preserves O's exact initramfs and therefore its
-    `GEMINI_A53_SWEEP_20260718_O` marker. That inherited marker is the visual
-    behavior oracle when it is readable in the Gemini's normal landscape
-    orientation, but it does not identify P. Runtime attribution requires the
-    exact validated P artifact, its matching full-`boot2` readback, an intended
-    `boot2` selection, and a changed recovery cycle. The O CPU/watchdog
-    checkpoints and reset/pstore loop must also remain intact. Do not mix a
-    font change, native DRM, panel, or backlight work into this gate. See the
+    During the one attributable selection, the owner observed readable console
+    text in the correct normal-landscape orientation, the inherited O sweep
+    completed, and the device returned to Gemian without owner intervention.
+    Post-return `console-ramoops` independently retains the exact O marker,
+    every CPU1–7 success/accounting checkpoint, final `online=0-7` success with
+    CPU8/9 offline, and both watchdog waits. Because collection began after the
+    return, it did not span the tested boot-ID transition or capture an
+    independent post-reset boot reason. P establishes loader-retained
+    simplefb/fbcon rotation in one run, not repeatability or native
+    DRM/panel/backlight ownership. Do not repeat unchanged P. See the
     [Candidate P experiment](../experiments/2026-07-18-fbcon-rotation-diagnostic/README.md),
+    [runtime result](../experiments/2026-07-18-fbcon-rotation-diagnostic/results/runtime-candidate-p-attempt-1-20260718.txt),
     [build reproduction](../experiments/2026-07-18-fbcon-rotation-diagnostic/results/final-build-reproduction-20260718.txt),
     and [write/readback](../experiments/2026-07-18-fbcon-rotation-diagnostic/results/boot2-write-candidate-p-20260718.txt).
-11. **P10 — Candidate Q: keyboard events before a shell.** Layer Q on the exact
-    hardware-passed P baseline, retaining its readable rotation, watchdog,
-    pstore, LK container, and unrelated DT/configuration inputs. Enable the
-    exact built-in MT65XX I2C, AW9523 pinctrl/GPIO, and matrix-keypad closure because
-    the diagnostic kernel has `CONFIG_MODULES=n`. Enable I2C5 and the board's
-    AW9523/matrix nodes only with source-backed SoC pinctrl for shutdown GPIO58
-    and interrupt GPIO87. A prior related-board audit reports that enabling
-    AW9523 without referencing its defined pinctrl state coincided with loss of
-    its previously working USB gadget/SSH path; adding that reference restored
-    coexistence, but the electrical cause was not proven. USB coexistence is
-    therefore a required negative-regression gate. The initramfs first reports
-    a bounded set of press,
-    release, modifier, disputed `(row=4,column=3)` `KEY_LEFTMETA`, and rollover
-    observations. It exposes no interactive shell. Promote the map only from
-    photographed/transcribed physical-key evidence matched to retained input
-    events.
-12. **P11 — Candidate R: supervised local initramfs shell.** After Q proves
-    keyboard events, make an initramfs-only derivative. PID 1 remains a
-    supervisor that owns and services the exact MediaTek watchdog; its child
-    gets `/dev/tty1` as the controlling terminal and runs the inherited BusyBox
-    shell with `TERM=linux`, without inheriting the watchdog fd. Provide a
-    bounded inactivity/deadman policy and a visible command to return through
-    the watchdog recovery loop. Start with the kernel console's standard key
-    translation; add a pinned initramfs console keymap only from Q's physical
-    event evidence, and keep the installed Gemian XKB symbols out of the kernel
-    contract. A prompt alone is insufficient: prove typed command input,
-    output, and automatic recovery. This is a lab interface, not a distro init
-    design.
+11. **P10 — Candidate Q: keyboard input and a supervised local shell.** Q is
+    the exact next gate and is planned, not implemented. By owner decision it
+    combines the former keyboard-event Q and shell-only R into one candidate,
+    while retaining independently visible pre-shell input diagnostics so a
+    shell failure cannot hide the keyboard result. It layers a dedicated
+    profile on exact P, keeps CPU0-only execution and readable rotation, adds
+    only `consoleblank=0`, and enables the built-in MT65XX I2C5, AW9523
+    pinctrl/GPIO, input/evdev, and matrix-keypad dependency closure. One
+    reviewable DT patch must correct the disabled candidate's AW9523 GPIO range
+    to the combined-controller binding form and preserve the source-backed
+    GPIO58 reset, GPIO87/EINT10 interrupt, polarity, scan, and active-ELF
+    keymap contract. Q packaging enables only I2C5, its AW9523 child, and the
+    matrix keyboard.
+
+    Q's external initramfs must carry the unique
+    `GEMINI_KEYBOARD_SHELL_20260718_Q` marker, run a bounded no-grab event probe
+    before the shell, and supervise a BusyBox shell on `/dev/tty1` with
+    `TERM=linux`, sane tty settings, and respawn. It must use the standard
+    kernel keymap; Gemian XKB policy is out of scope. Q must not open or ping a
+    userspace watchdog and must not deliberately auto-reboot on the normal
+    path; the inherited kernel watchdog keepalive policy remains enabled and
+    must be source-audited against the pinned tree. It performs no CPU-online
+    writes, eMMC/MMC access, raw memory/I2C access, storage mounts, or network
+    configuration. Success requires the raw event probe, typed shell command
+    input/output, shell respawn, and a 15-minute idle console without a
+    deliberate reset. Recovery afterward is owner-selected and non-gating; an
+    optional typed `reboot -f` may leave this unit waiting for a power-key
+    start.
+    USB-gadget registration is only a negative-regression observation, not a
+    host-enumeration claim. The exact implementation, validation, runtime
+    procedure, and decision table are in the
+    [Candidate Q handoff](../experiments/2026-07-18-keyboard-shell-diagnostic/README.md).
+12. **P11 — Candidate R: retired before implementation; folded into Q.** The
+    earlier shell-only R concept had no profile, initramfs, artifact, write, or
+    runtime result. Its scope is now part of Q, and the R identifier must not be
+    reused for a derivative. This keeps later Candidate S eMMC work and
+    Candidate T USB-networking work unchanged and separate.
 13. **P12 — Candidate S series: eMMC identity, read-only root, then bounded
     diagnostics writes.** The current DT already describes conservative MSDC0
     eMMC at 25 MHz with the real VEMC/VIO18 dependencies, but Candidate N/O's
@@ -385,9 +387,15 @@ also passed its one [runtime result](../experiments/2026-07-18-cortex-a53-sweep-
 all CPU1–7 hotplug requests returned success, every target booted and advanced
 accounting, the mask reached `0-7`, CPU8/9 remained offline, and the watchdog
 cycle returned to Gemian. Do not rebuild, rewrite, or select N or O unchanged.
-Candidate P's isolated console-rotation rebuild is now the exact synchronized
-`boot2` image and the next runtime gate; its build and partition identity do
-not establish that it has executed. The exact captured LK's
+Candidate P then passed its one attributable rotation run: the owner read the
+console in normal landscape, the exact inherited O sweep completed, and the
+device returned to Gemian without owner help. The surviving post-return
+`console-ramoops` records every O checkpoint and watchdog wait, although that
+capture began after recovery and therefore did not independently record the
+tested boot-ID transition or reset reason. Do not repeat unchanged P.
+Candidate Q's combined keyboard-input and supervised-local-shell experiment is
+the next gate; it is fully specified but not yet implemented. The exact
+captured LK's
 [software-selection audit](../experiments/2026-07-12-boot-contract-recovery/results/lk-boot2-software-selection-audit-20260718.txt)
 finds hardware-key branches for `boot2` and `boot3` and found no direct software
 destination from Gemian in the audited paths, so the currently supported test
@@ -718,22 +726,24 @@ The immediate implementation order is:
 Keyboard map correction (2026-07-14): the exact active boot ELF resolves the
 physical `(row=4,col=3)` entry to `KEY_LEFTMETA`, not the retained source
 checkout's `KEY_FN`. Patch 0054 now follows that active-boot-normalized map;
-the remaining keyboard gate is physical press/release, modifier, rollover,
-wake, polarity, and timing validation. See the [active ELF result](../experiments/2026-07-12-input-backlight-recovery/results/active-aw9523-elf-keymap-20260714.txt).
+Candidate Q covers bounded physical press/release, modifier,
+simultaneous-key, and polarity evidence plus VT input. Debounce/timing, wake,
+LEDs, and full rollover remain later focused gates. See the
+[active ELF result](../experiments/2026-07-12-input-backlight-recovery/results/active-aw9523-elf-keymap-20260714.txt).
 
 Links below whose filenames contain `current-71` are retained historical
 source/build evidence; the adjacent `current-72` or `current-package` record
 is authoritative for the present artifact.
 
 The table is the longer-term subsystem order. For the next boot's target,
-observability, and one-CPU scope, the 2026-07-16 P0–P6 plan at the top of this
+observability, and one-CPU scope, the current P0–P13 plan at the top of this
 document supersedes the older first-row wording.
 
 | Priority | Area | Linux 7.1.3 reuse decision | Required new work or gate |
 | --- | --- | --- | --- |
 | 1 | UART, timers, PSCI, watchdog, RAM | Reuse `8250_mtk`, architectural timer, generic PSCI, and `mtk_wdt`; current DT/resource patches are disabled or boot-only | Boot a non-primary candidate, first resolve LK's command-line mutation and capture early/normal logs, verify ten CPUs, reserved memory, watchdog behavior, and repeated recovery before enabling consumers. bsg100's hardware-tested 6.6 logs show CPU1–7 PSCI success but a CPU8/A72 `CPU_ON` boundary; use `maxcpus=8` only as a diagnostic if 7.1.3 reproduces it, not as a default yet. The current package's PM audit confirms generic PSCI topology only—no OPP or idle-state table—while `WATCHDOG_HANDLE_BOOT_ENABLED` means firmware-running TOPRGU state must be explicitly monitored. See [UART](../experiments/2026-07-13-uart-console-recovery/README.md), [CPU/PSCI/timer](../experiments/2026-07-13-cpu-psci-timer-recovery/README.md), [CPU cross-check](../experiments/2026-07-13-cpu-psci-timer-recovery/results/bsg100-cpu-psci-crosscheck-20260714.txt), [current PM package audit](../experiments/2026-07-12-cpufreq-thermal-suspend-recovery/results/mainline-pm-current-72-package-20260714.txt), [memory](../experiments/2026-07-13-memory-carveout-recovery/README.md), and [watchdog policy audit](../experiments/2026-07-12-mt6797-watchdog-recovery/results/mainline-watchdog-current-72-policy-20260714.txt). |
 | 2 | PMIC, regulators, eMMC, GPIO/EINT | Reuse upstream PWRAP/MT6397, `mtk-sd`, pinctrl, EINT, and power-supply frameworks with MT6797 data; the MT6351 MFD/regulator/RTC layer is a local implementation because no upstream MT6351 provider exists | The current PMIC audit confirms MT6351 E2, 39 unique rail descriptors, and the stateful pwrap/MFD probe boundary; the current MSDC audit confirms live DF4064 HS400/eMMC and an empty powered-off microSD host while retaining a 25 MHz legacy-only first-boot node and pinmux-only MT6797 state. The direct 77-patch package audit ties that node to built-in MMC/PWRAP/MT6351/pinctrl objects and confirms no HS200/HS400 flags; its first probe still changes clocks, controller registers, IRQ state, and PMIC rails before eMMC identification. An independent bsg100 Linux 6.6 boot corroborates the level-low MSDC0 IRQ, explicit VEMC/VIO18 supplies, MT2701-generation register profile, and pinmux-only boundary, but does not validate the current 7.1.3 image. The first-boot dependency audit confirms that eMMC supply consumers make PMIC probe part of the storage path. The current charger package audit confirms reusable BQ25890/FAN49101 provider objects but no enabled charger, battery, or fuel-gauge consumer in the Gemini DTB. Validate pwrap/PMIC identity, rail readback, reset/RTC, storage read-only I/O, input IRQs, and charger identity/telemetry on hardware before attaching consumers. See [first-boot probe audit](../experiments/2026-07-14-first-boot-probe-audit/README.md), [current PMIC validation](../experiments/2026-07-11-mt6351-pmic-recovery/results/mainline-mt6351-current-72-validation-20260714.txt), [current MSDC validation](../experiments/2026-07-12-mt6797-msdc-recovery/results/mainline-msdc-current-77-package-20260714.txt), [MSDC cross-check](../experiments/2026-07-12-mt6797-msdc-recovery/results/bsg100-msdc-crosscheck-20260714.txt), [current charger package audit](../experiments/2026-07-12-charger-power-recovery/results/mainline-charger-current-72-package-20260714.txt), [PMIC](../experiments/2026-07-11-mt6351-pmic-recovery/README.md), [MSDC](../experiments/2026-07-12-mt6797-msdc-recovery/README.md), and [EINT](../experiments/2026-07-12-mt6797-eint-recovery/README.md). |
-| 3 | Keyboard, USB serviceability | Reuse AW9523 matrix input and FUSB301; patches 0066–0070 now split the source-derived USB3 and USB11 windows across existing T-PHY/MTU3/xHCI/MUSB frameworks, with all USB nodes disabled. The current package audit confirms the controller/PHY code is built in and `fusb301.ko` is packaged, while the Gemini DTB has no FUSB301 client, role-switch owner, or VBUS supply | Prove board GPIO/rails, USB1 USB11 glue, two-SIF T-PHY initialization, and role/VBUS ownership. The current display/input package audit confirms the AW9523 and matrix-keypad objects plus a disabled keyboard consumer, while I2C5 and the expander remain disabled. The vendor scan is active-low (selected column low, inactive columns high, low row bit pressed), and follow-up patch 0076 adds the existing matrix consumer's `gpio-activelow` and `drive-inactive-cols` properties; the 76-patch package predates that correction; the 77-patch package now contains it. The exact active boot ELF resolves the disputed physical `(row=4,column=3)` position to `KEY_LEFTMETA`; four spare positions remain explicit `KEY_UNKNOWN`, while the retained source checkout labels that same position `KEY_FN`. See the [active-ELF provenance](../experiments/2026-07-12-input-backlight-recovery/results/active-aw9523-elf-keymap-20260714.txt), [polarity audit](../experiments/2026-07-12-input-backlight-recovery/results/keyboard-polarity-contract-20260714.txt), and [capability comparison](../experiments/2026-07-12-input-backlight-recovery/results/live-keyboard-capability-compare-20260714.txt). The next keyboard gate is an owner-assisted one-key/modifier/rollover test with reset, debounce, wake, polarity, and the physical `(4,3)` `KEY_LEFTMETA` check. Start with keyboard and USB gadget serial, and keep host/VBUS disabled. See [input](../experiments/2026-07-12-input-backlight-recovery/README.md), [keyboard runtime gate](../experiments/2026-07-12-input-backlight-recovery/results/keyboard-next-gate-20260714.txt), [current display/input package audit](../experiments/2026-07-12-input-backlight-recovery/results/mainline-display-input-current-77-package-20260714.txt), [historical 71-patch input validation](../experiments/2026-07-12-input-backlight-recovery/results/mainline-input-current-71-validation-20260714.txt), [current USB package audit](../experiments/2026-07-12-usb-typec-recovery/results/mainline-usb-current-72-package-20260714.txt), and [USB](../experiments/2026-07-12-usb-typec-recovery/README.md). |
+| 3 | Keyboard, USB serviceability | Reuse AW9523 matrix input and FUSB301; patches 0066–0070 split the source-derived USB3 and USB11 windows across existing T-PHY/MTU3/xHCI/MUSB frameworks. The exact P diagnostic foundation already reaches T-PHY/MTU3/`g_ether` registration, without host-enumeration evidence. | Candidate Q is the exact next gate and keeps USB only as a negative-regression observation. The current display/input package has AW9523 and matrix-keypad code plus a disabled keyboard consumer; I2C5 and the expander remain disabled. Patch 0076 records the active-low scan properties. The active boot ELF resolves physical `(row=4,column=3)` to `KEY_LEFTMETA` and has four `KEY_UNKNOWN` positions; the mainline candidate intentionally omits those unproven contacts as `KEY_RESERVED`. Before Q enablement, correct the disabled candidate's combined-controller `gpio-ranges`, add source-backed GPIO58/GPIO87 SoC pinctrl, and retain the upstream driver's active-high reset semantics. Q then enables only I2C5/AW9523/matrix, reports bounded raw events before a supervised local shell, performs no storage/network access, and does not deliberately auto-reboot. USB host, VBUS, Type-C, and networking remain Candidate T. See the [Candidate Q handoff](../experiments/2026-07-18-keyboard-shell-diagnostic/README.md), [active-ELF provenance](../experiments/2026-07-12-input-backlight-recovery/results/active-aw9523-elf-keymap-20260714.txt), [polarity audit](../experiments/2026-07-12-input-backlight-recovery/results/keyboard-polarity-contract-20260714.txt), [input evidence](../experiments/2026-07-12-input-backlight-recovery/README.md), and [USB evidence](../experiments/2026-07-16-usb-gadget-diagnostic/results/retained-pstore-mtu3-gadget-evidence-20260718.txt). |
 | 4 | Display, touch, and camera | Reuse DRM component, generic DSI/PWM, `sii902x`, and the standard Novatek framework only where identities and graph resources match | Complete one verified panel/power/DSI graph and touchscreen identity; the current display/input package audit confirms MT6797 DRM/DSI/PHY and NT36672E panel objects are packaged, but all display consumers and the panel graph are disabled/absent. A fresh vendor probe log now identifies the touchscreen family as NT36772 (trim entry 8, event map `0x11e00`), while the alternate-address transport and mainline runtime remain unresolved. Patch 0075 supplies a disabled-by-default NT36772 boundary with passing focused object/module and binding checks; the DT node and runtime remain gated. Panel identity is still an explicit gate: the named-device capture selects an NT36672-named LCM, while bsg100 direct hardware evidence names SSD2092; shared geometry does not prove shared command tables. The camera package audit confirms that only generic media/CAMSYS building blocks are present; SP5509 and the MT6797 SENINF/ISP pipeline remain new work. See [DRM](../experiments/2026-07-12-mt6797-drm-component-recovery/README.md), [live NT36772 identity](../experiments/2026-07-12-input-backlight-recovery/results/nvt-live-trim-identity-20260714.txt), [boundary checks](../experiments/2026-07-12-input-backlight-recovery/results/nt36772-mainline-boundary-20260714.txt), [current display/input package audit](../experiments/2026-07-12-input-backlight-recovery/results/mainline-display-input-current-75-package-20260714.txt), [camera package validation](../experiments/2026-07-13-camera-recovery/results/mainline-camera-current-77-package-20260714.txt), [input/backlight validation](../experiments/2026-07-12-input-backlight-recovery/results/mainline-input-current-71-validation-20260714.txt), [panel](../experiments/2026-07-11-gemini-panel-recovery/README.md), [bsg100 panel cross-check](../experiments/2026-07-13-bsg100-gemini-linux-comparison/results/bsg100-panel-crosscheck-20260714.txt), and [external display](../experiments/2026-07-13-external-display-recovery/README.md). |
 | 5 | Thermal and CPU power | Reuse the generic MediaTek thermal/AUXADC, OPP, regulator, CCF, and SVS patterns where contracts match; source/data-model reuse is confirmed, but MT6797 variant data is required | The current package audit confirms generic SVS/AUXADC/cpufreq helpers are present, but no MT6797 cpufreq consumer, CPU OPP/idle-state table, or enabled thermal node exists; the MT6797 thermal variant builds as `auxadc_thermal.ko` with `CONFIG_MTK_SOC_THERMAL=m` and both DT nodes remain disabled. Recovery must first wire or reject calibration (the current generic fallback is not a safe thermal policy), then recover EEM/thermal calibration, AUXADC register/idle ownership, ARMPLL/CPU-mux ownership, DA9214/Vsram tracking, and rollback before any frequency or trip transition. The calibration audit shows vendor words 31–33 arrive via LK's `/chosen/atag,devinfo`, not a proven MT6797 MMIO efuse provider. Patch 0057a now supplies a bounded, read-only, root-only NVMEM parser and wires the ordered 12-byte cell into the board DTS; its provider object, Gemini DTB, focused binding schema, and module-enabled package pass in the VM. Preserve that bootloader ABI and keep both thermal/AUXADC nodes disabled until the LK handoff is validated on a candidate boot and fail-closed invalid-calibration behavior is validated. DVFSP/SPM/deep idle remain disabled. See [current PM package audit](../experiments/2026-07-12-cpufreq-thermal-suspend-recovery/results/mainline-pm-current-72-package-20260714.txt), [CPU power](../experiments/2026-07-12-cpufreq-thermal-suspend-recovery/README.md), [thermal](../experiments/2026-07-13-mt6797-thermal-recovery/README.md), [current thermal package audit](../experiments/2026-07-13-mt6797-thermal-recovery/results/mainline-thermal-current-72-policy-20260714.txt), [thermal safety contract](../experiments/2026-07-13-mt6797-thermal-recovery/results/mainline-thermal-safety-contract-20260714.txt), and [calibration ownership audit](../experiments/2026-07-13-mt6797-thermal-recovery/results/mainline-thermal-calibration-ownership-20260714.txt). |
 | 6 | Audio, sensors, GPU | Reuse existing MT6797 AFE/codec, standard IIO, and Panfrost core/platform patterns | Resolve the audio machine-card/analog graph and exact sensor IDs; validate MFG power/clock ownership and GPU reset/OPP policy. The current audio package selects the AFE, MT6351 codec, and machine objects as modules and packages the matching 1,570-module tree; only a disabled eight-clock AFE resource node exists and no machine-card/codec/analog graph is represented. The sensor package audit confirms IIO plus BMI160/LSM6DSX/STK3310 modules are present, but only a disabled BMI160 candidate has a Gemini DT node and it lacks IRQ/supply data. The current GPU package audit confirms `panfrost.ko` and the MT6797 MFG/RT5735 providers are packaged, while all GPU clock/rail consumers remain disabled and no OPP/reset/IOMMU contract is present. See [audio](../experiments/2026-07-12-audio-afe-recovery/README.md), [current audio package audit](../experiments/2026-07-12-audio-afe-recovery/results/mainline-audio-current-72-package-20260714.txt), [current audio validation](../experiments/2026-07-12-audio-afe-recovery/results/mainline-audio-current-71-validation-20260714.txt), [sensor package audit](../experiments/2026-07-12-sensor-iio-recovery/results/mainline-sensors-current-72-package-20260714.txt), [sensors](../experiments/2026-07-12-sensor-iio-recovery/README.md), [current GPU package audit](../experiments/2026-07-12-mt6797-gpu-panfrost-recovery/results/mainline-panfrost-current-72-package-20260714.txt), and [GPU](../experiments/2026-07-12-mt6797-gpu-panfrost-recovery/README.md). |

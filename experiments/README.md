@@ -288,7 +288,8 @@ the result.
   cycle-aware collector observed a changed-cycle return to Gemian, whose
   sanitized boot reason was watchdog-class. This is one successful hotplug
   run, not boot-time SMP, repeatability, stress, A72, DVFS, idle, or thermal
-  evidence. Do not repeat unchanged O; proceed to rotation-only Candidate P.
+  evidence. Do not repeat unchanged O. Candidate P subsequently passed the
+  isolated rotation gate.
   See the
   [build reproduction](2026-07-18-cortex-a53-sweep-diagnostic/results/final-build-reproduction-20260718.txt),
   [write/readback](2026-07-18-cortex-a53-sweep-diagnostic/results/boot2-write-candidate-o-20260718.txt),
@@ -304,12 +305,24 @@ the result.
   It was synchronized, block-flushed, and fully read back from live-resolved
   logical `boot2`; the padded target SHA-256 is
   `cea00d591e74a29d74200f4d292a92aaca2f890bd965af37a7673ab906f4afbc`.
-  No reboot was performed and runtime is not tested. The inherited
-  `GEMINI_A53_SWEEP_20260718_O` marker identifies only the preserved O
-  initramfs, not P; exact configuration, artifact, and readback hashes provide
-  Candidate P identity. See the
-  [build reproduction](2026-07-18-fbcon-rotation-diagnostic/results/final-build-reproduction-20260718.txt)
-  and [write/readback](2026-07-18-fbcon-rotation-diagnostic/results/boot2-write-candidate-p-20260718.txt).
+  Its first attributable runtime selection passed: the owner observed readable
+  normal-landscape text and an unassisted return to Gemian, while post-return
+  `console-ramoops` retained every CPU1--7 checkpoint, final `online=0-7`
+  success, CPU8/9 offline, and the 5/10-second waits. Collection began after
+  return and therefore did not capture the tested cycle's changed boot ID or
+  boot reason. The inherited `GEMINI_A53_SWEEP_20260718_O` marker identifies
+  only the preserved O initramfs; exact P configuration, artifact/readback,
+  intended selection, and P-only rotation behavior establish P. See the
+  [build reproduction](2026-07-18-fbcon-rotation-diagnostic/results/final-build-reproduction-20260718.txt),
+  [write/readback](2026-07-18-fbcon-rotation-diagnostic/results/boot2-write-candidate-p-20260718.txt),
+  and [runtime record](2026-07-18-fbcon-rotation-diagnostic/results/runtime-candidate-p-attempt-1-20260718.txt).
+- [2026-07-18 keyboard and supervised-shell diagnostic](2026-07-18-keyboard-shell-diagnostic/README.md)
+  — planned Candidate Q and the exact next-work handoff. It combines a
+  built-in I2C5/AW9523/matrix keyboard gate, independent pre-shell raw-event
+  observations, and a supervised local `tty1` BusyBox shell on exact P's
+  readable console. It requires `consoleblank=0`, read-only pseudo-filesystem
+  defaults, shell respawn, and no normal-path automatic reboot. No Q profile,
+  DT correction, initramfs, artifact, write, or runtime evidence exists yet.
 - [2026-07-14 live vendor-to-mainline gap audit](2026-07-14-live-vendor-mainline-gap-audit/README.md)
   — read-only comparison of the live Gemian vendor contracts with the current
   Linux 7.1.3 handoff and first-boot boundaries.

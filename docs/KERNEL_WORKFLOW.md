@@ -358,14 +358,13 @@ DEV_VM_NAME=gemini-pda-build-recovery-20260717 ./scripts/dev-vm run \
 See the
 [Candidate O runtime result](../experiments/2026-07-18-cortex-a53-sweep-diagnostic/results/runtime-candidate-o-attempt-1-20260718.txt).
 
-Candidate P is the next runtime gate and is complete through artifact and
-partition preparation. It uses the exact hardware-tested O package and runtime
-artifact as its baseline. Its resolved configuration differs by exactly two
-lines: `# CONFIG_FRAMEBUFFER_CONSOLE_ROTATION is not set` becomes
+Candidate P is the closed rotation gate over exact hardware-tested O. Its
+resolved configuration differs by exactly two lines:
+`# CONFIG_FRAMEBUFFER_CONSOLE_ROTATION is not set` becomes
 `CONFIG_FRAMEBUFFER_CONSOLE_ROTATION=y`, and the forced `CONFIG_CMDLINE` gains
 only the final token `fbcon=rotate:3`. The current 8×16 font and every other
 resolved configuration, source, patch, DTB, initramfs, LK-container, and
-watchdog-policy input remain exact. Build the profile explicitly with:
+watchdog-policy input remain exact. Its reproducible build command is:
 
 ```sh
 KERNEL_PROFILE=observability-fbcon-rotation ./scripts/dev-vm build-kernel
@@ -377,36 +376,64 @@ artifact is
 `artifacts/vm-export/boot-candidates/candidate-P-fbcon-rotation-170a640`;
 its raw boot-image SHA-256 is
 `d192dac9e4516eac9319da2a885abaf3203da6c357c574e7f1f6deef2208d341`.
-It was written to live-resolved logical `boot2`, synchronized,
-block-flushed, and fully read back. The exact padded target and full readback
-SHA-256 is
+It was written to live-resolved logical `boot2`, synchronized, block-flushed,
+and fully read back. The exact padded target and full readback SHA-256 is
 `cea00d591e74a29d74200f4d292a92aaca2f890bd965af37a7673ab906f4afbc`.
-No reboot or runtime selection was part of the write; P remains runtime
-untested and no hardware-support state advances.
-
-P preserves O's exact initramfs, including marker
-`GEMINI_A53_SWEEP_20260718_O`. That inherited marker is the visual behavior
-oracle if it is readable in the Gemini's normal landscape orientation, but it
-does not identify Candidate P. Attribution requires the exact validated P
-artifact, its matching full-`boot2` readback, an intended `boot2` selection,
-and a changed recovery cycle. The same O CPU/watchdog checkpoints and
-pstore/reset oracle must also succeed. Do not combine a font change, native
-DRM, panel, backlight, keyboard, shell, eMMC, or USB-networking change with
-this gate. See the
+The one attributable runtime selection passed. The owner observed readable
+console text in normal-landscape orientation, the complete inherited O sweep,
+and an unassisted return to Gemian. The post-return `console-ramoops` retains
+the exact `GEMINI_A53_SWEEP_20260718_O` marker, every CPU1–7 checkpoint, final
+`online=0-7` success with CPU8/9 offline, and both watchdog waits. Because the
+collector started after return, it did not span the tested boot-ID transition
+or independently capture the reset reason. Close unchanged P: this is one
+loader-retained simplefb/fbcon rotation result, not repeatability or native
+DRM/panel/backlight support. See the
 [Candidate P experiment](../experiments/2026-07-18-fbcon-rotation-diagnostic/README.md),
+[runtime result](../experiments/2026-07-18-fbcon-rotation-diagnostic/results/runtime-candidate-p-attempt-1-20260718.txt),
 [build reproduction](../experiments/2026-07-18-fbcon-rotation-diagnostic/results/final-build-reproduction-20260718.txt),
 and [write/readback](../experiments/2026-07-18-fbcon-rotation-diagnostic/results/boot2-write-candidate-p-20260718.txt).
 
-Do not turn the quality-of-life sequence into one permanent catch-all kernel
-profile. Rotation is a config/cmdline derivative; keyboard input is a built-in
-I2C/AW9523/matrix plus board-DT derivative; the supervised shell is an
-initramfs derivative after input proof; eMMC is an explicit real
-PWRAP/MT6351/MMC built-in profile plus conservative board DT; and gadget
-networking begins as an initramfs-only derivative because the exact N kernel
-already reaches `g_ether` ready and the MTU3 gadget pull-up log. Pin every
-selected profile in `kernel/manifest.json`, validate its resolved config, and keep its experiment
-oracle and artifact builder beside the write-up. Do not promote any of these
-layers to the reusable board fragment until its named hardware gate passes.
+Candidate Q is the exact next implementation and runtime gate. By owner
+decision it combines keyboard input and a supervised local shell, but keeps
+their implementation and evidence layers separable: a bounded raw-event probe
+must report before PID 1 exposes the shell. Starting only from exact P, create
+a dedicated profile that adds `consoleblank=0` and the built-in I2C5/AW9523,
+input/evdev, and matrix-keypad dependency closure. Add one reviewable DT patch
+that corrects the disabled AW9523 candidate's combined-controller
+`gpio-ranges` form, then enable only I2C5, its AW9523 child, and the matrix
+keyboard in Q's final package. Preserve the source-backed GPIO58 reset,
+GPIO87/EINT10 interrupt, active-high reset semantics required by the upstream
+driver, low-level IRQ, scan polarity, and active-ELF keymap. Do not guess
+debounce, scan timing, wake, or unsupported MT6797 pin-bias properties.
+
+Q's external initramfs carries `GEMINI_KEYBOARD_SHELL_20260718_Q`, performs a
+no-grab dynamic input-event probe, then supervises a BusyBox shell on
+`/dev/tty1` with `TERM=linux`, sane tty state, and respawn. Use the standard
+kernel console keymap; Gemian XKB symbols are userspace evidence, not part of
+this candidate. Q must not open or ping `/dev/watchdog*` and has no deliberate
+normal-path automatic reboot. Preserve and re-audit the pinned kernel's
+`WATCHDOG_HANDLE_BOOT_ENABLED=y` keepalive behavior so an inherited active
+hardware timer does not expire merely because userspace abstains. Keep
+`panic=0`; a catastrophic kernel stall may still trigger hardware recovery.
+Q runs only CPU0, performs no CPU-online writes, and excludes eMMC/MMC, storage
+mounts, raw memory/I2C access, network configuration, and native display work.
+Success requires a visible raw-event result, typed shell input/output, shell
+respawn, and 15 minutes of idle console stability. Recovery afterward is
+owner-selected and non-gating; an optional typed `reboot -f` may leave this
+unit key-gated and requiring a power press. The exact file plan, validators,
+mutation tests, runtime procedure, decision table, and baseline hashes are
+recorded in the
+[Candidate Q handoff](../experiments/2026-07-18-keyboard-shell-diagnostic/README.md).
+
+Do not turn this quality-of-life sequence into one permanent catch-all kernel
+profile. Q deliberately combines a hardware input gate and an initramfs shell
+for one device cycle, but their changes and observations remain independently
+reviewable. Candidate S is still the separate real PWRAP/MT6351/MMC profile;
+Candidate T USB networking remains a separate initramfs/serviceability gate.
+Pin every selected profile in `kernel/manifest.json`, validate its resolved
+config, and keep its experiment oracle and artifact builder beside the
+write-up. Do not promote a layer to the reusable board fragment until its
+named hardware gate passes.
 
 Before treating the series as submission-ready, run the pinned tree's review
 checker over every patch:
