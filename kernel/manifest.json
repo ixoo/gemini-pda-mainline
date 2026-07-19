@@ -46,6 +46,16 @@
           "configs/gemini-clk-ignore-unused.fragment",
           "configs/gemini-observability.fragment"
         ]
+      },
+      "observability-fbcon-rotation": {
+        "base": "defconfig",
+        "fragments": [
+          "configs/gemini-handoff.fragment",
+          "configs/gemini-usbdiag.fragment",
+          "configs/gemini-clk-ignore-unused.fragment",
+          "configs/gemini-observability.fragment",
+          "configs/gemini-fbcon-rotation.fragment"
+        ]
       }
     }
   }

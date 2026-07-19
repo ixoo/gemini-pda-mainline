@@ -1,0 +1,6 @@
+# Candidate P rotation-only override. Apply after the exact observability
+# profile. These two requests must be the only resolved configuration changes:
+# compile fbcon rotation support in and select landscape orientation through
+# the forced kernel command line. Keep the existing 8x16 font unchanged.
+CONFIG_FRAMEBUFFER_CONSOLE_ROTATION=y
+CONFIG_CMDLINE="console=tty0 console=ttyS0,921600n8 earlycon maxcpus=1 nokaslr ignore_loglevel loglevel=8 log_buf_len=1M initcall_debug rdinit=/init panic=0 g_ether.dev_addr=42:00:15:19:82:01 g_ether.host_addr=42:00:15:19:82:00 g_ether.iManufacturer=gemini-pda-mainline g_ether.iProduct=Gemini-L-Observability g_ether.iSerialNumber=GEMINI_OBSERVABILITY_20260717_L clk_ignore_unused fbcon=rotate:3"
