@@ -1,0 +1,24 @@
+experiment=2026-07-25-da9214-legacy-identification
+candidate=AS-attempt-3
+boot=successful
+kernel=7.1.3-gemini-observability-L
+console=available
+usb_ethernet=available
+usb_shell=available
+cpus_nproc=8
+cpuinfo_processors=8
+cmdline=maxcpus=8|fbcon=rotate:3|fbcon=font:TER16x32|fw_devlink=rpm|initcall_blacklist=mt6797_a72_power_driver_init
+dvfsp_state=ready
+dvfsp_late_validation=passed
+dvfsp_cleanup=clocks=i2c-appm shared-ap-dma=preserved validation=passed samples=32 dma_gated=0 dma_unchanged=32
+i2c6_guard=handoff=ready probe_attempts=1 init_attempts=1 init_successes=1 clock_ungated_checks=1 clock_gated_checks=1 clock_validation_failures=0 runtime_pm_link=1 transfer_attempts=0 dma_starts=0 nonzero_starts=0 irq_count=0
+i2c_client=1-0068-present
+regulator_driver=da9211-init-complete
+da9214_probe=signature-mismatch
+da9214_signature=interface=0x0 interface2=0x0 config_e=0x0
+da9214_error=-ENODEV
+da9214_page_state_error=absent
+regulators_bound=none
+watchdog_reboot=none
+storage_access=none
+result=legacy-page-selector-writes-did-not-expose-signature
