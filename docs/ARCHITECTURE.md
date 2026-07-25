@@ -225,9 +225,17 @@ I2C_APPM regated after one guarded clock hold while AP_DMA stayed ungated
 through all 32 cleanup samples. The provider faulted, I2C6 returned `-EIO`
 before binding an adapter, and no transfer, client, regulator, DA9214, or A72
 operation occurred. AP's initial samples already showed AP_DMA ungated, and
-enabled UART0 and I2C5 share that CCF gate, so the next architectural layer is
-an attributable shared-clock ownership observation and a baseline-preserving
-cleanup contract—not an unchanged AP retry or DA9214 access. Candidate AM, the
+enabled UART0 and I2C5 share that CCF gate. Candidate AQ then kept I2C6
+disabled and added only read-only debugfs observation. Its early and five-second
+summaries were byte-identical: AP_DMA was enabled with refcount 2 and owner
+`1101c000.i2c` (`dma`), while I2C_APPM was disabled with refcount 0 and owner
+`11015000.dvfsp-handoff`. The owner reported a readable console and the
+inherited eight-A53, keyboard, USB, and reboot path survived; AQ performed no
+I2C6, DA9214, A72, clock-control, storage, or reboot operation. This attributes
+the surviving AP_DMA reference to the enabled I2C5 DMA path. The next
+architectural layer is therefore a baseline-preserving cleanup contract that
+retains I2C5/AP_DMA while handling the separate I2C_APPM handoff gate—not an
+unchanged AP/AQ retry or DA9214 access. Candidate AM, the
 first active CPU8 experiment, additionally requires that corrected
 consumer/regulator prerequisite and a fixed-register, owner-local in-kernel
 record of the online and last-A72-offline paths from the chosen source

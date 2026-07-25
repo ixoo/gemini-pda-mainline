@@ -1,0 +1,60 @@
+# Candidate AQ runtime attempt 1
+
+date=2026-07-25
+candidate=AQ
+device=current-named-Gemini-PDA-development-unit
+boot_path=manual-selection-of-inactive-logical-boot2
+result=PASS-observer-gate
+console=owner-reported-readable
+capture_path=direct-USB-development-shell
+device_address=redacted-direct-USB-development-address
+tcp_port=2323
+authentication=none
+encryption=none
+reboot_executed=no
+storage_access=no
+i2c6_probe=no
+da9214_operation=no
+a72_request=no
+clock_control=no
+
+kernel=7.1.3-gemini-observability-L
+uptime_at_capture_seconds=390
+cmdline_policy=console=ttyS0 earlycon maxcpus=8 nokaslr initcall_debug rdinit=/init panic=0 clk_ignore_unused fbcon=rotate:3 consoleblank=0 fbcon=font:TER16x32 regulator_ignore_unused initcall_blacklist=mt6797_a72_power_driver_init
+gadget_fixed_addresses_and_serial=redacted
+possible=0-9
+present=0-9
+online=0-7
+offline=8-9
+nproc=8
+
+debugfs=mounted-read-only
+procfs=mounted-read-only
+sysfs=mounted-read-only
+usb0=static-development-address/24 carrier=1 operstate=up udc=11271000.usb udc_state=configured
+usb_shell=ready reboot_dispatch=validated privilege=root
+keyboard_map=loaded verifier=validated tty1_shell=ready
+watchdog_userspace=none
+
+summary_early_file=/run/clk-summary-early
+summary_late_file=/run/clk-summary-late
+summary_early_bytes=35178
+summary_late_bytes=35178
+summary_early_sha256=6508a7d2a502c9a4b7b8cd0a78d7596f5adb40c676e17fa1dd7a346602c4ec16
+summary_late_sha256=6508a7d2a502c9a4b7b8cd0a78d7596f5adb40c676e17fa1dd7a346602c4ec16
+summary_early_late_identical=yes
+
+# Selected read-only CCF rows; columns retain the kernel clk_summary layout.
+infra_i2c5=refcount:1 enable_count:1 enabled:Y owner:1101c000.i2c role:main
+infra_i2c_appm=refcount:0 enable_count:0 enabled:N owner:11015000.dvfsp-handoff role:i2c
+infra_ap_dma=refcount:2 enable_count:2 enabled:Y owner:1101c000.i2c role:dma
+infra_uart0=refcount:1 enable_count:1 enabled:Y owner:11002000.serial role:baud
+
+decision=AP_DMA-surviving-reference-attributed-to-enabled-I2C5-DMA-path
+decision_detail=preserve-I2C5-and-AP_DMA; use-baseline-preserving-I2C_APPM-cleanup-oracle
+next_gate=separately-scoped-childless-I2C6-observation
+deferred=DA9214-access,resume,A72-power
+
+The owner reported a readable local console before the remote capture. The
+capture retained the exact inherited USB/keyboard/reboot service markers, but
+did not exercise an individual physical key or request a reboot.

@@ -4,7 +4,7 @@
 |---|---|
 | Date | 2026-07-24 |
 | Candidate | AQ |
-| Status | built and installed to inactive logical `boot2`; runtime not yet tested |
+| Status | observer pass on inactive logical `boot2`; AP_DMA owner/refcount pattern captured |
 | Profile | `observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-observer-initcall-blacklist-dvfsp-handoff-owner-ap-dma-observer` |
 | Device | current named Gemini PDA development unit |
 
@@ -27,6 +27,33 @@ change clocks, request A72 CPUs, write storage, or reboot automatically.
 | Both summaries are readable and identify the AP_DMA reference/owner pattern without changing the AO handoff or inherited console/keyboard/USB/reboot contracts | Use the owner evidence to design the next separately scoped I2C6 experiment |
 | Debugfs is unavailable or summaries are incomplete | Improve the independent observation path; do not repeat AQ unchanged |
 | Any console, keyboard, USB, CPU, spontaneous-reboot, or power regression | Recover through Gemian and treat AQ as failed |
+
+## Runtime result
+
+AQ passed its observation gate on 2026-07-25 after manual `boot2` selection.
+The owner reported a readable console. The direct USB shell then confirmed
+the inherited console, keyboard-map, USB, and eight-A53 path without requesting
+I2C6, touching storage, changing a clock, requesting an A72, or rebooting.
+Debugfs was mounted read-only and both the early and five-second `clk_summary`
+captures were complete and byte-identical. The direct CCF rows were:
+
+- `infra_ap_dma`: refcount `2`, enable count `2`, enabled `Y`, owner
+  `1101c000.i2c` (`dma`);
+- `infra_i2c_appm`: refcount `0`, enable count `0`, enabled `N`, owner
+  `11015000.dvfsp-handoff` (`i2c`);
+- `infra_i2c5`: refcount `1`, enabled `Y`;
+- `infra_uart0`: refcount `1`, enabled `Y`.
+
+The early and late summaries were each 35,178 bytes with SHA-256
+`6508a7d2a502c9a4b7b8cd0a78d7596f5adb40c676e17fa1dd7a346602c4ec16`.
+This identifies the surviving AP_DMA reference as the enabled I2C5 DMA path,
+not a transient AQ or I2C6 request. Candidate AQ therefore must not be
+repeated unchanged. The next I2C6 experiment must preserve the I2C5/AP_DMA
+reference and use a baseline-preserving cleanup oracle for the separate
+I2C_APPM handoff gate; DA9214 access, resume, and A72 power remain later gates.
+
+See the complete sanitized capture in
+[`runtime-candidate-aq-attempt-1-20260725.txt`](results/runtime-candidate-aq-attempt-1-20260725.txt).
 
 ## Build and artifact identity
 

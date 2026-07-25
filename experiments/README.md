@@ -864,7 +864,14 @@ the result.
   plus a read-only initramfs observer. It records early and five-second
   `clk_summary` snapshots for AP_DMA, I2C_APPM, UART0, I2C5 and I2C6. AQ was
   built, checked, and installed to inactive logical `boot2` with matching full
-  remote/local readbacks; runtime remains pending manual slot selection.
+  remote/local readbacks. The owner reported a readable console after manual
+  slot selection, and the direct USB shell captured complete byte-identical
+  early/late summaries. AP_DMA is enabled with refcount 2 and owner
+  `1101c000.i2c` (`dma`), while I2C_APPM is disabled and owned by the DVFSP
+  handoff provider. This passes the observer gate and identifies the surviving
+  reference as the enabled I2C5 DMA path; do not repeat AQ unchanged. Preserve
+  that reference and add a baseline-preserving I2C_APPM cleanup oracle before
+  another I2C6 experiment. See the [runtime result](2026-07-24-mt6797-ap-dma-owner-observer/results/runtime-candidate-aq-attempt-1-20260725.txt).
 - [2026-07-22 fail-closed CPU9 request](2026-07-22-a72-reject-cpu9-request/README.md)
   — Candidate AK uses exact Candidate AJ as its safety predecessor and changes
   only forced `maxcpus=9` to `maxcpus=10`. Exact AK attempt 1 passed the ordered

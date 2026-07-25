@@ -2,7 +2,7 @@
 
 Milestones are evidence gates, not release dates. Work may proceed in parallel when it does not compromise a safe boot loop, but a milestone is complete only when all exit criteria are demonstrated on real hardware and documented.
 
-## Immediate priority: identify AP_DMA ownership before another I2C6 or A72 power test (2026-07-24)
+## Immediate priority: preserve AP_DMA ownership before another I2C6 or A72 power test (2026-07-25)
 
 Candidate AC established the USB-only remote development service, and
 Candidate AD booted the eight Cortex-A53 CPUs together while retaining console,
@@ -77,9 +77,17 @@ childless I2C6. Its exact post-LK FDT passed, but the runtime failed closed:
 I2C_APPM regated in all 32 cleanup samples while AP_DMA remained valid and
 ungated in all 32. I2C6 returned `-EIO` before binding an adapter or issuing a
 transfer. The candidate recovered through native reboot and exact post-return
-`boot2` verification. The next resource-only candidate must first identify the
-pre-existing/shared AP_DMA owner and use a baseline-preserving cleanup oracle;
-resume validation, DA9214 access, and either A72 remain later separate gates.
+`boot2` verification. Candidate AQ kept that exact disabled-I2C6 DT and added
+only read-only debugfs observation. Its early and five-second summaries were
+byte-identical: AP_DMA refcount 2, enabled `Y`, owner `1101c000.i2c` (`dma`),
+and I2C_APPM refcount 0, disabled `N`, owner `11015000.dvfsp-handoff`. The
+owner reported a readable console, and CPU0–7, the keyboard-map markers, USB
+shell, and reboot path survived without I2C6, DA9214, A72, clock-control,
+storage, or reboot activity. This identifies the surviving AP_DMA reference
+as the enabled I2C5 DMA path. The next candidate must preserve I2C5/AP_DMA and
+use a baseline-preserving cleanup oracle for the separate I2C_APPM handoff
+gate; resume validation, DA9214 access, and either A72 remain later separate
+gates. Do not repeat AP or AQ unchanged.
 
 Candidate AN completed that first handoff observation without touching I2C6.
 It retained exact hardware-passed AH plus one read-only CSPM/infracfg observer,
