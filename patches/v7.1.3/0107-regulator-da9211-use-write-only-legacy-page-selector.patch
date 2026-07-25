@@ -1,0 +1,127 @@
+From 0000000000000000000000000000000000000107 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 25 Jul 2026 18:00:00 -0400
+Subject: [PATCH] regulator: da9211: use write-only legacy page selector
+
+The corrected primary-address candidate still failed at the first page-state
+read with -ENXIO.  Gemian's legacy transaction sequence writes PAGE_CON (0x80,
+then 0x82) and immediately reads the selected page-2 register; PAGE_REVERT
+returns the device to page 0 as a side effect of that identity read.  PAGE_CON
+is not readable through this mainline transfer contract.
+
+Use raw selector writes instead of regmap read-modify-write, and remove the
+unavailable page-state reads.  The detection regmap remains uncached and
+permits no writes other than PAGE_CON.  No voltage, enable, disable, or
+configuration register is accessed.
+
+Signed-off-by: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+---
+ drivers/regulator/da9211-regulator.c | 51 +++++-------------------------------
+ 1 file changed, 7 insertions(+), 44 deletions(-)
+
+--- a/drivers/regulator/da9211-regulator.c
++++ b/drivers/regulator/da9211-regulator.c
+@@ -114,7 +114,6 @@ static bool da9214_legacy_detect_readable_reg(struct device *dev,
+ 						 unsigned int reg)
+ {
+ 	switch (reg) {
+-	case DA9211_REG_PAGE_CON:
+ 	case DA9214_PAGE2_REG(DA9211_REG_INTERFACE):
+ 	case DA9214_PAGE2_REG(DA9211_REG_INTERFACE2):
+ 	case DA9214_PAGE2_REG(DA9211_REG_CONFIG_E):
+@@ -146,32 +145,21 @@ static int da9214_read_legacy_page2_reg(struct regmap *regmap,
+ static int da9214_read_legacy_page2_reg(struct regmap *regmap,
+ 					 unsigned int reg, unsigned int *value)
+ {
+-	unsigned int page;
+ 	int ret;
+ 
+-	/* Match the Gemian sequence: make the next page access revert to 0. */
+-	ret = regmap_update_bits(regmap, DA9211_REG_PAGE_CON,
+-				 DA9211_PAGE_REVERT, DA9211_PAGE_REVERT);
++	/* PAGE_CON is write-only on this legacy interface; avoid read-modify-write. */
++	ret = regmap_write(regmap, DA9211_REG_PAGE_CON, DA9211_PAGE_REVERT);
+ 	if (ret)
+ 		return ret;
+ 
+-	ret = regmap_update_bits(regmap, DA9211_REG_PAGE_CON,
+-				 DA9211_REG_PAGE_MASK, DA9211_REG_PAGE2);
++	/* Keep PAGE_REVERT set while selecting page 2, as Gemian does. */
++	ret = regmap_write(regmap, DA9211_REG_PAGE_CON,
++				  DA9211_PAGE_REVERT | DA9211_REG_PAGE2);
+ 	if (ret)
+ 		return ret;
+ 
+ 	ret = regmap_read(regmap, DA9214_PAGE2_REG(reg), value);
+-	if (ret)
+-		return ret;
+-
+-	/* The page-revert bit must leave the device on page 0. */
+-	ret = regmap_read(regmap, DA9211_REG_PAGE_CON, &page);
+-	if (ret)
+-		return ret;
+-	if (page & DA9211_REG_PAGE_MASK)
+-		return -ENODEV;
+-
+-	return 0;
++	return ret;
+ }
+ 
+ static int da9214_read_signature(struct regmap *regmap,
+@@ -191,32 +179,6 @@ static int da9214_read_signature(struct regmap *regmap,
+ 
+ 	return da9214_read_legacy_page2_reg(regmap, DA9211_REG_CONFIG_E,
+ 					    &signature->config_e);
+-}
+-
+-static int da9214_check_page_state(struct device *dev, struct regmap *regmap)
+-{
+-	unsigned int first, second;
+-	int ret;
+-
+-	ret = regmap_read(regmap, DA9214_PAGE2_REG(DA9211_REG_PAGE_CON),
+-			  &first);
+-	if (ret)
+-		return dev_err_probe(dev, ret,
+-				     "failed to read legacy page state\n");
+-
+-	ret = regmap_read(regmap, DA9214_PAGE2_REG(DA9211_REG_PAGE_CON),
+-			  &second);
+-	if (ret)
+-		return dev_err_probe(dev, ret,
+-				     "failed to repeat legacy page-state read\n");
+-
+-	if ((first & DA9211_REG_PAGE_MASK) ||
+-	    (second & DA9211_REG_PAGE_MASK))
+-		return dev_err_probe(dev, -ENODEV,
+-				     "legacy page selector is not on page 0: 0x%x/0x%x\n",
+-				     first, second);
+-
+-	return 0;
+ }
+ 
+ static int da9214_validate_signature(struct i2c_client *i2c,
+@@ -277,10 +239,6 @@ static int da9214_detect_legacy_interface(struct da9211 *chip,
+ 		return dev_err_probe(chip->dev, -ENODEV,
+ 				     "legacy DA9214 requires a 7-bit address\n");
+ 
+-	ret = da9214_check_page_state(chip->dev, page2_regmap);
+-	if (ret)
+-		return ret;
+-
+ 	ret = da9214_read_signature(page2_regmap, &first);
+ 	if (ret)
+ 		return dev_err_probe(chip->dev, ret,
+@@ -290,10 +248,6 @@ static int da9214_detect_legacy_interface(struct da9211 *chip,
+ 	if (ret)
+ 		return dev_err_probe(chip->dev, ret,
+ 				     "failed to repeat legacy interface signature\n");
+-
+-	ret = da9214_check_page_state(chip->dev, page2_regmap);
+-	if (ret)
+-		return ret;
+ 
+ 	/*
+ 	 * CONFIG_E[6:5] are reserved on this generation.  Its stable read is
+-- 
+2.43.0

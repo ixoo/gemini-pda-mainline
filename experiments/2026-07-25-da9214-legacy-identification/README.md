@@ -30,6 +30,8 @@ validated DVFSP handoff and AP_DMA preservation boundary.
   or enable GPIO.
 - 0106 corrects the page-2 transport to the Gemian primary-address PAGE_CON
   sequence after the first AS boot rejected the adjacent-address assumption.
+- 0107 removes the unsupported PAGE_CON reads and uses the Gemian write-only
+  selector sequence (`0x80`, then `0x82`) before each page-2 identity read.
 
 The access-controller dependency remains mandatory; this candidate does not
 change the proven DVFSP cleanup policy.
@@ -42,19 +44,23 @@ shared-ap-dma=preserved, samples=32, and dma_unchanged=32; and I2C6 reaches
 handoff=ready with the address 0x68 client bound. The regulator driver must log
 the exact repeated signature, register exactly two outputs, and perform no
 voltage, enable, disable, or configuration writes. The documented PAGE_CON
-selector writes are allowed only to select page 2 with PAGE_REVERT and must be
-followed by a verified page-0 state. A fault, reset, watchdog reboot, unstable
-page state, signature mismatch, or unexpected I2C6 ownership result is a stop
-condition.
+selector writes are allowed only to select page 2 with PAGE_REVERT. The live
+transfer contract does not support reading PAGE_CON, so the write-only
+candidate treats the documented PAGE_REVERT side effect as the page-0 return
+guarantee and does not issue a direct page-state read. A fault, reset, watchdog
+reboot, unstable page state, signature mismatch, or unexpected I2C6 ownership
+result is a stop condition.
 
 Candidate AS booted successfully and preserved the console/USB/eight-CPU and
 DVFSP/AP_DMA contracts, but failed closed before identity reads:
 'da9211 1-0068: error -ENXIO: failed to repeat legacy page-state read'.
 The primary 0x68 client existed, while no DA9214 driver or regulator bound.
 The exact evidence is in
-'results/runtime-candidate-as-attempt-1-20260725.txt'. This identifies the
-transport bug; the next candidate applies the Gemian PAGE_CON selector
-sequence and is not a repeat of the AS image.
+'results/runtime-candidate-as-attempt-1-20260725.txt'. Candidate AS attempt 2
+used the primary-address selector path but failed at the same unsupported
+PAGE_CON read; its evidence is in
+'results/runtime-candidate-as-attempt-2-20260725.txt'. Candidate AS attempt 3
+removes the PAGE_CON read entirely and mirrors Gemian's write-only sequence.
 
 ## Reproducibility
 

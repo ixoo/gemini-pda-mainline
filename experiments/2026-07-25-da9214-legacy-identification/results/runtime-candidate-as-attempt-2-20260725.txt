@@ -1,0 +1,29 @@
+experiment=2026-07-25-da9214-legacy-identification
+candidate=AS-attempt-2
+runtime_access=direct-usb-shell-10.15.19.82:2323
+kernel=7.1.3-gemini-observability-L
+boot2_selection=owner-attended
+uptime_at_sample=52s
+cpus_nproc=8
+cpus_cpuinfo=8
+console_font=TER16x32
+usb_shell=ready
+cmdline_maxcpus=maxcpus=8
+dvfsp_late_validation=passed
+dvfsp_cleanup=clocks=i2c-appm shared-ap-dma=preserved validation=passed samples=32 dma_gated=0 dma_unchanged=32
+i2c6_handoff=ready
+i2c6_transfer_attempts=0
+i2c6_dma_starts=0
+i2c6_irq_count=0
+da9214_client=1-0068
+da9214_driver_binding=none
+regulators=regulator.0-dummy-only
+dmesg_da9214=da9211-1-0068-error-ENXIO-failed-to-repeat-legacy-page-state-read
+runtime_result=failed-closed-before-identity
+
+This image included the primary-address selector path from patch 0106. The
+console, USB, eight-CPU, and DVFSP/AP_DMA contracts remained healthy, but the
+driver still attempted a direct PAGE_CON read before the Gemian-style selector
+transaction and received -ENXIO. No identity, regulator, voltage, enable, or
+disable operation was observed. Patch 0107 removes that unsupported read and
+uses write-only PAGE_CON values 0x80 then 0x82 before each page-2 read.

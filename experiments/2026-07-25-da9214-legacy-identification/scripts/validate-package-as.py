@@ -147,8 +147,8 @@ def validate(repository: pathlib.Path, package: pathlib.Path) -> None:
     if repository_series != packaged_series:
         fail("packaged AS series differs from repository")
     entries = series_entries(repository_series)
-    if len(entries) != 106 or not entries[-1].endswith("0106-regulator-da9211-use-legacy-DA9214-page-selector.patch"):
-        fail("AS series does not end in patch 0106")
+    if len(entries) != 107 or not entries[-1].endswith("0107-regulator-da9211-use-write-only-legacy-page-selector.patch"):
+        fail("AS series does not end in patch 0107")
     if any(pathlib.PurePosixPath(entry).name.startswith("0093-") for entry in entries):
         fail("AS series selects the forbidden active-power patch")
     required_entries = {
@@ -156,6 +156,7 @@ def validate(repository: pathlib.Path, package: pathlib.Path) -> None:
         "v7.1.3/0104-regulator-da9211-require-exact-legacy-DA9214-signature.patch",
         "v7.1.3/0105-arm64-dts-mediatek-enable-legacy-Gemini-DA9214-after-handoff.patch",
         "v7.1.3/0106-regulator-da9211-use-legacy-DA9214-page-selector.patch",
+        "v7.1.3/0107-regulator-da9211-use-write-only-legacy-page-selector.patch",
     }
     if not required_entries.issubset(entries):
         fail("AS series omits a required legacy DA9214 patch")
@@ -190,7 +191,7 @@ def validate(repository: pathlib.Path, package: pathlib.Path) -> None:
         b"mt6797_dvfsp_sample_consumer_post",
         b"da9211_i2c_probe",
         b"da9214_read_signature",
-        b"da9214_check_page_state",
+        b"da9214_read_legacy_page2_reg",
     ):
         if marker not in system_map:
             fail(f"System.map lacks required AS symbol: {marker!r}")

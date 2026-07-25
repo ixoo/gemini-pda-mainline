@@ -225,7 +225,7 @@ def validate_system_map(data: bytes) -> None:
         "mt6797_a72_power_driver_init",
         "da9211_i2c_probe",
         "da9214_read_signature",
-        "da9214_check_page_state",
+        "da9214_read_legacy_page2_reg",
     }
     missing = sorted(required - symbols)
     if missing:
