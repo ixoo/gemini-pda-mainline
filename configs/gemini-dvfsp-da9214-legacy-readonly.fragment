@@ -1,0 +1,4 @@
+# Candidate AS enables only the existing DA9211-family regulator driver for
+# the exact, fail-closed legacy DA9214 probe.  It does not enable the A72 power
+# observer/provider and does not add any rail consumer or policy.
+CONFIG_REGULATOR_DA9211=y

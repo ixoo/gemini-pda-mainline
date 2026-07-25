@@ -1,0 +1,49 @@
+From 0000000000000000000000000000000000000105 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 25 Jul 2026 12:01:00 -0400
+Subject: [PATCH] arm64: dts: mediatek: enable legacy Gemini DA9214 after
+ handoff
+
+Candidate AR proved the DVFSP/I2C6 ownership boundary with a childless
+controller: I2C_APPM is gated and the shared AP_DMA gate remains unchanged in
+all 32 samples. Restore only the documented I2C6 electrical properties and
+the exact two-output legacy DA9214 description so the fail-closed regulator
+probe can exercise one read-only identification path.
+
+The access-controller dependency remains mandatory. No A72 power consumer,
+regulator supply, boot-on/always-on policy, voltage request, or enable GPIO is
+added.
+
+---
+ .../boot/dts/mediatek/mt6797-gemini-pda.dts | 19 +++++++++++++++++++
+ 1 file changed, 19 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -224,4 +224,23 @@
+ &i2c6 {
+ 	access-controllers = <&dvfsp_handoff>;
+ 	status = "okay";
++	clock-frequency = <3400000>;
++	mediatek,use-push-pull;
++	pinctrl-names = "default";
++	pinctrl-0 = <&i2c6_pins_a>;
++
++	da9214: regulator@68 {
++		compatible = "dlg,da9214";
++		reg = <0x68>;
++
++		regulators {
++			da9214_bucka: BUCKA {
++				regulator-name = "da9214-bucka";
++			};
++
++			da9214_buckb: BUCKB {
++				regulator-name = "vproc-big";
++			};
++		};
++	};
+ };
+-- 
+2.43.0

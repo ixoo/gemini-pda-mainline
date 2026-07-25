@@ -1,0 +1,49 @@
+From 0000000000000000000000000000000000000104 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 25 Jul 2026 12:00:00 -0400
+Subject: [PATCH] regulator: da9211: require the exact legacy DA9214 signature
+
+The legacy DA9214 compatibility path is intentionally board-specific.  The
+named Gemini has a repeated, read-only signature of interface `0xd9`,
+interface2 `0xd0`, and CONFIG_E `0xc0`; the page-2 reads alone are not a
+silicon identity proof.  Require all three values after the repeated reads so
+an unrelated device cannot bind through the compatible string and the generic
+base-address/type checks.
+
+Keep the existing fail-closed behavior: a mismatch leaves the client
+unbound, and the normal application-ID read is never attempted for the legacy
+compatible.
+
+Signed-off-by: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+---
+ drivers/regulator/da9211-regulator.c | 20 ++++++++++++++++++++
+ 1 file changed, 20 insertions(+)
+
+diff --git a/drivers/regulator/da9211-regulator.c b/drivers/regulator/da9211-regulator.c
+--- a/drivers/regulator/da9211-regulator.c
++++ b/drivers/regulator/da9211-regulator.c
+@@ -141,9 +141,22 @@ static int da9214_validate_signature(struct i2c_client *i2c,
+ 	if (first->interface != second->interface ||
+ 	    first->interface2 != second->interface2 ||
+ 	    first->config_e != second->config_e)
+ 		return dev_err_probe(&i2c->dev, -ENODEV,
+ 				     "legacy interface signature is unstable\n");
++
++	/*
++	 * These are the repeated, read-only values captured from the named
++	 * Gemini's legacy DA9214.  Do not turn the compatible string into a
++	 * generic probe for another page-2 device.
++	 */
++	if (first->interface != 0xd9 || first->interface2 != 0xd0 ||
++	    first->config_e != 0xc0)
++		return dev_err_probe(&i2c->dev, -ENODEV,
++				     "legacy DA9214 signature mismatch: "
++				     "interface=0x%x interface2=0x%x config_e=0x%x\n",
++				     first->interface, first->interface2,
++				     first->config_e);
+ 
+ 	expected_base = (i2c->addr << 1) & DA9211_IF_BASE_ADDR_MASK;
+ 	if ((first->interface & DA9211_IF_BASE_ADDR_MASK) != expected_base)
+ 		return dev_err_probe(&i2c->dev, -ENODEV,
+-- 
+2.43.0
