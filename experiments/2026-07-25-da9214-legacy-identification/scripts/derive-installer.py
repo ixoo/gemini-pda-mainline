@@ -22,8 +22,8 @@ AO_DERIVER_SHA256 = (
     "64edec00e1867784599b59f5d950dea5e9332a4ac70bdba7bae9613390130691"
 )
 AO_INSTALLER_SHA256 = ar.AO_INSTALLER_SHA256
-AR_PADDED_SHA256 = (
-    "89a77153f57b6a3061a3e46cbda2e0b79a806464044d48713ddcfcb624526b0a"
+PREVIOUS_AS_PADDED_SHA256 = (
+    "7a1aa655f105e4b20334afbae2662a54deb2d71e05894dcd5e23d42c9ea1f279"
 )
 AO_INSTALLER_PREDECESSOR_SHA256 = (
     "1ef53a25c274ed6f0df265fbc4f4e3a64150d5b7fd4cd1e0cde1db53ffb18ccb"
@@ -108,11 +108,15 @@ def identity_replacements(
         ("AO_ARTIFACT", "AS_ARTIFACT", 4),
         (
             "EXPECTED_CURRENT_AN_PADDED_SHA256",
-            "EXPECTED_CURRENT_AR_PADDED_SHA256",
+            "EXPECTED_CURRENT_AS_PADDED_SHA256",
             8,
         ),
         ("candidate_label=AO", "candidate_label=AS", 2),
-        ("AN-installed-readback-verified", "AR-installed-readback-verified", 4),
+        (
+            "AN-installed-readback-verified",
+            "previous-AS-installed-readback-verified",
+            4,
+        ),
     )
 
 
@@ -137,9 +141,9 @@ def pin_replacements(
             f"readonly AS_ARTIFACT_MANIFEST_SHA256={calibration.manifest_sha256}",
         ),
         (
-            "readonly EXPECTED_CURRENT_AR_PADDED_SHA256="
+            "readonly EXPECTED_CURRENT_AS_PADDED_SHA256="
             f"{AO_INSTALLER_PREDECESSOR_SHA256}",
-            f"readonly EXPECTED_CURRENT_AR_PADDED_SHA256={AR_PADDED_SHA256}",
+            f"readonly EXPECTED_CURRENT_AS_PADDED_SHA256={PREVIOUS_AS_PADDED_SHA256}",
         ),
     )
 
@@ -161,7 +165,7 @@ def derive_text(source: str, calibration: Calibration) -> str:
         raise ValueError("Candidate AS installer cannot restore exact AO foundation")
 
     required = (
-        f"readonly EXPECTED_CURRENT_AR_PADDED_SHA256={AR_PADDED_SHA256}",
+        f"readonly EXPECTED_CURRENT_AS_PADDED_SHA256={PREVIOUS_AS_PADDED_SHA256}",
         f"readonly AS_PADDED_SHA256={calibration.padded_sha256}",
         f'expected_artifact_name="{artifact_directory(calibration)}"',
         f'[[ "$candidate_name" == {ar.BOOT_MEMBER} ]]',
@@ -181,6 +185,8 @@ def derive_text(source: str, calibration: Calibration) -> str:
         "Candidate AO image",
         "candidate-ao-padded",
         "EXPECTED_CURRENT_AN_PADDED_SHA256",
+        "EXPECTED_CURRENT_AR_PADDED_SHA256",
+        "AR-installed-readback-verified",
     ):
         if token in text:
             raise ValueError(f"derived Candidate AS installer retains stale token: {token}")
@@ -264,7 +270,7 @@ def main() -> int:
         print(f"candidate_raw_size={calibration.raw_size}")
         print(f"candidate_artifact_manifest_sha256={calibration.manifest_sha256}")
         print(f"candidate_padded_sha256={calibration.padded_sha256}")
-        print(f"expected_predecessor_sha256={AR_PADDED_SHA256}")
+        print(f"expected_predecessor_sha256={PREVIOUS_AS_PADDED_SHA256}")
         print(f"accepted_target={TARGET}")
         print(f"artifact_directory={artifact_directory(calibration)}")
         print(f"boot_filename={ar.BOOT_MEMBER}")

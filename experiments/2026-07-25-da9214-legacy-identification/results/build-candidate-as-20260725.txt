@@ -22,11 +22,13 @@ ao_raw_sha256=44fc1e6a74744ce546f86f47cfdc7a25f23b134ac59da902f8ac302033875c66
 dt_config_initramfs_keymap_delta=none
 runtime_result=not-tested
 installer=derived-guarded-candidate-as-boot2
-installer_sha256=efdbe27b94ccb9ea9a264b5540f9603bb1873bb53f7577f27d2840e8a96a4daf
+installer_sha256=423b84a0b0d0659635ab72860e509ace5f1e469aa9067c2cca1c4dfdc981d5de
 installer_target=gemini@192.168.1.50
+installer_expected_current_boot2_sha256=7a1aa655f105e4b20334afbae2662a54deb2d71e05894dcd5e23d42c9ea1f279
 installer_write=one-bounded-16MiB-boot2-write-with-backup-sync-flush-readback
 installer_reboot_or_slot_selection=none
 device_install=deferred-device-currently-selected-boot2
+initial_install_attempt=stopped-before-write-unexpected-current-boot2-hash
 
 The corrected primary-address PAGE_CON selector implementation compiled and
 passed all offline validators. The candidate keeps the previously hardware-
