@@ -1,0 +1,6 @@
+# Candidate AF observer-initcall diagnostic. Apply after
+# gemini-a72-observer.fragment. This final-wins fragment changes only the
+# forced command line: keep the exact eight-Cortex-A53 and regulator policy,
+# but prevent the read-only A72 observer's built-in platform-driver initcall
+# from registering or probing.
+CONFIG_CMDLINE="console=ttyS0,921600n8 earlycon maxcpus=8 nokaslr ignore_loglevel loglevel=8 log_buf_len=1M initcall_debug rdinit=/init panic=0 g_ether.dev_addr=42:00:15:19:82:01 g_ether.host_addr=42:00:15:19:82:00 g_ether.iManufacturer=gemini-pda-mainline g_ether.iProduct=Gemini-L-Observability g_ether.iSerialNumber=GEMINI_OBSERVABILITY_20260717_L clk_ignore_unused fbcon=rotate:3 consoleblank=0 fbcon=font:TER16x32 regulator_ignore_unused initcall_blacklist=mt6797_a72_power_driver_init"

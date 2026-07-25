@@ -1,0 +1,56 @@
+experiment=2026-07-19-keyboard-typed-watchdog-reboot-diagnostic
+candidate_label=Y
+date_utc=2026-07-20
+result=PASS-source-boundary-audit
+runtime_result=not-tested
+
+[candidate-x-observation]
+owner_report=X-booted-and-worked-before-typed-reboot
+typed_command=reboot
+observed_outcome=seemed-to-hang
+automatic_return=not-observed
+recovery=power-key-keypad
+post_recovery_pstore_regular_files=0
+exact_x_marker_retained=no
+manual_reboot_marker_retained=no
+internal_failure_stage=unknown
+
+[busybox-forced-reboot]
+command=reboot -n -f
+sync_requested=no
+reboot_syscall=yes
+conclusion=Candidate-X-correctly-entered-generic-kernel-restart-path-if-wrapper-and-applet-were-reached
+
+[linux-7.1.3-arm64-restart-order]
+machine_quiesce=before-restart-handlers
+psci_restart_handler_priority=129
+mtk_wdt_restart_handler_priority=128
+first_handler=PSCI-SYSTEM_RESET
+if_psci_returns=mtk-wdt-restart-handler-runs-next
+mtk_wdt_return_behavior=loops-writing-SWRST-if-reset-does-not-assert
+failure_visibility=generic-path-can-appear-to-hang-after-console-and-other-cpus-are-quiesced
+
+[working-3.18-comparison]
+psci_restart_handler=excluded
+reset_sequence=fuller-TOPRGU-and-PMIC-sequence
+equivalence_to_linux_7_1_3=not-established
+
+[sysrq]
+restart_path=same-machine_restart-chain
+workaround_for-x=no
+
+[candidate-y-decision]
+generic_reboot_syscall=not-used
+sync=none
+fallback_restart=none
+typed_wrapper=exact-mtk-wdt-preflight-then-one-ping-held-fd-and-expiry
+hardware_basis=Candidate-W-proved-the-exact-no-IRQ-31-second-watchdog-expiry-return
+
+[boundary]
+The empty Candidate X pstore cannot distinguish shell resolution, wrapper
+entry, BusyBox reboot syscall entry, PSCI return or non-return, MediaTek restart
+handler entry, or failure of reset assertion. This audit identifies plausible
+static boundaries only; it does not assign X's failure to a specific branch.
+SysRq is not a useful discriminator because it reaches the same generic
+machine-restart chain. Candidate Y deliberately bypasses that chain, but no Y
+runtime claim follows from this source audit.

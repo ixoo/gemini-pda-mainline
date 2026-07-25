@@ -1,0 +1,197 @@
+[record]
+date=2026-07-19
+source=owner-attended visual observation plus immediate authenticated post-return pstore and sanitized boot-reason capture
+candidate=V
+attempt=1
+intended_boot_target=logical boot2 selected by the owner
+device_variant=current Gemini PDA unit; exact retail sub-variant not independently established
+
+[artifact_and_target_evidence]
+raw_boot_image_sha256=9ef0ee8dc1eb49752f9cf8f60b247b9b85e4fd2a9f090473f1d91848114087b0
+installed_full_partition_bytes=16777216
+installed_full_partition_sha256=57d362a86fae38c0ec2cec909ef6ae8d8ad124b87abb2ee58d179184c1f19168
+write_sync_flush=pass
+full_partition_readback=pass-byte-identical-to-padded-candidate
+candidate_v_selection=intended-by-owner
+independent_selected-image_identity=established-by-exact-candidate-v-marker-in-surviving-console-ramoops
+
+[owner_observation]
+console_after_boot2_selection=visible
+working_text_console=not-observed
+usable_shell_opportunity=not-observed
+keyboard_test=not-accomplished; owner could not distinguish no opportunity from non-working input
+exact_last_visible_line=not-transcribed
+photograph_or_video=none
+automatic_return=observed
+manual_power_press_before_return=not-reported; automatic return was explicitly observed
+exact_wall_clock_cycle_duration=not-measured
+known_good_os_after_return=Gemian Linux 3.18.41+
+repeat_count=1
+
+[retained_console_ramoops]
+private_file=artifacts/device-pstore/candidate-v-attempt-1-20260719/pstore/console-ramoops
+private_file_bytes=65524
+private_file_sha256=ebe2902d430b7255ab2ff50c2bd009df3e002202acbed931769db64ad693a60e
+candidate_marker=GEMINI_KEYBOARD_WATCHDOG_20260719_V
+kernel_init_process=Run-/init-as-init-process
+kernel_version_line=not-retained-in-captured-console-window
+panic_oops_bug_or_call_trace=absent-from-captured-console-window
+entry_kernel_time_seconds=10.458965
+cpu_online=0
+storage_access=none
+runtime_networking=none
+
+[display_console]
+simplefb_platform=7dfb0000.framebuffer
+simplefb_mode=1080x2160x32
+simplefb_line_length_bytes=4352
+simplefb_registration=success-fb0
+fbcon_switch=colour-framebuffer-device-270x67
+candidate_v_compiled_font=VGA8x16
+owner_font_observation=console text was a bit too small
+next_font_request=compile-and-force-TER16x32
+expected_grid_if-same-mode-and-rotation=approximately-135x33; runtime validation required
+
+[aw9523_and_matrix]
+aw9523_driver_init=registered
+matrix_keypad_driver_init=registered
+i2c5_of_path=/i2c@1101c000
+i2c5_linux_adapter=0
+i2c5_frequency_hz=400000
+regcache_initial_bulk_read=adapter-rejected-size-127-read-as-too-long
+first_single_register_read_error=register-0x02-minus-110
+first_single_register_read_kernel_time_seconds=4.231552
+chip_id_read_attempt_1=minus-110
+chip_id_read_attempt_2=minus-110
+hardware_reset_result=failed-minus-110
+aw9523_probe_result=failed-minus-110
+aw9523_client=0-005b
+aw9523_driver=unbound
+matrix_initial_probe=deferred-minus-517
+matrix_platform_device=keyboard-matrix
+matrix_driver=unbound
+matrix_final_deferred_reason=wait-for-supplier-/i2c@1101c000/gpio-expander@5b/keyboard-matrix-col-pins
+matrix_input_name=absent
+matrix_event_node=absent
+raw_event_window=skipped-no-matrix-owned-event-node
+physical_key_event=not-observed-and-no-input-device-existed
+
+[shell_boundary]
+busybox_init_exec_path=reached
+tty1_shell_supervision=launched
+tty1_shell_ready_marker_kernel_time_seconds=10.604705
+tty1_shell_ready_marker_semantics=local-shell-reached-the-recorder-before-exec-ash
+ash_exec=not-durably-confirmed
+prompt_visible=not-established
+shell_interactive=not-established
+shell_input_pass=absent
+prompt_persistence=none; prompt-is-written-only-to-tty1-and-is-not-a-kmsg-marker
+foreground_vt=not-explicitly-selected-by-candidate-v
+tty_interference=probe-and-watchdog-recorders-also-write-to-tty1-and-can-bury-the-one-shot-prompt
+success_command_reachability=defective; literal-/bin/v-pass-needs-KEY_SLASH-and-KEY_MINUS-which-the-base-DT-keymap-does-not-advertise
+shell_input_pass_absence=not-a-valid-keyboard-failure-oracle
+
+[watchdog]
+live_watchdog_interrupts=absent
+watchdog_observation_contract=valid
+watchdog_platform=10007000.watchdog
+watchdog_driver=mtk-wdt
+watchdog_class=present
+watchdog_identity=mtk-wdt
+watchdog_timeout_seconds=31
+watchdog_pretimeout=unavailable
+watchdog_status=0x0
+watchdog_association=exact
+watchdog_open=success-fd3
+watchdog_handoff_ping=sent-once
+watchdog_arm_kernel_time_seconds=10.868136
+last_complete_wait_marker=watchdog_wait=30s
+last_complete_wait_kernel_time_seconds=41.014260
+nominal_expiry_kernel_time_seconds=41.868136
+last_wait_marker_precedes_nominal_expiry_seconds=0.853876
+watchdog_wait_35s=absent
+watchdog_expiry_failed=absent
+
+[post_reset_capture]
+collector_started_utc=2026-07-19T18:53:01Z
+collector_waited_for_cycle=no; collection began after the owner had already observed the automatic Gemian return
+collector_disconnect_reconnect_observation=not-requested
+capture_kernel=3.18.41+
+capture_arch=aarch64
+post_reset_boot_id_sha256=9c85a2b6356563a4bf83649c3b14039dc6abdd351391da4e767b29a096a2b247
+pstore_directory=present
+pstore_files=console-ramoops
+ramoops_mem_address=0x44410000
+ramoops_mem_size=0x000e0000
+ramoops_record_size=0x00001000
+ramoops_console_size=0x00010000
+ramoops_pmsg_size=0x00010000
+ramoops_ftrace_size=0x00001000
+private_capture=artifacts/device-pstore/candidate-v-attempt-1-20260719
+private_capture_sha256s_manifest_sha256=f9b14288374a53dba3768a816ee04c16f2922159163a032b0850a45a7c65eb10
+private_capture_manifest_verification=pass
+collector_candidate_l_evidence_file=not-applicable-hard-coded-candidate-l-parser; ignored-for-candidate-v-attribution
+remote_pstore_records_removed=no
+
+[post_reset_boot_reason]
+query_utc=2026-07-19T18:59:19Z
+query=authenticated-read-of-non-identifying-fields-only
+boot_reason_numeric=4
+android_bootreason=wdt_by_pass_pwk
+powerup_reason=reboot
+serial_and_personal_boot_fields=not-read-or-recorded
+
+[attribution]
+candidate_v_kernel_entry=established
+external_initramfs_entry=established
+loader_simplefb_fbcon_visibility=established-for-one-v-cycle-by-owner-observation
+local_shell_pre_exec_boundary=established
+visible_prompt_or_interactive_shell=not-established
+aw9523_provider_binding=failed
+keyboard_matrix_binding=blocked-by-unbound-aw9523-supplier
+keyboard_input_device=absent
+physical_keyboard_event=not-tested-because-no-input-device-existed
+watchdog_open_and_single_ping=established
+watchdog_timeout_reset=established-by-retained-arm-and-timing-sequence-plus-owner-auto-return-plus-gemian-watchdog-boot-reason
+automatic_return_to_gemian=established
+cross_version_console_ramoops_retention=established-for-this-warm-watchdog-reset
+
+[interpretation]
+candidate_acceptance=failed-keyboard-gate; passed-console-observation-and-recovery-gates
+first_failed_keyboard_gate=aw9523-I2C/reset/provider-probe-before-matrix-polling
+errno_minus_110=ETIMEDOUT
+transport_scope=all-observed-aw9523-register-and-chip-id-reads-timed-out-at-i2c0-address-0x5b
+matrix_polling_code_exercised=no; consumer-never-bound
+owner_had_no-functional-keyboard-device-to-test=yes
+automatic_reboot_interpretation=expected-31-second-single-stage-mtk-wdt-expiry
+shell_report_interpretation=consistent-with-pre-ash-marker-plus-obscured-or-non-foreground-tty1; not-proof-of-an-ash-failure
+unchanged_candidate_v_retry=no
+
+[boundaries]
+exact_electrical_cause_of-aw9523-timeout=not-established
+reset_polarity_timing_or_power_causality=not-established
+i2c5_physical_bus_waveform_or-ACK=not-measured
+aw9523_chip_identity=not-read
+generic_matrix_polling_behavior=not-exercised
+keymap_physical_accuracy=not-tested
+foreground_vt_and_prompt_presentation=not-proven
+repeatability=not-established-beyond-one-run
+native_display_panel_backlight_rotation=not-tested
+uart=not-established
+usb=not-established
+storage_or_rootfs=not-accessed
+smp=not-tested
+
+[decision]
+candidate_v_decision_oracle=fail-at-aw9523-provider; recovery-and-attribution-pass
+unchanged_candidate_v_retry=stop
+next_investigation=separate-aw9523-I2C-transport-reset-power-contract-from-matrix-polling-and-repair-the-tty1-success-oracle-before-another-device-boot
+next_candidate_requirement=one-attributable-aw9523-provider-change-plus-exact-v-console-ramoops-watchdog-foundation; explicitly-select-foreground-vt; use-a-command-typeable-from-the-base-keymap; avoid-writing-background-checkpoints-to-the-interactive-tty
+
+[decision_supersession]
+date=2026-07-19
+superseded_next_investigation=generic-aw9523-I2C-transport-reset-power-boundary
+new_evidence=exact working 3.18 binary selects hardware WRRD and auxiliary receive-length offset 0x6c; latest bsg100 hardware evidence fixes the same MT6797 fallback failure with a direct mt6797-to-mt8173 controller-data match
+corrected_next_causal_change=direct mediatek,mt6797-i2c match using mt8173_compat or evidence-equivalent mt6797_compat
+held_exact=Candidate V AW9523 reset timing and regmap cache,matrix polling,I2C frequency,DT,console,ramoops,no-IRQ watchdog
+audit=working-3.18-aw9523-i2c-binary-audit-20260719.txt

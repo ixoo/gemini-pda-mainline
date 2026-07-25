@@ -1,0 +1,14 @@
+#!/bin/busybox sh
+# shellcheck shell=dash
+
+export PATH=/bin
+/bin/x-record 'manual_reboot=requested method=busybox-forced storage_access=none'
+printf '%s\n' 'Candidate X: manual reboot requested.'
+
+# Do not sync or inspect any filesystem: this command is an explicit forced
+# reboot request against the exact pinned BusyBox applet.
+/bin/busybox reboot -n -f
+status=$?
+/bin/x-record "manual_reboot=failed status=$status"
+printf 'Candidate X: reboot failed (status %s).\n' "$status" >&2
+exit "$status"

@@ -1,0 +1,3 @@
+::once:/bin/u-probe
+tty1::respawn:/bin/local-shell
+::ctrlaltdel:/bin/busybox true

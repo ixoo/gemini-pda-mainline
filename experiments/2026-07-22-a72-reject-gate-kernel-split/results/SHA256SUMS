@@ -1,0 +1,6 @@
+3fd8a66eb2701cc655e0124c389d26de2bad901dbe1ec0886f5b4c6eca558e9a  ./artifact-reproduction-ai-20260722.txt
+c87ea7946c9473a3e00af43b16d64baefef3f34d5f711df5915db4c39221114b  ./boot2-install-candidate-ai-20260722.txt
+9ddd30d4f75954aaa55cf4b2e9d43fafd56fd9e1f74e6c0e779a0b9a9baa1f4e  ./installer-validation-ai-20260722.txt
+598bfd7fcce726fa017904e04e48bd31a7ba59699b658e4d5a2db81983989697  ./kernel-package-reproduction-ai-20260722.txt
+78cd03d75358c320f9607a23b670a4934292ae553297308959f907cc5780db68  ./runtime-candidate-ai-attempt-1-20260722.txt
+bf159881a4a8206941cea976f0fd6bc8ae5afda857d3f9279c1a68ae412c5517  ./runtime-recovery-pinning-ai-20260722.txt

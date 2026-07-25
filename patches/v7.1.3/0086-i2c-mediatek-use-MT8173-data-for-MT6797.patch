@@ -1,0 +1,36 @@
+From 0000000000000000000000000000000000000086 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 19 Jul 2026 16:10:00 -0400
+Subject: [PATCH] i2c: mediatek: use MT8173 data for MT6797
+
+The MT6797 Device Tree already carries the SoC-specific compatible before
+its MT6577 fallback, but the driver has no matching entry.  It therefore
+uses the MT6577 data, which disables automatic repeated starts and the
+separate auxiliary receive-length register.
+
+The exact working Gemini 3.18 binary converts a register-address write plus
+read into hardware WRRD.  It writes the receive length at offset 0x6c.
+Those properties match the existing MT8173 data.  An independent Gemini
+hardware report also recovered combined reads by selecting that data for
+MT6797.
+
+Match MT6797 directly to the MT8173 controller data.  This is a narrow
+local integration step; a named MT6797 data structure can replace it if
+upstream review identifies a distinct controller contract.
+---
+ drivers/i2c/busses/i2c-mt65xx.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/i2c/busses/i2c-mt65xx.c b/drivers/i2c/busses/i2c-mt65xx.c
+--- a/drivers/i2c/busses/i2c-mt65xx.c
++++ b/drivers/i2c/busses/i2c-mt65xx.c
+@@ -527,6 +527,7 @@ static const struct of_device_id mtk_i2c_of_match[] = {
+ 	{ .compatible = "mediatek,mt2712-i2c", .data = &mt2712_compat },
+ 	{ .compatible = "mediatek,mt6577-i2c", .data = &mt6577_compat },
+ 	{ .compatible = "mediatek,mt6589-i2c", .data = &mt6589_compat },
++	{ .compatible = "mediatek,mt6797-i2c", .data = &mt8173_compat },
+ 	{ .compatible = "mediatek,mt7622-i2c", .data = &mt7622_compat },
+ 	{ .compatible = "mediatek,mt7981-i2c", .data = &mt7981_compat },
+ 	{ .compatible = "mediatek,mt7986-i2c", .data = &mt7986_compat },
+-- 
+2.43.0

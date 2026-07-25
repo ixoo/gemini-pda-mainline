@@ -1,0 +1,61 @@
+From 0000000000000000000000000000000000000082 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 19 Jul 2026 06:35:00 -0400
+Subject: [PATCH] arm64: dts: mediatek: correct Gemini AW9523 resources
+
+Complete the still-disabled Gemini keyboard description with the SoC-side
+I2C and reset/interrupt pin states required by the AW9523.  The retained
+board source identifies GPIO58 as the active-high released reset line and
+GPIO87 function 1 as EINT10.  Correct gpio-ranges to reference the combined
+AW9523 pinctrl/GPIO controller itself, as required by its binding.
+
+Keep I2C5, the expander, and matrix consumer disabled.  Enabling them remains
+a candidate-only packaging operation until the electrical and input behavior
+is established on hardware.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts | 20 +++++++++++++++++++-
+ 1 file changed, 19 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -259,16 +259,34 @@
+ 	interrupts = <GIC_SPI 137 IRQ_TYPE_EDGE_FALLING>;
+ };
+ 
++&pio {
++	keyboard_soc_pins: keyboard-soc-pins {
++		pins-reset {
++			pinmux = <MT6797_GPIO58__FUNC_GPIO58>;
++			output-high;
++		};
++
++		pins-irq {
++			pinmux = <MT6797_GPIO87__FUNC_EINT10>;
++		};
++	};
++};
++
+ &i2c5 {
+ 	/* Keep the bus and both consumers disabled until a safe keyboard test. */
++	pinctrl-names = "default";
++	pinctrl-0 = <&i2c5_pins_a>;
++
+ 	aw9523: gpio-expander@5b {
+ 		compatible = "awinic,aw9523-pinctrl";
+ 		reg = <0x5b>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&keyboard_soc_pins>;
+ 		interrupt-parent = <&pio>;
+ 		interrupts = <87 IRQ_TYPE_LEVEL_LOW>;
+ 		gpio-controller;
+ 		#gpio-cells = <2>;
+-		gpio-ranges = <&pio 0 0 16>;
++		gpio-ranges = <&aw9523 0 0 16>;
+ 		interrupt-controller;
+ 		#interrupt-cells = <2>;
+ 		reset-gpios = <&pio 58 GPIO_ACTIVE_HIGH>;
+-- 
+2.43.0

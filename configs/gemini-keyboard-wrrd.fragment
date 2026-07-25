@@ -1,0 +1,6 @@
+# Candidate W observation-only override. Apply after the keyboard profile.
+# Keep durable kernel records on fixed VT2 while the supervised shell owns
+# foreground VT1, and use the larger built-in Terminus font requested by the
+# device owner. The MT6797 controller correction lives in patch 0086.
+CONFIG_FONT_TER16x32=y
+CONFIG_CMDLINE="console=tty2 console=ttyS0,921600n8 earlycon maxcpus=1 nokaslr ignore_loglevel loglevel=8 log_buf_len=1M initcall_debug rdinit=/init panic=0 g_ether.dev_addr=42:00:15:19:82:01 g_ether.host_addr=42:00:15:19:82:00 g_ether.iManufacturer=gemini-pda-mainline g_ether.iProduct=Gemini-L-Observability g_ether.iSerialNumber=GEMINI_OBSERVABILITY_20260717_L clk_ignore_unused fbcon=rotate:3 consoleblank=0 fbcon=font:TER16x32"

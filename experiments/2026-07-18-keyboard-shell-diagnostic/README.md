@@ -6,10 +6,10 @@
 | --- | --- |
 | ID | `2026-07-18-keyboard-shell-diagnostic` |
 | Candidate | Q |
-| Status | Planned; no Candidate Q profile, corrected DT package, initramfs, boot artifact, hashes, `boot2` write, selection, or runtime test exists |
+| Status | Runtime failed: the intended `boot2` selection did not provide a working text console; no deeper Q gate was observable |
 | Subsystem | MT6797 I2C5, AW9523 GPIO/IRQ, matrix keyboard, evdev, VT, and initramfs shell |
 | Device variant | Current Gemini PDA unit; exact retail sub-variant not independently established |
-| Date | 2026-07-18 |
+| Date | 2026-07-18 through 2026-07-19 |
 | Investigator(s) | Project maintainers |
 | Tracking issue | Not yet assigned |
 
@@ -141,8 +141,9 @@ token would be discarded and must be rejected. Preserve `maxcpus=1`,
 version, `CONFIG_WATCHDOG_HANDLE_BOOT_ENABLED=y`, and
 `CONFIG_WATCHDOG_OPEN_TIMEOUT=0`.
 
-The first reviewed build must pin the complete resolved-config diff. A vague
-claim that Kconfig selected the right dependencies is not a validation result.
+The reviewed build pins the complete resolved-config diff. Its minimal I2C
+dependency closure explicitly suppresses unrelated arm64 I2C controller
+defaults which otherwise became newly visible after `CONFIG_I2C=y`.
 
 ## Controlled Device Tree delta
 
@@ -377,17 +378,19 @@ Run `bash -n` and ShellCheck on shell sources, compile the event helper with the
 project's warning policy, run `git diff --check`, and retain the normal package
 validator output. Builders and validators have no flashing or device interface.
 
-Expected future result names, created only after those actions, are:
+Completed build and write records are:
 
 ```text
-results/final-build-reproduction-20260718.txt
-results/boot2-write-candidate-q-20260718.txt
-results/runtime-candidate-q-attempt-1-20260718.txt
+results/final-build-reproduction-20260719.txt
+results/boot2-write-candidate-q-20260719.txt
 ```
+
+The first attended runtime result, when it occurs, should be recorded as
+`results/runtime-candidate-q-attempt-1-YYYYMMDD.txt`.
 
 ## Reproducible build and installation procedure
 
-The next agent should implement in this order:
+The implementation followed this order:
 
 1. author and validate the disabled board-DT correction as one reviewable patch;
 2. add and pin the dedicated Q profile in `kernel/manifest.json`;
@@ -401,7 +404,9 @@ The `boot2` writer must still resolve the live GPT label, verify target identity
 power, mounts and holders, preserve a private full backup, pad to exactly 16
 MiB, sync and flush, and require a matching full-partition readback. It must
 skip a matching target and never substitute `boot`, `boot3`, or a remembered
-partition number. No write or reboot is part of this planned record.
+partition number. The write was completed under the standing authorization
+with a fresh backup, sync/flush, and matching full-partition readback. No reboot
+was performed.
 
 ## Attended runtime procedure
 
@@ -468,39 +473,71 @@ firmware write is authorized by this plan.
 
 ## Associated code
 
-Only this README exists today. Every planned source and script listed above
-must be independently authored, reviewed, and validated before it is cited as
-implemented. Historical/vendor code remains evidence, not code to copy.
+The controlled configuration fragment, next-in-series DT patch, deterministic
+initramfs sources, static input-event helper, builders, exact-delta validators,
+and mutation suite now exist. Historical/vendor code remains evidence, not
+code to copy.
 
 ## Observations
 
-Candidate Q has not been built, exported, written, selected, or tested. No Q
-configuration hash, DTB, initramfs, boot image, reproducibility result,
-partition record, keyboard event, shell prompt, or long-idle observation exists.
+Candidate Q was built twice from clean VM build directories. The kernel
+configuration, `Image`, `Image.gz`, `System.map`, packaged disabled-source DTB,
+and normalized provenance matched; the corrected final DTB, static helper,
+initramfs, and Android boot image were also independently reproduced byte for
+byte. Package, exact config-delta, DT-delta/schema, initramfs, Android-v0, and
+negative-mutation validation passed. The first assembled derivative was
+rejected before boot because archive-directory modes were 0700; the builder
+and validator were corrected, the artifact was rebuilt twice, and that rejected
+derivative was replaced on `boot2` without ever being selected.
 
-Logical `boot2` contained exact Candidate P after the last recorded write and
-full readback. A later operation must re-resolve and re-check the live target;
-this plan does not assume that historical state remains true.
+The final raw boot image is 6,862,848 bytes with SHA-256
+`66cec945eff5c8d34acbf61382d267533e4ac6894aac19093904dd9008da27c3`.
+The live GPT uniquely resolved logical `boot2` to `/dev/mmcblk0p30`; the exact
+16-MiB padded image and full readback both have SHA-256
+`ccf8d80f40b334dd3900d72901b1fa6ccdb9bf796a81c72b97bf680f2080508e`.
+The device remained in Gemian on `/dev/mmcblk0p29`; the write operation itself
+did not reboot it. On the later intended Q selection, the owner reported that Q
+did not provide a working text console and that no deeper behavior could be
+identified. No exact Q marker, AW9523 binding line, matrix input device, event,
+shell prompt, supervisor behavior, or idle-time result was observed. A
+read-only check after recovery found no retained pstore file or Q-specific
+console/panic/watchdog evidence. See the
+[runtime record](results/runtime-candidate-q-attempt-1-20260719.txt).
 
 ## Analysis
 
-The upstream AW9523 register protocol matches the observed chip contract, and
-generic matrix-keypad represents the source-derived scan topology. That is
-enough to justify this controlled experiment, not to claim that GPIO87 pull,
-interrupt delivery, reset timing, polarity, debounce, rollover, or the complete
-physical legends work on this unit. The pre-shell event gate preserves those
-distinctions even though Q intentionally combines keyboard and shell work.
+The upstream AW9523 register protocol still matches the observed chip contract,
+and generic matrix-keypad still represents the source-derived scan topology.
+Q nevertheless made the unproven GPIO87/EINT10 path boot-critical. The latest
+independent bsg100 Gemini evidence instead obtained working keyboard input with
+the AW9523 parent interrupt absent and `matrix_keypad` scanning every 20 ms.
+Its hardware-tested result is cross-device evidence, not proof on this unit,
+but it supplies a decision-changing next test: retain the upstream AW9523
+silicon driver and the GPIO87/EINT10 pinmux while removing its parent-IRQ
+consumer from the active path and adding generic matrix polling. The absence of a Q marker or retained pstore does not prove an
+IRQ hang; loader selection, display/TTY behavior, reset/probe failure, and an
+early stall remain alternative explanations.
 
 ## Conclusion
 
-`Inconclusive / planned.` Candidate Q is now the precise next-step contract,
-but no Q implementation or hardware result exists and no support-matrix state
-advances from this document.
+`Rejected as a runtime candidate.` Q did not meet its first visible-console
+gate, and none of its keyboard or shell gates was established. No keyboard or
+shell support claim and no support-matrix advancement follows.
 
 ## Follow-up
 
-Implement the controlled sources and validators above, then update this record
-with exact build hashes before considering a `boot2` write. After a passing Q
-run, update the keyboard hardware record and support matrix only for behavior
-directly demonstrated on the named device. eMMC Candidate S and USB-networking
-Candidate T remain independent later experiments.
+Do not repeat unchanged Q. Candidate U was the next available identifier because
+R is retired and S/T remain reserved. U was independently built twice with
+matching validated outputs, then installed to live-resolved logical `boot2`
+with a matching full-partition readback. Its first intended selection also
+failed the visible-console gate: the screen and console stayed dark, no marker
+was observed, and no automatic reboot occurred. The device was later reachable
+in Gemian with a changed boot ID, but authenticated post-return pstore was
+empty. U therefore establishes no console, kernel, `/init`, AW9523, keyboard,
+or shell behavior and must not be repeated unchanged. Preserve the U
+[build reproduction](../2026-07-19-keyboard-polling-diagnostic/results/final-build-reproduction-20260719.txt)
+and [write/readback](../2026-07-19-keyboard-polling-diagnostic/results/boot2-write-candidate-u-20260719.txt)
+records, plus its [runtime result](../2026-07-19-keyboard-polling-diagnostic/results/runtime-candidate-u-attempt-1-20260719.txt).
+The next candidate needs a durable observation path that can distinguish early
+entry from a display-only failure. Promote only behavior directly demonstrated
+on this named device.

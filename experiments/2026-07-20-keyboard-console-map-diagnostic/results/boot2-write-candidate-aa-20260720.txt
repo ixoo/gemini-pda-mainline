@@ -1,0 +1,62 @@
+[record]
+date_local=2026-07-20
+experiment=2026-07-20-keyboard-console-map-diagnostic
+candidate=AA
+candidate_revision=r0-historical
+superseded_before_boot=yes
+do_not_boot=yes
+operation=standing-latest-validated-candidate-boot2-sync
+result=write-synced-flushed-full-readback-verified
+runtime_result=not-tested
+
+[candidate]
+artifact=candidate-AA-keyboard-console-map-final-a2ad7a41
+artifact_manifest_sha256=e67fcd4aaaf9f192ebb36291f9065a62848818af4241ab97c67459513d0d7c32
+raw_boot_image_bytes=7120896
+raw_boot_image_sha256=a2ad7a4107abd99cbd349b8f2deadd0185cbdd5bb0884ecbdae8ff2a7499ed4c
+padded_boot2_bytes=16777216
+padded_boot2_sha256=157c7cd5d814d7b2704d679faacd3215c5e889642b4261441f99653957585eaa
+
+[live_prewrite_gate]
+target_logical_name=boot2
+target=/dev/mmcblk0p30
+target_partition_number=30
+target_size=16777216
+target_writable=yes
+active_root=/dev/mmcblk0p29
+target_is_active_root=no
+target_mounted=no
+target_active_swap=no
+target_holders=none
+power=ac-online|battery-present|Full|100|Good
+boot_id=753bf760-02aa-4731-a797-c73e88dfb414
+expected_previous_candidate=Z
+prewrite_full_partition_sha256=ba21e6424f94c82f14fd51b5681eea68d6cf09e9177e4f9ca2061c9f129abb40
+
+[backup_and_write]
+private_backup_dir=artifacts/device-partitions/pre-candidate-aa-20260721T031450Z
+private_backup_mode=0700
+private_files_mode=0600
+backup_full_partition_sha256=ba21e6424f94c82f14fd51b5681eea68d6cf09e9177e4f9ca2061c9f129abb40
+target_write_count=1
+target_write_scope=exact-16777216-byte-padded-image-to-live-resolved-boot2-only
+sync=completed
+block_flush=completed
+remote_staging_removed=yes
+
+[verification]
+remote_post_flush_sha256=157c7cd5d814d7b2704d679faacd3215c5e889642b4261441f99653957585eaa
+local_full_readback_bytes=16777216
+local_full_readback_sha256=157c7cd5d814d7b2704d679faacd3215c5e889642b4261441f99653957585eaa
+local_full_readback_byte_comparison=identical
+private_evidence_manifest_sha256=b0d6c78640b3b3654e14ee9a6309fd5e66fa633310cd5505465f81b95ec7c090
+post_gate_boot_id=753bf760-02aa-4731-a797-c73e88dfb414
+post_gate_power=ac-online|battery-present|Full|100|Good
+reboot_or_shutdown_performed=no
+
+[interpretation]
+The guarded installer replaced exact Candidate Z on the inactive,
+live-GPT-resolved logical boot2 partition with the exact padded Candidate AA
+image, then required matching remote and local full-partition readback. This
+establishes stored bytes and installation safety only. Candidate AA has not yet
+been selected or booted, so it adds no runtime keyboard or reboot evidence.

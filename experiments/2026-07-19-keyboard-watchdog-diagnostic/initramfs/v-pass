@@ -1,0 +1,4 @@
+#!/bin/busybox sh
+# shellcheck shell=dash
+
+/bin/v-record 'SHELL_INPUT_PASS typed_command=/bin/v-pass'

@@ -1,0 +1,16 @@
+#!/bin/busybox sh
+# shellcheck shell=dash
+
+export PATH=/bin
+export TERM=linux
+export PS1='GEMINI-X# '
+
+foreground_vt=failed
+if /bin/busybox chvt 1; then
+	foreground_vt=selected
+fi
+/bin/busybox stty sane
+/bin/busybox clear
+/bin/x-record "tty1_shell=ready foreground_vt=$foreground_vt prompt=GEMINI-X# reboot_command=reboot"
+printf '%s\n' 'Type reboot then Enter when you want to return to Gemian.'
+exec /bin/busybox ash -i

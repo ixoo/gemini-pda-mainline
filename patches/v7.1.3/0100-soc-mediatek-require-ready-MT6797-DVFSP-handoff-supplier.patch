@@ -1,0 +1,1059 @@
+From 01a8193e746049bf6de87aac579c5e7f15070afd Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 24 Jul 2026 15:01:38 -0400
+Subject: [PATCH 2/4] soc: mediatek: publish MT6797 DVFSP handoff access
+
+Wait for a terminal handoff result before binding and retain denied terminal states for inspection.
+
+Publish the access grant only after late stopped-firmware validation.
+
+Record the shared AP-DMA gate without making it a supplier-readiness predicate. Require both I2C bulk-clock domains while held and prove cleanup over a bounded 32-sample window.
+
+Export guarded sleepable PM checks and preserve supplier ordering across sleep.
+
+Signed-off-by: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+---
+ drivers/soc/mediatek/mt6797-dvfsp-handoff.c   | 715 +++++++++++++++++-
+ .../linux/soc/mediatek/mt6797-dvfsp-handoff.h |  58 ++
+ 2 files changed, 753 insertions(+), 20 deletions(-)
+ create mode 100644 include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+index 3ef9560..a07443d 100644
+--- a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+@@ -5,10 +5,13 @@
+  * Copyright (c) 2026 Julien Etienne
+  */
+ 
++#include <linux/atomic.h>
+ #include <linux/bitops.h>
+ #include <linux/clk.h>
++#include <linux/completion.h>
+ #include <linux/delay.h>
+ #include <linux/device.h>
++#include <linux/device/driver.h>
+ #include <linux/devm-helpers.h>
+ #include <linux/io.h>
+ #include <linux/jiffies.h>
+@@ -16,8 +19,11 @@
+ #include <linux/module.h>
+ #include <linux/mutex.h>
+ #include <linux/of.h>
++#include <linux/of_platform.h>
+ #include <linux/platform_device.h>
++#include <linux/pm.h>
+ #include <linux/regmap.h>
++#include <linux/soc/mediatek/mt6797-dvfsp-handoff.h>
+ #include <linux/workqueue.h>
+ 
+ #define CSPM_PCM_CON0			0x018
+@@ -28,6 +34,7 @@
+ #define CSPM_PCM_FSM_STA		0x178
+ #define CSPM_SW_RSV0			0x608
+ 
++#define INFRACFG_INFRA1_PDN_STA		0x094
+ #define INFRACFG_INFRA2_PDN_STA		0x0b0
+ 
+ #define PCM_CON0_PCM_KICK		BIT(0)
+@@ -42,11 +49,16 @@
+ #define PCM_CON1_AN_STOPPED		0x00006c00
+ #define PCM_FSM_STA_RESET		0x00048490
+ #define PCM_SW_RSV_AN_STOPPED		0xbabebabe
++#define INFRA_AP_DMA_GATED		BIT(18)
+ #define INFRA_I2C_APPM_GATED		BIT(1)
+ 
+-#define MT6797_DVFSP_SAMPLE_COUNT	6
++#define MT6797_DVFSP_SAMPLE_COUNT	10
++#define MT6797_DVFSP_CONSUMER_POST_COUNT	32
++#define MT6797_DVFSP_POST_DELAY_MIN_US	1000
++#define MT6797_DVFSP_POST_DELAY_MAX_US	1250
+ #define MT6797_DVFSP_SW_RSV_COUNT	7
+ #define MT6797_DVFSP_LATE_DELAY_MS	45000
++#define MT6797_DVFSP_PROBE_TIMEOUT_MS	50000
+ 
+ enum mt6797_dvfsp_sample_id {
+ 	MT6797_DVFSP_PRE0,
+@@ -55,6 +67,10 @@ enum mt6797_dvfsp_sample_id {
+ 	MT6797_DVFSP_ENABLED,
+ 	MT6797_DVFSP_POST,
+ 	MT6797_DVFSP_LATE,
++	MT6797_DVFSP_CONSUMER_HELD,
++	MT6797_DVFSP_CONSUMER_POST,
++	MT6797_DVFSP_SUSPEND,
++	MT6797_DVFSP_RESUME,
+ };
+ 
+ enum mt6797_dvfsp_handoff_state {
+@@ -67,6 +83,22 @@ enum mt6797_dvfsp_handoff_state {
+ 	MT6797_DVFSP_FAULTED,
+ };
+ 
++enum mt6797_dvfsp_permission {
++	MT6797_DVFSP_PERMISSION_FAULTED = -1,
++	MT6797_DVFSP_PERMISSION_BLOCKED,
++	MT6797_DVFSP_PERMISSION_READY,
++};
++
++enum mt6797_dvfsp_pm_fault {
++	MT6797_DVFSP_PM_OK,
++	MT6797_DVFSP_PM_SUSPEND_INVALID,
++	MT6797_DVFSP_PM_SUSPEND_REVALIDATION,
++	MT6797_DVFSP_PM_RESUME_INVALID,
++	MT6797_DVFSP_PM_RESUME_REVALIDATION,
++	MT6797_DVFSP_PM_CONSUMER_NOT_READY,
++	MT6797_DVFSP_PM_CONSUMER_CLOCK,
++};
++
+ enum mt6797_dvfsp_late_state {
+ 	MT6797_DVFSP_LATE_NOT_SCHEDULED,
+ 	MT6797_DVFSP_LATE_PENDING,
+@@ -88,8 +120,10 @@ struct mt6797_dvfsp_snapshot {
+ 	u32 pcm_reg15_data;
+ 	u32 pcm_fsm_sta;
+ 	u32 sw_rsv[MT6797_DVFSP_SW_RSV_COUNT];
++	u32 infra1_pdn_sta;
+ 	u32 infra2_pdn_sta;
+ 	u32 timer_after;
++	bool infra1_pdn_sta_valid;
+ 	bool infra2_pdn_sta_valid;
+ };
+ 
+@@ -98,11 +132,25 @@ struct mt6797_dvfsp_handoff {
+ 	void __iomem *cspm;
+ 	struct regmap *infracfg;
+ 	struct clk *i2c_clk;
+-	/* Protects state, samples, counters, and late-work transitions. */
++	/* Protects state, samples, non-atomic counters, and late work. */
+ 	struct mutex lock;
++	struct completion terminal;
+ 	struct delayed_work late_work;
+ 	struct mt6797_dvfsp_snapshot samples[MT6797_DVFSP_SAMPLE_COUNT];
++	struct mt6797_dvfsp_snapshot
++		consumer_post[MT6797_DVFSP_CONSUMER_POST_COUNT];
+ 	bool sample_valid[MT6797_DVFSP_SAMPLE_COUNT];
++	unsigned int consumer_post_sequences;
++	unsigned int consumer_post_samples;
++	unsigned int consumer_post_pcm_failures;
++	unsigned int consumer_post_main_failures;
++	unsigned int consumer_post_dma_invalid;
++	unsigned int consumer_post_dma_gated;
++	unsigned int consumer_post_selected;
++	bool consumer_post_passed;
++	atomic_t terminal_grant;
++	atomic_t permission;
++	atomic_t pm_fault;
+ 	enum mt6797_dvfsp_handoff_state state;
+ 	enum mt6797_dvfsp_late_state late_state;
+ 	enum mt6797_dvfsp_initial_gate initial_gate;
+@@ -112,6 +160,13 @@ struct mt6797_dvfsp_handoff {
+ 	unsigned int disable_count;
+ 	unsigned int late_checks;
+ 	unsigned int fault_count;
++	atomic_t suspend_checks;
++	atomic_t suspend_failures;
++	atomic_t resume_checks;
++	atomic_t resume_failures;
++	atomic_t consumer_ungated_checks;
++	atomic_t consumer_gated_checks;
++	atomic_t consumer_validation_failures;
+ };
+ 
+ static const char * const mt6797_dvfsp_sample_names[] = {
+@@ -121,6 +176,10 @@ static const char * const mt6797_dvfsp_sample_names[] = {
+ 	[MT6797_DVFSP_ENABLED] = "enabled",
+ 	[MT6797_DVFSP_POST] = "post",
+ 	[MT6797_DVFSP_LATE] = "late",
++	[MT6797_DVFSP_CONSUMER_HELD] = "consumer-held",
++	[MT6797_DVFSP_CONSUMER_POST] = "consumer-post",
++	[MT6797_DVFSP_SUSPEND] = "suspend",
++	[MT6797_DVFSP_RESUME] = "resume",
+ };
+ 
+ static const char * const mt6797_dvfsp_state_names[] = {
+@@ -146,14 +205,40 @@ static const char * const mt6797_dvfsp_gate_names[] = {
+ 	[MT6797_DVFSP_GATE_GATED] = "gated",
+ };
+ 
++static const char *mt6797_dvfsp_access_grant_name(int permission)
++{
++	return permission == MT6797_DVFSP_PERMISSION_READY ?
++		"ready" : "denied";
++}
++
++static const char *mt6797_dvfsp_pm_fault_name(int fault)
++{
++	switch (fault) {
++	case MT6797_DVFSP_PM_OK:
++		return "none";
++	case MT6797_DVFSP_PM_SUSPEND_INVALID:
++		return "suspend-permission-invalid";
++	case MT6797_DVFSP_PM_SUSPEND_REVALIDATION:
++		return "suspend-revalidation-failed";
++	case MT6797_DVFSP_PM_RESUME_INVALID:
++		return "resume-permission-invalid";
++	case MT6797_DVFSP_PM_RESUME_REVALIDATION:
++		return "resume-revalidation-failed";
++	case MT6797_DVFSP_PM_CONSUMER_NOT_READY:
++		return "consumer-permission-invalid";
++	default:
++		return "consumer-clock-validation-failed";
++	}
++}
++
+ static void
+-mt6797_dvfsp_take_snapshot(struct mt6797_dvfsp_handoff *handoff,
+-			   enum mt6797_dvfsp_sample_id id)
++mt6797_dvfsp_read_snapshot(struct mt6797_dvfsp_handoff *handoff,
++			   struct mt6797_dvfsp_snapshot *snapshot)
+ {
+-	struct mt6797_dvfsp_snapshot *snapshot = &handoff->samples[id];
+ 	unsigned int value;
+ 	int i;
+ 
++	*snapshot = (struct mt6797_dvfsp_snapshot) { };
+ 	snapshot->timer_before =
+ 		readl(handoff->cspm + CSPM_PCM_TIMER_OUT);
+ 	snapshot->pcm_con0 = readl(handoff->cspm + CSPM_PCM_CON0);
+@@ -169,6 +254,12 @@ mt6797_dvfsp_take_snapshot(struct mt6797_dvfsp_handoff *handoff,
+ 		snapshot->sw_rsv[i] =
+ 			readl(handoff->cspm + CSPM_SW_RSV0 + i * sizeof(u32));
+ 
++	if (!regmap_read(handoff->infracfg, INFRACFG_INFRA1_PDN_STA,
++			 &value)) {
++		snapshot->infra1_pdn_sta = value;
++		snapshot->infra1_pdn_sta_valid = true;
++	}
++
+ 	if (!regmap_read(handoff->infracfg, INFRACFG_INFRA2_PDN_STA,
+ 			 &value)) {
+ 		snapshot->infra2_pdn_sta = value;
+@@ -177,13 +268,20 @@ mt6797_dvfsp_take_snapshot(struct mt6797_dvfsp_handoff *handoff,
+ 
+ 	snapshot->timer_after =
+ 		readl(handoff->cspm + CSPM_PCM_TIMER_OUT);
+-	handoff->sample_valid[id] = true;
++}
++
++static void
++mt6797_dvfsp_log_snapshot(struct mt6797_dvfsp_handoff *handoff,
++			  enum mt6797_dvfsp_sample_id id)
++{
++	struct mt6797_dvfsp_snapshot *snapshot = &handoff->samples[id];
+ 
+ 	dev_info(handoff->dev,
+ 		 "sample=%s timer=%08x/%08x con0=%08x con1=%08x "
+ 		 "pwr_io=%08x r15=%08x fsm=%08x "
+ 		 "rsv=%08x,%08x,%08x,%08x,%08x,%08x,%08x "
+-		 "gate_valid=%u gate=%08x\n",
++		 "gate_valid=%u gate=%08x "
++		 "dma_gate_valid=%u dma_gate=%08x\n",
+ 		 mt6797_dvfsp_sample_names[id],
+ 		 snapshot->timer_before, snapshot->timer_after,
+ 		 snapshot->pcm_con0, snapshot->pcm_con1,
+@@ -194,7 +292,18 @@ mt6797_dvfsp_take_snapshot(struct mt6797_dvfsp_handoff *handoff,
+ 		 snapshot->sw_rsv[4], snapshot->sw_rsv[5],
+ 		 snapshot->sw_rsv[6],
+ 		 snapshot->infra2_pdn_sta_valid,
+-		 snapshot->infra2_pdn_sta);
++		 snapshot->infra2_pdn_sta,
++		 snapshot->infra1_pdn_sta_valid,
++		 snapshot->infra1_pdn_sta);
++}
++
++static void
++mt6797_dvfsp_take_snapshot(struct mt6797_dvfsp_handoff *handoff,
++			   enum mt6797_dvfsp_sample_id id)
++{
++	mt6797_dvfsp_read_snapshot(handoff, &handoff->samples[id]);
++	handoff->sample_valid[id] = true;
++	mt6797_dvfsp_log_snapshot(handoff, id);
+ }
+ 
+ static bool
+@@ -251,6 +360,16 @@ mt6797_dvfsp_gate_is(const struct mt6797_dvfsp_snapshot *snapshot,
+ 	return !!(snapshot->infra2_pdn_sta & INFRA_I2C_APPM_GATED) == gated;
+ }
+ 
++static bool
++mt6797_dvfsp_dma_gate_is(const struct mt6797_dvfsp_snapshot *snapshot,
++			 bool gated)
++{
++	if (!snapshot->infra1_pdn_sta_valid)
++		return false;
++
++	return !!(snapshot->infra1_pdn_sta & INFRA_AP_DMA_GATED) == gated;
++}
++
+ static bool
+ mt6797_dvfsp_pre_signature_stable(struct mt6797_dvfsp_handoff *handoff)
+ {
+@@ -289,9 +408,86 @@ mt6797_dvfsp_classify_initial_gate(struct mt6797_dvfsp_handoff *handoff)
+ 		       MT6797_DVFSP_GATE_UNGATED;
+ }
+ 
++static bool mt6797_dvfsp_snapshot_main_valid(
++	struct mt6797_dvfsp_handoff *handoff,
++	const struct mt6797_dvfsp_snapshot *snapshot, bool gated)
++{
++	const struct mt6797_dvfsp_snapshot *baseline =
++		&handoff->samples[MT6797_DVFSP_PRE0];
++
++	return mt6797_dvfsp_snapshot_matches_an(snapshot) &&
++	       mt6797_dvfsp_pcm_equal(baseline, snapshot) &&
++	       mt6797_dvfsp_gate_is(snapshot, gated);
++}
++
++static bool
++mt6797_dvfsp_sample_consumer_post(struct mt6797_dvfsp_handoff *handoff)
++{
++	const struct mt6797_dvfsp_snapshot *baseline =
++		&handoff->samples[MT6797_DVFSP_PRE0];
++	int first_dma_gated = -1;
++	int i;
++
++	handoff->consumer_post_sequences++;
++	handoff->consumer_post_samples = 0;
++	handoff->consumer_post_pcm_failures = 0;
++	handoff->consumer_post_main_failures = 0;
++	handoff->consumer_post_dma_invalid = 0;
++	handoff->consumer_post_dma_gated = 0;
++
++	for (i = 0; i < MT6797_DVFSP_CONSUMER_POST_COUNT; i++) {
++		struct mt6797_dvfsp_snapshot *snapshot =
++			&handoff->consumer_post[i];
++
++		mt6797_dvfsp_read_snapshot(handoff, snapshot);
++		handoff->consumer_post_samples++;
++		if (!mt6797_dvfsp_snapshot_matches_an(snapshot) ||
++		    !mt6797_dvfsp_pcm_equal(baseline, snapshot))
++			handoff->consumer_post_pcm_failures++;
++		if (!mt6797_dvfsp_gate_is(snapshot, true))
++			handoff->consumer_post_main_failures++;
++		if (!snapshot->infra1_pdn_sta_valid) {
++			handoff->consumer_post_dma_invalid++;
++		} else if (mt6797_dvfsp_dma_gate_is(snapshot, true)) {
++			if (first_dma_gated < 0)
++				first_dma_gated = i;
++			handoff->consumer_post_dma_gated++;
++		}
++
++		if (i + 1 < MT6797_DVFSP_CONSUMER_POST_COUNT)
++			usleep_range(MT6797_DVFSP_POST_DELAY_MIN_US,
++				     MT6797_DVFSP_POST_DELAY_MAX_US);
++	}
++
++	handoff->consumer_post_passed =
++		handoff->consumer_post_samples ==
++			MT6797_DVFSP_CONSUMER_POST_COUNT &&
++		!handoff->consumer_post_pcm_failures &&
++		!handoff->consumer_post_main_failures &&
++		!handoff->consumer_post_dma_invalid &&
++		handoff->consumer_post_dma_gated;
++	handoff->consumer_post_selected = handoff->consumer_post_passed ?
++		first_dma_gated : MT6797_DVFSP_CONSUMER_POST_COUNT - 1;
++	handoff->samples[MT6797_DVFSP_CONSUMER_POST] =
++		handoff->consumer_post[handoff->consumer_post_selected];
++	handoff->sample_valid[MT6797_DVFSP_CONSUMER_POST] = true;
++
++	return handoff->consumer_post_passed;
++}
++
++static const char *
++mt6797_dvfsp_consumer_cleanup_result(
++	const struct mt6797_dvfsp_handoff *handoff)
++{
++	if (!handoff->consumer_post_sequences)
++		return "not-run";
++
++	return handoff->consumer_post_passed ? "passed" : "failed";
++}
++
+ static void
+-mt6797_dvfsp_fault_locked(struct mt6797_dvfsp_handoff *handoff,
+-			  const char *reason)
++__mt6797_dvfsp_fault_locked(struct mt6797_dvfsp_handoff *handoff,
++			    const char *reason, bool report)
+ {
+ 	if (handoff->state == MT6797_DVFSP_FAULTED)
+ 		return;
+@@ -299,8 +495,19 @@ mt6797_dvfsp_fault_locked(struct mt6797_dvfsp_handoff *handoff,
+ 	handoff->state = MT6797_DVFSP_FAULTED;
+ 	handoff->reason = reason;
+ 	handoff->fault_count++;
+-	dev_err(handoff->dev,
+-		"state=faulted reason=%s i2c6_policy=disabled\n", reason);
++	atomic_set(&handoff->permission, MT6797_DVFSP_PERMISSION_FAULTED);
++	complete_all(&handoff->terminal);
++	if (report)
++		dev_err(handoff->dev,
++			"state=faulted reason=%s i2c6_policy=requires-ready\n",
++			reason);
++}
++
++static void
++mt6797_dvfsp_fault_locked(struct mt6797_dvfsp_handoff *handoff,
++			  const char *reason)
++{
++	__mt6797_dvfsp_fault_locked(handoff, reason, true);
+ }
+ 
+ static void mt6797_dvfsp_late_work(struct work_struct *work)
+@@ -331,9 +538,12 @@ static void mt6797_dvfsp_late_work(struct work_struct *work)
+ 	handoff->state = MT6797_DVFSP_READY;
+ 	handoff->late_state = MT6797_DVFSP_LATE_PASSED;
+ 	handoff->reason = "late-validation-passed";
++	atomic_set(&handoff->terminal_grant, 1);
++	atomic_set(&handoff->permission, MT6797_DVFSP_PERMISSION_READY);
++	complete_all(&handoff->terminal);
+ 	dev_info(handoff->dev,
+ 		 "state=ready normalization=ungated-to-gated "
+-		 "late_validation=passed i2c6_policy=disabled\n");
++		 "late_validation=passed i2c6_policy=requires-ready\n");
+ 
+ unlock:
+ 	mutex_unlock(&handoff->lock);
+@@ -354,7 +564,8 @@ static void mt6797_dvfsp_run_handoff(struct mt6797_dvfsp_handoff *handoff)
+ 	handoff->state = MT6797_DVFSP_VALIDATING;
+ 	handoff->reason = "initial-validation";
+ 	dev_info(handoff->dev,
+-		 "state=validating operation=one-way-handoff i2c6_policy=disabled\n");
++		 "state=validating operation=one-way-handoff "
++		 "i2c6_policy=requires-ready\n");
+ 
+ 	mt6797_dvfsp_take_snapshot(handoff, MT6797_DVFSP_PRE0);
+ 	usleep_range(2000, 2500);
+@@ -376,10 +587,11 @@ static void mt6797_dvfsp_run_handoff(struct mt6797_dvfsp_handoff *handoff)
+ 	if (handoff->initial_gate == MT6797_DVFSP_GATE_GATED) {
+ 		handoff->state = MT6797_DVFSP_INCONCLUSIVE;
+ 		handoff->reason = "initial-gate-already-gated";
++		complete_all(&handoff->terminal);
+ 		dev_warn(handoff->dev,
+ 			 "state=inconclusive "
+ 			 "reason=initial-gate-already-gated "
+-			 "transition_attempts=0 i2c6_policy=disabled\n");
++			 "transition_attempts=0 i2c6_policy=requires-ready\n");
+ 		goto unlock;
+ 	}
+ 
+@@ -433,13 +645,108 @@ static void mt6797_dvfsp_run_handoff(struct mt6797_dvfsp_handoff *handoff)
+ 		 "state=provisional normalization=ungated-to-gated "
+ 		 "enable_successes=1 disable_count=1 "
+ 		 "late_validation=pending delay_ms=%u "
+-		 "i2c6_policy=disabled\n",
++		 "i2c6_policy=requires-ready\n",
+ 		 MT6797_DVFSP_LATE_DELAY_MS);
+ 
+ unlock:
+ 	mutex_unlock(&handoff->lock);
+ }
+ 
++static int mt6797_dvfsp_handoff_suspend_late(struct device *dev)
++{
++	struct mt6797_dvfsp_handoff *handoff = dev_get_drvdata(dev);
++	struct mt6797_dvfsp_snapshot *snapshot =
++		&handoff->samples[MT6797_DVFSP_SUSPEND];
++	bool valid;
++
++	atomic_inc(&handoff->suspend_checks);
++	if (!atomic_read(&handoff->terminal_grant))
++		return 0;
++
++	if (atomic_cmpxchg(&handoff->permission,
++			   MT6797_DVFSP_PERMISSION_READY,
++			   MT6797_DVFSP_PERMISSION_BLOCKED) !=
++	    MT6797_DVFSP_PERMISSION_READY) {
++		atomic_inc(&handoff->suspend_failures);
++		atomic_set(&handoff->pm_fault,
++			   MT6797_DVFSP_PM_SUSPEND_INVALID);
++		atomic_set(&handoff->permission,
++			   MT6797_DVFSP_PERMISSION_FAULTED);
++		return -EHOSTDOWN;
++	}
++
++	mutex_lock(&handoff->lock);
++	mt6797_dvfsp_read_snapshot(handoff, snapshot);
++	handoff->sample_valid[MT6797_DVFSP_SUSPEND] = true;
++	valid = mt6797_dvfsp_snapshot_main_valid(handoff, snapshot, true);
++	mutex_unlock(&handoff->lock);
++	if (!valid) {
++		atomic_inc(&handoff->suspend_failures);
++		atomic_set(&handoff->pm_fault,
++			   MT6797_DVFSP_PM_SUSPEND_REVALIDATION);
++		atomic_set(&handoff->permission,
++			   MT6797_DVFSP_PERMISSION_FAULTED);
++		return -EIO;
++	}
++
++	return 0;
++}
++
++static int mt6797_dvfsp_handoff_resume_early(struct device *dev)
++{
++	struct mt6797_dvfsp_handoff *handoff = dev_get_drvdata(dev);
++	struct mt6797_dvfsp_snapshot *snapshot =
++		&handoff->samples[MT6797_DVFSP_RESUME];
++	bool valid;
++
++	atomic_inc(&handoff->resume_checks);
++	if (!atomic_read(&handoff->terminal_grant))
++		return 0;
++
++	if (atomic_read(&handoff->permission) !=
++	    MT6797_DVFSP_PERMISSION_BLOCKED) {
++		atomic_inc(&handoff->resume_failures);
++		atomic_set(&handoff->pm_fault,
++			   MT6797_DVFSP_PM_RESUME_INVALID);
++		atomic_set(&handoff->permission,
++			   MT6797_DVFSP_PERMISSION_FAULTED);
++		return -EHOSTDOWN;
++	}
++
++	mutex_lock(&handoff->lock);
++	mt6797_dvfsp_read_snapshot(handoff, snapshot);
++	handoff->sample_valid[MT6797_DVFSP_RESUME] = true;
++	valid = mt6797_dvfsp_snapshot_main_valid(handoff, snapshot, true);
++	mutex_unlock(&handoff->lock);
++	if (!valid) {
++		atomic_inc(&handoff->resume_failures);
++		atomic_set(&handoff->pm_fault,
++			   MT6797_DVFSP_PM_RESUME_REVALIDATION);
++		atomic_set(&handoff->permission,
++			   MT6797_DVFSP_PERMISSION_FAULTED);
++		return -EIO;
++	}
++
++	if (atomic_cmpxchg(&handoff->permission,
++			   MT6797_DVFSP_PERMISSION_BLOCKED,
++			   MT6797_DVFSP_PERMISSION_READY) !=
++	    MT6797_DVFSP_PERMISSION_BLOCKED) {
++		atomic_inc(&handoff->resume_failures);
++		atomic_set(&handoff->pm_fault,
++			   MT6797_DVFSP_PM_RESUME_INVALID);
++		atomic_set(&handoff->permission,
++			   MT6797_DVFSP_PERMISSION_FAULTED);
++		return -EHOSTDOWN;
++	}
++
++	return 0;
++}
++
++static const struct dev_pm_ops mt6797_dvfsp_handoff_pm_ops = {
++	LATE_SYSTEM_SLEEP_PM_OPS(mt6797_dvfsp_handoff_suspend_late,
++				 mt6797_dvfsp_handoff_resume_early)
++};
++
+ static ssize_t state_show(struct device *dev, struct device_attribute *attr,
+ 			  char *buf)
+ {
+@@ -464,16 +771,47 @@ static ssize_t status_show(struct device *dev, struct device_attribute *attr,
+ 	mutex_lock(&handoff->lock);
+ 	length = sysfs_emit(buf,
+ 			    "state=%s reason=%s initial_gate=%s "
++			    "supplier_bound=yes access_grant=%s "
+ 			    "transition_attempts=%u enable_successes=%u "
+ 			    "disable_count=%u late=%s late_checks=%u faults=%u "
+-			    "i2c6_policy=disabled\n",
++			    "suspend_checks=%d suspend_failures=%d "
++			    "resume_checks=%d resume_failures=%d "
++			    "pm_fault=%s consumer_ungated_checks=%d "
++			    "consumer_gated_checks=%d "
++			    "consumer_validation_failures=%d "
++			    "cleanup_attempts=%u cleanup_samples=%u "
++			    "cleanup_pcm_failures=%u "
++			    "cleanup_main_failures=%u "
++			    "cleanup_dma_invalid=%u cleanup_dma_gated=%u "
++			    "cleanup_selected=%u cleanup_result=%s "
++			    "i2c6_policy=requires-ready\n",
+ 			    mt6797_dvfsp_state_names[handoff->state],
+ 			    handoff->reason,
+ 			    mt6797_dvfsp_gate_names[handoff->initial_gate],
++			    mt6797_dvfsp_access_grant_name(
++				    atomic_read(&handoff->permission)),
+ 			    handoff->transition_attempts,
+ 			    handoff->enable_successes, handoff->disable_count,
+ 			    mt6797_dvfsp_late_names[handoff->late_state],
+-			    handoff->late_checks, handoff->fault_count);
++			    handoff->late_checks, handoff->fault_count,
++			    atomic_read(&handoff->suspend_checks),
++			    atomic_read(&handoff->suspend_failures),
++			    atomic_read(&handoff->resume_checks),
++			    atomic_read(&handoff->resume_failures),
++			    mt6797_dvfsp_pm_fault_name(
++				    atomic_read(&handoff->pm_fault)),
++			    atomic_read(&handoff->consumer_ungated_checks),
++			    atomic_read(&handoff->consumer_gated_checks),
++			    atomic_read(
++				    &handoff->consumer_validation_failures),
++			    handoff->consumer_post_sequences,
++			    handoff->consumer_post_samples,
++			    handoff->consumer_post_pcm_failures,
++			    handoff->consumer_post_main_failures,
++			    handoff->consumer_post_dma_invalid,
++			    handoff->consumer_post_dma_gated,
++			    handoff->consumer_post_selected,
++			    mt6797_dvfsp_consumer_cleanup_result(handoff));
+ 	mutex_unlock(&handoff->lock);
+ 
+ 	return length;
+@@ -500,7 +838,8 @@ static ssize_t snapshots_show(struct device *dev,
+ 			"con0=%08x con1=%08x pwr_io=%08x "
+ 			"r15=%08x fsm=%08x "
+ 			"rsv=%08x,%08x,%08x,%08x,%08x,%08x,%08x "
+-			"gate_valid=%u gate=%08x\n",
++			"gate_valid=%u gate=%08x "
++			"dma_gate_valid=%u dma_gate=%08x\n",
+ 			mt6797_dvfsp_sample_names[i],
+ 			snapshot->timer_before, snapshot->timer_after,
+ 			snapshot->pcm_con0, snapshot->pcm_con1,
+@@ -511,7 +850,9 @@ static ssize_t snapshots_show(struct device *dev,
+ 			snapshot->sw_rsv[4], snapshot->sw_rsv[5],
+ 			snapshot->sw_rsv[6],
+ 			snapshot->infra2_pdn_sta_valid,
+-			snapshot->infra2_pdn_sta);
++			snapshot->infra2_pdn_sta,
++			snapshot->infra1_pdn_sta_valid,
++			snapshot->infra1_pdn_sta);
+ 	}
+ 	mutex_unlock(&handoff->lock);
+ 
+@@ -519,10 +860,51 @@ static ssize_t snapshots_show(struct device *dev,
+ }
+ static DEVICE_ATTR_RO(snapshots);
+ 
++static ssize_t consumer_cleanup_show(struct device *dev,
++				     struct device_attribute *attr, char *buf)
++{
++	struct mt6797_dvfsp_handoff *handoff = dev_get_drvdata(dev);
++	ssize_t length;
++	unsigned int i;
++
++	mutex_lock(&handoff->lock);
++	length = sysfs_emit(
++		buf,
++		"attempts=%u samples=%u pcm_failures=%u main_failures=%u "
++		"dma_invalid=%u dma_gated=%u selected=%u result=%s\n",
++		handoff->consumer_post_sequences,
++		handoff->consumer_post_samples,
++		handoff->consumer_post_pcm_failures,
++		handoff->consumer_post_main_failures,
++		handoff->consumer_post_dma_invalid,
++		handoff->consumer_post_dma_gated,
++		handoff->consumer_post_selected,
++		mt6797_dvfsp_consumer_cleanup_result(handoff));
++
++	for (i = 0; i < handoff->consumer_post_samples; i++) {
++		const struct mt6797_dvfsp_snapshot *snapshot =
++			&handoff->consumer_post[i];
++
++		length += sysfs_emit_at(
++			buf, length,
++			"i=%02u main_valid=%d main=%08x "
++			"dma_valid=%d dma=%08x\n",
++			i, snapshot->infra2_pdn_sta_valid,
++			snapshot->infra2_pdn_sta,
++			snapshot->infra1_pdn_sta_valid,
++			snapshot->infra1_pdn_sta);
++	}
++	mutex_unlock(&handoff->lock);
++
++	return length;
++}
++static DEVICE_ATTR_RO(consumer_cleanup);
++
+ static struct attribute *mt6797_dvfsp_handoff_attrs[] = {
+ 	&dev_attr_state.attr,
+ 	&dev_attr_status.attr,
+ 	&dev_attr_snapshots.attr,
++	&dev_attr_consumer_cleanup.attr,
+ 	NULL,
+ };
+ 
+@@ -530,9 +912,255 @@ static const struct attribute_group mt6797_dvfsp_handoff_group = {
+ 	.attrs = mt6797_dvfsp_handoff_attrs,
+ };
+ 
++int
++mt6797_dvfsp_handoff_require_ready(struct mt6797_dvfsp_handoff *handoff)
++{
++	int ret = 0;
++
++	if (!handoff)
++		return -EINVAL;
++
++	mutex_lock(&handoff->lock);
++	if (handoff->state != MT6797_DVFSP_READY ||
++	    atomic_read(&handoff->permission) !=
++		    MT6797_DVFSP_PERMISSION_READY)
++		ret = -EHOSTDOWN;
++	mutex_unlock(&handoff->lock);
++
++	return ret;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_require_ready);
++
++bool
++mt6797_dvfsp_handoff_is_ready_atomic(struct mt6797_dvfsp_handoff *handoff)
++{
++	return handoff &&
++	       atomic_read(&handoff->permission) ==
++		       MT6797_DVFSP_PERMISSION_READY;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_is_ready_atomic);
++
++int
++mt6797_dvfsp_handoff_validate_clock(
++	struct mt6797_dvfsp_handoff *handoff, bool gated)
++{
++	struct mt6797_dvfsp_snapshot *snapshot;
++	int ret = 0;
++
++	if (!handoff)
++		return -EINVAL;
++
++	snapshot = &handoff->samples[MT6797_DVFSP_CONSUMER_HELD];
++	mutex_lock(&handoff->lock);
++	/*
++	 * An ungated observation authorizes initialization and therefore
++	 * requires a live grant. A gated observation is the mandatory cleanup
++	 * proof and remains available after the first observation has faulted
++	 * the grant.
++	 */
++	if (!gated &&
++	    (handoff->state != MT6797_DVFSP_READY ||
++	     atomic_read(&handoff->permission) !=
++		     MT6797_DVFSP_PERMISSION_READY)) {
++		ret = -EHOSTDOWN;
++		goto unlock;
++	}
++
++	if (gated)
++		atomic_inc(&handoff->consumer_gated_checks);
++	else
++		atomic_inc(&handoff->consumer_ungated_checks);
++
++	if (gated) {
++		bool cleanup_passed =
++			mt6797_dvfsp_sample_consumer_post(handoff);
++
++		mt6797_dvfsp_log_snapshot(
++			handoff, MT6797_DVFSP_CONSUMER_POST);
++		if (!cleanup_passed) {
++			atomic_inc(&handoff->consumer_validation_failures);
++			dev_err(handoff->dev,
++				"consumer_clock_check=cleanup "
++				"clocks=i2c-appm,ap-dma validation=failed "
++				"samples=%u pcm_failures=%u "
++				"main_failures=%u dma_invalid=%u "
++				"dma_gated=%u selected=%u "
++				"i2c6_policy=requires-ready\n",
++				handoff->consumer_post_samples,
++				handoff->consumer_post_pcm_failures,
++				handoff->consumer_post_main_failures,
++				handoff->consumer_post_dma_invalid,
++				handoff->consumer_post_dma_gated,
++				handoff->consumer_post_selected);
++			mt6797_dvfsp_fault_locked(
++				handoff, "consumer-cleanup-validation-failed");
++			ret = -EIO;
++			goto unlock;
++		}
++	} else {
++		mt6797_dvfsp_take_snapshot(
++			handoff, MT6797_DVFSP_CONSUMER_HELD);
++		if (!mt6797_dvfsp_snapshot_main_valid(
++			    handoff, snapshot, false) ||
++		    !mt6797_dvfsp_dma_gate_is(snapshot, false)) {
++			atomic_inc(&handoff->consumer_validation_failures);
++			mt6797_dvfsp_fault_locked(
++				handoff, "consumer-held-clocks-not-ungated");
++			ret = -EIO;
++			goto unlock;
++		}
++	}
++
++	if (gated)
++		dev_info(handoff->dev,
++			 "consumer_clock_check=cleanup "
++			 "clocks=i2c-appm,ap-dma validation=passed "
++			 "samples=%u dma_gated=%u selected=%u "
++			 "i2c6_policy=requires-ready\n",
++			 handoff->consumer_post_samples,
++			 handoff->consumer_post_dma_gated,
++			 handoff->consumer_post_selected);
++	else
++		dev_info(handoff->dev,
++			 "consumer_clock_check=held "
++			 "clocks=i2c-appm,ap-dma validation=passed "
++			 "i2c6_policy=requires-ready\n");
++
++unlock:
++	mutex_unlock(&handoff->lock);
++	return ret;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_validate_clock);
++
++int
++mt6797_dvfsp_handoff_validate_clock_pm(
++	struct mt6797_dvfsp_handoff *handoff, bool gated)
++{
++	struct mt6797_dvfsp_snapshot *snapshot;
++	int ret = 0;
++
++	if (!handoff)
++		return -EINVAL;
++
++	mutex_lock(&handoff->lock);
++	if (!gated && !mt6797_dvfsp_handoff_is_ready_atomic(handoff)) {
++		atomic_set(&handoff->pm_fault,
++			   MT6797_DVFSP_PM_CONSUMER_NOT_READY);
++		atomic_set(&handoff->permission,
++			   MT6797_DVFSP_PERMISSION_FAULTED);
++		ret = -EHOSTDOWN;
++		goto unlock_pm;
++	}
++
++	if (gated)
++		atomic_inc(&handoff->consumer_gated_checks);
++	else
++		atomic_inc(&handoff->consumer_ungated_checks);
++
++	if (gated) {
++		if (mt6797_dvfsp_sample_consumer_post(handoff))
++			goto unlock_pm;
++	} else {
++		snapshot = &handoff->samples[MT6797_DVFSP_CONSUMER_HELD];
++		mt6797_dvfsp_read_snapshot(handoff, snapshot);
++		handoff->sample_valid[MT6797_DVFSP_CONSUMER_HELD] = true;
++		if (mt6797_dvfsp_snapshot_main_valid(
++			    handoff, snapshot, false) &&
++		    mt6797_dvfsp_dma_gate_is(snapshot, false))
++			goto unlock_pm;
++	}
++
++	atomic_inc(&handoff->consumer_validation_failures);
++	atomic_set(&handoff->pm_fault, MT6797_DVFSP_PM_CONSUMER_CLOCK);
++	__mt6797_dvfsp_fault_locked(
++		handoff, gated ? "consumer-cleanup-validation-failed" :
++				 "consumer-held-clocks-not-ungated",
++		false);
++	ret = -EIO;
++
++unlock_pm:
++	mutex_unlock(&handoff->lock);
++	return ret;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_validate_clock_pm);
++
++struct mt6797_dvfsp_handoff *
++mt6797_dvfsp_handoff_get(struct device *consumer)
++{
++	struct mt6797_dvfsp_handoff *handoff;
++	struct of_phandle_args args;
++	struct platform_device *supplier;
++	struct device_link *link;
++	int count;
++	int ret;
++
++	count = of_count_phandle_with_args(consumer->of_node,
++					   "access-controllers",
++					   "#access-controller-cells");
++	if (count != 1)
++		return ERR_PTR(-EINVAL);
++
++	ret = of_parse_phandle_with_args(consumer->of_node,
++					 "access-controllers",
++					 "#access-controller-cells", 0, &args);
++	if (ret)
++		return ERR_PTR(ret);
++
++	if (args.args_count ||
++	    !of_device_is_compatible(args.np,
++				     "mediatek,mt6797-dvfsp-handoff")) {
++		of_node_put(args.np);
++		return ERR_PTR(-EINVAL);
++	}
++
++	supplier = of_find_device_by_node(args.np);
++	of_node_put(args.np);
++	if (!supplier)
++		return ERR_PTR(-EPROBE_DEFER);
++
++	device_lock(&supplier->dev);
++	if (!device_is_bound(&supplier->dev)) {
++		ret = -EPROBE_DEFER;
++		handoff = NULL;
++	} else {
++		handoff = platform_get_drvdata(supplier);
++		ret = handoff ? 0 : -EPROBE_DEFER;
++	}
++	device_unlock(&supplier->dev);
++
++	if (ret)
++		goto put_supplier;
++
++	/*
++	 * The access-controllers property lets fw_devlink prevent the first
++	 * probe before the supplier binds. Convert that inferred relationship
++	 * into an explicit link so PM ordering does not depend on the fw_devlink
++	 * command-line policy after this point. Deduplicating an fw_devlink=rpm
++	 * link can retain DL_FLAG_AUTOPROBE_CONSUMER after INFERRED is cleared,
++	 * so built-in devices may still report auto_remove_on=never. Validate
++	 * the PM-runtime flag directly instead of inferring it from that text.
++	 */
++	link = device_link_add(consumer, &supplier->dev,
++			       DL_FLAG_AUTOREMOVE_CONSUMER |
++			       DL_FLAG_PM_RUNTIME);
++	if (!link || !(READ_ONCE(link->flags) & DL_FLAG_PM_RUNTIME)) {
++		ret = -EINVAL;
++		goto put_supplier;
++	}
++
++	put_device(&supplier->dev);
++	return handoff;
++
++put_supplier:
++	put_device(&supplier->dev);
++	return ERR_PTR(ret);
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_get);
++
+ static int mt6797_dvfsp_handoff_probe(struct platform_device *pdev)
+ {
+ 	struct mt6797_dvfsp_handoff *handoff;
++	unsigned long timeout;
+ 	int ret;
+ 
+ 	handoff = devm_kzalloc(&pdev->dev, sizeof(*handoff), GFP_KERNEL);
+@@ -545,6 +1173,17 @@ static int mt6797_dvfsp_handoff_probe(struct platform_device *pdev)
+ 	handoff->initial_gate = MT6797_DVFSP_GATE_UNKNOWN;
+ 	handoff->reason = "resources-not-ready";
+ 	mutex_init(&handoff->lock);
++	init_completion(&handoff->terminal);
++	atomic_set(&handoff->terminal_grant, 0);
++	atomic_set(&handoff->permission, MT6797_DVFSP_PERMISSION_BLOCKED);
++	atomic_set(&handoff->pm_fault, MT6797_DVFSP_PM_OK);
++	atomic_set(&handoff->suspend_checks, 0);
++	atomic_set(&handoff->suspend_failures, 0);
++	atomic_set(&handoff->resume_checks, 0);
++	atomic_set(&handoff->resume_failures, 0);
++	atomic_set(&handoff->consumer_ungated_checks, 0);
++	atomic_set(&handoff->consumer_gated_checks, 0);
++	atomic_set(&handoff->consumer_validation_failures, 0);
+ 
+ 	handoff->i2c_clk = devm_clk_get(&pdev->dev, "i2c");
+ 	if (IS_ERR(handoff->i2c_clk))
+@@ -576,6 +1215,40 @@ static int mt6797_dvfsp_handoff_probe(struct platform_device *pdev)
+ 				     "cannot publish read-only handoff state\n");
+ 
+ 	mt6797_dvfsp_run_handoff(handoff);
++	if (!completion_done(&handoff->terminal)) {
++		timeout = wait_for_completion_timeout(
++			&handoff->terminal,
++			msecs_to_jiffies(MT6797_DVFSP_PROBE_TIMEOUT_MS));
++		if (!timeout) {
++			cancel_delayed_work_sync(&handoff->late_work);
++			mutex_lock(&handoff->lock);
++			if (handoff->state != MT6797_DVFSP_READY)
++				mt6797_dvfsp_fault_locked(
++					handoff, "late-validation-timeout");
++			mutex_unlock(&handoff->lock);
++		}
++	}
++
++	mutex_lock(&handoff->lock);
++	if (handoff->state != MT6797_DVFSP_READY &&
++	    handoff->state != MT6797_DVFSP_INCONCLUSIVE &&
++	    handoff->state != MT6797_DVFSP_FAULTED)
++		mt6797_dvfsp_fault_locked(handoff,
++					  "terminal-state-invalid");
++
++	if (handoff->state == MT6797_DVFSP_READY)
++		dev_info(&pdev->dev,
++			 "supplier_bound=yes access_grant=ready state=ready "
++			 "late_validation=passed access_controller=enabled\n");
++	else
++		dev_warn(&pdev->dev,
++			 "supplier_bound=yes access_grant=denied "
++			 "state=%s reason=%s access_controller=enabled\n",
++			 mt6797_dvfsp_state_names[handoff->state],
++			 handoff->reason);
++	mutex_unlock(&handoff->lock);
++
++	dev_pm_set_driver_flags(&pdev->dev, DPM_FLAG_NO_DIRECT_COMPLETE);
+ 	return 0;
+ }
+ 
+@@ -590,6 +1263,8 @@ static struct platform_driver mt6797_dvfsp_handoff_driver = {
+ 	.driver = {
+ 		.name = "mt6797-dvfsp-handoff",
+ 		.of_match_table = mt6797_dvfsp_handoff_of_match,
++		.pm = pm_sleep_ptr(&mt6797_dvfsp_handoff_pm_ops),
++		.probe_type = PROBE_PREFER_ASYNCHRONOUS,
+ 		.suppress_bind_attrs = true,
+ 	},
+ };
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
+new file mode 100644
+index 0000000..6abbc77
+--- /dev/null
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
+@@ -0,0 +1,58 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __LINUX_SOC_MEDIATEK_MT6797_DVFSP_HANDOFF_H
++#define __LINUX_SOC_MEDIATEK_MT6797_DVFSP_HANDOFF_H
++
++#include <linux/err.h>
++#include <linux/errno.h>
++#include <linux/kconfig.h>
++#include <linux/types.h>
++
++struct device;
++struct mt6797_dvfsp_handoff;
++
++#if IS_REACHABLE(CONFIG_MTK_MT6797_DVFSP_HANDOFF)
++struct mt6797_dvfsp_handoff *
++mt6797_dvfsp_handoff_get(struct device *consumer);
++int mt6797_dvfsp_handoff_require_ready(struct mt6797_dvfsp_handoff *handoff);
++/* The readiness test is atomic; clock validation is sleepable. */
++bool
++mt6797_dvfsp_handoff_is_ready_atomic(struct mt6797_dvfsp_handoff *handoff);
++int mt6797_dvfsp_handoff_validate_clock(
++	struct mt6797_dvfsp_handoff *handoff, bool gated);
++int mt6797_dvfsp_handoff_validate_clock_pm(
++	struct mt6797_dvfsp_handoff *handoff, bool gated);
++#else
++static inline struct mt6797_dvfsp_handoff *
++mt6797_dvfsp_handoff_get(struct device *consumer)
++{
++	return ERR_PTR(-ENODEV);
++}
++
++static inline int
++mt6797_dvfsp_handoff_require_ready(struct mt6797_dvfsp_handoff *handoff)
++{
++	return -ENODEV;
++}
++
++static inline bool
++mt6797_dvfsp_handoff_is_ready_atomic(struct mt6797_dvfsp_handoff *handoff)
++{
++	return false;
++}
++
++static inline int
++mt6797_dvfsp_handoff_validate_clock(
++	struct mt6797_dvfsp_handoff *handoff, bool gated)
++{
++	return -ENODEV;
++}
++
++static inline int
++mt6797_dvfsp_handoff_validate_clock_pm(
++	struct mt6797_dvfsp_handoff *handoff, bool gated)
++{
++	return -ENODEV;
++}
++#endif
++
++#endif

@@ -1,0 +1,384 @@
+#!/bin/busybox sh
+# shellcheck shell=dash
+
+export PATH=/bin
+readonly MARKER='GEMINI_CORTEX_A72_CPU8_20260721_AF'
+readonly STATUS_FILE=/run/af-cpu8-status
+readonly WRITE_ERROR_FILE=/run/af-cpu8-write-error
+readonly SYSFS=/run/af-sys
+readonly CPU8_ONLINE=$SYSFS/devices/system/cpu/cpu8/online
+readonly CPU9_ONLINE=$SYSFS/devices/system/cpu/cpu9/online
+readonly CPU8_DT=$SYSFS/firmware/devicetree/base/cpus/cpu@200
+readonly WATCHDOG_WAIT_SECONDS=10
+readonly WATCHDOG_TIMEOUT_SECONDS=31
+readonly LATEST_REQUEST_SECONDS=22
+readonly LATEST_ACCOUNTING_SECONDS=25
+readonly FAULT_REGEX='(^|[^[:alnum:]_])(Kernel panic|Oops:|BUG:|SError|soft lockup)([^[:alnum:]_]|$)|rcu[^[:cntrl:]]*stall'
+# These impossible placeholders deliberately keep AF unbuildable until the
+# kernel provider publishes and documents its final read-only ABI attributes.
+readonly PROVIDER_ABI_EXPECTED='TO_PIN_PROVIDER_ABI'
+readonly PROVIDER_HOOKS_ARMED_EXPECTED='TO_PIN_PROVIDER_HOOKS_ARMED'
+
+: >"$STATUS_FILE"
+
+record() {
+	line="$MARKER $*"
+	printf '%s\n' "$line" >>"$STATUS_FILE" 2>/dev/null || true
+	if [ -c /dev/kmsg ]; then
+		printf '<6>%s\n' "$line" >/dev/kmsg 2>/dev/null || true
+	fi
+	if [ -c /dev/ttyS0 ]; then
+		printf '%s\n' "$line" >/dev/ttyS0 2>/dev/null || true
+	fi
+}
+
+static_hold() {
+	while :; do
+		/bin/busybox sleep 3600
+	done
+}
+
+read_value() {
+	value_path=$1
+	if [ -r "$value_path" ]; then
+		value="$(/bin/busybox cat "$value_path" 2>/dev/null || true)"
+		printf '%s' "${value:-unreadable}"
+	else
+		printf '%s' unavailable
+	fi
+}
+
+read_dt_string() {
+	dt_path=$1
+	if [ -r "$dt_path" ]; then
+		/bin/busybox tr -d '\000' <"$dt_path" 2>/dev/null || true
+	fi
+}
+
+driver_name() {
+	driver_link=$1
+	if [ ! -L "$driver_link" ]; then
+		printf '%s' unbound
+		return
+	fi
+	driver_target="$(/bin/busybox readlink "$driver_link" 2>/dev/null || true)"
+	printf '%s' "${driver_target##*/}"
+}
+
+read_uptime_seconds() {
+	uptime_value="$(/bin/busybox cat /proc/uptime 2>/dev/null || true)"
+	uptime_value=${uptime_value%% *}
+	case "$uptime_value" in
+	''|*[!0-9.]*) printf '%s' unavailable ;;
+	*) printf '%s' "${uptime_value%%.*}" ;;
+	esac
+}
+
+record_cpu_inventory() {
+	phase=$1
+	for attribute in possible present online offline; do
+		record "cpu_inventory=$phase $attribute=$(read_value "$SYSFS/devices/system/cpu/$attribute")"
+	done
+	record "cpu_inventory=$phase cpu8_state=$(read_value "$CPU8_ONLINE") cpu9_state=$(read_value "$CPU9_ONLINE")"
+}
+
+validate_initial_cpu_contract() {
+	possible="$(read_value "$SYSFS/devices/system/cpu/possible")"
+	present="$(read_value "$SYSFS/devices/system/cpu/present")"
+	online="$(read_value "$SYSFS/devices/system/cpu/online")"
+	offline="$(read_value "$SYSFS/devices/system/cpu/offline")"
+	cpu8_state="$(read_value "$CPU8_ONLINE")"
+	cpu9_state="$(read_value "$CPU9_ONLINE")"
+	record_cpu_inventory pre-request
+	if [ "$possible" != 0-9 ] || [ "$present" != 0-9 ] || \
+		[ "$online" != 0-7 ] || [ "$offline" != 8-9 ] || \
+		[ "$cpu8_state" != 0 ] || [ "$cpu9_state" != 0 ]; then
+		record "precondition=cpu-inventory-invalid possible=$possible present=$present online=$online offline=$offline cpu8=$cpu8_state cpu9=$cpu9_state"
+		return 1
+	fi
+	if [ ! -w "$CPU8_ONLINE" ]; then
+		record "precondition=cpu8-online-control-not-writable value=$cpu8_state"
+		return 1
+	fi
+	return 0
+}
+
+validate_cpu8_dtb_contract() {
+	if [ ! -d "$CPU8_DT" ]; then
+		record 'cpu8_live_dtb=missing expected=cpu@200'
+		return 1
+	fi
+	compatible="$(read_dt_string "$CPU8_DT/compatible")"
+	enable_method="$(read_dt_string "$CPU8_DT/enable-method")"
+	record "cpu8_live_dtb=cpu@200 compatible=${compatible:-unavailable} enable_method=${enable_method:-unavailable}"
+	if [ "$compatible" != arm,cortex-a72 ] || [ "$enable_method" != mediatek,mt6797-psci ]; then
+		return 1
+	fi
+	if [ ! -L "$SYSFS/devices/system/cpu/cpu8/of_node" ]; then
+		record 'cpu8_logical_mapping=missing expected=cpu@200'
+		return 1
+	fi
+	logical_of_node="$(/bin/busybox readlink "$SYSFS/devices/system/cpu/cpu8/of_node" 2>/dev/null || true)"
+	case "$logical_of_node" in
+	*/cpus/cpu@200) ;;
+	*)
+		record "cpu8_logical_mapping=invalid actual=${logical_of_node:-unavailable} expected=cpu@200"
+		return 1
+		;;
+	esac
+	record 'cpu8_logical_mapping=cpu@200 class=a72'
+	return 0
+}
+
+validate_a72_power_provider() {
+	ready_count=0
+	provider_ready_path=
+	provider_device=
+	for ready_path in "$SYSFS"/bus/platform/drivers/mt6797-a72-power/*/ready; do
+		[ -f "$ready_path" ] || continue
+		ready_count=$((ready_count + 1))
+		provider_ready_path=$ready_path
+		provider_device=${ready_path%/ready}
+	done
+	if [ "$ready_count" != 1 ]; then
+		record "a72_power_provider=invalid ready_file_count=$ready_count expected=1"
+		return 1
+	fi
+	provider_ready="$(read_value "$provider_ready_path")"
+	provider_driver="$(driver_name "$provider_device/driver")"
+	provider_abi_path=$provider_device/abi
+	provider_hooks_armed_path=$provider_device/hooks_armed
+	if [ ! -f "$provider_abi_path" ] || [ ! -f "$provider_hooks_armed_path" ]; then
+		record 'a72_power_provider=invalid abi_or_hooks_armed_attribute=missing'
+		return 1
+	fi
+	provider_abi="$(read_value "$provider_abi_path")"
+	provider_hooks_armed="$(read_value "$provider_hooks_armed_path")"
+	provider_marker="$(/bin/busybox dmesg | /bin/busybox grep -E 'mt6797-a72-power: provider ready$' | /bin/busybox tail -n 1 || true)"
+	record "a72_power_provider=observed ready_path=$provider_ready_path ready=$provider_ready driver=$provider_driver abi=$provider_abi hooks_armed=$provider_hooks_armed marker=${provider_marker:-absent}"
+	if [ "$provider_ready" != 1 ] || [ "$provider_driver" != mt6797-a72-power ] || \
+		[ "$provider_abi" != "$PROVIDER_ABI_EXPECTED" ] || \
+		[ "$provider_hooks_armed" != "$PROVIDER_HOOKS_ARMED_EXPECTED" ] || \
+		[ -z "$provider_marker" ]; then
+		return 1
+	fi
+	record "a72_power_provider=ready driver=mt6797-a72-power ready=1 abi=$provider_abi hooks_armed=$provider_hooks_armed dmesg_marker=present"
+	return 0
+}
+
+record_cpu8_boot_evidence() {
+	boot_lines="$(/bin/busybox dmesg | /bin/busybox grep -E 'CPU8: Booted secondary processor 0x0*200 \[0x410fd080\]' || true)"
+	gic_lines="$(/bin/busybox dmesg | /bin/busybox grep -E 'GICv3: CPU8: found redistributor 200([[:space:]]|$)' || true)"
+	boot_after_count="$(printf '%s\n' "$boot_lines" | /bin/busybox grep -Ec 'CPU8: Booted secondary processor' || true)"
+	gic_after_count="$(printf '%s\n' "$gic_lines" | /bin/busybox grep -Ec 'GICv3: CPU8:' || true)"
+	boot_line="$(printf '%s\n' "$boot_lines" | /bin/busybox tail -n 1)"
+	gic_line="$(printf '%s\n' "$gic_lines" | /bin/busybox tail -n 1)"
+	record "cpu8_boot_line=${boot_line:-absent} before_count=$boot_before_count after_count=$boot_after_count"
+	record "cpu8_gic_line=${gic_line:-absent} before_count=$gic_before_count after_count=$gic_after_count"
+	[ "$boot_before_count" = 0 ] && [ "$gic_before_count" = 0 ] && \
+		[ "$boot_after_count" = 1 ] && [ "$gic_after_count" = 1 ] && \
+		[ -n "$boot_line" ] && [ -n "$gic_line" ]
+}
+
+validate_no_new_faults() {
+	fault_after_count="$(/bin/busybox dmesg | /bin/busybox grep -Eic "$FAULT_REGEX" || true)"
+	record "cpu8_fault_scan_before=$fault_before_count after=$fault_after_count"
+	if [ "$fault_after_count" = "$fault_before_count" ]; then
+		record 'cpu8_fault_scan=no-new-signature'
+		return 0
+	fi
+	record 'cpu8_fault_scan=new-signature'
+	return 1
+}
+
+record_cpu8_accounting() {
+	current_uptime="$(read_uptime_seconds)"
+	if [ "$current_uptime" = unavailable ]; then
+		record 'cpu8_accounting=uptime-unavailable'
+		return 1
+	fi
+	elapsed=$((current_uptime - armed_reference_seconds))
+	if [ "$elapsed" -gt "$LATEST_ACCOUNTING_SECONDS" ]; then
+		record "cpu8_accounting=budget-insufficient elapsed=${elapsed}s latest_start=${LATEST_ACCOUNTING_SECONDS}s"
+		return 1
+	fi
+	stat_first="$(/bin/busybox grep '^cpu8 ' /proc/stat 2>/dev/null || true)"
+	record "cpu8_stat_sample=1 value=${stat_first:-absent} elapsed=${elapsed}s"
+	/bin/busybox sleep 2
+	stat_second="$(/bin/busybox grep '^cpu8 ' /proc/stat 2>/dev/null || true)"
+	record "cpu8_stat_sample=2 value=${stat_second:-absent}"
+	if [ -n "$stat_first" ] && [ "$stat_first" != "$stat_second" ]; then
+		record 'cpu8_accounting=advanced'
+		return 0
+	fi
+	record 'cpu8_accounting=not-established'
+	return 1
+}
+
+wait_for_watchdog_reset() {
+	reason=$1
+	elapsed=0
+	while :; do
+		/bin/busybox sleep 1
+		elapsed=$((elapsed + 1))
+		case "$elapsed" in
+		5|10|15|20|25|30|35|40)
+			record "watchdog_wait=${elapsed}s reason=$reason online=$(read_value "$SYSFS/devices/system/cpu/online") cpu8=$(read_value "$CPU8_ONLINE") cpu9=$(read_value "$CPU9_ONLINE")"
+			;;
+		60|120|180|240|300)
+			record "watchdog_expiry_overdue=${elapsed}s reason=$reason no_further_ping=yes"
+			;;
+		esac
+	done
+}
+
+request_cpu8_online() {
+	current_uptime="$(read_uptime_seconds)"
+	if [ "$current_uptime" = unavailable ]; then
+		record 'cpu8_request=uptime-unavailable'
+		return 1
+	fi
+	elapsed=$((current_uptime - armed_reference_seconds))
+	if [ "$elapsed" -gt "$LATEST_REQUEST_SECONDS" ]; then
+		record "cpu8_request=budget-insufficient elapsed=${elapsed}s latest_start=${LATEST_REQUEST_SECONDS}s"
+		return 1
+	fi
+	boot_before_count="$(/bin/busybox dmesg | /bin/busybox grep -Ec 'CPU8: Booted secondary processor 0x0*200 \[0x410fd080\]' || true)"
+	gic_before_count="$(/bin/busybox dmesg | /bin/busybox grep -Ec 'GICv3: CPU8: found redistributor 200([[:space:]]|$)' || true)"
+	fault_before_count="$(/bin/busybox dmesg | /bin/busybox grep -Eic "$FAULT_REGEX" || true)"
+	if [ "$boot_before_count" != 0 ] || [ "$gic_before_count" != 0 ]; then
+		record "cpu8_request=withheld reason=preexisting-cpu8-evidence boot_count=$boot_before_count gic_count=$gic_before_count"
+		return 1
+	fi
+	: >"$WRITE_ERROR_FILE"
+	record "cpu8_request=begin requested_state=online elapsed=${elapsed}s cpu9_action=none boot_count_before=$boot_before_count gic_count_before=$gic_before_count fault_count_before=$fault_before_count"
+	if printf '1\n' >"$CPU8_ONLINE" 2>"$WRITE_ERROR_FILE"; then
+		request_status=success
+	else
+		request_exit=$?
+		request_status="failed-exit-$request_exit"
+	fi
+	cpu8_state="$(read_value "$CPU8_ONLINE")"
+	cpu9_state="$(read_value "$CPU9_ONLINE")"
+	online="$(read_value "$SYSFS/devices/system/cpu/online")"
+	offline="$(read_value "$SYSFS/devices/system/cpu/offline")"
+	record "cpu8_request=returned status=$request_status cpu8=$cpu8_state cpu9=$cpu9_state online=$online offline=$offline"
+	if [ -s "$WRITE_ERROR_FILE" ]; then
+		/bin/busybox tail -n 4 "$WRITE_ERROR_FILE" | while IFS= read -r error_line; do
+			record "cpu8_write_error=$error_line"
+		done
+	else
+		record 'cpu8_write_error=none'
+	fi
+	if [ "$request_status" != success ] || [ "$cpu8_state" != 1 ] || \
+		[ "$cpu9_state" != 0 ] || [ "$online" != 0-8 ] || [ "$offline" != 9 ]; then
+		record "cpu8_result=state-invalid status=$request_status cpu8=$cpu8_state cpu9=$cpu9_state online=$online offline=$offline"
+		return 1
+	fi
+	if ! record_cpu8_boot_evidence; then
+		record 'cpu8_result=boot-evidence-incomplete'
+		return 1
+	fi
+	if ! record_cpu8_accounting; then
+		record 'cpu8_result=accounting-not-established'
+		return 1
+	fi
+	if ! validate_no_new_faults; then
+		record 'cpu8_result=new-fault-signature'
+		return 1
+	fi
+	stable_online="$(read_value "$SYSFS/devices/system/cpu/online")"
+	stable_offline="$(read_value "$SYSFS/devices/system/cpu/offline")"
+	stable_cpu8="$(read_value "$CPU8_ONLINE")"
+	stable_cpu9="$(read_value "$CPU9_ONLINE")"
+	if [ "$stable_online" != 0-8 ] || [ "$stable_offline" != 9 ] || \
+		[ "$stable_cpu8" != 1 ] || [ "$stable_cpu9" != 0 ]; then
+		record "cpu8_result=post-sample-state-changed online=$stable_online offline=$stable_offline cpu8=$stable_cpu8 cpu9=$stable_cpu9"
+		return 1
+	fi
+	record 'cpu8_result=PASS online=0-8 offline=9 cpu8_mpidr=0x200 cpu8_midr=0x410fd080 gic_redistributor=200 accounting=advanced cpu9=offline-untouched'
+	return 0
+}
+
+run_cpu8_diagnostic() {
+	# Opening this function on fd 3 preserves a testable open-failure path. The
+	# single dot is the ownership handoff ping; this function never writes fd 3
+	# again and never returns after that ping.
+	if ! printf '.' >&3; then
+		record 'watchdog0=handoff-ping-failed recovery=reset-possible no_further_ping=yes'
+		wait_for_watchdog_reset watchdog-ping-failed
+	fi
+	armed_reference_seconds="$(read_uptime_seconds)"
+	if [ "$armed_reference_seconds" = unavailable ]; then
+		record 'watchdog0=armed uptime_reference=unavailable no_further_ping=yes'
+		wait_for_watchdog_reset uptime-unavailable
+	fi
+	record "watchdog0=armed handoff_ping=sent timeout_seconds=$WATCHDOG_TIMEOUT_SECONDS armed_reference_uptime=${armed_reference_seconds}s no_further_ping=yes"
+
+	if ! validate_a72_power_provider; then
+		record 'a72_power_provider=not-ready cpu8_request=withheld watchdog=armed action=wait-for-reset'
+		wait_for_watchdog_reset provider-not-ready
+	fi
+	if ! validate_initial_cpu_contract; then
+		record 'cpu8_diagnostic=STOP reason=initial-cpu-contract'
+		wait_for_watchdog_reset initial-cpu-contract
+	fi
+	if ! validate_cpu8_dtb_contract; then
+		record 'cpu8_diagnostic=STOP reason=cpu8-dtb-contract'
+		wait_for_watchdog_reset cpu8-dtb-contract
+	fi
+	if ! request_cpu8_online; then
+		record 'cpu8_diagnostic=STOP reason=request-or-execution'
+		wait_for_watchdog_reset cpu8-request-or-execution
+	fi
+	record 'cpu8_diagnostic=SUCCESS action=wait-for-watchdog-reset'
+	wait_for_watchdog_reset cpu8-success
+}
+
+record 'entry initramfs_baseline=candidate-AD kernel_dtb_config=candidate-AE-provider initramfs_delta=init-plus-bin-af-cpu8'
+record 'storage_access=none network_action=none sysfs_write_scope=/run/af-sys cpu8_online_write=one cpu9_online_write=none automatic_recovery=watchdog'
+
+live_watchdog_node=$SYSFS/firmware/devicetree/base/watchdog@10007000
+if [ ! -d "$live_watchdog_node" ] || [ -e "$live_watchdog_node/interrupts" ]; then
+	record 'live_watchdog_contract=invalid expected=no-irq; STATIC HOLD'
+	static_hold
+fi
+record 'live_watchdog_interrupts=absent'
+
+watchdog_platform=$SYSFS/bus/platform/devices/10007000.watchdog
+remaining=$WATCHDOG_WAIT_SECONDS
+while [ "$remaining" -gt 0 ] && [ ! -c /dev/watchdog0 ]; do
+	record "watchdog_wait_for_device=${remaining}s platform=$([ -d "$watchdog_platform" ] && printf present || printf absent) driver=$(driver_name "$watchdog_platform/driver")"
+	/bin/busybox sleep 1
+	remaining=$((remaining - 1))
+done
+if [ ! -c /dev/watchdog0 ]; then
+	record 'watchdog0=missing; STATIC HOLD'
+	static_hold
+fi
+
+watchdog_identity="$(read_value "$SYSFS/class/watchdog/watchdog0/identity")"
+watchdog_timeout="$(read_value "$SYSFS/class/watchdog/watchdog0/timeout")"
+watchdog_pretimeout="$(read_value "$SYSFS/class/watchdog/watchdog0/pretimeout")"
+watchdog_driver="$(driver_name "$watchdog_platform/driver")"
+watchdog_device="$(/bin/busybox readlink "$SYSFS/class/watchdog/watchdog0/device" 2>/dev/null || true)"
+record "watchdog_identity=$watchdog_identity timeout=$watchdog_timeout pretimeout=$watchdog_pretimeout driver=$watchdog_driver device=${watchdog_device:-unavailable}"
+case "$watchdog_device" in
+*10007000.watchdog) watchdog_device_valid=yes ;;
+*) watchdog_device_valid=no ;;
+esac
+if [ "$watchdog_identity" != mtk-wdt ] || [ "$watchdog_timeout" != "$WATCHDOG_TIMEOUT_SECONDS" ] || \
+	[ "$watchdog_pretimeout" != unavailable ] || [ "$watchdog_driver" != mtk-wdt ] || \
+	[ "$watchdog_device_valid" != yes ]; then
+	record 'watchdog0=unexpected-device; STATIC HOLD'
+	static_hold
+fi
+
+record 'watchdog0=opening sole_userspace_owner=af-cpu8'
+if run_cpu8_diagnostic 3>/dev/watchdog0; then
+	record 'cpu8_diagnostic=unexpected-return; STATIC HOLD'
+	static_hold
+else
+	record 'watchdog0=open-failed; STATIC HOLD'
+	static_hold
+fi

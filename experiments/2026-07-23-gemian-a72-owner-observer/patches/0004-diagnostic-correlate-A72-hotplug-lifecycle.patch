@@ -1,0 +1,229 @@
+From 349f24b6e10df6e1d24c79a23d75c8361ac68b28 Mon Sep 17 00:00:00 2001
+From: Gemini PDA Investigation <gemini-observer@example.invalid>
+Date: Thu, 23 Jul 2026 20:41:35 -0400
+Subject: [PATCH 4/4] diagnostic: correlate A72 hotplug lifecycle
+
+---
+ arch/arm64/kernel/psci.c                      | 51 +++++++++++++++++++
+ arch/arm64/kernel/smp.c                       | 15 ++++++
+ .../power/mt6797/mt_hotplug_strategy_algo.c   | 32 +++++++++++-
+ 3 files changed, 96 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/kernel/psci.c b/arch/arm64/kernel/psci.c
+index a0f100ee..f8bb1f81 100644
+--- a/arch/arm64/kernel/psci.c
++++ b/arch/arm64/kernel/psci.c
+@@ -184,6 +184,9 @@ static int psci_cpu_on(unsigned long cpuid, unsigned long entry_point)
+ 
+ 	fn = psci_function_id[PSCI_FN_CPU_ON];
+ 	err = invoke_psci_fn(fn, cpuid, entry_point, 0);
++#ifdef CONFIG_MTK_A72_TRANSITION_OBSERVER
++	mt6797_a72_obs_psci_raw(cpuid, entry_point, err);
++#endif
+ 	return psci_to_linux_errno(err);
+ }
+ 
+@@ -649,6 +652,9 @@ static int cpu_psci_cpu_boot(unsigned int cpu)
+ {
+ #ifdef CONFIG_ARCH_MT6797
+ 	int err = 0;
++#ifdef CONFIG_MTK_A72_TRANSITION_OBSERVER
++	int idvfs_ret;
++#endif
+ 
+ 
+ #ifdef CONFIG_MTK_CPU_HOTPLUG_DEBUG_3
+@@ -707,6 +713,12 @@ static int cpu_psci_cpu_boot(unsigned int cpu)
+ 
+ 	err = psci_ops.cpu_on(cpu_logical_map(cpu), __pa(secondary_entry));
+ 
++#ifdef CONFIG_MTK_A72_TRANSITION_OBSERVER
++	if (mt6797_a72_obs_is_cpu(cpu))
++		mt6797_a72_obs_lifecycle(cpu,
++			MT6797_A72_PHASE_PSCI_MAPPED, err,
++			cpu_logical_map(cpu), __pa(secondary_entry));
++#endif
+ #ifdef CONFIG_MTK_CPU_HOTPLUG_DEBUG_3
+ 	TIMESTAMP_REC(hotplug_ts_rec, TIMESTAMP_FILTER,  cpu, 0, 0, 0);
+ #endif
+@@ -730,7 +742,16 @@ static int cpu_psci_cpu_boot(unsigned int cpu)
+ 		}
+ 	} else if ((cpu == 8) || (cpu == 9)) {
+ 		if (!idvfs_init) {
++#ifdef CONFIG_MTK_A72_TRANSITION_OBSERVER
++			idvfs_ret = BigiDVFSEnable_hp();
++			mt6797_a72_obs_lifecycle(cpu,
++				MT6797_A72_PHASE_IDVFS_ENABLE,
++				idvfs_ret, 0, 0);
++			mt6797_a72_obs_fixed_snapshot(cpu,
++				MT6797_A72_PHASE_IDVFS_ENABLE);
++#else
+ 			BigiDVFSEnable_hp();
++#endif
+ 			idvfs_init = 1;
+ 		}
+ 	}
+@@ -879,6 +900,9 @@ unsigned int last_cl2_online_cpus(unsigned int cpu)
+ static int cpu_psci_cpu_kill(unsigned int cpu)
+ {
+ 	int err, i;
++#ifdef CONFIG_MTK_A72_TRANSITION_OBSERVER
++	int observer_ret;
++#endif
+ 
+ 	if (!psci_ops.affinity_info)
+ 		return 1;
+@@ -897,7 +921,19 @@ static int cpu_psci_cpu_kill(unsigned int cpu)
+ 
+ 		aee_rr_rec_hotplug_footprint(cpu, 81);
+ 		if (idvfs_init && last_cl2_online_cpus(cpu)) {
++#ifdef CONFIG_MTK_A72_TRANSITION_OBSERVER
++			mt6797_a72_obs_lifecycle(cpu,
++				MT6797_A72_PHASE_LAST_A72_OFFLINE,
++				0, g_cl2_online, 0);
++			mt6797_a72_obs_fixed_snapshot(cpu,
++				MT6797_A72_PHASE_LAST_A72_OFFLINE);
++			observer_ret = BigiDVFSDisable_hp();
++			mt6797_a72_obs_lifecycle(cpu,
++				MT6797_A72_PHASE_IDVFS_DISABLE,
++				observer_ret, 0, 0);
++#else
+ 			BigiDVFSDisable_hp();
++#endif
+ 			idvfs_init = 0;
+ 		}
+ 
+@@ -936,6 +972,12 @@ static int cpu_psci_cpu_kill(unsigned int cpu)
+ 
+ 		aee_rr_rec_hotplug_footprint(cpu, 85);
+ 		err = psci_ops.affinity_info(cpu_logical_map(cpu), 0);
++#ifdef CONFIG_MTK_A72_TRANSITION_OBSERVER
++		if (mt6797_a72_obs_is_cpu(cpu))
++			mt6797_a72_obs_lifecycle(cpu,
++				MT6797_A72_PHASE_AFFINITY_RETRY,
++				err, i, cpu_logical_map(cpu));
++#endif
+ 
+ #ifdef CONFIG_MTK_CPU_HOTPLUG_DEBUG_3
+ 		TIMESTAMP_REC(hotplug_ts_rec, TIMESTAMP_FILTER,  cpu, 0, 0, 0);
+@@ -952,7 +994,16 @@ static int cpu_psci_cpu_kill(unsigned int cpu)
+ #ifdef CONFIG_MTK_CPU_HOTPLUG_DEBUG_3
+ 		TIMESTAMP_REC(hotplug_ts_rec, TIMESTAMP_FILTER,  cpu, 0, 0, 0);
+ #endif
++#ifdef CONFIG_MTK_A72_TRANSITION_OBSERVER
++			observer_ret = cpu_kill_pll_buck_ctrl(cpu);
++			mt6797_a72_obs_lifecycle(cpu,
++				MT6797_A72_PHASE_OFFLINE_FINAL,
++				observer_ret, g_cl2_online, i);
++			mt6797_a72_obs_fixed_snapshot(cpu,
++				MT6797_A72_PHASE_OFFLINE_FINAL);
++#else
+ 			cpu_kill_pll_buck_ctrl(cpu);
++#endif
+ 
+ #ifdef CONFIG_MTK_CPU_HOTPLUG_DEBUG_3
+ 		TIMESTAMP_REC(hotplug_ts_rec, TIMESTAMP_FILTER,  cpu, 0, 0, 0);
+diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
+index 3a5c1975..a7e0adf0 100644
+--- a/arch/arm64/kernel/smp.c
++++ b/arch/arm64/kernel/smp.c
+@@ -62,6 +62,9 @@
+ #include "mt_sched_mon.h"
+ #endif
+ #include <mt-plat/mtk_ram_console.h>
++#ifdef CONFIG_MTK_A72_TRANSITION_OBSERVER
++#include <linux/mt6797_a72_transition_observer.h>
++#endif
+ 
+ #define CREATE_TRACE_POINTS
+ #include <trace/events/ipi.h>
+@@ -247,6 +250,12 @@ asmlinkage void secondary_start_kernel(void)
+ 	 */
+ 	set_cpu_online(cpu, true);
+ 
++#ifdef CONFIG_MTK_A72_TRANSITION_OBSERVER
++	if (mt6797_a72_obs_is_cpu(cpu))
++		mt6797_a72_obs_lifecycle(cpu,
++			MT6797_A72_PHASE_SECONDARY_ONLINE, 0,
++			cpu_logical_map(cpu), 0);
++#endif
+ 	aee_rr_rec_hotplug_footprint(cpu, 12);
+ 
+ 	complete(&cpu_running);
+@@ -313,6 +322,12 @@ int __cpu_disable(void)
+ 
+ 	set_cpu_online(cpu, false);
+ 
++#ifdef CONFIG_MTK_A72_TRANSITION_OBSERVER
++	if (mt6797_a72_obs_is_cpu(cpu))
++		mt6797_a72_obs_lifecycle(cpu,
++			MT6797_A72_PHASE_CPU_DISABLE, 0,
++			cpu_logical_map(cpu), 0);
++#endif
+ 	aee_rr_rec_hotplug_footprint(cpu, 72);
+ 
+ 	/*
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt_hotplug_strategy_algo.c b/drivers/misc/mediatek/base/power/mt6797/mt_hotplug_strategy_algo.c
+index 3f4798c3..7801bb09 100644
+--- a/drivers/misc/mediatek/base/power/mt6797/mt_hotplug_strategy_algo.c
++++ b/drivers/misc/mediatek/base/power/mt6797/mt_hotplug_strategy_algo.c
+@@ -33,6 +33,9 @@
+ #include "mt_hotplug_strategy_internal.h"
+ #include "mt_ptp.h"
+ #include <trace/events/mtk_events.h>
++#ifdef CONFIG_MTK_A72_TRANSITION_OBSERVER
++#include <linux/mt6797_a72_transition_observer.h>
++#endif
+ /* forward references */
+ 
+ /*============================================================================*/
+@@ -225,6 +228,7 @@ static int hps_algo_check_criteria(void)
+ static int hps_algo_do_cluster_action(unsigned int cluster_id)
+ {
+ 	unsigned int cpu, target_cores, online_cores, cpu_id_min, cpu_id_max;
++	int hotplug_ret;
+ 
+ 	target_cores = hps_sys.cluster_info[cluster_id].target_core_num;
+ 	online_cores = hps_sys.cluster_info[cluster_id].online_core_num;
+@@ -238,7 +242,19 @@ static int hps_algo_do_cluster_action(unsigned int cluster_id)
+ 			if (hps_algo_check_criteria() == 1)
+ 				return 1;
+ 			if (!cpu_online(cpu)) {	/* For CPU offline */
+-				if (cpu_up(cpu))
++#ifdef CONFIG_MTK_A72_TRANSITION_OBSERVER
++				if (mt6797_a72_obs_is_cpu(cpu))
++					mt6797_a72_obs_tx_begin(cpu,
++						MT6797_A72_PHASE_HPS_CPU_UP_BEGIN);
++#endif
++				hotplug_ret = cpu_up(cpu);
++#ifdef CONFIG_MTK_A72_TRANSITION_OBSERVER
++				if (mt6797_a72_obs_is_cpu(cpu))
++					mt6797_a72_obs_tx_finish(cpu,
++						MT6797_A72_PHASE_HPS_CPU_UP_END,
++						hotplug_ret);
++#endif
++				if (hotplug_ret)
+ 					hps_warn("[Info]CPU %d ++!\n", cpu);
+ 				++online_cores;
+ 			}
+@@ -253,7 +269,19 @@ static int hps_algo_do_cluster_action(unsigned int cluster_id)
+ 			if (hps_algo_check_criteria() == 1)
+ 				return 1;
+ 			if (cpu_online(cpu)) {
+-				if (cpu_down(cpu))
++#ifdef CONFIG_MTK_A72_TRANSITION_OBSERVER
++				if (mt6797_a72_obs_is_cpu(cpu))
++					mt6797_a72_obs_tx_begin(cpu,
++						MT6797_A72_PHASE_HPS_CPU_DOWN_BEGIN);
++#endif
++				hotplug_ret = cpu_down(cpu);
++#ifdef CONFIG_MTK_A72_TRANSITION_OBSERVER
++				if (mt6797_a72_obs_is_cpu(cpu))
++					mt6797_a72_obs_tx_finish(cpu,
++						MT6797_A72_PHASE_HPS_CPU_DOWN_END,
++						hotplug_ret);
++#endif
++				if (hotplug_ret)
+ 					hps_warn("[Info]CPU %d --!\n", cpu);
+ 				--online_cores;
+ 			}

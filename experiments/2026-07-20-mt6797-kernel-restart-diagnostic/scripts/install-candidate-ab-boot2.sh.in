@@ -1,0 +1,135 @@
+#!/usr/bin/env bash
+
+# The cleanup function is invoked indirectly by the EXIT trap.
+# shellcheck disable=SC2317
+
+set -euo pipefail
+export LC_ALL=C
+export PYTHONDONTWRITEBYTECODE=1
+umask 077
+
+readonly PLACEHOLDER_PREFIX=REPLACE_AFTER_CALIBRATION_
+readonly AB_RAW_SHA256=REPLACE_AFTER_CALIBRATION_AB_RAW_SHA256
+readonly AB_RAW_SIZE=REPLACE_AFTER_CALIBRATION_AB_RAW_SIZE
+readonly AB_PADDED_SHA256=REPLACE_AFTER_CALIBRATION_AB_PADDED_SHA256
+readonly AB_INNER_INSTALLER_SHA256=REPLACE_AFTER_CALIBRATION_AB_INNER_INSTALLER_SHA256
+readonly MATERIALIZER_SHA256=REPLACE_AFTER_CALIBRATION_MATERIALIZER_SHA256
+readonly DERIVER_SHA256=REPLACE_AFTER_CALIBRATION_DERIVER_SHA256
+readonly AA_R1_INSTALLER_SHA256=f081ef03b2dce68d28458eacdcc184a5550c88eeb75579fab61359e936a40f9f
+readonly AA_R1_RAW_SHA256=37e82bf3be87dd9e52fb8d60597b69f92a5c0dc5aebd51d178f1e7efd33343d7
+readonly AA_R1_PADDED_SHA256=38b49c7c19c2d97fa0c48436545219489221aa367aedf491ae6ebd4ec4856703
+
+die() { printf 'error: %s\n' "$*" >&2; exit 2; }
+usage() {
+	cat <<'EOF'
+usage: install-candidate-ab-boot2.sh \
+  --repo-root DIR \
+  --target USER@HOST \
+  --candidate FILE \
+  --backup-dir DIR
+
+Reconstruct and verify the calibrated Candidate AB guarded installer, then
+invoke it with an explicit repository root. The inner installer resolves the
+live GPT logical boot2 partition, requires the exact hardware-passed AA r1
+predecessor, preserves and verifies a private full backup, writes only boot2,
+and requires a matching full readback. It never reboots or selects a slot.
+EOF
+}
+
+# This gate precedes repository inspection, temporary-file creation, SSH,
+# sudo, device discovery, backup creation, and every hardware write.
+calibration_values=(
+	AB_RAW_SHA256 AB_RAW_SIZE AB_PADDED_SHA256 AB_INNER_INSTALLER_SHA256
+	MATERIALIZER_SHA256 DERIVER_SHA256
+)
+for name in "${calibration_values[@]}"; do
+	value=${!name}
+	[[ "$value" != "$PLACEHOLDER_PREFIX"* ]] || \
+		die "calibration placeholder remains: $name"
+done
+for name in AB_RAW_SHA256 AB_PADDED_SHA256 AB_INNER_INSTALLER_SHA256 \
+	MATERIALIZER_SHA256 DERIVER_SHA256 AA_R1_INSTALLER_SHA256 \
+	AA_R1_RAW_SHA256 AA_R1_PADDED_SHA256; do
+	value=${!name}
+	[[ "$value" =~ ^[0-9a-f]{64}$ ]] || die "invalid calibrated SHA-256: $name"
+done
+[[ "$AB_RAW_SIZE" =~ ^[1-9][0-9]*$ && "$AB_RAW_SIZE" -le 16777216 ]] || \
+	die 'invalid or oversized calibrated AB_RAW_SIZE'
+[[ "$AB_RAW_SHA256" != "$AA_R1_RAW_SHA256" ]] || \
+	die 'Candidate AB raw identity equals hardware-passed AA r1'
+[[ "$AB_PADDED_SHA256" != "$AA_R1_PADDED_SHA256" ]] || \
+	die 'Candidate AB padded identity equals installed AA r1 predecessor'
+
+repo_root=
+installer_args=()
+while (($#)); do
+	case "$1" in
+	--repo-root)
+		(($# >= 2)) || die '--repo-root requires a value'
+		[[ -z "$repo_root" ]] || die '--repo-root was provided more than once'
+		repo_root=$2
+		shift 2
+		;;
+	--target|--candidate|--backup-dir)
+		(($# >= 2)) || die "$1 requires a value"
+		installer_args+=("$1" "$2")
+		shift 2
+		;;
+	-h|--help)
+		installer_args+=("$1")
+		shift
+		;;
+	*)
+		usage >&2
+		die "unknown argument: $1"
+		;;
+	esac
+done
+[[ -n "$repo_root" ]] || {
+	usage >&2
+	die '--repo-root is required'
+}
+[[ "$repo_root" != *$'\n'* ]] || die 'repository root must be a single-line path'
+[[ -d "$repo_root" && ! -L "$repo_root" ]] || \
+	die 'repository root is missing or unsafe'
+repo_root="$(cd -- "$repo_root" && pwd -P)"
+readonly repo_root
+
+materializer="$repo_root/experiments/2026-07-20-mt6797-kernel-restart-diagnostic/scripts/materialize-aa-r1-installer.py"
+deriver="$repo_root/experiments/2026-07-20-mt6797-kernel-restart-diagnostic/scripts/derive-installer.py"
+readonly materializer deriver
+for input in "$materializer" "$deriver"; do
+	[[ -f "$input" && ! -L "$input" ]] || \
+		die "installer reconstruction input is missing or unsafe: $input"
+done
+for command in awk bash mktemp python3 rm sha256sum; do
+	command -v "$command" >/dev/null 2>&1 || die "required command missing: $command"
+done
+[[ "$(sha256sum "$materializer" | awk '{ print $1 }')" == \
+	"$MATERIALIZER_SHA256" ]] || die 'AA r1 installer materializer changed'
+[[ "$(sha256sum "$deriver" | awk '{ print $1 }')" == "$DERIVER_SHA256" ]] || \
+	die 'Candidate AB inner-installer deriver changed'
+
+workdir="$(mktemp -d /tmp/candidate-ab-installer.XXXXXX)"
+cleanup() { [[ ! -d "$workdir" ]] || rm -rf -- "$workdir"; }
+trap cleanup EXIT
+
+aa_r1_installer="$workdir/install-candidate-aa-r1-boot2.sh"
+python3 "$materializer" --output "$aa_r1_installer"
+[[ "$(sha256sum "$aa_r1_installer" | awk '{ print $1 }')" == \
+	"$AA_R1_INSTALLER_SHA256" ]] || die 'reconstructed AA r1 installer changed'
+
+ab_inner="$workdir/install-candidate-ab-inner-boot2.sh"
+python3 "$deriver" --source "$aa_r1_installer" --output "$ab_inner" \
+	--raw-sha256 "$AB_RAW_SHA256" --raw-size "$AB_RAW_SIZE" \
+	--padded-sha256 "$AB_PADDED_SHA256"
+bash -n "$ab_inner" || die 'derived Candidate AB installer failed syntax validation'
+[[ "$(sha256sum "$ab_inner" | awk '{ print $1 }')" == \
+	"$AB_INNER_INSTALLER_SHA256" ]] || die 'derived Candidate AB installer changed'
+
+export GEMINI_REPO_ROOT="$repo_root"
+set +e
+"$ab_inner" "${installer_args[@]}"
+status=$?
+set -e
+exit "$status"

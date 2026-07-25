@@ -1,0 +1,8 @@
+#!/bin/busybox sh
+# shellcheck shell=dash
+
+readonly MARKER='GEMINI_KEYBOARD_POLLING_20260719_U SHELL_INPUT_PASS'
+printf '%s\n' "$MARKER"
+if [ -c /dev/kmsg ]; then
+	printf '<6>%s\n' "$MARKER" >/dev/kmsg 2>/dev/null || true
+fi

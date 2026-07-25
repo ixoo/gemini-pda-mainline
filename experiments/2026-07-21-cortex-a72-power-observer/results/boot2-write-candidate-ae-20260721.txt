@@ -1,0 +1,60 @@
+experiment=2026-07-21-cortex-a72-power-observer
+candidate_label=AE
+date=2026-07-21
+operation=standing-latest-validated-candidate-boot2-sync
+result=write-synced-flushed-full-readback-verified
+runtime_result=pending-not-tested
+device_variant=current-named-Gemini-PDA-unit
+
+[candidate]
+artifact=candidate-AE-a72-observer-d9895f61
+raw_boot_image_bytes=7385088
+raw_boot_image_sha256=d9895f619ea9b4bd8fcd5ba8e8bb546d50afd65bccc1a4209d950f56408c1e0d
+padded_boot2_bytes=16777216
+padded_boot2_sha256=0e7cc17ce214f3904bae7172c81e50327ffda19fa46601c76bac36232b1079a9
+installer_sha256=df0a57334d8fb15251ee49d6a6fac029488714fe9823f9e8c569182ef57e8df7
+
+[live_prewrite_gate]
+target_logical_name=boot2
+target=/dev/mmcblk0p30
+target_partition_number=30
+target_size=16777216
+target_writable=yes
+active_root=/dev/mmcblk0p29
+target_is_active_root=no
+target_mounted=no
+target_active_swap=no
+target_holders=none
+power_tuple=ac-online|usb-online|battery-present|battery-status|battery-capacity|battery-health
+power_probe=0|1|1|Full|100|Good
+power_prewrite=0|1|1|Full|100|Good
+power_postwrite=0|1|1|Full|100|Good
+expected_previous_candidate=AD-hardware-passed
+prewrite_full_partition_sha256=371fda65cf9c21406d6b08e52ffb46690426a7d356ba67aa9ffe1410e7d1e495
+
+[backup_and_write]
+private_backup_dir=artifacts/device-partitions/pre-candidate-ae-20260721T2200ET
+private_backup_mode=0700
+private_files_mode=0600
+backup_full_partition_sha256=371fda65cf9c21406d6b08e52ffb46690426a7d356ba67aa9ffe1410e7d1e495
+target_write_count=1
+target_write_scope=exact-16777216-byte-padded-image-to-live-resolved-boot2-only
+sync=completed
+block_flush=completed
+remote_staging_removed=yes
+
+[verification]
+remote_post_flush_sha256=0e7cc17ce214f3904bae7172c81e50327ffda19fa46601c76bac36232b1079a9
+local_full_readback_bytes=16777216
+local_full_readback_sha256=0e7cc17ce214f3904bae7172c81e50327ffda19fa46601c76bac36232b1079a9
+local_full_readback_byte_comparison=identical
+private_evidence_manifest_sha256=a9df9e9d0f2e155f33d64a290908de1ad5f79f560daed7b216a9437598974e93
+reboot_or_shutdown_performed=no
+
+[interpretation]
+The exact AD predecessor was resolved from the live GPT and backed up before
+one bounded write to inactive logical boot2. Stable USB external power and a
+present, full, healthy battery passed every gate. The remote post-flush hash
+and complete local byte-for-byte readback match the exact padded AE identity.
+This establishes stored bytes and installation safety only. Candidate AE has
+not yet been selected or booted, and CPU8/9 have not been requested.

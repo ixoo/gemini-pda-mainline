@@ -1,0 +1,5 @@
+# Candidate AN adds one read-only handoff observer while retaining Candidate
+# AL/AH's maxcpus=8, rejecting CPU8/9 method, A72-observer initcall blacklist,
+# console, keyboard, USB gadget, pstore, and native-reboot policy. The final
+# experiment DT keeps I2C6 disabled and contains no DA9214 or A72-power node.
+CONFIG_MTK_MT6797_DVFSP_HANDOFF_OBSERVER=y

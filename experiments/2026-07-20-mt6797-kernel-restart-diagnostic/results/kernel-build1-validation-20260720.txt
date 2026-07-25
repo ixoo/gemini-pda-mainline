@@ -1,0 +1,65 @@
+[record]
+date_local=2026-07-20
+experiment=2026-07-20-mt6797-kernel-restart-diagnostic
+candidate=AB
+scope=first-kernel-package-build-and-validation
+device_contact=none
+hardware_write=none
+runtime_result=not-tested
+
+[source]
+kernel_version=7.1.3
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+previous_patchset_sha256=4cd417adb0d79aad2f021e1f07e47bed4825cb51b3a069e5258ea4eb49ca5ef4
+candidate_patchset_sha256=efb79d0ced5ebee485e337f224075faaa4abf7eb7d5e6a38326383274cd75f93
+series_sha256=124db1a0c4d3d4f5ee43d75bbced9d4b5f28a649ef92c04acdb8ccb67be4117a
+patch_0087_sha256=81168e4cc12d9ffad7645f667c0211d8dff73b0dadda3ebd422f63378e411d56
+patch_0087_scope=MT6797-restart-priority-255-with-128-fallback-for-other-variants
+
+[configuration]
+profile=observability-fbcon-rotation-keyboard-wrrd-manual-reboot
+config_inputs_sha256=c811a1595510716777871637672f4298f4808b1d4fcea5c5da1d05d37676baa2
+resolved_config_sha256=0a0e4ef39d5d89d0d54f55be44da753c93779d88bb94b35623679d1b08b66e74
+resolved_config_delta_from_candidate_x_z=none
+modules_built=false
+
+[package]
+path=/home/julien.guest/artifacts/gemini-pda/linux-7.1.3-gemini-observability-fbcon-rotation-keyboard-wrrd-manual-reboot-efb79d0c-c811a159
+preserved_copy=/home/julien.guest/artifacts/boot-candidates/candidate-AB-kernel-build1/linux-7.1.3-gemini-observability-fbcon-rotation-keyboard-wrrd-manual-reboot-efb79d0c-c811a159
+generated_utc=2026-07-21T03:22:11Z
+package_sha256s_sha256=f81e23918cc66b2bdd03b1747320c31c11aadffea93701369c8a6869224ce992
+image_sha256=1df5d92bf6535bac0cfda744ea10c0c10d9e224ac6891216305338c0db8de1cc
+image_bytes=13293576
+image_gz_sha256=cebecfcab4a9e36de48384711c2000cd54322b0e89f9abb9d0757b7ff6237324
+image_gz_bytes=5529641
+system_map_sha256=0265e0cac0dc37430cbd395e2c83961449ab6d8c166a2ed699c9de9e46beeb4d
+system_map_bytes=2325956
+package_dtb_sha256=f9be46ffed6cf598f7892d88d8702ff6a4ede074c5b477734ae11bcb4c093db5
+package_dtb_bytes=25578
+build_json_sha256=422a373af60032ce4bf9e512048828c1d8b1acb1003738107b2c26794722cd3e
+kernel_release=7.1.3-gemini-observability-L
+
+[comparison]
+candidate_x_z_image_gz_sha256=d69b2cdc0a2dca05919e5e0dc25c54920a509af89eb1a7f16336e82d368fda41
+candidate_x_z_resolved_config_sha256=0a0e4ef39d5d89d0d54f55be44da753c93779d88bb94b35623679d1b08b66e74
+candidate_x_z_package_dtb_sha256=f9be46ffed6cf598f7892d88d8702ff6a4ede074c5b477734ae11bcb4c093db5
+image_changed=yes
+config_changed=no
+package_dtb_changed=no
+
+[validation]
+required_dev_vm_build_kernel=PASS
+generic_kernel_artifact_validation=PASS
+packaged_files_checksums=PASS
+packaged_patch_0087=PASS
+dtb_count=119
+hardware_write=none
+second_clean_build=pending
+boot_container=pending
+
+[interpretation]
+The first managed build proves that the isolated restart-priority patch applies,
+compiles, and packages with the exact X/Z resolved configuration and ordinary
+board DTB. It does not prove reproducibility, a valid LK boot container, that
+the priority-255 handler executes on hardware, or that TOPRGU software reset
+actually resets this Gemini.

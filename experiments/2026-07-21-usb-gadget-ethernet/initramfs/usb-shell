@@ -1,0 +1,56 @@
+#!/bin/busybox sh
+# shellcheck shell=dash
+
+export PATH=/bin
+export TERM=dumb
+readonly DISPATCH_ENV=/bin/reboot-dispatch.env
+readonly EXPECTED_DISPATCH='reboot is an alias for /bin/reboot'
+ENV=$DISPATCH_ENV
+readonly ENV
+export ENV
+
+operstate=unavailable
+carrier=unavailable
+if [ -r /sys/class/net/usb0/operstate ]; then
+	operstate="$(/bin/busybox cat /sys/class/net/usb0/operstate 2>/dev/null || true)"
+fi
+if [ -r /sys/class/net/usb0/carrier ]; then
+	carrier="$(/bin/busybox cat /sys/class/net/usb0/carrier 2>/dev/null || true)"
+fi
+udc_name=absent
+udc_state=unavailable
+for udc_path in /sys/class/udc/*; do
+	[ -d "$udc_path" ] || continue
+	udc_name=${udc_path##*/}
+	if [ -r "$udc_path/state" ]; then
+		udc_state="$(/bin/busybox cat "$udc_path/state" 2>/dev/null || true)"
+	fi
+	break
+done
+/bin/ac-record "usb_shell=session-entry usb0_operstate=${operstate:-unavailable} usb0_carrier=${carrier:-unavailable} udc=${udc_name:-absent} udc_state=${udc_state:-unavailable}"
+
+dispatch_output=failed
+if dispatch_output="$(/bin/busybox ash -ic 'type reboot' 2>/dev/null)"; then
+	dispatch="$(printf '%s\n' "$dispatch_output" | /bin/busybox tail -n 1)"
+else
+	dispatch=failed
+fi
+if [ "$dispatch" != "$EXPECTED_DISPATCH" ]; then
+	/bin/ac-record "usb_shell=withheld reboot_dispatch=invalid actual=${dispatch:-empty}"
+	printf '%s\n' 'GEMINI_USB_GADGET_ETHERNET_20260721_AC'
+	printf '%s\n' 'Remote shell withheld: inherited reboot dispatch validation failed.'
+	exit 126
+fi
+
+export PS1='GEMINI-AC-USB# '
+/bin/ac-record 'usb_shell=ready reboot_dispatch=validated privilege=root authentication=none encryption=none direct_link_only=yes'
+printf '%s\n' 'GEMINI_USB_GADGET_ETHERNET_20260721_AC'
+printf '%s\n' 'Direct USB link only: device 10.15.19.82/24, TCP port 2323.'
+printf '%s\n' 'Security: unauthenticated and unencrypted root shell; trusted host only.'
+printf '%s\n' 'Candidate AC status follows:'
+if [ -r /run/ac-status ]; then
+	/bin/busybox cat /run/ac-status
+else
+	printf '%s\n' 'GEMINI_USB_GADGET_ETHERNET_20260721_AC status=unavailable'
+fi
+exec /bin/busybox ash -i

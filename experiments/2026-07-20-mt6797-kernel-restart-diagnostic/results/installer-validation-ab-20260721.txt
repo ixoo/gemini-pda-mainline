@@ -1,0 +1,61 @@
+[record]
+date_local=2026-07-21
+experiment=2026-07-20-mt6797-kernel-restart-diagnostic
+candidate=AB
+scope=installer-materialization-calibration-and-validation
+device_contact=none
+hardware_write=none
+runtime_result=none
+
+[candidate]
+candidate_raw_sha256=61c74592267466735164c19f8b831ea18db2892de95e32109f2aacd7ec5c5446
+candidate_raw_bytes=7378944
+candidate_padded_sha256=b58c0347d34a3fd9031c74cb03447dd7a6fc630d5b8ea2b7eabc36827e754350
+candidate_padded_bytes=16777216
+zero_tail_bytes=9398272
+expected_aa_r1_predecessor_padded_sha256=38b49c7c19c2d97fa0c48436545219489221aa367aedf491ae6ebd4ec4856703
+
+[independent_padding]
+recovery_vm_calibrator_sha256=b58c0347d34a3fd9031c74cb03447dd7a6fc630d5b8ea2b7eabc36827e754350
+host_dd_padding_sha256=b58c0347d34a3fd9031c74cb03447dd7a6fc630d5b8ea2b7eabc36827e754350
+independent_padding_hashes=identical
+raw_prefix_and_zero_tail=PASS
+
+[program_identity]
+aa_r1_materialized_installer_sha256=f081ef03b2dce68d28458eacdcc184a5550c88eeb75579fab61359e936a40f9f
+aa_r1_materialized_installer_bytes=33856
+aa_r1_materialized_installer_mode=0700
+derived_ab_inner_installer_sha256=260c7d907cdd7656b664d71a6564109a6ed03fcb95bf3e5c6da8bcc3bff4050c
+calibrated_ab_wrapper_sha256=e9dc1033c63d9d2ffd5944553533fbd4159ab9d59725c43914df0b0f66e59e17
+calibrated_ab_wrapper_bytes=5214
+calibrated_ab_wrapper_mode=0700
+exported_foundation=artifacts/vm-export/boot-candidates/candidate-AB-installer-calibration/install-candidate-aa-r1-boot2.sh
+exported_wrapper=artifacts/vm-export/boot-candidates/candidate-AB-installer-calibration/install-candidate-ab-boot2.sh
+
+[validation]
+aa_r1_lineage_materialization=PASS
+static_foundation_inner_wrapper_suite=PASS
+deterministic_inner_derivation=PASS
+deterministic_outer_wrapper_derivation=PASS
+full_artifact_to_padded_to_inner_to_wrapper_calibration=PASS
+outer_wrapper_runtime_reconstruction_help=PASS
+outer_wrapper_repo_root_export=PASS
+outer_wrapper_input_hash_rejection=PASS
+bounded_target_writes=1
+target=live-GPT-resolved-logical-boot2-only
+exact_predecessor_gate=PASS
+full_backup_and_readback_gates=PASS
+automatic_reboot_shutdown_kexec_sysrq_paths=absent
+device_contact=none
+hardware_write=none
+actual_device_contact=excluded-from-this-record
+actual_device_write=excluded-from-this-record
+runtime_result=none
+
+[interpretation]
+The recovery-VM calibrator and an independent host dd-based padding check
+produced the same exact 16 MiB Candidate AB identity. The calibrated outer
+wrapper reconstructs the exact AA r1 installer lineage, derives and hash-checks
+the exact AB inner installer, exports the explicit repository root, and retains
+one bounded guarded boot2 write with no reboot path. This record is entirely
+offline; it neither contacts nor writes the device.

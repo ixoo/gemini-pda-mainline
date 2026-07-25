@@ -1,0 +1,21 @@
+experiment=2026-07-19-keyboard-watchdog-diagnostic
+candidate_label=V
+date_utc=2026-07-19
+result=PASS
+runtime_result=not-tested
+
+mutation_harness=experiments/2026-07-19-keyboard-watchdog-diagnostic/scripts/test-validator-mutations.sh
+mutation_harness_sha256=e60b7dc618c6636efe3a01b2f91a54366b43e1a27ae104d8bf3cbd5e52b02dc7
+selected_package_manifest_sha256=22193d6149579be5c9e34d20db88853e55e46f1490c5f85314504bbe0e6ce257
+candidate_p_manifest_sha256=e063bf5ddeb576deaec8aea3fa050f23a890027c7cf58b0133e3672f1ad07835
+candidate_v_manifest_sha256=0ab8291fef437cc4d2cc2b415852d21e6ccfb9deff67e8bec41b4dbfc8068ef9
+candidate_v_raw_sha256=9ef0ee8dc1eb49752f9cf8f60b247b9b85e4fd2a9f090473f1d91848114087b0
+positive_controls=kernel-package,selected-package,corrected-patch,dtb,initramfs,android-v0,artifact-manifest
+rejection_count=24
+rejected_mutations=atf-reserved-compatible,boot-byte,complete-package-inventory,corrected-local-patch-mutation,cpu-clock-frequency,duplicate-phandle,helper-byte,initramfs-byte,mtu3-property,package-config-substitution,package-image-substitution,package-patchset-substitution,package-provenance-substitution,packaged-0084-forged-provenance,ramoops-property,scp-property,simplefb-clock-cells,simplefb-node-deleted,target-extra-property,tphy-property,unrelated-root-property,watchdog-interrupt-reintroduced,wrong-p-byte,wrong-package-oracle-byte
+hardware_write=none
+flash=none
+
+The mutation harness is a post-build negative validator and is therefore not a
+candidate payload input. This record pins its exact source identity separately
+from Candidate V's immutable output manifest.

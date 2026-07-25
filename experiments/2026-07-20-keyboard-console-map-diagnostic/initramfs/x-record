@@ -1,0 +1,14 @@
+#!/bin/busybox sh
+# shellcheck shell=dash
+
+readonly MARKER='GEMINI_KEYBOARD_CONSOLE_MAP_20260720_AA_R1'
+line="$MARKER $*"
+
+printf '%s\n' "$line" >>/run/x-status 2>/dev/null || true
+if [ -c /dev/kmsg ]; then
+	printf '<6>%s\n' "$line" >/dev/kmsg 2>/dev/null || true
+fi
+output=/dev/ttyS0
+if [ -c "$output" ]; then
+	printf '%s\n' "$line" >"$output" 2>/dev/null || true
+fi

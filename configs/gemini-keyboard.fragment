@@ -1,0 +1,110 @@
+# Candidate Q/U keyboard-only override. Apply after the exact Candidate P
+# rotation profile. Keep every input-path driver built in because modules are
+# disabled, and prevent VT blanking for the supervised local tty1 shell.
+CONFIG_I2C=y
+CONFIG_I2C_MT65XX=y
+CONFIG_PINCTRL_AW9523=y
+CONFIG_KEYBOARD_MATRIX=y
+
+# CONFIG_I2C_CHARDEV is not set
+# CONFIG_I2C_CADENCE is not set
+# CONFIG_I2C_DESIGNWARE_PLATFORM is not set
+# CONFIG_I2C_GPIO is not set
+# CONFIG_I2C_MUX_PCA954x is not set
+# CONFIG_I2C_MUX_PINCTRL is not set
+# CONFIG_I2C_RK3X is not set
+# CONFIG_I2C_SLAVE is not set
+# CONFIG_I2C_XILINX is not set
+
+# Enabling the I2C core makes numerous arm64 defconfig defaults visible. Keep
+# Candidate Q/U policy boundary explicit: only the MT65xx controller, AW9523
+# expander, and matrix keyboard are added to Candidate P.
+# CONFIG_BACKLIGHT_LP855X is not set
+# CONFIG_BATTERY_BQ27XXX_I2C is not set
+# CONFIG_BATTERY_MAX17042 is not set
+# CONFIG_BATTERY_SBS is not set
+# CONFIG_CEC_NXP_TDA9950 is not set
+# CONFIG_CHARGER_BQ25890 is not set
+# CONFIG_CHARGER_BQ25980 is not set
+# CONFIG_CHARGER_MAX77759 is not set
+# CONFIG_CHARGER_MT6360 is not set
+# CONFIG_CHARGER_RK817 is not set
+# CONFIG_CHROMEOS_OF_HW_PROBER is not set
+# CONFIG_COMMON_CLK_BD718XX is not set
+# CONFIG_COMMON_CLK_CS2000_CP is not set
+# CONFIG_COMMON_CLK_RK808 is not set
+# CONFIG_COMMON_CLK_RS9_PCIE is not set
+# CONFIG_COMMON_CLK_S2MPS11 is not set
+# CONFIG_COMMON_CLK_VC3 is not set
+# CONFIG_COMMON_CLK_VC5 is not set
+# CONFIG_CROS_EC_I2C is not set
+# CONFIG_EEPROM_AT24 is not set
+# CONFIG_EXTCON_PTN5150 is not set
+# CONFIG_GPIO_ADP5585 is not set
+# CONFIG_GPIO_BD9571MWV is not set
+# CONFIG_GPIO_MAX732X is not set
+# CONFIG_GPIO_MAX77620 is not set
+# CONFIG_GPIO_MAX77759 is not set
+# CONFIG_GPIO_PCA953X is not set
+# CONFIG_GPIO_PCF857X is not set
+# CONFIG_GPIO_TPIC2810 is not set
+# CONFIG_GPIO_TPS65219 is not set
+# CONFIG_I2C_CROS_EC_TUNNEL is not set
+# CONFIG_I2C_HID is not set
+# CONFIG_INPUT_AW86927 is not set
+# CONFIG_INPUT_DA9063_ONKEY is not set
+# CONFIG_INPUT_RK805_PWRKEY is not set
+# CONFIG_INPUT_TPS65219_PWRBUTTON is not set
+# CONFIG_INPUT_TPS6594_PWRBUTTON is not set
+# CONFIG_LEDS_LM3692X is not set
+# CONFIG_LEDS_PCA9532 is not set
+# CONFIG_MFD_ADP5585 is not set
+# CONFIG_MFD_AXP20X_I2C is not set
+# CONFIG_MFD_BD9571MWV is not set
+# CONFIG_MFD_DA9062 is not set
+# CONFIG_MFD_MAX77620 is not set
+# CONFIG_MFD_MAX77759 is not set
+# CONFIG_MFD_MT6360 is not set
+# CONFIG_MFD_QCOM_PM8008 is not set
+# CONFIG_MFD_RK8XX_I2C is not set
+# CONFIG_MFD_ROHM_BD718XX is not set
+# CONFIG_MFD_SEC_I2C is not set
+# CONFIG_MFD_TI_LP873X is not set
+# CONFIG_MFD_TPS65219 is not set
+# CONFIG_MFD_TPS6594_I2C is not set
+# CONFIG_MFD_WM8994 is not set
+# CONFIG_MOUSE_ELAN_I2C is not set
+# CONFIG_NVMEM is not set
+# CONFIG_PHY_NXP_PTN3222 is not set
+# CONFIG_PINCTRL_DA9062 is not set
+# CONFIG_PINCTRL_MAX77620 is not set
+# CONFIG_PINCTRL_RK805 is not set
+# CONFIG_PINCTRL_SX150X is not set
+# CONFIG_PINCTRL_TPS6594 is not set
+# CONFIG_PWM_ADP5585 is not set
+# CONFIG_REGULATOR_DA9211 is not set
+# CONFIG_REGULATOR_FAN53555 is not set
+# CONFIG_REGULATOR_MAX20411 is not set
+# CONFIG_REGULATOR_MP8859 is not set
+# CONFIG_REGULATOR_PCA9450 is not set
+# CONFIG_REGULATOR_PF8X00 is not set
+# CONFIG_REGULATOR_PFUZE100 is not set
+# CONFIG_REGULATOR_RAA215300 is not set
+# CONFIG_REGULATOR_S2MPS11 is not set
+# CONFIG_REGULATOR_TPS65132 is not set
+# CONFIG_SENSORS_AMC6821 is not set
+# CONFIG_SENSORS_INA2XX is not set
+# CONFIG_SENSORS_INA3221 is not set
+# CONFIG_SENSORS_JC42 is not set
+# CONFIG_SENSORS_LM75 is not set
+# CONFIG_SENSORS_LM90 is not set
+# CONFIG_SENSORS_TMP102 is not set
+# CONFIG_TCG_TIS_I2C_CR50 is not set
+# CONFIG_TCG_TIS_I2C_INFINEON is not set
+# CONFIG_TOUCHSCREEN_ATMEL_MXT is not set
+# CONFIG_TOUCHSCREEN_EDT_FT5X06 is not set
+# CONFIG_TOUCHSCREEN_ELAN is not set
+# CONFIG_TOUCHSCREEN_GOODIX is not set
+# CONFIG_TOUCHSCREEN_HIMAX_HX83112B is not set
+# CONFIG_TOUCHSCREEN_ILI210X is not set
+CONFIG_CMDLINE="console=tty0 console=ttyS0,921600n8 earlycon maxcpus=1 nokaslr ignore_loglevel loglevel=8 log_buf_len=1M initcall_debug rdinit=/init panic=0 g_ether.dev_addr=42:00:15:19:82:01 g_ether.host_addr=42:00:15:19:82:00 g_ether.iManufacturer=gemini-pda-mainline g_ether.iProduct=Gemini-L-Observability g_ether.iSerialNumber=GEMINI_OBSERVABILITY_20260717_L clk_ignore_unused fbcon=rotate:3 consoleblank=0"

@@ -1,0 +1,444 @@
+From 8d4d71c35f3ec3f3cc0a9fff4d92363417b3bee6 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 24 Jul 2026 15:01:49 -0400
+Subject: [PATCH 3/4] i2c: mediatek: require MT6797 DVFSP handoff
+
+Make access-controller an optional MT6797 guard.
+
+Prove both bulk-clock domains are held for initialization and return to safe cleanup after probe and resume.
+
+Instrument all transfer starts.
+
+Split protected late/early sleep from the unchanged noirq path.
+
+Signed-off-by: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+---
+ drivers/i2c/busses/i2c-mt65xx.c | 263 +++++++++++++++++++++++++++++++-
+ 1 file changed, 259 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/i2c/busses/i2c-mt65xx.c b/drivers/i2c/busses/i2c-mt65xx.c
+index c293504..478c356 100644
+--- a/drivers/i2c/busses/i2c-mt65xx.c
++++ b/drivers/i2c/busses/i2c-mt65xx.c
+@@ -4,6 +4,7 @@
+  * Author: Xudong Chen <xudong.chen@mediatek.com>
+  */
+ 
++#include <linux/atomic.h>
+ #include <linux/clk.h>
+ #include <linux/completion.h>
+ #include <linux/delay.h>
+@@ -21,10 +22,12 @@
+ #include <linux/module.h>
+ #include <linux/of.h>
+ #include <linux/platform_device.h>
++#include <linux/pm.h>
+ #include <linux/regulator/consumer.h>
+ #include <linux/scatterlist.h>
+ #include <linux/sched.h>
+ #include <linux/slab.h>
++#include <linux/soc/mediatek/mt6797-dvfsp-handoff.h>
+ #include <linux/units.h>
+ 
+ #define I2C_RS_TRANSFER			(1 << 4)
+@@ -290,6 +293,20 @@ struct mtk_i2c {
+ 	struct device *dev;
+ 	struct completion msg_complete;
+ 	struct i2c_timings timing_info;
++	struct mt6797_dvfsp_handoff *dvfsp_handoff;
++	bool handoff_runtime_pm_link;
++	atomic_t init_attempts;
++	atomic_t init_successes;
++	atomic_t transfer_attempts;
++	atomic_t dma_start_count;
++	atomic_t nonzero_start_count;
++	atomic_t irq_count;
++	atomic_t clock_ungated_checks;
++	atomic_t clock_gated_checks;
++	atomic_t clock_validation_failures;
++	atomic_t suspend_checks;
++	atomic_t resume_checks;
++	atomic_t resume_failures;
+ 
+ 	/* set in i2c probe */
+ 	void __iomem *base;		/* i2c base addr */
+@@ -311,6 +328,8 @@ struct mtk_i2c {
+ 	const struct mtk_i2c_compatible *dev_comp;
+ };
+ 
++static atomic_t mtk_i2c_handoff_probe_attempts = ATOMIC_INIT(0);
++
+ /**
+  * struct i2c_spec_values:
+  * @min_low_ns: min LOW period of the SCL clock
+@@ -558,6 +577,9 @@ static void mtk_i2c_init_hw(struct mtk_i2c *i2c)
+ 	u16 intr_stat_reg;
+ 	u16 ext_conf_val;
+ 
++	if (i2c->dvfsp_handoff)
++		atomic_inc(&i2c->init_attempts);
++
+ 	mtk_i2c_writew(i2c, I2C_CHN_CLR_FLAG, OFFSET_START);
+ 	intr_stat_reg = mtk_i2c_readw(i2c, OFFSET_INTR_STAT);
+ 	mtk_i2c_writew(i2c, intr_stat_reg, OFFSET_INTR_STAT);
+@@ -639,6 +661,9 @@ static void mtk_i2c_init_hw(struct mtk_i2c *i2c)
+ 
+ 	mtk_i2c_writew(i2c, control_reg, OFFSET_CONTROL);
+ 	mtk_i2c_writew(i2c, I2C_DELAY_LEN, OFFSET_DELAY_LEN);
++
++	if (i2c->dvfsp_handoff)
++		atomic_inc(&i2c->init_successes);
+ }
+ 
+ static const struct i2c_spec_values *mtk_i2c_get_spec(unsigned int speed)
+@@ -1184,6 +1209,8 @@ static int mtk_i2c_do_transfer(struct mtk_i2c *i2c, struct i2c_msg *msgs,
+ 		writel((msgs + 1)->len, i2c->pdmabase + OFFSET_RX_LEN);
+ 	}
+ 
++	if (i2c->dvfsp_handoff)
++		atomic_inc(&i2c->dma_start_count);
+ 	writel(I2C_DMA_START_EN, i2c->pdmabase + OFFSET_EN);
+ 
+ 	if (!i2c->auto_restart) {
+@@ -1193,6 +1220,8 @@ static int mtk_i2c_do_transfer(struct mtk_i2c *i2c, struct i2c_msg *msgs,
+ 		if (left_num >= 1)
+ 			start_reg |= I2C_RS_MUL_CNFG;
+ 	}
++	if (i2c->dvfsp_handoff)
++		atomic_inc(&i2c->nonzero_start_count);
+ 	mtk_i2c_writew(i2c, start_reg, OFFSET_START);
+ 
+ 	ret = wait_for_completion_timeout(&i2c->msg_complete,
+@@ -1246,6 +1275,14 @@ static int mtk_i2c_transfer(struct i2c_adapter *adap,
+ 	bool write_then_read_en = false;
+ 	struct mtk_i2c *i2c = i2c_get_adapdata(adap);
+ 
++	if (i2c->dvfsp_handoff) {
++		atomic_inc(&i2c->transfer_attempts);
++		ret = mt6797_dvfsp_handoff_require_ready(
++			i2c->dvfsp_handoff);
++		if (ret)
++			return ret;
++	}
++
+ 	if (i2c->adap.bus_regulator) {
+ 		ret = regulator_enable(i2c->adap.bus_regulator);
+ 		if (ret)
+@@ -1322,6 +1359,9 @@ static irqreturn_t mtk_i2c_irq(int irqno, void *dev_id)
+ 	u16 restart_flag = i2c->auto_restart ? I2C_RS_TRANSFER : 0;
+ 	u16 intr_stat;
+ 
++	if (i2c->dvfsp_handoff)
++		atomic_inc(&i2c->irq_count);
++
+ 	intr_stat = mtk_i2c_readw(i2c, OFFSET_INTR_STAT);
+ 	mtk_i2c_writew(i2c, intr_stat, OFFSET_INTR_STAT);
+ 
+@@ -1335,6 +1375,8 @@ static irqreturn_t mtk_i2c_irq(int irqno, void *dev_id)
+ 	if (i2c->ignore_restart_irq && (i2c->irq_stat & restart_flag)) {
+ 		i2c->ignore_restart_irq = false;
+ 		i2c->irq_stat = 0;
++		if (i2c->dvfsp_handoff)
++			atomic_inc(&i2c->nonzero_start_count);
+ 		mtk_i2c_writew(i2c, I2C_RS_MUL_CNFG | I2C_RS_MUL_TRIG |
+ 				    I2C_TRANSAC_START, OFFSET_START);
+ 	} else {
+@@ -1383,9 +1425,54 @@ static int mtk_i2c_parse_dt(struct device_node *np, struct mtk_i2c *i2c)
+ 	return 0;
+ }
+ 
++static ssize_t handoff_status_show(struct device *dev,
++				   struct device_attribute *attr, char *buf)
++{
++	struct mtk_i2c *i2c = dev_get_drvdata(dev);
++	bool ready;
++
++	ready = !mt6797_dvfsp_handoff_require_ready(i2c->dvfsp_handoff);
++
++	return sysfs_emit(
++		buf,
++		"handoff=%s probe_attempts=%d init_attempts=%d "
++		"init_successes=%d clock_ungated_checks=%d "
++		"clock_gated_checks=%d clock_validation_failures=%d "
++		"runtime_pm_link=%d clock_domains=i2c-appm,ap-dma "
++		"transfer_attempts=%d dma_starts=%d nonzero_starts=%d "
++		"irq_count=%d suspend_checks=%d resume_checks=%d "
++		"resume_failures=%d\n",
++		ready ? "ready" : "not-ready",
++		atomic_read(&mtk_i2c_handoff_probe_attempts),
++		atomic_read(&i2c->init_attempts),
++		atomic_read(&i2c->init_successes),
++		atomic_read(&i2c->clock_ungated_checks),
++		atomic_read(&i2c->clock_gated_checks),
++		atomic_read(&i2c->clock_validation_failures),
++		i2c->handoff_runtime_pm_link,
++		atomic_read(&i2c->transfer_attempts),
++		atomic_read(&i2c->dma_start_count),
++		atomic_read(&i2c->nonzero_start_count),
++		atomic_read(&i2c->irq_count),
++		atomic_read(&i2c->suspend_checks),
++		atomic_read(&i2c->resume_checks),
++		atomic_read(&i2c->resume_failures));
++}
++static DEVICE_ATTR_RO(handoff_status);
++
++static struct attribute *mtk_i2c_handoff_attrs[] = {
++	&dev_attr_handoff_status.attr,
++	NULL,
++};
++
++static const struct attribute_group mtk_i2c_handoff_group = {
++	.attrs = mtk_i2c_handoff_attrs,
++};
++
+ static int mtk_i2c_probe(struct platform_device *pdev)
+ {
+ 	int ret = 0;
++	int post_ret = 0;
+ 	struct mtk_i2c *i2c;
+ 	int i, irq, speed_clk;
+ 
+@@ -1393,6 +1480,47 @@ static int mtk_i2c_probe(struct platform_device *pdev)
+ 	if (!i2c)
+ 		return -ENOMEM;
+ 
++	i2c->dev = &pdev->dev;
++
++	if (of_find_property(pdev->dev.of_node, "access-controllers", NULL)) {
++		atomic_inc(&mtk_i2c_handoff_probe_attempts);
++		atomic_set(&i2c->init_attempts, 0);
++		atomic_set(&i2c->init_successes, 0);
++		atomic_set(&i2c->transfer_attempts, 0);
++		atomic_set(&i2c->dma_start_count, 0);
++		atomic_set(&i2c->nonzero_start_count, 0);
++		atomic_set(&i2c->irq_count, 0);
++		atomic_set(&i2c->clock_ungated_checks, 0);
++		atomic_set(&i2c->clock_gated_checks, 0);
++		atomic_set(&i2c->clock_validation_failures, 0);
++		atomic_set(&i2c->suspend_checks, 0);
++		atomic_set(&i2c->resume_checks, 0);
++		atomic_set(&i2c->resume_failures, 0);
++		i2c->dvfsp_handoff =
++			mt6797_dvfsp_handoff_get(&pdev->dev);
++		if (IS_ERR(i2c->dvfsp_handoff))
++			return dev_err_probe(
++				&pdev->dev, PTR_ERR(i2c->dvfsp_handoff),
++				"GEMINI_MT6797_I2C6_GUARD handoff=denied "
++				"probe_attempts=%d reason=supplier-unavailable\n",
++				atomic_read(
++					&mtk_i2c_handoff_probe_attempts));
++		i2c->handoff_runtime_pm_link = true;
++
++		ret = mt6797_dvfsp_handoff_require_ready(
++			i2c->dvfsp_handoff);
++		if (ret)
++			return dev_err_probe(
++				&pdev->dev, ret,
++				"GEMINI_MT6797_I2C6_GUARD handoff=denied "
++				"probe_attempts=%d reason=supplier-not-ready\n",
++				atomic_read(
++					&mtk_i2c_handoff_probe_attempts));
++
++		dev_pm_set_driver_flags(&pdev->dev,
++					DPM_FLAG_NO_DIRECT_COMPLETE);
++	}
++
+ 	i2c->base = devm_platform_get_and_ioremap_resource(pdev, 0, NULL);
+ 	if (IS_ERR(i2c->base))
+ 		return PTR_ERR(i2c->base);
+@@ -1409,7 +1537,6 @@ static int mtk_i2c_probe(struct platform_device *pdev)
+ 
+ 	i2c->dev_comp = of_device_get_match_data(&pdev->dev);
+ 	i2c->adap.dev.of_node = pdev->dev.of_node;
+-	i2c->dev = &pdev->dev;
+ 	i2c->adap.dev.parent = &pdev->dev;
+ 	i2c->adap.owner = THIS_MODULE;
+ 	i2c->adap.algo = &mtk_i2c_algorithm;
+@@ -1487,8 +1614,29 @@ static int mtk_i2c_probe(struct platform_device *pdev)
+ 		return ret;
+ 	}
+ 	mtk_i2c_init_hw(i2c);
++
++	if (i2c->dvfsp_handoff) {
++		atomic_inc(&i2c->clock_ungated_checks);
++		ret = mt6797_dvfsp_handoff_validate_clock(
++			i2c->dvfsp_handoff, false);
++		if (ret)
++			atomic_inc(&i2c->clock_validation_failures);
++	}
+ 	clk_bulk_disable(I2C_MT65XX_CLK_MAX, i2c->clocks);
+ 
++	if (i2c->dvfsp_handoff) {
++		atomic_inc(&i2c->clock_gated_checks);
++		post_ret = mt6797_dvfsp_handoff_validate_clock(
++			i2c->dvfsp_handoff, true);
++		if (post_ret)
++			atomic_inc(&i2c->clock_validation_failures);
++	}
++	if (ret || post_ret) {
++		if (!ret)
++			ret = post_ret;
++		goto err_bulk_unprepare;
++	}
++
+ 	ret = devm_request_irq(&pdev->dev, irq, mtk_i2c_irq,
+ 			       IRQF_NO_SUSPEND | IRQF_TRIGGER_NONE,
+ 			       dev_name(&pdev->dev), i2c);
+@@ -1504,9 +1652,41 @@ static int mtk_i2c_probe(struct platform_device *pdev)
+ 		goto err_bulk_unprepare;
+ 
+ 	platform_set_drvdata(pdev, i2c);
++	if (i2c->dvfsp_handoff) {
++		ret = devm_device_add_group(&pdev->dev,
++					    &mtk_i2c_handoff_group);
++		if (ret)
++			goto err_del_adapter;
++
++		dev_info(
++			&pdev->dev,
++			"GEMINI_MT6797_I2C6_GUARD handoff=ready "
++			"probe_attempts=%d init_attempts=%d "
++			"init_successes=%d clock_ungated_checks=%d "
++			"clock_gated_checks=%d "
++			"clock_validation_failures=%d "
++			"runtime_pm_link=%d "
++			"clock_domains=i2c-appm,ap-dma "
++			"transfer_attempts=%d dma_starts=%d "
++			"nonzero_starts=%d irq_count=%d\n",
++			atomic_read(&mtk_i2c_handoff_probe_attempts),
++			atomic_read(&i2c->init_attempts),
++			atomic_read(&i2c->init_successes),
++			atomic_read(&i2c->clock_ungated_checks),
++			atomic_read(&i2c->clock_gated_checks),
++			atomic_read(&i2c->clock_validation_failures),
++			i2c->handoff_runtime_pm_link,
++			atomic_read(&i2c->transfer_attempts),
++			atomic_read(&i2c->dma_start_count),
++			atomic_read(&i2c->nonzero_start_count),
++			atomic_read(&i2c->irq_count));
++	}
+ 
+ 	return 0;
+ 
++err_del_adapter:
++	platform_set_drvdata(pdev, NULL);
++	i2c_del_adapter(&i2c->adap);
+ err_bulk_unprepare:
+ 	clk_bulk_unprepare(I2C_MT65XX_CLK_MAX, i2c->clocks);
+ 
+@@ -1522,37 +1702,112 @@ static void mtk_i2c_remove(struct platform_device *pdev)
+ 	clk_bulk_unprepare(I2C_MT65XX_CLK_MAX, i2c->clocks);
+ }
+ 
+-static int mtk_i2c_suspend_noirq(struct device *dev)
++static int mtk_i2c_suspend_late(struct device *dev)
+ {
+ 	struct mtk_i2c *i2c = dev_get_drvdata(dev);
+ 
++	if (!i2c->dvfsp_handoff)
++		return 0;
++
++	atomic_inc(&i2c->suspend_checks);
++	if (!mt6797_dvfsp_handoff_is_ready_atomic(i2c->dvfsp_handoff))
++		return -EHOSTDOWN;
++
+ 	i2c_mark_adapter_suspended(&i2c->adap);
+ 	clk_bulk_unprepare(I2C_MT65XX_CLK_MAX, i2c->clocks);
+ 
+ 	return 0;
+ }
+ 
+-static int mtk_i2c_resume_noirq(struct device *dev)
++static int mtk_i2c_resume_early(struct device *dev)
+ {
+ 	int ret;
++	int post_ret;
+ 	struct mtk_i2c *i2c = dev_get_drvdata(dev);
+ 
++	if (!i2c->dvfsp_handoff)
++		return 0;
++
++	atomic_inc(&i2c->resume_checks);
++	if (!mt6797_dvfsp_handoff_is_ready_atomic(i2c->dvfsp_handoff)) {
++		atomic_inc(&i2c->resume_failures);
++		return -EHOSTDOWN;
++	}
++
+ 	ret = clk_bulk_prepare_enable(I2C_MT65XX_CLK_MAX, i2c->clocks);
+ 	if (ret) {
+-		dev_err(dev, "clock enable failed!\n");
++		atomic_inc(&i2c->resume_failures);
+ 		return ret;
+ 	}
+ 
+ 	mtk_i2c_init_hw(i2c);
+ 
++	atomic_inc(&i2c->clock_ungated_checks);
++	ret = mt6797_dvfsp_handoff_validate_clock_pm(
++		i2c->dvfsp_handoff, false);
++	if (ret)
++		atomic_inc(&i2c->clock_validation_failures);
++
+ 	clk_bulk_disable(I2C_MT65XX_CLK_MAX, i2c->clocks);
+ 
++	atomic_inc(&i2c->clock_gated_checks);
++	post_ret = mt6797_dvfsp_handoff_validate_clock_pm(
++		i2c->dvfsp_handoff, true);
++	if (post_ret)
++		atomic_inc(&i2c->clock_validation_failures);
++	if (ret || post_ret) {
++		if (!ret)
++			ret = post_ret;
++		goto err_unprepare;
++	}
++
++	i2c_mark_adapter_resumed(&i2c->adap);
++
++	return 0;
++
++err_unprepare:
++	atomic_inc(&i2c->resume_failures);
++	clk_bulk_unprepare(I2C_MT65XX_CLK_MAX, i2c->clocks);
++	return ret;
++}
++
++static int mtk_i2c_suspend_noirq(struct device *dev)
++{
++	struct mtk_i2c *i2c = dev_get_drvdata(dev);
++
++	if (i2c->dvfsp_handoff)
++		return 0;
++
++	i2c_mark_adapter_suspended(&i2c->adap);
++	clk_bulk_unprepare(I2C_MT65XX_CLK_MAX, i2c->clocks);
++
++	return 0;
++}
++
++static int mtk_i2c_resume_noirq(struct device *dev)
++{
++	struct mtk_i2c *i2c = dev_get_drvdata(dev);
++	int ret;
++
++	if (i2c->dvfsp_handoff)
++		return 0;
++
++	ret = clk_bulk_prepare_enable(I2C_MT65XX_CLK_MAX, i2c->clocks);
++	if (ret) {
++		dev_err(dev, "clock enable failed!\n");
++		return ret;
++	}
++
++	mtk_i2c_init_hw(i2c);
++	clk_bulk_disable(I2C_MT65XX_CLK_MAX, i2c->clocks);
+ 	i2c_mark_adapter_resumed(&i2c->adap);
+ 
+ 	return 0;
+ }
+ 
+ static const struct dev_pm_ops mtk_i2c_pm = {
++	LATE_SYSTEM_SLEEP_PM_OPS(mtk_i2c_suspend_late,
++				 mtk_i2c_resume_early)
+ 	NOIRQ_SYSTEM_SLEEP_PM_OPS(mtk_i2c_suspend_noirq,
+ 				  mtk_i2c_resume_noirq)
+ };

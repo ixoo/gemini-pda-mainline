@@ -1,0 +1,25 @@
+experiment=2026-07-19-keyboard-typed-watchdog-reboot-diagnostic
+candidate_label=Y
+date_utc=2026-07-20
+result=PASS
+runtime_result=not-tested
+
+[selected-inputs]
+baseline=candidate-X-keyboard-manual-reboot-final-bf400387
+candidate=candidate-Y-keyboard-typed-watchdog-reboot-final-94edd593
+candidate_raw_sha256=94edd593924c52f0224f1ba2134120b54516e622aee3c52de2781a4ec8e889ee
+candidate_initramfs_sha256=11b0a8ecb144ebde0c9802e0cf7357b2d74b95e8ba44fbf6007a9f4d0d8bf3e2
+candidate_manifest_sha256=310ac503b4bbd8c5a3d5c31bcecb473064d5207ff30ad73111325ffe1a1c56a6
+
+[validation]
+positive_controls=passed
+intended_mutation_count=35
+intended_mutation_rejections=35
+result=passed-35-of-35
+coverage=baseline,exact-four-member-delta,typed-only-watchdog-contract,archive,container,component,symlink,race,inventory,mode,manifest
+hardware_write=none
+flash=none
+
+The mutation suite is non-device validation. Its positive controls passed and
+all 35 intended corruptions were rejected. It establishes no Candidate Y
+runtime behavior.

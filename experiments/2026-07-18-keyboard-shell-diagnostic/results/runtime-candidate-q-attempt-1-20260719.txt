@@ -1,0 +1,45 @@
+experiment=2026-07-18-keyboard-shell-diagnostic
+candidate_label=Q
+date_utc=2026-07-19
+attempt=1
+result=failed-first-visible-console-gate
+
+[installed-identity]
+raw_boot_image_sha256=66cec945eff5c8d34acbf61382d267533e4ac6894aac19093904dd9008da27c3
+full_boot2_readback_sha256=ccf8d80f40b334dd3900d72901b1fa6ccdb9bf796a81c72b97bf680f2080508e
+logical_target=boot2
+resolved_target_at_write=/dev/mmcblk0p30
+
+[owner-observation]
+intended_selection=logical-boot2-candidate-Q
+working_text_console=no
+exact_visible_text=not-recorded
+q_marker=not-confirmed
+aw9523_binding=not-observed
+matrix_input_device=not-observed
+raw_input_events=not-observed
+interactive_shell=not-observed
+owner_summary=Q-does-not-boot-a-working-text-console;cannot-tell-if-anything-else-worked
+
+[post-recovery-read-only-check]
+known_good_root=/dev/mmcblk0p29
+known_good_boot_id=dc5228f8-48e4-4cfc-95b1-e6f54de03558
+pstore_files=none
+q_specific_pstore_evidence=none
+remote_pstore_records_removed=no
+
+[interpretation]
+candidate_acceptance=failed
+kernel_entry=unestablished
+init_entry=unestablished
+display_or_tty_failure=possible
+aw9523_reset_or_probe_failure=possible
+gpio87_interrupt_stall=possible
+keyboard_function=unestablished
+shell_function=unestablished
+repeat_unchanged_q=no
+
+The report establishes only that the exact installed Q image did not provide
+the required working text console during this intended selection. It does not
+identify the failing layer. The empty post-recovery pstore check supplies no
+positive or negative proof of Q kernel or initramfs execution.

@@ -1,0 +1,62 @@
+[record]
+date_local=2026-07-21
+experiment=2026-07-20-mt6797-kernel-restart-diagnostic
+candidate=AB
+operation=standing-latest-validated-candidate-boot2-sync
+result=write-synced-flushed-full-readback-verified
+runtime_result=pending-not-tested
+
+[candidate]
+artifact=candidate-AB-mt6797-kernel-restart-final-61c74592
+artifact_manifest_sha256=f7500569b83cf36e2bfcb0c7db3cef33a3c3776e85615c5719acf64e6f2accb0
+raw_boot_image_bytes=7378944
+raw_boot_image_sha256=61c74592267466735164c19f8b831ea18db2892de95e32109f2aacd7ec5c5446
+padded_boot2_bytes=16777216
+padded_boot2_sha256=b58c0347d34a3fd9031c74cb03447dd7a6fc630d5b8ea2b7eabc36827e754350
+
+[live_prewrite_gate]
+target_logical_name=boot2
+target=/dev/mmcblk0p30
+target_partition_number=30
+target_size=16777216
+target_writable=yes
+active_root=/dev/mmcblk0p29
+target_is_active_root=no
+target_mounted=no
+target_active_swap=no
+target_holders=none
+power_raw=1|1|Full|100|Good
+power=ac-online|battery-present|Full|100|Good
+boot_id=0f8def4f-3f94-4c57-a34c-2bb37315b19f
+expected_previous_candidate=AA-r1-hardware-passed
+prewrite_full_partition_sha256=38b49c7c19c2d97fa0c48436545219489221aa367aedf491ae6ebd4ec4856703
+
+[backup_and_write]
+private_backup_dir=artifacts/device-partitions/pre-candidate-ab-20260721T113409Z
+private_backup_mode=0700
+private_files_mode=0600
+backup_full_partition_sha256=38b49c7c19c2d97fa0c48436545219489221aa367aedf491ae6ebd4ec4856703
+target_write_count=1
+target_write_scope=exact-16777216-byte-padded-image-to-live-resolved-boot2-only
+sync=completed
+block_flush=completed
+remote_staging_removed=yes
+
+[verification]
+remote_post_flush_sha256=b58c0347d34a3fd9031c74cb03447dd7a6fc630d5b8ea2b7eabc36827e754350
+local_full_readback_bytes=16777216
+local_full_readback_sha256=b58c0347d34a3fd9031c74cb03447dd7a6fc630d5b8ea2b7eabc36827e754350
+local_full_readback_byte_comparison=identical
+private_evidence_manifest_sha256=cba3b84cb8082d0b1fe3cf342977f66a585ab13b095de35c59134a67c2b67444
+post_gate_boot_id=0f8def4f-3f94-4c57-a34c-2bb37315b19f
+post_gate_power_raw=1|1|Full|100|Good
+post_gate_power=ac-online|battery-present|Full|100|Good
+reboot_or_shutdown_performed=no
+
+[interpretation]
+The guarded installer replaced exact, hardware-passed AA r1 on the inactive,
+live-GPT-resolved logical boot2 partition with exact Candidate AB, then required
+a matching remote checksum and complete local byte-for-byte readback. This
+establishes stored bytes and installation safety only. The device remained in
+its known-good OS; Candidate AB has not yet been selected or run, so its kernel
+restart hypothesis remains untested.

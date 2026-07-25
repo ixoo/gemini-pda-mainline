@@ -1,0 +1,58 @@
+From 5f8ce8347e79fffdb7e5d6bd8e95a7f015106860 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 24 Jul 2026 15:01:56 -0400
+Subject: [PATCH 4/4] arm64: dts: mediatek: enable childless Gemini I2C6 after
+ handoff
+
+Enable only I2C6 behind the DVFSP handoff access dependency.
+
+Leave it childless and remove regulator and A72-power policy.
+
+Signed-off-by: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+---
+ .../boot/dts/mediatek/mt6797-gemini-pda.dts   | 28 +++----------------
+ 1 file changed, 4 insertions(+), 24 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+index 618d305..04732a5 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -222,34 +222,14 @@
+ };
+ 
+ &i2c6 {
+-	clock-frequency = <3400000>;
+-	mediatek,use-push-pull;
+-	pinctrl-names = "default";
+-	pinctrl-0 = <&i2c6_pins_a>;
+-	status = "disabled";
+-
+-	da9214: regulator@68 {
+-		compatible = "dlg,da9214";
+-		reg = <0x68>;
+-
+-		regulators {
+-			da9214_bucka: BUCKA {
+-				regulator-name = "da9214-bucka";
+-			};
+-
+-			da9214_buckb: BUCKB {
+-				regulator-name = "vproc-big";
+-			};
+-		};
+-	};
+-};
+-
+-&a72_power {
+-	vproc-big-supply = <&da9214_buckb>;
++	access-controllers = <&dvfsp_handoff>;
+ 	status = "okay";
+ };
+ 
++/delete-node/ &a72_power;
++
+ &dvfsp_handoff {
++	#access-controller-cells = <0>;
+ 	status = "okay";
+ };
+ 

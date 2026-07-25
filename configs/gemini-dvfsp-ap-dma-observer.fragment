@@ -1,0 +1,3 @@
+# Read-only Common Clock Framework visibility for the AP_DMA ownership test.
+# This profile mounts debugfs from initramfs and only reads clk_summary.
+CONFIG_DEBUG_FS=y

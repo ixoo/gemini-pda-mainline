@@ -1,0 +1,85 @@
+Gemian MT6797 A72 owner-observer source/static validation
+Recorded: 2026-07-24T00:49:12Z (2026-07-23 America/New_York)
+
+Scope
+-----
+This result covers source preparation and static validation only. No recovery
+VM, device, partition, boot image, configuration, policy or hardware state was
+accessed or changed. No source build or compiler-warning review was performed.
+
+Source identity
+---------------
+Selected public hook-equivalent baseline:
+  gemian/gemini-linux-kernel-3.18
+  59e00a9144d782e148332009a835b99c43382467
+
+The exact source for the active Gemian kernel remains unresolved. The baseline
+above is not claimed to be the exact active source.
+
+Observer source commits:
+  7bddafa6756e415a371e5cf14383c96b8469ded0
+  c8475b569567bf71f3ffcca09d27f0c025d6d208
+  429afb35a3b5ccaec976d31288dd52148855ef79
+  349f24b6e10df6e1d24c79a23d75c8361ac68b28
+
+Patch SHA-256
+-------------
+90a89dfb2062d008f7f8db1106adcb46f6ee244716e543979c26649a095d873b  0001-diagnostic-add-fixed-MT6797-A72-transition-ring.patch
+bdcaa91e4871782a7227bb92092579a4206c39984180cd391aa00db473fee839  0002-diagnostic-add-owner-local-fixed-A72-snapshots.patch
+c2e1a5404f3e5375e3bcd85e4ea56e9aa1faf873e873ec4937b9690837f85842  0003-diagnostic-record-A72-power-mutations-under-owners.patch
+182f16db2b156c83564aaf770bcb4dbe513c229749c6b0d5207ac80760d59e0b  0004-diagnostic-correlate-A72-hotplug-lifecycle.patch
+
+Static results
+--------------
+PASS  Four format patches applied in series order to a detached 59e00a...
+      worktree. Each patch passed git apply --check before application.
+PASS  The resulting observer diff passed git diff --check.
+PASS  The tracked experiment diff passed git diff --check.
+PASS  scripts/validate.py:
+        fixed source-path set and format-patch commit provenance
+        CONFIG-gated 2048-entry static typed ring
+        proc mode 0400 and no write/ioctl/control callback
+        no added BUG/WARN/panic/module parameter/secure write
+        exact DA9214/SPM/secure/clock fixed allowlists
+        owner lock and mutation-readback tokens
+        TOPRGU, raw/mapped PSCI, secondary and HPS ordering
+        exact active component hashes and compiler gate in documentation
+PASS  scripts/test-static.py:
+        unmodified series accepted
+        writable-proc-mode mutation rejected
+        secure-address mutation rejected
+        proc-write-callback mutation rejected
+PASS  Python 3.14.6 ast.parse for both experiment scripts.
+
+Tool limitation
+---------------
+NOT RUN TO COMPLETION  The vendor tree's scripts/checkpatch.pl cannot compile
+under host Perl 5.34.1:
+
+  Unescaped left brace in regex is passed through in regex; marked by <-- HERE
+  in m/^(.\\s*){ <-- HERE \\s*/ at scripts/checkpatch.pl line 2989.
+  Unescaped left brace in regex is illegal here in regex; marked by <-- HERE in
+  m/\\#\\s*define.*do\\s{ <-- HERE / at scripts/checkpatch.pl line 3277.
+
+Exit status was 2. This is a tool incompatibility, not a checkpatch pass.
+
+Unresolved mandatory gates
+--------------------------
+1. Apply/build the final series from clean source using only:
+     /home/julien.guest/toolchains/debian-stretch-20170618-arm64-rootfs
+   Debian snapshot 20170618T000000Z; gcc-6 Debian 6.3.0-18,
+   GCC 6.3.0 20170516; GNU ld 2.28.
+   Do not substitute the 2019 +deb9u1 rootfs.
+2. Preserve and review every compiler warning and the exact configuration diff.
+3. Review owner serialization and transition timing independently, especially
+   DA9214 selector traffic/lock duration, fixed SMC reads, the nominal 2 ms
+   DVFSP semaphore attempt, added readbacks and new MP2 DCM serialization.
+4. Run a compatible checkpatch implementation or record an reviewed equivalent.
+5. Define a separate named artifact, recovery procedure and discriminating
+   hardware experiment before any device boot.
+
+Candidate scope
+---------------
+This series has no boot-candidate label. AL remains mainline resource-only and
+AM remains the first mainline image with active CPU8. This is a separate
+vendor-kernel diagnostic patch series.

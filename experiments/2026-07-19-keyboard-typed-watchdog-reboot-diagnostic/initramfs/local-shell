@@ -1,0 +1,17 @@
+#!/bin/busybox sh
+# shellcheck shell=dash
+
+export PATH=/bin
+export TERM=linux
+export PS1='GEMINI-Y# '
+
+foreground_vt=failed
+if /bin/busybox chvt 1; then
+	foreground_vt=selected
+fi
+/bin/busybox stty sane
+/bin/busybox clear
+/bin/x-record "tty1_shell=ready foreground_vt=$foreground_vt prompt=GEMINI-Y# reboot_command=reboot"
+printf '%s\n' 'GEMINI_KEYBOARD_TYPED_WATCHDOG_REBOOT_20260719_Y'
+printf '%s\n' 'Type reboot then Enter to arm the 31-second hardware-watchdog return.'
+exec /bin/busybox ash -i

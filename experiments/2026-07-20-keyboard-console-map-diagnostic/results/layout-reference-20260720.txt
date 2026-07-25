@@ -1,0 +1,52 @@
+[record]
+date_local=2026-07-20
+experiment=2026-07-20-keyboard-console-map-diagnostic
+scope=US-keyboard-layout-reference
+device_variant=current-Gemini-PDA-unit
+
+[owner_photo]
+source_path=/Users/julien/Downloads/IMG_2392.heic
+source_sha256=bc1b8bd28aec4ff46598de1ff9314c92c7dc61d5b1013b98a93e0ef4edce9cf9
+local_conversion=/private/tmp/gemini-keyboard-IMG_2392.png
+local_conversion_sha256=864e9486fe0ab16db868f6de23cb95befaaf8d635d185151ea3b2813e870ded1
+stored_in_repository=no
+observation=The photograph shows the US shifted punctuation, printed Fn symbols, media and brightness icons, Caps, and Home/PgUp/PgDn/End legends.
+evidence_boundary=A printed legend does not prove its electrical coordinate, emitted keycode, or associated subsystem action.
+
+[known_good_userspace]
+capture_method=authenticated-read-only-live-file-hash-and-inspection
+path=/usr/share/X11/xkb/symbols/planet_vndr/gemini
+sha256=56baafdde43da9e3d66474f231a9bfd9d8d9fda40cd4c4af939ae1251db426cb
+layout=us
+fn_input=KEY_LEFTMETA/LWIN
+fn_policy=ISO_Level3_Shift-Mod5
+observed_scope=Level3 printable-navigation-media-brightness-and-application symbols plus fourth-level F1-F10 on the number row
+copied_to_repository=no
+
+[candidate_aa_boundary]
+candidate_revision=AA-r0-historical
+status=superseded-before-boot
+kernel_matrix_map=unchanged-from-candidate-Z-and-working-3.18-normalization
+console_map_source=checksum-pinned-Linux-v7.1-default-map-plus-photo-selected-US-console-delta
+printable_and_navigation_legends=implemented
+media_brightness_airplane_voice_application_phone_power_actions=not-guessed-into-VT-map
+reason=Those are userspace actions or separate input paths, not printable Linux-VT keysyms; several referenced subsystems are absent from the diagnostic initramfs.
+f1_f10_fourth_level=not-added-because-not-printed-in-owner-photo
+
+[successor_policy]
+candidate_revision=AA-r1-current
+runtime_status=source-ready-not-built-not-installed
+console_map_sha256=02f8048d76aa0cedf73617b13ea03a2a4e74de88222cb1922d9d19630906675c
+f1_f10_fourth_level=Shift-Fn-digits-1-through-0-implement-F1-through-F10-from-authenticated-known-good-XKB-policy
+additional_delta=Fn-period-U+263A,complete-backslash-modifier-semantics,loaded-table-modifier-release-policy
+action_boundary=media-brightness-airplane-voice-application-phone-power-and-Sym-remain-userspace-or-separate-input-paths
+
+[interpretation]
+The independently captured known-good XKB policy corroborates KEY_LEFTMETA as
+the Fn/Level3 modifier and the photographed printable/navigation assignments.
+It also confirms that action legends belong above the ordinary kernel keycode
+interface. AA r0 omitted the corroborated fourth level and was superseded
+before boot; AA r1 deliberately mirrors F1-F10 in the VT map. AA r1 can
+validate the text-console layer without claiming
+that unavailable media, backlight, telephony, or power services performed an
+action.

@@ -1,0 +1,58 @@
+From 0000000000000000000000000000000000000087 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 20 Jul 2026 22:30:00 -0400
+Subject: [PATCH] watchdog: mtk: prioritize MT6797 TOPRGU restart
+
+The arm64 PSCI restart notifier runs at priority 129, while the MediaTek
+watchdog restart handler uses the watchdog-core default priority 128.  An
+attempted normal reboot on the Gemini PDA appeared to hang, although its
+internal failure stage was not captured.  The same hardware subsequently
+reset through the MT6797 TOPRGU watchdog expiry path, and the working 3.18
+kernel directs MT6797 restart through TOPRGU rather than PSCI.
+
+If the higher-priority PSCI call does not reset or return, the restart
+notifier chain cannot reach the existing TOPRGU software-reset callback.
+Make restart priority platform data and select priority 255 for MT6797,
+which the watchdog core defines as preempting all other restart handlers.
+Retain priority 128 for every other MediaTek watchdog variant.
+
+This changes only immediate restart-handler ordering.  It leaves PSCI CPU
+operations, watchdog timeout behavior, Device Tree, and configuration
+unchanged.  Hardware validation of the immediate TOPRGU restart remains a
+separate gate.
+---
+ drivers/watchdog/mtk_wdt.c | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/watchdog/mtk_wdt.c b/drivers/watchdog/mtk_wdt.c
+--- a/drivers/watchdog/mtk_wdt.c
++++ b/drivers/watchdog/mtk_wdt.c
+@@ -84,6 +84,7 @@ struct mtk_wdt_data {
+ 	int toprgu_sw_rst_num;
+ 	bool has_swsysrst_en;
+ 	bool use_auto_restart;
++	unsigned int restart_priority;
+ };
+ 
+ static const struct mtk_wdt_data mt2712_data = {
+@@ -100,6 +101,7 @@ static const struct mtk_wdt_data mt6795_data = {
+ 
+ static const struct mtk_wdt_data mt6797_data = {
+ 	.use_auto_restart = true,
++	.restart_priority = 255,
+ };
+ 
+ static const struct mtk_wdt_data mt7986_data = {
+@@ -460,7 +462,9 @@ static int mtk_wdt_probe(struct platform_device *pdev)
+ 
+ 	watchdog_init_timeout(&mtk_wdt->wdt_dev, timeout, dev);
+ 	watchdog_set_nowayout(&mtk_wdt->wdt_dev, nowayout);
+-	watchdog_set_restart_priority(&mtk_wdt->wdt_dev, 128);
++	watchdog_set_restart_priority(&mtk_wdt->wdt_dev,
++				      wdt_data && wdt_data->restart_priority ?
++				      wdt_data->restart_priority : 128);
+ 
+ 	watchdog_set_drvdata(&mtk_wdt->wdt_dev, mtk_wdt);
+ 
+-- 
+2.43.0

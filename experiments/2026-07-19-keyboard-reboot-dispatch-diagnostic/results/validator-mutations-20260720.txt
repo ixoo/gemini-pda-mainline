@@ -1,0 +1,10 @@
+validation=candidate-z-validator-mutations
+positive_controls=exact-y-baseline,z-initramfs,dynamic-dispatch,z-boot,final-artifact
+mutation_rejections=75-of-75
+failure_attribution=semantic-not-source-pin-or-archive-source-masking
+dispatch_matrix=standalone,ENV,alias,oracle,absolute-bin-reboot-wrapper,parent-shell-continuation
+watchdog_matrix=live-no-irq-preflight,function-open,single-ping,held-fd,no-fallback,countdown,static-holds
+automatic_paths=init,local-shell,recorder,probe,inittab
+final_artifact_matrix=inventory,modes,symlinks,manifest,dispatch,y-payloads,input-tree,provenance,basename,race
+device_contact=none
+hardware_write=none

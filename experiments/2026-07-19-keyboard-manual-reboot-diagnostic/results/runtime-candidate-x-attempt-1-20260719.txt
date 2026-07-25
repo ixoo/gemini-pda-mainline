@@ -1,0 +1,136 @@
+[record]
+date=2026-07-19
+source=owner-attended report plus authenticated post-recovery pstore/state and sanitized boot-reason capture
+candidate=X
+attempt=1
+runtime_repetitions=1
+intended_boot_target=logical boot2 selected by the owner
+device_variant=current Gemini PDA unit; exact retail sub-variant not independently established
+
+[exact_artifact_and_target]
+package=linux-7.1.3-gemini-observability-fbcon-rotation-keyboard-wrrd-manual-reboot-4cd417ad-c811a159
+repo_revision=6296368ea0c1224cbff76dfcd02a1385c0857b16
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=4cd417adb0d79aad2f021e1f07e47bed4825cb51b3a069e5258ea4eb49ca5ef4
+config_inputs_sha256=c811a1595510716777871637672f4298f4808b1d4fcea5c5da1d05d37676baa2
+resolved_config_sha256=0a0e4ef39d5d89d0d54f55be44da753c93779d88bb94b35623679d1b08b66e74
+candidate_dtb_sha256=bc160c428b83903524aa92046d5ed1da44e87f0f1c6dacfbb33cb6a9f2ee963f
+candidate_initramfs_sha256=b54ce3cd75e7947ed867165e31abbf6ee6cbac7d41d171435f99bba7825bc769
+raw_boot_image_bytes=6864896
+raw_boot_image_sha256=bf4003871daaba1faa293f2b128021d3a67d41ebf3ddff1c42463409803b9296
+installed_full_partition_bytes=16777216
+installed_full_partition_sha256=e89d71f15465b544db163b5f0b90b456e913c38ba4d2ed49aa7bde345148c855
+write_sync_flush=pass
+full_partition_readback=pass-byte-identical-to-padded-candidate
+candidate_x_selection=intended-by-owner
+independent_selected_image_identity=not-established; no exact X marker survived
+
+[owner_observation]
+candidate_x_boot=owner-confirmed
+pre_reboot_behavior=worked-by-owner-report
+typed_command=reboot
+observed_command_outcome=seemed-to-hang
+automatic_return_after_typed_command=not-observed
+recovery_action=owner-power-key-recovery-is-supported-by-current-Gemian-boot-reason
+exact_visible_x_marker=not-transcribed
+exact_manual_reboot_request_text=not-transcribed
+exact_manual_reboot_failure_text=not-transcribed
+photograph_or_video=none-reported
+known_good_os_after_recovery=Gemian-Linux-3.18.41+
+
+[private_post_recovery_capture]
+private_capture=artifacts/device-pstore/candidate-x-attempt-1-20260719
+capture_directory_mode=0700
+capture_file_modes=0600
+private_capture_sha256s_manifest_sha256=f67a0ff9974ae49ea258a525dd72ce72534eeb0647d301fcc90843fe8adcdd3d
+private_capture_manifest_verification=pass
+collector_started_utc=2026-07-19T23:03:19Z
+collector_waited_for_cycle=no
+collector_disconnect_reconnect_observation=not-requested
+capture_kernel=3.18.41+
+capture_arch=aarch64
+current_boot_id_sha256=ae0ec58e9fff9b4082b4d373ae26687ee319eb9e0b30a5b93d70904be86c54a2
+boot_id_stable_across_metadata_and_archive=yes
+current_root=/dev/mmcblk0p29
+bound_state_sample_utc=2026-07-19T23:04:05Z
+current_gemian_uptime_seconds_at_sample=214.99
+current_uptime_is_candidate_x_uptime=no
+pstore_directory=present
+pstore_regular_file_count=0
+pstore_archive_members=directory-entry-only
+collector_candidate_l_evidence_file=not-applicable-hard-coded-candidate-l-parser; ignored-for-candidate-X-attribution
+remote_pstore_records_removed=no
+partition_access_during_capture=none
+remote_reboot_or_shutdown_during_capture=none
+
+[retained_candidate_evidence]
+candidate_marker=GEMINI_KEYBOARD_MANUAL_REBOOT_20260719_X
+candidate_marker_retained=absent
+manual_reboot_request_marker=GEMINI_KEYBOARD_MANUAL_REBOOT_20260719_X manual_reboot=requested method=busybox-forced storage_access=none
+manual_reboot_request_marker_retained=absent
+manual_reboot_failure_marker=GEMINI_KEYBOARD_MANUAL_REBOOT_20260719_X manual_reboot=failed status=STATUS
+manual_reboot_failure_marker_retained=absent
+candidate_console_text_retained=none
+candidate_keyboard_event_records_retained=none
+candidate_shell_marker_retained=none
+candidate_uptime_or_wait_marker_retained=none
+panic_oops_bug_or_call_trace=not-available; pstore was empty
+
+[post_recovery_boot_reason]
+query_utc=2026-07-19T23:06:13Z
+query=authenticated-read-of-non-identifying-fields-only
+android_bootreason=power_key
+powerup_reason=keypad
+boot_reason_numeric=unavailable
+serial_and_personal_boot_fields=not-read-or-recorded
+current_gemian_entry=power-key-recovery
+typed_reboot_completed_to_current_Gemian=not-established
+
+[facts_and_inference]
+fact_owner_report=X booted and worked before the typed reboot command appeared to hang
+fact_post_recovery_state=Gemian is running from mmcblk0p29 with a stable boot ID
+fact_pstore=zero regular files; no X marker, reboot marker, console line, event, or X timing evidence survived
+fact_boot_reason=current Gemian reports power_key and keypad
+inference_manual_recovery=the current boot reason supports owner power-key recovery rather than an unassisted X return
+inference_wrapper_entry=typing reboot followed by the apparent hang is consistent with the tracked wrapper being resolved and invoked, but does not establish it
+inference_restart_stage=the evidence cannot distinguish shell command resolution, wrapper entry, BusyBox reboot syscall entry, kernel restart handling, or platform reset as the failure boundary
+empty_pstore_interpretation=absence of retained records is inconclusive; it does not prove that X markers were never emitted
+
+[gate_results]
+candidate_x_boot=pass-by-owner-report
+pre_reboot_interaction=pass-only-at-owner-report-level
+exact_x_kernel_and_initramfs_entry=not-durably-established
+keyboard_input=worked-only-as-part-of-owner-report; no X event record survived
+interactive_shell=worked-only-as-part-of-owner-report; no X shell marker survived
+clean_console=not-separately-transcribed-or-retained
+uptime_beyond_candidate_W_watchdog_boundary=not-retained
+typed_manual_reboot_acceptance=fail-by-owner-observed-apparent-hang
+manual_reboot_request_marker=not-observed
+manual_reboot_failure_marker=not-observed
+manual_reboot_failure_stage=unknown
+unassisted_return_to_Gemian=not-observed
+post_recovery_known_good_OS=pass
+
+[boundaries]
+repeatability=not-established
+exact_candidate_runtime_identity=not-retained
+full_keyboard_coverage=not-tested
+console_log_isolation=not-durably-recorded
+candidate_x_uptime=not-recorded
+reboot_wrapper_entry=not-established
+reboot_syscall_entry=not-established
+kernel_restart_handler_entry=not-established
+platform_reset_request=not-established
+pstore_retention_across_this_recovery=failed-or-unavailable
+
+[decision]
+candidate_x_manual_reboot_gate=failed-operationally-with-unknown-internal-boundary
+preserve_owner_report=X-boot-and-pre-reboot-use-worked
+do_not_claim=exact-X-marker,retained-keyboard-events,clean-console,X-uptime,reboot-wrapper-entry,reboot-syscall-entry,or-successful-restart
+next_investigation=separate-the-wrapper,syscall,kernel-restart,and-platform-reset-boundaries-before-another-device-boot
+
+This is one owner-attended runtime report followed by a non-cycle-aware empty
+pstore capture. It records that X booted and worked by owner report and that a
+typed `reboot` appeared to hang. It does not durably establish exact X entry,
+the individual keyboard/console/shell sub-gates, any X uptime, wrapper or
+syscall entry, or the internal restart failure stage.

@@ -48,6 +48,9 @@ Build overrides:
   KERNEL_PROFILE=NAME   Select a manifest kernel profile (default: full)
   BUILD_MODULES=1       Also install CONFIG_*=m outputs into modules/
   KERNEL_JOBS=N          Parallel kernel build jobs (default: guest policy)
+  GEMINI_SOURCE_ROOT    Absolute guest-local source root (build-kernel only)
+  GEMINI_BUILD_ROOT     Absolute guest-local build root (build-kernel only)
+  GEMINI_ARTIFACT_ROOT  Absolute guest-local artifact root (build-kernel only)
 EOF
 }
 
@@ -66,7 +69,9 @@ require_lima() {
 }
 
 instance_exists() {
-  limactl list --format '{{.Name}}' 2>/dev/null | grep -Fxq "${INSTANCE}"
+	# Do not use grep -q here. With pipefail enabled it may close the pipe after
+	# an early match, making limactl report SIGPIPE when another instance follows.
+	limactl list --format '{{.Name}}' 2>/dev/null | grep -Fx "${INSTANCE}" >/dev/null
 }
 
 install_host() {
@@ -286,7 +291,8 @@ case "${COMMAND}" in
     # Forward only the documented build controls; the repository mount remains
     # read-only and all generated sources/artifacts stay in the guest.
     build_env=()
-    for variable in KERNEL_PROFILE BUILD_MODULES KERNEL_JOBS; do
+    for variable in KERNEL_PROFILE BUILD_MODULES KERNEL_JOBS \
+      GEMINI_SOURCE_ROOT GEMINI_BUILD_ROOT GEMINI_ARTIFACT_ROOT; do
       if [[ -n "${!variable:-}" ]]; then
         build_env+=("${variable}=${!variable}")
       fi

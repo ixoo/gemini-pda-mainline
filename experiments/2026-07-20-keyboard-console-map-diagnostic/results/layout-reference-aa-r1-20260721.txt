@@ -1,0 +1,70 @@
+[record]
+date_local=2026-07-21
+experiment=2026-07-20-keyboard-console-map-diagnostic
+candidate=AA
+candidate_revision=r1
+scope=US-keyboard-layout-policy-and-artifact-identity
+device_variant=current-Gemini-PDA-unit
+runtime_result=pass-once-with-explicitly-unconfirmed-function-and-page-keys
+
+[owner_photo]
+source_sha256=bc1b8bd28aec4ff46598de1ff9314c92c7dc61d5b1013b98a93e0ef4edce9cf9
+local_conversion_sha256=864e9486fe0ab16db868f6de23cb95befaaf8d635d185151ea3b2813e870ded1
+stored_in_repository=no
+observation=US shifted punctuation, printed Fn symbols, media and brightness icons, Caps, and Home/PgUp/PgDn/End legends
+evidence_boundary=printed legends do not prove electrical coordinates, emitted keycodes, or userspace subsystem actions
+
+[known_good_userspace]
+capture_method=authenticated-read-only-live-file-hash-and-inspection
+path=/usr/share/X11/xkb/symbols/planet_vndr/gemini
+sha256=56baafdde43da9e3d66474f231a9bfd9d8d9fda40cd4c4af939ae1251db426cb
+layout=us
+fn_input=KEY_LEFTMETA-LWIN
+fn_policy=ISO_Level3_Shift-Mod5
+fourth_level=Shift-Fn-digits-1-through-0-as-F1-through-F10
+copied_to_repository=no
+
+[candidate_aa_r1_policy]
+status=built-validated-installed-readback-and-runtime-pass-once
+console_map_sha256=02f8048d76aa0cedf73617b13ea03a2a4e74de88222cb1922d9d19630906675c
+console_map_bytes=2311
+tables=0,1,2,3,4,5,8,12
+semantic_changes=53
+printable_and_navigation_legends=implemented
+shift_fn_f1_f10=implemented
+fn_period_smiley=implemented-as-U+263A
+backslash_plain_shift_control_alt=implemented
+modifier_release_tables=implemented-for-loaded-combinations
+media_brightness_airplane_voice_application_phone_power_sym=not-guessed-into-VT-map
+reason=nonprintable actions require userspace services or separately evidenced input paths absent from the diagnostic initramfs
+
+[runtime_oracle]
+normal_prompt=GEMINI-AA-R1#
+failure_prompt=GEMINI-AA-R1-KEYMAP-FAIL#
+normal_prompt_proves=keymap-sha256,K_UNICODE,existing-exact-or-safe-preflight-load,all-2048-declared-table-entries,upper-half-holes,all-undeclared-tables-absent
+manual_printable_groups=digits,shifted-digits,Fn-symbols,backslash-pipe-colon,comma-slash-dot-question-smiley,plus-minus-equals-underscore-semicolon-doublequote-apostrophe
+manual_navigation=Fn-Tab-Caps,Fn-arrows-Home-PgUp-PgDn-End
+manual_functions=Shift-Fn-1-through-0-F1-through-F10
+manual_modifiers=Tab,both-Shift,Ctrl,Alt,Fn,and-release-orderings
+idle_gate=greater-than-45-seconds-with-no-automatic-watchdog-owner
+recovery=typed-Candidate-Z-watchdog-command-retained-for-isolation
+
+[artifact_and_install]
+artifact=candidate-AA-keyboard-console-map-final-37e82bf3
+raw_boot_sha256=37e82bf3be87dd9e52fb8d60597b69f92a5c0dc5aebd51d178f1e7efd33343d7
+padded_boot2_and_readback_sha256=38b49c7c19c2d97fa0c48436545219489221aa367aedf491ae6ebd4ec4856703
+attended_test_completed=yes
+hardware_map_result=pass-once-by-owner-report-plus-exact-retained-load-readback-gate
+retained_kernel_entry_readback=2048-exact
+retained_idle_without_automatic_watchdog=greater-than-123-seconds
+f1_f10=unconfirmed-not-failed
+page_up_page_down=unconfirmed-not-failed
+runtime_result_record=runtime-candidate-aa-r1-attempt-1-20260721.txt
+
+[interpretation]
+The photo and authenticated Gemian XKB file justify the printable, navigation,
+and F1-F10 policy implemented in AA r1. They do not justify mapping service
+actions into Linux VT keysyms. The attended run passed the overall map gate
+once and retained exact load/readback evidence, while leaving F1-F10 and Page
+Up/Page Down explicitly unconfirmed because the console offered no visible
+discriminator.

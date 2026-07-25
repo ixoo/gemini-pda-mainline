@@ -1,0 +1,72 @@
+RT5735 and A72-rail cross-check against bsg100/gemini-linux
+date=2026-07-23
+reference_repository=https://github.com/bsg100/gemini-linux
+reference_commit=e744a43f9d68cd3251dc0c9743ca41aac74853a8
+reference_commit_date=2026-07-21T16:48:42+08:00
+driver_ports_sha256=85f6df430fd028b7a2a4b699a346eb8a2474534421376e59180c9f46c61dd105
+vendor_dtb_sha256=b40d7f08478a7e0c44073a37d165aed215f1b36351de1e4d2ac0abf56c2ddb13
+fan53555_patch_sha256=241d61095808b49318cbfaec5a9a50f3103b7a7c61ddf725e1a1d5cbb4edbc2c
+blockers_sha256=beb48a2bb7da8bf9f16b9c202845b6a05cf1993dd98726640cb88342484ee265
+method=temporary-read-only-clone-and-source-comparison
+
+Reference status
+- The RT5735 variant is described as compiled built-in on 2026-06-10.
+- The reference explicitly says it has not been tested on hardware.
+- Its blocker record says PID, VSEL polarity, and slew details remain
+  verification-blocked and the driver must not be enabled yet.
+
+Rail-identity reconciliation
+- driver_ports.md describes RT5735 broadly as VPROC/VGPU and labels I2C7
+  address 0x1c as vproc.
+- Its "dual-output" wording conflates two selectable voltage-state registers
+  for one regulator output with two independent outputs; its own fan53555
+  variant registers only one regulator.
+- The same exact reference tree's captured vendor DT instead has:
+  - I2C6 address 0x68: mediatek,vproc_buck
+  - I2C7 address 0x1c: rt,rt5735-regulator
+  - I2C7 address 0x60: separate mediatek,vgpu_buck candidate
+- The reference's later A72 blocker correctly identifies the big-cluster
+  voltage/SRAM precondition as an I2C6 path, but reports no DA9214 register
+  sequence or tested A72 solution.
+- This agrees with this repository's stronger live/source evidence:
+  DA9214 BUCKB on I2C6 0x68 is vproc-big, while the bound RT5735 at I2C7 0x1c
+  is the external GPU buck.
+
+Reusable RT5735 implementation ideas
+- The fan53555 variant reuses the existing VSEL0/VSEL1, mode, slew and suspend
+  architecture.
+- Its 600000-uV base, 6250-uV step, 128 selectors, VSEL0 0x11, VSEL1 0x10,
+  TIME 0x13, COMMAND 0x14 and ramp table agree with the recovered vendor
+  register model.
+- These are useful review inputs for the future GPU regulator provider.
+
+Reference implementation gaps
+- RT5735_PID 0x03 is defined but never read; no expected product ID is
+  enforced. This conflicts with driver_ports.md's own fail-closed probe rule.
+- The document's compatibility table calls COMMAND 0x14 bit 7 the rail
+  enable, while its register table calls that bit PWM/auto-mode and the patch
+  itself enables through VSEL0. The recovered vendor contract supports the
+  latter split: VSEL0 bit 7 enables the rail; COMMAND bit 7 selects mode.
+- The inherited Linux v6.6 FAN53555 probe instead reads the FAN53555 ID1/ID2
+  locations and accepts their masked values without an RT5735-specific match.
+- The inherited NORMAL-mode operation writes the mode mask to vol_reg rather
+  than mode_reg. For this variant that clears VSEL0 bit 7, which is the RT5735
+  rail-enable bit, instead of clearing COMMAND bit 7 to leave forced-PWM mode.
+  The FAST path uses COMMAND as intended, so this is an asymmetric and
+  potentially rail-disabling implementation defect.
+- The variant omits the recovered active-discharge operation at 0x12 bit 4.
+- It does not implement the recovered DVS-down field at 0x16 bits 2:1.
+- Its board node carries Richtek ramp properties that the actual patch does
+  not add to the modified fan53555 binding or parse in the driver.
+- The broad vproc label is contradicted by the exact vendor-DT bus split and
+  must not be carried into the A72 design.
+
+Decision
+- Do not substitute RT5735 or a fixed-vproc stub for DA9214 BUCKB in Candidate
+  AM.
+- Do not bypass Candidate AL's DA9211-family identity rejection.
+- Keep this repository's dedicated, exact-product-ID RT5735 provider disabled
+  and GPU-only. Reconsider fan53555 reuse, ramp/mode/suspend support, and
+  active-discharge coverage only as a separate RT5735 hardware experiment.
+- For A72 work, continue isolating the DA9214 I2C6 identity/page/protocol
+  mismatch and the owner-local Gemian transaction capture.

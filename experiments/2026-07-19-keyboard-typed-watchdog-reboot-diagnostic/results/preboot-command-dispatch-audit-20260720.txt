@@ -1,0 +1,51 @@
+experiment=2026-07-19-keyboard-typed-watchdog-reboot-diagnostic
+candidate_label=Y
+date_utc=2026-07-20
+result=REJECTED-PREBOOT
+runtime_result=not-tested
+device_contact=none
+
+[exact-artifact]
+candidate_raw_sha256=94edd593924c52f0224f1ba2134120b54516e622aee3c52de2781a4ec8e889ee
+candidate_initramfs_sha256=11b0a8ecb144ebde0c9802e0cf7357b2d74b95e8ba44fbf6007a9f4d0d8bf3e2
+busybox_sha256=52151e7f322f926b64049cdaa1410dc3ea6485525e0624b05813791c219ae933
+shell=BusyBox-ash-with-standalone-applets
+path=/bin
+displayed_operator_instruction=bare-reboot
+
+[command-dispatch]
+probe=type-reboot
+exact_output=reboot is reboot
+resolution=BusyBox-internal-reboot-applet
+standalone_applet_precedes_PATH_lookup=yes
+external_wrapper=/bin/reboot
+external_wrapper_exists=yes
+external_wrapper_selected_by_bare_reboot=no
+typed_watchdog_wrapper_reached_by_displayed_instruction=no
+generic_reboot_path_bypassed=no
+
+[wrapper-open-failure-audit]
+exact_construct=if-exec-fd3-redirection-then-else-refuse
+wrapper_interpreter=noninteractive-BusyBox-ash
+exec_redirection_failure=exits-noninteractive-shell
+else_refusal_branch=unreachable-on-watchdog-open-failure
+watchdog_armed_on_open_failure=no
+safety_effect=no-watchdog-arm-but-missing-intended-refusal-marker-and-return
+
+[evidence-boundary]
+build_validation=passed-before-this-audit
+logical_boot2_install_and_full_readback=passed-before-this-audit
+candidate_y_selected=no
+candidate_y_booted=no
+candidate_y_runtime_evidence=none
+preboot_gate=failed
+boot_authorized=no
+disposition=do-not-boot
+superseded=pending-Candidate-Z
+
+Candidate Y's `/bin/reboot` wrapper contains the intended typed-only watchdog
+preflight and expiry logic, but the exact BusyBox standalone-shell dispatch
+contract makes the displayed bare `reboot` command invoke BusyBox's internal
+reboot applet instead. The result would re-enter the generic restart path that Y
+was designed to avoid. This is a decisive pre-boot rejection: valid build and
+partition evidence do not make Y safe or diagnostically attributable to boot.

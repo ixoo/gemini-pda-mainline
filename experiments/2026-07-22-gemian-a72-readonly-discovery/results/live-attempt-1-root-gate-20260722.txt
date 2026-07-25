@@ -1,0 +1,44 @@
+Gemian A72 read-only discovery: live attempt 1 root-identity gate
+Date: 2026-07-22
+Device variant: current named Gemini PDA unit
+Result: SAFE PRE-VENDOR STOP
+
+Attempt 1 collector revision:
+collect_wrapper_sha256=00b4b7512358c202615df53c0af62cdc804abfc1d40940c480b9899846aedff7
+bounded_exec_sha256=7b84c1e9d9fbdb7fd35582ba031fb200d6173245edf53c7975f34a5459ff00be
+remote_probe_sha256=2c2939badc6db6684ec72049cea399e6ead3ac6015f26ccc2be73e23a02fc928
+failure=gate-root-mismatch
+observed_proc_mounts_root_source=rootfs
+vendor_callbacks_opened=none
+device_writes=none
+remote_files_created=none
+
+Private partial facts:
+mode=0600
+bytes=27
+sha256=4cfad8507bf664ab7fcb7e095897f623381ff9b8ee336f5ace1a6a296dfafac2
+exact_content=failure=gate-root-mismatch
+boot_id_retained=no
+plain_device_identifiers_retained=no
+
+Bounded generic identity corroboration after the stop:
+kernel=3.18.41+
+architecture=aarch64
+findmnt_root_source=/dev/mmcblk0p29
+proc_mounts_root_source=rootfs
+possible=0-9
+present=0-9
+vendor_callbacks_opened=none
+device_writes=none
+
+Interpretation:
+The old single-source root gate rejected safely because Gemian intentionally
+reports the root mount as rootfs in /proc/mounts. An independently bounded,
+read-only generic check confirmed that findmnt resolves the backing source to
+/dev/mmcblk0p29 while /proc/mounts remains rootfs. No A72 observer value was
+collected and this attempt makes no hardware-support claim.
+
+Decision:
+Require both representations independently: findmnt must report exactly
+/dev/mmcblk0p29 and the /proc/mounts root record must report exactly rootfs.
+Fail closed when either source is absent, unreadable, fails, or mismatches.

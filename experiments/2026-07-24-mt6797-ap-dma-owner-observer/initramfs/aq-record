@@ -1,0 +1,13 @@
+#!/bin/busybox sh
+# shellcheck shell=dash
+
+readonly MARKER='GEMINI_MT6797_AP_DMA_CLK_OBSERVER_20260724_AQ'
+line="$MARKER $*"
+
+printf '%s\n' "$line" >>/run/aq-status 2>/dev/null || true
+if [ -c /dev/kmsg ]; then
+	printf '<6>%s\n' "$line" >/dev/kmsg 2>/dev/null || true
+fi
+if [ -c /dev/ttyS0 ]; then
+	printf '%s\n' "$line" >/dev/ttyS0 2>/dev/null || true
+fi

@@ -1,0 +1,86 @@
+[record]
+date_local=2026-07-20
+source=owner-attended report plus authenticated read-only post-return capture
+candidate=Z
+attempt=1
+runtime_repetitions=1
+intended_boot_target=logical boot2 selected manually by the owner
+device_variant=current Gemini PDA unit; exact retail sub-variant not independently established
+
+[exact_installed_artifact]
+artifact=candidate-Z-keyboard-reboot-dispatch-final-985a6472
+artifact_manifest_sha256=534484e5362e1e4c73ec8438bd36656b444e88199dbd17724a160c75403dbaaa
+raw_boot_image_bytes=6866944
+raw_boot_image_sha256=985a6472b7fdbfd4c58da4773a8c2cae1e3aa40ea90240eb2b309390ed7674b9
+initramfs_sha256=a21cc6bed9024bba9e01864aeb0c6c3339231d217f77ff5fa733ea33e6a0e7d2
+final_dtb_sha256=bc160c428b83903524aa92046d5ed1da44e87f0f1c6dacfbb33cb6a9f2ee963f
+installed_full_partition_bytes=16777216
+installed_full_partition_sha256=ba21e6424f94c82f14fd51b5681eea68d6cf09e9177e4f9ca2061c9f129abb40
+write_sync_flush=pass
+full_partition_readback=pass-byte-identical-to-padded-candidate
+candidate_z_selection=intended-by-owner
+independent_selected_image_identity=not-retained-in-pstore; exact-Z attribution rests on the guarded exclusive boot2 installation and owner selection/report
+
+[owner_observation]
+boot=success
+keyboard=still-works
+typed_reboot=watchdog-reboot-worked
+known_good_os_after_return=Gemian Linux 3.18.41+
+repeat_count=1
+exact_marker_transcription=not-reported
+exact_prompt_transcription=not-reported
+live_type_reboot_oracle=not-reported
+clean_tty1=not-reported
+idle_45_seconds=not-reported
+individual_key_coverage=not-reported
+countdown_transcription=not-reported
+
+[private_post_return_capture]
+private_capture=artifacts/device-pstore/candidate-z-attempt-1-post-return-20260721T020226Z
+capture_directory_mode=0700
+capture_file_modes=0600
+capture_started_utc=2026-07-21T02:05:01Z
+collector_waited_for_cycle=no; the owner had already observed the completed reboot
+capture_kernel=3.18.41+
+capture_arch=aarch64
+current_boot_id_sha256=095b10b1eeb4631cf0e3fc7d32fff32a4b51d4f19e9b62a5779b81168c9ce29d
+boot_id_at_install_sha256=cf029c1964d27677e94af57ffa3dcbb6dde9a4cd8a87d6f0adb20e1fd699682e
+current_boot_id_differs_from_install_boot_id=yes
+capture_boot_id_stable_across_metadata_and_archive=yes
+pstore_files=console-ramoops
+candidate_z_marker_in_console_ramoops=absent
+private_capture_sha256s_manifest_sha256=d5e6a02cd153574dc2367191e73ad18a71deeebaab2e7eefdc6e02af7b570f9f
+private_capture_manifest_verification=pass
+remote_pstore_records_removed=no
+partition_access=none
+remote_reboot_or_shutdown=none
+
+[post_return_boot_reason]
+query_utc=2026-07-21T02:20:00Z
+android_bootreason=wdt_by_pass_pwk
+powerup_reason=reboot
+boot_reason_numeric=unavailable
+serial_and_personal_boot_fields=not-read-or-recorded
+
+[gate_results]
+candidate_z_boot=pass-by-owner-report
+keyboard_regression=pass-by-owner-report
+typed_watchdog_return=pass-by-owner-report-plus-post-return-watchdog-class-boot-reason
+dispatch_alias_oracle=not-observed
+exact_wrapper_entry=not-observed
+one_ping_countdown_timing=not-retained
+clean_console=not-observed
+full_keymap=not-tested
+repeatability=not-established
+
+[conclusion]
+The exact installed Candidate Z booted successfully by owner report, retained
+working keyboard input, and returned automatically after the owner invoked its
+watchdog reboot command. The changed post-return boot ID and Gemian
+androidboot.bootreason=wdt_by_pass_pwk with powerup_reason=reboot independently
+corroborate a watchdog-class reset. Because no Z marker, dispatch oracle,
+wrapper entry, countdown timing, or individual key trace survived, this result
+does not prove each internal dispatch/preflight subgate or a complete keymap.
+It is sufficient to retire Z's typed-watchdog workaround as hardware-working
+and to proceed with separately attributable console-keymap and kernel-restart
+experiments.

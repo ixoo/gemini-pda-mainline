@@ -1,0 +1,113 @@
+[record]
+date=2026-07-19
+method=read-only disassembly of the exact active 3.18 vmlinux plus pinned-source and latest-bsg100 comparison
+device_write=none
+device_reboot=none
+recovery_vm_mutation=none
+
+[owner_observation]
+device=named Gemini PDA used for Candidate V attempt 1
+working_reference=current Gemian Linux 3.18 kernel
+keyboard_result=owner reports that the current 3.18 kernel has a working physical keyboard
+scope=the owner observation establishes function on this unit; the binary audit identifies the active implementation contract but does not create a new live key-event capture
+
+[exact_active_3_18_binary]
+source_record=experiments/2026-07-12-input-backlight-recovery/results/active-aw9523-elf-keymap-20260714.txt
+active_boot_image_sha256=1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513
+active_kernel_payload_sha256=b53d191dc41d3f7364b0fa62b4bc920b1d013a1942b2e6b06727263fc56fcf4d
+vmlinux_sha256=cc66df06194d3315335462760962165e1dcb2e50221574aeb45a0805bb17a162
+build=Linux version 3.18.41+; build number 7; 2019-03-29
+analysis_copy=/home/julien.guest/reverse-engineering/work/gemini-kernel-active-20260714/vmlinux.elf
+
+[active_3_18_aw9523_disassembly]
+aw9523_hw_reset=0xffffffc00045ba68
+reset_low_select=0xffffffc00045ba7c
+reset_low_delay=msleep(5) at 0xffffffc00045ba84
+reset_high_select=0xffffffc00045ba8c
+reset_high_recovery=msleep(5) at 0xffffffc00045ba94
+aw9523_i2c_probe=0xffffffc00045c560
+probe_reset_call=0xffffffc00045c5c4
+chip_id_register=0x10
+expected_chip_id=0x23
+chip_id_attempts=5
+between_attempt_delay=msleep(10)
+soft_reset_order=only after successful chip identification during aw9523_init_keycfg
+pre_identity_regmap_cache=none
+i2c_read_reg=0xffffffc00045bbd8
+read_shape=two same-address messages: one-byte write followed by one-byte I2C_M_RD
+i2c_transfer_call=i2c_transfer(adapter,msgs,2) at 0xffffffc00045bc5c
+
+[active_3_18_mt6797_i2c_disassembly]
+mt_i2c_transfer=0xffffffc000909a28
+__mt_i2c_transfer=0xffffffc000908b40
+combined_shape_test=0xffffffc000909384-to-0xffffffc0009093d4 checks next message, write then read, equal addresses, and bounded receive length
+wrrd_selection=operation 3 I2C_MASTER_WRRD stored at 0xffffffc0009093e8
+auto_restart_gate=none in the WRRD recognition path
+wrrd_tx_length=controller offset 0x14
+wrrd_rx_aux_length=controller offset 0x6c
+wrrd_transaction_count=2 at controller offset 0x18
+read_copyback=0xffffffc0009098f8-to-0xffffffc000909904 copies received bytes to the second message
+binary_conclusion=the working kernel turns the AW9523 register-address write plus read into hardware WRRD and uses the auxiliary receive-length register
+
+[planet_3_18_source_crosscheck]
+source_commit=c5b0be85017ad0c599725e8273842efdbecdd88a
+aw_driver=drivers/misc/mediatek/aw9523/aw9523_key.c
+reset_source_lines=285-to-292 select shutdown low for 5 ms then high for 5 ms
+read_source_lines=655-to-681 construct the same one-byte write plus one-byte read pair
+probe_source_lines=854-to-888 reset first, then read register 0x10 for chip ID 0x23
+i2c_driver=drivers/i2c/busses/i2c-mtk.c
+i2c_source_contract=write-then-read pairs select I2C_MASTER_WRRD without an auto-restart compatibility gate and program TRANSFER_LEN_AUX
+i2c_aux_register_source=drivers/i2c/busses/i2c-mtk.h defines TRANSFER_LEN_AUX at 0x6c
+source_scope=source corroborates the disassembly; conclusions about the active kernel use the exact binary above
+
+[candidate_v_linux_7_1_3_difference]
+source_pin=Linux 7.1.3 tarball sha256 be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+dts_primary_compatible=mediatek,mt6797-i2c
+dts_fallback_compatible=mediatek,mt6577-i2c
+direct_mt6797_driver_match=absent
+selected_driver_data=mt6577_compat
+selected_auto_restart=0
+selected_aux_len_reg=0
+selected_max_dma_support=32
+working_reference_aux_len_reg=1 at controller offset 0x6c
+candidate_v_wrrd_guard=if (i2c->auto_restart && num == 2)
+candidate_v_effect=the legal AW9523 write-then-read pair cannot select I2C_MASTER_WRRD under the fallback data
+runtime_match=Candidate V single-register and chip-ID reads returned -110 at approximately two-second transfer-timeout intervals while the provider stayed unbound
+
+[upstream_history]
+regression_commit=b492183652808e0f389272bf63dc836241b287ff
+regression_subject=i2c: mediatek: fix potential incorrect use of I2C_MASTER_WRRD
+accepted_fix_commit=deb35336b5bfed5db9231b5348bc1514db930797
+accepted_fix_subject=i2c: mediatek: fix WRRD for SoCs without auto_restart option
+accepted_fix_change=remove i2c->auto_restart from the num-equals-2 WRRD recognition guard
+accepted_fix_relevance=confirms that the Candidate V guard causes read failures for compatible data with auto_restart disabled
+accepted_fix_limit=under the MT6577 fallback it retains aux_len_reg=0 and packs the receive length into the main transfer-length register; this does not reproduce the exact MT6797 working binary's separate 0x6c receive-length programming
+
+[latest_bsg100_crosscheck]
+repository=https://github.com/bsg100/gemini-linux
+audited_head=60f5f4ac777a0aeccc89b5d3a4f8cd1f1ebe57b3
+head_date=2026-07-19T16:55:19+08:00
+patch=patches/v6.6/i2c/0001-i2c-mt65xx-add-mt6797-compat-mt8173-driver-data.patch
+patch_change=add direct mediatek,mt6797-i2c match using mt8173_compat
+matched_contract=register layout v1; auto_restart 1; aux_len_reg 1; DMA address support 33
+hardware_evidence=boot.md captures 252/253 report single transfers working and combined reads timing out under MT6577 fallback; build 254 adds the direct match; capture 255 reports the formerly failing TPS65132 regmap transaction and programming working
+keyboard_evidence=the same controller fix is retained by later builds that report a clean AW9523 probe and owner-confirmed physical typing
+scope=different Gemini unit and Linux 6.6; this is independent hardware evidence, not a runtime result on the named Candidate V unit
+
+[interpretation]
+established_software_defect=Candidate V selects MT6577 controller data and consequently never selects WRRD for the AW9523 regmap read shape
+best_supported_mt6797_contract=direct MT6797 match with the MT8173-generation v1/auto-restart/aux-length controller data
+reset_polarity=the working 3.18 binary and Candidate V both use a physical low-to-high reset transition
+reset_timing_difference=working 3.18 uses 5 ms asserted plus 5 ms recovery; Candidate V uses the upstream shorter reset path, but V's observed reads are already dominated by the controller timeout and do not establish timing causality
+matrix_polling=not exercised by V because AW9523 never bound
+hardware_causality_on_named_unit=not yet proven; requires one attributable run with corrected MT6797 controller data
+
+[next_experiment]
+causal_change=add a direct mediatek,mt6797-i2c driver match using mt8173_compat or a dedicated mt6797_compat with the same evidence-backed fields
+do_not_use_as_sole_mt6797_change=the generic deb35336 WRRD guard relaxation while retaining mt6577_compat
+hold_exact=Candidate V DT; AW9523 reset timing and regmap cache; I2C frequency; matrix polling; CPU0-only policy; simplefb; ramoops; no-IRQ watchdog; storage and network exclusions
+expected_provider_result=AW9523 register reads use hardware WRRD with RX length at offset 0x6c; chip ID 0x23 is observed; AW9523 binds; the matrix consumer can then bind and create its event device
+failure_interpretation=if WRRD is selected with the auxiliary length register but AW9523 still fails, reopen reset recovery, power, pinmux, or physical-bus hypotheses using the exact first failing transfer
+tty_observation_change=select tty1 as foreground; stop background marker fanout to tty1 before shell start; use a letters-only success token
+font_observation_change=compile CONFIG_FONT_TER16x32=y and force fbcon=font:TER16x32; expected 1080x2160 grid is approximately 135x33 rather than V's 270x67
+device_boot_authorization=not exercised by this audit

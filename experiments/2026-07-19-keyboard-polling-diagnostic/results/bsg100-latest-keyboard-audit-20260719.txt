@@ -1,0 +1,37 @@
+experiment=2026-07-19-keyboard-polling-diagnostic
+timestamp_utc=20260719
+source=https://github.com/bsg100/gemini-linux
+latest_main_commit=60f5f4ac777a0aeccc89b5d3a4f8cd1f1ebe57b3
+keyboard_typing_commit=6bd4d572670698f80ca08ad083657621b62cc8f3
+keyboard_usb_coexistence_commit=aff681d3c727137c4016376e12055d380867f5c3
+method=read-only-git-history-and-patch-inspection
+temporary_clone_retained=no
+
+[observations]
+same_board_physical_typing_reported=yes
+poll_interval_ms=20
+dt_debounce_delay_ms=5
+polling_branch_consumes_debounce_ms=no
+col_scan_delay_us=2
+i2c5_hz=400000
+aw9523_parent_interrupt_required_by_polling_path=no
+custom_aw9523_driver_present=yes
+custom_reset_contract_differs_from_linux_7_1_upstream=yes
+
+[inference-for-candidate-u]
+reuse_upstream_pinctrl_aw9523=yes
+copy_custom_aw9523_driver=no
+add_generic_matrix_polling=yes
+candidate_poll_interval_ms=20
+candidate_col_scan_delay_us=2
+candidate_polling_debounce=none
+candidate_i2c5_hz=400000
+candidate_aw_parent_irq=absent
+candidate_gpio87_eint10_pinmux=retained-input-without-active-consumer
+
+The bsg100 result is same-model, different-unit evidence. It justifies a
+bounded polling hypothesis but does not prove the upstream AW9523 provider,
+Gemini keymap, console, or physical typing on the named device in this
+repository. The reference DT's 5 ms debounce property is runtime-inert in its
+polling branch, so Candidate U omits it rather than claiming an unapplied
+debounce interval.

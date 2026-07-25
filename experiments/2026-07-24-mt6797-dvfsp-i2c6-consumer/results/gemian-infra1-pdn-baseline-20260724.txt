@@ -1,0 +1,16 @@
+observation=known-good-gemian-read-only-infra1-pdn-sta
+date=2026-07-24
+kernel=gemian-linux-3.18
+register=INFRA1_PDN_STA
+physical_address=0x10001094
+initial_value=0x0246c872
+active_ssh_sample_count=20
+active_ssh_value=0x0246c876
+relevant_bit=18
+relevant_clock=INFRA_AP_DMA
+relevant_bit_state=1-gated-in-all-21-samples
+unrelated_observed_change=bit2
+operation=read-only
+identifiers=redacted
+role=context-only-not-candidate-ap-proof
+inference=Candidate-AP-cleanup-oracle-must-observe-AP-DMA-eventually-gated

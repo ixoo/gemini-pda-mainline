@@ -1,0 +1,65 @@
+experiment=2026-07-19-keyboard-polling-diagnostic
+candidate_label=U
+date_utc=2026-07-19
+operation=post-runtime-exact-p-versus-u-dtb-comparison
+result=candidate-p-handoff-console-and-recovery-foundation-not-retained
+hardware_access=none
+
+[inputs]
+candidate_p_dtb=artifacts/vm-export/boot-candidates/candidate-P-fbcon-rotation-170a640/mt6797-gemini-pda-fbcon-rotation.dtb
+candidate_p_dtb_sha256=c574762aa178cb5a7238400b499d2edcdd3acb3538d2255e916b041f2074c379
+candidate_u_dtb=artifacts/vm-export/boot-candidates/candidate-U-keyboard-polling-final-6296368/mt6797-gemini-pda-keyboard-polling.dtb
+candidate_u_dtb_sha256=e541c9dffac15de859a876e80409eec4591d36319646845cb25c6eecb8ddf5b1
+tool=fdtget
+
+[observation]
+candidate_p_interrupts=absent
+candidate_u_interrupts_cells=0,137,2
+candidate_u_interrupts_decoded=GIC_SPI,137,IRQ_TYPE_EDGE_FALLING
+candidate_u_dtb_source=keyboard transform applied to package DTB
+exact_p_unrelated_dtb_bytes_used_as_u_base=no
+
+[loader-simplefb]
+candidate_p_node=/chosen/framebuffer@7dfb0000
+candidate_p_compatible=simple-framebuffer
+candidate_p_reg=0x7dfb0000,0x1f90000
+candidate_p_geometry=1080x2160,stride-4352,a8r8g8b8
+candidate_p_clocks=CLK_INFRA_DISP_PWM,CLK_TOP_MUX_MM
+candidate_u_node=absent
+candidate_u_loader_simplefb_console_path=absent
+
+[other-p-foundation-regressions]
+candidate_p_cpu0_clock_frequency=1391000000
+candidate_u_cpu0_clock_frequency=absent
+candidate_p_scp_compatibility_node=present-disabled
+candidate_u_scp_compatibility_node=absent
+candidate_p_tphy_status=okay
+candidate_u_tphy_status=disabled
+candidate_p_usb_phy_status=okay
+candidate_u_usb_phy_status=disabled
+candidate_p_mtu3_status=okay
+candidate_u_mtu3_status=disabled
+candidate_p_atf_reserved_memory_compatible=mediatek,mt6797-atf-reserved-memory
+candidate_u_atf_reserved_memory_compatible=absent
+phandle_renumbering=present-as-consequence-of-subtree-difference;not-an-independent-semantic-delta
+
+[interpretation]
+Candidate M removed the optional watchdog bark interrupt and proved the
+single-stage `mtk-wdt` registration, 31-second expiry, automatic return, and
+cross-version console-ramoops path. Candidate P retained that exact no-IRQ
+watchdog node and the loader-compatible simplefb node whose two retained clocks
+had produced readable normal-landscape console output. Candidate U's keyboard
+DT builder instead transformed the package DTB, not exact P. It therefore
+reintroduced SPI137 and also dropped P's simplefb node and other candidate-only
+LK handoff properties. U did not preserve either the visible-console or proven
+watchdog DT foundation it was intended to extend.
+
+The missing simplefb node is a concrete explanation for the lack of the
+intended loader-framebuffer console if U reached Linux, but the visual result
+still does not independently prove that U was selected or entered the kernel.
+U's initramfs deliberately did not open `/dev/watchdog0`, so the watchdog DT
+regression alone cannot explain its lack of automatic reset. A later candidate
+must begin with exact P's DTB, permit only a precisely validated keyboard delta,
+retain the no-IRQ watchdog and simplefb nodes byte-for-byte, open the proven
+watchdog, send one ownership-handoff ping, retain the descriptor without
+further pings, and recover pstore after the bounded automatic cycle.

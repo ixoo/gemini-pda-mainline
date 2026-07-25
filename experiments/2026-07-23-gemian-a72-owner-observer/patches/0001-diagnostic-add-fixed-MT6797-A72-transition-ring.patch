@@ -1,0 +1,653 @@
+From 7bddafa6756e415a371e5cf14383c96b8469ded0 Mon Sep 17 00:00:00 2001
+From: Gemini PDA Investigation <gemini-observer@example.invalid>
+Date: Thu, 23 Jul 2026 20:29:28 -0400
+Subject: [PATCH 1/4] diagnostic: add fixed MT6797 A72 transition ring
+
+---
+ drivers/misc/mediatek/base/power/Kconfig      |  12 +
+ .../misc/mediatek/base/power/mt6797/Makefile  |   1 +
+ .../power/mt6797/mt_a72_transition_observer.c | 454 ++++++++++++++++++
+ .../linux/mt6797_a72_transition_observer.h    | 144 ++++++
+ 4 files changed, 611 insertions(+)
+ create mode 100644 drivers/misc/mediatek/base/power/mt6797/mt_a72_transition_observer.c
+ create mode 100644 include/linux/mt6797_a72_transition_observer.h
+
+diff --git a/drivers/misc/mediatek/base/power/Kconfig b/drivers/misc/mediatek/base/power/Kconfig
+index 2197aade..1de54adc 100644
+--- a/drivers/misc/mediatek/base/power/Kconfig
++++ b/drivers/misc/mediatek/base/power/Kconfig
+@@ -92,3 +92,15 @@ config MTK_CPU_HOTPLUG_DEBUG_3
+ 	  latency profiling. This information is useful for someone who
+ 	  care the latency, for example, thermal.
+ 	  If unsure, say Y.
++
++config MTK_A72_TRANSITION_OBSERVER
++	bool "MT6797 Cortex-A72 transition observer"
++	depends on ARCH_MT6797 && ARM64 && SMP && HOTPLUG_CPU && PROC_FS
++	default n
++	help
++	  Add a fixed-function, read-only transaction recorder around the
++	  existing MT6797 Cortex-A72 hotplug path.  Records are held in a
++	  preallocated ring and exposed through a root-only proc file.
++
++	  This option does not add a control interface.  It is an experiment
++	  aid for one pinned downstream kernel and is not an A72 power driver.
+diff --git a/drivers/misc/mediatek/base/power/mt6797/Makefile b/drivers/misc/mediatek/base/power/mt6797/Makefile
+index 1fc061d1..d752584f 100755
+--- a/drivers/misc/mediatek/base/power/mt6797/Makefile
++++ b/drivers/misc/mediatek/base/power/mt6797/Makefile
+@@ -76,3 +76,4 @@ obj-y += mt_hotplug_strategy_cpu.o
+ obj-y += mt_hotplug_strategy_api.o
+ obj-y += mt_hotplug_strategy_algo.o
+ obj-y += mt_hotplug_strategy_ops_mt6797.o
++obj-$(CONFIG_MTK_A72_TRANSITION_OBSERVER) += mt_a72_transition_observer.o
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt_a72_transition_observer.c b/drivers/misc/mediatek/base/power/mt6797/mt_a72_transition_observer.c
+new file mode 100644
+index 00000000..57faf10c
+--- /dev/null
++++ b/drivers/misc/mediatek/base/power/mt6797/mt_a72_transition_observer.c
+@@ -0,0 +1,454 @@
++/*
++ * Fixed-function MT6797 Cortex-A72 transition observer.
++ *
++ * The ring is preallocated and writers never allocate, sleep, print, retry,
++ * or affect the return value of the transition they observe.  Opening the
++ * root-only proc file takes a private point-in-time copy so formatting never
++ * holds the writer lock.
++ */
++
++#include <linux/cpu.h>
++#include <linux/init.h>
++#include <linux/kernel.h>
++#include <linux/module.h>
++#include <linux/proc_fs.h>
++#include <linux/seq_file.h>
++#include <linux/spinlock.h>
++#include <linux/timekeeping.h>
++#include <linux/vmalloc.h>
++
++#include <linux/mt6797_a72_transition_observer.h>
++
++#define MT6797_A72_OBS_RING_SIZE	2048
++#define MT6797_A72_OBS_CPU_FIRST	8
++#define MT6797_A72_OBS_CPU_LAST		9
++#define MT6797_A72_OBS_PROC_NAME	"mt6797_a72_transition"
++
++struct mt6797_a72_obs_lifecycle {
++	s32 result;
++	u32 reserved;
++	u64 arg0;
++	u64 arg1;
++};
++
++struct mt6797_a72_obs_header {
++	u64 sequence;
++	u64 timestamp_ns;
++	u64 transaction;
++	u32 online_mask;
++	u16 event;
++	u16 phase;
++	u16 target_cpu;
++	u16 actor_cpu;
++};
++
++struct mt6797_a72_obs_record {
++	struct mt6797_a72_obs_header header;
++	union {
++		struct mt6797_a72_obs_lifecycle lifecycle;
++		struct mt6797_a72_obs_da9214 da9214;
++		struct mt6797_a72_obs_spm spm;
++		struct mt6797_a72_obs_secure secure;
++		struct mt6797_a72_obs_clock clock;
++		struct mt6797_a72_obs_toprgu toprgu;
++		struct mt6797_a72_obs_dcm dcm;
++		struct mt6797_a72_obs_mutation mutation;
++	} payload;
++};
++
++struct mt6797_a72_obs_snapshot {
++	u64 overwritten;
++	u32 count;
++	struct mt6797_a72_obs_record records[MT6797_A72_OBS_RING_SIZE];
++};
++
++static DEFINE_SPINLOCK(mt6797_a72_obs_lock);
++static struct mt6797_a72_obs_record
++	mt6797_a72_obs_ring[MT6797_A72_OBS_RING_SIZE];
++static u64 mt6797_a72_obs_next_sequence = 1;
++static u64 mt6797_a72_obs_next_transaction = 1;
++static u64 mt6797_a72_obs_transactions[2];
++static u64 mt6797_a72_obs_overwritten;
++static u32 mt6797_a72_obs_head;
++static u32 mt6797_a72_obs_count;
++
++bool mt6797_a72_obs_is_cpu(unsigned int cpu)
++{
++	return cpu >= MT6797_A72_OBS_CPU_FIRST &&
++	       cpu <= MT6797_A72_OBS_CPU_LAST;
++}
++
++static u32 mt6797_a72_obs_online_mask(void)
++{
++	unsigned int cpu;
++	u32 mask = 0;
++
++	for_each_online_cpu(cpu) {
++		if (cpu < 32)
++			mask |= 1U << cpu;
++	}
++
++	return mask;
++}
++
++static u64 mt6797_a72_obs_transaction_locked(unsigned int cpu)
++{
++	if (!mt6797_a72_obs_is_cpu(cpu))
++		return 0;
++
++	return mt6797_a72_obs_transactions[cpu - MT6797_A72_OBS_CPU_FIRST];
++}
++
++static void mt6797_a72_obs_append(struct mt6797_a72_obs_record *record)
++{
++	unsigned long flags;
++
++	record->header.timestamp_ns = ktime_get_ns();
++	record->header.online_mask = mt6797_a72_obs_online_mask();
++	record->header.actor_cpu = raw_smp_processor_id();
++
++	spin_lock_irqsave(&mt6797_a72_obs_lock, flags);
++	record->header.sequence = mt6797_a72_obs_next_sequence++;
++	record->header.transaction =
++		mt6797_a72_obs_transaction_locked(record->header.target_cpu);
++	mt6797_a72_obs_ring[mt6797_a72_obs_head] = *record;
++	mt6797_a72_obs_head =
++		(mt6797_a72_obs_head + 1) % MT6797_A72_OBS_RING_SIZE;
++	if (mt6797_a72_obs_count < MT6797_A72_OBS_RING_SIZE)
++		mt6797_a72_obs_count++;
++	else
++		mt6797_a72_obs_overwritten++;
++	spin_unlock_irqrestore(&mt6797_a72_obs_lock, flags);
++}
++
++unsigned int mt6797_a72_obs_active_cpu(void)
++{
++	unsigned long flags;
++	unsigned int cpu = ~0U;
++	bool cpu8;
++	bool cpu9;
++
++	spin_lock_irqsave(&mt6797_a72_obs_lock, flags);
++	cpu8 = mt6797_a72_obs_transactions[0] != 0;
++	cpu9 = mt6797_a72_obs_transactions[1] != 0;
++	if (cpu8 != cpu9)
++		cpu = cpu8 ? 8 : 9;
++	spin_unlock_irqrestore(&mt6797_a72_obs_lock, flags);
++
++	return cpu;
++}
++
++u64 mt6797_a72_obs_tx_begin(unsigned int cpu, u16 phase)
++{
++	unsigned long flags;
++	u64 transaction;
++
++	if (!mt6797_a72_obs_is_cpu(cpu))
++		return 0;
++
++	spin_lock_irqsave(&mt6797_a72_obs_lock, flags);
++	transaction = mt6797_a72_obs_next_transaction++;
++	mt6797_a72_obs_transactions[cpu - MT6797_A72_OBS_CPU_FIRST] =
++		transaction;
++	spin_unlock_irqrestore(&mt6797_a72_obs_lock, flags);
++
++	mt6797_a72_obs_lifecycle(cpu, phase, 0, transaction, 0);
++	return transaction;
++}
++
++u64 mt6797_a72_obs_tx_ensure(unsigned int cpu, u16 phase)
++{
++	unsigned long flags;
++	u64 transaction;
++
++	if (!mt6797_a72_obs_is_cpu(cpu))
++		return 0;
++
++	spin_lock_irqsave(&mt6797_a72_obs_lock, flags);
++	transaction =
++		mt6797_a72_obs_transactions[cpu - MT6797_A72_OBS_CPU_FIRST];
++	if (!transaction) {
++		transaction = mt6797_a72_obs_next_transaction++;
++		mt6797_a72_obs_transactions[cpu -
++			MT6797_A72_OBS_CPU_FIRST] = transaction;
++	}
++	spin_unlock_irqrestore(&mt6797_a72_obs_lock, flags);
++
++	if (phase)
++		mt6797_a72_obs_lifecycle(cpu, phase, 0, transaction, 1);
++	return transaction;
++}
++
++void mt6797_a72_obs_tx_finish(unsigned int cpu, u16 phase, int result)
++{
++	unsigned long flags;
++
++	if (!mt6797_a72_obs_is_cpu(cpu))
++		return;
++
++	mt6797_a72_obs_lifecycle(cpu, phase, result, 0, 0);
++
++	spin_lock_irqsave(&mt6797_a72_obs_lock, flags);
++	mt6797_a72_obs_transactions[cpu - MT6797_A72_OBS_CPU_FIRST] = 0;
++	spin_unlock_irqrestore(&mt6797_a72_obs_lock, flags);
++}
++
++void mt6797_a72_obs_lifecycle(unsigned int cpu, u16 phase, int result,
++			      u64 arg0, u64 arg1)
++{
++	struct mt6797_a72_obs_record record = { };
++
++	if (!mt6797_a72_obs_is_cpu(cpu))
++		return;
++
++	record.header.event = MT6797_A72_EVENT_LIFECYCLE;
++	record.header.phase = phase;
++	record.header.target_cpu = cpu;
++	record.payload.lifecycle.result = result;
++	record.payload.lifecycle.arg0 = arg0;
++	record.payload.lifecycle.arg1 = arg1;
++	mt6797_a72_obs_append(&record);
++}
++
++#define MT6797_A72_DEFINE_RECORDER(_name, _event, _member, _type)	\
++void mt6797_a72_obs_##_name(unsigned int cpu, u16 phase,		\
++			    const _type *snapshot)			\
++{									\
++	struct mt6797_a72_obs_record record = { };			\
++									\
++	if (!snapshot || !mt6797_a72_obs_is_cpu(cpu))			\
++		return;							\
++	record.header.event = _event;					\
++	record.header.phase = phase;					\
++	record.header.target_cpu = cpu;					\
++	record.payload._member = *snapshot;				\
++	mt6797_a72_obs_append(&record);					\
++}
++
++MT6797_A72_DEFINE_RECORDER(da9214, MT6797_A72_EVENT_DA9214,
++			   da9214, struct mt6797_a72_obs_da9214)
++MT6797_A72_DEFINE_RECORDER(spm, MT6797_A72_EVENT_SPM,
++			   spm, struct mt6797_a72_obs_spm)
++MT6797_A72_DEFINE_RECORDER(secure, MT6797_A72_EVENT_SECURE,
++			   secure, struct mt6797_a72_obs_secure)
++MT6797_A72_DEFINE_RECORDER(clock, MT6797_A72_EVENT_CLOCK,
++			   clock, struct mt6797_a72_obs_clock)
++MT6797_A72_DEFINE_RECORDER(toprgu, MT6797_A72_EVENT_TOPRGU,
++			   toprgu, struct mt6797_a72_obs_toprgu)
++MT6797_A72_DEFINE_RECORDER(dcm, MT6797_A72_EVENT_DCM,
++			   dcm, struct mt6797_a72_obs_dcm)
++MT6797_A72_DEFINE_RECORDER(mutation, MT6797_A72_EVENT_MUTATION,
++			   mutation, struct mt6797_a72_obs_mutation)
++
++void mt6797_a72_obs_psci_raw(unsigned long mpidr, unsigned long entry,
++			     int raw_result)
++{
++	unsigned int cpu;
++
++	if (mpidr == 0x200)
++		cpu = 8;
++	else if (mpidr == 0x201)
++		cpu = 9;
++	else
++		return;
++
++	mt6797_a72_obs_tx_ensure(cpu, 0);
++	mt6797_a72_obs_lifecycle(cpu, MT6797_A72_PHASE_PSCI_RAW,
++				 raw_result, mpidr, entry);
++}
++
++static const char *mt6797_a72_obs_event_name(u16 event)
++{
++	switch (event) {
++	case MT6797_A72_EVENT_LIFECYCLE:
++		return "lifecycle";
++	case MT6797_A72_EVENT_DA9214:
++		return "da9214";
++	case MT6797_A72_EVENT_SPM:
++		return "spm";
++	case MT6797_A72_EVENT_SECURE:
++		return "secure";
++	case MT6797_A72_EVENT_CLOCK:
++		return "clock";
++	case MT6797_A72_EVENT_TOPRGU:
++		return "toprgu";
++	case MT6797_A72_EVENT_DCM:
++		return "dcm";
++	case MT6797_A72_EVENT_MUTATION:
++		return "mutation";
++	default:
++		return "unknown";
++	}
++}
++
++static void mt6797_a72_obs_show_payload(struct seq_file *m,
++					const struct mt6797_a72_obs_record *r)
++{
++	unsigned int i;
++
++	switch (r->header.event) {
++	case MT6797_A72_EVENT_LIFECYCLE:
++		seq_printf(m, " result=%d arg0=0x%llx arg1=0x%llx",
++			   r->payload.lifecycle.result,
++			   (unsigned long long)r->payload.lifecycle.arg0,
++			   (unsigned long long)r->payload.lifecycle.arg1);
++		break;
++	case MT6797_A72_EVENT_DA9214:
++		seq_printf(m,
++			   " page_before=0x%02x page_selected=0x%02x"
++			   " buck_before=0x%02x buck_after=0x%02x"
++			   " vsel=0x%02x page_after=0x%02x"
++			   " status=%d valid=0x%04x",
++			   r->payload.da9214.page_before,
++			   r->payload.da9214.page_selected,
++			   r->payload.da9214.buck_enable_before,
++			   r->payload.da9214.buck_enable_after,
++			   r->payload.da9214.buck_vsel,
++			   r->payload.da9214.page_after,
++			   r->payload.da9214.status,
++			   r->payload.da9214.valid);
++		break;
++	case MT6797_A72_EVENT_SPM:
++		seq_printf(m, " valid=0x%02x", r->payload.spm.valid);
++		for (i = 0; i < 6; i++)
++			seq_printf(m, " r%u=0x%08x", i,
++				   r->payload.spm.values[i]);
++		break;
++	case MT6797_A72_EVENT_SECURE:
++		seq_printf(m, " valid=0x%03x stable=%u sentinel_after=0x%08x",
++			   r->payload.secure.valid,
++			   r->payload.secure.stable,
++			   r->payload.secure.sentinel_after);
++		for (i = 0; i < 12; i++)
++			seq_printf(m, " r%u=0x%08x", i,
++				   r->payload.secure.values[i]);
++		break;
++	case MT6797_A72_EVENT_CLOCK:
++		seq_printf(m,
++			   " pll_con1=0x%08x muxsel=0x%08x ckdiv=0x%08x"
++			   " status=%d semaphore=0x%04x",
++			   r->payload.clock.pll_con1,
++			   r->payload.clock.muxsel,
++			   r->payload.clock.ckdiv,
++			   r->payload.clock.status,
++			   r->payload.clock.semaphore);
++		break;
++	case MT6797_A72_EVENT_TOPRGU:
++		seq_printf(m,
++			   " before=0x%08x requested=0x%08x after=0x%08x"
++			   " mask=0x%08x status=%d",
++			   r->payload.toprgu.before,
++			   r->payload.toprgu.requested,
++			   r->payload.toprgu.after,
++			   r->payload.toprgu.mask,
++			   r->payload.toprgu.status);
++		break;
++	case MT6797_A72_EVENT_DCM:
++		seq_printf(m,
++			   " before=0x%08x toggle=0x%08x final=0x%08x"
++			   " mask=0x%08x on=%u",
++			   r->payload.dcm.before,
++			   r->payload.dcm.toggle,
++			   r->payload.dcm.final,
++			   r->payload.dcm.mask,
++			   r->payload.dcm.on);
++		break;
++	case MT6797_A72_EVENT_MUTATION:
++		seq_printf(m,
++			   " address=0x%08x before=0x%08x mask=0x%08x"
++			   " requested=0x%08x after=0x%08x status=%d",
++			   r->payload.mutation.address,
++			   r->payload.mutation.before,
++			   r->payload.mutation.mask,
++			   r->payload.mutation.requested,
++			   r->payload.mutation.after,
++			   r->payload.mutation.status);
++		break;
++	}
++}
++
++static int mt6797_a72_obs_proc_show(struct seq_file *m, void *unused)
++{
++	const struct mt6797_a72_obs_snapshot *snapshot = m->private;
++	unsigned int i;
++
++	seq_printf(m, "abi=mt6797-a72-transition-observer-v1"
++		   " count=%u overwritten=%llu\n",
++		   snapshot->count,
++		   (unsigned long long)snapshot->overwritten);
++	for (i = 0; i < snapshot->count; i++) {
++		const struct mt6797_a72_obs_record *r = &snapshot->records[i];
++
++		seq_printf(m,
++			   "seq=%llu ns=%llu tx=%llu event=%s phase=%u"
++			   " target=%u actor=%u online=0x%08x",
++			   (unsigned long long)r->header.sequence,
++			   (unsigned long long)r->header.timestamp_ns,
++			   (unsigned long long)r->header.transaction,
++			   mt6797_a72_obs_event_name(r->header.event),
++			   r->header.phase, r->header.target_cpu,
++			   r->header.actor_cpu, r->header.online_mask);
++		mt6797_a72_obs_show_payload(m, r);
++		seq_putc(m, '\n');
++	}
++
++	return 0;
++}
++
++static int mt6797_a72_obs_proc_open(struct inode *inode, struct file *file)
++{
++	struct mt6797_a72_obs_snapshot *snapshot;
++	unsigned long flags;
++	unsigned int first;
++	unsigned int i;
++	int ret;
++
++	snapshot = vzalloc(sizeof(*snapshot));
++	if (!snapshot)
++		return -ENOMEM;
++
++	spin_lock_irqsave(&mt6797_a72_obs_lock, flags);
++	snapshot->count = mt6797_a72_obs_count;
++	snapshot->overwritten = mt6797_a72_obs_overwritten;
++	first = (mt6797_a72_obs_head + MT6797_A72_OBS_RING_SIZE -
++		 snapshot->count) % MT6797_A72_OBS_RING_SIZE;
++	for (i = 0; i < snapshot->count; i++)
++		snapshot->records[i] =
++			mt6797_a72_obs_ring[(first + i) %
++				MT6797_A72_OBS_RING_SIZE];
++	spin_unlock_irqrestore(&mt6797_a72_obs_lock, flags);
++
++	ret = single_open(file, mt6797_a72_obs_proc_show, snapshot);
++	if (ret)
++		vfree(snapshot);
++	return ret;
++}
++
++static int mt6797_a72_obs_proc_release(struct inode *inode, struct file *file)
++{
++	struct seq_file *m = file->private_data;
++	void *snapshot = m->private;
++	int ret;
++
++	ret = single_release(inode, file);
++	vfree(snapshot);
++	return ret;
++}
++
++static const struct file_operations mt6797_a72_obs_proc_fops = {
++	.owner = THIS_MODULE,
++	.open = mt6797_a72_obs_proc_open,
++	.read = seq_read,
++	.llseek = seq_lseek,
++	.release = mt6797_a72_obs_proc_release,
++};
++
++static int __init mt6797_a72_obs_init(void)
++{
++	if (!proc_create(MT6797_A72_OBS_PROC_NAME, 0400, NULL,
++			 &mt6797_a72_obs_proc_fops))
++		return -ENOMEM;
++
++	return 0;
++}
++late_initcall(mt6797_a72_obs_init);
+diff --git a/include/linux/mt6797_a72_transition_observer.h b/include/linux/mt6797_a72_transition_observer.h
+new file mode 100644
+index 00000000..a4e91a67
+--- /dev/null
++++ b/include/linux/mt6797_a72_transition_observer.h
+@@ -0,0 +1,144 @@
++/*
++ * MT6797 Cortex-A72 transition observer.
++ *
++ * This diagnostic interface is intentionally fixed-function.  It has no
++ * control operations and must not become a generic register or SMC ABI.
++ */
++#ifndef _LINUX_MT6797_A72_TRANSITION_OBSERVER_H
++#define _LINUX_MT6797_A72_TRANSITION_OBSERVER_H
++
++#include <linux/types.h>
++
++enum mt6797_a72_obs_phase {
++	MT6797_A72_PHASE_UNSPECIFIED = 0,
++	MT6797_A72_PHASE_HPS_CPU_UP_BEGIN,
++	MT6797_A72_PHASE_HPS_CPU_UP_END,
++	MT6797_A72_PHASE_HPS_CPU_DOWN_BEGIN,
++	MT6797_A72_PHASE_HPS_CPU_DOWN_END,
++	MT6797_A72_PHASE_POWER_ON_ENTER,
++	MT6797_A72_PHASE_POWER_ON_PRE,
++	MT6797_A72_PHASE_SPM_RESET_RELEASE,
++	MT6797_A72_PHASE_PLL_ORDERING_READ,
++	MT6797_A72_PHASE_TOPRGU_ASSERT,
++	MT6797_A72_PHASE_BUCK_ENABLE,
++	MT6797_A72_PHASE_BUCK_ENABLE_SETTLED,
++	MT6797_A72_PHASE_SPM_ISOLATION_CLEAR,
++	MT6797_A72_PHASE_TOPRGU_DEASSERT,
++	MT6797_A72_PHASE_SRAM_PRE,
++	MT6797_A72_PHASE_SRAM_POST,
++	MT6797_A72_PHASE_PSCI_RAW,
++	MT6797_A72_PHASE_PSCI_MAPPED,
++	MT6797_A72_PHASE_DCM_ENABLE,
++	MT6797_A72_PHASE_IDVFS_ENABLE,
++	MT6797_A72_PHASE_SECONDARY_ONLINE,
++	MT6797_A72_PHASE_CPU_DISABLE,
++	MT6797_A72_PHASE_LAST_A72_OFFLINE,
++	MT6797_A72_PHASE_IDVFS_DISABLE,
++	MT6797_A72_PHASE_DCM_DISABLE,
++	MT6797_A72_PHASE_AFFINITY_RETRY,
++	MT6797_A72_PHASE_BUCK_DISABLE,
++	MT6797_A72_PHASE_OFFLINE_FINAL,
++};
++
++enum mt6797_a72_obs_event {
++	MT6797_A72_EVENT_LIFECYCLE = 1,
++	MT6797_A72_EVENT_DA9214,
++	MT6797_A72_EVENT_SPM,
++	MT6797_A72_EVENT_SECURE,
++	MT6797_A72_EVENT_CLOCK,
++	MT6797_A72_EVENT_TOPRGU,
++	MT6797_A72_EVENT_DCM,
++	MT6797_A72_EVENT_MUTATION,
++};
++
++struct mt6797_a72_obs_da9214 {
++	u8 page_before;
++	u8 page_selected;
++	u8 buck_enable_before;
++	u8 buck_enable_after;
++	u8 buck_vsel;
++	u8 page_after;
++	s16 status;
++	u16 valid;
++};
++
++struct mt6797_a72_obs_spm {
++	u32 values[6];
++	u32 valid;
++};
++
++struct mt6797_a72_obs_secure {
++	u32 values[12];
++	u32 valid;
++	u32 sentinel_after;
++	u32 stable;
++};
++
++struct mt6797_a72_obs_clock {
++	u32 pll_con1;
++	u32 muxsel;
++	u32 ckdiv;
++	s16 status;
++	u16 semaphore;
++};
++
++struct mt6797_a72_obs_toprgu {
++	u32 before;
++	u32 requested;
++	u32 after;
++	u32 mask;
++	s32 status;
++};
++
++struct mt6797_a72_obs_dcm {
++	u32 before;
++	u32 toggle;
++	u32 final;
++	u32 mask;
++	u32 on;
++};
++
++struct mt6797_a72_obs_mutation {
++	u32 address;
++	u32 before;
++	u32 mask;
++	u32 requested;
++	u32 after;
++	s32 status;
++};
++
++bool mt6797_a72_obs_is_cpu(unsigned int cpu);
++unsigned int mt6797_a72_obs_active_cpu(void);
++u64 mt6797_a72_obs_tx_begin(unsigned int cpu, u16 phase);
++u64 mt6797_a72_obs_tx_ensure(unsigned int cpu, u16 phase);
++void mt6797_a72_obs_tx_finish(unsigned int cpu, u16 phase, int result);
++void mt6797_a72_obs_lifecycle(unsigned int cpu, u16 phase, int result,
++			      u64 arg0, u64 arg1);
++void mt6797_a72_obs_da9214(unsigned int cpu, u16 phase,
++			   const struct mt6797_a72_obs_da9214 *snapshot);
++void mt6797_a72_obs_spm(unsigned int cpu, u16 phase,
++			const struct mt6797_a72_obs_spm *snapshot);
++void mt6797_a72_obs_secure(unsigned int cpu, u16 phase,
++			   const struct mt6797_a72_obs_secure *snapshot);
++void mt6797_a72_obs_clock(unsigned int cpu, u16 phase,
++			  const struct mt6797_a72_obs_clock *snapshot);
++void mt6797_a72_obs_toprgu(unsigned int cpu, u16 phase,
++			   const struct mt6797_a72_obs_toprgu *snapshot);
++void mt6797_a72_obs_dcm(unsigned int cpu, u16 phase,
++			const struct mt6797_a72_obs_dcm *snapshot);
++void mt6797_a72_obs_mutation(unsigned int cpu, u16 phase,
++			     const struct mt6797_a72_obs_mutation *mutation);
++void mt6797_a72_obs_psci_raw(unsigned long mpidr, unsigned long entry,
++			     int raw_result);
++
++int da9214_a72_obs_snapshot(unsigned int cpu, u16 phase);
++unsigned int da9214_a72_obs_buckb_config(unsigned int cpu, bool enable,
++					 u16 phase);
++void mt6797_a72_obs_spm_snapshot(unsigned int cpu, u16 phase);
++void mt6797_a72_obs_spm_rmw(unsigned int cpu, u16 phase, u32 offset,
++			    u32 mask, u32 value);
++void mt6797_a72_obs_secure_snapshot(unsigned int cpu, u16 phase);
++void mt6797_a72_obs_clock_snapshot(unsigned int cpu, u16 phase);
++void mt6797_a72_obs_dcm_snapshot(unsigned int cpu, u16 phase);
++
++#endif

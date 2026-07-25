@@ -1,0 +1,513 @@
+From 0000000000000000000000000000000000000096 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 24 Jul 2026 15:00:00 -0400
+Subject: [PATCH] regulator: da9211: support legacy DA9214 interface
+
+The legacy, non-A DA9214 does not document an application device ID on
+page 4.  The existing DA9211-family probe nevertheless selects that
+production/test page and reads register 0x201, so a documented zero is
+reported as an unsupported device.
+
+The legacy interface instead exposes pages 2 and 3 directly at the
+adjacent I2C address.  For an exact dlg,da9214 match, claim that address
+and use a read-only, uncached regmap to read the page selector and the
+documented interface configuration.  Require two identical signatures,
+the configured base address, two-wire mode, and a page selector which is
+already on page 0 or demonstrably self-reverts there.  Check page state
+again after the signature reads.
+
+Gate this path on match data before creating the normal paged regmap or
+reading 0x201.  It never falls back to the application-ID probe.  Use a
+page-0-only operational regmap for the matched DA9214 so regmap cannot
+write the page selector.
+
+CONFIG_E bits 6:5 are reserved on this generation and cannot identify
+the number of bucks.  Give the exact compatible its documented
+two-regulator topology and require both regulator children instead.
+Also select the documented 4 A to 7 A current-limit table shared with
+DA9215.
+
+The legacy detection sequence issues only reads.  Normal regulator
+operations remain unchanged after the device has passed detection.
+
+Signed-off-by: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+---
+ drivers/regulator/da9211-regulator.c | 359 +++++++++++++++++++++++++++++------
+ drivers/regulator/da9211-regulator.h |   2 +
+ 2 files changed, 296 insertions(+), 65 deletions(-)
+
+diff --git a/drivers/regulator/da9211-regulator.c b/drivers/regulator/da9211-regulator.c
+--- a/drivers/regulator/da9211-regulator.c
++++ b/drivers/regulator/da9211-regulator.c
+@@ -25,15 +25,41 @@
+ #define DA9213_DEVICE_ID	0x23
+ #define DA9215_DEVICE_ID	0x24
++
++#define DA9214_PAGE2_REG(reg)	((reg) & 0xff)
++
++struct da9211_match_data {
++	enum da9211_chip_id chip_id;
++	unsigned int num_regulators;
++	bool legacy_da9214;
++};
++
++static const struct da9211_match_data da9211_paged_match_data = {
++	.legacy_da9214 = false,
++};
++
++static const struct da9211_match_data da9214_legacy_match_data = {
++	.chip_id = DA9214,
++	.num_regulators = 2,
++	.legacy_da9214 = true,
++};
++
++struct da9214_signature {
++	unsigned int interface;
++	unsigned int interface2;
++	unsigned int config_e;
++};
+ 
+ /* DA9211 REGULATOR IDs */
+ #define DA9211_ID_BUCKA	0
+ #define DA9211_ID_BUCKB	1
+ 
+ struct da9211 {
++	const struct da9211_match_data *match;
+ 	struct device *dev;
+ 	struct regmap *regmap;
+ 	struct da9211_pdata *pdata;
+ 	struct regulator_dev *rdev[DA9211_MAX_REGULATORS];
++	struct i2c_client *page2;
+ 	int num_regulator;
+ 	int chip_irq;
+ 	int chip_id;
+@@ -73,6 +99,175 @@
+ 	.num_ranges = ARRAY_SIZE(da9211_regmap_range),
+ };
+ 
++/*
++ * The legacy DA9214 operational registers used by this driver are all on
++ * page 0.  Omitting ranges prevents regmap from ever writing PAGE_CON.
++ */
++static const struct regmap_config da9214_regmap_config = {
++	.reg_bits = 8,
++	.val_bits = 8,
++	.max_register = 0xff,
++	.volatile_reg = da9211_volatile_reg,
++	.cache_type = REGCACHE_MAPLE,
++};
++
++static bool da9214_page2_readable_reg(struct device *dev, unsigned int reg)
++{
++	switch (reg) {
++	case DA9214_PAGE2_REG(DA9211_REG_PAGE_CON):
++	case DA9214_PAGE2_REG(DA9211_REG_INTERFACE):
++	case DA9214_PAGE2_REG(DA9211_REG_INTERFACE2):
++	case DA9214_PAGE2_REG(DA9211_REG_CONFIG_E):
++		return true;
++	default:
++		return false;
++	}
++}
++
++static bool da9214_page2_writeable_reg(struct device *dev, unsigned int reg)
++{
++	return false;
++}
++
++/*
++ * Disable caching so the repeated reads below are independent I2C
++ * transactions rather than cache hits.
++ */
++static const struct regmap_config da9214_page2_regmap_config = {
++	.reg_bits = 8,
++	.val_bits = 8,
++	.max_register = DA9214_PAGE2_REG(DA9211_REG_CONFIG_E),
++	.readable_reg = da9214_page2_readable_reg,
++	.writeable_reg = da9214_page2_writeable_reg,
++	.cache_type = REGCACHE_NONE,
++};
++
++static int da9214_read_signature(struct regmap *regmap,
++				 struct da9214_signature *signature)
++{
++	int ret;
++
++	ret = regmap_read(regmap, DA9214_PAGE2_REG(DA9211_REG_INTERFACE),
++			  &signature->interface);
++	if (ret)
++		return ret;
++
++	ret = regmap_read(regmap, DA9214_PAGE2_REG(DA9211_REG_INTERFACE2),
++			  &signature->interface2);
++	if (ret)
++		return ret;
++
++	return regmap_read(regmap, DA9214_PAGE2_REG(DA9211_REG_CONFIG_E),
++			   &signature->config_e);
++}
++
++static int da9214_check_page_state(struct device *dev, struct regmap *regmap)
++{
++	unsigned int first, second;
++	int ret;
++
++	ret = regmap_read(regmap, DA9214_PAGE2_REG(DA9211_REG_PAGE_CON),
++			  &first);
++	if (ret)
++		return dev_err_probe(dev, ret,
++				     "failed to read legacy page state\n");
++
++	ret = regmap_read(regmap, DA9214_PAGE2_REG(DA9211_REG_PAGE_CON),
++			  &second);
++	if (ret)
++		return dev_err_probe(dev, ret,
++				     "failed to repeat legacy page-state read\n");
++
++	if ((first & DA9211_REG_PAGE_MASK) &&
++	    !(first & DA9211_PAGE_REVERT))
++		return dev_err_probe(dev, -ENODEV,
++				     "legacy page selector is not self-reverting: 0x%x\n",
++				     first);
++
++	if (second & DA9211_REG_PAGE_MASK)
++		return dev_err_probe(dev, -ENODEV,
++				     "legacy page selector did not return to page 0: 0x%x\n",
++				     second);
++
++	return 0;
++}
++
++static int da9214_validate_signature(struct i2c_client *i2c,
++				     const struct da9214_signature *first,
++				     const struct da9214_signature *second)
++{
++	unsigned int expected_base;
++
++	if (first->interface != second->interface ||
++	    first->interface2 != second->interface2 ||
++	    first->config_e != second->config_e)
++		return dev_err_probe(&i2c->dev, -ENODEV,
++				     "legacy interface signature is unstable\n");
++
++	expected_base = (i2c->addr << 1) & DA9211_IF_BASE_ADDR_MASK;
++	if ((first->interface & DA9211_IF_BASE_ADDR_MASK) != expected_base)
++		return dev_err_probe(&i2c->dev, -ENODEV,
++				     "legacy interface base address does not match\n");
++
++	if (!(first->interface2 & DA9211_IF_TYPE))
++		return dev_err_probe(&i2c->dev, -ENODEV,
++				     "legacy interface is not in two-wire mode\n");
++
++	return 0;
++}
++
++static int da9214_detect_legacy_interface(struct da9211 *chip,
++					  struct i2c_client *i2c)
++{
++	struct da9214_signature first, second;
++	struct regmap *page2_regmap;
++	int ret;
++
++	/*
++	 * IF_BASE_ADDR1 only carries the upper nibble of the 8-bit bus
++	 * address.  Reject addresses whose omitted bits prevent an exact
++	 * comparison, and do not attempt this protocol with 10-bit clients.
++	 */
++	if ((i2c->flags & I2C_CLIENT_TEN) || (i2c->addr & 0x7))
++		return dev_err_probe(chip->dev, -ENODEV,
++				     "legacy DA9214 requires an aligned 7-bit address\n");
++
++	chip->page2 = devm_i2c_new_dummy_device(chip->dev, i2c->adapter,
++						i2c->addr + 1);
++	if (IS_ERR(chip->page2))
++		return dev_err_probe(chip->dev, PTR_ERR(chip->page2),
++				     "failed to claim legacy page-2 address\n");
++
++	page2_regmap = devm_regmap_init_i2c(chip->page2, &da9214_page2_regmap_config);
++	if (IS_ERR(page2_regmap))
++		return dev_err_probe(chip->dev, PTR_ERR(page2_regmap),
++				     "failed to allocate legacy page-2 regmap\n");
++
++	ret = da9214_check_page_state(chip->dev, page2_regmap);
++	if (ret)
++		return ret;
++
++	ret = da9214_read_signature(page2_regmap, &first);
++	if (ret)
++		return dev_err_probe(chip->dev, ret,
++				     "failed to read legacy interface signature\n");
++
++	ret = da9214_read_signature(page2_regmap, &second);
++	if (ret)
++		return dev_err_probe(chip->dev, ret,
++				     "failed to repeat legacy interface signature\n");
++
++	ret = da9214_check_page_state(chip->dev, page2_regmap);
++	if (ret)
++		return ret;
++
++	/*
++	 * CONFIG_E[6:5] are reserved on this generation.  Its stable read is
++	 * part of the signature, but topology comes from exact match data.
++	 */
++	return da9214_validate_signature(i2c, &first, &second);
++}
++
+ /* Default limits measured in millivolts and milliamps */
+ #define DA9211_MIN_MV		300
+ #define DA9211_MAX_MV		1570
+@@ -92,10 +287,11 @@
+ 	3000000, 3200000, 3400000, 3600000, 3800000, 4000000, 4200000, 4400000,
+ 	4600000, 4800000, 5000000, 5200000, 5400000, 5600000, 5800000, 6000000
+ };
++
+-/* Current limits for DA9215 buck (uA) indices
++/* Current limits for DA9214/DA9215 buck (uA) indices
+  * corresponds with register values
+  */
+-static const int da9215_current_limits[] = {
++static const int da9214_5_current_limits[] = {
+ 	4000000, 4200000, 4400000, 4600000, 4800000, 5000000, 5200000, 5400000,
+ 	5600000, 5800000, 6000000, 6200000, 6400000, 6600000, 6800000, 7000000
+ };
+@@ -180,9 +376,10 @@
+ 		current_limits = da9213_current_limits;
+ 		max_size = ARRAY_SIZE(da9213_current_limits)-1;
+ 		break;
++	case DA9214:
+ 	case DA9215:
+-		current_limits = da9215_current_limits;
+-		max_size = ARRAY_SIZE(da9215_current_limits)-1;
++		current_limits = da9214_5_current_limits;
++		max_size = ARRAY_SIZE(da9214_5_current_limits) - 1;
+ 		break;
+ 	default:
+ 		return -EINVAL;
+@@ -216,8 +413,9 @@
+ 	case DA9213:
+ 		current_limits = da9213_current_limits;
+ 		break;
++	case DA9214:
+ 	case DA9215:
+-		current_limits = da9215_current_limits;
++		current_limits = da9214_5_current_limits;
+ 		break;
+ 	default:
+ 		return -EINVAL;
+@@ -382,23 +580,34 @@
+ 	int i, ret;
+ 	unsigned int data;
+ 
+-	ret = regmap_read(chip->regmap, DA9211_REG_CONFIG_E, &data);
+-	if (ret < 0) {
+-		dev_err(chip->dev, "Failed to read CONFIG_E reg: %d\n", ret);
+-		return ret;
+-	}
+-
+-	data &= DA9211_SLAVE_SEL;
+-	/* If configuration for 1/2 bucks is different between platform data
+-	 * and the register, driver should exit.
+-	 */
+-	if (chip->pdata->num_buck == 1 && data == 0x00)
+-		chip->num_regulator = 1;
+-	else if (chip->pdata->num_buck == 2 && data != 0x00)
+-		chip->num_regulator = 2;
+-	else {
+-		dev_err(chip->dev, "Configuration is mismatched\n");
+-		return -EINVAL;
++	if (chip->match->legacy_da9214) {
++		if (chip->pdata->num_buck != chip->match->num_regulators)
++			return dev_err_probe(chip->dev, -EINVAL,
++					     "legacy DA9214 requires exactly %u regulators\n",
++					     chip->match->num_regulators);
++
++		chip->num_regulator = chip->match->num_regulators;
++	} else {
++		ret = regmap_read(chip->regmap, DA9211_REG_CONFIG_E, &data);
++		if (ret < 0) {
++			dev_err(chip->dev, "Failed to read CONFIG_E reg: %d\n",
++				ret);
++			return ret;
++		}
++
++		data &= DA9211_SLAVE_SEL;
++		/*
++		 * If configuration for 1/2 bucks is different between platform
++		 * data and the register, driver should exit.
++		 */
++		if (chip->pdata->num_buck == 1 && data == 0x00) {
++			chip->num_regulator = 1;
++		} else if (chip->pdata->num_buck == 2 && data != 0x00) {
++			chip->num_regulator = 2;
++		} else {
++			dev_err(chip->dev, "Configuration is mismatched\n");
++			return -EINVAL;
++		}
+ 	}
+ 
+ 	for (i = 0; i < chip->num_regulator; i++) {
+@@ -446,48 +655,68 @@
+  */
+ static int da9211_i2c_probe(struct i2c_client *i2c)
+ {
++	const struct regmap_config *regmap_config;
+ 	struct da9211 *chip;
+ 	int error, ret;
+ 	unsigned int data;
+ 
+-	chip = devm_kzalloc(&i2c->dev, sizeof(struct da9211), GFP_KERNEL);
++	chip = devm_kzalloc(&i2c->dev, sizeof(*chip), GFP_KERNEL);
+ 	if (!chip)
+ 		return -ENOMEM;
+ 
+ 	chip->dev = &i2c->dev;
+-	chip->regmap = devm_regmap_init_i2c(i2c, &da9211_regmap_config);
++	chip->match = i2c_get_match_data(i2c);
++	if (!chip->match)
++		return dev_err_probe(chip->dev, -ENODEV,
++				     "missing device match data\n");
++
++	if (chip->match->legacy_da9214) {
++		ret = da9214_detect_legacy_interface(chip, i2c);
++		if (ret)
++			return ret;
++
++		regmap_config = &da9214_regmap_config;
++		chip->chip_id = chip->match->chip_id;
++	} else {
++		regmap_config = &da9211_regmap_config;
++	}
++
++	chip->regmap = devm_regmap_init_i2c(i2c, regmap_config);
+ 	if (IS_ERR(chip->regmap)) {
+ 		error = PTR_ERR(chip->regmap);
+ 		dev_err(chip->dev, "Failed to allocate register map: %d\n",
+ 			error);
+ 		return error;
+ 	}
+ 
+-	i2c_set_clientdata(i2c, chip);
+-
+-	chip->pdata = i2c->dev.platform_data;
+-
+-	ret = regmap_read(chip->regmap, DA9211_REG_DEVICE_ID, &data);
+-	if (ret < 0) {
+-		dev_err(chip->dev, "Failed to read DEVICE_ID reg: %d\n", ret);
+-		return ret;
+-	}
+-
+-	switch (data) {
+-	case DA9211_DEVICE_ID:
+-		chip->chip_id = DA9211;
+-		break;
+-	case DA9213_DEVICE_ID:
+-		chip->chip_id = DA9213;
+-		break;
+-	case DA9215_DEVICE_ID:
+-		chip->chip_id = DA9215;
+-		break;
+-	default:
+-		dev_err(chip->dev, "Unsupported device id = 0x%x.\n", data);
+-		return -ENODEV;
++	if (!chip->match->legacy_da9214) {
++		ret = regmap_read(chip->regmap, DA9211_REG_DEVICE_ID, &data);
++		if (ret < 0) {
++			dev_err(chip->dev, "Failed to read DEVICE_ID reg: %d\n",
++				ret);
++			return ret;
++		}
++
++		switch (data) {
++		case DA9211_DEVICE_ID:
++			chip->chip_id = DA9211;
++			break;
++		case DA9213_DEVICE_ID:
++			chip->chip_id = DA9213;
++			break;
++		case DA9215_DEVICE_ID:
++			chip->chip_id = DA9215;
++			break;
++		default:
++			dev_err(chip->dev, "Unsupported device id = 0x%x.\n",
++				data);
++			return -ENODEV;
++		}
+ 	}
+ 
++	i2c_set_clientdata(i2c, chip);
++	chip->pdata = i2c->dev.platform_data;
++
+ 	if (!chip->pdata)
+ 		chip->pdata = da9211_parse_regulators_dt(chip->dev);
+ 
+@@ -521,30 +750,30 @@
+ 	return ret;
+ }
+ 
+ static const struct i2c_device_id da9211_i2c_id[] = {
+-	{"da9211", DA9211},
+-	{"da9212", DA9212},
+-	{"da9213", DA9213},
+-	{"da9223", DA9223},
+-	{"da9214", DA9214},
+-	{"da9224", DA9224},
+-	{"da9215", DA9215},
+-	{"da9225", DA9225},
+-	{},
++	{ "da9211", (kernel_ulong_t)&da9211_paged_match_data },
++	{ "da9212", (kernel_ulong_t)&da9211_paged_match_data },
++	{ "da9213", (kernel_ulong_t)&da9211_paged_match_data },
++	{ "da9223", (kernel_ulong_t)&da9211_paged_match_data },
++	{ "da9214", (kernel_ulong_t)&da9214_legacy_match_data },
++	{ "da9224", (kernel_ulong_t)&da9211_paged_match_data },
++	{ "da9215", (kernel_ulong_t)&da9211_paged_match_data },
++	{ "da9225", (kernel_ulong_t)&da9211_paged_match_data },
++	{ },
+ };
+ MODULE_DEVICE_TABLE(i2c, da9211_i2c_id);
+ 
+ #ifdef CONFIG_OF
+ static const struct of_device_id da9211_dt_ids[] = {
+-	{ .compatible = "dlg,da9211", .data = &da9211_i2c_id[0] },
+-	{ .compatible = "dlg,da9212", .data = &da9211_i2c_id[1] },
+-	{ .compatible = "dlg,da9213", .data = &da9211_i2c_id[2] },
+-	{ .compatible = "dlg,da9223", .data = &da9211_i2c_id[3] },
+-	{ .compatible = "dlg,da9214", .data = &da9211_i2c_id[4] },
+-	{ .compatible = "dlg,da9224", .data = &da9211_i2c_id[5] },
+-	{ .compatible = "dlg,da9215", .data = &da9211_i2c_id[6] },
+-	{ .compatible = "dlg,da9225", .data = &da9211_i2c_id[7] },
+-	{},
++	{ .compatible = "dlg,da9211", .data = &da9211_paged_match_data },
++	{ .compatible = "dlg,da9212", .data = &da9211_paged_match_data },
++	{ .compatible = "dlg,da9213", .data = &da9211_paged_match_data },
++	{ .compatible = "dlg,da9223", .data = &da9211_paged_match_data },
++	{ .compatible = "dlg,da9214", .data = &da9214_legacy_match_data },
++	{ .compatible = "dlg,da9224", .data = &da9211_paged_match_data },
++	{ .compatible = "dlg,da9215", .data = &da9211_paged_match_data },
++	{ .compatible = "dlg,da9225", .data = &da9211_paged_match_data },
++	{ },
+ };
+ MODULE_DEVICE_TABLE(of, da9211_dt_ids);
+ #endif
+diff --git a/drivers/regulator/da9211-regulator.h b/drivers/regulator/da9211-regulator.h
+--- a/drivers/regulator/da9211-regulator.h
++++ b/drivers/regulator/da9211-regulator.h
+@@ -41,6 +41,7 @@
+ 
+ /* I2C Interface Settings */
+ #define DA9211_REG_INTERFACE			0x105
++#define DA9211_REG_INTERFACE2			0x106
+ 
+ /* BUCK Phase Selection*/
+ #define DA9211_REG_CONFIG_E			0x147
+@@ -259,6 +260,7 @@
+ /* DA9211_REG_INTERFACE (addr=0x105) */
+ #define DA9211_IF_BASE_ADDR_SHIFT		4
+ #define DA9211_IF_BASE_ADDR_MASK		0xF0
++#define DA9211_IF_TYPE				0x80
+ 
+ /* DA9211_REG_CONFIG_E (addr=0x147) */
+ #define DA9211_SLAVE_SEL			0x40
+-- 
+2.43.0

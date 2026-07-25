@@ -1,0 +1,25 @@
+experiment=2026-07-19-keyboard-manual-reboot-diagnostic
+candidate_label=X
+date_utc=2026-07-19
+result=PASS
+runtime_result=not-tested
+
+validation=candidate-x-validator-mutations
+positive_controls=selected-package,w-baseline,deterministic-x-rebuild,x-artifact,exact-w-dtb,initramfs,android-v0,lk,tmpdir-isolation
+rejection_count=47
+rejected_mutations=boot-byte,builder-baseline-symlink,builder-dangling-output-symlink,builder-existing-output,builder-missing-parent-inside-package,builder-output-inside-baseline,builder-output-inside-package,builder-output-inside-repository,builder-package-symlink,builder-wrong-output-name,coherent-dtb-substitution,coherent-image-substitution,coherent-initramfs-substitution,helper-byte,initramfs-automatic-reboot,initramfs-byte,initramfs-extra-member,initramfs-missing-reboot-intent,initramfs-noncanonical-gzip,initramfs-reboot-symlink,initramfs-reboot-sync,initramfs-second-reboot,initramfs-unsafe-path,initramfs-visible-background-sink,initramfs-watchdog-access,local-controller-substitution,package-coherent-image,package-coherent-patchset,package-extra-file,package-provenance-empty-directory,package-provenance-symlink,package-unrelated-coherent-config,package-virtual-console,package-watchdog-policy,selected-source-symlink-copy,w-baseline-coherent-boot,w-baseline-coherent-dtb,w-baseline-helper-mode,w-baseline-name,w-baseline-symlink,w-baseline-symlink-entry,x-artifact-coherent-extra-file,x-artifact-coherent-provenance,x-artifact-fifo-entry,x-artifact-mode,x-artifact-nested-entry,x-artifact-symlink-entry
+hardware_write=none
+flash=none
+
+[selected-inputs]
+package=linux-7.1.3-gemini-observability-fbcon-rotation-keyboard-wrrd-manual-reboot-4cd417ad-c811a159
+package_manifest_sha256=541542094a9f516556ffcab884abd3db1d58537aff6fd7e2f95abba42e2992c7
+w_baseline=candidate-W-keyboard-wrrd-final-34c41fad
+x_artifact=candidate-X-keyboard-manual-reboot-final-bf400387
+x_artifact_manifest_sha256=a37a774527385e93709bfeab8d93cc0797d908cdc596d046e16e934958218e52
+x_initramfs_sha256=b54ce3cd75e7947ed867165e31abbf6ee6cbac7d41d171435f99bba7825bc769
+x_boot_sha256=bf4003871daaba1faa293f2b128021d3a67d41ebf3ddff1c42463409803b9296
+mutation_harness_sha256=9a739538d5f4b41bd8f8b13b748ba1bc82e0f796ca0ce689e67255afbf86d8d8
+
+The mutation suite is non-device validation. Its positive controls and all 47
+intended rejections passed. This does not establish any runtime behavior.

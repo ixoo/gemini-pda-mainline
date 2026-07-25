@@ -1,0 +1,151 @@
+experiment=2026-07-22-a72-reject-gate-kernel-split
+candidate_label=AI
+attempt=1
+date=2026-07-22
+device_variant=current-named-Gemini-PDA-unit
+result=PASS
+pass_scope=exact-AI-eight-A53-baseline-console-USB-runtime-and-native-reboot
+not_claimed=CPU8-CPU9-request-rejection-or-Cortex-A72-support
+
+[artifact]
+artifact=candidate-AI-a72-reject-gate-1ecfc787
+raw_boot_sha256=1ecfc787fec2f5dc11c5b7d30eb4f11d34b0496e57daf42adea567f010282309
+raw_boot_size=7380992
+installed_full_partition_sha256=8b7439dda7d50dfd509dd66acb5eeedda86d538f0b4f0fab9b328bcc93ed8b86
+installed_full_partition_size=16777216
+installed_identity=exact-prior-installation-full-readback-and-post-cycle-readback
+
+[owner_observation]
+boot2_selection=confirmed
+console=working
+console_visible_candidate_label=AB
+console_label_interpretation=inherited-initramfs-marker-not-candidate-AI-artifact-identity
+proc_cpuinfo_processors=8
+proc_cpuinfo_interpretation=expected-maxcpus-8-baseline
+physical_keyboard=not-separately-exercised-or-reported-for-attempt-1
+
+[runtime]
+runtime_subgate=passed
+capture_method=manual-read-only-after-cycle-observer-expired
+candidate_boot_id=0e40af1b-e5b9-45ab-b554-c559a8283577
+uptime_seconds_at_first_sample=147.26
+uptime_seconds_at_final_sample=154.26
+kernel=7.1.3-gemini-observability-L
+kernel_label_interpretation=inherited-baseline-release-string-not-candidate-AI-artifact-identity
+usb_banner_candidate_label=AC
+initramfs_console_candidate_label=AB
+inherited_marker_interpretation=expected-from-exact-AD-initramfs-and-zero-independent-AI-identity-weight
+config_sha256=32dd13a6704e5fa591236ba114d43e8e7e1aeb3eb123d9d4f124b5f551301d46
+cpu8_enable_method=mediatek-mt6797-psci
+cpu9_enable_method=mediatek-mt6797-psci
+boot_gate_symbol_count=1
+disable_gate_symbol_count=1
+ops_symbol_count=1
+possible_present=0-9
+online=0-7
+offline=8-9
+nproc=8
+cpu0_cpu7_accounting=advanced-over-five-second-sample
+cpu8_online_control=absent
+cpu9_online_control=absent
+cpu8_cpu9_cpu_on_request=absent
+cpu8_cpu9_gate_rejection=not-exercised
+smp_log=brought-up-one-node-eight-CPUs
+fault_signatures=absent
+watchdog_userspace=none
+automatic_reboot_through-observation-boundary=absent
+host_interface=en7
+host_interface_mac=42:00:15:19:82:00
+device_endpoint=10.15.19.82:2323
+collector_explicit_operations=read-only
+installed_hash_basis=caller-supplied-prior-full-partition-readback
+installed_hash_reverified_during-runtime-collection=no
+pass_basis=exact-AI-attribution-at-147-plus-seconds-and-five-second-CPU-accounting-with-final-mask-check
+
+[private_runtime_capture]
+path=artifacts/runtime-captures/candidate-ai-hardware-attempt-1-confirmed-20260722/runtime.txt
+mode=0600
+bytes=123601
+sha256=0b85b1b09c712d960350859c4d700178784d026564fbfe2ea12edf5c16f29a8b
+
+[native_reboot]
+trigger=one-fresh-boot-id-gated-bare-reboot-over-direct-USB-shell
+request_boot_id=0e40af1b-e5b9-45ab-b554-c559a8283577
+dispatch=inherited-absolute-wrapper
+method=busybox-reboot-no-sync-force
+request_marker_candidate_label=AB
+request_marker_interpretation=inherited-initramfs-marker-not-candidate-AI-artifact-identity
+storage_access=none
+watchdog_userspace=none
+usb_endpoint_after_request=disappeared
+pstore_request_seconds=314.277066
+pstore_watchdog_shutdown_seconds=314.293250
+pstore_restart_seconds=314.302632
+pstore_request_to_restart_milliseconds=25.566
+pstore_timing_interpretation=retained-log-request-to-final-restart-line-not-command-to-reset-or-LK-latency
+pstore_final_line=reboot-Restarting-system
+recovery_kernel=3.18.41+
+recovery_arch=aarch64
+recovery_root=/dev/mmcblk0p29
+recovery_boot_id=9937f1b6-8760-4a9f-8023-f46c15c2e43a
+prior_known_recovery_boot_id=4dfa7e87-d7c7-416f-8c32-7271662d89bd
+recovery_boot_id_changed=yes
+post_cycle_boot2_target=/dev/mmcblk0p30
+post_cycle_boot2_mounted=no
+post_cycle_boot2_sha256=8b7439dda7d50dfd509dd66acb5eeedda86d538f0b4f0fab9b328bcc93ed8b86
+post_cycle_boot2_identity=exact-candidate-AI
+post_cycle_device_write_operations=none
+automatic_watchdog_or_countdown_reboot=absent
+
+[private_reboot_evidence]
+request_path=artifacts/runtime-captures/candidate-ai-hardware-attempt-1-confirmed-20260722/native-reboot-request.txt
+request_mode=0600
+request_bytes=1985
+request_sha256=4d19e68db25ae06ce0b65001aca17c59531c1a2a90dd312b82095c199c0fd718
+pstore_path=artifacts/device-pstore/candidate-ai-post-native-reboot-20260722/pstore/console-ramoops
+pstore_mode=0600
+pstore_sha256=5fb50fb333760373319f7f8d99884dda6e90fd6fabcd095d5a69dac67c6dd17f
+pstore_manifest_path=artifacts/device-pstore/candidate-ai-post-native-reboot-20260722/SHA256SUMS
+pstore_manifest_mode=0600
+pstore_manifest_sha256=67b8a7fbc5b0df8ad25b93bdcf0d930bc354f76e97bff8e3e219df747caa08b1
+post_cycle_readback_path=artifacts/runtime-captures/candidate-ai-hardware-attempt-1-confirmed-20260722/post-cycle-boot2-readback.txt
+post_cycle_readback_mode=0600
+post_cycle_readback_bytes=341
+post_cycle_readback_sha256=cb0284449bf464c5318003955c11839574f478894f535bb75c4f9984ac742769
+
+[recovery_evidence_boundary]
+pre_cycle_recovery_observer=expired-before-attributable-AI-runtime
+custom_recovery_capture_wait_for_cycle=no
+validated_two_snapshot_recovery_collector_cycle=no
+evidence_chain=exact-runtime-then-fresh-request-then-USB-disappearance-then-post-return-pstore-and-readback
+interpretation=adequate-for-local-native-restart-and-integrity-pass-but-not-a-validated-pre-post-recovery-collector-cycle
+
+[interpretation]
+The exact installed Candidate AI passed its predeclared eight-A53 baseline on
+this named unit. The owner selected boot2, observed a working console, and saw
+eight processors in /proc/cpuinfo. The visible Candidate AB prompt, Candidate
+AC USB banner, and observability-L release string are inherited from the exact
+AD initramfs and baseline kernel metadata; none independently identifies AI.
+AI is instead attributed by the exact installed full-partition hash together
+with the exact configuration, both custom CPU enable methods, and all three
+compiled gate symbols.
+
+The exact runtime reported CPUs 0--9 possible and present, CPUs 0--7 online
+and advancing, and CPUs 8--9 offline. This is AI's intended maxcpus=8 result.
+The CPU8/CPU9 online controls were absent, no CPU_ON request occurred, and the
+reject gate was therefore present but not exercised.
+
+One fresh bare reboot request followed the inherited absolute BusyBox wrapper
+into native kernel restart. The exact USB endpoint disappeared, retained
+pstore records the request, orderly device shutdown, and final restart line,
+and Gemian returned under a changed boot ID. A read-only full post-cycle hash
+still matched exact AI on logical boot2. The 25.566 ms retained-log interval
+is not an input-to-reset or LK timing measurement.
+
+The pre-cycle recovery observer had already expired. The restart evidence is
+therefore the exact live runtime and request, USB disappearance, and
+post-return pstore/readback chain; it is not a validated two-snapshot recovery
+collector cycle. This is a local PASS for AI's isolated reject-gate kernel
+change on the eight-A53 console/USB/native-restart baseline. It is not evidence
+that either Cortex-A72 CPU can be requested, rejected in hardware, powered, or
+brought online.

@@ -1,0 +1,74 @@
+#!/bin/busybox sh
+# shellcheck shell=dash
+
+export PATH=/bin
+readonly MARKER='GEMINI_KEYBOARD_SHELL_20260718_Q'
+readonly STATUS_FILE=/run/q-status
+
+if ! mount -t devtmpfs -o nosuid,mode=0755 devtmpfs /dev; then
+	printf '%s devtmpfs=failed; STATIC HOLD\n' "$MARKER"
+	while :; do sleep 3600; done
+fi
+mount -t proc -o ro,nosuid,nodev,noexec proc /proc 2>/dev/null || true
+mount -t sysfs -o ro,nosuid,nodev,noexec sysfs /sys 2>/dev/null || true
+
+record() {
+	printf '%s\n' "$*" >>"$STATUS_FILE"
+	printf '%s\n' "$*" >/dev/tty0 2>/dev/null || true
+	if [ -c /dev/kmsg ]; then
+		printf '<6>%s\n' "$*" >/dev/kmsg 2>/dev/null || true
+	fi
+}
+
+record "$MARKER entry profile=keyboard-shell cpu_policy=maxcpus-1 auto_reboot=no"
+
+i2c_adapter=absent
+for adapter in /sys/bus/i2c/devices/i2c-*; do
+	[ -L "$adapter/of_node" ] || continue
+	of_target="$(/bin/busybox readlink "$adapter/of_node" 2>/dev/null || true)"
+	case "$of_target" in
+		*/i2c@1101c000)
+			i2c_adapter=${adapter##*/i2c-}
+			break
+			;;
+	esac
+done
+record "$MARKER i2c5_of=/i2c@1101c000 linux_adapter=$i2c_adapter"
+
+if [ "$i2c_adapter" != absent ]; then
+	client="/sys/bus/i2c/devices/${i2c_adapter}-005b"
+	if [ -d "$client" ]; then
+		driver=unbound
+		if [ -L "$client/driver" ]; then
+			driver="$(/bin/busybox readlink "$client/driver" 2>/dev/null || true)"
+			driver=${driver##*/}
+		fi
+		record "$MARKER aw9523_client=${i2c_adapter}-005b driver=$driver"
+	else
+		record "$MARKER aw9523_client=${i2c_adapter}-005b state=absent"
+	fi
+fi
+
+event_node=absent
+event_name=absent
+for event in /sys/class/input/event*; do
+	[ -r "$event/device/name" ] || continue
+	name="$(cat "$event/device/name" 2>/dev/null || true)"
+	case "$name" in
+		*[Kk]eyboard*|*[Mm]atrix*)
+			event_node=/dev/input/${event##*/}
+			event_name=$name
+			break
+			;;
+	esac
+done
+record "$MARKER matrix_input_name=$event_name event_node=$event_node"
+eint_line="$(grep -E '(^|[[:space:]])(10:|EINT10|gpio-87)([[:space:]]|$)' /proc/interrupts 2>/dev/null | /bin/busybox tail -n 1 || true)"
+record "$MARKER eint10=${eint_line:-not-found}"
+record "$MARKER raw_event_window=begin duration=60s instructions=press-release-letter-enter-shift-meta"
+/bin/input-event-capture 2>&1 | while IFS= read -r event_line; do
+	record "$MARKER $event_line"
+done
+record "$MARKER raw_event_window=complete tty1_shell=starting"
+
+exec /bin/busybox init

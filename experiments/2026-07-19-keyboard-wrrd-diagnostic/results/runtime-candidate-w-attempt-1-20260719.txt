@@ -1,0 +1,194 @@
+[record]
+date=2026-07-19
+source=owner-attended visual/keyboard observation plus authenticated post-return pstore and non-identifying boot-reason capture
+candidate=W
+attempt=1
+runtime_repetitions=1
+intended_boot_target=logical boot2 selected by the owner
+device_variant=current Gemini PDA unit; exact retail sub-variant not independently established
+
+[exact_artifact_and_target]
+package=linux-7.1.3-gemini-observability-fbcon-rotation-keyboard-wrrd-4cd417ad-28a94091
+kernel_release=7.1.3-gemini-observability-L
+compiler=gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=4cd417adb0d79aad2f021e1f07e47bed4825cb51b3a069e5258ea4eb49ca5ef4
+controller_patch_sha256=1cab9b0094885164a16bc386321c6218767e94190ce6d8e109f6686129c58f72
+config_inputs_sha256=28a940914585f2e15484f35f7e9e0eda70c35bd5ce46344ad9061858bfb08012
+resolved_config_sha256=e143daa84127e2c04895c2576943dfb77ee10903c35f4d8cc9fe1dc90bf1bebb
+candidate_dtb_sha256=bc160c428b83903524aa92046d5ed1da44e87f0f1c6dacfbb33cb6a9f2ee963f
+candidate_initramfs_sha256=3793bec7a63074b237d041bcd42e6edfccc80f0a3d7b19869abf99ee7874dac6
+raw_boot_image_bytes=6866944
+raw_boot_image_sha256=34c41fad1e86de05b6a1f64f7e5d9229bd26ea88d982b0a57f2b9573aeb782d4
+installed_full_partition_bytes=16777216
+installed_full_partition_sha256=0ff3220096aa53f792116b3899e356bc2516816c9c330309c3d81e9fe1446608
+write_sync_flush=pass
+full_partition_readback=pass-byte-identical-to-padded-candidate
+candidate_w_selection=intended-by-owner
+independent_selected_image_identity=established-by-exact-candidate-W-marker-in-surviving-console-ramoops
+
+[owner_observation]
+console_after_boot2_selection=visible
+shell=appeared
+keyboard=worked
+console_font=perfect
+kernel_log_and_shell_isolation=failed; kernel logs were visibly mixed with the shell on the same console
+automatic_watchdog_return=observed
+manual_reboot_opportunity=not-useful; the watchdog return interrupted the interactive session
+owner_preference=replace-the-deliberate-timeout-with-a-reboot-command-that-can-be-typed
+photograph_or_video=none-reported
+known_good_os_after_return=Gemian Linux 3.18.41+
+repeat_count=1
+
+[private_post_return_capture]
+private_capture=artifacts/device-pstore/candidate-w-attempt-1-20260719
+capture_directory_mode=0700
+capture_file_modes=0600
+collector_started_utc=2026-07-19T21:46:48Z
+collector_waited_for_cycle=no; the owner had already observed the completed automatic return
+collector_disconnect_reconnect_observation=not-requested
+capture_kernel=3.18.41+
+capture_arch=aarch64
+current_boot_id_sha256=aa755e5ac50ab3692be4e43277f04504838ed90c01ee7d36d67b73c7e65ca14d
+boot_id_stable_across_metadata_and_archive=yes
+boot_id_at_install_sha256=9c85a2b6356563a4bf83649c3b14039dc6abdd351391da4e767b29a096a2b247
+current_boot_id_differs_from_install_boot_id=yes
+tested_cycle_boot_id_transition_observed_by_collector=no
+pstore_directory=present
+pstore_files=console-ramoops
+private_console_bytes=65524
+private_console_sha256=b3997b1d6d20ad78f4f3181506233c4197743b3307c0e5c67356f1d625d902b4
+private_capture_sha256s_manifest_sha256=3d34d6266e00d0666f89b2ba9319ba09633e9403f394da73442fc81f30f36976
+private_capture_manifest_verification=pass
+collector_candidate_l_evidence_file=not-applicable-hard-coded-candidate-l-parser; ignored-for-candidate-W-attribution
+remote_pstore_records_removed=no
+
+[retained_candidate_identity]
+candidate_marker=GEMINI_KEYBOARD_WRRD_20260719_W
+candidate_marker_lines=78
+entry_kernel_time_seconds=5.425670
+profile=keyboard-wrrd
+cpu_online=0
+storage_access=none
+runtime_networking=none
+panic_oops_bug_or_call_trace=absent-from-captured-console-window
+
+[i2c_aw9523_and_matrix]
+i2c_platform=1101c000.i2c
+i2c_platform_driver=i2c-mt65xx
+i2c_platform_probe=returned-0
+i2c5_of_path=/i2c@1101c000
+i2c5_linux_adapter=0
+i2c5_frequency_hz=400000
+controller_policy=mt6797-mt8173-data
+aw9523_client=0-005b
+aw9523_client_probe=returned-0
+aw9523_driver=aw9523-pinctrl
+aw9523_minus_110_or_ETIMEDOUT=absent-from-captured-console-window
+matrix_initial_probe=deferred-minus-517-before-supplier-bound
+matrix_platform_device=keyboard-matrix
+matrix_driver=matrix-keypad
+matrix_final_probe=returned-0
+matrix_polling_interval_ms=20
+matrix_input_registration=keyboard-matrix
+matrix_event_node=/dev/input/event0
+
+[physical_input_evidence]
+capture_policy=exact-sysfs-to-fd; no-grab; bounded-15-seconds
+event_node=/dev/input/event0
+event_device_name=keyboard-matrix
+ev_key_press_records=8
+ev_key_release_records=8
+key_h_code_35=one-press-and-one-release
+key_e_code_18=one-press-and-one-release
+key_l_code_38=one-press-and-one-release
+key_p_code_25=one-press-and-one-release
+key_enter_code_28=four-presses-and-four-releases
+typed_sequence_inference=the-first-five-unique-key-pairs-are-consistent-with-HELP-and-Enter; exact shell command execution was not retained
+pass_success_marker=absent
+physical_keyboard_event_gate=pass-for-the-listed-keys-in-one-bounded-run
+all_key_positions=not-tested
+
+[shell_console_and_font]
+tty1_shell_ready_marker=present
+foreground_vt_marker=selected
+prompt_marker=GEMINI-W#
+visible_shell=owner-observed
+interactive_shell_command_execution=not-durably-established
+expected_kernel_console=tty2
+expected_foreground_shell=tty1
+actual_visible_isolation=failed-by-owner-observation-of-kernel-logs-mixed-with-shell
+font_profile=TER16x32
+font_acceptance=owner-observed-perfect
+
+[watchdog_and_return]
+watchdog_platform=10007000.watchdog
+watchdog_driver=mtk-wdt
+watchdog_identity=exact
+watchdog_timeout_seconds=31
+watchdog_open=success-fd3
+watchdog_handoff_ping=sent-once
+watchdog_arm_kernel_time_seconds=5.711301
+last_complete_wait_marker=watchdog_wait=30s
+last_complete_wait_kernel_time_seconds=35.781707
+nominal_expiry_kernel_time_seconds=36.711301
+last_wait_marker_precedes_nominal_expiry_seconds=0.929594
+watchdog_wait_35s=absent
+watchdog_expiry_failed=absent
+post_return_boot_reason_query_utc=2026-07-19T21:49:08Z
+boot_reason_numeric=4
+android_bootreason=wdt_by_pass_pwk
+powerup_reason=reboot
+serial_and_personal_boot_fields=not-read-or-recorded
+watchdog_timeout_reset=established-by-retained-arm-and-timing-sequence-plus-owner-auto-return-plus-Gemian-watchdog-boot-reason
+
+[gate_results]
+candidate_W_kernel_and_initramfs_entry=pass
+i2c_controller_binding=pass
+aw9523_provider_binding=pass
+matrix_polling_driver_binding=pass
+matrix_input_event_registration=pass
+physical_key_press_release=pass-for-H-E-L-P-and-Enter-only
+visible_shell=pass-by-owner-observation
+letters_only_pass_marker=not-observed
+kernel_log_shell_isolation=fail
+TER16x32_font=pass-by-owner-observation
+automatic_recovery=pass
+useful_interactive_time=fail-by-design-of-deliberate-31-second-expiry
+
+[attribution]
+candidate_acceptance=keyboard-causal-gate-passed; observation-path-partially-failed
+candidate_W_controller_change=one-direct-mediatek-mt6797-i2c-match-to-existing-mt8173_compat
+candidate_V_provider_result=all-observed-AW9523-register-reads-timed-out-minus-110-and-provider-remained-unbound
+candidate_W_provider_result=0-005b-probe-returned-0-and-aw9523-pinctrl-bound
+held_exact_between_V_and_W=final-DTB,AW9523-reset-and-cache,matrix-policy,I2C-frequency,ramoops,no-IRQ-watchdog
+provider_bind_change_attribution=strong-for-this-one-run-because-the-causal-kernel-delta-is-the-controller-data-match-and-the-exact-V-hardware-description-is-retained
+hardware_WRRD_waveform_or-register-programming=not-measured-directly
+WRRD_interpretation=provider-bind-change-is-consistent-with-and-supports-the-WRRD-hypothesis; it is not a physical-bus trace
+
+[boundaries]
+repeatability=not-established
+all_keys_and_physical_keymap=not-tested
+modifiers_rollover_repeat_and-wake=not-tested
+shell_command_execution=not-retained
+letters_only_pass_oracle=not-completed
+long_interactive_session=prevented-by-deliberate-watchdog-expiry
+kernel_log_VT_routing_cause=not-established
+normal_rootfs_serviceability=not-tested
+native_display_panel_backlight=not-tested
+uart=not-established
+usb_host_enumeration=not-established
+storage_or_rootfs=not-accessed
+smp=not-tested
+
+[decision]
+unchanged_candidate_W_retry=stop
+preserve_exact=W-kernel-controller-delta,V-derived-DTB,AW9523-provider,matrix-polling,keymap,TER16x32-font,ramoops
+next_observation_change=do-not-deliberately-take-watchdog-ownership-for-timeout; retain-a-manual-typed-reboot-path
+next_console_change=remove-kernel-log-output-from-the-interactive-VT-while-retaining-dev-kmsg-to-console-ramoops-evidence
+next_runtime_goal=an-unbounded-enough-clean-tty1-shell-with-a-typeable-reboot-command
+
+This is one hardware run. It proves only the exact provider, matrix, event-node,
+listed physical-key press/release, visible-shell, font, and watchdog outcomes
+above. It does not establish complete keyboard coverage, command execution,
+repeatability, or a cleanly isolated interactive console.

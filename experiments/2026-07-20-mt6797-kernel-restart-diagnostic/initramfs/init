@@ -1,0 +1,46 @@
+#!/bin/busybox sh
+# shellcheck shell=dash
+
+export PATH=/bin
+readonly MARKER='GEMINI_MT6797_KERNEL_RESTART_20260720_AB'
+
+# /dev/null is unavailable before devtmpfs. Keep this first mount unredirected.
+if ! mount -t devtmpfs -o nosuid,mode=0755 devtmpfs /dev; then
+	printf '%s devtmpfs=failed; STATIC HOLD\n' "$MARKER"
+	while :; do
+		sleep 3600
+	done
+fi
+
+procfs_status=failed
+sysfs_status=failed
+if mount -t proc -o ro,nosuid,nodev,noexec proc /proc 2>/dev/null; then
+	procfs_status=mounted
+fi
+if mount -t sysfs -o ro,nosuid,nodev,noexec sysfs /sys 2>/dev/null; then
+	sysfs_status=mounted
+fi
+
+: >/run/x-status
+/bin/x-record 'entry profile=mt6797-kernel-restart cpu_policy=maxcpus-1'
+/bin/x-record "procfs=$procfs_status sysfs=$sysfs_status marker_path=kmsg-console-ramoops"
+if [ "$sysfs_status" != mounted ]; then
+	/bin/x-record 'diagnostic=invalid reason=sysfs-unavailable; STATIC HOLD'
+	while :; do
+		sleep 3600
+	done
+fi
+
+online=unavailable
+if [ -r /sys/devices/system/cpu/online ]; then
+	online="$(cat /sys/devices/system/cpu/online 2>/dev/null || true)"
+fi
+/bin/x-record "cpu_online=${online:-unavailable} storage_access=none runtime_networking=none"
+
+# Retain Candidate AA r1's independent observation worker. Candidate AB starts
+# no automatic reset worker and no userspace watchdog owner; only an
+# owner-typed bare reboot reaches the audited /bin/reboot wrapper.
+/bin/x-probe &
+/bin/x-record 'services=launched probe=independent tty1_shell=supervised clean_tty1_background=yes reboot_dispatch=env-alias watchdog_userspace=none keyboard_map=tty1-synchronous manual_reboot=busybox-no-sync-force'
+
+exec /bin/busybox init

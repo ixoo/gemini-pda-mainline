@@ -19,7 +19,7 @@ historical_driver_match=The Planet driver has no MT6797-specific match entry. It
 current_driver_match=Linux 7.1.3 retains the same mt6577_compat semantics and adds modern v1 register tables, optional arbitration-clock handling, bulk clock management, DMA-width handling, and current transfer/recovery code. The OF match table contains mediatek,mt6577-i2c rather than a direct mediatek,mt6797-i2c entry.
 binding_contract=Documentation/devicetree/bindings/i2c/i2c-mt65xx.yaml explicitly accepts mediatek,mt6797-i2c only as the first string followed by mediatek,mt6577-i2c. A bare MT6797 compatible is not the current binding contract.
 current_dts=All ten MT6797 I2C nodes use the required two-string compatible. They retain the historical controller and AP-DMA windows, IRQs 83/84/85/86/87/88/89/90/95/96, clock-div=<10>, main+dma clocks, and optional arb clocks on I2C2/I2C3/I2C8/I2C9. Nodes remain disabled in the Gemini board description.
-vendor_private_properties=The historical DTS also carries id, mediatek,buffermode_used, mediatek,appm_used, and mediatek,gpupm_used. The upstream driver does not need these vendor policy flags for the generic controller path; it consumes the standard resources, clock-div, and optional arb clock.
+vendor_private_properties=The historical DTS also carries id, mediatek,buffermode_used, mediatek,appm_used, and mediatek,gpupm_used. The generic controller register path consumes the standard resources, clock-div, and optional arb clock, but the private flags cannot all be discarded as irrelevant policy: I2C6 has mediatek,appm_used and the vendor driver pauses the running DVFSP owner with SEMA_I2C_DRV around each hardware transfer.
 
 [live_observation]
 adapter_count=10
@@ -30,7 +30,15 @@ live_capture_adapters=i2c-0:mt-i2c;i2c-1:mt-i2c;i2c-2:mt-i2c;i2c-3:mt-i2c;i2c-4:
 live_capture_clients=0-0025:fusb301a/FUSB301_1,0-0031:speaker_amp/unbound,0-0053:rt9466/unbound,0-0063:strobe_main/unbound,0-006b:sw_charger/bq25890,0-0070:buck_boost/fan49101,1-0025:fusb301/FUSB301_0,1-0030:msensor_mmc3530/unbound,1-003e:i2c_lcd_bias/lp3101,1-0048:alsps/stk3x1x,1-005f:humidity/unbound,1-0068:gsensor_bmi160/bmi160_acc,1-0069:gyro_bmi160/bmi160_gyro,1-006a:gsensor/unbound,1-006b:gyro/unbound,1-0077:barometer/unbound,2-002d:camera_main/kd_camera_hw,2-0072:camera_main_af/MAINAF,3-000c:camera_sub_af/SUBAF,3-002c:aw9120_led/aw9120_led,3-0036:camera_sub/kd_camera_hw_bus2,3-0039:sii9022_hdmi/unbound,3-0050:siiedid/unbound,4-0053:solomon_touch/unbound,4-0062:cap_touch/NVT-ts,5-0028:nfc/unbound,5-005b:aw9523_key/Integrated_keyboard,6-0068:vproc_buck/da9214,7-001c:rt5735-regulator/rt5735-regulator,7-0060:vgpu_buck/unbound,8-0036:camera_main_hw/kd_camera_hw_trigger
 
 [decision]
-reuse=Use Linux 7.1.3 drivers/i2c/busses/i2c-mt65xx.c with the generic mt6577 fallback. Do not add an MT6797-specific I2C driver or compatibility data based on the available evidence.
-reason=Historical source already selected the mt6577 register/quirk profile for MT6797, and current upstream binding/DTS preserve that relationship. Current driver support covers the MT6797 clock-div and optional arb-clock resources.
-remaining_gate=Runtime boot and one-at-a-time I2C enablement are still required. First tests must observe probe/clock/IRQ/transfer behavior for a low-risk client; do not enable all ten buses or issue arbitrary transactions. Verify regulators, pinctrl, reset/wake, and bus recovery before enabling populated children.
+reuse=Use Linux 7.1.3 drivers/i2c/busses/i2c-mt65xx.c with the generic mt6577 fallback for the controller register and transfer engine. Do not add an MT6797-specific transfer-engine driver merely for the recovered ownership policy.
+reason=Historical source already selected the mt6577 register/quirk profile for MT6797, and current upstream binding/DTS preserve that relationship. Current driver support covers the MT6797 clock-div and optional arb-clock resources. Shared AP/firmware ownership remains a separate provider or wrapper requirement where the live board actually uses it.
+remaining_gate=Runtime boot and one-at-a-time I2C enablement are still required. First tests must observe probe/clock/IRQ/transfer behavior for a low-risk client; do not enable all ten buses or issue arbitrary transactions. For I2C6, capture the mainline DVFSP handoff state and prove the competing owner quiescent or implement and validate the SEMA_I2C_DRV-equivalent ownership contract before any DA9214 rail write. Verify regulators, pinctrl, reset/wake, and bus recovery before enabling populated children.
 negative_evidence=No claim is made that every vendor private client has a mainline-compatible child driver, that camera transactions work, or that the current DT is electrically complete.
+
+[2026-07-23 correction]
+trigger=Candidate_AL_DA9214_failure_and_datasheet_crosscheck
+live_recheck=Running_Gemian_DT_has_/soc/i2c@1100e000/mediatek,appm_used_and_CPUHVFS_DVFSP_is_active
+source_recheck=The_pinned_Gemian_i2c-mtk_driver_calls_cpuhvfs_get_dvfsp_semaphore_SEMA_I2C_DRV_and_release_around_each_I2C6_hardware_transfer
+candidate_al_difference=Linux_7.1.3_generic_i2c-mt65xx_has_no_equivalent_DVFSP_pause
+scope=This_does_not_change_the_mt6577_transfer-engine_reuse_decision_but_retracts_the_claim_that_all_vendor_private_flags_are_irrelevant
+da9214_effect=The_legacy_0x201_read_is_still_invalid_but_future_active_regulator_access_requires_an_attributable_ownership_result

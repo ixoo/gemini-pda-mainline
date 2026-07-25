@@ -1,0 +1,30 @@
+#!/bin/busybox sh
+# shellcheck shell=dash
+
+export PATH=/bin
+stage=${1:-unspecified}
+readonly summary="/run/clk-summary-${stage}"
+readonly source=/run/debugfs/clk/clk_summary
+
+if [ ! -r "$source" ]; then
+	/bin/aq-record "stage=$stage status=missing source=$source"
+	exit 0
+fi
+
+if ! /bin/busybox cat "$source" >"$summary" 2>/run/clk-summary-${stage}.error; then
+	/bin/aq-record "stage=$stage status=read-failed source=$source"
+	exit 0
+fi
+
+bytes=unknown
+if [ -r "$summary" ]; then
+	bytes=$(/bin/busybox wc -c <"$summary" 2>/dev/null || true)
+fi
+/bin/aq-record "stage=$stage status=ok bytes=${bytes:-unknown} file=$summary"
+
+# Publish only the named shared-clock rows to the persistent console/log path;
+# the complete summary remains available through the direct USB shell.
+/bin/busybox grep -Ei 'ap_dma|i2c_appm|uart0|i2c5|i2c6' "$summary" 2>/dev/null |
+while IFS= read -r line; do
+	/bin/aq-record "stage=$stage row=$line"
+done

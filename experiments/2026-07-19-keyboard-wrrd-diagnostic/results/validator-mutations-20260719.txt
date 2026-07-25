@@ -1,0 +1,30 @@
+experiment=2026-07-19-keyboard-wrrd-diagnostic
+candidate_label=W
+date_utc=2026-07-19
+result=PASS
+runtime_result=not-tested
+
+mutation_harness=experiments/2026-07-19-keyboard-wrrd-diagnostic/scripts/test-validator-mutations.sh
+mutation_harness_sha256=1d253b14090316565edfeb2ca10fa6875bddac6d39e4d2b5ffa1328c18d2ba44
+selected_package_manifest_sha256=6337c00318acecea64ed77fe67757744f9c2ad9d730c1c22b14b7ad43b2a91d0
+candidate_v_manifest_sha256=0ab8291fef437cc4d2cc2b415852d21e6ccfb9deff67e8bec41b4dbfc8068ef9
+candidate_w_manifest_sha256=257b17585c171e29ae3510fdab7602aa59e4da570aa906abb8b9e5b7e8da5851
+candidate_w_raw_sha256=34c41fad1e86de05b6a1f64f7e5d9229bd26ea88d982b0a57f2b9573aeb782d4
+positive_controls=selected-package,controller,v-baseline,deterministic-w-rebuild,w-artifact,exact-v-dtb,initramfs,android-v0,lk
+rejection_count=24
+rejected_mutations=boot-byte,builder-dangling-output-symlink,builder-existing-output,builder-missing-parent-inside-package,builder-output-inside-package,coherent-dtb-substitution,coherent-image-substitution,coherent-initramfs-substitution,controller-extra-file,helper-byte,initramfs-byte,local-controller-substitution,package-coherent-config,package-coherent-image,package-coherent-patchset,package-extra-file,selected-source-symlink-copy,v-baseline-coherent-boot,v-baseline-coherent-dtb,v-baseline-name,w-artifact-coherent-inventory,w-artifact-coherent-nested-entry,w-artifact-coherent-provenance,w-artifact-symlink-entry
+builder_destination_symlink_and_race_guards=passed
+builder_package_baseline_repository_containment_guards=passed
+builder_mid_run_input_snapshot_guard=passed
+artifact_regular_flat_inventory_guard=passed
+deterministic_replica_guard=passed
+valid_single_stream_recompressed_kernel_mutation=passed
+hardware_write=none
+flash=none
+
+The first invocation exposed a mutation-fixture defect: appending one byte to
+Image.gz made the serializer reject a malformed stream before the selected
+validator ran. The final harness instead recompresses the pinned Image as one
+valid, byte-distinct gzip stream, serializes a coherent Android container, and
+then proves that validate-boot rejects the substitution. The final invocation
+passed all positive controls and all 24 negative controls.

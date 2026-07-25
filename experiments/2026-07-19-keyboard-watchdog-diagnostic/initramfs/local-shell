@@ -1,0 +1,10 @@
+#!/bin/busybox sh
+# shellcheck shell=dash
+
+export PATH=/bin
+export TERM=linux
+export PS1='GEMINI-V# '
+
+/bin/busybox stty sane
+/bin/v-record 'tty1_shell=ready prompt=GEMINI-V# run=/bin/v-pass status=/run/v-status'
+exec /bin/busybox ash -i

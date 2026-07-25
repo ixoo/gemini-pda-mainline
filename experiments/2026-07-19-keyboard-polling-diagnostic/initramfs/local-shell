@@ -1,0 +1,11 @@
+#!/bin/busybox sh
+# shellcheck shell=dash
+
+export PATH=/bin
+export TERM=linux
+export PS1='GEMINI-U# '
+
+/bin/busybox stty sane
+printf '%s\n' 'GEMINI_KEYBOARD_POLLING_20260719_U tty1 shell ready; run /bin/u-pass'
+printf '%s\n' 'Probe status is available with: cat /run/u-status'
+exec /bin/busybox ash -i

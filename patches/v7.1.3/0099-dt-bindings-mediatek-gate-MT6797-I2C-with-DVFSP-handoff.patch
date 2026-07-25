@@ -1,0 +1,99 @@
+From ba5961fd265030098f611c27a71065cfb778b425 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 24 Jul 2026 15:01:31 -0400
+Subject: [PATCH 1/4] dt-bindings: mediatek: gate MT6797 I2C with DVFSP handoff
+
+Describe an optional access-controller supplier only for MT6797 I2C.
+
+Make the handoff receiver a zero-cell provider and document read-only I2C_APPM and shared AP-DMA gate observations.
+
+Signed-off-by: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+---
+ .../devicetree/bindings/i2c/i2c-mt65xx.yaml    | 18 ++++++++++++++++++
+ .../mediatek,mt6797-dvfsp-handoff.yaml         | 17 +++++++++++++++--
+ 2 files changed, 33 insertions(+), 2 deletions(-)
+
+diff --git a/Documentation/devicetree/bindings/i2c/i2c-mt65xx.yaml b/Documentation/devicetree/bindings/i2c/i2c-mt65xx.yaml
+index ecd5783..06c995e 100644
+--- a/Documentation/devicetree/bindings/i2c/i2c-mt65xx.yaml
++++ b/Documentation/devicetree/bindings/i2c/i2c-mt65xx.yaml
+@@ -12,6 +12,18 @@ description:
+ 
+ allOf:
+   - $ref: /schemas/i2c/i2c-controller.yaml#
++  - if:
++      properties:
++        compatible:
++          contains:
++            const: mediatek,mt6797-i2c
++    then:
++      properties:
++        access-controllers:
++          maxItems: 1
++    else:
++      properties:
++        access-controllers: false
+ 
+ maintainers:
+   - Qii Wang <qii.wang@mediatek.com>
+@@ -107,6 +119,12 @@ properties:
+   vbus-supply:
+     description: Phandle to the regulator providing power to SCL/SDA
+ 
++  access-controllers:
++    maxItems: 1
++    description:
++      Optional MT6797 firmware-handoff access controller which must grant
++      access before this controller is initialized.
++
+ required:
+   - compatible
+   - reg
+diff --git a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-dvfsp-handoff.yaml b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-dvfsp-handoff.yaml
+index c616107..ad07fef 100644
+--- a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-dvfsp-handoff.yaml
++++ b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-dvfsp-handoff.yaml
+@@ -14,7 +14,11 @@ description: |
+   firmware instance. It validates a stable CSPM reset state, temporarily
+   acquires the shared I2C_APPM clock through the common clock framework,
+   balances that reference, and independently verifies that the physical
+-  gate became closed without changing the firmware state.
++  gate became closed without changing the firmware state. It also observes
++  the shared AP-DMA gate. Consumer validation proves both bulk clocks are
++  ungated while held, requires I2C_APPM to remain gated throughout a bounded
++  cleanup window, and requires AP-DMA to be observed gated at least once;
++  unrelated users may reopen the shared AP-DMA gate.
+ 
+   The device does not start, stop, pause, reset, or load DVFSP firmware. It
+   does not directly write CSPM or infracfg registers. It is not a complete
+@@ -39,7 +43,14 @@ properties:
+   mediatek,infracfg:
+     $ref: /schemas/types.yaml#/definitions/phandle
+     description:
+-      Phandle to infracfg for independent I2C_APPM gate-status readback.
++      Phandle to infracfg for independent I2C_APPM and AP-DMA gate-status
++      readback.
++
++  "#access-controller-cells":
++    const: 0
++    description:
++      Declares this receiver as the access controller for the single I2C
++      controller whose use depends on a completed handoff.
+ 
+ required:
+   - compatible
+@@ -47,6 +58,7 @@ required:
+   - clocks
+   - clock-names
+   - mediatek,infracfg
++  - "#access-controller-cells"
+ 
+ additionalProperties: false
+ 
+@@ -64,5 +76,6 @@ examples:
+             clocks = <&infrasys CLK_INFRA_I2C_APPM>;
+             clock-names = "i2c";
+             mediatek,infracfg = <&infrasys>;
++            #access-controller-cells = <0>;
+         };
+     };

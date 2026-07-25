@@ -1,0 +1,8 @@
+# Candidate AE observer-only Cortex-A72 resource profile. Apply after
+# gemini-smp8.fragment. The CPU cap remains at the eight already-proven
+# Cortex-A53 CPUs; this stage only binds the DA9214 and read-only MT6797
+# resource observer. regulator_ignore_unused preserves firmware rail state
+# without declaring either DA9214 output boot-on or always-on.
+CONFIG_REGULATOR_DA9211=y
+CONFIG_MTK_MT6797_A72_POWER=y
+CONFIG_CMDLINE="console=ttyS0,921600n8 earlycon maxcpus=8 nokaslr ignore_loglevel loglevel=8 log_buf_len=1M initcall_debug rdinit=/init panic=0 g_ether.dev_addr=42:00:15:19:82:01 g_ether.host_addr=42:00:15:19:82:00 g_ether.iManufacturer=gemini-pda-mainline g_ether.iProduct=Gemini-L-Observability g_ether.iSerialNumber=GEMINI_OBSERVABILITY_20260717_L clk_ignore_unused fbcon=rotate:3 consoleblank=0 fbcon=font:TER16x32 regulator_ignore_unused"

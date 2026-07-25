@@ -1,0 +1,386 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+readonly SCRIPT_DIR
+readonly VALIDATOR="${SCRIPT_DIR}/validate-kernel-artifact"
+readonly SOURCE_SHA256="1111111111111111111111111111111111111111111111111111111111111111"
+
+die() {
+	echo "error: $*" >&2
+	exit 1
+}
+
+require_command() {
+	command -v "$1" >/dev/null 2>&1 || die "required command not found: $1"
+}
+
+if [[ "$(uname -s)" != Linux || "$(uname -m)" != aarch64 ]]; then
+	echo "SKIP: run this focused test in the aarch64 development VM"
+	exit 77
+fi
+
+for command in awk cp dd find gzip jq ln mkdir mktemp mv rm sha256sum sort xargs; do
+	require_command "${command}"
+done
+
+test_root="$(mktemp -d)"
+readonly test_root
+trap 'rm -rf -- "${test_root}"' EXIT
+
+patchset_hash() {
+	local package="$1"
+	local series_path="$2"
+	local line
+
+	{
+		printf '%s  %s\n' \
+			"$(sha256sum "${package}/provenance/series" | awk '{print $1}')" \
+			"${series_path}"
+		while IFS= read -r line || [[ -n "${line}" ]]; do
+			[[ -z "${line}" || "${line}" == \#* ]] && continue
+			printf '%s  %s\n' \
+				"$(sha256sum "${package}/provenance/patches/${line}" | awk '{print $1}')" \
+				"${line}"
+		done < "${package}/provenance/series"
+	} | sha256sum | awk '{print $1}'
+}
+
+config_inputs_hash() {
+	local package="$1"
+	local profile="$2"
+	local base="$3"
+	local fragment
+	local fragment_basename
+	shift 3
+
+	{
+		printf 'profile=%s\n' "${profile}"
+		printf 'base=%s\n' "${base}"
+		for fragment in "$@"; do
+			fragment_basename="${fragment##*/}"
+			printf '%s  %s\n' \
+				"$(sha256sum "${package}/provenance/configs/${fragment_basename}" | awk '{print $1}')" \
+				"${fragment}"
+		done
+	} | sha256sum | awk '{print $1}'
+}
+
+replace_json() {
+	local path="$1"
+	shift
+	local temporary="${path}.new"
+
+	jq "$@" "${path}" > "${temporary}"
+	mv "${temporary}" "${path}"
+}
+
+refresh_sums() {
+	local package="$1"
+	local temporary="${package}.SHA256SUMS"
+
+	rm -f -- "${package}/SHA256SUMS" "${temporary}"
+	(
+		cd "${package}"
+		find . -type f ! -path ./SHA256SUMS -print0 \
+			| sort -z \
+			| xargs -0 sha256sum
+	) > "${temporary}"
+	mv "${temporary}" "${package}/SHA256SUMS"
+}
+
+make_base_package() {
+	local package="$1"
+	local config_sha256
+	local config_inputs_sha256
+	local patchset_sha256
+
+	mkdir -p \
+		"${package}/dtbs/mediatek" \
+		"${package}/provenance/configs" \
+		"${package}/provenance/patches/vtest"
+
+	dd if=/dev/zero of="${package}/Image" bs=64 count=1 status=none
+	printf '\100\000\000\000\000\000\000\000' \
+		| dd of="${package}/Image" bs=1 seek=16 conv=notrunc status=none
+	printf 'ARMd' \
+		| dd of="${package}/Image" bs=1 seek=56 conv=notrunc status=none
+	gzip -n -c "${package}/Image" > "${package}/Image.gz"
+	printf 'CONFIG_TEST=y\n' > "${package}/kernel.config"
+	printf '0000000000000000 T synthetic_symbol\n' > "${package}/System.map"
+	printf 'synthetic-dtb\n' > "${package}/dtbs/mediatek/test.dtb"
+	printf 'CONFIG_BASE=y\n' > "${package}/provenance/configs/base.fragment"
+	printf 'CONFIG_GATE=y\n' > "${package}/provenance/configs/gate.fragment"
+	printf '# synthetic series\nvtest/0001.patch\nvtest/0002.patch\n' \
+		> "${package}/provenance/series"
+	printf 'synthetic patch one\n' \
+		> "${package}/provenance/patches/vtest/0001.patch"
+	printf 'synthetic patch two\n' \
+		> "${package}/provenance/patches/vtest/0002.patch"
+
+	jq -n --arg source "${SOURCE_SHA256}" '
+		{
+			schema: 1,
+			kernel: {
+				version: "test",
+				released: "2026-07-22",
+				source_url: "https://example.invalid/linux-test.tar.xz",
+				sha256: $source
+			},
+			architecture: "arm64",
+			patch_series: "patches/series-main",
+			config: {
+				default_profile: "full",
+				profiles: {
+					full: {
+						base: "defconfig",
+						fragments: ["configs/base.fragment"]
+					},
+					gate: {
+						base: "defconfig",
+						patch_series: "patches/series-gate",
+						fragments: [
+							"configs/base.fragment",
+							"configs/gate.fragment"
+						]
+					}
+				}
+			}
+		}
+	' > "${package}/provenance/kernel-manifest.json"
+
+	config_sha256="$(sha256sum "${package}/kernel.config" | awk '{print $1}')"
+	config_inputs_sha256="$(config_inputs_hash \
+		"${package}" gate defconfig \
+		configs/base.fragment configs/gate.fragment)"
+	patchset_sha256="$(patchset_hash "${package}" patches/series-gate)"
+	jq -n \
+		--arg source "${SOURCE_SHA256}" \
+		--arg patchset "${patchset_sha256}" \
+		--arg config "${config_sha256}" \
+		--arg config_inputs "${config_inputs_sha256}" '
+		{
+			schema: 1,
+			generated_utc: "2026-07-22T00:00:00Z",
+			kernel_release: "test-gemini-gate",
+			build_profile: "gate",
+			base_config: "defconfig",
+			config_fragments: [
+				"configs/base.fragment",
+				"configs/gate.fragment"
+			],
+			config_inputs_sha256: $config_inputs,
+			source_sha256: $source,
+			patchset_sha256: $patchset,
+			config_sha256: $config,
+			modules_built: false,
+			compiler: "synthetic gcc",
+			linker: "synthetic ld"
+		}
+	' > "${package}/provenance/build.json"
+	refresh_sums "${package}"
+}
+
+clone_case() {
+	local name="$1"
+	local destination="${test_root}/${name}"
+
+	cp -a "${base_package}" "${destination}"
+	printf '%s\n' "${destination}"
+}
+
+expect_pass() {
+	local label="$1"
+	local package="$2"
+	local expected="$3"
+	local output
+
+	output="$("${VALIDATOR}" "${package}" 2>&1)" || \
+		die "${label}: validator unexpectedly rejected the package: ${output}"
+	[[ "${output}" == *"${expected}"* ]] || \
+		die "${label}: validator output lacked: ${expected}"
+	pass_count=$((pass_count + 1))
+}
+
+expect_rejection() {
+	local label="$1"
+	local package="$2"
+	local expected="$3"
+	local output
+
+	if output="$("${VALIDATOR}" "${package}" 2>&1)"; then
+		die "${label}: validator unexpectedly accepted the mutation"
+	fi
+	[[ "${output}" == *"${expected}"* ]] || \
+		die "${label}: rejection lacked '${expected}': ${output}"
+	rejection_count=$((rejection_count + 1))
+}
+
+base_package="${test_root}/base"
+readonly base_package
+make_base_package "${base_package}"
+pass_count=0
+rejection_count=0
+
+expect_pass override "${base_package}" 'patch_series=patches/series-gate'
+
+case_dir="$(clone_case profile-only-series)"
+replace_json "${case_dir}/provenance/kernel-manifest.json" 'del(.patch_series)'
+refresh_sums "${case_dir}"
+expect_pass profile-only-series "${case_dir}" 'patch_series=patches/series-gate'
+
+case_dir="$(clone_case fallback)"
+replace_json "${case_dir}/provenance/kernel-manifest.json" \
+	'del(.config.profiles.gate.patch_series)'
+fallback_patchset="$(patchset_hash "${case_dir}" patches/series-main)"
+# The single-quoted expression is jq code; $patchset is a jq variable.
+# shellcheck disable=SC2016
+replace_json "${case_dir}/provenance/build.json" \
+	--arg patchset "${fallback_patchset}" '.patchset_sha256 = $patchset'
+refresh_sums "${case_dir}"
+expect_pass fallback "${case_dir}" 'patch_series=patches/series-main'
+
+case_dir="$(clone_case legacy)"
+replace_json "${case_dir}/provenance/kernel-manifest.json" '
+	.config = {
+		base: "defconfig",
+		fragments: ["configs/base.fragment", "configs/gate.fragment"]
+	}
+'
+legacy_patchset="$(patchset_hash "${case_dir}" patches/series-main)"
+# The single-quoted expression is jq code; $patchset is a jq variable.
+# shellcheck disable=SC2016
+replace_json "${case_dir}/provenance/build.json" \
+	--arg patchset "${legacy_patchset}" '
+		del(
+			.build_profile,
+			.base_config,
+			.config_fragments,
+			.config_inputs_sha256,
+			.modules_built
+		) |
+		.patchset_sha256 = $patchset
+	'
+refresh_sums "${case_dir}"
+expect_pass legacy "${case_dir}" 'resolved_profile=legacy'
+
+case_dir="$(clone_case modern-without-build-profile)"
+replace_json "${case_dir}/provenance/build.json" 'del(.build_profile)'
+refresh_sums "${case_dir}"
+expect_rejection modern-without-build-profile "${case_dir}" \
+	'build_profile is required when the packaged manifest uses config.profiles'
+
+case_dir="$(clone_case missing-series-fallback)"
+replace_json "${case_dir}/provenance/kernel-manifest.json" '
+	del(.patch_series, .config.profiles.gate.patch_series)
+'
+refresh_sums "${case_dir}"
+expect_rejection missing-series-fallback "${case_dir}" \
+	'has no patch-series override or valid fallback'
+
+case_dir="$(clone_case wrong-patchset)"
+replace_json "${case_dir}/provenance/build.json" \
+	'.patchset_sha256 = "0000000000000000000000000000000000000000000000000000000000000000"'
+refresh_sums "${case_dir}"
+expect_rejection wrong-patchset "${case_dir}" 'patchset_sha256 does not match'
+
+case_dir="$(clone_case extra-patch)"
+printf 'unlisted patch\n' > "${case_dir}/provenance/patches/vtest/extra.patch"
+refresh_sums "${case_dir}"
+expect_rejection extra-patch "${case_dir}" 'not the exact regular-file inventory'
+
+case_dir="$(clone_case missing-patch)"
+rm -f -- "${case_dir}/provenance/patches/vtest/0002.patch"
+refresh_sums "${case_dir}"
+expect_rejection missing-patch "${case_dir}" 'not the exact regular-file inventory'
+
+case_dir="$(clone_case unsafe-series)"
+replace_json "${case_dir}/provenance/kernel-manifest.json" \
+	'.config.profiles.gate.patch_series = "patches/../series"'
+refresh_sums "${case_dir}"
+expect_rejection unsafe-series "${case_dir}" 'unsafe path component'
+
+case_dir="$(clone_case source-mismatch)"
+replace_json "${case_dir}/provenance/build.json" \
+	'.source_sha256 = "0000000000000000000000000000000000000000000000000000000000000000"'
+refresh_sums "${case_dir}"
+expect_rejection source-mismatch "${case_dir}" 'source_sha256 does not match'
+
+case_dir="$(clone_case base-mismatch)"
+replace_json "${case_dir}/provenance/build.json" '.base_config = "tinyconfig"'
+refresh_sums "${case_dir}"
+expect_rejection base-mismatch "${case_dir}" 'base_config/config_fragments do not match'
+
+case_dir="$(clone_case fragment-mismatch)"
+replace_json "${case_dir}/provenance/build.json" \
+	'.config_fragments = ["configs/base.fragment"]'
+refresh_sums "${case_dir}"
+expect_rejection fragment-mismatch "${case_dir}" 'base_config/config_fragments do not match'
+
+case_dir="$(clone_case wrong-config-input-hash)"
+replace_json "${case_dir}/provenance/build.json" \
+	'.config_inputs_sha256 = "0000000000000000000000000000000000000000000000000000000000000000"'
+refresh_sums "${case_dir}"
+expect_rejection wrong-config-input-hash "${case_dir}" \
+	'config_inputs_sha256 does not match'
+
+case_dir="$(clone_case changed-config-content)"
+printf 'CONFIG_CHANGED=y\n' >> "${case_dir}/provenance/configs/gate.fragment"
+refresh_sums "${case_dir}"
+expect_rejection changed-config-content "${case_dir}" \
+	'config_inputs_sha256 does not match'
+
+case_dir="$(clone_case extra-config)"
+printf 'CONFIG_EXTRA=y\n' > "${case_dir}/provenance/configs/extra.fragment"
+refresh_sums "${case_dir}"
+expect_rejection extra-config "${case_dir}" \
+	'not the exact regular-file inventory selected by the manifest'
+
+case_dir="$(clone_case missing-config)"
+rm -f -- "${case_dir}/provenance/configs/gate.fragment"
+refresh_sums "${case_dir}"
+expect_rejection missing-config "${case_dir}" \
+	'not the exact regular-file inventory selected by the manifest'
+
+case_dir="$(clone_case config-symlink)"
+rm -f -- "${case_dir}/provenance/configs/gate.fragment"
+ln -s base.fragment "${case_dir}/provenance/configs/gate.fragment"
+refresh_sums "${case_dir}"
+expect_rejection config-symlink "${case_dir}" 'non-regular entry'
+
+case_dir="$(clone_case config-basename-collision)"
+replace_json "${case_dir}/provenance/kernel-manifest.json" '
+	.config.profiles.gate.fragments = [
+		"configs/base.fragment",
+		"alternate/base.fragment"
+	]
+'
+replace_json "${case_dir}/provenance/build.json" '
+	.config_fragments = [
+		"configs/base.fragment",
+		"alternate/base.fragment"
+	]
+'
+refresh_sums "${case_dir}"
+expect_rejection config-basename-collision "${case_dir}" \
+	'unsafe packaged-basename collision'
+
+case_dir="$(clone_case unknown-profile)"
+replace_json "${case_dir}/provenance/build.json" '.build_profile = "unknown"'
+refresh_sums "${case_dir}"
+expect_rejection unknown-profile "${case_dir}" 'absent or invalid'
+
+case_dir="$(clone_case duplicate-series-entry)"
+printf 'vtest/0002.patch\n' >> "${case_dir}/provenance/series"
+refresh_sums "${case_dir}"
+expect_rejection duplicate-series-entry "${case_dir}" 'duplicate patch path'
+
+case_dir="$(clone_case changed-patch-content)"
+printf 'changed content\n' >> "${case_dir}/provenance/patches/vtest/0001.patch"
+refresh_sums "${case_dir}"
+expect_rejection changed-patch-content "${case_dir}" 'patchset_sha256 does not match'
+
+printf 'validation=kernel-artifact-provenance-self-test\n'
+printf 'positive_cases=%s\n' "${pass_count}"
+printf 'mutations_rejected=%s\n' "${rejection_count}"

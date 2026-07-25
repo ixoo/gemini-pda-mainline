@@ -1,0 +1,5 @@
+# Candidate AO replaces Candidate AN's observer with a built-in, one-way
+# handoff receiver. I2C6 remains disabled in the final experiment DT, so this
+# profile tests only the inherited I2C_APPM clock normalization and the
+# immediate/45-second stopped-PCM invariants.
+CONFIG_MTK_MT6797_DVFSP_HANDOFF=y

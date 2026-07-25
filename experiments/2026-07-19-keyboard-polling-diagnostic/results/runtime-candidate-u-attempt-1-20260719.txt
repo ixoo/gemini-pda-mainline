@@ -1,0 +1,103 @@
+experiment=2026-07-19-keyboard-polling-diagnostic
+candidate_label=U
+date_utc=2026-07-19
+attempt=1
+result=failed-first-visible-console-gate
+
+[installed-identity]
+raw_boot_image_sha256=aa163793df1f6a82eb18ee71c73c7e8a07696b4fd2f866e34ec9e2703a1905fe
+full_boot2_readback_sha256=7c57176f3fb5e8e7c9619f038cf09517ca85ee0323ff48ff8c382b60b2794c6e
+logical_target=boot2
+resolved_target_at_write=/dev/mmcblk0p30
+
+[owner-observation]
+intended_selection=logical-boot2-candidate-U
+screen=black
+working_text_console=no
+exact_visible_text=none-observed
+u_marker=not-observed
+automatic_reboot=no
+final_candidate_state=powered-with-dark-console
+recovery_method=power-key-class-known-good-boot;exact-owner-action-sequence-not-recorded
+aw9523_binding=not-observed
+matrix_input_device=not-observed
+raw_input_events=not-observed
+interactive_shell=not-observed
+owner_summary=boot2-version-led-to-black-screen;no-automated-reboot;console-stayed-dark
+
+[post-return-read-only-check]
+known_good_kernel=3.18.41+
+known_good_architecture=aarch64
+known_good_boot_id=9ca24d9c-e546-4547-a046-7079b4d41917
+pre_attempt_gemian_boot_id=dc5228f8-48e4-4cfc-95b1-e6f54de03558
+boot_id_changed_between_pre_attempt_and_post_return=yes
+pre_attempt_boot_id_sha256=67b55fed174c55b8a0a338f048711e63bf373593ad381988623f830bd06d74ff
+post_return_boot_id_sha256=a0fc753123157243227ab94fb1496a4ef59bc428cc6be4c2a1d3d2b935e39f02
+cycle_aware_capture=no-cycle-completed-before-collector-started
+private_capture=artifacts/device-pstore/candidate-U-runtime-1-post-return-20260719
+private_capture_git_ignored=yes
+pstore_directory=present
+pstore_files=none
+console_ramoops=absent
+candidate_u_pstore_evidence=none
+pstore_tar_sha256=a9aa2249d161002b21027320452eed254225ab019d546f8207c9e1612fa4c543
+capture_sha256sums_sha256=e6fb19ea12730aae6351de129ca6a656f287fb9a01c89c1356944faec869f502
+capture_checksums=passed
+remote_pstore_records_removed=no
+remote_partition_access=none
+
+[post-return-boot-reason]
+query_utc=2026-07-19T16:12:58Z
+query=authenticated-read-of-non-identifying-fields-only
+boot_reason_numeric=0
+android_bootreason=power_key
+powerup_reason=keypad
+serial_and_personal_boot_fields=not-read-or-recorded
+interpretation=known-good-Gemian-started-through-power-key-class-path;not-watchdog-class-auto-return
+
+[post-runtime-exact-dtb-audit]
+candidate_p_dtb_sha256=c574762aa178cb5a7238400b499d2edcdd3acb3538d2255e916b041f2074c379
+candidate_p_watchdog_interrupts=absent
+installed_u_dtb_sha256=e541c9dffac15de859a876e80409eec4591d36319646845cb25c6eecb8ddf5b1
+installed_u_watchdog_interrupts=0,137,2;GIC-SPI137-falling-edge
+u_dt_foundation=package-dtb-not-exact-p-dtb
+proven_no_irq_watchdog_foundation_retained=no
+candidate_p_simplefb_node=/chosen/framebuffer@7dfb0000;present
+installed_u_simplefb_node=absent
+candidate_p_simplefb_clocks=CLK_INFRA_DISP_PWM,CLK_TOP_MUX_MM
+candidate_p_handoff_properties_retained=no
+userspace_watchdog_open=none-by-u-design
+black_screen_causality=unestablished
+next_candidate_requirement=exact-p-dtb-base-plus-keyboard-only-delta-and-proven-single-stage-recovery
+
+[interpretation]
+candidate_acceptance=failed
+kernel_entry=unestablished
+init_entry=unestablished
+display_or_tty_failure=possible
+aw9523_probe_or_matrix_polling_failure=possible
+keyboard_function=unestablished
+shell_function=unestablished
+automatic_recovery=not-observed
+known_good_recovery=power-key-class
+watchdog_recovery_foundation=regressed-by-u-dtb-packaging
+repeat_unchanged_u=no
+
+The report establishes only that the exact installed Candidate U image did not
+provide its required visible marker or working text console during the intended
+selection, and that the device was later reachable in Gemian with a changed
+boot ID. The owner observed no automatic reboot, and the later non-identifying
+Gemian fields report `power_key`/`keypad` rather than a watchdog-class return.
+This strongly supports a manual power-key recovery, although the exact action
+sequence and timing were not captured.
+Post-runtime comparison also found that U's final DTB had been transformed from
+the package DTB rather than exact P. It therefore dropped P's
+`/chosen/framebuffer@7dfb0000` node and its two retained display clocks, while
+reintroducing the optional SPI137 falling-edge watchdog interrupt that exact
+P/M omitted. The missing simplefb node explains why U had no configured
+loader-framebuffer console if it reached Linux, but it does not prove selection
+or kernel entry. Because U's initramfs deliberately never opened the watchdog,
+the watchdog regression alone does not explain the lack of automatic reset.
+Both foundation defects are required corrections before another candidate.
+The empty post-return pstore capture supplies no positive or negative proof of
+U kernel or initramfs execution and does not identify the black-screen layer.

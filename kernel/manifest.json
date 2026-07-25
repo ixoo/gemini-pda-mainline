@@ -56,7 +56,241 @@
           "configs/gemini-observability.fragment",
           "configs/gemini-fbcon-rotation.fragment"
         ]
-      }
+      },
+      "observability-fbcon-rotation-keyboard": {
+        "base": "defconfig",
+        "fragments": [
+          "configs/gemini-handoff.fragment",
+          "configs/gemini-usbdiag.fragment",
+          "configs/gemini-clk-ignore-unused.fragment",
+          "configs/gemini-observability.fragment",
+          "configs/gemini-fbcon-rotation.fragment",
+          "configs/gemini-keyboard.fragment"
+        ]
+      },
+      "observability-fbcon-rotation-keyboard-polling": {
+        "base": "defconfig",
+        "fragments": [
+          "configs/gemini-handoff.fragment",
+          "configs/gemini-usbdiag.fragment",
+          "configs/gemini-clk-ignore-unused.fragment",
+          "configs/gemini-observability.fragment",
+          "configs/gemini-fbcon-rotation.fragment",
+          "configs/gemini-keyboard.fragment"
+        ]
+      },
+      "observability-fbcon-rotation-keyboard-wrrd": {
+        "base": "defconfig",
+        "fragments": [
+          "configs/gemini-handoff.fragment",
+          "configs/gemini-usbdiag.fragment",
+          "configs/gemini-clk-ignore-unused.fragment",
+          "configs/gemini-observability.fragment",
+          "configs/gemini-fbcon-rotation.fragment",
+          "configs/gemini-keyboard.fragment",
+          "configs/gemini-keyboard-wrrd.fragment"
+        ]
+      },
+      "observability-fbcon-rotation-keyboard-wrrd-manual-reboot": {
+        "base": "defconfig",
+        "fragments": [
+          "configs/gemini-handoff.fragment",
+          "configs/gemini-usbdiag.fragment",
+          "configs/gemini-clk-ignore-unused.fragment",
+          "configs/gemini-observability.fragment",
+          "configs/gemini-fbcon-rotation.fragment",
+          "configs/gemini-keyboard.fragment",
+          "configs/gemini-keyboard-wrrd.fragment",
+          "configs/gemini-keyboard-manual-reboot.fragment"
+        ]
+      },
+      "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8": {
+        "base": "defconfig",
+        "fragments": [
+          "configs/gemini-handoff.fragment",
+          "configs/gemini-usbdiag.fragment",
+          "configs/gemini-clk-ignore-unused.fragment",
+          "configs/gemini-observability.fragment",
+          "configs/gemini-fbcon-rotation.fragment",
+          "configs/gemini-keyboard.fragment",
+          "configs/gemini-keyboard-wrrd.fragment",
+          "configs/gemini-keyboard-manual-reboot.fragment",
+          "configs/gemini-smp8.fragment"
+        ]
+      },
+      "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-reject-gate": {
+        "base": "defconfig",
+        "patch_series": "patches/series-a72-reject-gate",
+        "fragments": [
+          "configs/gemini-handoff.fragment",
+          "configs/gemini-usbdiag.fragment",
+          "configs/gemini-clk-ignore-unused.fragment",
+          "configs/gemini-observability.fragment",
+          "configs/gemini-fbcon-rotation.fragment",
+          "configs/gemini-keyboard.fragment",
+          "configs/gemini-keyboard-wrrd.fragment",
+          "configs/gemini-keyboard-manual-reboot.fragment",
+          "configs/gemini-smp8.fragment"
+        ]
+      },
+      "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-reject-gate-cpu8-request": {
+        "base": "defconfig",
+        "patch_series": "patches/series-a72-reject-gate",
+        "fragments": [
+          "configs/gemini-handoff.fragment",
+          "configs/gemini-usbdiag.fragment",
+          "configs/gemini-clk-ignore-unused.fragment",
+          "configs/gemini-observability.fragment",
+          "configs/gemini-fbcon-rotation.fragment",
+          "configs/gemini-keyboard.fragment",
+          "configs/gemini-keyboard-wrrd.fragment",
+          "configs/gemini-keyboard-manual-reboot.fragment",
+          "configs/gemini-smp8.fragment",
+          "configs/gemini-a72-reject-cpu8-request.fragment"
+        ]
+      },
+      "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-reject-gate-cpu9-request": {
+        "base": "defconfig",
+        "patch_series": "patches/series-a72-reject-gate",
+        "fragments": [
+          "configs/gemini-handoff.fragment",
+          "configs/gemini-usbdiag.fragment",
+          "configs/gemini-clk-ignore-unused.fragment",
+          "configs/gemini-observability.fragment",
+          "configs/gemini-fbcon-rotation.fragment",
+          "configs/gemini-keyboard.fragment",
+          "configs/gemini-keyboard-wrrd.fragment",
+          "configs/gemini-keyboard-manual-reboot.fragment",
+          "configs/gemini-smp8.fragment",
+          "configs/gemini-a72-reject-cpu8-request.fragment",
+          "configs/gemini-a72-reject-cpu9-request.fragment"
+        ]
+      },
+      "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-observer": {
+        "base": "defconfig",
+        "fragments": [
+          "configs/gemini-handoff.fragment",
+          "configs/gemini-usbdiag.fragment",
+          "configs/gemini-clk-ignore-unused.fragment",
+          "configs/gemini-observability.fragment",
+          "configs/gemini-fbcon-rotation.fragment",
+          "configs/gemini-keyboard.fragment",
+          "configs/gemini-keyboard-wrrd.fragment",
+          "configs/gemini-keyboard-manual-reboot.fragment",
+          "configs/gemini-smp8.fragment",
+          "configs/gemini-a72-observer.fragment"
+        ]
+      },
+      "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-observer-initcall-blacklist": {
+        "base": "defconfig",
+        "fragments": [
+          "configs/gemini-handoff.fragment",
+          "configs/gemini-usbdiag.fragment",
+          "configs/gemini-clk-ignore-unused.fragment",
+          "configs/gemini-observability.fragment",
+          "configs/gemini-fbcon-rotation.fragment",
+          "configs/gemini-keyboard.fragment",
+          "configs/gemini-keyboard-wrrd.fragment",
+          "configs/gemini-keyboard-manual-reboot.fragment",
+          "configs/gemini-smp8.fragment",
+          "configs/gemini-a72-observer.fragment",
+          "configs/gemini-a72-observer-initcall-blacklist.fragment"
+        ]
+      },
+      "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-observer-initcall-blacklist-dvfsp-handoff-observer": {
+        "base": "defconfig",
+        "patch_series": "patches/series-dvfsp-handoff-observer",
+        "fragments": [
+          "configs/gemini-handoff.fragment",
+          "configs/gemini-usbdiag.fragment",
+          "configs/gemini-clk-ignore-unused.fragment",
+          "configs/gemini-observability.fragment",
+          "configs/gemini-fbcon-rotation.fragment",
+          "configs/gemini-keyboard.fragment",
+          "configs/gemini-keyboard-wrrd.fragment",
+          "configs/gemini-keyboard-manual-reboot.fragment",
+          "configs/gemini-smp8.fragment",
+          "configs/gemini-a72-observer.fragment",
+          "configs/gemini-a72-observer-initcall-blacklist.fragment",
+          "configs/gemini-dvfsp-handoff-observer.fragment"
+        ]
+      },
+            "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-observer-initcall-blacklist-dvfsp-handoff-owner": {
+                "base": "defconfig",
+                "patch_series": "patches/series-dvfsp-handoff-owner",
+                "fragments": [
+          "configs/gemini-handoff.fragment",
+          "configs/gemini-usbdiag.fragment",
+          "configs/gemini-clk-ignore-unused.fragment",
+          "configs/gemini-observability.fragment",
+          "configs/gemini-fbcon-rotation.fragment",
+          "configs/gemini-keyboard.fragment",
+          "configs/gemini-keyboard-wrrd.fragment",
+          "configs/gemini-keyboard-manual-reboot.fragment",
+          "configs/gemini-smp8.fragment",
+          "configs/gemini-a72-observer.fragment",
+          "configs/gemini-a72-observer-initcall-blacklist.fragment",
+                    "configs/gemini-dvfsp-handoff-owner.fragment"
+                ]
+            },
+            "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-observer-initcall-blacklist-dvfsp-handoff-owner-i2c6-consumer": {
+                "base": "defconfig",
+                "patch_series": "patches/series-dvfsp-handoff-owner-i2c6-consumer",
+                "fragments": [
+                    "configs/gemini-handoff.fragment",
+                    "configs/gemini-usbdiag.fragment",
+                    "configs/gemini-clk-ignore-unused.fragment",
+                    "configs/gemini-observability.fragment",
+                    "configs/gemini-fbcon-rotation.fragment",
+                    "configs/gemini-keyboard.fragment",
+                    "configs/gemini-keyboard-wrrd.fragment",
+                    "configs/gemini-keyboard-manual-reboot.fragment",
+                    "configs/gemini-smp8.fragment",
+                    "configs/gemini-a72-observer.fragment",
+                    "configs/gemini-a72-observer-initcall-blacklist.fragment",
+                    "configs/gemini-dvfsp-handoff-owner.fragment",
+                    "configs/gemini-dvfsp-i2c6-consumer.fragment"
+                ]
+            },
+            "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-observer-initcall-blacklist-dvfsp-handoff-owner-i2c6-consumer-pm-audit": {
+                "base": "defconfig",
+                "patch_series": "patches/series-dvfsp-handoff-owner-i2c6-consumer",
+                "fragments": [
+                    "configs/gemini-handoff.fragment",
+                    "configs/gemini-usbdiag.fragment",
+                    "configs/gemini-clk-ignore-unused.fragment",
+                    "configs/gemini-observability.fragment",
+                    "configs/gemini-fbcon-rotation.fragment",
+                    "configs/gemini-keyboard.fragment",
+                    "configs/gemini-keyboard-wrrd.fragment",
+                    "configs/gemini-keyboard-manual-reboot.fragment",
+                    "configs/gemini-smp8.fragment",
+                    "configs/gemini-a72-observer.fragment",
+                    "configs/gemini-a72-observer-initcall-blacklist.fragment",
+                    "configs/gemini-dvfsp-handoff-owner.fragment",
+                    "configs/gemini-dvfsp-i2c6-consumer.fragment",
+                    "configs/gemini-dvfsp-i2c6-consumer-pm-audit.fragment"
+                ]
+            },
+            "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-observer-initcall-blacklist-dvfsp-handoff-owner-ap-dma-observer": {
+                "base": "defconfig",
+                "patch_series": "patches/series-dvfsp-handoff-owner",
+                "fragments": [
+                    "configs/gemini-handoff.fragment",
+                    "configs/gemini-usbdiag.fragment",
+                    "configs/gemini-clk-ignore-unused.fragment",
+                    "configs/gemini-observability.fragment",
+                    "configs/gemini-fbcon-rotation.fragment",
+                    "configs/gemini-keyboard.fragment",
+                    "configs/gemini-keyboard-wrrd.fragment",
+                    "configs/gemini-keyboard-manual-reboot.fragment",
+                    "configs/gemini-smp8.fragment",
+                    "configs/gemini-a72-observer.fragment",
+                    "configs/gemini-a72-observer-initcall-blacklist.fragment",
+                    "configs/gemini-dvfsp-handoff-owner.fragment",
+                    "configs/gemini-dvfsp-ap-dma-observer.fragment"
+                ]
+            }
     }
   }
 }

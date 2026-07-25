@@ -1,0 +1,150 @@
+From 0000000000000000000000000000000000000092 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 21 Jul 2026 20:42:00 -0400
+Subject: [PATCH] arm64: mediatek: gate MT6797 A72 PSCI boot
+
+The MT6797 Cortex-A72 cluster needs board power coordination before a PSCI
+CPU_ON request is safe.  The initial resource observer deliberately
+performs no sequencing, but maxcpus=8 alone would still allow a manual
+sysfs online request to reach generic PSCI.
+
+Add a DT-selected arm64 CPU method for this observer stage.  It delegates
+initialization and preparation to generic PSCI.  It rejects CPU boot with
+-EAGAIN before CPU_ON can be issued and reports that CPU disable is
+unavailable, so the incomplete method exposes no power-off path.  The CPU
+hotplug core therefore publishes no writable online control for these CPUs.
+A rate-limited message makes an unexpected boot request attributable.
+
+Assign the method only to the two Cortex-A72 CPU nodes.  The eight
+Cortex-A53 CPUs retain generic PSCI unchanged.  A later patch can replace
+the boot gate only after the prerequisite power sequence has independent
+evidence.
+---
+ Documentation/devicetree/bindings/arm/cpus.yaml |  1 +
+ arch/arm64/boot/dts/mediatek/mt6797.dtsi         |  4 +-
+ arch/arm64/kernel/Makefile                       |  1 +
+ arch/arm64/kernel/cpu_ops.c                      |  6 +++
+ arch/arm64/kernel/mt6797_psci.c                  | 50 +++++++++++++++++++++++++
+ 5 files changed, 60 insertions(+), 2 deletions(-)
+
+diff --git a/Documentation/devicetree/bindings/arm/cpus.yaml b/Documentation/devicetree/bindings/arm/cpus.yaml
+--- a/Documentation/devicetree/bindings/arm/cpus.yaml
++++ b/Documentation/devicetree/bindings/arm/cpus.yaml
+@@ -241,6 +241,7 @@ properties:
+     oneOf:
+       # On ARM v8 64-bit this property is required
+       - enum:
++          - mediatek,mt6797-psci
+           - psci
+           - spin-table
+       # On ARM 32-bit systems this property is optional
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+--- a/arch/arm64/boot/dts/mediatek/mt6797.dtsi
++++ b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+@@ -93,13 +93,13 @@ cpu8: cpu@200 {
+ 			device_type = "cpu";
+ 			compatible = "arm,cortex-a72";
+-			enable-method = "psci";
++			enable-method = "mediatek,mt6797-psci";
+ 			reg = <0x200>;
+ 		};
+ 
+ 		cpu9: cpu@201 {
+ 			device_type = "cpu";
+ 			compatible = "arm,cortex-a72";
+-			enable-method = "psci";
++			enable-method = "mediatek,mt6797-psci";
+ 			reg = <0x201>;
+ 		};
+ 	};
+diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
+--- a/arch/arm64/kernel/Makefile
++++ b/arch/arm64/kernel/Makefile
+@@ -51,8 +51,9 @@
+ obj-$(CONFIG_KGDB)			+= kgdb.o
+ obj-$(CONFIG_EFI)			+= efi.o efi-rt-wrapper.o
+ obj-$(CONFIG_PCI)			+= pci.o
+ obj-$(CONFIG_ARMV8_DEPRECATED)		+= armv8_deprecated.o
++obj-$(CONFIG_ARCH_MEDIATEK)		+= mt6797_psci.o
+ obj-$(CONFIG_ACPI)			+= acpi.o
+ obj-$(CONFIG_ACPI_NUMA)			+= acpi_numa.o
+ obj-$(CONFIG_ARM64_ACPI_PARKING_PROTOCOL)	+= acpi_parking_protocol.o
+ obj-$(CONFIG_PARAVIRT)			+= paravirt.o
+diff --git a/arch/arm64/kernel/cpu_ops.c b/arch/arm64/kernel/cpu_ops.c
+--- a/arch/arm64/kernel/cpu_ops.c
++++ b/arch/arm64/kernel/cpu_ops.c
+@@ -19,11 +19,17 @@ extern const struct cpu_operations smp_spin_table_ops;
+ extern const struct cpu_operations acpi_parking_protocol_ops;
+ #endif
+ extern const struct cpu_operations cpu_psci_ops;
++#ifdef CONFIG_ARCH_MEDIATEK
++extern const struct cpu_operations mt6797_psci_ops;
++#endif
+ 
+ static const struct cpu_operations *cpu_ops[NR_CPUS] __ro_after_init;
+ 
+ static const struct cpu_operations *const dt_supported_cpu_ops[] __initconst = {
+ 	&smp_spin_table_ops,
+ 	&cpu_psci_ops,
++#ifdef CONFIG_ARCH_MEDIATEK
++	&mt6797_psci_ops,
++#endif
+ 	NULL,
+ };
+diff --git a/arch/arm64/kernel/mt6797_psci.c b/arch/arm64/kernel/mt6797_psci.c
+new file mode 100644
+--- /dev/null
++++ b/arch/arm64/kernel/mt6797_psci.c
+@@ -0,0 +1,50 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Observer-stage PSCI gate for the MT6797 Cortex-A72 cluster
++ *
++ * Copyright (c) 2026 Julien Etienne
++ */
++
++#define pr_fmt(fmt) "mt6797-psci: " fmt
++
++#include <linux/errno.h>
++#include <linux/printk.h>
++
++#include <asm/cpu_ops.h>
++
++extern const struct cpu_operations cpu_psci_ops;
++
++static int __init mt6797_psci_cpu_init(unsigned int cpu)
++{
++	return cpu_psci_ops.cpu_init(cpu);
++}
++
++static int __init mt6797_psci_cpu_prepare(unsigned int cpu)
++{
++	return cpu_psci_ops.cpu_prepare(cpu);
++}
++
++static int mt6797_psci_cpu_boot(unsigned int cpu)
++{
++	pr_warn_ratelimited("CPU%u boot rejected: A72 power sequence inactive\n",
++			    cpu);
++
++	return -EAGAIN;
++}
++
++#ifdef CONFIG_HOTPLUG_CPU
++static bool mt6797_psci_cpu_can_disable(unsigned int cpu)
++{
++	return false;
++}
++#endif
++
++const struct cpu_operations mt6797_psci_ops = {
++	.name		= "mediatek,mt6797-psci",
++	.cpu_init	= mt6797_psci_cpu_init,
++	.cpu_prepare	= mt6797_psci_cpu_prepare,
++	.cpu_boot	= mt6797_psci_cpu_boot,
++#ifdef CONFIG_HOTPLUG_CPU
++	.cpu_can_disable = mt6797_psci_cpu_can_disable,
++#endif
++};
+-- 
+2.43.0

@@ -84,8 +84,13 @@ historical and current paths use the legacy `mt6577` register/quirk profile;
 the current binding requires the `mt6797-i2c` plus `mt6577-i2c` compatible pair,
 which the ten disabled Gemini nodes provide. The result therefore recommends
 reusing `i2c-mt65xx.c`, not adding an MT6797-specific controller driver. This is
-source and topology evidence only; a mainline runtime transfer remains an
-open gate. Result SHA-256: `45693fc6e638cd283cdc1c92adbfcc3d20a83704103c00dd5190a4f79768eb5d`.
+source and topology evidence only. A 2026-07-23 correction preserves that
+transfer-engine reuse decision but records I2C6's separate shared-ownership
+contract: live Gemian has `mediatek,appm_used`, an active DVFSP, and a
+per-transfer `SEMA_I2C_DRV` pause. A mainline I2C6 consumer must prove the
+firmware owner quiescent or implement the matching arbitration before active
+rail writes. Result SHA-256:
+`d2c1317dc67cd8524fd473a3bdf2f97bfaebe11a3cd1ce8f920e503b856b150c`.
 
 The [SPI controller result](results/spi-mt6797-controller-reuse-20260714.txt)
 finds the same family-level reuse boundary: the vendor register contract

@@ -1,0 +1,85 @@
+[record]
+date=2026-07-19
+method=read-only comparison of Candidate V console-ramoops, pinned Linux 7.1.3 source, and retained bsg100 audit
+candidate=V
+device_write=none
+
+[runtime_observation]
+console_ramoops_sha256=ebe2902d430b7255ab2ff50c2bd009df3e002202acbed931769db64ad693a60e
+i2c_controller_of_path=/i2c@1101c000
+linux_adapter=0
+client_address=0x5b
+adapter_quirk=combined-read length 127 rejected as too long
+regcache_fallback_error=register 0x02 read returned -110
+chip_id_read_1=returned -110
+chip_id_read_2=returned -110
+hardware_reset_result=returned -110
+driver_probe_result=returned -110
+aw9523_driver_after_probe=unbound
+matrix_consumer_after_probe=unbound and deferred for AW9523 pinctrl supplier
+errno_minus_110=ETIMEDOUT
+
+[pinned_linux_7_1_3_source]
+source_pin=kernel/manifest.json Linux 7.1.3 sha256 be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+driver=drivers/pinctrl/pinctrl-aw9523.c
+probe_initial_reset_gpio_request=devm_gpiod_get reset GPIOD_OUT_HIGH
+probe_regmap_order=regmap is initialized before aw9523_hw_init
+regmap_cache=REGCACHE_FLAT
+regmap_num_reg_defaults_raw=0x7f
+regcache_without_defaults=attempt one raw cache-size read then fall back to individual readable nonvolatile registers
+mt6797_i2c_compatible_fallback=mediatek,mt6577-i2c
+mt6577_combined_read_limit_bytes=31
+aw9523_initial_cache_read_bytes=127
+initial_cache_bulk_read_outcome=deterministically exceeds adapter combined-read limit; runtime recorded -EOPNOTSUPP diagnostic and fallback
+reset_attempt_order=soft-reset write first; on failure drive reset logical 0 then logical 1
+hard_reset_low_pulse_us=50
+hard_reset_recovery_us=20
+hard_reset_retry_count=2
+post_reset_identity_check=read register 0x10 and require 0x23
+
+[related_project_evidence]
+audit=experiments/2026-07-19-keyboard-polling-diagnostic/results/bsg100-latest-keyboard-audit-20260719.txt
+latest_audited_main_commit=60f5f4ac777a0aeccc89b5d3a4f8cd1f1ebe57b3
+working_keyboard_commit=6bd4d572670698f80ca08ad083657621b62cc8f3
+same_board_report=LK hands off GPIO58 low with AW9523 held in reset; deassert at probe is mandatory; address 0x5b and chip ID 0x23 were observed on that unit
+driver_contract=custom AW9523 driver and reset sequence differ from pinned upstream driver
+bsg_reset_gpio_binding=GPIO_ACTIVE_LOW
+bsg_pinctrl_default=GPIO58 output-high
+bsg_probe_request=GPIOD_OUT_LOW, which deasserts the active-low descriptor to physical high
+bsg_pre_first_i2c_delay_us=1000-to-2000
+bsg_first_i2c_operation=soft-reset register 0x7f write
+bsg_post_soft_reset_delay_us=1000-to-2000
+bsg_regmap_cache=REGCACHE_RBTREE without num_reg_defaults_raw; initialization performs no V-style 127-byte hardware-default read
+scope=different physical unit and different kernel/driver; evidence ranks hypotheses but proves no cause on this unit
+
+[interpretation]
+first_failed_functional_gate=AW9523 provider probe before matrix polling
+matrix_polling_causality=not tested because the GPIO/pinctrl supplier never bound
+i2c_frequency_causality=not established
+reset_polarity_causality=not established
+reset_timing_causality=not established
+power_supply_causality=not established
+physical_bus_ACK=not measured
+chip_identity_on_this_mainline_run=not observed
+high_priority_boundary=release GPIO58 from the LK-held-low state and wait before the first I2C access; V released the line but the upstream probe supplied no explicit pre-regmap recovery delay
+secondary_driver_boundary=avoid the known 127-byte regcache initialization transaction or provide explicit cache defaults; the adapter rejects that transaction before falling back
+
+[next_experiment_requirements]
+unchanged_candidate_v_retry=no
+retain_exact_v_foundation=yes; simplefb, ramoops, no-IRQ watchdog, CPU0-only, polling consumer, storage/network exclusions
+change_scope=first change only the upstream reset-recovery timing contract: add an explicit 1-to-2-ms delay after initial GPIO58 deassert before regmap initialization and use the same delay after soft or hard reset before chip-ID read; leave cache policy unchanged so the result attributes the timing hypothesis
+required_markers=reset GPIO logical/raw state before assertion; after assertion; after release; selected delays; first register attempted; first transfer errno; chip ID or exact failure
+cache_followup=if the timed deassert still fails at the same pre-probe cache read, test cache initialization separately rather than importing the custom driver
+stop_gate=do not debug matrix polling, keymap, or tty routing until AW9523 binds and supplies its GPIO/pinctrl resources
+non_keyboard_observation_fix=select tty1 as foreground, stop background diagnostic fanout to tty1 after shell start, and use a success command composed only of keys in the base map
+console_accessibility=compile and force TER16x32 for the next candidate; record as an observational change, not an AW9523 causal change
+
+[supersession]
+date=2026-07-19
+superseded_by=working-3.18-aw9523-i2c-binary-audit-20260719.txt
+superseded_fields=high_priority_boundary,secondary_driver_boundary,change_scope,cache_followup
+reason=the exact working 3.18 binary unconditionally selects WRRD and programs the receive length at auxiliary controller offset 0x6c; Candidate V falls through to mt6577_compat, suppresses WRRD, and lacks that auxiliary-length contract
+corrected_next_change=add a direct mediatek,mt6797-i2c match using mt8173_compat or an evidence-equivalent named mt6797_compat
+held_exact=AW9523 reset timing,regmap cache,DT,matrix polling,I2C frequency,V console-ramoops-watchdog foundation
+generic_guard_only_change=not selected as the sole MT6797 correction because mt6577_compat retains aux_len_reg=0 and does not reproduce the evidence-backed auxiliary-length contract
+reset_delay_or_cache_change=deferred unless the controller-corrected run supplies new evidence

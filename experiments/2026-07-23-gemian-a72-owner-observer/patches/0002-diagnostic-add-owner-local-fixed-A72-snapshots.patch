@@ -1,0 +1,494 @@
+From c8475b569567bf71f3ffcca09d27f0c025d6d208 Mon Sep 17 00:00:00 2001
+From: Gemini PDA Investigation <gemini-observer@example.invalid>
+Date: Thu, 23 Jul 2026 20:34:09 -0400
+Subject: [PATCH 2/4] diagnostic: add owner-local fixed A72 snapshots
+
+---
+ .../mediatek/base/power/mt6797/mt_idvfs.c     |  28 ++
+ .../misc/mediatek/base/power/spm_v2/mt_spm.c  |  81 ++++++
+ .../freqhopping/mt6797/mt_freqhopping.c       |  62 +++++
+ drivers/misc/mediatek/power/mt6797/da9214.c   | 239 ++++++++++++++++++
+ 4 files changed, 410 insertions(+)
+
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt_idvfs.c b/drivers/misc/mediatek/base/power/mt6797/mt_idvfs.c
+index 9268e69e..e53e9a4c 100644
+--- a/drivers/misc/mediatek/base/power/mt6797/mt_idvfs.c
++++ b/drivers/misc/mediatek/base/power/mt6797/mt_idvfs.c
+@@ -54,6 +54,9 @@
+ #include <mt-plat/sync_write.h>  /* mt_reg_sync_writel */
+ #include <mt-plat/mt_io.h>       /* reg read,srite */
+ #include <mt-plat/aee.h>         /* ram console */
++#ifdef CONFIG_MTK_A72_TRANSITION_OBSERVER
++#include <linux/mt6797_a72_transition_observer.h>
++#endif
+ 
+ /* IDVFS ADDR */ /* TODO: include other head file */
+ #ifdef CONFIG_OF
+@@ -92,6 +95,31 @@ static struct                clk *idvfs_i2c6_clk;    /* i2c6 clk ctrl */
+ #define IDVFSPROB_BASE			0x10001000
+ #endif
+ 
++#ifdef CONFIG_MTK_A72_TRANSITION_OBSERVER
++static const u32 mt6797_a72_secure_registers[] = {
++	0x10222470, 0x10222498, 0x1022249c, 0x102224a0,
++	0x102224a4, 0x102224ac, 0x102224b0, 0x102224b4,
++	0x102224cc, 0x102222b0, 0x102222b4, 0x10222274,
++};
++
++void mt6797_a72_obs_secure_snapshot(unsigned int cpu, u16 phase)
++{
++	struct mt6797_a72_obs_secure snapshot = { };
++	unsigned int i;
++
++	for (i = 0; i < ARRAY_SIZE(mt6797_a72_secure_registers); i++) {
++		snapshot.values[i] = (u32)SEC_BIGIDVFS_READ(
++			mt6797_a72_secure_registers[i]);
++		snapshot.valid |= BIT(i);
++	}
++	snapshot.sentinel_after =
++		(u32)SEC_BIGIDVFS_READ(mt6797_a72_secure_registers[0]);
++	snapshot.stable =
++		snapshot.sentinel_after == snapshot.values[0];
++	mt6797_a72_obs_secure(cpu, phase, &snapshot);
++}
++#endif
++
+ /* 0x11017000 0x1000, i2c idvfsapb ctrl reg */
+ #define IDVFSAPB_SW_ADDR		(IDVFSAPB_BASE+0x00)
+ #define IDVFSAPB_SW_DATA		(IDVFSAPB_BASE+0x04)
+diff --git a/drivers/misc/mediatek/base/power/spm_v2/mt_spm.c b/drivers/misc/mediatek/base/power/spm_v2/mt_spm.c
+index 61f5d667..566a519e 100644
+--- a/drivers/misc/mediatek/base/power/spm_v2/mt_spm.c
++++ b/drivers/misc/mediatek/base/power/spm_v2/mt_spm.c
+@@ -30,6 +30,9 @@
+ #include <linux/of_reserved_mem.h>
+ #include <linux/irqchip/mt-eic.h>
+ #include "mt_devinfo.h" /* for get_devinfo_with_index() */
++#ifdef CONFIG_MTK_A72_TRANSITION_OBSERVER
++#include <linux/mt6797_a72_transition_observer.h>
++#endif
+ /* #include <mach/eint.h> */
+ /* #include <mach/mt_boot.h> */
+ #ifdef CONFIG_MTK_WD_KICKER
+@@ -2446,6 +2449,84 @@ void *mt_spm_base_get(void)
+ }
+ EXPORT_SYMBOL(mt_spm_base_get);
+ 
++#ifdef CONFIG_MTK_A72_TRANSITION_OBSERVER
++#define MT6797_A72_SPM_PHYS	0x10006000
++
++static const u32 mt6797_a72_spm_offsets[] = {
++	0x180, 0x184, 0x188, 0x18c, 0x218, 0x290,
++};
++
++static void __iomem *mt6797_a72_obs_spm_base(bool *temporary)
++{
++	void __iomem *base = READ_ONCE(spm_base);
++
++	*temporary = false;
++	if (!base) {
++		base = ioremap(MT6797_A72_SPM_PHYS, 0x1000);
++		*temporary = base != NULL;
++	}
++	return base;
++}
++
++void mt6797_a72_obs_spm_snapshot(unsigned int cpu, u16 phase)
++{
++	struct mt6797_a72_obs_spm snapshot = { };
++	void __iomem *base;
++	unsigned long flags;
++	bool temporary;
++	unsigned int i;
++
++	base = mt6797_a72_obs_spm_base(&temporary);
++	if (!base) {
++		mt6797_a72_obs_spm(cpu, phase, &snapshot);
++		return;
++	}
++
++	spin_lock_irqsave(&__spm_lock, flags);
++	for (i = 0; i < ARRAY_SIZE(mt6797_a72_spm_offsets); i++) {
++		snapshot.values[i] =
++			readl_relaxed(base + mt6797_a72_spm_offsets[i]);
++		snapshot.valid |= BIT(i);
++	}
++	spin_unlock_irqrestore(&__spm_lock, flags);
++
++	if (temporary)
++		iounmap(base);
++	mt6797_a72_obs_spm(cpu, phase, &snapshot);
++}
++
++void mt6797_a72_obs_spm_rmw(unsigned int cpu, u16 phase, u32 offset,
++			    u32 mask, u32 value)
++{
++	struct mt6797_a72_obs_mutation mutation = {
++		.address = MT6797_A72_SPM_PHYS + offset,
++		.mask = mask,
++		.requested = value,
++	};
++	void __iomem *base;
++	unsigned long flags;
++	bool temporary;
++
++	base = mt6797_a72_obs_spm_base(&temporary);
++	if (!base) {
++		mutation.status = -ENOMEM;
++		mt6797_a72_obs_mutation(cpu, phase, &mutation);
++		return;
++	}
++
++	spin_lock_irqsave(&__spm_lock, flags);
++	mutation.before = readl_relaxed(base + offset);
++	writel_relaxed((mutation.before & ~mask) | (value & mask),
++		       base + offset);
++	mutation.after = readl_relaxed(base + offset);
++	spin_unlock_irqrestore(&__spm_lock, flags);
++
++	if (temporary)
++		iounmap(base);
++	mt6797_a72_obs_mutation(cpu, phase, &mutation);
++}
++#endif
++
+ void unmask_edge_trig_irqs_for_cirq(void)
+ {
+ 	int i;
+diff --git a/drivers/misc/mediatek/freqhopping/mt6797/mt_freqhopping.c b/drivers/misc/mediatek/freqhopping/mt6797/mt_freqhopping.c
+index 528e446b..2cfa57d6 100644
+--- a/drivers/misc/mediatek/freqhopping/mt6797/mt_freqhopping.c
++++ b/drivers/misc/mediatek/freqhopping/mt6797/mt_freqhopping.c
+@@ -33,6 +33,9 @@
+ #endif
+ #include <linux/seq_file.h>
+ #include <linux/of_address.h>
++#ifdef CONFIG_MTK_A72_TRANSITION_OBSERVER
++#include <linux/mt6797_a72_transition_observer.h>
++#endif
+ 
+ /***********************************/
+ /* Other global variable           */
+@@ -412,6 +415,65 @@ void mt6797_0x1001AXXX_unlock(void)
+ 	spin_unlock(&g_mt6797_0x1001AXXX_lock);
+ }
+ 
++#ifdef CONFIG_MTK_A72_TRANSITION_OBSERVER
++#define MT6797_A72_CLOCK_PLL_CON1	0x224
++#define MT6797_A72_CLOCK_MUXSEL		0x270
++#define MT6797_A72_CLOCK_CKDIV		0x274
++
++void mt6797_a72_obs_clock_snapshot(unsigned int cpu, u16 phase)
++{
++	struct mt6797_a72_obs_clock snapshot = { .status = -ENODEV };
++	unsigned long flags;
++	unsigned int i;
++	bool acquired = false;
++
++	if (!spin_trylock_irqsave(&g_mt6797_0x1001AXXX_lock, flags)) {
++		snapshot.status = -EBUSY;
++		mt6797_a72_obs_clock(cpu, phase, &snapshot);
++		return;
++	}
++	snapshot.semaphore |= BIT(2);
++
++	if (!g_mcumixed_base || !g_reg_sema3_m0 ||
++	    !g_reg_cspm_poweron_en)
++		goto out;
++	snapshot.semaphore |= BIT(3);
++
++	hs_write32(g_reg_cspm_poweron_en, 0x0b160001);
++	for (i = 0; i < DIV_ROUND_UP(SEMA_GET_TIMEOUT, 10); i++) {
++		hs_write32(g_reg_sema3_m0, 0x1);
++		if (hs_read32(g_reg_sema3_m0) & 0x1) {
++			acquired = true;
++			break;
++		}
++		udelay(10);
++	}
++	if (!acquired) {
++		snapshot.status = -ETIMEDOUT;
++		goto out;
++	}
++	snapshot.semaphore |= BIT(0);
++
++	ndelay(200);
++	snapshot.pll_con1 = readl(g_mcumixed_base +
++					 MT6797_A72_CLOCK_PLL_CON1);
++	snapshot.muxsel = readl(g_mcumixed_base +
++				       MT6797_A72_CLOCK_MUXSEL);
++	snapshot.ckdiv = readl(g_mcumixed_base +
++				      MT6797_A72_CLOCK_CKDIV);
++	snapshot.status = 0;
++
++	hs_write32(g_reg_sema3_m0, 0x1);
++	if (!(hs_read32(g_reg_sema3_m0) & 0x1))
++		snapshot.semaphore |= BIT(1);
++	else
++		snapshot.status = -EIO;
++out:
++	spin_unlock_irqrestore(&g_mt6797_0x1001AXXX_lock, flags);
++	mt6797_a72_obs_clock(cpu, phase, &snapshot);
++}
++#endif
++
+ /*****************************************************************************/
+ /* Function */
+ /*****************************************************************************/
+diff --git a/drivers/misc/mediatek/power/mt6797/da9214.c b/drivers/misc/mediatek/power/mt6797/da9214.c
+index 05b3d63f..db897e56 100644
+--- a/drivers/misc/mediatek/power/mt6797/da9214.c
++++ b/drivers/misc/mediatek/power/mt6797/da9214.c
+@@ -25,6 +25,10 @@
+ #include <asm/atomic.h>
+ #include <linux/module.h>
+ 
++#ifdef CONFIG_MTK_A72_TRANSITION_OBSERVER
++#include <linux/mt6797_a72_transition_observer.h>
++#endif
++
+ #include "da9214.h"
+ 
+ #define PMIC_DEBUG_PR_DBG
+@@ -285,6 +289,241 @@ unsigned int da9214_write_byte(unsigned char cmd, unsigned char writeData)
+ 	return ret == xfers ? 1 : -1;
+ }
+ #endif
++
++#ifdef CONFIG_MTK_A72_TRANSITION_OBSERVER
++#define DA9214_A72_VALID_PAGE_BEFORE	BIT(0)
++#define DA9214_A72_VALID_PAGE_SELECTED	BIT(1)
++#define DA9214_A72_VALID_BUCK_BEFORE	BIT(2)
++#define DA9214_A72_VALID_BUCK_AFTER	BIT(3)
++#define DA9214_A72_VALID_VSEL		BIT(4)
++#define DA9214_A72_VALID_PAGE_RESTORE	BIT(5)
++#define DA9214_A72_VALID_PAGE_VERIFY	BIT(6)
++
++#define DA9214_A72_REG_PAGE		0x00
++#define DA9214_A72_REG_BUCKB		0x5e
++#define DA9214_A72_REG_BUCKB_VSEL	0xd9
++#define DA9214_A72_PAGE_MASK		0x0f
++#define DA9214_A72_PAGE_REVERT		0x80
++
++/*
++ * These helpers are used only while da9214_i2c_access is held.  They mirror
++ * the existing byte transaction exactly but do not acquire the mutex again.
++ */
++static int da9214_a72_read_locked(unsigned char cmd, unsigned char *value)
++{
++#ifdef CONFIG_MTK_I2C_EXTENSION
++	char cmd_buf[1] = { cmd };
++	int ret;
++
++	new_client->ext_flag =
++		((new_client->ext_flag) & I2C_MASK_FLAG) | I2C_WR_FLAG |
++		I2C_PUSHPULL_FLAG | I2C_HS_FLAG;
++	new_client->timing = 3400;
++	ret = i2c_master_send(new_client, cmd_buf, (1 << 8 | 1));
++	new_client->ext_flag = 0;
++	if (ret < 0)
++		return ret;
++	*value = cmd_buf[0];
++	return 1;
++#else
++	struct i2c_msg msgs[2] = {
++		{
++			.addr = new_client->addr,
++			.flags = 0,
++			.len = 1,
++			.buf = &cmd,
++		}, {
++			.addr = new_client->addr,
++			.flags = I2C_M_RD,
++			.len = 1,
++			.buf = value,
++		}
++	};
++	int ret;
++
++	ret = i2c_transfer(new_client->adapter, msgs, 2);
++	return ret == 2 ? 1 : -1;
++#endif
++}
++
++static int da9214_a72_write_locked(unsigned char cmd, unsigned char value)
++{
++#ifdef CONFIG_MTK_I2C_EXTENSION
++	char data[2] = { cmd, value };
++	int ret;
++
++	new_client->ext_flag =
++		((new_client->ext_flag) & I2C_MASK_FLAG) |
++		I2C_DIRECTION_FLAG | I2C_PUSHPULL_FLAG | I2C_HS_FLAG;
++	new_client->timing = 3400;
++	ret = i2c_master_send(new_client, data, 2);
++	new_client->ext_flag = 0;
++	return ret < 0 ? ret : 1;
++#else
++	unsigned char data[2] = { cmd, value };
++	struct i2c_msg msg = {
++		.addr = new_client->addr,
++		.flags = 0,
++		.len = 2,
++		.buf = data,
++	};
++	int ret;
++
++	ret = i2c_transfer(new_client->adapter, &msg, 1);
++	return ret == 1 ? 1 : -1;
++#endif
++}
++
++static int da9214_a72_config_locked(unsigned char reg, unsigned char value,
++				    unsigned char mask, unsigned char shift)
++{
++	unsigned char old = 0;
++	int ret;
++
++	ret = da9214_a72_read_locked(reg, &old);
++	old &= ~(mask << shift);
++	old |= value << shift;
++	ret = da9214_a72_write_locked(reg, old);
++	return ret;
++}
++
++int da9214_a72_obs_snapshot(unsigned int cpu, u16 phase)
++{
++	struct mt6797_a72_obs_da9214 snapshot = { };
++	unsigned char selected = 0;
++	int ret;
++
++	if (!new_client) {
++		snapshot.status = -ENODEV;
++		mt6797_a72_obs_da9214(cpu, phase, &snapshot);
++		return -ENODEV;
++	}
++
++	mutex_lock(&da9214_i2c_access);
++	ret = da9214_a72_read_locked(DA9214_A72_REG_PAGE,
++				     &snapshot.page_before);
++	if (ret < 0)
++		goto out;
++	snapshot.valid |= DA9214_A72_VALID_PAGE_BEFORE;
++
++	selected = snapshot.page_before & ~DA9214_A72_PAGE_MASK;
++	snapshot.page_selected = selected;
++	if (selected != snapshot.page_before) {
++		ret = da9214_a72_write_locked(DA9214_A72_REG_PAGE, selected);
++		if (ret < 0)
++			goto restore;
++	}
++	snapshot.valid |= DA9214_A72_VALID_PAGE_SELECTED;
++
++	ret = da9214_a72_read_locked(DA9214_A72_REG_BUCKB,
++				     &snapshot.buck_enable_before);
++	if (ret < 0)
++		goto restore;
++	snapshot.buck_enable_after = snapshot.buck_enable_before;
++	snapshot.valid |= DA9214_A72_VALID_BUCK_BEFORE |
++			  DA9214_A72_VALID_BUCK_AFTER;
++
++	ret = da9214_a72_read_locked(DA9214_A72_REG_BUCKB_VSEL,
++				     &snapshot.buck_vsel);
++	if (ret < 0)
++		goto restore;
++	snapshot.valid |= DA9214_A72_VALID_VSEL;
++
++restore:
++	if (selected != snapshot.page_before) {
++		int restore_ret;
++
++		restore_ret = da9214_a72_write_locked(DA9214_A72_REG_PAGE,
++						      snapshot.page_before);
++		if (restore_ret >= 0)
++			snapshot.valid |= DA9214_A72_VALID_PAGE_RESTORE;
++		if (ret >= 0)
++			ret = restore_ret;
++	}
++
++	/*
++	 * PAGE_REVERT can change PAGE_CON as a side effect of the verifying
++	 * access itself.  Record an accepted restore write but do not issue a
++	 * misleading verify-read when that mode was originally selected.
++	 */
++	if (!(snapshot.page_before & DA9214_A72_PAGE_REVERT) && ret >= 0) {
++		ret = da9214_a72_read_locked(DA9214_A72_REG_PAGE,
++					     &snapshot.page_after);
++		if (ret >= 0)
++			snapshot.valid |= DA9214_A72_VALID_PAGE_VERIFY;
++	} else {
++		snapshot.page_after = snapshot.page_before;
++	}
++out:
++	mutex_unlock(&da9214_i2c_access);
++	snapshot.status = ret < 0 ? ret : 0;
++	mt6797_a72_obs_da9214(cpu, phase, &snapshot);
++	return snapshot.status;
++}
++
++unsigned int da9214_a72_obs_buckb_config(unsigned int cpu, bool enable,
++					 u16 phase)
++{
++	struct mt6797_a72_obs_da9214 snapshot = { };
++	unsigned int mutation_ret = (unsigned int)-1;
++	unsigned char page = 0;
++	unsigned char buck = 0;
++	int ret;
++
++	if (!new_client) {
++		snapshot.status = -ENODEV;
++		mt6797_a72_obs_da9214(cpu, phase, &snapshot);
++		return mutation_ret;
++	}
++
++	mutex_lock(&da9214_i2c_access);
++	ret = da9214_a72_read_locked(DA9214_A72_REG_PAGE, &page);
++	if (ret >= 0) {
++		snapshot.page_before = page;
++		snapshot.valid |= DA9214_A72_VALID_PAGE_BEFORE;
++	}
++
++	/*
++	 * Preserve the vendor mutation order: select page zero first, then
++	 * update BUCKB enable.  Unlike a pure snapshot this intentionally
++	 * leaves the selector in the same page-zero state as the old path.
++	 */
++	ret = da9214_a72_config_locked(DA9214_A72_REG_PAGE, 0,
++				       DA9214_A72_PAGE_MASK, 0);
++	if (ret >= 0) {
++		snapshot.page_selected = page & ~DA9214_A72_PAGE_MASK;
++		snapshot.valid |= DA9214_A72_VALID_PAGE_SELECTED;
++	}
++
++	ret = da9214_a72_read_locked(DA9214_A72_REG_BUCKB, &buck);
++	if (ret >= 0) {
++		snapshot.buck_enable_before = buck;
++		snapshot.valid |= DA9214_A72_VALID_BUCK_BEFORE;
++	}
++
++	mutation_ret = da9214_a72_config_locked(DA9214_A72_REG_BUCKB,
++						enable ? 1 : 0, 1, 0);
++	ret = da9214_a72_read_locked(DA9214_A72_REG_BUCKB, &buck);
++	if (ret >= 0) {
++		snapshot.buck_enable_after = buck;
++		snapshot.valid |= DA9214_A72_VALID_BUCK_AFTER;
++	}
++	ret = da9214_a72_read_locked(DA9214_A72_REG_BUCKB_VSEL,
++				     &snapshot.buck_vsel);
++	if (ret >= 0)
++		snapshot.valid |= DA9214_A72_VALID_VSEL;
++	ret = da9214_a72_read_locked(DA9214_A72_REG_PAGE,
++				     &snapshot.page_after);
++	if (ret >= 0)
++		snapshot.valid |= DA9214_A72_VALID_PAGE_VERIFY;
++	mutex_unlock(&da9214_i2c_access);
++
++	snapshot.status = (int)mutation_ret < 0 ? (int)mutation_ret : 0;
++	mt6797_a72_obs_da9214(cpu, phase, &snapshot);
++	return mutation_ret;
++}
++#endif
++
+ /*
+  *   [Read / Write Function]
+  */

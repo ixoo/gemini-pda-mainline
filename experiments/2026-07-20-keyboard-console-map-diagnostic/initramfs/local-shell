@@ -1,0 +1,82 @@
+#!/bin/busybox sh
+# shellcheck shell=dash
+
+export PATH=/bin
+export TERM=linux
+readonly DISPATCH_ENV=/bin/reboot-dispatch.env
+readonly EXPECTED_DISPATCH='reboot is an alias for /bin/reboot'
+readonly KEYMAP=/etc/gemini-us.bkeymap
+readonly KEYMAP_SHA256=02f8048d76aa0cedf73617b13ea03a2a4e74de88222cb1922d9d19630906675c
+ENV=$DISPATCH_ENV
+readonly ENV
+export ENV
+
+dispatch_output=failed
+if dispatch_output="$(/bin/busybox ash -ic 'type reboot' 2>/dev/null)"; then
+	dispatch="$(printf '%s\n' "$dispatch_output" | /bin/busybox tail -n 1)"
+else
+	dispatch=failed
+fi
+if [ "$dispatch" != "$EXPECTED_DISPATCH" ]; then
+	/bin/x-record "reboot_dispatch=invalid actual=${dispatch:-empty} expected=$EXPECTED_DISPATCH tty1_shell=withheld"
+	printf '%s\n' 'Candidate AA: reboot dispatch self-check failed; shell withheld; STATIC HOLD.'
+	while :; do
+		/bin/busybox sleep 3600
+	done
+fi
+
+export PS1='GEMINI-AA-R1# '
+
+foreground_vt=failed
+if /bin/busybox chvt 1; then
+	foreground_vt=selected
+fi
+/bin/busybox stty sane
+
+keymap_status=failed
+keymap_origin=none
+keymap_reason=checksum
+keymap_actual_sha256="$(/bin/busybox sha256sum "$KEYMAP" 2>/dev/null | \
+	/bin/busybox awk '{print $1}')"
+if [ "$keymap_actual_sha256" = "$KEYMAP_SHA256" ]; then
+	keymap_reason=unicode-mode
+	if /bin/console-unicode-mode >/run/console-unicode-mode.status 2>&1; then
+		keymap_reason=existing-readback
+		if /bin/console-keymap-verify --verify "$KEYMAP" \
+				>/run/console-keymap-existing.status 2>&1; then
+			keymap_status=loaded
+			keymap_origin=already-loaded-verified
+			keymap_reason=none
+		else
+			keymap_reason=preflight
+			if /bin/console-keymap-verify --preflight "$KEYMAP" \
+					>/run/console-keymap-preflight.status 2>&1; then
+				keymap_reason=loadkmap
+				if /bin/busybox loadkmap <"$KEYMAP"; then
+					keymap_reason=readback
+					if /bin/console-keymap-verify --verify "$KEYMAP" \
+							>/run/console-keymap-verify.status 2>&1; then
+						keymap_status=loaded
+						keymap_origin=loaded-now
+						keymap_reason=none
+					fi
+				fi
+			fi
+		fi
+	fi
+fi
+
+/bin/busybox clear
+if [ "$keymap_status" != loaded ]; then
+	/bin/x-record "keyboard_map=failed reason=$keymap_reason tty1_shell=recovery-only reboot_dispatch=validated"
+	export PS1='GEMINI-AA-R1-KEYMAP-FAIL# '
+	printf '%s\n' 'Candidate AA: Gemini console map failed its load/readback gate.'
+	printf '%s\n' 'Recovery shell only; type reboot to use Candidate Z watchdog recovery.'
+	exec /bin/busybox ash -i
+fi
+
+/bin/x-record "keyboard_map=loaded origin=$keymap_origin format=busybox-bkeymap sha256=$KEYMAP_SHA256 unicode_mode=verified first_entry=preflight-then-load-or-existing-exact-map readback=all-2048-kernel-entries-exact-high-halves-hole-and-all-others-absent table3=allocated verifier=KDGKBENT photographed_layer=us tty1_shell=ready foreground_vt=$foreground_vt prompt=GEMINI-AA-R1# reboot_dispatch=validated"
+printf '%s\n' 'GEMINI_KEYBOARD_CONSOLE_MAP_20260720_AA_R1'
+printf '%s\n' 'Gemini US map loaded: Shift punctuation, Fn symbols/emoji, Shift+Fn F1-F10, Caps, Home/PgUp/PgDn/End.'
+printf '%s\n' 'Type reboot to use the proven 31-second watchdog recovery.'
+exec /bin/busybox ash -i

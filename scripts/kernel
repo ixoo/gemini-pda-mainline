@@ -43,20 +43,38 @@ readonly KERNEL_PROFILE
 [[ "${KERNEL_PROFILE}" =~ ^[a-z0-9][a-z0-9_-]*$ ]] || \
   die "invalid kernel profile name: ${KERNEL_PROFILE}"
 jq -e --arg profile "${KERNEL_PROFILE}" '
-  (.config.profiles[$profile] | type) == "object" and
-  (.config.profiles[$profile].base | type) == "string" and
-  (.config.profiles[$profile].base | length) > 0 and
-  (.config.profiles[$profile].fragments | type) == "array" and
-  (.config.profiles[$profile].fragments | all(.[]; type == "string" and length > 0))
+  . as $manifest |
+  ($manifest.config.profiles[$profile] | type) == "object" and
+  ($manifest.config.profiles[$profile].base | type) == "string" and
+  ($manifest.config.profiles[$profile].base | length) > 0 and
+  ($manifest.config.profiles[$profile].fragments | type) == "array" and
+  ($manifest.config.profiles[$profile].fragments |
+    all(.[]; type == "string" and length > 0)) and
+  (($manifest.config.profiles[$profile].patch_series //
+    $manifest.patch_series) | type == "string" and length > 0)
 ' "${MANIFEST}" >/dev/null || die "kernel profile is not defined correctly: ${KERNEL_PROFILE}"
 BASE_CONFIG="$(jq -er --arg profile "${KERNEL_PROFILE}" \
   '.config.profiles[$profile].base' "${MANIFEST}")"
 readonly BASE_CONFIG
 [[ "${BASE_CONFIG}" =~ ^[A-Za-z0-9_.+-]+$ ]] || \
   die "invalid base configuration for profile ${KERNEL_PROFILE}: ${BASE_CONFIG}"
-SERIES_REL="$(manifest_value '.patch_series')"
+PROFILE_SERIES_REL="$(jq -r --arg profile "${KERNEL_PROFILE}" \
+  '.config.profiles[$profile].patch_series // ""' "${MANIFEST}")"
+readonly PROFILE_SERIES_REL
+SERIES_REL="$(jq -er --arg profile "${KERNEL_PROFILE}" \
+  '.config.profiles[$profile].patch_series // .patch_series' "${MANIFEST}")"
 readonly SERIES_REL
+[[ "${SERIES_REL}" == patches/* && "${SERIES_REL}" != */ && \
+   "${SERIES_REL}" != *[[:space:]]* ]] || \
+  die "unsafe patch series path for profile ${KERNEL_PROFILE}: ${SERIES_REL}"
+case "/${SERIES_REL}/" in
+  *//*|*/../*|*/./*)
+    die "unsafe patch series path for profile ${KERNEL_PROFILE}: ${SERIES_REL}"
+    ;;
+esac
 readonly SERIES_FILE="${REPO_DIR}/${SERIES_REL}"
+[[ -f "${SERIES_FILE}" && ! -L "${SERIES_FILE}" ]] || \
+  die "patch series is missing, not regular, or a symlink: ${SERIES_FILE}"
 PATCH_DIR="$(dirname "${SERIES_FILE}")"
 readonly PATCH_DIR
 
@@ -64,7 +82,12 @@ readonly SOURCE_ROOT="${GEMINI_SOURCE_ROOT:-${HOME}/src/gemini-pda}"
 readonly BUILD_ROOT="${GEMINI_BUILD_ROOT:-${HOME}/build/gemini-pda}"
 readonly ARTIFACT_ROOT="${GEMINI_ARTIFACT_ROOT:-${HOME}/artifacts/gemini-pda}"
 readonly CACHE_ROOT="${GEMINI_CACHE_ROOT:-${HOME}/.cache/gemini-pda}"
-readonly SOURCE_DIR="${SOURCE_ROOT}/linux-${VERSION}"
+if [[ -n "${PROFILE_SERIES_REL}" ]]; then
+  SOURCE_DIR="${SOURCE_ROOT}/linux-${VERSION}-${KERNEL_PROFILE}-source"
+else
+  SOURCE_DIR="${SOURCE_ROOT}/linux-${VERSION}"
+fi
+readonly SOURCE_DIR
 if [[ "${KERNEL_PROFILE}" == full ]]; then
   BUILD_DIR="${BUILD_ROOT}/linux-${VERSION}"
 else
@@ -93,12 +116,36 @@ Environment:
   GEMINI_BUILD_ROOT     Override the out-of-tree build root
   GEMINI_ARTIFACT_ROOT  Override the artifact root
   GEMINI_CACHE_ROOT     Override the verified-download cache
+
+Profiles may select an isolated patch series with a `patch_series` member in
+kernel/manifest.json. Profiles without one retain the top-level series.
 EOF
 }
 
 for_each_config_fragment() {
-  jq -er --arg profile "${KERNEL_PROFILE}" \
-    '.config.profiles[$profile].fragments[]' "${MANIFEST}"
+  local fragment
+  local basename
+  local -A seen_basenames=()
+
+  while IFS= read -r fragment; do
+    [[ "${fragment}" == configs/* && "${fragment}" != *[[:space:]]* ]] || \
+      die "unsafe config fragment path for profile ${KERNEL_PROFILE}: ${fragment}"
+    case "/${fragment}/" in
+      *//*|*/../*|*/./*)
+        die "unsafe config fragment path for profile ${KERNEL_PROFILE}: ${fragment}"
+        ;;
+    esac
+    [[ -f "${REPO_DIR}/${fragment}" && ! -L "${REPO_DIR}/${fragment}" ]] || \
+      die "config fragment is missing, not regular, or a symlink: ${fragment}"
+    basename="${fragment##*/}"
+    [[ "${basename}" =~ ^[A-Za-z0-9_.+-]+$ ]] || \
+      die "unsafe config fragment basename: ${basename}"
+    [[ -z "${seen_basenames[${basename}]+present}" ]] || \
+      die "config fragments have a packaged-basename collision: ${basename}"
+    seen_basenames["${basename}"]="${fragment}"
+    printf '%s\n' "${fragment}"
+  done < <(jq -er --arg profile "${KERNEL_PROFILE}" \
+    '.config.profiles[$profile].fragments[]' "${MANIFEST}")
 }
 
 for_each_patch() {
@@ -112,8 +159,15 @@ for_each_patch() {
     [[ -z "${line}" || "${line}" == \#* ]] && continue
     [[ "${line}" != *[[:space:]]* ]] || \
       die "${SERIES_FILE}:${line_number}: patch paths may not contain whitespace"
-    [[ "${line}" != /* && "${line}" != *..* ]] || \
+    [[ "${line}" != /* ]] || \
       die "${SERIES_FILE}:${line_number}: patch path must remain below patches/"
+    case "/${line}/" in
+      *//*|*/../*|*/./*)
+        die "${SERIES_FILE}:${line_number}: patch path must remain below patches/"
+        ;;
+    esac
+    [[ -f "${PATCH_DIR}/${line}" && ! -L "${PATCH_DIR}/${line}" ]] || \
+      die "patch listed in series is missing, not regular, or a symlink: ${line}"
     "${callback}" "${line}" "${PATCH_DIR}/${line}"
   done < "${SERIES_FILE}"
 }
@@ -121,7 +175,8 @@ for_each_patch() {
 hash_patch() {
   local relative="$1"
   local path="$2"
-  [[ -f "${path}" ]] || die "patch listed in series does not exist: ${relative}"
+  [[ -f "${path}" && ! -L "${path}" ]] || \
+    die "patch listed in series is unsafe: ${relative}"
   printf '%s  %s\n' "$(sha256sum "${path}" | awk '{print $1}')" "${relative}"
 }
 
@@ -135,9 +190,8 @@ patchset_hash() {
 hash_config_fragment() {
   local relative="$1"
   local path="${REPO_DIR}/${relative}"
-  [[ "${relative}" != /* && "${relative}" != *..* ]] || \
-    die "config fragment must remain below the repository: ${relative}"
-  [[ -f "${path}" ]] || die "config fragment does not exist: ${relative}"
+  [[ -f "${path}" && ! -L "${path}" ]] || \
+    die "config fragment is unsafe: ${relative}"
   printf '%s  %s\n' "$(sha256sum "${path}" | awk '{print $1}')" "${relative}"
 }
 
@@ -470,6 +524,7 @@ build_kernel() {
 
   export KBUILD_BUILD_USER=gemini-pda
   export KBUILD_BUILD_HOST=devvm
+  export KBUILD_BUILD_VERSION=1
   export KBUILD_BUILD_TIMESTAMP="${RELEASED} 00:00:00 UTC"
   export KCONFIG_NOTIMESTAMP=1
 
@@ -489,6 +544,7 @@ build_kernel() {
 show_paths() {
   cat <<EOF
 profile=${KERNEL_PROFILE}
+patch_series=${SERIES_REL}
 source=${SOURCE_DIR}
 build=${BUILD_DIR}
 artifacts=${ARTIFACT_ROOT}
@@ -505,6 +561,7 @@ show_status() {
 
   echo "Pinned stable kernel: ${VERSION} (${RELEASED})"
   echo "Build profile:        ${KERNEL_PROFILE}"
+  echo "Patch series:         ${SERIES_REL}"
   echo "Base configuration:   ${BASE_CONFIG}"
   echo "Config inputs SHA-256: $(config_hash)"
   while IFS= read -r fragment; do

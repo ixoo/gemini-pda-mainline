@@ -1,0 +1,68 @@
+From 0000000000000000000000000000000000000094 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 24 Jul 2026 06:58:00 -0400
+Subject: [PATCH] dt-bindings: soc: mediatek: add MT6797 DVFSP handoff observer
+
+Describe a diagnostic-only, read-only observer for the MT6797 CPU DVFS
+firmware handoff.  This is intentionally not the vendor DVFSP provider: it
+maps only the CSPM register window and references infracfg only to observe
+the shared I2C_APPM clock-gate state.
+---
+ .../mediatek,mt6797-dvfsp-handoff-observer.yaml    | 48 ++++++++++++++++++++++
+ 1 file changed, 48 insertions(+)
+
+diff --git a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-dvfsp-handoff-observer.yaml b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-dvfsp-handoff-observer.yaml
+new file mode 100644
+--- /dev/null
++++ b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-dvfsp-handoff-observer.yaml
+@@ -0,0 +1,48 @@
++# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
++%YAML 1.2
++---
++$id: http://devicetree.org/schemas/soc/mediatek/mediatek,mt6797-dvfsp-handoff-observer.yaml#
++$schema: http://devicetree.org/meta-schemas/core.yaml#
++
++title: MediaTek MT6797 DVFSP firmware handoff observer
++
++maintainers:
++  - Gemini Mainline Experiment <gemini-mainline@example.invalid>
++
++description: |
++  This diagnostic-only device observes whether retained MT6797 CPU DVFS
++  firmware can still own the I2C_APPM clock and I2C6 controller at Linux
++  handoff. It reads fixed CSPM and infracfg registers without changing
++  firmware, clock, interrupt, I2C, or regulator state.
++
++  It is not a DVFSP provider and must not use the vendor
++  mediatek,mt6797-dvfsp compatible.
++
++properties:
++  compatible:
++    const: mediatek,mt6797-dvfsp-handoff-observer
++
++  reg:
++    maxItems: 1
++    description: CSPM register window only.
++
++  mediatek,infracfg:
++    $ref: /schemas/types.yaml#/definitions/phandle
++    description: Phandle to the MT6797 infracfg syscon.
++
++required:
++  - compatible
++  - reg
++  - mediatek,infracfg
++
++additionalProperties: false
++
++examples:
++  - |
++    dvfsp-observer@11015000 {
++        compatible = "mediatek,mt6797-dvfsp-handoff-observer";
++        reg = <0x11015000 0x1000>;
++        mediatek,infracfg = <&infracfg>;
++    };
++
++...
+-- 
+2.43.0

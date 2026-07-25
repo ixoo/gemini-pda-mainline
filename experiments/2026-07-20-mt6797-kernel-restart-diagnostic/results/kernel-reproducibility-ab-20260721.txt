@@ -1,0 +1,97 @@
+[record]
+date_local=2026-07-21
+experiment=2026-07-20-mt6797-kernel-restart-diagnostic
+candidate=AB
+scope=post-build-number-fix-kernel-package-reproducibility
+device_contact=none
+hardware_write=none
+runtime_result=none
+
+[source]
+kernel_version=7.1.3
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+kernel_manifest_sha256=a3e42edc371ffa82b4eec174614d1af13ece0b2e02f6d5c6a682d0098d360f4d
+patchset_sha256=efb79d0ced5ebee485e337f224075faaa4abf7eb7d5e6a38326383274cd75f93
+series_sha256=124db1a0c4d3d4f5ee43d75bbced9d4b5f28a649ef92c04acdb8ccb67be4117a
+patch_count=88
+last_patch=v7.1.3/0087-watchdog-mtk-prioritize-MT6797-TOPRGU-restart.patch
+patch_0087_sha256=81168e4cc12d9ffad7645f667c0211d8dff73b0dadda3ebd422f63378e411d56
+kernel_build_script_sha256=75995c6cde44cefb50950097bff26c62f26df01ca0f487e2a3bcfc8fcf159634
+kbuild_build_version=1
+
+[configuration]
+profile=observability-fbcon-rotation-keyboard-wrrd-manual-reboot
+config_inputs_sha256=c811a1595510716777871637672f4298f4808b1d4fcea5c5da1d05d37676baa2
+resolved_config_sha256=0a0e4ef39d5d89d0d54f55be44da753c93779d88bb94b35623679d1b08b66e74
+modules_built=false
+
+[environment]
+build_host=repository-managed-aarch64-recovery-development-vm
+compiler=gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+linker=GNU ld (GNU Binutils for Ubuntu) 2.42
+kernel_release=7.1.3-gemini-observability-L
+kernel_banner_build_number=1
+
+[package]
+name=linux-7.1.3-gemini-observability-fbcon-rotation-keyboard-wrrd-manual-reboot-efb79d0c-c811a159
+build3_path=/home/julien.guest/artifacts/boot-candidates/candidate-AB-kernel-build3/linux-7.1.3-gemini-observability-fbcon-rotation-keyboard-wrrd-manual-reboot-efb79d0c-c811a159
+build4_path=/home/julien.guest/artifacts/boot-candidates/candidate-AB-kernel-build4/linux-7.1.3-gemini-observability-fbcon-rotation-keyboard-wrrd-manual-reboot-efb79d0c-c811a159
+build4_export_path=artifacts/vm-export/boot-candidates/candidate-AB-kernel-build4/linux-7.1.3-gemini-observability-fbcon-rotation-keyboard-wrrd-manual-reboot-efb79d0c-c811a159
+files_per_package=223
+sha256sums_entries_per_package=222
+dtbs_per_package=119
+
+[build3]
+generated_utc=2026-07-21T04:15:57Z
+build_json_sha256=4ae390b4b12e6db31f51fcc90dff8b575c22115be7dc070ed0628169a696b091
+sha256sums_sha256=934b432900817a4edc4062c8a801df0b59478d8c9979962a35b4df79ae5a8e08
+
+[build4]
+generated_utc=2026-07-21T10:55:51Z
+build_json_sha256=91f4ddc6c7fd52095c588d80063ecf50721c1bb2b9e0bcb20143a01ae86a4df7
+sha256sums_sha256=70cb6cf4223d2d753d47478d863986c3b20d8c52f3dc7d8359152af3476ca093
+
+[common_payload]
+image_sha256=0ccb5490bc97e288210637b04ede52cf01b0105e1d4d3ee88e7ad21608ecf004
+image_bytes=13293576
+image_gz_sha256=37ba538e76e329f3e57cfa78b481151e2d1e5eabcc321a29c7b54d476b6ec26f
+image_gz_bytes=5529652
+system_map_sha256=355a547d5ce17dc295d5c66760415c7a2056be1897db57d8325b303eb32c4e63
+system_map_bytes=2325956
+package_dtb_sha256=f9be46ffed6cf598f7892d88d8702ff6a4ede074c5b477734ae11bcb4c093db5
+package_dtb_bytes=25578
+
+[reproducibility]
+package_inventory_exact=PASS
+non_dynamic_files_expected=221
+non_dynamic_files_exact=221
+non_dynamic_file_contents_and_modes=PASS
+build_json_raw_difference=generated_utc-only
+normalized_build_json_sha256=c672d58074bde6505e892cf94336de08e2135c6b1197e046db45d83f3551b8a5
+normalized_build_json_exact=PASS
+sha256sums_difference=build-json-entry-only
+payload_reproducibility=PASS
+
+[validation]
+required_dev_vm_build_kernel_build3=PASS
+required_dev_vm_build_kernel_build4=PASS
+generic_kernel_artifact_validation_build3=PASS
+generic_kernel_artifact_validation_build4=PASS
+packaged_checksums_build3=PASS
+packaged_checksums_build4=PASS
+packaged_patch_0087_build3=PASS
+packaged_patch_0087_build4=PASS
+build3_build4_comparison=PASS
+build4_export_round_trip=PASS
+hardware_write=none
+device_contact=none
+runtime_result=none
+
+[interpretation]
+Builds 3 and 4 were made by the same managed workflow after pinning the kernel
+build number to 1. Their 221 non-dynamic files are byte- and mode-identical.
+The raw build.json files differ only in generated_utc, and their canonical
+timestamp-free representation is exact. Consequently each SHA256SUMS file
+differs only in the build.json entry. This closes the kernel-package
+reproducibility gate; it does not establish a valid LK boot container or any
+hardware restart behavior.

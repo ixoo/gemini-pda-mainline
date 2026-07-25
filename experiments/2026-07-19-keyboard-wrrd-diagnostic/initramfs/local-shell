@@ -1,0 +1,16 @@
+#!/bin/busybox sh
+# shellcheck shell=dash
+
+export PATH=/bin
+export TERM=linux
+export PS1='GEMINI-W# '
+
+foreground_vt=failed
+if /bin/busybox chvt 1; then
+	foreground_vt=selected
+fi
+/bin/busybox stty sane
+/bin/busybox clear
+/bin/w-record "tty1_shell=ready foreground_vt=$foreground_vt prompt=GEMINI-W# run=pass status=/run/w-status"
+printf '%s\n' 'Type pass then Enter to record keyboard success.'
+exec /bin/busybox ash -i

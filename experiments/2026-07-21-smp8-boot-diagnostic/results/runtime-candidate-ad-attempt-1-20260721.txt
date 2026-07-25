@@ -1,0 +1,123 @@
+experiment=2026-07-21-smp8-boot-diagnostic
+candidate_label=AD
+date=2026-07-21
+attempt=1
+device_variant=current-named-Gemini-PDA-unit
+result=smp8-runtime-and-native-reboot-gates-passed
+
+[owner_observation]
+boot_selection=boot2
+report=booted-successfully-and-manually-sees-8-cpus
+local_console=passed-owner-manually-saw-eight-cpu-result
+local_keyboard=not-explicitly-restated-for-this-run
+native_reboot=passed-remotely-issued-bare-command-with-owner-authorization
+
+[attribution]
+installed_full_partition_sha256=371fda65cf9c21406d6b08e52ffb46690426a7d356ba67aa9ffe1410e7d1e495
+kernel_release=7.1.3-gemini-observability-L
+cmdline=console=ttyS0,921600n8 earlycon maxcpus=8 nokaslr ignore_loglevel loglevel=8 log_buf_len=1M initcall_debug rdinit=/init panic=0 g_ether.dev_addr=42:00:15:19:82:01 g_ether.host_addr=42:00:15:19:82:00 g_ether.iManufacturer=gemini-pda-mainline g_ether.iProduct=Gemini-L-Observability g_ether.iSerialNumber=GEMINI_OBSERVABILITY_20260717_L clk_ignore_unused fbcon=rotate:3 consoleblank=0 fbcon=font:TER16x32
+config_cmdline=exact-match
+config_cmdline_force=y
+inherited_usb_banner=GEMINI_USB_GADGET_ETHERNET_20260721_AC
+inherited_usb_banner_interpretation=lineage-only-not-candidate-identity
+
+[cpu_topology]
+possible=0-9
+present=0-9
+online=0-7
+offline=8-9
+nproc=8
+cpu0_cpu7_implementer_part=Cortex-A53-MIDR-0x410fd034
+cpu1_mpidr=0000000001
+cpu2_mpidr=0000000002
+cpu3_mpidr=0000000003
+cpu4_mpidr=0000000100
+cpu5_mpidr=0000000101
+cpu6_mpidr=0000000102
+cpu7_mpidr=0000000103
+smp_completion=smp-Brought-up-1-node-8-CPUs
+cpu1_cpu7_gicv3_redistributors=present
+cpu8_cpu9=Cortex-A72-offline-not-booted
+
+[five_second_accounting]
+cpu0_delta=498
+cpu1_delta=501
+cpu2_delta=496
+cpu3_delta=501
+cpu4_delta=500
+cpu5_delta=495
+cpu6_delta=493
+cpu7_delta=498
+all_online_cpu_accounting=advanced
+offline_cpu_accounting=absent
+
+[usb_observation]
+host_interface=en7
+host_mac=42:00:15:19:82:00
+host_address=10.15.19.1/24
+device_address=10.15.19.82/24
+bounded_ping=3-of-3
+first_shell_capture=passed
+fresh_shell_reconnect=passed
+reconnect_uptime_seconds=363.20
+reconnect_online=0-7
+reconnect_offline=8-9
+authentication=none
+link_scope=direct-usb-only
+
+[fault_scan]
+kernel_panic=absent
+oops=absent
+bug=absent
+serror=absent
+rcu_stall=absent
+hung_task=absent
+cpu_boot_failure=absent
+psci_failure=absent
+automatic_reset_before_363_seconds=absent
+
+[capture]
+private_raw_capture=artifacts/runtime-captures/candidate-ad-20260721/boot1-raw.txt
+private_raw_capture_mode=0600
+private_raw_capture_bytes=122738
+private_raw_capture_sha256=f21f3f5d0f521fea2eeba3dd7bee0ce01d7bcd8ef6fa41913f63d403c227b8b1
+validator=candidate-ad-runtime-smp8
+validator_result=passed
+
+[validator_corrections]
+capture_bytes_changed=no
+transport_normalization=strip-only-exact-GEMINI-AC-USB-prompt-prefix
+fault_signature_correction=word-boundary-required-around-SError
+false_positive_excluded=fserror_init
+
+[native_reboot]
+trigger=bare-reboot-over-direct-usb-shell
+automatic_slot_selection=none
+candidate_boot_id=e9de289a-87a0-4be2-923c-1b45e364fd8a
+usb_disconnect=confirmed
+recovery_kernel=3.18.41+
+recovery_root=/dev/mmcblk0p29
+recovery_boot_id=385cc5d1-c6a8-48f7-8f75-fcc7a00d4346
+boot_id_changed=yes
+pstore_request_seconds=1140.407944
+pstore_restart_seconds=1140.433403
+pstore_request_to_restart_milliseconds=25.459
+pstore_shutdown_path=orderly
+pstore_final_line=reboot-Restarting-system
+private_pstore=artifacts/device-pstore/candidate-ad-after-remote-reboot-20260721
+private_console_ramoops_sha256=55b4e6c22ff6de305c92b1ac7c5a5cf58ba4bdec763a5f98f4023133c1cbe45f
+private_pstore_manifest_sha256=a010d9a631b5bc8aff1b4146d083aaa9f30ce42c027d407ace3450e5d617e2e2
+
+[interpretation]
+The exact installed Candidate AD booted all eight previously proven Cortex-A53
+CPUs during normal SMP initialization. All eight remained online and advanced
+accounting independently over five seconds; CPU8 and CPU9, the unproven
+Cortex-A72 pair, remained offline. Expected GICv3 and CPU boot lines are
+present and the bounded fault scan is clean. The direct USB shell survived a
+fresh connection and the system remained up for more than six minutes without
+an automatic reset. An authorized remote bare reboot then followed the
+inherited native kernel restart path, disconnected USB, retained an orderly
+pstore shutdown ending in `reboot: Restarting system`, and returned immediately
+to Gemian under a changed boot ID. This is one attributable SMP8 and
+native-reboot runtime pass. It is not evidence for Cortex-A72 bring-up, SMP
+repeatability, load stability, DVFS, thermal management, or suspend.

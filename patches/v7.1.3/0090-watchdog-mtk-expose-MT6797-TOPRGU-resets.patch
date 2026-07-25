@@ -1,0 +1,77 @@
+From 0000000000000000000000000000000000000090 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 21 Jul 2026 20:17:00 -0400
+Subject: [PATCH] watchdog: mtk: expose MT6797 TOPRGU resets
+
+MT6797 TOPRGU uses WDT_SWSYSRST for peripheral reset control.  Its bit
+layout through PWRAP matches MT6795; the public MT6797 vendor source
+additionally identifies CONMCU and two C2K reset bits.  The Cortex-A72
+power sequence needs PWRAP_SPI_CTL reset bit 11 around external-buck
+isolation changes.
+
+Describe the known reset IDs, give MT6797 the existing generic TOPRGU reset
+controller, and advertise one reset cell in the SoC Device Tree.  This patch
+only exposes the controller.  It does not assert a reset.
+
+---
+ arch/arm64/boot/dts/mediatek/mt6797.dtsi |  1 +
+ drivers/watchdog/mtk_wdt.c               |  2 ++
+ include/dt-bindings/reset/mt6797-resets.h | 18 ++++++++++++++++++
+ 3 files changed, 21 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+--- a/arch/arm64/boot/dts/mediatek/mt6797.dtsi
++++ b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+@@ -350,5 +350,6 @@ watchdog: watchdog@10007000 {
+ 		compatible = "mediatek,mt6797-wdt", "mediatek,mt6589-wdt";
+ 		reg = <0 0x10007000 0 0x100>;
++		#reset-cells = <1>;
+ 	};
+ 
+ 	apmixedsys: apmixed@1000c000 {
+diff --git a/drivers/watchdog/mtk_wdt.c b/drivers/watchdog/mtk_wdt.c
+--- a/drivers/watchdog/mtk_wdt.c
++++ b/drivers/watchdog/mtk_wdt.c
+@@ -17,5 +17,6 @@
+ #include <dt-bindings/reset/mediatek,mt6735-wdt.h>
+ #include <dt-bindings/reset/mediatek,mt6795-resets.h>
++#include <dt-bindings/reset/mt6797-resets.h>
+ #include <dt-bindings/reset/mt7986-resets.h>
+ #include <dt-bindings/reset/mt8183-resets.h>
+ #include <dt-bindings/reset/mt8186-resets.h>
+@@ -101,6 +102,7 @@ static const struct mtk_wdt_data mt6795_data = {
+ };
+ 
+ static const struct mtk_wdt_data mt6797_data = {
++	.toprgu_sw_rst_num = MT6797_TOPRGU_SW_RST_NUM,
+ 	.use_auto_restart = true,
+ 	.restart_priority = 255,
+ };
+diff --git a/include/dt-bindings/reset/mt6797-resets.h b/include/dt-bindings/reset/mt6797-resets.h
+--- a/include/dt-bindings/reset/mt6797-resets.h
++++ b/include/dt-bindings/reset/mt6797-resets.h
+@@ -28,4 +28,22 @@
+ #define MT6797_INFRA_SCP_SECURE_RST		69
+ #define MT6797_INFRA_SSUSB_DIG_PHY_B_RST	70
+ 
++/* TOPRGU resets: WDT_SWSYSRST */
++#define MT6797_TOPRGU_INFRA_SW_RST		0
++#define MT6797_TOPRGU_DISP_SW_RST		1
++#define MT6797_TOPRGU_MFG_SW_RST		2
++#define MT6797_TOPRGU_VENC_SW_RST		3
++#define MT6797_TOPRGU_VDEC_SW_RST		4
++#define MT6797_TOPRGU_IMG_SW_RST		5
++#define MT6797_TOPRGU_DDRPHY_SW_RST		6
++#define MT6797_TOPRGU_MD_SW_RST			7
++#define MT6797_TOPRGU_INFRA_AO_SW_RST		8
++#define MT6797_TOPRGU_MD_LITE_SW_RST		9
++#define MT6797_TOPRGU_APMIXED_SW_RST		10
++#define MT6797_TOPRGU_PWRAP_SPI_CTL_RST		11
++#define MT6797_TOPRGU_CONMCU_SW_RST		12
++#define MT6797_TOPRGU_C2KSYS_SW_RST		16
++#define MT6797_TOPRGU_C2KWDT_SW_RST		17
++#define MT6797_TOPRGU_SW_RST_NUM		18
++
+ #endif /* _DT_BINDINGS_RESET_CONTROLLER_MT6797 */
+-- 
+2.43.0

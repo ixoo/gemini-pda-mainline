@@ -1,0 +1,426 @@
+From 0000000000000000000000000000000000000095 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 24 Jul 2026 07:00:00 -0400
+Subject: [PATCH] soc: mediatek: add MT6797 DVFSP handoff observer
+
+Gemini's external DA9214 processor regulator is connected to I2C6, whose
+clock and controller are shared with the MT6797 CPU DVFS firmware.  The
+vendor I2C driver does not acquire a hardware semaphore before a transfer.
+It asks the firmware to pause through CSPM software-reserved registers,
+waits for firmware acknowledgment, and then gates the shared clock.
+
+Before enabling I2C6 in mainline, add a deliberately read-only observer for
+the retained CSPM state.  It takes three fixed snapshots of the firmware
+timer, program counter, state machine, power-control bit, and software
+request/status words.  It also reads the I2C_APPM clock-gate status through
+the existing infracfg syscon.
+
+The observer reports active, quiescent-stopped, or unknown.  The stopped
+classification is fail closed: it requires the reset state-machine value,
+a disabled and stable timer, inactive R7 power control, stable program and
+status words, and a gated I2C_APPM clock.  It never writes CSPM or
+infracfg, maps CSRAM, requests the DVFSP interrupt, enables a clock, loads
+firmware, or touches I2C6.
+
+Use a diagnostic-only compatible rather than the vendor DVFSP compatible.
+Keep the node disabled at SoC level, enable it only on Gemini, and force
+I2C6 disabled in the same diagnostic stage so controller probe cannot
+destroy the handoff evidence.
+---
+ .../boot/dts/mediatek/mt6797-gemini-pda.dts        |   6 +-
+ arch/arm64/boot/dts/mediatek/mt6797.dtsi           |   7 +
+ drivers/soc/mediatek/Kconfig                       |  19 ++
+ drivers/soc/mediatek/Makefile                      |   1 +
+ .../mediatek/mt6797-dvfsp-handoff-observer.c       | 302 +++++++++++++++++++++
+ 5 files changed, 334 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -228,7 +228,7 @@
+ 	mediatek,use-push-pull;
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&i2c6_pins_a>;
+-	status = "okay";
++	status = "disabled";
+ 
+ 	da9214: regulator@68 {
+ 		compatible = "dlg,da9214";
+@@ -252,6 +252,10 @@
+ 	status = "okay";
+ };
+ 
++&dvfsp_handoff_observer {
++	status = "okay";
++};
++
+ &i2c7 {
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&i2c7_pins_a>;
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+--- a/arch/arm64/boot/dts/mediatek/mt6797.dtsi
++++ b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+@@ -670,6 +670,13 @@
+ 		status = "disabled";
+ 	};
+ 
++	dvfsp_handoff_observer: dvfsp-observer@11015000 {
++		compatible = "mediatek,mt6797-dvfsp-handoff-observer";
++		reg = <0 0x11015000 0 0x1000>;
++		mediatek,infracfg = <&infrasys>;
++		status = "disabled";
++	};
++
+ 	i2c7: i2c@11010000 {
+ 		compatible = "mediatek,mt6797-i2c",
+ 			     "mediatek,mt6577-i2c";
+diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
+--- a/drivers/soc/mediatek/Kconfig
++++ b/drivers/soc/mediatek/Kconfig
+@@ -59,7 +59,26 @@
+ 	  This initial implementation never changes power state and never
+ 	  authorizes CPU_ON.  It is groundwork for a later provider that can
+ 	  reproduce the hardware power sequence.
+ 
++config MTK_MT6797_DVFSP_HANDOFF_OBSERVER
++	bool "MediaTek MT6797 DVFSP firmware handoff observer"
++	depends on ARM64 && ARCH_MEDIATEK && OF
++	select MFD_SYSCON
++	help
++	  Build a read-only diagnostic observer for the MT6797 CPU DVFS
++	  firmware handoff. It samples fixed CSPM state and the I2C_APPM
++	  clock-gate status to classify the firmware as active,
++	  quiescent-stopped, or unknown.
++
++	  The observer does not register a DVFSP provider, write a register,
++	  map firmware SRAM, request an interrupt, enable a clock, access an
++	  I2C controller, or operate a regulator. Both active and unknown
++	  results require I2C6 to remain disabled. A quiescent-stopped result
++	  authorizes only a later, separately reviewed read-only resource
++	  experiment.
++
++	  This option is for bounded Gemini PDA bring-up experiments only.
++
+ config MTK_PMIC_WRAP
+ 	tristate "MediaTek PMIC Wrapper Support"
+ 	depends on RESET_CONTROLLER
+diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
+--- a/drivers/soc/mediatek/Makefile
++++ b/drivers/soc/mediatek/Makefile
+@@ -5,6 +5,7 @@
+ obj-$(CONFIG_MTK_DVFSRC) += mtk-dvfsrc.o
+ obj-$(CONFIG_MTK_INFRACFG) += mtk-infracfg.o
+ obj-$(CONFIG_MTK_MT6797_A72_POWER) += mt6797-a72-power.o
++obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF_OBSERVER) += mt6797-dvfsp-handoff-observer.o
+ obj-$(CONFIG_MTK_PMIC_WRAP) += mtk-pmic-wrap.o
+ obj-$(CONFIG_MTK_REGULATOR_COUPLER) += mtk-regulator-coupler.o
+ obj-$(CONFIG_MTK_MMSYS) += mtk-mmsys.o
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff-observer.c b/drivers/soc/mediatek/mt6797-dvfsp-handoff-observer.c
+new file mode 100644
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-dvfsp-handoff-observer.c
+@@ -0,0 +1,302 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Read-only MT6797 DVFSP firmware handoff observer
++ *
++ * Copyright (c) 2026 Julien Etienne
++ */
++
++#include <linux/bitops.h>
++#include <linux/delay.h>
++#include <linux/device.h>
++#include <linux/io.h>
++#include <linux/mfd/syscon.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/platform_device.h>
++#include <linux/regmap.h>
++
++#define CSPM_PCM_CON1			0x01c
++#define CSPM_PCM_PWR_IO_EN		0x02c
++#define CSPM_PCM_REG15_DATA		0x13c
++#define CSPM_PCM_TIMER_OUT		0x150
++#define CSPM_PCM_FSM_STA		0x178
++#define CSPM_SW_RSV0			0x608
++
++#define INFRACFG_INFRA2_PDN_STA		0x0b0
++
++#define PCM_CON1_TIMER_EN		BIT(5)
++#define PCM_PWRIO_EN_R7			BIT(7)
++#define PCM_FSM_KICK			BIT(21)
++#define PCM_FSM_STA_RESET		0x00048490
++#define INFRA_I2C_APPM_GATED		BIT(1)
++
++#define MT6797_DVFSP_SNAPSHOT_COUNT	3
++#define MT6797_DVFSP_SW_RSV_COUNT	7
++
++enum mt6797_dvfsp_handoff_state {
++	MT6797_DVFSP_ACTIVE,
++	MT6797_DVFSP_QUIESCENT_STOPPED,
++	MT6797_DVFSP_UNKNOWN,
++};
++
++struct mt6797_dvfsp_snapshot {
++	u32 timer_before;
++	u32 pcm_con1;
++	u32 pcm_pwr_io_en;
++	u32 pcm_reg15_data;
++	u32 pcm_fsm_sta;
++	u32 sw_rsv[MT6797_DVFSP_SW_RSV_COUNT];
++	u32 infra2_pdn_sta;
++	u32 timer_after;
++	bool infra2_pdn_sta_valid;
++};
++
++struct mt6797_dvfsp_observer {
++	void __iomem *cspm;
++	struct regmap *infracfg;
++	struct mt6797_dvfsp_snapshot snapshots[MT6797_DVFSP_SNAPSHOT_COUNT];
++	enum mt6797_dvfsp_handoff_state state;
++};
++
++static const char * const mt6797_dvfsp_state_names[] = {
++	[MT6797_DVFSP_ACTIVE] = "active",
++	[MT6797_DVFSP_QUIESCENT_STOPPED] = "quiescent-stopped",
++	[MT6797_DVFSP_UNKNOWN] = "unknown",
++};
++
++static void
++mt6797_dvfsp_take_snapshot(struct mt6797_dvfsp_observer *observer,
++			   struct mt6797_dvfsp_snapshot *snapshot)
++{
++	unsigned int value;
++	int i;
++
++	snapshot->timer_before =
++		readl(observer->cspm + CSPM_PCM_TIMER_OUT);
++	snapshot->pcm_con1 = readl(observer->cspm + CSPM_PCM_CON1);
++	snapshot->pcm_pwr_io_en =
++		readl(observer->cspm + CSPM_PCM_PWR_IO_EN);
++	snapshot->pcm_reg15_data =
++		readl(observer->cspm + CSPM_PCM_REG15_DATA);
++	snapshot->pcm_fsm_sta =
++		readl(observer->cspm + CSPM_PCM_FSM_STA);
++
++	for (i = 0; i < MT6797_DVFSP_SW_RSV_COUNT; i++)
++		snapshot->sw_rsv[i] =
++			readl(observer->cspm + CSPM_SW_RSV0 + i * sizeof(u32));
++
++	if (!regmap_read(observer->infracfg, INFRACFG_INFRA2_PDN_STA,
++			 &value)) {
++		snapshot->infra2_pdn_sta = value;
++		snapshot->infra2_pdn_sta_valid = true;
++	}
++
++	snapshot->timer_after =
++		readl(observer->cspm + CSPM_PCM_TIMER_OUT);
++}
++
++static bool
++mt6797_dvfsp_firmware_changed(const struct mt6797_dvfsp_snapshot *left,
++			      const struct mt6797_dvfsp_snapshot *right)
++{
++	int i;
++
++	if (left->pcm_reg15_data != right->pcm_reg15_data)
++		return true;
++
++	for (i = 0; i < MT6797_DVFSP_SW_RSV_COUNT; i++)
++		if (left->sw_rsv[i] != right->sw_rsv[i])
++			return true;
++
++	return false;
++}
++
++static bool
++mt6797_dvfsp_quiescent_changed(const struct mt6797_dvfsp_snapshot *left,
++			       const struct mt6797_dvfsp_snapshot *right)
++{
++	if (left->pcm_con1 != right->pcm_con1 ||
++	    left->pcm_pwr_io_en != right->pcm_pwr_io_en ||
++	    left->pcm_fsm_sta != right->pcm_fsm_sta ||
++	    left->infra2_pdn_sta_valid != right->infra2_pdn_sta_valid ||
++	    (left->infra2_pdn_sta_valid &&
++	     ((left->infra2_pdn_sta ^ right->infra2_pdn_sta) &
++	      INFRA_I2C_APPM_GATED)))
++		return true;
++
++	return mt6797_dvfsp_firmware_changed(left, right);
++}
++
++static enum mt6797_dvfsp_handoff_state
++mt6797_dvfsp_classify(const struct mt6797_dvfsp_observer *observer)
++{
++	const struct mt6797_dvfsp_snapshot *first = &observer->snapshots[0];
++	bool active = false;
++	bool stopped = true;
++	int i;
++
++	for (i = 0; i < MT6797_DVFSP_SNAPSHOT_COUNT; i++) {
++		const struct mt6797_dvfsp_snapshot *snapshot =
++			&observer->snapshots[i];
++
++		active |= snapshot->pcm_fsm_sta & PCM_FSM_KICK;
++		active |= snapshot->pcm_pwr_io_en & PCM_PWRIO_EN_R7;
++		active |= snapshot->timer_before != snapshot->timer_after;
++
++		stopped &= snapshot->pcm_fsm_sta == PCM_FSM_STA_RESET;
++		stopped &= !(snapshot->pcm_con1 & PCM_CON1_TIMER_EN);
++		stopped &= snapshot->pcm_pwr_io_en == 0;
++		stopped &= snapshot->timer_before == snapshot->timer_after;
++		stopped &= snapshot->infra2_pdn_sta_valid;
++		stopped &= snapshot->infra2_pdn_sta & INFRA_I2C_APPM_GATED;
++
++		if (!i)
++			continue;
++
++		active |= observer->snapshots[i - 1].timer_after !=
++			  snapshot->timer_before;
++		active |= mt6797_dvfsp_firmware_changed(&observer->snapshots[i - 1],
++							    snapshot);
++
++		stopped &= first->timer_before == snapshot->timer_before;
++		stopped &= !mt6797_dvfsp_quiescent_changed(first, snapshot);
++	}
++
++	if (active)
++		return MT6797_DVFSP_ACTIVE;
++	if (stopped)
++		return MT6797_DVFSP_QUIESCENT_STOPPED;
++
++	return MT6797_DVFSP_UNKNOWN;
++}
++
++static ssize_t state_show(struct device *dev, struct device_attribute *attr,
++			  char *buf)
++{
++	struct mt6797_dvfsp_observer *observer = dev_get_drvdata(dev);
++
++	return sysfs_emit(buf, "%s\n",
++			  mt6797_dvfsp_state_names[observer->state]);
++}
++static DEVICE_ATTR_RO(state);
++
++static ssize_t snapshots_show(struct device *dev,
++			      struct device_attribute *attr, char *buf)
++{
++	struct mt6797_dvfsp_observer *observer = dev_get_drvdata(dev);
++	ssize_t length = 0;
++	int i;
++
++	for (i = 0; i < MT6797_DVFSP_SNAPSHOT_COUNT; i++) {
++		const struct mt6797_dvfsp_snapshot *snapshot =
++			&observer->snapshots[i];
++
++		length += sysfs_emit_at(buf, length,
++			"snapshot=%d timer_before=%08x timer_after=%08x "
++			"pcm_con1=%08x pcm_pwr_io_en=%08x "
++			"pcm_reg15_data=%08x pcm_fsm_sta=%08x "
++			"sw_rsv=%08x,%08x,%08x,%08x,%08x,%08x,%08x "
++			"infra2_pdn_sta_valid=%u infra2_pdn_sta=%08x\n",
++			i, snapshot->timer_before, snapshot->timer_after,
++			snapshot->pcm_con1, snapshot->pcm_pwr_io_en,
++			snapshot->pcm_reg15_data, snapshot->pcm_fsm_sta,
++			snapshot->sw_rsv[0], snapshot->sw_rsv[1],
++			snapshot->sw_rsv[2], snapshot->sw_rsv[3],
++			snapshot->sw_rsv[4], snapshot->sw_rsv[5],
++			snapshot->sw_rsv[6],
++			snapshot->infra2_pdn_sta_valid,
++			snapshot->infra2_pdn_sta);
++	}
++
++	return length;
++}
++static DEVICE_ATTR_RO(snapshots);
++
++static struct attribute *mt6797_dvfsp_observer_attrs[] = {
++	&dev_attr_state.attr,
++	&dev_attr_snapshots.attr,
++	NULL,
++};
++
++static const struct attribute_group mt6797_dvfsp_observer_group = {
++	.attrs = mt6797_dvfsp_observer_attrs,
++};
++
++static int mt6797_dvfsp_observer_probe(struct platform_device *pdev)
++{
++	struct mt6797_dvfsp_observer *observer;
++	int i;
++	int ret;
++
++	observer = devm_kzalloc(&pdev->dev, sizeof(*observer), GFP_KERNEL);
++	if (!observer)
++		return -ENOMEM;
++
++	observer->cspm = devm_platform_ioremap_resource(pdev, 0);
++	if (IS_ERR(observer->cspm))
++		return dev_err_probe(&pdev->dev, PTR_ERR(observer->cspm),
++				     "cannot map CSPM observation window\n");
++
++	observer->infracfg =
++		syscon_regmap_lookup_by_phandle(pdev->dev.of_node,
++						"mediatek,infracfg");
++	if (IS_ERR(observer->infracfg))
++		return dev_err_probe(&pdev->dev, PTR_ERR(observer->infracfg),
++				     "cannot resolve infracfg syscon\n");
++
++	platform_set_drvdata(pdev, observer);
++
++	mt6797_dvfsp_take_snapshot(observer, &observer->snapshots[0]);
++	usleep_range(2000, 2500);
++	mt6797_dvfsp_take_snapshot(observer, &observer->snapshots[1]);
++	usleep_range(18000, 19000);
++	mt6797_dvfsp_take_snapshot(observer, &observer->snapshots[2]);
++
++	observer->state = mt6797_dvfsp_classify(observer);
++
++	for (i = 0; i < MT6797_DVFSP_SNAPSHOT_COUNT; i++) {
++		const struct mt6797_dvfsp_snapshot *snapshot =
++			&observer->snapshots[i];
++
++		dev_info(&pdev->dev,
++			 "snapshot=%d timer=%08x/%08x con1=%08x pwr_io=%08x pc=%08x fsm=%08x rsv=%08x,%08x,%08x,%08x,%08x,%08x,%08x gate_valid=%u gate=%08x\n",
++			 i, snapshot->timer_before, snapshot->timer_after,
++			 snapshot->pcm_con1, snapshot->pcm_pwr_io_en,
++			 snapshot->pcm_reg15_data, snapshot->pcm_fsm_sta,
++			 snapshot->sw_rsv[0], snapshot->sw_rsv[1],
++			 snapshot->sw_rsv[2], snapshot->sw_rsv[3],
++			 snapshot->sw_rsv[4], snapshot->sw_rsv[5],
++			 snapshot->sw_rsv[6],
++			 snapshot->infra2_pdn_sta_valid,
++			 snapshot->infra2_pdn_sta);
++	}
++
++	dev_info(&pdev->dev, "state=%s i2c6_policy=disabled\n",
++		 mt6797_dvfsp_state_names[observer->state]);
++
++	ret = devm_device_add_group(&pdev->dev,
++				    &mt6797_dvfsp_observer_group);
++	if (ret)
++		return dev_err_probe(&pdev->dev, ret,
++				     "cannot publish read-only snapshot\n");
++
++	return 0;
++}
++
++static const struct of_device_id mt6797_dvfsp_observer_of_match[] = {
++	{ .compatible = "mediatek,mt6797-dvfsp-handoff-observer" },
++	{ }
++};
++MODULE_DEVICE_TABLE(of, mt6797_dvfsp_observer_of_match);
++
++static struct platform_driver mt6797_dvfsp_observer_driver = {
++	.probe = mt6797_dvfsp_observer_probe,
++	.driver = {
++		.name = "mt6797-dvfsp-handoff-observer",
++		.of_match_table = mt6797_dvfsp_observer_of_match,
++	},
++};
++module_platform_driver(mt6797_dvfsp_observer_driver);
++
++MODULE_DESCRIPTION("MediaTek MT6797 read-only DVFSP handoff observer");
++MODULE_LICENSE("GPL");
+-- 
+2.43.0

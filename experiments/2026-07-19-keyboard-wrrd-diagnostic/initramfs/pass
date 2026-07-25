@@ -1,0 +1,5 @@
+#!/bin/busybox sh
+# shellcheck shell=dash
+
+/bin/w-record 'SHELL_INPUT_PASS typed_command=pass required_keys=P,A,S,ENTER'
+printf '%s\n' 'GEMINI-W keyboard input recorded.'

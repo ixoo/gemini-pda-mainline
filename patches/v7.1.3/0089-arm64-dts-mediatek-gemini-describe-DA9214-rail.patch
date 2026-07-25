@@ -1,0 +1,57 @@
+From 0000000000000000000000000000000000000089 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 21 Jul 2026 20:16:00 -0400
+Subject: [PATCH] arm64: dts: mediatek: gemini: describe DA9214 rail
+
+The working Gemini kernel and live Device Tree identify a Dialog DA9214
+at address 0x68 on MT6797 I2C6.  Live reads identify the second output as
+the external Cortex-A72 Vproc rail.  The bus runs at 3.4 MHz in
+push-pull mode on the existing I2C6 pin group.
+
+Enable that bus and describe both DA9214 outputs.  Both children are required:
+the upstream driver registers its regulator descriptors by array index, so a
+BUCKB-only description would incorrectly register the BUCKA descriptor.
+
+Do not add voltage limits, boot-on, always-on, or an unverified enable GPIO.
+The initial diagnostic profile uses regulator_ignore_unused to preserve the
+firmware state without asking the regulator core to change it.
+
+---
+ .../boot/dts/mediatek/mt6797-gemini-pda.dts   | 23 ++++++++++++++++++++
+ 1 file changed, 23 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -220,6 +220,29 @@ &mmc1 {
+ 	status = "okay";
+ };
+ 
++&i2c6 {
++	clock-frequency = <3400000>;
++	mediatek,use-push-pull;
++	pinctrl-names = "default";
++	pinctrl-0 = <&i2c6_pins_a>;
++	status = "okay";
++
++	da9214: regulator@68 {
++		compatible = "dlg,da9214";
++		reg = <0x68>;
++
++		regulators {
++			da9214_bucka: BUCKA {
++				regulator-name = "da9214-bucka";
++			};
++
++			da9214_buckb: BUCKB {
++				regulator-name = "vproc-big";
++			};
++		};
++	};
++};
++
+ &i2c7 {
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&i2c7_pins_a>;
+-- 
+2.43.0

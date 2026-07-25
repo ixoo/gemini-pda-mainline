@@ -1,0 +1,16 @@
+validation=candidate-z-ash-dispatch
+candidate_initramfs_sha256=a21cc6bed9024bba9e01864aeb0c6c3339231d217f77ff5fa733ea33e6a0e7d2
+busybox_sha256=52151e7f322f926b64049cdaa1410dc3ea6485525e0624b05813791c219ae933
+dispatch_env_sha256=8255ad7ab034cd3d760690a8b57eebcb67c974d321249ed8ee3a4f142f53e90a
+execution_host=Linux-aarch64
+baseline_type=reboot is reboot
+configured_type=reboot is an alias for /bin/reboot
+runtime_oracle=inherited-exported-ENV-passed
+noninteractive_env=ignored-no-wrapper-recursion
+bare_reboot_probe=absolute-bin-reboot-wrapper-invoked
+bare_reboot_parent_shell=continued-status-73
+probe_exit_status=73
+function_redirection_failure=else-continued
+profile_policy=ENV-nonlogin-interactive
+device_contact=none
+hardware_write=none

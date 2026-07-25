@@ -78,6 +78,25 @@ identities, and source-derived behavior needed to review a driver.
   the MT6351 node is labelled `pmic` in the SoC DTS while the board override
   referred to the nonexistent `mt6351regulator` label. Patch 51 corrects that
   reference as part of making the disabled-only board description buildable.
+- A 2026-07-23 cross-check of
+  `bsg100/gemini-linux@e744a43f9d68cd3251dc0c9743ca41aac74853a8`
+  found a useful `fan53555`-variant implementation, but no RT5735 hardware
+  test. Its own exact vendor DT separates I2C6 `vproc_buck@68` from I2C7
+  `rt5735@1c` and `vgpu_buck@60`, contradicting the accompanying document's
+  broad VPROC/VGPU label. Its later A72 note also identifies the missing
+  big-cluster preparation as an I2C6 path. This supports keeping RT5735
+  GPU-only and separate from DA9214 BUCKB. Its “dual-output” wording also
+  conflates VSEL0/VSEL1 state selectors for one regulator with two independent
+  outputs; its implementation itself registers only one regulator.
+- That reference's variant agrees on VSEL0/VSEL1, voltage steps and the ramp
+  table, and its reuse of the existing FAN53555 mode/suspend infrastructure is
+  worth revisiting after correction. It defines but does not read the RT5735
+  PID, omits active discharge and DVS-down handling, and carries board ramp
+  properties absent from its actual binding/driver patch. More seriously, the
+  inherited Linux v6.6 NORMAL-mode path clears its mask in VSEL0 instead of
+  the configured COMMAND mode register; for RT5735 that can clear the rail's
+  enable bit. It is therefore review input, not a driver to transplant. See
+  [`bsg100-latest-crosscheck-20260723.txt`](results/bsg100-latest-crosscheck-20260723.txt).
 
 ## Linux 7.1.3 comparison
 
@@ -115,3 +134,8 @@ Gemini DTB checksum is
 Runtime probe and voltage changes still require a recovery path and explicit
 hardware opt-in. The next gate is attaching the external rail to a Panfrost
 node only after reset ownership, board wiring, and a safe OPP are established.
+Before that gate, decide whether the dedicated driver or an exact-product-ID
+FAN53555 variant best preserves the recovered active-discharge, ramp, mode and
+suspend contract. This decision is separate from the DA9214/I2C6 Cortex-A72
+prerequisite; an RT5735 or fixed-`vproc` node must not substitute for
+`vproc-big`.

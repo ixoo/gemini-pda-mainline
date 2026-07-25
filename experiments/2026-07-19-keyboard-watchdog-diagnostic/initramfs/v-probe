@@ -1,0 +1,94 @@
+#!/bin/busybox sh
+# shellcheck shell=dash
+
+export PATH=/bin
+readonly DISCOVERY_SECONDS=5
+readonly CAPTURE_SECONDS=15
+
+/bin/v-record 'probe=begin polling_interval_ms=20 polling_debounce=none col_scan_delay_us=2 i2c5_hz=400000'
+/bin/v-record 'aw_parent_irq=absent matrix_row_irqs=not-requested capture_grab=no'
+
+i2c_adapter=absent
+for adapter in /sys/bus/i2c/devices/i2c-*; do
+	[ -L "$adapter/of_node" ] || continue
+	of_target="$(readlink "$adapter/of_node" 2>/dev/null || true)"
+	case "$of_target" in
+		*/i2c@1101c000)
+			i2c_adapter=${adapter##*/i2c-}
+			break
+			;;
+	esac
+done
+/bin/v-record "i2c5_of=/i2c@1101c000 linux_adapter=$i2c_adapter"
+
+if [ "$i2c_adapter" != absent ]; then
+	client="/sys/bus/i2c/devices/${i2c_adapter}-005b"
+	if [ -d "$client" ]; then
+		driver=unbound
+		if [ -L "$client/driver" ]; then
+			driver="$(readlink "$client/driver" 2>/dev/null || true)"
+			driver=${driver##*/}
+		fi
+		/bin/v-record "aw9523_client=${i2c_adapter}-005b driver=$driver"
+	else
+		/bin/v-record "aw9523_client=${i2c_adapter}-005b state=absent"
+	fi
+fi
+
+matrix_device=absent
+matrix_driver=unbound
+matrix_path=
+for platform_device in /sys/bus/platform/devices/*; do
+	[ -L "$platform_device/of_node" ] || continue
+	of_target="$(readlink "$platform_device/of_node" 2>/dev/null || true)"
+	case "$of_target" in
+		*/keyboard-matrix)
+			matrix_path=$platform_device
+			matrix_device=${platform_device##*/}
+			if [ -L "$platform_device/driver" ]; then
+				matrix_driver="$(readlink "$platform_device/driver" 2>/dev/null || true)"
+				matrix_driver=${matrix_driver##*/}
+			fi
+			break
+			;;
+	esac
+done
+/bin/v-record "matrix_platform_device=$matrix_device driver=$matrix_driver"
+
+event_node=absent
+event_name=absent
+discovery_second=0
+while [ "$discovery_second" -lt "$DISCOVERY_SECONDS" ]; do
+	if [ -n "$matrix_path" ]; then
+		for event in "$matrix_path"/input/input*/event*; do
+			[ -e "$event" ] || continue
+			input_path=${event%/event*}
+			[ -r "$input_path/name" ] || continue
+			name="$(cat "$input_path/name" 2>/dev/null || true)"
+			case "$name" in
+				*[Kk]eyboard*|*[Mm]atrix*|gpio-matrix-keypad)
+					event_node=/dev/input/${event##*/}
+					event_name=$name
+					break
+					;;
+			esac
+		done
+	fi
+	[ "$event_node" != absent ] && break
+	sleep 1
+	discovery_second=$((discovery_second + 1))
+done
+/bin/v-record "matrix_input_name=$event_name event_node=$event_node identity_anchor=$matrix_device discovery_wait=${discovery_second}s"
+
+if [ "$event_node" = absent ]; then
+	/bin/v-record 'raw_event_window=skipped reason=no-matrix-owned-event-node'
+else
+	/bin/v-record "raw_event_window=begin capture_budget=${CAPTURE_SECONDS}s selected_event_node=$event_node expected_name=$event_name"
+	/bin/input-event-capture "$event_node" "$event_name" 2>&1 |
+		while IFS= read -r event_line; do
+			/bin/v-record "$event_line"
+		done
+	/bin/v-record "raw_event_window=complete selected_event_node=$event_node shell_remains=tty1"
+fi
+
+/bin/v-record 'probe=complete watchdog_reset=still-owned-independently'

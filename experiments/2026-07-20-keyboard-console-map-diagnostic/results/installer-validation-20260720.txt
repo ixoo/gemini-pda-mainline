@@ -1,0 +1,52 @@
+[record]
+date_local=2026-07-20
+experiment=2026-07-20-keyboard-console-map-diagnostic
+candidate=AA
+candidate_revision=r0-historical
+superseded_before_boot=yes
+do_not_boot=yes
+scope=static-installer-validation
+device_contact=none
+hardware_write=none
+reboot=none
+
+[calibration]
+candidate_raw_sha256=a2ad7a4107abd99cbd349b8f2deadd0185cbdd5bb0884ecbdae8ff2a7499ed4c
+candidate_raw_bytes=7120896
+candidate_padded_sha256=157c7cd5d814d7b2704d679faacd3215c5e889642b4261441f99653957585eaa
+candidate_padded_bytes=16777216
+expected_candidate_z_predecessor_sha256=ba21e6424f94c82f14fd51b5681eea68d6cf09e9177e4f9ca2061c9f129abb40
+
+[program_identity]
+wrapper_sha256=30e0e18e1316f06083214d2d235ecfbe1a4f21167180a656a45a5166db9c52f8
+deriver_sha256=acbd27b3cf782ce7930059b4c91e00b113399a503fb84e9296a06b6199f65d1a
+static_test_sha256=2b07d52d5aec550e43cdd7e8f50f71b3705068748449f9fd7d43ffab5d493deb
+reconstructed_candidate_y_installer_sha256=923bca5daab72afcf46fbd2de6abd1f81bf3412a990c938aff68ccec3f4a3e67
+reconstructed_candidate_z_installer_sha256=38b5956e3f5146bc2c8e8ddc3cec9cfb8be25bd3661949b5bd8fb5dbdba51b76
+derived_candidate_aa_installer_sha256=c920eca1207dfe1362f947a74935a50fd934574f7becae4d056b09f362d46196
+
+[validation]
+bash_syntax=PASS
+calibration_rejections=3/3
+deriver_rejections=4/4
+caller_checksum_override=REJECTED
+bounded_target_writes=1
+live_gpt_unique_boot2_gate=present
+internal_mmc_size_writable_gate=present
+active_root_mount_swap_holders_gates=present
+stable_exact_power_and_boot_id_gates=present
+predecessor_and_final_prewrite_checksum_gates=present
+sync_and_block_flush_gates=present
+remote_post_flush_checksum_gate=present
+full_stream_length_checksum_and_byte_readback_gates=present
+final_identity_power_boot_id_gate=present
+automatic_reboot_shutdown_kexec_sysrq_paths=absent
+help_and_rejection_device_contact=none
+shellcheck=not-run-unavailable-on-host
+result=PASS
+
+[interpretation]
+The exact derived installer was statically shown to retain one bounded write to
+the live-GPT-resolved logical boot2 target and the full backup, predecessor,
+power, in-use, flush, and readback contract. This result did not contact the
+device and did not establish that a later invocation would pass its live gates.

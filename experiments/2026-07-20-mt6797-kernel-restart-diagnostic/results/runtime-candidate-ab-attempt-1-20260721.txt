@@ -1,0 +1,135 @@
+[record]
+date_local=2026-07-21
+source=owner-attended report plus authenticated read-only post-return pstore and boot-reason capture
+experiment=2026-07-20-mt6797-kernel-restart-diagnostic
+candidate=AB
+attempt=1
+runtime_repetitions=1
+intended_boot_target=logical boot2 selected manually by the owner
+device_variant=current Gemini PDA unit; exact retail sub-variant not independently established
+
+[exact_installed_artifact]
+artifact=candidate-AB-mt6797-kernel-restart-final-61c74592
+artifact_manifest_sha256=f7500569b83cf36e2bfcb0c7db3cef33a3c3776e85615c5719acf64e6f2accb0
+raw_boot_image_bytes=7378944
+raw_boot_image_sha256=61c74592267466735164c19f8b831ea18db2892de95e32109f2aacd7ec5c5446
+image_gz_sha256=37ba538e76e329f3e57cfa78b481151e2d1e5eabcc321a29c7b54d476b6ec26f
+initramfs_sha256=b57dc3143e7ca7df90d742bcacc692221b4d7b6d346e5192d7bc68acaac00ea7
+keymap_sha256=02f8048d76aa0cedf73617b13ea03a2a4e74de88222cb1922d9d19630906675c
+final_dtb_sha256=bc160c428b83903524aa92046d5ed1da44e87f0f1c6dacfbb33cb6a9f2ee963f
+patch_0087_sha256=81168e4cc12d9ffad7645f667c0211d8dff73b0dadda3ebd422f63378e411d56
+installed_full_partition_bytes=16777216
+installed_full_partition_sha256=b58c0347d34a3fd9031c74cb03447dd7a6fc630d5b8ea2b7eabc36827e754350
+write_sync_flush=pass
+full_partition_readback=pass-byte-identical-to-padded-candidate
+candidate_selection=intended-by-owner
+independent_selected_image_identity=exact-AB-marker-retained-in-console-ramoops
+
+[owner_observation]
+boot=success
+keyboard=works
+idle_before_reboot=at-least-45-seconds
+automatic_reboot_before_command=none
+typed_command=bare-reboot
+reboot=triggered-immediately-after-command
+countdown=none
+known_good_os_after_return=Gemian-Linux-3.18.41+
+f1_f10=unconfirmed-console-offered-no-visible-test-opportunity
+page_up_page_down=unconfirmed-console-offered-no-visible-test-opportunity
+unconfirmed_keys_interpretation=not-failed
+repeat_count=1
+
+[retained_exact_attribution]
+source=console-ramoops
+candidate_marker=GEMINI_MT6797_KERNEL_RESTART_20260720_AB
+marker_entry_seconds=2.193904
+services_entry_seconds=2.221192
+storage_access=none
+runtime_networking=none
+watchdog_userspace=none
+manual_reboot=busybox-no-sync-force
+keymap_gate_seconds=2.420465
+keyboard_map=loaded
+keymap_sha256=02f8048d76aa0cedf73617b13ea03a2a4e74de88222cb1922d9d19630906675c
+keymap_kernel_readback=all-2048-entries-exact
+normal_prompt=GEMINI-AB#
+reboot_dispatch=validated
+input_capture_complete_seconds=17.519871
+manual_reboot_request_seconds=66.021584
+input_capture_complete_to_request_seconds=48.501713
+prompt_to_request_seconds=63.601119
+manual_reboot_method=busybox-reboot-no-sync-force
+manual_reboot_storage_access=none
+manual_reboot_watchdog_userspace=none
+kernel_restarting_system_seconds=66.049438
+request_marker_to_kernel_restarting_system_seconds=0.027854
+request_marker_to_kernel_restarting_system_milliseconds=27.854
+timing_scope=request-marker-to-final-retained-kernel-restart-line; not instrumented Enter-to-LK-splash timing
+automatic_watchdog_before_command=none
+userspace_watchdog_open=none
+userspace_watchdog_ping=none
+userspace_watchdog_countdown=none
+userspace_watchdog_fallback=none
+
+[private_post_return_capture]
+private_capture=artifacts/device-pstore/candidate-ab-attempt-1-post-return-20260721T202225Z
+capture_directory_mode=0700
+capture_file_modes=0600
+capture_started_utc=2026-07-21T20:22:51Z
+collector_waited_for_cycle=no; the owner had already observed the completed reboot
+capture_kernel=3.18.41+
+capture_arch=aarch64
+prior_boot_id=0f8def4f-3f94-4c57-a34c-2bb37315b19f
+prior_boot_id_newline_sha256=7506a5d019d32cbe0c7bd6b18d787910cf83b171f587890f9b4c46503a5c45a5
+returned_boot_id=e33a0d8e-0354-4c8c-95b3-07c6970152ec
+returned_boot_id_newline_sha256=19185a5f4414debb182e6af72f4160775e76dbdb2148cc475974990978066b69
+returned_boot_id_differs_from_prior_boot_id=yes
+capture_boot_id_stable_across_metadata_and_archive=yes
+pstore_files=console-ramoops
+private_capture_entries=7
+private_capture_sha256s_manifest_sha256=98d7d60bf651a4c6015e76978fd5895f6c61619a0f00368296acd84fb38e16fb
+private_capture_manifest_verification=pass
+remote_pstore_records_removed=no
+partition_access=none
+remote_reboot_or_shutdown=none
+
+[post_return_boot_reason]
+android_bootreason=wdt_by_pass_pwk
+powerup_reason=reboot
+boot_reason_numeric=4
+boot_reason_interpretation=nondiscriminating-watchdog-block-class; direct-TOPRGU-SWRST-and-watchdog-expiry-share-this-class
+serial_and_personal_boot_fields=not-read-or-recorded
+
+[gate_results]
+candidate_ab_boot=PASS-owner-report-plus-exact-retained-marker
+keyboard_regression=PASS-owner-report-plus-exact-retained-keymap-gate
+idle_greater_than_45_seconds=PASS-owner-report-plus-retained-timeline
+automatic_userspace_watchdog_reset=PASS-none-before-command
+typed_bare_reboot_dispatch=PASS-exact-retained-request
+ordinary_kernel_restart_entry=PASS-exact-retained-restarting-system-line
+prompt_kernel_reset=PASS-once-owner-observed-immediate-reset-plus-changed-boot-id-and-Gemian-return
+userspace_watchdog_absence=PASS-exact-retained-attribution-and-no-countdown
+mt6797_priority_first_toprgu_swrst=PASS-once-for-exact-device-and-candidate
+f1_f10=UNCONFIRMED
+page_up_page_down=UNCONFIRMED
+repeatability=not-established
+broad_platform_reliability=not-established
+
+[conclusion]
+The exact installed Candidate AB booted successfully, and the owner reported
+that all tested behavior worked, including the keyboard. There was no
+automatic reset during at least 45 seconds of attended idle and no userspace
+watchdog countdown. Retained console-ramoops supplies exact AB attribution,
+records watchdog_userspace=none, verifies the carried AA r1 keymap and prompt,
+records the typed bare-reboot request at 66.021584 seconds, and records the
+kernel's final `reboot: Restarting system` line at 66.049438 seconds. The
+27.854 ms interval is request-marker-to-final-retained-kernel-line timing, not
+an instrumented Enter-to-LK-splash measurement; the owner separately observed
+that the reset triggered immediately after command execution. Gemian returned
+with a changed boot ID. Its watchdog-class boot reason is nondiscriminating on
+this SoC, but command ownership, absence of a userspace watchdog, prompt timing,
+and the selected handler ordering together prove the intended kernel TOPRGU
+software-reset path for this exact attempt. This passes Candidate AB's restart
+gate once and supports patch 0087 on the named unit. It does not establish
+repeatability or broad MT6797 reboot reliability. F1-F10 and Page Up/Page Down
+remain unconfirmed, not failed.

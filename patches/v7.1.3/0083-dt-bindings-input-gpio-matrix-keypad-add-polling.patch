@@ -1,0 +1,62 @@
+From 0000000000000000000000000000000000000083 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 19 Jul 2026 14:20:00 -0400
+Subject: [PATCH] dt-bindings: input: gpio-matrix-keypad: add polling mode
+
+Some GPIO providers can read and drive a matrix but cannot supply usable
+row interrupts on a particular board.  Allow such consumers to select a
+bounded polling interval instead.
+
+Keep interrupt-driven operation as the default.  Polling cannot wake a
+suspended system, so reject wakeup-source when the interval is present.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ .../bindings/input/gpio-matrix-keypad.yaml    | 19 +++++++++++++++++--
+ 1 file changed, 17 insertions(+), 2 deletions(-)
+
+diff --git a/Documentation/devicetree/bindings/input/gpio-matrix-keypad.yaml b/Documentation/devicetree/bindings/input/gpio-matrix-keypad.yaml
+--- a/Documentation/devicetree/bindings/input/gpio-matrix-keypad.yaml
++++ b/Documentation/devicetree/bindings/input/gpio-matrix-keypad.yaml
+@@ -13,8 +13,8 @@ maintainers:
+ description:
+   GPIO driven matrix keypad is used to interface a SoC with a matrix keypad.
+   The matrix keypad supports multiple row and column lines, a key can be
+   placed at each intersection of a unique row and a unique column. The matrix
+-  keypad can sense a key-press and key-release by means of GPIO lines and
+-  report the event using GPIO interrupts to the cpu.
++  keypad senses key press and release through the row and column GPIO lines,
++  then reports events using interrupts or periodic polling.
+ 
+ allOf:
+@@ -21,6 +21,13 @@ allOf:
+   - $ref: input.yaml#
+   - $ref: /schemas/input/matrix-keymap.yaml#
+ 
++  - if:
++      required:
++        - poll-interval
++    then:
++      properties:
++        wakeup-source: false
++
+ properties:
+   compatible:
+     const: gpio-matrix-keypad
+@@ -61,6 +68,14 @@ properties:
+       after activating all column gpios.
+     default: 0
+ 
++  poll-interval:
++    $ref: /schemas/types.yaml#/definitions/uint32
++    minimum: 1
++    description:
++      Poll interval in milliseconds. When present, scan the matrix at this
++      interval instead of requesting interrupts for the row GPIOs. Polling
++      cannot wake a suspended system.
++
+   drive-inactive-cols:
+     type: boolean
+     description:
+-- 
+2.43.0

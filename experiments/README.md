@@ -317,12 +317,563 @@ the result.
   [write/readback](2026-07-18-fbcon-rotation-diagnostic/results/boot2-write-candidate-p-20260718.txt),
   and [runtime record](2026-07-18-fbcon-rotation-diagnostic/results/runtime-candidate-p-attempt-1-20260718.txt).
 - [2026-07-18 keyboard and supervised-shell diagnostic](2026-07-18-keyboard-shell-diagnostic/README.md)
-  — planned Candidate Q and the exact next-work handoff. It combines a
-  built-in I2C5/AW9523/matrix keyboard gate, independent pre-shell raw-event
-  observations, and a supervised local `tty1` BusyBox shell on exact P's
-  readable console. It requires `consoleblank=0`, read-only pseudo-filesystem
-  defaults, shell respawn, and no normal-path automatic reboot. No Q profile,
-  DT correction, initramfs, artifact, write, or runtime evidence exists yet.
+  — completed Candidate Q build/write work and its failed first runtime gate.
+  The exact installed image did not provide a working text console; no marker,
+  AW9523/input/shell observation, or retained pstore evidence identifies a
+  deeper boundary. Static review found that its parent interrupt specifier used
+  raw line 87 although GPIO87 maps to EINT10, but the runtime result does not
+  prove that defect caused the failure. Unchanged Q must not be repeated.
+  Candidate U was the polling follow-up. It retained the upstream AW9523 driver
+  and reset polarity plus the GPIO87/EINT10 pinmux while omitting its
+  parent-IRQ consumer from the active path; it added generic
+  schema-described matrix polling and made the shell independent of bounded
+  event capture. Two builds matched and its full `boot2` readback matched, but
+  its first intended selection produced a black screen and dark console with
+  no visible marker or automatic reboot. A later changed Gemian boot ID and
+  empty post-return pstore establish no deeper U gate. A later packaging audit
+  found that U's final DTB came from the kernel package rather than exact P; it
+  omitted P's loader-framebuffer, no-IRQ watchdog, and other LK-aligned fixups.
+  That explains why U did not carry P's configured console path, but does not
+  prove U entered Linux or identify the black-screen cause. Do not repeat
+  unchanged U.
+- [2026-07-19 keyboard polling diagnostic](2026-07-19-keyboard-polling-diagnostic/README.md)
+  — Candidate U's build, guarded install, and failed first visible-console
+  gate. Series patch
+  0083 adds the polling binding, 0084 implements generic matrix polling, and
+  0085 corrects the disabled board description from raw EINT87 to EINT10.
+  Candidate-only packaging removes
+  the AW9523 parent-IRQ hierarchy, retains GPIO87/EINT10 pinmux with no active
+  consumer, and pins the polling transport/timing policy. Two independent
+  builds produced matching validated outputs; the exact candidate was installed
+  to live-resolved logical `boot2` and its full-partition readback matched. Its
+  first intended selection then stayed black with no visible marker or
+  automatic reboot. Post-return pstore was empty, so kernel, `/init`, console,
+  keyboard, and shell entry remain unestablished. See the [build reproduction](2026-07-19-keyboard-polling-diagnostic/results/final-build-reproduction-20260719.txt),
+  [write/readback](2026-07-19-keyboard-polling-diagnostic/results/boot2-write-candidate-u-20260719.txt),
+  and [runtime](2026-07-19-keyboard-polling-diagnostic/results/runtime-candidate-u-attempt-1-20260719.txt)
+  records; do not repeat unchanged U.
+- [2026-07-19 keyboard watchdog diagnostic](2026-07-19-keyboard-watchdog-diagnostic/README.md)
+  — Candidate V restores exact P's hardware-passed final DT foundation, adds
+  only the audited polling-keyboard transform, and reinstates the no-IRQ
+  watchdog/ramoops decision path. Two fresh kernel builds and two complete V
+  assemblies matched, the package and focused schemas validated, and all 24
+  negative mutations were rejected. The 6,864,896-byte raw image is SHA-256
+  `9ef0ee8dc1eb49752f9cf8f60b247b9b85e4fd2a9f090473f1d91848114087b0`.
+  It is installed, synchronized, and fully read back from live-resolved
+  logical `boot2`; the exact padded checksum is
+  `57d362a86fae38c0ec2cec909ef6ae8d8ad124b87abb2ee58d179184c1f19168`.
+  The installation did not reboot the device. In attempt 1 the owner selected
+  V from `boot2`, saw a visible console, had no usable opportunity to test the
+  shell or keyboard, and observed an automatic return. Retained
+  `console-ramoops` proves exact V kernel/initramfs entry, local-shell's
+  `tty1_shell=ready` pre-exec recorder, and the exact `mtk-wdt` open/one-ping
+  path through its 30-second wait. It does not prove `ash` exec, a visible or
+  interactive prompt, or input. AW9523 probe on adapter 0 at `0x5b` repeatedly
+  failed `-110`/`ETIMEDOUT`, including its reset retry; AW9523 and the matrix
+  remained unbound and no event node appeared. Read-only disassembly of the
+  exact working 3.18 binary shows unconditional MT6797 WRRD with auxiliary RX
+  length at offset `0x6c`; V instead falls through to `mt6577_compat`. Latest
+  bsg100 independently fixed the same combined-read failure with a direct
+  MT6797-to-MT8173 controller-data match. The Gemian return reported
+  `boot_reason=4`, `wdt_by_pass_pwk`, and `powerup_reason=reboot`. Do not repeat
+  unchanged V. See the [build reproduction](2026-07-19-keyboard-watchdog-diagnostic/results/final-build-reproduction-20260719.txt),
+  [guarded write/readback](2026-07-19-keyboard-watchdog-diagnostic/results/boot2-write-candidate-v-20260719.txt),
+  [runtime evidence](2026-07-19-keyboard-watchdog-diagnostic/results/runtime-candidate-v-attempt-1-20260719.txt),
+  and [working 3.18 controller audit](2026-07-19-keyboard-watchdog-diagnostic/results/working-3.18-aw9523-i2c-binary-audit-20260719.txt).
+- [2026-07-19 MT6797 I2C WRRD diagnostic](2026-07-19-keyboard-wrrd-diagnostic/README.md)
+  — Candidate W implements the V-derived controller hypothesis as exactly one
+  driver-match line: `mediatek,mt6797-i2c` selects existing
+  `mt8173_compat`, matching the working 3.18 WRRD/auxiliary-RX-length contract
+  and latest checked bsg100 `main` revision
+  [`60f5f4ac`](https://github.com/bsg100/gemini-linux/commit/60f5f4ac777a0aeccc89b5d3a4f8cd1f1ebe57b3).
+  It keeps exact V's final DTB, AW9523/matrix policy, no-IRQ watchdog, and
+  ramoops. Observation-only changes move kernel messages to fixed tty2,
+  respawn the foreground shell on tty1 without background marker fanout, and
+  force the larger `TER16x32` font. Two clean packages match after normalizing
+  only `generated_utc` provenance, two final candidate assemblies are
+  recursively identical, and all 24 mutation cases pass. The initramfs
+  SHA-256 is
+  `3793bec7a63074b237d041bcd42e6edfccc80f0a3d7b19869abf99ee7874dac6`;
+  the 6,866,944-byte raw image SHA-256 is
+  `34c41fad1e86de05b6a1f64f7e5d9229bd26ea88d982b0a57f2b9573aeb782d4`.
+  The exported `rebuild4` artifact was installed without reboot to
+  live-resolved logical `boot2`; the padded image, remote post-flush checksum,
+  and full local readback match SHA-256
+  `0ff3220096aa53f792116b3899e356bc2516816c9c330309c3d81e9fe1446608`.
+  The owner selected exact W once. Retained evidence proves successful AW9523
+  and matrix binding, `/dev/input/event0`, and press/release records for H, E,
+  L, P, and Enter. The owner observed a visible shell, working keyboard, and the
+  desired font. This is one limited-key hardware run, not full coverage or
+  repeatability. Kernel logs remained mixed with the foreground shell, and the
+  deliberate watchdog handoff forced an automatic return before useful work.
+  See the [build reproduction](2026-07-19-keyboard-wrrd-diagnostic/results/final-build-reproduction-20260719.txt),
+  [mutation result](2026-07-19-keyboard-wrrd-diagnostic/results/validator-mutations-20260719.txt),
+  [guarded write/readback](2026-07-19-keyboard-wrrd-diagnostic/results/boot2-write-candidate-w-20260719.txt),
+  and [runtime result](2026-07-19-keyboard-wrrd-diagnostic/results/runtime-candidate-w-attempt-1-20260719.txt).
+- [2026-07-19 clean-tty/manual-reboot diagnostic](2026-07-19-keyboard-manual-reboot-diagnostic/README.md)
+  — Candidate X retained W's exact keyboard
+  kernel and final DTB, removes only `console=tty2`, removes all initramfs
+  watchdog ownership, and adds a typed manual-reboot wrapper. Two clean kernel
+  builds reproduced all 220 non-timestamp files, two final assemblies are
+  recursively identical, all 32 LK gates passed, and all 47 mutations were
+  rejected. The 6,864,896-byte raw image SHA-256 is
+  `bf4003871daaba1faa293f2b128021d3a67d41ebf3ddff1c42463409803b9296`;
+  the initramfs SHA-256 is
+  `b54ce3cd75e7947ed867165e31abbf6ee6cbac7d41d171435f99bba7825bc769`.
+  A guarded operation backed up exact W, resolved logical `boot2` as
+  `/dev/mmcblk0p30` with active root `/dev/mmcblk0p29`, then synchronized,
+  flushed, and fully read back X with padded SHA-256
+  `e89d71f15465b544db163b5f0b90b456e913c38ba4d2ed49aa7bde345148c855`.
+  The device was not rebooted and its boot ID remained unchanged. The owner
+  later reported that X booted and worked, then appeared to hang after typing
+  `reboot`. No automatic return was observed; power-key recovery reached Gemian
+  and pstore was empty. This does not establish clean tty1, the exact marker, X
+  uptime, or individual keyboard subgates. See the [build reproduction](2026-07-19-keyboard-manual-reboot-diagnostic/results/final-build-reproduction-20260719.txt),
+  [mutation result](2026-07-19-keyboard-manual-reboot-diagnostic/results/validator-mutations-20260719.txt),
+  [guarded write/readback](2026-07-19-keyboard-manual-reboot-diagnostic/results/boot2-write-candidate-x-20260719.txt),
+  and [runtime result](2026-07-19-keyboard-manual-reboot-diagnostic/results/runtime-candidate-x-attempt-1-20260719.txt).
+- [2026-07-19 typed hardware-watchdog reboot diagnostic](2026-07-19-keyboard-typed-watchdog-reboot-diagnostic/README.md)
+  — Candidate Y was reproducibly built and fully read back from logical
+  `boot2`, but exact BusyBox command-dispatch validation rejected it before
+  selection. Bare `reboot` resolves to BusyBox's internal applet rather than
+  Y's external watchdog wrapper, and failed watchdog-open redirection cannot
+  reach the promised refusal. Y was never booted and must not be booted. See
+  the decisive [pre-boot command-dispatch audit](2026-07-19-keyboard-typed-watchdog-reboot-diagnostic/results/preboot-command-dispatch-audit-20260720.txt).
+- [2026-07-19 dispatch-safe typed watchdog reboot diagnostic](2026-07-19-keyboard-reboot-dispatch-diagnostic/README.md)
+  — Candidate Z is the hardware-tested keyboard/recovery foundation inherited by AA r1. It preserves
+  exact Y's kernel, DTB, and configuration and changes four initramfs members
+  plus adds read-only `bin/reboot-dispatch.env`. Two complete builds are
+  recursively identical, the exact-BusyBox dispatch gate passed on Linux
+  arm64, all 32 LK gates passed, and 75/75 mutations were rejected. The raw
+  6,866,944-byte image SHA-256 is
+  `985a6472b7fdbfd4c58da4773a8c2cae1e3aa40ea90240eb2b309390ed7674b9`;
+  the initramfs SHA-256 is
+  `a21cc6bed9024bba9e01864aeb0c6c3339231d217f77ff5fa733ea33e6a0e7d2`.
+  The guarded installer backed up exact Y and fully read back Z from
+  live-resolved logical `boot2` with padded SHA-256
+  `ba21e6424f94c82f14fd51b5681eea68d6cf09e9177e4f9ca2061c9f129abb40`;
+  it did not reboot the device. The owner later selected Z once, reported a
+  successful boot with the keyboard still working, typed its watchdog reboot,
+  and observed an automatic Gemian return. The changed post-return boot ID and
+  `androidboot.bootreason=wdt_by_pass_pwk` corroborate a watchdog-class reset.
+  Exact Z text, dispatch/preflight subgates, countdown timing, individual keys,
+  clean tty1, and repeatability remain unproved. See the
+  [build validation](2026-07-19-keyboard-reboot-dispatch-diagnostic/results/build-validation-20260720.txt),
+  [dispatch validation](2026-07-19-keyboard-reboot-dispatch-diagnostic/results/ash-dispatch-validation-20260720.txt),
+  [installer validation](2026-07-19-keyboard-reboot-dispatch-diagnostic/results/installer-validation-20260720.txt),
+  [mutation result](2026-07-19-keyboard-reboot-dispatch-diagnostic/results/validator-mutations-20260720.txt),
+  [guarded write/readback](2026-07-19-keyboard-reboot-dispatch-diagnostic/results/boot2-write-candidate-z-20260720.txt),
+  and [runtime result](2026-07-19-keyboard-reboot-dispatch-diagnostic/results/runtime-candidate-z-attempt-1-20260720.txt).
+- [2026-07-20 Gemini console-keymap diagnostic](2026-07-20-keyboard-console-map-diagnostic/README.md)
+  — Candidate AA r0 is historical: it was built, validated, installed, and
+  fully read back, but was superseded before boot because it omitted Shift+Fn
+  F1–F10 and used an invalid `dumpkmap` byte-comparison oracle. Do not boot it.
+  Its immutable 7,120,896-byte raw image SHA-256 is
+  `a2ad7a4107abd99cbd349b8f2deadd0185cbdd5bb0884ecbdae8ff2a7499ed4c`;
+  its historical keymap SHA-256 is
+  `48f1f61a9ad8ba327a3105c0dfbbc698c1e55bb3bcca695b46887888be8ca821`.
+  The padded image and full live-GPT-resolved logical-`boot2` readback remain
+  SHA-256
+  `157c7cd5d814d7b2704d679faacd3215c5e889642b4261441f99653957585eaa`
+  and add no runtime evidence.
+
+  AA r1 is built, validated, installed, and passed attended runtime attempt 1.
+  It retains exact Z's kernel field, final DTB, resolved configuration,
+  keyboard, font, and recovery inputs.
+  Its 2,311-byte, eight-table map has SHA-256
+  `02f8048d76aa0cedf73617b13ea03a2a4e74de88222cb1922d9d19630906675c`
+  and 53 audited semantic changes: photographed printable/navigation symbols,
+  Unicode Fn+period U+263A, Shift+Fn F1–F10, backslash Ctrl/Alt semantics, and
+  modifier press/release safety. Media, brightness, phone, airplane, launcher,
+  and voice actions remain userspace policy. Its respawn-safe live oracle sets
+  Unicode mode, accepts an already exact map or performs exact preflight and
+  load, reads all 2,048 planned-table entries with `KDGKBENT`, requires the
+  untouched upper halves to be `K_HOLE`, accounts for table 3 payload entry 0
+  changing from valid `K_HOLE` to kernel `K_ALLOCATED`, and rejects every
+  undeclared table. The canonical static AArch64 verifier is SHA-256
+  `29735d212e74d0b0040a3ead173a83223b89ce5d947b697a115707eb3d23b238`.
+  Two clean constructions are recursively byte- and metadata-identical. The
+  7,378,944-byte raw image is SHA-256
+  `37e82bf3be87dd9e52fb8d60597b69f92a5c0dc5aebd51d178f1e7efd33343d7`.
+  The guarded live-GPT installation required exact r0 predecessor
+  `157c7cd5d814d7b2704d679faacd3215c5e889642b4261441f99653957585eaa`,
+  resolved `boot2` as `/dev/mmcblk0p30`, preserved a private full backup, and
+  fully read back padded r1 as SHA-256
+  `38b49c7c19c2d97fa0c48436545219489221aa367aedf491ae6ebd4ec4856703`.
+  The installation did not reboot. In the attended run the owner reported the
+  new keymap working. Retained pstore proves `origin=loaded-now`, tty1
+  `K_UNICODE`, exact verification of all 2,048 entries plus high-half holes and
+  undeclared-table absence, table-3 allocation, `GEMINI-AA-R1#`, and validated
+  reboot dispatch at 2.407618 seconds, plus exact AW9523/matrix/event0 identity
+  and A/S press-release events. Bare `reboot` arrived at 126.258967
+  seconds, so no automatic watchdog owned the preceding >123-second session;
+  the wrapper then opened/pinged the 31-second watchdog once, held fd 3, and
+  logged 5/10/15/20/25/30-second countdown checkpoints. A changed boot ID and
+  Gemian's watchdog-class reasons corroborate the return. F1–F10 and Page
+  Up/Page Down remain unconfirmed, not failed, because the console provided no
+  visible discriminator. See the r1
+  [build validation](2026-07-20-keyboard-console-map-diagnostic/results/build-validation-aa-r1-20260721.txt),
+  [installer validation](2026-07-20-keyboard-console-map-diagnostic/results/installer-validation-aa-r1-20260721.txt),
+  [guarded write/readback](2026-07-20-keyboard-console-map-diagnostic/results/boot2-write-candidate-aa-r1-20260721.txt),
+  [layout reference](2026-07-20-keyboard-console-map-diagnostic/results/layout-reference-aa-r1-20260721.txt),
+  and [runtime result](2026-07-20-keyboard-console-map-diagnostic/results/runtime-candidate-aa-r1-attempt-1-20260721.txt).
+- [2026-07-20 MT6797 kernel-restart diagnostic](2026-07-20-mt6797-kernel-restart-diagnostic/README.md)
+  — Candidate AB passed one attended kernel-restart test. Patch 0087 closes the
+  88-entry series and selects restart priority 255 for MT6797 TOPRGU so it runs
+  before ARM64 PSCI priority 129; every other supported MediaTek watchdog
+  variant retains priority 128. With `KBUILD_BUILD_VERSION=1` pinned, builds 3
+  and 4 reproduce all 221 non-dynamic package files and modes. Independent
+  container builds from those packages are recursively byte- and mode-exact at
+  raw image SHA-256
+  `61c74592267466735164c19f8b831ea18db2892de95e32109f2aacd7ec5c5446`;
+  each passed 32/32 LK gates, deterministic reconstruction, and the shared
+  suite rejected 25/25 focused mutations. The container retains the exact
+  AA r1 DTB and keymap but replaces its reboot/countdown path with one forced
+  BusyBox reboot request and has no userspace watchdog or automatic reboot.
+  The calibrated guarded installer required exact padded AA r1, resolved
+  inactive live-GPT `boot2` as `/dev/mmcblk0p30`, preserved a full backup, and
+  fully read back padded AB as
+  `b58c0347d34a3fd9031c74cb03447dd7a6fc630d5b8ea2b7eabc36827e754350`
+  without rebooting or changing the boot ID. In attended attempt 1, retained
+  pstore contains the exact AB marker, console-map gate, and `GEMINI-AB#`
+  prompt, while the owner confirmed the keyboard worked. The owner waited 45
+  seconds without an automatic reset or countdown and then typed bare
+  `reboot`; the reset was observed immediately. Pstore places the manual
+  request at 66.021584 seconds and the final kernel `reboot: Restarting system`
+  line at 66.049438 seconds, 27.854 ms later; that retained interval is not an
+  instrumented Enter-to-LK measurement. Gemian returned with boot ID
+  `e33a0d8e-0354-4c8c-95b3-07c6970152ec`, changed from
+  `0f8def4f-3f94-4c57-a34c-2bb37315b19f`. Its watchdog-class boot-reason
+  fields are nondiscriminating, but the timing and absence of a userspace
+  watchdog path support prompt kernel TOPRGU SWRST. This is one local
+  named-unit pass, not repeatability or universal
+  restart reliability. F1–F10 and Page Up/Page Down remain unconfirmed, not
+  failed. See the [kernel
+  reproduction](2026-07-20-mt6797-kernel-restart-diagnostic/results/kernel-reproducibility-ab-20260721.txt),
+  [container validation](2026-07-20-mt6797-kernel-restart-diagnostic/results/container-validation-ab-20260721.txt),
+  [installer validation](2026-07-20-mt6797-kernel-restart-diagnostic/results/installer-validation-ab-20260721.txt),
+  [guarded write/readback](2026-07-20-mt6797-kernel-restart-diagnostic/results/boot2-write-candidate-ab-20260721.txt),
+  and [runtime result](2026-07-20-mt6797-kernel-restart-diagnostic/results/runtime-candidate-ab-attempt-1-20260721.txt).
+- [2026-07-21 USB gadget Ethernet serviceability](2026-07-21-usb-gadget-ethernet/README.md)
+  — Candidate AC is an initramfs-only derivative of exact hardware-passed AB.
+  It preserves AB's kernel, DTB, keymap, local console, and native reboot while
+  adding bounded `usb0` discovery, static `10.15.19.82/24`, and a direct-link
+  BusyBox TCP shell on port 2323 with an exact AC marker. Clean builds 3 and 4
+  are recursively byte- and mode-identical at raw boot SHA-256
+  `3491c119d19b7b0af2ac2342659648227182ead0e32bb4c39a66fa22cadfb39d`;
+  19/19 initramfs/container mutations were rejected and 32/32 LK gates passed.
+  The guarded installer required exact padded AB, preserved a full private
+  backup, and fully read back logical `boot2` as padded SHA-256
+  `318f418a5e67042ecdd1c98a8767c104c8cfc68c3d56cd7c0d13cb3c5fad8a84`
+  without rebooting. In attended attempt 1, macOS observed the exact USB
+  descriptor and fixed-MAC `en7`; carrier was active, 3/3 sourced pings passed,
+  the exact AC marker and command token arrived through TCP, the UDC reported
+  `configured`, and a second session passed after 250 seconds uptime. Physical
+  console/keyboard confirmation and native reboot regression testing remain
+  pending.
+- [2026-07-21 boot-time eight-core SMP diagnostic](2026-07-21-smp8-boot-diagnostic/README.md)
+  — Candidate AD is the isolated one-line kernel-policy derivative of AC:
+  forced `maxcpus=1` becomes `maxcpus=8`, bringing the already proven eight
+  Cortex-A53 CPUs into boot-time SMP while deliberately leaving the two
+  unproven Cortex-A72 CPUs offline. Two independent kernel builds reproduce
+  all non-timestamp bytes and modes; two independent containers are exactly
+  identical at raw SHA-256
+  `a1b61d8c34b5a447f1f672663f4e74fed6eb465b90154392a3c42f4db030826b`.
+  The container preserves AC's exact initramfs, final DTB, USB service,
+  keymap, console, and native reboot path and passes 32/32 LK gates. A guarded
+  installer pins exact padded AC as predecessor and padded AD as
+  `371fda65cf9c21406d6b08e52ffb46690426a7d356ba67aa9ffe1410e7d1e495`.
+  The guarded install, full backup, flush, and 16 MiB readback passed. In one
+  attended run the owner saw eight CPUs; exact USB evidence showed CPUs 0--7
+  online with advancing accounting, CPU8/9 offline, expected SMP/GICv3 lines,
+  no bounded fault signature, a fresh shell at 363 seconds uptime, and no
+  automatic reset. The local keyboard and console remained usable. An
+  authorized bare reboot over the direct USB shell then reached the native
+  restart path 25.459 ms later and returned to changed-boot-ID Gemian with an
+  orderly pstore record. CPU8/9 are reserved for separate watchdog-backed
+  hotplug tests.
+- [2026-07-21 Gemian CPU and scheduler policy](2026-07-21-gemian-cpu-scheduler-policy/README.md)
+  — read-only evidence from the working Gemian `3.18.41+` kernel. Despite a
+  five-CPU boot cap, its HPS logs show a three-cluster four/four/two policy
+  before idle collapse to CPU0. A later active-binary/public-equivalent
+  correction establishes that those are unchecked algorithm-local hotplug
+  counts, not proof of an all-ten online mask. The active March 29 image is
+  distinct from the installed May 24 `gbp59e00a` package, so its exact public
+  commit remains unresolved. Gemian uses downstream HMP/HMP+ with HPS, PPM,
+  private DVFS, and EEM—not EAS. A separate bounded sysfs capture directly
+  proves one vendor CPU8 online/offline cycle; CPU9 remains unconfirmed.
+- [2026-07-21 Cortex-A72 power observer](2026-07-21-cortex-a72-power-observer/README.md)
+  — Candidate AE keeps the hardware-passed eight-A53 runtime and exact AD
+  initramfs while adding a read-only DA9214/SPM/MCUCFG/TOPRGU resource
+  observer. CPU8/9 use a kernel-authoritative rejecting PSCI method, so this
+  stage issues no `CPU_ON`. Its one hardware cycle failed inconclusively: LK
+  was the last visible screen, no mainline console appeared, and the device
+  went directly into an automatic reboot. Empty post-return pstore cannot
+  locate the post-LK boundary; do not repeat exact AE.
+- [2026-07-22 Cortex-A72 observer initcall diagnostic](2026-07-22-cortex-a72-observer-initcall-diagnostic/README.md)
+  — Candidate AF is an exact-AE patch/DT and exact-AD-initramfs diagnostic
+  whose only resolved configuration delta blacklists the observer platform
+  driver's built-in initcall. It distinguishes observer registration/probe
+  from the retained I2C6/DA9214 and eight-Cortex-A53 foundation without
+  requesting either Cortex-A72 CPU. Two independent kernel packages and two
+  17-member containers reproduce exactly at raw SHA-256
+  `fe43efa8c9d18174fec97ab7ad6cbe59bbc490df92366bcd254c55daa932d0a3`;
+  guarded installation and readback passed, but its first selected cycle was
+  inconclusive: the panel became uniformly grey with no text, exact USB was
+  not armed, the owner forced a return, and pstore was empty. A static audit
+  then proved that AF's final DT had dropped AD's hardware-passed simplefb
+  artifact transform. Do not repeat exact AF.
+- [2026-07-22 simplefb observation restoration](2026-07-22-simplefb-observation-restoration/README.md)
+  — Candidate AG is an artifact/DT-only derivative of exact AF. It restores
+  only hardware-passed AD's `/chosen` address/size/ranges contract and exact
+  1080×2160 `simple-framebuffer` node with its two path-resolved clocks; every
+  kernel, config, initramfs, helper, command-line, CPU-isolation, and other DT
+  semantic remains AF. It deliberately adds neither a static copy of LK's
+  runtime framebuffer reservation nor a raw framebuffer write. Two independent
+  recovery-VM constructions are byte- and mode-identical across 18 members at
+  raw SHA-256
+  `0552986c885d89fd65d05f3da8513040f756c9cfc84b1b30e1e085ee68238a91`;
+  the exact DT transform is
+  `7ea5e8f9edb09f2365a112b29359fed897f306422a26449b1cb8870bb1212512`,
+  and all 24 focused invalid DT mutations were rejected. A guarded operation
+  preserved exact AF, wrote only live-resolved logical `boot2`, then matched
+  post-flush, 16 MiB local readback, and independent remote SHA-256
+  `63e0b3178072b2945a3537e17fda8c50ebce8032ca00110185993b4e2b7b1e14`
+  without rebooting or selecting a boot entry. The owner later confirmed one
+  `boot2` selection, a grey console screen with no text, and a forced return;
+  no automatic candidate reboot was observed. The cycle returned to known-good
+  Gemian without an exact AG USB identity or any AG kernel, initramfs, panic,
+  or pretimeout marker in pstore. Selection is now established, but the
+  pre-console/pre-USB stall boundary is not; do not repeat unchanged AG.
+- [2026-07-22 AD-contract/AF-kernel split](2026-07-22-ad-contract-af-kernel-split/README.md)
+  — Candidate AH corrects the broader packaging boundary found after AG: AG
+  restored simplefb but still disabled AD's hardware-passed USB and keyboard
+  paths and omitted other artifact transforms. AH pairs AF's exact kernel,
+  config, `System.map`, initramfs and helpers with AD's complete final DT,
+  changing only CPU8/9 from generic PSCI to AF's rejecting method. Two
+  independent recovery-VM constructions are byte- and mode-identical across
+  18 members. Raw SHA-256 is
+  `e5ba6ee0a257b804a02af11b83e733f861b89de17470470a497f07056b6b3197`;
+  padded 16 MiB SHA-256 is
+  `f107a3e7483c02cb4b2540d185ef2a5fb1f77e4a0acc7b66fce16e37641f5012`;
+  all 22 DT and 12 Android/component mutations were rejected. A guarded
+  live-GPT operation backed up exact AG, wrote AH once to inactive logical
+  `boot2`, synchronized and flushed it, and matched the complete 16 MiB
+  readback. The installer did not reboot or select a slot. Attempt 1 returned
+  to Gemian after only 24 seconds without exposing the exact AH USB MAC; its
+  exact-MAC collector consequently ran zero times. Changed-cycle pstore
+  contains the preceding orderly Gemian shutdown but no AH/Linux-7.1.3/
+  initramfs identity, panic, fault, or pretimeout. The owner confirmed selecting
+  `boot2`, seeing a grey console screen with no text, and forcing the return.
+  Attempt 1 remains inconclusive and must not be reinterpreted as kernel or A72
+  evidence. A later owner-selected attempt 2 on the unchanged, still-exact AH
+  image added the decision-changing observation that attempt 1 lacked. The
+  exact-MAC USB collector completed and validated AH's installed hash, AF
+  kernel/config/cmdline, AD initramfs and DT contracts, loader-retained
+  simplefb, sole USB shell, and bound AW9523/keymap path. The owner observed a
+  working console; no physical key was exercised or reported in this run.
+  `possible`/`present` stayed `0-9`, CPU0–7 stayed online with advancing
+  accounting, and CPU8/9 stayed offline and unrequested. No observer, I2C6, or
+  DA9214 device appeared, no fault occurred, and no automatic countdown or
+  userspace-watchdog reset occurred. A single bare `reboot` request produced
+  retained native-kernel shutdown and `reboot: Restarting system` lines 26.273
+  ms apart before Gemian returned under a changed boot ID. A read-only
+  post-cycle check again matched the complete logical-`boot2` SHA-256
+  `f107a3e7483c02cb4b2540d185ef2a5fb1f77e4a0acc7b66fce16e37641f5012`.
+  Attempt 2 is therefore a named-unit PASS for AH's eight-A53 console, USB,
+  and native-reboot baseline only. It neither exercises the CPU8/9 reject
+  callback nor establishes Cortex-A72 support. See the
+  [attempt-2 runtime result](2026-07-22-ad-contract-af-kernel-split/results/runtime-candidate-ah-attempt-2-20260722.txt).
+- [2026-07-22 corrected A72 reject-gate kernel split](2026-07-22-a72-reject-gate-kernel-split/README.md)
+  — Candidate AI is a local diagnostic that isolates the
+  corrected MT6797 A72 PSCI reject gate from AF's regulator, reset, observer,
+  and initcall changes. Its selected kernel series is exact Candidate AD
+  through patch 0087 plus corrected patch 0092 only; its resolved config stays
+  byte-exact AD, CPU8/9 are not requested, and its final DT is byte-exact AH.
+  Fail-closed host gates cover series/package lineage, full two-package
+  substantive reproduction, bounded compiled disassembly and call/control-flow
+  audits for both the `-EAGAIN` boot gate and constant-false disable gate,
+  deterministic Android-v0 artifact finalization/reproduction, and exact live
+  USB attribution despite the inherited AC userspace banner. Two independent
+  package trees now reproduce all 225 substantive files and modes plus
+  normalized provenance. Their common SHA-256 values are `Image`
+  `fb2c02601a07b49781b97ef9d39b79218db1c158ce1547a2ea53df7fb1e51fe2`,
+  `Image.gz`
+  `b87984a570567ef47f151024612889f7d5d49b938c10bd08f0aecfea47b481a9`,
+  `System.map`
+  `622945b38e025db7ee7719f2fa3132e17f8ad0158651e2f77e57918a76ac384d`,
+  resolved config
+  `32dd13a6704e5fa591236ba114d43e8e7e1aeb3eb123d9d4f124b5f551301d46`,
+  packaged Gemini DTB
+  `510669e70cd39df3c0e1a1b4c806c0eeaa8e0b0fe02e037ee1bf405d39498af8`,
+  and compiled audit
+  `67519ff0a82376e2d0628f7061af474b0df6427c0f54878717a6c6b1d672a525`.
+  Two independent 20-member Android-v0 artifact trees are byte- and mode-exact,
+  with raw SHA-256
+  `1ecfc787fec2f5dc11c5b7d30eb4f11d34b0496e57daf42adea567f010282309`
+  and manifest SHA-256
+  `b8c2953dd07e2a84a05e99f7bd0a981cbe593e928ba7507f16691279d82fa8cc`.
+  Two ephemeral 16 MiB padding checks independently verified the all-zero tail
+  and SHA-256
+  `8b7439dda7d50dfd509dd66acb5eeedda86d538f0b4f0fab9b328bcc93ed8b86`;
+  both temporary padded files were removed and unpublished. Installer
+  validation, guarded installation, and a matching full `boot2` readback
+  passed. Exact AI attempt 1 then completed the eight-A53 baseline: the owner
+  confirmed the readable console, exact USB attribution showed CPU0–7 online
+  with advancing accounting and CPU8/9 offline and unrequested, native reboot
+  returned to changed-boot-ID Gemian, and the post-cycle full `boot2` hash
+  still matched AI. Patch 0092 remains local-diagnostic and not
+  submission-ready. AI requested neither A72, so it established no reject or
+  power-path execution.
+- [2026-07-22 fail-closed CPU8 request](2026-07-22-a72-reject-cpu8-request/README.md)
+  — Candidate AJ is an offline-reproduced, configuration-only derivative of
+  exact Candidate AI. It changes only the forced command line from
+  `maxcpus=8` to `maxcpus=9`, causing serialized bring-up to visit logical
+  CPU8 once while stopping before CPU9. Its predeclared oracle requires one
+  exact gate warning and one `CPU8: failed to boot: -11`, continued operation
+  of CPU0–7, and no CPU9 request or Cortex-A72 secondary-boot line. The profile,
+  configuration inputs, and resolved configuration are statically pinned.
+  Two independent 226-member packages, two independent 20-member Android-v0
+  assemblies, and two independent zero-padding constructions reproduce. The
+  exact raw SHA-256 is
+  `a3c649b5ca7a9ac07e290ca9a8838f0a3be33ab9e39554c4bafe50c98d18e2a8`;
+  the exact padded 16 MiB SHA-256 is
+  `8e322ed2a8fc82a4746ec118c2b0adad6003d03f0670284b9ab281c92120b257`.
+  Guarded installation over exact AI passed with a matching full 16 MiB
+  readback and no reboot or slot selection. A first owner console report of the
+  inherited `AB` label and eight processors was rejected as an identity
+  mismatch: the installed target never left its original Gemian boot, and no
+  exact AJ USB interface or runtime appeared. Attempt 2 then passed the exact
+  USB/CPU runtime subgate over a 45-plus-5-second window: CPU0–7 advanced,
+  exactly one `CPU8 boot rejected: A72 power sequence inactive` and one
+  `CPU8: failed to boot: -11` occurred before generic PSCI `CPU_ON`, CPU9 was
+  absent, and no other bounded fault signature appeared. One native BusyBox
+  reboot request closed the exact USB endpoint; Gemian returned under a changed
+  boot-ID, retained pstore ended in watchdog shutdown and
+  `reboot: Restarting system`, and one full read-only post-return `boot2` hash
+  still matched exact AJ. That pstore collection is deliberately a raw,
+  unpaired post-return snapshot (`wait_for_cycle=no`), not paired-cycle
+  evidence. AJ remains `PARTIAL` solely because explicit owner confirmation of
+  a readable local console during attempt 2 is pending. See the
+  [attempt-2 result](2026-07-22-a72-reject-cpu8-request/results/hardware-attempt-2-runtime-reboot-return-20260722.txt).
+  A separate [predecessor-gate adjudication](2026-07-22-a72-reject-cpu8-request/results/ak-predecessor-gate-adjudication-20260722.txt)
+  preserves that partial status but accepts the exact compound chain as
+  sufficient for AK build and guarded installation.
+- [2026-07-22 A72 firmware and power contract](2026-07-22-a72-firmware-power-contract/README.md)
+  — an offline, read-only audit separates Linux-owned external preparation
+  (DA9214 BUCKB, temporary TOPRGU PWRAP reset, MP2 reset release, external-buck
+  isolation, SRAM-LDO request, and post-success DCM) from secure-firmware-owned
+  initial B PLL/mux/divider, cluster/core MTCMOS/reset, internal bus protection,
+  and CCI coherency admission. The captured SRAM-LDO service returns zero
+  unconditionally, so independent readback is required. No safe inverse/off
+  sequence is established; once external isolation is cleared, failures must
+  retain power, fault the provider, and reject retry. Draft patch 0093 remains
+  unsafe and unselected. Both live TEE slots now match the exact analyzed
+  payload. Offline reconciliation separates the active March 29 boot image
+  from the May 24 `gbp59e00a` installed package. The active exact public commit
+  remains unresolved; `59e00a` is the chosen equivalent for verified
+  owner-safe observer-hook blobs, not exact active provenance. No synchronized
+  live register-state capture is claimed yet.
+- [2026-07-23 Gemian A72 load-assisted observation](2026-07-23-gemian-a72-load-assisted-observation/README.md)
+  — a reviewed bounded load probe used no explicit CPU-online or policy writes.
+  One worker did not expose A72; with two workers, direct stable reads observed
+  CPU8 online 1.11 seconds after stage start while both workers bracketed the
+  sample, followed immediately by an online-to-offline CPU8 bracket. CPU9
+  remained offline, all policy/power/temperature/cleanup/same-boot gates
+  passed, and no load process remained. This calibrates a two-worker temporal
+  trigger but does not prove causality or minimum load. The companion
+  sequential observer missed the short transition, so Candidate AM—the first
+  active mainline CPU8 experiment—remains blocked on an owner-local in-kernel
+  transaction capture from the chosen public equivalent. Candidate AL is the
+  separate mainline I2C6/DA9214 resource-only predecessor and requests neither
+  A72.
+- [2026-07-23 DA9214 resource-only Candidate AL](2026-07-23-da9214-resource-only/README.md)
+  — two byte-identical Linux 7.1.3 assemblies and a guarded full-readback
+  `boot2` install preceded one exact runtime. I2C6 bound to `i2c-mt65xx`, its
+  dynamically numbered adapter and exact `0x68` client appeared, and the
+  inherited eight-A53, keyboard, USB and native-reboot path survived. The
+  upstream DA9211-family probe read unsupported device ID `0x0`, returned
+  `ENODEV`, left the client unbound, and registered neither regulator. The
+  focused evidence reported no timeout/NACK. Native reboot returned to
+  changed-identity Gemian and the post-return full `boot2` hash remained exact;
+  pstore is explicitly an unpaired post-return capture. Result: `FAIL`; do not
+  repeat unchanged AL or request an A72 until the identity/page/protocol,
+  timing, reset/prerequisite, or driver-family mismatch is isolated.
+- [2026-07-24 MT6797 DVFSP handoff observer Candidate AN](2026-07-24-mt6797-dvfsp-handoff-observer/README.md)
+  — two clean Linux 7.1.3 packages and two Android-v0 artifacts reproduced,
+  followed by a guarded full-readback `boot2` install and one accepted
+  read-only runtime. Candidate AN booted with CPU0–7 advancing, CPU8/9
+  offline, USB available, and I2C6 disabled. Three CSPM snapshots had identical
+  measured register payloads and were reset-like, but the shared I2C_APPM clock
+  was ungated, so both the kernel and independent classifier returned
+  `unknown`. A private whole-FDT
+  comparison accepted exactly the expected LK handoff fixups. The result does
+  not authorize DA9214 access. Its then-next vendor pause/stop/arbitration
+  analysis is historical and superseded by the recovery immediately below.
+  A one-time latched gate remains insufficient.
+- [2026-07-24 MT6797 DVFSP/I2C6 arbitration recovery](2026-07-24-mt6797-dvfsp-i2c6-arbitration/README.md)
+  — direct read-only analysis of the exact active Gemian ELF, reconciled
+  against pinned explanatory GPL blobs, establishes that vendor stop is a
+  reversible PCM reset, not an ownership
+  latch. `SEMA_I2C_DRV` is not a hardware semaphore: I2C6 pauses DVFSP around
+  each physical transaction while the controller holds its own reference to
+  the shared I2C_APPM clock. The active binary has two acquire call sites
+  (one retry), one release, and matching release coverage after every
+  successful acquire; its timeout and unpause failures are deliberately fatal
+  and must not be copied. Exact LK/TEE/SCP follow-up found no direct PCM
+  restart writer; ATF remains a keyed CSPM/semaphore writer and SCP local
+  aliases remain uncertain. Keep I2C6 disabled while a one-way handoff owner
+  with post-transition and resume state validation is reviewed.
+- [2026-07-24 MT6797 DVFSP one-way handoff Candidate AO](2026-07-24-mt6797-dvfsp-one-way-handoff/README.md)
+  — two clean Linux 7.1.3 packages and two complete Android-v0 artifacts
+  reproduced with exact live-root/output/DTB linkage. The source-pinned
+  16 MiB image was installed from known-good Gemian to live-GPT logical
+  `boot2` after verifying the exact Candidate AN predecessor, preserving a
+  private full backup, and obtaining matching remote and independent local
+  full-partition readbacks. The built-in owner permits at most one balanced
+  CCF reference transition from Candidate AN's exact stopped/ungated
+  signature, faults closed on every mismatch, rechecks state after 45 seconds,
+  and retains I2C6 disabled with no DA9214 or A72-power node. Exact AO then
+  booted from `boot2` and passed its predeclared oracle: all six samples kept
+  the stopped PCM signature; the gate was open through the held CCF reference,
+  closed immediately after one balanced disable, and remained closed at the
+  45-second check. Counters were exactly one attempt/enable/disable/late check
+  with zero faults. CPU0–7 advanced, CPU8/9 remained offline and unrequested,
+  and inherited console, keymap, USB and reboot-dispatch checks passed without
+  I2C6, DA9214, A72-power, watchdog-owner, or reboot activity. A 52,567-byte
+  private post-LK FDT passed the exact 37-entry allowlist. Result: narrow
+  named-unit `PASS`; the separate AP consumer outcome follows below.
+- [2026-07-24 MT6797 DVFSP-gated childless I2C6 Candidate AP](2026-07-24-mt6797-dvfsp-i2c6-consumer/README.md)
+  — two main packages and artifacts reproduced, while the separate PM-audit
+  package compiled/linked but was rejected by assembly and never installed or
+  booted. Exact AP was installed and fully read back from live-GPT logical
+  `boot2`. Its 52,655-byte post-LK FDT passed the exact 37-entry allowlist.
+  Runtime reached AO's 45-second `ready` state and one supplier grant, but
+  ended in a structured `FAIL`: I2C_APPM regated in every one of 32 cleanup
+  samples while shared AP_DMA remained valid and ungated in every sample. The
+  provider faulted closed, I2C6 returned `-EIO` before binding an adapter, and
+  no transfer, client, regulator, DA9214, A72, or suspend/resume operation
+  occurred. CPU0–7, the keyboard driver/keymap checks, USB, and native reboot
+  survived; no physical key was exercised. Changed-ID Gemian returned and one
+  full read-only `boot2` hash still matched AP. The
+  45-second provider probe also delayed `/init` until 48.143 seconds and tty1
+  readiness until 48.266 seconds. Do not repeat AP unchanged; identify the
+  existing AP_DMA owner and design a baseline-preserving cleanup oracle first.
+- [2026-07-24 MT6797 AP_DMA clock ownership observer Candidate AQ](2026-07-24-mt6797-ap-dma-owner-observer/README.md)
+  — keeps the exact AO DT with I2C6 disabled and adds only `CONFIG_DEBUG_FS`
+  plus a read-only initramfs observer. It records early and five-second
+  `clk_summary` snapshots for AP_DMA, I2C_APPM, UART0, I2C5 and I2C6. AQ was
+  built, checked, and installed to inactive logical `boot2` with matching full
+  remote/local readbacks; runtime remains pending manual slot selection.
+- [2026-07-22 fail-closed CPU9 request](2026-07-22-a72-reject-cpu9-request/README.md)
+  — Candidate AK uses exact Candidate AJ as its safety predecessor and changes
+  only forced `maxcpus=9` to `maxcpus=10`. Exact AK attempt 1 passed the ordered
+  CPU8/CPU9 rejection control: CPU0–7 advanced, both A72 requests reached the
+  pre-PSCI gate and returned `-11`, neither A72 came online, and no other fault
+  signature appeared. The owner attested that the console was readable. Native
+  reboot returned to changed-boot-ID Gemian and the post-return full `boot2`
+  hash still matched AK; the evidence chain remains unpaired. This establishes
+  rejection dispatch only, not Cortex-A72 power or scheduling support.
 - [2026-07-14 live vendor-to-mainline gap audit](2026-07-14-live-vendor-mainline-gap-audit/README.md)
   — read-only comparison of the live Gemian vendor contracts with the current
   Linux 7.1.3 handoff and first-boot boundaries.

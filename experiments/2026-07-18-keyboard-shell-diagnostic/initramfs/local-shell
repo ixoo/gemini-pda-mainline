@@ -1,0 +1,11 @@
+#!/bin/busybox sh
+# shellcheck shell=dash
+
+export PATH=/bin
+export TERM=linux
+export HOME=/root
+export PS1='GEMINI-Q# '
+
+/bin/busybox stty sane
+printf '%s\n' 'GEMINI_KEYBOARD_SHELL_20260718_Q tty1 shell ready; run /bin/q-pass'
+exec /bin/busybox ash -i

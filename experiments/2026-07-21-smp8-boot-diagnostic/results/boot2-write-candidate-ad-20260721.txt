@@ -1,0 +1,73 @@
+experiment=2026-07-21-smp8-boot-diagnostic
+candidate_label=AD
+date=2026-07-21
+operation=standing-latest-validated-candidate-boot2-sync
+result=write-synced-flushed-full-readback-verified
+runtime_result=pending-not-tested
+device_variant=current-named-Gemini-PDA-unit
+
+[candidate]
+artifact=candidate-AD-smp8-final-a1b61d8c
+raw_boot_image_bytes=7378944
+raw_boot_image_sha256=a1b61d8c34b5a447f1f672663f4e74fed6eb465b90154392a3c42f4db030826b
+padded_boot2_bytes=16777216
+padded_boot2_sha256=371fda65cf9c21406d6b08e52ffb46690426a7d356ba67aa9ffe1410e7d1e495
+installer_sha256=41f8a20b04f0bed34ce7b3a77662ee31ecae778b2372afb5275c436914d944c3
+
+[live_prewrite_gate]
+target_logical_name=boot2
+target=/dev/mmcblk0p30
+target_partition_number=30
+target_size=16777216
+target_writable=yes
+active_root=/dev/mmcblk0p29
+target_is_active_root=no
+target_mounted=no
+target_active_swap=no
+target_holders=none
+power_tuple=ac-online|usb-online|battery-present|battery-status|battery-capacity|battery-health
+power_probe=0|1|1|Full|100|Good
+power_prewrite=0|1|1|Full|100|Good
+power_postwrite=0|1|1|Full|100|Good
+power_contract=two-identical-samples-per-gate-and-ac-or-usb-online-plus-present-full-100-good-battery
+expected_previous_candidate=AC-hardware-passed
+prewrite_full_partition_sha256=318f418a5e67042ecdd1c98a8767c104c8cfc68c3d56cd7c0d13cb3c5fad8a84
+
+[backup_and_write]
+private_backup_dir=artifacts/device-partitions/pre-candidate-ad-20260721T1846USB
+private_backup_mode=0700
+private_files_mode=0600
+backup_full_partition_sha256=318f418a5e67042ecdd1c98a8767c104c8cfc68c3d56cd7c0d13cb3c5fad8a84
+target_write_count=1
+target_write_scope=exact-16777216-byte-padded-image-to-live-resolved-boot2-only
+sync=completed
+block_flush=completed
+remote_staging_removed=yes
+
+[verification]
+remote_post_flush_sha256=371fda65cf9c21406d6b08e52ffb46690426a7d356ba67aa9ffe1410e7d1e495
+local_full_readback_bytes=16777216
+local_full_readback_sha256=371fda65cf9c21406d6b08e52ffb46690426a7d356ba67aa9ffe1410e7d1e495
+local_full_readback_byte_comparison=identical
+private_evidence_manifest_sha256=ade5e78c59a25408430d7ec2907e5a320564a9ccc883f87a72dc3ca80946a8eb
+reboot_or_shutdown_performed=no
+
+[failed_initial_attempt]
+result=power-gate-rejected-before-device-backup-or-write
+observed_legacy_tuple=0|1|Full|100|Good
+meaning=ac-offline|battery-present|Full|100|Good
+private_directory=artifacts/device-partitions/pre-candidate-ad-20260721T1RDZWS
+private_contents=local-padded-candidate-only
+device_backup_performed=no
+device_write_performed=no
+
+[interpretation]
+The first AC-only calibrated gate rejected the live state before device backup,
+staging, or target write. A deterministic re-derivation added explicit USB
+power sampling without weakening the full healthy-battery requirement. The
+revised gate observed stable USB power at probe, immediate pre-write, and
+post-write. The exact AC predecessor was then backed up, Candidate AD was
+written only to live-resolved inactive logical boot2, and the remote checksum
+and complete local byte-for-byte readback matched the padded AD identity. This
+establishes stored bytes and installation safety only; AD runtime remains
+untested until the owner manually selects boot2.

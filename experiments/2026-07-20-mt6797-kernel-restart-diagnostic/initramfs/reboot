@@ -1,0 +1,14 @@
+#!/bin/busybox sh
+# shellcheck shell=dash
+
+export PATH=/bin
+/bin/x-record 'candidate=AB manual_reboot=requested trigger=bare-reboot dispatch=absolute-wrapper method=busybox-reboot-no-sync-force storage_access=none watchdog_userspace=none'
+printf '%s\n' 'Candidate AB: kernel restart requested now (BusyBox reboot -n -f).'
+
+# Do not sync or inspect any filesystem: this is an explicit forced reboot
+# request against the pinned BusyBox applet and ordinary reboot(2) path.
+/bin/busybox reboot -n -f
+status=$?
+/bin/x-record "candidate=AB manual_reboot=failed status=$status"
+printf 'Candidate AB: reboot failed (status %s).\n' "$status" >&2
+exit "$status"

@@ -1,0 +1,114 @@
+experiment=2026-07-22-a72-reject-gate-kernel-split
+candidate_label=AI
+date=2026-07-22
+device_variant=current-named-Gemini-PDA-unit
+result=artifact-built-and-reproduced-padding-identity-calibrated
+build_environment=gemini-pda-build-recovery-20260717
+device_access=none
+
+[artifact]
+artifact=candidate-AI-a72-reject-gate-1ecfc787
+artifact_members=20
+artifact_bytes_identical=yes
+artifact_modes_identical=yes
+artifact_manifest_sha256=b8c2953dd07e2a84a05e99f7bd0a981cbe593e928ba7507f16691279d82fa8cc
+raw_boot_member=gemini-a72-reject-gate-kernel-split.boot.img
+raw_boot_size=7380992
+raw_boot_sha256=1ecfc787fec2f5dc11c5b7d30eb4f11d34b0496e57daf42adea567f010282309
+
+[exact_components]
+package_image_sha256=fb2c02601a07b49781b97ef9d39b79218db1c158ce1547a2ea53df7fb1e51fe2
+image_gz_sha256=b87984a570567ef47f151024612889f7d5d49b938c10bd08f0aecfea47b481a9
+system_map_sha256=622945b38e025db7ee7719f2fa3132e17f8ad0158651e2f77e57918a76ac384d
+config_sha256=32dd13a6704e5fa591236ba114d43e8e7e1aeb3eb123d9d4f124b5f551301d46
+package_gemini_dtb_sha256=510669e70cd39df3c0e1a1b4c806c0eeaa8e0b0fe02e037ee1bf405d39498af8
+final_artifact_dtb_sha256=27175804f052259c86ed068d2c318e83d5b2090f4aa705e063f9c9b33a4ca845
+initramfs_sha256=166c0f03ab9ca1062f36d55132141b4be5f06187380d17ab2f6e9e7db75d1dd3
+compiled_gate_audit_sha256=67519ff0a82376e2d0628f7061af474b0df6427c0f54878717a6c6b1d672a525
+source_build_json_sha256=9231699326771c39a26189b959079bdb163c723aebee3f0ca8464d8bdce1743c
+keymap_sha256=02f8048d76aa0cedf73617b13ea03a2a4e74de88222cb1922d9d19630906675c
+keymap_verifier_sha256=29735d212e74d0b0040a3ead173a83223b89ce5d947b697a115707eb3d23b238
+unicode_helper_sha256=5949ee28aedeb8f8ba7b5486abbec7714034f7b833265bace9a1438b8a1dd650
+input_helper_sha256=b9b555ce176a8bb29b492a73f06288784baf4f54786bed514ff1230efd732602
+
+[reproduction_gates]
+validator=candidate-ai-artifact-reproduction
+android_v0_validated_twice=yes
+lk_analysis_reproduced_twice=yes
+package_binding=exact-twice
+compiled_gate_audit_reproduced_twice=yes
+kernel_boundary=exact-AD-series-plus-corrected-0092-only
+final_dtb_lineage=byte-exact-candidate-AH
+initramfs_helpers_lineage=byte-exact-candidate-AD
+cpu_policy=maxcpus-8-cpu8-cpu9-not-requested
+regulator_reset_observer_paths=absent
+active_cpu_request=none
+storage_access=none
+watchdog_userspace=none
+userspace_automatic_reboot=none
+
+[android_v0_lk]
+page_size=2048
+kernel_size=5557945
+ramdisk_size=1819883
+kernel_addr=1075838976
+ramdisk_addr=1157627904
+second_size=0
+dt_size=0
+name=gemini-obs-L
+cmdline=bootopt-64S3-32N2-64N2
+canonical_header_id=passed-twice
+payload_padding_zero=passed-twice
+gzip_stream_complete_without_tail=passed-twice
+arm64_image_relocatable=passed-twice
+decompressed_image_within_mt6797_limit=passed-twice
+appended_dtb_at_gzip_eof=passed-twice
+within_boot2_capacity=passed-twice
+
+[ephemeral_padding]
+target_size=16777216
+raw_size=7380992
+zero_tail_size=9396224
+zero_tail_content=all-zero-verified-independently-twice
+padded_sha256=8b7439dda7d50dfd509dd66acb5eeedda86d538f0b4f0fab9b328bcc93ed8b86
+padded_size=16777216
+padding_reproductions=2
+temporary_padded_files_removed=yes
+published_padded_file=no
+device_transfer=none
+device_write=none
+
+[host_export]
+path=artifacts/vm-export-candidate-ai-20260722/boot-candidates/candidate-AI-container-build1/candidate-AI-a72-reject-gate-1ecfc787
+path_scope=git-ignored-local-evidence
+manifest_sha256=b8c2953dd07e2a84a05e99f7bd0a981cbe593e928ba7507f16691279d82fa8cc
+manifest_entries=19
+manifest_entries_verified=19-of-19
+manifest_check=passed
+
+[static_check_status]
+shellcheck=passed-subsequently
+shellcheck_detail=all-seven-candidate-ai-shell-scripts-passed-in-recovery-vm
+shellcheck_claimed_by_this_record=no
+shellcheck_closing_record=runtime-recovery-pinning-ai-20260722
+
+[pending]
+installer_derivation_and_validation=pending
+logical_boot2_installation=pending
+runtime=pending
+cpu8_cpu9_gate_execution=pending
+cortex_a72_power_or_online_support=pending
+
+[interpretation]
+Two independently assembled Candidate AI artifact trees reproduce all 20
+members byte-for-byte and mode-for-mode. The Android-v0 structure, retained-LK
+contract, exact package binding, and compiled fail-closed gate audit validated
+for both artifacts. The resulting raw artifact identity is now attributable
+and the exported first tree's complete manifest verifies on the host.
+
+Two separate temporary padding checks extended the exact 7,380,992-byte raw
+image with an all-zero 9,396,224-byte tail to 16 MiB and produced the same full
+identity. Those temporary padded files were removed and not published. This is
+artifact and ephemeral calibration evidence only: no installer has passed, no
+partition was written, no runtime gate was exercised, and no Cortex-A72 CPU
+was requested, powered, or brought online.

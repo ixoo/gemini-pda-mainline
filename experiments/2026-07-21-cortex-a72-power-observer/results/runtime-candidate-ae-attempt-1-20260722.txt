@@ -1,0 +1,94 @@
+candidate=AE
+attempt=1
+date_utc=2026-07-22
+device=current-named-Gemini-PDA-unit
+source=owner report plus authenticated read-only post-return capture
+result=failed-inconclusive; automatic watchdog-class return; candidate entry not established
+
+[owner_observation]
+reported_result=boot2 attempt did not appear to work and returned automatically to Gemian
+last_visible_stage=LK screen
+mainline_console=not-displayed
+visible_transition=LK screen directly to reboot
+candidate_usb_observation=not-reported
+manual_recovery=not-reported
+
+[installed_identity]
+logical_boot2=/dev/mmcblk0p30
+boot2_size_bytes=16777216
+boot2_read_only_flag=0
+boot2_mountpoint=empty
+boot2_full_sha256=0e7cc17ce214f3904bae7172c81e50327ffda19fa46601c76bac36232b1079a9
+expected_candidate_ae_padded_sha256=0e7cc17ce214f3904bae7172c81e50327ffda19fa46601c76bac36232b1079a9
+boot2_identity_after_attempt=exact-candidate-ae
+current_root=/dev/mmcblk0p29
+partition_write=none
+
+[boot_transition]
+pre_attempt_gemian_boot_id_sha256=c1c58e2d6be8137bcd67791aac64bb4748a78961e8e48991659942b50873cd85
+post_return_gemian_boot_id_sha256=913546bb57eea4c2d6b049c3d1e3767742174e25a7bbd415d302e913e5157e9e
+boot_id_changed=yes
+transition_capture=not-live; hashes are from separate stable pre-attempt and post-return Gemian captures
+
+[post_return_boot_reason]
+query_utc=2026-07-22T11:23:21Z
+boot_reason_numeric=4
+android_bootreason=wdt_by_pass_pwk
+powerup_reason=reboot
+interpretation=watchdog-block-class only; cannot distinguish watchdog expiry from direct TOPRGU software reset
+serial_and_personal_boot_fields=not-read-or-recorded
+
+[pstore]
+private_capture=artifacts/device-pstore/candidate-ae-unexpected-return-20260722
+capture_manifest_sha256=012be1891001bd8e3f80dbdd659541ec0f81c04dde67d2d0b2576668a93a8d16
+manifest_verification=pass
+capture_kernel=3.18.41+
+capture_arch=aarch64
+capture_boot_id_sha256=913546bb57eea4c2d6b049c3d1e3767742174e25a7bbd415d302e913e5157e9e
+collector_wait_for_cycle=no
+pstore_directory=present
+ramoops_configured=yes
+pstore_regular_files=0
+pstore_archive_members=directory-entry-only
+remote_pstore_records_removed=no
+
+[attribution_limits]
+candidate_ae_stored_on_boot2=established
+boot2_selection=owner-reported-attempt; not independently captured
+candidate_ae_kernel_entry=not-established; no visible mainline console
+candidate_ae_initramfs_entry=not-established
+observer_probe_or_snapshot=not-established
+cpu8_or_cpu9_request=not-established
+panic_oops_abort_or_stall_boundary=not-available
+automatic_return_after_attempt=owner-observed and corroborated by changed Gemian boot ID plus watchdog-class reason
+empty_pstore_interpretation=inconclusive; it does not prove that AE never executed
+
+[post_attempt_source_audit]
+observer_source_explicit_regulator_reset_mmio_smc_writes=none
+whole_candidate_hardware_write_none_claim=invalid
+reason=DA9211 paged regmap reads perform PAGE_CON selector writes; SCPSYS syscon reads may also gate its attached MFG clock
+highest_risk_boundary=new I2C6 at 3.4MHz plus DA9214 paged-register probe
+second_risk_boundary=observer MCUCFG/SPM snapshot and lazy SCPSYS syscon clock handling
+low_risk_boundaries=TOPRGU reset-controller registration and capped-off CPU8/9 PSCI gate
+
+[decision]
+candidate_ae_runtime_gate=FAIL-INCONCLUSIVE
+repeat_exact_candidate_ae=no
+cpu8_cpu9_enablement=blocked-pending-resource-path-isolation
+next_candidate=AF
+next_delta=exact AE plus forced initcall_blacklist=mt6797_a72_power_driver_init
+next_unique_observation=retain DA9214/I2C6 probe while preventing only observer registration; command-line token is attributable in live capture or ramoops
+next_pass_interpretation=stable console and USB after 45 seconds isolates the observer snapshot/syscon path
+next_fail_interpretation=another automatic return makes the DA9214/I2C6 path dominant; then blacklist da9211_regulator_driver_init separately
+
+[conclusion]
+Candidate AE remained stored byte-exact on inactive logical boot2 after the
+attempt. The last stage visible to the owner was LK; no mainline console was
+displayed before the device rebooted to Gemian. Gemian's boot ID changed and
+its boot reason is watchdog-class. The authenticated pstore capture is complete
+and valid but empty, so there is no retained AE identity, observer state, CPU
+request, fault, or last-progress boundary. The attempt is therefore a failed
+and inconclusive early-boot observer test, not evidence that AE booted or that
+CPU8/9 were requested. Do not repeat exact AE. Candidate AF will retain the
+exact AE DA9214/I2C6 path and blacklist only the observer initcall, providing a
+decision-changing split before any active A72 power sequence is considered.

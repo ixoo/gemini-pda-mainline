@@ -1,0 +1,95 @@
+#!/bin/busybox sh
+# shellcheck shell=dash
+
+export PATH=/bin
+readonly MARKER='GEMINI_KEYBOARD_POLLING_20260719_U'
+readonly STATUS_FILE=/run/u-status
+
+record() {
+	printf '%s\n' "$*" >>"$STATUS_FILE"
+	for console in /dev/tty0 /dev/console /dev/ttyS0; do
+		[ -c "$console" ] || continue
+		printf '%s\n' "$*" >"$console" 2>/dev/null || true
+	done
+	if [ -c /dev/kmsg ]; then
+		printf '<6>%s\n' "$*" >/dev/kmsg 2>/dev/null || true
+	fi
+}
+
+record "$MARKER probe=begin polling_interval_ms=20 polling_debounce=none col_scan_delay_us=2"
+record "$MARKER aw_parent_irq=absent matrix_row_irqs=not-requested i2c5_hz=400000"
+
+i2c_adapter=absent
+for adapter in /sys/bus/i2c/devices/i2c-*; do
+	[ -L "$adapter/of_node" ] || continue
+	of_target="$(readlink "$adapter/of_node" 2>/dev/null || true)"
+	case "$of_target" in
+		*/i2c@1101c000)
+			i2c_adapter=${adapter##*/i2c-}
+			break
+			;;
+	esac
+done
+record "$MARKER i2c5_of=/i2c@1101c000 linux_adapter=$i2c_adapter"
+
+if [ "$i2c_adapter" != absent ]; then
+	client="/sys/bus/i2c/devices/${i2c_adapter}-005b"
+	if [ -d "$client" ]; then
+		driver=unbound
+		if [ -L "$client/driver" ]; then
+			driver="$(readlink "$client/driver" 2>/dev/null || true)"
+			driver=${driver##*/}
+		fi
+		record "$MARKER aw9523_client=${i2c_adapter}-005b driver=$driver"
+	else
+		record "$MARKER aw9523_client=${i2c_adapter}-005b state=absent"
+	fi
+fi
+
+matrix_device=absent
+matrix_driver=unbound
+for platform_device in /sys/bus/platform/devices/*; do
+	[ -L "$platform_device/of_node" ] || continue
+	of_target="$(readlink "$platform_device/of_node" 2>/dev/null || true)"
+	case "$of_target" in
+		*/keyboard-matrix)
+			matrix_device=${platform_device##*/}
+			if [ -L "$platform_device/driver" ]; then
+				matrix_driver="$(readlink "$platform_device/driver" 2>/dev/null || true)"
+				matrix_driver=${matrix_driver##*/}
+			fi
+			break
+			;;
+	esac
+done
+record "$MARKER matrix_platform_device=$matrix_device driver=$matrix_driver"
+
+event_node=absent
+event_name=absent
+discovery_second=0
+while [ "$discovery_second" -lt 20 ]; do
+	for event in /sys/class/input/event*; do
+		[ -r "$event/device/name" ] || continue
+		name="$(cat "$event/device/name" 2>/dev/null || true)"
+		case "$name" in
+			*[Kk]eyboard*|*[Mm]atrix*)
+				event_node=/dev/input/${event##*/}
+				event_name=$name
+				break
+				;;
+		esac
+	done
+	[ "$event_node" != absent ] && break
+	sleep 1
+	discovery_second=$((discovery_second + 1))
+done
+record "$MARKER matrix_input_name=$event_name event_node=$event_node"
+eint10="$(grep -E '(^|[[:space:]])(10:|EINT10|gpio-87)([[:space:]]|$)' /proc/interrupts 2>/dev/null | tail -n 1 || true)"
+eint87="$(grep -E '(^|[[:space:]])(87:|EINT87)([[:space:]]|$)' /proc/interrupts 2>/dev/null | tail -n 1 || true)"
+record "$MARKER observed_eint10=${eint10:-not-found}"
+record "$MARKER observed_eint87=${eint87:-not-found}"
+record "$MARKER raw_event_window=begin discovery_wait=${discovery_second}s capture_budget=60s instructions=press-release-letter-enter-shift-meta"
+/bin/input-event-capture 2>&1 | while IFS= read -r event_line; do
+	record "$MARKER $event_line"
+done
+record "$MARKER raw_event_window=complete shell_remains=tty1"

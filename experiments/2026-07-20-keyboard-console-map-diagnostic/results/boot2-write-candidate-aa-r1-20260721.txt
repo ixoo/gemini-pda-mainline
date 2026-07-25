@@ -1,0 +1,69 @@
+[record]
+date_local=2026-07-21
+experiment=2026-07-20-keyboard-console-map-diagnostic
+candidate=AA
+candidate_revision=r1
+operation=standing-latest-validated-candidate-boot2-sync
+result=write-synced-flushed-full-readback-verified
+runtime_result=not-tested-at-write; subsequent-pass-once
+
+[candidate]
+artifact=candidate-AA-keyboard-console-map-final-37e82bf3
+artifact_manifest_sha256=2a291c5e8f20442140ce025028af578272a06f41c53498baec728ba61c49c343
+raw_boot_image_bytes=7378944
+raw_boot_image_sha256=37e82bf3be87dd9e52fb8d60597b69f92a5c0dc5aebd51d178f1e7efd33343d7
+padded_boot2_bytes=16777216
+padded_boot2_sha256=38b49c7c19c2d97fa0c48436545219489221aa367aedf491ae6ebd4ec4856703
+
+[live_prewrite_gate]
+target_logical_name=boot2
+target=/dev/mmcblk0p30
+target_partition_number=30
+target_size=16777216
+target_writable=yes
+active_root=/dev/mmcblk0p29
+target_is_active_root=no
+target_mounted=no
+target_active_swap=no
+target_holders=none
+power=ac-online|battery-present|Full|100|Good
+boot_id=753bf760-02aa-4731-a797-c73e88dfb414
+expected_previous_candidate=AA-r0-superseded-before-boot
+prewrite_full_partition_sha256=157c7cd5d814d7b2704d679faacd3215c5e889642b4261441f99653957585eaa
+
+[backup_and_write]
+private_backup_dir=artifacts/device-partitions/pre-candidate-aa-r1-20260721T100921Z
+private_backup_mode=0700
+private_files_mode=0600
+backup_full_partition_sha256=157c7cd5d814d7b2704d679faacd3215c5e889642b4261441f99653957585eaa
+target_write_count=1
+target_write_scope=exact-16777216-byte-padded-image-to-live-resolved-boot2-only
+sync=completed
+block_flush=completed
+remote_staging_removed=yes
+
+[verification]
+remote_post_flush_sha256=38b49c7c19c2d97fa0c48436545219489221aa367aedf491ae6ebd4ec4856703
+local_full_readback_bytes=16777216
+local_full_readback_sha256=38b49c7c19c2d97fa0c48436545219489221aa367aedf491ae6ebd4ec4856703
+local_full_readback_byte_comparison=identical
+private_evidence_manifest_sha256=8c07a62ccb92e5555017ca518db1d147c1441472b9bd8ff632846ec7cc02908e
+post_gate_boot_id=753bf760-02aa-4731-a797-c73e88dfb414
+post_gate_power=ac-online|battery-present|Full|100|Good
+reboot_or_shutdown_performed=no
+
+[interpretation]
+The guarded installer replaced exact, unbooted AA r0 on the inactive,
+live-GPT-resolved logical boot2 partition with exact AA r1, then required a
+matching remote checksum and complete local byte-for-byte readback. This
+establishes stored bytes and installation safety only. The device was left in
+its known-good OS. The separate subsequent-runtime section links the later
+attended keyboard-map evidence without changing this write-time conclusion.
+
+[subsequent_runtime]
+result_record=runtime-candidate-aa-r1-attempt-1-20260721.txt
+exact_installed_candidate_marker=retained-in-console-ramoops
+map_gate=PASS-all-2048-kernel-entries-exact
+owner_keymap_report=working-and-otherwise-totally-fine
+typed_watchdog_reboot=PASS
+f1_f10_and_page_up_page_down=unconfirmed-not-failed

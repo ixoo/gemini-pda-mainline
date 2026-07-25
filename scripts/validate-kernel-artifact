@@ -20,6 +20,21 @@ require_command() {
   command -v "$1" >/dev/null 2>&1 || die "required command not found: $1"
 }
 
+validate_relative_path() {
+  local label="$1"
+  local path="$2"
+
+  [[ -n "${path}" ]] || die "${label} is empty"
+  [[ "${path}" != /* ]] || die "${label} must be relative: ${path}"
+  [[ "${path}" != *[[:space:]]* ]] || \
+    die "${label} may not contain whitespace: ${path}"
+  case "/${path}/" in
+    *//*|*/../*|*/./*)
+      die "${label} contains an unsafe path component: ${path}"
+      ;;
+  esac
+}
+
 [[ "$(uname -s)" == Linux ]] || die "run this command inside the development VM"
 [[ "$(uname -m)" == aarch64 ]] || die "expected an aarch64 development VM"
 
@@ -51,6 +66,18 @@ esac
   die "missing or non-regular SHA256SUMS in ${artifact_dir}"
 [[ -f "${artifact_dir}/provenance/build.json" ]] || \
   die "missing provenance/build.json in ${artifact_dir}"
+[[ -f "${artifact_dir}/provenance/kernel-manifest.json" && \
+   ! -L "${artifact_dir}/provenance/kernel-manifest.json" ]] || \
+  die "missing or non-regular provenance/kernel-manifest.json in ${artifact_dir}"
+[[ -f "${artifact_dir}/provenance/series" && \
+   ! -L "${artifact_dir}/provenance/series" ]] || \
+  die "missing or non-regular provenance/series in ${artifact_dir}"
+[[ -d "${artifact_dir}/provenance/patches" && \
+   ! -L "${artifact_dir}/provenance/patches" ]] || \
+  die "missing or non-directory provenance/patches in ${artifact_dir}"
+[[ -d "${artifact_dir}/provenance/configs" && \
+   ! -L "${artifact_dir}/provenance/configs" ]] || \
+  die "missing or non-directory provenance/configs in ${artifact_dir}"
 unexpected_entry="$(find "${artifact_dir}" -mindepth 1 \
   ! -type d ! -type f -print -quit)"
 [[ -z "${unexpected_entry}" ]] || \
@@ -128,6 +155,194 @@ jq -e '
   "$(sha256sum "${artifact_dir}/kernel.config" | awk '{print $1}')" ]] || \
   die "provenance config_sha256 does not match kernel.config"
 
+build_json="${artifact_dir}/provenance/build.json"
+kernel_manifest="${artifact_dir}/provenance/kernel-manifest.json"
+series_file="${artifact_dir}/provenance/series"
+patch_root="${artifact_dir}/provenance/patches"
+config_root="${artifact_dir}/provenance/configs"
+
+jq -e '
+  .schema == 1 and
+  (.kernel | type == "object") and
+  (.kernel.sha256 | type == "string" and test("^[0-9a-f]{64}$")) and
+  (.architecture == "arm64") and
+  (((has("patch_series") | not) or (.patch_series == null)) or
+   (.patch_series | type == "string" and length > 0)) and
+  (.config | type == "object")
+' "${kernel_manifest}" >/dev/null || \
+  die "invalid provenance/kernel-manifest.json"
+
+manifest_source_sha256="$(jq -er '.kernel.sha256' "${kernel_manifest}")"
+build_source_sha256="$(jq -er '.source_sha256' "${build_json}")"
+[[ "${build_source_sha256}" == "${manifest_source_sha256}" ]] || \
+  die "provenance source_sha256 does not match the packaged kernel manifest"
+
+build_profile="$(jq -r '
+  if has("build_profile") and .build_profile != null then .build_profile else "" end
+' "${build_json}")"
+if [[ -n "${build_profile}" ]]; then
+  jq -e --arg profile "${build_profile}" '
+    (.config.profiles | type == "object") and
+    (.config.profiles[$profile] as $selected |
+      ($selected | type == "object") and
+      ($selected.base | type == "string" and length > 0) and
+      ($selected.fragments | type == "array") and
+      ($selected.fragments | all(.[]; type == "string" and length > 0)) and
+      (($selected.patch_series == null) or
+       ($selected.patch_series | type == "string" and length > 0)))
+  ' "${kernel_manifest}" >/dev/null || \
+    die "build_profile is absent or invalid in the packaged kernel manifest: ${build_profile}"
+  selected_base="$(jq -er --arg profile "${build_profile}" \
+    '.config.profiles[$profile].base' "${kernel_manifest}")"
+  selected_fragments="$(jq -cer --arg profile "${build_profile}" \
+    '.config.profiles[$profile].fragments' "${kernel_manifest}")"
+  if jq -e --arg profile "${build_profile}" '
+      .config.profiles[$profile].patch_series |
+      type == "string" and length > 0
+    ' "${kernel_manifest}" >/dev/null; then
+    selected_series="$(jq -er --arg profile "${build_profile}" \
+      '.config.profiles[$profile].patch_series' "${kernel_manifest}")"
+  else
+    jq -e '
+      .patch_series | type == "string" and length > 0
+    ' "${kernel_manifest}" >/dev/null || \
+      die "manifest profile ${build_profile} has no patch-series override or valid fallback"
+    selected_series="$(jq -er '.patch_series' "${kernel_manifest}")"
+  fi
+  jq -e \
+    --arg base "${selected_base}" \
+    --argjson fragments "${selected_fragments}" '
+      .base_config == $base and .config_fragments == $fragments
+    ' "${build_json}" >/dev/null || \
+    die "build base_config/config_fragments do not match manifest profile ${build_profile}"
+  resolved_profile="${build_profile}"
+else
+  jq -e '
+      (.config | has("profiles") | not) and
+      (.config.base | type == "string" and length > 0) and
+      (.config.fragments | type == "array") and
+      (.config.fragments | all(.[]; type == "string" and length > 0))
+    ' "${kernel_manifest}" >/dev/null || \
+    die "build_profile is required when the packaged manifest uses config.profiles"
+  jq -e '
+    .patch_series | type == "string" and length > 0
+  ' "${kernel_manifest}" >/dev/null || \
+    die "legacy manifest requires a valid top-level patch_series"
+  selected_base="$(jq -er '.config.base' "${kernel_manifest}")"
+  selected_fragments="$(jq -cer '.config.fragments' "${kernel_manifest}")"
+  selected_series="$(jq -er '.patch_series' "${kernel_manifest}")"
+  resolved_profile="legacy"
+  jq -e \
+    --arg base "${selected_base}" \
+    --argjson fragments "${selected_fragments}" '
+      ((.base_config == null) or .base_config == $base) and
+      ((.config_fragments == null) or .config_fragments == $fragments)
+    ' "${build_json}" >/dev/null || \
+    die "legacy build base_config/config_fragments disagree with the packaged manifest"
+fi
+
+validate_relative_path "selected patch series" "${selected_series}"
+[[ "${selected_series}" == patches/* ]] || \
+  die "selected patch series must remain below patches/: ${selected_series}"
+
+printf '%s' "${selected_fragments}" | jq -e '
+  all(.[];
+    (startswith("/") | not) and
+    (contains("..") | not) and
+    (contains("//") | not) and
+    (test("\\s") | not))
+' >/dev/null || die "manifest contains an unsafe config-fragment path"
+
+declare -a fragment_paths=()
+declare -a config_basenames=()
+while IFS= read -r fragment; do
+  basename_collision=false
+  validate_relative_path "config fragment" "${fragment}"
+  fragment_basename="${fragment##*/}"
+  for packaged_basename in "${config_basenames[@]}"; do
+    if [[ "${packaged_basename}" == "${fragment_basename}" ]]; then
+      basename_collision=true
+      break
+    fi
+  done
+  [[ "${basename_collision}" == false ]] || \
+    die "config fragments have an unsafe packaged-basename collision: ${fragment_basename}"
+  fragment_paths+=("${fragment}")
+  config_basenames+=("${fragment_basename}")
+done < <(printf '%s' "${selected_fragments}" | jq -er '.[]')
+
+expected_config_inventory="$(printf '%s\n' "${config_basenames[@]}" | sort)"
+actual_config_inventory="$(find "${config_root}" -type f -printf '%P\n' | sort)"
+[[ "${actual_config_inventory}" == "${expected_config_inventory}" ]] || \
+  die "provenance/configs is not the exact regular-file inventory selected by the manifest"
+for fragment_index in "${!fragment_paths[@]}"; do
+  config_file="${config_root}/${config_basenames[${fragment_index}]}"
+  [[ -f "${config_file}" && ! -L "${config_file}" ]] || \
+    die "selected config fragment is missing or non-regular: ${fragment_paths[${fragment_index}]}"
+done
+
+if [[ "${resolved_profile}" == legacy ]]; then
+  [[ "$(jq -r '.config_inputs_sha256 // ""' "${build_json}")" == "" ]] || \
+    die "legacy build cannot attribute a profile-bound config_inputs_sha256"
+else
+  computed_config_inputs_sha256="$({
+    printf '%s\n' "profile=${resolved_profile}"
+    printf '%s\n' "base=${selected_base}"
+    for fragment_index in "${!fragment_paths[@]}"; do
+      printf '%s  %s\n' \
+        "$(sha256sum "${config_root}/${config_basenames[${fragment_index}]}" | awk '{print $1}')" \
+        "${fragment_paths[${fragment_index}]}"
+    done
+  } | sha256sum | awk '{print $1}')"
+  recorded_config_inputs_sha256="$(jq -er '
+    .config_inputs_sha256 |
+    select(type == "string" and test("^[0-9a-f]{64}$"))
+  ' "${build_json}")" || \
+    die "profile build is missing a valid config_inputs_sha256"
+  [[ "${computed_config_inputs_sha256}" == "${recorded_config_inputs_sha256}" ]] || \
+    die "provenance config_inputs_sha256 does not match the selected configuration inputs"
+fi
+
+declare -a patch_paths=()
+line_number=0
+while IFS= read -r line || [[ -n "${line}" ]]; do
+  duplicate=false
+  line_number=$((line_number + 1))
+  [[ -z "${line}" || "${line}" == \#* ]] && continue
+  validate_relative_path "series line ${line_number}" "${line}"
+  for relative in "${patch_paths[@]}"; do
+    if [[ "${relative}" == "${line}" ]]; then
+      duplicate=true
+      break
+    fi
+  done
+  [[ "${duplicate}" == false ]] || \
+    die "duplicate patch path in provenance/series: ${line}"
+  patch_paths+=("${line}")
+done < "${series_file}"
+[[ "${#patch_paths[@]}" -gt 0 ]] || die "provenance/series contains no patches"
+
+expected_patch_inventory="$(printf '%s\n' "${patch_paths[@]}" | sort)"
+actual_patch_inventory="$(find "${patch_root}" -type f -printf '%P\n' | sort)"
+[[ "${actual_patch_inventory}" == "${expected_patch_inventory}" ]] || \
+  die "provenance/patches is not the exact regular-file inventory listed by provenance/series"
+for relative in "${patch_paths[@]}"; do
+  patch_file="${patch_root}/${relative}"
+  [[ -s "${patch_file}" && ! -L "${patch_file}" ]] || \
+    die "listed patch is missing, empty, or non-regular: ${relative}"
+done
+
+computed_patchset_sha256="$({
+  printf '%s  %s\n' "$(sha256sum "${series_file}" | awk '{print $1}')" "${selected_series}"
+  for relative in "${patch_paths[@]}"; do
+    printf '%s  %s\n' \
+      "$(sha256sum "${patch_root}/${relative}" | awk '{print $1}')" "${relative}"
+  done
+} | sha256sum | awk '{print $1}')"
+recorded_patchset_sha256="$(jq -er '.patchset_sha256' "${build_json}")"
+[[ "${computed_patchset_sha256}" == "${recorded_patchset_sha256}" ]] || \
+  die "provenance patchset_sha256 does not match the selected series and patch inventory"
+
 printf 'validation=kernel-artifact\n'
 printf 'artifact=%s\n' "$(basename "${artifact_dir}")"
 printf 'kernel_release=%s\n' "$(jq -er '.kernel_release' "${artifact_dir}/provenance/build.json")"
@@ -135,7 +350,11 @@ printf 'build_profile=%s\n' "$(jq -er '.build_profile // "legacy"' "${artifact_d
 printf 'generated_utc=%s\n' "$(jq -er '.generated_utc' "${artifact_dir}/provenance/build.json")"
 printf 'source_sha256=%s\n' "$(jq -er '.source_sha256' "${artifact_dir}/provenance/build.json")"
 printf 'patchset_sha256=%s\n' "$(jq -er '.patchset_sha256' "${artifact_dir}/provenance/build.json")"
+printf 'patch_series=%s\n' "${selected_series}"
+printf 'patch_count=%s\n' "${#patch_paths[@]}"
+printf 'resolved_profile=%s\n' "${resolved_profile}"
 printf 'config_sha256=%s\n' "$(jq -er '.config_sha256' "${artifact_dir}/provenance/build.json")"
+printf 'config_fragment_count=%s\n' "${#fragment_paths[@]}"
 printf 'modules_built=%s\n' "$(jq -er '.modules_built // false' "${artifact_dir}/provenance/build.json")"
 printf 'image_gzip_sha256=%s\n' "$(sha256sum "${artifact_dir}/Image.gz" | awk '{print $1}')"
 printf 'image_gzip_decompressed_size=%s\n' "${image_gzip_decompressed_size}"

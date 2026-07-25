@@ -1,0 +1,47 @@
+Gemian A72 read-only discovery tooling validation
+Date: 2026-07-22
+V1 live access: one safe pre-vendor gate stop plus bounded generic identity corroboration
+V2 live access: none
+Device/network access during V2 code and mock validation: none
+Recovery-VM mutation: none
+
+sh -n scripts/remote-probe.sh: PASS
+bash -n scripts/collect.sh: PASS
+perl -c scripts/bounded-exec.pl: PASS
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-readonly-collector.py: PASS
+test output: readonly collector tests: PASS
+ShellCheck: NOT RUN (shellcheck unavailable on host)
+trailing-whitespace scan: PASS
+results/SHA256SUMS verification: PASS
+
+Audit SHA-256:
+ac7c272459c5e8ee13294246987f41226538caed26eec555c6e1afe9c15b4aaf  results/gemian-existing-observer-gap-audit-20260722.md
+
+Sanitized live-attempt record SHA-256:
+11488bff1ce2d93d2834bcbcef38c0ec9a45c69fac892bcfc8812c5510262238  results/live-attempt-1-root-gate-20260722.txt
+
+Executable/test SHA-256:
+7b84c1e9d9fbdb7fd35582ba031fb200d6173245edf53c7975f34a5459ff00be  scripts/bounded-exec.pl
+00b4b7512358c202615df53c0af62cdc804abfc1d40940c480b9899846aedff7  scripts/collect.sh
+b08e2b442a95c06f4a4b131a4ca27a19289f21fee01f0d9ade6b8b59f656ccbc  scripts/remote-probe.sh
+34b4c58062e1719f5615215fed527e42aab5705a2feb88c26c924be2bd6613ad  scripts/test-readonly-collector.py
+
+The Python suite covers exact pre-sample kernel/architecture, independent
+findmnt `/dev/mmcblk0p29` and `/proc/mounts` `rootfs` representations,
+root mismatch/unavailable/read-failure cases, fixture-mode findmnt
+non-invocation, topology, boot-ID and fully observable healthy-power gates;
+missing initial power;
+stable/mismatched DA9214 selector labeling; before/after power stability for
+safe context and every vendor sample; mid-run power drift, absent power,
+required-bracket absence and exact read-failed fail-stop; cmdline redaction;
+and excluded-callback content tripwires, including B cpufreq_volt.
+
+Host-wrapper mocks cover the fixed SSH target/key, strict host-key and
+server-alive options, private direct-child output, target-override rejection,
+mode-0600 success output, and mode-0600 partial preservation after both a
+remote failure and hard timeout. Direct bounded-exec tests cover normal and
+signal status propagation, partial stdout at the monotonic deadline, and an
+unrelated-process sentinel proving that timeout signaling is limited to the
+exact unreaped child. V1 was invoked once and stopped before vendor callbacks;
+its sanitized result binds the exact wrapper, bounded helper, remote probe and
+private partial facts. The corrected V2 collector has not been invoked live.

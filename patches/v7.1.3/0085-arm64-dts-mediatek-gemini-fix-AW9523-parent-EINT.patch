@@ -1,0 +1,33 @@
+From 0000000000000000000000000000000000000085 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 19 Jul 2026 14:45:00 -0400
+Subject: [PATCH] arm64: dts: mediatek: gemini: fix AW9523 parent EINT
+
+The MT6797 parent interrupt domain consumes raw EINT channel numbers, not
+physical GPIO numbers.  The recovered non-linear map assigns the AW9523
+interrupt on GPIO87 to EINT10, but the disabled board candidate currently
+specifies EINT87.
+
+Use the correct EINT10 parent interrupt.  Keep the bus, expander and matrix
+consumer disabled.  This fixes the declarative resource without claiming
+that the parent interrupt path works on hardware.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -285,7 +285,7 @@ aw9523: gpio-expander@5b {
+ 		pinctrl-names = "default";
+ 		pinctrl-0 = <&keyboard_soc_pins>;
+ 		interrupt-parent = <&pio>;
+-		interrupts = <87 IRQ_TYPE_LEVEL_LOW>;
++		interrupts = <10 IRQ_TYPE_LEVEL_LOW>;
+ 		gpio-controller;
+ 		#gpio-cells = <2>;
+ 		gpio-ranges = <&aw9523 0 0 16>;
+-- 
+2.43.0

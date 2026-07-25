@@ -1,0 +1,122 @@
+experiment=2026-07-22-ad-contract-af-kernel-split
+candidate_label=AH
+attempt=2
+date=2026-07-22
+device_variant=current-named-Gemini-PDA-unit
+result=PASS
+pass_scope=exact-AH-eight-A53-baseline-console-USB-runtime-and-native-reboot
+not_claimed=physical-keyboard-events-or-Cortex-A72-CPU8-CPU9-support
+
+[artifact]
+artifact=candidate-AH-ad-contract-af-kernel-split-e5ba6ee0
+raw_boot_sha256=e5ba6ee0a257b804a02af11b83e733f861b89de17470470a497f07056b6b3197
+raw_boot_size=7385088
+installed_full_partition_sha256=f107a3e7483c02cb4b2540d185ef2a5fb1f77e4a0acc7b66fce16e37641f5012
+installed_full_partition_size=16777216
+installed_identity=exact-prior-readback-attestation
+
+[owner_observation]
+boot2_selection=confirmed
+console=working
+physical_keyboard=not-separately-exercised-or-reported-for-attempt-2
+
+[runtime]
+validator=candidate-ah-ad-contract-af-kernel-runtime
+validator_result=passed
+candidate_boot_id=a1329a48-084c-4d03-bf59-7dd39b81f6dc
+uptime_seconds_at_final_sample=1728
+af_kernel_config_and_cmdline=exact
+ad_initramfs_critical_payload=exact-live-files
+chosen_simplefb_and_lk_reservation=exact-live-contract
+usb_gadget_shell=exact-sole-session
+aw9523_matrix_event_keymap=bound-and-verified
+physical_keyboard_event_gate=not-run
+observer=dt-device-driver-absent
+i2c6=dt-disabled-platform-absent
+da9214=dt-client-regulators-absent
+possible_present=0-9
+online=0-7
+offline=8-9
+cpu0_cpu7_accounting=advanced
+cpu8_cpu9_enable_method=mediatek-mt6797-psci-rejecting-exact
+cpu8_cpu9_cpu_on_or_rejection=absent
+watchdog_userspace_fd=absent
+automatic_reboot_through_observation_boundary=absent
+fault_signatures=absent
+collector_explicit_operations=read-only
+pass_basis=exact-usb-runtime-at-45-plus-5-seconds
+
+[private_runtime_capture]
+path=artifacts/runtime-captures/candidate-ah-attempt-2-20260722/runtime.txt
+mode=0600
+bytes=130780
+sha256=6a9ab83307d857b1888714ce597dc6fc4e05fbc7712a2b58d867c11772402577
+
+[native_reboot]
+trigger=one-fresh-boot-id-gated-bare-reboot-over-direct-USB-shell
+request_marker_occurrences=1
+expected_boot_id_occurrences=1
+dispatch=inherited-absolute-wrapper
+method=busybox-reboot-no-sync-force
+storage_access=none
+watchdog_userspace=none
+usb_ping_after_request=down
+pre_reboot_pstore_files=0
+post_reboot_pstore_files=1
+pstore_watchdog_enabled_seconds=1.895068
+pstore_watchdog_timeout_seconds=31
+pstore_watchdog_nowayout=0
+pstore_request_seconds=1852.023901
+pstore_watchdog_shutdown_seconds=1852.040732
+pstore_restart_seconds=1852.050174
+pstore_request_to_restart_milliseconds=26.273
+pstore_timing_interpretation=retained-log-request-to-final-restart-line-not-input-to-reset-latency
+pstore_final_line=reboot-Restarting-system
+recovery_kernel=3.18.41+
+recovery_arch=aarch64
+recovery_root=/dev/mmcblk0p29
+recovery_boot_id=4dfa7e87-d7c7-416f-8c32-7271662d89bd
+boot_id_changed=yes
+post_cycle_boot2_target=/dev/mmcblk0p30
+post_cycle_boot2_mounted=no
+post_cycle_boot2_sha256=f107a3e7483c02cb4b2540d185ef2a5fb1f77e4a0acc7b66fce16e37641f5012
+post_cycle_boot2_identity=exact-candidate-AH
+automatic_watchdog_or_countdown_reboot=absent
+
+[private_reboot_evidence]
+pre_pstore_path=artifacts/runtime-captures/candidate-ah-attempt-2-20260722/pstore-before.txt
+pre_pstore_mode=0600
+pre_pstore_bytes=1773
+pre_pstore_sha256=18bfee2980ed8b0faf941af1d084b5c0880285b2ae6d139eb76ddc47d194fa71
+request_path=artifacts/runtime-captures/candidate-ah-attempt-2-20260722/native-reboot-request.txt
+request_mode=0600
+request_bytes=2110
+request_sha256=49b4e626534bd0c85a2df57938e6297429369d3a30d7cd588f419d45a2249113
+host_metadata_path=artifacts/runtime-captures/candidate-ah-attempt-2-20260722/native-reboot-host.env
+host_metadata_mode=0600
+host_metadata_bytes=163
+host_metadata_sha256=e0d0be27c51b802f0b0540845bad0a523377410162b7488826b991c743663d34
+host_nc_elapsed_seconds=30
+host_nc_elapsed_interpretation=client-wait-window-not-reboot-latency
+post_pstore_path=artifacts/runtime-captures/candidate-ah-attempt-2-20260722/pstore-after.txt
+post_pstore_mode=0600
+post_pstore_bytes=65812
+post_pstore_sha256=972140087a13f9f3a14522b5dd6faaf56df5792a5567f7df32cba5169b841d66
+
+[interpretation]
+The exact installed Candidate AH passed its predeclared 45+5-second USB
+runtime oracle on this named unit. The owner separately observed a working
+console. CPUs 0--7 were online and advanced accounting; CPU8 and CPU9 remained
+offline, their rejecting enable methods were exact, and no CPU_ON request or
+rejection occurred. The live keyboard driver and complete keymap contract were
+bound and verified, but no physical key event was separately exercised or
+reported in this attempt.
+
+One fresh bare reboot request followed the inherited absolute BusyBox wrapper
+into the native kernel restart path. Retained pstore records the request,
+watchdog shutdown, and final restart line in order; Gemian returned under a
+changed boot ID, and a read-only post-cycle hash still matched exact AH on
+logical boot2. No userspace watchdog, automatic reboot, or countdown owned the
+result. This is a local PASS for AH's eight-A53 baseline, console, USB service,
+and native reboot oracle. It is not evidence that either Cortex-A72 CPU can be
+powered or brought online.

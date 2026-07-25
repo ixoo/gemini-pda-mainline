@@ -1,0 +1,138 @@
+#!/bin/busybox sh
+# shellcheck shell=dash
+
+export PATH=/bin
+readonly WATCHDOG_WAIT_SECONDS=10
+readonly WATCHDOG_TIMEOUT_SECONDS=31
+readonly WATCHDOG_FAILURE_SECONDS=40
+readonly LIVE_WATCHDOG=/sys/firmware/devicetree/base/watchdog@10007000
+
+hold() {
+	/bin/v-record "$*; STATIC HOLD"
+	while :; do
+		sleep 3600
+	done
+}
+
+if [ ! -d "$LIVE_WATCHDOG" ]; then
+	/bin/v-record 'watchdog_observation=invalid reason=live-node-unavailable recovery=continue'
+elif [ -e "$LIVE_WATCHDOG/interrupts" ]; then
+	/bin/v-record 'watchdog_observation=invalid reason=live-interrupts-present recovery=continue'
+else
+	/bin/v-record 'watchdog_observation=valid live_contract=no-irq pretimeout_expected=0'
+fi
+
+ramoops_platform=absent
+ramoops_driver=unbound
+for candidate in /sys/bus/platform/devices/*ramoops*; do
+	[ -e "$candidate" ] || continue
+	ramoops_platform=${candidate##*/}
+	if [ -L "$candidate/driver" ]; then
+		ramoops_driver="$(readlink "$candidate/driver" 2>/dev/null || true)"
+		ramoops_driver=${ramoops_driver##*/}
+	fi
+	break
+done
+if [ -d /sys/firmware/devicetree/base/reserved-memory/ramoops@44410000 ] && \
+	[ "$ramoops_driver" = ramoops ]; then
+	/bin/v-record "observation_contract=valid ramoops_platform=$ramoops_platform driver=$ramoops_driver"
+else
+	# Recovery remains more important than the persistent channel: record the
+	# invalid observation path everywhere still available, then arm the proven
+	# watchdog if its own independent gates pass.
+	/bin/v-record "observation_contract=invalid ramoops_platform=$ramoops_platform driver=$ramoops_driver watchdog_recovery=continue"
+fi
+
+remaining=$WATCHDOG_WAIT_SECONDS
+while [ "$remaining" -gt 0 ] && [ ! -c /dev/watchdog0 ]; do
+	platform=absent
+	driver=unbound
+	class=absent
+	if [ -d /sys/bus/platform/devices/10007000.watchdog ]; then
+		platform=present
+		if [ -L /sys/bus/platform/devices/10007000.watchdog/driver ]; then
+			driver="$(readlink /sys/bus/platform/devices/10007000.watchdog/driver 2>/dev/null || true)"
+			driver=${driver##*/}
+		fi
+	fi
+	[ -d /sys/class/watchdog/watchdog0 ] && class=present
+	/bin/v-record "watchdog_discovery remaining=${remaining}s platform=$platform driver=$driver class=$class devnode=absent"
+	sleep 1
+	remaining=$((remaining - 1))
+done
+
+[ -c /dev/watchdog0 ] || hold 'watchdog0=missing after_wait=10s'
+
+identity=unavailable
+timeout=unavailable
+pretimeout=unavailable
+status=unavailable
+if [ -r /sys/class/watchdog/watchdog0/identity ]; then
+	identity="$(cat /sys/class/watchdog/watchdog0/identity 2>/dev/null || true)"
+	identity=${identity:-unreadable}
+fi
+if [ -r /sys/class/watchdog/watchdog0/timeout ]; then
+	timeout="$(cat /sys/class/watchdog/watchdog0/timeout 2>/dev/null || true)"
+	timeout=${timeout:-unreadable}
+fi
+if [ -r /sys/class/watchdog/watchdog0/pretimeout ]; then
+	pretimeout="$(cat /sys/class/watchdog/watchdog0/pretimeout 2>/dev/null || true)"
+	pretimeout=${pretimeout:-unreadable}
+fi
+if [ -r /sys/class/watchdog/watchdog0/status ]; then
+	status="$(cat /sys/class/watchdog/watchdog0/status 2>/dev/null || true)"
+	status=${status:-unreadable}
+fi
+/bin/v-record "watchdog0=present identity=$identity timeout=$timeout pretimeout=$pretimeout status=$status"
+platform_driver=unbound
+if [ -L /sys/bus/platform/devices/10007000.watchdog/driver ]; then
+	platform_driver="$(readlink /sys/bus/platform/devices/10007000.watchdog/driver 2>/dev/null || true)"
+	platform_driver=${platform_driver##*/}
+fi
+class_device="$(readlink -f /sys/class/watchdog/watchdog0/device 2>/dev/null || true)"
+platform_device="$(readlink -f /sys/bus/platform/devices/10007000.watchdog 2>/dev/null || true)"
+if [ -z "$class_device" ] || [ -z "$platform_device" ] || \
+	[ "$class_device" != "$platform_device" ]; then
+	hold "watchdog_contract=unsafe class_device=${class_device:-unresolved} platform_device=${platform_device:-unresolved}"
+fi
+if [ "$identity" != mtk-wdt ] && [ "$platform_driver" != mtk-wdt ]; then
+	hold "watchdog_contract=unsafe identity=$identity platform_driver=$platform_driver"
+fi
+/bin/v-record "watchdog_association=exact class_device=$class_device platform_driver=$platform_driver"
+if [ "$identity" != mtk-wdt ]; then
+	/bin/v-record "watchdog_observation=invalid identity=$identity platform_driver=$platform_driver recovery=continue"
+fi
+if [ "$timeout" != "$WATCHDOG_TIMEOUT_SECONDS" ]; then
+	/bin/v-record "watchdog_observation=invalid timeout=$timeout expected=$WATCHDOG_TIMEOUT_SECONDS recovery=continue"
+fi
+case "$pretimeout" in
+	0|unavailable) ;;
+	*) /bin/v-record "watchdog_observation=invalid pretimeout=$pretimeout expected=0 recovery=continue" ;;
+esac
+
+/bin/v-record 'watchdog0=opening ownership=userspace-fd3'
+# A boot-enabled timer can have one kernel keepalive pending. One immediate
+# ping hands ownership to userspace and cancels it. fd 3 then stays open in
+# this worker without another write, close, magic character, or reset command.
+if exec 3>/dev/watchdog0; then
+	if printf '.' >&3; then
+		/bin/v-record "watchdog0=armed handoff_ping=sent timeout_seconds=$WATCHDOG_TIMEOUT_SECONDS"
+	else
+		hold 'watchdog0=handoff-ping-failed'
+	fi
+else
+	hold 'watchdog0=open-failed'
+fi
+
+elapsed=0
+while [ "$elapsed" -lt "$WATCHDOG_FAILURE_SECONDS" ]; do
+	sleep 1
+	elapsed=$((elapsed + 1))
+	case "$elapsed" in
+		5|10|15|20|25|30|35|40)
+			/bin/v-record "watchdog_wait=${elapsed}s fd3=retained further_pings=none"
+			;;
+	esac
+done
+
+hold 'watchdog_expiry_failed boundary=40s'

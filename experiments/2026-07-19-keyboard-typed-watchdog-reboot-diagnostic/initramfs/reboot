@@ -1,0 +1,110 @@
+#!/bin/busybox sh
+# shellcheck shell=dash
+
+export PATH=/bin
+readonly WATCHDOG_TIMEOUT_SECONDS=31
+readonly WATCHDOG_FAILURE_SECONDS=40
+readonly LIVE_WATCHDOG=/sys/firmware/devicetree/base/watchdog@10007000
+readonly PLATFORM_WATCHDOG=/sys/bus/platform/devices/10007000.watchdog
+readonly CLASS_WATCHDOG=/sys/class/watchdog/watchdog0
+readonly LIVE_RAMOOPS=/sys/firmware/devicetree/base/reserved-memory/ramoops@44410000
+readonly PLATFORM_RAMOOPS=/sys/bus/platform/devices/44410000.ramoops
+
+refuse() {
+	reason=$1
+	/bin/x-record "manual_reboot=refused reason=$reason watchdog_armed=no"
+	printf 'Candidate Y: reboot refused; watchdog was not armed (%s).\n' "$reason" >&2
+	exit 1
+}
+
+hold_armed() {
+	/bin/x-record "$*; STATIC HOLD"
+	printf '\nCandidate Y: watchdog reset is overdue; fd3 remains open with no further writes.\n' >&2
+	while :; do
+		/bin/busybox sleep 3600
+	done
+}
+
+printf '%s\n' 'Candidate Y: typed reboot received; watchdog is not armed; validating exact runtime contract.'
+/bin/x-record 'manual_reboot=requested trigger=typed method=mtk-wdt-expiry watchdog_armed=no storage_access=none'
+
+[ -d "$LIVE_WATCHDOG" ] || refuse live-watchdog-node-unavailable
+[ ! -e "$LIVE_WATCHDOG/interrupts" ] || refuse live-watchdog-interrupts-present
+[ -c /dev/watchdog0 ] || refuse watchdog0-not-character-device
+[ -c /dev/kmsg ] || refuse kmsg-not-character-device
+[ -d "$LIVE_RAMOOPS" ] || refuse live-ramoops-node-unavailable
+[ -d "$PLATFORM_RAMOOPS" ] || refuse ramoops-platform-unavailable
+
+ramoops_driver=unbound
+if [ -L "$PLATFORM_RAMOOPS/driver" ]; then
+	ramoops_driver="$(/bin/readlink "$PLATFORM_RAMOOPS/driver" 2>/dev/null || true)"
+	ramoops_driver=${ramoops_driver##*/}
+fi
+[ "$ramoops_driver" = ramoops ] || refuse ramoops-driver-mismatch
+
+class_device="$(/bin/readlink -f "$CLASS_WATCHDOG/device" 2>/dev/null || true)"
+platform_device="$(/bin/readlink -f "$PLATFORM_WATCHDOG" 2>/dev/null || true)"
+[ -n "$class_device" ] || refuse watchdog-class-device-unresolved
+[ -n "$platform_device" ] || refuse watchdog-platform-device-unresolved
+[ "$class_device" = "$platform_device" ] || refuse watchdog-class-platform-mismatch
+
+platform_driver=unbound
+if [ -L "$PLATFORM_WATCHDOG/driver" ]; then
+	platform_driver="$(/bin/readlink "$PLATFORM_WATCHDOG/driver" 2>/dev/null || true)"
+	platform_driver=${platform_driver##*/}
+fi
+[ "$platform_driver" = mtk-wdt ] || refuse watchdog-platform-driver-mismatch
+
+identity=unavailable
+timeout=unavailable
+pretimeout=unavailable
+status=unavailable
+[ ! -r "$CLASS_WATCHDOG/identity" ] || identity="$(/bin/cat "$CLASS_WATCHDOG/identity" 2>/dev/null || true)"
+[ ! -r "$CLASS_WATCHDOG/timeout" ] || timeout="$(/bin/cat "$CLASS_WATCHDOG/timeout" 2>/dev/null || true)"
+[ ! -r "$CLASS_WATCHDOG/pretimeout" ] || pretimeout="$(/bin/cat "$CLASS_WATCHDOG/pretimeout" 2>/dev/null || true)"
+[ ! -r "$CLASS_WATCHDOG/status" ] || status="$(/bin/cat "$CLASS_WATCHDOG/status" 2>/dev/null || true)"
+[ "$identity" = mtk-wdt ] || refuse watchdog-identity-mismatch
+[ "$timeout" = "$WATCHDOG_TIMEOUT_SECONDS" ] || refuse watchdog-timeout-mismatch
+case "$pretimeout" in
+	0|unavailable) ;;
+	*) refuse watchdog-pretimeout-mismatch ;;
+esac
+
+/bin/x-record "manual_reboot=validated class_device=$class_device platform_driver=$platform_driver identity=$identity timeout=$timeout pretimeout=$pretimeout status=$status ramoops_driver=$ramoops_driver"
+printf '%s\n' 'Candidate Y: exact watchdog and durable-marker contracts passed; arming now.'
+
+# Once open succeeds, no signal handled by this shell may close fd3 and send
+# the watchdog core's release-time ping. SIGKILL/SIGSTOP remain untrappable.
+trap '' HUP INT QUIT TERM TSTP
+/bin/x-record 'watchdog0=opening ownership=typed-reboot-fd3'
+if exec 3>/dev/watchdog0; then
+	if printf '.' >&3; then
+		/bin/x-record "manual_reboot=armed watchdog0=armed handoff_ping=sent timeout_seconds=$WATCHDOG_TIMEOUT_SECONDS fd3=retained further_pings=none"
+	else
+		hold_armed 'manual_reboot=armed-uncertain watchdog0=handoff-ping-failed fd3=retained further_pings=none'
+	fi
+else
+	refuse watchdog0-open-failed
+fi
+
+elapsed=0
+remaining=$WATCHDOG_TIMEOUT_SECONDS
+printf 'Candidate Y: hardware watchdog armed; reset expected in %2s seconds.' "$remaining"
+while [ "$elapsed" -lt "$WATCHDOG_FAILURE_SECONDS" ]; do
+	/bin/busybox sleep 1
+	elapsed=$((elapsed + 1))
+	if [ "$elapsed" -le "$WATCHDOG_TIMEOUT_SECONDS" ]; then
+		remaining=$((WATCHDOG_TIMEOUT_SECONDS - elapsed))
+		printf '\rCandidate Y: hardware watchdog armed; reset expected in %2s seconds.' "$remaining"
+	else
+		printf '\rCandidate Y: reset overdue by %2s seconds; fd3 retained, no ping.  ' \
+			"$((elapsed - WATCHDOG_TIMEOUT_SECONDS))"
+	fi
+	case "$elapsed" in
+		5|10|15|20|25|30|35|40)
+			/bin/x-record "manual_reboot=waiting elapsed_seconds=$elapsed fd3=retained further_pings=none"
+			;;
+	esac
+done
+
+hold_armed 'manual_reboot=watchdog-expiry-failed boundary_seconds=40 fd3=retained further_pings=none'

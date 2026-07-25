@@ -1,0 +1,31 @@
+From 0000000000000000000000000000000000000088 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 21 Jul 2026 20:15:00 -0400
+Subject: [PATCH] dt-bindings: regulator: da9211: make interrupts optional
+
+The DA9211 regulator driver already treats client->irq == 0 as a
+supported configuration: it registers the regulators, skips the
+over-current IRQ setup, and emits a warning.  The binding nevertheless
+requires an interrupt for all
+DA9211--DA9215 and DA9223--DA9225 variants.
+
+Some boards use these regulators without wiring the interrupt.  Make the
+property optional so the schema describes the driver's existing contract.
+When present, the interrupt continues to have the same one-item constraint.
+
+---
+ Documentation/devicetree/bindings/regulator/dlg,da9211.yaml | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/Documentation/devicetree/bindings/regulator/dlg,da9211.yaml b/Documentation/devicetree/bindings/regulator/dlg,da9211.yaml
+--- a/Documentation/devicetree/bindings/regulator/dlg,da9211.yaml
++++ b/Documentation/devicetree/bindings/regulator/dlg,da9211.yaml
+@@ -62,6 +62,5 @@ required:
+   - compatible
+   - reg
+-  - interrupts
+   - regulators
+ 
+ additionalProperties: false
+-- 
+2.43.0

@@ -1,0 +1,53 @@
+#!/bin/busybox sh
+# shellcheck shell=dash
+
+export PATH=/bin
+readonly WAIT_SECONDS=30
+
+waited=0
+while [ ! -d /sys/class/net/usb0 ] && [ "$waited" -lt "$WAIT_SECONDS" ]; do
+	/bin/busybox sleep 1
+	waited=$((waited + 1))
+done
+if [ ! -d /sys/class/net/usb0 ]; then
+	/bin/ac-record 'usb0=timeout wait_seconds=30 worker=exit'
+	exit 1
+fi
+/bin/ac-record "usb0=present wait_seconds=$waited"
+
+if ! /bin/busybox ip link set usb0 up >/run/ac-ip-link.status 2>&1; then
+	/bin/ac-record 'usb0=link-up-failed worker=exit'
+	exit 1
+fi
+if ! /bin/busybox ip address add 10.15.19.82/24 dev usb0 \
+		>/run/ac-ip-address.status 2>&1; then
+	/bin/ac-record 'usb0=address-failed address=10.15.19.82/24 worker=exit'
+	exit 1
+fi
+
+operstate=unavailable
+carrier=unavailable
+if [ -r /sys/class/net/usb0/operstate ]; then
+	operstate="$(/bin/busybox cat /sys/class/net/usb0/operstate 2>/dev/null || true)"
+fi
+if [ -r /sys/class/net/usb0/carrier ]; then
+	carrier="$(/bin/busybox cat /sys/class/net/usb0/carrier 2>/dev/null || true)"
+fi
+
+udc_name=absent
+udc_state=unavailable
+for udc_path in /sys/class/udc/*; do
+	[ -d "$udc_path" ] || continue
+	udc_name=${udc_path##*/}
+	if [ -r "$udc_path/state" ]; then
+		udc_state="$(/bin/busybox cat "$udc_path/state" 2>/dev/null || true)"
+	fi
+	break
+done
+
+/bin/ac-record "usb0=configured address=10.15.19.82/24 operstate=${operstate:-unavailable} carrier=${carrier:-unavailable} udc=${udc_name:-absent} udc_state=${udc_state:-unavailable}"
+/bin/ac-record 'service=nc status=listening address=10.15.19.82 port=2323 shell=/bin/usb-shell authentication=none encryption=none direct_link_only=yes'
+/bin/busybox nc -ll -p 2323 -e /bin/usb-shell 2>/run/ac-nc.status
+status=$?
+/bin/ac-record "service=nc status=exited code=$status worker=exit"
+exit "$status"

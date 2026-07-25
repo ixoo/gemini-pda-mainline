@@ -4,33 +4,36 @@ This is the implementation-facing map of the Gemini's running MediaTek 3.18
 device tree. It records resources that can seed Linux 7.1.x SoC nodes and
 driver data while separating reusable hardware facts from vendor bindings.
 
-Current build note (2026-07-14): the 77-patch package
-`linux-7.1.3-gemini-6116c9e7da3f` is the current Image/DTB baseline; older
-package links are historical build evidence. The current SPI
-working series adds patches 0072–0073 and produces
+Historical build note (2026-07-14): the then-current 77-patch package
+`linux-7.1.3-gemini-6116c9e7da3f` was the Image/DTB baseline at that
+checkpoint; older package links were historical build evidence. The
+then-current SPI working series added patches 0072–0073 and produced
 `linux-7.1.3-gemini-c2feb465d6c6` (74 patches). Its disabled-node contract and
 focused binding/package validation are recorded in the [SPI patch validation](../../experiments/2026-07-14-upstream-mt6797-coverage-audit/results/spi-mainline-patch-validation-c2feb-20260714.txt).
 Any `current-71` result names retained below are historical package records;
-the current 74-patch package provenance is in the [integration result](../../experiments/2026-07-13-kernel-integration/results/mainline-74-patch-current-20260714.txt)
+the then-current 74-patch package provenance is in the [integration result](../../experiments/2026-07-13-kernel-integration/results/mainline-74-patch-current-20260714.txt)
 and its LK packaging is in the [current 74-patch candidate result](../../experiments/2026-07-12-boot-contract-recovery/results/mainline-74-lk-candidate-current-20260714.txt).
-The latest 77-patch Image/DTB package is
+The then-latest 77-patch Image/DTB package was
 `linux-7.1.3-gemini-6116c9e7da3f`; its private LK-compatible wrapper and
 parser hashes are in the [77-patch candidate result](../../experiments/2026-07-12-boot-contract-recovery/results/mainline-77-lk-candidate-diagnostics-current-20260714.txt).
-It remains untransferred and unbooted.
+It was untransferred and unbooted at that historical checkpoint.
 The older subsystem audits remain valid content evidence because patches
-0072–0073 only add disabled SPI support. The current LK FDT/reservation decision is recorded
+0072–0073 only add disabled SPI support. The historical LK FDT/reservation decision is recorded
 in the [fixup audit](../../experiments/2026-07-13-lk-fdt-fixup-recovery/README.md).
-The current package's linked-in/module-only ownership boundary is in the
+That package's linked-in/module-only ownership boundary is in the
 [77-patch driver coverage audit](../../experiments/2026-07-13-driver-coverage-audit/results/driver-coverage-current-77-package-20260714.txt),
 the first-boot dependency graph is in the [current first-boot audit](../../experiments/2026-07-14-first-boot-probe-audit/results/first-boot-probe-audit-current-77-package-20260714.txt),
 and the packaged DT passes the [current merged-schema validation](../../experiments/2026-07-14-first-boot-probe-audit/results/gemini-dtb-schema-current-72-package-20260714.txt).
-The current 74-patch first-boot rerun and all-three-board schema result are
+The historical 74-patch first-boot rerun and all-three-board schema result are
 [`first-boot-probe-audit-current-74-package-20260714.txt`](../../experiments/2026-07-14-first-boot-probe-audit/results/first-boot-probe-audit-current-74-package-20260714.txt)
 and [`mt6797-dtb-schema-bounded-current-74-20260714.txt`](../../experiments/2026-07-14-first-boot-probe-audit/results/mt6797-dtb-schema-bounded-current-74-20260714.txt);
 they preserve the same built-in UART/PWRAP/MT6351/MSDC chain while covering
 the SPI additions.
-The built-in UART/PSCI/timer/GIC/eMMC/watchdog handoff contract is checked by
-the [current static handoff closure](../../experiments/2026-07-13-mainline-handoff-closure/results/handoff-closure-current-72-package-20260714.txt).
+The built-in UART/PSCI/timer/GIC/eMMC/watchdog handoff contract at that
+checkpoint is checked by the [current static handoff closure](../../experiments/2026-07-13-mainline-handoff-closure/results/handoff-closure-current-72-package-20260714.txt).
+Later sections record the canonical 93-entry series and exact Candidate AK
+hardware control result; those later records supersede this historical build
+checkpoint.
 
 ## Evidence chain
 
@@ -77,7 +80,7 @@ before upstream submission.
 | SPI0–5 | `0x1100a000`, `0x11012000`, `0x11018000`–`0x1101b000` + `0x1000` each | SPIs 122, 131–135 LOW | `CLK_TOP_MUX_SPI`/`syspll3_d2` parent and `INFRA_SPI`/`SPI1`–`SPI5` gates; vendor pad macros 0/1 | Patches 0072–0073 now map the recovered register/timing layout to Linux `spi-mt65xx` `mt6765_compat` (enhanced 16-bit timing, pad selection, mandatory TX, extended DMA) and add six disabled DT nodes with standard three-clock descriptions. SPI1 wiring is recovered as GPIO234–237 (`SPI1_*_B`), but the vendor DT's empty default plus explicit GPIO/SPI function switching is not yet reducible to a proven static mainline pinctrl state. Runtime transfer remains unproven. See the [SPI reuse audit](../../experiments/2026-07-14-upstream-mt6797-coverage-audit/results/spi-mt6797-controller-reuse-20260714.txt), [SPI1 pinctrl contract](../../experiments/2026-07-14-upstream-mt6797-coverage-audit/results/spi1-pinctrl-contract-20260714.txt), and [patch validation](../../experiments/2026-07-14-upstream-mt6797-coverage-audit/results/spi-mainline-patch-validation-c2feb-20260714.txt) |
 | Hall/lid input | GPIO66; no MMIO block | EINT5, level-low initial | Pinctrl pull-up; debounce `0xfa00` (64 ms); vendor switch class `hall`, shared `ACCDET` EV_SW | Standard `gpio-keys` `EV_SW/SW_LID` candidate; verify polarity, debounce units, and wake policy before enabling |
 | Toggle input | GPIO93; no MMIO block | EINT16, level-low initial | Pinctrl pull-up; debounce `0x7d000` (512 ms); vendor source labels the board node `anti-tamper`, emits F9/F10 pulses, and exposes switch class `switch` | Do not copy Android switch class; identify physical function, then choose a standard EV_SW or key policy |
-| TOPRGU watchdog | `0x10007000` + `0x1000` | 137 EDGE_FALLING | Vendor WDK keepalive; application TOPRGU bark line global IRQ169 | Linux 7.1.3 generic `mtk_wdt` is protocol-compatible; Candidate M proved basic no-IRQ registration and a 31-second timeout reset with automatic Gemian return, Candidate O retained that recovery through one complete CPU1–7 hotplug sweep, and Candidate P preserved the exact timer trace plus an owner-observed unassisted return. P's post-return collector did not independently capture its reset reason. SPI137 bark/pretimeout remains untested; Q deliberately does not open a userspace watchdog |
+| TOPRGU watchdog | `0x10007000` + `0x1000` | 137 EDGE_FALLING | Vendor WDK keepalive; application TOPRGU bark line global IRQ169 | Linux 7.1.3 generic `mtk_wdt` is protocol-compatible; Candidate M proved basic no-IRQ registration and a 31-second timeout reset with automatic Gemian return, Candidate O retained that recovery through one complete CPU1–7 hotplug sweep, and Candidate P preserved the exact timer trace plus an owner-observed unassisted return. Candidate AB patch 0087 raises only MT6797's restart priority to 255 ahead of PSCI 129; one current-unit run retained a 27.854 ms request-to-final-kernel-line interval and returned immediately by owner observation, without a userspace watchdog or countdown. Exact AH attempt 2 again had no userspace watchdog/countdown and retained `mtk-wdt ... shutdown` to final restart 26.273 ms apart before a changed-boot-ID Gemian return. SPI137 bark/pretimeout and exact-candidate restart repeatability remain untested; the returned watchdog-class reason does not distinguish TOPRGU software reset from expiry |
 | M4U | `0x10205000` + `0x1000` | 156 LOW | seven SMI larbs; 15 vendor clock/domain handles | Add MT6797 IOMMU platform data, binding, port header, SMI relationships, and DTS |
 | CMDQ/GCE | `0x10212000` + `0x1000` | 152 LOW normal; 153 LOW vendor secure path | `infra_gce` ID 10, 136.5 MHz, gated when idle; live normal IRQ activity | Local binding/header and standalone mailbox provider use the 16-thread MT8173 register/address fallback; expose only normal SPI152 |
 | USB 1 | `0x11200000` + `0x1000`; SIF `0x11210000` + `0x1000` | 73 LOW | infra ICUSB and SSUSB reference clocks | Standard MUSB-like core, but distinct MT6797 USB11 SIF/PHY, `0xa0`/`0xa4`/`0xa8` level-1 IRQ block, six-endpoint host contract, and two-clock glue; reuse MUSB core only after the USB11 boundary is modeled |
@@ -87,7 +90,7 @@ before upstream submission.
 | BTIF | `0x1100c000` + `0x1000`; TX `0x11000a00` + `0x80`; RX `0x11000a80` + `0x80` | 130/116/117 LOW | `INFRA_BTIF` and `INFRA_AP_DMA`; consys BGF wake uses SPI 284 | Reuse Linux STP/H:4 and HCI layers where proven; add an MT6797 BTIF/DMA transport, not `/dev/stpwmt` |
 | MSDC0 | `0x11230000` + `0x10000` | 79 LOW | `CLK_INFRA_MSDC0` | Add MT6797 data to `mtk-sd`, then internal eMMC DTS |
 | MSDC1 | `0x11240000` + `0x10000` | 80 LOW | `CLK_INFRA_MSDC1` | Add microSD only after pinctrl, rails, and voltage switching are modeled |
-| USB 3 | `0x11270000`, `0x11280000`, `0x11290000`, each `0x10000` | MUSB 127 LOW; xHCI 126 LOW | vendor node combines dual-role and host views | Strong MTU3/xHCI reuse candidate: split MTU3 `mac = 0x11271000 + 0x3000`, `ippc = 0x11280700 + 0x100`, and xHCI child `mac = 0x11270000 + 0x1000`; add MT6797 clock/rail/PHY/role data after validation |
+| USB 3 | `0x11270000`, `0x11280000`, `0x11290000`, each `0x10000` | MUSB 127 LOW; xHCI 126 LOW | vendor node combines dual-role and host views | Split MTU3 `mac = 0x11271000 + 0x3000`, `ippc = 0x11280700 + 0x100`, and xHCI child `mac = 0x11270000 + 0x1000`. The exact peripheral-only diagnostic path now has direct-link gadget-Ethernet runtime through interface/carrier/ping/TCP shell; host/xHCI, rail ownership, role switching, VBUS, and Type-C remain unproved |
 | Mali-T88x/T880-family | `0x13040000` + `0x4000` | job 264 LOW; MMU 263 LOW; GPU 262 LOW | Runtime ID `0x0880`; 700 MHz DT target; 13 vendor clock/domain handles | Panfrost core model is reusable; MT6797 CCF/SCPSYS/reset/OPP integration remains disabled and unverified |
 | MMSYS | `0x14000000` + `0x1000` | 232 LOW | upstream MT6797 MMSYS clock provider exists; retained active routing state | Local 29-route table, 64 resets, and GCE tuple; do not reuse the vendor aggregate `dispsys` ABI |
 | Display mutex | `0x1401f000` + `0x1000` | 202 LOW | MM power domain; no dedicated clock; live vendor IRQ activity | Local binding, dedicated module/SOF data, and standalone provider; DRM consumers remain separate |
@@ -195,8 +198,9 @@ three groups; they are not an OPP/voltage contract. The PSCI node is
 The architectural timer is `arm,armv8-timer`, with GIC PPIs 13, 14, 11, and 10
 and a 13 MHz counter frequency. The running downstream kernel selects
 `arch_sys_counter` and `arch_sys_timer`; MT6797 `cpuxgpt` IRQs are separate
-vendor timers. Linux 7.1.3's generic PSCI and `arm_arch_timer` implementations
-therefore match the observed contract and do not need a new CPU/timer driver.
+vendor timers. Linux 7.1.3's `arm_arch_timer` and generic PSCI paths match the
+observed timer and Cortex-A53 contract. The Cortex-A72 `CPU_ON` path has a
+separate power-sequencing boundary and is not validated by that reuse result.
 
 The downstream DT also names vendor idle states with PSCI parameters
 `0x00010000` and `0x01010000`. They depend on MT6797 SPM/PCM firmware and remain
@@ -229,16 +233,49 @@ record contains the 5- and 10-second post-success waits before the automatic
 watchdog recovery cycle.
 
 This establishes generic PSCI reuse for the seven secondary Cortex-A53
-hotplug paths in one run. It does not establish repeatability, boot-time SMP,
-stress, coherency, DVFS, idle states, thermal behavior, or either Cortex-A72
-online path. Candidate P changed only framebuffer-console rotation and its
+hotplug paths in one run. Candidate AD later booted with `maxcpus=8`, retained
+CPU0–7 online with advancing accounting, and kept CPU8/9 offline, establishing
+one boot-time eight-A53 pass. Exact AH attempt 2 independently reported
+`possible=0-9`, `present=0-9`, `online=0-7`, and `offline=8-9`; CPU0–7
+accounting advanced, while CPU8/9 remained unrequested. These results do not
+establish stress, coherency, DVFS, idle states, thermal behavior, or either
+Cortex-A72 online path. Corrected Candidate AI keeps generic PSCI for CPU0–7
+and gives CPU8/9 a fail-closed boot method that returns before `PSCI_CPU_ON`.
+Its independently reproduced package and artifact, guarded installation,
+readable console, exact USB runtime, native reboot, changed-Gemian return, and
+post-cycle full `boot2` integrity passed. CPU0–7 advanced and CPU8/9 stayed
+offline and unrequested, completing AI's eight-A53 baseline without exercising
+an A72 path. Exact Candidate AK attempt 1 retained `possible/present=0-9`,
+`online=0-7`, and `offline=8-9`; CPU0–7 accounting advanced through a
+45-plus-5-second stability window. Exactly one CPU8 gate rejection and one
+CPU8 `-11` were followed in order by exactly one CPU9 gate rejection and one
+CPU9 `-11`. Neither A72 made a secondary transition, and no other fault
+signature appeared. The owner attested that the console was readable, although
+no console capture was recorded. One native reboot request disconnected USB,
+returned to distinct-boot-ID known-good Gemian, and left the full post-return
+`boot2` hash matching exact AK. These are separate runtime, native-reboot,
+changed-Gemian-return, and post-return gates, not a paired cycle observation
+(`paired_cycle_observer=no`). Both fail-closed dispatch controls passed, but
+CPU8 and CPU9 remained offline and no Cortex-A72 support claim is established.
+Candidate P changed only
+framebuffer-console rotation and its
 post-return pstore retained every O success checkpoint and final `online=0-7`
-marker in one attributable run. Candidate Q returns to CPU0-only execution and
-performs no CPU-online writes so its keyboard/shell observations are not a new
-SMP test. See the
+marker in one attributable run. Candidate Q was configured for CPU0-only
+execution and no CPU-online writes, but its intended selection supplied no
+working console marker or pstore, so Q adds no CPU runtime evidence. Candidate
+U was independently built twice and installed to live-resolved logical
+`boot2`. Its first intended selection produced a black screen and no visible
+marker; later post-return pstore was empty. Its configuration kept CPU0-only
+isolation, so U adds no CPU runtime evidence. Candidate V also keeps CPU0-only
+isolation and performs no CPU-online writes. Attempt 1 proved V kernel/initramfs
+entry, but made no secondary-CPU request, so it adds no SMP evidence. See the
 [Candidate N runtime record](../../experiments/2026-07-18-cpu1-online-diagnostic/results/runtime-candidate-n-attempt-1-20260718.txt)
 and [Candidate O runtime record](../../experiments/2026-07-18-cortex-a53-sweep-diagnostic/results/runtime-candidate-o-attempt-1-20260718.txt),
-plus the [Candidate P runtime record](../../experiments/2026-07-18-fbcon-rotation-diagnostic/results/runtime-candidate-p-attempt-1-20260718.txt).
+plus the [Candidate P runtime record](../../experiments/2026-07-18-fbcon-rotation-diagnostic/results/runtime-candidate-p-attempt-1-20260718.txt),
+[Candidate AD experiment](../../experiments/2026-07-21-smp8-boot-diagnostic/README.md),
+[AH attempt-2 result](../../experiments/2026-07-22-ad-contract-af-kernel-split/results/runtime-candidate-ah-attempt-2-20260722.txt),
+[Candidate AI](../../experiments/2026-07-22-a72-reject-gate-kernel-split/README.md),
+and [AK attempt 1](../../experiments/2026-07-22-a72-reject-cpu9-request/results/hardware-attempt-1-20260723.txt).
 
 See the [CPU/PSCI/timer recovery experiment](../../experiments/2026-07-13-cpu-psci-timer-recovery/README.md)
 and its [source validation](../../experiments/2026-07-13-cpu-psci-timer-recovery/results/mainline-cpu-psci-timer-validation.txt).
@@ -283,6 +320,73 @@ makes a direct writable CCF mapping unsafe; a dedicated MT6797 CPU-clock
 backend is justified even though the generic MediaTek PLL math and cpufreq/OPP
 framework remain reusable. The source-derived field map and staged ownership
 plan are in the [CPU clock backend source design](../../experiments/2026-07-12-mt6797-clock-power-reset-recovery/results/mt6797-cpu-clock-backend.md) and the [current 72-patch source audit](../../experiments/2026-07-12-mt6797-clock-power-reset-recovery/results/mt6797-cpu-clock-backend-current-72-20260714.txt).
+
+The 2026-07-22 offline firmware/power audit narrows the initial A72-on
+ownership further. Linux performs external DA9214 BUCKB enable, temporary
+TOPRGU PWRAP reset, MP2 reset release, external-buck isolation clearing, the
+SRAM-LDO request, and a post-success MP2 DCM toggle. Captured secure firmware's
+PSCI path owns the initial B PLL/mux/divider, MP2 cluster and CPU8/9
+MTCMOS/reset, internal bus protection, and CCI coherency admission. The
+captured SRAM-LDO service always returns zero, so independent readback—not its
+return code—must prove state. The vendor off path supplies no safe inverse for
+isolation, reset, PLL, DCM, or shared BUCKB ownership. After isolation is
+cleared, an implementation must retain power on failure, fault without retry,
+and expose no CPU hotplug-off callback. Draft patch 0093 remains unsafe and
+unselected. A bounded, non-mutating Gemian userspace observer completed 180
+one-second samples without a natural A72 transition. It retained only the
+serialized DA9214 `0xd9` callback value, cached B rate, and unprotected derived
+CCI rate; no synchronized DA9214 page/enable, SPM, TOPRGU, secure-register,
+DVFSP-locked clock, or MP2 DCM state was exposed. A later bounded two-worker
+pulse directly observed CPU8 online and then offline, but its sequential
+observer still missed the transaction. Candidate AL tested the mainline
+I2C6/DA9214 resource-only predecessor without requesting either A72. I2C6
+bound and exact `0x68` client creation passed, but the upstream DA9211-family
+probe read unsupported ID `0x0`, returned `ENODEV`, and registered neither
+regulator. The focused evidence reported no timeout or NACK. Candidate AN then
+kept I2C6 disabled and read only CSPM plus the infracfg I2C_APPM gate. Its
+three measurements had identical register payloads and were stable/reset-like,
+but I2C_APPM was ungated; the driver and an independent classifier both
+returned `unknown`. This is not an ownership transfer. Subsequent exact-active
+binary recovery proves that vendor stop is reversible and that
+`SEMA_I2C_DRV` is a pause-source state machine, not a CSPM hardware semaphore.
+The I2C controller must already hold the shared I2C_APPM clock before acquire;
+release follows every transfer result after successful acquire. External
+binary recovery found no direct LK/TEE/SCP PCM restart writer, although ATF
+still writes keyed CSPM `+0`/the secure semaphore and an SCP-local alias is
+unexcluded. Candidate AO then tested a receiver-side one-way normalization on
+the exact named unit and full-readback-verified `boot2` revision. Six samples
+retained Candidate AN's exact stopped PCM signature. I2C_APPM was ungated for
+three initial samples and while one CCF reference was held, became gated after
+exactly one balanced disable, and remained gated at the 45-second check.
+Driver counters and an independent raw-snapshot classifier agreed on one
+attempt, one enable, one disable, one passed late check, and zero faults.
+I2C6 remained disabled/childless with no platform device, adapter, client,
+regulator, DA9214, or A72 activity. This is high-confidence evidence for the
+exact boot's one-way clock-accounting normalization, not a global firmware
+exclusion, resume result, I2C transfer, or regulator authorization. The known
+CCF references are assigned to running DVFSP, I2C6 transactions, and enabled
+A72 iDVFS. Candidate AP then added the separate access-controller dependency
+and enabled only childless I2C6. Its exact live FDT passed and the provider
+granted access once after the late check. I2C_APPM regated after the consumer
+clock hold, but AP_DMA remained valid and ungated in all 32 cleanup samples;
+the provider faulted and I2C6 returned `-EIO` before adapter bind or transfer.
+AP_DMA was already ungated in AP's initial samples, and enabled UART0 and I2C5
+reference the same gate in its exact DT. This narrows the next question to
+existing/shared ownership without attributing the reference to either
+consumer. Candidate AM, the first active CPU8 experiment, remains HOLD pending
+a corrected regulator prerequisite, an attributable AP_DMA observation and
+baseline-preserving I2C6 cleanup contract, separate resume handling, and that
+owner-synchronized power-state contract.
+See the
+[A72 firmware/power contract](../../experiments/2026-07-22-a72-firmware-power-contract/README.md),
+[load-assisted CPU8 observation](../../experiments/2026-07-23-gemian-a72-load-assisted-observation/results/live-attempt-1-20260723.txt),
+[Candidate AL runtime](../../experiments/2026-07-23-da9214-resource-only/results/runtime-candidate-al-attempt-1-20260723.txt),
+[Candidate AN runtime](../../experiments/2026-07-24-mt6797-dvfsp-handoff-observer/results/runtime-candidate-an-validated-20260724.txt),
+[exact DVFSP/I2C6 arbitration recovery](../../experiments/2026-07-24-mt6797-dvfsp-i2c6-arbitration/README.md),
+and the
+[Candidate AO runtime](../../experiments/2026-07-24-mt6797-dvfsp-one-way-handoff/results/runtime-candidate-ao-validated-20260724.txt),
+plus the
+[Candidate AP hardware result](../../experiments/2026-07-24-mt6797-dvfsp-i2c6-consumer/results/candidate-ap-hardware-20260724.txt).
 
 The vendor EEM/PTP block is active calibration logic for the same CPU domains.
 BIG/L/2L/CCI detectors use banks 0/3/4/5 and INIT01/INIT02/MON phases to turn
@@ -384,14 +488,51 @@ behavior. Candidate P preserved the exact identity, 31-second timeout,
 single-handoff-ping, sweep, and wait trace; the owner observed an unassisted
 Gemian return and post-return pstore retained the last line about 3.7 seconds
 before nominal expiry. Its collector began after recovery, so no tested-cycle
-boot-ID transition or independent reset reason was captured. Candidate Q must
-not open or ping `/dev/watchdog*` and must not deliberately auto-reset on its
-normal path. It retains `WATCHDOG_HANDLE_BOOT_ENABLED=y` and must re-audit the
-pinned kernel's boot-time keepalive worker before build so an inherited active
-hardware timer does not expire merely because userspace abstains. See the
+boot-ID transition or independent reset reason was captured. Candidate Q was
+designed not to open or ping `/dev/watchdog*` or deliberately auto-reset, but
+its missing console marker and empty pstore establish no Q execution or
+watchdog behavior. Candidate U's pinned Linux 7.1.3 watchdog-policy audit
+confirmed `WATCHDOG_HANDLE_BOOT_ENABLED=y` and the boot-time keepalive worker
+for a boot-running timer. Its initramfs deliberately opens no userspace
+watchdog. The first intended U selection stayed dark and did not automatically
+reboot; empty post-return pstore did not establish U entry or watchdog state.
+The audit remains static policy evidence and establishes no U watchdog
+behavior. Candidate V restores exact P's no-IRQ watchdog and ramoops DT state.
+Attempt 1 retained exact evidence that watchdog0 associated with
+`10007000.watchdog`/`mtk-wdt`, opened, accepted one handoff ping with timeout
+31, and reached waits through 30 seconds without a 35-second or expiry-failure
+marker. The device returned automatically; Gemian reported `boot_reason=4`,
+`androidboot.bootreason=wdt_by_pass_pwk`, and `powerup_reason=reboot`. This
+reproduces the basic no-IRQ watchdog recovery and pstore channel once, not
+repeatability, bark, pretimeout, or the optional IRQ path. See the
 [Candidate O runtime record](../../experiments/2026-07-18-cortex-a53-sweep-diagnostic/results/runtime-candidate-o-attempt-1-20260718.txt),
 [Candidate P runtime record](../../experiments/2026-07-18-fbcon-rotation-diagnostic/results/runtime-candidate-p-attempt-1-20260718.txt),
-and [Candidate Q handoff](../../experiments/2026-07-18-keyboard-shell-diagnostic/README.md).
+and [Candidate Q runtime record](../../experiments/2026-07-18-keyboard-shell-diagnostic/results/runtime-candidate-q-attempt-1-20260719.txt).
+
+Candidate AB tests ordinary restart separately from the earlier timeout
+recovery. Patch 0087 assigns priority 255 only to MT6797's TOPRGU restart
+notifier, ahead of PSCI priority 129, while the other MediaTek variants retain
+priority 128. The exact AA-r1-derived container has no userspace watchdog open,
+ping, countdown, fallback, or automatic reset. On the current Gemini unit, the
+owner reported a working keyboard/map, waited at least 45 seconds without an
+automatic reset, typed bare `reboot`, observed the reset trigger immediately,
+and reached Gemian again. Retained pstore attributes the request at 66.021584
+seconds and the final kernel `reboot: Restarting system` line at 66.049438
+seconds. That 27.854 ms interval is request-marker to final retained kernel
+line, not an instrumented LK-splash latency. The prior and returned Gemian boot
+IDs differ.
+
+This is high-confidence observation of one successful ordinary restart on the
+named unit. That the priority-255 TOPRGU callback won over PSCI is the
+high-confidence explanation from the exact patch/artifact and absence of an
+alternate userspace reset owner; the callback itself was not separately
+traced. The returned `wdt_by_pass_pwk` reason is nondiscriminating because
+direct TOPRGU software reset and watchdog expiry share that block-level class.
+The working 3.18 keyboard/controller behavior remains prior evidence for the
+carried I2C/AW9523 path, not restart-handler evidence. This one pass does not
+establish repeatability, broad MT6797 restart reliability, SPI137 bark, or
+pretimeout delivery. See the [Candidate AB experiment](../../experiments/2026-07-20-mt6797-kernel-restart-diagnostic/README.md)
+and [attempt-1 runtime record](../../experiments/2026-07-20-mt6797-kernel-restart-diagnostic/results/runtime-candidate-ab-attempt-1-20260721.txt).
 
 The live kernel enumerates 13 vendor thermal zones, all with
 `mode=disabled` and `policy=backward_compatible`. `mtktscpu` was about 25.1 °C
@@ -1391,14 +1532,99 @@ for the Gemini key symbols and Linux key codes, but the live image's
 capability bitmap does not match it for the Fn position. Keep that distinction
 explicit until the exact binary build is identified.
 
-Linux 7.1.3's `pinctrl-aw9523` already covers the AW9523/AW9523B silicon as a
-GPIO and IRQ expander, and its binding includes a keyboard-matrix example.
-Patch 0054 now supplies a disabled-only `gpio-matrix-keypad`/matrix-keymap
-consumer, translated keymap, GPIO58 reset, GPIO87/EINT10 interrupt, and
-expander pinctrl states. Do not create a second AW9523 silicon driver merely
-to preserve the vendor's polling implementation; choose IRQ versus bounded
-polling as a board-consumer policy. The candidate's GPIO-range mapping,
-row/column polarity, timing, and wake policy remain hardware gates.
+Linux 7.1.3's upstream `pinctrl-aw9523` already covers the AW9523/AW9523B
+silicon as a GPIO and IRQ expander, and its binding includes a keyboard-matrix
+example. Patch 0054 supplies a disabled-only
+`gpio-matrix-keypad`/matrix-keymap consumer and translated keymap; patch 0076
+records the active-low scan and inactive-column policy. Patch 0082 corrected
+the combined-controller `gpio-ranges`, added the I2C5/GPIO58/GPIO87 SoC pin
+states, and retained the upstream driver's `GPIO_ACTIVE_HIGH` reset contract.
+
+Q's candidate-only DT enabled I2C5/AW9523/matrix, but incorrectly supplied raw
+parent interrupt line 87—effectively EINT87—although GPIO87 maps to EINT10.
+Its exact image was reproducibly built, written to live-resolved logical
+`boot2`, and fully read back, yet the intended selection yielded no working
+text console, Q marker, AW9523/input observation, shell, or pstore. The static
+interrupt error is therefore actionable but not a proven cause; Q established
+no keyboard runtime behavior and must not be repeated unchanged. Patch 0085
+now corrects the reusable disabled board description to EINT10 for any future
+IRQ-mode experiment; that statically validated source change does not alter Q's
+record and is not runtime evidence.
+
+Candidate U was independently built twice with matching validated kernel, DTB,
+initramfs, and Android-v0 outputs. It was then installed to the live-resolved
+logical `boot2` with a matching full-partition readback. Its first intended
+selection produced a black screen and dark console with no marker or automatic
+reboot. The changed post-return Gemian boot ID and empty pstore do not establish
+U kernel, `/init`, or keyboard entry. Patches 0083–0085 and the matching builds
+remain build/static evidence, not runtime keyboard evidence. U keeps the upstream AW9523 driver and
+active-high reset semantics, omits the parent-IRQ and AW9523
+interrupt-controller path while retaining the GPIO87/EINT10 pinmux with no
+active consumer, and uses patches 0083 and 0084's explicit binding-described
+polling mode in the generic matrix consumer. The validated DT sets I2C5 to 400
+kHz, polls every 20 ms with a 2 us column-scan delay and no separate polling
+debounce, and retains `drive-inactive-cols`. This direction is
+informed by bsg100's hardware-working typing commit
+[`6bd4d572`](https://github.com/bsg100/gemini-linux/commit/6bd4d572670698f80ca08ad083657621b62cc8f3)
+and keyboard/USB-coexistence commit
+[`aff681d3`](https://github.com/bsg100/gemini-linux/commit/aff681d3c727137c4016376e12055d380867f5c3),
+without copying that older custom AW9523 driver or platform-data ABI. U's built
+initramfs starts its supervised shell independently of bounded event capture so
+a dead input path cannot withhold the console. U is CPU0-only by configuration
+and omits userspace-watchdog access. Its pinned Linux 7.1.3 watchdog-policy
+audit confirmed `WATCHDOG_HANDLE_BOOT_ENABLED` keepalive for a boot-running
+timer; that remains static policy evidence, not U runtime watchdog behavior.
+Row/column polarity, polling and debounce timing, inactive-column policy, and
+wake behavior remain hardware gates.
+
+Candidate V corrects U's packaging lineage by starting from exact P's final
+DTB rather than the kernel package DTB, then applying only a parsed allowlisted
+I2C5/AW9523/matrix transform. It also hard-pins the corrected polling patch,
+whose delayed-work lifecycle and suspend/resume synchronization were reviewed
+separately. Two fresh kernel builds and two complete V assemblies reproduced;
+the package, focused schemas, component validators, and all 24 negative
+mutation cases passed. The raw 6,864,896-byte image is SHA-256
+`9ef0ee8dc1eb49752f9cf8f60b247b9b85e4fd2a9f090473f1d91848114087b0`.
+Its installed padded `boot2` image and complete readback match SHA-256
+`57d362a86fae38c0ec2cec909ef6ae8d8ad124b87abb2ee58d179184c1f19168`.
+The install did not reboot the device. The owner later selected V from
+`boot2`, saw a visible console, and observed an automatic return. Retained
+`console-ramoops` contains the exact V marker and `tty1_shell=ready`, proving
+kernel/initramfs entry and local-shell's pre-exec recorder, but not `ash` exec,
+prompt visibility, or interactivity. AW9523 probe on I2C adapter 0 at address
+`0x5b` repeatedly failed `-110`/`ETIMEDOUT`, including the reset retry. The AW
+driver and matrix remained unbound and no input/event node appeared, isolating
+the keyboard attempt before matrix polling/input at the
+controller-to-AW9523 provider boundary. The owner had no usable shell or keyboard-test
+opportunity. Marker fanout to tty1 can bury the prompt, and V's matrix keymap
+lacks `KEY_SLASH` and `KEY_MINUS`, so `/bin/v-pass` is not normally typeable
+from it. Do not repeat unchanged V.
+
+The exact active 3.18 binary supplies the controller discriminator. Its AW9523
+read is a one-byte write plus one-byte read; its MT6797 master unconditionally
+selects hardware WRRD and programs the receive length at auxiliary offset
+`0x6c`. V has no direct MT6797 driver match and instead selects
+`mt6577_compat`, whose auto-restart value suppresses WRRD and whose
+`aux_len_reg = 0` does not reproduce that working path. Latest bsg100 records
+the same combined-read failure on another Gemini and a hardware pass after a
+direct `mediatek,mt6797-i2c` match using `mt8173_compat`; later builds retain
+that fix and report working keyboard input. Candidate W makes only that
+controller-data change while retaining V's exact DTB, AW9523 reset/cache, I2C
+frequency, matrix path, watchdog, and ramoops. Two clean packages and two final
+assemblies reproduced, all 24 mutation cases passed, and the exact W image was
+installed without reboot to live-resolved logical `boot2` with a matching full
+readback. The owner then selected W once. Retained exact-W evidence shows the
+I2C controller bound, client `0-005b` probed successfully and bound
+`aw9523-pinctrl`, the matrix bound and exposed `/dev/input/event0`, and
+press/release records for H, E, L, P, and Enter. The owner observed the shell
+and working keyboard and approved the larger font. This strongly supports the
+controller-data hypothesis for one limited-key run; it is not a captured I2C
+waveform, all-key test, or repeatability result. Kernel logs remained mixed
+with the foreground shell, and the deliberate watchdog open/one-ping sequence
+returned the unit automatically before useful work. No durable `pass` or shell
+command result exists. The
+[binary/controller audit](../../experiments/2026-07-19-keyboard-watchdog-diagnostic/results/working-3.18-aw9523-i2c-binary-audit-20260719.txt)
+records the addresses and source comparison.
 The vendor probe reads chip-ID register `0x10` and requires `0x23`, then uses
 software-reset register `0x7f` value `0x00`; this confirms the source-level
 AW9523 identity, but the live chip-ID byte was not retained in the sanitized
@@ -1411,6 +1637,68 @@ The current source recheck is
 [`aw9523-source-validation-20260714.txt`](../../experiments/2026-07-12-input-backlight-recovery/results/aw9523-source-validation-20260714.txt).
 The passive capability contradiction and build-date comparison are in
 [`live-keyboard-capability-compare-20260714.txt`](../../experiments/2026-07-12-input-backlight-recovery/results/live-keyboard-capability-compare-20260714.txt).
+Candidate Q's preserved records cover its [reproducible
+build](../../experiments/2026-07-18-keyboard-shell-diagnostic/results/final-build-reproduction-20260719.txt),
+[logical-`boot2` write/readback](../../experiments/2026-07-18-keyboard-shell-diagnostic/results/boot2-write-candidate-q-20260719.txt),
+and [non-diagnostic runtime
+result](../../experiments/2026-07-18-keyboard-shell-diagnostic/results/runtime-candidate-q-attempt-1-20260719.txt).
+Candidate U's lifecycle and runtime boundary are in its
+[experiment record](../../experiments/2026-07-19-keyboard-polling-diagnostic/README.md),
+[build reproduction](../../experiments/2026-07-19-keyboard-polling-diagnostic/results/final-build-reproduction-20260719.txt),
+and [logical-`boot2` write/readback](../../experiments/2026-07-19-keyboard-polling-diagnostic/results/boot2-write-candidate-u-20260719.txt),
+plus its [failed runtime result](../../experiments/2026-07-19-keyboard-polling-diagnostic/results/runtime-candidate-u-attempt-1-20260719.txt).
+Candidate V's build, install, and closed attempt-1 runtime boundary are recorded
+in its [experiment record](../../experiments/2026-07-19-keyboard-watchdog-diagnostic/README.md),
+[build reproduction](../../experiments/2026-07-19-keyboard-watchdog-diagnostic/results/final-build-reproduction-20260719.txt),
+[guarded write/readback](../../experiments/2026-07-19-keyboard-watchdog-diagnostic/results/boot2-write-candidate-v-20260719.txt),
+[runtime evidence](../../experiments/2026-07-19-keyboard-watchdog-diagnostic/results/runtime-candidate-v-attempt-1-20260719.txt),
+and [working 3.18 controller audit](../../experiments/2026-07-19-keyboard-watchdog-diagnostic/results/working-3.18-aw9523-i2c-binary-audit-20260719.txt).
+Candidate W's complete build/install and one-run boundary are recorded in its
+[experiment record](../../experiments/2026-07-19-keyboard-wrrd-diagnostic/README.md),
+[build reproduction](../../experiments/2026-07-19-keyboard-wrrd-diagnostic/results/final-build-reproduction-20260719.txt),
+[mutation result](../../experiments/2026-07-19-keyboard-wrrd-diagnostic/results/validator-mutations-20260719.txt),
+[guarded write/readback](../../experiments/2026-07-19-keyboard-wrrd-diagnostic/results/boot2-write-candidate-w-20260719.txt),
+and [runtime evidence](../../experiments/2026-07-19-keyboard-wrrd-diagnostic/results/runtime-candidate-w-attempt-1-20260719.txt).
+Candidate X retains this exact resource map and changes only
+console/userspace-reboot policy. Two clean packages reproduced 220
+non-timestamp files, two complete X artifacts are recursively identical, all
+32 LK gates passed, and 47/47 mutations were rejected. The selected raw image
+SHA-256 is
+`bf4003871daaba1faa293f2b128021d3a67d41ebf3ddff1c42463409803b9296`.
+It was installed without reboot to live-resolved logical `boot2` and fully read
+back with padded SHA-256
+`e89d71f15465b544db163b5f0b90b456e913c38ba4d2ed49aa7bde345148c855`.
+Those records prove stored bytes only. The owner subsequently reported that X
+booted and worked, but typed `reboot` appeared to hang. Power-key recovery and
+empty pstore do not establish clean tty1, exact X entry, X uptime, individual
+keyboard subgates, or the restart failure stage. See the [X experiment
+record](../../experiments/2026-07-19-keyboard-manual-reboot-diagnostic/README.md),
+[build reproduction](../../experiments/2026-07-19-keyboard-manual-reboot-diagnostic/results/final-build-reproduction-20260719.txt),
+[mutation result](../../experiments/2026-07-19-keyboard-manual-reboot-diagnostic/results/validator-mutations-20260719.txt),
+[write/readback](../../experiments/2026-07-19-keyboard-manual-reboot-diagnostic/results/boot2-write-candidate-x-20260719.txt),
+and [runtime](../../experiments/2026-07-19-keyboard-manual-reboot-diagnostic/results/runtime-candidate-x-attempt-1-20260719.txt).
+
+Candidate Y retained this exact resource map, kernel, DTB, and configuration,
+but an exact BusyBox command-dispatch audit rejected it before boot. Bare
+`reboot` bypasses its external wrapper, and Y was never selected.
+
+Candidate Z retains the same exact resource map, kernel, DTB, and configuration
+and changes four initramfs members plus adds read-only
+`bin/reboot-dispatch.env`. Two complete artifacts match recursively, the
+exact-BusyBox Linux-arm64 dispatch gate, 32/32 LK gates, and 75/75 mutation
+rejections passed, and the full logical-`boot2` readback matches padded SHA-256
+`ba21e6424f94c82f14fd51b5681eea68d6cf09e9177e4f9ca2061c9f129abb40`.
+At that validation checkpoint Z was the latest installed candidate and had not
+yet been booted. It was subsequently selected once: the owner reported working
+keyboard input and automatic return after the typed watchdog command, while a
+changed boot ID and watchdog-class reason corroborated the reset. This added no
+new SoC resource addresses. See the [Y rejection](../../experiments/2026-07-19-keyboard-typed-watchdog-reboot-diagnostic/results/preboot-command-dispatch-audit-20260720.txt),
+[Z experiment](../../experiments/2026-07-19-keyboard-reboot-dispatch-diagnostic/README.md),
+[build validation](../../experiments/2026-07-19-keyboard-reboot-dispatch-diagnostic/results/build-validation-20260720.txt),
+[dispatch validation](../../experiments/2026-07-19-keyboard-reboot-dispatch-diagnostic/results/ash-dispatch-validation-20260720.txt),
+[mutation result](../../experiments/2026-07-19-keyboard-reboot-dispatch-diagnostic/results/validator-mutations-20260720.txt),
+[write/readback](../../experiments/2026-07-19-keyboard-reboot-dispatch-diagnostic/results/boot2-write-candidate-z-20260720.txt),
+and [runtime result](../../experiments/2026-07-19-keyboard-reboot-dispatch-diagnostic/results/runtime-candidate-z-attempt-1-20260720.txt).
 
 ### Display PWM/backlight
 
@@ -1804,11 +2092,19 @@ SIF2/per-port bank topology. Patches 0066–0068 add an explicit MT6797 V1
 compatible, MTU3/xHCI matches, and a disabled DT resource split; patches
 0069–0070 add the USB11 MUSB match data plus a disabled USB11 MUSB/T-PHY
 topology using the existing V1 child mapping and fixed `eye-src = <4>` escape.
-The focused binding examples and all MT6797 DTBs pass. This remains a compile-time
-candidate: a named-device boot must still prove clock, reset, PHY, and role
-ownership. A new MT6797 PHY driver is valid if the two-SIF contract cannot be
+The focused binding examples and all MT6797 DTBs pass. The broad disabled
+USB3/USB11 topology remains a compile-time integration boundary, but the exact
+peripheral-only MTU3/T-PHY diagnostic overlay is now hardware evidence:
+Candidate AC established exact USB identity, selected configuration, fixed-MAC
+host interface, carrier, static-address ping, TCP marker, and bounded shell on
+a direct no-bridge link; exact AH attempt 2 independently retained that
+service. This proves neither a physical-port mapping nor host/xHCI mode, VBUS,
+Type-C, role switching, charging, rail ownership, or an electrical waveform.
+A new MT6797 PHY driver remains valid if the two-SIF contract cannot be
 represented cleanly. A generic compatible or vendor tuning table must not be
-enabled by guess.
+enabled by guess. See the
+[Candidate AC experiment](../../experiments/2026-07-21-usb-gadget-ethernet/README.md)
+and [AH attempt-2 result](../../experiments/2026-07-22-ad-contract-af-kernel-split/results/runtime-candidate-ah-attempt-2-20260722.txt).
 
 Patch 0069 extends the existing MUSB glue with MT6797 USB11 match data rather
 than forking the MUSB core: it selects `infra_icusb`/`sssub_ref_clk`, six
@@ -1855,7 +2151,9 @@ Before writing DT:
 2. identify which connector maps to USB1 versus USB3;
 3. establish PHY register generation and the two-SIF resource contract against
    the generic T-PHY helpers without writing tuning registers;
-4. bring up one port in device-only mode with gadget serial;
+4. carry the proven peripheral-only gadget-Ethernet diagnostic into a
+   reviewable default-off board integration after identifying its physical
+   connector and real `vusb33` owner;
 5. add host and role switching only after VBUS polarity and current control are
    verified.
 
@@ -1863,7 +2161,7 @@ Before writing DT:
 
 The evidence supports separate upstream series rather than one board patch:
 
-The current 71-patch local series represents the first platform boundaries
+The historical 71-patch local series represented the first platform boundaries
 through MFG power/clock, the disabled RT5735 regulator provider, the disabled
 BMI160 candidate, the board-specific TOPRGU watchdog IRQ, the disabled
 AW9523/matrix-keypad candidate, the disabled FAN49101 regulator candidate,
@@ -1871,8 +2169,33 @@ the generic FUSB301 Type-C controller candidate, the disabled MT6797
 thermal/AUXADC variant, and the disabled MT6797 Panfrost/DPI display producer
 candidates, plus the disabled MT6797 T-PHY/MTU3/xHCI USB3 topology and
 compile-tested USB11 MUSB glue, in
-[`patches/series`](../../patches/series). It has a checksum-clean full build
-and a Gemini boot artifact; no mainline image has been flashed or booted.
+[`patches/series`](../../patches/series). That boundary had a checksum-clean
+full build and a Gemini boot artifact but had not yet been booted. The current
+canonical series has 101 selected entries through 0102: corrected 0001–0092
+including 0057a, the DVFSP observer/one-way-owner stack in 0094–0095 and
+0097–0098, and the access-controlled childless-I2C6 stack in 0099–0102. The
+manifest-pinned
+Candidate AI profile selects the 89-entry AD-prefix-plus-0092 subsequence. AI
+completed the eight-A53 baseline. Exact Candidate AK attempt 1 subsequently
+passed the ordered CPU8/CPU9 fail-closed dispatch control, with
+CPU0–7 stable, neither A72 online, an owner-attested readable console, native
+reboot, changed-Gemian return, and a matching post-return full `boot2` hash;
+its evidence chain is unpaired. Unlisted draft patch 0093 remains unsafe and
+unselected. Candidate AL's I2C6/DA9214 resource-only runtime reached the
+controller and exact client, but failed when the DA9211-family probe read
+unsupported ID `0x0`; neither A72 was requested. Candidate AN booted with
+I2C6 disabled and returned `unknown` because I2C_APPM was ungated despite
+otherwise stable reset-like observer snapshots. Draft legacy-DA9214 patch
+0096 also remains unselected. Candidate AO passed the stopped-state I2C_APPM
+normalization with I2C6 disabled. Candidate AP then failed closed after its
+guarded childless-I2C6 clock hold because AP_DMA, already ungated in initial
+samples, did not become gated in any of 32 cleanup samples; no adapter or
+transfer appeared. Candidate AM is the first active CPU8 experiment and
+remains HOLD pending a corrected regulator prerequisite, attributable AP_DMA
+ownership and a baseline-preserving I2C6 cleanup contract, separate resume
+validation, and a synchronized Gemian power-state contract. Later candidate
+records, not the historical 71-patch statement, are authoritative for
+installation and runtime evidence.
 
 1. MT6797 infracfg reset controller and binding IDs.
 2. MT6797 EINT data, mappings, pseudo-line handling, and SoC resource.

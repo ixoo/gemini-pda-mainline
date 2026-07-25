@@ -1,0 +1,4 @@
+0001-diagnostic-add-fixed-MT6797-A72-transition-ring.patch
+0002-diagnostic-add-owner-local-fixed-A72-snapshots.patch
+0003-diagnostic-record-A72-power-mutations-under-owners.patch
+0004-diagnostic-correlate-A72-hotplug-lifecycle.patch

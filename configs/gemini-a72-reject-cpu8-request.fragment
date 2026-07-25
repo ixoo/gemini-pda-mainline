@@ -1,0 +1,6 @@
+# Candidate AJ boot-time rejection request. Apply after Candidate AI's exact
+# maxcpus=8 gate-only profile. The sole resolved configuration delta is
+# maxcpus=8 -> maxcpus=9, which requests logical CPU8 once during serialized
+# bring-up; the fail-closed method must reject before PSCI CPU_ON, and CPU9
+# must remain unrequested.
+CONFIG_CMDLINE="console=ttyS0,921600n8 earlycon maxcpus=9 nokaslr ignore_loglevel loglevel=8 log_buf_len=1M initcall_debug rdinit=/init panic=0 g_ether.dev_addr=42:00:15:19:82:01 g_ether.host_addr=42:00:15:19:82:00 g_ether.iManufacturer=gemini-pda-mainline g_ether.iProduct=Gemini-L-Observability g_ether.iSerialNumber=GEMINI_OBSERVABILITY_20260717_L clk_ignore_unused fbcon=rotate:3 consoleblank=0 fbcon=font:TER16x32"

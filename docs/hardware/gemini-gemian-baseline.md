@@ -84,10 +84,85 @@ it. See the [CPU/PSCI/timer recovery experiment](../../experiments/2026-07-13-cp
 
 The independent bsg100 Linux 6.6 boot record adds a runtime warning: standard
 PSCI brought up CPU1 through CPU7, while CPU8 (the first Cortex-A72) blocked in
-`CPU_ON`; a diagnostic `maxcpus=8` boot reached all A53 cores. The current 7.1.3
-board does not copy that workaround and keeps all ten generic CPU nodes, so the
-first mainline boot must identify the boundary rather than assuming either
-full SMP or an A53-only policy. See the [normalized cross-check](../../experiments/2026-07-13-cpu-psci-timer-recovery/results/bsg100-cpu-psci-crosscheck-20260714.txt).
+`CPU_ON`; a diagnostic `maxcpus=8` boot reached all A53 cores. Candidate AD has
+now reproduced that boundary on the named unit under Linux 7.1.3: CPU0–7 booted
+online and advanced while CPU8/9 remained offline. Corrected Candidate AI kept
+generic PSCI for that proven path and assigned CPU8/9 a fail-closed method; its
+exact baseline runtime, readable console, native reboot, changed-Gemian return,
+and post-cycle `boot2` integrity passed with CPU8/9 unrequested. Exact Candidate
+AK attempt 1 then retained `online=0-7` and `offline=8-9`, advancing CPU0–7
+accounting, and a 45-plus-5-second stability window. It recorded exactly one
+CPU8 gate rejection and one CPU8 `-11`, followed in order by exactly one CPU9
+gate rejection and one CPU9 `-11`; neither A72 made a secondary transition and
+no other fault signature appeared. The owner attested that the console was
+readable, although no console capture was recorded. One native reboot request
+disconnected USB, returned to a distinct-boot-ID known-good Gemian, and left
+the full post-return `boot2` hash matching exact AK. These are separate
+runtime, native-reboot, changed-Gemian-return, and post-return gates, not a
+paired cycle observation (`paired_cycle_observer=no`). Both fail-closed
+dispatch controls passed, but CPU8 and CPU9 remained offline and no
+Cortex-A72 support claim is established.
+See the [normalized cross-check](../../experiments/2026-07-13-cpu-psci-timer-recovery/results/bsg100-cpu-psci-crosscheck-20260714.txt),
+[Candidate AD](../../experiments/2026-07-21-smp8-boot-diagnostic/README.md),
+[Candidate AI](../../experiments/2026-07-22-a72-reject-gate-kernel-split/README.md),
+and [AK attempt 1](../../experiments/2026-07-22-a72-reject-cpu9-request/results/hardware-attempt-1-20260723.txt).
+
+The separate offline firmware/power audit assigns DA9214 BUCKB, temporary
+TOPRGU PWRAP reset, MP2 reset release, external-isolation preparation, the
+SRAM-LDO request, and post-success DCM to Linux. Captured secure firmware owns
+initial B PLL/mux/divider, MP2/core MTCMOS/reset, internal bus protection, and
+CCI admission. SRAM-LDO needs independent readback, and no safe inverse/off
+path is proven. Draft patch 0093 therefore remains unsafe and unselected. A
+bounded non-mutating Gemian userspace observer completed 180 one-second
+samples, but saw no natural A72 transition. It retained only the serialized
+DA9214 `0xd9` callback value, cached B rate, and unprotected derived CCI rate;
+it could not expose synchronized DA9214 page/enable, SPM, TOPRGU, secure
+register, DVFSP-locked clock, or MP2 DCM state. A later bounded two-worker
+pulse directly observed CPU8 online and then offline, but its sequential
+observer still missed the transaction. Candidate AL tested the mainline
+I2C6/DA9214 resource-only predecessor without requesting either A72. I2C6 and
+the exact `0x68` client appeared, but the upstream DA9211-family probe read
+unsupported ID `0x0`, left the client unbound, and registered neither
+regulator. Candidate AN then retained I2C6 disabled and sampled only CSPM and
+the infracfg I2C_APPM gate. Its exact `boot2` runtime kept CPU0–7 advancing and
+CPU8/9 offline; three measurements had identical register payloads and were
+otherwise reset-like, but I2C_APPM was ungated. Both the kernel and independent
+classifier therefore returned `unknown`. This does not establish Linux
+ownership or authorize a DA9214 transaction. Exact-active-binary recovery then
+proved that vendor stop is reversible and that `SEMA_I2C_DRV` is a DVFSP pause
+source, not a hardware semaphore. Normal-running DVFSP, each I2C6 transaction,
+and enabled A72 iDVFS share distinct references to the same I2C_APPM CCF core.
+The exact retained LK/TEE/SCP audit found no direct PCM restart writer, while
+ATF remains a keyed CSPM `+0`/secure-semaphore writer and an SCP-local alias
+remains unexcluded. Candidate AO then passed one exact named-unit receiver-side
+normalization: all six samples retained Candidate AN's stopped PCM signature;
+I2C_APPM was ungated through one held CCF reference, gated after one balanced
+disable, and still gated at 45 seconds. The independent classifier agreed with
+one attempt, one enable, one disable, one late check, and zero faults. I2C6
+remained disabled and no DA9214 or A72 activity occurred. This is a
+boot-bounded handoff result, not a global firmware exclusion or consumer,
+regulator, CPU, or resume authorization. Candidate AP then enabled only
+childless I2C6 behind an exact access-controller dependency. It reached one
+supplier grant after the late check, but I2C_APPM regated while AP_DMA remained
+valid and ungated in all 32 cleanup samples. The provider faulted closed and
+I2C6 returned `-EIO` before binding an adapter or issuing a transfer. AP's
+initial samples already had AP_DMA ungated, unlike this document's
+context-only Gemian sample; enabled AP UART0 and I2C5 also reference that
+shared gate. These are ownership clues, not attribution to a specific
+consumer. Candidate AM, the first active CPU8 experiment, remains HOLD pending
+an attributable AP_DMA ownership observation, a baseline-preserving I2C6
+cleanup contract, corrected regulator prerequisite, separate resume
+validation, and that owner-synchronized power-state contract.
+See the
+[A72 firmware/power contract](../../experiments/2026-07-22-a72-firmware-power-contract/README.md),
+[load-assisted CPU8 observation](../../experiments/2026-07-23-gemian-a72-load-assisted-observation/results/live-attempt-1-20260723.txt),
+[Candidate AL runtime](../../experiments/2026-07-23-da9214-resource-only/results/runtime-candidate-al-attempt-1-20260723.txt),
+[Candidate AN runtime](../../experiments/2026-07-24-mt6797-dvfsp-handoff-observer/results/runtime-candidate-an-validated-20260724.txt),
+[exact arbitration recovery](../../experiments/2026-07-24-mt6797-dvfsp-i2c6-arbitration/README.md),
+and the
+[Candidate AO runtime](../../experiments/2026-07-24-mt6797-dvfsp-one-way-handoff/results/runtime-candidate-ao-validated-20260724.txt),
+plus the
+[Candidate AP hardware result](../../experiments/2026-07-24-mt6797-dvfsp-i2c6-consumer/results/candidate-ap-hardware-20260724.txt).
 
 ## Boot handoff and storage boundary
 
