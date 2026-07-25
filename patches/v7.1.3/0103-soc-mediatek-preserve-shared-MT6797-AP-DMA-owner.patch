@@ -1,0 +1,138 @@
+From 7b0db0cc6e5e1744d1c1a1b2d90dbf3df0cdb103 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 25 Jul 2026 12:00:00 -0400
+Subject: [PATCH 5/5] soc: mediatek: preserve shared MT6797 AP-DMA owner
+ during I2C6 cleanup
+
+Candidate AQ's read-only clock summaries identify the enabled I2C5 DMA path
+as the pre-existing AP_DMA owner. Do not require that shared gate to close
+when the childless I2C6 consumer releases its own clocks. Continue to require
+I2C_APPM to gate, preserve the stopped PCM signature, and require valid AP_DMA
+readback whose gate bit is unchanged from the pre-probe baseline through all
+32 cleanup samples.
+
+Keep the selected sample safe when the preserved AP_DMA owner never gates and
+publish the preserved-sample count in the existing status interfaces.
+
+Signed-off-by: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+---
+ drivers/soc/mediatek/mt6797-dvfsp-handoff.c | 38 ++++++++++++++++++++++------
+ 1 file changed, 31 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+index a07443d..f7d63b1 100644
+--- a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+@@ -139,6 +139,7 @@ struct mt6797_dvfsp_handoff {
+ 	unsigned int consumer_post_main_failures;
+ 	unsigned int consumer_post_dma_invalid;
+ 	unsigned int consumer_post_dma_gated;
++	unsigned int consumer_post_dma_unchanged;
+ 	unsigned int consumer_post_selected;
+ 	bool consumer_post_passed;
+ 	atomic_t terminal_grant;
+@@ -298,6 +299,19 @@ mt6797_dvfsp_dma_gate_is(const struct mt6797_dvfsp_snapshot *snapshot,
+ 	return !!(snapshot->infra1_pdn_sta & INFRA_AP_DMA_GATED) == gated;
+ }
+ 
++static bool
++mt6797_dvfsp_dma_gate_matches(
++	const struct mt6797_dvfsp_snapshot *baseline,
++	const struct mt6797_dvfsp_snapshot *snapshot)
++{
++	if (!baseline->infra1_pdn_sta_valid ||
++	    !snapshot->infra1_pdn_sta_valid)
++		return false;
++
++	return (baseline->infra1_pdn_sta & INFRA_AP_DMA_GATED) ==
++		(snapshot->infra1_pdn_sta & INFRA_AP_DMA_GATED);
++}
++
+ static bool
+ mt6797_dvfsp_pre_signature_stable(struct mt6797_dvfsp_handoff *handoff)
+ {
+@@ -310,6 +323,7 @@ mt6797_dvfsp_sample_consumer_post(struct mt6797_dvfsp_handoff *handoff)
+ 	const struct mt6797_dvfsp_snapshot *baseline =
+ 		&handoff->samples[MT6797_DVFSP_PRE0];
+ 	int first_dma_gated = -1;
++	int first_dma_unchanged = -1;
+ 	int i;
+ 
+ 	handoff->consumer_post_sequences++;
+@@ -318,6 +332,7 @@ mt6797_dvfsp_sample_consumer_post(struct mt6797_dvfsp_handoff *handoff)
+ 	handoff->consumer_post_main_failures = 0;
+ 	handoff->consumer_post_dma_invalid = 0;
+ 	handoff->consumer_post_dma_gated = 0;
++	handoff->consumer_post_dma_unchanged = 0;
+ 
+ 	for (i = 0; i < MT6797_DVFSP_CONSUMER_POST_COUNT; i++) {
+ 		struct mt6797_dvfsp_snapshot *snapshot =
+@@ -337,6 +352,11 @@ mt6797_dvfsp_sample_consumer_post(struct mt6797_dvfsp_handoff *handoff)
+ 				first_dma_gated = i;
+ 			handoff->consumer_post_dma_gated++;
+ 		}
++		if (mt6797_dvfsp_dma_gate_matches(baseline, snapshot)) {
++			if (first_dma_unchanged < 0)
++				first_dma_unchanged = i;
++			handoff->consumer_post_dma_unchanged++;
++		}
+ 
+ 		if (i + 1 < MT6797_DVFSP_CONSUMER_POST_COUNT)
+ 			usleep_range(MT6797_DVFSP_POST_DELAY_MIN_US,
+@@ -348,9 +368,11 @@ mt6797_dvfsp_sample_consumer_post(struct mt6797_dvfsp_handoff *handoff)
+ 		!handoff->consumer_post_pcm_failures &&
+ 		!handoff->consumer_post_main_failures &&
+ 		!handoff->consumer_post_dma_invalid &&
+-		handoff->consumer_post_dma_gated;
++		handoff->consumer_post_dma_unchanged ==
++			MT6797_DVFSP_CONSUMER_POST_COUNT;
+ 	handoff->consumer_post_selected = handoff->consumer_post_passed ?
+-		first_dma_gated : MT6797_DVFSP_CONSUMER_POST_COUNT - 1;
++		(first_dma_gated >= 0 ? first_dma_gated : first_dma_unchanged) :
++		MT6797_DVFSP_CONSUMER_POST_COUNT - 1;
+ 	handoff->samples[MT6797_DVFSP_CONSUMER_POST] =
+ 		handoff->consumer_post[handoff->consumer_post_selected];
+ 	handoff->sample_valid[MT6797_DVFSP_CONSUMER_POST] = true;
+@@ -563,7 +586,8 @@ static void mt6797_dvfsp_late_work(struct work_struct *work)
+ 				"consumer_clock_check=cleanup "
+-				"clocks=i2c-appm,ap-dma validation=failed "
++				"clocks=i2c-appm shared-ap-dma=preserved "
++				"validation=failed "
+ 				"samples=%u pcm_failures=%u "
+ 				"main_failures=%u dma_invalid=%u "
+-				"dma_gated=%u selected=%u "
++				"dma_gated=%u dma_unchanged=%u selected=%u "
+ 				"i2c6_policy=requires-ready\n",
+ 				handoff->consumer_post_samples,
+@@ -575,4 +599,5 @@ static void mt6797_dvfsp_late_work(struct work_struct *work)
+ 				handoff->consumer_post_main_failures,
+ 				handoff->consumer_post_dma_invalid,
+ 				handoff->consumer_post_dma_gated,
++				handoff->consumer_post_dma_unchanged,
+ 				handoff->consumer_post_selected);
+@@ -634,4 +659,4 @@ static ssize_t consumer_cleanup_show(struct device *dev,
+ 		"attempts=%u samples=%u pcm_failures=%u main_failures=%u "
+-		"dma_invalid=%u dma_gated=%u selected=%u result=%s\n",
++		"dma_invalid=%u dma_gated=%u dma_unchanged=%u selected=%u result=%s\n",
+ 		handoff->consumer_post_sequences,
+ 		handoff->consumer_post_samples,
+@@ -642,5 +667,6 @@ static ssize_t consumer_cleanup_show(struct device *dev,
+ 		handoff->consumer_post_main_failures,
+ 		handoff->consumer_post_dma_invalid,
+ 		handoff->consumer_post_dma_gated,
++		handoff->consumer_post_dma_unchanged,
+ 		handoff->consumer_post_selected,
+ 		mt6797_dvfsp_consumer_cleanup_result(handoff));
+@@ -745,8 +771,10 @@ mt6797_dvfsp_handoff_validate_clock(
+ 		dev_info(handoff->dev,
+ 			 "consumer_clock_check=cleanup "
+-			 "clocks=i2c-appm,ap-dma validation=passed "
+-			 "samples=%u dma_gated=%u selected=%u "
++			 "clocks=i2c-appm shared-ap-dma=preserved "
++			 "validation=passed samples=%u dma_gated=%u "
++			 "dma_unchanged=%u selected=%u "
+ 			 "i2c6_policy=requires-ready\n",
+ 			 handoff->consumer_post_samples,
+ 			 handoff->consumer_post_dma_gated,
++			 handoff->consumer_post_dma_unchanged,
+ 			 handoff->consumer_post_selected);
