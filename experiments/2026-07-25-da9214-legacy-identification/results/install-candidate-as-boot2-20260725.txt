@@ -1,0 +1,30 @@
+experiment=2026-07-25-da9214-legacy-identification
+candidate=AS
+operation=standing-latest-validated-candidate-boot2-sync
+result=write-synced-flushed-full-readback-verified
+repo_revision=d51102e
+target_logical_name=boot2
+target=/dev/mmcblk0p30
+active_root_before=/dev/mmcblk0p29
+target_size=16777216
+candidate_raw_sha256=9f7549e5f2ac02c4fcf444b05988f677fa2efc046fbcbb6752e0ee4f06a0dc6d
+candidate_padded_sha256=0b424f76e8dc3e76a19cbae00acd8dafc00c758a53e064d3b86df3e91d419b18
+prewrite_boot2_sha256=7a1aa655f105e4b20334afbae2662a54deb2d71e05894dcd5e23d42c9ea1f279
+backup_sha256=7a1aa655f105e4b20334afbae2662a54deb2d71e05894dcd5e23d42c9ea1f279
+remote_post_flush_sha256=0b424f76e8dc3e76a19cbae00acd8dafc00c758a53e064d3b86df3e91d419b18
+local_readback_sha256=0b424f76e8dc3e76a19cbae00acd8dafc00c758a53e064d3b86df3e91d419b18
+evidence_manifest_sha256=7aab7cf6d9c074f69d0d9945fa29c062958f9581310583170dc1cfd8c6aa99d8
+backup_host_relative_dir=artifacts/device-partitions/pre-candidate-as-final-20260725T210208Z
+boot_id=927bcc79-5dec-43c2-999e-63a9b0193968
+power_before=ac-off-usb-online-battery-full-100-good
+reboot_or_shutdown_performed=explicit-user-requested-poweroff-after-write
+device_left_running_known_good_OS=no
+device_left_shutdown=yes
+runtime_result=not-tested
+
+The live GPT guard resolved exactly one writable, unmounted 16 MiB boot2
+partition and kept Gemian's p29 root active throughout. The previous boot2
+image was backed up before the bounded write. The full post-flush remote hash
+and full local readback match the candidate padded image byte-for-byte. The
+device was then powered off without selecting a slot or rebooting, leaving
+boot2 ready for owner-attended selection.
