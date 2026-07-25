@@ -68,9 +68,11 @@ sequence and is not a repeat of the AS image.
 - Installer deriver: scripts/derive-installer.py
 
 The builder reuses the exact Candidate AO DT/initramfs/keymap/console/USB
-baseline and performs no device access. Artifact hashes remain TO_PIN_* until
-two independent package/container assemblies agree. The eventual installer
-will accept only gemini@192.168.1.50, require the exact current Candidate AR
+baseline and performs no device access. The corrected package and its
+independent DT/container derivations passed the offline validators; the pinned
+artifact and installer identities are recorded in
+'results/build-candidate-as-20260725.txt'. The installer accepts only
+gemini@192.168.1.50, requires the exact current Candidate AR
 padded boot2 checksum
 89a77153f57b6a3061a3e46cbda2e0b79a806464044d48713ddcfcb624526b0a, perform one
 bounded full-partition write with full readback verification, and never reboot
