@@ -1,0 +1,196 @@
+From 0000000000000000000000000000000000000106 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 25 Jul 2026 13:00:00 -0400
+Subject: [PATCH] regulator: da9211: use legacy DA9214 page selector
+
+The first Candidate AS boot showed that the adjacent-address probe is not
+the legacy Gemini protocol: the real device ACKs at 0x68 and the probe's
+dummy 0x69 client fails closed on its repeated read.  The Gemian driver
+selects pages 2 and 3 through register 0x00 at the primary address, with
+PAGE_REVERT set so the next register access returns to page 0.
+
+Use the same address and the documented selector sequence for identification.
+Only the page selector is written; all identity and page-state reads remain
+uncached and the selector is verified back on page 0 after every page-2
+access.  No voltage, enable, disable, or configuration register is written.
+
+Signed-off-by: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+---
+ drivers/regulator/da9211-regulator.c | 115 ++++++++++++++++++++++++++---------
+ 1 file changed, 68 insertions(+), 47 deletions(-)
+
+diff --git a/drivers/regulator/da9211-regulator.c b/drivers/regulator/da9211-regulator.c
+--- a/drivers/regulator/da9211-regulator.c
++++ b/drivers/regulator/da9211-regulator.c
+@@ -40,5 +40,4 @@ struct da9211 {
+ 	struct regulator_dev *rdev[DA9211_MAX_REGULATORS];
+-	struct i2c_client *page2;
+ 	int num_regulator;
+ 	int chip_irq;
+ 	int chip_id;
+@@ -101,46 +100,79 @@ static const struct regmap_config da9214_regmap_config = {
+ 	.cache_type = REGCACHE_MAPLE,
+ };
+
+-static bool da9214_page2_readable_reg(struct device *dev, unsigned int reg)
++static bool da9214_legacy_detect_readable_reg(struct device *dev,
++						 unsigned int reg)
+ {
+ 	switch (reg) {
+-	case DA9214_PAGE2_REG(DA9211_REG_PAGE_CON):
+-	case DA9214_PAGE2_REG(DA9211_REG_INTERFACE):
+-	case DA9214_PAGE2_REG(DA9211_REG_INTERFACE2):
+-	case DA9214_PAGE2_REG(DA9211_REG_CONFIG_E):
++	case DA9211_REG_PAGE_CON:
++	case DA9214_PAGE2_REG(DA9211_REG_INTERFACE):
++	case DA9214_PAGE2_REG(DA9211_REG_INTERFACE2):
++	case DA9214_PAGE2_REG(DA9211_REG_CONFIG_E):
+ 		return true;
+ 	default:
+ 		return false;
+ 	}
+ }
+
+-static bool da9214_page2_writeable_reg(struct device *dev, unsigned int reg)
++static bool da9214_legacy_detect_writeable_reg(struct device *dev,
++						  unsigned int reg)
+ {
+-	return false;
++	return reg == DA9211_REG_PAGE_CON;
+ }
+
+ /*
+- * Disable caching so the repeated reads below are independent I2C
+- * transactions rather than cache hits.
++ * Detection uses the primary 0x68 client.  The only permitted write is the
++ * documented page selector; identity accesses are all uncached transactions.
+  */
+-static const struct regmap_config da9214_page2_regmap_config = {
++static const struct regmap_config da9214_legacy_detect_regmap_config = {
+ 	.reg_bits = 8,
+ 	.val_bits = 8,
+-	.max_register = DA9214_PAGE2_REG(DA9211_REG_CONFIG_E),
+-	.readable_reg = da9214_page2_readable_reg,
+-	.writeable_reg = da9214_page2_writeable_reg,
++	.max_register = 0xff,
++	.readable_reg = da9214_legacy_detect_readable_reg,
++	.writeable_reg = da9214_legacy_detect_writeable_reg,
+ 	.cache_type = REGCACHE_NONE,
+ };
+
++static int da9214_read_legacy_page2_reg(struct regmap *regmap,
++					 unsigned int reg, unsigned int *value)
++{
++	unsigned int page;
++	int ret;
++
++	/* Match the Gemian sequence: make the next page access revert to 0. */
++	ret = regmap_update_bits(regmap, DA9211_REG_PAGE_CON,
++				 DA9211_PAGE_REVERT, DA9211_PAGE_REVERT);
++	if (ret)
++		return ret;
++
++	ret = regmap_update_bits(regmap, DA9211_REG_PAGE_CON,
++				 DA9211_REG_PAGE_MASK, DA9211_REG_PAGE2);
++	if (ret)
++		return ret;
++
++	ret = regmap_read(regmap, DA9214_PAGE2_REG(reg), value);
++	if (ret)
++		return ret;
++
++	/* The page-revert bit must leave the device on page 0. */
++	ret = regmap_read(regmap, DA9211_REG_PAGE_CON, &page);
++	if (ret)
++		return ret;
++	if (page & DA9211_REG_PAGE_MASK)
++		return -ENODEV;
++
++	return 0;
++}
++
+ static int da9214_read_signature(struct regmap *regmap,
+ 				 struct da9214_signature *signature)
+ {
+ 	int ret;
+
+-	ret = regmap_read(regmap, DA9214_PAGE2_REG(DA9211_REG_INTERFACE),
+-			  &signature->interface);
++	ret = da9214_read_legacy_page2_reg(regmap, DA9211_REG_INTERFACE,
++					   &signature->interface);
+ 	if (ret)
+ 		return ret;
+
+-	ret = regmap_read(regmap, DA9214_PAGE2_REG(DA9211_REG_INTERFACE2),
+-			  &signature->interface2);
++	ret = da9214_read_legacy_page2_reg(regmap, DA9211_REG_INTERFACE2,
++					   &signature->interface2);
+ 	if (ret)
+ 		return ret;
+
+-	return regmap_read(regmap, DA9214_PAGE2_REG(DA9211_REG_CONFIG_E),
+-			   &signature->config_e);
++	return da9214_read_legacy_page2_reg(regmap, DA9211_REG_CONFIG_E,
++					    &signature->config_e);
+ }
+
+ static int da9214_check_page_state(struct device *dev, struct regmap *regmap)
+@@ -168,14 +200,9 @@ static int da9214_check_page_state(struct device *dev, struct regmap *regmap)
+ 		return dev_err_probe(dev, ret,
+ 				     "failed to repeat legacy page-state read\n");
+
+-	if ((first & DA9211_REG_PAGE_MASK) &&
+-	    !(first & DA9211_PAGE_REVERT))
+-		return dev_err_probe(dev, -ENODEV,
+-				     "legacy page selector is not self-reverting: 0x%x\n",
+-				     first);
+-
+-	if (second & DA9211_REG_PAGE_MASK)
++	if ((first & DA9211_REG_PAGE_MASK) ||
++	    (second & DA9211_REG_PAGE_MASK))
+ 		return dev_err_probe(dev, -ENODEV,
+-				     "legacy page selector did not return to page 0: 0x%x\n",
+-				     second);
++				     "legacy page selector is not on page 0: 0x%x/0x%x\n",
++				     first, second);
+
+ 	return 0;
+ }
+@@ -218,23 +243,17 @@ static int da9214_detect_legacy_interface(struct da9211 *chip,
+ 	struct da9214_signature first, second;
+ 	struct regmap *page2_regmap;
+ 	int ret;
+
+-	/*
+-	 * IF_BASE_ADDR1 only carries the upper nibble of the 8-bit bus
+-	 * address.  Reject addresses whose omitted bits prevent an exact
+-	 * comparison, and do not attempt this protocol with 10-bit clients.
+-	 */
+-	if ((i2c->flags & I2C_CLIENT_TEN) || (i2c->addr & 0x7))
++	if (i2c->flags & I2C_CLIENT_TEN)
+ 		return dev_err_probe(chip->dev, -ENODEV,
+-				     "legacy DA9214 requires an aligned 7-bit address\n");
+-
+-	chip->page2 = devm_i2c_new_dummy_device(chip->dev, i2c->adapter,
+-						i2c->addr + 1);
+-	if (IS_ERR(chip->page2))
+-		return dev_err_probe(chip->dev, PTR_ERR(chip->page2),
+-				     "failed to claim legacy page-2 address\n");
+-
+-	page2_regmap = devm_regmap_init_i2c(chip->page2, &da9214_page2_regmap_config);
+-	if (IS_ERR(page2_regmap))
+-		return dev_err_probe(chip->dev, PTR_ERR(page2_regmap),
+-				     "failed to allocate legacy page-2 regmap\n");
++				     "legacy DA9214 requires a 7-bit address\n");
+
++	page2_regmap = devm_regmap_init_i2c(i2c,
++					    &da9214_legacy_detect_regmap_config);
++	if (IS_ERR(page2_regmap))
++		return dev_err_probe(chip->dev, PTR_ERR(page2_regmap),
++				     "failed to allocate legacy selector regmap\n");
++
++	if (i2c->addr > 0x7f)
++		return dev_err_probe(chip->dev, -ENODEV,
++				     "legacy DA9214 requires a 7-bit address\n");
++
+ 	ret = da9214_check_page_state(chip->dev, page2_regmap);

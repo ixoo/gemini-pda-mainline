@@ -1,0 +1,29 @@
+experiment=2026-07-25-da9214-legacy-identification
+candidate=AS
+device=named-Gemini
+slot=boot2
+runtime_access=direct-usb-shell-10.15.19.82:2323
+boot_result=success
+console_result=delayed-but-present
+kernel=7.1.3-gemini-observability-L
+uptime_seconds=147.27
+cpu_count=8
+dvfsp_late_validation=passed
+dvfsp_cleanup=clocks=i2c-appm shared-ap-dma=preserved validation=passed samples=32 dma_gated=0 dma_unchanged=32
+i2c6_guard=handoff=ready probe_attempts=1 init_attempts=1 init_successes=1 clock_ungated_checks=1 clock_gated_checks=1 clock_validation_failures=0 runtime_pm_link=1 transfer_attempts=0 dma_starts=0 nonzero_starts=0 irq_count=0
+i2c6_client=1-0068
+da9214_probe=failed-closed
+da9214_error=ENXIO-failed-to-repeat-legacy-page-state-read
+da9214_regulator_binding=none
+regulator_class=regulator.0-only
+da9214_sysfs_device=absent
+probe_interpretation=the-adjacent-0x69-page2-assumption-is-wrong
+rail_write_policy=none
+watchdog_reboot=none
+decision=stop-and-correct-page-selector-protocol
+
+The focused USB probe also showed that the primary 0x68 client is present
+under i2c-1, but it did not create a bound driver directory or either
+regulator.  The failure occurred after one page-state read and before any
+identity signature or regulator operation.  The inherited console, keyboard
+image, USB shell, eight-CPU, and DVFSP/AP_DMA contracts remained available.

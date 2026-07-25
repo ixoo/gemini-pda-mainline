@@ -147,14 +147,15 @@ def validate(repository: pathlib.Path, package: pathlib.Path) -> None:
     if repository_series != packaged_series:
         fail("packaged AS series differs from repository")
     entries = series_entries(repository_series)
-    if len(entries) != 105 or not entries[-1].endswith("0105-arm64-dts-mediatek-enable-legacy-Gemini-DA9214-after-handoff.patch"):
-        fail("AS series does not end in patch 0105")
+    if len(entries) != 106 or not entries[-1].endswith("0106-regulator-da9211-use-legacy-DA9214-page-selector.patch"):
+        fail("AS series does not end in patch 0106")
     if any(pathlib.PurePosixPath(entry).name.startswith("0093-") for entry in entries):
         fail("AS series selects the forbidden active-power patch")
     required_entries = {
         "v7.1.3/0096-regulator-da9211-support-legacy-DA9214-interface.patch",
         "v7.1.3/0104-regulator-da9211-require-exact-legacy-DA9214-signature.patch",
         "v7.1.3/0105-arm64-dts-mediatek-enable-legacy-Gemini-DA9214-after-handoff.patch",
+        "v7.1.3/0106-regulator-da9211-use-legacy-DA9214-page-selector.patch",
     }
     if not required_entries.issubset(entries):
         fail("AS series omits a required legacy DA9214 patch")

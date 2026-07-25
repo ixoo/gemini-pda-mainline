@@ -106,3 +106,4 @@ v7.1.3/0103-soc-mediatek-preserve-shared-MT6797-AP-DMA-owner.patch
 v7.1.3/0096-regulator-da9211-support-legacy-DA9214-interface.patch
 v7.1.3/0104-regulator-da9211-require-exact-legacy-DA9214-signature.patch
 v7.1.3/0105-arm64-dts-mediatek-enable-legacy-Gemini-DA9214-after-handoff.patch
+v7.1.3/0106-regulator-da9211-use-legacy-DA9214-page-selector.patch

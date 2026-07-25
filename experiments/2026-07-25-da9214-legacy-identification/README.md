@@ -1,4 +1,4 @@
-# Candidate AS: identify the legacy DA9214 read-only
+# Candidate AS: identify the legacy DA9214
 
 Candidate AS is the next hardware candidate after Candidate AR. It keeps the
 AR console, keyboard, USB gadget, manual reboot, SMP-8, and DVFSP/I2C6
@@ -9,24 +9,27 @@ the exact electrical description needed to exercise it.
 
 The live Gemini repeatedly returned 0xd9 from legacy interface register 0x105,
 0xd0 from interface2 register 0x106, and 0xc0 from CONFIG_E register 0x147
-through the adjacent legacy page-2 protocol. The normal DA9211-family
+through the Gemian legacy PAGE_CON page-2 protocol. The normal DA9211-family
 application-ID read at 0x201 returned 0x0 and is not a usable identity test on
 this board.
 
-The hypothesis is that a page-2-only, read-only probe which requires the exact
-three-value signature will bind the real two-output legacy DA9214 without
-writing its page selector, voltage, enable, or configuration registers. The
-probe remains behind AR's already validated DVFSP handoff and AP_DMA
-preservation boundary.
+The hypothesis is that a page-2 probe which requires the exact three-value
+signature will bind the real two-output legacy DA9214. The legacy selector
+protocol necessarily writes only the documented PAGE_CON selector at the
+primary 0x68 address with PAGE_REVERT set; it must not write voltage, enable,
+disable, or configuration registers. The probe remains behind AR's already
+validated DVFSP handoff and AP_DMA preservation boundary.
 
 ## Unique changes
 
-- 0096 adds a board-specific legacy DA9214 protocol path with a read-only
-  page-2 regmap and two-regulator contract.
+- 0096 adds a board-specific legacy DA9214 protocol path with a page-2
+  identification regmap and two-regulator contract.
 - 0104 requires the exact repeated 0xd9/0xd0/0xc0 signature.
 - 0105 restores I2C6's 3.4 MHz push-pull electrical properties and adds the
   two DA9214 outputs, with no A72 consumer, supply, boot-on, voltage request,
   or enable GPIO.
+- 0106 corrects the page-2 transport to the Gemian primary-address PAGE_CON
+  sequence after the first AS boot rejected the adjacent-address assumption.
 
 The access-controller dependency remains mandatory; this candidate does not
 change the proven DVFSP cleanup policy.
@@ -38,11 +41,20 @@ eight CPUs remain available; DVFSP late validation passes; cleanup reports
 shared-ap-dma=preserved, samples=32, and dma_unchanged=32; and I2C6 reaches
 handoff=ready with the address 0x68 client bound. The regulator driver must log
 the exact repeated signature, register exactly two outputs, and perform no
-voltage, enable, disable, or page-selector writes. A fault, reset, watchdog
-reboot, unstable page state, signature mismatch, or unexpected I2C6 ownership
-result is a stop condition.
+voltage, enable, disable, or configuration writes. The documented PAGE_CON
+selector writes are allowed only to select page 2 with PAGE_REVERT and must be
+followed by a verified page-0 state. A fault, reset, watchdog reboot, unstable
+page state, signature mismatch, or unexpected I2C6 ownership result is a stop
+condition.
 
-There is no runtime result yet: Candidate AS has not been installed or booted.
+Candidate AS booted successfully and preserved the console/USB/eight-CPU and
+DVFSP/AP_DMA contracts, but failed closed before identity reads:
+'da9211 1-0068: error -ENXIO: failed to repeat legacy page-state read'.
+The primary 0x68 client existed, while no DA9214 driver or regulator bound.
+The exact evidence is in
+'results/runtime-candidate-as-attempt-1-20260725.txt'. This identifies the
+transport bug; the next candidate applies the Gemian PAGE_CON selector
+sequence and is not a repeat of the AS image.
 
 ## Reproducibility
 
