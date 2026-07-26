@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate Candidate AT's canonical Android-v0 container and safety boundary."""
+"""Validate Candidate AU's canonical Android-v0 container and safety boundary."""
 
 from __future__ import annotations
 
@@ -233,10 +233,10 @@ def validate_system_map(data: bytes) -> None:
     }
     missing = sorted(required - symbols)
     if missing:
-        raise ValueError("System.map lacks Candidate AT owner symbol: " + missing[0])
+        raise ValueError("System.map lacks Candidate AU owner symbol: " + missing[0])
     if "mtk_i2c_do_transfer" in symbols:
         raise ValueError(
-            "Candidate AT transfer helper is not fully inlined as compiled-audited"
+            "Candidate AU transfer helper is not fully inlined as compiled-audited"
         )
     forbidden = {
         "mt6797_dvfsp_observer_probe",
@@ -285,7 +285,7 @@ def run_dtb_validator(
     )
     if result.returncode:
         detail = result.stderr.strip() or result.stdout.strip() or "no diagnostic"
-        raise ValueError("final DT semantic validator rejected Candidate AT: " + detail)
+        raise ValueError("final DT semantic validator rejected Candidate AU: " + detail)
 
 
 def run_compiled_audit(
@@ -318,7 +318,7 @@ def run_compiled_audit(
             or result.stdout.decode("utf-8", errors="replace").strip()
             or "no diagnostic"
         )
-        raise ValueError("compiled AT dependency auditor rejected kernel: " + detail)
+        raise ValueError("compiled AU dependency auditor rejected kernel: " + detail)
     try:
         lines = set(result.stdout.decode("ascii").splitlines())
     except UnicodeError as exc:
@@ -340,21 +340,22 @@ def main() -> int:
     parser.add_argument("--initramfs", required=True, type=pathlib.Path)
     args = parser.parse_args()
     try:
-        candidate = read_regular(args.candidate, "Candidate AT boot")
-        image_gz = read_regular(args.image_gz, "Candidate AT Image.gz")
-        system_map = read_regular(args.system_map, "Candidate AT System.map")
-        kernel_config = read_regular(args.kernel_config, "Candidate AT config")
-        dtb = read_regular(args.dtb, "Candidate AT final DT")
+        candidate = read_regular(args.candidate, "Candidate AU boot")
+        image_gz = read_regular(args.image_gz, "Candidate AU Image.gz")
+        system_map = read_regular(args.system_map, "Candidate AU System.map")
+        kernel_config = read_regular(args.kernel_config, "Candidate AU config")
+        dtb = read_regular(args.dtb, "Candidate AU final DT")
         ao_dtb = read_regular(args.ao_dtb, "exact Candidate AO final DT")
-        initramfs = read_regular(args.initramfs, "exact Candidate AO initramfs")
+        initramfs = read_regular(args.initramfs, "Candidate AU initramfs")
 
         if digest(ao_dtb) != ar.AO_DTB_SHA256:
             raise ValueError("exact Candidate AO final DT changed")
         pin_state = ar.artifact_pin_state()
         if pin_state == "source-pinned" and digest(dtb) != ar.FINAL_DTB_SHA256:
-            raise ValueError("Candidate AT final-DT identity changed")
-        if digest(initramfs) != ar.INITRAMFS_SHA256:
-            raise ValueError("Candidate AT initramfs is not byte-exact Candidate AO")
+            raise ValueError("Candidate AU final-DT identity changed")
+        if (not ar.INITRAMFS_SHA256.startswith("TO_PIN_") and
+                digest(initramfs) != ar.INITRAMFS_SHA256):
+            raise ValueError("Candidate AU initramfs is not source-pinned")
         validate_config(kernel_config)
         validate_system_map(system_map)
         script_dir = pathlib.Path(__file__).resolve().parent
@@ -364,19 +365,19 @@ def main() -> int:
         for marker in REQUIRED_IMAGE_MARKERS:
             if marker not in image:
                 raise ValueError(
-                    f"Candidate AT kernel lacks handoff-owner marker: {marker!r}"
+                    f"Candidate AU kernel lacks handoff-owner marker: {marker!r}"
                 )
         for marker in FORBIDDEN_IMAGE_MARKERS:
             if marker in image:
                 raise ValueError(
-                    f"Candidate AT kernel contains forbidden marker: {marker!r}"
+                    f"Candidate AU kernel contains forbidden marker: {marker!r}"
                 )
         compiled_audit = run_compiled_audit(script_dir, image, args.system_map)
 
         if not 0 < len(candidate) <= ar.BOOT2_SIZE:
-            raise ValueError("Candidate AT size is invalid or exceeds boot2")
+            raise ValueError("Candidate AU size is invalid or exceeds boot2")
         if len(candidate) < PAGE_SIZE or candidate[:8] != b"ANDROID!":
-            raise ValueError("Candidate AT is not Android boot image v0")
+            raise ValueError("Candidate AU is not Android boot image v0")
         fields = struct.unpack_from("<10I", candidate, 8)
         (
             kernel_size,
@@ -410,9 +411,9 @@ def main() -> int:
         ramdisk_offset = align(kernel_end)
         ramdisk_end = ramdisk_offset + ramdisk_size
         if candidate[kernel_offset:kernel_end] != kernel:
-            raise ValueError("kernel field is not AT Image.gz plus final AT DT")
+            raise ValueError("kernel field is not AU Image.gz plus final AU DT")
         if candidate[ramdisk_offset:ramdisk_end] != initramfs:
-            raise ValueError("ramdisk field is not byte-exact Candidate AO initramfs")
+            raise ValueError("ramdisk field is not the source-pinned Candidate AU initramfs")
         if any(candidate[kernel_end:ramdisk_offset]) or any(candidate[ramdisk_end:]):
             raise ValueError("Android-v0 padding is not zero")
         if len(candidate) != align(ramdisk_end):

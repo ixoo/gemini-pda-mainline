@@ -1,0 +1,151 @@
+#!/bin/busybox sh
+# shellcheck shell=dash
+
+set -eu
+export PATH=/bin
+
+readonly RUNTIME_DIR=/run
+candidate=
+receive_port=
+confirm=0
+dry_run=0
+
+usage() {
+	cat <<'EOF'
+usage: emmc-flash-boot2 --candidate FILE [--confirm-boot2]
+       emmc-flash-boot2 --receive PORT [--confirm-boot2]
+       emmc-flash-boot2 --candidate FILE --dry-run
+
+The receive mode accepts one image over the direct USB network shell. No
+partition is written without the explicit --confirm-boot2 flag. The helper
+resolves the GPT PARTNAME=boot2 node from sysfs, requires an exact 16 MiB
+partition, rejects mounted or held targets, backs up the full partition, uses
+dd with conv=fsync, and verifies the full-partition SHA-256 readback.
+EOF
+}
+
+die() {
+	printf 'error: %s\n' "$*" >&2
+	exit 2
+}
+
+while [ "$#" -gt 0 ]; do
+	case "$1" in
+	--candidate)
+		[ "$#" -ge 2 ] || die '--candidate requires a file'
+		[ -z "$candidate" ] || die '--candidate specified more than once'
+		candidate=$2
+		shift 2
+		;;
+	--receive)
+		[ "$#" -ge 2 ] || die '--receive requires a port'
+		[ -z "$receive_port" ] || die '--receive specified more than once'
+		receive_port=$2
+		shift 2
+		;;
+	--confirm-boot2)
+		confirm=1
+		shift
+		;;
+	--dry-run)
+		dry_run=1
+		shift
+		;;
+	-h|--help)
+		usage
+		exit 0
+		;;
+	*)
+		usage >&2
+		die "unknown argument: $1"
+		;;
+	esac
+done
+
+[ -n "$candidate" ] || candidate="$RUNTIME_DIR/boot2-candidate.img"
+if [ -n "$receive_port" ]; then
+	case "$receive_port" in
+		*[!0-9]*|'') die 'receive port must be numeric' ;;
+	esac
+	[ "$receive_port" -ge 1 ] 2>/dev/null &&
+		[ "$receive_port" -le 65535 ] 2>/dev/null || die 'receive port is out of range'
+	/bin/busybox rm -f "$candidate"
+	printf 'receive=listening port=%s candidate=%s\n' "$receive_port" "$candidate"
+	/bin/busybox nc -l -p "$receive_port" >"$candidate" || die 'USB candidate receive failed'
+fi
+
+[ -f "$candidate" ] && [ ! -L "$candidate" ] || die 'candidate must be a regular non-symlink file'
+candidate_size=$(/bin/busybox stat -c '%s' "$candidate") || die 'candidate size query failed'
+[ "$candidate_size" = 16777216 ] || die 'candidate must be exactly 16 MiB'
+candidate_line=$(/bin/busybox sha256sum "$candidate") || die 'candidate checksum failed'
+candidate_sha=${candidate_line%% *}
+printf 'candidate=%s\ncandidate_size=%s\ncandidate_sha256=%s\n' \
+	"$candidate" "$candidate_size" "$candidate_sha"
+
+target_count=0
+target=
+target_sysfs=
+for uevent in /sys/class/block/mmcblk*/uevent; do
+	[ -r "$uevent" ] || continue
+	devname=
+	devtype=
+	partname=
+	while IFS='=' read -r key value; do
+		case "$key" in
+		DEVNAME) devname=$value ;;
+		DEVTYPE) devtype=$value ;;
+		PARTNAME) partname=$value ;;
+		esac
+	done <"$uevent"
+	[ "$devtype" = partition ] || continue
+	[ "$partname" = boot2 ] || continue
+	[ -n "$devname" ] || die 'boot2 uevent lacks DEVNAME'
+	target_count=$((target_count + 1))
+	target=/dev/$devname
+	target_sysfs=${uevent%/uevent}
+done
+[ "$target_count" = 1 ] || die 'expected exactly one GPT PARTNAME=boot2 partition'
+[ -b "$target" ] || die 'resolved boot2 target is not a block device'
+
+target_sectors=$(/bin/busybox cat "$target_sysfs/size") || die 'boot2 size query failed'
+[ "$target_sectors" = 32768 ] || die 'boot2 is not exactly 16 MiB'
+for holder in "$target_sysfs"/holders/*; do
+	[ -e "$holder" ] || continue
+	die 'boot2 has an active holder'
+done
+while read -r mounted_source mounted_at rest; do
+	if [ "$mounted_source" = "$target" ]; then
+		die 'boot2 is mounted'
+	fi
+done </proc/mounts
+
+printf 'target=%s\ntarget_sectors=%s\n' "$target" "$target_sectors"
+if [ "$dry_run" = 1 ]; then
+	printf 'result=dry-run-no-write\n'
+	exit 0
+fi
+[ "$confirm" = 1 ] || die 'refusing storage write without --confirm-boot2'
+
+backup="$RUNTIME_DIR/boot2-before.img"
+/bin/busybox rm -f "$backup"
+/bin/busybox dd if="$target" of="$backup" bs=4M count=4 conv=fsync status=none ||
+	die 'boot2 backup failed'
+backup_line=$(/bin/busybox sha256sum "$backup") || die 'boot2 backup checksum failed'
+backup_sha=${backup_line%% *}
+
+/bin/busybox dd if="$candidate" of="$target" bs=4M count=4 conv=fsync status=none || {
+	/bin/busybox dd if="$backup" of="$target" bs=4M count=4 conv=fsync status=none || true
+	/bin/busybox sync
+	die 'boot2 write failed; attempted backup restore'
+}
+/bin/busybox sync
+readback_line=$(/bin/busybox sha256sum "$target") || die 'boot2 readback checksum failed'
+readback_sha=${readback_line%% *}
+if [ "$readback_sha" != "$candidate_sha" ]; then
+	/bin/busybox dd if="$backup" of="$target" bs=4M count=4 conv=fsync status=none || true
+	/bin/busybox sync
+	die 'boot2 readback mismatch; attempted backup restore'
+fi
+
+printf 'result=write-synced-flushed-full-readback-verified\nbackup_sha256=%s\nreadback_sha256=%s\n' \
+	"$backup_sha" "$readback_sha"

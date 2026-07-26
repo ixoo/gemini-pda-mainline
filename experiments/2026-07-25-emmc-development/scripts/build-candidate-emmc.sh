@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
-# Assemble storage-inert Candidate AT from an exact validated AT kernel package
-# and the exact hardware-passed Candidate AO DT/initramfs baseline. This script
+# Assemble storage-inert Candidate AU from an exact validated kernel package
+# and the exact hardware-passed Candidate AO DT baseline plus the reviewed
+# development initramfs transform. This script
 # never accesses a device and never selects or writes a partition.
 
 set -euo pipefail
@@ -60,7 +61,7 @@ esac
 
 candidate_module="$script_dir/candidate_emmc.py"
 [[ -f "$candidate_module" && ! -L "$candidate_module" &&
-	-s "$candidate_module" ]] || die 'Candidate AT identity module is unsafe'
+	-s "$candidate_module" ]] || die 'Candidate AU identity module is unsafe'
 candidate_value() {
 	PYTHONPATH="$script_dir" python3 -c \
 		'import candidate_emmc as ar, sys; print(getattr(ar, sys.argv[1]))' "$1"
@@ -73,7 +74,7 @@ readonly CANDIDATE_LABEL="$(candidate_value CANDIDATE)"
 readonly AO_NAME="$(candidate_value AO_ARTIFACT_DIR)"
 readonly AO_MANIFEST_SHA256="$(candidate_value AO_MANIFEST_SHA256)"
 readonly AO_DTB_SHA256="$(candidate_value AO_DTB_SHA256)"
-readonly AO_INITRAMFS_SHA256="$(candidate_value INITRAMFS_SHA256)"
+readonly AO_INITRAMFS_SHA256="$(candidate_value AO_INITRAMFS_SHA256)"
 readonly AO_KEYMAP_SHA256="$(candidate_value KEYMAP_SHA256)"
 readonly AO_DTB="$(candidate_value AO_DTB_MEMBER)"
 readonly AO_INITRAMFS="$(candidate_value AO_INITRAMFS_MEMBER)"
@@ -91,6 +92,8 @@ manifest="$repo_root/kernel/manifest.json"
 support_dir="$script_dir/.."
 package_validator="$script_dir/validate-package-emmc.py"
 dtb_builder="$support_dir/scripts/build-emmc-dtb.sh"
+initramfs_builder="$support_dir/scripts/build-emmc-initramfs.sh"
+initramfs_source="$support_dir/initramfs"
 dtb_validator="$support_dir/scripts/validate-dtb-delta-emmc.py"
 boot_validator="$script_dir/validate-boot-emmc.py"
 handoff_auditor="$script_dir/audit-compiled-handoff-emmc.py"
@@ -183,7 +186,7 @@ done
 [[ "$(sha256sum "$ao_artifact/gemini-us.bkeymap" | awk '{ print $1 }')" == \
 	"$AO_KEYMAP_SHA256" ]] || die 'exact Candidate AO keymap changed'
 
-workdir="$(mktemp -d "$output_parent/.candidate-AT-emmc-development.XXXXXX")"
+workdir="$(mktemp -d "$output_parent/.candidate-AU-emmc-development.XXXXXX")"
 cleanup() { [[ ! -d "${workdir:-}" ]] || rm -rf -- "$workdir"; }
 trap cleanup EXIT
 stage="$workdir/stage"
@@ -203,7 +206,8 @@ install -m 0600 "$package/System.map" "$stage/System.map"
 install -m 0600 "$package/kernel.config" "$stage/kernel.config"
 python3 "$normalizer" --input "$package/provenance/build.json" \
 	--output "$stage/source-build.json"
-install -m 0600 "$ao_artifact/$AO_INITRAMFS" "$stage/$AS_INITRAMFS"
+bash "$initramfs_builder" "$ao_artifact/$AO_INITRAMFS" \
+	"$stage/$AS_INITRAMFS" "$initramfs_source" >"$stage/initramfs-validation.txt"
 install -m 0600 "$ao_artifact/gemini-us.bkeymap" "$stage/gemini-us.bkeymap"
 install -m 0755 "$ao_artifact/console-unicode-mode" "$stage/console-unicode-mode"
 install -m 0755 "$ao_artifact/console-keymap-verify" \
@@ -216,7 +220,7 @@ bash "$dtb_builder" --ao-dtb "$ao_artifact/$AO_DTB" \
 bash "$dtb_builder" --ao-dtb "$ao_artifact/$AO_DTB" \
 	--output "$replica/$AS_DTB" >/dev/null
 cmp -s "$stage/$AS_DTB" "$replica/$AS_DTB" || \
-	die 'two independent Candidate AT final-DT derivations differ'
+	die 'two independent Candidate AU final-DT derivations differ'
 sed -e "s|$stage/$AS_DTB|@AS_DTB@|g" \
 	"$stage/dtb-validation.raw" >"$stage/dtb-validation.txt"
 rm "$stage/dtb-validation.raw"
@@ -233,7 +237,7 @@ for output in "$candidate" "$replica_boot"; do
 		--lk-android8 >"${output}.serializer"
 done
 cmp -s "$candidate" "$replica_boot" || \
-	die 'two independent Candidate AT container assemblies differ'
+	die 'two independent Candidate AU container assemblies differ'
 grep -v '^output=' "${candidate}.serializer" >"$stage/serializer.txt"
 rm "${candidate}.serializer" "${replica_boot}.serializer"
 
@@ -274,7 +278,7 @@ auditor_sha256="$(sha256sum "$handoff_auditor" | awk '{ print $1 }')"
 	printf 'candidate_source_build_sha256=%s\n' "$source_build_sha256"
 	printf 'ao_raw_sha256=%s\n' "$(candidate_value AO_RAW_SHA256)"
 	printf 'ao_dtb_sha256=%s\n' "$AO_DTB_SHA256"
-	printf 'candidate_initramfs_sha256=%s\n' "$AO_INITRAMFS_SHA256"
+	printf 'candidate_initramfs_sha256=%s\n' "$(candidate_value INITRAMFS_SHA256)"
 	printf 'candidate_keymap_sha256=%s\n' "$AO_KEYMAP_SHA256"
 	printf 'patch_0094_sha256=%s\n' "$(candidate_value PATCH_0094_SHA256)"
 	printf 'patch_0095_sha256=%s\n' "$(candidate_value PATCH_0095_SHA256)"
@@ -295,7 +299,7 @@ auditor_sha256="$(sha256sum "$handoff_auditor" | awk '{ print $1 }')"
 	printf 'final_dtb_baseline=exact-candidate-ao-final-dtb\n'
 	printf 'final_dtb_delta=access-controller-link-and-legacy-da9214-page-selector-probe\n'
 	printf 'da9214_probe_delta=write-only-page-selector-no-page-con-read\n'
-	printf 'initramfs_keyboard_console_usb_reboot=byte-exact-candidate-ao\n'
+	printf 'initramfs_keyboard_console_usb_reboot=exact-candidate-ao-plus-dd-and-guarded-emmc-helper\n'
 	printf 'handoff_initial_contract=exact-candidate-ao-ready-late-passed\n'
 	printf 'handoff_access_controller=enabled\n'
 	printf 'fw_devlink=rpm\n'
@@ -314,18 +318,18 @@ auditor_sha256="$(sha256sum "$handoff_auditor" | awk '{ print $1 }')"
 
 expected_pre_manifest="$(printf '%s\n' Image.gz System.map analysis.txt \
 	boot-validation.txt console-keymap-verify console-unicode-mode \
-	dtb-validation.txt "$AS_BOOT" "$AS_INITRAMFS" gemini-us.bkeymap \
+	dtb-validation.txt initramfs-validation.txt "$AS_BOOT" "$AS_INITRAMFS" gemini-us.bkeymap \
 	input-event-capture kernel.config "$AS_DTB" package-validation.txt \
 	provenance.txt serializer.txt source-build.json | sort)"
 actual_inventory="$(find "$stage" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort)"
 [[ "$actual_inventory" == "$expected_pre_manifest" ]] || \
-	die 'Candidate AT output inventory changed'
+	die 'Candidate AU output inventory changed'
 (
 	cd "$stage"
 	find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum
 ) >"$stage/SHA256SUMS"
 (cd "$stage" && sha256sum --check --strict SHA256SUMS >/dev/null) || \
-	die 'Candidate AT artifact manifest failed'
+	die 'Candidate AU artifact manifest failed'
 chmod 0600 "$stage"/*
 chmod 0755 "$stage/console-keymap-verify" "$stage/console-unicode-mode" \
 	"$stage/input-event-capture"
@@ -339,12 +343,12 @@ output="$output_parent/$output_name"
 	die "refusing to overwrite $output"
 mv -n "$artifact" "$output"
 [[ -d "$output" && ! -e "$artifact" ]] || \
-	die 'exclusive Candidate AT publication failed'
+	die 'exclusive Candidate AU publication failed'
 rm -rf -- "$replica"
 rmdir "$workdir"
 workdir=
 trap - EXIT
-printf 'validation=candidate-at-emmc-development\n'
+printf 'validation=candidate-au-emmc-development\n'
 printf 'artifact=%s\ncandidate=%s/%s\n' "$output" "$output" "$AS_BOOT"
 printf 'candidate_sha256=%s\ncandidate_size=%s\n' \
 	"$candidate_sha256" "$candidate_size"

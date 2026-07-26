@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pinned identities for storage-inert Candidate AT."""
+"""Pinned identities for storage-inert Candidate AU."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ import stat
 
 
 EXPERIMENT = "2026-07-25-emmc-development"
-CANDIDATE = "AT"
+CANDIDATE = "AU"
 PROFILE = (
     "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-"
     "a72-observer-initcall-blacklist-dvfsp-handoff-owner-i2c6-consumer-"
@@ -29,7 +29,8 @@ AO_DTB_SHA256 = "de40b972b068c728f7ef3a77e2eb193a687ed6f77ff80e3e5f2b39c701a892b
 AO_CONFIG_SHA256 = "4aab63bad14a689a450395de0c33636ee2946df79a9df3b7993f5db4da5b8318"
 AO_PADDED_SHA256 = "3e3a4450d5541e4ad80eceb83e3903981dd1613e05fecd7b25cd2720aadc3edb"
 AO_INSTALLER_SHA256 = "cbb6b8da36ec7f6a48726b9e5304667068719bd406e9df642376b98c0e6bd730"
-INITRAMFS_SHA256 = "166c0f03ab9ca1062f36d55132141b4be5f06187380d17ab2f6e9e7db75d1dd3"
+AO_INITRAMFS_SHA256 = "166c0f03ab9ca1062f36d55132141b4be5f06187380d17ab2f6e9e7db75d1dd3"
+INITRAMFS_SHA256 = "344d8a8464bee60764df467f166aa73eddfcbd4d362d835aa2d6895534c31c4b"
 KEYMAP_SHA256 = "02f8048d76aa0cedf73617b13ea03a2a4e74de88222cb1922d9d19630906675c"
 
 PATCH_0094_SHA256 = "2e20664ff4cb08a4f2296bdafb84148d4e4cf79b1eb17b3e92f6a7bb145abe59"
@@ -52,10 +53,10 @@ COMPILED_HANDOFF_AUDITOR_SHA256 = (
     "0510f0695e3a5fe0045da15cc5b839c7de1779d249938edf72778273144b2341"
 )
 
-BOOT_MEMBER = "gemini-mt6797-emmc-development.boot.img"
-DTB_MEMBER = "mt6797-gemini-pda-emmc-development.dtb"
-INITRAMFS_MEMBER = "gemini-emmc-development-initramfs.img"
-ARTIFACT_PREFIX = "candidate-AT-emmc-development-"
+BOOT_MEMBER = "gemini-mt6797-emmc-flash-development.boot.img"
+DTB_MEMBER = "mt6797-gemini-pda-emmc-flash-development.dtb"
+INITRAMFS_MEMBER = "gemini-emmc-flash-development-initramfs.img"
+ARTIFACT_PREFIX = "candidate-AU-emmc-flash-development-"
 BOOT2_SIZE = 16 * 1024 * 1024
 
 # Pinned after two independent packages and assembled artifacts compared.
@@ -64,10 +65,10 @@ IMAGE_GZ_SHA256 = "e4959287c15d704c2c4a5a31ed1dc5cd74097fb09ae7d8f35f4613ce05c17
 SYSTEM_MAP_SHA256 = "c5993ab331b4996f6bd67826bd1d5d295a3908741d788234a1f325634ffd265f"
 CONFIG_SHA256 = "1eee6481c626e54a4ed1456fc36587377c4528eceb57f7f633cba53c10009c80"
 SOURCE_BUILD_SHA256 = "a42e62c246a65fa171c19d8e21607f3a63b6f34fe21d33db1039c85dd55fbc8f"
-RAW_SHA256 = "e157899b9d57070610d1f04e4f5d12b404c78b28b5f459b9407aa16a31356ff6"
+RAW_SHA256 = "89a609b5adbdaf986fb33b34d18804640114e8f713800386101078729725ce49"
 RAW_SIZE = "7469056"
-ARTIFACT_MANIFEST_SHA256 = "101c8effc433b51836731ce074a9f8962301782d905c34d1a0c6b4d76ecf90da"
-PADDED_SHA256 = "ca66d151c9772f3e7f3237c9b87b52d5067c6381d438609dd9b4b0d8a7f0bc09"
+ARTIFACT_MANIFEST_SHA256 = "b5f7190603dedf5c95b601f49d63aad502d8777c9f73265480d8089513f36db4"
+PADDED_SHA256 = "5052739e14ea8e8086709d52346beac0508ade4f56ac58911d78060fc34c9fff"
 
 HEX256 = re.compile(r"^[0-9a-f]{64}$")
 
@@ -103,7 +104,7 @@ def artifact_pin_state() -> str:
     if all(unresolved):
         return "ready-to-pin"
     if any(unresolved):
-        raise ValueError("Candidate AT artifact calibration is only partially pinned")
+        raise ValueError("Candidate AU artifact calibration is only partially pinned")
     require_artifact_pins()
     return "source-pinned"
 
@@ -121,10 +122,10 @@ def require_artifact_pins() -> None:
     }
     for name, value in hashes.items():
         if HEX256.fullmatch(value) is None:
-            raise ValueError(f"Candidate AT {name} is unresolved or malformed")
+            raise ValueError(f"Candidate AU {name} is unresolved or malformed")
     if not RAW_SIZE.isdecimal() or not 0 < int(RAW_SIZE) <= BOOT2_SIZE:
-        raise ValueError("Candidate AT RAW_SIZE is unresolved or malformed")
+        raise ValueError("Candidate AU RAW_SIZE is unresolved or malformed")
     if RAW_SHA256 == AO_RAW_SHA256:
-        raise ValueError("Candidate AT raw identity equals a predecessor")
+        raise ValueError("Candidate AU raw identity equals a predecessor")
     if PADDED_SHA256 == AO_PADDED_SHA256:
-        raise ValueError("Candidate AT padded identity equals Candidate AO")
+        raise ValueError("Candidate AU padded identity equals Candidate AO")
