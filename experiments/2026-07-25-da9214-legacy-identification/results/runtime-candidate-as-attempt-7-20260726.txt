@@ -1,0 +1,16 @@
+experiment=2026-07-25-da9214-legacy-identification
+candidate=AS-attempt-7
+codename=Kepler
+result=console-delayed-but-functional
+owner_observation=boot2-started; console-delayed; console-later-visible-and-functional
+known_good_console=reached
+usb_shell=not-reached
+keyboard=not-tested
+a72=not-tested; still-blacklisted-by-candidate-policy
+interpretation=attempt-7-passed-the-earlier-pre-console-watchdog-reset-boundary
+read_only_ssh_probe=unavailable; connection-timeout
+next_action=use-codename-for-future-candidates; preserve-exact-technical-identities
+
+This is an owner-observed runtime result. The console became visible after a
+delay and appeared functional. No claim is made here about keyboard, USB, or
+A72 behavior because those paths were not tested in this observation.

@@ -113,6 +113,10 @@ passed. It is installed on boot2 with a full readback; records are in
 'results/build-candidate-as-attempt-7-20260726.txt' and
 'results/install-candidate-as-attempt-7-boot2-20260726.txt'. A72 remains
 blacklisted and no CPU power-on request is present.
+The owner observed that this candidate reached a delayed but functional
+console, crossing the earlier pre-console watchdog boundary. Its codename is
+`Kepler`; future candidates will use a single memorable space/science/cartoons
+codename alongside their exact technical identity and checksums.
 
 ## Reproducibility
 
