@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | \`2026-07-26-a72-active-galileo\` |
-| Status | \`running; candidate assembled, hardware not yet tested\` |
+| Status | \`running; corrected candidate assembled, hardware not yet tested\` |
 | Subsystem | MT6797 Cortex-A72 power sequencing and PSCI CPU_ON |
 | Device variant | Named Gemini PDA unit |
 
@@ -14,8 +14,9 @@
 The vendor-observed CPU8 bring-up transaction can be used as a one-way,
 fail-closed Linux provider while firmware remains owner of DVFS, HPS, idle,
 thermal policy, and CPU9. If the sequence is correct, CPU8 will reach
-\`online\` under the existing \`maxcpus=8\` boot contract and the exact known-good
-USB Ethernet shell will remain usable.
+\`online\` under a \`maxcpus=9\` boot contract that requests CPU8 after CPU0--7,
+while CPU9 remains unrequested, and the exact known-good USB Ethernet shell will
+remain usable.
 
 The unique evidence behind this candidate is the prior Gemian CPU8 load trace
 and the source/audit reconstruction of the SPM, TOPRGU, DA9214, SRAM-LDO,
@@ -51,9 +52,11 @@ it is inactive and unmounted, preserves a full backup, writes one bounded
 
 ## Observations
 
-Initial result: not tested on hardware. Compile/configuration and container
-validation passed. Runtime evidence will be recorded in \`results/\` after the
-manual boot.
+The first assembled Galileo image was caught in pre-boot review with
+\`maxcpus=8\`, which could request only CPU0--7; it was never booted. The
+corrected image changes only that boundary to \`maxcpus=9\`. Compile/configuration
+and container validation passed for the corrected image. Runtime evidence will
+be recorded in \`results/\` after the manual boot.
 
 ## Conclusion
 

@@ -53,7 +53,7 @@ def validate(repository: pathlib.Path, package: pathlib.Path) -> None:
         raise ValueError("Galileo series does not end in the active CPU8 patch")
     config = regular(package / "kernel.config", "kernel config").decode("ascii")
     required = (
-        'CONFIG_CMDLINE="console=ttyS0,921600n8 earlycon maxcpus=8 nokaslr '
+        'CONFIG_CMDLINE="console=ttyS0,921600n8 earlycon maxcpus=9 nokaslr '
         'ignore_loglevel loglevel=8 log_buf_len=1M initcall_debug rdinit=/init '
         'panic=0 g_ether.dev_addr=42:00:15:19:82:01 '
         'g_ether.host_addr=42:00:15:19:82:00 '
