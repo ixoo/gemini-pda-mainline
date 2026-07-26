@@ -82,8 +82,11 @@ For AU it preserved the previous AT full-partition image
 flushed the write, and verified the AU readback checksum. The detailed
 sanitized record is in `results/candidate-au-build-install-20260725.txt`.
 
-The device has not yet booted Candidate AW, so eMMC enumeration and runtime
-stability remain unverified.
+Candidate AW booted successfully on the named device. The PMIC wrapper bound,
+the MT6351 VEMC/VIO18 regulators registered, and the eMMC host enumerated a
+58.2 GiB `mmcblk0` with all 33 GPT partitions plus boot0, boot1, and RPMB.
+The detailed sanitized record is in
+`results/candidate-aw-runtime-20260726.txt`.
 
 ## Conclusion
 
@@ -91,7 +94,8 @@ AU passed its first boot test but failed eMMC enumeration. AV added the
 MT6351 MFD/regulator drivers, but its runtime probe showed that the PMIC
 wrapper was still disabled (`CONFIG_MTK_PMIC_WRAP=n`), leaving only the dummy
 regulator and repeated `-EPROBE_DEFER` from `11230000.mmc`. AW adds the wrapper
-driver and is installed for the next read-only boot test.
+driver and passed the read-only boot test: `1000d000.pwrap` and its MT6351
+child returned success, `11230000.mmc` returned success, and `mmcblk0` appeared.
 
 ## Follow-up
 
@@ -101,8 +105,10 @@ only the dummy regulator was registered. The DT's `vmmc-supply` and
 `vqmmc-supply` phandles resolve to the MT6351 VEMC/VIO18 rails. Candidate AV
 added the MFD/regulator drivers, and Candidate AW adds the missing
 `CONFIG_MTK_PMIC_WRAP=y` dependency while preserving the AV DT and initramfs
-contract. AW is installed and awaits its first boot test.
+contract. AW booted with the expected configuration and exposed the named
+VEMC (`regulator.18`) and VIO18 (`regulator.24`) rails; no MMC probe defer was
+observed.
 
-The next decision is whether AW registers the MT6351 rails and enumerates a
-stable `mmcblk` device. A successful result enables a no-Gemian development
-loop; it does not authorize arbitrary partition writes.
+This enables a no-Gemian development loop. The next step is a helper
+`--dry-run` audit against the live GPT; it does not authorize arbitrary
+partition writes.
