@@ -1,0 +1,40 @@
+experiment=2026-07-25-emmc-development
+candidate=AW
+change=enable-CONFIG_MTK_PMIC_WRAP
+kernel_packages=2-independent-builds
+kernel_package_1=linux-7.1.3-gemini-observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-observer-initcall-blacklist-dvfsp-handoff-owner-i2c6-consumer-ap-dma-preserve-da9214-legacy-readonly-emmc-development-b4b061cc-502879f3
+kernel_package_2=linux-7.1.3-gemini-observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-observer-initcall-blacklist-dvfsp-handoff-owner-i2c6-consumer-ap-dma-preserve-da9214-legacy-readonly-emmc-development-b4b061cc-502879f3
+reproducibility=Image.gz,System.map,kernel.config-identical
+config_mtk_pmic_wrap=y
+config_mfd_mt6397=y
+config_regulator_mt6351=y
+config_mmc=y
+config_mmc_block=y
+config_mmc_mtk=y
+candidate_raw_sha256=42c5c40333379a5445de80a2300bd1b7325f7e7948429c70a2ffaa4d8fca97d2
+candidate_raw_size=7497728
+candidate_padded_sha256=216daa467231d7a191b918584fa12fed6904429a020c1a2283fbf7ed82f74a0f
+candidate_initramfs_sha256=344d8a8464bee60764df467f166aa73eddfcbd4d362d835aa2d6895534c31c4b
+candidate_dtb_sha256=e51891c839ab5e40e591346cb78ac66f1c5e0179a1cc30c4a33acf0b9c0667f7
+candidate_artifact_manifest_sha256=22b2cc789c0ac39792617f693b8852ff1a8ad25d71e733cb6f8727716f34171b
+installer_sha256=239cc3dae69da31111df161180fa9b911871eeb99e303a4c0c5bf275f7eb3c0f
+target=/dev/mmcblk0p30
+target_partition_label=boot2
+target_partition_number=30
+target_size=16777216
+active_root=/dev/mmcblk0p29
+target_was_active=no
+target_was_mounted=no
+power_state=Full
+power_percent=100
+pre_write_sha256=c14183db2daa47f81629bc3b5e2cb0df21af1d28ec26f391527ac878e8f852e7
+backup_sha256=c14183db2daa47f81629bc3b5e2cb0df21af1d28ec26f391527ac878e8f852e7
+readback_sha256=216daa467231d7a191b918584fa12fed6904429a020c1a2283fbf7ed82f74a0f
+evidence_manifest_sha256=472000cec774de0d64f9ad8722e69b11d22076ed794cfc38fe66c89ab6dcd520
+write_result=write-synced-flushed-full-readback-verified
+reboot=none
+runtime_result=pending-boot-test
+
+# Predecessor runtime evidence: the installed AV kernel had
+# CONFIG_MTK_PMIC_WRAP unset; sysfs exposed only regulator.0 (dummy) and
+# 11230000.mmc repeatedly returned -EPROBE_DEFER, with no /dev/mmcblk*.

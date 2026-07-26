@@ -15,12 +15,13 @@
 ## Question or hypothesis
 
 The retained `mmc0` DT node describes the Gemini's non-removable eMMC and
-matches Linux's `mediatek,mt6797-mmc` host driver. Enabling only the built-in
-MMC core, block layer, and MediaTek host driver should expose the eMMC as a
-Linux block device while preserving the already validated console, keyboard,
-USB shell, eight-CPU, DVFSP, I2C6, and watchdog contracts. Candidate AU added
-the existing BusyBox `dd` applet as `/bin/dd` and a separately reviewed helper
-for an explicit, GPT-name-resolved `boot2` write.
+matches Linux's `mediatek,mt6797-mmc` host driver. Enabling the built-in MMC
+core, block layer, MediaTek host, PMIC-wrapper, MT6351 MFD, and MT6351
+regulator drivers should expose the eMMC as a Linux block device while
+preserving the already validated console, keyboard, USB shell, eight-CPU,
+DVFSP, I2C6, and watchdog contracts. Candidate AU added the existing BusyBox
+`dd` applet as `/bin/dd` and a separately reviewed helper for an explicit,
+GPT-name-resolved `boot2` write.
 
 ## Provenance and safety
 
@@ -81,23 +82,27 @@ For AU it preserved the previous AT full-partition image
 flushed the write, and verified the AU readback checksum. The detailed
 sanitized record is in `results/candidate-au-build-install-20260725.txt`.
 
-The device has not yet booted this exact candidate, so eMMC enumeration and
-runtime stability remain unverified.
+The device has not yet booted Candidate AW, so eMMC enumeration and runtime
+stability remain unverified.
 
 ## Conclusion
 
-AU passed its first boot test but failed eMMC enumeration; AV is pending its
-first boot test and a read-only helper dry run.
+AU passed its first boot test but failed eMMC enumeration. AV added the
+MT6351 MFD/regulator drivers, but its runtime probe showed that the PMIC
+wrapper was still disabled (`CONFIG_MTK_PMIC_WRAP=n`), leaving only the dummy
+regulator and repeated `-EPROBE_DEFER` from `11230000.mmc`. AW adds the wrapper
+driver and is installed for the next read-only boot test.
 
 ## Follow-up
 
 Candidate AU booted successfully with all eight CPUs and the USB shell, but
 its eMMC host remained deferred (`probe of 11230000.mmc returned -517`) because
 only the dummy regulator was registered. The DT's `vmmc-supply` and
-`vqmmc-supply` phandles resolve to the MT6351 VEMC/VIO18 rails, so Candidate AV
-adds the existing MT6351 MFD/regulator drivers that the AU profile had left
-disabled. AV is installed and awaits its first boot test.
+`vqmmc-supply` phandles resolve to the MT6351 VEMC/VIO18 rails. Candidate AV
+added the MFD/regulator drivers, and Candidate AW adds the missing
+`CONFIG_MTK_PMIC_WRAP=y` dependency while preserving the AV DT and initramfs
+contract. AW is installed and awaits its first boot test.
 
-The next decision is whether AV registers the MT6351 rails and enumerates a
+The next decision is whether AW registers the MT6351 rails and enumerates a
 stable `mmcblk` device. A successful result enables a no-Gemian development
 loop; it does not authorize arbitrary partition writes.

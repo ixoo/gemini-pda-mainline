@@ -3,8 +3,11 @@
 # explicitly guarded USB-side tool can inspect or write a named boot partition.
 # It does not mount a filesystem, select a slot, or perform any write itself.
 # The retained mmc0 node names MT6351 VEMC and VIO18 as its supplies. The
-# handoff baseline disables the PMIC stack, so restore only the exact MFD and
-# regulator drivers needed to register those existing supply providers.
+# handoff baseline disables the PMIC stack, so restore the PMIC-wrapper,
+# MFD, and regulator drivers needed to register those existing supply
+# providers. Without the wrapper, the MT6351 child is never probed and the
+# MMC host remains deferred on its VEMC/VIO18 supplies.
+CONFIG_MTK_PMIC_WRAP=y
 CONFIG_MFD_MT6397=y
 CONFIG_REGULATOR_MT6351=y
 CONFIG_MMC=y

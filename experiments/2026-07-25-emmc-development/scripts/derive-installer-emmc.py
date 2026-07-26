@@ -15,7 +15,9 @@ from dataclasses import dataclass
 
 sys.dont_write_bytecode = True
 
-import candidate_emmc as ar
+import importlib
+
+ar = importlib.import_module(os.environ.get("EMMC_CANDIDATE_MODULE", "candidate_emmc"))
 
 
 AO_DERIVER_SHA256 = (
@@ -23,8 +25,10 @@ AO_DERIVER_SHA256 = (
 )
 AO_INSTALLER_SHA256 = ar.AO_INSTALLER_SHA256
 # The device is currently running the previously installed Candidate AU on boot2.
-PREVIOUS_AS_PADDED_SHA256 = (
-    "5052739e14ea8e8086709d52346beac0508ade4f56ac58911d78060fc34c9fff"
+PREVIOUS_AS_PADDED_SHA256 = getattr(
+    ar,
+    "PREVIOUS_AS_PADDED_SHA256",
+    "5052739e14ea8e8086709d52346beac0508ade4f56ac58911d78060fc34c9fff",
 )
 AO_INSTALLER_PREDECESSOR_SHA256 = (
     "1ef53a25c274ed6f0df265fbc4f4e3a64150d5b7fd4cd1e0cde1db53ffb18ccb"
@@ -94,6 +98,8 @@ def artifact_directory(calibration: Calibration) -> str:
 def identity_replacements(
     calibration: Calibration,
 ) -> tuple[tuple[str, str, int], ...]:
+    label = ar.CANDIDATE
+    slug = label.lower()
     return (
         (
             f'expected_artifact_name="{ar.AO_ARTIFACT_DIR}"',
@@ -102,8 +108,8 @@ def identity_replacements(
         ),
         (ar.AO_BOOT_MEMBER, ar.BOOT_MEMBER, 1),
         ("2026-07-24-mt6797-dvfsp-one-way-handoff", ar.EXPERIMENT, 2),
-        ("Candidate AO", "Candidate AV", 8),
-        ("candidate-ao", "candidate-av", 14),
+        ("Candidate AO", f"Candidate {label}", 8),
+        ("candidate-ao", f"candidate-{slug}", 14),
         ("AO_RAW", "AS_RAW", 16),
         ("AO_PADDED", "AS_PADDED", 11),
         ("AO_ARTIFACT", "AS_ARTIFACT", 4),
@@ -112,7 +118,7 @@ def identity_replacements(
             "EXPECTED_CURRENT_AS_PADDED_SHA256",
             8,
         ),
-        ("candidate_label=AO", "candidate_label=AT", 2),
+        ("candidate_label=AO", f"candidate_label={label}", 2),
         (
             "AN-installed-readback-verified",
             "previous-AT-installed-readback-verified",
@@ -264,7 +270,7 @@ def main() -> int:
             source = source_path.read_text(encoding="utf-8", errors="strict")
         text = derive_text(source, calibration)
         publish(output, text)
-        print("validation=candidate-av-installer-derivation")
+        print(f"validation=candidate-{ar.CANDIDATE.lower()}-installer-derivation")
         print(f"foundation_installer_sha256={AO_INSTALLER_SHA256}")
         print(f"installer_sha256={hashlib.sha256(text.encode()).hexdigest()}")
         print(f"candidate_raw_sha256={calibration.raw_sha256}")

@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import gzip
 import hashlib
+import importlib
 import os
 import pathlib
 import stat
@@ -17,7 +18,7 @@ import zlib
 
 sys.dont_write_bytecode = True
 
-import candidate_emmc as ar
+ar = importlib.import_module(os.environ.get("EMMC_CANDIDATE_MODULE", "candidate_emmc"))
 
 
 PAGE_SIZE = 2048

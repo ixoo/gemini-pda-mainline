@@ -59,12 +59,16 @@ case "$output_parent" in
 	;;
 esac
 
-candidate_module="$script_dir/candidate_emmc.py"
+candidate_module_name="${EMMC_CANDIDATE_MODULE:-candidate_emmc}"
+[[ "$candidate_module_name" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || \
+	die 'EMMC_CANDIDATE_MODULE is not a valid Python module name'
+candidate_module="$script_dir/$candidate_module_name.py"
 [[ -f "$candidate_module" && ! -L "$candidate_module" &&
-	-s "$candidate_module" ]] || die 'Candidate AU identity module is unsafe'
+	-s "$candidate_module" ]] || die 'candidate identity module is unsafe'
 candidate_value() {
+	EMMC_CANDIDATE_MODULE="$candidate_module_name" \
 	PYTHONPATH="$script_dir" python3 -c \
-		'import candidate_emmc as ar, sys; print(getattr(ar, sys.argv[1]))' "$1"
+		'import importlib, os, sys; print(getattr(importlib.import_module(os.environ["EMMC_CANDIDATE_MODULE"]), sys.argv[1]))' "$1"
 }
 
 readonly PROFILE="$(candidate_value PROFILE)"
@@ -251,7 +255,7 @@ rm "$stage/analysis.raw"
 [[ "$(grep -c '^gate_' "$stage/analysis.txt")" == 32 ]] || \
 	die 'LK analyzer did not emit exactly 32 gates'
 
-python3 "$boot_validator" --candidate "$candidate" \
+EMMC_CANDIDATE_MODULE="$candidate_module_name" python3 "$boot_validator" --candidate "$candidate" \
 	--image-gz "$stage/Image.gz" --system-map "$stage/System.map" \
 	--kernel-config "$stage/kernel.config" --dtb "$stage/$AS_DTB" \
 	--ao-dtb "$ao_artifact/$AO_DTB" --initramfs "$stage/$AS_INITRAMFS" \
