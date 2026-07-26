@@ -80,7 +80,15 @@ power-on candidate and must not change the CPU policy. Attempt 5 passed all
 offline validators and is installed on boot2 with a full readback; its records
 are in 'results/build-candidate-as-attempt-5-20260726.txt' and
 'results/install-candidate-as-attempt-5-boot2-20260726.txt'. Runtime validation
-is pending the owner-attended boot from boot2.
+is recorded in 'results/runtime-candidate-as-attempt-5-20260726.txt'. The owner
+reported a white screen followed by an automatic return to Gemian. Read-only
+recovery found Gemian's watchdog-class boot reason (`wdt_by_pass_pwk`), while
+pstore and `/proc/last_kmsg` contained no candidate record. This is evidence of
+a watchdog reset before the known-good console/USB observation point, not proof
+that the read-modify-write transaction alone caused the reset. The unique
+candidate delta is nevertheless 0108, so it is not repeated; the next test must
+isolate the DA9214 transaction with a bounded, fail-closed probe before any A72
+power-on work.
 
 ## Reproducibility
 
