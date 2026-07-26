@@ -1,0 +1,32 @@
+Operation: copy primary Gemian boot to logical boot2
+Date: 2026-07-26
+Device: named Gemini PDA under test
+Transport: direct USB Ethernet development shell
+
+Source and target
+=================
+- Live GPT source: `/dev/mmcblk0p22`, PARTNAME `boot`.
+- Live GPT target: `/dev/mmcblk0p30`, PARTNAME `boot2`.
+- Both partitions: 32768 sectors (16 MiB), writable.
+- Target was unmounted and had no sysfs holders.
+- No other partition was opened for writing.
+
+Checksums
+=========
+- Primary Gemian source/readback image: `1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513`.
+- Full pre-write AW boot2 backup: `216daa467231d7a191b918584fa12fed6904429a020c1a2283fbf7ed82f74a0f`.
+- Full post-write boot2 readback: `1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513`.
+
+Procedure and result
+====================
+The exact 16 MiB source was copied with `dd`, synchronized, and block-flushed.
+The target was read back in full and matched the source checksum. The device
+was not rebooted by this operation. The current AW shell therefore remains
+running until the owner selects `boot2` on a subsequent boot.
+
+Safety
+======
+The complete pre-write target image is retained locally at
+`artifacts/device-partitions/gemian-boot2-20260726/boot2-before-gemian.img`,
+with mode 0600 and its checksum recorded alongside it. No mount or filesystem
+write was performed.
