@@ -117,6 +117,10 @@ The owner observed that this candidate reached a delayed but functional
 console, crossing the earlier pre-console watchdog boundary. Its codename is
 `Kepler`; future candidates will use a single memorable space/science/cartoons
 codename alongside their exact technical identity and checksums.
+The development shell is the initramfs's direct USB Ethernet service at
+`10.15.19.82:2323` (BusyBox `nc`, no authentication, USB-link-only), not SSH.
+The first read-only shell probe reported `usb0` carrier up, UDC configured, and
+CPUs `0-7` online.
 
 ## Reproducibility
 

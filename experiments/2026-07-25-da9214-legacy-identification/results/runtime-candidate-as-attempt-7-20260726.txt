@@ -4,13 +4,23 @@ codename=Kepler
 result=console-delayed-but-functional
 owner_observation=boot2-started; console-delayed; console-later-visible-and-functional
 known_good_console=reached
-usb_shell=not-reached
+usb_shell=validated
+usb_shell_endpoint=10.15.19.82:2323
+usb_shell_transport=direct-usb-ethernet-busybox-nc
+usb0=up-carrier-1
+udc=11271000.usb;udc_state=configured
+usb_shell_privilege=root;authentication=none;encryption=none
 keyboard=not-tested
 a72=not-tested; still-blacklisted-by-candidate-policy
-interpretation=attempt-7-passed-the-earlier-pre-console-watchdog-reset-boundary
-read_only_ssh_probe=unavailable; connection-timeout
-next_action=use-codename-for-future-candidates; preserve-exact-technical-identities
+cpu_online=0-7
+uptime_seconds=985.58
+kernel_release=7.1.3-gemini-observability-L
+interpretation=attempt-7-passed-the-earlier-pre-console-watchdog-reset-boundary-and-usb-shell-is-usable
+read_only_ssh_probe=not-applicable; boot2-service-is-nc-2323
+next_action=use-usb-nc-shell-for-future-validation; preserve-exact-technical-identities
 
-This is an owner-observed runtime result. The console became visible after a
-delay and appeared functional. No claim is made here about keyboard, USB, or
-A72 behavior because those paths were not tested in this observation.
+This combines the owner's console observation with a read-only USB-shell
+probe. The console became visible after a delay and appeared functional. The
+documented direct USB shell then accepted commands and reported `usb0` carrier
+up, a configured UDC, root privilege, and CPUs `0-7`. Keyboard and A72 were
+not tested in this observation.
