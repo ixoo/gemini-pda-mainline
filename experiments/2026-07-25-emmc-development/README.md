@@ -112,3 +112,11 @@ observed.
 This enables a no-Gemian development loop. The next step is a helper
 `--dry-run` audit against the live GPT; it does not authorize arbitrary
 partition writes.
+
+An owner-requested attempt to copy AW to the primary `boot` partition was
+rejected by the eMMC path. Mainline and Gemian vendor writes returned a zero
+userspace status but left p22 unchanged; Gemian's kernel logged
+`mmc_check_write: data error = -30` (`EROFS`). `boot2` writes remain verified,
+but primary-boot writes require a separate investigation of the vendor
+write-protection contract. See
+`results/aw-to-primary-boot-protected-20260726.txt`.

@@ -1,0 +1,42 @@
+Operation: copy AW image to primary Gemian boot
+Date: 2026-07-26
+Device: named Gemini PDA under test
+
+Requested operation
+===================
+Copy the verified AW eMMC-development boot image to live GPT partition
+`PARTNAME=boot` (`/dev/mmcblk0p22`). This is a primary-boot write explicitly
+requested by the owner; the existing Gemian image was backed up first.
+
+Evidence and procedure
+======================
+- Current primary boot backup: 16 MiB,
+  SHA-256 `1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513`.
+- Staged AW image: 16 MiB,
+  SHA-256 `216daa467231d7a191b918584fa12fed6904429a020c1a2283fbf7ed82f74a0f`.
+- Gemian resolved `/dev/disk/by-partlabel/boot` to `/dev/mmcblk0p22`.
+- Battery was Full/100%; neither boot partition was mounted.
+- Mainline partition-node, bounded parent-device, and direct-I/O writes were
+  attempted with sync/flush and all reported a zero userspace exit status.
+- Gemian's vendor `dd` path was then attempted with the same exact source and
+  target and a full readback.
+
+Result
+======
+FAIL-CLOSED. The primary partition remained at the Gemian checksum above.
+Gemian's kernel log records repeated:
+
+`[mmc_check_write]: data error = -30, status=0x4000900`
+
+`-30` is `EROFS`; the eMMC/controller is rejecting writes to this primary
+boot range despite the Linux block-node `ro` flags reporting zero. `boot2`
+remains writable, but `boot` is protected in the currently running storage
+path. No further bypass or bootloader write was attempted. The device was
+left running Gemian and was not rebooted after the failed write.
+
+Next step
+=========
+Identify the vendor write-protection contract (likely an eMMC boot-range or
+secure/boot-chain protection) before considering any bypass. A bootloader or
+MTK-specific flashing path would require a separate, explicitly reviewed
+operation; do not infer that a zero `dd` exit means a persistent write.
