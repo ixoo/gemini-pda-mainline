@@ -364,8 +364,9 @@ validate_config_fragments() {
         ;;
       '# CONFIG_'*' is not set')
         if ! grep -Fqx "${line}" "${BUILD_DIR}/.config"; then
-          grep -Eq "^${symbol}=" "${BUILD_DIR}/.config" && \
+          if grep -Eq "^${symbol}=" "${BUILD_DIR}/.config"; then
             die "${origin[${symbol}]}: requested value was not retained: ${line}"
+          fi
         fi
         ;;
     esac
