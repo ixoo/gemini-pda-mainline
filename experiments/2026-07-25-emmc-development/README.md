@@ -18,7 +18,7 @@ The retained `mmc0` DT node describes the Gemini's non-removable eMMC and
 matches Linux's `mediatek,mt6797-mmc` host driver. Enabling only the built-in
 MMC core, block layer, and MediaTek host driver should expose the eMMC as a
 Linux block device while preserving the already validated console, keyboard,
-USB shell, eight-CPU, DVFSP, I2C6, and watchdog contracts. Candidate AU adds
+USB shell, eight-CPU, DVFSP, I2C6, and watchdog contracts. Candidate AU added
 the existing BusyBox `dd` applet as `/bin/dd` and a separately reviewed helper
 for an explicit, GPT-name-resolved `boot2` write.
 
@@ -40,9 +40,9 @@ for an explicit, GPT-name-resolved `boot2` write.
 
 ## Associated code
 
-- `scripts/build-candidate-emmc.sh` assembles the AU boot image from a validated
-  eMMC kernel package and the exact known-good AO DT baseline plus the
-  validated development initramfs transform.
+- `scripts/build-candidate-emmc.sh` assembles the current boot image from a
+  validated eMMC kernel package and the exact known-good AO DT baseline plus
+  the validated development initramfs transform.
 - `scripts/validate-package-emmc.py` checks the pinned profile, config, image,
   and required MMC host symbol.
 - `scripts/validate-boot-emmc.py` checks the Android-v0 container and preserves
@@ -56,8 +56,10 @@ for an explicit, GPT-name-resolved `boot2` write.
 ## Procedure
 
 1. Configure and build the pinned eMMC profile in the recovery VM.
-2. Assemble and validate two independent AU packages and pin their hashes.
-3. Install only the validated, padded AU image to inactive logical `boot2`.
+2. Assemble and validate two independent candidate packages and pin their
+   hashes.
+3. Install only the validated, padded candidate image to inactive logical
+   `boot2`.
 4. Boot it manually and inspect the eMMC node and log without mounting or
    writing anything.
 5. Exercise the helper first with `--dry-run`; reserve an actual write for an
@@ -84,10 +86,18 @@ runtime stability remain unverified.
 
 ## Conclusion
 
-Pending the first AU boot test and a read-only helper dry run.
+AU passed its first boot test but failed eMMC enumeration; AV is pending its
+first boot test and a read-only helper dry run.
 
 ## Follow-up
 
-The next decision is whether AU enumerates a stable `mmcblk` device and the
-helper can resolve `boot2` in the initramfs. A successful result enables a
-no-Gemian development loop; it does not authorize arbitrary partition writes.
+Candidate AU booted successfully with all eight CPUs and the USB shell, but
+its eMMC host remained deferred (`probe of 11230000.mmc returned -517`) because
+only the dummy regulator was registered. The DT's `vmmc-supply` and
+`vqmmc-supply` phandles resolve to the MT6351 VEMC/VIO18 rails, so Candidate AV
+adds the existing MT6351 MFD/regulator drivers that the AU profile had left
+disabled. AV is installed and awaits its first boot test.
+
+The next decision is whether AV registers the MT6351 rails and enumerates a
+stable `mmcblk` device. A successful result enables a no-Gemian development
+loop; it does not authorize arbitrary partition writes.

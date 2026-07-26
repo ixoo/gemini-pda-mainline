@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pinned identities for storage-inert Candidate AU."""
+"""Pinned identities for storage-inert Candidate AV."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ import stat
 
 
 EXPERIMENT = "2026-07-25-emmc-development"
-CANDIDATE = "AU"
+CANDIDATE = "AV"
 PROFILE = (
     "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-"
     "a72-observer-initcall-blacklist-dvfsp-handoff-owner-i2c6-consumer-"
@@ -53,22 +53,22 @@ COMPILED_HANDOFF_AUDITOR_SHA256 = (
     "0510f0695e3a5fe0045da15cc5b839c7de1779d249938edf72778273144b2341"
 )
 
-BOOT_MEMBER = "gemini-mt6797-emmc-flash-development.boot.img"
-DTB_MEMBER = "mt6797-gemini-pda-emmc-flash-development.dtb"
-INITRAMFS_MEMBER = "gemini-emmc-flash-development-initramfs.img"
-ARTIFACT_PREFIX = "candidate-AU-emmc-flash-development-"
+BOOT_MEMBER = "gemini-mt6797-emmc-pmic-development.boot.img"
+DTB_MEMBER = "mt6797-gemini-pda-emmc-pmic-development.dtb"
+INITRAMFS_MEMBER = "gemini-emmc-pmic-development-initramfs.img"
+ARTIFACT_PREFIX = "candidate-AV-emmc-pmic-development-"
 BOOT2_SIZE = 16 * 1024 * 1024
 
 # Pinned after two independent packages and assembled artifacts compared.
 FINAL_DTB_SHA256 = "e51891c839ab5e40e591346cb78ac66f1c5e0179a1cc30c4a33acf0b9c0667f7"
-IMAGE_GZ_SHA256 = "e4959287c15d704c2c4a5a31ed1dc5cd74097fb09ae7d8f35f4613ce05c17d7b"
-SYSTEM_MAP_SHA256 = "c5993ab331b4996f6bd67826bd1d5d295a3908741d788234a1f325634ffd265f"
-CONFIG_SHA256 = "1eee6481c626e54a4ed1456fc36587377c4528eceb57f7f633cba53c10009c80"
-SOURCE_BUILD_SHA256 = "a42e62c246a65fa171c19d8e21607f3a63b6f34fe21d33db1039c85dd55fbc8f"
-RAW_SHA256 = "89a609b5adbdaf986fb33b34d18804640114e8f713800386101078729725ce49"
-RAW_SIZE = "7469056"
-ARTIFACT_MANIFEST_SHA256 = "b5f7190603dedf5c95b601f49d63aad502d8777c9f73265480d8089513f36db4"
-PADDED_SHA256 = "5052739e14ea8e8086709d52346beac0508ade4f56ac58911d78060fc34c9fff"
+IMAGE_GZ_SHA256 = "ca7296096ff09665243813dfc644ff52ef2f4f99bcd75a0c93cf17ba5d8dae1a"
+SYSTEM_MAP_SHA256 = "bed6aeecddb5bdad32d84d8900a3f538f89e02a9eb351c9cd74ac4a79fcb6bba"
+CONFIG_SHA256 = "bc2532f67515e7f8688afe71a0aa85a03007e28159f7c498dd60f0edcb774c11"
+SOURCE_BUILD_SHA256 = "5e075c4e9fabbbf8cbc470710a62c6ed879e8f67076301e71cd041940bd0b197"
+RAW_SHA256 = "506519aec92d85bae83be722243c2afc4069b170a8d8df30f96282bfcbf8ba05"
+RAW_SIZE = "7491584"
+ARTIFACT_MANIFEST_SHA256 = "e47e5ad4e02daec473ac409cead2b6f6db2e0fb06f221a07bc0ac3e8a4f60d4c"
+PADDED_SHA256 = "c14183db2daa47f81629bc3b5e2cb0df21af1d28ec26f391527ac878e8f852e7"
 
 HEX256 = re.compile(r"^[0-9a-f]{64}$")
 
@@ -104,7 +104,7 @@ def artifact_pin_state() -> str:
     if all(unresolved):
         return "ready-to-pin"
     if any(unresolved):
-        raise ValueError("Candidate AU artifact calibration is only partially pinned")
+        raise ValueError("Candidate AV artifact calibration is only partially pinned")
     require_artifact_pins()
     return "source-pinned"
 
@@ -122,10 +122,10 @@ def require_artifact_pins() -> None:
     }
     for name, value in hashes.items():
         if HEX256.fullmatch(value) is None:
-            raise ValueError(f"Candidate AU {name} is unresolved or malformed")
+            raise ValueError(f"Candidate AV {name} is unresolved or malformed")
     if not RAW_SIZE.isdecimal() or not 0 < int(RAW_SIZE) <= BOOT2_SIZE:
-        raise ValueError("Candidate AU RAW_SIZE is unresolved or malformed")
+        raise ValueError("Candidate AV RAW_SIZE is unresolved or malformed")
     if RAW_SHA256 == AO_RAW_SHA256:
-        raise ValueError("Candidate AU raw identity equals a predecessor")
+        raise ValueError("Candidate AV raw identity equals a predecessor")
     if PADDED_SHA256 == AO_PADDED_SHA256:
-        raise ValueError("Candidate AU padded identity equals Candidate AO")
+        raise ValueError("Candidate AV padded identity equals Candidate AO")

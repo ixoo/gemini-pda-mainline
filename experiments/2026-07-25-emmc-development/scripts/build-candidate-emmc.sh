@@ -348,7 +348,8 @@ rm -rf -- "$replica"
 rmdir "$workdir"
 workdir=
 trap - EXIT
-printf 'validation=candidate-au-emmc-development\n'
+printf 'validation=candidate-%s-emmc-development\n' \
+	"$(printf '%s' "$CANDIDATE_LABEL" | tr '[:upper:]' '[:lower:]')"
 printf 'artifact=%s\ncandidate=%s/%s\n' "$output" "$output" "$AS_BOOT"
 printf 'candidate_sha256=%s\ncandidate_size=%s\n' \
 	"$candidate_sha256" "$candidate_size"

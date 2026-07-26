@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Derive AU's guarded boot2 installer from exact Candidate AO."""
+"""Derive AV's guarded boot2 installer from exact Candidate AO."""
 
 from __future__ import annotations
 
@@ -22,9 +22,9 @@ AO_DERIVER_SHA256 = (
     "64edec00e1867784599b59f5d950dea5e9332a4ac70bdba7bae9613390130691"
 )
 AO_INSTALLER_SHA256 = ar.AO_INSTALLER_SHA256
-# The device is currently running the previously installed Candidate AT on boot2.
+# The device is currently running the previously installed Candidate AU on boot2.
 PREVIOUS_AS_PADDED_SHA256 = (
-    "ca66d151c9772f3e7f3237c9b87b52d5067c6381d438609dd9b4b0d8a7f0bc09"
+    "5052739e14ea8e8086709d52346beac0508ade4f56ac58911d78060fc34c9fff"
 )
 AO_INSTALLER_PREDECESSOR_SHA256 = (
     "1ef53a25c274ed6f0df265fbc4f4e3a64150d5b7fd4cd1e0cde1db53ffb18ccb"
@@ -73,18 +73,18 @@ def validate_calibration(calibration: Calibration) -> None:
         ("padded", calibration.padded_sha256),
     ):
         if ar.HEX256.fullmatch(value) is None:
-            raise ValueError(f"Candidate AU {label} SHA-256 is unresolved or malformed")
+            raise ValueError(f"Candidate AV {label} SHA-256 is unresolved or malformed")
     if (
         not calibration.raw_size.isdecimal()
         or not 0 < int(calibration.raw_size) <= ar.BOOT2_SIZE
     ):
-        raise ValueError("Candidate AU raw size is unresolved, malformed, or oversized")
+        raise ValueError("Candidate AV raw size is unresolved, malformed, or oversized")
     if calibration.raw_sha256 == ar.AO_RAW_SHA256:
-        raise ValueError("Candidate AU raw identity equals Candidate AO")
+        raise ValueError("Candidate AV raw identity equals Candidate AO")
     if calibration.manifest_sha256 == ar.AO_MANIFEST_SHA256:
-        raise ValueError("Candidate AU artifact manifest equals Candidate AO")
+        raise ValueError("Candidate AV artifact manifest equals Candidate AO")
     if calibration.padded_sha256 == ar.AO_PADDED_SHA256:
-        raise ValueError("Candidate AU padded identity equals Candidate AO")
+        raise ValueError("Candidate AV padded identity equals Candidate AO")
 
 
 def artifact_directory(calibration: Calibration) -> str:
@@ -102,8 +102,8 @@ def identity_replacements(
         ),
         (ar.AO_BOOT_MEMBER, ar.BOOT_MEMBER, 1),
         ("2026-07-24-mt6797-dvfsp-one-way-handoff", ar.EXPERIMENT, 2),
-        ("Candidate AO", "Candidate AU", 8),
-        ("candidate-ao", "candidate-au", 14),
+        ("Candidate AO", "Candidate AV", 8),
+        ("candidate-ao", "candidate-av", 14),
         ("AO_RAW", "AS_RAW", 16),
         ("AO_PADDED", "AS_PADDED", 11),
         ("AO_ARTIFACT", "AS_ARTIFACT", 4),
@@ -163,7 +163,7 @@ def derive_text(source: str, calibration: Calibration) -> str:
     for old, new, count in reversed(identity_replacements(calibration)):
         restored = replace_exact(restored, new, old, count)
     if restored != source:
-        raise ValueError("Candidate AU installer cannot restore exact AO foundation")
+        raise ValueError("Candidate AV installer cannot restore exact AO foundation")
 
     required = (
         f"readonly EXPECTED_CURRENT_AS_PADDED_SHA256={PREVIOUS_AS_PADDED_SHA256}",
@@ -178,7 +178,7 @@ def derive_text(source: str, calibration: Calibration) -> str:
     for token in required:
         if token not in text:
             raise ValueError(
-                f"derived Candidate AU installer lost safety token: {token}"
+                f"derived Candidate AV installer lost safety token: {token}"
             )
     for token in (
         "Candidate AN",
@@ -190,9 +190,9 @@ def derive_text(source: str, calibration: Calibration) -> str:
         "AR-installed-readback-verified",
     ):
         if token in text:
-            raise ValueError(f"derived Candidate AU installer retains stale token: {token}")
+            raise ValueError(f"derived Candidate AV installer retains stale token: {token}")
     if text.count(TARGET_CHECK) != 1:
-        raise ValueError("derived Candidate AU installer target is not source-pinned")
+        raise ValueError("derived Candidate AV installer target is not source-pinned")
     return text
 
 
@@ -235,10 +235,10 @@ def reconstruct_ao(work: pathlib.Path) -> pathlib.Path:
 
 def validate_output(path: pathlib.Path) -> pathlib.Path:
     if not path.name or path.name in {".", ".."} or path.exists() or path.is_symlink():
-        raise ValueError("Candidate AU installer output is invalid or already exists")
+        raise ValueError("Candidate AV installer output is invalid or already exists")
     info = path.parent.lstat()
     if path.parent.is_symlink() or not stat.S_ISDIR(info.st_mode):
-        raise ValueError("Candidate AU installer output parent is unsafe")
+        raise ValueError("Candidate AV installer output parent is unsafe")
     return path.parent.resolve(strict=True) / path.name
 
 
@@ -258,13 +258,13 @@ def main() -> int:
         calibration = production_calibration()
         output = validate_output(args.output)
         with tempfile.TemporaryDirectory(
-            prefix=".candidate-au-ao-installer.", dir=output.parent
+            prefix=".candidate-av-ao-installer.", dir=output.parent
         ) as raw:
             source_path = reconstruct_ao(pathlib.Path(raw))
             source = source_path.read_text(encoding="utf-8", errors="strict")
         text = derive_text(source, calibration)
         publish(output, text)
-        print("validation=candidate-au-installer-derivation")
+        print("validation=candidate-av-installer-derivation")
         print(f"foundation_installer_sha256={AO_INSTALLER_SHA256}")
         print(f"installer_sha256={hashlib.sha256(text.encode()).hexdigest()}")
         print(f"candidate_raw_sha256={calibration.raw_sha256}")
