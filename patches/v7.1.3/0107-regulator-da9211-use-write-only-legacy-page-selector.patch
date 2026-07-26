@@ -46,9 +46,9 @@ Signed-off-by: Gemini Mainline Experiment <gemini-mainline@example.invalid>
  
 -	ret = regmap_update_bits(regmap, DA9211_REG_PAGE_CON,
 -				 DA9211_REG_PAGE_MASK, DA9211_REG_PAGE2);
-+	/* Keep PAGE_REVERT set while selecting page 2, as Gemian does. */
++	/* The first write's PAGE_REVERT is consumed by this selector write. */
 +	ret = regmap_write(regmap, DA9211_REG_PAGE_CON,
-+				  DA9211_PAGE_REVERT | DA9211_REG_PAGE2);
++				  DA9211_REG_PAGE2);
  	if (ret)
  		return ret;
  

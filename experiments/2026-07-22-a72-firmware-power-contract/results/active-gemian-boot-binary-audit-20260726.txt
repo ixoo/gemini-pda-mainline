@@ -1,0 +1,119 @@
+Gemian exact active boot binary audit
+=====================================
+
+status=completed-static-audit
+hardware_transition=not-run
+device_variant=named Gemini PDA unit
+capture_date=2026-07-26
+
+Question
+--------
+
+Does the exact Gemian boot currently installed in the primary `boot` partition
+contain the forward CPU8/CPU9 power sequence described by the public source,
+and can its binary call sites be attributed without assuming that the separate
+filesystem kernel package is the active image?
+
+Read-only provenance
+--------------------
+
+The required read-only MMC inventory resolved:
+
+  /dev/mmcblk0p22  GPT label boot   16777216 bytes
+  /dev/mmcblk0p30  GPT label boot2  16777216 bytes
+
+Only `/dev/mmcblk0p22` was read. The full partition SHA-256 is
+`1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513`.
+The private compressed capture is retained under the Git-ignored
+`artifacts/device-partitions/gemian-boot-primary-20260726/`; no partition was
+written, mounted, or selected.
+
+The Android boot header and extracted component hashes are:
+
+  kernel_size=8429825
+  kernel_addr=0x40080000
+  ramdisk_size=6354621
+  ramdisk_addr=0x45000000
+  page_size=2048
+  kernel_field_sha256=b53d191dc41d3f7364b0fa62b4bc920b1d013a1942b2e6b06727263fc56fcf4d
+  board_dtb_sha256=9e26929563f7682d1f7545d6007f0092c7e085a4edbd6e7be0ac8eaa5159b2f9
+  ramdisk_field_sha256=a1ee05445e9a2bd8fbc1f75d7cda326b9ca7a6d3b644cbb1d5fc0ac167835be4
+
+The kernel field was reconstructed to a symbol-bearing ELF with
+`vmlinux-to-elf` in the guest-owned VM workspace. The ELF and disassembly are
+private analysis products and are not stored in Git.
+
+Observed exact-binary call sites
+--------------------------------
+
+The reconstructed active image contains the following named functions:
+
+  cpu_power_on_buck.isra.3       0xffffffc00008c560
+  cpu_psci_cpu_boot              0xffffffc00008c6f0
+  da9214_hw_component_detect     0xffffffc0004ba338
+  BigiDVFSSRAMLDOSet             0xffffffc000421968
+  BigiDVFSEnable_hp              0xffffffc000421a48
+  dcm_mcusys_mp2_sync_dcm        0xffffffc0004037b0
+
+`cpu_power_on_buck.isra.3` performs this attributable order:
+
+1. Set SPM `0x10006000 + 0x218` bit 0.
+2. Perform the IDVFS dummy read at `0x102224a0`.
+3. Assert `mtk_wdt_swsysret_config(0x800, 1)`, the TOPRGU PWRAP reset.
+4. For the hotplug path only, write DA9214 page register `0x00` to page 0
+   and set BUCKB enable register `0x5e` bit 0; retain the source's 1 ms delay.
+5. Clear SPM `0x10006000 + 0x290` bits 0 and 1 (external-buck isolation).
+6. Deassert `mtk_wdt_swsysret_config(0x800, 0)` and clear the OCP reset flag.
+7. Delay 240 us, call `BigiDVFSSRAMLDOSet(110000)`, then delay another 240 us.
+
+`cpu_psci_cpu_boot` then calls the ordinary `psci_ops.cpu_on` with the mapped
+CPU and `secondary_entry`. Only after that call, when the MP2 cluster was
+previously offline, it enables `dcm_mcusys_mp2_sync_dcm(1)`. It then enables
+the big-cluster iDVFS path once and publishes the cluster online mask only
+after a successful PSCI return. CPU8 and CPU9 share this sequence; the
+cluster-singleton preparation is controlled by `g_cl2_online` and
+`bypass_boot`.
+
+The exact active DA9214 detector confirms the corrected page protocol:
+
+  da9214_config_interface(0x00, 0x01, 0x01, 7)
+  da9214_config_interface(0x00, 0x02, 0x0f, 0)
+  da9214_read_byte(0x05)
+
+The first write arms `PAGE_REVERT`; the second write is exactly `0x02`, not
+`0x82`. The detector checks the high nibble of register `0x05` for `0xd`.
+This independently confirms the corrected Candidate AS transport detail in
+the active binary.
+
+`BigiDVFSSRAMLDOSet` calls the secure service through `mt_secure_call` with
+function identifier `0xc20003bf` and the requested value. The implementation
+does not read back a hardware completion state; its return value is the secure
+service result. The later `BigiDVFSEnable_hp` call is a separate post-PSCI
+iDVFS initialization path and must not be folded into the pre-PSCI power
+provider.
+
+Interpretation
+--------------
+
+The exact active binary, rather than the installed filesystem package, now
+confirms the forward ownership boundary already inferred from public source:
+Linux prepares the external DA9214/PWRAP/isolation/SRAM-LDO state, secure
+firmware performs the A72 PLL, MTCMOS/reset, and CCI admission inside PSCI,
+and Linux performs post-success MP2 DCM/iDVFS work. It also confirms that the
+corrected Candidate AS page selector is not merely a source-level guess.
+
+This does not prove a safe inverse/off path, SRAM-LDO completion, or a valid
+mainline write sequence. No active A72 candidate is authorized by this static
+result; the next hardware gate remains runtime DA9214 identity from boot2,
+followed by a separately reviewed owner-local Gemian transition capture.
+
+Reproduction outline
+--------------------
+
+1. Run `scripts/backup-device-mmc --target gemini@192.168.1.50 --dry-run`.
+2. Read only the resolved `/dev/mmcblk0p22` with a bounded full-partition
+   `dd`; verify the full 16 MiB hash above.
+3. Parse the Android header and extract the kernel field, DTB, and ramdisk
+   into a guest-owned VM workspace.
+4. Run `vmlinux-to-elf` and inspect the named functions with an AArch64
+   disassembler. Do not export the reconstructed ELF or private binary bytes.

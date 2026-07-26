@@ -30,8 +30,15 @@ validated DVFSP handoff and AP_DMA preservation boundary.
   or enable GPIO.
 - 0106 corrects the page-2 transport to the Gemian primary-address PAGE_CON
   sequence after the first AS boot rejected the adjacent-address assumption.
-- 0107 removes the unsupported PAGE_CON reads and uses the Gemian write-only
-  selector sequence (`0x80`, then `0x82`) before each page-2 identity read.
+- 0107 removes the unsupported post-access PAGE_CON reads and uses the
+  write-only selector bytes (`0x80`, then `0x02`) before each page-2 identity
+  read. Attempt 4 preserved the complete baseline but returned zero for every
+  identity register; its evidence is in
+  `results/runtime-candidate-as-attempt-4-20260726.txt`.
+- 0108 restores the read-modify-write transactions used by the exact Gemian
+  implementation for both PAGE_CON selector calls. The interposed PAGE_CON
+  reads are part of the page-revert protocol; this patch still omits any
+  separate page-state assertion and keeps the operational regmap untouched.
 
 The access-controller dependency remains mandatory; this candidate does not
 change the proven DVFSP cleanup policy.
@@ -44,12 +51,12 @@ shared-ap-dma=preserved, samples=32, and dma_unchanged=32; and I2C6 reaches
 handoff=ready with the address 0x68 client bound. The regulator driver must log
 the exact repeated signature, register exactly two outputs, and perform no
 voltage, enable, disable, or configuration writes. The documented PAGE_CON
-selector writes are allowed only to select page 2 with PAGE_REVERT. The live
-transfer contract does not support reading PAGE_CON, so the write-only
-candidate treats the documented PAGE_REVERT side effect as the page-0 return
-guarantee and does not issue a direct page-state read. A fault, reset, watchdog
-reboot, unstable page state, signature mismatch, or unexpected I2C6 ownership
-result is a stop condition.
+selector writes are allowed only to select page 2 with PAGE_REVERT. The
+source-equivalent candidate uses PAGE_CON reads only as the read-modify-write
+inputs required by the legacy selector transaction; it does not assert a
+separate post-access page state or expose PAGE_CON through the operational
+regmap. A fault, reset, watchdog reboot, unstable page state, signature
+mismatch, or unexpected I2C6 ownership result is a stop condition.
 
 Candidate AS booted successfully and preserved the console/USB/eight-CPU and
 DVFSP/AP_DMA contracts, but failed closed before identity reads:
@@ -60,7 +67,20 @@ The exact evidence is in
 used the primary-address selector path but failed at the same unsupported
 PAGE_CON read; its evidence is in
 'results/runtime-candidate-as-attempt-2-20260725.txt'. Candidate AS attempt 3
-removes the PAGE_CON read entirely and mirrors Gemian's write-only sequence.
+removed the PAGE_CON read entirely but used `0x82` for the second selector
+write; all three identity reads consequently returned zero. Attempt 4 used the
+corrected raw selector bytes, rebuilt and installed it to boot2 after a full
+guarded readback, then booted successfully but still returned zero for the
+identity registers. Its build, install, and runtime records are in
+'results/build-candidate-as-attempt-4-20260726.txt',
+'results/install-candidate-as-attempt-4-boot2-20260726.txt', and
+'results/runtime-candidate-as-attempt-4-20260726.txt'. The next build/boot
+tests only the source-equivalent selector transaction; it is not an A72
+power-on candidate and must not change the CPU policy. Attempt 5 passed all
+offline validators and is installed on boot2 with a full readback; its records
+are in 'results/build-candidate-as-attempt-5-20260726.txt' and
+'results/install-candidate-as-attempt-5-boot2-20260726.txt'. Runtime validation
+is pending the owner-attended boot from boot2.
 
 ## Reproducibility
 
@@ -79,8 +99,8 @@ independent DT/container derivations passed the offline validators; the pinned
 artifact and installer identities are recorded in
 'results/build-candidate-as-20260725.txt'. The installer accepts only
 gemini@192.168.1.50, requires the exact currently installed Candidate AS
-padded boot2 checksum
-7a1aa655f105e4b20334afbae2662a54deb2d71e05894dcd5e23d42c9ea1f279, perform one
+padded boot2 predecessor checksum
+1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513, perform one
 bounded full-partition write with full readback verification, and never reboot
 or change slot selection.
 

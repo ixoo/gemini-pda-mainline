@@ -1,0 +1,56 @@
+From 0000000000000000000000000000000000000108 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 26 Jul 2026 12:00:00 -0400
+Subject: [PATCH] regulator: da9211: reproduce legacy page selector RMW
+
+Candidate AS attempt 4 used the exact selector bytes observed in isolation,
+but emitted them as two consecutive raw writes and read zero for every page-2
+identity register.  The active Gemian implementation calls
+da9214_config_interface() twice; each call first reads PAGE_CON and then
+writes the masked result.  The read between the writes is part of the legacy
+page-revert protocol and cannot be dropped merely because PAGE_CON is not a
+stable post-access state register.
+
+Reproduce those read-modify-write transactions for the selector while keeping
+the identity path fail-closed.  Do not perform a separate page-state read,
+and do not permit any operational register write before the exact repeated
+0xd9/0xd0/0xc0 signature matches.
+
+Signed-off-by: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+---
+ drivers/regulator/da9211-regulator.c | 15 ++++++++++-----
+ 1 file changed, 10 insertions(+), 5 deletions(-)
+
+--- a/drivers/regulator/da9211-regulator.c
++++ b/drivers/regulator/da9211-regulator.c
+@@ -114,6 +114,7 @@ static bool da9214_legacy_detect_readable_reg(struct device *dev,
+ 						 unsigned int reg)
+ {
+ 	switch (reg) {
++	case DA9211_REG_PAGE_CON:
+ 	case DA9214_PAGE2_REG(DA9211_REG_INTERFACE):
+ 	case DA9214_PAGE2_REG(DA9211_REG_INTERFACE2):
+ 	case DA9214_PAGE2_REG(DA9211_REG_CONFIG_E):
+@@ -145,16 +146,17 @@ static int da9214_read_legacy_page2_reg(struct regmap *regmap,
+ 	int ret;
+
+-	/* PAGE_CON is write-only on this legacy interface; avoid read-modify-write. */
+-	ret = regmap_write(regmap, DA9211_REG_PAGE_CON, DA9211_PAGE_REVERT);
++	/* Match da9214_config_interface(): read PAGE_CON before writing it. */
++	ret = regmap_update_bits(regmap, DA9211_REG_PAGE_CON,
++				 DA9211_PAGE_REVERT, DA9211_PAGE_REVERT);
+ 	if (ret)
+ 		return ret;
+
+-	/* The first write's PAGE_REVERT is consumed by this selector write. */
+-	ret = regmap_write(regmap, DA9211_REG_PAGE_CON,
+-				  DA9211_REG_PAGE2);
++	/* The second Gemian call also reads before changing the page selector. */
++	ret = regmap_update_bits(regmap, DA9211_REG_PAGE_CON,
++				 DA9211_REG_PAGE_MASK, DA9211_REG_PAGE2);
+ 	if (ret)
+ 		return ret;
+
+ 	ret = regmap_read(regmap, DA9214_PAGE2_REG(reg), value);
+ 	return ret;
+ }

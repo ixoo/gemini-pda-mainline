@@ -1,0 +1,26 @@
+experiment=2026-07-25-da9214-legacy-identification
+candidate=AS-attempt-4
+target_logical=boot2
+target_device=/dev/mmcblk0p30
+target_partition_number=30
+target_size=16777216
+root_device=/dev/mmcblk0p29
+boot_id=4f238cab-5e00-4cf5-a329-be2998deb629
+power=0|1|1|Full|100|Good
+prewrite_boot2_sha256=1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513
+backup_sha256=1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513
+candidate_raw_sha256=2bd534d2cd56415bd02596c6f4d6c29897704e3d3e57963c81a3da92d3f0ca4b
+candidate_raw_size=7393280
+candidate_padded_sha256=97e32aec9d542392475be6d4085f2f93eca5c6788b10c21f6460520106164e60
+remote_post_flush_sha256=97e32aec9d542392475be6d4085f2f93eca5c6788b10c21f6460520106164e60
+local_readback_sha256=97e32aec9d542392475be6d4085f2f93eca5c6788b10c21f6460520106164e60
+evidence_manifest_sha256=406c6e341924049785567ceafd75157937c72b478f0fb99d8450a70c856fd75
+backup_dir=artifacts/device-partitions/pre-candidate-as-attempt4-final-20260726T1056Z
+installer_sha256=cf1ecd9dccbd368b7c6c1eaf248b2431fb12010c5d486b1e2f04493662dd7d08
+reboot=none
+runtime_result=not-tested
+
+The first install invocation stopped before writing because boot2 contained the
+Gemian boot hash rather than the previously calibrated Candidate AS hash.  The
+guard was recalibrated to that observed full-partition hash, then the second
+invocation wrote only GPT-resolved boot2 and verified the full readback.

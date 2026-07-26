@@ -40,3 +40,24 @@ Identify the vendor write-protection contract (likely an eMMC boot-range or
 secure/boot-chain protection) before considering any bypass. A bootloader or
 MTK-specific flashing path would require a separate, explicitly reviewed
 operation; do not infer that a zero `dd` exit means a persistent write.
+
+Read-only protection inspection
+===============================
+- `sgdisk -i 22 /dev/mmcblk0` reports GPT attribute flags
+  `0000000000000000`; the `boot` partition is not GPT-attribute protected.
+- `lsblk` and sysfs report `/dev/mmcblk0p22` `RO=0` / `ro=0`; the Linux block
+  layer does not mark it read-only.
+- The eMMC CSD reports `PERM_WRITE_PROTECT=0` and `TMP_WRITE_PROTECT=0`.
+- The eMMC EXT_CSD reports `USER_WP[171]=0x00`, so no user-area write-protect
+  mode is configured there. It reports `BOOT_WP[173]=0x81` and
+  `BOOT_WP_STATUS[174]=0x01`: the separate hardware boot area 0 is selected
+  for secure, power-on write protection. Linux exposes those areas as
+  `mmcblk0boot0`/`mmcblk0boot1`, both with `ro=1` and `force_ro=1`; they are
+  distinct from GPT `mmcblk0p22` (`PARTLABEL=boot`).
+- `SECURE_WP_INFO[211]=0x01` reports secure-write-protection support, but its
+  enable-status bit is clear; secure-WP mode is not active. The per-write-
+  protect-group status (`CMD31`) was not queried yet.
+- Therefore the observed p22 rejection is not explained by a GPT flag or a
+  generic Linux read-only flag. It is a vendor/controller policy or a
+  lower-level secure/boot-chain rule; no protection-clearing command was
+  attempted.

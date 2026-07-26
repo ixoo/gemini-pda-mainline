@@ -1,0 +1,27 @@
+experiment=2026-07-25-da9214-legacy-identification
+candidate=AS-attempt-4
+hypothesis=Gemian-selector-sequence-0x80-then-0x02
+source_revision=working-tree-after-selector-fix
+patch_0107_sha256=a12c93fcd7c4b2f84d287e2c5251c6590814373963e39cdaa9ad43c43fd25ef0
+kernel_package=linux-7.1.3-gemini-observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-observer-initcall-blacklist-dvfsp-handoff-owner-i2c6-consumer-ap-dma-preserve-da9214-legacy-readonly-8fe4fc5d-5891f3ea
+package_validation=passed
+dt_validation=passed
+lk_container_validation=passed-32-of-32
+boot_validation=passed
+compiled_handoff_audit=passed
+candidate_artifact=candidate-AS-da9214-legacy-identification-2bd534d2
+candidate_boot_sha256=2bd534d2cd56415bd02596c6f4d6c29897704e3d3e57963c81a3da92d3f0ca4b
+candidate_boot_size=7393280
+candidate_padded_boot2_sha256=97e32aec9d542392475be6d4085f2f93eca5c6788b10c21f6460520106164e60
+candidate_artifact_manifest_sha256=68e1d0f7e2157c0129f9bdef63cbca0f6ce6793378b092683ce48e6d90b7621c
+candidate_image_gz_sha256=a9b9b655e4a0a1d9f0420ff88d4b84d67ef78379dfd7eef3e431d673a862685e
+candidate_system_map_sha256=7f25faf9572b84a3c3cb5a26d8c8b540280f93e22144ce3d5be00f1024ba1ac1
+candidate_dtb_sha256=e51891c839ab5e40e591346cb78ac66f1c5e0179a1cc30c4a33acf0b9c0667f7
+candidate_config_sha256=af4e641b24915e64b6cc045b207e8f665c55cd6314d29e37be8784c9d2f513c0
+candidate_source_build_sha256=afe26f4992aad7c9de583d2bbbcb5019d11968194bacf3a687b9e822881344a4
+runtime_result=not-tested
+device_install=completed-after-current-boot2-recalibration
+
+The only source change from Candidate AS attempt 3 is clearing PAGE_REVERT on
+the second selector write.  Gemian writes 0x80, then 0x02, then reads the
+page-2 register; attempt 3 wrote 0x82 and consequently read page 0 zeros.

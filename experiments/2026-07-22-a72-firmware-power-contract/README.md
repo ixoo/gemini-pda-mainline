@@ -51,6 +51,10 @@ bring-up, and post-`CPU_ON` Linux clock policy.
 - Runtime cross-check: retained Gemian capture
   `artifacts/runtime-captures/gemian-cpu-scheduler-20260721/live-boot-385cc5d1.txt`,
   SHA-256 `aeabdc0d62aaca0520ff9f8a849870f5f2b1b7d5aeaea3e5494ea3c4a2020ba4`.
+- The exact active primary `boot` partition was reread on 2026-07-26 and
+  reconstructed to a symbol-bearing private ELF. Its full partition hash,
+  component hashes, and exact CPU8/CPU9/DA9214 call-site audit are recorded in
+  [`results/active-gemian-boot-binary-audit-20260726.txt`](results/active-gemian-boot-binary-audit-20260726.txt).
 - Candidate context: fail-closed patch 0092 SHA-256
   `cbd54d048e2233ffcb268174037248ade9ab8716f9816481d926b20b4bd3bba5`;
   unselected draft patch 0093 SHA-256
@@ -149,9 +153,10 @@ than completion evidence.
 
 The on-path ownership split, observer-relevant source equivalence, observer
 hook locations, and SMC ABI are now substantially resolved. The exact active
-whole-tree source revision is not. More broad binary reverse engineering is
-not a prerequisite for the observer, because the relevant public blobs were
-reconciled independently. A safe active implementation is still blocked by
+whole-tree source revision is not. The 2026-07-26 exact-boot disassembly now
+confirms the forward call order and the corrected write-only DA9214 selector
+against the image actually installed in `boot`, rather than the separate
+filesystem package. A safe active implementation is still blocked by
 missing transaction-local pre-state and inverse evidence.
 In particular, no retained capture contains synchronized offline/online values
 for DA9214 BUCKB, SPM external isolation, TOPRGU PWRAP reset, SRAM-LDO state,

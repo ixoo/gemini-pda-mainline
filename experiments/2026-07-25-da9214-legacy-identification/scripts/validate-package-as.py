@@ -147,8 +147,8 @@ def validate(repository: pathlib.Path, package: pathlib.Path) -> None:
     if repository_series != packaged_series:
         fail("packaged AS series differs from repository")
     entries = series_entries(repository_series)
-    if len(entries) != 107 or not entries[-1].endswith("0107-regulator-da9211-use-write-only-legacy-page-selector.patch"):
-        fail("AS series does not end in patch 0107")
+    if len(entries) != 108 or not entries[-1].endswith("0108-regulator-da9211-reproduce-legacy-page-selector-rmw.patch"):
+        fail("AS series does not end in patch 0108")
     if any(pathlib.PurePosixPath(entry).name.startswith("0093-") for entry in entries):
         fail("AS series selects the forbidden active-power patch")
     required_entries = {
@@ -157,6 +157,7 @@ def validate(repository: pathlib.Path, package: pathlib.Path) -> None:
         "v7.1.3/0105-arm64-dts-mediatek-enable-legacy-Gemini-DA9214-after-handoff.patch",
         "v7.1.3/0106-regulator-da9211-use-legacy-DA9214-page-selector.patch",
         "v7.1.3/0107-regulator-da9211-use-write-only-legacy-page-selector.patch",
+        "v7.1.3/0108-regulator-da9211-reproduce-legacy-page-selector-rmw.patch",
     }
     if not required_entries.issubset(entries):
         fail("AS series omits a required legacy DA9214 patch")
