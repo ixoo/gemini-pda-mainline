@@ -1,0 +1,135 @@
+From 0000000000000000000000000000000000000109 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 26 Jul 2026 14:15:00 -0400
+Subject: [PATCH] regulator: da9211: use vendor-shaped legacy I2C transfers
+
+Candidate AS attempt 5 reproduced the vendor read-modify-write logic through
+regmap and reached a white framebuffer before a watchdog-class reset. The
+vendor implementation uses explicit i2c_transfer messages protected by its
+own access mutex: a one-byte register write followed by a combined
+write-then-read, with the PAGE_CON selector calls performed as separate
+read-modify-write transactions.
+
+Keep the probe fail-closed and operationally read-only, but use the same
+message shapes directly for the legacy identity path. This isolates the
+regmap transaction layer from the selector experiment and keeps all selector
+access inside one driver mutex. No voltage, enable, disable, or configuration
+register is written.
+
+Signed-off-by: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+---
+ drivers/regulator/da9211-regulator.c | 76 ++++++++++++++++++++++++++++++-----
+ 1 file changed, 67 insertions(+), 9 deletions(-)
+
+--- a/drivers/regulator/da9211-regulator.c
++++ b/drivers/regulator/da9211-regulator.c
+@@ -6,4 +6,5 @@
+ #include <linux/err.h>
+ #include <linux/i2c.h>
++#include <linux/mutex.h>
+ #include <linux/module.h>
+ #include <linux/init.h>
+@@ -143,26 +144,83 @@
+ 	.cache_type = REGCACHE_NONE,
+ };
+ 
+-static int da9214_read_legacy_page2_reg(struct regmap *regmap,
+-					 unsigned int reg, unsigned int *value)
+-{
+-	int ret;
+-
+-	/* Match da9214_config_interface(): read PAGE_CON before writing it. */
+-	ret = regmap_update_bits(regmap, DA9211_REG_PAGE_CON,
+-				 DA9211_PAGE_REVERT, DA9211_PAGE_REVERT);
+-	if (ret)
+-		return ret;
+-
+-	/* The second Gemian call also reads before changing the page selector. */
+-	ret = regmap_update_bits(regmap, DA9211_REG_PAGE_CON,
+-				 DA9211_REG_PAGE_MASK, DA9211_REG_PAGE2);
+-	if (ret)
+-		return ret;
+-
+-	ret = regmap_read(regmap, DA9214_PAGE2_REG(reg), value);
+-	return ret;
+-}
++static DEFINE_MUTEX(da9214_legacy_i2c_access);
++
++static int da9214_legacy_read_byte(struct i2c_client *i2c, u8 reg, u8 *value)
++{
++	struct i2c_msg messages[2] = {
++		{
++			.addr = i2c->addr,
++			.flags = 0,
++			.len = 1,
++			.buf = &reg,
++		},
++		{
++			.addr = i2c->addr,
++			.flags = I2C_M_RD,
++			.len = 1,
++			.buf = value,
++		},
++	};
++	int ret;
++
++	ret = i2c_transfer(i2c->adapter, messages, ARRAY_SIZE(messages));
++	if (ret < 0)
++		return ret;
++	return ret == ARRAY_SIZE(messages) ? 0 : -EIO;
++}
++
++static int da9214_legacy_write_byte(struct i2c_client *i2c, u8 reg, u8 value)
++{
++	u8 buffer[2] = { reg, value };
++	struct i2c_msg message = {
++		.addr = i2c->addr,
++		.flags = 0,
++		.len = sizeof(buffer),
++		.buf = buffer,
++	};
++	int ret;
++
++	ret = i2c_transfer(i2c->adapter, &message, 1);
++	if (ret < 0)
++		return ret;
++	return ret == 1 ? 0 : -EIO;
++}
++
++static int da9214_legacy_config_interface(struct i2c_client *i2c,
++						u8 value, u8 mask, u8 shift)
++{
++	u8 old;
++	int ret;
++
++	ret = da9214_legacy_read_byte(i2c, DA9211_REG_PAGE_CON, &old);
++	if (ret)
++		return ret;
++	old &= ~(mask << shift);
++	old |= (value & mask) << shift;
++	return da9214_legacy_write_byte(i2c, DA9211_REG_PAGE_CON, old);
++}
++
++static int da9214_read_legacy_page2_reg(struct regmap *regmap,
++					 unsigned int reg, unsigned int *value)
++{
++	struct i2c_client *i2c =
++		to_i2c_client(regmap_get_device(regmap));
++	u8 raw;
++	int ret;
++
++	mutex_lock(&da9214_legacy_i2c_access);
++	ret = da9214_legacy_config_interface(i2c, 1, 1, 7);
++	if (!ret)
++		ret = da9214_legacy_config_interface(i2c, DA9211_REG_PAGE2,
++						 DA9211_REG_PAGE_MASK, 0);
++	if (!ret)
++		ret = da9214_legacy_read_byte(i2c, DA9214_PAGE2_REG(reg), &raw);
++	mutex_unlock(&da9214_legacy_i2c_access);
++	if (!ret)
++		*value = raw;
++	return ret;
++}
+ 
+ static int da9214_read_signature(struct regmap *regmap,
+ 				 struct da9214_signature *signature)

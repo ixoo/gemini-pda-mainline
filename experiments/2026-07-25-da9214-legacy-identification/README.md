@@ -39,6 +39,10 @@ validated DVFSP handoff and AP_DMA preservation boundary.
   implementation for both PAGE_CON selector calls. The interposed PAGE_CON
   reads are part of the page-revert protocol; this patch still omits any
   separate page-state assertion and keeps the operational regmap untouched.
+- 0109 keeps the same selector semantics but replaces regmap's transport with
+  the vendor-shaped explicit `i2c_transfer` message sequence and a driver
+  mutex. This isolates transaction shape/serialization without enabling A72
+  or changing the operational regmap.
 
 The access-controller dependency remains mandatory; this candidate does not
 change the proven DVFSP cleanup policy.
@@ -88,7 +92,11 @@ a watchdog reset before the known-good console/USB observation point, not proof
 that the read-modify-write transaction alone caused the reset. The unique
 candidate delta is nevertheless 0108, so it is not repeated; the next test must
 isolate the DA9214 transaction with a bounded, fail-closed probe before any A72
-power-on work.
+power-on work. Attempt 6 passed the offline package, DT, LK, boot, and compiled
+handoff gates. It is installed on boot2 with a full readback; its records are in
+'results/build-candidate-as-attempt-6-20260726.txt' and
+'results/install-candidate-as-attempt-6-boot2-20260726.txt'. It keeps A72
+blacklisted and changes only the explicit vendor-shaped I2C transaction layer.
 
 ## Reproducibility
 
@@ -108,7 +116,7 @@ artifact and installer identities are recorded in
 'results/build-candidate-as-20260725.txt'. The installer accepts only
 gemini@192.168.1.50, requires the exact currently installed Candidate AS
 padded boot2 predecessor checksum
-1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513, perform one
+943018afd04bda3b333e644ceb5d507f97af1386c5f023e3bcd60d0d9ffd74ce, perform one
 bounded full-partition write with full readback verification, and never reboot
 or change slot selection.
 

@@ -1,0 +1,27 @@
+experiment=2026-07-25-da9214-legacy-identification
+candidate=AS-attempt-6
+operation=standing-latest-validated-candidate-boot2-sync
+result=write-synced-flushed-full-readback-verified
+target_logical_name=boot2
+target=/dev/mmcblk0p30
+root=/dev/mmcblk0p29
+candidate_raw_size=7393280
+candidate_raw_sha256=1e440a13992c7938ff6b6168c5e0f2a84e226dc35916eac707aa8cc1ac9c8900
+candidate_padded_size=16777216
+candidate_padded_sha256=32d9669d9f52e2f17d75e944ae7df691b0b8f64c274c489475c61de85df94311
+expected_previous_sha256=943018afd04bda3b333e644ceb5d507f97af1386c5f023e3bcd60d0d9ffd74ce
+backup_sha256=943018afd04bda3b333e644ceb5d507f97af1386c5f023e3bcd60d0d9ffd74ce
+remote_post_flush_sha256=32d9669d9f52e2f17d75e944ae7df691b0b8f64c274c489475c61de85df94311
+local_readback_sha256=32d9669d9f52e2f17d75e944ae7df691b0b8f64c274c489475c61de85df94311
+local_readback_stream_bytes=16777216
+boot_id=22e6bbdc-187c-4451-8c7f-bc4729ab8257
+power=0|1|1|Full|100|Good
+remote_staging_removed=yes
+reboot_or_shutdown_performed=no
+runtime_result=not-tested
+backup_dir=artifacts/device-partitions/candidate-as-attempt-6-20260726
+
+The live GPT guard resolved inactive writable logical boot2 as /dev/mmcblk0p30
+with Gemian's root on /dev/mmcblk0p29. The installer preserved a mode-0600
+full backup, wrote one bounded 16 MiB image, flushed it, and matched both the
+remote post-flush and local full readback checksums. No reboot was performed.
