@@ -1,0 +1,942 @@
+From e3f3f36b168e0a46cf75ab3431db2fa6123e31f0 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 21 Jul 2026 21:27:29 -0400
+Subject: [PATCH] soc: mediatek: enable MT6797 CPU8 one-way A72 power sequence
+
+Build on the audited observer with a built-in singleton provider for the
+first, one-way Cortex-A72 experiment. It installs a sleepable CPUHP prepare
+callback before CPU bringup. The callback verifies exact DT CPU membership,
+CPU8 as the only permitted target, CPU1 and the first-cluster offline state,
+and a live hardware-watchdog snapshot before hardware writes. It does not
+assume a fixed Vproc: the working Gemian governor moves that rail between
+roughly 1.03 V and 1.17 V while CPU8 is active.
+
+Reproduce the audited fixed-state sequence: preserve CA7 CPU1 reset
+release, perform the ordering read, coordinate PWRAP reset and DA9214
+BUCKB, clear external-buck isolation, and request the 1.1V SRAM setting
+through the private firmware service. Then let generic PSCI issue
+CPU_ON and program MP2 DCM immediately on success. Deliberately omit
+DVFSP and iDVFS.
+
+Failures before isolation balance only this attempt regulator reference
+and deassert reset. Once isolation has been touched, firmware has been
+called, or CPU affinity is uncertain, leave shared power on, fault the
+provider, and reject retry. PSCI failures and CPUHP teardown use
+AFFINITY_INFO when firmware provides it. CPU off remains unsupported.
+
+Keep provider integration readiness distinct from the runtime recovery gate.
+active-v1 and hooks_armed describe statically installed integration. CPUHP
+prepare and the final pre-PSCI check each take a live hardware watchdog
+status/register snapshot. The provider never claims userspace ownership and
+does not add a reboot countdown; the inherited watchdog remains the recovery
+path if the experimental sequence wedges the kernel.
+---
+ arch/arm64/kernel/mt6797_psci.c               |  25 +-
+ drivers/soc/mediatek/Kconfig                  |  21 +-
+ drivers/soc/mediatek/mt6797-a72-power.c       | 549 +++++++++++++++++-
+ drivers/watchdog/mtk_wdt.c                    |  44 ++
+ drivers/watchdog/watchdog_core.h              |   8 +
+ include/linux/soc/mediatek/mt6797-a72-power.h |  27 +
+ include/linux/soc/mediatek/mtk-wdt.h          |  23 +
+ 7 files changed, 656 insertions(+), 41 deletions(-)
+ create mode 100644 include/linux/soc/mediatek/mt6797-a72-power.h
+ create mode 100644 include/linux/soc/mediatek/mtk-wdt.h
+
+diff --git a/arch/arm64/kernel/mt6797_psci.c b/arch/arm64/kernel/mt6797_psci.c
+index 6a4e999..6a25a14 100644
+--- a/arch/arm64/kernel/mt6797_psci.c
++++ b/arch/arm64/kernel/mt6797_psci.c
+@@ -1,6 +1,6 @@
+ // SPDX-License-Identifier: GPL-2.0-only
+ /*
+- * Observer-stage PSCI gate for the MT6797 Cortex-A72 cluster
++ * Sequenced PSCI operations for the MT6797 Cortex-A72 cluster
+  *
+  * Copyright (c) 2026 Julien Etienne
+  */
+@@ -8,6 +8,7 @@
+ #define pr_fmt(fmt) "mt6797-psci: " fmt
+ 
+ #include <linux/errno.h>
++#include <linux/soc/mediatek/mt6797-a72-power.h>
+ #include <linux/printk.h>
+ 
+ #include <asm/cpu_ops.h>
+@@ -26,14 +27,28 @@ static int __init mt6797_psci_cpu_prepare(unsigned int cpu)
+ 
+ static int mt6797_psci_cpu_boot(unsigned int cpu)
+ {
+-	pr_warn_ratelimited("CPU%u boot rejected: A72 power sequence inactive\n",
+-			    cpu);
++	int ret;
++
++	ret = mt6797_a72_power_cpu_boot_ready(cpu);
++	if (ret) {
++		pr_warn_ratelimited("CPU%u boot rejected by A72 power provider: %d\n",
++				    cpu, ret);
++		return ret;
++	}
++
++	ret = cpu_psci_ops.cpu_boot(cpu);
++	if (ret) {
++		mt6797_a72_power_cpu_on_failed(cpu, ret);
++		return ret;
++	}
+ 
+-	return -EAGAIN;
++	/* The audited hardware sequence requires DCM immediately after CPU_ON. */
++	mt6797_a72_power_cpu_on_complete(cpu);
++	return 0;
+ }
+ 
+ #ifdef CONFIG_HOTPLUG_CPU
+ static bool mt6797_psci_cpu_can_disable(unsigned int cpu)
+ {
+ 	return false;
+ }
+diff --git a/drivers/soc/mediatek/mt6797-a72-power.c b/drivers/soc/mediatek/mt6797-a72-power.c
+index fb2413c..005c63e 100644
+--- a/drivers/soc/mediatek/mt6797-a72-power.c
++++ b/drivers/soc/mediatek/mt6797-a72-power.c
+@@ -1,33 +1,61 @@
+ // SPDX-License-Identifier: GPL-2.0-only
+ /*
+- * Read-only MT6797 Cortex-A72 power resource observer
++ * MT6797 Cortex-A72 fixed-state power sequencing
+  *
+  * Copyright (c) 2026 Julien Etienne
+  */
+ 
++#include <dt-bindings/reset/mt6797-resets.h>
++
++#include <linux/arm-smccc.h>
++#include <linux/bitops.h>
++#include <linux/build_bug.h>
+ #include <linux/cpu.h>
++#include <linux/cpuhotplug.h>
+ #include <linux/cpumask.h>
++#include <linux/delay.h>
+ #include <linux/device.h>
+ #include <linux/io.h>
++#include <linux/mfd/syscon.h>
+ #include <linux/module.h>
++#include <linux/mutex.h>
+ #include <linux/of.h>
+ #include <linux/platform_device.h>
++#include <linux/psci.h>
+ #include <linux/regmap.h>
+ #include <linux/regulator/consumer.h>
+ #include <linux/reset.h>
+-#include <linux/mfd/syscon.h>
++#include <linux/spinlock.h>
++#include <linux/soc/mediatek/mt6797-a72-power.h>
++#include <linux/soc/mediatek/mtk-wdt.h>
++
++#include <asm/smp_plat.h>
+ 
+-#define SPM_POWERON_CONFIG_EN		0x218
+-#define SPM_EXT_BUCK_ISO		0x290
++#define SPM_CA7_CPU1_PWR_CON		0x218
++#define SPM_CA7_CPU1_PWR_RST_B		BIT(0)
++#define SPM_MCU_PWR_CON			0x290
++#define SPM_EXT_BUCK_ISO_MASK		GENMASK(1, 0)
+ 
+ #define MCUCFG_MP2_SYNC_DCM		0x274
+ #define MCUCFG_BIG_ARMPLL_CON0		0x4a0
++#define MP2_SYNC_DCM_MASK		GENMASK(6, 0)
++#define MP2_SYNC_DCM_ON			BIT(0)
++#define MP2_SYNC_DCM_TOGGLE		BIT(1)
++#define MP2_SYNC_DCM_DIV4		(3U << 2)
++
++#define MT6797_SIP_SRAM_LDO_SET		0xc20003bf
++#define MT6797_A72_PRIMARY_CPU		8
++#define MT6797_A72_SRAM_LDO_ARG		110000
+ 
+ struct mt6797_a72_power {
++	struct device *dev;
+ 	struct regulator *vproc_big;
+ 	struct reset_control *pwrap_reset;
+ 	struct regmap *spm;
++	struct device_node *watchdog_np;
+ 	void __iomem *mcucfg;
++	struct mutex sequence_lock; /* serializes cluster power preparation */
++	spinlock_t state_lock; /* protects mutable provider state below */
+ 	int vproc_enabled;
+ 	int vproc_uv;
+ 	u32 spm_poweron_config;
+@@ -37,12 +65,45 @@ struct mt6797_a72_power {
+ 	unsigned int cpus[2];
+ 	cpumask_t cpu_mask;
+ 	bool resources_ready;
++	bool hooks_armed;
++	bool integration_ready;
++	bool sequence_in_progress;
++	bool prepared;
++	bool faulted;
++	bool psci_inflight;
+ };
+ 
++static DEFINE_MUTEX(mt6797_a72_provider_lock);
++static struct mt6797_a72_power *mt6797_a72_provider;
++
++static struct mt6797_a72_power *mt6797_a72_power_get(void)
++{
++	/*
++	 * Pairs with the release publication after CPUHP callback registration.
++	 * The built-in provider cannot be removed after it is published.
++	 */
++	return smp_load_acquire(&mt6797_a72_provider);
++}
++
++static bool mt6797_a72_power_ready(struct mt6797_a72_power *power)
++{
++	return READ_ONCE(power->resources_ready) &&
++	       READ_ONCE(power->hooks_armed) &&
++	       READ_ONCE(power->integration_ready) &&
++	       !READ_ONCE(power->faulted);
++}
++
+ static ssize_t ready_show(struct device *dev, struct device_attribute *attr,
+ 			  char *buf)
+ {
+-	return sysfs_emit(buf, "0\n");
++	struct mt6797_a72_power *power = dev_get_drvdata(dev);
++
++	/*
++	 * This is static provider-integration readiness.  The CPUHP callback
++	 * separately requires the inherited hardware watchdog before it will
++	 * touch the power path.
++	 */
++	return sysfs_emit(buf, "%u\n", mt6797_a72_power_ready(power));
+ }
+ static DEVICE_ATTR_RO(ready);
+ 
+@@ -51,28 +112,30 @@ static ssize_t resources_ready_show(struct device *dev,
+ {
+ 	struct mt6797_a72_power *power = dev_get_drvdata(dev);
+ 
+-	return sysfs_emit(buf, "%u\n", power->resources_ready);
++	return sysfs_emit(buf, "%u\n", READ_ONCE(power->resources_ready));
+ }
+ static DEVICE_ATTR_RO(resources_ready);
+ 
+ static ssize_t abi_show(struct device *dev, struct device_attribute *attr,
+ 			char *buf)
+ {
+-	return sysfs_emit(buf, "observer-v1\n");
++	return sysfs_emit(buf, "active-v1\n");
+ }
+ static DEVICE_ATTR_RO(abi);
+ 
+ static ssize_t hooks_armed_show(struct device *dev,
+ 				struct device_attribute *attr, char *buf)
+ {
+-	return sysfs_emit(buf, "0\n");
++	struct mt6797_a72_power *power = dev_get_drvdata(dev);
++
++	return sysfs_emit(buf, "%u\n", READ_ONCE(power->hooks_armed));
+ }
+ static DEVICE_ATTR_RO(hooks_armed);
+ 
+ static ssize_t provider_mode_show(struct device *dev,
+ 				  struct device_attribute *attr, char *buf)
+ {
+-	return sysfs_emit(buf, "observe-only\n");
++	return sysfs_emit(buf, "fixed-vproc-firmware-clock\n");
+ }
+ static DEVICE_ATTR_RO(provider_mode);
+ 
+@@ -80,18 +143,22 @@ static ssize_t snapshot_show(struct device *dev,
+ 			     struct device_attribute *attr, char *buf)
+ {
+ 	struct mt6797_a72_power *power = dev_get_drvdata(dev);
+-	ssize_t len = 0;
+-
+-	len += sysfs_emit_at(buf, len, "cpus=%u,%u pwrap_reset_acquired=1\n",
+-			     power->cpus[0], power->cpus[1]);
+-	len += sysfs_emit_at(buf, len, "vproc_enabled=%d vproc_uv=%d\n",
+-			     power->vproc_enabled, power->vproc_uv);
+-	len += sysfs_emit_at(buf, len, "spm_poweron=0x%08x spm_ext_buck_iso=0x%08x\n",
+-			     power->spm_poweron_config,
+-			     power->spm_ext_buck_iso);
+-	len += sysfs_emit_at(buf, len, "mp2_sync_dcm=0x%08x big_armpll=0x%08x\n",
+-			     power->mp2_sync_dcm, power->big_armpll_con0);
+ 
+-	return len;
++	ssize_t len = 0;
++
++	len += sysfs_emit_at(buf, len, "cpus=%u,%u pwrap_reset_acquired=1\n",
++			     power->cpus[0], power->cpus[1]);
++	len += sysfs_emit_at(buf, len, "vproc_enabled=%d vproc_uv=%d\n",
++			     power->vproc_enabled, power->vproc_uv);
++	len += sysfs_emit_at(buf, len, "spm_poweron=0x%08x spm_ext_buck_iso=0x%08x\n",
++			     power->spm_poweron_config, power->spm_ext_buck_iso);
++	len += sysfs_emit_at(buf, len, "mp2_sync_dcm=0x%08x big_armpll=0x%08x\n",
++			     power->mp2_sync_dcm, power->big_armpll_con0);
++	len += sysfs_emit_at(buf, len,
++			     "prepared=%u faulted=%u watchdog_armed=%u\n",
++			     READ_ONCE(power->prepared), READ_ONCE(power->faulted),
++			     mtk_wdt_is_armed(power->watchdog_np));
++
++	return len;
+ }
+ static DEVICE_ATTR_RO(snapshot);
+@@ -119,12 +187,12 @@ static int mt6797_a72_power_snapshot(struct mt6797_a72_power *power)
+ 	if (power->vproc_uv < 0)
+ 		return power->vproc_uv;
+ 
+-	ret = regmap_read(power->spm, SPM_POWERON_CONFIG_EN,
++	ret = regmap_read(power->spm, SPM_CA7_CPU1_PWR_CON,
+ 			  &power->spm_poweron_config);
+ 	if (ret)
+ 		return ret;
+ 
+-	ret = regmap_read(power->spm, SPM_EXT_BUCK_ISO,
++	ret = regmap_read(power->spm, SPM_MCU_PWR_CON,
+ 			  &power->spm_ext_buck_iso);
+ 	if (ret)
+ 		return ret;
+@@ -135,12 +203,42 @@ static int mt6797_a72_power_snapshot(struct mt6797_a72_power *power)
+ 	return 0;
+ }
+ 
++static void mt6797_a72_power_put_node(void *data)
++{
++	of_node_put(data);
++}
++
++static int mt6797_a72_power_parse_watchdog(struct device *dev,
++					   struct mt6797_a72_power *power)
++{
++	struct of_phandle_args spec;
++	int ret;
++
++	ret = of_parse_phandle_with_args(dev->of_node, "resets", "#reset-cells", 0, &spec);
++	if (ret)
++		return dev_err_probe(dev, ret,
++				     "failed to parse PWRAP reset specifier\n");
++
++	if (spec.args_count != 1 ||
++	    spec.args[0] != MT6797_TOPRGU_PWRAP_SPI_CTL_RST) {
++		of_node_put(spec.np);
++		return dev_err_probe(dev, -EINVAL,
++				     "unexpected PWRAP reset specifier\n");
++	}
++
++	power->watchdog_np = spec.np;
++	return devm_add_action_or_reset(dev, mt6797_a72_power_put_node,
++					power->watchdog_np);
++}
++
+ static int mt6797_a72_power_parse_cpus(struct device *dev,
+-				       struct mt6797_a72_power *power)
++				       struct mt6797_a72_power *power)
+ {
+ 	struct device_node *cpu_node;
++	const char *enable_method;
+ 	int count;
+ 	int cpu;
++	int ret;
+ 	int i;
+ 
+ 	count = of_count_phandle_with_args(dev->of_node, "cpus", NULL);
+@@ -154,6 +256,19 @@ static int mt6797_a72_power_parse_cpus(struct device *dev,
+ 		if (!cpu_node)
+ 			return dev_err_probe(dev, -EINVAL,
+ 					     "failed to parse CPU phandle %d\n", i);
++		if (!of_device_is_compatible(cpu_node, "arm,cortex-a72")) {
++			of_node_put(cpu_node);
++			return dev_err_probe(dev, -EINVAL,
++					     "CPU phandle %d is not Cortex-A72\n", i);
++		}
++		ret = of_property_read_string(cpu_node, "enable-method",
++					      &enable_method);
++		if (ret || strcmp(enable_method, "mediatek,mt6797-psci")) {
++			of_node_put(cpu_node);
++			return dev_err_probe(dev, -EINVAL,
++					     "CPU phandle %d has unsafe enable-method\n",
++					     i);
++		}
+ 		cpu = of_cpu_node_to_id(cpu_node);
+ 		of_node_put(cpu_node);
+ 		if (cpu < 0 || cpu >= nr_cpu_ids)
+@@ -168,20 +279,370 @@ static int mt6797_a72_power_parse_cpus(struct device *dev,
+ 	return 0;
+ }
+ 
++static void mt6797_a72_set_fault(struct mt6797_a72_power *power,
++				 unsigned int cpu, int affinity,
++				 const char *reason)
++{
++	unsigned long flags;
++	bool first;
++
++	spin_lock_irqsave(&power->state_lock, flags);
++	first = !power->faulted;
++	power->faulted = true;
++	power->sequence_in_progress = false;
++	power->psci_inflight = false;
++	spin_unlock_irqrestore(&power->state_lock, flags);
++
++	if (first)
++		dev_err(power->dev,
++			"CPU%u provider faulted: %s (PSCI affinity=%d); retry denied\n",
++			cpu, reason, affinity);
++}
++
++static int mt6797_a72_power_affinity_info(unsigned int cpu)
++{
++	if (!psci_ops.affinity_info)
++		return -EOPNOTSUPP;
++
++	return psci_ops.affinity_info(cpu_logical_map(cpu), 0);
++}
++
++static int mt6797_a72_power_preflight(struct mt6797_a72_power *power,
++				      unsigned int cpu, bool first_prepare)
++{
++	unsigned int member;
++	int enabled;
++	int uv;
++
++	if (!cpu_possible(1) || !cpu_online(1)) {
++		dev_err(power->dev, "CPU%u rejected: CPU1 is not online\n", cpu);
++		return -EPERM;
++	}
++
++	if (cpu_online(cpu))
++		return -EBUSY;
++
++	if (first_prepare) {
++		for_each_cpu(member, &power->cpu_mask) {
++			if (cpu_online(member)) {
++				dev_err(power->dev,
++					"CPU%u rejected: first prepare with CPU%u online\n",
++					cpu, member);
++				return -EBUSY;
++			}
++		}
++	}
++
++	enabled = regulator_is_enabled(power->vproc_big);
++	if (enabled < 0)
++		return enabled;
++
++	uv = regulator_get_voltage(power->vproc_big);
++	if (uv < 0)
++		return uv;
++
++	power->vproc_enabled = enabled;
++	power->vproc_uv = uv;
++
++	/*
++	 * This is a live hardware snapshot.  It does not claim watchdog ownership
++	 * and does not add a userspace reboot policy.
++	 * Keep this as the final check immediately before the first write.
++	 */
++	if (!mtk_wdt_is_armed(power->watchdog_np)) {
++		dev_err(power->dev, "CPU%u rejected: watchdog is not armed\n", cpu);
++		return -EACCES;
++	}
++
++	return 0;
++}
++
++static int mt6797_a72_power_prepare_first(struct mt6797_a72_power *power,
++					  unsigned int cpu)
++{
++	struct arm_smccc_res smc_res;
++	bool regulator_enabled = false;
++	bool reset_asserted = false;
++	bool isolation_attempted = false;
++	s32 smc_ret;
++	u32 value;
++	int cleanup_ret;
++	int ret;
++
++	ret = regmap_update_bits(power->spm, SPM_CA7_CPU1_PWR_CON,
++				 SPM_CA7_CPU1_PWR_RST_B,
++				 SPM_CA7_CPU1_PWR_RST_B);
++	if (ret)
++		goto fail;
++	ret = regmap_read(power->spm, SPM_CA7_CPU1_PWR_CON, &value);
++	if (ret)
++		goto fail;
++	power->spm_poweron_config = value;
++	if (!(value & SPM_CA7_CPU1_PWR_RST_B)) {
++		ret = -EIO;
++		goto fail;
++	}
++
++	/* The working downstream sequence requires this ordering-only read. */
++	power->big_armpll_con0 =
++		readl(power->mcucfg + MCUCFG_BIG_ARMPLL_CON0);
++
++	reset_asserted = true;
++	ret = reset_control_assert(power->pwrap_reset);
++	if (ret)
++		goto fail;
++
++	ret = regulator_enable(power->vproc_big);
++	if (ret)
++		goto fail;
++	regulator_enabled = true;
++	usleep_range(1000, 1100);
++
++	/* A failure from this point leaves the shared rail and SPM state on. */
++	isolation_attempted = true;
++	ret = regmap_update_bits(power->spm, SPM_MCU_PWR_CON,
++				 SPM_EXT_BUCK_ISO_MASK, 0);
++	if (ret)
++		goto fail;
++	ret = regmap_read(power->spm, SPM_MCU_PWR_CON, &value);
++	if (ret)
++		goto fail;
++	power->spm_ext_buck_iso = value;
++	if (value & SPM_EXT_BUCK_ISO_MASK) {
++		ret = -EIO;
++		goto fail;
++	}
++
++	ret = reset_control_deassert(power->pwrap_reset);
++	if (ret)
++		goto fail;
++	reset_asserted = false;
++	usleep_range(240, 260);
++
++	arm_smccc_smc(MT6797_SIP_SRAM_LDO_SET, MT6797_A72_SRAM_LDO_ARG,
++		      0, 0, 0, 0, 0, 0, &smc_res);
++	smc_ret = (s32)smc_res.a0;
++	if (smc_ret < 0) {
++		ret = smc_ret;
++		goto fail;
++	}
++	usleep_range(240, 260);
++
++	spin_lock_irq(&power->state_lock);
++	power->prepared = true;
++	power->sequence_in_progress = false;
++	spin_unlock_irq(&power->state_lock);
++
++	dev_info(power->dev,
++		 "CPU%u fixed-state A72 power sequence prepared\n", cpu);
++	return 0;
++
++fail:
++	cleanup_ret = 0;
++	if (reset_asserted) {
++		cleanup_ret = reset_control_deassert(power->pwrap_reset);
++		if (cleanup_ret)
++			dev_err(power->dev,
++				"failed to deassert PWRAP reset during cleanup: %d\n",
++				cleanup_ret);
++	}
++
++	if (!isolation_attempted && regulator_enabled) {
++		int disable_ret = regulator_disable(power->vproc_big);
++
++		if (disable_ret) {
++			dev_err(power->dev,
++				"failed to balance Vproc enable during cleanup: %d\n",
++				disable_ret);
++			cleanup_ret = disable_ret;
++		}
++	}
++
++	if (isolation_attempted || cleanup_ret) {
++		const char *reason = "power sequence crossed safe rollback boundary";
++
++		mt6797_a72_set_fault(power, cpu, -EINPROGRESS, reason);
++	} else {
++		spin_lock_irq(&power->state_lock);
++		power->sequence_in_progress = false;
++		spin_unlock_irq(&power->state_lock);
++	}
++
++	dev_err(power->dev, "CPU%u power prepare failed: %d\n", cpu, ret);
++	return ret;
++}
++
++static int mt6797_a72_power_cpu_startup(unsigned int cpu)
++{
++	struct mt6797_a72_power *power;
++	unsigned long flags;
++	bool first_prepare;
++	int ret;
++
++	power = mt6797_a72_power_get();
++	if (!power)
++		return -EAGAIN;
++	if (!cpumask_test_cpu(cpu, &power->cpu_mask))
++		return 0;
++	if (cpu != MT6797_A72_PRIMARY_CPU)
++		return -EOPNOTSUPP;
++
++	mutex_lock(&power->sequence_lock);
++	spin_lock_irqsave(&power->state_lock, flags);
++	if (!power->hooks_armed || !power->integration_ready || power->faulted) {
++		ret = -EIO;
++		goto unlock_state;
++	}
++	if (power->sequence_in_progress) {
++		ret = -EBUSY;
++		goto unlock_state;
++	}
++	first_prepare = !power->prepared;
++	if (first_prepare)
++		power->sequence_in_progress = true;
++	spin_unlock_irqrestore(&power->state_lock, flags);
++
++	ret = mt6797_a72_power_preflight(power, cpu, first_prepare);
++	if (ret) {
++		if (first_prepare) {
++			spin_lock_irqsave(&power->state_lock, flags);
++			power->sequence_in_progress = false;
++			spin_unlock_irqrestore(&power->state_lock, flags);
++		}
++		goto unlock_sequence;
++	}
++
++	if (first_prepare)
++		ret = mt6797_a72_power_prepare_first(power, cpu);
++	else
++		ret = 0;
++	goto unlock_sequence;
++
++unlock_state:
++	spin_unlock_irqrestore(&power->state_lock, flags);
++unlock_sequence:
++	mutex_unlock(&power->sequence_lock);
++	return ret;
++}
++
++static int mt6797_a72_power_cpu_teardown(unsigned int cpu)
++{
++	struct mt6797_a72_power *power;
++	int affinity;
++
++	power = mt6797_a72_power_get();
++	if (!power || !cpumask_test_cpu(cpu, &power->cpu_mask))
++		return 0;
++
++	/*
++	 * Reaching teardown means CPUHP advanced past the shared power write.
++	 * There is no audited inverse sequence, so retain power and reject retry.
++	 */
++	affinity = mt6797_a72_power_affinity_info(cpu);
++	mt6797_a72_set_fault(power, cpu, affinity, "CPUHP teardown after A72 prepare");
++	return 0;
++}
++
++int mt6797_a72_power_cpu_boot_ready(unsigned int cpu)
++{
++	struct mt6797_a72_power *power;
++	unsigned long flags;
++	int ret = 0;
++
++	power = mt6797_a72_power_get();
++	if (!power || !cpumask_test_cpu(cpu, &power->cpu_mask))
++		return -EAGAIN;
++	if (cpu != MT6797_A72_PRIMARY_CPU)
++		return -EOPNOTSUPP;
++
++	/*
++	 * Take a second live hardware-watchdog snapshot as close as possible to
++	 * generic PSCI CPU_ON.
++	 */
++	if (!mtk_wdt_is_armed(power->watchdog_np))
++		return -EACCES;
++
++	spin_lock_irqsave(&power->state_lock, flags);
++	if (!power->hooks_armed || !power->integration_ready ||
++	    !power->prepared || power->faulted || power->sequence_in_progress ||
++	    power->psci_inflight) {
++		ret = -EIO;
++	} else {
++		power->psci_inflight = true;
++	}
++	spin_unlock_irqrestore(&power->state_lock, flags);
++
++	return ret;
++}
++
++void mt6797_a72_power_cpu_on_complete(unsigned int cpu)
++{
++	struct mt6797_a72_power *power;
++	unsigned long flags;
++	u32 value;
++
++	power = mt6797_a72_power_get();
++	if (WARN_ON_ONCE(!power || !cpumask_test_cpu(cpu, &power->cpu_mask)))
++		return;
++
++	value = readl(power->mcucfg + MCUCFG_MP2_SYNC_DCM);
++	value &= ~MP2_SYNC_DCM_MASK;
++	value |= MP2_SYNC_DCM_ON | MP2_SYNC_DCM_DIV4;
++	writel(value | MP2_SYNC_DCM_TOGGLE,
++	       power->mcucfg + MCUCFG_MP2_SYNC_DCM);
++	readl(power->mcucfg + MCUCFG_MP2_SYNC_DCM);
++	writel(value, power->mcucfg + MCUCFG_MP2_SYNC_DCM);
++	power->mp2_sync_dcm = readl(power->mcucfg + MCUCFG_MP2_SYNC_DCM);
++
++	spin_lock_irqsave(&power->state_lock, flags);
++	power->psci_inflight = false;
++	spin_unlock_irqrestore(&power->state_lock, flags);
++}
++
++void mt6797_a72_power_cpu_on_failed(unsigned int cpu, int psci_ret)
++{
++	struct mt6797_a72_power *power;
++	int affinity;
++
++	power = mt6797_a72_power_get();
++	if (!power || !cpumask_test_cpu(cpu, &power->cpu_mask))
++		return;
++
++	affinity = mt6797_a72_power_affinity_info(cpu);
++	dev_err(power->dev,
++		"CPU%u PSCI CPU_ON failed: %d (affinity=%d)\n",
++		cpu, psci_ret, affinity);
++	mt6797_a72_set_fault(power, cpu, affinity, "PSCI CPU_ON failure");
++}
++
+ static int mt6797_a72_power_probe(struct platform_device *pdev)
+ {
+ 	struct device *dev = &pdev->dev;
+ 	struct mt6797_a72_power *power;
+ 	int ret;
+ 
++	/*
++	 * BP prepare callbacks must finish before CPUHP_BRINGUP_CPU invokes
++	 * __cpu_up() and the selected cpu_operations::cpu_boot callback.
++	 */
++	BUILD_BUG_ON(CPUHP_BP_PREPARE_DYN_END >= CPUHP_BRINGUP_CPU);
++
+ 	power = devm_kzalloc(dev, sizeof(*power), GFP_KERNEL);
+ 	if (!power)
+ 		return -ENOMEM;
+ 
++	power->dev = dev;
++	mutex_init(&power->sequence_lock);
++	spin_lock_init(&power->state_lock);
++
+ 	ret = mt6797_a72_power_parse_cpus(dev, power);
+ 	if (ret)
+ 		return ret;
+ 
++	ret = mt6797_a72_power_parse_watchdog(dev, power);
++	if (ret)
++		return ret;
++
+ 	power->vproc_big = devm_regulator_get_exclusive(dev, "vproc-big");
+ 	if (IS_ERR(power->vproc_big))
+ 		return dev_err_probe(dev, PTR_ERR(power->vproc_big),
+@@ -193,7 +654,7 @@ static int mt6797_a72_power_probe(struct platform_device *pdev)
+ 				     "failed to get PWRAP reset\n");
+ 
+ 	power->spm = syscon_regmap_lookup_by_phandle(dev->of_node,
+-						   "mediatek,spm");
++						   "mediatek,spm");
+ 	if (IS_ERR(power->spm))
+ 		return dev_err_probe(dev, PTR_ERR(power->spm),
+ 				     "failed to get SPM syscon\n");
+@@ -212,11 +673,37 @@ static int mt6797_a72_power_probe(struct platform_device *pdev)
+ 	if (ret)
+ 		return ret;
+ 
+-	dev_info(dev,
+-		 "observer resources ready: vproc=%duV enabled=%d; CPU_ON denied\n",
+-		 power->vproc_uv, power->vproc_enabled);
++	mutex_lock(&mt6797_a72_provider_lock);
++	if (READ_ONCE(mt6797_a72_provider)) {
++		ret = -EBUSY;
++		goto unlock_provider;
++	}
++
++	/* Keep CPU online transitions excluded until callbacks and publication agree. */
++	cpus_read_lock();
++	ret = cpuhp_setup_state_nocalls_cpuslocked(CPUHP_BP_PREPARE_DYN,
++						   "soc/mediatek:mt6797-a72-power",
++						   mt6797_a72_power_cpu_startup,
++						   mt6797_a72_power_cpu_teardown);
++	if (ret < 0) {
++		cpus_read_unlock();
++		goto unlock_provider;
++	}
++
++	power->hooks_armed = true;
++	power->integration_ready = true;
++	/* Publish only after all resources, state and CPUHP hooks are complete. */
++	smp_store_release(&mt6797_a72_provider, power);
++	cpus_read_unlock();
++	mutex_unlock(&mt6797_a72_provider_lock);
+ 
++	/* Runtime CPU startup still requires WDOG_DEV_OPEN and live WDT enable. */
++	dev_info(dev, "mt6797-a72-power: provider ready\n");
+ 	return 0;
++
++unlock_provider:
++	mutex_unlock(&mt6797_a72_provider_lock);
++	return ret;
+ }
+ 
+ static const struct of_device_id mt6797_a72_power_of_match[] = {
+@@ -235,5 +722,5 @@ static struct platform_driver mt6797_a72_power_driver = {
+ };
+ builtin_platform_driver(mt6797_a72_power_driver);
+ 
+-MODULE_DESCRIPTION("MediaTek MT6797 Cortex-A72 power resource observer");
++MODULE_DESCRIPTION("MediaTek MT6797 Cortex-A72 fixed-state power provider");
+ MODULE_LICENSE("GPL");
+diff --git a/drivers/watchdog/mtk_wdt.c b/drivers/watchdog/mtk_wdt.c
+index c20f921..72e4da5 100644
+--- a/drivers/watchdog/mtk_wdt.c
++++ b/drivers/watchdog/mtk_wdt.c
+@@ -27,12 +27,16 @@
+ #include <linux/module.h>
+ #include <linux/moduleparam.h>
+ #include <linux/of.h>
++#include <linux/of_platform.h>
+ #include <linux/platform_device.h>
+ #include <linux/reset-controller.h>
++#include <linux/soc/mediatek/mtk-wdt.h>
+ #include <linux/types.h>
+ #include <linux/watchdog.h>
+ #include <linux/interrupt.h>
+ 
++#include "watchdog_core.h"
++
+ #define WDT_MAX_TIMEOUT		31
+ #define WDT_MIN_TIMEOUT		2
+ #define WDT_LENGTH_TIMEOUT(n)	((n) << 5)
+@@ -88,6 +92,8 @@ struct mtk_wdt_data {
+ 	unsigned int restart_priority;
+ };
+ 
++static struct platform_driver mtk_wdt_driver;
++
+ static const struct mtk_wdt_data mt2712_data = {
+ 	.toprgu_sw_rst_num = MT2712_TOPRGU_SW_RST_NUM,
+ };
+@@ -135,6 +141,40 @@ static const struct mtk_wdt_data mt8195_data = {
+ 	.toprgu_sw_rst_num = MT8195_TOPRGU_SW_RST_NUM,
+ };
+ 
++bool mtk_wdt_is_armed(struct device_node *np)
++{
++	struct platform_device *pdev;
++	struct mtk_wdt_dev *mtk_wdt;
++	bool armed = false;
++
++	pdev = of_find_device_by_node(np);
++	if (!pdev)
++		return false;
++
++	/*
++	 * This lock stabilizes driver data against unbind.  It does not pin
++	 * watchdog character-device ownership; callers receive a live snapshot.
++	 */
++	device_lock(&pdev->dev);
++	if (pdev->dev.driver != &mtk_wdt_driver.driver)
++		goto unlock;
++
++	mtk_wdt = platform_get_drvdata(pdev);
++	if (!mtk_wdt)
++		goto unlock;
++
++	armed = watchdog_active(&mtk_wdt->wdt_dev) &&
++		watchdog_hw_running(&mtk_wdt->wdt_dev) &&
++		(readl(mtk_wdt->wdt_base + WDT_MODE) & WDT_MODE_EN);
++
++	/* Narrow the close race window without claiming to pin the owner. */
++unlock:
++	device_unlock(&pdev->dev);
++	put_device(&pdev->dev);
++	return armed;
++}
++EXPORT_SYMBOL_GPL(mtk_wdt_is_armed);
++
+ /**
+  * toprgu_reset_sw_en_unlocked() - enable/disable software control for reset bit
+  * @data: Pointer to instance of driver data.
+diff --git a/drivers/watchdog/watchdog_core.h b/drivers/watchdog/watchdog_core.h
+index ab825d9..da2b69e 100644
+--- a/drivers/watchdog/watchdog_core.h
++++ b/drivers/watchdog/watchdog_core.h
+@@ -62,6 +62,14 @@ struct watchdog_core_data {
+ #define _WDOG_KEEPALIVE		2	/* Did we receive a keepalive ? */
+ };
+ 
++/* Caller must stabilize wdd->wd_data against watchdog unregister. */
++static inline bool watchdog_dev_open(struct watchdog_device *wdd)
++{
++	struct watchdog_core_data *wd_data = READ_ONCE(wdd->wd_data);
++
++	return wd_data && test_bit(_WDOG_DEV_OPEN, &wd_data->status);
++}
++
+ /*
+  *	Functions/procedures to be called by the core
+  */
+diff --git a/include/linux/soc/mediatek/mt6797-a72-power.h b/include/linux/soc/mediatek/mt6797-a72-power.h
+new file mode 100644
+index 0000000..b392f9c
+--- /dev/null
++++ b/include/linux/soc/mediatek/mt6797-a72-power.h
+@@ -0,0 +1,27 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __LINUX_SOC_MEDIATEK_MT6797_A72_POWER_H
++#define __LINUX_SOC_MEDIATEK_MT6797_A72_POWER_H
++
++#include <linux/errno.h>
++#include <linux/kconfig.h>
++
++#if IS_ENABLED(CONFIG_MTK_MT6797_A72_POWER)
++int mt6797_a72_power_cpu_boot_ready(unsigned int cpu);
++void mt6797_a72_power_cpu_on_complete(unsigned int cpu);
++void mt6797_a72_power_cpu_on_failed(unsigned int cpu, int psci_ret);
++#else
++static inline int mt6797_a72_power_cpu_boot_ready(unsigned int cpu)
++{
++	return -EAGAIN;
++}
++
++static inline void mt6797_a72_power_cpu_on_complete(unsigned int cpu)
++{
++}
++
++static inline void mt6797_a72_power_cpu_on_failed(unsigned int cpu, int psci_ret)
++{
++}
++#endif
++
++#endif /* __LINUX_SOC_MEDIATEK_MT6797_A72_POWER_H */
+diff --git a/include/linux/soc/mediatek/mtk-wdt.h b/include/linux/soc/mediatek/mtk-wdt.h
+new file mode 100644
+index 0000000..b752b82
+--- /dev/null
++++ b/include/linux/soc/mediatek/mtk-wdt.h
+@@ -0,0 +1,23 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __LINUX_SOC_MEDIATEK_MTK_WDT_H
++#define __LINUX_SOC_MEDIATEK_MTK_WDT_H
++
++#include <linux/kconfig.h>
++#include <linux/types.h>
++
++struct device_node;
++
++#if IS_ENABLED(CONFIG_MEDIATEK_WATCHDOG)
++/*
++ * Return a live core/register snapshot.  This does not pin an open watchdog
++ * file or prevent its owner from closing it after the call.
++ */
++bool mtk_wdt_is_armed(struct device_node *np);
++#else
++static inline bool mtk_wdt_is_armed(struct device_node *np)
++{
++	return false;
++}
++#endif
++
++#endif /* __LINUX_SOC_MEDIATEK_MTK_WDT_H */
