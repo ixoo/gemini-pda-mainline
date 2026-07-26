@@ -147,8 +147,8 @@ def validate(repository: pathlib.Path, package: pathlib.Path) -> None:
     if repository_series != packaged_series:
         fail("packaged AS series differs from repository")
     entries = series_entries(repository_series)
-    if len(entries) != 109 or not entries[-1].endswith("0109-regulator-da9211-use-vendor-shaped-legacy-i2c-transfers.patch"):
-        fail("AS series does not end in patch 0109")
+    if len(entries) != 110 or not entries[-1].endswith("0110-regulator-da9211-use-write-only-selector-explicit-identity-reads.patch"):
+        fail("AS series does not end in patch 0110")
     if any(pathlib.PurePosixPath(entry).name.startswith("0093-") for entry in entries):
         fail("AS series selects the forbidden active-power patch")
     required_entries = {
@@ -159,6 +159,7 @@ def validate(repository: pathlib.Path, package: pathlib.Path) -> None:
         "v7.1.3/0107-regulator-da9211-use-write-only-legacy-page-selector.patch",
         "v7.1.3/0108-regulator-da9211-reproduce-legacy-page-selector-rmw.patch",
         "v7.1.3/0109-regulator-da9211-use-vendor-shaped-legacy-i2c-transfers.patch",
+        "v7.1.3/0110-regulator-da9211-use-write-only-selector-explicit-identity-reads.patch",
     }
     if not required_entries.issubset(entries):
         fail("AS series omits a required legacy DA9214 patch")

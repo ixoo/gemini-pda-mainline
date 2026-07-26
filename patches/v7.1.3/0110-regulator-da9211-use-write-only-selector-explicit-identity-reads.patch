@@ -1,0 +1,39 @@
+From 0000000000000000000000000000000000000110 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 26 Jul 2026 16:00:00 -0400
+Subject: [PATCH] regulator: da9211: use write-only selector with explicit identity reads
+
+Attempts 5 and 6 both reached a watchdog-class reset before the known-good
+console while reading PAGE_CON before each selector write. Attempt 4 retained
+the console with write-only selector bytes, but regmap reads of the page-2
+identity registers returned zero.
+
+Keep the selector writes write-only as in the last console-preserving attempt,
+while retaining the vendor-shaped explicit read transaction for the identity
+registers. This isolates the PAGE_CON read-modify-write behavior from the
+identity-read transport without enabling A72 or changing operational regmap
+policy.
+
+Signed-off-by: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+---
+ drivers/regulator/da9211-regulator.c | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
+
+--- a/drivers/regulator/da9211-regulator.c
++++ b/drivers/regulator/da9211-regulator.c
+@@ -202,10 +202,12 @@ static int da9214_read_legacy_page2_reg
+ 	int ret;
+
+ 	mutex_lock(&da9214_legacy_i2c_access);
+-	ret = da9214_legacy_config_interface(i2c, 1, 1, 7);
++	/* Keep PAGE_CON write-only; its read-modify-write form resets the board. */
++	ret = da9214_legacy_write_byte(i2c, DA9211_REG_PAGE_CON,
++					DA9211_PAGE_REVERT);
+ 	if (!ret)
+-		ret = da9214_legacy_config_interface(i2c, DA9211_REG_PAGE2,
+-						 DA9211_REG_PAGE_MASK, 0);
++		ret = da9214_legacy_write_byte(i2c, DA9211_REG_PAGE_CON,
++					DA9211_REG_PAGE2);
+ 	if (!ret)
+ 		ret = da9214_legacy_read_byte(i2c, DA9214_PAGE2_REG(reg), &raw);
+ 	mutex_unlock(&da9214_legacy_i2c_access);

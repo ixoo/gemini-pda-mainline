@@ -113,11 +113,12 @@ patch_0106="$repo_root/patches/v7.1.3/0106-regulator-da9211-use-legacy-DA9214-pa
 patch_0107="$repo_root/patches/v7.1.3/0107-regulator-da9211-use-write-only-legacy-page-selector.patch"
 patch_0108="$repo_root/patches/v7.1.3/0108-regulator-da9211-reproduce-legacy-page-selector-rmw.patch"
 patch_0109="$repo_root/patches/v7.1.3/0109-regulator-da9211-use-vendor-shaped-legacy-i2c-transfers.patch"
+patch_0110="$repo_root/patches/v7.1.3/0110-regulator-da9211-use-write-only-selector-explicit-identity-reads.patch"
 for input in "$manifest" "$package_validator" "$dtb_builder" "$dtb_validator" \
 	"$boot_validator" "$handoff_auditor" "$normalizer" "$serializer" \
 		"$analyzer" "$patch_0094" "$patch_0095" "$patch_0097" "$patch_0098" \
 		"$patch_0099" "$patch_0100" "$patch_0101" "$patch_0102" "$patch_0103" \
-		"$patch_0096" "$patch_0104" "$patch_0105" "$patch_0106" "$patch_0107" "$patch_0108" "$patch_0109"; do
+		"$patch_0096" "$patch_0104" "$patch_0105" "$patch_0106" "$patch_0107" "$patch_0108" "$patch_0109" "$patch_0110"; do
 	[[ -f "$input" && ! -L "$input" && -s "$input" ]] || \
 		die "repository input missing or unsafe: $input"
 done
@@ -170,6 +171,8 @@ require_source_hash "$patch_0108" "$(candidate_value PATCH_0108_SHA256)" \
 	'patch 0108'
 require_source_hash "$patch_0109" "$(candidate_value PATCH_0109_SHA256)" \
 	'patch 0109'
+require_source_hash "$patch_0110" "$(candidate_value PATCH_0110_SHA256)" \
+	'patch 0110'
 
 [[ "$(basename -- "$ao_artifact")" == "$AO_NAME" ]] || \
 	die 'exact Candidate AO artifact basename changed'
@@ -298,11 +301,12 @@ auditor_sha256="$(sha256sum "$handoff_auditor" | awk '{ print $1 }')"
 	printf 'patch_0107_sha256=%s\n' "$(candidate_value PATCH_0107_SHA256)"
 	printf 'patch_0108_sha256=%s\n' "$(candidate_value PATCH_0108_SHA256)"
 	printf 'patch_0109_sha256=%s\n' "$(candidate_value PATCH_0109_SHA256)"
+	printf 'patch_0110_sha256=%s\n' "$(candidate_value PATCH_0110_SHA256)"
 	printf 'compiled_handoff_auditor_sha256=%s\n' "$auditor_sha256"
 	printf 'functional_baseline=exact-hardware-passed-candidate-ao-contract\n'
 	printf 'final_dtb_baseline=exact-candidate-ao-final-dtb\n'
 	printf 'final_dtb_delta=access-controller-link-and-legacy-da9214-page-selector-probe\n'
-	printf 'da9214_probe_delta=vendor-shaped-explicit-i2c-transfer-page-selector-read-modify-write\n'
+	printf 'da9214_probe_delta=write-only-page-selector-explicit-identity-register-reads\n'
 	printf 'initramfs_keyboard_console_usb_reboot=byte-exact-candidate-ao\n'
 	printf 'handoff_initial_contract=exact-candidate-ao-ready-late-passed\n'
 	printf 'handoff_access_controller=enabled\n'

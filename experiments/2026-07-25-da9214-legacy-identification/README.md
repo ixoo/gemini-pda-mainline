@@ -97,6 +97,22 @@ handoff gates. It is installed on boot2 with a full readback; its records are in
 'results/build-candidate-as-attempt-6-20260726.txt' and
 'results/install-candidate-as-attempt-6-boot2-20260726.txt'. It keeps A72
 blacklisted and changes only the explicit vendor-shaped I2C transaction layer.
+The owner again observed a black screen with backlight followed by an automatic
+return to Gemian; read-only recovery again reported `wdt_by_pass_pwk`, with no
+pstore record and only the tiny mrdump header in `/proc/last_kmsg`. Its runtime
+record is 'results/runtime-candidate-as-attempt-6-20260726.txt'. Attempts 5 and
+6 therefore close the PAGE_CON read-modify-write hypothesis across both regmap
+and explicit-transfer implementations. This motivated the bounded attempt-7
+test below, retaining the known-good write-only selector behavior from 0107
+while using explicit vendor-shaped reads only for the page-2 identity registers.
+
+Candidate AS attempt 7 implements that test: PAGE_CON selector bytes remain
+write-only, while page-2 identity registers use the explicit vendor-shaped read
+transfer. Package, DT, LK-container, boot, and compiled-handoff validation all
+passed. It is installed on boot2 with a full readback; records are in
+'results/build-candidate-as-attempt-7-20260726.txt' and
+'results/install-candidate-as-attempt-7-boot2-20260726.txt'. A72 remains
+blacklisted and no CPU power-on request is present.
 
 ## Reproducibility
 

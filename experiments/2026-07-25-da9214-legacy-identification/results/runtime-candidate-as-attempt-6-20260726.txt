@@ -1,0 +1,19 @@
+experiment=2026-07-25-da9214-legacy-identification
+candidate=AS-attempt-6
+boot2_selection=owner-attended
+result=black-screen-backlight-then-automatic-return-to-gemian
+known_good_console=not-reached
+usb_shell=not-reached
+keyboard=not-tested
+gemian_return=observed
+gemian_bootreason=wdt_by_pass_pwk
+pstore=empty
+last_kmsg=74-bytes-mrdump-header-only
+interpretation=watchdog-reset-before-known-good-console-usb-observation-point
+unique_delta=0109-vendor-shaped-explicit-i2c-transfer-page-selector-read-modify-write
+decision=close-rmw-and-explicit-transfer-selector-hypothesis; do-not-repeat
+
+The attempt preserved A72 blacklist policy and did not provide evidence of A72
+power-on. The result is indistinguishable from attempt 5 at the reset boundary;
+the paired failures implicate the PAGE_CON read-modify-write selector behavior,
+not a specific regmap-versus-explicit-read transport implementation.
