@@ -17,7 +17,8 @@ That command performs the complete workflow inside the ARM64 development VM:
 1. reads `kernel/manifest.json`;
 2. downloads the pinned kernel.org tarball into the guest cache;
 3. verifies its SHA-256 before extraction;
-4. creates a managed source tree on the guest ext4 filesystem;
+4. reuses (or creates) a managed source tree on the guest ext4 filesystem,
+   keyed by the effective patch series;
 5. applies every patch named by the selected profile's effective series, in
    order (`patches/series` is the canonical default);
 6. starts from arm64 `defconfig` and merges the project fragments;
@@ -64,14 +65,18 @@ with its own `patch_series` member. This isolates an already-listed change
 without rewriting the global integration stack; it is not a second untracked
 patch history. The effective series and every listed patch must be regular,
 non-symlink files below `patches/`, with no absolute, whitespace, empty, `.` or
-`..` path components. An override uses a profile-specific managed source
-directory so it cannot replace the default series' prepared tree. The package
-records the effective series path, content, and exact patch inventory, and the
-validator recomputes the path-sensitive patchset identity.
+`..` path components. Profiles that select the same effective series share its
+prepared source tree; their out-of-tree build directories remain
+profile-specific. This prevents a configuration-only profile change from
+creating another full Linux checkout. The package records the effective series
+path, content, and exact patch inventory, and the validator recomputes the
+path-sensitive patchset identity.
 
 When the series changes, the next preparation replaces only the generated,
-versioned source tree. Do not make unique edits in that managed tree; author
-changes in a separate Git clone and export them back into this repository.
+series-keyed source tree. Interrupted staging directories are disposable and
+are removed before the next preparation. Do not make unique edits in that
+managed tree; author changes in a separate Git clone and export them back into
+this repository.
 The canonical working series contains 101 ordered entries through patch 0102,
 with unsafe active-A72 draft 0093 and legacy-DA9214 draft 0096 excluded. The diagnostic
 `observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-reject-gate`

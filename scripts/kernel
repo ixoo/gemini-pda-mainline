@@ -83,7 +83,12 @@ readonly BUILD_ROOT="${GEMINI_BUILD_ROOT:-${HOME}/build/gemini-pda}"
 readonly ARTIFACT_ROOT="${GEMINI_ARTIFACT_ROOT:-${HOME}/artifacts/gemini-pda}"
 readonly CACHE_ROOT="${GEMINI_CACHE_ROOT:-${HOME}/.cache/gemini-pda}"
 if [[ -n "${PROFILE_SERIES_REL}" ]]; then
-  SOURCE_DIR="${SOURCE_ROOT}/linux-${VERSION}-${KERNEL_PROFILE}-source"
+  # Configuration profiles that share a patch series must share one extracted
+  # and patched Linux tree.  The out-of-tree BUILD_DIR remains profile-specific.
+  SERIES_KEY="${SERIES_REL##*/}"
+  [[ "${SERIES_KEY}" =~ ^[A-Za-z0-9_.+-]+$ ]] || \
+    die "unsafe patch-series source key: ${SERIES_KEY}"
+  SOURCE_DIR="${SOURCE_ROOT}/linux-${VERSION}-${SERIES_KEY}-source"
 else
   SOURCE_DIR="${SOURCE_ROOT}/linux-${VERSION}"
 fi
@@ -246,6 +251,15 @@ prepare_kernel() {
   local temporary
   expected_state="$(source_state_hash)"
 
+  mkdir -p "${SOURCE_ROOT}"
+  # Interrupted preparation used to leave full extracted trees behind because
+  # the cleanup trap only ran on normal function return.  These are disposable
+  # VM-owned staging paths, never a published source tree.
+  for temporary in "${SOURCE_ROOT}"/.prepare-"${VERSION}".*; do
+    [[ -d "${temporary}" && ! -L "${temporary}" ]] || continue
+    rm -rf -- "${temporary}"
+  done
+
   if [[ -f "${SOURCE_DIR}/.gemini-source-state" ]] && \
      [[ "$(< "${SOURCE_DIR}/.gemini-source-state")" == "${expected_state}" ]]; then
     echo "Linux ${VERSION} source is already prepared at ${SOURCE_DIR}"
@@ -253,15 +267,16 @@ prepare_kernel() {
   fi
 
   download_source
-  mkdir -p "${SOURCE_ROOT}"
   temporary="$(mktemp -d "${SOURCE_ROOT}/.prepare-${VERSION}.XXXXXX")"
   PREPARED_TREE="${temporary}/linux-${VERSION}"
   export PREPARED_TREE
 
   cleanup_prepare() {
-    rm -rf "${temporary}"
+    if [[ -n "${temporary:-}" && -d "${temporary}" && ! -L "${temporary}" ]]; then
+      rm -rf -- "${temporary}"
+    fi
   }
-  trap cleanup_prepare RETURN
+  trap cleanup_prepare EXIT
 
   echo "Extracting Linux ${VERSION}"
   tar -xJf "${ARCHIVE}" -C "${temporary}"
@@ -276,7 +291,7 @@ prepare_kernel() {
   esac
   rm -rf "${SOURCE_DIR}"
   mv "${PREPARED_TREE}" "${SOURCE_DIR}"
-  trap - RETURN
+  trap - EXIT
   rm -rf "${temporary}"
   echo "Prepared Linux ${VERSION} at ${SOURCE_DIR}"
 }

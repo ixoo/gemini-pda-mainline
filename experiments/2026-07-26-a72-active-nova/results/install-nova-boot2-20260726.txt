@@ -1,0 +1,54 @@
+Experiment: Candidate Nova — active MT6797 CPU8 provider and ordered retry
+Date: 2026-07-26
+Device: Gemini PDA, named unit
+Host-side source: artifacts/boot-candidates/candidate-Nova-a72-active-c32b95ac
+
+Candidate
+---------
+raw_boot_sha256=c32b95ac7533113ebf3e489bf0780e1aad897a8b03cb413558a95b53264f2bdd
+raw_boot_size=7393280
+padded_boot2_size=16777216
+padded_boot2_sha256=4a6f2c58843d6e507c6e82d703c54a3e0142b215f89b8751552063ddb80e0c7d
+
+Target resolution and safety checks
+-----------------------------------
+os_before_write=Gemian
+gemian_boot_id_before_write=5d518575-da3f-4872-8dce-2f17a4ae7bc5
+root_before_write=/dev/mmcblk0p29
+logical_label=boot2
+resolved_target=/dev/mmcblk0p30
+target_sectors=32768
+target_bytes=16777216
+target_mounted=no
+target_active_root=no
+target_writable=yes
+
+Backup and write
+---------------
+backup=artifacts/device-partitions/candidate-nova-20260726/boot2-before-nova.img
+backup_size=16777216
+backup_sha256=e88ec985a475c1b45c83ab462bbb62986fdb0fefffec1bcc9ba1f8a9d46ea7b9
+write_method=verified-remote-regular-file-then-bounded-dd
+remote_staging_sha256=4a6f2c58843d6e507c6e82d703c54a3e0142b215f89b8751552063ddb80e0c7d
+remote_staging_removed=yes
+post_write_target=/dev/mmcblk0p30
+post_write_root=/dev/mmcblk0p29
+readback=artifacts/device-partitions/candidate-nova-20260726/boot2-after-nova.img
+readback_size=16777216
+readback_sha256=4a6f2c58843d6e507c6e82d703c54a3e0142b215f89b8751552063ddb80e0c7d
+readback_matches_candidate=yes
+full_partition_cmp=exact
+
+Note
+----
+An initial direct pipe into device-side `dd` returned successfully but produced
+only the first 512 KiB of the new image because the pipe supplied short input
+blocks.  It was not accepted as an installation result.  The complete image
+was then staged as a regular file, its size and checksum were verified on the
+device, and the bounded write was repeated and independently read back exactly.
+
+hardware_write=logical-boot2-only
+primary_boot_written=no
+boot3_written=no
+gpt_written=no
+whole_device_written=no

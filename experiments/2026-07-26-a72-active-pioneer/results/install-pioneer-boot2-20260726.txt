@@ -1,0 +1,47 @@
+Experiment: Candidate Pioneer — DA9214 legacy page-revert selector correction
+Date: 2026-07-26
+Device: Gemini PDA, named unit
+Host-side source: artifacts/boot-candidates/gemini-pda/candidate-Pioneer-a72-active-a176a2d3
+
+Candidate
+---------
+raw_boot_sha256=a176a2d3c5d3b7f4a0e53e476ae5113b826aab9f4b732dc59b60cb2ad0ff3b37
+raw_boot_size=7393280
+padded_boot2_size=16777216
+padded_boot2_sha256=c02244700fcd41a9b6a2d70e90ae2b83276f9dcdd843329643a3d9ced454779d
+
+Target resolution and safety checks
+-----------------------------------
+os_before_write=Gemian
+gemian_boot_id_before_write=ee08bd8c-ac29-4744-bd02-c655ad32589c
+root_before_write=/dev/mmcblk0p29
+logical_label=boot2
+resolved_target=/dev/mmcblk0p30
+target_partuuid=9c1520f3-c2c5-4b89-8242-fe4c61208a9e
+target_sectors=32768
+target_bytes=16777216
+target_mounted=no
+target_active_root=no
+target_read_only=no
+
+Backup and write
+----------------
+backup=artifacts/device-partitions/candidate-pioneer-20260726/boot2-before-pioneer.img
+backup_size=16777216
+backup_sha256=4a6f2c58843d6e507c6e82d703c54a3e0142b215f89b8751552063ddb80e0c7d
+write_method=verified-remote-regular-file-then-bounded-dd
+remote_staging_sha256=c02244700fcd41a9b6a2d70e90ae2b83276f9dcdd843329643a3d9ced454779d
+remote_staging_removed=yes
+post_write_target=/dev/mmcblk0p30
+post_write_target_sha256=c02244700fcd41a9b6a2d70e90ae2b83276f9dcdd843329643a3d9ced454779d
+readback=artifacts/device-partitions/candidate-pioneer-20260726/boot2-after-pioneer.img
+readback_size=16777216
+readback_sha256=c02244700fcd41a9b6a2d70e90ae2b83276f9dcdd843329643a3d9ced454779d
+readback_matches_candidate=yes
+full_partition_cmp=exact
+
+hardware_write=logical-boot2-only
+primary_boot_written=no
+boot3_written=no
+gpt_written=no
+whole_device_written=no

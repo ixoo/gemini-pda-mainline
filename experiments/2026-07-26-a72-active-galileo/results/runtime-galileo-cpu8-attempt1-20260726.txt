@@ -1,0 +1,52 @@
+Experiment: Galileo active A72 candidate, CPU8 runtime attempt 1
+Date: 2026-07-26
+Device: Gemini PDA, booted from logical boot2
+Candidate: candidate-Galileo-a72-active-0c124dce
+Raw boot SHA256: 0c124dce0ee256a376e08eb8c6f8da8cd1e974b21c0fb88d485f488c21b76527
+Padded boot2 SHA256: e88ec985a475c1b45c83ab462bbb62986fdb0fefffec1bcc9ba1f8a9d46ea7b9
+
+Observation
+-----------
+The console appeared after a delay and the USB Ethernet shell was reachable.
+The running kernel identified itself as:
+
+  Linux (none) 7.1.3-gemini-galileo #1 SMP PREEMPT 2026-07-04 00:00:00 UTC aarch64
+
+The command line included `maxcpus=9`, so the candidate explicitly requested
+CPU0 through CPU8 while leaving CPU9 fail-closed.  The observed masks were:
+
+  /sys/devices/system/cpu/online   0-7
+  /sys/devices/system/cpu/possible 0-9
+
+`/sys/devices/system/cpu/cpu8/online` and `cpu9/online` were absent.  `/proc/cpuinfo`
+listed only processors 0 through 7, all Cortex-A53 (implementer 0x41, part 0xd03).
+
+Relevant kernel log observations:
+
+  [0.000000] Machine model: MT6797X
+  [0.000000] psci: PSCIv0.2 detected...
+  [0.064137] mt6797-psci: CPU8 boot rejected by A72 power provider: -11
+  [0.081219] CPU8: failed to boot: -11
+  [1.490029] calling mt6797_a72_power_driver_init ... returned 0
+  [1.949956] mtk-wdt 10007000.watchdog: Watchdog enabled (timeout=31 sec, nowayout=0)
+
+No `mt6797-a72-power: provider ready` message was observed.  No A72 power
+platform directory or `10222000.a72-power` sysfs device was found under the
+platform-device paths queried from the shell.
+
+Interpretation
+--------------
+This is not evidence that the A72 power sequence itself failed.  It shows that
+the CPU8 PSCI attempt happened before the provider's normal platform-driver
+initialization, and that the active boot DTB did not result in an observable
+A72 provider device/probe.  The latter is an inference from the missing device,
+missing readiness message, and the current DT assembly path; it must be
+confirmed by inspecting the exact DTB packaged in the boot container.
+
+Decision
+--------
+Do not repeat this kernel/DT combination.  The next candidate must (1) add and
+validate the `/a72-power@10222000` node, including its exact phandles and supply,
+in the DTB actually packaged into boot2, and (2) retry CPU8 after provider
+initialization (a late initcall or equivalent ordered retry), while retaining
+the `maxcpus=9` boundary and CPU9 fail-closed behavior.

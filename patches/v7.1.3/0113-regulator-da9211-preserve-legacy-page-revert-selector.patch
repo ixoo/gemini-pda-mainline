@@ -1,0 +1,35 @@
+From 0000000000000000000000000000000000000113 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 26 Jul 2026 17:00:00 -0400
+Subject: [PATCH] regulator: da9211: preserve legacy page-revert selector
+
+The Nova hardware run reached the legacy DA9214 probe but read a stable
+zero signature.  The write-only selector emitted PAGE_CON values 0x80 and
+0x02.  The pinned Gemian driver instead performs a read-modify-write for the
+second selector and therefore emits 0x82: it preserves PAGE_REVERT while
+selecting page 2.  Keep the write-only transport that preserved the console,
+but reproduce that final selector byte without reintroducing the unsafe
+PAGE_CON read.
+
+The identity path remains read-only apart from PAGE_CON selection, requires
+the repeated exact signature, and never reaches operational regulator writes
+unless detection succeeds.
+
+Signed-off-by: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+---
+ drivers/regulator/da9211-regulator.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+--- a/drivers/regulator/da9211-regulator.c
++++ b/drivers/regulator/da9211-regulator.c
+@@ -213,8 +213,9 @@ static int da9214_read_legacy_page2_reg
+ 	/* Keep PAGE_CON write-only; its read-modify-write form resets the board. */
+ 	ret = da9214_legacy_write_byte(i2c, DA9211_REG_PAGE_CON,
+ 					DA9211_PAGE_REVERT);
+ 	if (!ret)
+ 		ret = da9214_legacy_write_byte(i2c, DA9211_REG_PAGE_CON,
+-					DA9211_REG_PAGE2);
++					DA9211_PAGE_REVERT |
++					DA9211_REG_PAGE2);
+ 	if (!ret)
+ 		ret = da9214_legacy_read_byte(i2c, DA9214_PAGE2_REG(reg), &raw);

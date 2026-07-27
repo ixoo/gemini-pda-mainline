@@ -1,0 +1,7 @@
+# Candidate Nova: active MT6797 Cortex-A72 provider with ordered CPU8 retry.
+# maxcpus=9 requests CPU0-7 plus exactly CPU8; CPU9 remains unrequested and
+# fail-closed. The provider is intentionally one-way and leaves DVFS, HPS,
+# idle, and thermal ownership with firmware/vendor policy.
+CONFIG_LOCALVERSION="-gemini-nova"
+CONFIG_MTK_MT6797_A72_POWER=y
+CONFIG_CMDLINE="console=ttyS0,921600n8 earlycon maxcpus=9 nokaslr ignore_loglevel loglevel=8 log_buf_len=1M initcall_debug rdinit=/init panic=0 g_ether.dev_addr=42:00:15:19:82:01 g_ether.host_addr=42:00:15:19:82:00 g_ether.iManufacturer=gemini-pda-mainline g_ether.iProduct=Gemini-L-Nova g_ether.iSerialNumber=GEMINI_NOVA_20260726 clk_ignore_unused fbcon=rotate:3 consoleblank=0 fbcon=font:TER16x32 regulator_ignore_unused fw_devlink=rpm"

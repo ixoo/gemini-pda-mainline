@@ -1,0 +1,62 @@
+From 0000000000000000000000000000000000000112 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 26 Jul 2026 20:12:00 -0400
+Subject: [PATCH] soc: mediatek: retry MT6797 A72 CPU8 after provider init
+
+The generic SMP path brings up non-boot CPUs before normal platform driver
+initcalls.  Consequently the active MT6797 PSCI hook can see CPU8 before its
+power provider has been populated and reject the first request with -EAGAIN.
+
+Once the provider has been published, use the normal CPU subsystem add_cpu()
+entry point from a late initcall.  This preserves the generic hotplug state
+machine and invokes the same provider preparation and PSCI path as a later
+sysfs online request, without requiring userspace policy or a private retry
+protocol.  CPU9 remains deliberately unrequested.
+
+---
+ drivers/soc/mediatek/mt6797-a72-power.c | 31 +++++++++++++++++++++++++++++++
+ 1 file changed, 31 insertions(+)
+
+diff --git a/drivers/soc/mediatek/mt6797-a72-power.c b/drivers/soc/mediatek/mt6797-a72-power.c
+index 005c63e..b8a52c6 100644
+--- a/drivers/soc/mediatek/mt6797-a72-power.c
++++ b/drivers/soc/mediatek/mt6797-a72-power.c
+@@ -778,6 +778,36 @@ static int mt6797_a72_power_probe(struct platform_device *pdev)
+ 	return ret;
+ }
+ 
++static int __init mt6797_a72_power_retry_cpu8(void)
++{
++	struct mt6797_a72_power *power;
++	int ret;
++
++	power = mt6797_a72_power_get();
++	if (!power)
++		return 0;
++
++	if (!cpu_possible(MT6797_A72_PRIMARY_CPU) ||
++	    cpu_online(MT6797_A72_PRIMARY_CPU) ||
++	    !cpumask_test_cpu(MT6797_A72_PRIMARY_CPU, &power->cpu_mask))
++		return 0;
++
++	if (!mt6797_a72_power_ready(power)) {
++		dev_err(power->dev,
++			"CPU8 retry skipped: provider is not ready\n");
++		return 0;
++	}
++
++	ret = add_cpu(MT6797_A72_PRIMARY_CPU);
++	if (ret)
++		dev_err(power->dev, "CPU8 late hotplug retry failed: %d\n", ret);
++	else
++		dev_info(power->dev, "CPU8 late hotplug retry succeeded\n");
++
++	return 0;
++}
++late_initcall(mt6797_a72_power_retry_cpu8);
++
+ static const struct of_device_id mt6797_a72_power_of_match[] = {
+ 	{ .compatible = "mediatek,mt6797-a72-power" },
+ 	{ }
+-- 
+2.43.0
