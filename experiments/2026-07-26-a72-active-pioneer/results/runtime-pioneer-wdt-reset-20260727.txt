@@ -1,0 +1,35 @@
+Experiment: Candidate Pioneer — DA9214 legacy page-revert selector correction
+Date: 2026-07-27
+Device: Gemini PDA, named unit
+Boot source: logical boot2
+
+Observation
+-----------
+The device showed a white screen, then rebooted automatically and returned to
+Gemian. The user did not obtain a recoverable Pioneer console or shell.
+
+Post-cycle identity and reset evidence
+--------------------------------------
+boot2_sha256=c02244700fcd41a9b6a2d70e90ae2b83276f9dcdd843329643a3d9ced454779d
+boot2_size=16777216
+recovery_root=/dev/mmcblk0p29
+recovery_kernel=3.18.41+
+boot_reason=4
+androidboot.bootreason=wdt_by_pass_pwk
+last_kmsg_header=ram console header, hw_status: 5, fiq step 0.
+last_kmsg_size=74
+pstore_directory=present
+pstore_files=none
+
+Interpretation
+--------------
+observation=Gemian identifies the preceding reset as watchdog-related
+inference=Pioneer did not reach a durable, recoverable console before reset
+inference=the exact failing operation is not established because ramoops held no records
+decision=FAIL_PIONEER_WDT_RESET_BEFORE_RECOVERABLE_CONSOLE
+next_step=build a selector-corrected DA9214/provider diagnostic with CPU8 activation disabled; use it to separate DA9214 probe/provider readiness from the active A72 power sequence
+
+Safety
+------
+No partition was modified during collection. The pstore capture was read-only;
+no pstore entries were removed.

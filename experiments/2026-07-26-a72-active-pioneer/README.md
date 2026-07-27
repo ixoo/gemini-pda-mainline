@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | \`2026-07-26-a72-active-pioneer\` |
-| Status | \`installed to inactive boot2; awaiting manual boot\` |
+| Status | \`failed; watchdog reset before recoverable console\` |
 | Subsystem | MT6797 Cortex-A72 power sequencing and PSCI CPU_ON |
 | Device variant | Named Gemini PDA unit |
 
@@ -63,8 +63,16 @@ PAGE_CON selector byte (0x82) while retaining the console-preserving
 write-only transport. The image was installed to inactive logical \`boot2\` with
 an exact full-partition readback; see
 \`results/install-pioneer-boot2-20260726.txt\`. Runtime evidence will be
-recorded in \`results/\` after boot.
+recorded in \`results/\` after boot. The boot showed a white screen and
+returned to Gemian by watchdog reset; see
+\`results/runtime-pioneer-wdt-reset-20260727.txt\`. Because no pstore record
+survived, the exact failing operation is not yet established. The next
+diagnostic must retain the corrected DA9214 selector while disabling CPU8
+activation, separating regulator/provider readiness from the active A72 power
+sequence.
 
 ## Conclusion
 
-Not yet determined. A successful build is not hardware support.
+Pioneer is not hardware support: it reset by watchdog before a recoverable
+console. The selector correction now needs an isolated provider-only boot
+before another active CPU8 attempt.
