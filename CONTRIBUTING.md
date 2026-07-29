@@ -75,6 +75,17 @@ not submission-ready.
 
 - Pin external source revisions and verify downloads where practical.
 - Keep build outputs outside the repository.
+- Reuse a verified prepared source tree and build out of tree. A second clean
+  build normally needs a separate build directory, not a duplicate source
+  extraction.
+- Retain pinned inputs, provenance, checksums, and decision-relevant evidence;
+  remove superseded or regenerable source trees, build outputs, packages, and
+  exports after the associated experiment is recorded.
+- Create temporary state below an explicit managed directory and clean it on
+  success, failure, and interruption. A later run must safely remove stale
+  partial state left by an unavoidable hard stop.
+- Before deleting large local data, distinguish regenerable build products
+  from irreplaceable private device backups and unique runtime evidence.
 - Make destructive commands opt-in and require an explicit partition target.
 - Default scripts to dry-run or read-only behavior when feasible.
 - Never make preloader, NVRAM, GPT, or whole-device writes part of a default target.

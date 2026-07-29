@@ -33,6 +33,10 @@ configuration, safe tooling, hardware knowledge, and reproducible evidence.
   instead of copying point-in-time findings or remediation checklists.
 - Build with `./scripts/dev-vm build-kernel`. Generated Linux sources, builds,
   and artifacts belong in the VM, not Git.
+- Reuse the managed prepared kernel tree whenever its recorded source state
+  matches. Do not create experiment-specific source-root copies merely to get a
+  fresh build; use a separate out-of-tree build directory when independence
+  requires it, and remove that build directory after its result is recorded.
 - “Latest kernel” means the boot candidate explicitly selected for the active
   experiment after package, checksum, LK-container, and experiment-specific
   validation—not the newest file by timestamp or a compile-only artifact.
@@ -51,6 +55,38 @@ configuration, safe tooling, hardware knowledge, and reproducible evidence.
   experiment-only archive may retain a clearly synthetic, non-certifying
   `From:` identity only when it has no synthetic sign-off and remains
   explicitly not submission-ready.
+
+## Storage stewardship
+
+- Treat SSD space as a shared, finite development resource. Check host and VM
+  free space before work that will extract a source tree, create a clean build,
+  reproduce a package, or capture a device partition.
+- Keep the VM provisioned and ready, but lean: normally retain one prepared
+  copy of each source state still in use, the active build directories, and the
+  exact packages or candidates still needed by an open experiment.
+- Prefer reconstruction from pinned inputs over retaining regenerable copies.
+  Once checksums, provenance, and decision-relevant evidence are recorded,
+  remove superseded source trees, build directories, packages, exports, and
+  failed candidate staging directories from both guest and host.
+- A reproducibility run does not automatically require another source
+  extraction. Share the verified prepared source and use an independent
+  out-of-tree build directory unless source extraction itself is part of the
+  claim. Remove temporary independent trees after the comparison.
+- Do not duplicate a retained artifact between the VM and host without a
+  concrete transfer, recovery, or test need. Prefer the bounded
+  `export-artifact` workflow over exporting the complete guest artifact tree.
+- Temporary files and directories must be created below an explicit managed
+  root and removed on both success and failure. Scripts must install cleanup
+  traps immediately after creating temporary state and must clear stale
+  partial state safely on the next run.
+- Distinguish regenerable build data from irreplaceable private evidence.
+  Partition backups, calibration-bearing captures, credentials, and unique
+  runtime evidence are never opportunistic cleanup targets. Remove them only
+  after their identity, required retention, and verified replacement or
+  independent backup have been reviewed.
+- Be proportionate: avoid duplicate multi-gigabyte trees and unbounded
+  timestamped outputs, but do not spend engineering time shaving small caches
+  or deleting useful active state without a meaningful storage benefit.
 
 ## Hardware and reverse engineering
 
