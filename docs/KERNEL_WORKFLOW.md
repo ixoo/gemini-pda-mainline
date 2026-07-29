@@ -21,7 +21,8 @@ The command performs the workflow inside the ARM64 development VM:
 1. read `kernel/manifest.json`;
 2. download the pinned kernel.org source archive into the guest cache;
 3. verify the source SHA-256 before extraction;
-4. prepare a guest-ext4 source tree keyed by the effective patch series;
+4. reuse or prepare a guest-ext4 source tree keyed by the effective patch
+   series;
 5. apply the selected patches in canonical order;
 6. start from the profile's arm64 base configuration and merge its fragments;
 7. build `Image`, LK-compatible `Image.gz`, and arm64 DTBs out of tree;
@@ -100,6 +101,12 @@ When the effective series changes, the next preparation replaces only its
 generated guest source tree. Never make unique edits there. Export reviewable
 patches from a separate clone and add them to this repository.
 
+The source-state marker is the reuse contract. If it matches, use that prepared
+tree for every compatible profile and build; do not copy it into a dated or
+experiment-named source root. If a clean-room claim specifically includes
+source extraction, create the extra tree explicitly, record why it is needed,
+and remove it after the comparison.
+
 ## Kernel configuration
 
 The default `full` profile uses `configs/gemini.fragment`. Put reusable board
@@ -147,6 +154,47 @@ The handoff and USB diagnostic shortcuts select their manifest profiles:
 ./scripts/dev-vm build-handoff-kernel
 ./scripts/dev-vm build-usbdiag-kernel
 ```
+
+## Storage lifecycle
+
+The VM is a reusable tool, not an artifact archive. Keep it provisioned, along
+with the verified download cache and prepared source states that are still in
+active use. Before a large build or reproduction run, inspect free space and
+the sizes of `~/src`, `~/build`, and `~/artifacts`.
+
+Use these retention rules:
+
+- reuse the prepared source selected by `./scripts/dev-vm kernel paths`;
+- use an out-of-tree build directory for profile isolation or an independent
+  build, rather than another source extraction;
+- retain only build directories that are active, needed for a near-term
+  incremental rebuild, or required by an unfinished comparison;
+- retain the exact validated package and boot candidate named by each open
+  experiment, not every intermediate or superseded timestamped directory;
+- after recording provenance, checksums, and the comparison result, remove
+  disposable reproduction trees, failed staging directories, superseded
+  packages, and redundant guest/host exports; and
+- keep the single verified source archive cache while its pinned version is in
+  use, because redownloading it saves little space relative to repeated source
+  extractions.
+
+Independent builds require independent build outputs. They do not require
+independent source copies unless the experiment explicitly tests extraction or
+source preparation. Evidence needed to reproduce a result is normally the
+pinned manifest, patch series, configuration, toolchain identity, provenance,
+checksums, and focused runtime output—not a permanent copy of every generated
+file.
+
+Temporary paths created by kernel or candidate tooling must be cleaned on
+success and failure. Install the cleanup trap immediately after creating the
+path, reject unsafe cleanup targets, remove stale partial downloads or staging
+directories on the next invocation, and never use a broad home, workspace, or
+artifact root as a cleanup target.
+
+Private device backups and unique hardware evidence follow a different
+retention policy. Do not delete partition captures, credentials,
+calibration-bearing data, or the only copy of runtime evidence as routine
+space reclamation. Review their identity and backup status separately.
 
 Set `BUILD_MODULES=1` inside a guest shell only when an experiment requires
 modules. The package then stores them below

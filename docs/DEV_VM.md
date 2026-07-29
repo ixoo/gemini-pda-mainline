@@ -73,6 +73,39 @@ The guest creates these directories:
 The project checkout is available as both `/mnt/gemini-pda-mainline` and the
 `~/gemini-pda-mainline-host` symlink. It is intentionally not writable.
 
+## Storage use
+
+Keep the VM ready for development, but do not use it as a historical archive.
+The normal steady state is the provisioned toolchain, verified download cache,
+one prepared copy of each kernel source state still in use, active
+out-of-tree builds, and the exact artifacts required by open experiments.
+
+Before a large extraction, clean build, or reproducibility run, inspect the
+guest filesystem and the three workspace roots:
+
+```sh
+./scripts/dev-vm run bash -lc \
+  'df -h "$HOME"; du -x -h -d 1 "$HOME/src" "$HOME/build" "$HOME/artifacts"'
+```
+
+The managed kernel workflow reuses a prepared tree when its source-state marker
+matches. Do not select a new `GEMINI_SOURCE_ROOT` simply to make a clean build.
+Use a separate `GEMINI_BUILD_ROOT` when independent build output is required,
+then remove that directory once its checksums and comparison result have been
+recorded. A separate source root is justified only when extraction or source
+preparation is itself under test, and it is temporary.
+
+Review `~/artifacts` at the end of an experiment. Keep the selected validated
+package or candidate and unique decision-relevant evidence; remove failed
+staging directories, superseded packages, and redundant exports after their
+provenance and result are recorded. Use `export-artifact` for the exact item
+needed on the host instead of copying all guest artifacts.
+
+Do not treat private host artifacts as ordinary build cache. Device-partition
+backups and unique captures may be large but irreplaceable; review their
+retention and independent backup status before deleting them. Reclaim
+regenerable guest source/build data and redundant exports first.
+
 ## Reverse engineering
 
 Run the host-side extraction first, then reprovision the VM:
