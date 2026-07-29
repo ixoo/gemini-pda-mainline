@@ -1,0 +1,154 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+readonly SCRIPT_DIR
+DEFAULT_REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd -P)"
+readonly DEFAULT_REPO_DIR
+MANIFEST="${1:-${DEFAULT_REPO_DIR}/kernel/manifest.json}"
+readonly MANIFEST
+REPO_DIR="$(cd "$(dirname "${MANIFEST}")/.." && pwd -P)"
+readonly REPO_DIR
+readonly CANONICAL_REL="patches/series"
+readonly CANONICAL_FILE="${REPO_DIR}/${CANONICAL_REL}"
+
+die() {
+	echo "error: $*" >&2
+	exit 1
+}
+
+require_command() {
+	command -v "$1" >/dev/null 2>&1 || die "required command not found: $1"
+}
+
+validate_relative_path() {
+	local label="$1"
+	local path="$2"
+
+	[[ -n "${path}" && "${path}" != /* && "${path}" != *[[:space:]]* ]] || \
+		die "${label} is unsafe: ${path}"
+	case "/${path}/" in
+		*//*|*/../*|*/./*)
+			die "${label} is unsafe: ${path}"
+			;;
+	esac
+}
+
+validate_series_inventory() {
+	local label="$1"
+	local series_file="$2"
+	local series_dir
+	local line
+	local line_number=0
+	local selected=0
+
+	series_dir="$(dirname "${series_file}")"
+	while IFS= read -r line || [[ -n "${line}" ]]; do
+		line_number=$((line_number + 1))
+		[[ -z "${line}" || "${line}" == \#* ]] && continue
+		validate_relative_path "${label}:${line_number}: patch path" "${line}"
+		[[ -f "${series_dir}/${line}" && ! -L "${series_dir}/${line}" ]] || \
+			die "${label}:${line_number}: patch is missing, not regular, or a symlink: ${line}"
+		selected=$((selected + 1))
+	done < "${series_file}"
+	[[ "${selected}" -gt 0 ]] || die "${label} selects no patches"
+}
+
+validate_subsequence() {
+	local profile="$1"
+	local selected_file="$2"
+
+	awk -v profile="${profile}" '
+		function selected(line) {
+			return line != "" && substr(line, 1, 1) != "#"
+		}
+		FNR == NR {
+			if (!selected($0))
+				next
+			if ($0 in canonical) {
+				printf "error: canonical series has duplicate patch path: %s\n", $0 > "/dev/stderr"
+				failed = 1
+				next
+			}
+			canonical[$0] = ++canonical_count
+			next
+		}
+		{
+			if (!selected($0))
+				next
+			if ($0 in seen) {
+				printf "error: profile %s series has duplicate patch path: %s\n", profile, $0 > "/dev/stderr"
+				failed = 1
+				next
+			}
+			seen[$0] = 1
+			if (!($0 in canonical)) {
+				printf "error: profile %s selects noncanonical patch: %s\n", profile, $0 > "/dev/stderr"
+				failed = 1
+				next
+			}
+			if (canonical[$0] <= previous) {
+				printf "error: profile %s series is not in canonical order at: %s\n", profile, $0 > "/dev/stderr"
+				failed = 1
+				next
+			}
+			previous = canonical[$0]
+		}
+		END {
+			exit failed
+		}
+	' "${CANONICAL_FILE}" "${selected_file}" || \
+		die "manifest profile violates the canonical-series invariant: ${profile}"
+}
+
+for command in awk dirname jq; do
+	require_command "${command}"
+done
+
+[[ -f "${MANIFEST}" && ! -L "${MANIFEST}" ]] || \
+	die "manifest is missing, not regular, or a symlink: ${MANIFEST}"
+[[ -f "${CANONICAL_FILE}" && ! -L "${CANONICAL_FILE}" ]] || \
+	die "canonical series is missing, not regular, or a symlink: ${CANONICAL_FILE}"
+
+jq -e '
+	(.patch_series == null or
+		(.patch_series | type == "string" and length > 0)) and
+	(.config | type == "object") and
+	(.config.default_profile | type == "string" and length > 0) and
+	(.config.profiles | type == "object" and length > 0) and
+	(.config.profiles[.config.default_profile] | type == "object") and
+	(.patch_series as $fallback |
+		.config.profiles |
+		all(to_entries[];
+			(.key | test("^[a-z0-9][a-z0-9_-]*$")) and
+			(.value | type == "object") and
+			((.value.patch_series // $fallback) |
+				type == "string" and length > 0)))
+' "${MANIFEST}" >/dev/null || die "manifest profile/series structure is invalid"
+
+validate_series_inventory "canonical series" "${CANONICAL_FILE}"
+
+profile_count=0
+while IFS=$'\t' read -r profile series_rel; do
+	validate_relative_path "patch series for profile ${profile}" "${series_rel}"
+	[[ "${series_rel}" == patches/* && "${series_rel}" != */ ]] || \
+		die "patch series for profile ${profile} must remain below patches/: ${series_rel}"
+	series_file="${REPO_DIR}/${series_rel}"
+	[[ -f "${series_file}" && ! -L "${series_file}" ]] || \
+		die "patch series for profile ${profile} is missing, not regular, or a symlink: ${series_rel}"
+	validate_series_inventory "profile ${profile} series" "${series_file}"
+	validate_subsequence "${profile}" "${series_file}"
+	profile_count=$((profile_count + 1))
+done < <(jq -r '
+	.patch_series as $fallback |
+	.config.profiles |
+	to_entries[] |
+	[.key, (.value.patch_series // $fallback)] |
+	@tsv
+' "${MANIFEST}")
+
+[[ "${profile_count}" -gt 0 ]] || die "manifest contains no selectable profiles"
+printf 'validation=manifest-series-invariant\n'
+printf 'profiles_checked=%s\n' "${profile_count}"
+printf 'canonical_series=%s\n' "${CANONICAL_REL}"

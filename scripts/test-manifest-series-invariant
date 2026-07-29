@@ -1,0 +1,189 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+readonly SCRIPT_DIR
+REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd -P)"
+readonly REPO_DIR
+readonly VALIDATOR="${SCRIPT_DIR}/validate-manifest-series"
+readonly MANIFEST="${REPO_DIR}/kernel/manifest.json"
+readonly GAUSS_PROFILE="observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-observer-initcall-blacklist-dvfsp-handoff-owner-i2c6-consumer-ap-dma-preserve-gauss"
+
+die() {
+	echo "error: $*" >&2
+	exit 1
+}
+
+require_command() {
+	command -v "$1" >/dev/null 2>&1 || die "required command not found: $1"
+}
+
+for command in cp jq mkdir mktemp mv rm; do
+	require_command "${command}"
+done
+
+test_root="$(mktemp -d)"
+readonly test_root
+trap 'rm -rf -- "${test_root}"' EXIT
+
+make_fixture() {
+	local fixture="$1"
+
+	mkdir -p "${fixture}/kernel" "${fixture}/patches/vtest"
+	printf 'patch one\n' > "${fixture}/patches/vtest/0001.patch"
+	printf 'patch two\n' > "${fixture}/patches/vtest/0002.patch"
+	printf 'patch three\n' > "${fixture}/patches/vtest/0003.patch"
+	printf '# canonical\nvtest/0001.patch\nvtest/0002.patch\nvtest/0003.patch\n' \
+		> "${fixture}/patches/series"
+	printf '# subset\nvtest/0001.patch\nvtest/0003.patch\n' \
+		> "${fixture}/patches/series-subset"
+	jq -n '
+		{
+			patch_series: "patches/series",
+			config: {
+				default_profile: "full",
+				profiles: {
+					full: {
+						base: "defconfig",
+						fragments: ["configs/full.fragment"]
+					},
+					subset: {
+						base: "defconfig",
+						patch_series: "patches/series-subset",
+						fragments: ["configs/subset.fragment"]
+					}
+				}
+			}
+		}
+	' > "${fixture}/kernel/manifest.json"
+}
+
+clone_case() {
+	local name="$1"
+	local destination="${test_root}/${name}"
+
+	cp -R "${base_fixture}" "${destination}"
+	printf '%s\n' "${destination}"
+}
+
+replace_json() {
+	local path="$1"
+	shift
+	local temporary="${path}.new"
+
+	jq "$@" "${path}" > "${temporary}"
+	mv "${temporary}" "${path}"
+}
+
+expect_pass() {
+	local label="$1"
+	local fixture="$2"
+	local output
+
+	output="$("${VALIDATOR}" "${fixture}/kernel/manifest.json" 2>&1)" || \
+		die "${label}: validator unexpectedly rejected fixture: ${output}"
+	[[ "${output}" == *"profiles_checked=2"* ]] || \
+		die "${label}: validator did not check both profiles: ${output}"
+	pass_count=$((pass_count + 1))
+}
+
+expect_rejection() {
+	local label="$1"
+	local fixture="$2"
+	local expected="$3"
+	local output
+
+	if output="$("${VALIDATOR}" "${fixture}/kernel/manifest.json" 2>&1)"; then
+		die "${label}: validator unexpectedly accepted mutation"
+	fi
+	[[ "${output}" == *"${expected}"* ]] || \
+		die "${label}: rejection lacked '${expected}': ${output}"
+	rejection_count=$((rejection_count + 1))
+}
+
+base_fixture="${test_root}/base"
+readonly base_fixture
+make_fixture "${base_fixture}"
+pass_count=0
+rejection_count=0
+
+expect_pass canonical-and-subset "${base_fixture}"
+
+case_dir="$(clone_case noncanonical)"
+printf 'patch four\n' > "${case_dir}/patches/vtest/0004.patch"
+printf 'vtest/0001.patch\nvtest/0004.patch\n' \
+	> "${case_dir}/patches/series-subset"
+expect_rejection noncanonical "${case_dir}" 'selects noncanonical patch'
+
+case_dir="$(clone_case reordered)"
+printf 'vtest/0003.patch\nvtest/0001.patch\n' \
+	> "${case_dir}/patches/series-subset"
+expect_rejection reordered "${case_dir}" 'is not in canonical order'
+
+case_dir="$(clone_case duplicate-selected)"
+printf 'vtest/0001.patch\nvtest/0001.patch\n' \
+	> "${case_dir}/patches/series-subset"
+expect_rejection duplicate-selected "${case_dir}" 'series has duplicate patch path'
+
+case_dir="$(clone_case duplicate-canonical)"
+printf 'vtest/0001.patch\nvtest/0001.patch\nvtest/0003.patch\n' \
+	> "${case_dir}/patches/series"
+expect_rejection duplicate-canonical "${case_dir}" 'canonical series has duplicate patch path'
+
+case_dir="$(clone_case missing-patch)"
+rm -f -- "${case_dir}/patches/vtest/0003.patch"
+expect_rejection missing-patch "${case_dir}" 'patch is missing, not regular, or a symlink'
+
+case_dir="$(clone_case missing-series)"
+replace_json "${case_dir}/kernel/manifest.json" \
+	'.config.profiles.subset.patch_series = "patches/series-missing"'
+expect_rejection missing-series "${case_dir}" 'is missing, not regular, or a symlink'
+
+case_dir="$(clone_case unsafe-series)"
+replace_json "${case_dir}/kernel/manifest.json" \
+	'.config.profiles.subset.patch_series = "patches/../series"'
+expect_rejection unsafe-series "${case_dir}" 'is unsafe'
+
+case_dir="$(clone_case missing-fallback)"
+replace_json "${case_dir}/kernel/manifest.json" 'del(.patch_series)'
+expect_rejection missing-fallback "${case_dir}" 'profile/series structure is invalid'
+
+"${VALIDATOR}" "${MANIFEST}" >/dev/null || \
+	die "repository manifest violates the canonical-series invariant"
+
+jq -e '
+	.config.default_profile == "full" and
+	.config.profiles.full == {
+		base: "defconfig",
+		fragments: ["configs/gemini.fragment"]
+	}
+' "${MANIFEST}" >/dev/null || die "protected default profile changed"
+
+jq -e --arg profile "${GAUSS_PROFILE}" '
+	.config.profiles[$profile] == {
+		base: "defconfig",
+		patch_series: "patches/series-gauss-i2c6-exact-d3",
+		fragments: [
+			"configs/gemini-handoff.fragment",
+			"configs/gemini-usbdiag.fragment",
+			"configs/gemini-clk-ignore-unused.fragment",
+			"configs/gemini-observability.fragment",
+			"configs/gemini-fbcon-rotation.fragment",
+			"configs/gemini-keyboard.fragment",
+			"configs/gemini-keyboard-wrrd.fragment",
+			"configs/gemini-keyboard-manual-reboot.fragment",
+			"configs/gemini-smp8.fragment",
+			"configs/gemini-a72-observer.fragment",
+			"configs/gemini-a72-observer-initcall-blacklist.fragment",
+			"configs/gemini-dvfsp-handoff-owner.fragment",
+			"configs/gemini-dvfsp-i2c6-consumer.fragment",
+			"configs/gemini-i2c6-gauss.fragment"
+		]
+	}
+' "${MANIFEST}" >/dev/null || die "protected Gauss diagnostic profile changed"
+
+printf 'validation=manifest-series-invariant-self-test\n'
+printf 'positive_cases=%s\n' "${pass_count}"
+printf 'mutations_rejected=%s\n' "${rejection_count}"
+printf 'protected_profiles=full,gauss\n'

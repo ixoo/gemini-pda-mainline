@@ -346,8 +346,8 @@ Before committing or pushing any repository change, including documentation:
    diffstat, including newly added files;
 2. run `git diff --cached --check`;
 3. validate every manifest-selected series as a canonical-order subsequence of
-   `patches/series`; use the repository validator after Roadmap gate 0 adds it,
-   and until then repeat the documented ordered comparison;
+   `patches/series` with `./scripts/validate-manifest-series`, then run its
+   focused mutation test with `./scripts/test-manifest-series-invariant`;
 4. run Bash syntax and ShellCheck for every staged shell script, plus the
    applicable Python, C, binding, Device Tree, patch, link, and experiment
    contract checks;

@@ -27,22 +27,22 @@ not be repeated unchanged.
 
 ## Ordered gates
 
-### 0. Repair the profile-series invariant
+### 0. Repair the profile-series invariant — complete
 
-Before adding the new driver profile, repair the manifest debt recorded by the
-[profile-series invariant audit](../experiments/2026-07-28-profile-series-invariant-audit/README.md).
+The manifest debt recorded by the
+[profile-series invariant audit](../experiments/2026-07-28-profile-series-invariant-audit/README.md)
+was repaired on 2026-07-29. The superseded legacy-readonly and active-A72
+profiles are no longer selectable, their historical experiment inputs remain
+available as evidence, and the kernel wrapper now enforces the invariant
+across every manifest profile before selecting one.
 
-- retire the superseded legacy-readonly and active-A72 profile entries, or
-  re-express any still-useful work as new logical canonical patches;
-- do not add the rejected legacy/provider/A72 patches to the default series
-  merely to satisfy the check;
-- add a validator that checks every manifest-selected series is a
-  canonical-order subsequence of `patches/series`; and
-- prove the default and fixed board-contract diagnostic profiles remain
-  unchanged.
+The default and fixed board-contract diagnostic profiles were preserved
+unchanged. Rejected legacy/provider/A72 patches were not added to the canonical
+series. Any useful part of that historical work still requires a new reviewed
+logical patch.
 
-Exit: every selectable manifest profile satisfies the canonical-subsequence
-policy and the invariant is enforced automatically.
+Exit met: every selectable manifest profile satisfies the
+canonical-subsequence policy and the invariant is enforced automatically.
 
 ### 1. Specify the legacy-family driver
 

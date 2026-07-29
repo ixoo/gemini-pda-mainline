@@ -7,6 +7,7 @@ readonly SCRIPT_DIR
 REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd -P)"
 readonly REPO_DIR
 readonly MANIFEST="${REPO_DIR}/kernel/manifest.json"
+readonly MANIFEST_SERIES_VALIDATOR="${SCRIPT_DIR}/validate-manifest-series"
 
 die() {
   echo "error: $*" >&2
@@ -25,6 +26,10 @@ require_linux() {
 manifest_value() {
   jq -er "$1" "${MANIFEST}"
 }
+
+[[ -x "${MANIFEST_SERIES_VALIDATOR}" ]] || \
+  die "manifest-series validator is missing or not executable: ${MANIFEST_SERIES_VALIDATOR}"
+"${MANIFEST_SERIES_VALIDATOR}" "${MANIFEST}" >/dev/null
 
 VERSION="$(manifest_value '.kernel.version')"
 readonly VERSION

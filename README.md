@@ -51,10 +51,10 @@ identify one unique DA921x model, prove a register-data write, register a
 regulator provider, establish rail ownership, or enable either Cortex-A72.
 Logical CPUs 8 and 9 remain offline by design.
 
-The immediate task is repository and zero-write driver work, not another ad
-hoc A72 boot. The exact sequence and exit criteria—from repairing the
-profile-series invariant through isolated probe/bind/unbind and provider
-safety—are maintained in the [roadmap](docs/ROADMAP.md#ordered-gates).
+The profile-series invariant is repaired. The immediate task is the zero-write
+legacy-family driver and binding contract, not another ad hoc A72 boot. The
+exact sequence and exit criteria through isolated probe/bind/unbind and
+provider safety are maintained in the [roadmap](docs/ROADMAP.md#ordered-gates).
 
 See:
 

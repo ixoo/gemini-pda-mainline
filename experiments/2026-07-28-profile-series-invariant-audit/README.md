@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-28-profile-series-invariant-audit` |
-| Status | `completed; violation confirmed; remediation pending` |
+| Status | `completed; violation confirmed; remediated 2026-07-29` |
 | Subsystem | Repository patch/profile reproducibility |
 | Device variant | Not applicable; repository-only audit |
 | Date(s) | 2026-07-28 |
@@ -34,9 +34,10 @@ device, select a boot path, or write hardware. The resulting invalid-profile
 classification must prevent selection; it does not authorize deleting
 historical files or adding rejected patches to the canonical series.
 
-## Associated code
+## Audit method
 
-No persistent script was added. The audit used:
+No persistent script existed when the violation was discovered. The audit
+used:
 
 ```sh
 jq -r '.config.profiles | to_entries[] |
@@ -94,9 +95,10 @@ Nova, and Pioneer series retain that noncanonical base and extend it through
 0111, 0112, and 0113 respectively.
 
 The manifest default and the fixed board-contract diagnostic selection passed
-the manual canonical-subsequence comparison. The current build wrapper checks
-that a selected series and its patch files exist and apply, but does not
-enforce the whole-manifest canonical-subsequence invariant.
+the manual canonical-subsequence comparison. At the audited revision, the
+build wrapper checked that a selected series and its patch files existed and
+applied, but did not enforce the whole-manifest canonical-subsequence
+invariant.
 
 ## Analysis
 
@@ -113,10 +115,20 @@ Useful changes, if any, need new logical canonical patches after review.
 
 `confirmed` for one repository-policy violation affecting five manifest
 entries and four historical series at the audited worktree state. The default
-and fixed board-contract diagnostic paths are not affected by those four
-series. Automatic enforcement is missing.
+and fixed board-contract diagnostic paths were not affected by those four
+series.
 
-## Follow-up
+## Remediation
 
-The authoritative remediation order and exit criteria are in
-[Roadmap gate 0](../../docs/ROADMAP.md#0-repair-the-profile-series-invariant).
+On 2026-07-29 the five rejected profiles were removed from the manifest
+without deleting their historical series, fragments, patches, or experiment
+records. The rejected patches were not added to `patches/series`.
+
+`scripts/validate-manifest-series` now checks every effective profile series
+against the canonical series before `scripts/kernel` selects a profile. Its
+focused self-test rejects noncanonical, reordered, duplicated, missing, and
+unsafe inputs and pins the unchanged default and Gauss board-contract profile
+definitions.
+
+[Roadmap gate 0](../../docs/ROADMAP.md#0-repair-the-profile-series-invariant)
+records the completed gate and the next ordered work.
