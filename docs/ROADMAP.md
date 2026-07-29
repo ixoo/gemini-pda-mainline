@@ -120,9 +120,13 @@ Decision:
 This boot also provides independent-boot repeatability of the tuple without
 repeating the completed diagnostic.
 
-Immediate next step: investigate the pre-serviceability regression offline and
-define a durable independent observation path or justified candidate delta
-before another hardware boot. Provider work remains blocked.
+The next diagnostic preserves the exact Gate 3 kernel, oracle, initramfs, and
+I2C6 controller description while disabling only the new DA921x DT child. It
+has reproduced byte-for-byte, was installed with a matching full readback, and
+the device was shut down cleanly. Immediate next step: the owner selects
+`boot2` once and reports whether serviceability returns or the
+pre-serviceability watchdog-class failure repeats. Provider work remains
+blocked.
 
 ### 4. Finish the ownership and rollback audit
 

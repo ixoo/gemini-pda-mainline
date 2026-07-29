@@ -1,0 +1,16 @@
+experiment=2026-07-29-da921x-probe-isolation
+roadmap_gate=3-serviceability-regression
+hypothesis=automatic-da921x-child-probe-caused-the-gate3-pre-serviceability-failure
+exact_inherited_kernel=gate3-image-gz
+exact_inherited_config=gate3-kernel-config
+exact_inherited_initramfs=gate3-serviceability-initramfs
+exact_inherited_i2c6_controller=gate3
+exact_inherited_oracle=gate3-read-only-lifecycle-oracle
+sole_semantic_delta=/i2c@1100e000/regulator@68-status-disabled
+automatic_da921x_probe=prevented
+register_data_writes=0
+provider=absent
+a72_request=absent
+serviceable_result=implicate-automatic-child-probe-timing
+pre_serviceability_failure=move-suspicion-to-preserved-kernel-oracle-container-boundary
+unchanged_repeat=forbidden
