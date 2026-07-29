@@ -30,6 +30,17 @@ Do not copy proprietary documents or source code into this repository. Record fa
 - Preserve negative and inconclusive results; distinguish direct observation
   from inference and secondary reports.
 
+Keep the ownership boundaries stable:
+
+- experiment records own exact chronology, build identities, audit counts,
+  rejected branches, and raw sanitized evidence;
+- hardware documents own durable facts and unresolved contradictions;
+- the support matrix owns concise current runtime claims; and
+- the roadmap alone owns ordered implementation steps and exit criteria.
+
+Use links instead of duplicating a point-in-time experiment snapshot or a
+roadmap checklist in another long-lived document.
+
 ### Kernel and Device Tree work
 
 The normal lifecycle is:
@@ -54,6 +65,11 @@ Signed-off-by: Your Name <you@example.com>
 ```
 
 Use `git commit -s` only when you can truthfully make the certification described at <https://developercertificate.org/>.
+Never substitute a project persona, placeholder address, or generated identity
+for the actual author or certifying contributor of an upstream submission.
+An internal experiment archive may use a clearly synthetic, non-certifying
+`From:` identity only when it carries no synthetic sign-off and is explicitly
+not submission-ready.
 
 ### Tooling and reproducibility
 
@@ -78,6 +94,22 @@ A hardware result should include:
 - regression result for already-supported subsystems.
 
 Use `Tested-by` only for the exact revision tested.
+
+## Pre-publication gate
+
+Before committing or pushing:
+
+- stage the intended scope, inspect every staged path, and run
+  `git diff --cached --check`;
+- include newly added files in Bash, ShellCheck, Python, C, Markdown-link,
+  license, and sensitive-data checks as applicable;
+- verify every manifest-selected patch series against the canonical order in
+  `patches/series`, and introduce no new invalid profile;
+- remove credentials, proprietary inputs, raw artifacts, personal or
+  unit-unique device identifiers, and personal absolute host paths from staged
+  text; and
+- confirm that generated packages, partition captures, firmware, and everything
+  below the ignored `artifacts/` tree remain outside Git.
 
 ## Pull requests
 

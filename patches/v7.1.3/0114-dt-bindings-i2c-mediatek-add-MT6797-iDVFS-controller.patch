@@ -1,0 +1,43 @@
+From f50610ea2055e64e1d0fed318f27b49db9d09310 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 27 Jul 2026 14:40:51 -0400
+Subject: [PATCH 114/117] dt-bindings: i2c: mediatek: add MT6797 iDVFS
+ controller
+
+The MT6797 I2C6 application-processor/iDVFS instance encodes combined
+write/read lengths differently from the ordinary controllers. Give that
+hardware contract a standalone compatible so older kernels fail closed
+instead of binding it through an incompatible fallback.
+
+Permit the existing access-controller dependency for either the ordinary
+MT6797 compatible or this dedicated iDVFS compatible.
+
+---
+ Documentation/devicetree/bindings/i2c/i2c-mt65xx.yaml | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/Documentation/devicetree/bindings/i2c/i2c-mt65xx.yaml b/Documentation/devicetree/bindings/i2c/i2c-mt65xx.yaml
+index 06c995e..5204aef 100644
+--- a/Documentation/devicetree/bindings/i2c/i2c-mt65xx.yaml
++++ b/Documentation/devicetree/bindings/i2c/i2c-mt65xx.yaml
+@@ -16,7 +16,9 @@ allOf:
+       properties:
+         compatible:
+           contains:
+-            const: mediatek,mt6797-i2c
++            enum:
++              - mediatek,mt6797-i2c
++              - mediatek,mt6797-idvfs-i2c
+     then:
+       properties:
+         access-controllers:
+@@ -54,6 +56,7 @@ properties:
+               - mediatek,mt6797-i2c
+               - mediatek,mt7623-i2c
+           - const: mediatek,mt6577-i2c
++      - const: mediatek,mt6797-idvfs-i2c
+       - items:
+           - enum:
+               - mediatek,mt8365-i2c
+-- 
+2.50.1 (Apple Git-155)

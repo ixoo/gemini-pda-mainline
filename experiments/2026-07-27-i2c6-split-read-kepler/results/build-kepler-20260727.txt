@@ -1,0 +1,96 @@
+Candidate Kepler helper build and offline ioctl contract
+========================================================
+
+status=offline-build-and-contract-passed-hardware-not-accessed
+date=2026-07-27
+device_access=none
+device_write=none
+network_connection=none
+recovery_vm=gemini-pda-dev
+recovery_vm_arch=aarch64
+compiler=gcc-13.3.0
+
+Exact identities
+----------------
+
+source=initramfs/kepler-probe.c
+source_sha256=1ff0c574ee8e02290a6f53234d2f22652ce25c385b31442e8ff2411d094e0765
+binary_sha256=3afdaeea3f913706a0ee3f44732c37b6c0fced01f940f6d68a8356dfad946fa7
+binary_size=537584
+binary_format=elf64-little-endian-aarch64-static-fixed-address
+binary_interpreter=absent
+host_export=artifacts/vm-export-kepler-20260727/kepler-calibrated-20260727/a/kepler-probe
+
+Deterministic builds
+--------------------
+
+guest_build_a=~/artifacts/kepler-calibrated-20260727/a/kepler-probe
+guest_build_b=~/artifacts/kepler-calibrated-20260727/b/kepler-probe
+guest_build_a_sha256=3afdaeea3f913706a0ee3f44732c37b6c0fced01f940f6d68a8356dfad946fa7
+guest_build_b_sha256=3afdaeea3f913706a0ee3f44732c37b6c0fced01f940f6d68a8356dfad946fa7
+guest_build_a_size=537584
+guest_build_b_size=537584
+byte_comparison=identical
+calibrated_validator_a=passed
+calibrated_validator_b=passed-via-build
+exported_binary_sha256=3afdaeea3f913706a0ee3f44732c37b6c0fced01f940f6d68a8356dfad946fa7
+exported_binary_size=537584
+
+Static helper contract
+----------------------
+
+arguments=none
+i2c_of_suffix=/i2c@1100e000
+i2c_adapter_matches=exactly-one
+i2c_address=0x69
+register_pointer=0x05
+pairs=2
+ioctl_calls_on-complete-path=4
+messages_per_ioctl=1
+message_length=1
+call_order=tx-05,rx-prefill-a5,tx-05,rx-prefill-5a
+required_ioctl_result=1
+retry=none
+delay=none
+scan=none
+stop_between_pointer_and_read=yes
+stdout_lines_on-complete-path=6
+success_exit_class=split-stable-d9-only
+
+Offline intercepted-ioctl validation
+------------------------------------
+
+harness=scripts/test-kepler-ioctl.c
+harness_sha256=2dab452d3dee00c2a535cf9799303b463afe47a069ae56bb1d2dc887455a12a0
+harness_arch=aarch64
+harness_cases=9
+complete_classes=split-all-equal-pre,split-mixed-equal-pre,split-stable-d9,split-stable-other,split-unstable
+fail_boundaries=tx-first,rx-first,tx-second,rx-second
+successful_path_ioctl_calls=4
+each_ioctl_nmsgs=1
+pointer_and_prefill_order=passed
+result=passed
+
+Forbidden scope
+---------------
+
+persistent_storage=none
+partition_or_slot=none
+watchdog=none
+reboot_shutdown_poweroff=none
+cpu_control=none
+regulator_control=none
+page_con=none
+dev_mem=none
+subprocess=none
+other_i2c_address=none
+other_register=none
+
+Interpretation
+--------------
+
+This is build and offline contract evidence only. It establishes neither I2C6
+receive behavior nor a DA9214 register value. The pointer write creates a STOP
+before the separate read, so a future stable result isolates the combined
+WRRD/repeated-start boundary but cannot by itself distinguish its controller
+and device-protocol halves.

@@ -1,0 +1,642 @@
+From 4938c640bea11c6113589dabc32acb61a01e9823 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 27 Jul 2026 14:50:29 -0400
+Subject: [PATCH 117/117] i2c: mediatek: add fixed Orion I2C6 diagnostic
+
+Add an experiment-only, root-only debugfs command for the exact
+access-controlled MT6797 iDVFS instance. The one-shot command accepts
+only a fixed token and performs nine fixed pointer-only reads at address
+0x69.
+
+Run packed-length FIFO first, then packed-length DMA and auxiliary-length
+DMA. Serialize the run with the root-adapter lock, require a childless
+and otherwise unused adapter, and reset both the controller and APDMA
+before each mode.
+
+Temporarily disable adapter retries while the bus is locked so each
+sample represents exactly one physical transfer. Record the value before
+and during the run, restore it on every transfer exit, and record the
+restored value.
+
+Stop at the first transport error. Retain bounded controller and I2C6
+APDMA-channel state without exposing DMA addresses or arbitrary bus
+controls.
+
+---
+ drivers/i2c/busses/Kconfig      |  12 +
+ drivers/i2c/busses/i2c-mt65xx.c | 479 ++++++++++++++++++++++++++++++++
+ 2 files changed, 491 insertions(+)
+
+diff --git a/drivers/i2c/busses/Kconfig b/drivers/i2c/busses/Kconfig
+index 8c935f8..6ab257c 100644
+--- a/drivers/i2c/busses/Kconfig
++++ b/drivers/i2c/busses/Kconfig
+@@ -904,6 +904,18 @@ config I2C_MT65XX
+ 	  If you want to use MediaTek(R) I2C interface, say Y or M here.
+ 	  If unsure, say N.
+ 
++config I2C_MT65XX_ORION_DIAGNOSTIC
++	bool "MT6797 I2C6 fixed Orion diagnostic"
++	depends on I2C_MT65XX=y && DEBUG_FS
++	help
++	  Enable the experiment-only, one-shot Orion diagnostic for the
++	  access-controlled MT6797 iDVFS I2C instance. The root-only debugfs
++	  file accepts exactly "run" followed by a newline and performs a
++	  fixed sequence of pointer-only reads from address 0x69. It exposes
++	  no arbitrary address, register, data, length, or mode control.
++
++	  Say N outside the named Gemini Orion experiment.
++
+ config I2C_MT7621
+ 	tristate "MT7621/MT7628 I2C Controller"
+ 	depends on (RALINK && (SOC_MT7620 || SOC_MT7621)) || ARCH_AIROHA || COMPILE_TEST
+diff --git a/drivers/i2c/busses/i2c-mt65xx.c b/drivers/i2c/busses/i2c-mt65xx.c
+index 0c3f93e..a0fb138 100644
+--- a/drivers/i2c/busses/i2c-mt65xx.c
++++ b/drivers/i2c/busses/i2c-mt65xx.c
+@@ -8,6 +8,7 @@
+ #include <linux/clk.h>
+ #include <linux/completion.h>
+ #include <linux/delay.h>
++#include <linux/debugfs.h>
+ #include <linux/device.h>
+ #include <linux/dma-mapping.h>
+ #include <linux/err.h>
+@@ -20,6 +21,7 @@
+ #include <linux/kernel.h>
+ #include <linux/mm.h>
+ #include <linux/module.h>
++#include <linux/mutex.h>
+ #include <linux/of.h>
+ #include <linux/platform_device.h>
+ #include <linux/pm.h>
+@@ -29,6 +31,7 @@
+ #include <linux/slab.h>
+ #include <linux/soc/mediatek/mt6797-dvfsp-handoff.h>
+ #include <linux/units.h>
++#include <linux/uaccess.h>
+ 
+ #define I2C_RS_TRANSFER			(1 << 4)
+ #define I2C_ARB_LOST			(1 << 3)
+@@ -144,6 +147,68 @@ enum mtk_i2c_wrrd_len_mode {
+ 	MTK_I2C_WRRD_LEN_PACKED_8_5,
+ };
+ 
++#ifdef CONFIG_I2C_MT65XX_ORION_DIAGNOSTIC
++#define MTK_I2C_ORION_MODE_COUNT	3
++#define MTK_I2C_ORION_REGISTER_COUNT	3
++#define MTK_I2C_ORION_SAMPLE_COUNT	\
++	(MTK_I2C_ORION_MODE_COUNT * MTK_I2C_ORION_REGISTER_COUNT)
++
++enum mtk_i2c_orion_mode {
++	MTK_I2C_ORION_MODE_NONE,
++	MTK_I2C_ORION_MODE_AUX_DMA,
++	MTK_I2C_ORION_MODE_PACKED_DMA,
++	MTK_I2C_ORION_MODE_PACKED_FIFO,
++};
++
++enum mtk_i2c_orion_state {
++	MTK_I2C_ORION_READY,
++	MTK_I2C_ORION_RUNNING,
++	MTK_I2C_ORION_DONE,
++};
++
++struct mtk_i2c_orion_sample {
++	enum mtk_i2c_orion_mode mode;
++	u8 reg;
++	u8 prefill;
++	u8 value;
++	int ret;
++	bool use_dma;
++	u16 transfer_len;
++	u16 transfer_len_aux;
++	u16 transac_len;
++	u16 control;
++	u16 irq_stat;
++	u16 fifo_count;
++	u32 dma_en_pre;
++	u32 dma_con_pre;
++	u32 dma_int_flag_pre;
++	u32 dma_tx_len_pre;
++	u32 dma_rx_len_pre;
++	u32 dma_en_irq;
++	u32 dma_int_flag_irq;
++	u32 dma_en_post;
++	u32 dma_con_post;
++	u32 dma_int_flag_post;
++	u32 dma_tx_len_post;
++	u32 dma_rx_len_post;
++};
++
++struct mtk_i2c_orion_diag {
++	struct mutex lock; /* Serializes one-shot state and result reads. */
++	struct mtk_i2c_orion_sample samples[MTK_I2C_ORION_SAMPLE_COUNT];
++	struct mtk_i2c_orion_sample *active_sample;
++	enum mtk_i2c_orion_state state;
++	enum mtk_i2c_orion_mode mode;
++	bool reset_pending;
++	int run_error;
++	unsigned int attempted;
++	unsigned int completed;
++	unsigned int retries_before;
++	unsigned int retries_during;
++	unsigned int retries_after;
++};
++#endif
++
+ enum I2C_REGS_OFFSET {
+ 	OFFSET_DATA_PORT,
+ 	OFFSET_SLAVE_ADDR,
+@@ -336,6 +401,9 @@ struct mtk_i2c {
+ 	bool ignore_restart_irq;
+ 	struct mtk_i2c_ac_timing ac_timing;
+ 	const struct mtk_i2c_compatible *dev_comp;
++#ifdef CONFIG_I2C_MT65XX_ORION_DIAGNOSTIC
++	struct mtk_i2c_orion_diag orion;
++#endif
+ };
+ 
+ static atomic_t mtk_i2c_handoff_probe_attempts = ATOMIC_INIT(0);
+@@ -1058,6 +1126,14 @@ static void i2c_dump_register(struct mtk_i2c *i2c)
+ static enum mtk_i2c_wrrd_len_mode
+ mtk_i2c_get_wrrd_len_mode(struct mtk_i2c *i2c)
+ {
++#ifdef CONFIG_I2C_MT65XX_ORION_DIAGNOSTIC
++	if (i2c->orion.mode == MTK_I2C_ORION_MODE_AUX_DMA)
++		return MTK_I2C_WRRD_LEN_AUX;
++	if (i2c->orion.mode == MTK_I2C_ORION_MODE_PACKED_DMA ||
++	    i2c->orion.mode == MTK_I2C_ORION_MODE_PACKED_FIFO)
++		return MTK_I2C_WRRD_LEN_PACKED_8_5;
++#endif
++
+ 	return i2c->dev_comp->wrrd_len_mode;
+ }
+ 
+@@ -1096,6 +1172,14 @@ static int mtk_i2c_program_wrrd_len(struct mtk_i2c *i2c,
+ static bool mtk_i2c_should_use_dma(struct mtk_i2c *i2c,
+ 				   const struct i2c_msg *msgs)
+ {
++#ifdef CONFIG_I2C_MT65XX_ORION_DIAGNOSTIC
++	if (i2c->orion.mode == MTK_I2C_ORION_MODE_AUX_DMA ||
++	    i2c->orion.mode == MTK_I2C_ORION_MODE_PACKED_DMA)
++		return true;
++	if (i2c->orion.mode == MTK_I2C_ORION_MODE_PACKED_FIFO)
++		return false;
++#endif
++
+ 	if (!i2c->dev_comp->fifo_size ||
+ 	    msgs->len > i2c->dev_comp->fifo_size)
+ 		return true;
+@@ -1104,6 +1188,87 @@ static bool mtk_i2c_should_use_dma(struct mtk_i2c *i2c,
+ 	       (msgs + 1)->len > i2c->dev_comp->fifo_size;
+ }
+ 
++#ifdef CONFIG_I2C_MT65XX_ORION_DIAGNOSTIC
++static void mtk_i2c_orion_record_programmed(struct mtk_i2c *i2c,
++					    bool use_dma)
++{
++	struct mtk_i2c_orion_sample *sample =
++		READ_ONCE(i2c->orion.active_sample);
++
++	if (!sample)
++		return;
++
++	sample->use_dma = use_dma;
++	sample->transfer_len = mtk_i2c_readw(i2c, OFFSET_TRANSFER_LEN);
++	sample->transfer_len_aux =
++		mtk_i2c_readw(i2c, OFFSET_TRANSFER_LEN_AUX);
++	sample->transac_len = mtk_i2c_readw(i2c, OFFSET_TRANSAC_LEN);
++	sample->control = mtk_i2c_readw(i2c, OFFSET_CONTROL);
++	sample->dma_en_pre = readl(i2c->pdmabase + OFFSET_EN);
++	sample->dma_con_pre = readl(i2c->pdmabase + OFFSET_CON);
++	sample->dma_int_flag_pre =
++		readl(i2c->pdmabase + OFFSET_INT_FLAG);
++	sample->dma_tx_len_pre = readl(i2c->pdmabase + OFFSET_TX_LEN);
++	sample->dma_rx_len_pre = readl(i2c->pdmabase + OFFSET_RX_LEN);
++}
++
++static void mtk_i2c_orion_record_irq(struct mtk_i2c *i2c, u16 irq_stat)
++{
++	struct mtk_i2c_orion_sample *sample =
++		READ_ONCE(i2c->orion.active_sample);
++
++	if (!sample)
++		return;
++
++	sample->irq_stat |= irq_stat;
++	sample->dma_en_irq = readl(i2c->pdmabase + OFFSET_EN);
++	sample->dma_int_flag_irq =
++		readl(i2c->pdmabase + OFFSET_INT_FLAG);
++}
++
++static void mtk_i2c_orion_record_post(struct mtk_i2c *i2c)
++{
++	struct mtk_i2c_orion_sample *sample =
++		READ_ONCE(i2c->orion.active_sample);
++
++	if (!sample)
++		return;
++
++	sample->dma_en_post = readl(i2c->pdmabase + OFFSET_EN);
++	sample->dma_con_post = readl(i2c->pdmabase + OFFSET_CON);
++	sample->dma_int_flag_post =
++		readl(i2c->pdmabase + OFFSET_INT_FLAG);
++	sample->dma_tx_len_post = readl(i2c->pdmabase + OFFSET_TX_LEN);
++	sample->dma_rx_len_post = readl(i2c->pdmabase + OFFSET_RX_LEN);
++}
++
++static void mtk_i2c_orion_record_fifo(struct mtk_i2c *i2c, u16 fifo_count)
++{
++	struct mtk_i2c_orion_sample *sample =
++		READ_ONCE(i2c->orion.active_sample);
++
++	if (sample)
++		sample->fifo_count = fifo_count;
++}
++#else
++static void mtk_i2c_orion_record_programmed(struct mtk_i2c *i2c,
++					    bool use_dma)
++{
++}
++
++static void mtk_i2c_orion_record_irq(struct mtk_i2c *i2c, u16 irq_stat)
++{
++}
++
++static void mtk_i2c_orion_record_post(struct mtk_i2c *i2c)
++{
++}
++
++static void mtk_i2c_orion_record_fifo(struct mtk_i2c *i2c, u16 fifo_count)
++{
++}
++#endif
++
+ static void mtk_i2c_prepare_pio(struct mtk_i2c *i2c,
+ 				const struct i2c_msg *msgs)
+ {
+@@ -1130,6 +1295,7 @@ static int mtk_i2c_complete_pio(struct mtk_i2c *i2c,
+ 	rx_msg = i2c->op == I2C_MASTER_WRRD ? msgs + 1 : msgs;
+ 	fifo_count = (mtk_i2c_readw(i2c, OFFSET_FIFO_STAT) &
+ 		      I2C_FIFO_RX_COUNT_MASK) >> I2C_FIFO_RX_COUNT_SHIFT;
++	mtk_i2c_orion_record_fifo(i2c, fifo_count);
+ 	if (fifo_count != rx_msg->len) {
+ 		dev_err(i2c->dev,
+ 			"FIFO count %u does not match receive length %u\n",
+@@ -1336,6 +1502,7 @@ static int mtk_i2c_do_transfer(struct mtk_i2c *i2c, struct i2c_msg *msgs,
+ 		writel((msgs + 1)->len, i2c->pdmabase + OFFSET_RX_LEN);
+ 	}
+ 
++	mtk_i2c_orion_record_programmed(i2c, use_dma);
+ 	if (use_dma) {
+ 		if (i2c->dvfsp_handoff)
+ 			atomic_inc(&i2c->dma_start_count);
+@@ -1355,6 +1522,7 @@ static int mtk_i2c_do_transfer(struct mtk_i2c *i2c, struct i2c_msg *msgs,
+ 
+ 	ret = wait_for_completion_timeout(&i2c->msg_complete,
+ 					  i2c->adap.timeout);
++	mtk_i2c_orion_record_post(i2c);
+ 
+ 	/* Clear interrupt mask */
+ 	mtk_i2c_writew(i2c, ~(restart_flag | I2C_HS_NACKERR | I2C_ACKERR |
+@@ -1445,6 +1613,13 @@ static int mtk_i2c_transfer(struct i2c_adapter *adap,
+ 	if (ret)
+ 		goto err_regulator;
+ 
++#ifdef CONFIG_I2C_MT65XX_ORION_DIAGNOSTIC
++	if (i2c->orion.reset_pending) {
++		mtk_i2c_init_hw(i2c);
++		i2c->orion.reset_pending = false;
++	}
++#endif
++
+ 	i2c->auto_restart = i2c->dev_comp->auto_restart;
+ 
+ 	/* checking if we can skip restart and optimize using WRRD mode */
+@@ -1515,6 +1690,7 @@ static irqreturn_t mtk_i2c_irq(int irqno, void *dev_id)
+ 		atomic_inc(&i2c->irq_count);
+ 
+ 	intr_stat = mtk_i2c_readw(i2c, OFFSET_INTR_STAT);
++	mtk_i2c_orion_record_irq(i2c, intr_stat);
+ 	mtk_i2c_writew(i2c, intr_stat, OFFSET_INTR_STAT);
+ 
+ 	/*
+@@ -1621,6 +1797,305 @@ static const struct attribute_group mtk_i2c_handoff_group = {
+ 	.attrs = mtk_i2c_handoff_attrs,
+ };
+ 
++#ifdef CONFIG_I2C_MT65XX_ORION_DIAGNOSTIC
++#define MTK_I2C_ORION_RESULT_SIZE	8192
++
++static const u8 mtk_i2c_orion_registers[MTK_I2C_ORION_REGISTER_COUNT] = {
++	0x05, 0x06, 0x47,
++};
++
++static const u8 mtk_i2c_orion_prefills[MTK_I2C_ORION_REGISTER_COUNT] = {
++	0xa5, 0x5a, 0x3c,
++};
++
++static const enum mtk_i2c_orion_mode
++mtk_i2c_orion_modes[MTK_I2C_ORION_MODE_COUNT] = {
++	MTK_I2C_ORION_MODE_PACKED_FIFO,
++	MTK_I2C_ORION_MODE_PACKED_DMA,
++	MTK_I2C_ORION_MODE_AUX_DMA,
++};
++
++static const char *mtk_i2c_orion_mode_name(enum mtk_i2c_orion_mode mode)
++{
++	switch (mode) {
++	case MTK_I2C_ORION_MODE_AUX_DMA:
++		return "aux-dma";
++	case MTK_I2C_ORION_MODE_PACKED_DMA:
++		return "packed-dma";
++	case MTK_I2C_ORION_MODE_PACKED_FIFO:
++		return "packed-fifo";
++	default:
++		return "none";
++	}
++}
++
++static const char *mtk_i2c_orion_state_name(enum mtk_i2c_orion_state state)
++{
++	switch (state) {
++	case MTK_I2C_ORION_READY:
++		return "ready";
++	case MTK_I2C_ORION_RUNNING:
++		return "running";
++	case MTK_I2C_ORION_DONE:
++		return "done";
++	default:
++		return "invalid";
++	}
++}
++
++static int mtk_i2c_orion_child_present(struct device *dev, void *data)
++{
++	return 1;
++}
++
++static int mtk_i2c_orion_run(struct mtk_i2c *i2c)
++{
++	unsigned int mode_index;
++	unsigned int reg_index;
++	int ret = 0;
++
++	i2c_lock_bus(&i2c->adap, I2C_LOCK_ROOT_ADAPTER);
++
++	if (device_for_each_child(&i2c->adap.dev, NULL,
++				  mtk_i2c_orion_child_present)) {
++		ret = -EBUSY;
++		goto out_unlock;
++	}
++
++	if (mt6797_dvfsp_handoff_require_ready(i2c->dvfsp_handoff)) {
++		ret = -EHOSTDOWN;
++		goto out_unlock;
++	}
++
++	if (atomic_read(&i2c->transfer_attempts) ||
++	    atomic_read(&i2c->dma_start_count) ||
++	    atomic_read(&i2c->nonzero_start_count) ||
++	    atomic_read(&i2c->irq_count)) {
++		ret = -EBUSY;
++		goto out_unlock;
++	}
++
++	i2c->orion.retries_before = i2c->adap.retries;
++	i2c->adap.retries = 0;
++	i2c->orion.retries_during = i2c->adap.retries;
++
++	for (mode_index = 0; mode_index < MTK_I2C_ORION_MODE_COUNT;
++	     mode_index++) {
++		i2c->orion.mode = mtk_i2c_orion_modes[mode_index];
++		i2c->orion.reset_pending = true;
++
++		for (reg_index = 0;
++		     reg_index < MTK_I2C_ORION_REGISTER_COUNT;
++		     reg_index++) {
++			struct mtk_i2c_orion_sample *sample;
++			struct i2c_msg msgs[2];
++			u8 pointer = mtk_i2c_orion_registers[reg_index];
++			u8 value = mtk_i2c_orion_prefills[reg_index];
++
++			sample = &i2c->orion.samples[i2c->orion.attempted++];
++			memset(sample, 0, sizeof(*sample));
++			sample->mode = i2c->orion.mode;
++			sample->reg = pointer;
++			sample->prefill = value;
++			sample->value = value;
++			sample->fifo_count = 0xffff;
++
++			msgs[0].addr = 0x69;
++			msgs[0].flags = 0;
++			msgs[0].len = 1;
++			msgs[0].buf = &pointer;
++			msgs[1].addr = 0x69;
++			msgs[1].flags = I2C_M_RD;
++			msgs[1].len = 1;
++			msgs[1].buf = &value;
++
++			WRITE_ONCE(i2c->orion.active_sample, sample);
++			ret = __i2c_transfer(&i2c->adap, msgs, ARRAY_SIZE(msgs));
++			WRITE_ONCE(i2c->orion.active_sample, NULL);
++			sample->ret = ret;
++			sample->value = value;
++			if (ret != 2) {
++				if (ret >= 0)
++					ret = -EIO;
++				goto out_restore_retries;
++			}
++			i2c->orion.completed++;
++		}
++	}
++	ret = 0;
++
++out_restore_retries:
++	i2c->adap.retries = i2c->orion.retries_before;
++	i2c->orion.retries_after = i2c->adap.retries;
++out_unlock:
++	WRITE_ONCE(i2c->orion.active_sample, NULL);
++	i2c->orion.mode = MTK_I2C_ORION_MODE_NONE;
++	i2c->orion.reset_pending = false;
++	i2c_unlock_bus(&i2c->adap, I2C_LOCK_ROOT_ADAPTER);
++
++	return ret;
++}
++
++static ssize_t mtk_i2c_orion_read(struct file *file, char __user *user_buf,
++				  size_t count, loff_t *ppos)
++{
++	struct mtk_i2c *i2c = file->private_data;
++	char *buf;
++	unsigned int i;
++	int len = 0;
++	ssize_t ret;
++
++	buf = kzalloc(MTK_I2C_ORION_RESULT_SIZE, GFP_KERNEL);
++	if (!buf)
++		return -ENOMEM;
++
++	mutex_lock(&i2c->orion.lock);
++	len += scnprintf(buf + len, MTK_I2C_ORION_RESULT_SIZE - len,
++		"candidate=Orion state=%s one_shot=%s run_error=%d ",
++		mtk_i2c_orion_state_name(i2c->orion.state),
++		i2c->orion.state == MTK_I2C_ORION_READY ? "unused" : "consumed",
++		i2c->orion.run_error);
++	len += scnprintf(buf + len, MTK_I2C_ORION_RESULT_SIZE - len,
++		"attempted=%u completed=%u address=0x69 ",
++		i2c->orion.attempted, i2c->orion.completed);
++	len += scnprintf(buf + len, MTK_I2C_ORION_RESULT_SIZE - len,
++		"transfer_attempts=%d dma_starts=%d nonzero_starts=%d irqs=%d ",
++		atomic_read(&i2c->transfer_attempts),
++		atomic_read(&i2c->dma_start_count),
++		atomic_read(&i2c->nonzero_start_count),
++		atomic_read(&i2c->irq_count));
++	len += scnprintf(buf + len, MTK_I2C_ORION_RESULT_SIZE - len,
++		"retries_before=%u retries_during=%u retries_after=%u ",
++		i2c->orion.retries_before,
++		i2c->orion.retries_during, i2c->orion.retries_after);
++	len += scnprintf(buf + len, MTK_I2C_ORION_RESULT_SIZE - len,
++		"registers=05,06,47 modes=packed-fifo,packed-dma,aux-dma\n");
++
++	for (i = 0; i < i2c->orion.attempted; i++) {
++		const struct mtk_i2c_orion_sample *sample =
++			&i2c->orion.samples[i];
++
++		len += scnprintf(buf + len,
++			MTK_I2C_ORION_RESULT_SIZE - len,
++			"sample=%u mode=%s register=%02x pre=%02x post=%02x ",
++			i, mtk_i2c_orion_mode_name(sample->mode),
++			sample->reg, sample->prefill, sample->value);
++		len += scnprintf(buf + len,
++			MTK_I2C_ORION_RESULT_SIZE - len,
++			"ret=%d engine=%s transfer_len=%04x transfer_len_aux=%04x ",
++			sample->ret, sample->use_dma ? "dma" : "fifo",
++			sample->transfer_len, sample->transfer_len_aux);
++		len += scnprintf(buf + len,
++			MTK_I2C_ORION_RESULT_SIZE - len,
++			"transac_len=%04x control=%04x irq_stat=%04x fifo_count=%u ",
++			sample->transac_len, sample->control,
++			sample->irq_stat, sample->fifo_count);
++		len += scnprintf(buf + len,
++			MTK_I2C_ORION_RESULT_SIZE - len,
++			"dma_en_pre=%08x dma_con_pre=%08x dma_int_flag_pre=%08x ",
++			sample->dma_en_pre, sample->dma_con_pre,
++			sample->dma_int_flag_pre);
++		len += scnprintf(buf + len,
++			MTK_I2C_ORION_RESULT_SIZE - len,
++			"dma_tx_len_pre=%08x dma_rx_len_pre=%08x dma_en_irq=%08x ",
++			sample->dma_tx_len_pre, sample->dma_rx_len_pre,
++			sample->dma_en_irq);
++		len += scnprintf(buf + len,
++			MTK_I2C_ORION_RESULT_SIZE - len,
++			"dma_int_flag_irq=%08x dma_en_post=%08x dma_con_post=%08x ",
++			sample->dma_int_flag_irq, sample->dma_en_post,
++			sample->dma_con_post);
++		len += scnprintf(buf + len,
++			MTK_I2C_ORION_RESULT_SIZE - len,
++			"dma_int_flag_post=%08x dma_tx_len_post=%08x dma_rx_len_post=%08x\n",
++			sample->dma_int_flag_post,
++			sample->dma_tx_len_post, sample->dma_rx_len_post);
++	}
++	mutex_unlock(&i2c->orion.lock);
++
++	ret = simple_read_from_buffer(user_buf, count, ppos, buf, len);
++	kfree(buf);
++
++	return ret;
++}
++
++static ssize_t mtk_i2c_orion_write(struct file *file,
++				   const char __user *user_buf,
++				   size_t count, loff_t *ppos)
++{
++	struct mtk_i2c *i2c = file->private_data;
++	char command[4];
++	int ret;
++
++	if (*ppos || count != sizeof(command))
++		return -EINVAL;
++	if (copy_from_user(command, user_buf, sizeof(command)))
++		return -EFAULT;
++	if (memcmp(command, "run\n", sizeof(command)))
++		return -EINVAL;
++
++	mutex_lock(&i2c->orion.lock);
++	if (i2c->orion.state != MTK_I2C_ORION_READY) {
++		ret = -EBUSY;
++		goto out_unlock;
++	}
++
++	i2c->orion.state = MTK_I2C_ORION_RUNNING;
++	ret = mtk_i2c_orion_run(i2c);
++	i2c->orion.run_error = ret;
++	i2c->orion.state = MTK_I2C_ORION_DONE;
++	if (!ret) {
++		*ppos += count;
++		ret = count;
++	}
++
++out_unlock:
++	mutex_unlock(&i2c->orion.lock);
++	return ret;
++}
++
++static const struct file_operations mtk_i2c_orion_fops = {
++	.owner = THIS_MODULE,
++	.open = simple_open,
++	.read = mtk_i2c_orion_read,
++	.write = mtk_i2c_orion_write,
++	.llseek = default_llseek,
++};
++
++static int mtk_i2c_orion_init(struct mtk_i2c *i2c)
++{
++	struct dentry *file;
++
++	if (i2c->dev_comp != &mt6797_idvfs_compat)
++		return 0;
++	if (!i2c->dvfsp_handoff ||
++	    strcmp(of_node_full_name(i2c->dev->of_node),
++		   "/i2c@1100e000"))
++		return -EINVAL;
++	if (!i2c->adap.debugfs)
++		return -ENODEV;
++
++	mutex_init(&i2c->orion.lock);
++	i2c->orion.state = MTK_I2C_ORION_READY;
++	i2c->orion.retries_before = i2c->adap.retries;
++	i2c->orion.retries_during = i2c->adap.retries;
++	i2c->orion.retries_after = i2c->adap.retries;
++	file = debugfs_create_file("orion-run-all", 0600, i2c->adap.debugfs,
++				   i2c, &mtk_i2c_orion_fops);
++	if (IS_ERR_OR_NULL(file))
++		return file ? PTR_ERR(file) : -ENOMEM;
++
++	dev_info(i2c->dev,
++		 "GEMINI_ORION_DIAGNOSTIC state=ready one_shot=unused\n");
++	return 0;
++}
++#else
++static int mtk_i2c_orion_init(struct mtk_i2c *i2c)
++{
++	return 0;
++}
++#endif
++
+ static int mtk_i2c_probe(struct platform_device *pdev)
+ {
+ 	int ret = 0;
+@@ -1804,6 +2279,10 @@ static int mtk_i2c_probe(struct platform_device *pdev)
+ 		goto err_bulk_unprepare;
+ 
+ 	platform_set_drvdata(pdev, i2c);
++	ret = mtk_i2c_orion_init(i2c);
++	if (ret)
++		goto err_del_adapter;
++
+ 	if (i2c->dvfsp_handoff) {
+ 		ret = devm_device_add_group(&pdev->dev,
+ 					    &mtk_i2c_handoff_group);
+-- 
+2.50.1 (Apple Git-155)

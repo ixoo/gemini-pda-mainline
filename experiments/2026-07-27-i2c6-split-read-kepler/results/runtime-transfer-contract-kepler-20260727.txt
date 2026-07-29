@@ -1,0 +1,167 @@
+Candidate Kepler volatile transfer contract
+============================================
+
+status=offline-contract-passed-hardware-not-accessed
+date=2026-07-27
+device_access=none
+device_write=none
+network_connection=none
+
+Exact inputs
+------------
+
+accepted_hubble_boot_id=cdd23c48-0bd3-4980-95c8-5e054be860d9
+accepted_pre_transfer_attempts=6
+accepted_pre_dma_starts=6
+accepted_pre_nonzero_starts=6
+accepted_pre_irq_count=6
+runtime_runner=scripts/run-kepler-transfer.py
+runtime_runner_sha256=317b4f9a3a51ece7bdfd56ce9f67153cd5505102ffba596ca5df09dedd132eae
+offline_test=scripts/test-kepler-transfer.py
+offline_test_sha256=536ff17de684bf68dcb75ed0cb0f48073b9218b568948a13904a059741fb3eb7
+kepler_helper_sha256=3afdaeea3f913706a0ee3f44732c37b6c0fced01f940f6d68a8356dfad946fa7
+kepler_helper_size=537584
+cassini_kernel_release=7.1.3-gemini-cassini
+cassini_config_sha256=83c85429cdcb7d66cb96df2c9005456afd67fc5c7dbfe5d76e9879bf45c1759b
+cassini_helper_sha256=30073f6ea7d0b57d3654ece5c6212da1c94ff4d24514b62d07331136a4efaf0e
+prior_photon_class=post-all-equal-pre
+prior_photon_completed=6
+prior_photon_post=a1,b2,c3,d4,e5,f6
+device_endpoint=10.15.19.82:2323
+host_usb_address=10.15.19.1
+host_usb_mac=42:00:15:19:82:00
+generated_remote_program_ascii_bytes=738499
+generated_remote_program_probe_invocation_sites=1
+
+Fail-closed runtime gates
+-------------------------
+
+host_interface_name=ascii-alphanumeric-only
+host_interface_mac=exact
+host_interface_ipv4=exact-and-unique
+device_route=exact-host-interface
+reachability_probe=three-bounded-direct-interface-pings
+tcp_sessions=one
+tcp_transport=macos-nc-direct-interface-bound
+authentication=none
+encryption=none
+port_probe_before_session=none
+
+runtime_kernel_release=exact-cassini
+runtime_cmdline=exact-cassini
+runtime_decompressed_config=exact-cassini
+runtime_cassini_helper=exact-size-hash-mode
+runtime_boot_id=exact-accepted-hubble
+runtime_root=initial-ram-rootfs
+runtime_run_mount=none-separate
+runtime_cpu_possible=0-9
+runtime_cpu_present=0-9
+runtime_cpu_online=0-7
+runtime_cpu_offline=8-9
+runtime_cpu8_online_control=absent
+runtime_cpu9_online_control=absent
+runtime_handoff=ready
+runtime_i2c6_adapter=exact-i2c-1-and-one-exact-of-suffix
+runtime_i2c6_clients=0
+runtime_i2c6_pre_counters=6,6,6,6
+runtime_i2c6_clock_validation_failures=0
+runtime_prior_photon_helper=absent
+runtime_prior_photon_stage=absent
+runtime_prior_photon_guard=regular-size0-mode0400-root-root
+runtime_prior_photon_begin=1
+runtime_prior_photon_pre=6
+runtime_prior_photon_result=exact-post-all-equal-pre
+runtime_prior_photon_total=8
+runtime_usb_address_carrier_operstate_ipv4=exact
+runtime_udc=one-configured
+runtime_nc_service=one-listener
+runtime_shell_ready=present
+
+Volatile transfer and invocation
+--------------------------------
+
+remote_staging_path=/run/.kepler-probe.stage
+remote_final_path=/run/kepler-probe
+remote_invocation_guard=/run/kepler-probe.invoked
+payload_encoding=base64
+decoder=exact-cassini-busybox-base64-d
+staging_overwrite=refused
+final_overwrite=refused
+guard_overwrite=refused
+decoded_size_gate=537584
+decoded_sha256_gate=3afdaeea3f913706a0ee3f44732c37b6c0fced01f940f6d68a8356dfad946fa7
+decoded_mode_gate=0500-root-root
+probe_arguments=none
+probe_invocation_count=exactly-one
+guard_created_before_exec=yes
+probe_removed_after_return=yes
+exit_cleanup_removes=stage-and-probe
+signal_cleanup=hup,int,term,pipe-exit91-through-exit-cleanup
+guard_retained_until-power-cycle=yes
+
+Evidence contract
+-----------------
+
+pre_state=exact-boot-id,cpu-online,cpu-offline,nproc,handoff,i2c6-counters,usb-carrier,usb-operstate,udc
+probe_stdout=exact-six-line-complete-kepler-sequence
+probe_begin_count=1
+probe_tx_count=2
+probe_rx_count=2
+probe_result_count=1
+global_section_order=gate,transfer,pre,probe,post,complete
+helper_line_order=begin,tx1,rx1,tx2,rx2,result
+incomplete_tx_or_rx=raw-capture-preserved-then-runner-rejects
+post_state=exact-boot-id,cpu-online,cpu-offline,nproc,handoff,i2c6-counters,usb-carrier,usb-operstate,udc
+expected_i2c6_pre=6,6,6,6
+expected_i2c6_post=10,10,10,10
+expected_i2c6_delta=transfer-attempts-plus4,dma-starts-plus4,nonzero-starts-plus4,irq-plus4
+private_capture_root=artifacts/runtime-captures
+private_capture_mode=0600
+capture_overwrite=refused
+
+Forbidden runtime scope
+-----------------------
+
+persistent_storage_read_or_write=none
+partition_inventory=none
+boot_slot_access=none
+watchdog_access=none
+reboot_shutdown_poweroff=none
+cpu_online_control_write=none
+regulator_control=none
+page_con_access=none-by-exact-kepler-helper
+other_i2c_address_or_register_selection=none-by-exact-kepler-helper
+retry_or_delay=none-by-exact-kepler-helper
+
+Offline validation
+------------------
+
+host_offline_runner_tests=11-passed
+recovery_vm_offline_runner_tests=11-passed
+recovery_vm_ioctl_harness_cases=9-passed
+exact_private_helper_validation=passed
+payload_base64_roundtrip=passed
+transport_mock=passed-one-exact-nc-call
+valid_complete_result_classes=5-passed
+identity-prior-evidence-counter-invocation-mutations=rejected
+global-section-and-helper-line-reorder-mutations=rejected
+incomplete-tx-and-rx-results=intentionally-rejected
+raw-capture-before-validation=passed
+disconnect-and-signal-cleanup=passed
+static-persistent-and-control-path-audit=passed
+exact_cassini_busybox_generated-remote-sh-n=passed
+git_diff_check=passed
+
+Interpretation
+--------------
+
+The runner is ready for one hardware invocation only on exact accepted Hubble
+boot ID cdd23c48-0bd3-4980-95c8-5e054be860d9. No offline check establishes
+device behavior. Any identity, prior Photon evidence, pre-counter, transfer,
+post-counter, stdout, boot-ID, service-state, or one-shot mismatch preserves
+the private transcript and returns failure.
+
+The gate reaches neither payload decoding nor probe execution unless every
+exact precondition passes. A successful runtime path performs exactly four
+single-message calls. The STOP between each pointer write and read is an
+intentional confound and must remain explicit in interpretation.

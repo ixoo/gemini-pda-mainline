@@ -20,6 +20,46 @@ primary 0x68 address with PAGE_REVERT set; it must not write voltage, enable,
 disable, or configuration registers. The probe remains behind AR's already
 validated DVFSP handoff and AP_DMA preservation boundary.
 
+### Secondary-address correction (2026-07-27)
+
+Observation: Candidate AS attempt 1 completed its first uncached direct read
+from 7-bit address `0x69`, wire offset `0x00` (page-2 register `0x100`,
+`PAGE_CON`). Only the immediately repeated `PAGE_CON` read returned `-ENXIO`;
+the probe then stopped before attempting offsets `0x05`, `0x06`, or `0x47`.
+The retained
+`probe_interpretation=the-adjacent-0x69-page2-assumption-is-wrong` is therefore
+invalid and superseded: attempt 1 did not reject address `0x69`.
+
+Documented protocol: Renesas, *DA9213, DA9214, and DA9215 Multi-Phase 5A/Phase
+DC-DC Buck Converter*, Datasheet Revision 3.4, 10-Feb-2022, maps pages 2 and 3
+to the basic 2-WIRE address plus one (`0xD2`/`0xD3` from the default
+`0xD0`/`0xD1`), which translates from primary 7-bit address `0x68` to
+secondary address `0x69`. Page-2 registers `0x105`, `0x106`, and `0x147`
+therefore use wire offsets `0x05`, `0x06`, and `0x47`, respectively, at
+`0x69`.
+
+Test and inference: Candidate Cassini tested this documented route only after
+its USB service was available, using two bounded signature passes over those
+three offsets and no `PAGE_CON` access. All six transactions and IRQs
+completed, but userspace reported prefilled zero bytes, so RX-buffer overwrite
+was not proven. Separate retained Gemian boot logs do prove the live
+`d9 d0 c0` tuple. Neutral Candidate Photon r2 must repeat the exact six
+`I2C_RDWR` request/message sequences Cassini issued, complete both passes after
+successful transfers, and use distinct nonzero receive prefills while
+preserving objective pre/post comparisons before any transport conclusion.
+Photon r0 was superseded before any boot or probe invocation; r1 reproduced
+but was superseded before installation because its output labels overclaimed
+causality. Neutral r2 was installed to inactive logical `boot2` with a
+matching full readback, but attempt 1 failed before recoverable console/USB
+service and returned automatically to Gemian. The manually invoked helper did
+not run. Candidate Hubble then restored the complete exact hardware-passed
+Cassini artifact as a zero-boot-delta foundation. Exact r2 ran once from
+volatile `/run` after USB serviceability, without another kernel boot. All six
+ioctls completed and the transfer/DMA/start/IRQ counters advanced, but every
+post byte remained equal to its distinct prefill. Cassini's zeros therefore
+reflected its receive initialization, not a DA9214 tuple. The mainline WRRD
+receive path must be localized before returning to the provider experiment.
+
 ## Unique changes
 
 - 0096 adds a board-specific legacy DA9214 protocol path with a page-2
@@ -28,12 +68,16 @@ validated DVFSP handoff and AP_DMA preservation boundary.
 - 0105 restores I2C6's 3.4 MHz push-pull electrical properties and adds the
   two DA9214 outputs, with no A72 consumer, supply, boot-on, voltage request,
   or enable GPIO.
-- 0106 corrects the page-2 transport to the Gemian primary-address PAGE_CON
-  sequence after the first AS boot rejected the adjacent-address assumption.
+- 0106 switched the page-2 transport to the Gemian primary-address PAGE_CON
+  sequence based on attempt 1's then-recorded adjacent-address interpretation.
+  The correction above supersedes that interpretation; this patch remains
+  historical experiment lineage, not evidence against `0x69`.
 - 0107 removes the unsupported post-access PAGE_CON reads and uses the
   write-only selector bytes (`0x80`, then `0x02`) before each page-2 identity
-  read. Attempt 4 preserved the complete baseline but returned zero for every
-  identity register; its evidence is in
+  read. This literal second byte differs from the active Gemian
+  read-modify-write result, which preserves bit 7 and writes `0x82`. Attempt 4
+  preserved the complete baseline but reported zero for every identity
+  register; its evidence is in
   `results/runtime-candidate-as-attempt-4-20260726.txt`.
 - 0108 restores the read-modify-write transactions used by the exact Gemian
   implementation for both PAGE_CON selector calls. The interposed PAGE_CON
@@ -72,9 +116,11 @@ used the primary-address selector path but failed at the same unsupported
 PAGE_CON read; its evidence is in
 'results/runtime-candidate-as-attempt-2-20260725.txt'. Candidate AS attempt 3
 removed the PAGE_CON read entirely but used `0x82` for the second selector
-write; all three identity reads consequently returned zero. Attempt 4 used the
-corrected raw selector bytes, rebuilt and installed it to boot2 after a full
-guarded readback, then booted successfully but still returned zero for the
+write; all three identity reads were reported as zero. Attempt 4 used literal
+write-only selector bytes (`0x80`, then `0x02`), then believed to be the
+corrected sequence but now known to differ from Gemian's final `0x82`
+read-modify-write result. It rebuilt and installed to boot2 after a full
+guarded readback, then booted successfully but still reported zero for the
 identity registers. Its build, install, and runtime records are in
 'results/build-candidate-as-attempt-4-20260726.txt',
 'results/install-candidate-as-attempt-4-boot2-20260726.txt', and

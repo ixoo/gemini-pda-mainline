@@ -1,0 +1,83 @@
+Candidate Photon r1 helper and component contract tests
+========================================================
+
+status=passed
+device_access=none
+hardware_transition=none
+date=2026-07-27
+
+Exact inputs
+------------
+
+probe_source_sha256=e4c59607d7cd2f63cac9e4ec9931672a9bdaf2c352e8757d4a7cb87ab425a87b
+probe_binary_sha256=2a224fd1fd5575bc411b498ee6c671845d4945d93d3deaefeacb600daa0101bb
+initramfs_sha256=91992207671fdf2bbf0f40fd1fa4b5f83f9a03bc08aead48a6f8c92677a5becb
+raw_sha256=005228ce67698445091869b8e9d248fd610e5f3ee28251a7e385398306fba97b
+
+Compiler and static checks
+--------------------------
+
+gcc_wall_wextra_werror_pedantic=passed
+gcc_fanalyzer=passed
+independent_clang_syntax=passed
+static_aarch64_nonpie_elf_gate=passed
+source_contract_gate=passed
+
+Pure-function harness
+---------------------
+
+result_classifier_expected_signature=passed
+result_classifier_all_overwritten_zero=passed
+result_classifier_stable_different=passed
+result_classifier_all_sentinels_preserved=passed
+result_classifier_partial_sentinel_match_unstable=passed
+result_classifier_unstable_different=passed
+partial_post_list_formatting=passed
+
+Bounded execution harnesses
+---------------------------
+
+extra_argument_result=exit-2
+extra_argument_i2c_path_or_ioctl_count=0
+duplicate_exact_of_adapter_result=rejected-before-BEGIN-or-PRE
+regular_file_adapter_ioctl_result=ENOTTY
+regular_file_adapter_persistent_lines=BEGIN-plus-one-PRE-plus-RESULT
+expected_tuple_wrapped_ioctl_count=6
+expected_tuple_pre_marker_count=6
+expected_tuple_total_kmsg_line_count=8
+expected_tuple_result=expected-signature-overwrite-mask-0x3f
+all_sentinels_preserved_wrapped_ioctl_count=6
+all_sentinels_preserved_pre_marker_count=6
+all_sentinels_preserved_total_kmsg_line_count=8
+all_sentinels_preserved_result=all-sentinels-preserved-overwrite-mask-0x00
+
+Mutation checks
+---------------
+
+one_byte_text_mutation_original_sha256=2a224fd1fd5575bc411b498ee6c671845d4945d93d3deaefeacb600daa0101bb
+one_byte_text_mutation_changed_sha256_prefix=e85d808e
+one_byte_text_mutation_result=rejected-calibrated-Photon-probe-binary-changed
+builder_calibrated_helper_gate=present
+builder_calibrated_initramfs_gate=present
+builder_calibrated_raw-hash-and-size-gates=present
+builder_calibrated_padded-gate=present
+builder_calibrated-manifest-gate=present
+standalone_ramdisk-replacer-calibrated-input-output-gates=present
+
+Interpretation
+--------------
+
+The tests exercise argument rejection, adapter uniqueness, transfer failure,
+both complete sentinel extremes, persistent-line budgeting, result
+classification, and exact-binary drift rejection without opening a real I2C
+device. They do not establish Gemini hardware behavior; only the one-shot
+full-readback-verified boot2 run can do that.
+
+Revision note
+-------------
+
+R1 was never installed, booted, or invoked on the Gemini. Its exact tests and
+embedded labels are preserved as historical artifact evidence, but
+`overwritten` and `overwrite_mask` are not promoted to causal hardware facts.
+Neutral r2 retains the exact `I2C_RDWR` request/message sequence and
+successful-transfer control flow.

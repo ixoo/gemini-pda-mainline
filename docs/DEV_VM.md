@@ -154,7 +154,7 @@ peripheral probes. `KERNEL_PROFILE`, `BUILD_MODULES`, and `KERNEL_JOBS` are
 also forwarded by the lower-level `./scripts/dev-vm kernel COMMAND` form;
 generated source, build, and module files remain guest-owned.
 
-For the next host-observable handoff diagnostic, use the separate `usbdiag`
+For a reusable minimal USB-gadget handoff build, use the separate `usbdiag`
 profile:
 
 ```sh
@@ -170,8 +170,8 @@ USB runtime claim.
 See the [pinned stable-kernel patch workflow](KERNEL_WORKFLOW.md) for the
 manifest, patch-series, configuration, provenance, and artifact contracts.
 
-Validate the newest guest-owned package, including every file in its checksum
-manifest and the required provenance fields:
+Validate the explicitly selected guest-owned package, including every file in
+its checksum manifest and the required provenance fields:
 
 ```sh
 ./scripts/dev-vm validate-kernel
@@ -179,57 +179,28 @@ manifest and the required provenance fields:
 
 This is still a compile-and-package check, not evidence that the image boots or
 that a driver works on hardware. Built-in symbols are the only drivers
-available to the current first-boot Image; when `BUILD_MODULES=1` is used,
-optional modules are exported under the package's `modules/` tree for a later
-rootfs integration. The latest authoritative full-profile package record is
-[the 2026-07-14 77-patch package result](../experiments/2026-07-12-input-backlight-recovery/results/mainline-display-input-current-77-package-20260714.txt);
-that Image/DTB package intentionally has no module tree. The separate current
-handoff package is recorded in the
-[2026-07-16 LK handoff result](../experiments/2026-07-16-lk-handoff-alignment/results/lk-handoff-candidate-20260716.txt).
-A 74-patch module-bearing package remains available for later rootfs
-integration and is not the first boot candidate.
+available before a root filesystem can load modules; when `BUILD_MODULES=1` is
+used, optional modules are exported under the package's `modules/` tree for
+later rootfs integration. Dated package records remain with their experiments
+and are not current authority. Select the exact package named by the active
+experiment as described in [the kernel workflow](KERNEL_WORKFLOW.md); never
+infer “latest” from a timestamp or directory order.
 
 ## Build a non-flashing LK candidate
 
-The retained Planet LK path needs an Android v0 gzip+appended-DTB container,
-not the raw `Image`. Build the two controlled variants from an explicit
-`handoff` package with the read-only wrapper:
+The retained Planet LK path needs an Android-v0
+gzip-plus-appended-DTB container, not the raw `Image`. Candidate construction
+is experiment-specific: use only the builder and validator named by the active
+experiment, pass its exact validated package, and choose a new explicit output
+directory.
 
-```sh
-./scripts/dev-vm run bash -lc \
-  'experiments/2026-07-16-lk-handoff-alignment/scripts/build-lk-handoff-candidate.sh \
-     --package "$HOME/artifacts/gemini-pda/EXACT-HANDOFF-PACKAGE" \
-     --output "$HOME/artifacts/boot-candidates/<new-directory>"'
-```
-
-The wrapper builds one storage-inert ARM64 initramfs and emits a mandatory-LK
-serial candidate plus an otherwise identical candidate with optional
-`simple-framebuffer` instrumentation. It binds the package to the current
-handoff profile, validates the exact LK/arm64 placement and appended-DTB byte
-contract, records all input hashes, and refuses an existing output directory.
-It exposes no device, partition, fastboot, or flashing operation. Its output is
-guest-owned and Git-ignored; transfer to the separate Windows flashing machine
-remains a separate, explicitly reviewed step.
-
-The USB diagnostic has its own equally non-flashing wrapper and also requires
-an exact package rather than selecting the newest build implicitly:
-
-```sh
-./scripts/dev-vm run bash -lc \
-  'experiments/2026-07-16-usb-gadget-diagnostic/scripts/build-usb-diagnostic-candidate.sh \
-     --package "$HOME/artifacts/gemini-pda/EXACT-USBDIAG-PACKAGE" \
-     --output "$HOME/artifacts/boot-candidates/<new-directory>" \
-     --source-date-epoch 0'
-```
-
-That wrapper enables the three pre-described left-port peripheral nodes only
-in the candidate DTB, builds a deterministic storage-inert initramfs, and
-checks the restricted config, exact DT delta, LK container, arm64 placement,
-appended DTB, hashes, and provenance. Its output includes the unique USB
-serial `GEMINI_USB_DIAG_20260716_B`; enumeration proves the kernel gadget path,
-while ping and the TCP marker are separate `/init` gates. See the
-[experiment record](../experiments/2026-07-16-usb-gadget-diagnostic/README.md)
-for the bounded macOS procedure.
+A candidate builder must remain non-flashing, reject implicit “newest”
+selection and output overwrite, record its complete inputs, and validate the
+LK placement, appended DTB, initramfs, configuration, provenance, and
+checksums required by that experiment. Exact commands, deltas, identities, and
+runtime classifiers belong in the experiment record rather than this VM
+guide. See the [kernel workflow](KERNEL_WORKFLOW.md#building-an-lk-boot-candidate)
+and [experiment index](../experiments/README.md).
 
 ## Updating provisioning
 

@@ -1,0 +1,200 @@
+From bb4516abab9f0e28f5040bbbc7c0f5ebce61b8c8 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 28 Jul 2026 17:27:00 -0400
+Subject: [PATCH 122/122] i2c: mediatek: add Gauss exact D3 discriminator
+
+The Curie attempt changed diagnostic identity together with the exact D3
+predicate. Its first boot reset before the root-only one-shot endpoint
+could run, so that result cannot be attributed to D3 semantics.
+
+Make Gauss the canonical successor to Curie while restoring the exact
+Fermi software identity in the final source. Curie already changed the
+sampled D3 expectation to 0x1f and the comparator to full-byte equality;
+retain those changes. Restore the Fermi Kconfig symbol, debugfs filename,
+gate, ready marker, and function aliases, then identify the result as
+Gauss and report the exact-D3 contract truthfully.
+
+Applying Curie followed by Gauss produces the same final source as the
+independently audited direct Fermi-to-Gauss delta. The intermediate Curie
+source is never configured or built for Gauss; configuration is merged
+only after the complete series applies.
+
+The endpoint remains fixed, root-only, and one-shot. It exposes no
+arbitrary address, register, data, length, mode, retry, or reset control
+and requests neither Cortex-A72.
+
+---
+ drivers/i2c/busses/Kconfig      |  8 +++---
+ drivers/i2c/busses/i2c-mt65xx.c | 46 ++++++++++++++++-----------------
+ 2 files changed, 27 insertions(+), 27 deletions(-)
+
+diff --git a/drivers/i2c/busses/Kconfig b/drivers/i2c/busses/Kconfig
+index 06271e3..b7df181 100644
+--- a/drivers/i2c/busses/Kconfig
++++ b/drivers/i2c/busses/Kconfig
+@@ -930,13 +930,13 @@ config I2C_MT65XX_QUASAR_DIAGNOSTIC
+ 	  arbitrary address, register, data, length, mode, retry, or reset
+ 	  control. Say N outside the named Gemini Quasar experiment.
+ 
+-config I2C_MT65XX_CURIE_DIAGNOSTIC
+-	bool "MT6797 I2C6 fixed Curie board-control tuple"
++config I2C_MT65XX_FERMI_DIAGNOSTIC
++	bool "MT6797 I2C6 fixed Fermi topology fingerprint"
+ 	depends on I2C_MT65XX=y && DEBUG_FS
+ 	depends on !I2C_MT65XX_ORION_DIAGNOSTIC
+ 	depends on !I2C_MT65XX_QUASAR_DIAGNOSTIC
+ 	help
+-	  Enable the experiment-only, one-shot Curie board-control tuple for
++	  Enable the experiment-only, one-shot Fermi topology fingerprint for
+ 	  the access-controlled MT6797 iDVFS I2C instance. The root-only
+ 	  debugfs file accepts exactly "run" followed by a newline and performs
+ 	  two fixed passes of seven pointer-only reads across addresses 0x69
+@@ -944,7 +944,7 @@ config I2C_MT65XX_CURIE_DIAGNOSTIC
+ 
+ 	  The diagnostic supplies no length or engine override and exposes no
+ 	  arbitrary address, register, data, length, mode, retry, or reset
+-	  control. Say N outside the named Gemini Curie experiment.
++	  control. Say N outside the named Gemini Fermi experiment.
+ 
+ config I2C_MT7621
+ 	tristate "MT7621/MT7628 I2C Controller"
+diff --git a/drivers/i2c/busses/i2c-mt65xx.c b/drivers/i2c/busses/i2c-mt65xx.c
+index 1af5143..0a45366 100644
+--- a/drivers/i2c/busses/i2c-mt65xx.c
++++ b/drivers/i2c/busses/i2c-mt65xx.c
+@@ -210,9 +210,9 @@ struct mtk_i2c_orion_diag {
+ #endif
+ 
+ #if defined(CONFIG_I2C_MT65XX_QUASAR_DIAGNOSTIC) || \
+-	defined(CONFIG_I2C_MT65XX_CURIE_DIAGNOSTIC)
++	defined(CONFIG_I2C_MT65XX_FERMI_DIAGNOSTIC)
+ #define MTK_I2C_QUASAR_PASS_COUNT	2
+-#ifdef CONFIG_I2C_MT65XX_CURIE_DIAGNOSTIC
++#ifdef CONFIG_I2C_MT65XX_FERMI_DIAGNOSTIC
+ #define MTK_I2C_QUASAR_REGISTER_COUNT	7
+ #else
+ #define MTK_I2C_QUASAR_REGISTER_COUNT	3
+@@ -492,7 +492,7 @@ struct mtk_i2c {
+ 	struct mtk_i2c_orion_diag orion;
+ #endif
+ #if defined(CONFIG_I2C_MT65XX_QUASAR_DIAGNOSTIC) || \
+-	defined(CONFIG_I2C_MT65XX_CURIE_DIAGNOSTIC)
++	defined(CONFIG_I2C_MT65XX_FERMI_DIAGNOSTIC)
+ 	struct mtk_i2c_quasar_diag quasar;
+ #endif
+ };
+@@ -1361,7 +1361,7 @@ static void mtk_i2c_orion_record_fifo(struct mtk_i2c *i2c, u16 fifo_count)
+ #endif
+ 
+ #if defined(CONFIG_I2C_MT65XX_QUASAR_DIAGNOSTIC) || \
+-	defined(CONFIG_I2C_MT65XX_CURIE_DIAGNOSTIC)
++	defined(CONFIG_I2C_MT65XX_FERMI_DIAGNOSTIC)
+ static void
+ mtk_i2c_quasar_snapshot(struct mtk_i2c *i2c,
+ 			struct mtk_i2c_quasar_snapshot *snapshot)
+@@ -2319,14 +2319,14 @@ static int mtk_i2c_orion_init(struct mtk_i2c *i2c)
+ #endif
+ 
+ #if defined(CONFIG_I2C_MT65XX_QUASAR_DIAGNOSTIC) || \
+-	defined(CONFIG_I2C_MT65XX_CURIE_DIAGNOSTIC)
+-#ifdef CONFIG_I2C_MT65XX_CURIE_DIAGNOSTIC
++	defined(CONFIG_I2C_MT65XX_FERMI_DIAGNOSTIC)
++#ifdef CONFIG_I2C_MT65XX_FERMI_DIAGNOSTIC
+ #define MTK_I2C_QUASAR_RESULT_SIZE	32768
+ #else
+ #define MTK_I2C_QUASAR_RESULT_SIZE	16384
+ #endif
+ 
+-#ifdef CONFIG_I2C_MT65XX_CURIE_DIAGNOSTIC
++#ifdef CONFIG_I2C_MT65XX_FERMI_DIAGNOSTIC
+ static const u16
+ mtk_i2c_quasar_addresses[MTK_I2C_QUASAR_REGISTER_COUNT] = {
+ 	0x69, 0x69, 0x69, 0x68, 0x68, 0x68, 0x68,
+@@ -2349,15 +2349,15 @@ mtk_i2c_quasar_prefills[MTK_I2C_QUASAR_PASS_COUNT]
+ 	{ 0x78, 0xb4, 0x4b, 0xd2, 0x2d, 0xe1, 0x1e },
+ };
+ 
+-#define MTK_I2C_QUASAR_CANDIDATE	"Curie"
+-#define MTK_I2C_QUASAR_DEBUGFS_FILE	"curie-run-native"
+-#define MTK_I2C_QUASAR_GATE		"GEMINI_CURIE_DIAGNOSTIC_GATE"
+-#define MTK_I2C_QUASAR_READY_MARKER	"GEMINI_CURIE_NATIVE_DIAGNOSTIC"
++#define MTK_I2C_QUASAR_CANDIDATE	"Gauss"
++#define MTK_I2C_QUASAR_DEBUGFS_FILE	"fermi-run-native"
++#define MTK_I2C_QUASAR_GATE		"GEMINI_FERMI_DIAGNOSTIC_GATE"
++#define MTK_I2C_QUASAR_READY_MARKER	"GEMINI_FERMI_NATIVE_DIAGNOSTIC"
+ #define MTK_I2C_QUASAR_COUNTER_CONTRACT	"14,0,14,14"
+-#define mtk_i2c_quasar_read		mtk_i2c_curie_read
+-#define mtk_i2c_quasar_write		mtk_i2c_curie_write
+-#define mtk_i2c_quasar_fops		mtk_i2c_curie_fops
+-#define mtk_i2c_quasar_init		mtk_i2c_curie_init
++#define mtk_i2c_quasar_read		mtk_i2c_fermi_read
++#define mtk_i2c_quasar_write		mtk_i2c_fermi_write
++#define mtk_i2c_quasar_fops		mtk_i2c_fermi_fops
++#define mtk_i2c_quasar_init		mtk_i2c_fermi_init
+ #else
+ static const u16
+ mtk_i2c_quasar_addresses[MTK_I2C_QUASAR_REGISTER_COUNT] = {
+@@ -2474,7 +2474,7 @@ mtk_i2c_quasar_validate_sample(struct mtk_i2c *i2c,
+ 	    diag->irqs_after != ordinal)
+ 		return -EPROTO;
+ 
+-#ifdef CONFIG_I2C_MT65XX_CURIE_DIAGNOSTIC
++#ifdef CONFIG_I2C_MT65XX_FERMI_DIAGNOSTIC
+ 	if (sample->value == sample->prefill)
+ 		return -ENODATA;
+ 
+@@ -2619,7 +2619,7 @@ static int mtk_i2c_quasar_run(struct mtk_i2c *i2c)
+ 		ret = -EPROTO;
+ 		goto out_restore_retries;
+ 	}
+-#ifdef CONFIG_I2C_MT65XX_CURIE_DIAGNOSTIC
++#ifdef CONFIG_I2C_MT65XX_FERMI_DIAGNOSTIC
+ 	if (diag->stability_validated != 4) {
+ 		ret = -EPROTO;
+ 		goto out_restore_retries;
+@@ -2659,14 +2659,14 @@ mtk_i2c_quasar_emit_snapshot(char *buf, int len, const char *name,
+ 	return len;
+ }
+ 
+-#ifdef CONFIG_I2C_MT65XX_CURIE_DIAGNOSTIC
++#ifdef CONFIG_I2C_MT65XX_FERMI_DIAGNOSTIC
+ static const char *
+ mtk_i2c_quasar_expected_kind(const struct mtk_i2c_quasar_sample *sample)
+ {
+ 	if (sample->index < 3)
+ 		return "exact";
+ 	if (sample->index == 3)
+-		return "exact-stable";
++		return "exact-d3-stable";
+ 	return "stable";
+ }
+ #endif
+@@ -2687,14 +2687,14 @@ static ssize_t mtk_i2c_quasar_read(struct file *file,
+ 		return -ENOMEM;
+ 
+ 	mutex_lock(&diag->lock);
+-#ifdef CONFIG_I2C_MT65XX_CURIE_DIAGNOSTIC
++#ifdef CONFIG_I2C_MT65XX_FERMI_DIAGNOSTIC
+ 	len += scnprintf(buf + len, MTK_I2C_QUASAR_RESULT_SIZE - len,
+ 		"candidate=%s state=%s one_shot=%s run_error=%d "
+ 		"attempted=%u transport_completed=%u value_validated=%u "
+ 		"addresses=0x69,0x68 passes=2 "
+ 		"transfer_order=69:05,69:06,69:47,68:d3,68:5e,68:d9,68:da "
+-		"expected_signature=d9,d0,c0 board_control_register=d3 "
+-		"board_control_expected=1f "
++		"expected_signature=d9,d0,c0 topology_register=d3 "
++		"d3_exact_mask=ff d3_exact_expected=1f "
+ 		"stability_registers=d3,5e,d9,da stability_validated=%u ",
+ 		MTK_I2C_QUASAR_CANDIDATE,
+ 		mtk_i2c_quasar_state_name(diag->state),
+@@ -2750,7 +2750,7 @@ static ssize_t mtk_i2c_quasar_read(struct file *file,
+ 		const struct mtk_i2c_quasar_sample *sample =
+ 			&diag->samples[i];
+ 
+-#ifdef CONFIG_I2C_MT65XX_CURIE_DIAGNOSTIC
++#ifdef CONFIG_I2C_MT65XX_FERMI_DIAGNOSTIC
+ 		len += scnprintf(buf + len,
+ 			MTK_I2C_QUASAR_RESULT_SIZE - len,
+ 			"sample=%u pass=%u index=%u address=%02x "
+-- 
+2.43.0

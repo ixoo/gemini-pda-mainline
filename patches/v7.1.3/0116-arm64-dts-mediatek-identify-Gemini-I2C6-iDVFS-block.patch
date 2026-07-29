@@ -1,0 +1,30 @@
+From 17bed686fd8dfd7d41576967d140fb75cebe78d5 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 27 Jul 2026 14:44:18 -0400
+Subject: [PATCH 116/117] arm64: dts: mediatek: identify Gemini I2C6 iDVFS
+ block
+
+Select the standalone packed-length, short-FIFO controller data only for
+the access-controlled, childless I2C6 instance.
+
+Keep every ordinary MT6797 controller, including the working I2C5
+keyboard path, on its existing compatible list.
+
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+index 04732a5..f508c19 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -222,6 +222,7 @@
+ };
+ 
+ &i2c6 {
++	compatible = "mediatek,mt6797-idvfs-i2c";
+ 	access-controllers = <&dvfsp_handoff>;
+ 	status = "okay";
+ };
+-- 
+2.50.1 (Apple Git-155)

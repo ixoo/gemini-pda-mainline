@@ -310,6 +310,146 @@
                     "configs/gemini-dvfsp-i2c6-consumer.fragment"
                 ]
             },
+            "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-observer-initcall-blacklist-dvfsp-handoff-owner-i2c6-consumer-ap-dma-preserve-i2cdev-cassini": {
+                "base": "defconfig",
+                "patch_series": "patches/series-dvfsp-handoff-owner-i2c6-consumer-ap-dma-preserve",
+                "fragments": [
+                    "configs/gemini-handoff.fragment",
+                    "configs/gemini-usbdiag.fragment",
+                    "configs/gemini-clk-ignore-unused.fragment",
+                    "configs/gemini-observability.fragment",
+                    "configs/gemini-fbcon-rotation.fragment",
+                    "configs/gemini-keyboard.fragment",
+                    "configs/gemini-keyboard-wrrd.fragment",
+                    "configs/gemini-keyboard-manual-reboot.fragment",
+                    "configs/gemini-smp8.fragment",
+                    "configs/gemini-a72-observer.fragment",
+                    "configs/gemini-a72-observer-initcall-blacklist.fragment",
+                    "configs/gemini-dvfsp-handoff-owner.fragment",
+                    "configs/gemini-dvfsp-i2c6-consumer.fragment",
+                    "configs/gemini-da9214-cassini.fragment"
+                ]
+            },
+            "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-observer-initcall-blacklist-dvfsp-handoff-owner-i2c6-consumer-ap-dma-preserve-orion": {
+                "base": "defconfig",
+                "patch_series": "patches/series-orion-i2c6-idvfs-fifo",
+                "fragments": [
+                    "configs/gemini-handoff.fragment",
+                    "configs/gemini-usbdiag.fragment",
+                    "configs/gemini-clk-ignore-unused.fragment",
+                    "configs/gemini-observability.fragment",
+                    "configs/gemini-fbcon-rotation.fragment",
+                    "configs/gemini-keyboard.fragment",
+                    "configs/gemini-keyboard-wrrd.fragment",
+                    "configs/gemini-keyboard-manual-reboot.fragment",
+                    "configs/gemini-smp8.fragment",
+                    "configs/gemini-a72-observer.fragment",
+                    "configs/gemini-a72-observer-initcall-blacklist.fragment",
+                    "configs/gemini-dvfsp-handoff-owner.fragment",
+                    "configs/gemini-dvfsp-i2c6-consumer.fragment",
+                    "configs/gemini-i2c6-orion.fragment"
+                ]
+            },
+            "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-observer-initcall-blacklist-dvfsp-handoff-owner-i2c6-consumer-ap-dma-preserve-vega": {
+                "base": "defconfig",
+                "patch_series": "patches/series-vega-i2c6-idvfs-fifo",
+                "fragments": [
+                    "configs/gemini-handoff.fragment",
+                    "configs/gemini-usbdiag.fragment",
+                    "configs/gemini-clk-ignore-unused.fragment",
+                    "configs/gemini-observability.fragment",
+                    "configs/gemini-fbcon-rotation.fragment",
+                    "configs/gemini-keyboard.fragment",
+                    "configs/gemini-keyboard-wrrd.fragment",
+                    "configs/gemini-keyboard-manual-reboot.fragment",
+                    "configs/gemini-smp8.fragment",
+                    "configs/gemini-a72-observer.fragment",
+                    "configs/gemini-a72-observer-initcall-blacklist.fragment",
+                    "configs/gemini-dvfsp-handoff-owner.fragment",
+                    "configs/gemini-dvfsp-i2c6-consumer.fragment",
+                    "configs/gemini-i2c6-vega.fragment"
+                ]
+            },
+            "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-observer-initcall-blacklist-dvfsp-handoff-owner-i2c6-consumer-ap-dma-preserve-quasar": {
+                "base": "defconfig",
+                "patch_series": "patches/series-quasar-i2c6-native-fifo",
+                "fragments": [
+                    "configs/gemini-handoff.fragment",
+                    "configs/gemini-usbdiag.fragment",
+                    "configs/gemini-clk-ignore-unused.fragment",
+                    "configs/gemini-observability.fragment",
+                    "configs/gemini-fbcon-rotation.fragment",
+                    "configs/gemini-keyboard.fragment",
+                    "configs/gemini-keyboard-wrrd.fragment",
+                    "configs/gemini-keyboard-manual-reboot.fragment",
+                    "configs/gemini-smp8.fragment",
+                    "configs/gemini-a72-observer.fragment",
+                    "configs/gemini-a72-observer-initcall-blacklist.fragment",
+                    "configs/gemini-dvfsp-handoff-owner.fragment",
+                    "configs/gemini-dvfsp-i2c6-consumer.fragment",
+                    "configs/gemini-i2c6-quasar.fragment"
+                ]
+            },
+            "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-observer-initcall-blacklist-dvfsp-handoff-owner-i2c6-consumer-ap-dma-preserve-fermi": {
+                "base": "defconfig",
+                "patch_series": "patches/series-fermi-i2c6-topology-fingerprint",
+                "fragments": [
+                    "configs/gemini-handoff.fragment",
+                    "configs/gemini-usbdiag.fragment",
+                    "configs/gemini-clk-ignore-unused.fragment",
+                    "configs/gemini-observability.fragment",
+                    "configs/gemini-fbcon-rotation.fragment",
+                    "configs/gemini-keyboard.fragment",
+                    "configs/gemini-keyboard-wrrd.fragment",
+                    "configs/gemini-keyboard-manual-reboot.fragment",
+                    "configs/gemini-smp8.fragment",
+                    "configs/gemini-a72-observer.fragment",
+                    "configs/gemini-a72-observer-initcall-blacklist.fragment",
+                    "configs/gemini-dvfsp-handoff-owner.fragment",
+                    "configs/gemini-dvfsp-i2c6-consumer.fragment",
+                    "configs/gemini-i2c6-fermi.fragment"
+                ]
+            },
+            "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-observer-initcall-blacklist-dvfsp-handoff-owner-i2c6-consumer-ap-dma-preserve-curie": {
+                "base": "defconfig",
+                "patch_series": "patches/series-curie-i2c6-board-tuple",
+                "fragments": [
+                    "configs/gemini-handoff.fragment",
+                    "configs/gemini-usbdiag.fragment",
+                    "configs/gemini-clk-ignore-unused.fragment",
+                    "configs/gemini-observability.fragment",
+                    "configs/gemini-fbcon-rotation.fragment",
+                    "configs/gemini-keyboard.fragment",
+                    "configs/gemini-keyboard-wrrd.fragment",
+                    "configs/gemini-keyboard-manual-reboot.fragment",
+                    "configs/gemini-smp8.fragment",
+                    "configs/gemini-a72-observer.fragment",
+                    "configs/gemini-a72-observer-initcall-blacklist.fragment",
+                    "configs/gemini-dvfsp-handoff-owner.fragment",
+                    "configs/gemini-dvfsp-i2c6-consumer.fragment",
+                    "configs/gemini-i2c6-curie.fragment"
+                ]
+            },
+            "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-observer-initcall-blacklist-dvfsp-handoff-owner-i2c6-consumer-ap-dma-preserve-gauss": {
+                "base": "defconfig",
+                "patch_series": "patches/series-gauss-i2c6-exact-d3",
+                "fragments": [
+                    "configs/gemini-handoff.fragment",
+                    "configs/gemini-usbdiag.fragment",
+                    "configs/gemini-clk-ignore-unused.fragment",
+                    "configs/gemini-observability.fragment",
+                    "configs/gemini-fbcon-rotation.fragment",
+                    "configs/gemini-keyboard.fragment",
+                    "configs/gemini-keyboard-wrrd.fragment",
+                    "configs/gemini-keyboard-manual-reboot.fragment",
+                    "configs/gemini-smp8.fragment",
+                    "configs/gemini-a72-observer.fragment",
+                    "configs/gemini-a72-observer-initcall-blacklist.fragment",
+                    "configs/gemini-dvfsp-handoff-owner.fragment",
+                    "configs/gemini-dvfsp-i2c6-consumer.fragment",
+                    "configs/gemini-i2c6-gauss.fragment"
+                ]
+            },
             "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-observer-initcall-blacklist-dvfsp-handoff-owner-i2c6-consumer-ap-dma-preserve-da9214-legacy-readonly": {
                 "base": "defconfig",
                 "patch_series": "patches/series-dvfsp-handoff-owner-i2c6-consumer-ap-dma-preserve-da9214-legacy-readonly",

@@ -80,10 +80,14 @@ The exact active DA9214 detector confirms the corrected page protocol:
   da9214_config_interface(0x00, 0x02, 0x0f, 0)
   da9214_read_byte(0x05)
 
-The first write arms `PAGE_REVERT`; the second write is exactly `0x02`, not
-`0x82`. The detector checks the high nibble of register `0x05` for `0xd`.
-This independently confirms the corrected Candidate AS transport detail in
-the active binary.
+The immediate value argument of the second call is `0x02`, but
+`da9214_config_interface` is a read-modify-write helper. The first call sets
+`PAGE_REVERT` in bit 7; the second call replaces only the low nibble and
+preserves that bit, so its final PAGE_CON write is `0x82`, not a literal
+`0x02`. The detector then checks the high nibble of register `0x05` for
+`0xd`. The exact active binary therefore confirms the source-equivalent
+read-modify-write sequence and supersedes the earlier interpretation that it
+confirmed Candidate AS's literal-`0x02` transport.
 
 `BigiDVFSSRAMLDOSet` calls the secure service through `mt_secure_call` with
 function identifier `0xc20003bf` and the requested value. The implementation

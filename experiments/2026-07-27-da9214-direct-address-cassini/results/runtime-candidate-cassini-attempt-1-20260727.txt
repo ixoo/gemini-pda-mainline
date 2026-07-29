@@ -1,0 +1,160 @@
+experiment=2026-07-27-da9214-direct-address-cassini
+candidate=Cassini
+attempt=1
+device=named-Gemini-PDA-development-unit
+boot_path=owner-manual-selection-of-logical-boot2
+installed_padded_sha256=febe4d44b14b899cb357fae1b3ecda9bdb687c0c3e1f9e4b3cee30bc04f13cf1
+runtime_result=userspace-zero-observation-rx-overwrite-unproven
+repeat_identical_probe=no
+
+Serviceability before probe
+---------------------------
+owner_console_observation=console-on-but-delayed
+kernel_release=7.1.3-gemini-cassini
+gadget_product=Gemini-L-Cassini
+gadget_serial_marker=GEMINI_CASSINI_20260727
+usb_shell=ready-root-direct-link
+usb0=carrier-1-operstate-up
+udc_state=configured
+cpu_possible=0-9
+cpu_present=0-9
+cpu_online=0-7
+cpu_offline=8-9
+cpu8_online_control=absent
+cpu9_online_control=absent
+nproc=8
+i2c6_adapter=i2c-1
+i2c6_of_path=/i2c@1100e000
+i2c6_client_count=0
+i2c6_transfer_attempts_before=0
+i2c6_dma_starts_before=0
+i2c6_irq_count_before=0
+handoff_state_before=ready
+handoff_late_validation=passed
+handoff_access_grant=ready
+handoff_cleanup_result=passed
+handoff_cleanup_samples=32
+handoff_cleanup_dma_gated=0
+handoff_cleanup_dma_unchanged=32
+probe_begin_markers_before=0
+probe_read_markers_before=0
+
+Bounded probe
+-------------
+invocations=1
+arguments=none
+address=0x69
+register_order=0x05,0x06,0x47
+passes=2
+combined_i2c_rdwr_transactions=6
+page_con_access=none
+probe_exit=2
+probe_result=signature-mismatch
+first_signature=00,00,00
+second_signature=00,00,00
+userspace_values_stable=yes
+rx_buffers_initial_value=00
+rx_buffer_overwrite_proven=no
+transport_error=no
+device_reset=no
+
+Complete USB-shell stdout sequence
+----------------------------------
+GEMINI_CASSINI_PROBE_BEGIN adapter=i2c-1 of=/i2c@1100e000 address=0x69 passes=2 registers=0x05,0x06,0x47
+GEMINI_CASSINI_TRANSACTION_BEGIN pass=1 register=0x05 transaction=1 address=0x69 messages=2
+GEMINI_CASSINI_READ pass=1 register=0x05 value=0x00 transaction=1
+GEMINI_CASSINI_TRANSACTION_BEGIN pass=1 register=0x06 transaction=2 address=0x69 messages=2
+GEMINI_CASSINI_READ pass=1 register=0x06 value=0x00 transaction=2
+GEMINI_CASSINI_TRANSACTION_BEGIN pass=1 register=0x47 transaction=3 address=0x69 messages=2
+GEMINI_CASSINI_READ pass=1 register=0x47 value=0x00 transaction=3
+GEMINI_CASSINI_TRANSACTION_BEGIN pass=2 register=0x05 transaction=4 address=0x69 messages=2
+GEMINI_CASSINI_READ pass=2 register=0x05 value=0x00 transaction=4
+GEMINI_CASSINI_TRANSACTION_BEGIN pass=2 register=0x06 transaction=5 address=0x69 messages=2
+GEMINI_CASSINI_READ pass=2 register=0x06 value=0x00 transaction=5
+GEMINI_CASSINI_TRANSACTION_BEGIN pass=2 register=0x47 transaction=6 address=0x69 messages=2
+GEMINI_CASSINI_READ pass=2 register=0x47 value=0x00 transaction=6
+GEMINI_CASSINI_PROBE_FAIL stage=signature first=00,00,00 second=00,00,00 transactions=6
+
+Persistent-marker audit
+-----------------------
+printk_ratelimit_seconds=5
+printk_ratelimit_burst=10
+persistent_probe_begin_count=1
+persistent_transaction_begin_count=5
+persistent_read_count=4
+persistent_pass_count=0
+persistent_fail_count=0
+kernel_suppression_notice=printk-cassini-probe-4-output-lines-suppressed-due-to-ratelimiting
+suppressed_sequence=pass2-read-0x06,pass2-begin-0x47,pass2-read-0x47,signature-fail
+marker_contract_observation=/dev/kmsg-write-success-does-not-prove-retention-past-printk-ratelimit-burst
+result_source_for_complete_sequence=live-USB-shell-stdout-plus-exact-six-transfer-driver-counters
+
+Post-run RX-buffer reconciliation
+---------------------------------
+cassini_userspace_source=initramfs/cassini-probe.c
+cassini_rx_array_initializer={{0U}}
+i2c_dev_path=I2C_RDWR-memdup-user-buffer-and-copy-back-on-nonnegative-result
+mt65xx_path=DMA-map-receive-buffer-from-device
+inference=successful-ioctl-and-IRQ-counters-do-not-prove-DMA-overwrote-the-pre-zeroed-byte
+reported_zero_interpretation=ambiguous-between-received-zero-and-unchanged-prefill
+live_gemian_tuple=d9,d0,c0
+live_gemian_evidence=results/gemian-da9214-live-dump-reconciliation-20260727.txt
+
+Serviceability after probe
+--------------------------
+i2c6_transfer_attempts_after=6
+i2c6_dma_starts_after=6
+i2c6_nonzero_starts_after=6
+i2c6_irq_count_after=6
+i2c6_clock_validation_failures_after=0
+handoff_state_after=ready
+handoff_faults_after=0
+cpu_online_after=0-7
+usb0_after=carrier-1-operstate-up
+console_after=owner-not-yet-reported
+physical_keyboard_after=not-tested
+automatic_reboot=no
+storage_access=none
+
+Decision
+--------
+decision=preserve-userspace-zero-observation-and-test-rx-overwrite
+direct_0x69_transport=completed-six-bounded-transactions
+expected_d9_d0_c0_signature=not-reported-by-cassini-userspace
+da9214_identity_claim=not-established
+regulator_binding_or_operations=none
+a72_activation=none
+next_action=Photon-repeat-exact-six-wire-transactions-with-distinct-nonzero-rx-prefill-sentinels
+
+Native reboot and post-return evidence
+--------------------------------------
+reboot_binary_sha256=3f439dbb0572b0f6f463c168d5b795dc93c9f41efd096f2154bd7f6b8524a2f7
+native_reboot_requests=1
+native_reboot_dispatch=/bin/reboot
+native_reboot_method=busybox-reboot-no-sync-force
+native_reboot_command_returned=no
+usb_interface_disappeared=yes
+returned_os=Gemian
+returned_kernel=3.18.41+
+returned_root=/dev/mmcblk0p29
+candidate_boot_id_sha256=2fa9109c02ebad780d3544ca538dea16e29763e7cdbc97ebf85454db387a6783
+returned_boot_id_sha256=9b46c7db0bfc4b473034a2b9d45a905e71eae4e94edb6e4bc4423bedb439e3f4
+boot_id_changed=yes
+pstore_capture=artifacts/device-pstore/candidate-cassini-attempt1-post-reboot-20260727T131000Z
+pstore_capture_wait_for_cycle=no
+pstore_cycle_binding=separate-live-USB-disconnect-and-changed-boot-ID-observation
+pstore_console_size=65524
+pstore_console_sha256=83fc5c3b3096c9a1cf0f8b19e402eed27498e9dde41f7a759aaf5a6cab91b1d7
+pstore_manifest_sha256=52f16c737985a48a653fcad6e6d5c4cb0f046a0f76e205d6a125111a5e4a8c45
+pstore_kernel_identity=present
+pstore_probe_prefix_and_ratelimit_notice=present
+pstore_native_reboot_request=present
+post_return_logical_boot2=/dev/mmcblk0p30
+post_return_boot2_size=16777216
+post_return_boot2_active_root=no
+post_return_boot2_mounted=no
+post_return_boot2_swap=no
+post_return_boot2_holders=no
+post_return_boot2_read_only_sha256=febe4d44b14b899cb357fae1b3ecda9bdb687c0c3e1f9e4b3cee30bc04f13cf1
+post_return_boot2_matches_installed_candidate=yes
+native_reboot_result=passed

@@ -1,0 +1,88 @@
+Candidate Orion runtime attempt 1
+=================================
+
+status=booted-serviceable-i2c6-probe-einval-diagnostic-not-run
+date=2026-07-27
+device=named-Gemini-PDA-unit
+kernel_release=7.1.3-gemini-orion
+boot_id_sha256=7773770d5e720015ef4b6daea1c88e1932faeac198cda35633ad7109342f9672
+cmdline_identity=exact-Orion
+i2c6_compatible=mediatek,mt6797-idvfs-i2c
+cpu_online=0-7
+cpu_offline=8-9
+usb_gadget_shell=working
+
+Boot observation
+----------------
+
+Orion reached its console and USB-only root shell. The DVFSP access-controller
+consumer initially deferred with `-EPROBE_DEFER` while its supplier performed
+the intentional 45-second late validation. At approximately 48.1 seconds:
+
+- the handoff supplier entered `ready`;
+- its consumer-held and consumer-cleanup clock validations passed;
+- the I2C6 probe then failed with `-EINVAL`;
+- `/sys/bus/platform/devices/1100e000.i2c/driver` was absent;
+- the driver-specific `handoff_status` attribute was absent.
+
+No I2C6 hardware conclusion follows from this attempt because the adapter was
+removed before any transfer.
+
+One-shot disposition
+--------------------
+
+The first host collector invocation failed locally while expanding its remote
+program because its placeholder check also matched intentional transcript
+markers. It did not create an output directory, connect to the device, mount
+debugfs, create a guard, or write the diagnostic.
+
+After that host-only bug was fixed and its new regression passed, the collector
+made one connection. The remote pre-trigger program exited before emitting its
+gate marker because the unbound I2C6 device had no `handoff_status` attribute.
+It never mounted debugfs or reached the trigger. A separate read-only check
+proved:
+
+invocation_guard=absent
+i2c6_driver=unbound
+i2c6_handoff_status=absent
+diagnostic_debugfs_file=never-created
+diagnostic_write_count=0
+hardware_transfer_count=0-by-construction
+collector_retry_on_this_boot=no
+
+Private raw evidence
+--------------------
+
+private_capture_directory=artifacts/runtime-captures/orion-one-shot-20260727T210500Z
+raw_transcript_size=2223
+raw_transcript_sha256=325fec71d76aa6019b9f0b93ad5f356b90833af294da102e0aff4659e590709a
+raw_stderr_size=1
+raw_stderr_sha256=01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
+raw_files_mode=0600
+raw_address_bearing_lines_committed=no
+
+Attributable root cause
+-----------------------
+
+The exact Orion build reaches `mtk_i2c_orion_init()` only after
+`i2c_add_adapter()` and both successful handoff clock checks. Its only
+Orion-specific `-EINVAL` then compares:
+
+`of_node_full_name(i2c->dev->of_node)` against `/i2c@1100e000`.
+
+In the pinned Linux 7.1.3 source, `populate_node()` assigns
+`device_node.full_name` directly from `fdt_get_name()`. For this root child the
+stored value is therefore the bare node name `i2c@1100e000`, not the absolute
+path. The comparison deterministically fails and the error path removes the
+adapter. The boot DT itself still contains the intended root-level I2C6 node
+and validated access-controller relationship.
+
+Next decision
+-------------
+
+Use `of_find_node_by_path("/i2c@1100e000")`, compare the returned node pointer
+to the probed node, and release the reference with `of_node_put()`. Retain the
+special-compatible and non-null handoff checks. Give each failed identity check
+an attributable error message. A next boot can then distinguish successful
+I2C6 binding from a new failure and, only after all preconditions pass, run the
+fixed FIFO/DMA diagnostic exactly once.

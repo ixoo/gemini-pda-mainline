@@ -5,10 +5,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-25-emmc-development` |
-| Status | `running` |
+| Status | `completed; eMMC enumeration and guarded boot2 read/write passed; primary boot remained protected` |
 | Subsystem | MediaTek MT6797 eMMC host and block layer |
 | Device variant | Gemini PDA, named device under test |
-| Date(s) | 2026-07-25 |
+| Date(s) | 2026-07-25 to 2026-07-26 |
 | Investigator(s) | Codex and device owner |
 | Tracking issue | — |
 
@@ -97,6 +97,12 @@ regulator and repeated `-EPROBE_DEFER` from `11230000.mmc`. AW adds the wrapper
 driver and passed the read-only boot test: `1000d000.pwrap` and its MT6351
 child returned success, `11230000.mmc` returned success, and `mmcblk0` appeared.
 
+The exact 16 MiB primary Gemian boot image was later copied from read-only
+`boot` to GPT-resolved, inactive `boot2`, synchronized, block-flushed, and read
+back in full with a matching checksum. This closes the bounded development
+read/write gate for `boot2`; it does not establish broad eMMC reliability,
+filesystem safety, suspend/resume, or permission to write another partition.
+
 ## Follow-up
 
 Candidate AU booted successfully with all eight CPUs and the USB shell, but
@@ -109,9 +115,8 @@ contract. AW booted with the expected configuration and exposed the named
 VEMC (`regulator.18`) and VIO18 (`regulator.24`) rails; no MMC probe defer was
 observed.
 
-This enables a no-Gemian development loop. The next step is a helper
-`--dry-run` audit against the live GPT; it does not authorize arbitrary
-partition writes.
+This enables a no-Gemian development loop for explicitly guarded `boot2`
+operations. It does not authorize arbitrary partition writes.
 
 An owner-requested attempt to copy AW to the primary `boot` partition was
 rejected by the eMMC path. Mainline and Gemian vendor writes returned a zero
@@ -120,3 +125,7 @@ userspace status but left p22 unchanged; Gemian's kernel logged
 but primary-boot writes require a separate investigation of the vendor
 write-protection contract. See
 `results/aw-to-primary-boot-protected-20260726.txt`.
+
+The experiment is closed at this boundary. Storage stress, filesystem use,
+suspend/resume, and the protected primary-boot policy require separate
+experiments.

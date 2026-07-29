@@ -1,0 +1,14 @@
+validation=vega-attempt-3-exact-mixed-final
+classification=complete-attributable-unexpected-mixed-outcome
+physical_transfers=9
+software_completions=9
+validated_receives=6
+packed_fifo_successes=3
+packed_dma_successes=3
+auxiliary_dma_successes=0
+auxiliary_controller_complete_apdma_rx_incomplete=3
+adapter_retries=1,0,1
+packed_fifo_tuple=d9,d0,c0
+packed_dma_tuple=d9,d0,c0
+aux_dma_cpu_tuple=00,00,00
+aux_dma_transfer_len_aux=0000

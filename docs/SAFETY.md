@@ -55,6 +55,8 @@ Before uploading, remove:
 - Wi-Fi credentials;
 - filesystem UUIDs when they identify personal media;
 - keys, tokens, crash dumps containing user memory, and partition contents.
+- personal absolute host paths that expose usernames; use repository-relative
+  paths or neutral role placeholders in published commands.
 
 State what was redacted so another contributor does not mistake missing fields for device behavior.
 

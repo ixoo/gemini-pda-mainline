@@ -1,0 +1,136 @@
+Candidate Voyager exact hardware result
+=======================================
+
+status=completed-split-pointer-echo
+date=2026-07-27
+device_variant=named-gemini-pda-unit
+invocations=1
+retry=none
+raw_capture=private-git-ignored
+raw_capture_mode=0600
+raw_capture_size=25759
+raw_capture_sha256=aae3626d0cbd5275908ff2aaa3f9507709c591b2a0aa2bd996ca0ccf4c46adc1
+exact_runner_validation=passed
+sanitization=host-interface-service-banner-and-unrelated-identifiers-omitted
+
+Runtime attribution
+-------------------
+
+boot_id=cdd23c48-0bd3-4980-95c8-5e054be860d9
+kernel_release=7.1.3-gemini-cassini
+configuration_sha256=83c85429cdcb7d66cb96df2c9005456afd67fc5c7dbfe5d76e9879bf45c1759b
+voyager_helper_sha256=1a2a141a376661557610f2dd37b10a6a2da620cdbc35eab24b58129552adcd3e
+voyager_helper_size=537584
+prior_kepler_capture_sha256=43127dc409bfea80dbb7a7bccd8be2727aafa040207c3f5acd8df54f24b61ef6
+prior_kepler_result=split-stable-other
+prior_kepler_post=05,05
+prior_kepler_guard=mode0400-root-root
+i2c6_adapter=i2c-1
+i2c6_of_suffix=/i2c@1100e000
+i2c6_clients=0
+cpu_online_pre=0-7
+cpu_offline_pre=8-9
+nproc_pre=8
+handoff_pre=ready
+usb_link_pre=up
+udc_pre=configured
+
+Exact transaction observation
+-----------------------------
+
+i2c_address=0x69
+pairs=2
+ioctl_calls=4
+messages_per_ioctl=1
+stop_between_pointer_and_read=datasheet-valid
+pair1_pointer=06
+pair1_prefill=3c
+pair1_tx_result=1
+pair1_tx_errno=0
+pair1_rx_result=1
+pair1_rx_errno=0
+pair1_post=06
+pair2_pointer=47
+pair2_prefill=a6
+pair2_tx_result=1
+pair2_tx_errno=0
+pair2_rx_result=1
+pair2_rx_errno=0
+pair2_post=47
+post_diff_mask=0x03
+completed_pairs=2
+completed_calls=4
+result_class=split-pointer-echo
+probe_rc=2
+
+Pre/post invariants
+-------------------
+
+transfer_attempts=10->14
+dma_starts=10->14
+nonzero_starts=10->14
+irq_count=10->14
+boot_id=unchanged
+cpu_online=0-7->0-7
+cpu_offline=8-9->8-9
+nproc=8->8
+handoff=ready->ready
+usb_link=up->up
+udc=configured->configured
+clock_validation_failures=0->0
+suspend_checks=0->0
+resume_checks=0->0
+resume_failures=0->0
+
+One-shot and forbidden scope
+----------------------------
+
+volatile_transfer=passed
+helper_mode_during_invocation=0500-root-root
+invocation_guard_created_before_exec=yes
+invocation_guard_after_exec=0400-root-root
+helper_removed_after_return=yes
+persistent_storage_access=none
+partition_or_slot_access=none
+watchdog_access=none
+reboot_shutdown_poweroff=none
+cpu_control_write=none
+regulator_control=none
+devmem_access=none
+page_con_access=none
+
+Observation
+-----------
+
+Both protocol-valid split reads returned success and replaced distinct RX
+prefills with their respective preceding TX pointers:
+
+`3c -> 06` and `a6 -> 47`.
+
+All four I2C6 counters advanced exactly by four while the boot ID, CPU set,
+handoff, and USB service state remained unchanged.
+
+Analysis
+--------
+
+The exact per-pair pointer correlation proves that a hardware-visible write
+replaced each RX prefill with its immediately preceding TX pointer. It
+strongly favors controller/APDMA TX-pointer residue but does not identify the
+physical writer. The datasheets explicitly permit the second START after
+STOP, so the result is not explained by an invalid split-read protocol.
+
+The result does not locate the defect within FIFO state, APDMA direction,
+address or length programming, or completion/coherency. It does establish a
+stronger boundary than counters alone: two distinct pointer bytes appeared in
+the corresponding RX buffers.
+
+The expected DA9214 live tuple `d0,c0` was not observed. Values `06,47` are
+pointer residue, not DA9214 register contents.
+
+Conclusion
+----------
+
+confirmed=pointer-correlated-hardware-write-reached-rx-memory
+not_confirmed=da9214-register-values,exact-controller-apdma-defect
+next_step=write-read-bounce-buffer-differential-then-short-fifo-correction
+repeat_same_probe=no

@@ -1,0 +1,80 @@
+Experiment: Candidate Cassini — bounded DA9214 secondary-address reads
+Date: 2026-07-27
+Device: Gemini PDA, named unit
+Runtime result: not tested
+
+Selected candidate
+------------------
+kernel_release=7.1.3-gemini-cassini
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=9b31918e7339ce727d56e60a8b74dae0b5a1f74d1ab1d9fe05b5b667d58f0287
+config_sha256=83c85429cdcb7d66cb96df2c9005456afd67fc5c7dbfe5d76e9879bf45c1759b
+probe_source_sha256=18a9609421d870566d3e8891ffbc902077ac7ac5f5aee9069071d2a573cfb016
+probe_binary_sha256=30073f6ea7d0b57d3654ece5c6212da1c94ff4d24514b62d07331136a4efaf0e
+raw_boot_size=7645184
+raw_boot_sha256=e02e2673ca054d3e4081f5234d26a394617777e8496417fd75196a948d55fa4d
+padded_boot2_size=16777216
+padded_boot2_sha256=febe4d44b14b899cb357fae1b3ecda9bdb687c0c3e1f9e4b3cee30bc04f13cf1
+artifact_manifest_sha256=0d1a954827f5ebd31abc12b4d0a207105c5e270403a9b3a66cbd70626e5b2306
+installer_sha256=3cd396d88b9ff70a0ffbeff0782d3eb1abdbdebba478c36d0d5c78aabbf9b7eb
+
+Reproducibility and validation
+------------------------------
+independent_kernel_packages=2
+kernel_boot_bearing_bytes=identical
+normalized_kernel_provenance=identical
+independent_candidate_trees=2
+candidate_boot_bearing_bytes=identical
+only_normalized_delta=kernel-package-generated_utc
+standard_kernel_validation=passed
+cassini_package_validation=passed
+lk_android_v0_gate_count=32
+probe_initramfs_dtb_validation=passed
+negative_mutation_contracts=passed
+
+Install safety gates
+--------------------
+os_before_write=Gemian-3.18.41+
+root_before_write=/dev/mmcblk0p29
+logical_label=boot2
+resolved_target=/dev/mmcblk0p30
+target_bytes=16777216
+target_mounted=no
+target_active_root=no
+target_read_only=no
+target_swap=no
+target_holders=no
+battery_policy=present-health-Good-capacity-81..100
+power_before_write=ac-0-usb-0-present-1-status-Not-charging-capacity-96-health-Good
+external_power_required=no
+expected_previous_label=Pioneer-installed-readback-verified
+expected_previous_sha256=c02244700fcd41a9b6a2d70e90ae2b83276f9dcdd843329643a3d9ced454779d
+
+Transfer observation
+--------------------
+initial_attempt_result=failed-closed-during-pre-write-backup-stream
+initial_partial_backup_bytes=4866048
+initial_hardware_write_reached=no
+predecessor_revalidated_after_failure=yes
+initial_private_evidence=artifacts/device-partitions/candidate-cassini-boot2-20260727T130300Z
+retry_private_evidence=artifacts/device-partitions/candidate-cassini-boot2-20260727T130300Z-retry1
+
+Verified installation
+---------------------
+result=write-synced-flushed-full-readback-verified
+backup_sha256=c02244700fcd41a9b6a2d70e90ae2b83276f9dcdd843329643a3d9ced454779d
+remote_post_flush_sha256=febe4d44b14b899cb357fae1b3ecda9bdb687c0c3e1f9e4b3cee30bc04f13cf1
+local_readback_sha256=febe4d44b14b899cb357fae1b3ecda9bdb687c0c3e1f9e4b3cee30bc04f13cf1
+local_readback_stream_bytes=16777216
+full_partition_cmp=exact
+remote_staging_removed=yes
+evidence_manifest_sha256=cc4f348f9129d1bca31471e18e018f9cf2629fa628410c80c67cbf8ce5a88853
+hardware_write=logical-boot2-only
+primary_boot_written=no
+boot3_written=no
+gpt_written=no
+whole_device_written=no
+installer_reboot_or_shutdown_performed=no
+handoff_poweroff=issued-after-install-verification
+post_poweroff_ssh=connection-refused
+runtime_result=not-tested

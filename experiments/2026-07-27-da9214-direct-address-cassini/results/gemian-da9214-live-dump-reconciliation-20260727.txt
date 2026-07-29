@@ -1,0 +1,125 @@
+Gemian DA9214 live-dump and Cassini RX reconciliation
+=====================================================
+
+status=completed-static-reconciliation
+hardware_transition=not-run
+device_variant=named Gemini PDA unit
+date=2026-07-27
+
+Question
+--------
+
+Are the expected `d9 d0 c0` page-2 values real live Gemian observations, and
+does Cassini's userspace `00 00 00` report prove that zero bytes arrived from
+the device?
+
+Private evidence provenance
+---------------------------
+
+Two independent retained Gemian boot logs contain the same DA9214 probe and
+page-2 dump. They remain Git-ignored private evidence; this record contains
+only sanitized hardware observations and cryptographic provenance.
+
+1. `artifacts/device-inventory/20260716-rebootdiag-postboot/rebootdiag-postboot-raw.txt`
+   SHA-256:
+   `ea2955498ffc3dc51de677f037a410e7bb58a94a79a1a42f80d22ae64235c433`
+2. `artifacts/runtime-captures/gemian-a72-readonly-attempt-2-20260723.txt`
+   SHA-256:
+   `f741d119a378c287663df5dd5453abdc8be656ecd36e539678eb6ad27266868c`
+
+The exact active primary-Gemian boot partition used for the binary
+reconstruction is independently recorded in
+`experiments/2026-07-22-a72-firmware-power-contract/results/active-gemian-boot-binary-audit-20260726.txt`:
+
+  full_boot_partition_sha256=1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513
+  kernel_field_sha256=b53d191dc41d3f7364b0fa62b4bc920b1d013a1942b2e6b06727263fc56fcf4d
+  reconstructed_vmlinux_sha256=cc66df06194d3315335462760962165e1dcb2e50221574aeb45a0805bb17a162
+  private_vm_workspace=/home/julien.guest/reverse-engineering/work/gemian-boot-primary-20260726/
+
+No private boot image, binary, source dump, full log, serial, credential, or
+other personal/device identifier is copied into Git.
+
+Live Gemian observations
+------------------------
+
+Both retained boot logs report:
+
+  i2c_controller=6
+  i2c_frequency_hz=3400000
+  da9214_component_detect_exist=1
+  register_0x105_high_nibble=d
+  page2_wire_offset_0x05=d9
+  page2_wire_offset_0x06=d0
+  page2_wire_offset_0x47=c0
+  da9214_driver_ready=1
+
+The tuple `d9 d0 c0` is therefore a repeated live observation from the named
+Gemini, not an inferred or cached expected value.
+
+Both retained boot logs also contain the same primary page-0/page-1 dump:
+
+  primary_wire_offset_0x5e=00
+  primary_wire_offset_0xd3=1f
+  primary_wire_offset_0xd9=46
+  primary_wire_offset_0xda=46
+
+This is a repeated cross-boot Gemian observation.  It does not by itself
+identify the exact DA9213/DA9214/DA9215 variant or prove which earlier
+firmware, OTP, or software stage established the values.
+
+Exact active-binary PAGE_CON correction
+---------------------------------------
+
+The reconstructed active binary calls:
+
+  da9214_config_interface(0x00, 0x01, 0x01, 7)
+  da9214_config_interface(0x00, 0x02, 0x0f, 0)
+  da9214_read_byte(0x05)
+
+`da9214_config_interface` is a read-modify-write helper. The first call sets
+PAGE_REVERT in bit 7. The second call's immediate value is `0x02`, but it
+replaces only the low nibble and preserves bit 7; the final second PAGE_CON
+write is therefore `0x82`. It is not a literal `0x02` wire write. This
+supersedes the earlier wording in the active-binary audit.
+
+Cassini RX-buffer ambiguity
+---------------------------
+
+Cassini's exact helper declares:
+
+  uint8_t values[CASSINI_PASSES][CASSINI_REGISTER_COUNT] = {{0U}};
+
+Each receive byte therefore starts as zero. Static inspection of the exact
+Linux 7.1.3 paths shows that i2c-dev duplicates the userspace receive buffer
+for `I2C_RDWR` and copies it back after a nonnegative transfer result; the
+MT65xx controller maps that receive buffer for DMA from the device. Cassini's
+six successful ioctl returns, six DMA starts, and six IRQs establish bounded
+transaction completion, but do not independently prove that receive DMA
+overwrote the initial byte.
+
+Consequently:
+
+  cassini_userspace_report=00,00,00-twice
+  cassini_receive_prefill=00-for-each-byte
+  receive_dma_overwrite=unproven
+  received_zero_bytes=unproven
+  live_gemian_tuple=d9,d0,c0
+  da9214_identity_from_cassini=not-established
+
+Next decision gate
+------------------
+
+Candidate Photon r2 must retain Cassini's exact kernel, DT, configuration,
+address, register order, transaction shape, transfer count, and fail-closed
+CPU/regulator boundary. Its only decision-changing hardware delta is to set a
+distinct nonzero receive prefill immediately before each of the same six
+transactions and preserve objective prefill/post-ioctl comparisons.
+
+  post_diff_mask=0x00=all-six-post-bytes-equal-their-prefills
+  post_diff_mask=0x3f-and-post-all-zero=all-six-post-bytes-zero-and-different-from-prefills
+  post=d9,d0,c0,d9,d0,c0=direct-secondary-address-observation-gate-met
+  mixed-post-or-ioctl-result-not-two=preserve-and-stop
+  device-controller-dma-causal-source=not-inferred-by-this-test
+
+No regulator provider, voltage operation, CPU8 request, or A72 power sequence
+is authorized until this paired pre/post gate is resolved.

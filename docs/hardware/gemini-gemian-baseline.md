@@ -8,7 +8,8 @@ component works on the repository's current upstream kernel.
 
 | Field | Value |
 | --- | --- |
-| Observation date | 2026-07-11 baseline; read-only reruns 2026-07-13 and 2026-07-14 |
+| Observation date | 2026-07-11 baseline; bounded read-only vendor follow-ups through 2026-07-27 |
+| Mainline comparison last reviewed | 2026-07-28 |
 | Device access | Owner-authorized read-only SSH collection on a private LAN |
 | OS | Debian GNU/Linux 9 (stretch), Gemian userspace |
 | Kernel | `3.18.41+`, build `#7 SMP PREEMPT Fri Mar 29 10:39:03 GMT 2019` |
@@ -17,7 +18,7 @@ component works on the repository's current upstream kernel.
 | Root compatible | `mediatek,MT6797` |
 | Device variant | Installed Android image identifies `Gemini 4G`; physical SKU not independently established |
 | Collector | [`collect.sh`](../../experiments/2026-07-11-gemian-hardware-inventory/scripts/collect.sh) |
-| Experiment record | [2026-07-11 Gemian hardware inventory](../../experiments/2026-07-11-gemian-hardware-inventory/README.md); [2026-07-13 live inventory rerun](../../experiments/2026-07-11-gemian-hardware-inventory/results/live-inventory-rerun-20260713.txt); [2026-07-14 live runtime snapshot](../../experiments/2026-07-14-first-boot-probe-audit/results/live-runtime-snapshot-20260714.txt); [2026-07-14 corrected vendor runtime capture](../../experiments/2026-07-13-mainline-handoff-closure/results/vendor-baseline-runtime-20260714.txt); [battery-recovery runtime capture](../../experiments/2026-07-13-mainline-handoff-closure/results/vendor-baseline-battery-recovery-20260714.txt); [vendor-to-mainline gap audit](../../experiments/2026-07-14-live-vendor-mainline-gap-audit/README.md); [2026-07-14 live-kernel ownership audit](../../experiments/2026-07-14-live-kernel-ownership-audit/README.md); [boot contract recovery](../../experiments/2026-07-12-boot-contract-recovery/README.md) |
+| Experiment record | [2026-07-11 Gemian hardware inventory](../../experiments/2026-07-11-gemian-hardware-inventory/README.md); later captures and reconciliations are indexed in [`experiments/`](../../experiments/README.md) |
 
 The implementation-facing register, IRQ, clock, storage, M4U, display, GPU,
 and USB details are maintained in the
@@ -37,9 +38,9 @@ absent, while the selected vendor paths are built into the image. This matters
 for the replacement boundary: a Linux 7.1.3 module file is not equivalent to a
 vendor-owned runtime path until a rootfs loads it and a device probes. The
 symbol/config comparison and exact private-capture hashes are recorded in the
-[current 72-patch live-kernel ownership audit](../../experiments/2026-07-14-live-kernel-ownership-audit/results/live-kernel-ownership-current-72-package-20260714.txt);
-the [historical package result](../../experiments/2026-07-14-live-kernel-ownership-audit/results/live-kernel-ownership-20260714.txt)
-is retained for provenance.
+[dated live-kernel ownership audit](../../experiments/2026-07-14-live-kernel-ownership-audit/README.md);
+that audit is evidence for this vendor boundary, not current package
+authority.
 The owner-authorized post-reboot baseline is summarized in
 [`vendor-baseline-postreboot-20260714.txt`](../../experiments/2026-07-13-mainline-handoff-closure/results/vendor-baseline-postreboot-20260714.txt);
 its private raw capture remains mode 0600 and Git-ignored.
@@ -63,8 +64,10 @@ Confidence in this document has a deliberately narrow meaning:
 | --- | --- | --- |
 | MediaTek MT6797/Helio X20-family platform | `observed` | Root compatible `mediatek,MT6797`; vendor kernel config `CONFIG_MTK_PLATFORM="mt6797"` |
 | 8 Cortex-A53 plus 2 Cortex-A72 CPUs described | `observed` | Ten CPU DT nodes: eight ARM part `0xd03`, two part `0xd08` |
-| The online CPU mask is time-dependent; the latest corrected 2026-07-14 capture reported `0-2` while possible/present remained `0-9` (the prior post-reboot read reported `0-1`; an earlier read reported `0-1,4`) | `observed` | `/sys/devices/system/cpu/{online,possible,present}` in the private vendor baseline |
+| The Gemian online mask is policy-driven; a 2026-07-21 read-only capture moved naturally from CPUs `4-5` to `0-1` and then CPU0 alone while possible/present remained `0-9` | `observed` | [Gemian CPU/scheduler policy experiment](../../experiments/2026-07-21-gemian-cpu-scheduler-policy/README.md) |
 | Boot command line constrained the system to five CPUs | `observed` | Sanitized boot arguments contained `maxcpus=5` |
+| Vendor topology is three clusters: CPUs 0–3, 4–7, and 8–9 | `confirmed` software topology | HMP domains and independent PPM roots in the policy capture |
+| Gemian uses downstream HMP/HMP+ with MediaTek HPS, PPM, private DVFS, and EEM rather than EAS | `confirmed` software policy | Running configuration, policy surfaces, and scheduler features |
 | Online cores used the vendor `mt-cpufreq` driver | `observed` | CPU0 cpufreq sysfs |
 | CPU0 range was 221 MHz to 1.547 GHz | `observed` | `cpuinfo_min_freq=221000`, `cpuinfo_max_freq=1547000` kHz |
 | GICv3 and ARMv8 architectural timer | `observed` | DT compatible nodes and live interrupts |
@@ -73,102 +76,71 @@ Confidence in this document has a deliberately narrow meaning:
 | Architectural counter and clockevent | `observed` | 2026-07-13 capture: `arch_sys_counter`, `arch_sys_timer`, `arm,armv8-timer`, four GIC PPIs, 13 MHz frequency |
 | Approximately 3.68 GiB usable RAM | `observed` | `MemTotal: 3860680 kB` |
 
-The CPU observation does not establish why only a subset of cores were online. The boot
-limit, thermal/hotplug policy, and vendor power-management behavior are all
-possible contributors and need a controlled experiment. The newer bounded
-capture also found a downstream reporting contradiction: its global online mask
-and `/proc/cpuinfo` briefly disagreed with per-CPU flags and `/proc/stat`, while
-separate reads returned `0-1` and the latest battery-recovery snapshot returned
-`0-2`. Treat the online count as time-dependent until a mainline boot verifies
-it. See the [CPU/PSCI/timer recovery experiment](../../experiments/2026-07-13-cpu-psci-timer-recovery/README.md).
+The 2026-07-21 policy capture explains the changing Gemian masks as active
+vendor hotplug policy layered on top of `maxcpus=5`; HPS can collapse the
+system to CPU0 at idle. Its algorithm-local counts advance even when a hotplug
+call fails, so historical HPS tuples do not prove simultaneous execution by
+all ten CPUs. One later bounded observation separately saw CPU8 online and
+offline; CPU9 and an all-ten simultaneous mask remain unconfirmed.
 
-The independent bsg100 Linux 6.6 boot record adds a runtime warning: standard
-PSCI brought up CPU1 through CPU7, while CPU8 (the first Cortex-A72) blocked in
-`CPU_ON`; a diagnostic `maxcpus=8` boot reached all A53 cores. Candidate AD has
-now reproduced that boundary on the named unit under Linux 7.1.3: CPU0–7 booted
-online and advanced while CPU8/9 remained offline. Corrected Candidate AI kept
-generic PSCI for that proven path and assigned CPU8/9 a fail-closed method; its
-exact baseline runtime, readable console, native reboot, changed-Gemian return,
-and post-cycle `boot2` integrity passed with CPU8/9 unrequested. Exact Candidate
-AK attempt 1 then retained `online=0-7` and `offline=8-9`, advancing CPU0–7
-accounting, and a 45-plus-5-second stability window. It recorded exactly one
-CPU8 gate rejection and one CPU8 `-11`, followed in order by exactly one CPU9
-gate rejection and one CPU9 `-11`; neither A72 made a secondary transition and
-no other fault signature appeared. The owner attested that the console was
-readable, although no console capture was recorded. One native reboot request
-disconnected USB, returned to a distinct-boot-ID known-good Gemian, and left
-the full post-return `boot2` hash matching exact AK. These are separate
-runtime, native-reboot, changed-Gemian-return, and post-return gates, not a
-paired cycle observation (`paired_cycle_observer=no`). Both fail-closed
-dispatch controls passed, but CPU8 and CPU9 remained offline and no
-Cortex-A72 support claim is established.
-See the [normalized cross-check](../../experiments/2026-07-13-cpu-psci-timer-recovery/results/bsg100-cpu-psci-crosscheck-20260714.txt),
-[Candidate AD](../../experiments/2026-07-21-smp8-boot-diagnostic/README.md),
-[Candidate AI](../../experiments/2026-07-22-a72-reject-gate-kernel-split/README.md),
-and [AK attempt 1](../../experiments/2026-07-22-a72-reject-cpu9-request/results/hardware-attempt-1-20260723.txt).
+Do not transplant Gemian's HMP/HPS/PPM policy. The transferable fact is the
+three-cluster topology. Its source-derived capacity values are policy inputs,
+not measurements, and must not become mainline `capacity-dmips-mhz` data.
+Generic `cpu-map`, capacity, OPP/cpufreq, energy-model, idle, and thermal work
+remain independent gates. See the
+[Gemian CPU/scheduler policy experiment](../../experiments/2026-07-21-gemian-cpu-scheduler-policy/README.md).
 
-The separate offline firmware/power audit assigns DA9214 BUCKB, temporary
-TOPRGU PWRAP reset, MP2 reset release, external-isolation preparation, the
-SRAM-LDO request, and post-success DCM to Linux. Captured secure firmware owns
-initial B PLL/mux/divider, MP2/core MTCMOS/reset, internal bus protection, and
-CCI admission. SRAM-LDO needs independent readback, and no safe inverse/off
-path is proven. Draft patch 0093 therefore remains unsafe and unselected. A
-bounded non-mutating Gemian userspace observer completed 180 one-second
-samples, but saw no natural A72 transition. It retained only the serialized
-DA9214 `0xd9` callback value, cached B rate, and unprotected derived CCI rate;
-it could not expose synchronized DA9214 page/enable, SPM, TOPRGU, secure
-register, DVFSP-locked clock, or MP2 DCM state. A later bounded two-worker
-pulse directly observed CPU8 online and then offline, but its sequential
-observer still missed the transaction. Candidate AL tested the mainline
-I2C6/DA9214 resource-only predecessor without requesting either A72. I2C6 and
-the exact `0x68` client appeared, but the upstream DA9211-family probe read
-unsupported ID `0x0`, left the client unbound, and registered neither
-regulator. Candidate AN then retained I2C6 disabled and sampled only CSPM and
-the infracfg I2C_APPM gate. Its exact `boot2` runtime kept CPU0–7 advancing and
-CPU8/9 offline; three measurements had identical register payloads and were
-otherwise reset-like, but I2C_APPM was ungated. Both the kernel and independent
-classifier therefore returned `unknown`. This does not establish Linux
-ownership or authorize a DA9214 transaction. Exact-active-binary recovery then
-proved that vendor stop is reversible and that `SEMA_I2C_DRV` is a DVFSP pause
-source, not a hardware semaphore. Normal-running DVFSP, each I2C6 transaction,
-and enabled A72 iDVFS share distinct references to the same I2C_APPM CCF core.
-The exact retained LK/TEE/SCP audit found no direct PCM restart writer, while
-ATF remains a keyed CSPM `+0`/secure-semaphore writer and an SCP-local alias
-remains unexcluded. Candidate AO then passed one exact named-unit receiver-side
-normalization: all six samples retained Candidate AN's stopped PCM signature;
-I2C_APPM was ungated through one held CCF reference, gated after one balanced
-disable, and still gated at 45 seconds. The independent classifier agreed with
-one attempt, one enable, one disable, one late check, and zero faults. I2C6
-remained disabled and no DA9214 or A72 activity occurred. This is a
-boot-bounded handoff result, not a global firmware exclusion or consumer,
-regulator, CPU, or resume authorization. Candidate AP then enabled only
-childless I2C6 behind an exact access-controller dependency. It reached one
-supplier grant after the late check, but I2C_APPM regated while AP_DMA remained
-valid and ungated in all 32 cleanup samples. The provider faulted closed and
-I2C6 returned `-EIO` before binding an adapter or issuing a transfer. AP's
-initial samples already had AP_DMA ungated, unlike this document's
-context-only Gemian sample; enabled AP UART0 and I2C5 also reference that
-shared gate. These are ownership clues, not attribution to a specific
-consumer. Candidate AM, the first active CPU8 experiment, remains HOLD pending
-an attributable AP_DMA ownership observation, a baseline-preserving I2C6
-cleanup contract, corrected regulator prerequisite, separate resume
-validation, and that owner-synchronized power-state contract.
-See the
-[A72 firmware/power contract](../../experiments/2026-07-22-a72-firmware-power-contract/README.md),
-[load-assisted CPU8 observation](../../experiments/2026-07-23-gemian-a72-load-assisted-observation/results/live-attempt-1-20260723.txt),
-[Candidate AL runtime](../../experiments/2026-07-23-da9214-resource-only/results/runtime-candidate-al-attempt-1-20260723.txt),
-[Candidate AN runtime](../../experiments/2026-07-24-mt6797-dvfsp-handoff-observer/results/runtime-candidate-an-validated-20260724.txt),
-[exact arbitration recovery](../../experiments/2026-07-24-mt6797-dvfsp-i2c6-arbitration/README.md),
-and the
-[Candidate AO runtime](../../experiments/2026-07-24-mt6797-dvfsp-one-way-handoff/results/runtime-candidate-ao-validated-20260724.txt),
-plus the
-[Candidate AP hardware result](../../experiments/2026-07-24-mt6797-dvfsp-i2c6-consumer/results/candidate-ap-hardware-20260724.txt).
+Independent mainline boots establish a narrower CPU boundary than the vendor
+baseline. The boot CPU plus generic PSCI bring CPU0–7 online and keep them
+advancing. CPU8 and CPU9, the two Cortex-A72 CPUs, are assigned a fail-closed
+dispatch method and remain offline; no Cortex-A72 support claim follows from
+the working eight-CPU topology.
+
+Offline review of the vendor power sequence describes the following ownership
+split:
+
+| Owner | Described operations | Boundary |
+| --- | --- | --- |
+| Linux | DA9214 BUCKB, temporary TOPRGU PWRAP reset, MP2 reset release, external-isolation preparation, SRAM-LDO request, and post-success DCM | SRAM-LDO readback and a safe inverse/off path are not established. |
+| Secure firmware | Initial B PLL/mux/divider, MP2/core MTCMOS/reset, internal bus protection, and CCI admission | ATF is a keyed CSPM/secure-semaphore writer; an SCP-local alias remains unexcluded. |
+
+A bounded Gemian load pulse directly observed CPU8 come online and later go
+offline. The sequential observer did not capture the synchronized regulator,
+SPM, TOPRGU, secure-register, DVFSP-clock, or MP2 DCM transition, so the event
+does not establish the complete ordering or a safe sequence that mainline can
+replay.
+
+The current mainline result is separate and deliberately limited to
+pointer-write/read transactions: the DVFSP/I2C6 handoff preserves the working
+I2C5 AP-DMA reference, the exact native packed/FIFO one-byte-pointer plus
+one-byte-read path works, and a read-only legacy
+DA9213/DA9214/DA9215-compatible board-control tuple has been observed. No
+register-data write was requested. These observations do not establish a
+regulator provider, writable-register safety, rail ownership, rollback,
+resume, or A72 power. The durable boundary is in
+[Gemini DA921x, I2C6, and Cortex-A72](da921x-i2c6-a72.md); the ordered next
+gates are owned by the [roadmap](../ROADMAP.md).
+
+Observation/inference boundary: CPU0–7 operation, CPU8/9 rejection, the
+brief Gemian CPU8 transition, and the bounded I2C6 read results were observed
+on the named unit. The vendor ownership division comes from retained source
+and binary analysis, and the compatible regulator-family conclusion is an
+inference from documented protocol plus observed bytes; neither is a unique
+silicon identification or authorization to issue a power request.
+
+Concise evidence index:
+
+- [CPU/PSCI/timer recovery](../../experiments/2026-07-13-cpu-psci-timer-recovery/README.md)
+- [A72 firmware/power contract](../../experiments/2026-07-22-a72-firmware-power-contract/README.md)
+  and [load-assisted CPU8 observation](../../experiments/2026-07-23-gemian-a72-load-assisted-observation/results/live-attempt-1-20260723.txt)
+- [DA921x/I2C6/A72 durable evidence index](da921x-i2c6-a72.md#evidence-index)
 
 ## Boot handoff and storage boundary
 
-The retained Planet LK hands Linux an Android-format boot image. The running
-`boot`, `boot2`, and `boot3` partitions were byte-identical in the private
-provenance check. The image uses a 2048-byte page, loads the kernel at
+The retained Planet LK hands Linux an Android-format boot image. At the dated
+vendor-baseline capture, `boot`, `boot2`, and `boot3` were byte-identical in
+the private provenance check; later development writes changed `boot2`. The
+captured image uses a 2048-byte page, loads the kernel at
 `0x40080000`, loads the initramfs at `0x45000000`, and carries a 130,745-byte
 DTB appended inside the kernel payload. LK supplies a chosen command line with
 `root=/dev/ram`, `maxcpus=5`, the `ttyMT0` console, Android boot-state fields,
@@ -189,12 +161,15 @@ and [live handoff summary](../../experiments/2026-07-12-boot-contract-recovery/r
 The retained Planet Android 8 LK source audit adds an important constraint:
 `bootopt=64...` selects the 64-bit branch, which gunzips the kernel and scans
 for an appended DTB; the Android header `dt_size` field is not used by that
-branch. The MT6797 platform build sets a 50 MiB decompression buffer. The
-current raw `Image` therefore had to be replaced by `Image.gz` and reduced from
-52,570,624 to 48,547,848 decompressed bytes before it could be packaged for
-this loader. The [LK source/package audit](../../experiments/2026-07-12-boot-contract-recovery/results/lk-boot-contract-audit-20260713.txt)
-records the exact source, hashes, and a private parse-complete candidate;
-acceptance and runtime boot remain untested.
+branch. The MT6797 platform build sets a 50 MiB decompression buffer. The dated
+packaging audit therefore replaced its oversized raw `Image` with `Image.gz`;
+exact sizes and hashes remain in the
+[LK source/package record](../../experiments/2026-07-12-boot-contract-recovery/results/lk-boot-contract-audit-20260713.txt).
+That record is static packaging evidence. Later non-primary `boot2`
+experiments established that LK accepts this gzip-plus-appended-DTB contract
+for local Linux 7.1.3 images on the named unit. This does not establish support
+for a raw `Image`, use of the Android header `dt_size`, or a maintained
+standard loader.
 
 The retained LK source also changes how the board DT must be modeled. With
 early-DTB loading and `MBLOCK_LIB_SUPPORT=2`, LK rewrites `/memory`, `/chosen`,
@@ -211,9 +186,10 @@ The pinned mainline board description deliberately uses the standard
 `serial0:921600n8` stdout path and Linux's 8250 MediaTek driver, which normally
 creates a `ttyS*` device rather than `ttyMT0`. Because LK rewrites the final
 `bootargs` and appends the boot-image command line after its downstream token
-mutation, the combined command line and actual console must be checked during
-the first reversible mainline boot; a downstream `console=ttyMT0` argument
-cannot be assumed to select the mainline console.
+mutation, a downstream `console=ttyMT0` argument cannot be assumed to select
+the mainline console. Later `boot2` runs captured the effective mainline
+command line and established a working loader-retained framebuffer console.
+Physical UART output itself remains unproved.
 See the [UART/console recovery experiment](../../experiments/2026-07-13-uart-console-recovery/README.md).
 
 ## SoC resources and buses
@@ -293,10 +269,49 @@ exact chip revision.
 | 4/`0x62` | `NVT-ts` | `NVT-ts` | Capacitive touchscreen | `observed` |
 | 5/`0x28` | `NFC` | unbound | NFC candidate | `described` |
 | 5/`0x5b` | `AW9523` | `AW9523` | Integrated keyboard GPIO/matrix controller | `observed` |
-| 6/`0x68` | `DA9214` | `DA9214` | CPU buck regulator | `observed` |
+| 6/`0x68` | `DA9214` | `DA9214` | Vendor-labeled CPU buck regulator; the binding is observed but is not a unique silicon identification | `observed` |
 | 7/`0x1c` | `RT5735` | `RT5735` | Regulator | `observed` |
 | 7/`0x60` | `VGPU_BUCK` | unbound | GPU buck candidate | `described` |
 | 8/`0x36` | `camera_main_hw` | generic vendor camera binding | Main-camera hardware path | `described` |
+
+### Legacy DA9214 secondary 2-WIRE address
+
+Gemian exposes a bound vendor client named `DA9214` at primary 7-bit address
+`0x68`. Two retained Gemian boot logs show successful vendor detection and the
+live page-2 byte tuple `d9,d0,c0`.
+
+The Renesas legacy DA9213/DA9214/DA9215 protocol documents pages 2 and 3 at the
+basic 2-WIRE address plus one (`0xD2`/`0xD3` from default `0xD0`/`0xD1`).
+That maps primary 7-bit address `0x68` to secondary address `0x69`; page-2
+registers `0x105`, `0x106`, and `0x147` appear at wire offsets `0x05`, `0x06`,
+and `0x47`.
+
+The current mainline conclusion is intentionally narrow. On the named unit, a
+single gated read-only invocation completed 14 fixed native transactions over
+the dedicated I2C6 packed/FIFO path. Two passes returned
+`0x69:{05=d9,06=d0,47=c0}` and
+`0x68:{d3=1f,5e=00,d9=46,da=46}` while distinct receive prefills were
+overwritten. The transfers used one-byte pointers and one-byte reads, did not
+start AP-DMA, and preserved CPU0–7, CPU8/9-offline state, DVFSP handoff, and
+USB serviceability.
+
+Observation/inference boundary:
+
+- the Gemian driver binding, retained Gemian tuple, mainline transaction
+  results, transfer shape, and preserved serviceability are observations;
+- the stable tuple plus the documented protocol supports a high-confidence
+  DA9213/DA9214/DA9215-compatible legacy-family board-control contract;
+- the tuple is not a unique silicon identifier, and neither arbitrary I2C6
+  transfers nor page writes, voltage/enable writes, rail ownership, a
+  regulator provider, rollback, resume, or Cortex-A72 power are established.
+
+The upstream DA9211/A-family probe does not match this legacy protocol. The
+first suitable implementation must therefore be a dedicated legacy-family
+driver or a genuinely separated variant with zero probe-time register-data
+writes, no regulator consumer, and no A72 request. The authoritative status
+and safety boundary are in
+[Gemini DA921x, I2C6, and Cortex-A72](da921x-i2c6-a72.md); the ordered next
+gates are owned by the [roadmap](../ROADMAP.md).
 
 ### AW9120 indicator LEDs
 
@@ -320,7 +335,7 @@ inventory label alone:
 The installed Gemian daemon version matches public
 [`gemian/gemian-leds` commit `02e0508`](https://github.com/gemian/gemian-leds/commit/02e05085e680d8be51722351a462bf3081e6aa03).
 Combined with retained Planet
-[`NotKit/kernel-3.18-geminipda` commit `c5b0be8`](https://github.com/NotKit/kernel-3.18-geminipda/commit/c5b0be85017ad0c599725e8273842efdbecdd88a),
+[`lineage-geminipda/android_kernel_planet_mt6797` commit `c5b0be8`](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/commit/c5b0be85017ad0c599725e8273842efdbecdd88a),
 it maps the five visible RGB array blocks as follows:
 
 | Visible block | AW9120 outputs R/G/B |
@@ -401,15 +416,18 @@ broken. The independent bsg100 Linux 6.6 record provides a useful hardware
 cross-check: after correcting MSDC0 to level-low SPI79, adding explicit VEMC /
 VIO18 supplies, using the MT2701-generation register profile, and removing
 unsupported pinconf, the same DF4064 enumerated with partitions p1–p33. The
-current Linux 7.1.3 design preserves those boundaries through a dedicated
-MT6797 compatibility record and a 25 MHz first-boot cap; its runtime remains
-unverified. See the [MSDC cross-check](../../experiments/2026-07-12-mt6797-msdc-recovery/results/bsg100-msdc-crosscheck-20260714.txt).
+local Linux 7.1.3 path preserves those boundaries through a dedicated MT6797
+compatibility record, a 25 MHz cap, and explicit VEMC/VIO18 supplies. It now
+enumerates the same user area, boot areas, and GPT partitions; guarded reads
+and writes to an explicitly resolved inactive `boot2` work. Primary `boot`
+protection, broad reliability, microSD, and suspend remain open. See the
+[eMMC experiment](../../experiments/2026-07-25-emmc-development/README.md).
 
 ## Human interface, display, and audio
 
 | Subsystem | Observation | Confidence |
 | --- | --- | --- |
-| Keyboard | Separate `Integrated keyboard` input device bound through AW9523 at I2C5 `0x5b`; EINT 10 active. The retained vendor source describes an 8-row × 7-column matrix with a 56-position keymap, including `KEY_UNKNOWN` spare positions and page keys emitted as `KEY_DOWN`/`KEY_UP`; the exact active boot ELF independently compiles the physical Fn position as `KEY_LEFTMETA` and retains the four `KEY_UNKNOWN` entries, resolving the source/build discrepancy for the candidate map. Physical press/release and wake behavior remain untested | `observed` |
+| Keyboard | Separate `Integrated keyboard` input device bound through AW9523 at I2C5 `0x5b`; EINT 10 active. The retained vendor source describes an 8-row × 7-column matrix with a 56-position keymap, including `KEY_UNKNOWN` spare positions and page keys emitted as `KEY_DOWN`/`KEY_UP`; the exact active boot ELF independently compiles the physical Fn position as `KEY_LEFTMETA` and retains the four `KEY_UNKNOWN` entries. Physical press/release was not exercised during this vendor-baseline capture. Later mainline tests produced retained events and owner-accepted typing; function/navigation coverage, modifiers, rollover, and wake remain open. See the [keyboard boundary](keyboard.md). | `observed` vendor facts; mainline `partial` |
 | SoC keypad | Separate `mtk-kpd` input device present | `observed` |
 | Touchscreen | `mtk-tpd` input device backed by NVT at I2C4 `0x62`; EINT 8 active; live trim bytes `00 00 03 72 66 03` select NT36772 entry 8 / event map `0x11e00`; a separate vendor `solomon_touch@0x53` node is present but unbound | `observed` |
 | Hall/lid path | Vendor hall and switch drivers bound; live DT maps GPIO66/EINT5 and GPIO93/EINT16 | `observed` |
@@ -496,12 +514,14 @@ standalone `mt-pmic` and `mt-rtc` platform devices are bound; all regulator
 class devices point at `mt-pmic`. This is a vendor probe-topology difference,
 not evidence against the MT6351 identity or against reusing the upstream PWRAP
 protocol. The [vendor-to-mainline gap audit](../../experiments/2026-07-14-live-vendor-mainline-gap-audit/README.md)
-records the distinction and keeps mainline PWRAP/MT6351 probing as an explicit
-first-boot gate.
-The current first-boot DT/probe audit shows that the conservative UART+eMMC
-path is not PMIC-independent: MSDC0 consumes MT6351 VEMC/VIO18, and PWRAP/MFD
-probe writes state even when LK has already initialized the wrapper. See the
-[first-boot probe dependency audit](../../experiments/2026-07-14-first-boot-probe-audit/README.md).
+records the distinction and treats mainline PWRAP/MT6351 probing as an explicit
+ownership transition.
+The dated [probe dependency audit](../../experiments/2026-07-14-first-boot-probe-audit/README.md)
+established that the conservative UART+eMMC path is not PMIC-independent:
+MSDC0 consumes MT6351 VEMC/VIO18, and PWRAP/MFD probe writes state even when LK
+has already initialized the wrapper. The local eMMC profile has since crossed
+that transition narrowly enough to enumerate storage; broader PMIC use remains
+separately gated.
 
 Live power-related bindings included BQ25890 at I2C0 `0x6b`, FAN49101 at
 `0x70`, DA9214 at I2C6 `0x68`, RT5735 at I2C7 `0x1c`, and LP3101 at I2C1
@@ -646,14 +666,14 @@ the name `console-ramoops`; a later secondary record can be rejected as a
 duplicate. This contradicts the pinned downstream `3.18.79` reference source,
 which overrides the secondary ID to 2 and would call it `console-ramoops-2`.
 Use the exact active binary for filename behavior and keep the reference source
-only as separately labeled evidence. Candidate L therefore aligned its console
-with the primary zone. Later Candidates M, N, O, and P all recovered mainline
-console records through Gemian after warm reset, establishing cross-version
-retention for that primary layout on this unit. This does not establish every
-reset type, the duplicate secondary zone, or pmsg compatibility. See the
+only as separately labeled evidence. Multiple independent mainline boots
+recovered primary-zone console records through Gemian after warm reset,
+establishing cross-version retention for that layout on this unit. This does
+not establish every reset type, the duplicate secondary zone, or pmsg
+compatibility. See the
 [exact-binary audit](../../experiments/2026-07-17-uart-pstore-observability/results/exact-live-ramoops-binary-audit-20260717.txt)
 and [source/layout validation](../../experiments/2026-07-17-uart-pstore-observability/results/cross-version-ramoops-layout-20260717.txt),
-plus the [Candidate P runtime record](../../experiments/2026-07-18-fbcon-rotation-diagnostic/results/runtime-candidate-p-attempt-1-20260718.txt).
+plus one [retained runtime record](../../experiments/2026-07-18-fbcon-rotation-diagnostic/results/runtime-candidate-p-attempt-1-20260718.txt).
 
 The live FDT also contains dynamic, size/alignment-based reservations: a
 2 MiB `consys-reserve-memory` block (`no-map`), a 16 MiB `scp_share` block
@@ -680,23 +700,19 @@ and is not a safe Gemini substitute.
 
 ## Mainline implications and open questions
 
-This inventory improves component targeting but does not change any runtime
-state in the [mainline support matrix](../HARDWARE_SUPPORT.md). Priority follow-up
-work is:
+This inventory improves component targeting but does not itself change a
+runtime state in the [mainline support matrix](../HARDWARE_SUPPORT.md).
+Remaining baseline-specific observations include:
 
-1. Obtain a physical/retail variant identifier without recording a unique serial.
-2. Compare the live flattened DT against upstream MT6797 resources and create a
-   minimal board DT containing only verified, safely sequenced hardware.
-3. Verify the PMIC chip identity, regulator rails, consumers, voltage limits,
-   and power-domain dependencies before enabling dependent devices.
-4. Map the two physical USB-C ports to FUSB301 instances and controller/PHY
-   paths using read-only role and attach tests.
-5. Confirm the selected panel's NT36672 ID and module variant with a bounded
-   DSI read; recover the SP5509 camera's discriminating ID/address/lane contract
-   and the MT6797 SENINF/ISP pipeline rather than treating generic DT labels as
-   sufficient.
-6. Stimulate keyboard, touch, lid, card detect, and sensor interrupts one at a
-   time to establish GPIO/EINT mappings.
-7. Document firmware/calibration ownership for connectivity and modem paths;
-   never commit extracted blobs or device-unique NVRAM. The initial
-   [firmware boundary inventory](firmware.md) now records the installed set.
+- obtain a physical/retail variant identifier without recording a unique
+  serial;
+- map both physical USB-C ports to their FUSB301, controller, PHY, VBUS, and
+  redriver paths;
+- establish the exact panel module, camera identity/lane graph, and unresolved
+  peripheral interrupt mappings; and
+- complete firmware and calibration ownership for connectivity, modem, touch,
+  power, and sensors without publishing blobs or device-unique NVRAM.
+
+The authoritative implementation order and exit criteria are in the
+[roadmap](../ROADMAP.md). This baseline should record observations and
+uncertainty, not maintain a competing work plan.

@@ -18,9 +18,19 @@ configuration, safe tooling, hardware knowledge, and reproducible evidence.
 - Pin upstream inputs in `kernel/manifest.json`.
 - Store `git format-patch` files below `patches/` and order them in
   `patches/series`; keep one logical upstream change per patch.
+- Treat every manifest-selected `patch_series` as requiring a canonical-order
+  subsequence of `patches/series`. Audit all profiles whenever the manifest or
+  any series changes; do not introduce a new violation. Profiles already
+  quarantined by the active invariant audit remain historical-only and cannot
+  be used as a new foundation while Roadmap gate 0 removes or repairs them.
 - Add reusable board options to `configs/gemini.fragment`; keep intentionally
   isolated experiment policy in a named profile fragment and pin that profile
   in `kernel/manifest.json`.
+- Keep document ownership strict: experiments own exact chronology, candidate
+  identities, audit counts, and rejected branches; `docs/hardware/` owns
+  durable facts; `docs/HARDWARE_SUPPORT.md` owns concise current support; and
+  `docs/ROADMAP.md` alone owns ordered next steps. Link across those boundaries
+  instead of copying point-in-time findings or remediation checklists.
 - Build with `./scripts/dev-vm build-kernel`. Generated Linux sources, builds,
   and artifacts belong in the VM, not Git.
 - “Latest kernel” means the boot candidate explicitly selected for the active
@@ -35,6 +45,12 @@ configuration, safe tooling, hardware knowledge, and reproducible evidence.
   result; marker text alone is insufficient.
 - A compile result is not hardware support. Update `docs/HARDWARE_SUPPORT.md`
   only from reproducible evidence on a named device and exact revision.
+- Before upstream submission, patch author metadata must identify the actual
+  author. Add a DCO `Signed-off-by` only when that person can truthfully make
+  the certification; never invent a certifying identity or sign-off. An
+  experiment-only archive may retain a clearly synthetic, non-certifying
+  `From:` identity only when it has no synthetic sign-off and remains
+  explicitly not submission-ready.
 
 ## Hardware and reverse engineering
 
@@ -96,3 +112,9 @@ configuration, safe tooling, hardware knowledge, and reproducible evidence.
 - Run `bash -n` and ShellCheck for shell changes, `git diff --check`, the relevant
   kernel checks, and the smallest meaningful VM build. Document what was and was
   not tested.
+- Before commit or push, inspect the exact staged file list and run
+  `git diff --cached --check`. Include new files in syntax, link, license, and
+  sensitive-data checks; reject credentials, proprietary inputs, raw artifacts,
+  and personal absolute host paths. Confirm that no path below `artifacts/` is
+  staged and that no unreviewed unstaged or untracked residue is being omitted
+  from an all-worktree commit.

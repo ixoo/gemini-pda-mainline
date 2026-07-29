@@ -1,0 +1,132 @@
+Candidate Kepler exact hardware result
+======================================
+
+status=completed-split-stable-other
+date=2026-07-27
+device_variant=named-gemini-pda-unit
+invocations=1
+retry=none
+raw_capture=private-git-ignored
+raw_capture_mode=0600
+raw_capture_size=25293
+raw_capture_sha256=43127dc409bfea80dbb7a7bccd8be2727aafa040207c3f5acd8df54f24b61ef6
+exact_runner_validation=passed
+sanitization=host-interface-service-banner-and-unrelated-identifiers-omitted
+
+Runtime attribution
+-------------------
+
+boot_id=cdd23c48-0bd3-4980-95c8-5e054be860d9
+kernel_release=7.1.3-gemini-cassini
+configuration_sha256=83c85429cdcb7d66cb96df2c9005456afd67fc5c7dbfe5d76e9879bf45c1759b
+cassini_helper_sha256=30073f6ea7d0b57d3654ece5c6212da1c94ff4d24514b62d07331136a4efaf0e
+kepler_helper_sha256=3afdaeea3f913706a0ee3f44732c37b6c0fced01f940f6d68a8356dfad946fa7
+kepler_helper_size=537584
+prior_photon_guard=mode0400-root-root
+prior_photon_class=post-all-equal-pre
+prior_photon_completed=6
+prior_photon_post=a1,b2,c3,d4,e5,f6
+i2c6_adapter=i2c-1
+i2c6_of_suffix=/i2c@1100e000
+i2c6_clients=0
+cpu_online_pre=0-7
+cpu_offline_pre=8-9
+nproc_pre=8
+handoff_pre=ready
+usb_link_pre=up
+udc_pre=configured
+
+Exact transaction observation
+-----------------------------
+
+i2c_address=0x69
+register_pointer=0x05
+pairs=2
+ioctl_calls=4
+messages_per_ioctl=1
+stop_between_pointer_and_read=yes
+pair1_tx_result=1
+pair1_tx_errno=0
+pair1_rx_result=1
+pair1_rx_errno=0
+pair1_pre=a5
+pair1_post=05
+pair2_tx_result=1
+pair2_tx_errno=0
+pair2_rx_result=1
+pair2_rx_errno=0
+pair2_pre=5a
+pair2_post=05
+post_diff_mask=0x03
+completed_pairs=2
+completed_calls=4
+result_class=split-stable-other
+probe_rc=2
+
+Pre/post invariants
+-------------------
+
+transfer_attempts=6->10
+dma_starts=6->10
+nonzero_starts=6->10
+irq_count=6->10
+boot_id=unchanged
+cpu_online=0-7->0-7
+cpu_offline=8-9->8-9
+nproc=8->8
+handoff=ready->ready
+usb_link=up->up
+udc=configured->configured
+clock_validation_failures=0->0
+suspend_checks=0->0
+resume_checks=0->0
+resume_failures=0->0
+
+One-shot and forbidden scope
+----------------------------
+
+volatile_transfer=passed
+helper_mode_during_invocation=0500-root-root
+invocation_guard_created_before_exec=yes
+invocation_guard_after_exec=0400-root-root
+helper_removed_after_return=yes
+persistent_storage_access=none
+partition_or_slot_access=none
+watchdog_access=none
+reboot_shutdown_poweroff=none
+cpu_control_write=none
+regulator_control=none
+page_con_access=none
+
+Observation
+-----------
+
+Both separate one-message reads returned success and changed their distinct
+receive prefills to the same CPU-visible byte, 0x05. All four I2C6 counters
+advanced by exactly four while the accepted boot ID, CPU set, handoff, and USB
+service state remained unchanged.
+
+Analysis
+--------
+
+The result is a stable ordinary-read overwrite, unlike Photon's combined WRRD
+sentinel preservation. It rejects the broad hypothesis that every I2C6 receive
+buffer always remains equal to its userspace prefill.
+
+It does not establish that DA9214 register 0x05 contains 0x05. The observed
+byte equals the preceding pointer byte. A post-runtime review of privately
+retained Renesas Datasheet Revision 3.4, pages 36-37, confirms that the chip
+permits either a repeated START or a STOP followed by a second START for this
+read shape. A STOP-protocol failure is therefore not a supported explanation.
+A true device response and pointer-byte controller, APDMA, cache, or buffer
+residue remain alternatives. Controller DMA-start and IRQ counters are
+supporting transfer evidence, not independent proof of the wire byte or
+RX-DMA completion.
+
+Conclusion
+----------
+
+confirmed=scoped-cpu-visible-overwrite-and-transfer-shape-distinction
+not_confirmed=da9214-register-value,wire-byte,complete-rx-dma-correctness
+next_step=two-pointer-same-boot-residue-discriminator-then-i2c6-fifo-or-dma-correction
+repeat_same_probe=no

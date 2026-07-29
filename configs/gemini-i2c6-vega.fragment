@@ -1,0 +1,10 @@
+# Candidate Vega keeps Orion's childless, one-shot I2C6 diagnostic and the
+# Hubble serviceability boundary. Only the probe-time node identity guard and
+# attributable kernel/USB identity change; CPU8/9 remain unrequested.
+CONFIG_LOCALVERSION="-gemini-vega"
+CONFIG_DEBUG_FS=y
+CONFIG_I2C_MT65XX_ORION_DIAGNOSTIC=y
+# CONFIG_I2C_CHARDEV is not set
+# CONFIG_REGULATOR_DA9211 is not set
+# CONFIG_MTK_MT6797_A72_POWER is not set
+CONFIG_CMDLINE="console=ttyS0,921600n8 earlycon maxcpus=8 nokaslr ignore_loglevel loglevel=8 log_buf_len=1M initcall_debug rdinit=/init panic=0 g_ether.dev_addr=42:00:15:19:82:01 g_ether.host_addr=42:00:15:19:82:00 g_ether.iManufacturer=gemini-pda-mainline g_ether.iProduct=Gemini-L-Vega g_ether.iSerialNumber=GEMINI_VEGA_20260727 clk_ignore_unused fbcon=rotate:3 consoleblank=0 fbcon=font:TER16x32 regulator_ignore_unused initcall_blacklist=mt6797_a72_power_driver_init fw_devlink=rpm"

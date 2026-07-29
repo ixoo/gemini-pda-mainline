@@ -11,26 +11,14 @@ Evidence comes from the 2026-07-11 physical-device inventory, extracted system
 firmware and userspace, static ELF analysis, Gemini-specific LXC/udev rules, and
 the pinned Linux 7.1.3 source tree. See the
 [ABI experiment](../../experiments/2026-07-11-vendor-kernel-abi/README.md).
-The current source-level reuse/new-driver census is in the
-[MT6797 coverage audit](../../experiments/2026-07-14-upstream-mt6797-coverage-audit/results/mt6797-source-coverage-current-c2d-20260714.txt).
-Its current-package rerun is recorded in the [74-patch source census](../../experiments/2026-07-14-upstream-mt6797-coverage-audit/results/mt6797-source-coverage-current-c2feb-20260714.txt).
 The sanitized inventory-to-mainline mapping is in the
 [ABI design record](../../experiments/2026-07-11-vendor-kernel-abi/results/vendor-abi-mainline-design.md),
 and can be regenerated with the experiment's
 [gap analyzer](../../experiments/2026-07-11-vendor-kernel-abi/scripts/analyze-mainline-abi.sh).
-The vendor-enabled versus prepared-mainline configuration comparison is kept
-separately in the [kernel configuration gap audit](../../experiments/2026-07-12-kernel-config-gap-audit/README.md).
-The fresh live-kernel/module boundary is checked in the [2026-07-14 ownership
-audit](../../experiments/2026-07-14-live-kernel-ownership-audit/README.md), with
-the current 72-patch comparison in its [current package result](../../experiments/2026-07-14-live-kernel-ownership-audit/results/live-kernel-ownership-current-72-package-20260714.txt).
-The current SPI implementation validation extends that baseline with patches
-0072–0073 and package `linux-7.1.3-gemini-c2feb465d6c6`; it is a disabled-node
-compile/schema/package result, not a runtime support claim (see the [SPI patch
-validation](../../experiments/2026-07-14-upstream-mt6797-coverage-audit/results/spi-mainline-patch-validation-c2feb-20260714.txt)).
-The focused input follow-up is package `linux-7.1.3-gemini-a21fac4139df`
-(75 patches): it keeps the AW9523 matrix consumer disabled, packages the
-standard `gpio_keys` module, and adds a disabled GPIO66 `SW_LID` candidate. The
-audit is [recorded here](../../experiments/2026-07-12-input-backlight-recovery/results/mainline-display-input-current-75-package-20260714.txt).
+The dated [coverage](../../experiments/2026-07-14-upstream-mt6797-coverage-audit/README.md),
+[configuration](../../experiments/2026-07-12-kernel-config-gap-audit/README.md),
+and [ownership](../../experiments/2026-07-14-live-kernel-ownership-audit/README.md)
+audits remain evidence inputs, not current package authority.
 The corrected 2026-07-14 vendor runtime capture is compared with the static
 mainline handoff in the [live vendor-to-mainline gap audit](../../experiments/2026-07-14-live-vendor-mainline-gap-audit/README.md);
 its result is a comparison aid, not a mainline boot claim.
@@ -38,37 +26,32 @@ The MT6797 I2C controller reuse decision is recorded in the [focused I2C
 audit](../../experiments/2026-07-14-upstream-mt6797-coverage-audit/results/i2c-mt6797-controller-reuse-20260714.txt):
 the historical and current controller paths both use the `mt6577` register and
 quirk profile, while the current ten-node Gemini DTS supplies the required
-`mt6797-i2c` plus `mt6577-i2c` fallback and optional arbitration clocks. The
-2026-07-23 correction keeps that transfer-engine decision but restores a
-separate I2C6 ownership gate: live Gemian marks the bus `appm_used` and pauses
-its active DVFSP owner around each hardware transfer. Candidate AN's
-read-only mainline observer saw stable reset-like CSPM state but an ungated
-I2C_APPM clock, so its fail-closed result is `unknown`; no I2C6 ownership
-transfer is established. Exact-active-binary analysis now establishes that
-`SEMA_I2C_DRV` is a DVFSP pause-source protocol rather than a hardware
-semaphore, and that vendor stop is a reversible PCM reset with retained
-proc/probe/resume restart paths. The exact retained LK/TEE/SCP audit found no
-direct PCM restart writer; ATF remains a keyed CSPM `+0` and secure-semaphore
-writer, and an SCP-local alias cannot be excluded. Shared-clock accounting is
-resolved inside the active kernel: normal-running DVFSP owns a persistent
-I2C_APPM reference, the I2C6 controller adds one for each transfer, and A72
-iDVFS adds a third while its DA9214 path is enabled. Candidate AO subsequently
-passed one exact named-unit receiver-side handoff: one balanced CCF reference
-left the stopped PCM signature unchanged, closed I2C_APPM immediately after
-release, and remained closed at 45 seconds. I2C6 stayed disabled and no
-DA9214/A72 operation occurred. Candidate AP then made that handoff a hard
-prerequisite for childless I2C6. Its exact run reached one grant but failed
-closed because I2C_APPM regated while AP_DMA remained ungated in all 32
-cleanup samples. I2C6 returned `-EIO` before binding an adapter, and no
-transfer or DA9214/A72 operation occurred. The next gate is an attributable
-AP_DMA owner/refcount observation and a baseline-preserving cleanup contract;
-resume handling remains a later separate experiment.
-See the
-[DVFSP/I2C6 arbitration recovery](../../experiments/2026-07-24-mt6797-dvfsp-i2c6-arbitration/README.md)
-and
-[Candidate AO](../../experiments/2026-07-24-mt6797-dvfsp-one-way-handoff/README.md),
-plus
-[Candidate AP](../../experiments/2026-07-24-mt6797-dvfsp-i2c6-consumer/README.md).
+`mt6797-i2c` plus `mt6577-i2c` fallback and optional arbitration clocks.
+
+I2C6 has an additional ownership and transfer-format ABI. Live Gemian marks it
+`appm_used`; exact binary analysis identifies `SEMA_I2C_DRV` as a DVFSP
+pause-source protocol rather than a hardware semaphore. Normal DVFSP holds a
+persistent I2C_APPM clock reference, each I2C6 transaction adds a temporary
+reference, and enabled A72 iDVFS can add another. Vendor stop is reversible
+through retained restart paths. ATF remains a keyed CSPM and secure-semaphore
+writer, and an SCP-local alias has not been excluded, so Linux must not assume
+global ownership. The local handoff implementation can preserve I2C5's shared
+AP-DMA baseline while leaving childless I2C6 serviceable.
+
+The proven I2C6 data path is deliberately narrow: the native packed/FIFO path
+completes the exact one-byte-pointer plus one-byte-read shape. Direct reads
+at `0x68` and `0x69` establish a stable legacy
+DA9213/DA9214/DA9215-compatible board tuple on the named unit, not a unique
+silicon identity. Arbitrary messages, register-data writes, error recovery,
+resume, regulator-provider behavior, and A72 power remain unproved. The
+upstream DA9211/A-family probe is not a match for this legacy protocol; use a
+dedicated legacy-family driver/binding or a genuinely separated variant with
+zero probe-time writes and fail-closed fixed reads. The complete current
+boundary is in the [DA921x/I2C6/A72 contract](da921x-i2c6-a72.md), while the
+authoritative sequence is in the [roadmap](../ROADMAP.md). Detailed evidence
+remains in
+the [DVFSP/I2C6 arbitration recovery](../../experiments/2026-07-24-mt6797-dvfsp-i2c6-arbitration/README.md)
+and the [exact board-contract runtime result](../../experiments/2026-07-28-da9214-gauss/results/runtime-candidate-gauss-attempt-1-20260728.txt).
 
 Interface names embedded in a binary prove that the code was built with that
 path, not that the path was exercised in the captured boot. An interface is
@@ -98,8 +81,9 @@ regmap used by the audio codec, but unpatched Linux 7.1.3 has no MT6351
 regulator, RTC, power-key, charger, IRQ-domain, or general MFD child support.
 The PMIC is now directly confirmed as MT6351 E2. The local series supplies the
 otherwise-absent parent EINT, mandatory infracfg reset provider, pwrap SoC
-node, four-bank IRQ domain, and MFD cells. Regulator, RTC, and key drivers still
-need MT6351-specific data before they can bind.
+node, four-bank IRQ domain, MFD cells, and enough regulator data for the
+VEMC/VIO18 rails used by the partial eMMC path. General regulator coverage,
+RTC, power-key, charger, and power-off behavior remain incomplete.
 See the [MT6351 recovery experiment](../../experiments/2026-07-11-mt6351-pmic-recovery/README.md).
 The corrected live binding capture adds a probe-model distinction: the vendor
 `1000d000.pwrap` platform device is unbound, while standalone `mt-pmic` and
@@ -112,34 +96,35 @@ PWRAP protocol or to claim a failed PMIC.
 The exact current board DT makes this PMIC path a prerequisite for eMMC:
 MSDC0 consumes MT6351 VEMC/VIO18, while PWRAP and the MFD IRQ setup perform
 write-capable probe work. The [first-boot probe dependency audit](../../experiments/2026-07-14-first-boot-probe-audit/README.md)
-records the source anchors and current package hashes. Power sequencing cannot
-be treated as a DT-only task.
+records the dated source anchors and package provenance. Power sequencing
+cannot be treated as a DT-only task.
 
-The SoC DTS has no nodes for MSDC/eMMC, USB/PHY, IOMMU/M4U, GPU, display
-components, DSI, AFE, thermal sensors, CPU OPPs/cpufreq, RTC, or
-connectivity. Reference boards enable UART/I2C only. Thus a Gemini board DTS
-alone is insufficient; several SoC-level descriptions and likely driver fixes
-must land first.
+The unpatched upstream MT6797 SoC DTS has no nodes for MSDC/eMMC, USB/PHY,
+IOMMU/M4U, GPU, display components, DSI, AFE, thermal sensors, CPU
+OPPs/cpufreq, RTC, or connectivity. Local patches now cover selected eMMC and
+peripheral-only USB foundations, but the remaining functions still require
+SoC-level descriptions and likely driver fixes; a board DTS alone is
+insufficient.
 
 ## Kernel-facing ABI map
 
 | Domain | Vendor interfaces observed in binaries/config | Live correlation | Mainline replacement |
 | --- | --- | --- | --- |
-| Display | `/dev/graphics/fb*`, `/dev/mtk_disp_mgr`, `/dev/ion`, `/dev/swsync`, M4U, `/proc/ged`, GED debugfs, `DISP_IOCTL_*` | `mtkfb`, DISPSYS, DSI and framebuffer active | DRM/KMS components, dma-buf heaps, dma-fence/sync_file, MediaTek IOMMU, Panfrost. The current module-bearing 74-patch package contains the reusable DRM/DSI/PHY, display-PWM, and NT36672E panel objects, but its Gemini display consumers and panel graph remain disabled/absent; see the [current display/input package audit](../../experiments/2026-07-12-input-backlight-recovery/results/mainline-display-input-current-74-package-20260714.txt) |
-| CPU/PSCI/timer | Vendor CPU hotplug/cpuidle policy, PSCI SMC calls, ARM timer PPIs, and MT6797 CPU GPT | Ten DT CPUs, PSCI 0.2 `smc`, standard `0x84000001`–`0x84000004` IDs, `arch_sys_counter`/`arch_sys_timer` active | Linux 7.1.3 generic ARM64 topology, PSCI, GIC, and `arm_arch_timer`; keep vendor SPM/PCM idle states and CPU GPT policy separate until runtime semantics are proven. See the [CPU/PSCI/timer recovery](../../experiments/2026-07-13-cpu-psci-timer-recovery/README.md) |
-| UART/console | Vendor `ttyMT0`–`ttyMT3`, downstream console token, VFIFO/AP-DMA channels and pinctrl console states | Four live `mtk-uart` ports; `ttyMT0` is the active console; retained LK source rewrites its default `ttyMT3` token from preloader `log_enable`/`log_port` and overwrites final `/chosen/bootargs` | Linux 7.1.3 `8250_mtk` with the MT6797 compatible is the reuse path for one-window PIO and early console; its baud-clock lifetime already uses `devm_clk_get_enabled()`, so the bsg100 `clk_ignore_unused` workaround is not needed. Keep vendor VFIFO/AP-DMA out until channels are mapped, and use `serial0`/the actual mainline `ttyS*` name in the boot handoff. The combined LK/header command line must be captured on a non-primary mainline boot; DTB `stdout-path` is not sufficient evidence. See the [current 77-patch LK console mutation result](../../experiments/2026-07-13-uart-console-recovery/results/lk-console-mutation-current-77-20260714.txt) and [clock contract result](../../experiments/2026-07-13-uart-console-recovery/results/uart-clock-contract-current-72-20260714.txt) |
-| I2C controllers | Vendor `mt-i2c` adapters 0–9 and board clients on chargers, sensors, cameras, touch, keyboard, USB-C, and regulators | A bounded live read-only capture reports all ten `i2c-*` adapters and the expected client placement; Candidate AL proved a mainline I2C6 transfer but not shared DVFSP ownership; Candidate AN exposed the stopped/ungated handoff; Candidate AO retained I2C6 disabled and passed one exact stopped-state clock normalization; Candidate AP's childless consumer dependency failed closed when AP_DMA did not regate | Reuse Linux 7.1.3 `i2c-mt65xx` with `mediatek,mt6797-i2c`, `mediatek,mt6577-i2c` fallback for the transfer engine. The historical driver selected the same `mt6577` v1 register/quirk profile; current binding, `clock-div=<10>`, and optional arb clocks cover those resources. I2C6 is a separate ownership case: live Gemian has `appm_used` and protects every physical transaction with `SEMA_I2C_DRV`, which exact-active-binary analysis proves is a DVFSP pause source rather than a hardware semaphore. Normal-running DVFSP owns a persistent I2C_APPM reference; the controller first adds its transaction reference; acquire asserts `SW_PAUSE`, waits up to 2 ms for firmware done and drops DVFSP's reference; release restores it after every acquired transfer result; the controller then drops its reference. A72 iDVFS can add a separate third reference. Vendor stop is reversible and the fatal retry/unpause policy must not be copied. Candidate AO's exact named-unit runtime independently verified one balanced CCF transition from Candidate AN's stopped/ungated signature to an immediate and 45-second gated state without PCM drift or prohibited-resource activity. Candidate AP then required AO readiness before childless I2C6 probe; it granted access once, regated I2C_APPM, but saw AP_DMA ungated in all 32 cleanup samples and faulted before adapter bind or transfer. Because AP_DMA was already ungated in AP's initial samples and is shared by enabled UART0 and I2C5, this is an absolute-gated-oracle failure, not proof of a leaked I2C6 reference or a named owner. Add an attributable AP_DMA owner/refcount observation and baseline-preserving cleanup contract before a changed I2C6 candidate; validate resume separately, then test legacy DA9214 identification. See the [I2C controller reuse audit](../../experiments/2026-07-14-upstream-mt6797-coverage-audit/results/i2c-mt6797-controller-reuse-20260714.txt), [Candidate AN runtime](../../experiments/2026-07-24-mt6797-dvfsp-handoff-observer/results/runtime-candidate-an-validated-20260724.txt), [exact arbitration recovery](../../experiments/2026-07-24-mt6797-dvfsp-i2c6-arbitration/README.md), [Candidate AO runtime](../../experiments/2026-07-24-mt6797-dvfsp-one-way-handoff/results/runtime-candidate-ao-validated-20260724.txt), and [Candidate AP hardware result](../../experiments/2026-07-24-mt6797-dvfsp-i2c6-consumer/results/candidate-ap-hardware-20260724.txt) |
+| Display | `/dev/graphics/fb*`, `/dev/mtk_disp_mgr`, `/dev/ion`, `/dev/swsync`, M4U, `/proc/ged`, GED debugfs, `DISP_IOCTL_*` | `mtkfb`, DISPSYS, DSI and framebuffer active | DRM/KMS components, dma-buf heaps, dma-fence/sync_file, MediaTek IOMMU, Panfrost. Linux 7.1.3 contains reusable DRM/DSI/PHY and display-PWM pieces, but the Gemini panel graph and native display consumers remain absent or disabled. Loader-retained fbcon is not native display support; see the [support matrix](../HARDWARE_SUPPORT.md). |
+| CPU/PSCI/timer | Vendor CPU hotplug/cpuidle policy, PSCI SMC calls, ARM timer PPIs, and MT6797 CPU GPT | Ten DT CPUs, PSCI 0.2 `smc`, standard `0x84000001`–`0x84000004` IDs, `arch_sys_counter`/`arch_sys_timer` active | The local Linux 7.1.3 path uses generic ARM64 topology, PSCI, GIC, and `arm_arch_timer`; CPU0–7 are serviceable together, while CPU8–9 remain disconnected by design pending the external-rail and complete A72 power-sequence gates. Keep vendor SPM/PCM idle and HMP/HPS/PPM policy out of the mainline contract. See the [DA921x/I2C6/A72 boundary](da921x-i2c6-a72.md). |
+| UART/console | Vendor `ttyMT0`–`ttyMT3`, downstream console token, VFIFO/AP-DMA channels and pinctrl console states | Four live `mtk-uart` ports; `ttyMT0` is the active console; retained LK source rewrites its default `ttyMT3` token from preloader `log_enable`/`log_port` and overwrites final `/chosen/bootargs` | Linux 7.1.3 `8250_mtk` with the MT6797 compatible is the reuse path for one-window PIO and early console; its baud-clock lifetime already uses `devm_clk_get_enabled()`, so the bsg100 `clk_ignore_unused` workaround is not needed. Keep vendor VFIFO/AP-DMA out until channels are mapped. Mainline boot evidence now captures the effective command line and provides a loader-retained fbcon, but physical UART output remains unproved; see the [UART/console experiment](../../experiments/2026-07-13-uart-console-recovery/README.md). |
+| I2C controllers | Vendor `mt-i2c` adapters 0–9 and board clients on chargers, sensors, cameras, touch, keyboard, USB-C, and regulators | A bounded live capture reports all ten adapters and the expected client placement. On the named unit, the local ownership path leaves childless I2C6 serviceable without taking I2C5's shared AP-DMA clock, and the native packed/FIFO path completes the exact one-byte-pointer plus one-byte-read shape. One gated run completed 14/14 fixed direct reads at `0x68` and `0x69` while CPU0–7, the CPU8/9-offline state, DVFSP handoff, and USB remained stable. | Reuse Linux 7.1.3 `i2c-mt65xx` with `mediatek,mt6797-i2c` plus `mediatek,mt6577-i2c` fallback for general controllers, and the dedicated `mediatek,mt6797-idvfs-i2c` data for I2C6. Preserve the reversible DVFSP pause protocol and shared AP-DMA baseline; do not copy the vendor fatal retry policy. The current result covers only the exact packed/FIFO 1+1 read. General transfers, writes, recovery, resume, provider behavior, and A72 power are separate gates. See the [DA921x/I2C6/A72 contract](da921x-i2c6-a72.md). |
 | SPI controllers | Vendor `mt6797-spi` masters 0–5; test children on every bus and an unbound `fpc1020` candidate at SPI1 CS0 | Six live masters and five `test_spi`-style children are present; `spi1.0` is unbound and no transfer was issued | Patches 0072–0073 now reuse `spi-mt65xx` with its existing `mt6765_compat` (pad selection, enhanced 16-bit timing, mandatory TX, extended DMA) and add six disabled SoC nodes with standard parent/selector/gate clocks and `mediatek,pad-select`. The captured SPI1 wiring is GPIO234–237 (`SPI1_*_B`); vendor pinctrl has an empty default plus explicit GPIO-function/SPI-function switching states, so a static mainline pin group remains an evidence gate. Do not port vendor `mt_chip_conf`, test ABI, or fingerprint policy. See the [SPI controller reuse audit](../../experiments/2026-07-14-upstream-mt6797-coverage-audit/results/spi-mt6797-controller-reuse-20260714.txt), [SPI1 pinctrl contract](../../experiments/2026-07-14-upstream-mt6797-coverage-audit/results/spi1-pinctrl-contract-20260714.txt), and [patch validation](../../experiments/2026-07-14-upstream-mt6797-coverage-audit/results/spi-mainline-patch-validation-c2feb-20260714.txt) |
 | Camera | `/dev/camera-isp`, `/dev/camera-fdvt`, `/dev/camera-dpe`, `/dev/kd_camera_hw*`, `/dev/MAINAF`, `/dev/SUBAF`, Android camera HAL and `libcameracustom.so` | `sp5509mipirawsls` selected by the live vendor image; pinned Planet sources contain separate SP5509 main/SLS implementations with 16-bit I2C, mode tables, and SLS power data, plus a 12-node CAM/SENINF/CAMSV/ISP implementation exposed through private `camera-isp` ioctl/mmap; immutable vendor ELF probes `0x0f16` for raw ID `0x0556` with candidate write IDs `0x40`/`0x50`; wrapper buses are `i2c2/3/8` at `0x11013000`/`0x11014000`/`0x11009000`, but no static `0x20`/`0x28` client objects exist; SENINF and camera hardware wrappers bound | New SP5509 V4L2 sensor sub-device plus a separately recovered MT6797 SENINF/CSI/CAM/CAMSV/ISP media-controller and verified M4U capture path; source/ELF facts are design inputs, not physical address or endpoint proof. See the [SP5509 source contract](../../experiments/2026-07-13-camera-recovery/results/sp5509-source-contract.md) and [MT6797 pipeline contract](../../experiments/2026-07-13-camera-recovery/results/mt6797-camera-pipeline-contract.md); do not reproduce vendor ioctls |
 | GPU | `/dev/mali0`, Mali GLES/Vulkan, GED frequency/utilization controls | Legacy DT labels the node T860, but the bound vendor ELF/runtime identifies Mali-T88x MP4 / product `0x0880`; the pinned tree contains generic Kbase r12p0 plus configured r12p1 MT6797 platform/SPM source. The optional SPM/DVFS feature is not enabled in the captured autoconf/ELF path | Panfrost T880 core model plus a standard MT6797 platform backend for clocks, regulator readiness, power domains, reset, and fixed OPPs; do not port GED/Kbase userspace or SPM firmware ABI |
 | Sensors | `/dev/hwmsensor`, `/dev/m_batch_misc`, `/dev/input/event*`, `/sys/class/misc/m_*` controls | BMI160 and STK3X1X paths observed | IIO/input drivers per physical sensor; userspace fusion for virtual sensors |
 | Thermal | `/proc/mtktz/mtktscpu`, `mtktsbattery`, `mtktsAP`, `tzcpu_read_temperature`, CPU online sysfs | 13 vendor zones enumerate but are disabled; live calibration and complete source recover six banks, five sensor inputs, channel 11, and three efuse words | Patch 0057 extends the existing MediaTek AUXADC thermal driver with an MT6797-specific data/variant path for register timing, valid mask, buffer/IRQ protection, and ADC-OE conversion; reuse DT thermal, IIO, and standard cooling APIs, but do not reuse another SoC's calibration data. Nodes remain disabled pending runtime proof. See the [thermal recovery experiment](../../experiments/2026-07-13-mt6797-thermal-recovery/README.md) |
 | LEDs | standard red/green LED sysfs plus `/proc/aw9120_reg` | AW9120 and LED class active | LED class/multicolor driver; debug registers only through debugfs if justified |
-| Keyboard | integrated input device; `planetgemini` XKB model; AW9523 vendor node | AW9523 at I2C5 `0x5b`, EINT 10; source-derived 8×7 map with 52 assigned codes and four `KEY_UNKNOWN` positions; vendor scan drives the selected column low, inactive columns high, and treats a low row bit as pressed | AW9523 GPIO/pinctrl plus the disabled standard `gpio-matrix-keypad` candidate in patch 0054. The candidate still needs `gpio-activelow` and `drive-inactive-cols` to encode the source-derived polarity; the installed XKB `planet_vndr/gemini` function layer is userspace policy, not a kernel ABI. Enable only after GPIO range/polarity, rollover, modifiers, and wake validation; see the [fresh keyboard record](../../experiments/2026-07-12-input-backlight-recovery/results/live-keyboard-recovery-20260714.txt) and [polarity audit](../../experiments/2026-07-12-input-backlight-recovery/results/keyboard-polarity-contract-20260714.txt) |
+| Keyboard | integrated input device; `planetgemini` XKB model; AW9523 vendor node | AW9523 at I2C5 `0x5b`, EINT 10; source-derived 8×7 map with 52 assigned codes and four `KEY_UNKNOWN` positions; vendor scan drives the selected column low, inactive columns high, and treats a low row bit as pressed | The local AW9523 plus generic matrix-polling path now produces retained press/release events and owner-accepted typing with the physical map. Function keys, Page Up/Page Down, modifiers, rollover, wake, and complete event coverage remain explicit acceptance gates. The XKB function layer is userspace policy; see the [keyboard boundary](keyboard.md). |
 | Touch | input event plus vendor NVT firmware path | NVT at I2C4 `0x62`, EINT 8; fresh filtered probe log returns `00 00 03 72 66 03`, matching masked trim-table entry 8 / NT36772 event map `0x11e00`, with PID `0x0101` and firmware `0x05`/bar `0xFA` | `novatek-nvt-ts` does not cover the verified alternate-address/xdata contract. Patch 0075 provides a disabled-by-default NT36772 boundary and passes object/module plus binding checks; validate logical-address `0x01`, rails/reset, and runtime before enabling it, with firmware update excluded. See the [live trim identity](../../experiments/2026-07-12-input-backlight-recovery/results/nvt-live-trim-identity-20260714.txt), [protocol record](../../experiments/2026-07-12-input-backlight-recovery/results/nt36xxx-protocol.txt), and [boundary checks](../../experiments/2026-07-12-input-backlight-recovery/results/nt36772-mainline-boundary-20260714.txt) |
-| Storage | `mtk-msdc.0/11230000.msdc0`, GPT by-name links | eMMC on MSDC0; MSDC1/card detect described; an independent Linux 6.6 boot reached DF4064 partitions p1–p33 with level-low SPI79, explicit rails, and pinmux-only pads | Reuse the Linux `mtk-sd` core with the local MT6797 register record and conservative Gemini eMMC node; keep 25 MHz, explicit VEMC/VIO18, and no microSD voltage switching until the current 7.1.3 package boots. See the [MSDC cross-check](../../experiments/2026-07-12-mt6797-msdc-recovery/results/bsg100-msdc-crosscheck-20260714.txt) |
+| Storage | `mtk-msdc.0/11230000.msdc0`, GPT by-name links | eMMC on MSDC0; MSDC1/card detect described. The local Linux 7.1.3 profile binds PWRAP/MT6351 VEMC/VIO18 and enumerates the DF4064 user area, boot areas, and GPT partitions. | Reuse `mtk-sd` with the local MT6797 record and conservative Gemini nodes. Guarded reads and writes to an explicitly resolved inactive `boot2` work; primary `boot` protection, microSD, reliability, and suspend remain separate gates. See the [eMMC experiment](../../experiments/2026-07-25-emmc-development/README.md). |
 | Audio | ALSA PCM plus `/dev/accdet`, `/dev/fm`, `/dev/hdmitx`, `/dev/vow`, ANC/offload and CCCI speech nodes | MTK sound card and PCM endpoints active | Existing MT6797 ASoC/MT6351 base, standard jack, speaker amp, DAPM routes; modem voice separate |
-| USB-C | role-switch policy and FUSB301 vendor paths | two FUSB301 I2C devices; MUSB/MTU3 paths | Patch 0056 supplies the generic FUSB301 Type-C controller/binding; Gemini still needs MT6797 USB/PHY nodes, usb-role-switch, VBUS, and redriver board glue |
+| USB-C | role-switch policy and FUSB301 vendor paths | two FUSB301 I2C devices; MUSB/MTU3 paths | The local MTU3/USB2 PHY peripheral-only path supports gadget Ethernet and the development shell. Generic FUSB301 support is prepared separately; host/xHCI, role switching, VBUS and rail ownership, Type-C policy, redriver glue, both physical ports, and hotplug remain open. |
 | Wi-Fi/BT/FM | `/dev/stpwmt`, `wmtdetect`, `wmtWifi`, `/dev/fm`, WMT launcher/firmware (`stpbt` is a source/userspace name, not a captured device node) | MT6797 CONSYS/WMT bound; Wi-Fi `mt-wifi` and BTIF TX/RX DMA active; MT6631 FM configured | Mainline needs a consys firmware/power/SDIO boundary, standard cfg80211/Bluetooth/FM interfaces, and no permanent vendor character ABI |
 | GNSS | `stpgps`, `gps`, GPS HAL, MNL/AGPS sockets | vendor `gps`/`gps_emi` bound; ROMv3 patch includes GNSS/geofence strings; GPIO69 is the board GPS-LNA control | Establish combo-firmware ownership and message routing before adapting the serial GNSS core |
 | Modem | CCCI, EEMCS, EMD, `ttyC`, 18 MD1 `ccmni` ports, 8 MD3/C2K `cc3mni` ports, and shared audio channels | MD1 and MD3 CCCI nodes, AP/MD CLDMA/CCIF devices, and active CLDMA/CCIF IRQs are live; source recovers the 16-byte wire header, 8+8 queue families, packed 36-bit descriptors, CCIF flow-control SRAM, and staged EMI-MPU/remap ownership | MT6797 requires a new APB CLDMA/CCIF/shared-memory transport with firmware handshake, reset, and EMI MPU ownership; Linux 7.1.3 `t7xx` is PCIe/DPMAIF-specific. Reuse standard WWAN/TTY/netdev layers only above that transport; keep the vendor character ABI private. See the [modem/CCCI recovery](../../experiments/2026-07-13-modem-ccci-recovery/README.md) and [MT6797 CCCI contract](../../experiments/2026-07-13-modem-ccci-recovery/results/mt6797-ccci-mainline-contract.md) |
@@ -293,32 +278,21 @@ Gemian labels the device `Integrated keyboard` and selects XKB model
 address `0x5b`, with EINT 10. The installed `planet_vndr/gemini` symbols add
 an ISO-Level3/Mod5 function layer and media/brightness/navigation levels over
 ordinary Linux keycodes. Linux 7.1.3 includes an AW9523 GPIO/pinctrl driver,
-but that does not establish matrix wiring, keymap electrical behavior,
-ghosting, modifier handling, backlight control, or wake support.
-
-The next safe experiment must record row/column GPIO changes and input scan
-codes for one key at a time. The expected mainline shape is AW9523 GPIO plus
-`gpio-matrix-keypad`, using the active-boot-normalized 8×7 map recorded in the
-input experiment. A fresh passive capability query reports `KEY_LEFTMETA` and
-`KEY_UNKNOWN`, but not the retained source map's `KEY_FN`; read-only analysis
-of the exact active boot ELF independently compiles the physical `(row=4,col=3)`
-record as `KEY_LEFTMETA`, resolving the source/build discrepancy for the
-candidate map. The installed XKB file maps `<LWIN>` to
-`ISO_Level3_Shift`, but the physical press/release, modifier, and wake behavior
-still require a controlled mainline test.
-The installed XKB file is userspace metadata, not a kernel ABI. A dedicated
-driver is warranted only if the controller's interrupt/latch behavior cannot
-be represented generically.
+but the working local path uses AW9523 GPIO plus generic 8×7 matrix polling,
+with a 20 ms interval and 2 µs column-settle delay. It produces retained
+press/release events and owner-accepted typing with the current physical map.
+The installed XKB file remains userspace metadata, not a kernel ABI.
 
 The vendor timing policy is not a direct Linux DT timing contract: its AW9523
 path delays external IRQ work by 1 ms, scans after another 1 ms, then rescans
 at 100 Hz for up to 100 cycles after a transition. The retained AW9523 EINT
 pseudo-node has no `debounce` tuple even though the source requests one and
-ignores the property-read error. Linux 7.1.3 `gpio-matrix-keypad` instead uses
-optional `debounce-delay-ms`, `col-scan-delay-us`, and
-`all-cols-on-delay-us`; the Gemini candidate omits them, so zero-delay/no
-periodic-rescan behavior is intentional pending a named-device event trace.
-The reproducible comparison is in the [keyboard timing contract](../../experiments/2026-07-12-input-backlight-recovery/results/keyboard-timing-contract-20260714.txt).
+ignores the property-read error. The local polling policy is therefore an
+independently accepted mainline behavior, not a claim that the vendor timing
+was reproduced. Function keys, Page Up/Page Down, modifiers, rollover, wake,
+and complete event coverage remain open. See the canonical
+[keyboard boundary](keyboard.md); detailed traces stay with its linked
+experiments.
 
 The separate hall/toggle inputs are not part of the AW9523 matrix. The live
 device exposes GPIO66/EINT5 as a vendor `hall` switch and an `EV_SW` capability
@@ -346,18 +320,10 @@ nodes, machine routing, jack/accdet, speaker amplifier identity, and safe
 gain/supply sequencing. Cellular speech channels must remain a separate later
 transport. The local configuration now prepares the three standard driver
 paths as modules and their objects compile; this is a build-only capability,
-not an enabled card. The current full package is recorded in the [72-patch
-integration result](../../experiments/2026-07-13-kernel-integration/results/mainline-72-patch-current-20260714.txt);
-the focused audio object check remains available in the [audio candidate
-validation](../../experiments/2026-07-12-audio-afe-recovery/results/mainline-audio-candidate-validation.txt).
-boundary and calibration data must remain private.
-
-Current build note (2026-07-14): the authoritative candidate is the current
-74-patch package `linux-7.1.3-gemini-c2feb465d6c6`; older package references
-are retained historical evidence. Its complete provenance and artifact hashes
-are in the [current integration record](../../experiments/2026-07-13-kernel-integration/results/mainline-74-patch-current-20260714.txt),
-and its private LK packaging is recorded in the [current 74-patch LK candidate
-result](../../experiments/2026-07-12-boot-contract-recovery/results/mainline-74-lk-candidate-current-20260714.txt).
+not an enabled card. The dated object validation remains in the
+[audio recovery experiment](../../experiments/2026-07-12-audio-afe-recovery/README.md);
+it is not current package authority. The modem-audio boundary and calibration
+data must remain private.
 
 ## Power, PMIC, and suspend
 
@@ -380,10 +346,17 @@ also protected by a DVFSP/CSPM hardware semaphore shared by the kernel, SPM,
 and ATF, while B-cluster PLL/SRAM operations use secure BigiDVFS SMCCC calls;
 direct writable CCF MMIO is therefore not a safe default. The staged ownership
 and provider boundary are recorded in the [MT6797 CPU clock backend result](../../experiments/2026-07-12-mt6797-clock-power-reset-recovery/results/mt6797-cpu-clock-backend.md).
-The thermal
-experiment recovered the complete six-bank, five-sensor, channel-11,
-efuse-calibrated hardware boundary. The generic AUXADC-thermal bank and
-calibration architecture is reusable, but the MT6797-specific valid mask,
+The external DA921x provider and both Cortex-A72 CPUs remain unavailable:
+the fixed read-only board contract is established, but register writes, rail
+ownership, constraints, rollback, resume, and the complete Linux/firmware
+power sequence are not. Follow the ordered
+[roadmap gates](../ROADMAP.md#ordered-gates), constrained by the
+[DA921x/I2C6/A72 safety boundary](da921x-i2c6-a72.md), before requesting CPU8
+or CPU9.
+
+The thermal experiment recovered the complete six-bank, five-sensor,
+channel-11, efuse-calibrated hardware boundary. The generic AUXADC-thermal bank
+and calibration architecture are reusable, but the MT6797-specific valid mask,
 sampling filter, APMIXED buffer, IRQ/protection, and ADC-OE conversion need an
 explicit variant; a wholly separate driver is acceptable if the variant cannot
 be represented cleanly in the generic driver. The generic
@@ -402,7 +375,7 @@ until ownership is understood.
 
 | Observed candidate | Linux 7.1.3 status | Required work |
 | --- | --- | --- |
-| AW9523 | Generic GPIO/pinctrl driver and binding present | Verify matrix wiring, IRQ and reset; compose keyboard/backlight solution |
+| AW9523 | Generic GPIO/pinctrl driver and binding present | The local generic matrix-polling path provides accepted partial keyboard input. Function keys, navigation keys, modifiers, rollover, wake, complete event coverage, IRQ mode, and backlight remain separate gates; see the [keyboard boundary](keyboard.md). |
 | BMI160 | I2C/SPI IIO driver present | Patch 52 supplies a disabled `bosch,bmi160` candidate and config; direct ID, rails, IRQ/polling, and runtime validation remain |
 | BMP280 | I2C/SPI IIO driver present | Confirm the unbound `0x77` candidate, standard compatible, supplies, and any IRQ |
 | HTS221 | I2C/SPI IIO driver present | Confirm the unbound `0x5f` candidate, standard compatible, supply, and any IRQ |
@@ -410,7 +383,7 @@ until ownership is understood.
 | MMC35240 | I2C IIO driver present | Use only as a register-model hypothesis for the unbound MMC3530 candidate |
 | Novatek touch | Linux driver supports NT11205 and NT36672A; vendor source/ELF accepts eleven masked NT36xxx signatures with distinct logical-addressed transfers | Live filtered probe now records trim `00 00 03 72 66 03`, matching NT36772 trim-table entry 8 / event map `0x11e00`; validate the alternate `0x01` target, rails/reset, and event path before adding a separate backend. See the [live identity record](../../experiments/2026-07-12-input-backlight-recovery/results/nvt-live-trim-identity-20260714.txt) |
 | BQ25890 | Charger driver/binding present | Confirm exact silicon and safe board limits; describe supplies/USB role |
-| DA9214 | Supported by DA9211-family regulator driver | Verify rail, voltage table, enable/IRQ wiring and consumers |
+| DA9214-named external buck | Linux 7.1.3's DA9211/A-family probe is not a match for the observed legacy protocol. The named unit exposes a fixed DA9213/DA9214/DA9215-compatible read-only tuple, but no suitable provider is active and the tuple is not a unique silicon ID. | Required boundaries are a dedicated legacy-family driver/binding or genuinely separated variant, zero probe-time writes, fail-closed fixed reads, and independent validation of BUCK mapping, ownership, voltage/current tables, enable and IRQ semantics, constraints, rollback, resume, and consumers. See the [DA921x/I2C6/A72 contract](da921x-i2c6-a72.md), [ordered roadmap](../ROADMAP.md#ordered-gates), and [exact board-contract experiment](../../experiments/2026-07-28-da9214-gauss/README.md). |
 | SII9022/Sil9024A candidate | I2C3 `0x39`/EDID `0x50` clients unbound; vendor source/ELF checks indexed ID `0x9022` plus TPI ID `0xb0` at register `0x1b`, then uses private `/dev/hdmitx`, `mediatek,sii9022_hdmi`, and a separate EDID client (the `siiSegEDID` segment pointer is declared but not assigned in the pinned source). Vendor DPI0 is `0x1401e000`/SPI231 with MM/interface gates and TVDPLL D2/D4/D8/D16 sources | Linux 7.1.3 `sii902x`/DRM bridge and generic `mtk_dpi` are the reuse candidates; patches 60/61 add only MT6797 DPI platform data and a disabled unconnected node. Adapt the verified 20/50/20 ms reset, GPIO247 1.2 V enable, I/O rail, 16-bit DPI graph, HPD, EDID mux, and PLL factor table only after physical identity/resources are proven; do not port the vendor HDMI ioctl ABI |
 | Mali T860 | Panfrost family support present | MT6797 GPU node/compatible, power domains, clocks, reset, regulator, OPPs and runtime tests |
 | MT6351/MT6797 audio | Codec, AFE and machine drivers present | Add SoC/board DT nodes and validate routing |
@@ -427,26 +400,14 @@ until ownership is understood.
 pinned tree found none; it does not prove that a compatible generic driver is
 impossible.
 
-## Recommended implementation order
+## Planning authority
 
-1. Add MT6797 infracfg resets and EINT support, including the PMIC's direct
-   pseudo-GPIO262/EINT176 path.
-2. Extend the local MT6797 PMIC wrapper and MT6351 MFD/IRQ foundation with
-   regulator, RTC, and power-key support needed for safe board control.
-3. Add a minimal Gemini DTS with memory/reserved-memory, serial console, GIC,
-   clocks, pinctrl, watchdog, and only verified always-on supplies.
-4. Add MT6797 MSDC SoC support/nodes and eMMC read-only bring-up; add microSD
-   only after card-detect and voltage switching are understood.
-5. Enable I2C buses and low-risk peripherals individually: keyboard, touch,
-   light/proximity, IMU, and charger telemetry without charge-control writes.
-6. Add USB controller/PHY and one port at a time, beginning with gadget serial.
-7. Build the IOMMU/MMSYS/DRM/DSI/panel chain; add GPU afterward.
-8. Enable ASoC playback/capture at conservative gain, then jack/speaker paths.
-9. Add cpufreq, thermal policy, suspend, and wake only after the platform is
-   stable under fixed clocks.
-10. Treat Wi-Fi/BT/GNSS as a separate firmware/transport project; camera remains
-   a later but explicitly scoped SP5509/SENINF media project rather than a
-   vendor-ABI port, and modem support is separate.
+The current implementation sequence and milestone exits live only in the
+[roadmap](../ROADMAP.md). This ABI map supplies constraints to that plan:
 
-Every step needs a named kernel commit, DT revision, config, boot path, bounded
-test protocol, and sanitized evidence before changing the support matrix.
+- replace vendor character interfaces with standard Linux subsystems;
+- preserve firmware, modem, calibration, and secure-world boundaries;
+- enable one resource owner or consumer at a time with a reversible,
+  attributable experiment; and
+- require a named kernel, DT, config, boot path, bounded protocol, and
+  sanitized evidence before changing the support matrix.

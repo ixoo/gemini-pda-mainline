@@ -1,0 +1,143 @@
+Candidate Photon r2 helper and component contract tests
+=======================================================
+
+status=passed
+hardware_access=none
+device_write=none
+date=2026-07-27
+
+Exact identities
+----------------
+
+source_sha256=029fbe15270eada880e3ac74d73de20029743b06fffa44f7fa7b75f105cad62b
+probe_binary_sha256=b36cefe50227f8fe6a838cba0c8757279dcd0766b804afa77de5518c263cbdf4
+initramfs_sha256=6269c04ae5fc29f77986e774faa3b667351357dace98420882e0f5d86ca9c77f
+raw_sha256=75b9081c013408c2358ec3c4cafcf7381294c22215432add98739f72033e8ad6
+padded_sha256=0ffe1ee750ff219c9ee6f9d4809ecb8748bdd2a35ba63d68a99b3d74e599c2f7
+artifact_manifest_sha256=5b036d5234ab8d27eddcf152f44d5627de2ba669cb0571491f186cd977f2a551
+installer_sha256=6d98d9a807687567f91513466587ce2b644e5935f841292205fd4a3d25820d5c
+durable_contract_harness=experiments/2026-07-27-da9214-rx-sentinel-photon/scripts/test-photon-contracts.py
+durable_contract_harness_sha256=51c92c13946c538c4cadd0d429d4c6e14e8c5236b72d4fd61e55e833480f7337
+durable_contract_harness_stdout_sha256=1248b16f55cd9d305b348f2c1962e02cd75dda4aef1c9ec4c58ca4e7f5402277
+durable_contract_harness_runs=2-byte-identical
+complete_artifact_trees=3
+complete_artifact_tree_bytes_and_modes=identical
+all_calibrated_pins=passed
+
+Static and component validation
+-------------------------------
+
+gcc_warnings_werror=passed
+gcc_fanalyzer=passed
+clang_syntax=passed
+python_ast=passed
+bash_syntax=passed
+photon_shellcheck=passed
+json_manifest_parse=passed
+kernel_profile_validation=passed
+cassini_foundation_package_validators=passed
+probe_source_and_exact_elf_validator=passed
+one_member_initramfs_validator=passed
+android_container_paths=byte-identical
+lk_gate_count=32
+lk_gate_result=passed
+raw_size_and_zero_tail=passed
+installer_regeneration=passed
+markdown_links=passed
+tracked_diff_check=passed
+untracked_text_file_count=40
+untracked_text_file_diff_check=passed
+
+Durable r1-to-r2 ioctl-request contract harness
+------------------------------------------------
+
+r1_source_sha256=e4c59607d7cd2f63cac9e4ec9931672a9bdaf2c352e8757d4a7cb87ab425a87b
+r2_source_sha256=029fbe15270eada880e3ac74d73de20029743b06fffa44f7fa7b75f105cad62b
+request_contract_serialization=photon-i2c-rdwr-v1
+request_count_each=6
+messages_per_request=2
+address_each=0x69
+message_flags_each=0,1
+message_lengths_each=1,1
+register_pointer_order=05,06,47,05,06,47
+receive_prefill_order=a1,b2,c3,d4,e5,f6
+r1_r2_ioctl_request_trace=identical
+ioctl_request_contract_sha256=70a4428290a01e2a5aa99741881dbe189c13b7f995d4c8cffeab61c434151d81
+r1_generated_include_compile_execute=passed
+r2_generated_include_compile_execute=passed
+request_ioctl=intercepted-no-device-open
+physical_bus_behavior=not-observed
+
+Durable r2 classifier test
+--------------------------
+
+class_post_reference_tuple=passed
+class_post_all_zero=passed
+class_post_pass_tuples_equal_other=passed
+class_post_all_equal_pre=passed
+class_post_mixed_equal_pre=passed
+class_post_none_equal_pre_pass_tuples_differ=passed
+classifier_source=exact-source-pinned-r2-include-harness
+
+Supplemental one-off wrapped-main tests
+---------------------------------------
+
+retention=reported-results-only-temporary-harness-source-not-preserved
+role=supplemental-not-relied-on-for-installation
+historical_ioctl_request_trace_sha256=1e91613448dc451f09702750c71b89b9d303b2b741e74624c9b93059bef125df
+historical_ioctl_request_trace_serialization=not-retained
+class_post_reference_tuple=wrapped-passed
+class_post_all_zero=wrapped-passed
+class_post_pass_tuples_equal_other=wrapped-passed
+class_post_all_equal_pre=wrapped-passed
+class_post_mixed_equal_pre=wrapped-passed
+class_post_none_equal_pre_pass_tuples_differ=wrapped-passed
+complete_wrapped_case_count=6
+ioctl_count_each_complete_case=6
+pre_marker_count_each_complete_case=6
+persistent_line_count_each_complete_case=8
+post_equal_pre_early_stop=absent
+
+Error-boundary wrapped-main tests
+---------------------------------
+
+short_ioctl_result_immediate=passed-result-1-completed-0-stop
+negative_ioctl_result_immediate=passed-result-minus-1-errno-ENXIO-completed-0-stop
+short_ioctl_result_after_one=passed-result-1-completed-1-stop
+negative_ioctl_result_after_one=passed-result-minus-1-errno-ENXIO-completed-1-stop
+completed_post_and_post_diff_mask_evidence=matched-expected-for-all-four
+unchanged_retry=none
+
+Exact-ELF negative gates
+------------------------
+
+extra_argument=exit-2-with-no-i2c-path-or-ioctl
+duplicate_exact_of_adapter=rejected-before-BEGIN-or-PRE
+regular_file_adapter=ENOTTY-path-passed
+
+Mutation rejection
+------------------
+
+source_mutation=rejected
+elf_text_mutation=rejected
+initramfs_mutation=rejected
+boot_header_mutation=rejected
+wrong_r1_input_to_calibrated_replacer=rejected
+
+Interpretation
+--------------
+
+These tests prove the r2 helper's fixed transaction contract, objective
+pre/post classifications, r1-equivalent `I2C_RDWR` request/message sequence,
+and calibrated component identities without opening a real I2C device. The
+durable harness is the installation gate. Earlier temporary wrapped-main tests
+add supplemental evidence for the persistent-line budget and fail-closed error
+boundaries, but their source was not retained and those reported results are
+not treated as independently reproducible. No host-side test establishes
+physical-bus or Gemini hardware behavior; only the guarded
+full-readback-verified r2 boot and one-shot invocation can add hardware
+evidence.
+
+The only broader ShellCheck warning is historical Cassini foundation code:
+seven SC2155 findings in `build-candidate-cassini.sh` lines 62--68. Photon r2
+and its regenerated installer are ShellCheck-clean.

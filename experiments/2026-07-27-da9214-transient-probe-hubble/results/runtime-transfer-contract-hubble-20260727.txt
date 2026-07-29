@@ -1,0 +1,136 @@
+Candidate Hubble volatile Photon r2 transfer contract
+=====================================================
+
+status=offline-contract-passed-hardware-not-accessed
+date=2026-07-27
+device_access=none
+device_write=none
+network_connection=none
+
+Exact inputs
+------------
+
+runtime_runner=scripts/run-hubble-transfer.py
+runtime_runner_sha256=34febe7b017b4f52f554d906a0ca5228469736835bbc83d88620ff70a47f9af3
+offline_test=scripts/test-hubble-transfer.py
+offline_test_sha256=0ffb18ec49b79748447aac82bd6841f4983c1e8ab81220be669ecba13e261754
+photon_r2_helper_sha256=b36cefe50227f8fe6a838cba0c8757279dcd0766b804afa77de5518c263cbdf4
+photon_r2_helper_size=537584
+cassini_kernel_release=7.1.3-gemini-cassini
+cassini_config_sha256=83c85429cdcb7d66cb96df2c9005456afd67fc5c7dbfe5d76e9879bf45c1759b
+cassini_helper_sha256=30073f6ea7d0b57d3654ece5c6212da1c94ff4d24514b62d07331136a4efaf0e
+device_endpoint=10.15.19.82:2323
+host_usb_address=10.15.19.1
+host_usb_mac=42:00:15:19:82:00
+generated_remote_program_ascii_bytes=735963
+generated_remote_program_probe_invocation_sites=1
+
+Fail-closed runtime gates
+-------------------------
+
+host_interface_name=ascii-alphanumeric-only
+host_interface_mac=exact
+host_interface_ipv4=exact-and-unique
+device_route=exact-host-interface
+reachability_probe=three-bounded-direct-interface-pings
+tcp_sessions=one
+tcp_transport=macos-nc-direct-interface-bound
+authentication=none
+encryption=none
+port_probe_before_session=none
+
+runtime_kernel_release=exact-Cassini
+runtime_cmdline=exact-Cassini
+runtime_decompressed_config=exact-Cassini
+runtime_cassini_helper=exact-size-hash-mode
+runtime_root=initial-ram-rootfs
+runtime_run_mount=none-separate
+runtime_cpu_possible=0-9
+runtime_cpu_present=0-9
+runtime_cpu_online=0-7
+runtime_cpu_offline=8-9
+runtime_cpu8_online_control=absent
+runtime_cpu9_online_control=absent
+runtime_handoff=ready
+runtime_i2c6_adapter=one-exact-of-suffix-i2c-at-1100e000
+runtime_i2c6_clients=0
+runtime_i2c6_transfer_dma_nonzero_irq_counters=all-zero
+runtime_i2c6_clock_validation_failures=0
+runtime_prior_photon_markers=0
+runtime_usb_address_carrier_operstate_ipv4=exact
+runtime_udc=one-configured
+runtime_nc_service=one-listener
+runtime_shell_ready=present
+
+Volatile transfer and invocation
+--------------------------------
+
+remote_staging_path=/run/.hubble-photon-r2.stage
+remote_final_path=/run/hubble-photon-r2
+remote_invocation_guard=/run/hubble-photon-r2.invoked
+payload_encoding=base64
+decoder=exact-Cassini-BusyBox-base64-d
+staging_overwrite=refused
+final_overwrite=refused
+guard_overwrite=refused
+decoded_size_gate=537584
+decoded_sha256_gate=b36cefe50227f8fe6a838cba0c8757279dcd0766b804afa77de5518c263cbdf4
+decoded_mode_gate=0500-root-root
+probe_arguments=none
+probe_invocation_count=exactly-one
+guard_created_before_exec=yes
+probe_removed_after_return=yes
+guard_retained_until-power-cycle=yes
+
+Evidence contract
+-----------------
+
+pre_state=boot-id,cpu-online,cpu-offline,nproc,handoff,i2c6-counters,usb-carrier,usb-operstate,udc
+probe_stdout=complete-bounded-14-line-Photon-sequence
+post_state=boot-id,cpu-online,cpu-offline,nproc,handoff,i2c6-counters,usb-carrier,usb-operstate,udc
+expected_i2c6_delta=transfer-attempts-plus6,dma-starts-plus6,nonzero-starts-plus6,irq-plus6
+bounded_kmsg_filter=Photon-BEGIN,Photon-PRE,Photon-RESULT,Photon-ratelimit-notice
+bounded_kmsg_tail_lines=16
+expected_persistent_photon_lines=8
+private_capture_root=artifacts/runtime-captures
+private_capture_mode=0600
+capture_overwrite=refused
+
+Forbidden runtime scope
+-----------------------
+
+persistent_storage_read_or_write=none
+partition_inventory=none
+boot_slot_access=none
+watchdog_access=none
+reboot_shutdown_poweroff=none
+cpu_online_control_write=none
+regulator_control=none
+page_con_access=none-by-exact-Photon-helper
+other_i2c_address_or_register_selection=none-by-exact-Photon-helper
+
+Offline validation
+------------------
+
+host_python_ast=passed
+host_offline_tests=9-passed
+recovery_vm_offline_tests=9-passed
+exact_private_helper_validation=passed
+payload_base64_roundtrip=passed
+transport_mock=passed-one-exact-nc-call
+strict-valid-runtime-fixture=passed
+identity-transfer-delta-one-shot-mutations=rejected
+static-persistent-and-control-path-audit=passed
+exact_cassini_busybox_base64_decode_smoke=passed
+exact_cassini_busybox_generated-remote-sh-n=passed
+git_diff_check=passed
+
+Interpretation
+--------------
+
+The runner is ready for one hardware attempt only after Candidate Hubble boots
+the exact Cassini serviceability runtime. No offline check establishes device
+behavior. Any identity, service, pre-counter, transfer, post-counter, stdout,
+kmsg, boot-ID, or one-shot mismatch preserves the private transcript and
+returns failure. The remote gate reaches neither payload decoding nor probe
+execution unless every exact Cassini precondition passes.

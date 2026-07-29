@@ -1,0 +1,114 @@
+Candidate Hubble reproducible packaging and installer validation
+===============================================================
+
+status=completed-packaging-and-installer-validation
+date=2026-07-27
+hardware_access=none
+device_write=none
+runtime_result=not-tested
+
+Boundary
+--------
+
+candidate=Hubble
+experiment=2026-07-27-da9214-transient-probe-hubble
+purpose=exact-Cassini-serviceability-recovery-base
+boot_image_transform=none
+complete_artifact_transform=enclosing-directory-name-only
+transient_probe_embedded=no
+
+Exact Cassini target
+--------------------
+
+source_artifact=candidate-Cassini-da9214-direct-address-e02e2673
+hubble_artifact=candidate-Hubble-cassini-rollback-e02e2673
+boot_member=gemini-mt6797-da9214-cassini.boot.img
+complete_member_count=24
+manifest_entry_count=23
+manifest_sha256=0d1a954827f5ebd31abc12b4d0a207105c5e270403a9b3a66cbd70626e5b2306
+raw_sha256=e02e2673ca054d3e4081f5234d26a394617777e8496417fd75196a948d55fa4d
+raw_size=7645184
+padded_sha256=febe4d44b14b899cb357fae1b3ecda9bdb687c0c3e1f9e4b3cee30bc04f13cf1
+padded_size=16777216
+padded_prefix=exact-raw-Cassini
+padded_tail=all-zero
+complete_member_bytes=exact-Cassini
+complete_member_modes=exact-Cassini
+
+Reproduction
+------------
+
+exact_source=/home/julien.guest/artifacts/boot-candidates/candidate-Cassini-da9214-direct-address-e02e2673
+artifact_a=/home/julien.guest/artifacts/boot-candidates-hubble-final/candidate-Hubble-cassini-rollback-e02e2673
+artifact_b=/home/julien.guest/artifacts/boot-candidates-hubble-final-repro/candidate-Hubble-cassini-rollback-e02e2673
+publication_a=passed
+publication_b=passed
+independent_output_roots=yes
+common_exact_source=yes
+independent_tree_bytes=identical
+independent_tree_modes=identical
+complete_tree_identity=exact-Cassini
+host_export=artifacts/vm-export-hubble-20260727/candidate-Hubble-cassini-rollback-e02e2673
+host_export_validation=passed
+host_final_reproduction=artifacts/vm-export-hubble-final-repro-20260727/candidate-Hubble-cassini-rollback-e02e2673
+host_final_reproduction_validation=passed
+host_final_tree_comparison=bytes-and-modes-identical
+
+The separately retained historical Cassini reproduction root at
+`boot-candidates-cassini-repro` was not accepted as the exact hardware-passed
+complete source: its `SHA256SUMS` identity was
+`5491f4d02ce6d50e560639e16bc6aae054c0a9d5aa7a1e282e68bb3e8e21f42b`
+rather than the required hardware-passed complete-manifest identity above.
+The Hubble builder rejected it before creating output. Both retained Hubble
+publications therefore use the one exact source artifact and reproduce the
+deterministic no-transform publication path, not a fresh Cassini kernel build.
+
+Guarded installer
+-----------------
+
+installer_derivation=exact-source-pinned-Photon-r2-installer-machinery
+photon_deriver_sha256=4529282f1fa549168784681575281900c91724da76d29950e8ae7e2cdb27b865
+photon_installer_foundation_sha256=6d98d9a807687567f91513466587ce2b644e5935f841292205fd4a3d25820d5c
+hubble_installer_sha256=3adaf33fbb4567ac9ef3fd2030f85a24f69f5349f812d49493c56ded716a2452
+accepted_live_predecessor=only-exact-installed-readback-verified-Photon-r2
+accepted_live_predecessor_sha256=0ffe1ee750ff219c9ee6f9d4809ecb8748bdd2a35ba63d68a99b3d74e599c2f7
+accepted_target=gemini@192.168.1.50
+logical_target=live-GPT-resolved-boot2
+candidate_raw_sha256=e02e2673ca054d3e4081f5234d26a394617777e8496417fd75196a948d55fa4d
+candidate_padded_sha256=febe4d44b14b899cb357fae1b3ecda9bdb687c0c3e1f9e4b3cee30bc04f13cf1
+sole_target_write=one-bounded-16MiB-boot2-write
+backup=full-mode-0600-predecessor
+flush_and_full_remote_readback=required
+streamed_local_full_readback=required
+battery_policy=present-health-Good-capacity-81..100
+external_power_required=no
+shell_syntax=passed
+shellcheck=passed
+reboot_shutdown_slot_selection=none
+
+Contract validation
+-------------------
+
+candidate_pins_sha256=1e1775a833974e53ab057893fd5b9ec45e026818471533bc7f077479b3dd6213
+builder_sha256=012926521f75ad52c38e70c759ccec297f8bab2a7dbb3cdf43685910fb0afc78
+artifact_validator_sha256=bdae711e7c0ecf9e3957e1a1a3e259b843813247848410edf0a88939b64dc5de
+installer_deriver_sha256=762c53d5e79e6d837aa74b3c20e80b9d5c064c8db92ddb37b9ba1b9fb4b57e38
+contract_harness_sha256=e6beaf39a43154ad661692af3c02a747ee8200df5c3a7620b5bbd17c9a17c90a
+manifest_mutations_rejected=3
+source_equals_output_rejected=yes
+output_inside_source_rejected=yes
+source_inside_output_rejected=yes
+source_output_overlap_cases_rejected=3
+host_contract_harness=passed
+recovery_vm_contract_harness=passed
+installer_target_write_count=1
+installer_reboot_shutdown_slot_selection=none
+validation_result=passed
+
+Interpretation
+--------------
+
+This result establishes an exact, reproducible Cassini-byte recovery package
+and a fail-closed transition from exact Photon r2. It does not establish that
+the named device boots Hubble or that Cassini serviceability has been restored.
+No device was contacted while producing or validating this record.

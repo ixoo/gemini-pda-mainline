@@ -1,0 +1,86 @@
+Candidate Photon r0 guarded boot2 installation
+===============================================
+
+status=superseded-before-boot-after-write-synced-flushed-full-readback-verified
+runtime_result=never-booted
+device_variant=named-Gemini-PDA-development-unit
+date=2026-07-27
+
+Candidate identity
+------------------
+
+artifact=candidate-Photon-da9214-rx-sentinel-b69f8b39
+artifact_manifest_sha256=b75ccd98dc6c0ce8934c837c582b76503a85ee32eb4f2e1257594eb9fb7e1b53
+candidate_raw_sha256=b69f8b399a73861f06b7318d335d1def8f8cc2a16e953fdab97238894e4a2ef4
+candidate_raw_size=7647232
+candidate_padded_sha256=5c044fc3d2ccecf399d6ccb058f354b43e9d14b3fb98f9eb448016ab7f9e8e04
+candidate_padded_size=16777216
+derived_installer_sha256=70faf61c4992e9122312f5ed403ce9efb720f1ef1e8bdb553e00bf660453a69b
+
+Live target resolution
+----------------------
+
+known_good_os=Gemian
+known_good_kernel=3.18.41+
+live_gpt_logical_name=boot2
+resolved_target=/dev/mmcblk0p30
+resolved_target_size=16777216
+active_root=/dev/mmcblk0p29
+target_is_active_root=no
+target_mounted=no
+target_swap=no
+target_holders=no
+target_writable=yes
+boot_id_sha256=2fcc6850bce00f4df04cce235e9a3fde278d4b04f010a6ce93abad07c5bfe0da
+
+Power gate
+----------
+
+battery_present=1
+battery_capacity_percent=95
+battery_health=Good
+battery_status=Charging
+ac_online_observed=0
+usb_online_observed=1
+external_power_required=no
+power_policy=battery-present-health-Good-capacity-strictly-above-80
+
+Backup, write, and verification
+-------------------------------
+
+predecessor_expected=Cassini-installed-readback-verified
+predecessor_full_sha256=febe4d44b14b899cb357fae1b3ecda9bdb687c0c3e1f9e4b3cee30bc04f13cf1
+predecessor_match=yes
+full_backup_mode=0600
+full_backup_sha256=febe4d44b14b899cb357fae1b3ecda9bdb687c0c3e1f9e4b3cee30bc04f13cf1
+write_target=logical-boot2-only
+write_size=16777216
+sync_completed=yes
+block_flush_completed=yes
+remote_post_flush_sha256=5c044fc3d2ccecf399d6ccb058f354b43e9d14b3fb98f9eb448016ab7f9e8e04
+full_local_readback_bytes=16777216
+full_local_readback_sha256=5c044fc3d2ccecf399d6ccb058f354b43e9d14b3fb98f9eb448016ab7f9e8e04
+full_readback_match=yes
+remote_staging_removed=yes
+
+Private evidence provenance
+---------------------------
+
+private_directory=artifacts/device-partitions/candidate-photon-boot2-install-20260727T1440Z
+private_directory_mode=0700
+deployment_summary_sha256=d43b12ca6a5aa512f74fa1b1ab4eb0aec3fe6a0adfd9e55ba3b7f30dfc3cbd85
+evidence_manifest_sha256=460edcc33f0425ee4ceed81a64ca8d0b4f7bcd7b79d6d9286285de856ddc6fbb
+private_partition_images_committed=no
+
+Shutdown boundary
+-----------------
+
+installer_reboot_or_shutdown=none
+separate_gemian_poweroff_requested=yes
+ssh_closed_by_remote_host=yes
+post_poweroff_ssh_probe=timed-out
+device_state=off
+automatic_boot2_selection=no
+owner_manual_boot2_selection=cancelled-before-boot
+superseded_reason=early-sentinel-stop-could-not-distinguish-untouched-buffer-from-coincidentally-equal-device-byte
+superseded_by=Candidate-Photon-r1-always-six-paired-sentinel-observer

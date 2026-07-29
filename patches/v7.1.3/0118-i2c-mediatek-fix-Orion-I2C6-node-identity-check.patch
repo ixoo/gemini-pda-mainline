@@ -1,0 +1,71 @@
+From 8bbd49592ebec37d3102c3343c96057f1459fb6c Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 27 Jul 2026 17:22:00 -0400
+Subject: [PATCH 118/118] i2c: mediatek: fix Orion I2C6 node identity check
+
+The fixed diagnostic must bind only to the root I2C6 node. Comparing the
+string returned by of_node_full_name() did not establish that identity
+reliably for the live tree.
+
+Resolve the absolute path through the OF core and require pointer identity
+with the probed node. Release the acquired node reference on both outcomes.
+Keep the special-compatible and non-NULL handoff gates, and make every
+diagnostic setup rejection attributable in the kernel log.
+
+---
+ drivers/i2c/busses/i2c-mt65xx.c | 31 ++++++++++++++++++++++++-------
+ 1 file changed, 24 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/i2c/busses/i2c-mt65xx.c b/drivers/i2c/busses/i2c-mt65xx.c
+--- a/drivers/i2c/busses/i2c-mt65xx.c
++++ b/drivers/i2c/busses/i2c-mt65xx.c
+@@ -2066,14 +2066,28 @@ static int mtk_i2c_orion_init(struct mtk_i2c *i2c)
+ {
++	struct device_node *target;
+ 	struct dentry *file;
++	int ret;
+ 
+ 	if (i2c->dev_comp != &mt6797_idvfs_compat)
+ 		return 0;
+-	if (!i2c->dvfsp_handoff ||
+-	    strcmp(of_node_full_name(i2c->dev->of_node),
+-		   "/i2c@1100e000"))
+-		return -EINVAL;
++	if (!i2c->dvfsp_handoff)
++		return dev_err_probe(i2c->dev, -EINVAL,
++				     "GEMINI_VEGA_DIAGNOSTIC_GATE missing DVFSP handoff\n");
++
++	target = of_find_node_by_path("/i2c@1100e000");
++	if (!target)
++		return dev_err_probe(i2c->dev, -ENODEV,
++				     "GEMINI_VEGA_DIAGNOSTIC_GATE target node unavailable\n");
++	if (i2c->dev->of_node != target) {
++		of_node_put(target);
++		return dev_err_probe(i2c->dev, -EINVAL,
++				     "GEMINI_VEGA_DIAGNOSTIC_GATE node identity mismatch\n");
++	}
++	of_node_put(target);
++
+ 	if (!i2c->adap.debugfs)
+-		return -ENODEV;
++		return dev_err_probe(i2c->dev, -ENODEV,
++				     "GEMINI_VEGA_DIAGNOSTIC_GATE adapter debugfs unavailable\n");
+ 
+ 	mutex_init(&i2c->orion.lock);
+ 	i2c->orion.state = MTK_I2C_ORION_READY;
+@@ -2082,8 +2096,11 @@ static int mtk_i2c_orion_init(struct mtk_i2c *i2c)
+ 	i2c->orion.retries_after = i2c->adap.retries;
+ 	file = debugfs_create_file("orion-run-all", 0600, i2c->adap.debugfs,
+ 				   i2c, &mtk_i2c_orion_fops);
+-	if (IS_ERR_OR_NULL(file))
+-		return file ? PTR_ERR(file) : -ENOMEM;
++	if (IS_ERR_OR_NULL(file)) {
++		ret = file ? PTR_ERR(file) : -ENOMEM;
++		return dev_err_probe(i2c->dev, ret,
++				     "GEMINI_VEGA_DIAGNOSTIC_GATE debugfs creation failed\n");
++	}
+ 
+ 	dev_info(i2c->dev,
+ 		 "GEMINI_ORION_DIAGNOSTIC state=ready one_shot=unused\n");
+-- 
+2.50.1 (Apple Git-155)

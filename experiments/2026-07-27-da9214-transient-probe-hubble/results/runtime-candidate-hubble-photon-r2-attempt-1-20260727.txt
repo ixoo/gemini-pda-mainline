@@ -1,0 +1,138 @@
+Candidate Hubble runtime and volatile Photon r2 attempt 1
+=========================================================
+
+status=completed-decision-changing-rx-buffer-observation
+date=2026-07-27
+device=named-Gemini-PDA-unit
+boot_path=owner-selected-logical-boot2
+boot_id=cdd23c48-0bd3-4980-95c8-5e054be860d9
+
+Attributable boundary
+---------------------
+
+Hubble is the complete, byte-and-mode-exact hardware-passed Cassini artifact.
+Its installed full-partition SHA-256 was read back as
+febe4d44b14b899cb357fae1b3ecda9bdb687c0c3e1f9e4b3cee30bc04f13cf1.
+It embeds no Photon helper. After exact Cassini USB serviceability was
+established, the separately validated exact Photon r2 ELF was transferred over
+the direct USB-only development link into volatile /run, invoked once, and
+removed.
+
+Runtime identity and preconditions
+----------------------------------
+
+kernel_release=7.1.3-gemini-cassini
+config_sha256=83c85429cdcb7d66cb96df2c9005456afd67fc5c7dbfe5d76e9879bf45c1759b
+cassini_helper_sha256=30073f6ea7d0b57d3654ece5c6212da1c94ff4d24514b62d07331136a4efaf0e
+cpu_possible=0-9
+cpu_present=0-9
+cpu_online=0-7
+cpu_offline=8-9
+nproc=8
+handoff_state=ready
+i2c6_adapter=i2c-1
+i2c6_of=/sys/firmware/devicetree/base/i2c@1100e000
+i2c6_clients=0
+i2c6_clock_domains=i2c-appm,ap-dma
+i2c6_clock_validation_failures=0
+usb0_address=42:00:15:19:82:01
+usb0_carrier=1
+usb0_operstate=up
+usb0_ipv4=10.15.19.82/24
+udc_state=configured
+prior_photon_markers=0
+
+Volatile helper identity and scope
+----------------------------------
+
+runner_sha256=34febe7b017b4f52f554d906a0ca5228469736835bbc83d88620ff70a47f9af3
+helper_size=537584
+helper_sha256=b36cefe50227f8fe6a838cba0c8757279dcd0766b804afa77de5518c263cbdf4
+remote_path=/run/hubble-photon-r2
+remote_mode=0500
+invocation_count=1
+helper_removed_after_return=yes
+one_shot_guard_mode=0400
+persistent_storage_access=none
+watchdog_access=none
+reboot_shutdown_slot_control=none
+regulator_control=none
+cpu_control=none
+page_con_access=none
+
+Exact request and result
+------------------------
+
+address=0x69
+message_shape=six-combined-I2C_RDWR-one-byte-pointer-plus-one-byte-read
+registers=05,06,47,05,06,47
+prefills=a1,b2,c3,d4,e5,f6
+completed=6
+each_ioctl_result=2
+each_errno=0
+post=a1,b2,c3,d4,e5,f6
+post_diff_mask=0x00
+result_class=post-all-equal-pre
+probe_exit_code=2
+
+Paired observations
+-------------------
+
+register_05_prefill_pair=a1,d4
+register_05_post_pair=a1,d4
+register_06_prefill_pair=b2,e5
+register_06_post_pair=b2,e5
+register_47_prefill_pair=c3,f6
+register_47_post_pair=c3,f6
+
+Kernel counter deltas
+---------------------
+
+transfer_attempts=0->6
+dma_starts=0->6
+nonzero_starts=0->6
+irq_count=0->6
+boot_id=unchanged
+cpu_online=0-7->0-7
+cpu_offline=8-9->8-9
+handoff_state=ready->ready
+usb_carrier=1->1
+usb_operstate=up->up
+udc_state=configured->configured
+
+Private evidence
+----------------
+
+capture=artifacts/runtime-captures/hubble-photon-r2-20260727T173315Z/hubble-runtime-transfer.txt
+capture_mode=0600
+capture_size=26403
+capture_sha256=29bf5ec7bdeef8619f069bbf4aeb28276000c00efd19881191d1fe5a7793b667
+
+Interpretation
+--------------
+
+Observation: every userspace receive byte returned exactly its own distinct
+prefill. The same register was tested twice with different prefills, and its
+post byte followed the prefill rather than forming a stable register tuple.
+The six successful ioctl returns and six transfer/DMA/start/IRQ increments
+therefore do not establish that received data overwrote the CPU-visible
+buffer.
+
+Inference: Cassini's earlier 00 00 00 tuple was its zero initialization, not
+evidence of DA9214 register contents. The fault is now localized to the
+mainline I2C6 WRRD receive-data path or its observation/copyback boundary, but
+this result alone does not distinguish wire-level receive behavior, DMA
+destination programming, DMA completion/coherency, or later copyback.
+Exact source inspection further narrows the counters: `dma_starts` increments
+before the APDMA enable write, and the IRQ counter records the controller
+interrupt rather than an independently validated APDMA completion. Neither
+counter proves receive DMA wrote its destination.
+
+Conclusion and next decision
+----------------------------
+
+Hubble booted the exact Cassini serviceability boundary and proved that
+userspace probes can be transferred and run without rebuilding or rebooting
+the kernel. Do not repeat Photon r2. Keep this Hubble boot alive and use the
+next bounded volatile observation to localize the WRRD receive path before any
+DA9214 identity, regulator-provider, or A72 operation.

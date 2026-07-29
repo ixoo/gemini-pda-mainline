@@ -1,0 +1,105 @@
+Candidate Photon r0 reproducible build
+======================================
+
+status=superseded-before-boot-after-completed-build-and-reproduction
+hardware_access=none
+device_write=none
+runtime_result=never-booted
+date=2026-07-27
+
+Hypothesis
+----------
+
+Candidate Cassini's six reported zero bytes are ambiguous because every
+receive buffer was initialized to zero. Photon keeps Cassini's exact
+kernel, DTB, resolved configuration, I2C6 timing, address, register order,
+two-message transaction shape, and six-transfer limit. Its only
+decision-changing observation delta assigns distinct nonzero receive
+sentinels a1,b2,c3,d4,e5,f6 immediately before the six ioctls.
+
+Foundation
+----------
+
+cassini_artifact=candidate-Cassini-da9214-direct-address-e02e2673
+cassini_manifest_sha256=0d1a954827f5ebd31abc12b4d0a207105c5e270403a9b3a66cbd70626e5b2306
+cassini_raw_sha256=e02e2673ca054d3e4081f5234d26a394617777e8496417fd75196a948d55fa4d
+cassini_raw_size=7645184
+cassini_padded_sha256=febe4d44b14b899cb357fae1b3ecda9bdb687c0c3e1f9e4b3cee30bc04f13cf1
+image_gz_sha256=3e9eeb5a2d28f857a1bd25dca8f033f0a19f854a0c8e1839a98bb1aba0df06dc
+combined_kernel_dtb_field_sha256=9bdda4ae8a20ad215fc53bd3ef3e8c6c5e92171e3e6613415f460bc22f63f85c
+standalone_dtb_sha256=8faee2918ce72b08907affa73bfbaf1c5bbbffafde0f4f4c2693977468291768
+resolved_config_sha256=83c85429cdcb7d66cb96df2c9005456afd67fc5c7dbfe5d76e9879bf45c1759b
+system_map_sha256=ea78ced1f70b98803058289bd1cd701c699d41e025713a0a0acc4f6ef99f4052
+kernel_dtb_config_change=none
+
+Photon artifacts
+----------------
+
+probe_source_sha256=6beb3d04ad29429f53d22c48e0c1821059822d16a73a2b26907094df8cb0c60c
+probe_binary_sha256=aca14971f9286e5dfd220e9aca4890c9d3822e067954878c31babb6a20058b52
+probe_compiler=gcc-13.3.0-aarch64-static
+initramfs_sha256=f4649af93e93064d4dfb450e5d0a56d39a03c8409d00918cb871c7f7533e3084
+initramfs_inventory=exact-cassini
+initramfs_sole_changed_member=bin/cassini-probe-data
+raw_sha256=b69f8b399a73861f06b7318d335d1def8f8cc2a16e953fdab97238894e4a2ef4
+raw_size=7647232
+padded_size=16777216
+padded_sha256=5c044fc3d2ccecf399d6ccb058f354b43e9d14b3fb98f9eb448016ab7f9e8e04
+artifact_manifest_sha256=b75ccd98dc6c0ce8934c837c582b76503a85ee32eb4f2e1257594eb9fb7e1b53
+installer_sha256=70faf61c4992e9122312f5ed403ce9efb720f1ef1e8bdb553e00bf660453a69b
+
+Independent construction
+------------------------
+
+artifact_a=/home/julien.guest/artifacts/boot-candidates-photon/candidate-Photon-da9214-rx-sentinel-b69f8b39
+artifact_b=/home/julien.guest/artifacts/boot-candidates-photon-repro/candidate-Photon-da9214-rx-sentinel-b69f8b39
+complete_member_count=20
+complete_file_bytes=identical
+complete_file_modes=identical
+boot_bearing_bytes=identical
+helper_builds=2-byte-identical
+initramfs_builds=2-byte-identical
+container_path_1=direct-exact-cassini-ramdisk-field-replacement
+container_path_2=independent-shared-android-v0-serializer
+container_paths=byte-identical
+lk_analyzer_gate_count=32
+lk_analyzer_result=passed
+boot_header_name=gemini-cassini-preserved
+boot_cmdline=bootopt=64S3,32N2,64N2-preserved
+
+Safety boundary
+---------------
+
+arguments=none
+adapter_of_path=/i2c@1100e000
+address=0x69
+registers=0x05,0x06,0x47-twice
+transactions=maximum-6-combined-I2C_RDWR-pointer-read
+receive_sentinels=a1,b2,c3,d4,e5,f6
+stop_on_first_surviving_sentinel=yes
+review_result=ambiguous-if-device-byte-coincidentally-equals-sentinel
+superseded_by=Candidate-Photon-r1-always-six-paired-sentinel-observer
+persistent_success_lines=8
+page_register_access=none
+device_register_write=none
+regulator_operation=none
+a72_request=none
+storage_watchdog_reboot_cpu_control=none
+automatic_invocation=none
+
+Decision branches
+-----------------
+
+unchanged_sentinel=ambiguous-coincidentally-equal-device-byte-or-untouched-buffer
+six_overwritten_zeroes=real-rx-buffer-zero-writes-investigate-timing-or-wire
+d9_d0_c0_twice=direct-secondary-route-supported-provider-only-review-next
+other_bytes_or_error=preserve-and-stop-without-unchanged-retry
+
+Historical interpretation correction
+------------------------------------
+
+runtime_evidence=none-never-booted-never-invoked
+historical_overwrite_labels=artifact-vocabulary-not-hardware-facts
+historical_six_overwritten_zeroes_branch=not-a-proven-rx-write-or-physical-bus-result
+historical_d9_d0_c0_branch=not-a-proven-device-or-route-identity
+superseding_observer=Candidate-Photon-r2-neutral-pre-post-vocabulary

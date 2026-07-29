@@ -1,0 +1,144 @@
+Candidate Mariner exact hardware result
+=======================================
+
+status=completed-raw-pointer-echo
+date=2026-07-27
+device_variant=named-gemini-pda-unit
+invocations=1
+retry=none
+raw_capture=private-git-ignored
+raw_capture_mode=0600
+raw_capture_size=27418
+raw_capture_sha256=c39c248231bb2c254e4cfce4f88cd2a89b4510124215e49fc8ac9858ba22b531
+exact_runner_validation=passed
+sanitization=host-interface-service-banner-and-unrelated-identifiers-omitted
+
+Runtime attribution
+-------------------
+
+boot_id=cdd23c48-0bd3-4980-95c8-5e054be860d9
+kernel_release=7.1.3-gemini-cassini
+configuration_sha256=83c85429cdcb7d66cb96df2c9005456afd67fc5c7dbfe5d76e9879bf45c1759b
+mariner_helper_sha256=958ce2a16b6716f550e38667b2bc4c61e04bc0be977c9bf31f594fc30a9bf93c
+mariner_helper_size=537584
+prior_voyager_capture_sha256=aae3626d0cbd5275908ff2aaa3f9507709c591b2a0aa2bd996ca0ccf4c46adc1
+prior_voyager_result=split-pointer-echo
+prior_voyager_post=06,47
+prior_voyager_guard=mode0400-root-root
+i2c6_adapter=i2c-1
+i2c6_of_suffix=/i2c@1100e000
+i2c6_clients=0
+cpu_online_pre=0-7
+cpu_offline_pre=8-9
+nproc_pre=8
+handoff_pre=ready
+usb_link_pre=up
+udc_pre=configured
+
+Exact transaction observation
+-----------------------------
+
+i2c_address=0x69
+selection_ioctl=I2C_SLAVE
+selection_result=0
+selection_errno=0
+selection_bus_transfer=no
+bus_syscalls=4
+api_order=write06,read1,write47,read1
+stop_between_pointer_and_read=datasheet-valid
+pair1_pointer=06
+pair1_user_prefill=3c
+pair1_write_result=1
+pair1_write_errno=0
+pair1_read_result=1
+pair1_read_errno=0
+pair1_post=06
+pair2_pointer=47
+pair2_user_prefill=a6
+pair2_write_result=1
+pair2_write_errno=0
+pair2_read_result=1
+pair2_read_errno=0
+pair2_post=47
+post_diff_user_mask=0x03
+post_diff_user_mask_meaning=userspace-equality-logging-only
+kernel_receive_buffers=zeroed,zeroed
+no_hardware_write_prediction=00,00
+completed_pairs=2
+completed_bus_calls=4
+result_class=raw-pointer-echo
+probe_rc=2
+
+Pre/post invariants
+-------------------
+
+transfer_attempts=14->18
+dma_starts=14->18
+nonzero_starts=14->18
+irq_count=14->18
+boot_id=unchanged
+cpu_online=0-7->0-7
+cpu_offline=8-9->8-9
+nproc=8->8
+handoff=ready->ready
+usb_link=up->up
+udc=configured->configured
+clock_validation_failures=0->0
+suspend_checks=0->0
+resume_checks=0->0
+resume_failures=0->0
+
+One-shot and forbidden scope
+----------------------------
+
+volatile_transfer=passed
+helper_mode_during_invocation=0500-root-root
+invocation_guard_created_before_exec=yes
+invocation_guard_after_exec=0400-root-root
+helper_removed_after_return=yes
+persistent_storage_access=none
+partition_or_slot_access=none
+watchdog_access=none
+reboot_shutdown_poweroff=none
+cpu_control_write=none
+regulator_control=none
+devmem_access=none
+page_con_access=none
+retry_delay_scan=none
+
+Observation
+-----------
+
+Both ordinary i2c-dev reads returned success and produced their respective
+preceding pointer bytes:
+
+`3c -> 06` and `a6 -> 47`.
+
+The `3c,a6` bytes existed only in userspace. They did not initialize either
+zeroed kernel receive buffer. All four I2C6 counters advanced exactly by four
+while boot ID, CPU set, handoff, and USB service state remained unchanged.
+
+Analysis
+--------
+
+The pointer-echo signature survives i2c-dev's zeroed receive buffer and the
+I2C core's separate zeroed DMA-safe bounce buffer. A successful no-write path
+predicted `00,00`; the observed `06,47` therefore cannot be explained by
+unchanged userspace prefills or by direct `I2C_RDWR` DMA-safe buffers alone.
+
+This favors a lower controller/APDMA source such as pointer/FIFO residue,
+DMA direction/address/length programming, or completion ordering. It does not
+identify the physical writer, prove a wire byte, or isolate the exact
+controller/APDMA defect.
+
+The expected live tuple `d0,c0` was not observed. Values `06,47` are
+pointer-correlated fault output, not DA9214 register contents.
+
+Conclusion
+----------
+
+confirmed=pointer-echo-survives-zeroed-kernel-bounce-path
+favored_boundary=controller-or-apdma-below-i2cdev-buffer-api
+not_confirmed=da9214-register-values,wire-byte,exact-controller-apdma-defect
+next_step=review-and-test-recovered-short-fifo-pio-correction
+repeat_same_probe=no

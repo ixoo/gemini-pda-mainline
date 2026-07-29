@@ -1,0 +1,811 @@
+From 13118dd9f454f8aad0146d7bdd868a5af2cb5f7d Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 27 Jul 2026 20:30:00 -0400
+Subject: [PATCH 119/119] i2c: mediatek: add fixed Quasar native-path canary
+
+Vega established that the MT6797 iDVFS controller returns the previously
+observed d9,d0,c0 tuple with packed WRRD lengths through either FIFO or
+APDMA, while the auxiliary-length negative control does not complete its
+receive side.  The next experiment must exercise the ordinary controller
+policy without Orion's mode overrides or per-mode reset.
+
+Add an experiment-only Quasar canary which is mutually exclusive with the
+Orion diagnostic.  Its root-only one-shot file accepts only "run\n" and
+issues two ordered passes over fixed read-only offsets 05, 06, and 47 at
+address 0x69.  Each receive buffer has a distinct sentinel.  Stop at the
+first transport, native-policy, counter, or expected-value mismatch.
+
+Hold the root-adapter lock around the complete run, require a childless
+adapter, ready handoff, zero transfer counters, and adapter retries equal
+to one.  Use __i2c_transfer() with retries temporarily set to zero, then
+restore one on every exit.  Do not select a length encoding or transfer
+engine and do not request a controller or APDMA reset.
+
+Record the controller and channel state after programming, in the IRQ,
+after completion, and after FIFO extraction.  Keep attempted, transport
+completed, and value-validated counts distinct.  A successful run requires
+packed 0x0101 lengths, FIFO for every 1+1 transfer, completion-only IRQs,
+one received then zero queued FIFO bytes, no controller DMA enable, no
+APDMA start, exact 6/0/6/6 counter deltas, and no hardware-initialization
+counter delta.
+
+This is a fixed read canary, not a device provider.  It exposes no
+arbitrary address, register, length, data, mode, retry, or reset input.
+
+---
+ drivers/i2c/busses/Kconfig      |  14 +
+ drivers/i2c/busses/i2c-mt65xx.c | 663 +++++++++++++++++++++++++++++++-
+ 2 files changed, 677 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/i2c/busses/Kconfig b/drivers/i2c/busses/Kconfig
+--- a/drivers/i2c/busses/Kconfig
++++ b/drivers/i2c/busses/Kconfig
+@@ -916,6 +916,20 @@ config I2C_MT65XX_ORION_DIAGNOSTIC
+ 
+ 	  Say N outside the named Gemini Orion experiment.
+ 
++config I2C_MT65XX_QUASAR_DIAGNOSTIC
++	bool "MT6797 I2C6 fixed Quasar native-path canary"
++	depends on I2C_MT65XX=y && DEBUG_FS
++	depends on !I2C_MT65XX_ORION_DIAGNOSTIC
++	help
++	  Enable the experiment-only, one-shot Quasar native-path canary for
++	  the access-controlled MT6797 iDVFS I2C instance. The root-only
++	  debugfs file accepts exactly "run" followed by a newline and performs
++	  two fixed passes of pointer-only reads from address 0x69.
++
++	  The canary supplies no length or engine override and exposes no
++	  arbitrary address, register, data, length, mode, retry, or reset
++	  control. Say N outside the named Gemini Quasar experiment.
++
+ config I2C_MT7621
+ 	tristate "MT7621/MT7628 I2C Controller"
+ 	depends on (RALINK && (SOC_MT7620 || SOC_MT7621)) || ARCH_AIROHA || COMPILE_TEST
+diff --git a/drivers/i2c/busses/i2c-mt65xx.c b/drivers/i2c/busses/i2c-mt65xx.c
+--- a/drivers/i2c/busses/i2c-mt65xx.c
++++ b/drivers/i2c/busses/i2c-mt65xx.c
+@@ -207,6 +207,86 @@ struct mtk_i2c_orion_diag {
+ };
+ #endif
+ 
++#ifdef CONFIG_I2C_MT65XX_QUASAR_DIAGNOSTIC
++#define MTK_I2C_QUASAR_PASS_COUNT	2
++#define MTK_I2C_QUASAR_REGISTER_COUNT	3
++#define MTK_I2C_QUASAR_SAMPLE_COUNT	\
++	(MTK_I2C_QUASAR_PASS_COUNT * MTK_I2C_QUASAR_REGISTER_COUNT)
++
++enum mtk_i2c_quasar_state {
++	MTK_I2C_QUASAR_READY,
++	MTK_I2C_QUASAR_RUNNING,
++	MTK_I2C_QUASAR_DONE,
++};
++
++struct mtk_i2c_quasar_snapshot {
++	u16 transfer_len;
++	u16 transfer_len_aux;
++	u16 transac_len;
++	u16 control;
++	u16 start;
++	u16 intr_stat;
++	u16 fifo_stat;
++	u32 dma_en;
++	u32 dma_con;
++	u32 dma_int_flag;
++	u32 dma_tx_len;
++	u32 dma_rx_len;
++};
++
++struct mtk_i2c_quasar_sample {
++	struct mtk_i2c_quasar_snapshot pre;
++	struct mtk_i2c_quasar_snapshot irq;
++	struct mtk_i2c_quasar_snapshot post;
++	struct mtk_i2c_quasar_snapshot drained;
++	unsigned int pass;
++	unsigned int index;
++	u8 reg;
++	u8 expected;
++	u8 prefill;
++	u8 value;
++	int ret;
++	int validation_error;
++	bool programmed;
++	bool transport_completed;
++	bool value_validated;
++	bool use_dma;
++	u16 irq_stat;
++	u16 fifo_stat;
++	u16 fifo_count;
++	u16 fifo_count_drained;
++};
++
++struct mtk_i2c_quasar_diag {
++	struct mutex lock; /* Serializes one-shot state and result reads. */
++	struct mtk_i2c_quasar_sample samples[MTK_I2C_QUASAR_SAMPLE_COUNT];
++	struct mtk_i2c_quasar_sample *active_sample;
++	enum mtk_i2c_quasar_state state;
++	int run_error;
++	unsigned int attempted;
++	unsigned int transport_completed;
++	unsigned int value_validated;
++	unsigned int failure_pass;
++	unsigned int failure_index;
++	bool mismatch;
++	unsigned int retries_before;
++	unsigned int retries_during;
++	unsigned int retries_after;
++	int init_attempts_before;
++	int init_attempts_after;
++	int init_successes_before;
++	int init_successes_after;
++	int transfer_attempts_before;
++	int transfer_attempts_after;
++	int dma_starts_before;
++	int dma_starts_after;
++	int nonzero_starts_before;
++	int nonzero_starts_after;
++	int irqs_before;
++	int irqs_after;
++};
++#endif
++
+ enum I2C_REGS_OFFSET {
+ 	OFFSET_DATA_PORT,
+ 	OFFSET_SLAVE_ADDR,
+@@ -404,6 +484,9 @@ struct mtk_i2c {
+ #ifdef CONFIG_I2C_MT65XX_ORION_DIAGNOSTIC
+ 	struct mtk_i2c_orion_diag orion;
+ #endif
++#ifdef CONFIG_I2C_MT65XX_QUASAR_DIAGNOSTIC
++	struct mtk_i2c_quasar_diag quasar;
++#endif
+ };
+ 
+ static atomic_t mtk_i2c_handoff_probe_attempts = ATOMIC_INIT(0);
+@@ -1272,6 +1355,112 @@ static void mtk_i2c_orion_record_fifo(struct mtk_i2c *i2c, u16 fifo_count)
+ }
+ #endif
+ 
++#ifdef CONFIG_I2C_MT65XX_QUASAR_DIAGNOSTIC
++static void
++mtk_i2c_quasar_snapshot(struct mtk_i2c *i2c,
++			struct mtk_i2c_quasar_snapshot *snapshot)
++{
++	snapshot->transfer_len = mtk_i2c_readw(i2c, OFFSET_TRANSFER_LEN);
++	snapshot->transfer_len_aux =
++		mtk_i2c_readw(i2c, OFFSET_TRANSFER_LEN_AUX);
++	snapshot->transac_len = mtk_i2c_readw(i2c, OFFSET_TRANSAC_LEN);
++	snapshot->control = mtk_i2c_readw(i2c, OFFSET_CONTROL);
++	snapshot->start = mtk_i2c_readw(i2c, OFFSET_START);
++	snapshot->intr_stat = mtk_i2c_readw(i2c, OFFSET_INTR_STAT);
++	snapshot->fifo_stat = mtk_i2c_readw(i2c, OFFSET_FIFO_STAT);
++	snapshot->dma_en = readl(i2c->pdmabase + OFFSET_EN);
++	snapshot->dma_con = readl(i2c->pdmabase + OFFSET_CON);
++	snapshot->dma_int_flag =
++		readl(i2c->pdmabase + OFFSET_INT_FLAG);
++	snapshot->dma_tx_len = readl(i2c->pdmabase + OFFSET_TX_LEN);
++	snapshot->dma_rx_len = readl(i2c->pdmabase + OFFSET_RX_LEN);
++}
++
++static void mtk_i2c_quasar_record_programmed(struct mtk_i2c *i2c,
++					      bool use_dma)
++{
++	struct mtk_i2c_quasar_sample *sample =
++		smp_load_acquire(&i2c->quasar.active_sample);
++
++	if (!sample)
++		return;
++
++	mtk_i2c_quasar_snapshot(i2c, &sample->pre);
++	sample->use_dma = use_dma;
++	sample->programmed = true;
++}
++
++static void mtk_i2c_quasar_record_irq(struct mtk_i2c *i2c, u16 irq_stat)
++{
++	struct mtk_i2c_quasar_sample *sample =
++		smp_load_acquire(&i2c->quasar.active_sample);
++
++	if (!sample)
++		return;
++
++	sample->irq_stat |= irq_stat;
++	mtk_i2c_quasar_snapshot(i2c, &sample->irq);
++}
++
++static void mtk_i2c_quasar_record_post(struct mtk_i2c *i2c)
++{
++	struct mtk_i2c_quasar_sample *sample =
++		smp_load_acquire(&i2c->quasar.active_sample);
++
++	if (sample)
++		mtk_i2c_quasar_snapshot(i2c, &sample->post);
++}
++
++static void mtk_i2c_quasar_record_fifo(struct mtk_i2c *i2c, u16 fifo_stat,
++					u16 fifo_count)
++{
++	struct mtk_i2c_quasar_sample *sample =
++		smp_load_acquire(&i2c->quasar.active_sample);
++
++	if (!sample)
++		return;
++
++	sample->fifo_stat = fifo_stat;
++	sample->fifo_count = fifo_count;
++}
++
++static void mtk_i2c_quasar_record_drained(struct mtk_i2c *i2c)
++{
++	struct mtk_i2c_quasar_sample *sample =
++		smp_load_acquire(&i2c->quasar.active_sample);
++
++	if (!sample)
++		return;
++
++	mtk_i2c_quasar_snapshot(i2c, &sample->drained);
++	sample->fifo_count_drained =
++		(sample->drained.fifo_stat & I2C_FIFO_RX_COUNT_MASK) >>
++		I2C_FIFO_RX_COUNT_SHIFT;
++}
++#else
++static void mtk_i2c_quasar_record_programmed(struct mtk_i2c *i2c,
++					      bool use_dma)
++{
++}
++
++static void mtk_i2c_quasar_record_irq(struct mtk_i2c *i2c, u16 irq_stat)
++{
++}
++
++static void mtk_i2c_quasar_record_post(struct mtk_i2c *i2c)
++{
++}
++
++static void mtk_i2c_quasar_record_fifo(struct mtk_i2c *i2c, u16 fifo_stat,
++					u16 fifo_count)
++{
++}
++
++static void mtk_i2c_quasar_record_drained(struct mtk_i2c *i2c)
++{
++}
++#endif
++
+ static void mtk_i2c_prepare_pio(struct mtk_i2c *i2c,
+ 				const struct i2c_msg *msgs)
+ {
+@@ -1290,15 +1479,18 @@ static int mtk_i2c_complete_pio(struct mtk_i2c *i2c,
+ {
+ 	struct i2c_msg *rx_msg;
+ 	u16 fifo_count;
++	u16 fifo_stat;
+ 	int i;
+ 
+ 	if (i2c->op == I2C_MASTER_WR)
+ 		return 0;
+ 
+ 	rx_msg = i2c->op == I2C_MASTER_WRRD ? msgs + 1 : msgs;
+-	fifo_count = (mtk_i2c_readw(i2c, OFFSET_FIFO_STAT) &
++	fifo_stat = mtk_i2c_readw(i2c, OFFSET_FIFO_STAT);
++	fifo_count = (fifo_stat &
+ 		      I2C_FIFO_RX_COUNT_MASK) >> I2C_FIFO_RX_COUNT_SHIFT;
+ 	mtk_i2c_orion_record_fifo(i2c, fifo_count);
++	mtk_i2c_quasar_record_fifo(i2c, fifo_stat, fifo_count);
+ 	if (fifo_count != rx_msg->len) {
+ 		dev_err(i2c->dev,
+ 			"FIFO count %u does not match receive length %u\n",
+@@ -1311,7 +1503,8 @@ static int mtk_i2c_complete_pio(struct mtk_i2c *i2c,
+ 	for (i = 0; i < rx_msg->len; i++)
+ 		rx_msg->buf[i] = (u8)readl(i2c->base +
+ 			i2c->dev_comp->regs[OFFSET_DATA_PORT]);
+ 
++	mtk_i2c_quasar_record_drained(i2c);
+ 	return 0;
+ }
+ 
+@@ -1503,6 +1696,7 @@ static int mtk_i2c_do_transfer(struct mtk_i2c *i2c, struct i2c_msg *msgs,
+ 	}
+ 
+ 	mtk_i2c_orion_record_programmed(i2c, use_dma);
++	mtk_i2c_quasar_record_programmed(i2c, use_dma);
+ 	if (use_dma) {
+ 		if (i2c->dvfsp_handoff)
+ 			atomic_inc(&i2c->dma_start_count);
+@@ -1523,6 +1717,7 @@ static int mtk_i2c_do_transfer(struct mtk_i2c *i2c, struct i2c_msg *msgs,
+ 	ret = wait_for_completion_timeout(&i2c->msg_complete,
+ 					  i2c->adap.timeout);
+ 	mtk_i2c_orion_record_post(i2c);
++	mtk_i2c_quasar_record_post(i2c);
+ 
+ 	/* Clear interrupt mask */
+ 	mtk_i2c_writew(i2c, ~(restart_flag | I2C_HS_NACKERR | I2C_ACKERR |
+@@ -1691,6 +1886,7 @@ static irqreturn_t mtk_i2c_irq(int irqno, void *dev_id)
+ 
+ 	intr_stat = mtk_i2c_readw(i2c, OFFSET_INTR_STAT);
+ 	mtk_i2c_orion_record_irq(i2c, intr_stat);
++	mtk_i2c_quasar_record_irq(i2c, intr_stat);
+ 	mtk_i2c_writew(i2c, intr_stat, OFFSET_INTR_STAT);
+ 
+ 	/*
+@@ -2112,6 +2308,469 @@ static int mtk_i2c_orion_init(struct mtk_i2c *i2c)
+ }
+ #endif
+ 
++#ifdef CONFIG_I2C_MT65XX_QUASAR_DIAGNOSTIC
++#define MTK_I2C_QUASAR_RESULT_SIZE	16384
++
++static const u8
++mtk_i2c_quasar_registers[MTK_I2C_QUASAR_REGISTER_COUNT] = {
++	0x05, 0x06, 0x47,
++};
++
++static const u8
++mtk_i2c_quasar_expected[MTK_I2C_QUASAR_REGISTER_COUNT] = {
++	0xd9, 0xd0, 0xc0,
++};
++
++static const u8
++mtk_i2c_quasar_prefills[MTK_I2C_QUASAR_PASS_COUNT]
++			 [MTK_I2C_QUASAR_REGISTER_COUNT] = {
++	{ 0xa5, 0x5a, 0x3c },
++	{ 0x96, 0x69, 0xc3 },
++};
++
++static const char *
++mtk_i2c_quasar_state_name(enum mtk_i2c_quasar_state state)
++{
++	switch (state) {
++	case MTK_I2C_QUASAR_READY:
++		return "ready";
++	case MTK_I2C_QUASAR_RUNNING:
++		return "running";
++	case MTK_I2C_QUASAR_DONE:
++		return "done";
++	default:
++		return "invalid";
++	}
++}
++
++static int mtk_i2c_quasar_child_present(struct device *dev, void *data)
++{
++	return 1;
++}
++
++static void mtk_i2c_quasar_record_counters(struct mtk_i2c *i2c, bool before)
++{
++	struct mtk_i2c_quasar_diag *diag = &i2c->quasar;
++
++	if (before) {
++		diag->init_attempts_before = atomic_read(&i2c->init_attempts);
++		diag->init_successes_before = atomic_read(&i2c->init_successes);
++		diag->transfer_attempts_before =
++			atomic_read(&i2c->transfer_attempts);
++		diag->dma_starts_before = atomic_read(&i2c->dma_start_count);
++		diag->nonzero_starts_before =
++			atomic_read(&i2c->nonzero_start_count);
++		diag->irqs_before = atomic_read(&i2c->irq_count);
++	} else {
++		diag->init_attempts_after = atomic_read(&i2c->init_attempts);
++		diag->init_successes_after = atomic_read(&i2c->init_successes);
++		diag->transfer_attempts_after =
++			atomic_read(&i2c->transfer_attempts);
++		diag->dma_starts_after = atomic_read(&i2c->dma_start_count);
++		diag->nonzero_starts_after =
++			atomic_read(&i2c->nonzero_start_count);
++		diag->irqs_after = atomic_read(&i2c->irq_count);
++	}
++}
++
++static int
++mtk_i2c_quasar_validate_sample(struct mtk_i2c *i2c,
++			       struct mtk_i2c_quasar_sample *sample,
++			       unsigned int ordinal)
++{
++	struct mtk_i2c_quasar_diag *diag = &i2c->quasar;
++
++	if (!sample->programmed ||
++	    sample->use_dma ||
++	    sample->pre.transfer_len != 0x0101 ||
++	    sample->pre.transfer_len_aux ||
++	    sample->pre.transac_len != I2C_WRRD_TRANAC_VALUE ||
++	    sample->pre.control != 0x003a ||
++	    sample->pre.control & I2C_CONTROL_DMA_EN ||
++	    sample->irq_stat != I2C_TRANSAC_COMP ||
++	    sample->irq.intr_stat != I2C_TRANSAC_COMP ||
++	    sample->fifo_count != 1 ||
++	    sample->pre.dma_en || sample->pre.dma_con ||
++	    sample->pre.dma_int_flag || sample->pre.dma_tx_len ||
++	    sample->pre.dma_rx_len ||
++	    sample->irq.dma_en || sample->irq.dma_con ||
++	    sample->irq.dma_int_flag || sample->irq.dma_tx_len ||
++	    sample->irq.dma_rx_len ||
++	    sample->post.dma_en || sample->post.dma_con ||
++	    sample->post.dma_int_flag || sample->post.dma_tx_len ||
++	    sample->post.dma_rx_len ||
++	    sample->fifo_count_drained ||
++	    sample->drained.dma_en || sample->drained.dma_con ||
++	    sample->drained.dma_int_flag || sample->drained.dma_tx_len ||
++	    sample->drained.dma_rx_len)
++		return -EPROTO;
++
++	mtk_i2c_quasar_record_counters(i2c, false);
++	if (diag->init_attempts_after != diag->init_attempts_before ||
++	    diag->init_successes_after != diag->init_successes_before ||
++	    diag->transfer_attempts_after != ordinal ||
++	    diag->dma_starts_after ||
++	    diag->nonzero_starts_after != ordinal ||
++	    diag->irqs_after != ordinal)
++		return -EPROTO;
++
++	if (sample->value != sample->expected)
++		return -EUCLEAN;
++
++	return 0;
++}
++
++static int mtk_i2c_quasar_run(struct mtk_i2c *i2c)
++{
++	struct mtk_i2c_quasar_diag *diag = &i2c->quasar;
++	unsigned int pass;
++	unsigned int index;
++	int ret = 0;
++
++	i2c_lock_bus(&i2c->adap, I2C_LOCK_ROOT_ADAPTER);
++	mtk_i2c_quasar_record_counters(i2c, true);
++	mtk_i2c_quasar_record_counters(i2c, false);
++	diag->retries_before = i2c->adap.retries;
++	diag->retries_during = i2c->adap.retries;
++	diag->retries_after = i2c->adap.retries;
++
++	if (device_for_each_child(&i2c->adap.dev, NULL,
++				  mtk_i2c_quasar_child_present)) {
++		ret = -EBUSY;
++		goto out_restore_retries;
++	}
++
++	if (mt6797_dvfsp_handoff_require_ready(i2c->dvfsp_handoff)) {
++		ret = -EHOSTDOWN;
++		goto out_restore_retries;
++	}
++
++	if (diag->transfer_attempts_before ||
++	    diag->dma_starts_before ||
++	    diag->nonzero_starts_before ||
++	    diag->irqs_before) {
++		ret = -EBUSY;
++		goto out_restore_retries;
++	}
++
++	if (diag->init_attempts_before != 1 ||
++	    diag->init_successes_before != 1 ||
++	    diag->retries_before != 1 ||
++	    i2c->dev_comp->wrrd_len_mode != MTK_I2C_WRRD_LEN_PACKED_8_5 ||
++	    i2c->dev_comp->fifo_size != 8) {
++		ret = -EPROTO;
++		goto out_restore_retries;
++	}
++
++	i2c->adap.retries = 0;
++	diag->retries_during = i2c->adap.retries;
++
++	for (pass = 0; pass < MTK_I2C_QUASAR_PASS_COUNT; pass++) {
++		for (index = 0; index < MTK_I2C_QUASAR_REGISTER_COUNT;
++		     index++) {
++			struct mtk_i2c_quasar_sample *sample;
++			struct i2c_msg msgs[2];
++			unsigned int ordinal;
++			u8 pointer = mtk_i2c_quasar_registers[index];
++			u8 value = mtk_i2c_quasar_prefills[pass][index];
++
++			sample = &diag->samples[diag->attempted++];
++			memset(sample, 0, sizeof(*sample));
++			sample->pass = pass;
++			sample->index = index;
++			sample->reg = pointer;
++			sample->expected = mtk_i2c_quasar_expected[index];
++			sample->prefill = value;
++			sample->value = value;
++			sample->fifo_count = 0xffff;
++			sample->fifo_count_drained = 0xffff;
++			ordinal = diag->attempted;
++
++			msgs[0].addr = 0x69;
++			msgs[0].flags = 0;
++			msgs[0].len = 1;
++			msgs[0].buf = &pointer;
++			msgs[1].addr = 0x69;
++			msgs[1].flags = I2C_M_RD;
++			msgs[1].len = 1;
++			msgs[1].buf = &value;
++
++			smp_store_release(&diag->active_sample, sample);
++			ret = __i2c_transfer(&i2c->adap, msgs,
++					     ARRAY_SIZE(msgs));
++			smp_store_release(&diag->active_sample, NULL);
++			sample->ret = ret;
++			sample->value = value;
++			if (ret != 2) {
++				if (ret >= 0)
++					ret = -EIO;
++				sample->validation_error = ret;
++				diag->failure_pass = pass;
++				diag->failure_index = index;
++				goto out_restore_retries;
++			}
++			sample->transport_completed = true;
++			diag->transport_completed++;
++
++			ret = mtk_i2c_quasar_validate_sample(i2c, sample,
++							     ordinal);
++			sample->validation_error = ret;
++			if (ret) {
++				diag->failure_pass = pass;
++				diag->failure_index = index;
++				diag->mismatch = sample->value !=
++						 sample->expected;
++				goto out_restore_retries;
++			}
++			sample->value_validated = true;
++			diag->value_validated++;
++		}
++	}
++
++	mtk_i2c_quasar_record_counters(i2c, false);
++	if (diag->attempted != MTK_I2C_QUASAR_SAMPLE_COUNT ||
++	    diag->transport_completed != MTK_I2C_QUASAR_SAMPLE_COUNT ||
++	    diag->value_validated != MTK_I2C_QUASAR_SAMPLE_COUNT ||
++	    diag->transfer_attempts_after != MTK_I2C_QUASAR_SAMPLE_COUNT ||
++	    diag->dma_starts_after ||
++	    diag->nonzero_starts_after != MTK_I2C_QUASAR_SAMPLE_COUNT ||
++	    diag->irqs_after != MTK_I2C_QUASAR_SAMPLE_COUNT ||
++	    diag->init_attempts_after != diag->init_attempts_before ||
++	    diag->init_successes_after != diag->init_successes_before) {
++		ret = -EPROTO;
++		goto out_restore_retries;
++	}
++	ret = 0;
++
++out_restore_retries:
++	i2c->adap.retries = diag->retries_before;
++	diag->retries_after = i2c->adap.retries;
++	smp_store_release(&diag->active_sample, NULL);
++	mtk_i2c_quasar_record_counters(i2c, false);
++	i2c_unlock_bus(&i2c->adap, I2C_LOCK_ROOT_ADAPTER);
++
++	return ret;
++}
++
++static int
++mtk_i2c_quasar_emit_snapshot(char *buf, int len, const char *name,
++			     const struct mtk_i2c_quasar_snapshot *snapshot)
++{
++	len += scnprintf(buf + len, MTK_I2C_QUASAR_RESULT_SIZE - len,
++		"%s_transfer_len=%04x %s_transfer_len_aux=%04x "
++		"%s_transac_len=%04x %s_control=%04x %s_start=%04x "
++		"%s_intr_stat=%04x %s_fifo_stat=%04x ",
++		name, snapshot->transfer_len, name, snapshot->transfer_len_aux,
++		name, snapshot->transac_len, name, snapshot->control,
++		name, snapshot->start, name, snapshot->intr_stat,
++		name, snapshot->fifo_stat);
++	len += scnprintf(buf + len, MTK_I2C_QUASAR_RESULT_SIZE - len,
++		"%s_dma_en=%08x %s_dma_con=%08x %s_dma_int_flag=%08x "
++		"%s_dma_tx_len=%08x %s_dma_rx_len=%08x ",
++		name, snapshot->dma_en, name, snapshot->dma_con,
++		name, snapshot->dma_int_flag, name, snapshot->dma_tx_len,
++		name, snapshot->dma_rx_len);
++
++	return len;
++}
++
++static ssize_t mtk_i2c_quasar_read(struct file *file,
++				   char __user *user_buf,
++				   size_t count, loff_t *ppos)
++{
++	struct mtk_i2c *i2c = file->private_data;
++	struct mtk_i2c_quasar_diag *diag = &i2c->quasar;
++	char *buf;
++	unsigned int i;
++	int len = 0;
++	ssize_t ret;
++
++	buf = kzalloc(MTK_I2C_QUASAR_RESULT_SIZE, GFP_KERNEL);
++	if (!buf)
++		return -ENOMEM;
++
++	mutex_lock(&diag->lock);
++	len += scnprintf(buf + len, MTK_I2C_QUASAR_RESULT_SIZE - len,
++		"candidate=Quasar state=%s one_shot=%s run_error=%d "
++		"attempted=%u transport_completed=%u value_validated=%u "
++		"address=0x69 passes=2 "
++		"registers=05,06,47 expected=d9,d0,c0 ",
++		mtk_i2c_quasar_state_name(diag->state),
++		diag->state == MTK_I2C_QUASAR_READY ? "unused" : "consumed",
++		diag->run_error, diag->attempted, diag->transport_completed,
++		diag->value_validated);
++	len += scnprintf(buf + len, MTK_I2C_QUASAR_RESULT_SIZE - len,
++		"prefills=a5,5a,3c,96,69,c3 mode=none "
++		"forced_length_mode=none forced_engine=none reset_pending=0 mismatch=%u "
++		"failure_pass=%u failure_index=%u ",
++		diag->mismatch, diag->failure_pass, diag->failure_index);
++	len += scnprintf(buf + len, MTK_I2C_QUASAR_RESULT_SIZE - len,
++		"retries_before=%u retries_during=%u retries_after=%u ",
++		diag->retries_before, diag->retries_during,
++		diag->retries_after);
++	len += scnprintf(buf + len, MTK_I2C_QUASAR_RESULT_SIZE - len,
++		"init_attempts_before=%d init_attempts_after=%d "
++		"init_successes_before=%d init_successes_after=%d ",
++		diag->init_attempts_before, diag->init_attempts_after,
++		diag->init_successes_before, diag->init_successes_after);
++	len += scnprintf(buf + len, MTK_I2C_QUASAR_RESULT_SIZE - len,
++		"transfer_attempts_before=%d transfer_attempts_after=%d "
++		"dma_starts_before=%d dma_starts_after=%d ",
++		diag->transfer_attempts_before, diag->transfer_attempts_after,
++		diag->dma_starts_before, diag->dma_starts_after);
++	len += scnprintf(buf + len, MTK_I2C_QUASAR_RESULT_SIZE - len,
++		"nonzero_starts_before=%d nonzero_starts_after=%d "
++		"irqs_before=%d irqs_after=%d "
++		"success_counter_contract=6,0,6,6\n",
++		diag->nonzero_starts_before, diag->nonzero_starts_after,
++		diag->irqs_before, diag->irqs_after);
++
++	for (i = 0; i < diag->attempted; i++) {
++		const struct mtk_i2c_quasar_sample *sample =
++			&diag->samples[i];
++
++		len += scnprintf(buf + len,
++			MTK_I2C_QUASAR_RESULT_SIZE - len,
++			"sample=%u pass=%u index=%u register=%02x "
++			"expected=%02x prefill=%02x value=%02x ret=%d "
++			"validation_error=%d programmed=%u "
++			"transport_completed=%u value_validated=%u "
++			"engine=%s irq_stat=%04x ",
++			i, sample->pass, sample->index, sample->reg,
++			sample->expected, sample->prefill, sample->value,
++			sample->ret, sample->validation_error,
++			sample->programmed, sample->transport_completed,
++			sample->value_validated,
++			sample->programmed ?
++				(sample->use_dma ? "dma" : "fifo") :
++				"unobserved",
++			sample->irq_stat);
++		len = mtk_i2c_quasar_emit_snapshot(buf, len, "pre",
++						   &sample->pre);
++		len = mtk_i2c_quasar_emit_snapshot(buf, len, "irq",
++						   &sample->irq);
++		len = mtk_i2c_quasar_emit_snapshot(buf, len, "post",
++						   &sample->post);
++		len = mtk_i2c_quasar_emit_snapshot(buf, len, "drained",
++						   &sample->drained);
++		len += scnprintf(buf + len,
++			MTK_I2C_QUASAR_RESULT_SIZE - len,
++			"fifo_stat=%04x fifo_count=%u "
++			"fifo_count_drained=%u\n",
++			sample->fifo_stat, sample->fifo_count,
++			sample->fifo_count_drained);
++	}
++	mutex_unlock(&diag->lock);
++
++	ret = simple_read_from_buffer(user_buf, count, ppos, buf, len);
++	kfree(buf);
++
++	return ret;
++}
++
++static ssize_t mtk_i2c_quasar_write(struct file *file,
++				    const char __user *user_buf,
++				    size_t count, loff_t *ppos)
++{
++	struct mtk_i2c *i2c = file->private_data;
++	struct mtk_i2c_quasar_diag *diag = &i2c->quasar;
++	char command[4];
++	int ret;
++
++	if (*ppos || count != sizeof(command))
++		return -EINVAL;
++	if (copy_from_user(command, user_buf, sizeof(command)))
++		return -EFAULT;
++	if (memcmp(command, "run\n", sizeof(command)))
++		return -EINVAL;
++
++	mutex_lock(&diag->lock);
++	if (diag->state != MTK_I2C_QUASAR_READY) {
++		ret = -EBUSY;
++		goto out_unlock;
++	}
++
++	diag->state = MTK_I2C_QUASAR_RUNNING;
++	ret = mtk_i2c_quasar_run(i2c);
++	diag->run_error = ret;
++	diag->state = MTK_I2C_QUASAR_DONE;
++	if (!ret) {
++		*ppos += count;
++		ret = count;
++	}
++
++out_unlock:
++	mutex_unlock(&diag->lock);
++	return ret;
++}
++
++static const struct file_operations mtk_i2c_quasar_fops = {
++	.owner = THIS_MODULE,
++	.open = simple_open,
++	.read = mtk_i2c_quasar_read,
++	.write = mtk_i2c_quasar_write,
++	.llseek = default_llseek,
++};
++
++static int mtk_i2c_quasar_init(struct mtk_i2c *i2c)
++{
++	struct mtk_i2c_quasar_diag *diag = &i2c->quasar;
++	struct device_node *target;
++	struct dentry *file;
++	int ret;
++
++	if (i2c->dev_comp != &mt6797_idvfs_compat)
++		return 0;
++	if (!i2c->dvfsp_handoff)
++		return dev_err_probe(i2c->dev, -EINVAL,
++				     "GEMINI_QUASAR_DIAGNOSTIC_GATE missing DVFSP handoff\n");
++
++	target = of_find_node_by_path("/i2c@1100e000");
++	if (!target)
++		return dev_err_probe(i2c->dev, -ENODEV,
++				     "GEMINI_QUASAR_DIAGNOSTIC_GATE target node unavailable\n");
++	if (i2c->dev->of_node != target) {
++		of_node_put(target);
++		return dev_err_probe(i2c->dev, -EINVAL,
++				     "GEMINI_QUASAR_DIAGNOSTIC_GATE node identity mismatch\n");
++	}
++	of_node_put(target);
++
++	if (!i2c->adap.debugfs)
++		return dev_err_probe(i2c->dev, -ENODEV,
++				     "GEMINI_QUASAR_DIAGNOSTIC_GATE adapter debugfs unavailable\n");
++
++	mutex_init(&diag->lock);
++	diag->state = MTK_I2C_QUASAR_READY;
++	diag->failure_pass = MTK_I2C_QUASAR_PASS_COUNT;
++	diag->failure_index = MTK_I2C_QUASAR_REGISTER_COUNT;
++	diag->retries_before = i2c->adap.retries;
++	diag->retries_during = i2c->adap.retries;
++	diag->retries_after = i2c->adap.retries;
++	mtk_i2c_quasar_record_counters(i2c, true);
++	mtk_i2c_quasar_record_counters(i2c, false);
++	file = debugfs_create_file("quasar-run-native", 0600,
++				   i2c->adap.debugfs, i2c,
++				   &mtk_i2c_quasar_fops);
++	if (IS_ERR_OR_NULL(file)) {
++		ret = file ? PTR_ERR(file) : -ENOMEM;
++		return dev_err_probe(i2c->dev, ret,
++				     "GEMINI_QUASAR_DIAGNOSTIC_GATE debugfs creation failed\n");
++	}
++
++	dev_info(i2c->dev,
++		 "GEMINI_QUASAR_NATIVE_DIAGNOSTIC state=ready "
++		 "one_shot=unused mode=none forced_length_mode=none "
++		 "forced_engine=none reset_pending=0\n");
++	return 0;
++}
++#else
++static int mtk_i2c_quasar_init(struct mtk_i2c *i2c)
++{
++	return 0;
++}
++#endif
++
+ static int mtk_i2c_probe(struct platform_device *pdev)
+ {
+ 	int ret = 0;
+@@ -2283,6 +2942,9 @@ static int mtk_i2c_probe(struct platform_device *pdev)
+ 	ret = mtk_i2c_orion_init(i2c);
+ 	if (ret)
+ 		goto err_del_adapter;
++	ret = mtk_i2c_quasar_init(i2c);
++	if (ret)
++		goto err_del_adapter;
+ 
+ 	if (i2c->dvfsp_handoff) {
+ 		ret = devm_device_add_group(&pdev->dev,
+-- 
+2.50.1 (Apple Git-155)

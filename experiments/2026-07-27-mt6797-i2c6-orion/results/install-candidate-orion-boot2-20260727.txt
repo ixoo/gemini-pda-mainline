@@ -1,0 +1,84 @@
+Candidate Orion boot2 installation
+==================================
+
+status=installed-full-readback-verified-runtime-not-tested
+date=2026-07-27
+device=named-Gemini-PDA-unit
+source_os=known-good-Gemian-3.18.41+
+source_root=/dev/mmcblk0p29
+source_boot_id=8d219b22-a8aa-4127-9cbd-747b600de087
+
+Attributable hypothesis
+-----------------------
+
+Candidate Orion preserves the exact hardware-passed Hubble boot DT except for
+the dedicated I2C6 compatible string. Its fixed diagnostic is inert until one
+exact root-only command is accepted. A successful boot must retain Hubble's
+console, keyboard, USB gadget Ethernet, native reboot, and CPUs 0-7. The single
+guarded run then distinguishes the I2C6 packed-FIFO path from packed-DMA and
+auxiliary-DMA paths. If Orion fails before serviceability, recover new pstore
+evidence and do not repeat this identical artifact.
+
+Pre-write gates
+---------------
+
+logical_target=boot2
+live_gpt_target=/dev/mmcblk0p30
+target_partition_number=30
+target_size=16777216
+target_type=partition
+target_parent=mmcblk0
+target_writable=yes
+target_mounted=no
+target_active_root=no
+target_swap=no
+target_holders=no
+battery_present=1
+battery_capacity=99
+battery_health=Good
+external_power_required=no
+previous_label=Hubble-installed-readback-verified
+previous_full_sha256=febe4d44b14b899cb357fae1b3ecda9bdb687c0c3e1f9e4b3cee30bc04f13cf1
+full_backup_preserved=yes
+full_backup_mode=0600
+full_backup_sha256=febe4d44b14b899cb357fae1b3ecda9bdb687c0c3e1f9e4b3cee30bc04f13cf1
+
+Candidate identity
+------------------
+
+candidate_label=Orion
+artifact_directory=candidate-Orion-mt6797-i2c6-6724eb7b
+raw_size=7747584
+raw_sha256=6724eb7bccc5179955681a156468af53ec60557242b50e555cb50a02769a04db
+padded_size=16777216
+padded_sha256=74f9d9c8cae1213665db2100dda72e0531e0b221cd74a660fc183edcd7bb50d4
+artifact_manifest_sha256=d72975f4953bfeeff8b9a7da7c1afa931630838ef5c1773c50ba1efe0f7d51e0
+
+Write and verification
+----------------------
+
+target_write_count=1
+target_write_bytes=16777216
+sync=yes
+block_flush=yes
+remote_post_flush_sha256=74f9d9c8cae1213665db2100dda72e0531e0b221cd74a660fc183edcd7bb50d4
+remote_final_gate_sha256=74f9d9c8cae1213665db2100dda72e0531e0b221cd74a660fc183edcd7bb50d4
+local_full_readback_bytes=16777216
+local_full_readback_sha256=74f9d9c8cae1213665db2100dda72e0531e0b221cd74a660fc183edcd7bb50d4
+local_full_readback_byte_compare=identical
+private_evidence_manifest_sha256=2a6875040277e7faafb412abd0089b048cee4941061d1851cb36829b71eb2819
+remote_staging_removed=yes
+reboot_during_install=no
+powered_off_after_verified_install=yes
+post_poweroff_gemian_reachable=no
+post_poweroff_usb_shell_reachable=no
+
+Result and next decision
+------------------------
+
+The inactive logical boot2 contains exact, full-readback-verified Orion, and
+the device was powered off without selecting it. Runtime support and the Orion
+diagnostic remain untested. The next device boot must be an owner-selected
+boot2 attempt. If exact Orion identity and all serviceability gates pass, run
+the validated collector exactly once; do not write the debugfs trigger by hand
+or repeat the same diagnostic.

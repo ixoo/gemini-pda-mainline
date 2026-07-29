@@ -1,0 +1,423 @@
+From 2cdd4e9d25f00c49112ea9949a54ddae9f470006 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 28 Jul 2026 09:59:00 -0400
+Subject: [PATCH 120/120] i2c: mediatek: add fixed Fermi topology fingerprint
+
+Quasar proved that the ordinary MT6797 iDVFS controller policy can perform
+the fixed legacy-interface reads twice through the native FIFO path while
+preserving the handoff, initialization, transfer, IRQ, and DMA invariants.
+The next discriminator must retain that exact transport contract while
+reading the legacy DA9213/14/15 topology and active voltage controls.
+
+Add a compile-time-exclusive Fermi diagnostic derived from Quasar.  Its
+root-only one-shot endpoint accepts only "run\n" and performs two fixed
+passes over 0x69:{05,06,47} followed by 0x68:{d3,5e,d9,da}.  Require the
+known d9,d0,c0 interface tuple, require the low three bits of d3 to be 05,
+and require d3,5e,d9,da to remain stable across the two passes.  Reject a
+sample that still equals its distinct receive prefill before interpreting
+any unknown control value.
+
+Keep every Quasar controller and counter invariant, including the childless
+adapter and ready-handoff gates, zero initial transfer counters, native
+packed 0x0101 WRRD lengths, FIFO completion, completion-only IRQs, one then
+zero FIFO bytes, zero APDMA state, no hardware reinitialization, and exact
+14/0/14/14 transfer/DMA/start/IRQ counters.  Increase only the fixed result
+buffer so all fourteen complete snapshots fit without truncation.
+
+The endpoint exposes no configurable address, register, length, data, mode,
+retry, or reset input.  It performs no PAGE_CON or data-register write and
+provides no I2C client or regulator.  It requests neither Cortex-A72.
+
+---
+ drivers/i2c/busses/Kconfig      |  16 ++++
+ drivers/i2c/busses/i2c-mt65xx.c | 182 +++++++++++++++++++++++++++++----
+ 2 files changed, 180 insertions(+), 18 deletions(-)
+
+diff --git a/drivers/i2c/busses/Kconfig b/drivers/i2c/busses/Kconfig
+--- a/drivers/i2c/busses/Kconfig
++++ b/drivers/i2c/busses/Kconfig
+@@ -929,7 +929,23 @@ config I2C_MT65XX_QUASAR_DIAGNOSTIC
+ 	  The canary supplies no length or engine override and exposes no
+ 	  arbitrary address, register, data, length, mode, retry, or reset
+ 	  control. Say N outside the named Gemini Quasar experiment.
++
++config I2C_MT65XX_FERMI_DIAGNOSTIC
++	bool "MT6797 I2C6 fixed Fermi topology fingerprint"
++	depends on I2C_MT65XX=y && DEBUG_FS
++	depends on !I2C_MT65XX_ORION_DIAGNOSTIC
++	depends on !I2C_MT65XX_QUASAR_DIAGNOSTIC
++	help
++	  Enable the experiment-only, one-shot Fermi topology fingerprint for
++	  the access-controlled MT6797 iDVFS I2C instance. The root-only
++	  debugfs file accepts exactly "run" followed by a newline and performs
++	  two fixed passes of seven pointer-only reads across addresses 0x69
++	  and 0x68.
+ 
++	  The diagnostic supplies no length or engine override and exposes no
++	  arbitrary address, register, data, length, mode, retry, or reset
++	  control. Say N outside the named Gemini Fermi experiment.
++
+ config I2C_MT7621
+ 	tristate "MT7621/MT7628 I2C Controller"
+ 	depends on (RALINK && (SOC_MT7620 || SOC_MT7621)) || ARCH_AIROHA || COMPILE_TEST
+diff --git a/drivers/i2c/busses/i2c-mt65xx.c b/drivers/i2c/busses/i2c-mt65xx.c
+--- a/drivers/i2c/busses/i2c-mt65xx.c
++++ b/drivers/i2c/busses/i2c-mt65xx.c
+@@ -209,9 +209,14 @@ struct mtk_i2c_orion_diag {
+ };
+ #endif
+ 
+-#ifdef CONFIG_I2C_MT65XX_QUASAR_DIAGNOSTIC
++#if defined(CONFIG_I2C_MT65XX_QUASAR_DIAGNOSTIC) || \
++	defined(CONFIG_I2C_MT65XX_FERMI_DIAGNOSTIC)
+ #define MTK_I2C_QUASAR_PASS_COUNT	2
++#ifdef CONFIG_I2C_MT65XX_FERMI_DIAGNOSTIC
++#define MTK_I2C_QUASAR_REGISTER_COUNT	7
++#else
+ #define MTK_I2C_QUASAR_REGISTER_COUNT	3
++#endif
+ #define MTK_I2C_QUASAR_SAMPLE_COUNT	\
+ 	(MTK_I2C_QUASAR_PASS_COUNT * MTK_I2C_QUASAR_REGISTER_COUNT)
+ 
+@@ -243,6 +248,7 @@ struct mtk_i2c_quasar_sample {
+ 	struct mtk_i2c_quasar_snapshot drained;
+ 	unsigned int pass;
+ 	unsigned int index;
++	u16 addr;
+ 	u8 reg;
+ 	u8 expected;
+ 	u8 prefill;
+@@ -271,6 +277,7 @@ struct mtk_i2c_quasar_diag {
+ 	unsigned int failure_pass;
+ 	unsigned int failure_index;
+ 	bool mismatch;
++	unsigned int stability_validated;
+ 	unsigned int retries_before;
+ 	unsigned int retries_during;
+ 	unsigned int retries_after;
+@@ -484,7 +491,8 @@ struct mtk_i2c {
+ #ifdef CONFIG_I2C_MT65XX_ORION_DIAGNOSTIC
+ 	struct mtk_i2c_orion_diag orion;
+ #endif
+-#ifdef CONFIG_I2C_MT65XX_QUASAR_DIAGNOSTIC
++#if defined(CONFIG_I2C_MT65XX_QUASAR_DIAGNOSTIC) || \
++	defined(CONFIG_I2C_MT65XX_FERMI_DIAGNOSTIC)
+ 	struct mtk_i2c_quasar_diag quasar;
+ #endif
+ };
+@@ -1352,7 +1360,8 @@ static void mtk_i2c_orion_record_fifo(struct mtk_i2c *i2c, u16 fifo_count)
+ }
+ #endif
+ 
+-#ifdef CONFIG_I2C_MT65XX_QUASAR_DIAGNOSTIC
++#if defined(CONFIG_I2C_MT65XX_QUASAR_DIAGNOSTIC) || \
++	defined(CONFIG_I2C_MT65XX_FERMI_DIAGNOSTIC)
+ static void
+ mtk_i2c_quasar_snapshot(struct mtk_i2c *i2c,
+ 			struct mtk_i2c_quasar_snapshot *snapshot)
+@@ -2309,9 +2318,52 @@ static int mtk_i2c_orion_init(struct mtk_i2c *i2c)
+ }
+ #endif
+ 
+-#ifdef CONFIG_I2C_MT65XX_QUASAR_DIAGNOSTIC
++#if defined(CONFIG_I2C_MT65XX_QUASAR_DIAGNOSTIC) || \
++	defined(CONFIG_I2C_MT65XX_FERMI_DIAGNOSTIC)
++#ifdef CONFIG_I2C_MT65XX_FERMI_DIAGNOSTIC
++#define MTK_I2C_QUASAR_RESULT_SIZE	32768
++#else
+ #define MTK_I2C_QUASAR_RESULT_SIZE	16384
++#endif
++
++#ifdef CONFIG_I2C_MT65XX_FERMI_DIAGNOSTIC
++static const u16
++mtk_i2c_quasar_addresses[MTK_I2C_QUASAR_REGISTER_COUNT] = {
++	0x69, 0x69, 0x69, 0x68, 0x68, 0x68, 0x68,
++};
++
++static const u8
++mtk_i2c_quasar_registers[MTK_I2C_QUASAR_REGISTER_COUNT] = {
++	0x05, 0x06, 0x47, 0xd3, 0x5e, 0xd9, 0xda,
++};
++
++static const u8
++mtk_i2c_quasar_expected[MTK_I2C_QUASAR_REGISTER_COUNT] = {
++	0xd9, 0xd0, 0xc0, 0x05, 0x00, 0x00, 0x00,
++};
++
++static const u8
++mtk_i2c_quasar_prefills[MTK_I2C_QUASAR_PASS_COUNT]
++			 [MTK_I2C_QUASAR_REGISTER_COUNT] = {
++	{ 0xa5, 0x5a, 0x3c, 0x96, 0x69, 0xc3, 0x87 },
++	{ 0x78, 0xb4, 0x4b, 0xd2, 0x2d, 0xe1, 0x1e },
++};
+ 
++#define MTK_I2C_QUASAR_CANDIDATE	"Fermi"
++#define MTK_I2C_QUASAR_DEBUGFS_FILE	"fermi-run-native"
++#define MTK_I2C_QUASAR_GATE		"GEMINI_FERMI_DIAGNOSTIC_GATE"
++#define MTK_I2C_QUASAR_READY_MARKER	"GEMINI_FERMI_NATIVE_DIAGNOSTIC"
++#define MTK_I2C_QUASAR_COUNTER_CONTRACT	"14,0,14,14"
++#define mtk_i2c_quasar_read		mtk_i2c_fermi_read
++#define mtk_i2c_quasar_write		mtk_i2c_fermi_write
++#define mtk_i2c_quasar_fops		mtk_i2c_fermi_fops
++#define mtk_i2c_quasar_init		mtk_i2c_fermi_init
++#else
++static const u16
++mtk_i2c_quasar_addresses[MTK_I2C_QUASAR_REGISTER_COUNT] = {
++	0x69, 0x69, 0x69,
++};
++
+ static const u8
+ mtk_i2c_quasar_registers[MTK_I2C_QUASAR_REGISTER_COUNT] = {
+ 	0x05, 0x06, 0x47,
+@@ -2329,6 +2381,13 @@ mtk_i2c_quasar_prefills[MTK_I2C_QUASAR_PASS_COUNT]
+ 	{ 0x96, 0x69, 0xc3 },
+ };
+ 
++#define MTK_I2C_QUASAR_CANDIDATE	"Quasar"
++#define MTK_I2C_QUASAR_DEBUGFS_FILE	"quasar-run-native"
++#define MTK_I2C_QUASAR_GATE		"GEMINI_QUASAR_DIAGNOSTIC_GATE"
++#define MTK_I2C_QUASAR_READY_MARKER	"GEMINI_QUASAR_NATIVE_DIAGNOSTIC"
++#define MTK_I2C_QUASAR_COUNTER_CONTRACT	"6,0,6,6"
++#endif
++
+ static const char *
+ mtk_i2c_quasar_state_name(enum mtk_i2c_quasar_state state)
+ {
+@@ -2415,8 +2474,27 @@ mtk_i2c_quasar_validate_sample(struct mtk_i2c *i2c,
+ 	    diag->irqs_after != ordinal)
+ 		return -EPROTO;
+ 
++#ifdef CONFIG_I2C_MT65XX_FERMI_DIAGNOSTIC
++	if (sample->value == sample->prefill)
++		return -ENODATA;
++
++	if (sample->index < 3) {
++		if (sample->value != sample->expected)
++			return -EUCLEAN;
++	} else {
++		if (sample->index == 3 && (sample->value & 0x07) != 0x05)
++			return -EUCLEAN;
++		if (sample->pass == 1) {
++			if (sample->value !=
++			    diag->samples[sample->index].value)
++				return -EUCLEAN;
++			diag->stability_validated++;
++		}
++	}
++#else
+ 	if (sample->value != sample->expected)
+ 		return -EUCLEAN;
++#endif
+ 
+ 	return 0;
+ }
+@@ -2479,6 +2554,7 @@ static int mtk_i2c_quasar_run(struct mtk_i2c *i2c)
+ 			memset(sample, 0, sizeof(*sample));
+ 			sample->pass = pass;
+ 			sample->index = index;
++			sample->addr = mtk_i2c_quasar_addresses[index];
+ 			sample->reg = pointer;
+ 			sample->expected = mtk_i2c_quasar_expected[index];
+ 			sample->prefill = value;
+@@ -2487,11 +2563,11 @@ static int mtk_i2c_quasar_run(struct mtk_i2c *i2c)
+ 			sample->fifo_count_drained = 0xffff;
+ 			ordinal = diag->attempted;
+ 
+-			msgs[0].addr = 0x69;
++			msgs[0].addr = sample->addr;
+ 			msgs[0].flags = 0;
+ 			msgs[0].len = 1;
+ 			msgs[0].buf = &pointer;
+-			msgs[1].addr = 0x69;
++			msgs[1].addr = sample->addr;
+ 			msgs[1].flags = I2C_M_RD;
+ 			msgs[1].len = 1;
+ 			msgs[1].buf = &value;
+@@ -2519,8 +2595,7 @@ static int mtk_i2c_quasar_run(struct mtk_i2c *i2c)
+ 			if (ret) {
+ 				diag->failure_pass = pass;
+ 				diag->failure_index = index;
+-				diag->mismatch = sample->value !=
+-						 sample->expected;
++				diag->mismatch = ret == -EUCLEAN;
+ 				goto out_restore_retries;
+ 			}
+ 			sample->value_validated = true;
+@@ -2541,6 +2616,12 @@ static int mtk_i2c_quasar_run(struct mtk_i2c *i2c)
+ 		ret = -EPROTO;
+ 		goto out_restore_retries;
+ 	}
++#ifdef CONFIG_I2C_MT65XX_FERMI_DIAGNOSTIC
++	if (diag->stability_validated != 4) {
++		ret = -EPROTO;
++		goto out_restore_retries;
++	}
++#endif
+ 	ret = 0;
+ 
+ out_restore_retries:
+@@ -2575,6 +2656,18 @@ mtk_i2c_quasar_emit_snapshot(char *buf, int len, const char *name,
+ 	return len;
+ }
+ 
++#ifdef CONFIG_I2C_MT65XX_FERMI_DIAGNOSTIC
++static const char *
++mtk_i2c_quasar_expected_kind(const struct mtk_i2c_quasar_sample *sample)
++{
++	if (sample->index < 3)
++		return "exact";
++	if (sample->index == 3)
++		return "topology-stable";
++	return "stable";
++}
++#endif
++
+ static ssize_t mtk_i2c_quasar_read(struct file *file,
+ 				   char __user *user_buf,
+ 				   size_t count, loff_t *ppos)
+@@ -2591,11 +2684,33 @@ static ssize_t mtk_i2c_quasar_read(struct file *file,
+ 		return -ENOMEM;
+ 
+ 	mutex_lock(&diag->lock);
++#ifdef CONFIG_I2C_MT65XX_FERMI_DIAGNOSTIC
+ 	len += scnprintf(buf + len, MTK_I2C_QUASAR_RESULT_SIZE - len,
+-		"candidate=Quasar state=%s one_shot=%s run_error=%d "
++		"candidate=%s state=%s one_shot=%s run_error=%d "
+ 		"attempted=%u transport_completed=%u value_validated=%u "
++		"addresses=0x69,0x68 passes=2 "
++		"transfer_order=69:05,69:06,69:47,68:d3,68:5e,68:d9,68:da "
++		"expected_signature=d9,d0,c0 topology_register=d3 "
++		"topology_mask=07 topology_expected=05 "
++		"stability_registers=d3,5e,d9,da stability_validated=%u ",
++		MTK_I2C_QUASAR_CANDIDATE,
++		mtk_i2c_quasar_state_name(diag->state),
++		diag->state == MTK_I2C_QUASAR_READY ? "unused" : "consumed",
++		diag->run_error, diag->attempted, diag->transport_completed,
++		diag->value_validated, diag->stability_validated);
++	len += scnprintf(buf + len, MTK_I2C_QUASAR_RESULT_SIZE - len,
++		"prefills=a5,5a,3c,96,69,c3,87,78,b4,4b,d2,2d,e1,1e "
++		"mode=none forced_length_mode=none forced_engine=none "
++		"reset_pending=0 mismatch=%u "
++		"failure_pass=%u failure_index=%u ",
++		diag->mismatch, diag->failure_pass, diag->failure_index);
++#else
++	len += scnprintf(buf + len, MTK_I2C_QUASAR_RESULT_SIZE - len,
++		"candidate=%s state=%s one_shot=%s run_error=%d "
++		"attempted=%u transport_completed=%u value_validated=%u "
+ 		"address=0x69 passes=2 "
+ 		"registers=05,06,47 expected=d9,d0,c0 ",
++		MTK_I2C_QUASAR_CANDIDATE,
+ 		mtk_i2c_quasar_state_name(diag->state),
+ 		diag->state == MTK_I2C_QUASAR_READY ? "unused" : "consumed",
+ 		diag->run_error, diag->attempted, diag->transport_completed,
+@@ -2605,6 +2720,7 @@ static ssize_t mtk_i2c_quasar_read(struct file *file,
+ 		"forced_length_mode=none forced_engine=none reset_pending=0 mismatch=%u "
+ 		"failure_pass=%u failure_index=%u ",
+ 		diag->mismatch, diag->failure_pass, diag->failure_index);
++#endif
+ 	len += scnprintf(buf + len, MTK_I2C_QUASAR_RESULT_SIZE - len,
+ 		"retries_before=%u retries_during=%u retries_after=%u ",
+ 		diag->retries_before, diag->retries_during,
+@@ -2622,16 +2738,37 @@ static ssize_t mtk_i2c_quasar_read(struct file *file,
+ 	len += scnprintf(buf + len, MTK_I2C_QUASAR_RESULT_SIZE - len,
+ 		"nonzero_starts_before=%d nonzero_starts_after=%d "
+ 		"irqs_before=%d irqs_after=%d "
+-		"success_counter_contract=6,0,6,6\n",
++		"success_counter_contract=%s\n",
+ 		diag->nonzero_starts_before, diag->nonzero_starts_after,
+-		diag->irqs_before, diag->irqs_after);
++		diag->irqs_before, diag->irqs_after,
++		MTK_I2C_QUASAR_COUNTER_CONTRACT);
+ 
+ 	for (i = 0; i < diag->attempted; i++) {
+ 		const struct mtk_i2c_quasar_sample *sample =
+ 			&diag->samples[i];
+ 
++#ifdef CONFIG_I2C_MT65XX_FERMI_DIAGNOSTIC
+ 		len += scnprintf(buf + len,
+ 			MTK_I2C_QUASAR_RESULT_SIZE - len,
++			"sample=%u pass=%u index=%u address=%02x "
++			"register=%02x expected_kind=%s expected=%02x "
++			"prefill=%02x value=%02x ret=%d "
++			"validation_error=%d programmed=%u "
++			"transport_completed=%u value_validated=%u "
++			"engine=%s irq_stat=%04x ",
++			i, sample->pass, sample->index, sample->addr,
++			sample->reg, mtk_i2c_quasar_expected_kind(sample),
++			sample->expected, sample->prefill, sample->value,
++			sample->ret, sample->validation_error,
++			sample->programmed, sample->transport_completed,
++			sample->value_validated,
++			sample->programmed ?
++				(sample->use_dma ? "dma" : "fifo") :
++				"unobserved",
++			sample->irq_stat);
++#else
++		len += scnprintf(buf + len,
++			MTK_I2C_QUASAR_RESULT_SIZE - len,
+ 			"sample=%u pass=%u index=%u register=%02x "
+ 			"expected=%02x prefill=%02x value=%02x ret=%d "
+ 			"validation_error=%d programmed=%u "
+@@ -2646,6 +2783,7 @@ static ssize_t mtk_i2c_quasar_read(struct file *file,
+ 				(sample->use_dma ? "dma" : "fifo") :
+ 				"unobserved",
+ 			sample->irq_stat);
++#endif
+ 		len = mtk_i2c_quasar_emit_snapshot(buf, len, "pre",
+ 						   &sample->pre);
+ 		len = mtk_i2c_quasar_emit_snapshot(buf, len, "irq",
+@@ -2724,22 +2862,26 @@ static int mtk_i2c_quasar_init(struct mtk_i2c *i2c)
+ 		return 0;
+ 	if (!i2c->dvfsp_handoff)
+ 		return dev_err_probe(i2c->dev, -EINVAL,
+-				     "GEMINI_QUASAR_DIAGNOSTIC_GATE missing DVFSP handoff\n");
++				     MTK_I2C_QUASAR_GATE
++				     " missing DVFSP handoff\n");
+ 
+ 	target = of_find_node_by_path("/i2c@1100e000");
+ 	if (!target)
+ 		return dev_err_probe(i2c->dev, -ENODEV,
+-				     "GEMINI_QUASAR_DIAGNOSTIC_GATE target node unavailable\n");
++				     MTK_I2C_QUASAR_GATE
++				     " target node unavailable\n");
+ 	if (i2c->dev->of_node != target) {
+ 		of_node_put(target);
+ 		return dev_err_probe(i2c->dev, -EINVAL,
+-				     "GEMINI_QUASAR_DIAGNOSTIC_GATE node identity mismatch\n");
++				     MTK_I2C_QUASAR_GATE
++				     " node identity mismatch\n");
+ 	}
+ 	of_node_put(target);
+ 
+ 	if (!i2c->adap.debugfs)
+ 		return dev_err_probe(i2c->dev, -ENODEV,
+-				     "GEMINI_QUASAR_DIAGNOSTIC_GATE adapter debugfs unavailable\n");
++				     MTK_I2C_QUASAR_GATE
++				     " adapter debugfs unavailable\n");
+ 
+ 	mutex_init(&diag->lock);
+ 	diag->state = MTK_I2C_QUASAR_READY;
+@@ -2750,17 +2892,18 @@ static int mtk_i2c_quasar_init(struct mtk_i2c *i2c)
+ 	diag->retries_after = i2c->adap.retries;
+ 	mtk_i2c_quasar_record_counters(i2c, true);
+ 	mtk_i2c_quasar_record_counters(i2c, false);
+-	file = debugfs_create_file("quasar-run-native", 0600,
++	file = debugfs_create_file(MTK_I2C_QUASAR_DEBUGFS_FILE, 0600,
+ 				   i2c->adap.debugfs, i2c,
+ 				   &mtk_i2c_quasar_fops);
+ 	if (IS_ERR_OR_NULL(file)) {
+ 		ret = file ? PTR_ERR(file) : -ENOMEM;
+ 		return dev_err_probe(i2c->dev, ret,
+-				     "GEMINI_QUASAR_DIAGNOSTIC_GATE debugfs creation failed\n");
++				     MTK_I2C_QUASAR_GATE
++				     " debugfs creation failed\n");
+ 	}
+ 
+ 	dev_info(i2c->dev,
+-		 "GEMINI_QUASAR_NATIVE_DIAGNOSTIC state=ready "
++		 MTK_I2C_QUASAR_READY_MARKER " state=ready "
+ 		 "one_shot=unused mode=none forced_length_mode=none "
+ 		 "forced_engine=none reset_pending=0\n");
+ 	return 0;
+-- 
+2.50.1 (Apple Git-155)

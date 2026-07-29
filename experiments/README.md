@@ -7,6 +7,96 @@ the result.
 
 ## Index
 
+### Current repository audit
+
+- [2026-07-28 manifest profile-series invariant audit](2026-07-28-profile-series-invariant-audit/README.md)
+  — records the current canonical-subsequence findings and enforcement
+  boundary.
+
+### Current DA921x, I2C6, and A72 line
+
+- [2026-07-28 Gauss exact D3 discriminator](2026-07-28-da9214-gauss/README.md)
+  — completed the fixed, serviceability-gated read-only legacy-family
+  board-control tuple on the native I2C6 path.
+- [2026-07-28 Fermi topology fingerprint](2026-07-28-da9214-fermi/README.md)
+  — obtained the bounded direct-address fingerprint and rejected its original
+  masked-D3 predicate without changing regulator state.
+- [2026-07-28 Curie board tuple](2026-07-28-da9214-curie/README.md)
+  — records a pre-serviceability failure and watchdog return; its endpoint did
+  not run and it supplies no tuple evidence.
+- [2026-07-27 Quasar native I2C6 canary](2026-07-27-mt6797-i2c6-quasar/README.md)
+  — established the native packed/FIFO one-byte-pointer plus one-byte-read
+  controller path.
+- [2026-07-27 Vega I2C6 discriminator](2026-07-27-mt6797-i2c6-vega/README.md)
+  — isolated packed/FIFO success from the invalid auxiliary-APDMA path.
+- [2026-07-27 Orion I2C6 discriminator](2026-07-27-mt6797-i2c6-orion/README.md)
+  — records the exact-node-identity failure that was corrected before Vega.
+- [2026-07-27 Mariner API-path differential](2026-07-27-i2c6-api-path-mariner/README.md)
+  — showed pointer echo surviving the standard i2c-dev bounce-buffer path.
+- [2026-07-27 Voyager split-pointer reads](2026-07-27-i2c6-split-pointer-voyager/README.md)
+  — repeated pointer-dependent split-read echo with two register pointers.
+- [2026-07-27 Kepler split read](2026-07-27-i2c6-split-read-kepler/README.md)
+  — localized the earlier receive failure with separate pointer and receive
+  calls.
+- [2026-07-27 Hubble transient-probe base](2026-07-27-da9214-transient-probe-hubble/README.md)
+  — preserved the serviceable Cassini base for one volatile Photon observation.
+- [2026-07-27 Photon RX-sentinel test](2026-07-27-da9214-rx-sentinel-photon/README.md)
+  — proved that the broken AP-DMA receive path retained distinct prefills.
+- [2026-07-27 Cassini direct-address reads](2026-07-27-da9214-direct-address-cassini/README.md)
+  — records the initial failed readback and the independent Gemian
+  direct-address reconciliation.
+- [2026-07-26 Pioneer active-A72 attempt](2026-07-26-a72-active-pioneer/README.md)
+  — failed before a recoverable console and established no A72 execution.
+- [2026-07-26 Nova active-A72 construction](2026-07-26-a72-active-nova/README.md)
+  — records a superseded CPU8 candidate package and its pre-runtime boundary.
+- [2026-07-26 Galileo active-A72 construction](2026-07-26-a72-active-galileo/README.md)
+  — records the earlier superseded CPU8 implementation and validation work.
+- [2026-07-25 legacy DA9214 identification](2026-07-25-da9214-legacy-identification/README.md)
+  — documents the first fixed legacy-family identification candidate and its
+  electrical hypothesis.
+- [2026-07-25 shared AP-DMA baseline preservation](2026-07-25-mt6797-dvfsp-i2c6-baseline-preserve/README.md)
+  — corrected I2C6 cleanup so the working I2C5 AP-DMA owner is preserved.
+- [2026-07-25 eMMC development access](2026-07-25-emmc-development/README.md)
+  — records guarded block access, live GPT resolution, readback, and protected
+  primary-boot constraints.
+- [2026-07-23 Gemian A72 owner observer](2026-07-23-gemian-a72-owner-observer/README.md)
+  — records the incomplete attempt to instrument the vendor transition owners.
+- [2026-07-22 Gemian A72 read-only discovery](2026-07-22-gemian-a72-readonly-discovery/README.md)
+  — collected safe, read-only power and clock surfaces without an A72
+  transition.
+
+### Earlier records added to the index
+
+- [2026-07-21 superseded userspace CPU8 request](2026-07-21-cortex-a72-cpu8-diagnostic/README.md)
+  — archives an unbooted active-hotplug draft and explains why it must not be
+  selected.
+- [2026-07-15 `boot2` framebuffer-console write](2026-07-15-display-console-write-boot2/README.md)
+  — synchronized and fully read back the early console prototype from the
+  non-primary slot.
+- [2026-07-15 `boot3` framebuffer-console write](2026-07-15-display-console-write/README.md)
+  — records the reversible write and inconclusive owner-reported boot loop.
+- [2026-07-15 framebuffer-console recovery](2026-07-15-display-console-recovery/README.md)
+  — static LK/simplefb/fbcon investigation whose runtime attempt remained
+  unattributable.
+- [2026-07-15 first `boot3` mainline write](2026-07-15-boot3-mainline-write/README.md)
+  — records one explicitly authorized non-primary write and full readback.
+- [2026-07-14 transport and firmware boundary](2026-07-14-transport-firmware-boundary-audit/README.md)
+  — reconciles connectivity, modem, camera, SCP, and firmware ownership.
+- [2026-07-14 patch quality audit](2026-07-14-patch-quality-audit/README.md)
+  — records the review-oriented static audit of the then-current patch set.
+- [2026-07-14 MMC partition backup](2026-07-14-mmc-partition-backup/README.md)
+  — documents the owner-authorized, read-only, private all-partition capture.
+- [2026-07-14 live kernel ownership audit](2026-07-14-live-kernel-ownership-audit/README.md)
+  — compares working vendor ownership with the prepared Linux package.
+- [2026-07-13 mainline handoff closure](2026-07-13-mainline-handoff-closure/README.md)
+  — checks static arm64 entry, PSCI, timer, GIC, console, storage, and memory
+  closure.
+- [2026-07-13 retained LK FDT fixups](2026-07-13-lk-fdt-fixup-recovery/README.md)
+  — establishes why retained-LK DT mutation and dynamic reservations must be
+  treated as part of the handoff contract.
+
+### Established index
+
 - [2026-07-11 Gemian hardware inventory](2026-07-11-gemian-hardware-inventory/README.md)
   — read-only whole-device discovery baseline and reusable collector.
 - [2026-07-11 Gemian firmware inventory](2026-07-11-gemian-firmware-inventory/README.md)

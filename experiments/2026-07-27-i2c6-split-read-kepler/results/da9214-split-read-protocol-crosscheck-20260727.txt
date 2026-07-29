@@ -1,0 +1,53 @@
+DA9214 split register-read protocol cross-check
+================================================
+
+status=completed-document-analysis
+date=2026-07-27
+device_access=none
+device_write=none
+pdfs_copied_to_repository=no
+
+Sources
+-------
+
+legacy_filename=REN_da9213_14_15_datasheet_3v3_DST_20200219-3075819.pdf
+legacy_sha256=d853349c74dad282e23f3826f2ed0c5071cbf87cf51a040c2c747d0510141638
+legacy_title=DA9213_DA9214_and_DA9215_Datasheet
+legacy_revision=3.4
+legacy_date=2022-02-10
+legacy_protocol_pages=36-37
+
+automotive_filename=REN_DA9213_14_15_Auto_Datasheet_02v31_DST_20251114.pdf
+automotive_sha256=e0da61ab8e126b3a04d882b7152754d832b78d3da71810f1fc56eaa8fbf118b2
+automotive_title=DA9213-A_DA9214-A_and_DA9215-A_Datasheet
+automotive_revision=02.31
+automotive_date=2025-11-14
+automotive_protocol_page=36
+
+Observations
+------------
+
+legacy_direct_page_access=basic_2-wire_address_plus_one_selects_pages_2_and_3
+legacy_byte_read_option_1=register_pointer_then_repeated_START_then_read
+legacy_byte_read_option_2=register_pointer_then_STOP_then_second_START_then_read
+automotive_byte_read_options=the_same_two_sequences_are_documented
+kepler_sequence=register_pointer_then_STOP_then_second_START_then_read
+kepler_protocol_match=documented
+
+Interpretation
+--------------
+
+The STOP between Kepler's separate pointer-write and read ioctls is not an
+unsupported DA9214 access shape. It cannot explain the stable CPU-visible
+0x05 result merely by assuming that the chip requires a repeated START.
+
+This document result does not establish the physical source of Kepler's
+0x05 byte. The byte equals the immediately preceding register pointer, while
+the known Gemian page-2 value at offset 0x05 is 0xd9. A true device response
+and controller, APDMA, cache, or buffer residue remain to be distinguished
+with independent hardware evidence.
+
+next_test=distinct_0x06_and_0x47_pointer_reads_on_the_same_boot
+expected_gemian_data=d0,c0
+pointer_correlated_result=06,47
+register_or_regulator_write=none
