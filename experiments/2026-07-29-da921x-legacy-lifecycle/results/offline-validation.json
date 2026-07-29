@@ -1,0 +1,88 @@
+{
+  "schema": 1,
+  "experiment": "2026-07-29-da921x-legacy-lifecycle",
+  "roadmap_gate": 3,
+  "status": "attempt-1-failed-before-recoverable-serviceability",
+  "kernel": {
+    "release": "7.1.3-gemini-da921x-life",
+    "profile": "da921x-legacy-lifecycle",
+    "patch_count": 115,
+    "patchset_sha256": "1c003317ee56efd1bece81219899b67614e18d484ebe1739f311ee59b0719505",
+    "config_sha256": "fdbc40dfa2dbcf71012203005a3170d77bce0ff05d457fb9ffad30457993ec57",
+    "image_sha256": "178aa2a047633fcae0813d715b205939171b85bdd6ec536d5385ec9b68cc8d59",
+    "image_gz_sha256": "7061a1f14a9d84b85424936b2ca75b0af14d9664b9c2f0714acc9f406501d995",
+    "system_map_sha256": "48f7ed82734c3ccc9cc6bff86920fa702b4ad6f3536d7b3c20ae40bb1e3df3bb",
+    "compiled_gemini_dtb_sha256": "e2424e337a30dbc112496ae841bde655058c01d79cd399f2d518154d5faba60c",
+    "build_a_validation": "passed",
+    "build_b_validation": "passed",
+    "boot_outputs": "byte-identical",
+    "all_dtbs": "byte-identical",
+    "normalized_provenance": "byte-identical"
+  },
+  "candidate": {
+    "selected_replica": "A",
+    "raw_name": "gemini-mt6797-da921x-lifecycle.boot.img",
+    "raw_size": 7745536,
+    "raw_sha256": "1bda5aea8ef054ac6639cac772686776fae67b42aef24cfd71cf41884df7d15a",
+    "padded_size": 16777216,
+    "padded_sha256": "c9ea62bccb9ac3caedd8e6a77986a81cbb1e83fbaa329be4f6433cfb4da47b6e",
+    "boot_dtb_sha256": "7ee8421ea03b604e30e1760f6fb5bc98d4d2566694a9da189326ce2c10e0c806",
+    "initramfs_sha256": "e0dffa04a621f60903cf4cf7280d773ec1c89c43ea63ec0f8b3a0879e7cebc0f",
+    "replica_raw_container": "byte-identical",
+    "replica_padded_boot2": "byte-identical",
+    "replica_boot_dtb": "byte-identical",
+    "replica_initramfs": "byte-identical",
+    "host_manifest_validation": "passed"
+  },
+  "installer": {
+    "sha256": "f2f220ea2b06459a8f3f20b839bdc375dfe804ea163e1738d70abc0d629d7c37",
+    "expected_predecessor_label": "Gauss-installed-readback-verified",
+    "expected_predecessor_sha256": "8749c0394dc8d6989eea4fe945da4afb569a1b2cd7727c98b31c5eb5140624cb",
+    "sole_target": "live-gpt-resolved-logical-boot2",
+    "shell_syntax": "passed",
+    "shellcheck": "passed",
+    "automatic_reboot": false
+  },
+  "static_validation": {
+    "manifest_profiles_checked": 31,
+    "manifest_series_invariant": "passed",
+    "gate2_contract": "passed",
+    "gate3_contract": "passed",
+    "diff_check": "passed",
+    "runtime_classifier_tests": "passed",
+    "checkpatch_warnings": 0,
+    "checkpatch_checks": 0,
+    "checkpatch_errors": [
+      "Missing Signed-off-by"
+    ],
+    "submission_ready": false
+  },
+  "device": {
+    "read_only_reachability_attempts": 3,
+    "result": "reachable-as-gemini-on-gemian",
+    "gpt_access": "live-boot2-resolved-to-mmcblk0p30",
+    "partition_write": "synced-flushed-full-readback-verified",
+    "root": "/dev/mmcblk0p29",
+    "target": "/dev/mmcblk0p30",
+    "backup_sha256": "8749c0394dc8d6989eea4fe945da4afb569a1b2cd7727c98b31c5eb5140624cb",
+    "readback_sha256": "c9ea62bccb9ac3caedd8e6a77986a81cbb1e83fbaa329be4f6433cfb4da47b6e",
+    "reboot": "none",
+    "shutdown": "clean-owner-requested-after-final-boot2-checksum-match",
+    "recovery_boot_id": "f47fbc02-da4a-4c0a-b2e5-739399336201",
+    "reset_tokens": "boot-reason-4+wdt_by_pass_pwk+powerup-reason-reboot",
+    "pstore": "present-empty",
+    "last_kmsg": "generic-74-byte-ram-console-header",
+    "post_return_boot2_sha256": "c9ea62bccb9ac3caedd8e6a77986a81cbb1e83fbaa329be4f6433cfb4da47b6e",
+    "runtime_result": "failed-before-recoverable-serviceability"
+  },
+  "gate3_result": {
+    "serviceability": "failed",
+    "driver_probe": "not-run",
+    "driver_unbind": "not-run",
+    "driver_rebind": "not-run",
+    "i2c6_lifecycle_oracle": "not-observed",
+    "register_data_write_result": "not-observed",
+    "unchanged_repeat": "forbidden"
+  },
+  "next_action": "investigate-pre-serviceability-regression-and-define-independent-observation-or-justified-candidate-delta"
+}

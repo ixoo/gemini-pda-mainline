@@ -217,7 +217,11 @@ def validate_repository() -> tuple[str, str, str]:
         for line in SERIES.read_text(encoding="utf-8").splitlines()
         if line.strip() and not line.lstrip().startswith("#")
     ]
-    require(series[-3:] == EXPECTED_TAIL, "canonical series has wrong Gate 2 tail")
+    start = series.index(EXPECTED_TAIL[0])
+    require(
+        series[start : start + len(EXPECTED_TAIL)] == EXPECTED_TAIL,
+        "canonical series has wrong Gate 2 order",
+    )
     return binding, driver, board
 
 

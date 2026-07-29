@@ -1,0 +1,4 @@
+# Gate 3 adds only the read-only controller oracle to the Gate 2 driver stack.
+CONFIG_LOCALVERSION="-gemini-da921x-life"
+CONFIG_I2C_MT65XX_GEMINI_LIFECYCLE_ORACLE=y
+CONFIG_CMDLINE="console=ttyS0,921600n8 earlycon maxcpus=8 nokaslr ignore_loglevel loglevel=8 log_buf_len=1M initcall_debug rdinit=/init panic=0 g_ether.dev_addr=42:00:15:19:83:01 g_ether.host_addr=42:00:15:19:83:00 g_ether.iManufacturer=gemini-pda-mainline g_ether.iProduct=Gemini-L-DA921x-Life g_ether.iSerialNumber=GEMINI_DA921X_LIFE_20260729 clk_ignore_unused fbcon=rotate:3 consoleblank=0 fbcon=font:TER16x32 regulator_ignore_unused initcall_blacklist=mt6797_a72_power_driver_init fw_devlink=rpm"

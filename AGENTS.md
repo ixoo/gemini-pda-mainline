@@ -132,13 +132,16 @@ configuration, safe tooling, hardware knowledge, and reproducible evidence.
   each time—never assume a partition number—and proceed only when it is not the
   active root or mounted, the target identity/size/writable state is exact, and
   power is stable. Skip the write when its full-partition checksum already
-  matches. Otherwise preserve a mode-0600 Git-ignored full backup and checksum,
-  verify the candidate fits, pad it to the exact target size, write, sync and
-  flush, then require a matching full-partition readback checksum and record
-  the result. If unavailable or any check fails, defer and report; never
-  substitute another partition or reboot automatically. This authorization
-  does not cover primary `boot`, `boot3`, preloader, NVRAM, GPT, or whole-device
-  writes.
+  matches. Otherwise record the predecessor checksum but do not create a fresh
+  partition backup solely for the write; recovery relies on the verified
+  project-wide device backup captured at project start. Verify the candidate
+  fits, pad it to the exact target size, write, sync and flush, then require a
+  matching full-partition readback checksum and record the result. After a
+  verified write, shut down the device cleanly so the owner can physically
+  select `boot2`; never reboot it automatically. If unavailable or any check
+  fails, defer and report; never substitute another partition. This
+  authorization does not cover primary `boot`, `boot3`, preloader, NVRAM, GPT,
+  or whole-device writes.
 - Prefer read-only probes, bounded operations, and dry-run defaults.
 - Recover Candidate L ramoops evidence with
   `scripts/collect-device-pstore --target USER@HOST --wait-for-cycle`; add

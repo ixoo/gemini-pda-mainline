@@ -1,0 +1,12 @@
+experiment=2026-07-29-da921x-legacy-lifecycle
+action=owner-requested-post-install-clean-shutdown
+target_logical_name=boot2
+target=/dev/mmcblk0p30
+pre_shutdown_boot2_sha256=c9ea62bccb9ac3caedd8e6a77986a81cbb1e83fbaa329be4f6433cfb4da47b6e
+expected_boot2_sha256=c9ea62bccb9ac3caedd8e6a77986a81cbb1e83fbaa329be4f6433cfb4da47b6e
+checksum_match=yes
+shutdown=requested
+ssh_closed_by_remote_host=yes
+post_shutdown_reachability=timeout
+reboot=no
+next_action=owner-physically-selects-boot2

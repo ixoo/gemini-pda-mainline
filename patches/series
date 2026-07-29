@@ -115,3 +115,4 @@ v7.1.3/0122-i2c-mediatek-add-Gauss-exact-D3-discriminator.patch
 v7.1.3/0123-dt-bindings-regulator-add-legacy-direct-address-DA92.patch
 v7.1.3/0124-regulator-add-read-only-legacy-DA921x-identification.patch
 v7.1.3/0125-arm64-dts-mediatek-describe-Gemini-legacy-DA9214.patch
+v7.1.3/0126-i2c-mediatek-add-read-only-I2C6-lifecycle-oracle.patch

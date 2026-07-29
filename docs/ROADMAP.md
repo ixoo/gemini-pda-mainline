@@ -88,10 +88,13 @@ Exit met: two fresh out-of-tree Linux 7.1.3 assemblies produced byte-identical
 pass provenance, checksum, image-boundary, and experiment validation with the
 same source, patchset, and configuration identities. No device was accessed.
 
-### 3. Probe, bind, and unbind only
+### 3. Probe, bind, and unbind only — open after pre-serviceability failure
 
-The first hardware candidate after the completed read-only diagnostic should
-test only the isolated driver lifecycle, not a regulator action.
+The first hardware candidate after the completed read-only diagnostic tested
+only the isolated driver lifecycle, not a regulator action. Its first boot
+failed before recoverable serviceability and automatically returned to Gemian
+with watchdog-block-class reset tokens but no attributable pstore record. It
+therefore produced no lifecycle evidence and must not be repeated unchanged.
 
 Hypothesis:
 
@@ -116,6 +119,10 @@ Decision:
 
 This boot also provides independent-boot repeatability of the tuple without
 repeating the completed diagnostic.
+
+Immediate next step: investigate the pre-serviceability regression offline and
+define a durable independent observation path or justified candidate delta
+before another hardware boot. Provider work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 

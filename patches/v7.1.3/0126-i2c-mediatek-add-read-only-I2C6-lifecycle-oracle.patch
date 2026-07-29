@@ -1,0 +1,182 @@
+From 8a56f1127c3ecdf48a2dc808cfd25913b873e75d Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 29 Jul 2026 16:40:00 -0400
+Subject: [PATCH 126/126] i2c: mediatek: add read-only I2C6 lifecycle oracle
+
+Count the exact message shapes submitted to the access-controlled MT6797
+iDVFS controller.  The experiment-only counters provide an independent
+read-only oracle for the legacy DA921x bind and unbind lifecycle without
+adding a transfer trigger or changing controller programming.
+---
+ drivers/i2c/busses/Kconfig       | 13 +++++++
+ drivers/i2c/busses/i2c-mt65xx.c | 64 ++++++++++++++++++++++++++++++++-
+ 2 files changed, 76 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/i2c/busses/Kconfig b/drivers/i2c/busses/Kconfig
+index 4cae4f2..482b232 100644
+--- a/drivers/i2c/busses/Kconfig
++++ b/drivers/i2c/busses/Kconfig
+@@ -946,6 +946,19 @@ config I2C_MT65XX_FERMI_DIAGNOSTIC
+ 	  arbitrary address, register, data, length, mode, retry, or reset
+ 	  control. Say N outside the named Gemini Fermi experiment.
+ 
++config I2C_MT65XX_GEMINI_LIFECYCLE_ORACLE
++	bool "MT6797 I2C6 read-only lifecycle oracle"
++	depends on I2C_MT65XX=y
++	depends on !I2C_MT65XX_ORION_DIAGNOSTIC
++	depends on !I2C_MT65XX_QUASAR_DIAGNOSTIC
++	depends on !I2C_MT65XX_FERMI_DIAGNOSTIC
++	help
++	  Count message shapes submitted to the access-controlled MT6797
++	  iDVFS I2C instance and expose them through the existing read-only
++	  handoff status. This adds no transfer trigger or hardware access.
++
++	  Say N outside the named Gemini legacy-driver lifecycle experiment.
++
+ config I2C_MT7621
+ 	tristate "MT7621/MT7628 I2C Controller"
+ 	depends on (RALINK && (SOC_MT7620 || SOC_MT7621)) || ARCH_AIROHA || COMPILE_TEST
+diff --git a/drivers/i2c/busses/i2c-mt65xx.c b/drivers/i2c/busses/i2c-mt65xx.c
+index b81a6b9..1a5e55f 100644
+--- a/drivers/i2c/busses/i2c-mt65xx.c
++++ b/drivers/i2c/busses/i2c-mt65xx.c
+@@ -471,6 +471,15 @@ struct mtk_i2c {
+ 	atomic_t suspend_checks;
+ 	atomic_t resume_checks;
+ 	atomic_t resume_failures;
++#ifdef CONFIG_I2C_MT65XX_GEMINI_LIFECYCLE_ORACLE
++	atomic_t oracle_combined_pointer_reads;
++	atomic_t oracle_primary_pointer_reads;
++	atomic_t oracle_page2_pointer_reads;
++	atomic_t oracle_write_only_messages;
++	atomic_t oracle_register_data_write_messages;
++	atomic_t oracle_other_transfers;
++	atomic_t oracle_other_address_transfers;
++#endif
+ 
+ 	/* set in i2c probe */
+ 	void __iomem *base;		/* i2c base addr */
+@@ -1791,6 +1800,57 @@ static int mtk_i2c_do_transfer(struct mtk_i2c *i2c, struct i2c_msg *msgs,
+ 	return 0;
+ }
+ 
++#ifdef CONFIG_I2C_MT65XX_GEMINI_LIFECYCLE_ORACLE
++static void
++mtk_i2c_record_lifecycle_oracle(struct mtk_i2c *i2c,
++				struct i2c_msg *msgs, int num)
++{
++	bool primary;
++	bool page2;
++	int i;
++
++	if (i2c->dev_comp != &mt6797_idvfs_compat)
++		return;
++
++	if (num <= 0) {
++		atomic_inc(&i2c->oracle_other_transfers);
++		return;
++	}
++
++	primary = msgs[0].addr == 0x68;
++	page2 = msgs[0].addr == 0x69;
++	if (num == 2 && (primary || page2) &&
++	    !(msgs[0].flags & I2C_M_RD) && msgs[0].len == 1 &&
++	    msgs[1].addr == msgs[0].addr && (msgs[1].flags & I2C_M_RD) &&
++	    msgs[1].len == 1) {
++		atomic_inc(&i2c->oracle_combined_pointer_reads);
++		if (primary)
++			atomic_inc(&i2c->oracle_primary_pointer_reads);
++		else
++			atomic_inc(&i2c->oracle_page2_pointer_reads);
++	} else {
++		atomic_inc(&i2c->oracle_other_transfers);
++	}
++
++	for (i = 0; i < num; i++) {
++		if (!(msgs[i].flags & I2C_M_RD)) {
++			if (num == 1)
++				atomic_inc(&i2c->oracle_write_only_messages);
++			if (msgs[i].len > 1)
++				atomic_inc(&i2c->oracle_register_data_write_messages);
++		}
++		if (msgs[i].addr != 0x68 && msgs[i].addr != 0x69)
++			atomic_inc(&i2c->oracle_other_address_transfers);
++	}
++}
++#else
++static void
++mtk_i2c_record_lifecycle_oracle(struct mtk_i2c *i2c,
++				struct i2c_msg *msgs, int num)
++{
++}
++#endif
++
+ static int mtk_i2c_transfer(struct i2c_adapter *adap,
+ 			    struct i2c_msg msgs[], int num)
+ {
+@@ -1800,6 +1854,7 @@ static int mtk_i2c_transfer(struct i2c_adapter *adap,
+ 	bool write_then_read_en = false;
+ 	struct mtk_i2c *i2c = i2c_get_adapdata(adap);
+ 
++	mtk_i2c_record_lifecycle_oracle(i2c, msgs, num);
+ 	if (i2c->dvfsp_handoff) {
+ 		atomic_inc(&i2c->transfer_attempts);
+ 		ret = mt6797_dvfsp_handoff_require_ready(
+@@ -1951,10 +2012,10 @@ static ssize_t handoff_status_show(struct device *dev,
+ {
+ 	struct mtk_i2c *i2c = dev_get_drvdata(dev);
+ 	bool ready;
++	ssize_t len;
+ 
+ 	ready = !mt6797_dvfsp_handoff_require_ready(i2c->dvfsp_handoff);
+ 
+-	return sysfs_emit(
+-		buf,
++	len = sysfs_emit(buf,
+-		"handoff=%s probe_attempts=%d init_attempts=%d "
++			 "handoff=%s probe_attempts=%d init_attempts=%d "
+ 		"init_successes=%d clock_ungated_checks=%d "
+@@ -1977,6 +2039,25 @@ static ssize_t handoff_status_show(struct device *dev,
+ 		atomic_read(&i2c->suspend_checks),
+ 		atomic_read(&i2c->resume_checks),
+ 		atomic_read(&i2c->resume_failures));
++#ifdef CONFIG_I2C_MT65XX_GEMINI_LIFECYCLE_ORACLE
++	len += sysfs_emit_at(buf, len, "oracle_combined_pointer_reads=%d\n",
++			     atomic_read(&i2c->oracle_combined_pointer_reads));
++	len += sysfs_emit_at(buf, len, "oracle_primary_pointer_reads=%d\n",
++			     atomic_read(&i2c->oracle_primary_pointer_reads));
++	len += sysfs_emit_at(buf, len, "oracle_page2_pointer_reads=%d\n",
++			     atomic_read(&i2c->oracle_page2_pointer_reads));
++	len += sysfs_emit_at(buf, len, "oracle_write_only_messages=%d\n",
++			     atomic_read(&i2c->oracle_write_only_messages));
++	len += sysfs_emit_at(buf, len,
++			     "oracle_register_data_write_messages=%d\n",
++			     atomic_read(&i2c->oracle_register_data_write_messages));
++	len += sysfs_emit_at(buf, len, "oracle_other_transfers=%d\n",
++			     atomic_read(&i2c->oracle_other_transfers));
++	len += sysfs_emit_at(buf, len,
++			     "oracle_other_address_transfers=%d\n",
++			     atomic_read(&i2c->oracle_other_address_transfers));
++#endif
++	return len;
+ }
+ static DEVICE_ATTR_RO(handoff_status);
+ 
+@@ -2948,6 +3023,15 @@ static int mtk_i2c_probe(struct platform_device *pdev)
+ 		atomic_set(&i2c->suspend_checks, 0);
+ 		atomic_set(&i2c->resume_checks, 0);
+ 		atomic_set(&i2c->resume_failures, 0);
++#ifdef CONFIG_I2C_MT65XX_GEMINI_LIFECYCLE_ORACLE
++		atomic_set(&i2c->oracle_combined_pointer_reads, 0);
++		atomic_set(&i2c->oracle_primary_pointer_reads, 0);
++		atomic_set(&i2c->oracle_page2_pointer_reads, 0);
++		atomic_set(&i2c->oracle_write_only_messages, 0);
++		atomic_set(&i2c->oracle_register_data_write_messages, 0);
++		atomic_set(&i2c->oracle_other_transfers, 0);
++		atomic_set(&i2c->oracle_other_address_transfers, 0);
++#endif
+ 		i2c->dvfsp_handoff =
+ 			mt6797_dvfsp_handoff_get(&pdev->dev);
+ 		if (IS_ERR(i2c->dvfsp_handoff))
+-- 
+2.43.0

@@ -15,6 +15,10 @@ the result.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-07-29 legacy DA921x driver lifecycle](2026-07-29-da921x-legacy-lifecycle/README.md)
+  — runs Roadmap Gate 3 with an independent read-only I2C6 message-shape
+  oracle; attempt 1 failed before recoverable serviceability and must not be
+  repeated unchanged.
 - [2026-07-29 legacy DA921x identification integration](2026-07-29-da921x-legacy-bind/README.md)
   — completes the offline binding, driver, board node, zero-write validator,
   and two-build reproducibility gate without accessing the device.

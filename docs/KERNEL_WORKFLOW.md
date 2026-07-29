@@ -285,11 +285,14 @@ guarded `boot2` policy:
 - resolve the logical label from the live GPT every time;
 - prove the target is inactive, unmounted, writable, correctly sized, and not
   the active root;
-- preserve a private full backup and checksum;
+- record the predecessor checksum, but do not create a fresh partition backup
+  solely for the write; rely on the verified project-wide device backup
+  captured at project start;
 - pad only to the exact partition size;
 - write, synchronize, flush, and require a full-partition readback match;
 - never substitute `boot`, `boot3`, preloader, NVRAM, GPT, or a whole device;
-- do not reboot automatically after installation.
+- after a verified write, shut down cleanly so the owner can physically select
+  `boot2`; never reboot automatically.
 
 A partition checksum proves stored bytes, not selection or runtime execution.
 
