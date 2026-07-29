@@ -1,0 +1,138 @@
+{
+  "schema": 1,
+  "compatible": "dlg,da9214-legacy",
+  "driver_stage": "identification-only",
+  "addresses": {
+    "primary": "0x68",
+    "page2": "0x69"
+  },
+  "required_functionality": "I2C_FUNC_I2C",
+  "transfer_api": "__i2c_transfer",
+  "root_adapter_lock": true,
+  "messages_per_transaction": 2,
+  "pointer_write_length": 1,
+  "register_data_write_length": 0,
+  "read_length": 1,
+  "retries": 0,
+  "probe_passes": 2,
+  "transactions": [
+    {
+      "ordinal": 1,
+      "pass": 0,
+      "address": "0x69",
+      "register": "0x05",
+      "expected": "0xd9"
+    },
+    {
+      "ordinal": 2,
+      "pass": 0,
+      "address": "0x69",
+      "register": "0x06",
+      "expected": "0xd0"
+    },
+    {
+      "ordinal": 3,
+      "pass": 0,
+      "address": "0x69",
+      "register": "0x47",
+      "expected": "0xc0"
+    },
+    {
+      "ordinal": 4,
+      "pass": 0,
+      "address": "0x68",
+      "register": "0xd3",
+      "expected": "0x1f"
+    },
+    {
+      "ordinal": 5,
+      "pass": 0,
+      "address": "0x68",
+      "register": "0x5e",
+      "expected": "0x00"
+    },
+    {
+      "ordinal": 6,
+      "pass": 0,
+      "address": "0x68",
+      "register": "0xd9",
+      "expected": "0x46"
+    },
+    {
+      "ordinal": 7,
+      "pass": 0,
+      "address": "0x68",
+      "register": "0xda",
+      "expected": "0x46"
+    },
+    {
+      "ordinal": 8,
+      "pass": 1,
+      "address": "0x69",
+      "register": "0x05",
+      "expected": "0xd9"
+    },
+    {
+      "ordinal": 9,
+      "pass": 1,
+      "address": "0x69",
+      "register": "0x06",
+      "expected": "0xd0"
+    },
+    {
+      "ordinal": 10,
+      "pass": 1,
+      "address": "0x69",
+      "register": "0x47",
+      "expected": "0xc0"
+    },
+    {
+      "ordinal": 11,
+      "pass": 1,
+      "address": "0x68",
+      "register": "0xd3",
+      "expected": "0x1f"
+    },
+    {
+      "ordinal": 12,
+      "pass": 1,
+      "address": "0x68",
+      "register": "0x5e",
+      "expected": "0x00"
+    },
+    {
+      "ordinal": 13,
+      "pass": 1,
+      "address": "0x68",
+      "register": "0xd9",
+      "expected": "0x46"
+    },
+    {
+      "ordinal": 14,
+      "pass": 1,
+      "address": "0x68",
+      "register": "0xda",
+      "expected": "0x46"
+    }
+  ],
+  "lifecycle_transactions": {
+    "failed_probe_cleanup": 0,
+    "unbind": 0,
+    "shutdown": 0,
+    "suspend": 0,
+    "resume": 0
+  },
+  "provider": {
+    "regulators_registered": 0,
+    "writable_operations": 0,
+    "consumers": 0,
+    "a72_requests": 0,
+    "irqs_requested": 0
+  },
+  "forbidden_registers": [
+    "0x00",
+    "0x80",
+    "0x100",
+    "0x201"
+  ]
+}

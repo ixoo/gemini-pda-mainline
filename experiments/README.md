@@ -15,6 +15,12 @@ the result.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-07-29 legacy DA921x identification integration](2026-07-29-da921x-legacy-bind/README.md)
+  — completes the offline binding, driver, board node, zero-write validator,
+  and two-build reproducibility gate without accessing the device.
+- [2026-07-29 legacy DA921x driver contract](2026-07-29-da921x-legacy-driver-contract/README.md)
+  — specifies the separated identification-only driver, binding, exact
+  14-transfer probe, and zero-transaction lifecycle boundary.
 - [2026-07-28 Gauss exact D3 discriminator](2026-07-28-da9214-gauss/README.md)
   — completed the fixed, serviceability-gated read-only legacy-family
   board-control tuple on the native I2C6 path.

@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "experiment": "2026-07-29-da921x-legacy-bind",
+  "date": "2026-07-29",
+  "kernel": {
+    "version": "7.1.3",
+    "release": "7.1.3-gemini-da921x-bind",
+    "source_sha256": "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc",
+    "patchset_sha256": "815f9d3017b07bb2816df14a194022598b637c50642f301f89a2c39d768d14a1",
+    "patch_count": 114,
+    "profile": "da921x-legacy-bind",
+    "config_inputs_sha256": "757c21efb722d5757b3fd1d10378b55cedf37ca252e8a1dffbbc9bc7c232cbc4",
+    "config_sha256": "03c01ee708434809b9801cc9069040a972668bbebc1eb9f0b7cb4ddef1a95327",
+    "compiler": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+    "linker": "GNU ld (GNU Binutils for Ubuntu) 2.42"
+  },
+  "builds": [
+    {
+      "label": "gate2-a",
+      "generated_utc": "2026-07-29T16:36:51Z",
+      "artifact": "linux-7.1.3-gemini-da921x-legacy-bind-815f9d30-757c21ef",
+      "artifact_validation": "passed"
+    },
+    {
+      "label": "gate2-b",
+      "generated_utc": "2026-07-29T17:15:27Z",
+      "artifact": "linux-7.1.3-gemini-da921x-legacy-bind-815f9d30-757c21ef",
+      "artifact_validation": "passed"
+    }
+  ],
+  "reproducible_outputs": {
+    "Image_sha256": "2d56a7c1dfdfa1a6e35df080cdcc3f7b329a4ba1ad85d4014a574cd98c5eb46f",
+    "Image_gz_sha256": "99b421c9ee697261d56a28e0162d67801aa203feee84da6e1d15795ba5fdd579",
+    "mt6797_gemini_pda_dtb_sha256": "e2424e337a30dbc112496ae841bde655058c01d79cd399f2d518154d5faba60c",
+    "kernel_config": "byte-identical",
+    "System_map": "byte-identical",
+    "provenance_difference": [
+      "generated_utc"
+    ]
+  },
+  "validation": {
+    "gate1_contract": "passed",
+    "static_contract": "passed",
+    "unsafe_mutations_rejected": 6,
+    "manifest_profiles_checked": 30,
+    "dt_binding_check": "passed",
+    "focused_gemini_dt_check": "passed",
+    "full_builds": 2,
+    "artifact_validations": 2,
+    "checkpatch_code_checks": 0,
+    "checkpatch_submission_metadata": "not ready: author DCO certification and maintainer review outstanding"
+  },
+  "hardware": {
+    "device_access": false,
+    "boot": false,
+    "storage_write": false
+  }
+}

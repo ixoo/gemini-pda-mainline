@@ -112,3 +112,6 @@ v7.1.3/0119-i2c-mediatek-add-fixed-Quasar-native-path-canary.patch
 v7.1.3/0120-i2c-mediatek-add-fixed-Fermi-topology-fingerprint.patch
 v7.1.3/0121-i2c-mediatek-require-exact-Curie-board-control.patch
 v7.1.3/0122-i2c-mediatek-add-Gauss-exact-D3-discriminator.patch
+v7.1.3/0123-dt-bindings-regulator-add-legacy-direct-address-DA92.patch
+v7.1.3/0124-regulator-add-read-only-legacy-DA921x-identification.patch
+v7.1.3/0125-arm64-dts-mediatek-describe-Gemini-legacy-DA9214.patch

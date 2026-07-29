@@ -44,40 +44,49 @@ logical patch.
 Exit met: every selectable manifest profile satisfies the
 canonical-subsequence policy and the invariant is enforced automatically.
 
-### 1. Specify the legacy-family driver
+### 1. Specify the legacy-family driver — complete
 
-Write the driver and binding contract before another device boot:
+The [legacy-family driver and binding contract](../experiments/2026-07-29-da921x-legacy-driver-contract/README.md)
+was completed on 2026-07-29.
 
-- represent the DA9213/DA9214/DA9215 legacy register model explicitly;
-- use the board's fixed direct `0x68` and `0x69` addresses;
-- match only the already observed read-only tuple and fail closed;
-- perform no `PAGE_CON`, voltage, enable, or other register-data write at
-  probe;
-- expose no A72 consumer and no writable regulator operation;
-- define ownership, constraints, error handling, unbind, and resume behavior;
-- keep the implementation separate from the incompatible DA9211/A-family
-  probe path.
+It specifies a separate identification-only driver for the non-A
+DA9213/DA9214/DA9215 programming model. The initial Gemini variant:
 
-Exit: the contract is reviewable without relying on vendor policy code, and
-every probe-time transaction is statically enumerable.
+- claims only the fixed direct `0x68` and `0x69` addresses;
+- accepts only the exact observed tuple through two fixed seven-read passes;
+- has no DA9211/A-family fallback, paged regmap, `PAGE_CON`, device-ID,
+  register-data write, provider, IRQ, consumer, or A72 path; and
+- gives failed probe, unbind, shutdown, suspend, and resume zero hardware
+  transactions.
 
-### 2. Implement and validate an isolated profile
+The complete successful probe trace is a
+[machine-readable 14-transfer contract](../experiments/2026-07-29-da921x-legacy-driver-contract/probe-contract.json);
+every failure trace is a strict prefix. Ownership, constraints, error
+handling, cleanup, unbind, and resume behavior are defined in the
+[design review](../experiments/2026-07-29-da921x-legacy-driver-contract/DESIGN.md).
 
-Add the smallest driver/binding/board-description stack as separate logical
-patches. Select it only through a named experiment profile.
+Exit met: the contract relies on the public manufacturer register model and
+upstream subsystem interfaces rather than vendor policy code, and every
+probe-time transaction is statically enumerable.
 
-Required offline checks:
+### 2. Implement and validate an isolated profile — complete
 
-- kernel build through `./scripts/dev-vm build-kernel`;
-- binding and Device Tree validation;
-- kernel style/static checks appropriate to the changed subsystem;
-- a test that rejects any probe-time register-data write;
-- fixed-address and exact-tuple validation;
-- no regulator consumer, A72 request, `PAGE_CON` write, or storage action;
-- reproducible package, LK-container, and experiment validators.
+The [legacy identification-only integration](../experiments/2026-07-29-da921x-legacy-bind/README.md)
+was completed offline on 2026-07-29. Canonical patches `0123`–`0125` add the
+binding, driver, and board description as separate logical changes, selected
+only by the `da921x-legacy-bind` profile.
 
-Exit: two independently assembled artifacts agree on all substantive inputs
-and the pre-boot validator proves the intended zero-write boundary.
+The static validator proves the fixed `0x68`/`0x69` tuple and exact fourteen
+reads, and rejects representative retrying, write-bearing, wrong-address, and
+provider-bearing mutations. The binding and focused Gemini DT checks pass.
+Checkpatch reports no code checks; the patches remain intentionally
+non-submission-ready because author DCO certification and maintainer review are
+still outstanding.
+
+Exit met: two fresh out-of-tree Linux 7.1.3 assemblies produced byte-identical
+`Image`, `Image.gz`, configuration, `System.map`, and Gemini DTB. Both packages
+pass provenance, checksum, image-boundary, and experiment validation with the
+same source, patchset, and configuration identities. No device was accessed.
 
 ### 3. Probe, bind, and unbind only
 

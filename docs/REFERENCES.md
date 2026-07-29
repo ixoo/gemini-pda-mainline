@@ -5,6 +5,8 @@ This index points to evidence sources and related efforts. Linked content may be
 ## Upstream sources
 
 - [Linux `mt6797.dtsi`](https://github.com/torvalds/linux/blob/master/arch/arm64/boot/dts/mediatek/mt6797.dtsi) — current SoC description in the upstream tree.
+- [Linux DA9211-family regulator driver](https://github.com/torvalds/linux/blob/v7.1.3/drivers/regulator/da9211-regulator.c) and [binding](https://github.com/torvalds/linux/blob/v7.1.3/Documentation/devicetree/bindings/regulator/dlg%2Cda9211.yaml) — Linux 7.1.3 comparison point for the incompatible paged device-ID probe.
+- [Renesas DA9213/DA9214/DA9215 datasheet](https://www.renesas.com/en/document/dst/da92131415-datasheet) — public non-A register, direct-address, and output-topology model used by the legacy-family design.
 - [Linux kernel contribution guide](https://docs.kernel.org/process/submitting-patches.html) — patch preparation and submission.
 - [Linux Device Tree bindings](https://github.com/torvalds/linux/tree/master/Documentation/devicetree/bindings) — binding schemas and examples.
 - [Linux MediaTek mailing-list archive](https://lore.kernel.org/linux-mediatek/) — public review record for MediaTek platform work.

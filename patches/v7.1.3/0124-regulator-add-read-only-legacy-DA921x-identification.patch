@@ -1,0 +1,260 @@
+From 058b39475db36147d619bd859b36d1a851ff99b4 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 29 Jul 2026 11:37:47 -0400
+Subject: [PATCH 124/125] regulator: add read-only legacy DA921x identification
+
+Match the captured direct-address transcript under one root-adapter lock. Fail closed on every mismatch and deliberately omit provider, IRQ, PM, and write paths.
+---
+ drivers/regulator/Kconfig                   |  14 ++
+ drivers/regulator/Makefile                  |   1 +
+ drivers/regulator/da9213-legacy-regulator.c | 201 ++++++++++++++++++++
+ 3 files changed, 216 insertions(+)
+ create mode 100644 drivers/regulator/da9213-legacy-regulator.c
+
+diff --git a/drivers/regulator/Kconfig b/drivers/regulator/Kconfig
+index a0cfd88..7055044 100644
+--- a/drivers/regulator/Kconfig
++++ b/drivers/regulator/Kconfig
+@@ -408,6 +408,20 @@ config REGULATOR_DA9211
+ 	  step down converter 12A or 16A DC-DC Buck controlled through an I2C
+ 	  interface.
+ 
++config REGULATOR_DA9213_LEGACY
++	tristate "Dialog DA9213/DA9214/DA9215 legacy identification"
++	depends on I2C
++	help
++	  Say y here to identify legacy direct-address DA9213, DA9214, and
++	  DA9215 devices without exposing regulator providers.
++
++	  The probe performs only a fixed, read-only identification transcript
++	  against the primary and page2 I2C addresses.  It does not use PAGE_CON,
++	  register regulators, request interrupts, or change hardware state.
++
++	  This driver can also be built as a module.  If so, the module is
++	  called da9213-legacy-regulator.
++
+ config REGULATOR_DBX500_PRCMU
+ 	bool
+ 
+diff --git a/drivers/regulator/Makefile b/drivers/regulator/Makefile
+index b1d880b..3bee3c9 100644
+--- a/drivers/regulator/Makefile
++++ b/drivers/regulator/Makefile
+@@ -48,6 +48,7 @@ obj-$(CONFIG_REGULATOR_DA9063)	+= da9063-regulator.o
+ obj-$(CONFIG_REGULATOR_DA9121) += da9121-regulator.o
+ obj-$(CONFIG_REGULATOR_DA9210) += da9210-regulator.o
+ obj-$(CONFIG_REGULATOR_DA9211) += da9211-regulator.o
++obj-$(CONFIG_REGULATOR_DA9213_LEGACY) += da9213-legacy-regulator.o
+ obj-$(CONFIG_REGULATOR_DBX500_PRCMU) += dbx500-prcmu.o
+ obj-$(CONFIG_REGULATOR_DB8500_PRCMU) += db8500-prcmu.o
+ obj-$(CONFIG_REGULATOR_FAN53555) += fan53555.o
+diff --git a/drivers/regulator/da9213-legacy-regulator.c b/drivers/regulator/da9213-legacy-regulator.c
+new file mode 100644
+index 0000000..b5faee3
+--- /dev/null
++++ b/drivers/regulator/da9213-legacy-regulator.c
+@@ -0,0 +1,201 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Read-only identification driver for legacy direct-address DA9213-DA9215.
++ *
++ * Provider support is intentionally absent.  Probe executes the fixed
++ * transcript below and stores no register data after each comparison.
++ */
++
++#include <linux/i2c.h>
++#include <linux/module.h>
++#include <linux/of.h>
++
++#define DA9213_LEGACY_PRIMARY_ADDR	0x68
++#define DA9213_LEGACY_PAGE2_ADDR	0x69
++#define DA9213_LEGACY_PASSES		2
++
++enum da9213_legacy_bank {
++	DA9213_LEGACY_PRIMARY,
++	DA9213_LEGACY_PAGE2,
++};
++
++struct da9213_legacy_variant {
++	const char *name;
++};
++
++struct da9213_legacy_sample {
++	enum da9213_legacy_bank bank;
++	u8 reg;
++	u8 expected;
++};
++
++static const struct da9213_legacy_variant da9213_legacy_da9213 = {
++	.name = "DA9213",
++};
++
++static const struct da9213_legacy_variant da9213_legacy_da9214 = {
++	.name = "DA9214",
++};
++
++static const struct da9213_legacy_variant da9213_legacy_da9215 = {
++	.name = "DA9215",
++};
++
++static const struct da9213_legacy_sample da9213_legacy_samples[] = {
++	{ DA9213_LEGACY_PAGE2,   0x05, 0xd9 },
++	{ DA9213_LEGACY_PAGE2,   0x06, 0xd0 },
++	{ DA9213_LEGACY_PAGE2,   0x47, 0xc0 },
++	{ DA9213_LEGACY_PRIMARY, 0xd3, 0x1f },
++	{ DA9213_LEGACY_PRIMARY, 0x5e, 0x00 },
++	{ DA9213_LEGACY_PRIMARY, 0xd9, 0x46 },
++	{ DA9213_LEGACY_PRIMARY, 0xda, 0x46 },
++};
++
++static int da9213_legacy_validate_node(struct i2c_client *client)
++{
++	struct device_node *regulators;
++	struct device_node *np = client->dev.of_node;
++	const char *name;
++	u32 addr;
++	int i;
++
++	if (!np || client->flags & I2C_CLIENT_TEN)
++		return -EINVAL;
++
++	if (client->addr != DA9213_LEGACY_PRIMARY_ADDR)
++		return -EINVAL;
++
++	if (of_property_count_u32_elems(np, "reg") != 2 ||
++	    of_property_count_strings(np, "reg-names") != 2)
++		return -EINVAL;
++
++	for (i = 0; i < 2; i++) {
++		u32 expected_addr = i ? DA9213_LEGACY_PAGE2_ADDR :
++					 DA9213_LEGACY_PRIMARY_ADDR;
++		const char *expected_name = i ? "page2" : "primary";
++
++		if (of_property_read_u32_index(np, "reg", i, &addr) ||
++		    addr != expected_addr ||
++		    of_property_read_string_index(np, "reg-names", i, &name) ||
++		    strcmp(name, expected_name))
++			return -EINVAL;
++	}
++
++	regulators = of_get_child_by_name(np, "regulators");
++	if (regulators) {
++		of_node_put(regulators);
++		return -EOPNOTSUPP;
++	}
++
++	return 0;
++}
++
++static int da9213_legacy_read_sample(struct i2c_client *client,
++				     struct i2c_client *page2,
++				     const struct da9213_legacy_sample *sample)
++{
++	struct i2c_client *target;
++	struct i2c_msg msgs[2];
++	u8 reg = sample->reg;
++	u8 value = ~sample->expected;
++	int ret;
++
++	target = sample->bank == DA9213_LEGACY_PAGE2 ? page2 : client;
++	msgs[0].addr = target->addr;
++	msgs[0].flags = 0;
++	msgs[0].len = 1;
++	msgs[0].buf = &reg;
++	msgs[1].addr = target->addr;
++	msgs[1].flags = I2C_M_RD;
++	msgs[1].len = 1;
++	msgs[1].buf = &value;
++
++	ret = __i2c_transfer(client->adapter, msgs, ARRAY_SIZE(msgs));
++	if (ret < 0)
++		return ret;
++	if (ret != ARRAY_SIZE(msgs))
++		return -EIO;
++	if (value != sample->expected)
++		return -ENODEV;
++
++	return 0;
++}
++
++static int da9213_legacy_probe(struct i2c_client *client)
++{
++	const struct da9213_legacy_variant *variant;
++	struct i2c_client *page2;
++	int pass;
++	unsigned int sample;
++	int ret = 0;
++
++	variant = i2c_get_match_data(client);
++	if (!variant)
++		return -ENODEV;
++
++	ret = da9213_legacy_validate_node(client);
++	if (ret)
++		return dev_err_probe(&client->dev, ret,
++				     "invalid identification-only description\n");
++
++	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C))
++		return dev_err_probe(&client->dev, -EOPNOTSUPP,
++				     "adapter lacks raw I2C transfers\n");
++
++	page2 = devm_i2c_new_dummy_device(&client->dev, client->adapter,
++					  DA9213_LEGACY_PAGE2_ADDR);
++	if (IS_ERR(page2))
++		return dev_err_probe(&client->dev, PTR_ERR(page2),
++				     "failed to claim page2 address\n");
++
++	i2c_lock_bus(client->adapter, I2C_LOCK_ROOT_ADAPTER);
++	for (pass = 0; pass < DA9213_LEGACY_PASSES; pass++) {
++		for (sample = 0; sample < ARRAY_SIZE(da9213_legacy_samples);
++		     sample++) {
++			ret = da9213_legacy_read_sample(client, page2,
++							&da9213_legacy_samples[sample]);
++			if (ret)
++				goto out_unlock;
++		}
++	}
++out_unlock:
++	i2c_unlock_bus(client->adapter, I2C_LOCK_ROOT_ADAPTER);
++	if (ret)
++		return dev_err_probe(&client->dev, ret,
++				     "read-only identity transcript failed\n");
++
++	dev_info(&client->dev,
++		 "%s legacy direct-address identity matched; no regulators exposed\n",
++		 variant->name);
++
++	return 0;
++}
++
++static const struct of_device_id da9213_legacy_of_match[] = {
++	{
++		.compatible = "dlg,da9213-legacy",
++		.data = &da9213_legacy_da9213,
++	}, {
++		.compatible = "dlg,da9214-legacy",
++		.data = &da9213_legacy_da9214,
++	}, {
++		.compatible = "dlg,da9215-legacy",
++		.data = &da9213_legacy_da9215,
++	}, {
++		/* sentinel */
++	}
++};
++MODULE_DEVICE_TABLE(of, da9213_legacy_of_match);
++
++static struct i2c_driver da9213_legacy_driver = {
++	.driver = {
++		.name = "da9213-legacy-regulator",
++		.of_match_table = da9213_legacy_of_match,
++	},
++	.probe = da9213_legacy_probe,
++};
++module_i2c_driver(da9213_legacy_driver);
++
++MODULE_AUTHOR("Julien Etienne <julien.etienne@gmail.com>");
++MODULE_DESCRIPTION("Dialog DA9213-DA9215 read-only legacy identification");
++MODULE_LICENSE("GPL");
+-- 
+2.43.0
+

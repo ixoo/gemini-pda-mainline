@@ -1,0 +1,35 @@
+From 197b0edbdba858eeb590c6b14f79c013772ac8e1 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 29 Jul 2026 11:38:17 -0400
+Subject: [PATCH 125/125] arm64: dts: mediatek: describe Gemini legacy DA9214
+
+Add the fixed 0x68/0x69 direct-address tuple without regulator outputs or an A72 consumer. The driver remains separately Kconfig-gated.
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+index f508c19..701a80b 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -224,7 +224,17 @@ &mmc0 {
+ &i2c6 {
+ 	compatible = "mediatek,mt6797-idvfs-i2c";
+ 	access-controllers = <&dvfsp_handoff>;
++	clock-frequency = <3400000>;
++	mediatek,use-push-pull;
++	pinctrl-names = "default";
++	pinctrl-0 = <&i2c6_pins_a>;
+ 	status = "okay";
++
++	da9214: regulator@68 {
++		compatible = "dlg,da9214-legacy";
++		reg = <0x68>, <0x69>;
++		reg-names = "primary", "page2";
++	};
+ };
+ 
+ /delete-node/ &a72_power;
+-- 
+2.43.0
+
