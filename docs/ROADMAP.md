@@ -136,12 +136,23 @@ exact boot2 checksum; pstore was empty. This rules out neither enabled-client
 creation nor a module-enabled kernel/configuration effect and provides no
 fourteen-read probe result.
 
-The exact-current-kernel child-disabled derivative reproduced, passed all 32
-LK gates, was written to boot2 with a matching full readback and no new
-backup, and the device was shut down cleanly. Immediate next step: the owner
-selects boot2 once. Serviceability implicates enabled-client creation; another
-pre-serviceability failure implicates the changed kernel/configuration
-boundary. The module must not be loaded in this experiment. Provider work
+The exact-current-kernel child-disabled derivative was serviceable on attempt
+1. USB, console, keyboard, CPU, handoff, and zero-counter gates passed. No
+DA921x code was resident or loadable automatically. This rules out the
+module-enabled kernel/configuration boundary and implicates the enabled
+DT-client path before driver execution.
+
+The exact serviceable artifact was preserved and used to build the next
+discriminator: the child is enabled with its resource contract unchanged, and
+only its compatible is replaced by diagnostic non-matching value
+`dlg,da9214-unbound`. The candidate passed all offline gates, was installed to
+live-GPT-resolved `boot2`, passed an independent full-partition byte
+comparison, and left the device powered off.
+
+Immediate next step: select `boot2` once and test serviceability. A serviceable
+result implicates real-compatible/modalias matching; another pre-serviceability
+failure implicates generic client instantiation or the child’s
+resource/dependency contract. The module remains forbidden. Provider work
 remains blocked.
 
 ### 4. Finish the ownership and rollback audit

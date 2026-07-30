@@ -26,7 +26,11 @@ done
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 experiment_dir="$(cd -- "$script_dir/.." && pwd -P)"
-repo_root="$(cd -- "$experiment_dir/../.." && pwd -P)"
+if [[ -n "${GEMINI_REPO_ROOT_OVERRIDE:-}" ]]; then
+	repo_root="$(cd -- "$GEMINI_REPO_ROOT_OVERRIDE" && pwd -P)"
+else
+	repo_root="$(cd -- "$experiment_dir/../.." && pwd -P)"
+fi
 module_artifact="$(cd -- "$module_artifact" && pwd -P)"
 output_parent="$(cd -- "$output_parent" && pwd -P)"
 case "$output_parent" in
