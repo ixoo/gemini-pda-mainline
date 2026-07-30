@@ -15,6 +15,9 @@ the result.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-07-30 DA921x module-profile client isolation](2026-07-30-da921x-module-client-isolation/README.md)
+  — preserves the exact failed module-profile kernel and disables only the DT
+  child to distinguish enabled-client creation from a kernel/config effect.
 - [2026-07-29 DA921x post-serviceability module probe](2026-07-29-da921x-post-serviceability-module/README.md)
   — separates enabled-child creation from the fourteen-read driver probe by
   deferring the driver to one explicit post-serviceability module load.

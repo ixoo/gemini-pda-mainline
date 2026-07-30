@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-29-da921x-post-serviceability-module` |
-| Status | `installed and shut down; owner-attended boot pending` |
+| Status | `attempt 1 failed before serviceability; module never loaded` |
 | Subsystem | regulator, I2C, arm64 Device Tree |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-07-29 |
@@ -92,3 +92,28 @@ serviceability, enabled-child/unbound-client state, handoff state, and every
 I2C6/oracle counter. If and only if all pre-load gates pass and every counter
 is zero, execute `/bin/busybox insmod
 /lib/da9213-legacy-regulator.ko` exactly once. Do not retry.
+
+## Attempt 1
+
+The owner selected `boot2` once and observed a grey screen followed by an
+automatic reboot. Bounded monitoring after the report found stable returned
+Gemian SSH but never observed the candidate USB netcat endpoint. Gemian
+returned as exact kernel `3.18.41+` on boot ID
+`d59afc66-9f02-4155-a76d-2a32472822db`; the full boot2 checksum still matched
+the exact candidate.
+
+The read-only recovery capture found the ramoops geometry intact but no pstore
+members. It did not modify or remove pstore records. Because the candidate
+never reached the pre-load serviceability gate, no module load was attempted
+and no I2C6 probe result exists. See
+`results/runtime-candidate-module-attempt-1-20260730.txt`.
+
+## Conclusion
+
+Attempt 1 is a pre-load failure. It proves neither early automatic probe
+timing nor a defect in the fourteen-read module probe because the module could
+not have run. Relative to the serviceable disabled-child candidate, the
+remaining causal alternatives are enabled DT-client creation and the changed
+module-enabled kernel/configuration build. An exact-current-kernel derivative
+that disables only the child can distinguish those alternatives. This exact
+candidate must not be repeated.

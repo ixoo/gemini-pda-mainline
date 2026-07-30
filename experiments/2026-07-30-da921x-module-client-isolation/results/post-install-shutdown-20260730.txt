@@ -1,0 +1,6 @@
+experiment=2026-07-30-da921x-module-client-isolation
+boot2_write_verified=yes
+full_readback_verified=yes
+shutdown_requested=yes
+shutdown_confirmed=network-disconnected
+device_state=off-awaiting-owner-boot2-selection

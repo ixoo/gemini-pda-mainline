@@ -128,14 +128,21 @@ counter remained zero. This implicates the enabled child’s automatic
 creation/probe path but does not distinguish client creation, early probe
 timing, or the fourteen-read logic.
 
-The post-serviceability discriminator keeps the child enabled, links the
-identification driver only as a module, embeds it at a manual-only initramfs
-path, and preserves the exact Gate 3 DT. The kernel and container passed
-offline validation, boot2 received a matching full readback without a new
+The post-serviceability discriminator kept the child enabled, linked the
+identification driver only as a manual-path module, and preserved the exact
+Gate 3 DT. Attempt 1 grey-screened and rebooted before USB/netcat
+serviceability, so the module was never loaded. Returned Gemian confirmed the
+exact boot2 checksum; pstore was empty. This rules out neither enabled-client
+creation nor a module-enabled kernel/configuration effect and provides no
+fourteen-read probe result.
+
+The exact-current-kernel child-disabled derivative reproduced, passed all 32
+LK gates, was written to boot2 with a matching full readback and no new
 backup, and the device was shut down cleanly. Immediate next step: the owner
-selects boot2 once. If USB/netcat serviceability returns with zero pre-load
-counters, load the module exactly once and capture the bounded result.
-Provider work remains blocked.
+selects boot2 once. Serviceability implicates enabled-client creation; another
+pre-serviceability failure implicates the changed kernel/configuration
+boundary. The module must not be loaded in this experiment. Provider work
+remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 
