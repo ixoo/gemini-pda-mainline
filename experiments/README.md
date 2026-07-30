@@ -15,9 +15,13 @@ the result.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-07-29 DA921x post-serviceability module probe](2026-07-29-da921x-post-serviceability-module/README.md)
+  — separates enabled-child creation from the fourteen-read driver probe by
+  deferring the driver to one explicit post-serviceability module load.
 - [2026-07-29 DA921x automatic-probe boot isolation](2026-07-29-da921x-probe-isolation/README.md)
   — preserves the exact failed Gate 3 kernel and disables only the new DT child
-  to distinguish automatic probe timing from the remaining boot boundary.
+  to implicate the enabled child’s automatic creation/probe path while
+  preserving full serviceability and zero I2C6 transfers.
 - [2026-07-29 legacy DA921x driver lifecycle](2026-07-29-da921x-legacy-lifecycle/README.md)
   — runs Roadmap Gate 3 with an independent read-only I2C6 message-shape
   oracle; attempt 1 failed before recoverable serviceability and must not be

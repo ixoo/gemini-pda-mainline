@@ -120,13 +120,22 @@ Decision:
 This boot also provides independent-boot repeatability of the tuple without
 repeating the completed diagnostic.
 
-The next diagnostic preserves the exact Gate 3 kernel, oracle, initramfs, and
-I2C6 controller description while disabling only the new DA921x DT child. It
-has reproduced byte-for-byte, was installed with a matching full readback, and
-the device was shut down cleanly. Immediate next step: the owner selects
-`boot2` once and reports whether serviceability returns or the
-pre-serviceability watchdog-class failure repeats. Provider work remains
-blocked.
+The next diagnostic preserved the exact Gate 3 kernel, oracle, initramfs, and
+I2C6 controller description while disabling only the new DA921x DT child. Its
+first boot was serviceable: USB, console, keyboard, CPU0--7, handoff, and fatal
+log gates passed while no `0x68` client existed and every I2C6 transfer/oracle
+counter remained zero. This implicates the enabled child’s automatic
+creation/probe path but does not distinguish client creation, early probe
+timing, or the fourteen-read logic.
+
+The post-serviceability discriminator keeps the child enabled, links the
+identification driver only as a module, embeds it at a manual-only initramfs
+path, and preserves the exact Gate 3 DT. The kernel and container passed
+offline validation, boot2 received a matching full readback without a new
+backup, and the device was shut down cleanly. Immediate next step: the owner
+selects boot2 once. If USB/netcat serviceability returns with zero pre-load
+counters, load the module exactly once and capture the bounded result.
+Provider work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 

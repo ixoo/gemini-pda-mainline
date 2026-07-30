@@ -1,0 +1,6 @@
+# Keep the DA921x child enabled but defer its identification driver until an
+# explicit post-serviceability module load.
+CONFIG_MODULES=y
+CONFIG_REGULATOR_DA9213_LEGACY=m
+CONFIG_LOCALVERSION="-gemini-da921x-mod"
+CONFIG_CMDLINE="console=ttyS0,921600n8 earlycon maxcpus=8 nokaslr ignore_loglevel loglevel=8 log_buf_len=1M initcall_debug rdinit=/init panic=0 g_ether.dev_addr=42:00:15:19:84:01 g_ether.host_addr=42:00:15:19:84:00 g_ether.iManufacturer=gemini-pda-mainline g_ether.iProduct=Gemini-L-DA921x-Module g_ether.iSerialNumber=GEMINI_DA921X_MODULE_20260729 clk_ignore_unused fbcon=rotate:3 consoleblank=0 fbcon=font:TER16x32 regulator_ignore_unused initcall_blacklist=mt6797_a72_power_driver_init fw_devlink=rpm"

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-29-da921x-probe-isolation` |
-| Status | `installed and shut down; owner-attended boot pending` |
+| Status | `attempt 1 serviceable; automatic child path implicated` |
 | Subsystem | regulator, I2C, arm64 Device Tree |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-07-29 |
@@ -51,8 +51,9 @@ partition or reboots automatically.
 
 ## Decision
 
-- A serviceable boot implicates automatic child creation/probe timing and keeps
-  Gate 3 in the driver/I2C integration layer.
+- A serviceable boot implicates the enabled child’s automatic creation/probe
+  path and keeps Gate 3 in the driver/I2C integration layer. It does not alone
+  distinguish client creation, probe timing, or the fourteen-read driver logic.
 - Another pre-serviceability watchdog-class return moves suspicion away from
   the child probe to the preserved rebuilt-kernel/oracle/container boundary.
 - Either result forbids an unchanged repeat and does not permit provider or A72
@@ -81,14 +82,36 @@ independent readback matched the exact padded isolation candidate. The
 temporary readback was removed. The device then shut down cleanly and became
 unreachable without rebooting. See `results/install-boot2-20260729.txt`.
 
+On attempt 1, the owner selected `boot2` and reported that boot appeared
+healthy, USB was available, and the console was delayed. The direct USB
+netcat endpoint then provided an unauthenticated, link-local root shell as
+designed. Exact runtime identity was `7.1.3-gemini-da921x-life`, CPUs 0--7
+were online, and CPUs 8--9 remained offline.
+
+The live DT contained the exact legacy child with `status = "disabled"`.
+No `0x68` I2C client or bound driver link existed and no DA921x identity log
+was emitted. I2C6 handoff was ready, while its transfer, DMA, nonzero-start,
+IRQ, and every lifecycle-oracle counter remained zero. USB was configured and
+up, one `keyboard-matrix` input existed, `/dev/tty1` was present, and the
+established fatal-log and I2C-timeout signatures were both zero. Runtime
+collection performed no device-partition read or write and triggered no
+driver bind or transfer. See
+`results/runtime-candidate-probe-disabled-attempt-1-20260729.txt`.
+
 ## Conclusion
 
-Offline construction and installation establish the intended single-variable
-discriminator and exact stored bytes, not hardware behavior. No runtime
-conclusion yet.
+Attempt 1 passes the serviceability discriminator. Because the exact failed
+Gate 3 kernel, oracle, initramfs, controller description, and container
+contract become serviceable when only the child is disabled, the enabled
+DA921x child’s automatic creation/probe path is implicated. This result does
+not distinguish client creation, early probe timing, or the fourteen-read
+probe logic. It supplies no bind/unbind lifecycle result and Gate 3 remains
+open.
 
 ## Follow-up
 
-The owner physically selects `boot2` once. Do not repeat this exact candidate.
-Record whether the serviceability console and USB shell become available or
-whether another grey-screen watchdog-class return occurs.
+Do not repeat this exact candidate. Design a post-serviceability discriminator
+that keeps the child inactive during boot and makes the identification driver
+available as an explicitly invoked module only after console and USB gates
+pass. That later experiment must predeclare the exact load, probe, lifecycle,
+and zero-write evidence before another boot.
