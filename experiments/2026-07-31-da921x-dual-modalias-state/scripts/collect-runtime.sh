@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Capture the exact read-only discriminator once over the established direct
-# USB netcat shell. The device-side helper is staged only in initramfs /tmp.
+# USB netcat shell. The device-side helper is staged only in initramfs /run.
 set -euo pipefail
 export LC_ALL=C
 umask 077
@@ -92,8 +92,8 @@ runtime_check_b64="$(base64 <"$runtime_check" | tr -d '\n')"
 	die 'runtime check base64 encoding is malformed'
 {
 	printf '%s\n' 'umask 077'
-	printf '%s\n' 'check=/tmp/.gemini-dualstate-runtime-check'
-	printf '%s\n' 'encoded=/tmp/.gemini-dualstate-runtime-check.b64'
+	printf '%s\n' 'check=/run/.gemini-dualstate-runtime-check'
+	printf '%s\n' 'encoded=/run/.gemini-dualstate-runtime-check.b64'
 	# shellcheck disable=SC2016 # Emit deferred device-side expansion literally.
 	printf '%s\n' ': >"$encoded" || exit 87'
 	while [[ -n "$runtime_check_b64" ]]; do
@@ -134,7 +134,7 @@ chmod 0600 "$command_file"
 		"$DEVICE_ADDRESS" "$DEVICE_PORT" "$route_interface"
 	printf 'installed_full_sha256=%s\n' "$INSTALLED_FULL_SHA256"
 	printf 'device_partition_reads=none\ndevice_storage_writes=none\n'
-	printf 'initramfs_tmp_write=runtime-check-only-removed-after-execution\n'
+	printf 'initramfs_run_write=runtime-check-only-removed-after-execution\n'
 	printf '__DUALSTATE_HOST_END__\n'
 } >"$output"
 chmod 0600 "$output"

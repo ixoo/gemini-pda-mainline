@@ -66,9 +66,10 @@ was created; recovery continues to rely on the verified project-wide backup.
 
 The one-shot host collector authenticates the exact Gemini USB MAC, address,
 route, and endpoint before sending the source-pinned read-only verifier over
-the direct netcat shell. It stages the check only in initramfs `/tmp`,
-records no partition reads or device writes, and deliberately leaves reboot
-as a separate post-validation action.
+the direct netcat shell. It stages the check only in writable initramfs
+`/run`, records no partition reads or storage writes, removes the
+temporary helper after execution, and deliberately leaves reboot as a separate
+post-validation action.
 
 ## Runtime result
 
