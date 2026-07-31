@@ -25,6 +25,40 @@ completed diagnostic is in its
 [experiment record](../experiments/2026-07-28-da9214-gauss/README.md) and must
 not be repeated unchanged.
 
+## High-level path to the project goal
+
+The project goal is a maintainable, upstream-derived Linux system for the
+Gemini PDA, not merely a kernel that reaches userspace once. The critical path
+is:
+
+1. close the real-compatible DA921x event/serviceability regression without
+   weakening the established console, keyboard, USB, CPU0--7, or recovery
+   baseline;
+2. prove the identification-only legacy DA921x driver can bind, perform its
+   fixed read-only contract, and unbind cleanly;
+3. finish the regulator, DVFSP, SPM, SRAM-LDO, clock, reset, suspend/resume,
+   and rollback ownership audit;
+4. register a passive regulator provider while all writable operations and
+   consumers remain disconnected;
+5. prove one reviewed, bounded write/readback/rollback operation with CPU8 and
+   CPU9 still offline;
+6. bring up CPU8 with checkpoints and fail-closed rollback, then validate CPU9
+   and the complete cluster separately; and
+7. complete the persistent-storage, native display/touch, keyboard/USB,
+   battery/charging/thermal, suspend, peripheral, and distribution-integration
+   milestones around that safe power foundation.
+
+Reusable bindings and drivers move upstream continuously throughout this
+sequence. Each local patch has a deletion condition tied to an accepted
+upstream version; the end state must not require a permanent Gemini platform
+fork.
+
+Work on eMMC, logging, keyboard coverage, USB roles, display/touch, and other
+independent subsystems may proceed in parallel only when it preserves the
+fixed DA921x/A72 experiment baseline. The immediate critical chain is:
+
+`event regression -> read-only DA921x bind -> passive provider -> bounded write -> CPU8 -> CPU9`
+
 ## Ordered gates
 
 ### 0. Repair the profile-series invariant — complete
