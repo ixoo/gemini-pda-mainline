@@ -13,8 +13,8 @@ for command in awk chmod grep mktemp perl rm sha256sum; do
 done
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 repo_root="$(cd -- "$script_dir/../../.." && pwd -P)"
-source_collector="$repo_root/experiments/2026-07-31-da921x-dual-modalias-path-state/scripts/collect-runtime.sh"
-readonly SOURCE_COLLECTOR_SHA256=9fe63f7999c20c7b9e7d53a14a3b03043e1775cc5e435f33fe2b4cf0b9f49124
+source_collector="$repo_root/experiments/2026-07-31-da921x-dual-modalias-state/scripts/collect-runtime.sh"
+readonly SOURCE_COLLECTOR_SHA256=8264351895d0cf4c7bd57e65c28d6e93dcc12057651ee73f244abdc36991c805
 [[ -f "$source_collector" && ! -L "$source_collector" &&
 	"$(sha256sum "$source_collector" | awk '{print $1}')" == \
 	"$SOURCE_COLLECTOR_SHA256" ]] || die 'source runtime collector changed'
@@ -27,26 +27,30 @@ trap cleanup EXIT
 chmod 0700 "$derived"
 perl -0pe '
 	s#repo_root="\$\(cd -- "\$script_dir/\.\./\.\./\.\." && pwd -P\)"#repo_root="\${GEMINI_REPO_ROOT_OVERRIDE:?missing}"#g;
-	s#f3ef6a90777b14f3b1ffed2fa23f9497ec5472d380aaaa59db0fb8bd706c4015#c755109e73f2148516942b2a31a3a06952abdf72c0154c5b70259836b8fcb736#g;
-	s#aab8af12585c8d6a74de8a2c25ef4882c72838681e96fa876fa2a020ae6df806#891457cb99f1729358aaa305599efc4f748a06cf3365d6e9a7ad7ed935407fc1#g;
-	s#dual_modalias_path_state_result=PASS#dual_modalias_stage_state_result=PASS#g;
-	s#da921x-pathstate#da921x-stagestate#g;
-	s#pathstate#stagestate#g;
-	s#PATHSTATE#STAGESTATE#g;
-	s#da921x-dual-modalias-path-state-runtime#da921x-dual-modalias-stage-state-runtime#g;
+	s#runtime_check="\$script_dir/run-serviceability-check\.sh"#runtime_check="\$repo_root/experiments/2026-07-31-da921x-dual-modalias-stage-state/scripts/run-serviceability-check.sh"#g;
+	s#5c3788905c6c3270d7416997c922f0774802fafb5086e10ff5f247ca0a26a1b3#c755109e73f2148516942b2a31a3a06952abdf72c0154c5b70259836b8fcb736#g;
+	s#d4fae94c17bdcd901c6c269b778a1ccd6cbdde37ff646bc503fcf0bef3254bc9#891457cb99f1729358aaa305599efc4f748a06cf3365d6e9a7ad7ed935407fc1#g;
+	s#dual_modalias_state_result=PASS#dual_modalias_stage_state_result=PASS#g;
+	s#da921x-dualstate#da921x-stagestate#g;
+	s#dualstate#stagestate#g;
+	s#DUALSTATE#STAGESTATE#g;
+	s#da921x-dual-modalias-state-runtime#da921x-dual-modalias-stage-state-runtime#g;
 ' "$source_collector" >"$derived"
 chmod 0700 "$derived"
 for stale in \
-	f3ef6a90777b14f3b1ffed2fa23f9497ec5472d380aaaa59db0fb8bd706c4015 \
-	aab8af12585c8d6a74de8a2c25ef4882c72838681e96fa876fa2a020ae6df806 \
-	dual_modalias_path_state_result=PASS \
-	da921x-pathstate \
-	pathstate \
-	PATHSTATE; do
+	5c3788905c6c3270d7416997c922f0774802fafb5086e10ff5f247ca0a26a1b3 \
+	d4fae94c17bdcd901c6c269b778a1ccd6cbdde37ff646bc503fcf0bef3254bc9 \
+	dual_modalias_state_result=PASS \
+	da921x-dualstate \
+	dualstate \
+	DUALSTATE; do
 	! grep -Fq "$stale" "$derived" || die "derived collector retained $stale"
 done
 grep -Fq 'dual_modalias_stage_state_result=PASS' "$derived" ||
 	die 'derived collector lacks exact passing classifier'
+# shellcheck disable=SC2016 # Require the literal deferred repository root.
+grep -Fq 'runtime_check="$repo_root/experiments/2026-07-31-da921x-dual-modalias-stage-state/scripts/run-serviceability-check.sh"' \
+	"$derived" || die 'derived collector lacks exact runtime-check path'
 # shellcheck disable=SC2016 # Require the literal deferred expansion.
 grep -Fq 'repo_root="${GEMINI_REPO_ROOT_OVERRIDE:?missing}"' "$derived" ||
 	die 'derived collector lacks explicit repository root'
