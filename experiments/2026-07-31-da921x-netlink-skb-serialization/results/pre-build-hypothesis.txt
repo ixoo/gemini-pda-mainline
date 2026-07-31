@@ -1,0 +1,13 @@
+experiment=2026-07-31-da921x-netlink-skb-serialization
+hypothesis=exact-validated-event-netlink-skb-allocation-serialization-validation-and-consume-are-serviceable-before-socket-traversal-or-multicast
+unique_evidence=read-only-stage-18-after-exact-293-byte-header-environment-and-netlink-metadata-validation-with-unbound-client-zero-i2c-activity-and-full-serviceability-baseline
+success_action=retain-serialization-and-split-socket-listener-discovery-from-multicast-delivery
+reset_action=stop-transport-work-and-investigate-skb-allocation-serialization-or-cleanup
+stage17_action=reject-serialization-success-and-use-offline-plus-runtime-state-to-localize-failure
+changed_baseline_action=reject-attribution
+event_transport=skb-consumed-before-socket-traversal-or-multicast
+kernel_build_backend=buildbox-only
+native_vm_kernel_build=forbidden-without-explicit-owner-request
+device_partition_reads=none
+device_storage_writes=none
+reboot_request=none

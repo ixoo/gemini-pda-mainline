@@ -398,6 +398,10 @@ metadata construction from listener discovery and delivery. A reset stops
 transport work; a surviving non-serialized state identifies allocation or
 validation failure without broadcasting. No native VM kernel build is
 authorized without an explicit owner request. Provider work remains blocked.
+The named `da921x-netlink-skb-serialization` profile implements this exact
+split and has passed patch application, configuration, profile isolation,
+canonical-series, mutation, and focused strict patch-quality checks. Its next
+gate is a clean Buildbox build from the exact pushed source commit.
 
 ### 4. Finish the ownership and rollback audit
 

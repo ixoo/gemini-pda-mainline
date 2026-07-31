@@ -1,0 +1,120 @@
+From e929daf6a5d83c531825d80b44c7f8ca7bb30cd8 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 31 Jul 2026 20:00:00 -0400
+Subject: [PATCH 139/139] kobject: validate Gemini DA921x netlink serialization
+
+The corrected experiment validator reached final stage 17 on the named
+Gemini while the target event remained suppressed before transport. The
+exact eight fixed entries plus SEQNUM, successful return, normal cleanup,
+unbound client, and zero-I2C baseline were all serviceable.
+
+Add the next experiment-only split. Allocate the netlink skb through the
+normal helper, validate its exact header, environment copy, length, and
+netlink metadata, then consume it before socket traversal or multicast.
+Record stage 18 only after every comparison succeeds.
+
+This separates allocation and serialization from listener discovery and
+delivery without adding a driver, provider, transfer, register access,
+printk, storage write, or event broadcast.
+---
+ drivers/i2c/Kconfig  | 16 ++++++++++++++++
+ lib/kobject_uevent.c | 52 ++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 68 insertions(+)
+
+diff --git a/drivers/i2c/Kconfig b/drivers/i2c/Kconfig
+--- a/drivers/i2c/Kconfig
++++ b/drivers/i2c/Kconfig
+@@ -214,6 +214,22 @@ config I2C_GEMINI_DA921X_OF_EVENT_LAYOUT_CORRECTION_DIAGNOSTIC
+ 
+ 	  Say N outside the named OF event-layout correction experiment.
+ 
++config I2C_GEMINI_DA921X_NETLINK_SERIALIZATION_DIAGNOSTIC
++	bool "Gemini DA921x netlink serialization discriminator"
++	depends on I2C_GEMINI_DA921X_OF_EVENT_LAYOUT_CORRECTION_DIAGNOSTIC
++	depends on NET
++	help
++	  Serialize the exact validated Gemini DA921x add-event through the
++	  normal netlink skb allocator, validate its header, environment copy,
++	  length, and metadata, then consume it before listener traversal or
++	  multicast. Successful validation advances the read-only stage to 18.
++
++	  This preserves the module-free unbound client and zero-I2C baseline. It
++	  adds no driver, provider, transfer, register access, printk, storage
++	  path, socket traversal, or event delivery.
++
++	  Say N outside the named netlink serialization experiment.
++
+ config I2C_BOARDINFO
+ 	bool
+ 	default y
+diff --git a/lib/kobject_uevent.c b/lib/kobject_uevent.c
+--- a/lib/kobject_uevent.c
++++ b/lib/kobject_uevent.c
+@@ -326,6 +326,49 @@ static struct sk_buff *alloc_uevent_skb(struct kobj_uevent_env *env,
+ 	return skb;
+ }
+ 
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_NETLINK_SERIALIZATION_DIAGNOSTIC)
++static int gemini_da921x_serialize_uevent(struct kobj_uevent_env *env,
++					  const char *action_string,
++					  const char *devpath)
++{
++	struct netlink_skb_parms *parms;
++	struct sk_buff *skb;
++	size_t action_len = strlen(action_string);
++	size_t devpath_len = strlen(devpath);
++	size_t header_len = action_len + devpath_len + 2;
++	int ret = -EINVAL;
++
++	skb = alloc_uevent_skb(env, action_string, devpath);
++	if (!skb)
++		return -ENOMEM;
++
++	if (skb->len != header_len + env->buflen)
++		goto out;
++	if (memcmp(skb->data, action_string, action_len))
++		goto out;
++	if (skb->data[action_len] != '@')
++		goto out;
++	if (memcmp(skb->data + action_len + 1, devpath, devpath_len))
++		goto out;
++	if (skb->data[header_len - 1] != '\0')
++		goto out;
++	if (memcmp(skb->data + header_len, env->buf, env->buflen))
++		goto out;
++
++	parms = &NETLINK_CB(skb);
++	if (!uid_eq(parms->creds.uid, GLOBAL_ROOT_UID) ||
++	    !gid_eq(parms->creds.gid, GLOBAL_ROOT_GID) ||
++	    parms->dst_group != 1 || parms->portid)
++		goto out;
++
++	atomic_set(&gemini_da921x_dual_modalias_stage, 18);
++	ret = 0;
++out:
++	consume_skb(skb);
++	return ret;
++}
++#endif
++
+ static int uevent_net_broadcast_untagged(struct kobj_uevent_env *env,
+ 					 const char *action_string,
+ 					 const char *devpath)
+@@ -792,6 +835,15 @@ int kobject_uevent_env(struct kobject *kobj, enum kobject_action action,
+ 	if (retval < 0)
+ 		goto exit;
+ 	if (retval) {
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_NETLINK_SERIALIZATION_DIAGNOSTIC)
++		retval = gemini_da921x_serialize_uevent(env, action_string,
++							devpath);
++		if (retval)
++			goto exit;
++#endif
++		/* The exact target skb is consumed above; never traverse sockets or
++		 * broadcast it from this experiment-only path.
++		 */
+ 		retval = 0;
+ 		goto exit;
+ 	}
+-- 
+2.47.3

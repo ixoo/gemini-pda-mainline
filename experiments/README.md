@@ -15,6 +15,9 @@ the result.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-07-31 DA921x netlink skb serialization](2026-07-31-da921x-netlink-skb-serialization/README.md)
+  — allocates and byte-validates the exact target skb, then consumes it before
+  socket traversal or multicast to split serialization from delivery.
 - [2026-07-31 DA921x corrected OF event layout](2026-07-31-da921x-of-event-layout-correction/README.md)
   — validates the runtime-proven eight fixed entries plus final `SEQNUM`,
   suppresses transport, and proves successful assembly and cleanup serviceable
