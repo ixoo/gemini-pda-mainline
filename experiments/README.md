@@ -17,7 +17,8 @@ the result.
 
 - [2026-07-30 DA921x unmatched-compatible client discriminator](2026-07-30-da921x-unmatched-client/README.md)
   — keeps an enabled `0x68` client but changes only its compatible to
-  distinguish generic instantiation from real-compatible/modalias matching.
+  distinguish generic instantiation from real-compatible/modalias matching;
+  attempt 1 was serviceable with one unbound client and zero transfers.
 - [2026-07-30 DA921x module-profile client isolation](2026-07-30-da921x-module-client-isolation/README.md)
   — preserves the exact failed module-profile kernel and disables only the DT
   child to distinguish enabled-client creation from a kernel/config effect.

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-30-da921x-unmatched-client` |
-| Status | `installed and powered off; first boot pending` |
+| Status | `attempt 1 serviceable; real-compatible path implicated` |
 | Subsystem | regulator, I2C, arm64 Device Tree |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-07-30 |
@@ -65,3 +65,44 @@ independent 16 MiB byte comparison. Both matched
 No new backup was created under the project’s standing backup policy. The
 temporary readback was removed and the device’s shutdown was confirmed. See
 [installation result](results/install-boot2-20260730-1905.txt).
+
+## Attempt 1
+
+The owner selected `boot2` once and observed the console start. The USB gadget
+enumerated with its exact identity, and its direct netcat shell became
+serviceable after the host address was restored.
+
+Runtime identity was `7.1.3-gemini-da921x-mod` on boot ID
+`0bd827dd-cad6-40ef-9bde-438b7b32040e`. CPUs 0--7 were online, CPUs 8--9
+remained offline, USB was configured/up, the keyboard and tty1 were present,
+and the active console was ttyS0.
+
+The enabled DT child had exact compatible `dlg,da9214-unbound` and the
+unchanged `0x68,0x69` address tuple. Exactly one `1-0068` client existed with
+modalias `of:NregulatorT(null)Cdlg,da9214-unbound`; it was unbound. I2C6
+handoff was ready with one successful initialization and zero transfer,
+DMA-start, nonzero-start, and IRQ counters. Every lifecycle-oracle counter was
+zero.
+
+No DA921x symbol, module, driver directory, or identity log existed. The
+manual-only module file retained its exact checksum, `/sbin/modprobe` was
+absent, and no module load, bind, I2C trigger, or partition access was
+performed. The validated native reboot returned the device to Gemian
+`3.18.41+` with new boot ID
+`189deafa-09eb-4395-a88b-e77868741fbf`. See
+[runtime result](results/runtime-candidate-unmatched-attempt-1-20260730.txt).
+
+## Conclusion
+
+Attempt 1 passes the serviceability gate. Relative to the failed enabled-child
+module-profile candidate, its sole semantic change was the compatible string.
+The successful creation of an enabled, unbound `0x68` client with the complete
+resource contract rules out generic client creation and that unchanged
+contract as sufficient causes. The remaining failure boundary is specific to
+the real `dlg,da9214-legacy` compatible/modalias path.
+
+This result does not prove that the manual-only module executed in the failed
+boot; the serviceable run proves that it was not resident here, and the
+initramfs has no automatic invocation path. The next discriminator must remove
+the module file entirely while restoring the real compatible, preserving the
+same kernel/configuration. The exact unmatched candidate must not be repeated.

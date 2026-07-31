@@ -149,11 +149,20 @@ only its compatible is replaced by diagnostic non-matching value
 live-GPT-resolved `boot2`, passed an independent full-partition byte
 comparison, and left the device powered off.
 
-Immediate next step: select `boot2` once and test serviceability. A serviceable
-result implicates real-compatible/modalias matching; another pre-serviceability
-failure implicates generic client instantiation or the child’s
-resource/dependency contract. The module remains forbidden. Provider work
-remains blocked.
+The first selected boot was serviceable. The enabled `1-0068` client existed
+with the unmatched compatible, the unchanged resource contract, and no bound
+driver. USB, console, keyboard, CPU, handoff, and fatal-log gates passed while
+all I2C6 transfer/oracle counters remained zero and no DA921x code was
+resident. This rules out generic client creation and the unchanged resource
+contract as sufficient causes; the failure boundary is specific to the real
+compatible/modalias path.
+
+Immediate next step: restore `dlg,da9214-legacy` on the exact module-profile
+kernel while removing the manual-only module file from the initramfs. A
+serviceable result would expose an unexpected interaction with module-file
+availability; another pre-serviceability failure would place the boundary
+before module availability and keep compatible-specific kernel/DT handling in
+scope. No module may be present or loaded. Provider work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 
