@@ -1,0 +1,17 @@
+experiment=2026-07-31-da921x-of-modalias-pre-dispatch-suppression
+known_good_os=Gemian-3.18.41+
+known_good_boot_id=402198a4-541a-4535-a8dc-c74dcb04661d
+target=/dev/mmcblk0p30
+target_label=boot2
+active_root=/dev/mmcblk0p29
+power_present=1
+power_capacity=100
+power_health=Good
+predecessor_sha256=254f3c969e564ae60040470b1a025d42f57e2a902e255ddeffcad76825a9fc94
+candidate_sha256=79c3bcb9afde686659be552cfb906f142f392b72c662db2dc9f623b52b3f3141
+result=write-synced-flushed-full-readback-verified
+full_readback=matching
+temporary_readback_copy=removed
+backup=not-created-project-wide-backup-relied-upon
+shutdown=confirmed-disconnected
+runtime_result=not-tested

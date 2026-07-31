@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-31-da921x-of-modalias-pre-dispatch-suppression` |
-| Status | `ready for deployment` |
+| Status | `deployed; awaiting first selected boot` |
 | Subsystem | I2C, OF, kobject uevent |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -62,3 +62,12 @@ assemblies were byte-identical. The retained Android-v0 container passed all
 The installer resolves `boot2` from the live GPT, requires the validated real
 environment rollback predecessor, performs a full post-write readback, creates
 no new partition backup, and powers the device off after verified success.
+
+## Deployment
+
+The guarded installer resolved logical `boot2` to `/dev/mmcblk0p30` while the
+known-good Gemian root was `/dev/mmcblk0p29`. The expected rollback predecessor
+matched, power was stable at 100% with good battery health, and the write,
+flush, target checksum, and independent full readback all matched the exact
+candidate. No new backup was created. The device shut down cleanly after
+verification and awaits the first selected boot.
