@@ -1,0 +1,62 @@
+From 4b52bf29cbfbc9f716894a59db0242f0f8a28389 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 31 Jul 2026 17:30:00 -0400
+Subject: [PATCH 138/138] kobject: correct Gemini DA921x OF event layout
+
+Bounded runtime classification proved that the real-OF I2C add event has
+eight fixed entries followed by SEQNUM. The OF modalias is present, while
+the I2C fallback modalias is absent. Exact source control flow agrees. The
+I2C uevent function returns after successful OF modalias generation. It
+reaches the fallback only when the firmware helpers return -ENODEV.
+
+Add an experiment-only correction that removes the false I2C modalias from
+the ordered expectation. Preserve the event and successful transport
+suppression, plus the read-only state and module-free client. Keep every
+zero-hardware path and the historical expectation unchanged unless the new
+diagnostic is explicitly selected.
+---
+ drivers/i2c/Kconfig  | 16 ++++++++++++++++
+ lib/kobject_uevent.c |  2 ++
+ 2 files changed, 18 insertions(+)
+
+diff --git a/drivers/i2c/Kconfig b/drivers/i2c/Kconfig
+--- a/drivers/i2c/Kconfig
++++ b/drivers/i2c/Kconfig
+@@ -198,6 +198,22 @@ config I2C_GEMINI_DA921X_ENTRY_CLASSIFICATION_DIAGNOSTIC
+ 
+ 	  Say N outside the named event-entry classification experiment.
+ 
++config I2C_GEMINI_DA921X_OF_EVENT_LAYOUT_CORRECTION_DIAGNOSTIC
++	bool "Gemini DA921x OF event-layout correction discriminator"
++	depends on I2C_GEMINI_DA921X_ENTRY_CLASSIFICATION_DIAGNOSTIC
++	help
++	  Correct the experiment-only ordered validator to expect the eight fixed
++	  entries proven by bounded runtime classification, followed by SEQNUM.
++	  A successful OF modalias is terminal in i2c_device_uevent(), so the I2C
++	  fallback modalias is not a second entry.
++
++	  This changes only the validator expectation. It preserves the real event,
++	  target transport suppression, read-only state, cleanup, and module-free
++	  unbound client. It adds no driver, provider, transfer, register access, or
++	  storage path.
++
++	  Say N outside the named OF event-layout correction experiment.
++
+ config I2C_BOARDINFO
+ 	bool
+ 	default y
+diff --git a/lib/kobject_uevent.c b/lib/kobject_uevent.c
+--- a/lib/kobject_uevent.c
++++ b/lib/kobject_uevent.c
+@@ -489,7 +489,9 @@ static int gemini_da921x_pre_dispatch(struct kobject *kobj,
+ 		"OF_COMPATIBLE_0=dlg,da9214-legacy",
+ 		"OF_COMPATIBLE_N=1",
+ 		"MODALIAS=of:NregulatorT(null)Cdlg,da9214-legacy",
++#if !IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_OF_EVENT_LAYOUT_CORRECTION_DIAGNOSTIC)
+ 		"MODALIAS=i2c:da9214-legacy",
++#endif
+ 	};
+ 	const char *seqnum = NULL;
+ 	const char *entry;
+-- 
+2.47.3

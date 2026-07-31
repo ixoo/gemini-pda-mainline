@@ -372,6 +372,13 @@ zero-hardware baseline. This is a decision-changing semantic correction, not
 an identical retry. A native VM kernel build requires an explicit owner
 request. Provider work remains blocked.
 
+The named `da921x-of-event-layout-correction` profile now represents that
+single correction. Its 127-patch inputs apply cleanly, its merged configuration
+enables the correction only for the new profile, all 44 manifest profiles pass
+the canonical-series invariant, and focused strict checkpatch is clean apart
+from the intentionally absent experiment-only DCO. The next step is an exact
+clean pushed-commit Buildbox build; no native VM kernel build is authorized.
+
 ### 4. Finish the ownership and rollback audit
 
 In parallel with driver work, use the working Gemian environment and recovered

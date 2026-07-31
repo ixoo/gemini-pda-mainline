@@ -1,0 +1,15 @@
+experiment=2026-07-31-da921x-of-event-layout-correction
+hypothesis=runtime-proven-eight-fixed-entry-plus-seqnum-layout-validates-and-cleans-up-safely-with-transport-suppressed
+unique_evidence=validated-read-only-state-final-stage-17-exact-nine-entry-envelope-real-of-client-unbound-zero-i2c-activity-and-full-serviceability-baseline
+success_action=retain-corrected-layout-and-decide-next-gate3-transport-discriminator
+reset_action=stop-expectation-work-and-investigate-complete-assembly-or-successful-cleanup
+short-stage-action=use-exact-stage-without-identical-repeat
+changed-baseline-action=reject-attribution
+kernel_profile=da921x-of-event-layout-correction
+kernel_release=7.1.3-gemini-da921x-ofevent
+kernel_build_backend=buildbox-only
+native_vm_kernel_build=forbidden-without-explicit-owner-request
+event_transport=suppressed
+device_partition_reads=none
+device_storage_writes=none
+reboot_request=none
