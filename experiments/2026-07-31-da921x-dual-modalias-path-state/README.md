@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-31-da921x-dual-modalias-path-state` |
-| Status | `kernel inputs prepared; awaiting Buildbox validation` |
+| Status | `validated candidate prepared; awaiting boot2 deployment` |
 | Subsystem | I2C, OF, kobject uevent |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -47,7 +47,17 @@ sign-off. It is experiment-only and not submission-ready.
 
 ## Build workflow
 
-Build only through `./scripts/build-kernel --backend buildbox` from an
-exact clean pushed commit. Do not run a native VM kernel build unless the owner
-explicitly requests one. Use the validated Buildbox package for deterministic
-candidate assembly.
+The named `da921x-dual-modalias-path-state` profile was built only through
+`./scripts/build-kernel --backend buildbox`. Buildbox fetched exact clean,
+pushed commit `75285adfd59b93078be09219c69c7bd9dd451ebb`; its validated
+package was assembled twice into byte-identical candidates. No native VM
+kernel build ran. The VM was used only for script validation and deterministic
+boot-container assembly.
+
+Two preparation invocations stopped before output: the first exposed a wrapper
+generation error and the second rejected an incorrectly selected inherited
+candidate as the pinned Gate 3 input. The corrected third invocation used the
+exact retained Gate 3 inputs, passed all 32 LK gates, and selected
+`candidate-Gate3-da921x-pathstate-3cda4b88`. Its full boot2 checksum is
+`f3ef6a90777b14f3b1ffed2fa23f9497ec5472d380aaaa59db0fb8bd706c4015`.
+No device access or hardware write occurred during build and assembly.
