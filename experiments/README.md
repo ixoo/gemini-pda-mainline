@@ -15,6 +15,10 @@ the result.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-07-31 DA921x corrected OF event layout](2026-07-31-da921x-of-event-layout-correction/README.md)
+  — validates the runtime-proven eight fixed entries plus final `SEQNUM`,
+  suppresses transport, and proves successful assembly and cleanup serviceable
+  with an unbound client and zero I2C activity.
 - [2026-07-31 DA921x bounded event-entry classification](2026-07-31-da921x-dual-modalias-entry-classification/README.md)
   — classifies expected-entry presence, duplicates, ordering, `SEQNUM`, and
   unexpected entries without exposing arbitrary event text or altering the
@@ -32,8 +36,8 @@ the result.
   modaliases, then returns success while suppressing only netlink transport.
 - [2026-07-31 DA921x complete OF uevent pre-dispatch suppression](2026-07-31-da921x-of-modalias-pre-dispatch-suppression/README.md)
   — remained fully serviceable with zero hardware activity, but the asserted
-  nine-entry layout failed closed before its success marker; source audit shows
-  the normal I2C path appends a second exact I2C modalias, making ten entries.
+  layout failed closed before its success marker; later bounded classification
+  superseded its source interpretation and proved nine total entries.
 - [2026-07-31 DA921x real OF-modalias uevent rollback](2026-07-31-da921x-of-modalias-real-env-rollback/README.md)
   — inserted and validated the exact OF entry in the real event environment,
   restored its pointer, indices, and bytes exactly, and remained fully

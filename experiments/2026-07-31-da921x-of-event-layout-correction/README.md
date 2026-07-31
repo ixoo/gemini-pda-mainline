@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-31-da921x-of-event-layout-correction` |
-| Status | `deployed to boot2; not booted` |
+| Status | `completed; exact corrected layout serviceable` |
 | Subsystem | I2C, OF, kobject uevent |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -102,8 +102,7 @@ The candidate was written, synced, flushed, and independently read back with
 the matching full-partition checksum
 `d9370fd47dd4c4e3ae1851ffd639a9b1e623b3f36de54560935323618690def2`.
 The temporary readback was removed, no backup was created, and the device shut
-down cleanly after verified success. Runtime evidence remains unset until the
-owner physically selects boot2.
+down cleanly after verified success.
 
 ## Runtime capture
 
@@ -119,3 +118,28 @@ The collector performs no partition read, storage write, or reboot. The exact
 first-boot hypothesis and acceptance map are frozen in
 `results/runtime-plan.txt`; any changed identity, envelope, event
 classification, client state, or hardware baseline rejects attribution.
+
+## Runtime result
+
+The first selected boot matched release `7.1.3-gemini-da921x-ofevent`, full
+boot2 checksum
+`d9370fd47dd4c4e3ae1851ffd639a9b1e623b3f36de54560935323618690def2`,
+USB identity and route, and boot ID
+`ae825dbe-88e3-4f35-ba1d-3ce4745e212e`. The source-pinned checker reported
+state `validated`, final stage 17, the exact nine-entry envelope, and:
+
+`present_mask=0xff duplicate_mask=0x0 ordered_prefix=8 seqnum_count=1 seqnum_index=8 unexpected_count=0`
+
+The real `1-0068` client retained its OF node and remained unbound. CPUs 0--7,
+USB/netcat, and handoff serviceability passed while every I2C and lifecycle
+oracle remained at zero. The event was suppressed before transport. The
+checker removed its temporary `/run` copy and performed no partition read,
+storage write, or reboot. Local console and keyboard usability were not
+separately assessed.
+
+This proves the runtime-classified eight fixed entries plus final `SEQNUM`
+validate completely and clean up safely. Event construction, exact bounded
+serialization inputs, successful return, and cleanup are no longer the open
+boundary. The next discriminator may construct the netlink skb from this exact
+validated event and discard it before socket traversal or multicast, thereby
+separating message allocation/serialization from listener and delivery paths.

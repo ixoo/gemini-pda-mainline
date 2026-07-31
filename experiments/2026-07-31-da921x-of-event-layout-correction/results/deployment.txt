@@ -18,4 +18,4 @@ backup=not-created-project-wide-backup-relied-upon
 full_readback=matching-and-temporary-copy-removed
 shutdown=requested-after-verified-success
 shutdown=confirmed-disconnected
-runtime_result=not-tested
+runtime_result=first-selected-boot-validated-stage-17-serviceable

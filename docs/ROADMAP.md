@@ -383,11 +383,21 @@ byte-identical and all 32 LK gates passed; the retained exact candidate is
 runtime to known-good Gemian, then guarded deployment resolved live-GPT boot2,
 matched the exact predecessor, wrote without a backup, passed flush and full
 independent readback, and shut the device down cleanly. The first selected boot
-must capture validated state, final stage 17, the exact nine-entry envelope,
-and the established serviceability and zero-I2C-activity baseline. No native
-VM kernel build is authorized. The exact source-pinned USB/netcat collector and
-standalone read-only checker are validated for that single capture; they make
-no partition read, storage write, or reboot request.
+matched the exact release, installed checksum, USB identity, and route. It
+reported validated state, final stage 17, the exact nine-entry envelope and
+classification, an unbound real client, and the established serviceability and
+zero-I2C-activity baseline. The collector made no partition read, storage
+write, or reboot request. This proves complete corrected event assembly,
+successful suppression, return, and cleanup safe.
+
+The next Gate 3 discriminator must retain this exact validated event and
+zero-hardware baseline, construct and validate the netlink skb, then consume it
+before socket-list traversal or multicast. Serviceability with read-only
+serialized state separates allocation, header/environment copy, and netlink
+metadata construction from listener discovery and delivery. A reset stops
+transport work; a surviving non-serialized state identifies allocation or
+validation failure without broadcasting. No native VM kernel build is
+authorized without an explicit owner request. Provider work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 
