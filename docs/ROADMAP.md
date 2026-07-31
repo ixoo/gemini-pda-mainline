@@ -157,12 +157,17 @@ resident. This rules out generic client creation and the unchanged resource
 contract as sufficient causes; the failure boundary is specific to the real
 compatible/modalias path.
 
-Immediate next step: restore `dlg,da9214-legacy` on the exact module-profile
-kernel while removing the manual-only module file from the initramfs. A
-serviceable result would expose an unexpected interaction with module-file
-availability; another pre-serviceability failure would place the boundary
-before module availability and keep compatible-specific kernel/DT handling in
-scope. No module may be present or loaded. Provider work remains blocked.
+The module-file discriminator restores `dlg,da9214-legacy` on the exact
+module-profile kernel while using the exact Gate 3 initramfs with no module
+file or loader path. It passed all offline gates, was installed to
+live-GPT-resolved `boot2`, passed an independent full-partition byte
+comparison, and left the device powered off.
+
+Immediate next step: select `boot2` once and test serviceability. A serviceable
+result would expose an unexpected interaction with module-file availability;
+another pre-serviceability failure would place the boundary before module
+availability and keep compatible-specific kernel/DT handling in scope. No
+module is present or loadable. Provider work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 

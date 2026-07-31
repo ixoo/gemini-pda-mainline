@@ -15,6 +15,9 @@ the result.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-07-30 DA921x real-compatible module-file isolation](2026-07-30-da921x-module-file-isolation/README.md)
+  — restores the real enabled compatible on the module-profile kernel while
+  removing the DA921x module file and every possible load path.
 - [2026-07-30 DA921x unmatched-compatible client discriminator](2026-07-30-da921x-unmatched-client/README.md)
   — keeps an enabled `0x68` client but changes only its compatible to
   distinguish generic instantiation from real-compatible/modalias matching;
