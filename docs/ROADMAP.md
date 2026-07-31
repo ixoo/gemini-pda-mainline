@@ -379,9 +379,13 @@ the canonical-series invariant, and focused strict checkpatch is clean apart
 from the intentionally absent experiment-only DCO. Exact clean commit
 `0656017` built successfully on Buildbox. Two candidate assemblies were
 byte-identical and all 32 LK gates passed; the retained exact candidate is
-`candidate-Gate3-da921x-ofevent-461e90ef`. The next step is guarded deployment
-from known-good Gemian, full boot2 readback, and clean shutdown. No native VM
-kernel build is authorized.
+`candidate-Gate3-da921x-ofevent-461e90ef`. A native reboot returned the prior
+runtime to known-good Gemian, then guarded deployment resolved live-GPT boot2,
+matched the exact predecessor, wrote without a backup, passed flush and full
+independent readback, and shut the device down cleanly. The first selected boot
+must capture validated state, final stage 17, the exact nine-entry envelope,
+and the established serviceability and zero-I2C-activity baseline. No native
+VM kernel build is authorized.
 
 ### 4. Finish the ownership and rollback audit
 

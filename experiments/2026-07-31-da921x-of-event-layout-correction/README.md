@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-31-da921x-of-event-layout-correction` |
-| Status | `candidate validated; awaiting deployment from Gemian` |
+| Status | `deployed to boot2; not booted` |
 | Subsystem | I2C, OF, kobject uevent |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -85,6 +85,22 @@ and only the bounded selected candidate was exported to ignored host staging.
 The guarded installer accepts only the currently installed entry-classifier
 checksum as predecessor, resolves `boot2` from the live GPT, creates no backup,
 requires a matching full-partition readback, and shuts the device down after a
-verified write. Deployment must wait until the named device is reachable in
-known-good Gemian; the running entry-classifier boot is not an authorized
-installation environment.
+verified write. Deployment was deferred until the named device returned from
+the entry-classifier runtime to known-good Gemian, the authorized installation
+environment.
+
+## Deployment
+
+One identity-checked native reboot returned the completed entry-classifier
+runtime to known-good Gemian release `3.18.41+` with a changed boot ID and no
+storage access during the reboot request. The guarded installer then resolved
+logical `boot2` to `/dev/mmcblk0p30` while Gemian root remained
+`/dev/mmcblk0p29`. The exact entry-classifier predecessor checksum matched;
+battery presence, 96% capacity, and `Good` health passed.
+
+The candidate was written, synced, flushed, and independently read back with
+the matching full-partition checksum
+`d9370fd47dd4c4e3ae1851ffd639a9b1e623b3f36de54560935323618690def2`.
+The temporary readback was removed, no backup was created, and the device shut
+down cleanly after verified success. Runtime evidence remains unset until the
+owner physically selects boot2.
