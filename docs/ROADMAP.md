@@ -301,11 +301,13 @@ I2C/oracle counter at zero. Live sysfs proves the validator inserted a false
 `/soc` component in both the client devpath and OF fullname; source
 ordering proves the devpath comparison failed first and suppressed transport
 before environment validation. This is not evidence about the removed printk.
-One identity-gated native reboot returned to known-good Gemian. The next
-discriminator must correct both root-path expectations while retaining the
+One identity-gated native reboot returned to known-good Gemian. The named
+`da921x-dual-modalias-path-state` profile implements the next
+discriminator by correcting only those two expectations while retaining the
 same no-printk read-only state, transport suppression, and zero-hardware
-baseline. Native VM kernel builds require an explicit owner request. Provider
-work remains blocked.
+baseline. It must pass the Buildbox package gate and deterministic candidate
+assembly before selection. Native VM kernel builds require an explicit owner
+request. Provider work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 

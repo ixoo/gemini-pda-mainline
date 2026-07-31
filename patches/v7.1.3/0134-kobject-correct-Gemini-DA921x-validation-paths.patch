@@ -1,0 +1,78 @@
+From 4ea40dbac7225ffcc80fd5137274b2ee1f9d29b5 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 31 Jul 2026 13:45:00 -0400
+Subject: [PATCH 134/134] kobject: correct Gemini DA921x validation paths
+
+The read-only state discriminator remained pending on a fully serviceable
+boot. Live sysfs identifies the client below the root-level I2C controller:
+its device path is /devices/platform/1100e000.i2c/i2c-1/1-0068 and its OF
+fullname is /i2c@1100e000/regulator@68. The validator incorrectly inserted
+/soc in both strings and therefore failed at the earlier device-path gate.
+
+Add a separately gated experiment correction for those two exact strings.
+Keep the historical profile unchanged. The no-printk state observation,
+ordered ten-entry validation, fail-closed transport suppression, cleanup,
+driver absence, and zero-transfer contract remain unchanged.
+---
+ drivers/i2c/Kconfig  | 14 ++++++++++++++
+ lib/kobject_uevent.c | 17 ++++++++++++++---
+ 2 files changed, 28 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/i2c/Kconfig b/drivers/i2c/Kconfig
+--- a/drivers/i2c/Kconfig
++++ b/drivers/i2c/Kconfig
+@@ -141,6 +141,20 @@ config I2C_GEMINI_DA921X_DUAL_MODALIAS_STATE_DIAGNOSTIC
+ 
+ 	  Say N outside the named read-only state experiment.
+ 
++config I2C_GEMINI_DA921X_ROOT_PATH_CORRECTION_DIAGNOSTIC
++	bool "Gemini DA921x root-level path correction discriminator"
++	depends on I2C_GEMINI_DA921X_DUAL_MODALIAS_STATE_DIAGNOSTIC
++	help
++	  Correct the experiment validator's device path and OF fullname to
++	  the root-level I2C topology observed on the named Gemini candidate.
++
++	  This changes only the two expected path strings. It retains the exact
++	  ordered ten-entry validation, read-only state observation, target
++	  transport suppression, normal cleanup, and the absence of a driver,
++	  provider, transfer, register access, or storage path.
++
++	  Say N outside the named root-path correction experiment.
++
+ config I2C_BOARDINFO
+ 	bool
+ 	default y
+diff --git a/lib/kobject_uevent.c b/lib/kobject_uevent.c
+--- a/lib/kobject_uevent.c
++++ b/lib/kobject_uevent.c
+@@ -475,14 +475,25 @@ static int gemini_da921x_pre_dispatch(struct kobject *kobj,
+ {
+ #if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_OF_MODALIAS_PRE_DISPATCH_SUPPRESSION_DIAGNOSTIC) || \
+ 	IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_DUAL_MODALIAS_STATE_DIAGNOSTIC)
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_ROOT_PATH_CORRECTION_DIAGNOSTIC)
++#define GEMINI_DA921X_EXPECTED_DEVPATH \
++	"/devices/platform/1100e000.i2c/i2c-1/1-0068"
++#define GEMINI_DA921X_EXPECTED_OF_FULLNAME \
++	"OF_FULLNAME=/i2c@1100e000/regulator@68"
++#else
++#define GEMINI_DA921X_EXPECTED_DEVPATH \
++	"/devices/platform/soc/1100e000.i2c/i2c-1/1-0068"
++#define GEMINI_DA921X_EXPECTED_OF_FULLNAME \
++	"OF_FULLNAME=/soc/i2c@1100e000/regulator@68"
++#endif
+ 	static const char expected_devpath[] =
+-		"/devices/platform/soc/1100e000.i2c/i2c-1/1-0068";
++		GEMINI_DA921X_EXPECTED_DEVPATH;
+ 	static const char * const expected[] = {
+ 		"ACTION=add",
+-		"DEVPATH=/devices/platform/soc/1100e000.i2c/i2c-1/1-0068",
++		"DEVPATH=" GEMINI_DA921X_EXPECTED_DEVPATH,
+ 		"SUBSYSTEM=i2c",
+ 		"OF_NAME=regulator",
+-		"OF_FULLNAME=/soc/i2c@1100e000/regulator@68",
++		GEMINI_DA921X_EXPECTED_OF_FULLNAME,
+ 		"OF_COMPATIBLE_0=dlg,da9214-legacy",
+ 		"OF_COMPATIBLE_N=1",
+ 		"MODALIAS=of:NregulatorT(null)Cdlg,da9214-legacy",
+-- 
+2.47.3

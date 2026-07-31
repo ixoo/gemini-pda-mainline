@@ -1,0 +1,8 @@
+experiment=2026-07-31-da921x-dual-modalias-path-state
+hypothesis=correcting-the-two-live-proven-root-path-strings-allows-exact-ten-entry-validation-to-reach-validated-without-regression
+unique_evidence=read-only-validated-state-on-exact-live-devpath-and-of-fullname-with-no-printk-or-transport
+serviceable_validated_next=accept-complete-event-construction-and-cleanup-as-safe-then-design-the-next-boundary-from-roadmap
+serviceable_pending_next=add-granular-read-only-stage-code-without-repeating-identical-artifact
+reset_next=attribute-regression-to-newly-reached-successful-validation-or-cleanup-boundary
+provider_work=blocked
+hardware_activity=none
