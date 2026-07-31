@@ -1,0 +1,3 @@
+# Experiment-only: insert and validate the real OF modalias in a private env.
+CONFIG_I2C_GEMINI_DA921X_OF_MODALIAS_PRIVATE_INSERTION_DIAGNOSTIC=y
+CONFIG_LOCALVERSION="-gemini-da921x-ofinsert"

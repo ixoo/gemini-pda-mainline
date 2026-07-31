@@ -1,0 +1,117 @@
+From 755219d40b31f822ea228c733f233201560ef7a7 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 31 Jul 2026 07:35:00 -0400
+Subject: [PATCH 129/129] i2c: add Gemini DA921x private uevent insertion
+
+Add an experiment-only discriminator that generates the exact
+real-compatible OF modalias, adds it as a MODALIAS entry to a private
+bounded uevent environment, validates the resulting layout and bytes,
+and then discards the environment. The real device add-event still uses
+the already-safe I2C modalias fallback.
+
+This separates uevent environment insertion from emitting that entry
+without adding a driver or transfer path.
+---
+ drivers/i2c/Kconfig         | 17 +++++++++++
+ drivers/i2c/i2c-core-base.c | 55 ++++++++++++++++++++++++++++++++++++--
+ 2 files changed, 71 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/i2c/Kconfig b/drivers/i2c/Kconfig
+--- a/drivers/i2c/Kconfig
++++ b/drivers/i2c/Kconfig
+@@ -67,6 +67,23 @@ config I2C_GEMINI_DA921X_OF_MODALIAS_PRIVATE_GENERATION_DIAGNOSTIC
+ 
+ 	  Say N outside the named Gemini private-generation experiment.
+ 
++config I2C_GEMINI_DA921X_OF_MODALIAS_PRIVATE_INSERTION_DIAGNOSTIC
++	bool "Gemini DA921x private uevent insertion discriminator"
++	depends on OF && ARCH_MEDIATEK
++	depends on !I2C_GEMINI_DA921X_OF_MODALIAS_DIAGNOSTIC
++	depends on !I2C_GEMINI_DA921X_OF_MODALIAS_PRIVATE_GENERATION_DIAGNOSTIC
++	help
++	  Compute the OF modalias for an OF-created I2C client with compatible
++	  "dlg,da9214-legacy", add the exact MODALIAS entry to a bounded private
++	  uevent environment, validate the result, discard it, and use the normal
++	  I2C modalias fallback for the real device uevent.
++
++	  This is an experiment-only serviceability discriminator. It does not
++	  suppress client creation or OF-node attachment and does not add a
++	  driver or transfer path.
++
++	  Say N outside the named Gemini private-insertion experiment.
++
+ config I2C_BOARDINFO
+ 	bool
+ 	default y
+diff --git a/drivers/i2c/i2c-core-base.c b/drivers/i2c/i2c-core-base.c
+--- a/drivers/i2c/i2c-core-base.c
++++ b/drivers/i2c/i2c-core-base.c
+@@ -204,12 +204,65 @@ static int i2c_device_generate_of_modalias_privately(const struct device *dev)
+ 	return 0;
+ }
+ 
++static int i2c_device_insert_of_modalias_privately(const struct device *dev)
++{
++	static const char expected_alias[] =
++		"of:NregulatorT(null)Cdlg,da9214-legacy";
++	static const char expected_entry[] =
++		"MODALIAS=of:NregulatorT(null)Cdlg,da9214-legacy";
++	struct kobj_uevent_env *private_env;
++	char modalias[sizeof(expected_alias)];
++	ssize_t len;
++	int rc;
++
++#if !IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_OF_MODALIAS_PRIVATE_INSERTION_DIAGNOSTIC)
++	return -ENODEV;
++#endif
++	if (!dev->of_node ||
++	    !of_device_is_compatible(dev->of_node, "dlg,da9214-legacy"))
++		return -ENODEV;
++
++	len = of_modalias(dev->of_node, modalias, sizeof(modalias));
++	if (len < 0)
++		return len;
++	if (len != sizeof(expected_alias) - 1 ||
++	    memcmp(modalias, expected_alias, sizeof(expected_alias)))
++		return -EINVAL;
++
++	private_env = kzalloc_obj(*private_env, GFP_KERNEL);
++	if (!private_env)
++		return -ENOMEM;
++
++	rc = add_uevent_var(private_env, "MODALIAS=%s", modalias);
++	if (rc)
++		goto out;
++	if (private_env->envp_idx != 1 ||
++	    private_env->buflen != sizeof(expected_entry) ||
++	    private_env->envp[0] != private_env->buf ||
++	    private_env->envp[1] ||
++	    memcmp(private_env->envp[0], expected_entry,
++		   sizeof(expected_entry))) {
++		rc = -EINVAL;
++		goto out;
++	}
++
++	dev_info(dev,
++		 "GEMINI_DA921X_OF_MODALIAS_PRIVATE_INSERTION alias_length=%zd entry_length=%zu buflen=%d envp_idx=%d fallback=i2c\n",
++		 len, sizeof(expected_entry) - 1, private_env->buflen,
++		 private_env->envp_idx);
++out:
++	kfree(private_env);
++	return rc;
++}
++
+ static int i2c_device_uevent(const struct device *dev, struct kobj_uevent_env *env)
+ {
+ 	const struct i2c_client *client = to_i2c_client(dev);
+ 	int rc;
+ 
+-	rc = i2c_device_generate_of_modalias_privately(dev);
++	rc = i2c_device_insert_of_modalias_privately(dev);
++	if (rc == -ENODEV)
++		rc = i2c_device_generate_of_modalias_privately(dev);
+ 	if (!rc) {
+ 		/* The validated private value is intentionally discarded. */
+ 	} else if (rc != -ENODEV) {
+-- 
+2.47.3
