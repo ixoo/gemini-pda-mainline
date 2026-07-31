@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-31-da921x-netlink-skb-serialization` |
-| Status | `offline validated; awaiting deployment` |
+| Status | `deployed to boot2; awaiting first selected boot` |
 | Subsystem | I2C, OF, kobject uevent, netlink |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -80,3 +80,18 @@ as its exact predecessor. It resolves `boot2` from the live GPT, rejects an
 active or mounted target, records but does not back up the predecessor, writes
 only the exact padded image, requires a matching full-partition readback, and
 shuts the device down after success.
+
+## Deployment result
+
+The exact corrected-layout runtime was identity-checked at stage 17 and made
+one native, storage-free return to Gemian. Gemian returned on `3.18.41+` with
+a changed boot ID. The guarded installer resolved `boot2` as
+`/dev/mmcblk0p30`, distinct from root `/dev/mmcblk0p29`, and confirmed the
+expected predecessor with 98% battery capacity and `Good` health.
+
+The installer wrote only the exact padded candidate, synchronized and flushed
+it, verified the live partition checksum, then streamed an independent full
+partition readback and compared every byte. The temporary readback was removed;
+no backup was created because the verified project-wide backup is the recovery
+basis. The device then shut down cleanly and disconnected, ready for the owner
+to select `boot2` once.
