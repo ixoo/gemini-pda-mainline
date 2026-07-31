@@ -1,0 +1,5 @@
+experiment=2026-07-31-da921x-of-modalias-real-env-rollback
+hypothesis=transient presence of the exact OF MODALIAS entry in the real uevent environment is safe when every mutated byte and index is restored before emission
+unique_evidence=exact rollback marker plus real OF node, unbound client, safe emitted I2C fallback, zero I2C/oracle activity, and full serviceability baseline
+serviceable_next=retain the real environment and test exact OF entry presence through event emission before any driver or transfer path
+reset_next=stop real-environment mutation and localize the reset trigger inside insertion versus rollback chronology with an independent durable observation path

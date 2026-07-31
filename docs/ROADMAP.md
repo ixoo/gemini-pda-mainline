@@ -213,15 +213,15 @@ native reboot returned Gemian. This proves environment insertion mechanics
 safe and places the remaining boundary at the real OF entry's presence during
 event emission.
 
-Immediate next step: snapshot the real event environment indices, insert and
-validate the exact OF `MODALIAS=` entry there, erase the inserted bytes and
-restore the indices exactly, then add only the safe I2C fallback before the
-event is emitted. Serviceability would implicate final OF-entry presence during
-emission; a reset after the rollback marker would make transient mutation of
-the real event environment sufficient. The candidate must fail closed on any
-layout or rollback mismatch, add no driver or transfer path, and retain the
-exact real OF child, module-free initramfs, and zero-activity gates. Provider
-work remains blocked.
+The selected next discriminator snapshots the real event environment pointer,
+indices, and exact target buffer bytes; inserts and validates the exact OF
+`MODALIAS=` entry; restores and validates every snapshot; then adds only the
+safe I2C fallback before emission. Serviceability would implicate final
+OF-entry presence during emission; a reset after the rollback marker would
+make transient mutation of the real event environment sufficient. It fails
+closed on any layout or rollback mismatch, adds no driver or transfer path,
+and retains the exact real OF child, module-free initramfs, and zero-activity
+gates. Provider work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 

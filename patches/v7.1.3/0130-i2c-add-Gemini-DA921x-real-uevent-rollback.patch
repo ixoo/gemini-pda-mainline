@@ -1,0 +1,132 @@
+From d1e30583e92645955f8081e936bd6e1dd5aca08f Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 31 Jul 2026 12:30:00 -0400
+Subject: [PATCH 130/130] i2c: add Gemini DA921x real uevent rollback
+
+Add an experiment-only discriminator that inserts the exact OF modalias
+into the real device uevent environment, validates its bytes and layout,
+then restores the original pointer, indices, and buffer bytes exactly.
+The emitted event still receives only the already-safe I2C fallback.
+
+This separates transient presence in the real environment from emission
+without adding a driver or transfer path.
+---
+ drivers/i2c/Kconfig         | 18 +++++++++++
+ drivers/i2c/i2c-core-base.c | 70 ++++++++++++++++++++++++++++++++++++++++++++-
+ 2 files changed, 87 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/i2c/Kconfig b/drivers/i2c/Kconfig
+--- a/drivers/i2c/Kconfig
++++ b/drivers/i2c/Kconfig
+@@ -84,6 +84,24 @@ config I2C_GEMINI_DA921X_OF_MODALIAS_PRIVATE_INSERTION_DIAGNOSTIC
+ 
+ 	  Say N outside the named Gemini private-insertion experiment.
+ 
++config I2C_GEMINI_DA921X_OF_MODALIAS_REAL_ENV_ROLLBACK_DIAGNOSTIC
++	bool "Gemini DA921x real uevent insertion rollback discriminator"
++	depends on OF && ARCH_MEDIATEK
++	depends on !I2C_GEMINI_DA921X_OF_MODALIAS_DIAGNOSTIC
++	depends on !I2C_GEMINI_DA921X_OF_MODALIAS_PRIVATE_GENERATION_DIAGNOSTIC
++	depends on !I2C_GEMINI_DA921X_OF_MODALIAS_PRIVATE_INSERTION_DIAGNOSTIC
++	help
++	  Compute the OF modalias for an OF-created I2C client with compatible
++	  "dlg,da9214-legacy", insert the exact MODALIAS entry into the real
++	  uevent environment, validate it, and restore the original environment
++	  state byte-for-byte before adding the normal I2C modalias fallback.
++
++	  This is an experiment-only serviceability discriminator. It does not
++	  emit the OF modalias, suppress client creation or OF-node attachment,
++	  or add a driver or transfer path.
++
++	  Say N outside the named real-environment rollback experiment.
++
+ config I2C_BOARDINFO
+ 	bool
+ 	default y
+diff --git a/drivers/i2c/i2c-core-base.c b/drivers/i2c/i2c-core-base.c
+--- a/drivers/i2c/i2c-core-base.c
++++ b/drivers/i2c/i2c-core-base.c
+@@ -257,12 +257,80 @@ out:
+ 	return rc;
+ }
+ 
++static int i2c_device_rollback_of_modalias(const struct device *dev, struct kobj_uevent_env *env)
++{
++	static const char expected_alias[] =
++		"of:NregulatorT(null)Cdlg,da9214-legacy";
++	static const char expected_entry[] =
++		"MODALIAS=of:NregulatorT(null)Cdlg,da9214-legacy";
++	char saved_buf[sizeof(expected_entry)];
++	char modalias[sizeof(expected_alias)];
++	char *saved_envp;
++	ssize_t len;
++	int start_buflen;
++	int start_envp_idx;
++	int rc;
++
++#if !IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_OF_MODALIAS_REAL_ENV_ROLLBACK_DIAGNOSTIC)
++	return -ENODEV;
++#endif
++	if (!dev->of_node ||
++	    !of_device_is_compatible(dev->of_node, "dlg,da9214-legacy"))
++		return -ENODEV;
++
++	len = of_modalias(dev->of_node, modalias, sizeof(modalias));
++	if (len < 0)
++		return len;
++	if (len != sizeof(expected_alias) - 1 ||
++	    memcmp(modalias, expected_alias, sizeof(expected_alias)))
++		return -EINVAL;
++
++	start_envp_idx = env->envp_idx;
++	start_buflen = env->buflen;
++	if (start_envp_idx < 0 || start_buflen < 0 ||
++	    start_envp_idx >= ARRAY_SIZE(env->envp) ||
++	    start_buflen > sizeof(env->buf) - sizeof(expected_entry))
++		return -EINVAL;
++
++	saved_envp = env->envp[start_envp_idx];
++	memcpy(saved_buf, &env->buf[start_buflen], sizeof(saved_buf));
++	rc = add_uevent_var(env, "MODALIAS=%s", modalias);
++	if (rc)
++		goto rollback;
++	if (env->envp_idx != start_envp_idx + 1 ||
++	    env->buflen != start_buflen + sizeof(expected_entry) ||
++	    env->envp[start_envp_idx] != &env->buf[start_buflen] ||
++	    memcmp(env->envp[start_envp_idx], expected_entry,
++		   sizeof(expected_entry)))
++		rc = -EINVAL;
++
++rollback:
++	memcpy(&env->buf[start_buflen], saved_buf, sizeof(saved_buf));
++	env->envp[start_envp_idx] = saved_envp;
++	env->envp_idx = start_envp_idx;
++	env->buflen = start_buflen;
++	if (env->envp_idx != start_envp_idx ||
++	    env->buflen != start_buflen ||
++	    env->envp[start_envp_idx] != saved_envp ||
++	    memcmp(&env->buf[start_buflen], saved_buf, sizeof(saved_buf)))
++		return -EINVAL;
++	if (rc)
++		return rc;
++
++	dev_info(dev,
++		 "GEMINI_DA921X_OF_MODALIAS_REAL_ENV_ROLLBACK alias_length=%zd entry_length=%zu rollback_bytes=%zu envp_delta=0 buflen_delta=0 fallback=i2c\n",
++		 len, sizeof(expected_entry) - 1, sizeof(expected_entry));
++	return 0;
++}
++
+ static int i2c_device_uevent(const struct device *dev, struct kobj_uevent_env *env)
+ {
+ 	const struct i2c_client *client = to_i2c_client(dev);
+ 	int rc;
+ 
+-	rc = i2c_device_insert_of_modalias_privately(dev);
++	rc = i2c_device_rollback_of_modalias(dev, env);
++	if (rc == -ENODEV)
++		rc = i2c_device_insert_of_modalias_privately(dev);
+ 	if (rc == -ENODEV)
+ 		rc = i2c_device_generate_of_modalias_privately(dev);
+ 	if (!rc) {
+-- 
+2.47.3
