@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-31-da921x-dual-modalias-stage-state` |
-| Status | `validated candidate prepared; awaiting boot2 deployment` |
+| Status | `boot2 deployed and verified; awaiting runtime result` |
 | Subsystem | I2C, OF, kobject uevent |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -76,3 +76,9 @@ backup, verifies a full-partition readback, and shuts the device down after a
 successful write. The runtime collector authenticates the pinned USB identity
 before reading the release, existing validator state, and ordered stage over
 the netcat console.
+
+The live GPT resolved `boot2` to `/dev/mmcblk0p30`; it was not the active root
+and contained the exact path-state predecessor. The ordered-stage candidate
+was written, synced, flushed, and independently read back with matching full
+partition checksum. No backup was created, and the device shut down cleanly
+after verified success so the owner can select `boot2`.
