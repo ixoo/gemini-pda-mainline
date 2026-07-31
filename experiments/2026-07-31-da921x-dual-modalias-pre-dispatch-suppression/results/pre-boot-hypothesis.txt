@@ -1,0 +1,6 @@
+experiment=2026-07-31-da921x-dual-modalias-pre-dispatch-suppression
+hypothesis=exact ten-entry dual-modalias event assembly successful return and normal cleanup are safe when netlink transport is skipped
+unique_evidence=exact ordered OF and I2C modalias validation plus numeric sequence transport suppression successful return real OF node unbound client zero I2C-oracle activity and full serviceability baseline
+serviceable_next=construct the exact netlink message but discard it before multicast to split serialization from delivery
+reset_next=keep transport suppressed and split successful event completion from environment cleanup with a durable independent observation path
+missing_marker_next=treat as validation failure and correct only from attributable evidence

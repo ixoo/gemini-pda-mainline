@@ -272,6 +272,12 @@ with the exact success marker isolates the reset to broadcast or receiver
 handling; a reset implicates complete assembly or successful cleanup. It
 remains driver- and transfer-free. Provider work remains blocked.
 
+That discriminator is now represented by the named
+`da921x-dual-modalias-pre-dispatch-suppression` profile. Its exact runtime gate
+requires the ordered OF and I2C modaliases, numeric sequence entry, successful
+return, normal cleanup, zero hardware activity, and the complete established
+serviceability baseline. It must be built and validated before device use.
+
 ### 4. Finish the ownership and rollback audit
 
 In parallel with driver work, use the working Gemian environment and recovered

@@ -1,0 +1,82 @@
+From 1f18dd4dd60c0784a821f6669516a82910c0c61b Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 31 Jul 2026 10:30:00 -0400
+Subject: [PATCH 132/132] kobject: validate dual Gemini DA921x modalias event
+
+The normal I2C uevent path appends its I2C modalias after a successful OF
+modalias. Correct the experiment-only pre-dispatch discriminator to require
+both exact entries in their observed construction order before SEQNUM.
+
+On a complete match, suppress only transport. The existing caller maps the
+discriminator result to success and frees the environment normally. This
+separates successful ten-entry event assembly and cleanup from netlink
+broadcast without adding a driver or transfer.
+---
+ lib/kobject_uevent.c | 28 ++++++++--------------------
+ 1 file changed, 8 insertions(+), 20 deletions(-)
+
+diff --git a/lib/kobject_uevent.c b/lib/kobject_uevent.c
+--- a/lib/kobject_uevent.c
++++ b/lib/kobject_uevent.c
+@@ -481,12 +481,11 @@ static int gemini_da921x_pre_dispatch(struct kobject *kobj,
+ 		"OF_COMPATIBLE_0=dlg,da9214-legacy",
+ 		"OF_COMPATIBLE_N=1",
+ 		"MODALIAS=of:NregulatorT(null)Cdlg,da9214-legacy",
++		"MODALIAS=i2c:da9214-legacy",
+ 	};
+-	bool seen[ARRAY_SIZE(expected)] = { };
+ 	const char *seqnum = NULL;
+ 	const char *entry;
+ 	int i;
+-	int j;
+ 
+ 	if (action != KOBJ_ADD || strcmp(subsystem, "i2c") ||
+ 	    strcmp(kobject_name(kobj), "1-0068"))
+@@ -510,30 +509,19 @@ static int gemini_da921x_pre_dispatch(struct kobject *kobj,
+ 				   strlen(env->envp[i - 1]) + 1) {
+ 			return -EINVAL;
+ 		}
+-
+-		for (j = 0; j < ARRAY_SIZE(expected); j++) {
+-			if (strcmp(entry, expected[j]))
+-				continue;
+-			if (seen[j])
++		if (i < ARRAY_SIZE(expected)) {
++			if (strcmp(entry, expected[i]))
+ 				return -EINVAL;
+-			seen[j] = true;
+-		}
+-		if (!strncmp(entry, "MODALIAS=", sizeof("MODALIAS=") - 1) &&
+-		    strcmp(entry, expected[ARRAY_SIZE(expected) - 1]))
++			continue;
++		}
++		if (strncmp(entry, "SEQNUM=", sizeof("SEQNUM=") - 1))
+ 			return -EINVAL;
+-		if (!strncmp(entry, "SEQNUM=", sizeof("SEQNUM=") - 1)) {
+-			if (seqnum)
+-				return -EINVAL;
+-			seqnum = entry + sizeof("SEQNUM=") - 1;
+-		}
++		seqnum = entry + sizeof("SEQNUM=") - 1;
+ 	}
+ 	if (env->envp[env->envp_idx - 1] +
+ 	    strlen(env->envp[env->envp_idx - 1]) + 1 !=
+ 	    env->buf + env->buflen)
+ 		return -EINVAL;
+-	for (j = 0; j < ARRAY_SIZE(expected); j++)
+-		if (!seen[j])
+-			return -EINVAL;
+ 	if (!seqnum || !*seqnum)
+ 		return -EINVAL;
+ 	for (entry = seqnum; *entry; entry++)
+@@ -540,7 +528,7 @@ static int gemini_da921x_pre_dispatch(struct kobject *kobj,
+ 		if (!isdigit(*entry))
+ 			return -EINVAL;
+ 
+-	pr_info("GEMINI_DA921X_OF_MODALIAS_PRE_DISPATCH full_env=validated envp_idx=%d buflen=%d seqnum=present transport=skipped cleanup=normal\n",
++	pr_info("GEMINI_DA921X_DUAL_MODALIAS_PRE_DISPATCH full_env=validated envp_idx=%d buflen=%d of_modalias=present i2c_modalias=present seqnum=present transport=skipped return=success cleanup=normal\n",
+ 		env->envp_idx, env->buflen);
+ 	return 1;
+ #else
+-- 
+2.47.3

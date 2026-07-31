@@ -15,6 +15,9 @@ the result.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-07-31 DA921x dual-modalias event pre-dispatch suppression](2026-07-31-da921x-dual-modalias-pre-dispatch-suppression/README.md)
+  — validates the exact ten-entry event, including ordered OF and I2C
+  modaliases, then returns success while suppressing only netlink transport.
 - [2026-07-31 DA921x complete OF uevent pre-dispatch suppression](2026-07-31-da921x-of-modalias-pre-dispatch-suppression/README.md)
   — remained fully serviceable with zero hardware activity, but the asserted
   nine-entry layout failed closed before its success marker; source audit shows
