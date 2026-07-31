@@ -1,0 +1,16 @@
+experiment=2026-07-30-da921x-of-modalias-isolation
+known_good_kernel=3.18.41+
+known_good_boot_id=2221f126-925e-4670-8385-273f4790d363
+logical_target=boot2
+resolved_target=/dev/mmcblk0p30
+active_root=/dev/mmcblk0p29
+power_present=1
+battery_capacity=100
+battery_health=Good
+predecessor_sha256=fc17b54c7b107f92297fd6715c0c2ec3b322ae79ef322b00ae8cacb332735d5e
+candidate_sha256=5cc29e8db0f02988d2e66dc0976cf3e05e023fd3a93ae55ea3e67a54a9064db2
+result=write-synced-flushed-full-readback-verified
+independent_full_readback=byte-identical
+temporary_readback=removed
+backup=not-created-project-wide-backup-relied-upon
+shutdown=confirmed-disconnected

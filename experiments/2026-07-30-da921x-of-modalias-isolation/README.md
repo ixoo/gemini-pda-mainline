@@ -58,5 +58,15 @@ The read-only runtime verifier is
 See [offline validation](results/offline-validation.txt) and the
 [pre-boot hypothesis](results/pre-boot-hypothesis.txt).
 
+The guarded installer resolved logical `boot2` as `/dev/mmcblk0p30` while
+Gemian boot ID `2221f126-925e-4670-8385-273f4790d363` was active. It confirmed
+the exact name-only predecessor, wrote the padded candidate, synchronized and
+flushed it, and required both an on-device full-partition checksum and an
+independent 16 MiB byte comparison. Both matched
+`5cc29e8db0f02988d2e66dc0976cf3e05e023fd3a93ae55ea3e67a54a9064db2`.
+No new backup was created under the project policy. The temporary readback was
+removed and shutdown was confirmed. See the
+[installation result](results/install-boot2-20260730-2154.txt).
+
 The experiment patch has actual author metadata but no DCO sign-off. It is an
 experiment-only diagnostic and is not submission-ready.
