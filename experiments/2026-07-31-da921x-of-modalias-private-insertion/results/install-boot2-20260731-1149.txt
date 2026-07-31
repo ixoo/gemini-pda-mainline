@@ -1,0 +1,16 @@
+experiment=2026-07-31-da921x-of-modalias-private-insertion
+known_good_kernel=3.18.41+
+known_good_boot_id=d09926de-7dd7-48ca-92f5-d76dfd140c15
+logical_target=boot2
+resolved_target=/dev/mmcblk0p30
+active_root=/dev/mmcblk0p29
+power_present=1
+battery_capacity=100
+battery_health=Good
+predecessor_sha256=5f7b48336034ff13608483f29c322213cdcf3914e54aa2a9603bb9962fc3a8eb
+candidate_sha256=a987ff8be9d12b9d13c223341dc5659b2d2fc27d29f30e5b2273be6646cd97e7
+result=write-synced-flushed-full-readback-verified
+independent_full_readback=byte-identical
+temporary_readback=removed
+backup=not-created-project-wide-backup-relied-upon
+shutdown=confirmed-disconnected
