@@ -1,0 +1,8 @@
+experiment=2026-07-31-da921x-dual-modalias-state
+hypothesis=the immediate dual-modalias validation printk is the effective difference responsible for the predecessor reset
+unique_evidence=exact ten-entry validation exposed later through read-only sysfs state with no immediate printk and transport still suppressed
+serviceable_validated_next=attribute the differential to the removed printk then design a no-printk message-construction split
+serviceable_pending_next=treat as exact validation failure and correct only from attributable evidence
+reset_next=rule out immediate printk as sufficient cause and move the independent checkpoint earlier than complete validation
+provider_work=blocked
+hardware_activity=none

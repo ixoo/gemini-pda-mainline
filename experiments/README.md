@@ -15,6 +15,9 @@ the result.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-07-31 DA921x dual-modalias read-only validation state](2026-07-31-da921x-dual-modalias-state/README.md)
+  — preserves exact event validation and transport suppression, removes the
+  immediate printk, and exposes successful validation through read-only sysfs.
 - [2026-07-31 DA921x dual-modalias event pre-dispatch suppression](2026-07-31-da921x-dual-modalias-pre-dispatch-suppression/README.md)
   — validates the exact ten-entry event, including ordered OF and I2C
   modaliases, then returns success while suppressing only netlink transport.

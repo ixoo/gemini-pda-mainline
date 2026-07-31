@@ -1,0 +1,3 @@
+# Experiment-only exact dual-modalias validation with read-only state.
+CONFIG_I2C_GEMINI_DA921X_DUAL_MODALIAS_STATE_DIAGNOSTIC=y
+CONFIG_LOCALVERSION="-gemini-da921x-dualstate"

@@ -1,0 +1,135 @@
+From 75ae0f7a2036d39a90bb83279d374c0cab1eb324 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 31 Jul 2026 11:40:00 -0400
+Subject: [PATCH 133/133] kobject: expose Gemini DA921x validation state
+
+Add a second experiment-only complete-event discriminator. Perform the same
+exact ten-entry validation and transport suppression without emitting an
+immediate printk. Record state atomically and expose it through a read-only
+attribute below /sys/kernel instead.
+
+The prior profile retains its original printk behavior. The new state is an
+independent observation path if serviceability survives. A second reset
+rules out the immediate printk. It adds no driver, transfer, provider, or
+storage path.
+---
+ drivers/i2c/Kconfig     | 20 ++++++++++++++++++++
+ include/linux/kobject.h |  5 +++++
+ kernel/ksysfs.c         | 15 +++++++++++++++
+ lib/kobject_uevent.c    | 10 +++++++++-
+ 4 files changed, 50 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/i2c/Kconfig b/drivers/i2c/Kconfig
+--- a/drivers/i2c/Kconfig
++++ b/drivers/i2c/Kconfig
+@@ -121,6 +121,26 @@ config I2C_GEMINI_DA921X_OF_MODALIAS_PRE_DISPATCH_SUPPRESSION_DIAGNOSTIC
+ 
+ 	  Say N outside the named pre-dispatch suppression experiment.
+ 
++config I2C_GEMINI_DA921X_DUAL_MODALIAS_STATE_DIAGNOSTIC
++	bool "Gemini DA921x complete uevent read-only state discriminator"
++	depends on OF && ARCH_MEDIATEK
++	depends on !I2C_GEMINI_DA921X_OF_MODALIAS_DIAGNOSTIC
++	depends on !I2C_GEMINI_DA921X_OF_MODALIAS_PRIVATE_GENERATION_DIAGNOSTIC
++	depends on !I2C_GEMINI_DA921X_OF_MODALIAS_PRIVATE_INSERTION_DIAGNOSTIC
++	depends on !I2C_GEMINI_DA921X_OF_MODALIAS_REAL_ENV_ROLLBACK_DIAGNOSTIC
++	depends on !I2C_GEMINI_DA921X_OF_MODALIAS_PRE_DISPATCH_SUPPRESSION_DIAGNOSTIC
++	help
++	  Build and validate the complete ten-entry add-event for the OF-created
++	  Gemini legacy DA921x I2C client, then suppress transport and expose
++	  successful validation through the read-only
++	  /sys/kernel/gemini_da921x_dual_modalias_state attribute.
++
++	  This experiment emits no validation printk. It does not dispatch the
++	  target event, suppress client creation or OF-node attachment, or add a
++	  driver, provider, transfer, register access, or storage path.
++
++	  Say N outside the named read-only state experiment.
++
+ config I2C_BOARDINFO
+ 	bool
+ 	default y
+diff --git a/include/linux/kobject.h b/include/linux/kobject.h
+--- a/include/linux/kobject.h
++++ b/include/linux/kobject.h
+@@ -40,6 +40,11 @@ extern char uevent_helper[];
+ /* counter to tag the uevent, read only except for the kobject core */
+ extern atomic64_t uevent_seqnum;
+ 
++#ifdef CONFIG_I2C_GEMINI_DA921X_DUAL_MODALIAS_STATE_DIAGNOSTIC
++/* experiment-only exact-event validation state */
++extern atomic_t gemini_da921x_dual_modalias_state;
++#endif
++
+ /*
+  * The actions here must match the index to the string array
+  * in lib/kobject_uevent.c
+diff --git a/kernel/ksysfs.c b/kernel/ksysfs.c
+--- a/kernel/ksysfs.c
++++ b/kernel/ksysfs.c
+@@ -44,6 +44,18 @@ static ssize_t uevent_seqnum_show(struct kobject *kobj,
+ }
+ KERNEL_ATTR_RO(uevent_seqnum);
+ 
++#ifdef CONFIG_I2C_GEMINI_DA921X_DUAL_MODALIAS_STATE_DIAGNOSTIC
++static ssize_t
++gemini_da921x_dual_modalias_state_show(struct kobject *kobj,
++				       struct kobj_attribute *attr, char *buf)
++{
++	return sysfs_emit(buf, "%s\n",
++		atomic_read(&gemini_da921x_dual_modalias_state) ?
++		"validated" : "pending");
++}
++KERNEL_ATTR_RO(gemini_da921x_dual_modalias_state);
++#endif
++
+ /* cpu byteorder */
+ static ssize_t cpu_byteorder_show(struct kobject *kobj,
+ 				  struct kobj_attribute *attr, char *buf)
+@@ -193,5 +205,8 @@ static struct attribute * kernel_attrs[] = {
+ 	&fscaps_attr.attr,
+ 	&uevent_seqnum_attr.attr,
++#ifdef CONFIG_I2C_GEMINI_DA921X_DUAL_MODALIAS_STATE_DIAGNOSTIC
++	&gemini_da921x_dual_modalias_state_attr.attr,
++#endif
+ 	&cpu_byteorder_attr.attr,
+ 	&address_bits_attr.attr,
+ #ifdef CONFIG_UEVENT_HELPER
+diff --git a/lib/kobject_uevent.c b/lib/kobject_uevent.c
+--- a/lib/kobject_uevent.c
++++ b/lib/kobject_uevent.c
+@@ -29,5 +29,9 @@
+ 
+ atomic64_t uevent_seqnum;
++#ifdef CONFIG_I2C_GEMINI_DA921X_DUAL_MODALIAS_STATE_DIAGNOSTIC
++atomic_t gemini_da921x_dual_modalias_state = ATOMIC_INIT(0);
++#endif
++
+ #ifdef CONFIG_UEVENT_HELPER
+ char uevent_helper[UEVENT_HELPER_PATH_LEN] = CONFIG_UEVENT_HELPER_PATH;
+ #endif
+@@ -469,7 +473,8 @@ static int gemini_da921x_pre_dispatch(struct kobject *kobj,
+ 				      const char *devpath,
+ 				      struct kobj_uevent_env *env)
+ {
+-#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_OF_MODALIAS_PRE_DISPATCH_SUPPRESSION_DIAGNOSTIC)
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_OF_MODALIAS_PRE_DISPATCH_SUPPRESSION_DIAGNOSTIC) || \
++	IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_DUAL_MODALIAS_STATE_DIAGNOSTIC)
+ 	static const char expected_devpath[] =
+ 		"/devices/platform/soc/1100e000.i2c/i2c-1/1-0068";
+ 	static const char * const expected[] = {
+@@ -528,8 +533,12 @@ static int gemini_da921x_pre_dispatch(struct kobject *kobj,
+ 		if (!isdigit(*entry))
+ 			return -EINVAL;
+ 
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_DUAL_MODALIAS_STATE_DIAGNOSTIC)
++	atomic_set(&gemini_da921x_dual_modalias_state, 1);
++#else
+ 	pr_info("GEMINI_DA921X_DUAL_MODALIAS_PRE_DISPATCH full_env=validated envp_idx=%d buflen=%d of_modalias=present i2c_modalias=present seqnum=present transport=skipped return=success cleanup=normal\n",
+ 		env->envp_idx, env->buflen);
++#endif
+ 	return 1;
+ #else
+ 	return 0;
+-- 
+2.47.3

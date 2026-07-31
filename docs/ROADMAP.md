@@ -289,7 +289,9 @@ validation and transport suppression while removing the immediate printk and
 publishing the validation state through an independent read-only observation
 path available only if the boot remains serviceable. A surviving exact state
 isolates the removed printk; another reset rules it out without repeating an
-identical artifact. Provider work remains blocked.
+identical artifact. The named `da921x-dual-modalias-state` profile implements
+that split and must pass Buildbox plus independent native-build validation
+before candidate selection. Provider work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 
