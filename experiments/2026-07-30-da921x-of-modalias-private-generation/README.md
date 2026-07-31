@@ -59,3 +59,23 @@ The installer resolves `boot2` from the live GPT, requires the currently
 validated OF-modalias-suppression predecessor, performs a full post-write
 readback, creates no new partition backup, and powers the device off after
 verified success.
+
+## Runtime result
+
+Attempt 1 was serviceable on `7.1.3-gemini-da921x-ofgen`, boot ID
+`7b4e14ce-3546-41b6-ae40-cb971d4ca3cd`. The exact read-only verifier confirmed
+the enabled real-compatible `1-0068` client, attached OF node, unbound state,
+and one private-generation marker with the exact 38-byte modalias. The add
+event still emitted only the safe I2C fallback. Every I2C6 transfer, DMA,
+start, IRQ, and oracle counter remained zero, and the complete serviceability
+baseline survived.
+
+Native reboot returned Gemian `3.18.41+` on boot ID
+`d09926de-7dd7-48ca-92f5-d76dfd140c15`. See the
+[runtime result](results/runtime-attempt-1-20260731.txt).
+
+This proves that generating the exact real-compatible OF modalias is safe.
+The remaining boundary is adding that value to an event environment or
+emitting the resulting event. The next discriminator must insert the exact
+`MODALIAS=` entry into a private bounded `kobj_uevent_env`, validate its
+layout, discard it, and retain the safe I2C fallback in the real event.

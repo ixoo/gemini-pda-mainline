@@ -15,6 +15,10 @@ the result.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-07-30 DA921x private OF-modalias generation](2026-07-30-da921x-of-modalias-private-generation/README.md)
+  — generated and validated the exact real-compatible modalias in a private
+  buffer, discarded it, and remained fully serviceable with zero transfers;
+  this isolates the remaining boundary to environment insertion or emission.
 - [2026-07-30 DA921x post-serviceability name-only client](2026-07-30-da921x-name-only-client/README.md)
   — disables the OF child, boots with no module, and creates one unbound
   `da9214-legacy` client after serviceability to isolate I2C identity handling;

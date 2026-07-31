@@ -204,14 +204,21 @@ reboot returned Gemian. This rules out real-compatible OF-node instantiation
 itself and isolates the unsafe boundary to adding that OF modalias to the I2C
 device uevent environment.
 
-Immediate next step: compute the exact real-compatible OF modalias into a
-private bounded buffer, validate its exact length and content, discard it, and
-emit only the safe I2C fallback. Serviceability would prove generation safe
-and implicate insertion/emission of the OF modalias environment value; a reset
-after a pre-insertion marker would make OF modalias generation itself
-sufficient. The candidate must add no driver or transfer path and retain the
-exact real OF child, module-free initramfs, and zero-activity gates. Provider
-work remains blocked.
+The private-generation discriminator computed the exact 38-byte
+real-compatible OF modalias, validated every byte, discarded it, and emitted
+only the safe I2C fallback. Its first selected boot was fully serviceable: the
+real OF client remained unbound, all I2C/oracle counters remained zero, and
+native reboot returned Gemian. This proves modalias generation itself safe and
+places the remaining boundary at environment insertion or event emission.
+
+Immediate next step: add the exact `MODALIAS=` entry to a private bounded
+`kobj_uevent_env`, validate its index, length, and bytes, discard the private
+environment, and emit only the safe I2C fallback in the real event.
+Serviceability would prove insertion mechanics safe and implicate emission of
+the real environment entry; a reset after a post-insertion marker would make
+private environment insertion sufficient. The candidate must add no driver or
+transfer path and retain the exact real OF child, module-free initramfs, and
+zero-activity gates. Provider work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 
