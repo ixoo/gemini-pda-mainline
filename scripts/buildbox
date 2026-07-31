@@ -1,0 +1,423 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+readonly SCRIPT_DIR
+REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd -P)"
+readonly REPO_DIR
+readonly REMOTE_URL="https://github.com/ixoo/gemini-pda-mainline.git"
+readonly BUILDBOX_HOST="${BUILDBOX_HOST:-buildbox}"
+readonly CONNECT_TIMEOUT="${BUILDBOX_CONNECT_TIMEOUT:-5}"
+readonly DEFAULT_JOBS=64
+readonly SSH_OPTIONS=(
+  -o BatchMode=yes
+  -o "ConnectTimeout=${CONNECT_TIMEOUT}"
+  -o ForwardAgent=no
+  -o ServerAliveInterval=30
+  -o ServerAliveCountMax=4
+)
+
+usage() {
+  cat <<'EOF'
+Usage: ./scripts/buildbox COMMAND
+
+Commands:
+  available             Exit successfully when buildbox is ready for builds
+  doctor                Inspect local and remote build prerequisites
+  build-kernel          Fetch the pushed HEAD commit, build, and validate it
+  fetch-package         Fetch the validated package for HEAD and the profile
+
+Environment:
+  BUILDBOX_HOST         SSH target (default: buildbox)
+  BUILDBOX_CONNECT_TIMEOUT
+                        SSH connection timeout in seconds (default: 5)
+  KERNEL_PROFILE        Manifest profile (default: manifest default_profile)
+  BUILD_MODULES=1       Build and package modules
+  KERNEL_JOBS=N         Remote parallel jobs (default: 64)
+EOF
+}
+
+die() {
+  echo "error: $*" >&2
+  exit 1
+}
+
+require_command() {
+  command -v "$1" >/dev/null 2>&1 || die "required command not found: $1"
+}
+
+ssh_buildbox() {
+  # Callers either pass fixed commands or strings assembled from values that
+  # have already passed the strict commit/ref/profile validators above.
+  # shellcheck disable=SC2029
+  ssh "${SSH_OPTIONS[@]}" "${BUILDBOX_HOST}" "$@"
+}
+
+profile_name() {
+  local profile="${KERNEL_PROFILE:-}"
+
+  if [[ -z "${profile}" ]]; then
+    profile="$(jq -er '.config.default_profile' "${REPO_DIR}/kernel/manifest.json")"
+  fi
+  [[ "${profile}" =~ ^[a-z0-9][a-z0-9_-]*$ ]] || \
+    die "invalid kernel profile: ${profile}"
+  printf '%s\n' "${profile}"
+}
+
+module_mode() {
+  case "${BUILD_MODULES:-0}" in
+    0|1) printf '%s\n' "${BUILD_MODULES:-0}" ;;
+    *) die "BUILD_MODULES must be 0 or 1" ;;
+  esac
+}
+
+job_count() {
+  local jobs="${KERNEL_JOBS:-${DEFAULT_JOBS}}"
+
+  [[ "${jobs}" =~ ^[1-9][0-9]*$ ]] || die "KERNEL_JOBS must be positive"
+  printf '%s\n' "${jobs}"
+}
+
+require_clean_pushed_head() {
+  local branch
+  local local_sha
+  local remote_branch
+  local remote_name
+  local remote_sha
+  local remote_url
+  local upstream
+
+  git -C "${REPO_DIR}" diff --quiet || \
+    die "commit tracked worktree changes before using buildbox"
+  git -C "${REPO_DIR}" diff --cached --quiet || \
+    die "commit staged changes before using buildbox"
+  [[ -z "$(git -C "${REPO_DIR}" ls-files --others --exclude-standard)" ]] || \
+    die "commit or remove untracked files before using buildbox"
+
+  branch="$(git -C "${REPO_DIR}" symbolic-ref --quiet --short HEAD)" || \
+    die "buildbox requires a checked-out branch"
+  [[ "${branch}" =~ ^[A-Za-z0-9._/-]+$ ]] || \
+    die "branch name is not safe for the buildbox transport: ${branch}"
+  git -C "${REPO_DIR}" check-ref-format --branch "${branch}" >/dev/null || \
+    die "invalid branch name: ${branch}"
+
+  upstream="$(git -C "${REPO_DIR}" rev-parse \
+    --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null)" || \
+    die "current branch has no upstream; push it with: git push -u origin HEAD"
+  remote_name="${upstream%%/*}"
+  remote_branch="${upstream#*/}"
+  [[ "${remote_name}" != "${remote_branch}" && \
+     "${remote_branch}" =~ ^[A-Za-z0-9._/-]+$ ]] || \
+    die "unsafe upstream branch: ${upstream}"
+
+  remote_url="$(git -C "${REPO_DIR}" remote get-url "${remote_name}")"
+  [[ "${remote_url}" == "${REMOTE_URL}" ]] || \
+    die "upstream remote must be ${REMOTE_URL}; found ${remote_url}"
+
+  git -C "${REPO_DIR}" fetch --quiet "${remote_name}" \
+    "refs/heads/${remote_branch}:refs/remotes/${remote_name}/${remote_branch}"
+  local_sha="$(git -C "${REPO_DIR}" rev-parse HEAD)"
+  remote_sha="$(git -C "${REPO_DIR}" rev-parse \
+    "refs/remotes/${remote_name}/${remote_branch}")"
+  [[ "${local_sha}" == "${remote_sha}" ]] || \
+    die "HEAD is not pushed to ${upstream}; push it before using buildbox"
+
+  printf '%s\t%s\n' "${local_sha}" "${remote_branch}"
+}
+
+available() {
+  require_command ssh
+  ssh_buildbox \
+    "test \"\$(uname -m)\" = x86_64 && command -v aarch64-linux-gnu-gcc >/dev/null && command -v aarch64-linux-gnu-ld >/dev/null && command -v ccache >/dev/null && command -v flock >/dev/null && command -v git >/dev/null && command -v jq >/dev/null && command -v make >/dev/null && command -v sha256sum >/dev/null && command -v tar >/dev/null && test -w /workspace && git ls-remote '${REMOTE_URL}' HEAD >/dev/null" \
+    >/dev/null 2>&1
+}
+
+doctor() {
+  require_command git
+  require_command jq
+  require_command ssh
+
+  printf 'local_repository=%s\n' "${REPO_DIR}"
+  printf 'buildbox_host=%s\n' "${BUILDBOX_HOST}"
+  ssh_buildbox "bash -s" <<'REMOTE'
+set -euo pipefail
+test "$(uname -m)" = x86_64
+for command in aarch64-linux-gnu-gcc aarch64-linux-gnu-ld ccache flock git jq make pahole rsync sha256sum tar; do
+  command -v "${command}" >/dev/null
+done
+test -w /workspace
+git ls-remote https://github.com/ixoo/gemini-pda-mainline.git HEAD >/dev/null
+printf 'remote_architecture=%s\n' "$(uname -m)"
+printf 'remote_cpus=%s\n' "$(nproc)"
+printf 'remote_cpu_quota='
+cat /sys/fs/cgroup/cpu.max 2>/dev/null || printf 'unknown\n'
+printf 'remote_memory='; awk '/^MemTotal:/ { print $2 " KiB" }' /proc/meminfo
+printf 'remote_home_filesystem='; df -hP "${HOME}" | awk 'NR == 2 { print $2 " total, " $4 " available" }'
+printf 'remote_workspace_filesystem='; df -hP /workspace | awk 'NR == 2 { print $2 " total, " $4 " available" }'
+printf 'remote_compiler=%s\n' "$(aarch64-linux-gnu-gcc --version | head -n 1)"
+printf 'remote_linker=%s\n' "$(aarch64-linux-gnu-ld --version | head -n 1)"
+printf 'remote_ccache=%s\n' "$(ccache --version | head -n 1)"
+printf 'repository_access=passed\n'
+REMOTE
+}
+
+build_kernel() {
+  local branch
+  local identity
+  local jobs
+  local modules
+  local profile
+  local remote_command
+  local sha
+
+  require_command git
+  require_command jq
+  require_command ssh
+  identity="$(require_clean_pushed_head)"
+  IFS=$'\t' read -r sha branch <<< "${identity}"
+  profile="$(profile_name)"
+  modules="$(module_mode)"
+  jobs="$(job_count)"
+  printf -v remote_command 'bash -s -- %q %q %q %q %q' \
+    "${sha}" "${branch}" "${profile}" "${modules}" "${jobs}"
+
+  printf 'Submitting %s profile %s to %s\n' "${sha}" "${profile}" "${BUILDBOX_HOST}"
+  ssh_buildbox "${remote_command}" <<'REMOTE'
+set -euo pipefail
+
+readonly commit="$1"
+readonly branch="$2"
+readonly profile="$3"
+readonly modules="$4"
+readonly jobs="$5"
+readonly remote_url=https://github.com/ixoo/gemini-pda-mainline.git
+readonly persistent_root="${HOME}/gemini-pda-buildbox"
+readonly mirror="${persistent_root}/repo.git"
+readonly workspace_root=/workspace/gemini-pda
+readonly checkout_root="${workspace_root}/checkouts"
+readonly checkout="${checkout_root}/${commit}"
+readonly source_root="${workspace_root}/src"
+readonly build_root="${workspace_root}/build"
+readonly artifact_root="${workspace_root}/artifacts"
+readonly job_root="${workspace_root}/jobs"
+readonly job_key="${commit}-${profile}-m${modules}"
+readonly job_log="${job_root}/${job_key}.log"
+readonly job_record="${job_root}/${job_key}.json"
+
+mkdir -p "${persistent_root}" "${checkout_root}" "${source_root}" \
+  "${build_root}" "${artifact_root}" "${job_root}" \
+  "${HOME}/.cache/gemini-pda" "${HOME}/.cache/ccache"
+exec 9>"${persistent_root}/build.lock"
+flock 9
+
+if [[ ! -d "${mirror}" ]]; then
+  if [[ -e "${mirror}.partial" ]]; then
+    [[ -d "${mirror}.partial" && ! -L "${mirror}.partial" ]]
+    rm -rf -- "${mirror}.partial"
+  fi
+  git clone --mirror "${remote_url}" "${mirror}.partial"
+  mv "${mirror}.partial" "${mirror}"
+fi
+[[ "$(git --git-dir="${mirror}" remote get-url origin)" == "${remote_url}" ]] || {
+  echo "error: buildbox mirror has an unexpected origin" >&2
+  exit 1
+}
+git --git-dir="${mirror}" fetch --prune origin \
+  "refs/heads/${branch}:refs/remotes/origin/${branch}"
+[[ "$(git --git-dir="${mirror}" rev-parse "refs/remotes/origin/${branch}")" == "${commit}" ]] || {
+  echo "error: fetched branch does not resolve to requested commit" >&2
+  exit 1
+}
+
+if [[ ! -d "${checkout}" ]]; then
+  for stale_partial in "${checkout}".partial.*; do
+    [[ -d "${stale_partial}" && ! -L "${stale_partial}" ]] || continue
+    rm -rf -- "${stale_partial}"
+  done
+  partial="${checkout}.partial.$$"
+  trap 'test -n "${partial:-}" && test -d "${partial}" && rm -rf -- "${partial}"' EXIT
+  git clone --no-checkout "${mirror}" "${partial}"
+  git -C "${partial}" checkout --detach "${commit}"
+  [[ -z "$(git -C "${partial}" status --porcelain)" ]]
+  mv "${partial}" "${checkout}"
+  partial=""
+  trap - EXIT
+fi
+[[ "$(git -C "${checkout}" rev-parse HEAD)" == "${commit}" ]] || {
+  echo "error: cached checkout does not match requested commit" >&2
+  exit 1
+}
+[[ -z "$(git -C "${checkout}" status --porcelain)" ]] || {
+  echo "error: cached checkout is dirty" >&2
+  exit 1
+}
+
+ccache --set-config=cache_dir="${HOME}/.cache/ccache"
+ccache --set-config=max_size=5G
+ccache --set-config=compression=true
+
+rm -f "${job_record}.partial"
+set -o pipefail
+env \
+  KERNEL_PROFILE="${profile}" \
+  BUILD_MODULES="${modules}" \
+  KERNEL_JOBS="${jobs}" \
+  CROSS_COMPILE=aarch64-linux-gnu- \
+  KERNEL_CCACHE=1 \
+  GEMINI_REPOSITORY_COMMIT="${commit}" \
+  GEMINI_REPOSITORY_DIRTY=false \
+  GEMINI_SOURCE_ROOT="${source_root}" \
+  GEMINI_BUILD_ROOT="${build_root}" \
+  GEMINI_ARTIFACT_ROOT="${artifact_root}" \
+  GEMINI_CACHE_ROOT="${HOME}/.cache/gemini-pda" \
+  "${checkout}/scripts/kernel" build 2>&1 | tee "${job_log}"
+
+package="$(sed -n 's/^Packaged artifacts at //p' "${job_log}" | tail -n 1)"
+case "${package}" in
+  "${artifact_root}"/*) ;;
+  *) echo "error: build did not report a safe package path" >&2; exit 1 ;;
+esac
+[[ -d "${package}" && ! -L "${package}" ]]
+GEMINI_ARTIFACT_ROOT="${artifact_root}" \
+  "${checkout}/scripts/validate-kernel-artifact" "${package}"
+jq -e \
+  --arg commit "${commit}" \
+  --arg profile "${profile}" \
+  --argjson modules "$(if [[ "${modules}" == 1 ]]; then printf true; else printf false; fi)" '
+    .repository_commit == $commit and
+    .repository_dirty == false and
+    .build_profile == $profile and
+    .modules_built == $modules and
+    .build_architecture == "x86_64" and
+    .target_architecture == "arm64" and
+    .toolchain_mode == "cross"
+  ' "${package}/provenance/build.json" >/dev/null
+jq -n \
+  --arg status validated \
+  --arg repository_commit "${commit}" \
+  --arg profile "${profile}" \
+  --argjson modules_built "$(if [[ "${modules}" == 1 ]]; then printf true; else printf false; fi)" \
+  --arg package "${package}" \
+  --arg package_name "$(basename "${package}")" \
+  --arg completed_utc "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  '{
+    status: $status,
+    repository_commit: $repository_commit,
+    profile: $profile,
+    modules_built: $modules_built,
+    package: $package,
+    package_name: $package_name,
+    completed_utc: $completed_utc
+  }' > "${job_record}.partial"
+mv "${job_record}.partial" "${job_record}"
+printf 'buildbox_job=%s\n' "${job_key}"
+printf 'buildbox_package=%s\n' "${package}"
+REMOTE
+}
+
+fetch_package() {
+  local destination
+  local job_info
+  local job_key
+  local modules
+  local package_name
+  local profile
+  local remote_command
+  local sha
+  local temporary
+
+  require_command git
+  require_command jq
+  require_command sha256sum
+  require_command ssh
+  require_command tar
+  sha="$(git -C "${REPO_DIR}" rev-parse HEAD)"
+  [[ "${sha}" =~ ^[0-9a-f]{40,64}$ ]] || die "invalid HEAD commit"
+  profile="$(profile_name)"
+  modules="$(module_mode)"
+  job_key="${sha}-${profile}-m${modules}"
+  printf -v remote_command 'test -f %q && cat %q' \
+    "/workspace/gemini-pda/jobs/${job_key}.json" \
+    "/workspace/gemini-pda/jobs/${job_key}.json"
+  job_info="$(ssh_buildbox "${remote_command}")" || \
+    die "no completed buildbox job for ${sha} profile ${profile}"
+  printf '%s' "${job_info}" | jq -e \
+    --arg commit "${sha}" --arg profile "${profile}" \
+    --argjson modules "$(if [[ "${modules}" == 1 ]]; then printf true; else printf false; fi)" '
+      .status == "validated" and
+      .repository_commit == $commit and
+      .profile == $profile and
+      .modules_built == $modules and
+      (.package_name | test("^[A-Za-z0-9_.+-]+$"))
+    ' >/dev/null || die "buildbox job record is invalid"
+  package_name="$(printf '%s' "${job_info}" | jq -er '.package_name')"
+  destination="${REPO_DIR}/artifacts/buildbox/${sha}/${package_name}"
+  [[ ! -e "${destination}" ]] || die "refusing to overwrite ${destination}"
+  mkdir -p "$(dirname "${destination}")"
+  temporary="$(mktemp -d "$(dirname "${destination}")/.fetch.XXXXXX")"
+  trap 'test -n "${temporary:-}" && test -d "${temporary}" && rm -rf -- "${temporary}"' EXIT
+
+  printf -v remote_command 'bash -s -- %q %q %q %q' \
+    "${job_key}" "${sha}" "${profile}" "${modules}"
+  ssh_buildbox "${remote_command}" <<'REMOTE' | tar -C "${temporary}" -xf -
+set -euo pipefail
+readonly job_key="$1"
+readonly commit="$2"
+readonly profile="$3"
+readonly modules="$4"
+readonly artifact_root=/workspace/gemini-pda/artifacts
+readonly record="/workspace/gemini-pda/jobs/${job_key}.json"
+[[ -f "${record}" && ! -L "${record}" ]]
+package="$(jq -er \
+  --arg commit "${commit}" --arg profile "${profile}" \
+  --argjson modules "$(if [[ "${modules}" == 1 ]]; then printf true; else printf false; fi)" '
+    select(.status == "validated" and
+      .repository_commit == $commit and .profile == $profile and
+      .modules_built == $modules) |
+    .package
+  ' "${record}")"
+case "${package}" in
+  "${artifact_root}"/*) ;;
+  *) echo "error: unsafe package path in job record" >&2; exit 1 ;;
+esac
+[[ -d "${package}" && ! -L "${package}" ]]
+jq -e \
+  --arg commit "${commit}" \
+  --arg profile "${profile}" \
+  --argjson modules "$(if [[ "${modules}" == 1 ]]; then printf true; else printf false; fi)" '
+    .repository_commit == $commit and
+    .repository_dirty == false and
+    .build_profile == $profile and
+    .modules_built == $modules
+  ' "${package}/provenance/build.json" >/dev/null
+tar -C "$(dirname "${package}")" -cf - -- "$(basename "${package}")"
+REMOTE
+
+  [[ -d "${temporary}/${package_name}" ]]
+  (
+    cd "${temporary}/${package_name}"
+    sha256sum --check --strict SHA256SUMS
+  )
+  mv "${temporary}/${package_name}" "${destination}"
+  rmdir "${temporary}"
+  trap - EXIT
+  printf 'Artifact fetched to %s\n' "${destination}"
+}
+
+readonly COMMAND="${1:-}"
+[[ -n "${COMMAND}" ]] || {
+  usage
+  exit 2
+}
+shift
+[[ "$#" -eq 0 ]] || die "${COMMAND} does not accept arguments"
+
+case "${COMMAND}" in
+  available) available ;;
+  doctor) doctor ;;
+  build-kernel) build_kernel ;;
+  fetch-package) fetch_package ;;
+  help|-h|--help) usage ;;
+  *) usage >&2; exit 2 ;;
+esac

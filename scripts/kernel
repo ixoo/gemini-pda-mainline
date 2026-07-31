@@ -19,8 +19,85 @@ require_command() {
 }
 
 require_linux() {
-  [[ "$(uname -s)" == Linux ]] || die "run this command inside the development VM"
-  [[ "$(uname -m)" == aarch64 ]] || die "expected an aarch64 development VM"
+  [[ "$(uname -s)" == Linux ]] || die "run this command on a supported Linux builder"
+  case "$(uname -m)" in
+    aarch64|x86_64) ;;
+    *) die "expected an aarch64 native builder or x86_64 cross-builder" ;;
+  esac
+}
+
+declare -a KERNEL_MAKE_TOOLCHAIN_ARGS=()
+BUILD_ARCHITECTURE=""
+TOOLCHAIN_MODE=""
+TARGET_CC=""
+TARGET_LD=""
+TARGET_COMPILER_VERSION=""
+TARGET_COMPILER_FULL_VERSION=""
+TARGET_COMPILER_TARGET=""
+TARGET_COMPILER_SHA256=""
+TARGET_LINKER_VERSION=""
+TARGET_LINKER_SHA256=""
+CCACHE_ENABLED=false
+CCACHE_VERSION=""
+
+initialize_toolchain() {
+  local cross_compile="${CROSS_COMPILE:-}"
+  local ccache_mode="${KERNEL_CCACHE:-0}"
+
+  BUILD_ARCHITECTURE="$(uname -m)"
+  case "${BUILD_ARCHITECTURE}" in
+    aarch64)
+      TOOLCHAIN_MODE=native
+      ;;
+    x86_64)
+      TOOLCHAIN_MODE=cross
+      cross_compile="${cross_compile:-aarch64-linux-gnu-}"
+      ;;
+  esac
+
+  [[ "${cross_compile}" != *[[:space:]]* && "${cross_compile}" != *$'\n'* ]] || \
+    die "CROSS_COMPILE may not contain whitespace"
+  case "${ccache_mode}" in
+    0|1) ;;
+    *) die "KERNEL_CCACHE must be 0 or 1" ;;
+  esac
+
+  TARGET_CC="${cross_compile}gcc"
+  TARGET_LD="${cross_compile}ld"
+  require_command "${TARGET_CC}"
+  require_command "${TARGET_LD}"
+
+  TARGET_COMPILER_VERSION="$(${TARGET_CC} --version | head -n 1)"
+  TARGET_COMPILER_FULL_VERSION="$(${TARGET_CC} -dumpfullversion -dumpversion)"
+  TARGET_COMPILER_TARGET="$(${TARGET_CC} -dumpmachine)"
+  TARGET_COMPILER_SHA256="$(sha256sum "$(command -v "${TARGET_CC}")" | awk '{print $1}')"
+  TARGET_LINKER_VERSION="$(${TARGET_LD} --version | head -n 1)"
+  TARGET_LINKER_SHA256="$(sha256sum "$(command -v "${TARGET_LD}")" | awk '{print $1}')"
+
+  [[ "${TARGET_COMPILER_TARGET}" == aarch64-* || \
+     "${TARGET_COMPILER_TARGET}" == aarch64 ]] || \
+    die "compiler does not target aarch64: ${TARGET_COMPILER_TARGET}"
+
+  KERNEL_MAKE_TOOLCHAIN_ARGS=(
+    "CROSS_COMPILE=${cross_compile}"
+    "LD=${TARGET_LD}"
+  )
+  if [[ "${ccache_mode}" == 1 ]]; then
+    require_command ccache
+    CCACHE_ENABLED=true
+    CCACHE_VERSION="$(ccache --version | head -n 1)"
+    KERNEL_MAKE_TOOLCHAIN_ARGS+=("CC=ccache ${TARGET_CC}")
+  else
+    KERNEL_MAKE_TOOLCHAIN_ARGS+=("CC=${TARGET_CC}")
+  fi
+}
+
+kernel_make() {
+  make -C "${SOURCE_DIR}" \
+    O="${BUILD_DIR}" \
+    ARCH="${ARCH}" \
+    "${KERNEL_MAKE_TOOLCHAIN_ARGS[@]}" \
+    "$@"
 }
 
 manifest_value() {
@@ -122,6 +199,8 @@ Environment:
   KERNEL_PROFILE        Config profile from the manifest (default: full)
   KERNEL_JOBS           Parallel build jobs (default: guest CPU count)
   BUILD_MODULES=1       Also compile modules
+  CROSS_COMPILE=PREFIX  Target compiler prefix (default: native or aarch64-linux-gnu-)
+  KERNEL_CCACHE=1       Compile target objects through ccache
   GEMINI_SOURCE_ROOT    Override the managed source root
   GEMINI_BUILD_ROOT     Override the out-of-tree build root
   GEMINI_ARTIFACT_ROOT  Override the artifact root
@@ -224,8 +303,13 @@ build_state_hash() {
   {
     source_state_hash
     config_hash
-    gcc -dumpfullversion -dumpversion
-    ld --version | head -n 1
+    printf '%s\n' "build_architecture=${BUILD_ARCHITECTURE}"
+    printf '%s\n' "toolchain_mode=${TOOLCHAIN_MODE}"
+    printf '%s\n' "compiler_version=${TARGET_COMPILER_FULL_VERSION}"
+    printf '%s\n' "compiler_target=${TARGET_COMPILER_TARGET}"
+    printf '%s\n' "compiler_sha256=${TARGET_COMPILER_SHA256}"
+    printf '%s\n' "linker=${TARGET_LINKER_VERSION}"
+    printf '%s\n' "linker_sha256=${TARGET_LINKER_SHA256}"
   } | sha256sum | awk '{print $1}'
 }
 
@@ -317,7 +401,7 @@ configure_kernel() {
   fi
 
   mkdir -p "${BUILD_DIR}"
-  make -C "${SOURCE_DIR}" O="${BUILD_DIR}" ARCH="${ARCH}" "${BASE_CONFIG}"
+  kernel_make "${BASE_CONFIG}"
   while IFS= read -r fragment; do
     fragments+=("${REPO_DIR}/${fragment}")
   done < <(for_each_config_fragment)
@@ -329,7 +413,7 @@ configure_kernel() {
         -m -O "${BUILD_DIR}" "${BUILD_DIR}/.config" "${fragments[@]}"
     )
   fi
-  make -C "${SOURCE_DIR}" O="${BUILD_DIR}" ARCH="${ARCH}" olddefconfig
+  kernel_make olddefconfig
   validate_config_fragments
   printf '%s\n' "${expected_state}" > "${BUILD_DIR}/.gemini-build-state"
   echo "Configured Linux ${VERSION} at ${BUILD_DIR}"
@@ -426,10 +510,25 @@ package_artifacts() {
   local config_input_hash="$5"
   local config_fragments_json
   local package_name
+  local repository_commit
+  local repository_dirty
   local temporary
   local sums_file
   local fragment
   local modules_built=false
+
+  repository_commit="${GEMINI_REPOSITORY_COMMIT:-$(git -C "${REPO_DIR}" rev-parse HEAD 2>/dev/null || true)}"
+  if [[ -n "${GEMINI_REPOSITORY_DIRTY:-}" ]]; then
+    repository_dirty="${GEMINI_REPOSITORY_DIRTY}"
+  elif [[ -n "$(git -C "${REPO_DIR}" status --porcelain 2>/dev/null)" ]]; then
+    repository_dirty=true
+  else
+    repository_dirty=false
+  fi
+  [[ -z "${repository_commit}" || "${repository_commit}" =~ ^[0-9a-f]{40,64}$ ]] || \
+    die "invalid repository commit identity"
+  [[ "${repository_dirty}" == true || "${repository_dirty}" == false ]] || \
+    die "GEMINI_REPOSITORY_DIRTY must be true or false"
 
   if [[ "${KERNEL_PROFILE}" == full ]]; then
     package_name="linux-${VERSION}-gemini-${patch_hash:0:12}"
@@ -451,9 +550,7 @@ package_artifacts() {
   install -m 0644 "${BUILD_DIR}/System.map" "${PACKAGE_DIR}/System.map"
   if [[ "${BUILD_MODULES:-0}" == 1 ]]; then
     modules_built=true
-    make -C "${SOURCE_DIR}" \
-      O="${BUILD_DIR}" \
-      ARCH="${ARCH}" \
+    kernel_make \
       INSTALL_MOD_PATH="${PACKAGE_DIR}/modules" \
       modules_install
   fi
@@ -483,8 +580,19 @@ package_artifacts() {
     --arg patchset_sha256 "${patch_hash}" \
     --arg config_sha256 "$(sha256sum "${BUILD_DIR}/.config" | awk '{print $1}')" \
     --argjson modules_built "${modules_built}" \
-    --arg compiler "$(gcc --version | head -n 1)" \
-    --arg linker "$(ld --version | head -n 1)" \
+    --arg build_architecture "${BUILD_ARCHITECTURE}" \
+    --arg target_architecture "${ARCH}" \
+    --arg toolchain_mode "${TOOLCHAIN_MODE}" \
+    --arg compiler "${TARGET_COMPILER_VERSION}" \
+    --arg compiler_full_version "${TARGET_COMPILER_FULL_VERSION}" \
+    --arg compiler_target "${TARGET_COMPILER_TARGET}" \
+    --arg compiler_sha256 "${TARGET_COMPILER_SHA256}" \
+    --arg linker "${TARGET_LINKER_VERSION}" \
+    --arg linker_sha256 "${TARGET_LINKER_SHA256}" \
+    --argjson ccache_enabled "${CCACHE_ENABLED}" \
+    --arg ccache_version "${CCACHE_VERSION}" \
+    --arg repository_commit "${repository_commit}" \
+    --argjson repository_dirty "${repository_dirty}" \
     '{
       schema: 1,
       generated_utc: $generated,
@@ -497,8 +605,19 @@ package_artifacts() {
       patchset_sha256: $patchset_sha256,
       config_sha256: $config_sha256,
       modules_built: $modules_built,
+      build_architecture: $build_architecture,
+      target_architecture: $target_architecture,
+      toolchain_mode: $toolchain_mode,
       compiler: $compiler,
-      linker: $linker
+      compiler_full_version: $compiler_full_version,
+      compiler_target: $compiler_target,
+      compiler_sha256: $compiler_sha256,
+      linker: $linker,
+      linker_sha256: $linker_sha256,
+      ccache_enabled: $ccache_enabled,
+      ccache_version: $ccache_version,
+      repository_commit: $repository_commit,
+      repository_dirty: $repository_dirty
     }' > "${PACKAGE_DIR}/provenance/build.json"
 
   sums_file="${temporary}.SHA256SUMS"
@@ -549,14 +668,11 @@ build_kernel() {
   export KBUILD_BUILD_TIMESTAMP="${RELEASED} 00:00:00 UTC"
   export KCONFIG_NOTIMESTAMP=1
 
-  make -C "${SOURCE_DIR}" \
-    O="${BUILD_DIR}" \
-    ARCH="${ARCH}" \
-    -j "${jobs}" \
+  kernel_make -j "${jobs}" \
     "${targets[@]}"
   assert_build_inputs_unchanged \
     "${expected_source_state}" "${expected_build_state}"
-  kernel_release="$(make -s -C "${SOURCE_DIR}" O="${BUILD_DIR}" ARCH="${ARCH}" kernelrelease)"
+  kernel_release="$(kernel_make -s kernelrelease)"
   package_artifacts "${kernel_release}" \
     "${expected_source_state}" "${expected_build_state}" "${patch_hash}" \
     "${config_input_hash}"
@@ -612,6 +728,7 @@ require_linux
 for command in curl git jq make sha256sum tar; do
   require_command "${command}"
 done
+initialize_toolchain
 [[ -f "${MANIFEST}" ]] || die "kernel manifest not found: ${MANIFEST}"
 
 readonly COMMAND="${1:-}"

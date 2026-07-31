@@ -16,8 +16,8 @@ require_command() {
 	command -v "$1" >/dev/null 2>&1 || die "required command not found: $1"
 }
 
-if [[ "$(uname -s)" != Linux || "$(uname -m)" != aarch64 ]]; then
-	echo "SKIP: run this focused test in the aarch64 development VM"
+if [[ "$(uname -s)" != Linux ]]; then
+	echo "SKIP: run this focused test on a supported Linux builder"
 	exit 77
 fi
 
@@ -175,8 +175,17 @@ make_base_package() {
 			patchset_sha256: $patchset,
 			config_sha256: $config,
 			modules_built: false,
+			build_architecture: "x86_64",
+			target_architecture: "arm64",
+			toolchain_mode: "cross",
 			compiler: "synthetic gcc",
-			linker: "synthetic ld"
+			compiler_target: "aarch64-linux-gnu",
+			compiler_sha256: "2222222222222222222222222222222222222222222222222222222222222222",
+			linker: "synthetic ld",
+			linker_sha256: "3333333333333333333333333333333333333333333333333333333333333333",
+			ccache_enabled: true,
+			repository_commit: "4444444444444444444444444444444444444444",
+			repository_dirty: false
 		}
 	' > "${package}/provenance/build.json"
 	refresh_sums "${package}"
@@ -324,6 +333,21 @@ replace_json "${case_dir}/provenance/build.json" \
 refresh_sums "${case_dir}"
 expect_rejection wrong-config-input-hash "${case_dir}" \
 	'config_inputs_sha256 does not match'
+
+case_dir="$(clone_case wrong-build-architecture)"
+replace_json "${case_dir}/provenance/build.json" '.build_architecture = "riscv64"'
+refresh_sums "${case_dir}"
+expect_rejection wrong-build-architecture "${case_dir}" 'invalid provenance/build.json'
+
+case_dir="$(clone_case wrong-compiler-target)"
+replace_json "${case_dir}/provenance/build.json" '.compiler_target = "x86_64-linux-gnu"'
+refresh_sums "${case_dir}"
+expect_rejection wrong-compiler-target "${case_dir}" 'invalid provenance/build.json'
+
+case_dir="$(clone_case malformed-repository-commit)"
+replace_json "${case_dir}/provenance/build.json" '.repository_commit = "not-a-commit"'
+refresh_sums "${case_dir}"
+expect_rejection malformed-repository-commit "${case_dir}" 'invalid provenance/build.json'
 
 case_dir="$(clone_case changed-config-content)"
 printf 'CONFIG_CHANGED=y\n' >> "${case_dir}/provenance/configs/gate.fragment"

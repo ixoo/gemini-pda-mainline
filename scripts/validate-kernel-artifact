@@ -11,8 +11,8 @@ usage() {
   cat <<'EOF'
 Usage: ./scripts/validate-kernel-artifact [ARTIFACT_DIR]
 
-Validate a packaged kernel artifact in the development VM. With no argument,
-the newest package below ~/artifacts/gemini-pda is selected.
+Validate a packaged kernel artifact on a supported Linux builder. With no
+argument, the newest package below ~/artifacts/gemini-pda is selected.
 EOF
 }
 
@@ -35,8 +35,11 @@ validate_relative_path() {
   esac
 }
 
-[[ "$(uname -s)" == Linux ]] || die "run this command inside the development VM"
-[[ "$(uname -m)" == aarch64 ]] || die "expected an aarch64 development VM"
+[[ "$(uname -s)" == Linux ]] || die "run this command on a supported Linux builder"
+case "$(uname -m)" in
+  aarch64|x86_64) ;;
+  *) die "expected an aarch64 native builder or x86_64 cross-builder" ;;
+esac
 
 for command in awk basename cmp find gzip head jq od sha256sum sort tail tr uniq wc; do
   require_command "${command}"
@@ -147,8 +150,20 @@ jq -e '
   (.patchset_sha256 | test("^[0-9a-f]{64}$")) and
   (.config_sha256 | test("^[0-9a-f]{64}$")) and
   ((.modules_built == null) or (.modules_built | type == "boolean")) and
+  ((.build_architecture == null) or
+    (.build_architecture == "aarch64" or .build_architecture == "x86_64")) and
+  ((.target_architecture == null) or .target_architecture == "arm64") and
+  ((.toolchain_mode == null) or
+    (.toolchain_mode == "native" or .toolchain_mode == "cross")) and
   (.compiler | length > 0) and
-  (.linker | length > 0)
+  ((.compiler_target == null) or (.compiler_target | startswith("aarch64"))) and
+  ((.compiler_sha256 == null) or (.compiler_sha256 | test("^[0-9a-f]{64}$"))) and
+  (.linker | length > 0) and
+  ((.linker_sha256 == null) or (.linker_sha256 | test("^[0-9a-f]{64}$"))) and
+  ((.ccache_enabled == null) or (.ccache_enabled | type == "boolean")) and
+  ((.repository_commit == null) or
+    (.repository_commit == "" or (.repository_commit | test("^[0-9a-f]{40,64}$")))) and
+  ((.repository_dirty == null) or (.repository_dirty | type == "boolean"))
 ' "${artifact_dir}/provenance/build.json" >/dev/null || \
   die "invalid provenance/build.json"
 [[ "$(jq -er '.config_sha256' "${artifact_dir}/provenance/build.json")" == \

@@ -10,13 +10,27 @@ partition.
 
 ## One-command build
 
-From macOS:
+From macOS, use the backend-selecting entry point:
 
 ```sh
-./scripts/dev-vm build-kernel
+./scripts/build-kernel
 ```
 
-The command performs the workflow inside the ARM64 development VM:
+It prefers the x86_64 buildbox when that backend is reachable and ready, and
+otherwise falls back to the ARM64 development VM. Select either backend
+explicitly when its identity matters:
+
+```sh
+./scripts/build-kernel --backend buildbox
+./scripts/build-kernel --backend vm
+```
+
+Buildbox accepts only a clean, pushed commit and fetches it directly from the
+project repository. The VM can build intentional uncommitted local inputs
+through its read-only checkout mount. See [Buildbox kernel builds](BUILDBOX.md)
+for the commit, storage, artifact-fetch, and provenance contract.
+
+Both backends perform the same pinned workflow:
 
 1. read `kernel/manifest.json`;
 2. download the pinned kernel.org source archive into the guest cache;
@@ -30,7 +44,7 @@ The command performs the workflow inside the ARM64 development VM:
    checksums under `~/artifacts/gemini-pda/`.
 
 The download, source, build, and package directories never live in the macOS
-checkout. Print their exact guest paths with:
+checkout. Print the VM paths with:
 
 ```sh
 ./scripts/dev-vm kernel paths
@@ -131,7 +145,7 @@ That is a packaging constraint, not an arm64 upstream default.
 Select a non-default profile explicitly:
 
 ```sh
-KERNEL_PROFILE=PROFILE_NAME ./scripts/dev-vm build-kernel
+KERNEL_PROFILE=PROFILE_NAME ./scripts/build-kernel
 ```
 
 Use the exact profile recorded by the experiment. Do not guess a similarly

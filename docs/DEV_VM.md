@@ -166,6 +166,10 @@ artifact directories. Run the complete verified pipeline from macOS:
 ./scripts/dev-vm build-kernel
 ```
 
+This is the explicit native-ARM64 backend. The normal backend-selecting command
+is `./scripts/build-kernel`; it prefers buildbox when available and falls back
+to this VM. See [Buildbox kernel builds](BUILDBOX.md).
+
 To package the optional `CONFIG_*=m` outputs as well, use the same wrapper
 with the documented build override:
 

@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+readonly SCRIPT_DIR
+
+usage() {
+  cat <<'EOF'
+Usage: ./scripts/build-kernel [--backend auto|buildbox|vm]
+
+Build the manifest-selected kernel. The default "auto" backend uses buildbox
+when it is reachable and ready, otherwise it falls back to the local VM.
+
+Environment:
+  GEMINI_BUILD_BACKEND  auto, buildbox, or vm (default: auto)
+  KERNEL_PROFILE       Manifest profile
+  BUILD_MODULES=1      Build and package modules
+  KERNEL_JOBS=N        Parallel build jobs
+EOF
+}
+
+die() {
+  echo "error: $*" >&2
+  exit 1
+}
+
+backend="${GEMINI_BUILD_BACKEND:-auto}"
+if [[ "$#" -gt 0 ]]; then
+  case "$1" in
+    --backend=*) backend="${1#--backend=}"; shift ;;
+    --backend)
+      [[ "$#" -ge 2 ]] || die "--backend requires a value"
+      backend="$2"
+      shift 2
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *) die "unknown argument: $1" ;;
+  esac
+fi
+[[ "$#" -eq 0 ]] || die "unexpected arguments"
+
+case "${backend}" in
+  auto)
+    if "${SCRIPT_DIR}/buildbox" available; then
+      backend=buildbox
+    else
+      echo "buildbox is unavailable; using the local development VM" >&2
+      backend=vm
+    fi
+    ;;
+  buildbox|vm) ;;
+  *) die "backend must be auto, buildbox, or vm" ;;
+esac
+
+case "${backend}" in
+  buildbox) exec "${SCRIPT_DIR}/buildbox" build-kernel ;;
+  vm) exec "${SCRIPT_DIR}/dev-vm" build-kernel ;;
+esac
