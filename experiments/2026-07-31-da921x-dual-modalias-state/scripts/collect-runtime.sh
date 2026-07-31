@@ -97,8 +97,8 @@ runtime_check_b64="$(base64 <"$runtime_check" | tr -d '\n')"
 	# shellcheck disable=SC2016 # Emit deferred device-side expansion literally.
 	printf '%s\n' ': >"$encoded" || exit 87'
 	while [[ -n "$runtime_check_b64" ]]; do
-		chunk=${runtime_check_b64:0:384}
-		runtime_check_b64=${runtime_check_b64:384}
+		chunk=${runtime_check_b64:0:256}
+		runtime_check_b64=${runtime_check_b64:256}
 		# shellcheck disable=SC2016 # Emit deferred device-side expansion literally.
 		printf '%s\n' "printf '%s' '$chunk' >>\"\$encoded\" || exit 88"
 	done
