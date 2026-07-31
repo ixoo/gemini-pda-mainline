@@ -350,9 +350,12 @@ does not print or transport the target event or copy arbitrary environment
 text. Its 126-patch inputs passed the manifest, configuration, patch, and
 static checks; exact clean commit `442910e` built successfully on Buildbox.
 Two candidate assemblies were byte-identical and all 32 LK gates passed. The
-exact candidate is ready for bounded boot2 deployment from known-good Gemian.
-A native VM kernel build requires an explicit owner request. Provider work
-remains blocked.
+exact candidate was deployed to live-GPT-resolved boot2 from known-good Gemian;
+the predecessor, write, flush, and independent full-partition readback all
+matched, no backup was created, and shutdown was confirmed. Its first selected
+boot must capture the six-field classification plus the established
+serviceability and zero-I2C-activity baseline. A native VM kernel build requires
+an explicit owner request. Provider work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 

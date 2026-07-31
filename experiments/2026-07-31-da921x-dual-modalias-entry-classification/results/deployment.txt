@@ -1,0 +1,11 @@
+experiment=2026-07-31-da921x-dual-modalias-entry-classification
+target=/dev/mmcblk0p30
+active_root=/dev/mmcblk0p29
+boot_id=e69a8227-d069-4199-9419-5d77ce4f756e
+power=1|98|Good
+predecessor_sha256=4afe2d97662e9cde1da0a27e2f4a58e0a05e425d9cd5da69abfa51f4136bcea9
+candidate_sha256=1c703eb0f649bb33d7c49b1d3a3bd9e966cdf5f9f2a3920ac789ffb886bff4b7
+result=write-synced-flushed-full-readback-verified
+backup=not-created-project-wide-backup-relied-upon
+full_readback=matching-and-temporary-copy-removed
+shutdown=confirmed-disconnected-after-verified-success

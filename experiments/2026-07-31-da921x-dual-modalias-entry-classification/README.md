@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-31-da921x-dual-modalias-entry-classification` |
-| Status | `candidate validated; not deployed or booted` |
+| Status | `deployed to boot2; not booted` |
 | Subsystem | I2C, OF, kobject uevent |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -86,5 +86,11 @@ enabled-compatible DTB is unchanged, and the candidate adds no hardware path.
 The exact installer accepts only the currently installed envelope-state
 checksum as predecessor, resolves `boot2` from the live GPT, creates no backup,
 requires a matching full-partition readback, and shuts the device down after a
-verified write. Deployment and runtime identities remain unset until those
-gates pass.
+verified write.
+
+The live GPT resolved `boot2` to `/dev/mmcblk0p30`; it was not the active root
+and contained the exact envelope-state predecessor. Battery presence, health,
+and capacity passed. The entry-classification candidate was written, synced,
+flushed, and independently read back with matching full-partition checksum.
+No backup was created, and the device shut down cleanly after verified success.
+Runtime evidence remains unset until the owner physically selects boot2.
