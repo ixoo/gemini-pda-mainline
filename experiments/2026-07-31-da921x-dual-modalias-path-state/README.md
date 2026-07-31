@@ -73,3 +73,9 @@ The readback was byte-identical with checksum
 No new partition backup was made; the verified project-wide backup remains the
 recovery source. The temporary readback was removed and the device shut down
 cleanly so the owner can physically select `boot2`.
+
+The prepared one-shot collector pins the installed full-partition checksum,
+the source runtime-check checksum, the inherited USB MAC and address, and the
+direct netcat endpoint. It writes only its temporary verifier below initramfs
+`/run`, removes it after execution, and requests neither storage access nor a
+reboot.
