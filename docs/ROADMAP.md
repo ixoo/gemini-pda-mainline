@@ -204,21 +204,24 @@ reboot returned Gemian. This rules out real-compatible OF-node instantiation
 itself and isolates the unsafe boundary to adding that OF modalias to the I2C
 device uevent environment.
 
-The private-generation discriminator computed the exact 38-byte
-real-compatible OF modalias, validated every byte, discarded it, and emitted
-only the safe I2C fallback. Its first selected boot was fully serviceable: the
-real OF client remained unbound, all I2C/oracle counters remained zero, and
-native reboot returned Gemian. This proves modalias generation itself safe and
-places the remaining boundary at environment insertion or event emission.
+The private-insertion discriminator generated the exact 38-byte modalias,
+inserted it as one terminated `MODALIAS=` entry in a bounded private
+`kobj_uevent_env`, validated the complete layout and bytes, discarded it, and
+emitted only the safe I2C fallback. Its first selected boot was fully
+serviceable with the real client unbound and every I2C/oracle counter at zero;
+native reboot returned Gemian. This proves environment insertion mechanics
+safe and places the remaining boundary at the real OF entry's presence during
+event emission.
 
-Immediate next step: add the exact `MODALIAS=` entry to a private bounded
-`kobj_uevent_env`, validate its index, length, and bytes, discard the private
-environment, and emit only the safe I2C fallback in the real event.
-Serviceability would prove insertion mechanics safe and implicate emission of
-the real environment entry; a reset after a post-insertion marker would make
-private environment insertion sufficient. The candidate must add no driver or
-transfer path and retain the exact real OF child, module-free initramfs, and
-zero-activity gates. Provider work remains blocked.
+Immediate next step: snapshot the real event environment indices, insert and
+validate the exact OF `MODALIAS=` entry there, erase the inserted bytes and
+restore the indices exactly, then add only the safe I2C fallback before the
+event is emitted. Serviceability would implicate final OF-entry presence during
+emission; a reset after the rollback marker would make transient mutation of
+the real event environment sufficient. The candidate must fail closed on any
+layout or rollback mismatch, add no driver or transfer path, and retain the
+exact real OF child, module-free initramfs, and zero-activity gates. Provider
+work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 

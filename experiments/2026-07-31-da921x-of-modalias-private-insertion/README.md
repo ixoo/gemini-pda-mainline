@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-31-da921x-of-modalias-private-insertion` |
-| Status | `running` |
+| Status | `completed` |
 | Subsystem | I2C, OF, kobject uevent |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -60,3 +60,28 @@ were byte-identical. The retained Android-v0 container passed all 32 LK gates.
 The installer resolves `boot2` from the live GPT, requires the validated
 private-generation predecessor, performs a full post-write readback, creates
 no new partition backup, and powers the device off after verified success.
+
+## Runtime result
+
+Attempt 1 was serviceable on `7.1.3-gemini-da921x-ofinsert`, boot ID
+`5a6f69a9-956a-431a-a46a-6f08c081103c`. The kernel marker confirmed the exact
+38-byte OF modalias was inserted as one 47-byte `MODALIAS=` entry in a private
+environment with a 48-byte terminated buffer. The real-compatible `1-0068`
+client retained its OF node and remained unbound while the real event used the
+safe I2C fallback. Every I2C6 transfer, DMA, start, IRQ, and oracle counter
+remained zero, and the complete serviceability baseline survived.
+
+The initial verifier stopped before classification because it incorrectly
+treated the `MODALIAS=` prefix as eight bytes. The raw marker exposed the
+correct nine-byte prefix; the corrected, committed verifier passed on the same
+live boot. This changed only the observation classifier, not the candidate.
+
+Native reboot returned Gemian `3.18.41+` on boot ID
+`d6629d14-f809-423c-b433-8df84b8e14a2`. See the
+[runtime result](results/runtime-attempt-1-20260731.txt).
+
+This proves private environment insertion mechanics safe. The remaining
+boundary is the real OF modalias entry being present when the device event is
+emitted. The next discriminator must insert and validate that entry in the
+real event environment, restore the original environment state byte-for-byte,
+and then add only the safe I2C fallback before emission.

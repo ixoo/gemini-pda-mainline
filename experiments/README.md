@@ -15,6 +15,10 @@ the result.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-07-31 DA921x private OF-modalias uevent insertion](2026-07-31-da921x-of-modalias-private-insertion/README.md)
+  — inserted and validated the exact `MODALIAS=` entry in a private bounded
+  uevent environment, discarded it, and remained fully serviceable with zero
+  transfers; this isolates the remaining boundary to final event emission.
 - [2026-07-30 DA921x private OF-modalias generation](2026-07-30-da921x-of-modalias-private-generation/README.md)
   — generated and validated the exact real-compatible modalias in a private
   buffer, discarded it, and remained fully serviceable with zero transfers;
