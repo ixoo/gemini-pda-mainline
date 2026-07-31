@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-31-da921x-dual-modalias-state` |
-| Status | `boot2 deployed and verified; awaiting first selected boot` |
+| Status | `selected boot console-serviceable; awaiting USB/netcat state capture` |
 | Subsystem | I2C, OF, kobject uevent |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -69,3 +69,13 @@ route, and endpoint before sending the source-pinned read-only verifier over
 the direct netcat shell. It stages the check only in initramfs `/tmp`,
 records no partition reads or device writes, and deliberately leaves reboot
 as a separate post-validation action.
+
+## Runtime result
+
+On the first selected boot, the owner reported that the console was
+serviceable. This proves the prior immediate-printk candidate's
+pre-serviceability reset did not repeat after removing that printk. The exact
+kernel identity and read-only validation state are not yet captured, so the
+causal split remains incomplete. Bounded host checks found no exact Gemini USB
+MAC; the device remains running without a reboot request or storage access
+while the USB/netcat capture waits for the physical gadget connection.

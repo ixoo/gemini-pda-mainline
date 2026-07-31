@@ -292,9 +292,12 @@ isolates the removed printk; another reset rules it out without repeating an
 identical artifact. The named `da921x-dual-modalias-state` profile implements
 that split. Its Buildbox package and deterministic independent candidate
 assembly passed, and exact boot2 deployment passed full-partition readback
-before clean shutdown. The next step is one selected boot and the read-only
-state/serviceability check. Native VM kernel builds require an explicit owner
-request. Provider work remains blocked.
+before clean shutdown. The first selected boot was console-serviceable, so the
+predecessor's pre-serviceability reset did not repeat. The next step is to
+capture exact kernel identity, the read-only validation state, and the full
+USB/serviceability baseline over the published netcat collector. Native VM
+kernel builds require an explicit owner request. Provider work remains
+blocked.
 
 ### 4. Finish the ownership and rollback audit
 

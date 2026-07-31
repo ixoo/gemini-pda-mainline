@@ -1,0 +1,13 @@
+experiment=2026-07-31-da921x-dual-modalias-state
+attempt=1
+boot_selection=boot2
+observation_source=owner-report
+console=serviceable
+kernel_release=not-captured
+validation_state=not-captured
+usb_exact_mac=absent-from-host-after-bounded-checks
+usb_netcat_serviceability=not-yet-established
+device_storage_access=none
+reboot_request=none
+runtime_result=PARTIAL-SERVICEABLE
+next_action=connect-usb-gadget-and-run-published-read-only-netcat-collector
