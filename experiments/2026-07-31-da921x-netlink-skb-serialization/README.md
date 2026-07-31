@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-31-da921x-netlink-skb-serialization` |
-| Status | `offline validated; awaiting Buildbox build` |
+| Status | `offline validated; awaiting deployment` |
 | Subsystem | I2C, OF, kobject uevent, netlink |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -57,3 +57,26 @@ checks passed with 93 GiB and 83 GiB available. The exact patchset and
 configuration identities are recorded in `results/input-validation.txt`.
 No native VM kernel build was run and the device was not accessed for this
 experiment.
+
+## Offline result
+
+Buildbox produced the exact clean-source package at commit `2a0a253808592acd70c323d7176beb7d2c6bf7c2`.
+The Buildbox host and the managed VM independently validated its provenance,
+release, configuration, architecture, patchset, and 119 DTBs. The kernel image
+is `d1030e6ab652ba753ff7a0956fc822950e42c6b2eb3fc3371781831919b4f3ee`.
+No native VM kernel build was run.
+
+Two independent assemblies produced byte-identical candidate directories and
+the same 32-of-32 LK validation result. The selected Android boot image is
+`28dd17db57bd6362634f2ce8c22a065ca03664f4151ab092eb9e378d4e4b2269`;
+the exact 16 MiB `boot2` image is
+`64667964870c38dcedbcfcbb8d8f644ad21fba66bb4e712987c4e4fdd3bb32ec`.
+The redundant assembly was removed after comparison. The retained candidate
+was exported with every manifest checksum passing.
+
+The bounded installer requires the currently deployed corrected-layout image
+`d9370fd47dd4c4e3ae1851ffd639a9b1e623b3f36de54560935323618690def2`
+as its exact predecessor. It resolves `boot2` from the live GPT, rejects an
+active or mounted target, records but does not back up the predecessor, writes
+only the exact padded image, requires a matching full-partition readback, and
+shuts the device down after success.
