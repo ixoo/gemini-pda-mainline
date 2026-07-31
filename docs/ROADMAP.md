@@ -186,14 +186,22 @@ initramfs mounts sysfs read-only. No client was created, no driver bound, and
 all I2C/oracle counters remained zero. This is safely inconclusive about the
 name/I2C-modalias path.
 
-Immediate next step: use the same exact boot artifact with a new
-decision-changing runtime observation path. After revalidating the complete
-baseline, a cleanup-trapped helper may briefly remount sysfs read-write, issue
-one `new_device` write, restore sysfs read-only immediately, and verify the
-unbound client and zero counters. This is not a repeatability test. If
-serviceability survives, the OF-node/modalias path remains implicated; if it
-resets, the client-name/I2C-modalias path is sufficient. No driver may bind
-and no I2C transfer is permitted. Provider work remains blocked.
+The second selected boot used the same exact artifact with the new bounded
+RW-window observation path. The helper created one name-only
+`da9214-legacy` client, restored sysfs read-only immediately, and verified that
+the client had no OF node and no bound driver. USB/netcat and the complete
+serviceability baseline survived while every I2C/oracle counter remained zero.
+This rules out the compatible-derived client name and I2C modalias as
+sufficient causes. The failure boundary is now the real-compatible OF node or
+its OF modalias uevent path.
+
+Immediate next step: preserve the real-compatible OF child and all exact
+module-free inputs while suppressing only that client's OF modalias addition
+to the I2C device uevent. The candidate must retain client creation, name,
+resources, and OF-node attachment while adding no driver and permitting no
+I2C transfer. Serviceability would implicate OF modalias generation or
+emission; another pre-serviceability reset would place the failure earlier in
+the real-compatible OF-node instantiation path. Provider work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 

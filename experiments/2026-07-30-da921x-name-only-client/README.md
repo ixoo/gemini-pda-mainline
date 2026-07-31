@@ -96,20 +96,32 @@ See [runtime result](results/runtime-name-only-attempt-1-20260730.txt).
 
 ## Conclusion
 
-Attempt 1 is safely inconclusive about name-only client creation: the sysfs
+Attempt 1 was safely inconclusive about name-only client creation: the sysfs
 mount policy rejected the write before the kernel’s `new_device` parser could
-instantiate a client. It adds durable evidence that the serviceable disabled
-child and exact no-module kernel retain a zero-activity baseline.
+instantiate a client.
 
-A second selected boot of the same artifact is permitted only for a new,
-decision-changing observation path: an exact helper must validate the
-read-only baseline, create a cleanup trap, briefly remount sysfs read-write,
-issue one `new_device` write, immediately restore sysfs read-only, and then
-verify the client and zero counters. It is not a repeatability test.
+Attempt 2 used the same exact artifact with the new bounded RW-window
+observation path. Runtime identity was `7.1.3-gemini-da921x-mod` on boot ID
+`3c853823-ce41-4c70-bdad-179009a1c100`. The complete serviceability,
+driver-absence, and zero-activity baseline passed. The helper installed its
+cleanup trap before remounting sysfs, issued exactly one
+`da9214-legacy 0x68` write, and restored sysfs read-only immediately.
 
-The attempt 2 hypothesis is recorded in
-[pre-run RW-window hypothesis](results/pre-run-rw-window-attempt-2.txt).
-The exact cleanup-trapped helper is
+The resulting `1-0068` client had the exact name, no OF node, and no bound
+driver. Every I2C6 transfer, DMA, start, IRQ, and oracle counter remained zero;
+USB/netcat and the complete serviceability baseline survived. A final
+read-only snapshot reconfirmed the client, absent module, unbound state, and
+read-only sysfs. Native reboot returned Gemian `3.18.41+` on boot ID
+`2221f126-925e-4670-8385-273f4790d363`.
+
+This rules out the compatible-derived client name and I2C modalias as
+sufficient causes. Combined with the serviceable unmatched-compatible OF
+client, the failure boundary is now the real-compatible OF node or its OF
+modalias uevent path.
+
+See the [pre-run RW-window hypothesis](results/pre-run-rw-window-attempt-2.txt)
+and [attempt 2 runtime result](results/runtime-name-only-attempt-2-20260730.txt).
+The exact cleanup-trapped helper was
 `62f266f005062c6e70239e4ff5ade97721a7b19ff6ae290f75103e8bc4cd332d`;
 static validation found one `new_device` write, two bounded sysfs remount
 operations, and no module load, driver bind, I2C utility, partition, reboot,
