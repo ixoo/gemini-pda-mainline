@@ -1,0 +1,15 @@
+experiment=2026-07-31-da921x-of-modalias-real-env-rollback
+known_good_kernel=3.18.41+
+target_logical=boot2
+target_resolved=/dev/mmcblk0p30
+active_root=/dev/mmcblk0p29
+power_present=1
+power_capacity=100
+power_health=Good
+predecessor_sha256=a987ff8be9d12b9d13c223341dc5659b2d2fc27d29f30e5b2273be6646cd97e7
+candidate_sha256=254f3c969e564ae60040470b1a025d42f57e2a902e255ddeffcad76825a9fc94
+result=write-synced-flushed-full-readback-verified
+backup=not-created-project-wide-backup-relied-upon
+full_readback=matching-and-temporary-copy-removed
+shutdown=confirmed-disconnected
+runtime_result=not-tested
