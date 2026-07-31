@@ -1,0 +1,13 @@
+experiment=2026-07-31-da921x-dual-modalias-state
+candidate_kernel_release=7.1.3-gemini-da921x-dualstate
+candidate_boot_id=6af66411-5693-42e9-ba60-1fa701734d1a
+identity_gate=matched
+request_authorized=yes
+request_count=1
+requestor=/bin/reboot
+device_storage_access=none
+usb_disconnect=confirmed
+known_good_os=Gemian-3.18.41+
+known_good_boot_id=9b36485c-6525-432e-a33a-93b77a0e4f79
+boot_id_changed=yes
+result=returned-to-known-good-Gemian

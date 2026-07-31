@@ -94,4 +94,6 @@ MAC pin and then the assumed `/tmp` staging path were wrong. Those
 failures are retained separately and make no kernel claim. Attempt 5 used the
 exact inherited MAC and writable initramfs `/run`, captured the
 attributable `pending` result, and performed no partition read,
-storage write, or reboot request.
+storage write, or reboot request during capture. A subsequent identity-gated
+single native reboot disconnected the exact USB interface and returned to
+known-good Gemian `3.18.41+` with a changed boot ID.
