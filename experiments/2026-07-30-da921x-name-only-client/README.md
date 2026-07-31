@@ -106,3 +106,11 @@ decision-changing observation path: an exact helper must validate the
 read-only baseline, create a cleanup trap, briefly remount sysfs read-write,
 issue one `new_device` write, immediately restore sysfs read-only, and then
 verify the client and zero counters. It is not a repeatability test.
+
+The attempt 2 hypothesis is recorded in
+[pre-run RW-window hypothesis](results/pre-run-rw-window-attempt-2.txt).
+The exact cleanup-trapped helper is
+`62f266f005062c6e70239e4ff5ade97721a7b19ff6ae290f75103e8bc4cd332d`;
+static validation found one `new_device` write, two bounded sysfs remount
+operations, and no module load, driver bind, I2C utility, partition, reboot,
+or poweroff operation.
