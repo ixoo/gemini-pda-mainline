@@ -1,0 +1,14 @@
+experiment=2026-07-30-da921x-of-modalias-isolation
+hypothesis=real-compatible-of-modalias-uevent-causes-pre-serviceability-reset
+preserve_real_compatible_of_child=yes
+preserve_of_node_attachment=yes
+suppress_of_modalias=yes
+fallback_modalias=i2c-da9214-legacy
+matching_driver=must-be-absent
+module_file=must-be-absent
+i2c_transfer=forbidden
+driver_bind=forbidden
+cpu8_cpu9=offline
+device_partition_access=none
+serviceable=of-modalias-generation-or-emission-implicated
+reset_after_suppression-marker=earlier-real-compatible-of-node-path-implicated

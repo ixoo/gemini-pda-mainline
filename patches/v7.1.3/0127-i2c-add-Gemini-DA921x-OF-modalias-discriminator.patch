@@ -1,0 +1,84 @@
+From 7b2e685464314ef58c6f96e2d4fb4b13ccf9d213 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 30 Jul 2026 21:22:00 -0400
+Subject: [PATCH 127/127] i2c: add Gemini DA921x OF modalias discriminator
+
+Add an experiment-only option that preserves the real-compatible OF
+client but skips its OF modalias contribution to the I2C device uevent.
+The normal I2C modalias fallback remains, and the option is disabled by
+default.
+
+This separates OF modalias generation from earlier OF client instantiation
+without adding a driver or an I2C transfer path.
+---
+ drivers/i2c/Kconfig         | 14 ++++++++++++++
+ drivers/i2c/i2c-core-base.c | 20 +++++++++++++++++---
+ 2 files changed, 31 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/i2c/Kconfig b/drivers/i2c/Kconfig
+--- a/drivers/i2c/Kconfig
++++ b/drivers/i2c/Kconfig
+@@ -37,6 +37,20 @@ config ACPI_I2C_OPREGION
+ 
+ if I2C
+ 
++config I2C_GEMINI_DA921X_OF_MODALIAS_DIAGNOSTIC
++	bool "Gemini DA921x OF modalias discriminator"
++	depends on OF && ARCH_MEDIATEK
++	help
++	  Preserve an OF-created I2C client with compatible
++	  "dlg,da9214-legacy", but omit its OF modalias from the device
++	  uevent and use the normal I2C modalias fallback instead.
++
++	  This is an experiment-only serviceability discriminator. It does
++	  not suppress client creation or OF-node attachment and does not add
++	  a driver or transfer path.
++
++	  Say N outside the named Gemini OF-modalias isolation experiment.
++
+ config I2C_BOARDINFO
+ 	bool
+ 	default y
+diff --git a/drivers/i2c/i2c-core-base.c b/drivers/i2c/i2c-core-base.c
+--- a/drivers/i2c/i2c-core-base.c
++++ b/drivers/i2c/i2c-core-base.c
+@@ -159,20 +159,34 @@ static int i2c_device_match(struct device *dev, const struct device_driver *drv)
+ 	return 0;
+ }
+ 
++static bool i2c_device_suppress_of_modalias(const struct device *dev)
++{
++	if (!IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_OF_MODALIAS_DIAGNOSTIC))
++		return false;
++
++	return dev->of_node &&
++	       of_device_is_compatible(dev->of_node, "dlg,da9214-legacy");
++}
++
+ static int i2c_device_uevent(const struct device *dev, struct kobj_uevent_env *env)
+ {
+ 	const struct i2c_client *client = to_i2c_client(dev);
+ 	int rc;
+ 
+-	rc = of_device_uevent_modalias(dev, env);
+-	if (rc != -ENODEV)
+-		return rc;
++	if (i2c_device_suppress_of_modalias(dev)) {
++		dev_info(dev,
++			 "GEMINI_DA921X_OF_MODALIAS_SUPPRESS fallback=i2c\n");
++	} else {
++		rc = of_device_uevent_modalias(dev, env);
++		if (rc != -ENODEV)
++			return rc;
++	}
+ 
+ 	rc = acpi_device_uevent_modalias(dev, env);
+ 	if (rc != -ENODEV)
+ 		return rc;
+ 
+ 	return add_uevent_var(env, "MODALIAS=%s%s", I2C_MODULE_PREFIX, client->name);
+ }
+ 
+ /* i2c bus recovery routines */
+-- 
+2.47.3

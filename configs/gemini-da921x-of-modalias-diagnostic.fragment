@@ -1,0 +1,3 @@
+# Experiment-only: retain the real OF client but emit only its I2C modalias.
+CONFIG_I2C_GEMINI_DA921X_OF_MODALIAS_DIAGNOSTIC=y
+CONFIG_LOCALVERSION="-gemini-da921x-ofalias"
