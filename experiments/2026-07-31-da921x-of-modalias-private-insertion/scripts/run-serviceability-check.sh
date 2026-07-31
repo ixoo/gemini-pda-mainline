@@ -72,7 +72,7 @@ client="/sys/bus/i2c/devices/$adapter-0068"
 [ "$(/bin/busybox cat "$client/modalias")" = \
 	'of:NregulatorT(null)Cdlg,da9214-legacy' ] || abort sysfs-modalias
 
-marker='GEMINI_DA921X_OF_MODALIAS_PRIVATE_INSERTION alias_length=38 entry_length=46 buflen=47 envp_idx=1 fallback=i2c'
+marker='GEMINI_DA921X_OF_MODALIAS_PRIVATE_INSERTION alias_length=38 entry_length=47 buflen=48 envp_idx=1 fallback=i2c'
 marker_count="$(/bin/busybox dmesg | /bin/busybox grep -Fc "$marker")"
 [ "$marker_count" = 1 ] || abort private-insertion-marker-count
 
@@ -81,8 +81,8 @@ printf 'adapter=%s\nclient=%s\n' "$adapter" "${client##*/}"
 printf 'client_name=da9214-legacy\nclient_of_node=present\n'
 printf 'client_sysfs_modalias=of-real-compatible\n'
 printf 'private_of_modalias_generated=exact\nprivate_of_modalias_length=38\n'
-printf 'private_uevent_entry=exact\nprivate_uevent_entry_length=46\n'
-printf 'private_uevent_buflen=47\nprivate_uevent_envp_idx=1\n'
+printf 'private_uevent_entry=exact\nprivate_uevent_entry_length=47\n'
+printf 'private_uevent_buflen=48\nprivate_uevent_envp_idx=1\n'
 printf 'client_uevent_modalias=i2c-fallback\nclient_driver=unbound\n'
 printf 'i2c_activity=zero\npost_creation_serviceability=PASS\n'
 printf 'private_insertion_result=PASS\n'
