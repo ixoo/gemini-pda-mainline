@@ -76,6 +76,8 @@ On the first selected boot, the owner reported that the console was
 serviceable. This proves the prior immediate-printk candidate's
 pre-serviceability reset did not repeat after removing that printk. The exact
 kernel identity and read-only validation state are not yet captured, so the
-causal split remains incomplete. Bounded host checks found no exact Gemini USB
-MAC; the device remains running without a reboot request or storage access
-while the USB/netcat capture waits for the physical gadget connection.
+causal split remains incomplete. After the physical USB connection, the gadget
+enumerated on `en9` with the exact exported configuration's inherited host MAC
+`42:00:15:19:84:00`. The first collector revision had incorrectly retained an
+older baseline MAC and was corrected before any netcat session. The device
+remained running without a reboot request or storage access.

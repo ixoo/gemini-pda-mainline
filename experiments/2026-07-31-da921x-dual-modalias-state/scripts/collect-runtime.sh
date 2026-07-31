@@ -6,7 +6,7 @@ set -euo pipefail
 export LC_ALL=C
 umask 077
 
-readonly HOST_MAC=42:00:15:19:82:00
+readonly HOST_MAC=42:00:15:19:84:00
 readonly HOST_ADDRESS=10.15.19.1
 readonly DEVICE_ADDRESS=10.15.19.82
 readonly DEVICE_PORT=2323
