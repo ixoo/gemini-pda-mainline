@@ -104,3 +104,18 @@ the matching full-partition checksum
 The temporary readback was removed, no backup was created, and the device shut
 down cleanly after verified success. Runtime evidence remains unset until the
 owner physically selects boot2.
+
+## Runtime capture
+
+The source-pinned one-shot USB/netcat collector and standalone device-side
+checker are validated and ready. They require the exact installed full boot2
+checksum, release, USB identity and route, validated read-only state, final
+stage 17, unchanged nine-entry envelope, runtime-proven entry classification,
+CPU0--7 policy, unbound real client, ready handoff, and zero transfer and
+lifecycle-oracle counters.
+
+The checker writes only a temporary `/run` copy and removes it after execution.
+The collector performs no partition read, storage write, or reboot. The exact
+first-boot hypothesis and acceptance map are frozen in
+`results/runtime-plan.txt`; any changed identity, envelope, event
+classification, client state, or hardware baseline rejects attribution.

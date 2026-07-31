@@ -385,7 +385,9 @@ matched the exact predecessor, wrote without a backup, passed flush and full
 independent readback, and shut the device down cleanly. The first selected boot
 must capture validated state, final stage 17, the exact nine-entry envelope,
 and the established serviceability and zero-I2C-activity baseline. No native
-VM kernel build is authorized.
+VM kernel build is authorized. The exact source-pinned USB/netcat collector and
+standalone read-only checker are validated for that single capture; they make
+no partition read, storage write, or reboot request.
 
 ### 4. Finish the ownership and rollback audit
 
