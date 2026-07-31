@@ -1,0 +1,8 @@
+experiment=2026-07-31-da921x-dual-modalias-state
+attempt=2
+result=stopped-before-output
+failure=derived-conflicting-symbol-list-contained-literal-plus-prefix
+kernel_package=validated-buildbox-package
+candidate_created=no
+device_access=none
+next_action=remove-literal-prefix-and-rerun-full-assembly-gates

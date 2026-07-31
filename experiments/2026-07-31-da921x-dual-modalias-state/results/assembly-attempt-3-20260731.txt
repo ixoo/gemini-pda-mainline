@@ -1,0 +1,8 @@
+experiment=2026-07-31-da921x-dual-modalias-state
+attempt=3
+result=stopped-before-output
+failure=derived-lk-container-name-was-not-shorter-than-16-bytes
+kernel_package=validated-buildbox-package
+candidate_created=no
+device_access=none
+next_action=use-13-byte-container-name-and-rerun-full-assembly-gates

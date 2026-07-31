@@ -1,0 +1,8 @@
+experiment=2026-07-31-da921x-dual-modalias-state
+attempt=1
+result=stopped-before-output
+failure=derived-source-builder-resolved-repository-relative-to-temporary-script
+kernel_package=validated-buildbox-package
+candidate_created=no
+device_access=none
+next_action=pin-derived-repository-root-and-rerun-full-assembly-gates

@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-31-da921x-dual-modalias-state` |
-| Status | `kernel inputs prepared; awaiting Buildbox package` |
+| Status | `Buildbox package and deterministic candidate validated; awaiting boot2 deployment` |
 | Subsystem | I2C, OF, kobject uevent |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -47,9 +47,16 @@ sign-off. It is experiment-only and not submission-ready.
 ## Build workflow
 
 The named `da921x-dual-modalias-state` profile is built through
-`./scripts/build-kernel`. Buildbox is the primary backend and must fetch the
-exact clean, pushed commit. Native ARM64 VM kernel builds are not part of this
-experiment unless the owner explicitly requests one. Deterministic independent
-candidate assembly remains the byte-level reproduction oracle. Only validated
-packages are exported; generated source and build trees remain on their
-builders.
+`./scripts/build-kernel --backend buildbox`. Buildbox fetched exact clean,
+pushed commit `89316a4a88182d9fcfe632c9f44468b8002b5ad3`; its validated
+package was assembled twice into byte-identical candidates. Native VM kernel
+builds are not part of this experiment unless the owner explicitly requests
+one. Only the validated package and bounded candidate were exported; generated
+source and build trees remain on their builders.
+
+The first three assembly invocations stopped before producing output while
+the source-pinned wrapper was corrected. Their negative results are retained
+in `results/`; the fourth invocation passed all 32 LK gates and the
+independent byte-for-byte reproduction check. The selected exact candidate is
+`candidate-Gate3-da921x-dualstate-53376218`, with full boot2 checksum
+`5c3788905c6c3270d7416997c922f0774802fafb5086e10ff5f247ca0a26a1b3`.
