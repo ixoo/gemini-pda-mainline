@@ -1,0 +1,96 @@
+From 8f35d65bb672485e80c41877efeb6f66b97fc958 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 30 Jul 2026 22:06:00 -0400
+Subject: [PATCH 128/128] i2c: add Gemini DA921x private OF modalias generation
+
+Add a second experiment-only discriminator that computes the exact
+real-compatible OF modalias into a bounded private buffer and validates
+its length and bytes before discarding it. The device add-event still
+uses the already-safe I2C modalias fallback.
+
+This separates OF modalias string generation from adding that string to
+the uevent environment without adding a driver or transfer path.
+---
+ drivers/i2c/Kconfig         | 16 ++++++++++++++++
+ drivers/i2c/i2c-core-base.c | 35 ++++++++++++++++++++++++++++++++++-
+ 2 files changed, 50 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/i2c/Kconfig b/drivers/i2c/Kconfig
+--- a/drivers/i2c/Kconfig
++++ b/drivers/i2c/Kconfig
+@@ -51,6 +51,22 @@ config I2C_GEMINI_DA921X_OF_MODALIAS_DIAGNOSTIC
+ 
+ 	  Say N outside the named Gemini OF-modalias isolation experiment.
+ 
++config I2C_GEMINI_DA921X_OF_MODALIAS_PRIVATE_GENERATION_DIAGNOSTIC
++	bool "Gemini DA921x private OF modalias generation discriminator"
++	depends on OF && ARCH_MEDIATEK
++	depends on !I2C_GEMINI_DA921X_OF_MODALIAS_DIAGNOSTIC
++	help
++	  Compute the OF modalias for an OF-created I2C client with compatible
++	  "dlg,da9214-legacy" into a bounded private buffer, validate the exact
++	  result, discard it, and use the normal I2C modalias fallback for the
++	  device uevent.
++
++	  This is an experiment-only serviceability discriminator. It does not
++	  suppress client creation or OF-node attachment and does not add a
++	  driver or transfer path.
++
++	  Say N outside the named Gemini private-generation experiment.
++
+ config I2C_BOARDINFO
+ 	bool
+ 	default y
+diff --git a/drivers/i2c/i2c-core-base.c b/drivers/i2c/i2c-core-base.c
+--- a/drivers/i2c/i2c-core-base.c
++++ b/drivers/i2c/i2c-core-base.c
+@@ -171,13 +171,46 @@ static bool i2c_device_suppress_of_modalias(const struct device *dev)
+ 	       of_device_is_compatible(dev->of_node, "dlg,da9214-legacy");
+ }
+ 
++static int i2c_device_generate_of_modalias_privately(const struct device *dev)
++{
++	static const char expected[] =
++		"of:NregulatorT(null)Cdlg,da9214-legacy";
++	char modalias[sizeof(expected)];
++	ssize_t len;
++
++#if !IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_OF_MODALIAS_PRIVATE_GENERATION_DIAGNOSTIC)
++	return -ENODEV;
++#endif
++	if (!dev->of_node ||
++	    !of_device_is_compatible(dev->of_node, "dlg,da9214-legacy"))
++		return -ENODEV;
++
++	len = of_modalias(dev->of_node, modalias, sizeof(modalias));
++	if (len < 0)
++		return len;
++	if (len != sizeof(expected) - 1 ||
++	    memcmp(modalias, expected, sizeof(expected)))
++		return -EINVAL;
++
++	dev_info(dev,
++		 "GEMINI_DA921X_OF_MODALIAS_PRIVATE_GENERATION length=%zd fallback=i2c\n",
++		 len);
++
++	return 0;
++}
++
+ static int i2c_device_uevent(const struct device *dev, struct kobj_uevent_env *env)
+ {
+ 	const struct i2c_client *client = to_i2c_client(dev);
+ 	int rc;
+ 
+-	if (i2c_device_suppress_of_modalias(dev)) {
++	rc = i2c_device_generate_of_modalias_privately(dev);
++	if (!rc) {
++		/* The validated private value is intentionally discarded. */
++	} else if (rc != -ENODEV) {
++		return rc;
++	} else if (i2c_device_suppress_of_modalias(dev)) {
+ 		dev_info(dev,
+ 			 "GEMINI_DA921X_OF_MODALIAS_SUPPRESS fallback=i2c\n");
+ 	} else {
+ 		rc = of_device_uevent_modalias(dev, env);
+-- 
+2.47.3

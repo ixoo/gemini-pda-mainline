@@ -1,0 +1,17 @@
+experiment=2026-07-30-da921x-of-modalias-private-generation
+hypothesis=private-real-of-modalias-generation-is-serviceable
+preserve_real_compatible_of_child=yes
+preserve_of_node_attachment=yes
+private_buffer=exact-expected-size
+validate_length=yes
+validate_all_bytes=yes
+discard_private_modalias=yes
+add_uevent_modalias=i2c-da9214-legacy
+matching_driver=must-be-absent
+module_file=must-be-absent
+i2c_transfer=forbidden
+driver_bind=forbidden
+cpu8_cpu9=offline
+device_partition_access=none
+serviceable=of-modalias-environment-insertion-or-emission-implicated
+reset-after-marker=of-modalias-generation-sufficient
