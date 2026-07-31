@@ -276,7 +276,20 @@ That discriminator is now represented by the named
 `da921x-dual-modalias-pre-dispatch-suppression` profile. Its exact runtime gate
 requires the ordered OF and I2C modaliases, numeric sequence entry, successful
 return, normal cleanup, zero hardware activity, and the complete established
-serviceability baseline. It must be built and validated before device use.
+serviceability baseline. It passed offline validation and exact boot2
+deployment, but its first selected boot white-screened and rebooted before
+console or USB/netcat serviceability. Returned Gemian confirmed the exact
+boot2 checksum, a changed boot ID, a watchdog-class reset reason, and empty
+pstore. No validation marker survived, so this is a failed serviceability
+result rather than proof that the intended successful checkpoint executed.
+
+Source inspection confirms that `device_add()` ignores this uevent return
+value. The next discriminator must therefore preserve exact ten-entry
+validation and transport suppression while removing the immediate printk and
+publishing the validation state through an independent read-only observation
+path available only if the boot remains serviceable. A surviving exact state
+isolates the removed printk; another reset rules it out without repeating an
+identical artifact. Provider work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 

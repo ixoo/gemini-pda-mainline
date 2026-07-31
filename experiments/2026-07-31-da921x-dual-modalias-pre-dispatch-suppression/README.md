@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-31-da921x-dual-modalias-pre-dispatch-suppression` |
-| Status | `deployed; awaiting first selected boot` |
+| Status | `failed before serviceability; exact checkpoint unobserved` |
 | Subsystem | I2C, OF, kobject uevent |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -74,3 +74,22 @@ stable at 100% with good battery health, and the write, flush, target checksum,
 and independent full readback all matched the exact candidate. No new backup
 was created. The device shut down cleanly after verification and awaits the
 first selected boot.
+
+## Runtime result
+
+On the first selected boot, the display turned white and the device rebooted
+automatically before console or USB/netcat serviceability was established.
+Returned Gemian had a changed boot ID and reported the watchdog-class reason
+`wdt_by_pass_pwk`. The live GPT still resolved `boot2` to `/dev/mmcblk0p30`,
+whose full-partition checksum matched the exact candidate; Gemian remained on
+`/dev/mmcblk0p29`. Pstore contained no regular files.
+
+No runtime marker survived, so the exact validation checkpoint is not proven
+to have executed. This is a failed serviceability result, not proof that
+ten-entry assembly or successful cleanup alone caused the reset. The exact
+artifact must not be repeated unchanged. Source inspection also confirms that
+`device_add()` ignores the uevent return value, leaving the validation work and
+its immediate `pr_info()` checkpoint as the only effective differences from
+the earlier serviceable fail-closed path. The next discriminator therefore
+needs to remove that printk and expose validation state through an independent
+read-only observation path if serviceability survives.
