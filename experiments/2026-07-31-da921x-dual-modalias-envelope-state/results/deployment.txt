@@ -1,0 +1,11 @@
+experiment=2026-07-31-da921x-dual-modalias-envelope-state
+target=/dev/mmcblk0p30
+active_root=/dev/mmcblk0p29
+boot_id=d6eb1a2e-f216-494b-98e5-0f9d907c1b1a
+power=1|98|Good
+predecessor_sha256=c755109e73f2148516942b2a31a3a06952abdf72c0154c5b70259836b8fcb736
+candidate_sha256=4afe2d97662e9cde1da0a27e2f4a58e0a05e425d9cd5da69abfa51f4136bcea9
+result=write-synced-flushed-full-readback-verified
+backup=not-created-project-wide-backup-relied-upon
+full_readback=matching-and-temporary-copy-removed
+shutdown=confirmed-disconnected-after-verified-success

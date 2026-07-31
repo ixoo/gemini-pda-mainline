@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-31-da921x-dual-modalias-envelope-state` |
-| Status | `validated candidate prepared; awaiting boot2 deployment` |
+| Status | `boot2 deployed and verified; awaiting runtime result` |
 | Subsystem | I2C, OF, kobject uevent |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -68,3 +68,9 @@ The exact installer accepts only the currently installed stage-state checksum
 as predecessor, resolves `boot2` from the live GPT, verifies the complete
 partition after writing, creates no backup, and shuts the device down after
 verified success.
+
+The live GPT resolved `boot2` to `/dev/mmcblk0p30`; it was not the active root
+and contained the exact stage-state predecessor. The envelope-state candidate
+was written, synced, flushed, and independently read back with matching full
+partition checksum. No backup was created, and the device shut down cleanly
+after verified success.
