@@ -30,7 +30,11 @@ for command in awk cmp grep install jq mkdir mktemp mv python3 rm sha256sum \
 done
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
-repo_root="$(cd -- "$script_dir/../../.." && pwd -P)"
+if [[ -n "${GEMINI_REPO_ROOT_OVERRIDE:-}" ]]; then
+	repo_root="$(cd -- "$GEMINI_REPO_ROOT_OVERRIDE" && pwd -P)"
+else
+	repo_root="$(cd -- "$script_dir/../../.." && pwd -P)"
+fi
 package="$(cd -- "$package" && pwd -P)"
 gate3_artifact="$(cd -- "$gate3_artifact" && pwd -P)"
 output_parent="$(cd -- "$output_parent" && pwd -P)"

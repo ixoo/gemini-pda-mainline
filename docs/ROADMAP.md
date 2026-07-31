@@ -175,13 +175,17 @@ and the module-free initramfs has no listener. The early string-dependent
 paths that remain are the compatible-derived I2C client name and the OF
 modalias uevent.
 
-Immediate next step: preserve the exact kernel and module-free initramfs,
-disable the DT child to regain serviceability, then create one unbound
-name-only `da9214-legacy` client at `0x68` only after verifying no matching
-driver and zero I2C/oracle counters. If serviceability survives, the
-OF-node/modalias path remains implicated; if it resets, the client-name path
-is sufficient. No driver may bind and no I2C transfer is permitted. Provider
-work remains blocked.
+The name-only discriminator preserves the exact kernel and module-free
+initramfs while disabling the DT child. It passed all offline gates, was
+installed to live-GPT-resolved `boot2`, passed an independent full-partition
+byte comparison, and left the device powered off.
+
+Immediate next step: select `boot2` once. After serviceability is established,
+the one-shot helper may create one unbound name-only `da9214-legacy` client at
+`0x68` only if it proves no matching driver and zero I2C/oracle counters. If
+serviceability survives, the OF-node/modalias path remains implicated; if it
+resets, the client-name/I2C-modalias path is sufficient. No driver may bind
+and no I2C transfer is permitted. Provider work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 
