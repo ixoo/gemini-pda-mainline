@@ -93,8 +93,19 @@ runtime_check_b64="$(base64 <"$runtime_check" | tr -d '\n')"
 {
 	printf '%s\n' 'umask 077'
 	printf '%s\n' 'check=/tmp/.gemini-dualstate-runtime-check'
-	printf '%s\n' \
-		"printf '%s' '$runtime_check_b64' | /bin/busybox base64 -d >\"\$check\" || exit 89"
+	printf '%s\n' 'encoded=/tmp/.gemini-dualstate-runtime-check.b64'
+	# shellcheck disable=SC2016 # Emit deferred device-side expansion literally.
+	printf '%s\n' ': >"$encoded" || exit 87'
+	while [[ -n "$runtime_check_b64" ]]; do
+		chunk=${runtime_check_b64:0:384}
+		runtime_check_b64=${runtime_check_b64:384}
+		# shellcheck disable=SC2016 # Emit deferred device-side expansion literally.
+		printf '%s\n' "printf '%s' '$chunk' >>\"\$encoded\" || exit 88"
+	done
+	# shellcheck disable=SC2016 # Emit deferred device-side expansion literally.
+	printf '%s\n' '/bin/busybox base64 -d <"$encoded" >"$check" || exit 89'
+	# shellcheck disable=SC2016 # Emit deferred device-side expansion literally.
+	printf '%s\n' '/bin/busybox rm -f -- "$encoded"'
 	# shellcheck disable=SC2016 # Emit deferred device-side expansion literally.
 	printf '%s\n' '/bin/busybox chmod 0700 "$check" || exit 90'
 	printf '%s\n' "printf '__DUALSTATE_IDENTITY_BEGIN__\\n'"
@@ -122,7 +133,8 @@ chmod 0600 "$command_file"
 	printf 'device_endpoint=%s:%s\nroute_interface=%s\n' \
 		"$DEVICE_ADDRESS" "$DEVICE_PORT" "$route_interface"
 	printf 'installed_full_sha256=%s\n' "$INSTALLED_FULL_SHA256"
-	printf 'device_partition_reads=none\ndevice_write_operations=none\n'
+	printf 'device_partition_reads=none\ndevice_storage_writes=none\n'
+	printf 'initramfs_tmp_write=runtime-check-only-removed-after-execution\n'
 	printf '__DUALSTATE_HOST_END__\n'
 } >"$output"
 chmod 0600 "$output"
