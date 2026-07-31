@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-30-da921x-module-file-isolation` |
-| Status | `installed and powered off; first boot pending` |
+| Status | `attempt 1 failed before serviceability; module availability exonerated` |
 | Subsystem | regulator, I2C, arm64 Device Tree, module loading |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-07-30 |
@@ -63,3 +63,37 @@ and an independent 16 MiB byte comparison. Both matched
 No new backup was created under the project’s standing backup policy. The
 temporary readback was removed and device shutdown was confirmed. See
 [installation result](results/install-boot2-20260730-2011.txt).
+
+## Attempt 1
+
+The owner selected `boot2` once and observed a white screen followed by an
+automatic reboot. No candidate console or USB/netcat serviceability was
+observed. Gemian returned as `3.18.41+` on new boot ID
+`b04cd6b0-f10f-4ff2-9cdd-c1d2b66ffc63`. A full read-only checksum of
+live-GPT-resolved `/dev/mmcblk0p30` still matched the exact candidate
+`f89eb0ed2608a9e6a90ad939686c06d26d7420ae2c29854ada6a836fac823377`.
+
+The read-only recovery capture found the ramoops geometry intact but no pstore
+members. It did not modify or remove pstore records. See
+[runtime result](results/runtime-candidate-no-module-attempt-1-20260730.txt).
+
+## Conclusion
+
+Attempt 1 fails before serviceability with the DA921x module file absent from
+the exact initramfs and no loader path. Module availability, module loading,
+and driver execution are therefore outside the causal boundary. Combined with
+the serviceable unmatched-compatible run, the failure is specific to the real
+compatible path before any DA921x driver code can execute.
+
+The exact kernel Image contains no `dlg,da9214-legacy` string or resident match
+table; the driver is configured only as a module, `CONFIG_UEVENT_HELPER` is
+disabled, and the module-free initramfs has no listener or loader. Exact-source
+inspection leaves the compatible-derived I2C client name and OF modalias
+uevent as the early string-dependent paths. See the
+[source-path audit](results/compatible-path-audit.txt).
+
+The next discriminator must boot serviceably with the DT child disabled and
+module absent, then create one unbound name-only `da9214-legacy` I2C client
+after all zero-transfer gates pass. That distinguishes the compatible-derived
+client name from the OF-node/modalias path while adding a post-serviceability
+observation boundary. This exact failed candidate must not be repeated.

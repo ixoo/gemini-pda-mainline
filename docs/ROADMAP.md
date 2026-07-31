@@ -163,11 +163,25 @@ file or loader path. It passed all offline gates, was installed to
 live-GPT-resolved `boot2`, passed an independent full-partition byte
 comparison, and left the device powered off.
 
-Immediate next step: select `boot2` once and test serviceability. A serviceable
-result would expose an unexpected interaction with module-file availability;
-another pre-serviceability failure would place the boundary before module
-availability and keep compatible-specific kernel/DT handling in scope. No
-module is present or loadable. Provider work remains blocked.
+The first selected boot white-screened and rebooted before console or
+USB/netcat serviceability. Returned Gemian and the full boot2 checksum
+confirmed the exact candidate; pstore was empty. Because the initramfs
+contained no module or loader path, this places the boundary before module
+availability and driver execution.
+
+Exact-source audit found no real-compatible string or match table in the
+kernel Image. The DA921x driver is module-only, the uevent helper is disabled,
+and the module-free initramfs has no listener. The early string-dependent
+paths that remain are the compatible-derived I2C client name and the OF
+modalias uevent.
+
+Immediate next step: preserve the exact kernel and module-free initramfs,
+disable the DT child to regain serviceability, then create one unbound
+name-only `da9214-legacy` client at `0x68` only after verifying no matching
+driver and zero I2C/oracle counters. If serviceability survives, the
+OF-node/modalias path remains implicated; if it resets, the client-name path
+is sufficient. No driver may bind and no I2C transfer is permitted. Provider
+work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 
