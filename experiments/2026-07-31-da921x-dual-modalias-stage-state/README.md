@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-31-da921x-dual-modalias-stage-state` |
-| Status | `boot2 deployed and verified; awaiting runtime result` |
+| Status | `completed; envelope-shape boundary isolated` |
 | Subsystem | I2C, OF, kobject uevent |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -82,3 +82,28 @@ and contained the exact path-state predecessor. The ordered-stage candidate
 was written, synced, flushed, and independently read back with matching full
 partition checksum. No backup was created, and the device shut down cleanly
 after verified success so the owner can select `boot2`.
+
+## Runtime result
+
+The first selected boot exposed exact release
+`7.1.3-gemini-da921x-stagestate`, state `pending`, and stage `2` through the
+read-only USB/netcat observation path. Stage 2 proves the target identity and
+corrected device path both matched. Because stage 3 was not reached, the first
+unresolved boundary is the compound envelope-shape check: entry count, envp
+capacity/terminator, or packed-buffer length. This result does not identify
+which member of that compound check failed.
+
+The exact pinned USB MAC, address, route, endpoint, boot2 checksum, runtime
+helper, and kernel release all matched. CPUs 0--7 remained online, CPUs 8--9
+offline, the real OF client remained unbound, the module-free baseline held,
+and all I2C activity counters remained zero. The owner reported that boot2
+started; local console and keyboard usability were not separately assessed in
+this capture.
+
+The first collector invocation stopped before device contact because the
+source-pinned wrapper resolved its verifier relative to a temporary file. The
+corrected collector was validated and pushed before reuse. Its first two
+capture-directory attempts then stopped before netcat because macOS had
+dropped the static USB address. After restoring only `10.15.19.1/24` on the
+exact interface, attempt 3 passed. No attempt read a partition, wrote device
+storage, or requested a reboot.

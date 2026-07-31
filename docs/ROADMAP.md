@@ -319,10 +319,21 @@ expected environment entry, final buffer layout, and numeric sequence. It must
 retain transport suppression, no printk, no driver/provider/transfer path, and
 must not repeat the path-state artifact. The named
 `da921x-dual-modalias-stage-state` profile implements stages 0–17 for those
-boundaries while preserving the existing one-bit state. It must pass the
-Buildbox package gate and deterministic candidate assembly before selection.
-Native VM kernel builds require an explicit owner request; use Buildbox for
-the kernel. Provider work remains blocked.
+boundaries while preserving the existing one-bit state. Its Buildbox package,
+deterministic candidate assembly, exact boot2 deployment, full readback, and
+clean shutdown passed. On the first selected boot, exact USB/netcat evidence
+reported state `pending` at stage `2`; the target identity and corrected
+device path therefore matched, while the following compound envelope-shape
+check did not. The unbound real client, CPU0--7 policy, module-free baseline,
+USB serviceability, and zero-I2C-activity contract all passed. Local console
+and keyboard usability were not separately assessed on this capture.
+
+The next discriminator must retain the identical event and safety behavior
+while exposing enough read-only envelope metadata to distinguish entry-count,
+envp-capacity/terminator, and packed-buffer-length failures. It must not alter
+an expectation merely to force progress, and it must not repeat this artifact.
+Build the kernel on Buildbox only; a native VM kernel build requires an
+explicit owner request. Provider work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 

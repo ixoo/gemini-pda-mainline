@@ -1,0 +1,13 @@
+experiment=2026-07-31-da921x-dual-modalias-stage-state
+preflight_1=stopped-before-device-contact-derived-runtime-check-path-invalid
+preflight_1_device_claim=none
+collector_fix_commit=ad11ee2
+capture_attempt_1=stopped-before-netcat-exact-host-usb-address-absent
+capture_attempt_2=stopped-before-netcat-exact-host-usb-address-absent
+host_address_recovery=added-10.15.19.1/24-to-exact-pinned-mac-interface
+capture_attempt_3=passed
+capture_attempt_3_runtime_check_exit=0
+capture_attempt_3_nc_exit=0
+all_attempts_device_partition_reads=none
+all_attempts_device_storage_writes=none
+all_attempts_reboot_request=none
