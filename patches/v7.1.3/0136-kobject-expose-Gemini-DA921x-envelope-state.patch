@@ -1,0 +1,135 @@
+From 2c91cc510706a1ddd29221050e0349307b5aeb22 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 31 Jul 2026 14:55:00 -0400
+Subject: [PATCH 136/136] kobject: expose Gemini DA921x envelope state
+
+The ordered-stage discriminator reached stage 2 but not stage 3. This
+isolates the compound event-envelope check. Record its individual runtime
+operands and expose them through one experiment-only read-only sysfs
+attribute.
+
+Capture the entry count, entry capacity, terminator state, packed-buffer
+length, and buffer capacity immediately before the existing comparison.
+Keep the comparison, event contents, transport suppression, and cleanup
+unchanged. This adds no printk, driver, transfer, provider, register
+access, or storage path.
+---
+ drivers/i2c/Kconfig     | 14 ++++++++++++++
+ include/linux/kobject.h |  8 ++++++++
+ kernel/ksysfs.c         | 19 +++++++++++++++++++
+ lib/kobject_uevent.c    | 18 ++++++++++++++++++
+ 4 files changed, 59 insertions(+)
+
+diff --git a/drivers/i2c/Kconfig b/drivers/i2c/Kconfig
+--- a/drivers/i2c/Kconfig
++++ b/drivers/i2c/Kconfig
+@@ -169,6 +169,20 @@ config I2C_GEMINI_DA921X_VALIDATION_STAGE_DIAGNOSTIC
+ 
+ 	  Say N outside the named ordered-stage experiment.
+ 
++config I2C_GEMINI_DA921X_ENVELOPE_STATE_DIAGNOSTIC
++	bool "Gemini DA921x event-envelope state discriminator"
++	depends on I2C_GEMINI_DA921X_VALIDATION_STAGE_DIAGNOSTIC
++	help
++	  Record the individual operands of the experiment-only exact Gemini
++	  DA921x event-envelope check and expose them read-only through
++	  /sys/kernel/gemini_da921x_dual_modalias_envelope.
++
++	  This does not alter the event, validator, target transport suppression,
++	  or cleanup. It adds no driver, provider, transfer, register access, or
++	  storage path.
++
++	  Say N outside the named event-envelope experiment.
++
+ config I2C_BOARDINFO
+ 	bool
+ 	default y
+diff --git a/include/linux/kobject.h b/include/linux/kobject.h
+--- a/include/linux/kobject.h
++++ b/include/linux/kobject.h
+@@ -51,5 +51,13 @@ extern atomic_t gemini_da921x_dual_modalias_stage;
+ #endif
+ 
++#ifdef CONFIG_I2C_GEMINI_DA921X_ENVELOPE_STATE_DIAGNOSTIC
++extern atomic_t gemini_da921x_dual_modalias_envp_idx;
++extern atomic_t gemini_da921x_dual_modalias_envp_capacity;
++extern atomic_t gemini_da921x_dual_modalias_terminator_null;
++extern atomic_t gemini_da921x_dual_modalias_buflen;
++extern atomic_t gemini_da921x_dual_modalias_buf_capacity;
++#endif
++
+ /*
+  * The actions here must match the index to the string array
+  * in lib/kobject_uevent.c
+diff --git a/kernel/ksysfs.c b/kernel/ksysfs.c
+--- a/kernel/ksysfs.c
++++ b/kernel/ksysfs.c
+@@ -67,6 +67,22 @@ gemini_da921x_dual_modalias_stage_show(struct kobject *kobj,
+ KERNEL_ATTR_RO(gemini_da921x_dual_modalias_stage);
+ #endif
+ 
++#ifdef CONFIG_I2C_GEMINI_DA921X_ENVELOPE_STATE_DIAGNOSTIC
++static ssize_t
++gemini_da921x_dual_modalias_envelope_show(struct kobject *kobj,
++					  struct kobj_attribute *attr, char *buf)
++{
++	return sysfs_emit(buf,
++		"envp_idx=%d envp_capacity=%d terminator_null=%d buflen=%d buf_capacity=%d\n",
++		atomic_read(&gemini_da921x_dual_modalias_envp_idx),
++		atomic_read(&gemini_da921x_dual_modalias_envp_capacity),
++		atomic_read(&gemini_da921x_dual_modalias_terminator_null),
++		atomic_read(&gemini_da921x_dual_modalias_buflen),
++		atomic_read(&gemini_da921x_dual_modalias_buf_capacity));
++}
++KERNEL_ATTR_RO(gemini_da921x_dual_modalias_envelope);
++#endif
++
+ /* cpu byteorder */
+ static ssize_t cpu_byteorder_show(struct kobject *kobj,
+ 				  struct kobj_attribute *attr, char *buf)
+@@ -220,6 +237,9 @@ static struct attribute * kernel_attrs[] = {
+ #ifdef CONFIG_I2C_GEMINI_DA921X_VALIDATION_STAGE_DIAGNOSTIC
+ 	&gemini_da921x_dual_modalias_stage_attr.attr,
+ #endif
++#ifdef CONFIG_I2C_GEMINI_DA921X_ENVELOPE_STATE_DIAGNOSTIC
++	&gemini_da921x_dual_modalias_envelope_attr.attr,
++#endif
+ 	&cpu_byteorder_attr.attr,
+ 	&address_bits_attr.attr,
+ #ifdef CONFIG_UEVENT_HELPER
+diff --git a/lib/kobject_uevent.c b/lib/kobject_uevent.c
+--- a/lib/kobject_uevent.c
++++ b/lib/kobject_uevent.c
+@@ -38,5 +38,12 @@ atomic_t gemini_da921x_dual_modalias_state = ATOMIC_INIT(0);
+ atomic_t gemini_da921x_dual_modalias_stage = ATOMIC_INIT(0);
+ #endif
++#ifdef CONFIG_I2C_GEMINI_DA921X_ENVELOPE_STATE_DIAGNOSTIC
++atomic_t gemini_da921x_dual_modalias_envp_idx = ATOMIC_INIT(-1);
++atomic_t gemini_da921x_dual_modalias_envp_capacity = ATOMIC_INIT(-1);
++atomic_t gemini_da921x_dual_modalias_terminator_null = ATOMIC_INIT(-1);
++atomic_t gemini_da921x_dual_modalias_buflen = ATOMIC_INIT(-1);
++atomic_t gemini_da921x_dual_modalias_buf_capacity = ATOMIC_INIT(-1);
++#endif
+ 
+ #ifdef CONFIG_UEVENT_HELPER
+ char uevent_helper[UEVENT_HELPER_PATH_LEN] = CONFIG_UEVENT_HELPER_PATH;
+@@ -520,6 +527,17 @@ static int gemini_da921x_pre_dispatch(struct kobject *kobj,
+ #if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_VALIDATION_STAGE_DIAGNOSTIC)
+ 	atomic_set(&gemini_da921x_dual_modalias_stage, 2);
+ #endif
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_ENVELOPE_STATE_DIAGNOSTIC)
++	atomic_set(&gemini_da921x_dual_modalias_envp_idx, env->envp_idx);
++	atomic_set(&gemini_da921x_dual_modalias_envp_capacity,
++		   ARRAY_SIZE(env->envp));
++	atomic_set(&gemini_da921x_dual_modalias_terminator_null,
++		   env->envp_idx < ARRAY_SIZE(env->envp) ?
++		   !env->envp[env->envp_idx] : -1);
++	atomic_set(&gemini_da921x_dual_modalias_buflen, env->buflen);
++	atomic_set(&gemini_da921x_dual_modalias_buf_capacity,
++		   sizeof(env->buf));
++#endif
+ 	if (env->envp_idx != ARRAY_SIZE(expected) + 1 ||
+ 	    env->envp_idx >= ARRAY_SIZE(env->envp) ||
+ 	    env->buflen <= 0 || env->buflen > sizeof(env->buf) ||
+-- 
+2.47.3

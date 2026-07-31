@@ -332,6 +332,8 @@ The next discriminator must retain the identical event and safety behavior
 while exposing enough read-only envelope metadata to distinguish entry-count,
 envp-capacity/terminator, and packed-buffer-length failures. It must not alter
 an expectation merely to force progress, and it must not repeat this artifact.
+The named `da921x-dual-modalias-envelope-state` profile implements that exact
+read-only split and awaits a clean pushed Buildbox revision.
 Build the kernel on Buildbox only; a native VM kernel build requires an
 explicit owner request. Provider work remains blocked.
 

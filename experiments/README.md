@@ -17,6 +17,7 @@ the result.
 
 - [2026-07-31 DA921x dual-modalias live-path validation state](2026-07-31-da921x-dual-modalias-path-state/README.md)
 - [2026-07-31 DA921x ordered validation-stage state](2026-07-31-da921x-dual-modalias-stage-state/README.md)
+- [2026-07-31 DA921x event-envelope read-only state](2026-07-31-da921x-dual-modalias-envelope-state/README.md)
   — corrects only the two live-proven root-level path strings while preserving
   no-printk read-only state, transport suppression, and the zero-I2C baseline.
 - [2026-07-31 DA921x dual-modalias read-only validation state](2026-07-31-da921x-dual-modalias-state/README.md)

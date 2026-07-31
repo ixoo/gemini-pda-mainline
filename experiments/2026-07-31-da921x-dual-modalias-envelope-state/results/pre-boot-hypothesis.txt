@@ -1,0 +1,11 @@
+experiment=2026-07-31-da921x-dual-modalias-envelope-state
+predecessor_release=7.1.3-gemini-da921x-stagestate
+predecessor_state=pending
+predecessor_stage=2
+hypothesis=one-read-only-envelope-operand-identifies-compound-check-failure
+unique_evidence=envp-index-capacity-terminator-and-buffer-length-capacity
+event_change=none
+transport=skipped
+driver_provider_transfer_register_storage=none
+repeat_identical_artifact=no
+native_vm_kernel_build=forbidden-without-explicit-owner-request
