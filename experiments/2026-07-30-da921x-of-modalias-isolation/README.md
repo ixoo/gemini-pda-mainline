@@ -37,9 +37,26 @@ by the candidate.
 
 ## Status
 
-Kernel patch, focused profile, candidate construction, and offline validation
-are in progress. No device boot is authorized until the exact artifact,
-hypothesis, unique evidence, and decision branches are pinned.
+The focused kernel built as `7.1.3-gemini-da921x-ofalias`. Its resolved config
+enables the exact diagnostic, keeps the matching driver module-only, and keeps
+A72 power disabled. The Image contains the suppression marker.
+
+Two independent container assemblies were byte-identical. The raw candidate is
+`78c2401f888d20683a2d65d7589e58676c78d65ba473ec751a62852afba70e4e`;
+the exact 16 MiB boot2 image is
+`5cc29e8db0f02988d2e66dc0976cf3e05e023fd3a93ae55ea3e67a54a9064db2`.
+All 32 LK/container gates passed. Direct DT validation preserved the exact
+enabled `dlg,da9214-legacy` child and `0x68,0x69` tuple. The exact module-free
+initramfs contains neither the driver module nor `modprobe`.
+
+The source-pinned candidate builder is
+`b5562f03f3287d7eaafcadb5e1250f900cc279c9c5a4768843b33bbf52142e7f`.
+The guarded no-new-backup installer is
+`7b762d9c80bea54cf61584eaa7f2d5742e877ee00257c8d3b5ae8564e2bb5a64`.
+The read-only runtime verifier is
+`63c1e5ba22d33b55c47b7c6b04885772e3fc738eedbe3c31e6f2119e18051f85`.
+See [offline validation](results/offline-validation.txt) and the
+[pre-boot hypothesis](results/pre-boot-hypothesis.txt).
 
 The experiment patch has actual author metadata but no DCO sign-off. It is an
 experiment-only diagnostic and is not submission-ready.
