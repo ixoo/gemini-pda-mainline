@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-31-da921x-of-modalias-real-env-rollback` |
-| Status | `installed to boot2; runtime pending` |
+| Status | `completed` |
 | Subsystem | I2C, OF, kobject uevent |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -70,3 +70,24 @@ power was stable at 100% with good battery health, and the write, flush, target
 checksum, and independent full readback all matched the exact candidate. No new
 backup was created. The device shut down cleanly after verification and awaits
 the first selected boot.
+
+## Runtime result
+
+Attempt 1 was serviceable on `7.1.3-gemini-da921x-ofrollback`, boot ID
+`f54bcc63-59e6-45a7-bbdc-6c0f1c723c42`. The exact rollback marker confirmed
+the 38-byte OF modalias and its terminated 47-byte `MODALIAS=` entry were
+inserted into the real event environment, validated, and then restored across
+the exact 48-byte buffer footprint with zero index deltas. The emitted event
+used the safe I2C fallback.
+
+The real-compatible `1-0068` client retained its OF node and stayed unbound.
+Every I2C6 transfer, DMA, start, IRQ, and lifecycle-oracle counter remained
+zero, while CPUs 0–7, USB, console, and the full serviceability baseline
+survived. Native reboot returned Gemian `3.18.41+` on boot ID
+`402198a4-541a-4535-a8dc-c74dcb04661d`.
+
+This proves transient mutation of the real uevent environment safe. Combined
+with the earlier unsuppressed reset, the remaining failure boundary is the OF
+entry remaining present during event emission. A follow-up must add a durable,
+independent observation around dispatch and cleanup; repeating an identical
+unsuppressed artifact would not be decision-changing.

@@ -16,8 +16,9 @@ the result.
 ### Current DA921x, I2C6, and A72 line
 
 - [2026-07-31 DA921x real OF-modalias uevent rollback](2026-07-31-da921x-of-modalias-real-env-rollback/README.md)
-  — prepares the exact real event-environment insertion, validation, and
-  byte-for-byte rollback discriminator while retaining safe I2C emission.
+  — inserted and validated the exact OF entry in the real event environment,
+  restored its pointer, indices, and bytes exactly, and remained fully
+  serviceable; this isolates the failure boundary to final event emission.
 - [2026-07-31 DA921x private OF-modalias uevent insertion](2026-07-31-da921x-of-modalias-private-insertion/README.md)
   — inserted and validated the exact `MODALIAS=` entry in a private bounded
   uevent environment, discarded it, and remained fully serviceable with zero

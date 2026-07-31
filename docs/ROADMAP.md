@@ -213,15 +213,21 @@ native reboot returned Gemian. This proves environment insertion mechanics
 safe and places the remaining boundary at the real OF entry's presence during
 event emission.
 
-The selected next discriminator snapshots the real event environment pointer,
-indices, and exact target buffer bytes; inserts and validates the exact OF
-`MODALIAS=` entry; restores and validates every snapshot; then adds only the
-safe I2C fallback before emission. Serviceability would implicate final
-OF-entry presence during emission; a reset after the rollback marker would
-make transient mutation of the real event environment sufficient. It fails
-closed on any layout or rollback mismatch, adds no driver or transfer path,
-and retains the exact real OF child, module-free initramfs, and zero-activity
-gates. Provider work remains blocked.
+The real-environment rollback discriminator inserted and validated the exact
+OF `MODALIAS=` entry in the actual device event, restored the original pointer,
+indices, and exact 48-byte target buffer range, then added only the safe I2C
+fallback. Its first selected boot was fully serviceable with the real client
+unbound, every I2C/oracle counter at zero, and native reboot back to Gemian.
+This proves transient real-environment mutation safe and, combined with the
+earlier unsuppressed reset, isolates the remaining boundary to the OF entry
+remaining present during event emission.
+
+Immediate next step: add a durable independent observation around uevent
+dispatch and cleanup that distinguishes entry presence during transport from
+later environment teardown. Do not spend another boot on a kernel/DT/config-
+identical unsuppressed artifact or on marker text alone. The candidate must
+remain driver-free and transfer-free and must make either survival or reset
+change the next action. Provider work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 
