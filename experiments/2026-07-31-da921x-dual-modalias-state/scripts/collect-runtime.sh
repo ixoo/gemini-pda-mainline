@@ -37,8 +37,8 @@ done
 [[ "$interface" =~ ^[A-Za-z0-9]+$ && -n "$output" ]] ||
 	{ usage; exit 2; }
 [[ "$output" != *$'\n'* ]] || die 'output path must be one line'
-for command in awk cat chmod dirname git grep ifconfig mkdir mktemp nc ping \
-	rm route shasum stat; do
+for command in awk base64 chmod dirname git grep ifconfig mkdir mktemp nc ping \
+	rm route shasum stat tr; do
 	command -v "$command" >/dev/null 2>&1 ||
 		die "required host command missing: $command"
 done
@@ -87,12 +87,14 @@ ping -b "$interface" -c 3 -S "$HOST_ADDRESS" "$DEVICE_ADDRESS" >/dev/null ||
 command_file="$(mktemp "${TMPDIR:-/tmp}/.dualstate-runtime.XXXXXXXX")"
 cleanup() { [[ ! -e "${command_file:-}" ]] || rm -f -- "$command_file"; }
 trap cleanup EXIT
+runtime_check_b64="$(base64 <"$runtime_check" | tr -d '\n')"
+[[ "$runtime_check_b64" =~ ^[A-Za-z0-9+/]+=*$ ]] ||
+	die 'runtime check base64 encoding is malformed'
 {
 	printf '%s\n' 'umask 077'
 	printf '%s\n' 'check=/tmp/.gemini-dualstate-runtime-check'
-	printf '%s\n' "/bin/busybox cat >\"\$check\" <<'__GEMINI_DUALSTATE_CHECK__'"
-	cat "$runtime_check"
-	printf '%s\n' '__GEMINI_DUALSTATE_CHECK__'
+	printf '%s\n' \
+		"printf '%s' '$runtime_check_b64' | /bin/busybox base64 -d >\"\$check\" || exit 89"
 	# shellcheck disable=SC2016 # Emit deferred device-side expansion literally.
 	printf '%s\n' '/bin/busybox chmod 0700 "$check" || exit 90'
 	printf '%s\n' "printf '__DUALSTATE_IDENTITY_BEGIN__\\n'"
