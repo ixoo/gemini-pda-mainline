@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-31-da921x-dual-modalias-path-state` |
-| Status | `deployed and shut down; awaiting selected boot` |
+| Status | `runtime inconclusive; console serviceable but USB absent` |
 | Subsystem | I2C, OF, kobject uevent |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -79,3 +79,19 @@ the source runtime-check checksum, the inherited USB MAC and address, and the
 direct netcat endpoint. It writes only its temporary verifier below initramfs
 `/run`, removes it after execution, and requests neither storage access nor a
 reboot.
+
+## Runtime attempt 1
+
+The owner selected `boot2` and reported the console serviceable. This rules out
+a pre-console reset. The host did not enumerate the pinned Gemini USB network
+MAC during the initial bounded wait or during a second bounded wait after the
+owner physically disconnected and reconnected the cable. The prepared netcat
+collector therefore never connected and the read-only validation state remains
+unobserved.
+
+This is not evidence that the event reached `validated`, and it is not an
+identical reproduction of the predecessor's fully serviceable USB baseline.
+No device partition was read, no storage was written, and no reboot was
+requested during the attempted capture. The next experiment action must obtain
+the state through an independent observation path or isolate the USB loss; it
+must not infer successful validation from the working console alone.
