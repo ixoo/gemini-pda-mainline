@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-31-da921x-dual-modalias-entry-classification` |
-| Status | `deployed to boot2; not booted` |
+| Status | `completed; absent I2C fallback modalias isolated` |
 | Subsystem | I2C, OF, kobject uevent |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -93,13 +93,13 @@ and contained the exact envelope-state predecessor. Battery presence, health,
 and capacity passed. The entry-classification candidate was written, synced,
 flushed, and independently read back with matching full-partition checksum.
 No backup was created, and the device shut down cleanly after verified success.
-Runtime evidence remains unset until the owner physically selects boot2.
 
 ## Runtime capture
 
 The source-pinned one-shot collector and its standalone device-side checker
-are validated and ready. They require the exact installed full-partition
-checksum, kernel release, USB identity and route, unchanged nine-entry
+were validated and used for the first selected boot. They require the exact
+installed full-partition checksum, kernel release, USB identity and route,
+unchanged nine-entry
 envelope, CPU0--7 policy, unbound client, ready handoff, and zero transfer and
 lifecycle-oracle counters. The checker validates the six classification fields
 without assuming which branch will occur, then removes its temporary `/run`
@@ -109,3 +109,33 @@ The decision map is recorded in `results/runtime-plan.txt`. A clear
 `present_mask` bit identifies an absent fixed entry; the other fields separate
 duplicates, ordering, missing `SEQNUM`, and replacements. An inconsistent
 classification stops the experiment without changing an expectation.
+
+## Runtime result
+
+The first selected boot matched exact release
+`7.1.3-gemini-da921x-entryclass`, boot2 checksum
+`1c703eb0f649bb33d7c49b1d3a3bd9e966cdf5f9f2a3920ac789ffb886bff4b7`,
+USB identity, route, and netcat endpoint. The classifier reported:
+
+`present_mask=0xff duplicate_mask=0x0 ordered_prefix=8 seqnum_count=1 seqnum_index=8 unexpected_count=0`
+
+Bits 0--7 prove that `ACTION`, `DEVPATH`, `SUBSYSTEM`, all four OF metadata
+entries, and the OF modalias are present exactly once and in the expected
+order. Clear bit 8 proves that `MODALIAS=i2c:da9214-legacy` is absent.
+`SEQNUM` is the ninth and final entry; there are no duplicates or replacement
+entries. This is internally consistent with the unchanged envelope
+`envp_idx=9`, valid terminator, and bounded packed buffer.
+
+Exact-source control-flow inspection explains the result: for an I2C client
+with an OF node, `i2c_device_uevent()` returns immediately when
+`of_device_uevent_modalias()` succeeds. The ACPI and I2C fallback modalias
+paths are reached only when the preceding firmware helper returns `-ENODEV`.
+The earlier ten-entry assumption was therefore incorrect. The safe validator
+must expect eight fixed entries followed by `SEQNUM`, not both OF and I2C
+modalias entries.
+
+The real client remained unbound, CPUs 0--7 were online and CPUs 8--9 offline,
+handoff was ready, and every I2C and lifecycle-oracle counter remained zero.
+The checker used only read-only sysfs observations, removed its temporary
+`/run` copy, and performed no partition read, storage write, or reboot. Local
+console and keyboard usability were not separately assessed.

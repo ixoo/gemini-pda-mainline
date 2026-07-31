@@ -260,20 +260,21 @@ The first pre-dispatch candidate remained fully serviceable with the real
 client unbound and every I2C/oracle counter at zero, but its required success
 marker was absent. It suppressed the target event through the fail-closed
 validation error path, so it does not yet prove the asserted complete layout.
-Source audit identified another rejected assumption: the normal I2C uevent path
-appends `MODALIAS=i2c:da9214-legacy` after the exact OF modalias, and `SEQNUM=`
-therefore makes ten entries rather than nine. Later read-only-state evidence
-showed that an earlier, still-present `/soc` path assumption had actually
-failed first, so the nine-entry runtime was safe but not attributable to its
-entry count.
+Source audit at that point introduced another assumption: that the normal I2C
+uevent path appends `MODALIAS=i2c:da9214-legacy` after the exact OF modalias,
+making ten entries with `SEQNUM`. Later read-only-state evidence showed that
+an earlier, still-present `/soc` path assumption had actually failed first, so
+the nine-entry runtime was safe but not attributable to its entry count. The
+entry-classification experiment below later disproved the ten-entry
+assumption: the OF success path returns before the I2C fallback is appended.
 
-The selected next discriminator must validate both exact modalias entries in
-the complete ten-entry event, suppress only transport, and convert the target
-event to a successful return before normal cleanup. This changes the observed
-error-return behavior rather than merely adding marker text. Serviceability
-with the exact success marker isolates the reset to broadcast or receiver
-handling; a reset implicates complete assembly or successful cleanup. It
-remains driver- and transfer-free. Provider work remains blocked.
+On that then-current ten-entry hypothesis, the selected next discriminator was
+designed to validate both modalias entries, suppress only transport, and
+convert the target event to a successful return before normal cleanup. This
+changed the observed error-return behavior rather than merely adding marker
+text. Serviceability with the exact success marker would isolate the reset to
+broadcast or receiver handling; a reset would implicate complete assembly or
+successful cleanup. It remained driver- and transfer-free.
 
 That discriminator is now represented by the named
 `da921x-dual-modalias-pre-dispatch-suppression` profile. Its exact runtime gate
@@ -286,14 +287,15 @@ boot2 checksum, a changed boot ID, a watchdog-class reset reason, and empty
 pstore. No validation marker survived, so this is a failed serviceability
 result rather than proof that the intended successful checkpoint executed.
 
-Source inspection confirms that `device_add()` ignores this uevent return
-value. The next discriminator must therefore preserve exact ten-entry
-validation and transport suppression while removing the immediate printk and
-publishing the validation state through an independent read-only observation
-path available only if the boot remains serviceable. A surviving exact state
-isolates the removed printk; another reset rules it out without repeating an
-identical artifact. The named `da921x-dual-modalias-state` profile implements
-that split. Its Buildbox package and deterministic independent candidate
+Source inspection confirmed that `device_add()` ignores this uevent return
+value. Under the then-current ten-entry assumption, the next discriminator was
+therefore designed to preserve that validation and transport suppression while
+removing the immediate printk and publishing the validation state through an
+independent read-only observation path available only if the boot remained
+serviceable. A surviving exact state would isolate the removed printk; another
+reset would rule it out without repeating an identical artifact. The named
+`da921x-dual-modalias-state` profile implemented that split. Its Buildbox
+package and deterministic independent candidate
 assembly passed, and exact boot2 deployment passed full-partition readback
 before clean shutdown. The first selected boot was fully serviceable with exact
 kernel identity, state `pending`, the real client unbound, and every
@@ -342,22 +344,32 @@ the live event contains nine total entries. USB serviceability, CPU0--7,
 unbound-client, handoff, and zero-I2C-activity checks passed; local console and
 keyboard were not separately assessed.
 
-The named `da921x-dual-modalias-entry-classification` profile is the selected
-next discriminator. It preserves the identical event and exposes a read-only
+The named `da921x-dual-modalias-entry-classification` profile was the selected
+next discriminator. It preserved the identical event and exposed a read-only
 classification for the nine expected fixed entries, duplicates, their ordered
 prefix, `SEQNUM` count and first index, and any unexpected bounded entry. It
-does not print or transport the target event or copy arbitrary environment
+did not print or transport the target event or copy arbitrary environment
 text. Its 126-patch inputs passed the manifest, configuration, patch, and
 static checks; exact clean commit `442910e` built successfully on Buildbox.
 Two candidate assemblies were byte-identical and all 32 LK gates passed. The
 exact candidate was deployed to live-GPT-resolved boot2 from known-good Gemian;
 the predecessor, write, flush, and independent full-partition readback all
-matched, no backup was created, and shutdown was confirmed. Its first selected
-boot must capture the six-field classification plus the established
-serviceability and zero-I2C-activity baseline. The exact source-pinned
-USB/netcat collector and standalone read-only checker are validated for that
-single capture; they reject a changed envelope or baseline without prejudging
-the classification result. A native VM kernel build requires an explicit owner
+matched, no backup was created, and shutdown was confirmed. The first selected
+boot matched exact identity and reported `present_mask=0xff`, no duplicates,
+an eight-entry ordered prefix, one `SEQNUM` at index 8, and no unexpected
+entry. Thus the eight OF-path fixed entries are present exactly once and in
+order, `MODALIAS=i2c:da9214-legacy` is absent, and `SEQNUM` is the ninth and
+final entry. Exact-source inspection confirms that a successful OF modalias
+helper returns immediately from `i2c_device_uevent()`; the I2C modalias is a
+fallback, not a second entry. USB/netcat serviceability, CPU0--7, the unbound
+real client, handoff, and every zero-I2C-activity gate passed. No partition
+read, storage write, or reboot occurred.
+
+The next Gate 3 change must correct only the ordered validator to eight fixed
+entries plus `SEQNUM`, while preserving the exact target event, transport
+suppression, no-printk observation path, module-free unbound client, and
+zero-hardware baseline. This is a decision-changing semantic correction, not
+an identical retry. A native VM kernel build requires an explicit owner
 request. Provider work remains blocked.
 
 ### 4. Finish the ownership and rollback audit

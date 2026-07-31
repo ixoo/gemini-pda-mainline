@@ -1,0 +1,13 @@
+experiment=2026-07-31-da921x-dual-modalias-entry-classification
+source_commit=442910e7d14698142915021e576b197247ec8a00
+source_file=drivers/i2c/i2c-core-base.c
+source_function=i2c_device_uevent
+of_node_branch=call-of_device_uevent_modalias
+of_success_behavior=return-immediately
+of_fallback_condition=of_device_uevent_modalias-returns-ENODEV
+acpi_branch=called-only-after-of-ENODEV-or-no-of-node
+acpi_success_behavior=return-immediately
+i2c_fallback_condition=preceding-firmware-modalias-helper-returns-ENODEV
+runtime_of_result=success
+runtime_i2c_fallback_modalias=absent
+conclusion=normal-real-of-client-event-has-eight-fixed-entries-plus-seqnum

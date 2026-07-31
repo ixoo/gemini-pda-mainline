@@ -84,11 +84,15 @@ The required pre-dispatch success marker was absent, so this is not evidence
 that the asserted nine-entry layout passed. The target event was instead
 suppressed by the diagnostic's fail-closed error path and remained safe.
 
-A source audit identified one incorrect assumption: after the OF helper adds
-the exact OF `MODALIAS=`, the normal I2C uevent function also appends
-`MODALIAS=i2c:da9214-legacy`, so `SEQNUM=` makes ten entries,
-not nine. Later read-only-state runtime evidence identified an earlier
+A source audit at this point replaced one incorrect assumption with another:
+it concluded that the normal I2C uevent function appends
+`MODALIAS=i2c:da9214-legacy` after the OF `MODALIAS=`, making ten entries with
+`SEQNUM`. Later read-only-state runtime evidence first identified an earlier
 rejection that this audit had not yet observed: the live platform and OF paths
-do not contain the validator's assumed `/soc` component. The devpath
-gate therefore failed before entry-count validation. This experiment remains
-safe and inconclusive about both complete layouts.
+do not contain the validator's assumed `/soc` component. The devpath gate
+therefore failed before entry-count validation. The later bounded
+entry-classification experiment then proved that the I2C fallback modalias is
+absent and exact-source control flow confirmed that successful OF modalias
+generation returns immediately. This experiment remains safe and
+inconclusive about either complete-layout hypothesis; its historical source
+interpretation is superseded by that attributable evidence.
