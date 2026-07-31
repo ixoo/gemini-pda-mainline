@@ -148,6 +148,16 @@ configuration, safe tooling, hardware knowledge, and reproducible evidence.
   `--ask-sudo-password` when sudo is not passwordless. The helper requires a
   confirmed disconnect, reconnect, and changed boot ID and never removes remote
   pstore records.
+- The owner gives standing authorization to commit and push sanitized device
+  deployment and runtime evidence to `origin/main` at
+  `https://github.com/ixoo/gemini-pda-mainline.git` without another prompt.
+  This includes boot IDs, partition device names and labels, artifact and
+  partition checksums, kernel identities, power state, serviceability results,
+  and bounded hardware/runtime counters. Verify the exact `origin` URL before
+  each push. This authorization does not cover credentials, keys, serials,
+  IMEI values, calibration data, personal identifiers, raw partition contents,
+  proprietary material, or unsanitized private evidence; those remain excluded
+  under the repository's existing review and redaction rules.
 - Run `bash -n` and ShellCheck for shell changes, `git diff --check`, the relevant
   kernel checks, and the smallest meaningful VM build. Document what was and was
   not tested.
