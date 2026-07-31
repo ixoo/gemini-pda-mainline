@@ -180,9 +180,17 @@ initramfs while disabling the DT child. It passed all offline gates, was
 installed to live-GPT-resolved `boot2`, passed an independent full-partition
 byte comparison, and left the device powered off.
 
-Immediate next step: select `boot2` once. After serviceability is established,
-the one-shot helper may create one unbound name-only `da9214-legacy` client at
-`0x68` only if it proves no matching driver and zero I2C/oracle counters. If
+The first selected boot was serviceable and every pre-creation gate passed.
+The one permitted `new_device` write was rejected because the inherited
+initramfs mounts sysfs read-only. No client was created, no driver bound, and
+all I2C/oracle counters remained zero. This is safely inconclusive about the
+name/I2C-modalias path.
+
+Immediate next step: use the same exact boot artifact with a new
+decision-changing runtime observation path. After revalidating the complete
+baseline, a cleanup-trapped helper may briefly remount sysfs read-write, issue
+one `new_device` write, restore sysfs read-only immediately, and verify the
+unbound client and zero counters. This is not a repeatability test. If
 serviceability survives, the OF-node/modalias path remains implicated; if it
 resets, the client-name/I2C-modalias path is sufficient. No driver may bind
 and no I2C transfer is permitted. Provider work remains blocked.

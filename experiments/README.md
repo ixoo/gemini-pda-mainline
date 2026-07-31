@@ -17,7 +17,8 @@ the result.
 
 - [2026-07-30 DA921x post-serviceability name-only client](2026-07-30-da921x-name-only-client/README.md)
   — disables the OF child, boots with no module, and creates one unbound
-  `da9214-legacy` client after serviceability to isolate I2C identity handling.
+  `da9214-legacy` client after serviceability to isolate I2C identity handling;
+  attempt 1 failed safely because inherited sysfs is read-only.
 - [2026-07-30 DA921x real-compatible module-file isolation](2026-07-30-da921x-module-file-isolation/README.md)
   — restores the real enabled compatible on the module-profile kernel while
   removing the DA921x module file and every possible load path; attempt 1

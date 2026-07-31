@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-30-da921x-name-only-client` |
-| Status | `installed and powered off; first boot pending` |
+| Status | `attempt 1 safely inconclusive; sysfs was read-only` |
 | Subsystem | regulator, I2C, arm64 Device Tree, driver core |
 | Device variant | Planet Computers Gemini PDA, named development unit |
 | Date(s) | 2026-07-30 |
@@ -50,8 +50,8 @@ All 32 LK/container gates passed. Direct DT validation confirmed exact
 compatible `dlg,da9214-legacy`, unchanged `0x68,0x69`, and `status =
 "disabled"`. The exact module-free initramfs is preserved.
 
-The runtime helper is
-`31a44e9fd1f58ecb760aca0353c489060450a98770e598b79a4f6e49e73026ea`.
+The corrected runtime helper is
+`9b633372e224b3a551a5ca571346d7d9c2f6c5433a18e7fbac471c23813dd6de`.
 Static validation found exactly one sysfs control write and no module load,
 driver bind, I2C utility, partition, reboot, or poweroff operation.
 
@@ -68,3 +68,41 @@ and an independent 16 MiB byte comparison. Both matched
 No new backup was created under the project’s standing backup policy. The
 temporary readback was removed and device shutdown was confirmed. See
 [installation result](results/install-boot2-20260730-2034.txt).
+
+## Attempt 1
+
+The owner selected `boot2` once and reported a good boot. Runtime identity was
+`7.1.3-gemini-da921x-mod` on boot ID
+`611b1935-4414-435b-a2b8-77365f3ea474`. Console, USB/netcat, CPUs 0--7,
+keyboard, tty1, I2C6 handoff, and the zero-transfer/oracle baseline were
+serviceable. The child was disabled, no `0x68` client existed, and no DA921x
+module, symbol, or driver was present.
+
+Three helper revisions failed closed before the control write while correcting
+DT string normalization, first-line counter tokenization, and the observed
+adapter symlink topology. Read-only snapshots after each abort confirmed no
+client and all counters zero.
+
+The final helper
+`9b633372e224b3a551a5ca571346d7d9c2f6c5433a18e7fbac471c23813dd6de`
+passed every pre-creation gate and issued the single permitted
+`new_device` write. The kernel rejected it because the exact initramfs mounts
+sysfs read-only. No client was created, no driver bound, and all I2C/oracle
+counters remained zero. The procedure did not remount sysfs because that was
+outside the predeclared attempt. Native reboot returned Gemian `3.18.41+` on
+new boot ID `48f75b8b-b3e9-47cc-a378-bdd7a91bd3c0`.
+
+See [runtime result](results/runtime-name-only-attempt-1-20260730.txt).
+
+## Conclusion
+
+Attempt 1 is safely inconclusive about name-only client creation: the sysfs
+mount policy rejected the write before the kernel’s `new_device` parser could
+instantiate a client. It adds durable evidence that the serviceable disabled
+child and exact no-module kernel retain a zero-activity baseline.
+
+A second selected boot of the same artifact is permitted only for a new,
+decision-changing observation path: an exact helper must validate the
+read-only baseline, create a cleanup trap, briefly remount sysfs read-write,
+issue one `new_device` write, immediately restore sysfs read-only, and then
+verify the client and zero counters. It is not a repeatability test.

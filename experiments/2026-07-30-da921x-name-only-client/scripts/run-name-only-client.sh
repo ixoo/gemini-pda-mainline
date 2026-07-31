@@ -13,7 +13,8 @@ abort()
 counter()
 {
 	# shellcheck disable=SC2016 # The single-quoted program is interpreted by awk.
-	printf '%s\n' "$1" | /bin/busybox awk -F= -v key="$2" \
+	printf '%s\n' "$1" | /bin/busybox tr ' ' '\n' |
+		/bin/busybox awk -F= -v key="$2" \
 		'$1 == key { print $2; found = 1 } END { if (!found) exit 1 }'
 }
 
@@ -38,9 +39,9 @@ require_zero_status()
 	abort cpu-offline-set
 
 child=/sys/firmware/devicetree/base/i2c@1100e000/regulator@68
-[ "$(/bin/busybox tr '\000' ' ' <"$child/compatible")" = dlg,da9214-legacy ] ||
+[ "$(/bin/busybox tr -d '\000' <"$child/compatible")" = dlg,da9214-legacy ] ||
 	abort child-compatible
-[ "$(/bin/busybox tr '\000' ' ' <"$child/status")" = disabled ] ||
+[ "$(/bin/busybox tr -d '\000' <"$child/status")" = disabled ] ||
 	abort child-not-disabled
 [ ! -e /lib/da9213-legacy-regulator.ko ] || abort module-file-present
 [ ! -e /sbin/modprobe ] || abort modprobe-present
@@ -62,9 +63,9 @@ require_zero_status "$before"
 adapter=
 for path in /sys/bus/i2c/devices/i2c-*; do
 	[ -d "$path" ] || continue
-	parent="$(/bin/busybox readlink -f "$path/device")"
+	parent="$(/bin/busybox readlink -f "$path")"
 	case "$parent" in
-	*1100e000.i2c)
+	*1100e000.i2c/i2c-*)
 		[ -z "$adapter" ] || abort multiple-i2c6-adapters
 		adapter="${path##*/i2c-}"
 		;;
