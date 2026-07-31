@@ -195,13 +195,23 @@ This rules out the compatible-derived client name and I2C modalias as
 sufficient causes. The failure boundary is now the real-compatible OF node or
 its OF modalias uevent path.
 
-Immediate next step: preserve the real-compatible OF child and all exact
-module-free inputs while suppressing only that client's OF modalias addition
-to the I2C device uevent. The candidate must retain client creation, name,
-resources, and OF-node attachment while adding no driver and permitting no
-I2C transfer. Serviceability would implicate OF modalias generation or
-emission; another pre-serviceability reset would place the failure earlier in
-the real-compatible OF-node instantiation path. Provider work remains blocked.
+The OF-modalias suppression candidate preserved the real-compatible OF child,
+client name, resources, OF-node attachment, module-free initramfs, and
+zero-activity baseline while replacing only the add-event OF modalias with the
+already-exonerated I2C fallback. It was fully serviceable. The real-compatible
+client remained unbound, all I2C/oracle counters remained zero, and native
+reboot returned Gemian. This rules out real-compatible OF-node instantiation
+itself and isolates the unsafe boundary to adding that OF modalias to the I2C
+device uevent environment.
+
+Immediate next step: compute the exact real-compatible OF modalias into a
+private bounded buffer, validate its exact length and content, discard it, and
+emit only the safe I2C fallback. Serviceability would prove generation safe
+and implicate insertion/emission of the OF modalias environment value; a reset
+after a pre-insertion marker would make OF modalias generation itself
+sufficient. The candidate must add no driver or transfer path and retain the
+exact real OF child, module-free initramfs, and zero-activity gates. Provider
+work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 

@@ -70,3 +70,21 @@ removed and shutdown was confirmed. See the
 
 The experiment patch has actual author metadata but no DCO sign-off. It is an
 experiment-only diagnostic and is not submission-ready.
+
+## Runtime result
+
+Attempt 1 was serviceable on `7.1.3-gemini-da921x-ofalias`, boot ID
+`58fc7894-fe30-425d-95c0-9569084193a1`. The exact read-only verifier confirmed
+the enabled real-compatible `1-0068` client, attached OF node, unbound state,
+and one suppression marker. The client retained its OF-derived read-only
+sysfs modalias, while its add-event used the I2C fallback. Every I2C6
+transfer, DMA, start, IRQ, and oracle counter remained zero; sysfs remained
+read-only and the complete serviceability baseline survived.
+
+Native reboot returned Gemian `3.18.41+` on boot ID
+`614a1303-771e-4602-a9a6-a6d4dea75021`. See the
+[runtime result](results/runtime-attempt-1-20260730.txt).
+
+This rules out real-compatible OF-node creation itself as sufficient. Combined
+with the failing exact no-module candidate, the remaining boundary is adding
+the real-compatible OF modalias to the I2C device's add-event environment.
