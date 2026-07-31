@@ -222,15 +222,21 @@ This proves transient real-environment mutation safe and, combined with the
 earlier unsuppressed reset, isolates the remaining boundary to the OF entry
 remaining present during event emission.
 
-The selected next discriminator builds and strictly validates the complete
-nine-entry real OF event after sequence-number allocation, then suppresses only
-the exact target event before netlink broadcast while retaining normal cleanup.
-This behavior-changing intervention distinguishes complete assembly and
-teardown from transport: serviceability isolates the reset to broadcast or
-receiver handling, while a reset implicates assembly or cleanup. It is not a
-kernel/DT/config-identical retry or marker-only observation, remains driver-
-and transfer-free, and makes either outcome change the next action. Provider
-work remains blocked.
+The first pre-dispatch candidate remained fully serviceable with the real
+client unbound and every I2C/oracle counter at zero, but its required success
+marker was absent. It suppressed the target event through the fail-closed
+validation error path, so it does not yet prove the asserted complete layout.
+Source audit identified the rejected assumption: the normal I2C uevent path
+appends `MODALIAS=i2c:da9214-legacy` after the exact OF modalias, and `SEQNUM=`
+therefore makes ten entries rather than nine.
+
+The selected next discriminator must validate both exact modalias entries in
+the complete ten-entry event, suppress only transport, and convert the target
+event to a successful return before normal cleanup. This changes the observed
+error-return behavior rather than merely adding marker text. Serviceability
+with the exact success marker isolates the reset to broadcast or receiver
+handling; a reset implicates complete assembly or successful cleanup. It
+remains driver- and transfer-free. Provider work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 

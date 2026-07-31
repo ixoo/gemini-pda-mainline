@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-31-da921x-of-modalias-pre-dispatch-suppression` |
-| Status | `deployed; awaiting first selected boot` |
+| Status | `completed; serviceable fail-closed result` |
 | Subsystem | I2C, OF, kobject uevent |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -71,3 +71,23 @@ matched, power was stable at 100% with good battery health, and the write,
 flush, target checksum, and independent full readback all matched the exact
 candidate. No new backup was created. The device shut down cleanly after
 verification and awaits the first selected boot.
+
+## Runtime result
+
+Attempt 1 was serviceable on `7.1.3-gemini-da921x-ofpredispatch`. USB and the
+netcat console came up, CPUs 0–7 were online, CPUs 8–9 remained offline, the
+real-compatible `1-0068` client retained its OF node and stayed unbound, and
+the module-free baseline held. Every I2C6 transfer, DMA, start, IRQ, and
+lifecycle-oracle counter remained zero. Native reboot returned to Gemian.
+
+The required pre-dispatch success marker was absent, so this is not evidence
+that the asserted nine-entry layout passed. The target event was instead
+suppressed by the diagnostic's fail-closed error path and remained safe.
+
+A source audit explains the rejection: after the OF helper adds the exact OF
+`MODALIAS=`, the normal I2C uevent function continues and also appends
+`MODALIAS=i2c:da9214-legacy`. `SEQNUM=` therefore makes ten entries, not nine.
+This is an inference from the pinned source construction order, not an entry
+capture from this runtime. The next discriminator must validate both exact
+modalias entries, suppress transport, and return successful completion so it
+changes the error-return behavior as well as adding an attributable marker.

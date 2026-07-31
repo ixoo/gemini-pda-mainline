@@ -16,8 +16,9 @@ the result.
 ### Current DA921x, I2C6, and A72 line
 
 - [2026-07-31 DA921x complete OF uevent pre-dispatch suppression](2026-07-31-da921x-of-modalias-pre-dispatch-suppression/README.md)
-  — prepares a behavior-changing split between exact completed OF-event
-  assembly and netlink transport, with normal environment cleanup retained.
+  — remained fully serviceable with zero hardware activity, but the asserted
+  nine-entry layout failed closed before its success marker; source audit shows
+  the normal I2C path appends a second exact I2C modalias, making ten entries.
 - [2026-07-31 DA921x real OF-modalias uevent rollback](2026-07-31-da921x-of-modalias-real-env-rollback/README.md)
   — inserted and validated the exact OF entry in the real event environment,
   restored its pointer, indices, and bytes exactly, and remained fully
