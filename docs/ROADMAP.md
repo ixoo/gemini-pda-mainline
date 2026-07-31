@@ -347,9 +347,12 @@ next discriminator. It preserves the identical event and exposes a read-only
 classification for the nine expected fixed entries, duplicates, their ordered
 prefix, `SEQNUM` count and first index, and any unexpected bounded entry. It
 does not print or transport the target event or copy arbitrary environment
-text. Its inputs must pass the manifest, configuration, patch, and static
-checks before an exact clean revision is built on Buildbox. A native VM kernel
-build requires an explicit owner request. Provider work remains blocked.
+text. Its 126-patch inputs passed the manifest, configuration, patch, and
+static checks; exact clean commit `442910e` built successfully on Buildbox.
+Two candidate assemblies were byte-identical and all 32 LK gates passed. The
+exact candidate is ready for bounded boot2 deployment from known-good Gemian.
+A native VM kernel build requires an explicit owner request. Provider work
+remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 

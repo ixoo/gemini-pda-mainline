@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-31-da921x-dual-modalias-entry-classification` |
-| Status | `inputs validated; not built or booted` |
+| Status | `candidate validated; not deployed or booted` |
 | Subsystem | I2C, OF, kobject uevent |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -59,7 +59,7 @@ owner explicitly requests one.
 The experiment patch carries the actual author identity but no DCO sign-off.
 It is experiment-only and not submission-ready.
 
-## Current state
+## Build and candidate
 
 The profile is `da921x-dual-modalias-entry-classification`, with release
 `7.1.3-gemini-da921x-entryclass`. Its 126-patch source and configuration
@@ -67,5 +67,24 @@ inputs apply and resolve, all 43 manifest profiles satisfy the canonical-order
 invariant, all eight invariant mutations are rejected, and strict checkpatch
 reports zero findings apart from the intentionally absent experiment-only DCO.
 The predecessor profile resolves the new symbol off. No native VM kernel build
-was run. Build, candidate, deployment, and runtime identities remain unset
-until their respective gates pass.
+was run.
+
+Buildbox fetched exact clean, pushed commit
+`442910e7d14698142915021e576b197247ec8a00` and produced the validated package
+`linux-7.1.3-gemini-da921x-dual-modalias-entry-classification-f6e60a8b-23396aaf`.
+The package has exact `Image.gz` checksum
+`db0b03d4dce1065019f6802ae9c4c55f334d945028ab3c4822a2b6fe4e17435f`.
+
+Two independent candidate assemblies were byte-identical. The selected
+candidate is `candidate-Gate3-da921x-entryclass-5933dc9f`, with LK-container
+checksum `5933dc9f780f84602ca89697fe5ea15944af0f81f048a0e0d266e4de3dc1b2c7`
+and full boot2 checksum
+`1c703eb0f649bb33d7c49b1d3a3bd9e966cdf5f9f2a3920ac789ffb886bff4b7`.
+All 32 LK gates passed. The initramfs remains module-free, the retained exact
+enabled-compatible DTB is unchanged, and the candidate adds no hardware path.
+
+The exact installer accepts only the currently installed envelope-state
+checksum as predecessor, resolves `boot2` from the live GPT, creates no backup,
+requires a matching full-partition readback, and shuts the device down after a
+verified write. Deployment and runtime identities remain unset until those
+gates pass.
