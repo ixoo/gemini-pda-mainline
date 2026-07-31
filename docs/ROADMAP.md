@@ -354,8 +354,11 @@ exact candidate was deployed to live-GPT-resolved boot2 from known-good Gemian;
 the predecessor, write, flush, and independent full-partition readback all
 matched, no backup was created, and shutdown was confirmed. Its first selected
 boot must capture the six-field classification plus the established
-serviceability and zero-I2C-activity baseline. A native VM kernel build requires
-an explicit owner request. Provider work remains blocked.
+serviceability and zero-I2C-activity baseline. The exact source-pinned
+USB/netcat collector and standalone read-only checker are validated for that
+single capture; they reject a changed envelope or baseline without prejudging
+the classification result. A native VM kernel build requires an explicit owner
+request. Provider work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 

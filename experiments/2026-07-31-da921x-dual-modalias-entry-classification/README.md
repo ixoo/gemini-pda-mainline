@@ -94,3 +94,18 @@ and capacity passed. The entry-classification candidate was written, synced,
 flushed, and independently read back with matching full-partition checksum.
 No backup was created, and the device shut down cleanly after verified success.
 Runtime evidence remains unset until the owner physically selects boot2.
+
+## Runtime capture
+
+The source-pinned one-shot collector and its standalone device-side checker
+are validated and ready. They require the exact installed full-partition
+checksum, kernel release, USB identity and route, unchanged nine-entry
+envelope, CPU0--7 policy, unbound client, ready handoff, and zero transfer and
+lifecycle-oracle counters. The checker validates the six classification fields
+without assuming which branch will occur, then removes its temporary `/run`
+copy. The collector performs no partition read, storage write, or reboot.
+
+The decision map is recorded in `results/runtime-plan.txt`. A clear
+`present_mask` bit identifies an absent fixed entry; the other fields separate
+duplicates, ordering, missing `SEQNUM`, and replacements. An inconsistent
+classification stops the experiment without changing an expectation.
