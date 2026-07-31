@@ -95,3 +95,9 @@ partition readback and compared every byte. The temporary readback was removed;
 no backup was created because the verified project-wide backup is the recovery
 basis. The device then shut down cleanly and disconnected, ready for the owner
 to select `boot2` once.
+
+The source-pinned one-shot collector is ready before that boot. It accepts only
+release `7.1.3-gemini-da921x-skbser`, final stage 18, the unchanged validated
+nine-entry environment, the unbound real OF client, and the zero-I2C/serviceable
+baseline. It writes only its temporary check below initramfs `/run`, removes it,
+and performs no partition access or reboot.
