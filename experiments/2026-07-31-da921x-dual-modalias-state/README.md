@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-31-da921x-dual-modalias-state` |
-| Status | `Buildbox package and deterministic candidate validated; awaiting boot2 deployment` |
+| Status | `boot2 deployed and verified; awaiting first selected boot` |
 | Subsystem | I2C, OF, kobject uevent |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -60,3 +60,6 @@ in `results/`; the fourth invocation passed all 32 LK gates and the
 independent byte-for-byte reproduction check. The selected exact candidate is
 `candidate-Gate3-da921x-dualstate-53376218`, with full boot2 checksum
 `5c3788905c6c3270d7416997c922f0774802fafb5086e10ff5f247ca0a26a1b3`.
+It was written to live-GPT-resolved `boot2`, independently read back
+byte-for-byte, and the device was shut down cleanly. No new partition backup
+was created; recovery continues to rely on the verified project-wide backup.
