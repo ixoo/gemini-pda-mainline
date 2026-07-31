@@ -31,8 +31,24 @@ configuration, safe tooling, hardware knowledge, and reproducible evidence.
   durable facts; `docs/HARDWARE_SUPPORT.md` owns concise current support; and
   `docs/ROADMAP.md` alone owns ordered next steps. Link across those boundaries
   instead of copying point-in-time findings or remediation checklists.
-- Build with `./scripts/dev-vm build-kernel`. Generated Linux sources, builds,
-  and artifacts belong in the VM, not Git.
+- Build with `./scripts/build-kernel`. Its `auto` backend is the default: it
+  uses buildbox when buildbox is reachable and ready, and otherwise uses the
+  local VM. Choose explicitly with `./scripts/build-kernel --backend buildbox`
+  or `./scripts/build-kernel --backend vm`; `GEMINI_BUILD_BACKEND` provides the
+  equivalent environment override.
+- The buildbox workflow is Git-based. Before submitting a buildbox build,
+  commit the intended changes, push that commit to `origin`, and leave the
+  worktree clean. Buildbox fetches and builds that exact commit in its own
+  managed kernel checkout. Never copy or synchronize a source tree to or from
+  buildbox with `scp`, `rsync`, shared mounts, archives, or similar mechanisms.
+- After a successful buildbox build, fetch only its validated package with
+  `./scripts/buildbox fetch-package`. Local exports belong below the ignored
+  `artifacts/buildbox/<commit>/` tree. See `docs/BUILDBOX.md` for setup,
+  diagnostics, backend selection, and recovery commands.
+- Generated Linux sources and build directories belong on the selected build
+  backend, not in this repository. Use `./scripts/dev-vm build-kernel` only for
+  VM-specific diagnosis or compatibility; normal builds go through the
+  dispatcher so backend selection and buildbox provenance checks are retained.
 - Reuse the managed prepared kernel tree whenever its recorded source state
   matches. Do not create experiment-specific source-root copies merely to get a
   fresh build; use a separate out-of-tree build directory when independence
@@ -159,8 +175,9 @@ configuration, safe tooling, hardware knowledge, and reproducible evidence.
   proprietary material, or unsanitized private evidence; those remain excluded
   under the repository's existing review and redaction rules.
 - Run `bash -n` and ShellCheck for shell changes, `git diff --check`, the relevant
-  kernel checks, and the smallest meaningful VM build. Document what was and was
-  not tested.
+  kernel checks, and the smallest meaningful build through
+  `./scripts/build-kernel`. Select the VM explicitly only when the validation is
+  VM-specific. Document what was and was not tested.
 - Before commit or push, inspect the exact staged file list and run
   `git diff --cached --check`. Include new files in syntax, link, license, and
   sensitive-data checks; reject credentials, proprietary inputs, raw artifacts,
