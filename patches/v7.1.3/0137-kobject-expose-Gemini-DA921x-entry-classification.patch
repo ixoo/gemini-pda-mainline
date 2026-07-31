@@ -1,0 +1,210 @@
+From 8bf872ff776b53aa34ca5463df6a809246687223 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 31 Jul 2026 15:30:00 -0400
+Subject: [PATCH 137/137] kobject: classify Gemini DA921x event entries
+
+The event-envelope discriminator observed nine total entries where the
+ordered validator expects nine fixed entries plus SEQNUM. Identify the
+missing or displaced entry without exposing arbitrary event text.
+
+Record a presence and duplicate mask for the expected fixed entries, the
+ordered matching prefix, the SEQNUM count and first index, and the number
+of unexpected entries. Bound every scan to the environment capacities and
+require each compared string to terminate inside the packed buffer.
+
+Expose only those integer results through one experiment-only read-only
+sysfs attribute. Keep the event, validator, transport suppression, cleanup,
+and all hardware paths unchanged.
+---
+ drivers/i2c/Kconfig     | 15 +++++++++
+ include/linux/kobject.h |  9 ++++++
+ kernel/ksysfs.c         | 22 +++++++++++++
+ lib/kobject_uevent.c    | 70 +++++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 116 insertions(+)
+
+diff --git a/drivers/i2c/Kconfig b/drivers/i2c/Kconfig
+--- a/drivers/i2c/Kconfig
++++ b/drivers/i2c/Kconfig
+@@ -183,6 +183,21 @@ config I2C_GEMINI_DA921X_ENVELOPE_STATE_DIAGNOSTIC
+ 
+ 	  Say N outside the named event-envelope experiment.
+ 
++config I2C_GEMINI_DA921X_ENTRY_CLASSIFICATION_DIAGNOSTIC
++	bool "Gemini DA921x event-entry classification discriminator"
++	depends on I2C_GEMINI_DA921X_ENVELOPE_STATE_DIAGNOSTIC
++	help
++	  Classify the expected fixed entries, sequence-number entry, ordering,
++	  duplicates, and unexpected entries in the experiment-only Gemini
++	  DA921x event. Expose only bounded integer results read-only through
++	  /sys/kernel/gemini_da921x_dual_modalias_entry_classification.
++
++	  This does not expose arbitrary event text or alter the event, validator,
++	  target transport suppression, or cleanup. It adds no driver, provider,
++	  transfer, register access, or storage path.
++
++	  Say N outside the named event-entry classification experiment.
++
+ config I2C_BOARDINFO
+ 	bool
+ 	default y
+diff --git a/include/linux/kobject.h b/include/linux/kobject.h
+--- a/include/linux/kobject.h
++++ b/include/linux/kobject.h
+@@ -59,5 +59,14 @@ extern atomic_t gemini_da921x_dual_modalias_buf_capacity;
+ #endif
+ 
++#ifdef CONFIG_I2C_GEMINI_DA921X_ENTRY_CLASSIFICATION_DIAGNOSTIC
++extern atomic_t gemini_da921x_dual_modalias_present_mask;
++extern atomic_t gemini_da921x_dual_modalias_duplicate_mask;
++extern atomic_t gemini_da921x_dual_modalias_ordered_prefix;
++extern atomic_t gemini_da921x_dual_modalias_seqnum_count;
++extern atomic_t gemini_da921x_dual_modalias_seqnum_index;
++extern atomic_t gemini_da921x_dual_modalias_unexpected_count;
++#endif
++
+ /*
+  * The actions here must match the index to the string array
+  * in lib/kobject_uevent.c
+diff --git a/kernel/ksysfs.c b/kernel/ksysfs.c
+--- a/kernel/ksysfs.c
++++ b/kernel/ksysfs.c
+@@ -83,6 +83,24 @@ gemini_da921x_dual_modalias_envelope_show(struct kobject *kobj,
+ KERNEL_ATTR_RO(gemini_da921x_dual_modalias_envelope);
+ #endif
+ 
++#ifdef CONFIG_I2C_GEMINI_DA921X_ENTRY_CLASSIFICATION_DIAGNOSTIC
++static ssize_t
++gemini_da921x_dual_modalias_entry_classification_show(struct kobject *kobj,
++						      struct kobj_attribute *attr,
++						      char *buf)
++{
++	return sysfs_emit(buf,
++		"present_mask=0x%x duplicate_mask=0x%x ordered_prefix=%d seqnum_count=%d seqnum_index=%d unexpected_count=%d\n",
++		atomic_read(&gemini_da921x_dual_modalias_present_mask),
++		atomic_read(&gemini_da921x_dual_modalias_duplicate_mask),
++		atomic_read(&gemini_da921x_dual_modalias_ordered_prefix),
++		atomic_read(&gemini_da921x_dual_modalias_seqnum_count),
++		atomic_read(&gemini_da921x_dual_modalias_seqnum_index),
++		atomic_read(&gemini_da921x_dual_modalias_unexpected_count));
++}
++KERNEL_ATTR_RO(gemini_da921x_dual_modalias_entry_classification);
++#endif
++
+ /* cpu byteorder */
+ static ssize_t cpu_byteorder_show(struct kobject *kobj,
+ 				  struct kobj_attribute *attr, char *buf)
+@@ -240,6 +258,9 @@ static struct attribute * kernel_attrs[] = {
+ #ifdef CONFIG_I2C_GEMINI_DA921X_ENVELOPE_STATE_DIAGNOSTIC
+ 	&gemini_da921x_dual_modalias_envelope_attr.attr,
+ #endif
++#ifdef CONFIG_I2C_GEMINI_DA921X_ENTRY_CLASSIFICATION_DIAGNOSTIC
++	&gemini_da921x_dual_modalias_entry_classification_attr.attr,
++#endif
+ 	&cpu_byteorder_attr.attr,
+ 	&address_bits_attr.attr,
+ #ifdef CONFIG_UEVENT_HELPER
+diff --git a/lib/kobject_uevent.c b/lib/kobject_uevent.c
+--- a/lib/kobject_uevent.c
++++ b/lib/kobject_uevent.c
+@@ -45,6 +45,15 @@ atomic_t gemini_da921x_dual_modalias_buflen = ATOMIC_INIT(-1);
+ atomic_t gemini_da921x_dual_modalias_buf_capacity = ATOMIC_INIT(-1);
+ #endif
+ 
++#ifdef CONFIG_I2C_GEMINI_DA921X_ENTRY_CLASSIFICATION_DIAGNOSTIC
++atomic_t gemini_da921x_dual_modalias_present_mask = ATOMIC_INIT(-1);
++atomic_t gemini_da921x_dual_modalias_duplicate_mask = ATOMIC_INIT(-1);
++atomic_t gemini_da921x_dual_modalias_ordered_prefix = ATOMIC_INIT(-1);
++atomic_t gemini_da921x_dual_modalias_seqnum_count = ATOMIC_INIT(-1);
++atomic_t gemini_da921x_dual_modalias_seqnum_index = ATOMIC_INIT(-1);
++atomic_t gemini_da921x_dual_modalias_unexpected_count = ATOMIC_INIT(-1);
++#endif
++
+ #ifdef CONFIG_UEVENT_HELPER
+ char uevent_helper[UEVENT_HELPER_PATH_LEN] = CONFIG_UEVENT_HELPER_PATH;
+ #endif
+@@ -507,6 +516,17 @@ static int gemini_da921x_pre_dispatch(struct kobject *kobj,
+ 	const char *seqnum = NULL;
+ 	const char *entry;
+ 	int i;
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_ENTRY_CLASSIFICATION_DIAGNOSTIC)
++	unsigned int duplicate_mask = 0;
++	unsigned int present_mask = 0;
++	bool ordered = true;
++	int ordered_prefix = 0;
++	int seqnum_count = 0;
++	int seqnum_index = -1;
++	int unexpected_count = 0;
++	int scan_count;
++	int j;
++#endif
+ 
+ 	if (action != KOBJ_ADD || strcmp(subsystem, "i2c") ||
+ 	    strcmp(kobject_name(kobj), "1-0068"))
+@@ -538,6 +558,65 @@ static int gemini_da921x_pre_dispatch(struct kobject *kobj,
+ 	atomic_set(&gemini_da921x_dual_modalias_buf_capacity,
+ 		   sizeof(env->buf));
+ #endif
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_ENTRY_CLASSIFICATION_DIAGNOSTIC)
++	scan_count = clamp_t(int, env->envp_idx, 0, ARRAY_SIZE(env->envp));
++	if (env->envp_idx > ARRAY_SIZE(env->envp))
++		unexpected_count++;
++	if (env->buflen > 0 && env->buflen <= sizeof(env->buf)) {
++		for (i = 0; i < scan_count; i++) {
++			size_t remaining;
++			bool matched = false;
++
++			entry = env->envp[i];
++			if (!entry || entry < env->buf ||
++			    entry >= env->buf + env->buflen) {
++				unexpected_count++;
++				ordered = false;
++				continue;
++			}
++			remaining = env->buf + env->buflen - entry;
++			if (strnlen(entry, remaining) == remaining) {
++				unexpected_count++;
++				ordered = false;
++				continue;
++			}
++			for (j = 0; j < ARRAY_SIZE(expected); j++) {
++				if (strcmp(entry, expected[j]))
++					continue;
++				if (present_mask & BIT(j))
++					duplicate_mask |= BIT(j);
++				present_mask |= BIT(j);
++				matched = true;
++				break;
++			}
++			if (!matched &&
++			    !strncmp(entry, "SEQNUM=", sizeof("SEQNUM=") - 1)) {
++				if (!seqnum_count)
++					seqnum_index = i;
++				seqnum_count++;
++				matched = true;
++			}
++			if (!matched)
++				unexpected_count++;
++			if (ordered) {
++				if (i < ARRAY_SIZE(expected) &&
++				    !strcmp(entry, expected[i]))
++					ordered_prefix++;
++				else
++					ordered = false;
++			}
++		}
++	} else {
++		unexpected_count = scan_count ? scan_count : 1;
++	}
++	atomic_set(&gemini_da921x_dual_modalias_present_mask, present_mask);
++	atomic_set(&gemini_da921x_dual_modalias_duplicate_mask, duplicate_mask);
++	atomic_set(&gemini_da921x_dual_modalias_ordered_prefix, ordered_prefix);
++	atomic_set(&gemini_da921x_dual_modalias_seqnum_count, seqnum_count);
++	atomic_set(&gemini_da921x_dual_modalias_seqnum_index, seqnum_index);
++	atomic_set(&gemini_da921x_dual_modalias_unexpected_count,
++		   unexpected_count);
++#endif
+ 	if (env->envp_idx != ARRAY_SIZE(expected) + 1 ||
+ 	    env->envp_idx >= ARRAY_SIZE(env->envp) ||
+ 	    env->buflen <= 0 || env->buflen > sizeof(env->buf) ||
+-- 
+2.47.3

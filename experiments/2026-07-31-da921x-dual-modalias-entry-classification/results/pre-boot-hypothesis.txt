@@ -1,0 +1,11 @@
+experiment=2026-07-31-da921x-dual-modalias-entry-classification
+predecessor_release=7.1.3-gemini-da921x-envstate
+predecessor_envp_idx=9
+hypothesis=bounded-entry-classification-identifies-the-nine-entry-deficit
+unique_evidence=expected-presence-duplicates-order-seqnum-and-unexpected-count
+event_change=none
+transport=skipped
+driver_provider_transfer_register_storage=none
+arbitrary_event_text_exposed=no
+repeat_identical_artifact=no
+native_vm_kernel_build=forbidden-without-explicit-owner-request

@@ -342,13 +342,14 @@ the live event contains nine total entries. USB serviceability, CPU0--7,
 unbound-client, handoff, and zero-I2C-activity checks passed; local console and
 keyboard were not separately assessed.
 
-The next discriminator must preserve the identical event and expose a
-read-only presence/order classification for the nine expected fixed entries,
-`SEQNUM`, and any unexpected entry. It must distinguish a missing expectation
-from a replacement or ordering difference without printing or transporting
-the target event and without copying arbitrary environment text.
-Build the kernel on Buildbox only; a native VM kernel build requires an
-explicit owner request. Provider work remains blocked.
+The named `da921x-dual-modalias-entry-classification` profile is the selected
+next discriminator. It preserves the identical event and exposes a read-only
+classification for the nine expected fixed entries, duplicates, their ordered
+prefix, `SEQNUM` count and first index, and any unexpected bounded entry. It
+does not print or transport the target event or copy arbitrary environment
+text. Its inputs must pass the manifest, configuration, patch, and static
+checks before an exact clean revision is built on Buildbox. A native VM kernel
+build requires an explicit owner request. Provider work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 
