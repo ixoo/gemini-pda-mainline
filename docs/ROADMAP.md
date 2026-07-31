@@ -333,7 +333,20 @@ while exposing enough read-only envelope metadata to distinguish entry-count,
 envp-capacity/terminator, and packed-buffer-length failures. It must not alter
 an expectation merely to force progress, and it must not repeat this artifact.
 The named `da921x-dual-modalias-envelope-state` profile implements that exact
-read-only split and awaits a clean pushed Buildbox revision.
+read-only split. Its clean Buildbox build, deterministic candidate assembly,
+exact boot2 deployment, full readback, and clean shutdown passed. The first
+selected boot reported `envp_idx=9`, capacity 64, a valid null terminator,
+`buflen=245`, and buffer capacity 2048. The entry count is therefore the sole
+failing operand: the validator expects nine fixed entries plus `SEQNUM`, but
+the live event contains nine total entries. USB serviceability, CPU0--7,
+unbound-client, handoff, and zero-I2C-activity checks passed; local console and
+keyboard were not separately assessed.
+
+The next discriminator must preserve the identical event and expose a
+read-only presence/order classification for the nine expected fixed entries,
+`SEQNUM`, and any unexpected entry. It must distinguish a missing expectation
+from a replacement or ordering difference without printing or transporting
+the target event and without copying arbitrary environment text.
 Build the kernel on Buildbox only; a native VM kernel build requires an
 explicit owner request. Provider work remains blocked.
 

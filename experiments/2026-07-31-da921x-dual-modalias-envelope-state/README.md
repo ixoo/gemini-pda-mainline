@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-31-da921x-dual-modalias-envelope-state` |
-| Status | `boot2 deployed and verified; awaiting runtime result` |
+| Status | `completed; entry-count mismatch isolated` |
 | Subsystem | I2C, OF, kobject uevent |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -74,3 +74,24 @@ and contained the exact stage-state predecessor. The envelope-state candidate
 was written, synced, flushed, and independently read back with matching full
 partition checksum. No backup was created, and the device shut down cleanly
 after verified success.
+
+## Runtime result
+
+The first selected boot exposed exact release
+`7.1.3-gemini-da921x-envstate`, state `pending`, stage `2`, and this envelope:
+
+`envp_idx=9 envp_capacity=64 terminator_null=1 buflen=245 buf_capacity=2048`
+
+The index is the sole failing operand: the validator expects nine fixed
+entries plus `SEQNUM`, for a total of 10, but the live event contains only
+nine entries. Capacity, termination, and packed-buffer bounds all pass. This
+candidate intentionally does not expose the entries themselves, so it cannot
+yet identify which expected fixed entry is absent or whether an unexpected
+entry is present.
+
+The exact pinned USB identity, endpoint, installed checksum, and kernel
+release matched. CPUs 0--7 were online and CPUs 8--9 offline. I2C6 handoff was
+ready, all transfer and lifecycle-oracle counters were zero, the real OF
+client remained unbound, and its sysfs modalias remained the real OF value.
+The read-only capture performed no partition read, storage write, or reboot.
+Local console and keyboard usability were not separately assessed.
