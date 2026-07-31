@@ -1,0 +1,3 @@
+# Experiment-only complete OF event pre-dispatch suppression discriminator.
+CONFIG_I2C_GEMINI_DA921X_OF_MODALIAS_PRE_DISPATCH_SUPPRESSION_DIAGNOSTIC=y
+CONFIG_LOCALVERSION="-gemini-da921x-ofpredispatch"

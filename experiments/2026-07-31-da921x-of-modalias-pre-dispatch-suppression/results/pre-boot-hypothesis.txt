@@ -1,0 +1,5 @@
+experiment=2026-07-31-da921x-of-modalias-pre-dispatch-suppression
+hypothesis=complete exact OF event assembly and normal cleanup are safe when transport is skipped before broadcast
+unique_evidence=exact nine-entry pre-dispatch validation plus transport suppression, real OF node, unbound client, zero I2C-oracle activity, and full serviceability baseline
+serviceable_next=localize the reset inside netlink broadcast construction versus receiver delivery with another behavior-changing transport split
+reset_next=keep transport suppressed and split full environment assembly from normal cleanup with an independent durable observation

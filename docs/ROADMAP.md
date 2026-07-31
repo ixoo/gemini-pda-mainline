@@ -222,12 +222,15 @@ This proves transient real-environment mutation safe and, combined with the
 earlier unsuppressed reset, isolates the remaining boundary to the OF entry
 remaining present during event emission.
 
-Immediate next step: add a durable independent observation around uevent
-dispatch and cleanup that distinguishes entry presence during transport from
-later environment teardown. Do not spend another boot on a kernel/DT/config-
-identical unsuppressed artifact or on marker text alone. The candidate must
-remain driver-free and transfer-free and must make either survival or reset
-change the next action. Provider work remains blocked.
+The selected next discriminator builds and strictly validates the complete
+nine-entry real OF event after sequence-number allocation, then suppresses only
+the exact target event before netlink broadcast while retaining normal cleanup.
+This behavior-changing intervention distinguishes complete assembly and
+teardown from transport: serviceability isolates the reset to broadcast or
+receiver handling, while a reset implicates assembly or cleanup. It is not a
+kernel/DT/config-identical retry or marker-only observation, remains driver-
+and transfer-free, and makes either outcome change the next action. Provider
+work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 

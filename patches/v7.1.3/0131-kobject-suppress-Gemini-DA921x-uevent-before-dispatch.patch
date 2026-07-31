@@ -1,0 +1,159 @@
+From 2c6990d07d258bdf258fac5167b9351d92023dbd Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 31 Jul 2026 13:30:00 -0400
+Subject: [PATCH 131/131] kobject: suppress Gemini DA921x uevent before dispatch
+
+Add an experiment-only discriminator that recognizes the exact completed
+add-event for the Gemini legacy DA921x I2C client after its sequence number
+has been added. Validate the ordered environment storage and every identity
+field, then skip transport and free the environment normally.
+
+This separates complete real OF event assembly and cleanup from netlink
+broadcast without adding a driver or transfer path.
+---
+ drivers/i2c/Kconfig  | 20 +++++++++++
+ lib/kobject_uevent.c | 93 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 113 insertions(+)
+
+diff --git a/drivers/i2c/Kconfig b/drivers/i2c/Kconfig
+--- a/drivers/i2c/Kconfig
++++ b/drivers/i2c/Kconfig
+@@ -101,6 +101,26 @@ config I2C_GEMINI_DA921X_OF_MODALIAS_REAL_ENV_ROLLBACK_DIAGNOSTIC
+ 
+ 	  Say N outside the named real-environment rollback experiment.
+ 
++config I2C_GEMINI_DA921X_OF_MODALIAS_PRE_DISPATCH_SUPPRESSION_DIAGNOSTIC
++	bool "Gemini DA921x complete OF uevent pre-dispatch discriminator"
++	depends on OF && ARCH_MEDIATEK
++	depends on !I2C_GEMINI_DA921X_OF_MODALIAS_DIAGNOSTIC
++	depends on !I2C_GEMINI_DA921X_OF_MODALIAS_PRIVATE_GENERATION_DIAGNOSTIC
++	depends on !I2C_GEMINI_DA921X_OF_MODALIAS_PRIVATE_INSERTION_DIAGNOSTIC
++	depends on !I2C_GEMINI_DA921X_OF_MODALIAS_REAL_ENV_ROLLBACK_DIAGNOSTIC
++	help
++	  Build the complete add-event for the OF-created I2C client with
++	  compatible "dlg,da9214-legacy", including its exact OF MODALIAS and
++	  sequence number, validate its ordered environment, and suppress only
++	  transport before netlink broadcast.
++
++	  This is an experiment-only serviceability discriminator. It preserves
++	  normal event assembly and environment cleanup, but does not dispatch
++	  the target event, suppress client creation or OF-node attachment, or
++	  add a driver or transfer path.
++
++	  Say N outside the named pre-dispatch suppression experiment.
++
+ config I2C_BOARDINFO
+ 	bool
+ 	default y
+diff --git a/lib/kobject_uevent.c b/lib/kobject_uevent.c
+--- a/lib/kobject_uevent.c
++++ b/lib/kobject_uevent.c
+@@ -467,6 +467,91 @@ static void zap_modalias_env(struct kobj_uevent_env *env)
+ 	}
+ }
+ 
++static int gemini_da921x_pre_dispatch(struct kobject *kobj,
++				      enum kobject_action action,
++				      const char *subsystem,
++				      const char *devpath,
++				      struct kobj_uevent_env *env)
++{
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_OF_MODALIAS_PRE_DISPATCH_SUPPRESSION_DIAGNOSTIC)
++	static const char expected_devpath[] =
++		"/devices/platform/soc/1100e000.i2c/i2c-1/1-0068";
++	static const char * const expected[] = {
++		"ACTION=add",
++		"DEVPATH=/devices/platform/soc/1100e000.i2c/i2c-1/1-0068",
++		"SUBSYSTEM=i2c",
++		"OF_NAME=regulator",
++		"OF_FULLNAME=/soc/i2c@1100e000/regulator@68",
++		"OF_COMPATIBLE_0=dlg,da9214-legacy",
++		"OF_COMPATIBLE_N=1",
++		"MODALIAS=of:NregulatorT(null)Cdlg,da9214-legacy",
++	};
++	bool seen[ARRAY_SIZE(expected)] = { };
++	const char *seqnum = NULL;
++	const char *entry;
++	int i;
++	int j;
++
++	if (action != KOBJ_ADD || strcmp(subsystem, "i2c") ||
++	    strcmp(kobject_name(kobj), "1-0068"))
++		return 0;
++	if (strcmp(devpath, expected_devpath))
++		return -EINVAL;
++	if (env->envp_idx != ARRAY_SIZE(expected) + 1 ||
++	    env->envp_idx >= ARRAY_SIZE(env->envp) ||
++	    env->buflen <= 0 || env->buflen > sizeof(env->buf) ||
++	    env->envp[env->envp_idx])
++		return -EINVAL;
++
++	for (i = 0; i < env->envp_idx; i++) {
++		entry = env->envp[i];
++		if (entry < env->buf || entry >= env->buf + env->buflen)
++			return -EINVAL;
++		if (!i) {
++			if (entry != env->buf)
++				return -EINVAL;
++		} else if (entry != env->envp[i - 1] +
++				   strlen(env->envp[i - 1]) + 1) {
++			return -EINVAL;
++		}
++
++		for (j = 0; j < ARRAY_SIZE(expected); j++) {
++			if (strcmp(entry, expected[j]))
++				continue;
++			if (seen[j])
++				return -EINVAL;
++			seen[j] = true;
++		}
++		if (!strncmp(entry, "MODALIAS=", sizeof("MODALIAS=") - 1) &&
++		    strcmp(entry, expected[ARRAY_SIZE(expected) - 1]))
++			return -EINVAL;
++		if (!strncmp(entry, "SEQNUM=", sizeof("SEQNUM=") - 1)) {
++			if (seqnum)
++				return -EINVAL;
++			seqnum = entry + sizeof("SEQNUM=") - 1;
++		}
++	}
++	if (env->envp[env->envp_idx - 1] +
++	    strlen(env->envp[env->envp_idx - 1]) + 1 !=
++	    env->buf + env->buflen)
++		return -EINVAL;
++	for (j = 0; j < ARRAY_SIZE(expected); j++)
++		if (!seen[j])
++			return -EINVAL;
++	if (!seqnum || !*seqnum)
++		return -EINVAL;
++	for (entry = seqnum; *entry; entry++)
++		if (!isdigit(*entry))
++			return -EINVAL;
++
++	pr_info("GEMINI_DA921X_OF_MODALIAS_PRE_DISPATCH full_env=validated envp_idx=%d buflen=%d seqnum=present transport=skipped cleanup=normal\n",
++		env->envp_idx, env->buflen);
++	return 1;
++#else
++	return 0;
++#endif
++}
++
+ /**
+  * kobject_uevent_env - send an uevent with environmental data
+  *
+@@ -593,6 +678,14 @@ int kobject_uevent_env(struct kobject *kobj, enum kobject_action action,
+ 	if (retval)
+ 		goto exit;
+ 
++	retval = gemini_da921x_pre_dispatch(kobj, action, subsystem, devpath, env);
++	if (retval < 0)
++		goto exit;
++	if (retval) {
++		retval = 0;
++		goto exit;
++	}
++
+ 	retval = kobject_uevent_net_broadcast(kobj, env, action_string,
+ 					      devpath);
+ 
+-- 
+2.47.3
