@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-31-da921x-dual-modalias-pre-dispatch-suppression` |
-| Status | `ready for deployment` |
+| Status | `deployed; awaiting first selected boot` |
 | Subsystem | I2C, OF, kobject uevent |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -61,3 +61,16 @@ The installer resolves `boot2` from the live GPT, requires the preceding
 fail-closed pre-dispatch candidate, performs a full post-write readback,
 creates no new partition backup, and powers the device off after verified
 success.
+
+## Deployment
+
+Attempt 1 stopped safely before upload or partition write because the host and
+remote temporary-path allowlists disagreed. The corrected installer was
+reviewed and published before retrying. No temporary upload remained.
+
+Attempt 2 resolved logical `boot2` to `/dev/mmcblk0p30` while the known-good
+Gemian root was `/dev/mmcblk0p29`. The expected predecessor matched, power was
+stable at 100% with good battery health, and the write, flush, target checksum,
+and independent full readback all matched the exact candidate. No new backup
+was created. The device shut down cleanly after verification and awaits the
+first selected boot.
