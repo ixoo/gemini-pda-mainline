@@ -1,0 +1,8 @@
+experiment=2026-07-31-da921x-dual-modalias-stage-state
+hypothesis=read-only-stage-identifies-the-last-successful-ordered-validation-boundary
+unique_evidence=exact-kernel-state-and-integer-stage-with-serviceability-and-zero-hardware-activity
+stage_below_17_next=correct-or-observe-only-the-immediately-following-boundary
+stage_17_next=accept-complete-event-construction-then-isolate-usb-serviceability
+reset_next=attribute-regression-to-stage-observation-or-newly-reached-boundary
+provider_work=blocked
+hardware_activity=none

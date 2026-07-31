@@ -317,9 +317,12 @@ The next discriminator must expose the ordered validator's last successful
 comparison through a read-only state code, covering target identity, each
 expected environment entry, final buffer layout, and numeric sequence. It must
 retain transport suppression, no printk, no driver/provider/transfer path, and
-must not repeat the path-state artifact. Native VM kernel builds require an
-explicit owner request; use Buildbox for the kernel. Provider work remains
-blocked.
+must not repeat the path-state artifact. The named
+`da921x-dual-modalias-stage-state` profile implements stages 0–17 for those
+boundaries while preserving the existing one-bit state. It must pass the
+Buildbox package gate and deterministic candidate assembly before selection.
+Native VM kernel builds require an explicit owner request; use Buildbox for
+the kernel. Provider work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 
