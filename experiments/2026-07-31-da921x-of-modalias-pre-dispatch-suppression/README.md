@@ -84,10 +84,11 @@ The required pre-dispatch success marker was absent, so this is not evidence
 that the asserted nine-entry layout passed. The target event was instead
 suppressed by the diagnostic's fail-closed error path and remained safe.
 
-A source audit explains the rejection: after the OF helper adds the exact OF
-`MODALIAS=`, the normal I2C uevent function continues and also appends
-`MODALIAS=i2c:da9214-legacy`. `SEQNUM=` therefore makes ten entries, not nine.
-This is an inference from the pinned source construction order, not an entry
-capture from this runtime. The next discriminator must validate both exact
-modalias entries, suppress transport, and return successful completion so it
-changes the error-return behavior as well as adding an attributable marker.
+A source audit identified one incorrect assumption: after the OF helper adds
+the exact OF `MODALIAS=`, the normal I2C uevent function also appends
+`MODALIAS=i2c:da9214-legacy`, so `SEQNUM=` makes ten entries,
+not nine. Later read-only-state runtime evidence identified an earlier
+rejection that this audit had not yet observed: the live platform and OF paths
+do not contain the validator's assumed `/soc` component. The devpath
+gate therefore failed before entry-count validation. This experiment remains
+safe and inconclusive about both complete layouts.

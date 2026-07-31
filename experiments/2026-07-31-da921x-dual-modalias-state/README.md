@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-31-da921x-dual-modalias-state` |
-| Status | `selected boot console-serviceable; awaiting USB/netcat state capture` |
+| Status | `completed; safe attributable path-validation failure` |
 | Subsystem | I2C, OF, kobject uevent |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -74,11 +74,24 @@ post-validation action.
 ## Runtime result
 
 On the first selected boot, the owner reported that the console was
-serviceable. This proves the prior immediate-printk candidate's
-pre-serviceability reset did not repeat after removing that printk. The exact
-kernel identity and read-only validation state are not yet captured, so the
-causal split remains incomplete. After the physical USB connection, the gadget
-enumerated on `en9` with the exact exported configuration's inherited host MAC
-`42:00:15:19:84:00`. The first collector revision had incorrectly retained an
-older baseline MAC and was corrected before any netcat session. The device
-remained running without a reboot request or storage access.
+serviceable. USB/netcat then established exact kernel identity
+`7.1.3-gemini-da921x-dualstate` and exposed validation state
+`pending`. CPUs 0–7, the CPU8/9-offline policy, the real unbound OF
+client, module-free baseline, USB serviceability, I2C6 handoff, and every
+transfer/oracle counter all passed unchanged.
+
+The live client path is
+`/devices/platform/1100e000.i2c/i2c-1/1-0068`, while the validator
+expected an extra `/soc` component. The live OF fullname is
+`/i2c@1100e000/regulator@68`, while the ordered environment validator
+also expected an extra `/soc`. Source ordering proves the devpath
+comparison fails first, before any environment-entry validation; the caller
+then suppresses transport through its fail-closed error path. This result is
+therefore not evidence about the removed printk.
+
+Collector attempts 1–4 stopped before verifier execution because the initial
+MAC pin and then the assumed `/tmp` staging path were wrong. Those
+failures are retained separately and make no kernel claim. Attempt 5 used the
+exact inherited MAC and writable initramfs `/run`, captured the
+attributable `pending` result, and performed no partition read,
+storage write, or reboot request.

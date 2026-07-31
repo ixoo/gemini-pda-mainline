@@ -260,9 +260,12 @@ The first pre-dispatch candidate remained fully serviceable with the real
 client unbound and every I2C/oracle counter at zero, but its required success
 marker was absent. It suppressed the target event through the fail-closed
 validation error path, so it does not yet prove the asserted complete layout.
-Source audit identified the rejected assumption: the normal I2C uevent path
+Source audit identified another rejected assumption: the normal I2C uevent path
 appends `MODALIAS=i2c:da9214-legacy` after the exact OF modalias, and `SEQNUM=`
-therefore makes ten entries rather than nine.
+therefore makes ten entries rather than nine. Later read-only-state evidence
+showed that an earlier, still-present `/soc` path assumption had actually
+failed first, so the nine-entry runtime was safe but not attributable to its
+entry count.
 
 The selected next discriminator must validate both exact modalias entries in
 the complete ten-entry event, suppress only transport, and convert the target
@@ -292,12 +295,16 @@ isolates the removed printk; another reset rules it out without repeating an
 identical artifact. The named `da921x-dual-modalias-state` profile implements
 that split. Its Buildbox package and deterministic independent candidate
 assembly passed, and exact boot2 deployment passed full-partition readback
-before clean shutdown. The first selected boot was console-serviceable, so the
-predecessor's pre-serviceability reset did not repeat. The next step is to
-capture exact kernel identity, the read-only validation state, and the full
-USB/serviceability baseline over the published netcat collector. Native VM
-kernel builds require an explicit owner request. Provider work remains
-blocked.
+before clean shutdown. The first selected boot was fully serviceable with exact
+kernel identity, state `pending`, the real client unbound, and every
+I2C/oracle counter at zero. Live sysfs proves the validator inserted a false
+`/soc` component in both the client devpath and OF fullname; source
+ordering proves the devpath comparison failed first and suppressed transport
+before environment validation. This is not evidence about the removed printk.
+The next discriminator must correct both root-path expectations while retaining
+the same no-printk read-only state, transport suppression, and zero-hardware
+baseline. Native VM kernel builds require an explicit owner request. Provider
+work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 
