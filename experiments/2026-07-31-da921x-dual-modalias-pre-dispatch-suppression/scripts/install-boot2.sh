@@ -143,7 +143,7 @@ probe)
 	;;
 write)
 	[[ "$current" == "$EXPECTED_PREDECESSOR_SHA256" ]] || fail 'boot2 changed before write'
-	[[ "$EXPECTED_STAGE" =~ ^/home/gemini/\.gemini-da921x-ofpredispatch\.[A-Za-z0-9]+$ &&
+	[[ "$EXPECTED_STAGE" =~ ^/home/gemini/\.gemini-da921x-dualpre\.[A-Za-z0-9]+$ &&
 		-f "$EXPECTED_STAGE" && ! -L "$EXPECTED_STAGE" ]] || fail 'unsafe staging file'
 	read -r owner mode stage_size <<<"$(stat -c '%U %a %s' "$EXPECTED_STAGE")"
 	[[ "$owner" == gemini && "$mode" == 600 && "$stage_size" == "$EXPECTED_SIZE" ]] || fail 'staging identity changed'
@@ -187,7 +187,7 @@ result=skipped-already-matching
 if [[ "$already_current" == no ]]; then
 	stage="$("${ssh_command[@]}" "$target" 'umask 077; mktemp /home/gemini/.gemini-da921x-dualpre.XXXXXXXX')"
 	stage=${stage//$'\r'/}
-	[[ "$stage" =~ ^/home/gemini/\.gemini-da921x-ofpredispatch\.[A-Za-z0-9]+$ ]] || die 'remote returned unsafe staging path'
+	[[ "$stage" =~ ^/home/gemini/\.gemini-da921x-dualpre\.[A-Za-z0-9]+$ ]] || die 'remote returned unsafe staging path'
 	"${ssh_command[@]}" "$target" "test -f '$stage' && test ! -L '$stage' && cat >'$stage' && chmod 600 '$stage'" \
 		<"$candidate" || die 'candidate upload failed'
 	write_output="$(remote_gate write "$stage")" || die 'bounded boot2 write failed'
