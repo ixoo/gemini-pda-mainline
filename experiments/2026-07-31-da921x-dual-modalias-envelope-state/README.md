@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-31-da921x-dual-modalias-envelope-state` |
-| Status | `kernel inputs prepared; awaiting validation` |
+| Status | `validated candidate prepared; awaiting boot2 deployment` |
 | Subsystem | I2C, OF, kobject uevent |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -52,3 +52,19 @@ owner explicitly requests one.
 
 The experiment patch carries the actual author identity but no DCO sign-off.
 It is experiment-only and not submission-ready.
+
+## Build and candidate
+
+Buildbox fetched exact clean, pushed commit
+`230fd33c0abb0657999829ed549d41b001c1c4be` and produced release
+`7.1.3-gemini-da921x-envstate`. The validated package was assembled twice
+without compiling a kernel in the VM; the two LK containers were
+byte-identical. The selected candidate is
+`candidate-Gate3-da921x-envstate-b6d6b25d`, with full boot2 checksum
+`4afe2d97662e9cde1da0a27e2f4a58e0a05e425d9cd5da69abfa51f4136bcea9`.
+All 32 LK gates passed.
+
+The exact installer accepts only the currently installed stage-state checksum
+as predecessor, resolves `boot2` from the live GPT, verifies the complete
+partition after writing, creates no backup, and shuts the device down after
+verified success.
