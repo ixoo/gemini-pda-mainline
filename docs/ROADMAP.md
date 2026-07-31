@@ -376,8 +376,12 @@ The named `da921x-of-event-layout-correction` profile now represents that
 single correction. Its 127-patch inputs apply cleanly, its merged configuration
 enables the correction only for the new profile, all 44 manifest profiles pass
 the canonical-series invariant, and focused strict checkpatch is clean apart
-from the intentionally absent experiment-only DCO. The next step is an exact
-clean pushed-commit Buildbox build; no native VM kernel build is authorized.
+from the intentionally absent experiment-only DCO. Exact clean commit
+`0656017` built successfully on Buildbox. Two candidate assemblies were
+byte-identical and all 32 LK gates passed; the retained exact candidate is
+`candidate-Gate3-da921x-ofevent-461e90ef`. The next step is guarded deployment
+from known-good Gemian, full boot2 readback, and clean shutdown. No native VM
+kernel build is authorized.
 
 ### 4. Finish the ownership and rollback audit
 
