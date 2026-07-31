@@ -48,6 +48,8 @@ sign-off. It is experiment-only and not submission-ready.
 
 The named `da921x-dual-modalias-state` profile is built through
 `./scripts/build-kernel`. Buildbox is the primary backend and must fetch the
-exact clean, pushed commit. The native ARM64 VM remains the independent build
-oracle required before selecting a device candidate. Only validated packages
-are exported; generated source and build trees remain on their builders.
+exact clean, pushed commit. Native ARM64 VM kernel builds are not part of this
+experiment unless the owner explicitly requests one. Deterministic independent
+candidate assembly remains the byte-level reproduction oracle. Only validated
+packages are exported; generated source and build trees remain on their
+builders.

@@ -1,0 +1,8 @@
+experiment=2026-07-31-da921x-dual-modalias-state
+backend=native-arm64-vm
+result=interrupted-by-owner-policy
+package_created=no
+reason=owner-requires-explicit-request-before-any-native-vm-kernel-build
+future_native_builds=prohibited-unless-explicitly-requested
+selected_build_backend=buildbox
+device_access=none
