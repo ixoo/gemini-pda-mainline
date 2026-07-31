@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-31-da921x-dual-modalias-path-state` |
-| Status | `runtime inconclusive; console serviceable but USB absent` |
+| Status | `completed; exact candidate remained pending` |
 | Subsystem | I2C, OF, kobject uevent |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -82,16 +82,19 @@ reboot.
 
 ## Runtime attempt 1
 
-The owner selected `boot2` and reported the console serviceable. This rules out
-a pre-console reset. The host did not enumerate the pinned Gemini USB network
+The owner selected `boot2`, reported the console serviceable, and read exact
+kernel identity `7.1.3-gemini-da921x-pathstate` plus validation state
+`pending` from the device console. This rules out a pre-console reset and
+proves that correcting the two root-level paths was insufficient to complete
+the exact event validation. The host did not enumerate the pinned Gemini USB network
 MAC during the initial bounded wait or during a second bounded wait after the
 owner physically disconnected and reconnected the cable. The prepared netcat
-collector therefore never connected and the read-only validation state remains
-unobserved.
+collector therefore never connected.
 
-This is not evidence that the event reached `validated`, and it is not an
-identical reproduction of the predecessor's fully serviceable USB baseline.
+This is evidence that the exact candidate remained `pending`, not that the
+event reached `validated`. It is not an identical reproduction of the
+predecessor's fully serviceable USB baseline.
 No device partition was read, no storage was written, and no reboot was
-requested during the attempted capture. The next experiment action must obtain
-the state through an independent observation path or isolate the USB loss; it
-must not infer successful validation from the working console alone.
+requested during the attempted capture. The next experiment must expose the
+ordered validator's last successful stage through a read-only independent
+observation path and must not repeat this artifact.

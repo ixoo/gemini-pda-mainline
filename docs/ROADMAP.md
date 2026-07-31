@@ -305,9 +305,21 @@ One identity-gated native reboot returned to known-good Gemian. The named
 `da921x-dual-modalias-path-state` profile implements the next
 discriminator by correcting only those two expectations while retaining the
 same no-printk read-only state, transport suppression, and zero-hardware
-baseline. It must pass the Buildbox package gate and deterministic candidate
-assembly before selection. Native VM kernel builds require an explicit owner
-request. Provider work remains blocked.
+baseline. Its Buildbox package, deterministic candidate assembly, exact boot2
+deployment, full readback, and clean shutdown passed. On the first selected
+boot the console remained serviceable and the owner confirmed exact kernel
+identity, but the state was still `pending`. USB did not enumerate before or
+after a physical cable reconnect, so the automated verifier could not run.
+This proves the two path corrections were insufficient and does not establish
+the complete event or the full serviceability baseline.
+
+The next discriminator must expose the ordered validator's last successful
+comparison through a read-only state code, covering target identity, each
+expected environment entry, final buffer layout, and numeric sequence. It must
+retain transport suppression, no printk, no driver/provider/transfer path, and
+must not repeat the path-state artifact. Native VM kernel builds require an
+explicit owner request; use Buildbox for the kernel. Provider work remains
+blocked.
 
 ### 4. Finish the ownership and rollback audit
 
