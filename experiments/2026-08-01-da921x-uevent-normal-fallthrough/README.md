@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-01-da921x-uevent-normal-fallthrough` |
-| Status | `input validated; Buildbox build pending` |
+| Status | `offline validated; guarded boot2 deployment pending` |
 | Subsystem | I2C, OF, kobject uevent, netlink |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -56,5 +56,6 @@ not submission-ready.
 
 ## Follow-up
 
-Commit and push the frozen inputs, then submit that exact commit to Buildbox.
-No device boot is authorized from compile-only evidence.
+Commit and push the offline evidence and guarded installer, then deploy only
+after resolving `boot2` from the live GPT and matching the exact stage-24
+predecessor. A successful verified write must end in clean shutdown.

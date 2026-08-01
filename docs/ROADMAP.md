@@ -529,10 +529,16 @@ single exact receipt, no duplicate, and the unchanged zero-hardware and
 serviceability baseline. The 135-patch series, resolved configuration,
 manifest invariants, strict patch checks, and two byte-identical static
 listener builds passed input validation. The next action is an exact clean
-Buildbox build from the frozen pushed commit. Success would permit a separate
-natural `device_add()` boundary; it would not yet prove driver bind, provider
-behavior, or A72 power. No native VM kernel build is authorized without an
-explicit owner request. Provider work remains blocked.
+Buildbox build from the frozen pushed commit. That build passed for exact
+commit `6c74785`, the fetched package revalidated, and two independent
+candidate assemblies were byte-identical. The retained candidate passed its
+manifest and all 32 LK gates; the regenerable VM assemblies were removed. The
+next action is guarded live-GPT `boot2` deployment against the exact stage-24
+predecessor, full-partition readback, and clean shutdown. A successful runtime
+would permit a separate natural `device_add()` boundary; it would not yet
+prove driver bind, provider behavior, or A72 power. No native VM kernel build
+is authorized without an explicit owner request. Provider work remains
+blocked.
 
 ### 4. Finish the ownership and rollback audit
 
