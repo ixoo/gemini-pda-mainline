@@ -514,8 +514,9 @@ and four-listener runtime chain passed syntax and ShellCheck. Guarded deployment
 resolved the live GPT, matched the exact stage-23 predecessor, passed stable
 power, inactive-target, synchronized-write, flush, and full-readback gates, and
 shut the device down without creating a fresh backup. One selected `boot2`
-runtime capture is next. No native VM kernel build is authorized without an
-explicit owner request. Provider work remains blocked.
+runtime capture through the corrected, complete stage-20-to-24 reconstruction
+chain is next. No native VM kernel build is authorized without an explicit
+owner request. Provider work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 

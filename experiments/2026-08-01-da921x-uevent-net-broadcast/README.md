@@ -85,3 +85,13 @@ readback matched the exact stage-24 padded candidate and its temporary copy was
 removed. No fresh backup was created. The device then shut down cleanly, as
 recorded in `results/deployment.txt`. The next action is one selected `boot2`
 boot followed by the frozen four-listener runtime capture.
+
+Runtime attempt 1 was rejected before any kernel trigger because the collector
+invoked the stage-23 checker directly at initial stage 20. The device remained
+at stage 20 with read-only sysfs, all temporary helpers were removed, and no
+partition read, storage write, or reboot occurred. This is harness evidence,
+not kernel evidence. The corrected collector now source-pins the complete
+stage-20-to-22 reconstruction before the separate stage-23 and stage-24
+checkers. Exact chronology and the private-capture hash are recorded in
+`results/runtime-attempt-1.txt`. Because no trigger or state transition
+occurred, one corrected retry on the same selected boot remains attributable.
