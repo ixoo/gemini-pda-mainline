@@ -136,7 +136,13 @@ shutdown was confirmed. Sanitized evidence is in `results/deployment.txt`.
 ## Observations
 
 The exact package and candidate passed offline validation and guarded boot2
-deployment. No selected-boot runtime claim has been made yet.
+deployment. Runtime attempt 1 identified the exact release and installed
+checksum but the listener helper returned nonzero before the trigger. A
+read-only follow-up proved stage 20, `attempts=0`, one socket, zero listeners,
+and the unchanged no-listener state. The attempt therefore contains no stage-21
+kernel result. The checker now preserves the helper's combined diagnostic on
+failure; one retry on the same untouched boot is attributable. No selected-boot
+runtime claim has been made yet.
 
 ## Follow-up
 

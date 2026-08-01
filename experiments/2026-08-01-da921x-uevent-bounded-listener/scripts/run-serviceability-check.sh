@@ -82,7 +82,14 @@ bounded_state="$(/bin/busybox cat "$bounded_path")" || abort bounded-state-read
 	'attempts=0 baseline_sockets=-1 sockets=-1 listeners=-1 broadcasts=-1' ] ||
 	abort bounded-state-before-trigger
 
-listener_result="$("$listener")" || abort listener-helper-failed
+set +e
+listener_result="$("$listener" 2>&1)"
+listener_status=$?
+set -e
+if [ "$listener_status" -ne 0 ]; then
+	printf '%s\n' "$listener_result"
+	abort listener-helper-failed
+fi
 printf '%s\n' "$listener_result" | /bin/busybox grep -qx 'listener_ready=1' ||
 	abort listener-ready-result
 printf '%s\n' "$listener_result" | /bin/busybox grep -qx 'listener_groups=0x1' ||
