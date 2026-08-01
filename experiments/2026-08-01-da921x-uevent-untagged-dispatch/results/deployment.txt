@@ -1,0 +1,14 @@
+experiment=2026-08-01-da921x-uevent-untagged-dispatch
+target=/dev/mmcblk0p30
+active_root=/dev/mmcblk0p29
+boot_id=d3925db9-9c1b-4b64-aae6-34ddc2767789
+power_present=1
+power_capacity=100
+power_health=Good
+predecessor_sha256=b8113be2e197a8ab06baf863da8679ff585360ef75b8c60359742f8afb862274
+candidate_sha256=0c31f1c73bcd7f61d6b10010e17bd4de3bcc05ab6239130cab5d7fa2d26e139d
+result=write-synced-flushed-full-readback-verified
+backup=not-created-project-wide-backup-relied-upon
+full_readback=matching-and-temporary-copy-removed
+shutdown=confirmed-disconnected-after-verified-success
+private_source_sha256=6ea0c4321c6286522ce6d77a537b5e38fefb08458bce13f12c5bebe815c3fae4

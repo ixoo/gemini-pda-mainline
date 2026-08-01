@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-01-da921x-uevent-untagged-dispatch` |
-| Status | `candidate and runtime tooling validated; awaiting deployment` |
+| Status | `deployed to boot2; awaiting selected-boot runtime` |
 | Subsystem | I2C, OF, kobject uevent, netlink |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -82,5 +82,9 @@ with the intended release, profile, patchset, and configuration. The fetched
 package passed its checksum manifest. Two independent boot-container
 assemblies were byte-identical and passed all 32 LK gates. One validated copy
 is retained below the ignored artifact tree and the VM copies were removed.
-Commit and push the corrected helper, guarded installer, predecessor
-reconstruction, and stage-23 serviceability checker, then deploy to boot2.
+The corrected helper, guarded installer, predecessor reconstruction, and
+stage-23 serviceability checker were committed and pushed. Guarded deployment
+resolved live `boot2`, matched the exact stage-22 predecessor, passed power and
+inactive-target gates, synchronized and flushed the write, matched a full
+partition readback, and shut the device down. No fresh backup was created.
+Select boot2 once, then run the frozen runtime capture.

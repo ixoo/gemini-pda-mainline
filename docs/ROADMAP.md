@@ -489,10 +489,12 @@ listener, allocation, broadcast, exact receipt, and no duplicate. Exact clean
 Buildbox compilation passed for the intended pushed commit and the fetched
 package revalidated. Two independent candidate assemblies were byte-identical,
 the retained copy passed its manifest and all 32 LK gates, and the regenerable
-VM copies were removed. Guarded boot2 deployment and the first selected-boot
-runtime capture are next. Visual white/grey-screen and reboot behavior alone
-remains inconclusive. No native VM kernel build is authorized without an
-explicit owner request. Provider work remains blocked.
+VM copies were removed. Guarded live-GPT deployment matched the exact stage-22
+predecessor, passed full readback, and shut the device down without creating a
+fresh backup. The first selected-boot runtime capture is next. Visual
+white/grey-screen and reboot behavior alone remains inconclusive. No native VM
+kernel build is authorized without an explicit owner request. Provider work
+remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 
