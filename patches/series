@@ -132,3 +132,4 @@ v7.1.3/0139-kobject-validate-Gemini-DA921x-netlink-serialization.patch
 v7.1.3/0140-kobject-observe-Gemini-DA921x-uevent-listeners.patch
 v7.1.3/0141-kobject-exercise-Gemini-DA921x-no-listener-delivery.patch
 v7.1.3/0142-kobject-observe-Gemini-DA921x-bounded-listener.patch
+v7.1.3/0143-kobject-deliver-Gemini-DA921x-single-multicast.patch

@@ -23,6 +23,10 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-01 DA921x single uevent multicast](2026-08-01-da921x-uevent-single-multicast/README.md)
+  — input-validates the stage-22 discriminator: one exact multicast call to
+  the runtime-proven single listener plus independent exact-datagram receipt
+  and bounded no-duplicate validation. Buildbox has not run yet.
 - [2026-08-01 DA921x bounded uevent listener](2026-08-01-da921x-uevent-bounded-listener/README.md)
   — input-validates the stage-21 discriminator: one independent userspace
   group-1 listener, one exact-token replay, and consumption before multicast.

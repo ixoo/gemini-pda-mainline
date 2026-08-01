@@ -1,0 +1,299 @@
+From 8d8fb5e228e2d4e8d5b2646f306aec2d9d6f3c93 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 1 Aug 2026 11:00:00 -0400
+Subject: [PATCH 143/143] kobject: deliver Gemini DA921x single multicast
+
+The named Gemini reached stage 21 with one runtime-proven uevent socket,
+exactly one independently bound group-1 listener, zero broadcasts, and no
+receipt during a bounded wait. The exact event, unbound client, zero-I2C,
+and serviceability baseline passed.
+
+Add the next experiment-only split. Retain the exact target after stage 21
+and expose a separate one-shot, exact-token trigger. Revalidate the same
+event and topology under the socket-list mutex, allocate one skb, and make
+one group-1 netlink broadcast. Record stage 22 only after the single
+socket, single listener, allocation, broadcast call, and normalized return
+all pass.
+
+A separately checksum-pinned userspace helper must independently validate
+one exact datagram and no duplicate. The trigger fails closed unless the
+stage-21 target is retained. This adds no driver, provider, I2C transfer,
+register access, printk, or storage path.
+---
+ drivers/i2c/Kconfig     |  18 ++++++
+ include/linux/kobject.h |  11 ++++
+ kernel/ksysfs.c         |  38 +++++++++++++
+ lib/kobject_uevent.c    | 132 +++++++++++++++++++++++++++++++++++++++++++--
+ 4 files changed, 197 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/i2c/Kconfig b/drivers/i2c/Kconfig
+--- a/drivers/i2c/Kconfig
++++ b/drivers/i2c/Kconfig
+@@ -279,6 +279,24 @@ config I2C_GEMINI_DA921X_UEVENT_BOUNDED_LISTENER_DIAGNOSTIC
+ 
+ 	  Say N outside the named bounded-listener experiment.
+ 
++config I2C_GEMINI_DA921X_UEVENT_SINGLE_MULTICAST_DIAGNOSTIC
++	bool "Gemini DA921x single uevent-multicast discriminator"
++	depends on I2C_GEMINI_DA921X_UEVENT_BOUNDED_LISTENER_DIAGNOSTIC
++	help
++	  Retain the exact target after stage 21 and expose a separate one-shot
++	  trigger at /sys/kernel/gemini_da921x_uevent_single_multicast. With the
++	  independently validated group-1 listener already bound, replay and
++	  revalidate the same add-event and runtime-proven one-socket, one-listener
++	  topology under the socket-list mutex, then make exactly one multicast.
++
++	  Successful kernel-side allocation and broadcast observation advances the
++	  read-only stage to 22. A separate userspace helper must validate one exact
++	  datagram and no duplicate. The trigger accepts only the exact token
++	  "probe" and adds no driver, provider, transfer, register access, printk,
++	  or storage path.
++
++	  Say N outside the named single-multicast experiment.
++
+ config I2C_BOARDINFO
+ 	bool
+ 	default y
+diff --git a/include/linux/kobject.h b/include/linux/kobject.h
+--- a/include/linux/kobject.h
++++ b/include/linux/kobject.h
+@@ -89,6 +89,17 @@ extern atomic_t gemini_da921x_bounded_listener_broadcast_count;
+ int gemini_da921x_trigger_bounded_listener(void);
+ #endif
+ 
++#ifdef CONFIG_I2C_GEMINI_DA921X_UEVENT_SINGLE_MULTICAST_DIAGNOSTIC
++extern atomic_t gemini_da921x_single_multicast_attempts;
++extern atomic_t gemini_da921x_single_multicast_baseline_socket_count;
++extern atomic_t gemini_da921x_single_multicast_socket_count;
++extern atomic_t gemini_da921x_single_multicast_listener_count;
++extern atomic_t gemini_da921x_single_multicast_allocation_count;
++extern atomic_t gemini_da921x_single_multicast_broadcast_count;
++extern atomic_t gemini_da921x_single_multicast_retval;
++int gemini_da921x_trigger_single_multicast(void);
++#endif
++
+ /*
+  * The actions here must match the index to the string array
+  * in lib/kobject_uevent.c
+diff --git a/kernel/ksysfs.c b/kernel/ksysfs.c
+--- a/kernel/ksysfs.c
++++ b/kernel/ksysfs.c
+@@ -171,6 +171,41 @@ static struct kobj_attribute gemini_da921x_uevent_bounded_listener_attr =
+ 	       gemini_da921x_bounded_listener_store);
+ #endif
+ 
++#ifdef CONFIG_I2C_GEMINI_DA921X_UEVENT_SINGLE_MULTICAST_DIAGNOSTIC
++static ssize_t
++gemini_da921x_single_multicast_show(struct kobject *kobj,
++				    struct kobj_attribute *attr, char *buf)
++{
++	return sysfs_emit(buf,
++		"attempts=%d baseline_sockets=%d sockets=%d listeners=%d allocations=%d broadcasts=%d retval=%d\n",
++		atomic_read(&gemini_da921x_single_multicast_attempts),
++		atomic_read(&gemini_da921x_single_multicast_baseline_socket_count),
++		atomic_read(&gemini_da921x_single_multicast_socket_count),
++		atomic_read(&gemini_da921x_single_multicast_listener_count),
++		atomic_read(&gemini_da921x_single_multicast_allocation_count),
++		atomic_read(&gemini_da921x_single_multicast_broadcast_count),
++		atomic_read(&gemini_da921x_single_multicast_retval));
++}
++
++static ssize_t
++gemini_da921x_single_multicast_store(struct kobject *kobj,
++				     struct kobj_attribute *attr,
++				     const char *buf, size_t count)
++{
++	int ret;
++
++	if (count != sizeof("probe\n") - 1 || memcmp(buf, "probe\n", count))
++		return -EINVAL;
++	ret = gemini_da921x_trigger_single_multicast();
++	return ret ?: count;
++}
++
++static struct kobj_attribute gemini_da921x_uevent_single_multicast_attr =
++	__ATTR(gemini_da921x_uevent_single_multicast, 0644,
++	       gemini_da921x_single_multicast_show,
++	       gemini_da921x_single_multicast_store);
++#endif
++
+ /* cpu byteorder */
+ static ssize_t cpu_byteorder_show(struct kobject *kobj,
+ 				  struct kobj_attribute *attr, char *buf)
+@@ -329,5 +364,8 @@ static struct attribute * kernel_attrs[] = {
+ 	&gemini_da921x_uevent_bounded_listener_attr.attr,
+ #endif
++#ifdef CONFIG_I2C_GEMINI_DA921X_UEVENT_SINGLE_MULTICAST_DIAGNOSTIC
++	&gemini_da921x_uevent_single_multicast_attr.attr,
++#endif
+ 	&cpu_byteorder_attr.attr,
+ 	&address_bits_attr.attr,
+ #ifdef CONFIG_UEVENT_HELPER
+diff --git a/lib/kobject_uevent.c b/lib/kobject_uevent.c
+--- a/lib/kobject_uevent.c
++++ b/lib/kobject_uevent.c
+@@ -81,6 +81,19 @@ static DEFINE_MUTEX(gemini_da921x_bounded_listener_lock);
+ static struct kobject *gemini_da921x_bounded_listener_target;
+ #endif
+ 
++#ifdef CONFIG_I2C_GEMINI_DA921X_UEVENT_SINGLE_MULTICAST_DIAGNOSTIC
++atomic_t gemini_da921x_single_multicast_attempts = ATOMIC_INIT(0);
++atomic_t gemini_da921x_single_multicast_baseline_socket_count = ATOMIC_INIT(-1);
++atomic_t gemini_da921x_single_multicast_socket_count = ATOMIC_INIT(-1);
++atomic_t gemini_da921x_single_multicast_listener_count = ATOMIC_INIT(-1);
++atomic_t gemini_da921x_single_multicast_allocation_count = ATOMIC_INIT(-1);
++atomic_t gemini_da921x_single_multicast_broadcast_count = ATOMIC_INIT(-1);
++atomic_t gemini_da921x_single_multicast_retval = ATOMIC_INIT(-1);
++
++static DEFINE_MUTEX(gemini_da921x_single_multicast_lock);
++static struct kobject *gemini_da921x_single_multicast_target;
++#endif
++
+ #ifdef CONFIG_UEVENT_HELPER
+ char uevent_helper[UEVENT_HELPER_PATH_LEN] = CONFIG_UEVENT_HELPER_PATH;
+ #endif
+@@ -586,6 +599,110 @@ int gemini_da921x_trigger_bounded_listener(void)
+ }
+ #endif
+ 
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_UEVENT_SINGLE_MULTICAST_DIAGNOSTIC)
++static int gemini_da921x_arm_single_multicast(struct kobject *kobj)
++{
++	int ret = 0;
++
++	mutex_lock(&gemini_da921x_single_multicast_lock);
++	if (gemini_da921x_single_multicast_target ||
++	    atomic_read(&gemini_da921x_single_multicast_attempts))
++		ret = -EALREADY;
++	else
++		gemini_da921x_single_multicast_target = kobject_get(kobj);
++	mutex_unlock(&gemini_da921x_single_multicast_lock);
++	return ret;
++}
++
++static int gemini_da921x_single_multicast(struct kobj_uevent_env *env,
++					  const char *action_string,
++					  const char *devpath)
++{
++	struct gemini_da921x_broadcast_observation observation = { };
++	struct sk_buff *skb = NULL;
++	struct uevent_sock *ue_sk;
++	int baseline_sockets =
++		atomic_read(&gemini_da921x_bounded_listener_socket_count);
++	int retval = 0;
++
++	mutex_lock(&uevent_sock_mutex);
++	list_for_each_entry(ue_sk, &uevent_sock_list, list) {
++		if (observation.sockets == 1024) {
++			retval = -E2BIG;
++			goto out_unlock;
++		}
++		observation.sockets++;
++		if (netlink_has_listeners(ue_sk->sk, 1))
++			observation.listeners++;
++	}
++	if (baseline_sockets != 1 || observation.sockets != baseline_sockets ||
++	    observation.listeners != 1) {
++		retval = -EINVAL;
++		goto out_unlock;
++	}
++
++	list_for_each_entry(ue_sk, &uevent_sock_list, list) {
++		if (!netlink_has_listeners(ue_sk->sk, 1))
++			continue;
++		skb = alloc_uevent_skb(env, action_string, devpath);
++		if (!skb) {
++			retval = -ENOMEM;
++			goto out_unlock;
++		}
++		observation.allocations++;
++		observation.broadcasts++;
++		retval = netlink_broadcast(ue_sk->sk, skb_get(skb), 0, 1,
++					   GFP_KERNEL);
++		if (retval == -ENOBUFS || retval == -ESRCH)
++			retval = 0;
++		break;
++	}
++
++out_unlock:
++	mutex_unlock(&uevent_sock_mutex);
++	consume_skb(skb);
++	atomic_set(&gemini_da921x_single_multicast_baseline_socket_count,
++		   baseline_sockets);
++	atomic_set(&gemini_da921x_single_multicast_socket_count,
++		   observation.sockets);
++	atomic_set(&gemini_da921x_single_multicast_listener_count,
++		   observation.listeners);
++	atomic_set(&gemini_da921x_single_multicast_allocation_count,
++		   observation.allocations);
++	atomic_set(&gemini_da921x_single_multicast_broadcast_count,
++		   observation.broadcasts);
++	atomic_set(&gemini_da921x_single_multicast_retval, retval);
++	if (retval || observation.allocations != 1 ||
++	    observation.broadcasts != 1)
++		return retval ?: -EINVAL;
++
++	atomic_set(&gemini_da921x_dual_modalias_stage, 22);
++	return 0;
++}
++
++int gemini_da921x_trigger_single_multicast(void)
++{
++	struct kobject *kobj;
++	int ret;
++
++	if (atomic_read(&gemini_da921x_dual_modalias_stage) != 21)
++		return -EAGAIN;
++	if (atomic_cmpxchg(&gemini_da921x_single_multicast_attempts, 0, 1))
++		return -EALREADY;
++
++	mutex_lock(&gemini_da921x_single_multicast_lock);
++	kobj = gemini_da921x_single_multicast_target;
++	gemini_da921x_single_multicast_target = NULL;
++	mutex_unlock(&gemini_da921x_single_multicast_lock);
++	if (!kobj)
++		return -ENODEV;
++
++	ret = kobject_uevent(kobj, KOBJ_ADD);
++	kobject_put(kobj);
++	return ret;
++}
++#endif
++
+ static int uevent_net_broadcast_tagged(struct sock *usk,
+ 				       struct kobj_uevent_env *env,
+ 				       const char *action_string,
+@@ -1075,7 +1192,7 @@ int kobject_uevent_env(struct kobject *kobj, enum kobject_action action,
+ 			goto exit;
+ #endif
+ #if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_UEVENT_BOUNDED_LISTENER_DIAGNOSTIC)
+-		if (gemini_da921x_previous_stage > 20) {
++		if (gemini_da921x_previous_stage > 21) {
+ 			atomic_set(&gemini_da921x_dual_modalias_stage,
+ 				   gemini_da921x_previous_stage);
+ 			retval = -EALREADY;
+@@ -1092,10 +1209,21 @@ int kobject_uevent_env(struct kobject *kobj, enum kobject_action action,
+ 			retval = gemini_da921x_arm_bounded_listener(kobj);
+ 			if (retval)
+ 				goto exit;
+-		} else {
++		} else if (gemini_da921x_previous_stage == 20) {
+ 			retval = gemini_da921x_validate_bounded_listener();
+ 			if (retval)
+ 				goto exit;
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_UEVENT_SINGLE_MULTICAST_DIAGNOSTIC)
++			retval = gemini_da921x_arm_single_multicast(kobj);
++			if (retval)
++				goto exit;
++		} else {
++			retval = gemini_da921x_single_multicast(env,
++								action_string,
++								devpath);
++			if (retval)
++				goto exit;
++#endif
+ 		}
+ #elif IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_UEVENT_NO_LISTENER_DELIVERY_DIAGNOSTIC)
+ 		retval = gemini_da921x_no_listener(env, action_string, devpath);
+-- 
+2.47.3
