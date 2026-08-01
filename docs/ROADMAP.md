@@ -457,12 +457,18 @@ client, zero-I2C activity, and full serviceability baseline remained unchanged.
 An independent read-only follow-up confirmed stage 21 and restored read-only
 sysfs. No partition read, storage write, or reboot occurred.
 
-The next Gate 3 experiment must be a separate single-multicast gate retaining
-that runtime-proven topology and zero-hardware baseline. It must freeze unique
-delivery evidence and failure actions before another device boot; topology or
-baseline changes reject attribution. Visual white/grey-screen and reboot
-behavior alone remains inconclusive. No native VM kernel build is authorized
-without an explicit owner request. Provider work remains blocked.
+The named `da921x-uevent-single-multicast` profile is the next Gate 3
+discriminator. Its replacement exact clean Buildbox package and two
+byte-identical candidate assemblies passed offline validation after the first
+package was rejected for a frozen metadata-identity mismatch. The retained
+candidate passed all 32 LK gates. Its frozen selected-boot check first
+re-establishes stage 21 with the proven bounded-listener helper, then requires
+one allocation, one group-1 broadcast, one exact 293-byte userspace receipt,
+and no duplicate while preserving the zero-hardware and serviceability
+baseline. Topology, receipt, counter, or baseline changes reject attribution.
+Deployment and runtime evidence remain pending. Visual white/grey-screen and
+reboot behavior alone remains inconclusive. No native VM kernel build is
+authorized without an explicit owner request. Provider work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 

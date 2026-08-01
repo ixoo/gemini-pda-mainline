@@ -37,3 +37,7 @@ input_validation=passed
 first_buildbox_job=ce5da7e6b6db1000ac537519a8cf667cbece8abe-da921x-uevent-single-multicast-m0
 first_buildbox_release=7.1.3-gemini-da921x-mcast1
 first_buildbox_result=rejected-before-fetch-or-selection-frozen-patchset-mismatch
+replacement_buildbox_commit=bd4602cdcab7794972b503fcbdf3857cec703cfb
+replacement_buildbox_job=bd4602cdcab7794972b503fcbdf3857cec703cfb-da921x-uevent-single-multicast-m0
+replacement_buildbox_release=7.1.3-gemini-da921x-mcast1
+replacement_buildbox_result=compiled-validated-and-selected

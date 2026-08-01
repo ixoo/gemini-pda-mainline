@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-01-da921x-uevent-single-multicast` |
-| Status | `pre-build identity corrected; awaiting replacement buildbox` |
+| Status | `offline validated; runtime plan frozen` |
 | Subsystem | I2C, OF, kobject uevent, netlink |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -104,10 +104,25 @@ captured before a later metadata-only correction to patch `0143`'s email
 diffstat. No source hunk or configuration changed. The package's exact patchset
 therefore differed from the frozen value and was rejected before fetch,
 candidate assembly, or device access. The correction and both identities are
-recorded in `results/pre-build-identity-correction.txt`; a replacement exact
-commit build is required.
+recorded in `results/pre-build-identity-correction.txt`.
+
+The replacement buildbox job compiled and validated exact clean commit
+`bd4602cdcab7794972b503fcbdf3857cec703cfb`. Two independent managed-Linux
+assemblies were byte-identical. The retained 6,864,896-byte container passed
+all 32 LK analyzer gates and was padded to the exact 16,777,216-byte `boot2`
+size. The duplicate assembly and helper were removed after comparison. No
+native VM kernel build or device access was used.
+
+Because each selected boot starts at stage 20, the frozen runtime checker first
+re-establishes the proven stage-21 predecessor with the checksum-pinned bounded
+listener, then invokes the separate checksum-pinned single-multicast helper.
+Both triggers occur during one temporary writable sysfs interval; the exit trap
+restores sysfs read-only on success and every failure. Exact identities and the
+result-to-action map are in `results/offline-validation.txt` and
+`results/runtime-plan.txt`.
 
 ## Follow-up
 
-Commit and push the corrected frozen identity, then run the replacement exact
-clean commit only on buildbox.
+Commit and push the frozen deployment/runtime tooling, then guarded-write the
+exact padded candidate to live-GPT-resolved inactive `boot2`, verify its full
+readback, and shut the device down for physical selection.
