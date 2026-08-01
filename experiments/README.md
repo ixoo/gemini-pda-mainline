@@ -5,6 +5,14 @@ software-visible hardware. The write-up, probe code, and sanitized evidence for
 an investigation stay together so another contributor can repeat or challenge
 the result.
 
+Retrospective evidence note: the owner reported on 2026-07-31 that some
+white/grey-screen cycles followed by an apparent reboot may have been reboot or
+boot-selection issues rather than kernel failures. Individual records retain
+their exact chronology and predeclared decision maps, but a visual state plus
+return to Gemian alone is now treated as inconclusive unless exact kernel
+identity, a durable stage record, or attributable crash/reset evidence closes
+the loop. Positive identity-gated observations are unaffected.
+
 ## Index
 
 ### Current repository audit

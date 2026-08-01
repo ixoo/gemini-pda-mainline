@@ -28,8 +28,8 @@ exposes the two bounded integers read-only, records stage 19, and never calls
 - Exact stage 19 plus bounded counts and the unchanged baseline proves socket
   list traversal and listener discovery safe; the next split is a controlled
   no-listener delivery result versus multicast to a listener.
-- A reset stops transport work and implicates list traversal or listener
-  inspection.
+- A visual/reboot cycle without exact candidate identity or attributable crash
+  evidence is inconclusive; an identity-gated reset stops transport work.
 - A serviceable stage 18 result rejects traversal success and localizes the
   failure without authorizing a looser expectation.
 - Any changed event, client, CPU, handoff, or I2C baseline rejects attribution.
@@ -105,9 +105,10 @@ CPU set, ready I2C6 handoff, zero I2C/oracle activity, and USB/netcat
 serviceability must remain unchanged.
 
 A pass proves normal socket-list traversal and group-1 listener discovery while
-the skb is still consumed before multicast. A reset stops transport work and
-implicates traversal or listener inspection; a serviceable stage-18 result
-rejects the new boundary; any baseline change rejects attribution. Exact
+the skb is still consumed before multicast. An identity-gated reset stops
+transport work; a visual/reboot cycle alone is inconclusive. A serviceable
+stage-18 result rejects the new boundary; any baseline change rejects
+attribution. Exact
 identities and this result-to-action map are frozen in
 `results/runtime-plan.txt` before the boot.
 

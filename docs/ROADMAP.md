@@ -6,6 +6,18 @@ in the [experiment index](../experiments/README.md), not here.
 
 ## Immediate objective: a safe legacy DA921x provider boundary
 
+### Visual reboot evidence caution
+
+The owner reported on 2026-07-31 that some earlier white/grey-screen cycles
+followed by an apparent automatic reboot may have been reboot-path or boot
+selection issues rather than kernel failures. Preserve those observations and
+their chronology, but do not use the visual state plus return to Gemian alone
+to attribute a fault to the tested kernel or its changed subsystem. Without an
+exact runtime identity, durable stage record, or attributable crash/reset
+evidence, treat such cycles as inconclusive. Positive identity-gated runtime
+results remain valid; causal boundaries previously inferred only by contrast
+with an ambiguous visual/reboot cycle are correspondingly weaker.
+
 The current critical path is the external regulator dependency for the MT6797
 Cortex-A72 pair.
 
@@ -166,15 +178,18 @@ The post-serviceability discriminator kept the child enabled, linked the
 identification driver only as a manual-path module, and preserved the exact
 Gate 3 DT. Attempt 1 grey-screened and rebooted before USB/netcat
 serviceability, so the module was never loaded. Returned Gemian confirmed the
-exact boot2 checksum; pstore was empty. This rules out neither enabled-client
-creation nor a module-enabled kernel/configuration effect and provides no
-fourteen-read probe result.
+exact boot2 checksum; pstore was empty. The later owner caution about ambiguous
+visual/reboot cycles means this attempt does not establish that the candidate
+kernel reset. It rules out neither enabled-client creation nor a module-enabled
+kernel/configuration effect and provides no fourteen-read probe result.
 
 The exact-current-kernel child-disabled derivative was serviceable on attempt
 1. USB, console, keyboard, CPU, handoff, and zero-counter gates passed. No
 DA921x code was resident or loadable automatically. This rules out the
-module-enabled kernel/configuration boundary and implicates the enabled
-DT-client path before driver execution.
+module-enabled kernel/configuration boundary only if the prior cycle was an
+attributable kernel failure. Under the later owner caution, it positively
+proves this child-disabled derivative serviceable but does not attribute the
+earlier cycle to the enabled DT-client path.
 
 The exact serviceable artifact was preserved and used to build the next
 discriminator: the child is enabled with its resource contract unchanged, and
@@ -187,9 +202,9 @@ The first selected boot was serviceable. The enabled `1-0068` client existed
 with the unmatched compatible, the unchanged resource contract, and no bound
 driver. USB, console, keyboard, CPU, handoff, and fatal-log gates passed while
 all I2C6 transfer/oracle counters remained zero and no DA921x code was
-resident. This rules out generic client creation and the unchanged resource
-contract as sufficient causes; the failure boundary is specific to the real
-compatible/modalias path.
+resident. This proves generic unmatched client creation and the unchanged
+resource contract serviceable. It does not, by contrast with an ambiguous
+earlier reboot, prove that the real-compatible/modalias path caused a failure.
 
 The module-file discriminator restores `dlg,da9214-legacy` on the exact
 module-profile kernel while using the exact Gate 3 initramfs with no module
@@ -200,8 +215,10 @@ comparison, and left the device powered off.
 The first selected boot white-screened and rebooted before console or
 USB/netcat serviceability. Returned Gemian and the full boot2 checksum
 confirmed the exact candidate; pstore was empty. Because the initramfs
-contained no module or loader path, this places the boundary before module
-availability and driver execution.
+contained no module or loader path, driver execution was unavailable. The
+later owner caution nevertheless makes the visual/reboot cycle inconclusive
+about whether this kernel failed, so it does not by itself place a causal
+failure boundary before module availability.
 
 Exact-source audit found no real-compatible string or match table in the
 kernel Image. The DA921x driver is module-only, the uevent helper is disabled,
@@ -225,36 +242,38 @@ RW-window observation path. The helper created one name-only
 `da9214-legacy` client, restored sysfs read-only immediately, and verified that
 the client had no OF node and no bound driver. USB/netcat and the complete
 serviceability baseline survived while every I2C/oracle counter remained zero.
-This rules out the compatible-derived client name and I2C modalias as
-sufficient causes. The failure boundary is now the real-compatible OF node or
-its OF modalias uevent path.
+This proves the compatible-derived client name and I2C modalias serviceable in
+that bounded path. The real-compatible OF node and uevent path remain useful
+integration boundaries, but are not established as the cause of an ambiguous
+earlier reboot.
 
 The OF-modalias suppression candidate preserved the real-compatible OF child,
 client name, resources, OF-node attachment, module-free initramfs, and
 zero-activity baseline while replacing only the add-event OF modalias with the
 already-exonerated I2C fallback. It was fully serviceable. The real-compatible
 client remained unbound, all I2C/oracle counters remained zero, and native
-reboot returned Gemian. This rules out real-compatible OF-node instantiation
-itself and isolates the unsafe boundary to adding that OF modalias to the I2C
-device uevent environment.
+reboot returned Gemian. This proves real-compatible OF-node instantiation
+serviceable when the OF modalias is suppressed; it motivates testing the
+modalias path but does not establish that path as the cause of an ambiguous
+earlier reboot.
 
 The private-insertion discriminator generated the exact 38-byte modalias,
 inserted it as one terminated `MODALIAS=` entry in a bounded private
 `kobj_uevent_env`, validated the complete layout and bytes, discarded it, and
 emitted only the safe I2C fallback. Its first selected boot was fully
 serviceable with the real client unbound and every I2C/oracle counter at zero;
-native reboot returned Gemian. This proves environment insertion mechanics
-safe and places the remaining boundary at the real OF entry's presence during
-event emission.
+native reboot returned Gemian. This proves the bounded private environment
+insertion mechanics serviceable. The real OF entry's presence during event
+emission remains unproved, but is not established as a prior failure cause.
 
 The real-environment rollback discriminator inserted and validated the exact
 OF `MODALIAS=` entry in the actual device event, restored the original pointer,
 indices, and exact 48-byte target buffer range, then added only the safe I2C
 fallback. Its first selected boot was fully serviceable with the real client
 unbound, every I2C/oracle counter at zero, and native reboot back to Gemian.
-This proves transient real-environment mutation safe and, combined with the
-earlier unsuppressed reset, isolates the remaining boundary to the OF entry
-remaining present during event emission.
+This proves transient real-environment mutation serviceable. Because the
+earlier unsuppressed visual/reboot cycle is now treated as ambiguous, it does
+not isolate a failure to the OF entry remaining present during event emission.
 
 The first pre-dispatch candidate remained fully serviceable with the real
 client unbound and every I2C/oracle counter at zero, but its required success
@@ -284,16 +303,17 @@ serviceability baseline. It passed offline validation and exact boot2
 deployment, but its first selected boot white-screened and rebooted before
 console or USB/netcat serviceability. Returned Gemian confirmed the exact
 boot2 checksum, a changed boot ID, a watchdog-class reset reason, and empty
-pstore. No validation marker survived, so this is a failed serviceability
-result rather than proof that the intended successful checkpoint executed.
+pstore. No validation marker survived. Under the later owner caution, this is
+an inconclusive pre-serviceability observation rather than proof that the
+candidate kernel failed or that the intended checkpoint executed.
 
 Source inspection confirmed that `device_add()` ignores this uevent return
 value. Under the then-current ten-entry assumption, the next discriminator was
 therefore designed to preserve that validation and transport suppression while
 removing the immediate printk and publishing the validation state through an
 independent read-only observation path available only if the boot remained
-serviceable. A surviving exact state would isolate the removed printk; another
-reset would rule it out without repeating an identical artifact. The named
+serviceable. A surviving exact state would test the removed-printk hypothesis;
+another unattributed visual/reboot cycle would remain inconclusive. The named
 `da921x-dual-modalias-state` profile implemented that split. Its Buildbox
 package and deterministic independent candidate
 assembly passed, and exact boot2 deployment passed full-partition readback
