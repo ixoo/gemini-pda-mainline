@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-01-da921x-uevent-single-multicast` |
-| Status | `offline validated; runtime plan frozen` |
+| Status | `deployed to boot2; awaiting selected-boot runtime` |
 | Subsystem | I2C, OF, kobject uevent, netlink |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -121,8 +121,16 @@ restores sysfs read-only on success and every failure. Exact identities and the
 result-to-action map are in `results/offline-validation.txt` and
 `results/runtime-plan.txt`.
 
+The guarded installer identified known-good Gemian, resolved live GPT label
+`boot2` to inactive `/dev/mmcblk0p30`, and matched the exact stage-21
+predecessor checksum. External power was present at 100% with good battery
+health. No new backup was created. The exact padded candidate was written,
+synced, flushed, and verified by a matching independent full-partition
+readback; its temporary copy was removed and clean shutdown was confirmed.
+Sanitized evidence is in `results/deployment.txt`.
+
 ## Follow-up
 
-Commit and push the frozen deployment/runtime tooling, then guarded-write the
-exact padded candidate to live-GPT-resolved inactive `boot2`, verify its full
-readback, and shut the device down for physical selection.
+The owner physically selects `boot2`. Once the USB/netcat console is available,
+run the checksum-pinned one-shot runtime collector and preserve its exact
+stage-22 result before choosing the next Gate 3 boundary.

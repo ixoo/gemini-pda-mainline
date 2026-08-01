@@ -466,8 +466,10 @@ re-establishes stage 21 with the proven bounded-listener helper, then requires
 one allocation, one group-1 broadcast, one exact 293-byte userspace receipt,
 and no duplicate while preserving the zero-hardware and serviceability
 baseline. Topology, receipt, counter, or baseline changes reject attribution.
-Deployment and runtime evidence remain pending. Visual white/grey-screen and
-reboot behavior alone remains inconclusive. No native VM kernel build is
+Guarded live-GPT installation matched the exact predecessor, passed full
+readback, and shut the device down; selected-boot runtime evidence remains
+pending. Visual white/grey-screen and reboot behavior alone remains
+inconclusive. No native VM kernel build is
 authorized without an explicit owner request. Provider work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
