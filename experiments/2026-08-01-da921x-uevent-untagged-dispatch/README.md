@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-01-da921x-uevent-untagged-dispatch` |
-| Status | `input validated; awaiting exact buildbox` |
+| Status | `candidate and runtime tooling validated; awaiting deployment` |
 | Subsystem | I2C, OF, kobject uevent, netlink |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -67,12 +67,20 @@ resolves the complete stage-22 predecessor plus only the untagged-dispatch gate
 and release `7.1.3-gemini-da921x-untag`. All 50 manifest profiles pass the
 canonical-order invariant and all eight focused mutations are rejected. Strict
 checkpatch has zero warnings and checks; its sole error is the intentionally
-absent experiment-only DCO. Two static ARM64 helper builds were byte-identical.
+absent experiment-only DCO. Pre-deployment review caught that the initial
+helper still pinned stages 21-to-22. That superseded binary was removed; the
+source was corrected to 22-to-23 and two replacement static ARM64 builds were
+byte-identical.
 Host and VM free-space checks passed with 90 GiB and 83 GiB available. Exact
 identities are in `results/input-validation.txt`. No native VM kernel build or
 device access was used.
 
 ## Follow-up
 
-Commit and push the exact clean inputs, then submit only that commit to the
-explicit buildbox backend.
+Buildbox compiled exact commit `0221854ebc1dbe1bfde4415399cb7c8b66701e1d`
+with the intended release, profile, patchset, and configuration. The fetched
+package passed its checksum manifest. Two independent boot-container
+assemblies were byte-identical and passed all 32 LK gates. One validated copy
+is retained below the ignored artifact tree and the VM copies were removed.
+Commit and push the corrected helper, guarded installer, predecessor
+reconstruction, and stage-23 serviceability checker, then deploy to boot2.

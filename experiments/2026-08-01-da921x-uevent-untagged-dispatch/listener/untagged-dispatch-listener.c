@@ -151,7 +151,7 @@ int main(void)
 		errno = EPERM;
 		fail("not-root");
 	}
-	require_text(STAGE_PATH, "21\n", "pre-stage");
+	require_text(STAGE_PATH, "22\n", "pre-stage");
 	require_text(TRIGGER_PATH, READY_STATE, "pre-state");
 
 	fd = socket(AF_NETLINK, SOCK_DGRAM | SOCK_CLOEXEC,
@@ -189,7 +189,7 @@ int main(void)
 	if (close(trigger_fd))
 		fail("trigger-close");
 
-	require_text(STAGE_PATH, "22\n", "post-stage");
+	require_text(STAGE_PATH, "23\n", "post-stage");
 	require_text(TRIGGER_PATH, PASSED_STATE, "post-state");
 	pfd.fd = fd;
 	pfd.events = POLLIN;

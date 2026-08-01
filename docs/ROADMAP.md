@@ -480,13 +480,19 @@ The named `da921x-uevent-untagged-dispatch` profile is the next Gate 3
 discriminator. It retains the exact topology, event, and zero-hardware baseline
 while allowing one replay through the original untagged delivery function
 rather than the experiment-local single-broadcast split. Its 133-patch series,
-resolved configuration, manifest invariants, strict patch checks, and two
-byte-identical static listener builds passed input validation. The frozen
+resolved configuration, manifest invariants, and strict patch checks passed
+input validation. Pre-deployment review caught and corrected a stale 21-to-22
+stage assertion in the listener; the superseded binary was removed and two
+corrected 22-to-23 helper builds were byte-identical. The frozen
 runtime decision requires exactly one function entry and return, socket,
 listener, allocation, broadcast, exact receipt, and no duplicate. Exact clean
-Buildbox compilation and candidate validation are next. Visual white/grey-screen
-and reboot behavior alone remains inconclusive. No native VM kernel build is
-authorized without an explicit owner request. Provider work remains blocked.
+Buildbox compilation passed for the intended pushed commit and the fetched
+package revalidated. Two independent candidate assemblies were byte-identical,
+the retained copy passed its manifest and all 32 LK gates, and the regenerable
+VM copies were removed. Guarded boot2 deployment and the first selected-boot
+runtime capture are next. Visual white/grey-screen and reboot behavior alone
+remains inconclusive. No native VM kernel build is authorized without an
+explicit owner request. Provider work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 

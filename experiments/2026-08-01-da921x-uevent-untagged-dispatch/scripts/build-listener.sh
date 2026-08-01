@@ -5,7 +5,7 @@ set -euo pipefail
 export LC_ALL=C
 umask 077
 
-readonly SOURCE_SHA256=2deb0c20c38d24e4b0394c5452f2829dc85838a2c9b4acc93f3cf4b659d40baf
+readonly SOURCE_SHA256=7a900075db323e7000f15fcbb44602b26068e7546d68ae65c1032fb7d069ff0b
 
 die() { printf 'error: %s\n' "$*" >&2; exit 2; }
 [[ "$#" -eq 2 && "$1" == --output ]] ||
