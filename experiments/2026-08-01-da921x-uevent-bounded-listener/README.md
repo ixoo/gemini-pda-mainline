@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-01-da921x-uevent-bounded-listener` |
-| Status | `deployed to boot2; awaiting first selected boot` |
+| Status | `runtime stage 21 passed` |
 | Subsystem | I2C, OF, kobject uevent, netlink |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -144,17 +144,28 @@ checksum but the listener helper returned nonzero before the trigger. A
 read-only follow-up proved stage 20, `attempts=0`, one socket, zero listeners,
 and the unchanged no-listener state. The attempt therefore contains no stage-21
 kernel result. The checker now preserves the helper's combined diagnostic on
-failure; one retry on the same untouched boot is attributable. No selected-boot
-runtime claim has been made yet. Runtime attempt 2 preserved the exact helper
-failure: the listener bound group 1, but opening the trigger failed with errno
+failure; one retry on the same untouched boot was attributable. At that point,
+no selected-boot runtime claim had been made. Runtime attempt 2 preserved the
+exact helper failure: the listener bound group 1, but opening the trigger
+failed with errno
 30 (`EROFS`). A second read-only inspection confirmed stage 20, `attempts=0`,
 and `sysfs /sys sysfs ro`; the one-shot remains unconsumed. This is initramfs
 mount policy, not a stage-21 kernel result. The frozen retry temporarily makes
 only the virtual sysfs writable and restores it read-only before evaluation;
 it performs no device-storage access.
 
+Runtime attempt 3 used that checksum-pinned retry on the unchanged boot. The
+helper bound exactly one group-1 listener, wrote the exact token, and received
+nothing over the bounded wait. The kernel advanced from stage 20 to 21 with
+`attempts=1`, `baseline_sockets=1`, `sockets=1`, `listeners=1`, and
+`broadcasts=0`. The exact event layout, unbound client, zero-I2C activity, and
+full serviceability baseline passed. A final independent read-only query
+confirmed stage 21 persisted and sysfs was restored read-only. No partition
+read, device-storage write, or reboot occurred. Sanitized evidence is in
+`results/runtime.txt`.
+
 ## Follow-up
 
-Run the checksum-pinned retry on this same untouched selected boot. If it
-passes, retain the stage-21 result and design the separate single-multicast
-gate. If it fails after consuming the trigger, do not retry this artifact.
+Design a separate single-multicast gate that retains the runtime-proven
+one-socket, one-listener topology and zero-hardware baseline. Freeze its unique
+delivery evidence and failure actions before another device boot.

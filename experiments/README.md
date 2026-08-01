@@ -28,7 +28,9 @@ the loop. Positive identity-gated observations are unaffected.
   group-1 listener, one exact-token replay, and consumption before multicast.
   Its exact Buildbox package and two byte-identical LK assemblies passed
   offline validation; guarded boot2 deployment passed full readback and ended
-  in shutdown. The runtime plan is frozen for the first selected boot.
+  in shutdown. Runtime stage 21 then passed with one socket, exactly one
+  listener, zero broadcasts, bounded no-receipt, restored read-only sysfs, and
+  the unchanged zero-I2C serviceability baseline.
 - [2026-07-31 DA921x uevent no-listener delivery](2026-07-31-da921x-uevent-no-listener-delivery/README.md)
   — reached runtime stage 20 with one socket, zero listeners, zero allocations,
   zero broadcasts, and return value zero while preserving the unbound-client,

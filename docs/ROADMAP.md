@@ -446,15 +446,23 @@ replay, and advances to stage 21 only after observing the runtime-proven single
 socket plus exactly one listener. The event remains consumed before multicast,
 and the helper separately requires no receipt over a bounded 1.5-second wait.
 Its exact clean Buildbox package and two byte-identical candidate assemblies
-passed offline validation, and its runtime decision map is frozen before
-deployment. Guarded live-GPT boot2 installation then matched the exact stage-20
-predecessor, passed full readback, and shut the device down. A passing first
-selected boot permits design of a separate
-single-multicast gate; any topology change,
-broadcast, receipt, or baseline change rejects this step. Visual
-white/grey-screen and reboot behavior alone remains inconclusive. No native VM
-kernel build is authorized without an explicit owner request. Provider work
-remains blocked.
+passed offline validation. Guarded live-GPT boot2 installation matched the
+exact stage-20 predecessor, passed full readback, and shut the device down.
+Two pre-trigger runtime attempts left the one-shot unconsumed; the preserved
+second diagnostic isolated the failure to this initramfs's read-only sysfs
+mount. A checksum-pinned retry temporarily remounted only virtual sysfs,
+restored it read-only, and reached stage 21 with one socket, exactly one
+listener, zero broadcasts, and bounded no-receipt. The exact event, unbound
+client, zero-I2C activity, and full serviceability baseline remained unchanged.
+An independent read-only follow-up confirmed stage 21 and restored read-only
+sysfs. No partition read, storage write, or reboot occurred.
+
+The next Gate 3 experiment must be a separate single-multicast gate retaining
+that runtime-proven topology and zero-hardware baseline. It must freeze unique
+delivery evidence and failure actions before another device boot; topology or
+baseline changes reject attribution. Visual white/grey-screen and reboot
+behavior alone remains inconclusive. No native VM kernel build is authorized
+without an explicit owner request. Provider work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 
