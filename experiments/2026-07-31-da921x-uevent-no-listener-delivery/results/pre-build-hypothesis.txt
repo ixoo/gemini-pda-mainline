@@ -1,0 +1,14 @@
+experiment=2026-07-31-da921x-uevent-no-listener-delivery
+kernel_release=7.1.3-gemini-da921x-nodeliv
+predecessor_release=7.1.3-gemini-da921x-listen
+predecessor_stage=19
+predecessor_sockets=1
+predecessor_group1_listeners=0
+hypothesis=normal-untagged-no-listener-loop-returns-zero-without-allocation-or-broadcast-and-preserves-serviceability
+unique_evidence=stage-20-plus-same-socket-count-zero-listeners-zero-allocations-zero-broadcasts-zero-retval-and-unchanged-event-client-cpu-i2c-baseline
+success_action=retain-no-listener-result-and-design-bounded-listener-before-multicast
+listener_appears_action=fail-closed-before-allocation-or-broadcast-and-reject-no-listener-measurement
+stage19_action=reject-new-path-execution
+unattributed_visual_reboot_action=inconclusive-do-not-assign-kernel-causality
+changed_baseline_action=reject-attribution
+device_access=none

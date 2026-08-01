@@ -1,0 +1,241 @@
+From 4d95e630d9cf895cc45c1f3ff2e1c50bcafe6b43 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 31 Jul 2026 21:45:00 -0400
+Subject: [PATCH 141/141] kobject: exercise Gemini DA921x no-listener delivery
+
+The named Gemini reached stage 19 after its exact event traversed the
+normal uevent socket list. The bounded runtime observation found one socket
+and zero group-1 listeners. The unbound-client, zero-I2C, and
+serviceability baseline passed.
+
+Add the next experiment-only split. Reuse the normal untagged broadcast
+loop with bounded observation enabled, but fail closed before allocation or
+netlink_broadcast() if any listener appears. Record the socket, listener,
+allocation, broadcast, and return counts read-only. Advance to stage 20
+only after the measured no-listener path returns zero with no allocation or
+broadcast.
+
+This exercises the normal no-listener delivery result without adding a
+listener or permitting multicast. It adds no driver, provider, transfer,
+register access, printk, storage write, or event delivery.
+---
+ drivers/i2c/Kconfig     | 17 ++++++++++
+ include/linux/kobject.h |  8 +++++
+ kernel/ksysfs.c         | 20 ++++++++++++
+ lib/kobject_uevent.c    | 77 ++++++++++++++++++++++++++++++++++++++++++++++--
+ 4 files changed, 120 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/i2c/Kconfig b/drivers/i2c/Kconfig
+--- a/drivers/i2c/Kconfig
++++ b/drivers/i2c/Kconfig
+@@ -245,6 +245,23 @@ config I2C_GEMINI_DA921X_UEVENT_LISTENER_DISCOVERY_DIAGNOSTIC
+ 
+ 	  Say N outside the named uevent listener-discovery experiment.
+ 
++config I2C_GEMINI_DA921X_UEVENT_NO_LISTENER_DELIVERY_DIAGNOSTIC
++	bool "Gemini DA921x no-listener delivery discriminator"
++	depends on I2C_GEMINI_DA921X_UEVENT_LISTENER_DISCOVERY_DIAGNOSTIC
++	help
++	  Exercise the normal untagged uevent broadcast loop only while it has no
++	  group-1 listener. Record bounded socket, listener, allocation, broadcast,
++	  and return state through
++	  /sys/kernel/gemini_da921x_uevent_no_listener_state. A zero return with no
++	  allocation or broadcast advances the read-only stage to 20.
++
++	  The observation fails closed before allocation or netlink_broadcast() if
++	  any listener appears. It preserves the module-free unbound client and
++	  zero-I2C baseline and adds no driver, provider, transfer, register access,
++	  printk, storage path, or event delivery.
++
++	  Say N outside the named no-listener delivery experiment.
++
+ config I2C_BOARDINFO
+ 	bool
+ 	default y
+diff --git a/include/linux/kobject.h b/include/linux/kobject.h
+--- a/include/linux/kobject.h
++++ b/include/linux/kobject.h
+@@ -72,5 +72,13 @@ extern atomic_t gemini_da921x_uevent_listener_count;
+ #endif
+ 
++#ifdef CONFIG_I2C_GEMINI_DA921X_UEVENT_NO_LISTENER_DELIVERY_DIAGNOSTIC
++extern atomic_t gemini_da921x_no_listener_socket_count;
++extern atomic_t gemini_da921x_no_listener_listener_count;
++extern atomic_t gemini_da921x_no_listener_allocation_count;
++extern atomic_t gemini_da921x_no_listener_broadcast_count;
++extern atomic_t gemini_da921x_no_listener_retval;
++#endif
++
+ /*
+  * The actions here must match the index to the string array
+  * in lib/kobject_uevent.c
+diff --git a/kernel/ksysfs.c b/kernel/ksysfs.c
+--- a/kernel/ksysfs.c
++++ b/kernel/ksysfs.c
+@@ -118,6 +118,23 @@ gemini_da921x_uevent_listener_state_show(struct kobject *kobj,
+ KERNEL_ATTR_RO(gemini_da921x_uevent_listener_state);
+ #endif
+ 
++#ifdef CONFIG_I2C_GEMINI_DA921X_UEVENT_NO_LISTENER_DELIVERY_DIAGNOSTIC
++static ssize_t
++gemini_da921x_uevent_no_listener_state_show(struct kobject *kobj,
++					    struct kobj_attribute *attr,
++					    char *buf)
++{
++	return sysfs_emit(buf,
++		"sockets=%d listeners=%d allocations=%d broadcasts=%d retval=%d\n",
++		atomic_read(&gemini_da921x_no_listener_socket_count),
++		atomic_read(&gemini_da921x_no_listener_listener_count),
++		atomic_read(&gemini_da921x_no_listener_allocation_count),
++		atomic_read(&gemini_da921x_no_listener_broadcast_count),
++		atomic_read(&gemini_da921x_no_listener_retval));
++}
++KERNEL_ATTR_RO(gemini_da921x_uevent_no_listener_state);
++#endif
++
+ /* cpu byteorder */
+ static ssize_t cpu_byteorder_show(struct kobject *kobj,
+ 				  struct kobj_attribute *attr, char *buf)
+@@ -279,5 +296,8 @@ static struct attribute * kernel_attrs[] = {
+ 	&gemini_da921x_uevent_listener_state_attr.attr,
+ #endif
++#ifdef CONFIG_I2C_GEMINI_DA921X_UEVENT_NO_LISTENER_DELIVERY_DIAGNOSTIC
++	&gemini_da921x_uevent_no_listener_state_attr.attr,
++#endif
+ 	&cpu_byteorder_attr.attr,
+ 	&address_bits_attr.attr,
+ #ifdef CONFIG_UEVENT_HELPER
+diff --git a/lib/kobject_uevent.c b/lib/kobject_uevent.c
+--- a/lib/kobject_uevent.c
++++ b/lib/kobject_uevent.c
+@@ -62,5 +62,13 @@ atomic_t gemini_da921x_uevent_listener_count = ATOMIC_INIT(-1);
+ #endif
+ 
++#ifdef CONFIG_I2C_GEMINI_DA921X_UEVENT_NO_LISTENER_DELIVERY_DIAGNOSTIC
++atomic_t gemini_da921x_no_listener_socket_count = ATOMIC_INIT(-1);
++atomic_t gemini_da921x_no_listener_listener_count = ATOMIC_INIT(-1);
++atomic_t gemini_da921x_no_listener_allocation_count = ATOMIC_INIT(-1);
++atomic_t gemini_da921x_no_listener_broadcast_count = ATOMIC_INIT(-1);
++atomic_t gemini_da921x_no_listener_retval = ATOMIC_INIT(-1);
++#endif
++
+ #ifdef CONFIG_UEVENT_HELPER
+ char uevent_helper[UEVENT_HELPER_PATH_LEN] = CONFIG_UEVENT_HELPER_PATH;
+ #endif
+@@ -406,9 +414,18 @@ static int gemini_da921x_discover_uevent_listeners(void)
+ }
+ #endif
+ 
++struct gemini_da921x_broadcast_observation {
++	bool reject_listeners;
++	int sockets;
++	int listeners;
++	int allocations;
++	int broadcasts;
++};
++
+ static int uevent_net_broadcast_untagged(struct kobj_uevent_env *env,
+ 					 const char *action_string,
+-					 const char *devpath)
++					 const char *devpath,
++					 struct gemini_da921x_broadcast_observation *observation)
+ {
+ 	struct sk_buff *skb = NULL;
+ 	struct uevent_sock *ue_sk;
+@@ -420,9 +437,23 @@ static int uevent_net_broadcast_untagged(struct kobj_uevent_env *env,
+ 	list_for_each_entry(ue_sk, &uevent_sock_list, list) {
+ 		struct sock *uevent_sock = ue_sk->sk;
+ 
++		if (observation) {
++			if (observation->sockets == 1024) {
++				retval = -E2BIG;
++				break;
++			}
++			observation->sockets++;
++		}
+ 		if (!netlink_has_listeners(uevent_sock, 1))
+ 			continue;
+ 
++		if (observation) {
++			observation->listeners++;
++			if (observation->reject_listeners) {
++				retval = -EADDRINUSE;
++				break;
++			}
++		}
+ 		if (!skb) {
+ 			retval = -ENOMEM;
+ 			skb = alloc_uevent_skb(env, action_string, devpath);
+@@ -429,6 +460,10 @@ static int uevent_net_broadcast_untagged(struct kobj_uevent_env *env,
+ 				continue;
++			if (observation)
++				observation->allocations++;
+ 		}
+ 
++		if (observation)
++			observation->broadcasts++;
+ 		retval = netlink_broadcast(uevent_sock, skb_get(skb), 0, 1,
+ 					   GFP_KERNEL);
+ 		/* ENOBUFS should be handled in userspace */
+@@ -444,6 +479,38 @@ static int uevent_net_broadcast_untagged(struct kobj_uevent_env *env,
+ 	return retval;
+ }
+ 
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_UEVENT_NO_LISTENER_DELIVERY_DIAGNOSTIC)
++static int
++gemini_da921x_no_listener(struct kobj_uevent_env *env,
++			  const char *action_string,
++			  const char *devpath)
++{
++	struct gemini_da921x_broadcast_observation observation = {
++		.reject_listeners = true,
++	};
++	int retval;
++
++	retval = uevent_net_broadcast_untagged(env, action_string, devpath,
++					       &observation);
++	if (retval || observation.listeners || observation.allocations ||
++	    observation.broadcasts ||
++	    observation.sockets != atomic_read(&gemini_da921x_uevent_socket_count))
++		return retval ?: -EINVAL;
++
++	atomic_set(&gemini_da921x_no_listener_socket_count,
++		   observation.sockets);
++	atomic_set(&gemini_da921x_no_listener_listener_count,
++		   observation.listeners);
++	atomic_set(&gemini_da921x_no_listener_allocation_count,
++		   observation.allocations);
++	atomic_set(&gemini_da921x_no_listener_broadcast_count,
++		   observation.broadcasts);
++	atomic_set(&gemini_da921x_no_listener_retval, retval);
++	atomic_set(&gemini_da921x_dual_modalias_stage, 20);
++	return 0;
++}
++#endif
++
+ static int uevent_net_broadcast_tagged(struct sock *usk,
+ 				       struct kobj_uevent_env *env,
+ 				       const char *action_string,
+@@ -509,7 +576,7 @@ static int kobject_uevent_net_broadcast(struct kobject *kobj,
+ 
+ 	if (!ns)
+ 		ret = uevent_net_broadcast_untagged(env, action_string,
+-						    devpath);
++						    devpath, NULL);
+ 	else {
+ 		const struct net *net = container_of(ns, struct net, ns);
+ 
+@@ -925,6 +992,11 @@ int kobject_uevent_env(struct kobject *kobj, enum kobject_action action,
+ 		if (retval)
+ 			goto exit;
+ #endif
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_UEVENT_NO_LISTENER_DELIVERY_DIAGNOSTIC)
++		retval = gemini_da921x_no_listener(env, action_string, devpath);
++		if (retval)
++			goto exit;
++#endif
+ 		/* The exact target skb is consumed above; never broadcast it from
+ 		 * this experiment-only path.
+ 		 */
+-- 
+2.47.3

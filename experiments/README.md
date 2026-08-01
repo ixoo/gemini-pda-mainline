@@ -23,6 +23,10 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-07-31 DA921x uevent no-listener delivery](2026-07-31-da921x-uevent-no-listener-delivery/README.md)
+  — exercises the normal untagged delivery loop only for the runtime-proven
+  zero-listener topology and fails closed before allocation or broadcast if a
+  listener appears.
 - [2026-07-31 DA921x uevent listener discovery](2026-07-31-da921x-uevent-listener-discovery/README.md)
   — reached runtime stage 19 after traversing the normal uevent socket list;
   it observed one socket and zero group-1 listeners, returned before multicast,
