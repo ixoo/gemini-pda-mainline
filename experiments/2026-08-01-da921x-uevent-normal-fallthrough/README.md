@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-01-da921x-uevent-normal-fallthrough` |
-| Status | `offline validated; guarded boot2 deployment pending` |
+| Status | `deployed and powered off; selected-boot runtime pending` |
 | Subsystem | I2C, OF, kobject uevent, netlink |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -56,6 +56,6 @@ not submission-ready.
 
 ## Follow-up
 
-Commit and push the offline evidence and guarded installer, then deploy only
-after resolving `boot2` from the live GPT and matching the exact stage-24
-predecessor. A successful verified write must end in clean shutdown.
+Select `boot2` once. If USB/netcat becomes serviceable, reconstruct the exact
+stage-24 predecessor and run the frozen stage-25 listener once. Visual
+white/grey-screen or reboot behavior alone remains inconclusive.
