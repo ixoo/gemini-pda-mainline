@@ -1,8 +1,12 @@
 experiment=2026-08-01-da921x-uevent-single-multicast
-frozen_at=pre-build
+frozen_at=corrected-pre-build-identity-after-rejected-buildbox-result
 source_profile=da921x-uevent-single-multicast
 expected_release=7.1.3-gemini-da921x-mcast1
-source_patchset_sha256=f89806e80746ed130f3dbeb40d1b2b73c497421d5c39c4e90fe42316c42be48e
+source_patchset_sha256=5dbc6f6d2a9c4472332640a82990054a373eafe92418c9bbf5e1ec883329bd32
+superseded_source_patchset_sha256=f89806e80746ed130f3dbeb40d1b2b73c497421d5c39c4e90fe42316c42be48e
+identity_correction=patch-email-diffstat-metadata-only-no-source-hunk-or-config-change
+first_buildbox_job=ce5da7e6b6db1000ac537519a8cf667cbece8abe-da921x-uevent-single-multicast-m0
+first_buildbox_result=compiled-and-validated-rejected-before-fetch-or-selection-frozen-patchset-mismatch
 source_config_inputs_sha256=9c02d6315663ae976831985ecd727ebfc2ed88bc2d3452ae024f7399795116a2
 hypothesis=one exact target event can be multicast once to the independently validated single group-1 listener while preserving the zero-hardware and serviceability baseline
 required_predecessor_stage=21

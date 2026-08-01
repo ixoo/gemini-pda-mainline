@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-01-da921x-uevent-single-multicast` |
-| Status | `input validated; awaiting buildbox` |
+| Status | `pre-build identity corrected; awaiting replacement buildbox` |
 | Subsystem | I2C, OF, kobject uevent, netlink |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -98,10 +98,16 @@ any device write or selected boot.
 
 ## Observations
 
-No kernel build, device deployment, or selected boot has occurred for this
-candidate.
+The first buildbox job compiled and validated the expected release, but its
+package provenance exposed that the frozen pre-build patchset identity had been
+captured before a later metadata-only correction to patch `0143`'s email
+diffstat. No source hunk or configuration changed. The package's exact patchset
+therefore differed from the frozen value and was rejected before fetch,
+candidate assembly, or device access. The correction and both identities are
+recorded in `results/pre-build-identity-correction.txt`; a replacement exact
+commit build is required.
 
 ## Follow-up
 
-Commit and push the validated inputs, then build the exact clean commit only on
-buildbox.
+Commit and push the corrected frozen identity, then run the replacement exact
+clean commit only on buildbox.
