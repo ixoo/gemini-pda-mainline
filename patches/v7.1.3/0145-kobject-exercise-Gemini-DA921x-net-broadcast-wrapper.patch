@@ -1,0 +1,363 @@
+From 8ad80cd356f2f41802c9925d0378722bde7d10fe Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 1 Aug 2026 16:05:00 -0400
+Subject: [PATCH 145/145] kobject: exercise Gemini DA921x net broadcast wrapper
+
+The named Gemini reached stage 23 after the original untagged uevent
+delivery function produced one exact group-1 datagram and no duplicate.
+That did not exercise the surrounding kobject namespace-routing wrapper.
+
+Add the next experiment-only boundary. Retain the exact target after stage
+23 and expose a separate one-shot trigger. Replay and revalidate the event,
+then enter kobject_uevent_net_broadcast(). Record one wrapper entry and
+return, one namespace check, selection of the untagged route, rejection of
+the tagged route, and the existing socket, listener, allocation, broadcast,
+and normalized-return observations. Advance to stage 24 only when every
+counter has the exact expected value.
+
+A separately checksum-pinned userspace helper must validate one exact
+datagram and no duplicate. This adds no driver, provider, I2C transfer,
+register access, printk, or storage path.
+---
+ drivers/i2c/Kconfig     |  19 +++++++
+ include/linux/kobject.h |  16 ++++++
+ kernel/ksysfs.c         |  43 ++++++++++++++++
+ lib/kobject_uevent.c    | 155 +++++++++++++++++++++++++++++++++++++++--
+ 4 files changed, 228 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/i2c/Kconfig b/drivers/i2c/Kconfig
+--- a/drivers/i2c/Kconfig
++++ b/drivers/i2c/Kconfig
+@@ -315,6 +315,25 @@ config I2C_GEMINI_DA921X_UEVENT_UNTAGGED_DISPATCH_DIAGNOSTIC
+ 
+ 	  Say N outside the named untagged-dispatch experiment.
+ 
++config I2C_GEMINI_DA921X_UEVENT_NET_BROADCAST_DIAGNOSTIC
++	bool "Gemini DA921x kobject net-broadcast discriminator"
++	depends on NET && I2C_GEMINI_DA921X_UEVENT_UNTAGGED_DISPATCH_DIAGNOSTIC
++	help
++	  Retain the exact target after stage 23 and expose a separate one-shot
++	  trigger at /sys/kernel/gemini_da921x_uevent_net_broadcast. With the
++	  independently validated group-1 listener already bound, replay and
++	  revalidate the same add-event, then call the original surrounding
++	  kobject namespace-routing and network-broadcast wrapper.
++
++	  Exactly one wrapper entry and return, one namespace check, one untagged
++	  route, zero tagged routes, one socket, listener, allocation, and broadcast,
++	  and normalized return zero advances the read-only stage to 24. A separate
++	  userspace helper must validate one exact datagram and no duplicate. The
++	  exact-token trigger adds no driver, provider, transfer, register access,
++	  printk, or storage path.
++
++	  Say N outside the named net-broadcast experiment.
++
+ config I2C_BOARDINFO
+ 	bool
+ 	default y
+diff --git a/include/linux/kobject.h b/include/linux/kobject.h
+--- a/include/linux/kobject.h
++++ b/include/linux/kobject.h
+@@ -113,6 +113,22 @@ extern atomic_t gemini_da921x_untagged_dispatch_retval;
+ int gemini_da921x_trigger_untagged_dispatch(void);
+ #endif
+ 
++#ifdef CONFIG_I2C_GEMINI_DA921X_UEVENT_NET_BROADCAST_DIAGNOSTIC
++extern atomic_t gemini_da921x_net_broadcast_attempts;
++extern atomic_t gemini_da921x_net_broadcast_entries;
++extern atomic_t gemini_da921x_net_broadcast_returns;
++extern atomic_t gemini_da921x_net_broadcast_namespace_checks;
++extern atomic_t gemini_da921x_net_broadcast_untagged_routes;
++extern atomic_t gemini_da921x_net_broadcast_tagged_routes;
++extern atomic_t gemini_da921x_net_broadcast_baseline_socket_count;
++extern atomic_t gemini_da921x_net_broadcast_socket_count;
++extern atomic_t gemini_da921x_net_broadcast_listener_count;
++extern atomic_t gemini_da921x_net_broadcast_allocation_count;
++extern atomic_t gemini_da921x_net_broadcast_broadcast_count;
++extern atomic_t gemini_da921x_net_broadcast_retval;
++int gemini_da921x_trigger_net_broadcast(void);
++#endif
++
+ /*
+  * The actions here must match the index to the string array
+  * in lib/kobject_uevent.c
+diff --git a/kernel/ksysfs.c b/kernel/ksysfs.c
+--- a/kernel/ksysfs.c
++++ b/kernel/ksysfs.c
+@@ -243,6 +243,46 @@ static struct kobj_attribute gemini_da921x_uevent_untagged_dispatch_attr =
+ 	       gemini_da921x_untagged_dispatch_store);
+ #endif
+ 
++#ifdef CONFIG_I2C_GEMINI_DA921X_UEVENT_NET_BROADCAST_DIAGNOSTIC
++static ssize_t
++gemini_da921x_net_broadcast_show(struct kobject *kobj,
++				 struct kobj_attribute *attr, char *buf)
++{
++	return sysfs_emit(buf,
++		"attempts=%d entries=%d returns=%d namespace_checks=%d untagged_routes=%d tagged_routes=%d baseline_sockets=%d sockets=%d listeners=%d allocations=%d broadcasts=%d retval=%d\n",
++		atomic_read(&gemini_da921x_net_broadcast_attempts),
++		atomic_read(&gemini_da921x_net_broadcast_entries),
++		atomic_read(&gemini_da921x_net_broadcast_returns),
++		atomic_read(&gemini_da921x_net_broadcast_namespace_checks),
++		atomic_read(&gemini_da921x_net_broadcast_untagged_routes),
++		atomic_read(&gemini_da921x_net_broadcast_tagged_routes),
++		atomic_read(&gemini_da921x_net_broadcast_baseline_socket_count),
++		atomic_read(&gemini_da921x_net_broadcast_socket_count),
++		atomic_read(&gemini_da921x_net_broadcast_listener_count),
++		atomic_read(&gemini_da921x_net_broadcast_allocation_count),
++		atomic_read(&gemini_da921x_net_broadcast_broadcast_count),
++		atomic_read(&gemini_da921x_net_broadcast_retval));
++}
++
++static ssize_t
++gemini_da921x_net_broadcast_store(struct kobject *kobj,
++				  struct kobj_attribute *attr,
++				  const char *buf, size_t count)
++{
++	int ret;
++
++	if (count != sizeof("probe\n") - 1 || memcmp(buf, "probe\n", count))
++		return -EINVAL;
++	ret = gemini_da921x_trigger_net_broadcast();
++	return ret ?: count;
++}
++
++static struct kobj_attribute gemini_da921x_uevent_net_broadcast_attr =
++	__ATTR(gemini_da921x_uevent_net_broadcast, 0644,
++	       gemini_da921x_net_broadcast_show,
++	       gemini_da921x_net_broadcast_store);
++#endif
++
+ /* cpu byteorder */
+ static ssize_t cpu_byteorder_show(struct kobject *kobj,
+ 				  struct kobj_attribute *attr, char *buf)
+@@ -407,6 +447,9 @@ static struct attribute * kernel_attrs[] = {
+ #ifdef CONFIG_I2C_GEMINI_DA921X_UEVENT_UNTAGGED_DISPATCH_DIAGNOSTIC
+ 	&gemini_da921x_uevent_untagged_dispatch_attr.attr,
+ #endif
++#ifdef CONFIG_I2C_GEMINI_DA921X_UEVENT_NET_BROADCAST_DIAGNOSTIC
++	&gemini_da921x_uevent_net_broadcast_attr.attr,
++#endif
+ 	&cpu_byteorder_attr.attr,
+ 	&address_bits_attr.attr,
+ #ifdef CONFIG_UEVENT_HELPER
+diff --git a/lib/kobject_uevent.c b/lib/kobject_uevent.c
+--- a/lib/kobject_uevent.c
++++ b/lib/kobject_uevent.c
+@@ -107,6 +107,25 @@ static DEFINE_MUTEX(gemini_da921x_untagged_dispatch_lock);
+ static struct kobject *gemini_da921x_untagged_dispatch_target;
+ #endif
+ 
++#ifdef CONFIG_I2C_GEMINI_DA921X_UEVENT_NET_BROADCAST_DIAGNOSTIC
++atomic_t gemini_da921x_net_broadcast_attempts = ATOMIC_INIT(0);
++atomic_t gemini_da921x_net_broadcast_entries = ATOMIC_INIT(0);
++atomic_t gemini_da921x_net_broadcast_returns = ATOMIC_INIT(0);
++atomic_t gemini_da921x_net_broadcast_namespace_checks = ATOMIC_INIT(0);
++atomic_t gemini_da921x_net_broadcast_untagged_routes = ATOMIC_INIT(0);
++atomic_t gemini_da921x_net_broadcast_tagged_routes = ATOMIC_INIT(0);
++atomic_t gemini_da921x_net_broadcast_baseline_socket_count = ATOMIC_INIT(-1);
++atomic_t gemini_da921x_net_broadcast_socket_count = ATOMIC_INIT(-1);
++atomic_t gemini_da921x_net_broadcast_listener_count = ATOMIC_INIT(-1);
++atomic_t gemini_da921x_net_broadcast_allocation_count = ATOMIC_INIT(-1);
++atomic_t gemini_da921x_net_broadcast_broadcast_count = ATOMIC_INIT(-1);
++atomic_t gemini_da921x_net_broadcast_retval = ATOMIC_INIT(-1);
++
++static DEFINE_MUTEX(gemini_da921x_net_broadcast_lock);
++static struct kobject *gemini_da921x_net_broadcast_target;
++static struct kobject *gemini_da921x_net_broadcast_active_target;
++#endif
++
+ #ifdef CONFIG_UEVENT_HELPER
+ char uevent_helper[UEVENT_HELPER_PATH_LEN] = CONFIG_UEVENT_HELPER_PATH;
+ #endif
+@@ -785,6 +804,45 @@ int gemini_da921x_trigger_untagged_dispatch(void)
+ }
+ #endif
+ 
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_UEVENT_NET_BROADCAST_DIAGNOSTIC)
++static int gemini_da921x_arm_net_broadcast(struct kobject *kobj)
++{
++	int ret = 0;
++
++	mutex_lock(&gemini_da921x_net_broadcast_lock);
++	if (gemini_da921x_net_broadcast_target ||
++	    gemini_da921x_net_broadcast_active_target ||
++	    atomic_read(&gemini_da921x_net_broadcast_attempts))
++		ret = -EALREADY;
++	else
++		gemini_da921x_net_broadcast_target = kobject_get(kobj);
++	mutex_unlock(&gemini_da921x_net_broadcast_lock);
++	return ret;
++}
++
++int gemini_da921x_trigger_net_broadcast(void)
++{
++	struct kobject *kobj;
++	int ret;
++
++	if (atomic_read(&gemini_da921x_dual_modalias_stage) != 23)
++		return -EAGAIN;
++	if (atomic_cmpxchg(&gemini_da921x_net_broadcast_attempts, 0, 1))
++		return -EALREADY;
++
++	mutex_lock(&gemini_da921x_net_broadcast_lock);
++	kobj = gemini_da921x_net_broadcast_target;
++	gemini_da921x_net_broadcast_target = NULL;
++	mutex_unlock(&gemini_da921x_net_broadcast_lock);
++	if (!kobj)
++		return -ENODEV;
++
++	ret = kobject_uevent(kobj, KOBJ_ADD);
++	kobject_put(kobj);
++	return ret;
++}
++#endif
++
+ static int uevent_net_broadcast_tagged(struct sock *usk,
+ 				       struct kobj_uevent_env *env,
+ 				       const char *action_string,
+@@ -829,10 +884,21 @@ static int kobject_uevent_net_broadcast(struct kobject *kobj,
+ 					const char *devpath)
+ {
+ 	int ret = 0;
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_UEVENT_NET_BROADCAST_DIAGNOSTIC)
++	struct gemini_da921x_broadcast_observation observation = { };
++	bool observe;
++
++	mutex_lock(&gemini_da921x_net_broadcast_lock);
++	observe = gemini_da921x_net_broadcast_active_target == kobj;
++	mutex_unlock(&gemini_da921x_net_broadcast_lock);
++	if (observe)
++		atomic_inc(&gemini_da921x_net_broadcast_entries);
++#endif
+ 
+ #ifdef CONFIG_NET
+ 	const struct kobj_ns_type_operations *ops;
+ 	const struct ns_common *ns = NULL;
++	struct gemini_da921x_broadcast_observation *observation_ptr = NULL;
+ 
+ 	ops = kobj_ns_ops(kobj);
+ 	if (!ops && kobj->kset) {
+@@ -848,20 +915,85 @@ static int kobject_uevent_net_broadcast(struct kobject *kobj,
+ 		if (ops->type == KOBJ_NS_TYPE_NET)
+ 			ns = kobj->ktype->namespace(kobj);
+ 
+-	if (!ns)
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_UEVENT_NET_BROADCAST_DIAGNOSTIC)
++	if (observe) {
++		atomic_inc(&gemini_da921x_net_broadcast_namespace_checks);
++		observation_ptr = &observation;
++	}
++#endif
++	if (!ns) {
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_UEVENT_NET_BROADCAST_DIAGNOSTIC)
++		if (observe)
++			atomic_inc(&gemini_da921x_net_broadcast_untagged_routes);
++#endif
+ 		ret = uevent_net_broadcast_untagged(env, action_string,
+-						    devpath, NULL);
+-	else {
++						    devpath, observation_ptr);
++	} else {
+ 		const struct net *net = container_of(ns, struct net, ns);
+ 
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_UEVENT_NET_BROADCAST_DIAGNOSTIC)
++		if (observe)
++			atomic_inc(&gemini_da921x_net_broadcast_tagged_routes);
++#endif
+ 		ret = uevent_net_broadcast_tagged(net->uevent_sock->sk, env,
+ 						  action_string, devpath);
+ 	}
+ #endif
+ 
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_UEVENT_NET_BROADCAST_DIAGNOSTIC)
++	if (observe) {
++		atomic_inc(&gemini_da921x_net_broadcast_returns);
++		atomic_set(&gemini_da921x_net_broadcast_socket_count,
++			   observation.sockets);
++		atomic_set(&gemini_da921x_net_broadcast_listener_count,
++			   observation.listeners);
++		atomic_set(&gemini_da921x_net_broadcast_allocation_count,
++			   observation.allocations);
++		atomic_set(&gemini_da921x_net_broadcast_broadcast_count,
++			   observation.broadcasts);
++		atomic_set(&gemini_da921x_net_broadcast_retval, ret);
++	}
++#endif
+ 	return ret;
+ }
+ 
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_UEVENT_NET_BROADCAST_DIAGNOSTIC)
++static int gemini_da921x_net_broadcast(struct kobject *kobj,
++				       struct kobj_uevent_env *env,
++				       const char *action_string,
++				       const char *devpath)
++{
++	int baseline_sockets =
++		atomic_read(&gemini_da921x_untagged_dispatch_socket_count);
++	int retval;
++
++	atomic_set(&gemini_da921x_net_broadcast_baseline_socket_count,
++		   baseline_sockets);
++	mutex_lock(&gemini_da921x_net_broadcast_lock);
++	gemini_da921x_net_broadcast_active_target = kobj;
++	mutex_unlock(&gemini_da921x_net_broadcast_lock);
++	retval = kobject_uevent_net_broadcast(kobj, env, action_string, devpath);
++	mutex_lock(&gemini_da921x_net_broadcast_lock);
++	gemini_da921x_net_broadcast_active_target = NULL;
++	mutex_unlock(&gemini_da921x_net_broadcast_lock);
++
++	if (retval || baseline_sockets != 1 ||
++	    atomic_read(&gemini_da921x_net_broadcast_entries) != 1 ||
++	    atomic_read(&gemini_da921x_net_broadcast_returns) != 1 ||
++	    atomic_read(&gemini_da921x_net_broadcast_namespace_checks) != 1 ||
++	    atomic_read(&gemini_da921x_net_broadcast_untagged_routes) != 1 ||
++	    atomic_read(&gemini_da921x_net_broadcast_tagged_routes) != 0 ||
++	    atomic_read(&gemini_da921x_net_broadcast_socket_count) != 1 ||
++	    atomic_read(&gemini_da921x_net_broadcast_listener_count) != 1 ||
++	    atomic_read(&gemini_da921x_net_broadcast_allocation_count) != 1 ||
++	    atomic_read(&gemini_da921x_net_broadcast_broadcast_count) != 1)
++		return retval ?: -EINVAL;
++
++	atomic_set(&gemini_da921x_dual_modalias_stage, 24);
++	return 0;
++}
++#endif
++
+ static void zap_modalias_env(struct kobj_uevent_env *env)
+ {
+ 	static const char modalias_prefix[] = "MODALIAS=";
+@@ -1280,6 +1383,7 @@ int kobject_uevent_env(struct kobject *kobj, enum kobject_action action,
+ #if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_UEVENT_BOUNDED_LISTENER_DIAGNOSTIC)
+ 		if (gemini_da921x_previous_stage >
+-		    21 + IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_UEVENT_UNTAGGED_DISPATCH_DIAGNOSTIC)) {
++		    21 + IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_UEVENT_UNTAGGED_DISPATCH_DIAGNOSTIC) +
++		    IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_UEVENT_NET_BROADCAST_DIAGNOSTIC)) {
+ 			atomic_set(&gemini_da921x_dual_modalias_stage,
+ 				   gemini_da921x_previous_stage);
+ 			retval = -EALREADY;
+@@ -1315,12 +1419,22 @@ int kobject_uevent_env(struct kobject *kobj, enum kobject_action action,
+ 			retval = gemini_da921x_arm_untagged_dispatch(kobj);
+ 			if (retval)
+ 				goto exit;
+-		} else {
++		} else if (gemini_da921x_previous_stage == 22) {
+ 			retval = gemini_da921x_untagged_dispatch(env,
+ 								 action_string,
+ 								 devpath);
+ 			if (retval)
+ 				goto exit;
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_UEVENT_NET_BROADCAST_DIAGNOSTIC)
++			retval = gemini_da921x_arm_net_broadcast(kobj);
++			if (retval)
++				goto exit;
++		} else {
++			retval = gemini_da921x_net_broadcast(kobj, env,
++							     action_string, devpath);
++			if (retval)
++				goto exit;
++#endif
+ #endif
+ #endif
+ 		}
+-- 
+2.47.3

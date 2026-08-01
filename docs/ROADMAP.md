@@ -500,9 +500,15 @@ one exact 293-byte kernel/root receipt, and no duplicate. The client remained
 unbound, CPU and zero-I2C state were unchanged, serviceability passed, and a
 fresh read-only postcheck confirmed persistent stage 23, read-only sysfs, and
 helper removal. No partition read, storage write, or reboot occurred. The next
-Gate 3 discriminator should move one boundary outward while preserving this
-exact transport and zero-hardware baseline. No native VM kernel build is
-authorized without an explicit owner request. Provider work remains blocked.
+Gate 3 discriminator is the named `da921x-uevent-net-broadcast` profile. It
+moves exactly one boundary outward to the original
+`kobject_uevent_net_broadcast()` wrapper and requires one namespace check, one
+untagged route, zero tagged routes, and the same single exact receipt and
+zero-hardware baseline. Its 134-patch series, resolved configuration, manifest
+invariants, strict patch checks, and two byte-identical static listener builds
+passed input validation. Exact clean Buildbox compilation and candidate
+validation are next. No native VM kernel build is authorized without an
+explicit owner request. Provider work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 
