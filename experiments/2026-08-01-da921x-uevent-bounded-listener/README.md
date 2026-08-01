@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-01-da921x-uevent-bounded-listener` |
-| Status | `input validated; awaiting Buildbox` |
+| Status | `offline validated; awaiting guarded deployment` |
 | Subsystem | I2C, OF, kobject uevent, netlink |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -87,15 +87,45 @@ The complete input-to-action map is frozen in
 against the exact validated package and container identities before any device
 write or selected boot.
 
+## Offline candidate validation
+
+Buildbox compiled and validated the exact clean pushed commit
+`c0c6fd50c2247fa0e65798cddbd94aa76e023e87`. The fetched package has release
+`7.1.3-gemini-da921x-boundlis`; its complete checksum and provenance bundle,
+including all 119 DTBs, passed in the Linux validation environment. The new
+gate and all predecessor gates are built in, the matching driver remains
+module-only, and the retained initramfs has neither modules nor `modprobe`.
+
+Two independent managed-VM assemblies were byte-identical. The retained
+6,862,848-byte LK container passed all 32 analyzer gates and was padded to the
+exact 16,777,216-byte boot2 size. Only one candidate and one listener helper
+were retained after comparison. Exact identities are recorded in
+`results/offline-validation.txt`. No native VM kernel build or device access
+was used.
+
+## Frozen runtime plan
+
+The first selected boot must first identify the exact installed full-partition
+checksum and release, then show the complete stage-20 predecessor state. The
+collector stages only the checksum-pinned static listener and acceptance check
+in initramfs `/run`. The listener binds group 1 and issues the exact one-shot
+token. A pass requires stage 21, one socket, exactly one listener, zero
+broadcasts, and no receipt over 1.5 seconds, with the unchanged event, client,
+CPU, I2C6, zero-I2C, and USB/netcat baseline.
+
+The helpers are removed after execution. The collector performs no partition
+read, device-storage write, or reboot. Exact identities and the complete
+result-to-action map are frozen in `results/runtime-plan.txt` before deployment.
+
 ## Observations
 
-Input validation only. No compile claim, hardware-support claim, device write,
-or runtime claim has been made yet.
+The exact package and candidate passed offline validation. No device write or
+runtime claim has been made yet.
 
 ## Follow-up
 
-Commit and push the clean source, build it on Buildbox, fetch only the validated
-package, assemble twice, and compare the results. If all offline gates pass,
-deploy only to live-GPT-resolved inactive `boot2` under the standing guarded
-workflow, verify the full-partition readback, shut the device down, and run the
-frozen stage-21 listener check on the first selected boot.
+Commit and push the offline evidence, then return the current stage-20 runtime
+to known-good Gemian. Deploy only to live-GPT-resolved inactive `boot2` under
+the standing guarded workflow, verify the full-partition readback, shut the
+device down, and run the frozen stage-21 listener check on the first selected
+boot.

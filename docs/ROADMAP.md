@@ -445,8 +445,10 @@ independently observable userspace group-1 listener, accepts one exact-token
 replay, and advances to stage 21 only after observing the runtime-proven single
 socket plus exactly one listener. The event remains consumed before multicast,
 and the helper separately requires no receipt over a bounded 1.5-second wait.
-Its source is awaiting an exact clean Buildbox build. A passing first selected
-boot permits design of a separate single-multicast gate; any topology change,
+Its exact clean Buildbox package and two byte-identical candidate assemblies
+passed offline validation, and its runtime decision map is frozen before
+deployment. A passing first selected boot permits design of a separate
+single-multicast gate; any topology change,
 broadcast, receipt, or baseline change rejects this step. Visual
 white/grey-screen and reboot behavior alone remains inconclusive. No native VM
 kernel build is authorized without an explicit owner request. Provider work
