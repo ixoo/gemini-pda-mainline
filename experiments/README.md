@@ -16,8 +16,9 @@ the result.
 ### Current DA921x, I2C6, and A72 line
 
 - [2026-07-31 DA921x uevent listener discovery](2026-07-31-da921x-uevent-listener-discovery/README.md)
-  — traverses the normal uevent socket list, records bounded socket and group-1
-  listener counts, and returns before any multicast delivery.
+  — reached runtime stage 19 after traversing the normal uevent socket list;
+  it observed one socket and zero group-1 listeners, returned before multicast,
+  and preserved the unbound-client, zero-I2C, and serviceability baseline.
 - [2026-07-31 DA921x netlink skb serialization](2026-07-31-da921x-netlink-skb-serialization/README.md)
   — reached runtime stage 18 after allocating and byte-validating the exact
   293-byte target skb, then consumed it before socket traversal or multicast;

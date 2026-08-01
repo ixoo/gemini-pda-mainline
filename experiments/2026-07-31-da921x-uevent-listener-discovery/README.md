@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-31-da921x-uevent-listener-discovery` |
-| Status | `deployed to boot2; awaiting first selected boot` |
+| Status | `first selected boot passed stage 19` |
 | Subsystem | I2C, OF, kobject uevent, netlink |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -110,3 +110,31 @@ implicates traversal or listener inspection; a serviceable stage-18 result
 rejects the new boundary; any baseline change rejects attribution. Exact
 identities and this result-to-action map are frozen in
 `results/runtime-plan.txt` before the boot.
+
+## Runtime result
+
+The first selected boot matched release `7.1.3-gemini-da921x-listen`, full
+installed boot2 checksum
+`2dd4908ba4f65785a536b079f08c87fe096c6ed490ddc3294743c5b0d515576a`,
+USB identity and route, and boot ID
+`77a256e3-585d-4936-ab2c-a2a158d9c38d`. The BusyBox-compatible checker
+reported state `validated` and final stage 19.
+
+The bounded observation reported one socket entry and zero group-1 listeners.
+This satisfies `0 <= listeners <= sockets <= 1024` and proves the exact event
+traversed the normal mutex-protected uevent socket list and inspected listener
+state while its skb remained consumed before multicast. The measured zero is
+an observation on this initramfs boot, not a general claim that Linux uevent
+listeners are always absent.
+
+The nine-entry envelope and classification were unchanged. The real `1-0068`
+OF client remained unbound; CPUs 0--7, USB/netcat, and I2C6 handoff
+serviceability passed while every I2C and lifecycle oracle remained zero. The
+collector removed its temporary `/run` verifier and performed no partition
+read, storage write, or reboot. Local console and keyboard usability were not
+separately assessed.
+
+This closes socket-list traversal and listener discovery. The next transport
+split may exercise only the controlled no-listener delivery result while
+retaining an independent observation before any later multicast-to-listener
+test.

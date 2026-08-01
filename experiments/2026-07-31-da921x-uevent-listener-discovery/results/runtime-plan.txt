@@ -1,10 +1,9 @@
 experiment=2026-07-31-da921x-uevent-listener-discovery
-status=prepared-awaiting-first-selected-boot
+status=completed-first-selected-boot-passed
 installed_full_sha256=2dd4908ba4f65785a536b079f08c87fe096c6ed490ddc3294743c5b0d515576a
 kernel_release=7.1.3-gemini-da921x-listen
 device_endpoint=10.15.19.82:2323
 host_address=10.15.19.1/24
-host_mac=42:00:15:19:84:00
 expected_validation_state=validated
 expected_validation_stage=19
 expected_envelope=envp_idx=9,envp_capacity=64,terminator_null=1,buflen=245,buf_capacity=2048
@@ -26,5 +25,10 @@ device_partition_reads=none
 device_storage_writes=none
 reboot_request=none
 selected_boot=boot2
-boot_id=pending
-runtime_result=pending
+boot_id=77a256e3-585d-4936-ab2c-a2a158d9c38d
+uevent_sockets=1
+uevent_group1_listeners=0
+capture_sha256=ee5766615365a981bab5a549ede8d40bef02613bd53678c4faad46e072826c46
+result=validated-stage-19-uevent-listener-discovery-serviceable
+runtime_result=passed
+next_action=exercise-controlled-no-listener-delivery-result-before-multicast-to-a-listener

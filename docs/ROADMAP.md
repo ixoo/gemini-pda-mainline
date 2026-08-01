@@ -403,13 +403,21 @@ exact 48-byte header plus 245-byte environment, length 293, root credentials,
 destination group 1, and port ID 0; the skb was consumed before socket-list
 traversal or multicast. No partition read, storage write, or reboot occurred.
 
-The next Gate 3 discriminator must retain this exact stage-18 and zero-hardware
-baseline, traverse the uevent socket list, and expose only bounded listener
-presence/count state while still consuming the skb before multicast. This
-separates list traversal and listener discovery from delivery. A reset stops
-transport work; unchanged stage 18 with serviceability identifies traversal or
-validation failure. No native VM kernel build is authorized without an
-explicit owner request. Provider work remains blocked.
+The named `da921x-uevent-listener-discovery` profile retained that exact
+stage-18 and zero-hardware baseline, traversed the normal mutex-protected uevent
+socket list, and consumed the skb before multicast. Its first selected boot
+reached stage 19, observed one socket entry and zero group-1 listeners, and
+preserved the exact event, unbound client, zero I2C activity, and full
+serviceability baseline. The bounded zero-listener result is specific to this
+initramfs boot.
+
+The next Gate 3 discriminator must exercise only the controlled no-listener
+delivery result and add a durable independent observation before any later
+multicast-to-listener test. It must preserve the exact stage-19 event,
+socket/listener counts, zero-hardware baseline, and serviceability. A reset
+stops transport work; unchanged stage 19 without the new result localizes the
+failure. No native VM kernel build is authorized without an explicit owner
+request. Provider work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 
