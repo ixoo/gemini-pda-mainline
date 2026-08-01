@@ -476,12 +476,16 @@ state, and serviceability baseline passed. A fresh read-only postcheck confirmed
 persistent stage 22, exact counters, read-only sysfs, and helper removal. No
 partition read, storage write, or reboot occurred.
 
-The next Gate 3 discriminator must retain this exact topology, event, and
-zero-hardware baseline while allowing one replay through the stock untagged
-delivery function rather than the experiment-local single-broadcast split. It
-must freeze unique function entry/return, exact single receipt, no duplicate,
-and failure actions before another selected boot. Visual white/grey-screen and
-reboot behavior alone remains inconclusive. No native VM kernel build is
+The named `da921x-uevent-untagged-dispatch` profile is the next Gate 3
+discriminator. It retains the exact topology, event, and zero-hardware baseline
+while allowing one replay through the original untagged delivery function
+rather than the experiment-local single-broadcast split. Its 133-patch series,
+resolved configuration, manifest invariants, strict patch checks, and two
+byte-identical static listener builds passed input validation. The frozen
+runtime decision requires exactly one function entry and return, socket,
+listener, allocation, broadcast, exact receipt, and no duplicate. Exact clean
+Buildbox compilation and candidate validation are next. Visual white/grey-screen
+and reboot behavior alone remains inconclusive. No native VM kernel build is
 authorized without an explicit owner request. Provider work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
