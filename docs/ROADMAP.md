@@ -447,7 +447,9 @@ socket plus exactly one listener. The event remains consumed before multicast,
 and the helper separately requires no receipt over a bounded 1.5-second wait.
 Its exact clean Buildbox package and two byte-identical candidate assemblies
 passed offline validation, and its runtime decision map is frozen before
-deployment. A passing first selected boot permits design of a separate
+deployment. Guarded live-GPT boot2 installation then matched the exact stage-20
+predecessor, passed full readback, and shut the device down. A passing first
+selected boot permits design of a separate
 single-multicast gate; any topology change,
 broadcast, receipt, or baseline change rejects this step. Visual
 white/grey-screen and reboot behavior alone remains inconclusive. No native VM

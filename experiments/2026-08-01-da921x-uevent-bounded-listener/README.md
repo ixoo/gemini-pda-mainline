@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-01-da921x-uevent-bounded-listener` |
-| Status | `offline validated; awaiting guarded deployment` |
+| Status | `deployed to boot2; awaiting first selected boot` |
 | Subsystem | I2C, OF, kobject uevent, netlink |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -117,15 +117,28 @@ The helpers are removed after execution. The collector performs no partition
 read, device-storage write, or reboot. Exact identities and the complete
 result-to-action map are frozen in `results/runtime-plan.txt` before deployment.
 
+## Deployment
+
+The proven stage-20 runtime was identity-gated over USB/netcat. Its initial
+`/sbin/reboot` command did not dispatch and the unchanged boot ID prevented a
+false reboot claim. The owner returned the device to known-good Gemian, which
+identified as `3.18.41+` with changed boot ID
+`29a8c0e0-3598-45dc-8f2a-299ac28f9fe0`.
+
+The guarded installer resolved live GPT label `boot2` to `/dev/mmcblk0p30`
+while root was `/dev/mmcblk0p29`. External power was present, capacity was
+100%, health was Good, and the full predecessor checksum matched the proven
+stage-20 candidate. No new backup was created. The exact padded
+bounded-listener candidate was written, synced, flushed, and verified by a
+matching full-partition readback; the temporary readback was removed and clean
+shutdown was confirmed. Sanitized evidence is in `results/deployment.txt`.
+
 ## Observations
 
-The exact package and candidate passed offline validation. No device write or
-runtime claim has been made yet.
+The exact package and candidate passed offline validation and guarded boot2
+deployment. No selected-boot runtime claim has been made yet.
 
 ## Follow-up
 
-Commit and push the offline evidence, then return the current stage-20 runtime
-to known-good Gemian. Deploy only to live-GPT-resolved inactive `boot2` under
-the standing guarded workflow, verify the full-partition readback, shut the
-device down, and run the frozen stage-21 listener check on the first selected
-boot.
+Commit and push the deployment evidence. On the first owner-selected boot2
+start, run the frozen stage-21 listener check exactly once.
