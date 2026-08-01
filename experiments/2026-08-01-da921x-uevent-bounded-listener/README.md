@@ -108,10 +108,13 @@ was used.
 The first selected boot must first identify the exact installed full-partition
 checksum and release, then show the complete stage-20 predecessor state. The
 collector stages only the checksum-pinned static listener and acceptance check
-in initramfs `/run`. The listener binds group 1 and issues the exact one-shot
-token. A pass requires stage 21, one socket, exactly one listener, zero
-broadcasts, and no receipt over 1.5 seconds, with the unchanged event, client,
-CPU, I2C6, zero-I2C, and USB/netcat baseline.
+in initramfs `/run`. Because this initramfs mounts the virtual sysfs read-only,
+the checker requires that exact mount state, temporarily remounts only sysfs
+writable for the trigger, and restores it read-only before result evaluation
+and from an exit trap on every failure path. The listener binds group 1 and
+issues the exact one-shot token. A pass requires stage 21, one socket, exactly
+one listener, zero broadcasts, and no receipt over 1.5 seconds, with the
+unchanged event, client, CPU, I2C6, zero-I2C, and USB/netcat baseline.
 
 The helpers are removed after execution. The collector performs no partition
 read, device-storage write, or reboot. Exact identities and the complete
@@ -142,9 +145,16 @@ read-only follow-up proved stage 20, `attempts=0`, one socket, zero listeners,
 and the unchanged no-listener state. The attempt therefore contains no stage-21
 kernel result. The checker now preserves the helper's combined diagnostic on
 failure; one retry on the same untouched boot is attributable. No selected-boot
-runtime claim has been made yet.
+runtime claim has been made yet. Runtime attempt 2 preserved the exact helper
+failure: the listener bound group 1, but opening the trigger failed with errno
+30 (`EROFS`). A second read-only inspection confirmed stage 20, `attempts=0`,
+and `sysfs /sys sysfs ro`; the one-shot remains unconsumed. This is initramfs
+mount policy, not a stage-21 kernel result. The frozen retry temporarily makes
+only the virtual sysfs writable and restores it read-only before evaluation;
+it performs no device-storage access.
 
 ## Follow-up
 
-Commit and push the deployment evidence. On the first owner-selected boot2
-start, run the frozen stage-21 listener check exactly once.
+Run the checksum-pinned retry on this same untouched selected boot. If it
+passes, retain the stage-21 result and design the separate single-multicast
+gate. If it fails after consuming the trigger, do not retry this artifact.

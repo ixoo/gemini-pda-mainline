@@ -11,7 +11,7 @@ readonly HOST_ADDRESS=10.15.19.1
 readonly DEVICE_ADDRESS=10.15.19.82
 readonly DEVICE_PORT=2323
 readonly INSTALLED_FULL_SHA256=e1327619295ab7d739ebd76dbf31ac91691ad91ca086acb34728dbf69a1e54e5
-readonly RUNTIME_CHECK_SHA256=fb7a33aa3521a49707d509d35aedd826e505ad35adb1c3db053f888851137cb5
+readonly RUNTIME_CHECK_SHA256=a1d3a58f36dd7b3bbad39ca23fef42fd676238a2f5572f099cb3ba676def4740
 readonly LISTENER_SHA256=056618b3a508fa49e1d171e1667dbd6db22466fc408e6effb0f90fa099c84a21
 
 die() { printf 'error: %s\n' "$*" >&2; exit 2; }
@@ -151,6 +151,7 @@ emit_file "$listener" "$device_listener"
 	printf 'installed_full_sha256=%s\n' "$INSTALLED_FULL_SHA256"
 	printf 'device_partition_reads=none\ndevice_storage_writes=none\n'
 	printf 'initramfs_run_write=runtime-check-and-listener-only-removed-after-execution\n'
+	printf 'virtual_sysfs_mount=temporary-rw-restored-ro\n'
 	printf '__BOUNDLIS_HOST_END__\n'
 } >"$output"
 chmod 0600 "$output"

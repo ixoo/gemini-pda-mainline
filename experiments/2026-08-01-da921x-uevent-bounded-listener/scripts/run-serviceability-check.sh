@@ -1,9 +1,28 @@
 #!/bin/sh
 
-# Read-only except for one exact-token write to the experiment-only trigger.
-# The separately staged listener consumes no event and is removed by the host
-# collector after this one fresh selected-boot check.
+# Read-only except for a temporary writable remount of the virtual sysfs and
+# one exact-token write to the experiment-only trigger. The sysfs mount is
+# restored read-only before result evaluation and from the exit trap on every
+# failure path. The separately staged listener consumes no event and is removed
+# by the host collector after this one fresh selected-boot check.
 set -eu
+
+sysfs_restore_required=0
+
+restore_sysfs()
+{
+	[ "$sysfs_restore_required" = 1 ] || return 0
+	/bin/busybox mount -o remount,ro /sys >/dev/null 2>&1 || true
+}
+
+handle_signal()
+{
+	restore_sysfs
+	exit 1
+}
+
+trap restore_sysfs EXIT
+trap handle_signal HUP INT TERM
 
 abort()
 {
@@ -17,6 +36,22 @@ counter()
 	printf '%s\n' "$1" | /bin/busybox tr ' ' '\n' |
 		/bin/busybox awk -F= -v key="$2" \
 		'$1 == key { print $2; found = 1 } END { if (!found) exit 1 }'
+}
+
+sysfs_options()
+{
+	# shellcheck disable=SC2016 # The single-quoted program is interpreted by awk.
+	/bin/busybox awk '$2 == "/sys" && $3 == "sysfs" {
+		print $4; found++
+	} END { if (found != 1) exit 1 }' /proc/mounts
+}
+
+require_mount_option()
+{
+	case ",$1," in
+	*,"$2",*) ;;
+	*) abort "sysfs-mount-not-$2" ;;
+	esac
 }
 
 require_zero_status()
@@ -82,10 +117,21 @@ bounded_state="$(/bin/busybox cat "$bounded_path")" || abort bounded-state-read
 	'attempts=0 baseline_sockets=-1 sockets=-1 listeners=-1 broadcasts=-1' ] ||
 	abort bounded-state-before-trigger
 
+mount_options="$(sysfs_options)" || abort sysfs-mount-identity-before
+require_mount_option "$mount_options" ro
+/bin/busybox mount -o remount,rw /sys || abort sysfs-remount-rw
+sysfs_restore_required=1
+mount_options="$(sysfs_options)" || abort sysfs-mount-identity-during
+require_mount_option "$mount_options" rw
+
 set +e
 listener_result="$("$listener" 2>&1)"
 listener_status=$?
 set -e
+/bin/busybox mount -o remount,ro /sys || abort sysfs-remount-ro
+mount_options="$(sysfs_options)" || abort sysfs-mount-identity-after
+require_mount_option "$mount_options" ro
+sysfs_restore_required=0
 if [ "$listener_status" -ne 0 ]; then
 	printf '%s\n' "$listener_result"
 	abort listener-helper-failed
@@ -177,6 +223,7 @@ printf 'client_name=da9214-legacy\nclient_of_node=present\n'
 printf 'client_sysfs_modalias=of-real-compatible\n'
 printf 'validation_observation=read-only-sysfs\nvalidation_printk=absent\n'
 printf 'event_transport=bounded-listener-observed-before-multicast\n'
+printf 'sysfs_trigger_mount=temporary-rw-restored-ro\n'
 printf 'client_driver=unbound\ni2c_activity=zero\n'
 printf 'post_creation_serviceability=PASS\n'
 printf 'uevent_bounded_listener_result=PASS\n'
