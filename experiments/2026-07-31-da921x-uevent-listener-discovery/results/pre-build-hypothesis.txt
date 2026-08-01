@@ -1,0 +1,14 @@
+experiment=2026-07-31-da921x-uevent-listener-discovery
+hypothesis=exact-stage18-event-socket-list-traversal-and-bounded-group1-listener-discovery-are-serviceable-before-multicast
+unique_evidence=read-only-stage-19-with-bounded-socket-and-listener-counts-after-runtime-proven-serialization-and-before-any-netlink-broadcast
+success_action=retain-listener-discovery-and-split-no-listener-delivery-result-from-controlled-multicast
+reset_action=stop-transport-work-and-investigate-socket-list-traversal-or-listener-inspection
+stage18_action=reject-listener-discovery-success-and-localize-traversal-or-validation-failure
+changed_baseline_action=reject-attribution
+event_transport=socket-list-traversed-and-skb-already-consumed-before-multicast
+listener_count_limit=1024
+kernel_build_backend=buildbox-only
+native_vm_kernel_build=forbidden-without-explicit-owner-request
+device_partition_reads=none
+device_storage_writes=none
+reboot_request=none

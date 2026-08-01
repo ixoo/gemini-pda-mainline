@@ -1,0 +1,166 @@
+From 1cde4ded6c95f3a52cb747c7f744ec8fe2b0c115 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 31 Jul 2026 20:30:00 -0400
+Subject: [PATCH 140/140] kobject: observe Gemini DA921x uevent listeners
+
+The named Gemini reached stage 18 after the exact 293-byte netlink skb was
+allocated and serialized. It was then validated, consumed, and cleaned up
+before socket-list traversal or multicast. The unbound-client and zero-I2C
+serviceability baseline passed.
+
+Add the next experiment-only split. Traverse the normal uevent socket list
+under its mutex and count bounded socket and group-1 listener state. Expose
+those integers read-only and advance to stage 19. The already validated skb
+remains consumed, and netlink_broadcast() is never called.
+
+This separates socket-list traversal and listener discovery from multicast
+delivery. It adds no driver, provider, transfer, register access, printk,
+storage write, or event broadcast.
+---
+ drivers/i2c/Kconfig  | 15 +++++++++++++++
+ include/linux/kobject.h |  6 ++++++
+ kernel/ksysfs.c      | 16 ++++++++++++++++
+ lib/kobject_uevent.c | 43 +++++++++++++++++++++++++++++++++++++++++--
+ 4 files changed, 78 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/i2c/Kconfig b/drivers/i2c/Kconfig
+--- a/drivers/i2c/Kconfig
++++ b/drivers/i2c/Kconfig
+@@ -230,6 +230,21 @@ config I2C_GEMINI_DA921X_NETLINK_SERIALIZATION_DIAGNOSTIC
+ 
+ 	  Say N outside the named netlink serialization experiment.
+ 
++config I2C_GEMINI_DA921X_UEVENT_LISTENER_DISCOVERY_DIAGNOSTIC
++	bool "Gemini DA921x uevent listener-discovery discriminator"
++	depends on I2C_GEMINI_DA921X_NETLINK_SERIALIZATION_DIAGNOSTIC
++	help
++	  Traverse the normal uevent socket list under its mutex, record bounded
++	  socket and group-1 listener counts, and expose them read-only through
++	  /sys/kernel/gemini_da921x_uevent_listener_state. Successful traversal
++	  advances the read-only stage to 19.
++
++	  This preserves the already consumed skb, module-free unbound client, and
++	  zero-I2C baseline. It adds no driver, provider, transfer, register access,
++	  printk, storage path, or netlink multicast.
++
++	  Say N outside the named uevent listener-discovery experiment.
++
+ config I2C_BOARDINFO
+ 	bool
+ 	default y
+diff --git a/include/linux/kobject.h b/include/linux/kobject.h
+--- a/include/linux/kobject.h
++++ b/include/linux/kobject.h
+@@ -66,6 +66,12 @@ extern atomic_t gemini_da921x_dual_modalias_seqnum_index;
+ extern atomic_t gemini_da921x_dual_modalias_unexpected_count;
+ #endif
+ 
++#ifdef CONFIG_I2C_GEMINI_DA921X_UEVENT_LISTENER_DISCOVERY_DIAGNOSTIC
++/* experiment-only bounded uevent socket and listener counts */
++extern atomic_t gemini_da921x_uevent_socket_count;
++extern atomic_t gemini_da921x_uevent_listener_count;
++#endif
++
+ /*
+  * The actions here must match the index to the string array
+  * in lib/kobject_uevent.c
+diff --git a/kernel/ksysfs.c b/kernel/ksysfs.c
+--- a/kernel/ksysfs.c
++++ b/kernel/ksysfs.c
+@@ -105,6 +105,19 @@ gemini_da921x_dual_modalias_entry_classification_show(struct kobject *kobj,
+ KERNEL_ATTR_RO(gemini_da921x_dual_modalias_entry_classification);
+ #endif
+ 
++#ifdef CONFIG_I2C_GEMINI_DA921X_UEVENT_LISTENER_DISCOVERY_DIAGNOSTIC
++static ssize_t
++gemini_da921x_uevent_listener_state_show(struct kobject *kobj,
++					 struct kobj_attribute *attr,
++					 char *buf)
++{
++	return sysfs_emit(buf, "sockets=%d listeners=%d\n",
++		atomic_read(&gemini_da921x_uevent_socket_count),
++		atomic_read(&gemini_da921x_uevent_listener_count));
++}
++KERNEL_ATTR_RO(gemini_da921x_uevent_listener_state);
++#endif
++
+ /* cpu byteorder */
+ static ssize_t cpu_byteorder_show(struct kobject *kobj,
+ 				  struct kobj_attribute *attr, char *buf)
+@@ -263,5 +276,8 @@ static struct attribute * kernel_attrs[] = {
+ 	&gemini_da921x_dual_modalias_entry_classification_attr.attr,
+ #endif
++#ifdef CONFIG_I2C_GEMINI_DA921X_UEVENT_LISTENER_DISCOVERY_DIAGNOSTIC
++	&gemini_da921x_uevent_listener_state_attr.attr,
++#endif
+ 	&cpu_byteorder_attr.attr,
+ 	&address_bits_attr.attr,
+ #ifdef CONFIG_UEVENT_HELPER
+diff --git a/lib/kobject_uevent.c b/lib/kobject_uevent.c
+--- a/lib/kobject_uevent.c
++++ b/lib/kobject_uevent.c
+@@ -57,5 +57,10 @@ atomic_t gemini_da921x_dual_modalias_unexpected_count = ATOMIC_INIT(-1);
+ #endif
+ 
++#ifdef CONFIG_I2C_GEMINI_DA921X_UEVENT_LISTENER_DISCOVERY_DIAGNOSTIC
++atomic_t gemini_da921x_uevent_socket_count = ATOMIC_INIT(-1);
++atomic_t gemini_da921x_uevent_listener_count = ATOMIC_INIT(-1);
++#endif
++
+ #ifdef CONFIG_UEVENT_HELPER
+ char uevent_helper[UEVENT_HELPER_PATH_LEN] = CONFIG_UEVENT_HELPER_PATH;
+ #endif
+@@ -374,6 +379,35 @@ out:
+ }
+ #endif
+ 
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_UEVENT_LISTENER_DISCOVERY_DIAGNOSTIC)
++static int gemini_da921x_discover_uevent_listeners(void)
++{
++	struct uevent_sock *ue_sk;
++	int listener_count = 0;
++	int socket_count = 0;
++	int ret = 0;
++
++	mutex_lock(&uevent_sock_mutex);
++	list_for_each_entry(ue_sk, &uevent_sock_list, list) {
++		if (socket_count == 1024) {
++			ret = -E2BIG;
++			break;
++		}
++		socket_count++;
++		if (netlink_has_listeners(ue_sk->sk, 1))
++			listener_count++;
++	}
++	mutex_unlock(&uevent_sock_mutex);
++	if (ret)
++		return ret;
++
++	atomic_set(&gemini_da921x_uevent_socket_count, socket_count);
++	atomic_set(&gemini_da921x_uevent_listener_count, listener_count);
++	atomic_set(&gemini_da921x_dual_modalias_stage, 19);
++	return 0;
++}
++#endif
++
+ static int uevent_net_broadcast_untagged(struct kobj_uevent_env *env,
+ 					 const char *action_string,
+ 					 const char *devpath)
+@@ -885,8 +919,13 @@ int kobject_uevent_env(struct kobject *kobj, enum kobject_action action,
+ 		if (retval)
+ 			goto exit;
+ #endif
+-		/* The exact target skb is consumed above; never traverse sockets or
+-		 * broadcast it from this experiment-only path.
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_UEVENT_LISTENER_DISCOVERY_DIAGNOSTIC)
++		retval = gemini_da921x_discover_uevent_listeners();
++		if (retval)
++			goto exit;
++#endif
++		/* The exact target skb is consumed above; never broadcast it from
++		 * this experiment-only path.
+ 		 */
+ 		retval = 0;
+ 		goto exit;
+-- 
+2.47.3

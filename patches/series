@@ -129,3 +129,4 @@ v7.1.3/0136-kobject-expose-Gemini-DA921x-envelope-state.patch
 v7.1.3/0137-kobject-expose-Gemini-DA921x-entry-classification.patch
 v7.1.3/0138-kobject-correct-Gemini-DA921x-OF-event-layout.patch
 v7.1.3/0139-kobject-validate-Gemini-DA921x-netlink-serialization.patch
+v7.1.3/0140-kobject-observe-Gemini-DA921x-uevent-listeners.patch
