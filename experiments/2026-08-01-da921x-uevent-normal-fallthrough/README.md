@@ -53,6 +53,8 @@ not submission-ready.
   stage-25 listener from the runtime-proven listener source.
 - `scripts/run-serviceability-check.sh` accepts only the exact stage-24
   predecessor and validates the stage-25 return, receipt, and safety state.
+- `scripts/collect-runtime.sh` pins all nine helpers and reconstructs the full
+  stage-20-to-25 chain in four explicitly ordered checker phases.
 
 ## Follow-up
 

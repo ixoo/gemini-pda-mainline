@@ -539,7 +539,9 @@ that predecessor, resolved live `boot2`, passed stable-power, inactive-target,
 synchronized-write, flush, device-side checksum, and independent full-readback
 gates, then confirmed clean shutdown without creating a fresh backup. The next
 action is one selected `boot2` runtime capture through the complete
-stage-20-to-25 reconstruction chain. A successful runtime would permit a
+stage-20-to-25 reconstruction chain. That nine-helper chain is checksum-pinned,
+passes offline derivation and ShellCheck, and rejects a missing or wrong stage
+24 helper before device access. A successful runtime would permit a
 separate natural `device_add()` boundary; it would not yet prove driver bind,
 provider behavior, or A72 power. No native VM kernel build is authorized
 without an explicit owner request. Provider work remains blocked.
