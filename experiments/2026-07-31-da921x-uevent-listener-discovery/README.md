@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-31-da921x-uevent-listener-discovery` |
-| Status | `offline candidate validated; awaiting boot2 deployment` |
+| Status | `deployed to boot2; awaiting first selected boot` |
 | Subsystem | I2C, OF, kobject uevent, netlink |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -77,3 +77,18 @@ the duplicate assembly was removed after comparison. Exact package, container,
 manifest, assembler, and guarded-installer identities are recorded in
 `results/offline-validation.txt`. No native VM kernel build or device access
 was used for this validation.
+
+## Deployment
+
+The proven stage-18 runtime was identity-gated by release and boot ID over its
+USB netcat console, then requested its native reboot without storage access.
+Known-good Gemian returned as `3.18.41+` with changed boot ID
+`688dcb74-51c4-4dbc-82e8-890d95b770cb`.
+
+The guarded installer resolved live GPT label `boot2` to `/dev/mmcblk0p30`
+while root was `/dev/mmcblk0p29`. External power was present, capacity was
+100%, health was Good, and the full predecessor checksum matched the proven
+stage-18 candidate. No new backup was created. The exact padded listener
+candidate was written, synced, flushed, and verified by matching full-partition
+readback; the temporary readback was removed and clean shutdown was confirmed.
+Sanitized deployment evidence is recorded in `results/deployment.txt`.
