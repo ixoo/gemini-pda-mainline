@@ -23,6 +23,10 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-01 DA921x bounded uevent listener](2026-08-01-da921x-uevent-bounded-listener/README.md)
+  — input-validates the stage-21 discriminator: one independent userspace
+  group-1 listener, one exact-token replay, and consumption before multicast.
+  The exact clean source is awaiting its Buildbox build.
 - [2026-07-31 DA921x uevent no-listener delivery](2026-07-31-da921x-uevent-no-listener-delivery/README.md)
   — reached runtime stage 20 with one socket, zero listeners, zero allocations,
   zero broadcasts, and return value zero while preserving the unbound-client,

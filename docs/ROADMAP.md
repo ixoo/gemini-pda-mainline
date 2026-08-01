@@ -439,13 +439,18 @@ zero broadcasts, and return value zero. The exact event, unbound client, zero
 I2C activity, and full serviceability baseline remained unchanged. The
 host-side attempt before USB address restoration contains no device evidence.
 
-The next Gate 3 discriminator must add an independently observable,
-deliberately bounded listener before any multicast delivery attempt. It must
-fail closed unless that exact listener is present, preserve the stage-20 event
-and zero-hardware baseline, and distinguish receipt from return and cleanup.
-Visual white/grey-screen and reboot behavior alone remains inconclusive. No
-native VM kernel build is authorized without an explicit owner request.
-Provider work remains blocked.
+The named `da921x-uevent-bounded-listener` profile is the input-validated next
+Gate 3 discriminator. It retains the exact target after stage 20, requires one
+independently observable userspace group-1 listener, accepts one exact-token
+replay, and advances to stage 21 only after observing the runtime-proven single
+socket plus exactly one listener. The event remains consumed before multicast,
+and the helper separately requires no receipt over a bounded 1.5-second wait.
+Its source is awaiting an exact clean Buildbox build. A passing first selected
+boot permits design of a separate single-multicast gate; any topology change,
+broadcast, receipt, or baseline change rejects this step. Visual
+white/grey-screen and reboot behavior alone remains inconclusive. No native VM
+kernel build is authorized without an explicit owner request. Provider work
+remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 
