@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-01-da921x-uevent-single-multicast` |
-| Status | `deployed to boot2; awaiting selected-boot runtime` |
+| Status | `runtime stage 22 passed` |
 | Subsystem | I2C, OF, kobject uevent, netlink |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -129,8 +129,25 @@ synced, flushed, and verified by a matching independent full-partition
 readback; its temporary copy was removed and clean shutdown was confirmed.
 Sanitized evidence is in `results/deployment.txt`.
 
+The first selected boot matched the exact release and installed checksum. The
+checksum-pinned predecessor helper re-established stage 21 with one listener,
+zero broadcasts, and bounded no-receipt. The separate helper then advanced to
+stage 22: the kernel recorded one socket, one listener, one allocation, one
+broadcast, and return zero; userspace received one exact 293-byte datagram from
+kernel group 1 with root credentials and no duplicate during the bounded
+follow-up. The exact event, unbound client, CPU policy, zero-I2C counters, and
+full serviceability baseline passed. A fresh read-only USB/netcat session
+independently confirmed persistent stage 22, the exact counters, restored
+read-only sysfs, removed helpers, and unchanged zero-I2C state. No partition
+read, device-storage write, or reboot occurred. Sanitized evidence is in
+`results/runtime.txt`.
+
 ## Follow-up
 
-The owner physically selects `boot2`. Once the USB/netcat console is available,
-run the checksum-pinned one-shot runtime collector and preserve its exact
-stage-22 result before choosing the next Gate 3 boundary.
+Design the next Gate 3 discriminator around the stock untagged-dispatch
+boundary: preserve the proven one-socket/one-listener topology and exact event,
+but let one replay traverse the original untagged delivery function rather
+than the experiment-local single-broadcast split. Freeze unique entry/return,
+single-receipt, no-duplicate, and unchanged zero-hardware evidence before
+another selected boot. Provider work remains blocked until that boundary is
+attributable.

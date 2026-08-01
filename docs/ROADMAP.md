@@ -467,9 +467,21 @@ one allocation, one group-1 broadcast, one exact 293-byte userspace receipt,
 and no duplicate while preserving the zero-hardware and serviceability
 baseline. Topology, receipt, counter, or baseline changes reject attribution.
 Guarded live-GPT installation matched the exact predecessor, passed full
-readback, and shut the device down; selected-boot runtime evidence remains
-pending. Visual white/grey-screen and reboot behavior alone remains
-inconclusive. No native VM kernel build is
+readback, and shut the device down. On the first selected boot, the frozen
+predecessor transition re-established stage 21, then the separate multicast
+helper reached stage 22 with one socket, one listener, one allocation, one
+broadcast, return zero, one exact 293-byte kernel-group-1/root-credential
+receipt, and no duplicate. The event, unbound client, CPU policy, zero-I2C
+state, and serviceability baseline passed. A fresh read-only postcheck confirmed
+persistent stage 22, exact counters, read-only sysfs, and helper removal. No
+partition read, storage write, or reboot occurred.
+
+The next Gate 3 discriminator must retain this exact topology, event, and
+zero-hardware baseline while allowing one replay through the stock untagged
+delivery function rather than the experiment-local single-broadcast split. It
+must freeze unique function entry/return, exact single receipt, no duplicate,
+and failure actions before another selected boot. Visual white/grey-screen and
+reboot behavior alone remains inconclusive. No native VM kernel build is
 authorized without an explicit owner request. Provider work remains blocked.
 
 ### 4. Finish the ownership and rollback audit

@@ -1,5 +1,5 @@
 experiment=2026-08-01-da921x-uevent-single-multicast
-status=deployed-awaiting-owner-physical-boot2-selection
+status=completed-stage-22-passed
 installed_full_sha256=b8113be2e197a8ab06baf863da8679ff585360ef75b8c60359742f8afb862274
 kernel_release=7.1.3-gemini-da921x-mcast1
 device_endpoint=10.15.19.82:2323
@@ -32,4 +32,7 @@ device_storage_writes=none-planned
 initramfs_run_write=checksum-pinned-runtime-check-and-two-listeners-only-removed-after-execution
 reboot_request=none-planned
 selected_boot=boot2
-runtime_result=not-tested
+runtime_result=passed-stage-22-one-allocation-one-broadcast-one-exact-receipt-no-duplicate
+runtime_attempt_1=passed
+runtime_boot_id=0216b1d0-6911-4db9-9407-08a8be637508
+independent_postcheck=stage-22-counters-matched-sysfs-ro-helpers-removed-zero-i2c
