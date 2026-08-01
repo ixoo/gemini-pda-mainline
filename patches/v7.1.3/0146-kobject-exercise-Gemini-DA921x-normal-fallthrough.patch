@@ -1,0 +1,316 @@
+From 26c598769dbda8ac0a1cebedc55f58a452bab378 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 1 Aug 2026 18:38:00 -0400
+Subject: [PATCH 146/146] kobject: exercise Gemini DA921x normal fallthrough
+
+The named Gemini reached stage 24 after the original kobject namespace
+routing wrapper delivered one exact group-1 datagram and no duplicate. The
+experiment still called that wrapper directly and then forced the exact
+event to the local cleanup label.
+
+Add the next experiment-only boundary. Retain the exact target after stage
+24 and expose a separate one-shot trigger. Replay and revalidate the event,
+then leave the experiment branch through the ordinary
+kobject_uevent_env() continuation. Record one entry and return around the
+original network-broadcast call site plus one return from the public uevent
+function. Advance to stage 25 only when the call site returns zero exactly
+once.
+
+A separately checksum-pinned userspace helper must validate one exact
+datagram and no duplicate. This adds no driver, provider, I2C transfer,
+register access, printk, usermode helper, or storage path.
+---
+ drivers/i2c/Kconfig     |  17 +++++++
+ include/linux/kobject.h |   9 +++
+ kernel/ksysfs.c         |  36 +++++++++++++++
+ lib/kobject_uevent.c    | 125 +++++++++++++++++++++++++++++++++++++++++++++----
+ 4 files changed, 181 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/i2c/Kconfig b/drivers/i2c/Kconfig
+--- a/drivers/i2c/Kconfig
++++ b/drivers/i2c/Kconfig
+@@ -333,6 +333,23 @@ config I2C_GEMINI_DA921X_UEVENT_NET_BROADCAST_DIAGNOSTIC
+ 
+ 	  Say N outside the named net-broadcast experiment.
+ 
++config I2C_GEMINI_DA921X_UEVENT_NORMAL_FALLTHROUGH_DIAGNOSTIC
++	bool "Gemini DA921x normal uevent-fallthrough discriminator"
++	depends on NET && I2C_GEMINI_DA921X_UEVENT_NET_BROADCAST_DIAGNOSTIC
++	help
++	  Retain the exact target after stage 24 and expose a separate one-shot
++	  trigger at /sys/kernel/gemini_da921x_uevent_normal_fallthrough. With
++	  the independently validated group-1 listener already bound, replay and
++	  revalidate the same add-event, then leave the experiment branch through
++	  the ordinary kobject_uevent_env() network-broadcast call site and return.
++
++	  Exactly one call-site entry and return, one public uevent return, normalized
++	  return zero, one exact userspace receipt, and no duplicate advances the
++	  read-only stage to 25. The exact-token trigger adds no driver, provider,
++	  transfer, register access, printk, usermode helper, or storage path.
++
++	  Say N outside the named normal-fallthrough experiment.
++
+ config I2C_BOARDINFO
+ 	bool
+ 	default y
+diff --git a/include/linux/kobject.h b/include/linux/kobject.h
+--- a/include/linux/kobject.h
++++ b/include/linux/kobject.h
+@@ -129,6 +129,15 @@ extern atomic_t gemini_da921x_net_broadcast_retval;
+ int gemini_da921x_trigger_net_broadcast(void);
+ #endif
+ 
++#ifdef CONFIG_I2C_GEMINI_DA921X_UEVENT_NORMAL_FALLTHROUGH_DIAGNOSTIC
++extern atomic_t gemini_da921x_normal_fallthrough_attempts;
++extern atomic_t gemini_da921x_normal_fallthrough_callsite_entries;
++extern atomic_t gemini_da921x_normal_fallthrough_callsite_returns;
++extern atomic_t gemini_da921x_normal_fallthrough_public_returns;
++extern atomic_t gemini_da921x_normal_fallthrough_retval;
++int gemini_da921x_trigger_normal_fallthrough(void);
++#endif
++
+ /*
+  * The actions here must match the index to the string array
+  * in lib/kobject_uevent.c
+diff --git a/kernel/ksysfs.c b/kernel/ksysfs.c
+--- a/kernel/ksysfs.c
++++ b/kernel/ksysfs.c
+@@ -283,6 +283,39 @@ static struct kobj_attribute gemini_da921x_uevent_net_broadcast_attr =
+ 	       gemini_da921x_net_broadcast_store);
+ #endif
+ 
++#ifdef CONFIG_I2C_GEMINI_DA921X_UEVENT_NORMAL_FALLTHROUGH_DIAGNOSTIC
++static ssize_t
++gemini_da921x_normal_fallthrough_show(struct kobject *kobj,
++				      struct kobj_attribute *attr, char *buf)
++{
++	return sysfs_emit(buf,
++		"attempts=%d callsite_entries=%d callsite_returns=%d public_returns=%d retval=%d\n",
++		atomic_read(&gemini_da921x_normal_fallthrough_attempts),
++		atomic_read(&gemini_da921x_normal_fallthrough_callsite_entries),
++		atomic_read(&gemini_da921x_normal_fallthrough_callsite_returns),
++		atomic_read(&gemini_da921x_normal_fallthrough_public_returns),
++		atomic_read(&gemini_da921x_normal_fallthrough_retval));
++}
++
++static ssize_t
++gemini_da921x_normal_fallthrough_store(struct kobject *kobj,
++				       struct kobj_attribute *attr,
++				       const char *buf, size_t count)
++{
++	int ret;
++
++	if (count != sizeof("probe\n") - 1 || memcmp(buf, "probe\n", count))
++		return -EINVAL;
++	ret = gemini_da921x_trigger_normal_fallthrough();
++	return ret ?: count;
++}
++
++static struct kobj_attribute gemini_da921x_uevent_normal_fallthrough_attr =
++	__ATTR(gemini_da921x_uevent_normal_fallthrough, 0644,
++	       gemini_da921x_normal_fallthrough_show,
++	       gemini_da921x_normal_fallthrough_store);
++#endif
++
+ /* cpu byteorder */
+ static ssize_t cpu_byteorder_show(struct kobject *kobj,
+ 				  struct kobj_attribute *attr, char *buf)
+@@ -450,6 +483,9 @@ static struct attribute * kernel_attrs[] = {
+ #ifdef CONFIG_I2C_GEMINI_DA921X_UEVENT_NET_BROADCAST_DIAGNOSTIC
+ 	&gemini_da921x_uevent_net_broadcast_attr.attr,
+ #endif
++#ifdef CONFIG_I2C_GEMINI_DA921X_UEVENT_NORMAL_FALLTHROUGH_DIAGNOSTIC
++	&gemini_da921x_uevent_normal_fallthrough_attr.attr,
++#endif
+ 	&cpu_byteorder_attr.attr,
+ 	&address_bits_attr.attr,
+ #ifdef CONFIG_UEVENT_HELPER
+diff --git a/lib/kobject_uevent.c b/lib/kobject_uevent.c
+--- a/lib/kobject_uevent.c
++++ b/lib/kobject_uevent.c
+@@ -126,6 +126,18 @@ static struct kobject *gemini_da921x_net_broadcast_target;
+ static struct kobject *gemini_da921x_net_broadcast_active_target;
+ #endif
+ 
++#ifdef CONFIG_I2C_GEMINI_DA921X_UEVENT_NORMAL_FALLTHROUGH_DIAGNOSTIC
++atomic_t gemini_da921x_normal_fallthrough_attempts = ATOMIC_INIT(0);
++atomic_t gemini_da921x_normal_fallthrough_callsite_entries = ATOMIC_INIT(0);
++atomic_t gemini_da921x_normal_fallthrough_callsite_returns = ATOMIC_INIT(0);
++atomic_t gemini_da921x_normal_fallthrough_public_returns = ATOMIC_INIT(0);
++atomic_t gemini_da921x_normal_fallthrough_retval = ATOMIC_INIT(-1);
++
++static DEFINE_MUTEX(gemini_da921x_normal_fallthrough_lock);
++static struct kobject *gemini_da921x_normal_fallthrough_target;
++static struct kobject *gemini_da921x_normal_fallthrough_active_target;
++#endif
++
+ #ifdef CONFIG_UEVENT_HELPER
+ char uevent_helper[UEVENT_HELPER_PATH_LEN] = CONFIG_UEVENT_HELPER_PATH;
+ #endif
+@@ -843,6 +855,66 @@ int gemini_da921x_trigger_net_broadcast(void)
+ }
+ #endif
+ 
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_UEVENT_NORMAL_FALLTHROUGH_DIAGNOSTIC)
++static int gemini_da921x_arm_normal_fallthrough(struct kobject *kobj)
++{
++	int ret = 0;
++
++	mutex_lock(&gemini_da921x_normal_fallthrough_lock);
++	if (gemini_da921x_normal_fallthrough_target ||
++	    gemini_da921x_normal_fallthrough_active_target ||
++	    atomic_read(&gemini_da921x_normal_fallthrough_attempts))
++		ret = -EALREADY;
++	else
++		gemini_da921x_normal_fallthrough_target = kobject_get(kobj);
++	mutex_unlock(&gemini_da921x_normal_fallthrough_lock);
++	return ret;
++}
++
++static bool gemini_da921x_prepare_normal_fallthrough(struct kobject *kobj)
++{
++	bool active;
++
++	mutex_lock(&gemini_da921x_normal_fallthrough_lock);
++	active = gemini_da921x_normal_fallthrough_active_target == kobj;
++	mutex_unlock(&gemini_da921x_normal_fallthrough_lock);
++	return active;
++}
++
++int gemini_da921x_trigger_normal_fallthrough(void)
++{
++	struct kobject *kobj;
++	int ret;
++
++	if (atomic_read(&gemini_da921x_dual_modalias_stage) != 24)
++		return -EAGAIN;
++	if (atomic_cmpxchg(&gemini_da921x_normal_fallthrough_attempts, 0, 1))
++		return -EALREADY;
++
++	mutex_lock(&gemini_da921x_normal_fallthrough_lock);
++	kobj = gemini_da921x_normal_fallthrough_target;
++	gemini_da921x_normal_fallthrough_target = NULL;
++	gemini_da921x_normal_fallthrough_active_target = kobj;
++	mutex_unlock(&gemini_da921x_normal_fallthrough_lock);
++	if (!kobj)
++		return -ENODEV;
++
++	ret = kobject_uevent(kobj, KOBJ_ADD);
++	mutex_lock(&gemini_da921x_normal_fallthrough_lock);
++	gemini_da921x_normal_fallthrough_active_target = NULL;
++	mutex_unlock(&gemini_da921x_normal_fallthrough_lock);
++	atomic_inc(&gemini_da921x_normal_fallthrough_public_returns);
++	if (!ret &&
++	    (atomic_read(&gemini_da921x_normal_fallthrough_callsite_entries) != 1 ||
++	     atomic_read(&gemini_da921x_normal_fallthrough_callsite_returns) != 1 ||
++	     atomic_read(&gemini_da921x_dual_modalias_stage) != 25))
++		ret = -EINVAL;
++	atomic_set(&gemini_da921x_normal_fallthrough_retval, ret);
++	kobject_put(kobj);
++	return ret;
++}
++#endif
++
+ static int uevent_net_broadcast_tagged(struct sock *usk,
+ 				       struct kobj_uevent_env *env,
+ 				       const char *action_string,
+@@ -974,6 +1046,12 @@ static int gemini_da921x_net_broadcast(struct kobject *kobj,
+ 	    atomic_read(&gemini_da921x_net_broadcast_broadcast_count) != 1)
+ 		return retval ?: -EINVAL;
+ 
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_UEVENT_NORMAL_FALLTHROUGH_DIAGNOSTIC)
++	retval = gemini_da921x_arm_normal_fallthrough(kobj);
++	if (retval)
++		return retval;
++#endif
++
+ 	atomic_set(&gemini_da921x_dual_modalias_stage, 24);
+ 	return 0;
+ }
+@@ -1272,6 +1350,9 @@ int kobject_uevent_env(struct kobject *kobj, enum kobject_action action,
+ #if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_UEVENT_BOUNDED_LISTENER_DIAGNOSTIC)
+ 	int gemini_da921x_previous_stage = -1;
+ #endif
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_UEVENT_NORMAL_FALLTHROUGH_DIAGNOSTIC)
++	bool gemini_da921x_normal_fallthrough = false;
++#endif
+ 
+ 	/*
+ 	 * Mark "remove" event done regardless of result, for some subsystems
+@@ -1384,6 +1465,7 @@ int kobject_uevent_env(struct kobject *kobj, enum kobject_action action,
+ 		if (gemini_da921x_previous_stage >
+ 		    21 + IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_UEVENT_UNTAGGED_DISPATCH_DIAGNOSTIC) +
+-		    IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_UEVENT_NET_BROADCAST_DIAGNOSTIC)) {
++		    IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_UEVENT_NET_BROADCAST_DIAGNOSTIC) +
++		    IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_UEVENT_NORMAL_FALLTHROUGH_DIAGNOSTIC)) {
+ 			atomic_set(&gemini_da921x_dual_modalias_stage,
+ 				   gemini_da921x_previous_stage);
+ 			retval = -EALREADY;
+@@ -1430,29 +1512,60 @@ int kobject_uevent_env(struct kobject *kobj, enum kobject_action action,
+ 			retval = gemini_da921x_arm_net_broadcast(kobj);
+ 			if (retval)
+ 				goto exit;
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_UEVENT_NORMAL_FALLTHROUGH_DIAGNOSTIC)
++		} else if (gemini_da921x_previous_stage == 23) {
++#else
+ 		} else {
++#endif
+ 			retval = gemini_da921x_net_broadcast(kobj, env,
+ 							     action_string, devpath);
+ 			if (retval)
+ 				goto exit;
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_UEVENT_NORMAL_FALLTHROUGH_DIAGNOSTIC)
++		} else {
++			if (!gemini_da921x_prepare_normal_fallthrough(kobj)) {
++				retval = -EINVAL;
++				goto exit;
++			}
++			gemini_da921x_normal_fallthrough = true;
++#endif
+ #endif
+ #endif
+ #endif
+ 		}
+ #elif IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_UEVENT_NO_LISTENER_DELIVERY_DIAGNOSTIC)
+ 		retval = gemini_da921x_no_listener(env, action_string, devpath);
+ 		if (retval)
+ 			goto exit;
+ #endif
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_UEVENT_NORMAL_FALLTHROUGH_DIAGNOSTIC)
++		if (!gemini_da921x_normal_fallthrough) {
++#endif
+-		/* The exact target skb is consumed above; never broadcast it from
+-		 * this experiment-only path.
+-		 */
+-		retval = 0;
+-		goto exit;
++			/* The exact target skb is consumed above; never broadcast it from
++			 * this experiment-only path.
++			 */
++			retval = 0;
++			goto exit;
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_UEVENT_NORMAL_FALLTHROUGH_DIAGNOSTIC)
++		}
++#endif
+ 	}
+ 
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_UEVENT_NORMAL_FALLTHROUGH_DIAGNOSTIC)
++	if (gemini_da921x_normal_fallthrough)
++		atomic_inc(&gemini_da921x_normal_fallthrough_callsite_entries);
++#endif
+ 	retval = kobject_uevent_net_broadcast(kobj, env, action_string,
+ 					      devpath);
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_UEVENT_NORMAL_FALLTHROUGH_DIAGNOSTIC)
++	if (gemini_da921x_normal_fallthrough) {
++		atomic_inc(&gemini_da921x_normal_fallthrough_callsite_returns);
++		if (!retval &&
++		    atomic_read(&gemini_da921x_normal_fallthrough_callsite_entries) == 1 &&
++		    atomic_read(&gemini_da921x_normal_fallthrough_callsite_returns) == 1)
++			atomic_set(&gemini_da921x_dual_modalias_stage, 25);
++	}
++#endif
+ 
+ #ifdef CONFIG_UEVENT_HELPER
+ 	/* call uevent_helper, usually only enabled during early boot */
+-- 
+2.47.3

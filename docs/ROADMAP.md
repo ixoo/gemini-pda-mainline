@@ -520,10 +520,19 @@ selected the untagged route once and the tagged route zero times, retained the
 single exact receipt, and preserved the unbound-client, CPU, zero-I2C, and
 serviceability baseline. A fresh read-only postcheck confirmed persistent
 stage 24, exact counters, read-only sysfs, and helper removal. The next Gate 3
-step is to identify and freeze exactly one decision-changing outward call
-boundary from this proven wrapper before adding another experiment. No native
-VM kernel build is authorized without an explicit owner request. Provider work
-remains blocked.
+boundary is now frozen as the named
+`da921x-uevent-normal-fallthrough` profile. It moves exactly one boundary
+outward from the proven direct wrapper call: the retained event must traverse
+the original `kobject_uevent_env()` network-broadcast call site and return
+through the public uevent function exactly once, with return zero, the same
+single exact receipt, no duplicate, and the unchanged zero-hardware and
+serviceability baseline. The 135-patch series, resolved configuration,
+manifest invariants, strict patch checks, and two byte-identical static
+listener builds passed input validation. The next action is an exact clean
+Buildbox build from the frozen pushed commit. Success would permit a separate
+natural `device_add()` boundary; it would not yet prove driver bind, provider
+behavior, or A72 power. No native VM kernel build is authorized without an
+explicit owner request. Provider work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 
