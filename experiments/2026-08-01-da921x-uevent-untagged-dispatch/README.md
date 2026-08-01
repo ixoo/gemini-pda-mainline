@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-01-da921x-uevent-untagged-dispatch` |
-| Status | `deployed to boot2; awaiting selected-boot runtime` |
+| Status | `runtime stage 23 passed` |
 | Subsystem | I2C, OF, kobject uevent, netlink |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -87,4 +87,15 @@ stage-23 serviceability checker were committed and pushed. Guarded deployment
 resolved live `boot2`, matched the exact stage-22 predecessor, passed power and
 inactive-target gates, synchronized and flushed the write, matched a full
 partition readback, and shut the device down. No fresh backup was created.
-Select boot2 once, then run the frozen runtime capture.
+
+The first selected boot passed. It began at stage 20 with read-only sysfs,
+reconstructed the proven stages 21 and 22, then called the original untagged
+delivery function once. The kernel recorded exactly one function entry and
+return, one socket, one listener, one allocation, one broadcast, and return
+zero. The independent listener received the exact 293-byte group-1 event with
+root credentials and no duplicate. The client remained unbound, CPU0-7 stayed
+online with CPU8-9 offline, all I2C and oracle counters stayed zero, and the
+serviceability baseline passed. A separate read-only postcheck confirmed
+persistent stage 23, read-only sysfs, and helper removal. No partition read,
+storage write, or reboot occurred. Sanitized evidence is in
+`results/runtime.txt`.

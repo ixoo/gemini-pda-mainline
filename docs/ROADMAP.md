@@ -492,9 +492,17 @@ the retained copy passed its manifest and all 32 LK gates, and the regenerable
 VM copies were removed. Guarded live-GPT deployment matched the exact stage-22
 predecessor, passed full readback, and shut the device down without creating a
 fresh backup. The first selected-boot runtime capture is next. Visual
-white/grey-screen and reboot behavior alone remains inconclusive. No native VM
-kernel build is authorized without an explicit owner request. Provider work
-remains blocked.
+white/grey-screen and reboot behavior alone remains inconclusive. On the first
+selected boot, the predecessor helpers reconstructed stages 21 and 22, then
+the original untagged delivery function reached stage 23 with exactly one
+entry and return, one socket, listener, allocation, broadcast, return zero,
+one exact 293-byte kernel/root receipt, and no duplicate. The client remained
+unbound, CPU and zero-I2C state were unchanged, serviceability passed, and a
+fresh read-only postcheck confirmed persistent stage 23, read-only sysfs, and
+helper removal. No partition read, storage write, or reboot occurred. The next
+Gate 3 discriminator should move one boundary outward while preserving this
+exact transport and zero-hardware baseline. No native VM kernel build is
+authorized without an explicit owner request. Provider work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 
