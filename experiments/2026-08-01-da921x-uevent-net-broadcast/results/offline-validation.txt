@@ -43,4 +43,4 @@ runtime_collector_sha256=99cb26043643f3c5ef35e6f579cb67a1ce5cced52c8237b64853369
 bash_and_sh_syntax=passed
 shellcheck=passed-managed-vm
 device_access=none
-runtime_result=attempt-1-rejected-before-trigger
+runtime_result=attempt-2-passed-after-attempt-1-harness-only-rejection

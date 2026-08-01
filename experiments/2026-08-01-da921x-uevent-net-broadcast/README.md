@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-01-da921x-uevent-net-broadcast` |
-| Status | `deployed to boot2; awaiting selected boot` |
+| Status | `runtime stage 24 passed` |
 | Subsystem | I2C, OF, kobject uevent, netlink namespaces |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -95,3 +95,15 @@ stage-20-to-22 reconstruction before the separate stage-23 and stage-24
 checkers. Exact chronology and the private-capture hash are recorded in
 `results/runtime-attempt-1.txt`. Because no trigger or state transition
 occurred, one corrected retry on the same selected boot remains attributable.
+
+The corrected same-boot capture passed. It reconstructed the proven stages 21
+through 23, then traversed `kobject_uevent_net_broadcast()` once. The kernel
+recorded one wrapper entry and return, one namespace check, one untagged route,
+zero tagged routes, one socket and listener, one allocation and broadcast, and
+return zero. The listener received the exact 293-byte, nine-entry group-1 event
+with root credentials and no duplicate. The client remained unbound, CPU0-7
+stayed online with CPU8-9 offline, all I2C and oracle activity remained zero,
+and serviceability passed. A separate read-only postcheck confirmed persistent
+stage 24, exact counters, read-only sysfs, no predecessor printk, and removal
+of all seven helpers. No partition read, storage write, or reboot occurred.
+Sanitized evidence is in `results/runtime.txt`.

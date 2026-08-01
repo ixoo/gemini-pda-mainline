@@ -515,8 +515,15 @@ resolved the live GPT, matched the exact stage-23 predecessor, passed stable
 power, inactive-target, synchronized-write, flush, and full-readback gates, and
 shut the device down without creating a fresh backup. One selected `boot2`
 runtime capture through the corrected, complete stage-20-to-24 reconstruction
-chain is next. No native VM kernel build is authorized without an explicit
-owner request. Provider work remains blocked.
+chain passed on the selected boot. The wrapper produced one namespace check,
+selected the untagged route once and the tagged route zero times, retained the
+single exact receipt, and preserved the unbound-client, CPU, zero-I2C, and
+serviceability baseline. A fresh read-only postcheck confirmed persistent
+stage 24, exact counters, read-only sysfs, and helper removal. The next Gate 3
+step is to identify and freeze exactly one decision-changing outward call
+boundary from this proven wrapper before adding another experiment. No native
+VM kernel build is authorized without an explicit owner request. Provider work
+remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 
