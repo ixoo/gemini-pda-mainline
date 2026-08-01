@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-31-da921x-uevent-listener-discovery` |
-| Status | `input validated; awaiting Buildbox build` |
+| Status | `offline candidate validated; awaiting boot2 deployment` |
 | Subsystem | I2C, OF, kobject uevent, netlink |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -60,3 +60,20 @@ checks passed with 92 GiB and 83 GiB available. The exact patchset and
 configuration identities are recorded in `results/input-validation.txt`.
 No native VM kernel build was run and the device was not accessed for this
 experiment.
+
+## Offline candidate validation
+
+Buildbox produced the exact clean `arm64` package from repository commit
+`ea93d5e1555692296f88dd90478fc7c34213b507`. Independent managed-VM
+validation passed its complete checksum and provenance bundle, including all
+119 DTBs. The selected package has release
+`7.1.3-gemini-da921x-listen`; the matching driver remains module-only, while
+the retained lifecycle initramfs contains neither modules nor `modprobe`.
+
+Two independent managed-VM assemblies were byte-identical. The retained
+6,862,848-byte LK container passed all 32 analyzer gates and was padded to the
+exact 16,777,216-byte boot2 size. Only the selected candidate was exported;
+the duplicate assembly was removed after comparison. Exact package, container,
+manifest, assembler, and guarded-installer identities are recorded in
+`results/offline-validation.txt`. No native VM kernel build or device access
+was used for this validation.
