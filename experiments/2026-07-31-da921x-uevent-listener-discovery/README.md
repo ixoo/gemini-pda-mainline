@@ -92,3 +92,21 @@ stage-18 candidate. No new backup was created. The exact padded listener
 candidate was written, synced, flushed, and verified by matching full-partition
 readback; the temporary readback was removed and clean shutdown was confirmed.
 Sanitized deployment evidence is recorded in `results/deployment.txt`.
+
+## Frozen runtime plan
+
+The first selected boot must identify release
+`7.1.3-gemini-da921x-listen`, validation state `validated`, and stage 19.
+The read-only verifier accepts the measured listener state only when both
+fields are decimal integers satisfying
+`0 <= listeners <= sockets <= 1024`; it does not assume a particular listener
+count. The established event envelope, classification, real unbound OF client,
+CPU set, ready I2C6 handoff, zero I2C/oracle activity, and USB/netcat
+serviceability must remain unchanged.
+
+A pass proves normal socket-list traversal and group-1 listener discovery while
+the skb is still consumed before multicast. A reset stops transport work and
+implicates traversal or listener inspection; a serviceable stage-18 result
+rejects the new boundary; any baseline change rejects attribution. Exact
+identities and this result-to-action map are frozen in
+`results/runtime-plan.txt` before the boot.
