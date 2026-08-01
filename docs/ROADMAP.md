@@ -506,9 +506,13 @@ moves exactly one boundary outward to the original
 untagged route, zero tagged routes, and the same single exact receipt and
 zero-hardware baseline. Its 134-patch series, resolved configuration, manifest
 invariants, strict patch checks, and two byte-identical static listener builds
-passed input validation. Exact clean Buildbox compilation and candidate
-validation are next. No native VM kernel build is authorized without an
-explicit owner request. Provider work remains blocked.
+passed input validation. Exact clean Buildbox compilation passed for the frozen
+pushed commit and the fetched package revalidated. Two independent candidate
+assemblies were byte-identical, the retained copy passed its manifest and all
+32 LK gates, and the regenerable VM copies were removed. The guarded installer
+and four-listener runtime chain passed syntax and ShellCheck. Guarded deployment
+to live-GPT-resolved `boot2` is next. No native VM kernel build is authorized
+without an explicit owner request. Provider work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 

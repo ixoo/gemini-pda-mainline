@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-01-da921x-uevent-net-broadcast` |
-| Status | `input validated; awaiting exact buildbox` |
+| Status | `offline candidate validated; awaiting guarded deployment` |
 | Subsystem | I2C, OF, kobject uevent, netlink namespaces |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -47,6 +47,12 @@ not submission-ready.
 - Patch `0145` adds the one-shot wrapper and namespace-route observation.
 - `scripts/build-listener.sh` source-pins and mechanically derives the static
   stage-24 listener from the runtime-proven stage-23 listener.
+- `scripts/build-candidate.sh` derives the exact LK candidate assembler from
+  the validated stage-23 workflow.
+- `scripts/install-boot2.sh` accepts only the exact stage-23 predecessor and
+  stage-24 candidate, requires full readback, and shuts down after success.
+- `scripts/collect-runtime.sh` reconstructs stages 21 through 23 with pinned
+  helpers before invoking the separate stage-24 serviceability check.
 
 ## Follow-up
 
@@ -58,5 +64,15 @@ checkpatch has zero warnings and checks; its sole error is the intentionally
 absent experiment-only DCO. Two static ARM64 helper builds were byte-identical.
 Host and VM free-space checks passed with 91 GiB and 83 GiB available. Exact
 identities are in `results/input-validation.txt`. No native VM kernel build or
-device access was used. Commit and push these exact inputs, then submit only
-that commit to the explicit buildbox backend.
+device access was used.
+
+Buildbox compiled exact clean pushed commit
+`35054eab8644ccace1d2eb55d279b077d1a28928` with the intended release,
+profile, patchset, and configuration. The fetched package passed its checksum
+manifest. Two independent boot-container assemblies were byte-identical and
+passed all 32 LK gates. One validated copy is retained below the ignored
+artifact tree and both regenerable VM copies were removed. The guarded
+installer and four-listener runtime chain passed syntax and ShellCheck. Exact
+offline identities are in `results/offline-validation.txt`. Commit and push
+these deployment inputs, then install only the selected candidate to live-GPT
+resolved `boot2` from Gemian.
