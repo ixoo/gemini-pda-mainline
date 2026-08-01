@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-31-da921x-uevent-no-listener-delivery` |
-| Status | `deployed; awaiting first selected boot` |
+| Status | `first selected boot passed stage 20` |
 | Subsystem | I2C, OF, kobject uevent, netlink |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -113,3 +113,30 @@ candidate must fail closed before those operations. Stage 19 rejects execution
 of the new result path. A visual/reboot cycle without exact identity, stage, or
 attributable reset evidence is inconclusive. Exact identities and the complete
 result-to-action map are frozen in `results/runtime-plan.txt` before the boot.
+
+## Runtime result
+
+The first selected boot matched release `7.1.3-gemini-da921x-nodeliv`, full
+installed boot2 checksum
+`bf4b379696cf2a93806d969ffaa90d8652ab092f8643e0539d694ca7971f77e0`,
+USB identity and route, and boot ID
+`148bcdb3-325e-489f-85cd-939d955b0218`. The BusyBox-compatible checker
+reported state `validated` and final stage 20.
+
+Both observations reported one socket and zero group-1 listeners. The new
+delivery observation additionally reported zero skb allocations, zero
+broadcasts, and return value zero. This proves the exact event exercised the
+normal no-listener loop and returned successfully without allocation or
+multicast delivery on this initramfs boot.
+
+The nine-entry envelope and classification were unchanged. The real `1-0068`
+OF client remained unbound; CPUs 0--7, USB/netcat, and I2C6 handoff
+serviceability passed while every I2C and lifecycle oracle remained zero. The
+collector removed its temporary `/run` verifier and performed no partition
+read, storage write, or reboot. The initial host-side attempt ended before a
+device connection because macOS had not yet restored the USB address; it
+contains no runtime evidence and does not affect this connected pass.
+
+This closes the zero-listener delivery result. A later multicast test must
+first add an independently observable, deliberately bounded listener so event
+receipt can be attributed without relying on screen or reboot behavior.

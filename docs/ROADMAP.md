@@ -431,13 +431,21 @@ preserved the exact event, unbound client, zero I2C activity, and full
 serviceability baseline. The bounded zero-listener result is specific to this
 initramfs boot.
 
-The next Gate 3 discriminator must exercise only the controlled no-listener
-delivery result and add a durable independent observation before any later
-multicast-to-listener test. It must preserve the exact stage-19 event,
-socket/listener counts, zero-hardware baseline, and serviceability. A reset
-stops transport work; unchanged stage 19 without the new result localizes the
-failure. No native VM kernel build is authorized without an explicit owner
-request. Provider work remains blocked.
+The named `da921x-uevent-no-listener-delivery` profile retained that exact
+stage-19 and zero-hardware baseline and exercised the normal untagged delivery
+loop only with the runtime-proven topology. Its first connected selected-boot
+capture reached stage 20 with one socket, zero listeners, zero skb allocations,
+zero broadcasts, and return value zero. The exact event, unbound client, zero
+I2C activity, and full serviceability baseline remained unchanged. The
+host-side attempt before USB address restoration contains no device evidence.
+
+The next Gate 3 discriminator must add an independently observable,
+deliberately bounded listener before any multicast delivery attempt. It must
+fail closed unless that exact listener is present, preserve the stage-20 event
+and zero-hardware baseline, and distinguish receipt from return and cleanup.
+Visual white/grey-screen and reboot behavior alone remains inconclusive. No
+native VM kernel build is authorized without an explicit owner request.
+Provider work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 
