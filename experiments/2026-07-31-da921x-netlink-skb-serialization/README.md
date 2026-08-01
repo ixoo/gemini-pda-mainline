@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-31-da921x-netlink-skb-serialization` |
-| Status | `deployed to boot2; awaiting first selected boot` |
+| Status | `completed; exact skb serialization serviceable` |
 | Subsystem | I2C, OF, kobject uevent, netlink |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -109,3 +109,29 @@ That invocation is infrastructure failure, not stage-17 or stage-18 evidence.
 The corrected source-pinned collector stages a frozen `/bin/sh` check; its new
 helper identity makes the follow-up on the same boot an independent,
 decision-changing observation rather than an identical repeat.
+
+## Runtime result
+
+The corrected observation on the first selected boot matched release
+`7.1.3-gemini-da921x-skbser`, full `boot2` checksum
+`64667964870c38dcedbcfcbb8d8f644ad21fba66bb4e712987c4e4fdd3bb32ec`,
+USB identity and route, and boot ID
+`bc3a90e7-b3fb-4545-bd76-d95f39a9a741`. The BusyBox-compatible checker
+reported state `validated` and final stage 18.
+
+Stage 18 is set only after the normal allocator produces the exact 48-byte
+`add@<devpath>\0` header followed by the runtime-proven 245-byte environment,
+for a total skb length of 293 bytes, with root credentials, destination group
+1, and port ID 0. The skb was consumed before socket-list traversal or
+multicast. The exact nine-entry envelope and classification remained unchanged.
+
+The real `1-0068` OF client remained unbound. CPUs 0--7, USB/netcat, and I2C6
+handoff serviceability passed while every I2C and lifecycle oracle remained at
+zero. The checker removed its temporary `/run` copy and performed no partition
+read, storage write, or reboot. Local console and keyboard usability were not
+separately assessed.
+
+This proves allocation, header and environment serialization, netlink metadata
+initialization, skb consumption, return, and cleanup serviceable. The next
+transport split may traverse the uevent socket list and record whether a
+listener exists while still consuming the skb before multicast delivery.

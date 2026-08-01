@@ -390,18 +390,26 @@ zero-I2C-activity baseline. The collector made no partition read, storage
 write, or reboot request. This proves complete corrected event assembly,
 successful suppression, return, and cleanup safe.
 
-The next Gate 3 discriminator must retain this exact validated event and
-zero-hardware baseline, construct and validate the netlink skb, then consume it
-before socket-list traversal or multicast. Serviceability with read-only
-serialized state separates allocation, header/environment copy, and netlink
-metadata construction from listener discovery and delivery. A reset stops
-transport work; a surviving non-serialized state identifies allocation or
-validation failure without broadcasting. No native VM kernel build is
-authorized without an explicit owner request. Provider work remains blocked.
 The named `da921x-netlink-skb-serialization` profile implements this exact
-split and has passed patch application, configuration, profile isolation,
-canonical-series, mutation, and focused strict patch-quality checks. Its next
-gate is a clean Buildbox build from the exact pushed source commit.
+split. Its exact clean source built on Buildbox; two assemblies were
+byte-identical and all 32 LK gates passed. Guarded deployment matched the exact
+predecessor, wrote only live-GPT-resolved boot2 without a new backup, passed
+flush and independent full readback, and shut the device down. The first
+selected boot matched exact identity. After one recorded host-verifier
+infrastructure failure, the corrected BusyBox-compatible helper reported final
+stage 18, the unchanged nine-entry event, unbound client, zero I2C activity,
+and full serviceability. Stage 18 proves the normal allocator produced the
+exact 48-byte header plus 245-byte environment, length 293, root credentials,
+destination group 1, and port ID 0; the skb was consumed before socket-list
+traversal or multicast. No partition read, storage write, or reboot occurred.
+
+The next Gate 3 discriminator must retain this exact stage-18 and zero-hardware
+baseline, traverse the uevent socket list, and expose only bounded listener
+presence/count state while still consuming the skb before multicast. This
+separates list traversal and listener discovery from delivery. A reset stops
+transport work; unchanged stage 18 with serviceability identifies traversal or
+validation failure. No native VM kernel build is authorized without an
+explicit owner request. Provider work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 

@@ -22,4 +22,4 @@ full_readback=matching-and-temporary-copy-removed
 private_deployment_summary_sha256=d44b6f91e2450f7ad916b38db45d77de78feca166bd817ebd4e82d34116db189
 shutdown=requested-after-verified-success
 shutdown=confirmed-disconnected
-runtime_result=not-tested
+runtime_result=first-selected-boot-validated-stage-18-serviceable
