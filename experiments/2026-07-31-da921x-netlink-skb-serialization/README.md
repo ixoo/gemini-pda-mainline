@@ -101,3 +101,11 @@ release `7.1.3-gemini-da921x-skbser`, final stage 18, the unchanged validated
 nine-entry environment, the unbound real OF client, and the zero-I2C/serviceable
 baseline. It writes only its temporary check below initramfs `/run`, removes it,
 and performs no partition access or reboot.
+
+The first collector invocation established the exact candidate release and
+boot ID, but the staged check exited 127 before executing because its host-side
+Bash derivation wrapper was not compatible with the BusyBox-only initramfs.
+That invocation is infrastructure failure, not stage-17 or stage-18 evidence.
+The corrected source-pinned collector stages a frozen `/bin/sh` check; its new
+helper identity makes the follow-up on the same boot an independent,
+decision-changing observation rather than an identical repeat.

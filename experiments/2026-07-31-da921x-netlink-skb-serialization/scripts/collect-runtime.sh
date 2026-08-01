@@ -29,7 +29,7 @@ perl -0pe '
 	s#repo_root="\$\(cd -- "\$script_dir/\.\./\.\./\.\." && pwd -P\)"#repo_root="\${GEMINI_REPO_ROOT_OVERRIDE:?missing}"#g;
 	s#2026-07-31-da921x-of-event-layout-correction/scripts/run-serviceability-check#2026-07-31-da921x-netlink-skb-serialization/scripts/run-serviceability-check#g;
 	s#d9370fd47dd4c4e3ae1851ffd639a9b1e623b3f36de54560935323618690def2#64667964870c38dcedbcfcbb8d8f644ad21fba66bb4e712987c4e4fdd3bb32ec#g;
-	s#d260464c5bfe84e93efdcb0696a33c40b129614c4aaf7d44667473cb6f67e5a8#98d2e27858e5ee263471f82caa2ebf74b64ab9f0eb01da318b53d809cbc52770#g;
+	s#d260464c5bfe84e93efdcb0696a33c40b129614c4aaf7d44667473cb6f67e5a8#8f6ba4eb337dd1c8695b8b1cfceb87af54b8e71a0f542ab183f3005167639903#g;
 	s#of_event_layout_correction_result=PASS#netlink_serialization_result=PASS#g;
 	s#da921x-of-event-layout-correction-runtime#da921x-netlink-skb-serialization-runtime#g;
 	s#da921x-ofevent#da921x-skbser#g;
