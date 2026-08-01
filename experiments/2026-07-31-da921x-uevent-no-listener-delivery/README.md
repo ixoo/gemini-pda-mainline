@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-31-da921x-uevent-no-listener-delivery` |
-| Status | `offline candidate validated; awaiting deployment` |
+| Status | `deployed; awaiting first selected boot` |
 | Subsystem | I2C, OF, kobject uevent, netlink |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -80,3 +80,36 @@ the duplicate assembly was removed after comparison. Exact package, container,
 manifest, assembler, and guarded-installer identities are recorded in
 `results/offline-validation.txt`. No native VM kernel build or device access
 was used for this validation.
+
+## Deployment
+
+The proven stage-19 runtime was identity-gated by release and boot ID over its
+USB netcat console, then requested its native reboot without storage access.
+Known-good Gemian returned as `3.18.41+` with changed boot ID
+`16145818-6558-416e-b783-f261bc7faabb`.
+
+The guarded installer resolved live GPT label `boot2` to `/dev/mmcblk0p30`
+while root was `/dev/mmcblk0p29`. External power was present, capacity was
+100%, health was Good, and the full predecessor checksum matched the proven
+stage-19 candidate. No new backup was created. The exact padded no-listener
+candidate was written, synced, flushed, and verified by matching full-partition
+readback; the temporary readback was removed and clean shutdown was confirmed.
+Sanitized deployment evidence is recorded in `results/deployment.txt`.
+
+## Frozen runtime plan
+
+The first selected boot must identify release
+`7.1.3-gemini-da921x-nodeliv`, validation state `validated`, and stage 20.
+The read-only verifier requires the predecessor listener observation and new
+delivery observation both to report exactly one socket and zero listeners. The
+new path must additionally report zero allocations, zero broadcasts, and
+return value zero. The established event envelope, classification, real
+unbound OF client, CPU set, ready I2C6 handoff, zero I2C/oracle activity, and
+USB/netcat serviceability must remain unchanged.
+
+A pass proves the normal no-listener loop returned without allocating or
+broadcasting. A changed listener topology rejects the measurement because the
+candidate must fail closed before those operations. Stage 19 rejects execution
+of the new result path. A visual/reboot cycle without exact identity, stage, or
+attributable reset evidence is inconclusive. Exact identities and the complete
+result-to-action map are frozen in `results/runtime-plan.txt` before the boot.
