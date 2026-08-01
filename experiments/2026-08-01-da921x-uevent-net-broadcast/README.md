@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-01-da921x-uevent-net-broadcast` |
-| Status | `offline candidate validated; awaiting guarded deployment` |
+| Status | `deployed to boot2; awaiting selected boot` |
 | Subsystem | I2C, OF, kobject uevent, netlink namespaces |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -76,3 +76,12 @@ installer and four-listener runtime chain passed syntax and ShellCheck. Exact
 offline identities are in `results/offline-validation.txt`. Commit and push
 these deployment inputs, then install only the selected candidate to live-GPT
 resolved `boot2` from Gemian.
+
+Guarded deployment resolved `boot2` from the live GPT as `/dev/mmcblk0p30`
+while Gemian root was `/dev/mmcblk0p29`. The target was inactive and
+unmounted, power was stable, and its full-partition checksum matched the exact
+stage-23 predecessor. The write was synchronized and flushed; a complete
+readback matched the exact stage-24 padded candidate and its temporary copy was
+removed. No fresh backup was created. The device then shut down cleanly, as
+recorded in `results/deployment.txt`. The next action is one selected `boot2`
+boot followed by the frozen four-listener runtime capture.

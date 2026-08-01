@@ -511,8 +511,11 @@ pushed commit and the fetched package revalidated. Two independent candidate
 assemblies were byte-identical, the retained copy passed its manifest and all
 32 LK gates, and the regenerable VM copies were removed. The guarded installer
 and four-listener runtime chain passed syntax and ShellCheck. Guarded deployment
-to live-GPT-resolved `boot2` is next. No native VM kernel build is authorized
-without an explicit owner request. Provider work remains blocked.
+resolved the live GPT, matched the exact stage-23 predecessor, passed stable
+power, inactive-target, synchronized-write, flush, and full-readback gates, and
+shut the device down without creating a fresh backup. One selected `boot2`
+runtime capture is next. No native VM kernel build is authorized without an
+explicit owner request. Provider work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 
