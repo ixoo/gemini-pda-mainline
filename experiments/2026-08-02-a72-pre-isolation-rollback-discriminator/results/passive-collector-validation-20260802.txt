@@ -1,0 +1,78 @@
+A72 pre-isolation rollback passive collector validation
+Recorded: 2026-08-02 America/New_York
+
+Exact dependencies
+------------------
+collector_sha256=7afd631f2bebd8f4847234d5995362a3e20952d077ce395c8e2446628a47f578
+remote_capture_sha256=bf505e75cec47007166d43876ec40f2554eb62389d7f4cbc61d4ace1d6be981b
+validator_sha256=3cf4a1a79e917c23dee088522d3f614ca3c78e46c1d6cb0c3197cb4b4bbe7511
+test_sha256=24585d8f870f29b7d75fa5d9de6d9ac003a3e8d9b787f687ec1f69de54ccdd12
+bounded_exec_sha256=e250c4f0375aed986bc73eeea699cf5f4ba51625aa51a1ede2d40ac601f62ce5
+parent_transition_analyzer_sha256=5f5ee7f04caad30e12674de69e86d38649a0ea10d4fb412c5f0a9c5ad29872dc
+
+Identity and ordering gates
+---------------------------
+expected_release=3.18.41+
+expected_build_identity=#1 SMP PREEMPT Sun Aug 2 21:22:32 UTC 2026
+expected_observer_abi=mt6797-a72-transition-observer-v3
+observer_mode=400
+exact_root=/dev/mmcblk0p29
+observer_copy_before_optional_power_reporting=yes
+two_reads_separation_seconds=2
+terminal_snapshots_required_identical=yes
+cpu8_required_offline=yes
+cpu9_required_offline=yes
+online_required=0-7
+
+The remote program checks exact kernel, root, CPU, and proc identity, then
+copies the observer immediately. Optional USB and battery reporting occurs
+only after two copies exist. A second copy after two seconds must be
+byte-identical for every terminal state. The host collector pins the remote
+program, validator, bounded executor, ignored capture location, private key
+mode, and known-hosts mode before making a bounded connection.
+
+Semantic validation
+-------------------
+- ABI-v3 state, count, overflow and transaction metadata are parsed exactly;
+- every record must be contiguous, CPU8-only, one-transaction, and observe
+  CPU8/9 offline;
+- every phase at or beyond external-isolation clear is forbidden;
+- rolled-back requires the exact 30-record owner ordering, entry state,
+  attempt-owned forward transitions and inverses, final equality, three-way
+  clock equality, five-component fixed snapshot, and disposition 1;
+- rejected-prestate requires the exact 14-record no-write ordering and
+  disposition 3;
+- fault-retain requires the complete entry gate, bounded record count, final
+  immutable disposition 2, and reset recovery rather than acceptance;
+- wait-up/capture-up are preserved as incomplete without stimulus; and
+- legacy frozen states are classified as boundary violations, never success.
+
+Safety and test result
+----------------------
+posix_syntax=passed
+bash_syntax=passed
+python_compile=passed
+shellcheck_managed_vm=passed
+positive_wait_up=passed
+positive_rolled_back=passed
+positive_rejected_prestate=passed
+positive_fault_retain=passed
+fail_closed_and_no_stimulus_checks=18-passed
+state_changing_writes=none
+load_workers=0
+cpu_online_writes=none
+reboot_requests=none
+poweroff_requests=none
+native_vm_kernel_build=no
+device_access=none
+runtime_capture=none
+
+Decision
+--------
+passive_collector_gate=passed
+runtime_use_eligible_after-exact-deployment=yes
+
+The collector may run only after the exact padded candidate is installed with
+full readback and the owner manually selects boot2. It never authorizes a load,
+retry, CPU request, suspend, register write, reboot, or poweroff. After one
+capture, use only the separately reviewed known-good recovery action.

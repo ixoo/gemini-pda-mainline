@@ -778,10 +778,14 @@ boundary before container assembly. Two exact Android-v0 assemblies and two
 independent 16 MiB padding methods are now byte-identical; the active Gemian
 ramdisk and container fields are unchanged, while the exact reviewed kernel is
 the only payload delta. The raw image is `58e3efd5dca…` and the full boot2 image
-is `6a180e5a62a0…`. The immediate ordered action is a mutation-tested passive
-ABI-v3 collector, followed by independent guarded-installer validation; no
-device access or installer write is yet authorized. Compilation, contract, and
-container review do not authorize deployment. CPU9,
+is `6a180e5a62a0…`. The passive ABI-v3 collector now accepts the exact
+30-record rollback, 14-record no-write pre-state rejection, and bounded
+fault-retain paths while rejecting 18 identity, ordering, final-state,
+forbidden-boundary, and stimulus mutations. It copies immutable evidence before
+optional power reporting and never requests a CPU, reboot, or write. The
+immediate ordered action is independent guarded-installer validation; no device
+access or installer write is yet authorized. Compilation, contract, container,
+and collector review do not authorize deployment. CPU9,
 suspend/resume, later power boundaries, a mainline provider write, and any A72
 consumer remain blocked until their separate ownership and rollback gates
 close.

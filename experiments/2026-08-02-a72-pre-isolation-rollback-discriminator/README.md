@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-02-a72-pre-isolation-rollback-discriminator` |
-| Status | `offline-container-validated`: the predeployment contract is frozen and two exact Android-v0 assemblies plus two 16 MiB padding methods are byte-identical with the retained Gemian ramdisk; the next action is a mutation-tested passive ABI-v3 collector, with no deployment or device action yet authorized |
+| Status | `passive-collector-validated`: the predeployment contract and reproducible container pass, and the passive ABI-v3 collector accepts exact rollback/pre-state/fault outcomes while rejecting 18 unsafe mutations; the next action is independent guarded-installer validation, with no deployment or device action yet authorized |
 | Subsystem | CPU8 external BUCKB preparation, MP2 reset, TOPRGU PWRAP reset, and fail-closed rollback |
 | Device variant | Named Gemini PDA development unit |
 | Date(s) | 2026-08-02 |
@@ -81,6 +81,14 @@ predeployment decision after compiler and timing review.
   wrapper around the checksum-pinned Android-v0 assembler.
 - [`scripts/build-candidate.sh`](scripts/build-candidate.sh): reproducible dual
   container assembly, dual padding, structural, provenance, and checksum gates.
+- [`scripts/collect-passive.sh`](scripts/collect-passive.sh): checksum-pinned,
+  bounded host retrieval into the ignored private evidence tree.
+- [`scripts/remote-passive-capture.sh`](scripts/remote-passive-capture.sh):
+  identity-gated two-read capture before optional power reporting.
+- [`scripts/validate-passive.py`](scripts/validate-passive.py): exact ABI-v3
+  rollback, rejected-prestate, fault-retain, and forbidden-boundary classifier.
+- [`scripts/test-passive.py`](scripts/test-passive.py): positive terminal paths
+  plus 18 fail-closed and no-stimulus checks.
 - [`patches/series`](patches/series): the exact three-patch rollback ABI,
   owner-operation, and CPU8 orchestrator series generated from the pinned
   vendor source.
@@ -109,6 +117,9 @@ predeployment decision after compiler and timing review.
 - [`results/offline-container-validation-20260802.txt`](results/offline-container-validation-20260802.txt):
   exact raw and padded identities, retained ramdisk, independent Android-v0
   structure, reproducibility, checksum, syntax, and ShellCheck results.
+- [`results/passive-collector-validation-20260802.txt`](results/passive-collector-validation-20260802.txt):
+  exact collector dependencies, identity/order gates, terminal semantics,
+  mutation results, and device-inert runtime-use decision.
 
 Run from the repository root:
 
@@ -119,18 +130,18 @@ python3 experiments/2026-08-02-a72-pre-isolation-rollback-discriminator/scripts/
 
 ## Decision
 
-`offline-container-passed`: the exact generated series implements the
+`passive-collector-passed`: the exact generated series implements the
 bounded and falsifiable rollback question without crossing external isolation,
 compiles against its exact parent observer with no new diagnostic, and adds no
 unsafe owner-lock nesting, polling loop, or semaphore wait loop. Its offline
 runtime and recovery decisions are explicit, and its Android-v0 container is
-reproducible. The result is not yet an eligible deployment, hardware-support
-claim, or device authorization.
+reproducible. Its passive decision path is now mutation-tested. The result is
+not yet an eligible deployment, hardware-support claim, or device authorization.
 
 ## Follow-up
 
-Design and mutation-test a passive ABI-v3 collector that copies immutable
-evidence before optional power reporting, rejects every wrong identity and
-forbidden boundary, and never stimulates hardware. Then validate the guarded
-installer independently. Do not access the device or prepare a write until
-both remaining offline gates pass.
+Derive and independently validate a checksum-pinned guarded logical-boot2
+installer from the proven parent, including exact predecessor, live-GPT,
+stable-power, inactive-target, full-readback, cleanup, and clean-shutdown gates.
+Do not access the device or write until that final offline gate passes and the
+explicit deployment decision is recorded.
