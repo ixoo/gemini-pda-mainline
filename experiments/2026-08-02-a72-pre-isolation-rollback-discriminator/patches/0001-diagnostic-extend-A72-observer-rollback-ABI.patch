@@ -1,4 +1,4 @@
-From 3a2454a8a51a0905d3500c09c0a632610b5d03f9 Mon Sep 17 00:00:00 2001
+From c194b8e06dfe4a38412157c43250db11b2d42550 Mon Sep 17 00:00:00 2001
 From: Gemini A72 experiment <noreply@gemini-a72.invalid>
 Date: Sun, 2 Aug 2026 23:10:00 +0000
 Subject: [PATCH] diagnostic: extend A72 observer rollback ABI

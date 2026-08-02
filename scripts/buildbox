@@ -577,7 +577,7 @@ else
     .parent_patchset_sha256 ==
       "3584e9dd5ffb041573b851f31f3a96eaa0a684acb880fd59560762e5abc58be0" and
     .rollback_patchset_sha256 ==
-      "f034724759eebc611d6f16dea3448f1ee1ebcff0939a6e62e686c0a6261162a7" and
+      "fd4da13202c62a6ea21a216ffc9eb2650d70dcaa216a8ca1b3c64e5ef5c10b9d" and
     .purpose == "rollback-compile-review-only"
   ' "${package}/provenance/build.json" >/dev/null
   grep -q ' da9214_a72_diag_compare_update$' "${package}/outputs/System.map"

@@ -1,4 +1,4 @@
-From 4bf774dc1332252a741b7a446a330ed9308af625 Mon Sep 17 00:00:00 2001
+From 2339dd7de45eea66d779feec8ddfc42c4b26aec9 Mon Sep 17 00:00:00 2001
 From: Gemini A72 experiment <noreply@gemini-a72.invalid>
 Date: Sun, 2 Aug 2026 23:12:00 +0000
 Subject: [PATCH] diagnostic: stop and unwind first CPU8 pre-isolation attempt
@@ -9,12 +9,12 @@ Stop before isolation clear and unwind only exact observed predecessors.
 
 Collect all entry/final evidence and exit before PSCI, DCM, or iDVFS.
 ---
- arch/arm64/kernel/psci.c                 | 173 +++++++++++++++++++++++
+ arch/arm64/kernel/psci.c                 | 177 +++++++++++++++++++++++
  drivers/misc/mediatek/base/power/Kconfig |  11 ++
- 2 files changed, 184 insertions(+)
+ 2 files changed, 188 insertions(+)
 
 diff --git a/arch/arm64/kernel/psci.c b/arch/arm64/kernel/psci.c
-index 49b559786..927ed1012 100644
+index 49b559786..8dc378d41 100644
 --- a/arch/arm64/kernel/psci.c
 +++ b/arch/arm64/kernel/psci.c
 @@ -16,6 +16,8 @@
@@ -26,7 +26,7 @@ index 49b559786..927ed1012 100644
  #include <linux/init.h>
  #include <linux/of.h>
  #include <linux/smp.h>
-@@ -522,6 +524,153 @@ static void mt6797_a72_obs_fixed_snapshot(unsigned int cpu, u16 phase)
+@@ -522,6 +524,157 @@ static void mt6797_a72_obs_fixed_snapshot(unsigned int cpu, u16 phase)
  }
  #endif
  
@@ -45,7 +45,11 @@ index 49b559786..927ed1012 100644
 +	struct mt6797_a72_obs_clock final_clock;
 +	int ret;
 +
-+	if (cpu != 8 || atomic_xchg(&mt6797_a72_preiso_attempted, 1))
++	if (cpu != 8)
++		return -EPERM;
++	if (!mt6797_a72_obs_accepts_sampling(cpu))
++		return -EAGAIN;
++	if (atomic_xchg(&mt6797_a72_preiso_attempted, 1))
 +		return -EALREADY;
 +	prestate_bad |= g_cl2_online || cpu_online(8) || cpu_online(9);
 +	ret = mt6797_a72_diag_clock_capture(cpu,
@@ -180,7 +184,7 @@ index 49b559786..927ed1012 100644
  static int cpu_power_on_buck(unsigned int cpu, bool hotplug)
  {
  	static void __iomem *reg_base;
-@@ -661,6 +810,9 @@ static int cpu_psci_cpu_boot(unsigned int cpu)
+@@ -661,6 +814,9 @@ static int cpu_psci_cpu_boot(unsigned int cpu)
  #ifdef CONFIG_MTK_A72_TRANSITION_OBSERVER
  	int idvfs_ret;
  #endif
@@ -190,7 +194,7 @@ index 49b559786..927ed1012 100644
  
  
  #ifdef CONFIG_MTK_CPU_HOTPLUG_DEBUG_3
-@@ -698,6 +850,16 @@ static int cpu_psci_cpu_boot(unsigned int cpu)
+@@ -698,6 +854,16 @@ static int cpu_psci_cpu_boot(unsigned int cpu)
  			}
  		}
  	} else if ((cpu == 8) || (cpu == 9)) {
@@ -207,7 +211,7 @@ index 49b559786..927ed1012 100644
  		if (bypass_boot > 0) {
  #ifdef CONFIG_CL2_BUCK_CTRL
  			if (!g_cl2_online)
-@@ -707,7 +869,15 @@ static int cpu_psci_cpu_boot(unsigned int cpu)
+@@ -707,7 +873,15 @@ static int cpu_psci_cpu_boot(unsigned int cpu)
  		} else {
  			if (!g_cl2_online) {
  #ifdef CONFIG_CL2_BUCK_CTRL
@@ -223,7 +227,7 @@ index 49b559786..927ed1012 100644
  #endif
  			}
  		}
-@@ -787,6 +957,9 @@ static int cpu_psci_cpu_boot(unsigned int cpu)
+@@ -787,6 +961,9 @@ static int cpu_psci_cpu_boot(unsigned int cpu)
  		pr_err("failed to boot CPU%d (%d)\n", cpu, err);
  #endif
  

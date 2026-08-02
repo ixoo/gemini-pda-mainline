@@ -39,7 +39,7 @@ def main() -> int:
         "parent observer patchset identity changed",
     )
     require(
-        rollback_hash == "f034724759eebc611d6f16dea3448f1ee1ebcff0939a6e62e686c0a6261162a7",
+        rollback_hash == "fd4da13202c62a6ea21a216ffc9eb2650d70dcaa216a8ca1b3c64e5ef5c10b9d",
         "rollback patchset identity changed",
     )
 

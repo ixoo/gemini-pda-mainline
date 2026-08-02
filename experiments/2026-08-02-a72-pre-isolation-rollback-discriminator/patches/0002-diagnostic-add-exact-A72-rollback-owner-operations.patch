@@ -1,4 +1,4 @@
-From d3cef9abb3193d91de8054c871d62511a57feb7a Mon Sep 17 00:00:00 2001
+From aa63a8b6060e28e0a72c83a15c133f57ceeeff3f Mon Sep 17 00:00:00 2001
 From: Gemini A72 experiment <noreply@gemini-a72.invalid>
 Date: Sun, 2 Aug 2026 23:11:00 +0000
 Subject: [PATCH] diagnostic: add exact A72 rollback owner operations
