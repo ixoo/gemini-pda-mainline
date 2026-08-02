@@ -537,14 +537,18 @@ next action is guarded live-GPT `boot2` deployment against the exact stage-24
 predecessor, full-partition readback, and clean shutdown. Deployment matched
 that predecessor, resolved live `boot2`, passed stable-power, inactive-target,
 synchronized-write, flush, device-side checksum, and independent full-readback
-gates, then confirmed clean shutdown without creating a fresh backup. The next
-action is one selected `boot2` runtime capture through the complete
-stage-20-to-25 reconstruction chain. That nine-helper chain is checksum-pinned,
-passes offline derivation and ShellCheck, and rejects a missing or wrong stage
-24 helper before device access. A successful runtime would permit a
-separate natural `device_add()` boundary; it would not yet prove driver bind,
-provider behavior, or A72 power. No native VM kernel build is authorized
-without an explicit owner request. Provider work remains blocked.
+gates, then confirmed clean shutdown without creating a fresh backup. One
+selected `boot2` runtime capture through the checksum-pinned, complete
+stage-20-to-25 reconstruction chain passed. The ordinary fallthrough produced
+one call-site entry, one call-site return, one public return, and return zero,
+retained the single exact 293-byte receipt with no duplicate, and preserved the
+unbound-client, CPU, zero-I2C, and serviceability baseline. A fresh read-only
+postcheck confirmed persistent stage 25, exact counters, read-only sysfs, and
+removal of all nine helpers. The next Gate 3 boundary is a separate natural
+`device_add()` experiment with an independent observation path. This result
+does not yet prove driver bind, provider behavior, or A72 power. No native VM
+kernel build is authorized without an explicit owner request. Provider work
+remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 

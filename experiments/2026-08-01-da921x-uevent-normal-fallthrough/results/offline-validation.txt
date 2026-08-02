@@ -41,4 +41,4 @@ runtime_check_sha256=587b095850d9624cbf6cf591d50e44245f28324af7c7dd68ba26192c3da
 bash_and_sh_syntax=passed
 shellcheck=passed-managed-vm
 device_access=none
-runtime_result=not-tested
+runtime_result=attempt-1-passed

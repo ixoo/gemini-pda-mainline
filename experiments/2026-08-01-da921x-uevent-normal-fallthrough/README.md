@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-01-da921x-uevent-normal-fallthrough` |
-| Status | `deployed and powered off; selected-boot runtime pending` |
+| Status | `runtime stage 25 passed` |
 | Subsystem | I2C, OF, kobject uevent, netlink |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -58,6 +58,19 @@ not submission-ready.
 
 ## Follow-up
 
-Select `boot2` once. If USB/netcat becomes serviceable, reconstruct the exact
-stage-24 predecessor and run the frozen stage-25 listener once. Visual
+The selected-boot capture reconstructed stages 21 through 24, then traversed
+the ordinary `kobject_uevent_env()` network-broadcast call site and public
+return once. The kernel recorded one call-site entry, one call-site return, one
+public return, and return zero. The listener received the exact 293-byte,
+nine-entry group-1 event with root credentials and no duplicate. The client
+remained unbound, CPU0-7 stayed online with CPU8-9 offline, all I2C and oracle
+activity remained zero, and serviceability passed. A separate read-only
+postcheck confirmed persistent stage 25, exact counters, read-only sysfs, no
+predecessor printk, and removal of all nine helpers. No partition read, storage
+write, or reboot occurred. Sanitized evidence is in `results/runtime.txt`.
+
+Do not repeat this artifact unchanged. The next Gate 3 experiment must move
+the same event into its natural `device_add()` context while retaining an
+independent, decision-changing observation path. That boundary remains
+separate from driver bind, regulator-provider behavior, and A72 power. Visual
 white/grey-screen or reboot behavior alone remains inconclusive.
