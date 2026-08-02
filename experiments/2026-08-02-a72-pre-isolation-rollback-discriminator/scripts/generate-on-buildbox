@@ -77,6 +77,8 @@ trap cleanup EXIT
 
 git clone --no-checkout "${mirror}" "${work}/source"
 git -C "${work}/source" checkout --detach "${SOURCE_COMMIT}"
+git -C "${work}/source" config user.name "Gemini A72 experiment"
+git -C "${work}/source" config user.email "noreply@gemini-a72.invalid"
 while IFS= read -r parent_patch; do
   [[ "${parent_patch}" =~ ^[A-Za-z0-9_.+-]+\.patch$ ]] || \
     die "unsafe parent patch name"
