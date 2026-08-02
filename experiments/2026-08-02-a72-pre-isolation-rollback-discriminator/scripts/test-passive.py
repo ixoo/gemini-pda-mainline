@@ -159,6 +159,20 @@ def rejected() -> list[str]:
     ]
 
 
+def orchestration_failure(result: int) -> list[str]:
+    records = [
+        "seq=1 ns=1000 tx=7 event=lifecycle phase=1 target=8 actor=4 "
+        "online=0x000000ff result=0 arg0=0x0 arg1=0x0",
+        "seq=2 ns=2000 tx=7 event=lifecycle phase=2 target=8 actor=4 "
+        f"online=0x000000ff result={result} arg0=0x0 arg1=0x0",
+    ]
+    return [
+        "abi=mt6797-a72-transition-observer-v3 state=frozen-up-failed "
+        "count=2 overflow=0 up_tx=7 down_tx=0",
+        *records,
+    ]
+
+
 def replace_once(text: str, old: str, new: str) -> str:
     if text.count(old) != 1:
         raise AssertionError(f"mutation target count changed for {old!r}: {text.count(old)}")
@@ -202,6 +216,16 @@ def main() -> int:
     fault[-1] = fault[-1].replace("result=1", "result=2")
     result = validator.validate(envelope(fault, fault, "yes"))
     assert result["formal_disposition"] == "preserve-fault-retain-reset-recovery"
+
+    for errno, expected in (
+        (-114, "EALREADY-pre-latch-one-shot-consumed"),
+        (-11, "EAGAIN-observer-latch-not-active"),
+    ):
+        frozen = orchestration_failure(errno)
+        result = validator.validate(envelope(frozen, frozen, "yes"))
+        assert result["formal_disposition"] == "reject-latch-orchestration-no-retry"
+        assert result["owner_transition_validation"] == "passed-no-owner-terminal"
+        assert result["orchestration_failure"] == expected
 
     reject("ABI drift", accepted.replace("observer-v3", "observer-v2", 1))
     unstable = exact.copy()
@@ -266,7 +290,10 @@ def main() -> int:
     optional_power = remote.index("optional_read /sys/class/power_supply/usb/online")
     if first_copy >= optional_power:
         raise AssertionError("observer is not copied before optional power reporting")
-    print("PASS: passive rollback validation and 19 fail-closed/no-stimulus checks")
+    print(
+        "PASS: passive rollback validation, 2 orchestration failures, "
+        "and 19 fail-closed/no-stimulus checks"
+    )
     return 0
 
 

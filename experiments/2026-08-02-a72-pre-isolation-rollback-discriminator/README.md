@@ -88,7 +88,8 @@ predeployment decision after compiler and timing review.
 - [`scripts/validate-passive.py`](scripts/validate-passive.py): exact ABI-v3
   rollback, rejected-prestate, fault-retain, and forbidden-boundary classifier.
 - [`scripts/test-passive.py`](scripts/test-passive.py): positive terminal paths
-  plus 19 fail-closed and no-stimulus checks.
+  plus explicit EALREADY/EAGAIN orchestration failures and 19 fail-closed and
+  no-stimulus checks.
 - [`scripts/install-boot2.sh`](scripts/install-boot2.sh): source-pinned exact
   logical-boot2 installer with full-readback and clean-shutdown enforcement.
 - [`scripts/install-boot2-owner-battery-override.sh`](scripts/install-boot2-owner-battery-override.sh):

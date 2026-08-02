@@ -393,6 +393,21 @@ def validate_fault(parsed, parent) -> None:
     require(terminal, parent, result=2)
 
 
+def classify_orchestration_failure(parsed, parent) -> str:
+    state, count, overflow, _, _, records = parsed
+    if state != "frozen-up-failed" or count != 2 or overflow:
+        return "not-exact-two-record-up-failure"
+    if exact_template(records) != [("lifecycle", 1), ("lifecycle", 2)]:
+        return "not-exact-two-record-up-failure"
+    require(records[0], parent, result=0)
+    result = parent.field(records[1], "result")
+    if result == -114:
+        return "EALREADY-pre-latch-one-shot-consumed"
+    if result == -11:
+        return "EAGAIN-observer-latch-not-active"
+    return f"unexpected-HPS-result-{result}"
+
+
 def validate(text: str) -> dict[str, str | int]:
     parent = load_parent()
     lines = text.splitlines()
@@ -431,6 +446,7 @@ def validate(text: str) -> dict[str, str | int]:
         raise ValidationError("terminal latch changed across delayed reads")
     disposition = "preserve-incomplete-no-stimulus"
     owner_validation = "not-applicable"
+    orchestration_failure = "none"
     if state == "rolled-back":
         validate_rolled_back(second, parent)
         disposition = "accepted-pre-isolation-rollback"
@@ -443,6 +459,10 @@ def validate(text: str) -> dict[str, str | int]:
         validate_fault(second, parent)
         disposition = "preserve-fault-retain-reset-recovery"
         owner_validation = "failed-closed"
+    elif state == "frozen-up-failed":
+        orchestration_failure = classify_orchestration_failure(second, parent)
+        disposition = "reject-latch-orchestration-no-retry"
+        owner_validation = "passed-no-owner-terminal"
     elif state.startswith("frozen-"):
         disposition = "reject-boundary-violation-no-retry"
     return {
@@ -453,6 +473,7 @@ def validate(text: str) -> dict[str, str | int]:
         "down_transaction": second[4],
         "snapshots_identical": "yes" if identical else "no",
         "owner_transition_validation": owner_validation,
+        "orchestration_failure": orchestration_failure,
         "formal_disposition": disposition,
         "runtime_stimulus": "none",
         "next_action": "return-to-known-good-gemian-and-review",
