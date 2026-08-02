@@ -586,8 +586,15 @@ write/other counters throughout, sysfs restored read-only on every exit, and
 the unchanged Stage 26/serviceability state. The unchanged fourteen-read
 contract, new static validator, runtime classifier and five unsafe mutations,
 all 54 manifest profiles, eight invariant mutations, syntax, and managed-VM
-ShellCheck passed input validation. The next action is an exact clean Buildbox
-build from the frozen pushed commit; provider work remains blocked.
+ShellCheck passed input validation. Exact clean commit `e0fc95f` built
+successfully on Buildbox and the fetched package revalidated. Two independent
+managed-Linux candidate assemblies were byte-identical; the retained candidate
+passed its manifest and all 32 LK gates with the unchanged module-free
+initramfs and exact real-compatible Gemini DT. The guarded installer and
+USB/netcat lifecycle collector pass syntax and managed-VM ShellCheck. The next
+action is guarded live-GPT `boot2` deployment against the exact Stage 26
+predecessor, full-partition readback, and clean shutdown. Provider work remains
+blocked pending the selected runtime lifecycle result.
 
 ### 4. Finish the ownership and rollback audit
 

@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-01-da921x-post-event-lifecycle` |
-| Status | `inputs validated; exact Buildbox build pending` |
+| Status | `offline candidate validated; guarded boot2 deployment pending` |
 | Subsystem | regulator, I2C, driver core |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -86,3 +86,24 @@ decision-changing unsafe mutations. Bash syntax, Python compilation, and
 managed-VM ShellCheck pass. No native VM kernel build was run and the device
 was not accessed while preparing these inputs. Exact identities are in
 `results/input-validation.txt`.
+
+## Offline validation
+
+Buildbox compiled exact clean pushed commit `e0fc95f`; the fetched package
+revalidated with the unchanged 136-patch series and isolated Stage 27 profile.
+The resolved configuration has the identification driver built in, the
+conflicting DA9211 driver disabled, userspace uevent helpers disabled, and A72
+power disabled. Two separate managed-Linux candidate assemblies were
+byte-identical. The retained candidate passed its checksum manifest and all 32
+LK container gates, with the unchanged module-free initramfs and exact
+previously validated real-compatible Gemini DT. The regenerable VM assemblies
+were removed after the retained host copy passed its manifest again.
+
+The guarded installer pins the exact Stage 26 predecessor and Stage 27 padded
+image, resolves logical `boot2` from the live GPT, performs no fresh backup,
+requires synchronized write plus full-partition readback, removes the temporary
+readback, and shuts the device down after verified success. The USB/netcat
+collector pins the installed full-partition checksum and lifecycle helper.
+Bash syntax, managed-VM ShellCheck, and whitespace validation pass. No native
+VM kernel build was run and the device was not accessed during offline
+validation. Exact identities are in `results/offline-validation.txt`.
