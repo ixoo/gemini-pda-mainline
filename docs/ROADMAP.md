@@ -774,11 +774,14 @@ lack a synthetic DCO sign-off. The separate predeployment contract now freezes
 the natural one-shot CPU8 trigger, exact compiled identity, expected 30-record
 rollback and 14-record pre-state-rejection shapes, immutable two-read evidence,
 known-good recovery, owner-visible expectations, and guarded logical-boot2
-boundary before container assembly. The immediate ordered action is
-reproducible Android-v0 container assembly and independent validation, followed
-by a mutation-tested passive ABI-v3 collector; no device access or installer
-write is yet authorized. Compilation and contract review do not authorize
-deployment. CPU9,
+boundary before container assembly. Two exact Android-v0 assemblies and two
+independent 16 MiB padding methods are now byte-identical; the active Gemian
+ramdisk and container fields are unchanged, while the exact reviewed kernel is
+the only payload delta. The raw image is `58e3efd5dca…` and the full boot2 image
+is `6a180e5a62a0…`. The immediate ordered action is a mutation-tested passive
+ABI-v3 collector, followed by independent guarded-installer validation; no
+device access or installer write is yet authorized. Compilation, contract, and
+container review do not authorize deployment. CPU9,
 suspend/resume, later power boundaries, a mainline provider write, and any A72
 consumer remain blocked until their separate ownership and rollback gates
 close.

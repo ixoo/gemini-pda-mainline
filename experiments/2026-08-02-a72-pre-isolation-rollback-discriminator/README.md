@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-02-a72-pre-isolation-rollback-discriminator` |
-| Status | `predeployment-contract-frozen`: the exact rollback and parent-observer trees compiled on Buildbox with identical diagnostics, retained stack evidence, exact symbol attribution, and passing owner-lock/timing review; the one-shot trigger, immutable result classes, recovery, and deployment boundary are now frozen before container assembly, with no deployment or device action yet authorized |
+| Status | `offline-container-validated`: the predeployment contract is frozen and two exact Android-v0 assemblies plus two 16 MiB padding methods are byte-identical with the retained Gemian ramdisk; the next action is a mutation-tested passive ABI-v3 collector, with no deployment or device action yet authorized |
 | Subsystem | CPU8 external BUCKB preparation, MP2 reset, TOPRGU PWRAP reset, and fail-closed rollback |
 | Device variant | Named Gemini PDA development unit |
 | Date(s) | 2026-08-02 |
@@ -77,6 +77,10 @@ predeployment decision after compiler and timing review.
 - [`scripts/test_build_lane.py`](scripts/test_build_lane.py): pins both
   patchset identities and proves the compile lane remains Buildbox-only,
   non-bootable, and device-inert.
+- [`scripts/assemble.py`](scripts/assemble.py): experiment-local exact-kernel
+  wrapper around the checksum-pinned Android-v0 assembler.
+- [`scripts/build-candidate.sh`](scripts/build-candidate.sh): reproducible dual
+  container assembly, dual padding, structural, provenance, and checksum gates.
 - [`patches/series`](patches/series): the exact three-patch rollback ABI,
   owner-operation, and CPU8 orchestrator series generated from the pinned
   vendor source.
@@ -102,6 +106,9 @@ predeployment decision after compiler and timing review.
   exact compiled identity, natural one-shot trigger, 30-record rollback result,
   14-record pre-state rejection, owner expectations, recovery, and guarded
   deployment boundary frozen before container assembly.
+- [`results/offline-container-validation-20260802.txt`](results/offline-container-validation-20260802.txt):
+  exact raw and padded identities, retained ramdisk, independent Android-v0
+  structure, reproducibility, checksum, syntax, and ShellCheck results.
 
 Run from the repository root:
 
@@ -112,16 +119,18 @@ python3 experiments/2026-08-02-a72-pre-isolation-rollback-discriminator/scripts/
 
 ## Decision
 
-`predeployment-contract-frozen`: the exact generated series implements the
+`offline-container-passed`: the exact generated series implements the
 bounded and falsifiable rollback question without crossing external isolation,
 compiles against its exact parent observer with no new diagnostic, and adds no
 unsafe owner-lock nesting, polling loop, or semaphore wait loop. Its offline
-runtime and recovery decisions are now explicit. The result is not yet a boot
-candidate, hardware-support claim, or deployment authorization.
+runtime and recovery decisions are explicit, and its Android-v0 container is
+reproducible. The result is not yet an eligible deployment, hardware-support
+claim, or device authorization.
 
 ## Follow-up
 
-Assemble and independently verify a reproducible Android-v0 container from the
-exact compiled kernel and retained Gemian ramdisk, then design and mutation-test
-a passive ABI-v3 collector. Do not access the device or prepare a write until
-the container, collector, and installer each pass their separate offline gates.
+Design and mutation-test a passive ABI-v3 collector that copies immutable
+evidence before optional power reporting, rejects every wrong identity and
+forbidden boundary, and never stimulates hardware. Then validate the guarded
+installer independently. Do not access the device or prepare a write until
+both remaining offline gates pass.
