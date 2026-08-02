@@ -1,0 +1,62 @@
+A72 pre-isolation rollback guarded boot2 deployment
+Recorded: 2026-08-02 America/New_York
+
+Published preparation
+---------------------
+repository_commit=6ef7bed42609105ff846b5522b1228cf68400b33
+repository_remote=https://github.com/ixoo/gemini-pda-mainline.git
+remote_branch=origin/main
+owner_battery_override=explicit-one-deployment-70-percent-floor
+candidate_sha256=6a180e5a62a00cd7c97d461c7a1c491cd47802bd0964ef82f75ee793d6b8bede
+candidate_size=16777216
+private_manifest_validation=passed
+
+Live gates
+----------
+target_identity=gemini@192.168.1.50
+architecture=aarch64
+known_good_release=3.18.41+
+target_logical_name=boot2
+live_target=/dev/mmcblk0p30
+target_parent=mmcblk0
+target_size=16777216
+target_writable=yes
+target_mounted=no
+target_holders=none
+target_swap=no
+active_root=/dev/mmcblk0p29
+power_present=1
+battery_capacity=75
+battery_health=Good
+predecessor_sha256=6dcbda0cb264f5b637f6333f4946707d81ea98d38a8d52673b6fbe2cf109e3af
+fresh_predecessor_backup=no
+
+Write and verification
+----------------------
+result=write-synced-flushed-full-readback-verified
+post_flush_partition_sha256=6a180e5a62a00cd7c97d461c7a1c491cd47802bd0964ef82f75ee793d6b8bede
+independent_readback_size=16777216
+independent_readback_sha256=6a180e5a62a00cd7c97d461c7a1c491cd47802bd0964ef82f75ee793d6b8bede
+independent_readback_byte_compare=identical
+temporary_remote_candidate_removed=yes
+temporary_local_readback_removed=yes
+private_summary_sha256=fafa83bf99f08ce7c3182d943f5ef2e9449677866a113af4000994632bef1f62
+private_manifest_sha256=a87839156e58360b2a9ec3197d31562d0125c81dd174c785ba96b0b59ae22516
+
+Shutdown and next action
+------------------------
+poweroff_ssh_rc=0
+post_shutdown_reachability=unreachable
+automatic_reboot=no
+shutdown=confirmed
+next_action=owner-manually-selects-boot2
+
+The owner should expect ordinary Gemian visuals because the exact Gemian
+ramdisk and root filesystem are retained. Console and USB/netcat service may
+be delayed. Neither screen appearance nor userspace identifies the selected
+kernel. After service appears, run only the exact passive collector and require
+the build identity, ABI-v3 header, two-read stability, and semantic result
+gates. CPU8 and CPU9 should remain offline; this candidate intentionally
+cancels the first CPU8 request after the bounded rollback observation.
+
+hardware_runtime_result=pending-manual-boot2-selection

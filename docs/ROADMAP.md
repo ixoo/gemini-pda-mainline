@@ -795,7 +795,12 @@ source-pinned wrapper narrows only the capacity floor to 70%, requires an
 explicit override flag, and retains Good health plus every identity, target,
 predecessor, readback, cleanup, and shutdown gate. After the override evidence
 is pushed, the next action is one exact guarded deployment; no boot selection
-or runtime action resulted from the deferred attempt. CPU9,
+or runtime action resulted from the deferred attempt. That deployment then
+passed from the exact first-cycle predecessor at an owner-authorized 75%: live
+GPT resolved inactive boot2, synchronized write and flush completed, remote and
+independent full readbacks matched `6a180e5a62a0…`, temporary copies were
+removed, and clean shutdown was confirmed. The next action is owner manual
+boot2 selection followed only by the exact passive ABI-v3 collector. CPU9,
 suspend/resume, later power boundaries, a mainline provider write, and any A72
 consumer remain blocked until their separate ownership and rollback gates
 close.
