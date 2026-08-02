@@ -23,6 +23,16 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-02 MT6797 A72 ownership and rollback audit](2026-08-02-a72-ownership-rollback-audit/README.md)
+  — machine-checks 19 forward, observation, rollback, CPU9, and resume
+  boundaries. Forward physical writers are substantially assigned, but Gate 4
+  remains open on synchronized pre-state/readback, three rollback classes, and
+  suspend/resume ownership; the next action is the owner-local Gemian observer.
+- [2026-08-01 DA921x post-event identification lifecycle](2026-08-01-da921x-post-event-lifecycle/README.md)
+  — natural bind, zero-transaction unbind, and one read-only rebind reached
+  exact `14 -> 14 -> 28` counts with every DMA/write/other counter zero,
+  restored both ownership links after bounded page-2 visibility delay, and
+  preserved the complete serviceability baseline.
 - [2026-08-01 DA921x single uevent multicast](2026-08-01-da921x-uevent-single-multicast/README.md)
   — input-validates the stage-22 discriminator: one exact multicast call to
   the runtime-proven single listener plus independent exact-datagram receipt

@@ -638,6 +638,18 @@ binaries to capture one natural, synchronized CPU8 transition:
 - CPU9 differences;
 - suspend/resume owner and firmware interaction.
 
+The static Gate 4 audit now inventories 19 boundaries from the exact active
+Gemian binary, verified source-equivalent hooks, secure-firmware analysis,
+natural CPU8 trigger, and completed mainline DA921x lifecycle. Forward physical
+writers are assigned except for the system suspend/resume boundary, but 16
+transaction-local pre-states, 11 independent readbacks, three rollback classes,
+and resume ownership remain open. Eleven rows require the same owner-local
+synchronized Gemian observation; two dynamic-policy rows are deliberately
+excluded from the first CPU8 experiment. The next action is to freeze that
+read-only observer against the exact active boot contract and build it on an
+approved non-native backend. No native VM kernel build, register write, or CPU
+request is authorized by the audit.
+
 Exit: observations and inference are separated, every required writer has one
 owner, and a failed step has a bounded rollback path.
 
