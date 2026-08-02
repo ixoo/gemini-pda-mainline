@@ -1,0 +1,162 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+readonly SOURCE_COMMIT=59e00a9144d782e148332009a835b99c43382467
+readonly SOURCE_URL=https://github.com/gemian/gemini-linux-kernel-3.18.git
+
+die() {
+  echo "error: $*" >&2
+  exit 1
+}
+
+[[ "$#" -eq 3 ]] || die "expected PROJECT_COMMIT SOURCE_ROOT OUTPUT_ROOT"
+readonly project_commit="$1"
+readonly source_root="$2"
+readonly output_root="$3"
+[[ "${project_commit}" =~ ^[0-9a-f]{40}$ ]] || die "invalid project commit"
+[[ "${source_root}" == /workspace/gemini-pda/* ]] || die "unsafe source root"
+[[ "${output_root}" == /workspace/gemini-pda/* ]] || die "unsafe output root"
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+readonly script_dir
+experiment_dir="$(cd "${script_dir}/.." && pwd -P)"
+readonly experiment_dir
+repository_dir="$(cd "${experiment_dir}/../.." && pwd -P)"
+readonly repository_dir
+[[ "$(git -C "${repository_dir}" rev-parse HEAD)" == "${project_commit}" ]] || \
+  die "project checkout does not match requested commit"
+[[ -z "$(git -C "${repository_dir}" status --porcelain)" ]] || \
+  die "project checkout is dirty"
+
+for command in git python3 sha256sum; do
+  command -v "${command}" >/dev/null 2>&1 || die "missing command: ${command}"
+done
+
+readonly mirror="${source_root}/gemian-linux-kernel-3.18.git"
+readonly work_root=/workspace/gemini-pda/rollback-work
+readonly package="${output_root}/gemian-a72-preiso-patches-${project_commit:0:12}"
+readonly partial="${package}.partial.$$"
+mkdir -p "${source_root}" "${work_root}" "${output_root}"
+[[ ! -e "${partial}" ]] || die "stale output partial exists"
+
+if [[ -d "${package}" && ! -L "${package}" ]]; then
+  grep -Fx "repository_commit=${project_commit}" \
+    "${package}/provenance/generation.txt" >/dev/null || \
+    die "existing package commit mismatch"
+  (
+    cd "${package}"
+    sha256sum --check --strict SHA256SUMS >/dev/null
+  )
+  printf 'Generated rollback patch review at %s\n' "${package}"
+  exit 0
+fi
+[[ ! -e "${package}" ]] || die "unsafe existing package path"
+
+if [[ ! -d "${mirror}" ]]; then
+  git clone --mirror "${SOURCE_URL}" "${mirror}.partial"
+  mv "${mirror}.partial" "${mirror}"
+fi
+[[ "$(git --git-dir="${mirror}" remote get-url origin)" == "${SOURCE_URL}" ]] || \
+  die "vendor mirror origin mismatch"
+git --git-dir="${mirror}" fetch origin "${SOURCE_COMMIT}"
+[[ "$(git --git-dir="${mirror}" rev-parse FETCH_HEAD)" == "${SOURCE_COMMIT}" ]] || \
+  die "vendor source fetch mismatch"
+
+work="$(mktemp -d "${work_root}/preiso.XXXXXX")"
+readonly work
+cleanup() {
+  if [[ -d "${work}" && "${work}" == "${work_root}"/preiso.* ]]; then
+    rm -rf -- "${work}"
+  fi
+  if [[ -d "${partial}" && "${partial}" == "${output_root}"/*.partial.* ]]; then
+    rm -rf -- "${partial}"
+  fi
+}
+trap cleanup EXIT
+
+git clone --no-checkout "${mirror}" "${work}/source"
+git -C "${work}/source" checkout --detach "${SOURCE_COMMIT}"
+while IFS= read -r parent_patch; do
+  [[ "${parent_patch}" =~ ^[A-Za-z0-9_.+-]+\.patch$ ]] || \
+    die "unsafe parent patch name"
+  git -C "${work}/source" am \
+    "${repository_dir}/experiments/2026-07-23-gemian-a72-owner-observer/patches/${parent_patch}"
+done < "${repository_dir}/experiments/2026-07-23-gemian-a72-owner-observer/patches/series"
+
+mkdir -p "${partial}/patches" "${partial}/provenance"
+
+commit_step() {
+  local date="$1"
+  local message="$2"
+  shift 2
+  git -C "${work}/source" diff --check
+  git -C "${work}/source" add -- "$@"
+  git -C "${work}/source" diff --cached --check
+  GIT_AUTHOR_NAME="Gemini A72 experiment" \
+  GIT_AUTHOR_EMAIL="noreply@gemini-a72.invalid" \
+  GIT_COMMITTER_NAME="Gemini A72 experiment" \
+  GIT_COMMITTER_EMAIL="noreply@gemini-a72.invalid" \
+  GIT_AUTHOR_DATE="${date}" GIT_COMMITTER_DATE="${date}" \
+    git -C "${work}/source" commit --no-gpg-sign -m "${message}"
+}
+
+python3 "${script_dir}/source_edits.py" --source "${work}/source" --step abi
+commit_step 2026-08-02T23:10:00Z \
+  "diagnostic: extend A72 observer rollback ABI" \
+  include/linux/mt6797_a72_transition_observer.h \
+  drivers/misc/mediatek/base/power/mt6797/mt_a72_transition_observer.c
+
+python3 "${script_dir}/source_edits.py" --source "${work}/source" --step owners
+commit_step 2026-08-02T23:11:00Z \
+  "diagnostic: add exact A72 rollback owner operations" \
+  include/linux/mt6797_a72_transition_observer.h \
+  drivers/misc/mediatek/power/mt6797/da9214.c \
+  drivers/misc/mediatek/base/power/spm_v2/mt_spm.c \
+  drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c \
+  drivers/misc/mediatek/base/power/mt6797/mt_idvfs.c \
+  drivers/misc/mediatek/base/power/mt6797/mt_dcm.c
+
+python3 "${script_dir}/source_edits.py" --source "${work}/source" --step orchestrator
+commit_step 2026-08-02T23:12:00Z \
+  "diagnostic: stop and unwind first CPU8 pre-isolation attempt" \
+  arch/arm64/kernel/psci.c \
+  drivers/misc/mediatek/base/power/Kconfig
+
+git -C "${work}/source" format-patch -3 --no-signature \
+  --output-directory "${partial}/patches" >/dev/null
+find "${partial}/patches" -maxdepth 1 -type f -name '*.patch' -printf '%f\n' \
+  | LC_ALL=C sort > "${partial}/patches/series"
+[[ "$(wc -l < "${partial}/patches/series")" -eq 3 ]] || \
+  die "unexpected generated patch count"
+
+python3 "${script_dir}/validate_patches.py" \
+  --patch-dir "${partial}/patches" --source "${work}/source"
+python3 "${script_dir}/test_static.py" \
+  --patch-dir "${partial}/patches"
+git -C "${work}/source" diff --check
+[[ -z "$(git -C "${work}/source" status --porcelain)" ]] || \
+  die "generated vendor source is dirty"
+
+cat > "${partial}/provenance/generation.txt" <<EOF
+purpose=experiment-only-source-review
+boot_candidate=false
+device_action=none
+repository_commit=${project_commit}
+source_url=${SOURCE_URL}
+source_commit=${SOURCE_COMMIT}
+parent_patch_count=7
+generated_patch_count=3
+generator=experiments/2026-08-02-a72-pre-isolation-rollback-discriminator/scripts/generate-on-buildbox
+native_vm_kernel_build=no
+EOF
+(
+  cd "${partial}"
+  find patches provenance -type f -print0 | LC_ALL=C sort -z \
+    | xargs -0 sha256sum > SHA256SUMS
+  sha256sum --check --strict SHA256SUMS >/dev/null
+)
+mv "${partial}" "${package}"
+trap - EXIT
+rm -rf -- "${work}"
+printf 'Generated rollback patch review at %s\n' "${package}"

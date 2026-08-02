@@ -112,6 +112,26 @@ readable member manifests so case-distinct filenames survive extraction on a
 case-insensitive host. These are compiler and timing-review inputs only;
 neither output is a boot candidate.
 
+## Gemian pre-isolation rollback patch-generation lane
+
+The first Gate 4 rollback discriminator has a separate source-preparation lane:
+
+```sh
+./scripts/buildbox generate-gemian-rollback-patches
+./scripts/buildbox fetch-gemian-rollback-patches
+```
+
+Like every Buildbox workflow, it requires a clean pushed commit and fetches that
+exact revision. It applies the seven validated observer patches to the pinned
+public Gemian source, performs three deterministic and source-drift-checked
+logical edits, commits them with a clearly synthetic non-certifying experiment
+identity, and generates real `git format-patch` output on Buildbox. Static and
+mutation validation must pass before the patch-review package is fetchable.
+
+The lane transfers only the generated patches, provenance and checksums. Its
+temporary vendor source is removed after generation; it does not compile a
+kernel, construct a boot image, access the device, or authorize deployment.
+
 ## Remote storage and concurrency
 
 Buildbox uses its persistent home volume for the Git mirror, verified kernel

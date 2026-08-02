@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-02-a72-pre-isolation-rollback-discriminator` |
-| Status | `design/source-review`: exact rollback contract and source-owner changes are specified; no implementation, build, deployment, or device action is authorized |
+| Status | `implementation-preparation`: exact rollback contract and source-owner changes are specified; the clean-pushed Buildbox generation lane is ready for source-drift-checked patch generation; no compile, deployment, or device action is authorized |
 | Subsystem | CPU8 external BUCKB preparation, MP2 reset, TOPRGU PWRAP reset, and fail-closed rollback |
 | Device variant | Named Gemini PDA development unit |
 | Date(s) | 2026-08-02 |
@@ -63,6 +63,14 @@ predeployment decision after compiler and timing review.
   fail-closed reference model with no hardware or network access.
 - [`scripts/test_rollback_model.py`](scripts/test_rollback_model.py): positive
   rollback plus ownership/readback and forbidden-boundary mutations.
+- [`scripts/source_edits.py`](scripts/source_edits.py): deterministic three-step
+  vendor-source transformation, restricted to the pinned Buildbox tree.
+- [`scripts/generate-on-buildbox`](scripts/generate-on-buildbox): temporary
+  Buildbox source, logical commits, `git format-patch`, provenance and cleanup.
+- [`scripts/validate_patches.py`](scripts/validate_patches.py): exact path,
+  owner, ordering, no-control and forbidden-boundary validation.
+- [`scripts/test_static.py`](scripts/test_static.py): generated-patch mutation
+  tripwires; it runs inside the generation job before results are fetchable.
 - [`results/design-validation-20260802.txt`](results/design-validation-20260802.txt):
   exact inputs, selected boundary, hashes, positive path, seventeen fail-closed
   cases and the explicit no-implementation decision.
@@ -79,11 +87,14 @@ python3 experiments/2026-08-02-a72-pre-isolation-rollback-discriminator/scripts/
 ## Decision
 
 `pending`: the exact successful forward evidence selects a bounded and
-falsifiable rollback question, but only the offline design/model exists.
+falsifiable rollback question. The generation inputs are reviewable, but their
+actual vendor patches must be generated and pass source/static review before a
+compile submission is permitted.
 
 ## Follow-up
 
-After the successful runtime evidence and this design are signed and pushed,
-prepare the four logical experiment-only source changes on Buildbox and add
-static mutations before any compile submission. Do not deploy or run the
-discriminator merely because the model and source-location review pass.
+Commit and push these generation inputs, generate/fetch the three logical
+vendor patches on Buildbox, and review them together with the independent
+static/mutation validation change. Only a separately reviewed clean revision
+may enter the compile-only observer/baseline comparison. Do not deploy or run
+the discriminator merely because generation, the model, or compilation passes.
