@@ -1,0 +1,96 @@
+A72 pre-isolation rollback discriminator source-owner review
+Recorded: 2026-08-02 America/New_York
+
+Reviewed source
+---------------
+source_url=https://github.com/gemian/gemini-linux-kernel-3.18.git
+source_commit=59e00a9144d782e148332009a835b99c43382467
+forward_orchestrator=arch/arm64/kernel/psci.c:cpu_power_on_buck
+caller=arch/arm64/kernel/psci.c:cpu_psci_cpu_boot
+da921x_owner=drivers/misc/mediatek/power/mt6797/da9214.c:da9214_i2c_access
+spm_owner=drivers/misc/mediatek/base/power/spm_v2/mt_spm.c:__spm_lock
+toprgu_owner=drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c:rgu_reg_operation_spinlock
+
+Call-chain finding
+------------------
+The pinned vendor caller invokes cpu_power_on_buck(cpu, 1) when the MP2 cluster
+is offline but discards its return value, then unconditionally calls
+psci_ops.cpu_on. It subsequently enables MP2 DCM and big iDVFS before testing
+the PSCI result. Therefore merely returning an injected error from
+cpu_power_on_buck would violate the design: PSCI and post-PSCI actions would
+still execute.
+
+A future diagnostic patch must introduce one config-local preparation result
+in cpu_psci_cpu_boot, branch to the existing common interrupt-mask cleanup
+before psci_ops.cpu_on on the exact injected-stop result, and return a bounded
+failure to the HPS caller. Normal vendor behavior outside the named one-shot
+diagnostic must remain exact. The branch must be statically proven to dominate
+PSCI, DCM and iDVFS calls.
+
+Existing helper limitations
+---------------------------
+da9214_a72_obs_buckb_config:
+- performs a BUCKB write without requiring the exact entry state or unique
+  ownership;
+- returns the mutation result as unsigned;
+- records page, enable and VSEL readbacks but does not fail its return value
+  when a later readback fails; and
+- is therefore an observer-aware mutation helper, not a compare-and-rollback
+  primitive.
+
+mt6797_a72_obs_spm_rmw:
+- performs a masked RMW under __spm_lock and records before/request/after;
+- returns only whether its mapping path existed, not whether the exact expected
+  pre-state and post-state matched; and
+- cannot prove attempt ownership for the inverse.
+
+mtk_wdt_swsysret_config:
+- correctly owns the keyed TOPRGU write under rgu_reg_operation_spinlock and
+  records masked before/request/after values;
+- returns zero without making the recorded readback an enforced predicate; and
+- cannot by itself prove the diagnostic attempt uniquely owns bit 11.
+
+Required owner-local primitives
+-------------------------------
+1. DA921x: one mutex-protected exact-state operation that reads page, enable and
+   VSEL; refuses an unexpected state before writing; performs only the named
+   enable/disable; verifies mutation result and every required readback; and
+   returns signed status plus immutable evidence.
+2. SPM: one __spm_lock-protected compare-and-update for offset 0x218 bit 0 that
+   requires the exact retained pre/post state, preserves unrelated bits, and
+   returns an explicit mismatch/write/readback status.
+3. TOPRGU: one rgu_reg_operation_spinlock-protected bit-11 compare-and-update
+   that preserves the key and unrelated bits, requires the expected state, and
+   returns an explicit readback status.
+4. Orchestrator: one boot-local, CPU8-only, compile-time one-shot state machine
+   with no userspace trigger. It must stop the caller before PSCI and prove
+   forbidden-boundary counters remain zero.
+5. ABI: new phases and a terminal rollback disposition must distinguish exact
+   rolled-back, rejected-prestate, and fault-retain outcomes. The existing
+   successful-pair ABI must not ambiguously classify this injected failure.
+
+Patch structure decision
+------------------------
+Do not place all logic in arch/arm64/kernel/psci.c and do not reuse the current
+helpers as boolean safety gates. Prepare four reviewable logical changes:
+
+1. extend the immutable diagnostic ABI/state model only;
+2. add exact owner-local compare/readback primitives without callers;
+3. add the one-shot pre-isolation orchestrator and caller-dominance branch; and
+4. add static/mutation validation proving normal-path preservation, exact
+   rollback ordering, and absence of forbidden calls before terminalization.
+
+Every patch remains experiment-only and non-submission-ready. The actual patch
+files must be generated from the pinned source on Buildbox after the project
+revision is clean, signed, and pushed.
+
+Decision
+--------
+source_location_review=passed
+reuse_existing_helpers_as_safety_gates=rejected
+implementation_contract=specified
+implementation_preparation_eligible=after-runtime-evidence-and-design-push
+implementation_authorized=no
+build_authorized=no
+device_action=none
+native_vm_kernel_build=no

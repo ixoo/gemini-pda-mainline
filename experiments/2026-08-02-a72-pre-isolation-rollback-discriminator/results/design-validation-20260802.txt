@@ -1,0 +1,47 @@
+A72 pre-isolation rollback discriminator design validation
+Recorded: 2026-08-02 America/New_York
+
+Inputs
+------
+clean_first_pair_snapshot_sha256=6db6ea41ba4689541cb504a0486c0a1b7249834ebdb8613f0e73b0bf56e808f5
+gate4_matrix_boundaries=19
+gate4_rollback_missing=5
+selected_matrix_rows=02,04,06
+design_sha256=c83b94984d253896c0edc103a59f73f88d50fba2d00ffecf2c92249f073ceb93
+model_sha256=df29a06c6b9bb9d0ce9976f324579cc21be77f3868f7ce47f14aaff2d877bd16
+model_test_sha256=9062d6e27853cc6a370b09fdd0f5ecbb0037f82e6a41e834f8cac19ea21231e1
+
+Selected boundary
+-----------------
+entry=exact-both-A72-offline-state
+forward_stop=after-BUCKB-enable-settle-before-external-isolation-clear
+forward_actions=SPM-reset-release,PWRAP-assert,BUCKB-enable
+forbidden_actions=external-isolation-clear,SRAM-LDO-SMC,PSCI-CPU_ON,MP2-DCM,iDVFS,CPU-online,CPU9
+rollback_actions=owned-BUCKB-disable,owned-SPM-reset-restore,owned-PWRAP-deassert
+success=exact-full-prestate-equality-and-stable-immutable-evidence
+failure=terminal-fault-retain-no-retry
+
+Validation
+----------
+positive_exact_rollback=passed
+entry_prestate_mutations=10-passed
+owner_readback_and_boundary_mutations=7-passed
+total_fail_closed_boundaries=17
+python_compile=passed
+device_access=none
+register_write=none
+cpu_request=none
+kernel_build=none
+native_vm_kernel_build=no
+
+Decision
+--------
+design_model_gate=passed
+implementation_authorized=no
+build_authorized=no
+deployment_authorized=no
+
+Next review the exact source-equivalent owner locations and prove that one
+logical patch can implement this state machine without a userspace trigger,
+without crossing the external-isolation boundary, and without weakening any
+normal vendor operation outside the one-shot diagnostic attempt.

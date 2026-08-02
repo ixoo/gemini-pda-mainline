@@ -23,6 +23,13 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-02 A72 pre-isolation rollback discriminator](2026-08-02-a72-pre-isolation-rollback-discriminator/README.md)
+  — specifies and machine-checks an exact one-shot stop after CPU8 BUCKB
+  enable but before external-isolation clear. The model proves one exact
+  rollback and rejects 17 pre-state, ownership, readback, and forbidden-boundary
+  mutations. Source-owner review requires new owner-local compare/readback
+  primitives and a caller branch that dominates PSCI, DCM, and iDVFS; no
+  implementation, build, deployment, or device action is authorized yet.
 - [2026-08-02 Gemian A72 first-complete-cycle latch](2026-08-02-gemian-a72-first-cycle-latch/README.md)
   — completed an exact Buildbox-built, guarded-boot2, no-load run. ABI v2 froze
   the first natural CPU8 up/down pair in 46 immutable records with no overflow
@@ -33,8 +40,8 @@ the loop. Positive identity-gated observations are unaffected.
   — machine-checks 19 forward, observation, rollback, CPU9, and resume
   boundaries. Sixteen now have clean first-pair evidence and all nine forward
   decisions remain closed, but Gate 4 is open on five failure rollbacks, one
-  CPU9-only observation, and suspend/resume ownership. The next action is an
-  independently specified failure/rollback discriminator.
+  CPU9-only observation, and suspend/resume ownership. The first independent
+  failure/rollback discriminator is now specified above.
 - [2026-08-02 bounded Gemian A72 observer boot image](2026-08-02-gemian-a72-bounded-observer-boot/README.md)
   — replaces only the exact active Gemian Android-v0 kernel field with the
   compiler/timing-reviewed five-patch observer. Two raw assemblies and two

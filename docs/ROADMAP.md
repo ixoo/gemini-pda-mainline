@@ -746,14 +746,27 @@ already copied evidence, resolving the parent retrieval ambiguity. The
 successful up and down paths took 6,008,000 ns and 5,193,154 ns respectively,
 and no CPU9 record appeared.
 
-The immediate ordered action is to reconcile those exact transaction-local
-values into the Gate 4 ownership matrix, identifying which successful-path
-pre-states/readbacks are now closed and which rollback classes still lack an
-independent observation. Then design one failure/rollback discriminator that
-can prove a bounded safe unwind without requesting CPU9 or introducing a
-mainline consumer. Suspend/resume ownership and bounded rollback remain open
-before Gate 4 can close; provider work still must not introduce a write or A72
-consumer.
+Those exact transaction-local values are now reconciled into the 19-boundary
+Gate 4 ownership matrix. All nine forward decisions remain closed; five
+failure rollbacks, one CPU9-only observation, and suspend/resume ownership
+remain open. The first independent failure/rollback discriminator is now
+specified and machine-checked: it stops after CPU8 BUCKB enable and before
+external-isolation clear, permits only attempt-owned BUCKB, SPM-reset, and
+PWRAP-reset inverses, and rejects 17 pre-state, ownership, readback, and
+forbidden-boundary mutations. Exact pinned-source review also proves that the
+existing observer helpers cannot serve as safety gates and that an error return
+from `cpu_power_on_buck` alone would be unsafe because the caller currently
+continues into PSCI, DCM, and iDVFS.
+
+The immediate ordered action is to prepare four experiment-only source changes
+on Buildbox: extend the immutable ABI/state model; add exact owner-local
+compare/readback primitives; add the one-shot orchestrator and a caller branch
+that dominates PSCI, DCM, and iDVFS; and add static/mutation validation. Review
+those patches and their normal-path preservation before submitting even a
+compile. A successful model or compile does not authorize deployment. CPU9,
+suspend/resume, later power boundaries, a mainline provider write, and any A72
+consumer remain blocked until their separate ownership and rollback gates
+close.
 
 Exit: observations and inference are separated, every required writer has one
 owner, and a failed step has a bounded rollback path.
