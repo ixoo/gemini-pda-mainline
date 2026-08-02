@@ -32,8 +32,10 @@ the loop. Positive identity-gated observations are unaffected.
   — replaces only the exact active Gemian Android-v0 kernel field with the
   compiler/timing-reviewed five-patch observer. Two raw assemblies and two
   independent 16 MiB padding methods are byte-identical; the active ramdisk,
-  command line, addresses, and appended-DTB contract are pinned. Runtime and
-  deployment remain pending a one-cycle evidence contract.
+  command line, addresses, and appended-DTB contract are pinned. Guarded
+  `boot2` deployment and full readback passed, and both the no-load and exact
+  single-two-worker collectors pass their fail-closed static gates. Runtime
+  evidence remains pending device reachability.
 - [2026-08-01 DA921x post-event identification lifecycle](2026-08-01-da921x-post-event-lifecycle/README.md)
   — natural bind, zero-transaction unbind, and one read-only rebind reached
   exact `14 -> 14 -> 28` counts with every DMA/write/other counter zero,

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-02-gemian-a72-bounded-observer-boot` |
-| Status | `inconclusive`: offline construction and guarded `boot2` deployment pass with full readback and shutdown; first boot and one-cycle runtime evidence remain pending |
+| Status | `inconclusive`: offline construction, guarded `boot2` deployment, and both fail-closed runtime collectors pass; first-boot and one-cycle hardware evidence remain pending |
 | Subsystem | Gemian 3.18 MT6797 A72 owner observer and retained Planet LK Android-v0 boot path |
 | Device variant | Current named Gemini PDA unit |
 | Date(s) | 2026-08-02 |
@@ -63,7 +63,8 @@ A later deployment must separately name the exact candidate and test
 hypothesis. It must resolve live logical `boot2`, preserve the known-good Gemian
 path, verify full-partition readback, and shut down after the verified write.
 The first boot must stop without a load pulse if the kernel identity, observer
-ABI, USB shell, power state, or CPU8/CPU9-offline baseline differs.
+ABI, authenticated Gemian service, power state, or CPU8/CPU9-offline baseline
+differs.
 
 ## Associated code
 
@@ -83,6 +84,15 @@ ABI, USB shell, power state, or CPU8/CPU9-offline baseline differs.
   ABI, record, sequence, CPU, disposition, and no-load validator.
 - [`scripts/test-initial.py`](scripts/test-initial.py): positive scenarios and
   ten fail-closed/static safety checks.
+- [`scripts/derive-two-worker-pulse.py`](scripts/derive-two-worker-pulse.py):
+  exact-source derivation that removes every calibrated load stage except one
+  two-worker pulse and adds the same-boot observer/kernel-alert gate.
+- [`scripts/collect-pulse.sh`](scripts/collect-pulse.sh): initial-capture-gated,
+  exact-dependency host collector with private staging and bounded execution.
+- [`scripts/validate-pulse.py`](scripts/validate-pulse.py): strict pulse,
+  observer, CPU9, cleanup, alert, and result-disposition classifier.
+- [`scripts/test-pulse.py`](scripts/test-pulse.py): derivation invariants, seven
+  result classifications, and ten fail-closed mutations.
 - [`results/predeployment-hypothesis-20260802.txt`](results/predeployment-hypothesis-20260802.txt):
   exact one-cycle hypothesis, expected ordering, stop conditions, outcome
   matrix, and guarded deployment boundary.
@@ -95,6 +105,9 @@ ABI, USB shell, power state, or CPU8/CPU9-offline baseline differs.
 - [`results/initial-collector-validation-20260802.txt`](results/initial-collector-validation-20260802.txt):
   dependency hashes, bounded behavior, syntax, ShellCheck, positive scenarios,
   and fail-closed checks.
+- [`results/pulse-collector-validation-20260802.txt`](results/pulse-collector-validation-20260802.txt):
+  exact derivation, same-boot/second-gate behavior, syntax, ShellCheck,
+  classifications, and fail-closed checks.
 - [Owner-observer review](../2026-07-23-gemian-a72-owner-observer/README.md):
   exact compiler, stack, lock, and bounded timing evidence.
 - [Calibrated two-worker trigger](../2026-07-23-gemian-a72-load-assisted-observation/README.md):
@@ -119,6 +132,20 @@ experiments/2026-08-02-gemian-a72-bounded-observer-boot/scripts/collect-initial.
 This invocation always forbids load. An empty/offline capture can only make a
 separately validated second pre-pulse gate eligible.
 
+Only after that exact capture validates as `empty-offline`, the separately
+gated invocation is:
+
+```sh
+experiments/2026-08-02-gemian-a72-bounded-observer-boot/scripts/collect-pulse.sh \
+  --initial artifacts/runtime-captures/EXACT-INITIAL-CAPTURE-initial.txt \
+  --tag first-pulse-20260802
+```
+
+The host rejects any other initial disposition or a different boot ID. The
+remote program then repeats the observer, CPU, HPS, power, temperature, and
+kernel-alert gates before its sole two-worker pulse. It never escalates to
+another worker count or repeats the pulse.
+
 ## Procedure
 
 1. Validate exact private input identities and the complete Buildbox manifest.
@@ -132,6 +159,8 @@ separately validated second pre-pulse gate eligible.
 7. Apply the exact one-cycle runtime hypothesis, event order, retrieval
    boundary, stop conditions, and result-to-next-action matrix recorded with
    this experiment.
+8. Retrieve the no-load first-boot capture. Only an exact empty/offline result
+   on the same boot may reach the independent second gate and single pulse.
 
 ## Observations
 
@@ -158,6 +187,17 @@ readback both matched padded SHA-256 `33ace2c30a88…`. No fresh backup was made
 temporary copies were removed, and the device was cleanly shut down and
 confirmed unreachable. It has not booted the new image yet.
 
+The second-phase tooling now also passes offline review. It mechanically
+derives SHA-256 `8bf8bf37e32d…` from the exact calibrated probe, retains exactly
+one `start_load 2` path, and rejects all other worker stages. The host requires
+the separately validated empty/offline initial capture and its exact boot ID;
+the remote repeats an empty observer, offline CPU8/CPU9, power, temperature,
+fixed-policy, and zero-kernel-alert gate immediately before the pulse. Pre/post
+observer and filtered alert snapshots are immutable private evidence. Seven
+result classes and ten unsafe mutations pass, as do POSIX/Bash syntax and
+managed-VM ShellCheck. No device was contacted and no load was applied while
+validating this tooling.
+
 ## Analysis
 
 Byte-identical construction establishes a reproducible container and exact
@@ -168,14 +208,19 @@ mainline.
 
 ## Conclusion
 
-`confirmed` for offline container identity/layout and guarded deployment with
-full readback; `inconclusive` for runtime and hardware behavior. The next boot,
-not the write itself, determines whether the observer kernel is serviceable.
+`confirmed` for offline container identity/layout, guarded deployment with full
+readback, and both runtime collectors' static safety contracts;
+`inconclusive` for runtime and hardware behavior. The next attributable device
+capture, not the write or tooling itself, determines whether the observer
+kernel is serviceable.
 
 ## Follow-up
 
-The device is powered off after verified deployment. The owner may now select
-`boot2` manually. On first serviceability, apply the predeployment contract:
-retrieve identity and the initial immutable observer copy before deciding
-whether the single calibrated two-worker pulse is allowed. The exact no-load
-collector is validated and ready.
+The device was powered off after verified deployment. The owner later replied
+`done` after the request to select `boot2`; this was treated provisionally as
+completion of that action, not as proof of selection. Neither expected Gemian
+SSH nor the direct USB network interface became reachable during the bounded
+checks. That absence is connectivity evidence, not a kernel-failure result.
+When serviceability appears, run only the no-load collector first. If and only
+if it returns exact `empty-offline`, run the now-validated pulse collector on
+the same boot; otherwise preserve the initial evidence and prohibit load.

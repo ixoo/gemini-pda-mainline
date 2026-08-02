@@ -1,0 +1,86 @@
+Gemian bounded A72 observer two-worker pulse collector validation
+Recorded: 2026-08-02 America/New_York
+
+Inputs
+------
+calibrated_remote_source_sha256=c04bdfda47676645ef55dc5d99c5d067076b59e6246ae29baa20d848bcd0992d
+deriver_sha256=5bd1e648a90dc808e82cdad2718069b3198b16b96bd2a50c0ee8c5e52c3bd6d4
+derived_remote_sha256=8bf8bf37e32d0b787dfaa651121a64dc39bf1f37aab4a1ba5b558fea4ec032da
+initial_validator_sha256=ec6809e25c45e2fb16eb01aee0e5798473061ce38fcbe5f730a111e1dc599f61
+pulse_validator_sha256=75f4e924927aed083605b7116984386f79a4825d90e79dedfe19caad9e27fb88
+host_collector_sha256=4800fee95a2c9e580c35b0c76d9146b85fdccde1d2345801edd0c291bd77f804
+static_test_sha256=c1a543268f8fe17818ba9562379033ded56a30587c2d2be93d72d661170e4686
+bounded_exec_sha256=e250c4f0375aed986bc73eeea699cf5f4ba51625aa51a1ede2d40ac601f62ce5
+target=gemini@192.168.1.50
+private_output_root=artifacts/runtime-captures
+
+Derivation contract
+-------------------
+- requires the exact reviewed calibrated probe source before transforming it;
+- retains its root, topology, fixed-HPS-policy, power, battery, temperature,
+  sample, worker deadline, signal, cleanup, cooldown, and boot-ID gates;
+- requires exact observer build identity, ABI, proc mode, and the boot-ID hash
+  from a separately validated initial capture;
+- removes the unused interstage parameter and the 1, 4, 8, and 10-worker
+  stages;
+- contains exactly one reachable `start_load 2` call;
+- retrieves an immutable observer snapshot and filtered kernel-alert section
+  immediately before the pulse decision and again after cooldown;
+- permits that sole pulse only when the second observer snapshot is
+  count-zero/overwrite-zero, CPU8 and CPU9 remain offline, no filtered kernel
+  alert exists, and the boot ID is unchanged; and
+- performs no CPU-online, HPS/PPM, cpufreq, voltage, I2C, register, memory,
+  firmware, partition, reboot, or poweroff write.
+
+Host contract
+-------------
+The host accepts only an ignored, regular, mode-0600 `*-initial.txt` capture
+below the private runtime root. It reruns the exact initial validator and
+requires both `initial_disposition=empty-offline` and the explicit eligibility
+for a separate second gate. It extracts the hashed boot ID from that immutable
+capture, derives the exact remote program in an immediately cleanup-trapped
+private staging directory, checks the generated SHA-256, and passes the boot
+identity into a bounded authenticated session. Remote failure or capture
+validation failure preserves partial evidence and never promotes it to an
+accepted capture.
+
+Validation
+----------
+Python_compile=passed
+Bash_host_syntax=passed
+POSIX_derived_syntax_host=passed
+POSIX_derived_syntax_managed_vm=passed
+ShellCheck_derived_managed_vm=passed
+ShellCheck_host_managed_vm=passed
+positive_runtime_classifications=7
+fail_closed_mutations=10
+exact_single_start_load_2=passed
+forbidden_load_stages_absent=passed
+forbidden_hardware_and_reboot_actions_absent=passed
+kernel_alert_pre_gate=passed
+observer_pre_to_post_retention_check=passed
+same_boot_initial_to_remote_gate=passed
+git_diff_check=passed
+device_access=none
+native_vm_kernel_build=none
+hardware_write=none
+
+The positive classifier cases cover a CPU8 record requiring manual transaction
+review, no transition, a CPU9 record, observer overwrite, failure to return
+offline, a filtered kernel alert, and a precondition-blocked no-pulse result.
+The ten fail-closed mutations cover a four-worker request, build-identity drift,
+missing observer delimiters, power drift, a temperature at its abort limit,
+incomplete status, a false kernel-alert count, execution after pre-existing
+records, an executed pulse without a load sample, and non-increasing observer
+sequence numbers.
+
+Decision
+--------
+pulse_collector_static_gate=passed
+pulse_execution_authorized_without_initial_capture=no
+runtime_result=pending_device_reachability
+
+No load was applied during this validation. The next runtime action remains the
+no-load initial collector. Only its exact empty/offline result on the still
+running same boot allows this collector to evaluate its independent second
+gate; every other initial result prohibits the pulse.

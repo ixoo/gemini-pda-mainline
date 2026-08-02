@@ -714,7 +714,19 @@ are retrieved; only an empty, both-A72-offline initial record permits the one
 calibrated two-worker pulse. The exact initial collector is now ready and
 validated: it identity-gates the reviewed build and observer ABI, checks
 power/temperatures and five offline samples, retrieves one immutable ring copy,
-and always forbids load in that invocation.
+and always forbids load in that invocation. The separately executable pulse
+collector is now also frozen and validated. It accepts only that exact
+empty/offline initial disposition on the same boot, mechanically derives the
+reviewed calibrated probe with every stage except one two-worker pulse removed,
+then repeats the observer, CPU, HPS-policy, power, temperature, boot-ID, and
+filtered kernel-alert gates immediately before load. It retains immutable
+pre/post evidence, removes load on any A72 observation, cools down, rejects
+CPU9, overwrite, alert, and non-offline outcomes, and never retries or
+escalates. The first bounded reachability checks after the owner's provisional
+boot-action confirmation found neither Gemian SSH nor a direct USB interface;
+that remains connectivity evidence only. The next action is still the no-load
+initial capture when the device becomes reachable, followed by the pulse on
+that same boot only if both independent gates pass.
 
 Exit: observations and inference are separated, every required writer has one
 owner, and a failed step has a bounded rollback path.
