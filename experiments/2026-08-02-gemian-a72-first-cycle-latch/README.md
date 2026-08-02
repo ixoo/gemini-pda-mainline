@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-02-gemian-a72-first-cycle-latch` |
-| Status | `running`: the state-machine contract and executable model are under local review; no kernel revision has been built or installed |
+| Status | `running`: the complete seven-patch source and executable model pass local validation; Buildbox compiler review is next and no image has been installed |
 | Subsystem | MT6797 CPU8 hotplug observer and owner-local diagnostic sampling |
 | Device variant | Current named Gemini PDA unit |
 | Date(s) | 2026-08-02 |
@@ -84,9 +84,9 @@ python3 experiments/2026-08-02-gemian-a72-first-cycle-latch/scripts/test_latch_m
 
 1. Freeze the state-machine and owner-effect contracts in `DESIGN.md` and the
    executable model.
-2. Add one logical sixth patch to the parent observer series. Generate the
-   patch from the selected vendor source on Buildbox; do not create or copy a
-   vendor source tree onto the host.
+2. Add logical recorder and owner-effect patches to the parent observer series.
+   Generate them from the selected vendor source on Buildbox; do not create or
+   copy a vendor source tree onto the host.
 3. Extend static validation so mutations of every latch, ABI, no-overwrite,
    pure-snapshot guard and real-operation fallback invariant are rejected.
 4. Commit and push the exact clean project revision, then run only the
@@ -108,10 +108,10 @@ python3 experiments/2026-08-02-gemian-a72-first-cycle-latch/scripts/test_latch_m
 - The retained tail contains five complete CPU8-up and six complete CPU8-down
   transactions, proving that natural Gemian policy supplies cycles without a
   synthetic pulse.
-- Recorder-only patch 6 is a real Buildbox-generated `git format-patch` and
-  passes the parent static validator, 13 mutation tripwires, and the executable
-  model. The owner-effect gate, compile, package, deployment and runtime
-  observations remain open; patch 6 alone is not a boot candidate.
+- Patches 6 and 7 are real Buildbox-generated `git format-patch` files. The
+  complete source passes the parent validator, 17 mutation tripwires and the
+  executable model. Compile, package, deployment and runtime observations
+  remain open.
 
 ## Analysis
 
@@ -132,7 +132,6 @@ Buildbox compiler result or hardware evidence exists yet for this revision.
 
 ## Follow-up
 
-Implement the separate owner-effect gate that suppresses pure snapshots after
-freeze and selects exact vendor operations outside capture. Then compile the
-complete series on Buildbox. Do not repeat the parent image, run the pulse,
-request CPU8/CPU9, or perform a native VM kernel build.
+Compile the complete series on Buildbox and review compiler diagnostics, stack,
+locks and timing before defining any boot artifact. Do not repeat the parent
+image, run the pulse, request CPU8/CPU9, or perform a native VM kernel build.

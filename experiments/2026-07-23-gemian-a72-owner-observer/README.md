@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-23-gemian-a72-owner-observer` |
-| Status | `running`: the five-patch parent has compiler and runtime evidence; recorder-only patch 6 passes source/model validation but is not boot-safe or compiler-reviewed until the owner-effect gate follows |
+| Status | `running`: the five-patch parent has compiler and runtime evidence; the complete seven-patch latch revision passes source/model validation and awaits exact Buildbox compiler, stack, lock and timing review |
 | Subsystem | MT6797 A72 hotplug, PSCI, external buck, SPM, iDVFS, B/CCI clocks, MP2 DCM and TOPRGU |
 | Device variant | Current named Gemini PDA unit |
 | Date(s) | 2026-07-23 |
@@ -129,8 +129,11 @@ no observer artifact changed a partition, policy, or hardware state.
   broad snapshots.
 - [`patches/0006-diagnostic-latch-first-complete-CPU8-cycle.patch`](patches/0006-diagnostic-latch-first-complete-CPU8-cycle.patch):
   immutable first-CPU8-cycle state machine, terminal failure states, ABI v2
-  metadata and the query used by the pending owner-effect gate. This
-  intermediate is not a boot candidate.
+  metadata and the query used by the owner-effect gate.
+- [`patches/0007-diagnostic-gate-observer-effects-to-first-CPU8-cycle.patch`](patches/0007-diagnostic-gate-observer-effects-to-first-CPU8-cycle.patch):
+  suppresses pure diagnostic hardware access outside capture and selects the
+  original SPM, BUCKB and DCM operation paths. The seven-patch source remains
+  non-bootable until compiler, stack, lock and timing review passes.
 - [`DESIGN.md`](DESIGN.md): event contract, fixed register allowlist and
   concurrency review.
 - [`scripts/validate.py`](scripts/validate.py): experiment-local patch

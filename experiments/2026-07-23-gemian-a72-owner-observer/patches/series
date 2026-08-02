@@ -4,3 +4,4 @@
 0004-diagnostic-correlate-A72-hotplug-lifecycle.patch
 0005-diagnostic-bound-observer-timing-perturbation.patch
 0006-diagnostic-latch-first-complete-CPU8-cycle.patch
+0007-diagnostic-gate-observer-effects-to-first-CPU8-cycle.patch

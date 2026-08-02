@@ -66,6 +66,9 @@ def main():
     patch6 = (
         "patches/0006-diagnostic-latch-first-complete-CPU8-cycle.patch"
     )
+    patch7 = (
+        "patches/0007-diagnostic-gate-observer-effects-to-first-CPU8-cycle.patch"
+    )
     expect_rejected(
         "writable proc mode",
         patch1,
@@ -157,7 +160,35 @@ def main():
         "+\tMT6797_A72_OBS_FROZEN_UP_FAILED,\n+\tMT6797_A72_OBS_FROZEN_COMPLETE,",
         "first-cycle terminal-state ordering: missing ordered token",
     )
-    print("PASS: positive validation and 13 mutation tripwires")
+    expect_rejected(
+        "DA9214 pure-snapshot gate regression",
+        patch7,
+        "+\tif (!mt6797_a72_obs_accepts_sampling(cpu))\n+\t\treturn 0;",
+        "+\tif (mt6797_a72_obs_accepts_sampling(cpu))\n+\t\treturn 0;",
+        "drivers/misc/mediatek/power/mt6797/da9214.c pure-snapshot early gate",
+    )
+    expect_rejected(
+        "SPM fallback suppression regression",
+        patch7,
+        "+\t\treturn false;",
+        "+\t\treturn true;",
+        "owner-effect gate patch: missing 'return false;'",
+    )
+    expect_rejected(
+        "BUCKB vendor-fallback regression",
+        patch7,
+        "+\t\t\tda9214_config_interface(0x5E, 0x1, 0x1, 0);",
+        "+\t\t\tda9214_a72_obs_buckb_config(cpu, true, 0);",
+        "owner-effect gate patch: missing 'da9214_config_interface(0x5E, 0x1, 0x1, 0);'",
+    )
+    expect_rejected(
+        "DCM original-path regression",
+        patch7,
+        "+\t\treturn 0;\n+\t}\n+#endif",
+        "+\t}\n+#endif",
+        "DCM observed/original branch ordering: missing ordered token",
+    )
+    print("PASS: positive validation and 17 mutation tripwires")
     return 0
 
 

@@ -15,6 +15,7 @@ EXPECTED_SERIES = [
     "0004-diagnostic-correlate-A72-hotplug-lifecycle.patch",
     "0005-diagnostic-bound-observer-timing-perturbation.patch",
     "0006-diagnostic-latch-first-complete-CPU8-cycle.patch",
+    "0007-diagnostic-gate-observer-effects-to-first-CPU8-cycle.patch",
 ]
 
 EXPECTED_COMMITS = [
@@ -24,6 +25,7 @@ EXPECTED_COMMITS = [
     "349f24b6e10df6e1d24c79a23d75c8361ac68b28",
     "718f297ae97ab3738d624129b814e921a8371227",
     "e6ccc7d8bbe968d1da1a99cd9f3e96be4e8a0136",
+    "65e3b72839c5ce6b8c5d68667062c1fb1561e216",
 ]
 
 EXPECTED_DIFF_PATHS = {
@@ -114,6 +116,14 @@ def patch_for_path(patches, source_path):
     matches = [text for text in patches if marker in text]
     require(matches, "{}: missing from patch series".format(source_path))
     return "\n".join(matches)
+
+
+def patch_section_for_path(patch, source_path):
+    marker = "diff --git a/{0} b/{0}".format(source_path)
+    start = patch.find(marker)
+    require(start >= 0, "{}: missing patch section".format(source_path))
+    end = patch.find("\ndiff --git ", start + len(marker))
+    return patch[start:] if end < 0 else patch[start:end]
 
 
 def validate(root):
@@ -379,6 +389,72 @@ def validate(root):
     require(
         latch.count("+\tmt6797_a72_obs_state = next_state;") == 1,
         "first-cycle latch terminal transition is not singular",
+    )
+
+    owner_gate = patch_texts[6]
+    require_tokens(
+        owner_gate,
+        [
+            "if (!mt6797_a72_obs_accepts_sampling(cpu))",
+            "if (mt6797_a72_obs_accepts_sampling(cpu)) {",
+            "da9214_config_interface(0x0, 0x0, 0xF, 0);",
+            "da9214_config_interface(0x5E, 0x1, 0x1, 0);",
+            "ret = da9214_config_interface(0x5E, 0x0, 0x1, 0);",
+            "return false;",
+            "cpu = mt6797_a72_obs_active_cpu();",
+            "if (mt6797_a72_obs_is_cpu(cpu)) {",
+            "return 0;",
+        ],
+        "owner-effect gate patch",
+    )
+    owner_gate_additions = "\n".join(
+        line for _, line in added_lines(patch_paths[6])
+    )
+    require(
+        owner_gate_additions.count("mt6797_a72_obs_accepts_sampling(cpu)") == 10,
+        "owner-effect sampling-gate call count changed",
+    )
+    require(
+        re.search(r"\bBUG(?:_ON)?\s*\(", owner_gate_additions) is None,
+        "owner-effect gate adds an assertion path",
+    )
+    ordered(
+        owner_gate,
+        [
+            "+\tif (!mt6797_a72_obs_accepts_sampling(cpu))",
+            "+\t\treturn;",
+            " \tda9214_a72_obs_snapshot(cpu, phase);",
+        ],
+        "composite snapshot early gate",
+    )
+    for source_path, first_hardware_token in [
+        ("drivers/misc/mediatek/power/mt6797/da9214.c", " \tif (!new_client)"),
+        ("drivers/misc/mediatek/base/power/spm_v2/mt_spm.c", " \tbase = mt6797_a72_obs_spm_base"),
+        ("drivers/misc/mediatek/base/power/mt6797/mt_idvfs.c", " \tfor (i = 0; i < ARRAY_SIZE"),
+        ("drivers/misc/mediatek/freqhopping/mt6797/mt_freqhopping.c", " \tif (!spin_trylock_irqsave"),
+    ]:
+        owner_text = patch_section_for_path(owner_gate, source_path)
+        ordered(
+            owner_text,
+            [
+                "+\tif (!mt6797_a72_obs_accepts_sampling(cpu))",
+                first_hardware_token,
+            ],
+            "{} pure-snapshot early gate".format(source_path),
+        )
+    dcm_gate = patch_section_for_path(
+        owner_gate, "drivers/misc/mediatek/base/power/mt6797/mt_dcm.c"
+    )
+    ordered(
+        dcm_gate,
+        [
+            " \tcpu = mt6797_a72_obs_active_cpu();",
+            "+\tif (mt6797_a72_obs_is_cpu(cpu)) {",
+            "+\t\treturn 0;",
+            "+#endif",
+            " \tif (on == MCUSYS_DCM_ON) {",
+        ],
+        "DCM observed/original branch ordering",
     )
 
     da = patch_for_path(patch_texts, "drivers/misc/mediatek/power/mt6797/da9214.c")

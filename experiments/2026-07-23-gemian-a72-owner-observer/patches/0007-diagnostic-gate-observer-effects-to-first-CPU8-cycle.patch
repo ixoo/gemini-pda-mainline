@@ -1,0 +1,174 @@
+From 65e3b72839c5ce6b8c5d68667062c1fb1561e216 Mon Sep 17 00:00:00 2001
+From: Gemini PDA Investigation <gemini-observer@example.invalid>
+Date: Sun, 2 Aug 2026 17:50:04 +0000
+Subject: [PATCH] diagnostic: gate observer effects to first CPU8 cycle
+
+---
+ arch/arm64/kernel/psci.c                      | 20 ++++++++++++++++---
+ .../misc/mediatek/base/power/mt6797/mt_dcm.c  |  9 ++++++---
+ .../mediatek/base/power/mt6797/mt_idvfs.c     |  2 ++
+ .../misc/mediatek/base/power/spm_v2/mt_spm.c  |  4 ++++
+ .../freqhopping/mt6797/mt_freqhopping.c       |  2 ++
+ drivers/misc/mediatek/power/mt6797/da9214.c   |  2 ++
+ 6 files changed, 33 insertions(+), 6 deletions(-)
+
+diff --git a/arch/arm64/kernel/psci.c b/arch/arm64/kernel/psci.c
+index e6fb32c2f..49b559786 100644
+--- a/arch/arm64/kernel/psci.c
++++ b/arch/arm64/kernel/psci.c
+@@ -511,6 +511,9 @@ static int __init cpu_psci_cpu_prepare(unsigned int cpu)
+ #ifdef CONFIG_MTK_A72_TRANSITION_OBSERVER
+ static void mt6797_a72_obs_fixed_snapshot(unsigned int cpu, u16 phase)
+ {
++	if (!mt6797_a72_obs_accepts_sampling(cpu))
++		return;
++
+ 	da9214_a72_obs_snapshot(cpu, phase);
+ 	mt6797_a72_obs_spm_snapshot(cpu, phase);
+ 	mt6797_a72_obs_secure_snapshot(cpu, phase);
+@@ -565,8 +568,13 @@ static int cpu_power_on_buck(unsigned int cpu, bool hotplug)
+ 
+ 	if (hotplug) {
+ #ifdef CONFIG_MTK_A72_TRANSITION_OBSERVER
+-		da9214_a72_obs_buckb_config(cpu, true,
++		if (mt6797_a72_obs_accepts_sampling(cpu)) {
++			da9214_a72_obs_buckb_config(cpu, true,
+ 					    MT6797_A72_PHASE_BUCK_ENABLE);
++		} else {
++			da9214_config_interface(0x0, 0x0, 0xF, 0);
++			da9214_config_interface(0x5E, 0x1, 0x1, 0);
++		}
+ #else
+ 		BUG_ON(da9214_config_interface(0x0, 0x0, 0xF, 0) < 0);
+ 		BUG_ON(da9214_config_interface(0x5E, 0x1, 0x1, 0) < 0);
+@@ -574,7 +582,8 @@ static int cpu_power_on_buck(unsigned int cpu, bool hotplug)
+ 
+ 		udelay(1000);
+ #ifdef CONFIG_MTK_A72_TRANSITION_OBSERVER
+-		da9214_a72_obs_snapshot(cpu,
++		if (mt6797_a72_obs_accepts_sampling(cpu))
++			da9214_a72_obs_snapshot(cpu,
+ 					MT6797_A72_PHASE_BUCK_ENABLE_SETTLED);
+ #endif
+ 	}
+@@ -623,8 +632,13 @@ static int cpu_power_off_buck(unsigned int cpu)
+ #ifdef CONFIG_MTK_A72_TRANSITION_OBSERVER
+ 	int smc_ret;
+ 
+-	ret = da9214_a72_obs_buckb_config(cpu, false,
++	if (mt6797_a72_obs_accepts_sampling(cpu)) {
++		ret = da9214_a72_obs_buckb_config(cpu, false,
+ 					  MT6797_A72_PHASE_BUCK_DISABLE);
++	} else {
++		ret = da9214_config_interface(0x0, 0x0, 0xF, 0);
++		ret = da9214_config_interface(0x5E, 0x0, 0x1, 0);
++	}
+ 	smc_ret = BigiDVFSSRAMLDODisable();
+ 	mt6797_a72_obs_lifecycle(cpu, MT6797_A72_PHASE_OFFLINE_FINAL,
+ 				 smc_ret, ret, 0);
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt_dcm.c b/drivers/misc/mediatek/base/power/mt6797/mt_dcm.c
+index 4816bb5bb..615d68e56 100644
+--- a/drivers/misc/mediatek/base/power/mt6797/mt_dcm.c
++++ b/drivers/misc/mediatek/base/power/mt6797/mt_dcm.c
+@@ -1003,6 +1003,7 @@ int dcm_mcusys_mp2_sync_dcm(ENUM_MCUSYS_DCM on)
+ 	unsigned int cpu;
+ 
+ 	cpu = mt6797_a72_obs_active_cpu();
++	if (mt6797_a72_obs_is_cpu(cpu)) {
+ 	spin_lock_irqsave(&mt6797_a72_obs_mp2_dcm_lock, flags);
+ 	snapshot.before = reg_read(MCUCFG_SYNC_DCM_MP2_CONFIG);
+ 
+@@ -1036,12 +1037,13 @@ int dcm_mcusys_mp2_sync_dcm(ENUM_MCUSYS_DCM on)
+ 	snapshot.final = reg_read(MCUCFG_SYNC_DCM_MP2_CONFIG);
+ 	spin_unlock_irqrestore(&mt6797_a72_obs_mp2_dcm_lock, flags);
+ 
+-	if (mt6797_a72_obs_is_cpu(cpu))
+ 		mt6797_a72_obs_dcm(cpu,
+ 			on == MCUSYS_DCM_ON ? MT6797_A72_PHASE_DCM_ENABLE :
+ 					     MT6797_A72_PHASE_DCM_DISABLE,
+ 			&snapshot);
+-#else
++		return 0;
++	}
++#endif
+ 	if (on == MCUSYS_DCM_ON) {
+ 
+ 		reg_write(MCUCFG_SYNC_DCM_MP2_CONFIG,
+@@ -1072,7 +1074,6 @@ int dcm_mcusys_mp2_sync_dcm(ENUM_MCUSYS_DCM on)
+ 				     MCUCFG_SYNC_DCM_MP2_DIV_SEL0 |
+ 				     MCUCFG_SYNC_DCM_MP2_TOG0)));
+ 	}
+-#endif
+ 
+ 	return 0;
+ }
+@@ -1085,6 +1086,8 @@ void mt6797_a72_obs_dcm_snapshot(unsigned int cpu, u16 phase)
+ 	};
+ 	unsigned long flags;
+ 
++	if (!mt6797_a72_obs_accepts_sampling(cpu))
++		return;
+ 	spin_lock_irqsave(&mt6797_a72_obs_mp2_dcm_lock, flags);
+ 	snapshot.before = reg_read(MCUCFG_SYNC_DCM_MP2_CONFIG);
+ 	snapshot.toggle = snapshot.before;
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt_idvfs.c b/drivers/misc/mediatek/base/power/mt6797/mt_idvfs.c
+index e53e9a4c3..ef5e997e7 100644
+--- a/drivers/misc/mediatek/base/power/mt6797/mt_idvfs.c
++++ b/drivers/misc/mediatek/base/power/mt6797/mt_idvfs.c
+@@ -107,6 +107,8 @@ void mt6797_a72_obs_secure_snapshot(unsigned int cpu, u16 phase)
+ 	struct mt6797_a72_obs_secure snapshot = { };
+ 	unsigned int i;
+ 
++	if (!mt6797_a72_obs_accepts_sampling(cpu))
++		return;
+ 	for (i = 0; i < ARRAY_SIZE(mt6797_a72_secure_registers); i++) {
+ 		snapshot.values[i] = (u32)SEC_BIGIDVFS_READ(
+ 			mt6797_a72_secure_registers[i]);
+diff --git a/drivers/misc/mediatek/base/power/spm_v2/mt_spm.c b/drivers/misc/mediatek/base/power/spm_v2/mt_spm.c
+index 0c3ff6578..3e7bcd693 100644
+--- a/drivers/misc/mediatek/base/power/spm_v2/mt_spm.c
++++ b/drivers/misc/mediatek/base/power/spm_v2/mt_spm.c
+@@ -2476,6 +2476,8 @@ void mt6797_a72_obs_spm_snapshot(unsigned int cpu, u16 phase)
+ 	bool temporary;
+ 	unsigned int i;
+ 
++	if (!mt6797_a72_obs_accepts_sampling(cpu))
++		return;
+ 	base = mt6797_a72_obs_spm_base(&temporary);
+ 	if (!base) {
+ 		mt6797_a72_obs_spm(cpu, phase, &snapshot);
+@@ -2507,6 +2509,8 @@ bool mt6797_a72_obs_spm_rmw(unsigned int cpu, u16 phase, u32 offset,
+ 	unsigned long flags;
+ 	bool temporary;
+ 
++	if (!mt6797_a72_obs_accepts_sampling(cpu))
++		return false;
+ 	base = mt6797_a72_obs_spm_base(&temporary);
+ 	if (!base) {
+ 		mutation.status = -ENOMEM;
+diff --git a/drivers/misc/mediatek/freqhopping/mt6797/mt_freqhopping.c b/drivers/misc/mediatek/freqhopping/mt6797/mt_freqhopping.c
+index 049ac6cd3..df5ef802e 100644
+--- a/drivers/misc/mediatek/freqhopping/mt6797/mt_freqhopping.c
++++ b/drivers/misc/mediatek/freqhopping/mt6797/mt_freqhopping.c
+@@ -425,6 +425,8 @@ void mt6797_a72_obs_clock_snapshot(unsigned int cpu, u16 phase)
+ 	struct mt6797_a72_obs_clock snapshot = { .status = -ENODEV };
+ 	unsigned long flags;
+ 
++	if (!mt6797_a72_obs_accepts_sampling(cpu))
++		return;
+ 	if (!spin_trylock_irqsave(&g_mt6797_0x1001AXXX_lock, flags)) {
+ 		snapshot.status = -EBUSY;
+ 		mt6797_a72_obs_clock(cpu, phase, &snapshot);
+diff --git a/drivers/misc/mediatek/power/mt6797/da9214.c b/drivers/misc/mediatek/power/mt6797/da9214.c
+index db897e561..a850de0ae 100644
+--- a/drivers/misc/mediatek/power/mt6797/da9214.c
++++ b/drivers/misc/mediatek/power/mt6797/da9214.c
+@@ -393,6 +393,8 @@ int da9214_a72_obs_snapshot(unsigned int cpu, u16 phase)
+ 	unsigned char selected = 0;
+ 	int ret;
+ 
++	if (!mt6797_a72_obs_accepts_sampling(cpu))
++		return 0;
+ 	if (!new_client) {
+ 		snapshot.status = -ENODEV;
+ 		mt6797_a72_obs_da9214(cpu, phase, &snapshot);

@@ -22,6 +22,7 @@ lock, cannot clear the ring and cannot trigger a new hardware sample.
 | `0004` | HPS, PSCI, secondary and offline lifecycle correlation |
 | `0005` | 256-record bound, immediate-only clock semaphore try, and pre/post-only broad snapshots |
 | `0006` | First CPU8 up/down state machine, immutable terminal ring, ABI v2 and sampling-state query |
+| `0007` | Per-owner pure-snapshot gates and exact real-operation fallback outside the CPU8 capture window |
 
 ## Fixed observation contract
 
