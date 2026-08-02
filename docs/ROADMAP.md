@@ -820,8 +820,11 @@ The owner then explicitly approved one deployment despite that power state. A
 second source-pinned wrapper narrows only the capacity floor to 60%, requires
 an explicit one-use flag, and retains battery presence, Good health, exact
 identity, target, predecessor, readback, cleanup, and shutdown gates. The next
-action is that exact live-gated boot2 deployment, with verified full readback
-and shutdown. CPU9,
+action passed at a healthy owner-authorized 65%: live GPT resolved inactive
+boot2, the exact predecessor matched, synchronized write and flush completed,
+the post-write and independent full readbacks matched `4830a0d0e1a3…`, staging
+was removed, and shutdown was confirmed. The next action is manual boot2
+selection followed by only the exact checksum-pinned passive collector. CPU9,
 suspend/resume, later power boundaries, a mainline provider write, and any A72
 consumer remain blocked until their separate ownership and rollback gates
 close.

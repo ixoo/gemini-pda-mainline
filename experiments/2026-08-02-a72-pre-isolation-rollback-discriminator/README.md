@@ -158,6 +158,10 @@ predeployment decision after compiler and timing review.
 - [`results/deployment-attempt-2-20260802.txt`](results/deployment-attempt-2-20260802.txt):
   clean new-candidate deferral at the normal above-80-percent gate, with no
   upload, write, staging residue, shutdown, boot selection, or runtime action.
+- [`results/deployment-2-20260802.txt`](results/deployment-2-20260802.txt): exact
+  revised-candidate predecessor, owner-authorized power state, live boot2,
+  synchronized write, independent full readback, cleanup, and confirmed
+  shutdown evidence.
 
 Run from the repository root:
 
@@ -168,17 +172,17 @@ python3 experiments/2026-08-02-a72-pre-isolation-rollback-discriminator/scripts/
 
 ## Decision
 
-`pre-latch-gate-owner-override-approved`: attempt 1 remains runtime-inconclusive and
+`pre-latch-gate-installed-awaiting-boot`: attempt 1 remains runtime-inconclusive and
 establishes neither rollback nor hardware support. The revised series fixes its
 specific orchestration defect: an early request returns before the one-shot,
 and the compiled latched path still retains the original rollback boundary. A
 new container is reproducible and its offline deployment gates pass. Runtime
-hardware behavior remains untested. The normal live write correctly deferred;
-the owner subsequently approved one exact revised-candidate deployment with
-only the capacity floor narrowed to 60%.
+hardware behavior remains untested. The normal live write correctly deferred.
+The owner then approved one exact revised-candidate deployment with only the
+capacity floor narrowed to 60%; the write, full readback, cleanup, and shutdown
+all passed.
 
 ## Follow-up
 
-Publish and run the exact second owner-override wrapper from known-good Gemian.
-After verified write and shutdown, manually select boot2 and run only the exact
+Manually select boot2, allow the first boot to settle, and run only the exact
 passive collector. Do not boot or redeploy the unchanged prior candidate.
