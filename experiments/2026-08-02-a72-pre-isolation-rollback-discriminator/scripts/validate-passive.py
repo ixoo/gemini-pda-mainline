@@ -97,7 +97,7 @@ EXPECTED = {
     "experiment": "gemian-a72-preiso-rollback-passive",
     "kernel_release": "3.18.41+",
     "architecture": "aarch64",
-    "build_identity": "#1 SMP PREEMPT Sun Aug 2 21:22:32 UTC 2026",
+    "build_identity": "#1 SMP PREEMPT Sun Aug 2 22:29:57 UTC 2026",
     "root": "/dev/mmcblk0p29",
     "possible": "0-9",
     "present": "0-9",

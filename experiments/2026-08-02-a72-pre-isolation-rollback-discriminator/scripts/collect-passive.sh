@@ -18,8 +18,8 @@ done
 [[ "$tag" =~ ^[a-z0-9][a-z0-9-]{0,63}$ ]] || die 'tag is absent or unsafe'
 
 readonly TARGET=gemini@192.168.1.50
-readonly REMOTE_SHA256=bf505e75cec47007166d43876ec40f2554eb62389d7f4cbc61d4ace1d6be981b
-readonly VALIDATOR_SHA256=785ed1fd8028d1d53640efd4c2ba23528327c0aa7068440dbf698bf1191a0b97
+readonly REMOTE_SHA256=ff2f01d4ac7430365fa614f9ce01f436b194b63068a596c5950973e6e04eb72f
+readonly VALIDATOR_SHA256=018b33f745410f5c5f296e1f96ba20cf2fa182817d604b1b1711d68b6951ef36
 readonly BOUNDED_EXEC_SHA256=e250c4f0375aed986bc73eeea699cf5f4ba51625aa51a1ede2d40ac601f62ce5
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 repo_root="$(cd -- "$script_dir/../../.." && pwd -P)"

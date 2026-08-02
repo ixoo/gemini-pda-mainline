@@ -22,7 +22,7 @@ def envelope(first: list[str], second: list[str], identical: str) -> str:
         "experiment=gemian-a72-preiso-rollback-passive",
         "kernel_release=3.18.41+",
         "architecture=aarch64",
-        "build_identity=#1 SMP PREEMPT Sun Aug 2 21:22:32 UTC 2026",
+        "build_identity=#1 SMP PREEMPT Sun Aug 2 22:29:57 UTC 2026",
         "root=/dev/mmcblk0p29",
         "possible=0-9",
         "present=0-9",
@@ -239,7 +239,7 @@ def main() -> int:
     )
     reject("terminal disposition", envelope(bad_terminal, bad_terminal, "yes"))
     reject("reported stability", replace_once(accepted, "observer_snapshots_identical=yes", "observer_snapshots_identical=no"))
-    reject("build identity", replace_once(accepted, "21:22:32", "21:22:33"))
+    reject("build identity", replace_once(accepted, "22:29:57", "22:29:58"))
 
     unsafe_prestate = mutate_line(
         prestate,

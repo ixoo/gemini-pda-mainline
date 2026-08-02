@@ -1,0 +1,128 @@
+A72 rollback pre-latch gate container and predeployment review
+Recorded: 2026-08-02 America/New_York
+
+Reviewed kernel input
+---------------------
+repository_commit=f3730da49623b89cccb9a985ef9c1e2f039aecce
+rollback_patchset_sha256=fd4da13202c62a6ea21a216ffc9eb2650d70dcaa216a8ca1b3c64e5ef5c10b9d
+kernel_field_sha256=fcf03e303a20a6b381b86a3f3d675a9f131c817d3a9c0864c25913c7198fa369
+kernel_field_size=8437659
+decompressed_image_size=20095168
+appended_dtb_size=130745
+compiled_build_identity=#1 SMP PREEMPT Sun Aug 2 22:29:57 UTC 2026
+build_backend=buildbox
+native_vm_kernel_build=no
+
+Container construction
+----------------------
+active_boot_sha256=1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513
+active_ramdisk_sha256=a1ee05445e9a2bd8fbc1f75d7cda326b9ca7a6d3b644cbb1d5fc0ac167835be4
+active_ramdisk_size=6354621
+artifact_name=gemian-a72-preiso-rollback-35306872b745
+raw_sha256=35306872b7451cb0c16c3730e2901c9167bde2db774a3b3102a4f1df2e044cca
+raw_size=14794752
+padded_sha256=4830a0d0e1a3cb82a13e7c34248fb95f736d9ba3c71ba8ecb82ab210389bde6d
+padded_size=16777216
+artifact_manifest_sha256=105e12a67aad730c2b085d62fa7a22c4e931df75c8987b1c588081f719a6f9d7
+
+The checksum-pinned builder made two raw assemblies and two independently
+padded images per run. A second complete run in a separate temporary parent
+matched the retained raw image, padded image, analysis, provenance, and
+manifest byte-for-byte. The padded tail is all zero and the manifest passes.
+
+Independent Android-v0 analysis
+-------------------------------
+layout=complete
+page_size=2048
+name=empty
+kernel_addr=0x40080000
+ramdisk_addr=0x45000000
+second_addr=0x40f00000
+tags_addr=0x44000000
+second_size=0
+legacy_dt_size=0
+cmdline=bootopt=64S3,32N2,64N2 log_buf_len=4M
+active_ramdisk=byte-identical
+
+Only the reviewed kernel field and its offsets changed. The retained ramdisk,
+addresses, page size, name, command line, empty second payload, and empty legacy
+DT field match the active Gemian container.
+
+Offline tool validation
+-----------------------
+assembler_sha256=e5f568739f19cc12f20eb0b2f72155e8bac7d3511a2dfdd24a8df5a10a30ad74
+builder_sha256=3c88db13af6264fd651908c6a8a8d65c6582d810d9d3350bee593c4a59f31e88
+collector_sha256=0f721d258d244cd8dfa637d6029c6e01c131e0b7666c99bb830686ed0aa82a76
+remote_capture_sha256=ff2f01d4ac7430365fa614f9ce01f436b194b63068a596c5950973e6e04eb72f
+validator_sha256=018b33f745410f5c5f296e1f96ba20cf2fa182817d604b1b1711d68b6951ef36
+collector_test_sha256=c040ce832775ab44089bbebf64f2153d90fb96ad185f98084535d883b44824e7
+installer_sha256=3da050c542f18fe70ed87b1b86bd2049a8a999b6dc253df8569fce5e89d06fae
+bash_and_sh_syntax=passed
+python_compile=passed
+shellcheck_managed_vm=passed
+passive_fail_closed_and_no_stimulus_checks=19-passed
+installer_source_hash_gate=passed
+installer_exact_token_gates=passed
+installer_help_derivation=passed
+candidate_manifest_validation=passed
+device_access=none
+partition_write=none
+
+Deployment contract
+-------------------
+target=gemini@192.168.1.50
+logical_partition=boot2
+expected_live_predecessor_sha256=6a180e5a62a00cd7c97d461c7a1c491cd47802bd0964ef82f75ee793d6b8bede
+candidate_sha256=4830a0d0e1a3cb82a13e7c34248fb95f736d9ba3c71ba8ecb82ab210389bde6d
+fresh_partition_backup=not-required
+owner_battery_override=not-authorized-for-this-deployment
+
+Use only the normal installer. It must resolve boot2 from the live GPT and
+retain every target, inactive-root, unmounted, size, writable, predecessor,
+Good-health, above-80-percent battery, upload, full write/readback, cleanup, and
+shutdown gate. Any mismatch defers the write. After verified success it must
+power off, not reboot, so the owner can manually select boot2.
+
+Runtime hypothesis and unique evidence
+--------------------------------------
+The early unlatched CPU8 request should return -EAGAIN without observer or owner
+records and without consuming the one-shot. The later natural HPS CPU8-up
+transaction should then be the only attributable attempt. CPU8 and CPU9 must
+remain offline; this candidate intentionally stops before external isolation
+and never invokes PSCI CPU_ON.
+
+The unique evidence is an immutable ABI-v3 terminal result containing owner
+and rollback records from that later HPS transaction. An attributable
+-EALREADY or -EAGAIN HPS end, a two-record frozen-up-failed result, missing
+owner records, CPU8/9 online, a forbidden-boundary event, or unstable snapshots
+rejects the experiment. Ordinary Gemian visuals and delayed USB/console are
+serviceability observations, not kernel identity.
+
+Result matrix
+-------------
+rolled-back:
+  Close only the pre-isolation BUCKB/reset rollback claim and design the next
+  separately bounded isolation-stage experiment. Do not claim CPU8 online.
+rejected-prestate:
+  Revise the exact pre-state assumption; do not retry unchanged.
+fault-retain:
+  Recover through native reset, retain evidence, and do not retry unchanged.
+EALREADY-or-EAGAIN-attributable-HPS-end:
+  Reject the latch/orchestration correction; do not retry unchanged.
+forbidden-boundary-or-CPU8/9-online:
+  Reject as a boundary violation and recover to known-good Gemian.
+missing-or-unstable-evidence:
+  Inconclusive; recover and redesign before another boot.
+
+Decision
+--------
+offline_container_gate=passed
+collector_gate=passed
+installer_static_gate=passed
+predeployment_contract=passed
+deployment_eligible_after-this-evidence-is-pushed=yes
+runtime_hardware_result=not-tested
+
+This review authorizes no primary-boot, boot3, GPT, preloader, NVRAM, or
+whole-device write. It does not authorize the consumed one-deployment battery
+override. It is not evidence that CPU8 or CPU9 can come online.

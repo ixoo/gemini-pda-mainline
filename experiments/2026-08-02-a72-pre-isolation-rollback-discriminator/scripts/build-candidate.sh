@@ -36,14 +36,14 @@ mkdir -p "$output_parent"
 output_parent="$(cd -- "$output_parent" && pwd -P)"
 assembler="$script_dir/assemble.py"
 kernel_field="$bundle/outputs/Image.gz-dtb"
-readonly REPOSITORY_COMMIT=090f148d9ce8473331a7c9efdf15aa7acb3c3806
+readonly REPOSITORY_COMMIT=f3730da49623b89cccb9a985ef9c1e2f039aecce
 readonly PARENT_PATCHSET_SHA256=3584e9dd5ffb041573b851f31f3a96eaa0a684acb880fd59560762e5abc58be0
 readonly ROLLBACK_PATCHSET_SHA256=fd4da13202c62a6ea21a216ffc9eb2650d70dcaa216a8ca1b3c64e5ef5c10b9d
-readonly KERNEL_SHA256=9e6b051527fbaf2b0de50da49a78a3714d9123884f6e76e7f1384dfb2200d034
+readonly KERNEL_SHA256=fcf03e303a20a6b381b86a3f3d675a9f131c817d3a9c0864c25913c7198fa369
 readonly ACTIVE_BOOT_SHA256=1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513
 readonly ACTIVE_RAMDISK_SHA256=a1ee05445e9a2bd8fbc1f75d7cda326b9ca7a6d3b644cbb1d5fc0ac167835be4
-readonly EXPECTED_RAW_SHA256=58e3efd5dcaaf03819f36ae847b943d89d614e7bd9d115fdb4f842c883e8ca5f
-readonly EXPECTED_PADDED_SHA256=6a180e5a62a00cd7c97d461c7a1c491cd47802bd0964ef82f75ee793d6b8bede
+readonly EXPECTED_RAW_SHA256=35306872b7451cb0c16c3730e2901c9167bde2db774a3b3102a4f1df2e044cca
+readonly EXPECTED_PADDED_SHA256=4830a0d0e1a3cb82a13e7c34248fb95f736d9ba3c71ba8ecb82ab210389bde6d
 
 for input in "$assembler" "$active_boot" "$kernel_field" \
   "$bundle/SHA256SUMS" "$bundle/provenance/build.json"; do

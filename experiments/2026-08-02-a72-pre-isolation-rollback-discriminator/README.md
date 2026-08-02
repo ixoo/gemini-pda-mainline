@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-02-a72-pre-isolation-rollback-discriminator` |
-| Status | `pre-latch-gate-offline-passed`: two deterministic Buildbox generations match byte-for-byte, model/static/mutation checks pass, changed and parent kernels compile with identical diagnostics, and the actual binary checks the HPS observer latch before the atomic one-shot and every owner call; no new boot candidate exists yet |
+| Status | `pre-latch-gate-candidate-offline-passed`: deterministic generation, model/static/mutation, compiler/binary-order, reproducible Android-v0 container, passive collector, installer, and predeployment gates all pass for padded candidate `4830a0d0…`; no device write or runtime test has occurred |
 | Subsystem | CPU8 external BUCKB preparation, MP2 reset, TOPRGU PWRAP reset, and fail-closed rollback |
 | Device variant | Named Gemini PDA development unit |
 | Date(s) | 2026-08-02 |
@@ -144,6 +144,10 @@ predeployment decision after compiler and timing review.
   corrected source/model contract, generation reproducibility correction,
   byte-identical regenerated series, compile comparison, and actual arm64
   dominance proof.
+- [`results/pre-latch-gate-candidate-review-20260802.txt`](results/pre-latch-gate-candidate-review-20260802.txt):
+  exact new raw/padded identities, repeated container construction,
+  independent Android-v0 analysis, revised collector/installer validation,
+  and frozen deployment/runtime decision matrix.
 
 Run from the repository root:
 
@@ -154,14 +158,17 @@ python3 experiments/2026-08-02-a72-pre-isolation-rollback-discriminator/scripts/
 
 ## Decision
 
-`pre-latch-gate-offline-passed`: attempt 1 remains runtime-inconclusive and
+`pre-latch-gate-candidate-offline-passed`: attempt 1 remains runtime-inconclusive and
 establishes neither rollback nor hardware support. The revised series fixes its
 specific orchestration defect: an early request returns before the one-shot,
-and the compiled latched path still retains the original rollback boundary.
-The revision is not yet an assembled candidate or deployment authorization.
+and the compiled latched path still retains the original rollback boundary. A
+new container is reproducible and its offline deployment gates pass. Runtime
+hardware behavior remains untested.
 
 ## Follow-up
 
-Assemble and independently reproduce a new Android-v0 container from the exact
-reviewed kernel field, then repeat collector, installer, and predeployment
-identity review. Do not boot or redeploy the unchanged candidate.
+After this exact evidence is pushed, run the normal guarded installer from
+known-good Gemian only if every live target and above-80-percent power gate
+passes. The consumed owner battery override does not apply. After verified
+write and shutdown, manually select boot2 and run only the exact passive
+collector. Do not boot or redeploy the unchanged prior candidate.

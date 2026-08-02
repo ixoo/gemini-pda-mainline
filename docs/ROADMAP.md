@@ -810,9 +810,12 @@ prohibited. The replacement source now requires the exact HPS capture window
 before consuming the one-shot or invoking an owner. Two Buildbox generations
 are byte-identical; model/static/mutation gates pass; changed and parent kernels
 compile with identical diagnostics; and disassembly proves the observer query
-dominates both the atomic operation and first owner call. The next action is a
-new checksum-pinned Android-v0 container and the remaining offline deployment
-review chain. CPU9,
+dominates both the atomic operation and first owner call. The new checksum-pinned
+Android-v0 raw and 16 MiB padded containers reproduce byte-for-byte, independent
+structure analysis passes, and the revised passive collector, normal installer,
+and predeployment matrix pass offline review. After that exact evidence is
+pushed, the next action is one live-gated boot2 deployment from known-good
+Gemian at above 80% battery, verified full readback, and shutdown. CPU9,
 suspend/resume, later power boundaries, a mainline provider write, and any A72
 consumer remain blocked until their separate ownership and rollback gates
 close.

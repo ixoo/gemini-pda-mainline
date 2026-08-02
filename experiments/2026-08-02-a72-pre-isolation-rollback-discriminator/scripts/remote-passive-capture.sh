@@ -36,7 +36,7 @@ done
 [ "$(id -u)" = 0 ] || fail not-root
 [ "$(uname -m)" = aarch64 ] || fail wrong-architecture
 [ "$(uname -r)" = 3.18.41+ ] || fail wrong-release
-grep -Fq '#1 SMP PREEMPT Sun Aug 2 21:22:32 UTC 2026' /proc/version ||
+grep -Fq '#1 SMP PREEMPT Sun Aug 2 22:29:57 UTC 2026' /proc/version ||
 	fail wrong-build-identity
 [ "$(findmnt -n -o SOURCE / 2>/dev/null)" = /dev/mmcblk0p29 ] ||
 	fail wrong-root
@@ -82,7 +82,7 @@ stable=no
 cmp -s "$first" "$second" && stable=yes
 printf 'experiment=gemian-a72-preiso-rollback-passive\n'
 printf 'kernel_release=3.18.41+\narchitecture=aarch64\n'
-printf 'build_identity=#1 SMP PREEMPT Sun Aug 2 21:22:32 UTC 2026\n'
+printf 'build_identity=#1 SMP PREEMPT Sun Aug 2 22:29:57 UTC 2026\n'
 printf 'root=/dev/mmcblk0p29\npossible=0-9\npresent=0-9\n'
 printf 'observer_path=%s\nobserver_mode=400\n' "$observer"
 printf 'boot_id_before_sha256=%s\n' "$boot_id_before"
