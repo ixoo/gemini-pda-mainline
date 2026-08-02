@@ -21,6 +21,7 @@ lock, cannot clear the ring and cannot trigger a new hardware sample.
 | `0003` | Existing mutation-path ownership, pre/request/readback records, DCM serialization |
 | `0004` | HPS, PSCI, secondary and offline lifecycle correlation |
 | `0005` | 256-record bound, immediate-only clock semaphore try, and pre/post-only broad snapshots |
+| `0006` | First CPU8 up/down state machine, immutable terminal ring, ABI v2 and sampling-state query |
 
 ## Fixed observation contract
 
@@ -69,7 +70,7 @@ guessing.
 
 ## Mandatory pre-boot review checklist
 
-- Build all five patches with the exact active configuration plus only
+- Build the complete patch series with the exact active configuration plus only
   `CONFIG_MTK_A72_TRANSITION_OBSERVER=y`.
 - Build only on Buildbox from an exact clean pushed project commit. Reproduce
   the compiler from Debian snapshot `20170618T000000Z`: cross-GCC package

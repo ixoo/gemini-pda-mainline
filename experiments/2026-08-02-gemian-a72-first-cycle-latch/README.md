@@ -108,8 +108,10 @@ python3 experiments/2026-08-02-gemian-a72-first-cycle-latch/scripts/test_latch_m
 - The retained tail contains five complete CPU8-up and six complete CPU8-down
   transactions, proving that natural Gemian policy supplies cycles without a
   synthetic pulse.
-- The executable latch model is the first deliverable of this revision. Kernel
-  source, compile, package, deployment and runtime observations remain open.
+- Recorder-only patch 6 is a real Buildbox-generated `git format-patch` and
+  passes the parent static validator, 13 mutation tripwires, and the executable
+  model. The owner-effect gate, compile, package, deployment and runtime
+  observations remain open; patch 6 alone is not a boot candidate.
 
 ## Analysis
 
@@ -130,6 +132,7 @@ Buildbox compiler result or hardware evidence exists yet for this revision.
 
 ## Follow-up
 
-Implement the sixth observer patch and its mutation-tested static contract.
-Do not repeat the parent image, run the pulse, request CPU8/CPU9, or perform a
-native VM kernel build.
+Implement the separate owner-effect gate that suppresses pure snapshots after
+freeze and selects exact vendor operations outside capture. Then compile the
+complete series on Buildbox. Do not repeat the parent image, run the pulse,
+request CPU8/CPU9, or perform a native VM kernel build.

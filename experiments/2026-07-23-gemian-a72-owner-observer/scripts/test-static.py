@@ -63,6 +63,9 @@ def main():
     patch5 = (
         "patches/0005-diagnostic-bound-observer-timing-perturbation.patch"
     )
+    patch6 = (
+        "patches/0006-diagnostic-latch-first-complete-CPU8-cycle.patch"
+    )
     expect_rejected(
         "writable proc mode",
         patch1,
@@ -119,7 +122,42 @@ def main():
         "+\tmt6797_a72_obs_fixed_snapshot(cpu, MT6797_A72_PHASE_SRAM_PRE);",
         "timing-bound fixed snapshot removal count changed",
     )
-    print("PASS: positive validation and 8 mutation tripwires")
+    expect_rejected(
+        "CPU9 sampling gate regression",
+        patch6,
+        "+\taccepts = cpu == 8 &&",
+        "+\taccepts = mt6797_a72_obs_is_cpu(cpu) &&",
+        "first-cycle latch patch: missing 'accepts = cpu == 8 &&'",
+    )
+    expect_rejected(
+        "overflow-before-write regression",
+        patch6,
+        "+\tif (mt6797_a72_obs_count == MT6797_A72_OBS_RING_SIZE) {",
+        "+\tif (mt6797_a72_obs_count > MT6797_A72_OBS_RING_SIZE) {",
+        "first-cycle latch patch: missing 'mt6797_a72_obs_count == MT6797_A72_OBS_RING_SIZE'",
+    )
+    expect_rejected(
+        "wraparound-ring regression",
+        patch6,
+        "+\tmt6797_a72_obs_ring[mt6797_a72_obs_count++] = *record;",
+        "+\tmt6797_a72_obs_ring[mt6797_a72_obs_head++] = *record;",
+        "first-cycle latch patch: missing 'mt6797_a72_obs_ring[mt6797_a72_obs_count++] = *record'",
+    )
+    expect_rejected(
+        "ABI-v1 regression",
+        patch6,
+        "+\tseq_printf(m, \"abi=mt6797-a72-transition-observer-v2\"",
+        "+\tseq_printf(m, \"abi=mt6797-a72-transition-observer-v1\"",
+        "recorder: missing 'abi=mt6797-a72-transition-observer-v2'",
+    )
+    expect_rejected(
+        "terminal-state ordering regression",
+        patch6,
+        "+\tMT6797_A72_OBS_FROZEN_COMPLETE,\n+\tMT6797_A72_OBS_FROZEN_UP_FAILED,",
+        "+\tMT6797_A72_OBS_FROZEN_UP_FAILED,\n+\tMT6797_A72_OBS_FROZEN_COMPLETE,",
+        "first-cycle terminal-state ordering: missing ordered token",
+    )
+    print("PASS: positive validation and 13 mutation tripwires")
     return 0
 
 

@@ -14,6 +14,7 @@ EXPECTED_SERIES = [
     "0003-diagnostic-record-A72-power-mutations-under-owners.patch",
     "0004-diagnostic-correlate-A72-hotplug-lifecycle.patch",
     "0005-diagnostic-bound-observer-timing-perturbation.patch",
+    "0006-diagnostic-latch-first-complete-CPU8-cycle.patch",
 ]
 
 EXPECTED_COMMITS = [
@@ -22,6 +23,7 @@ EXPECTED_COMMITS = [
     "429afb35a3b5ccaec976d31288dd52148855ef79",
     "349f24b6e10df6e1d24c79a23d75c8361ac68b28",
     "718f297ae97ab3738d624129b814e921a8371227",
+    "e6ccc7d8bbe968d1da1a99cd9f3e96be4e8a0136",
 ]
 
 EXPECTED_DIFF_PATHS = {
@@ -287,7 +289,6 @@ def validate(root):
             "static struct mt6797_a72_obs_record",
             "static DEFINE_SPINLOCK(mt6797_a72_obs_lock)",
             "static u64 mt6797_a72_obs_transactions[2]",
-            "mt6797_a72_obs_overwritten++",
             "snapshot = vzalloc(sizeof(*snapshot));",
             "single_open(file, mt6797_a72_obs_proc_show, snapshot)",
             "proc_create(MT6797_A72_OBS_PROC_NAME, 0400, NULL,",
@@ -295,7 +296,7 @@ def validate(root):
             ".read = seq_read",
             ".llseek = seq_lseek",
             ".release = mt6797_a72_obs_proc_release",
-            "abi=mt6797-a72-transition-observer-v1",
+            "abi=mt6797-a72-transition-observer-v2",
         ],
         "recorder",
     )
@@ -307,6 +308,77 @@ def validate(root):
     require(
         combined.count("proc_create(MT6797_A72_OBS_PROC_NAME, 0400, NULL,") == 1,
         "proc mode or creation count changed",
+    )
+
+    latch = patch_texts[5]
+    require_tokens(
+        latch,
+        [
+            "MT6797_A72_OBS_WAIT_UP",
+            "MT6797_A72_OBS_CAPTURE_UP",
+            "MT6797_A72_OBS_WAIT_DOWN",
+            "MT6797_A72_OBS_CAPTURE_DOWN",
+            "MT6797_A72_OBS_FROZEN_COMPLETE",
+            "MT6797_A72_OBS_FROZEN_UP_FAILED",
+            "MT6797_A72_OBS_FROZEN_DOWN_FAILED",
+            "MT6797_A72_OBS_FROZEN_CPU9",
+            "MT6797_A72_OBS_FROZEN_PROTOCOL",
+            "MT6797_A72_OBS_FROZEN_OVERFLOW",
+            "mt6797_a72_obs_up_transaction",
+            "mt6797_a72_obs_down_transaction",
+            "mt6797_a72_obs_is_terminal(mt6797_a72_obs_state)",
+            "record->header.target_cpu == 9",
+            "mt6797_a72_obs_count == MT6797_A72_OBS_RING_SIZE",
+            "mt6797_a72_obs_ring[mt6797_a72_obs_count++] = *record",
+            "bool mt6797_a72_obs_accepts_sampling(unsigned int cpu)",
+            "accepts = cpu == 8 &&",
+            "abi=mt6797-a72-transition-observer-v2",
+            'return "frozen-complete"',
+            "state=%s count=%u overflow=%u up_tx=%llu",
+            "snapshot->down_transaction = mt6797_a72_obs_down_transaction",
+        ],
+        "first-cycle latch patch",
+    )
+    ordered(
+        latch,
+        [
+            "+\tMT6797_A72_OBS_WAIT_UP,",
+            "+\tMT6797_A72_OBS_CAPTURE_UP,",
+            "+\tMT6797_A72_OBS_WAIT_DOWN,",
+            "+\tMT6797_A72_OBS_CAPTURE_DOWN,",
+            "+\tMT6797_A72_OBS_FROZEN_COMPLETE,",
+            "+\tMT6797_A72_OBS_FROZEN_UP_FAILED,",
+            "+\tMT6797_A72_OBS_FROZEN_DOWN_FAILED,",
+            "+\tMT6797_A72_OBS_FROZEN_CPU9,",
+            "+\tMT6797_A72_OBS_FROZEN_PROTOCOL,",
+            "+\tMT6797_A72_OBS_FROZEN_OVERFLOW,",
+        ],
+        "first-cycle terminal-state ordering",
+    )
+    latch_additions = "\n".join(line for _, line in added_lines(patch_paths[5]))
+    for obsolete in [
+        "mt6797_a72_obs_overwritten",
+        "mt6797_a72_obs_head",
+        "observer-v1",
+        "snapshot->overwritten",
+    ]:
+        require(
+            re.search(
+                r"(?<![A-Za-z0-9_]){}(?![A-Za-z0-9_])".format(
+                    re.escape(obsolete)
+                ),
+                latch_additions,
+            )
+            is None,
+            "first-cycle latch retains obsolete token {!r}".format(obsolete),
+        )
+    require(
+        "mt6797_a72_obs_ring[mt6797_a72_obs_head]" not in latch_additions,
+        "first-cycle latch reintroduces wraparound storage",
+    )
+    require(
+        latch.count("+\tmt6797_a72_obs_state = next_state;") == 1,
+        "first-cycle latch terminal transition is not singular",
     )
 
     da = patch_for_path(patch_texts, "drivers/misc/mediatek/power/mt6797/da9214.c")

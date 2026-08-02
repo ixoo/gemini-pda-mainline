@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-23-gemian-a72-owner-observer` |
-| Status | `inconclusive`: the bounded five-patch revision passes compiler, stack, lock, and timing review; a separate validated boot-image experiment and hardware evidence remain open |
+| Status | `running`: the five-patch parent has compiler and runtime evidence; recorder-only patch 6 passes source/model validation but is not boot-safe or compiler-reviewed until the owner-effect gate follows |
 | Subsystem | MT6797 A72 hotplug, PSCI, external buck, SPM, iDVFS, B/CCI clocks, MP2 DCM and TOPRGU |
 | Device variant | Current named Gemini PDA unit |
 | Date(s) | 2026-07-23 |
@@ -127,6 +127,10 @@ no observer artifact changed a partition, policy, or hardware state.
 - [`patches/0005-diagnostic-bound-observer-timing-perturbation.patch`](patches/0005-diagnostic-bound-observer-timing-perturbation.patch):
   256-record ring, immediate-only clock semaphore attempt, and boundary-only
   broad snapshots.
+- [`patches/0006-diagnostic-latch-first-complete-CPU8-cycle.patch`](patches/0006-diagnostic-latch-first-complete-CPU8-cycle.patch):
+  immutable first-CPU8-cycle state machine, terminal failure states, ABI v2
+  metadata and the query used by the pending owner-effect gate. This
+  intermediate is not a boot candidate.
 - [`DESIGN.md`](DESIGN.md): event contract, fixed register allowlist and
   concurrency review.
 - [`scripts/validate.py`](scripts/validate.py): experiment-local patch

@@ -1,0 +1,301 @@
+From e6ccc7d8bbe968d1da1a99cd9f3e96be4e8a0136 Mon Sep 17 00:00:00 2001
+From: Gemini PDA Investigation <gemini-observer@example.invalid>
+Date: Sun, 2 Aug 2026 17:43:43 +0000
+Subject: [PATCH] diagnostic: latch first complete CPU8 cycle
+
+---
+ .../power/mt6797/mt_a72_transition_observer.c | 202 +++++++++++++++---
+ .../linux/mt6797_a72_transition_observer.h    |   1 +
+ 2 files changed, 175 insertions(+), 28 deletions(-)
+
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt_a72_transition_observer.c b/drivers/misc/mediatek/base/power/mt6797/mt_a72_transition_observer.c
+index f0e5d1f9a..efe15635b 100644
+--- a/drivers/misc/mediatek/base/power/mt6797/mt_a72_transition_observer.c
++++ b/drivers/misc/mediatek/base/power/mt6797/mt_a72_transition_observer.c
+@@ -56,9 +56,26 @@ struct mt6797_a72_obs_record {
+ 	} payload;
+ };
+ 
++enum mt6797_a72_obs_state {
++	MT6797_A72_OBS_WAIT_UP,
++	MT6797_A72_OBS_CAPTURE_UP,
++	MT6797_A72_OBS_WAIT_DOWN,
++	MT6797_A72_OBS_CAPTURE_DOWN,
++	MT6797_A72_OBS_FROZEN_COMPLETE,
++	MT6797_A72_OBS_FROZEN_UP_FAILED,
++	MT6797_A72_OBS_FROZEN_DOWN_FAILED,
++	MT6797_A72_OBS_FROZEN_CPU9,
++	MT6797_A72_OBS_FROZEN_PROTOCOL,
++	MT6797_A72_OBS_FROZEN_OVERFLOW,
++};
++
+ struct mt6797_a72_obs_snapshot {
+-	u64 overwritten;
++	u64 up_transaction;
++	u64 down_transaction;
+ 	u32 count;
++	u16 state;
++	u8 overflow;
++	u8 reserved;
+ 	struct mt6797_a72_obs_record records[MT6797_A72_OBS_RING_SIZE];
+ };
+ 
+@@ -68,9 +85,12 @@ static struct mt6797_a72_obs_record
+ static u64 mt6797_a72_obs_next_sequence = 1;
+ static u64 mt6797_a72_obs_next_transaction = 1;
+ static u64 mt6797_a72_obs_transactions[2];
+-static u64 mt6797_a72_obs_overwritten;
+-static u32 mt6797_a72_obs_head;
++static u64 mt6797_a72_obs_up_transaction;
++static u64 mt6797_a72_obs_down_transaction;
+ static u32 mt6797_a72_obs_count;
++static enum mt6797_a72_obs_state mt6797_a72_obs_state =
++	MT6797_A72_OBS_WAIT_UP;
++static bool mt6797_a72_obs_overflow;
+ 
+ bool mt6797_a72_obs_is_cpu(unsigned int cpu)
+ {
+@@ -99,40 +119,148 @@ static u64 mt6797_a72_obs_transaction_locked(unsigned int cpu)
+ 	return mt6797_a72_obs_transactions[cpu - MT6797_A72_OBS_CPU_FIRST];
+ }
+ 
++static bool mt6797_a72_obs_is_boundary(const struct mt6797_a72_obs_record *r,
++					u16 phase)
++{
++	return r->header.event == MT6797_A72_EVENT_LIFECYCLE &&
++	       r->header.phase == phase;
++}
++
++static bool mt6797_a72_obs_is_terminal(enum mt6797_a72_obs_state state)
++{
++	return state >= MT6797_A72_OBS_FROZEN_COMPLETE;
++}
++
+ static void mt6797_a72_obs_append(struct mt6797_a72_obs_record *record)
+ {
++	enum mt6797_a72_obs_state next_state;
+ 	unsigned long flags;
++	bool retain = false;
+ 
+ 	record->header.timestamp_ns = ktime_get_ns();
+ 	record->header.online_mask = mt6797_a72_obs_online_mask();
+ 	record->header.actor_cpu = raw_smp_processor_id();
+ 
+ 	spin_lock_irqsave(&mt6797_a72_obs_lock, flags);
+-	record->header.sequence = mt6797_a72_obs_next_sequence++;
++	if (mt6797_a72_obs_is_terminal(mt6797_a72_obs_state))
++		goto out;
++
+ 	record->header.transaction =
+ 		mt6797_a72_obs_transaction_locked(record->header.target_cpu);
+-	mt6797_a72_obs_ring[mt6797_a72_obs_head] = *record;
+-	mt6797_a72_obs_head =
+-		(mt6797_a72_obs_head + 1) % MT6797_A72_OBS_RING_SIZE;
+-	if (mt6797_a72_obs_count < MT6797_A72_OBS_RING_SIZE)
+-		mt6797_a72_obs_count++;
+-	else
+-		mt6797_a72_obs_overwritten++;
++	next_state = mt6797_a72_obs_state;
++
++	if (mt6797_a72_obs_state == MT6797_A72_OBS_WAIT_UP) {
++		if (record->header.target_cpu != 8 ||
++		    !record->header.transaction ||
++		    !mt6797_a72_obs_is_boundary(record,
++			MT6797_A72_PHASE_HPS_CPU_UP_BEGIN))
++			goto out;
++		mt6797_a72_obs_up_transaction = record->header.transaction;
++		next_state = MT6797_A72_OBS_CAPTURE_UP;
++		retain = true;
++	} else if (record->header.target_cpu == 9) {
++		next_state = MT6797_A72_OBS_FROZEN_CPU9;
++		retain = true;
++	} else if (record->header.target_cpu != 8) {
++		next_state = MT6797_A72_OBS_FROZEN_PROTOCOL;
++		retain = true;
++	} else if (mt6797_a72_obs_state == MT6797_A72_OBS_CAPTURE_UP) {
++		retain = true;
++		if (record->header.transaction !=
++		    mt6797_a72_obs_up_transaction ||
++		    mt6797_a72_obs_is_boundary(record,
++			MT6797_A72_PHASE_HPS_CPU_UP_BEGIN) ||
++		    mt6797_a72_obs_is_boundary(record,
++			MT6797_A72_PHASE_HPS_CPU_DOWN_BEGIN) ||
++		    mt6797_a72_obs_is_boundary(record,
++			MT6797_A72_PHASE_HPS_CPU_DOWN_END)) {
++			next_state = MT6797_A72_OBS_FROZEN_PROTOCOL;
++		} else if (mt6797_a72_obs_is_boundary(record,
++			   MT6797_A72_PHASE_HPS_CPU_UP_END)) {
++			next_state = record->payload.lifecycle.result ?
++				MT6797_A72_OBS_FROZEN_UP_FAILED :
++				MT6797_A72_OBS_WAIT_DOWN;
++		}
++	} else if (mt6797_a72_obs_state == MT6797_A72_OBS_WAIT_DOWN) {
++		if (mt6797_a72_obs_is_boundary(record,
++			    MT6797_A72_PHASE_HPS_CPU_DOWN_BEGIN)) {
++			retain = true;
++			if (!record->header.transaction ||
++			    record->header.transaction ==
++				mt6797_a72_obs_up_transaction) {
++				next_state = MT6797_A72_OBS_FROZEN_PROTOCOL;
++			} else {
++				mt6797_a72_obs_down_transaction =
++					record->header.transaction;
++				next_state = MT6797_A72_OBS_CAPTURE_DOWN;
++			}
++		} else if (mt6797_a72_obs_is_boundary(record,
++			   MT6797_A72_PHASE_HPS_CPU_UP_BEGIN) ||
++			   mt6797_a72_obs_is_boundary(record,
++			   MT6797_A72_PHASE_HPS_CPU_UP_END) ||
++			   mt6797_a72_obs_is_boundary(record,
++			   MT6797_A72_PHASE_HPS_CPU_DOWN_END)) {
++			retain = true;
++			next_state = MT6797_A72_OBS_FROZEN_PROTOCOL;
++		}
++	} else if (mt6797_a72_obs_state == MT6797_A72_OBS_CAPTURE_DOWN) {
++		retain = true;
++		if (record->header.transaction !=
++		    mt6797_a72_obs_down_transaction ||
++		    mt6797_a72_obs_is_boundary(record,
++			MT6797_A72_PHASE_HPS_CPU_UP_BEGIN) ||
++		    mt6797_a72_obs_is_boundary(record,
++			MT6797_A72_PHASE_HPS_CPU_UP_END) ||
++		    mt6797_a72_obs_is_boundary(record,
++			MT6797_A72_PHASE_HPS_CPU_DOWN_BEGIN)) {
++			next_state = MT6797_A72_OBS_FROZEN_PROTOCOL;
++		} else if (mt6797_a72_obs_is_boundary(record,
++			   MT6797_A72_PHASE_HPS_CPU_DOWN_END)) {
++			next_state = record->payload.lifecycle.result ?
++				MT6797_A72_OBS_FROZEN_DOWN_FAILED :
++				MT6797_A72_OBS_FROZEN_COMPLETE;
++		}
++	}
++
++	if (!retain)
++		goto out;
++	if (mt6797_a72_obs_count == MT6797_A72_OBS_RING_SIZE) {
++		mt6797_a72_obs_overflow = true;
++		mt6797_a72_obs_state = MT6797_A72_OBS_FROZEN_OVERFLOW;
++		goto out;
++	}
++
++	record->header.sequence = mt6797_a72_obs_next_sequence++;
++	mt6797_a72_obs_ring[mt6797_a72_obs_count++] = *record;
++	mt6797_a72_obs_state = next_state;
++out:
++	spin_unlock_irqrestore(&mt6797_a72_obs_lock, flags);
++}
++
++bool mt6797_a72_obs_accepts_sampling(unsigned int cpu)
++{
++	unsigned long flags;
++	bool accepts;
++
++	spin_lock_irqsave(&mt6797_a72_obs_lock, flags);
++	accepts = cpu == 8 &&
++		(mt6797_a72_obs_state == MT6797_A72_OBS_CAPTURE_UP ||
++		 mt6797_a72_obs_state == MT6797_A72_OBS_CAPTURE_DOWN);
+ 	spin_unlock_irqrestore(&mt6797_a72_obs_lock, flags);
++	return accepts;
+ }
+ 
+ unsigned int mt6797_a72_obs_active_cpu(void)
+ {
+ 	unsigned long flags;
+ 	unsigned int cpu = ~0U;
+-	bool cpu8;
+-	bool cpu9;
+ 
+ 	spin_lock_irqsave(&mt6797_a72_obs_lock, flags);
+-	cpu8 = mt6797_a72_obs_transactions[0] != 0;
+-	cpu9 = mt6797_a72_obs_transactions[1] != 0;
+-	if (cpu8 != cpu9)
+-		cpu = cpu8 ? 8 : 9;
++	if ((mt6797_a72_obs_state == MT6797_A72_OBS_CAPTURE_UP ||
++	     mt6797_a72_obs_state == MT6797_A72_OBS_CAPTURE_DOWN) &&
++	    mt6797_a72_obs_transactions[0] &&
++	    !mt6797_a72_obs_transactions[1])
++		cpu = 8;
+ 	spin_unlock_irqrestore(&mt6797_a72_obs_lock, flags);
+ 
+ 	return cpu;
+@@ -257,6 +385,23 @@ void mt6797_a72_obs_psci_raw(unsigned long mpidr, unsigned long entry,
+ 				 raw_result, mpidr, entry);
+ }
+ 
++static const char *mt6797_a72_obs_state_name(u16 state)
++{
++	switch (state) {
++	case MT6797_A72_OBS_WAIT_UP: return "wait-up";
++	case MT6797_A72_OBS_CAPTURE_UP: return "capture-up";
++	case MT6797_A72_OBS_WAIT_DOWN: return "wait-down";
++	case MT6797_A72_OBS_CAPTURE_DOWN: return "capture-down";
++	case MT6797_A72_OBS_FROZEN_COMPLETE: return "frozen-complete";
++	case MT6797_A72_OBS_FROZEN_UP_FAILED: return "frozen-up-failed";
++	case MT6797_A72_OBS_FROZEN_DOWN_FAILED: return "frozen-down-failed";
++	case MT6797_A72_OBS_FROZEN_CPU9: return "frozen-cpu9";
++	case MT6797_A72_OBS_FROZEN_PROTOCOL: return "frozen-protocol";
++	case MT6797_A72_OBS_FROZEN_OVERFLOW: return "frozen-overflow";
++	default: return "invalid";
++	}
++}
++
+ static const char *mt6797_a72_obs_event_name(u16 event)
+ {
+ 	switch (event) {
+@@ -372,10 +517,13 @@ static int mt6797_a72_obs_proc_show(struct seq_file *m, void *unused)
+ 	const struct mt6797_a72_obs_snapshot *snapshot = m->private;
+ 	unsigned int i;
+ 
+-	seq_printf(m, "abi=mt6797-a72-transition-observer-v1"
+-		   " count=%u overwritten=%llu\n",
+-		   snapshot->count,
+-		   (unsigned long long)snapshot->overwritten);
++	seq_printf(m, "abi=mt6797-a72-transition-observer-v2"
++		   " state=%s count=%u overflow=%u up_tx=%llu"
++		   " down_tx=%llu\n",
++		   mt6797_a72_obs_state_name(snapshot->state),
++		   snapshot->count, snapshot->overflow,
++		   (unsigned long long)snapshot->up_transaction,
++		   (unsigned long long)snapshot->down_transaction);
+ 	for (i = 0; i < snapshot->count; i++) {
+ 		const struct mt6797_a72_obs_record *r = &snapshot->records[i];
+ 
+@@ -399,7 +547,6 @@ static int mt6797_a72_obs_proc_open(struct inode *inode, struct file *file)
+ {
+ 	struct mt6797_a72_obs_snapshot *snapshot;
+ 	unsigned long flags;
+-	unsigned int first;
+ 	unsigned int i;
+ 	int ret;
+ 
+@@ -409,13 +556,12 @@ static int mt6797_a72_obs_proc_open(struct inode *inode, struct file *file)
+ 
+ 	spin_lock_irqsave(&mt6797_a72_obs_lock, flags);
+ 	snapshot->count = mt6797_a72_obs_count;
+-	snapshot->overwritten = mt6797_a72_obs_overwritten;
+-	first = (mt6797_a72_obs_head + MT6797_A72_OBS_RING_SIZE -
+-		 snapshot->count) % MT6797_A72_OBS_RING_SIZE;
++	snapshot->state = mt6797_a72_obs_state;
++	snapshot->overflow = mt6797_a72_obs_overflow;
++	snapshot->up_transaction = mt6797_a72_obs_up_transaction;
++	snapshot->down_transaction = mt6797_a72_obs_down_transaction;
+ 	for (i = 0; i < snapshot->count; i++)
+-		snapshot->records[i] =
+-			mt6797_a72_obs_ring[(first + i) %
+-				MT6797_A72_OBS_RING_SIZE];
++		snapshot->records[i] = mt6797_a72_obs_ring[i];
+ 	spin_unlock_irqrestore(&mt6797_a72_obs_lock, flags);
+ 
+ 	ret = single_open(file, mt6797_a72_obs_proc_show, snapshot);
+diff --git a/include/linux/mt6797_a72_transition_observer.h b/include/linux/mt6797_a72_transition_observer.h
+index 1d3d55fdb..096334865 100644
+--- a/include/linux/mt6797_a72_transition_observer.h
++++ b/include/linux/mt6797_a72_transition_observer.h
+@@ -108,6 +108,7 @@ struct mt6797_a72_obs_mutation {
+ };
+ 
+ bool mt6797_a72_obs_is_cpu(unsigned int cpu);
++bool mt6797_a72_obs_accepts_sampling(unsigned int cpu);
+ unsigned int mt6797_a72_obs_active_cpu(void);
+ u64 mt6797_a72_obs_tx_begin(unsigned int cpu, u16 phase);
+ u64 mt6797_a72_obs_tx_ensure(unsigned int cpu, u16 phase);
