@@ -3,10 +3,10 @@ Recorded: 2026-08-02 America/New_York
 
 Exact dependencies
 ------------------
-collector_sha256=7afd631f2bebd8f4847234d5995362a3e20952d077ce395c8e2446628a47f578
+collector_sha256=10169282f04b659b88465e3828c33b3d9c293356fdde0be91ee952f19b1019a5
 remote_capture_sha256=bf505e75cec47007166d43876ec40f2554eb62389d7f4cbc61d4ace1d6be981b
-validator_sha256=3cf4a1a79e917c23dee088522d3f614ca3c78e46c1d6cb0c3197cb4b4bbe7511
-test_sha256=24585d8f870f29b7d75fa5d9de6d9ac003a3e8d9b787f687ec1f69de54ccdd12
+validator_sha256=785ed1fd8028d1d53640efd4c2ba23528327c0aa7068440dbf698bf1191a0b97
+test_sha256=267516a1f03871ae77b4e243b2ebaa67a0c816cda297389d7a3d9816d361935e
 bounded_exec_sha256=e250c4f0375aed986bc73eeea699cf5f4ba51625aa51a1ede2d40ac601f62ce5
 parent_transition_analyzer_sha256=5f5ee7f04caad30e12674de69e86d38649a0ea10d4fb412c5f0a9c5ad29872dc
 
@@ -22,7 +22,7 @@ two_reads_separation_seconds=2
 terminal_snapshots_required_identical=yes
 cpu8_required_offline=yes
 cpu9_required_offline=yes
-online_required=0-7
+online_required=well-formed-CPU0-through-7-subset-containing-CPU0
 
 The remote program checks exact kernel, root, CPU, and proc identity, then
 copies the observer immediately. Optional USB and battery reporting occurs
@@ -57,7 +57,7 @@ positive_wait_up=passed
 positive_rolled_back=passed
 positive_rejected_prestate=passed
 positive_fault_retain=passed
-fail_closed_and_no_stimulus_checks=18-passed
+fail_closed_and_no_stimulus_checks=19-passed
 state_changing_writes=none
 load_workers=0
 cpu_online_writes=none

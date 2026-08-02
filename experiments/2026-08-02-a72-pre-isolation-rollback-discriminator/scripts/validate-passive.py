@@ -108,7 +108,6 @@ EXPECTED = {
     "cpu_online_writes": "none",
     "cpu8": "0",
     "cpu9": "0",
-    "online": "0-7",
     "runtime_stimulus": "none",
     "boot_id_stable": "yes",
     "status": "completed",
@@ -139,6 +138,24 @@ def one(values: dict[str, list[str]], key: str) -> str:
     if len(found) != 1:
         raise ValidationError(f"{key} count is {len(found)}, expected one")
     return found[0]
+
+
+def parse_cpu_list(value: str) -> set[int]:
+    cpus: set[int] = set()
+    for item in value.split(","):
+        if not item:
+            raise ValidationError("online CPU list is malformed")
+        bounds = item.split("-", 1)
+        if not all(part.isdigit() for part in bounds):
+            raise ValidationError("online CPU list is malformed")
+        first = int(bounds[0])
+        last = int(bounds[-1])
+        if first > last:
+            raise ValidationError("online CPU range is reversed")
+        cpus.update(range(first, last + 1))
+    if not cpus or 0 not in cpus or any(cpu > 7 for cpu in cpus):
+        raise ValidationError("host CPU list lacks CPU0 or includes an A72 CPU")
+    return cpus
 
 
 def section(lines: list[str], label: str) -> list[str]:
@@ -395,6 +412,7 @@ def validate(text: str) -> dict[str, str | int]:
     for key, expected in EXPECTED.items():
         if one(values, key) != expected:
             raise ValidationError(f"{key} changed")
+    parse_cpu_list(one(values, "online"))
     before = one(values, "boot_id_before_sha256")
     after = one(values, "boot_id_after_sha256")
     if not HEX64.fullmatch(before) or after != before:

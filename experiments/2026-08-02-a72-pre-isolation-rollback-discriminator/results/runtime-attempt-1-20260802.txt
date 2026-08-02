@@ -1,0 +1,76 @@
+A72 pre-isolation rollback runtime attempt 1
+Recorded: 2026-08-02 America/New_York
+
+Exact identity
+--------------
+installed_boot2_sha256=6a180e5a62a00cd7c97d461c7a1c491cd47802bd0964ef82f75ee793d6b8bede
+kernel_release=3.18.41+
+build_identity=#1 SMP PREEMPT Sun Aug 2 21:22:32 UTC 2026
+observer_abi=mt6797-a72-transition-observer-v3
+capture_sha256=bc5422a84ce1b1560088dcdaf1a5b40c75b50dca9a829744305c085bbc35477f
+runtime_stimulus=none
+
+Immutable observation
+---------------------
+state=frozen-up-failed
+count=2
+overflow=0
+up_tx=1
+down_tx=0
+snapshots_two_seconds_apart=byte-identical
+record_1=lifecycle-phase-1-HPS-CPU8-up-begin-result-0
+record_2=lifecycle-phase-2-HPS-CPU8-up-end-result-minus-114
+result_minus_114=EALREADY
+record_target=CPU8-only
+record_online_mask=0x00000030
+cpu8_at_retrieval=offline
+cpu9_at_retrieval=offline
+host_online_at_retrieval=0
+boot_id=stable-across-capture
+collector_state_changing_writes=none
+collector_load_workers=0
+
+Observation versus inference
+----------------------------
+Observed: the attributable HPS CPU8 transaction began, returned EALREADY, and
+froze before any entry, owner, injection, inverse, final-state, or rollback
+terminal record. The record contains no external-isolation, SRAM-LDO, PSCI,
+DCM-enable, iDVFS, secondary-online, or CPU9 event.
+
+Inferred from the exact source: mt6797_a72_preiso_rollback returns EALREADY only
+when its atomic one-shot was already consumed. Therefore an earlier CPU8
+request reached that function before the retained HPS transaction began. The
+observer accepts owner records only while the HPS latch is capturing, so that
+earlier invocation's owner events and terminal disposition were not retained.
+This capture cannot establish whether the unobserved invocation rejected its
+pre-state, wrote and rolled back, or fault-retained.
+
+Host validation correction
+--------------------------
+The first host validation stopped at an unrelated exact-online-list assumption:
+Gemian reported only CPU0 online at retrieval, while CPU8 and CPU9 were both
+offline. The corrected validator accepts any well-formed CPU0--7 subset that
+contains CPU0 and still rejects CPU8/9. It then classifies this exact immutable
+capture as reject-boundary-violation-no-retry. No second device capture was
+needed.
+
+Recovery
+--------
+native_reboot_requested_after_evidence=yes
+returned_kernel_identity=#7 SMP PREEMPT Fri Mar 29 10:39:03 GMT 2019
+returned_observer=absent
+returned_boot_id=changed
+known_good_gemian=verified
+
+Decision
+--------
+hardware_result=inconclusive-unobserved-pre-latch-attempt
+rollback_claim=not-established
+repeat_unchanged=prohibited
+
+The next source revision must check that the immutable observer is actively
+capturing the exact CPU8 HPS transaction before consuming the atomic one-shot
+or invoking any owner operation. A pre-latch CPU8 request must fail without
+arming, writing, or suppressing the later attributable HPS attempt. That new
+contract requires static/model, Buildbox compile/timing, container, collector,
+and deployment review before another boot.

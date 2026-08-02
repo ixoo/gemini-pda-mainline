@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-02-a72-pre-isolation-rollback-discriminator` |
-| Status | `deployed-awaiting-manual-boot2`: the owner-authorized 75% deployment matched the exact predecessor, wrote only live-GPT-resolved boot2, passed synchronized flush and independent full readback, removed temporary copies, and shut the device down; the owner now manually selects boot2 |
+| Status | `runtime-inconclusive-pre-latch-attempt`: exact boot and immutable retrieval passed, but the HPS CPU8 transaction froze with EALREADY after two lifecycle records because an earlier unobserved CPU8 request consumed the one-shot before the HPS latch opened; unchanged retry is prohibited and known-good Gemian is restored |
 | Subsystem | CPU8 external BUCKB preparation, MP2 reset, TOPRGU PWRAP reset, and fail-closed rollback |
 | Device variant | Named Gemini PDA development unit |
 | Date(s) | 2026-08-02 |
@@ -137,6 +137,9 @@ predeployment decision after compiler and timing review.
 - [`results/deployment-20260802.txt`](results/deployment-20260802.txt): exact
   live target, predecessor, owner-authorized power state, full write/readback,
   cleanup, shutdown, and owner expectation record.
+- [`results/runtime-attempt-1-20260802.txt`](results/runtime-attempt-1-20260802.txt):
+  exact immutable two-record EALREADY result, observation/inference boundary,
+  validator correction, known-good recovery, and no-retry decision.
 
 Run from the repository root:
 
@@ -147,19 +150,20 @@ python3 experiments/2026-08-02-a72-pre-isolation-rollback-discriminator/scripts/
 
 ## Decision
 
-`deployment-verified`: the exact generated series implements the
+`runtime-inconclusive`: the exact generated series implements the
 bounded and falsifiable rollback question without crossing external isolation,
 compiles against its exact parent observer with no new diagnostic, and adds no
 unsafe owner-lock nesting, polling loop, or semaphore wait loop. Its offline
 runtime and recovery decisions are explicit, and its Android-v0 container is
 reproducible. Its passive decision path is now mutation-tested. The result is
 eligible for one guarded deployment after the exact evidence is pushed, but is
-not yet runtime hardware evidence or a hardware-support claim. The exact image
-is verified on boot2 and the device is powered down for manual selection.
+but its one-shot can be consumed before the observer's attributable HPS window.
+The attempt establishes neither rollback nor a hardware-support claim. The
+device is back on verified known-good Gemian.
 
 ## Follow-up
 
-The owner manually selects boot2. Expect ordinary Gemian visuals and possibly
-delayed console/USB service; those do not prove identity. Once service appears,
-run only the exact passive collector, then return to known-good Gemian and
-review the immutable ABI-v3 result before any further A72 action.
+Add a fail-closed pre-latch gate before the atomic one-shot and every owner
+operation, prove that an early CPU8 request cannot consume the attempt, and
+repeat all offline compiler/timing and deployment gates for the changed source.
+Do not boot or redeploy the unchanged candidate.

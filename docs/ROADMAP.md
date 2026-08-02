@@ -799,8 +799,16 @@ or runtime action resulted from the deferred attempt. That deployment then
 passed from the exact first-cycle predecessor at an owner-authorized 75%: live
 GPT resolved inactive boot2, synchronized write and flush completed, remote and
 independent full readbacks matched `6a180e5a62a0…`, temporary copies were
-removed, and clean shutdown was confirmed. The next action is owner manual
-boot2 selection followed only by the exact passive ABI-v3 collector. CPU9,
+removed, and clean shutdown was confirmed. Exact selected-boot identity and
+immutable retrieval then passed, but the attributable HPS CPU8 transaction
+froze after only begin/end lifecycle records with `-EALREADY`. Exact-source
+analysis proves an earlier CPU8 request consumed the atomic one-shot before the
+HPS latch opened; because owner records were gated outside that window, the
+result cannot say whether that unobserved attempt rejected, rolled back, or
+fault-retained. The device returned to verified 2019 Gemian. Unchanged retry is
+prohibited. The next action is a source revision that requires the exact HPS
+capture window before consuming the one-shot or invoking an owner, followed by
+the full offline review chain. CPU9,
 suspend/resume, later power boundaries, a mainline provider write, and any A72
 consumer remain blocked until their separate ownership and rollback gates
 close.

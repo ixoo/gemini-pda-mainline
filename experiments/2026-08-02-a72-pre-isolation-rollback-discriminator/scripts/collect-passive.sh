@@ -19,7 +19,7 @@ done
 
 readonly TARGET=gemini@192.168.1.50
 readonly REMOTE_SHA256=bf505e75cec47007166d43876ec40f2554eb62389d7f4cbc61d4ace1d6be981b
-readonly VALIDATOR_SHA256=3cf4a1a79e917c23dee088522d3f614ca3c78e46c1d6cb0c3197cb4b4bbe7511
+readonly VALIDATOR_SHA256=785ed1fd8028d1d53640efd4c2ba23528327c0aa7068440dbf698bf1191a0b97
 readonly BOUNDED_EXEC_SHA256=e250c4f0375aed986bc73eeea699cf5f4ba51625aa51a1ede2d40ac601f62ce5
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 repo_root="$(cd -- "$script_dir/../../.." && pwd -P)"

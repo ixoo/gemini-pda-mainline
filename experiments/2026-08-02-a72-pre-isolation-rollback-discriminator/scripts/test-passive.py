@@ -210,6 +210,7 @@ def main() -> int:
     reject("synthetic load", replace_once(accepted, "load_workers=0", "load_workers=2"))
     reject("CPU9 target", accepted.replace("target=8", "target=9", 1))
     reject("CPU online", accepted.replace("online=0x000000ff", "online=0x000001ff", 1))
+    reject("host A72 online", replace_once(accepted, "online=0-7", "online=0-8"))
     reject("overflow", accepted.replace("overflow=0 up_tx=7", "overflow=1 up_tx=7", 1))
     reject("down transaction", accepted.replace("down_tx=0", "down_tx=8", 1))
     reject("sequence gap", accepted.replace("seq=2 ", "seq=99 ", 1))
@@ -265,7 +266,7 @@ def main() -> int:
     optional_power = remote.index("optional_read /sys/class/power_supply/usb/online")
     if first_copy >= optional_power:
         raise AssertionError("observer is not copied before optional power reporting")
-    print("PASS: passive rollback validation and 18 fail-closed/no-stimulus checks")
+    print("PASS: passive rollback validation and 19 fail-closed/no-stimulus checks")
     return 0
 
 
