@@ -560,7 +560,12 @@ module-free initramfs and exact real-compatible Gemini DT. The guarded
 installer and read-only USB/netcat collector pass syntax and managed-VM
 ShellCheck. The next action is deployment to live-GPT-resolved `boot2` against
 the exact stage-25 predecessor, full-partition readback, and clean shutdown.
-No native VM kernel build was run. Provider work remains blocked.
+That deployment matched the predecessor and all live-target and stable-power
+gates, then passed synchronized write, flush, device-side checksum, independent
+full-partition readback, temporary-readback removal, and clean shutdown without
+creating a fresh backup. The next action is one selected `boot2` runtime
+capture followed by a fresh read-only persistence snapshot. No native VM
+kernel build was run. Provider work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 

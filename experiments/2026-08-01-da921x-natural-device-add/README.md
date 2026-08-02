@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-01-da921x-natural-device-add` |
-| Status | `offline validated; guarded boot2 deployment pending` |
+| Status | `deployed and powered off; selected boot2 runtime pending` |
 | Subsystem | I2C, driver core, OF, kobject uevent, netlink |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -86,3 +86,14 @@ carries the unchanged module-free initramfs and the exact previously validated
 real-compatible Gemini DT. The runtime collector is read-only and writes only
 its temporary checker below initramfs `/run`. Exact identities are in
 `results/offline-validation.txt`.
+
+## Deployment
+
+The guarded installer ran from known-good Gemian, resolved logical `boot2`
+from the live GPT, proved that it was neither the active root nor mounted,
+matched the exact Stage 25 predecessor, and passed the stable-power gates. It
+wrote the padded Stage 26 image, synchronized and flushed it, matched the
+device-side checksum, and passed an independent full-partition readback. No
+fresh backup was created; the project-wide backup is the recovery source. The
+temporary readback was removed and the device shut down cleanly after verified
+success. Exact sanitized evidence is in `results/deployment.txt`.
