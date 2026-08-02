@@ -263,7 +263,7 @@ def owner_step(source: Path) -> None:
     insert_before(
         wdt,
         "int mtk_wdt_swsysret_config(int bit, int set_value)\n{\n",
-        "\n#ifdef CONFIG_MTK_A72_TRANSITION_OBSERVER\n"
+        "#ifdef CONFIG_MTK_A72_TRANSITION_OBSERVER\n"
         "int mt6797_a72_diag_toprgu_compare_update(unsigned int cpu,\n"
         "\t\t\t\t\t  bool expected, bool requested, u16 phase)\n"
         "{\n"

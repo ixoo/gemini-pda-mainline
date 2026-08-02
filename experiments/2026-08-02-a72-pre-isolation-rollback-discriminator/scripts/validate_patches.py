@@ -95,7 +95,7 @@ def validate(patch_dir: Path, source: Path | None = None) -> None:
         require(
             "\n\nGive the fixed observer explicit rollback phases" in patches[0]
             and "\n\nAdd owner-local compare/update/readback helpers" in patches[1]
-            and "\n\nRun one CPU8-only attempt through the existing" in patches[2],
+            and "\n\nRun one CPU8-only attempt through the existing 1 ms" in patches[2],
             "generated patch missing explanatory commit body",
         )
         require("Signed-off-by:" not in patch, f"patch {index}: synthetic sign-off")
