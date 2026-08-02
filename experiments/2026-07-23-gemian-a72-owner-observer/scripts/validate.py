@@ -24,7 +24,7 @@ EXPECTED_COMMITS = [
     "429afb35a3b5ccaec976d31288dd52148855ef79",
     "349f24b6e10df6e1d24c79a23d75c8361ac68b28",
     "718f297ae97ab3738d624129b814e921a8371227",
-    "e6ccc7d8bbe968d1da1a99cd9f3e96be4e8a0136",
+    "6eec629106bb8cf9bb62ab3707d53b6e03f0671c",
     "65e3b72839c5ce6b8c5d68667062c1fb1561e216",
 ]
 
@@ -344,7 +344,8 @@ def validate(root):
             "accepts = cpu == 8 &&",
             "abi=mt6797-a72-transition-observer-v2",
             'return "frozen-complete"',
-            "state=%s count=%u overflow=%u up_tx=%llu",
+            " count=%u overflow=%u",
+            " up_tx=%llu down_tx=%llu",
             "snapshot->down_transaction = mt6797_a72_obs_down_transaction",
         ],
         "first-cycle latch patch",

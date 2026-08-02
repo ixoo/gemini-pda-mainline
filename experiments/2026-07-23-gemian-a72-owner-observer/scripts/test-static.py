@@ -149,8 +149,8 @@ def main():
     expect_rejected(
         "ABI-v1 regression",
         patch6,
-        "+\tseq_printf(m, \"abi=mt6797-a72-transition-observer-v2\"",
-        "+\tseq_printf(m, \"abi=mt6797-a72-transition-observer-v1\"",
+        "+\tseq_printf(m, \"abi=mt6797-a72-transition-observer-v2 state=%s\",",
+        "+\tseq_printf(m, \"abi=mt6797-a72-transition-observer-v1 state=%s\",",
         "recorder: missing 'abi=mt6797-a72-transition-observer-v2'",
     )
     expect_rejected(
