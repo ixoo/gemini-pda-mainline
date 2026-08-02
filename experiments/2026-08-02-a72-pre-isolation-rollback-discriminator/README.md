@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-02-a72-pre-isolation-rollback-discriminator` |
-| Status | `source-review-complete`: three exact experiment-only vendor patches passed Buildbox generation, checksum verification, the static safety contract, 13 mutation tripwires, and strict style review; the next action is a compile-only Buildbox comparison, with no deployment or device action authorized |
+| Status | `compile-and-timing-review-complete`: the exact rollback and parent-observer trees compiled on Buildbox with identical diagnostics, retained stack evidence, exact symbol attribution, and passing owner-lock/timing review; the next action is a separate predeployment contract, with no deployment or device action yet authorized |
 | Subsystem | CPU8 external BUCKB preparation, MP2 reset, TOPRGU PWRAP reset, and fail-closed rollback |
 | Device variant | Named Gemini PDA development unit |
 | Date(s) | 2026-08-02 |
@@ -92,6 +92,12 @@ predeployment decision after compiler and timing review.
 - [`results/buildbox-compile-attempt-1-20260802.txt`](results/buildbox-compile-attempt-1-20260802.txt):
   both builds passed, followed by a fail-closed packaging correction for a
   file-local orchestrator symbol that GCC validly inlined.
+- [`results/buildbox-compile-attempt-2-20260802.txt`](results/buildbox-compile-attempt-2-20260802.txt):
+  exact successful rollback/parent comparison, output identities, inherited
+  diagnostic proof, retained symbols, and stack-use deltas.
+- [`results/compiler-and-timing-review-20260802.txt`](results/compiler-and-timing-review-20260802.txt):
+  owner-lock composition, bounded successful-path operations, forbidden
+  boundaries, stack adjudication, and the predeployment-only decision.
 
 Run from the repository root:
 
@@ -102,15 +108,16 @@ python3 experiments/2026-08-02-a72-pre-isolation-rollback-discriminator/scripts/
 
 ## Decision
 
-`source-review-passed`: the exact generated series implements the bounded and
-falsifiable rollback question without crossing external isolation. It passed
-the source/static review required before compilation. The result is not a boot
-candidate, hardware-support claim, or deployment authorization.
+`compile-and-timing-review-passed`: the exact generated series implements the
+bounded and falsifiable rollback question without crossing external isolation,
+compiles against its exact parent observer with no new diagnostic, and adds no
+unsafe owner-lock nesting, polling loop, or semaphore wait loop. The result is
+not a boot candidate, hardware-support claim, or deployment authorization.
 
 ## Follow-up
 
-Commit and push the exact reviewed patch series and result record, then run one
-clean-pushed Buildbox compile-only comparison against the unmodified parent
-observer series with retained diagnostics and stack evidence. Do not deploy or
-run the discriminator merely because generation, the model, or compilation
-passes.
+Freeze a separate predeployment contract covering the one-shot CPU8 trigger,
+exact predecessor and candidate identities, watchdog and serviceability gates,
+immutable evidence retrieval before overwrite, result classification, and
+fail-closed handling. Review that contract before assembling any boot image or
+accessing the device. Compilation alone does not authorize deployment.

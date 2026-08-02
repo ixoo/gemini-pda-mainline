@@ -1,0 +1,84 @@
+A72 pre-isolation rollback Buildbox compile attempt 2
+Recorded: 2026-08-02 America/New_York
+
+Input
+-----
+repository_commit=090f148d9ce8473331a7c9efdf15aa7acb3c3806
+source_commit=59e00a9144d782e148332009a835b99c43382467
+parent_patchset_sha256=3584e9dd5ffb041573b851f31f3a96eaa0a684acb880fd59560762e5abc58be0
+rollback_patchset_sha256=f034724759eebc611d6f16dea3448f1ee1ebcff0939a6e62e686c0a6261162a7
+baseline_config_sha256=231d8a2ffe7afac3a4cc62c27d0eb6fe8bd9165ebd096e3e3346dd6df35c18f4
+toolchain_manifest_sha256=a45d945f092461a611d276ad7d0a0fea1ea8a7f93db413908bcb892c12817d14
+cust_dtsi_sha256=7a7eb416499346afff30c15f967ccb9cf79323c076204b6a953515db74811632
+build_backend=buildbox
+native_vm_kernel_build=no
+purpose=rollback-compile-review-only
+boot_candidate=no
+
+Result
+------
+rollback_source_reconstruction=passed
+rollback_configuration_gate=passed
+rollback_dct_oracle=passed
+rollback_source_build=passed
+parent_observer_source_reconstruction=passed
+parent_observer_configuration_gate=passed
+parent_observer_source_build=passed
+required_rollback_symbols=present
+required_rollback_symbols_in_parent=absent
+diagnostic_comparison=identical
+rollback_stack_usage_file_count=2484
+parent_stack_usage_file_count=2484
+host_sha256_manifest_validation=passed
+device_access=none
+
+Configuration
+-------------
+Rollback-only deltas from the pinned active Gemian configuration:
+
+  CONFIG_ANBOX: missing -> n
+  CONFIG_MTK_A72_PREISO_ROLLBACK_DISCRIMINATOR: missing -> y
+  CONFIG_MTK_A72_TRANSITION_OBSERVER: missing -> y
+
+The parent comparison contains only the CONFIG_ANBOX and observer deltas.
+
+Diagnostics
+-----------
+Both builds contain exactly:
+
+  WARNING: modpost: Found 69 section mismatch(es).
+
+rollback_diagnostics_sha256=f60899a1c59153d7d36474c415bc6e302db89a74bc53a062cb56fa21eb269465
+parent_diagnostics_sha256=f60899a1c59153d7d36474c415bc6e302db89a74bc53a062cb56fa21eb269465
+
+Selected output identities
+--------------------------
+rollback_Image.gz-dtb_sha256=9e6b051527fbaf2b0de50da49a78a3714d9123884f6e76e7f1384dfb2200d034
+rollback_System.map_sha256=c628c890841fcca75a04ab03cdb4aeb6606d516b433b5e109fe29170daaf6219
+rollback_vmlinux_sha256=3d07c6eba46a4781116b33a7e2925b40de7862e40f5996554479f784810d10d1
+rollback_stack_archive_sha256=04896e887b6f6a52d4f150a814990768d902c4cc1cb50875f22841b59f2c3019
+parent_System.map_sha256=3dc747fbd103deda34f06c20c153e5bc96fc9fe58df72c5f4b1efc2c5c10cb75
+parent_stack_archive_sha256=b9cb8c0b8ed913c1f65e6453a8ea25cff1e4e271ec239fc1df1fdd62047927df
+parent_output_manifest_sha256=339076ef9e4f3143b8106d6910096260271969eda41e52f12a83f181d6b500d9
+build_provenance_sha256=1f4d446cf4966092d195bba765de4226b025df1c28d52309320a662be3e3db82
+
+Stack comparison
+----------------
+cpu_psci_cpu_boot_parent_bytes=96
+cpu_psci_cpu_boot_rollback_bytes=128
+largest_new_owner_helper_bytes=112
+whole_kernel_max_parent_bytes=1488
+whole_kernel_max_rollback_bytes=1488
+whole_kernel_max_function=ANCService_read
+
+The rollback caller grows by 32 bytes. The two largest new helpers are the
+DA921x and SPM compare/update functions at 112 bytes each. The whole-kernel
+maximum and the remaining top stack-use list are unchanged.
+
+Decision
+--------
+The compile-only comparison passes. Attempt 1's invalid file-local-symbol
+assumption is replaced by retained global owner/terminal symbols plus the
+exact enabled configuration, and those symbols are absent from the parent
+observer baseline. This result is not an assembled boot image, a deployment
+authorization, a runtime result, or a hardware-support claim.

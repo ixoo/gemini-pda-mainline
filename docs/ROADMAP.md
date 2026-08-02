@@ -760,11 +760,21 @@ continues into PSCI, DCM, and iDVFS.
 
 The exact three-patch vendor series now passes reproducible Buildbox
 generation, checksum verification, the static safety contract, all 13
-generated-patch mutation tripwires, and strict style review. The patches remain
-experiment-only and deliberately lack a synthetic DCO sign-off. The immediate
-ordered action is an exact clean-pushed Buildbox compile-only comparison of the
-parent observer and rollback-enabled trees with retained compiler and stack
-evidence. A successful compile does not authorize deployment. CPU9,
+generated-patch mutation tripwires, strict style review, and an exact
+rollback-versus-parent Buildbox compile comparison. Both trees retain 2484
+stack reports and the same sole vendor diagnostic; the rollback caller grows
+from 96 to 128 bytes, its new owner helpers use at most 112 bytes, and the
+unchanged whole-kernel maximum remains 1488 bytes. Required rollback symbols
+are retained and absent from the parent. Owner-lock review finds no cross-owner
+nesting, and timing review bounds the successful one-shot path to the inherited
+1 ms settle, immediate clock probes, and fixed DA921x/SPM/TOPRGU/secure/DCM
+operations without crossing external isolation or reaching PSCI, DCM enable,
+iDVFS, SRAM-LDO, or CPU9. The patches remain experiment-only and deliberately
+lack a synthetic DCO sign-off. The immediate ordered action is a separate
+predeployment contract review that freezes trigger, predecessor/candidate
+identity, watchdog/serviceability gates, immutable evidence retrieval, result
+classification, and fail-closed handling before any boot image is assembled.
+Compilation and timing review do not authorize deployment. CPU9,
 suspend/resume, later power boundaries, a mainline provider write, and any A72
 consumer remain blocked until their separate ownership and rollback gates
 close.

@@ -1,0 +1,75 @@
+A72 pre-isolation rollback compiler, owner-lock, and timing review
+Recorded: 2026-08-02 America/New_York
+
+Scope
+-----
+This review covers the exact rollback-enabled source built from repository
+commit 090f148d9ce8473331a7c9efdf15aa7acb3c3806. It does not authorize a boot
+image, device deployment, or runtime action.
+
+Compiler and stack review
+-------------------------
+- Both rollback and exact parent-observer trees compile and link.
+- The sole extracted compiler diagnostic is byte-identical in both trees: the
+  inherited vendor summary of 69 section mismatches.
+- Both archives contain 2484 source-compared stack-use reports.
+- cpu_psci_cpu_boot grows from 96 to 128 bytes.
+- New owner helpers use at most 112 bytes.
+- The unchanged whole-kernel maximum remains ANCService_read at 1488 bytes.
+
+Owner-lock review
+-----------------
+- DA921x compare/update and snapshot operations use da9214_i2c_access.
+- SPM compare/update and snapshot operations use __spm_lock.
+- TOPRGU compare/update uses rgu_reg_operation_spinlock.
+- DCM inspection uses mt6797_a72_obs_mp2_dcm_lock.
+- Clock capture uses an immediate trylock on g_mt6797_0x1001AXXX_lock and an
+  immediate hardware-semaphore attempt; contention fails the experiment.
+- reset_flags is compared, claimed, and restored under reset_lock.
+- Each owner releases its lock before appending observer evidence. The
+  orchestrator invokes owners sequentially, so it adds no cross-owner or
+  observer-under-owner lock nesting.
+
+Successful-path operation bound
+-------------------------------
+- DA921x: 33 reads and 2 writes. Five exact compare/readback operations use six
+  reads each; the final fixed snapshot adds three reads. The two writes are
+  BUCKB enable and the attempt-owned inverse disable.
+- SPM: 20 reads and 2 writes. Compare/readback covers only offsets 0x218 and
+  0x290; the final fixed snapshot adds the established six-register snapshot.
+- TOPRGU: 8 reads and 2 writes around the exact PWRAP-reset bit.
+- Secure state: 39 calls, comprising twelve fixed registers plus one sentinel
+  reread at entry, final comparison, and final fixed snapshot.
+- Clock: three immediate probes at entry, final comparison, and final fixed
+  snapshot; each has only the established 200 ns post-acquisition delay.
+- DCM: three owner-locked reads at entry, final comparison, and final snapshot.
+
+Timing and forbidden-boundary review
+------------------------------------
+- The stimulus is one-shot for CPU8. CPU9 and repeated CPU8 requests fail
+  before the experiment path.
+- The only deliberate millisecond delay is the existing 1 ms BUCKB settle.
+  There is no polling loop and no semaphore wait loop.
+- No broad snapshot occurs inside either 240 microsecond SRAM-LDO interval;
+  this discriminator never reaches SRAM-LDO at all.
+- The path never clears external isolation, invokes PSCI CPU_ON, enables MP2
+  DCM, performs an iDVFS action, or onlines CPU8 or CPU9.
+- Pre-state rejection performs no regulator, SPM, or TOPRGU state change.
+- A changed value is inverted only when its attempt-owned flag is set and the
+  current readback still equals the state written by this attempt.
+- The final exact comparisons and fixed snapshot precede one immutable
+  terminal disposition. There is no retry.
+
+Decision
+--------
+compiler_review=passed
+stack_review=passed
+owner_lock_review=passed
+timing_review=passed-for-separate-predeployment-review
+deployment_authorized=no
+
+The revision is narrow enough to proceed to a separate predeployment contract
+review. That review must freeze the boot trigger, exact predecessor and
+candidate identities, watchdog/serviceability requirements, immutable evidence
+retrieval, full result matrix, and fail-closed device handling before any boot
+image is assembled or written.
