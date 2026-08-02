@@ -51,6 +51,9 @@ ACTIVE_HASHES = {
 ACTIVE_CONFIG_SHA256 = (
     "231d8a2ffe7afac3a4cc62c27d0eb6fe8bd9165ebd096e3e3346dd6df35c18f4"
 )
+TOOLCHAIN_MANIFEST_SHA256 = (
+    "e9250bdfe6a0811134fdf1265e262e2993fb17dbaed925fb6677ce5960544d26"
+)
 
 SECURE_ADDRESSES = [
     "0x10222470",
@@ -121,6 +124,75 @@ def validate(root):
         b"CONFIG_MTK_A72_TRANSITION_OBSERVER" not in config_bytes,
         "baseline configuration already contains observer option",
     )
+
+    toolchain_manifest = root / "inputs" / "stretch-cross-toolchain.tsv"
+    require(toolchain_manifest.is_file(), "missing pinned toolchain manifest")
+    manifest_bytes = toolchain_manifest.read_bytes()
+    require(
+        hashlib.sha256(manifest_bytes).hexdigest() == TOOLCHAIN_MANIFEST_SHA256,
+        "pinned toolchain manifest hash changed",
+    )
+    manifest_rows = toolchain_manifest.read_text().splitlines()
+    require(
+        manifest_rows[0] == "package\tversion\tarchitecture\tfilename\tsha256",
+        "pinned toolchain manifest header changed",
+    )
+    require(len(manifest_rows) == 26, "pinned toolchain package count changed")
+    packages = [row.split("\t") for row in manifest_rows[1:]]
+    require(
+        all(len(fields) == 5 for fields in packages),
+        "malformed pinned toolchain row",
+    )
+    require(
+        len({fields[0] for fields in packages}) == 25,
+        "duplicate pinned toolchain package",
+    )
+    require(
+        len({fields[3] for fields in packages}) == 25,
+        "duplicate pinned toolchain filename",
+    )
+    require(
+        all(re.fullmatch(r"[0-9a-f]{64}", fields[4]) for fields in packages),
+        "malformed pinned toolchain package checksum",
+    )
+    versions = {fields[0]: fields[1] for fields in packages}
+    require(
+        versions.get("gcc-6-aarch64-linux-gnu") == "6.3.0-18cross1",
+        "pinned cross-GCC package version changed",
+    )
+    require(
+        versions.get("binutils-aarch64-linux-gnu") == "2.28-5",
+        "pinned cross-binutils package version changed",
+    )
+
+    build_script = root / "scripts" / "build-on-buildbox"
+    require(build_script.is_file(), "missing Buildbox observer build driver")
+    require(
+        build_script.stat().st_mode & 0o111,
+        "Buildbox observer build driver is not executable",
+    )
+    build_text = build_script.read_text()
+    require_tokens(
+        build_text,
+        [
+            "https://snapshot.debian.org/archive/debian/20170618T000000Z",
+            "6.3.0 20170516",
+            "GNU ld (GNU Binutils for Debian) 2.28",
+            "sha256sum --check --strict SHA256SUMS",
+            "configuration delta is not observer-only",
+            'purpose: "compile-review-only"',
+            "boot_candidate: false",
+            "Image.gz-dtb",
+        ],
+        "Buildbox observer build driver",
+    )
+    for forbidden in ["scripts/dev-vm", "--backend vm", "scp ", "rsync "]:
+        require(
+            forbidden not in build_text,
+            "Buildbox observer build driver contains forbidden path {!r}".format(
+                forbidden
+            ),
+        )
 
     patch_dir = root / "patches"
     series_path = patch_dir / "series"

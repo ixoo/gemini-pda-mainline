@@ -69,6 +69,26 @@ Fetching refuses to overwrite an existing package and verifies the complete
 packaged `SHA256SUMS` after transfer. Only the validated package is transferred;
 remote sources, builds, caches, and checkouts remain remote and regenerable.
 
+## Gemian observer compile-review lane
+
+The fixed MT6797 A72 owner-observer experiment has a separate compile-only
+Buildbox lane because its public Gemian 3.18 source and pinned Stretch
+cross-toolchain are not inputs to the upstream 7.1.3 manifest:
+
+```sh
+./scripts/buildbox build-gemian-observer
+./scripts/buildbox fetch-gemian-observer
+```
+
+It retains the same clean, pushed-commit and exact-origin gate. Buildbox fetches
+the fixed public vendor commit, verifies the experiment's 25 exact Debian
+snapshot packages by SHA-256, constructs an unprivileged relocatable GCC 6.3/
+binutils 2.28 toolchain, imports the hash-pinned live configuration, and permits
+only `CONFIG_MTK_A72_TRANSITION_OBSERVER=y` to change. Its fetched bundle is for
+compiler, configuration, symbol, warning, and timing review. Provenance marks
+`boot_candidate=false`; this lane does not construct an Android boot image,
+write `boot2`, access the device, or authorize an A72 request.
+
 ## Remote storage and concurrency
 
 Buildbox uses its persistent home volume for the Git mirror, verified kernel

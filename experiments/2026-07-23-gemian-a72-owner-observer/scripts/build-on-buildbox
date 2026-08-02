@@ -1,0 +1,315 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+readonly SOURCE_COMMIT=59e00a9144d782e148332009a835b99c43382467
+readonly SOURCE_URL=https://github.com/gemian/gemini-linux-kernel-3.18.git
+readonly SNAPSHOT_URL=https://snapshot.debian.org/archive/debian/20170618T000000Z
+readonly CONFIG_SHA256=231d8a2ffe7afac3a4cc62c27d0eb6fe8bd9165ebd096e3e3346dd6df35c18f4
+readonly EXPECTED_GCC='aarch64-linux-gnu-gcc-6 (Debian 6.3.0-18) 6.3.0 20170516'
+readonly EXPECTED_LD='GNU ld (GNU Binutils for Debian) 2.28'
+
+die() {
+  echo "error: $*" >&2
+  exit 1
+}
+
+[[ "$#" -eq 6 ]] || die "expected PROJECT_COMMIT SOURCE_ROOT BUILD_ROOT ARTIFACT_ROOT TOOLCHAIN_ROOT JOBS"
+readonly project_commit="$1"
+readonly source_root="$2"
+readonly build_root="$3"
+readonly artifact_root="$4"
+readonly toolchain_root="$5"
+readonly jobs="$6"
+
+[[ "${project_commit}" =~ ^[0-9a-f]{40}$ ]] || die "invalid project commit"
+[[ "${jobs}" =~ ^[1-9][0-9]*$ ]] || die "invalid job count"
+for root in "${source_root}" "${build_root}" "${artifact_root}" "${toolchain_root}"; do
+  [[ "${root}" == /workspace/gemini-pda/* && "${root}" != /workspace/gemini-pda ]] || \
+    die "unsafe managed root: ${root}"
+done
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+readonly script_dir
+experiment_dir="$(cd "${script_dir}/.." && pwd -P)"
+readonly experiment_dir
+repository_dir="$(cd "${experiment_dir}/../.." && pwd -P)"
+readonly repository_dir
+[[ "$(git -C "${repository_dir}" rev-parse HEAD)" == "${project_commit}" ]] || \
+  die "project checkout does not match requested commit"
+[[ -z "$(git -C "${repository_dir}" status --porcelain)" ]] || \
+  die "project checkout is dirty"
+
+readonly manifest="${experiment_dir}/inputs/stretch-cross-toolchain.tsv"
+readonly baseline_config="${experiment_dir}/inputs/active-gemian.config"
+readonly patch_series="${experiment_dir}/patches/series"
+manifest_sha="$(sha256sum "${manifest}" | awk '{print $1}')"
+readonly manifest_sha
+patchset_sha="$(cd "${experiment_dir}/patches" && while IFS= read -r patch; do sha256sum "${patch}"; done < series | sha256sum | awk '{print $1}')"
+readonly patchset_sha
+[[ "$(sha256sum "${baseline_config}" | awk '{print $1}')" == "${CONFIG_SHA256}" ]] || \
+  die "active Gemian configuration hash mismatch"
+
+for command in apt-cache apt-get dpkg-deb file git jq make python3 sha256sum; do
+  command -v "${command}" >/dev/null 2>&1 || die "missing Buildbox command: ${command}"
+done
+
+prepare_toolchain() {
+  local apt_root
+  local architecture
+  local compiler
+  local deb
+  local filename
+  local package
+  local partial
+  local sha
+  local version
+  local wrapper
+
+  local toolchain="${toolchain_root}/${manifest_sha}"
+  if [[ -f "${toolchain}/validated" && ! -L "${toolchain}" ]]; then
+    [[ "$(<"${toolchain}/validated")" == "${manifest_sha}" ]] || \
+      die "cached toolchain validation identity mismatch"
+    return
+  fi
+
+  mkdir -p "${toolchain_root}"
+  for partial in "${toolchain_root}/${manifest_sha}.partial."*; do
+    [[ -d "${partial}" && ! -L "${partial}" ]] || continue
+    rm -rf -- "${partial}"
+  done
+  partial="${toolchain_root}/${manifest_sha}.partial.$$"
+  trap 'test -n "${partial:-}" && test -d "${partial}" && rm -rf -- "${partial}"' RETURN
+  mkdir -p "${partial}/apt/etc" "${partial}/apt/lists/partial" \
+    "${partial}/apt/cache/archives/partial" "${partial}/debs" \
+    "${partial}/root" "${partial}/wrappers"
+  printf '%s\n' "deb [trusted=yes] ${SNAPSHOT_URL} stretch main" > \
+    "${partial}/apt/etc/sources.list"
+  : > "${partial}/apt/status"
+  apt_root="${partial}/apt"
+  local -a apt_options=(
+    -o "Dir::Etc::sourcelist=${apt_root}/etc/sources.list"
+    -o Dir::Etc::sourceparts=-
+    -o "Dir::State::status=${apt_root}/status"
+    -o "Dir::State::lists=${apt_root}/lists"
+    -o "Dir::Cache=${apt_root}/cache"
+    -o Dir::Cache::archives=archives
+    -o Acquire::Check-Valid-Until=false
+    -o APT::Get::List-Cleanup=false
+    -o APT::Sandbox::User=builder
+  )
+  apt-get "${apt_options[@]}" update >/dev/null
+
+  while IFS=$'\t' read -r package version architecture filename sha; do
+    [[ "${package}" != package ]] || continue
+    [[ "${package}" =~ ^[a-z0-9][a-z0-9+.-]*$ ]] || die "unsafe package name"
+    [[ "${architecture}" =~ ^(all|amd64)$ ]] || die "unsafe package architecture"
+    [[ "${filename}" =~ ^[A-Za-z0-9_.+%:-]+\.deb$ ]] || die "unsafe package filename"
+    [[ "${sha}" =~ ^[0-9a-f]{64}$ ]] || die "unsafe package checksum"
+    (
+      cd "${partial}/debs"
+      apt-get "${apt_options[@]}" download "${package}=${version}" >/dev/null
+    )
+    deb="${partial}/debs/${filename}"
+    [[ -f "${deb}" && ! -L "${deb}" ]] || die "missing downloaded package: ${filename}"
+    [[ "$(sha256sum "${deb}" | awk '{print $1}')" == "${sha}" ]] || \
+      die "package checksum mismatch: ${filename}"
+    [[ "$(dpkg-deb -f "${deb}" Package)" == "${package}" ]] || die "package identity mismatch"
+    [[ "$(dpkg-deb -f "${deb}" Version)" == "${version}" ]] || die "package version mismatch"
+    [[ "$(dpkg-deb -f "${deb}" Architecture)" == "${architecture}" ]] || die "package architecture mismatch"
+  done < "${manifest}"
+  [[ "$(find "${partial}/debs" -maxdepth 1 -type f -name '*.deb' | wc -l)" -eq 25 ]] || \
+    die "unexpected toolchain package count"
+  while IFS=$'\t' read -r package version architecture filename sha; do
+    [[ "${package}" != package ]] || continue
+    dpkg-deb -x "${partial}/debs/${filename}" "${partial}/root"
+  done < "${manifest}"
+
+  wrapper="${partial}/wrappers/aarch64-linux-gnu-gcc"
+  cat > "${wrapper}" <<'WRAPPER'
+#!/usr/bin/env bash
+set -euo pipefail
+toolchain_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+export LD_LIBRARY_PATH="${toolchain_dir}/root/usr/lib/x86_64-linux-gnu"
+exec "${toolchain_dir}/root/usr/bin/aarch64-linux-gnu-gcc-6" \
+  -B"${toolchain_dir}/root/usr/lib/gcc-cross/aarch64-linux-gnu/6/" \
+  --sysroot="${toolchain_dir}/root" "$@"
+WRAPPER
+  chmod 0755 "${wrapper}"
+  for command in addr2line ar as c++filt elfedit gprof ld ld.bfd nm objcopy objdump ranlib readelf size strings strip; do
+    [[ -x "${partial}/root/usr/bin/aarch64-linux-gnu-${command}" ]] || \
+      die "missing cross tool: ${command}"
+    ln -s "../root/usr/bin/aarch64-linux-gnu-${command}" \
+      "${partial}/wrappers/aarch64-linux-gnu-${command}"
+  done
+  compiler="${partial}/wrappers/aarch64-linux-gnu-gcc"
+  export LD_LIBRARY_PATH="${partial}/root/usr/lib/x86_64-linux-gnu"
+  [[ "$("${compiler}" --version | head -n 1)" == "${EXPECTED_GCC}" ]] || \
+    die "pinned compiler identity mismatch"
+  [[ "$("${partial}/wrappers/aarch64-linux-gnu-ld" --version | head -n 1)" == "${EXPECTED_LD}" ]] || \
+    die "pinned linker identity mismatch"
+  printf 'int probe(void) { return 0; }\n' | \
+    "${compiler}" -x c -c -o "${partial}/probe.o" -
+  file "${partial}/probe.o" | grep -F 'ELF 64-bit LSB relocatable, ARM aarch64' >/dev/null || \
+    die "pinned compiler object probe failed"
+  printf '%s\n' "${manifest_sha}" > "${partial}/validated"
+  mv "${partial}" "${toolchain}"
+  partial=""
+  trap - RETURN
+}
+
+prepare_source() {
+  local current_diff_sha
+  local expected_diff_sha
+  local patch
+  local partial
+  local state_patchset
+  local state_source
+
+  readonly source_mirror="${source_root}/gemian-linux-kernel-3.18.git"
+  readonly prepared_source="${source_root}/gemian-observer/${project_commit}"
+  mkdir -p "${source_root}/gemian-observer"
+  if [[ ! -d "${source_mirror}" ]]; then
+    git clone --mirror "${SOURCE_URL}" "${source_mirror}.partial"
+    mv "${source_mirror}.partial" "${source_mirror}"
+  fi
+  [[ "$(git --git-dir="${source_mirror}" remote get-url origin)" == "${SOURCE_URL}" ]] || \
+    die "vendor source mirror origin mismatch"
+  git --git-dir="${source_mirror}" fetch origin "${SOURCE_COMMIT}"
+  [[ "$(git --git-dir="${source_mirror}" rev-parse FETCH_HEAD)" == "${SOURCE_COMMIT}" ]] || \
+    die "vendor source fetch mismatch"
+
+  if [[ -f "${prepared_source}/.gemini-observer-state" && ! -L "${prepared_source}" ]]; then
+    read -r state_source state_patchset expected_diff_sha < \
+      "${prepared_source}/.gemini-observer-state"
+    [[ "${state_source}" == "${SOURCE_COMMIT}" && \
+       "${state_patchset}" == "${patchset_sha}" && \
+       "${expected_diff_sha}" =~ ^[0-9a-f]{64}$ ]] || \
+      die "prepared observer source identity mismatch"
+    git -C "${prepared_source}" diff --check
+    current_diff_sha="$(git -C "${prepared_source}" diff --binary | sha256sum | awk '{print $1}')"
+    [[ "${current_diff_sha}" == "${expected_diff_sha}" ]] || \
+      die "prepared observer source diff mismatch"
+    return
+  fi
+  for partial in "${prepared_source}.partial."*; do
+    [[ -d "${partial}" && ! -L "${partial}" ]] || continue
+    rm -rf -- "${partial}"
+  done
+  partial="${prepared_source}.partial.$$"
+  trap 'test -n "${partial:-}" && test -d "${partial}" && rm -rf -- "${partial}"' RETURN
+  git clone --no-checkout "${source_mirror}" "${partial}"
+  git -C "${partial}" checkout --detach "${SOURCE_COMMIT}"
+  while IFS= read -r patch; do
+    [[ "${patch}" =~ ^[A-Za-z0-9_.+-]+\.patch$ ]] || die "unsafe observer patch name"
+    git -C "${partial}" apply --check "${experiment_dir}/patches/${patch}"
+    git -C "${partial}" apply "${experiment_dir}/patches/${patch}"
+  done < "${patch_series}"
+  git -C "${partial}" diff --check
+  current_diff_sha="$(git -C "${partial}" diff --binary | sha256sum | awk '{print $1}')"
+  printf '%s %s %s\n' "${SOURCE_COMMIT}" "${patchset_sha}" \
+    "${current_diff_sha}" > "${partial}/.gemini-observer-state"
+  mv "${partial}" "${prepared_source}"
+  partial=""
+  trap - RETURN
+}
+
+prepare_toolchain
+prepare_source
+
+readonly toolchain="${toolchain_root}/${manifest_sha}"
+readonly cross_prefix="${toolchain}/wrappers/aarch64-linux-gnu-"
+readonly output="${build_root}/gemian-observer/${project_commit}"
+readonly package="${artifact_root}/gemian-observer-${project_commit:0:12}"
+readonly package_partial="${package}.partial.$$"
+[[ ! -e "${package}" ]] || die "refusing to overwrite compile-review package: ${package}"
+[[ ! -e "${package_partial}" ]] || die "stale compile-review partial exists"
+mkdir -p "$(dirname "${output}")" "${artifact_root}"
+if [[ -e "${output}" ]]; then
+  [[ -d "${output}" && ! -L "${output}" && "${output}" == /workspace/gemini-pda/build/gemian-observer/* ]] || \
+    die "unsafe stale build directory"
+  rm -rf -- "${output}"
+fi
+mkdir -p "${output}"
+trap 'test -d "${output}" && rm -rf -- "${output}"; test -d "${package_partial}" && rm -rf -- "${package_partial}"' EXIT
+cp "${baseline_config}" "${output}/baseline.config"
+cp "${baseline_config}" "${output}/.config"
+"${prepared_source}/scripts/config" --file "${output}/.config" \
+  --enable MTK_A72_TRANSITION_OBSERVER
+
+export LD_LIBRARY_PATH="${toolchain}/root/usr/lib/x86_64-linux-gnu"
+make -C "${prepared_source}" O="${output}" ARCH=arm64 \
+  CROSS_COMPILE="${cross_prefix}" olddefconfig
+python3 - "${output}/baseline.config" "${output}/.config" > "${output}/config.diff" <<'PY'
+import pathlib
+import sys
+
+def symbols(path):
+    result = {}
+    for line in pathlib.Path(path).read_text().splitlines():
+        if line.startswith("CONFIG_") and "=" in line:
+            name, value = line.split("=", 1)
+            result[name] = value
+        elif line.startswith("# CONFIG_") and line.endswith(" is not set"):
+            result[line[2:-11]] = "n"
+    return result
+
+before = symbols(sys.argv[1])
+after = symbols(sys.argv[2])
+changes = []
+for name in sorted(set(before) | set(after)):
+    if before.get(name) != after.get(name):
+        changes.append((name, before.get(name, "missing"), after.get(name, "missing")))
+for name, old, new in changes:
+    print("{}\t{}\t{}".format(name, old, new))
+if changes != [("CONFIG_MTK_A72_TRANSITION_OBSERVER", "missing", "y")]:
+    raise SystemExit("configuration delta is not observer-only")
+PY
+
+set -o pipefail
+make -C "${prepared_source}" O="${output}" ARCH=arm64 \
+  CROSS_COMPILE="${cross_prefix}" -j"${jobs}" V=1 Image.gz-dtb 2>&1 | \
+  tee "${output}/build.log"
+
+readonly image="${output}/arch/arm64/boot/Image.gz-dtb"
+[[ -s "${image}" && -s "${output}/vmlinux" && -s "${output}/System.map" ]] || \
+  die "observer compile outputs are incomplete"
+mkdir -p "${package_partial}/outputs" "${package_partial}/provenance"
+cp "${output}/.config" "${package_partial}/outputs/config"
+cp "${output}/config.diff" "${package_partial}/outputs/config.diff"
+cp "${output}/build.log" "${package_partial}/outputs/build.log"
+cp "${image}" "${package_partial}/outputs/Image.gz-dtb"
+cp "${output}/System.map" "${package_partial}/outputs/System.map"
+cp "${output}/vmlinux" "${package_partial}/outputs/vmlinux"
+grep -E -i '(^|[^[:alpha:]])(warning|error):' "${output}/build.log" > \
+  "${package_partial}/outputs/diagnostics.txt" || :
+"${cross_prefix}gcc" --version > "${package_partial}/provenance/compiler.txt"
+"${cross_prefix}ld" --version > "${package_partial}/provenance/linker.txt"
+jq -n \
+  --arg repository_commit "${project_commit}" \
+  --arg source_url "${SOURCE_URL}" \
+  --arg source_commit "${SOURCE_COMMIT}" \
+  --arg patchset_sha256 "${patchset_sha}" \
+  --arg config_sha256 "${CONFIG_SHA256}" \
+  --arg toolchain_manifest_sha256 "${manifest_sha}" \
+  --arg snapshot_url "${SNAPSHOT_URL}" \
+  --arg build_architecture "$(uname -m)" \
+  --arg target_architecture arm64 \
+  --arg completed_utc "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  '{repository_commit: $repository_commit, repository_dirty: false,
+    source_url: $source_url, source_commit: $source_commit,
+    patchset_sha256: $patchset_sha256, baseline_config_sha256: $config_sha256,
+    toolchain_manifest_sha256: $toolchain_manifest_sha256,
+    snapshot_url: $snapshot_url, build_architecture: $build_architecture,
+    target_architecture: $target_architecture, purpose: "compile-review-only",
+    boot_candidate: false, completed_utc: $completed_utc}' > \
+  "${package_partial}/provenance/build.json"
+(
+  cd "${package_partial}"
+  find outputs provenance -type f -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+  sha256sum --check --strict SHA256SUMS
+)
+rm -rf -- "${output}"
+mv "${package_partial}" "${package}"
+trap - EXIT
+printf 'Packaged Gemian observer compile review at %s\n' "${package}"

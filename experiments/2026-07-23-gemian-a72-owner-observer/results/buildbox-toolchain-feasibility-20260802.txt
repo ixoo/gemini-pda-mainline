@@ -38,20 +38,28 @@ resolved_dependency_packages=25
 Result
 ------
 input_resolution=passed
-relocated_compiler_execution=not_proven
+relocated_compiler_execution=passed
 kernel_build=not_run
 device_action=authorized-reboot-and-readonly-config-retrieval
 result=inconclusive
 
 The exact snapshot metadata and all 25 resolved packages were downloaded in a
-disposable probe. Extraction/relocation did not reach a successful compiler
-invocation, so package resolution must not be reported as a compiler pass.
+disposable persistent-session probe. The extracted compiler reported
+`aarch64-linux-gnu-gcc-6 (Debian 6.3.0-18) 6.3.0 20170516`, the linker reported
+`GNU ld (GNU Binutils for Debian) 2.28`, and compilation produced an ELF 64-bit
+LSB relocatable ARM aarch64 object. The probe exited zero and removed its
+temporary tree.
+
+The exact package/version/architecture/filename/SHA-256 closure is tracked at
+`inputs/stretch-cross-toolchain.tsv`; its SHA-256 is
+`e9250bdfe6a0811134fdf1265e262e2993fb17dbaed925fb6677ce5960544d26`.
 Buildbox has no docker, podman, proot, bwrap, chroot authorization, or
 debootstrap helper available to the unprivileged builder. The next action is a
 repository-owned Buildbox lane that constructs a managed relocatable toolchain,
 verifies the compiler/linker identity with a trivial arm64 object, and only
-then attempts the clean vendor source build. If that cannot be made runnable,
-defer the build; do not fall back to a native VM build.
+then attempts the clean vendor source build. That lane is now implemented but
+has not yet been submitted from its required clean pushed commit. Do not fall
+back to a native VM build.
 
 Exact configuration recovery
 ----------------------------

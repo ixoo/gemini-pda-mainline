@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-23-gemian-a72-owner-observer` |
-| Status | `inconclusive`: source/static checks and Buildbox input discovery are complete; a runnable pinned compiler and hardware evidence do not yet exist |
+| Status | `inconclusive`: source/static checks and the pinned Buildbox compiler proof are complete; source-build and hardware evidence do not yet exist |
 | Subsystem | MT6797 A72 hotplug, PSCI, external buck, SPM, iDVFS, B/CCI clocks, MP2 DCM and TOPRGU |
 | Device variant | Current named Gemini PDA unit |
 | Date(s) | 2026-07-23 |
@@ -110,6 +110,9 @@ was accessed or changed while preparing this directory.
 - [`inputs/active-gemian.config`](inputs/active-gemian.config): exact
   decompressed live configuration, SHA-256
   `231d8a2ffe7afac3a4cc62c27d0eb6fe8bd9165ebd096e3e3346dd6df35c18f4`.
+- [`inputs/stretch-cross-toolchain.tsv`](inputs/stretch-cross-toolchain.tsv):
+  exact 25-package Debian snapshot manifest with package, version,
+  architecture, filename, and SHA-256.
 - [`patches/0001-diagnostic-add-fixed-MT6797-A72-transition-ring.patch`](patches/0001-diagnostic-add-fixed-MT6797-A72-transition-ring.patch):
   typed static ring, transaction IDs and root-read-only snapshot ABI.
 - [`patches/0002-diagnostic-add-owner-local-fixed-A72-snapshots.patch`](patches/0002-diagnostic-add-owner-local-fixed-A72-snapshots.patch):
@@ -124,6 +127,9 @@ was accessed or changed while preparing this directory.
   invariants.
 - [`scripts/test-static.py`](scripts/test-static.py): positive and mutation
   tripwire tests for the validator.
+- [`scripts/build-on-buildbox`](scripts/build-on-buildbox): remote-only,
+  compile-review driver invoked from an exact clean pushed project checkout.
+  It cannot create a boot image or access the device.
 - [`results/source-and-static-validation-20260723.txt`](results/source-and-static-validation-20260723.txt):
   exact source/static validation record.
 - [`results/buildbox-toolchain-feasibility-20260802.txt`](results/buildbox-toolchain-feasibility-20260802.txt):
@@ -154,11 +160,12 @@ Neither command needs privilege, network, VM or device access.
 
 ### Required compiler review before any boot
 
-1. Extend the Git-based Buildbox workflow with a dedicated observer lane that
-   fetches the exact clean pushed project commit, public source `59e00a…`, and
-   the immutable `20170618T000000Z` Debian snapshot inputs. It must prove the
-   relocated compiler reports GCC `6.3.0 20170516` and ld `2.28`; stop on the
-   2019 `+deb9u1` environment or Buildbox's system GCC 12/binutils 2.40.
+1. Use the dedicated Git-based Buildbox lane, which fetches the exact clean
+   pushed project commit, public source `59e00a…`, and the immutable
+   `20170618T000000Z` Debian snapshot inputs. It verifies all 25 package hashes,
+   proves the relocated compiler reports GCC `6.3.0 20170516` and ld `2.28`,
+   and stops on the 2019 `+deb9u1` environment or Buildbox's system GCC
+   12/binutils 2.40.
 2. Start from a clean `59e00a…` checkout on Buildbox, apply [`patches/series`](patches/series)
    in order, and import the exact active plain configuration identified above.
 3. Enable only `CONFIG_MTK_A72_TRANSITION_OBSERVER=y`, retain the complete
@@ -173,6 +180,16 @@ The Buildbox lane must not copy a source tree or toolchain from the development
 host or recovery VM. If the pinned snapshot packages cannot be made runnable
 inside a managed Buildbox root, defer the build; do not use the native VM.
 
+The compile-review invocation is:
+
+```sh
+./scripts/buildbox build-gemian-observer
+./scripts/buildbox fetch-gemian-observer
+```
+
+Both commands require the exact clean pushed `HEAD`. The result is explicitly
+not a boot candidate.
+
 ## Observations
 
 All four patches applied in order to the selected public baseline and the
@@ -183,9 +200,11 @@ this is recorded as a tooling limitation, not as a clean checkpatch result.
 
 Buildbox can reach the public source and immutable Debian snapshot. Snapshot
 metadata resolves cross-GCC `6.3.0-18cross1` and binutils `2.28-5`, and one
-disposable probe downloaded their 25-package dependency closure. The probe did
-not complete a relocated compiler invocation, retained no workspace state, and
-did not build source. After returning the development device from Stage27 to
+disposable probe downloaded their 25-package dependency closure. A persistent
+session then extracted that exact closure, invoked the relocated compiler and
+linker, and produced a valid AArch64 relocatable object. The tree was removed
+on success. No vendor source build was performed by the probe. After returning
+the development device from Stage27 to
 Gemian through the validated USB reboot path, the live `/proc/config.gz`
 matched the previously recorded compressed and decompressed hashes exactly.
 The non-sensitive decompressed configuration is now a tracked Buildbox input.
@@ -212,7 +231,8 @@ running binary. Those unresolved questions are decision-changing.
 exists and passes the recorded source/static checks against public
 `59e00a…`. It is not yet a kernel, boot image or installable candidate. The
 mandatory next result is a runnable pinned Buildbox toolchain followed by a
-clean build plus compiler and owner-timing review.
+clean build plus compiler and owner-timing review. The compiler proof is now
+closed; the clean observer build is next.
 
 ## Follow-up
 

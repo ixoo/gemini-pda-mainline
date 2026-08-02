@@ -81,7 +81,21 @@ def main():
         "\t.read = seq_read,\n+\t.write = seq_write,\n",
         "writable file operation",
     )
-    print("PASS: positive validation and 3 mutation tripwires")
+    expect_rejected(
+        "toolchain package checksum drift",
+        "inputs/stretch-cross-toolchain.tsv",
+        "b7b3b0605b86f795f0a10d197fbfe161a281d1b081eb73c38d331c7db6b5f9dc",
+        "a7b3b0605b86f795f0a10d197fbfe161a281d1b081eb73c38d331c7db6b5f9dc",
+        "pinned toolchain manifest hash changed",
+    )
+    expect_rejected(
+        "boot-candidate promotion",
+        "scripts/build-on-buildbox",
+        "boot_candidate: false",
+        "boot_candidate: true",
+        "missing 'boot_candidate: false'",
+    )
+    print("PASS: positive validation and 5 mutation tripwires")
     return 0
 
 
