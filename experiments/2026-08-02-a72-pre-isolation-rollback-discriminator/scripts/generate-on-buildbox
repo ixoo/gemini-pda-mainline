@@ -82,7 +82,7 @@ git -C "${work}/source" config user.email "noreply@gemini-a72.invalid"
 while IFS= read -r parent_patch; do
   [[ "${parent_patch}" =~ ^[A-Za-z0-9_.+-]+\.patch$ ]] || \
     die "unsafe parent patch name"
-  git -C "${work}/source" am \
+  git -C "${work}/source" am --committer-date-is-author-date \
     "${repository_dir}/experiments/2026-07-23-gemian-a72-owner-observer/patches/${parent_patch}"
 done < "${repository_dir}/experiments/2026-07-23-gemian-a72-owner-observer/patches/series"
 

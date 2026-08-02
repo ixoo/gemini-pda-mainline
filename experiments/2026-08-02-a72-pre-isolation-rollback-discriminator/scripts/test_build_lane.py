@@ -30,6 +30,7 @@ def patchset_hash(directory: Path) -> str:
 def main() -> int:
     buildbox = (REPOSITORY / "scripts/buildbox").read_text()
     lane = (EXPERIMENT / "scripts/build-on-buildbox").read_text()
+    generator = (EXPERIMENT / "scripts/generate-on-buildbox").read_text()
     parent_hash = patchset_hash(OBSERVER / "patches")
     rollback_hash = patchset_hash(EXPERIMENT / "patches")
 
@@ -88,6 +89,10 @@ def main() -> int:
     require(
         lane.count("stack-usage.tar") == 6,
         "both stack-usage archives are not fully validated",
+    )
+    require(
+        'git -C "${work}/source" am --committer-date-is-author-date' in generator,
+        "generated parent history does not pin committer dates",
     )
     print("PASS: rollback Buildbox compile lane is pinned and device-inert")
     return 0
