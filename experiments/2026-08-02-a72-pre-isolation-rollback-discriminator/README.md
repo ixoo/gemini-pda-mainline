@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-02-a72-pre-isolation-rollback-discriminator` |
-| Status | `pre-latch-gate-candidate-offline-passed`: deterministic generation, model/static/mutation, compiler/binary-order, reproducible Android-v0 container, passive collector, installer, and predeployment gates all pass for padded candidate `4830a0d0…`; no device write or runtime test has occurred |
+| Status | `pre-latch-gate-deployment-deferred-power`: all offline gates pass for padded candidate `4830a0d0…`; the first live attempt stopped cleanly at 67% with USB power absent, before upload or write, and boot2 remains the exact prior candidate |
 | Subsystem | CPU8 external BUCKB preparation, MP2 reset, TOPRGU PWRAP reset, and fail-closed rollback |
 | Device variant | Named Gemini PDA development unit |
 | Date(s) | 2026-08-02 |
@@ -148,6 +148,9 @@ predeployment decision after compiler and timing review.
   exact new raw/padded identities, repeated container construction,
   independent Android-v0 analysis, revised collector/installer validation,
   and frozen deployment/runtime decision matrix.
+- [`results/deployment-attempt-2-20260802.txt`](results/deployment-attempt-2-20260802.txt):
+  clean new-candidate deferral at the normal above-80-percent gate, with no
+  upload, write, staging residue, shutdown, boot selection, or runtime action.
 
 Run from the repository root:
 
@@ -158,17 +161,16 @@ python3 experiments/2026-08-02-a72-pre-isolation-rollback-discriminator/scripts/
 
 ## Decision
 
-`pre-latch-gate-candidate-offline-passed`: attempt 1 remains runtime-inconclusive and
+`pre-latch-gate-deployment-deferred-power`: attempt 1 remains runtime-inconclusive and
 establishes neither rollback nor hardware support. The revised series fixes its
 specific orchestration defect: an early request returns before the one-shot,
 and the compiled latched path still retains the original rollback boundary. A
 new container is reproducible and its offline deployment gates pass. Runtime
-hardware behavior remains untested.
+hardware behavior remains untested; the live write was correctly deferred.
 
 ## Follow-up
 
-After this exact evidence is pushed, run the normal guarded installer from
-known-good Gemian only if every live target and above-80-percent power gate
-passes. The consumed owner battery override does not apply. After verified
-write and shutdown, manually select boot2 and run only the exact passive
-collector. Do not boot or redeploy the unchanged prior candidate.
+Charge the device above 80 percent and rerun the normal guarded installer from
+known-good Gemian. The consumed owner battery override does not apply. After
+verified write and shutdown, manually select boot2 and run only the exact
+passive collector. Do not boot or redeploy the unchanged prior candidate.

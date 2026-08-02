@@ -814,8 +814,10 @@ dominates both the atomic operation and first owner call. The new checksum-pinne
 Android-v0 raw and 16 MiB padded containers reproduce byte-for-byte, independent
 structure analysis passes, and the revised passive collector, normal installer,
 and predeployment matrix pass offline review. After that exact evidence is
-pushed, the next action is one live-gated boot2 deployment from known-good
-Gemian at above 80% battery, verified full readback, and shutdown. CPU9,
+pushed, the first live attempt correctly deferred at 67% with USB power absent,
+before upload or write; boot2 remained unchanged and no staging file remained.
+The next action is the same live-gated boot2 deployment after charging above
+80%, with verified full readback and shutdown. CPU9,
 suspend/resume, later power boundaries, a mainline provider write, and any A72
 consumer remain blocked until their separate ownership and rollback gates
 close.

@@ -1,0 +1,50 @@
+A72 rollback pre-latch gate deployment attempt 2
+Recorded: 2026-08-02 America/New_York
+
+Intended deployment
+-------------------
+candidate_artifact=gemian-a72-preiso-rollback-35306872b745
+candidate_sha256=4830a0d0e1a3cb82a13e7c34248fb95f736d9ba3c71ba8ecb82ab210389bde6d
+expected_predecessor_sha256=6a180e5a62a00cd7c97d461c7a1c491cd47802bd0964ef82f75ee793d6b8bede
+installer_sha256=3da050c542f18fe70ed87b1b86bd2049a8a999b6dc253df8569fce5e89d06fae
+target=gemini@192.168.1.50
+logical_partition=boot2
+installer=normal-above-80-percent-gate
+owner_battery_override=not-used
+
+Live observation
+----------------
+known_good_kernel=3.18.41+
+architecture=aarch64
+boot2_predecessor_sha256=6a180e5a62a00cd7c97d461c7a1c491cd47802bd0964ef82f75ee793d6b8bede
+battery_capacity=67
+battery_health=Good
+usb_online=0
+
+The exact installer passed its local candidate, manifest, source-derivation,
+target, and remote known-good checks through the live power gate. It stopped
+because capacity was not above 80 percent. The previously authorized 70%
+override was explicitly single-deployment and consumed; it was not reused.
+
+Post-deferral verification
+--------------------------
+candidate_upload=no
+remote_staging_files=0
+partition_write=no
+partition_readback=no
+boot2_after_sha256=6a180e5a62a00cd7c97d461c7a1c491cd47802bd0964ef82f75ee793d6b8bede
+shutdown=no
+boot_selection=no
+runtime_action=no
+temporary_evidence_directory=removed-empty
+
+Decision
+--------
+deployment=deferred-power-gate
+candidate_or_device_fault=no
+safety_override_requested=no
+
+Charge the named device above 80 percent, leave it in known-good Gemian, and
+rerun the same normal installer. Revalidate every live gate; do not assume that
+this observation remains current and do not substitute another partition or
+battery threshold.
