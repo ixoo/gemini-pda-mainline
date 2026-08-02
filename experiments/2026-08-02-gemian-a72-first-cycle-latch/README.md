@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-02-gemian-a72-first-cycle-latch` |
-| Status | `running`: the complete seven-patch source and executable model pass local validation; Buildbox compiler review is next and no image has been installed |
+| Status | `running`: the exact seven-patch source passes Buildbox compiler, baseline, stack, lock, timing and compatible-style review; boot-container assembly is next and no image has been installed |
 | Subsystem | MT6797 CPU8 hotplug observer and owner-local diagnostic sampling |
 | Device variant | Current named Gemini PDA unit |
 | Date(s) | 2026-08-02 |
@@ -73,6 +73,9 @@ down so the owner can manually select `boot2`.
   model; it performs no hardware or network access.
 - [`scripts/test_latch_model.py`](scripts/test_latch_model.py): positive and
   fail-closed model tests.
+- [`results/buildbox-compiler-lock-timing-review-20260802.txt`](results/buildbox-compiler-lock-timing-review-20260802.txt):
+  exact final Buildbox and host-bundle validation, selected stack frames,
+  lock/timing review, and the decision authorizing only image preparation.
 
 Local model validation:
 
@@ -110,8 +113,10 @@ python3 experiments/2026-08-02-gemian-a72-first-cycle-latch/scripts/test_latch_m
   synthetic pulse.
 - Patches 6 and 7 are real Buildbox-generated `git format-patch` files. The
   complete source passes the parent validator, 17 mutation tripwires and the
-  executable model. Compile, package, deployment and runtime observations
-  remain open.
+  executable model. Exact commit `a5b22fa59a4e45169a5c31f976b3f19df4e00bfa`
+  also passes observer/baseline compilation, identical diagnostic attribution,
+  2484-report stack validation, lock review and the one-cycle timing bound.
+  Boot packaging, deployment and runtime observations remain open.
 
 ## Analysis
 
@@ -132,6 +137,8 @@ Buildbox compiler result or hardware evidence exists yet for this revision.
 
 ## Follow-up
 
-Compile the complete series on Buildbox and review compiler diagnostics, stack,
-locks and timing before defining any boot artifact. Do not repeat the parent
-image, run the pulse, request CPU8/CPU9, or perform a native VM kernel build.
+Assemble and independently validate a new boot image from the exact accepted
+Buildbox kernel field and pinned Gemian container inputs. Do not deploy before
+the candidate identity and predeployment expectation record are frozen. Do not
+repeat the parent image, run the pulse, request CPU8/CPU9, or perform a native
+VM kernel build.

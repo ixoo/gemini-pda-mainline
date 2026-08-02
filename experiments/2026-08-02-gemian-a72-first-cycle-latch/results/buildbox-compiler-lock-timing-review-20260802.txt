@@ -1,0 +1,134 @@
+Gemian A72 first-cycle latch Buildbox compiler, lock, and timing review
+Recorded: 2026-08-02 America/New_York
+
+Reviewed identity
+-----------------
+repository_commit=a5b22fa59a4e45169a5c31f976b3f19df4e00bfa
+repository_remote=https://github.com/ixoo/gemini-pda-mainline.git
+source_commit=59e00a9144d782e148332009a835b99c43382467
+patch_count=7
+patchset_sha256=3584e9dd5ffb041573b851f31f3a96eaa0a684acb880fd59560762e5abc58be0
+baseline_config_sha256=231d8a2ffe7afac3a4cc62c27d0eb6fe8bd9165ebd096e3e3346dd6df35c18f4
+toolchain_manifest_sha256=a45d945f092461a611d276ad7d0a0fea1ea8a7f93db413908bcb892c12817d14
+buildbox_job=a5b22fa59a4e45169a5c31f976b3f19df4e00bfa-gemian-a72-owner-observer
+buildbox_package=/workspace/gemini-pda/gemian-artifacts/gemian-observer-a5b22fa59a4e
+host_fetch=artifacts/buildbox/a5b22fa59a4e45169a5c31f976b3f19df4e00bfa/gemian-observer-a5b22fa59a4e
+completed_utc=2026-08-02T18:16:06Z
+purpose=compile-review-only
+boot_candidate=false
+device_access=none
+native_vm_kernel_build=no
+
+Build and attribution gates
+---------------------------
+observer_source_build=passed
+baseline_source_build=passed
+configuration_delta=CONFIG_ANBOX-missing-to-n,CONFIG_MTK_A72_TRANSITION_OBSERVER-missing-to-y
+baseline_configuration_delta=CONFIG_ANBOX-missing-to-n
+diagnostic_comparison=byte-identical
+diagnostics=WARNING-modpost-Found-69-section-mismatches
+diagnostic_attribution=inherited-from-unpatched-baseline
+baseline_observer_symbol_exclusion=passed
+stack_usage_file_count=2484
+stack_archive_source_compare=passed
+remote_package_validation=passed
+host_SHA256SUMS_validation=passed
+
+Observer output SHA-256
+----------------------
+Image.gz-dtb=31d288ebac7bfc4b0999b9178e254e6c1493f44cec53a56ccf5d8d795cd57824
+vmlinux=764ffa3d58f4955d965bbd318a11438ac428ae27df95703c5e496273dab64559
+System.map=b69ed80cb086d1f78a3c4185865e387aabcb75080995f2fd50f68df168f7a239
+config=a7eaf67c19ad9b689457d057412019ecb75c8f4d6be1e8142060ea81861fea32
+build.log=15011cec88256b3888142d4835be3ce0089b49e1e5a8cf20e740ece6ffc56445
+diagnostics.txt=f60899a1c59153d7d36474c415bc6e302db89a74bc53a062cb56fa21eb269465
+stack-usage.tar=9ec6e829347f685f298700967028e916d2e2fdd8897bb052e66604056321ab09
+provenance/build.json=c48719b7ab9e5c560742a13ac8d9112cd3ae92802b53e65f89a72ebe814bce79
+SHA256SUMS=0a1a64f38a46260974717dad9f621921e8497ce52a9e5fdb8ec7399f5bb8ba38
+
+Selected GCC stack use in bytes
+-------------------------------
+mt6797_a72_obs_append=64
+mt6797_a72_obs_proc_open=80
+mt6797_a72_obs_proc_show=112
+mt6797_a72_obs_accepts_sampling=48
+mt6797_a72_obs_active_cpu=48
+mt6797_a72_obs_tx_begin=48
+mt6797_a72_obs_tx_finish=32
+mt6797_a72_obs_fixed_snapshot=32
+cpu_power_on_buck=64
+cpu_psci_cpu_boot=96
+cpu_psci_cpu_kill=128
+dcm_mcusys_mp2_sync_dcm=80
+mt6797_a72_obs_dcm_snapshot=80
+largest_changed_hotplug_frame=128
+largest_parent-hotplug-chain-frame=hps_algo_main-688
+stack_gate=passed
+
+Lock review
+-----------
+- State, transaction slots, retained count, terminal metadata, and record copy
+  share the existing IRQ-safe observer spinlock. The append critical section
+  adds only fixed comparisons and one 104-byte record copy; it allocates,
+  sleeps, prints, retries, and touches hardware zero times.
+- Every sampling-state query releases the observer lock before acquiring an
+  owner mutex or spinlock. DA9214, SPM, clock, DCM, and TOPRGU therefore add no
+  nested observer-to-owner lock hold.
+- Owner records still append only after DA9214, SPM, clock, DCM, or TOPRGU
+  owner locks are released. No owner-to-observer nested lock hold is added.
+- CPU9 overlap can freeze under the observer lock. A pure snapshot that passed
+  its outer composite gate rechecks at its owner entry and returns before
+  hardware access if the state became terminal concurrently.
+- Proc open allocates before locking, copies at most 256 records, and formats
+  after unlock. A completed natural pair is expected to stop far below that
+  maximum; overflow freezes before any wraparound write.
+owner_lock_gate=passed
+
+Timing and hardware-effect review
+---------------------------------
+- During the one captured CPU8 pair, the accepted five-patch timing bound is
+  unchanged: four broad boundary snapshots, 52 secure reads, 12 to 24 DA9214
+  I2C transactions, 24 SPM reads, four immediate no-wait clock probes, and four
+  DCM reads. No snapshot is reintroduced inside either 240-microsecond
+  SRAM-LDO interval.
+- Before the first HPS CPU8-up begin, in the inter-transaction wait, and after
+  every terminal state, pure DA9214, SPM, secure, clock, and DCM entry points
+  return before hardware access.
+- Outside capture, SPM returns false to the existing exact direct-RMW fallback;
+  BUCKB executes the same two vendor register calls; MP2 DCM executes the
+  original uninstrumented two-write branch; TOPRGU receives no valid observer
+  CPU and suppresses added readback. Real iDVFS, SRAM-LDO, PSCI, and hotplug
+  operations are never gated.
+- The new state and query work adds bounded spinlock acquisition but no delay,
+  retry, allocation, I2C, secure call, MMIO, semaphore wait, print, warning, or
+  panic.
+bounded_timing_gate=passed
+post_terminal_observer_hardware_effect=none
+production_suitability=no
+
+Compatible checkpatch
+---------------------
+Linux 7.1.3 scripts/checkpatch.pl --no-tree - was run on patches 6 and 7.
+Each reports exactly 1 error and 0 warnings. The sole error is the intentionally
+absent Signed-off-by for a synthetic, non-submission-ready experiment author.
+No certifying identity is invented.
+
+Decision
+--------
+compiler_gate=passed
+configuration_gate=passed
+baseline_attribution_gate=passed
+stack_gate=passed
+owner_lock_gate=passed
+bounded_timing_gate=passed
+source_patch_style_gate=passed-with-required-absent-synthetic-signoff
+boot_image_preparation_authorized=yes
+device_deployment_authorized=no
+
+Next action
+-----------
+Assemble a separate Android-v0 boot image using this exact Image.gz-dtb and the
+already pinned active Gemian ramdisk, command line, addresses, page size, and
+container contract. Require two independent byte-identical assembly paths,
+exact 16 MiB padding, offline unpack validation, a new candidate identity, and
+a predeployment hypothesis/expectation record before any guarded boot2 write.

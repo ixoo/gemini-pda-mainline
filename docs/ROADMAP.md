@@ -731,9 +731,13 @@ ownership/rollback audit. The first-complete-cycle latch now has a frozen
 state, concurrency, ABI and owner-effect contract plus an executable reference
 model covering the success path and eight fail-closed boundaries. Two logical
 patches now implement the recorder latch and per-owner effect gate; the
-complete source passes 17 mutation tripwires. The next ordered action is to
-compile only the exact clean pushed revision on Buildbox and review compiler,
-stack, lock and timing evidence before defining a boot artifact. Pure
+complete source passes 17 mutation tripwires. Exact pushed commit `a5b22fa`
+passes the dedicated Buildbox observer/baseline compile, byte-identical
+diagnostic attribution, 2484-report stack gate, owner-lock review, and bounded
+one-cycle timing review. The next ordered action is to assemble and
+independently validate a new Android-v0 boot container from that exact kernel
+field and the pinned Gemian ramdisk/container inputs, then freeze candidate
+identity and predeployment expectations before any guarded `boot2` write. Pure
 diagnostic sampling is suppressed outside capture while the exact vendor SPM,
 BUCKB, DCM, TOPRGU, iDVFS, SRAM-LDO, PSCI and hotplug operations remain
 reachable. Suspend/resume ownership and bounded
