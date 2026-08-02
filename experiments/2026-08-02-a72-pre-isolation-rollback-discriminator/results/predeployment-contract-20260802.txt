@@ -1,0 +1,130 @@
+A72 pre-isolation rollback predeployment contract
+Recorded: 2026-08-02 America/New_York
+
+Status
+------
+contract=frozen-before-container-assembly
+container_assembled=no
+installer_validated=no
+device_access=none
+deployment_authorized=no
+
+Exact compiled input
+--------------------
+repository_commit=090f148d9ce8473331a7c9efdf15aa7acb3c3806
+source_commit=59e00a9144d782e148332009a835b99c43382467
+parent_patchset_sha256=3584e9dd5ffb041573b851f31f3a96eaa0a684acb880fd59560762e5abc58be0
+rollback_patchset_sha256=f034724759eebc611d6f16dea3448f1ee1ebcff0939a6e62e686c0a6261162a7
+kernel_field_sha256=9e6b051527fbaf2b0de50da49a78a3714d9123884f6e76e7f1384dfb2200d034
+expected_release=3.18.41+
+expected_build_identity=#1 SMP PREEMPT Sun Aug 2 21:22:32 UTC 2026
+expected_observer_abi=mt6797-a72-transition-observer-v3
+observer_path=/proc/mt6797_a72_transition
+
+Container derivation gate
+-------------------------
+The next offline step may assemble an Android boot-image-v0 container only
+from the exact kernel field above and the already verified Gemian container
+contract. It must retain the exact active ramdisk with SHA-256
+a1ee05445e9a2bd8fbc1f75d7cda326b9ca7a6d3b644cbb1d5fc0ac167835be4,
+the command line, page size, load addresses, empty second payload, empty legacy
+DT field, and zero padding. Two independent assemblies and two exact 16 MiB
+padding methods must be byte-identical. Record the raw and padded identities
+before an installer is prepared. A compile output alone is not installable.
+
+Exact runtime stimulus
+----------------------
+Natural Gemian policy supplies the only trigger by requesting CPU8 through the
+normal hotplug path. There is no userspace trigger and no synthetic load. The
+first CPU8 request on the boot may run the compiled discriminator once. It
+must return -ECANCELED after recording one terminal result. Every later CPU8
+request must return -EALREADY before hardware-owner operations. Every CPU9
+request must return -EPERM. CPU8 and CPU9 must remain offline.
+
+The first runtime action after exact identity validation is passive observer
+retrieval. Do not write CPU online controls, alter HPS/PPM, run a load pulse,
+suspend, re-arm the observer, access register/SMC/I2C controls, or request
+CPU9. Copy the observer before optional USB/power reporting and require a
+second byte-identical copy after two seconds for every terminal state.
+
+What the owner should expect
+----------------------------
+The eventual guarded installer must run only from ordinary known-good Gemian.
+After a verified logical-boot2 write it will shut the device down and will not
+reboot. The owner then manually selects boot2.
+
+The candidate will retain the exact Gemian ramdisk, command line, and root
+filesystem, so its screen and userspace should look like ordinary Gemian.
+USB/netcat and console service may be delayed. White or grey screen behavior,
+an apparent reboot, or familiar Gemian visuals are not kernel identity. The
+selected candidate is established only by the full boot2 checksum, running
+build identity, and ABI-v3 observer header.
+
+Expected exact rolled-back record
+---------------------------------
+The header must be:
+
+  abi=mt6797-a72-transition-observer-v3 state=rolled-back count=30 overflow=0 up_tx=U down_tx=0
+
+U must be nonzero. All records must target CPU8 and share that transaction;
+there must be no CPU9, down transaction, or overflow. In timestamp order the
+records must prove:
+
+1. one HPS CPU8-up begin;
+2. entry clock, secure, DCM, DA921x, two SPM, and TOPRGU checks;
+3. exact SPM-reset release, TOPRGU assertion, BUCKB enable and settled readback;
+4. the pre-isolation injection marker;
+5. BUCKB disable, two SPM rollback checks/updates, and TOPRGU deassertion;
+6. exact final DA921x, two SPM, TOPRGU, secure, DCM, and clock checks;
+7. the five-component fixed final snapshot; and
+8. one rolled-back terminal record.
+
+The final state must equal the entry contract: DA921x page 0x80, BUCKB off,
+VSEL 0x46; SPM 0x218=0x00010132 and 0x290=0x2; TOPRGU bit 11 clear; secure
+and DCM zero; clock fields equal; CPU8/9 offline. There must be no
+external-isolation clear, SRAM-LDO, PSCI CPU_ON/raw result, DCM enable, iDVFS,
+secondary-online, CPU9, or later A72 boundary record.
+
+Other terminal classifications
+------------------------------
+- rejected-prestate: expect 14 records (HPS begin, seven entry checks, five
+  final fixed snapshots, terminal), no regulator/SPM/TOPRGU mutation, and no
+  retry. Preserve the exact mismatch and return to known-good Gemian.
+- fault-retain: preserve the complete variable-length record. Require the
+  terminal state to be stable, do not infer rollback, and recover only through
+  the ordinary reset/boot path after evidence is copied.
+- frozen-protocol, frozen-overflow, wrong count/order, CPU9, forbidden phase,
+  unstable copies, wrong identity, panic, reset, or service loss: reject
+  attribution and prohibit another attempt pending review.
+- wait-up or capture-up with no terminal record: preserve as incomplete and do
+  not stimulate or repeat unchanged.
+
+Result to next action
+---------------------
+- Exact rolled-back: return to ordinary Gemian, verify known-good identity,
+  record the evidence, and close only the pre-isolation BUCKB/reset rollback
+  row. Do not proceed directly to external isolation or CPU9.
+- Any other state: return to ordinary Gemian when safely possible, preserve
+  evidence, and stop for design review. Never retry on the same boot.
+
+After evidence is secured, the host may use the established USB/netcat shell
+to request the ordinary native reboot to Gemian and verify the known-good
+identity. If the shell is unavailable, do not improvise a remote power action;
+the owner may physically select Gemian. A reboot is recovery, not proof that
+rollback succeeded.
+
+Deployment boundary
+-------------------
+Only the standing guarded logical-boot2 procedure is eligible after separate
+container, collector, and installer validation. Resolve boot2 from the live
+GPT and require the exact named Gemini, stable power, exact size, writable
+state, and inactive/unmounted target. The expected predecessor is the last
+verified first-cycle-latch padded checksum
+6dcbda0cb264f5b637f6333f4946707d81ea98d38a8d52673b6fbe2cf109e3af;
+any other live checksum stops for reconciliation. Do not create a fresh
+backup. Record the predecessor, write only the exact padded image, sync and
+flush, require matching full-partition readback, and shut down cleanly. Never
+substitute boot, boot3, GPT, preloader, NVRAM, or the whole device.
+
+decision=eligible-for-offline-container-and-collector-design
+hardware_result=pending

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-02-a72-pre-isolation-rollback-discriminator` |
-| Status | `compile-and-timing-review-complete`: the exact rollback and parent-observer trees compiled on Buildbox with identical diagnostics, retained stack evidence, exact symbol attribution, and passing owner-lock/timing review; the next action is a separate predeployment contract, with no deployment or device action yet authorized |
+| Status | `predeployment-contract-frozen`: the exact rollback and parent-observer trees compiled on Buildbox with identical diagnostics, retained stack evidence, exact symbol attribution, and passing owner-lock/timing review; the one-shot trigger, immutable result classes, recovery, and deployment boundary are now frozen before container assembly, with no deployment or device action yet authorized |
 | Subsystem | CPU8 external BUCKB preparation, MP2 reset, TOPRGU PWRAP reset, and fail-closed rollback |
 | Device variant | Named Gemini PDA development unit |
 | Date(s) | 2026-08-02 |
@@ -98,6 +98,10 @@ predeployment decision after compiler and timing review.
 - [`results/compiler-and-timing-review-20260802.txt`](results/compiler-and-timing-review-20260802.txt):
   owner-lock composition, bounded successful-path operations, forbidden
   boundaries, stack adjudication, and the predeployment-only decision.
+- [`results/predeployment-contract-20260802.txt`](results/predeployment-contract-20260802.txt):
+  exact compiled identity, natural one-shot trigger, 30-record rollback result,
+  14-record pre-state rejection, owner expectations, recovery, and guarded
+  deployment boundary frozen before container assembly.
 
 Run from the repository root:
 
@@ -108,16 +112,16 @@ python3 experiments/2026-08-02-a72-pre-isolation-rollback-discriminator/scripts/
 
 ## Decision
 
-`compile-and-timing-review-passed`: the exact generated series implements the
+`predeployment-contract-frozen`: the exact generated series implements the
 bounded and falsifiable rollback question without crossing external isolation,
 compiles against its exact parent observer with no new diagnostic, and adds no
-unsafe owner-lock nesting, polling loop, or semaphore wait loop. The result is
-not a boot candidate, hardware-support claim, or deployment authorization.
+unsafe owner-lock nesting, polling loop, or semaphore wait loop. Its offline
+runtime and recovery decisions are now explicit. The result is not yet a boot
+candidate, hardware-support claim, or deployment authorization.
 
 ## Follow-up
 
-Freeze a separate predeployment contract covering the one-shot CPU8 trigger,
-exact predecessor and candidate identities, watchdog and serviceability gates,
-immutable evidence retrieval before overwrite, result classification, and
-fail-closed handling. Review that contract before assembling any boot image or
-accessing the device. Compilation alone does not authorize deployment.
+Assemble and independently verify a reproducible Android-v0 container from the
+exact compiled kernel and retained Gemian ramdisk, then design and mutation-test
+a passive ABI-v3 collector. Do not access the device or prepare a write until
+the container, collector, and installer each pass their separate offline gates.

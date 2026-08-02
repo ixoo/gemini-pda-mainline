@@ -770,11 +770,15 @@ nesting, and timing review bounds the successful one-shot path to the inherited
 1 ms settle, immediate clock probes, and fixed DA921x/SPM/TOPRGU/secure/DCM
 operations without crossing external isolation or reaching PSCI, DCM enable,
 iDVFS, SRAM-LDO, or CPU9. The patches remain experiment-only and deliberately
-lack a synthetic DCO sign-off. The immediate ordered action is a separate
-predeployment contract review that freezes trigger, predecessor/candidate
-identity, watchdog/serviceability gates, immutable evidence retrieval, result
-classification, and fail-closed handling before any boot image is assembled.
-Compilation and timing review do not authorize deployment. CPU9,
+lack a synthetic DCO sign-off. The separate predeployment contract now freezes
+the natural one-shot CPU8 trigger, exact compiled identity, expected 30-record
+rollback and 14-record pre-state-rejection shapes, immutable two-read evidence,
+known-good recovery, owner-visible expectations, and guarded logical-boot2
+boundary before container assembly. The immediate ordered action is
+reproducible Android-v0 container assembly and independent validation, followed
+by a mutation-tested passive ABI-v3 collector; no device access or installer
+write is yet authorized. Compilation and contract review do not authorize
+deployment. CPU9,
 suspend/resume, later power boundaries, a mainline provider write, and any A72
 consumer remain blocked until their separate ownership and rollback gates
 close.
