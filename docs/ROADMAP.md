@@ -698,10 +698,16 @@ diagnostics and case-safe stack retrieval, and proved the compiled 26624-byte
 ring. Replacement lock/timing review passes for one bounded diagnostic capture:
 there is no snapshot inside the 240-microsecond SRAM-LDO intervals and no
 semaphore wait, although one complete cycle still adds 52 secure reads and 12
-to 24 I2C transactions. The next result is a separate recoverable boot-image
-experiment with exact container identity, one natural transition hypothesis,
-stop conditions, and evidence retrieval—not deployment of the compile-review
-package itself.
+to 24 I2C transactions. The separate boot-image experiment now passes offline:
+two raw assemblies and two 16 MiB padding methods are byte-identical, while the
+active Gemian ramdisk, command line, addresses, and appended-DTB contract remain
+exact. The raw image is `d3ec1e13123e…` and the padded image is
+`33ace2c30a88…`. Its predeployment contract now pins one natural CPU8 cycle,
+exact initial identity, stop conditions, observer ordering/retrieval, and a
+result-to-next-action matrix. The next result is an exact guarded installer and
+validated logical-`boot2` readback followed by shutdown; the owner then selects
+`boot2` manually. Boot alone remains hardware-inconclusive until the one-cycle
+record is retrieved and reviewed.
 
 Exit: observations and inference are separated, every required writer has one
 owner, and a failed step has a bounded rollback path.

@@ -1,0 +1,122 @@
+Gemian bounded A72 owner-observer predeployment hypothesis
+Recorded: 2026-08-02 America/New_York
+
+Exact candidate
+---------------
+raw_sha256=d3ec1e13123e662076bdbbbde86f118a46cc30f4490f928e216bd783b37e088a
+raw_size=14794752
+padded_sha256=33ace2c30a8877be2a4b917135aa994ad718201f98ec36d8506a3b1f1d03a7aa
+padded_size=16777216
+kernel_field_sha256=5864c083a156fcb023e62a5e8dd3fd4c75d68fb119c82492ed4653065ca39a18
+active_ramdisk_sha256=a1ee05445e9a2bd8fbc1f75d7cda326b9ca7a6d3b644cbb1d5fc0ac167835be4
+expected_release=3.18.41+
+expected_build_identity=#1 SMP PREEMPT Sun Aug 2 14:14:43 UTC 2026
+expected_observer_abi=mt6797-a72-transition-observer-v1
+observer_path=/proc/mt6797_a72_transition
+
+Kernel and transition hypothesis
+--------------------------------
+The exact reviewed observer image will boot the unchanged Gemian userspace and
+leave CPU8 and CPU9 initially offline long enough to retrieve a point-in-time
+observer snapshot. If no A72 transaction occurred during boot, the single
+previously calibrated two-worker pulse will produce at most one CPU8
+online/offline cycle. The owner-local ring will correlate the HPS request,
+boundary states, mutations, raw and mapped PSCI results, secondary-online
+publication, offline entry, affinity result, and final state under one CPU8
+transaction identity. CPU9 is not an intended result.
+
+Unique attributable evidence
+----------------------------
+Before a load pulse, require all of:
+
+1. the installed full-partition readback matches exact padded SHA-256
+   `33ace2c30a8877be2a4b917135aa994ad718201f98ec36d8506a3b1f1d03a7aa`;
+2. the owner manually selected logical `boot2` after the installer shutdown;
+3. `/proc/version` contains the exact build identity above;
+4. the observer proc header exposes the exact ABI above;
+5. CPU8 and CPU9 are both offline in repeated direct reads;
+6. no prior transaction record is present in the first immutable proc copy;
+7. power is USB, battery is Full/100%/Good, and temperatures are below the
+   calibrated independent limits; and
+8. the console or a bounded authenticated Gemian service path can retrieve the
+   observer and terminate load.
+
+If boot itself produced observer records, retrieve them and end the run without
+adding load. They are boot-associated evidence, not a calibrated-pulse result.
+
+Single permitted stimulus
+-------------------------
+Only when every precondition passes, run the previously validated two-worker
+userspace CPU-load pulse once. Each worker has a three-second TERM deadline and
+one-second KILL grace. Remove load immediately on an A72 observation. Preserve
+the immutable observer copy from before the pulse and one copy after the pulse
+plus bounded CPU masks, temperatures, power state, boot ID, and filtered kernel
+messages. Do not clear the ring, request a CPU through sysfs, alter HPS/PPM,
+write an I2C/register/SMC interface, or repeat the pulse.
+
+Expected attributable ordering
+-------------------------------
+For a complete CPU8 cycle, require one CPU8 transaction containing these
+ordered lifecycle boundaries, with typed owner records allowed between them:
+
+1. `HPS_CPU_UP_BEGIN`;
+2. `POWER_ON_ENTER` and `POWER_ON_PRE` broad boundary snapshot;
+3. owner-local enable mutations and raw then mapped PSCI result;
+4. `IDVFS_ENABLE` and its broad post boundary snapshot;
+5. `SECONDARY_ONLINE` before successful `HPS_CPU_UP_END`;
+6. `HPS_CPU_DOWN_BEGIN` and `CPU_DISABLE`;
+7. `LAST_A72_OFFLINE` broad pre boundary, iDVFS disable, affinity evidence,
+   and owner-local disable mutations; and
+8. `OFFLINE_FINAL` followed by its broad final boundary and successful
+   `HPS_CPU_DOWN_END`.
+
+Every DA9214 snapshot must report successful page restoration or its deliberate
+PAGE_REVERT no-verify state; the secure sentinel must be stable. Clock
+contention may be a typed immediate `-EBUSY`, but no timeout is valid in the
+bounded revision. Mutation readbacks must match their recorded requests where
+the owner contract defines equality. Any missing transaction boundary,
+overwrite, CPU ambiguity, unexpected CPU9 record, or failure return makes the
+hardware conclusion inconclusive or rejected, never silently successful.
+
+Stop conditions
+---------------
+- wrong installed/readback hash, boot identity, ABI, or proc mode;
+- CPU8 or CPU9 already online without attributable retained records;
+- more than one transaction before the pulse;
+- CPU9 activity at any time;
+- USB/power/battery drift;
+- CPU or AP temperature at or above 50 C, PMIC at or above 60 C, or DA9214 at
+  or above 80 C;
+- observer overwrite, read failure, shell loss, hung worker, kernel warning,
+  panic, reboot, or unexpected return code; or
+- failure to regain both-A72-offline state during the bounded cooldown.
+
+Result-to-next-action matrix
+----------------------------
+- Complete, internally consistent CPU8 cycle: return to known-good Gemian,
+  review exact owner values, and use them to constrain the passive provider and
+  later mainline sequence. Do not immediately repeat or enable CPU9.
+- Boot-associated records before load: retrieve once, skip load, return to
+  Gemian, and decide whether their attribution is sufficient.
+- No CPU8 after the one pulse: record `inconclusive`, do not repeat unchanged,
+  return to Gemian, and revise only the trigger hypothesis.
+- CPU8 observation with incomplete, unstable, failed, or overwritten records:
+  record `inconclusive` or `rejected`, return to Gemian, and revise the observer
+  or safety model before another boot.
+- CPU9 activity, crash, reset, power/temperature fault, or failure to return
+  offline: record `rejected`, remove load, recover through the known-good
+  Gemian selection, and prohibit another active-A72 attempt pending review.
+
+Deployment boundary
+-------------------
+The candidate is eligible only for the standing logical-`boot2` workflow from
+known-good Gemian. Resolve the live GPT each time; require exact identity, size,
+writable state, inactive/unmounted target, and stable power. Do not make a fresh
+partition backup. Skip an identical full-partition hash. Otherwise record the
+predecessor hash, write the exact 16 MiB image, sync/flush, require a matching
+full readback, record sanitized evidence, and shut down cleanly. Never reboot
+automatically or substitute `boot`, `boot3`, GPT, preloader, NVRAM, or a whole
+device.
+
+decision=eligible-for-guarded-boot2-deployment
+hardware_result=pending

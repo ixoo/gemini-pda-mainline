@@ -28,6 +28,12 @@ the loop. Positive identity-gated observations are unaffected.
   boundaries. Forward physical writers are substantially assigned, but Gate 4
   remains open on synchronized pre-state/readback, three rollback classes, and
   suspend/resume ownership; the next action is the owner-local Gemian observer.
+- [2026-08-02 bounded Gemian A72 observer boot image](2026-08-02-gemian-a72-bounded-observer-boot/README.md)
+  — replaces only the exact active Gemian Android-v0 kernel field with the
+  compiler/timing-reviewed five-patch observer. Two raw assemblies and two
+  independent 16 MiB padding methods are byte-identical; the active ramdisk,
+  command line, addresses, and appended-DTB contract are pinned. Runtime and
+  deployment remain pending a one-cycle evidence contract.
 - [2026-08-01 DA921x post-event identification lifecycle](2026-08-01-da921x-post-event-lifecycle/README.md)
   — natural bind, zero-transaction unbind, and one read-only rebind reached
   exact `14 -> 14 -> 28` counts with every DMA/write/other counter zero,
@@ -172,9 +178,11 @@ the loop. Positive identity-gated observations are unaffected.
   — records guarded block access, live GPT resolution, readback, and protected
   primary-boot constraints.
 - [2026-07-23 Gemian A72 owner observer](2026-07-23-gemian-a72-owner-observer/README.md)
-  — records the incomplete attempt to instrument the vendor transition owners;
-  its pinned Buildbox inputs now resolve, but a runnable relocated compiler and
-  any source-build or hardware evidence remain pending.
+  — records the five-patch owner-local diagnostic series. Exact observer and
+  unpatched-baseline builds pass with pinned GCC 6.3, byte-identical diagnostics,
+  2484 case-preserved stack reports, a 256-record ring, immediate-only clock
+  semaphore probe, four boundary snapshots, and bounded timing acceptance for
+  one diagnostic capture. Hardware evidence remains pending.
 - [2026-07-22 Gemian A72 read-only discovery](2026-07-22-gemian-a72-readonly-discovery/README.md)
   — collected safe, read-only power and clock surfaces without an A72
   transition.

@@ -1,0 +1,56 @@
+Gemian bounded A72 observer boot2 installer validation
+Recorded: 2026-08-02 America/New_York
+
+Inputs
+------
+source_installer=experiments/2026-07-29-da921x-probe-isolation/scripts/install-boot2.sh
+source_installer_sha256=0c669ab85063015fa83b7e28a506e1bcf8cdafc4994726009becf92151fda7e7
+derived_wrapper_sha256=76df7835399d6a2309f61a0aea0ca789911f7d404d098a16f978cb555132a0bf
+artifact_name=gemian-a72-bounded-observer-d3ec1e13123e
+artifact_manifest_sha256=880fa678eff2641a1559e65aef1f6904d608a49507285e3ef77de884bc21098c
+expected_predecessor_sha256=805c3c1ce28131847924679a70186a75d277da3ab2be9565cea02bf546150f28
+candidate_sha256=33ace2c30a8877be2a4b917135aa994ad718201f98ec36d8506a3b1f1d03a7aa
+candidate_size=16777216
+target=gemini@192.168.1.50
+target_logical_name=boot2
+
+Static validation
+-----------------
+bash_syntax=passed
+shellcheck_managed_vm=passed
+source_hash_gate=passed
+derived_exact_token_gates=passed
+derived_help_invocation=passed
+candidate_manifest_validation=passed
+device_access=none
+partition_write=none
+
+Guarded behavior retained from the source-pinned installer
+-----------------------------------------------------------
+- accepts only exact target `gemini@192.168.1.50` and the ignored local key;
+- requires known-good AArch64 Gemian `3.18.41+`, unchanged boot ID,
+  passwordless sudo, and systemd poweroff;
+- resolves exactly one live-GPT `boot2` row and checks the by-partlabel link,
+  16 MiB size, writable state, `mmcblk0` parent, inactive root, unmounted state,
+  no holders, and no swap;
+- requires Good battery health and capacity above 80 percent;
+- accepts only the exact Stage27 predecessor or the already-matching candidate;
+- records the predecessor checksum without creating a fresh backup;
+- uploads only to a mode-0600 bounded temporary path;
+- writes exactly four 4 MiB blocks, syncs, flushes, and verifies the full remote
+  partition checksum;
+- streams one independent full readback, checks size, checksum, and byte equality,
+  then removes the temporary readback;
+- writes only sanitized ignored deployment evidence; and
+- requests clean poweroff and requires the device to become unreachable. It
+  never reboots automatically.
+
+Decision
+--------
+installer_static_gate=passed
+deployment_eligible=yes
+device_state_change=none
+
+Actual deployment remains a separate execution from known-good Gemian. Any live
+gate failure defers the write and must not substitute a partition or relax an
+identity check.

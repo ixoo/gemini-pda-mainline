@@ -1,0 +1,71 @@
+Gemian bounded A72 owner-observer offline container validation
+Recorded: 2026-08-02 America/New_York
+
+Inputs
+------
+repository_commit=bc01fc33ec60540b86cd1133697c6fc4a6d1b857
+observer_patchset_sha256=85ac017a2fec821ee930a74d021cb6d2224ea958929c5bbffaf7ec480e19f9c9
+kernel_field_sha256=5864c083a156fcb023e62a5e8dd3fd4c75d68fb119c82492ed4653065ca39a18
+kernel_field_size=8436300
+decompressed_image_size=20095168
+appended_dtb_size=130745
+active_boot_sha256=1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513
+active_ramdisk_sha256=a1ee05445e9a2bd8fbc1f75d7cda326b9ca7a6d3b644cbb1d5fc0ac167835be4
+active_ramdisk_size=6354621
+
+Construction
+------------
+private_artifact=artifacts/boot-candidates/gemian-a72-bounded-observer-d3ec1e13123e
+raw_image=gemian-a72-bounded-owner-observer.boot.img
+raw_sha256=d3ec1e13123e662076bdbbbde86f118a46cc30f4490f928e216bd783b37e088a
+raw_size=14794752
+padded_image=boot2-padded.img
+padded_sha256=33ace2c30a8877be2a4b917135aa994ad718201f98ec36d8506a3b1f1d03a7aa
+padded_size=16777216
+raw_assemblies_identical=yes
+padded_constructions_identical=yes
+zero_tail_verified=yes
+private_manifest_validation=passed
+
+Independent structural analysis
+-------------------------------
+format=Android boot image v0
+layout=complete
+page_size=2048
+name=empty
+kernel_addr=0x40080000
+ramdisk_addr=0x45000000
+second_addr=0x40f00000
+tags_addr=0x44000000
+second_size=0
+legacy_dt_size=0
+cmdline=bootopt=64S3,32N2,64N2 log_buf_len=4M
+appended_dtb_offset=8307603
+appended_dtb_size=130745
+
+The active ramdisk is byte-identical. The only payload delta is the reviewed
+kernel field, which already contains its compiled appended DTB. The v0 image ID
+was recomputed over the new kernel field, exact active ramdisk, and empty second
+payload. All inter-field and trailing padding is zero.
+
+Validation
+----------
+assembler_positive_run=passed
+two_raw_assemblies=byte-identical
+two_padding_methods=byte-identical
+existing_boot_analyzer=complete
+bash_syntax=passed
+shellcheck_managed_vm=passed
+device_access=none
+partition_write=none
+runtime_result=not-tested
+
+Decision
+--------
+offline_container_gate=passed
+deployment_gate=pending
+
+The binary is a reproducible, size-valid container but has not booted. Before a
+partition write, the experiment must pin the one-cycle runtime hypothesis,
+pre-load stop conditions, exact observer retrieval, result interpretation, and
+known-good recovery action.
