@@ -244,7 +244,7 @@ void mt6797_a72_obs_dcm_snapshot(unsigned int cpu, u16 phase)
     block_end += len(block_end_marker)
     lines = text[block_start:block_end].splitlines(keepends=True)
     indented = [lines[0]]
-    indented.extend("\t" + line for line in lines[1:-2])
+    indented.extend("\t" + line if line.strip() else line for line in lines[1:-2])
     indented.extend(lines[-2:])
     dcm.write_text(text[:block_start] + "".join(indented) + text[block_end:])
     replace_once(
