@@ -229,7 +229,7 @@ def validate(patch_dir: Path, source: Path | None = None) -> None:
     if source is not None:
         psci = (source / "arch/arm64/kernel/psci.c").read_text()
         require(
-            psci.count("err = psci_ops.cpu_on(") == 1,
+            psci.count("err = psci_ops.cpu_on(") == 2,
             "final source PSCI call count changed",
         )
         ordered(
