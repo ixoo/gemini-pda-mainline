@@ -1,0 +1,123 @@
+Gemian bounded A72 owner-observer runtime attempt 1
+Recorded: 2026-08-02 America/New_York
+
+Selection and identity
+----------------------
+owner_report=appeared-to-return-to-gemian
+live_gpt_boot2=/dev/mmcblk0p30
+live_root=/dev/mmcblk0p29
+live_boot2_sha256=33ace2c30a8877be2a4b917135aa994ad718201f98ec36d8506a3b1f1d03a7aa
+expected_candidate_sha256=33ace2c30a8877be2a4b917135aa994ad718201f98ec36d8506a3b1f1d03a7aa
+running_release=3.18.41+
+running_build_identity=#1 SMP PREEMPT Sun Aug 2 14:14:43 UTC 2026
+selection_result=exact-boot2-observer-kernel-confirmed
+
+The candidate deliberately retained the active Gemian ramdisk and root
+filesystem, so its userspace and visual behavior were expected to look like
+Gemian. The exact running build identity, not appearance, proves that LK
+selected the observer kernel stored in logical boot2. A fresh full-partition
+checksum independently confirmed that boot2 still contained the exact
+installed candidate.
+
+Initial gate
+------------
+initial_collector_status=stopped-before-observer-copy
+initial_collector_failure=usb-power-absent
+usb_online=0
+ac_online=0
+battery_status=Not-charging
+battery_capacity=99
+battery_health=Good
+cpu8_after_gate_stop=0
+cpu9_after_gate_stop=0
+synthetic_load_workers=0
+pulse_executed=no
+
+The exact no-load collector correctly stopped because its required USB-power
+gate was false. A subsequent read-only header showed a full, overwritten ring.
+The full boot2 checksum and authenticated diagnostic reads occurred before the
+immutable ring copy and can themselves create ordinary scheduler demand.
+Together with the unknown interval before reachability, this prevents a claim
+that the retained transitions were boot-only or attributable to a clean
+pre-pulse baseline.
+
+Immutable observer evidence
+---------------------------
+capture=results/runtime-attempt-1-overwritten-ring-20260802.txt
+capture_sha256=c0a8081f809bfff51c1043e46ca9e242af0051e265b718728573fd3479cbdd48
+observer_abi=mt6797-a72-transition-observer-v1
+ring_count=256
+ring_overwritten=3474
+sequence_range=3475-3730
+transaction_range=180-191
+complete_cpu8_up_transactions=182,184,186,188,190
+complete_cpu8_down_transactions=181,183,185,187,189,191
+partial_transactions=180
+cpu9_records=0
+
+The retained tail contains five complete CPU8-up transactions and six complete
+CPU8-down transactions. Every complete up transition records HPS begin,
+power-on pre-state, SPM reset release, TOPRGU assert/deassert, BUCKB enable,
+SRAM-LDO result, raw and mapped PSCI success, MP2 DCM enable, iDVFS enable,
+secondary-online publication, the bounded post-state, and successful HPS end.
+Every complete down transition records HPS begin, CPU disable, last-A72
+offline, iDVFS disable, affinity result, BUCKB disable, final state, and
+successful HPS end.
+
+Payload and ordering validation
+-------------------------------
+analyzer_sha256=5f5ee7f04caad30e12674de69e86d38649a0ea10d4fb412c5f0a9c5ad29872dc
+analyzer_test_sha256=78b3875008ae105981b89107d31ff0300881aea51c43995bb85b93a785dc6c43
+positive_exact_capture=passed
+fail_closed_mutations=9
+da9214_status_and_page_restore=passed
+secure_validity_and_stability=passed
+clock_immediate_snapshot=passed
+spm_validity=passed
+mutation_masked_readback=passed
+psci_raw_mapped_identity=passed
+timestamp_ordering=passed
+sequence_timestamp_inversions=1
+phase22_vsel_counts=0x32:2,0x3a:4
+
+Every retained DA9214 record has status zero and preserves page selector
+`0x80`; BUCKB changes `0 -> 1` on each complete up and `1 -> 0` on each
+complete down. Every secure snapshot has complete validity and a stable
+sentinel. Every clock snapshot succeeds with the immediate semaphore result.
+SPM validity is complete, and masked TOPRGU/SPM mutation readbacks match their
+requests. Raw and mapped PSCI records agree and return success.
+
+One cross-CPU append-order inversion exists: sequence 3703, emitted by CPU8 for
+`SECONDARY_ONLINE`, precedes sequence 3704 in the ring, while their timestamps
+show the CPU0 `IDVFS_ENABLE` record occurred 231 ns earlier. Ordering analysis
+therefore uses monotonic timestamps with sequence as a tie-breaker. All five
+complete up transactions retain iDVFS enable before secondary-online by that
+clock.
+
+The last-A72-offline boundary saw BUCKB VSEL `0x32` twice and `0x3a` four
+times; the subsequent disable snapshots consistently show VSEL `0x46`. These
+are direct observations from the exact retained transactions, but their policy
+or workload attribution is not established by this attempt.
+
+Recovery
+--------
+shutdown_requested=clean-systemd-poweroff
+post_shutdown_reachability=unreachable
+automatic_reboot=no
+next_boot=owner-selects-known-good-primary-gemian
+
+Decision
+--------
+boot2_installation=confirmed
+boot2_selection=confirmed-by-exact-running-kernel
+retained_transition_integrity=passed
+formal_runtime_disposition=inconclusive-overwritten-no-clean-initial-attribution
+pulse_permitted=no
+mainline_cpu8_enablement_proven=no
+
+The exact two-worker pulse is permanently skipped for this boot. Repeating the
+same image with the same late userspace retrieval path would not add a durable
+observation boundary. The next observer revision should latch and stop writing
+after its first complete natural CPU8 up/down pair, or export that pair through
+an equally early independent path, so later serviceability cannot overwrite or
+obscure the initial attributable transaction.

@@ -34,8 +34,12 @@ the loop. Positive identity-gated observations are unaffected.
   independent 16 MiB padding methods are byte-identical; the active ramdisk,
   command line, addresses, and appended-DTB contract are pinned. Guarded
   `boot2` deployment and full readback passed, and both the no-load and exact
-  single-two-worker collectors pass their fail-closed static gates. Runtime
-  evidence remains pending device reachability.
+  single-two-worker collectors pass their fail-closed static gates. Exact
+  running-kernel identity later confirmed `boot2` selection. The overwritten
+  ring retained five complete CPU8-up and six complete CPU8-down transactions
+  with internally valid owner evidence and no CPU9 record, but clean initial
+  attribution failed; no pulse ran, and the next revision must latch its first
+  complete natural cycle before late userspace retrieval.
 - [2026-08-01 DA921x post-event identification lifecycle](2026-08-01-da921x-post-event-lifecycle/README.md)
   — natural bind, zero-transaction unbind, and one read-only rebind reached
   exact `14 -> 14 -> 28` counts with every DMA/write/other counter zero,

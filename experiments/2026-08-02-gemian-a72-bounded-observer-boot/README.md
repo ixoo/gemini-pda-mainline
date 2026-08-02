@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-02-gemian-a72-bounded-observer-boot` |
-| Status | `inconclusive`: offline construction, guarded `boot2` deployment, and both fail-closed runtime collectors pass; first-boot and one-cycle hardware evidence remain pending |
+| Status | `inconclusive`: exact `boot2` selection and eleven complete retained CPU8 transitions are confirmed, but the ring overwrote before the clean initial gate; no pulse ran and the device shut down cleanly |
 | Subsystem | Gemian 3.18 MT6797 A72 owner observer and retained Planet LK Android-v0 boot path |
 | Device variant | Current named Gemini PDA unit |
 | Date(s) | 2026-08-02 |
@@ -93,6 +93,10 @@ differs.
   observer, CPU9, cleanup, alert, and result-disposition classifier.
 - [`scripts/test-pulse.py`](scripts/test-pulse.py): derivation invariants, seven
   result classifications, and ten fail-closed mutations.
+- [`scripts/analyze-overwritten-ring.py`](scripts/analyze-overwritten-ring.py):
+  exact-capture validator for retained CPU8 up/down ordering and owner payloads.
+- [`scripts/test-overwritten-ring.py`](scripts/test-overwritten-ring.py): exact
+  positive result and nine fail-closed runtime-evidence mutations.
 - [`results/predeployment-hypothesis-20260802.txt`](results/predeployment-hypothesis-20260802.txt):
   exact one-cycle hypothesis, expected ordering, stop conditions, outcome
   matrix, and guarded deployment boundary.
@@ -108,6 +112,11 @@ differs.
 - [`results/pulse-collector-validation-20260802.txt`](results/pulse-collector-validation-20260802.txt):
   exact derivation, same-boot/second-gate behavior, syntax, ShellCheck,
   classifications, and fail-closed checks.
+- [`results/runtime-attempt-1-overwritten-ring-20260802.txt`](results/runtime-attempt-1-overwritten-ring-20260802.txt):
+  sanitized immutable 256-record observer tail.
+- [`results/runtime-attempt-1-summary-20260802.txt`](results/runtime-attempt-1-summary-20260802.txt):
+  exact selection, stopped initial gate, retained transition analysis,
+  limitations, and clean shutdown.
 - [Owner-observer review](../2026-07-23-gemian-a72-owner-observer/README.md):
   exact compiler, stack, lock, and bounded timing evidence.
 - [Calibrated two-worker trigger](../2026-07-23-gemian-a72-load-assisted-observation/README.md):
@@ -185,7 +194,7 @@ predecessor was Stage27 SHA-256 `805c3c1ce281…`; power was present and the
 battery was 100%/Good. The synchronized/flushed write and independent full
 readback both matched padded SHA-256 `33ace2c30a88…`. No fresh backup was made,
 temporary copies were removed, and the device was cleanly shut down and
-confirmed unreachable. It has not booted the new image yet.
+confirmed unreachable.
 
 The second-phase tooling now also passes offline review. It mechanically
 derives SHA-256 `8bf8bf37e32d…` from the exact calibrated probe, retains exactly
@@ -198,6 +207,36 @@ result classes and ten unsafe mutations pass, as do POSIX/Bash syntax and
 managed-VM ShellCheck. No device was contacted and no load was applied while
 validating this tooling.
 
+Runtime attempt 1 initially appeared to return to Gemian. Read-only live
+verification instead proved that logical `boot2` still matched exact padded
+SHA-256 `33ace2c30a88…` and that the running kernel had the exact observer build
+identity `#1 SMP PREEMPT Sun Aug 2 14:14:43 UTC 2026`. The unchanged Gemian
+ramdisk and root filesystem explain the familiar userspace; exact kernel
+identity confirms successful `boot2` selection.
+
+The no-load collector stopped before opening the observer because USB and AC
+power both reported offline. Battery state remained 99%/Good, CPU8 and CPU9
+were offline, and no synthetic load ran. A direct read-only observer header was
+already full and overwritten. One immediate immutable copy retained sequences
+3475--3730, transactions 180--191, and overwrite count 3474. It contains five
+complete CPU8-up and six complete CPU8-down transactions, one partial preceding
+up tail, and no CPU9 record.
+
+The exact analyzer passes every retained complete transition. DA9214 status and
+page restoration, secure validity/stability, immediate clock snapshots, SPM
+validity, masked mutation readbacks, raw/mapped PSCI identity, and monotonic
+timestamp ordering all pass. One 231 ns cross-CPU sequence/timestamp inversion
+shows why causal review must use the record timestamps rather than append
+sequence alone. The last-A72-offline VSEL was `0x32` twice and `0x3a` four
+times; each later disable snapshot reported `0x46`. Nine unsafe evidence
+mutations are rejected.
+
+Because thousands of earlier records were lost and the full-partition checksum
+plus diagnostic SSH work preceded the immutable copy, no retained transition
+can be attributed to a clean boot-only or pre-pulse baseline. The pulse was
+therefore prohibited. The device was shut down cleanly and confirmed
+unreachable without an automatic reboot.
+
 ## Analysis
 
 Byte-identical construction establishes a reproducible container and exact
@@ -208,19 +247,20 @@ mainline.
 
 ## Conclusion
 
-`confirmed` for offline container identity/layout, guarded deployment with full
-readback, and both runtime collectors' static safety contracts;
-`inconclusive` for runtime and hardware behavior. The next attributable device
-capture, not the write or tooling itself, determines whether the observer
-kernel is serviceable.
+`confirmed` for offline container identity/layout, guarded deployment/full
+readback, exact `boot2` selection, observer serviceability, and the internal
+integrity of eleven retained complete CPU8 transitions. `Inconclusive` for the
+predeclared clean initial attribution because the ring overwrote before
+retrieval. This does not establish mainline CPU8 support, and no pulse result is
+claimed.
 
 ## Follow-up
 
-The device was powered off after verified deployment. The owner later replied
-`done` after the request to select `boot2`; this was treated provisionally as
-completion of that action, not as proof of selection. Neither expected Gemian
-SSH nor the direct USB network interface became reachable during the bounded
-checks. That absence is connectivity evidence, not a kernel-failure result.
-When serviceability appears, run only the no-load collector first. If and only
-if it returns exact `empty-offline`, run the now-validated pulse collector on
-the same boot; otherwise preserve the initial evidence and prohibit load.
+The device is powered off after runtime evidence retrieval. The owner may now
+select the known-good primary Gemian boot. Do not repeat this image with the
+same late retrieval path and do not run the pulse. The next observer revision
+should latch and stop recording after the first complete natural CPU8 up/down
+pair, or provide an equally early independent export, so serviceability delay
+cannot overwrite the attributable transaction. Review the retained owner
+values as constraints for that revision and the later passive provider; do not
+promote them directly into a mainline write sequence.

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-02-a72-ownership-rollback-audit` |
-| Status | `static audit complete; synchronized Gemian observer capture pending` |
+| Status | `post-observer audit complete; 15 boundaries have retained live evidence, while failure rollback, CPU9, and suspend/resume remain open` |
 | Subsystem | Cortex-A72 external rail, SPM, TOPRGU, secure firmware, clocks, CCI, and rollback |
 | Device variant | Named Gemini PDA development unit |
 | Date(s) | 2026-08-02 |
@@ -41,16 +41,20 @@ forward sequence is not treated as a reversible implementation contract.
   [`../2026-07-22-a72-firmware-power-contract/`](../2026-07-22-a72-firmware-power-contract/).
 - Natural CPU8 trigger calibration:
   [`../2026-07-23-gemian-a72-load-assisted-observation/`](../2026-07-23-gemian-a72-load-assisted-observation/).
+- Exact overwritten observer result:
+  [`../2026-08-02-gemian-a72-bounded-observer-boot/results/runtime-attempt-1-summary-20260802.txt`](../2026-08-02-gemian-a72-bounded-observer-boot/results/runtime-attempt-1-summary-20260802.txt).
 
 No kernel was built for this static audit. In particular, no native VM kernel
 build was run.
 
 ## Safety assessment
 
-This audit is offline and read-only. It performs no device access, partition
-read, register access, SMC, CPU request, load pulse, build, deployment, or
-reboot. Private binaries remain in their existing Git-ignored locations. The
-matrix contains only sanitized source/binary/firmware conclusions and hashes.
+The original audit was offline and read-only. This revision consumes only the
+sanitized immutable observer result; it performs no new device access,
+partition read, register access, SMC, CPU request, load pulse, build,
+deployment, or reboot. Private binaries remain in their existing Git-ignored
+locations. The matrix contains only sanitized source/binary/firmware and
+runtime conclusions.
 
 The audit does not authorize DA921x register-data writes or CPU8/CPU9. Rows
 whose pre-state, readback, rollback, or resume owner is missing remain explicit
@@ -95,41 +99,52 @@ reset, bus-protection, and CCI work; later vendor policy owns dynamic iDVFS and
 B/CCI rate changes. CPU9 shares secure per-core logic but must not replay the
 cluster-singleton preparation.
 
-The matrix still contains one unresolved ownership boundary—system
-suspend/resume—and multiple missing transaction-local observations. In
-particular, existing captures do not bracket BUCKB enable/VSEL/page state, SPM
-reset/isolation, TOPRGU PWRAP reset, SRAM-LDO state, protected B/CCI clocks, or
-MP2 DCM around the natural CPU8 online/offline cycle. The vendor last-A72-off
-path is not a safe inverse.
+The retained ring tail directly brackets five complete CPU8-up and six complete
+CPU8-down transactions. Fifteen matrix rows now carry live owner evidence:
+DA9214 page `0x80` is restored on every snapshot; BUCKB enable changes `0 -> 1`
+and `1 -> 0`; SPM reset/isolation and TOPRGU masked readbacks match; secure
+SRAM-LDO/iDVFS snapshots are stable; protected B/CCI clock snapshots succeed;
+raw/mapped PSCI, secondary completion, affinity, MP2 DCM, and the complete
+natural last-A72-off path are retained. The last-off VSEL is `0x32` twice and
+`0x3a` four times before consistent `0x46` disable state.
+
+This closes nine forward-only rows and reduces missing live pre-state/readback
+to two rows. It does not convert the observed natural inverse into a bounded
+failure rollback. Five rollback rows remain open, CPU9 has no retained record,
+and system suspend/resume ownership remains unresolved. The ring's overwrite
+also prevents clean initial stimulus attribution, so the planned pulse was
+correctly prohibited.
 
 ## Analysis
 
-The forward-owner half of the hypothesis is supported, but the reversible
-contract half is rejected. The first mainline CPU8 path must be one-way and
-fail-closed beyond the external-isolation boundary unless new evidence proves
-a bounded inverse. A passive resource-only provider can be designed in
-parallel because registration need not write hardware or connect consumers,
-but any writable provider or CPU request remains blocked.
+The forward-owner half of the hypothesis is now supported by transaction-local
+runtime evidence, but the reversible failure contract remains rejected. The
+first mainline CPU8 path must still be one-way and fail-closed beyond the
+external-isolation boundary unless a bounded inverse is proven. A passive
+resource-only provider can be designed in parallel because registration need
+not write hardware or connect consumers, but any writable provider or CPU
+request remains blocked.
 
-The next discriminating experiment is not another sequential userspace
-sampler. It is the already scoped owner-local, read-only Gemian observer built
-from the verified `59e00a` equivalent and the exact active boot contract. Its
-hooks must capture one calibrated two-worker natural CPU8 online/offline cycle
-at the owning DA9214, SPM/TOPRGU, secure-read, protected-clock, PSCI,
-secondary-completion, DCM, and last-A72-off boundaries.
+The next discriminating observer is not another sequential sampler or a repeat
+of the same late retrieval path. Natural policy already supplies CPU8 cycles.
+The next revision must latch and stop recording after its first complete CPU8
+up/down pair, or export that pair through an equally early independent path,
+so serviceability work cannot overwrite its initial attribution. CPU9 and
+suspend/resume remain separate experiments; neither is inferred from CPU8.
 
 ## Conclusion
 
 `rejected` for the hypothesis that current evidence defines a complete,
-reversible CPU8 contract. Forward writers are substantially assigned, but
-Gate 4 remains open on synchronized pre-state, readback, rollback,
-suspend/resume ownership, and CPU9-specific evidence.
+reversible CPU8 contract. Transaction-local forward evidence now closes nine
+rows, but Gate 4 remains open on five failure-rollback rows, one CPU9-only
+observation row, and unresolved suspend/resume ownership.
 
 ## Follow-up
 
-Freeze and validate the owner-local Gemian observer source and exact active
-boot-image derivation. Build it only on an explicitly approved non-native
-backend; the project policy forbids a native VM kernel build unless the owner
-specifically requests one. Use the calibrated natural load pulse once, then
-update this audit from the synchronized transaction record. Do not select
-draft patch 0093 or request CPU8/CPU9.
+Specify the first-cycle latch and validate that it adds no hardware action or
+new timing inside the owner paths. Build any revision only on Buildbox from an
+exact clean pushed commit; do not use the native VM kernel-build backend. Do
+not run the pulse, repeat the overwritten image unchanged, select draft patch
+0093, or request CPU8/CPU9. Separately recover suspend/resume ownership and
+design failure-injection or independent rollback observations before closing
+the five remaining rollback rows.

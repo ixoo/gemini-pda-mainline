@@ -708,25 +708,30 @@ result-to-next-action matrix. The guarded installer then resolved live logical
 `boot2`, required the exact Stage27 predecessor, wrote padded image
 `33ace2c30a88…`, passed synchronized/flushed remote and independent full
 readbacks, and shut the device down without a fresh backup or automatic reboot.
-The owner can now select `boot2` manually. Boot alone remains
-hardware-inconclusive until initial identity and the immutable observer record
-are retrieved; only an empty, both-A72-offline initial record permits the one
-calibrated two-worker pulse. The exact initial collector is now ready and
-validated: it identity-gates the reviewed build and observer ABI, checks
-power/temperatures and five offline samples, retrieves one immutable ring copy,
-and always forbids load in that invocation. The separately executable pulse
-collector is now also frozen and validated. It accepts only that exact
-empty/offline initial disposition on the same boot, mechanically derives the
-reviewed calibrated probe with every stage except one two-worker pulse removed,
-then repeats the observer, CPU, HPS-policy, power, temperature, boot-ID, and
-filtered kernel-alert gates immediately before load. It retains immutable
-pre/post evidence, removes load on any A72 observation, cools down, rejects
-CPU9, overwrite, alert, and non-offline outcomes, and never retries or
-escalates. The first bounded reachability checks after the owner's provisional
-boot-action confirmation found neither Gemian SSH nor a direct USB interface;
-that remains connectivity evidence only. The next action is still the no-load
-initial capture when the device becomes reachable, followed by the pulse on
-that same boot only if both independent gates pass.
+The boot initially appeared to return to Gemian because the candidate
+deliberately retains the exact Gemian ramdisk and root filesystem. A later
+read-only check proved both the exact `boot2` partition checksum and the running
+observer build identity, closing selection and serviceability. The no-load
+collector then stopped correctly because USB power was absent; no pulse ran.
+By the time an immutable ring copy was retrieved, it held 256 records with 3474
+earlier records overwritten. Its retained tail contains five complete CPU8-up
+and six complete CPU8-down transactions, no CPU9 record, successful DA9214 page
+restoration and BUCKB transitions, stable secure snapshots, immediate clock
+snapshots, complete SPM state, matching masked mutations, matching raw/mapped
+PSCI success, and timestamp-valid lifecycle ordering. One 231 ns cross-CPU
+append-order inversion proves that transaction review must use monotonic
+timestamps rather than ring sequence alone. The last-A72-offline snapshots saw
+VSEL `0x32` twice and `0x3a` four times before consistent `0x46` disable state.
+These are durable owner constraints, but the full-partition checksum and
+diagnostic work preceded capture and the initial ring content is lost, so the
+predeclared clean-attribution result is inconclusive. The pulse is prohibited,
+the exact image must not be repeated with the same late retrieval path, and the
+device shut down cleanly. The next ordered action is to reconcile these
+retained values into the ownership/rollback audit and design a revision that
+latches its first complete natural CPU8 up/down pair, or exports it through an
+equally early independent path. Suspend/resume ownership and bounded rollback
+remain open before Gate 4 can close; provider work still must not introduce a
+write or A72 consumer.
 
 Exit: observations and inference are separated, every required writer has one
 owner, and a failed step has a bounded rollback path.

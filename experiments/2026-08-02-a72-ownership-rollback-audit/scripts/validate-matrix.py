@@ -28,6 +28,7 @@ EVIDENCE = {
     "firmware-analysis",
     "known-design",
     "missing",
+    "retained-live-observer",
 }
 DECISIONS = {
     "closed-forward",
@@ -60,6 +61,13 @@ for row in rows:
     if row["rollback"].startswith("unproven") or "unsafe" in row["rollback"]:
         require(row["decision"] in {"rollback-missing", "owner-unresolved"},
                 f"missing rollback is not fail-closed in row {row['id']}")
+    if row["decision"] == "rollback-missing":
+        require("unproven" in row["rollback"] or "failure-" in row["rollback"],
+                f"rollback-missing row lacks an explicit open boundary in row {row['id']}")
+    if row["owner_evidence"] == "retained-live-observer":
+        require(row["prestate"] != "missing-live" and
+                row["readback"] != "missing-live",
+                f"retained live evidence leaves a live field missing in row {row['id']}")
 
 unresolved_owner = sum(row["decision"] == "owner-unresolved" for row in rows)
 rollback_missing = sum(row["decision"] == "rollback-missing" for row in rows)
@@ -69,9 +77,12 @@ excluded = sum(row["decision"] == "excluded-first-cpu8" for row in rows)
 resume_unresolved = sum(row["resume_owner"] == "unresolved" for row in rows)
 prestate_missing = sum(row["prestate"] == "missing-live" for row in rows)
 readback_missing = sum(row["readback"] == "missing-live" for row in rows)
-require(unresolved_owner > 0, "audit incorrectly claims every owner is resolved")
-require(rollback_missing > 0, "audit incorrectly claims complete rollback")
-require(observer_required > 0, "audit has no synchronized observation gate")
+retained_live = sum(row["owner_evidence"] == "retained-live-observer" for row in rows)
+require((closed_forward, observer_required, rollback_missing, excluded,
+         unresolved_owner) == (9, 1, 5, 3, 1),
+        "post-observer decision counts changed")
+require((prestate_missing, readback_missing, retained_live) == (2, 2, 15),
+        "post-observer evidence counts changed")
 require(resume_unresolved == len(rows), "resume ownership was silently promoted")
 
 print("validation=a72-ownership-rollback-matrix")
@@ -83,6 +94,7 @@ print(f"excluded_first_cpu8={excluded}")
 print(f"owner_unresolved={unresolved_owner}")
 print(f"prestate_missing={prestate_missing}")
 print(f"readback_missing={readback_missing}")
+print(f"retained_live_observer={retained_live}")
 print(f"resume_unresolved={resume_unresolved}")
 print("gate4=OPEN")
-print("next_action=owner-local-synchronized-gemian-observer")
+print("next_action=first-cycle-latch-plus-cpu9-and-resume-rollback-audits")
