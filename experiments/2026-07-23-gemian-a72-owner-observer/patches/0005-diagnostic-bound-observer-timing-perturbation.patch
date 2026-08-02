@@ -1,0 +1,103 @@
+From 718f297ae97ab3738d624129b814e921a8371227 Mon Sep 17 00:00:00 2001
+From: Gemini PDA Investigation <gemini-observer@example.invalid>
+Date: Sun, 2 Aug 2026 14:00:51 +0000
+Subject: [PATCH 5/5] diagnostic: bound observer timing perturbation
+
+Keep only transition boundary snapshots, reduce the read-side critical
+section, and change protected-clock sampling to one non-waiting
+hardware-semaphore attempt.
+---
+ arch/arm64/kernel/psci.c                         |  8 --------
+ .../power/mt6797/mt_a72_transition_observer.c    |  2 +-
+ .../mediatek/freqhopping/mt6797/mt_freqhopping.c | 16 ++++------------
+ 3 files changed, 5 insertions(+), 21 deletions(-)
+
+diff --git a/arch/arm64/kernel/psci.c b/arch/arm64/kernel/psci.c
+index f8bb1f81f..e6fb32c2f 100644
+--- a/arch/arm64/kernel/psci.c
++++ b/arch/arm64/kernel/psci.c
+@@ -606,7 +606,6 @@ static int cpu_power_on_buck(unsigned int cpu, bool hotplug)
+ 	/* set VSRAM enable, cal_eFuse, rsh = 0x0f -> 0x08 */
+ 	udelay(240);
+ #ifdef CONFIG_MTK_A72_TRANSITION_OBSERVER
+-	mt6797_a72_obs_fixed_snapshot(cpu, MT6797_A72_PHASE_SRAM_PRE);
+ 	smc_ret = BigiDVFSSRAMLDOSet(110000);
+ 	mt6797_a72_obs_lifecycle(cpu, MT6797_A72_PHASE_SRAM_POST,
+ 				 smc_ret, 110000, 0);
+@@ -614,9 +613,6 @@ static int cpu_power_on_buck(unsigned int cpu, bool hotplug)
+ 	BigiDVFSSRAMLDOSet(110000);
+ #endif
+ 	udelay(240);
+-#ifdef CONFIG_MTK_A72_TRANSITION_OBSERVER
+-	mt6797_a72_obs_fixed_snapshot(cpu, MT6797_A72_PHASE_SRAM_POST);
+-#endif
+ 
+ 	return ret;
+ }
+@@ -627,15 +623,11 @@ static int cpu_power_off_buck(unsigned int cpu)
+ #ifdef CONFIG_MTK_A72_TRANSITION_OBSERVER
+ 	int smc_ret;
+ 
+-	mt6797_a72_obs_fixed_snapshot(cpu,
+-				      MT6797_A72_PHASE_LAST_A72_OFFLINE);
+ 	ret = da9214_a72_obs_buckb_config(cpu, false,
+ 					  MT6797_A72_PHASE_BUCK_DISABLE);
+ 	smc_ret = BigiDVFSSRAMLDODisable();
+ 	mt6797_a72_obs_lifecycle(cpu, MT6797_A72_PHASE_OFFLINE_FINAL,
+ 				 smc_ret, ret, 0);
+-	mt6797_a72_obs_fixed_snapshot(cpu,
+-				      MT6797_A72_PHASE_OFFLINE_FINAL);
+ #else
+ 	ret = da9214_config_interface(0x0, 0x0, 0xF, 0);
+ 	ret = da9214_config_interface(0x5E, 0x0, 0x1, 0);
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt_a72_transition_observer.c b/drivers/misc/mediatek/base/power/mt6797/mt_a72_transition_observer.c
+index 57faf10c6..f0e5d1f9a 100644
+--- a/drivers/misc/mediatek/base/power/mt6797/mt_a72_transition_observer.c
++++ b/drivers/misc/mediatek/base/power/mt6797/mt_a72_transition_observer.c
+@@ -19,7 +19,7 @@
+ 
+ #include <linux/mt6797_a72_transition_observer.h>
+ 
+-#define MT6797_A72_OBS_RING_SIZE	2048
++#define MT6797_A72_OBS_RING_SIZE	256
+ #define MT6797_A72_OBS_CPU_FIRST	8
+ #define MT6797_A72_OBS_CPU_LAST		9
+ #define MT6797_A72_OBS_PROC_NAME	"mt6797_a72_transition"
+diff --git a/drivers/misc/mediatek/freqhopping/mt6797/mt_freqhopping.c b/drivers/misc/mediatek/freqhopping/mt6797/mt_freqhopping.c
+index 2cfa57d67..049ac6cd3 100644
+--- a/drivers/misc/mediatek/freqhopping/mt6797/mt_freqhopping.c
++++ b/drivers/misc/mediatek/freqhopping/mt6797/mt_freqhopping.c
+@@ -424,8 +424,6 @@ void mt6797_a72_obs_clock_snapshot(unsigned int cpu, u16 phase)
+ {
+ 	struct mt6797_a72_obs_clock snapshot = { .status = -ENODEV };
+ 	unsigned long flags;
+-	unsigned int i;
+-	bool acquired = false;
+ 
+ 	if (!spin_trylock_irqsave(&g_mt6797_0x1001AXXX_lock, flags)) {
+ 		snapshot.status = -EBUSY;
+@@ -440,18 +438,12 @@ void mt6797_a72_obs_clock_snapshot(unsigned int cpu, u16 phase)
+ 	snapshot.semaphore |= BIT(3);
+ 
+ 	hs_write32(g_reg_cspm_poweron_en, 0x0b160001);
+-	for (i = 0; i < DIV_ROUND_UP(SEMA_GET_TIMEOUT, 10); i++) {
+-		hs_write32(g_reg_sema3_m0, 0x1);
+-		if (hs_read32(g_reg_sema3_m0) & 0x1) {
+-			acquired = true;
+-			break;
+-		}
+-		udelay(10);
+-	}
+-	if (!acquired) {
+-		snapshot.status = -ETIMEDOUT;
++	hs_write32(g_reg_sema3_m0, 0x1);
++	if (!(hs_read32(g_reg_sema3_m0) & 0x1)) {
++		snapshot.status = -EBUSY;
+ 		goto out;
+ 	}
++
+ 	snapshot.semaphore |= BIT(0);
+ 
+ 	ndelay(200);
+-- 
+2.39.5

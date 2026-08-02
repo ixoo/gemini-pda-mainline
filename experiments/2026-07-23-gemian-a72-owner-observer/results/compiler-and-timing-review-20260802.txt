@@ -1,0 +1,124 @@
+Gemian A72 owner-observer compiler, lock, and timing review
+Recorded: 2026-08-02 America/New_York
+
+Reviewed identity
+-----------------
+repository_commit=10884b2c1895163c5bfe3d795f0b699d452b7d11
+source_commit=59e00a9144d782e148332009a835b99c43382467
+observer_System.map_sha256=d1e7d37aa963f4a1ca5cfab2097892d548e3d24e9da3bcd9f1c978eab7edd3d2
+stack_usage_tar_sha256=d7200023aaeac1b0b9c05ff5ced8968e31d4f42a9e2a92d04f6b9ebd3b3dfd2c
+stack_usage_file_count=2484
+boot_candidate=no
+device_access=none
+
+Compiler and symbol review
+--------------------------
+The patched and exact unpatched trees both compile and link with pinned GCC
+6.3/binutils 2.28. Their extracted diagnostics are byte-identical, so the sole
+69-section-mismatch summary is inherited. The observer map contains all fixed
+recorder, owner and lifecycle symbols; the baseline map contains none. The
+observer ring occupies 0x34000 bytes, exactly 2048 records times 104 bytes.
+
+Selected GCC stack-use results (bytes)
+--------------------------------------
+mt6797_a72_obs_append                         64
+mt6797_a72_obs_lifecycle and typed recorders 128
+mt6797_a72_obs_secure_snapshot                80
+mt6797_a72_obs_clock_snapshot                 96
+mt6797_a72_obs_spm_snapshot                   96
+mt6797_a72_obs_spm_rmw                       112
+da9214_a72_obs_snapshot                       80
+da9214_a72_obs_buckb_config                   96
+dcm_mcusys_mp2_sync_dcm                       80
+mt6797_a72_obs_dcm_snapshot                   80
+mtk_wdt_swsysret_config                      112
+cpu_power_on_buck                             64
+cpu_psci_cpu_boot                             96
+cpu_psci_cpu_kill                            128
+secondary_start_kernel                        80
+__cpu_disable                                 32
+hps_algo_do_cluster_action                    80
+hps_algo_main                                688
+
+No observer frame exceeds 128 bytes. The largest frame in the changed hotplug
+call chain is the pre-existing 688-byte `hps_algo_main`; the complete selected
+kernel contains larger unrelated frames up to 1488 bytes. Stack use does not
+block the experiment.
+
+Lock-context review
+-------------------
+- Ring writers use only the dedicated IRQ-safe spinlock and allocate nothing.
+  Secondary-online and CPU-disable hooks therefore remain atomic-safe.
+- DA9214 I2C work runs from the controller-side hotplug path, which can sleep;
+  it uses the existing mutex. The observer record is appended after unlock.
+- SPM mapping occurs before `__spm_lock`; fixed reads and RMW/readback are under
+  that lock, and the observer record is appended after unlock.
+- TOPRGU adds one readback under the existing register spinlock and appends its
+  record after unlock.
+- The MP2 DCM replacement uses one new local IRQ-safe spinlock for its two-write
+  toggle sequence and readbacks, then appends after unlock. It introduces no
+  nested owner/observer lock order.
+- The protected-clock snapshot uses `spin_trylock_irqsave`; software-lock
+  contention returns immediately. After success it holds IRQs disabled while
+  attempting the hardware semaphore.
+- The proc reader allocates before locking and formats after unlocking, but it
+  copies the complete 212992-byte ring while holding the observer IRQ-safe
+  spinlock.
+
+Timing and observer-effect rejection
+------------------------------------
+The exact hook set invokes the broad fixed snapshot four times while bringing
+an A72 online and four times while taking the last A72 offline. Each invocation
+performs:
+
+- three to six DA9214 I2C transactions, including page selection/restoration;
+- six SPM MMIO reads under `__spm_lock`;
+- twelve secure iDVFS reads plus a thirteenth sentinel read;
+- one protected-clock hardware-semaphore attempt while IRQs are disabled; and
+- one MP2 DCM read under the new DCM spinlock.
+
+The protected-clock owner defines `SEMA_GET_TIMEOUT` as 2000 microseconds. The
+snapshot duplicates that 200-iteration, 10-microsecond wait. Eight snapshots
+therefore add a theoretical 16 ms of IRQ-disabled semaphore waiting over one
+online/offline cycle, plus 104 secure calls and at least 24 I2C transactions.
+Two online snapshots also sit around the vendor's prescribed 240-microsecond
+SRAM-LDO intervals. These effects can change the transition being observed.
+
+The owner-local mutation records themselves are bounded and retain useful
+pre/request/readback evidence. The rejection is specifically the repeated
+broad boundary snapshots, the waiting clock probe, and the oversized proc-copy
+critical section.
+
+Compatible checkpatch review
+----------------------------
+Linux 7.1.3 `scripts/checkpatch.pl` was run on Buildbox by streaming each patch
+over stdin; direct filename mode misclassified later inputs. Results:
+
+patch 1: 0 errors, 13 warnings, 2 checks
+patch 2: 0 errors, 1 warning, 3 checks
+patch 3: 0 errors, 1 warning, 4 checks
+patch 4: 0 errors, 1 warning, 17 checks
+
+Findings are non-functional formatting/metadata items, inherited CamelCase
+names, string splitting, alignment, and one intentional `udelay` warning. New
+files also lack SPDX identifiers and the synthetic experiment patches lack
+submission commit descriptions. These must be cleaned before any upstream use;
+the synthetic identity remains explicitly non-submission-ready.
+
+Decision and next revision
+--------------------------
+timing_gate=REJECTED
+boot_authorized=no
+
+Add one logical follow-up patch that:
+
+1. reduces the ring from 2048 to 256 records (26624 bytes);
+2. changes the clock observation to one immediate semaphore try with no wait;
+3. retains only online pre/post and offline pre/post broad boundary snapshots;
+4. removes broad snapshots from the two 240-microsecond SRAM-LDO intervals and
+   from inside the buck-off owner, while retaining exact mutation records; and
+5. updates invariants so any reintroduction of a wait or extra fixed snapshot
+   fails validation.
+
+Rebuild and repeat baseline diagnostics, stack, symbol, lock, and timing review
+before creating a boot image. This result authorizes no device deployment.

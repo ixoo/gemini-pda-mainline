@@ -2,3 +2,4 @@
 0002-diagnostic-add-owner-local-fixed-A72-snapshots.patch
 0003-diagnostic-record-A72-power-mutations-under-owners.patch
 0004-diagnostic-correlate-A72-hotplug-lifecycle.patch
+0005-diagnostic-bound-observer-timing-perturbation.patch

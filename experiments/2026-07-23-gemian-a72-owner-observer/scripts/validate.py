@@ -13,6 +13,7 @@ EXPECTED_SERIES = [
     "0002-diagnostic-add-owner-local-fixed-A72-snapshots.patch",
     "0003-diagnostic-record-A72-power-mutations-under-owners.patch",
     "0004-diagnostic-correlate-A72-hotplug-lifecycle.patch",
+    "0005-diagnostic-bound-observer-timing-perturbation.patch",
 ]
 
 EXPECTED_COMMITS = [
@@ -20,6 +21,7 @@ EXPECTED_COMMITS = [
     "c8475b569567bf71f3ffcca09d27f0c025d6d208",
     "429afb35a3b5ccaec976d31288dd52148855ef79",
     "349f24b6e10df6e1d24c79a23d75c8361ac68b28",
+    "718f297ae97ab3738d624129b814e921a8371227",
 ]
 
 EXPECTED_DIFF_PATHS = {
@@ -281,7 +283,7 @@ def validate(root):
     require_tokens(
         core,
         [
-            "#define MT6797_A72_OBS_RING_SIZE\t2048",
+            "#define MT6797_A72_OBS_RING_SIZE\t256",
             "static struct mt6797_a72_obs_record",
             "static DEFINE_SPINLOCK(mt6797_a72_obs_lock)",
             "static u64 mt6797_a72_obs_transactions[2]",
@@ -386,9 +388,6 @@ def validate(root):
             "#define MT6797_A72_CLOCK_MUXSEL\t\t0x270",
             "#define MT6797_A72_CLOCK_CKDIV\t\t0x274",
             "spin_trylock_irqsave(&g_mt6797_0x1001AXXX_lock, flags)",
-            "DIV_ROUND_UP(SEMA_GET_TIMEOUT, 10)",
-            "udelay(10)",
-            "snapshot.status = -ETIMEDOUT",
             "spin_unlock_irqrestore(&g_mt6797_0x1001AXXX_lock, flags)",
         ],
         "clock owner",
@@ -398,6 +397,42 @@ def validate(root):
             line for _, line in added_lines(patch_paths[1])
         ),
         "clock snapshot calls owner's fatal semaphore helper",
+    )
+
+    bounded = patch_texts[4]
+    require_tokens(
+        bounded,
+        [
+            "-#define MT6797_A72_OBS_RING_SIZE\t2048",
+            "+#define MT6797_A72_OBS_RING_SIZE\t256",
+            "-\tfor (i = 0; i < DIV_ROUND_UP(SEMA_GET_TIMEOUT, 10); i++) {",
+            "-\t\tudelay(10);",
+            "-\t\tsnapshot.status = -ETIMEDOUT;",
+            "+\ths_write32(g_reg_sema3_m0, 0x1);",
+            "+\tif (!(hs_read32(g_reg_sema3_m0) & 0x1)) {",
+            "+\t\tsnapshot.status = -EBUSY;",
+        ],
+        "timing-bound patch",
+    )
+    require(
+        bounded.count("-\tmt6797_a72_obs_fixed_snapshot(cpu,") == 4,
+        "timing-bound fixed snapshot removal count changed",
+    )
+    require(
+        "\n".join(patch_texts[:4]).count(
+            "mt6797_a72_obs_fixed_snapshot(cpu,"
+        )
+        == 8,
+        "pre-bound fixed snapshot call count changed",
+    )
+    bounded_additions = "\n".join(line for _, line in added_lines(patch_paths[4]))
+    require(
+        "mt6797_a72_obs_fixed_snapshot(cpu," not in bounded_additions,
+        "timing-bound patch adds a fixed snapshot",
+    )
+    require(
+        re.search(r"\budelay\s*\(", bounded_additions) is None,
+        "timing-bound patch adds a semaphore wait",
     )
 
     dcm = patch_for_path(patch_texts, "drivers/misc/mediatek/base/power/mt6797/mt_dcm.c")

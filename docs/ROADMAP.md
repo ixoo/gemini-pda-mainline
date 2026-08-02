@@ -685,8 +685,16 @@ observer symbols from the baseline, and captured 2484 stack reports. Its host
 fetch then failed closed because four uppercase/lowercase Linux netfilter
 filename pairs collide on the case-insensitive destination filesystem. The
 replacement nests the stack tree in a checksum-covered case-preserving archive;
-the next result is successful exact retrieval and function-level stack/timing
-review, still not a device boot.
+the eighth exact submission then repeated both builds and all comparison gates,
+source-compared all 2484 archived reports, and fetched cleanly to the host.
+Compiler and stack gates pass, but the owner-timing review rejects this revision
+for boot: eight broad snapshots per online/offline cycle can add up to 16 ms of
+IRQ-disabled semaphore waiting, 104 secure calls, at least 24 I2C transactions,
+and an oversized proc-copy critical section. A fifth logical patch is now
+prepared: it reduces the ring to 256 records, eliminates the semaphore wait,
+and retains only pre/post boundary snapshots. The next result is an exact dual
+Buildbox build plus stack and owner-timing review of that five-patch revision—not
+a device boot.
 
 Exit: observations and inference are separated, every required writer has one
 owner, and a failed step has a bounded rollback path.

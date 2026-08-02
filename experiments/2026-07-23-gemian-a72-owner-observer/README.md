@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-23-gemian-a72-owner-observer` |
-| Status | `inconclusive`: patched/baseline builds and diagnostic attribution pass; case-safe stack retrieval, timing review, and hardware evidence remain open |
+| Status | `inconclusive`: the compiled four-patch revision is rejected for boot on timing grounds; a bounded fifth patch is prepared but not yet rebuilt or reviewed |
 | Subsystem | MT6797 A72 hotplug, PSCI, external buck, SPM, iDVFS, B/CCI clocks, MP2 DCM and TOPRGU |
 | Device variant | Current named Gemini PDA unit |
 | Date(s) | 2026-07-23 |
@@ -45,7 +45,7 @@ hardware-behavior result.
   is selected only because its observer-relevant hooks match the reconciled
   binary/source evidence. It must not be described as the exact active source.
 - Source patch commits used to generate this series:
-  `7bddafa6`, `c8475b56`, `429afb35`, and `349f24b6`.
+  `7bddafa6`, `c8475b56`, `429afb35`, `349f24b6`, and `718f297a`.
 - Every source build must run only on Buildbox from an exact clean pushed
   project commit. Its toolchain input is Debian snapshot
   `20170618T000000Z`, cross-GCC package `6.3.0-18cross1` reporting GCC
@@ -65,7 +65,7 @@ active. This Gemian observer series is a separate vendor-kernel diagnostic.
 The exported proc ABI is root-read-only (`0400`) and fixed-function. It has no
 write operation, clearing operation, register selector, address parameter,
 SMC selector, CPU-hotplug control, policy control, module parameter or debug
-command. Writers append typed records to a preallocated 2048-entry ring; proc
+command. Writers append typed records to a preallocated 256-entry ring; proc
 open takes a point-in-time private copy.
 
 That does **not** make the patch zero-effect or ready to boot. The owner-local
@@ -73,8 +73,9 @@ DA9214 snapshot temporarily selects page zero and restores the exact previous
 page while holding the existing DA9214 mutex. When PAGE_REVERT was originally
 set it deliberately omits a verify-read whose access could itself change the
 selector. The B/CCI snapshot enables the existing DVFSP arbitration clock,
-performs one nominally two-millisecond hardware-semaphore attempt and releases
-it. Mutation logging holds existing owner locks across added readbacks. MP2 DCM
+performs one immediate hardware-semaphore request/read with no retry or added
+delay, and releases it when acquired. Mutation logging holds existing owner
+locks across added readbacks. MP2 DCM
 is newly serialized by a dedicated spinlock. These operations can change
 serialization, latency and transition timing even when every captured value is
 discarded.
@@ -108,7 +109,7 @@ no observer artifact changed a partition, policy, or hardware state.
 
 ## Associated code
 
-- [`patches/series`](patches/series): exact four-patch order.
+- [`patches/series`](patches/series): exact five-patch order.
 - [`inputs/active-gemian.config`](inputs/active-gemian.config): exact
   decompressed live configuration, SHA-256
   `231d8a2ffe7afac3a4cc62c27d0eb6fe8bd9165ebd096e3e3346dd6df35c18f4`.
@@ -123,6 +124,9 @@ no observer artifact changed a partition, policy, or hardware state.
   owner-serialized SPM, buck, TOPRGU and MP2 DCM mutation records.
 - [`patches/0004-diagnostic-correlate-A72-hotplug-lifecycle.patch`](patches/0004-diagnostic-correlate-A72-hotplug-lifecycle.patch):
   HPS, raw/mapped PSCI, secondary-online and offline correlation.
+- [`patches/0005-diagnostic-bound-observer-timing-perturbation.patch`](patches/0005-diagnostic-bound-observer-timing-perturbation.patch):
+  256-record ring, immediate-only clock semaphore attempt, and boundary-only
+  broad snapshots.
 - [`DESIGN.md`](DESIGN.md): event contract, fixed register allowlist and
   concurrency review.
 - [`scripts/validate.py`](scripts/validate.py): experiment-local patch
@@ -157,6 +161,15 @@ no observer artifact changed a partition, policy, or hardware state.
 - [`results/buildbox-compile-attempt-7-20260802.txt`](results/buildbox-compile-attempt-7-20260802.txt):
   exact observer/baseline compile and identical-diagnostic proof, followed by
   the fail-closed host fetch rejection of four case-colliding filename pairs.
+- [`results/buildbox-compile-attempt-8-20260802.txt`](results/buildbox-compile-attempt-8-20260802.txt):
+  successful replacement dual build, case-preserving stack bundle, and exact
+  local fetch validation.
+- [`results/compiler-and-timing-review-20260802.txt`](results/compiler-and-timing-review-20260802.txt):
+  function-level stack and lock review, compatible checkpatch findings, timing
+  rejection, and the bounded next revision.
+- [`results/bounded-source-validation-20260802.txt`](results/bounded-source-validation-20260802.txt):
+  exact fifth-patch source construction, safety tripwires, and compatible
+  checkpatch review before the replacement build.
 
 The local validation invocation is:
 
@@ -174,8 +187,9 @@ Neither command needs privilege, network, VM or device access.
 1. Reconcile the exact active image components and active configuration.
 2. Select public commit `59e00a…` only as a hook-equivalent source baseline.
 3. Keep the recorder, owner snapshots, owner mutations and lifecycle
-   correlation as four logical `git format-patch` changes.
-4. Apply all four patches in order to a detached `59e00a…` worktree.
+   correlation as four original logical `git format-patch` changes, followed
+   by one timing-bound refinement.
+4. Apply all five patches in order to a detached `59e00a…` worktree.
 5. Run whitespace checks, the experiment validator and its negative tripwire
    tests. Record tool limitations rather than treating a skipped tool as a
    pass.
@@ -289,6 +303,27 @@ that collide on its case-insensitive filesystem. No local destination was
 accepted. The replacement stores that Linux tree inside one checksum-covered
 tar archive with exact member manifests.
 
+Compile attempt 8 repeated the two clean full builds and all diagnostic/symbol
+gates, created and source-compared a 2484-member case-preserving stack archive,
+and fetched the 243 MiB bundle with a clean outer checksum. This closes the
+compiler, baseline-warning attribution, and evidence-transfer gates for exact
+commit `10884b2c1895163c5bfe3d795f0b699d452b7d11`.
+
+The ensuing timing review rejected that exact patchset for boot. A complete
+online/offline cycle invokes eight broad snapshots. Their combined theoretical
+effect includes up to 16 ms of IRQ-disabled hardware-semaphore waiting, 104
+secure calls, at least 24 DA9214 I2C transactions, and a 212992-byte proc-copy
+critical section. Two snapshots also extend the vendor's 240-microsecond
+SRAM-LDO intervals. Stack use itself passes: observer frames are at most 128
+bytes and the largest changed hotplug caller frame is 688 bytes. No device or
+boot image was accessed.
+
+The prepared fifth patch responds directly to that rejection. It shrinks the
+ring to 256 records, removes four intermediate broad snapshots, and replaces
+the bounded semaphore loop with one immediate request/read. Static tripwires
+pin those bounds. This five-patch revision has not yet been built or accepted
+by the replacement compiler/timing review, so it remains non-bootable.
+
 ## Analysis
 
 The source layout supplies the requested observation points and confines
@@ -306,18 +341,17 @@ running binary. Those unresolved questions are decision-changing.
 
 ## Conclusion
 
-`inconclusive` for hardware behavior. A reviewable four-patch observer series
-exists and passes the recorded source/static checks against public
-`59e00a…`. Its compiled output is not a boot image or installable candidate. The
-pinned compiler, full-tree compile, and baseline diagnostic-attribution proofs
-are closed. The mandatory next result is a case-safe fetched stack bundle plus
-stack and owner-timing review.
+`inconclusive` for the five-patch revision and for hardware behavior. The exact
+compiled four-patch revision is rejected for boot. A reviewable fifth patch now
+bounds its identified timing effects, but its source, compiler, baseline, stack,
+and owner-timing gates are not yet closed. No output is a boot image or
+installable candidate. The mandatory next result is an exact dual Buildbox
+build and replacement compiler/timing review of all five patches.
 
 ## Follow-up
 
-Complete the baseline diagnostic, stack, and owner-timing review and preserve
-both builds' full warnings, configurations, symbol maps and output hashes.
-Only if that gate passes should a separate experiment define one natural
-online/offline capture, retrieval of
+Validate the fifth patch, then repeat both builds and the compiler/timing
+review. Only if that gate passes should a separate experiment define one
+natural online/offline capture, retrieval of
 `/proc/mt6797_a72_transition`, exact expected event ordering, stop conditions
 and how each possible result changes the mainline A72 implementation.

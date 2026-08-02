@@ -16,10 +16,11 @@ lock, cannot clear the ring and cannot trigger a new hardware sample.
 
 | Patch | Logical responsibility |
 | --- | --- |
-| `0001` | Kconfig-gated recorder, 2048 typed records, per-A72 transaction slots, immutable proc snapshot |
+| `0001` | Kconfig-gated recorder, typed ring, per-A72 transaction slots, immutable proc snapshot |
 | `0002` | Fixed owner-local DA9214, SPM, secure and clock snapshots |
 | `0003` | Existing mutation-path ownership, pre/request/readback records, DCM serialization |
 | `0004` | HPS, PSCI, secondary and offline lifecycle correlation |
+| `0005` | 256-record bound, immediate-only clock semaphore try, and pre/post-only broad snapshots |
 
 ## Fixed observation contract
 
@@ -28,7 +29,7 @@ lock, cannot clear the ring and cannot trigger a new hardware sample.
 | DA9214 | page `0x00`, BUCKB enable `0x5e`, BUCKB VSEL `0xd9` | Existing `da9214_i2c_access` mutex covers selector, reads and restore. A pure snapshot restores the exact prior page. If prior bit 7 (`PAGE_REVERT`) is set, restore success is recorded without a verify-read. Failure is a typed status and never changes the caller's transition return. |
 | SPM | offsets `0x180`, `0x184`, `0x188`, `0x18c`, `0x218`, `0x290` from `0x10006000` | Any fallback mapping is created before `__spm_lock`. Snapshot reads and the two observed RMWs are under `__spm_lock`. If observer mapping fails, the caller executes the old direct RMW path. |
 | Secure iDVFS | `0x10222470`, `0x10222498`, `0x1022249c`, `0x102224a0`, `0x102224a4`, `0x102224ac`, `0x102224b0`, `0x102224b4`, `0x102224cc`, `0x102222b0`, `0x102222b4`, `0x10222274` | Exactly twelve `SEC_BIGIDVFS_READ` calls plus a repeat of the first address as a stability sentinel. No secure write or user-selected address. |
-| B/CCI clock | offsets `0x224`, `0x270`, `0x274` from the existing owner mapping | `spin_trylock_irqsave` avoids waiting for the owner software lock. On success, one existing nominal 2 ms DVFSP hardware-semaphore attempt is made; failure is recorded and no register snapshot is claimed. No owner BUG/retry helper is called. |
+| B/CCI clock | offsets `0x224`, `0x270`, `0x274` from the existing owner mapping | `spin_trylock_irqsave` avoids waiting for the owner software lock. On success, exactly one hardware-semaphore request/read is made with no retry or delay; failure is recorded and no register snapshot is claimed. No owner BUG/retry helper is called. |
 | TOPRGU | existing `MTK_WDT_SWSYS_RST_PWRAP_SPI_CTL_RST` only | Pre-state, keyed requested value and readback are captured inside `rgu_reg_operation_spinlock`; the typed record is emitted after unlock. |
 | MP2 DCM | existing `MCUCFG_SYNC_DCM_MP2_CONFIG` only | A dedicated spinlock covers pre-state, TOG1 write/readback, TOG0 write and final readback for both enable and disable. This newly serialized timing is an explicit pre-boot safety-review item. |
 
@@ -55,8 +56,8 @@ guessing.
 - Existing mutation order and function return values remain unchanged.
 - No added writer allocates, prints, sleeps for a new retry, warns, panics or
   aborts a transition.
-- The existing `udelay` calls remain; the clock snapshot uses the owner's one
-  bounded semaphore attempt.
+- The existing transition `udelay` calls remain. The clock snapshot adds no
+  delay and makes one immediate semaphore request/read.
 - SPM observation failure falls back to the original mutation.
 - The proc read is passive with respect to hardware; it copies already-recorded
   entries only.
@@ -68,7 +69,7 @@ guessing.
 
 ## Mandatory pre-boot review checklist
 
-- Build all four patches with the exact active configuration plus only
+- Build all five patches with the exact active configuration plus only
   `CONFIG_MTK_A72_TRANSITION_OBSERVER=y`.
 - Build only on Buildbox from an exact clean pushed project commit. Reproduce
   the compiler from Debian snapshot `20170618T000000Z`: cross-GCC package

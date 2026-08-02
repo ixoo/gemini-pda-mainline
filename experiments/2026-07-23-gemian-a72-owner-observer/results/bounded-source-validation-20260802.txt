@@ -1,0 +1,70 @@
+Gemian A72 owner-observer bounded revision source validation
+Recorded: 2026-08-02 America/New_York
+
+Scope
+-----
+source_commit=59e00a9144d782e148332009a835b99c43382467
+series_patch_count=5
+bounded_patch_source_commit=718f297ae97ab3738d624129b814e921a8371227
+bounded_patch_sha256=72889411851be10224fde0a41d4a83affb89f52831eb6fe8a605d5516f4b918a
+build_performed=no
+device_access=none
+boot_candidate=no
+
+Source construction
+-------------------
+The fifth patch was generated from a disposable Git commit on Buildbox after
+the exact original four-patch source state. Its diff is byte-identical to that
+source commit's binary diff, and `git diff --check HEAD^ HEAD` passes. The
+disposable checkout is clean.
+
+The patch changes only:
+
+- `arch/arm64/kernel/psci.c`;
+- `drivers/misc/mediatek/base/power/mt6797/mt_a72_transition_observer.c`; and
+- `drivers/misc/mediatek/freqhopping/mt6797/mt_freqhopping.c`.
+
+Bounded contract
+----------------
+- ring size: 256 records, or 26624 bytes at the compiled 104-byte record size;
+- fixed broad snapshots: four per complete online/offline cycle, reduced from
+  eight by removing the two SRAM-LDO-interval snapshots and both buck-off
+  interior snapshots;
+- protected-clock semaphore: one request and one immediate read, with no retry
+  and no added `udelay`;
+- retained observation: online pre/post and offline pre/post broad boundaries,
+  plus the existing owner-local mutation and lifecycle records.
+
+Local validation
+----------------
+`scripts/validate.py`: PASS, including exact five-patch order and source-commit
+identities, effective 256-record size, four removed snapshot calls, no added
+fixed snapshot, and no new semaphore wait.
+
+`scripts/test-static.py`: PASS: positive validation and 8 mutation tripwires.
+The three new tripwires reject a larger ring, any restored semaphore delay,
+and any restored intermediate broad snapshot.
+
+`git diff --check`: PASS.
+
+Compatible checkpatch
+---------------------
+Linux 7.1.3 `scripts/checkpatch.pl --no-tree -` result for patch 5:
+
+    total: 1 errors, 0 warnings, 69 lines checked
+
+The sole error is the missing `Signed-off-by`. The patch has a clearly
+synthetic experiment identity, is not submission-ready, and therefore does
+not receive an invented DCO certification. The source-code and description
+warnings are zero.
+
+Decision
+--------
+source_static_gate=passed
+compiler_gate=pending
+timing_gate=pending
+boot_authorized=no
+
+Commit and push this exact project revision, then run the dual observer and
+unpatched-baseline build on Buildbox. Repeat configuration, diagnostic, symbol,
+stack, lock, and timing review before creating any boot image.

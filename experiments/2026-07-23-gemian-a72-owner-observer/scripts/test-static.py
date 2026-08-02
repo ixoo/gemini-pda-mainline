@@ -60,6 +60,9 @@ def main():
     patch2 = (
         "patches/0002-diagnostic-add-owner-local-fixed-A72-snapshots.patch"
     )
+    patch5 = (
+        "patches/0005-diagnostic-bound-observer-timing-perturbation.patch"
+    )
     expect_rejected(
         "writable proc mode",
         patch1,
@@ -95,7 +98,28 @@ def main():
         "boot_candidate: true",
         "missing 'boot_candidate: false'",
     )
-    print("PASS: positive validation and 5 mutation tripwires")
+    expect_rejected(
+        "ring-size regression",
+        patch5,
+        "+#define MT6797_A72_OBS_RING_SIZE\t256",
+        "+#define MT6797_A72_OBS_RING_SIZE\t512",
+        "recorder: missing '#define MT6797_A72_OBS_RING_SIZE\\t256'",
+    )
+    expect_rejected(
+        "semaphore-wait regression",
+        patch5,
+        "+\tif (!(hs_read32(g_reg_sema3_m0) & 0x1)) {",
+        "+\tudelay(10);\n+\tif (!(hs_read32(g_reg_sema3_m0) & 0x1)) {",
+        "timing-bound patch adds a semaphore wait",
+    )
+    expect_rejected(
+        "extra-boundary-snapshot regression",
+        patch5,
+        "-\tmt6797_a72_obs_fixed_snapshot(cpu, MT6797_A72_PHASE_SRAM_PRE);",
+        "+\tmt6797_a72_obs_fixed_snapshot(cpu, MT6797_A72_PHASE_SRAM_PRE);",
+        "timing-bound fixed snapshot removal count changed",
+    )
+    print("PASS: positive validation and 8 mutation tripwires")
     return 0
 
 
