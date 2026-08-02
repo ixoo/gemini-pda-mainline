@@ -1,9 +1,15 @@
-From 66b20afd79a3fda5df4b8be17093b0937b988f25 Mon Sep 17 00:00:00 2001
+From 7f37e3932d02a78208d7292ba2491f6ce4f2cd88 Mon Sep 17 00:00:00 2001
 From: Gemini PDA Investigation <gemini-observer@example.invalid>
-Date: Sun, 2 Aug 2026 18:06:07 +0000
+Date: Sun, 2 Aug 2026 18:11:58 +0000
 Subject: [PATCH] diagnostic: gate observer effects to first CPU8 cycle
 
-Return before pure DA9214, SPM, secure, clock, and DCM sampling outside the latched CPU8 capture window. Preserve real power behavior by selecting the original SPM, BUCKB, and MP2 DCM operation paths whenever capture is inactive.
+Return before pure hardware sampling outside the CPU8 capture window.
+
+This covers DA9214, SPM, secure, clock, and DCM snapshots.
+
+Select the original SPM and BUCKB operation paths outside capture.
+
+Select the original MP2 DCM operation path there as well.
 ---
  arch/arm64/kernel/psci.c                      | 20 ++++-
  .../misc/mediatek/base/power/mt6797/mt_dcm.c  | 73 ++++++++++---------
