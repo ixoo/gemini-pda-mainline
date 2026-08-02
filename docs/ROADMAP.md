@@ -827,9 +827,15 @@ was removed, and shutdown was confirmed. Identity-gated passive runtime
 evidence now closes the pre-isolation BUCKB/reset rollback row: the bounded
 forward subset completed, its owned inverse restored the frozen entry state,
 no later boundary was crossed, and known-good recovery passed. CPU8/9 remained
-offline. The next action is offline review and a separately bounded
-external-isolation-stage design; do not cross that boundary or request CPU8
-directly from this result. CPU9,
+offline. Offline owner review then rejected an isolation-only rollback: the
+public Linux path has no isolation inverse, and the natural offline restore is
+outside the instrumented Linux writer. The next ordered action is source-owner,
+timing, watchdog, and pstore validation of one fail-closed CPU8 startup state
+machine. It may roll back only before isolation; afterward it must retain power,
+record the exact terminal stage, and recover by reset. Source review found that
+the normal Gemian watchdog kicker continuously refreshes the hardware deadline,
+so the immediate prerequisite is a recovery-only watchdog/pstore discriminator
+with every A72 write and request forbidden. CPU9,
 suspend/resume, later power boundaries, a mainline provider write, and any A72
 consumer remain blocked until their separate ownership and rollback gates
 close.

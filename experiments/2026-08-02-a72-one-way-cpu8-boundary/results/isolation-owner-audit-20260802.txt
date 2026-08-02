@@ -1,0 +1,59 @@
+A72 external-isolation owner audit
+Recorded: 2026-08-02 America/New_York
+
+Pinned inputs
+-------------
+public_source_url=https://github.com/gemian/gemini-linux-kernel-3.18.git
+public_source_commit=59e00a9144d782e148332009a835b99c43382467
+public_psci_c_sha256=a1d5367bb23c4838deb862d01fc9f2aaabd854a8695f906191713f2398fdd11b
+public_spm_register_header_sha256=a89a7b879f0b5ef8fd7d9625ff767741c6ad9e4f56a6bd82b52865cfd2d93c6b
+accepted_preiso_runtime_sha256=1295291982ae539681fc817cebc894a6f7abb13484f000500e542caa861adaa4
+natural_cycle_runtime_sha256=dc5d2eddf883cc00b0ccc617f5509664d2b44e1f4bbe88c58883714a06ed8ee6
+firmware_contract_sha256=0ce33cb344876363b9c35e3c12e9adef9fc4357071cc3d35f667da9d76b6cd97
+owner_observer_mutation_patch_sha256=c2e1a5404f3e5375e3bcd85e4ea56e9aa1faf873e873ec4937b9690837f85842
+
+Source observations
+-------------------
+register=CPU_EXT_BUCK_ISO@0x10006290
+bit0=L_EXT_BUCK_ISO
+bit1=B_EXT_BUCK_ISO
+linux_forward_writer=cpu_power_on_buck-clears-bits-1:0
+linux_off_writer=none
+linux_off_actions=DA9214-BUCKB-disable,ineffective-SRAM-disable-wrapper
+other_public_linux_a72_writer=none-found
+
+Runtime observations
+--------------------
+offline_entry=0x00000002
+natural_up_linux_mutation=0x00000002-to-0x00000000
+natural_down_final=0x00000002
+natural_down_instrumented_linux_restore=absent
+accepted_preiso_candidate_isolation_action=read-only-0x00000002
+accepted_preiso_rollback=complete-before-isolation
+
+Inference boundary
+------------------
+The restored natural-down value is written outside the instrumented public
+Linux path. Retained firmware is the leading owner inference because PSCI off
+and secure cluster teardown occur between the observed online and offline
+snapshots, but the exact writer was not captured. The active private kernel is
+hook-equivalent rather than source-identical, and the observer cannot record a
+secure-side MMIO write. Do not promote the inferred firmware owner to fact.
+
+Rejected branches
+-----------------
+- Linux clear-then-set isolation: invents an unobserved inverse and ownership.
+- Isolation clear followed by userspace collection: holds an intermediate
+  state far beyond the working path's 240-microsecond interval.
+- Reuse public cpu_power_off_buck as rollback: it neither restores isolation
+  nor provides a real SRAM inverse and can remove shared external power.
+
+Decision
+--------
+There is no evidence-backed Linux isolation inverse. The next implementation
+must use the already-proven pre-isolation rollback only. At or after an
+isolation-write attempt it must retain power, reject retry, record the exact
+last stage, and recover by reset. The smallest useful transaction proceeds
+directly through SRAM-LDO and one standard CPU8 PSCI request with independent
+readback and secondary-completion classification. CPU9 and CPU off remain
+forbidden.

@@ -1,0 +1,64 @@
+A72 one-way CPU8 source and recovery readiness review
+Recorded: 2026-08-02 America/New_York
+
+Pinned source
+-------------
+source_commit=59e00a9144d782e148332009a835b99c43382467
+psci_c_sha256=a1d5367bb23c4838deb862d01fc9f2aaabd854a8695f906191713f2398fdd11b
+smp_c_sha256=855636305fe5d465ca9804827a95eae3203f7dd5d2994c600741e4d73b047d42
+wd_common_drv_c_sha256=ce82e6c861affe32baa7061055ad74c4eca8c304adeb996f4a8619de963485e9
+mt6797_wdt_c_sha256=816e82eddf63d2bf9366b84ff238b3ff305c7929bea3bd694a229c0294acd6bc
+active_config_sha256=231d8a2ffe7afac3a4cc62c27d0eb6fe8bd9165ebd096e3e3346dd6df35c18f4
+
+Source insertion review
+-----------------------
+preparation_owner=arch/arm64/kernel/psci.c:cpu_psci_cpu_boot
+vendor_prepare=arch/arm64/kernel/psci.c:cpu_power_on_buck
+secondary_wait_owner=arch/arm64/kernel/smp.c:__cpu_up
+secondary_publication=arch/arm64/kernel/smp.c:secondary_start_kernel
+secondary_online_line=248
+secondary_completion_line=252
+
+A dedicated CPU8 branch must replace, not wrap, the vendor preparation and
+PSCI/DCM sequence. Otherwise the external preparation or PSCI call can run
+twice. The existing platform cpu_boot callback cannot itself prove secondary
+completion because the generic __cpu_up caller waits only after cpu_boot
+returns. The terminal success hook therefore needs a CPU8-only secondary-side
+handoff before completion plus parent-side reconciliation; DCM may run only
+after that handoff is attributable.
+
+Recovery readiness observations
+-------------------------------
+CONFIG_MTK_WATCHDOG=y
+CONFIG_MTK_WD_KICKER=y
+CONFIG_PSTORE=y
+CONFIG_PSTORE_CONSOLE=y
+CONFIG_PSTORE_RAM=y
+pstore_address=0x44410000
+pstore_size=0x000e0000
+
+The built-in watchdog kicker initializes late, configures the watchdog, and
+refreshes it whenever the participating CPU kick mask is complete. Therefore
+setting a timeout alone does not create an independent recovery deadline. A
+one-way A72 path must not assume that the normal kicker will stop refreshing.
+
+The exact ramoops layout has cross-version warm-reset evidence, but this future
+candidate has not yet proven that its terminal marker is committed before its
+reset path. The CPU8 implementation must not be the first test of both a new
+watchdog-owner transition and a new one-way power boundary.
+
+Decision
+--------
+implementation_ready=no
+patch_generation_authorized=no
+kernel_build_authorized=no
+device_action_authorized=no
+
+First build a recovery-only discriminator that performs no DA921x, SPM A72,
+SRAM-LDO, PSCI, DCM, CPU-online, or CPU9 action. It must take explicit ownership
+from the normal kicker under its lock, arm reset-only mode with a bounded
+timeout, write an exact terminal marker into console-ramoops, stop all further
+kicks, reset, and recover that marker from known-good Gemian. Its failure paths
+must either leave normal watchdog ownership unchanged or reset; they must never
+leave the device without a recovery owner. Only that pass can unblock source
+generation for the one-way CPU8 state machine.

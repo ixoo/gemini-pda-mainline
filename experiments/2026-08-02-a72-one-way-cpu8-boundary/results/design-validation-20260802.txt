@@ -1,0 +1,45 @@
+A72 one-way CPU8 boundary design validation
+Recorded: 2026-08-02 America/New_York
+
+Inputs and tools
+----------------
+model_sha256=804ce0a5b207a01fbfb02c59d4e49d92e00a41877628e82f61e1407b7831f0a3
+test_sha256=25f525317c9f1eeaf86f2a3cf8ab1350c38f34723d6f7a9cf8fcde3da86cc36d
+python_syntax=passed
+model_tests=passed
+kernel_build=none
+device_access=none
+hardware_write=none
+
+Validated boundaries
+--------------------
+- exact entry mismatch rejects without mutation;
+- CPU9 rejects without mutation;
+- SPM-reset, PWRAP, BUCKB-enable, and settle failures use the accepted
+  pre-isolation rollback domain;
+- an isolation write or readback failure preserves unknown isolation state;
+- a PWRAP-deassert readback failure preserves unknown PWRAP state;
+- SRAM request/readback failures never claim verified SRAM state;
+- PSCI/result/secondary ambiguity never claims CPU8 offline or online;
+- DCM failure after secondary completion preserves CPU8 online and unknown DCM;
+- every post-isolation failure retains BUCKB and requires reset recovery;
+- success requires secondary completion before DCM and ends CPU8-online-held;
+- already-on and on-pending succeed only after affinity-ON plus secondary
+  completion reconciliation.
+
+Rejected implementation branches
+--------------------------------
+linux_isolation_inverse=rejected-unobserved-owner
+isolation_clear_userspace_wait=rejected-unbounded-intermediate-hold
+vendor_cpu_power_off_copy=rejected-incomplete-and-shared-power-risk
+cpu9_same_attempt=rejected
+cpu8_disable_path=rejected
+
+Decision
+--------
+The abstract state machine is internally fail-closed, but this does not yet
+authorize a kernel implementation. Next audit exact source insertion points,
+owner-lock composition, watchdog and console-ramoops availability before the
+natural request, maximum post-isolation time to the SRAM/PSCI boundary, and
+terminal reset behavior. Only a positive review may generate experiment-only
+patches on Buildbox.
