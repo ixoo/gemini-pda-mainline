@@ -516,12 +516,14 @@ jq -e --arg commit "${commit}" '
   .target_extra_cflags == "-fstack-usage" and
   .baseline_comparison == true and .diagnostics_identical == true and
   .baseline_source_unpatched == true and .stack_usage_captured == true and
+  .stack_usage_file_count > 100 and
   .purpose == "compile-review-only" and .boot_candidate == false
 ' "${package}/provenance/build.json" >/dev/null
 for required in \
   outputs/System.map outputs/diagnostics.txt outputs/baseline/config \
   outputs/baseline/System.map outputs/baseline/diagnostics.txt \
-  outputs/baseline/output-sha256.txt; do
+  outputs/baseline/output-sha256.txt outputs/stack-usage.tar \
+  outputs/stack-usage-files.nul outputs/stack-usage-files.txt; do
   [[ -s "${package}/${required}" ]]
 done
 cmp "${package}/outputs/diagnostics.txt" \
@@ -529,7 +531,7 @@ cmp "${package}/outputs/diagnostics.txt" \
 grep -q ' mt6797_a72_obs_init$' "${package}/outputs/System.map"
 ! grep -qE ' (mt6797|da9214)_a72_obs_' \
   "${package}/outputs/baseline/System.map"
-[[ "$(find "${package}/outputs/stack-usage" -type f -name '*.su' | wc -l)" -gt 100 ]]
+[[ "$(tar -tf "${package}/outputs/stack-usage.tar" | wc -l)" -gt 100 ]]
 jq -n \
   --arg status validated \
   --arg repository_commit "${commit}" \
@@ -603,7 +605,7 @@ REMOTE
   [[ -d "${temporary}/${package_name}" ]]
   (
     cd "${temporary}/${package_name}"
-    sha256sum --check --strict SHA256SUMS
+    sha256sum --check --strict SHA256SUMS >/dev/null
   )
   mv "${temporary}/${package_name}" "${destination}"
   rmdir "${temporary}"

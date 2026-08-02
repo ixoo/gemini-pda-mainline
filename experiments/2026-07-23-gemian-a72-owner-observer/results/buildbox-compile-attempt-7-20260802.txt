@@ -1,0 +1,76 @@
+Gemian A72 owner-observer Buildbox compile attempt 7
+Recorded: 2026-08-02 America/New_York
+
+Input
+-----
+repository_commit=b36fa8da26c083de365c0ad4cfa4b8a174d1fc72
+repository_remote=https://github.com/ixoo/gemini-pda-mainline.git
+source_commit=59e00a9144d782e148332009a835b99c43382467
+patchset_sha256=99221df407cf090dbbd4f657c4f39ed53e7d1e52d886679557b1843da4ddf4a7
+baseline_config_sha256=231d8a2ffe7afac3a4cc62c27d0eb6fe8bd9165ebd096e3e3346dd6df35c18f4
+toolchain_manifest_sha256=a45d945f092461a611d276ad7d0a0fea1ea8a7f93db413908bcb892c12817d14
+build_backend=buildbox
+native_vm_build=no
+purpose=compile-review-only
+boot_candidate=no
+
+Buildbox result
+---------------
+job=b36fa8da26c083de365c0ad4cfa4b8a174d1fc72-gemian-a72-owner-observer
+package=/workspace/gemini-pda/gemian-artifacts/gemian-observer-b36fa8da26c0
+completed_utc=2026-08-02T13:35:10Z
+observer_source_build=passed
+baseline_source_build=passed
+diagnostic_comparison=identical
+observer_symbol_presence=passed
+baseline_observer_symbol_exclusion=passed
+stack_usage_files=2484
+remote_package_validation=passed
+host_fetch_validation=failed
+device_access=none
+
+Observer output SHA-256
+----------------------
+Image.gz-dtb=5a9d4e06fbbe88f59dc9d29fe07e2139f597c07f5b775d10acc4ab1ef6e244c6
+System.map=29fc5f2bde2b2bd64273055a6fb71351dcac3e357397f8e571983f729af7c8e7
+vmlinux=000552396d1395fb456f9387b84dcbdbef4e341dab9008e8b69c207d84defe7c
+config=a7eaf67c19ad9b689457d057412019ecb75c8f4d6be1e8142060ea81861fea32
+build.log=d1e29d71bad31848b9a65713ab289510ba7d5982fd6ca3c46c5623b7aa064a38
+diagnostics.txt=f60899a1c59153d7d36474c415bc6e302db89a74bc53a062cb56fa21eb269465
+
+Baseline evidence SHA-256
+------------------------
+config=c96ca5c8a767b93f59487c9b4a1c3d05c1f47c166f3f9ea9f2b7ffe0f6f1f0fb
+System.map=6450353d165e369903023a4cf28f23a7e49a37ab42fe0eaf42ba7fa18aff6564
+build.log=dfd2ee873a0880a70b03f8bce40935da296ea692f856c2438b607d0867336042
+diagnostics.txt=f60899a1c59153d7d36474c415bc6e302db89a74bc53a062cb56fa21eb269465
+
+Diagnostic conclusion
+---------------------
+The observer and exact unpatched baseline diagnostic files are byte-identical.
+Each contains only `WARNING: modpost: Found 69 section mismatch(es).` The
+warning summary is therefore inherited from the selected vendor baseline and
+is not introduced by the observer patchset.
+
+Fetch failure
+-------------
+The validated Linux package expanded 2484 individual `.su` files. The host's
+case-insensitive filesystem folded four distinct uppercase/lowercase pairs:
+
+  xt_DSCP.su / xt_dscp.su
+  xt_HL.su / xt_hl.su
+  xt_RATEEST.su / xt_rateest.su
+  xt_TCPMSS.su / xt_tcpmss.su
+
+Each pair has distinct content and hashes. Local `sha256sum --check --strict`
+reported four failures and the fetch helper removed its temporary extraction;
+no destination package was accepted.
+
+Decision
+--------
+Preserve the stack-usage tree as one checksum-covered tar archive inside the
+outer package so Linux case distinctions survive transfer. Retain a NUL-safe
+member manifest and a readable member list, validate the archive member count,
+and submit a replacement exact clean pushed commit. Attempt 7 closes baseline
+diagnostic attribution but not local evidence retrieval, stack review, owner
+timing safety, packaging for boot, or hardware behavior.

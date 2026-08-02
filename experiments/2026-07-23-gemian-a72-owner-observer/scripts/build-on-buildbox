@@ -53,7 +53,7 @@ readonly patchset_sha
 [[ "$(sha256sum "${baseline_config}" | awk '{print $1}')" == "${CONFIG_SHA256}" ]] || \
   die "active Gemian configuration hash mismatch"
 
-for command in apt-cache apt-get dpkg-deb file git jq make python3 sha256sum; do
+for command in apt-cache apt-get dpkg-deb file git jq make python3 sha256sum tar; do
   command -v "${command}" >/dev/null 2>&1 || die "missing Buildbox command: ${command}"
 done
 
@@ -444,14 +444,26 @@ cp "${baseline_output}/System.map" "${package_partial}/outputs/baseline/System.m
   sha256sum arch/arm64/boot/Image.gz-dtb System.map vmlinux > \
     "${package_partial}/outputs/baseline/output-sha256.txt"
 )
-mkdir -p "${package_partial}/outputs/stack-usage"
-while IFS= read -r -d '' stack_file; do
-  relative="${stack_file#"${output}/"}"
-  mkdir -p "${package_partial}/outputs/stack-usage/$(dirname "${relative}")"
-  cp "${stack_file}" "${package_partial}/outputs/stack-usage/${relative}"
-done < <(find "${output}" -type f -name '*.su' -print0)
-[[ "$(find "${package_partial}/outputs/stack-usage" -type f -name '*.su' | wc -l)" -gt 100 ]] || \
+(
+  cd "${output}"
+  find . -type f -name '*.su' -print0 | sort -z > \
+    "${package_partial}/outputs/stack-usage-files.nul"
+  tar --null --files-from="${package_partial}/outputs/stack-usage-files.nul" \
+    -cf "${package_partial}/outputs/stack-usage.tar"
+)
+tar -tf "${package_partial}/outputs/stack-usage.tar" > \
+  "${package_partial}/outputs/stack-usage-files.txt"
+stack_usage_count="$(tr -cd '\0' < \
+  "${package_partial}/outputs/stack-usage-files.nul" | wc -c)"
+readonly stack_usage_count
+archive_member_count="$(wc -l < \
+  "${package_partial}/outputs/stack-usage-files.txt")"
+readonly archive_member_count
+[[ "${stack_usage_count}" -gt 100 && \
+   "${archive_member_count}" -eq "${stack_usage_count}" ]] || \
   die "stack-usage capture is unexpectedly incomplete"
+tar -C "${output}" --compare \
+  --file="${package_partial}/outputs/stack-usage.tar"
 "${cross_prefix}gcc" --version > "${package_partial}/provenance/compiler.txt"
 "${cross_prefix}ld" --version > "${package_partial}/provenance/linker.txt"
 gcc --version > "${package_partial}/provenance/host-compiler.txt"
@@ -466,6 +478,7 @@ jq -n \
   --arg cust_dtsi_sha256 "${CUST_DTSI_SHA256}" \
   --arg build_architecture "$(uname -m)" \
   --arg target_architecture arm64 \
+  --argjson stack_usage_file_count "${stack_usage_count}" \
   --arg completed_utc "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
   '{repository_commit: $repository_commit, repository_dirty: false,
     source_url: $source_url, source_commit: $source_commit,
@@ -477,13 +490,14 @@ jq -n \
     target_extra_cflags: "-fstack-usage",
     baseline_comparison: true, diagnostics_identical: true,
     baseline_source_unpatched: true, stack_usage_captured: true,
+    stack_usage_file_count: $stack_usage_file_count,
     purpose: "compile-review-only",
     boot_candidate: false, completed_utc: $completed_utc}' > \
   "${package_partial}/provenance/build.json"
 (
   cd "${package_partial}"
   find outputs provenance -type f -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
-  sha256sum --check --strict SHA256SUMS
+  sha256sum --check --strict SHA256SUMS >/dev/null
 )
 rm -rf -- "${output}" "${baseline_output}"
 mv "${package_partial}" "${package}"

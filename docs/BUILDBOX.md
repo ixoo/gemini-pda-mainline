@@ -106,8 +106,11 @@ the same normalized live configuration, pinned toolchain, DCT oracle, host
 compatibility flag, and target `-fstack-usage` diagnostic flag. Validation
 requires byte-identical extracted warning/error sets and absence of observer
 symbols from the baseline. It retains both configs, build logs, diagnostics,
-symbol maps and output hashes plus all observer stack-usage reports. These are
-compiler and timing-review inputs only; neither output is a boot candidate.
+symbol maps and output hashes plus all observer stack-usage reports. The Linux
+stack-report tree is nested in a checksum-covered tar archive with NUL-safe and
+readable member manifests so case-distinct filenames survive extraction on a
+case-insensitive host. These are compiler and timing-review inputs only;
+neither output is a boot candidate.
 
 ## Remote storage and concurrency
 

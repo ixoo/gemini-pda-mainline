@@ -679,7 +679,14 @@ of 69 section mismatches. That attempt did not prove the warning is inherited
 or retain compiler stack-use data. The next result is therefore an exact
 unpatched-baseline comparison under identical Buildbox inputs, with
 byte-identical diagnostic enforcement and retained `-fstack-usage` evidence,
-followed by the owner-lock/timing review—not a device boot.
+followed by the owner-lock/timing review—not a device boot. That seventh exact
+submission passed both full builds, proved byte-identical diagnostics, excluded
+observer symbols from the baseline, and captured 2484 stack reports. Its host
+fetch then failed closed because four uppercase/lowercase Linux netfilter
+filename pairs collide on the case-insensitive destination filesystem. The
+replacement nests the stack tree in a checksum-covered case-preserving archive;
+the next result is successful exact retrieval and function-level stack/timing
+review, still not a device boot.
 
 Exit: observations and inference are separated, every required writer has one
 owner, and a failed step has a bounded rollback path.

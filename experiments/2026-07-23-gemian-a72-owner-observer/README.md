@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-23-gemian-a72-owner-observer` |
-| Status | `inconclusive`: the exact patched vendor source compiles and links on Buildbox; baseline diagnostic attribution, stack/timing review, and hardware evidence remain open |
+| Status | `inconclusive`: patched/baseline builds and diagnostic attribution pass; case-safe stack retrieval, timing review, and hardware evidence remain open |
 | Subsystem | MT6797 A72 hotplug, PSCI, external buck, SPM, iDVFS, B/CCI clocks, MP2 DCM and TOPRGU |
 | Device variant | Current named Gemini PDA unit |
 | Date(s) | 2026-07-23 |
@@ -154,6 +154,9 @@ no observer artifact changed a partition, policy, or hardware state.
 - [`results/buildbox-compile-attempt-6-20260802.txt`](results/buildbox-compile-attempt-6-20260802.txt):
   first complete source compile and link, exact output hashes, configuration
   delta, symbol evidence, and the remaining baseline/stack review boundary.
+- [`results/buildbox-compile-attempt-7-20260802.txt`](results/buildbox-compile-attempt-7-20260802.txt):
+  exact observer/baseline compile and identical-diagnostic proof, followed by
+  the fail-closed host fetch rejection of four case-colliding filename pairs.
 
 The local validation invocation is:
 
@@ -276,6 +279,16 @@ proved. A replacement compile will compare both builds byte-for-byte and
 retain GCC stack-usage reports. The complete attempt identity and output hashes
 are recorded in the associated result.
 
+Compile attempt 7 built both the observer and exact unpatched baseline under
+identical inputs with `-fstack-usage`. Both linked, the baseline contains no
+observer symbols, and their extracted diagnostics are byte-identical. This
+attributes the 69-section-mismatch summary to the vendor baseline. Buildbox
+captured 2484 stack reports and validated its package, but the host fetch
+correctly rejected four distinct uppercase/lowercase netfilter filename pairs
+that collide on its case-insensitive filesystem. No local destination was
+accepted. The replacement stores that Linux tree inside one checksum-covered
+tar archive with exact member manifests.
+
 ## Analysis
 
 The source layout supplies the requested observation points and confines
@@ -296,9 +309,9 @@ running binary. Those unresolved questions are decision-changing.
 `inconclusive` for hardware behavior. A reviewable four-patch observer series
 exists and passes the recorded source/static checks against public
 `59e00a…`. Its compiled output is not a boot image or installable candidate. The
-pinned compiler and full-tree compile proofs are closed. The mandatory next
-result is the exact baseline-comparison Buildbox build plus stack and
-owner-timing review.
+pinned compiler, full-tree compile, and baseline diagnostic-attribution proofs
+are closed. The mandatory next result is a case-safe fetched stack bundle plus
+stack and owner-timing review.
 
 ## Follow-up
 
