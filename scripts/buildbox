@@ -513,8 +513,23 @@ jq -e --arg commit "${commit}" '
   .cust_dtsi_sha256 == "7a7eb416499346afff30c15f967ccb9cf79323c076204b6a953515db74811632" and
   .build_architecture == "x86_64" and .target_architecture == "arm64" and
   .host_extra_cflags == "-fcommon" and
+  .target_extra_cflags == "-fstack-usage" and
+  .baseline_comparison == true and .diagnostics_identical == true and
+  .baseline_source_unpatched == true and .stack_usage_captured == true and
   .purpose == "compile-review-only" and .boot_candidate == false
 ' "${package}/provenance/build.json" >/dev/null
+for required in \
+  outputs/System.map outputs/diagnostics.txt outputs/baseline/config \
+  outputs/baseline/System.map outputs/baseline/diagnostics.txt \
+  outputs/baseline/output-sha256.txt; do
+  [[ -s "${package}/${required}" ]]
+done
+cmp "${package}/outputs/diagnostics.txt" \
+  "${package}/outputs/baseline/diagnostics.txt" >/dev/null
+grep -q ' mt6797_a72_obs_init$' "${package}/outputs/System.map"
+! grep -qE ' (mt6797|da9214)_a72_obs_' \
+  "${package}/outputs/baseline/System.map"
+[[ "$(find "${package}/outputs/stack-usage" -type f -name '*.su' | wc -l)" -gt 100 ]]
 jq -n \
   --arg status validated \
   --arg repository_commit "${commit}" \

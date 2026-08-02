@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-23-gemian-a72-owner-observer` |
-| Status | `inconclusive`: source/static checks and the pinned Buildbox compiler proof are complete; source-build and hardware evidence do not yet exist |
+| Status | `inconclusive`: the exact patched vendor source compiles and links on Buildbox; baseline diagnostic attribution, stack/timing review, and hardware evidence remain open |
 | Subsystem | MT6797 A72 hotplug, PSCI, external buck, SPM, iDVFS, B/CCI clocks, MP2 DCM and TOPRGU |
 | Device variant | Current named Gemini PDA unit |
 | Date(s) | 2026-07-23 |
@@ -19,9 +19,9 @@ A72 transition resources so that one natural CPU8/CPU9 online/offline
 transaction yields attributable pre-state, mutation and post-state evidence
 without adding a user-controlled register, SMC, hotplug or policy interface?
 
-This directory answers only the source-preparation part of that question.
-Successful patch application is not a compile result, and neither one
-establishes safe timing or hardware behavior.
+This directory answers the source-preparation and compiler-review parts of
+that question. The successful Buildbox compile is not a timing-safety or
+hardware-behavior result.
 
 ## Provenance and environment
 
@@ -46,7 +46,7 @@ establishes safe timing or hardware behavior.
   binary/source evidence. It must not be described as the exact active source.
 - Source patch commits used to generate this series:
   `7bddafa6`, `c8475b56`, `429afb35`, and `349f24b6`.
-- A future source build must run only on Buildbox from an exact clean pushed
+- Every source build must run only on Buildbox from an exact clean pushed
   project commit. Its toolchain input is Debian snapshot
   `20170618T000000Z`, cross-GCC package `6.3.0-18cross1` reporting GCC
   `6.3.0 20170516`, and binutils package `2.28-5` reporting GNU ld `2.28`.
@@ -101,8 +101,10 @@ boot, the final series must receive:
 5. a named artifact identity, packaging/readback validation, recovery plan,
    exact test hypothesis and stop conditions.
 
-No VM, device, partition, boot image, configuration, policy or hardware state
-was accessed or changed while preparing this directory.
+The compile lane accessed only Buildbox and did not create a boot image or
+access the device. Separately, the device was returned from Stage27 to Gemian
+through the validated USB path and its configuration was read and hash-checked;
+no observer artifact changed a partition, policy, or hardware state.
 
 ## Associated code
 
@@ -149,6 +151,9 @@ was accessed or changed while preparing this directory.
 - [`results/buildbox-compile-attempt-5-20260802.txt`](results/buildbox-compile-attempt-5-20260802.txt):
   exact host-compatibility submission and its Make variable-precedence
   failure before observer compilation.
+- [`results/buildbox-compile-attempt-6-20260802.txt`](results/buildbox-compile-attempt-6-20260802.txt):
+  first complete source compile and link, exact output hashes, configuration
+  delta, symbol evidence, and the remaining baseline/stack review boundary.
 
 The local validation invocation is:
 
@@ -188,10 +193,15 @@ Neither command needs privilege, network, VM or device access.
    `CONFIG_ANBOX` from absent to explicit `n`. The latter remains disabled and
    records a Kconfig symbol present only in the hook-equivalent public source;
    every other delta is rejected.
-4. Review every compiler diagnostic and compare generated symbol/reference
-   placement with the source-level hook table in [`DESIGN.md`](DESIGN.md).
-5. Stop before packaging or device access. A separate reviewed experiment must
-   define the exact boot artifact and transition test.
+4. Build the exact unpatched baseline under the same normalized configuration,
+   toolchain and diagnostic flags. Require its extracted warning/error set to
+   be byte-identical to the observer build and retain both build logs, configs,
+   diagnostics, symbol maps and output hashes.
+5. Retain GCC `-fstack-usage` reports for all observer objects, review every
+   affected owner function, and compare generated symbol/reference placement
+   with the source-level hook table in [`DESIGN.md`](DESIGN.md).
+6. Stop before boot-image packaging or device access. A separate reviewed
+   experiment must define the exact boot artifact and transition test.
 
 The Buildbox lane must not copy a source tree or toolchain from the development
 host or recovery VM. If the pinned snapshot packages cannot be made runnable
@@ -225,8 +235,7 @@ the development device from Stage27 to
 Gemian through the validated USB reboot path, the live `/proc/config.gz`
 matched the previously recorded compressed and decompressed hashes exactly.
 The non-sensitive decompressed configuration is now a tracked Buildbox input.
-No compiler diagnostic review, observer-kernel execution or A72 hardware
-transition has occurred.
+No observer-kernel execution or A72 hardware transition has occurred.
 
 Compile attempt 2 passed the exact normalized configuration gate, then exposed
 the selected source's tracked DCT generator as Python 2 syntax with an
@@ -255,6 +264,18 @@ subdirectories' required include-path additions. Both reported missing
 `HOST_EXTRACFLAGS=-fcommon` in the environment instead; sub-Makefiles can append
 their local flags while target compilation remains unchanged.
 
+Compile attempt 6 passed all input, configuration, DCT, host-tool and target
+gates. The exact four-patch source produced `vmlinux`, `System.map`, and
+`Image.gz-dtb` with pinned GCC 6.3/binutils 2.28. The config diff contains only
+the accepted disabled `CONFIG_ANBOX` serialization and observer enablement.
+The symbol map contains the expected observer owners and a fixed ring span of
+212992 bytes, exactly 2048 records times 104 bytes. Its sole extracted
+diagnostic is the vendor tree's summary of 69 section mismatches; because that
+attempt did not build the exact unpatched baseline, inheritance is not yet
+proved. A replacement compile will compare both builds byte-for-byte and
+retain GCC stack-usage reports. The complete attempt identity and output hashes
+are recorded in the associated result.
+
 ## Analysis
 
 The source layout supplies the requested observation points and confines
@@ -264,8 +285,9 @@ PSCI status, secondary-online publication, each affinity-info retry, iDVFS,
 DCM, buck and final offline state under per-A72 transaction IDs. A ring
 overwrite counter exposes loss without adding a control to clear state.
 
-Static checks cannot prove that the old compiler accepts every construct, that
-the additional owner-lock duration is safe, that fixed SMC reads are benign at
+The complete Buildbox compile proves that the pinned compiler accepts the
+constructs and that the tree links. It does not prove that the additional
+owner-lock duration is safe, that fixed SMC reads are benign at
 each hook, or that the hook-equivalent public source exactly represents the
 running binary. Those unresolved questions are decision-changing.
 
@@ -273,14 +295,16 @@ running binary. Those unresolved questions are decision-changing.
 
 `inconclusive` for hardware behavior. A reviewable four-patch observer series
 exists and passes the recorded source/static checks against public
-`59e00a…`. It is not yet a kernel, boot image or installable candidate. The
-pinned compiler proof is closed. The mandatory next result is the replacement
-clean Buildbox source build plus compiler and owner-timing review.
+`59e00a…`. Its compiled output is not a boot image or installable candidate. The
+pinned compiler and full-tree compile proofs are closed. The mandatory next
+result is the exact baseline-comparison Buildbox build plus stack and
+owner-timing review.
 
 ## Follow-up
 
-Complete the compiler review and preserve its full warnings, configuration
-diff and output hashes. Only if that gate passes should a separate experiment
-define one natural online/offline capture, retrieval of
+Complete the baseline diagnostic, stack, and owner-timing review and preserve
+both builds' full warnings, configurations, symbol maps and output hashes.
+Only if that gate passes should a separate experiment define one natural
+online/offline capture, retrieval of
 `/proc/mt6797_a72_transition`, exact expected event ordering, stop conditions
 and how each possible result changes the mainline A72 implementation.

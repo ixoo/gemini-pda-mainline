@@ -672,8 +672,14 @@ matching GCC 6 host semantics without affecting target flags. The next result
 was a fifth exact compile. It fixed DTC, but command-line Make precedence
 blocked SELinux sub-Makefiles from appending the tracked `classmap.h` include
 path. The same flag is now exported through the environment so local additions
-survive. The next result is a sixth exact compile and warning/configuration
-review, not a device boot.
+survive. The sixth exact compile passed the full patched vendor tree and linked
+`vmlinux` and `Image.gz-dtb`; its config delta is exact, expected observer
+symbols are present, and its sole extracted diagnostic is the vendor summary
+of 69 section mismatches. That attempt did not prove the warning is inherited
+or retain compiler stack-use data. The next result is therefore an exact
+unpatched-baseline comparison under identical Buildbox inputs, with
+byte-identical diagnostic enforcement and retained `-fstack-usage` evidence,
+followed by the owner-lock/timing review—not a device boot.
 
 Exit: observations and inference are separated, every required writer has one
 owner, and a failed step has a bounded rollback path.

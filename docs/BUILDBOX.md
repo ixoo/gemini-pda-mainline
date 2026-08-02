@@ -101,6 +101,14 @@ allowing sub-Makefiles to append their local include flags. This flag never
 enters target ARM64 compilation. The bundle records the host compiler identity
 and the compatibility flag separately from the pinned target compiler.
 
+The compile-review bundle also builds the exact unpatched vendor commit with
+the same normalized live configuration, pinned toolchain, DCT oracle, host
+compatibility flag, and target `-fstack-usage` diagnostic flag. Validation
+requires byte-identical extracted warning/error sets and absence of observer
+symbols from the baseline. It retains both configs, build logs, diagnostics,
+symbol maps and output hashes plus all observer stack-usage reports. These are
+compiler and timing-review inputs only; neither output is a boot candidate.
+
 ## Remote storage and concurrency
 
 Buildbox uses its persistent home volume for the Git mirror, verified kernel
