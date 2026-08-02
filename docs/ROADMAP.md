@@ -564,8 +564,19 @@ That deployment matched the predecessor and all live-target and stable-power
 gates, then passed synchronized write, flush, device-side checksum, independent
 full-partition readback, temporary-readback removal, and clean shutdown without
 creating a fresh backup. The next action is one selected `boot2` runtime
-capture followed by a fresh read-only persistence snapshot. No native VM
-kernel build was run. Provider work remains blocked.
+capture followed by a fresh read-only persistence snapshot. Attempt 1 passed:
+the natural device-register entry and return, ordinary uevent call site and
+return, public return, wrapper entry and return, namespace check, and untagged
+route each occurred exactly once with return zero. The boot-time topology had
+one socket, zero listeners, zero allocations, and zero broadcasts. The exact
+real-compatible client remained unbound, every I2C/oracle counter stayed zero,
+CPU and serviceability state were unchanged, and a separately constructed
+direct snapshot confirmed the persistent state and helper removal on the same
+boot. No partition read, storage write, or reboot occurred. This closes the
+real-compatible event/serviceability regression. The next Gate 3 action is a
+separately built identification-only driver-bind experiment using the already
+specified fourteen-read contract; provider work remains blocked. No native VM
+kernel build was run.
 
 ### 4. Finish the ownership and rollback audit
 

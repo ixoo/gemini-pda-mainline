@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-01-da921x-natural-device-add` |
-| Status | `deployed and powered off; selected boot2 runtime pending` |
+| Status | `runtime passed on attempt 1; stage 26 closed` |
 | Subsystem | I2C, driver core, OF, kobject uevent, netlink |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -97,3 +97,24 @@ device-side checksum, and passed an independent full-partition readback. No
 fresh backup was created; the project-wide backup is the recovery source. The
 temporary readback was removed and the device shut down cleanly after verified
 success. Exact sanitized evidence is in `results/deployment.txt`.
+
+## Runtime result
+
+Attempt 1 booted the exact installed Stage 26 image and passed the read-only
+checker. The natural `device_register()` path entered and returned once with
+status zero; its ordinary uevent call site, public function, wrapper,
+namespace check, and untagged route each executed exactly once. Boot-time
+topology contained one socket and no listener, so no skb allocation or
+broadcast occurred. The exact real-compatible `1-0068` client remained
+unbound, all I2C6 and lifecycle-oracle counters remained zero, CPU0--7 stayed
+online, CPU8/9 stayed offline, and console, keyboard, USB, and read-only sysfs
+remained serviceable.
+
+A separately constructed direct netcat snapshot observed the same boot ID,
+stage, counters, unbound client, zero-activity state, CPU policy, and
+serviceability after removal of the temporary runtime checker. No partition
+read, device-storage write, or reboot was requested. This closes the natural
+event/serviceability boundary and permits a separately built
+identification-only driver-bind experiment. It does not prove a driver bind,
+regulator provider, register write, or A72 power. Sanitized evidence is in
+`results/runtime.txt`.
