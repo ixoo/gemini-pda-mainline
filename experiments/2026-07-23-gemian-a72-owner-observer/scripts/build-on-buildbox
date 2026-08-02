@@ -251,8 +251,9 @@ cp "${baseline_config}" "${output}/.config"
   --enable MTK_A72_TRANSITION_OBSERVER
 
 export LD_LIBRARY_PATH="${toolchain}/root/usr/lib/x86_64-linux-gnu"
+export HOST_EXTRACFLAGS=-fcommon
 make -C "${prepared_source}" O="${output}" ARCH=arm64 \
-  CROSS_COMPILE="${cross_prefix}" HOST_EXTRACFLAGS=-fcommon olddefconfig
+  CROSS_COMPILE="${cross_prefix}" olddefconfig
 python3 - "${output}/baseline.config" "${output}/.config" > "${output}/config.diff" <<'PY'
 import pathlib
 import sys
@@ -305,7 +306,7 @@ mv "${dct_output}/cust.dtsi.normalized" "${dct_output}/cust.dtsi"
 set -o pipefail
 make -C "${prepared_source}" O="${output}" ARCH=arm64 \
   CROSS_COMPILE="${cross_prefix}" python="${toolchain}/wrappers/python2.7" \
-  HOST_EXTRACFLAGS=-fcommon -j"${jobs}" V=1 Image.gz-dtb 2>&1 | \
+  -j"${jobs}" V=1 Image.gz-dtb 2>&1 | \
   tee "${output}/build.log"
 
 readonly image="${output}/arch/arm64/boot/Image.gz-dtb"

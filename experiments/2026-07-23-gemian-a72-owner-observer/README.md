@@ -146,6 +146,9 @@ was accessed or changed while preparing this directory.
   wall-clock comment.
 - [`results/buildbox-compile-attempt-4-20260802.txt`](results/buildbox-compile-attempt-4-20260802.txt):
   exact deterministic-DCT submission and its legacy host-DTC link failure.
+- [`results/buildbox-compile-attempt-5-20260802.txt`](results/buildbox-compile-attempt-5-20260802.txt):
+  exact host-compatibility submission and its Make variable-precedence
+  failure before observer compilation.
 
 The local validation invocation is:
 
@@ -244,6 +247,13 @@ tentative `yylloc` definitions. The pinned tree exposes `HOST_EXTRACFLAGS`;
 the replacement adds only `-fcommon`, which restores GCC 6's historical host
 default without changing target compiler flags or vendor source. Provenance
 records both the host compiler and this compatibility flag.
+
+Compile attempt 5 proved that `-fcommon` fixes DTC, but passing
+`HOST_EXTRACFLAGS` on the Make command line overrode the SELinux host-tool
+subdirectories' required include-path additions. Both reported missing
+`classmap.h` even though the file is present and tracked. The correction exports
+`HOST_EXTRACFLAGS=-fcommon` in the environment instead; sub-Makefiles can append
+their local flags while target compilation remains unchanged.
 
 ## Analysis
 

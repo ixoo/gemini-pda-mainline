@@ -669,7 +669,11 @@ gates and reached target preparation, then modern host GCC rejected the legacy
 DTC's duplicate tentative `yylloc` definitions under its `-fno-common`
 default. The replacement uses only the tree's `HOST_EXTRACFLAGS=-fcommon`,
 matching GCC 6 host semantics without affecting target flags. The next result
-is a fifth exact compile and warning/configuration review, not a device boot.
+was a fifth exact compile. It fixed DTC, but command-line Make precedence
+blocked SELinux sub-Makefiles from appending the tracked `classmap.h` include
+path. The same flag is now exported through the environment so local additions
+survive. The next result is a sixth exact compile and warning/configuration
+review, not a device boot.
 
 Exit: observations and inference are separated, every required writer has one
 owner, and a failed step has a bounded rollback path.
