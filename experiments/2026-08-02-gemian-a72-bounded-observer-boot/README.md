@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-02-gemian-a72-bounded-observer-boot` |
-| Status | `inconclusive`: offline container construction passes; the exact one-cycle runtime contract and device deployment remain pending |
+| Status | `inconclusive`: offline construction and guarded `boot2` deployment pass with full readback and shutdown; first boot and one-cycle runtime evidence remain pending |
 | Subsystem | Gemian 3.18 MT6797 A72 owner observer and retained Planet LK Android-v0 boot path |
 | Device variant | Current named Gemini PDA unit |
 | Date(s) | 2026-08-02 |
@@ -80,6 +80,9 @@ ABI, USB shell, power state, or CPU8/CPU9-offline baseline differs.
 - [`results/installer-validation-20260802.txt`](results/installer-validation-20260802.txt):
   source identity, exact candidate/predecessor gates, retained live-GPT safety
   checks, syntax, and managed-VM ShellCheck.
+- [`results/deployment-20260802.txt`](results/deployment-20260802.txt): exact
+  live target, predecessor, candidate/readback identity, power gate, cleanup,
+  and confirmed shutdown.
 - [Owner-observer review](../2026-07-23-gemian-a72-owner-observer/README.md):
   exact compiler, stack, lock, and bounded timing evidence.
 - [Calibrated two-worker trigger](../2026-07-23-gemian-a72-load-assisted-observation/README.md):
@@ -125,6 +128,14 @@ empty legacy-DT field are retained. The existing independent boot analyzer
 reports `layout=complete`. See
 [`results/offline-container-validation-20260802.txt`](results/offline-container-validation-20260802.txt).
 
+The guarded installer then resolved live logical `boot2` as `/dev/mmcblk0p30`
+while known-good Gemian remained rooted on `/dev/mmcblk0p29`. Its exact
+predecessor was Stage27 SHA-256 `805c3c1ce281…`; power was present and the
+battery was 100%/Good. The synchronized/flushed write and independent full
+readback both matched padded SHA-256 `33ace2c30a88…`. No fresh backup was made,
+temporary copies were removed, and the device was cleanly shut down and
+confirmed unreachable. It has not booted the new image yet.
+
 ## Analysis
 
 Byte-identical construction establishes a reproducible container and exact
@@ -135,14 +146,13 @@ mainline.
 
 ## Conclusion
 
-`confirmed` for the offline container identity and layout; `inconclusive` for
-runtime and hardware behavior. No hardware claim or deployment follows from
-container validation alone.
+`confirmed` for offline container identity/layout and guarded deployment with
+full readback; `inconclusive` for runtime and hardware behavior. The next boot,
+not the write itself, determines whether the observer kernel is serviceable.
 
 ## Follow-up
 
-The predeployment contract makes exact padded image SHA-256
-`33ace2c30a8877be2a4b917135aa994ad718201f98ec36d8506a3b1f1d03a7aa`
-eligible for the standing validated-`boot2` workflow. Derive and validate the
-exact installer, then deploy only from known-good Gemian. After verified
-readback and installer shutdown, the owner can select `boot2` manually.
+The device is powered off after verified deployment. The owner may now select
+`boot2` manually. On first serviceability, apply the predeployment contract:
+retrieve identity and the initial immutable observer copy before deciding
+whether the single calibrated two-worker pulse is allowed.

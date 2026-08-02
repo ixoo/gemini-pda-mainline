@@ -1,0 +1,32 @@
+Gemian bounded A72 owner-observer boot2 deployment
+Recorded: 2026-08-02 America/New_York
+
+experiment=2026-08-02-gemian-a72-bounded-observer-boot
+result=write-synced-flushed-full-readback-verified
+target_logical_name=boot2
+target=/dev/mmcblk0p30
+root=/dev/mmcblk0p29
+predecessor_sha256=805c3c1ce28131847924679a70186a75d277da3ab2be9565cea02bf546150f28
+fresh_predecessor_backup=no
+candidate_sha256=33ace2c30a8877be2a4b917135aa994ad718201f98ec36d8506a3b1f1d03a7aa
+readback_sha256=33ace2c30a8877be2a4b917135aa994ad718201f98ec36d8506a3b1f1d03a7aa
+boot_id=079a4906-2de8-4c85-bda1-d4179a1db0d5
+power_present=1
+battery_capacity=100
+battery_health=Good
+temporary_remote_stage_removed=yes
+temporary_local_readback_removed=yes
+shutdown=requested_after_evidence_flush=yes
+post_shutdown_reachability=unreachable
+automatic_reboot=no
+next_action=owner-physically-selects-boot2
+
+The installer resolved logical `boot2` from the live GPT and did not assume the
+partition number. It required the exact Stage27 predecessor, inactive and
+unmounted target, writable 16 MiB size, `mmcblk0` parent, no holder or swap,
+known-good Gemian root, unchanged boot ID, and stable power. It wrote only the
+exact padded candidate, synchronized and flushed it, verified its complete
+remote checksum, then streamed a second full readback and required byte equality.
+No fresh partition backup was created; recovery relies on the project-start
+full-device backup. The device was shut down cleanly after evidence flush and
+was confirmed unreachable. No boot or hardware result is claimed yet.

@@ -704,10 +704,14 @@ active Gemian ramdisk, command line, addresses, and appended-DTB contract remain
 exact. The raw image is `d3ec1e13123e…` and the padded image is
 `33ace2c30a88…`. Its predeployment contract now pins one natural CPU8 cycle,
 exact initial identity, stop conditions, observer ordering/retrieval, and a
-result-to-next-action matrix. The next result is an exact guarded installer and
-validated logical-`boot2` readback followed by shutdown; the owner then selects
-`boot2` manually. Boot alone remains hardware-inconclusive until the one-cycle
-record is retrieved and reviewed.
+result-to-next-action matrix. The guarded installer then resolved live logical
+`boot2`, required the exact Stage27 predecessor, wrote padded image
+`33ace2c30a88…`, passed synchronized/flushed remote and independent full
+readbacks, and shut the device down without a fresh backup or automatic reboot.
+The owner can now select `boot2` manually. Boot alone remains
+hardware-inconclusive until initial identity and the immutable observer record
+are retrieved; only an empty, both-A72-offline initial record permits the one
+calibrated two-worker pulse.
 
 Exit: observations and inference are separated, every required writer has one
 owner, and a failed step has a bounded rollback path.
