@@ -263,11 +263,11 @@ static const char *mt6797_a72_obs_event_name(u16 event)
 \t\t   snapshot->count,
 \t\t   (unsigned long long)snapshot->overwritten);
 """,
-        """\tseq_printf(m, "abi=mt6797-a72-transition-observer-v2"
-\t\t   " state=%s count=%u overflow=%u up_tx=%llu"
-\t\t   " down_tx=%llu\\n",
-\t\t   mt6797_a72_obs_state_name(snapshot->state),
-\t\t   snapshot->count, snapshot->overflow,
+        """\tseq_printf(m, "abi=mt6797-a72-transition-observer-v2 state=%s",
+\t\t   mt6797_a72_obs_state_name(snapshot->state));
+\tseq_printf(m, " count=%u overflow=%u",
+\t\t   snapshot->count, snapshot->overflow);
+\tseq_printf(m, " up_tx=%llu down_tx=%llu\\n",
 \t\t   (unsigned long long)snapshot->up_transaction,
 \t\t   (unsigned long long)snapshot->down_transaction);
 """,

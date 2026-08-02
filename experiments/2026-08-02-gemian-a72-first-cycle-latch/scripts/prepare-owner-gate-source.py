@@ -232,6 +232,21 @@ void mt6797_a72_obs_dcm_snapshot(unsigned int cpu, u16 phase)
 """,
         "DCM obsolete conditional close",
     )
+    text = dcm.read_text()
+    block_start = text.find(
+        "\tif (mt6797_a72_obs_is_cpu(cpu)) {\n"
+        "\tspin_lock_irqsave(&mt6797_a72_obs_mp2_dcm_lock, flags);\n"
+    )
+    block_end_marker = "\t\treturn 0;\n\t}\n#endif\n"
+    block_end = text.find(block_end_marker, block_start)
+    if block_start < 0 or block_end < 0:
+        raise SystemExit("DCM observed block indentation markers changed")
+    block_end += len(block_end_marker)
+    lines = text[block_start:block_end].splitlines(keepends=True)
+    indented = [lines[0]]
+    indented.extend("\t" + line for line in lines[1:-2])
+    indented.extend(lines[-2:])
+    dcm.write_text(text[:block_start] + "".join(indented) + text[block_end:])
     replace_once(
         dcm,
         """\t};
