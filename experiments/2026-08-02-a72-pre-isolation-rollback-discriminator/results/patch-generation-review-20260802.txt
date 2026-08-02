@@ -1,0 +1,67 @@
+A72 pre-isolation rollback patch generation and review
+Recorded: 2026-08-02 America/New_York
+
+Pinned inputs
+-------------
+repository_commit=59c06fe90bf6f63d2269608dc19081514c3aa0ce
+source_url=https://github.com/gemian/gemini-linux-kernel-3.18.git
+source_commit=59e00a9144d782e148332009a835b99c43382467
+parent_observer_patch_count=7
+generated_patch_count=3
+native_vm_kernel_build=no
+device_access=none
+
+Generated vendor commits
+------------------------
+abi_commit=3a2454a8a51a0905d3500c09c0a632610b5d03f9
+owner_commit=d3cef9abb3193d91de8054c871d62511a57feb7a
+orchestrator_commit=4bf774dc1332252a741b7a446a330ed9308af625
+
+Tracked output hashes
+---------------------
+0001_sha256=d6fdfdbce440f58d83c54af0aceb2740cb4287e8c2bbc8a15f25f3c322c716bd
+0002_sha256=120b906d570964f3661fb96c967fdac0745a13e5dd4a7c0f4838eaf385d5b448
+0003_sha256=47cfa14cc874cf2b0e7aa3fd47cbac49bc6be4394429ce6cfdf1c4924d74b68e
+series_sha256=19e4a88f58d3eb993b64bab33c71b45065d7c454e73e4a4170cf2d63ef538eaa
+fetched_bytes_match_tracked_bytes=yes
+
+Validation
+----------
+buildbox_generation=passed
+package_sha256_manifest=passed
+host_static_safety_contract=passed
+mutation_tripwires=13-passed
+git_diff_check=passed
+python_compile=passed
+rollback_model=17-fail-closed-boundaries-passed
+shellcheck=passed-in-managed-vm
+
+Linux 7.1.3 checkpatch --no-tree --strict
+-------------------------------------------
+patch_0001=0-warnings,0-checks,missing-signed-off-by-only
+patch_0002=0-warnings,0-checks,missing-signed-off-by-only
+patch_0003=0-warnings,1-check-udelay-1000,missing-signed-off-by
+
+The generated author is explicitly synthetic and non-certifying. No
+Signed-off-by was added because no synthetic identity may make the DCO
+certification. These patches remain experiment-only and non-submission-ready.
+
+The one-millisecond busy settle is intentional for this discriminator: it
+preserves the exact existing vendor BUCKB settle boundary in the CPU power
+path. Replacing it with a sleeping primitive would change the timing and
+execution contract and requires separate review; the check is accepted for
+this compile experiment rather than suppressed.
+
+Decision
+--------
+source_patch_review=passed
+compile_only_buildbox_comparison=authorized-next
+boot_candidate=false
+deployment_authorized=no
+device_action=none
+
+The next action is an exact clean-pushed Buildbox comparison that applies the
+seven parent observer patches plus these three patches, enables the named
+diagnostic configuration only in the experiment build, and proves the
+baseline/diagnostic compiler and stack evidence. Compilation is not hardware
+support and does not authorize a boot or device write.

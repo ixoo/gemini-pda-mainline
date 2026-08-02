@@ -1,0 +1,126 @@
+From 3a2454a8a51a0905d3500c09c0a632610b5d03f9 Mon Sep 17 00:00:00 2001
+From: Gemini A72 experiment <noreply@gemini-a72.invalid>
+Date: Sun, 2 Aug 2026 23:10:00 +0000
+Subject: [PATCH] diagnostic: extend A72 observer rollback ABI
+
+Give the fixed observer explicit rollback phases and terminal states.
+
+A stopped CPU8 attempt cannot then look like a completed power-on cycle.
+
+Keep the ABI experiment-only and read-only.
+---
+ .../power/mt6797/mt_a72_transition_observer.c | 33 +++++++++++++++++--
+ .../linux/mt6797_a72_transition_observer.h    | 14 ++++++++
+ 2 files changed, 45 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt_a72_transition_observer.c b/drivers/misc/mediatek/base/power/mt6797/mt_a72_transition_observer.c
+index 202ba5c08..cc7dd0d72 100644
+--- a/drivers/misc/mediatek/base/power/mt6797/mt_a72_transition_observer.c
++++ b/drivers/misc/mediatek/base/power/mt6797/mt_a72_transition_observer.c
+@@ -67,6 +67,9 @@ enum mt6797_a72_obs_state {
+ 	MT6797_A72_OBS_FROZEN_CPU9,
+ 	MT6797_A72_OBS_FROZEN_PROTOCOL,
+ 	MT6797_A72_OBS_FROZEN_OVERFLOW,
++	MT6797_A72_OBS_ROLLED_BACK,
++	MT6797_A72_OBS_FAULT_RETAIN,
++	MT6797_A72_OBS_REJECTED_PRESTATE,
+ };
+ 
+ struct mt6797_a72_obs_snapshot {
+@@ -166,7 +169,22 @@ static void mt6797_a72_obs_append(struct mt6797_a72_obs_record *record)
+ 		retain = true;
+ 	} else if (mt6797_a72_obs_state == MT6797_A72_OBS_CAPTURE_UP) {
+ 		retain = true;
+-		if (record->header.transaction !=
++		if (mt6797_a72_obs_is_boundary(record,
++					       MT6797_A72_PHASE_ROLLBACK_FINAL)) {
++			switch (record->payload.lifecycle.result) {
++			case MT6797_A72_ROLLBACK_ROLLED_BACK:
++				next_state = MT6797_A72_OBS_ROLLED_BACK;
++				break;
++			case MT6797_A72_ROLLBACK_FAULT_RETAIN:
++				next_state = MT6797_A72_OBS_FAULT_RETAIN;
++				break;
++			case MT6797_A72_ROLLBACK_REJECTED_PRESTATE:
++				next_state = MT6797_A72_OBS_REJECTED_PRESTATE;
++				break;
++			default:
++				next_state = MT6797_A72_OBS_FROZEN_PROTOCOL;
++			}
++		} else if (record->header.transaction !=
+ 		    mt6797_a72_obs_up_transaction ||
+ 		    mt6797_a72_obs_is_boundary(record,
+ 			MT6797_A72_PHASE_HPS_CPU_UP_BEGIN) ||
+@@ -385,6 +403,13 @@ void mt6797_a72_obs_psci_raw(unsigned long mpidr, unsigned long entry,
+ 				 raw_result, mpidr, entry);
+ }
+ 
++void mt6797_a72_obs_rollback_terminal(unsigned int cpu,
++				      enum mt6797_a72_rollback_disposition disposition)
++{
++	mt6797_a72_obs_lifecycle(cpu, MT6797_A72_PHASE_ROLLBACK_FINAL,
++				 disposition, 0, 0);
++}
++
+ static const char *mt6797_a72_obs_state_name(u16 state)
+ {
+ 	switch (state) {
+@@ -398,6 +423,10 @@ static const char *mt6797_a72_obs_state_name(u16 state)
+ 	case MT6797_A72_OBS_FROZEN_CPU9: return "frozen-cpu9";
+ 	case MT6797_A72_OBS_FROZEN_PROTOCOL: return "frozen-protocol";
+ 	case MT6797_A72_OBS_FROZEN_OVERFLOW: return "frozen-overflow";
++	case MT6797_A72_OBS_ROLLED_BACK: return "rolled-back";
++	case MT6797_A72_OBS_FAULT_RETAIN: return "fault-retain";
++	case MT6797_A72_OBS_REJECTED_PRESTATE:
++		return "rejected-prestate";
+ 	default: return "invalid";
+ 	}
+ }
+@@ -517,7 +546,7 @@ static int mt6797_a72_obs_proc_show(struct seq_file *m, void *unused)
+ 	const struct mt6797_a72_obs_snapshot *snapshot = m->private;
+ 	unsigned int i;
+ 
+-	seq_printf(m, "abi=mt6797-a72-transition-observer-v2 state=%s",
++	seq_printf(m, "abi=mt6797-a72-transition-observer-v3 state=%s",
+ 		   mt6797_a72_obs_state_name(snapshot->state));
+ 	seq_printf(m, " count=%u overflow=%u",
+ 		   snapshot->count, snapshot->overflow);
+diff --git a/include/linux/mt6797_a72_transition_observer.h b/include/linux/mt6797_a72_transition_observer.h
+index 096334865..1cd51ddba 100644
+--- a/include/linux/mt6797_a72_transition_observer.h
++++ b/include/linux/mt6797_a72_transition_observer.h
+@@ -22,6 +22,11 @@ enum mt6797_a72_obs_phase {
+ 	MT6797_A72_PHASE_TOPRGU_ASSERT,
+ 	MT6797_A72_PHASE_BUCK_ENABLE,
+ 	MT6797_A72_PHASE_BUCK_ENABLE_SETTLED,
++	MT6797_A72_PHASE_PREISO_INJECT_STOP,
++	MT6797_A72_PHASE_ROLLBACK_BUCK_DISABLE,
++	MT6797_A72_PHASE_ROLLBACK_SPM_RESET,
++	MT6797_A72_PHASE_ROLLBACK_PWRAP_DEASSERT,
++	MT6797_A72_PHASE_ROLLBACK_FINAL,
+ 	MT6797_A72_PHASE_SPM_ISOLATION_CLEAR,
+ 	MT6797_A72_PHASE_TOPRGU_DEASSERT,
+ 	MT6797_A72_PHASE_SRAM_PRE,
+@@ -40,6 +45,12 @@ enum mt6797_a72_obs_phase {
+ 	MT6797_A72_PHASE_OFFLINE_FINAL,
+ };
+ 
++enum mt6797_a72_rollback_disposition {
++	MT6797_A72_ROLLBACK_ROLLED_BACK = 1,
++	MT6797_A72_ROLLBACK_FAULT_RETAIN,
++	MT6797_A72_ROLLBACK_REJECTED_PRESTATE,
++};
++
+ enum mt6797_a72_obs_event {
+ 	MT6797_A72_EVENT_LIFECYCLE = 1,
+ 	MT6797_A72_EVENT_DA9214,
+@@ -132,6 +143,9 @@ void mt6797_a72_obs_mutation(unsigned int cpu, u16 phase,
+ void mt6797_a72_obs_psci_raw(unsigned long mpidr, unsigned long entry,
+ 			     int raw_result);
+ 
++void mt6797_a72_obs_rollback_terminal(unsigned int cpu,
++				      enum mt6797_a72_rollback_disposition disposition);
++
+ int da9214_a72_obs_snapshot(unsigned int cpu, u16 phase);
+ unsigned int da9214_a72_obs_buckb_config(unsigned int cpu, bool enable,
+ 					 u16 phase);

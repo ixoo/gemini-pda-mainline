@@ -758,12 +758,13 @@ existing observer helpers cannot serve as safety gates and that an error return
 from `cpu_power_on_buck` alone would be unsafe because the caller currently
 continues into PSCI, DCM, and iDVFS.
 
-The immediate ordered action is to prepare four experiment-only source changes
-on Buildbox: extend the immutable ABI/state model; add exact owner-local
-compare/readback primitives; add the one-shot orchestrator and a caller branch
-that dominates PSCI, DCM, and iDVFS; and add static/mutation validation. Review
-those patches and their normal-path preservation before submitting even a
-compile. A successful model or compile does not authorize deployment. CPU9,
+The exact three-patch vendor series now passes reproducible Buildbox
+generation, checksum verification, the static safety contract, all 13
+generated-patch mutation tripwires, and strict style review. The patches remain
+experiment-only and deliberately lack a synthetic DCO sign-off. The immediate
+ordered action is an exact clean-pushed Buildbox compile-only comparison of the
+parent observer and rollback-enabled trees with retained compiler and stack
+evidence. A successful compile does not authorize deployment. CPU9,
 suspend/resume, later power boundaries, a mainline provider write, and any A72
 consumer remain blocked until their separate ownership and rollback gates
 close.

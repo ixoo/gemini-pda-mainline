@@ -1,0 +1,3 @@
+0001-diagnostic-extend-A72-observer-rollback-ABI.patch
+0002-diagnostic-add-exact-A72-rollback-owner-operations.patch
+0003-diagnostic-stop-and-unwind-first-CPU8-pre-isolation.patch

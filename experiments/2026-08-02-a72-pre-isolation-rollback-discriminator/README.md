@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-02-a72-pre-isolation-rollback-discriminator` |
-| Status | `implementation-preparation`: exact rollback contract and source-owner changes are specified; the clean-pushed Buildbox generation lane is ready for source-drift-checked patch generation; no compile, deployment, or device action is authorized |
+| Status | `source-review-complete`: three exact experiment-only vendor patches passed Buildbox generation, checksum verification, the static safety contract, 13 mutation tripwires, and strict style review; the next action is a compile-only Buildbox comparison, with no deployment or device action authorized |
 | Subsystem | CPU8 external BUCKB preparation, MP2 reset, TOPRGU PWRAP reset, and fail-closed rollback |
 | Device variant | Named Gemini PDA development unit |
 | Date(s) | 2026-08-02 |
@@ -71,12 +71,18 @@ predeployment decision after compiler and timing review.
   owner, ordering, no-control and forbidden-boundary validation.
 - [`scripts/test_static.py`](scripts/test_static.py): generated-patch mutation
   tripwires; it runs inside the generation job before results are fetchable.
+- [`patches/series`](patches/series): the exact three-patch rollback ABI,
+  owner-operation, and CPU8 orchestrator series generated from the pinned
+  vendor source.
 - [`results/design-validation-20260802.txt`](results/design-validation-20260802.txt):
   exact inputs, selected boundary, hashes, positive path, seventeen fail-closed
   cases and the explicit no-implementation decision.
 - [`results/source-owner-review-20260802.txt`](results/source-owner-review-20260802.txt):
   pinned call-chain review, rejection of the existing observer helpers as
   safety gates, exact owner-local primitive requirements and patch structure.
+- [`results/patch-generation-review-20260802.txt`](results/patch-generation-review-20260802.txt):
+  exact generation provenance, tracked hashes, validation, checkpatch
+  adjudication, and the compile-only decision.
 
 Run from the repository root:
 
@@ -86,15 +92,15 @@ python3 experiments/2026-08-02-a72-pre-isolation-rollback-discriminator/scripts/
 
 ## Decision
 
-`pending`: the exact successful forward evidence selects a bounded and
-falsifiable rollback question. The generation inputs are reviewable, but their
-actual vendor patches must be generated and pass source/static review before a
-compile submission is permitted.
+`source-review-passed`: the exact generated series implements the bounded and
+falsifiable rollback question without crossing external isolation. It passed
+the source/static review required before compilation. The result is not a boot
+candidate, hardware-support claim, or deployment authorization.
 
 ## Follow-up
 
-Commit and push these generation inputs, generate/fetch the three logical
-vendor patches on Buildbox, and review them together with the independent
-static/mutation validation change. Only a separately reviewed clean revision
-may enter the compile-only observer/baseline comparison. Do not deploy or run
-the discriminator merely because generation, the model, or compilation passes.
+Commit and push the exact reviewed patch series and result record, then run one
+clean-pushed Buildbox compile-only comparison against the unmodified parent
+observer series with retained diagnostics and stack evidence. Do not deploy or
+run the discriminator merely because generation, the model, or compilation
+passes.

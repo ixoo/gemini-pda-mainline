@@ -1,0 +1,254 @@
+From 4bf774dc1332252a741b7a446a330ed9308af625 Mon Sep 17 00:00:00 2001
+From: Gemini A72 experiment <noreply@gemini-a72.invalid>
+Date: Sun, 2 Aug 2026 23:12:00 +0000
+Subject: [PATCH] diagnostic: stop and unwind first CPU8 pre-isolation attempt
+
+Run one CPU8-only attempt through the existing 1 ms buck settle.
+
+Stop before isolation clear and unwind only exact observed predecessors.
+
+Collect all entry/final evidence and exit before PSCI, DCM, or iDVFS.
+---
+ arch/arm64/kernel/psci.c                 | 173 +++++++++++++++++++++++
+ drivers/misc/mediatek/base/power/Kconfig |  11 ++
+ 2 files changed, 184 insertions(+)
+
+diff --git a/arch/arm64/kernel/psci.c b/arch/arm64/kernel/psci.c
+index 49b559786..927ed1012 100644
+--- a/arch/arm64/kernel/psci.c
++++ b/arch/arm64/kernel/psci.c
+@@ -16,6 +16,8 @@
+ #define pr_fmt(fmt) "psci: " fmt
+ 
+ #include <linux/arm-smccc.h>
++#include <linux/atomic.h>
++#include <linux/cpu.h>
+ #include <linux/init.h>
+ #include <linux/of.h>
+ #include <linux/smp.h>
+@@ -522,6 +524,153 @@ static void mt6797_a72_obs_fixed_snapshot(unsigned int cpu, u16 phase)
+ }
+ #endif
+ 
++#ifdef CONFIG_MTK_A72_PREISO_ROLLBACK_DISCRIMINATOR
++static atomic_t mt6797_a72_preiso_attempted = ATOMIC_INIT(0);
++
++static int mt6797_a72_preiso_rollback(unsigned int cpu)
++{
++	bool buck_owned = false;
++	bool pwrap_owned = false;
++	bool reset_owned = false;
++	bool reset_flag_owned = false;
++	bool fault = false;
++	bool prestate_bad = false;
++	struct mt6797_a72_obs_clock entry_clock;
++	struct mt6797_a72_obs_clock final_clock;
++	int ret;
++
++	if (cpu != 8 || atomic_xchg(&mt6797_a72_preiso_attempted, 1))
++		return -EALREADY;
++	prestate_bad |= g_cl2_online || cpu_online(8) || cpu_online(9);
++	ret = mt6797_a72_diag_clock_capture(cpu,
++					    MT6797_A72_PHASE_POWER_ON_PRE, &entry_clock);
++	prestate_bad |= !!ret;
++	prestate_bad |= !mt6797_a72_diag_secure_zero(cpu,
++			MT6797_A72_PHASE_POWER_ON_PRE);
++	prestate_bad |= !mt6797_a72_diag_dcm_zero(cpu,
++			MT6797_A72_PHASE_POWER_ON_PRE);
++	ret = da9214_a72_diag_compare_update(cpu, false, false,
++					     MT6797_A72_PHASE_POWER_ON_PRE);
++	prestate_bad |= !!ret;
++	ret = mt6797_a72_diag_spm_compare_update(cpu,
++						 MT6797_A72_PHASE_POWER_ON_PRE, 0x218,
++			0x00010132, 0x00010132);
++	prestate_bad |= !!ret;
++	ret = mt6797_a72_diag_spm_compare_update(cpu,
++						 MT6797_A72_PHASE_POWER_ON_PRE, 0x290, 0x2, 0x2);
++	prestate_bad |= !!ret;
++	ret = mt6797_a72_diag_toprgu_compare_update(cpu, false, false,
++						    MT6797_A72_PHASE_POWER_ON_PRE);
++	prestate_bad |= !!ret;
++
++	spin_lock(&reset_lock);
++	prestate_bad |= reset_flags != 0;
++	if (!prestate_bad) {
++		reset_flags = 1;
++		reset_flag_owned = true;
++	}
++	spin_unlock(&reset_lock);
++
++	if (prestate_bad)
++		goto rejected;
++
++	ret = mt6797_a72_diag_spm_compare_update(cpu,
++						 MT6797_A72_PHASE_SPM_RESET_RELEASE, 0x218,
++			0x00010132, 0x00010133);
++	if (ret) {
++		fault = true;
++		goto rollback;
++	}
++	reset_owned = true;
++	ret = mt6797_a72_diag_toprgu_compare_update(cpu, false, true,
++						    MT6797_A72_PHASE_TOPRGU_ASSERT);
++	if (ret) {
++		fault = true;
++		goto rollback;
++	}
++	pwrap_owned = true;
++	ret = da9214_a72_diag_compare_update(cpu, false, true,
++					     MT6797_A72_PHASE_BUCK_ENABLE);
++	if (ret) {
++		fault = true;
++		goto rollback;
++	}
++	buck_owned = true;
++	udelay(1000);
++	ret = da9214_a72_diag_compare_update(cpu, true, true,
++					     MT6797_A72_PHASE_BUCK_ENABLE_SETTLED);
++	if (ret) {
++		fault = true;
++		goto rollback;
++	}
++	mt6797_a72_obs_lifecycle(cpu, MT6797_A72_PHASE_PREISO_INJECT_STOP,
++				 0, 0, 0);
++
++rollback:
++	if (buck_owned && da9214_a72_diag_compare_update(cpu, true, false,
++							 MT6797_A72_PHASE_ROLLBACK_BUCK_DISABLE))
++		fault = true;
++	if (reset_owned &&
++	    (mt6797_a72_diag_spm_compare_update(cpu,
++		MT6797_A72_PHASE_ROLLBACK_SPM_RESET, 0x290, 0x2, 0x2) ||
++	     mt6797_a72_diag_spm_compare_update(cpu,
++						MT6797_A72_PHASE_ROLLBACK_SPM_RESET, 0x218,
++		0x00010133, 0x00010132)))
++		fault = true;
++	if (pwrap_owned &&
++	    mt6797_a72_diag_toprgu_compare_update(cpu, true, false,
++						  MT6797_A72_PHASE_ROLLBACK_PWRAP_DEASSERT))
++		fault = true;
++	if (reset_flag_owned) {
++		spin_lock(&reset_lock);
++		if (reset_flags != 1)
++			fault = true;
++		else
++			reset_flags = 0;
++		spin_unlock(&reset_lock);
++	}
++	ret = da9214_a72_diag_compare_update(cpu, false, false,
++					     MT6797_A72_PHASE_ROLLBACK_FINAL);
++	fault |= !!ret;
++	ret = mt6797_a72_diag_spm_compare_update(cpu,
++						 MT6797_A72_PHASE_ROLLBACK_FINAL, 0x218,
++			0x00010132, 0x00010132);
++	fault |= !!ret;
++	ret = mt6797_a72_diag_spm_compare_update(cpu,
++						 MT6797_A72_PHASE_ROLLBACK_FINAL, 0x290, 0x2, 0x2);
++	fault |= !!ret;
++	ret = mt6797_a72_diag_toprgu_compare_update(cpu, false, false,
++						    MT6797_A72_PHASE_ROLLBACK_FINAL);
++	fault |= !!ret;
++	fault |= !mt6797_a72_diag_secure_zero(cpu,
++			MT6797_A72_PHASE_ROLLBACK_FINAL);
++	fault |= !mt6797_a72_diag_dcm_zero(cpu,
++			MT6797_A72_PHASE_ROLLBACK_FINAL);
++	ret = mt6797_a72_diag_clock_capture(cpu,
++					    MT6797_A72_PHASE_ROLLBACK_FINAL, &final_clock);
++	fault |= !!ret;
++	if (!ret) {
++		fault |= entry_clock.pll_con1 != final_clock.pll_con1;
++		fault |= entry_clock.muxsel != final_clock.muxsel;
++		fault |= entry_clock.ckdiv != final_clock.ckdiv;
++	}
++	fault |= g_cl2_online || cpu_online(8) || cpu_online(9);
++	mt6797_a72_obs_fixed_snapshot(cpu,
++				      MT6797_A72_PHASE_ROLLBACK_FINAL);
++	mt6797_a72_obs_rollback_terminal(cpu,
++					 fault ? MT6797_A72_ROLLBACK_FAULT_RETAIN :
++			MT6797_A72_ROLLBACK_ROLLED_BACK);
++	return -ECANCELED;
++
++rejected:
++	mt6797_a72_obs_fixed_snapshot(cpu,
++				      MT6797_A72_PHASE_ROLLBACK_FINAL);
++	mt6797_a72_obs_rollback_terminal(cpu,
++					 MT6797_A72_ROLLBACK_REJECTED_PRESTATE);
++	return -ECANCELED;
++}
++#endif
++
+ static int cpu_power_on_buck(unsigned int cpu, bool hotplug)
+ {
+ 	static void __iomem *reg_base;
+@@ -661,6 +810,9 @@ static int cpu_psci_cpu_boot(unsigned int cpu)
+ #ifdef CONFIG_MTK_A72_TRANSITION_OBSERVER
+ 	int idvfs_ret;
+ #endif
++#ifdef CONFIG_MTK_A72_PREISO_ROLLBACK_DISCRIMINATOR
++	int buck_ret;
++#endif
+ 
+ 
+ #ifdef CONFIG_MTK_CPU_HOTPLUG_DEBUG_3
+@@ -698,6 +850,16 @@ static int cpu_psci_cpu_boot(unsigned int cpu)
+ 			}
+ 		}
+ 	} else if ((cpu == 8) || (cpu == 9)) {
++#ifdef CONFIG_MTK_A72_PREISO_ROLLBACK_DISCRIMINATOR
++		if (cpu == 9) {
++			err = -EPERM;
++			goto mt6797_a72_boot_out;
++		}
++		if (bypass_boot > 0) {
++			err = -EPERM;
++			goto mt6797_a72_boot_out;
++		}
++#endif
+ 		if (bypass_boot > 0) {
+ #ifdef CONFIG_CL2_BUCK_CTRL
+ 			if (!g_cl2_online)
+@@ -707,7 +869,15 @@ static int cpu_psci_cpu_boot(unsigned int cpu)
+ 		} else {
+ 			if (!g_cl2_online) {
+ #ifdef CONFIG_CL2_BUCK_CTRL
++#ifdef CONFIG_MTK_A72_PREISO_ROLLBACK_DISCRIMINATOR
++				buck_ret = mt6797_a72_preiso_rollback(cpu);
++				if (buck_ret) {
++					err = buck_ret;
++					goto mt6797_a72_boot_out;
++				}
++#else
+ 				cpu_power_on_buck(cpu, 1);
++#endif
+ #endif
+ 			}
+ 		}
+@@ -787,6 +957,9 @@ static int cpu_psci_cpu_boot(unsigned int cpu)
+ 		pr_err("failed to boot CPU%d (%d)\n", cpu, err);
+ #endif
+ 
++#ifdef CONFIG_MTK_A72_PREISO_ROLLBACK_DISCRIMINATOR
++mt6797_a72_boot_out:
++#endif
+ #ifdef MTK_IRQ_NEW_DESIGN
+ 	gic_clear_primask();
+ #endif
+diff --git a/drivers/misc/mediatek/base/power/Kconfig b/drivers/misc/mediatek/base/power/Kconfig
+index 1de54adcd..cf19dac03 100644
+--- a/drivers/misc/mediatek/base/power/Kconfig
++++ b/drivers/misc/mediatek/base/power/Kconfig
+@@ -104,3 +104,14 @@ config MTK_A72_TRANSITION_OBSERVER
+ 
+ 	  This option does not add a control interface.  It is an experiment
+ 	  aid for one pinned downstream kernel and is not an A72 power driver.
++
++config MTK_A72_PREISO_ROLLBACK_DISCRIMINATOR
++	bool "MT6797 CPU8 pre-isolation rollback discriminator"
++	depends on MTK_A72_TRANSITION_OBSERVER
++	default n
++	help
++	  Run one compiled CPU8-only diagnostic attempt that stops before
++	  external-isolation clear and rolls back only exactly owned state.
++	  It captures every entry and final safety gate for later review.
++	  This option has no userspace trigger and is not for deployment.
++	  Leave it disabled outside the named experiment configuration.

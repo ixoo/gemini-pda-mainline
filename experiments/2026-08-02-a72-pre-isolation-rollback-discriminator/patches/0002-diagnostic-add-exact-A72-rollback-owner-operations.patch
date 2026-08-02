@@ -1,0 +1,333 @@
+From d3cef9abb3193d91de8054c871d62511a57feb7a Mon Sep 17 00:00:00 2001
+From: Gemini A72 experiment <noreply@gemini-a72.invalid>
+Date: Sun, 2 Aug 2026 23:11:00 +0000
+Subject: [PATCH] diagnostic: add exact A72 rollback owner operations
+
+Add owner-local compare/update/readback helpers for every owned state.
+
+Cover the DA921x buck, SPM, TOPRGU, secure, DCM, and clock state.
+
+Refuse drift rather than writing state the diagnostic did not establish.
+---
+ .../misc/mediatek/base/power/mt6797/mt_dcm.c  | 16 +++++
+ .../mediatek/base/power/mt6797/mt_idvfs.c     | 20 ++++++
+ .../misc/mediatek/base/power/spm_v2/mt_spm.c  | 41 +++++++++++
+ .../freqhopping/mt6797/mt_freqhopping.c       | 44 ++++++++++++
+ drivers/misc/mediatek/power/mt6797/da9214.c   | 69 +++++++++++++++++++
+ .../watchdog/mediatek/wdt/mt6797/mtk_wdt.c    | 37 ++++++++++
+ .../linux/mt6797_a72_transition_observer.h    | 11 +++
+ 7 files changed, 238 insertions(+)
+
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt_dcm.c b/drivers/misc/mediatek/base/power/mt6797/mt_dcm.c
+index c9235fff4..acd7c6f2b 100644
+--- a/drivers/misc/mediatek/base/power/mt6797/mt_dcm.c
++++ b/drivers/misc/mediatek/base/power/mt6797/mt_dcm.c
+@@ -1095,6 +1095,22 @@ void mt6797_a72_obs_dcm_snapshot(unsigned int cpu, u16 phase)
+ 	spin_unlock_irqrestore(&mt6797_a72_obs_mp2_dcm_lock, flags);
+ 	mt6797_a72_obs_dcm(cpu, phase, &snapshot);
+ }
++
++bool mt6797_a72_diag_dcm_zero(unsigned int cpu, u16 phase)
++{
++	struct mt6797_a72_obs_dcm snapshot = {
++		.mask = MCUCFG_SYNC_DCM_MP2_MASK,
++	};
++	unsigned long flags;
++
++	spin_lock_irqsave(&mt6797_a72_obs_mp2_dcm_lock, flags);
++	snapshot.before = reg_read(MCUCFG_SYNC_DCM_MP2_CONFIG);
++	snapshot.toggle = snapshot.before;
++	snapshot.final = snapshot.before;
++	spin_unlock_irqrestore(&mt6797_a72_obs_mp2_dcm_lock, flags);
++	mt6797_a72_obs_dcm(cpu, phase, &snapshot);
++	return !(snapshot.before & snapshot.mask);
++}
+ #endif
+ 
+ int dcm_mcusys_little(ENUM_MCUSYS_DCM on)
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt_idvfs.c b/drivers/misc/mediatek/base/power/mt6797/mt_idvfs.c
+index ef5e997e7..90e0f9d99 100644
+--- a/drivers/misc/mediatek/base/power/mt6797/mt_idvfs.c
++++ b/drivers/misc/mediatek/base/power/mt6797/mt_idvfs.c
+@@ -120,6 +120,26 @@ void mt6797_a72_obs_secure_snapshot(unsigned int cpu, u16 phase)
+ 		snapshot.sentinel_after == snapshot.values[0];
+ 	mt6797_a72_obs_secure(cpu, phase, &snapshot);
+ }
++
++bool mt6797_a72_diag_secure_zero(unsigned int cpu, u16 phase)
++{
++	struct mt6797_a72_obs_secure snapshot = { };
++	bool zero = true;
++	unsigned int i;
++
++	for (i = 0; i < ARRAY_SIZE(mt6797_a72_secure_registers); i++) {
++		snapshot.values[i] =
++			(u32)SEC_BIGIDVFS_READ(mt6797_a72_secure_registers[i]);
++		snapshot.valid |= BIT(i);
++		zero &= snapshot.values[i] == 0;
++	}
++	snapshot.sentinel_after =
++		(u32)SEC_BIGIDVFS_READ(mt6797_a72_secure_registers[0]);
++	snapshot.stable =
++		snapshot.sentinel_after == snapshot.values[0];
++	mt6797_a72_obs_secure(cpu, phase, &snapshot);
++	return zero && snapshot.stable;
++}
+ #endif
+ 
+ /* 0x11017000 0x1000, i2c idvfsapb ctrl reg */
+diff --git a/drivers/misc/mediatek/base/power/spm_v2/mt_spm.c b/drivers/misc/mediatek/base/power/spm_v2/mt_spm.c
+index 3e7bcd693..ba02bdaba 100644
+--- a/drivers/misc/mediatek/base/power/spm_v2/mt_spm.c
++++ b/drivers/misc/mediatek/base/power/spm_v2/mt_spm.c
+@@ -2530,6 +2530,47 @@ bool mt6797_a72_obs_spm_rmw(unsigned int cpu, u16 phase, u32 offset,
+ 	mt6797_a72_obs_mutation(cpu, phase, &mutation);
+ 	return true;
+ }
++
++int mt6797_a72_diag_spm_compare_update(unsigned int cpu, u16 phase,
++				       u32 offset, u32 expected, u32 requested)
++{
++	struct mt6797_a72_obs_mutation mutation = {
++		.address = MT6797_A72_SPM_PHYS + offset,
++		.mask = ~0U,
++		.requested = requested,
++	};
++	void __iomem *base;
++	unsigned long flags;
++	bool temporary;
++	int ret = 0;
++
++	if (offset != 0x218 && offset != 0x290)
++		return -EINVAL;
++	base = mt6797_a72_obs_spm_base(&temporary);
++	if (!base) {
++		mutation.status = -ENOMEM;
++		mt6797_a72_obs_mutation(cpu, phase, &mutation);
++		return -ENOMEM;
++	}
++	spin_lock_irqsave(&__spm_lock, flags);
++	mutation.before = readl_relaxed(base + offset);
++	if (mutation.before != expected) {
++		ret = -EINVAL;
++		mutation.after = mutation.before;
++	} else {
++		if (requested != expected)
++			writel_relaxed(requested, base + offset);
++		mutation.after = readl_relaxed(base + offset);
++		if (mutation.after != requested)
++			ret = -EIO;
++	}
++	spin_unlock_irqrestore(&__spm_lock, flags);
++	if (temporary)
++		iounmap(base);
++	mutation.status = ret;
++	mt6797_a72_obs_mutation(cpu, phase, &mutation);
++	return ret;
++}
+ #endif
+ 
+ void unmask_edge_trig_irqs_for_cirq(void)
+diff --git a/drivers/misc/mediatek/freqhopping/mt6797/mt_freqhopping.c b/drivers/misc/mediatek/freqhopping/mt6797/mt_freqhopping.c
+index df5ef802e..fc7c5e003 100644
+--- a/drivers/misc/mediatek/freqhopping/mt6797/mt_freqhopping.c
++++ b/drivers/misc/mediatek/freqhopping/mt6797/mt_freqhopping.c
+@@ -466,6 +466,50 @@ out:
+ 	spin_unlock_irqrestore(&g_mt6797_0x1001AXXX_lock, flags);
+ 	mt6797_a72_obs_clock(cpu, phase, &snapshot);
+ }
++
++int mt6797_a72_diag_clock_capture(unsigned int cpu, u16 phase,
++				  struct mt6797_a72_obs_clock *snapshot)
++{
++	unsigned long flags;
++
++	if (!snapshot)
++		return -EINVAL;
++	*snapshot = (struct mt6797_a72_obs_clock) { .status = -ENODEV };
++	if (!spin_trylock_irqsave(&g_mt6797_0x1001AXXX_lock, flags)) {
++		snapshot->status = -EBUSY;
++		goto record;
++	}
++	snapshot->semaphore |= BIT(2);
++	if (!g_mcumixed_base || !g_reg_sema3_m0 ||
++	    !g_reg_cspm_poweron_en)
++		goto unlock;
++	snapshot->semaphore |= BIT(3);
++	hs_write32(g_reg_cspm_poweron_en, 0x0b160001);
++	hs_write32(g_reg_sema3_m0, 0x1);
++	if (!(hs_read32(g_reg_sema3_m0) & 0x1)) {
++		snapshot->status = -EBUSY;
++		goto unlock;
++	}
++	snapshot->semaphore |= BIT(0);
++	ndelay(200);
++	snapshot->pll_con1 = readl(g_mcumixed_base +
++					 MT6797_A72_CLOCK_PLL_CON1);
++	snapshot->muxsel = readl(g_mcumixed_base +
++				       MT6797_A72_CLOCK_MUXSEL);
++	snapshot->ckdiv = readl(g_mcumixed_base +
++				      MT6797_A72_CLOCK_CKDIV);
++	snapshot->status = 0;
++	hs_write32(g_reg_sema3_m0, 0x1);
++	if (!(hs_read32(g_reg_sema3_m0) & 0x1))
++		snapshot->semaphore |= BIT(1);
++	else
++		snapshot->status = -EIO;
++unlock:
++	spin_unlock_irqrestore(&g_mt6797_0x1001AXXX_lock, flags);
++record:
++	mt6797_a72_obs_clock(cpu, phase, snapshot);
++	return snapshot->status;
++}
+ #endif
+ 
+ /*****************************************************************************/
+diff --git a/drivers/misc/mediatek/power/mt6797/da9214.c b/drivers/misc/mediatek/power/mt6797/da9214.c
+index a850de0ae..d48a8e47e 100644
+--- a/drivers/misc/mediatek/power/mt6797/da9214.c
++++ b/drivers/misc/mediatek/power/mt6797/da9214.c
+@@ -524,6 +524,75 @@ unsigned int da9214_a72_obs_buckb_config(unsigned int cpu, bool enable,
+ 	mt6797_a72_obs_da9214(cpu, phase, &snapshot);
+ 	return mutation_ret;
+ }
++
++int da9214_a72_diag_compare_update(unsigned int cpu, bool expected,
++				   bool requested, u16 phase)
++{
++	struct mt6797_a72_obs_da9214 snapshot = { };
++	unsigned char buck = 0;
++	int ret = -ENODEV;
++
++	if (!new_client)
++		goto record;
++	mutex_lock(&da9214_i2c_access);
++	ret = da9214_a72_read_locked(DA9214_A72_REG_PAGE,
++				     &snapshot.page_before);
++	if (ret < 0)
++		goto unlock;
++	snapshot.valid |= DA9214_A72_VALID_PAGE_BEFORE;
++	if (snapshot.page_before != 0x80) {
++		ret = -EINVAL;
++		goto unlock;
++	}
++	snapshot.page_selected = snapshot.page_before;
++	snapshot.valid |= DA9214_A72_VALID_PAGE_SELECTED;
++	ret = da9214_a72_read_locked(DA9214_A72_REG_BUCKB, &buck);
++	if (ret < 0)
++		goto unlock;
++	snapshot.buck_enable_before = buck;
++	snapshot.valid |= DA9214_A72_VALID_BUCK_BEFORE;
++	ret = da9214_a72_read_locked(DA9214_A72_REG_BUCKB_VSEL,
++				     &snapshot.buck_vsel);
++	if (ret < 0)
++		goto unlock;
++	snapshot.valid |= DA9214_A72_VALID_VSEL;
++	if (!!(buck & 1) != expected || snapshot.buck_vsel != 0x46) {
++		ret = -EINVAL;
++		goto unlock;
++	}
++	if (requested != expected) {
++		ret = da9214_a72_write_locked(DA9214_A72_REG_BUCKB,
++					      (buck & ~1) | requested);
++		if (ret < 0)
++			goto unlock;
++	}
++	ret = da9214_a72_read_locked(DA9214_A72_REG_BUCKB, &buck);
++	if (ret < 0)
++		goto unlock;
++	snapshot.buck_enable_after = buck;
++	snapshot.valid |= DA9214_A72_VALID_BUCK_AFTER;
++	ret = da9214_a72_read_locked(DA9214_A72_REG_BUCKB_VSEL,
++				     &snapshot.buck_vsel);
++	if (ret < 0)
++		goto unlock;
++	ret = da9214_a72_read_locked(DA9214_A72_REG_PAGE,
++				     &snapshot.page_after);
++	if (ret < 0)
++		goto unlock;
++	snapshot.valid |= DA9214_A72_VALID_PAGE_VERIFY;
++	if (!!(buck & 1) != requested || snapshot.buck_vsel != 0x46 ||
++	    snapshot.page_after != 0x80)
++		ret = -EIO;
++	else
++		ret = 0;
++unlock:
++	mutex_unlock(&da9214_i2c_access);
++record:
++	snapshot.status = ret;
++	mt6797_a72_obs_da9214(cpu, phase, &snapshot);
++	return ret;
++}
++
+ #endif
+ 
+ /*
+diff --git a/drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c b/drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c
+index 144b49d66..1927e01f0 100644
+--- a/drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c
++++ b/drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c
+@@ -396,6 +396,43 @@ int mtk_rgu_dram_reserved(int enable)
+ 	return 0;
+ }
+ 
++#ifdef CONFIG_MTK_A72_TRANSITION_OBSERVER
++int mt6797_a72_diag_toprgu_compare_update(unsigned int cpu,
++					  bool expected, bool requested, u16 phase)
++{
++	struct mt6797_a72_obs_toprgu snapshot = {
++		.mask = MTK_WDT_SWSYS_RST_PWRAP_SPI_CTL_RST,
++	};
++	unsigned int value;
++	int ret = 0;
++
++	spin_lock(&rgu_reg_operation_spinlock);
++	value = __raw_readl(MTK_WDT_SWSYSRST);
++	snapshot.before = value;
++	if (!!(value & snapshot.mask) != expected) {
++		ret = -EINVAL;
++		snapshot.requested = value;
++		snapshot.after = value;
++	} else {
++		value |= MTK_WDT_SWSYS_RST_KEY;
++		if (requested)
++			value |= snapshot.mask;
++		else
++			value &= ~snapshot.mask;
++		snapshot.requested = value;
++		if (requested != expected)
++			mt_reg_sync_writel(value, MTK_WDT_SWSYSRST);
++		snapshot.after = __raw_readl(MTK_WDT_SWSYSRST);
++		if (!!(snapshot.after & snapshot.mask) != requested)
++			ret = -EIO;
++	}
++	spin_unlock(&rgu_reg_operation_spinlock);
++	snapshot.status = ret;
++	mt6797_a72_obs_toprgu(cpu, phase, &snapshot);
++	return ret;
++}
++#endif
++
+ int mtk_wdt_swsysret_config(int bit, int set_value)
+ {
+ 	unsigned int wdt_sys_val;
+diff --git a/include/linux/mt6797_a72_transition_observer.h b/include/linux/mt6797_a72_transition_observer.h
+index 1cd51ddba..54dbc0e87 100644
+--- a/include/linux/mt6797_a72_transition_observer.h
++++ b/include/linux/mt6797_a72_transition_observer.h
+@@ -156,4 +156,15 @@ void mt6797_a72_obs_secure_snapshot(unsigned int cpu, u16 phase);
+ void mt6797_a72_obs_clock_snapshot(unsigned int cpu, u16 phase);
+ void mt6797_a72_obs_dcm_snapshot(unsigned int cpu, u16 phase);
+ 
++int da9214_a72_diag_compare_update(unsigned int cpu, bool expected,
++				   bool requested, u16 phase);
++int mt6797_a72_diag_spm_compare_update(unsigned int cpu, u16 phase,
++				       u32 offset, u32 expected, u32 requested);
++int mt6797_a72_diag_toprgu_compare_update(unsigned int cpu,
++					  bool expected, bool requested, u16 phase);
++bool mt6797_a72_diag_secure_zero(unsigned int cpu, u16 phase);
++bool mt6797_a72_diag_dcm_zero(unsigned int cpu, u16 phase);
++int mt6797_a72_diag_clock_capture(unsigned int cpu, u16 phase,
++				  struct mt6797_a72_obs_clock *snapshot);
++
+ #endif
