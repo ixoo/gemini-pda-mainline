@@ -69,13 +69,17 @@ python_version=Python 2.7.13
 python_package=python2.7_2.7.13-2_amd64.deb
 dct_source=tools/dct/DrvGen.py
 dws_source=drivers/misc/mediatek/dws/mt6797/aeon6797_6m_n.dws
-cust_dtsi_sha256=5c562f8ec89d7c4dac3e2115c81ece0d4b2e63d61660ad8cc73ad55ea1631a28
+first_raw_cust_dtsi_sha256=5c562f8ec89d7c4dac3e2115c81ece0d4b2e63d61660ad8cc73ad55ea1631a28
+normalized_cust_dtsi_sha256=7a7eb416499346afff30c15f967ccb9cf79323c076204b6a953515db74811632
 result=passed
 
 The fixed source's DCT generator is tracked but uses Python 2 syntax and an
 `/usr/bin/python` shebang. A disposable exact-snapshot Python 2.7 environment
 generated `cust.dtsi` successfully and cleaned up. The permanent lane invokes
-that pinned interpreter explicitly and rejects any output checksum drift.
+that pinned interpreter explicitly. Reproduction proved the generator varies
+only its line-3 wall-clock comment. The lane requires the exact timestamp
+syntax, normalizes only that comment to `1970-01-01 00:00:00`, and rejects any
+other complete-output checksum drift.
 
 Exact configuration recovery
 ----------------------------

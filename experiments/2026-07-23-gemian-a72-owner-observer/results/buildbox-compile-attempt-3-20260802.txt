@@ -1,0 +1,48 @@
+Gemian A72 owner-observer Buildbox compile attempt 3
+Recorded: 2026-08-02 America/New_York
+
+Input
+-----
+repository_commit=9d480ac6620c994ad5361e741a0275a70f1bde74
+repository_remote=https://github.com/ixoo/gemini-pda-mainline.git
+source_commit=59e00a9144d782e148332009a835b99c43382467
+build_backend=buildbox
+native_vm_build=no
+purpose=compile-review-only
+boot_candidate=no
+
+Result
+------
+toolchain_manifest_validation=passed
+pinned_compiler_object_probe=passed
+pinned_python_identity=passed
+patch_application=passed
+baseline_config_hash=passed
+olddefconfig=passed
+config_gate=passed
+dct_generator=passed
+dct_checksum_gate=rejected
+kernel_object_compilation=not_started
+artifact_package=not_created
+device_access=none
+
+Reproducibility analysis
+------------------------
+Two additional disposable generations using the exact same source, DWS, and
+Python environment produced different raw SHA-256 values. A byte-level diff
+contained exactly one line:
+
+` * YYYY-MM-DD HH:MM:SS`
+
+This is line 3 of the generated header comment. No DTS node, property, value,
+ordering, whitespace, source path, or other byte changed. The generator uses
+the current wall clock and does not honor `SOURCE_DATE_EPOCH`.
+
+Decision
+--------
+Require exactly one timestamp line at line 3 with the proven syntax. Replace
+only that comment with ` * 1970-01-01 00:00:00`, then require complete-file
+SHA-256 `7a7eb416499346afff30c15f967ccb9cf79323c076204b6a953515db74811632`.
+Any missing, extra, relocated, malformed, or otherwise changed byte still
+fails. Submit a fourth exact clean pushed commit. This normalization is not a
+hardware or DTS semantic change and authorizes no boot or CPU8/CPU9 activity.

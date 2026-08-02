@@ -649,11 +649,10 @@ excluded from the first CPU8 experiment. The next action is to freeze that
 read-only observer against the exact active boot contract and build it on an
 exact clean pushed commit using a dedicated Buildbox lane. Buildbox reaches the
 public source and immutable 2017 Debian snapshot, which resolves exact
-cross-GCC `6.3.0-18cross1` and binutils `2.28-5`. The exact 25-package closure
-is checksum-pinned, and the relocated compiler/linker produced a valid AArch64
-object. The dedicated Git-based compile-review lane is implemented; the next
-result is its replacement clean pushed-commit vendor source build and
-warning/configuration review, not a device boot. Its first exact submission
+cross-GCC `6.3.0-18cross1` and binutils `2.28-5`. The exact 39-package compiler
+and interpreter closure is checksum-pinned, and the relocated compiler/linker
+produced a valid AArch64 object. The dedicated Git-based compile-review lane is
+implemented; its first exact submission
 stopped before compilation because normalization exposed precisely the observer
 absent-to-`y` delta and an inert public-source-only `CONFIG_ANBOX`
 absent-to-explicit-`n` delta. That exact disabled serialization is now pinned;
@@ -661,8 +660,12 @@ every other delta remains rejected. No native VM kernel build, register write,
 or CPU request is authorized by the audit. The replacement passed that gate
 and then stopped before kernel-object compilation because the selected source's
 tracked DCT generator requires Python 2. The exact Stretch Python 2.7 runtime
-now reproduces `cust.dtsi` with a pinned checksum; the next result is a third
-exact pushed-commit compile review.
+now reproduces `cust.dtsi`. The third exact submission proved generation but
+rejected its time-varying checksum; two independent outputs differ only in the
+line-3 wall-clock comment. The lane now requires that exact syntax, normalizes
+only that comment, and pins the full normalized output. The next result is a
+fourth clean pushed-commit vendor source build and warning/configuration review,
+not a device boot.
 
 Exit: observations and inference are separated, every required writer has one
 owner, and a failed step has a bounded rollback path.

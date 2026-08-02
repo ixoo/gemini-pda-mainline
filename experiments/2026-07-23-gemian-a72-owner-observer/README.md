@@ -141,6 +141,9 @@ was accessed or changed while preparing this directory.
 - [`results/buildbox-compile-attempt-2-20260802.txt`](results/buildbox-compile-attempt-2-20260802.txt):
   exact replacement submission, passed config gate, and pre-object DCT
   interpreter failure.
+- [`results/buildbox-compile-attempt-3-20260802.txt`](results/buildbox-compile-attempt-3-20260802.txt):
+  exact Python-enabled submission and its fail-closed discovery of the DCT
+  wall-clock comment.
 
 The local validation invocation is:
 
@@ -224,10 +227,13 @@ Compile attempt 2 passed the exact normalized configuration gate, then exposed
 the selected source's tracked DCT generator as Python 2 syntax with an
 `/usr/bin/python` shebang. Buildbox intentionally has only system Python 3. A
 separate pinned Stretch Python 2.7 probe generated `cust.dtsi` successfully;
-the exact output SHA-256 is
-`5c562f8ec89d7c4dac3e2115c81ece0d4b2e63d61660ad8cc73ad55ea1631a28`.
-The 14 direct Python runtime packages and this output oracle are now part of
-the fail-closed lane. No proprietary or later-source DCT conversion was used.
+two consecutive outputs differed only at the generated wall-clock comment on
+line 3. The lane requires that exact timestamp syntax, normalizes only that
+line to `1970-01-01 00:00:00`, and pins normalized SHA-256
+`7a7eb416499346afff30c15f967ccb9cf79323c076204b6a953515db74811632`.
+The 14 direct Python runtime packages and this normalized output oracle are
+now part of the fail-closed lane. No proprietary or later-source DCT
+conversion was used.
 
 ## Analysis
 
