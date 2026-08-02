@@ -60,7 +60,7 @@ def abi_step(source: Path) -> None:
         header,
         "\nint da9214_a72_obs_snapshot(unsigned int cpu, u16 phase);\n",
         "\nvoid mt6797_a72_obs_rollback_terminal(unsigned int cpu,\n"
-        "\t\tenum mt6797_a72_rollback_disposition disposition);\n",
+        "\t\t\t\t      enum mt6797_a72_rollback_disposition disposition);\n",
     )
 
     replace_once(
@@ -79,7 +79,7 @@ def abi_step(source: Path) -> None:
         "\t} else if (mt6797_a72_obs_state == MT6797_A72_OBS_CAPTURE_UP) {\n"
         "\t\tretain = true;\n"
         "\t\tif (mt6797_a72_obs_is_boundary(record,\n"
-        "\t\t\t\tMT6797_A72_PHASE_ROLLBACK_FINAL)) {\n"
+        "\t\t\t\t\t       MT6797_A72_PHASE_ROLLBACK_FINAL)) {\n"
         "\t\t\tswitch (record->payload.lifecycle.result) {\n"
         "\t\t\tcase MT6797_A72_ROLLBACK_ROLLED_BACK:\n"
         "\t\t\t\tnext_state = MT6797_A72_OBS_ROLLED_BACK;\n"
@@ -99,10 +99,10 @@ def abi_step(source: Path) -> None:
         core,
         "static const char *mt6797_a72_obs_state_name(u16 state)\n",
         "void mt6797_a72_obs_rollback_terminal(unsigned int cpu,\n"
-        "\t\tenum mt6797_a72_rollback_disposition disposition)\n"
+        "\t\t\t\t      enum mt6797_a72_rollback_disposition disposition)\n"
         "{\n"
         "\tmt6797_a72_obs_lifecycle(cpu, MT6797_A72_PHASE_ROLLBACK_FINAL,\n"
-        "\t\t\t\tdisposition, 0, 0);\n"
+        "\t\t\t\t disposition, 0, 0);\n"
         "}\n\n",
     )
     replace_once(
@@ -134,22 +134,22 @@ def owner_step(source: Path) -> None:
         header,
         "\n#endif\n",
         "\nint da9214_a72_diag_compare_update(unsigned int cpu, bool expected,\n"
-        "\t\tbool requested, u16 phase);\n"
+        "\t\t\t\t   bool requested, u16 phase);\n"
         "int mt6797_a72_diag_spm_compare_update(unsigned int cpu, u16 phase,\n"
-        "\t\tu32 offset, u32 expected, u32 requested);\n"
+        "\t\t\t\t       u32 offset, u32 expected, u32 requested);\n"
         "int mt6797_a72_diag_toprgu_compare_update(unsigned int cpu,\n"
-        "\t\tbool expected, bool requested, u16 phase);\n"
+        "\t\t\t\t\t  bool expected, bool requested, u16 phase);\n"
         "bool mt6797_a72_diag_secure_zero(unsigned int cpu, u16 phase);\n"
         "bool mt6797_a72_diag_dcm_zero(unsigned int cpu, u16 phase);\n"
         "int mt6797_a72_diag_clock_capture(unsigned int cpu, u16 phase,\n"
-        "\t\tstruct mt6797_a72_obs_clock *snapshot);\n",
+        "\t\t\t\t  struct mt6797_a72_obs_clock *snapshot);\n",
     )
 
     insert_before(
         da9214,
         "#endif\n\n/*\n *   [Read / Write Function]\n */",
-        "int da9214_a72_diag_compare_update(unsigned int cpu, bool expected,\n"
-        "\t\tbool requested, u16 phase)\n"
+        "\nint da9214_a72_diag_compare_update(unsigned int cpu, bool expected,\n"
+        "\t\t\t\t   bool requested, u16 phase)\n"
         "{\n"
         "\tstruct mt6797_a72_obs_da9214 snapshot = { };\n"
         "\tunsigned char buck = 0;\n"
@@ -219,8 +219,8 @@ def owner_step(source: Path) -> None:
     insert_before(
         spm,
         "#endif\n\nvoid unmask_edge_trig_irqs_for_cirq(void)",
-        "int mt6797_a72_diag_spm_compare_update(unsigned int cpu, u16 phase,\n"
-        "\t\tu32 offset, u32 expected, u32 requested)\n"
+        "\nint mt6797_a72_diag_spm_compare_update(unsigned int cpu, u16 phase,\n"
+        "\t\t\t\t       u32 offset, u32 expected, u32 requested)\n"
         "{\n"
         "\tstruct mt6797_a72_obs_mutation mutation = {\n"
         "\t\t.address = MT6797_A72_SPM_PHYS + offset,\n"
@@ -263,9 +263,9 @@ def owner_step(source: Path) -> None:
     insert_before(
         wdt,
         "int mtk_wdt_swsysret_config(int bit, int set_value)\n{\n",
-        "#ifdef CONFIG_MTK_A72_TRANSITION_OBSERVER\n"
+        "\n#ifdef CONFIG_MTK_A72_TRANSITION_OBSERVER\n"
         "int mt6797_a72_diag_toprgu_compare_update(unsigned int cpu,\n"
-        "\t\tbool expected, bool requested, u16 phase)\n"
+        "\t\t\t\t\t  bool expected, bool requested, u16 phase)\n"
         "{\n"
         "\tstruct mt6797_a72_obs_toprgu snapshot = {\n"
         "\t\t.mask = MTK_WDT_SWSYS_RST_PWRAP_SPI_CTL_RST,\n"
@@ -303,14 +303,14 @@ def owner_step(source: Path) -> None:
     insert_before(
         idvfs,
         "#endif\n\n/* 0x11017000 0x1000, i2c idvfsapb ctrl reg */",
-        "bool mt6797_a72_diag_secure_zero(unsigned int cpu, u16 phase)\n"
+        "\nbool mt6797_a72_diag_secure_zero(unsigned int cpu, u16 phase)\n"
         "{\n"
         "\tstruct mt6797_a72_obs_secure snapshot = { };\n"
         "\tbool zero = true;\n"
         "\tunsigned int i;\n\n"
         "\tfor (i = 0; i < ARRAY_SIZE(mt6797_a72_secure_registers); i++) {\n"
-        "\t\tsnapshot.values[i] = (u32)SEC_BIGIDVFS_READ(\n"
-        "\t\t\tmt6797_a72_secure_registers[i]);\n"
+        "\t\tsnapshot.values[i] =\n"
+        "\t\t\t(u32)SEC_BIGIDVFS_READ(mt6797_a72_secure_registers[i]);\n"
         "\t\tsnapshot.valid |= BIT(i);\n"
         "\t\tzero &= snapshot.values[i] == 0;\n"
         "\t}\n"
@@ -326,7 +326,7 @@ def owner_step(source: Path) -> None:
     insert_before(
         dcm,
         "#endif\n\nint dcm_mcusys_little(ENUM_MCUSYS_DCM on)",
-        "bool mt6797_a72_diag_dcm_zero(unsigned int cpu, u16 phase)\n"
+        "\nbool mt6797_a72_diag_dcm_zero(unsigned int cpu, u16 phase)\n"
         "{\n"
         "\tstruct mt6797_a72_obs_dcm snapshot = {\n"
         "\t\t.mask = MCUCFG_SYNC_DCM_MP2_MASK,\n"
@@ -346,8 +346,8 @@ def owner_step(source: Path) -> None:
         clock,
         "#endif\n\n/*****************************************************************************/\n"
         "/* Function */",
-        "int mt6797_a72_diag_clock_capture(unsigned int cpu, u16 phase,\n"
-        "\t\tstruct mt6797_a72_obs_clock *snapshot)\n"
+        "\nint mt6797_a72_diag_clock_capture(unsigned int cpu, u16 phase,\n"
+        "\t\t\t\t  struct mt6797_a72_obs_clock *snapshot)\n"
         "{\n"
         "\tunsigned long flags;\n\n"
         "\tif (!snapshot)\n"
@@ -411,7 +411,9 @@ def orchestrator_step(source: Path) -> None:
         "\thelp\n"
         "\t  Run one compiled CPU8-only diagnostic attempt that stops before\n"
         "\t  external-isolation clear and rolls back only exactly owned state.\n"
-        "\t  This option has no userspace trigger and is not for deployment.\n",
+        "\t  It captures every entry and final safety gate for later review.\n"
+        "\t  This option has no userspace trigger and is not for deployment.\n"
+        "\t  Leave it disabled outside the named experiment configuration.\n",
     )
 
     insert_before(
@@ -434,24 +436,24 @@ def orchestrator_step(source: Path) -> None:
         "\t\treturn -EALREADY;\n"
         "\tprestate_bad |= g_cl2_online || cpu_online(8) || cpu_online(9);\n"
         "\tret = mt6797_a72_diag_clock_capture(cpu,\n"
-        "\t\t\tMT6797_A72_PHASE_POWER_ON_PRE, &entry_clock);\n"
+        "\t\t\t\t\t    MT6797_A72_PHASE_POWER_ON_PRE, &entry_clock);\n"
         "\tprestate_bad |= !!ret;\n"
         "\tprestate_bad |= !mt6797_a72_diag_secure_zero(cpu,\n"
         "\t\t\tMT6797_A72_PHASE_POWER_ON_PRE);\n"
         "\tprestate_bad |= !mt6797_a72_diag_dcm_zero(cpu,\n"
         "\t\t\tMT6797_A72_PHASE_POWER_ON_PRE);\n"
         "\tret = da9214_a72_diag_compare_update(cpu, false, false,\n"
-        "\t\t\tMT6797_A72_PHASE_POWER_ON_PRE);\n"
+        "\t\t\t\t\t     MT6797_A72_PHASE_POWER_ON_PRE);\n"
         "\tprestate_bad |= !!ret;\n"
         "\tret = mt6797_a72_diag_spm_compare_update(cpu,\n"
-        "\t\t\tMT6797_A72_PHASE_POWER_ON_PRE, 0x218,\n"
+        "\t\t\t\t\t\t MT6797_A72_PHASE_POWER_ON_PRE, 0x218,\n"
         "\t\t\t0x00010132, 0x00010132);\n"
         "\tprestate_bad |= !!ret;\n"
         "\tret = mt6797_a72_diag_spm_compare_update(cpu,\n"
-        "\t\t\tMT6797_A72_PHASE_POWER_ON_PRE, 0x290, 0x2, 0x2);\n"
+        "\t\t\t\t\t\t MT6797_A72_PHASE_POWER_ON_PRE, 0x290, 0x2, 0x2);\n"
         "\tprestate_bad |= !!ret;\n"
         "\tret = mt6797_a72_diag_toprgu_compare_update(cpu, false, false,\n"
-        "\t\t\tMT6797_A72_PHASE_POWER_ON_PRE);\n"
+        "\t\t\t\t\t\t    MT6797_A72_PHASE_POWER_ON_PRE);\n"
         "\tprestate_bad |= !!ret;\n\n"
         "\tspin_lock(&reset_lock);\n"
         "\tprestate_bad |= reset_flags != 0;\n"
@@ -463,7 +465,7 @@ def orchestrator_step(source: Path) -> None:
         "\tif (prestate_bad)\n"
         "\t\tgoto rejected;\n\n"
         "\tret = mt6797_a72_diag_spm_compare_update(cpu,\n"
-        "\t\t\tMT6797_A72_PHASE_SPM_RESET_RELEASE, 0x218,\n"
+        "\t\t\t\t\t\t MT6797_A72_PHASE_SPM_RESET_RELEASE, 0x218,\n"
         "\t\t\t0x00010132, 0x00010133);\n"
         "\tif (ret) {\n"
         "\t\tfault = true;\n"
@@ -471,14 +473,14 @@ def orchestrator_step(source: Path) -> None:
         "\t}\n"
         "\treset_owned = true;\n"
         "\tret = mt6797_a72_diag_toprgu_compare_update(cpu, false, true,\n"
-        "\t\t\tMT6797_A72_PHASE_TOPRGU_ASSERT);\n"
+        "\t\t\t\t\t\t    MT6797_A72_PHASE_TOPRGU_ASSERT);\n"
         "\tif (ret) {\n"
         "\t\tfault = true;\n"
         "\t\tgoto rollback;\n"
         "\t}\n"
         "\tpwrap_owned = true;\n"
         "\tret = da9214_a72_diag_compare_update(cpu, false, true,\n"
-        "\t\t\tMT6797_A72_PHASE_BUCK_ENABLE);\n"
+        "\t\t\t\t\t     MT6797_A72_PHASE_BUCK_ENABLE);\n"
         "\tif (ret) {\n"
         "\t\tfault = true;\n"
         "\t\tgoto rollback;\n"
@@ -486,7 +488,7 @@ def orchestrator_step(source: Path) -> None:
         "\tbuck_owned = true;\n"
         "\tudelay(1000);\n"
         "\tret = da9214_a72_diag_compare_update(cpu, true, true,\n"
-        "\t\t\tMT6797_A72_PHASE_BUCK_ENABLE_SETTLED);\n"
+        "\t\t\t\t\t     MT6797_A72_PHASE_BUCK_ENABLE_SETTLED);\n"
         "\tif (ret) {\n"
         "\t\tfault = true;\n"
         "\t\tgoto rollback;\n"
@@ -495,18 +497,18 @@ def orchestrator_step(source: Path) -> None:
         "\t\t\t\t 0, 0, 0);\n\n"
         "rollback:\n"
         "\tif (buck_owned && da9214_a72_diag_compare_update(cpu, true, false,\n"
-        "\t\t\tMT6797_A72_PHASE_ROLLBACK_BUCK_DISABLE))\n"
+        "\t\t\t\t\t\t\t MT6797_A72_PHASE_ROLLBACK_BUCK_DISABLE))\n"
         "\t\tfault = true;\n"
         "\tif (reset_owned &&\n"
         "\t    (mt6797_a72_diag_spm_compare_update(cpu,\n"
         "\t\tMT6797_A72_PHASE_ROLLBACK_SPM_RESET, 0x290, 0x2, 0x2) ||\n"
         "\t     mt6797_a72_diag_spm_compare_update(cpu,\n"
-        "\t\tMT6797_A72_PHASE_ROLLBACK_SPM_RESET, 0x218,\n"
+        "\t\t\t\t\t\tMT6797_A72_PHASE_ROLLBACK_SPM_RESET, 0x218,\n"
         "\t\t0x00010133, 0x00010132)))\n"
         "\t\tfault = true;\n"
         "\tif (pwrap_owned &&\n"
         "\t    mt6797_a72_diag_toprgu_compare_update(cpu, true, false,\n"
-        "\t\tMT6797_A72_PHASE_ROLLBACK_PWRAP_DEASSERT))\n"
+        "\t\t\t\t\t\t  MT6797_A72_PHASE_ROLLBACK_PWRAP_DEASSERT))\n"
         "\t\tfault = true;\n"
         "\tif (reset_flag_owned) {\n"
         "\t\tspin_lock(&reset_lock);\n"
@@ -517,24 +519,24 @@ def orchestrator_step(source: Path) -> None:
         "\t\tspin_unlock(&reset_lock);\n"
         "\t}\n"
         "\tret = da9214_a72_diag_compare_update(cpu, false, false,\n"
-        "\t\t\tMT6797_A72_PHASE_ROLLBACK_FINAL);\n"
+        "\t\t\t\t\t     MT6797_A72_PHASE_ROLLBACK_FINAL);\n"
         "\tfault |= !!ret;\n"
         "\tret = mt6797_a72_diag_spm_compare_update(cpu,\n"
-        "\t\t\tMT6797_A72_PHASE_ROLLBACK_FINAL, 0x218,\n"
+        "\t\t\t\t\t\t MT6797_A72_PHASE_ROLLBACK_FINAL, 0x218,\n"
         "\t\t\t0x00010132, 0x00010132);\n"
         "\tfault |= !!ret;\n"
         "\tret = mt6797_a72_diag_spm_compare_update(cpu,\n"
-        "\t\t\tMT6797_A72_PHASE_ROLLBACK_FINAL, 0x290, 0x2, 0x2);\n"
+        "\t\t\t\t\t\t MT6797_A72_PHASE_ROLLBACK_FINAL, 0x290, 0x2, 0x2);\n"
         "\tfault |= !!ret;\n"
         "\tret = mt6797_a72_diag_toprgu_compare_update(cpu, false, false,\n"
-        "\t\t\tMT6797_A72_PHASE_ROLLBACK_FINAL);\n"
+        "\t\t\t\t\t\t    MT6797_A72_PHASE_ROLLBACK_FINAL);\n"
         "\tfault |= !!ret;\n"
         "\tfault |= !mt6797_a72_diag_secure_zero(cpu,\n"
         "\t\t\tMT6797_A72_PHASE_ROLLBACK_FINAL);\n"
         "\tfault |= !mt6797_a72_diag_dcm_zero(cpu,\n"
         "\t\t\tMT6797_A72_PHASE_ROLLBACK_FINAL);\n"
         "\tret = mt6797_a72_diag_clock_capture(cpu,\n"
-        "\t\t\tMT6797_A72_PHASE_ROLLBACK_FINAL, &final_clock);\n"
+        "\t\t\t\t\t    MT6797_A72_PHASE_ROLLBACK_FINAL, &final_clock);\n"
         "\tfault |= !!ret;\n"
         "\tif (!ret) {\n"
         "\t\tfault |= entry_clock.pll_con1 != final_clock.pll_con1;\n"
@@ -543,16 +545,16 @@ def orchestrator_step(source: Path) -> None:
         "\t}\n"
         "\tfault |= g_cl2_online || cpu_online(8) || cpu_online(9);\n"
         "\tmt6797_a72_obs_fixed_snapshot(cpu,\n"
-        "\t\t\tMT6797_A72_PHASE_ROLLBACK_FINAL);\n"
+        "\t\t\t\t      MT6797_A72_PHASE_ROLLBACK_FINAL);\n"
         "\tmt6797_a72_obs_rollback_terminal(cpu,\n"
-        "\t\tfault ? MT6797_A72_ROLLBACK_FAULT_RETAIN :\n"
+        "\t\t\t\t\t fault ? MT6797_A72_ROLLBACK_FAULT_RETAIN :\n"
         "\t\t\tMT6797_A72_ROLLBACK_ROLLED_BACK);\n"
         "\treturn -ECANCELED;\n\n"
         "rejected:\n"
         "\tmt6797_a72_obs_fixed_snapshot(cpu,\n"
-        "\t\t\tMT6797_A72_PHASE_ROLLBACK_FINAL);\n"
+        "\t\t\t\t      MT6797_A72_PHASE_ROLLBACK_FINAL);\n"
         "\tmt6797_a72_obs_rollback_terminal(cpu,\n"
-        "\t\tMT6797_A72_ROLLBACK_REJECTED_PRESTATE);\n"
+        "\t\t\t\t\t MT6797_A72_ROLLBACK_REJECTED_PRESTATE);\n"
         "\treturn -ECANCELED;\n"
         "}\n"
         "#endif\n\n",

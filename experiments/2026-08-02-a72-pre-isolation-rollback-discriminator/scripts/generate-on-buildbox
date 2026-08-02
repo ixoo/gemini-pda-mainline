@@ -90,8 +90,9 @@ mkdir -p "${partial}/patches" "${partial}/provenance"
 
 commit_step() {
   local date="$1"
-  local message="$2"
-  shift 2
+  local subject="$2"
+  local body="$3"
+  shift 3
   git -C "${work}/source" diff --check
   git -C "${work}/source" add -- "$@"
   git -C "${work}/source" diff --cached --check
@@ -100,18 +101,21 @@ commit_step() {
   GIT_COMMITTER_NAME="Gemini A72 experiment" \
   GIT_COMMITTER_EMAIL="noreply@gemini-a72.invalid" \
   GIT_AUTHOR_DATE="${date}" GIT_COMMITTER_DATE="${date}" \
-    git -C "${work}/source" commit --no-gpg-sign -m "${message}"
+    git -C "${work}/source" commit --no-gpg-sign \
+      -m "${subject}" -m "${body}"
 }
 
 python3 "${script_dir}/source_edits.py" --source "${work}/source" --step abi
 commit_step 2026-08-02T23:10:00Z \
   "diagnostic: extend A72 observer rollback ABI" \
+  "Give the fixed observer explicit rollback phases and terminal states so a stopped CPU8 attempt cannot be mistaken for a completed power-on cycle. Keep the ABI experiment-only and read-only." \
   include/linux/mt6797_a72_transition_observer.h \
   drivers/misc/mediatek/base/power/mt6797/mt_a72_transition_observer.c
 
 python3 "${script_dir}/source_edits.py" --source "${work}/source" --step owners
 commit_step 2026-08-02T23:11:00Z \
   "diagnostic: add exact A72 rollback owner operations" \
+  "Add owner-local compare/update/readback helpers for the DA921x buck, SPM reset registers, TOPRGU reset bit, secure state, DCM state, and clock state. Refuse drift rather than writing a state the diagnostic did not establish." \
   include/linux/mt6797_a72_transition_observer.h \
   drivers/misc/mediatek/power/mt6797/da9214.c \
   drivers/misc/mediatek/base/power/spm_v2/mt_spm.c \
@@ -123,6 +127,7 @@ commit_step 2026-08-02T23:11:00Z \
 python3 "${script_dir}/source_edits.py" --source "${work}/source" --step orchestrator
 commit_step 2026-08-02T23:12:00Z \
   "diagnostic: stop and unwind first CPU8 pre-isolation attempt" \
+  "Run one CPU8-only attempt through the existing one-millisecond buck settle, stop before external-isolation clear, and unwind only state whose exact predecessor was observed. Accumulate all entry and final evidence, then leave through the normal interrupt-mask cleanup before PSCI, DCM, or iDVFS work can run." \
   arch/arm64/kernel/psci.c \
   drivers/misc/mediatek/base/power/Kconfig
 

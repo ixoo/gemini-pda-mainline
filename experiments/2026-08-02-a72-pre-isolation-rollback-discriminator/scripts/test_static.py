@@ -101,8 +101,8 @@ def main() -> int:
         (
             "isolation boundary",
             p3,
-            "+\t\t\tMT6797_A72_PHASE_POWER_ON_PRE, 0x290, 0x2, 0x2);",
-            "+\t\t\tMT6797_A72_PHASE_SPM_ISOLATION_CLEAR, 0x290, 0x2, 0);",
+            "+\t\t\t\t\t\t MT6797_A72_PHASE_POWER_ON_PRE, 0x290, 0x2, 0x2);",
+            "+\t\t\t\t\t\t MT6797_A72_PHASE_SPM_ISOLATION_CLEAR, 0x290, 0x2, 0);",
             "isolation boundary crossed",
         ),
         (
@@ -144,10 +144,10 @@ def main() -> int:
             "final snapshot short-circuit regression",
             p3,
             "+\tret = da9214_a72_diag_compare_update(cpu, false, false,\n"
-            "+\t\t\tMT6797_A72_PHASE_ROLLBACK_FINAL);\n"
+            "+\t\t\t\t\t     MT6797_A72_PHASE_ROLLBACK_FINAL);\n"
             "+\tfault |= !!ret;",
             "+\tret = da9214_a72_diag_compare_update(cpu, false, false,\n"
-            "+\t\t\tMT6797_A72_PHASE_ROLLBACK_FINAL);\n"
+            "+\t\t\t\t\t     MT6797_A72_PHASE_ROLLBACK_FINAL);\n"
             "+\tif (ret) goto rejected;",
             "complete final-gate accumulation count changed",
         ),
