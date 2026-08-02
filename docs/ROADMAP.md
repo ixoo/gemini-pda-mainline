@@ -783,9 +783,12 @@ is `6a180e5a62a0…`. The passive ABI-v3 collector now accepts the exact
 fault-retain paths while rejecting 18 identity, ordering, final-state,
 forbidden-boundary, and stimulus mutations. It copies immutable evidence before
 optional power reporting and never requests a CPU, reboot, or write. The
-immediate ordered action is independent guarded-installer validation; no device
-access or installer write is yet authorized. Compilation, contract, container,
-and collector review do not authorize deployment. CPU9,
+source-pinned guarded installer now also passes syntax, managed-VM ShellCheck,
+exact token, candidate-manifest, predecessor, full-readback, cleanup, and
+clean-shutdown review. After this complete offline evidence is pushed, the
+immediate ordered action is one guarded deployment from known-good Gemian to
+live-GPT-resolved inactive boot2, followed by shutdown and manual boot2
+selection. CPU9,
 suspend/resume, later power boundaries, a mainline provider write, and any A72
 consumer remain blocked until their separate ownership and rollback gates
 close.

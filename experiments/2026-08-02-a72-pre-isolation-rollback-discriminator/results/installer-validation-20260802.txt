@@ -1,0 +1,59 @@
+A72 pre-isolation rollback boot2 installer validation
+Recorded: 2026-08-02 America/New_York
+
+Inputs
+------
+source_installer=experiments/2026-07-29-da921x-probe-isolation/scripts/install-boot2.sh
+source_installer_sha256=0c669ab85063015fa83b7e28a506e1bcf8cdafc4994726009becf92151fda7e7
+derived_wrapper_sha256=d945ea518b8e61ace98f358fbab727fe06d2f5c08228385f4fd7c974d5d70089
+artifact_name=gemian-a72-preiso-rollback-58e3efd5dcaa
+artifact_manifest_sha256=7aa495490f2f7d3539f08ba2bf48f6320133913631c9b9a42436f733f037c105
+expected_predecessor_sha256=6dcbda0cb264f5b637f6333f4946707d81ea98d38a8d52673b6fbe2cf109e3af
+candidate_sha256=6a180e5a62a00cd7c97d461c7a1c491cd47802bd0964ef82f75ee793d6b8bede
+candidate_size=16777216
+target=gemini@192.168.1.50
+target_logical_name=boot2
+
+Static validation
+-----------------
+bash_syntax=passed
+shellcheck_managed_vm=passed
+source_hash_gate=passed
+derived_exact_token_gates=passed
+derived_help_invocation=passed
+candidate_manifest_validation=passed
+native_vm_kernel_build=no
+device_access=none
+partition_write=none
+
+Guarded behavior retained from the source-pinned installer
+-----------------------------------------------------------
+- accepts only exact target gemini@192.168.1.50 and the ignored local key;
+- requires known-good AArch64 Gemian 3.18.41+, unchanged boot ID,
+  passwordless sudo, and systemd poweroff;
+- resolves exactly one live-GPT boot2 row and checks the by-partlabel link,
+  16 MiB size, writable state, mmcblk0 parent, inactive root, unmounted state,
+  no holders, and no swap;
+- requires Good battery health and capacity above 80 percent;
+- accepts only the exact first-cycle-latch predecessor or the already matching
+  rollback candidate;
+- records the predecessor checksum without creating a fresh backup;
+- uploads only to a mode-0600 bounded temporary path;
+- writes exactly four 4 MiB blocks, syncs, flushes, and verifies the full
+  remote partition checksum;
+- streams one independent full readback, checks its size, checksum, and byte
+  equality, then removes the temporary readback;
+- writes only sanitized ignored deployment evidence; and
+- requests clean poweroff and requires the device to become unreachable. It
+  never reboots automatically.
+
+Decision
+--------
+installer_static_gate=passed
+deployment_eligible_after-evidence-push=yes
+device_state_change=none
+
+Actual deployment remains a separate execution from known-good Gemian after
+this exact evidence is committed and pushed. Any live gate failure defers the
+write and must not substitute a partition, accept an unknown predecessor, or
+relax an identity check.

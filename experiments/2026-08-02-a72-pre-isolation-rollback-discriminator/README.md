@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-02-a72-pre-isolation-rollback-discriminator` |
-| Status | `passive-collector-validated`: the predeployment contract and reproducible container pass, and the passive ABI-v3 collector accepts exact rollback/pre-state/fault outcomes while rejecting 18 unsafe mutations; the next action is independent guarded-installer validation, with no deployment or device action yet authorized |
+| Status | `offline-predeployment-complete`: contract, Buildbox comparison, timing/lock review, reproducible container, passive ABI-v3 collector, and source-pinned guarded installer all pass; after this evidence is pushed, the exact candidate is eligible for one guarded boot2 deployment from known-good Gemian |
 | Subsystem | CPU8 external BUCKB preparation, MP2 reset, TOPRGU PWRAP reset, and fail-closed rollback |
 | Device variant | Named Gemini PDA development unit |
 | Date(s) | 2026-08-02 |
@@ -89,6 +89,8 @@ predeployment decision after compiler and timing review.
   rollback, rejected-prestate, fault-retain, and forbidden-boundary classifier.
 - [`scripts/test-passive.py`](scripts/test-passive.py): positive terminal paths
   plus 18 fail-closed and no-stimulus checks.
+- [`scripts/install-boot2.sh`](scripts/install-boot2.sh): source-pinned exact
+  logical-boot2 installer with full-readback and clean-shutdown enforcement.
 - [`patches/series`](patches/series): the exact three-patch rollback ABI,
   owner-operation, and CPU8 orchestrator series generated from the pinned
   vendor source.
@@ -120,6 +122,9 @@ predeployment decision after compiler and timing review.
 - [`results/passive-collector-validation-20260802.txt`](results/passive-collector-validation-20260802.txt):
   exact collector dependencies, identity/order gates, terminal semantics,
   mutation results, and device-inert runtime-use decision.
+- [`results/installer-validation-20260802.txt`](results/installer-validation-20260802.txt):
+  source identity, exact derivation tokens, retained safety behavior, syntax,
+  ShellCheck, candidate-manifest, and deployment-eligibility decision.
 
 Run from the repository root:
 
@@ -130,18 +135,19 @@ python3 experiments/2026-08-02-a72-pre-isolation-rollback-discriminator/scripts/
 
 ## Decision
 
-`passive-collector-passed`: the exact generated series implements the
+`offline-predeployment-passed`: the exact generated series implements the
 bounded and falsifiable rollback question without crossing external isolation,
 compiles against its exact parent observer with no new diagnostic, and adds no
 unsafe owner-lock nesting, polling loop, or semaphore wait loop. Its offline
 runtime and recovery decisions are explicit, and its Android-v0 container is
 reproducible. Its passive decision path is now mutation-tested. The result is
-not yet an eligible deployment, hardware-support claim, or device authorization.
+eligible for one guarded deployment after the exact evidence is pushed, but is
+not hardware evidence or a hardware-support claim.
 
 ## Follow-up
 
-Derive and independently validate a checksum-pinned guarded logical-boot2
-installer from the proven parent, including exact predecessor, live-GPT,
-stable-power, inactive-target, full-readback, cleanup, and clean-shutdown gates.
-Do not access the device or write until that final offline gate passes and the
-explicit deployment decision is recorded.
+Commit and push the complete offline evidence, then run the exact guarded
+installer once from known-good Gemian. Require the exact first-cycle-latch
+predecessor, live-GPT-resolved inactive boot2, stable power, full readback, and
+clean shutdown. The owner then manually selects boot2 and the host runs only
+the exact passive collector.
