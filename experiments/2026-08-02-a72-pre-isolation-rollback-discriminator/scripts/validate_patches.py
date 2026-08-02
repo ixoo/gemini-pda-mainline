@@ -200,6 +200,10 @@ def validate(patch_dir: Path, source: Path | None = None) -> None:
     additions3 = added_text(orchestrator)
     require(additions3.count("udelay(1000)") == 1, "settle delay count changed")
     require(additions3.count("cpu == 9") == 1, "CPU9 rejection count changed")
+    require(
+        additions3.count("goto mt6797_a72_boot_out") == 3,
+        "caller exit count changed",
+    )
     ordered(
         orchestrator,
         [

@@ -87,9 +87,9 @@ def main() -> int:
         (
             "PSCI dominance removal",
             p3,
-            "+\t\t\t\t\tgoto mt6797_a72_boot_out;",
-            "+\t\t\t\t\treturn err;",
-            "goto mt6797_a72_boot_out",
+            "+\t\t\tgoto mt6797_a72_boot_out;",
+            "+\t\t\treturn err;",
+            "caller exit count changed",
         ),
         (
             "isolation boundary",
