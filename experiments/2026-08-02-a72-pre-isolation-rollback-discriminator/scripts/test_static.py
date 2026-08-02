@@ -85,6 +85,13 @@ def main() -> int:
             "CPU9 rejection count changed",
         ),
         (
+            "bypass admission",
+            p3,
+            "+\t\tif (bypass_boot > 0) {",
+            "+\t\tif (bypass_boot < 0) {",
+            "diagnostic bypass rejection count changed",
+        ),
+        (
             "PSCI dominance removal",
             p3,
             "+\t\t\tgoto mt6797_a72_boot_out;",

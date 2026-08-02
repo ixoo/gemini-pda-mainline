@@ -117,7 +117,8 @@ commit_step 2026-08-02T23:11:00Z \
   drivers/misc/mediatek/base/power/spm_v2/mt_spm.c \
   drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c \
   drivers/misc/mediatek/base/power/mt6797/mt_idvfs.c \
-  drivers/misc/mediatek/base/power/mt6797/mt_dcm.c
+  drivers/misc/mediatek/base/power/mt6797/mt_dcm.c \
+  drivers/misc/mediatek/freqhopping/mt6797/mt_freqhopping.c
 
 python3 "${script_dir}/source_edits.py" --source "${work}/source" --step orchestrator
 commit_step 2026-08-02T23:12:00Z \

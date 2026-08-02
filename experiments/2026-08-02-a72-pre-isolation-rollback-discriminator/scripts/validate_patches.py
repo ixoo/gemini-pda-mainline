@@ -23,6 +23,7 @@ EXPECTED_PATHS = [
         "drivers/misc/mediatek/base/power/mt6797/mt_dcm.c",
         "drivers/misc/mediatek/base/power/mt6797/mt_idvfs.c",
         "drivers/misc/mediatek/base/power/spm_v2/mt_spm.c",
+        "drivers/misc/mediatek/freqhopping/mt6797/mt_freqhopping.c",
         "drivers/misc/mediatek/power/mt6797/da9214.c",
         "drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c",
         "include/linux/mt6797_a72_transition_observer.h",
@@ -156,6 +157,9 @@ def validate(patch_dir: Path, source: Path | None = None) -> None:
             "!!(snapshot.after & snapshot.mask) != requested",
             "bool mt6797_a72_diag_secure_zero",
             "bool mt6797_a72_diag_dcm_zero",
+            "int mt6797_a72_diag_clock_capture",
+            "spin_trylock_irqsave(&g_mt6797_0x1001AXXX_lock, flags)",
+            "return snapshot->status",
         ],
         "owner patch",
     )
@@ -185,12 +189,16 @@ def validate(patch_dir: Path, source: Path | None = None) -> None:
             "static atomic_t mt6797_a72_preiso_attempted = ATOMIC_INIT(0)",
             "cpu != 8 || atomic_xchg(&mt6797_a72_preiso_attempted, 1)",
             "cpu_online(8) || cpu_online(9)",
+            "MT6797_A72_PHASE_POWER_ON_PRE, &entry_clock",
             "0x00010132, 0x00010133",
             "MT6797_A72_PHASE_PREISO_INJECT_STOP",
             "MT6797_A72_PHASE_ROLLBACK_BUCK_DISABLE",
             "MT6797_A72_PHASE_ROLLBACK_SPM_RESET",
             "MT6797_A72_PHASE_ROLLBACK_PWRAP_DEASSERT",
             "MT6797_A72_ROLLBACK_REJECTED_PRESTATE",
+            "entry_clock.pll_con1 != final_clock.pll_con1",
+            "entry_clock.muxsel != final_clock.muxsel",
+            "entry_clock.ckdiv != final_clock.ckdiv",
             "goto mt6797_a72_boot_out",
             "mt6797_a72_boot_out:",
             "gic_clear_primask();",
@@ -200,6 +208,10 @@ def validate(patch_dir: Path, source: Path | None = None) -> None:
     additions3 = added_text(orchestrator)
     require(additions3.count("udelay(1000)") == 1, "settle delay count changed")
     require(additions3.count("cpu == 9") == 1, "CPU9 rejection count changed")
+    require(
+        additions3.count("if (bypass_boot > 0) {") == 1,
+        "diagnostic bypass rejection count changed",
+    )
     require(
         additions3.count("goto mt6797_a72_boot_out") == 3,
         "caller exit count changed",

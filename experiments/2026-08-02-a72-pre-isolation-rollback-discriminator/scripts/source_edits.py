@@ -128,6 +128,7 @@ def owner_step(source: Path) -> None:
     wdt = source / "drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c"
     idvfs = source / "drivers/misc/mediatek/base/power/mt6797/mt_idvfs.c"
     dcm = source / "drivers/misc/mediatek/base/power/mt6797/mt_dcm.c"
+    clock = source / "drivers/misc/mediatek/freqhopping/mt6797/mt_freqhopping.c"
 
     insert_before(
         header,
@@ -139,7 +140,9 @@ def owner_step(source: Path) -> None:
         "int mt6797_a72_diag_toprgu_compare_update(unsigned int cpu,\n"
         "\t\tbool expected, bool requested, u16 phase);\n"
         "bool mt6797_a72_diag_secure_zero(unsigned int cpu, u16 phase);\n"
-        "bool mt6797_a72_diag_dcm_zero(unsigned int cpu, u16 phase);\n",
+        "bool mt6797_a72_diag_dcm_zero(unsigned int cpu, u16 phase);\n"
+        "int mt6797_a72_diag_clock_capture(unsigned int cpu, u16 phase,\n"
+        "\t\tstruct mt6797_a72_obs_clock *snapshot);\n",
     )
 
     insert_before(
@@ -339,6 +342,54 @@ def owner_step(source: Path) -> None:
         "}\n",
     )
 
+    insert_before(
+        clock,
+        "#endif\n\n/*****************************************************************************/\n"
+        "/* Function */",
+        "int mt6797_a72_diag_clock_capture(unsigned int cpu, u16 phase,\n"
+        "\t\tstruct mt6797_a72_obs_clock *snapshot)\n"
+        "{\n"
+        "\tunsigned long flags;\n\n"
+        "\tif (!snapshot)\n"
+        "\t\treturn -EINVAL;\n"
+        "\t*snapshot = (struct mt6797_a72_obs_clock) { .status = -ENODEV };\n"
+        "\tif (!spin_trylock_irqsave(&g_mt6797_0x1001AXXX_lock, flags)) {\n"
+        "\t\tsnapshot->status = -EBUSY;\n"
+        "\t\tgoto record;\n"
+        "\t}\n"
+        "\tsnapshot->semaphore |= BIT(2);\n"
+        "\tif (!g_mcumixed_base || !g_reg_sema3_m0 ||\n"
+        "\t    !g_reg_cspm_poweron_en)\n"
+        "\t\tgoto unlock;\n"
+        "\tsnapshot->semaphore |= BIT(3);\n"
+        "\ths_write32(g_reg_cspm_poweron_en, 0x0b160001);\n"
+        "\ths_write32(g_reg_sema3_m0, 0x1);\n"
+        "\tif (!(hs_read32(g_reg_sema3_m0) & 0x1)) {\n"
+        "\t\tsnapshot->status = -EBUSY;\n"
+        "\t\tgoto unlock;\n"
+        "\t}\n"
+        "\tsnapshot->semaphore |= BIT(0);\n"
+        "\tndelay(200);\n"
+        "\tsnapshot->pll_con1 = readl(g_mcumixed_base +\n"
+        "\t\t\t\t\t MT6797_A72_CLOCK_PLL_CON1);\n"
+        "\tsnapshot->muxsel = readl(g_mcumixed_base +\n"
+        "\t\t\t\t       MT6797_A72_CLOCK_MUXSEL);\n"
+        "\tsnapshot->ckdiv = readl(g_mcumixed_base +\n"
+        "\t\t\t\t      MT6797_A72_CLOCK_CKDIV);\n"
+        "\tsnapshot->status = 0;\n"
+        "\ths_write32(g_reg_sema3_m0, 0x1);\n"
+        "\tif (!(hs_read32(g_reg_sema3_m0) & 0x1))\n"
+        "\t\tsnapshot->semaphore |= BIT(1);\n"
+        "\telse\n"
+        "\t\tsnapshot->status = -EIO;\n"
+        "unlock:\n"
+        "\tspin_unlock_irqrestore(&g_mt6797_0x1001AXXX_lock, flags);\n"
+        "record:\n"
+        "\tmt6797_a72_obs_clock(cpu, phase, snapshot);\n"
+        "\treturn snapshot->status;\n"
+        "}\n",
+    )
+
 
 def orchestrator_step(source: Path) -> None:
     psci = source / "arch/arm64/kernel/psci.c"
@@ -375,11 +426,17 @@ def orchestrator_step(source: Path) -> None:
         "\tbool reset_owned = false;\n"
         "\tbool reset_flag_owned = false;\n"
         "\tbool fault = false;\n"
+        "\tstruct mt6797_a72_obs_clock entry_clock;\n"
+        "\tstruct mt6797_a72_obs_clock final_clock;\n"
         "\tint ret;\n\n"
         "\tif (cpu != 8 || atomic_xchg(&mt6797_a72_preiso_attempted, 1))\n"
         "\t\treturn -EALREADY;\n"
-        "\tif (g_cl2_online || cpu_online(8) || cpu_online(9) ||\n"
-        "\t    !mt6797_a72_diag_secure_zero(cpu, MT6797_A72_PHASE_POWER_ON_PRE) ||\n"
+        "\tif (g_cl2_online || cpu_online(8) || cpu_online(9))\n"
+        "\t\tgoto rejected;\n"
+        "\tif (mt6797_a72_diag_clock_capture(cpu,\n"
+        "\t\t\tMT6797_A72_PHASE_POWER_ON_PRE, &entry_clock))\n"
+        "\t\tgoto rejected;\n"
+        "\tif (!mt6797_a72_diag_secure_zero(cpu, MT6797_A72_PHASE_POWER_ON_PRE) ||\n"
         "\t    !mt6797_a72_diag_dcm_zero(cpu, MT6797_A72_PHASE_POWER_ON_PRE))\n"
         "\t\tgoto rejected;\n"
         "\tret = da9214_a72_diag_compare_update(cpu, false, false,\n"
@@ -474,6 +531,11 @@ def orchestrator_step(source: Path) -> None:
         "\t\t\tMT6797_A72_PHASE_ROLLBACK_FINAL) ||\n"
         "\t    !mt6797_a72_diag_dcm_zero(cpu,\n"
         "\t\t\tMT6797_A72_PHASE_ROLLBACK_FINAL) ||\n"
+        "\t    mt6797_a72_diag_clock_capture(cpu,\n"
+        "\t\t\tMT6797_A72_PHASE_ROLLBACK_FINAL, &final_clock) ||\n"
+        "\t    entry_clock.pll_con1 != final_clock.pll_con1 ||\n"
+        "\t    entry_clock.muxsel != final_clock.muxsel ||\n"
+        "\t    entry_clock.ckdiv != final_clock.ckdiv ||\n"
         "\t    g_cl2_online || cpu_online(8) || cpu_online(9))\n"
         "\t\tfault = true;\n"
         "\tmt6797_a72_obs_fixed_snapshot(cpu,\n"
@@ -510,28 +572,12 @@ def orchestrator_step(source: Path) -> None:
         "\t\t\terr = -EPERM;\n"
         "\t\t\tgoto mt6797_a72_boot_out;\n"
         "\t\t}\n"
+        "\t\tif (bypass_boot > 0) {\n"
+        "\t\t\terr = -EPERM;\n"
+        "\t\t\tgoto mt6797_a72_boot_out;\n"
+        "\t\t}\n"
         "#endif\n"
         "\t\tif (bypass_boot > 0) {",
-    )
-    replace_once(
-        psci,
-        "#ifdef CONFIG_CL2_BUCK_CTRL\n"
-        "\t\t\tif (!g_cl2_online)\n"
-        "\t\t\t\tcpu_power_on_buck(cpu, 0);\n"
-        "#endif",
-        "#ifdef CONFIG_CL2_BUCK_CTRL\n"
-        "\t\t\tif (!g_cl2_online) {\n"
-        "#ifdef CONFIG_MTK_A72_PREISO_ROLLBACK_DISCRIMINATOR\n"
-        "\t\t\t\tbuck_ret = cpu_power_on_buck(cpu, 0);\n"
-        "\t\t\t\tif (buck_ret) {\n"
-        "\t\t\t\t\terr = buck_ret;\n"
-        "\t\t\t\t\tgoto mt6797_a72_boot_out;\n"
-        "\t\t\t\t}\n"
-        "#else\n"
-        "\t\t\t\tcpu_power_on_buck(cpu, 0);\n"
-        "#endif\n"
-        "\t\t\t}\n"
-        "#endif",
     )
     replace_once(
         psci,
