@@ -306,7 +306,7 @@ static const char *mt6797_a72_obs_event_name(u16 event)
         "observer-v1",
         "snapshot->overwritten",
     ):
-        if obsolete in text:
+        if re.search(rf"(?<![A-Za-z0-9_]){re.escape(obsolete)}(?![A-Za-z0-9_])", text):
             raise SystemExit(f"obsolete recorder token remains: {obsolete}")
     path.write_text(text)
 
