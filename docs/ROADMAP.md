@@ -789,10 +789,13 @@ clean-shutdown review. After this complete offline evidence is pushed, the
 immediate ordered action is one guarded deployment from known-good Gemian to
 live-GPT-resolved inactive boot2, followed by shutdown and manual boot2
 selection. Attempt 1 stopped before upload or write because the healthy battery
-was at 76% with USB power offline, below the strict above-80% gate. The next
-action is to connect external power, charge above 80%, and rerun the unchanged
-guarded installer; no boot selection or runtime action resulted from the
-deferred attempt. CPU9,
+was at 76% with USB power offline, below the strict above-80% gate. The owner
+then explicitly approved this write despite that threshold. A separate
+source-pinned wrapper narrows only the capacity floor to 70%, requires an
+explicit override flag, and retains Good health plus every identity, target,
+predecessor, readback, cleanup, and shutdown gate. After the override evidence
+is pushed, the next action is one exact guarded deployment; no boot selection
+or runtime action resulted from the deferred attempt. CPU9,
 suspend/resume, later power boundaries, a mainline provider write, and any A72
 consumer remain blocked until their separate ownership and rollback gates
 close.

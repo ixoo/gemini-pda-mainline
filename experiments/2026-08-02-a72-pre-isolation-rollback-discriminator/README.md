@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-02-a72-pre-isolation-rollback-discriminator` |
-| Status | `deployment-deferred-power`: every offline gate passes, but guarded deployment attempt 1 stopped before upload or write because the healthy battery was at 76%, not above the required 80%, and USB power was offline; charge above 80% and rerun the unchanged installer |
+| Status | `owner-power-override-validated`: attempt 1 stopped safely at 76%; the owner then explicitly approved one write with a narrowed 70% floor, while every identity, target, predecessor, readback, and shutdown gate remains mandatory; publish this override record, then deploy once |
 | Subsystem | CPU8 external BUCKB preparation, MP2 reset, TOPRGU PWRAP reset, and fail-closed rollback |
 | Device variant | Named Gemini PDA development unit |
 | Date(s) | 2026-08-02 |
@@ -91,6 +91,9 @@ predeployment decision after compiler and timing review.
   plus 18 fail-closed and no-stimulus checks.
 - [`scripts/install-boot2.sh`](scripts/install-boot2.sh): source-pinned exact
   logical-boot2 installer with full-readback and clean-shutdown enforcement.
+- [`scripts/install-boot2-owner-battery-override.sh`](scripts/install-boot2-owner-battery-override.sh):
+  explicit one-deployment 70% battery-floor override retaining every other
+  checksum-pinned installer gate.
 - [`patches/series`](patches/series): the exact three-patch rollback ABI,
   owner-operation, and CPU8 orchestrator series generated from the pinned
   vendor source.
@@ -128,6 +131,9 @@ predeployment decision after compiler and timing review.
 - [`results/deployment-attempt-1-20260802.txt`](results/deployment-attempt-1-20260802.txt):
   clean pre-write deferral at 76% with USB offline, no upload, partition write,
   readback, shutdown, boot selection, or runtime action.
+- [`results/owner-battery-override-20260802.txt`](results/owner-battery-override-20260802.txt):
+  exact owner instruction, narrowed risk acceptance, unchanged guards, wrapper
+  identity, syntax, ShellCheck, and one-write decision.
 
 Run from the repository root:
 
@@ -138,7 +144,7 @@ python3 experiments/2026-08-02-a72-pre-isolation-rollback-discriminator/scripts/
 
 ## Decision
 
-`deployment-deferred-before-write`: the exact generated series implements the
+`owner-power-override-validated`: the exact generated series implements the
 bounded and falsifiable rollback question without crossing external isolation,
 compiles against its exact parent observer with no new diagnostic, and adds no
 unsafe owner-lock nesting, polling loop, or semaphore wait loop. Its offline
@@ -146,12 +152,13 @@ runtime and recovery decisions are explicit, and its Android-v0 container is
 reproducible. Its passive decision path is now mutation-tested. The result is
 eligible for one guarded deployment after the exact evidence is pushed, but is
 not hardware evidence or a hardware-support claim. The first deployment attempt
-correctly stopped at its battery threshold without changing device storage.
+correctly stopped without changing storage; the owner then explicitly accepted
+one deployment at 70--100% with Good battery health.
 
 ## Follow-up
 
-Connect external power and allow the healthy battery to charge above 80%, then
-rerun the exact guarded installer from the unchanged known-good Gemian boot.
-Require the exact first-cycle-latch predecessor, live-GPT-resolved inactive
+Commit and push the exact override record, then run the explicit override
+installer once from the unchanged known-good Gemian boot. Require at least 70%,
+Good health, the exact first-cycle-latch predecessor, live-GPT-resolved inactive
 boot2, full readback, and clean shutdown. The owner then manually selects boot2
 and the host runs only the exact passive collector.

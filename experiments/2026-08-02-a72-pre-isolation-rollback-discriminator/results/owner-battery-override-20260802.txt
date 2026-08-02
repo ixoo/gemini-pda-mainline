@@ -1,0 +1,47 @@
+A72 pre-isolation rollback owner battery override
+Recorded: 2026-08-02 America/New_York
+
+Authorization
+-------------
+owner_instruction=override-the-safety-I-approve-the-write
+scope=one-exact-rollback-candidate-deployment
+original_threshold=81-to-100-percent
+authorized_threshold=70-to-100-percent
+observed_capacity_before-override=76
+observed_health=Good
+observed_usb_online=0
+
+Unchanged gates
+---------------
+- exact candidate, manifest, and first-cycle-latch predecessor identities;
+- exact named Gemini and ignored credential;
+- known-good AArch64 Gemian kernel, root, and stable boot ID;
+- live-GPT resolution of exactly one logical boot2;
+- exact 16 MiB writable mmcblk0 child, inactive root, unmounted, no holders,
+  and no swap;
+- battery present, numeric capacity, and Good health;
+- bounded temporary upload, four exact 4 MiB writes, sync, flush, and full
+  remote checksum;
+- independent 16 MiB streamed readback, checksum, byte comparison, and cleanup;
+- sanitized ignored evidence; and
+- clean shutdown with no automatic reboot.
+
+Validation
+----------
+source_installer_sha256=0c669ab85063015fa83b7e28a506e1bcf8cdafc4994726009becf92151fda7e7
+override_wrapper_sha256=10f2a37730d235e82e040b9e745b5253db650cb4a7c60a143c0a51fd1402405a
+bash_syntax=passed
+shellcheck_managed_vm=passed
+explicit_override_flag=required
+exact_70_percent_floor=present
+original_81_percent_floor=absent
+derived_help_invocation=passed
+device_access=read-only-power-check-only
+partition_write=none-at-validation
+
+Decision
+--------
+The owner explicitly accepts the additional power-loss risk for this one
+write. Use only the exact override wrapper and candidate. A capacity below 70,
+non-Good health, changed predecessor, or any other live-gate failure still
+defers the operation without relaxation.
