@@ -49,8 +49,8 @@ def main() -> int:
 \t\t\tda9214_a72_obs_buckb_config(cpu, true,
 \t\t\t\t\t    MT6797_A72_PHASE_BUCK_ENABLE);
 \t\t} else {
-\t\t\tBUG_ON(da9214_config_interface(0x0, 0x0, 0xF, 0) < 0);
-\t\t\tBUG_ON(da9214_config_interface(0x5E, 0x1, 0x1, 0) < 0);
+\t\t\tda9214_config_interface(0x0, 0x0, 0xF, 0);
+\t\t\tda9214_config_interface(0x5E, 0x1, 0x1, 0);
 \t\t}
 #else
 \t\tBUG_ON(da9214_config_interface(0x0, 0x0, 0xF, 0) < 0);
