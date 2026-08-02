@@ -188,6 +188,8 @@ def validate(patch_dir: Path, source: Path | None = None) -> None:
             "default n",
             "static atomic_t mt6797_a72_preiso_attempted = ATOMIC_INIT(0)",
             "cpu != 8 || atomic_xchg(&mt6797_a72_preiso_attempted, 1)",
+            "bool prestate_bad = false",
+            "prestate_bad |= g_cl2_online || cpu_online(8) || cpu_online(9)",
             "cpu_online(8) || cpu_online(9)",
             "MT6797_A72_PHASE_POWER_ON_PRE, &entry_clock",
             "0x00010132, 0x00010133",
@@ -216,6 +218,14 @@ def validate(patch_dir: Path, source: Path | None = None) -> None:
         additions3.count("goto mt6797_a72_boot_out") == 3,
         "caller exit count changed",
     )
+    require(
+        additions3.count("prestate_bad |= !!ret;") == 5,
+        "complete entry-gate accumulation count changed",
+    )
+    require(
+        additions3.count("fault |= !!ret;") == 5,
+        "complete final-gate accumulation count changed",
+    )
     ordered(
         orchestrator,
         [
@@ -232,6 +242,21 @@ def validate(patch_dir: Path, source: Path | None = None) -> None:
             "MT6797_A72_PHASE_ROLLBACK_FINAL",
         ],
         "forward/injection/rollback order",
+    )
+    ordered(
+        orchestrator,
+        [
+            "prestate_bad |= g_cl2_online",
+            "MT6797_A72_PHASE_POWER_ON_PRE, &entry_clock",
+            "prestate_bad |= !mt6797_a72_diag_secure_zero",
+            "prestate_bad |= !mt6797_a72_diag_dcm_zero",
+            "da9214_a72_diag_compare_update(cpu, false, false",
+            "0x00010132, 0x00010132",
+            "0x290, 0x2, 0x2",
+            "mt6797_a72_diag_toprgu_compare_update(cpu, false, false",
+            "if (prestate_bad)",
+        ],
+        "complete pre-state capture order",
     )
     ordered(
         orchestrator,

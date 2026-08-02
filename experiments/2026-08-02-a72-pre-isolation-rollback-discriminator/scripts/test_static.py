@@ -141,6 +141,17 @@ def main() -> int:
             'return "rolled-back"',
         ),
         (
+            "final snapshot short-circuit regression",
+            p3,
+            "+\tret = da9214_a72_diag_compare_update(cpu, false, false,\n"
+            "+\t\t\tMT6797_A72_PHASE_ROLLBACK_FINAL);\n"
+            "+\tfault |= !!ret;",
+            "+\tret = da9214_a72_diag_compare_update(cpu, false, false,\n"
+            "+\t\t\tMT6797_A72_PHASE_ROLLBACK_FINAL);\n"
+            "+\tif (ret) goto rejected;",
+            "complete final-gate accumulation count changed",
+        ),
+        (
             "userspace control",
             p3,
             "+static atomic_t mt6797_a72_preiso_attempted = ATOMIC_INIT(0);",
