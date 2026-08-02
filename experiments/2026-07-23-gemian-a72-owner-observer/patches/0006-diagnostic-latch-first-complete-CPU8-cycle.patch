@@ -1,9 +1,15 @@
-From 6eec629106bb8cf9bb62ab3707d53b6e03f0671c Mon Sep 17 00:00:00 2001
+From 7f896fc7410ccd4e5a4f73db7f40fb2e21b2586c Mon Sep 17 00:00:00 2001
 From: Gemini PDA Investigation <gemini-observer@example.invalid>
-Date: Sun, 2 Aug 2026 18:00:57 +0000
+Date: Sun, 2 Aug 2026 18:08:33 +0000
 Subject: [PATCH] diagnostic: latch first complete CPU8 cycle
 
-Retain only the first natural CPU8 up/down transaction pair and freeze the fixed ring on completion, failure, CPU9 overlap, protocol mismatch, or capacity exhaustion. Publish immutable ABI-v2 state and expose a read-only sampling-state query for owner-local effect gating.
+Retain only the first natural CPU8 up/down transaction pair.
+
+Freeze the fixed ring on completion or transition failure.
+
+Also freeze on CPU9 overlap, protocol mismatch, or capacity exhaustion.
+
+Publish immutable ABI-v2 state and a read-only sampling query.
 ---
  .../power/mt6797/mt_a72_transition_observer.c | 202 +++++++++++++++---
  .../linux/mt6797_a72_transition_observer.h    |   1 +

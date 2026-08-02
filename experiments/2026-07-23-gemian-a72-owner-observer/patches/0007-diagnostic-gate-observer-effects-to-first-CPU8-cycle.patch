@@ -1,16 +1,17 @@
-From 65e3b72839c5ce6b8c5d68667062c1fb1561e216 Mon Sep 17 00:00:00 2001
+From 66b20afd79a3fda5df4b8be17093b0937b988f25 Mon Sep 17 00:00:00 2001
 From: Gemini PDA Investigation <gemini-observer@example.invalid>
-Date: Sun, 2 Aug 2026 17:50:04 +0000
+Date: Sun, 2 Aug 2026 18:06:07 +0000
 Subject: [PATCH] diagnostic: gate observer effects to first CPU8 cycle
 
+Return before pure DA9214, SPM, secure, clock, and DCM sampling outside the latched CPU8 capture window. Preserve real power behavior by selecting the original SPM, BUCKB, and MP2 DCM operation paths whenever capture is inactive.
 ---
- arch/arm64/kernel/psci.c                      | 20 ++++++++++++++++---
- .../misc/mediatek/base/power/mt6797/mt_dcm.c  |  9 ++++++---
- .../mediatek/base/power/mt6797/mt_idvfs.c     |  2 ++
- .../misc/mediatek/base/power/spm_v2/mt_spm.c  |  4 ++++
- .../freqhopping/mt6797/mt_freqhopping.c       |  2 ++
- drivers/misc/mediatek/power/mt6797/da9214.c   |  2 ++
- 6 files changed, 33 insertions(+), 6 deletions(-)
+ arch/arm64/kernel/psci.c                      | 20 ++++-
+ .../misc/mediatek/base/power/mt6797/mt_dcm.c  | 73 ++++++++++---------
+ .../mediatek/base/power/mt6797/mt_idvfs.c     |  2 +
+ .../misc/mediatek/base/power/spm_v2/mt_spm.c  |  4 +
+ .../freqhopping/mt6797/mt_freqhopping.c       |  2 +
+ drivers/misc/mediatek/power/mt6797/da9214.c   |  2 +
+ 6 files changed, 65 insertions(+), 38 deletions(-)
 
 diff --git a/arch/arm64/kernel/psci.c b/arch/arm64/kernel/psci.c
 index e6fb32c2f..49b559786 100644
@@ -67,20 +68,78 @@ index e6fb32c2f..49b559786 100644
  	mt6797_a72_obs_lifecycle(cpu, MT6797_A72_PHASE_OFFLINE_FINAL,
  				 smc_ret, ret, 0);
 diff --git a/drivers/misc/mediatek/base/power/mt6797/mt_dcm.c b/drivers/misc/mediatek/base/power/mt6797/mt_dcm.c
-index 4816bb5bb..615d68e56 100644
+index 4816bb5bb..c9235fff4 100644
 --- a/drivers/misc/mediatek/base/power/mt6797/mt_dcm.c
 +++ b/drivers/misc/mediatek/base/power/mt6797/mt_dcm.c
-@@ -1003,6 +1003,7 @@ int dcm_mcusys_mp2_sync_dcm(ENUM_MCUSYS_DCM on)
+@@ -1003,45 +1003,47 @@ int dcm_mcusys_mp2_sync_dcm(ENUM_MCUSYS_DCM on)
  	unsigned int cpu;
  
  	cpu = mt6797_a72_obs_active_cpu();
+-	spin_lock_irqsave(&mt6797_a72_obs_mp2_dcm_lock, flags);
+-	snapshot.before = reg_read(MCUCFG_SYNC_DCM_MP2_CONFIG);
+-
+-	if (on == MCUSYS_DCM_ON) {
+-		reg_write(MCUCFG_SYNC_DCM_MP2_CONFIG,
+-			  aor(snapshot.before, ~MCUCFG_SYNC_DCM_MP2_MASK,
+-			      (MCUCFG_SYNC_DCM_MP2_ON |
+-			       MCUCFG_SYNC_DCM_MP2_DIV_SEL4 |
+-			       MCUCFG_SYNC_DCM_MP2_TOG1)));
+-		snapshot.toggle = reg_read(MCUCFG_SYNC_DCM_MP2_CONFIG);
+-
+-		reg_write(MCUCFG_SYNC_DCM_MP2_CONFIG,
+-			  aor(snapshot.toggle, ~MCUCFG_SYNC_DCM_MP2_MASK,
+-			      (MCUCFG_SYNC_DCM_MP2_ON |
+-			       MCUCFG_SYNC_DCM_MP2_DIV_SEL4 |
+-			       MCUCFG_SYNC_DCM_MP2_TOG0)));
+-	} else {
+-		reg_write(MCUCFG_SYNC_DCM_MP2_CONFIG,
+-			  aor(snapshot.before, ~MCUCFG_SYNC_DCM_MP2_MASK,
+-			      (MCUCFG_SYNC_DCM_MP2_OFF |
+-			       MCUCFG_SYNC_DCM_MP2_DIV_SEL0 |
+-			       MCUCFG_SYNC_DCM_MP2_TOG1)));
+-		snapshot.toggle = reg_read(MCUCFG_SYNC_DCM_MP2_CONFIG);
+-
+-		reg_write(MCUCFG_SYNC_DCM_MP2_CONFIG,
+-			  aor(snapshot.toggle, ~MCUCFG_SYNC_DCM_MP2_MASK,
+-			      (MCUCFG_SYNC_DCM_MP2_OFF |
+-			       MCUCFG_SYNC_DCM_MP2_DIV_SEL0 |
+-			       MCUCFG_SYNC_DCM_MP2_TOG0)));
+-	}
+-	snapshot.final = reg_read(MCUCFG_SYNC_DCM_MP2_CONFIG);
+-	spin_unlock_irqrestore(&mt6797_a72_obs_mp2_dcm_lock, flags);
 +	if (mt6797_a72_obs_is_cpu(cpu)) {
- 	spin_lock_irqsave(&mt6797_a72_obs_mp2_dcm_lock, flags);
- 	snapshot.before = reg_read(MCUCFG_SYNC_DCM_MP2_CONFIG);
- 
-@@ -1036,12 +1037,13 @@ int dcm_mcusys_mp2_sync_dcm(ENUM_MCUSYS_DCM on)
- 	snapshot.final = reg_read(MCUCFG_SYNC_DCM_MP2_CONFIG);
- 	spin_unlock_irqrestore(&mt6797_a72_obs_mp2_dcm_lock, flags);
++		spin_lock_irqsave(&mt6797_a72_obs_mp2_dcm_lock, flags);
++		snapshot.before = reg_read(MCUCFG_SYNC_DCM_MP2_CONFIG);
++
++		if (on == MCUSYS_DCM_ON) {
++			reg_write(MCUCFG_SYNC_DCM_MP2_CONFIG,
++				  aor(snapshot.before, ~MCUCFG_SYNC_DCM_MP2_MASK,
++				      (MCUCFG_SYNC_DCM_MP2_ON |
++				       MCUCFG_SYNC_DCM_MP2_DIV_SEL4 |
++				       MCUCFG_SYNC_DCM_MP2_TOG1)));
++			snapshot.toggle = reg_read(MCUCFG_SYNC_DCM_MP2_CONFIG);
++
++			reg_write(MCUCFG_SYNC_DCM_MP2_CONFIG,
++				  aor(snapshot.toggle, ~MCUCFG_SYNC_DCM_MP2_MASK,
++				      (MCUCFG_SYNC_DCM_MP2_ON |
++				       MCUCFG_SYNC_DCM_MP2_DIV_SEL4 |
++				       MCUCFG_SYNC_DCM_MP2_TOG0)));
++		} else {
++			reg_write(MCUCFG_SYNC_DCM_MP2_CONFIG,
++				  aor(snapshot.before, ~MCUCFG_SYNC_DCM_MP2_MASK,
++				      (MCUCFG_SYNC_DCM_MP2_OFF |
++				       MCUCFG_SYNC_DCM_MP2_DIV_SEL0 |
++				       MCUCFG_SYNC_DCM_MP2_TOG1)));
++			snapshot.toggle = reg_read(MCUCFG_SYNC_DCM_MP2_CONFIG);
++
++			reg_write(MCUCFG_SYNC_DCM_MP2_CONFIG,
++				  aor(snapshot.toggle, ~MCUCFG_SYNC_DCM_MP2_MASK,
++				      (MCUCFG_SYNC_DCM_MP2_OFF |
++				       MCUCFG_SYNC_DCM_MP2_DIV_SEL0 |
++				       MCUCFG_SYNC_DCM_MP2_TOG0)));
++		}
++		snapshot.final = reg_read(MCUCFG_SYNC_DCM_MP2_CONFIG);
++		spin_unlock_irqrestore(&mt6797_a72_obs_mp2_dcm_lock, flags);
  
 -	if (mt6797_a72_obs_is_cpu(cpu))
  		mt6797_a72_obs_dcm(cpu,
