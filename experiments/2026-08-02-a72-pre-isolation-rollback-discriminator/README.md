@@ -89,6 +89,9 @@ predeployment decision after compiler and timing review.
 - [`results/patch-generation-review-20260802.txt`](results/patch-generation-review-20260802.txt):
   exact generation provenance, tracked hashes, validation, checkpatch
   adjudication, and the compile-only decision.
+- [`results/buildbox-compile-attempt-1-20260802.txt`](results/buildbox-compile-attempt-1-20260802.txt):
+  both builds passed, followed by a fail-closed packaging correction for a
+  file-local orchestrator symbol that GCC validly inlined.
 
 Run from the repository root:
 

@@ -580,10 +580,15 @@ else
       "f034724759eebc611d6f16dea3448f1ee1ebcff0939a6e62e686c0a6261162a7" and
     .purpose == "rollback-compile-review-only"
   ' "${package}/provenance/build.json" >/dev/null
-  grep -q ' mt6797_a72_preiso_rollback$' "${package}/outputs/System.map"
   grep -q ' da9214_a72_diag_compare_update$' "${package}/outputs/System.map"
+  grep -q ' mt6797_a72_diag_spm_compare_update$' \
+    "${package}/outputs/System.map"
+  grep -q ' mt6797_a72_diag_toprgu_compare_update$' \
+    "${package}/outputs/System.map"
+  grep -q ' mt6797_a72_obs_rollback_terminal$' \
+    "${package}/outputs/System.map"
   grep -q ' mt6797_a72_obs_init$' "${package}/outputs/baseline/System.map"
-  ! grep -qE ' (mt6797_a72_preiso_rollback|.*_a72_diag_)$' \
+  ! grep -qE ' (mt6797_a72_obs_rollback_terminal|.*_a72_diag_)$' \
     "${package}/outputs/baseline/System.map"
   [[ "$(tar -tf "${package}/outputs/baseline/stack-usage.tar" | wc -l)" -gt 100 ]]
 fi

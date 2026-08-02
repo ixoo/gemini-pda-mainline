@@ -414,13 +414,17 @@ printf 'baseline_source_build=passed\n'
   die "baseline compile outputs are incomplete"
 grep -q ' mt6797_a72_obs_init$' "${output}/System.map" || \
   die "observer symbol map is missing the observer initializer"
-grep -q ' mt6797_a72_preiso_rollback$' "${output}/System.map" || \
-  die "rollback symbol map is missing the orchestrator"
 grep -q ' da9214_a72_diag_compare_update$' "${output}/System.map" || \
   die "rollback symbol map is missing the DA921x owner operation"
+grep -q ' mt6797_a72_diag_spm_compare_update$' "${output}/System.map" || \
+  die "rollback symbol map is missing the SPM owner operation"
+grep -q ' mt6797_a72_diag_toprgu_compare_update$' "${output}/System.map" || \
+  die "rollback symbol map is missing the TOPRGU owner operation"
+grep -q ' mt6797_a72_obs_rollback_terminal$' "${output}/System.map" || \
+  die "rollback symbol map is missing the terminal recorder"
 grep -q ' mt6797_a72_obs_init$' "${baseline_output}/System.map" || \
   die "parent observer baseline is missing its initializer"
-if grep -qE ' (mt6797_a72_preiso_rollback|.*_a72_diag_)$' \
+if grep -qE ' (mt6797_a72_obs_rollback_terminal|.*_a72_diag_)$' \
   "${baseline_output}/System.map"; then
   die "parent observer baseline unexpectedly contains rollback symbols"
 fi

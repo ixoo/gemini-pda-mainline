@@ -1,0 +1,44 @@
+A72 pre-isolation rollback Buildbox compile attempt 1
+Recorded: 2026-08-02 America/New_York
+
+Input
+-----
+repository_commit=2634fed4ad975dd19a3b0fbd7e99ab81a4ff1811
+source_commit=59e00a9144d782e148332009a835b99c43382467
+parent_patchset_sha256=3584e9dd5ffb041573b851f31f3a96eaa0a684acb880fd59560762e5abc58be0
+rollback_patchset_sha256=f034724759eebc611d6f16dea3448f1ee1ebcff0939a6e62e686c0a6261162a7
+build_backend=buildbox
+native_vm_kernel_build=no
+purpose=compile-review-only
+boot_candidate=no
+
+Result
+------
+rollback_source_reconstruction=passed
+rollback_configuration_gate=passed
+rollback_dct_oracle=passed
+rollback_source_build=passed
+parent_observer_source_reconstruction=passed
+parent_observer_configuration_gate=passed
+parent_observer_source_build=passed
+package_validation=failed-closed
+failed_gate=standalone-mt6797_a72_preiso_rollback-System.map-symbol
+fetched_package=none
+device_access=none
+
+Finding
+-------
+Both complete kernels compiled and linked. Packaging then required the
+file-local `mt6797_a72_preiso_rollback` helper to survive optimization as a
+standalone `System.map` symbol. GCC inlined that static helper into its only
+caller, so the symbol-only evidence assumption was false. This is not a source
+compile failure and does not justify adding a noinline marker that would alter
+the diagnostic solely for packaging.
+
+Decision
+--------
+Retain the exact source series. Replace the invalid local-symbol gate with the
+exact enabled configuration plus the retained global DA921x, SPM, TOPRGU, and
+terminal-recorder symbols, and require all four to be absent from the parent
+observer baseline. Repeat the compile comparison from the next clean pushed
+commit. No boot image, deployment, or device action is authorized.

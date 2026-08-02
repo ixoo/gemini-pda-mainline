@@ -64,6 +64,10 @@ def main() -> int:
         'boot_candidate: false',
         'outputs/baseline/stack-usage.tar',
         "diagnostic_comparison=identical",
+        "da9214_a72_diag_compare_update",
+        "mt6797_a72_diag_spm_compare_update",
+        "mt6797_a72_diag_toprgu_compare_update",
+        "mt6797_a72_obs_rollback_terminal",
     ]:
         require(token in lane, f"compile lane missing {token!r}")
 
