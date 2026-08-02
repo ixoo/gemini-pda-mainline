@@ -726,12 +726,17 @@ These are durable owner constraints, but the full-partition checksum and
 diagnostic work preceded capture and the initial ring content is lost, so the
 predeclared clean-attribution result is inconclusive. The pulse is prohibited,
 the exact image must not be repeated with the same late retrieval path, and the
-device shut down cleanly. The next ordered action is to reconcile these
-retained values into the ownership/rollback audit and design a revision that
-latches its first complete natural CPU8 up/down pair, or exports it through an
-equally early independent path. Suspend/resume ownership and bounded rollback
-remain open before Gate 4 can close; provider work still must not introduce a
-write or A72 consumer.
+device shut down cleanly. The retained values are reconciled into the
+ownership/rollback audit. The first-complete-cycle latch now has a frozen
+state, concurrency, ABI and owner-effect contract plus an executable reference
+model covering the success path and eight fail-closed boundaries. The next
+ordered action is to implement that contract as a new logical observer patch,
+extend mutation-tested static validation, and compile only the exact clean
+pushed revision on Buildbox. The patch must suppress pure diagnostic sampling
+after freeze while preserving the exact vendor SPM, BUCKB, DCM, TOPRGU, iDVFS,
+SRAM-LDO, PSCI and hotplug operations. Suspend/resume ownership and bounded
+rollback remain open before Gate 4 can close; provider work still must not
+introduce a write or A72 consumer.
 
 Exit: observations and inference are separated, every required writer has one
 owner, and a failed step has a bounded rollback path.

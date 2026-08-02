@@ -23,6 +23,12 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-02 Gemian A72 first-complete-cycle latch](2026-08-02-gemian-a72-first-cycle-latch/README.md)
+  — specifies an immutable ABI-v2 state machine that captures the first
+  natural CPU8 up/down pair and freezes on success, transition failure, CPU9
+  overlap, protocol mismatch, or capacity exhaustion. Its executable model
+  passes the complete-pair path and eight fail-closed boundaries. Kernel patch,
+  Buildbox compile, packaging, deployment, and runtime evidence remain open.
 - [2026-08-02 MT6797 A72 ownership and rollback audit](2026-08-02-a72-ownership-rollback-audit/README.md)
   — machine-checks 19 forward, observation, rollback, CPU9, and resume
   boundaries. Forward physical writers are substantially assigned, but Gate 4
