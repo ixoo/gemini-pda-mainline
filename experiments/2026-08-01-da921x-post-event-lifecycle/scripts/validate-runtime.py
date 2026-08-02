@@ -18,6 +18,8 @@ EXPECTED = {
     "validation_stage": "20",
     "natural_device_add_state": NATURAL_STATE,
     "i2c_device": "1-0068",
+    "page2_device": "1-0069",
+    "page2_driver": "dummy",
     "identity_log_count": "2",
     "provider": "absent",
     "consumer": "absent",

@@ -142,3 +142,16 @@ ShellCheck pass. Because attempt 1 never reached a lifecycle mutation, the next
 run remains the first unbind/rebind measurement rather than a repeated hardware
 hypothesis. Exact sanitized evidence and corrected identities are in
 `results/runtime-attempt-1.txt` and `results/runtime-check-correction.txt`.
+
+Attempt 2 also stopped before sysfs remount or lifecycle mutation. It proved
+that the page-2 client created by `devm_i2c_new_dummy_device()` has the exact
+name `dummy`, modalias `i2c:dummy`, and driver link to the built-in I2C `dummy`
+driver; the original checker had incorrectly required that client to be
+unbound. The initial I2C/oracle tuple remained unchanged, sysfs remained
+read-only, and the helper was removed. The corrected helper now requires the
+exact dummy driver before and after rebind, and still requires the page-2
+client to disappear completely during unbind. All pre-mutation assertions have
+now been matched against the live state; seven unsafe classifier mutations,
+including a wrong page-2 driver, are rejected. The next run remains the first
+actual lifecycle mutation. Exact evidence is in `results/runtime-attempt-2.txt`
+and `results/runtime-check-correction-2.txt`.

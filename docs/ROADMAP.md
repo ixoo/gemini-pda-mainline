@@ -606,7 +606,15 @@ now pins those observations, retains `14 -> 14 -> 28` transfer/nonzero-start/IRQ
 and oracle requirements, requires DMA-start and all write/other counters to
 remain zero, and rejects six unsafe mutations. The next action is the first
 actual unbind/rebind lifecycle measurement on the still-running selected boot.
-Provider work remains blocked pending that runtime result.
+Attempt 2 stopped at one final pre-mutation model mismatch: the page-2 dummy
+client is correctly bound to the kernel's exact I2C `dummy` driver rather than
+unbound. Its name, modalias, driver link, unchanged `14/8/6` counters,
+read-only sysfs, and helper removal were captured. The corrected helper now
+requires that exact driver before and after rebind and complete page-2 removal
+during unbind; all pre-mutation gates match the live state and seven unsafe
+classifier mutations are rejected. The next action remains the first actual
+unbind/rebind lifecycle measurement. Provider work remains blocked pending
+that runtime result.
 
 ### 4. Finish the ownership and rollback audit
 

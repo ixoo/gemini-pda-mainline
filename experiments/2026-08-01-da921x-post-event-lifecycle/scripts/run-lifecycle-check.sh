@@ -138,13 +138,17 @@ done
 [ -n "$i2c6" ] || abort i2c6-status-absent
 
 driver=/sys/bus/i2c/drivers/da9213-legacy-regulator
+dummy_driver=/sys/bus/i2c/drivers/dummy
 client=/sys/bus/i2c/devices/1-0068
 page2=/sys/bus/i2c/devices/1-0069
 [ -d "$driver" ] || abort driver-absent
+[ -d "$dummy_driver" ] || abort dummy-driver-absent
 [ "$(/bin/busybox readlink -f "$client/driver")" = \
 	"$(/bin/busybox readlink -f "$driver")" ] || abort initial-driver-not-bound
 [ -d "$page2" ] || abort initial-page2-client-absent
-[ ! -L "$page2/driver" ] || abort initial-page2-driver-present
+[ "$(/bin/busybox readlink -f "$page2/driver")" = \
+	"$(/bin/busybox readlink -f "$dummy_driver")" ] ||
+	abort initial-page2-driver-mismatch
 [ ! -d "$client/regulator" ] || abort provider-present
 
 initial_status="$(/bin/busybox cat "$i2c6/handoff_status")" ||
@@ -171,7 +175,9 @@ printf '%s' 1-0068 >"$driver/bind" || abort bind-write
 [ "$(/bin/busybox readlink -f "$client/driver")" = \
 	"$(/bin/busybox readlink -f "$driver")" ] || abort driver-did-not-rebind
 [ -d "$page2" ] || abort rebound-page2-client-absent
-[ ! -L "$page2/driver" ] || abort rebound-page2-driver-present
+[ "$(/bin/busybox readlink -f "$page2/driver")" = \
+	"$(/bin/busybox readlink -f "$dummy_driver")" ] ||
+	abort rebound-page2-driver-mismatch
 [ ! -d "$client/regulator" ] || abort rebound-provider-present
 post_rebind_status="$(/bin/busybox cat "$i2c6/handoff_status")" ||
 	abort post-rebind-status-read
@@ -190,6 +196,7 @@ require_serviceability final
 printf 'kernel=7.1.3-gemini-da921x-life27\n'
 printf 'validation_stage=20\nnatural_device_add_state=%s\n' "$natural_state"
 printf 'i2c_device=1-0068\nidentity_log_count=%s\n' "$matches"
+printf 'page2_device=1-0069\npage2_driver=dummy\n'
 emit_phase initial "$initial_status"
 emit_phase post_unbind "$post_unbind_status"
 emit_phase post_rebind "$post_rebind_status"

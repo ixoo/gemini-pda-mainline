@@ -52,6 +52,7 @@ mutations = {
     "rebind-short": ("post_rebind_oracle_combined_pointer_reads", "27"),
     "register-write": ("post_rebind_oracle_register_data_write_messages", "1"),
     "dma-start": ("post_rebind_dma_starts", "1"),
+    "page2-driver": ("page2_driver", "unexpected"),
     "sysfs-left-rw": ("sysfs", "read-write"),
     "a72-online": ("cpu_offline", "9"),
 }
