@@ -156,6 +156,24 @@ Out-of-tree build directories are removed after packaging. Provenance marks
 the result `rollback-compile-review-only` and `boot_candidate=false`; neither
 compiled output is a deployment artifact or permission to access the device.
 
+## Gemian recovery-only patch-generation lane
+
+The no-A72 watchdog/pstore prerequisite begins with a separate source-review
+lane:
+
+```sh
+./scripts/buildbox generate-gemian-recovery-patches
+./scripts/buildbox fetch-gemian-recovery-patches
+```
+
+It fetches the clean pushed project commit and pinned public Gemian source,
+generates three deterministic commits with a synthetic non-certifying
+experiment identity, and validates the exact CPU8/9 rejection, kicker-lock
+handoff, TOPRGU reset-only owner, fixed timeout, terminal marker, and absence
+of A72 operations or userspace controls. The fetched package contains only
+patches, provenance, and checksums. It does not compile a kernel, construct a
+boot image, access the device, or authorize deployment.
+
 ## Remote storage and concurrency
 
 Buildbox uses its persistent home volume for the Git mirror, verified kernel

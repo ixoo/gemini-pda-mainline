@@ -835,10 +835,17 @@ machine. It may roll back only before isolation; afterward it must retain power,
 record the exact terminal stage, and recover by reset. Source review found that
 the normal Gemian watchdog kicker continuously refreshes the hardware deadline,
 so the immediate prerequisite is a recovery-only watchdog/pstore discriminator
-with every A72 write and request forbidden. CPU9,
-suspend/resume, later power boundaries, a mainline provider write, and any A72
-consumer remain blocked until their separate ownership and rollback gates
-close.
+with every A72 write and request forbidden.
+
+That prerequisite now has a source-drift-checked three-patch generator: it
+rejects CPU8/9 before platform action, transfers recovery ownership under the
+normal kicker lock, arms a fixed reset-only TOPRGU deadline, and emits one exact
+console-ramoops marker. Buildbox patch generation and review are the immediate
+next action; compile and device gates remain closed until that review passes.
+
+CPU9, suspend/resume, later power boundaries, a mainline provider write, and
+any A72 consumer remain blocked until their separate ownership and rollback
+gates close.
 
 Exit: observations and inference are separated, every required writer has one
 owner, and a failed step has a bounded rollback path.

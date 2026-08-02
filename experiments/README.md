@@ -23,6 +23,13 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-02 A72 recovery-only watchdog/pstore discriminator](2026-08-02-a72-recovery-only-discriminator/README.md)
+  — defines the immediate no-A72 prerequisite for the one-way CPU8 path. Its
+  deterministic source generator rejects CPU8/9 before platform action,
+  transfers watchdog ownership under the normal kicker lock, arms one fixed
+  reset-only deadline, and emits an exact console-ramoops marker. Source
+  generation, compile review, candidate construction, and runtime evidence
+  remain pending.
 - [2026-08-02 A72 one-way CPU8 startup boundary](2026-08-02-a72-one-way-cpu8-boundary/README.md)
   — reconciles the accepted rollback with the public Linux and natural Gemian
   isolation paths, rejects an unobserved Linux isolation inverse, and
