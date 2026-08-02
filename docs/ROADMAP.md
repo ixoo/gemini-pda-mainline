@@ -806,9 +806,13 @@ analysis proves an earlier CPU8 request consumed the atomic one-shot before the
 HPS latch opened; because owner records were gated outside that window, the
 result cannot say whether that unobserved attempt rejected, rolled back, or
 fault-retained. The device returned to verified 2019 Gemian. Unchanged retry is
-prohibited. The next action is a source revision that requires the exact HPS
-capture window before consuming the one-shot or invoking an owner, followed by
-the full offline review chain. CPU9,
+prohibited. The replacement source now requires the exact HPS capture window
+before consuming the one-shot or invoking an owner. Two Buildbox generations
+are byte-identical; model/static/mutation gates pass; changed and parent kernels
+compile with identical diagnostics; and disassembly proves the observer query
+dominates both the atomic operation and first owner call. The next action is a
+new checksum-pinned Android-v0 container and the remaining offline deployment
+review chain. CPU9,
 suspend/resume, later power boundaries, a mainline provider write, and any A72
 consumer remain blocked until their separate ownership and rollback gates
 close.

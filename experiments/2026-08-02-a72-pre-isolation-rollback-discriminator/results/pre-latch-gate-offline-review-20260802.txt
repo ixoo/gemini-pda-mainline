@@ -1,0 +1,103 @@
+A72 rollback pre-latch gate generation, compiler, and binary review
+Recorded: 2026-08-02 America/New_York
+
+Runtime-derived requirement
+---------------------------
+Attempt 1 proved that an unobserved CPU8 request could consume the boot-local
+atomic one-shot before the immutable HPS-up latch opened. The corrected
+contract requires a pre-latch request to return -EAGAIN without consuming the
+one-shot or invoking any hardware owner. The later attributable HPS CPU8
+transaction must remain eligible for the single rollback attempt.
+
+Source and model result
+-----------------------
+source_generator_commit=27b0c14165dfa221472b2ef12889c3b0239c7239
+source_edits_sha256=811fbd22a2bec32e616d063a4007fb2ef91cad0c2ba739f6371da4fe20764b02
+rollback_model_sha256=df1c66b1d5a3ad76212fa79394c5f538a767704451459f3af13493ccdfd7603b
+rollback_model_result=19-fail-closed-boundaries-passed
+
+The source orders CPU8 identity, mt6797_a72_obs_accepts_sampling(), the atomic
+one-shot, and only then the first owner operation. The executable model proves
+that a pre-latch request has no action and leaves attempted=false, after which
+the latched request can still reach rolled-back. A repeated latched request is
+terminally refused.
+
+Generation reproducibility correction
+-------------------------------------
+The first regenerated package from 27b0c141 was rejected before compilation:
+its logical diff passed, but parent git-am commits used the current committer
+time, causing synthetic commit IDs and patch hashes to drift across otherwise
+identical generations. No compile or device action used that package.
+
+determinism_fix_commit=5e843413b8685686ee0d1332fb8f01e9e1db3b50
+determinism_rule=git-am-committer-date-is-author-date
+tracked_series_commit=f3730da49623b89cccb9a985ef9c1e2f039aecce
+
+Independent generation from 5e843413 and f3730da4 produced byte-identical
+patches with the same synthetic commit IDs:
+
+  patch_1_commit=c194b8e06dfe4a38412157c43250db11b2d42550
+  patch_1_sha256=9cc4604c459a013aa82ab7fd922761f0f0ffc860181c06c7e7a63a56d6eaef4c
+  patch_2_commit=aa63a8b6060e28e0a72c83a15c133f57ceeeff3f
+  patch_2_sha256=66f2f9aaf315d3bb992ab20a1130bba80df01b902f5a3c2703a6f3ddda099b69
+  patch_3_commit=2339dd7de45eea66d779feec8ddfc42c4b26aec9
+  patch_3_sha256=04683a1c0d252a4818e840de1515ffa95f3f52e35b5c22abc9862e8223d3b912
+  series_sha256=19e4a88f58d3eb993b64bab33c71b45065d7c454e73e4a4170cf2d63ef538eaa
+  patchset_sha256=fd4da13202c62a6ea21a216ffc9eb2650d70dcaa216a8ca1b3c64e5ef5c10b9d
+
+static_contract=passed
+mutation_tripwires=15-passed
+tracked_files_match_both_generation_packages=byte-identical
+
+Buildbox compile comparison
+---------------------------
+repository_commit=f3730da49623b89cccb9a985ef9c1e2f039aecce
+source_commit=59e00a9144d782e148332009a835b99c43382467
+parent_patchset_sha256=3584e9dd5ffb041573b851f31f3a96eaa0a684acb880fd59560762e5abc58be0
+rollback_patchset_sha256=fd4da13202c62a6ea21a216ffc9eb2650d70dcaa216a8ca1b3c64e5ef5c10b9d
+build_backend=buildbox
+native_vm_kernel_build=no
+rollback_source_build=passed
+parent_observer_source_build=passed
+diagnostic_comparison=identical
+diagnostics_sha256=f60899a1c59153d7d36474c415bc6e302db89a74bc53a062cb56fa21eb269465
+diagnostic=inherited-vendor-summary-of-69-section-mismatches
+stack_usage_file_count_each=2484
+cpu_psci_cpu_boot_parent_bytes=96
+cpu_psci_cpu_boot_rollback_bytes=128
+whole_kernel_max_bytes=1488
+whole_kernel_max_function=ANCService_read
+kernel_field_sha256=fcf03e303a20a6b381b86a3f3d675a9f131c817d3a9c0864c25913c7198fa369
+vmlinux_sha256=1ec051fd3f99a63535300c4b562daeeaf05b2203d5905e6855f1ed514d83f8c4
+System.map_sha256=43e2152458f6bdaf5a6be42e7439811cb08ad6a8d4f820d1111c4fab302c69bd
+build_provenance_sha256=a5927d8f559310f5efb1bdd76936bc24eb61749c43f532844d41e39af4f6b01e
+
+Compiled-order proof
+--------------------
+The compiler inlined the rollback orchestrator into cpu_psci_cpu_boot. The
+actual arm64 image contains this order:
+
+  ffffffc00008c7c4  call mt6797_a72_obs_accepts_sampling
+  ffffffc00008c7cc  branch to the -EAGAIN exit when false
+  ffffffc00008c7d8  first atomic one-shot load-exclusive
+  ffffffc00008c7dc  atomic store-exclusive
+  ffffffc00008c824  first owner call, clock capture
+
+Thus the observer latch dominates both the compiled atomic mutation and every
+hardware-owner call. The false branch reaches the common return with -EAGAIN;
+it cannot consume the one-shot. The added check does not increase the previous
+rollback candidate's 128-byte cpu_psci_cpu_boot stack frame.
+
+Decision
+--------
+generation_reproducibility=passed
+compiler_review=passed
+compiled_dominance_review=passed
+owner_and_timing_review=unchanged-and-passed
+boot_candidate=false
+deployment_authorized=no
+
+The next action is to update the checksum-pinned Android-v0 candidate builder
+for this exact compile bundle, reproduce raw and 16 MiB padded containers twice,
+and repeat all offline container, collector, installer, and predeployment
+identity gates. The unchanged prior candidate remains prohibited.

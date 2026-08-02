@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-02-a72-pre-isolation-rollback-discriminator` |
-| Status | `runtime-inconclusive-pre-latch-attempt`: exact boot and immutable retrieval passed, but the HPS CPU8 transaction froze with EALREADY after two lifecycle records because an earlier unobserved CPU8 request consumed the one-shot before the HPS latch opened; unchanged retry is prohibited and known-good Gemian is restored |
+| Status | `pre-latch-gate-offline-passed`: two deterministic Buildbox generations match byte-for-byte, model/static/mutation checks pass, changed and parent kernels compile with identical diagnostics, and the actual binary checks the HPS observer latch before the atomic one-shot and every owner call; no new boot candidate exists yet |
 | Subsystem | CPU8 external BUCKB preparation, MP2 reset, TOPRGU PWRAP reset, and fail-closed rollback |
 | Device variant | Named Gemini PDA development unit |
 | Date(s) | 2026-08-02 |
@@ -88,7 +88,7 @@ predeployment decision after compiler and timing review.
 - [`scripts/validate-passive.py`](scripts/validate-passive.py): exact ABI-v3
   rollback, rejected-prestate, fault-retain, and forbidden-boundary classifier.
 - [`scripts/test-passive.py`](scripts/test-passive.py): positive terminal paths
-  plus 18 fail-closed and no-stimulus checks.
+  plus 19 fail-closed and no-stimulus checks.
 - [`scripts/install-boot2.sh`](scripts/install-boot2.sh): source-pinned exact
   logical-boot2 installer with full-readback and clean-shutdown enforcement.
 - [`scripts/install-boot2-owner-battery-override.sh`](scripts/install-boot2-owner-battery-override.sh):
@@ -140,6 +140,10 @@ predeployment decision after compiler and timing review.
 - [`results/runtime-attempt-1-20260802.txt`](results/runtime-attempt-1-20260802.txt):
   exact immutable two-record EALREADY result, observation/inference boundary,
   validator correction, known-good recovery, and no-retry decision.
+- [`results/pre-latch-gate-offline-review-20260802.txt`](results/pre-latch-gate-offline-review-20260802.txt):
+  corrected source/model contract, generation reproducibility correction,
+  byte-identical regenerated series, compile comparison, and actual arm64
+  dominance proof.
 
 Run from the repository root:
 
@@ -150,20 +154,14 @@ python3 experiments/2026-08-02-a72-pre-isolation-rollback-discriminator/scripts/
 
 ## Decision
 
-`runtime-inconclusive`: the exact generated series implements the
-bounded and falsifiable rollback question without crossing external isolation,
-compiles against its exact parent observer with no new diagnostic, and adds no
-unsafe owner-lock nesting, polling loop, or semaphore wait loop. Its offline
-runtime and recovery decisions are explicit, and its Android-v0 container is
-reproducible. Its passive decision path is now mutation-tested. The result is
-eligible for one guarded deployment after the exact evidence is pushed, but is
-but its one-shot can be consumed before the observer's attributable HPS window.
-The attempt establishes neither rollback nor a hardware-support claim. The
-device is back on verified known-good Gemian.
+`pre-latch-gate-offline-passed`: attempt 1 remains runtime-inconclusive and
+establishes neither rollback nor hardware support. The revised series fixes its
+specific orchestration defect: an early request returns before the one-shot,
+and the compiled latched path still retains the original rollback boundary.
+The revision is not yet an assembled candidate or deployment authorization.
 
 ## Follow-up
 
-Add a fail-closed pre-latch gate before the atomic one-shot and every owner
-operation, prove that an early CPU8 request cannot consume the attempt, and
-repeat all offline compiler/timing and deployment gates for the changed source.
-Do not boot or redeploy the unchanged candidate.
+Assemble and independently reproduce a new Android-v0 container from the exact
+reviewed kernel field, then repeat collector, installer, and predeployment
+identity review. Do not boot or redeploy the unchanged candidate.
