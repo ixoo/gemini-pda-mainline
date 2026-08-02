@@ -27,6 +27,7 @@ EVIDENCE = {
     "active-source-equivalent",
     "firmware-analysis",
     "known-design",
+    "latched-first-pair",
     "missing",
     "retained-live-observer",
 }
@@ -64,7 +65,7 @@ for row in rows:
     if row["decision"] == "rollback-missing":
         require("unproven" in row["rollback"] or "failure-" in row["rollback"],
                 f"rollback-missing row lacks an explicit open boundary in row {row['id']}")
-    if row["owner_evidence"] == "retained-live-observer":
+    if row["owner_evidence"] in {"latched-first-pair", "retained-live-observer"}:
         require(row["prestate"] != "missing-live" and
                 row["readback"] != "missing-live",
                 f"retained live evidence leaves a live field missing in row {row['id']}")
@@ -78,10 +79,12 @@ resume_unresolved = sum(row["resume_owner"] == "unresolved" for row in rows)
 prestate_missing = sum(row["prestate"] == "missing-live" for row in rows)
 readback_missing = sum(row["readback"] == "missing-live" for row in rows)
 retained_live = sum(row["owner_evidence"] == "retained-live-observer" for row in rows)
+latched_first_pair = sum(row["owner_evidence"] == "latched-first-pair" for row in rows)
 require((closed_forward, observer_required, rollback_missing, excluded,
          unresolved_owner) == (9, 1, 5, 3, 1),
         "post-observer decision counts changed")
-require((prestate_missing, readback_missing, retained_live) == (2, 2, 15),
+require((prestate_missing, readback_missing, retained_live, latched_first_pair) ==
+        (2, 2, 0, 16),
         "post-observer evidence counts changed")
 require(resume_unresolved == len(rows), "resume ownership was silently promoted")
 
@@ -95,6 +98,7 @@ print(f"owner_unresolved={unresolved_owner}")
 print(f"prestate_missing={prestate_missing}")
 print(f"readback_missing={readback_missing}")
 print(f"retained_live_observer={retained_live}")
+print(f"latched_first_pair={latched_first_pair}")
 print(f"resume_unresolved={resume_unresolved}")
 print("gate4=OPEN")
-print("next_action=first-cycle-latch-plus-cpu9-and-resume-rollback-audits")
+print("next_action=failure-rollback-discriminator-plus-cpu9-and-resume-audits")

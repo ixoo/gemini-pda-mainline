@@ -104,11 +104,13 @@ split:
 | Linux | DA9214 BUCKB, temporary TOPRGU PWRAP reset, MP2 reset release, external-isolation preparation, SRAM-LDO request, and post-success DCM | SRAM-LDO readback and a safe inverse/off path are not established. |
 | Secure firmware | Initial B PLL/mux/divider, MP2/core MTCMOS/reset, internal bus protection, and CCI admission | ATF is a keyed CSPM/secure-semaphore writer; an SCP-local alias remains unexcluded. |
 
-A bounded Gemian load pulse directly observed CPU8 come online and later go
-offline. The sequential observer did not capture the synchronized regulator,
-SPM, TOPRGU, secure-register, DVFSP-clock, or MP2 DCM transition, so the event
-does not establish the complete ordering or a safe sequence that mainline can
-replay.
+An initial bounded Gemian load pulse directly observed CPU8 come online and
+later go offline but did not capture the synchronized owner sequence. A later
+exact no-load first-cycle latch closed that observation gap: one natural CPU8
+up/down pair retained 46 immutable records with no overflow or CPU9 activity,
+and passed the regulator, SPM, TOPRGU, secure-register, clock, DCM, mutation,
+PSCI, and lifecycle validator. This establishes one coherent successful vendor
+cycle, not a mainline provider, bounded failure rollback, resume, or CPU9 path.
 
 The current mainline result is separate and deliberately limited to
 pointer-write/read transactions: the DVFSP/I2C6 handoff preserves the working
@@ -131,8 +133,9 @@ silicon identification or authorization to issue a power request.
 Concise evidence index:
 
 - [CPU/PSCI/timer recovery](../../experiments/2026-07-13-cpu-psci-timer-recovery/README.md)
-- [A72 firmware/power contract](../../experiments/2026-07-22-a72-firmware-power-contract/README.md)
-  and [load-assisted CPU8 observation](../../experiments/2026-07-23-gemian-a72-load-assisted-observation/results/live-attempt-1-20260723.txt)
+- [A72 firmware/power contract](../../experiments/2026-07-22-a72-firmware-power-contract/README.md),
+  [load-assisted CPU8 observation](../../experiments/2026-07-23-gemian-a72-load-assisted-observation/results/live-attempt-1-20260723.txt),
+  and [first natural owner-cycle latch](../../experiments/2026-08-02-gemian-a72-first-cycle-latch/README.md)
 - [DA921x/I2C6/A72 durable evidence index](da921x-i2c6-a72.md#evidence-index)
 
 ## Boot handoff and storage boundary

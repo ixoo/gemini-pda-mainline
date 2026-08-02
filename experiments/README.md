@@ -24,16 +24,17 @@ the loop. Positive identity-gated observations are unaffected.
 ### Current DA921x, I2C6, and A72 line
 
 - [2026-08-02 Gemian A72 first-complete-cycle latch](2026-08-02-gemian-a72-first-cycle-latch/README.md)
-  — specifies an immutable ABI-v2 state machine that captures the first
-  natural CPU8 up/down pair and freezes on success, transition failure, CPU9
-  overlap, protocol mismatch, or capacity exhaustion. Its executable model
-  passes the complete-pair path and eight fail-closed boundaries. Kernel patch,
-  Buildbox compile, packaging, deployment, and runtime evidence remain open.
+  — completed an exact Buildbox-built, guarded-boot2, no-load run. ABI v2 froze
+  the first natural CPU8 up/down pair in 46 immutable records with no overflow
+  or CPU9 activity; two delayed reads were identical and every lifecycle and
+  owner-transition check passed. This closes the clean successful vendor-cycle
+  observation, not mainline provider, rollback, resume, or CPU9 support.
 - [2026-08-02 MT6797 A72 ownership and rollback audit](2026-08-02-a72-ownership-rollback-audit/README.md)
   — machine-checks 19 forward, observation, rollback, CPU9, and resume
-  boundaries. Forward physical writers are substantially assigned, but Gate 4
-  remains open on synchronized pre-state/readback, three rollback classes, and
-  suspend/resume ownership; the next action is the owner-local Gemian observer.
+  boundaries. Sixteen now have clean first-pair evidence and all nine forward
+  decisions remain closed, but Gate 4 is open on five failure rollbacks, one
+  CPU9-only observation, and suspend/resume ownership. The next action is an
+  independently specified failure/rollback discriminator.
 - [2026-08-02 bounded Gemian A72 observer boot image](2026-08-02-gemian-a72-bounded-observer-boot/README.md)
   — replaces only the exact active Gemian Android-v0 kernel field with the
   compiler/timing-reviewed five-patch observer. Two raw assemblies and two

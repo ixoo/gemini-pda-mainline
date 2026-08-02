@@ -1,0 +1,94 @@
+Gemian A72 first-cycle latch runtime result
+Recorded: 2026-08-02 America/New_York
+
+Exact selection and collection
+------------------------------
+deployed_candidate_sha256=6dcbda0cb264f5b637f6333f4946707d81ea98d38a8d52673b6fbe2cf109e3af
+expected_release=3.18.41+
+exact_build_identity=#1 SMP PREEMPT Sun Aug 2 18:14:10 UTC 2026
+observer_abi=mt6797-a72-transition-observer-v2
+observer_mode=400
+root=/dev/mmcblk0p29
+private_capture_sha256=4f8fa11dcf9d02ab70fca5cfb59b51514a63a2d4ce8c3b82229093588f8fb506
+private_validation_sha256=2a35673623c306b17202c336c3c621f83b6b105b3ff187e9f6ddcb5d2a810f9c
+sanitized_first_snapshot_sha256=6db6ea41ba4689541cb504a0486c0a1b7249834ebdb8613f0e73b0bf56e808f5
+runtime_stimulus=none
+state_changing_writes=none
+
+Latch result
+------------
+state=frozen-complete
+count=46
+overflow=0
+up_transaction=2
+down_transaction=3
+cpu9_records=0
+two_reads_separation_seconds=2
+two_reads_byte_identical=yes
+owner_transition_validation=passed
+formal_disposition=accepted-first-natural-cpu8-pair
+
+The first snapshot was copied before optional power reporting. USB later
+reported offline, battery remained 100%/Good, and the second snapshot was still
+identical. This directly resolves the parent run's retrieval-timing ambiguity:
+the kernel-resident terminal latch preserved the first natural pair despite
+delayed service access and an unsuitable USB status gate.
+
+Validated CPU8 power-up transaction 2
+-------------------------------------
+begin_ns=2063452230
+successful_end_ns=2069460230
+duration_ns=6008000
+initial_online_mask=0x00000030
+secondary_online_mask=0x00000130
+da9214_buck_enable=0-to-1
+da9214_page_restore=passed
+spm_reset_release_readback=0x00010132-to-0x00010133
+spm_isolation_clear_readback=0x00000002-to-0x00000000
+toprgu_assert_deassert_readback=passed
+psci_raw_identity=0x200|0x40081970
+psci_mapped_identity=0x200|0x40081970
+psci_raw_mapped_identity=passed
+dcm_enable_final=0x0000000d
+secure_sentinel_stability=passed
+clock_immediate_snapshots=passed
+
+Validated CPU8 power-down transaction 3
+---------------------------------------
+begin_ns=2193842768
+successful_end_ns=2199035922
+duration_ns=5193154
+initial_online_mask=0x00000130
+post_cpu8_offline_mask=0x00000030
+affinity_retry_evidence=passed
+da9214_buck_disable=1-to-0
+da9214_page_restore=passed
+dcm_disable_final=0x00000000
+offline_final_spm_state=reset-asserted,isolation-set
+secure_sentinel_stability=passed
+clock_immediate_snapshots=passed
+
+Interpretation
+--------------
+This is reproducible evidence that the named Gemini's vendor Gemian path can
+bring CPU8 fully online and later return it offline through a coherent owner
+sequence. It establishes the required register, regulator, reset, DCM, secure
+and PSCI relationships for one natural A72 cycle. It is not yet evidence that
+the upstream/mainline kernel can perform that sequence, that failure rollback
+is correct, or that CPU9 is safe to request.
+
+The next Gate 4 step is not another identical boot. Reconcile these exact
+owner values with the mainline provider model and design an independent
+rollback/failure observation that can distinguish safe unwind from partial
+power state. CPU9 remains a separate later boundary after CPU8 provider and
+rollback behavior are justified.
+
+Shutdown
+--------
+candidate_poweroff_rc=0
+post_shutdown_reachability=unreachable
+next_action=owner-selects-known-good-gemian
+
+hardware_result=passed-first-natural-cpu8-owner-cycle
+mainline_cpu8_enablement=pending
+mainline_cpu9_enablement=pending

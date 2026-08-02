@@ -727,22 +727,33 @@ diagnostic work preceded capture and the initial ring content is lost, so the
 predeclared clean-attribution result is inconclusive. The pulse is prohibited,
 the exact image must not be repeated with the same late retrieval path, and the
 device shut down cleanly. The retained values are reconciled into the
-ownership/rollback audit. The first-complete-cycle latch now has a frozen
-state, concurrency, ABI and owner-effect contract plus an executable reference
-model covering the success path and eight fail-closed boundaries. Two logical
-patches now implement the recorder latch and per-owner effect gate; the
-complete source passes 17 mutation tripwires. Exact pushed commit `a5b22fa`
-passes the dedicated Buildbox observer/baseline compile, byte-identical
-diagnostic attribution, 2484-report stack gate, owner-lock review, and bounded
-one-cycle timing review. The next ordered action is to assemble and
-independently validate a new Android-v0 boot container from that exact kernel
-field and the pinned Gemian ramdisk/container inputs, then freeze candidate
-identity and predeployment expectations before any guarded `boot2` write. Pure
-diagnostic sampling is suppressed outside capture while the exact vendor SPM,
-BUCKB, DCM, TOPRGU, iDVFS, SRAM-LDO, PSCI and hotplug operations remain
-reachable. Suspend/resume ownership and bounded
-rollback remain open before Gate 4 can close; provider work still must not
-introduce a write or A72 consumer.
+ownership/rollback audit. The first-complete-cycle latch then froze the state,
+concurrency, ABI and owner-effect contract and passed its executable success
+path, eight model boundaries, 17 source mutations, exact Buildbox
+observer/baseline compile, byte-identical diagnostic attribution, 2484-report
+stack gate, owner-lock review, and bounded timing review. Its exact Android-v0
+container retained the Gemian ramdisk and passed two assembly and padding paths
+plus independent parsing. Guarded boot2 deployment passed a full
+write/readback and shutdown. The manually selected candidate then returned ABI
+v2 `frozen-complete` with 46 records, no overflow, CPU8-up transaction 2 and
+CPU8-down transaction 3. Two reads separated by two seconds were
+byte-identical; the exact owner validator passed DA9214 page restoration and
+BUCKB `0 -> 1 -> 0`, SPM and TOPRGU readbacks, stable secure sentinels,
+immediate clock snapshots, DCM enable/disable, matching raw/mapped PSCI
+identities, secondary-online and offline-final ordering. No load or diagnostic
+write ran. Optional USB status later reported offline without losing the
+already copied evidence, resolving the parent retrieval ambiguity. The
+successful up and down paths took 6,008,000 ns and 5,193,154 ns respectively,
+and no CPU9 record appeared.
+
+The immediate ordered action is to reconcile those exact transaction-local
+values into the Gate 4 ownership matrix, identifying which successful-path
+pre-states/readbacks are now closed and which rollback classes still lack an
+independent observation. Then design one failure/rollback discriminator that
+can prove a bounded safe unwind without requesting CPU9 or introducing a
+mainline consumer. Suspend/resume ownership and bounded rollback remain open
+before Gate 4 can close; provider work still must not introduce a write or A72
+consumer.
 
 Exit: observations and inference are separated, every required writer has one
 owner, and a failed step has a bounded rollback path.

@@ -1,0 +1,47 @@
+abi=mt6797-a72-transition-observer-v2 state=frozen-complete count=46 overflow=0 up_tx=2 down_tx=3
+seq=1 ns=2063452230 tx=2 event=lifecycle phase=1 target=8 actor=5 online=0x00000030 result=0 arg0=0x2 arg1=0x0
+seq=2 ns=2063545999 tx=2 event=lifecycle phase=5 target=8 actor=5 online=0x00000030 result=0 arg0=0x2 arg1=0x1
+seq=3 ns=2063816768 tx=2 event=da9214 phase=6 target=8 actor=5 online=0x00000030 page_before=0x80 page_selected=0x80 buck_before=0x00 buck_after=0x00 vsel=0x46 page_after=0x80 status=0 valid=0x001f
+seq=4 ns=2063821384 tx=2 event=spm phase=6 target=8 actor=5 online=0x00000030 valid=0x3f r0=0x2a00005c r1=0x2a00004c r2=0x00350c08 r3=0x00350cff r4=0x00010132 r5=0x00000002
+seq=5 ns=2063833076 tx=2 event=secure phase=6 target=8 actor=5 online=0x00000030 valid=0xfff stable=1 sentinel_after=0x00000000 r0=0x00000000 r1=0x00000000 r2=0x00000000 r3=0x00000000 r4=0x00000000 r5=0x00000000 r6=0x00000000 r7=0x00000000 r8=0x00000000 r9=0x00000000 r10=0x00000000 r11=0x00000000
+seq=6 ns=2063839230 tx=2 event=clock phase=6 target=8 actor=5 online=0x00000030 pll_con1=0xc1130000 muxsel=0x00000054 ckdiv=0x00042168 status=0 semaphore=0x000f
+seq=7 ns=2063841922 tx=2 event=dcm phase=6 target=8 actor=5 online=0x00000030 before=0x00000000 toggle=0x00000000 final=0x00000000 mask=0x0000007f on=0
+seq=8 ns=2063844845 tx=2 event=mutation phase=7 target=8 actor=5 online=0x00000030 address=0x10006218 before=0x00010132 mask=0x00000001 requested=0x00000001 after=0x00010133 status=0
+seq=9 ns=2063862537 tx=2 event=lifecycle phase=8 target=8 actor=5 online=0x00000030 result=0 arg0=0x0 arg1=0x102224a0
+seq=10 ns=2063865999 tx=2 event=toprgu phase=9 target=8 actor=5 online=0x00000030 before=0x00010000 requested=0x88010800 after=0x00010800 mask=0x00000800 status=0
+seq=11 ns=2064550999 tx=2 event=da9214 phase=10 target=8 actor=5 online=0x00000030 page_before=0x80 page_selected=0x80 buck_before=0x00 buck_after=0x01 vsel=0x46 page_after=0x80 status=0 valid=0x005f
+seq=12 ns=2065782999 tx=2 event=da9214 phase=11 target=8 actor=5 online=0x00000030 page_before=0x80 page_selected=0x80 buck_before=0x01 buck_after=0x01 vsel=0x46 page_after=0x80 status=0 valid=0x001f
+seq=13 ns=2065785845 tx=2 event=mutation phase=12 target=8 actor=5 online=0x00000030 address=0x10006290 before=0x00000002 mask=0x00000003 requested=0x00000000 after=0x00000000 status=0
+seq=14 ns=2065788153 tx=2 event=toprgu phase=13 target=8 actor=5 online=0x00000030 before=0x00010800 requested=0x88010000 after=0x00010000 mask=0x00000800 status=0
+seq=15 ns=2066058076 tx=2 event=lifecycle phase=15 target=8 actor=5 online=0x00000030 result=0 arg0=0x1adb0 arg1=0x0
+seq=16 ns=2066943384 tx=2 event=lifecycle phase=16 target=8 actor=5 online=0x00000030 result=0 arg0=0x200 arg1=0x40081970
+seq=17 ns=2066944614 tx=2 event=lifecycle phase=17 target=8 actor=5 online=0x00000030 result=0 arg0=0x200 arg1=0x40081970
+seq=18 ns=2066948230 tx=2 event=dcm phase=18 target=8 actor=5 online=0x00000030 before=0x00000000 toggle=0x0000000f final=0x0000000d mask=0x0000007f on=1
+seq=19 ns=2067565076 tx=2 event=lifecycle phase=19 target=8 actor=5 online=0x00000030 result=0 arg0=0x0 arg1=0x0
+seq=20 ns=2067567845 tx=2 event=lifecycle phase=20 target=8 actor=8 online=0x00000130 result=0 arg0=0x200 arg1=0x0
+seq=21 ns=2067891230 tx=2 event=da9214 phase=19 target=8 actor=8 online=0x00000130 page_before=0x80 page_selected=0x80 buck_before=0x01 buck_after=0x01 vsel=0x32 page_after=0x80 status=0 valid=0x001f
+seq=22 ns=2067897076 tx=2 event=spm phase=19 target=8 actor=8 online=0x00000130 valid=0x3f r0=0x2a00005c r1=0x2a00004c r2=0x00370888 r3=0x003508ff r4=0x00010127 r5=0x00000000
+seq=23 ns=2067925230 tx=2 event=secure phase=19 target=8 actor=8 online=0x00000130 valid=0xfff stable=1 sentinel_after=0x0010a203 r0=0x0010a203 r1=0x0001e000 r2=0xffff6c46 r3=0x00ff1101 r4=0xb9b13b14 r5=0x01b10100 r6=0x00af00af r7=0x00000010 r8=0x00000021 r9=0x004008ff r10=0x00008967 r11=0x0000000d
+seq=24 ns=2067933153 tx=2 event=clock phase=19 target=8 actor=8 online=0x00000130 pll_con1=0xc1130000 muxsel=0x00000055 ckdiv=0x00042168 status=0 semaphore=0x000f
+seq=25 ns=2067935999 tx=2 event=dcm phase=19 target=8 actor=8 online=0x00000130 before=0x0000000d toggle=0x0000000d final=0x0000000d mask=0x0000007f on=0
+seq=26 ns=2069460230 tx=2 event=lifecycle phase=2 target=8 actor=8 online=0x00000130 result=0 arg0=0x0 arg1=0x0
+seq=27 ns=2193842768 tx=3 event=lifecycle phase=3 target=8 actor=5 online=0x00000130 result=0 arg0=0x3 arg1=0x0
+seq=28 ns=2195201230 tx=3 event=lifecycle phase=21 target=8 actor=8 online=0x00000030 result=0 arg0=0x200 arg1=0x0
+seq=29 ns=2195457076 tx=3 event=lifecycle phase=22 target=8 actor=5 online=0x00000030 result=0 arg0=0x1 arg1=0x0
+seq=30 ns=2195766153 tx=3 event=da9214 phase=22 target=8 actor=5 online=0x00000030 page_before=0x80 page_selected=0x80 buck_before=0x01 buck_after=0x01 vsel=0x3a page_after=0x80 status=0 valid=0x001f
+seq=31 ns=2195771076 tx=3 event=spm phase=22 target=8 actor=5 online=0x00000030 valid=0x3f r0=0x2a00005c r1=0x2a00004c r2=0x00370c88 r3=0x00350cff r4=0x00010127 r5=0x00000000
+seq=32 ns=2195785614 tx=3 event=secure phase=22 target=8 actor=5 online=0x00000030 valid=0xfff stable=1 sentinel_after=0x0010a203 r0=0x0010a203 r1=0x0003bccc r2=0xffff6c46 r3=0x00ff1101 r4=0xb9b13b14 r5=0x01b10100 r6=0x00af00af r7=0x00000010 r8=0x3bcc0021 r9=0x004008ff r10=0x00008967 r11=0x0000000d
+seq=33 ns=2195791999 tx=3 event=clock phase=22 target=8 actor=5 online=0x00000030 pll_con1=0xc1130000 muxsel=0x00000055 ckdiv=0x00042168 status=0 semaphore=0x000f
+seq=34 ns=2195794614 tx=3 event=dcm phase=22 target=8 actor=5 online=0x00000030 before=0x0000000d toggle=0x0000000d final=0x0000000d mask=0x0000007f on=0
+seq=35 ns=2196640460 tx=3 event=lifecycle phase=23 target=8 actor=5 online=0x00000030 result=0 arg0=0x0 arg1=0x0
+seq=36 ns=2196645153 tx=3 event=dcm phase=24 target=8 actor=5 online=0x00000030 before=0x0000000d toggle=0x00000002 final=0x00000000 mask=0x0000007f on=0
+seq=37 ns=2197126768 tx=3 event=lifecycle phase=25 target=8 actor=5 online=0x00000030 result=1 arg0=0x0 arg1=0x200
+seq=38 ns=2197831922 tx=3 event=da9214 phase=26 target=8 actor=5 online=0x00000030 page_before=0x80 page_selected=0x80 buck_before=0x01 buck_after=0x00 vsel=0x46 page_after=0x80 status=0 valid=0x005f
+seq=39 ns=2197834768 tx=3 event=lifecycle phase=27 target=8 actor=5 online=0x00000030 result=0 arg0=0x1 arg1=0x0
+seq=40 ns=2197835460 tx=3 event=lifecycle phase=27 target=8 actor=5 online=0x00000030 result=1 arg0=0x0 arg1=0x0
+seq=41 ns=2198069537 tx=3 event=da9214 phase=27 target=8 actor=4 online=0x00000030 page_before=0x80 page_selected=0x80 buck_before=0x00 buck_after=0x00 vsel=0x46 page_after=0x80 status=0 valid=0x001f
+seq=42 ns=2198074845 tx=3 event=spm phase=27 target=8 actor=4 online=0x00000030 valid=0x3f r0=0x2a00005c r1=0x2a00004c r2=0x00350c08 r3=0x00350cff r4=0x00010132 r5=0x00000002
+seq=43 ns=2198086691 tx=3 event=secure phase=27 target=8 actor=4 online=0x00000030 valid=0xfff stable=1 sentinel_after=0x00000000 r0=0x00000000 r1=0x00000000 r2=0x00000000 r3=0x00000000 r4=0x00000000 r5=0x00000000 r6=0x00000000 r7=0x00000000 r8=0x00000000 r9=0x00000000 r10=0x00000000 r11=0x00000000
+seq=44 ns=2198093153 tx=3 event=clock phase=27 target=8 actor=4 online=0x00000030 pll_con1=0xc1130000 muxsel=0x00000054 ckdiv=0x00042168 status=0 semaphore=0x000f
+seq=45 ns=2198095537 tx=3 event=dcm phase=27 target=8 actor=4 online=0x00000030 before=0x00000000 toggle=0x00000000 final=0x00000000 mask=0x0000007f on=0
+seq=46 ns=2199035922 tx=3 event=lifecycle phase=4 target=8 actor=4 online=0x00000030 result=0 arg0=0x0 arg1=0x0

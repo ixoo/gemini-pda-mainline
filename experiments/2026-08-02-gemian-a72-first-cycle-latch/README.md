@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-02-gemian-a72-first-cycle-latch` |
-| Status | `running`: exact boot2 write/readback and shutdown pass; manual boot2 selection and passive ABI-v2 runtime retrieval remain |
+| Status | `complete`: exact boot2 selection produced a stable, validated first natural CPU8 up/down pair with no load; candidate shutdown is confirmed and Gate 4 reconciliation is next |
 | Subsystem | MT6797 CPU8 hotplug observer and owner-local diagnostic sampling |
 | Device variant | Current named Gemini PDA unit |
 | Date(s) | 2026-08-02 |
@@ -106,6 +106,11 @@ down so the owner can manually select `boot2`.
 - [`results/deployment-20260802.txt`](results/deployment-20260802.txt): exact
   live-GPT target, predecessor, candidate/readback identity, power state,
   cleanup, confirmed shutdown and owner handoff.
+- [`results/runtime-first-natural-pair-20260802.txt`](results/runtime-first-natural-pair-20260802.txt):
+  sanitized exact immutable 46-record ABI-v2 first snapshot.
+- [`results/runtime-summary-20260802.txt`](results/runtime-summary-20260802.txt):
+  exact identity, stability and semantic result, owner values, limitations,
+  confirmed candidate shutdown and Gate 4 handoff.
 
 Local model validation:
 
@@ -161,6 +166,14 @@ python3 experiments/2026-08-02-gemian-a72-first-cycle-latch/scripts/test_latch_m
   The synchronized write, post-flush checksum and independent full readback all
   matched padded SHA-256 `6dcbda0cb264...`. No backup was created, temporary
   copies were removed, and clean shutdown was confirmed.
+- The owner selected boot2 and authenticated service became available. The
+  evidence-first collector retrieved ABI v2 in `frozen-complete` with 46
+  records, no overflow, CPU8-up transaction 2 and CPU8-down transaction 3.
+  Two reads separated by two seconds were byte-identical. The exact owner
+  transition validator passed every lifecycle, DA9214, SPM, secure, clock,
+  DCM, TOPRGU, mutation and PSCI check. USB later reported offline, proving the
+  revised collection order avoided the parent run's false stop. No load or
+  state-changing write ran, and the candidate then shut down cleanly.
 
 ## Analysis
 
@@ -176,13 +189,14 @@ diagnostic actions after freeze, while leaving all real power mutations intact.
 
 ## Conclusion
 
-`inconclusive`: source, compiler and offline container gates pass, but the
-candidate has not been installed or booted and provides no hardware evidence.
+`passed`: on the named Gemini, the exact candidate preserved and validated the
+first natural CPU8 online/offline owner cycle. This is vendor-path hardware
+evidence, not proof of mainline CPU8 support, rollback safety or CPU9 support.
 
 ## Follow-up
 
-The owner manually selects boot2 from the current powered-off state. Expect
-ordinary Gemian visuals and possibly delayed console/USB service. Then run the
-passive collector once and return to known-good Gemian for review. Do not
-repeat the image, run the pulse, request CPU8/CPU9, or perform a native VM
-kernel build.
+Return to known-good Gemian and reconcile the exact successful owner sequence
+into Gate 4's mainline provider contract. Design an independent rollback or
+failure observation before enabling a mainline CPU8 consumer. CPU9 remains a
+separate later boundary. Do not repeat this image, run the pulse, request CPU9,
+or perform a native VM kernel build.
