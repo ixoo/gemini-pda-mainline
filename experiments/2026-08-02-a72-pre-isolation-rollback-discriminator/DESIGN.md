@@ -6,8 +6,11 @@ All values are captured synchronously under their existing owners before the
 first mutation. The attempt is rejected without writes unless every predicate
 holds:
 
+- the immutable observer is actively capturing the exact CPU8 HPS-up
+  transaction; a CPU8 request before that latch returns `-EAGAIN` without
+  consuming the one-shot or invoking any hardware owner;
 - target is CPU8; CPU8 and CPU9 are offline;
-- this is the first and only attempt on the boot;
+- this is the first and only latched attempt on the boot;
 - DA921x page is `0x80`, BUCKB enable is zero, and BUCKB VSEL is `0x46`;
 - SPM `0x218` is exactly `0x00010132` for the retained relevant state and bit 0
   is clear;

@@ -29,6 +29,7 @@ class Result:
     state: str
     final: State
     actions: tuple[str, ...]
+    attempted: bool
 
 
 def run(
@@ -41,9 +42,15 @@ def run(
     reset_restore_readback: bool = True,
     pwrap_clear_readback: bool = True,
     violate_boundary: bool = False,
+    observer_capturing: bool = True,
+    attempted: bool = False,
 ) -> Result:
+    if not observer_capturing:
+        return Result("pre-latch-refused", entry, (), attempted)
+    if attempted:
+        return Result("already-attempted", entry, (), True)
     if entry != ENTRY:
-        return Result("rejected-prestate", entry, ())
+        return Result("rejected-prestate", entry, (), True)
 
     current = replace(entry, spm_reset=0x00010133)
     actions = ["spm-reset-release"]
@@ -83,4 +90,9 @@ def run(
         fault = True
 
     exact = current == ENTRY
-    return Result("rolled-back" if exact and not fault else "fault-retain", current, tuple(actions))
+    return Result(
+        "rolled-back" if exact and not fault else "fault-retain",
+        current,
+        tuple(actions),
+        True,
+    )

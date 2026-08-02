@@ -193,7 +193,10 @@ def validate(patch_dir: Path, source: Path | None = None) -> None:
             "depends on MTK_A72_TRANSITION_OBSERVER",
             "default n",
             "static atomic_t mt6797_a72_preiso_attempted = ATOMIC_INIT(0)",
-            "cpu != 8 || atomic_xchg(&mt6797_a72_preiso_attempted, 1)",
+            "if (cpu != 8)",
+            "if (!mt6797_a72_obs_accepts_sampling(cpu))",
+            "return -EAGAIN",
+            "if (atomic_xchg(&mt6797_a72_preiso_attempted, 1))",
             "bool prestate_bad = false",
             "prestate_bad |= g_cl2_online || cpu_online(8) || cpu_online(9)",
             "cpu_online(8) || cpu_online(9)",
@@ -231,6 +234,17 @@ def validate(patch_dir: Path, source: Path | None = None) -> None:
     require(
         additions3.count("fault |= !!ret;") == 5,
         "complete final-gate accumulation count changed",
+    )
+    ordered(
+        orchestrator,
+        [
+            "if (cpu != 8)",
+            "if (!mt6797_a72_obs_accepts_sampling(cpu))",
+            "if (atomic_xchg(&mt6797_a72_preiso_attempted, 1))",
+            "prestate_bad |= g_cl2_online",
+            "mt6797_a72_diag_clock_capture",
+        ],
+        "observer latch before one-shot and owner operations",
     )
     ordered(
         orchestrator,

@@ -73,9 +73,29 @@ def main() -> int:
         (
             "one-shot removal",
             p3,
-            "+\tif (cpu != 8 || atomic_xchg(&mt6797_a72_preiso_attempted, 1))",
-            "+\tif (cpu != 8)",
+            "+\tif (atomic_xchg(&mt6797_a72_preiso_attempted, 1))",
+            "+\tif (false)",
             "atomic_xchg",
+        ),
+        (
+            "pre-latch admission",
+            p3,
+            "+\tif (!mt6797_a72_obs_accepts_sampling(cpu))",
+            "+\tif (mt6797_a72_obs_accepts_sampling(cpu))",
+            "if (!mt6797_a72_obs_accepts_sampling(cpu))",
+        ),
+        (
+            "one-shot before observer latch",
+            p3,
+            "+\tif (!mt6797_a72_obs_accepts_sampling(cpu))\n"
+            "+\t\treturn -EAGAIN;\n"
+            "+\tif (atomic_xchg(&mt6797_a72_preiso_attempted, 1))\n"
+            "+\t\treturn -EALREADY;",
+            "+\tif (atomic_xchg(&mt6797_a72_preiso_attempted, 1))\n"
+            "+\t\treturn -EALREADY;\n"
+            "+\tif (!mt6797_a72_obs_accepts_sampling(cpu))\n"
+            "+\t\treturn -EAGAIN;",
+            "observer latch before one-shot and owner operations",
         ),
         (
             "CPU9 admission",

@@ -9,6 +9,16 @@ from rollback_model import ENTRY, run
 
 
 def main() -> int:
+    early = run(observer_capturing=False)
+    assert early.state == "pre-latch-refused"
+    assert early.final == ENTRY
+    assert early.actions == ()
+    assert not early.attempted
+
+    success_after_early = run(attempted=early.attempted)
+    assert success_after_early.state == "rolled-back"
+    assert success_after_early.attempted
+
     success = run()
     assert success.state == "rolled-back"
     assert success.final == ENTRY
@@ -39,6 +49,7 @@ def main() -> int:
         result = run(state)
         assert result.state == "rejected-prestate", label
         assert result.actions == (), label
+        assert result.attempted, label
 
     for label, options in {
         "buck-owner": {"buck_owned": False},
@@ -53,7 +64,12 @@ def main() -> int:
         assert result.state == "fault-retain", label
         assert result.final != ENTRY, label
 
-    print("PASS: pre-isolation rollback model and 17 fail-closed boundaries")
+    repeated = run(attempted=True)
+    assert repeated.state == "already-attempted"
+    assert repeated.actions == ()
+    assert repeated.attempted
+
+    print("PASS: pre-isolation rollback model and 19 fail-closed boundaries")
     return 0
 
 
