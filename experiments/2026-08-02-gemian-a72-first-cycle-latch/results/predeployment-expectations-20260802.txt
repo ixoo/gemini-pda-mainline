@@ -1,0 +1,89 @@
+Gemian A72 first-cycle latch predeployment expectations
+Recorded: 2026-08-02 America/New_York
+
+Exact candidate
+---------------
+raw_sha256=003677fddd6e3d785f9d86b9459cf4c12f9ed36f0fd2bcc1b2ddb256e0af3f7b
+raw_size=14796800
+padded_sha256=6dcbda0cb264f5b637f6333f4946707d81ea98d38a8d52673b6fbe2cf109e3af
+padded_size=16777216
+kernel_field_sha256=31d288ebac7bfc4b0999b9178e254e6c1493f44cec53a56ccf5d8d795cd57824
+active_ramdisk_sha256=a1ee05445e9a2bd8fbc1f75d7cda326b9ca7a6d3b644cbb1d5fc0ac167835be4
+expected_release=3.18.41+
+expected_build_identity=#1 SMP PREEMPT Sun Aug 2 18:14:10 UTC 2026
+expected_observer_abi=mt6797-a72-transition-observer-v2
+observer_path=/proc/mt6797_a72_transition
+
+What the owner should expect
+----------------------------
+The installer will operate only while the device is in ordinary known-good
+Gemian. After an exact full-partition readback it will shut the device down;
+it will not reboot. The owner then manually selects logical boot2.
+
+The boot2 candidate intentionally retains the exact Gemian ramdisk, command
+line and root filesystem. Its screen and userspace should therefore look like
+ordinary Gemian, and the USB/console service may appear after a delay. Familiar
+Gemian visuals do not identify the selected kernel. Success is established
+only by the exact running kernel build identity and observer ABI above.
+
+Runtime hypothesis
+------------------
+Natural Gemian policy will attempt a CPU8 online/offline cycle without any
+synthetic load. The immutable v2 latch begins at the first CPU8 HPS-up begin
+and freezes after the first matching successful CPU8 up/down pair, or at the
+first decision-relevant failure. Because the latch is kernel-resident and
+terminal until reboot, a delayed console should not lose the first cycle.
+
+The first runtime action is passive retrieval only. Do not run a load pulse,
+write CPU online controls, change HPS/PPM, clear or re-arm the observer, access
+register/SMC/I2C write interfaces, suspend, or request CPU9.
+
+Unique attributable evidence
+----------------------------
+Require all of:
+
+1. installed logical boot2 full-partition readback equals padded SHA-256
+   6dcbda0cb264f5b637f6333f4946707d81ea98d38a8d52673b6fbe2cf109e3af;
+2. the owner manually selects boot2 after the installer shutdown;
+3. /proc/version contains the exact build identity above;
+4. the root-only proc header exposes the exact v2 ABI; and
+5. two delayed reads return identical frozen metadata and records.
+
+Expected successful header
+--------------------------
+abi=mt6797-a72-transition-observer-v2 state=frozen-complete count=N overflow=0 up_tx=U down_tx=D
+
+N must be bounded by 256. U and D must be nonzero and distinct. The records
+must contain the exact successful CPU8 up and down transaction boundaries, no
+CPU9 record and no overflow. Timestamp ordering, not append sequence alone,
+governs cross-CPU causal review.
+
+Result to next action
+---------------------
+- frozen-complete with an exact stable pair: return to ordinary Gemian, record
+  the evidence, reconcile owner values into Gate 4, and design an independent
+  rollback observation. Do not immediately repeat or enable CPU9.
+- wait-up with no records: natural CPU8 up did not occur; retain the result,
+  return to Gemian, and revise the trigger hypothesis without adding load.
+- capture-up, wait-down or capture-down: preserve the incomplete observation,
+  return to Gemian, and do not re-arm or repeat unchanged.
+- frozen-up-failed or frozen-down-failed: preserve failure evidence, return to
+  Gemian, and do not retry before review.
+- frozen-cpu9: stop; CPU9 requires a separate experiment.
+- frozen-protocol: reject attribution and inspect concurrency/hooks.
+- frozen-overflow or overflow=1: reject capture; do not enlarge the ring
+  without a new timing review.
+- panic, reset, service loss, wrong identity or unstable proc data: return to
+  the known-good Gemian selection and prohibit another attempt pending review.
+
+Deployment boundary
+-------------------
+Use only the standing guarded logical-boot2 procedure from known-good Gemian.
+Resolve the live GPT; require the exact named Gemini, stable power, exact size,
+writable state, and an inactive/unmounted target. Do not create a fresh backup.
+Record the predecessor checksum, write the exact 16 MiB image, sync and flush,
+require matching full readback, then shut down cleanly. Never substitute boot,
+boot3, GPT, preloader, NVRAM, or the whole device.
+
+decision=eligible-for-independent-installer-validation
+hardware_result=pending

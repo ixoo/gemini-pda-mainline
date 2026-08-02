@@ -1,0 +1,76 @@
+Gemian A72 first-cycle latch offline container validation
+Recorded: 2026-08-02 America/New_York
+
+Inputs
+------
+repository_commit=a5b22fa59a4e45169a5c31f976b3f19df4e00bfa
+observer_patchset_sha256=3584e9dd5ffb041573b851f31f3a96eaa0a684acb880fd59560762e5abc58be0
+kernel_field_sha256=31d288ebac7bfc4b0999b9178e254e6c1493f44cec53a56ccf5d8d795cd57824
+kernel_field_size=8438648
+decompressed_image_size=20095168
+appended_dtb_size=130745
+active_boot_sha256=1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513
+active_ramdisk_sha256=a1ee05445e9a2bd8fbc1f75d7cda326b9ca7a6d3b644cbb1d5fc0ac167835be4
+active_ramdisk_size=6354621
+
+Construction
+------------
+private_artifact=artifacts/boot-candidates/gemian-a72-first-cycle-latch-003677fddd6e
+raw_image=gemian-a72-first-cycle-latch.boot.img
+raw_sha256=003677fddd6e3d785f9d86b9459cf4c12f9ed36f0fd2bcc1b2ddb256e0af3f7b
+raw_size=14796800
+padded_image=boot2-padded.img
+padded_sha256=6dcbda0cb264f5b637f6333f4946707d81ea98d38a8d52673b6fbe2cf109e3af
+padded_size=16777216
+raw_assemblies_identical=yes
+padded_constructions_identical=yes
+zero_tail_verified=yes
+private_manifest_validation=passed
+
+Independent structural analysis
+-------------------------------
+analyzer_sha256=675ed9c563200425ce5519251afe26b772d8fc8c958aefb1a677058757c5c13b
+format=Android boot image v0
+layout=complete
+page_size=2048
+name=empty
+kernel_addr=0x40080000
+ramdisk_addr=0x45000000
+second_addr=0x40f00000
+tags_addr=0x44000000
+second_size=0
+legacy_dt_size=0
+cmdline=bootopt=64S3,32N2,64N2 log_buf_len=4M
+appended_dtb_offset=8309951
+appended_dtb_size=130745
+
+The active ramdisk is byte-identical. The only payload delta is the reviewed
+kernel field, which contains its compiled appended DTB. The independent parser
+reports a complete layout for both the original Gemian image and the new raw
+candidate. The page size, name, addresses, command line, empty second payload
+and empty legacy-DT field are unchanged. All inter-field and trailing padding
+is zero.
+
+Validation
+----------
+assembler_sha256=d69f4e7af9f7dabdf2e18aa95458ab6e47235a87b81bd2edf7329b92eee3b644
+builder_sha256=2e8ca52d6e82e7b9ee9d65593bee532a7ac9215ef307ed802443eecbdf5f6425
+assembler_positive_run=passed
+two_raw_assemblies=byte-identical
+two_padding_methods=byte-identical
+independent_boot_analyzer=complete
+bash_syntax=passed
+shellcheck_managed_vm=passed
+native_vm_kernel_build=no
+device_access=none
+partition_write=none
+runtime_result=not-tested
+
+Decision
+--------
+offline_container_gate=passed
+deployment_gate=pending-predeployment-record-and-installer-validation
+
+The binary is a reproducible, size-valid container but is not hardware
+evidence. Freeze the exact runtime expectation and independently validate the
+guarded installer before any logical-boot2 write.

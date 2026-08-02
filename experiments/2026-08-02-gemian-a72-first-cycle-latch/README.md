@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-02-gemian-a72-first-cycle-latch` |
-| Status | `running`: the exact seven-patch source passes Buildbox compiler, baseline, stack, lock, timing and compatible-style review; boot-container assembly is next and no image has been installed |
+| Status | `running`: source, Buildbox, container, installer and passive collector gates pass; evidence publication and guarded deployment remain, and no image has been installed |
 | Subsystem | MT6797 CPU8 hotplug observer and owner-local diagnostic sampling |
 | Device variant | Current named Gemini PDA unit |
 | Date(s) | 2026-08-02 |
@@ -73,9 +73,36 @@ down so the owner can manually select `boot2`.
   model; it performs no hardware or network access.
 - [`scripts/test_latch_model.py`](scripts/test_latch_model.py): positive and
   fail-closed model tests.
+- [`scripts/assemble.py`](scripts/assemble.py): source-pinned Android-v0
+  serializer retaining the exact Gemian container contract.
+- [`scripts/build-candidate.sh`](scripts/build-candidate.sh): exact-input,
+  two-assembly, two-padding and private-manifest orchestration.
+- [`scripts/install-boot2.sh`](scripts/install-boot2.sh): source-pinned guarded
+  logical-boot2 installer with exact predecessor/candidate gates, no fresh
+  backup, full readback and mandatory clean shutdown.
+- [`scripts/remote-passive-capture.sh`](scripts/remote-passive-capture.sh):
+  exact kernel/ABI-gated two-read observer retrieval before optional power
+  reporting, with no load or writable operation.
+- [`scripts/collect-passive.sh`](scripts/collect-passive.sh): bounded,
+  exact-dependency authenticated collector with ignored mode-0600 output.
+- [`scripts/validate-passive.py`](scripts/validate-passive.py): strict ABI-v2,
+  stability, state, transaction and complete owner-transition validator.
+- [`scripts/test-passive.py`](scripts/test-passive.py): real retained-pair
+  positive fixture and twelve fail-closed/no-stimulus checks.
 - [`results/buildbox-compiler-lock-timing-review-20260802.txt`](results/buildbox-compiler-lock-timing-review-20260802.txt):
   exact final Buildbox and host-bundle validation, selected stack frames,
   lock/timing review, and the decision authorizing only image preparation.
+- [`results/offline-container-validation-20260802.txt`](results/offline-container-validation-20260802.txt):
+  exact candidate identity and independent Android-v0 structural review.
+- [`results/predeployment-expectations-20260802.txt`](results/predeployment-expectations-20260802.txt):
+  owner-visible boot expectations, passive runtime hypothesis, stable evidence
+  gate, outcome matrix and guarded deployment boundary.
+- [`results/installer-validation-20260802.txt`](results/installer-validation-20260802.txt):
+  exact derivation, source/token gates, retained live-GPT protections, syntax,
+  and managed-VM ShellCheck.
+- [`results/passive-collector-validation-20260802.txt`](results/passive-collector-validation-20260802.txt):
+  exact dependency hashes, evidence-first ordering, semantic classification,
+  positive real-pair fixture, safety checks and managed-VM ShellCheck.
 
 Local model validation:
 
@@ -116,7 +143,15 @@ python3 experiments/2026-08-02-gemian-a72-first-cycle-latch/scripts/test_latch_m
   executable model. Exact commit `a5b22fa59a4e45169a5c31f976b3f19df4e00bfa`
   also passes observer/baseline compilation, identical diagnostic attribution,
   2484-report stack validation, lock review and the one-cycle timing bound.
-  Boot packaging, deployment and runtime observations remain open.
+  Exact candidate padded SHA-256 `6dcbda0cb264...` now passes two independent
+  assembly and padding constructions plus independent Android-v0 parsing. It
+  retains the exact Gemian ramdisk and visible userspace, so screen appearance
+  will not distinguish it from ordinary Gemian. The exact derived installer
+  also passes its static, manifest, syntax and managed-VM ShellCheck gates and
+  retains full readback plus shutdown. Deployment and runtime observations
+  remain open. The passive collector now also passes its exact identity,
+  two-read terminal-stability, complete-pair semantic and twelve fail-closed
+  gates; critically, it copies the observer before optional USB reporting.
 
 ## Analysis
 
@@ -132,13 +167,14 @@ diagnostic actions after freeze, while leaving all real power mutations intact.
 
 ## Conclusion
 
-`inconclusive`: the design is falsifiable and modelable, but no kernel patch,
-Buildbox compiler result or hardware evidence exists yet for this revision.
+`inconclusive`: source, compiler and offline container gates pass, but the
+candidate has not been installed or booted and provides no hardware evidence.
 
 ## Follow-up
 
-Assemble and independently validate a new boot image from the exact accepted
-Buildbox kernel field and pinned Gemian container inputs. Do not deploy before
-the candidate identity and predeployment expectation record are frozen. Do not
-repeat the parent image, run the pulse, request CPU8/CPU9, or perform a native
-VM kernel build.
+Commit and push all offline evidence before deployment. Only while ordinary
+Gemian is reachable and power is stable, install with full readback
+verification and clean shutdown. After manual boot2 selection, run the passive
+collector once and return to known-good Gemian for review. Do not repeat the
+parent image, run the pulse, request CPU8/CPU9, or perform a native VM kernel
+build.

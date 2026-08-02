@@ -1,0 +1,69 @@
+Gemian A72 first-cycle latch passive collector validation
+Recorded: 2026-08-02 America/New_York
+
+Exact dependencies
+------------------
+collector_sha256=96cb1c806163ec368082c79e226c3f3f9b8f09d958c7486247b3c08db7b636c2
+remote_capture_sha256=fad8c9b33ccb3a2c569aea046089e70c158058bf34a25d2a07735de5115c09f0
+validator_sha256=0f8e04b76e8414f24faf78bcdee4495a70136e7222e3384343ea17e25bc2592d
+test_sha256=75a2263fd572cea61d9db26b6233c558fb27a7bdd4a37b24580ba264afed6f4a
+bounded_exec_sha256=e250c4f0375aed986bc73eeea699cf5f4ba51625aa51a1ede2d40ac601f62ce5
+parent_transition_analyzer_sha256=5f5ee7f04caad30e12674de69e86d38649a0ea10d4fb412c5f0a9c5ad29872dc
+
+Identity and ordering gates
+---------------------------
+expected_release=3.18.41+
+expected_build_identity=#1 SMP PREEMPT Sun Aug 2 18:14:10 UTC 2026
+expected_observer_abi=mt6797-a72-transition-observer-v2
+observer_mode=400
+exact_root=/dev/mmcblk0p29
+observer_copy_before_optional_power_reporting=yes
+two_reads_separation_seconds=2
+terminal_snapshots_required_identical=yes
+boot_id_required_stable=yes
+
+The remote program checks the exact kernel and proc identity, then copies the
+observer immediately. Optional USB and battery reporting occurs only after two
+copies exist. Unlike the parent collector, absent USB status cannot suppress
+the decision-bearing observer evidence. A second copy two seconds later must
+be byte-identical for every terminal latch state.
+
+Semantic validation
+-------------------
+- ABI-v2 state, count, overflow and transaction metadata are parsed exactly;
+- count is bounded by 256 and retained sequence must be exact contiguous
+  append order starting at one;
+- wait-up, started, down-transaction and overflow state metadata are checked;
+- frozen-complete requires distinct nonzero up/down transactions, CPU8 only,
+  no overflow, contiguous transactions and the exact accepted timestamp-order
+  up/down lifecycle and owner-record templates;
+- lifecycle returns, DA9214 page restoration, SPM validity, secure stability,
+  immediate clock evidence, mutation readback, raw/mapped PSCI identity and
+  buck transitions reuse the source-pinned parent runtime analyzer; and
+- every other state is preserved as incomplete or terminal failure evidence.
+
+Safety and test result
+----------------------
+posix_syntax=passed
+bash_syntax=passed
+python_compile=passed
+shellcheck_managed_vm=passed
+positive_wait_up=passed
+positive_frozen_complete_from_retained_real_pair=passed
+fail_closed_and_no_stimulus_checks=12-passed
+state_changing_writes=none
+load_workers=0
+cpu_online_writes=none
+native_vm_kernel_build=no
+device_access=none
+runtime_capture=none
+
+Decision
+--------
+passive_collector_gate=passed
+runtime_use_eligible_after-exact-deployment=yes
+
+The collector may run only after the exact candidate is installed with full
+readback and the owner manually selects boot2. It never authorizes a pulse,
+retry, CPU request, suspend, failure injection, register write, reboot or
+poweroff. After one capture, return to known-good Gemian and review the result.
