@@ -125,12 +125,17 @@ commit_step 2026-08-02T23:12:00Z \
   arch/arm64/kernel/psci.c \
   drivers/misc/mediatek/base/power/Kconfig
 
-git -C "${work}/source" format-patch -3 --no-signature \
-  --output-directory "${partial}/patches" >/dev/null
-find "${partial}/patches" -maxdepth 1 -type f -name '*.patch' -printf '%f\n' \
-  | LC_ALL=C sort > "${partial}/patches/series"
-[[ "$(wc -l < "${partial}/patches/series")" -eq 3 ]] || \
-  die "unexpected generated patch count"
+readonly patch1=0001-diagnostic-extend-A72-observer-rollback-ABI.patch
+readonly patch2=0002-diagnostic-add-exact-A72-rollback-owner-operations.patch
+readonly patch3=0003-diagnostic-stop-and-unwind-first-CPU8-pre-isolation.patch
+git -C "${work}/source" format-patch -1 --no-signature --stdout HEAD~2 \
+  > "${partial}/patches/${patch1}"
+git -C "${work}/source" format-patch -1 --no-signature --stdout HEAD~1 \
+  > "${partial}/patches/${patch2}"
+git -C "${work}/source" format-patch -1 --no-signature --stdout HEAD \
+  > "${partial}/patches/${patch3}"
+printf '%s\n' "${patch1}" "${patch2}" "${patch3}" \
+  > "${partial}/patches/series"
 
 python3 "${script_dir}/validate_patches.py" \
   --patch-dir "${partial}/patches" --source "${work}/source"
