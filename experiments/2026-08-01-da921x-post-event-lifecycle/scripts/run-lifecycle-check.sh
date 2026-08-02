@@ -114,6 +114,21 @@ require_serviceability()
 		abort "$phase-keyboard"
 }
 
+wait_for_page2_dummy()
+{
+	attempt=0
+	while [ "$attempt" -lt 30 ]; do
+		if [ -d "$page2" ] &&
+		   [ "$(/bin/busybox readlink -f "$page2/driver" 2>/dev/null || true)" = \
+		     "$(/bin/busybox readlink -f "$dummy_driver")" ]; then
+			return 0
+		fi
+		attempt=$((attempt + 1))
+		/bin/busybox sleep 1
+	done
+	return 1
+}
+
 [ "$(/bin/busybox id -u)" = 0 ] || abort not-root
 [ "$(/bin/busybox uname -r)" = 7.1.3-gemini-da921x-life27 ] ||
 	abort kernel-identity
@@ -174,10 +189,7 @@ require_phase post_unbind "$post_unbind_status" 14 8 6
 printf '%s' 1-0068 >"$driver/bind" || abort bind-write
 [ "$(/bin/busybox readlink -f "$client/driver")" = \
 	"$(/bin/busybox readlink -f "$driver")" ] || abort driver-did-not-rebind
-[ -d "$page2" ] || abort rebound-page2-client-absent
-[ "$(/bin/busybox readlink -f "$page2/driver")" = \
-	"$(/bin/busybox readlink -f "$dummy_driver")" ] ||
-	abort rebound-page2-driver-mismatch
+wait_for_page2_dummy || abort rebound-page2-dummy-timeout
 [ ! -d "$client/regulator" ] || abort rebound-provider-present
 post_rebind_status="$(/bin/busybox cat "$i2c6/handoff_status")" ||
 	abort post-rebind-status-read

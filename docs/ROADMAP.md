@@ -612,9 +612,19 @@ unbound. Its name, modalias, driver link, unchanged `14/8/6` counters,
 read-only sysfs, and helper removal were captured. The corrected helper now
 requires that exact driver before and after rebind and complete page-2 removal
 during unbind; all pre-mutation gates match the live state and seven unsafe
-classifier mutations are rejected. The next action remains the first actual
-unbind/rebind lifecycle measurement. Provider work remains blocked pending
-that runtime result.
+classifier mutations are rejected. Attempt 3 then performed the only lifecycle
+sequence. Initial bind passed at `14/8/6`; unbind removed both links with no
+counter change; rebind reached `28/16/12`; DMA-start and every write/other
+counter remained zero. The helper observed a transiently absent page-2 sysfs
+client immediately after bind, while an independent read-only persistence
+snapshot found it restored with the exact I2C `dummy` driver alongside the
+primary driver, two identity logs, read-only sysfs, helper removal, and complete
+serviceability. The combined phase record passes the runtime classifier, and
+the helper now models the visibility delay with bounded read-only polling. The
+identification lifecycle is closed without a repeated lifecycle action. The
+next ordered action is the ownership and rollback audit in Gate 4; passive
+provider design may proceed, but writes, consumers, and A72 requests remain
+blocked.
 
 ### 4. Finish the ownership and rollback audit
 

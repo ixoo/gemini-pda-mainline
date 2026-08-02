@@ -87,7 +87,8 @@ for exact in (
     '[ "$(counter "$status" dma_starts)" = 0 ] || abort "$phase-dma_starts"',
     '[ "$(/bin/busybox cat /sys/kernel/gemini_da921x_dual_modalias_stage)" = 20 ]',
     'dummy_driver=/sys/bus/i2c/drivers/dummy',
-    'abort rebound-page2-driver-mismatch',
+    'wait_for_page2_dummy || abort rebound-page2-dummy-timeout',
+    'while [ "$attempt" -lt 30 ]; do',
     "trap cleanup EXIT HUP INT TERM",
 ):
     require(runtime.count(exact) == 1, f"runtime boundary is not exact: {exact}")

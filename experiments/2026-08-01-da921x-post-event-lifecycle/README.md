@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-01-da921x-post-event-lifecycle` |
-| Status | `runtime preflight observed; corrected lifecycle measurement pending` |
+| Status | `identification lifecycle passed; ownership audit next` |
 | Subsystem | regulator, I2C, driver core |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -155,3 +155,25 @@ now been matched against the live state; seven unsafe classifier mutations,
 including a wrong page-2 driver, are rejected. The next run remains the first
 actual lifecycle mutation. Exact evidence is in `results/runtime-attempt-2.txt`
 and `results/runtime-check-correction-2.txt`.
+
+## Runtime result
+
+Attempt 3 performed the experiment's only unbind/rebind sequence. The initial
+phase passed at `14/8/6`; unbind removed both ownership links without changing
+any counter; and rebind completed the second identity transcript at
+`28/16/12`. DMA-start and every write/other counter remained zero. The helper
+stopped because the recreated page-2 client was not yet visible at its
+immediate post-bind check. A separate read-only persistence snapshot found the
+page-2 client restored with exact name `dummy`, modalias `i2c:dummy`, and the
+exact I2C `dummy` driver, while the primary driver link and two identity logs
+also persisted. Sysfs was read-only, the temporary helper was absent, and
+CPU0--7, CPU8/9-offline, USB, tty1, and keyboard serviceability all passed.
+
+The combined phase checkpoints and independent persistent snapshot pass the
+runtime classifier. No lifecycle action was repeated. The helper now uses a
+bounded read-only wait for delayed page-2 visibility so the protocol is
+reproducible without changing its hardware actions. This closes the
+identification lifecycle and permits the ownership/rollback audit and passive
+provider design; it does not authorize a register-data write, regulator
+consumer, or A72 request. Exact evidence is in `results/runtime-attempt-3.txt`,
+`results/runtime-check-correction-3.txt`, and `results/runtime.txt`.

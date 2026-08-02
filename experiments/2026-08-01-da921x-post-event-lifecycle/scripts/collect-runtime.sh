@@ -29,7 +29,7 @@ perl -0pe '
 	s#repo_root="\$\(cd -- "\$script_dir/\.\./\.\./\.\." && pwd -P\)"#repo_root="\${GEMINI_REPO_ROOT_OVERRIDE:?missing}"#g;
 	s#runtime_check="\$script_dir/run-serviceability-check\.sh"#runtime_check="\$repo_root/experiments/2026-08-01-da921x-post-event-lifecycle/scripts/run-lifecycle-check.sh"#g;
 	s#5c3788905c6c3270d7416997c922f0774802fafb5086e10ff5f247ca0a26a1b3#805c3c1ce28131847924679a70186a75d277da3ab2be9565cea02bf546150f28#g;
-	s#d4fae94c17bdcd901c6c269b778a1ccd6cbdde37ff646bc503fcf0bef3254bc9#dc780a0bbb1f12579f04705507e4f90e2a0094af6598d654039dfa78b70b774f#g;
+	s#d4fae94c17bdcd901c6c269b778a1ccd6cbdde37ff646bc503fcf0bef3254bc9#2f0d8c68b4348936bf6d9655e7a586aa2298ae87bbaf525d9c7863ad003ad228#g;
 	s#dual_modalias_state_result=PASS#post_event_lifecycle_result=PASS#g;
 	s#da921x-dualstate#da921x-life27#g;
 	s#dualstate#life27#g;
