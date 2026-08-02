@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-01-da921x-post-event-lifecycle` |
-| Status | `offline candidate validated; guarded boot2 deployment pending` |
+| Status | `deployed and shut down; selected boot2 runtime pending` |
 | Subsystem | regulator, I2C, driver core |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -107,3 +107,15 @@ collector pins the installed full-partition checksum and lifecycle helper.
 Bash syntax, managed-VM ShellCheck, and whitespace validation pass. No native
 VM kernel build was run and the device was not accessed during offline
 validation. Exact identities are in `results/offline-validation.txt`.
+
+## Deployment
+
+The guarded installer ran from known-good Gemian, resolved logical `boot2`
+from the live GPT, and proved that it was neither the active root nor mounted.
+The full Stage 26 predecessor checksum and stable-power gates matched. The
+installer wrote the padded Stage 27 image, synchronized and flushed it, then
+matched both the device-side checksum and an independent full-partition
+readback. No fresh backup was created; the verified project-wide backup is the
+recovery source. The temporary readback was removed and the device shut down
+cleanly after verified success. Exact sanitized evidence is in
+`results/deployment.txt`.

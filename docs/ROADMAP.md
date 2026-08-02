@@ -593,8 +593,13 @@ passed its manifest and all 32 LK gates with the unchanged module-free
 initramfs and exact real-compatible Gemini DT. The guarded installer and
 USB/netcat lifecycle collector pass syntax and managed-VM ShellCheck. The next
 action is guarded live-GPT `boot2` deployment against the exact Stage 26
-predecessor, full-partition readback, and clean shutdown. Provider work remains
-blocked pending the selected runtime lifecycle result.
+predecessor, full-partition readback, and clean shutdown. That deployment
+matched the predecessor and all live-target and stable-power gates, then passed
+synchronized write, flush, device-side checksum, independent full-partition
+readback, temporary-readback removal, and clean shutdown without creating a
+fresh backup. The next action is one selected `boot2` lifecycle capture testing
+the exact `14 -> 14 -> 28` boundary. Provider work remains blocked pending that
+runtime result.
 
 ### 4. Finish the ownership and rollback audit
 
