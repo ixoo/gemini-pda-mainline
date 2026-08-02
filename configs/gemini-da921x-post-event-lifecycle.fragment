@@ -1,0 +1,6 @@
+# Re-enable the already reviewed identification-only legacy driver as built-in
+# after the Stage 26 natural-device-add boundary proved serviceable. The
+# provider and A72 paths remain absent.
+CONFIG_REGULATOR_DA9213_LEGACY=y
+CONFIG_LOCALVERSION="-gemini-da921x-life27"
+CONFIG_CMDLINE="console=ttyS0,921600n8 earlycon maxcpus=8 nokaslr ignore_loglevel loglevel=8 log_buf_len=1M initcall_debug rdinit=/init panic=0 g_ether.dev_addr=42:00:15:19:84:01 g_ether.host_addr=42:00:15:19:84:00 g_ether.iManufacturer=gemini-pda-mainline g_ether.iProduct=Gemini-L-DA921x-Life27 g_ether.iSerialNumber=GEMINI_DA921X_LIFE27_20260801 clk_ignore_unused fbcon=rotate:3 consoleblank=0 fbcon=font:TER16x32 regulator_ignore_unused initcall_blacklist=mt6797_a72_power_driver_init fw_devlink=rpm"

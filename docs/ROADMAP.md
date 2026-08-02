@@ -576,7 +576,18 @@ boot. No partition read, storage write, or reboot occurred. This closes the
 real-compatible event/serviceability regression. The next Gate 3 action is a
 separately built identification-only driver-bind experiment using the already
 specified fourteen-read contract; provider work remains blocked. No native VM
-kernel build was run.
+kernel build was run. That next action is now frozen as the named
+`da921x-post-event-lifecycle` profile. It exactly extends the runtime-proven
+Stage 26 stack and changes only the already reviewed legacy identification
+driver from module-only to built-in, plus attributable release/USB identity.
+The runtime decision requires initial `14/8/6` read counters, a
+zero-transaction unbind, one exact rebind reaching `28/16/12`, zero
+write/other counters throughout, sysfs restored read-only on every exit, and
+the unchanged Stage 26/serviceability state. The unchanged fourteen-read
+contract, new static validator, runtime classifier and five unsafe mutations,
+all 54 manifest profiles, eight invariant mutations, syntax, and managed-VM
+ShellCheck passed input validation. The next action is an exact clean Buildbox
+build from the frozen pushed commit; provider work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 
