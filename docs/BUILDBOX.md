@@ -132,6 +132,30 @@ The lane transfers only the generated patches, provenance and checksums. Its
 temporary vendor source is removed after generation; it does not compile a
 kernel, construct a boot image, access the device, or authorize deployment.
 
+## Gemian pre-isolation rollback compile-review lane
+
+After the exact generated patch series is reviewed and tracked, its separate
+compile-only comparison runs with:
+
+```sh
+./scripts/buildbox build-gemian-rollback-compile
+./scripts/buildbox fetch-gemian-rollback-compile
+```
+
+The rollback tree is the seven-patch parent observer plus the three reviewed
+rollback patches. Its baseline is the same seven-patch observer tree without
+the rollback series. Both use the pinned live configuration, compiler, DCT
+oracle, host compatibility flag, and target `-fstack-usage` flag. Validation
+requires exact configuration deltas, byte-identical extracted diagnostics,
+rollback-symbol presence only in the changed tree, and checksum-covered
+case-preserving stack archives for both builds.
+
+Prepared source trees are keyed by their recorded patchset identities and
+reused only when their source, patchset, and complete diff checksums match.
+Out-of-tree build directories are removed after packaging. Provenance marks
+the result `rollback-compile-review-only` and `boot_candidate=false`; neither
+compiled output is a deployment artifact or permission to access the device.
+
 ## Remote storage and concurrency
 
 Buildbox uses its persistent home volume for the Git mirror, verified kernel

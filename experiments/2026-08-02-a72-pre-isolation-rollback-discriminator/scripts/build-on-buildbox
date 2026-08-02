@@ -1,0 +1,543 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+readonly SOURCE_COMMIT=59e00a9144d782e148332009a835b99c43382467
+readonly SOURCE_URL=https://github.com/gemian/gemini-linux-kernel-3.18.git
+readonly SNAPSHOT_URL=https://snapshot.debian.org/archive/debian/20170618T000000Z
+readonly CONFIG_SHA256=231d8a2ffe7afac3a4cc62c27d0eb6fe8bd9165ebd096e3e3346dd6df35c18f4
+readonly EXPECTED_GCC='aarch64-linux-gnu-gcc-6 (Debian 6.3.0-18) 6.3.0 20170516'
+readonly EXPECTED_LD='GNU ld (GNU Binutils for Debian) 2.28'
+readonly EXPECTED_PYTHON='Python 2.7.13'
+readonly CUST_DTSI_SHA256=7a7eb416499346afff30c15f967ccb9cf79323c076204b6a953515db74811632
+readonly TARGET_EXTRA_CFLAGS=-fstack-usage
+
+die() {
+  echo "error: $*" >&2
+  exit 1
+}
+
+[[ "$#" -eq 6 ]] || die "expected PROJECT_COMMIT SOURCE_ROOT BUILD_ROOT ARTIFACT_ROOT TOOLCHAIN_ROOT JOBS"
+readonly project_commit="$1"
+readonly source_root="$2"
+readonly build_root="$3"
+readonly artifact_root="$4"
+readonly toolchain_root="$5"
+readonly jobs="$6"
+
+[[ "${project_commit}" =~ ^[0-9a-f]{40}$ ]] || die "invalid project commit"
+[[ "${jobs}" =~ ^[1-9][0-9]*$ ]] || die "invalid job count"
+for root in "${source_root}" "${build_root}" "${artifact_root}" "${toolchain_root}"; do
+  [[ "${root}" == /workspace/gemini-pda/* && "${root}" != /workspace/gemini-pda ]] || \
+    die "unsafe managed root: ${root}"
+done
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+readonly script_dir
+experiment_dir="$(cd "${script_dir}/.." && pwd -P)"
+readonly experiment_dir
+repository_dir="$(cd "${experiment_dir}/../.." && pwd -P)"
+readonly repository_dir
+observer_experiment_dir="${repository_dir}/experiments/2026-07-23-gemian-a72-owner-observer"
+readonly observer_experiment_dir
+[[ "$(git -C "${repository_dir}" rev-parse HEAD)" == "${project_commit}" ]] || \
+  die "project checkout does not match requested commit"
+[[ -z "$(git -C "${repository_dir}" status --porcelain)" ]] || \
+  die "project checkout is dirty"
+
+readonly manifest="${observer_experiment_dir}/inputs/stretch-cross-toolchain.tsv"
+readonly baseline_config="${observer_experiment_dir}/inputs/active-gemian.config"
+readonly parent_patch_series="${observer_experiment_dir}/patches/series"
+readonly rollback_patch_series="${experiment_dir}/patches/series"
+manifest_sha="$(sha256sum "${manifest}" | awk '{print $1}')"
+readonly manifest_sha
+parent_patchset_sha="$(cd "${observer_experiment_dir}/patches" && while IFS= read -r patch; do sha256sum "${patch}"; done < series | sha256sum | awk '{print $1}')"
+readonly parent_patchset_sha
+rollback_patchset_sha="$(cd "${experiment_dir}/patches" && while IFS= read -r patch; do sha256sum "${patch}"; done < series | sha256sum | awk '{print $1}')"
+readonly rollback_patchset_sha
+[[ "$(sha256sum "${baseline_config}" | awk '{print $1}')" == "${CONFIG_SHA256}" ]] || \
+  die "active Gemian configuration hash mismatch"
+
+for command in apt-cache apt-get dpkg-deb file git jq make python3 sha256sum tar; do
+  command -v "${command}" >/dev/null 2>&1 || die "missing Buildbox command: ${command}"
+done
+
+prepare_toolchain() {
+  local apt_root
+  local architecture
+  local compiler
+  local deb
+  local filename
+  local package
+  local partial
+  local sha
+  local version
+  local wrapper
+
+  local toolchain="${toolchain_root}/${manifest_sha}"
+  if [[ -f "${toolchain}/validated" && ! -L "${toolchain}" ]]; then
+    [[ "$(<"${toolchain}/validated")" == "${manifest_sha}" ]] || \
+      die "cached toolchain validation identity mismatch"
+    return
+  fi
+
+  mkdir -p "${toolchain_root}"
+  for partial in "${toolchain_root}/${manifest_sha}.partial."*; do
+    [[ -d "${partial}" && ! -L "${partial}" ]] || continue
+    rm -rf -- "${partial}"
+  done
+  partial="${toolchain_root}/${manifest_sha}.partial.$$"
+  trap 'test -n "${partial:-}" && test -d "${partial}" && rm -rf -- "${partial}"' RETURN
+  mkdir -p "${partial}/apt/etc" "${partial}/apt/lists/partial" \
+    "${partial}/apt/cache/archives/partial" "${partial}/debs" \
+    "${partial}/root" "${partial}/wrappers"
+  printf '%s\n' "deb [trusted=yes] ${SNAPSHOT_URL} stretch main" > \
+    "${partial}/apt/etc/sources.list"
+  : > "${partial}/apt/status"
+  apt_root="${partial}/apt"
+  local -a apt_options=(
+    -o "Dir::Etc::sourcelist=${apt_root}/etc/sources.list"
+    -o Dir::Etc::sourceparts=-
+    -o "Dir::State::status=${apt_root}/status"
+    -o "Dir::State::lists=${apt_root}/lists"
+    -o "Dir::Cache=${apt_root}/cache"
+    -o Dir::Cache::archives=archives
+    -o Acquire::Check-Valid-Until=false
+    -o APT::Get::List-Cleanup=false
+    -o APT::Sandbox::User=builder
+  )
+  apt-get "${apt_options[@]}" update >/dev/null
+
+  while IFS=$'\t' read -r package version architecture filename sha; do
+    [[ "${package}" != package ]] || continue
+    [[ "${package}" =~ ^[a-z0-9][a-z0-9+.-]*$ ]] || die "unsafe package name"
+    [[ "${architecture}" =~ ^(all|amd64)$ ]] || die "unsafe package architecture"
+    [[ "${filename}" =~ ^[A-Za-z0-9_.+%:-]+\.deb$ ]] || die "unsafe package filename"
+    [[ "${sha}" =~ ^[0-9a-f]{64}$ ]] || die "unsafe package checksum"
+    (
+      cd "${partial}/debs"
+      apt-get "${apt_options[@]}" download "${package}=${version}" >/dev/null
+    )
+    deb="${partial}/debs/${filename}"
+    [[ -f "${deb}" && ! -L "${deb}" ]] || die "missing downloaded package: ${filename}"
+    [[ "$(sha256sum "${deb}" | awk '{print $1}')" == "${sha}" ]] || \
+      die "package checksum mismatch: ${filename}"
+    [[ "$(dpkg-deb -f "${deb}" Package)" == "${package}" ]] || die "package identity mismatch"
+    [[ "$(dpkg-deb -f "${deb}" Version)" == "${version}" ]] || die "package version mismatch"
+    [[ "$(dpkg-deb -f "${deb}" Architecture)" == "${architecture}" ]] || die "package architecture mismatch"
+  done < "${manifest}"
+  [[ "$(find "${partial}/debs" -maxdepth 1 -type f -name '*.deb' | wc -l)" -eq 39 ]] || \
+    die "unexpected toolchain package count"
+  while IFS=$'\t' read -r package version architecture filename sha; do
+    [[ "${package}" != package ]] || continue
+    dpkg-deb -x "${partial}/debs/${filename}" "${partial}/root"
+  done < "${manifest}"
+
+  wrapper="${partial}/wrappers/aarch64-linux-gnu-gcc"
+  cat > "${wrapper}" <<'WRAPPER'
+#!/usr/bin/env bash
+set -euo pipefail
+toolchain_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+export LD_LIBRARY_PATH="${toolchain_dir}/root/usr/lib/x86_64-linux-gnu"
+exec "${toolchain_dir}/root/usr/bin/aarch64-linux-gnu-gcc-6" \
+  -B"${toolchain_dir}/root/usr/lib/gcc-cross/aarch64-linux-gnu/6/" \
+  --sysroot="${toolchain_dir}/root" "$@"
+WRAPPER
+  chmod 0755 "${wrapper}"
+  cat > "${partial}/wrappers/python2.7" <<'WRAPPER'
+#!/usr/bin/env bash
+set -euo pipefail
+toolchain_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+export LD_LIBRARY_PATH="${toolchain_dir}/root/usr/lib/x86_64-linux-gnu"
+export PYTHONHOME="${toolchain_dir}/root/usr"
+exec "${toolchain_dir}/root/usr/bin/python2.7" "$@"
+WRAPPER
+  chmod 0755 "${partial}/wrappers/python2.7"
+  for command in addr2line ar as c++filt elfedit gprof ld ld.bfd nm objcopy objdump ranlib readelf size strings strip; do
+    [[ -x "${partial}/root/usr/bin/aarch64-linux-gnu-${command}" ]] || \
+      die "missing cross tool: ${command}"
+    ln -s "../root/usr/bin/aarch64-linux-gnu-${command}" \
+      "${partial}/wrappers/aarch64-linux-gnu-${command}"
+  done
+  compiler="${partial}/wrappers/aarch64-linux-gnu-gcc"
+  export LD_LIBRARY_PATH="${partial}/root/usr/lib/x86_64-linux-gnu"
+  [[ "$("${compiler}" --version | head -n 1)" == "${EXPECTED_GCC}" ]] || \
+    die "pinned compiler identity mismatch"
+  [[ "$("${partial}/wrappers/aarch64-linux-gnu-ld" --version | head -n 1)" == "${EXPECTED_LD}" ]] || \
+    die "pinned linker identity mismatch"
+  [[ "$("${partial}/wrappers/python2.7" --version 2>&1)" == "${EXPECTED_PYTHON}" ]] || \
+    die "pinned Python identity mismatch"
+  printf 'int probe(void) { return 0; }\n' | \
+    "${compiler}" -x c -c -o "${partial}/probe.o" -
+  file "${partial}/probe.o" | grep -F 'ELF 64-bit LSB relocatable, ARM aarch64' >/dev/null || \
+    die "pinned compiler object probe failed"
+  printf '%s\n' "${manifest_sha}" > "${partial}/validated"
+  mv "${partial}" "${toolchain}"
+  partial=""
+  trap - RETURN
+}
+
+prepare_mirror() {
+  mkdir -p "${source_root}"
+  if [[ ! -d "${source_mirror}" ]]; then
+    git clone --mirror "${SOURCE_URL}" "${source_mirror}.partial"
+    mv "${source_mirror}.partial" "${source_mirror}"
+  fi
+  [[ "$(git --git-dir="${source_mirror}" remote get-url origin)" == "${SOURCE_URL}" ]] || \
+    die "vendor source mirror origin mismatch"
+  git --git-dir="${source_mirror}" fetch origin "${SOURCE_COMMIT}"
+  [[ "$(git --git-dir="${source_mirror}" rev-parse FETCH_HEAD)" == "${SOURCE_COMMIT}" ]] || \
+    die "vendor source fetch mismatch"
+}
+
+prepare_variant() {
+  local current_diff_sha
+  local expected_diff_sha
+  local include_rollback="$4"
+  local patch
+  local partial
+  local state_identity
+  local state_source
+  local target="$1"
+  local state_file="$2"
+  local expected_identity="$3"
+
+  mkdir -p "$(dirname "${target}")"
+  if [[ -f "${target}/${state_file}" && ! -L "${target}" ]]; then
+    read -r state_source state_identity expected_diff_sha < \
+      "${target}/${state_file}"
+    [[ "${state_source}" == "${SOURCE_COMMIT}" && \
+       "${state_identity}" == "${expected_identity}" && \
+       "${expected_diff_sha}" =~ ^[0-9a-f]{64}$ ]] || \
+      die "prepared source identity mismatch: ${target}"
+    git -C "${target}" diff --check
+    current_diff_sha="$(git -C "${target}" diff --binary | sha256sum | awk '{print $1}')"
+    [[ "${current_diff_sha}" == "${expected_diff_sha}" ]] || \
+      die "prepared source diff mismatch: ${target}"
+    return
+  fi
+  for partial in "${target}.partial."*; do
+    [[ -d "${partial}" && ! -L "${partial}" ]] || continue
+    rm -rf -- "${partial}"
+  done
+  partial="${target}.partial.$$"
+  trap 'test -n "${partial:-}" && test -d "${partial}" && rm -rf -- "${partial}"' RETURN
+  git clone --no-checkout "${source_mirror}" "${partial}"
+  git -C "${partial}" checkout --detach "${SOURCE_COMMIT}"
+  while IFS= read -r patch; do
+    [[ "${patch}" =~ ^[A-Za-z0-9_.+-]+\.patch$ ]] || die "unsafe observer patch name"
+    git -C "${partial}" apply --check "${observer_experiment_dir}/patches/${patch}"
+    git -C "${partial}" apply "${observer_experiment_dir}/patches/${patch}"
+  done < "${parent_patch_series}"
+  if [[ "${include_rollback}" == 1 ]]; then
+    while IFS= read -r patch; do
+      [[ "${patch}" =~ ^[A-Za-z0-9_.+-]+\.patch$ ]] || \
+        die "unsafe rollback patch name"
+      git -C "${partial}" apply --check "${experiment_dir}/patches/${patch}"
+      git -C "${partial}" apply "${experiment_dir}/patches/${patch}"
+    done < "${rollback_patch_series}"
+  fi
+  git -C "${partial}" diff --check
+  current_diff_sha="$(git -C "${partial}" diff --binary | sha256sum | awk '{print $1}')"
+  printf '%s %s %s\n' "${SOURCE_COMMIT}" "${expected_identity}" \
+    "${current_diff_sha}" > "${partial}/${state_file}"
+  mv "${partial}" "${target}"
+  partial=""
+  trap - RETURN
+}
+
+prepare_toolchain
+readonly source_mirror="${source_root}/gemian-linux-kernel-3.18.git"
+readonly prepared_source="${source_root}/gemian-rollback/${parent_patchset_sha:0:16}-${rollback_patchset_sha:0:16}"
+readonly baseline_source="${source_root}/gemian-observer/by-patchset-${parent_patchset_sha:0:16}"
+prepare_mirror
+prepare_variant "${baseline_source}" .gemini-observer-state \
+  "${parent_patchset_sha}" 0
+prepare_variant "${prepared_source}" .gemini-rollback-state \
+  "${parent_patchset_sha}:${rollback_patchset_sha}" 1
+
+readonly toolchain="${toolchain_root}/${manifest_sha}"
+readonly cross_prefix="${toolchain}/wrappers/aarch64-linux-gnu-"
+readonly output="${build_root}/gemian-rollback/${project_commit}"
+readonly baseline_output="${build_root}/gemian-rollback-baseline/${project_commit}"
+readonly package="${artifact_root}/gemian-a72-preiso-compile-${project_commit:0:12}"
+readonly package_partial="${package}.partial.$$"
+[[ ! -e "${package}" ]] || die "refusing to overwrite compile-review package: ${package}"
+[[ ! -e "${package_partial}" ]] || die "stale compile-review partial exists"
+mkdir -p "$(dirname "${output}")" "${artifact_root}"
+for stale_output in "${output}" "${baseline_output}"; do
+  if [[ -e "${stale_output}" ]]; then
+    [[ -d "${stale_output}" && ! -L "${stale_output}" && \
+       "${stale_output}" == /workspace/gemini-pda/build/gemian-*/* ]] || \
+      die "unsafe stale build directory"
+    rm -rf -- "${stale_output}"
+  fi
+done
+mkdir -p "${output}" "${baseline_output}"
+trap 'test -d "${output}" && rm -rf -- "${output}"; test -d "${baseline_output}" && rm -rf -- "${baseline_output}"; test -d "${package_partial}" && rm -rf -- "${package_partial}"' EXIT
+cp "${baseline_config}" "${output}/baseline.config"
+cp "${baseline_config}" "${output}/.config"
+"${prepared_source}/scripts/config" --file "${output}/.config" \
+  --enable MTK_A72_TRANSITION_OBSERVER \
+  --enable MTK_A72_PREISO_ROLLBACK_DISCRIMINATOR
+
+export LD_LIBRARY_PATH="${toolchain}/root/usr/lib/x86_64-linux-gnu"
+export HOST_EXTRACFLAGS=-fcommon
+make -C "${prepared_source}" O="${output}" ARCH=arm64 \
+  CROSS_COMPILE="${cross_prefix}" olddefconfig
+python3 - "${output}/baseline.config" "${output}/.config" > "${output}/config.diff" <<'PY'
+import pathlib
+import sys
+
+def symbols(path):
+    result = {}
+    for line in pathlib.Path(path).read_text().splitlines():
+        if line.startswith("CONFIG_") and "=" in line:
+            name, value = line.split("=", 1)
+            result[name] = value
+        elif line.startswith("# CONFIG_") and line.endswith(" is not set"):
+            result[line[2:-11]] = "n"
+    return result
+
+before = symbols(sys.argv[1])
+after = symbols(sys.argv[2])
+changes = []
+for name in sorted(set(before) | set(after)):
+    if before.get(name) != after.get(name):
+        changes.append((name, before.get(name, "missing"), after.get(name, "missing")))
+for name, old, new in changes:
+    print("{}\t{}\t{}".format(name, old, new))
+expected = [
+    ("CONFIG_ANBOX", "missing", "n"),
+    ("CONFIG_MTK_A72_PREISO_ROLLBACK_DISCRIMINATOR", "missing", "y"),
+    ("CONFIG_MTK_A72_TRANSITION_OBSERVER", "missing", "y"),
+]
+if changes != expected:
+    raise SystemExit(
+        "configuration delta is not exact rollback-plus-observer normalization"
+    )
+PY
+
+readonly dct_output="${output}/arch/arm64/boot/dts"
+mkdir -p "${dct_output}"
+(
+  cd "${prepared_source}/tools/dct"
+  "${toolchain}/wrappers/python2.7" DrvGen.py \
+    "${prepared_source}/drivers/misc/mediatek/dws/mt6797/aeon6797_6m_n.dws" \
+    "${dct_output}/" "${dct_output}/" cust_dtsi
+) 2>&1 | tee "${output}/dct.log"
+[[ "$(sed -n '3{/^ \* [0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\} [0-9]\{2\}:[0-9]\{2\}:[0-9]\{2\}$/p;}' \
+  "${dct_output}/cust.dtsi" | wc -l)" -eq 1 ]] || \
+  die "generated cust.dtsi timestamp contract changed"
+sed '3s/^ \* [0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\} [0-9]\{2\}:[0-9]\{2\}:[0-9]\{2\}$/ * 1970-01-01 00:00:00/' \
+  "${dct_output}/cust.dtsi" > "${dct_output}/cust.dtsi.normalized"
+mv "${dct_output}/cust.dtsi.normalized" "${dct_output}/cust.dtsi"
+[[ "$(sha256sum "${dct_output}/cust.dtsi" | awk '{print $1}')" == "${CUST_DTSI_SHA256}" ]] || \
+  die "generated cust.dtsi checksum mismatch"
+
+if ! make -C "${prepared_source}" O="${output}" ARCH=arm64 \
+  CROSS_COMPILE="${cross_prefix}" python="${toolchain}/wrappers/python2.7" \
+  KCFLAGS="${TARGET_EXTRA_CFLAGS}" \
+  -j"${jobs}" V=1 Image.gz-dtb > "${output}/build.log" 2>&1; then
+  tail -n 160 "${output}/build.log" >&2
+  die "rollback source build failed"
+fi
+printf 'rollback_source_build=passed\n'
+
+readonly image="${output}/arch/arm64/boot/Image.gz-dtb"
+[[ -s "${image}" && -s "${output}/vmlinux" && -s "${output}/System.map" ]] || \
+  die "rollback compile outputs are incomplete"
+
+cp "${baseline_config}" "${baseline_output}/baseline.config"
+cp "${baseline_config}" "${baseline_output}/.config"
+"${baseline_source}/scripts/config" --file "${baseline_output}/.config" \
+  --enable MTK_A72_TRANSITION_OBSERVER
+make -C "${baseline_source}" O="${baseline_output}" ARCH=arm64 \
+  CROSS_COMPILE="${cross_prefix}" olddefconfig
+python3 - "${baseline_output}/baseline.config" "${baseline_output}/.config" > \
+  "${baseline_output}/config.diff" <<'PY'
+import pathlib
+import sys
+
+def symbols(path):
+    result = {}
+    for line in pathlib.Path(path).read_text().splitlines():
+        if line.startswith("CONFIG_") and "=" in line:
+            name, value = line.split("=", 1)
+            result[name] = value
+        elif line.startswith("# CONFIG_") and line.endswith(" is not set"):
+            result[line[2:-11]] = "n"
+    return result
+
+before = symbols(sys.argv[1])
+after = symbols(sys.argv[2])
+changes = []
+for name in sorted(set(before) | set(after)):
+    if before.get(name) != after.get(name):
+        changes.append((name, before.get(name, "missing"), after.get(name, "missing")))
+for name, old, new in changes:
+    print("{}\t{}\t{}".format(name, old, new))
+expected = [
+    ("CONFIG_ANBOX", "missing", "n"),
+    ("CONFIG_MTK_A72_TRANSITION_OBSERVER", "missing", "y"),
+]
+if changes != expected:
+    raise SystemExit("baseline config is not exact parent-observer normalization")
+PY
+readonly baseline_dct_output="${baseline_output}/arch/arm64/boot/dts"
+mkdir -p "${baseline_dct_output}"
+(
+  cd "${baseline_source}/tools/dct"
+  "${toolchain}/wrappers/python2.7" DrvGen.py \
+    "${baseline_source}/drivers/misc/mediatek/dws/mt6797/aeon6797_6m_n.dws" \
+    "${baseline_dct_output}/" "${baseline_dct_output}/" cust_dtsi
+) > "${baseline_output}/dct.log" 2>&1
+[[ "$(sed -n '3{/^ \* [0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\} [0-9]\{2\}:[0-9]\{2\}:[0-9]\{2\}$/p;}' \
+  "${baseline_dct_output}/cust.dtsi" | wc -l)" -eq 1 ]] || \
+  die "baseline cust.dtsi timestamp contract changed"
+sed '3s/^ \* [0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\} [0-9]\{2\}:[0-9]\{2\}:[0-9]\{2\}$/ * 1970-01-01 00:00:00/' \
+  "${baseline_dct_output}/cust.dtsi" > "${baseline_dct_output}/cust.dtsi.normalized"
+mv "${baseline_dct_output}/cust.dtsi.normalized" \
+  "${baseline_dct_output}/cust.dtsi"
+[[ "$(sha256sum "${baseline_dct_output}/cust.dtsi" | awk '{print $1}')" == "${CUST_DTSI_SHA256}" ]] || \
+  die "baseline cust.dtsi checksum mismatch"
+if ! make -C "${baseline_source}" O="${baseline_output}" ARCH=arm64 \
+  CROSS_COMPILE="${cross_prefix}" python="${toolchain}/wrappers/python2.7" \
+  KCFLAGS="${TARGET_EXTRA_CFLAGS}" \
+  -j"${jobs}" V=1 Image.gz-dtb > "${baseline_output}/build.log" 2>&1; then
+  tail -n 160 "${baseline_output}/build.log" >&2
+  die "baseline source build failed"
+fi
+printf 'baseline_source_build=passed\n'
+[[ -s "${baseline_output}/arch/arm64/boot/Image.gz-dtb" && \
+   -s "${baseline_output}/vmlinux" && -s "${baseline_output}/System.map" ]] || \
+  die "baseline compile outputs are incomplete"
+grep -q ' mt6797_a72_obs_init$' "${output}/System.map" || \
+  die "observer symbol map is missing the observer initializer"
+grep -q ' mt6797_a72_preiso_rollback$' "${output}/System.map" || \
+  die "rollback symbol map is missing the orchestrator"
+grep -q ' da9214_a72_diag_compare_update$' "${output}/System.map" || \
+  die "rollback symbol map is missing the DA921x owner operation"
+grep -q ' mt6797_a72_obs_init$' "${baseline_output}/System.map" || \
+  die "parent observer baseline is missing its initializer"
+if grep -qE ' (mt6797_a72_preiso_rollback|.*_a72_diag_)$' \
+  "${baseline_output}/System.map"; then
+  die "parent observer baseline unexpectedly contains rollback symbols"
+fi
+
+grep -E -i '(^|[^[:alpha:]])(warning|error):' "${output}/build.log" > \
+  "${output}/diagnostics.txt" || :
+grep -E -i '(^|[^[:alpha:]])(warning|error):' "${baseline_output}/build.log" > \
+  "${baseline_output}/diagnostics.txt" || :
+cmp "${output}/diagnostics.txt" "${baseline_output}/diagnostics.txt" >/dev/null || \
+  die "rollback and parent-observer compiler diagnostics differ"
+[[ -s "${output}/diagnostics.txt" ]] || die "expected vendor baseline diagnostic is absent"
+printf 'diagnostic_comparison=identical\n'
+
+mkdir -p "${package_partial}/outputs" "${package_partial}/provenance"
+cp "${output}/.config" "${package_partial}/outputs/config"
+cp "${output}/config.diff" "${package_partial}/outputs/config.diff"
+cp "${dct_output}/cust.dtsi" "${package_partial}/outputs/cust.dtsi"
+cp "${output}/dct.log" "${package_partial}/outputs/dct.log"
+cp "${output}/build.log" "${package_partial}/outputs/build.log"
+cp "${image}" "${package_partial}/outputs/Image.gz-dtb"
+cp "${output}/System.map" "${package_partial}/outputs/System.map"
+cp "${output}/vmlinux" "${package_partial}/outputs/vmlinux"
+cp "${output}/diagnostics.txt" "${package_partial}/outputs/diagnostics.txt"
+mkdir -p "${package_partial}/outputs/baseline"
+cp "${baseline_output}/build.log" "${package_partial}/outputs/baseline/build.log"
+cp "${baseline_output}/.config" "${package_partial}/outputs/baseline/config"
+cp "${baseline_output}/config.diff" "${package_partial}/outputs/baseline/config.diff"
+cp "${baseline_output}/diagnostics.txt" \
+  "${package_partial}/outputs/baseline/diagnostics.txt"
+cp "${baseline_output}/System.map" "${package_partial}/outputs/baseline/System.map"
+(
+  cd "${baseline_output}"
+  sha256sum arch/arm64/boot/Image.gz-dtb System.map vmlinux > \
+    "${package_partial}/outputs/baseline/output-sha256.txt"
+)
+(
+  cd "${output}"
+  find . -type f -name '*.su' -print0 | sort -z > \
+    "${package_partial}/outputs/stack-usage-files.nul"
+  tar --null --files-from="${package_partial}/outputs/stack-usage-files.nul" \
+    -cf "${package_partial}/outputs/stack-usage.tar"
+)
+tar -tf "${package_partial}/outputs/stack-usage.tar" > \
+  "${package_partial}/outputs/stack-usage-files.txt"
+stack_usage_count="$(tr -cd '\0' < \
+  "${package_partial}/outputs/stack-usage-files.nul" | wc -c)"
+readonly stack_usage_count
+archive_member_count="$(wc -l < \
+  "${package_partial}/outputs/stack-usage-files.txt")"
+readonly archive_member_count
+[[ "${stack_usage_count}" -gt 100 && \
+   "${archive_member_count}" -eq "${stack_usage_count}" ]] || \
+  die "stack-usage capture is unexpectedly incomplete"
+tar -C "${output}" --compare \
+  --file="${package_partial}/outputs/stack-usage.tar"
+(
+  cd "${baseline_output}"
+  find . -type f -name '*.su' -print0 | sort -z > \
+    "${package_partial}/outputs/baseline/stack-usage-files.nul"
+  tar --null \
+    --files-from="${package_partial}/outputs/baseline/stack-usage-files.nul" \
+    -cf "${package_partial}/outputs/baseline/stack-usage.tar"
+)
+tar -tf "${package_partial}/outputs/baseline/stack-usage.tar" > \
+  "${package_partial}/outputs/baseline/stack-usage-files.txt"
+baseline_stack_usage_count="$(tr -cd '\0' < \
+  "${package_partial}/outputs/baseline/stack-usage-files.nul" | wc -c)"
+readonly baseline_stack_usage_count
+baseline_archive_member_count="$(wc -l < \
+  "${package_partial}/outputs/baseline/stack-usage-files.txt")"
+readonly baseline_archive_member_count
+[[ "${baseline_stack_usage_count}" -gt 100 && \
+   "${baseline_archive_member_count}" -eq "${baseline_stack_usage_count}" ]] || \
+  die "baseline stack-usage capture is unexpectedly incomplete"
+tar -C "${baseline_output}" --compare \
+  --file="${package_partial}/outputs/baseline/stack-usage.tar"
+"${cross_prefix}gcc" --version > "${package_partial}/provenance/compiler.txt"
+"${cross_prefix}ld" --version > "${package_partial}/provenance/linker.txt"
+gcc --version > "${package_partial}/provenance/host-compiler.txt"
+jq -n \
+  --arg repository_commit "${project_commit}" \
+  --arg source_url "${SOURCE_URL}" \
+  --arg source_commit "${SOURCE_COMMIT}" \
+  --arg parent_patchset_sha256 "${parent_patchset_sha}" \
+  --arg rollback_patchset_sha256 "${rollback_patchset_sha}" \
+  --arg config_sha256 "${CONFIG_SHA256}" \
+  --arg toolchain_manifest_sha256 "${manifest_sha}" \
+  --arg snapshot_url "${SNAPSHOT_URL}" \
+  --arg cust_dtsi_sha256 "${CUST_DTSI_SHA256}" \
+  --arg build_architecture "$(uname -m)" \
+  --arg target_architecture arm64 \
+  --argjson stack_usage_file_count "${stack_usage_count}" \
+  --argjson baseline_stack_usage_file_count "${baseline_stack_usage_count}" \
+  --arg completed_utc "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  '{repository_commit: $repository_commit, repository_dirty: false,
+    source_url: $source_url, source_commit: $source_commit,
+    parent_patchset_sha256: $parent_patchset_sha256,
+    rollback_patchset_sha256: $rollback_patchset_sha256,
+    baseline_config_sha256: $config_sha256,
+    toolchain_manifest_sha256: $toolchain_manifest_sha256,
+    snapshot_url: $snapshot_url, cust_dtsi_sha256: $cust_dtsi_sha256,
+    build_architecture: $build_architecture,
+    target_architecture: $target_architecture, host_extra_cflags: "-fcommon",
+    target_extra_cflags: "-fstack-usage",
+    baseline_comparison: true, diagnostics_identical: true,
+    baseline_source_parent_observer: true, stack_usage_captured: true,
+    stack_usage_file_count: $stack_usage_file_count,
+    baseline_stack_usage_file_count: $baseline_stack_usage_file_count,
+    purpose: "rollback-compile-review-only",
+    boot_candidate: false, completed_utc: $completed_utc}' > \
+  "${package_partial}/provenance/build.json"
+(
+  cd "${package_partial}"
+  find outputs provenance -type f -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+  sha256sum --check --strict SHA256SUMS >/dev/null
+)
+rm -rf -- "${output}" "${baseline_output}"
+mv "${package_partial}" "${package}"
+trap - EXIT
+printf 'Packaged Gemian rollback compile review at %s\n' "${package}"

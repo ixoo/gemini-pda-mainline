@@ -71,6 +71,12 @@ predeployment decision after compiler and timing review.
   owner, ordering, no-control and forbidden-boundary validation.
 - [`scripts/test_static.py`](scripts/test_static.py): generated-patch mutation
   tripwires; it runs inside the generation job before results are fetchable.
+- [`scripts/build-on-buildbox`](scripts/build-on-buildbox): exact rollback
+  versus parent-observer compiler, diagnostic, symbol, and dual-stack-evidence
+  comparison.
+- [`scripts/test_build_lane.py`](scripts/test_build_lane.py): pins both
+  patchset identities and proves the compile lane remains Buildbox-only,
+  non-bootable, and device-inert.
 - [`patches/series`](patches/series): the exact three-patch rollback ABI,
   owner-operation, and CPU8 orchestrator series generated from the pinned
   vendor source.
@@ -88,6 +94,7 @@ Run from the repository root:
 
 ```sh
 python3 experiments/2026-08-02-a72-pre-isolation-rollback-discriminator/scripts/test_rollback_model.py
+python3 experiments/2026-08-02-a72-pre-isolation-rollback-discriminator/scripts/test_build_lane.py
 ```
 
 ## Decision

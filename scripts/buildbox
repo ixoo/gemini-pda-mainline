@@ -29,6 +29,10 @@ Commands:
   fetch-package         Fetch the validated package for HEAD and the profile
   build-gemian-observer Fetch pushed HEAD and compile the fixed Gemian observer
   fetch-gemian-observer Fetch its validated compile-review bundle for HEAD
+  build-gemian-rollback-compile
+                        Compare rollback and parent observer on Buildbox
+  fetch-gemian-rollback-compile
+                        Fetch that validated compile-review bundle for HEAD
   generate-gemian-rollback-patches
                         Generate the pre-isolation patch review on Buildbox
   fetch-gemian-rollback-patches
@@ -415,8 +419,14 @@ build_gemian_observer() {
   local branch
   local identity
   local jobs
+  local mode="${1:-observer}"
   local remote_command
   local sha
+
+  case "${mode}" in
+    observer|rollback) ;;
+    *) die "invalid Gemian compile-review mode: ${mode}" ;;
+  esac
 
   require_command git
   require_command jq
@@ -424,16 +434,18 @@ build_gemian_observer() {
   identity="$(require_clean_pushed_head)"
   IFS=$'\t' read -r sha branch <<< "${identity}"
   jobs="$(job_count)"
-  printf -v remote_command 'bash -s -- %q %q %q' "${sha}" "${branch}" "${jobs}"
+  printf -v remote_command 'bash -s -- %q %q %q %q' \
+    "${sha}" "${branch}" "${jobs}" "${mode}"
 
-  printf 'Submitting Gemian observer compile review %s to %s\n' \
-    "${sha}" "${BUILDBOX_HOST}"
+  printf 'Submitting Gemian %s compile review %s to %s\n' \
+    "${mode}" "${sha}" "${BUILDBOX_HOST}"
   ssh_buildbox "${remote_command}" <<'REMOTE'
 set -euo pipefail
 
 readonly commit="$1"
 readonly branch="$2"
 readonly jobs="$3"
+readonly mode="$4"
 readonly remote_url=https://github.com/ixoo/gemini-pda-mainline.git
 readonly persistent_root="${HOME}/gemini-pda-buildbox"
 readonly mirror="${persistent_root}/repo.git"
@@ -445,7 +457,20 @@ readonly build_root="${workspace_root}/build"
 readonly artifact_root="${workspace_root}/gemian-artifacts"
 readonly toolchain_root="${workspace_root}/gemian-toolchains"
 readonly job_root="${workspace_root}/jobs"
-readonly job_key="${commit}-gemian-a72-owner-observer"
+case "${mode}" in
+  observer)
+    readonly job_suffix=gemian-a72-owner-observer
+    readonly job_purpose=gemian-a72-owner-observer-compile-review
+    readonly build_script=experiments/2026-07-23-gemian-a72-owner-observer/scripts/build-on-buildbox
+    ;;
+  rollback)
+    readonly job_suffix=gemian-a72-preiso-rollback
+    readonly job_purpose=gemian-a72-preiso-rollback-compile-review
+    readonly build_script=experiments/2026-08-02-a72-pre-isolation-rollback-discriminator/scripts/build-on-buildbox
+    ;;
+  *) exit 2 ;;
+esac
+readonly job_key="${commit}-${job_suffix}"
 readonly job_log="${job_root}/${job_key}.log"
 readonly job_record="${job_root}/${job_key}.json"
 
@@ -485,9 +510,9 @@ fi
 [[ -z "$(git -C "${checkout}" status --porcelain)" ]]
 
 if [[ -f "${job_record}" ]] && jq -e \
-  --arg commit "${commit}" '
+  --arg commit "${commit}" --arg purpose "${job_purpose}" '
     .status == "validated" and .repository_commit == $commit and
-    .purpose == "gemian-a72-owner-observer-compile-review"
+    .purpose == $purpose
   ' "${job_record}" >/dev/null; then
   package="$(jq -er '.package' "${job_record}")"
   [[ -d "${package}" && ! -L "${package}" ]]
@@ -498,13 +523,14 @@ fi
 
 rm -f "${job_record}.partial"
 set -o pipefail
-"${checkout}/experiments/2026-07-23-gemian-a72-owner-observer/scripts/build-on-buildbox" \
+"${checkout}/${build_script}" \
   "${commit}" "${source_root}" "${build_root}" "${artifact_root}" \
   "${toolchain_root}" "${jobs}" 2>&1 | tee "${job_log}"
-package="$(sed -n 's/^Packaged Gemian observer compile review at //p' "${job_log}" | tail -n 1)"
+package="$(sed -n 's/^Packaged Gemian .* compile review at //p' \
+  "${job_log}" | tail -n 1)"
 case "${package}" in
   "${artifact_root}"/*) ;;
-  *) echo "error: observer build did not report a safe package path" >&2; exit 1 ;;
+  *) echo "error: Gemian build did not report a safe package path" >&2; exit 1 ;;
 esac
 [[ -d "${package}" && ! -L "${package}" ]]
 (
@@ -519,27 +545,53 @@ jq -e --arg commit "${commit}" '
   .host_extra_cflags == "-fcommon" and
   .target_extra_cflags == "-fstack-usage" and
   .baseline_comparison == true and .diagnostics_identical == true and
-  .baseline_source_unpatched == true and .stack_usage_captured == true and
-  .stack_usage_file_count > 100 and
-  .purpose == "compile-review-only" and .boot_candidate == false
+  .stack_usage_captured == true and .stack_usage_file_count > 100 and
+  .boot_candidate == false
 ' "${package}/provenance/build.json" >/dev/null
-for required in \
-  outputs/System.map outputs/diagnostics.txt outputs/baseline/config \
-  outputs/baseline/System.map outputs/baseline/diagnostics.txt \
-  outputs/baseline/output-sha256.txt outputs/stack-usage.tar \
-  outputs/stack-usage-files.nul outputs/stack-usage-files.txt; do
+for required in outputs/System.map outputs/diagnostics.txt \
+  outputs/baseline/config outputs/baseline/System.map \
+  outputs/baseline/diagnostics.txt outputs/baseline/output-sha256.txt \
+  outputs/stack-usage.tar outputs/stack-usage-files.nul \
+  outputs/stack-usage-files.txt; do
   [[ -s "${package}/${required}" ]]
 done
 cmp "${package}/outputs/diagnostics.txt" \
   "${package}/outputs/baseline/diagnostics.txt" >/dev/null
-grep -q ' mt6797_a72_obs_init$' "${package}/outputs/System.map"
-! grep -qE ' (mt6797|da9214)_a72_obs_' \
-  "${package}/outputs/baseline/System.map"
+if [[ "${mode}" == observer ]]; then
+  jq -e '
+    .baseline_source_unpatched == true and
+    .purpose == "compile-review-only"
+  ' "${package}/provenance/build.json" >/dev/null
+  grep -q ' mt6797_a72_obs_init$' "${package}/outputs/System.map"
+  ! grep -qE ' (mt6797|da9214)_a72_obs_' \
+    "${package}/outputs/baseline/System.map"
+else
+  for required in outputs/baseline/stack-usage.tar \
+    outputs/baseline/stack-usage-files.nul \
+    outputs/baseline/stack-usage-files.txt; do
+    [[ -s "${package}/${required}" ]]
+  done
+  jq -e '
+    .baseline_source_parent_observer == true and
+    .baseline_stack_usage_file_count > 100 and
+    .parent_patchset_sha256 ==
+      "3584e9dd5ffb041573b851f31f3a96eaa0a684acb880fd59560762e5abc58be0" and
+    .rollback_patchset_sha256 ==
+      "f034724759eebc611d6f16dea3448f1ee1ebcff0939a6e62e686c0a6261162a7" and
+    .purpose == "rollback-compile-review-only"
+  ' "${package}/provenance/build.json" >/dev/null
+  grep -q ' mt6797_a72_preiso_rollback$' "${package}/outputs/System.map"
+  grep -q ' da9214_a72_diag_compare_update$' "${package}/outputs/System.map"
+  grep -q ' mt6797_a72_obs_init$' "${package}/outputs/baseline/System.map"
+  ! grep -qE ' (mt6797_a72_preiso_rollback|.*_a72_diag_)$' \
+    "${package}/outputs/baseline/System.map"
+  [[ "$(tar -tf "${package}/outputs/baseline/stack-usage.tar" | wc -l)" -gt 100 ]]
+fi
 [[ "$(tar -tf "${package}/outputs/stack-usage.tar" | wc -l)" -gt 100 ]]
 jq -n \
   --arg status validated \
   --arg repository_commit "${commit}" \
-  --arg purpose gemian-a72-owner-observer-compile-review \
+  --arg purpose "${job_purpose}" \
   --arg package "${package}" \
   --arg package_name "$(basename "${package}")" \
   --arg completed_utc "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
@@ -556,6 +608,9 @@ fetch_gemian_observer() {
   local destination
   local job_info
   local job_key
+  local job_purpose
+  local job_suffix
+  local mode="${1:-observer}"
   local package_name
   local remote_command
   local sha
@@ -566,19 +621,31 @@ fetch_gemian_observer() {
   require_command sha256sum
   require_command ssh
   require_command tar
+  case "${mode}" in
+    observer)
+      job_suffix=gemian-a72-owner-observer
+      job_purpose=gemian-a72-owner-observer-compile-review
+      ;;
+    rollback)
+      job_suffix=gemian-a72-preiso-rollback
+      job_purpose=gemian-a72-preiso-rollback-compile-review
+      ;;
+    *) die "invalid Gemian compile-review mode: ${mode}" ;;
+  esac
   sha="$(git -C "${REPO_DIR}" rev-parse HEAD)"
   [[ "${sha}" =~ ^[0-9a-f]{40}$ ]] || die "invalid HEAD commit"
-  job_key="${sha}-gemian-a72-owner-observer"
+  job_key="${sha}-${job_suffix}"
   printf -v remote_command 'test -f %q && cat %q' \
     "/workspace/gemini-pda/jobs/${job_key}.json" \
     "/workspace/gemini-pda/jobs/${job_key}.json"
   job_info="$(ssh_buildbox "${remote_command}")" || \
-    die "no completed Gemian observer Buildbox job for ${sha}"
-  printf '%s' "${job_info}" | jq -e --arg commit "${sha}" '
+    die "no completed Gemian ${mode} Buildbox job for ${sha}"
+  printf '%s' "${job_info}" | jq -e \
+    --arg commit "${sha}" --arg purpose "${job_purpose}" '
     .status == "validated" and .repository_commit == $commit and
-    .purpose == "gemian-a72-owner-observer-compile-review" and
+    .purpose == $purpose and
     (.package_name | test("^[A-Za-z0-9_.+-]+$"))
-  ' >/dev/null || die "Gemian observer Buildbox job record is invalid"
+  ' >/dev/null || die "Gemian ${mode} Buildbox job record is invalid"
   package_name="$(printf '%s' "${job_info}" | jq -er '.package_name')"
   destination="${REPO_DIR}/artifacts/buildbox/${sha}/${package_name}"
   [[ ! -e "${destination}" ]] || die "refusing to overwrite ${destination}"
@@ -586,23 +653,28 @@ fetch_gemian_observer() {
   temporary="$(mktemp -d "$(dirname "${destination}")/.fetch.XXXXXX")"
   trap 'test -n "${temporary:-}" && test -d "${temporary}" && rm -rf -- "${temporary}"' EXIT
 
-  printf -v remote_command 'bash -s -- %q %q' "${job_key}" "${sha}"
+  printf -v remote_command 'bash -s -- %q %q %q %q' \
+    "${job_key}" "${sha}" "${job_purpose}" "${mode}"
   ssh_buildbox "${remote_command}" <<'REMOTE' | tar -C "${temporary}" -xf -
 set -euo pipefail
 readonly job_key="$1"
 readonly commit="$2"
+readonly job_purpose="$3"
+readonly mode="$4"
 readonly artifact_root=/workspace/gemini-pda/gemian-artifacts
 readonly record="/workspace/gemini-pda/jobs/${job_key}.json"
 [[ -f "${record}" && ! -L "${record}" ]]
-package="$(jq -er --arg commit "${commit}" '
+package="$(jq -er --arg commit "${commit}" --arg purpose "${job_purpose}" '
   select(.status == "validated" and .repository_commit == $commit and
-    .purpose == "gemian-a72-owner-observer-compile-review") | .package
+    .purpose == $purpose) | .package
 ' "${record}")"
 case "${package}" in "${artifact_root}"/*) ;; *) exit 1 ;; esac
 [[ -d "${package}" && ! -L "${package}" ]]
-jq -e --arg commit "${commit}" '
+jq -e --arg commit "${commit}" --arg mode "${mode}" '
   .repository_commit == $commit and .repository_dirty == false and
-  .purpose == "compile-review-only" and .boot_candidate == false
+  .boot_candidate == false and
+  (($mode == "observer" and .purpose == "compile-review-only") or
+   ($mode == "rollback" and .purpose == "rollback-compile-review-only"))
 ' "${package}/provenance/build.json" >/dev/null
 tar -C "$(dirname "${package}")" -cf - -- "$(basename "${package}")"
 REMOTE
@@ -790,6 +862,8 @@ case "${COMMAND}" in
   fetch-package) fetch_package ;;
   build-gemian-observer) build_gemian_observer ;;
   fetch-gemian-observer) fetch_gemian_observer ;;
+  build-gemian-rollback-compile) build_gemian_observer rollback ;;
+  fetch-gemian-rollback-compile) fetch_gemian_observer rollback ;;
   generate-gemian-rollback-patches) generate_gemian_rollback_patches ;;
   fetch-gemian-rollback-patches) fetch_gemian_rollback_patches ;;
   help|-h|--help) usage ;;
