@@ -1,0 +1,17 @@
+experiment=2026-08-01-da921x-natural-device-add
+profile=da921x-natural-device-add
+expected_release=7.1.3-gemini-da921x-devadd
+kernel_hypothesis=the exact boot-time OF client completes device_register while its natural add event traverses the ordinary namespace and broadcast call site once
+unique_evidence=stage-26 plus exact device-register, uevent-return, namespace-route, and zero-delivery counters on the original add event
+expected_socket_topology=one-socket-zero-listeners-zero-allocations-zero-broadcasts
+required_client=1-0068-present-of-backed-unbound
+required_cpu_state=0-7-online-8-9-offline
+required_hardware_activity=zero-i2c-zero-oracle
+success_branch=close-event-serviceability-regression-and-design-identification-only-driver-bind
+failure_branch=remain-in-natural-device-add-or-uevent-integration-boundary
+driver_bind=forbidden
+provider=absent
+register_write=forbidden
+a72_power_request=forbidden
+device_storage_access=none
+native_vm_kernel_build=forbidden-without-owner-request

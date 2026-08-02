@@ -136,3 +136,4 @@ v7.1.3/0143-kobject-deliver-Gemini-DA921x-single-multicast.patch
 v7.1.3/0144-kobject-exercise-Gemini-DA921x-untagged-dispatch.patch
 v7.1.3/0145-kobject-exercise-Gemini-DA921x-net-broadcast-wrapper.patch
 v7.1.3/0146-kobject-exercise-Gemini-DA921x-normal-fallthrough.patch
+v7.1.3/0147-i2c-observe-Gemini-DA921x-natural-device-add.patch

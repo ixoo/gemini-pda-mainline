@@ -546,9 +546,15 @@ unbound-client, CPU, zero-I2C, and serviceability baseline. A fresh read-only
 postcheck confirmed persistent stage 25, exact counters, read-only sysfs, and
 removal of all nine helpers. The next Gate 3 boundary is a separate natural
 `device_add()` experiment with an independent observation path. This result
-does not yet prove driver bind, provider behavior, or A72 power. No native VM
-kernel build is authorized without an explicit owner request. Provider work
-remains blocked.
+does not yet prove driver bind, provider behavior, or A72 power. That boundary
+is now frozen as the named `da921x-natural-device-add` profile. Patch `0147`
+observes the exact boot-time I2C `device_register()` call, its natural uevent
+call site and wrapper, and their returns without adding a trigger, replay,
+driver, transfer, or hardware write. Exact-source patch application, strict
+patch review, manifest invariants, the static contract, and the read-only
+runtime checker passed input validation. The next action is an exact clean
+Buildbox build from the frozen pushed commit. No native VM kernel build is
+authorized without an explicit owner request. Provider work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 

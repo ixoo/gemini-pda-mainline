@@ -1,0 +1,426 @@
+From 38eb0f22e48c3e8dbe49fd0ac8571ea20e9575db Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 1 Aug 2026 21:35:00 -0400
+Subject: [PATCH 147/147] i2c: observe Gemini DA921x natural device add
+
+The named Gemini reached stage 25 after the exact retained event traversed
+the ordinary kobject_uevent_env() network-broadcast call site and public
+return. That result remained a post-serviceability replay.
+
+Add the next experiment-only boundary. Arm observation before the exact
+OF-created I2C client enters device_register(). After the existing event
+validators and zero-listener preflight pass during its boot-time
+add event, leave the experiment branch through the ordinary namespace and
+network-broadcast call site. Record its public return and the later return
+from device_register().
+
+Advance to stage 26 only for one exact device-register entry and return,
+one call-site entry and return, one public return, one namespace check, one
+untagged route, one socket, zero listeners, allocations, and broadcasts,
+and return zero throughout. Expose the counters read-only. This adds no
+trigger, replay, driver, provider, I2C transfer, register access, printk,
+usermode helper, or storage path.
+---
+ drivers/i2c/Kconfig             |  19 ++++
+ drivers/i2c/i2c-core-base.c     |  15 ++++
+ include/linux/kobject.h         |  22 +++++
+ kernel/ksysfs.c                 |  31 +++++++
+ lib/kobject_uevent.c            | 155 +++++++++++++++++++++++++++++++-
+ 5 files changed, 241 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/i2c/Kconfig b/drivers/i2c/Kconfig
+--- a/drivers/i2c/Kconfig
++++ b/drivers/i2c/Kconfig
+@@ -350,6 +350,25 @@ config I2C_GEMINI_DA921X_UEVENT_NORMAL_FALLTHROUGH_DIAGNOSTIC
+ 
+ 	  Say N outside the named normal-fallthrough experiment.
+ 
++config I2C_GEMINI_DA921X_NATURAL_DEVICE_ADD_DIAGNOSTIC
++	bool "Gemini DA921x natural device-add discriminator"
++	depends on I2C_GEMINI_DA921X_UEVENT_NORMAL_FALLTHROUGH_DIAGNOSTIC
++	help
++	  Observe the exact OF-created legacy DA921x client from immediately
++	  before its boot-time device_register() call through the natural add
++	  uevent and the return from device registration. Leave the exact event
++	  through the ordinary namespace and network-broadcast call site after
++	  the proven zero-listener preflight.
++
++	  Exactly one device-register entry and return, one uevent call-site entry
++	  and return, one public return, one namespace check, one untagged route,
++	  one socket, zero listeners, allocations, and broadcasts, and return zero
++	  throughout advances the read-only validation stage to 26.
++
++	  This experiment adds no trigger, replay, driver, provider, transfer,
++	  register access, printk, usermode helper, or storage path. Say N outside
++	  the named natural device-add experiment.
++
+ config I2C_BOARDINFO
+ 	bool
+ 	default y
+diff --git a/drivers/i2c/i2c-core-base.c b/drivers/i2c/i2c-core-base.c
+--- a/drivers/i2c/i2c-core-base.c
++++ b/drivers/i2c/i2c-core-base.c
+@@ -1130,6 +1130,9 @@ i2c_new_client_device(struct i2c_adapter *adap, struct i2c_board_info const *info)
+ 	struct i2c_client *client;
+ 	bool need_put = false;
+ 	int status;
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_NATURAL_DEVICE_ADD_DIAGNOSTIC)
++	bool gemini_da921x_natural_device_add = false;
++#endif
+ 
+ 	client = kzalloc_obj(*client);
+ 	if (!client)
+@@ -1183,7 +1186,19 @@ i2c_new_client_device(struct i2c_adapter *adap, struct i2c_board_info const *info)
+ 	}
+ 
+ 	i2c_dev_set_name(adap, client, info);
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_NATURAL_DEVICE_ADD_DIAGNOSTIC)
++	if (adap->nr == 1 && client->addr == 0x68 &&
++	    !strcmp(client->name, "da9214-legacy") && client->dev.of_node &&
++	    of_device_is_compatible(client->dev.of_node,
++				    "dlg,da9214-legacy"))
++		gemini_da921x_natural_device_add =
++			gemini_da921x_natural_device_add_begin(&client->dev.kobj);
++#endif
+ 	status = device_register(&client->dev);
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_NATURAL_DEVICE_ADD_DIAGNOSTIC)
++	if (gemini_da921x_natural_device_add)
++		gemini_da921x_natural_device_add_end(&client->dev.kobj, status);
++#endif
+ 	if (status)
+ 		goto out_remove_swnode;
+ 
+diff --git a/include/linux/kobject.h b/include/linux/kobject.h
+--- a/include/linux/kobject.h
++++ b/include/linux/kobject.h
+@@ -138,6 +138,28 @@ extern atomic_t gemini_da921x_normal_fallthrough_retval;
+ int gemini_da921x_trigger_normal_fallthrough(void);
+ #endif
+ 
++#ifdef CONFIG_I2C_GEMINI_DA921X_NATURAL_DEVICE_ADD_DIAGNOSTIC
++extern atomic_t gemini_da921x_natural_device_add_attempts;
++extern atomic_t gemini_da921x_natural_device_add_register_entries;
++extern atomic_t gemini_da921x_natural_device_add_register_returns;
++extern atomic_t gemini_da921x_natural_device_add_register_retval;
++extern atomic_t gemini_da921x_natural_device_add_callsite_entries;
++extern atomic_t gemini_da921x_natural_device_add_callsite_returns;
++extern atomic_t gemini_da921x_natural_device_add_public_returns;
++extern atomic_t gemini_da921x_natural_device_add_wrapper_entries;
++extern atomic_t gemini_da921x_natural_device_add_wrapper_returns;
++extern atomic_t gemini_da921x_natural_device_add_namespace_checks;
++extern atomic_t gemini_da921x_natural_device_add_untagged_routes;
++extern atomic_t gemini_da921x_natural_device_add_tagged_routes;
++extern atomic_t gemini_da921x_natural_device_add_socket_count;
++extern atomic_t gemini_da921x_natural_device_add_listener_count;
++extern atomic_t gemini_da921x_natural_device_add_allocation_count;
++extern atomic_t gemini_da921x_natural_device_add_broadcast_count;
++extern atomic_t gemini_da921x_natural_device_add_uevent_retval;
++bool gemini_da921x_natural_device_add_begin(struct kobject *kobj);
++void gemini_da921x_natural_device_add_end(struct kobject *kobj, int retval);
++#endif
++
+ /*
+  * The actions here must match the index to the string array
+  * in lib/kobject_uevent.c
+diff --git a/kernel/ksysfs.c b/kernel/ksysfs.c
+--- a/kernel/ksysfs.c
++++ b/kernel/ksysfs.c
+@@ -316,6 +316,34 @@ static struct kobj_attribute gemini_da921x_uevent_normal_fallthrough_attr =
+ 	       gemini_da921x_normal_fallthrough_store);
+ #endif
+ 
++#ifdef CONFIG_I2C_GEMINI_DA921X_NATURAL_DEVICE_ADD_DIAGNOSTIC
++static ssize_t
++gemini_da921x_natural_device_add_show(struct kobject *kobj,
++				      struct kobj_attribute *attr, char *buf)
++{
++	return sysfs_emit(buf,
++		"attempts=%d register_entries=%d register_returns=%d register_retval=%d callsite_entries=%d callsite_returns=%d public_returns=%d wrapper_entries=%d wrapper_returns=%d namespace_checks=%d untagged_routes=%d tagged_routes=%d sockets=%d listeners=%d allocations=%d broadcasts=%d uevent_retval=%d\n",
++		atomic_read(&gemini_da921x_natural_device_add_attempts),
++		atomic_read(&gemini_da921x_natural_device_add_register_entries),
++		atomic_read(&gemini_da921x_natural_device_add_register_returns),
++		atomic_read(&gemini_da921x_natural_device_add_register_retval),
++		atomic_read(&gemini_da921x_natural_device_add_callsite_entries),
++		atomic_read(&gemini_da921x_natural_device_add_callsite_returns),
++		atomic_read(&gemini_da921x_natural_device_add_public_returns),
++		atomic_read(&gemini_da921x_natural_device_add_wrapper_entries),
++		atomic_read(&gemini_da921x_natural_device_add_wrapper_returns),
++		atomic_read(&gemini_da921x_natural_device_add_namespace_checks),
++		atomic_read(&gemini_da921x_natural_device_add_untagged_routes),
++		atomic_read(&gemini_da921x_natural_device_add_tagged_routes),
++		atomic_read(&gemini_da921x_natural_device_add_socket_count),
++		atomic_read(&gemini_da921x_natural_device_add_listener_count),
++		atomic_read(&gemini_da921x_natural_device_add_allocation_count),
++		atomic_read(&gemini_da921x_natural_device_add_broadcast_count),
++		atomic_read(&gemini_da921x_natural_device_add_uevent_retval));
++}
++KERNEL_ATTR_RO(gemini_da921x_natural_device_add);
++#endif
++
+ /* cpu byteorder */
+ static ssize_t cpu_byteorder_show(struct kobject *kobj,
+ 				  struct kobj_attribute *attr, char *buf)
+@@ -498,5 +524,8 @@ static struct attribute * kernel_attrs[] = {
+ 	&gemini_da921x_uevent_normal_fallthrough_attr.attr,
+ #endif
++#ifdef CONFIG_I2C_GEMINI_DA921X_NATURAL_DEVICE_ADD_DIAGNOSTIC
++	&gemini_da921x_natural_device_add_attr.attr,
++#endif
+ 	&cpu_byteorder_attr.attr,
+ 	&address_bits_attr.attr,
+ #ifdef CONFIG_UEVENT_HELPER
+diff --git a/lib/kobject_uevent.c b/lib/kobject_uevent.c
+--- a/lib/kobject_uevent.c
++++ b/lib/kobject_uevent.c
+@@ -137,7 +137,30 @@ static DEFINE_MUTEX(gemini_da921x_normal_fallthrough_lock);
+ static struct kobject *gemini_da921x_normal_fallthrough_target;
+ static struct kobject *gemini_da921x_normal_fallthrough_active_target;
+ #endif
+ 
++#ifdef CONFIG_I2C_GEMINI_DA921X_NATURAL_DEVICE_ADD_DIAGNOSTIC
++atomic_t gemini_da921x_natural_device_add_attempts = ATOMIC_INIT(0);
++atomic_t gemini_da921x_natural_device_add_register_entries = ATOMIC_INIT(0);
++atomic_t gemini_da921x_natural_device_add_register_returns = ATOMIC_INIT(0);
++atomic_t gemini_da921x_natural_device_add_register_retval = ATOMIC_INIT(-1);
++atomic_t gemini_da921x_natural_device_add_callsite_entries = ATOMIC_INIT(0);
++atomic_t gemini_da921x_natural_device_add_callsite_returns = ATOMIC_INIT(0);
++atomic_t gemini_da921x_natural_device_add_public_returns = ATOMIC_INIT(0);
++atomic_t gemini_da921x_natural_device_add_wrapper_entries = ATOMIC_INIT(0);
++atomic_t gemini_da921x_natural_device_add_wrapper_returns = ATOMIC_INIT(0);
++atomic_t gemini_da921x_natural_device_add_namespace_checks = ATOMIC_INIT(0);
++atomic_t gemini_da921x_natural_device_add_untagged_routes = ATOMIC_INIT(0);
++atomic_t gemini_da921x_natural_device_add_tagged_routes = ATOMIC_INIT(0);
++atomic_t gemini_da921x_natural_device_add_socket_count = ATOMIC_INIT(-1);
++atomic_t gemini_da921x_natural_device_add_listener_count = ATOMIC_INIT(-1);
++atomic_t gemini_da921x_natural_device_add_allocation_count = ATOMIC_INIT(-1);
++atomic_t gemini_da921x_natural_device_add_broadcast_count = ATOMIC_INIT(-1);
++atomic_t gemini_da921x_natural_device_add_uevent_retval = ATOMIC_INIT(-1);
++
++static DEFINE_MUTEX(gemini_da921x_natural_device_add_lock);
++static struct kobject *gemini_da921x_natural_device_add_active_target;
++#endif
++
+ #ifdef CONFIG_UEVENT_HELPER
+ char uevent_helper[UEVENT_HELPER_PATH_LEN] = CONFIG_UEVENT_HELPER_PATH;
+ #endif
+@@ -916,6 +939,76 @@ int gemini_da921x_trigger_normal_fallthrough(void)
+ }
+ #endif
+ 
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_NATURAL_DEVICE_ADD_DIAGNOSTIC)
++static bool gemini_da921x_natural_device_add_active(struct kobject *kobj)
++{
++	bool active;
++
++	mutex_lock(&gemini_da921x_natural_device_add_lock);
++	active = gemini_da921x_natural_device_add_active_target == kobj;
++	mutex_unlock(&gemini_da921x_natural_device_add_lock);
++	return active;
++}
++
++bool gemini_da921x_natural_device_add_begin(struct kobject *kobj)
++{
++	bool armed = false;
++
++	mutex_lock(&gemini_da921x_natural_device_add_lock);
++	if (!gemini_da921x_natural_device_add_active_target &&
++	    !atomic_read(&gemini_da921x_natural_device_add_attempts) &&
++	    !atomic_read(&gemini_da921x_dual_modalias_stage)) {
++		gemini_da921x_natural_device_add_active_target = kobj;
++		atomic_set(&gemini_da921x_natural_device_add_attempts, 1);
++		atomic_set(&gemini_da921x_natural_device_add_register_entries, 1);
++		armed = true;
++	}
++	mutex_unlock(&gemini_da921x_natural_device_add_lock);
++	return armed;
++}
++
++void gemini_da921x_natural_device_add_end(struct kobject *kobj, int retval)
++{
++	bool active;
++
++	mutex_lock(&gemini_da921x_natural_device_add_lock);
++	active = gemini_da921x_natural_device_add_active_target == kobj;
++	if (active)
++		gemini_da921x_natural_device_add_active_target = NULL;
++	mutex_unlock(&gemini_da921x_natural_device_add_lock);
++	if (!active)
++		return;
++
++	atomic_inc(&gemini_da921x_natural_device_add_register_returns);
++	atomic_set(&gemini_da921x_natural_device_add_register_retval, retval);
++	if (retval || atomic_read(&gemini_da921x_dual_modalias_stage) != 20 ||
++	    atomic_read(&gemini_da921x_no_listener_socket_count) != 1 ||
++	    atomic_read(&gemini_da921x_no_listener_listener_count) ||
++	    atomic_read(&gemini_da921x_no_listener_allocation_count) ||
++	    atomic_read(&gemini_da921x_no_listener_broadcast_count) ||
++	    atomic_read(&gemini_da921x_no_listener_retval) ||
++	    atomic_read(&gemini_da921x_natural_device_add_attempts) != 1 ||
++	    atomic_read(&gemini_da921x_natural_device_add_register_entries) != 1 ||
++	    atomic_read(&gemini_da921x_natural_device_add_register_returns) != 1 ||
++	    atomic_read(&gemini_da921x_natural_device_add_callsite_entries) != 1 ||
++	    atomic_read(&gemini_da921x_natural_device_add_callsite_returns) != 1 ||
++	    atomic_read(&gemini_da921x_natural_device_add_public_returns) != 1 ||
++	    atomic_read(&gemini_da921x_natural_device_add_wrapper_entries) != 1 ||
++	    atomic_read(&gemini_da921x_natural_device_add_wrapper_returns) != 1 ||
++	    atomic_read(&gemini_da921x_natural_device_add_namespace_checks) != 1 ||
++	    atomic_read(&gemini_da921x_natural_device_add_untagged_routes) != 1 ||
++	    atomic_read(&gemini_da921x_natural_device_add_tagged_routes) ||
++	    atomic_read(&gemini_da921x_natural_device_add_socket_count) != 1 ||
++	    atomic_read(&gemini_da921x_natural_device_add_listener_count) ||
++	    atomic_read(&gemini_da921x_natural_device_add_allocation_count) ||
++	    atomic_read(&gemini_da921x_natural_device_add_broadcast_count) ||
++	    atomic_read(&gemini_da921x_natural_device_add_uevent_retval))
++		return;
++
++	atomic_set(&gemini_da921x_dual_modalias_stage, 26);
++}
++#endif
++
+ static int uevent_net_broadcast_tagged(struct sock *usk,
+ 				       struct kobj_uevent_env *env,
+ 				       const char *action_string,
+@@ -965,12 +1054,19 @@ static int kobject_uevent_net_broadcast(struct kobject *kobj,
+ 	struct gemini_da921x_broadcast_observation observation = { };
+ 	bool observe;
+ 
+ 	mutex_lock(&gemini_da921x_net_broadcast_lock);
+ 	observe = gemini_da921x_net_broadcast_active_target == kobj;
+ 	mutex_unlock(&gemini_da921x_net_broadcast_lock);
+ 	if (observe)
+ 		atomic_inc(&gemini_da921x_net_broadcast_entries);
+ #endif
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_NATURAL_DEVICE_ADD_DIAGNOSTIC)
++	bool observe_natural =
++		gemini_da921x_natural_device_add_active(kobj);
++
++	if (observe_natural)
++		atomic_inc(&gemini_da921x_natural_device_add_wrapper_entries);
++#endif
+ 
+ #ifdef CONFIG_NET
+ 	const struct kobj_ns_type_operations *ops;
+@@ -993,11 +1089,21 @@ static int kobject_uevent_net_broadcast(struct kobject *kobj,
+ 		observation_ptr = &observation;
+ 	}
+ #endif
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_NATURAL_DEVICE_ADD_DIAGNOSTIC)
++	if (observe_natural) {
++		atomic_inc(&gemini_da921x_natural_device_add_namespace_checks);
++		observation_ptr = &observation;
++	}
++#endif
+ 	if (!ns) {
+ #if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_UEVENT_NET_BROADCAST_DIAGNOSTIC)
+ 		if (observe)
+ 			atomic_inc(&gemini_da921x_net_broadcast_untagged_routes);
+ #endif
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_NATURAL_DEVICE_ADD_DIAGNOSTIC)
++		if (observe_natural)
++			atomic_inc(&gemini_da921x_natural_device_add_untagged_routes);
++#endif
+ 		ret = uevent_net_broadcast_untagged(env, action_string,
+ 						    devpath, observation_ptr);
+ 	} else {
+@@ -1006,6 +1111,10 @@ static int kobject_uevent_net_broadcast(struct kobject *kobj,
+ 		if (observe)
+ 			atomic_inc(&gemini_da921x_net_broadcast_tagged_routes);
+ #endif
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_NATURAL_DEVICE_ADD_DIAGNOSTIC)
++		if (observe_natural)
++			atomic_inc(&gemini_da921x_natural_device_add_tagged_routes);
++#endif
+ 		ret = uevent_net_broadcast_tagged(net->uevent_sock->sk, env,
+ 						  action_string, devpath);
+ 	}
+@@ -1025,6 +1141,19 @@ static int kobject_uevent_net_broadcast(struct kobject *kobj,
+ 		atomic_set(&gemini_da921x_net_broadcast_retval, ret);
+ 	}
+ #endif
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_NATURAL_DEVICE_ADD_DIAGNOSTIC)
++	if (observe_natural) {
++		atomic_inc(&gemini_da921x_natural_device_add_wrapper_returns);
++		atomic_set(&gemini_da921x_natural_device_add_socket_count,
++			   observation.sockets);
++		atomic_set(&gemini_da921x_natural_device_add_listener_count,
++			   observation.listeners);
++		atomic_set(&gemini_da921x_natural_device_add_allocation_count,
++			   observation.allocations);
++		atomic_set(&gemini_da921x_natural_device_add_broadcast_count,
++			   observation.broadcasts);
++	}
++#endif
+ 	return ret;
+ }
+ 
+@@ -1349,6 +1473,9 @@ int kobject_uevent_env(struct kobject *kobj, enum kobject_action action,
+ #if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_UEVENT_NORMAL_FALLTHROUGH_DIAGNOSTIC)
+ 	bool gemini_da921x_normal_fallthrough = false;
+ #endif
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_NATURAL_DEVICE_ADD_DIAGNOSTIC)
++	bool gemini_da921x_natural_device_add = false;
++#endif
+ 
+ 	/*
+ 	 * Mark "remove" event done regardless of result, for some subsystems
+@@ -1509,10 +1636,17 @@ int kobject_uevent_env(struct kobject *kobj, enum kobject_action action,
+ 			retval = gemini_da921x_no_listener(env, action_string,
+ 							   devpath);
+ 			if (retval)
+ 				goto exit;
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_NATURAL_DEVICE_ADD_DIAGNOSTIC)
++			if (gemini_da921x_natural_device_add_active(kobj))
++				gemini_da921x_natural_device_add = true;
++			else
++#endif
++			{
+ 			retval = gemini_da921x_arm_bounded_listener(kobj);
+ 			if (retval)
+ 				goto exit;
++			}
+ 		} else if (gemini_da921x_previous_stage == 20) {
+ 			retval = gemini_da921x_validate_bounded_listener();
+ 			if (retval)
+@@ -1564,7 +1698,8 @@ int kobject_uevent_env(struct kobject *kobj, enum kobject_action action,
+ 			goto exit;
+ #endif
+ #if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_UEVENT_NORMAL_FALLTHROUGH_DIAGNOSTIC)
+-		if (!gemini_da921x_normal_fallthrough) {
++		if (!gemini_da921x_normal_fallthrough &&
++		    !gemini_da921x_natural_device_add) {
+ #endif
+ 			/* The exact target skb is consumed above; never broadcast it from
+ 			 * this experiment-only path.
+@@ -1580,8 +1715,19 @@ int kobject_uevent_env(struct kobject *kobj, enum kobject_action action,
+ #if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_UEVENT_NORMAL_FALLTHROUGH_DIAGNOSTIC)
+ 	if (gemini_da921x_normal_fallthrough)
+ 		atomic_inc(&gemini_da921x_normal_fallthrough_callsite_entries);
+ #endif
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_NATURAL_DEVICE_ADD_DIAGNOSTIC)
++	if (gemini_da921x_natural_device_add)
++		atomic_inc(&gemini_da921x_natural_device_add_callsite_entries);
++#endif
+ 	retval = kobject_uevent_net_broadcast(kobj, env, action_string,
+ 					      devpath);
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_NATURAL_DEVICE_ADD_DIAGNOSTIC)
++	if (gemini_da921x_natural_device_add) {
++		atomic_inc(&gemini_da921x_natural_device_add_callsite_returns);
++		atomic_set(&gemini_da921x_natural_device_add_uevent_retval,
++			   retval);
++	}
++#endif
+ #if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_UEVENT_NORMAL_FALLTHROUGH_DIAGNOSTIC)
+ 	if (gemini_da921x_normal_fallthrough) {
+@@ -1617,6 +1752,10 @@ exit:
+ #endif
+ 
+ exit:
++#if IS_ENABLED(CONFIG_I2C_GEMINI_DA921X_NATURAL_DEVICE_ADD_DIAGNOSTIC)
++	if (gemini_da921x_natural_device_add)
++		atomic_inc(&gemini_da921x_natural_device_add_public_returns);
++#endif
+ 	kfree(devpath);
+ 	kfree(env);
+ 	return retval;
+-- 
+2.47.3
