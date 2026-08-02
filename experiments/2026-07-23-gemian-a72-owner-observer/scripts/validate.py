@@ -179,7 +179,7 @@ def validate(root):
             "6.3.0 20170516",
             "GNU ld (GNU Binutils for Debian) 2.28",
             "sha256sum --check --strict SHA256SUMS",
-            "configuration delta is not observer-only",
+            "configuration delta is not exact observer-plus-ANBOX-normalization",
             'purpose: "compile-review-only"',
             "boot_candidate: false",
             "Image.gz-dtb",
@@ -494,6 +494,7 @@ def validate(root):
             "source build",
             "compiler",
             "separate safety gate",
+            "CONFIG_ANBOX",
         ],
         "experiment documentation",
     )

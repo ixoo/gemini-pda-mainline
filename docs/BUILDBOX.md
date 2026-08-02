@@ -84,7 +84,9 @@ It retains the same clean, pushed-commit and exact-origin gate. Buildbox fetches
 the fixed public vendor commit, verifies the experiment's 25 exact Debian
 snapshot packages by SHA-256, constructs an unprivileged relocatable GCC 6.3/
 binutils 2.28 toolchain, imports the hash-pinned live configuration, and permits
-only `CONFIG_MTK_A72_TRANSITION_OBSERVER=y` to change. Its fetched bundle is for
+only `CONFIG_MTK_A72_TRANSITION_OBSERVER` absent-to-`y` plus the semantically
+disabled `CONFIG_ANBOX` absent-to-explicit-`n` serialization to change. Its
+fetched bundle is for
 compiler, configuration, symbol, warning, and timing review. Provenance marks
 `boot_candidate=false`; this lane does not construct an Android boot image,
 write `boot2`, access the device, or authorize an A72 request.

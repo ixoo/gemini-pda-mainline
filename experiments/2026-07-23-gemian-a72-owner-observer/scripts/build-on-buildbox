@@ -262,8 +262,14 @@ for name in sorted(set(before) | set(after)):
         changes.append((name, before.get(name, "missing"), after.get(name, "missing")))
 for name, old, new in changes:
     print("{}\t{}\t{}".format(name, old, new))
-if changes != [("CONFIG_MTK_A72_TRANSITION_OBSERVER", "missing", "y")]:
-    raise SystemExit("configuration delta is not observer-only")
+expected = [
+    ("CONFIG_ANBOX", "missing", "n"),
+    ("CONFIG_MTK_A72_TRANSITION_OBSERVER", "missing", "y"),
+]
+if changes != expected:
+    raise SystemExit(
+        "configuration delta is not exact observer-plus-ANBOX-normalization"
+    )
 PY
 
 set -o pipefail

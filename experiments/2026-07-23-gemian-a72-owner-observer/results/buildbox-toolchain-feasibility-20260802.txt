@@ -58,8 +58,9 @@ debootstrap helper available to the unprivileged builder. The next action is a
 repository-owned Buildbox lane that constructs a managed relocatable toolchain,
 verifies the compiler/linker identity with a trivial arm64 object, and only
 then attempts the clean vendor source build. That lane is now implemented but
-has not yet been submitted from its required clean pushed commit. Do not fall
-back to a native VM build.
+its first exact pushed-commit submission stopped before compilation on the
+configuration gate. The complete two-symbol delta is recorded separately. Do
+not fall back to a native VM build.
 
 Exact configuration recovery
 ----------------------------

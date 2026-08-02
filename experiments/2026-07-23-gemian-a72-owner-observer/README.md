@@ -133,8 +133,11 @@ was accessed or changed while preparing this directory.
 - [`results/source-and-static-validation-20260723.txt`](results/source-and-static-validation-20260723.txt):
   exact source/static validation record.
 - [`results/buildbox-toolchain-feasibility-20260802.txt`](results/buildbox-toolchain-feasibility-20260802.txt):
-  Buildbox reachability, exact snapshot package resolution, and the remaining
-  relocation blocker. This is not a compiler or kernel-build result.
+  Buildbox reachability, exact snapshot package resolution, and the successful
+  relocatable compiler-object proof. This is not a kernel-build result.
+- [`results/buildbox-compile-attempt-1-20260802.txt`](results/buildbox-compile-attempt-1-20260802.txt):
+  exact first pushed-commit submission and its pre-compile configuration
+  rejection. No compiler target ran in that attempt.
 
 The local validation invocation is:
 
@@ -168,9 +171,12 @@ Neither command needs privilege, network, VM or device access.
    12/binutils 2.40.
 2. Start from a clean `59e00a…` checkout on Buildbox, apply [`patches/series`](patches/series)
    in order, and import the exact active plain configuration identified above.
-3. Enable only `CONFIG_MTK_A72_TRANSITION_OBSERVER=y`, retain the complete
-   resulting config and diff, and build the full source tree with warnings
-   preserved.
+3. Enable `CONFIG_MTK_A72_TRANSITION_OBSERVER=y`, retain the complete resulting
+   config and diff, and build the full source tree with warnings preserved.
+   The only accepted serialized deltas are the observer from absent to `y` and
+   `CONFIG_ANBOX` from absent to explicit `n`. The latter remains disabled and
+   records a Kconfig symbol present only in the hook-equivalent public source;
+   every other delta is rejected.
 4. Review every compiler diagnostic and compare generated symbol/reference
    placement with the source-level hook table in [`DESIGN.md`](DESIGN.md).
 5. Stop before packaging or device access. A separate reviewed experiment must
@@ -230,9 +236,8 @@ running binary. Those unresolved questions are decision-changing.
 `inconclusive` for hardware behavior. A reviewable four-patch observer series
 exists and passes the recorded source/static checks against public
 `59e00a…`. It is not yet a kernel, boot image or installable candidate. The
-mandatory next result is a runnable pinned Buildbox toolchain followed by a
-clean build plus compiler and owner-timing review. The compiler proof is now
-closed; the clean observer build is next.
+pinned compiler proof is closed. The mandatory next result is the replacement
+clean Buildbox source build plus compiler and owner-timing review.
 
 ## Follow-up
 

@@ -652,9 +652,13 @@ public source and immutable 2017 Debian snapshot, which resolves exact
 cross-GCC `6.3.0-18cross1` and binutils `2.28-5`. The exact 25-package closure
 is checksum-pinned, and the relocated compiler/linker produced a valid AArch64
 object. The dedicated Git-based compile-review lane is implemented; the next
-result is its clean pushed-commit vendor source build and warning/configuration
-review, not a device boot. No native VM kernel build, register write, or CPU
-request is authorized by the audit.
+result is its replacement clean pushed-commit vendor source build and
+warning/configuration review, not a device boot. Its first exact submission
+stopped before compilation because normalization exposed precisely the observer
+absent-to-`y` delta and an inert public-source-only `CONFIG_ANBOX`
+absent-to-explicit-`n` delta. That exact disabled serialization is now pinned;
+every other delta remains rejected. No native VM kernel build, register write,
+or CPU request is authorized by the audit.
 
 Exit: observations and inference are separated, every required writer has one
 owner, and a failed step has a bounded rollback path.
