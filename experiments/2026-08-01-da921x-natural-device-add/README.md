@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-01-da921x-natural-device-add` |
-| Status | `inputs validated; exact Buildbox build pending` |
+| Status | `offline validated; guarded boot2 deployment pending` |
 | Subsystem | I2C, driver core, OF, kobject uevent, netlink |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -73,3 +73,16 @@ Strict Checkpatch reports zero warnings and zero checks; its only error is the
 intentionally absent experiment-only DCO sign-off. The read-only runtime
 checker passes Bash syntax and managed-VM ShellCheck. No native VM kernel build
 was run. Exact identities are in `results/input-validation.txt`.
+
+## Offline validation
+
+Buildbox compiled the exact clean pushed commit `a8a6efa` and the fetched
+package revalidated with the intended 136-patch series and isolated profile.
+The matching driver remains module-only and absent from the initramfs,
+userspace uevent helpers remain disabled, and A72 power remains disabled. Two
+independent Linux candidate assemblies were byte-identical. The retained
+candidate passed its checksum manifest and all 32 LK container gates; it
+carries the unchanged module-free initramfs and the exact previously validated
+real-compatible Gemini DT. The runtime collector is read-only and writes only
+its temporary checker below initramfs `/run`. Exact identities are in
+`results/offline-validation.txt`.

@@ -552,9 +552,15 @@ observes the exact boot-time I2C `device_register()` call, its natural uevent
 call site and wrapper, and their returns without adding a trigger, replay,
 driver, transfer, or hardware write. Exact-source patch application, strict
 patch review, manifest invariants, the static contract, and the read-only
-runtime checker passed input validation. The next action is an exact clean
-Buildbox build from the frozen pushed commit. No native VM kernel build is
-authorized without an explicit owner request. Provider work remains blocked.
+runtime checker passed input validation. Exact clean Buildbox compilation
+passed for pushed commit `a8a6efa`; the fetched package revalidated. Two
+independent Linux candidate assemblies were byte-identical, and the retained
+candidate passed its checksum manifest and all 32 LK gates with the unchanged
+module-free initramfs and exact real-compatible Gemini DT. The guarded
+installer and read-only USB/netcat collector pass syntax and managed-VM
+ShellCheck. The next action is deployment to live-GPT-resolved `boot2` against
+the exact stage-25 predecessor, full-partition readback, and clean shutdown.
+No native VM kernel build was run. Provider work remains blocked.
 
 ### 4. Finish the ownership and rollback audit
 
