@@ -172,7 +172,9 @@ the loop. Positive identity-gated observations are unaffected.
   — records guarded block access, live GPT resolution, readback, and protected
   primary-boot constraints.
 - [2026-07-23 Gemian A72 owner observer](2026-07-23-gemian-a72-owner-observer/README.md)
-  — records the incomplete attempt to instrument the vendor transition owners.
+  — records the incomplete attempt to instrument the vendor transition owners;
+  its pinned Buildbox inputs now resolve, but a runnable relocated compiler and
+  any source-build or hardware evidence remain pending.
 - [2026-07-22 Gemian A72 read-only discovery](2026-07-22-gemian-a72-readonly-discovery/README.md)
   — collected safe, read-only power and clock surfaces without an A72
   transition.

@@ -48,6 +48,10 @@ ACTIVE_HASHES = {
     "231d8a2ffe7afac3a4cc62c27d0eb6fe8bd9165ebd096e3e3346dd6df35c18f4",
 }
 
+ACTIVE_CONFIG_SHA256 = (
+    "231d8a2ffe7afac3a4cc62c27d0eb6fe8bd9165ebd096e3e3346dd6df35c18f4"
+)
+
 SECURE_ADDRESSES = [
     "0x10222470",
     "0x10222498",
@@ -106,6 +110,18 @@ def patch_for_path(patches, source_path):
 
 
 def validate(root):
+    config_path = root / "inputs" / "active-gemian.config"
+    require(config_path.is_file(), "missing exact active Gemian configuration")
+    config_bytes = config_path.read_bytes()
+    require(
+        hashlib.sha256(config_bytes).hexdigest() == ACTIVE_CONFIG_SHA256,
+        "active Gemian configuration hash changed",
+    )
+    require(
+        b"CONFIG_MTK_A72_TRANSITION_OBSERVER" not in config_bytes,
+        "baseline configuration already contains observer option",
+    )
+
     patch_dir = root / "patches"
     series_path = patch_dir / "series"
     require(series_path.is_file(), "missing patches/series")
@@ -397,10 +413,12 @@ def validate(root):
         docs,
         [
             "59e00a9144d782e148332009a835b99c43382467",
-            "/home/julien.guest/toolchains/debian-stretch-20170618-arm64-rootfs",
+            "Buildbox",
             "20170618T000000Z",
+            "6.3.0-18cross1",
             "6.3.0 20170516",
             "GNU ld `2.28`",
+            "Do not fall back to a native VM build",
             "source build",
             "compiler",
             "separate safety gate",

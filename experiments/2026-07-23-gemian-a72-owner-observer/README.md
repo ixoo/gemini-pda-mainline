@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-23-gemian-a72-owner-observer` |
-| Status | `inconclusive`: four source patches and static checks are complete; compiler and hardware evidence do not yet exist |
+| Status | `inconclusive`: source/static checks and Buildbox input discovery are complete; a runnable pinned compiler and hardware evidence do not yet exist |
 | Subsystem | MT6797 A72 hotplug, PSCI, external buck, SPM, iDVFS, B/CCI clocks, MP2 DCM and TOPRGU |
 | Device variant | Current named Gemini PDA unit |
 | Date(s) | 2026-07-23 |
@@ -46,11 +46,13 @@ establishes safe timing or hardware behavior.
   binary/source evidence. It must not be described as the exact active source.
 - Source patch commits used to generate this series:
   `7bddafa6`, `c8475b56`, `429afb35`, and `349f24b6`.
-- A future source build must use the private recovery-VM environment
-  `/home/julien.guest/toolchains/debian-stretch-20170618-arm64-rootfs`,
-  pinned to Debian snapshot `20170618T000000Z`, GCC
-  `6.3.0 20170516` (`gcc-6`, Debian `6.3.0-18`) and GNU ld `2.28`.
-  The 2019 `+deb9u1` rootfs is not an acceptable substitute.
+- A future source build must run only on Buildbox from an exact clean pushed
+  project commit. Its toolchain input is Debian snapshot
+  `20170618T000000Z`, cross-GCC package `6.3.0-18cross1` reporting GCC
+  `6.3.0 20170516`, and binutils package `2.28-5` reporting GNU ld `2.28`.
+  The 2019 `+deb9u1` environment and Buildbox's system GCC 12/binutils 2.40
+  are not acceptable substitutes. Native VM kernel builds are prohibited
+  unless the owner explicitly requests one.
 - The reconciliation source is
   [`../2026-07-22-a72-firmware-power-contract/results/active-gemian-kernel-reconciliation-20260723.txt`](../2026-07-22-a72-firmware-power-contract/results/active-gemian-kernel-reconciliation-20260723.txt).
 
@@ -105,6 +107,9 @@ was accessed or changed while preparing this directory.
 ## Associated code
 
 - [`patches/series`](patches/series): exact four-patch order.
+- [`inputs/active-gemian.config`](inputs/active-gemian.config): exact
+  decompressed live configuration, SHA-256
+  `231d8a2ffe7afac3a4cc62c27d0eb6fe8bd9165ebd096e3e3346dd6df35c18f4`.
 - [`patches/0001-diagnostic-add-fixed-MT6797-A72-transition-ring.patch`](patches/0001-diagnostic-add-fixed-MT6797-A72-transition-ring.patch):
   typed static ring, transaction IDs and root-read-only snapshot ABI.
 - [`patches/0002-diagnostic-add-owner-local-fixed-A72-snapshots.patch`](patches/0002-diagnostic-add-owner-local-fixed-A72-snapshots.patch):
@@ -121,6 +126,9 @@ was accessed or changed while preparing this directory.
   tripwire tests for the validator.
 - [`results/source-and-static-validation-20260723.txt`](results/source-and-static-validation-20260723.txt):
   exact source/static validation record.
+- [`results/buildbox-toolchain-feasibility-20260802.txt`](results/buildbox-toolchain-feasibility-20260802.txt):
+  Buildbox reachability, exact snapshot package resolution, and the remaining
+  relocation blocker. This is not a compiler or kernel-build result.
 
 The local validation invocation is:
 
@@ -146,11 +154,12 @@ Neither command needs privilege, network, VM or device access.
 
 ### Required compiler review before any boot
 
-1. In the recovery VM, verify the selected environment is exactly
-   `/home/julien.guest/toolchains/debian-stretch-20170618-arm64-rootfs` and
-   reports GCC `6.3.0 20170516` and ld `2.28`. Stop if it resolves to the 2019
-   `+deb9u1` environment.
-2. Start from a clean `59e00a…` checkout, apply [`patches/series`](patches/series)
+1. Extend the Git-based Buildbox workflow with a dedicated observer lane that
+   fetches the exact clean pushed project commit, public source `59e00a…`, and
+   the immutable `20170618T000000Z` Debian snapshot inputs. It must prove the
+   relocated compiler reports GCC `6.3.0 20170516` and ld `2.28`; stop on the
+   2019 `+deb9u1` environment or Buildbox's system GCC 12/binutils 2.40.
+2. Start from a clean `59e00a…` checkout on Buildbox, apply [`patches/series`](patches/series)
    in order, and import the exact active plain configuration identified above.
 3. Enable only `CONFIG_MTK_A72_TRANSITION_OBSERVER=y`, retain the complete
    resulting config and diff, and build the full source tree with warnings
@@ -160,6 +169,10 @@ Neither command needs privilege, network, VM or device access.
 5. Stop before packaging or device access. A separate reviewed experiment must
    define the exact boot artifact and transition test.
 
+The Buildbox lane must not copy a source tree or toolchain from the development
+host or recovery VM. If the pinned snapshot packages cannot be made runnable
+inside a managed Buildbox root, defer the build; do not use the native VM.
+
 ## Observations
 
 All four patches applied in order to the selected public baseline and the
@@ -168,7 +181,15 @@ corruption tests pass. The vendor tree's old `scripts/checkpatch.pl` cannot run
 under the host's modern Perl because its own regular expressions are rejected;
 this is recorded as a tooling limitation, not as a clean checkpatch result.
 
-No source build, compiler diagnostic review, kernel execution or hardware
+Buildbox can reach the public source and immutable Debian snapshot. Snapshot
+metadata resolves cross-GCC `6.3.0-18cross1` and binutils `2.28-5`, and one
+disposable probe downloaded their 25-package dependency closure. The probe did
+not complete a relocated compiler invocation, retained no workspace state, and
+did not build source. After returning the development device from Stage27 to
+Gemian through the validated USB reboot path, the live `/proc/config.gz`
+matched the previously recorded compressed and decompressed hashes exactly.
+The non-sensitive decompressed configuration is now a tracked Buildbox input.
+No compiler diagnostic review, observer-kernel execution or A72 hardware
 transition has occurred.
 
 ## Analysis
@@ -190,8 +211,8 @@ running binary. Those unresolved questions are decision-changing.
 `inconclusive` for hardware behavior. A reviewable four-patch observer series
 exists and passes the recorded source/static checks against public
 `59e00a…`. It is not yet a kernel, boot image or installable candidate. The
-mandatory next result is a clean build plus compiler and owner-timing review in
-the pinned 2017 environment.
+mandatory next result is a runnable pinned Buildbox toolchain followed by a
+clean build plus compiler and owner-timing review.
 
 ## Follow-up
 

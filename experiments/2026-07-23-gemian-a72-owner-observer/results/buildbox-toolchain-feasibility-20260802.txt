@@ -1,0 +1,71 @@
+Gemian A72 owner-observer Buildbox toolchain feasibility
+Recorded: 2026-08-02 America/New_York
+
+Scope
+-----
+Read-only Buildbox readiness and public-input discovery plus disposable
+snapshot-package probes, followed by an authorized device reboot to Gemian and
+read-only recovery of the exact active configuration. No kernel source was
+built. No VM, boot image, partition, configuration, policy, or A72 state was
+changed. Every Buildbox probe used a uniquely named directory below /workspace
+and removed it on exit; a final read-only check found no matching residue.
+
+Buildbox
+--------
+architecture=x86_64
+cpus=80
+memory_kib=263705936
+workspace_total=492G
+workspace_available=482G
+repository_access=passed
+system_compiler=aarch64-linux-gnu-gcc (Debian 12.2.0-14) 12.2.0
+system_linker=GNU ld (GNU Binutils for Debian) 2.40
+system_toolchain_accepted=no
+
+Pinned public inputs
+--------------------
+project=https://github.com/ixoo/gemini-pda-mainline.git
+vendor_source=https://github.com/gemian/gemini-linux-kernel-3.18.git
+vendor_source_commit=59e00a9144d782e148332009a835b99c43382467
+snapshot=https://snapshot.debian.org/archive/debian/20170618T000000Z
+snapshot_reachable=yes
+cross_gcc_package=gcc-6-aarch64-linux-gnu
+cross_gcc_version=6.3.0-18cross1
+binutils_package=binutils-aarch64-linux-gnu
+binutils_version=2.28-5
+resolved_dependency_packages=25
+
+Result
+------
+input_resolution=passed
+relocated_compiler_execution=not_proven
+kernel_build=not_run
+device_action=authorized-reboot-and-readonly-config-retrieval
+result=inconclusive
+
+The exact snapshot metadata and all 25 resolved packages were downloaded in a
+disposable probe. Extraction/relocation did not reach a successful compiler
+invocation, so package resolution must not be reported as a compiler pass.
+Buildbox has no docker, podman, proot, bwrap, chroot authorization, or
+debootstrap helper available to the unprivileged builder. The next action is a
+repository-owned Buildbox lane that constructs a managed relocatable toolchain,
+verifies the compiler/linker identity with a trivial arm64 object, and only
+then attempts the clean vendor source build. If that cannot be made runnable,
+defer the build; do not fall back to a native VM build.
+
+Exact configuration recovery
+----------------------------
+The device was running Stage27 kernel `7.1.3-gemini-da921x-life27`, boot ID
+`84b7d486-2647-41a9-b2cc-a32625bdce5f`. Its validated USB-shell reboot command
+returned it to Gemian kernel `3.18.41+`, boot ID
+`079a4906-2de8-4c85-bda1-d4179a1db0d5`. Read-only SSH retrieval found:
+
+compressed_config_sha256=53b53b62fa5a111cb7d6ea4f513aec1e8a6b436c8c17bfd86cb00a9bc4bf6ae1
+plain_config_sha256=231d8a2ffe7afac3a4cc62c27d0eb6fe8bd9165ebd096e3e3346dd6df35c18f4
+previously_recorded_identity_match=yes
+sensitive_text_scan=passed
+tracked_input=inputs/active-gemian.config
+
+The device reboot changed boot state but performed no partition write and no
+CPU8/CPU9 control action. The configuration is ordinary GPL kernel build input;
+the compressed live retrieval remains below the Git-ignored artifacts tree.

@@ -70,10 +70,11 @@ guessing.
 
 - Build all four patches with the exact active configuration plus only
   `CONFIG_MTK_A72_TRANSITION_OBSERVER=y`.
-- Use only
-  `/home/julien.guest/toolchains/debian-stretch-20170618-arm64-rootfs`
-  (snapshot `20170618T000000Z`, GCC `6.3.0 20170516`, ld `2.28`); reject the
-  2019 `+deb9u1` environment.
+- Build only on Buildbox from an exact clean pushed project commit. Reproduce
+  the compiler from Debian snapshot `20170618T000000Z`: cross-GCC package
+  `6.3.0-18cross1`, reporting GCC `6.3.0 20170516`, and binutils package
+  `2.28-5`, reporting ld `2.28`. Reject the 2019 `+deb9u1` environment and the
+  Buildbox system GCC 12/binutils 2.40. Do not fall back to a native VM build.
 - Review old-GCC warnings, stack use, static ring size, symbol resolution and
   init ordering.
 - Re-review every lock context for atomic/sleeping violations and lock-order

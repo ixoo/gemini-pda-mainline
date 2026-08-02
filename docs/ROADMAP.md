@@ -647,8 +647,12 @@ and resume ownership remain open. Eleven rows require the same owner-local
 synchronized Gemian observation; two dynamic-policy rows are deliberately
 excluded from the first CPU8 experiment. The next action is to freeze that
 read-only observer against the exact active boot contract and build it on an
-approved non-native backend. No native VM kernel build, register write, or CPU
-request is authorized by the audit.
+exact clean pushed commit using a dedicated Buildbox lane. Buildbox reaches the
+public source and immutable 2017 Debian snapshot, which resolves exact
+cross-GCC `6.3.0-18cross1` and binutils `2.28-5`, but the disposable feasibility
+probe did not yet complete a relocated compiler invocation. The next result is
+therefore the runnable pinned Buildbox toolchain, not a device boot. No native
+VM kernel build, register write, or CPU request is authorized by the audit.
 
 Exit: observations and inference are separated, every required writer has one
 owner, and a failed step has a bounded rollback path.
