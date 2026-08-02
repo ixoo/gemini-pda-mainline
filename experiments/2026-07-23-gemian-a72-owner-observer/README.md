@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-07-23-gemian-a72-owner-observer` |
-| Status | `inconclusive`: the compiled four-patch revision is rejected for boot on timing grounds; a bounded fifth patch is prepared but not yet rebuilt or reviewed |
+| Status | `inconclusive`: the bounded five-patch revision passes compiler, stack, lock, and timing review; a separate validated boot-image experiment and hardware evidence remain open |
 | Subsystem | MT6797 A72 hotplug, PSCI, external buck, SPM, iDVFS, B/CCI clocks, MP2 DCM and TOPRGU |
 | Device variant | Current named Gemini PDA unit |
 | Date(s) | 2026-07-23 |
@@ -170,6 +170,11 @@ no observer artifact changed a partition, policy, or hardware state.
 - [`results/bounded-source-validation-20260802.txt`](results/bounded-source-validation-20260802.txt):
   exact fifth-patch source construction, safety tripwires, and compatible
   checkpatch review before the replacement build.
+- [`results/buildbox-compile-attempt-9-20260802.txt`](results/buildbox-compile-attempt-9-20260802.txt):
+  successful exact five-patch/baseline build, case-safe evidence fetch, and
+  compiled ring-bound proof.
+- [`results/bounded-compiler-and-timing-review-20260802.txt`](results/bounded-compiler-and-timing-review-20260802.txt):
+  replacement stack, owner-lock, and bounded timing decision.
 
 The local validation invocation is:
 
@@ -318,11 +323,21 @@ SRAM-LDO intervals. Stack use itself passes: observer frames are at most 128
 bytes and the largest changed hotplug caller frame is 688 bytes. No device or
 boot image was accessed.
 
-The prepared fifth patch responds directly to that rejection. It shrinks the
+The fifth patch responds directly to that rejection. It shrinks the
 ring to 256 records, removes four intermediate broad snapshots, and replaces
 the bounded semaphore loop with one immediate request/read. Static tripwires
-pin those bounds. This five-patch revision has not yet been built or accepted
-by the replacement compiler/timing review, so it remains non-bootable.
+pin those bounds.
+
+Compile attempt 9 built that exact five-patch revision and the exact unpatched
+baseline. Both linked, their diagnostics are byte-identical, the baseline has
+no observer symbol, all 2484 case-preserved stack reports validated, and the
+host fetch passed. The ring's compiled symbol span is exactly 26624 bytes. The
+replacement review passes stack, lock, and bounded timing gates: no snapshot
+remains in a 240-microsecond SRAM-LDO interval, the semaphore loop and its
+theoretical 16 ms full-cycle IRQ-disabled wait are gone, and the clock frame
+drops from 96 to 80 bytes. The four remaining boundary snapshots still add 52
+secure reads and 12 to 24 I2C transactions over a complete cycle, so this is
+accepted only for one defined diagnostic capture, not production use.
 
 ## Analysis
 
@@ -341,17 +356,20 @@ running binary. Those unresolved questions are decision-changing.
 
 ## Conclusion
 
-`inconclusive` for the five-patch revision and for hardware behavior. The exact
-compiled four-patch revision is rejected for boot. A reviewable fifth patch now
-bounds its identified timing effects, but its source, compiler, baseline, stack,
-and owner-timing gates are not yet closed. No output is a boot image or
-installable candidate. The mandatory next result is an exact dual Buildbox
-build and replacement compiler/timing review of all five patches.
+`inconclusive` for hardware behavior. The exact compiled four-patch revision is
+rejected for boot. The bounded five-patch revision closes its source, compiler,
+baseline-attribution, stack, owner-lock, and timing gates for one diagnostic
+capture. No current output is a boot image or installable candidate. The
+mandatory next result is a separate experiment that constructs and validates
+an exact recoverable Gemian boot container and defines the single natural
+online/offline observation before any deployment.
 
 ## Follow-up
 
-Validate the fifth patch, then repeat both builds and the compiler/timing
-review. Only if that gate passes should a separate experiment define one
-natural online/offline capture, retrieval of
-`/proc/mt6797_a72_transition`, exact expected event ordering, stop conditions
-and how each possible result changes the mainline A72 implementation.
+Create the separate boot-image experiment around exact kernel field SHA-256
+`5864c083a156fcb023e62a5e8dd3fd4c75d68fb119c82492ed4653065ca39a18`.
+Reuse the exact active Gemian ramdisk and boot-container parameters, validate
+every checksum and size, and define one natural online/offline capture,
+retrieval of `/proc/mt6797_a72_transition`, exact expected event ordering, stop
+conditions, recovery, and how each possible result changes the mainline A72
+implementation. Do not deploy the compile-review package itself.

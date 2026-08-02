@@ -692,9 +692,16 @@ for boot: eight broad snapshots per online/offline cycle can add up to 16 ms of
 IRQ-disabled semaphore waiting, 104 secure calls, at least 24 I2C transactions,
 and an oversized proc-copy critical section. A fifth logical patch is now
 prepared: it reduces the ring to 256 records, eliminates the semaphore wait,
-and retains only pre/post boundary snapshots. The next result is an exact dual
-Buildbox build plus stack and owner-timing review of that five-patch revision—not
-a device boot.
+and retains only pre/post boundary snapshots. The ninth exact submission built
+that five-patch revision and the unpatched baseline, passed byte-identical
+diagnostics and case-safe stack retrieval, and proved the compiled 26624-byte
+ring. Replacement lock/timing review passes for one bounded diagnostic capture:
+there is no snapshot inside the 240-microsecond SRAM-LDO intervals and no
+semaphore wait, although one complete cycle still adds 52 secure reads and 12
+to 24 I2C transactions. The next result is a separate recoverable boot-image
+experiment with exact container identity, one natural transition hypothesis,
+stop conditions, and evidence retrieval—not deployment of the compile-review
+package itself.
 
 Exit: observations and inference are separated, every required writer has one
 owner, and a failed step has a bounded rollback path.

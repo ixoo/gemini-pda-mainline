@@ -1,0 +1,98 @@
+Gemian A72 bounded observer compiler and timing review
+Recorded: 2026-08-02 America/New_York
+
+Reviewed identity
+-----------------
+repository_commit=bc01fc33ec60540b86cd1133697c6fc4a6d1b857
+source_commit=59e00a9144d782e148332009a835b99c43382467
+patchset_sha256=85ac017a2fec821ee930a74d021cb6d2224ea958929c5bbffaf7ec480e19f9c9
+observer_Image.gz-dtb_sha256=5864c083a156fcb023e62a5e8dd3fd4c75d68fb119c82492ed4653065ca39a18
+purpose=bounded-diagnostic-review
+boot_candidate=no
+device_access=none
+
+Compiler and attribution gates
+------------------------------
+- Exact five-patch observer and unpatched baseline both build and link with
+  pinned GCC 6.3.0 20170516 and GNU ld 2.28.
+- Configuration deltas remain exact and unchanged from attempt 8.
+- Both extracted diagnostics are byte-identical and contain only the inherited
+  69-section-mismatch summary.
+- The baseline contains no observer symbol.
+- The case-preserving archive contains and source-compares 2484 stack reports.
+
+Stack and storage bounds
+------------------------
+The observer frames remain at or below 128 bytes. Changed hotplug callers remain
+at or below the pre-existing 688-byte `hps_algo_main`; the largest unrelated
+selected-kernel frame remains 1488 bytes. The protected-clock snapshot drops
+from 96 to 80 bytes after removing the loop state.
+
+`System.map` places `mt6797_a72_obs_ring` at `ffffffc0013ff7b0` and
+`mt6797_a72_obs_count` at `ffffffc001405fb0`. Their exact 0x6800-byte span is
+26624 bytes, or 256 records times the previously compiled 104-byte record size.
+Proc open therefore copies one eighth of the rejected revision's ring while
+holding the observer IRQ-safe spinlock.
+
+Owner-lock review
+-----------------
+The fifth patch adds no new lock and changes no owner-lock order. The previous
+review remains valid:
+
+- DA9214 records append after the owner mutex;
+- SPM records append after `__spm_lock`;
+- TOPRGU and MP2 DCM records append after their register spinlocks;
+- ring writers allocate nothing under their dedicated IRQ-safe spinlock; and
+- proc allocation occurs before its bounded ring copy.
+
+The clock snapshot still uses `spin_trylock_irqsave`, but now holds IRQs disabled
+only across fixed MMIO: one semaphore request/read, an optional 200 ns delay and
+three register reads after acquisition, and one release/read. Software-lock or
+hardware-semaphore contention returns immediately. There is no polling loop,
+`udelay`, retry, warning, or fatal owner helper.
+
+Timing bound
+------------
+The fixed broad-snapshot count is four over one complete online/offline cycle:
+
+1. online pre, before transition mutation;
+2. online post, after iDVFS enable;
+3. offline pre, before iDVFS disable; and
+4. offline final, after the kill/power-off path.
+
+No broad snapshot remains in either vendor 240-microsecond SRAM-LDO interval or
+inside `cpu_power_off_buck`. The rejected theoretical 16 ms IRQ-disabled wait
+is therefore eliminated, not merely reduced.
+
+A complete cycle still adds 52 fixed secure reads, 12 to 24 DA9214 I2C
+transactions, 24 SPM reads, four immediate clock probes, and four DCM reads.
+Those costs are outside the tight SRAM-LDO intervals and in the existing
+controller-side hotplug context. They remain an observer effect and are
+acceptable only for one bounded diagnostic capture with explicit identity,
+event order, stop conditions, and recovery—not for production or an unbounded
+stress test.
+
+Compatible checkpatch
+---------------------
+Patch 5 has 1 error, 0 warnings under Linux 7.1.3 `checkpatch.pl`; the sole
+error is the intentionally absent `Signed-off-by` on a synthetic,
+non-submission-ready experiment patch. No certification is invented. The
+original four patches retain the already recorded formatting/metadata cleanup
+required before any upstream submission.
+
+Decision
+--------
+compiler_gate=passed
+stack_gate=passed
+owner_lock_gate=passed
+bounded_timing_gate=passed
+production_suitability=no
+boot_image_preparation_authorized=yes
+device_deployment_authorized=no
+
+The next result must be a separate boot-image experiment that names this exact
+kernel field, combines it with the exact active Gemian ramdisk and boot-container
+parameters, validates package and container checksums, defines one natural
+CPU8/CPU9 online/offline observation and its stop conditions, and remains
+recoverable through the known-good Gemian path. This review itself authorizes no
+partition write or CPU request.

@@ -1,0 +1,90 @@
+Gemian A72 owner-observer Buildbox compile attempt 9
+Recorded: 2026-08-02 America/New_York
+
+Input
+-----
+repository_commit=bc01fc33ec60540b86cd1133697c6fc4a6d1b857
+repository_remote=https://github.com/ixoo/gemini-pda-mainline.git
+source_commit=59e00a9144d782e148332009a835b99c43382467
+patchset_sha256=85ac017a2fec821ee930a74d021cb6d2224ea958929c5bbffaf7ec480e19f9c9
+baseline_config_sha256=231d8a2ffe7afac3a4cc62c27d0eb6fe8bd9165ebd096e3e3346dd6df35c18f4
+toolchain_manifest_sha256=a45d945f092461a611d276ad7d0a0fea1ea8a7f93db413908bcb892c12817d14
+build_backend=buildbox
+native_vm_build=no
+purpose=compile-review-only
+boot_candidate=no
+
+Validated Buildbox result
+-------------------------
+job=bc01fc33ec60540b86cd1133697c6fc4a6d1b857-gemian-a72-owner-observer
+package=/workspace/gemini-pda/gemian-artifacts/gemian-observer-bc01fc33ec60
+completed_utc=2026-08-02T14:16:40Z
+observer_source_build=passed
+baseline_source_build=passed
+diagnostic_comparison=identical
+observer_symbol_presence=passed
+baseline_observer_symbol_exclusion=passed
+stack_usage_file_count=2484
+stack_archive_source_compare=passed
+remote_package_validation=passed
+device_access=none
+
+Validated host fetch
+--------------------
+destination=artifacts/buildbox/bc01fc33ec60540b86cd1133697c6fc4a6d1b857/gemian-observer-bc01fc33ec60
+outer_sha256_validation=passed
+case_distinct_stack_archive=passed
+destination_size=259M
+
+Accepted configuration delta
+----------------------------
+observer: CONFIG_ANBOX missing -> n
+observer: CONFIG_MTK_A72_TRANSITION_OBSERVER missing -> y
+baseline: CONFIG_ANBOX missing -> n
+
+Observer output SHA-256
+----------------------
+Image.gz-dtb=5864c083a156fcb023e62a5e8dd3fd4c75d68fb119c82492ed4653065ca39a18
+System.map=e4825c78c48e34e58d3af0440a4fd184f2f2c3f2f54521701f9b6d5639a3b2a1
+vmlinux=c20694496819263dfaca19d6d84fa069fd5456a12ca7fd51947e6c7a65cd6f40
+config=a7eaf67c19ad9b689457d057412019ecb75c8f4d6be1e8142060ea81861fea32
+build.log=968848041f98ad82b03720eaac583a2e0730cd4f4c2e3ea2ace0f5c1125c3e35
+diagnostics.txt=f60899a1c59153d7d36474c415bc6e302db89a74bc53a062cb56fa21eb269465
+
+Baseline output SHA-256
+----------------------
+Image.gz-dtb=2ffdbcb06039c5d06d70a0d5a9fcc16247c3fd993da5ea710be1934d1ea9fa76
+System.map=6450353d165e369903023a4cf28f23a7e49a37ab42fe0eaf42ba7fa18aff6564
+vmlinux=41a5c43c0d0e7dd65c1f6f0c9a65d5e200e60779adecd19803aca214fc939a8c
+config=c96ca5c8a767b93f59487c9b4a1c3d05c1f47c166f3f9ea9f2b7ffe0f6f1f0fb
+build.log=37ba740a537caa4c44f60b218b06472ca26f0410db7bd3e39e3495aaa83faf03
+diagnostics.txt=f60899a1c59153d7d36474c415bc6e302db89a74bc53a062cb56fa21eb269465
+
+Case-safe stack evidence SHA-256
+-------------------------------
+stack-usage.tar=74b6496e0533284961c365c9b0f55ece94b5f077e49a55e50ff7347c63d60cd3
+stack-usage-files.nul=7e76060d6d4994e29c032cde69173b13cb7a727e80194ebd90cfa1d2083bbcb8
+stack-usage-files.txt=c97b789018357b806e1520c93e957a9fabb3ceec3f5ac1de67bd8e29c0275092
+provenance/build.json=f9fbfd4e2f3e0584f6ac4dc74460f304284eb0a07407efe0f8ad7c6442d58bc3
+SHA256SUMS=e36fdc8bd58c454c74630636f7c80fceb7d2c38162638128fb08e3657c09818c
+
+Diagnostic conclusion
+---------------------
+Observer and exact unpatched baseline diagnostic files are byte-identical and
+contain only `WARNING: modpost: Found 69 section mismatch(es).` The warning is
+inherited from the selected vendor baseline. No observer symbol occurs in the
+baseline map. The exact observer ring spans 0x6800 bytes from
+`mt6797_a72_obs_ring` to `mt6797_a72_obs_count`, proving 256 compiled records
+of 104 bytes.
+
+The two runs' baseline output hashes are not expected to match one another:
+the legacy kernel embeds the build timestamp and the initramfs boundary moved
+by one byte. Attribution uses the same-attempt configuration and byte-identical
+diagnostic comparison, not cross-attempt binary identity.
+
+Decision
+--------
+The compiler, configuration, baseline-attribution, symbol, stack-capture, and
+evidence-transfer gates pass for this exact five-patch revision. This package
+is compile-review evidence, not a boot image. The bounded owner-timing decision
+is recorded separately.
