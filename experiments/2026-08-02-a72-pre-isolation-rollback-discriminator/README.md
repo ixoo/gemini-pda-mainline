@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-02-a72-pre-isolation-rollback-discriminator` |
-| Status | `offline-predeployment-complete`: contract, Buildbox comparison, timing/lock review, reproducible container, passive ABI-v3 collector, and source-pinned guarded installer all pass; after this evidence is pushed, the exact candidate is eligible for one guarded boot2 deployment from known-good Gemian |
+| Status | `deployment-deferred-power`: every offline gate passes, but guarded deployment attempt 1 stopped before upload or write because the healthy battery was at 76%, not above the required 80%, and USB power was offline; charge above 80% and rerun the unchanged installer |
 | Subsystem | CPU8 external BUCKB preparation, MP2 reset, TOPRGU PWRAP reset, and fail-closed rollback |
 | Device variant | Named Gemini PDA development unit |
 | Date(s) | 2026-08-02 |
@@ -125,6 +125,9 @@ predeployment decision after compiler and timing review.
 - [`results/installer-validation-20260802.txt`](results/installer-validation-20260802.txt):
   source identity, exact derivation tokens, retained safety behavior, syntax,
   ShellCheck, candidate-manifest, and deployment-eligibility decision.
+- [`results/deployment-attempt-1-20260802.txt`](results/deployment-attempt-1-20260802.txt):
+  clean pre-write deferral at 76% with USB offline, no upload, partition write,
+  readback, shutdown, boot selection, or runtime action.
 
 Run from the repository root:
 
@@ -135,19 +138,20 @@ python3 experiments/2026-08-02-a72-pre-isolation-rollback-discriminator/scripts/
 
 ## Decision
 
-`offline-predeployment-passed`: the exact generated series implements the
+`deployment-deferred-before-write`: the exact generated series implements the
 bounded and falsifiable rollback question without crossing external isolation,
 compiles against its exact parent observer with no new diagnostic, and adds no
 unsafe owner-lock nesting, polling loop, or semaphore wait loop. Its offline
 runtime and recovery decisions are explicit, and its Android-v0 container is
 reproducible. Its passive decision path is now mutation-tested. The result is
 eligible for one guarded deployment after the exact evidence is pushed, but is
-not hardware evidence or a hardware-support claim.
+not hardware evidence or a hardware-support claim. The first deployment attempt
+correctly stopped at its battery threshold without changing device storage.
 
 ## Follow-up
 
-Commit and push the complete offline evidence, then run the exact guarded
-installer once from known-good Gemian. Require the exact first-cycle-latch
-predecessor, live-GPT-resolved inactive boot2, stable power, full readback, and
-clean shutdown. The owner then manually selects boot2 and the host runs only
-the exact passive collector.
+Connect external power and allow the healthy battery to charge above 80%, then
+rerun the exact guarded installer from the unchanged known-good Gemian boot.
+Require the exact first-cycle-latch predecessor, live-GPT-resolved inactive
+boot2, full readback, and clean shutdown. The owner then manually selects boot2
+and the host runs only the exact passive collector.

@@ -1,0 +1,33 @@
+A72 pre-isolation rollback guarded deployment attempt 1
+Recorded: 2026-08-02 America/New_York
+
+Published preparation
+---------------------
+repository_commit=e639334
+repository_remote=https://github.com/ixoo/gemini-pda-mainline.git
+remote_branch=origin/main
+candidate_sha256=6a180e5a62a00cd7c97d461c7a1c491cd47802bd0964ef82f75ee793d6b8bede
+candidate_size=16777216
+private_manifest_validation=passed
+
+Result
+------
+installer_result=deferred-before-upload-or-write
+failed_gate=battery-capacity-above-80-percent
+usb_online=0
+battery_capacity=76
+battery_status=Not-charging
+battery_health=Good
+candidate_uploaded=no
+partition_write=none
+partition_readback=none
+shutdown_requested=no
+device_remains_known-good-gemian=yes
+
+Decision
+--------
+This is a clean safety deferral, not a candidate or hardware result. Connect
+external power, wait until the reported capacity is above 80 percent, and run
+the same guarded installer again. Do not weaken the threshold or substitute a
+different partition. No boot2 selection or runtime action is pending from this
+attempt.
