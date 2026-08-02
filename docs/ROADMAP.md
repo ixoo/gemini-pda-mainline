@@ -816,8 +816,12 @@ structure analysis passes, and the revised passive collector, normal installer,
 and predeployment matrix pass offline review. After that exact evidence is
 pushed, the first live attempt correctly deferred at 67% with USB power absent,
 before upload or write; boot2 remained unchanged and no staging file remained.
-The next action is the same live-gated boot2 deployment after charging above
-80%, with verified full readback and shutdown. CPU9,
+The owner then explicitly approved one deployment despite that power state. A
+second source-pinned wrapper narrows only the capacity floor to 60%, requires
+an explicit one-use flag, and retains battery presence, Good health, exact
+identity, target, predecessor, readback, cleanup, and shutdown gates. The next
+action is that exact live-gated boot2 deployment, with verified full readback
+and shutdown. CPU9,
 suspend/resume, later power boundaries, a mainline provider write, and any A72
 consumer remain blocked until their separate ownership and rollback gates
 close.

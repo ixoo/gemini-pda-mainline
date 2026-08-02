@@ -95,6 +95,9 @@ predeployment decision after compiler and timing review.
 - [`scripts/install-boot2-owner-battery-override.sh`](scripts/install-boot2-owner-battery-override.sh):
   explicit one-deployment 70% battery-floor override retaining every other
   checksum-pinned installer gate.
+- [`scripts/install-boot2-owner-battery-override-2.sh`](scripts/install-boot2-owner-battery-override-2.sh):
+  explicit one-deployment 60% battery-floor override for the revised candidate,
+  retaining every other checksum-pinned installer gate.
 - [`patches/series`](patches/series): the exact three-patch rollback ABI,
   owner-operation, and CPU8 orchestrator series generated from the pinned
   vendor source.
@@ -135,6 +138,9 @@ predeployment decision after compiler and timing review.
 - [`results/owner-battery-override-20260802.txt`](results/owner-battery-override-20260802.txt):
   exact owner instruction, narrowed risk acceptance, unchanged guards, wrapper
   identity, syntax, ShellCheck, and one-write decision.
+- [`results/owner-battery-override-2-20260802.txt`](results/owner-battery-override-2-20260802.txt):
+  second exact owner instruction, revised-candidate identities, current power
+  state, unchanged guards, wrapper validation, and one-write decision.
 - [`results/deployment-20260802.txt`](results/deployment-20260802.txt): exact
   live target, predecessor, owner-authorized power state, full write/readback,
   cleanup, shutdown, and owner expectation record.
@@ -162,16 +168,17 @@ python3 experiments/2026-08-02-a72-pre-isolation-rollback-discriminator/scripts/
 
 ## Decision
 
-`pre-latch-gate-deployment-deferred-power`: attempt 1 remains runtime-inconclusive and
+`pre-latch-gate-owner-override-approved`: attempt 1 remains runtime-inconclusive and
 establishes neither rollback nor hardware support. The revised series fixes its
 specific orchestration defect: an early request returns before the one-shot,
 and the compiled latched path still retains the original rollback boundary. A
 new container is reproducible and its offline deployment gates pass. Runtime
-hardware behavior remains untested; the live write was correctly deferred.
+hardware behavior remains untested. The normal live write correctly deferred;
+the owner subsequently approved one exact revised-candidate deployment with
+only the capacity floor narrowed to 60%.
 
 ## Follow-up
 
-Charge the device above 80 percent and rerun the normal guarded installer from
-known-good Gemian. The consumed owner battery override does not apply. After
-verified write and shutdown, manually select boot2 and run only the exact
+Publish and run the exact second owner-override wrapper from known-good Gemian.
+After verified write and shutdown, manually select boot2 and run only the exact
 passive collector. Do not boot or redeploy the unchanged prior candidate.

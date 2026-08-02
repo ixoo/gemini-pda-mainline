@@ -1,0 +1,55 @@
+A72 pre-latch gate owner battery override 2
+Recorded: 2026-08-02 America/New_York
+
+Authorization
+-------------
+owner_instruction=go-force-the-write-I-override-it-and-approve
+scope=one-exact-pre-latch-gate-candidate-deployment
+relaxed_gate=battery-capacity-floor-only
+original_threshold=81-to-100-percent
+authorized_threshold=60-to-100-percent
+observed_capacity_before-publication=66
+observed_present=1
+observed_health=Good
+observed_usb_online=0
+observed_status=Not-charging
+
+Unchanged gates
+---------------
+- exact candidate, manifest, and prior-candidate predecessor identities;
+- exact named Gemini and ignored credential;
+- known-good AArch64 Gemian kernel, root, and stable boot ID;
+- live-GPT resolution of exactly one logical boot2;
+- exact 16 MiB writable mmcblk0 child, inactive root, unmounted, no holders,
+  and no swap;
+- battery present, numeric capacity, and Good health;
+- bounded temporary upload, four exact 4 MiB writes, sync, flush, and full
+  remote checksum;
+- independent 16 MiB streamed readback, checksum, byte comparison, and cleanup;
+- sanitized ignored evidence; and
+- clean shutdown with no automatic reboot.
+
+Validation
+----------
+source_installer_sha256=0c669ab85063015fa83b7e28a506e1bcf8cdafc4994726009becf92151fda7e7
+normal_installer_sha256=3da050c542f18fe70ed87b1b86bd2049a8a999b6dc253df8569fce5e89d06fae
+override_wrapper_sha256=3ba43aeb0b17272d987257c4c5f15566a484f200da9c5880f0efdea575d3a052
+expected_predecessor_sha256=6a180e5a62a00cd7c97d461c7a1c491cd47802bd0964ef82f75ee793d6b8bede
+candidate_sha256=4830a0d0e1a3cb82a13e7c34248fb95f736d9ba3c71ba8ecb82ab210389bde6d
+manifest_sha256=105e12a67aad730c2b085d62fa7a22c4e931df75c8987b1c588081f719a6f9d7
+bash_syntax=passed
+shellcheck_managed_vm=passed
+explicit_override_flag=required
+exact_60_percent_floor=present
+original_81_percent_floor=absent
+derived_help_invocation=passed
+device_access=read-only-power-and-identity-check-only
+partition_write=none-at-publication
+
+Decision
+--------
+The owner explicitly accepts the additional power-loss risk for this one
+write. Use only the exact second override wrapper and candidate. A capacity
+below 60, non-Good health, changed predecessor, or any other live-gate failure
+still defers the operation without relaxation. No fresh device-filesystem or
+partition backup is required; recovery uses the verified project-wide backup.
