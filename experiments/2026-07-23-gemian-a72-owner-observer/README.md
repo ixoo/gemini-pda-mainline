@@ -111,7 +111,7 @@ was accessed or changed while preparing this directory.
   decompressed live configuration, SHA-256
   `231d8a2ffe7afac3a4cc62c27d0eb6fe8bd9165ebd096e3e3346dd6df35c18f4`.
 - [`inputs/stretch-cross-toolchain.tsv`](inputs/stretch-cross-toolchain.tsv):
-  exact 25-package Debian snapshot manifest with package, version,
+  exact 39-package Debian snapshot manifest with package, version,
   architecture, filename, and SHA-256.
 - [`patches/0001-diagnostic-add-fixed-MT6797-A72-transition-ring.patch`](patches/0001-diagnostic-add-fixed-MT6797-A72-transition-ring.patch):
   typed static ring, transaction IDs and root-read-only snapshot ABI.
@@ -138,6 +138,9 @@ was accessed or changed while preparing this directory.
 - [`results/buildbox-compile-attempt-1-20260802.txt`](results/buildbox-compile-attempt-1-20260802.txt):
   exact first pushed-commit submission and its pre-compile configuration
   rejection. No compiler target ran in that attempt.
+- [`results/buildbox-compile-attempt-2-20260802.txt`](results/buildbox-compile-attempt-2-20260802.txt):
+  exact replacement submission, passed config gate, and pre-object DCT
+  interpreter failure.
 
 The local validation invocation is:
 
@@ -165,10 +168,10 @@ Neither command needs privilege, network, VM or device access.
 
 1. Use the dedicated Git-based Buildbox lane, which fetches the exact clean
    pushed project commit, public source `59e00a…`, and the immutable
-   `20170618T000000Z` Debian snapshot inputs. It verifies all 25 package hashes,
-   proves the relocated compiler reports GCC `6.3.0 20170516` and ld `2.28`,
-   and stops on the 2019 `+deb9u1` environment or Buildbox's system GCC
-   12/binutils 2.40.
+   `20170618T000000Z` Debian snapshot inputs. It verifies all 39 package hashes,
+   proves the relocated compiler reports GCC `6.3.0 20170516`, ld `2.28`, and
+   Python `2.7.13`, and stops on the 2019 `+deb9u1` environment or Buildbox's
+   system GCC 12/binutils 2.40/Python 3.
 2. Start from a clean `59e00a…` checkout on Buildbox, apply [`patches/series`](patches/series)
    in order, and import the exact active plain configuration identified above.
 3. Enable `CONFIG_MTK_A72_TRANSITION_OBSERVER=y`, retain the complete resulting
@@ -216,6 +219,15 @@ matched the previously recorded compressed and decompressed hashes exactly.
 The non-sensitive decompressed configuration is now a tracked Buildbox input.
 No compiler diagnostic review, observer-kernel execution or A72 hardware
 transition has occurred.
+
+Compile attempt 2 passed the exact normalized configuration gate, then exposed
+the selected source's tracked DCT generator as Python 2 syntax with an
+`/usr/bin/python` shebang. Buildbox intentionally has only system Python 3. A
+separate pinned Stretch Python 2.7 probe generated `cust.dtsi` successfully;
+the exact output SHA-256 is
+`5c562f8ec89d7c4dac3e2115c81ece0d4b2e63d61660ad8cc73ad55ea1631a28`.
+The 14 direct Python runtime packages and this output oracle are now part of
+the fail-closed lane. No proprietary or later-source DCT conversion was used.
 
 ## Analysis
 

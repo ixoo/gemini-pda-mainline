@@ -51,8 +51,9 @@ LSB relocatable ARM aarch64 object. The probe exited zero and removed its
 temporary tree.
 
 The exact package/version/architecture/filename/SHA-256 closure is tracked at
-`inputs/stretch-cross-toolchain.tsv`; its SHA-256 is
-`e9250bdfe6a0811134fdf1265e262e2993fb17dbaed925fb6677ce5960544d26`.
+`inputs/stretch-cross-toolchain.tsv`. It now contains 39 packages, including
+the exact direct Python 2.7 runtime closure, and its SHA-256 is
+`a45d945f092461a611d276ad7d0a0fea1ea8a7f93db413908bcb892c12817d14`.
 Buildbox has no docker, podman, proot, bwrap, chroot authorization, or
 debootstrap helper available to the unprivileged builder. The next action is a
 repository-owned Buildbox lane that constructs a managed relocatable toolchain,
@@ -61,6 +62,20 @@ then attempts the clean vendor source build. That lane is now implemented but
 its first exact pushed-commit submission stopped before compilation on the
 configuration gate. The complete two-symbol delta is recorded separately. Do
 not fall back to a native VM build.
+
+Pinned DCT interpreter proof
+----------------------------
+python_version=Python 2.7.13
+python_package=python2.7_2.7.13-2_amd64.deb
+dct_source=tools/dct/DrvGen.py
+dws_source=drivers/misc/mediatek/dws/mt6797/aeon6797_6m_n.dws
+cust_dtsi_sha256=5c562f8ec89d7c4dac3e2115c81ece0d4b2e63d61660ad8cc73ad55ea1631a28
+result=passed
+
+The fixed source's DCT generator is tracked but uses Python 2 syntax and an
+`/usr/bin/python` shebang. A disposable exact-snapshot Python 2.7 environment
+generated `cust.dtsi` successfully and cleaned up. The permanent lane invokes
+that pinned interpreter explicitly and rejects any output checksum drift.
 
 Exact configuration recovery
 ----------------------------

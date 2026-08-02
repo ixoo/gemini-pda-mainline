@@ -8,6 +8,8 @@ readonly SNAPSHOT_URL=https://snapshot.debian.org/archive/debian/20170618T000000
 readonly CONFIG_SHA256=231d8a2ffe7afac3a4cc62c27d0eb6fe8bd9165ebd096e3e3346dd6df35c18f4
 readonly EXPECTED_GCC='aarch64-linux-gnu-gcc-6 (Debian 6.3.0-18) 6.3.0 20170516'
 readonly EXPECTED_LD='GNU ld (GNU Binutils for Debian) 2.28'
+readonly EXPECTED_PYTHON='Python 2.7.13'
+readonly CUST_DTSI_SHA256=5c562f8ec89d7c4dac3e2115c81ece0d4b2e63d61660ad8cc73ad55ea1631a28
 
 die() {
   echo "error: $*" >&2
@@ -118,7 +120,7 @@ prepare_toolchain() {
     [[ "$(dpkg-deb -f "${deb}" Version)" == "${version}" ]] || die "package version mismatch"
     [[ "$(dpkg-deb -f "${deb}" Architecture)" == "${architecture}" ]] || die "package architecture mismatch"
   done < "${manifest}"
-  [[ "$(find "${partial}/debs" -maxdepth 1 -type f -name '*.deb' | wc -l)" -eq 25 ]] || \
+  [[ "$(find "${partial}/debs" -maxdepth 1 -type f -name '*.deb' | wc -l)" -eq 39 ]] || \
     die "unexpected toolchain package count"
   while IFS=$'\t' read -r package version architecture filename sha; do
     [[ "${package}" != package ]] || continue
@@ -136,6 +138,15 @@ exec "${toolchain_dir}/root/usr/bin/aarch64-linux-gnu-gcc-6" \
   --sysroot="${toolchain_dir}/root" "$@"
 WRAPPER
   chmod 0755 "${wrapper}"
+  cat > "${partial}/wrappers/python2.7" <<'WRAPPER'
+#!/usr/bin/env bash
+set -euo pipefail
+toolchain_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+export LD_LIBRARY_PATH="${toolchain_dir}/root/usr/lib/x86_64-linux-gnu"
+export PYTHONHOME="${toolchain_dir}/root/usr"
+exec "${toolchain_dir}/root/usr/bin/python2.7" "$@"
+WRAPPER
+  chmod 0755 "${partial}/wrappers/python2.7"
   for command in addr2line ar as c++filt elfedit gprof ld ld.bfd nm objcopy objdump ranlib readelf size strings strip; do
     [[ -x "${partial}/root/usr/bin/aarch64-linux-gnu-${command}" ]] || \
       die "missing cross tool: ${command}"
@@ -148,6 +159,8 @@ WRAPPER
     die "pinned compiler identity mismatch"
   [[ "$("${partial}/wrappers/aarch64-linux-gnu-ld" --version | head -n 1)" == "${EXPECTED_LD}" ]] || \
     die "pinned linker identity mismatch"
+  [[ "$("${partial}/wrappers/python2.7" --version 2>&1)" == "${EXPECTED_PYTHON}" ]] || \
+    die "pinned Python identity mismatch"
   printf 'int probe(void) { return 0; }\n' | \
     "${compiler}" -x c -c -o "${partial}/probe.o" -
   file "${partial}/probe.o" | grep -F 'ELF 64-bit LSB relocatable, ARM aarch64' >/dev/null || \
@@ -272,9 +285,21 @@ if changes != expected:
     )
 PY
 
+readonly dct_output="${output}/arch/arm64/boot/dts"
+mkdir -p "${dct_output}"
+(
+  cd "${prepared_source}/tools/dct"
+  "${toolchain}/wrappers/python2.7" DrvGen.py \
+    "${prepared_source}/drivers/misc/mediatek/dws/mt6797/aeon6797_6m_n.dws" \
+    "${dct_output}/" "${dct_output}/" cust_dtsi
+) 2>&1 | tee "${output}/dct.log"
+[[ "$(sha256sum "${dct_output}/cust.dtsi" | awk '{print $1}')" == "${CUST_DTSI_SHA256}" ]] || \
+  die "generated cust.dtsi checksum mismatch"
+
 set -o pipefail
 make -C "${prepared_source}" O="${output}" ARCH=arm64 \
-  CROSS_COMPILE="${cross_prefix}" -j"${jobs}" V=1 Image.gz-dtb 2>&1 | \
+  CROSS_COMPILE="${cross_prefix}" python="${toolchain}/wrappers/python2.7" \
+  -j"${jobs}" V=1 Image.gz-dtb 2>&1 | \
   tee "${output}/build.log"
 
 readonly image="${output}/arch/arm64/boot/Image.gz-dtb"
@@ -283,6 +308,8 @@ readonly image="${output}/arch/arm64/boot/Image.gz-dtb"
 mkdir -p "${package_partial}/outputs" "${package_partial}/provenance"
 cp "${output}/.config" "${package_partial}/outputs/config"
 cp "${output}/config.diff" "${package_partial}/outputs/config.diff"
+cp "${dct_output}/cust.dtsi" "${package_partial}/outputs/cust.dtsi"
+cp "${output}/dct.log" "${package_partial}/outputs/dct.log"
 cp "${output}/build.log" "${package_partial}/outputs/build.log"
 cp "${image}" "${package_partial}/outputs/Image.gz-dtb"
 cp "${output}/System.map" "${package_partial}/outputs/System.map"
@@ -299,6 +326,7 @@ jq -n \
   --arg config_sha256 "${CONFIG_SHA256}" \
   --arg toolchain_manifest_sha256 "${manifest_sha}" \
   --arg snapshot_url "${SNAPSHOT_URL}" \
+  --arg cust_dtsi_sha256 "${CUST_DTSI_SHA256}" \
   --arg build_architecture "$(uname -m)" \
   --arg target_architecture arm64 \
   --arg completed_utc "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
@@ -306,7 +334,8 @@ jq -n \
     source_url: $source_url, source_commit: $source_commit,
     patchset_sha256: $patchset_sha256, baseline_config_sha256: $config_sha256,
     toolchain_manifest_sha256: $toolchain_manifest_sha256,
-    snapshot_url: $snapshot_url, build_architecture: $build_architecture,
+    snapshot_url: $snapshot_url, cust_dtsi_sha256: $cust_dtsi_sha256,
+    build_architecture: $build_architecture,
     target_architecture: $target_architecture, purpose: "compile-review-only",
     boot_candidate: false, completed_utc: $completed_utc}' > \
   "${package_partial}/provenance/build.json"

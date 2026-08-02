@@ -52,7 +52,7 @@ ACTIVE_CONFIG_SHA256 = (
     "231d8a2ffe7afac3a4cc62c27d0eb6fe8bd9165ebd096e3e3346dd6df35c18f4"
 )
 TOOLCHAIN_MANIFEST_SHA256 = (
-    "e9250bdfe6a0811134fdf1265e262e2993fb17dbaed925fb6677ce5960544d26"
+    "a45d945f092461a611d276ad7d0a0fea1ea8a7f93db413908bcb892c12817d14"
 )
 
 SECURE_ADDRESSES = [
@@ -137,18 +137,18 @@ def validate(root):
         manifest_rows[0] == "package\tversion\tarchitecture\tfilename\tsha256",
         "pinned toolchain manifest header changed",
     )
-    require(len(manifest_rows) == 26, "pinned toolchain package count changed")
+    require(len(manifest_rows) == 40, "pinned toolchain package count changed")
     packages = [row.split("\t") for row in manifest_rows[1:]]
     require(
         all(len(fields) == 5 for fields in packages),
         "malformed pinned toolchain row",
     )
     require(
-        len({fields[0] for fields in packages}) == 25,
+        len({fields[0] for fields in packages}) == 39,
         "duplicate pinned toolchain package",
     )
     require(
-        len({fields[3] for fields in packages}) == 25,
+        len({fields[3] for fields in packages}) == 39,
         "duplicate pinned toolchain filename",
     )
     require(
@@ -164,6 +164,10 @@ def validate(root):
         versions.get("binutils-aarch64-linux-gnu") == "2.28-5",
         "pinned cross-binutils package version changed",
     )
+    require(
+        versions.get("python2.7") == "2.7.13-2",
+        "pinned Python package version changed",
+    )
 
     build_script = root / "scripts" / "build-on-buildbox"
     require(build_script.is_file(), "missing Buildbox observer build driver")
@@ -178,6 +182,8 @@ def validate(root):
             "https://snapshot.debian.org/archive/debian/20170618T000000Z",
             "6.3.0 20170516",
             "GNU ld (GNU Binutils for Debian) 2.28",
+            "Python 2.7.13",
+            "5c562f8ec89d7c4dac3e2115c81ece0d4b2e63d61660ad8cc73ad55ea1631a28",
             "sha256sum --check --strict SHA256SUMS",
             "configuration delta is not exact observer-plus-ANBOX-normalization",
             'purpose: "compile-review-only"',

@@ -658,7 +658,11 @@ stopped before compilation because normalization exposed precisely the observer
 absent-to-`y` delta and an inert public-source-only `CONFIG_ANBOX`
 absent-to-explicit-`n` delta. That exact disabled serialization is now pinned;
 every other delta remains rejected. No native VM kernel build, register write,
-or CPU request is authorized by the audit.
+or CPU request is authorized by the audit. The replacement passed that gate
+and then stopped before kernel-object compilation because the selected source's
+tracked DCT generator requires Python 2. The exact Stretch Python 2.7 runtime
+now reproduces `cust.dtsi` with a pinned checksum; the next result is a third
+exact pushed-commit compile review.
 
 Exit: observations and inference are separated, every required writer has one
 owner, and a failed step has a bounded rollback path.
