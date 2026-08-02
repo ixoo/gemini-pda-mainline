@@ -144,6 +144,8 @@ was accessed or changed while preparing this directory.
 - [`results/buildbox-compile-attempt-3-20260802.txt`](results/buildbox-compile-attempt-3-20260802.txt):
   exact Python-enabled submission and its fail-closed discovery of the DCT
   wall-clock comment.
+- [`results/buildbox-compile-attempt-4-20260802.txt`](results/buildbox-compile-attempt-4-20260802.txt):
+  exact deterministic-DCT submission and its legacy host-DTC link failure.
 
 The local validation invocation is:
 
@@ -234,6 +236,14 @@ line to `1970-01-01 00:00:00`, and pins normalized SHA-256
 The 14 direct Python runtime packages and this normalized output oracle are
 now part of the fail-closed lane. No proprietary or later-source DCT
 conversion was used.
+
+Compile attempt 4 passed every input, configuration, interpreter, and DCT gate
+and entered target preparation. The Buildbox system GCC then linked the
+tree's legacy host DTC with modern `-fno-common` semantics and rejected its two
+tentative `yylloc` definitions. The pinned tree exposes `HOST_EXTRACFLAGS`;
+the replacement adds only `-fcommon`, which restores GCC 6's historical host
+default without changing target compiler flags or vendor source. Provenance
+records both the host compiler and this compatibility flag.
 
 ## Analysis
 

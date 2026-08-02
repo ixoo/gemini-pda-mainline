@@ -185,6 +185,8 @@ def validate(root):
             "Python 2.7.13",
             "7a7eb416499346afff30c15f967ccb9cf79323c076204b6a953515db74811632",
             "1970-01-01 00:00:00",
+            "HOST_EXTRACFLAGS=-fcommon",
+            'host_extra_cflags: "-fcommon"',
             "sha256sum --check --strict SHA256SUMS",
             "configuration delta is not exact observer-plus-ANBOX-normalization",
             'purpose: "compile-review-only"',

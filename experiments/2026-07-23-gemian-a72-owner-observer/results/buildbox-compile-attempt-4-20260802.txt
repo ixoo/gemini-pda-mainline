@@ -1,0 +1,47 @@
+Gemian A72 owner-observer Buildbox compile attempt 4
+Recorded: 2026-08-02 America/New_York
+
+Input
+-----
+repository_commit=d552981ac5c7807872ac2b5fd1c9e08689b12453
+repository_remote=https://github.com/ixoo/gemini-pda-mainline.git
+source_commit=59e00a9144d782e148332009a835b99c43382467
+build_backend=buildbox
+native_vm_build=no
+purpose=compile-review-only
+boot_candidate=no
+
+Result
+------
+toolchain_manifest_validation=passed
+pinned_compiler_object_probe=passed
+pinned_python_identity=passed
+patch_application=passed
+baseline_config_hash=passed
+olddefconfig=passed
+config_gate=passed
+dct_generator=passed
+dct_timestamp_normalization=passed
+dct_normalized_checksum=passed
+target_preparation=started
+host_dtc_link=failed
+observer_object_compilation=not_reached
+artifact_package=not_created
+device_access=none
+
+Failure
+-------
+The Buildbox system GCC compiled the pinned source's shipped DTC lexer and
+parser, then GNU ld rejected two common-symbol `yylloc` definitions. The lexer
+and parser each contain one `YYLTYPE yylloc;`. GCC 10 and later default to
+`-fno-common`; the selected kernel predates that change and expects the GCC 6
+default `-fcommon` behavior. Target preparation had begun under pinned cross-
+GCC 6.3, but the observer object had not yet compiled.
+
+Decision
+--------
+Do not patch the shipped DTC source and do not alter target compilation. Pass
+the tree-supported `HOST_EXTRACFLAGS=-fcommon` only to host-tool builds and
+record that compatibility flag plus the host compiler identity in provenance.
+Submit a fifth exact clean pushed commit. This result authorizes no packaging,
+device deployment, or CPU8/CPU9 activity.

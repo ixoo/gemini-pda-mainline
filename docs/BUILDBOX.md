@@ -94,6 +94,12 @@ compiler, configuration, symbol, warning, and timing review. Provenance marks
 `boot_candidate=false`; this lane does not construct an Android boot image,
 write `boot2`, access the device, or authorize an A72 request.
 
+Legacy host tools are built by the Buildbox system compiler with the sole
+additional flag `HOST_EXTRACFLAGS=-fcommon`, reproducing GCC 6's tentative-
+definition behavior required by the pinned DTC sources. This flag never enters
+target ARM64 compilation. The bundle records the host compiler identity and
+the compatibility flag separately from the pinned target compiler.
+
 ## Remote storage and concurrency
 
 Buildbox uses its persistent home volume for the Git mirror, verified kernel

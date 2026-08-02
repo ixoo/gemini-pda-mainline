@@ -664,8 +664,12 @@ now reproduces `cust.dtsi`. The third exact submission proved generation but
 rejected its time-varying checksum; two independent outputs differ only in the
 line-3 wall-clock comment. The lane now requires that exact syntax, normalizes
 only that comment, and pins the full normalized output. The next result is a
-fourth clean pushed-commit vendor source build and warning/configuration review,
-not a device boot.
+fourth clean pushed-commit vendor source build. That attempt passed all prior
+gates and reached target preparation, then modern host GCC rejected the legacy
+DTC's duplicate tentative `yylloc` definitions under its `-fno-common`
+default. The replacement uses only the tree's `HOST_EXTRACFLAGS=-fcommon`,
+matching GCC 6 host semantics without affecting target flags. The next result
+is a fifth exact compile and warning/configuration review, not a device boot.
 
 Exit: observations and inference are separated, every required writer has one
 owner, and a failed step has a bounded rollback path.

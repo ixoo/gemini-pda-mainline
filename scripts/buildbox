@@ -512,6 +512,7 @@ jq -e --arg commit "${commit}" '
   .source_commit == "59e00a9144d782e148332009a835b99c43382467" and
   .cust_dtsi_sha256 == "7a7eb416499346afff30c15f967ccb9cf79323c076204b6a953515db74811632" and
   .build_architecture == "x86_64" and .target_architecture == "arm64" and
+  .host_extra_cflags == "-fcommon" and
   .purpose == "compile-review-only" and .boot_candidate == false
 ' "${package}/provenance/build.json" >/dev/null
 jq -n \
