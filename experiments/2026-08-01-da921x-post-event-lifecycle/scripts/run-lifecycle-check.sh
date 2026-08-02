@@ -66,10 +66,11 @@ require_phase()
 	page2="$5"
 
 	[ "$(counter "$status" handoff)" = ready ] || abort "$phase-handoff"
-	for key in transfer_attempts dma_starts nonzero_starts irq_count; do
+	for key in transfer_attempts nonzero_starts irq_count; do
 		[ "$(counter "$status" "$key")" = "$wanted" ] ||
 			abort "$phase-$key"
 	done
+	[ "$(counter "$status" dma_starts)" = 0 ] || abort "$phase-dma_starts"
 	[ "$(counter "$status" oracle_combined_pointer_reads)" = "$wanted" ] ||
 		abort "$phase-combined-count"
 	[ "$(counter "$status" oracle_primary_pointer_reads)" = "$primary" ] ||
@@ -122,9 +123,9 @@ require_serviceability initial
 natural_state="$(/bin/busybox cat /sys/kernel/gemini_da921x_natural_device_add)" ||
 	abort natural-state-read
 [ "$natural_state" = \
-	'attempts=1 register_entries=1 register_returns=1 register_retval=0 callsite_entries=1 callsite_returns=1 public_returns=1 wrapper_entries=1 wrapper_returns=1 namespace_checks=1 untagged_routes=1 tagged_routes=0 sockets=1 listeners=0 allocations=0 broadcasts=0 uevent_retval=0' ] ||
+	'attempts=1 register_entries=1 register_returns=1 register_retval=0 callsite_entries=1 callsite_returns=1 public_returns=1 wrapper_entries=2 wrapper_returns=2 namespace_checks=2 untagged_routes=2 tagged_routes=0 sockets=1 listeners=0 allocations=0 broadcasts=0 uevent_retval=0' ] ||
 	abort natural-state
-[ "$(/bin/busybox cat /sys/kernel/gemini_da921x_dual_modalias_stage)" = 26 ] ||
+[ "$(/bin/busybox cat /sys/kernel/gemini_da921x_dual_modalias_stage)" = 20 ] ||
 	abort natural-stage
 
 for path in /sys/bus/platform/devices/1100e000.i2c \
@@ -187,7 +188,7 @@ require_serviceability final
 	"$natural_state" ] || abort natural-state-changed
 
 printf 'kernel=7.1.3-gemini-da921x-life27\n'
-printf 'validation_stage=26\nnatural_device_add_state=%s\n' "$natural_state"
+printf 'validation_stage=20\nnatural_device_add_state=%s\n' "$natural_state"
 printf 'i2c_device=1-0068\nidentity_log_count=%s\n' "$matches"
 emit_phase initial "$initial_status"
 emit_phase post_unbind "$post_unbind_status"

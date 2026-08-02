@@ -84,6 +84,8 @@ for exact in (
     'require_phase initial "$initial_status" 14 8 6',
     'require_phase post_unbind "$post_unbind_status" 14 8 6',
     'require_phase post_rebind "$post_rebind_status" 28 16 12',
+    '[ "$(counter "$status" dma_starts)" = 0 ] || abort "$phase-dma_starts"',
+    '[ "$(/bin/busybox cat /sys/kernel/gemini_da921x_dual_modalias_stage)" = 20 ]',
     "trap cleanup EXIT HUP INT TERM",
 ):
     require(runtime.count(exact) == 1, f"runtime boundary is not exact: {exact}")

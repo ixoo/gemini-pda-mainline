@@ -597,9 +597,16 @@ predecessor, full-partition readback, and clean shutdown. That deployment
 matched the predecessor and all live-target and stable-power gates, then passed
 synchronized write, flush, device-side checksum, independent full-partition
 readback, temporary-readback removal, and clean shutdown without creating a
-fresh backup. The next action is one selected `boot2` lifecycle capture testing
-the exact `14 -> 14 -> 28` boundary. Provider work remains blocked pending that
-runtime result.
+fresh backup. Runtime attempt 1 booted the exact candidate and proved the
+natural driver bind plus exact `14/8/6` read-only identification, but its
+checker stopped before sysfs remount or lifecycle mutation: built-in binding
+produced a measured two-wrapper event envelope ending at stage 20, and the
+native transfer path correctly left DMA-start zero. The corrected runtime model
+now pins those observations, retains `14 -> 14 -> 28` transfer/nonzero-start/IRQ
+and oracle requirements, requires DMA-start and all write/other counters to
+remain zero, and rejects six unsafe mutations. The next action is the first
+actual unbind/rebind lifecycle measurement on the still-running selected boot.
+Provider work remains blocked pending that runtime result.
 
 ### 4. Finish the ownership and rollback audit
 

@@ -9,13 +9,13 @@ from pathlib import Path
 
 NATURAL_STATE = (
     "attempts=1 register_entries=1 register_returns=1 register_retval=0 "
-    "callsite_entries=1 callsite_returns=1 public_returns=1 wrapper_entries=1 "
-    "wrapper_returns=1 namespace_checks=1 untagged_routes=1 tagged_routes=0 "
+    "callsite_entries=1 callsite_returns=1 public_returns=1 wrapper_entries=2 "
+    "wrapper_returns=2 namespace_checks=2 untagged_routes=2 tagged_routes=0 "
     "sockets=1 listeners=0 allocations=0 broadcasts=0 uevent_retval=0"
 )
 EXPECTED = {
     "kernel": "7.1.3-gemini-da921x-life27",
-    "validation_stage": "26",
+    "validation_stage": "20",
     "natural_device_add_state": NATURAL_STATE,
     "i2c_device": "1-0068",
     "identity_log_count": "2",
@@ -84,13 +84,14 @@ def validate(values: dict[str, str]) -> None:
     for phase, (combined, primary, page2) in PHASE_COUNTS.items():
         for key in (
             "transfer_attempts",
-            "dma_starts",
             "nonzero_starts",
             "irq_count",
             "oracle_combined_pointer_reads",
         ):
             if values[f"{phase}_{key}"] != str(combined):
                 raise ValueError(f"{phase}_{key}: expected {combined}")
+        if values[f"{phase}_dma_starts"] != "0":
+            raise ValueError(f"{phase}_dma_starts: expected zero")
         if values[f"{phase}_oracle_primary_pointer_reads"] != str(primary):
             raise ValueError(f"{phase}_oracle_primary_pointer_reads: expected {primary}")
         if values[f"{phase}_oracle_page2_pointer_reads"] != str(page2):

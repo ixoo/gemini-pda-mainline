@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-01-da921x-post-event-lifecycle` |
-| Status | `deployed and shut down; selected boot2 runtime pending` |
+| Status | `runtime preflight observed; corrected lifecycle measurement pending` |
 | Subsystem | regulator, I2C, driver core |
 | Device variant | Named Gemini PDA development unit |
 | Investigator(s) | Julien Etienne and Codex |
@@ -32,7 +32,8 @@ release and USB product string make the result attributable.
 - One explicit rebind must restore both software ownership links, add exactly
   fourteen more reads, produce a second identity log, and reach `28/16/12`
   with every write/other counter still zero.
-- The Stage 26 event state must remain exact and CPU0--7, CPU8/9-offline,
+- The runtime-observed built-in-bind event envelope must remain exact and
+  CPU0--7, CPU8/9-offline,
   console, keyboard, USB, I2C5/AP-DMA, DVFSP, and native-reboot serviceability
   must remain unchanged.
 - Success closes the identification lifecycle and permits the ownership audit
@@ -64,8 +65,8 @@ native VM kernel build without an explicit owner request.
 
 The exact successful sequence is `14 -> 14 -> 28` combined reads,
 `8 -> 8 -> 16` primary reads, and `6 -> 6 -> 12` page2 reads. Controller
-transfer, DMA-start, nonzero-start, and IRQ counts must follow the same
-`14 -> 14 -> 28` sequence. All write-only, register-data-write, other-shape,
+transfer, nonzero-start, and IRQ counts must follow the same `14 -> 14 -> 28`
+sequence while DMA-start remains zero. All write-only, register-data-write, other-shape,
 other-address, suspend, resume, and failure counters remain zero. A fresh
 read-only postcheck must confirm the final bound state, exact counters,
 read-only sysfs, helper removal, and complete serviceability.
@@ -119,3 +120,25 @@ readback. No fresh backup was created; the verified project-wide backup is the
 recovery source. The temporary readback was removed and the device shut down
 cleanly after verified success. Exact sanitized evidence is in
 `results/deployment.txt`.
+
+## Runtime attempt 1 and checker correction
+
+Attempt 1 booted the exact installed Stage 27 image and stopped before any
+sysfs remount, unbind, or rebind because the predeclared runtime model retained
+two incorrect Stage 26 assumptions. The built-in driver had already bound,
+created its page-2 dummy client, emitted one identity log, and completed the
+exact `14/8/6` read transcript with every write/other counter zero. CPU0--7,
+CPU8/9-offline, USB, read-only sysfs, and helper cleanup also matched.
+
+The live event envelope contained two wrapper/namespace/untagged traversals and
+remained at stage 20. The observer source proves that the original primary
+client remains the active target until `device_register()` returns; the second
+action was not recorded directly, but is consistent with the synchronous bind
+event on that same client. Separately, the established native I2C path and the
+live counters both require DMA-start zero while transfer, nonzero-start, and IRQ
+counters advance. The runtime helper and classifier now encode those measured
+facts. Static validation, six fail-closed mutations, Bash syntax, and managed-VM
+ShellCheck pass. Because attempt 1 never reached a lifecycle mutation, the next
+run remains the first unbind/rebind measurement rather than a repeated hardware
+hypothesis. Exact sanitized evidence and corrected identities are in
+`results/runtime-attempt-1.txt` and `results/runtime-check-correction.txt`.

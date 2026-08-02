@@ -21,12 +21,12 @@ def passing() -> dict[str, str]:
     for phase, (combined, primary, page2) in validate_runtime.PHASE_COUNTS.items():
         for key in (
             "transfer_attempts",
-            "dma_starts",
             "nonzero_starts",
             "irq_count",
             "oracle_combined_pointer_reads",
         ):
             values[f"{phase}_{key}"] = str(combined)
+        values[f"{phase}_dma_starts"] = "0"
         values[f"{phase}_oracle_primary_pointer_reads"] = str(primary)
         values[f"{phase}_oracle_page2_pointer_reads"] = str(page2)
         for key in validate_runtime.ZERO_COUNTERS:
@@ -51,6 +51,7 @@ mutations = {
     "unbind-transaction": ("post_unbind_transfer_attempts", "15"),
     "rebind-short": ("post_rebind_oracle_combined_pointer_reads", "27"),
     "register-write": ("post_rebind_oracle_register_data_write_messages", "1"),
+    "dma-start": ("post_rebind_dma_starts", "1"),
     "sysfs-left-rw": ("sysfs", "read-write"),
     "a72-online": ("cpu_offline", "9"),
 }
