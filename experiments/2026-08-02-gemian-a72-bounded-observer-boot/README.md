@@ -74,6 +74,15 @@ ABI, USB shell, power state, or CPU8/CPU9-offline baseline differs.
 - [`scripts/install-boot2.sh`](scripts/install-boot2.sh): source-pinned guarded
   logical-`boot2` installer with exact predecessor/candidate gates, no fresh
   backup, full readback, private evidence, and shutdown.
+- [`scripts/remote-initial-probe.sh`](scripts/remote-initial-probe.sh): exact
+  build/ABI/power/temperature/CPU identity gate and one immutable observer copy;
+  it contains no load or writable operation.
+- [`scripts/collect-initial.sh`](scripts/collect-initial.sh): exact-dependency,
+  bounded authenticated Gemian collector with ignored mode-0600 output.
+- [`scripts/validate-initial.py`](scripts/validate-initial.py): strict observer
+  ABI, record, sequence, CPU, disposition, and no-load validator.
+- [`scripts/test-initial.py`](scripts/test-initial.py): positive scenarios and
+  ten fail-closed/static safety checks.
 - [`results/predeployment-hypothesis-20260802.txt`](results/predeployment-hypothesis-20260802.txt):
   exact one-cycle hypothesis, expected ordering, stop conditions, outcome
   matrix, and guarded deployment boundary.
@@ -83,6 +92,9 @@ ABI, USB shell, power state, or CPU8/CPU9-offline baseline differs.
 - [`results/deployment-20260802.txt`](results/deployment-20260802.txt): exact
   live target, predecessor, candidate/readback identity, power gate, cleanup,
   and confirmed shutdown.
+- [`results/initial-collector-validation-20260802.txt`](results/initial-collector-validation-20260802.txt):
+  dependency hashes, bounded behavior, syntax, ShellCheck, positive scenarios,
+  and fail-closed checks.
 - [Owner-observer review](../2026-07-23-gemian-a72-owner-observer/README.md):
   exact compiler, stack, lock, and bounded timing evidence.
 - [Calibrated two-worker trigger](../2026-07-23-gemian-a72-load-assisted-observation/README.md):
@@ -96,6 +108,16 @@ experiments/2026-08-02-gemian-a72-bounded-observer-boot/scripts/build-candidate.
   --active-boot artifacts/device-partitions/20260715T020041Z/mmcblk0p22-boot.img \
   --output-parent artifacts/boot-candidates
 ```
+
+After the owner selects `boot2`, the first runtime action is only:
+
+```sh
+experiments/2026-08-02-gemian-a72-bounded-observer-boot/scripts/collect-initial.sh \
+  --tag first-boot-20260802
+```
+
+This invocation always forbids load. An empty/offline capture can only make a
+separately validated second pre-pulse gate eligible.
 
 ## Procedure
 
@@ -155,4 +177,5 @@ not the write itself, determines whether the observer kernel is serviceable.
 The device is powered off after verified deployment. The owner may now select
 `boot2` manually. On first serviceability, apply the predeployment contract:
 retrieve identity and the initial immutable observer copy before deciding
-whether the single calibrated two-worker pulse is allowed.
+whether the single calibrated two-worker pulse is allowed. The exact no-load
+collector is validated and ready.

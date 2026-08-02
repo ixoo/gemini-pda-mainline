@@ -711,7 +711,10 @@ readbacks, and shut the device down without a fresh backup or automatic reboot.
 The owner can now select `boot2` manually. Boot alone remains
 hardware-inconclusive until initial identity and the immutable observer record
 are retrieved; only an empty, both-A72-offline initial record permits the one
-calibrated two-worker pulse.
+calibrated two-worker pulse. The exact initial collector is now ready and
+validated: it identity-gates the reviewed build and observer ABI, checks
+power/temperatures and five offline samples, retrieves one immutable ring copy,
+and always forbids load in that invocation.
 
 Exit: observations and inference are separated, every required writer has one
 owner, and a failed step has a bounded rollback path.

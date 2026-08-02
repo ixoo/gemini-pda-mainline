@@ -1,0 +1,63 @@
+Gemian bounded A72 observer initial collector validation
+Recorded: 2026-08-02 America/New_York
+
+Inputs
+------
+remote_initial_probe_sha256=cd44e286d333375b53a90b2f26aa968e235574c3912f41e236ba7820700defc8
+initial_validator_sha256=ec6809e25c45e2fb16eb01aee0e5798473061ce38fcbe5f730a111e1dc599f61
+host_collector_sha256=6384d372c06d7c680f66a83a92a0606105449b19d62100e96a270b7fdc0febe9
+static_test_sha256=97920522b46f02f45b1eb87aab7f069a2e4a04b7c5d226e1735c37c37a97b5f7
+bounded_exec_sha256=e250c4f0375aed986bc73eeea699cf5f4ba51625aa51a1ede2d40ac601f62ce5
+target=gemini@192.168.1.50
+private_output_root=artifacts/runtime-captures
+
+Fixed behavior
+--------------
+- requires exact AArch64 `3.18.41+` and build identity
+  `#1 SMP PREEMPT Sun Aug 2 14:14:43 UTC 2026`;
+- requires root `/dev/mmcblk0p29`, CPU possible/present `0-9`, exact observer
+  path and mode 0400;
+- requires USB power and Full/100%/Good battery state;
+- requires all four calibrated thermal zones below their independent limits;
+- samples CPU8/CPU9 state five times before opening the proc observer;
+- retrieves one immutable observer snapshot and proves its header/line count;
+- rechecks CPU8/CPU9 and the hashed boot ID after the snapshot;
+- records one of `empty-offline`, `boot-records-present`,
+  `blocked-overwritten`, or `blocked-cpu-state`; and
+- always emits `load_permitted_by_initial=no`.
+
+The host uses the ignored mode-0600 Gemini key and known-hosts database, exact
+dependency hashes, passwordless sudo, a 65-second remote bound inside a
+75-second exact-child host bound, and mode-0600 ignored outputs. Failed remote
+or validation runs preserve the partial evidence and never rename it as an
+accepted capture.
+
+Validation
+----------
+POSIX_shell_syntax=passed
+Bash_host_syntax=passed
+ShellCheck_remote_managed_vm=passed
+ShellCheck_host_managed_vm=passed
+validator_positive_empty=passed
+validator_positive_records=passed
+validator_positive_overwrite=passed
+validator_positive_cpu_state_block=passed
+fail_closed_checks=10
+git_diff_check=passed
+device_access=none
+load_workers=0
+hardware_write=none
+
+The ten fail-closed checks include forced load permission, count mismatch, ABI
+drift, invalid CPU identity, non-increasing sequence, incomplete secure
+sentinel payload, forbidden load/CPU/I2C/memory/reboot/poweroff actions, and
+unresolved dependency hashes.
+
+Decision
+--------
+initial_collector_static_gate=passed
+first_runtime_capture=pending_owner_boot2_selection
+
+An `empty-offline` result is not permission to add load in the same invocation.
+It permits only preparation and execution of a separate second pre-pulse gate.
+Any other disposition preserves the initial evidence and prohibits load.
