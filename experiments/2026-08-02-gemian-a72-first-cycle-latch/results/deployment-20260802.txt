@@ -1,0 +1,60 @@
+Gemian A72 first-cycle latch guarded boot2 deployment
+Recorded: 2026-08-02 America/New_York
+
+Published preparation
+---------------------
+repository_commit=4b99650ab8c55047c032ff4d8f08c8c6532576ed
+repository_remote=https://github.com/ixoo/gemini-pda-mainline.git
+remote_branch=origin/main
+candidate_sha256=6dcbda0cb264f5b637f6333f4946707d81ea98d38a8d52673b6fbe2cf109e3af
+candidate_size=16777216
+private_manifest_validation=passed
+
+Live gates
+----------
+target_identity=gemini@192.168.1.50
+architecture=aarch64
+known_good_release=3.18.41+
+target_logical_name=boot2
+live_target=/dev/mmcblk0p30
+target_parent=mmcblk0
+target_size=16777216
+target_writable=yes
+target_mounted=no
+target_holders=none
+target_swap=no
+active_root=/dev/mmcblk0p29
+boot_id=c64ffe7c-e6c6-492f-9d17-5ff01bbd5714
+power_present=1
+battery_capacity=100
+battery_health=Good
+predecessor_sha256=33ace2c30a8877be2a4b917135aa994ad718201f98ec36d8506a3b1f1d03a7aa
+fresh_predecessor_backup=no
+
+Write and verification
+----------------------
+result=write-synced-flushed-full-readback-verified
+post_flush_partition_sha256=6dcbda0cb264f5b637f6333f4946707d81ea98d38a8d52673b6fbe2cf109e3af
+independent_readback_size=16777216
+independent_readback_sha256=6dcbda0cb264f5b637f6333f4946707d81ea98d38a8d52673b6fbe2cf109e3af
+independent_readback_byte_compare=identical
+temporary_remote_candidate_removed=yes
+temporary_local_readback_removed=yes
+private_summary_sha256=04fb1aef1396bcfcc234a16a63302a176b46526eb003736ba3181c2df0e88488
+private_manifest_sha256=8736e1cb5fb694348f44d6c9269909f28673ab5fce4b4767173447f43c8195a8
+
+Shutdown and next action
+------------------------
+poweroff_ssh_rc=0
+post_shutdown_reachability=unreachable
+automatic_reboot=no
+shutdown=confirmed
+next_action=owner-manually-selects-boot2
+
+The owner should expect ordinary Gemian visuals because the exact Gemian
+ramdisk and root filesystem are retained. Console/USB service may be delayed.
+Neither screen appearance nor userspace identifies the selected kernel. After
+service appears, run only the exact passive collector and require the build
+identity, ABI-v2 header, two-read stability and semantic result gates.
+
+hardware_runtime_result=pending-manual-boot2-selection

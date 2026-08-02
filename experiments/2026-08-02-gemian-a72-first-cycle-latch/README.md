@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-02-gemian-a72-first-cycle-latch` |
-| Status | `running`: source, Buildbox, container, installer and passive collector gates pass; evidence publication and guarded deployment remain, and no image has been installed |
+| Status | `running`: exact boot2 write/readback and shutdown pass; manual boot2 selection and passive ABI-v2 runtime retrieval remain |
 | Subsystem | MT6797 CPU8 hotplug observer and owner-local diagnostic sampling |
 | Device variant | Current named Gemini PDA unit |
 | Date(s) | 2026-08-02 |
@@ -103,6 +103,9 @@ down so the owner can manually select `boot2`.
 - [`results/passive-collector-validation-20260802.txt`](results/passive-collector-validation-20260802.txt):
   exact dependency hashes, evidence-first ordering, semantic classification,
   positive real-pair fixture, safety checks and managed-VM ShellCheck.
+- [`results/deployment-20260802.txt`](results/deployment-20260802.txt): exact
+  live-GPT target, predecessor, candidate/readback identity, power state,
+  cleanup, confirmed shutdown and owner handoff.
 
 Local model validation:
 
@@ -152,6 +155,12 @@ python3 experiments/2026-08-02-gemian-a72-first-cycle-latch/scripts/test_latch_m
   remain open. The passive collector now also passes its exact identity,
   two-read terminal-stability, complete-pair semantic and twelve fail-closed
   gates; critically, it copies the observer before optional USB reporting.
+- The guarded installer resolved logical boot2 as `/dev/mmcblk0p30` while
+  ordinary Gemian remained rooted on `/dev/mmcblk0p29`. The predecessor matched
+  the exact parent observer, power was present and the battery was 100%/Good.
+  The synchronized write, post-flush checksum and independent full readback all
+  matched padded SHA-256 `6dcbda0cb264...`. No backup was created, temporary
+  copies were removed, and clean shutdown was confirmed.
 
 ## Analysis
 
@@ -172,9 +181,8 @@ candidate has not been installed or booted and provides no hardware evidence.
 
 ## Follow-up
 
-Commit and push all offline evidence before deployment. Only while ordinary
-Gemian is reachable and power is stable, install with full readback
-verification and clean shutdown. After manual boot2 selection, run the passive
-collector once and return to known-good Gemian for review. Do not repeat the
-parent image, run the pulse, request CPU8/CPU9, or perform a native VM kernel
-build.
+The owner manually selects boot2 from the current powered-off state. Expect
+ordinary Gemian visuals and possibly delayed console/USB service. Then run the
+passive collector once and return to known-good Gemian for review. Do not
+repeat the image, run the pulse, request CPU8/CPU9, or perform a native VM
+kernel build.
