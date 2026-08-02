@@ -823,8 +823,13 @@ identity, target, predecessor, readback, cleanup, and shutdown gates. The next
 action passed at a healthy owner-authorized 65%: live GPT resolved inactive
 boot2, the exact predecessor matched, synchronized write and flush completed,
 the post-write and independent full readbacks matched `4830a0d0e1a3…`, staging
-was removed, and shutdown was confirmed. The next action is manual boot2
-selection followed by only the exact checksum-pinned passive collector. CPU9,
+was removed, and shutdown was confirmed. Identity-gated passive runtime
+evidence now closes the pre-isolation BUCKB/reset rollback row: the bounded
+forward subset completed, its owned inverse restored the frozen entry state,
+no later boundary was crossed, and known-good recovery passed. CPU8/9 remained
+offline. The next action is offline review and a separately bounded
+external-isolation-stage design; do not cross that boundary or request CPU8
+directly from this result. CPU9,
 suspend/resume, later power boundaries, a mainline provider write, and any A72
 consumer remain blocked until their separate ownership and rollback gates
 close.

@@ -1,0 +1,73 @@
+A72 pre-latch gate runtime result 2
+Recorded: 2026-08-02 America/New_York
+
+Exact deployed identity
+-----------------------
+candidate_sha256=4830a0d0e1a3cb82a13e7c34248fb95f736d9ba3c71ba8ecb82ab210389bde6d
+kernel_release=3.18.41+
+architecture=aarch64
+build_identity=#1 SMP PREEMPT Sun Aug 2 22:29:57 UTC 2026
+root=/dev/mmcblk0p29
+possible_cpus=0-9
+present_cpus=0-9
+
+Passive collection
+------------------
+collector_sha256=946a8ef0002bea8193c1fd83746cc017e53795505350056c5230562641342e76
+remote_capture_sha256=ff2f01d4ac7430365fa614f9ce01f436b194b63068a596c5950973e6e04eb72f
+validator_sha256=f88b80fd01ace12f1d8033417e9b894338bc1c4f6af923a7b393dc7bcfdf5e75
+private_capture_sha256=e75006d713fdae77e671e3a2ed2f9fb98ca2e75f381336c9c551a955945bec08
+private_validation_sha256=2cf20f3d39e94631963c3ab2692d8e5dcb14c5943f10561a13be8df183a094ca
+runtime_stimulus=none
+hardware_write=none
+cpu_online_writes=none
+load_workers=0
+boot_id_stable=yes
+
+Observer result
+---------------
+abi=mt6797-a72-transition-observer-v3
+state=rolled-back
+count=30
+overflow=0
+up_transaction=1
+down_transaction=0
+target_cpu=8
+snapshots_identical=yes
+owner_transition_validation=passed
+orchestration_failure=none
+formal_disposition=accepted-pre-isolation-rollback
+cpu8_online=0
+cpu9_online=0
+
+Attributable sequence
+---------------------
+1. The natural HPS CPU8 request opened the exact capture window.
+2. Entry clock, secure, DCM, DA921x, SPM, and TOPRGU preconditions passed.
+3. SPM reset was released, TOPRGU was asserted, and DA921x BUCKB changed from
+   disabled to enabled with a settled readback.
+4. The compiled discriminator stopped before external-isolation clear.
+5. BUCKB was disabled, SPM state was restored, and TOPRGU was deasserted.
+6. Final DA921x, SPM, TOPRGU, secure, DCM, and clock observations matched the
+   frozen entry contract; forbidden later-boundary records were absent.
+7. Two observer reads separated in time were byte-identical.
+
+Known-good recovery
+-------------------
+recovery_action=clean-native-reboot-over-established-usb-shell
+disconnect_observed=yes
+reconnect_observed=yes
+recovered_boot_id=43f03fe5-e9da-4f6d-bdfe-93ab1818362e
+recovered_kernel_release=3.18.41+
+recovered_build_identity=#7 SMP PREEMPT Fri Mar 29 10:39:03 GMT 2019
+recovery_result=verified-known-good-gemian
+
+Decision
+--------
+Close only the pre-isolation BUCKB/reset rollback row. This is reproducible
+runtime proof that the bounded forward subset and inverse restoration work on
+this Gemini. It is not proof that external isolation, SRAM-LDO, PSCI CPU_ON,
+secondary execution, CPU8 online, CPU9, or the complete A72 sequence works.
+Do not repeat this exact candidate and do not proceed directly across the next
+hardware boundary. Review this record first, then specify a separately bounded
+external-isolation-stage discriminator with its own rollback and attribution.

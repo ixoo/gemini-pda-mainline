@@ -162,6 +162,9 @@ predeployment decision after compiler and timing review.
   revised-candidate predecessor, owner-authorized power state, live boot2,
   synchronized write, independent full readback, cleanup, and confirmed
   shutdown evidence.
+- [`results/runtime-2-20260802.txt`](results/runtime-2-20260802.txt): exact
+  identity, immutable 30-record rollback, restored entry state, forbidden
+  boundary absence, no-stimulus collection, and verified known-good recovery.
 
 Run from the repository root:
 
@@ -172,17 +175,21 @@ python3 experiments/2026-08-02-a72-pre-isolation-rollback-discriminator/scripts/
 
 ## Decision
 
-`pre-latch-gate-installed-awaiting-boot`: attempt 1 remains runtime-inconclusive and
+`pre-isolation-rollback-accepted`: attempt 1 remains runtime-inconclusive and
 establishes neither rollback nor hardware support. The revised series fixes its
 specific orchestration defect: an early request returns before the one-shot,
 and the compiled latched path still retains the original rollback boundary. A
 new container is reproducible and its offline deployment gates pass. Runtime
-hardware behavior remains untested. The normal live write correctly deferred.
-The owner then approved one exact revised-candidate deployment with only the
-capacity floor narrowed to 60%; the write, full readback, cleanup, and shutdown
-all passed.
+behavior is now proven only through the bounded pre-isolation rollback row. The
+owner-authorized deployment passed, and exact passive retrieval captured the
+expected 30-record transaction: BUCKB enable settled, the discriminator stopped
+before external isolation, every owned mutation was restored, final state
+matched entry, and the device returned to known-good Gemian. CPU8 and CPU9
+remained offline.
 
 ## Follow-up
 
-Manually select boot2, allow the first boot to settle, and run only the exact
-passive collector. Do not boot or redeploy the unchanged prior candidate.
+Do not boot or redeploy this completed candidate. Review and close only the
+pre-isolation BUCKB/reset rollback row, then specify a separate bounded
+external-isolation-stage discriminator; do not proceed directly to CPU8 or
+CPU9 enablement.
