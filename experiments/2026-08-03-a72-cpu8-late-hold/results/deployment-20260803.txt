@@ -1,0 +1,66 @@
+CPU8 late-hold guarded boot2 deployment
+=======================================
+
+Date: 2026-08-03
+Result: write, flush, full readback, cleanup, and shutdown verified
+Runtime result: not tested
+
+Exact candidate
+---------------
+
+Raw Android-v0 SHA-256:
+  53ba2e4dbc204962e7b195bbda80c5e592375878105702731420b24f9466c475
+Candidate manifest SHA-256:
+  7a5dbc965a93ea1c1e2eac48a16a2af81e0c56e96bcdf845aa01dda3ebf53ccd
+Full boot2 candidate SHA-256:
+  2e81e18610d99c69bee8867d2fe960245dfcdda1ca583965724598255ea871af
+
+Live gates and write
+--------------------
+
+Known-good OS: Gemian 2019, kernel 3.18.41+, aarch64
+Logical target: boot2
+Live GPT target: /dev/mmcblk0p30
+Active root: /dev/mmcblk0p29
+Target size: 16777216 bytes
+Target mounted, held, swap, or active: no
+Power: present=1 capacity=95 health=Good
+Pre-deployment boot-ID SHA-256:
+  2ba0ca59d7e5534a0aacd1cc44333e75ad51733620d663148d41c916acc2757e
+Exact predecessor SHA-256:
+  936b9256709514938ddf2f3ab13e63bd9c8d37e991fe40a568aa36a8f8818018
+
+The live GPT resolved exactly one writable 16 MiB boot2 partition. It was not
+the active root, mounted, held, or swap. The exact candidate was uploaded as a
+mode-0600 temporary file, verified, written as four full 4 MiB blocks with
+fsync/notrunc, synchronized, and flushed.
+
+Full post-write target SHA-256:
+  2e81e18610d99c69bee8867d2fe960245dfcdda1ca583965724598255ea871af
+Independent full readback SHA-256:
+  2e81e18610d99c69bee8867d2fe960245dfcdda1ca583965724598255ea871af
+Fresh predecessor backup: no
+Temporary staging/readback removed: yes
+
+Shutdown
+--------
+
+Evidence was flushed before `systemctl poweroff`. The connection closed during
+poweroff and the target remained unreachable across the post-shutdown probes.
+The helper did not request a reboot. The Gemini is powered off.
+
+Private evidence identities
+---------------------------
+
+Deployment summary SHA-256:
+  18d5c93c31478499dc922882214dc67f8789efe5e12d53658ff9038f9cfee46d
+Private manifest SHA-256:
+  6e3251859ccb21a980969fa7f0ea6d49c34ff9a117a157f22f6fb1113145b1d1
+
+Decision
+--------
+
+The exact late-hold candidate is installed and read back successfully. No
+runtime claim is made. Boot ordinary Gemian once to establish a reachable
+baseline for changed-cycle pstore collection; then shut it down and manually
+select boot2 with both observation paths armed.

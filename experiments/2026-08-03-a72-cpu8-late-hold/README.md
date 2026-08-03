@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu8-late-hold` |
-| Status | `deployment-eligible-runtime-pending` |
+| Status | `deployed-runtime-baseline-pending` |
 | Subsystem | MT6797 CPU8 IPI/coherency and retained pstore evidence |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -72,6 +72,8 @@ about two seconds between the third sample and recovery.
   collector, and decision-class contract checks.
 - [`results/runtime-decision-map-20260803.txt`](results/runtime-decision-map-20260803.txt):
   pre-boot hypothesis, attributable evidence, and exact result actions.
+- [`results/deployment-20260803.txt`](results/deployment-20260803.txt): verified
+  live-GPT boot2 write, full readback, cleanup, and shutdown evidence.
 
 ## Procedure
 
@@ -104,7 +106,13 @@ The accepted Buildbox kernel was then assembled three times in independent
 ignored output roots. All candidate files were byte-identical. Independent
 parsing confirmed the Android-v0 layout and addresses, complete extent,
 preserved known-good ramdisk, recomputed legacy image ID, exact kernel field,
-and zero-filled boot2 tail. No device action has occurred.
+and zero-filled boot2 tail. No device action occurred during construction.
+
+The guarded installer subsequently resolved logical boot2 as `/dev/mmcblk0p30`
+while the known-good root was `/dev/mmcblk0p29`. It accepted the exact held-
+online predecessor, wrote the late candidate, flushed it, matched both target
+and independent full-partition readbacks, removed temporary copies, and left
+the device confirmed powered off. Runtime has not been tested.
 
 ## Analysis
 
@@ -116,13 +124,14 @@ without executing CPU8 again would not meet the experiment contract.
 
 ## Conclusion
 
-`deployment-eligible-runtime-pending`: the exact parent, one logical patch,
+`deployed-runtime-baseline-pending`: the exact parent, one logical patch,
 timing, failure predicate, terminal, forbidden actions, mutations, full builds,
 diagnostics, machine code, stack-use gate, exact offline container, guarded
-installer, observation tools, and runtime decision map pass. Hardware behavior
-is not established.
+installer, observation tools, runtime decision map, exact boot2 write/readback,
+and shutdown pass. Hardware behavior is not established.
 
 ## Follow-up
 
-Perform one verified boot2 deployment and changed-cycle capture. CPU9 remains
+Boot ordinary Gemian once to arm changed-cycle collection, shut it down, then
+perform one manual boot2 selection and classify retained evidence. CPU9 remains
 blocked.
