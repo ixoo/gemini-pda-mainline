@@ -1108,6 +1108,14 @@ changed-cycle pstore observer from ordinary Gemian, perform the guarded boot2
 write/readback/shutdown, arm the read-only USB/netcat collector, and physically
 select boot2 once.
 
+The guarded write has now resolved inactive, unmounted live-GPT boot2,
+confirmed the rejected attempt-1 predecessor, written the corrected image,
+matched the full-partition readback, removed temporary state, and shut the
+device down without requesting reboot. A changed-cycle pstore observer was
+prearmed and observed the deployment shutdown. The next ordered action is to
+arm the read-only USB/netcat collector and physically select boot2 once; only
+the fixed adjacent pair-v6/pair-v7 and recovery decision map may classify it.
+
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback
 gates close.

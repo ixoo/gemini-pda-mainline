@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-scheduler-context` |
-| Status | `ordering-fix-runtime-tools-passed` |
+| Status | `ordering-fix-deployed-awaiting-runtime` |
 | Subsystem | MT6797 retained Cortex-A72 pair and scheduler |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -257,6 +257,13 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   gates remain pinned. The read-only USB/netcat collector and complete decision
   classes pass static validation. No corrected deployment occurred. See
   [`results/runtime-decision-map-ordering-fix-20260803.txt`](results/runtime-decision-map-ordering-fix-20260803.txt).
+- The guarded corrected deployment resolved live GPT boot2 as
+  `/dev/mmcblk0p30`, proved active root `/dev/mmcblk0p29`, matched the rejected
+  attempt-1 predecessor, wrote and fully read back the corrected 16 MiB image,
+  removed the temporary readback, and confirmed clean shutdown. No fresh backup
+  was created and no reboot was requested. The prearmed changed-cycle observer
+  saw the deployment shutdown. See
+  [`results/deployment-ordering-fix-20260803.txt`](results/deployment-ordering-fix-20260803.txt).
 
 ## Analysis
 
@@ -267,12 +274,12 @@ context while preserving the established power and recovery boundary.
 
 ## Conclusion
 
-`ordering-fix-runtime-tools-passed`: the corrected source preserves the inherited
+`ordering-fix-deployed-awaiting-runtime`: the corrected source preserves the inherited
 coherency worker, passes 28 mutation tests, compiles with identical parent
 diagnostics, remains within every stack boundary, and has a reproducible,
 independently validated Android-v0 container. Corrected deployment and runtime
-guards are fixed and tested. No corrected deployment or runtime claim exists
-yet.
+guards are fixed and tested; the exact corrected image is installed and the
+device is cleanly shut down. No corrected runtime claim exists yet.
 
 ## Follow-up
 
