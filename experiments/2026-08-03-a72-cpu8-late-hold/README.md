@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu8-late-hold` |
-| Status | `compile-accepted-container-pending` |
+| Status | `offline-accepted-deployment-tooling-pending` |
 | Subsystem | MT6797 CPU8 IPI/coherency and retained pstore evidence |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -56,6 +56,14 @@ about two seconds between the third sample and recovery.
   two rejected validator revisions and the accepted source identity.
 - [`results/compile-review-20260803.txt`](results/compile-review-20260803.txt):
   exact child/parent compile, diagnostics, disassembly, and stack decision.
+- [`scripts/assemble.py`](scripts/assemble.py): source-pinned Android-v0
+  assembler wrapper.
+- [`scripts/build-candidate.sh`](scripts/build-candidate.sh): offline,
+  reproducible candidate builder derived from the accepted parent.
+- [`scripts/test_candidate.py`](scripts/test_candidate.py): independent header,
+  manifest, ramdisk, padding, provenance, and offline-only checks.
+- [`results/offline-container-review-20260803.txt`](results/offline-container-review-20260803.txt):
+  exact candidate identity and independent acceptance record.
 
 ## Procedure
 
@@ -84,7 +92,11 @@ builds on Buildbox. Both have the same sole inherited 69-mismatch modpost
 summary and 2,484 stack reports. Disassembly confirms CPU8, CPU8-online, CPU9-
 offline, three-hit, and 5,000/4,000 ms branches. The workqueue frame grows from
 64 to 80 bytes; the IPI callback and startup-completion frames are unchanged.
-No device action has occurred.
+The accepted Buildbox kernel was then assembled three times in independent
+ignored output roots. All candidate files were byte-identical. Independent
+parsing confirmed the Android-v0 layout and addresses, complete extent,
+preserved known-good ramdisk, recomputed legacy image ID, exact kernel field,
+and zero-filled boot2 tail. No device action has occurred.
 
 ## Analysis
 
@@ -96,12 +108,12 @@ without executing CPU8 again would not meet the experiment contract.
 
 ## Conclusion
 
-`compile-accepted-container-pending`: the exact parent, one logical patch,
-timing, failure predicate, terminal, forbidden actions, mutations, full builds,
-diagnostics, machine code, and stack-use gate pass. Hardware behavior is not
-established.
+`offline-accepted-deployment-tooling-pending`: the exact parent, one logical
+patch, timing, failure predicate, terminal, forbidden actions, mutations, full
+builds, diagnostics, machine code, stack-use gate, and exact offline container
+pass. Hardware behavior is not established.
 
 ## Follow-up
 
-Construct and independently validate an exact Android-v0 container using the
-accepted Buildbox image. CPU9 remains blocked.
+Review the guarded boot2 installer and runtime decision map, then perform one
+verified deployment and changed-cycle capture. CPU9 remains blocked.
