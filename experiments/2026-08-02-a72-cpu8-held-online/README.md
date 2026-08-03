@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-02-a72-cpu8-held-online` |
-| Status | `design-and-model` |
+| Status | `source-patches-accepted-compile-pending` |
 | Subsystem | MT6797 HPS, generic CPU hotplug, CPU8 IPI/coherency |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-02 |
@@ -55,6 +55,10 @@ experiment and prohibits unchanged retry.
   source preparation and three-patch generation.
 - [`results/source-order-audit-20260802.txt`](results/source-order-audit-20260802.txt):
   exact runtime-to-source call ordering and chosen insertion points.
+- [`patches/`](patches/): exact three-patch Buildbox-generated follow-up.
+- [`results/patch-generation-review-20260802.txt`](results/patch-generation-review-20260802.txt):
+  two rejected validator drafts, final identities, 11 mutations, and manual
+  source-flow review.
 
 ## Procedure
 

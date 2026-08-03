@@ -1,0 +1,33 @@
+From 3889def7c35c9c4d0f7f68d3137c1f9b7202fe1b Mon Sep 17 00:00:00 2001
+From: Gemini A72 experiment <noreply@gemini-a72.invalid>
+Date: Mon, 3 Aug 2026 02:20:00 +0000
+Subject: [PATCH] hotplug: reject one-way CPU8 down before notifiers
+
+Reject CPU8 and CPU9 at public cpu_down entry in the experiment profile.
+
+Dominate map locks, profiling, CPU_DOWN_PREPARE, and platform callbacks.
+
+Leave CPU0 through CPU7 hotplug unchanged.
+---
+ kernel/cpu.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/kernel/cpu.c b/kernel/cpu.c
+index c4b8c84b7..7d232b3de 100644
+--- a/kernel/cpu.c
++++ b/kernel/cpu.c
+@@ -527,6 +527,14 @@ int __ref cpu_down(unsigned int cpu)
+ {
+ 	int err;
+ 
++#ifdef CONFIG_MTK_A72_ONE_WAY_CPU8
++	if (cpu == 8 || cpu == 9) {
++		pr_emerg("gemini-a72-hold-v1 result=down-veto cpu=%u stage=entry\n",
++			 cpu);
++		return -EPERM;
++	}
++#endif
++
+ #ifdef CONFIG_MTK_RAM_CONSOLE
+ 	aee_rr_rec_cpu_caller(get_cpu());
+ 	put_cpu();

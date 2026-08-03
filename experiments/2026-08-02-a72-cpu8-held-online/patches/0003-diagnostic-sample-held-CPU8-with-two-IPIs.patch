@@ -1,0 +1,93 @@
+From f6b167fa89078984020607c04c30e7b942effec4 Mon Sep 17 00:00:00 2001
+From: Gemini A72 experiment <noreply@gemini-a72.invalid>
+Date: Mon, 3 Aug 2026 02:22:00 +0000
+Subject: [PATCH] diagnostic: sample held CPU8 with two IPIs
+
+Run synchronous callbacks on CPU8 at one and six seconds after completion.
+
+Require exact CPU identity, accounting, CPU9 absence, and hit count.
+
+Add no load, hotplug request, control interface, or watchdog refresh.
+---
+ arch/arm64/kernel/psci.c | 54 ++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 54 insertions(+)
+
+diff --git a/arch/arm64/kernel/psci.c b/arch/arm64/kernel/psci.c
+index 1f5b6e07f..948aef221 100644
+--- a/arch/arm64/kernel/psci.c
++++ b/arch/arm64/kernel/psci.c
+@@ -19,6 +19,7 @@
+ #ifdef CONFIG_MTK_A72_ONE_WAY_CPU8
+ #include <linux/atomic.h>
+ #include <linux/console.h>
++#include <linux/workqueue.h>
+ #endif
+ #include <linux/init.h>
+ #include <linux/of.h>
+@@ -529,6 +530,51 @@ static void mt6797_a72_obs_fixed_snapshot(unsigned int cpu, u16 phase)
+ #ifdef CONFIG_MTK_A72_ONE_WAY_CPU8
+ static atomic_t mt6797_a72_one_way_attempted = ATOMIC_INIT(0);
+ static bool mt6797_a72_one_way_psci_accepted;
++static atomic_t mt6797_a72_hold_hits = ATOMIC_INIT(0);
++static struct delayed_work mt6797_a72_hold_work;
++
++static void mt6797_a72_hold_ipi(void *data)
++{
++	int *observed_cpu = data;
++
++	*observed_cpu = smp_processor_id();
++	smp_mb();
++}
++
++static void mt6797_a72_hold_workfn(struct work_struct *work)
++{
++	int observed_cpu = -1;
++	int sample = atomic_read(&mt6797_a72_hold_hits) + 1;
++	int ret;
++
++	ret = smp_call_function_single(8, mt6797_a72_hold_ipi,
++				       &observed_cpu, 1);
++	if (ret || observed_cpu != 8 || !cpu_online(8) || cpu_online(9)) {
++		pr_emerg("gemini-a72-hold-v1 result=fault sample=%d cpu=%d cpu8=%d cpu9=%d error=%d\n",
++			 sample, observed_cpu, cpu_online(8), cpu_online(9), ret);
++		console_lock();
++		console_unlock();
++		return;
++	}
++	atomic_inc(&mt6797_a72_hold_hits);
++	if (sample == 1) {
++		pr_emerg("gemini-a72-hold-v1 result=sample sample=1 cpu=8 cpu8=1 cpu9=0 online=%u\n",
++			 num_online_cpus());
++		console_lock();
++		console_unlock();
++		if (!schedule_delayed_work(&mt6797_a72_hold_work,
++					   msecs_to_jiffies(5000))) {
++			pr_emerg("gemini-a72-hold-v1 result=fault sample=2 cpu=-1 cpu8=%d cpu9=%d error=%d\n",
++				 cpu_online(8), cpu_online(9), -EBUSY);
++			console_lock();
++			console_unlock();
++		}
++		return;
++	}
++	pr_emerg("gemini-a72-hold-v1 result=pass sample=2 cpu=8 cpu8=1 cpu9=0\n");
++	console_lock();
++	console_unlock();
++}
+ 
+ static void mt6797_a72_one_way_marker(const char *result,
+ 					     const char *stage, int error)
+@@ -744,6 +790,14 @@ int mt6797_a72_one_way_secondary_complete(unsigned int cpu,
+ 	g_cl2_online |= 1;
+ 	mt6797_a72_one_way_marker("cpu8-online-held",
+ 					    "complete", 0);
++	INIT_DELAYED_WORK(&mt6797_a72_hold_work,
++			  mt6797_a72_hold_workfn);
++	if (!schedule_delayed_work(&mt6797_a72_hold_work,
++				   msecs_to_jiffies(1000))) {
++		mt6797_a72_one_way_marker("fault-retain-postiso",
++					    "hold-schedule", -EBUSY);
++		return -EBUSY;
++	}
+ 	return 0;
+ }
+ #endif

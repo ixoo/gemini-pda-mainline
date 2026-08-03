@@ -1,0 +1,3 @@
+0001-hotplug-reject-one-way-CPU8-down-before-notifiers.patch
+0002-power-hold-one-CPU-in-the-one-way-A72-cluster.patch
+0003-diagnostic-sample-held-CPU8-with-two-IPIs.patch

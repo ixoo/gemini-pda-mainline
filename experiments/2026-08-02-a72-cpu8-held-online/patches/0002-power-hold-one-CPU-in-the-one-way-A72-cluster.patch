@@ -1,0 +1,31 @@
+From ca0975cdb761c2784571bd457d8f45802790a7ad Mon Sep 17 00:00:00 2001
+From: Gemini A72 experiment <noreply@gemini-a72.invalid>
+Date: Mon, 3 Aug 2026 02:21:00 +0000
+Subject: [PATCH] power: hold one CPU in the one-way A72 cluster
+
+Clamp the exact HPS CPU8/9 cluster target to one while CPU8 is online.
+
+Prevent the observed normal policy caller from requesting CPU8 down.
+
+Retain the generic entry veto as defense against every other caller.
+---
+ .../mediatek/base/power/mt6797/mt_hotplug_strategy_algo.c   | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt_hotplug_strategy_algo.c b/drivers/misc/mediatek/base/power/mt6797/mt_hotplug_strategy_algo.c
+index 7801bb099..47a1bc512 100644
+--- a/drivers/misc/mediatek/base/power/mt6797/mt_hotplug_strategy_algo.c
++++ b/drivers/misc/mediatek/base/power/mt6797/mt_hotplug_strategy_algo.c
+@@ -235,6 +235,12 @@ static int hps_algo_do_cluster_action(unsigned int cluster_id)
+ 	cpu_id_min = hps_sys.cluster_info[cluster_id].cpu_id_min;
+ 	cpu_id_max = hps_sys.cluster_info[cluster_id].cpu_id_max;
+ 
++#ifdef CONFIG_MTK_A72_ONE_WAY_CPU8
++	if (cpu_id_min == 8 && cpu_id_max == 9 &&
++	    cpu_online(8) && target_cores < 1)
++		target_cores = 1;
++#endif
++
+ 	if (target_cores > online_cores) {	/*Power up cpus */
+ 		for (cpu = cpu_id_min; cpu <= cpu_id_max; ++cpu) {
+ 			if (hps_get_break_en() != 0)

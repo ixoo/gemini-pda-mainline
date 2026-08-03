@@ -1,0 +1,64 @@
+CPU8 held-online patch generation review
+========================================
+
+Date: 2026-08-02
+Result: accepted for Buildbox compile review
+Device access: none
+Kernel build: none
+
+Generation history
+------------------
+
+Attempt at repository commit 85f553c stopped because mutation targets used
+common `cpu_online()` substrings rather than the unique hold predicate. No
+patchset was accepted or fetched.
+
+Attempt at repository commit c1a7dad stopped because the validator checked the
+predicate fields separately and accepted one altered combined predicate. No
+patchset was accepted or fetched.
+
+The validator was strengthened to require the exact combined predicate once.
+Generation at repository commit f2082b8 then passed source drift, patch
+inventory, ordering, forbidden-action, exact predicate, and all 11 mutation
+checks.
+
+Accepted patch identities
+-------------------------
+
+Patch 1 SHA-256:
+  b20cf70d2d76d45cf731063007f894e181086256ff8ea67baafc5c93f87d7323
+Patch 2 SHA-256:
+  5c8dfe4ea4d9e9123a6fedf27c3fd17a9a9c91fadbb347a8206dd1d1c1867f1c
+Patch 3 SHA-256:
+  13c9db9c7174dcb751e989e9ab33ac17eefd762cf88a5dc2652ecb28230dcc7a
+Series SHA-256:
+  1bb21c0163d301b9aac53396522e4a6553d036df2c9ceda00e69803afbf2e6b9
+Patchset SHA-256 over the three ordered patch hashes:
+  e6da1e8cc976ad63dd9cf8a254bb7234d73589cfad6afeb07135403a27d03ba3
+Buildbox package manifest SHA-256:
+  f09261e6e0cb5f578aace1033da87f616c6c3eb1f19e9e83367a0fd85035098d
+
+Manual source review
+--------------------
+
+- Patch 1 rejects CPU8 and CPU9 at public `cpu_down()` entry before RAM-console
+  caller tracking, CPU-map locking, profiling, `_cpu_down()`, and every hotplug
+  notifier. CPU0 through CPU7 are unchanged.
+- Patch 2 identifies only exact HPS CPU bounds 8..9 and raises a zero target to
+  one only while CPU8 is online. With online and target both one, the descending
+  loop observes offline CPU9 and breaks before CPU8.
+- Patch 3 is scheduled only after the already-proven CPU8 success marker. It
+  invokes CPU8 synchronously at one and six seconds, requires exact callback
+  CPU, CPU8 online, CPU9 offline, and hit count, and emits one terminal pass or
+  fault marker.
+- The hold path adds no load loop, CPU hotplug request, CPU_OFF, SRAM disable,
+  control interface, watchdog change, or watchdog refresh.
+- The exact one-way startup parent remains unchanged.
+- Patches are experiment-only and have no synthetic DCO sign-off.
+
+Decision
+--------
+
+The source patchset is accepted for changed-versus-exact-parent Buildbox
+compilation, disassembly, stack-usage, timing, and container review. It is not
+yet a boot candidate and does not authorize a device write.
