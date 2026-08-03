@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu9-multiline-integrity` |
-| Status | `design-review-pending` |
+| Status | `source-generation-tooling-ready` |
 | Subsystem | MT6797 retained Cortex-A72 pair and cache coherency |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -33,8 +33,9 @@ mismatch, callback error, lost watchdog recovery, or changed power boundary?
   zero coherence errors, complete HPS CPU9 `-EPERM` attribution, watchdog-class
   recovery, offline recovery CPUs 8/9, and unchanged boot2.
 - Build backend: Buildbox only; no native VM kernel build.
-- No source patch, compile, container, deployment, or runtime claim exists at
-  this design stage.
+- Deterministic source-generation and static-mutation tooling is ready for a
+  clean, pushed Buildbox source-review run. No generated patch, compile,
+  container, deployment, or runtime claim exists yet.
 
 ## Safety assessment
 
@@ -52,14 +53,13 @@ terminal snapshot before the inherited watchdog restart.
 
 ## Conclusion
 
-`design-review-pending`: the exact parent already proves repeatable scalar
-shared-memory visibility. This child is intended to test a larger deterministic
-working set without changing any power boundary. It is not yet implemented and
-must pass source generation, mutation, Buildbox compile/binary/stack, container,
+`source-generation-tooling-ready`: the exact parent already proves repeatable
+scalar shared-memory visibility. The reviewed transformer adds the bounded
+multi-cacheline phase without changing a power boundary. It must still pass
+Buildbox source generation, mutation, compile/binary/stack, container,
 deployment, and runtime-map gates before device access.
 
 ## Follow-up
 
-Review the design against the exact pair-v4 source. Then implement a
-deterministic exact-parent transformer and mutation harness. Only a clean,
-pushed source review may be submitted to Buildbox.
+Commit and push the deterministic transformer and mutation harness, then submit
+that exact clean commit to Buildbox for source generation and review.
