@@ -1,0 +1,61 @@
+A72 recovery-only runtime attempt 1
+Recorded: 2026-08-02 America/New_York
+
+Artifact and deployment
+-----------------------
+candidate_raw_sha256=5be00719c5cc44cb9a6efc06f498f848e2e0221c3d362e66b98bf5fde2a00b60
+installed_full_partition_sha256=a7eec22777cda053a88826760fb9a01dbd84aa1cf2fe491215047cf8c99ed4e5
+logical_target=boot2
+resolved_target=/dev/mmcblk0p30
+known_good_root=/dev/mmcblk0p29
+write_sync_flush=pass
+full_partition_readback=pass
+clean_shutdown_after_write=pass
+
+Cycle evidence
+--------------
+owner_selected_boot2=yes
+owner_observed_candidate_console_started=yes
+owner_observed_automatic_restart=yes
+collector_cycle_started_utc=2026-08-03T00:22:29Z
+collector_disconnect_observed_utc=2026-08-03T00:23:02Z
+collector_reconnect_observed_utc=2026-08-03T00:30:21Z
+collector_disconnect_after_start_seconds=33
+boot_id_changed=yes
+returned_kernel=3.18.41+
+returned_architecture=aarch64
+android_bootreason=wdt_by_pass_pwk
+powerup_reason=reboot
+boot_reason_numeric=4
+reset_reason_interpretation=watchdog-block-class; consistent with the candidate deadline but not unique to it
+
+Post-return invariants
+----------------------
+live_gpt_boot2=/dev/mmcblk0p30
+live_gpt_root=/dev/mmcblk0p29
+boot2_mount_count=0
+boot2_full_partition_sha256=a7eec22777cda053a88826760fb9a01dbd84aa1cf2fe491215047cf8c99ed4e5
+boot2_unchanged=yes
+cpu_present=0-9
+cpu_possible=0-9
+cpu_online=4-5
+cpu8_offline=yes
+cpu9_offline=yes
+
+Pstore
+------
+pstore_directory=present
+pstore_files=none
+exact_armed_marker=absent
+remote_pstore_records_removed=no
+private_capture=artifacts/device-pstore/a72-recovery-only-20260802
+
+Decision
+--------
+result=inconclusive-under-predeclared-evidence-contract
+established=the exact installed image was selected by the owner, an automatic changed-boot-ID watchdog-class return occurred on the designed time scale, boot2 remained exact, and CPU8/9 remained offline
+not_established=the exact recovery-owner marker and therefore unique attribution of the reset to the new exclusive-owner callback
+unchanged_blind_repeat=forbidden
+next_measurement=repeat the exact artifact once with a host-side USB/netcat session already waiting; poll the live kernel log for the exact armed marker before the reset
+decision_if_exact_live_marker=accept the no-A72 bounded recovery prerequisite and begin one-way CPU8 implementation
+decision_if_usb_service_absent_or_marker_missing=stop and revise the durable observation path; do not infer success from another visual reboot

@@ -30,8 +30,11 @@ the loop. Positive identity-gated observations are unaffected.
   reset-only deadline, and emits an exact console-ramoops marker. Patch
   generation and ten mutation tripwires pass after closing a hotplug no-lock
   reload race. The full Buildbox comparison, binary ordering review,
-  kernel-only container reconstruction, and guarded installer now pass
-  offline; one exact watchdog/pstore runtime cycle remains pending.
+  kernel-only container reconstruction, and guarded installer pass. Runtime
+  attempt 1 automatically returned on the designed time scale with a changed
+  boot ID and watchdog-class reason while boot2 stayed exact and CPU8/9 stayed
+  offline, but pstore was empty. One exact-artifact repeat with a preconnected
+  live USB/netcat marker capture is the only permitted next measurement.
 - [2026-08-02 A72 one-way CPU8 startup boundary](2026-08-02-a72-one-way-cpu8-boundary/README.md)
   — reconciles the accepted rollback with the public Linux and natural Gemian
   isolation paths, rejects an unobserved Linux isolation inverse, and

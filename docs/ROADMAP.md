@@ -843,9 +843,14 @@ normal kicker lock, arms a fixed reset-only TOPRGU deadline, and emits one exact
 console-ramoops marker. Buildbox patch generation, mutation testing, and review
 now pass after closing the CPU-hotplug no-lock reload race. The
 changed-versus-unpatched full Buildbox compile, binary ordering review, and
-kernel-only Android-v0 container reconstruction also pass. The immediate next
-action is one guarded inactive-`boot2` deployment followed by manual selection,
-bounded watchdog reset, and exact changed-boot-ID Gemian pstore recovery.
+kernel-only Android-v0 container reconstruction also pass. The guarded write
+and its full readback passed. Runtime attempt 1 selected the exact image and
+automatically returned on the designed time scale with a changed boot ID and a
+watchdog-class Gemian reason; boot2 remained exact and CPU8/9 remained offline.
+Pstore was empty, so the predeclared exact-marker oracle did not pass. The only
+permitted next action is one exact-artifact repeat with a host-side USB/netcat
+session already waiting to capture the live armed marker. A second visual
+reboot without that marker is not decision-changing and must stop this line.
 
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback

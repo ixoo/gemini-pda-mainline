@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-02-a72-recovery-only-discriminator` |
-| Status | `deployment-ready` |
+| Status | `runtime-inconclusive; one live-marker repeat prepared` |
 | Subsystem | Gemian watchdog kicker, MT6797 TOPRGU, console-ramoops |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-02 |
@@ -74,12 +74,19 @@ and CPU9 offline, and unchanged `boot2`. A visual reboot alone is inconclusive.
 
 ## Current decision
 
-`offline-gates-passed-deployment-ready`: patch generation, ten mutation
-tripwires, changed-versus-unpatched full compilation, binary ordering review,
-two container assemblies, two padding methods, and the source-pinned guarded
-installer pass. One exact deployment to live-GPT-resolved inactive `boot2` is
-now authorized under the standing project policy. The installer must shut the
-device down; the owner then manually selects `boot2`. Expect roughly 15 seconds
-before watchdog takeover and a reset about 12 seconds later. The expected
-screen and console state are deliberately unspecified; only changed-boot-ID
-Gemian recovery plus the exact pstore marker can pass the gate.
+Runtime attempt 1 selected the exact installed image and produced an automatic
+changed-boot-ID return on the designed time scale. Returned Gemian reported the
+watchdog/reboot reset class; live GPT resolution proved `boot2` unchanged and
+inactive, and CPU8/9 remained offline. The post-return pstore directory was
+empty, however, so the exact terminal marker did not survive. Under the
+predeclared contract this is strong behavioral evidence but remains
+inconclusive; it does not close the recovery prerequisite.
+
+An unchanged blind repeat is forbidden. One repeat of the exact artifact is
+permitted only with a new independent observation path: a host-side USB/netcat
+session must already be waiting and poll the live kernel log for the exact
+armed marker before reset. Capturing that marker plus another bounded
+changed-boot-ID watchdog-class return closes the no-A72 recovery prerequisite.
+Failure to obtain USB service or the marker stops this line and requires a
+revised durable observation path. See
+`results/runtime-attempt-1-20260802.txt` for the sanitized evidence.
