@@ -54,7 +54,9 @@ def validate(psci: str, cpu: str, hps: str) -> None:
         "#define MT6797_A72_PL_LINES 1024",
         "#define MT6797_A72_PL_WORDS 8",
         "#define MT6797_A72_PL_SPIN_BUDGET (1U << 26)",
-        "mt6797_a72_pl_data[MT6797_A72_PL_LINES] __aligned(64);",
+        "static struct mt6797_a72_pl_line\n"
+        "\tmt6797_a72_pl_data[MT6797_A72_PL_LINES] __aligned(64);",
+        "u64 value = 0xd6e8feb86659fd93ULL;",
         "int parity = writer == 8 ? 0 : 1;",
         "for (line = parity; line < MT6797_A72_PL_LINES; line += 2)",
         "while (atomic_read(counter) != expected)",
@@ -166,6 +168,7 @@ def main() -> int:
         "async-parallel": ("\t\t\t\t\t       NULL, true);", "\t\t\t\t\t       NULL, false);"),
         "missing-parent-gate": ("\t\tif (mt6797_a72_ml_passed()) {", "\t\tif (true) {"),
         "missing-hash-crosscheck": ("\t    pl_result8.write_hash == pl_result9.read_hash &&\n", ""),
+        "wrong-pattern": ("0xd6e8feb86659fd93ULL", "0xd6e8feb86659fd92ULL"),
         "non-static-working-set": ("static struct mt6797_a72_pl_line\n\tmt6797_a72_pl_data", "struct mt6797_a72_pl_line\n\tmt6797_a72_pl_data"),
         "incomplete-terminal": (" pl_actual=%016llx", ""),
     }
