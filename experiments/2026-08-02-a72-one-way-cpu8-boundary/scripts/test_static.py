@@ -31,8 +31,11 @@ def main() -> int:
         ("psci", "mt6797_a72_one_way_dcm_enable(cpu)", "dcm_mcusys_mp2_sync_dcm(1)"),
         ("smp", "secondary_completed && cpu_online(cpu)", "cpu_online(cpu)"),
         ("idvfs", "calibration_first != calibration_second", "false"),
+        ("idvfs", "(calibration_second & 0xffff0000)", "false"),
+        ("idvfs", "!(calibration_second & 0xffff)", "false"),
         ("idvfs", "(selector_second & 0xfff) != 0x8fb", "(selector_second & 0xfff) != 0x8fa"),
         ("dcm", "(snapshot.final & snapshot.mask) != 0x0d", "false"),
+        ("kconfig", "depends on SMP && HOTPLUG_CPU && CL2_BUCK_CTRL", "depends on SMP"),
         ("kconfig", "depends on PSTORE && PSTORE_CONSOLE && PSTORE_RAM", "depends on PSTORE"),
     )
     for name, old, new in mutations:

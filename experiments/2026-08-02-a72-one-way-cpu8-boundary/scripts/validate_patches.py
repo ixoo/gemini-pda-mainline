@@ -51,6 +51,7 @@ def validate_files(files: dict[str, str]) -> None:
 
     require_once(kconfig, "config MTK_A72_ONE_WAY_CPU8", "Kconfig option")
     for dependency in (
+        "depends on SMP && HOTPLUG_CPU && CL2_BUCK_CTRL",
         "depends on MTK_A72_TRANSITION_OBSERVER",
         "depends on MTK_WATCHDOG && MTK_WD_KICKER",
         "depends on PSTORE && PSTORE_CONSOLE && PSTORE_RAM",
@@ -132,6 +133,7 @@ def validate_files(files: dict[str, str]) -> None:
     for marker in (
         '"rejected-prestate"',
         '"rolled-back-preiso"',
+        '"fault-retain-preiso"',
         '"fault-retain-postiso"',
     ):
         if marker not in boot:
@@ -187,6 +189,8 @@ def validate_files(files: dict[str, str]) -> None:
             "SEC_BIGIDVFS_READ(0x102222b4)",
             "selector_first != selector_second",
             "calibration_first != calibration_second",
+            "(calibration_second & 0xffff0000)",
+            "!(calibration_second & 0xffff)",
             "(selector_second & 0xfff) != 0x8fb",
         ),
         "SRAM request and independent readback",

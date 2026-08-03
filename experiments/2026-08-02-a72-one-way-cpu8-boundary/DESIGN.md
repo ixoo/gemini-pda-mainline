@@ -75,6 +75,7 @@ ID, exact 2019 Gemian identity, sanitized pstore retrieval, and unchanged
 | --- | --- | --- |
 | `rejected-prestate` | immutable exact mismatch, zero mutation | review mismatch; no retry unchanged |
 | `rolled-back-preiso` | exact owned forward subset and full entry restoration | close only that injected failure row |
+| `fault-retain-preiso` | failed owned-state rollback before isolation, exact last stage | recover by watchdog; review mismatch; no retry unchanged |
 | `fault-retain-postiso` | last stage, retained power, no guessed inverse, recovered pstore | review exact stage; no retry unchanged |
 | `cpu8-online-held` | secondary completion, CPU8 accounting, DCM readback, CPU9 absent | preserve evidence and design later stability/off policy |
 | missing/ambiguous record | only recovery or visual observation | inconclusive; stop |
