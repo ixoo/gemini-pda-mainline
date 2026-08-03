@@ -53,6 +53,8 @@ experiment and prohibits unchanged retry.
   inventory, and mutation gates.
 - [`scripts/generate-on-buildbox`](scripts/generate-on-buildbox): Buildbox-only
   source preparation and three-patch generation.
+- [`scripts/build-on-buildbox`](scripts/build-on-buildbox): Buildbox-only exact
+  held-online versus one-way-parent compile review entry point.
 - [`results/source-order-audit-20260802.txt`](results/source-order-audit-20260802.txt):
   exact runtime-to-source call ordering and chosen insertion points.
 - [`patches/`](patches/): exact three-patch Buildbox-generated follow-up.

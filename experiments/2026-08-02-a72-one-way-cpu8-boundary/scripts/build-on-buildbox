@@ -17,16 +17,20 @@ die() {
   exit 1
 }
 
-[[ "$#" -eq 6 ]] || die "expected PROJECT_COMMIT SOURCE_ROOT BUILD_ROOT ARTIFACT_ROOT TOOLCHAIN_ROOT JOBS"
+[[ "$#" -eq 6 || "$#" -eq 7 ]] || \
+  die "expected PROJECT_COMMIT SOURCE_ROOT BUILD_ROOT ARTIFACT_ROOT TOOLCHAIN_ROOT JOBS [MODE]"
 readonly project_commit="$1"
 readonly source_root="$2"
 readonly build_root="$3"
 readonly artifact_root="$4"
 readonly toolchain_root="$5"
 readonly jobs="$6"
+readonly build_mode="${7:-one-way}"
 
 [[ "${project_commit}" =~ ^[0-9a-f]{40}$ ]] || die "invalid project commit"
 [[ "${jobs}" =~ ^[1-9][0-9]*$ ]] || die "invalid job count"
+[[ "${build_mode}" == one-way || "${build_mode}" == held ]] || \
+  die "invalid compile-review mode"
 for root in "${source_root}" "${build_root}" "${artifact_root}" "${toolchain_root}"; do
   [[ "${root}" == /workspace/gemini-pda/* && "${root}" != /workspace/gemini-pda ]] || \
     die "unsafe managed root: ${root}"
@@ -42,6 +46,8 @@ observer_experiment_dir="${repository_dir}/experiments/2026-07-23-gemian-a72-own
 readonly observer_experiment_dir
 rollback_experiment_dir="${repository_dir}/experiments/2026-08-02-a72-pre-isolation-rollback-discriminator"
 readonly rollback_experiment_dir
+held_experiment_dir="${repository_dir}/experiments/2026-08-02-a72-cpu8-held-online"
+readonly held_experiment_dir
 [[ "$(git -C "${repository_dir}" rev-parse HEAD)" == "${project_commit}" ]] || \
   die "project checkout does not match requested commit"
 [[ -z "$(git -C "${repository_dir}" status --porcelain)" ]] || \
@@ -55,6 +61,7 @@ readonly -a accepted_rollback_patches=(
   0002-diagnostic-add-exact-A72-rollback-owner-operations.patch
 )
 readonly one_way_patch_series="${experiment_dir}/patches/series"
+readonly held_patch_series="${held_experiment_dir}/patches/series"
 manifest_sha="$(sha256sum "${manifest}" | awk '{print $1}')"
 readonly manifest_sha
 parent_patchset_sha="$(cd "${observer_experiment_dir}/patches" && while IFS= read -r patch; do sha256sum "${patch}"; done < series | sha256sum | awk '{print $1}')"
@@ -63,6 +70,13 @@ accepted_rollback_patchset_sha="$(cd "${rollback_experiment_dir}/patches" && for
 readonly accepted_rollback_patchset_sha
 one_way_patchset_sha="$(cd "${experiment_dir}/patches" && while IFS= read -r patch; do sha256sum "${patch}"; done < series | sha256sum | awk '{print $1}')"
 readonly one_way_patchset_sha
+held_patchset_sha="$({
+  cd "${held_experiment_dir}/patches"
+  while IFS= read -r patch; do
+    sha256sum "${patch}" | awk '{print $1}'
+  done < series
+} | sha256sum | awk '{print $1}')"
+readonly held_patchset_sha
 [[ "$(sha256sum "${baseline_config}" | awk '{print $1}')" == "${CONFIG_SHA256}" ]] || \
   die "active Gemian configuration hash mismatch"
 
@@ -202,6 +216,7 @@ prepare_variant() {
   local current_diff_sha
   local expected_diff_sha
   local include_one_way="$4"
+  local include_held="$5"
   local patch
   local partial
   local state_identity
@@ -253,6 +268,16 @@ prepare_variant() {
       git -C "${partial}" apply "${experiment_dir}/patches/${patch}"
     done < "${one_way_patch_series}"
   fi
+  if [[ "${include_held}" == 1 ]]; then
+    while IFS= read -r patch; do
+      [[ "${patch}" =~ ^[A-Za-z0-9_.+-]+\.patch$ ]] || \
+        die "unsafe held-online patch name"
+      git -C "${partial}" apply --check \
+        "${held_experiment_dir}/patches/${patch}"
+      git -C "${partial}" apply \
+        "${held_experiment_dir}/patches/${patch}"
+    done < "${held_patch_series}"
+  fi
   git -C "${partial}" diff --check
   current_diff_sha="$(git -C "${partial}" diff --binary | sha256sum | awk '{print $1}')"
   printf '%s %s %s\n' "${SOURCE_COMMIT}" "${expected_identity}" \
@@ -264,19 +289,33 @@ prepare_variant() {
 
 prepare_toolchain
 readonly source_mirror="${source_root}/gemian-linux-kernel-3.18.git"
-readonly prepared_source="${source_root}/gemian-one-way/${parent_patchset_sha:0:16}-${accepted_rollback_patchset_sha:0:16}-${one_way_patchset_sha:0:16}"
-readonly baseline_source="${source_root}/gemian-rollback-owners/${parent_patchset_sha:0:16}-${accepted_rollback_patchset_sha:0:16}"
 prepare_mirror
-prepare_variant "${baseline_source}" .gemini-rollback-owners-state \
-  "${parent_patchset_sha}:${accepted_rollback_patchset_sha}" 0
-prepare_variant "${prepared_source}" .gemini-one-way-state \
-  "${parent_patchset_sha}:${accepted_rollback_patchset_sha}:${one_way_patchset_sha}" 1
+if [[ "${build_mode}" == held ]]; then
+  readonly prepared_source="${source_root}/gemian-held/${parent_patchset_sha:0:16}-${accepted_rollback_patchset_sha:0:16}-${one_way_patchset_sha:0:16}-${held_patchset_sha:0:16}"
+  readonly baseline_source="${source_root}/gemian-one-way/${parent_patchset_sha:0:16}-${accepted_rollback_patchset_sha:0:16}-${one_way_patchset_sha:0:16}"
+  prepare_variant "${baseline_source}" .gemini-one-way-state \
+    "${parent_patchset_sha}:${accepted_rollback_patchset_sha}:${one_way_patchset_sha}" 1 0
+  prepare_variant "${prepared_source}" .gemini-held-state \
+    "${parent_patchset_sha}:${accepted_rollback_patchset_sha}:${one_way_patchset_sha}:${held_patchset_sha}" 1 1
+  python3 "${held_experiment_dir}/scripts/validate_patches.py" \
+    --source "${prepared_source}" \
+    --patch-dir "${held_experiment_dir}/patches"
+  python3 "${held_experiment_dir}/scripts/test_static.py" \
+    --source "${prepared_source}"
+else
+  readonly prepared_source="${source_root}/gemian-one-way/${parent_patchset_sha:0:16}-${accepted_rollback_patchset_sha:0:16}-${one_way_patchset_sha:0:16}"
+  readonly baseline_source="${source_root}/gemian-rollback-owners/${parent_patchset_sha:0:16}-${accepted_rollback_patchset_sha:0:16}"
+  prepare_variant "${baseline_source}" .gemini-rollback-owners-state \
+    "${parent_patchset_sha}:${accepted_rollback_patchset_sha}" 0 0
+  prepare_variant "${prepared_source}" .gemini-one-way-state \
+    "${parent_patchset_sha}:${accepted_rollback_patchset_sha}:${one_way_patchset_sha}" 1 0
+fi
 
 readonly toolchain="${toolchain_root}/${manifest_sha}"
 readonly cross_prefix="${toolchain}/wrappers/aarch64-linux-gnu-"
-readonly output="${build_root}/gemian-one-way/${project_commit}"
-readonly baseline_output="${build_root}/gemian-one-way-baseline/${project_commit}"
-readonly package="${artifact_root}/gemian-a72-one-way-compile-${project_commit:0:12}"
+readonly output="${build_root}/gemian-${build_mode}/${project_commit}"
+readonly baseline_output="${build_root}/gemian-${build_mode}-baseline/${project_commit}"
+readonly package="${artifact_root}/gemian-a72-${build_mode}-compile-${project_commit:0:12}"
 readonly package_partial="${package}.partial.$$"
 [[ ! -e "${package}" ]] || die "refusing to overwrite compile-review package: ${package}"
 [[ ! -e "${package_partial}" ]] || die "stale compile-review partial exists"
@@ -356,21 +395,27 @@ if ! make -C "${prepared_source}" O="${output}" ARCH=arm64 \
   KCFLAGS="${TARGET_EXTRA_CFLAGS}" \
   -j"${jobs}" V=1 Image.gz-dtb > "${output}/build.log" 2>&1; then
   tail -n 160 "${output}/build.log" >&2
-  die "one-way source build failed"
+  die "${build_mode} source build failed"
 fi
-printf 'one_way_source_build=passed\n'
+printf '%s_source_build=passed\n' "${build_mode}"
 
 readonly image="${output}/arch/arm64/boot/Image.gz-dtb"
 [[ -s "${image}" && -s "${output}/vmlinux" && -s "${output}/System.map" ]] || \
-  die "one-way compile outputs are incomplete"
+  die "${build_mode} compile outputs are incomplete"
 
 cp "${baseline_config}" "${baseline_output}/baseline.config"
 cp "${baseline_config}" "${baseline_output}/.config"
 "${baseline_source}/scripts/config" --file "${baseline_output}/.config" \
   --enable MTK_A72_TRANSITION_OBSERVER
+if [[ "${build_mode}" == held ]]; then
+  "${baseline_source}/scripts/config" --file "${baseline_output}/.config" \
+    --enable MTK_A72_ONE_WAY_CPU8
+fi
+
 make -C "${baseline_source}" O="${baseline_output}" ARCH=arm64 \
   CROSS_COMPILE="${cross_prefix}" olddefconfig
-python3 - "${baseline_output}/baseline.config" "${baseline_output}/.config" > \
+python3 - "${baseline_output}/baseline.config" "${baseline_output}/.config" \
+  "${build_mode}" > \
   "${baseline_output}/config.diff" <<'PY'
 import pathlib
 import sys
@@ -393,12 +438,12 @@ for name in sorted(set(before) | set(after)):
         changes.append((name, before.get(name, "missing"), after.get(name, "missing")))
 for name, old, new in changes:
     print("{}\t{}\t{}".format(name, old, new))
-expected = [
-    ("CONFIG_ANBOX", "missing", "n"),
-    ("CONFIG_MTK_A72_TRANSITION_OBSERVER", "missing", "y"),
-]
+expected = [("CONFIG_ANBOX", "missing", "n")]
+if sys.argv[3] == "held":
+    expected.append(("CONFIG_MTK_A72_ONE_WAY_CPU8", "missing", "y"))
+expected.append(("CONFIG_MTK_A72_TRANSITION_OBSERVER", "missing", "y"))
 if changes != expected:
-    raise SystemExit("baseline config is not exact parent-rollback normalization")
+    raise SystemExit("baseline config is not the exact selected parent")
 PY
 readonly baseline_dct_output="${baseline_output}/arch/arm64/boot/dts"
 mkdir -p "${baseline_dct_output}"
@@ -428,6 +473,40 @@ printf 'baseline_source_build=passed\n'
 [[ -s "${baseline_output}/arch/arm64/boot/Image.gz-dtb" && \
    -s "${baseline_output}/vmlinux" && -s "${baseline_output}/System.map" ]] || \
   die "baseline compile outputs are incomplete"
+mkdir -p "${output}/focused-disassembly" \
+  "${baseline_output}/focused-disassembly"
+for symbol in cpu_down hps_algo_do_cluster_action \
+  mt6797_a72_one_way_secondary_complete; do
+  "${cross_prefix}objdump" -dr --disassemble="${symbol}" \
+    "${output}/vmlinux" > \
+    "${output}/focused-disassembly/${symbol}.txt"
+  "${cross_prefix}objdump" -dr --disassemble="${symbol}" \
+    "${baseline_output}/vmlinux" > \
+    "${baseline_output}/focused-disassembly/${symbol}.txt"
+done
+if [[ "${build_mode}" == held ]]; then
+  for symbol in mt6797_a72_hold_ipi mt6797_a72_hold_workfn; do
+    "${cross_prefix}objdump" -dr --disassemble="${symbol}" \
+      "${output}/vmlinux" > \
+      "${output}/focused-disassembly/${symbol}.txt"
+  done
+fi
+for symbol in cpu_down hps_algo_do_cluster_action \
+  mt6797_a72_one_way_secondary_complete; do
+  grep -q "<${symbol}>:" \
+    "${output}/focused-disassembly/${symbol}.txt" || \
+    die "changed disassembly is missing ${symbol}"
+  grep -q "<${symbol}>:" \
+    "${baseline_output}/focused-disassembly/${symbol}.txt" || \
+    die "baseline disassembly is missing ${symbol}"
+done
+if [[ "${build_mode}" == held ]]; then
+  for symbol in mt6797_a72_hold_ipi mt6797_a72_hold_workfn; do
+    grep -q "<${symbol}>:" \
+      "${output}/focused-disassembly/${symbol}.txt" || \
+      die "held disassembly is missing ${symbol}"
+  done
+fi
 grep -q ' mt6797_a72_obs_init$' "${output}/System.map" || \
   die "observer symbol map is missing the observer initializer"
 grep -q ' da9214_a72_diag_compare_update$' "${output}/System.map" || \
@@ -451,7 +530,29 @@ grep -q ' mt6797_a72_obs_init$' "${baseline_output}/System.map" || \
 grep -q ' mt6797_a72_obs_rollback_terminal$' \
   "${baseline_output}/System.map" || \
   die "parent rollback baseline is missing its terminal recorder"
-if grep -qE ' (mtk_wd_a72_recovery_takeover|mt6797_a72_one_way_.*)$' \
+if [[ "${build_mode}" == held ]]; then
+  grep -q ' mt6797_a72_one_way_secondary_complete$' \
+    "${baseline_output}/System.map" || \
+    die "held baseline is not the exact one-way parent"
+  grep -q ' mt6797_a72_hold_ipi$' "${output}/System.map" || \
+    die "held build is missing the CPU8 IPI callback"
+  grep -q ' mt6797_a72_hold_workfn$' "${output}/System.map" || \
+    die "held build is missing the delayed sampler"
+  if grep -qE ' mt6797_a72_hold_(ipi|workfn)$' \
+    "${baseline_output}/System.map"; then
+    die "one-way baseline unexpectedly contains held-online symbols"
+  fi
+  "${cross_prefix}strings" "${output}/vmlinux" | \
+    grep -F 'gemini-a72-hold-v1 result=down-veto' >/dev/null || \
+    die "held build is missing the early down-veto marker"
+  "${cross_prefix}strings" "${output}/vmlinux" | \
+    grep -F 'gemini-a72-hold-v1 result=pass sample=2' >/dev/null || \
+    die "held build is missing the terminal IPI-pass marker"
+  if "${cross_prefix}strings" "${baseline_output}/vmlinux" | \
+    grep -F 'gemini-a72-hold-v1' >/dev/null; then
+    die "one-way baseline unexpectedly contains held-online markers"
+  fi
+elif grep -qE ' (mtk_wd_a72_recovery_takeover|mt6797_a72_one_way_.*)$' \
   "${baseline_output}/System.map"; then
   die "parent rollback baseline unexpectedly contains one-way symbols"
 fi
@@ -461,7 +562,7 @@ grep -E -i '(^|[^[:alpha:]])(warning|error):' "${output}/build.log" > \
 grep -E -i '(^|[^[:alpha:]])(warning|error):' "${baseline_output}/build.log" > \
   "${baseline_output}/diagnostics.txt" || :
 cmp "${output}/diagnostics.txt" "${baseline_output}/diagnostics.txt" >/dev/null || \
-  die "one-way and parent-rollback compiler diagnostics differ"
+  die "${build_mode} and selected-parent compiler diagnostics differ"
 [[ -s "${output}/diagnostics.txt" ]] || die "expected vendor baseline diagnostic is absent"
 printf 'diagnostic_comparison=identical\n'
 
@@ -475,6 +576,8 @@ cp "${image}" "${package_partial}/outputs/Image.gz-dtb"
 cp "${output}/System.map" "${package_partial}/outputs/System.map"
 cp "${output}/vmlinux" "${package_partial}/outputs/vmlinux"
 cp "${output}/diagnostics.txt" "${package_partial}/outputs/diagnostics.txt"
+cp -R "${output}/focused-disassembly" \
+  "${package_partial}/outputs/focused-disassembly"
 mkdir -p "${package_partial}/outputs/baseline"
 cp "${baseline_output}/build.log" "${package_partial}/outputs/baseline/build.log"
 cp "${baseline_output}/.config" "${package_partial}/outputs/baseline/config"
@@ -482,6 +585,8 @@ cp "${baseline_output}/config.diff" "${package_partial}/outputs/baseline/config.
 cp "${baseline_output}/diagnostics.txt" \
   "${package_partial}/outputs/baseline/diagnostics.txt"
 cp "${baseline_output}/System.map" "${package_partial}/outputs/baseline/System.map"
+cp -R "${baseline_output}/focused-disassembly" \
+  "${package_partial}/outputs/baseline/focused-disassembly"
 (
   cd "${baseline_output}"
   sha256sum arch/arm64/boot/Image.gz-dtb System.map vmlinux > \
@@ -538,6 +643,8 @@ jq -n \
   --arg parent_patchset_sha256 "${parent_patchset_sha}" \
   --arg accepted_rollback_patchset_sha256 "${accepted_rollback_patchset_sha}" \
   --arg one_way_patchset_sha256 "${one_way_patchset_sha}" \
+  --arg held_patchset_sha256 "${held_patchset_sha}" \
+  --arg build_mode "${build_mode}" \
   --arg config_sha256 "${CONFIG_SHA256}" \
   --arg toolchain_manifest_sha256 "${manifest_sha}" \
   --arg snapshot_url "${SNAPSHOT_URL}" \
@@ -552,6 +659,7 @@ jq -n \
     parent_patchset_sha256: $parent_patchset_sha256,
     accepted_rollback_patchset_sha256: $accepted_rollback_patchset_sha256,
     one_way_patchset_sha256: $one_way_patchset_sha256,
+    held_patchset_sha256: $held_patchset_sha256,
     baseline_config_sha256: $config_sha256,
     toolchain_manifest_sha256: $toolchain_manifest_sha256,
     snapshot_url: $snapshot_url, cust_dtsi_sha256: $cust_dtsi_sha256,
@@ -559,10 +667,13 @@ jq -n \
     target_architecture: $target_architecture, host_extra_cflags: "-fcommon",
     target_extra_cflags: "-fstack-usage",
     baseline_comparison: true, diagnostics_identical: true,
-    baseline_source_parent_rollback_owners: true, stack_usage_captured: true,
+    baseline_source_parent_rollback_owners: ($build_mode == "one-way"),
+    baseline_source_exact_one_way: ($build_mode == "held"),
+    stack_usage_captured: true,
     stack_usage_file_count: $stack_usage_file_count,
     baseline_stack_usage_file_count: $baseline_stack_usage_file_count,
-    purpose: "one-way-compile-review-only",
+    purpose: (if $build_mode == "held" then
+      "held-online-compile-review-only" else "one-way-compile-review-only" end),
     boot_candidate: false, completed_utc: $completed_utc}' > \
   "${package_partial}/provenance/build.json"
 (
@@ -573,4 +684,5 @@ jq -n \
 rm -rf -- "${output}" "${baseline_output}"
 mv "${package_partial}" "${package}"
 trap - EXIT
-printf 'Packaged Gemian one-way compile review at %s\n' "${package}"
+printf 'Packaged Gemian %s compile review at %s\n' \
+  "${build_mode}" "${package}"

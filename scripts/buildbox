@@ -57,6 +57,10 @@ Commands:
                         Compare one-way CPU8 and parent rollback on Buildbox
   fetch-gemian-one-way-compile
                         Fetch that validated compile-review bundle for HEAD
+  build-gemian-held-compile
+                        Compare held-online CPU8 and exact one-way parent
+  fetch-gemian-held-compile
+                        Fetch that validated compile-review bundle for HEAD
 
 Environment:
   BUILDBOX_HOST         SSH target (default: buildbox)
@@ -444,7 +448,7 @@ build_gemian_observer() {
   local sha
 
   case "${mode}" in
-    observer|rollback|recovery|one-way) ;;
+    observer|rollback|recovery|one-way|held) ;;
     *) die "invalid Gemian compile-review mode: ${mode}" ;;
   esac
 
@@ -497,6 +501,11 @@ case "${mode}" in
     readonly job_suffix=gemian-a72-one-way
     readonly job_purpose=gemian-a72-one-way-compile-review
     readonly build_script=experiments/2026-08-02-a72-one-way-cpu8-boundary/scripts/build-on-buildbox
+    ;;
+  held)
+    readonly job_suffix=gemian-a72-held
+    readonly job_purpose=gemian-a72-held-online-compile-review
+    readonly build_script=experiments/2026-08-02-a72-cpu8-held-online/scripts/build-on-buildbox
     ;;
   *) exit 2 ;;
 esac
@@ -638,7 +647,7 @@ elif [[ "${mode}" == recovery ]]; then
     [[ -s "${package}/${required}" ]]
   done
   [[ "$(tar -tf "${package}/outputs/baseline/stack-usage.tar" | wc -l)" -gt 100 ]]
-else
+elif [[ "${mode}" == one-way ]]; then
   for required in outputs/baseline/stack-usage.tar \
     outputs/baseline/stack-usage-files.nul \
     outputs/baseline/stack-usage-files.txt; do
@@ -664,6 +673,36 @@ else
   grep -q ' mt6797_a72_obs_rollback_terminal$' \
     "${package}/outputs/baseline/System.map"
   ! grep -qE ' (mtk_wd_a72_recovery_takeover|mt6797_a72_one_way_.*)$' \
+    "${package}/outputs/baseline/System.map"
+  [[ "$(tar -tf "${package}/outputs/baseline/stack-usage.tar" | wc -l)" -gt 100 ]]
+else
+  for required in outputs/baseline/stack-usage.tar \
+    outputs/baseline/stack-usage-files.nul \
+    outputs/baseline/stack-usage-files.txt \
+    outputs/focused-disassembly/cpu_down.txt \
+    outputs/focused-disassembly/hps_algo_do_cluster_action.txt \
+    outputs/focused-disassembly/mt6797_a72_hold_ipi.txt \
+    outputs/focused-disassembly/mt6797_a72_hold_workfn.txt \
+    outputs/focused-disassembly/mt6797_a72_one_way_secondary_complete.txt \
+    outputs/baseline/focused-disassembly/cpu_down.txt \
+    outputs/baseline/focused-disassembly/hps_algo_do_cluster_action.txt \
+    outputs/baseline/focused-disassembly/mt6797_a72_one_way_secondary_complete.txt; do
+    [[ -s "${package}/${required}" ]]
+  done
+  jq -e '
+    .baseline_source_exact_one_way == true and
+    .baseline_stack_usage_file_count > 100 and
+    .one_way_patchset_sha256 ==
+      "d9649e1453a05bc8a016da6fa371e97480ff62aebad3dedd87d148d5cb574890" and
+    .held_patchset_sha256 ==
+      "e6da1e8cc976ad63dd9cf8a254bb7234d73589cfad6afeb07135403a27d03ba3" and
+    .purpose == "held-online-compile-review-only"
+  ' "${package}/provenance/build.json" >/dev/null
+  grep -q ' mt6797_a72_hold_ipi$' "${package}/outputs/System.map"
+  grep -q ' mt6797_a72_hold_workfn$' "${package}/outputs/System.map"
+  grep -q ' mt6797_a72_one_way_secondary_complete$' \
+    "${package}/outputs/baseline/System.map"
+  ! grep -qE ' mt6797_a72_hold_(ipi|workfn)$' \
     "${package}/outputs/baseline/System.map"
   [[ "$(tar -tf "${package}/outputs/baseline/stack-usage.tar" | wc -l)" -gt 100 ]]
 fi
@@ -718,6 +757,10 @@ fetch_gemian_observer() {
       job_suffix=gemian-a72-one-way
       job_purpose=gemian-a72-one-way-compile-review
       ;;
+    held)
+      job_suffix=gemian-a72-held
+      job_purpose=gemian-a72-held-online-compile-review
+      ;;
     *) die "invalid Gemian compile-review mode: ${mode}" ;;
   esac
   sha="$(git -C "${REPO_DIR}" rev-parse HEAD)"
@@ -764,7 +807,8 @@ case "${package}" in "${artifact_root}"/*) ;; *) exit 1 ;; esac
   (($mode == "observer" and .purpose == "compile-review-only") or
    ($mode == "rollback" and .purpose == "rollback-compile-review-only") or
    ($mode == "recovery" and .purpose == "recovery-compile-review-only") or
-   ($mode == "one-way" and .purpose == "one-way-compile-review-only"))
+   ($mode == "one-way" and .purpose == "one-way-compile-review-only") or
+   ($mode == "held" and .purpose == "held-online-compile-review-only"))
 ' "${package}/provenance/build.json" >/dev/null
 tar -C "$(dirname "${package}")" -cf - -- "$(basename "${package}")"
 REMOTE
@@ -1406,6 +1450,8 @@ case "${COMMAND}" in
   fetch-gemian-recovery-compile) fetch_gemian_observer recovery ;;
   build-gemian-one-way-compile) build_gemian_observer one-way ;;
   fetch-gemian-one-way-compile) fetch_gemian_observer one-way ;;
+  build-gemian-held-compile) build_gemian_observer held ;;
+  fetch-gemian-held-compile) fetch_gemian_observer held ;;
   help|-h|--help) usage ;;
   *) usage >&2; exit 2 ;;
 esac
