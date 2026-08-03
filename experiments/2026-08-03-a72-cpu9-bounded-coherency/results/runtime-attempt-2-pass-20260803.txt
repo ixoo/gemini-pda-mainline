@@ -1,0 +1,76 @@
+CPU8/CPU9 bounded coherency runtime attempt 2
+Date: 2026-08-03
+
+Decision: exact repeatability pass. The bounded pair-v4 coherency oracle is now
+reproducible across two exact cycles. Do not run a third unchanged cycle.
+
+Exact identities
+----------------
+
+Repository compile commit:
+  938cdefde98522a2cd3504605aee04e4c83d5671
+Coherence patchset SHA-256:
+  d4c40577b9e91fedfde048b29cb203311de264c526c71e3abd907fc6fafcf67f
+Raw Android-v0 SHA-256:
+  647ebe58da86171b3a36ddd5225bc564b11be4e9799f94fe4b35b9bd005ef139
+Full boot2 SHA-256:
+  eda1d5bb312aa937e41499ea8fd13a5f8ae95865399605fe7cf93ee61daaa23d
+Pstore console SHA-256:
+  0061260998702a13a54a54cc944d4f9707d316f6dbcded46873a3fe03e419c75
+Pstore archive SHA-256:
+  79df22bf4dba4eb960229fb5881f471e271cbea5f6d9948e55bea2e1bf024c97
+
+Attributable terminal
+---------------------
+
+At 10.945550 seconds, retained `console-ramoops` contains exactly:
+
+  psci: gemini-a72-pair-v4 result=pass sample=3 cpu8=8 cpu9=9 online8=1 online9=1 hits8=3 hits9=3 hps_reported=1 hps_cpu=9 hps_error=-1 hps_count=91 coh_reported=1 coh_rounds=1024 coh_cpu8=8 coh_cpu9=9 coh_error8=0 coh_error9=0 coh_seq8=1024 coh_seq9=1024
+
+This independently reproduces every attempt-1 predicate: exact callback CPUs,
+three reconciled retained callbacks each, HPS CPU9 `-EPERM` attribution with a
+positive count, exactly 1,024 shared-memory rounds, zero callback errors, and
+final sequences 1,024/1,024. No pair-v4 fault, panic, BUG, Internal error, Call
+trace, asynchronous SError, lockup, or unable-to-handle-kernel record appears
+in the retained console.
+
+Recovery and integrity
+----------------------
+
+Before owner selection, the reviewed installer found boot2 already matched the
+candidate, skipped the write, recorded ordinary-Gemian boot ID
+`d35711aa-16cc-4559-82b3-5e2edc11777a`, and confirmed shutdown. The owner then
+reported the physical boot2 start. Immediate recovery reached ordinary Gemian
+`3.18.41+` with boot ID `22594815-d18d-4dae-85ea-b3c68e6d1d95`, proving a
+changed boot. Filtered boot arguments again reported `boot_reason=4` and
+`androidboot.bootreason=wdt_by_pass_pwk`. The recovery CPU online mask was
+`4-5`; CPU8 and CPU9 each reported `online=0`. The live GPT exposed exactly
+`mmcblk0p30 boot2`, it was unmounted, and its full checksum remained
+`eda1d5bb312aa937e41499ea8fd13a5f8ae95865399605fe7cf93ee61daaa23d`.
+Battery telemetry reported 100 percent and Good health.
+
+Observation continuity
+----------------------
+
+The optional read-only USB/netcat collector expired before owner selection and
+produced no runtime file. Immediate read-only pstore collection after recovery
+retained the candidate-only pair-v4 terminal. Exact baseline boot ID, verified
+unchanged candidate, confirmed shutdown, owner-reported physical selection,
+different immediate recovery boot ID, watchdog-class recovery, and unchanged
+boot2 directly identify the cycle. Pstore entries were not removed.
+
+Conclusion and next action
+--------------------------
+
+Across attempts 1 and 2, the identical candidate completed the exact bounded
+shared-memory oracle with HPS counts 79 and 91 respectively, zero coherency
+errors, and final sequences 1,024/1,024. This closes repeatability for this
+specific two-CPU, single-cacheline turn/sequence handshake under diagnostic
+containment.
+
+The next experiment must be changed and separately predeclared. It should
+preserve startup, HPS veto, CPU_OFF prohibition, power state, and watchdog
+recovery while expanding only the observation to a bounded multi-cacheline
+working-set integrity/load oracle with exact per-CPU checksums and finite work.
+CPU_OFF, DVFS/OPP, thermal, suspend, and production-online integration remain
+unproved and unauthorized.

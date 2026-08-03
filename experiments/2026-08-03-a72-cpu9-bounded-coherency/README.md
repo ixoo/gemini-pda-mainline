@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu9-bounded-coherency` |
-| Status | `runtime-attempt-1-passed-repeatability-pending` |
+| Status | `runtime-repeatability-passed-next-changed-load-design` |
 | Subsystem | MT6797 retained Cortex-A72 pair and cache coherency |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -79,10 +79,13 @@ continue after recovery.
 - [`results/runtime-attempt-1-pass-20260803.txt`](results/runtime-attempt-1-pass-20260803.txt):
   exact pair-v4 pass, fault exclusions, watchdog recovery, CPU state, changed
   boot identity, and unchanged full boot2 checksum.
+- [`results/runtime-attempt-2-pass-20260803.txt`](results/runtime-attempt-2-pass-20260803.txt):
+  independent exact repeat, recovery/integrity closure, and the boundary for
+  the next changed experiment.
 
 ## Conclusion
 
-`runtime-attempt-1-passed-repeatability-pending`: Buildbox compiled the bounded-
+`runtime-repeatability-passed-next-changed-load-design`: Buildbox compiled the bounded-
 coherency child and exact terminal parent from repository commit `938cdef`,
 with identical configuration deltas and compiler diagnostics. Linked child
 code contains the expected synchronous IPI/work callbacks and acquire/release
@@ -95,14 +98,15 @@ fresh backup, requires two full readbacks, and powers off after success. The
 read-only collector requires the complete pair-v4/HPS/coherence terminal. This
 exact candidate replaced the expected terminal predecessor on live-GPT-resolved
 inactive `boot2`; two full readbacks matched and shutdown was confirmed. The
-first selected cycle then retained an exact pair-v4 pass: both CPUs completed
+two selected cycles each retained an exact pair-v4 pass: both CPUs completed
 the 1,024-round exchange with zero errors and final sequences 1,024/1,024 while
-the inherited HPS CPU9 `-EPERM` attribution remained intact. Watchdog recovery,
-offline CPU8/9, changed boot identity, fault exclusions, and unchanged boot2
-passed. This is one bounded runtime pass, not general coherency support.
+the inherited HPS CPU9 `-EPERM` attribution remained intact. Both watchdog
+recoveries, offline CPU8/9, changed boot identities, fault exclusions, and
+unchanged boot2 passed. This closes repeatability only for the bounded oracle,
+not general coherency support.
 
 ## Follow-up
 
-Publish the sanitized first-pass record. Then run the one exact repeatability
-cycle earned by the fixed decision map from a new ordinary-Gemian baseline. Do
-not extend load or cross another power boundary yet.
+Publish the sanitized repeatability record. Do not run a third unchanged cycle.
+Design a source-minimal, finite multi-cacheline integrity/load child that keeps
+startup, HPS veto, CPU_OFF prohibition, power state, and recovery unchanged.

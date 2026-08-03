@@ -1011,6 +1011,18 @@ next ordered action is the one exact repeatability cycle earned by the fixed
 decision map. Do not extend load, enable CPU_OFF, or cross another power
 boundary before that result.
 
+The exact repeatability cycle also passed. Its pair-v4 terminal at 10.945550
+seconds independently reproduced all three callbacks per CPU, HPS CPU9
+`-EPERM` attribution after 91 matching requests, exactly 1,024 coherency
+rounds, zero errors, and final sequences 1,024/1,024. Fault exclusions,
+watchdog reason 4, changed recovery boot identity, offline CPUs 8/9, and
+unchanged unmounted boot2 passed again. The bounded single-cacheline oracle is
+now repeatable across two exact cycles; do not run a third unchanged cycle. The
+next ordered action is a separately designed finite multi-cacheline
+integrity/load child that preserves startup, HPS veto, CPU_OFF prohibition,
+power state, and watchdog recovery. CPU_OFF and later power boundaries remain
+blocked.
+
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback
 gates close.
