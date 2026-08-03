@@ -1,0 +1,85 @@
+CPU8 late-hold runtime attempt 2
+================================
+
+Date: 2026-08-03
+Result: pass-repeatability-late-cpu8-execution-accounting
+Hypothesis: the unchanged exact artifact independently reproduces the late
+CPU8 execution/accounting terminal in a fresh changed watchdog cycle.
+
+Attributable terminal
+---------------------
+
+The second changed-cycle `console-ramoops` contains exactly one held-v2 record:
+
+  [   12.265514] psci: gemini-a72-hold-v2 result=pass sample=3 cpu=8 cpu8=1 cpu9=0 hits=3
+
+There are zero held-v1 records, zero held-v2 faults, zero down-veto records,
+zero panic/Internal-error/Call-trace records, and zero cpuhvfs notifier records.
+CPU9 was rejected before any A72 action 16 times in the retained window.
+
+The result independently reproduces attempt 1's exact terminal predicate. The
+late sample occurred 0.149967 seconds earlier than attempt 1; both lie inside
+the measured retained window and before the fixed watchdog recovery.
+
+Retention and changed-cycle evidence
+------------------------------------
+
+Private console size: 65524 bytes
+Private console SHA-256:
+  a54907ad6cb4ba85a6fdc415c31bf3ce3be134aa582edf4fceb773a6eca2b9ec
+Complete retained timestamps: 9.263071 through 13.921757 seconds
+
+Initial boot-ID SHA-256:
+  6a53f2ecfa432c9a64879fc6333d19e1becf78fde454f26e6265c077fcc27448
+Final boot-ID SHA-256:
+  118e580956ac7c19438e392fe97f088b17df0be281e01392b95eb3a962194537
+Boot ID changed: yes
+Recovery kernel: 3.18.41+
+Recovery architecture: aarch64
+Android boot reason: wdt_by_pass_pwk
+
+Post-return read-only checks:
+
+- live-GPT boot2 target: `/dev/mmcblk0p30`;
+- active root: `/dev/mmcblk0p29`;
+- boot2 mounted or held: no;
+- CPU present: 0-9;
+- CPU online snapshot: 0-1;
+- CPU8 offline under recovery OS: yes;
+- CPU9 offline under recovery OS: yes;
+- full boot2 SHA-256 unchanged:
+  `2e81e18610d99c69bee8867d2fe960245dfcdda1ca583965724598255ea871af`.
+
+Private evidence identities
+---------------------------
+
+Private capture manifest SHA-256:
+  0c56125a0509a0d57967bf273a1578ee6d5aaa271499a85a37150db13fed432b
+Cycle record SHA-256:
+  6f1a1c85b99517104444bed296c818151081bcd5f8368ac1520b4e503ecd0cce
+Metadata SHA-256:
+  8ec74e6659760497e5972fe8c827ec9ae7a7e623ba5fa232264f4a432c4039b1
+
+The complete private manifest passed strict verification. Pstore entries and
+partitions were not modified or removed.
+
+Decision
+--------
+
+result=pass-repeatability-late-cpu8-execution-accounting
+independent_exact_passes=2
+attempt_1_late_sample_seconds=12.415481
+attempt_2_late_sample_seconds=12.265514
+cpu8_callback_cpu=8
+cpu8_online_at_late_sample=yes
+cpu9_online_at_late_sample=no
+callback_hits=3
+recovery=changed-cycle-watchdog-class
+boot2_unchanged=yes
+
+The explicit unchanged-artifact repeatability hypothesis passes. This closes
+the repeatability portion of Roadmap Gate 7 for the bounded CPU8 diagnostic.
+It does not establish CPU_OFF, load/stress coherency, cpufreq/OPP, thermal,
+suspend, or default/upstream support. CPU9 remains disabled until a separate
+source/order/ownership design preserves the repeatable CPU8 foundation and
+adds CPU9-specific checkpoints, exclusion, failure, and recovery decisions.

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu8-late-hold` |
-| Status | `runtime-pass-repeatability-pending` |
+| Status | `runtime-repeatability-pass` |
 | Subsystem | MT6797 CPU8 IPI/coherency and retained pstore evidence |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -76,6 +76,8 @@ about two seconds between the third sample and recovery.
   live-GPT boot2 write, full readback, cleanup, and shutdown evidence.
 - [`results/runtime-attempt-1-pass-20260803.txt`](results/runtime-attempt-1-pass-20260803.txt):
   changed-cycle late CPU8 execution/accounting pass and recovery evidence.
+- [`results/runtime-attempt-2-repeatability-pass-20260803.txt`](results/runtime-attempt-2-repeatability-pass-20260803.txt):
+  independent unchanged-artifact repeatability pass.
 
 ## Procedure
 
@@ -123,6 +125,11 @@ cumulative callback count was exactly three. No held fault, down veto,
 predecessor terminal, notifier fault, panic, Internal error, or Call trace was
 retained. Known-good Gemian returned, and boot2 remained exact.
 
+The explicitly declared repeatability attempt reproduced the exact terminal at
+12.265514 seconds in a fresh changed cycle. Its conflict/failure counts were
+again zero, CPU9 was excluded, watchdog recovery passed, and boot2 remained
+exact. The two late-sample times differ by 0.149967 seconds.
+
 ## Analysis
 
 The prior run did not retain its +1-second and +6-second measurements because
@@ -133,16 +140,16 @@ without executing CPU8 again would not meet the experiment contract.
 
 ## Conclusion
 
-`runtime-pass-repeatability-pending`: the exact parent, one logical patch,
+`runtime-repeatability-pass`: the exact parent, one logical patch,
 timing, failure predicate, terminal, forbidden actions, mutations, full builds,
 diagnostics, machine code, stack-use gate, exact offline container, guarded
 installer, observation tools, runtime decision map, exact boot2 write/readback,
-shutdown, late synchronous CPU8 execution/accounting, and watchdog recovery
-pass. This is bounded experiment evidence, not default or upstream support.
+shutdown, late synchronous CPU8 execution/accounting, watchdog recovery, and
+one independent exact repeat pass. This is bounded experiment evidence, not
+default or upstream support.
 
 ## Follow-up
 
-Perform one explicitly declared unchanged-artifact repeatability measurement
-with a fresh changed-cycle capture. On a second exact pass, begin the separate
-CPU9 experiment design; broader stability, CPU_OFF, load, DVFS, thermal, and
-suspend gates remain closed.
+Begin the separate CPU9 source/order/ownership design from this exact
+repeatable CPU8 foundation. Broader CPU8 stability, CPU_OFF, load, DVFS,
+thermal, and suspend gates remain closed and must not be conflated with CPU9.

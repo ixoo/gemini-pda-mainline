@@ -902,6 +902,17 @@ explicit independent repeatability measurement of this exact artifact; this
 is the declared repeatability hypothesis and adds a fresh changed-cycle and
 late-execution observation. CPU9 design may begin only after that second pass.
 
+The declared repeatability run then produced a second exact held-v2 terminal
+at 12.265514 seconds in an independent changed watchdog cycle. Its terminal,
+zero conflict/fault counts, CPU9 exclusion, recovery state, and unchanged
+boot2 identity match attempt 1; the late-sample times differ by 0.149967
+seconds. The bounded CPU8 execution/accounting diagnostic is therefore
+repeatable across two exact runs. The next ordered action is CPU9-specific
+source/order/ownership design from this exact CPU8 foundation, with CPU9 kept
+disabled until its distinct checkpoints, failures, and recovery decisions pass
+offline review. CPU_OFF, load/stress coherency, DVFS/OPP, thermal, and suspend
+remain separate closed gates.
+
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback
 gates close.
