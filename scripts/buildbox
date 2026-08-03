@@ -648,7 +648,7 @@ else
     .accepted_rollback_patchset_sha256 ==
       "76a00aeb9ebefe0c964e70e56b63977071d2f2b12b12ce52ecdb7bb298f8fdd3" and
     .one_way_patchset_sha256 ==
-      "2ce261bdd9bcd5fe02133414c7d6535c213c06ad3af0e37ffbbc34feee7819c2" and
+      "d9649e1453a05bc8a016da6fa371e97480ff62aebad3dedd87d148d5cb574890" and
     .purpose == "one-way-compile-review-only"
   ' "${package}/provenance/build.json" >/dev/null
   grep -q ' mtk_wd_a72_recovery_takeover$' "${package}/outputs/System.map"

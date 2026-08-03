@@ -45,7 +45,7 @@ def main() -> int:
     expected = {
         parent_hash: "3584e9dd5ffb041573b851f31f3a96eaa0a684acb880fd59560762e5abc58be0",
         rollback_hash: "76a00aeb9ebefe0c964e70e56b63977071d2f2b12b12ce52ecdb7bb298f8fdd3",
-        one_way_hash: "2ce261bdd9bcd5fe02133414c7d6535c213c06ad3af0e37ffbbc34feee7819c2",
+        one_way_hash: "d9649e1453a05bc8a016da6fa371e97480ff62aebad3dedd87d148d5cb574890",
     }
     require(all(actual == wanted for actual, wanted in expected.items()),
             "compile patch foundation changed")

@@ -68,7 +68,7 @@ review. It does not authorize deployment before those gates pass.
   closes that prerequisite and fixes the exact five-patch source-generation,
   watchdog, SRAM-readback, secondary-completion, and forbidden-path plan.
 - [`results/patch-generation-review-20260802.txt`](results/patch-generation-review-20260802.txt):
-  records the rejected drafts, accepted three-patch identities, 18 mutation
+  records the rejected drafts, accepted three-patch identities, 19 mutation
   rejections, and manual source-control-flow review.
 - [`patches/`](patches/): exact Buildbox-generated experiment-only source
   patches in deterministic order; these are not yet a boot candidate.
@@ -94,8 +94,8 @@ value restored, without an instrumented Linux mutation record for that write.
 The first two generated drafts were rejected during review. The accepted third
 generation separates a forward failure from a rollback failure, verifies the
 watchdog's automatic-reset mode, rejects secure-read error sentinels, and pins
-all configuration dependencies. Its static validator passed 18 deliberate
-mutations.
+all configuration dependencies plus the CL2 source guard. Its static validator
+passed 19 deliberate mutations.
 
 ## Analysis
 

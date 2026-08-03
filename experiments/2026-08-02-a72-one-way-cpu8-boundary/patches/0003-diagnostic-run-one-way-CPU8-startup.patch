@@ -1,4 +1,4 @@
-From 6ce71386ec9421d8a0d5a8c3556fcf4f8b8506fc Mon Sep 17 00:00:00 2001
+From 54cbeb03175953e462de415c48201e4a2565f547 Mon Sep 17 00:00:00 2001
 From: Gemini A72 experiment <noreply@gemini-a72.invalid>
 Date: Mon, 3 Aug 2026 01:12:00 +0000
 Subject: [PATCH] diagnostic: run one-way CPU8 startup
@@ -343,7 +343,7 @@ index a7e0adf06..1469b9ef7 100644
  			ret = -EIO;
  		}
 diff --git a/drivers/misc/mediatek/base/power/Kconfig b/drivers/misc/mediatek/base/power/Kconfig
-index 1de54adcd..417551bfd 100644
+index 1de54adcd..db224fc85 100644
 --- a/drivers/misc/mediatek/base/power/Kconfig
 +++ b/drivers/misc/mediatek/base/power/Kconfig
 @@ -104,3 +104,15 @@ config MTK_A72_TRANSITION_OBSERVER
@@ -353,7 +353,7 @@ index 1de54adcd..417551bfd 100644
 +
 +config MTK_A72_ONE_WAY_CPU8
 +	bool "MT6797 one-way CPU8 startup experiment"
-+	depends on SMP && HOTPLUG_CPU && CL2_BUCK_CTRL
++	depends on SMP && HOTPLUG_CPU
 +	depends on MTK_A72_TRANSITION_OBSERVER
 +	depends on MTK_WATCHDOG && MTK_WD_KICKER
 +	depends on PSTORE && PSTORE_CONSOLE && PSTORE_RAM
