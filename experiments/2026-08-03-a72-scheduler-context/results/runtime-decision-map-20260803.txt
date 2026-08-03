@@ -1,0 +1,102 @@
+CPU8/CPU9 scheduler-context deployment and runtime decision map
+Date: 2026-08-03
+
+This map is fixed before any pair-v7 device write. It authorizes one attributable
+boot after the installer and runtime tools pass, are committed, and are pushed.
+It is not runtime evidence.
+
+Exact candidate
+---------------
+
+Repository compile commit:
+  697ac3984c9b52c285cb7fcdb076dcec4dbf8ef0
+Scheduler patchset SHA-256:
+  30316bc63934d7fdc022367bb8b465e794c8c91ec9956d6233e02bddad55fffe
+Kernel field SHA-256:
+  9d2d9db5bd66bcc33c7c072248b5d907b75e5ceb8bf810c88bfd0019e128f402
+Raw Android-v0 SHA-256:
+  f9fddf01576aa6915c030b1952b290d937ef9a0ba9512a6adb0ab02de2e5fff3
+Full boot2 SHA-256:
+  24377665fa5b9112266890844c06c453bb50e17680b6f6f956035c234c26ff0f
+Expected boot2 predecessor SHA-256:
+  0beead0b00485ad18333aca4d688fcd549c813113b7ec0554a6761c7147b17fb
+
+Hypothesis and unique observation
+---------------------------------
+
+The exact pair-v6 parent passed twice. Pair-v7 preserves every inherited gate,
+then creates two normal-priority kernel threads, binds them before first wake to
+CPUs 8 and 9, dispatches them in task context, rendezvouses them concurrently,
+completes identical bounded integer workloads, stops both threads, and publishes
+one isolated terminal before the inherited watchdog recovery.
+
+The only positive result is an adjacent complete pair-v6 pass followed by this
+exact pair-v7 pass contract:
+
+  gemini-a72-pair-v7 result=pass parent_pass=1
+  sc_reported=1 sc_iterations=262144 sc_rescheds=64
+  sc_expected8=8 sc_start8=8 sc_end8=8
+  sc_expected9=9 sc_start9=9 sc_end9=9
+  sc_task8=1 sc_task9=1 sc_create8=0 sc_create9=0
+  sc_wake8=1 sc_wake9=1 sc_wait8=1 sc_wait9=1
+  sc_error8=0 sc_error9=0 sc_stop8=0 sc_stop9=0
+  sc_done8=262144 sc_done9=262144 sc_ready=2 sc_finished=2
+  sc_hash8=f678147669874ecd sc_hash9=c2274327e9c8104c
+
+The pair-v6 line must retain its complete established pass contract. Screen
+color or automatic restart alone is not evidence.
+
+Observation sequence
+--------------------
+
+1. In ordinary Gemian, run the reviewed installer. It must resolve exactly one
+   live-GPT boot2, prove it inactive and unmounted, record predecessor checksum
+   without a fresh backup, write only when different, verify full-partition
+   readback, remove temporary copies, and shut the device down cleanly.
+2. Arm `scripts/collect-device-pstore --target gemini@192.168.1.50 --wait-for-cycle`.
+   The USB/netcat collector is read-only and secondary.
+3. Physically select boot2 once. Expected visible behavior is the inherited
+   bounded automatic watchdog restart into ordinary Gemian.
+4. After recovery, require changed-cycle continuity, watchdog-class recovery,
+   CPUs 8/9 offline, inactive/unmounted boot2, and full checksum
+   `24377665fa5b9112266890844c06c453bb50e17680b6f6f956035c234c26ff0f`.
+5. Classify only the attributable changed-cycle pstore/console evidence.
+
+Decision branches
+-----------------
+
+PASS
+  Require adjacent complete pair-v6 and pair-v7 pass terminals, every exact
+  scheduler lifecycle field and hash above, automatic recovery, no panic/BUG/
+  Internal error/Call trace/timeout/SError/lockup, CPUs 8/9 offline after
+  recovery, and unchanged boot2. One exact repeat is then earned. Do not enable
+  CPU_OFF.
+
+PAIR-V7 FAULT OR SCHEDULER MISMATCH
+  Any `gemini-a72-pair-v7 result=fault`, `parent_pass=0`, nonzero create/error/
+  stop result, incomplete wake/wait/done/rendezvous value, wrong CPU, missing
+  task context, or wrong hash is a reject. Record every field. Do not repeat
+  unchanged; use the first failing phase and coordinate for the next change.
+
+INHERITED-PARENT FAILURE
+  Any pair-v6 value outside its exact pass contract is a regression. Do not
+  evaluate scheduler success or repeat unchanged.
+
+AUTOMATIC RESTART WITH NO PAIR-V7
+  Distinguish terminal-not-reached from evidence loss using changed-cycle
+  pstore, the complete pair-v6 line if present, watchdog reason, and console
+  continuity. Repeat only if a new independent observation can distinguish
+  those classes.
+
+NO AUTOMATIC RESTART OR LOST RECOVERY
+  Treat as a safety failure. Recover through known-good Gemian, preserve pstore,
+  verify boot2 identity, and do not repeat unchanged.
+
+Success boundary
+----------------
+
+One pass establishes only bounded task-context dispatch, affinity, completion,
+and cleanup for this exact two-thread oracle. A second exact pass establishes
+repeatability. Neither result authorizes CPU_OFF, removes the HPS veto, proves
+production scheduling, load, thermal, OPP/cpufreq, or suspend stability, or
+makes CPUs 8/9 production-online.

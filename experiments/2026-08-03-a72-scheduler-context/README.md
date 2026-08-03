@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-scheduler-context` |
-| Status | `offline-container-passed` |
+| Status | `deployment-ready` |
 | Subsystem | MT6797 retained Cortex-A72 pair and scheduler |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -85,6 +85,13 @@ terminal fault. The retained watchdog remains the independent recovery bound.
 - [`scripts/test_candidate.py`](scripts/test_candidate.py): independent tool,
   manifest, Android-v0, extent, image-ID, ramdisk, padding, and provenance
   validator.
+- [`scripts/install-boot2.sh`](scripts/install-boot2.sh): exact predecessor,
+  live-GPT target, inactive/unmounted, full-readback, cleanup, and clean-shutdown
+  deployment contract.
+- [`scripts/capture-live-outcome.sh`](scripts/capture-live-outcome.sh): optional
+  read-only USB/netcat capture of adjacent pair-v6 and pair-v7 terminals.
+- [`scripts/test_runtime_tools.py`](scripts/test_runtime_tools.py): installer,
+  no-backup, shutdown, read-only collector, and decision-map validator.
 - [`patches/series`](patches/series): exact generated experiment-only scheduler-
   context source patch.
 
@@ -184,6 +191,12 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   `24377665fa5b9112266890844c06c453bb50e17680b6f6f956035c234c26ff0f`.
   No device was accessed. See
   [`results/offline-container-review-20260803.txt`](results/offline-container-review-20260803.txt).
+- The deployment and runtime tools reject four installer identity mutations,
+  preserve the exact live-GPT/inactive/unmounted/readback/shutdown gates, keep
+  the USB/netcat collector read-only, and require adjacent complete pair-v6 and
+  pair-v7 terminals. The decision map fixes all scheduler lifecycle values and
+  exact hashes before device access. No deployment occurred. See
+  [`results/runtime-decision-map-20260803.txt`](results/runtime-decision-map-20260803.txt).
 
 ## Analysis
 
@@ -194,9 +207,9 @@ context while preserving the established power and recovery boundary.
 
 ## Conclusion
 
-`offline-container-passed`: the exact compile-reviewed scheduler kernel is now
-embedded in a reproducible, independently validated Android-v0 container with
-a fixed full-partition identity. No deployment or hardware evidence exists.
+`deployment-ready`: the reproducible container, guarded installer, read-only
+secondary collector, and fixed runtime decision map pass their offline gates.
+No deployment or hardware evidence exists.
 
 ## Follow-up
 
