@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-02-a72-one-way-cpu8-boundary` |
-| Status | `offline-container-passed-runtime-map-pending` |
+| Status | `offline-gates-passed-guarded-deployment-ready-after-push` |
 | Subsystem | MT6797 CPU8 external rail, isolation, SRAM-LDO, PSCI, and DCM |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-02 |
@@ -82,6 +82,13 @@ review. It does not authorize deployment before those gates pass.
   provenance, reconstruction, padding, manifest, and offline-only gates.
 - [`results/offline-container-review-20260802.txt`](results/offline-container-review-20260802.txt):
   exact raw/full-partition identities and independent structure review.
+- [`results/runtime-decision-map-20260802.txt`](results/runtime-decision-map-20260802.txt):
+  exact pre-boot hypothesis, attributable success/failure classes, recovery
+  evidence, and guarded deployment boundary.
+- [`scripts/install-boot2.sh`](scripts/install-boot2.sh): source-pinned guarded
+  installer for only the exact candidate over the exact rollback predecessor.
+- [`scripts/capture-live-outcome.sh`](scripts/capture-live-outcome.sh): optional
+  read-only direct USB/netcat capture of an exact terminal marker before reset.
 
 ## Procedure
 
@@ -142,6 +149,7 @@ reset, and known-good recovery on hardware.
 
 ## Follow-up
 
-Construct and independently validate the guarded runtime decision map,
-read-only collector, and live-GPT-resolved boot2 installer. Do not deploy until
-that remaining offline review passes.
+Commit and push the passed runtime decision map, read-only live/pstore
+observation contract, and live-GPT-resolved boot2 installer. Then perform one
+guarded deployment from known-good Gemian; after its automatic reset, classify
+only exact retained evidence and never infer CPU progress from visuals alone.

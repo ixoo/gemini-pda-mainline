@@ -1,0 +1,132 @@
+One-way CPU8 guarded runtime decision map
+=========================================
+
+Date: 2026-08-02
+Status: offline review passed; guarded deployment eligible after push
+Runtime result: not tested
+
+Exact experiment identity
+-------------------------
+
+Repository compile commit:
+  bd499e234e0849dbc96a5c7274b414564f016b6d
+One-way patchset SHA-256:
+  d9649e1453a05bc8a016da6fa371e97480ff62aebad3dedd87d148d5cb574890
+Kernel field SHA-256:
+  e65a74cf5445a9e22a537b760e566a5a21d3d314e81689dd01c52bd11e7c6676
+Compiled build identity:
+  #1 SMP PREEMPT Mon Aug 3 01:37:23 UTC 2026
+Raw Android-v0 SHA-256:
+  aae1a0f9a3d9a3c73a4930478c2e0db672d3a12ce020ad852d9e274c7f54858a
+Full boot2 SHA-256:
+  fc7368ef0bd56b5c17fea277f78bfeae362da5f685be9f85686f991cdc4fefda
+Expected boot2 predecessor SHA-256:
+  4830a0d0e1a3cb82a13e7c34248fb95f736d9ba3c71ba8ecb82ab210389bde6d
+
+Pre-boot statement
+------------------
+
+Hypothesis:
+  The first natural, latched HPS CPU8 request will pass the already-proven
+  pre-isolation sequence, clear external isolation once, validate the SRAM-LDO
+  state, complete standard PSCI CPU_ON and generic secondary startup, enable
+  DCM, and emit exactly one terminal `cpu8-online-held` marker. CPU9 and CPU_OFF
+  remain forbidden.
+
+Unique attributable evidence:
+  The exact `gemini-a72-oneway-v1` terminal marker in live kernel output or
+  retained console-ramoops, tied to this exact build identity and an automatic
+  watchdog cycle. The success marker is emitted only after PSCI acceptance,
+  generic secondary completion, `cpu_online(8)`, CPU9 absence, and successful
+  DCM readback. Screen color or an apparent reboot is not kernel attribution.
+
+Observation paths:
+  1. Arm the direct USB/netcat live marker collector before manual boot2
+     selection. It is read-only and optional because the twelve-second reset
+     deadline may expire before USB becomes serviceable.
+  2. Before manual selection, arm `scripts/collect-device-pstore` with
+     `--wait-for-cycle`; after known-good Gemian returns, retain all pstore
+     records without deleting them.
+  3. On the returned Gemian boot, prove a changed boot ID, exact 2019 kernel,
+     watchdog-class reset reason, CPU8/9 offline, unchanged boot2 checksum, and
+     an inactive/unmounted live-GPT-resolved boot2.
+
+Offline tool review
+-------------------
+
+Guarded installer SHA-256:
+  4247cec7feecc28bc53b756f9728733e104a8202c1e28c71f5e9ca3808ddd0e3
+Direct USB/netcat collector SHA-256:
+  5816700cb0441528705f39f88e08357f59bcb57f27b3ca076497157114383758
+Static/runtime contract test SHA-256:
+  40c6c89f47b9736a72993b21688dbdcdf68e2bc655afba018be2da592525af9a
+Pinned changed-boot pstore collector SHA-256:
+  9047084f3012aff47e23e56498d4bc0ae6f8fb7e4f15caec10abb6c15e9a9b3b
+
+- Bash and Python syntax passed.
+- Managed-VM ShellCheck passed for the installer, live collector, and pstore
+  collector. No native VM kernel build was run.
+- Four identity mutations were rejected.
+- The live device program has no storage, CPU-online, reboot, poweroff,
+  shutdown, mount, I2C, or direct-register operation.
+- All five terminal classes plus the missing-marker case have explicit,
+  mutually exclusive decisions.
+- The retained private candidate's exact manifest and all four listed files
+  validate; its full image and manifest identities match the installer pins.
+- Installer derivation retains live GPT resolution, inactive/unmounted target,
+  exact size/writable state, exact predecessor, Good health, above-80% power,
+  full write/readback, cleanup, no-fresh-backup, and clean-shutdown gates.
+
+Result matrix
+-------------
+
+`result=cpu8-online-held stage=complete error=0`:
+  CPU8 came online for this attributable transaction. Preserve the evidence,
+  allow watchdog recovery, and move to a separate CPU8 stability/thermal and
+  eventual CPU9 design. Do not attempt CPU_OFF in this candidate.
+
+`result=rejected-prestate`:
+  No intended forward hardware mutation occurred. Review the exact mismatch;
+  do not retry unchanged.
+
+`result=rolled-back-preiso`:
+  The transaction failed before isolation and restored only attempt-owned
+  state. Review the last stage; do not claim CPU8 and do not retry unchanged.
+
+`result=fault-retain-preiso`:
+  Owned rollback failed before isolation. Preserve retained state until the
+  watchdog reset, review the exact failure, and do not retry unchanged.
+
+`result=fault-retain-postiso`:
+  The one-way boundary was reached. Power was deliberately retained, no
+  guessed inverse was issued, and watchdog recovery is the only exit. The last
+  stage narrows the remaining failure; do not retry unchanged.
+
+Checkpoint(s) without one exact terminal marker, multiple conflicting terminal
+markers, missing build identity, absent changed-boot cycle, or pstore/live
+disagreement:
+  Inconclusive. Record the last attributable checkpoint, return to known-good
+  Gemian, and redesign the observation path before another device boot.
+
+Automatic restart with no exact marker:
+  Recovery/serviceability only. It is not evidence about CPU8.
+
+Deployment boundary
+-------------------
+
+The installer may write only the exact full candidate to the live-GPT-resolved
+inactive, unmounted, writable 16 MiB logical `boot2`. It requires the exact
+rollback-candidate predecessor (or skips an already matching candidate), Good
+battery health and capacity above 80%, a synchronized full write, matching
+on-device and independent full-partition readbacks, staging cleanup, and clean
+shutdown. It records the predecessor checksum and creates no new partition
+backup. Primary boot, boot3, preloader, NVRAM, GPT, and whole-device writes are
+outside authorization.
+
+Next action
+-----------
+
+Commit and push this passed offline review, then perform one guarded deployment
+from known-good Gemian. The installer must leave the device powered off for
+manual boot2 selection while both host-side observation paths are already
+armed.
