@@ -1,0 +1,68 @@
+A72 recovery-only runtime attempt 2
+Recorded: 2026-08-02 America/New_York
+
+Purpose
+-------
+hypothesis=the exact unchanged no-A72 candidate will arm the exclusive reset-only watchdog owner, emit the exact terminal marker, and automatically return to known-good Gemian
+new_observation_path=host-side direct USB/netcat marker collector armed before boot plus immediate post-return pstore capture
+unchanged_artifact_repeat_justification=attempt 1 lacked the exact marker; this repeat added a decision-changing independent live observation path
+
+Artifact and target
+-------------------
+candidate_raw_sha256=5be00719c5cc44cb9a6efc06f498f848e2e0221c3d362e66b98bf5fde2a00b60
+installed_full_partition_sha256=a7eec22777cda053a88826760fb9a01dbd84aa1cf2fe491215047cf8c99ed4e5
+logical_target=boot2
+post_return_live_gpt_target=/dev/mmcblk0p30
+post_return_root=/dev/mmcblk0p29
+post_return_target_mount_count=0
+post_return_boot2_sha256=a7eec22777cda053a88826760fb9a01dbd84aa1cf2fe491215047cf8c99ed4e5
+boot2_unchanged=yes
+
+Owner and host observation
+--------------------------
+owner_selected_boot2=yes
+owner_observed_automatic_restart=yes
+usb_netcat_collector=armed-before-selection
+usb_interface_before_reset=not-observed
+usb_netcat_capture=none
+usb_interpretation=the candidate reset before the exact host USB interface became available; no inference is drawn from USB absence
+
+Retained console-ramoops
+------------------------
+private_file=artifacts/device-pstore/a72-recovery-only-live-attempt-2-20260802/pstore/console-ramoops
+private_file_bytes=65524
+private_file_sha256=22b3d50ff09a2046584ee03022a7791523a6802a345f66f23198278bc7299929
+exact_armed_marker=gemini-a72-recovery-v1 stage=armed timeout=12s a72=forbidden
+exact_armed_marker_kernel_time_seconds=16.886397
+exact_armed_marker_count=1
+preowner_reject_count=0
+owned_readback_fault_count=0
+cpu8_reject_before_a72_action_count=22
+cpu9_reject_before_a72_action_count=5
+remote_pstore_records_removed=no
+
+Post-return evidence
+--------------------
+kernel=3.18.41+
+architecture=aarch64
+previous_return_boot_id_sha256=366c24b1f0564fcba15ebd892d05e6c9a34a3293853304e1f8bc4fc04ae974ea
+current_return_boot_id_sha256=d97d65ce94d404adcba7d63a9b81891afbbef463ef69a6be235d01ff71c4274d
+boot_id_changed=yes
+boot_reason_numeric=4
+android_bootreason=wdt_by_pass_pwk
+powerup_reason=reboot
+reset_reason_interpretation=watchdog-block-class, correlated with the exact retained armed marker and its fixed 12-second deadline
+cpu_present=0-9
+cpu_possible=0-9
+cpu_online=0-1
+cpu8_offline=yes
+cpu9_offline=yes
+
+Decision
+--------
+result=pass
+recovery_only_prerequisite=closed
+established=exclusive no-A72 watchdog ownership reached its exact armed state, all CPU8/9 requests were rejected before A72 action, the device automatically reset, known-good Gemian returned with a changed boot ID and watchdog-class reason, and boot2 remained byte-identical
+not_established=CPU8 startup, CPU9 startup, A72 rail mutation, USB serviceability before this short reset, or any post-isolation rollback
+unchanged_repeat=stop
+next_action=generate and review the one-way CPU8 implementation against the accepted state-machine boundary; Buildbox only, with no CPU9 or CPU-off path

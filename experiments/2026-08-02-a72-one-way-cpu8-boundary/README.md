@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-02-a72-one-way-cpu8-boundary` |
-| Status | `planned` |
+| Status | `implementation-unblocked` |
 | Subsystem | MT6797 CPU8 external rail, isolation, SRAM-LDO, PSCI, and DCM |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-02 |
@@ -45,8 +45,9 @@ The only admissible design therefore has two failure domains:
   the independently armed reset/recovery path.
 
 CPU9, CPU disable, iDVFS, cpufreq/OPP changes, DCM before secondary completion,
-and any user-triggered register interface are forbidden. The design is not yet
-authorized for implementation or deployment.
+and any user-triggered register interface are forbidden. The independent
+recovery-only runtime has now passed, authorizing source generation and offline
+review. It does not authorize deployment before those gates pass.
 
 ## Associated code
 
@@ -96,17 +97,19 @@ has an independent typed observation and a distinct terminal classification.
 
 ## Conclusion
 
-`confirmed-design-boundary-implementation-deferred`: there is no evidence-backed Linux inverse for
-external isolation. The next safe implementation may attempt CPU8 once only
+`confirmed-design-boundary-implementation-unblocked`: there is no
+evidence-backed Linux inverse for external isolation. The next safe
+implementation may attempt CPU8 once only
 with pre-isolation rollback and post-isolation fault-retain; it must not add an
 isolation-only rollback or a CPU8 off path. Source review additionally proves
 that the normal watchdog kicker defeats an assumed independent timeout and
-that generic SMP owns secondary completion. The CPU8 implementation is blocked
-until a no-A72 recovery-only discriminator proves watchdog ownership, durable
-ramoops attribution, reset, and known-good recovery.
+that generic SMP owns secondary completion. The no-A72 recovery-only
+discriminator has now proved watchdog ownership, durable ramoops attribution,
+reset, and known-good recovery on hardware.
 
 ## Follow-up
 
-Design and validate the no-A72 recovery-only discriminator. Do not generate or
-compile the one-way CPU8 implementation until that independent recovery gate
-passes on hardware.
+Generate the one-way CPU8 source patches, validate them against the model and
+mutation boundaries, and compile changed-versus-unpatched kernels on Buildbox.
+Do not deploy until the exact binary ordering, stack, container, and guarded
+runtime decision-map reviews pass.

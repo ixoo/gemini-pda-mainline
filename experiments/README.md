@@ -33,15 +33,18 @@ the loop. Positive identity-gated observations are unaffected.
   kernel-only container reconstruction, and guarded installer pass. Runtime
   attempt 1 automatically returned on the designed time scale with a changed
   boot ID and watchdog-class reason while boot2 stayed exact and CPU8/9 stayed
-  offline, but pstore was empty. One exact-artifact repeat with a preconnected
-  live USB/netcat marker capture is the only permitted next measurement.
+  offline, but pstore was empty. Attempt 2 recovered the exact one-time armed
+  marker from console-ramoops, correlated it with another automatic
+  changed-boot-ID watchdog return, and proved every CPU8/9 request rejected
+  before A72 action. The recovery prerequisite now passes; unchanged retry is
+  prohibited and one-way CPU8 source generation is unblocked.
 - [2026-08-02 A72 one-way CPU8 startup boundary](2026-08-02-a72-one-way-cpu8-boundary/README.md)
   — reconciles the accepted rollback with the public Linux and natural Gemian
   isolation paths, rejects an unobserved Linux isolation inverse, and
   machine-checks the next state-machine boundary: exact rollback before
   isolation, fault-retain/reset recovery afterward, one reconciled CPU8
-  request, and no CPU9 or CPU-off path. Implementation remains pending its
-  independent no-A72 watchdog/pstore recovery gate.
+  request, and no CPU9 or CPU-off path. The independent no-A72 watchdog/pstore
+  gate has now passed, so source generation and offline review are unblocked.
 - [2026-08-02 A72 pre-isolation rollback discriminator](2026-08-02-a72-pre-isolation-rollback-discriminator/README.md)
   — completed the exact one-shot stop after CPU8 BUCKB enable but before
   external-isolation clear. The revised pre-latch gate produced the expected

@@ -847,10 +847,15 @@ kernel-only Android-v0 container reconstruction also pass. The guarded write
 and its full readback passed. Runtime attempt 1 selected the exact image and
 automatically returned on the designed time scale with a changed boot ID and a
 watchdog-class Gemian reason; boot2 remained exact and CPU8/9 remained offline.
-Pstore was empty, so the predeclared exact-marker oracle did not pass. The only
-permitted next action is one exact-artifact repeat with a host-side USB/netcat
-session already waiting to capture the live armed marker. A second visual
-reboot without that marker is not decision-changing and must stop this line.
+Pstore was empty, so the predeclared exact-marker oracle did not pass. Attempt
+2 added a host-side USB/netcat observation path; the short cycle reset before
+that interface appeared, but immediate post-return pstore collection recovered
+the exact one-time armed marker. It also recorded every CPU8/9 request rejected
+before A72 action and no recovery-owner failure. Another automatic changed-boot
+ID watchdog-class return, offline CPU8/9, and an unchanged full boot2 checksum
+close the recovery prerequisite. Unchanged retry is prohibited. The immediate
+next action is Buildbox-only source generation, static/mutation review, and
+changed-versus-unpatched compilation of the one-way CPU8 state machine.
 
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback

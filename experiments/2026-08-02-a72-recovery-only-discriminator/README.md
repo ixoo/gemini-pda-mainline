@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-02-a72-recovery-only-discriminator` |
-| Status | `runtime-inconclusive; one live-marker repeat prepared` |
+| Status | `runtime-passed` |
 | Subsystem | Gemian watchdog kicker, MT6797 TOPRGU, console-ramoops |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-02 |
@@ -82,11 +82,16 @@ empty, however, so the exact terminal marker did not survive. Under the
 predeclared contract this is strong behavioral evidence but remains
 inconclusive; it does not close the recovery prerequisite.
 
-An unchanged blind repeat is forbidden. One repeat of the exact artifact is
-permitted only with a new independent observation path: a host-side USB/netcat
-session must already be waiting and poll the live kernel log for the exact
-armed marker before reset. Capturing that marker plus another bounded
-changed-boot-ID watchdog-class return closes the no-A72 recovery prerequisite.
-Failure to obtain USB service or the marker stops this line and requires a
-revised durable observation path. See
-`results/runtime-attempt-1-20260802.txt` for the sanitized evidence.
+Attempt 2 added the required independent live USB/netcat observation path. The
+short candidate cycle ended before that host interface appeared, but immediate
+post-return collection recovered a complete `console-ramoops`. It contains the
+exact armed marker once at kernel time 16.886397 seconds, no pre-owner rejection
+or owned-readback fault, and 22 CPU8 plus 5 CPU9 requests all rejected before
+any A72 action. Known-good Gemian returned automatically with a changed boot
+ID and watchdog-class reason; CPU8/9 remained offline and the complete `boot2`
+checksum remained exact.
+
+`runtime-passed`: the predeclared no-A72 recovery prerequisite is closed. Do
+not repeat this artifact. The next action is source generation and offline
+review of the one-way CPU8 implementation. See
+`results/runtime-attempt-2-pass-20260802.txt` for the sanitized evidence.
