@@ -1,0 +1,105 @@
+CPU9 terminal-attribution exact-parent Buildbox compile review
+==============================================================
+
+Date: 2026-08-03
+Decision: accepted-for-offline-container-construction
+
+Build and source identity
+-------------------------
+
+Repository commit:
+  ae0a7bb3dd494653f563c4637285bc76bfa46b65
+Vendor source commit:
+  59e00a9144d782e148332009a835b99c43382467
+Terminal patchset SHA-256:
+  2d94a2cd489e33a7df854ffec7533fbf969dc9c810e9eece57d118b905060310
+Exact retention-window parent patchset SHA-256:
+  9ce572fbc87a1444bb71894dd4528f39dc065065a45b36db52a14791f167eeec
+Build identity:
+  #1 SMP PREEMPT Mon Aug 3 14:33:47 UTC 2026
+
+Child Image.gz-dtb SHA-256:
+  a55de5dab85a36ace77fddf6e0adf198627b587be6f68e45d47584a896de3a1e
+Child vmlinux SHA-256:
+  c6027f17a78bd90549afa3a0a94e0e58f0b8aabfc0e40c0556e3fcc7bc50fbe9
+Child System.map SHA-256:
+  cb49da7a535a8d7ca11d9ec527553687df2a2c4cbee7046c7f718b049c318a8a
+Exact-parent Image.gz-dtb SHA-256:
+  c1708611c72465e6984b48066d26b9b3241594154a34066063a254776dd650cf
+Exact-parent vmlinux SHA-256:
+  df7b668bf2f20ccd663924c54b950a2acad7a9682ba81ece45f99af545f973da
+Exact-parent System.map SHA-256:
+  d64179f12e59ce28bf187f4a375c087f037cf8a4998c0ee63792103039dbc524
+Validated bundle manifest SHA-256:
+  a5bc8e1007813460922343cb58da4ba9a6e03dc6e94f2f139caff6c2f754d1b1
+
+Configuration and diagnostics
+-----------------------------
+
+Child and exact-parent final `.config` files are byte-identical. Each has only
+the expected normalization/experiment deltas from the pinned baseline:
+
+  CONFIG_ANBOX: missing -> n
+  CONFIG_MTK_A72_CPU9_CLUSTER_REUSE: missing -> y
+  CONFIG_MTK_A72_ONE_WAY_CPU8: missing -> y
+  CONFIG_MTK_A72_TRANSITION_OBSERVER: missing -> y
+
+Both full builds passed. Their diagnostic files are byte-identical, SHA-256
+`f60899a1c59153d7d36474c415bc6e302db89a74bc53a062cb56fa21eb269465`,
+and contain only the inherited vendor baseline:
+
+  WARNING: modpost: Found 69 section mismatch(es).
+
+Source and binary review
+------------------------
+
+The Buildbox pre-build gate re-ran both parent and child validators. It proved
+generic secondary completion and public `cpu_down` source byte-identical and
+compared the complete `mt6797_a72_cpu9_boot` function text byte-for-byte. The
+initial one-second and following two-second sample delays remain pinned.
+
+The child System.map contains the new global
+`mt6797_a72_hps_down_snapshot`; the exact parent does not. The child contains
+exactly one pair-v3 pass format, one inherited pair-v2 sample format, two
+pair-v2 fault formats, one bounded first-HPS format, and no generic down-veto
+format. The exact parent pair-v2 pass format is absent from the child.
+
+Focused disassembly proves:
+
+- the sample-3 success path calls the snapshot immediately before its terminal;
+- the snapshot loads publication state, executes `dmb ishld`, then loads first
+  CPU, first error, and total count;
+- HPS uses exclusive load/store for both count and `0 -> -1` first-claim state;
+- the winning path stores first error/CPU, executes `dmb ishst`, publishes `1`,
+  and only then emits the inherited one-shot text;
+- HPS action and sampler binaries are distinct from the exact parent as
+  required, while all inherited symbols remain present.
+
+Linked disassembly text for inherited functions is address-distinct because
+the added global function and format shift linked addresses. It is not used to
+claim source changes; the exact pre-build source comparisons above own that
+invariant.
+
+Stack review
+------------
+
+Both builds captured and revalidated 2,484 stack-usage files. Relevant static
+stack bounds are:
+
+  function                              child  parent
+  mt6797_a72_hold_workfn                 112     96
+  hps_algo_do_cluster_action              96     96
+  mt6797_a72_hps_down_snapshot             0     absent
+  cpu_down                               112    112
+
+The sampler grows by 16 bytes for four output fields. The HPS action and public
+down path do not grow. The snapshot is a leaf with zero reported static stack.
+
+Decision
+--------
+
+Accept the exact child Image.gz-dtb for deterministic offline Android-v0
+container construction from the inherited known-good ramdisk. This compile is
+not a boot candidate and authorizes no device action. Container identity,
+header/extent validation, reproducibility, and a new predeclared runtime map
+must pass before guarded boot2 deployment.

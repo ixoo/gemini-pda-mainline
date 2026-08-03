@@ -28,7 +28,9 @@ the loop. Positive identity-gated observations are unaffected.
   preserves CPU startup, callback timing, public-down vetoes, watchdog, and
   power sequencing while carrying the first HPS CPU/error and total matching
   request count into a unique durable terminal. Exact-parent Buildbox source
-  generation and seven mutation tripwires pass; full compile review is pending.
+  generation, seven mutation tripwires, exact-parent full compilation,
+  diagnostics, publication-barrier disassembly, and stack review pass;
+  deterministic Android-v0 construction is pending.
 - [2026-08-03 A72 CPU9 retention window](2026-08-03-a72-cpu9-retention-window/README.md)
   — preserves the proven PSCI-only CPU9 startup and every public CPU-down
   veto, moves all three synchronous CPU8/CPU9 pair samples inside the fixed

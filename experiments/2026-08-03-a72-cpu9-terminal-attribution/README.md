@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu9-terminal-attribution` |
-| Status | `patch-generation-passed-compile-pending` |
+| Status | `compile-passed-container-pending` |
 | Subsystem | MT6797 CPU8/CPU9 retained pair and HPS down-pressure attribution |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -52,16 +52,20 @@ HPS caller and reads that state only after the third already-proven callback.
 - [`results/patch-generation-review-20260803.txt`](results/patch-generation-review-20260803.txt):
   exact identities, mutation results, path/order audit, and compile-only
   acceptance decision.
+- [`results/compile-review-20260803.txt`](results/compile-review-20260803.txt):
+  exact-parent full builds, configuration, marker/binary ordering, diagnostics,
+  stack bounds, and container-only acceptance decision.
 
 ## Conclusion
 
-`patch-generation-passed-compile-pending`: Buildbox reconstructed and validated
-the exact retention-window parent, rejected seven child mutations, and produced
-one two-file observation-only patch. Publication ordering, side-effect scope,
-path inventory, provenance, and bundle checks pass. No compile result, boot
-artifact, or runtime claim exists yet.
+`compile-passed-container-pending`: Buildbox reconstructed and validated the
+exact retention-window parent, rejected seven child mutations, and completed
+both full builds with byte-identical configurations and diagnostics. Source
+invariants, unique terminal/snapshot binaries, publication barriers, and
+bounded stack use pass. No boot artifact or runtime claim exists yet.
 
 ## Follow-up
 
-Commit and push the accepted patch and review, then run the exact-parent
-Buildbox compile mode and review binary, diagnostics, and stack evidence.
+Commit and push the compile decision, then construct the Android-v0 image twice
+from the exact child kernel and inherited known-good ramdisk. Validate header,
+extents, identity, padding, and offline-only provenance independently.
