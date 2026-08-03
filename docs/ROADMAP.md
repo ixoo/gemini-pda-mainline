@@ -1061,7 +1061,17 @@ Its guarded installer, read-only secondary collector, and fixed runtime
 decision map now pass offline review. The candidate has been written to
 live-GPT-resolved inactive boot2, matched by full-partition readback, and the
 device was cleanly powered off. The next ordered action is one physical boot2
-selection and attributable changed-cycle runtime observation. No
+selection and attributable changed-cycle runtime observation.
+
+That first observation rejected the image before evaluating scheduler work.
+Multiline and parallel phases completed exactly, but the terminal sampled
+`coh_reported=-1` because the child ran inside the inherited coherency worker
+before its final parent publication. Pair-v7 correctly reported
+`parent_pass=0` and reset scheduler state. Recovery was watchdog-class, CPUs
+8/9 were offline, and boot2 remained exact. Do not repeat this image. The next
+ordered action is a source-ordering child that publishes the inherited worker
+unchanged, snapshots and decides the complete parent predicate, and only then
+runs the bounded scheduler phase before adjacent pair-v6/pair-v7 terminals. No
 scheduler-context runtime claim exists yet.
 
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-scheduler-context` |
-| Status | `deployed-awaiting-runtime` |
+| Status | `runtime-rejected-parent-publication-order` |
 | Subsystem | MT6797 retained Cortex-A72 pair and scheduler |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -203,6 +203,14 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   readback, and confirmed clean shutdown without requesting reboot. No fresh
   backup was created. See
   [`results/deployment-20260803.txt`](results/deployment-20260803.txt).
+- Runtime attempt 1 reached complete, correct multiline and parallel results,
+  but the pair-v6 terminal observed `coh_reported=-1` and pair-v7 observed only
+  reset scheduler state with `parent_pass=0`. Source review establishes that the
+  child runs before the inherited worker's final publication, allowing the
+  terminal work to race that publication. The device recovered by watchdog,
+  CPUs 8/9 were offline, and boot2 remained exact. Do not repeat this image.
+  See
+  [`results/runtime-attempt-1-parent-publication-race-20260803.txt`](results/runtime-attempt-1-parent-publication-race-20260803.txt).
 
 ## Analysis
 
@@ -213,10 +221,11 @@ context while preserving the established power and recovery boundary.
 
 ## Conclusion
 
-`deployed-awaiting-runtime`: the exact pair-v7 candidate is verified on boot2
-and the device is cleanly powered off. No scheduler-context runtime evidence
-exists until one physical boot2 selection and attributable changed-cycle
-recovery are captured.
+`runtime-rejected-parent-publication-order`: attempt 1 did not evaluate the
+scheduler oracle. It exposed a child-induced ordering race in which scheduler
+execution can withhold the inherited coherency publication from the terminal
+snapshot. The next source revision must decide the complete parent predicate
+before starting the child and must not repeat this image.
 
 ## Follow-up
 
