@@ -23,8 +23,12 @@ def edit_psci(source: Path) -> None:
     path = source / "arch/arm64/kernel/psci.c"
     replace_once(
         path,
-        "unsigned long delay = sample == 1 ? 5000 : 4000;",
-        "unsigned long delay = 2000;",
+        "\tatomic_inc(&mt6797_a72_cpu9_hits);\n"
+        "\tif (sample < 3) {\n"
+        "\t\tunsigned long delay = sample == 1 ? 5000 : 4000;",
+        "\tatomic_inc(&mt6797_a72_cpu9_hits);\n"
+        "\tif (sample < 3) {\n"
+        "\t\tunsigned long delay = 2000;",
     )
     text = path.read_text()
     count = text.count("gemini-a72-pair-v1")

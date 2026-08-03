@@ -27,7 +27,10 @@ def main() -> int:
     require(psci.count("gemini-a72-pair-v2") == 4, "pair-v2 inventory changed")
     require("gemini-a72-pair-v1" not in psci, "old pair marker remains")
     require(psci.count("unsigned long delay = 2000;") == 1, "delay changed")
-    require("sample == 1 ? 5000 : 4000" not in psci, "old delay remains")
+    require(
+        psci.count("sample == 1 ? 5000 : 4000") == 1,
+        "parent CPU8 fallback delay changed",
+    )
     require(
         "msecs_to_jiffies(1000)" in psci,
         "initial post-completion delay changed",
