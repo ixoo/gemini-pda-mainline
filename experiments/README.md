@@ -29,8 +29,10 @@ the loop. Positive identity-gated observations are unaffected.
   two byte-identical offline Android-v0 constructions pass. The guarded
   no-backup, two-readback, clean-shutdown deployment and predeclared runtime
   contracts pass offline review. The exact candidate is installed on inactive
-  boot2 with two matching full readbacks, and the device is shut down awaiting
-  one changed-cycle runtime test.
+  boot2 with two matching full readbacks. Runtime attempt 1 is an exact pass:
+  CPUs 8/9 completed three callbacks and the durable terminal attributes 91
+  CPU9 HPS down requests to the expected public `-EPERM` veto. One exact
+  repeatability cycle remains before bounded coherency/load design.
 - [2026-08-03 A72 CPU9 retention window](2026-08-03-a72-cpu9-retention-window/README.md)
   — preserves the proven PSCI-only CPU9 startup and every public CPU-down
   veto, moves all three synchronous CPU8/CPU9 pair samples inside the fixed

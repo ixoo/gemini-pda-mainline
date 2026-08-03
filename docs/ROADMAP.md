@@ -973,6 +973,19 @@ barrier, and power sequencing unchanged while snapshotting the accumulated HPS
 first result/count/error into the durable sample-3 terminal. A clean terminal
 then earns one exact repeatability run before any coherency/load experiment.
 
+That terminal-attribution child passed its offline, deployment, and first
+runtime gates. Changed-cycle pstore retained exactly one pair-v3 pass at
+10.816179 seconds: CPU8 and CPU9 were online, each completed all three
+synchronous callbacks, and the terminal coherently reported the first HPS
+CPU9 `-EPERM` result plus 91 matching requests. No pair/startup fault, generic
+down-veto leak, panic, BUG, Internal error, or Call trace was retained. Gemian
+returned with a changed boot ID and watchdog reason 4; CPU8/9 were offline and
+the live-GPT-resolved unmounted boot2 checksum remained exact. The next ordered
+action is one exact repeatability cycle from a new ordinary-Gemian baseline.
+Only a second exact pass may unblock a separately designed bounded
+coherency/load experiment; CPU_OFF and every later power boundary remain
+prohibited.
+
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback
 gates close.

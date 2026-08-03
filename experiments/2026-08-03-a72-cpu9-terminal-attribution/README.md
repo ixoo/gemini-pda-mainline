@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu9-terminal-attribution` |
-| Status | `deployed-shutdown-awaiting-runtime` |
+| Status | `runtime-pass-once-repeatability-pending` |
 | Subsystem | MT6797 CPU8/CPU9 retained pair and HPS down-pressure attribution |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -72,10 +72,13 @@ HPS caller and reads that state only after the third already-proven callback.
 - [`results/deployment-20260803.txt`](results/deployment-20260803.txt): exact
   live-GPT target, predecessor, two readbacks, cleanup, no-backup, and confirmed
   shutdown evidence.
+- [`results/runtime-attempt-1-pass-20260803.txt`](results/runtime-attempt-1-pass-20260803.txt):
+  exact pair-v3/HPS terminal, fault exclusions, changed-cycle recovery, and
+  unchanged boot2 classification.
 
 ## Conclusion
 
-`deployed-shutdown-awaiting-runtime`: Buildbox reconstructed and
+`runtime-pass-once-repeatability-pending`: Buildbox reconstructed and
 validated the exact retention-window parent, rejected seven child mutations,
 and completed both full builds with byte-identical configurations and
 diagnostics. Two independent offline constructions then produced the same
@@ -83,11 +86,14 @@ diagnostics. Two independent offline constructions then produced the same
 The known-good ramdisk, command line, header addresses, and zero padding remain
 exact. Guarded deployment and read-only collection tools pass their source,
 identity, no-backup, readback, shutdown, and result-class tests. The exact
-candidate was written to live-GPT-resolved inactive boot2, matched two complete
-readbacks, and the device was shut down. No boot or runtime claim exists yet.
+candidate was written to live-GPT-resolved inactive boot2 and matched two
+complete readbacks. Runtime attempt 1 then retained the exact pair-v3 pass:
+CPU8 and CPU9 were online through three callbacks, and HPS recorded 91 CPU9
+down requests with the expected `-EPERM` result. Fault exclusions, changed
+watchdog recovery, offline recovery CPUs 8/9, and unchanged boot2 all pass.
 
 ## Follow-up
 
-Commit and push the sanitized deployment evidence. Then arm changed-cycle
-pstore and optional read-only USB/netcat observers before one physical boot2
-selection. Classify only under the predeclared map.
+Commit and push sanitized runtime attempt 1. Then run exactly one unchanged
+candidate cycle from a new ordinary-Gemian baseline and changed boot ID. A
+second exact pass unblocks a separately designed bounded coherency/load test.

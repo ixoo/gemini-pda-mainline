@@ -1,0 +1,61 @@
+CPU9 terminal-attribution runtime attempt 1
+Date: 2026-08-03
+
+status=pass-once-repeatability-required
+candidate_sha256=933299078d78e5882055e73fcbf75447bac9abf7d42b2074f37d65fe81966a70
+runtime_observation=changed-cycle-retained-pstore
+optional_usb_netcat_capture=not-obtained-before-recovery
+screen_observation=not-used
+
+cycle_started_utc=2026-08-03T15:05:47Z
+disconnect_observed_utc=2026-08-03T15:07:25Z
+reconnect_observed_utc=2026-08-03T15:08:47Z
+initial_boot_id_sha256=adabc0e1a3530007efddf4473a08f9fd75c393e7e47b0c0d06678afe7a941fc7
+final_boot_id_sha256=68366ea0f6efe7ef0b67b8cef5d0f142360f1218c4a78b1f4ca55f9d165b2982
+boot_id_changed=yes
+recovery_kernel=3.18.41+
+recovery_boot_reason_numeric=4
+recovery_boot_reason=wdt_by_pass_pwk
+recovery_cpu_online=4-5
+recovery_cpu_offline=0-3,6-9
+recovery_cpu8_online=0
+recovery_cpu9_online=0
+boot2_target=/dev/mmcblk0p30
+boot2_mounted=no
+boot2_readback_sha256=933299078d78e5882055e73fcbf75447bac9abf7d42b2074f37d65fe81966a70
+
+pstore_console_bytes=65524
+pstore_console_sha256=855cbea75f103bfe0192e7c35408c82e4c739eb3fbfacfcfc6e66ef9686a4c63
+pair_v3_terminal_count=1
+pair_v3_terminal=[   10.816179] psci: gemini-a72-pair-v3 result=pass sample=3 cpu8=8 cpu9=9 online8=1 online9=1 hits8=3 hits9=3 hps_reported=1 hps_cpu=9 hps_error=-1 hps_count=91
+
+pair_v2_fault=absent
+cpu9_startup_fault=absent
+parent_startup_fault=absent
+generic_down_veto=absent
+panic=absent
+internal_error=absent
+bug=absent
+call_trace=absent
+
+Classification
+--------------
+
+The unique self-contained pair-v3 terminal satisfies every positive field in
+the predeclared map. CPU8 and CPU9 were Linux-accounted online, each executed
+all three synchronous callbacks, and cumulative hits reconciled. The completed
+HPS publication names CPU9, reports the inherited public cpu_down rejection
+`-EPERM`, and counts 91 matching requests. No declared conflicting or fatal
+marker was retained.
+
+The watcher observed the complete disconnect/reconnect cycle and a changed boot
+ID. Gemian recovered through watchdog reason 4, CPU8 and CPU9 are offline, and
+the live-GPT-resolved inactive boot2 remains byte-exact and unmounted. The
+optional USB/netcat collector did not capture before recovery; the decision map
+declares changed-cycle pstore primary, so this does not weaken the pass.
+
+This pass proves bounded retained CPU8/CPU9 execution and HPS down-pressure
+attribution through the third callback. It does not prove load coherency,
+long-term reliability, CPU_OFF, DVFS/OPP, thermal behavior, suspend/resume, or
+default-profile readiness. The only authorized next step is one exact
+repeatability cycle with a new baseline and changed boot ID.
