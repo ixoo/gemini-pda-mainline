@@ -887,6 +887,49 @@ elif [[ "${mode}" == window ]]; then
   grep -aFq 'gemini-a72-retain-v1 result=hps-down-held-first' \
     "${package}/outputs/vmlinux"
   [[ "$(tar -tf "${package}/outputs/baseline/stack-usage.tar" | wc -l)" -gt 100 ]]
+elif [[ "${mode}" == multiline ]]; then
+  for required in outputs/baseline/stack-usage.tar \
+    outputs/baseline/stack-usage-files.nul \
+    outputs/baseline/stack-usage-files.txt \
+    outputs/focused-disassembly/__cpu_up.txt \
+    outputs/focused-disassembly/cpu_down.txt \
+    outputs/focused-disassembly/cpu_psci_cpu_boot.txt \
+    outputs/focused-disassembly/hps_algo_do_cluster_action.txt \
+    outputs/focused-disassembly/mt6797_a72_hold_workfn.txt \
+    outputs/focused-disassembly/mt6797_a72_hps_down_snapshot.txt \
+    outputs/focused-disassembly/mt6797_a72_coh_ipi.txt \
+    outputs/focused-disassembly/mt6797_a72_coh_workfn.txt \
+    outputs/focused-disassembly/mt6797_a72_ml_ipi.txt \
+    outputs/baseline/focused-disassembly/mt6797_a72_coh_ipi.txt \
+    outputs/baseline/focused-disassembly/mt6797_a72_coh_workfn.txt; do
+    [[ -s "${package}/${required}" ]]
+  done
+  jq -e '
+    .baseline_source_exact_coherence == true and
+    .cpu9_startup_source_identical == true and
+    .baseline_stack_usage_file_count > 100 and
+    .coherence_patchset_sha256 ==
+      "d4c40577b9e91fedfde048b29cb203311de264c526c71e3abd907fc6fafcf67f" and
+    .multiline_patchset_sha256 ==
+      "c7a9b020563c4abb74059bbf72705839c528a81d577c7031ddfb36de647fd896" and
+    .purpose == "cpu9-multiline-integrity-compile-review-only"
+  ' "${package}/provenance/build.json" >/dev/null
+  for symbol in mt6797_a72_coh_ipi mt6797_a72_coh_workfn; do
+    grep -q " ${symbol}$" "${package}/outputs/System.map"
+    grep -q " ${symbol}$" "${package}/outputs/baseline/System.map"
+  done
+  grep -q ' mt6797_a72_ml_ipi$' "${package}/outputs/System.map"
+  ! grep -q ' mt6797_a72_ml_ipi$' "${package}/outputs/baseline/System.map"
+  grep -q ' mt6797_a72_ml_data$' "${package}/outputs/System.map"
+  grep -aFq 'gemini-a72-pair-v5 result=pass sample=3' \
+    "${package}/outputs/vmlinux"
+  grep -aFq 'gemini-a72-pair-v5 result=fault sample=3' \
+    "${package}/outputs/vmlinux"
+  tar -xOf "${package}/outputs/stack-usage.tar" | \
+    grep -F 'mt6797_a72_ml_ipi' >/dev/null
+  ! tar -xOf "${package}/outputs/stack-usage.tar" | \
+    grep -F 'mt6797_a72_ml_data' >/dev/null
+  [[ "$(tar -tf "${package}/outputs/baseline/stack-usage.tar" | wc -l)" -gt 100 ]]
 elif [[ "${mode}" == coherence ]]; then
   for required in outputs/baseline/stack-usage.tar \
     outputs/baseline/stack-usage-files.nul \
