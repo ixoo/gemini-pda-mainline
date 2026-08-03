@@ -1058,10 +1058,11 @@ terminal boundaries, identical diagnostics, the 1,024-byte stack gate, and
 reproducible independent Android-v0 container validation. The exact full boot2
 SHA-256 is `24377665fa5b9112266890844c06c453bb50e17680b6f6f956035c234c26ff0f`.
 Its guarded installer, read-only secondary collector, and fixed runtime
-decision map now pass offline review. The next ordered action is one
-live-GPT-resolved boot2 deployment, clean shutdown, and one attributable
-changed-cycle runtime observation. No boot2 write or scheduler-context runtime
-claim exists yet.
+decision map now pass offline review. The candidate has been written to
+live-GPT-resolved inactive boot2, matched by full-partition readback, and the
+device was cleanly powered off. The next ordered action is one physical boot2
+selection and attributable changed-cycle runtime observation. No
+scheduler-context runtime claim exists yet.
 
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback

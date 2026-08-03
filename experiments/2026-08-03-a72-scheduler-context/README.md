@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-scheduler-context` |
-| Status | `deployment-ready` |
+| Status | `deployed-awaiting-runtime` |
 | Subsystem | MT6797 retained Cortex-A72 pair and scheduler |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -197,6 +197,12 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   pair-v7 terminals. The decision map fixes all scheduler lifecycle values and
   exact hashes before device access. No deployment occurred. See
   [`results/runtime-decision-map-20260803.txt`](results/runtime-decision-map-20260803.txt).
+- The guarded installer resolved live GPT `boot2` as `/dev/mmcblk0p30`, proved
+  active root `/dev/mmcblk0p29`, recorded the exact pair-v6 predecessor, wrote
+  the pair-v7 image, matched the full-partition readback, removed the temporary
+  readback, and confirmed clean shutdown without requesting reboot. No fresh
+  backup was created. See
+  [`results/deployment-20260803.txt`](results/deployment-20260803.txt).
 
 ## Analysis
 
@@ -207,9 +213,10 @@ context while preserving the established power and recovery boundary.
 
 ## Conclusion
 
-`deployment-ready`: the reproducible container, guarded installer, read-only
-secondary collector, and fixed runtime decision map pass their offline gates.
-No deployment or hardware evidence exists.
+`deployed-awaiting-runtime`: the exact pair-v7 candidate is verified on boot2
+and the device is cleanly powered off. No scheduler-context runtime evidence
+exists until one physical boot2 selection and attributable changed-cycle
+recovery are captured.
 
 ## Follow-up
 

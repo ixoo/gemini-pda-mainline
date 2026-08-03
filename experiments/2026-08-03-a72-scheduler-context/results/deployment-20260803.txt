@@ -1,0 +1,23 @@
+CPU8/CPU9 scheduler-context boot2 deployment
+Date: 2026-08-03
+Result: write-synced-flushed-full-readback-verified
+
+Target logical name: boot2
+Resolved target: /dev/mmcblk0p30
+Active root: /dev/mmcblk0p29
+Boot ID: c40cd5c0-c110-4e48-884b-83f2b4a3b1b7
+Power: online=1 capacity=97 status=Good
+
+Predecessor full-partition SHA-256:
+  0beead0b00485ad18333aca4d688fcd549c813113b7ec0554a6761c7147b17fb
+Fresh predecessor backup: no; recovery uses the verified project-wide backup.
+Candidate full-partition SHA-256:
+  24377665fa5b9112266890844c06c453bb50e17680b6f6f956035c234c26ff0f
+Full-partition readback SHA-256:
+  24377665fa5b9112266890844c06c453bb50e17680b6f6f956035c234c26ff0f
+
+Temporary readback removed: yes
+Shutdown requested only after evidence flush: yes
+Post-shutdown reachability: unreachable
+Automatic reboot requested: no
+Next action: owner physically selects boot2 once.
