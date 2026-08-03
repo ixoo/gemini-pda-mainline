@@ -1,0 +1,78 @@
+CPU9 cluster-reuse offline container review
+============================================
+
+Date: 2026-08-03
+Result: pass
+Device access: none
+Partition write: none
+Runtime result: not tested
+
+Inputs
+------
+
+Repository compile commit:
+  c82acf76c6c18fd3280bf8cb4e91a3ac49eaacf1
+Late-parent patchset SHA-256:
+  f2bebc4a04888a6c83f0dc72c2de56d350c2a52ab9779ef07e3a01cb5b544d91
+CPU9 child patchset SHA-256:
+  17733d2ae50c16f9d0db2d4bd4075fa5a72ce081606db7d3bf1bfe83f4159a2b
+Buildbox kernel field SHA-256:
+  7a592d62d837fa61b7c57ec2e8be65d4a25203685b4936f2848fc3600563039a
+Known-good active Gemian boot SHA-256:
+  1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513
+Preserved ramdisk SHA-256:
+  a1ee05445e9a2bd8fbc1f75d7cda326b9ca7a6d3b644cbb1d5fc0ac167835be4
+
+Container result
+----------------
+
+Raw Android-v0 image size: 14804992 bytes
+Raw Android-v0 image SHA-256:
+  fef3d814c217f68ce56e12ca92616915a78e48be5945dee79e87adf149d0e2d3
+Exact boot2-sized image size: 16777216 bytes
+Exact boot2-sized image SHA-256:
+  b32bca348efc0fcaffe2b5909c6246d66a4d0fec4102cee091103c42db604d69
+Candidate manifest SHA-256:
+  036d2f121e716466cbd99c2b249df6507e33aee041210c8b093437c16bd81acc
+
+Tool identities
+---------------
+
+Pinned late-CPU8 assembler SHA-256:
+  231f916492bc8477064f792e6bb07ea0d5362b60aa364af44912fb0b205d5ce4
+CPU9 assembler wrapper SHA-256:
+  dbd00ee1f2dfbec6eb8c2d48a8e65a1f2ca888a5e6be400e05620cd04a597358
+Offline builder SHA-256:
+  6c0e9c313f8273375f96c121ba338238c7963e91aabe801484a359d39366472a
+Independent candidate test SHA-256:
+  06702b0f9e76a274da2efd59684e6fa25a17b025fe141b7f96a7e21a897ab5bf
+
+Independent review
+------------------
+
+- The wrapper pins the exact accepted late-CPU8 assembler and held-online
+  builder while retaining all six ordered patch-layer identities.
+- Three complete builds in independent ignored output roots reproduced every
+  candidate file byte-for-byte.
+- The candidate manifest has a fixed safe inventory and validates all four
+  files without symlinks or path traversal.
+- Independent parsing reports Android boot image version 0, page size 2048,
+  kernel address 0x40080000, ramdisk address 0x45000000, second address
+  0x40f00000, tags address 0x44000000, no second stage, no header DT, empty
+  name, and command line `bootopt=64S3,32N2,64N2 log_buf_len=4M`.
+- The kernel field is 8446361 bytes. The ramdisk is 6354621 bytes and is
+  byte-identical to known-good Gemian.
+- The legacy image ID recomputes from the kernel, ramdisk, and empty second
+  stage. The parsed aligned extent consumes the complete raw image.
+- Copy-and-truncate and zero-fill-then-overlay padding paths are identical at
+  exactly 16 MiB, and the full padded tail is zero.
+- Static validation pins all inputs and outputs, compile purpose,
+  reproducibility, manifest, and offline-only behavior.
+- Bash syntax, Python bytecode compilation, and managed-VM ShellCheck passed.
+
+Decision
+--------
+
+The exact Android-v0 container passes and is the sole candidate input for the
+guarded-installer and runtime-map review. This does not yet claim a device
+write or runtime result. No device was accessed while producing this evidence.

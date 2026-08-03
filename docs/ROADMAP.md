@@ -923,6 +923,15 @@ container construction and independent offline validation of the exact
 accepted Image.gz-dtb. CPU9 remains disabled on the device until that container
 and the deployment/runtime decision map pass their own gates.
 
+That exact Android-v0 container now reproduces byte-for-byte across three
+independent ignored output roots, retains the known-good Gemian ramdisk, passes
+independent header/extent/image-ID parsing, and pads identically to exactly 16
+MiB. Its full boot2 image SHA-256 is
+`b32bca348efc0fcaffe2b5909c6246d66a4d0fec4102cee091103c42db604d69`.
+The next ordered action is guarded-installer and runtime decision-map review
+for this sole accepted checksum; no device write is authorized by this result
+alone.
+
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback
 gates close.
