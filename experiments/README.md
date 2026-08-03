@@ -23,11 +23,20 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-03 A72 CPU9 retention window](2026-08-03-a72-cpu9-retention-window/README.md)
+  — preserves the proven PSCI-only CPU9 startup and every public CPU-down
+  veto, moves all three synchronous CPU8/CPU9 pair samples inside the fixed
+  watchdog window, and bounds repeated HPS down-pressure reporting to one
+  directly attributable record. Source generation is pending on Buildbox.
+- [2026-08-03 A72 CPU9 cluster reuse](2026-08-03-a72-cpu9-cluster-reuse/README.md)
+  — brought CPU8 and CPU9 into Linux online accounting and completed two
+  synchronous callbacks on each. Its declared run is rejected because HPS
+  requested CPU9 down 83 times and the third terminal was scheduled beyond
+  the inherited watchdog window; the exact artifact must not be repeated.
 - [2026-08-03 A72 late CPU8 hold](2026-08-03-a72-cpu8-late-hold/README.md)
-  — specifies a third substantive synchronous CPU8 callback at about ten
-  seconds, late enough to survive the measured retained-console window while
-  extending the bounded stability interval. Source generation and compilation
-  are pending; CPU9, CPU_OFF, load, DVFS, thermal, and suspend remain blocked.
+  — passed twice with a third substantive synchronous CPU8 callback at about
+  twelve seconds, establishing the repeatable exact parent for CPU9 while
+  CPU_OFF, load, DVFS, thermal, and suspend remain blocked.
 - [2026-08-02 A72 CPU8 held online](2026-08-02-a72-cpu8-held-online/README.md)
   — adds HPS and generic pre-notifier down barriers plus synchronous CPU8
   samples at about one and six seconds. Its first runtime returned through the
