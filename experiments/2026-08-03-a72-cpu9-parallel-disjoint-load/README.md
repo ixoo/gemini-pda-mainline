@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu9-parallel-disjoint-load` |
-| Status | `attempt-2-pass; exact-repeat-earned` |
+| Status | `repeatable-two-pass-gate-closed` |
 | Subsystem | MT6797 retained Cortex-A72 pair and cache coherency |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -104,6 +104,11 @@ watchdog recovery, or changed power boundary?
   were offline, exact pair-v6 boot2 was unchanged, and no panic, BUG, Internal
   error, Call trace, asynchronous SError, lockup, or pair-v6 fault was present.
   The fixed map earns one exact repeat and no additional unchanged cycles.
+- The exact repeat produced a second complete pair-v6 pass terminal. All
+  inherited and parallel fields, counts, zero-error state, mismatch zeros, and
+  deterministic hashes matched attempt 2; only elapsed time and bounded HPS
+  request count differed. A prearmed monitor independently confirmed shutdown,
+  reconnect, and changed boot identity before capturing pstore.
 
 ## Safety assessment
 
@@ -153,23 +158,24 @@ static BSS and no payload is placed on the callback stack.
   attributable watchdog recovery with the terminal lost to observation timing.
 - [`results/runtime-attempt-2-pass-20260803.txt`](results/runtime-attempt-2-pass-20260803.txt):
   complete concurrent-load pass and recovery integrity evidence.
+- [`results/runtime-attempt-3-repeat-pass-20260803.txt`](results/runtime-attempt-3-repeat-pass-20260803.txt):
+  exact repeat pass with prearmed changed-cycle pstore capture.
 
 ## Conclusion
 
-`attempt-2-pass; exact-repeat-earned`: source, mutation,
+`repeatable-two-pass-gate-closed`: source, mutation,
 comparative compile, binary, configuration, diagnostics, stack, two-root
 container reproducibility, and independent Android-v0 validation gates pass.
 The pair-v6 installer and read-only collector are source-pinned to accepted
 pair-v5 tools, the exact predecessor/candidate identities are mutation-tested,
 and the runtime decision map is fixed. The exact pair-v6 candidate remains
 installed with full readback verification. Attempt 1 lost its terminal, but
-attempt 2 directly passed every inherited and parallel predicate with safe
-recovery. This establishes one bounded concurrent-load pass, not repeatability
-or production-online CPU support.
+attempts 2 and 3 directly passed every inherited and parallel predicate with
+safe recovery and identical deterministic hashes. This establishes bounded
+concurrent-load repeatability, not production-online CPU support.
 
 ## Follow-up
 
-Arm changed-cycle pstore collection from the current Gemian baseline, revalidate
-unchanged exact boot2, and shut down. Run one exact repeat under the fixed PASS
-branch. A second pass closes only bounded pair-v6 repeatability and must lead to
-a changed next experiment; no third unchanged cycle is permitted.
+Do not run this exact artifact again. Continue from the changed Gate 8 action in
+[`docs/ROADMAP.md`](../../docs/ROADMAP.md); CPU_OFF and later power boundaries
+remain prohibited.

@@ -1,0 +1,73 @@
+CPU8/CPU9 parallel disjoint-load runtime attempt 3 exact repeat
+Date: 2026-08-03
+
+Decision: pass. This closes repeatability only for the exact bounded pair-v6
+parallel-disjoint-load oracle. Do not run a third successful unchanged cycle.
+CPU_OFF, removal of the HPS veto, a later power boundary, and production-online
+CPU8/CPU9 remain unauthorized.
+
+Exact identities
+----------------
+
+Repository compile commit:
+  ad7807ccc50bebd0aaeafcbe4dadb4c11c44b850
+Parallel patchset SHA-256:
+  94d3b07355e1ddb67f3f643165570255bb1f42131b3b67c074d270e8581989e2
+Raw Android-v0 SHA-256:
+  6673d9ff6b9ff0a2bb4cf7a89815d73022208975dca713176c71a3b0865c7c51
+Full boot2 SHA-256:
+  0beead0b00485ad18333aca4d688fcd549c813113b7ec0554a6761c7147b17fb
+Pstore console SHA-256:
+  a876520459ca9873eea4423d10316371bb79b08bf584b31fb6bca2a15698389b
+Pstore archive SHA-256:
+  e5168c0a07371c16fe6459cbb0b20e3e82480a4cec03f83e237c248da59d0f4e
+
+Attributable terminal
+---------------------
+
+At 10.896227 seconds, retained `console-ramoops` contains exactly:
+
+  psci: gemini-a72-pair-v6 result=pass sample=3 cpu8=8 cpu9=9 online8=1 online9=1 hits8=3 hits9=3 hps_reported=1 hps_cpu=9 hps_error=-1 hps_count=86 coh_reported=1 coh_rounds=1024 coh_cpu8=8 coh_cpu9=9 coh_error8=0 coh_error9=0 coh_seq8=1024 coh_seq9=1024 ml_reported=1 ml_rounds=64 ml_lines=256 ml_words=8 ml_cpu8=8 ml_cpu9=9 ml_error8=0 ml_error9=0 ml_done8=64 ml_done9=64 ml_hash8w=34e574e95cbe0383 ml_hash8r=432574e95cbe0383 ml_hash9w=432574e95cbe0383 ml_hash9r=34e574e95cbe0383 ml_bad_round=0 ml_bad_line=0 ml_bad_word=0 ml_expected=0000000000000000 ml_actual=0000000000000000 pl_reported=1 pl_rounds=128 pl_lines=1024 pl_words=8 pl_cpu8=8 pl_cpu9=9 pl_error8=0 pl_error9=0 pl_done8=128 pl_done9=128 pl_ready=256 pl_written=256 pl_verified=256 pl_hash8w=d7bbe01c2e3d0383 pl_hash8r=f5e6a0ebae7d0383 pl_hash9w=f5e6a0ebae7d0383 pl_hash9r=d7bbe01c2e3d0383 pl_bad_round=0 pl_bad_line=0 pl_bad_word=0 pl_expected=0000000000000000 pl_actual=0000000000000000
+
+This independently reproduces attempt 2 except for elapsed timestamp and the
+bounded HPS count (86 rather than 82). Both successful cycles have:
+
+- CPUs 8/9 Linux-accounted online with three inherited callbacks each;
+- CPU9 HPS attribution to the fail-closed `-EPERM` veto;
+- exact 1,024-round scalar and 64-round multiline completion with zero errors;
+- exact 128-round parallel completion on CPUs 8/9;
+- ready/written/verified counters 256/256/256;
+- 524,288 peer checks per CPU and 1,048,576 total cross-CPU checks;
+- identical nonzero parallel hashes `d7bbe01c2e3d0383` and
+  `f5e6a0ebae7d0383`, cross-matched in both directions;
+- zero mismatch coordinates and values; and
+- no pair-v6 fault, panic, BUG, Internal error, Call trace, asynchronous SError,
+  lockup, or unable-to-handle-kernel record.
+
+Changed-cycle recovery
+----------------------
+
+The observer was armed from ordinary-Gemian boot ID
+`d5e6c266-d65d-495f-9331-a132f7b32f9d`. The guarded helper proved exact pair-v6
+boot2 by full readback, skipped the write, and confirmed clean shutdown. The
+observer confirmed two disconnected probes, then the owner selected boot2.
+It observed new ordinary-Gemian boot ID
+`c40cd5c0-c110-4e48-884b-83f2b4a3b1b7` and captured pstore immediately.
+
+The observer recorded disconnect at `2026-08-03T22:03:34Z`, reconnect at
+`2026-08-03T22:05:15Z`, recovery kernel `3.18.41+`, and aarch64 architecture.
+Filtered boot arguments reported `boot_reason=4` and
+`androidboot.bootreason=wdt_by_pass_pwk`. The recovery online CPU mask was
+`4-5`; CPU8 and CPU9 each reported `online=0`. Live GPT exposed exactly one
+unmounted `/dev/mmcblk0p30 boot2`, whose full checksum remained exact pair-v6.
+Battery telemetry was present, 100 percent, Not charging, and Good.
+
+Conclusion
+----------
+
+The bounded pair-v6 parallel-disjoint-load oracle is repeatable across two
+attributable cycles with identical deterministic results. Do not run it
+unchanged again. This proves only the fixed IPI-callback execution and data
+oracle; ordinary scheduler task execution, CPU_OFF/hotplug, OPP/cpufreq,
+thermal behavior, suspend/resume, and production integration remain separate
+unclosed Gate 8 boundaries.

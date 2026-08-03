@@ -1036,6 +1036,22 @@ decision-changing observation while preserving startup, prior scalar and
 multiline gates, the HPS veto, CPU_OFF prohibition, power state, and watchdog
 recovery. CPU_OFF and later power boundaries remain blocked.
 
+The parallel/disjoint-load child has now passed its complete offline gate and
+two attributable runtime cycles. After every inherited pair-v5 predicate, CPUs
+8 and 9 concurrently wrote disjoint halves of one 64 KiB working set and
+verified the peer half for 128 rounds. Each successful cycle completed 524,288
+checks per CPU (1,048,576 total), reported exact 256/256/256 rendezvous counts,
+zero errors and mismatches, and identical deterministic cross-matching hashes.
+Both watchdog recoveries returned CPUs 8/9 offline with unchanged unmounted
+boot2; the repeat used a prearmed changed-cycle pstore observer. The bounded
+IPI-context concurrent-load gate is repeatable and must not run unchanged
+again. The next ordered action is a separately designed finite scheduler-context
+child: bind one kernel task to each retained A72, prove concurrent task-context
+dispatch and bounded completion on CPUs 8/9, and preserve every inherited gate,
+the HPS veto, CPU_OFF prohibition, power state, watchdog recovery, and
+serviceability boundary. This is not yet CPU_OFF/hotplug, OPP/cpufreq, thermal,
+or suspend validation.
+
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback
 gates close.
