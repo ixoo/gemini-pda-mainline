@@ -1,0 +1,63 @@
+CPU8/CPU9 multi-cacheline integrity Buildbox compile review
+Date: 2026-08-03
+
+Decision: accept the compiled image for deterministic Android-v0 container
+construction and offline validation only. This is not yet a boot candidate or
+runtime result.
+
+Exact identities
+----------------
+
+Repository compile commit:
+  fb647817cd573e3dd8719821da8742bc5433979b
+Vendor source commit:
+  59e00a9144d782e148332009a835b99c43382467
+Exact pair-v4 coherence patchset SHA-256:
+  d4c40577b9e91fedfde048b29cb203311de264c526c71e3abd907fc6fafcf67f
+Pair-v5 multiline patchset SHA-256:
+  c7a9b020563c4abb74059bbf72705839c528a81d577c7031ddfb36de647fd896
+Child Image.gz-dtb SHA-256:
+  81f076198ae314d187790beecee8d9b5edda3c4432e51a0f36a22dbe326fc468
+Child vmlinux SHA-256:
+  201ff4606fd95bcaa0f8040e325f0adce81333e0f982773f1bca3ff279bcf374
+Child System.map SHA-256:
+  693b81e4e40af51cc908acf06b722ab18aaf81e4d036b61f53adf1d6598fcc4a
+Parent Image.gz-dtb SHA-256:
+  ef0c1486f9f74a69e064a589a5229df30420f0235ec6fc5df03f489880d7235a
+Parent vmlinux SHA-256:
+  1091a11521c5a3fb7181d9d00b7924b4b74ab5926da32e9d80a096f66983fc2f
+Parent System.map SHA-256:
+  6b3ba31d4f4001c295e8c2794cb757b446c3620ae6f1c11b5abee4380c5369ea
+
+Compile and comparison review
+-----------------------------
+
+- Buildbox compiled the child and exact pair-v4 parent with pinned GCC 6.3 and
+  binutils 2.28. No native VM kernel build ran.
+- Both configuration deltas are exactly ANBOX normalization plus the retained
+  observer, one-way CPU8, and CPU9 cluster-reuse options.
+- Child and parent diagnostics are byte-identical: only the retained vendor
+  baseline section-mismatch diagnostic is present.
+- Both source gates passed: 11 pair-v4 and 16 pair-v5 mutations were rejected;
+  all four deterministic payload vectors passed.
+- Generic completion, public CPU-down, HPS policy, CPU9 startup, scalar wait,
+  and scalar callback source boundaries are unchanged.
+- Child and parent both contain the inherited scalar callback/worker. Only the
+  child contains `mt6797_a72_ml_ipi` and the static 16 KiB working-set symbol.
+- Focused child disassembly contains acquire and release barriers in the linked
+  multiline callback and complete pair-v5 pass/fault terminal strings.
+- Both stack archives contain 2,484 compiler records. Child stack use is 64
+  bytes for `mt6797_a72_ml_ipi`, 80 bytes for the extended scalar/multiline
+  worker, and 416 bytes for the complete terminal worker. The 16 KiB working
+  set is static BSS and absent from stack-usage records.
+- Package checksums and the final Buildbox job record validated successfully.
+
+Acceptance boundary
+-------------------
+
+The exact child image is accepted only as input to deterministic Android-v0
+container construction and independent offline reproduction. Before device
+access, the raw and padded container checksums and embedded image identity must
+be fixed, the pair-v5 runtime/recovery decision map must be executable, and the
+inactive live-GPT-resolved boot2 write must retain its full readback and clean
+shutdown gates. CPU_OFF and any changed power boundary remain out of scope.

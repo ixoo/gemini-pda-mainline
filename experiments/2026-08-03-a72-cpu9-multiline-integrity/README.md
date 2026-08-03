@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu9-multiline-integrity` |
-| Status | `buildbox-compile-tooling-ready` |
+| Status | `compiled-for-container-construction` |
 | Subsystem | MT6797 retained Cortex-A72 pair and cache coherency |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -39,7 +39,13 @@ mismatch, callback error, lost watchdog recovery, or changed power boundary?
   `f465d671ed82fd2a461c7a6b0f567452e70400d8`.
 - Accepted patch SHA-256:
   `7dbbf400f2402c7763ae9fee73438b056086f459060749de8f4506e9638f83c0`.
-- No compile, container, deployment, or runtime claim exists yet.
+- No container, deployment, or runtime claim exists yet.
+- Buildbox compile commit:
+  `fb647817cd573e3dd8719821da8742bc5433979b`.
+- Child `Image.gz-dtb` SHA-256:
+  `81f076198ae314d187790beecee8d9b5edda3c4432e51a0f36a22dbe326fc468`.
+- Exact pair-v4 parent `Image.gz-dtb` SHA-256:
+  `ef0c1486f9f74a69e064a589a5229df30420f0235ec6fc5df03f489880d7235a`.
 
 ## Safety assessment
 
@@ -59,17 +65,21 @@ terminal snapshot before the inherited watchdog restart.
   pair-v5 compile, binary, configuration, diagnostics, and stack comparison.
 - [`results/patch-generation-review-20260803.txt`](results/patch-generation-review-20260803.txt):
   exact Buildbox generation identities and acceptance boundary.
+- [`results/compile-review-20260803.txt`](results/compile-review-20260803.txt):
+  exact comparative compile, binary, diagnostics, and stack evidence.
 
 ## Conclusion
 
-`buildbox-compile-tooling-ready`: Buildbox reproduced the exact
+`compiled-for-container-construction`: Buildbox reproduced the exact
 pair-v4 parent, passed its static validator, applied the deterministic child
 transformer, rejected all 16 multiline mutations, and generated a patch that
-changes only `arch/arm64/kernel/psci.c`. The comparative compile workflow is now
-ready, but it must still pass compile/binary/stack, container, deployment, and
-runtime-map gates before device access.
+changes only `arch/arm64/kernel/psci.c`. The pinned comparative build passed its
+source, configuration, diagnostics, linked-code, terminal, and stack gates. The
+exact image is accepted only for deterministic container construction and must
+still pass offline container, deployment, and runtime-map gates.
 
 ## Follow-up
 
-Compile the accepted child and exact pair-v4 parent on Buildbox, then compare
-configuration, diagnostics, source boundaries, linked code, and stack usage.
+Construct the Android-v0 container deterministically from the accepted image,
+reproduce it independently, and validate its embedded kernel identity before
+any device write.
