@@ -986,6 +986,19 @@ Only a second exact pass may unblock a separately designed bounded
 coherency/load experiment; CPU_OFF and every later power boundary remain
 prohibited.
 
+The exact repeatability cycle also passed. Its unique pair-v3 terminal at
+11.195671 seconds again showed CPU8/9 online with three reconciled callbacks
+each and a complete CPU9 HPS `-EPERM` attribution, this time after 89 matching
+requests. The candidate checksum was unchanged; fault exclusions, watchdog
+reason 4, offline recovery CPUs 8/9, and unchanged unmounted boot2 all passed.
+The prearmed helpers expired while the unit remained shut down awaiting owner
+selection, but direct baseline/shutdown/recovery continuity proves a changed
+boot ID and immediate pstore recovery for the selected cycle. The bounded
+retained-execution gate is now repeatable across two exact runs. Do not run a
+third unchanged cycle. The next ordered action is a changed, separately
+predeclared coherency/load child that preserves startup, CPU_OFF prohibition,
+power state, watchdog recovery, and the proven terminal.
+
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback
 gates close.

@@ -1,0 +1,74 @@
+CPU9 terminal-attribution runtime attempt 2 and repeatability decision
+Date: 2026-08-03
+
+status=pass-repeatability-gate-complete
+candidate_sha256=933299078d78e5882055e73fcbf75447bac9abf7d42b2074f37d65fe81966a70
+candidate_changed_since_attempt_1=no
+runtime_observation=immediate-post-recovery-retained-pstore
+prearmed_pstore_watcher=expired-while-device-off-before-owner-selection
+optional_usb_netcat_capture=expired-while-device-off-before-owner-selection
+screen_observation=not-used
+
+baseline_boot_id_sha256=68366ea0f6efe7ef0b67b8cef5d0f142360f1218c4a78b1f4ca55f9d165b2982
+baseline_shutdown=confirmed-disconnected-before-owner-selection
+recovery_boot_id_sha256=c7923b48b3712dab9c454516e0f949aa3365cf73f5799f7bfe58c260aa57854f
+boot_id_changed=yes
+recovery_kernel=3.18.41+
+recovery_boot_reason_numeric=4
+recovery_boot_reason=wdt_by_pass_pwk
+recovery_cpu_online=4-5
+recovery_cpu_offline=0-3,6-9
+recovery_cpu8_online=0
+recovery_cpu9_online=0
+boot2_target=/dev/mmcblk0p30
+boot2_mounted=no
+boot2_readback_sha256=933299078d78e5882055e73fcbf75447bac9abf7d42b2074f37d65fe81966a70
+
+pstore_console_bytes=65524
+pstore_console_sha256=2e7341d7108bae5ff5a729112929034d22e4e4c6ae838897e1591c817853f122
+pair_v2_sample_2_count=1
+pair_v2_sample_2=[    9.195677] psci: gemini-a72-pair-v2 result=sample sample=2 cpu8=8 cpu9=9 online8=1 online9=1 hits8=2 hits9=2
+pair_v3_terminal_count=1
+pair_v3_terminal=[   11.195671] psci: gemini-a72-pair-v3 result=pass sample=3 cpu8=8 cpu9=9 online8=1 online9=1 hits8=3 hits9=3 hps_reported=1 hps_cpu=9 hps_error=-1 hps_count=89
+
+pair_v2_fault=absent
+cpu9_startup_fault=absent
+parent_startup_fault=absent
+generic_down_veto=absent
+panic=absent
+internal_error=absent
+bug=absent
+call_trace=absent
+
+Changed-cycle continuity
+------------------------
+
+The prearmed helpers reached their 300-second deadlines while the device was
+still cleanly shut down awaiting physical selection, so neither helper directly
+observed reconnect. This does not merge or guess cycles: before shutdown, the
+attempt-1 recovery/baseline boot ID was captured and hashed; shutdown and
+disconnect were confirmed while both helpers were running; the owner then
+reported the physical boot2 selection; and immediate recovery polling captured
+a different Gemian boot ID before pstore collection. Watchdog reason 4, the
+exact candidate-only pair-v3 terminal, offline recovery CPUs 8/9, and unchanged
+boot2 independently close the same cycle. This is direct continuity evidence,
+not a screen-color or apparent-reboot inference.
+
+Repeatability classification
+----------------------------
+
+Attempts 1 and 2 used the identical full boot2 image. Each retained exactly one
+self-contained pair-v3 pass after three reconciled callbacks on both CPU8 and
+CPU9. Each published a complete HPS record for CPU9 with error `-EPERM` and a
+positive matching-request count (91 then 89). Both excluded every predeclared
+pair/startup fault, generic down-veto leak, panic, BUG, Internal error, and Call
+trace; both recovered to Gemian through watchdog reason 4 with CPUs 8/9 offline
+and the boot2 checksum unchanged.
+
+The exact retained-execution/HPS-attribution repeatability gate therefore
+passes. This proves only bounded callback execution and fail-closed CPU-down
+pressure across two exact cycles. It does not prove general coherency under
+load, long-term reliability, CPU_OFF, DVFS/OPP, thermal behavior,
+suspend/resume, or default-profile readiness. The next ordered work is a new,
+separately predeclared bounded coherency/load experiment; no unchanged third
+run is justified.

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu9-terminal-attribution` |
-| Status | `runtime-pass-once-repeatability-pending` |
+| Status | `repeatability-passed-coherency-design-next` |
 | Subsystem | MT6797 CPU8/CPU9 retained pair and HPS down-pressure attribution |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -75,10 +75,13 @@ HPS caller and reads that state only after the third already-proven callback.
 - [`results/runtime-attempt-1-pass-20260803.txt`](results/runtime-attempt-1-pass-20260803.txt):
   exact pair-v3/HPS terminal, fault exclusions, changed-cycle recovery, and
   unchanged boot2 classification.
+- [`results/runtime-attempt-2-pass-20260803.txt`](results/runtime-attempt-2-pass-20260803.txt):
+  second exact pass, changed-cycle continuity, and two-run repeatability
+  decision.
 
 ## Conclusion
 
-`runtime-pass-once-repeatability-pending`: Buildbox reconstructed and
+`repeatability-passed-coherency-design-next`: Buildbox reconstructed and
 validated the exact retention-window parent, rejected seven child mutations,
 and completed both full builds with byte-identical configurations and
 diagnostics. Two independent offline constructions then produced the same
@@ -89,11 +92,14 @@ identity, no-backup, readback, shutdown, and result-class tests. The exact
 candidate was written to live-GPT-resolved inactive boot2 and matched two
 complete readbacks. Runtime attempt 1 then retained the exact pair-v3 pass:
 CPU8 and CPU9 were online through three callbacks, and HPS recorded 91 CPU9
-down requests with the expected `-EPERM` result. Fault exclusions, changed
-watchdog recovery, offline recovery CPUs 8/9, and unchanged boot2 all pass.
+down requests with the expected `-EPERM` result. An unchanged second cycle
+repeated the exact terminal with 89 requests. Both cycles exclude declared
+faults, recover through watchdog reason 4 with CPUs 8/9 offline, and preserve
+the exact boot2 checksum.
 
 ## Follow-up
 
-Commit and push sanitized runtime attempt 1. Then run exactly one unchanged
-candidate cycle from a new ordinary-Gemian baseline and changed boot ID. A
-second exact pass unblocks a separately designed bounded coherency/load test.
+Commit and push the repeatability result. Do not run this candidate unchanged a
+third time. Design a changed, separately bounded coherency/load child that
+preserves CPU startup, CPU_OFF prohibition, power state, watchdog recovery,
+and the proven terminal while adding a decision-changing load oracle.
