@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu9-bounded-coherency` |
-| Status | `design-only-source-pending` |
+| Status | `patch-generation-passed-compile-pending` |
 | Subsystem | MT6797 retained Cortex-A72 pair and cache coherency |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -44,16 +44,27 @@ continue after recovery.
 
 - [`DESIGN.md`](DESIGN.md): exact concurrency oracle, boundedness, terminal,
   result classes, source invariants, and safety boundary.
+- [`scripts/source_edits.py`](scripts/source_edits.py): deterministic exact-parent
+  source transformation.
+- [`scripts/test_static.py`](scripts/test_static.py): source contract and 11
+  rejected mutation checks.
+- [`scripts/generate-on-buildbox`](scripts/generate-on-buildbox): Git-pinned,
+  Buildbox-only exact-parent patch generation.
+- [`patches/`](patches/): one accepted Buildbox-generated logical child patch.
+- [`results/patch-generation-review-20260803.txt`](results/patch-generation-review-20260803.txt):
+  exact identities, rejected generation attempts, source/mutation audit, and
+  compile-only acceptance decision.
 
 ## Conclusion
 
-`design-only-source-pending`: the exact experiment is predeclared. It uses a
-CPU0-pinned worker so the cross-call caller cannot be either A72 target, and a
-fixed 1,024-round CPU8↔CPU9 publish/consume handshake with finite spin budgets.
-No kernel source has been changed.
+`patch-generation-passed-compile-pending`: Buildbox reconstructed the exact
+terminal-attribution parent, exercised the deterministic transformer, rejected
+11 mutations, and generated one patch changing only `psci.c`. The accepted
+source contains the exact CPU0-pinned, 1,024-round, finite-budget handshake and
+complete pair-v4 terminal. It has not compiled yet.
 
 ## Follow-up
 
-Commit and push this design. Then implement it as a deterministic source-minimal
-child of the exact terminal-attribution kernel, add mutation checks, and use
-Buildbox for patch generation and exact-parent compilation.
+Commit and push the accepted patch review. Then add the exact-parent Buildbox
+compile workflow and compare full child/parent builds, linked barriers/loops,
+configuration, diagnostics, and stack bounds before container construction.

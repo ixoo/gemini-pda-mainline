@@ -1,0 +1,80 @@
+CPU8/CPU9 bounded coherency Buildbox patch review
+Date: 2026-08-03
+
+Decision: accept the generated source patch for exact-parent compilation only.
+This is not a boot candidate or runtime result.
+
+Exact identities
+----------------
+
+Repository generation commit:
+  adf36b36bae7432ede0a887ff1886839686ef0de
+Vendor source commit:
+  59e00a9144d782e148332009a835b99c43382467
+Exact terminal-attribution parent kernel commit:
+  0cea53b8b19e5b58e6b2cb748466d6e620a4c911
+Exact parent terminal patchset SHA-256:
+  2d94a2cd489e33a7df854ffec7533fbf969dc9c810e9eece57d118b905060310
+Generated coherency kernel commit:
+  1538019f969d14667974fa0f1d4ae3b1e2c0fe4d
+Accepted patch SHA-256:
+  d5ff07420a91f47df4055aab475ce59c8660675821463c01ea85625758df729f
+Accepted coherency patchset SHA-256:
+  d4c40577b9e91fedfde048b29cb203311de264c526c71e3abd907fc6fafcf67f
+
+Generation chronology
+---------------------
+
+1. Repository commit eba8362 was rejected because the transformer used a
+   console-flush anchor present at two sites. It produced no patch.
+2. Repository commit 56e61bb narrowed the insertion to the exact pair-v2
+   sample record. The transformer applied, but the independent mutation
+   harness incorrectly expected removing one field from two pass/fault
+   terminals to remove both occurrences. It produced no accepted patch.
+3. Repository commit adf36b3 corrected that assertion to require an exact
+   one-occurrence decrease. The exact parent validator passed, all 11 child
+   mutations were rejected, and Buildbox generated the accepted patch.
+
+Source review
+-------------
+
+- Changed path inventory contains only `arch/arm64/kernel/psci.c`.
+- Diff size is 160 insertions and 2 deletions.
+- The existing pair-v3 terminal is replaced by complete pair-v4 pass/fault
+  terminals; all three inherited pair-v2 sample/fault markers remain.
+- The experiment schedules exactly one work item after successful sample 2 and
+  pins its caller to CPU0.
+- The cross-call target mask contains exactly CPUs 8 and 9 and invokes
+  `smp_call_function_many(..., wait=true)` exactly once.
+- The handshake has exactly 1,024 rounds and a per-callback spin budget of
+  16,777,216. Budget exhaustion returns `-ETIMEDOUT`; no wait resets or expands
+  the budget.
+- Turn and sequence traffic uses `READ_ONCE()`/`WRITE_ONCE()` with `smp_wmb()`
+  before publication and `smp_rmb()` after consuming a turn.
+- The worker publishes running state `-1`, captures exact target CPUs, errors,
+  rounds, and final sequences, and publishes completion state `1` after a write
+  barrier. Scheduling failure publishes state 2 and `-EBUSY`; wrong worker CPU
+  publishes `-EXDEV`.
+- The terminal keeps every inherited pair and HPS field and adds the complete
+  coherency snapshot. Pass requires state 1, 1,024 rounds, CPUs 8/9, zero
+  errors, and final sequences 1,024/1,024.
+- The patch contains no CPU-up/down call, PSCI startup change, HPS source
+  change, regulator/watchdog/MMIO operation, userspace control, storage access,
+  or altered pair delay.
+
+Mutation review
+---------------
+
+The final Buildbox run rejected 11 mutations covering wrong round count,
+unbounded wait, relaxed turn read/write, missing read/write barriers, wrong
+target mask, asynchronous cross-call, wrong worker CPU, altered pair timing,
+and an incomplete terminal.
+
+Acceptance boundary
+-------------------
+
+The patch is accepted only for an exact terminal-parent versus coherency-child
+Buildbox compile and binary/stack review. Compilation must prove the kernel API
+contract, unchanged configuration and diagnostics, exact startup/CPU-down/HPS
+source boundaries, finite loops and barriers in linked code, and bounded stack
+use before any Android-v0 container may be constructed. No device was accessed.

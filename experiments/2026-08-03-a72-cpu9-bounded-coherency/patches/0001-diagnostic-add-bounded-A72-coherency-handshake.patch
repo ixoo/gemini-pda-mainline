@@ -1,0 +1,208 @@
+From 1538019f969d14667974fa0f1d4ae3b1e2c0fe4d Mon Sep 17 00:00:00 2001
+From: Gemini A72 experiment <noreply@gemini-a72.invalid>
+Date: Mon, 3 Aug 2026 15:30:00 +0000
+Subject: [PATCH] diagnostic: add bounded A72 coherency handshake
+
+Run one finite CPU8/CPU9 publish-consume exchange after sample 2.
+
+Carry exact completion and sequence state in the sample-3 terminal.
+
+Keep startup, CPU_OFF prohibition, power, HPS, and recovery unchanged.
+---
+ arch/arm64/kernel/psci.c | 162 ++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 160 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/kernel/psci.c b/arch/arm64/kernel/psci.c
+index ec5a2349b..76faeba8a 100644
+--- a/arch/arm64/kernel/psci.c
++++ b/arch/arm64/kernel/psci.c
+@@ -547,6 +547,139 @@ static void mt6797_a72_hold_ipi(void *data)
+ #ifdef CONFIG_MTK_A72_CPU9_CLUSTER_REUSE
+ extern void mt6797_a72_hps_down_snapshot(int *reported, int *cpu, int *error,
+ 					 int *count);
++
++#define MT6797_A72_COH_ROUNDS 1024
++#define MT6797_A72_COH_SPIN_BUDGET (1U << 24)
++
++static atomic_t mt6797_a72_coh_reported = ATOMIC_INIT(0);
++static atomic_t mt6797_a72_coh_rounds = ATOMIC_INIT(0);
++static atomic_t mt6797_a72_coh_cpu8 = ATOMIC_INIT(-1);
++static atomic_t mt6797_a72_coh_cpu9 = ATOMIC_INIT(-1);
++static atomic_t mt6797_a72_coh_error8 = ATOMIC_INIT(0);
++static atomic_t mt6797_a72_coh_error9 = ATOMIC_INIT(0);
++static atomic_t mt6797_a72_coh_final_seq8 = ATOMIC_INIT(0);
++static atomic_t mt6797_a72_coh_final_seq9 = ATOMIC_INIT(0);
++static int mt6797_a72_coh_turn;
++static int mt6797_a72_coh_seq8;
++static int mt6797_a72_coh_seq9;
++
++static int mt6797_a72_coh_wait_turn(int expected, unsigned int *budget)
++{
++	while (READ_ONCE(mt6797_a72_coh_turn) != expected) {
++		if (!(*budget)--)
++			return -ETIMEDOUT;
++		cpu_relax();
++	}
++	smp_rmb();
++	return 0;
++}
++
++static void mt6797_a72_coh_ipi(void *unused)
++{
++	unsigned int budget = MT6797_A72_COH_SPIN_BUDGET;
++	int cpu = smp_processor_id();
++	int error = 0;
++	int round;
++
++	if (cpu == 8) {
++		atomic_set(&mt6797_a72_coh_cpu8, cpu);
++		for (round = 1; round <= MT6797_A72_COH_ROUNDS; round++) {
++			error = mt6797_a72_coh_wait_turn(8, &budget);
++			if (error)
++				break;
++			if (round > 1 && READ_ONCE(mt6797_a72_coh_seq9) != round - 1) {
++				error = -EIO;
++				break;
++			}
++			WRITE_ONCE(mt6797_a72_coh_seq8, round);
++			smp_wmb();
++			WRITE_ONCE(mt6797_a72_coh_turn, 9);
++		}
++		if (!error) {
++			error = mt6797_a72_coh_wait_turn(8, &budget);
++			if (!error && READ_ONCE(mt6797_a72_coh_seq9) !=
++			    MT6797_A72_COH_ROUNDS)
++				error = -EIO;
++		}
++		atomic_set(&mt6797_a72_coh_error8, error);
++	} else if (cpu == 9) {
++		atomic_set(&mt6797_a72_coh_cpu9, cpu);
++		for (round = 1; round <= MT6797_A72_COH_ROUNDS; round++) {
++			error = mt6797_a72_coh_wait_turn(9, &budget);
++			if (error)
++				break;
++			if (READ_ONCE(mt6797_a72_coh_seq8) != round) {
++				error = -EIO;
++				break;
++			}
++			WRITE_ONCE(mt6797_a72_coh_seq9, round);
++			smp_wmb();
++			WRITE_ONCE(mt6797_a72_coh_turn, 8);
++		}
++		atomic_set(&mt6797_a72_coh_error9, error);
++	}
++}
++
++static void mt6797_a72_coh_workfn(struct work_struct *work)
++{
++	cpumask_t targets;
++
++	atomic_set(&mt6797_a72_coh_reported, -1);
++	atomic_set(&mt6797_a72_coh_rounds, 0);
++	atomic_set(&mt6797_a72_coh_cpu8, -1);
++	atomic_set(&mt6797_a72_coh_cpu9, -1);
++	atomic_set(&mt6797_a72_coh_error8, 0);
++	atomic_set(&mt6797_a72_coh_error9, 0);
++	WRITE_ONCE(mt6797_a72_coh_seq8, 0);
++	WRITE_ONCE(mt6797_a72_coh_seq9, 0);
++	WRITE_ONCE(mt6797_a72_coh_turn, 8);
++	smp_wmb();
++	if (smp_processor_id() != 0) {
++		atomic_set(&mt6797_a72_coh_error8, -EXDEV);
++		atomic_set(&mt6797_a72_coh_error9, -EXDEV);
++		goto publish;
++	}
++	cpumask_clear(&targets);
++	cpumask_set_cpu(8, &targets);
++	cpumask_set_cpu(9, &targets);
++	smp_call_function_many(&targets, mt6797_a72_coh_ipi, NULL, true);
++	atomic_set(&mt6797_a72_coh_rounds, MT6797_A72_COH_ROUNDS);
++publish:
++	atomic_set(&mt6797_a72_coh_final_seq8,
++		   READ_ONCE(mt6797_a72_coh_seq8));
++	atomic_set(&mt6797_a72_coh_final_seq9,
++		   READ_ONCE(mt6797_a72_coh_seq9));
++	smp_wmb();
++	atomic_set(&mt6797_a72_coh_reported, 1);
++}
++
++static DECLARE_WORK(mt6797_a72_coh_work, mt6797_a72_coh_workfn);
++
++static void mt6797_a72_coh_schedule(void)
++{
++	if (!schedule_work_on(0, &mt6797_a72_coh_work)) {
++		atomic_set(&mt6797_a72_coh_error8, -EBUSY);
++		atomic_set(&mt6797_a72_coh_error9, -EBUSY);
++		smp_wmb();
++		atomic_set(&mt6797_a72_coh_reported, 2);
++	}
++}
++
++static void mt6797_a72_coh_snapshot(int *reported, int *rounds,
++				    int *cpu8, int *cpu9,
++				    int *error8, int *error9,
++				    int *seq8, int *seq9)
++{
++	*reported = atomic_read(&mt6797_a72_coh_reported);
++	smp_rmb();
++	*rounds = atomic_read(&mt6797_a72_coh_rounds);
++	*cpu8 = atomic_read(&mt6797_a72_coh_cpu8);
++	*cpu9 = atomic_read(&mt6797_a72_coh_cpu9);
++	*error8 = atomic_read(&mt6797_a72_coh_error8);
++	*error9 = atomic_read(&mt6797_a72_coh_error9);
++	*seq8 = atomic_read(&mt6797_a72_coh_final_seq8);
++	*seq9 = atomic_read(&mt6797_a72_coh_final_seq9);
++}
+ #endif
+ 
+ static void mt6797_a72_hold_workfn(struct work_struct *work)
+@@ -556,6 +689,14 @@ static void mt6797_a72_hold_workfn(struct work_struct *work)
+ 	int hps_cpu;
+ 	int hps_error;
+ 	int hps_count;
++	int coh_reported;
++	int coh_rounds;
++	int coh_cpu8;
++	int coh_cpu9;
++	int coh_error8;
++	int coh_error9;
++	int coh_seq8;
++	int coh_seq9;
+ 	int observed_cpu8 = -1;
+ 	int observed_cpu9 = -1;
+ 	int hits8 = atomic_read(&mt6797_a72_hold_hits);
+@@ -589,6 +730,8 @@ static void mt6797_a72_hold_workfn(struct work_struct *work)
+ 			 atomic_read(&mt6797_a72_cpu9_hits));
+ 		console_lock();
+ 		console_unlock();
++		if (sample == 2)
++			mt6797_a72_coh_schedule();
+ 		if (!schedule_delayed_work(&mt6797_a72_hold_work,
+ 					   msecs_to_jiffies(delay))) {
+ 			pr_emerg("gemini-a72-pair-v2 result=fault sample=%d cpu8=-1 cpu9=-1 online8=%d online9=%d hits8=%d hits9=%d error8=%d error9=%d\n",
+@@ -602,8 +745,23 @@ static void mt6797_a72_hold_workfn(struct work_struct *work)
+ 	}
+ 	mt6797_a72_hps_down_snapshot(&hps_reported, &hps_cpu,
+ 				      &hps_error, &hps_count);
+-	pr_emerg("gemini-a72-pair-v3 result=pass sample=3 cpu8=8 cpu9=9 online8=1 online9=1 hits8=3 hits9=3 hps_reported=%d hps_cpu=%d hps_error=%d hps_count=%d\n",
+-		 hps_reported, hps_cpu, hps_error, hps_count);
++	mt6797_a72_coh_snapshot(&coh_reported, &coh_rounds,
++				 &coh_cpu8, &coh_cpu9,
++				 &coh_error8, &coh_error9,
++				 &coh_seq8, &coh_seq9);
++	if (coh_reported == 1 && coh_rounds == MT6797_A72_COH_ROUNDS &&
++	    coh_cpu8 == 8 && coh_cpu9 == 9 && !coh_error8 && !coh_error9 &&
++	    coh_seq8 == MT6797_A72_COH_ROUNDS &&
++	    coh_seq9 == MT6797_A72_COH_ROUNDS)
++		pr_emerg("gemini-a72-pair-v4 result=pass sample=3 cpu8=8 cpu9=9 online8=1 online9=1 hits8=3 hits9=3 hps_reported=%d hps_cpu=%d hps_error=%d hps_count=%d coh_reported=%d coh_rounds=%d coh_cpu8=%d coh_cpu9=%d coh_error8=%d coh_error9=%d coh_seq8=%d coh_seq9=%d\n",
++			 hps_reported, hps_cpu, hps_error, hps_count,
++			 coh_reported, coh_rounds, coh_cpu8, coh_cpu9,
++			 coh_error8, coh_error9, coh_seq8, coh_seq9);
++	else
++		pr_emerg("gemini-a72-pair-v4 result=fault sample=3 cpu8=8 cpu9=9 online8=1 online9=1 hits8=3 hits9=3 hps_reported=%d hps_cpu=%d hps_error=%d hps_count=%d coh_reported=%d coh_rounds=%d coh_cpu8=%d coh_cpu9=%d coh_error8=%d coh_error9=%d coh_seq8=%d coh_seq9=%d\n",
++			 hps_reported, hps_cpu, hps_error, hps_count,
++			 coh_reported, coh_rounds, coh_cpu8, coh_cpu9,
++			 coh_error8, coh_error9, coh_seq8, coh_seq9);
+ 	console_lock();
+ 	console_unlock();
+ #else
