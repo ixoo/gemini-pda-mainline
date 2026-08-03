@@ -92,6 +92,8 @@ def validate(psci: str, cpu: str, hps: str) -> None:
     )
     require(psci.count("2 * round, &budget") == 3, "barrier target inventory changed")
     require(psci.count("pl_actual=%016llx") == 2, "terminal inventory changed")
+    require(psci.count("if (!(*budget)--)") == 3, "spin-bound inventory changed")
+    require(psci.count("if (actual != expected)") == 2, "compare inventory changed")
     require(psci.count("smp_call_function_many(") == 3, "cross-call count changed")
     require(psci.count("cpumask_set_cpu(8, &targets);") == 1, "CPU8 mask changed")
     require(psci.count("cpumask_set_cpu(9, &targets);") == 1, "CPU9 mask changed")
@@ -135,13 +137,31 @@ def main() -> int:
         "wrong-words": ("#define MT6797_A72_PL_WORDS 8", "#define MT6797_A72_PL_WORDS 7"),
         "wrong-parity": ("int parity = writer == 8 ? 0 : 1;", "int parity = writer == 8 ? 1 : 0;"),
         "wrong-stride": ("line += 2", "line += 1"),
-        "unbounded-wait": ("\t\tif (!(*budget)--)\n\t\t\treturn -ETIMEDOUT;\n", ""),
+        "unbounded-wait": (
+            "static int mt6797_a72_pl_wait(atomic_t *counter, int expected,\n"
+            "\t\t\t      unsigned int *budget)\n"
+            "{\n"
+            "\twhile (atomic_read(counter) != expected) {\n"
+            "\t\tif (!(*budget)--)\n"
+            "\t\t\treturn -ETIMEDOUT;\n",
+            "static int mt6797_a72_pl_wait(atomic_t *counter, int expected,\n"
+            "\t\t\t      unsigned int *budget)\n"
+            "{\n"
+            "\twhile (atomic_read(counter) != expected) {\n",
+        ),
         "missing-read-once": ("READ_ONCE(mt6797_a72_pl_data[line].words[word])", "mt6797_a72_pl_data[line].words[word]"),
         "missing-write-once": ("WRITE_ONCE(mt6797_a72_pl_data[line].words[word], value);", "mt6797_a72_pl_data[line].words[word] = value;"),
         "wrong-barrier-target": ("2 * round, &budget", "2 * round - 1, &budget"),
         "missing-counter": ("\t\tatomic_inc(&mt6797_a72_pl_written);\n", ""),
         "missing-write-barrier": ("\t\tsmp_wmb();\n\t\tatomic_inc(&mt6797_a72_pl_written);", "\t\tatomic_inc(&mt6797_a72_pl_written);"),
-        "missing-compare": ("\t\t\tif (actual != expected) {", "\t\t\tif (false) {"),
+        "missing-compare": (
+            "u64 actual = READ_ONCE(mt6797_a72_pl_data[line].words[word]);\n\n"
+            "\t\t\t*hash = mt6797_a72_pl_hash(*hash, actual);\n"
+            "\t\t\tif (actual != expected) {",
+            "u64 actual = READ_ONCE(mt6797_a72_pl_data[line].words[word]);\n\n"
+            "\t\t\t*hash = mt6797_a72_pl_hash(*hash, actual);\n"
+            "\t\t\tif (false) {",
+        ),
         "wrong-target": ("cpumask_set_cpu(9, &targets);", "cpumask_set_cpu(7, &targets);"),
         "async-parallel": ("\t\t\t\t\t       NULL, true);", "\t\t\t\t\t       NULL, false);"),
         "missing-parent-gate": ("\t\tif (mt6797_a72_ml_passed()) {", "\t\tif (true) {"),
