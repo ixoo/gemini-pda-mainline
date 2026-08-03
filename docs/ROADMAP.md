@@ -958,6 +958,21 @@ and CPU_OFF prohibition, moves all three pair samples inside the fixed deadline,
 and collapses repeated HPS down-pressure reporting into one bounded attributable
 record while continuing to veto every request.
 
+That retention-window child passed its complete offline and deployment gates.
+Its changed-cycle runtime retained the exact pair-v2 sample-3 pass at
+10.885355 seconds: CPU8 and CPU9 were both Linux-accounted online and each
+completed all three synchronous callbacks with reconciled hit counts. No
+pair/startup fault, generic down-veto leak, panic, Internal error, or Call trace
+was retained; watchdog-class recovery and the unchanged boot2 checksum passed.
+The 65,524-byte tail starts at 8.847920 seconds, however, after sample 1 and the
+expected first HPS rejection, so it contains no required one-shot
+`hps-down-held-first cpu=9 error=-1`. The predeclared overall gate is therefore
+inconclusive and this exact image must not be repeated. The next ordered action
+is a source-minimal child that leaves CPU startup, pair timing, the public-down
+barrier, and power sequencing unchanged while snapshotting the accumulated HPS
+first result/count/error into the durable sample-3 terminal. A clean terminal
+then earns one exact repeatability run before any coherency/load experiment.
+
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback
 gates close.

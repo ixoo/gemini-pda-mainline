@@ -1,0 +1,110 @@
+CPU9 retention-window runtime attempt 1
+=======================================
+
+Date: 2026-08-03
+Result: inconclusive-hps-first-record-overwritten
+Candidate full boot2 SHA-256:
+  6f1e5f45c8f75cdfde5a996f902f499d685566c3bec227efa6cdb56aaeffa115
+
+Changed-cycle observation
+-------------------------
+
+The collector started from reachable ordinary Gemian, captured its initial
+boot ID, observed a sustained disconnect, then captured a different boot ID
+after automatic return to the exact known-good `3.18.41+` kernel. It archived
+pstore without removing or modifying any retained entry or partition.
+
+The 65,524-byte retained console begins at 8.847920 seconds, after the first
+pair sample and expected first HPS rejection. It preserves these exact lines:
+
+  [    8.885406] psci: gemini-a72-pair-v2 result=sample sample=2 cpu8=8 cpu9=9 online8=1 online9=1 hits8=2 hits9=2
+  [   10.885355] psci: gemini-a72-pair-v2 result=pass sample=3 cpu8=8 cpu9=9 online8=1 online9=1 hits8=3 hits9=3
+
+The exact terminal can be emitted only after all three synchronous pair
+rounds reconcile. It therefore proves that CPU8 and CPU9 were both
+Linux-accounted online and each executed all three callbacks by 10.885355
+seconds. This advances the CPU9 retained-execution boundary beyond the parent,
+which preserved only two rounds.
+
+Retained decision counts
+------------------------
+
+  pair-v2 sample 1: 0 (overwritten)
+  pair-v2 sample 2: 1
+  pair-v2 sample 3 pass: 1
+  pair-v2 fault: 0
+  hps-down-held-first: 0 (overwritten or absent)
+  generic down-veto: 0
+  CPU9 rejected-prestate: 0
+  CPU9 fault-retain-psci: 0
+  CPU9 fault-retain-secondary: 0
+  parent rollback/fault terminals: 0
+  panic: 0
+  Internal error: 0
+  Call trace: 0
+  CPUHVFS cluster1 off text: 4
+  CPUHVFS cluster1 on text: 3
+
+The later pair terminal directly proves that `cluster1 off` text before it did
+not leave either CPU unable to execute callbacks. Those strings do not prove a
+safe power-off transition. The console retained 111 ordinary HPS action-end
+records, enough traffic to explain loss of earlier one-shot evidence.
+
+Recovery and serviceability
+---------------------------
+
+Initial boot-ID SHA-256:
+  40982b7095dbd4f10a6fe707643f87fcd615bc2135c4f7841bb559e409989e81
+Final boot-ID SHA-256:
+  cf3d07f7460fa89808d57162e33936237c964c62be4b86fe78c3273d50b1c58b
+Boot ID changed: yes
+Recovery kernel: 3.18.41+
+Recovery architecture: aarch64
+Android boot reason: wdt_by_pass_pwk
+Numeric boot reason: 4
+Power-up reason: reboot
+CPU8 offline under recovery OS: yes
+CPU9 offline under recovery OS: yes
+Full boot2 SHA-256 unchanged:
+  6f1e5f45c8f75cdfde5a996f902f499d685566c3bec227efa6cdb56aaeffa115
+
+Private evidence identities
+---------------------------
+
+Console SHA-256:
+  de0aa26fac7737fe353a14e9d68fc7f1b9d7e33ac832d7df08f8b755cd70702f
+Pmsg SHA-256:
+  ea109156f4d719e70ff9fe4d1d33ec206cb4721e4b44793cc33446ec38a11fb7
+Capture manifest SHA-256:
+  c2bea807c56b89e28af69faca6bc39cb452ada24499964b765330e822d12c09f
+Cycle record SHA-256:
+  c40739b1e31c5744132b9d633c7f36fa4e013c0ac7607d8fdb267795591c1e61
+Metadata SHA-256:
+  70be62b394becc7e47873688bc3b7afdc83c21d8c7f935ec1985ab931fa5d6d3
+
+Decision
+--------
+
+result=inconclusive-hps-first-record-overwritten
+cpu8_online_at_sample_3=yes
+cpu9_online_at_sample_3=yes
+cpu8_callback_hits=3
+cpu9_callback_hits=3
+pair_fault_count=0
+hps_first_record_count=0
+recovery=changed-cycle-watchdog-class
+boot2_unchanged=yes
+unchanged_retry=no
+
+The exact pair terminal passes its retained-execution predicate, but the
+predeclared overall success class also requires exactly one retained
+`hps-down-held-first cpu=9 error=-1` record. That record is absent from the
+truncated console, so this run is inconclusive rather than a full gate pass.
+The exact image must not be repeated unchanged.
+
+The next child should preserve CPU startup, callback timing, the public
+CPU-down veto, and every power/recovery boundary. It should snapshot the
+one-shot HPS result/count/error into the durable sample-3 terminal, making the
+terminal self-contained under the observed pstore tail pressure. Only that
+changed artifact can distinguish a true first `-EPERM` from overwritten early
+text and earn a repeatability run.

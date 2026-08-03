@@ -2,8 +2,8 @@ CPU9 retention-window guarded runtime decision map
 ==================================================
 
 Date: 2026-08-03
-Status: deployment passed; runtime pending
-Runtime result: not tested
+Status: runtime attempt 1 classified
+Runtime result: inconclusive-hps-first-record-overwritten
 
 Exact experiment identity
 -------------------------
@@ -140,8 +140,9 @@ whole-device writes remain outside authorization.
 Next action
 -----------
 
-Arm changed-cycle pstore and optional read-only netcat capture, then physically
-select boot2 once and classify the returned evidence under this map.
+Do not repeat this exact candidate. Derive a changed child whose sample-3
+terminal snapshots the one-shot HPS result/count/error without changing CPU
+startup, callback timing, the public-down barrier, or power sequencing.
 
 Offline tool review
 -------------------

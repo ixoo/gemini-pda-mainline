@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu9-retention-window` |
-| Status | `deployment-passed-runtime-pending` |
+| Status | `runtime-inconclusive-hps-attribution-overwritten` |
 | Subsystem | MT6797 CPU8/CPU9 retained pair sampling and HPS down pressure |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -77,6 +77,9 @@ and clean shutdown after verified readback.
 - [`results/deployment-20260803.txt`](results/deployment-20260803.txt): exact
   live-GPT target, predecessor, candidate/readback identity, power state,
   no-backup policy, and confirmed shutdown.
+- [`results/runtime-attempt-1-inconclusive-20260803.txt`](results/runtime-attempt-1-inconclusive-20260803.txt):
+  exact three-pair CPU8/CPU9 execution terminal, missing early HPS attribution,
+  changed-cycle recovery, private evidence identities, and decision.
 
 ## Procedure
 
@@ -103,17 +106,16 @@ the decision terminal.
 
 ## Conclusion
 
-`deployment-passed-runtime-pending`: Buildbox source and compile review
-pass. Two independent Android-v0 construction roots are byte-identical, and
-the independent parser accepts the exact kernel, inherited ramdisk, header,
-padding, provenance, and offline-only boundary. The guarded installer and
-read-only capture tools pass their static contracts against the predeclared
-runtime map. The live-resolved inactive boot2 write and independent full
-readback passed, and the device shut down cleanly. No boot or runtime claim
-exists yet.
+`runtime-inconclusive-hps-attribution-overwritten`: retained pstore contains
+the exact pair-v2 sample-3 pass at 10.885355 seconds, proving CPUs 8 and 9 were
+Linux-accounted online and each completed all three synchronous callbacks.
+There is no retained pair/startup fault, panic, Internal error, or Call trace;
+changed-cycle watchdog recovery and the unchanged boot2 checksum pass. The
+tail starts after sample 1 and preserves no one-shot HPS `-EPERM` record, so
+the predeclared overall success class is not met.
 
 ## Follow-up
 
-Arm the independent changed-cycle pstore and optional read-only netcat capture
-paths, then physically select boot2 once. Classify the returned evidence only
-under the predeclared runtime map.
+Do not repeat this image unchanged. Derive a child that preserves CPU startup,
+callback timing, the public-down barrier, and power sequencing while carrying
+the one-shot HPS result/count/error into the durable sample-3 terminal.
