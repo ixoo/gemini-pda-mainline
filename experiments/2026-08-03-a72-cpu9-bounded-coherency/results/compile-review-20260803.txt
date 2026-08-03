@@ -1,0 +1,66 @@
+CPU8/CPU9 bounded coherency Buildbox compile review
+Date: 2026-08-03
+
+Decision: accept the compiled image for deterministic Android-v0 container
+construction and offline validation only. This is not yet a boot candidate or
+runtime result.
+
+Exact identities
+----------------
+
+Repository commit:
+  938cdefde98522a2cd3504605aee04e4c83d5671
+Vendor source commit:
+  59e00a9144d782e148332009a835b99c43382467
+Exact terminal-parent patchset SHA-256:
+  2d94a2cd489e33a7df854ffec7533fbf969dc9c810e9eece57d118b905060310
+Bounded-coherency patchset SHA-256:
+  d4c40577b9e91fedfde048b29cb203311de264c526c71e3abd907fc6fafcf67f
+Child Image.gz-dtb SHA-256:
+  04602bc2cf61c8ca1232457eba608e347c29eebda7ce6c2d811004051748e604
+Child vmlinux SHA-256:
+  715199f569c2bd8121081df99186a765b2be7add65ec374fbeb56524197ddbfe
+Child System.map SHA-256:
+  6b3ba31d4f4001c295e8c2794cb757b446c3620ae6f1c11b5abee4380c5369ea
+Parent Image.gz-dtb SHA-256:
+  d12f55977bcd800c38b6ad0e24959daa91f34c4610999735f5656dce58d0f9c4
+Parent vmlinux SHA-256:
+  60fb053c9e8dc82786c2786e10a0fe96b0966bdfda209071ac8208d6942a8fc9
+Parent System.map SHA-256:
+  d1f4e1f3147dc69cf250f26450a94fb8c9f94c8f2cf8b115d2e88a76d6a93f1d
+
+Compile and comparison review
+-----------------------------
+
+- Buildbox compiled both child and exact terminal parent with the pinned GCC
+  6.3/binutils 2.28 toolchain. No native VM build ran.
+- Both configuration deltas are exactly ANBOX normalization plus the retained
+  observer, one-way CPU8, and CPU9 cluster-reuse options.
+- Child and parent compiler diagnostics are byte-identical. The single retained
+  line is the known vendor baseline diagnostic, not a child-only warning.
+- The source gate rejected all 11 mutations before compilation and proved exact
+  identity for generic CPU completion, public CPU-down, HPS policy, and the
+  CPU9 PSCI startup function.
+- Child System.map contains `mt6797_a72_coh_ipi` and
+  `mt6797_a72_coh_workfn`; the exact parent contains neither.
+- Focused child disassembly contains three `dmb ishld` acquire barriers and two
+  `dmb ishst` release barriers in the bounded IPI callback.
+- The child contains complete pair-v4 pass and fault terminals with every
+  inherited pair/HPS field and all bounded coherency fields. The exact parent
+  contains pair-v3 and no pair-v4 marker.
+- Both stack-usage archives contain 2,484 compiler records. Child stack use is
+  64 bytes for `mt6797_a72_coh_workfn`, 16 bytes for
+  `mt6797_a72_coh_ipi`, and 160 bytes for the extended
+  `mt6797_a72_hold_workfn`; the parent terminal worker uses 112 bytes.
+- Package SHA256SUMS and the Buildbox job record validated successfully.
+
+Acceptance boundary
+-------------------
+
+The exact child image is accepted only as input to deterministic Android-v0
+container construction and offline container validation. Before device access,
+the container checksum and embedded kernel identity must be fixed, deployment
+must resolve inactive `boot2` from the live GPT, and the unique pair-v4 runtime
+terminal plus watchdog recovery evidence must be predeclared. CPU_OFF, altered
+HPS policy, a changed power boundary, and an unchanged-artifact repeat remain
+out of scope.

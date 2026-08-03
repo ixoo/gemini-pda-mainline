@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu9-bounded-coherency` |
-| Status | `patch-generation-passed-compile-pending` |
+| Status | `offline-container-passed-deployment-tooling-pending` |
 | Subsystem | MT6797 retained Cortex-A72 pair and cache coherency |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -28,8 +28,9 @@ recovery, and every power boundary?
 - Exact parent terminal patchset SHA-256:
   `2d94a2cd489e33a7df854ffec7533fbf969dc9c810e9eece57d118b905060310`.
 - Build backend: Buildbox only; no native VM kernel build.
-- No patch, compile, container, deployment, or runtime claim exists at this
-  design stage.
+- Exact compile-review repository commit:
+  `938cdefde98522a2cd3504605aee04e4c83d5671`.
+- No container, deployment, or runtime claim exists yet.
 
 ## Safety assessment
 
@@ -54,17 +55,31 @@ continue after recovery.
 - [`results/patch-generation-review-20260803.txt`](results/patch-generation-review-20260803.txt):
   exact identities, rejected generation attempts, source/mutation audit, and
   compile-only acceptance decision.
+- [`results/compile-review-20260803.txt`](results/compile-review-20260803.txt):
+  exact Buildbox child/parent identities, configuration, diagnostics, linked
+  barrier/symbol checks, and stack bounds.
+- [`scripts/build-candidate.sh`](scripts/build-candidate.sh),
+  [`scripts/assemble.py`](scripts/assemble.py), and
+  [`scripts/test_candidate.py`](scripts/test_candidate.py): pinned,
+  device-free Android-v0 construction and independent validation.
+- [`results/offline-container-review-20260803.txt`](results/offline-container-review-20260803.txt):
+  two-root reproducibility, exact container identities, inherited ramdisk, and
+  offline-only acceptance boundary.
 
 ## Conclusion
 
-`patch-generation-passed-compile-pending`: Buildbox reconstructed the exact
-terminal-attribution parent, exercised the deterministic transformer, rejected
-11 mutations, and generated one patch changing only `psci.c`. The accepted
-source contains the exact CPU0-pinned, 1,024-round, finite-budget handshake and
-complete pair-v4 terminal. It has not compiled yet.
+`offline-container-passed-deployment-tooling-pending`: Buildbox compiled the bounded-
+coherency child and exact terminal parent from repository commit `938cdef`,
+with identical configuration deltas and compiler diagnostics. Linked child
+code contains the expected synchronous IPI/work callbacks and acquire/release
+barriers; the exact parent excludes those symbols. Child stack use is bounded
+at 64 bytes for the work callback, 16 bytes for the IPI callback, and 160 bytes
+for the extended terminal worker. Two independent output roots then produced
+byte-identical raw and padded Android-v0 images with the unchanged known-good
+ramdisk. This remains offline evidence, not hardware support.
 
 ## Follow-up
 
-Commit and push the accepted patch review. Then add the exact-parent Buildbox
-compile workflow and compare full child/parent builds, linked barriers/loops,
-configuration, diagnostics, and stack bounds before container construction.
+Derive and mutation-test the guarded `boot2` installer and changed-cycle
+runtime collector. Predeclare the deployment identity, unique pair-v4 result,
+recovery evidence, and decision branches before any device write.

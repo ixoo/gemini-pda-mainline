@@ -1,0 +1,59 @@
+CPU8/CPU9 bounded coherency offline container review
+Date: 2026-08-03
+
+Decision: pass for deployment/runtime-map tooling only; not a runtime result.
+
+Inputs
+------
+
+Repository commit:
+  938cdefde98522a2cd3504605aee04e4c83d5671
+Bounded-coherency patchset SHA-256:
+  d4c40577b9e91fedfde048b29cb203311de264c526c71e3abd907fc6fafcf67f
+Buildbox kernel field SHA-256:
+  04602bc2cf61c8ca1232457eba608e347c29eebda7ce6c2d811004051748e604
+Known-good active boot source SHA-256:
+  1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513
+Inherited ramdisk SHA-256:
+  a1ee05445e9a2bd8fbc1f75d7cda326b9ca7a6d3b644cbb1d5fc0ac167835be4
+
+Accepted output
+---------------
+
+Raw Android-v0 image size:
+  14804992 bytes
+Raw Android-v0 SHA-256:
+  647ebe58da86171b3a36ddd5225bc564b11be4e9799f94fe4b35b9bd005ef139
+Exact boot2 size:
+  16777216 bytes
+Exact boot2 SHA-256:
+  eda1d5bb312aa937e41499ea8fd13a5f8ae95865399605fe7cf93ee61daaa23d
+
+Independent checks
+------------------
+
+- Two separate output roots reconstructed the raw and padded images.
+- Both raw images and both padded images compare byte-for-byte identical.
+- The kernel field is exactly 8,447,438 bytes and matches the Buildbox image.
+- The ramdisk is exactly 6,354,621 bytes and byte-identical to the known-good
+  inherited input.
+- Android-v0 magic, page size, load addresses, empty name, command line,
+  extents, legacy SHA-1 image ID, zero suffix, and zero-only boot2 tail pass.
+- Each manifest contains only the raw image, padded image, analysis, and
+  provenance; every listed checksum passes.
+- Tooling pins the constructor, exact parent assembler, source builder,
+  repository commit, terminal parent, coherence patchset, kernel, and output
+  hashes.
+- Builder inspection excludes device paths, network/device access, reboot,
+  shutdown, and poweroff actions. Construction accessed no device and wrote no
+  partition.
+
+Acceptance boundary
+-------------------
+
+The exact padded image is eligible only for separately reviewed, committed,
+and pushed deployment/runtime tooling. That tooling must resolve inactive
+logical `boot2` from the live GPT, preserve the predecessor checksum without a
+fresh backup, require two full-partition readbacks, shut the device down after
+success, and predeclare the unique pair-v4 pass/fault decision map. This result
+does not establish CPU8/CPU9 coherency or hardware support.
