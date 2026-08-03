@@ -49,6 +49,10 @@ Commands:
                         Compare recovery-only and unpatched Gemian on Buildbox
   fetch-gemian-recovery-compile
                         Fetch that validated compile-review bundle for HEAD
+  build-gemian-one-way-compile
+                        Compare one-way CPU8 and parent rollback on Buildbox
+  fetch-gemian-one-way-compile
+                        Fetch that validated compile-review bundle for HEAD
 
 Environment:
   BUILDBOX_HOST         SSH target (default: buildbox)
@@ -436,7 +440,7 @@ build_gemian_observer() {
   local sha
 
   case "${mode}" in
-    observer|rollback|recovery) ;;
+    observer|rollback|recovery|one-way) ;;
     *) die "invalid Gemian compile-review mode: ${mode}" ;;
   esac
 
@@ -484,6 +488,11 @@ case "${mode}" in
     readonly job_suffix=gemian-a72-recovery
     readonly job_purpose=gemian-a72-recovery-compile-review
     readonly build_script=experiments/2026-08-02-a72-recovery-only-discriminator/scripts/build-on-buildbox
+    ;;
+  one-way)
+    readonly job_suffix=gemian-a72-one-way
+    readonly job_purpose=gemian-a72-one-way-compile-review
+    readonly build_script=experiments/2026-08-02-a72-one-way-cpu8-boundary/scripts/build-on-buildbox
     ;;
   *) exit 2 ;;
 esac
@@ -608,7 +617,7 @@ elif [[ "${mode}" == rollback ]]; then
   ! grep -qE ' (mt6797_a72_obs_rollback_terminal|.*_a72_diag_)$' \
     "${package}/outputs/baseline/System.map"
   [[ "$(tar -tf "${package}/outputs/baseline/stack-usage.tar" | wc -l)" -gt 100 ]]
-else
+elif [[ "${mode}" == recovery ]]; then
   jq -e '
     .baseline_source_unpatched == true and
     .purpose == "recovery-compile-review-only" and
@@ -624,6 +633,34 @@ else
     outputs/baseline/stack-usage-files.txt; do
     [[ -s "${package}/${required}" ]]
   done
+  [[ "$(tar -tf "${package}/outputs/baseline/stack-usage.tar" | wc -l)" -gt 100 ]]
+else
+  for required in outputs/baseline/stack-usage.tar \
+    outputs/baseline/stack-usage-files.nul \
+    outputs/baseline/stack-usage-files.txt; do
+    [[ -s "${package}/${required}" ]]
+  done
+  jq -e '
+    .baseline_source_parent_rollback == true and
+    .baseline_stack_usage_file_count > 100 and
+    .parent_patchset_sha256 ==
+      "3584e9dd5ffb041573b851f31f3a96eaa0a684acb880fd59560762e5abc58be0" and
+    .rollback_patchset_sha256 ==
+      "fd4da13202c62a6ea21a216ffc9eb2650d70dcaa216a8ca1b3c64e5ef5c10b9d" and
+    .one_way_patchset_sha256 ==
+      "2ce261bdd9bcd5fe02133414c7d6535c213c06ad3af0e37ffbbc34feee7819c2" and
+    .purpose == "one-way-compile-review-only"
+  ' "${package}/provenance/build.json" >/dev/null
+  grep -q ' mtk_wd_a72_recovery_takeover$' "${package}/outputs/System.map"
+  grep -q ' mt6797_a72_one_way_sram_set_verify$' \
+    "${package}/outputs/System.map"
+  grep -q ' mt6797_a72_one_way_dcm_enable$' "${package}/outputs/System.map"
+  grep -q ' mt6797_a72_one_way_secondary_complete$' \
+    "${package}/outputs/System.map"
+  grep -q ' mt6797_a72_obs_rollback_terminal$' \
+    "${package}/outputs/baseline/System.map"
+  ! grep -qE ' (mtk_wd_a72_recovery_takeover|mt6797_a72_one_way_.*)$' \
+    "${package}/outputs/baseline/System.map"
   [[ "$(tar -tf "${package}/outputs/baseline/stack-usage.tar" | wc -l)" -gt 100 ]]
 fi
 [[ "$(tar -tf "${package}/outputs/stack-usage.tar" | wc -l)" -gt 100 ]]
@@ -673,6 +710,10 @@ fetch_gemian_observer() {
       job_suffix=gemian-a72-recovery
       job_purpose=gemian-a72-recovery-compile-review
       ;;
+    one-way)
+      job_suffix=gemian-a72-one-way
+      job_purpose=gemian-a72-one-way-compile-review
+      ;;
     *) die "invalid Gemian compile-review mode: ${mode}" ;;
   esac
   sha="$(git -C "${REPO_DIR}" rev-parse HEAD)"
@@ -718,7 +759,8 @@ case "${package}" in "${artifact_root}"/*) ;; *) exit 1 ;; esac
   .boot_candidate == false and
   (($mode == "observer" and .purpose == "compile-review-only") or
    ($mode == "rollback" and .purpose == "rollback-compile-review-only") or
-   ($mode == "recovery" and .purpose == "recovery-compile-review-only"))
+   ($mode == "recovery" and .purpose == "recovery-compile-review-only") or
+   ($mode == "one-way" and .purpose == "one-way-compile-review-only"))
 ' "${package}/provenance/build.json" >/dev/null
 tar -C "$(dirname "${package}")" -cf - -- "$(basename "${package}")"
 REMOTE
@@ -1226,6 +1268,8 @@ case "${COMMAND}" in
   fetch-gemian-one-way-patches) fetch_gemian_one_way_patches ;;
   build-gemian-recovery-compile) build_gemian_observer recovery ;;
   fetch-gemian-recovery-compile) fetch_gemian_observer recovery ;;
+  build-gemian-one-way-compile) build_gemian_observer one-way ;;
+  fetch-gemian-one-way-compile) fetch_gemian_observer one-way ;;
   help|-h|--help) usage ;;
   *) usage >&2; exit 2 ;;
 esac
