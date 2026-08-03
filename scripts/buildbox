@@ -97,6 +97,10 @@ Commands:
                         Compare terminal attribution and exact window parent
   fetch-gemian-cpu9-terminal-compile
                         Fetch that validated compile-review bundle for HEAD
+  build-gemian-cpu9-coherency-compile
+                        Compare bounded coherency and exact terminal parent
+  fetch-gemian-cpu9-coherency-compile
+                        Fetch that validated compile-review bundle for HEAD
 
 Environment:
   BUILDBOX_HOST         SSH target (default: buildbox)
@@ -484,7 +488,7 @@ build_gemian_observer() {
   local sha
 
   case "${mode}" in
-    observer|rollback|recovery|one-way|held|late|cpu9|window|terminal) ;;
+    observer|rollback|recovery|one-way|held|late|cpu9|window|terminal|coherence) ;;
     *) die "invalid Gemian compile-review mode: ${mode}" ;;
   esac
 
@@ -562,6 +566,11 @@ case "${mode}" in
     readonly job_suffix=gemian-a72-cpu9-terminal
     readonly job_purpose=gemian-a72-cpu9-terminal-attribution-compile-review
     readonly build_script=experiments/2026-08-03-a72-cpu9-terminal-attribution/scripts/build-on-buildbox
+    ;;
+  coherence)
+    readonly job_suffix=gemian-a72-cpu9-coherency
+    readonly job_purpose=gemian-a72-cpu9-bounded-coherency-compile-review
+    readonly build_script=experiments/2026-08-03-a72-cpu9-bounded-coherency/scripts/build-on-buildbox
     ;;
   *) exit 2 ;;
 esac
@@ -865,6 +874,44 @@ elif [[ "${mode}" == window ]]; then
   grep -aFq 'gemini-a72-retain-v1 result=hps-down-held-first' \
     "${package}/outputs/vmlinux"
   [[ "$(tar -tf "${package}/outputs/baseline/stack-usage.tar" | wc -l)" -gt 100 ]]
+elif [[ "${mode}" == coherence ]]; then
+  for required in outputs/baseline/stack-usage.tar \
+    outputs/baseline/stack-usage-files.nul \
+    outputs/baseline/stack-usage-files.txt \
+    outputs/focused-disassembly/__cpu_up.txt \
+    outputs/focused-disassembly/cpu_down.txt \
+    outputs/focused-disassembly/cpu_psci_cpu_boot.txt \
+    outputs/focused-disassembly/hps_algo_do_cluster_action.txt \
+    outputs/focused-disassembly/mt6797_a72_hold_workfn.txt \
+    outputs/focused-disassembly/mt6797_a72_hps_down_snapshot.txt \
+    outputs/focused-disassembly/mt6797_a72_coh_ipi.txt \
+    outputs/focused-disassembly/mt6797_a72_coh_workfn.txt \
+    outputs/baseline/focused-disassembly/__cpu_up.txt \
+    outputs/baseline/focused-disassembly/cpu_down.txt \
+    outputs/baseline/focused-disassembly/cpu_psci_cpu_boot.txt \
+    outputs/baseline/focused-disassembly/hps_algo_do_cluster_action.txt \
+    outputs/baseline/focused-disassembly/mt6797_a72_hold_workfn.txt \
+    outputs/baseline/focused-disassembly/mt6797_a72_hps_down_snapshot.txt; do
+    [[ -s "${package}/${required}" ]]
+  done
+  jq -e '
+    .baseline_source_exact_terminal == true and
+    .cpu9_startup_source_identical == true and
+    .baseline_stack_usage_file_count > 100 and
+    (.terminal_patchset_sha256 | test("^[0-9a-f]{64}$")) and
+    .coherence_patchset_sha256 ==
+      "d4c40577b9e91fedfde048b29cb203311de264c526c71e3abd907fc6fafcf67f" and
+    .purpose == "cpu9-bounded-coherency-compile-review-only"
+  ' "${package}/provenance/build.json" >/dev/null
+  for symbol in mt6797_a72_coh_ipi mt6797_a72_coh_workfn; do
+    grep -q " ${symbol}$" "${package}/outputs/System.map"
+    ! grep -q " ${symbol}$" "${package}/outputs/baseline/System.map"
+  done
+  grep -aFq 'gemini-a72-pair-v4 result=pass sample=3' \
+    "${package}/outputs/vmlinux"
+  grep -aFq 'gemini-a72-pair-v4 result=fault sample=3' \
+    "${package}/outputs/vmlinux"
+  [[ "$(tar -tf "${package}/outputs/baseline/stack-usage.tar" | wc -l)" -gt 100 ]]
 else
   for required in outputs/baseline/stack-usage.tar \
     outputs/baseline/stack-usage-files.nul \
@@ -971,6 +1018,10 @@ fetch_gemian_observer() {
       job_suffix=gemian-a72-cpu9-terminal
       job_purpose=gemian-a72-cpu9-terminal-attribution-compile-review
       ;;
+    coherence)
+      job_suffix=gemian-a72-cpu9-coherency
+      job_purpose=gemian-a72-cpu9-bounded-coherency-compile-review
+      ;;
     *) die "invalid Gemian compile-review mode: ${mode}" ;;
   esac
   sha="$(git -C "${REPO_DIR}" rev-parse HEAD)"
@@ -1022,7 +1073,8 @@ case "${package}" in "${artifact_root}"/*) ;; *) exit 1 ;; esac
    ($mode == "late" and .purpose == "late-hold-compile-review-only") or
    ($mode == "cpu9" and .purpose == "cpu9-cluster-reuse-compile-review-only") or
    ($mode == "window" and .purpose == "cpu9-retention-window-compile-review-only") or
-   ($mode == "terminal" and .purpose == "cpu9-terminal-attribution-compile-review-only"))
+   ($mode == "terminal" and .purpose == "cpu9-terminal-attribution-compile-review-only") or
+   ($mode == "coherence" and .purpose == "cpu9-bounded-coherency-compile-review-only"))
 ' "${package}/provenance/build.json" >/dev/null
 tar -C "$(dirname "${package}")" -cf - -- "$(basename "${package}")"
 REMOTE
@@ -2334,6 +2386,8 @@ case "${COMMAND}" in
   fetch-gemian-cpu9-window-compile) fetch_gemian_observer window ;;
   build-gemian-cpu9-terminal-compile) build_gemian_observer terminal ;;
   fetch-gemian-cpu9-terminal-compile) fetch_gemian_observer terminal ;;
+  build-gemian-cpu9-coherency-compile) build_gemian_observer coherence ;;
+  fetch-gemian-cpu9-coherency-compile) fetch_gemian_observer coherence ;;
   help|-h|--help) usage ;;
   *) usage >&2; exit 2 ;;
 esac
