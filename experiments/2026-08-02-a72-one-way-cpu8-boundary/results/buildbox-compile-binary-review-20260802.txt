@@ -1,0 +1,56 @@
+A72 one-way CPU8 Buildbox compile and binary review
+date=2026-08-02
+result=pass
+device_action=none
+native_vm_kernel_build=no
+
+repository_commit=bd499e234e0849dbc96a5c7274b414564f016b6d
+source_commit=59e00a9144d782e148332009a835b99c43382467
+parent_observer_patchset_sha256=3584e9dd5ffb041573b851f31f3a96eaa0a684acb880fd59560762e5abc58be0
+accepted_rollback_owner_patchset_sha256=76a00aeb9ebefe0c964e70e56b63977071d2f2b12b12ce52ecdb7bb298f8fdd3
+one_way_patchset_sha256=d9649e1453a05bc8a016da6fa371e97480ff62aebad3dedd87d148d5cb574890
+buildbox_job=bd499e234e0849dbc96a5c7274b414564f016b6d-gemian-a72-one-way
+buildbox_result=changed-and-parent-pass
+diagnostics_comparison=identical
+diagnostics=WARNING: modpost: Found 69 section mismatch(es).
+
+failed_lane_611bb00=full rollback discriminator patch was an incorrect parent and conflicted before configuration
+failed_lane_e8aae9e=accepted rollback filenames were accidentally routed to the observer directory and failed before configuration
+failed_lane_d2db6bd=invalid CL2_BUCK_CTRL Kconfig dependency forced the one-way option off and stopped before compilation
+
+config_delta=CONFIG_ANBOX missing->n; CONFIG_MTK_A72_ONE_WAY_CPU8 missing->y; CONFIG_MTK_A72_TRANSITION_OBSERVER missing->y
+config_sha256=1eabab56be03d3565ccbb3295842d73d405a35e003a81a901ce841beade633fa
+config_diff_sha256=8abcb25190afa264c3b792306552878b6ef2477557fab4c6818d10ae937322c8
+image_gz_dtb_size=8443903
+image_gz_dtb_sha256=e65a74cf5445a9e22a537b760e566a5a21d3d314e81689dd01c52bd11e7c6676
+vmlinux_sha256=fa1fd50b127b8f6730f977f5efa3108ea7a9a7711ed054e53ce3f9fafbf208b7
+system_map_sha256=1edfb81da968fe9c11e99d437459f401949582a647e318608791e5d764169f59
+parent_image_gz_dtb_sha256=5831a0d735920fe7a259ad6ac56ff8b92721bc84dd11fc83e9ccaba006107c0f
+parent_vmlinux_sha256=7a6be3b96dc09999614f3c95a43bf57cbc4fb8f700d001f96904c139c3e0e0ef
+parent_system_map_sha256=0a723f454e1168c40d971ec4f7d2e8b7866d32858b937dc4751e510079da5ac9
+
+stack_usage_file_count=2484
+parent_stack_usage_file_count=2484
+cpu_psci_cpu_boot_stack_bytes=128
+parent_cpu_psci_cpu_boot_stack_bytes=96
+cpu_up_stack_bytes=96
+watchdog_takeover_stack_bytes=48
+watchdog_arm_stack_bytes=48
+sram_verify_stack_bytes=32
+dcm_enable_stack_bytes=64
+secondary_complete_stack_bytes=48
+global_max_stack_bytes=1488
+parent_global_max_stack_bytes=1488
+
+binary_cpu9_dispatch=compare CPU argument with 9 at ffffffc00008c8bc and branch to rejection before inherited dispatch
+binary_cpu8_dispatch=compare CPU argument with 8 at ffffffc00008c8c4 and branch to one-way entry ffffffc00008cc70 before inherited dispatch
+binary_watchdog_takeover=call at ffffffc00008cc84 before prestate and every A72 mutation
+binary_isolation_call=mt6797_a72_diag_spm_compare_update call at ffffffc00008d274
+binary_sram_verify_call=mt6797_a72_one_way_sram_set_verify call at ffffffc00008d38c after isolation and PWRAP deassert
+binary_psci_call=indirect blr at ffffffc00008d3d8 after SRAM verification
+binary_secondary_handoff=__cpu_up calls mt6797_a72_one_way_secondary_complete after wait_for_completion_timeout
+binary_dcm_order=mt6797_a72_one_way_secondary_complete calls mt6797_a72_one_way_dcm_enable only after completion/online tests
+binary_forbidden_path=CPU8 and CPU9 branch away before inherited cpu_power_on_buck and iDVFS paths; CPU_OFF rejection remains compiled; no new SRAM disable or psci cpu_off call
+
+decision=compile-binary-stack-review-pass
+next=assemble the exact Image.gz-dtb with the checksum-pinned inherited ramdisk into an Android-v0 image, validate it independently, and complete the guarded runtime decision map before any boot2 write

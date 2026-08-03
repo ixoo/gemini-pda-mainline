@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-02-a72-one-way-cpu8-boundary` |
-| Status | `source-review-passed-compile-pending` |
+| Status | `compile-binary-review-passed-container-pending` |
 | Subsystem | MT6797 CPU8 external rail, isolation, SRAM-LDO, PSCI, and DCM |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-02 |
@@ -72,6 +72,9 @@ review. It does not authorize deployment before those gates pass.
   rejections, and manual source-control-flow review.
 - [`patches/`](patches/): exact Buildbox-generated experiment-only source
   patches in deterministic order; these are not yet a boot candidate.
+- [`results/buildbox-compile-binary-review-20260802.txt`](results/buildbox-compile-binary-review-20260802.txt):
+  records changed-versus-parent compilation, exact configuration, machine-code
+  ordering, symbol separation, diagnostics, and stack-usage review.
 
 ## Procedure
 
@@ -124,6 +127,5 @@ reset, and known-good recovery on hardware.
 
 ## Follow-up
 
-Compile the accepted one-way and parent configurations on Buildbox. Do not
-deploy until changed-versus-parent compilation, exact binary ordering, stack,
-Android-v0 container, and guarded runtime decision-map reviews all pass.
+Assemble and independently validate the exact Android-v0 container and guarded
+runtime decision map. Do not deploy until both remaining offline reviews pass.
