@@ -58,7 +58,6 @@ def main() -> int:
     mutations = (
         ("psci", "if (cpu != 9)", "if (cpu != 8)"),
         ("psci", "atomic_xchg(&mt6797_a72_cpu9_attempted, 1)", "atomic_read(&mt6797_a72_cpu9_attempted)"),
-        ("psci", "!cpu_online(8) || cpu_online(9)", "cpu_online(8) || cpu_online(9)"),
         ("psci", "WRITE_ONCE(mt6797_a72_cpu9_psci_accepted, true)", "WRITE_ONCE(mt6797_a72_cpu9_psci_accepted, false)"),
         ("psci", "smp_call_function_single(9", "smp_call_function_single(8"),
         ("psci", "observed_cpu9 != 9", "observed_cpu9 != 8"),
@@ -79,6 +78,11 @@ def main() -> int:
     )
     regional_mutations = (
         (boot_region, "!(g_cl2_online & 1)", "(g_cl2_online & 1)"),
+        (
+            boot_region,
+            "!cpu_online(8) || cpu_online(9)",
+            "cpu_online(8) || cpu_online(9)",
+        ),
         (
             boot_region,
             "psci_ops.cpu_on(cpu_logical_map(cpu), __pa(secondary_entry))",
