@@ -89,6 +89,9 @@ review. It does not authorize deployment before those gates pass.
   installer for only the exact candidate over the exact rollback predecessor.
 - [`scripts/capture-live-outcome.sh`](scripts/capture-live-outcome.sh): optional
   read-only direct USB/netcat capture of an exact terminal marker before reset.
+- [`results/owner-write-override-20260802.txt`](results/owner-write-override-20260802.txt):
+  one-use owner approval for the exact live recovery predecessor and 65%
+  battery floor while retaining every other deployment gate.
 
 ## Procedure
 

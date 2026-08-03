@@ -1,0 +1,65 @@
+One-way CPU8 owner write override
+================================
+
+Recorded: 2026-08-02 America/New_York
+Status: validated; one deployment authorized after push
+
+Authorization
+-------------
+
+Owner instruction: `I approve the boot2 write`
+Scope: one exact one-way CPU8 candidate deployment to logical boot2
+Observed capacity: 68 percent
+Observed battery present: 1
+Observed health: Good
+Observed charge status: Not charging
+Observed USB online: 0
+
+The normal installer stopped before upload or write because capacity was below
+81 percent. A subsequent read-only live-GPT check resolved boot2 as
+`/dev/mmcblk0p30` and found the exact previously proven recovery-only candidate:
+
+  a7eec22777cda053a88826760fb9a01dbd84aa1cf2fe491215047cf8c99ed4e5
+
+The override therefore changes exactly two assumptions:
+
+- the accepted predecessor is corrected from the rollback candidate to that
+  exact verified recovery-only candidate; and
+- the battery capacity floor is narrowed from 81 to 65 percent for this one
+  explicitly flagged invocation.
+
+Retained gates
+--------------
+
+- exact owner-approved flag, named Gemini, candidate, manifest, and live
+  predecessor identities;
+- known-good AArch64 Gemian kernel, root, and stable boot ID;
+- exactly one live-GPT logical boot2, exact 16 MiB size, writable mmcblk0
+  child, inactive root, unmounted, no holders, and no swap;
+- battery present, numeric capacity, Good health, and at least 65 percent;
+- bounded upload, synchronized exact full write, flush, full on-device
+  checksum, independent full streamed readback, and byte comparison;
+- temporary staging/readback cleanup, ignored private evidence, no fresh
+  partition backup, and clean shutdown with no automatic reboot.
+
+Exact deployment identities
+---------------------------
+
+Candidate full-partition SHA-256:
+  fc7368ef0bd56b5c17fea277f78bfeae362da5f685be9f85686f991cdc4fefda
+Candidate manifest SHA-256:
+  a58e950b6004b4591b4bec17691bbc179ba089adc382ce454b7d23eace2e9f64
+Artifact name:
+  gemian-a72-one-way-cpu8-aae1a0f9a3d9
+
+Validation
+----------
+
+Override wrapper SHA-256:
+  cb12439e12bb8512bcf6dc001a30f2474cc6ec56a86fb002887e6cb64f472cd2
+
+The wrapper requires `--owner-one-way-override`, pins the guarded base
+installer, proves the exact replacement tokens, rejects the original 81%
+threshold, passes Bash syntax and managed-VM ShellCheck, and derives its help
+path without device access. No partition write occurred while producing this
+record.
