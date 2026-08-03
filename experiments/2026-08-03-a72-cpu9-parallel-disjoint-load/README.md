@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu9-parallel-disjoint-load` |
-| Status | `offline-candidate-validated; deployment-tooling-pending` |
+| Status | `deployment-ready; first-runtime-pending` |
 | Subsystem | MT6797 retained Cortex-A72 pair and cache coherency |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -70,6 +70,11 @@ watchdog recovery, or changed power boundary?
   `0beead0b00485ad18333aca4d688fcd549c813113b7ec0554a6761c7147b17fb`.
 - Independent validation pins all tool, parent, compile, kernel, ramdisk,
   header, layout, raw, padded, manifest, and offline-only identities.
+- Before pair-v6 deployment, the owner selected the still-installed pair-v5
+  boot2 and observed its automatic restart into Gemian. Live boot2 remained
+  exact pair-v5 (`5227729e...`), so this cycle is excluded from pair-v6 runtime
+  evidence. The unchanged recovery boot ID prevents treating the retained
+  pair-v5 pstore terminal as a newly attributable repeat.
 
 ## Safety assessment
 
@@ -104,19 +109,28 @@ static BSS and no payload is placed on the callback stack.
   offline candidate validator.
 - [`results/offline-container-review-20260803.txt`](results/offline-container-review-20260803.txt):
   exact container identities, validation scope, and acceptance boundary.
+- [`scripts/install-boot2.sh`](scripts/install-boot2.sh): source-pinned guarded
+  installer for exact pair-v5 predecessor to pair-v6 candidate, full readback,
+  and mandatory clean shutdown.
+- [`scripts/capture-live-outcome.sh`](scripts/capture-live-outcome.sh): optional
+  read-only USB/netcat complete pair-v6 terminal collector.
+- [`scripts/test_runtime_tools.py`](scripts/test_runtime_tools.py): installer,
+  collector, identity-mutation, and decision-map contract validator.
+- [`results/runtime-decision-map-20260803.txt`](results/runtime-decision-map-20260803.txt):
+  fixed pair-v6 deployment, recovery, pass, and reject branches.
 
 ## Conclusion
 
-`offline-candidate-validated; deployment-tooling-pending`: source, mutation,
+`deployment-ready; first-runtime-pending`: source, mutation,
 comparative compile, binary, configuration, diagnostics, stack, two-root
 container reproducibility, and independent Android-v0 validation gates pass.
-The exact artifact is not deployable until a pair-v6-specific installer and
-runtime decision map are source-pinned and mutation-tested.
+The pair-v6 installer and read-only collector are source-pinned to accepted
+pair-v5 tools, the exact predecessor/candidate identities are mutation-tested,
+and the runtime decision map is fixed. No pair-v6 device write or runtime claim
+exists yet.
 
 ## Follow-up
 
-Derive and pin the pair-v6 installer and runtime evidence tooling from the
-accepted pair-v5 paths. Require exact live-GPT boot2 resolution, inactive and
-unmounted state, power/size/checksum/readback/shutdown gates, the complete
-pair-v6 terminal, changed-cycle recovery, and rejection of all incomplete or
-fault outcomes before any device access.
+Install the exact pair-v6 padded image only through the guarded helper. After
+verified full-partition readback and clean shutdown, arm changed-cycle pstore
+collection and physically select boot2 once under the fixed decision map.
