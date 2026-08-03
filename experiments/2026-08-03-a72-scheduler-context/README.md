@@ -129,6 +129,11 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   onto that worker's stack. No package was accepted and no device action
   occurred. See
   [`results/compile-attempt-1-stack-reject-20260803.txt`](results/compile-attempt-1-stack-reject-20260803.txt).
+- Stack-safe generation from commit
+  `0e1140b887db1ef04fe9b7dbb12e857cd1cefa64` passed both hash vectors and all
+  23 negative mutations. Local patch review found only misaligned continuation
+  indentation in the pointer-snapshot signature; that source-only package was
+  not admitted or compiled, and no device action occurred.
 
 ## Analysis
 

@@ -314,8 +314,8 @@ static void mt6797_a72_hold_workfn(struct work_struct *work)
     snapshot = """}
 
 static void mt6797_a72_sc_snapshot(int *reported,
-\t\t\t const struct mt6797_a72_sc_result **result8,
-\t\t\t const struct mt6797_a72_sc_result **result9,
+\t\t\t\t   const struct mt6797_a72_sc_result **result8,
+\t\t\t\t   const struct mt6797_a72_sc_result **result9,
 \t\t\t\t   int *ready, int *finished)
 {
 \t*reported = atomic_read(&mt6797_a72_sc_reported);
