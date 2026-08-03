@@ -1,0 +1,56 @@
+CPU8 late-hold patch generation review
+======================================
+
+Date: 2026-08-03
+Build backend: Buildbox only
+Native VM kernel build: no
+Device access: none
+
+Exact accepted generation
+-------------------------
+
+Repository commit: 7f9c56989b4c11e2008fa7f2305b2d82c98d0286
+Pinned source: 59e00a9144d782e148332009a835b99c43382467
+Exact parent held-online patchset SHA-256:
+  e6da1e8cc976ad63dd9cf8a254bb7234d73589cfad6afeb07135403a27d03ba3
+Generated patch commit: c9ba2a438eb1b70ce9ab9a43170a36197c43a58a
+Generated patch SHA-256:
+  3523bbff3e924eb6154b96f6cba175d5c8de25937934ad2cff343c67103f8d3a
+Ordered patchset SHA-256:
+  f2bebc4a04888a6c83f0dc72c2de56d350c2a52ab9779ef07e3a01cb5b544d91
+
+Rejected generation revisions
+-----------------------------
+
+Commit 6853080b2e959617a4967451ce6540aa51e625ac stopped before package
+publication because the mutation harness required a globally unique
+`!cpu_online(8)` anchor. The source contains another occurrence, so this was a
+test-harness ambiguity rather than a source result.
+
+Commit 18e6036ede67c61df8c0dc25d7f60187af6ca9db narrowed the mutations to
+the exact combined predicate. Buildbox then proved that the validator's loose
+token-order checks could allow a wrong callback-CPU mutation. It stopped before
+package publication. The accepted revision requires the complete predicate
+exactly once:
+
+  ret || observed_cpu != 8 || !cpu_online(8) || cpu_online(9)
+
+Accepted source decision
+------------------------
+
+The full observer, accepted rollback, one-way, and held-online parent stack
+applied cleanly. The child is one logical 13-addition/8-removal patch in
+`arch/arm64/kernel/psci.c`. It retains the same synchronous CPU8 callback and
+failure predicate, makes samples 1 and 2 nonterminal, schedules sample 3 four
+seconds after sample 2, and emits success only with three exact hits.
+
+Seven unsafe mutations are rejected: wrong IPI target, wrong callback CPU,
+wrong online CPU, weakened CPU9 exclusion, only two samples, an unsafe late
+delay, and a premature two-hit terminal. Source validation also forbids CPU_OFF,
+CPU-down requests, watchdog changes, SRAM-LDO disable, and stress/load actions.
+
+Result
+------
+
+result=source-accepted-compile-pending
+next_action=commit and push the generated patch, then run exact child-versus-held-parent compilation on Buildbox

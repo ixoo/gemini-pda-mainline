@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu8-late-hold` |
-| Status | `source-design` |
+| Status | `source-accepted-compile-pending` |
 | Subsystem | MT6797 CPU8 IPI/coherency and retained pstore evidence |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -51,6 +51,9 @@ about two seconds between the third sample and recovery.
   patch generation on Buildbox.
 - [`scripts/build-on-buildbox`](scripts/build-on-buildbox): exact child versus
   held-online parent compile review.
+- [`patches/`](patches/): the one logical Buildbox-generated child patch.
+- [`results/patch-generation-review-20260803.txt`](results/patch-generation-review-20260803.txt):
+  two rejected validator revisions and the accepted source identity.
 
 ## Procedure
 
@@ -68,7 +71,12 @@ about two seconds between the third sample and recovery.
 
 ## Observations
 
-No child source has been generated or compiled yet. No device action occurred.
+Buildbox applied the full exact parent and generated one 13-addition/8-removal
+patch. Two earlier generation revisions stopped before publication: one had an
+ambiguous mutation anchor, and the next exposed that loose token-order checks
+did not reject a wrong callback CPU. The accepted validator requires the full
+IPI/accounting predicate exactly once and rejects all seven unsafe mutations.
+No kernel compile or device action has occurred.
 
 ## Analysis
 
@@ -80,10 +88,11 @@ without executing CPU8 again would not meet the experiment contract.
 
 ## Conclusion
 
-`planned`: the source and runtime contract are specified; hardware behavior is
-not established.
+`source-accepted-compile-pending`: the exact parent, one logical patch, timing,
+failure predicate, terminal, forbidden actions, and mutation gates pass.
+Hardware behavior is not established.
 
 ## Follow-up
 
-Generate and review the one-patch child on Buildbox, then compile it against
-the exact held-online parent. CPU9 remains blocked.
+Commit and push the generated patch, then compile it against the exact
+held-online parent on Buildbox. CPU9 remains blocked.

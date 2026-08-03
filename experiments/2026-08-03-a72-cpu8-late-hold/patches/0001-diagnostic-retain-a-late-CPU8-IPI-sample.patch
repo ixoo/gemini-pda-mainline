@@ -1,0 +1,60 @@
+From c9ba2a438eb1b70ce9ab9a43170a36197c43a58a Mon Sep 17 00:00:00 2001
+From: Gemini A72 experiment <noreply@gemini-a72.invalid>
+Date: Mon, 3 Aug 2026 18:00:00 +0000
+Subject: [PATCH] diagnostic: retain a late CPU8 IPI sample
+
+Add a third synchronous CPU8 callback ten seconds after completion.
+
+Make the third checked sample the only success terminal.
+
+Keep watchdog, startup, hotplug, CPU9, and CPU_OFF policy unchanged.
+---
+ arch/arm64/kernel/psci.c | 21 +++++++++++++--------
+ 1 file changed, 13 insertions(+), 8 deletions(-)
+
+diff --git a/arch/arm64/kernel/psci.c b/arch/arm64/kernel/psci.c
+index 948aef221..b203a6ea1 100644
+--- a/arch/arm64/kernel/psci.c
++++ b/arch/arm64/kernel/psci.c
+@@ -550,28 +550,33 @@ static void mt6797_a72_hold_workfn(struct work_struct *work)
+ 	ret = smp_call_function_single(8, mt6797_a72_hold_ipi,
+ 				       &observed_cpu, 1);
+ 	if (ret || observed_cpu != 8 || !cpu_online(8) || cpu_online(9)) {
+-		pr_emerg("gemini-a72-hold-v1 result=fault sample=%d cpu=%d cpu8=%d cpu9=%d error=%d\n",
+-			 sample, observed_cpu, cpu_online(8), cpu_online(9), ret);
++		pr_emerg("gemini-a72-hold-v2 result=fault sample=%d cpu=%d cpu8=%d cpu9=%d hits=%d error=%d\n",
++			 sample, observed_cpu, cpu_online(8), cpu_online(9),
++			 atomic_read(&mt6797_a72_hold_hits), ret);
+ 		console_lock();
+ 		console_unlock();
+ 		return;
+ 	}
+ 	atomic_inc(&mt6797_a72_hold_hits);
+-	if (sample == 1) {
+-		pr_emerg("gemini-a72-hold-v1 result=sample sample=1 cpu=8 cpu8=1 cpu9=0 online=%u\n",
++	if (sample < 3) {
++		unsigned long delay = sample == 1 ? 5000 : 4000;
++
++		pr_emerg("gemini-a72-hold-v2 result=sample sample=%d cpu=8 cpu8=1 cpu9=0 hits=%d online=%u\n",
++			 sample, atomic_read(&mt6797_a72_hold_hits),
+ 			 num_online_cpus());
+ 		console_lock();
+ 		console_unlock();
+ 		if (!schedule_delayed_work(&mt6797_a72_hold_work,
+-					   msecs_to_jiffies(5000))) {
+-			pr_emerg("gemini-a72-hold-v1 result=fault sample=2 cpu=-1 cpu8=%d cpu9=%d error=%d\n",
+-				 cpu_online(8), cpu_online(9), -EBUSY);
++					   msecs_to_jiffies(delay))) {
++			pr_emerg("gemini-a72-hold-v2 result=fault sample=%d cpu=-1 cpu8=%d cpu9=%d hits=%d error=%d\n",
++				 sample + 1, cpu_online(8), cpu_online(9),
++				 atomic_read(&mt6797_a72_hold_hits), -EBUSY);
+ 			console_lock();
+ 			console_unlock();
+ 		}
+ 		return;
+ 	}
+-	pr_emerg("gemini-a72-hold-v1 result=pass sample=2 cpu=8 cpu8=1 cpu9=0\n");
++	pr_emerg("gemini-a72-hold-v2 result=pass sample=3 cpu=8 cpu8=1 cpu9=0 hits=3\n");
+ 	console_lock();
+ 	console_unlock();
+ }
