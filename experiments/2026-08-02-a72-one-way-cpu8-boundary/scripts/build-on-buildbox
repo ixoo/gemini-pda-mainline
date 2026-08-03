@@ -1095,7 +1095,7 @@ if [[ "${build_mode}" == parallel ]]; then
   fi
   find "${output}" -type f -name '*.su' -exec \
     grep -hE 'mt6797_a72_(pl_ipi|coh_workfn|hold_workfn)' {} + > \
-    "${output}/parallel-stack.txt"
+    "${output}/parallel-stack.txt" || :
   python3 - "${output}/parallel-stack.txt" <<'PY'
 import pathlib
 import sys
