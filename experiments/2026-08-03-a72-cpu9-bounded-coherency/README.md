@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu9-bounded-coherency` |
-| Status | `offline-container-passed-deployment-tooling-pending` |
+| Status | `deployment-runtime-tools-passed-write-pending` |
 | Subsystem | MT6797 retained Cortex-A72 pair and cache coherency |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -65,10 +65,18 @@ continue after recovery.
 - [`results/offline-container-review-20260803.txt`](results/offline-container-review-20260803.txt):
   two-root reproducibility, exact container identities, inherited ramdisk, and
   offline-only acceptance boundary.
+- [`scripts/install-boot2.sh`](scripts/install-boot2.sh),
+  [`scripts/capture-live-outcome.sh`](scripts/capture-live-outcome.sh), and
+  [`scripts/test_runtime_tools.py`](scripts/test_runtime_tools.py): guarded
+  deployment, optional read-only USB/netcat capture, and mutation-tested result
+  contracts.
+- [`results/runtime-decision-map-20260803.txt`](results/runtime-decision-map-20260803.txt):
+  exact candidate, pair-v4 pass/fault oracle, changed-cycle requirements, and
+  predeclared decision branches.
 
 ## Conclusion
 
-`offline-container-passed-deployment-tooling-pending`: Buildbox compiled the bounded-
+`deployment-runtime-tools-passed-write-pending`: Buildbox compiled the bounded-
 coherency child and exact terminal parent from repository commit `938cdef`,
 with identical configuration deltas and compiler diagnostics. Linked child
 code contains the expected synchronous IPI/work callbacks and acquire/release
@@ -76,10 +84,14 @@ barriers; the exact parent excludes those symbols. Child stack use is bounded
 at 64 bytes for the work callback, 16 bytes for the IPI callback, and 160 bytes
 for the extended terminal worker. Two independent output roots then produced
 byte-identical raw and padded Android-v0 images with the unchanged known-good
-ramdisk. This remains offline evidence, not hardware support.
+ramdisk. The guarded installer pins the exact terminal predecessor, creates no
+fresh backup, requires two full readbacks, and powers off after success. The
+read-only collector requires the complete pair-v4/HPS/coherence terminal. This
+remains pre-deployment evidence, not hardware support.
 
 ## Follow-up
 
-Derive and mutation-test the guarded `boot2` installer and changed-cycle
-runtime collector. Predeclare the deployment identity, unique pair-v4 result,
-recovery evidence, and decision branches before any device write.
+Commit and push the reviewed deployment/runtime gate. When ordinary Gemian is
+reachable, install the exact candidate to live-GPT-resolved inactive `boot2`,
+verify two full readbacks, and leave the device shut down for one attributable
+physical selection.

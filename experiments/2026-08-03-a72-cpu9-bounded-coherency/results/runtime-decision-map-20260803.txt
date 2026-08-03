@@ -1,0 +1,110 @@
+CPU8/CPU9 bounded coherency deployment and runtime decision map
+Date: 2026-08-03
+
+This map is fixed before any device write. It authorizes one attributable boot
+of the exact candidate below after the installer and runtime tools have passed
+review, been committed, and been pushed. It is not runtime evidence.
+
+Exact candidate
+---------------
+
+Repository compile commit:
+  938cdefde98522a2cd3504605aee04e4c83d5671
+Coherence patchset SHA-256:
+  d4c40577b9e91fedfde048b29cb203311de264c526c71e3abd907fc6fafcf67f
+Kernel field SHA-256:
+  04602bc2cf61c8ca1232457eba608e347c29eebda7ce6c2d811004051748e604
+Raw Android-v0 SHA-256:
+  647ebe58da86171b3a36ddd5225bc564b11be4e9799f94fe4b35b9bd005ef139
+Full boot2 SHA-256:
+  eda1d5bb312aa937e41499ea8fd13a5f8ae95865399605fe7cf93ee61daaa23d
+Expected boot2 predecessor SHA-256:
+  933299078d78e5882055e73fcbf75447bac9abf7d42b2074f37d65fe81966a70
+
+Hypothesis and attributable observation
+---------------------------------------
+
+The exact pair-v3 parent already proved twice that CPUs 8 and 9 can remain
+online and execute three retained callbacks while bounded HPS down-pressure is
+recorded. This child changes only the post-sample-2 observation: one CPU0
+worker dispatches one synchronous call to CPUs 8 and 9 for a 1,024-round
+shared-memory turn/sequence handshake with finite spin budgets and explicit
+publish/consume barriers.
+
+The only positive result is one complete pair-v4 terminal with all of these
+values in the same line:
+
+  result=pass sample=3 cpu8=8 cpu9=9 online8=1 online9=1
+  hits8=3 hits9=3 hps_reported=1 hps_cpu=9 hps_error=-1
+  hps_count greater than zero coh_reported=1 coh_rounds=1024
+  coh_cpu8=8 coh_cpu9=9 coh_error8=0 coh_error9=0
+  coh_seq8=1024 coh_seq9=1024
+
+That terminal is decision-changing because the exact parent cannot emit
+pair-v4 or any `coh_*` field. Marker text without the exact values is not a
+pass.
+
+Observation sequence
+--------------------
+
+1. In ordinary Gemian, run the reviewed installer against the exact candidate.
+   It must resolve exactly one live-GPT logical `boot2`, prove it inactive and
+   unmounted, record the predecessor checksum without a fresh backup, verify
+   two full readbacks, remove temporary readbacks, and shut the device down.
+2. Before physical selection, arm
+   `scripts/collect-device-pstore --target gemini@192.168.1.50 --wait-for-cycle`
+   as the primary changed-cycle observer. The optional USB/netcat collector is
+   read-only and secondary.
+3. Physically select `boot2` once. The expected visible behavior is the same
+   bounded automatic watchdog restart as the exact terminal parent; screen
+   color alone is not kernel evidence.
+4. On immediate ordinary-Gemian recovery, require a changed boot ID, a
+   watchdog-class recovery reason, CPUs 8 and 9 offline, an inactive/unmounted
+   live-GPT `boot2`, and full boot2 checksum
+   `eda1d5bb312aa937e41499ea8fd13a5f8ae95865399605fe7cf93ee61daaa23d`.
+5. Search only the attributable changed-cycle pstore/console evidence for the
+   complete pair-v4 terminal and fault exclusions.
+
+Decision branches
+-----------------
+
+PASS
+  Require the exact positive terminal above, automatic watchdog recovery,
+  changed-cycle continuity, no panic, BUG, Internal error, Call trace, timeout,
+  asynchronous SError, or unexpected fault, CPUs 8/9 offline after recovery,
+  and unchanged boot2. Record a bounded-coherency runtime pass. One exact
+  repeatability run is then earned; do not enable CPU_OFF or extend load yet.
+
+PAIR-V4 FAULT
+  Any `gemini-a72-pair-v4 result=fault` is a reject. Record every `hps_*` and
+  `coh_*` value, recovery class, and exclusions. Do not repeat the unchanged
+  candidate. Use the error/sequence boundary to choose the next source change.
+
+INCOMPLETE OR WRONG TERMINAL
+  Missing fields, `coh_reported` other than 1, rounds or sequences other than
+  1024, wrong callback CPUs, any nonzero coherence error, or inherited HPS
+  values other than reported=1/cpu=9/error=-1/count>0 is a reject. Do not infer
+  coherency from online CPUs or earlier pair-v2 markers.
+
+AUTOMATIC RESTART WITH NO PAIR-V4
+  Classify as terminal-not-reached or evidence-loss using changed-cycle pstore,
+  earlier pair-v2/HPS markers, watchdog reason, and console continuity. Do not
+  repeat unchanged unless a new independent observation path can distinguish
+  those classes.
+
+NO AUTOMATIC RESTART OR LOST RECOVERY
+  Treat as a safety failure. Recover through the known-good boot path, preserve
+  available pstore, verify boot2 identity, and do not repeat unchanged.
+
+UNEXPECTED NORMAL BOOT
+  Verify the running kernel identity and boot2 full checksum. Treat the cycle
+  as non-attributable unless the exact pair-v4 terminal and changed-cycle
+  continuity are independently present.
+
+Success boundary
+----------------
+
+One pass establishes only bounded shared-memory execution between retained
+CPUs 8 and 9 under this diagnostic containment. A second exact pass establishes
+repeatability. Neither result authorizes CPU_OFF, removes the HPS veto, proves
+general cache coherency under load, or makes CPU8/CPU9 production-online.
