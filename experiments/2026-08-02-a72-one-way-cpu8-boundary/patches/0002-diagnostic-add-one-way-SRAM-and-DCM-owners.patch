@@ -1,0 +1,121 @@
+From d510f10c1457c26025c486a01b566b7a0b3eaf21 Mon Sep 17 00:00:00 2001
+From: Gemini A72 experiment <noreply@gemini-a72.invalid>
+Date: Mon, 3 Aug 2026 01:11:00 +0000
+Subject: [PATCH] diagnostic: add one-way SRAM and DCM owners
+
+Verify the secure SRAM selector and stable calibration without exposing it.
+
+Serialize the exact MP2 DCM toggle and require its two readbacks.
+
+Keep both helpers CPU8-only and reject CPU9.
+---
+ .../misc/mediatek/base/power/mt6797/mt_dcm.c  | 39 +++++++++++++++++++
+ .../mediatek/base/power/mt6797/mt_idvfs.c     | 30 ++++++++++++++
+ .../linux/mt6797_a72_transition_observer.h    |  5 +++
+ 3 files changed, 74 insertions(+)
+
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt_dcm.c b/drivers/misc/mediatek/base/power/mt6797/mt_dcm.c
+index acd7c6f2b..1495410ad 100644
+--- a/drivers/misc/mediatek/base/power/mt6797/mt_dcm.c
++++ b/drivers/misc/mediatek/base/power/mt6797/mt_dcm.c
+@@ -1111,6 +1111,45 @@ bool mt6797_a72_diag_dcm_zero(unsigned int cpu, u16 phase)
+ 	mt6797_a72_obs_dcm(cpu, phase, &snapshot);
+ 	return !(snapshot.before & snapshot.mask);
+ }
++
++int mt6797_a72_one_way_dcm_enable(unsigned int cpu)
++{
++	struct mt6797_a72_obs_dcm snapshot = {
++		.mask = MCUCFG_SYNC_DCM_MP2_MASK,
++		.on = 1,
++	};
++	unsigned long flags;
++	int ret = 0;
++
++	if (cpu != 8 || !cpu_online(8) || cpu_online(9))
++		return -EPERM;
++	spin_lock_irqsave(&mt6797_a72_obs_mp2_dcm_lock, flags);
++	snapshot.before = reg_read(MCUCFG_SYNC_DCM_MP2_CONFIG);
++	if (snapshot.before & snapshot.mask) {
++		ret = -EINVAL;
++		snapshot.toggle = snapshot.before;
++		snapshot.final = snapshot.before;
++	} else {
++		reg_write(MCUCFG_SYNC_DCM_MP2_CONFIG,
++			aor(snapshot.before, ~MCUCFG_SYNC_DCM_MP2_MASK,
++			    MCUCFG_SYNC_DCM_MP2_ON |
++			    MCUCFG_SYNC_DCM_MP2_DIV_SEL4 |
++			    MCUCFG_SYNC_DCM_MP2_TOG1));
++		snapshot.toggle = reg_read(MCUCFG_SYNC_DCM_MP2_CONFIG);
++		reg_write(MCUCFG_SYNC_DCM_MP2_CONFIG,
++			aor(snapshot.toggle, ~MCUCFG_SYNC_DCM_MP2_MASK,
++			    MCUCFG_SYNC_DCM_MP2_ON |
++			    MCUCFG_SYNC_DCM_MP2_DIV_SEL4 |
++			    MCUCFG_SYNC_DCM_MP2_TOG0));
++		snapshot.final = reg_read(MCUCFG_SYNC_DCM_MP2_CONFIG);
++		if ((snapshot.toggle & snapshot.mask) != 0x0f ||
++		    (snapshot.final & snapshot.mask) != 0x0d)
++			ret = -EIO;
++	}
++	spin_unlock_irqrestore(&mt6797_a72_obs_mp2_dcm_lock, flags);
++	mt6797_a72_obs_dcm(cpu, MT6797_A72_PHASE_DCM_ENABLE, &snapshot);
++	return ret;
++}
+ #endif
+ 
+ int dcm_mcusys_little(ENUM_MCUSYS_DCM on)
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt_idvfs.c b/drivers/misc/mediatek/base/power/mt6797/mt_idvfs.c
+index 90e0f9d99..40dd3b50c 100644
+--- a/drivers/misc/mediatek/base/power/mt6797/mt_idvfs.c
++++ b/drivers/misc/mediatek/base/power/mt6797/mt_idvfs.c
+@@ -140,6 +140,36 @@ bool mt6797_a72_diag_secure_zero(unsigned int cpu, u16 phase)
+ 	mt6797_a72_obs_secure(cpu, phase, &snapshot);
+ 	return zero && snapshot.stable;
+ }
++
++int mt6797_a72_one_way_sram_set_verify(unsigned int cpu)
++{
++	u32 calibration_first;
++	u32 calibration_second;
++	u32 selector_first;
++	u32 selector_second;
++	int ret;
++
++	if (cpu != 8 || cpu_online(8) || cpu_online(9))
++		return -EPERM;
++	ret = BigiDVFSSRAMLDOSet(110000);
++	udelay(240);
++	selector_first = (u32)SEC_BIGIDVFS_READ(0x102222b0);
++	calibration_first = (u32)SEC_BIGIDVFS_READ(0x102222b4);
++	selector_second = (u32)SEC_BIGIDVFS_READ(0x102222b0);
++	calibration_second = (u32)SEC_BIGIDVFS_READ(0x102222b4);
++	if (ret < 0 || selector_first != selector_second ||
++	    calibration_first != calibration_second ||
++	    (calibration_second & 0xffff0000) ||
++	    !(calibration_second & 0xffff) ||
++	    (selector_second & 0xfff) != 0x8fb)
++		ret = -EIO;
++	else
++		ret = 0;
++	mt6797_a72_obs_lifecycle(cpu, MT6797_A72_PHASE_SRAM_POST,
++				 ret, selector_second & 0xfff,
++				 calibration_first == calibration_second);
++	return ret;
++}
+ #endif
+ 
+ /* 0x11017000 0x1000, i2c idvfsapb ctrl reg */
+diff --git a/include/linux/mt6797_a72_transition_observer.h b/include/linux/mt6797_a72_transition_observer.h
+index 54dbc0e87..19fb85ef1 100644
+--- a/include/linux/mt6797_a72_transition_observer.h
++++ b/include/linux/mt6797_a72_transition_observer.h
+@@ -167,4 +167,9 @@ bool mt6797_a72_diag_dcm_zero(unsigned int cpu, u16 phase);
+ int mt6797_a72_diag_clock_capture(unsigned int cpu, u16 phase,
+ 				  struct mt6797_a72_obs_clock *snapshot);
+ 
++int mt6797_a72_one_way_sram_set_verify(unsigned int cpu);
++int mt6797_a72_one_way_dcm_enable(unsigned int cpu);
++int mt6797_a72_one_way_secondary_complete(unsigned int cpu,
++						 bool completed);
++
+ #endif

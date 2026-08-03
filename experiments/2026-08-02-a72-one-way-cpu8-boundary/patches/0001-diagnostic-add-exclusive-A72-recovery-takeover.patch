@@ -1,0 +1,148 @@
+From 59948eaa6f650501ead8e1516b608eb0dce99df0 Mon Sep 17 00:00:00 2001
+From: Gemini A72 experiment <noreply@gemini-a72.invalid>
+Date: Mon, 3 Aug 2026 01:10:00 +0000
+Subject: [PATCH] diagnostic: add exclusive A72 recovery takeover
+
+Reuse the runtime-proven reset-only TOPRGU owner for one CPU8 attempt.
+
+Transfer ownership under the ordinary kicker lock before A72 mutation.
+
+Restore normal kicks only when low-level ownership never began.
+---
+ .../watchdog/mediatek/include/ext_wd_drv.h    | 11 ++++
+ drivers/watchdog/mediatek/wdk/wd_common_drv.c | 23 ++++++++
+ .../watchdog/mediatek/wdt/mt6797/mtk_wdt.c    | 56 +++++++++++++++++++
+ 3 files changed, 90 insertions(+)
+
+diff --git a/drivers/watchdog/mediatek/include/ext_wd_drv.h b/drivers/watchdog/mediatek/include/ext_wd_drv.h
+index ea2cc04f1..c2116b675 100644
+--- a/drivers/watchdog/mediatek/include/ext_wd_drv.h
++++ b/drivers/watchdog/mediatek/include/ext_wd_drv.h
+@@ -25,6 +25,17 @@ void wdt_arch_reset(char mode);
+ void mtk_wdt_restart(enum wd_restart_type type);
+ void mtk_wdt_mode_config(bool dual_mode_en, bool irq, bool ext_en, bool ext_pol, bool wdt_en);
+ void mtk_wdt_set_time_out_value(unsigned int value);
++#ifdef CONFIG_MTK_A72_ONE_WAY_CPU8
++struct mtk_wdt_recovery_state {
++	unsigned int owned;
++	unsigned int mode_before;
++	unsigned int mode_after;
++	unsigned int length_after;
++};
++int mtk_wdt_recovery_arm(unsigned int timeout,
++			     struct mtk_wdt_recovery_state *state);
++int mtk_wd_a72_recovery_takeover(struct mtk_wdt_recovery_state *state);
++#endif
+ int mtk_wdt_confirm_hwreboot(void);
+ int mtk_wdt_enable(enum wk_wdt_en en);
+ void mtk_wd_resume(void);
+diff --git a/drivers/watchdog/mediatek/wdk/wd_common_drv.c b/drivers/watchdog/mediatek/wdk/wd_common_drv.c
+index 20ad0121a..60478788d 100644
+--- a/drivers/watchdog/mediatek/wdk/wd_common_drv.c
++++ b/drivers/watchdog/mediatek/wdk/wd_common_drv.c
+@@ -757,6 +757,29 @@ static struct notifier_block cpu_nfb __cpuinitdata = {
+ 	.priority = 6
+ };
+ 
++#ifdef CONFIG_MTK_A72_ONE_WAY_CPU8
++int mtk_wd_a72_recovery_takeover(struct mtk_wdt_recovery_state *state)
++{
++	int ret;
++
++	if (!state)
++		return -EINVAL;
++	*state = (struct mtk_wdt_recovery_state) { };
++	spin_lock(&lock);
++	if (!g_kicker_init || !g_wd_api || !g_wd_api->ready) {
++		ret = -EAGAIN;
++		goto out;
++	}
++	g_enable = 0;
++	ret = mtk_wdt_recovery_arm(12, state);
++	if (ret && !state->owned)
++		g_enable = 1;
++out:
++	spin_unlock(&lock);
++	return ret;
++}
++#endif
++
+ static void wdk_work_callback(struct work_struct *work)
+ {
+ 	int res = 0;
+diff --git a/drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c b/drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c
+index 1927e01f0..33a20a391 100644
+--- a/drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c
++++ b/drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c
+@@ -81,6 +81,9 @@ static const struct of_device_id rgu_of_match[] = {
+ /* static char expect_close; // Not use */
+ /* static spinlock_t rgu_reg_operation_spinlock = SPIN_LOCK_UNLOCKED; */
+ static DEFINE_SPINLOCK(rgu_reg_operation_spinlock);
++#ifdef CONFIG_MTK_A72_ONE_WAY_CPU8
++static bool mtk_wdt_recovery_owned;
++#endif
+ #ifndef CONFIG_KICK_SPM_WDT
+ static unsigned int timeout;
+ #endif
+@@ -245,8 +248,61 @@ int  mtk_wdt_confirm_hwreboot(void)
+ }
+ 
+ 
++#ifdef CONFIG_MTK_A72_ONE_WAY_CPU8
++int mtk_wdt_recovery_arm(unsigned int timeout,
++			     struct mtk_wdt_recovery_state *state)
++{
++	unsigned int length;
++	unsigned int mode;
++	int ret = 0;
++
++	if (!state || timeout != 12)
++		return -EINVAL;
++	*state = (struct mtk_wdt_recovery_state) { };
++	spin_lock(&rgu_reg_operation_spinlock);
++	if (!toprgu_base) {
++		ret = -ENODEV;
++		goto out;
++	}
++	if (mtk_wdt_recovery_owned) {
++		state->owned = 1;
++		ret = -EALREADY;
++		goto out;
++	}
++	state->mode_before = __raw_readl(MTK_WDT_MODE);
++	length = (timeout * (1 << 6)) << 5;
++	mode = state->mode_before | MTK_WDT_MODE_KEY;
++	mode &= ~(MTK_WDT_MODE_IRQ | MTK_WDT_MODE_DUAL_MODE |
++		  MTK_WDT_MODE_EXT_POL);
++	mode |= MTK_WDT_MODE_ENABLE | MTK_WDT_MODE_EXTEN |
++		MTK_WDT_MODE_AUTO_RESTART;
++	mtk_wdt_recovery_owned = true;
++	state->owned = 1;
++	mt_reg_sync_writel(length | MTK_WDT_LENGTH_KEY, MTK_WDT_LENGTH);
++	mt_reg_sync_writel(mode, MTK_WDT_MODE);
++	mt_reg_sync_writel(MTK_WDT_RESTART_KEY, MTK_WDT_RESTART);
++	state->length_after = __raw_readl(MTK_WDT_LENGTH);
++	state->mode_after = __raw_readl(MTK_WDT_MODE);
++	if ((state->length_after & MTK_WDT_LENGTH_TIME_OUT) != length ||
++	    (state->mode_after & (MTK_WDT_MODE_ENABLE |
++		MTK_WDT_MODE_EXTEN | MTK_WDT_MODE_IRQ |
++		MTK_WDT_MODE_DUAL_MODE | MTK_WDT_MODE_EXT_POL |
++		MTK_WDT_MODE_AUTO_RESTART)) !=
++	    (MTK_WDT_MODE_ENABLE | MTK_WDT_MODE_EXTEN |
++	     MTK_WDT_MODE_AUTO_RESTART))
++		ret = -EIO;
++out:
++	spin_unlock(&rgu_reg_operation_spinlock);
++	return ret;
++}
++#endif
++
+ void mtk_wdt_restart(enum wd_restart_type type)
+ {
++#ifdef CONFIG_MTK_A72_ONE_WAY_CPU8
++	if (READ_ONCE(mtk_wdt_recovery_owned))
++		return;
++#endif
+ 
+ #ifdef CONFIG_OF
+ 	struct device_node *np_rgu;

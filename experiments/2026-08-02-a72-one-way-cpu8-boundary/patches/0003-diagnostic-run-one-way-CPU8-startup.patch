@@ -1,0 +1,364 @@
+From 6ce71386ec9421d8a0d5a8c3556fcf4f8b8506fc Mon Sep 17 00:00:00 2001
+From: Gemini A72 experiment <noreply@gemini-a72.invalid>
+Date: Mon, 3 Aug 2026 01:12:00 +0000
+Subject: [PATCH] diagnostic: run one-way CPU8 startup
+
+Attempt CPU8 once with exact pre-isolation rollback and later power retention.
+
+Reconcile generic secondary completion before DCM and the success marker.
+
+Reject CPU9, CPU-off, retry, guessed isolation inverse, and iDVFS.
+---
+ arch/arm64/kernel/psci.c                 | 245 +++++++++++++++++++++++
+ arch/arm64/kernel/smp.c                  |  18 +-
+ drivers/misc/mediatek/base/power/Kconfig |  12 ++
+ 3 files changed, 273 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/kernel/psci.c b/arch/arm64/kernel/psci.c
+index 49b559786..1f5b6e07f 100644
+--- a/arch/arm64/kernel/psci.c
++++ b/arch/arm64/kernel/psci.c
+@@ -16,6 +16,10 @@
+ #define pr_fmt(fmt) "psci: " fmt
+ 
+ #include <linux/arm-smccc.h>
++#ifdef CONFIG_MTK_A72_ONE_WAY_CPU8
++#include <linux/atomic.h>
++#include <linux/console.h>
++#endif
+ #include <linux/init.h>
+ #include <linux/of.h>
+ #include <linux/smp.h>
+@@ -522,6 +526,228 @@ static void mt6797_a72_obs_fixed_snapshot(unsigned int cpu, u16 phase)
+ }
+ #endif
+ 
++#ifdef CONFIG_MTK_A72_ONE_WAY_CPU8
++static atomic_t mt6797_a72_one_way_attempted = ATOMIC_INIT(0);
++static bool mt6797_a72_one_way_psci_accepted;
++
++static void mt6797_a72_one_way_marker(const char *result,
++					     const char *stage, int error)
++{
++	pr_emerg("gemini-a72-oneway-v1 result=%s stage=%s error=%d cpu9=forbidden cpu_off=forbidden\n",
++		 result, stage, error);
++	console_lock();
++	console_unlock();
++}
++
++static void mt6797_a72_one_way_checkpoint(const char *stage)
++{
++	pr_emerg("gemini-a72-oneway-v1 state=begin stage=%s\n", stage);
++}
++
++static int mt6797_a72_one_way_boot(unsigned int cpu)
++{
++	struct mtk_wdt_recovery_state watchdog;
++	struct mt6797_a72_obs_clock clock;
++	void __iomem *reg_base;
++	u32 ordering_read;
++	bool buck_owned = false;
++	bool pwrap_owned = false;
++	bool reset_owned = false;
++	bool reset_flag_owned = false;
++	bool rollback_fault = false;
++	bool prestate_bad = false;
++	const char *stage = "entry";
++	int ret;
++
++	if (cpu != 8)
++		return -EPERM;
++	if (!mt6797_a72_obs_accepts_sampling(cpu))
++		return -EAGAIN;
++	ret = mtk_wd_a72_recovery_takeover(&watchdog);
++	if (ret && !watchdog.owned)
++		return ret;
++	if (ret) {
++		mt6797_a72_one_way_marker("rejected-prestate",
++					    "watchdog-readback", ret);
++		return ret;
++	}
++	if (atomic_xchg(&mt6797_a72_one_way_attempted, 1)) {
++		mt6797_a72_one_way_marker("rejected-prestate",
++					    "one-shot", -EALREADY);
++		return -EALREADY;
++	}
++	prestate_bad |= g_cl2_online || cpu_online(8) || cpu_online(9);
++	ret = mt6797_a72_diag_clock_capture(cpu,
++					    MT6797_A72_PHASE_POWER_ON_PRE, &clock);
++	prestate_bad |= !!ret;
++	prestate_bad |= !mt6797_a72_diag_secure_zero(cpu,
++			MT6797_A72_PHASE_POWER_ON_PRE);
++	prestate_bad |= !mt6797_a72_diag_dcm_zero(cpu,
++			MT6797_A72_PHASE_POWER_ON_PRE);
++	prestate_bad |= !!da9214_a72_diag_compare_update(cpu, false, false,
++					     MT6797_A72_PHASE_POWER_ON_PRE);
++	prestate_bad |= !!mt6797_a72_diag_spm_compare_update(cpu,
++		MT6797_A72_PHASE_POWER_ON_PRE, 0x218,
++		0x00010132, 0x00010132);
++	prestate_bad |= !!mt6797_a72_diag_spm_compare_update(cpu,
++		MT6797_A72_PHASE_POWER_ON_PRE, 0x290, 0x2, 0x2);
++	prestate_bad |= !!mt6797_a72_diag_toprgu_compare_update(cpu,
++		false, false, MT6797_A72_PHASE_POWER_ON_PRE);
++	spin_lock(&reset_lock);
++	prestate_bad |= reset_flags != 0;
++	if (!prestate_bad) {
++		reset_flags = 1;
++		reset_flag_owned = true;
++	}
++	spin_unlock(&reset_lock);
++	if (prestate_bad) {
++		mt6797_a72_obs_rollback_terminal(cpu,
++			MT6797_A72_ROLLBACK_REJECTED_PRESTATE);
++		mt6797_a72_one_way_marker("rejected-prestate",
++					    "entry", -EINVAL);
++		return -EINVAL;
++	}
++
++	stage = "spm-reset";
++	mt6797_a72_one_way_checkpoint(stage);
++	ret = mt6797_a72_diag_spm_compare_update(cpu,
++		MT6797_A72_PHASE_SPM_RESET_RELEASE, 0x218,
++		0x00010132, 0x00010133);
++	if (ret) goto rollback;
++	reset_owned = true;
++	stage = "pll-ordering-read";
++	mt6797_a72_one_way_checkpoint(stage);
++	reg_base = ioremap(MT6797_IDVFS_BASE_ADDR, 0x1000);
++	if (!reg_base) { ret = -ENOMEM; goto rollback; }
++	ordering_read = readl(reg_base + 0x4a0);
++	iounmap(reg_base);
++	mt6797_a72_obs_lifecycle(cpu, MT6797_A72_PHASE_PLL_ORDERING_READ,
++				 0, ordering_read, 0x102224a0);
++	stage = "pwrap-assert";
++	mt6797_a72_one_way_checkpoint(stage);
++	ret = mt6797_a72_diag_toprgu_compare_update(cpu, false, true,
++					    MT6797_A72_PHASE_TOPRGU_ASSERT);
++	if (ret) goto rollback;
++	pwrap_owned = true;
++	stage = "buck-enable";
++	mt6797_a72_one_way_checkpoint(stage);
++	ret = da9214_a72_diag_compare_update(cpu, false, true,
++					     MT6797_A72_PHASE_BUCK_ENABLE);
++	if (ret) goto rollback;
++	buck_owned = true;
++	udelay(1000);
++	stage = "buck-settle";
++	ret = da9214_a72_diag_compare_update(cpu, true, true,
++				     MT6797_A72_PHASE_BUCK_ENABLE_SETTLED);
++	if (ret) goto rollback;
++
++	stage = "isolation-write";
++	mt6797_a72_one_way_checkpoint(stage);
++	ret = mt6797_a72_diag_spm_compare_update(cpu,
++		MT6797_A72_PHASE_SPM_ISOLATION_CLEAR, 0x290, 0x2, 0x0);
++	if (ret) goto postiso_fault;
++	stage = "pwrap-deassert";
++	mt6797_a72_one_way_checkpoint(stage);
++	ret = mt6797_a72_diag_toprgu_compare_update(cpu, true, false,
++					    MT6797_A72_PHASE_TOPRGU_DEASSERT);
++	if (ret) goto postiso_fault;
++	pwrap_owned = false;
++	spin_lock(&reset_lock);
++	if (reset_flags != 1)
++		ret = -EIO;
++	else
++		reset_flags = 0;
++	spin_unlock(&reset_lock);
++	if (ret) { stage = "reset-guard-clear"; goto postiso_fault; }
++	reset_flag_owned = false;
++	udelay(240);
++	stage = "sram-readback";
++	mt6797_a72_one_way_checkpoint(stage);
++	ret = mt6797_a72_one_way_sram_set_verify(cpu);
++	if (ret) goto postiso_fault;
++	stage = "psci";
++	mt6797_a72_one_way_checkpoint(stage);
++	ret = psci_ops.cpu_on(cpu_logical_map(cpu), __pa(secondary_entry));
++	mt6797_a72_obs_lifecycle(cpu, MT6797_A72_PHASE_PSCI_MAPPED, ret,
++				 cpu_logical_map(cpu), __pa(secondary_entry));
++	if (ret) goto postiso_fault;
++	WRITE_ONCE(mt6797_a72_one_way_psci_accepted, true);
++	return 0;
++
++rollback:
++	if (buck_owned && da9214_a72_diag_compare_update(cpu, true, false,
++					 MT6797_A72_PHASE_ROLLBACK_BUCK_DISABLE))
++		rollback_fault = true;
++	if (reset_owned && mt6797_a72_diag_spm_compare_update(cpu,
++		MT6797_A72_PHASE_ROLLBACK_SPM_RESET, 0x218,
++		0x00010133, 0x00010132))
++		rollback_fault = true;
++	if (pwrap_owned && mt6797_a72_diag_toprgu_compare_update(cpu,
++		true, false, MT6797_A72_PHASE_ROLLBACK_PWRAP_DEASSERT))
++		rollback_fault = true;
++	if (reset_flag_owned) {
++		spin_lock(&reset_lock);
++		if (reset_flags != 1)
++			rollback_fault = true;
++		else
++			reset_flags = 0;
++		spin_unlock(&reset_lock);
++	}
++	mt6797_a72_obs_rollback_terminal(cpu,
++		rollback_fault ? MT6797_A72_ROLLBACK_FAULT_RETAIN :
++		MT6797_A72_ROLLBACK_ROLLED_BACK);
++	mt6797_a72_one_way_marker(rollback_fault ? "fault-retain-preiso" :
++					    "rolled-back-preiso", stage, ret);
++	return ret ?: -ECANCELED;
++
++postiso_fault:
++	if (pwrap_owned)
++		mt6797_a72_diag_toprgu_compare_update(cpu, true, false,
++				MT6797_A72_PHASE_TOPRGU_DEASSERT);
++	if (reset_flag_owned) {
++		spin_lock(&reset_lock);
++		if (reset_flags == 1)
++			reset_flags = 0;
++		spin_unlock(&reset_lock);
++	}
++	mt6797_a72_obs_rollback_terminal(cpu,
++		MT6797_A72_ROLLBACK_FAULT_RETAIN);
++	mt6797_a72_one_way_marker("fault-retain-postiso", stage, ret);
++	return ret ?: -EIO;
++}
++
++int mt6797_a72_one_way_secondary_complete(unsigned int cpu,
++						 bool completed)
++{
++	int ret;
++
++	if (cpu != 8)
++		return 0;
++	if (!READ_ONCE(mt6797_a72_one_way_psci_accepted) ||
++	    !completed || !cpu_online(8) || cpu_online(9)) {
++		ret = -EIO;
++		mt6797_a72_obs_rollback_terminal(cpu,
++			MT6797_A72_ROLLBACK_FAULT_RETAIN);
++		mt6797_a72_one_way_marker("fault-retain-postiso",
++					    "secondary", ret);
++		return ret;
++	}
++	mt6797_a72_one_way_checkpoint("dcm");
++	ret = mt6797_a72_one_way_dcm_enable(cpu);
++	if (ret) {
++		mt6797_a72_obs_rollback_terminal(cpu,
++			MT6797_A72_ROLLBACK_FAULT_RETAIN);
++		mt6797_a72_one_way_marker("fault-retain-postiso",
++					    "dcm", ret);
++		return ret;
++	}
++	g_cl2_online |= 1;
++	mt6797_a72_one_way_marker("cpu8-online-held",
++					    "complete", 0);
++	return 0;
++}
++#endif
++
+ static int cpu_power_on_buck(unsigned int cpu, bool hotplug)
+ {
+ 	static void __iomem *reg_base;
+@@ -667,6 +893,18 @@ static int cpu_psci_cpu_boot(unsigned int cpu)
+ 	TIMESTAMP_REC(hotplug_ts_rec, TIMESTAMP_FILTER,  cpu, 0, 0, 0);
+ #endif
+ 
++#ifdef CONFIG_MTK_A72_ONE_WAY_CPU8
++	if (cpu == 9) {
++		pr_info("one-way: reject CPU9 before A72 action\n");
++		err = -EPERM;
++		goto mt6797_a72_one_way_out;
++	}
++	if (cpu == 8) {
++		err = mt6797_a72_one_way_boot(cpu);
++		goto mt6797_a72_one_way_out;
++	}
++#endif
++
+ 	if ((cpu == 0) || (cpu == 1) || (cpu == 2) || (cpu == 3)) {
+ 		if (bypass_cl0_armpll > 0) {
+ 			bypass_cl0_armpll--;
+@@ -787,6 +1025,9 @@ static int cpu_psci_cpu_boot(unsigned int cpu)
+ 		pr_err("failed to boot CPU%d (%d)\n", cpu, err);
+ #endif
+ 
++#ifdef CONFIG_MTK_A72_ONE_WAY_CPU8
++mt6797_a72_one_way_out:
++#endif
+ #ifdef MTK_IRQ_NEW_DESIGN
+ 	gic_clear_primask();
+ #endif
+@@ -797,6 +1038,10 @@ static int cpu_psci_cpu_boot(unsigned int cpu)
+ #ifdef CONFIG_HOTPLUG_CPU
+ static int cpu_psci_cpu_disable(unsigned int cpu)
+ {
++#ifdef CONFIG_MTK_A72_ONE_WAY_CPU8
++	if (cpu == 8 || cpu == 9)
++		return -EPERM;
++#endif
+ 	/* Fail early if we don't have CPU_OFF support */
+ 	if (!psci_ops.cpu_off)
+ 		return -EOPNOTSUPP;
+diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
+index a7e0adf06..1469b9ef7 100644
+--- a/arch/arm64/kernel/smp.c
++++ b/arch/arm64/kernel/smp.c
+@@ -112,6 +112,9 @@ static DECLARE_COMPLETION(cpu_running);
+ int __cpu_up(unsigned int cpu, struct task_struct *idle)
+ {
+ 	int ret;
++#ifdef CONFIG_MTK_A72_ONE_WAY_CPU8
++	unsigned long secondary_completed = 0;
++#endif
+ 
+ 	/*
+ 	 * We need to tell the secondary core where to find its stack and the
+@@ -135,8 +138,16 @@ int __cpu_up(unsigned int cpu, struct task_struct *idle)
+ 		 * time out.
+ 		 */
+ 		#ifdef CONFIG_ARCH_MT6797
+-		wait_for_completion_timeout(&cpu_running,
++#ifdef CONFIG_MTK_A72_ONE_WAY_CPU8
++		secondary_completed =
++#endif
++			wait_for_completion_timeout(&cpu_running,
+ 					    msecs_to_jiffies(3000));
++#ifdef CONFIG_MTK_A72_ONE_WAY_CPU8
++		if (cpu == 8)
++			ret = mt6797_a72_one_way_secondary_complete(cpu,
++				secondary_completed && cpu_online(cpu));
++#endif
+ 		#else
+ 		wait_for_completion_timeout(&cpu_running,
+ 					    msecs_to_jiffies(1000));
+@@ -145,7 +156,10 @@ int __cpu_up(unsigned int cpu, struct task_struct *idle)
+ 		if (!cpu_online(cpu)) {
+ 			pr_crit("CPU%u: failed to come online\n", cpu);
+ 			#ifdef CONFIG_ARCH_MT6797
+-			BUG_ON(1);
++#ifdef CONFIG_MTK_A72_ONE_WAY_CPU8
++			if (cpu != 8)
++#endif
++				BUG_ON(1);
+ 			#endif
+ 			ret = -EIO;
+ 		}
+diff --git a/drivers/misc/mediatek/base/power/Kconfig b/drivers/misc/mediatek/base/power/Kconfig
+index 1de54adcd..417551bfd 100644
+--- a/drivers/misc/mediatek/base/power/Kconfig
++++ b/drivers/misc/mediatek/base/power/Kconfig
+@@ -104,3 +104,15 @@ config MTK_A72_TRANSITION_OBSERVER
+ 
+ 	  This option does not add a control interface.  It is an experiment
+ 	  aid for one pinned downstream kernel and is not an A72 power driver.
++
++config MTK_A72_ONE_WAY_CPU8
++	bool "MT6797 one-way CPU8 startup experiment"
++	depends on SMP && HOTPLUG_CPU && CL2_BUCK_CTRL
++	depends on MTK_A72_TRANSITION_OBSERVER
++	depends on MTK_WATCHDOG && MTK_WD_KICKER
++	depends on PSTORE && PSTORE_CONSOLE && PSTORE_RAM
++	default n
++	help
++	  Run one fail-closed CPU8 startup with exact pre-isolation
++	  rollback and post-isolation power retention. CPU9 and CPU-off
++	  are forbidden. This experiment always ends by watchdog reset.

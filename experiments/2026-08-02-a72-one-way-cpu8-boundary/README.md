@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-02-a72-one-way-cpu8-boundary` |
-| Status | `implementation-unblocked` |
+| Status | `source-review-passed-compile-pending` |
 | Subsystem | MT6797 CPU8 external rail, isolation, SRAM-LDO, PSCI, and DCM |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-02 |
@@ -19,7 +19,8 @@ cross the one-way external-isolation boundary, complete the retained-firmware
 SRAM-LDO and PSCI path, and publish CPU8 online without ever guessing a Linux
 inverse after isolation?
 
-This is a design question only. No kernel was built and no device action ran.
+The design and deterministic source-generation gates have passed. No one-way
+kernel has yet been compiled, packaged, installed, or run on the device.
 
 ## Provenance and environment
 
@@ -66,6 +67,11 @@ review. It does not authorize deployment before those gates pass.
 - [`results/post-recovery-source-generation-plan-20260802.txt`](results/post-recovery-source-generation-plan-20260802.txt):
   closes that prerequisite and fixes the exact five-patch source-generation,
   watchdog, SRAM-readback, secondary-completion, and forbidden-path plan.
+- [`results/patch-generation-review-20260802.txt`](results/patch-generation-review-20260802.txt):
+  records the rejected drafts, accepted three-patch identities, 18 mutation
+  rejections, and manual source-control-flow review.
+- [`patches/`](patches/): exact Buildbox-generated experiment-only source
+  patches in deterministic order; these are not yet a boot candidate.
 
 ## Procedure
 
@@ -84,6 +90,12 @@ buck-isolation bits during `cpu_power_on_buck()`. Its `cpu_power_off_buck()`
 disables BUCKB and calls an ineffective SRAM disable wrapper; it never writes
 the isolation register. The natural down capture later observes the offline
 value restored, without an instrumented Linux mutation record for that write.
+
+The first two generated drafts were rejected during review. The accepted third
+generation separates a forward failure from a rollback failure, verifies the
+watchdog's automatic-reset mode, rejects secure-read error sentinels, and pins
+all configuration dependencies. Its static validator passed 18 deliberate
+mutations.
 
 ## Analysis
 
@@ -112,7 +124,6 @@ reset, and known-good recovery on hardware.
 
 ## Follow-up
 
-Generate the one-way CPU8 source patches, validate them against the model and
-mutation boundaries, and compile changed-versus-unpatched kernels on Buildbox.
-Do not deploy until the exact binary ordering, stack, container, and guarded
-runtime decision-map reviews pass.
+Compile the accepted one-way and parent configurations on Buildbox. Do not
+deploy until changed-versus-parent compilation, exact binary ordering, stack,
+Android-v0 container, and guarded runtime decision-map reviews all pass.

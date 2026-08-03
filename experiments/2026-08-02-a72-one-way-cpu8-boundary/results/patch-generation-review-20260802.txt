@@ -1,0 +1,30 @@
+A72 one-way CPU8 patch generation and source review
+date=2026-08-02
+result=pass
+device_action=none
+kernel_compile=not-yet-run
+native_vm_kernel_build=no
+
+source_commit=59e00a9144d782e148332009a835b99c43382467
+project_generator_commit=66f1ca57b3578d1cee2517f8c95c8bfb7178f5c6
+buildbox_job=66f1ca57b3578d1cee2517f8c95c8bfb7178f5c6-gemian-a72-one-way-patchgen
+generated_patch_count=3
+static_validator=pass
+mutation_rejections=18
+synthetic_dco_signoff=absent
+
+patch_0001_sha256=0d1bff920f6c9dc3fd3dbdc9a92064acbdb79e32c2de66854e4b30d7720b00cc
+patch_0002_sha256=52b5c396156b9f71757120fa39bd4a9cff3588d1c392ad1632cb733fff663817
+patch_0003_sha256=7ae2abaedce60bb49b39a7912ef99ddd24b3c6841d9070c07254dd8334213c36
+series_sha256=97a38aac40b19b2e8313c8042c62446acbe17dbc3eef6e1adc2338d4f6f7e8a5
+
+rejected_generation_c1e3150=missing SMP/HOTPLUG_CPU/CL2_BUCK_CTRL dependencies; secure calibration error sentinel could satisfy stability; watchdog readback failure was mislabeled post-isolation
+rejected_generation_3d30498=successful pre-isolation rollback result was unreachable because forward and rollback failures shared one flag; watchdog readback did not verify automatic-reset mode and external polarity
+failed_generation_a34b951=validator false-positive matched rollback_fault as fault; stopped before patch generation
+
+accepted_control_flow=watchdog takeover precedes the one-shot and every A72 mutation; CPU9 exits before A72 action; exact prestate checks precede the owned SPM/PWRAP/BUCK sequence; successful pre-isolation rollback is distinct from rollback failure; isolation begins the no-guessed-inverse domain; secure SRAM selector and calibration are stable and valid; PSCI acceptance precedes generic secondary completion; DCM follows completion and CPU8-online proof; CPU8/9 CPU_OFF is forbidden
+accepted_postisolation_policy=only an exactly-owned asserted PWRAP condition and software reset guard may be cleared; no BUCK disable, SPM inverse, SRAM disable, CPU_OFF, or iDVFS enable is added
+accepted_terminal_classes=rejected-prestate,rolled-back-preiso,fault-retain-preiso,fault-retain-postiso,cpu8-online-held
+
+decision=source-generation-and-static-review-pass
+next=compile changed and parent configurations on Buildbox, then audit binary ordering, stack, Android-v0 container, and guarded runtime decision map before any boot2 deployment
