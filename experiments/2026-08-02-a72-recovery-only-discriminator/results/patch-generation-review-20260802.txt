@@ -1,0 +1,46 @@
+A72 recovery-only patch-generation review
+Recorded: 2026-08-02 America/New_York
+
+project_generator_commit=b1b6a523a56309e9a1b99859e6cd5d90f19ccc52
+source_commit=59e00a9144d782e148332009a835b99c43382467
+generated_patch_count=3
+generation_backend=buildbox
+native_vm_kernel_build=no
+device_action=none
+
+generated_commits
+-----------------
+0001=b28ba424bfcba52ac4768aad6ec1420ab4a5596e
+0002=feea6e71d2028726f7590b1f92d2d69dcf51b930
+0003=f74cbf7f9657fc85a51fab3aaa221b05ece5a29d
+
+validation
+----------
+package_sha256_inventory=passed
+source_drift_guards=passed
+patch_contract=passed
+mutation_tripwires=10-passed
+synthetic_signoff=absent
+cpu8_cpu9_preaction_rejection=present
+kicker_lock_handoff=present
+cpu_hotplug_exclusion=present
+toprgu_owner_lock=present
+fixed_timeout_seconds=12
+reset_only_mode=present
+single_terminal_restart=present
+console_ramoops_marker=present
+userspace_control=absent
+a72_hardware_or_firmware_action=absent
+
+review_decision
+---------------
+patch_generation=accepted
+compile_review=authorized
+boot_candidate=false
+device_action_authorized=no
+
+The first generated revision exposed a possible CPU-hotplug no-lock reload
+race and was rejected before tracking or compilation. The accepted revision
+takes CPU-hotplug exclusion before the kicker lock and restores both only on a
+pre-ownership rejection. Once TOPRGU ownership begins, the exclusion and
+disabled kicker remain held until the hardware reset.

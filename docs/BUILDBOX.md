@@ -174,6 +174,20 @@ of A72 operations or userspace controls. The fetched package contains only
 patches, provenance, and checksums. It does not compile a kernel, construct a
 boot image, access the device, or authorize deployment.
 
+After the generated patches are reviewed and tracked, compile them against an
+unpatched source baseline with:
+
+```sh
+./scripts/buildbox build-gemian-recovery-compile
+./scripts/buildbox fetch-gemian-recovery-compile
+```
+
+This lane reuses the already validated pinned Gemian toolchain, performs two
+full out-of-tree `Image.gz-dtb` builds, and requires exact configuration deltas,
+identical extracted diagnostics, recovery symbols only in the changed build,
+and checksum-covered stack-usage archives. Its package is compile-review-only
+and is not yet a boot candidate.
+
 ## Remote storage and concurrency
 
 Buildbox uses its persistent home volume for the Git mirror, verified kernel

@@ -1,0 +1,91 @@
+From f74cbf7f9657fc85a51fab3aaa221b05ece5a29d Mon Sep 17 00:00:00 2001
+From: Gemini recovery experiment <noreply@gemini-recovery.invalid>
+Date: Mon, 3 Aug 2026 00:12:00 +0000
+Subject: [PATCH] diagnostic: run bounded watchdog pstore gate
+
+Transfer ownership under the ordinary kickers own serialization lock.
+
+Arm a fixed twelve-second deadline and emit one exact ramoops marker.
+
+Restore normal kicks only when low-level ownership never began.
+---
+ drivers/watchdog/mediatek/wdk/wd_common_drv.c | 45 +++++++++++++++++++
+ 1 file changed, 45 insertions(+)
+
+diff --git a/drivers/watchdog/mediatek/wdk/wd_common_drv.c b/drivers/watchdog/mediatek/wdk/wd_common_drv.c
+index 20ad0121a..4265d6d86 100644
+--- a/drivers/watchdog/mediatek/wdk/wd_common_drv.c
++++ b/drivers/watchdog/mediatek/wdk/wd_common_drv.c
+@@ -25,6 +25,9 @@
+ #include <linux/rtc.h>
+ #include <linux/cpu.h>
+ #include <linux/jiffies.h>
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++#include <linux/console.h>
++#endif
+ #include <mt-plat/aee.h>
+ #include <mt-plat/mtk_ram_console.h>
+ #include <ext_wd_drv.h>
+@@ -88,6 +91,9 @@ static int g_need_config;
+ static int wdt_start;
+ static int g_enable = 1;
+ static struct work_struct wdk_work;
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++static struct delayed_work recovery_discriminator_work;
++#endif
+ static struct workqueue_struct *wdk_workqueue;
+ static unsigned int lasthpg_act;
+ static unsigned int lasthpg_cpu;
+@@ -757,6 +763,40 @@ static struct notifier_block cpu_nfb __cpuinitdata = {
+ 	.priority = 6
+ };
+ 
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++static void recovery_discriminator_callback(struct work_struct *work)
++{
++	struct mtk_wdt_recovery_state state;
++	int ret;
++
++	cpu_hotplug_disable();
++	spin_lock(&lock);
++	if (!g_kicker_init || !g_wd_api || !g_wd_api->ready) {
++		spin_unlock(&lock);
++		cpu_hotplug_enable();
++		pr_err("gemini-a72-recovery-v1 stage=preowner-reject reason=not-ready\n");
++		return;
++	}
++	g_enable = 0;
++	ret = mtk_wdt_recovery_arm(12, &state);
++	if (ret && !state.owned)
++		g_enable = 1;
++	spin_unlock(&lock);
++
++	if (ret && !state.owned) {
++		cpu_hotplug_enable();
++		pr_err("gemini-a72-recovery-v1 stage=preowner-reject error=%d\n", ret);
++		return;
++	}
++	if (ret)
++		pr_emerg("gemini-a72-recovery-v1 stage=owned-readback-fault error=%d timeout=12s a72=forbidden\n", ret);
++	else
++		pr_emerg("gemini-a72-recovery-v1 stage=armed timeout=12s a72=forbidden\n");
++	console_lock();
++	console_unlock();
++}
++#endif
++
+ static void wdk_work_callback(struct work_struct *work)
+ {
+ 	int res = 0;
+@@ -795,6 +835,11 @@ static void wdk_work_callback(struct work_struct *work)
+ 	mtk_wdt_restart(WD_TYPE_NORMAL);	/* for KICK external wdt */
+ 	cpu_hotplug_enable();
+ 	pr_alert("[WDK]init_wk done late_initcall cpus_kick_bit=0x%x -----\n", cpus_kick_bit);
++#ifdef CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR
++	INIT_DELAYED_WORK(&recovery_discriminator_work,
++			  recovery_discriminator_callback);
++	schedule_delayed_work(&recovery_discriminator_work, 15 * HZ);
++#endif
+ 
+ }
+ 

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-02-a72-recovery-only-discriminator` |
-| Status | `source-design` |
+| Status | `patch-review-passed` |
 | Subsystem | Gemian watchdog kicker, MT6797 TOPRGU, console-ramoops |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-02 |
@@ -56,10 +56,16 @@ and CPU9 offline, and unchanged `boot2`. A visual reboot alone is inconclusive.
 - `scripts/validate_patches.py` enforces the ownership, ordering, fixed-timeout,
   no-A72, no-userspace, and terminal-marker contract.
 - `scripts/test_static.py` proves unsafe mutations are rejected.
+- `patches/series` is the exact accepted three-patch Buildbox-generated review
+  series.
+- `results/patch-generation-review-20260802.txt` records the rejected first
+  ownership design and accepted race-closed generation.
+- `scripts/build-on-buildbox` performs the separate changed-versus-unpatched
+  full compile, configuration, diagnostics, symbols, and stack review.
 
 ## Current decision
 
-`source-generation-pending`: this record does not authorize a build or device
-action. Patch generation must run from a clean pushed project commit on
-Buildbox. The exact generated series must then be reviewed and tracked before
-the separate Buildbox compile lane is added or invoked.
+`patch-generation-accepted-compile-pending`: the exact generated patches and
+ten mutation tripwires pass. Full changed-versus-unpatched compilation is now
+authorized on Buildbox. This record still does not authorize candidate
+construction or device action.

@@ -27,8 +27,9 @@ the loop. Positive identity-gated observations are unaffected.
   — defines the immediate no-A72 prerequisite for the one-way CPU8 path. Its
   deterministic source generator rejects CPU8/9 before platform action,
   transfers watchdog ownership under the normal kicker lock, arms one fixed
-  reset-only deadline, and emits an exact console-ramoops marker. Source
-  generation, compile review, candidate construction, and runtime evidence
+  reset-only deadline, and emits an exact console-ramoops marker. Patch
+  generation and ten mutation tripwires pass after closing a hotplug no-lock
+  reload race; compile review, candidate construction, and runtime evidence
   remain pending.
 - [2026-08-02 A72 one-way CPU8 startup boundary](2026-08-02-a72-one-way-cpu8-boundary/README.md)
   — reconciles the accepted rollback with the public Linux and natural Gemian

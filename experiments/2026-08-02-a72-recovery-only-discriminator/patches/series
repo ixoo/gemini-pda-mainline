@@ -1,0 +1,3 @@
+0001-diagnostic-reject-A72-during-recovery-gate.patch
+0002-diagnostic-add-exclusive-TOPRGU-recovery-owner.patch
+0003-diagnostic-run-bounded-watchdog-pstore-gate.patch

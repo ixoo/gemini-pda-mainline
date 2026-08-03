@@ -41,6 +41,10 @@ Commands:
                         Generate the no-A72 recovery patch review on Buildbox
   fetch-gemian-recovery-patches
                         Fetch only the validated recovery patch review
+  build-gemian-recovery-compile
+                        Compare recovery-only and unpatched Gemian on Buildbox
+  fetch-gemian-recovery-compile
+                        Fetch that validated compile-review bundle for HEAD
 
 Environment:
   BUILDBOX_HOST         SSH target (default: buildbox)
@@ -428,7 +432,7 @@ build_gemian_observer() {
   local sha
 
   case "${mode}" in
-    observer|rollback) ;;
+    observer|rollback|recovery) ;;
     *) die "invalid Gemian compile-review mode: ${mode}" ;;
   esac
 
@@ -471,6 +475,11 @@ case "${mode}" in
     readonly job_suffix=gemian-a72-preiso-rollback
     readonly job_purpose=gemian-a72-preiso-rollback-compile-review
     readonly build_script=experiments/2026-08-02-a72-pre-isolation-rollback-discriminator/scripts/build-on-buildbox
+    ;;
+  recovery)
+    readonly job_suffix=gemian-a72-recovery
+    readonly job_purpose=gemian-a72-recovery-compile-review
+    readonly build_script=experiments/2026-08-02-a72-recovery-only-discriminator/scripts/build-on-buildbox
     ;;
   *) exit 2 ;;
 esac
@@ -569,7 +578,7 @@ if [[ "${mode}" == observer ]]; then
   grep -q ' mt6797_a72_obs_init$' "${package}/outputs/System.map"
   ! grep -qE ' (mt6797|da9214)_a72_obs_' \
     "${package}/outputs/baseline/System.map"
-else
+elif [[ "${mode}" == rollback ]]; then
   for required in outputs/baseline/stack-usage.tar \
     outputs/baseline/stack-usage-files.nul \
     outputs/baseline/stack-usage-files.txt; do
@@ -594,6 +603,23 @@ else
   grep -q ' mt6797_a72_obs_init$' "${package}/outputs/baseline/System.map"
   ! grep -qE ' (mt6797_a72_obs_rollback_terminal|.*_a72_diag_)$' \
     "${package}/outputs/baseline/System.map"
+  [[ "$(tar -tf "${package}/outputs/baseline/stack-usage.tar" | wc -l)" -gt 100 ]]
+else
+  jq -e '
+    .baseline_source_unpatched == true and
+    .purpose == "recovery-compile-review-only" and
+    (.recovery_patchset_sha256 | test("^[0-9a-f]{64}$"))
+  ' "${package}/provenance/build.json" >/dev/null
+  grep -q ' mtk_wdt_recovery_arm$' "${package}/outputs/System.map"
+  grep -q ' recovery_discriminator_callback$' \
+    "${package}/outputs/System.map"
+  ! grep -qE ' (mtk_wdt_recovery_arm|recovery_discriminator_callback)$' \
+    "${package}/outputs/baseline/System.map"
+  for required in outputs/baseline/stack-usage.tar \
+    outputs/baseline/stack-usage-files.nul \
+    outputs/baseline/stack-usage-files.txt; do
+    [[ -s "${package}/${required}" ]]
+  done
   [[ "$(tar -tf "${package}/outputs/baseline/stack-usage.tar" | wc -l)" -gt 100 ]]
 fi
 [[ "$(tar -tf "${package}/outputs/stack-usage.tar" | wc -l)" -gt 100 ]]
@@ -639,6 +665,10 @@ fetch_gemian_observer() {
       job_suffix=gemian-a72-preiso-rollback
       job_purpose=gemian-a72-preiso-rollback-compile-review
       ;;
+    recovery)
+      job_suffix=gemian-a72-recovery
+      job_purpose=gemian-a72-recovery-compile-review
+      ;;
     *) die "invalid Gemian compile-review mode: ${mode}" ;;
   esac
   sha="$(git -C "${REPO_DIR}" rev-parse HEAD)"
@@ -679,11 +709,12 @@ package="$(jq -er --arg commit "${commit}" --arg purpose "${job_purpose}" '
 ' "${record}")"
 case "${package}" in "${artifact_root}"/*) ;; *) exit 1 ;; esac
 [[ -d "${package}" && ! -L "${package}" ]]
-jq -e --arg commit "${commit}" --arg mode "${mode}" '
+  jq -e --arg commit "${commit}" --arg mode "${mode}" '
   .repository_commit == $commit and .repository_dirty == false and
   .boot_candidate == false and
   (($mode == "observer" and .purpose == "compile-review-only") or
-   ($mode == "rollback" and .purpose == "rollback-compile-review-only"))
+   ($mode == "rollback" and .purpose == "rollback-compile-review-only") or
+   ($mode == "recovery" and .purpose == "recovery-compile-review-only"))
 ' "${package}/provenance/build.json" >/dev/null
 tar -C "$(dirname "${package}")" -cf - -- "$(basename "${package}")"
 REMOTE
@@ -1035,6 +1066,8 @@ case "${COMMAND}" in
   fetch-gemian-rollback-patches) fetch_gemian_rollback_patches ;;
   generate-gemian-recovery-patches) generate_gemian_recovery_patches ;;
   fetch-gemian-recovery-patches) fetch_gemian_recovery_patches ;;
+  build-gemian-recovery-compile) build_gemian_observer recovery ;;
+  fetch-gemian-recovery-compile) fetch_gemian_observer recovery ;;
   help|-h|--help) usage ;;
   *) usage >&2; exit 2 ;;
 esac
