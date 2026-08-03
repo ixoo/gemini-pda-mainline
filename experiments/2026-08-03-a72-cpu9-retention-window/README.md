@@ -51,6 +51,9 @@ and clean shutdown after verified readback.
   rejected mutation checks.
 - [`scripts/generate-on-buildbox`](scripts/generate-on-buildbox): Git-pinned
   Buildbox-only patch generation.
+- [`scripts/build-on-buildbox`](scripts/build-on-buildbox): exact CPU9-parent
+  versus retention-window-child compilation, binary, diagnostics, and stack
+  comparison.
 - [`patches/`](patches/): one accepted Buildbox-generated logical child patch.
 - [`results/patch-generation-review-20260803.txt`](results/patch-generation-review-20260803.txt):
   rejected broad anchor, exact accepted identities, checks, and decision.
