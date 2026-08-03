@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu9-cluster-reuse` |
-| Status | `deployed-powered-off-runtime-pending` |
+| Status | `runtime-rejected-positive-cpu9-execution-evidence` |
 | Subsystem | MT6797 CPU9 PSCI per-core startup with CPU8 retained |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -74,6 +74,8 @@ userspace control is introduced.
   pre-boot hypothesis, exact success/failure classes, and deployment boundary.
 - [`results/deployment-20260803.txt`](results/deployment-20260803.txt): exact
   predecessor, live target, full write/readback, cleanup, and shutdown result.
+- [`results/runtime-attempt-1-rejected-20260803.txt`](results/runtime-attempt-1-rejected-20260803.txt):
+  changed-cycle pair sample, HPS down pressure, recovery, and next boundary.
 
 ## Procedure
 
@@ -113,16 +115,17 @@ terminal substantive by synchronously executing on both A72 CPUs.
 
 ## Conclusion
 
-`deployed-powered-off-runtime-pending`: the exact late parent, one logical child,
+`runtime-rejected-positive-cpu9-execution-evidence`: the exact late parent, one logical child,
 PSCI-only CPU9 path, pair sampler, forbidden actions, ordering, all 16
 mutations, two full builds, identical diagnostics, durable-caller disassembly,
 bounded stack review, and three independent exact Android-v0 constructions
-pass. The guarded deployment/runtime decision map also passes offline review;
-boot2 now matches the accepted candidate after independent full readback, and
-the device is powered off. No runtime claim exists yet.
+pass. Runtime then proved CPU8 and CPU9 simultaneously online and executing two
+synchronous pair rounds, but 83 HPS CPU9-down requests triggered the inherited
+veto and the third sample lay beyond the fixed watchdog window. The declared
+pass predicate therefore failed and this exact artifact must not be repeated.
 
 ## Follow-up
 
-Arm changed-cycle pstore and the optional read-only netcat capture, then
-physically select boot2 once. Classify only the exact retained markers and
-changed-cycle evidence from the declared runtime map.
+Design a child that preserves PSCI-only cluster reuse and CPU_OFF prohibition,
+moves all three pair samples inside the fixed watchdog window, and reports the
+repeated HPS CPU9-down pressure once without weakening the veto.

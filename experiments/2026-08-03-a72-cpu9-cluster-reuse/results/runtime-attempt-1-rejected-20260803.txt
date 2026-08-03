@@ -1,0 +1,105 @@
+CPU9 cluster-reuse runtime attempt 1
+====================================
+
+Date: 2026-08-03
+Result: rejected-down-pressure-and-terminal-outside-watchdog-window
+Candidate full boot2 SHA-256:
+  b32bca348efc0fcaffe2b5909c6246d66a4d0fec4102cee091103c42db604d69
+
+Chronology
+----------
+
+The first armed observation cycle was consumed when ordinary Gemian was
+selected instead of boot2. It is retained privately as inconclusive and makes
+no CPU9 claim. The collectors were re-armed from that changed Gemian boot,
+Gemian was shut down cleanly, and boot2 was then selected once. This file calls
+that first actual CPU9 device run runtime attempt 1.
+
+Direct observation
+------------------
+
+The changed-cycle 65,524-byte console retains one pair sample:
+
+  [   11.995489] psci: gemini-a72-pair-v1 result=sample sample=2 cpu8=8 cpu9=9 online8=1 online9=1 hits8=2 hits9=2
+
+This exact marker proves that CPU8 and CPU9 were both Linux-accounted online,
+that synchronous callbacks executed on each CPU in two completed pair rounds,
+and that both hit counters reconciled at two. There are zero retained pair
+faults, panic records, Internal errors, and Call traces.
+
+The same console contains 83 exact inherited safety-barrier records:
+
+  gemini-a72-hold-v1 result=down-veto cpu=9 stage=entry
+
+Each is immediately accompanied by an HPS `CPU 9 --!` action. Seven CPUHVFS
+`cluster1 off` messages also appear. The log does not establish that those
+CPUHVFS messages describe an actual powered-off A72 cluster; the later pair
+sample directly proves CPU8 and CPU9 remained online at 11.995489 seconds.
+
+The retained window ends at 13.979104 seconds. It contains no CPU9 completion
+marker, pair sample 1, pair pass, or pair fault because earlier records were
+overwritten and the declared third pair callback was scheduled about four
+seconds after sample 2, beyond this fixed watchdog window.
+
+Changed-cycle recovery and serviceability
+-----------------------------------------
+
+Initial boot-ID SHA-256:
+  0167703983dd7b99296da938b0629da8f460d552aaad233c98d25546cbbf7d0f
+Final boot-ID SHA-256:
+  5393b8a9451c2496b97ec381abafc31f83aef15eebd9c51f7e27ae994435f8f2
+Boot ID changed: yes
+Recovery kernel: 3.18.41+
+Recovery architecture: aarch64
+Android boot reason: wdt_by_pass_pwk
+
+Post-return read-only checks:
+
+- live-GPT boot2 target: `/dev/mmcblk0p30`;
+- active root: `/dev/mmcblk0p29`;
+- boot2 mounted: no;
+- CPU present: 0-9;
+- CPU online snapshot: 0;
+- CPU8 offline under recovery OS: yes;
+- CPU9 offline under recovery OS: yes;
+- full boot2 SHA-256 unchanged:
+  `b32bca348efc0fcaffe2b5909c6246d66a4d0fec4102cee091103c42db604d69`.
+
+Private evidence identities
+---------------------------
+
+Console SHA-256:
+  67afe7a58884f032bffd82cbb6ff23e1e3e2a489c9b24a3f0998c16956d3761d
+Private capture manifest SHA-256:
+  4bdf99a8a76f1482ee9899a97f7f212ece410f163ffdeff7be91b1da9976c8ca
+Cycle record SHA-256:
+  a1ecf4b60f1ea5fa5657b1e0f7ebe6748218629157fcf767ba81e3808ead7bd9
+Metadata SHA-256:
+  c1bc4a7b0df13b2f922e8dcf7e19ffe7751df68f783b9fc3918eaa90d4ac06a0
+
+The complete private manifest passed strict verification. Pstore entries and
+partitions were not modified or removed. The optional netcat collector did not
+capture a terminal and was stopped after known-good Gemian returned.
+
+Decision
+--------
+
+result=rejected-down-pressure-and-terminal-outside-watchdog-window
+cpu8_online_at_sample_2=yes
+cpu9_online_at_sample_2=yes
+cpu8_callback_hits=2
+cpu9_callback_hits=2
+down_veto_count=83
+pair_fault_count=0
+pair_pass_count=0
+recovery=changed-cycle-watchdog-class
+boot2_unchanged=yes
+unchanged_retry=no
+
+This run rejects the declared success predicate because any down-veto was a
+predeclared failure and no pair-pass terminal exists. It nevertheless advances
+the hardware boundary: standard per-core PSCI cluster reuse brought CPU9 into
+Linux online accounting and synchronous execution alongside CPU8 through two
+pair rounds. The next candidate must retain the CPU_OFF prohibition, compress
+the three pair observations inside the inherited watchdog deadline, and turn
+repeated HPS CPU9-down pressure into one bounded attributable observation.

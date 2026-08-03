@@ -945,6 +945,19 @@ CPU9 checksum, temporary staging was removed, no fresh backup was made, and the
 device was cleanly powered off without reboot. The next ordered action is the
 single manually selected boot2 cycle with both observation paths armed.
 
+That cycle rejected the declared success predicate but advanced the CPU9
+boundary. At 11.995489 seconds, retained pstore proves CPU8 and CPU9 both
+Linux-accounted online and two synchronous callbacks completed on each CPU
+with reconciled hit counts. No pair fault, panic, Internal error, or Call trace
+was retained. HPS also requested CPU9 down 83 times; every request reached the
+inherited veto, and the predeclared map classifies any such request as failure.
+The third sample was scheduled beyond the inherited watchdog window, so this
+artifact cannot produce its terminal before recovery and must not be repeated.
+The next ordered action is a child that keeps standard PSCI-only CPU9 startup
+and CPU_OFF prohibition, moves all three pair samples inside the fixed deadline,
+and collapses repeated HPS down-pressure reporting into one bounded attributable
+record while continuing to veto every request.
+
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback
 gates close.
