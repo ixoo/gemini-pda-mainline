@@ -154,6 +154,10 @@ def validate(psci: str, cpu: str, hps: str) -> None:
     )
     require(psci.count("mt6797_a72_sc_reset();") == 1, "reset call count changed")
     require(psci.count("mt6797_a72_sc_run();") == 1, "run call count changed")
+    require(
+        "static bool mt6797_a72_pl_passed(void)" not in psci,
+        "obsolete child-only parent helper remains",
+    )
     reset_at = hold_worker.index("mt6797_a72_sc_reset();")
     gate_at = hold_worker.index(
         "if (hps_reported == 1 && hps_cpu == 9 && hps_error == -EPERM"

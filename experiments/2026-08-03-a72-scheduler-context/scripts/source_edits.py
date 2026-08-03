@@ -173,28 +173,6 @@ static void mt6797_a72_sc_reset(void)
 	atomic_set(&mt6797_a72_sc_reported, -1);
 }
 
-static bool mt6797_a72_pl_passed(void)
-{
-	return atomic_read(&mt6797_a72_pl_reported) == 1 &&
-	       mt6797_a72_pl_result8.cpu == 8 &&
-	       mt6797_a72_pl_result9.cpu == 9 &&
-	       !mt6797_a72_pl_result8.error &&
-	       !mt6797_a72_pl_result9.error &&
-	       mt6797_a72_pl_result8.done == MT6797_A72_PL_ROUNDS &&
-	       mt6797_a72_pl_result9.done == MT6797_A72_PL_ROUNDS &&
-	       atomic_read(&mt6797_a72_pl_ready) == 2 * MT6797_A72_PL_ROUNDS &&
-	       atomic_read(&mt6797_a72_pl_written) == 2 * MT6797_A72_PL_ROUNDS &&
-	       atomic_read(&mt6797_a72_pl_verified) == 2 * MT6797_A72_PL_ROUNDS &&
-	       mt6797_a72_pl_result8.write_hash != 0 &&
-	       mt6797_a72_pl_result9.write_hash != 0 &&
-	       mt6797_a72_pl_result8.write_hash ==
-		mt6797_a72_pl_result9.read_hash &&
-	       mt6797_a72_pl_result9.write_hash ==
-		mt6797_a72_pl_result8.read_hash &&
-	       !mt6797_a72_pl_result8.bad_round &&
-	       !mt6797_a72_pl_result9.bad_round;
-}
-
 static void mt6797_a72_sc_run(void)
 {
 	unsigned long deadline;
