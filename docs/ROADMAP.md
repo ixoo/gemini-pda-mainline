@@ -913,6 +913,16 @@ disabled until its distinct checkpoints, failures, and recovery decisions pass
 offline review. CPU_OFF, load/stress coherency, DVFS/OPP, thermal, and suspend
 remain separate closed gates.
 
+The CPU9 cluster-reuse child now passes exact-source generation, all 16 static
+mutations, two full Buildbox builds against the exact late-CPU8 parent,
+byte-identical inherited diagnostics, durable `cpu_psci_cpu_boot` and `__cpu_up`
+binary review, and bounded stack review. Its only forward action is one
+standard PSCI CPU_ON after verified CPU8/cluster state; CPU8's cluster
+preparation is not replayed. The next ordered action is reproducible Android-v0
+container construction and independent offline validation of the exact
+accepted Image.gz-dtb. CPU9 remains disabled on the device until that container
+and the deployment/runtime decision map pass their own gates.
+
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback
 gates close.

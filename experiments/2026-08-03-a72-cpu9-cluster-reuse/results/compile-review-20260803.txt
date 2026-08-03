@@ -1,0 +1,90 @@
+CPU9 cluster-reuse Buildbox compile review
+==========================================
+
+Date: 2026-08-03
+Repository commit: c82acf76c6c18fd3280bf8cb4e91a3ac49eaacf1
+Source commit: 59e00a9144d782e148332009a835b99c43382467
+Late-parent patchset SHA-256:
+  f2bebc4a04888a6c83f0dc72c2de56d350c2a52ab9779ef07e3a01cb5b544d91
+CPU9 child patchset SHA-256:
+  17733d2ae50c16f9d0db2d4bd4075fa5a72ce081606db7d3bf1bfe83f4159a2b
+Exact baseline: runtime-repeatable late-CPU8 patchset
+Build backend: Buildbox x86_64 only
+Native VM kernel build: no
+Device access: none
+
+Toolchain and configuration
+---------------------------
+
+Compiler: aarch64-linux-gnu-gcc-6 (Debian 6.3.0-18) 6.3.0 20170516
+Linker: GNU ld (GNU Binutils for Debian) 2.28
+Toolchain manifest SHA-256:
+  a45d945f092461a611d276ad7d0a0fea1ea8a7f93db413908bcb892c12817d14
+Resolved configuration SHA-256:
+  05e389b6de653a4a9b63ad3f3c259be13bdda7f07bbe25ae0b81ec7a7c5c2a9b
+Configuration delta: observer, one-way CPU8, and CPU9 cluster reuse enabled,
+  plus inherited explicit CONFIG_ANBOX=n normalization. The exact baseline
+  omits only CONFIG_MTK_A72_CPU9_CLUSTER_REUSE.
+
+Build outputs
+-------------
+
+Image.gz-dtb SHA-256:
+  7a592d62d837fa61b7c57ec2e8be65d4a25203685b4936f2848fc3600563039a
+vmlinux SHA-256:
+  a91d02c89490b2415904422665ff2ca8f46bdd1bc6fc52428e5332af9b36158a
+System.map SHA-256:
+  f523d3e855312c29c0936f73d5cb0de1a11f449c7608f847e94eff64fd167531
+Bundle manifest SHA-256:
+  9b331784d726127566e2065fc7c3aaddc205de36ed3f9ac613dd350b70358233
+Build identity:
+  #1 SMP PREEMPT Mon Aug 3 12:36:14 UTC 2026
+
+Both child and exact late-CPU8 parent completed full Image.gz-dtb builds. Each
+captured 2,484 stack-use reports. Their only extracted diagnostic is the same
+inherited vendor modpost summary of 69 section mismatches; the diagnostic files
+are byte-identical.
+
+Gate corrections and binary review
+----------------------------------
+
+The first run compiled both variants but published no bundle after the gate
+requested a standalone disassembly for the private CPU9 boot helper, which GCC
+had inlined. A corrected run accepted the compile, and its manual review found
+stronger durable anchors than HPS. The final c82acf7 run therefore requires and
+compares cpu_psci_cpu_boot and __cpu_up for child and parent; both differ and
+both are captured in the validated bundle.
+
+The compiled CPU9 branch checks CPU 9, consumes the one-shot state, requires
+CPU8 online, CPU9 offline, accepted CPU8 PSCI state, and published cluster
+state, then makes one indirect standard PSCI call with CPU9's logical-map
+entry and secondary_entry. It records the lifecycle result and accepted state
+without replaying cluster preparation. The generic CPU-up caller accepts CPUs
+8 or 9, passes the actual CPU identity and online bit to the shared completion
+owner, and suppresses the vendor fatal path only for those retained A72 CPUs.
+
+The child contains the CPU9 state/failure marker and the exact three-sample
+pair terminal:
+
+  gemini-a72-pair-v1 result=pass sample=3 cpu8=8 cpu9=9 online8=1 online9=1 hits8=3 hits9=3
+
+The exact baseline contains no CPU9 child globals or pair marker.
+
+Stack use in the affected functions:
+
+  cpu_psci_cpu_boot: 128 bytes child, 128 parent
+  __cpu_up: 96 bytes child, 96 parent
+  mt6797_a72_one_way_secondary_complete: 48 bytes child, 48 parent
+  mt6797_a72_hold_workfn: 96 bytes child, 80 parent
+  mt6797_a72_cpu9_marker: 16 bytes child, absent parent
+
+The sampler's 16-byte increase is accepted: it runs in non-recursive workqueue
+process context, performs bounded synchronous calls, and remains 96 bytes. The
+PSCI caller, generic completion caller, and shared completion owner do not grow.
+
+Decision
+--------
+
+result=compile-accepted
+boot_candidate=no
+next_action=construct and independently validate an exact Android-v0 container using this Image.gz-dtb

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu9-cluster-reuse` |
-| Status | `source-generated-compile-pending` |
+| Status | `compile-accepted-container-pending` |
 | Subsystem | MT6797 CPU9 PSCI per-core startup with CPU8 retained |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -58,6 +58,8 @@ userspace control is introduced.
 - [`patches/`](patches/): one Buildbox-generated logical CPU9 child patch.
 - [`results/patch-generation-review-20260803.txt`](results/patch-generation-review-20260803.txt):
   exact identities, rejected validator revisions, and accepted source review.
+- [`results/compile-review-20260803.txt`](results/compile-review-20260803.txt):
+  exact child/parent compile, gate corrections, binary, and stack decision.
 
 ## Procedure
 
@@ -97,12 +99,13 @@ terminal substantive by synchronously executing on both A72 CPUs.
 
 ## Conclusion
 
-`source-generated-compile-pending`: the exact late parent, one logical child,
-PSCI-only CPU9 path, pair sampler, forbidden actions, ordering, and all 16
-mutations pass on Buildbox. No CPU9-capable binary or artifact is accepted yet.
+`compile-accepted-container-pending`: the exact late parent, one logical child,
+PSCI-only CPU9 path, pair sampler, forbidden actions, ordering, all 16
+mutations, two full builds, identical diagnostics, durable-caller disassembly,
+and bounded stack review pass on Buildbox. This is not yet a boot candidate.
 
 ## Follow-up
 
-Commit and push the compile tooling, then run
-`./scripts/buildbox build-gemian-cpu9-compile` and fetch only its validated
-bundle for review. CPU9 remains disabled.
+Construct and independently validate an exact Android-v0 container from the
+accepted Image.gz-dtb. CPU9 remains disabled on the device until that candidate
+and its guarded deployment/runtime decision map pass offline review.
