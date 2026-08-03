@@ -73,6 +73,10 @@ Commands:
                         Compare late-sample CPU8 and exact held-online parent
   fetch-gemian-late-compile
                         Fetch that validated compile-review bundle for HEAD
+  build-gemian-cpu9-compile
+                        Compare CPU9 cluster reuse and exact late-CPU8 parent
+  fetch-gemian-cpu9-compile
+                        Fetch that validated compile-review bundle for HEAD
 
 Environment:
   BUILDBOX_HOST         SSH target (default: buildbox)
@@ -460,7 +464,7 @@ build_gemian_observer() {
   local sha
 
   case "${mode}" in
-    observer|rollback|recovery|one-way|held|late) ;;
+    observer|rollback|recovery|one-way|held|late|cpu9) ;;
     *) die "invalid Gemian compile-review mode: ${mode}" ;;
   esac
 
@@ -523,6 +527,11 @@ case "${mode}" in
     readonly job_suffix=gemian-a72-late
     readonly job_purpose=gemian-a72-late-hold-compile-review
     readonly build_script=experiments/2026-08-03-a72-cpu8-late-hold/scripts/build-on-buildbox
+    ;;
+  cpu9)
+    readonly job_suffix=gemian-a72-cpu9
+    readonly job_purpose=gemian-a72-cpu9-cluster-reuse-compile-review
+    readonly build_script=experiments/2026-08-03-a72-cpu9-cluster-reuse/scripts/build-on-buildbox
     ;;
   *) exit 2 ;;
 esac
@@ -722,7 +731,7 @@ elif [[ "${mode}" == held ]]; then
   ! grep -qE ' mt6797_a72_hold_(ipi|workfn)$' \
     "${package}/outputs/baseline/System.map"
   [[ "$(tar -tf "${package}/outputs/baseline/stack-usage.tar" | wc -l)" -gt 100 ]]
-else
+elif [[ "${mode}" == late ]]; then
   for required in outputs/baseline/stack-usage.tar \
     outputs/baseline/stack-usage-files.nul \
     outputs/baseline/stack-usage-files.txt \
@@ -751,6 +760,40 @@ else
     grep -q ' mt6797_a72_hold_ipi$' "${map}"
     grep -q ' mt6797_a72_hold_workfn$' "${map}"
   done
+  [[ "$(tar -tf "${package}/outputs/baseline/stack-usage.tar" | wc -l)" -gt 100 ]]
+else
+  for required in outputs/baseline/stack-usage.tar \
+    outputs/baseline/stack-usage-files.nul \
+    outputs/baseline/stack-usage-files.txt \
+    outputs/focused-disassembly/cpu_down.txt \
+    outputs/focused-disassembly/hps_algo_do_cluster_action.txt \
+    outputs/focused-disassembly/mt6797_a72_cpu9_boot.txt \
+    outputs/focused-disassembly/mt6797_a72_cpu9_marker.txt \
+    outputs/focused-disassembly/mt6797_a72_hold_ipi.txt \
+    outputs/focused-disassembly/mt6797_a72_hold_workfn.txt \
+    outputs/focused-disassembly/mt6797_a72_one_way_secondary_complete.txt \
+    outputs/baseline/focused-disassembly/cpu_down.txt \
+    outputs/baseline/focused-disassembly/hps_algo_do_cluster_action.txt \
+    outputs/baseline/focused-disassembly/mt6797_a72_hold_ipi.txt \
+    outputs/baseline/focused-disassembly/mt6797_a72_hold_workfn.txt \
+    outputs/baseline/focused-disassembly/mt6797_a72_one_way_secondary_complete.txt; do
+    [[ -s "${package}/${required}" ]]
+  done
+  jq -e '
+    .baseline_source_exact_late == true and
+    .baseline_stack_usage_file_count > 100 and
+    .late_patchset_sha256 ==
+      "f2bebc4a04888a6c83f0dc72c2de56d350c2a52ab9779ef07e3a01cb5b544d91" and
+    .cpu9_patchset_sha256 ==
+      "17733d2ae50c16f9d0db2d4bd4075fa5a72ce081606db7d3bf1bfe83f4159a2b" and
+    .purpose == "cpu9-cluster-reuse-compile-review-only"
+  ' "${package}/provenance/build.json" >/dev/null
+  grep -q ' mt6797_a72_cpu9_boot$' "${package}/outputs/System.map"
+  grep -q ' mt6797_a72_cpu9_marker$' "${package}/outputs/System.map"
+  ! grep -qE ' mt6797_a72_cpu9_(boot|marker)$' \
+    "${package}/outputs/baseline/System.map"
+  grep -aFq 'gemini-a72-pair-v1 result=pass sample=3' \
+    "${package}/outputs/vmlinux"
   [[ "$(tar -tf "${package}/outputs/baseline/stack-usage.tar" | wc -l)" -gt 100 ]]
 fi
 [[ "$(tar -tf "${package}/outputs/stack-usage.tar" | wc -l)" -gt 100 ]]
@@ -812,6 +855,10 @@ fetch_gemian_observer() {
       job_suffix=gemian-a72-late
       job_purpose=gemian-a72-late-hold-compile-review
       ;;
+    cpu9)
+      job_suffix=gemian-a72-cpu9
+      job_purpose=gemian-a72-cpu9-cluster-reuse-compile-review
+      ;;
     *) die "invalid Gemian compile-review mode: ${mode}" ;;
   esac
   sha="$(git -C "${REPO_DIR}" rev-parse HEAD)"
@@ -860,7 +907,8 @@ case "${package}" in "${artifact_root}"/*) ;; *) exit 1 ;; esac
    ($mode == "recovery" and .purpose == "recovery-compile-review-only") or
    ($mode == "one-way" and .purpose == "one-way-compile-review-only") or
    ($mode == "held" and .purpose == "held-online-compile-review-only") or
-   ($mode == "late" and .purpose == "late-hold-compile-review-only"))
+   ($mode == "late" and .purpose == "late-hold-compile-review-only") or
+   ($mode == "cpu9" and .purpose == "cpu9-cluster-reuse-compile-review-only"))
 ' "${package}/provenance/build.json" >/dev/null
 tar -C "$(dirname "${package}")" -cf - -- "$(basename "${package}")"
 REMOTE
@@ -1770,6 +1818,8 @@ case "${COMMAND}" in
   fetch-gemian-held-compile) fetch_gemian_observer held ;;
   build-gemian-late-compile) build_gemian_observer late ;;
   fetch-gemian-late-compile) fetch_gemian_observer late ;;
+  build-gemian-cpu9-compile) build_gemian_observer cpu9 ;;
+  fetch-gemian-cpu9-compile) fetch_gemian_observer cpu9 ;;
   help|-h|--help) usage ;;
   *) usage >&2; exit 2 ;;
 esac

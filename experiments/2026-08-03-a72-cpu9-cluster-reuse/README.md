@@ -53,6 +53,8 @@ userspace control is introduced.
   inventory, and forbidden-action checks.
 - [`scripts/test_static.py`](scripts/test_static.py): rejection mutations for
   CPU identity, parent state, PSCI-only ordering, pair sampling, and recovery.
+- [`scripts/build-on-buildbox`](scripts/build-on-buildbox): exact late-parent
+  versus CPU9-child compile, diagnostics, binary, disassembly, and stack gate.
 - [`patches/`](patches/): one Buildbox-generated logical CPU9 child patch.
 - [`results/patch-generation-review-20260803.txt`](results/patch-generation-review-20260803.txt):
   exact identities, rejected validator revisions, and accepted source review.
@@ -93,5 +95,6 @@ mutations pass on Buildbox. No CPU9-capable binary or artifact is accepted yet.
 
 ## Follow-up
 
-Commit and push the exact generated patch, then compare full child and exact
-late-parent builds on Buildbox. CPU9 remains disabled.
+Commit and push the compile tooling, then run
+`./scripts/buildbox build-gemian-cpu9-compile` and fetch only its validated
+bundle for review. CPU9 remains disabled.
