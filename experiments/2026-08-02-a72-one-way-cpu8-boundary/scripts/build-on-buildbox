@@ -212,7 +212,7 @@ fi
 readonly scheduler_patchset_sha
 if [[ "${build_mode}" == scheduler ]]; then
   [[ "${scheduler_patchset_sha}" == \
-     821a20025d1cd0fc591c80b9893a85e86ce07819b9d50529605a8d358b4279f9 ]] || \
+     30316bc63934d7fdc022367bb8b465e794c8c91ec9956d6233e02bddad55fffe ]] || \
     die "scheduler-context patchset identity mismatch"
 fi
 [[ "$(sha256sum "${baseline_config}" | awk '{print $1}')" == "${CONFIG_SHA256}" ]] || \

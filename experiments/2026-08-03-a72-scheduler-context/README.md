@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-scheduler-context` |
-| Status | `source-revision-pending` |
+| Status | `compile-tooling-ready` |
 | Subsystem | MT6797 retained Cortex-A72 pair and scheduler |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -37,17 +37,17 @@ watchdog recovery?
 - Kernel thread API reference: exact upstream Linux v7.1 `kernel/kthread.c`
   and `include/linux/kthread.h`.
 - Build backend: Buildbox only; no native VM kernel build.
-- Compile-rejected source-generation repository commit:
-  `d9dd2f9e95cfed30aa322da672083d969a70fe8a`.
+- Validated source-generation repository commit:
+  `53307958dcbd715039e5cbab326b0094488d7c90`.
 - Exact reconstructed parent commit:
   `0bbc78db41f0334550232ad9b56734d57721faf3`.
 - Generated scheduler source commit:
-  `4a9879f49ab0070b188c9cad6e379b6ba9a358af`.
+  `d62f75d8a2f1759bdffc4f318303ed613fb2760f`.
 - Generated patch SHA-256:
-  `2eca26115bf539ee3329b88312b128dc13121a097bf813d4ba289771484dad22`.
+  `ed2abf428ec51af4614b9e9adb94a1a12b9333224868a241a0525139f85e6625`.
 - Scheduler patchset SHA-256:
-  `821a20025d1cd0fc591c80b9893a85e86ce07819b9d50529605a8d358b4279f9`.
-- Stable patch ID: `b46999ead83f5a754ed89003af87142bbaadb9d2`.
+  `30316bc63934d7fdc022367bb8b465e794c8c91ec9956d6233e02bddad55fffe`.
+- Stable patch ID: `9e4f5361be7ef72f8eb11f289827ec7e6370e764`.
 - Compile attempt 1 built both exact sources but failed the stack acceptance
   boundary; no accepted compile review, container, deployment, or runtime claim
   exists yet.
@@ -150,6 +150,11 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   byte-for-byte and emits pair-v7 through a separate `noinline` reporter. No
   package was accepted and no device action occurred. See
   [`results/compile-attempt-2-terminal-stack-reject-20260803.txt`](results/compile-attempt-2-terminal-stack-reject-20260803.txt).
+- Isolated-terminal generation from commit
+  `53307958dcbd715039e5cbab326b0094488d7c90` preserved the two complete pair-v6
+  terminals, added one no-inline pair-v7 reporter, passed both hash vectors and
+  all 25 negative mutations, and produced a one-file checksum-verified patch.
+  No compile or device action occurred.
 
 ## Analysis
 
@@ -160,11 +165,11 @@ context while preserving the established power and recovery boundary.
 
 ## Conclusion
 
-`source-revision-pending`: both compile attempts built the child and exact
-pair-v6 parent but correctly rejected 1,056-byte and 1,072-byte parent-terminal
-frames. The next revision leaves the pair-v6 terminal unchanged and isolates
-pair-v7 formatting in a no-inline bounded reporter. No accepted compile package,
-container, deployment, or hardware evidence exists.
+`compile-tooling-ready`: both prior compile attempts correctly rejected expanded
+parent-terminal frames. The regenerated revision leaves pair-v6 terminal text
+and arguments unchanged, isolates pair-v7 formatting in a no-inline reporter,
+and rejects 25 source mutations. No accepted compile package, container,
+deployment, or hardware evidence exists.
 
 ## Follow-up
 

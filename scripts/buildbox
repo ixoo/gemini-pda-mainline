@@ -936,7 +936,7 @@ elif [[ "${mode}" == scheduler ]]; then
     .parallel_patchset_sha256 ==
       "94d3b07355e1ddb67f3f643165570255bb1f42131b3b67c074d270e8581989e2" and
     .scheduler_patchset_sha256 ==
-      "821a20025d1cd0fc591c80b9893a85e86ce07819b9d50529605a8d358b4279f9" and
+      "30316bc63934d7fdc022367bb8b465e794c8c91ec9956d6233e02bddad55fffe" and
     .purpose == "a72-scheduler-context-compile-review-only"
   ' "${package}/provenance/build.json" >/dev/null
   for symbol in mt6797_a72_coh_ipi mt6797_a72_coh_workfn \
