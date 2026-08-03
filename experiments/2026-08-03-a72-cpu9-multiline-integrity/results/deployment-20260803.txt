@@ -1,0 +1,44 @@
+CPU8/CPU9 multi-cacheline integrity boot2 deployment
+Date: 2026-08-03
+
+Result: write, sync, flush, two full readback checks, temporary cleanup, and
+clean shutdown all passed. This is deployment evidence, not runtime evidence.
+
+Exact facts
+-----------
+
+Experiment:
+  2026-08-03-a72-cpu9-multiline-integrity
+Deployment baseline boot ID:
+  22594815-d18d-4dae-85ea-b3c68e6d1d95
+Live GPT target:
+  logical boot2, /dev/mmcblk0p30
+Ordinary Gemian root:
+  /dev/mmcblk0p29
+Power state:
+  external power present, battery 96%, health Good
+Predecessor full-partition SHA-256:
+  eda1d5bb312aa937e41499ea8fd13a5f8ae95865399605fe7cf93ee61daaa23d
+Candidate and full readback SHA-256:
+  5227729e34ca42cf606f43008ec753fce15147693ce7a670818db58c5903fa48
+
+Safety gates
+------------
+
+- Exactly one live-GPT boot2 was resolved and it was not root or mounted.
+- The predecessor matched the fixed pair-v4 candidate identity.
+- No fresh predecessor backup was created; recovery relies on the verified
+  project-wide backup captured at project start.
+- The exact 16 MiB candidate fit the target, was written, synced, flushed, and
+  matched both full post-write readbacks.
+- Temporary remote and local readbacks were removed.
+- The device was not rebooted. Clean poweroff was requested after evidence was
+  flushed, and post-shutdown reachability was confirmed absent.
+
+Next action
+-----------
+
+Arm changed-cycle pstore collection from baseline boot ID
+`22594815-d18d-4dae-85ea-b3c68e6d1d95`, then physically select boot2 exactly
+once. Screen color is not evidence; classify only the complete pair-v5 terminal
+and the predeclared watchdog-recovery continuity checks.

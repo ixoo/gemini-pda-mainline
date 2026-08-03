@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu9-multiline-integrity` |
-| Status | `deployment-and-runtime-map-ready` |
+| Status | `deployed-shutdown-awaiting-first-boot` |
 | Subsystem | MT6797 retained Cortex-A72 pair and cache coherency |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -50,6 +50,8 @@ mismatch, callback error, lost watchdog recovery, or changed power boundary?
   `4e3c1b1095ee87e0af3c45595ea83d859d53188a53aba10672202bf45938986a`.
 - Full boot2-sized SHA-256:
   `5227729e34ca42cf606f43008ec753fce15147693ce7a670818db58c5903fa48`.
+- Deployment baseline boot ID:
+  `22594815-d18d-4dae-85ea-b3c68e6d1d95`.
 
 ## Safety assessment
 
@@ -75,6 +77,8 @@ terminal snapshot before the inherited watchdog restart.
   two-root Android-v0 reproduction and embedded-image validation.
 - [`results/runtime-decision-map-20260803.txt`](results/runtime-decision-map-20260803.txt):
   fixed pair-v5 deployment, recovery, pass, and reject branches.
+- [`results/deployment-20260803.txt`](results/deployment-20260803.txt): exact
+  live-GPT boot2 write/readback and shutdown evidence.
 - [`scripts/install-boot2.sh`](scripts/install-boot2.sh): guarded exact-candidate
   boot2 installer with full readback and clean shutdown.
 - [`scripts/capture-live-outcome.sh`](scripts/capture-live-outcome.sh): optional
@@ -84,19 +88,18 @@ terminal snapshot before the inherited watchdog restart.
 
 ## Conclusion
 
-`deployment-and-runtime-map-ready`: Buildbox reproduced the exact
+`deployed-shutdown-awaiting-first-boot`: Buildbox reproduced the exact
 pair-v4 parent, passed its static validator, applied the deterministic child
 transformer, rejected all 16 multiline mutations, and generated a patch that
 changes only `arch/arm64/kernel/psci.c`. The pinned comparative build passed its
 source, configuration, diagnostics, linked-code, terminal, and stack gates. The
 exact image was assembled twice into byte-identical Android-v0 and padded
 containers with the expected embedded kernel and unchanged known-good ramdisk.
-The guarded installer, read-only collector, and fixed decision map now pass
-their static contracts. The exact candidate is ready for the standing-authorized
-inactive boot2 write followed by clean shutdown and one attributable boot.
+The guarded installer wrote live-GPT-resolved inactive boot2, verified two full
+checksums, and shut the device down. The exact candidate now awaits one
+attributable physical boot2 selection with the changed-cycle observer armed.
 
 ## Follow-up
 
-Commit and push this deployment boundary, then in ordinary Gemian install the
-exact candidate to live-GPT-resolved inactive boot2, verify two full readbacks,
-and shut down cleanly for one physical boot2 selection.
+Publish the sanitized deployment evidence, arm the changed-cycle pstore
+observer, then physically select boot2 once and allow automatic Gemian recovery.
