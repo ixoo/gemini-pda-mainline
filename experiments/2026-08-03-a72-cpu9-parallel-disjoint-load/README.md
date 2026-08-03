@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu9-parallel-disjoint-load` |
-| Status | `compile-review-pass; container-pending` |
+| Status | `offline-candidate-validated; deployment-tooling-pending` |
 | Subsystem | MT6797 retained Cortex-A72 pair and cache coherency |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -48,7 +48,7 @@ watchdog recovery, or changed power boundary?
   `17d222165657e6679df3b7be6e1c712a15ec979012755cdbc95ae087eeed48f4`.
 - Pair-v5 validation: four pattern vectors and 16 negative mutations passed.
 - Pair-v6 validation: four pattern vectors and 19 negative mutations passed.
-- No container, deployment, device action, or runtime claim exists yet.
+- No deployment, device action, or runtime claim exists yet.
 - Final Buildbox compile-review commit:
   `ad7807ccc50bebd0aaeafcbe4dadb4c11c44b850`.
 - Child `Image.gz-dtb` SHA-256:
@@ -59,7 +59,17 @@ watchdog recovery, or changed power boundary?
   byte-identical.
 - Measured static stack: parallel callback 48 bytes, coherency worker 112
   bytes, complete terminal worker 784 bytes; the working set is not on stack.
-- This is still compile-review evidence, not a boot candidate or runtime claim.
+- The compile bundle alone was not a boot candidate; the independently
+  reproduced padded container below is the accepted exact candidate for
+  guarded deployment. It has not yet produced runtime evidence.
+- Two independent offline container roots produced byte-identical Android-v0
+  images and exact 16 MiB padded images.
+- Raw Android-v0 SHA-256:
+  `6673d9ff6b9ff0a2bb4cf7a89815d73022208975dca713176c71a3b0865c7c51`.
+- Full padded boot2 SHA-256:
+  `0beead0b00485ad18333aca4d688fcd549c813113b7ec0554a6761c7147b17fb`.
+- Independent validation pins all tool, parent, compile, kernel, ramdisk,
+  header, layout, raw, padded, manifest, and offline-only identities.
 
 ## Safety assessment
 
@@ -86,18 +96,27 @@ static BSS and no payload is placed on the callback stack.
 - [`results/compile-review-20260803.txt`](results/compile-review-20260803.txt):
   exact hashes, linked binary boundaries, stack measurements, and tooling
   chronology for the final comparative Buildbox pass.
+- [`scripts/assemble.py`](scripts/assemble.py): source-pinned pair-v5 Android-v0
+  contract with only the final pair-v6 kernel field substituted.
+- [`scripts/build-candidate.sh`](scripts/build-candidate.sh): deterministic
+  double assembly and independent 16 MiB padding constructor.
+- [`scripts/test_candidate.py`](scripts/test_candidate.py): independent pinned
+  offline candidate validator.
+- [`results/offline-container-review-20260803.txt`](results/offline-container-review-20260803.txt):
+  exact container identities, validation scope, and acceptance boundary.
 
 ## Conclusion
 
-`compile-review-pass; container-pending`: the exact pair-v6 source and negative
-mutations pass, both pair-v6 and exact pair-v5 compile under identical pinned
-inputs, and the binary/configuration/diagnostic/stack gates pass. The child is
-not deployable until two independent Android-v0 container constructions agree
-byte-for-byte and an offline candidate validator binds every identity.
+`offline-candidate-validated; deployment-tooling-pending`: source, mutation,
+comparative compile, binary, configuration, diagnostics, stack, two-root
+container reproducibility, and independent Android-v0 validation gates pass.
+The exact artifact is not deployable until a pair-v6-specific installer and
+runtime decision map are source-pinned and mutation-tested.
 
 ## Follow-up
 
-Construct the pair-v6 Android-v0 container twice from the final validated
-`Image.gz-dtb` and the pinned active pair-v5 ramdisk/header contract. Require
-byte-identical raw and padded outputs plus an independent offline validator
-before any `boot2` write.
+Derive and pin the pair-v6 installer and runtime evidence tooling from the
+accepted pair-v5 paths. Require exact live-GPT boot2 resolution, inactive and
+unmounted state, power/size/checksum/readback/shutdown gates, the complete
+pair-v6 terminal, changed-cycle recovery, and rejection of all incomplete or
+fault outcomes before any device access.
