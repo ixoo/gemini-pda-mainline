@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Assemble pair-v7 with the pinned pair-v6 Android-v0 contract."""
+"""Assemble corrected pair-v7 with the pinned pair-v6 Android-v0 contract."""
 
 import hashlib
 import importlib.util
@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 PARENT_SHA256 = "9938defe0e4b83d0845135c4a27b534f5d28fafa5eac4bbe345f7badf2405094"
-KERNEL_FIELD_SHA256 = "9d2d9db5bd66bcc33c7c072248b5d907b75e5ceb8bf810c88bfd0019e128f402"
+KERNEL_FIELD_SHA256 = "f3b021cc8036a2b3ac205a16a6ff135dbeb70210cda27c639b1543b7a385449e"
 PARENT = (
     Path(__file__).resolve().parents[2]
     / "2026-08-03-a72-cpu9-parallel-disjoint-load"

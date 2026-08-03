@@ -1089,6 +1089,15 @@ corrected Image.gz-dtb SHA-256
 `f3b021cc8036a2b3ac205a16a6ff135dbeb70210cda27c639b1543b7a385449e`.
 No corrected device action is authorized yet.
 
+The corrected Android-v0 container is now byte-reproducible across two
+independent output roots and passes the independently pinned structural,
+ramdisk, legacy-ID, extent, zero-padding, provenance, and offline-only gates.
+Its exact full boot2 SHA-256 is
+`d34b2de509021d5fbbfcca62e3676202fe88b449786daf62b4eb466667fae093`.
+The next ordered action is to pin this identity and the rejected attempt-1
+predecessor in corrected deployment/runtime tooling, mutation-test those
+guards, and commit the complete clean provenance before device access.
+
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback
 gates close.

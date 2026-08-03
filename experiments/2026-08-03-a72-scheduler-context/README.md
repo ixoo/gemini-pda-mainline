@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-scheduler-context` |
-| Status | `ordering-fix-compile-passed` |
+| Status | `ordering-fix-container-passed` |
 | Subsystem | MT6797 retained Cortex-A72 pair and scheduler |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -241,6 +241,13 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   `f3b021cc8036a2b3ac205a16a6ff135dbeb70210cda27c639b1543b7a385449e`.
   No container or device action occurred. See
   [`results/compile-review-ordering-fix-20260803.txt`](results/compile-review-ordering-fix-20260803.txt).
+- Two independent corrected container roots are byte-identical and pass the
+  independently pinned Android-v0 validator. The corrected raw SHA-256 is
+  `e40ee8a50694f49d75cd023d6b2b29df4505e83dc7316f54b6fa15d5151742a7`;
+  the exact 16 MiB boot2 SHA-256 is
+  `d34b2de509021d5fbbfcca62e3676202fe88b449786daf62b4eb466667fae093`.
+  No device was accessed. See
+  [`results/offline-container-review-ordering-fix-20260803.txt`](results/offline-container-review-ordering-fix-20260803.txt).
 
 ## Analysis
 
@@ -251,10 +258,11 @@ context while preserving the established power and recovery boundary.
 
 ## Conclusion
 
-`ordering-fix-compile-passed`: the corrected source preserves the inherited
+`ordering-fix-container-passed`: the corrected source preserves the inherited
 coherency worker, passes 28 mutation tests, compiles with identical parent
-diagnostics, and remains within every stack boundary. No corrected container,
-deployment, or runtime claim exists yet.
+diagnostics, remains within every stack boundary, and has a reproducible,
+independently validated Android-v0 container. No corrected deployment or
+runtime claim exists yet.
 
 ## Follow-up
 

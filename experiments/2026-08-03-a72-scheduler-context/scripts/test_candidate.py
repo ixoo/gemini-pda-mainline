@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Independently validate the scheduler-context Android-v0 candidate."""
+"""Independently validate the corrected scheduler-context Android-v0 candidate."""
 
 import argparse
 import hashlib
@@ -26,18 +26,18 @@ SOURCE_BUILDER = (
     / "build-candidate.sh"
 )
 EXPECTED = {
-    "assembler_sha256": "712bb235a21217b4051556e9363c655347ce6a8e4a19fd72f5eba9ce94e3222c",
+    "assembler_sha256": "01dc2bbecb37867f565053ec71c643eae8715254b3393b78fe18122ad8a2beef",
     "parent_assembler_sha256": "9938defe0e4b83d0845135c4a27b534f5d28fafa5eac4bbe345f7badf2405094",
-    "builder_sha256": "833b962b7a546a61fecc10b61aff1e8894a71bf2c086b8cdd30637315613098f",
+    "builder_sha256": "e075c3db9d94395eaa982e3c0f568db07b6b8ef5cc05be04d161d939bea903ef",
     "source_builder_sha256": "65c39fa45b1f76fb85780473feb3b675bd5e6647934e68be2761bc823c07e0fe",
-    "repository_commit": "697ac3984c9b52c285cb7fcdb076dcec4dbf8ef0",
+    "repository_commit": "66f3592aa281915a1fa998684353ea9f9395c85d",
     "parallel_patchset_sha256": "94d3b07355e1ddb67f3f643165570255bb1f42131b3b67c074d270e8581989e2",
-    "scheduler_patchset_sha256": "30316bc63934d7fdc022367bb8b465e794c8c91ec9956d6233e02bddad55fffe",
-    "kernel_field_sha256": "9d2d9db5bd66bcc33c7c072248b5d907b75e5ceb8bf810c88bfd0019e128f402",
+    "scheduler_patchset_sha256": "8a5b32d331493680e0a554d96572c9ec3d769e8075baf4f998cd7a2cfc617c28",
+    "kernel_field_sha256": "f3b021cc8036a2b3ac205a16a6ff135dbeb70210cda27c639b1543b7a385449e",
     "active_boot_sha256": "1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513",
     "active_ramdisk_sha256": "a1ee05445e9a2bd8fbc1f75d7cda326b9ca7a6d3b644cbb1d5fc0ac167835be4",
-    "raw_sha256": "f9fddf01576aa6915c030b1952b290d937ef9a0ba9512a6adb0ab02de2e5fff3",
-    "padded_sha256": "24377665fa5b9112266890844c06c453bb50e17680b6f6f956035c234c26ff0f",
+    "raw_sha256": "e40ee8a50694f49d75cd023d6b2b29df4505e83dc7316f54b6fa15d5151742a7",
+    "padded_sha256": "d34b2de509021d5fbbfcca62e3676202fe88b449786daf62b4eb466667fae093",
 }
 RAW_NAME = "gemian-a72-scheduler-context.boot.img"
 PADDED_NAME = "boot2-padded.img"
@@ -155,7 +155,7 @@ def validate_candidate(candidate: Path) -> None:
     kernel = raw[kernel_offset : kernel_offset + kernel_size]
     ramdisk = raw[ramdisk_offset : ramdisk_offset + ramdisk_size]
     require(
-        kernel_size == 8_455_991
+        kernel_size == 8_456_089
         and digest(kernel) == EXPECTED["kernel_field_sha256"],
         "kernel changed",
     )
