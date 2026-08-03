@@ -1095,8 +1095,9 @@ if [[ "${build_mode}" == parallel ]]; then
   fi
   find "${output}" -type f -name '*.su' -exec \
     grep -hE 'mt6797_a72_(pl_ipi|coh_workfn|hold_workfn)' {} + > \
-    "${output}/parallel-stack.txt" || :
-  python3 - "${output}/parallel-stack.txt" <<'PY'
+    "${output}/parallel-stack.raw" || :
+  python3 - "${output}/parallel-stack.raw" > \
+    "${output}/parallel-stack.txt" <<'PY'
 import pathlib
 import sys
 
@@ -1121,6 +1122,7 @@ if set(seen) != set(expected):
 for name in sorted(seen):
     print("{}={}".format(name, seen[name]))
 PY
+  rm "${output}/parallel-stack.raw"
 elif [[ "${build_mode}" == multiline ]]; then
   for map in "${output}/System.map" "${baseline_output}/System.map"; do
     for symbol in mt6797_a72_hold_ipi mt6797_a72_hold_workfn \
