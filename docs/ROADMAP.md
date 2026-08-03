@@ -939,6 +939,12 @@ shutdown gates; the optional netcat path remains read-only. The next ordered
 action is one deployment from known-good Gemian followed by one manually
 selected boot2 cycle with changed-cycle pstore as the primary observation.
 
+That deployment is now complete: the exact late-CPU8 predecessor was replaced
+only on live-GPT-resolved inactive boot2, both full readbacks match the accepted
+CPU9 checksum, temporary staging was removed, no fresh backup was made, and the
+device was cleanly powered off without reboot. The next ordered action is the
+single manually selected boot2 cycle with both observation paths armed.
+
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback
 gates close.

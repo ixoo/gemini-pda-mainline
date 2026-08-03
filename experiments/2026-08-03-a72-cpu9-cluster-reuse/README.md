@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu9-cluster-reuse` |
-| Status | `deployment-eligible-runtime-pending` |
+| Status | `deployed-powered-off-runtime-pending` |
 | Subsystem | MT6797 CPU9 PSCI per-core startup with CPU8 retained |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -72,6 +72,8 @@ userspace control is introduced.
   three-build reproduction, Android-v0 parse, padding, and candidate decision.
 - [`results/runtime-decision-map-20260803.txt`](results/runtime-decision-map-20260803.txt):
   pre-boot hypothesis, exact success/failure classes, and deployment boundary.
+- [`results/deployment-20260803.txt`](results/deployment-20260803.txt): exact
+  predecessor, live target, full write/readback, cleanup, and shutdown result.
 
 ## Procedure
 
@@ -111,15 +113,16 @@ terminal substantive by synchronously executing on both A72 CPUs.
 
 ## Conclusion
 
-`deployment-eligible-runtime-pending`: the exact late parent, one logical child,
+`deployed-powered-off-runtime-pending`: the exact late parent, one logical child,
 PSCI-only CPU9 path, pair sampler, forbidden actions, ordering, all 16
 mutations, two full builds, identical diagnostics, durable-caller disassembly,
 bounded stack review, and three independent exact Android-v0 constructions
 pass. The guarded deployment/runtime decision map also passes offline review;
-no runtime claim exists yet.
+boot2 now matches the accepted candidate after independent full readback, and
+the device is powered off. No runtime claim exists yet.
 
 ## Follow-up
 
-Commit and push the guarded runtime review, install the sole accepted padded
-checksum once from known-good Gemian, and shut the device down for manual boot2
-selection with both observation paths armed.
+Arm changed-cycle pstore and the optional read-only netcat capture, then
+physically select boot2 once. Classify only the exact retained markers and
+changed-cycle evidence from the declared runtime map.

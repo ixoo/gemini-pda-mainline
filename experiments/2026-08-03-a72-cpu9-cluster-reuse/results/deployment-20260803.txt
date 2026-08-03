@@ -1,0 +1,48 @@
+CPU9 cluster-reuse boot2 deployment
+===================================
+
+Date: 2026-08-03
+Result: write-synced-flushed-full-readback-verified
+Device state after result: cleanly powered off and unreachable
+Automatic reboot: no
+
+Pre-write gate
+--------------
+
+Known-good OS boot ID:
+  2af77928-5149-495c-a490-56abc5e4782b
+Power state: external power present, 76 percent, Good health
+Live GPT logical target: boot2
+Resolved target: /dev/mmcblk0p30
+Active root: /dev/mmcblk0p29
+Target mounted or active: no
+Exact predecessor SHA-256:
+  2e81e18610d99c69bee8867d2fe960245dfcdda1ca583965724598255ea871af
+Fresh predecessor backup: no
+
+Write and verification
+----------------------
+
+Candidate SHA-256:
+  b32bca348efc0fcaffe2b5909c6246d66a4d0fec4102cee091103c42db604d69
+Guarded on-device full readback SHA-256:
+  b32bca348efc0fcaffe2b5909c6246d66a4d0fec4102cee091103c42db604d69
+Independent streamed full readback SHA-256:
+  b32bca348efc0fcaffe2b5909c6246d66a4d0fec4102cee091103c42db604d69
+Independent byte comparison: identical
+Temporary candidate/readback staging removed: yes
+Deployment evidence manifest SHA-256:
+  01c46f8a0dc0f284b4d0567e4e4398769e8c5be73591b8479e09a7d169541c6b
+
+Shutdown
+--------
+
+Clean poweroff request returned success. Subsequent SSH reachability changed
+to unreachable. The installer did not reboot the device.
+
+Decision
+--------
+
+deployment=accepted
+runtime_result=not-tested
+next_action=arm changed-cycle pstore and optional read-only netcat capture, then physically select boot2 once
