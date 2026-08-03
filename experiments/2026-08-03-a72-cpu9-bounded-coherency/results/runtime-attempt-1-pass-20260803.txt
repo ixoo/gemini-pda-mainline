@@ -1,0 +1,80 @@
+CPU8/CPU9 bounded coherency runtime attempt 1
+Date: 2026-08-03
+
+Decision: pass. One exact repeatability cycle is earned by the predeclared
+decision map. This does not authorize CPU_OFF, removal of the HPS veto, longer
+load, or another power boundary.
+
+Exact identities
+----------------
+
+Repository compile commit:
+  938cdefde98522a2cd3504605aee04e4c83d5671
+Coherence patchset SHA-256:
+  d4c40577b9e91fedfde048b29cb203311de264c526c71e3abd907fc6fafcf67f
+Raw Android-v0 SHA-256:
+  647ebe58da86171b3a36ddd5225bc564b11be4e9799f94fe4b35b9bd005ef139
+Full boot2 SHA-256:
+  eda1d5bb312aa937e41499ea8fd13a5f8ae95865399605fe7cf93ee61daaa23d
+Pstore console SHA-256:
+  c7e4364fe635766e3bc2d9c661c1f4af5b961818602647d0ad0449bcd4f752c1
+Pstore archive SHA-256:
+  c9e8461a6888b6aa1f0fa4284dc42e96276a51b24f489e47a8f8c8e9294d1819
+
+Attributable terminal
+---------------------
+
+At 11.385671 seconds, retained `console-ramoops` contains exactly:
+
+  psci: gemini-a72-pair-v4 result=pass sample=3 cpu8=8 cpu9=9 online8=1 online9=1 hits8=3 hits9=3 hps_reported=1 hps_cpu=9 hps_error=-1 hps_count=79 coh_reported=1 coh_rounds=1024 coh_cpu8=8 coh_cpu9=9 coh_error8=0 coh_error9=0 coh_seq8=1024 coh_seq9=1024
+
+This satisfies every positive predicate fixed before deployment:
+
+- CPUs 8 and 9 were Linux-accounted online and each completed all three
+  inherited synchronous callbacks;
+- HPS first-result attribution remained CPU9, `-EPERM`, with 79 matching
+  requests while the fail-closed public down veto stayed active;
+- the CPU0 worker completed exactly one synchronous cross-call to CPUs 8/9;
+- the shared-memory handshake completed exactly 1,024 rounds with callbacks
+  on CPUs 8/9, zero errors, and final sequences 1,024/1,024; and
+- no pair-v4 fault, panic, BUG, Internal error, Call trace, asynchronous SError,
+  lockup, or unable-to-handle-kernel record is present in the retained console.
+
+Recovery and integrity
+----------------------
+
+The reviewed installer recorded ordinary-Gemian boot ID
+`816e7c0b-71bd-4290-abf5-1144add4f0d8`, verified two full boot2 readbacks, and
+confirmed shutdown before owner selection. The owner then reported the physical
+boot2 start. Immediate recovery reached ordinary Gemian `3.18.41+` with boot ID
+`d35711aa-16cc-4559-82b3-5e2edc11777a`, proving a changed boot. Filtered boot
+arguments reported `boot_reason=4` and `androidboot.bootreason=wdt_by_pass_pwk`.
+The recovery CPU online mask was `4-5`; CPU8 and CPU9 each reported `online=0`.
+The live GPT exposed exactly `mmcblk0p30 boot2`, it was unmounted, and its full
+checksum remained
+`eda1d5bb312aa937e41499ea8fd13a5f8ae95865399605fe7cf93ee61daaa23d`.
+Recovery battery telemetry reported 96 percent and Good health.
+
+Observation continuity
+----------------------
+
+The optional read-only USB/netcat collector did not observe the exact Gemini
+USB interface and produced no runtime file. This is explicitly secondary. The
+pstore helper was run immediately after recovery without `--wait-for-cycle`
+because the required installer had already shut the device down before owner
+selection. Continuity is instead direct: exact deployment boot ID, two verified
+boot2 readbacks, confirmed shutdown, owner-reported physical selection, a
+different immediate recovery boot ID, candidate-only pair-v4 terminal,
+watchdog-class recovery, and unchanged exact boot2 all identify one cycle.
+Pstore entries were read only and were not removed.
+
+Conclusion and next action
+--------------------------
+
+This is the first direct runtime evidence that both retained A72 CPUs can
+complete a bounded, barrier-ordered shared-memory exchange, not merely become
+online and service isolated callbacks. Per the fixed map, the next ordered
+action is one exact repeatability cycle of this unchanged candidate from a new
+ordinary-Gemian baseline. A second exact pass would establish repeatability of
+this bounded oracle; it would still leave longer/general coherency load,
+CPU_OFF, DVFS/OPP, thermal, suspend, and production integration unproved.

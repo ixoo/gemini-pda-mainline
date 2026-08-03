@@ -999,6 +999,18 @@ third unchanged cycle. The next ordered action is a changed, separately
 predeclared coherency/load child that preserves startup, CPU_OFF prohibition,
 power state, watchdog recovery, and the proven terminal.
 
+That bounded-coherency child passed its compile, container, deployment, and
+first runtime gates. Retained pstore contains one exact pair-v4 pass at
+11.385671 seconds: CPUs 8/9 were online, completed all three inherited
+callbacks, and then completed a 1,024-round barrier-ordered shared-memory
+exchange on the exact target CPUs with zero errors and final sequences
+1,024/1,024. The same terminal preserved HPS CPU9 `-EPERM` attribution after 79
+matching requests. Declared faults were absent; watchdog reason 4, a changed
+recovery boot ID, offline CPUs 8/9, and unchanged unmounted boot2 passed. The
+next ordered action is the one exact repeatability cycle earned by the fixed
+decision map. Do not extend load, enable CPU_OFF, or cross another power
+boundary before that result.
+
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback
 gates close.

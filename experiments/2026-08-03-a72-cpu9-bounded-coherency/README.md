@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu9-bounded-coherency` |
-| Status | `boot2-deployed-shutdown-confirmed-runtime-pending` |
+| Status | `runtime-attempt-1-passed-repeatability-pending` |
 | Subsystem | MT6797 retained Cortex-A72 pair and cache coherency |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -76,10 +76,13 @@ continue after recovery.
 - [`results/deployment-20260803.txt`](results/deployment-20260803.txt): exact
   live-GPT target, predecessor/candidate/readback identities, no-backup policy,
   temporary cleanup, and confirmed shutdown.
+- [`results/runtime-attempt-1-pass-20260803.txt`](results/runtime-attempt-1-pass-20260803.txt):
+  exact pair-v4 pass, fault exclusions, watchdog recovery, CPU state, changed
+  boot identity, and unchanged full boot2 checksum.
 
 ## Conclusion
 
-`boot2-deployed-shutdown-confirmed-runtime-pending`: Buildbox compiled the bounded-
+`runtime-attempt-1-passed-repeatability-pending`: Buildbox compiled the bounded-
 coherency child and exact terminal parent from repository commit `938cdef`,
 with identical configuration deltas and compiler diagnostics. Linked child
 code contains the expected synchronous IPI/work callbacks and acquire/release
@@ -91,11 +94,15 @@ ramdisk. The guarded installer pins the exact terminal predecessor, creates no
 fresh backup, requires two full readbacks, and powers off after success. The
 read-only collector requires the complete pair-v4/HPS/coherence terminal. This
 exact candidate replaced the expected terminal predecessor on live-GPT-resolved
-inactive `boot2`; two full readbacks matched and shutdown was confirmed. This
-is deployment evidence, not runtime hardware support.
+inactive `boot2`; two full readbacks matched and shutdown was confirmed. The
+first selected cycle then retained an exact pair-v4 pass: both CPUs completed
+the 1,024-round exchange with zero errors and final sequences 1,024/1,024 while
+the inherited HPS CPU9 `-EPERM` attribution remained intact. Watchdog recovery,
+offline CPU8/9, changed boot identity, fault exclusions, and unchanged boot2
+passed. This is one bounded runtime pass, not general coherency support.
 
 ## Follow-up
 
-Publish the sanitized deployment record, arm changed-cycle pstore (and optional
-read-only USB/netcat capture), then physically select `boot2` once. Apply the
-predeclared pair-v4 decision map after immediate ordinary-Gemian recovery.
+Publish the sanitized first-pass record. Then run the one exact repeatability
+cycle earned by the fixed decision map from a new ordinary-Gemian baseline. Do
+not extend load or cross another power boundary yet.
