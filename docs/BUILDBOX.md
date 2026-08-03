@@ -209,6 +209,21 @@ and coherency worker, 1,024 bytes for the complete terminal worker). Its
 package is compile-review-only, never a boot candidate, and performs no device
 action.
 
+## Gemian scheduler-context patch-generation lane
+
+The bounded scheduler-context child is generated from the exact pair-v6 source
+history only from a clean pushed commit:
+
+```sh
+./scripts/buildbox generate-gemian-scheduler-patches
+./scripts/buildbox fetch-gemian-scheduler-patches
+```
+
+The lane reconstructs and validates the complete pair-v6 parent, applies the
+deterministic task-context transformation, rejects the fixed mutation set, and
+exports one checksum-covered format-patch review. It performs no kernel compile,
+container construction, device access, or partition action.
+
 ## Remote storage and concurrency
 
 Buildbox uses its persistent home volume for the Git mirror, verified kernel

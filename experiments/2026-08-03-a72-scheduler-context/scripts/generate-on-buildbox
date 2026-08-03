@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+export LC_ALL=C
+
+readonly SOURCE_COMMIT=59e00a9144d782e148332009a835b99c43382467
+readonly SOURCE_URL=https://github.com/gemian/gemini-linux-kernel-3.18.git
+
+die() { printf 'error: %s\n' "$*" >&2; exit 1; }
+[[ "$#" -eq 3 ]] || die 'expected PROJECT_COMMIT SOURCE_ROOT OUTPUT_ROOT'
+readonly project_commit=$1 source_root=$2 output_root=$3
+[[ "$project_commit" =~ ^[0-9a-f]{40}$ ]] || die 'invalid project commit'
+[[ "$source_root" == /workspace/gemini-pda/* ]] || die 'unsafe source root'
+[[ "$output_root" == /workspace/gemini-pda/* ]] || die 'unsafe output root'
+
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+repository_dir="$(cd -- "$script_dir/../../.." && pwd -P)"
+readonly script_dir repository_dir
+[[ "$(git -C "$repository_dir" rev-parse HEAD)" == "$project_commit" ]] || die 'project checkout mismatch'
+[[ -z "$(git -C "$repository_dir" status --porcelain)" ]] || die 'project checkout is dirty'
+for command in git python3 sha256sum; do command -v "$command" >/dev/null || die "missing command: $command"; done
+
+readonly mirror="$source_root/gemian-linux-kernel-3.18.git"
+readonly work_root=/workspace/gemini-pda/a72-scheduler-context-work
+readonly package="$output_root/gemian-a72-scheduler-context-patches-${project_commit:0:12}"
+readonly partial="${package}.partial.$$"
+mkdir -p "$source_root" "$work_root" "$output_root"
+[[ ! -e "$partial" ]] || die 'stale output partial exists'
+if [[ -d "$package" && ! -L "$package" ]]; then
+  grep -Fx "repository_commit=$project_commit" "$package/provenance/generation.txt" >/dev/null || die 'existing package commit mismatch'
+  (cd "$package" && sha256sum --check --strict SHA256SUMS >/dev/null)
+  printf 'Generated A72 scheduler-context patch review at %s\n' "$package"
+  exit 0
+fi
+[[ ! -e "$package" ]] || die 'unsafe existing package path'
+
+if [[ ! -d "$mirror" ]]; then git clone --mirror "$SOURCE_URL" "${mirror}.partial"; mv "${mirror}.partial" "$mirror"; fi
+[[ "$(git --git-dir="$mirror" remote get-url origin)" == "$SOURCE_URL" ]] || die 'vendor mirror origin mismatch'
+git --git-dir="$mirror" fetch origin "$SOURCE_COMMIT"
+[[ "$(git --git-dir="$mirror" rev-parse FETCH_HEAD)" == "$SOURCE_COMMIT" ]] || die 'vendor source fetch mismatch'
+
+work="$(mktemp -d "$work_root/scheduler.XXXXXX")"
+readonly work
+cleanup() {
+  [[ ! -d "$work" || "$work" != "$work_root"/scheduler.* ]] || rm -rf -- "$work"
+  [[ ! -d "$partial" || "$partial" != "$output_root"/*.partial.* ]] || rm -rf -- "$partial"
+}
+trap cleanup EXIT
+git clone --no-checkout "$mirror" "$work/source"
+git -C "$work/source" checkout --detach "$SOURCE_COMMIT"
+git -C "$work/source" config user.name 'Gemini A72 experiment'
+git -C "$work/source" config user.email noreply@gemini-a72.invalid
+
+apply_series() {
+  local parent=$1 patch
+  while IFS= read -r patch; do
+    [[ "$patch" =~ ^[A-Za-z0-9_.+-]+\.patch$ ]] || die 'unsafe parent patch name'
+    git -C "$work/source" am --committer-date-is-author-date "$repository_dir/experiments/$parent/patches/$patch"
+  done <"$repository_dir/experiments/$parent/patches/series"
+}
+apply_series 2026-07-23-gemian-a72-owner-observer
+for patch in 0001-diagnostic-extend-A72-observer-rollback-ABI.patch 0002-diagnostic-add-exact-A72-rollback-owner-operations.patch; do
+  git -C "$work/source" am --committer-date-is-author-date "$repository_dir/experiments/2026-08-02-a72-pre-isolation-rollback-discriminator/patches/$patch"
+done
+for parent in 2026-08-02-a72-one-way-cpu8-boundary 2026-08-02-a72-cpu8-held-online 2026-08-03-a72-cpu8-late-hold 2026-08-03-a72-cpu9-cluster-reuse 2026-08-03-a72-cpu9-retention-window 2026-08-03-a72-cpu9-terminal-attribution 2026-08-03-a72-cpu9-bounded-coherency 2026-08-03-a72-cpu9-multiline-integrity 2026-08-03-a72-cpu9-parallel-disjoint-load; do
+  apply_series "$parent"
+done
+
+parent_commit="$(git -C "$work/source" rev-parse HEAD)"
+readonly parent_commit
+python3 "$repository_dir/experiments/2026-08-03-a72-cpu9-parallel-disjoint-load/scripts/test_static.py" --source "$work/source"
+python3 "$script_dir/source_edits.py" --source "$work/source"
+git -C "$work/source" diff --check
+python3 "$script_dir/test_static.py" --source "$work/source"
+git -C "$work/source" add -- arch/arm64/kernel/psci.c
+git -C "$work/source" diff --cached --check
+GIT_AUTHOR_NAME='Gemini A72 experiment' GIT_AUTHOR_EMAIL=noreply@gemini-a72.invalid GIT_COMMITTER_NAME='Gemini A72 experiment' GIT_COMMITTER_EMAIL=noreply@gemini-a72.invalid GIT_AUTHOR_DATE=2026-08-03T23:30:00Z GIT_COMMITTER_DATE=2026-08-03T23:30:00Z git -C "$work/source" commit --no-gpg-sign -m 'diagnostic: add bounded A72 scheduler-context execution' -m 'Preserve pair-v6, then dispatch one normal bound kthread per A72.' -m 'Publish exact task context, placement, workload, and cleanup results.' -m 'Keep startup, CPU_OFF prohibition, power, HPS, and recovery unchanged.'
+
+mkdir -p "$partial/patches" "$partial/provenance"
+readonly patch=0001-diagnostic-add-bounded-A72-scheduler-context-execution.patch
+git -C "$work/source" format-patch -1 --no-signature --stdout HEAD >"$partial/patches/$patch"
+printf '%s\n' "$patch" >"$partial/patches/series"
+git -C "$work/source" diff-tree --no-commit-id --name-only -r HEAD >"$partial/provenance/changed-paths.txt"
+diff -u <(printf '%s\n' arch/arm64/kernel/psci.c) "$partial/provenance/changed-paths.txt" >/dev/null || die 'generated patch path inventory changed'
+python3 "$script_dir/test_static.py" --source "$work/source"
+[[ -z "$(git -C "$work/source" status --porcelain)" ]] || die 'generated source is dirty'
+parent_patchset_sha="$({ cd "$repository_dir/experiments/2026-08-03-a72-cpu9-parallel-disjoint-load/patches"; while IFS= read -r name; do sha256sum "$name" | awk '{print $1}'; done <series; } | sha256sum | awk '{print $1}')"
+cat >"$partial/provenance/generation.txt" <<EOF
+purpose=experiment-only-a72-scheduler-context-source-review
+boot_candidate=false
+device_action=none
+repository_commit=$project_commit
+source_url=$SOURCE_URL
+source_commit=$SOURCE_COMMIT
+exact_parent_commit=$parent_commit
+exact_parent_parallel_patchset_sha256=$parent_patchset_sha
+generated_patch_count=1
+generator=experiments/2026-08-03-a72-scheduler-context/scripts/generate-on-buildbox
+native_vm_kernel_build=no
+EOF
+(cd "$partial"; find patches provenance -type f -print0 | sort -z | xargs -0 sha256sum >SHA256SUMS; sha256sum --check --strict SHA256SUMS >/dev/null)
+mv "$partial" "$package"
+trap - EXIT
+rm -rf -- "$work"
+printf 'Generated A72 scheduler-context patch review at %s\n' "$package"

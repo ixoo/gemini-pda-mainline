@@ -115,17 +115,19 @@ pair-v6 field and add:
 - expected, starting, and ending CPU for each task;
 - task-context flags for each task;
 - creation errors, wake returns, task errors, and stop returns;
+- per-task completion-wait success;
 - completed iterations and final ready/finished counters;
 - exact deterministic CPU8/CPU9 hashes.
 
 The positive suffix is:
 
 ```text
-sc_reported=1 sc_iterations=262144 sc_rescheds=64 sc_expected8=8 sc_start8=8 sc_end8=8 sc_expected9=9 sc_start9=9 sc_end9=9 sc_task8=1 sc_task9=1 sc_create8=0 sc_create9=0 sc_wake8=1 sc_wake9=1 sc_error8=0 sc_error9=0 sc_stop8=0 sc_stop9=0 sc_done8=262144 sc_done9=262144 sc_ready=2 sc_finished=2 sc_hash8=A sc_hash9=B
+sc_reported=1 sc_iterations=262144 sc_rescheds=64 sc_expected8=8 sc_start8=8 sc_end8=8 sc_expected9=9 sc_start9=9 sc_end9=9 sc_task8=1 sc_task9=1 sc_create8=0 sc_create9=0 sc_wake8=1 sc_wake9=1 sc_wait8=1 sc_wait9=1 sc_error8=0 sc_error9=0 sc_stop8=0 sc_stop9=0 sc_done8=262144 sc_done9=262144 sc_ready=2 sc_finished=2 sc_hash8=A sc_hash9=B
 ```
 
-`A` and `B` are independently precomputed nonzero CPU-specific hashes. Partial
-marker text, thread names, online CPUs, or a watchdog restart are not a pass.
+`A` is `f678147669874ecd` and `B` is `c2274327e9c8104c`, independently
+precomputed from the fixed recurrence. Partial marker text, thread names,
+online CPUs, or a watchdog restart are not a pass.
 
 ## Result classes
 
@@ -149,10 +151,10 @@ against the parent.
 
 ### Creation, dispatch, placement, workload, or cleanup fault
 
-Any create error, wake result other than 1, wrong task context/CPU, incomplete
-iteration count, wrong ready/finished count, hash mismatch, nonzero task error,
-or stop/result mismatch rejects the candidate. Record the first exact boundary
-and do not repeat unchanged.
+Any create error, wake result other than 1, incomplete completion wait, wrong
+task context/CPU, incomplete iteration count, wrong ready/finished count, hash
+mismatch, nonzero task error, or stop/result mismatch rejects the candidate.
+Record the first exact boundary and do not repeat unchanged.
 
 ### Restart without pair-v7
 

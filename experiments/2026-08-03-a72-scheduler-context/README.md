@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-scheduler-context` |
-| Status | `design-review` |
+| Status | `source-generation-tooling-ready` |
 | Subsystem | MT6797 retained Cortex-A72 pair and scheduler |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -53,6 +53,12 @@ terminal fault. The retained watchdog remains the independent recovery bound.
 
 - [`DESIGN.md`](DESIGN.md): exact lifecycle, workload, task-context oracle,
   bounds, terminal, result classes, and invariants.
+- [`scripts/source_edits.py`](scripts/source_edits.py): deterministic exact-
+  parent scheduler-context transformation.
+- [`scripts/test_static.py`](scripts/test_static.py): inherited-boundary,
+  lifecycle, hash-vector, safety-inventory, and negative-mutation validator.
+- [`scripts/generate-on-buildbox`](scripts/generate-on-buildbox): clean-pushed-
+  commit Buildbox source reconstruction and format-patch generator.
 
 ## Procedure
 
@@ -82,8 +88,10 @@ context while preserving the established power and recovery boundary.
 
 ## Conclusion
 
-`design-review`: the question and safety boundary are specified but no source,
-compile, or hardware evidence exists.
+`source-generation-tooling-ready`: the question, safety boundary, deterministic
+source transformer, static validator, and Git-only Buildbox generation lane are
+specified. The transformer has not yet run against the reconstructed exact
+parent; no generated patch, compile, or hardware evidence exists.
 
 ## Follow-up
 
