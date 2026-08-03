@@ -93,7 +93,11 @@ def main() -> int:
     require("NULL, false);" in mutations["asynchronous"], "wait mutation failed")
     require("schedule_work_on(8" in mutations["wrong-worker-cpu"], "worker mutation failed")
     require("unsigned long delay = 2000;" not in mutations["late-sample"], "timing mutation survived")
-    require("coh_seq9=%d" not in mutations["incomplete-terminal"], "terminal mutation survived")
+    require(
+        mutations["incomplete-terminal"].count("coh_seq9=%d")
+        == psci.count("coh_seq9=%d") - 1,
+        "terminal mutation did not remove exactly one field",
+    )
 
     print("validation=cpu9-bounded-coherency-source")
     print("mutations=11-rejected")
