@@ -1,0 +1,64 @@
+One-way CPU8 guarded deployment
+===============================
+
+Recorded: 2026-08-02 America/New_York
+Result: pass
+
+Artifact and authorization
+--------------------------
+
+Repository gate commit: 22a210b
+Logical target: boot2
+Resolved target: /dev/mmcblk0p30
+Active root: /dev/mmcblk0p29
+Expected predecessor SHA-256:
+  a7eec22777cda053a88826760fb9a01dbd84aa1cf2fe491215047cf8c99ed4e5
+Candidate/readback SHA-256:
+  fc7368ef0bd56b5c17fea277f78bfeae362da5f685be9f85686f991cdc4fefda
+Candidate manifest SHA-256:
+  a58e950b6004b4591b4bec17691bbc179ba089adc382ce454b7d23eace2e9f64
+
+The normal installer first deferred before upload or write at 68% because its
+strict battery floor was 81%. A read-only check found Good health, battery
+present, USB power offline, and the exact previously proven recovery-only
+candidate on boot2. The owner's explicit approval was recorded and pushed in
+commit 22a210b before the one-use override ran.
+
+Guarded write
+-------------
+
+- Battery was present, 67%, and Good at the live gate.
+- Live GPT resolved exactly one writable 16 MiB boot2 partition.
+- Boot2 was not root, mounted, held, or swap.
+- The exact recovery-only predecessor matched before upload and write.
+- Four bounded 4 MiB writes completed, followed by sync and block flush.
+- The full on-device checksum matched the exact candidate.
+- A separate full 16 MiB streamed readback matched by length, checksum, and
+  byte comparison.
+- Temporary upload and readback files were removed.
+- No fresh partition backup was created; recovery uses the project-wide backup
+  captured at project start.
+- Clean shutdown was requested and confirmed by loss of reachability. The
+  installer did not reboot or select a boot slot.
+
+Sanitized cycle identity
+------------------------
+
+Pre-deployment Gemian boot-ID SHA-256:
+  8800baf775530fc0bb28b6cb5dfb56d97bc73e6c389e9101cb1cfc67709d123f
+Post-candidate Gemian boot-ID SHA-256:
+  0d941b4483a29487c8350c22f75cf3a28941b6ea410730dbf72af15ed980982e
+Boot ID changed: yes
+Returned kernel: 3.18.41+
+Returned architecture: aarch64
+Returned Android boot reason: wdt_by_pass_pwk
+Returned power-up reason: kpanic
+Returned CPU8: offline
+Returned CPU9: offline
+Post-return boot2 SHA-256:
+  fc7368ef0bd56b5c17fea277f78bfeae362da5f685be9f85686f991cdc4fefda
+Post-return boot2 mount count: 0
+
+The device returned to known-good Gemian and boot2 remained byte-identical.
+Deployment and recovery evidence contain no raw partition data, credentials,
+serials, IMEI values, or unsanitized boot IDs.

@@ -1,0 +1,106 @@
+One-way CPU8 runtime attempt 1
+==============================
+
+Recorded: 2026-08-02 America/New_York
+Formal result: CPU8 reached the attributable online checkpoint once
+Stability result: failed after success during a later HPS CPU-down attempt
+CPU9 result: not attempted; not online
+
+Exact candidate
+---------------
+
+Repository compile commit:
+  bd499e234e0849dbc96a5c7274b414564f016b6d
+One-way patchset SHA-256:
+  d9649e1453a05bc8a016da6fa371e97480ff62aebad3dedd87d148d5cb574890
+Kernel field SHA-256:
+  e65a74cf5445a9e22a537b760e566a5a21d3d314e81689dd01c52bd11e7c6676
+Installed full boot2 SHA-256:
+  fc7368ef0bd56b5c17fea277f78bfeae362da5f685be9f85686f991cdc4fefda
+
+Observation path
+----------------
+
+The direct USB/netcat collector was armed before selection but did not observe
+the short candidate boot. After the automatic return to Gemian, the read-only
+pstore collector recovered one complete 65524-byte `console-ramoops` record.
+Remote pstore records were not removed.
+
+Private console-ramoops SHA-256:
+  dd58d37cbab52c62988876b9e94b36f4d20306495338f4151f9aeeaff217ba89
+Exact one-way marker subset SHA-256:
+  6b588997f427c0519bd949c8f6991e71fa1d4da9999b43a44d54b32c8ea5e4a5
+Terminal-marker count: 1
+Success-marker count: 1
+Checkpoint count: 9
+
+Attributable forward sequence
+-----------------------------
+
+The retained checkpoints are exact and ordered:
+
+1. `spm-reset`
+2. `pll-ordering-read`
+3. `pwrap-assert`
+4. `buck-enable`
+5. `isolation-write`
+6. `pwrap-deassert`
+7. `sram-readback`
+8. `psci`
+9. `dcm`
+
+The SRAM service separately reported its 1.1 V setting successful. The exact
+terminal record followed at kernel time 1.931991 seconds:
+
+  gemini-a72-oneway-v1 result=cpu8-online-held stage=complete error=0 cpu9=forbidden cpu_off=forbidden
+
+The first checkpoint was at 1.927944 seconds. The complete one-way transaction
+therefore took about 4.047 ms; isolation clear to the success marker took about
+1.906 ms. Immediately afterward the vendor power logs reported cluster 2 on at
+845 MHz and HPS ended the up action with one big CPU accounted online.
+
+Why this proves CPU8 online
+---------------------------
+
+The checksum-pinned source and machine-code review prove that this terminal
+marker is reachable only after all of the following:
+
+- the exact pre-state and watchdog takeover pass;
+- BUCKB enable and settle, external-isolation clear, and PWRAP deassert pass;
+- the SRAM-LDO secure request has an independent stable readback;
+- standard PSCI CPU_ON returns success;
+- generic ARM64 secondary completion occurs;
+- Linux reports CPU8 online while CPU9 is absent; and
+- MP2 DCM enable passes its exact final readback.
+
+The marker occurred exactly once. It is therefore direct attributable evidence
+that CPU8 came online for this candidate, not an inference from screen color or
+the subsequent restart.
+
+Post-success failure
+--------------------
+
+About 1.173 seconds after the success marker, the HPS thread entered the generic
+CPU-down path. Before the platform CPU-disable callback could reject CPU8, a
+CPU hotplug notifier called `cpuhvfs_notify_cluster_off` and took a translation
+fault. The retained call chain is:
+
+  cpuhvfs_notify_cluster_off -> _mt_cpufreq_cpu_CB -> notifier_call_chain ->
+  _cpu_down -> cpu_down -> hps_algo_do_cluster_action -> hps_algo_main
+
+The panic path reported failure to stop secondary CPUs and invoked the native
+restart at about 4.679 seconds. Returned Gemian reports `kpanic` and
+`wdt_by_pass_pwk`. Thus the observed restart was an attributable post-success
+kernel panic, earlier than the independent watchdog deadline; it was not a
+failure of CPU8 startup.
+
+Decision
+--------
+
+Roadmap Gate 7 has passed its first online checkpoint but not stability,
+bounded accounting/coherency, repeatability, or safe hotplug policy. Do not
+repeat this unchanged candidate. The next smallest decision-changing change
+must prevent HPS from initiating CPU8 down before generic CPU-hotplug notifiers
+run, while retaining CPU8 online, CPU9 rejection, CPU_OFF rejection, the
+watchdog fallback, and all existing startup gates. Review and compile that
+change on Buildbox before another device write.

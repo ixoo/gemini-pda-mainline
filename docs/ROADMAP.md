@@ -857,6 +857,23 @@ close the recovery prerequisite. Unchanged retry is prohibited. The immediate
 next action is Buildbox-only source generation, static/mutation review, and
 changed-versus-unpatched compilation of the one-way CPU8 state machine.
 
+That one-way state machine has now passed its complete offline gate and first
+hardware attempt. The exact image was installed from the verified
+recovery-only predecessor with two full-partition readbacks and clean shutdown.
+Retained ramoops then recorded all nine ordered startup checkpoints and exactly
+one `cpu8-online-held` terminal marker after generic secondary completion,
+CPU8-online accounting, CPU9 absence, and DCM readback. Cluster 2 was reported
+on at 845 MHz. This is the first attributable local CPU8-online checkpoint.
+About 1.17 seconds later, HPS attempted CPU8 down; a generic hotplug notifier
+entered `cpuhvfs_notify_cluster_off` and faulted before the platform
+CPU-disable veto could run. Known-good Gemian returned with a changed boot ID,
+`kpanic`/`wdt_by_pass_pwk` reasons, CPU8/9 offline, and unchanged boot2. The
+unchanged candidate must not be repeated. The next ordered action is an exact
+source/order audit and a fail-closed HPS CPU8-down veto before notifier
+dispatch, followed by Buildbox compilation and a bounded CPU8
+accounting/coherency hold test. Gate 7 is partially closed: startup feasibility
+is proven; stability, repeatability, and safe offlining are not.
+
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback
 gates close.

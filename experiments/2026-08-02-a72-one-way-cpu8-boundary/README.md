@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-02-a72-one-way-cpu8-boundary` |
-| Status | `offline-gates-passed-guarded-deployment-ready-after-push` |
+| Status | `cpu8-online-once-post-success-hps-down-crash` |
 | Subsystem | MT6797 CPU8 external rail, isolation, SRAM-LDO, PSCI, and DCM |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-02 |
@@ -20,8 +20,9 @@ SRAM-LDO and PSCI path, and publish CPU8 online without ever guessing a Linux
 inverse after isolation?
 
 The design, deterministic source-generation, Buildbox compile/binary review,
-and independently reproduced Android-v0 container gates have passed. No
-one-way kernel has yet been installed or run on the device.
+container, deployment, and retained-runtime gates passed. CPU8 reached the
+exact online checkpoint once. About 1.17 seconds later, an HPS CPU-down attempt
+faulted in a pre-platform hotplug notifier and caused the observed restart.
 
 ## Provenance and environment
 
@@ -72,7 +73,8 @@ review. It does not authorize deployment before those gates pass.
   records the rejected drafts, accepted three-patch identities, 19 mutation
   rejections, and manual source-control-flow review.
 - [`patches/`](patches/): exact Buildbox-generated experiment-only source
-  patches in deterministic order; these are not yet a boot candidate.
+  patches in deterministic order; their exact compiled candidate produced the
+  runtime result below but remains unsuitable for unchanged repetition.
 - [`results/buildbox-compile-binary-review-20260802.txt`](results/buildbox-compile-binary-review-20260802.txt):
   records changed-versus-parent compilation, exact configuration, machine-code
   ordering, symbol separation, diagnostics, and stack-usage review.
@@ -92,6 +94,12 @@ review. It does not authorize deployment before those gates pass.
 - [`results/owner-write-override-20260802.txt`](results/owner-write-override-20260802.txt):
   one-use owner approval for the exact live recovery predecessor and 65%
   battery floor while retaining every other deployment gate.
+- [`results/deployment-20260802.txt`](results/deployment-20260802.txt): exact
+  live-GPT write, two full readbacks, shutdown, changed-boot recovery, and
+  unchanged-candidate evidence.
+- [`results/runtime-attempt-1-cpu8-online-20260802.txt`](results/runtime-attempt-1-cpu8-online-20260802.txt):
+  exact nine-stage startup, unique CPU8-online marker, and post-success HPS
+  CPU-down notifier fault classification.
 
 ## Procedure
 
@@ -125,6 +133,15 @@ raw Android-v0 assemblies and two full-partition constructions were
 byte-identical. The exact reviewed kernel is the sole payload change; all boot
 fields and the known-good Gemian ramdisk are preserved.
 
+The guarded deployment then passed from the exact recovery-only predecessor at
+an owner-approved 67% battery state, including two matching full-partition
+readbacks, cleanup, and shutdown. On the selected boot, retained ramoops
+recorded all nine intended checkpoints and exactly one `cpu8-online-held`
+terminal marker after secondary completion and DCM. The vendor logs immediately
+reported cluster 2 on at 845 MHz. A later HPS CPU-down attempt faulted in
+`cpuhvfs_notify_cluster_off` before the platform reject callback and caused the
+automatic return to Gemian.
+
 ## Analysis
 
 A reversible isolation-only candidate would invent a Linux-owned inverse and
@@ -140,19 +157,16 @@ has an independent typed observation and a distinct terminal classification.
 
 ## Conclusion
 
-`confirmed-design-boundary-implementation-unblocked`: there is no
-evidence-backed Linux inverse for external isolation. The next safe
-implementation may attempt CPU8 once only
-with pre-isolation rollback and post-isolation fault-retain; it must not add an
-isolation-only rollback or a CPU8 off path. Source review additionally proves
-that the normal watchdog kicker defeats an assumed independent timeout and
-that generic SMP owns secondary completion. The no-A72 recovery-only
-discriminator has now proved watchdog ownership, durable ramoops attribution,
-reset, and known-good recovery on hardware.
+`cpu8-online-checkpoint-confirmed`: the exact one-way implementation crossed
+the reviewed boundary and published CPU8 online once without CPU9 or CPU_OFF.
+This closes startup feasibility, not stable CPU8 support. The later failure is
+now localized to HPS entering generic CPU-down notification before the
+platform CPU-disable rejection can run.
 
 ## Follow-up
 
-Commit and push the passed runtime decision map, read-only live/pstore
-observation contract, and live-GPT-resolved boot2 installer. Then perform one
-guarded deployment from known-good Gemian; after its automatic reset, classify
-only exact retained evidence and never infer CPU progress from visuals alone.
+Pin the exact HPS/generic-hotplug call ordering and design the smallest early
+CPU8-down veto that runs before notifier dispatch. Keep CPU8 online, retain
+CPU9 and CPU_OFF rejection plus watchdog recovery, add a bounded
+accounting/coherency observation window, and use Buildbox only. Do not repeat
+the current candidate unchanged.
