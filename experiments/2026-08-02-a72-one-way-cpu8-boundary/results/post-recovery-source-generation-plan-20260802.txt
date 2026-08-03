@@ -1,0 +1,78 @@
+A72 one-way CPU8 post-recovery source-generation plan
+Recorded: 2026-08-02 America/New_York
+
+Recovered prerequisite
+----------------------
+recovery_runtime_result=pass
+recovery_evidence_commit=2e66bc7
+exact_marker=gemini-a72-recovery-v1 stage=armed timeout=12s a72=forbidden
+marker_count=1
+cpu8_reject_before_a72_action_count=22
+cpu9_reject_before_a72_action_count=5
+changed_boot_id=yes
+watchdog_class_return=yes
+boot2_unchanged=yes
+source_generation_authorized=yes
+kernel_build_authorized=after-generated-patches-are-reviewed-committed-and-pushed
+device_deployment_authorized=no-offline-gates-not-yet-run
+
+Accepted source foundation
+--------------------------
+source_url=https://github.com/gemian/gemini-linux-kernel-3.18.git
+source_commit=59e00a9144d782e148332009a835b99c43382467
+parent_observer_series=experiments/2026-07-23-gemian-a72-owner-observer/patches/series
+accepted_rollback_abi_patch=experiments/2026-08-02-a72-pre-isolation-rollback-discriminator/patches/0001-diagnostic-extend-A72-observer-rollback-ABI.patch
+accepted_owner_helpers_patch=experiments/2026-08-02-a72-pre-isolation-rollback-discriminator/patches/0002-diagnostic-add-exact-A72-rollback-owner-operations.patch
+rejected_parent_orchestrator=0003 pre-isolation stop is runtime-complete evidence, not the one-way implementation
+rejected_historical_patch=patches/v7.1.3/0111-soc-mediatek-enable-MT6797-A72-cpu8-one-way.patch targets a different upstream tree, assumes the inherited watchdog, and enables DCM before generic secondary completion
+
+Corrected watchdog boundary
+---------------------------
+The first natural HPS request is already executing when cpu_psci_cpu_boot is
+entered. The implementable and safety-relevant boundary is therefore not
+"before the userspace or HPS request" but "inside the serialized CPU8 boot
+callback, before the first A72 hardware mutation or PSCI request." The normal
+CPU-hotplug writer serialization is already held at that point. The takeover
+wrapper must acquire the ordinary kicker lock, stop future kicks, arm the exact
+low-level reset-only owner, and restore normal kicks only if ownership never
+began. It must not recursively disable CPU hotplug from inside the hotplug path.
+
+Logical generated patch plan
+----------------------------
+1. Add the one-way terminal ABI and reuse the accepted observer/owner helpers.
+2. Add a CPU8-specific watchdog takeover wrapper around the runtime-proven
+   TOPRGU recovery owner, composed with the normal kicker lock.
+3. Add owner-local SRAM-LDO request/readback and MP2 DCM enable/readback helpers.
+   SRAM success requires two stable secure reads, exact selector low state
+   0x8fb for the 110000 request, and a stable calibration word; never expose the
+   calibration value in a public marker or result.
+4. Replace the vendor CPU8 preparation branch with the modeled one-shot
+   orchestrator. CPU9 rejects before action. Pre-isolation failure unwinds only
+   exact owned state; any isolation-write or later uncertainty retains power,
+   emits the exact last-stage marker, and waits for reset.
+5. Add a parent-side completion hook after generic secondary completion, then
+   enable and verify MP2 DCM. Reject CPU8 disable and every CPU9 path. Publish
+   cpu8-online-held only after that completion and DCM readback.
+
+Required static and binary gates
+--------------------------------
+- source anchors and every parent patch identity are exact;
+- watchdog takeover dominates every A72 write and PSCI call;
+- one-shot and CPU8 predicate dominate all owner operations;
+- CPU9, CPU_OFF, isolation set, SRAM disable, iDVFS, cpufreq/OPP, and userspace
+  mutation paths are absent;
+- pre-isolation rollback order is BUCKB, SPM reset, PWRAP, software guard;
+- post-isolation paths contain no guessed inverse and retain BUCKB;
+- generic secondary completion dominates DCM, and DCM dominates online-held;
+- every terminal path emits one bounded, calibration-free marker and leaves
+  the proven watchdog owner active;
+- mutation tests independently break every dominance, ownership, timeout, and
+  forbidden-call assertion;
+- changed-versus-unpatched Buildbox compilation, diagnostics, symbol,
+  disassembly ordering, and stack review pass before container construction.
+
+Immediate action
+----------------
+Create the deterministic source editor, validator, mutation tests, and
+Buildbox patch-generation lane for this five-patch plan. Do not build natively
+and do not deploy a device candidate during source generation.

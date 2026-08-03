@@ -11,8 +11,9 @@ the transaction must prove the exact accepted offline state:
 - SPM `0x218 == 0x00010132` and `0x290 == 0x00000002`;
 - TOPRGU PWRAP reset bit clear, MP2 DCM zero, secure sentinels stable, and the
   protected clock snapshot valid;
-- pstore console available and the independent hardware watchdog armed before
-  the request.
+- pstore console available and the independent hardware watchdog taken over
+  inside the serialized CPU8 boot callback before the first A72 hardware
+  mutation or PSCI request.
 
 Any mismatch records `rejected-prestate` and performs no hardware mutation.
 
@@ -80,9 +81,10 @@ ID, exact 2019 Gemian identity, sanitized pstore retrieval, and unchanged
 
 ## Implementation gate
 
-Before patch generation, prove source-drift guards, owner-lock composition,
-bounded timing, console-ramoops persistence, watchdog ownership, one-shot
-dominance, forbidden-call absence, and mutation tests for every terminal edge.
-Generate reviewable patches on Buildbox, commit and push them before any
-Buildbox compile, and keep the implementation experiment-only without a
-synthetic DCO sign-off.
+The no-A72 recovery runtime has now proved console-ramoops persistence,
+exclusive watchdog ownership, bounded reset, and known-good return. Source
+generation must still prove source-drift guards, owner-lock composition,
+bounded timing, one-shot dominance, forbidden-call absence, and mutation tests
+for every terminal edge. Generate reviewable patches on Buildbox, commit and
+push them before any Buildbox compile, and keep the implementation
+experiment-only without a synthetic DCO sign-off.

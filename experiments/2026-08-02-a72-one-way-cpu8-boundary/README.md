@@ -63,6 +63,9 @@ review. It does not authorize deployment before those gates pass.
 - [`results/source-recovery-readiness-review-20260802.txt`](results/source-recovery-readiness-review-20260802.txt):
   exact insertion points, secondary-completion ownership, watchdog-kicker
   conflict, pstore boundary, and recovery-only prerequisite.
+- [`results/post-recovery-source-generation-plan-20260802.txt`](results/post-recovery-source-generation-plan-20260802.txt):
+  closes that prerequisite and fixes the exact five-patch source-generation,
+  watchdog, SRAM-readback, secondary-completion, and forbidden-path plan.
 
 ## Procedure
 
