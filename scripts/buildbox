@@ -61,6 +61,10 @@ Commands:
                         Generate the CPU9 retention-window patch review
   fetch-gemian-cpu9-window-patches
                         Fetch only the validated retention-window patch review
+  generate-gemian-cpu9-terminal-patches
+                        Generate the CPU9 terminal-attribution patch review
+  fetch-gemian-cpu9-terminal-patches
+                        Fetch only the validated terminal-attribution review
   build-gemian-recovery-compile
                         Compare recovery-only and unpatched Gemian on Buildbox
   fetch-gemian-recovery-compile
@@ -84,6 +88,10 @@ Commands:
   build-gemian-cpu9-window-compile
                         Compare retention window and exact CPU9 parent
   fetch-gemian-cpu9-window-compile
+                        Fetch that validated compile-review bundle for HEAD
+  build-gemian-cpu9-terminal-compile
+                        Compare terminal attribution and exact window parent
+  fetch-gemian-cpu9-terminal-compile
                         Fetch that validated compile-review bundle for HEAD
 
 Environment:
@@ -472,7 +480,7 @@ build_gemian_observer() {
   local sha
 
   case "${mode}" in
-    observer|rollback|recovery|one-way|held|late|cpu9|window) ;;
+    observer|rollback|recovery|one-way|held|late|cpu9|window|terminal) ;;
     *) die "invalid Gemian compile-review mode: ${mode}" ;;
   esac
 
@@ -545,6 +553,11 @@ case "${mode}" in
     readonly job_suffix=gemian-a72-cpu9-window
     readonly job_purpose=gemian-a72-cpu9-retention-window-compile-review
     readonly build_script=experiments/2026-08-03-a72-cpu9-retention-window/scripts/build-on-buildbox
+    ;;
+  terminal)
+    readonly job_suffix=gemian-a72-cpu9-terminal
+    readonly job_purpose=gemian-a72-cpu9-terminal-attribution-compile-review
+    readonly build_script=experiments/2026-08-03-a72-cpu9-terminal-attribution/scripts/build-on-buildbox
     ;;
   *) exit 2 ;;
 esac
@@ -812,7 +825,7 @@ elif [[ "${mode}" == cpu9 ]]; then
   grep -aFq 'gemini-a72-pair-v1 result=pass sample=3' \
     "${package}/outputs/vmlinux"
   [[ "$(tar -tf "${package}/outputs/baseline/stack-usage.tar" | wc -l)" -gt 100 ]]
-else
+elif [[ "${mode}" == window ]]; then
   for required in outputs/baseline/stack-usage.tar \
     outputs/baseline/stack-usage-files.nul \
     outputs/baseline/stack-usage-files.txt \
@@ -846,6 +859,40 @@ else
   grep -aFq 'gemini-a72-pair-v2 result=pass sample=3' \
     "${package}/outputs/vmlinux"
   grep -aFq 'gemini-a72-retain-v1 result=hps-down-held-first' \
+    "${package}/outputs/vmlinux"
+  [[ "$(tar -tf "${package}/outputs/baseline/stack-usage.tar" | wc -l)" -gt 100 ]]
+else
+  for required in outputs/baseline/stack-usage.tar \
+    outputs/baseline/stack-usage-files.nul \
+    outputs/baseline/stack-usage-files.txt \
+    outputs/focused-disassembly/__cpu_up.txt \
+    outputs/focused-disassembly/cpu_down.txt \
+    outputs/focused-disassembly/cpu_psci_cpu_boot.txt \
+    outputs/focused-disassembly/hps_algo_do_cluster_action.txt \
+    outputs/focused-disassembly/mt6797_a72_hold_workfn.txt \
+    outputs/focused-disassembly/mt6797_a72_hps_down_snapshot.txt \
+    outputs/baseline/focused-disassembly/__cpu_up.txt \
+    outputs/baseline/focused-disassembly/cpu_down.txt \
+    outputs/baseline/focused-disassembly/cpu_psci_cpu_boot.txt \
+    outputs/baseline/focused-disassembly/hps_algo_do_cluster_action.txt \
+    outputs/baseline/focused-disassembly/mt6797_a72_hold_workfn.txt; do
+    [[ -s "${package}/${required}" ]]
+  done
+  jq -e '
+    .baseline_source_exact_window == true and
+    .cpu9_startup_source_identical == true and
+    .baseline_stack_usage_file_count > 100 and
+    .window_patchset_sha256 ==
+      "9ce572fbc87a1444bb71894dd4528f39dc065065a45b36db52a14791f167eeec" and
+    (.terminal_patchset_sha256 | test("^[0-9a-f]{64}$")) and
+    .purpose == "cpu9-terminal-attribution-compile-review-only"
+  ' "${package}/provenance/build.json" >/dev/null
+  grep -q ' mt6797_a72_hps_down_snapshot$' "${package}/outputs/System.map"
+  ! grep -q ' mt6797_a72_hps_down_snapshot$' \
+    "${package}/outputs/baseline/System.map"
+  grep -aFq 'gemini-a72-pair-v3 result=pass sample=3' \
+    "${package}/outputs/vmlinux"
+  grep -aFq 'hps_reported=%d hps_cpu=%d hps_error=%d hps_count=%d' \
     "${package}/outputs/vmlinux"
   [[ "$(tar -tf "${package}/outputs/baseline/stack-usage.tar" | wc -l)" -gt 100 ]]
 fi
@@ -916,6 +963,10 @@ fetch_gemian_observer() {
       job_suffix=gemian-a72-cpu9-window
       job_purpose=gemian-a72-cpu9-retention-window-compile-review
       ;;
+    terminal)
+      job_suffix=gemian-a72-cpu9-terminal
+      job_purpose=gemian-a72-cpu9-terminal-attribution-compile-review
+      ;;
     *) die "invalid Gemian compile-review mode: ${mode}" ;;
   esac
   sha="$(git -C "${REPO_DIR}" rev-parse HEAD)"
@@ -966,7 +1017,8 @@ case "${package}" in "${artifact_root}"/*) ;; *) exit 1 ;; esac
    ($mode == "held" and .purpose == "held-online-compile-review-only") or
    ($mode == "late" and .purpose == "late-hold-compile-review-only") or
    ($mode == "cpu9" and .purpose == "cpu9-cluster-reuse-compile-review-only") or
-   ($mode == "window" and .purpose == "cpu9-retention-window-compile-review-only"))
+   ($mode == "window" and .purpose == "cpu9-retention-window-compile-review-only") or
+   ($mode == "terminal" and .purpose == "cpu9-terminal-attribution-compile-review-only"))
 ' "${package}/provenance/build.json" >/dev/null
 tar -C "$(dirname "${package}")" -cf - -- "$(basename "${package}")"
 REMOTE
@@ -1969,6 +2021,136 @@ REMOTE
   printf 'Artifact fetched to %s\n' "${destination}"
 }
 
+generate_gemian_cpu9_terminal_patches() {
+  local branch identity remote_command sha
+
+  require_command git
+  require_command jq
+  require_command ssh
+  identity="$(require_clean_pushed_head)"
+  IFS=$'\t' read -r sha branch <<< "${identity}"
+  printf -v remote_command 'bash -s -- %q %q' "${sha}" "${branch}"
+  printf 'Submitting Gemian CPU9 terminal-attribution patch generation %s to %s\n' \
+    "${sha}" "${BUILDBOX_HOST}"
+  ssh_buildbox "${remote_command}" <<'REMOTE'
+set -euo pipefail
+readonly commit="$1"
+readonly branch="$2"
+readonly remote_url=https://github.com/ixoo/gemini-pda-mainline.git
+readonly persistent_root="${HOME}/gemini-pda-buildbox"
+readonly mirror="${persistent_root}/repo.git"
+readonly workspace_root=/workspace/gemini-pda
+readonly checkout_root="${workspace_root}/checkouts"
+readonly checkout="${checkout_root}/${commit}"
+readonly source_root="${workspace_root}/gemian-source"
+readonly artifact_root="${workspace_root}/gemian-cpu9-terminal-artifacts"
+readonly job_root="${workspace_root}/jobs"
+readonly job_key="${commit}-gemian-a72-cpu9-terminal-patchgen"
+readonly job_record="${job_root}/${job_key}.json"
+
+mkdir -p "${persistent_root}" "${checkout_root}" "${source_root}" \
+  "${artifact_root}" "${job_root}"
+exec 9>"${persistent_root}/build.lock"
+flock 9
+if [[ ! -d "${mirror}" ]]; then
+  git clone --mirror "${remote_url}" "${mirror}.partial"
+  mv "${mirror}.partial" "${mirror}"
+fi
+[[ "$(git --git-dir="${mirror}" remote get-url origin)" == "${remote_url}" ]]
+git --git-dir="${mirror}" fetch --prune origin \
+  "refs/heads/${branch}:refs/remotes/origin/${branch}"
+[[ "$(git --git-dir="${mirror}" rev-parse "refs/remotes/origin/${branch}")" == "${commit}" ]]
+if [[ ! -d "${checkout}" ]]; then
+  partial="${checkout}.partial.$$"
+  trap 'test -n "${partial:-}" && test -d "${partial}" && rm -rf -- "${partial}"' EXIT
+  git clone --no-checkout "${mirror}" "${partial}"
+  git -C "${partial}" checkout --detach "${commit}"
+  [[ -z "$(git -C "${partial}" status --porcelain)" ]]
+  mv "${partial}" "${checkout}"
+  partial=
+  trap - EXIT
+fi
+[[ "$(git -C "${checkout}" rev-parse HEAD)" == "${commit}" ]]
+[[ -z "$(git -C "${checkout}" status --porcelain)" ]]
+if [[ -f "${job_record}" ]] && jq -e --arg commit "${commit}" '
+  .status == "validated" and .repository_commit == $commit and
+  .purpose == "gemian-a72-cpu9-terminal-attribution-patch-generation"
+' "${job_record}" >/dev/null; then
+  package="$(jq -er '.package' "${job_record}")"
+  [[ -d "${package}" && ! -L "${package}" ]]
+  printf 'buildbox_job=%s\nbuildbox_package=%s\n' "${job_key}" "${package}"
+  exit 0
+fi
+rm -f "${job_record}.partial"
+output="$("${checkout}/experiments/2026-08-03-a72-cpu9-terminal-attribution/scripts/generate-on-buildbox" \
+  "${commit}" "${source_root}" "${artifact_root}")"
+printf '%s\n' "${output}"
+package="$(printf '%s\n' "${output}" | \
+  sed -n 's/^Generated CPU9 terminal-attribution patch review at //p' | tail -n 1)"
+case "${package}" in "${artifact_root}"/*) ;; *) exit 1 ;; esac
+[[ -d "${package}" && ! -L "${package}" ]]
+(cd "${package}" && sha256sum --check --strict SHA256SUMS >/dev/null)
+jq -n --arg status validated --arg repository_commit "${commit}" \
+  --arg purpose gemian-a72-cpu9-terminal-attribution-patch-generation \
+  --arg package "${package}" --arg package_name "$(basename "${package}")" \
+  '{status: $status, repository_commit: $repository_commit,
+    purpose: $purpose, package: $package, package_name: $package_name}' \
+  >"${job_record}.partial"
+mv "${job_record}.partial" "${job_record}"
+printf 'buildbox_job=%s\nbuildbox_package=%s\n' "${job_key}" "${package}"
+REMOTE
+}
+
+fetch_gemian_cpu9_terminal_patches() {
+  local destination job_info job_key package_name remote_command sha temporary
+
+  require_command git
+  require_command jq
+  require_command sha256sum
+  require_command ssh
+  require_command tar
+  sha="$(git -C "${REPO_DIR}" rev-parse HEAD)"
+  [[ "${sha}" =~ ^[0-9a-f]{40}$ ]] || die 'invalid HEAD commit'
+  job_key="${sha}-gemian-a72-cpu9-terminal-patchgen"
+  printf -v remote_command 'test -f %q && cat %q' \
+    "/workspace/gemini-pda/jobs/${job_key}.json" \
+    "/workspace/gemini-pda/jobs/${job_key}.json"
+  job_info="$(ssh_buildbox "${remote_command}")" || \
+    die "no completed CPU9 terminal-attribution patch generation for ${sha}"
+  printf '%s' "${job_info}" | jq -e --arg commit "${sha}" '
+    .status == "validated" and .repository_commit == $commit and
+    .purpose == "gemian-a72-cpu9-terminal-attribution-patch-generation" and
+    (.package_name | test("^[A-Za-z0-9_.+-]+$"))
+  ' >/dev/null || die 'CPU9 terminal-attribution patch-generation record is invalid'
+  package_name="$(printf '%s' "${job_info}" | jq -er '.package_name')"
+  destination="${REPO_DIR}/artifacts/buildbox/${sha}/${package_name}"
+  [[ ! -e "${destination}" ]] || die "refusing to overwrite ${destination}"
+  mkdir -p "$(dirname "${destination}")"
+  temporary="$(mktemp -d "$(dirname "${destination}")/.fetch.XXXXXX")"
+  trap 'test -n "${temporary:-}" && test -d "${temporary}" && rm -rf -- "${temporary}"' EXIT
+  printf -v remote_command 'bash -s -- %q %q' "${job_key}" "${sha}"
+  ssh_buildbox "${remote_command}" <<'REMOTE' | tar -C "${temporary}" -xf -
+set -euo pipefail
+readonly job_key="$1"
+readonly commit="$2"
+readonly artifact_root=/workspace/gemini-pda/gemian-cpu9-terminal-artifacts
+readonly record="/workspace/gemini-pda/jobs/${job_key}.json"
+package="$(jq -er --arg commit "${commit}" '
+  select(.status == "validated" and .repository_commit == $commit and
+    .purpose == "gemian-a72-cpu9-terminal-attribution-patch-generation") | .package
+' "${record}")"
+case "${package}" in "${artifact_root}"/*) ;; *) exit 1 ;; esac
+[[ -d "${package}" && ! -L "${package}" ]]
+tar -C "$(dirname "${package}")" -cf - -- "$(basename "${package}")"
+REMOTE
+  [[ -d "${temporary}/${package_name}" ]]
+  (cd "${temporary}/${package_name}" && sha256sum --check --strict SHA256SUMS >/dev/null)
+  mv "${temporary}/${package_name}" "${destination}"
+  rmdir "${temporary}"
+  trap - EXIT
+  printf 'Artifact fetched to %s\n' "${destination}"
+}
+
 readonly COMMAND="${1:-}"
 [[ -n "${COMMAND}" ]] || {
   usage
@@ -2000,6 +2182,8 @@ case "${COMMAND}" in
   fetch-gemian-cpu9-patches) fetch_gemian_cpu9_patches ;;
   generate-gemian-cpu9-window-patches) generate_gemian_cpu9_window_patches ;;
   fetch-gemian-cpu9-window-patches) fetch_gemian_cpu9_window_patches ;;
+  generate-gemian-cpu9-terminal-patches) generate_gemian_cpu9_terminal_patches ;;
+  fetch-gemian-cpu9-terminal-patches) fetch_gemian_cpu9_terminal_patches ;;
   build-gemian-recovery-compile) build_gemian_observer recovery ;;
   fetch-gemian-recovery-compile) fetch_gemian_observer recovery ;;
   build-gemian-one-way-compile) build_gemian_observer one-way ;;
@@ -2012,6 +2196,8 @@ case "${COMMAND}" in
   fetch-gemian-cpu9-compile) fetch_gemian_observer cpu9 ;;
   build-gemian-cpu9-window-compile) build_gemian_observer window ;;
   fetch-gemian-cpu9-window-compile) fetch_gemian_observer window ;;
+  build-gemian-cpu9-terminal-compile) build_gemian_observer terminal ;;
+  fetch-gemian-cpu9-terminal-compile) fetch_gemian_observer terminal ;;
   help|-h|--help) usage ;;
   *) usage >&2; exit 2 ;;
 esac
