@@ -1,0 +1,69 @@
+One-way CPU8 offline container review
+====================================
+
+Date: 2026-08-02
+Result: pass
+Device access: none
+Partition write: none
+Runtime result: not tested
+
+Inputs
+------
+
+Repository compile commit:
+  bd499e234e0849dbc96a5c7274b414564f016b6d
+Observer parent patchset SHA-256:
+  3584e9dd5ffb041573b851f31f3a96eaa0a684acb880fd59560762e5abc58be0
+Accepted rollback patchset SHA-256:
+  76a00aeb9ebefe0c964e70e56b63977071d2f2b12b12ce52ecdb7bb298f8fdd3
+One-way CPU8 patchset SHA-256:
+  d9649e1453a05bc8a016da6fa371e97480ff62aebad3dedd87d148d5cb574890
+Buildbox kernel field SHA-256:
+  e65a74cf5445a9e22a537b760e566a5a21d3d314e81689dd01c52bd11e7c6676
+Known-good active Gemian boot SHA-256:
+  1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513
+Preserved ramdisk SHA-256:
+  a1ee05445e9a2bd8fbc1f75d7cda326b9ca7a6d3b644cbb1d5fc0ac167835be4
+
+Container result
+----------------
+
+Raw Android-v0 image size: 14800896 bytes
+Raw Android-v0 image SHA-256:
+  aae1a0f9a3d9a3c73a4930478c2e0db672d3a12ce020ad852d9e274c7f54858a
+Exact boot2-sized image size: 16777216 bytes
+Exact boot2-sized image SHA-256:
+  fc7368ef0bd56b5c17fea277f78bfeae362da5f685be9f85686f991cdc4fefda
+Candidate manifest SHA-256:
+  a58e950b6004b4591b4bec17691bbc179ba089adc382ce454b7d23eace2e9f64
+
+Independent review
+------------------
+
+- The Buildbox bundle checksum manifest and exact compile provenance passed.
+- Two complete Android-v0 assemblies were byte-identical.
+- One copy-and-truncate padding path and one zero-fill-then-overlay path were
+  byte-identical at the exact 16 MiB target size.
+- The entire padded tail is zero.
+- A second complete build in a separate temporary output root reproduced the
+  retained private candidate byte-for-byte.
+- The pinned parent parser accepted the serialized image as Android boot image
+  version 0 with page size 2048, no second stage, and no legacy DT field.
+- Kernel address 0x40080000, ramdisk address 0x45000000, second address
+  0x40f00000, tags address 0x44000000, empty name, and command line
+  `bootopt=64S3,32N2,64N2 log_buf_len=4M` match the known-good input.
+- The kernel field is 8443903 bytes, containing a 20111552-byte decompressed
+  Image and a 130745-byte appended DTB.
+- The 6354621-byte ramdisk is byte-identical to known-good Gemian.
+- Static validation pins every input and output identity, both reconstruction
+  paths, manifest checks, and the absence of device or runtime operations.
+- Bash syntax, Python bytecode compilation, and ShellCheck in the managed VM
+  passed for the new tooling.
+
+Decision
+--------
+
+The Android-v0 container gate passes. This result authorizes construction and
+offline review of the guarded runtime decision map and deployment tooling. It
+does not by itself authorize claiming a boot or CPU8 result. No device was
+accessed and no partition was written while producing this evidence.

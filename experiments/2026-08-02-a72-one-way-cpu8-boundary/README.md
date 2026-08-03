@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-02-a72-one-way-cpu8-boundary` |
-| Status | `compile-binary-review-passed-container-pending` |
+| Status | `offline-container-passed-runtime-map-pending` |
 | Subsystem | MT6797 CPU8 external rail, isolation, SRAM-LDO, PSCI, and DCM |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-02 |
@@ -19,8 +19,9 @@ cross the one-way external-isolation boundary, complete the retained-firmware
 SRAM-LDO and PSCI path, and publish CPU8 online without ever guessing a Linux
 inverse after isolation?
 
-The design and deterministic source-generation gates have passed. No one-way
-kernel has yet been compiled, packaged, installed, or run on the device.
+The design, deterministic source-generation, Buildbox compile/binary review,
+and independently reproduced Android-v0 container gates have passed. No
+one-way kernel has yet been installed or run on the device.
 
 ## Provenance and environment
 
@@ -75,6 +76,12 @@ review. It does not authorize deployment before those gates pass.
 - [`results/buildbox-compile-binary-review-20260802.txt`](results/buildbox-compile-binary-review-20260802.txt):
   records changed-versus-parent compilation, exact configuration, machine-code
   ordering, symbol separation, diagnostics, and stack-usage review.
+- [`scripts/build-candidate.sh`](scripts/build-candidate.sh): checksum-pinned,
+  offline-only, twice-reproduced Android-v0 candidate construction.
+- [`scripts/test_candidate.py`](scripts/test_candidate.py): static identity,
+  provenance, reconstruction, padding, manifest, and offline-only gates.
+- [`results/offline-container-review-20260802.txt`](results/offline-container-review-20260802.txt):
+  exact raw/full-partition identities and independent structure review.
 
 ## Procedure
 
@@ -99,6 +106,14 @@ generation separates a forward failure from a rollback failure, verifies the
 watchdog's automatic-reset mode, rejects secure-read error sentinels, and pins
 all configuration dependencies plus the CL2 source guard. Its static validator
 passed 19 deliberate mutations.
+
+The changed and exact parent kernels then compiled on Buildbox with identical
+inherited diagnostics. Machine-code review confirmed CPU9 rejection, watchdog
+takeover before the one-way path, isolation before SRAM verification, PSCI
+after SRAM verification, and DCM only after generic secondary completion. Two
+raw Android-v0 assemblies and two full-partition constructions were
+byte-identical. The exact reviewed kernel is the sole payload change; all boot
+fields and the known-good Gemian ramdisk are preserved.
 
 ## Analysis
 
@@ -127,5 +142,6 @@ reset, and known-good recovery on hardware.
 
 ## Follow-up
 
-Assemble and independently validate the exact Android-v0 container and guarded
-runtime decision map. Do not deploy until both remaining offline reviews pass.
+Construct and independently validate the guarded runtime decision map,
+read-only collector, and live-GPT-resolved boot2 installer. Do not deploy until
+that remaining offline review passes.
