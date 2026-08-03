@@ -199,8 +199,16 @@ def main() -> int:
         ),
         "missing-resched": ("\t\t\t\tcond_resched();\n", ""),
         "wrong-recurrence": (
-            "0x9e3779b97f4a7c15ULL",
-            "0x9e3779b97f4a7c14ULL",
+            "static u64 mt6797_a72_sc_step(u64 value, int cpu, "
+            "unsigned int iteration)\n"
+            "{\n"
+            "\tvalue ^= (u64)cpu << 57;\n"
+            "\tvalue ^= (u64)iteration * 0x9e3779b97f4a7c15ULL;",
+            "static u64 mt6797_a72_sc_step(u64 value, int cpu, "
+            "unsigned int iteration)\n"
+            "{\n"
+            "\tvalue ^= (u64)cpu << 57;\n"
+            "\tvalue ^= (u64)iteration * 0x9e3779b97f4a7c14ULL;",
         ),
         "missing-ready": ("\tatomic_inc(&mt6797_a72_sc_ready);\n", ""),
         "missing-finished": ("\tatomic_inc(&mt6797_a72_sc_finished);\n", ""),

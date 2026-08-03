@@ -94,6 +94,11 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   rejected because the independently recomputed hash vectors were not yet tied
   to the exact source recurrence. The validator now requires the full recurrence
   function body. No patch package, compile, or device action occurred.
+- The retry from commit `a82c15d668bb07e3c9c174c58b1a24cf40ace8c4`
+  showed that the recurrence mutation changed an identical constant in inherited
+  pair-v6 code rather than the uniquely named scheduler function. The mutation
+  target is now scoped to the full scheduler-function prefix. No patch package,
+  compile, or device action occurred.
 
 ## Analysis
 
