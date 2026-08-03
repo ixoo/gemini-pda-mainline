@@ -79,6 +79,19 @@ def validate(psci: str, cpu: str, hps: str) -> None:
         "pl_expected=%016llx pl_actual=%016llx",
     ):
         require(token in psci, f"parallel-load contract missing: {token}")
+    require(
+        psci.count("int parity = writer == 8 ? 0 : 1;") == 2,
+        "ownership parity inventory changed",
+    )
+    require(
+        psci.count(
+            "for (line = parity; line < MT6797_A72_PL_LINES; line += 2)"
+        )
+        == 2,
+        "ownership loop inventory changed",
+    )
+    require(psci.count("2 * round, &budget") == 3, "barrier target inventory changed")
+    require(psci.count("pl_actual=%016llx") == 2, "terminal inventory changed")
     require(psci.count("smp_call_function_many(") == 3, "cross-call count changed")
     require(psci.count("cpumask_set_cpu(8, &targets);") == 1, "CPU8 mask changed")
     require(psci.count("cpumask_set_cpu(9, &targets);") == 1, "CPU9 mask changed")
