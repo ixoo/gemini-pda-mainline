@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu9-parallel-disjoint-load` |
-| Status | `source-generated; compile-workflow-ready` |
+| Status | `compile-review-pass; container-pending` |
 | Subsystem | MT6797 retained Cortex-A72 pair and cache coherency |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -48,7 +48,18 @@ watchdog recovery, or changed power boundary?
   `17d222165657e6679df3b7be6e1c712a15ec979012755cdbc95ae087eeed48f4`.
 - Pair-v5 validation: four pattern vectors and 16 negative mutations passed.
 - Pair-v6 validation: four pattern vectors and 19 negative mutations passed.
-- No compile, container, deployment, device action, or runtime claim exists.
+- No container, deployment, device action, or runtime claim exists yet.
+- Final Buildbox compile-review commit:
+  `ad7807ccc50bebd0aaeafcbe4dadb4c11c44b850`.
+- Child `Image.gz-dtb` SHA-256:
+  `8bbbc62e997c7140f2648d5da2d825622ef19cb0eba94684218ab4d049a96e0a`.
+- Exact pair-v5 parent `Image.gz-dtb` SHA-256:
+  `c8dec67729bfceaaf1005e656e51e10950b787f07256f1daad1ce0cb64519814`.
+- Child and parent configs are byte-identical; extracted diagnostics are
+  byte-identical.
+- Measured static stack: parallel callback 48 bytes, coherency worker 112
+  bytes, complete terminal worker 784 bytes; the working set is not on stack.
+- This is still compile-review evidence, not a boot candidate or runtime claim.
 
 ## Safety assessment
 
@@ -72,23 +83,21 @@ static BSS and no payload is placed on the callback stack.
 - [`scripts/build-on-buildbox`](scripts/build-on-buildbox): pair-v6 versus exact
   pair-v5 comparative compile entry point.
 - [`patches/series`](patches/series): exact generated source-review patch order.
+- [`results/compile-review-20260803.txt`](results/compile-review-20260803.txt):
+  exact hashes, linked binary boundaries, stack measurements, and tooling
+  chronology for the final comparative Buildbox pass.
 
 ## Conclusion
 
-`source-generated; compile-workflow-ready`: pair-v5 proves repeatable
-alternating data integrity, but not concurrent writers. The exact generated
-pair-v6 source satisfies its positive contract and rejects all selected
-mutations. The Buildbox compile workflow now requires exact parent provenance,
-identical configuration and diagnostics, inherited-symbol presence, linked
-pair-v6 callback/data/terminal state, explicit acquire/release instructions,
-static stack usage no greater than 512 bytes for the new callback and
-coherency worker, and no greater than 1,024 bytes for the enlarged complete
-terminal worker. The first compile attempt measured the latter at 784 bytes;
-the 64 KiB data set remains in static BSS. This is still source/tooling evidence
-only; it is not a validated compiled candidate and cannot be deployed.
+`compile-review-pass; container-pending`: the exact pair-v6 source and negative
+mutations pass, both pair-v6 and exact pair-v5 compile under identical pinned
+inputs, and the binary/configuration/diagnostic/stack gates pass. The child is
+not deployable until two independent Android-v0 container constructions agree
+byte-for-byte and an offline candidate validator binds every identity.
 
 ## Follow-up
 
-Commit and push the compile workflow, run the exact pair-v6-versus-pair-v5
-Buildbox comparison, then fetch and inspect only the validated package before
-any container work.
+Construct the pair-v6 Android-v0 container twice from the final validated
+`Image.gz-dtb` and the pinned active pair-v5 ramdisk/header contract. Require
+byte-identical raw and padded outputs plus an independent offline validator
+before any `boot2` write.

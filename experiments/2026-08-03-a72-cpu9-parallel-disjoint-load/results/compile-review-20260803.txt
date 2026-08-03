@@ -1,0 +1,60 @@
+experiment=2026-08-03-a72-cpu9-parallel-disjoint-load
+result=pass
+claim=compile-review-only
+boot_candidate=false
+device_action=none
+native_vm_kernel_build=no
+repository_commit=ad7807ccc50bebd0aaeafcbe4dadb4c11c44b850
+source_commit=59e00a9144d782e148332009a835b99c43382467
+exact_parent=pair-v5-multiline-integrity
+multiline_patchset_sha256=c7a9b020563c4abb74059bbf72705839c528a81d577c7031ddfb36de647fd896
+parallel_patchset_sha256=94d3b07355e1ddb67f3f643165570255bb1f42131b3b67c074d270e8581989e2
+package_manifest_sha256=dc3b231074d447dee7ab08980aa5428de2a89da34bab3ad24c8b64c066f8c47d
+child_image_gz_dtb_sha256=8bbbc62e997c7140f2648d5da2d825622ef19cb0eba94684218ab4d049a96e0a
+child_image_gz_dtb_bytes=8451693
+parent_image_gz_dtb_sha256=c8dec67729bfceaaf1005e656e51e10950b787f07256f1daad1ce0cb64519814
+child_vmlinux_sha256=1ed762480686821066fc4f3d67c4b7b4ff5207b18e351b608c68ae77e41be8c1
+child_system_map_sha256=846ca53daaec94322a92389fe6926ffaf72d550819364c195eb38a12587ab487
+config_sha256=05e389b6de653a4a9b63ad3f3c259be13bdda7f07bbe25ae0b81ec7a7c5c2a9b
+parent_config_sha256=05e389b6de653a4a9b63ad3f3c259be13bdda7f07bbe25ae0b81ec7a7c5c2a9b
+config_diff_sha256=90225906632ce1630958132c752f1554bb661470c00874b7f8a42c70561df66a
+diagnostics_sha256=f60899a1c59153d7d36474c415bc6e302db89a74bc53a062cb56fa21eb269465
+parent_diagnostics_sha256=f60899a1c59153d7d36474c415bc6e302db89a74bc53a062cb56fa21eb269465
+diagnostics_identical=yes
+child_parent_images_distinct=yes
+pair_v5_symbols_present_in_both=yes
+pair_v6_callback_child_only=yes
+pair_v6_static_working_set_child_only=yes
+pair_v6_pass_terminal_linked=yes
+pair_v6_fault_terminal_linked=yes
+arm64_acquire_barriers_present=yes
+arm64_release_barriers_present=yes
+stack_usage_files=2484
+parent_stack_usage_files=2484
+stack_mt6797_a72_pl_ipi_bytes=48
+stack_mt6797_a72_coh_workfn_bytes=112
+stack_mt6797_a72_hold_workfn_bytes=784
+working_set_on_stack=no
+runtime_result=not-tested
+
+tooling_chronology:
+- 6d4d9c5: both compiles passed; unattributed post-build assertion failure led
+  to durable line-attributed error reporting.
+- 6375c9b: line attribution identified a collector-status failure before the
+  strict stack parser.
+- c58ea22: strict parser measured the 784-byte complete terminal frame; the
+  provisional 512-byte terminal limit was corrected to the designed 1,024-byte
+  bound while retaining 512-byte callback/coherency bounds.
+- b1e65e1: internal compile and package checks passed; the outer validator
+  exposed raw-versus-normalized stack-summary packaging.
+- 4996404: complete compile and outer validation passed; local review found the
+  explicit build_mode provenance field absent.
+- ad7807c: final self-describing compile, package, outer validation, fetch, and
+  local checksum/provenance inspection passed.
+
+conclusion:
+The exact pair-v6 child compiles against the pinned Gemian source and toolchain
+without configuration or diagnostic drift from exact pair-v5. The new callback,
+64 KiB static BSS working set, complete terminal, and acquire/release barriers
+are linked, and measured static stack use remains bounded. This evidence does
+not establish a boot candidate or hardware behavior.
