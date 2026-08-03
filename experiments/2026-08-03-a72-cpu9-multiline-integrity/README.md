@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu9-multiline-integrity` |
-| Status | `deployed-shutdown-awaiting-first-boot` |
+| Status | `attempt-1-pass-repeat-earned` |
 | Subsystem | MT6797 retained Cortex-A72 pair and cache coherency |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -52,6 +52,8 @@ mismatch, callback error, lost watchdog recovery, or changed power boundary?
   `5227729e34ca42cf606f43008ec753fce15147693ce7a670818db58c5903fa48`.
 - Deployment baseline boot ID:
   `22594815-d18d-4dae-85ea-b3c68e6d1d95`.
+- Attempt-1 recovery boot ID:
+  `50182514-892b-4deb-83fb-59c9af8718d3`.
 
 ## Safety assessment
 
@@ -79,6 +81,8 @@ terminal snapshot before the inherited watchdog restart.
   fixed pair-v5 deployment, recovery, pass, and reject branches.
 - [`results/deployment-20260803.txt`](results/deployment-20260803.txt): exact
   live-GPT boot2 write/readback and shutdown evidence.
+- [`results/runtime-attempt-1-pass-20260803.txt`](results/runtime-attempt-1-pass-20260803.txt):
+  complete pair-v5 pass and changed-cycle recovery evidence.
 - [`scripts/install-boot2.sh`](scripts/install-boot2.sh): guarded exact-candidate
   boot2 installer with full readback and clean shutdown.
 - [`scripts/capture-live-outcome.sh`](scripts/capture-live-outcome.sh): optional
@@ -88,18 +92,20 @@ terminal snapshot before the inherited watchdog restart.
 
 ## Conclusion
 
-`deployed-shutdown-awaiting-first-boot`: Buildbox reproduced the exact
+`attempt-1-pass-repeat-earned`: Buildbox reproduced the exact
 pair-v4 parent, passed its static validator, applied the deterministic child
 transformer, rejected all 16 multiline mutations, and generated a patch that
 changes only `arch/arm64/kernel/psci.c`. The pinned comparative build passed its
 source, configuration, diagnostics, linked-code, terminal, and stack gates. The
 exact image was assembled twice into byte-identical Android-v0 and padded
 containers with the expected embedded kernel and unchanged known-good ramdisk.
-The guarded installer wrote live-GPT-resolved inactive boot2, verified two full
-checksums, and shut the device down. The exact candidate now awaits one
-attributable physical boot2 selection with the changed-cycle observer armed.
+The first attributable runtime cycle produced one complete pair-v5 pass: both
+CPUs completed 64 rounds and all 262,144 exact word comparisons with zero
+errors, cross-matching nonzero hashes, no mismatch, watchdog recovery, offline
+recovery CPUs 8/9, and unchanged boot2. The fixed map earns one exact repeat.
 
 ## Follow-up
 
-Publish the sanitized deployment evidence, arm the changed-cycle pstore
-observer, then physically select boot2 once and allow automatic Gemian recovery.
+Publish the sanitized attempt-1 evidence, then run one exact unchanged cycle
+from a new ordinary-Gemian baseline. A second pass closes only this bounded
+multi-cacheline repeatability gate.

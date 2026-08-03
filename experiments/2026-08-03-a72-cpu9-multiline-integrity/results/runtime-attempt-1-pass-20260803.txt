@@ -1,0 +1,70 @@
+CPU8/CPU9 multi-cacheline integrity runtime attempt 1
+Date: 2026-08-03
+
+Decision: pass. One exact repeatability cycle is earned by the predeclared
+decision map. This does not authorize CPU_OFF, removal of the HPS veto, longer
+load, or another power boundary.
+
+Exact identities
+----------------
+
+Repository compile commit:
+  fb647817cd573e3dd8719821da8742bc5433979b
+Multiline patchset SHA-256:
+  c7a9b020563c4abb74059bbf72705839c528a81d577c7031ddfb36de647fd896
+Raw Android-v0 SHA-256:
+  4e3c1b1095ee87e0af3c45595ea83d859d53188a53aba10672202bf45938986a
+Full boot2 SHA-256:
+  5227729e34ca42cf606f43008ec753fce15147693ce7a670818db58c5903fa48
+Pstore console SHA-256:
+  c713eb12aaedd3cfe58bb04460e3fa147b2c4982d275a58d71dbf354f842ccd0
+Pstore archive SHA-256:
+  fd98c1e0bb25f83309d7132733ed3559b6209379cbf46dfe4e934b458f63c3c0
+
+Attributable terminal
+---------------------
+
+At 10.745680 seconds, retained `console-ramoops` contains exactly:
+
+  psci: gemini-a72-pair-v5 result=pass sample=3 cpu8=8 cpu9=9 online8=1 online9=1 hits8=3 hits9=3 hps_reported=1 hps_cpu=9 hps_error=-1 hps_count=88 coh_reported=1 coh_rounds=1024 coh_cpu8=8 coh_cpu9=9 coh_error8=0 coh_error9=0 coh_seq8=1024 coh_seq9=1024 ml_reported=1 ml_rounds=64 ml_lines=256 ml_words=8 ml_cpu8=8 ml_cpu9=9 ml_error8=0 ml_error9=0 ml_done8=64 ml_done9=64 ml_hash8w=34e574e95cbe0383 ml_hash8r=432574e95cbe0383 ml_hash9w=432574e95cbe0383 ml_hash9r=34e574e95cbe0383 ml_bad_round=0 ml_bad_line=0 ml_bad_word=0 ml_expected=0000000000000000 ml_actual=0000000000000000
+
+This satisfies every positive predicate fixed before deployment:
+
+- CPUs 8 and 9 were Linux-accounted online and each completed all three
+  inherited callbacks;
+- HPS first-result attribution remained CPU9, `-EPERM`, with 88 bounded
+  requests while the fail-closed public down veto stayed active;
+- the inherited scalar phase completed exactly 1,024 rounds on CPUs 8/9 with
+  zero errors and final sequences 1,024/1,024;
+- CPU8 and CPU9 then completed all 64 alternating rounds across 256 aligned
+  lines and eight words per line, totaling 262,144 exact cross-CPU checks;
+- both errors are zero, both completion counts are 64, the two write hashes are
+  nonzero and cross-match the opposite read hashes exactly, and every mismatch
+  field is zero; and
+- no pair-v5 fault, panic, BUG, Internal error, Call trace, asynchronous SError,
+  lockup, or unable-to-handle-kernel record is present in retained pstore.
+
+Recovery and integrity
+----------------------
+
+The changed-cycle observer started from ordinary-Gemian boot ID
+`3f90c1e5-437d-451f-88c4-9489f968a87a`, confirmed two disconnected probes,
+then observed recovery boot ID `50182514-892b-4deb-83fb-59c9af8718d3` and
+captured pstore without modifying or removing it. Recovery ran `3.18.41+` on
+aarch64. Filtered boot arguments reported `boot_reason=4` and
+`androidboot.bootreason=wdt_by_pass_pwk`. The online CPU mask was `4-7`; CPU8
+and CPU9 each reported `online=0`. Live GPT exposed exactly one unmounted
+`/dev/mmcblk0p30 boot2`, whose full checksum remained
+`5227729e34ca42cf606f43008ec753fce15147693ce7a670818db58c5903fa48`.
+Battery telemetry was 96 percent, Charging, and Good.
+
+Conclusion and next action
+--------------------------
+
+This is the first direct evidence that the retained A72 pair can reproduce the
+bounded scalar gate and then exchange a deterministic 16 KiB working set with
+exact integrity in both directions. Per the fixed map, run one exact unchanged
+cycle from a new ordinary-Gemian baseline. A second pass would establish
+repeatability only for this bounded oracle and would permit design of the next
+changed finite parallel/disjoint-load observation; it would not authorize
+CPU_OFF or any power transition.
