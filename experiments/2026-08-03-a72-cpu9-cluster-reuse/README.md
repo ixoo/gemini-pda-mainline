@@ -80,6 +80,12 @@ rejected before A72 action, providing a natural deterministic CPU9 trigger.
 Offline ownership evidence assigns cluster-singleton preparation to the CPU8
 transition and CPU9 per-core MTCMOS/reset/CCI work to secure PSCI firmware.
 
+The first compile-gate run built both the CPU9 child and exact late-CPU8 parent,
+then rejected publication because GCC inlined the private CPU9 boot helper and
+the gate incorrectly required that helper as a standalone disassembly symbol.
+No bundle was accepted. The corrected gate compares the durable HPS caller and
+secondary-completion disassemblies where the child behavior actually resides.
+
 ## Analysis
 
 CPU9 must not replay CPU8's DA921x, SPM isolation/reset, PWRAP, SRAM-LDO, or DCM

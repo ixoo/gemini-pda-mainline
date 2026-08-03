@@ -565,12 +565,6 @@ if [[ "${build_mode}" == held || "${build_mode}" == late || \
     mt6797_a72_hold_workfn
   )
 fi
-if [[ "${build_mode}" == cpu9 ]]; then
-  changed_disassembly_symbols+=(
-    mt6797_a72_cpu9_boot
-    mt6797_a72_cpu9_marker
-  )
-fi
 if [[ "${build_mode}" == late || "${build_mode}" == cpu9 ]]; then
   baseline_disassembly_symbols+=(
     mt6797_a72_hold_ipi
@@ -637,13 +631,15 @@ if [[ "${build_mode}" == cpu9 ]]; then
     grep -q ' mt6797_a72_hold_workfn$' "${map}" || \
       die "CPU9 comparison is missing the shared delayed sampler"
   done
-  grep -q ' mt6797_a72_cpu9_boot$' "${output}/System.map" || \
-    die "CPU9 build is missing the one-shot CPU9 boot helper"
-  grep -q ' mt6797_a72_cpu9_marker$' "${output}/System.map" || \
-    die "CPU9 build is missing its terminal marker"
-  if grep -qE ' mt6797_a72_cpu9_(boot|marker)$' \
-    "${baseline_output}/System.map"; then
-    die "late-CPU8 baseline unexpectedly contains CPU9 child symbols"
+  if cmp "${output}/focused-disassembly/hps_algo_do_cluster_action.txt" \
+    "${baseline_output}/focused-disassembly/hps_algo_do_cluster_action.txt" \
+    >/dev/null; then
+    die "CPU9 HPS caller is binary-identical to the late-CPU8 baseline"
+  fi
+  if cmp "${output}/focused-disassembly/mt6797_a72_one_way_secondary_complete.txt" \
+    "${baseline_output}/focused-disassembly/mt6797_a72_one_way_secondary_complete.txt" \
+    >/dev/null; then
+    die "CPU9 completion owner is binary-identical to the late-CPU8 baseline"
   fi
   "${cross_prefix}strings" "${output}/vmlinux" | \
     grep -F 'gemini-a72-pair-v1 result=pass sample=3 cpu8=8 cpu9=9 online8=1 online9=1 hits8=3 hits9=3' >/dev/null || \

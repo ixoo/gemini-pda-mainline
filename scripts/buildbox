@@ -767,8 +767,6 @@ else
     outputs/baseline/stack-usage-files.txt \
     outputs/focused-disassembly/cpu_down.txt \
     outputs/focused-disassembly/hps_algo_do_cluster_action.txt \
-    outputs/focused-disassembly/mt6797_a72_cpu9_boot.txt \
-    outputs/focused-disassembly/mt6797_a72_cpu9_marker.txt \
     outputs/focused-disassembly/mt6797_a72_hold_ipi.txt \
     outputs/focused-disassembly/mt6797_a72_hold_workfn.txt \
     outputs/focused-disassembly/mt6797_a72_one_way_secondary_complete.txt \
@@ -788,10 +786,12 @@ else
       "17733d2ae50c16f9d0db2d4bd4075fa5a72ce081606db7d3bf1bfe83f4159a2b" and
     .purpose == "cpu9-cluster-reuse-compile-review-only"
   ' "${package}/provenance/build.json" >/dev/null
-  grep -q ' mt6797_a72_cpu9_boot$' "${package}/outputs/System.map"
-  grep -q ' mt6797_a72_cpu9_marker$' "${package}/outputs/System.map"
-  ! grep -qE ' mt6797_a72_cpu9_(boot|marker)$' \
-    "${package}/outputs/baseline/System.map"
+  ! cmp "${package}/outputs/focused-disassembly/hps_algo_do_cluster_action.txt" \
+    "${package}/outputs/baseline/focused-disassembly/hps_algo_do_cluster_action.txt" \
+    >/dev/null
+  ! cmp "${package}/outputs/focused-disassembly/mt6797_a72_one_way_secondary_complete.txt" \
+    "${package}/outputs/baseline/focused-disassembly/mt6797_a72_one_way_secondary_complete.txt" \
+    >/dev/null
   grep -aFq 'gemini-a72-pair-v1 result=pass sample=3' \
     "${package}/outputs/vmlinux"
   [[ "$(tar -tf "${package}/outputs/baseline/stack-usage.tar" | wc -l)" -gt 100 ]]
