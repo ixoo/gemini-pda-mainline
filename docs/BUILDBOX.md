@@ -224,6 +224,22 @@ deterministic task-context transformation, rejects the fixed mutation set, and
 exports one checksum-covered format-patch review. It performs no kernel compile,
 container construction, device access, or partition action.
 
+After the generated patch is reviewed and tracked, compile it against the exact
+pair-v6 parent with:
+
+```sh
+./scripts/buildbox build-gemian-scheduler-compile
+./scripts/buildbox fetch-gemian-scheduler-compile
+```
+
+The compile lane reuses the pinned Gemian source, Stretch toolchain, normalized
+configuration, DCT oracle, diagnostics comparison, and stack instrumentation.
+It requires the complete pair-v6 symbol and terminal inventory in the parent,
+new bounded scheduler-task symbols and pair-v7 terminals only in the child,
+identical startup/HPS sources, and bounded task/coherency/terminal stack use.
+The package is compile-review-only, never a boot candidate, and performs no
+device action.
+
 ## Remote storage and concurrency
 
 Buildbox uses its persistent home volume for the Git mirror, verified kernel

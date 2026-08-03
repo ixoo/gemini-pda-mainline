@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-scheduler-context` |
-| Status | `source-patch-validated` |
+| Status | `compile-tooling-ready` |
 | Subsystem | MT6797 retained Cortex-A72 pair and scheduler |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -68,6 +68,8 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   lifecycle, hash-vector, safety-inventory, and negative-mutation validator.
 - [`scripts/generate-on-buildbox`](scripts/generate-on-buildbox): clean-pushed-
   commit Buildbox source reconstruction and format-patch generator.
+- [`scripts/build-on-buildbox`](scripts/build-on-buildbox): Buildbox-only child
+  versus exact pair-v6 compile, diagnostics, disassembly, and stack comparison.
 - [`patches/series`](patches/series): exact generated experiment-only scheduler-
   context source patch.
 
@@ -127,10 +129,11 @@ context while preserving the established power and recovery boundary.
 
 ## Conclusion
 
-`source-patch-validated`: the deterministic child was generated against the
-exact reconstructed pair-v6 parent, all 22 negative mutations were rejected,
-and the one-file patch and provenance were checksum-verified. No compile,
-container, deployment, or hardware evidence exists.
+`compile-tooling-ready`: the deterministic child was generated against the exact
+reconstructed pair-v6 parent, all 22 negative mutations were rejected, the
+one-file patch and provenance were checksum-verified, and the Buildbox-only
+compile comparison is wired for review. No compile, container, deployment, or
+hardware evidence exists.
 
 ## Follow-up
 

@@ -121,6 +121,10 @@ Commands:
                         Compare parallel load and exact multiline parent
   fetch-gemian-cpu9-parallel-compile
                         Fetch that validated compile-review bundle for HEAD
+  build-gemian-scheduler-compile
+                        Compare scheduler context and exact pair-v6 parent
+  fetch-gemian-scheduler-compile
+                        Fetch that validated compile-review bundle for HEAD
 
 Environment:
   BUILDBOX_HOST         SSH target (default: buildbox)
@@ -508,7 +512,7 @@ build_gemian_observer() {
   local sha
 
   case "${mode}" in
-    observer|rollback|recovery|one-way|held|late|cpu9|window|terminal|coherence|multiline|parallel) ;;
+    observer|rollback|recovery|one-way|held|late|cpu9|window|terminal|coherence|multiline|parallel|scheduler) ;;
     *) die "invalid Gemian compile-review mode: ${mode}" ;;
   esac
 
@@ -601,6 +605,11 @@ case "${mode}" in
     readonly job_suffix=gemian-a72-cpu9-parallel
     readonly job_purpose=gemian-a72-cpu9-parallel-disjoint-load-compile-review
     readonly build_script=experiments/2026-08-03-a72-cpu9-parallel-disjoint-load/scripts/build-on-buildbox
+    ;;
+  scheduler)
+    readonly job_suffix=gemian-a72-scheduler
+    readonly job_purpose=gemian-a72-scheduler-context-compile-review
+    readonly build_script=experiments/2026-08-03-a72-scheduler-context/scripts/build-on-buildbox
     ;;
   *) exit 2 ;;
 esac
@@ -905,6 +914,45 @@ elif [[ "${mode}" == window ]]; then
   grep -aFq 'gemini-a72-retain-v1 result=hps-down-held-first' \
     "${package}/outputs/vmlinux"
   [[ "$(tar -tf "${package}/outputs/baseline/stack-usage.tar" | wc -l)" -gt 100 ]]
+elif [[ "${mode}" == scheduler ]]; then
+  for required in outputs/scheduler-stack.txt \
+    outputs/baseline/stack-usage.tar \
+    outputs/baseline/stack-usage-files.nul \
+    outputs/baseline/stack-usage-files.txt \
+    outputs/focused-disassembly/mt6797_a72_coh_workfn.txt \
+    outputs/focused-disassembly/mt6797_a72_ml_ipi.txt \
+    outputs/focused-disassembly/mt6797_a72_pl_ipi.txt \
+    outputs/focused-disassembly/mt6797_a72_sc_thread.txt \
+    outputs/baseline/focused-disassembly/mt6797_a72_coh_workfn.txt \
+    outputs/baseline/focused-disassembly/mt6797_a72_ml_ipi.txt \
+    outputs/baseline/focused-disassembly/mt6797_a72_pl_ipi.txt; do
+    [[ -s "${package}/${required}" ]]
+  done
+  jq -e '
+    .baseline_source_exact_parallel == true and
+    .cpu9_startup_source_identical == true and
+    .baseline_stack_usage_file_count > 100 and
+    .parallel_patchset_sha256 ==
+      "94d3b07355e1ddb67f3f643165570255bb1f42131b3b67c074d270e8581989e2" and
+    .scheduler_patchset_sha256 ==
+      "7ea850168039c7aa7401e8a71189975c89e1a76444c0165fc11177e3f6d6871e" and
+    .purpose == "a72-scheduler-context-compile-review-only"
+  ' "${package}/provenance/build.json" >/dev/null
+  for symbol in mt6797_a72_coh_ipi mt6797_a72_coh_workfn \
+    mt6797_a72_ml_ipi mt6797_a72_ml_data mt6797_a72_pl_ipi \
+    mt6797_a72_pl_data; do
+    grep -q " ${symbol}$" "${package}/outputs/System.map"
+    grep -q " ${symbol}$" "${package}/outputs/baseline/System.map"
+  done
+  grep -q ' mt6797_a72_sc_thread$' "${package}/outputs/System.map"
+  ! grep -qE ' mt6797_a72_sc_' "${package}/outputs/baseline/System.map"
+  grep -aFq 'gemini-a72-pair-v7 result=pass sample=3' \
+    "${package}/outputs/vmlinux"
+  grep -aFq 'gemini-a72-pair-v7 result=fault sample=3' \
+    "${package}/outputs/vmlinux"
+  grep -q '^mt6797_a72_sc_thread=' \
+    "${package}/outputs/scheduler-stack.txt"
+  [[ "$(tar -tf "${package}/outputs/baseline/stack-usage.tar" | wc -l)" -gt 100 ]]
 elif [[ "${mode}" == parallel ]]; then
   for required in outputs/parallel-stack.txt \
     outputs/baseline/stack-usage.tar \
@@ -1143,6 +1191,10 @@ fetch_gemian_observer() {
       job_suffix=gemian-a72-cpu9-parallel
       job_purpose=gemian-a72-cpu9-parallel-disjoint-load-compile-review
       ;;
+    scheduler)
+      job_suffix=gemian-a72-scheduler
+      job_purpose=gemian-a72-scheduler-context-compile-review
+      ;;
     *) die "invalid Gemian compile-review mode: ${mode}" ;;
   esac
   sha="$(git -C "${REPO_DIR}" rev-parse HEAD)"
@@ -1198,7 +1250,8 @@ case "${package}" in "${artifact_root}"/*) ;; *) exit 1 ;; esac
    ($mode == "terminal" and .purpose == "cpu9-terminal-attribution-compile-review-only") or
    ($mode == "coherence" and .purpose == "cpu9-bounded-coherency-compile-review-only") or
    ($mode == "multiline" and .purpose == "cpu9-multiline-integrity-compile-review-only") or
-   ($mode == "parallel" and .purpose == "cpu9-parallel-disjoint-load-compile-review-only"))
+   ($mode == "parallel" and .purpose == "cpu9-parallel-disjoint-load-compile-review-only") or
+   ($mode == "scheduler" and .purpose == "a72-scheduler-context-compile-review-only"))
 ' "${package}/provenance/build.json" >/dev/null
 tar -C "$(dirname "${package}")" -cf - -- "$(basename "${package}")"
 REMOTE
@@ -2912,6 +2965,8 @@ case "${COMMAND}" in
   fetch-gemian-cpu9-multiline-compile) fetch_gemian_observer multiline ;;
   build-gemian-cpu9-parallel-compile) build_gemian_observer parallel ;;
   fetch-gemian-cpu9-parallel-compile) fetch_gemian_observer parallel ;;
+  build-gemian-scheduler-compile) build_gemian_observer scheduler ;;
+  fetch-gemian-scheduler-compile) fetch_gemian_observer scheduler ;;
   help|-h|--help) usage ;;
   *) usage >&2; exit 2 ;;
 esac
