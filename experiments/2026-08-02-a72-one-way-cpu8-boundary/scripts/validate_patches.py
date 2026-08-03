@@ -81,13 +81,21 @@ def validate_files(files: dict[str, str]) -> None:
     for token in (
         "timeout != 12",
         "mtk_wdt_recovery_owned = true",
-        "MTK_WDT_MODE_AUTO_RESTART",
-        "MTK_WDT_MODE_IRQ | MTK_WDT_MODE_DUAL_MODE",
         "state->length_after",
         "state->mode_after",
     ):
         if token not in low:
             raise ValidationError(f"low-level watchdog contract absent: {token}")
+    readback_contract = (
+        "(state->mode_after & (MTK_WDT_MODE_ENABLE |\n"
+        "\t\tMTK_WDT_MODE_EXTEN | MTK_WDT_MODE_IRQ |\n"
+        "\t\tMTK_WDT_MODE_DUAL_MODE | MTK_WDT_MODE_EXT_POL |\n"
+        "\t\tMTK_WDT_MODE_AUTO_RESTART)) !=\n"
+        "\t    (MTK_WDT_MODE_ENABLE | MTK_WDT_MODE_EXTEN |\n"
+        "\t     MTK_WDT_MODE_AUTO_RESTART)"
+    )
+    if readback_contract not in low:
+        raise ValidationError("exact watchdog automatic-reset readback absent")
     if "READ_ONCE(mtk_wdt_recovery_owned)" not in wdt:
         raise ValidationError("later restart interlock absent")
 
@@ -113,10 +121,15 @@ def validate_files(files: dict[str, str]) -> None:
     )
     require_once(boot, "postiso_fault:\n", "post-isolation fault label")
     rollback = boot[boot.index("rollback:\n"): boot.index("postiso_fault:\n")]
+    if "bool rollback_fault = false" not in boot:
+        raise ValidationError("independent rollback-failure state absent")
+    if "fault = true" in boot:
+        raise ValidationError("forward failure contaminates rollback result")
     for token in (
         "MT6797_A72_PHASE_ROLLBACK_BUCK_DISABLE",
         "0x00010133, 0x00010132",
         "MT6797_A72_PHASE_ROLLBACK_PWRAP_DEASSERT",
+        "rollback_fault = true",
     ):
         if token not in rollback:
             raise ValidationError(f"pre-isolation rollback missing: {token}")
