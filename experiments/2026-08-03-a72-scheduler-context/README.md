@@ -83,6 +83,12 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   static validator incorrectly searched the C format string for the rendered
   value `sc_reported=1`; the source correctly contains `sc_reported=%d`. No
   patch package survived validation, and no compile or device action occurred.
+- The retry from commit `9aead87c4fbdf3a7f2b5e8f22025d10d70e21c46`
+  reached the pointer-cleanup inventory and exposed a second validator-only
+  assumption: reset, create-error cleanup, and post-stop cleanup produce three
+  legitimate clears per CPU, not two. The validator was tightened to inventory
+  all three and require stop-then-clear adjacency. Again, no patch package,
+  compile, or device action occurred.
 
 ## Analysis
 

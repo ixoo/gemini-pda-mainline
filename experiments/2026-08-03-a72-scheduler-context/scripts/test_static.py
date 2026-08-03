@@ -88,6 +88,8 @@ def validate(psci: str, cpu: str, hps: str) -> None:
         "mt6797_a72_sc_wait_until(&mt6797_a72_sc_done9, deadline)",
         "kthread_stop(mt6797_a72_sc_task8)",
         "kthread_stop(mt6797_a72_sc_task9)",
+        "kthread_stop(mt6797_a72_sc_task8);\n\t\tmt6797_a72_sc_task8 = NULL;",
+        "kthread_stop(mt6797_a72_sc_task9);\n\t\tmt6797_a72_sc_task9 = NULL;",
         "mt6797_a72_sc_task8 = NULL;",
         "mt6797_a72_sc_task9 = NULL;",
         "sc_result8.hash == MT6797_A72_SC_HASH8_EXPECTED",
@@ -117,8 +119,8 @@ def validate(psci: str, cpu: str, hps: str) -> None:
     require(scheduler.count("cond_resched();") == 1, "reschedule call count changed")
     require(scheduler.count("complete(done);") == 1, "completion publication changed")
     require(psci.count("sc_hash9=%016llx") == 2, "terminal inventory changed")
-    require(psci.count("mt6797_a72_sc_task8 = NULL;") == 2, "CPU8 clear count changed")
-    require(psci.count("mt6797_a72_sc_task9 = NULL;") == 2, "CPU9 clear count changed")
+    require(psci.count("mt6797_a72_sc_task8 = NULL;") == 3, "CPU8 clear count changed")
+    require(psci.count("mt6797_a72_sc_task9 = NULL;") == 3, "CPU9 clear count changed")
 
     require(scheduler_hash(8) == 0xF678147669874ECD, "CPU8 hash vector changed")
     require(scheduler_hash(9) == 0xC2274327E9C8104C, "CPU9 hash vector changed")
@@ -221,7 +223,13 @@ def main() -> int:
             "\t    sc_result9.stop_result == sc_result9.error &&\n",
             "",
         ),
-        "missing-clear": ("\t\tmt6797_a72_sc_task8 = NULL;\n", ""),
+        "missing-clear-after-stop": (
+            "\t\tmt6797_a72_sc_result8.stop_result =\n"
+            "\t\t\tkthread_stop(mt6797_a72_sc_task8);\n"
+            "\t\tmt6797_a72_sc_task8 = NULL;\n",
+            "\t\tmt6797_a72_sc_result8.stop_result =\n"
+            "\t\t\tkthread_stop(mt6797_a72_sc_task8);\n",
+        ),
         "wrong-hash8": (
             "0xf678147669874ecdULL",
             "0xf678147669874eccULL",
