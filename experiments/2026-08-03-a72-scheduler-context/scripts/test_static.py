@@ -94,7 +94,7 @@ def validate(psci: str, cpu: str, hps: str) -> None:
         "sc_result9.hash == MT6797_A72_SC_HASH9_EXPECTED",
         "sc_result8.stop_result == sc_result8.error",
         "sc_result9.stop_result == sc_result9.error",
-        "sc_reported=1 sc_iterations=262144 sc_rescheds=64",
+        "sc_reported=%d sc_iterations=262144 sc_rescheds=64",
         "sc_wait8=%d sc_wait9=%d",
         "sc_hash8=%016llx sc_hash9=%016llx",
     ):

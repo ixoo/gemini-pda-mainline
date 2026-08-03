@@ -77,7 +77,12 @@ terminal fault. The retained watchdog remains the independent recovery bound.
 
 ## Observations
 
-None. Design review only.
+- Buildbox source generation from repository commit
+  `1d3d8911b75d5ace78ffd05f83bec69384b178b0` reconstructed and validated the
+  exact pair-v6 parent, then rejected the child before patch publication. The
+  static validator incorrectly searched the C format string for the rendered
+  value `sc_reported=1`; the source correctly contains `sc_reported=%d`. No
+  patch package survived validation, and no compile or device action occurred.
 
 ## Analysis
 
