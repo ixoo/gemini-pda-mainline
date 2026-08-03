@@ -667,8 +667,9 @@ esac
   cd "${package}"
   sha256sum --check --strict SHA256SUMS
 )
-jq -e --arg commit "${commit}" '
+jq -e --arg commit "${commit}" --arg mode "${mode}" '
   .repository_commit == $commit and .repository_dirty == false and
+  .build_mode == $mode and
   .source_commit == "59e00a9144d782e148332009a835b99c43382467" and
   .cust_dtsi_sha256 == "7a7eb416499346afff30c15f967ccb9cf79323c076204b6a953515db74811632" and
   .build_architecture == "x86_64" and .target_architecture == "arm64" and
@@ -1180,6 +1181,7 @@ case "${package}" in "${artifact_root}"/*) ;; *) exit 1 ;; esac
 [[ -d "${package}" && ! -L "${package}" ]]
   jq -e --arg commit "${commit}" --arg mode "${mode}" '
   .repository_commit == $commit and .repository_dirty == false and
+  .build_mode == $mode and
   .boot_candidate == false and
   (($mode == "observer" and .purpose == "compile-review-only") or
    ($mode == "rollback" and .purpose == "rollback-compile-review-only") or

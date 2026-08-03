@@ -1476,6 +1476,7 @@ jq -n \
   --argjson baseline_stack_usage_file_count "${baseline_stack_usage_count}" \
   --arg completed_utc "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
   '{repository_commit: $repository_commit, repository_dirty: false,
+    build_mode: $build_mode,
     source_url: $source_url, source_commit: $source_commit,
     parent_patchset_sha256: $parent_patchset_sha256,
     accepted_rollback_patchset_sha256: $accepted_rollback_patchset_sha256,
