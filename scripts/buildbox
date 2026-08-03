@@ -73,6 +73,10 @@ Commands:
                         Generate the bounded multi-cacheline patch review
   fetch-gemian-cpu9-multiline-patches
                         Fetch only the validated multi-cacheline review
+  generate-gemian-cpu9-parallel-patches
+                        Generate the bounded parallel disjoint-load review
+  fetch-gemian-cpu9-parallel-patches
+                        Fetch only the validated parallel-load review
   build-gemian-recovery-compile
                         Compare recovery-only and unpatched Gemian on Buildbox
   fetch-gemian-recovery-compile
@@ -2528,6 +2532,136 @@ REMOTE
   printf 'Artifact fetched to %s\n' "${destination}"
 }
 
+generate_gemian_cpu9_parallel_patches() {
+  local branch identity remote_command sha
+
+  require_command git
+  require_command jq
+  require_command ssh
+  identity="$(require_clean_pushed_head)"
+  IFS=$'\t' read -r sha branch <<< "${identity}"
+  printf -v remote_command 'bash -s -- %q %q' "${sha}" "${branch}"
+  printf 'Submitting CPU8/CPU9 parallel disjoint-load patch generation %s to %s\n' \
+    "${sha}" "${BUILDBOX_HOST}"
+  ssh_buildbox "${remote_command}" <<'REMOTE'
+set -euo pipefail
+readonly commit="$1"
+readonly branch="$2"
+readonly remote_url=https://github.com/ixoo/gemini-pda-mainline.git
+readonly persistent_root="${HOME}/gemini-pda-buildbox"
+readonly mirror="${persistent_root}/repo.git"
+readonly workspace_root=/workspace/gemini-pda
+readonly checkout_root="${workspace_root}/checkouts"
+readonly checkout="${checkout_root}/${commit}"
+readonly source_root="${workspace_root}/gemian-source"
+readonly artifact_root="${workspace_root}/gemian-cpu9-parallel-artifacts"
+readonly job_root="${workspace_root}/jobs"
+readonly job_key="${commit}-gemian-a72-cpu9-parallel-patchgen"
+readonly job_record="${job_root}/${job_key}.json"
+
+mkdir -p "${persistent_root}" "${checkout_root}" "${source_root}" \
+  "${artifact_root}" "${job_root}"
+exec 9>"${persistent_root}/build.lock"
+flock 9
+if [[ ! -d "${mirror}" ]]; then
+  git clone --mirror "${remote_url}" "${mirror}.partial"
+  mv "${mirror}.partial" "${mirror}"
+fi
+[[ "$(git --git-dir="${mirror}" remote get-url origin)" == "${remote_url}" ]]
+git --git-dir="${mirror}" fetch --prune origin \
+  "refs/heads/${branch}:refs/remotes/origin/${branch}"
+[[ "$(git --git-dir="${mirror}" rev-parse "refs/remotes/origin/${branch}")" == "${commit}" ]]
+if [[ ! -d "${checkout}" ]]; then
+  partial="${checkout}.partial.$$"
+  trap 'test -n "${partial:-}" && test -d "${partial}" && rm -rf -- "${partial}"' EXIT
+  git clone --no-checkout "${mirror}" "${partial}"
+  git -C "${partial}" checkout --detach "${commit}"
+  [[ -z "$(git -C "${partial}" status --porcelain)" ]]
+  mv "${partial}" "${checkout}"
+  partial=
+  trap - EXIT
+fi
+[[ "$(git -C "${checkout}" rev-parse HEAD)" == "${commit}" ]]
+[[ -z "$(git -C "${checkout}" status --porcelain)" ]]
+if [[ -f "${job_record}" ]] && jq -e --arg commit "${commit}" '
+  .status == "validated" and .repository_commit == $commit and
+  .purpose == "gemian-a72-cpu9-parallel-disjoint-load-patch-generation"
+' "${job_record}" >/dev/null; then
+  package="$(jq -er '.package' "${job_record}")"
+  [[ -d "${package}" && ! -L "${package}" ]]
+  printf 'buildbox_job=%s\nbuildbox_package=%s\n' "${job_key}" "${package}"
+  exit 0
+fi
+rm -f "${job_record}.partial"
+output="$("${checkout}/experiments/2026-08-03-a72-cpu9-parallel-disjoint-load/scripts/generate-on-buildbox" \
+  "${commit}" "${source_root}" "${artifact_root}")"
+printf '%s\n' "${output}"
+package="$(printf '%s\n' "${output}" | \
+  sed -n 's/^Generated CPU9 parallel disjoint-load patch review at //p' | tail -n 1)"
+case "${package}" in "${artifact_root}"/*) ;; *) exit 1 ;; esac
+[[ -d "${package}" && ! -L "${package}" ]]
+(cd "${package}" && sha256sum --check --strict SHA256SUMS >/dev/null)
+jq -n --arg status validated --arg repository_commit "${commit}" \
+  --arg purpose gemian-a72-cpu9-parallel-disjoint-load-patch-generation \
+  --arg package "${package}" --arg package_name "$(basename "${package}")" \
+  '{status: $status, repository_commit: $repository_commit,
+    purpose: $purpose, package: $package, package_name: $package_name}' \
+  >"${job_record}.partial"
+mv "${job_record}.partial" "${job_record}"
+printf 'buildbox_job=%s\nbuildbox_package=%s\n' "${job_key}" "${package}"
+REMOTE
+}
+
+fetch_gemian_cpu9_parallel_patches() {
+  local destination job_info job_key package_name remote_command sha temporary
+
+  require_command git
+  require_command jq
+  require_command sha256sum
+  require_command ssh
+  require_command tar
+  sha="$(git -C "${REPO_DIR}" rev-parse HEAD)"
+  [[ "${sha}" =~ ^[0-9a-f]{40}$ ]] || die 'invalid HEAD commit'
+  job_key="${sha}-gemian-a72-cpu9-parallel-patchgen"
+  printf -v remote_command 'test -f %q && cat %q' \
+    "/workspace/gemini-pda/jobs/${job_key}.json" \
+    "/workspace/gemini-pda/jobs/${job_key}.json"
+  job_info="$(ssh_buildbox "${remote_command}")" || \
+    die "no completed parallel-load patch generation for ${sha}"
+  printf '%s' "${job_info}" | jq -e --arg commit "${sha}" '
+    .status == "validated" and .repository_commit == $commit and
+    .purpose == "gemian-a72-cpu9-parallel-disjoint-load-patch-generation" and
+    (.package_name | test("^[A-Za-z0-9_.+-]+$"))
+  ' >/dev/null || die 'parallel-load patch-generation record is invalid'
+  package_name="$(printf '%s' "${job_info}" | jq -er '.package_name')"
+  destination="${REPO_DIR}/artifacts/buildbox/${sha}/${package_name}"
+  [[ ! -e "${destination}" ]] || die "refusing to overwrite ${destination}"
+  mkdir -p "$(dirname "${destination}")"
+  temporary="$(mktemp -d "$(dirname "${destination}")/.fetch.XXXXXX")"
+  trap 'test -n "${temporary:-}" && test -d "${temporary}" && rm -rf -- "${temporary}"' EXIT
+  printf -v remote_command 'bash -s -- %q %q' "${job_key}" "${sha}"
+  ssh_buildbox "${remote_command}" <<'REMOTE' | tar -C "${temporary}" -xf -
+set -euo pipefail
+readonly job_key="$1"
+readonly commit="$2"
+readonly artifact_root=/workspace/gemini-pda/gemian-cpu9-parallel-artifacts
+readonly record="/workspace/gemini-pda/jobs/${job_key}.json"
+package="$(jq -er --arg commit "${commit}" '
+  select(.status == "validated" and .repository_commit == $commit and
+    .purpose == "gemian-a72-cpu9-parallel-disjoint-load-patch-generation") | .package
+' "${record}")"
+case "${package}" in "${artifact_root}"/*) ;; *) exit 1 ;; esac
+[[ -d "${package}" && ! -L "${package}" ]]
+tar -C "$(dirname "${package}")" -cf - -- "$(basename "${package}")"
+REMOTE
+  [[ -d "${temporary}/${package_name}" ]]
+  (cd "${temporary}/${package_name}" && sha256sum --check --strict SHA256SUMS >/dev/null)
+  mv "${temporary}/${package_name}" "${destination}"
+  rmdir "${temporary}"
+  trap - EXIT
+  printf 'Artifact fetched to %s\n' "${destination}"
+}
+
 readonly COMMAND="${1:-}"
 [[ -n "${COMMAND}" ]] || {
   usage
@@ -2565,6 +2699,8 @@ case "${COMMAND}" in
   fetch-gemian-cpu9-coherency-patches) fetch_gemian_cpu9_coherency_patches ;;
   generate-gemian-cpu9-multiline-patches) generate_gemian_cpu9_multiline_patches ;;
   fetch-gemian-cpu9-multiline-patches) fetch_gemian_cpu9_multiline_patches ;;
+  generate-gemian-cpu9-parallel-patches) generate_gemian_cpu9_parallel_patches ;;
+  fetch-gemian-cpu9-parallel-patches) fetch_gemian_cpu9_parallel_patches ;;
   build-gemian-recovery-compile) build_gemian_observer recovery ;;
   fetch-gemian-recovery-compile) fetch_gemian_observer recovery ;;
   build-gemian-one-way-compile) build_gemian_observer one-way ;;

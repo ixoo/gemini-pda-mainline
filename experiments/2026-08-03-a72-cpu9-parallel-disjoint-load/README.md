@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu9-parallel-disjoint-load` |
-| Status | `design-review-pending` |
+| Status | `source-generation-ready` |
 | Subsystem | MT6797 retained Cortex-A72 pair and cache coherency |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -35,8 +35,9 @@ watchdog recovery, or changed power boundary?
   mismatches, complete HPS/scalar attribution, watchdog-class recovery, offline
   recovery CPUs 8/9, and unchanged boot2.
 - Build backend: Buildbox only; no native VM kernel build.
-- No source patch, compile, container, deployment, or runtime claim exists at
-  this design stage.
+- The deterministic transformer, static contract validator, and Buildbox-only
+  patch generator are implemented locally. No generated source patch, compile,
+  container, deployment, or runtime claim exists yet.
 
 ## Safety assessment
 
@@ -51,17 +52,25 @@ static BSS and no payload is placed on the callback stack.
 
 - [`DESIGN.md`](DESIGN.md): exact working set, concurrency oracle, barriers,
   bounds, terminal, result classes, and safety boundary.
+- [`scripts/source_edits.py`](scripts/source_edits.py): exact-parent source
+  transformation.
+- [`scripts/test_static.py`](scripts/test_static.py): positive source contract,
+  independent payload vectors, safety inventory, and negative mutations.
+- [`scripts/generate-on-buildbox`](scripts/generate-on-buildbox): clean-pushed-
+  commit Buildbox patch generation with exact parent provenance.
 
 ## Conclusion
 
-`design-review-pending`: pair-v5 proves repeatable alternating data integrity,
-but not concurrent writers. This child isolates parallel disjoint ownership as
-the next decision-changing observation. It must pass source generation,
-mutation, Buildbox compile/binary/stack, container, deployment, and runtime-map
-gates before device access.
+`source-generation-ready`: pair-v5 proves repeatable alternating data
+integrity, but not concurrent writers. This child isolates parallel disjoint
+ownership as the next decision-changing observation. Its local tooling passes
+Python syntax, shell syntax, independently recomputed payload vectors, and
+whitespace checks. Exact source generation, positive validation, and mutation
+rejection must run on Buildbox before any compile, container, deployment, or
+device access.
 
 ## Follow-up
 
-Review the design against the exact pair-v5 source, then implement a
-deterministic exact-parent transformer and mutation harness. Only a clean,
-pushed source review may be submitted to Buildbox.
+Commit and push this source review, then generate the exact child patch on
+Buildbox. Fetch and inspect only the validated review package before adding a
+compile workflow.
