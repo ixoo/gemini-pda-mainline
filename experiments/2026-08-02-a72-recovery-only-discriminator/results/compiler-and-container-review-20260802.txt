@@ -1,0 +1,65 @@
+A72 recovery-only compiler and container review
+Recorded: 2026-08-02 America/New_York
+
+Compile provenance
+------------------
+repository_commit=5b83959f9a20b8fd5224b6c0b0e4a473da5ad550
+source_commit=59e00a9144d782e148332009a835b99c43382467
+recovery_patchset_sha256=e065f90ce681730ea9da53045af136ee1236438a1e2d8cc7a807254dbbfe94a2
+kernel_field_sha256=c03e144f4a989101930b2542d8ad69aeddb1b8193e0acdde657df4b306aa9560
+build_backend=buildbox
+native_vm_kernel_build=no
+changed_and_unpatched_full_builds=passed
+resolved_config_delta=CONFIG_ANBOX:missing-to-n,CONFIG_MTK_A72_RECOVERY_DISCRIMINATOR:missing-to-y
+compiler_diagnostics=identical
+shared_vendor_diagnostic=69-section-mismatches
+changed_stack_usage_files=2483
+baseline_stack_usage_files=2483
+cpu_psci_cpu_boot_stack_bytes=96
+recovery_discriminator_callback_stack_bytes=64
+mtk_wdt_recovery_arm_stack_bytes=48
+
+Binary review
+-------------
+cpu8_cpu9_guard=first-semantic-branch
+cpu8_cpu9_return=-EPERM
+a72_platform_or_psci_path_reachable_for_cpu8_cpu9=no
+hotplug_exclusion_before_kicker_lock=yes
+kicker_disable_before_recovery_arm=yes
+preowner_hotplug_restore=yes
+postowner_hotplug_restore=no
+fixed_timeout_argument=12
+toprgu_write_order=length,mode,restart
+toprgu_readback=length,mode
+terminal_console_flush=yes
+recovery_symbols_in_unpatched_baseline=absent
+
+Container
+---------
+active_boot_sha256=1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513
+active_ramdisk_sha256=a1ee05445e9a2bd8fbc1f75d7cda326b9ca7a6d3b644cbb1d5fc0ac167835be4
+kernel_field_size=8431077
+decompressed_image_size=20078784
+appended_dtb_size=130745
+raw_sha256=5be00719c5cc44cb9a6efc06f498f848e2e0221c3d362e66b98bf5fde2a00b60
+raw_size=14788608
+padded_sha256=a7eec22777cda053a88826760fb9a01dbd84aa1cf2fe491215047cf8c99ed4e5
+padded_size=16777216
+candidate_manifest_sha256=e96c7a655dd11d7bb6f2262f64c26e6e5395af0e90ab2e3feb3987da6ed6df3c
+raw_assemblies_identical=yes
+padded_constructions_identical=yes
+zero_tail_verified=yes
+android_v0_layout=complete
+payload_delta=kernel-field-only
+
+Decision
+--------
+compile_gate=passed
+offline_container_gate=passed
+deployment_gate=pending-installer-and-cycle-collector-validation
+device_action=none
+
+The package is a reproducible candidate input, not hardware evidence. The next
+action is offline validation of the exact guarded boot2 installer and the
+changed-boot-ID pstore cycle collector. Only after those pass may the candidate
+be installed to live-GPT-resolved inactive boot2.

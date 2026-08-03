@@ -841,9 +841,11 @@ That prerequisite now has a source-drift-checked three-patch generator: it
 rejects CPU8/9 before platform action, transfers recovery ownership under the
 normal kicker lock, arms a fixed reset-only TOPRGU deadline, and emits one exact
 console-ramoops marker. Buildbox patch generation, mutation testing, and review
-now pass after closing the CPU-hotplug no-lock reload race. The immediate next
-action is the changed-versus-unpatched full Buildbox compile; candidate and
-device gates remain closed until that comparison passes.
+now pass after closing the CPU-hotplug no-lock reload race. The
+changed-versus-unpatched full Buildbox compile, binary ordering review, and
+kernel-only Android-v0 container reconstruction also pass. The immediate next
+action is one guarded inactive-`boot2` deployment followed by manual selection,
+bounded watchdog reset, and exact changed-boot-ID Gemian pstore recovery.
 
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback

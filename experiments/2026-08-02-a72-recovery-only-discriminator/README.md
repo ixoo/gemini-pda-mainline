@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-02-a72-recovery-only-discriminator` |
-| Status | `patch-review-passed` |
+| Status | `deployment-ready` |
 | Subsystem | Gemian watchdog kicker, MT6797 TOPRGU, console-ramoops |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-02 |
@@ -62,10 +62,24 @@ and CPU9 offline, and unchanged `boot2`. A visual reboot alone is inconclusive.
   ownership design and accepted race-closed generation.
 - `scripts/build-on-buildbox` performs the separate changed-versus-unpatched
   full compile, configuration, diagnostics, symbols, and stack review.
+- `scripts/assemble.py` and `scripts/build-candidate.sh` construct the exact
+  kernel-only Android-v0 payload replacement twice and independently pad it to
+  the 16 MiB `boot2` size.
+- `scripts/install-boot2.sh` source-pins the established live-GPT-resolving,
+  predecessor-checking, full-readback, cleanup, and shutdown workflow.
+- `results/compiler-and-container-review-20260802.txt` records the accepted
+  compile, disassembly, stack, and offline container identities.
+- `results/deployment-readiness-20260802.txt` pins the candidate, predecessor,
+  guarded installer, cycle collector, timing expectations, and result map.
 
 ## Current decision
 
-`patch-generation-accepted-compile-pending`: the exact generated patches and
-ten mutation tripwires pass. Full changed-versus-unpatched compilation is now
-authorized on Buildbox. This record still does not authorize candidate
-construction or device action.
+`offline-gates-passed-deployment-ready`: patch generation, ten mutation
+tripwires, changed-versus-unpatched full compilation, binary ordering review,
+two container assemblies, two padding methods, and the source-pinned guarded
+installer pass. One exact deployment to live-GPT-resolved inactive `boot2` is
+now authorized under the standing project policy. The installer must shut the
+device down; the owner then manually selects `boot2`. Expect roughly 15 seconds
+before watchdog takeover and a reset about 12 seconds later. The expected
+screen and console state are deliberately unspecified; only changed-boot-ID
+Gemian recovery plus the exact pstore marker can pass the gate.

@@ -1,0 +1,59 @@
+A72 recovery-only deployment readiness
+Recorded: 2026-08-02 America/New_York
+
+Candidate
+---------
+artifact=artifacts/boot-candidates/gemian-a72-recovery-only-5be00719c5cc
+artifact_manifest_sha256=e96c7a655dd11d7bb6f2262f64c26e6e5395af0e90ab2e3feb3987da6ed6df3c
+raw_sha256=5be00719c5cc44cb9a6efc06f498f848e2e0221c3d362e66b98bf5fde2a00b60
+padded_sha256=a7eec22777cda053a88826760fb9a01dbd84aa1cf2fe491215047cf8c99ed4e5
+expected_predecessor_sha256=4830a0d0e1a3cb82a13e7c34248fb95f736d9ba3c71ba8ecb82ab210389bde6d
+
+Installer
+---------
+installer_sha256=d930aa71f2abb971a931fcd1933a58346663ca23ca921e0f8994a35d5b0dc883
+source_installer_sha256=0c669ab85063015fa83b7e28a506e1bcf8cdafc4994726009becf92151fda7e7
+target=gemini@192.168.1.50
+logical_target=boot2
+live_gpt_resolution=required
+inactive_unmounted_writable_exact_size=required
+predecessor_exact=required
+candidate_manifest_exact=required
+full_partition_readback=required
+remote_cleanup=required
+clean_shutdown_after_success=required
+fresh_partition_backup=not-required-by-policy
+bash_syntax=passed
+shellcheck_managed_vm=passed
+derived_help_and_identity_assertions=passed
+
+Recovery collector
+------------------
+collector=scripts/collect-device-pstore
+collector_sha256=9047084f3012aff47e23e56498d4bc0ae6f8fb7e4f15caec10abb6c15e9a9b3b
+mode=wait-for-cycle
+initial_reachability=required
+stable_disconnect=two-probes
+changed_boot_id=required
+known_good_kernel=3.18.41+
+root_pstore_capture=required
+remote_pstore_deletion=forbidden
+
+Pre-boot decision map
+---------------------
+hypothesis=exclusive watchdog ownership persists the exact console marker and resets to known-good Gemian without A72 action
+unique_evidence=exact marker plus changed boot ID, watchdog-class reset, CPU8/9 absent, unchanged boot2 checksum
+armed_marker=gemini-a72-recovery-v1 stage=armed timeout=12s a72=forbidden
+preowner_reject=no-reset-and-normal-kicker-restored
+owned_readback_fault=terminal-reset-and-failure-marker
+missing_marker_or_cycle=inconclusive-stop
+expected_takeover_delay_seconds=15
+expected_reset_delay_after_takeover_seconds=12
+screen_expectation=unspecified
+console_expectation=unspecified
+
+Decision
+--------
+deployment_ready=yes
+device_write_authorized=standing-boot2-policy
+device_action_performed=no
