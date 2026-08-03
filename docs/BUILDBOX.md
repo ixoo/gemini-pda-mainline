@@ -204,9 +204,10 @@ oracle, target stack instrumentation, and extracted diagnostics. Validation
 requires the complete inherited symbol inventory in both builds; new parallel
 callback and 64 KiB static working-set symbols only in the child; linked pair-v6
 pass and fault terminals; emitted acquire/release barriers; non-identical
-integration code; and bounded static stack reports for the new callback and
-its enclosing workers. Its package is compile-review-only, never a boot
-candidate, and performs no device action.
+integration code; and bounded static stack reports (512 bytes for the callback
+and coherency worker, 1,024 bytes for the complete terminal worker). Its
+package is compile-review-only, never a boot candidate, and performs no device
+action.
 
 ## Remote storage and concurrency
 

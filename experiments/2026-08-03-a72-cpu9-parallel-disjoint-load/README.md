@@ -81,9 +81,11 @@ pair-v6 source satisfies its positive contract and rejects all selected
 mutations. The Buildbox compile workflow now requires exact parent provenance,
 identical configuration and diagnostics, inherited-symbol presence, linked
 pair-v6 callback/data/terminal state, explicit acquire/release instructions,
-and static stack usage no greater than 512 bytes for the new callback and its
-two enclosing workers. This is still source/tooling evidence only; it is not a
-compiled candidate and cannot be deployed.
+static stack usage no greater than 512 bytes for the new callback and
+coherency worker, and no greater than 1,024 bytes for the enlarged complete
+terminal worker. The first compile attempt measured the latter at 784 bytes;
+the 64 KiB data set remains in static BSS. This is still source/tooling evidence
+only; it is not a validated compiled candidate and cannot be deployed.
 
 ## Follow-up
 

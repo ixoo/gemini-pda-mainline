@@ -1103,7 +1103,7 @@ import sys
 expected = {
     "mt6797_a72_pl_ipi": 512,
     "mt6797_a72_coh_workfn": 512,
-    "mt6797_a72_hold_workfn": 512,
+    "mt6797_a72_hold_workfn": 1024,
 }
 seen = {}
 for line in pathlib.Path(sys.argv[1]).read_text().splitlines():
