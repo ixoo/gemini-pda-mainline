@@ -23,6 +23,24 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-03 A72 CPU8/CPU9 scheduler-context execution](2026-08-03-a72-scheduler-context/README.md)
+  — freezes the next Gate 8 question after the repeatable pair-v6 parent: two
+  normal-priority kernel threads are created and CPU-bound before first wake,
+  must rendezvous in task context on CPUs 8/9, complete exact finite workloads,
+  and exit through the standard kthread lifecycle. Design review is in progress;
+  no source, compile, deployment, or runtime claim exists.
+- [2026-08-03 A72 CPU8/CPU9 parallel disjoint load](2026-08-03-a72-cpu9-parallel-disjoint-load/README.md)
+  — passed twice after one observation-loss cycle. In each accepted run CPUs 8
+  and 9 concurrently wrote disjoint halves of a 64 KiB set for 128 rounds and
+  completed 1,048,576 exact peer checks with identical deterministic hashes,
+  zero errors/mismatches, watchdog recovery, offline recovery CPUs 8/9, and
+  unchanged boot2. The bounded IPI-context gate is repeatable; no third
+  unchanged run is permitted.
+- [2026-08-03 A72 CPU8/CPU9 multi-cacheline integrity](2026-08-03-a72-cpu9-multiline-integrity/README.md)
+  — passed twice with exact 64-round alternating exchange over 256 aligned
+  cachelines, 262,144 peer checks per cycle, identical cross-matching hashes,
+  watchdog recovery, offline recovery CPUs 8/9, and unchanged boot2. The
+  pair-v5 gate is closed and must not run unchanged again.
 - [2026-08-03 A72 CPU8/CPU9 bounded coherency](2026-08-03-a72-cpu9-bounded-coherency/README.md)
   — predeclares a CPU0-pinned, 1,024-round concurrent CPU8↔CPU9 shared-memory
   handshake with finite spin budgets and a durable pair-v4 terminal. Startup,
