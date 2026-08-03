@@ -38,7 +38,6 @@ def validate(psci: str, cpu: str, hps: str) -> None:
         "#define MT6797_A72_PL_LINES 1024",
         "pl_result8.write_hash == pl_result9.read_hash",
         "pl_result9.write_hash == pl_result8.read_hash",
-        "if (mt6797_a72_pl_passed())",
         "hps_reported == 1 && hps_cpu == 9 && hps_error == -EPERM",
     ):
         require(token in psci, f"pair-v6 parent contract missing: {token}")
@@ -101,6 +100,8 @@ def validate(psci: str, cpu: str, hps: str) -> None:
         "kthread_stop(mt6797_a72_sc_task9);\n\t\tmt6797_a72_sc_task9 = NULL;",
         "mt6797_a72_sc_task8 = NULL;",
         "mt6797_a72_sc_task9 = NULL;",
+        "mt6797_a72_sc_reset();",
+        "mt6797_a72_sc_run();",
         "static noinline void mt6797_a72_sc_terminal(bool parent_pass)",
         "const struct mt6797_a72_sc_result *result8;",
         "const struct mt6797_a72_sc_result *result9;",
@@ -125,6 +126,12 @@ def validate(psci: str, cpu: str, hps: str) -> None:
     terminal = psci.split(
         "static noinline void mt6797_a72_sc_terminal(bool parent_pass)", 1
     )[1].split("#endif", 1)[0]
+    coherency_worker = psci.split(
+        "static void mt6797_a72_coh_workfn(struct work_struct *work)", 1
+    )[1].split("static DECLARE_WORK(mt6797_a72_coh_work", 1)[0]
+    hold_worker = psci.split(
+        "static void mt6797_a72_hold_workfn(struct work_struct *work)", 1
+    )[1]
     require(scheduler.count("kthread_create_on_cpu(") == 2, "create count changed")
     require(scheduler.count("wake_up_process(") == 2, "wake count changed")
     require(
@@ -141,6 +148,35 @@ def validate(psci: str, cpu: str, hps: str) -> None:
     require(psci.count("sc_hash9=%016llx") == 1, "terminal inventory changed")
     require(psci.count("mt6797_a72_sc_task8 = NULL;") == 3, "CPU8 clear count changed")
     require(psci.count("mt6797_a72_sc_task9 = NULL;") == 3, "CPU9 clear count changed")
+    require(
+        "mt6797_a72_sc_" not in coherency_worker,
+        "scheduler child changed inherited coherency publication",
+    )
+    require(psci.count("mt6797_a72_sc_reset();") == 1, "reset call count changed")
+    require(psci.count("mt6797_a72_sc_run();") == 1, "run call count changed")
+    reset_at = hold_worker.index("mt6797_a72_sc_reset();")
+    gate_at = hold_worker.index(
+        "if (hps_reported == 1 && hps_cpu == 9 && hps_error == -EPERM"
+    )
+    run_at = hold_worker.index("mt6797_a72_sc_run();")
+    pair6_pass_at = hold_worker.index("gemini-a72-pair-v6 result=pass")
+    pair7_pass_at = hold_worker.index("mt6797_a72_sc_terminal(true);")
+    require(
+        reset_at < gate_at < run_at < pair6_pass_at < pair7_pass_at,
+        "parent-gate scheduler ordering changed",
+    )
+    require(
+        "!pl_result8.bad_round && !pl_result9.bad_round) {\n"
+        "\t\tmt6797_a72_sc_run();\n"
+        "\t\tpr_emerg(\"gemini-a72-pair-v6 result=pass" in hold_worker,
+        "scheduler run escaped the complete pair-v6 pass branch",
+    )
+    require(
+        "&pl_result8 : &pl_result9;\n\n"
+        "\t\tatomic_set(&mt6797_a72_sc_reported, 2);\n"
+        "\t\tpr_emerg(\"gemini-a72-pair-v6 result=fault" in hold_worker,
+        "parent-fault scheduler ineligibility publication changed",
+    )
     require(
         "struct mt6797_a72_sc_result result8;" not in psci and
         "struct mt6797_a72_sc_result result9;" not in psci,
@@ -238,8 +274,8 @@ def main() -> int:
         "missing-finished": ("\tatomic_inc(&mt6797_a72_sc_finished);\n", ""),
         "missing-complete": ("\tcomplete(done);\n", ""),
         "missing-parent-gate": (
-            "\t\t\tif (mt6797_a72_pl_passed())\n",
-            "\t\t\tif (true)\n",
+            "\tif (hps_reported == 1 && hps_cpu == 9 && hps_error == -EPERM &&\n",
+            "\tif (true &&\n",
         ),
         "async-wake-omitted": (
             "\tmt6797_a72_sc_result9.wake_result =\n"
@@ -292,6 +328,17 @@ def main() -> int:
             "\t\t result9->hash != 0;\n",
         ),
         "incomplete-terminal": (" sc_hash8=%016llx sc_hash9=%016llx", ""),
+        "scheduler-before-parent-publication": (
+            "\t\t\tatomic_set(&mt6797_a72_pl_reported, 1);\n",
+            "\t\t\tatomic_set(&mt6797_a72_pl_reported, 1);\n"
+            "\t\t\tmt6797_a72_sc_run();\n",
+        ),
+        "missing-pre-gate-reset": ("\tmt6797_a72_sc_reset();\n", ""),
+        "run-after-parent-terminal": (
+            "\t\tmt6797_a72_sc_run();\n"
+            "\t\tpr_emerg(\"gemini-a72-pair-v6 result=pass",
+            "\t\tpr_emerg(\"gemini-a72-pair-v6 result=pass",
+        ),
     }
     for name, (old, new) in mutations.items():
         require(psci.count(old) >= 1, f"mutation anchor absent: {name}")

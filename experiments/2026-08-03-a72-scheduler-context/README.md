@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-scheduler-context` |
-| Status | `runtime-rejected-parent-publication-order` |
+| Status | `ordering-fix-designed` |
 | Subsystem | MT6797 retained Cortex-A72 pair and scheduler |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -211,6 +211,13 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   CPUs 8/9 were offline, and boot2 remained exact. Do not repeat this image.
   See
   [`results/runtime-attempt-1-parent-publication-race-20260803.txt`](results/runtime-attempt-1-parent-publication-race-20260803.txt).
+- The corrective source design removes every scheduler reference from the
+  inherited coherency worker. Sample 3 now resets child state after all parent
+  snapshots and runs the scheduler only inside the complete pair-v6 pass
+  branch. Three new negative mutations cover child execution before parent
+  publication, missing post-snapshot reset, and missing pre-terminal execution.
+  This revision is design/source-tooling only until Buildbox regenerates and
+  validates a new patch.
 
 ## Analysis
 
@@ -221,11 +228,11 @@ context while preserving the established power and recovery boundary.
 
 ## Conclusion
 
-`runtime-rejected-parent-publication-order`: attempt 1 did not evaluate the
-scheduler oracle. It exposed a child-induced ordering race in which scheduler
-execution can withhold the inherited coherency publication from the terminal
-snapshot. The next source revision must decide the complete parent predicate
-before starting the child and must not repeat this image.
+`ordering-fix-designed`: attempt 1 did not evaluate the scheduler oracle. The
+corrective generator and validator now require an unchanged inherited
+publication path and scheduler execution only after the complete parent
+predicate is snapshotted and passes. No regenerated source, compile, container,
+deployment, or corrected runtime claim exists yet.
 
 ## Follow-up
 

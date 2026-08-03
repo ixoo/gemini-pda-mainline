@@ -251,61 +251,6 @@ static void mt6797_a72_coh_workfn(struct work_struct *work)
 """
     replace_exact(path, anchor, scheduler)
 
-    replace_exact(
-        path,
-        "\tmt6797_a72_pl_reset();\n\tsmp_wmb();\n",
-        "\tmt6797_a72_pl_reset();\n\tmt6797_a72_sc_reset();\n\tsmp_wmb();\n",
-    )
-    replace_exact(
-        path,
-        "\t\tatomic_set(&mt6797_a72_pl_reported, 2);\n\t\tgoto publish;\n",
-        "\t\tatomic_set(&mt6797_a72_pl_reported, 2);\n"
-        "\t\tatomic_set(&mt6797_a72_sc_reported, 2);\n\t\tgoto publish;\n",
-    )
-    old_phase = """\t\tif (mt6797_a72_ml_passed()) {
-\t\t\tsmp_call_function_many(&targets, mt6797_a72_pl_ipi,
-\t\t\t\t\t       NULL, true);
-\t\t\tsmp_wmb();
-\t\t\tatomic_set(&mt6797_a72_pl_reported, 1);
-\t\t} else {
-\t\t\tatomic_set(&mt6797_a72_pl_reported, 2);
-\t\t}
-\t} else {
-\t\tatomic_set(&mt6797_a72_ml_reported, 2);
-\t\tatomic_set(&mt6797_a72_pl_reported, 2);
-\t}
-publish:
-"""
-    new_phase = """\t\tif (mt6797_a72_ml_passed()) {
-\t\t\tsmp_call_function_many(&targets, mt6797_a72_pl_ipi,
-\t\t\t\t\t       NULL, true);
-\t\t\tsmp_wmb();
-\t\t\tatomic_set(&mt6797_a72_pl_reported, 1);
-\t\t\tif (mt6797_a72_pl_passed())
-\t\t\t\tmt6797_a72_sc_run();
-\t\t\telse
-\t\t\t\tatomic_set(&mt6797_a72_sc_reported, 2);
-\t\t} else {
-\t\t\tatomic_set(&mt6797_a72_pl_reported, 2);
-\t\t\tatomic_set(&mt6797_a72_sc_reported, 2);
-\t\t}
-\t} else {
-\t\tatomic_set(&mt6797_a72_ml_reported, 2);
-\t\tatomic_set(&mt6797_a72_pl_reported, 2);
-\t\tatomic_set(&mt6797_a72_sc_reported, 2);
-\t}
-publish:
-"""
-    replace_exact(path, old_phase, new_phase)
-    replace_exact(
-        path,
-        "\t\tatomic_set(&mt6797_a72_pl_reported, 2);\n"
-        "\t\tsmp_wmb();\n\t\tatomic_set(&mt6797_a72_coh_reported, 2);\n",
-        "\t\tatomic_set(&mt6797_a72_pl_reported, 2);\n"
-        "\t\tatomic_set(&mt6797_a72_sc_reported, 2);\n"
-        "\t\tsmp_wmb();\n\t\tatomic_set(&mt6797_a72_coh_reported, 2);\n",
-    )
-
     snapshot_anchor = """}
 #endif
 
@@ -375,11 +320,23 @@ static void mt6797_a72_hold_workfn(struct work_struct *work)
 """
     replace_exact(path, snapshot_anchor, snapshot)
 
+    parent_snapshot = """\tmt6797_a72_pl_snapshot(&pl_reported, &pl_result8, &pl_result9,
+\t\t\t\t &pl_ready, &pl_written, &pl_verified);
+\tif (hps_reported == 1 && hps_cpu == 9 && hps_error == -EPERM &&
+"""
+    parent_snapshot_new = """\tmt6797_a72_pl_snapshot(&pl_reported, &pl_result8, &pl_result9,
+\t\t\t\t &pl_ready, &pl_written, &pl_verified);
+\tmt6797_a72_sc_reset();
+\tif (hps_reported == 1 && hps_cpu == 9 && hps_error == -EPERM &&
+"""
+    replace_exact(path, parent_snapshot, parent_snapshot_new)
+
     pass_tail = "\t    !pl_result8.bad_round && !pl_result9.bad_round)\n"
     replace_exact(
         path,
         pass_tail,
-        "\t    !pl_result8.bad_round && !pl_result9.bad_round) {\n",
+        "\t    !pl_result8.bad_round && !pl_result9.bad_round) {\n"
+        "\t\tmt6797_a72_sc_run();\n",
     )
 
     pass_args = """\t\t\t 0, 0, 0, 0ULL, 0ULL);
@@ -390,6 +347,17 @@ static void mt6797_a72_hold_workfn(struct work_struct *work)
 \t} else {
 """
     replace_exact(path, pass_args, pass_args_new)
+
+    fault_declarations = """\t\tstruct mt6797_a72_pl_result *pl_bad = pl_result8.error ?
+\t\t\t&pl_result8 : &pl_result9;
+
+\t\tpr_emerg("gemini-a72-pair-v6 result=fault"""
+    fault_declarations_new = """\t\tstruct mt6797_a72_pl_result *pl_bad = pl_result8.error ?
+\t\t\t&pl_result8 : &pl_result9;
+
+\t\tatomic_set(&mt6797_a72_sc_reported, 2);
+\t\tpr_emerg("gemini-a72-pair-v6 result=fault"""
+    replace_exact(path, fault_declarations, fault_declarations_new)
 
     fault_args = """\t\t\t (unsigned long long)pl_bad->expected,
 \t\t\t (unsigned long long)pl_bad->actual);

@@ -29,10 +29,13 @@ scheduler qualification.
 
 1. Keep CPU startup, pair sampling, HPS veto, scalar, multiline, parallel-load,
    sample timing, watchdog, power, and recovery sources identical.
-2. The existing CPU0-pinned worker completes every pair-v6 phase first.
-3. Only if the exact pair-v6 positive predicate passes, create the two scheduler
-   tasks once. No task exists before the parent gate.
-4. CPU0 remains the sole creator, waker, waiter, stopper, and publisher.
+2. The existing CPU0-pinned coherency worker completes and publishes every
+   pair-v6 phase without calling, resetting, or waiting for scheduler code.
+3. Sample 3 snapshots and decides the complete pair-v6 terminal predicate.
+   Only inside that predicate's pass branch, create the two scheduler tasks
+   once. No task exists and no child reset occurs in the inherited worker.
+4. The sample-3 CPU0 worker remains the sole scheduler-state resetter, creator,
+   waker, waiter, stopper, and publisher.
 
 ### Thread creation and affinity
 
@@ -103,13 +106,21 @@ either workload starts. It does not claim simultaneous instruction issue.
 
 ## Publication and terminal
 
-The CPU0 worker resets scheduler-context state, completes pair-v6, runs the task
-lifecycle, executes a write barrier, and publishes completion. Sample 3 first
-emits the byte-identical pair-v6 parent terminal. It then calls a `noinline`
-scheduler reporter with only the parent pass/fault boolean. That reporter takes
-one coherent snapshot after an acquire barrier and exposes immutable pointers
-to the static result records after both tasks have stopped. It must not copy
-either result payload onto the parent terminal worker's stack.
+The inherited CPU0 coherency worker completes and publishes pair-v6 without any
+scheduler-context call or state access. Sample 3 takes the complete inherited
+snapshots, resets scheduler state, and evaluates the byte-identical pair-v6
+predicate. Its pass branch runs the bounded task lifecycle before emitting the
+byte-identical pair-v6 terminal; its fault branch marks scheduler execution
+ineligible without creating a task. Each branch then calls a `noinline`
+scheduler reporter with only the already-decided parent pass/fault boolean.
+That reporter takes one coherent snapshot after an acquire barrier and exposes
+immutable pointers to the static result records after both tasks have stopped.
+It must not copy either result payload onto the parent terminal worker's stack.
+
+This ordering is an explicit invariant: the child may delay terminal text only
+after the complete parent result has already been published and snapshotted. It
+must never delay `coh_reported`, multiline, or parallel publication, and it must
+not execute from the inherited coherency worker.
 
 The exact result is a two-line composite: the unchanged complete pair-v6 parent
 terminal followed immediately by one pair-v7 scheduler terminal. Pair-v7 adds:
@@ -180,6 +191,11 @@ Before container construction, exact parent-versus-child review must prove:
 - only `arch/arm64/kernel/psci.c` changes;
 - all startup, HPS, CPU_OFF, watchdog, power, regulator, clock, reset, SPM,
   SRAM-LDO, MMIO, and inherited test sources are identical;
+- the inherited coherency worker contains no scheduler-context reset, run,
+  wait, result, or publication reference;
+- scheduler reset follows all inherited snapshots, scheduler execution occurs
+  only inside the exact complete pair-v6 pass branch, and pair-v6/pair-v7
+  terminals follow scheduler cleanup;
 - exactly two `kthread_create_on_cpu()` calls target CPUs 8 and 9;
 - both binds occur by construction before exactly one wake per task;
 - SCHED_NORMAL is inherited and no scheduler policy, priority, nice, cpuset, or
