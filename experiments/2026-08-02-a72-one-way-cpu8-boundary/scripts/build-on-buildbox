@@ -31,7 +31,7 @@ readonly build_mode="${7:-one-way}"
 [[ "${jobs}" =~ ^[1-9][0-9]*$ ]] || die "invalid job count"
 [[ "${build_mode}" == one-way || "${build_mode}" == held || \
    "${build_mode}" == late || "${build_mode}" == cpu9 || \
-   "${build_mode}" == window ]] || \
+   "${build_mode}" == window || "${build_mode}" == terminal ]] || \
   die "invalid compile-review mode"
 for root in "${source_root}" "${build_root}" "${artifact_root}" "${toolchain_root}"; do
   [[ "${root}" == /workspace/gemini-pda/* && "${root}" != /workspace/gemini-pda ]] || \
@@ -56,6 +56,8 @@ cpu9_experiment_dir="${repository_dir}/experiments/2026-08-03-a72-cpu9-cluster-r
 readonly cpu9_experiment_dir
 window_experiment_dir="${repository_dir}/experiments/2026-08-03-a72-cpu9-retention-window"
 readonly window_experiment_dir
+terminal_experiment_dir="${repository_dir}/experiments/2026-08-03-a72-cpu9-terminal-attribution"
+readonly terminal_experiment_dir
 [[ "$(git -C "${repository_dir}" rev-parse HEAD)" == "${project_commit}" ]] || \
   die "project checkout does not match requested commit"
 [[ -z "$(git -C "${repository_dir}" status --porcelain)" ]] || \
@@ -73,6 +75,7 @@ readonly held_patch_series="${held_experiment_dir}/patches/series"
 readonly late_patch_series="${late_experiment_dir}/patches/series"
 readonly cpu9_patch_series="${cpu9_experiment_dir}/patches/series"
 readonly window_patch_series="${window_experiment_dir}/patches/series"
+readonly terminal_patch_series="${terminal_experiment_dir}/patches/series"
 manifest_sha="$(sha256sum "${manifest}" | awk '{print $1}')"
 readonly manifest_sha
 parent_patchset_sha="$(cd "${observer_experiment_dir}/patches" && while IFS= read -r patch; do sha256sum "${patch}"; done < series | sha256sum | awk '{print $1}')"
@@ -109,6 +112,18 @@ window_patchset_sha="$({
   done < series
 } | sha256sum | awk '{print $1}')"
 readonly window_patchset_sha
+terminal_patchset_sha=not-selected
+if [[ "${build_mode}" == terminal ]]; then
+  [[ -f "${terminal_patch_series}" ]] || \
+    die "terminal-attribution patch series is absent"
+  terminal_patchset_sha="$({
+    cd "${terminal_experiment_dir}/patches"
+    while IFS= read -r patch; do
+      sha256sum "${patch}" | awk '{print $1}'
+    done < series
+  } | sha256sum | awk '{print $1}')"
+fi
+readonly terminal_patchset_sha
 [[ "$(sha256sum "${baseline_config}" | awk '{print $1}')" == "${CONFIG_SHA256}" ]] || \
   die "active Gemian configuration hash mismatch"
 
@@ -252,6 +267,7 @@ prepare_variant() {
   local include_late="$6"
   local include_cpu9="$7"
   local include_window="$8"
+  local include_terminal="$9"
   local patch
   local partial
   local state_identity
@@ -343,6 +359,16 @@ prepare_variant() {
         "${window_experiment_dir}/patches/${patch}"
     done < "${window_patch_series}"
   fi
+  if [[ "${include_terminal}" == 1 ]]; then
+    while IFS= read -r patch; do
+      [[ "${patch}" =~ ^[A-Za-z0-9_.+-]+\.patch$ ]] || \
+        die "unsafe terminal-attribution patch name"
+      git -C "${partial}" apply --check \
+        "${terminal_experiment_dir}/patches/${patch}"
+      git -C "${partial}" apply \
+        "${terminal_experiment_dir}/patches/${patch}"
+    done < "${terminal_patch_series}"
+  fi
   git -C "${partial}" diff --check
   current_diff_sha="$(git -C "${partial}" diff --binary | sha256sum | awk '{print $1}')"
   printf '%s %s %s\n' "${SOURCE_COMMIT}" "${expected_identity}" \
@@ -355,13 +381,53 @@ prepare_variant() {
 prepare_toolchain
 readonly source_mirror="${source_root}/gemian-linux-kernel-3.18.git"
 prepare_mirror
-if [[ "${build_mode}" == window ]]; then
+if [[ "${build_mode}" == terminal ]]; then
+  readonly prepared_source="${source_root}/gemian-terminal/${parent_patchset_sha:0:16}-${accepted_rollback_patchset_sha:0:16}-${one_way_patchset_sha:0:16}-${held_patchset_sha:0:16}-${late_patchset_sha:0:16}-${cpu9_patchset_sha:0:16}-${window_patchset_sha:0:16}-${terminal_patchset_sha:0:16}"
+  readonly baseline_source="${source_root}/gemian-window/${parent_patchset_sha:0:16}-${accepted_rollback_patchset_sha:0:16}-${one_way_patchset_sha:0:16}-${held_patchset_sha:0:16}-${late_patchset_sha:0:16}-${cpu9_patchset_sha:0:16}-${window_patchset_sha:0:16}"
+  prepare_variant "${baseline_source}" .gemini-window-state \
+    "${parent_patchset_sha}:${accepted_rollback_patchset_sha}:${one_way_patchset_sha}:${held_patchset_sha}:${late_patchset_sha}:${cpu9_patchset_sha}:${window_patchset_sha}" 1 1 1 1 1 0
+  prepare_variant "${prepared_source}" .gemini-terminal-state \
+    "${parent_patchset_sha}:${accepted_rollback_patchset_sha}:${one_way_patchset_sha}:${held_patchset_sha}:${late_patchset_sha}:${cpu9_patchset_sha}:${window_patchset_sha}:${terminal_patchset_sha}" 1 1 1 1 1 1
+  python3 "${window_experiment_dir}/scripts/test_static.py" \
+    --source "${baseline_source}"
+  python3 "${terminal_experiment_dir}/scripts/test_static.py" \
+    --source "${prepared_source}"
+  cmp "${prepared_source}/arch/arm64/kernel/smp.c" \
+    "${baseline_source}/arch/arm64/kernel/smp.c" >/dev/null || \
+    die "terminal-attribution unexpectedly changed generic CPU completion source"
+  cmp "${prepared_source}/kernel/cpu.c" \
+    "${baseline_source}/kernel/cpu.c" >/dev/null || \
+    die "terminal-attribution unexpectedly changed public CPU-down source"
+  python3 - "${prepared_source}/arch/arm64/kernel/psci.c" \
+    "${baseline_source}/arch/arm64/kernel/psci.c" <<'PY'
+import pathlib
+import sys
+
+def function(path, name):
+    text = pathlib.Path(path).read_text()
+    start = text.index("static int " + name + "(")
+    brace = text.index("{", start)
+    depth = 0
+    for offset in range(brace, len(text)):
+        if text[offset] == "{":
+            depth += 1
+        elif text[offset] == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start:offset + 1]
+    raise SystemExit("unterminated function: " + name)
+
+if function(sys.argv[1], "mt6797_a72_cpu9_boot") != \
+        function(sys.argv[2], "mt6797_a72_cpu9_boot"):
+    raise SystemExit("terminal-attribution changed CPU9 PSCI boot source")
+PY
+elif [[ "${build_mode}" == window ]]; then
   readonly prepared_source="${source_root}/gemian-window/${parent_patchset_sha:0:16}-${accepted_rollback_patchset_sha:0:16}-${one_way_patchset_sha:0:16}-${held_patchset_sha:0:16}-${late_patchset_sha:0:16}-${cpu9_patchset_sha:0:16}-${window_patchset_sha:0:16}"
   readonly baseline_source="${source_root}/gemian-cpu9/${parent_patchset_sha:0:16}-${accepted_rollback_patchset_sha:0:16}-${one_way_patchset_sha:0:16}-${held_patchset_sha:0:16}-${late_patchset_sha:0:16}-${cpu9_patchset_sha:0:16}"
   prepare_variant "${baseline_source}" .gemini-cpu9-state \
-    "${parent_patchset_sha}:${accepted_rollback_patchset_sha}:${one_way_patchset_sha}:${held_patchset_sha}:${late_patchset_sha}:${cpu9_patchset_sha}" 1 1 1 1 0
+    "${parent_patchset_sha}:${accepted_rollback_patchset_sha}:${one_way_patchset_sha}:${held_patchset_sha}:${late_patchset_sha}:${cpu9_patchset_sha}" 1 1 1 1 0 0
   prepare_variant "${prepared_source}" .gemini-window-state \
-    "${parent_patchset_sha}:${accepted_rollback_patchset_sha}:${one_way_patchset_sha}:${held_patchset_sha}:${late_patchset_sha}:${cpu9_patchset_sha}:${window_patchset_sha}" 1 1 1 1 1
+    "${parent_patchset_sha}:${accepted_rollback_patchset_sha}:${one_way_patchset_sha}:${held_patchset_sha}:${late_patchset_sha}:${cpu9_patchset_sha}:${window_patchset_sha}" 1 1 1 1 1 0
   python3 "${cpu9_experiment_dir}/scripts/validate_patch.py" \
     --source "${baseline_source}" --patch-dir "${cpu9_experiment_dir}/patches"
   python3 "${window_experiment_dir}/scripts/test_static.py" \
@@ -396,9 +462,9 @@ elif [[ "${build_mode}" == cpu9 ]]; then
   readonly prepared_source="${source_root}/gemian-cpu9/${parent_patchset_sha:0:16}-${accepted_rollback_patchset_sha:0:16}-${one_way_patchset_sha:0:16}-${held_patchset_sha:0:16}-${late_patchset_sha:0:16}-${cpu9_patchset_sha:0:16}"
   readonly baseline_source="${source_root}/gemian-late/${parent_patchset_sha:0:16}-${accepted_rollback_patchset_sha:0:16}-${one_way_patchset_sha:0:16}-${held_patchset_sha:0:16}-${late_patchset_sha:0:16}"
   prepare_variant "${baseline_source}" .gemini-late-state \
-    "${parent_patchset_sha}:${accepted_rollback_patchset_sha}:${one_way_patchset_sha}:${held_patchset_sha}:${late_patchset_sha}" 1 1 1 0 0
+    "${parent_patchset_sha}:${accepted_rollback_patchset_sha}:${one_way_patchset_sha}:${held_patchset_sha}:${late_patchset_sha}" 1 1 1 0 0 0
   prepare_variant "${prepared_source}" .gemini-cpu9-state \
-    "${parent_patchset_sha}:${accepted_rollback_patchset_sha}:${one_way_patchset_sha}:${held_patchset_sha}:${late_patchset_sha}:${cpu9_patchset_sha}" 1 1 1 1 0
+    "${parent_patchset_sha}:${accepted_rollback_patchset_sha}:${one_way_patchset_sha}:${held_patchset_sha}:${late_patchset_sha}:${cpu9_patchset_sha}" 1 1 1 1 0 0
   python3 "${late_experiment_dir}/scripts/validate_patch.py" \
     --source "${baseline_source}" --patch-dir "${late_experiment_dir}/patches"
   python3 "${cpu9_experiment_dir}/scripts/validate_patch.py" \
@@ -409,9 +475,9 @@ elif [[ "${build_mode}" == late ]]; then
   readonly prepared_source="${source_root}/gemian-late/${parent_patchset_sha:0:16}-${accepted_rollback_patchset_sha:0:16}-${one_way_patchset_sha:0:16}-${held_patchset_sha:0:16}-${late_patchset_sha:0:16}"
   readonly baseline_source="${source_root}/gemian-held/${parent_patchset_sha:0:16}-${accepted_rollback_patchset_sha:0:16}-${one_way_patchset_sha:0:16}-${held_patchset_sha:0:16}"
   prepare_variant "${baseline_source}" .gemini-held-state \
-    "${parent_patchset_sha}:${accepted_rollback_patchset_sha}:${one_way_patchset_sha}:${held_patchset_sha}" 1 1 0 0 0
+    "${parent_patchset_sha}:${accepted_rollback_patchset_sha}:${one_way_patchset_sha}:${held_patchset_sha}" 1 1 0 0 0 0
   prepare_variant "${prepared_source}" .gemini-late-state \
-    "${parent_patchset_sha}:${accepted_rollback_patchset_sha}:${one_way_patchset_sha}:${held_patchset_sha}:${late_patchset_sha}" 1 1 1 0 0
+    "${parent_patchset_sha}:${accepted_rollback_patchset_sha}:${one_way_patchset_sha}:${held_patchset_sha}:${late_patchset_sha}" 1 1 1 0 0 0
   python3 "${held_experiment_dir}/scripts/validate_patches.py" \
     --source "${baseline_source}" \
     --patch-dir "${held_experiment_dir}/patches"
@@ -424,9 +490,9 @@ elif [[ "${build_mode}" == held ]]; then
   readonly prepared_source="${source_root}/gemian-held/${parent_patchset_sha:0:16}-${accepted_rollback_patchset_sha:0:16}-${one_way_patchset_sha:0:16}-${held_patchset_sha:0:16}"
   readonly baseline_source="${source_root}/gemian-one-way/${parent_patchset_sha:0:16}-${accepted_rollback_patchset_sha:0:16}-${one_way_patchset_sha:0:16}"
   prepare_variant "${baseline_source}" .gemini-one-way-state \
-    "${parent_patchset_sha}:${accepted_rollback_patchset_sha}:${one_way_patchset_sha}" 1 0 0 0 0
+    "${parent_patchset_sha}:${accepted_rollback_patchset_sha}:${one_way_patchset_sha}" 1 0 0 0 0 0
   prepare_variant "${prepared_source}" .gemini-held-state \
-    "${parent_patchset_sha}:${accepted_rollback_patchset_sha}:${one_way_patchset_sha}:${held_patchset_sha}" 1 1 0 0 0
+    "${parent_patchset_sha}:${accepted_rollback_patchset_sha}:${one_way_patchset_sha}:${held_patchset_sha}" 1 1 0 0 0 0
   python3 "${held_experiment_dir}/scripts/validate_patches.py" \
     --source "${prepared_source}" \
     --patch-dir "${held_experiment_dir}/patches"
@@ -436,9 +502,9 @@ else
   readonly prepared_source="${source_root}/gemian-one-way/${parent_patchset_sha:0:16}-${accepted_rollback_patchset_sha:0:16}-${one_way_patchset_sha:0:16}"
   readonly baseline_source="${source_root}/gemian-rollback-owners/${parent_patchset_sha:0:16}-${accepted_rollback_patchset_sha:0:16}"
   prepare_variant "${baseline_source}" .gemini-rollback-owners-state \
-    "${parent_patchset_sha}:${accepted_rollback_patchset_sha}" 0 0 0 0 0
+    "${parent_patchset_sha}:${accepted_rollback_patchset_sha}" 0 0 0 0 0 0
   prepare_variant "${prepared_source}" .gemini-one-way-state \
-    "${parent_patchset_sha}:${accepted_rollback_patchset_sha}:${one_way_patchset_sha}" 1 0 0 0 0
+    "${parent_patchset_sha}:${accepted_rollback_patchset_sha}:${one_way_patchset_sha}" 1 0 0 0 0 0
 fi
 
 readonly toolchain="${toolchain_root}/${manifest_sha}"
@@ -465,11 +531,11 @@ cp "${baseline_config}" "${output}/.config"
 "${prepared_source}/scripts/config" --file "${output}/.config" \
   --enable MTK_A72_TRANSITION_OBSERVER \
   --enable MTK_A72_ONE_WAY_CPU8
-if [[ "${build_mode}" == cpu9 || "${build_mode}" == window ]]; then
+if [[ "${build_mode}" == cpu9 || "${build_mode}" == window || \
+      "${build_mode}" == terminal ]]; then
   "${prepared_source}/scripts/config" --file "${output}/.config" \
     --enable MTK_A72_CPU9_CLUSTER_REUSE
 fi
-
 export LD_LIBRARY_PATH="${toolchain}/root/usr/lib/x86_64-linux-gnu"
 export HOST_EXTRACFLAGS=-fcommon
 make -C "${prepared_source}" O="${output}" ARCH=arm64 \
@@ -544,11 +610,12 @@ cp "${baseline_config}" "${baseline_output}/.config"
 "${baseline_source}/scripts/config" --file "${baseline_output}/.config" \
   --enable MTK_A72_TRANSITION_OBSERVER
 if [[ "${build_mode}" == held || "${build_mode}" == late || \
-      "${build_mode}" == cpu9 || "${build_mode}" == window ]]; then
+      "${build_mode}" == cpu9 || "${build_mode}" == window || \
+      "${build_mode}" == terminal ]]; then
   "${baseline_source}/scripts/config" --file "${baseline_output}/.config" \
     --enable MTK_A72_ONE_WAY_CPU8
 fi
-if [[ "${build_mode}" == window ]]; then
+if [[ "${build_mode}" == window || "${build_mode}" == terminal ]]; then
   "${baseline_source}/scripts/config" --file "${baseline_output}/.config" \
     --enable MTK_A72_CPU9_CLUSTER_REUSE
 fi
@@ -580,9 +647,9 @@ for name in sorted(set(before) | set(after)):
 for name, old, new in changes:
     print("{}\t{}\t{}".format(name, old, new))
 expected = [("CONFIG_ANBOX", "missing", "n")]
-if sys.argv[3] == "window":
+if sys.argv[3] in ("window", "terminal"):
     expected.append(("CONFIG_MTK_A72_CPU9_CLUSTER_REUSE", "missing", "y"))
-if sys.argv[3] in ("held", "late", "cpu9", "window"):
+if sys.argv[3] in ("held", "late", "cpu9", "window", "terminal"):
     expected.append(("CONFIG_MTK_A72_ONE_WAY_CPU8", "missing", "y"))
 expected.append(("CONFIG_MTK_A72_TRANSITION_OBSERVER", "missing", "y"))
 if changes != expected:
@@ -624,13 +691,15 @@ readonly -a common_disassembly_symbols=(
 changed_disassembly_symbols=("${common_disassembly_symbols[@]}")
 baseline_disassembly_symbols=("${common_disassembly_symbols[@]}")
 if [[ "${build_mode}" == held || "${build_mode}" == late || \
-      "${build_mode}" == cpu9 || "${build_mode}" == window ]]; then
+      "${build_mode}" == cpu9 || "${build_mode}" == window || \
+      "${build_mode}" == terminal ]]; then
   changed_disassembly_symbols+=(
     mt6797_a72_hold_ipi
     mt6797_a72_hold_workfn
   )
 fi
-if [[ "${build_mode}" == cpu9 || "${build_mode}" == window ]]; then
+if [[ "${build_mode}" == cpu9 || "${build_mode}" == window || \
+      "${build_mode}" == terminal ]]; then
   changed_disassembly_symbols+=(
     __cpu_up
     cpu_psci_cpu_boot
@@ -641,11 +710,14 @@ if [[ "${build_mode}" == cpu9 || "${build_mode}" == window ]]; then
   )
 fi
 if [[ "${build_mode}" == late || "${build_mode}" == cpu9 || \
-      "${build_mode}" == window ]]; then
+      "${build_mode}" == window || "${build_mode}" == terminal ]]; then
   baseline_disassembly_symbols+=(
     mt6797_a72_hold_ipi
     mt6797_a72_hold_workfn
   )
+fi
+if [[ "${build_mode}" == terminal ]]; then
+  changed_disassembly_symbols+=(mt6797_a72_hps_down_snapshot)
 fi
 readonly -a changed_disassembly_symbols
 readonly -a baseline_disassembly_symbols
@@ -667,14 +739,16 @@ for symbol in cpu_down hps_algo_do_cluster_action \
     die "baseline disassembly is missing ${symbol}"
 done
 if [[ "${build_mode}" == held || "${build_mode}" == late || \
-      "${build_mode}" == cpu9 || "${build_mode}" == window ]]; then
+      "${build_mode}" == cpu9 || "${build_mode}" == window || \
+      "${build_mode}" == terminal ]]; then
   for symbol in mt6797_a72_hold_ipi mt6797_a72_hold_workfn; do
     grep -q "<${symbol}>:" \
       "${output}/focused-disassembly/${symbol}.txt" || \
       die "held disassembly is missing ${symbol}"
   done
 fi
-if [[ "${build_mode}" == cpu9 || "${build_mode}" == window ]]; then
+if [[ "${build_mode}" == cpu9 || "${build_mode}" == window || \
+      "${build_mode}" == terminal ]]; then
   for symbol in __cpu_up cpu_psci_cpu_boot; do
     grep -q "<${symbol}>:" \
       "${output}/focused-disassembly/${symbol}.txt" || \
@@ -707,7 +781,42 @@ grep -q ' mt6797_a72_obs_init$' "${baseline_output}/System.map" || \
 grep -q ' mt6797_a72_obs_rollback_terminal$' \
   "${baseline_output}/System.map" || \
   die "parent rollback baseline is missing its terminal recorder"
-if [[ "${build_mode}" == window ]]; then
+if [[ "${build_mode}" == terminal ]]; then
+  for map in "${output}/System.map" "${baseline_output}/System.map"; do
+    grep -q ' mt6797_a72_hold_ipi$' "${map}" || \
+      die "terminal comparison is missing the shared IPI callback"
+    grep -q ' mt6797_a72_hold_workfn$' "${map}" || \
+      die "terminal comparison is missing the delayed sampler"
+  done
+  grep -q ' mt6797_a72_hps_down_snapshot$' "${output}/System.map" || \
+    die "terminal build is missing the HPS snapshot"
+  if grep -q ' mt6797_a72_hps_down_snapshot$' \
+    "${baseline_output}/System.map"; then
+    die "retention-window parent unexpectedly contains the HPS snapshot"
+  fi
+  grep -q '<mt6797_a72_hps_down_snapshot>:' \
+    "${output}/focused-disassembly/mt6797_a72_hps_down_snapshot.txt" || \
+    die "terminal build is missing snapshot disassembly"
+  for symbol in hps_algo_do_cluster_action mt6797_a72_hold_workfn; do
+    if cmp "${output}/focused-disassembly/${symbol}.txt" \
+      "${baseline_output}/focused-disassembly/${symbol}.txt" >/dev/null; then
+      die "terminal changed site is binary-identical: ${symbol}"
+    fi
+  done
+  "${cross_prefix}strings" "${output}/vmlinux" | \
+    grep -F 'gemini-a72-pair-v3 result=pass sample=3 cpu8=8 cpu9=9 online8=1 online9=1 hits8=3 hits9=3 hps_reported=%d hps_cpu=%d hps_error=%d hps_count=%d' >/dev/null || \
+    die "terminal build is missing the self-contained pair-v3 terminal"
+  "${cross_prefix}strings" "${output}/vmlinux" | \
+    grep -F 'gemini-a72-retain-v1 result=hps-down-held-first' >/dev/null || \
+    die "terminal build is missing the inherited bounded HPS marker"
+  "${cross_prefix}strings" "${baseline_output}/vmlinux" | \
+    grep -F 'gemini-a72-pair-v2 result=pass sample=3 cpu8=8 cpu9=9 online8=1 online9=1 hits8=3 hits9=3' >/dev/null || \
+    die "terminal baseline is missing the exact retention-window terminal"
+  if "${cross_prefix}strings" "${baseline_output}/vmlinux" | \
+    grep -F 'gemini-a72-pair-v3' >/dev/null; then
+    die "retention-window parent unexpectedly contains pair-v3"
+  fi
+elif [[ "${build_mode}" == window ]]; then
   for map in "${output}/System.map" "${baseline_output}/System.map"; do
     grep -q ' mt6797_a72_hold_ipi$' "${map}" || \
       die "retention-window comparison is missing the shared IPI callback"
@@ -914,6 +1023,7 @@ jq -n \
   --arg late_patchset_sha256 "${late_patchset_sha}" \
   --arg cpu9_patchset_sha256 "${cpu9_patchset_sha}" \
   --arg window_patchset_sha256 "${window_patchset_sha}" \
+  --arg terminal_patchset_sha256 "${terminal_patchset_sha}" \
   --arg build_mode "${build_mode}" \
   --arg config_sha256 "${CONFIG_SHA256}" \
   --arg toolchain_manifest_sha256 "${manifest_sha}" \
@@ -933,6 +1043,7 @@ jq -n \
     late_patchset_sha256: $late_patchset_sha256,
     cpu9_patchset_sha256: $cpu9_patchset_sha256,
     window_patchset_sha256: $window_patchset_sha256,
+    terminal_patchset_sha256: $terminal_patchset_sha256,
     baseline_config_sha256: $config_sha256,
     toolchain_manifest_sha256: $toolchain_manifest_sha256,
     snapshot_url: $snapshot_url, cust_dtsi_sha256: $cust_dtsi_sha256,
@@ -945,11 +1056,13 @@ jq -n \
     baseline_source_exact_held: ($build_mode == "late"),
     baseline_source_exact_late: ($build_mode == "cpu9"),
     baseline_source_exact_cpu9: ($build_mode == "window"),
-    cpu9_startup_source_identical: ($build_mode == "window"),
+    baseline_source_exact_window: ($build_mode == "terminal"),
+    cpu9_startup_source_identical: ($build_mode == "window" or $build_mode == "terminal"),
     stack_usage_captured: true,
     stack_usage_file_count: $stack_usage_file_count,
     baseline_stack_usage_file_count: $baseline_stack_usage_file_count,
-    purpose: (if $build_mode == "window" then
+    purpose: (if $build_mode == "terminal" then
+      "cpu9-terminal-attribution-compile-review-only" elif $build_mode == "window" then
       "cpu9-retention-window-compile-review-only" elif $build_mode == "cpu9" then
       "cpu9-cluster-reuse-compile-review-only" elif $build_mode == "late" then
       "late-hold-compile-review-only" elif $build_mode == "held" then
