@@ -565,6 +565,16 @@ if [[ "${build_mode}" == held || "${build_mode}" == late || \
     mt6797_a72_hold_workfn
   )
 fi
+if [[ "${build_mode}" == cpu9 ]]; then
+  changed_disassembly_symbols+=(
+    __cpu_up
+    cpu_psci_cpu_boot
+  )
+  baseline_disassembly_symbols+=(
+    __cpu_up
+    cpu_psci_cpu_boot
+  )
+fi
 if [[ "${build_mode}" == late || "${build_mode}" == cpu9 ]]; then
   baseline_disassembly_symbols+=(
     mt6797_a72_hold_ipi
@@ -596,6 +606,16 @@ if [[ "${build_mode}" == held || "${build_mode}" == late || \
     grep -q "<${symbol}>:" \
       "${output}/focused-disassembly/${symbol}.txt" || \
       die "held disassembly is missing ${symbol}"
+  done
+fi
+if [[ "${build_mode}" == cpu9 ]]; then
+  for symbol in __cpu_up cpu_psci_cpu_boot; do
+    grep -q "<${symbol}>:" \
+      "${output}/focused-disassembly/${symbol}.txt" || \
+      die "CPU9 disassembly is missing ${symbol}"
+    grep -q "<${symbol}>:" \
+      "${baseline_output}/focused-disassembly/${symbol}.txt" || \
+      die "late baseline disassembly is missing ${symbol}"
   done
 fi
 grep -q ' mt6797_a72_obs_init$' "${output}/System.map" || \
@@ -631,15 +651,15 @@ if [[ "${build_mode}" == cpu9 ]]; then
     grep -q ' mt6797_a72_hold_workfn$' "${map}" || \
       die "CPU9 comparison is missing the shared delayed sampler"
   done
-  if cmp "${output}/focused-disassembly/hps_algo_do_cluster_action.txt" \
-    "${baseline_output}/focused-disassembly/hps_algo_do_cluster_action.txt" \
+  if cmp "${output}/focused-disassembly/cpu_psci_cpu_boot.txt" \
+    "${baseline_output}/focused-disassembly/cpu_psci_cpu_boot.txt" \
     >/dev/null; then
-    die "CPU9 HPS caller is binary-identical to the late-CPU8 baseline"
+    die "CPU9 PSCI caller is binary-identical to the late-CPU8 baseline"
   fi
-  if cmp "${output}/focused-disassembly/mt6797_a72_one_way_secondary_complete.txt" \
-    "${baseline_output}/focused-disassembly/mt6797_a72_one_way_secondary_complete.txt" \
+  if cmp "${output}/focused-disassembly/__cpu_up.txt" \
+    "${baseline_output}/focused-disassembly/__cpu_up.txt" \
     >/dev/null; then
-    die "CPU9 completion owner is binary-identical to the late-CPU8 baseline"
+    die "CPU9 completion caller is binary-identical to the late-CPU8 baseline"
   fi
   "${cross_prefix}strings" "${output}/vmlinux" | \
     grep -F 'gemini-a72-pair-v1 result=pass sample=3 cpu8=8 cpu9=9 online8=1 online9=1 hits8=3 hits9=3' >/dev/null || \

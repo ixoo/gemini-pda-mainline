@@ -84,7 +84,9 @@ The first compile-gate run built both the CPU9 child and exact late-CPU8 parent,
 then rejected publication because GCC inlined the private CPU9 boot helper and
 the gate incorrectly required that helper as a standalone disassembly symbol.
 No bundle was accepted. The corrected gate compares the durable HPS caller and
-secondary-completion disassemblies where the child behavior actually resides.
+secondary-completion disassemblies. Review of that first accepted compile
+bundle then tightened the durable anchors further to `cpu_psci_cpu_boot` and
+`__cpu_up`, the exact compiled callers containing the two child changes.
 
 ## Analysis
 
