@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-02-a72-cpu8-held-online` |
-| Status | `deployed-powered-off-runtime-pending` |
+| Status | `runtime-attempt-1-inconclusive-retention-window` |
 | Subsystem | MT6797 HPS, generic CPU hotplug, CPU8 IPI/coherency |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-02 |
@@ -76,6 +76,8 @@ experiment and prohibits unchanged retry.
   exact deployment boundary and mutually exclusive runtime decisions.
 - [`results/deployment-20260802.txt`](results/deployment-20260802.txt): exact
   live-GPT write/readback and post-success shutdown evidence.
+- [`results/runtime-attempt-1-inconclusive-20260803.txt`](results/runtime-attempt-1-inconclusive-20260803.txt):
+  changed-cycle retained-console result and observation-window decision.
 
 ## Procedure
 
@@ -101,6 +103,15 @@ The exact held-online child and one-way parent both compile on Buildbox with
 identical diagnostics. Binary review confirms the two early barriers and the
 one- and six-second IPI path; existing affected stack frames do not grow.
 
+Runtime attempt 1 automatically returned to known-good Gemian with a changed
+boot ID, watchdog-class reason, and byte-identical boot2. The 65,524-byte
+console-ramoops tail begins at 9.166 seconds, after the parent completion and
+the expected one- and six-second samples at about 2.932 and 7.932 seconds. It
+therefore retains none of the required exact markers. From 9.166 through
+14.010 seconds it records 14 CPU9 rejections before A72 action and no held
+fault, down-veto, or panic token. Those later observations are encouraging but
+cannot replace the predeclared success sequence.
+
 ## Analysis
 
 The startup path is no longer the blocker. An HPS-only skip would prevent the
@@ -116,13 +127,13 @@ merely preserving the original online marker.
 
 ## Conclusion
 
-`compile-accepted`: the post-success crash precedes the existing platform veto,
-and the exact two-layer early veto plus bounded IPI proof passes source,
-mutation, compilation, binary, diagnostics, and stack-use review. It is not yet
-a boot candidate.
+`runtime-inconclusive-observation-window`: no attributable failure was retained,
+but normal console traffic overwrote both substantive IPI measurements before
+the watchdog recovery. CPU8 bounded hold is not yet established.
 
 ## Follow-up
 
-Boot ordinary Gemian once to establish the retained-pstore collector's initial
-boot ID, let the host shut it down, then manually select boot2 with both
-observation paths armed.
+Do not repeat the unchanged artifact. Add a later substantive synchronous CPU8
+execution/accounting sample close enough to the unchanged watchdog deadline to
+survive in console-ramoops. Preserve the existing early HPS and generic-down
+barriers, CPU9 and CPU_OFF prohibitions, startup sequence, and recovery owner.

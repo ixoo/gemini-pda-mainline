@@ -874,6 +874,20 @@ dispatch, followed by Buildbox compilation and a bounded CPU8
 accounting/coherency hold test. Gate 7 is partially closed: startup feasibility
 is proven; stability, repeatability, and safe offlining are not.
 
+The two-layer held-online candidate then passed source, mutation, exact-parent
+Buildbox comparison, binary, stack, container, deployment, and readback gates.
+Its first runtime automatically returned through the fixed watchdog with an
+unchanged boot2 and no retained fault. The 65,524-byte console tail begins at
+9.166 seconds, however, after the expected substantive CPU8 IPI samples at
+about 2.932 and 7.932 seconds; normal traffic overwrote the predeclared success
+sequence. Fourteen later CPU9 rejections and no retained panic are consistent
+with a held CPU8 but are not the required proof. The result is inconclusive and
+the unchanged artifact must not be repeated. The next ordered action is a new
+later synchronous CPU8 execution/accounting sample near the existing watchdog
+deadline, so it both extends the bounded stability interval and remains in the
+retained console window. Only an exact clean pushed commit may be compiled on
+Buildbox; CPU9 startup, CPU_OFF, load, DVFS, thermal, and suspend remain blocked.
+
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback
 gates close.

@@ -1,0 +1,91 @@
+CPU8 held-online runtime attempt 1
+=================================
+
+Recorded: 2026-08-03 America/New_York
+Formal result: inconclusive because the required markers preceded the retained console window
+Failure result: no attributable held-online failure was retained
+CPU9 result: rejected before A72 action; not proven online
+
+Exact candidate and cycle
+-------------------------
+
+Repository compile commit:
+  118ff3cb3e9a2fbee10a44ada748e46bbe9b5312
+Held-online patchset SHA-256:
+  e6da1e8cc976ad63dd9cf8a254bb7234d73589cfad6afeb07135403a27d03ba3
+Kernel field SHA-256:
+  9158af17b17e483ec68257378e5c4bd923b254e7242b5ba338f1324eec5f960b
+Installed and post-return full boot2 SHA-256:
+  936b9256709514938ddf2f3ab13e63bd9c8d37e991fe40a568aa36a8f8818018
+Initial known-good boot-ID SHA-256:
+  9fd897d7aff37293f38a643e8a2317c524307d0f07b9664c9a38506dfe5f8cab
+Returned known-good boot-ID SHA-256:
+  0e22b2895ce477b4523f9cd2122a97f715305908aaadcd6341c0aac6112e04e6
+Boot ID changed: yes
+Owner observed automatic restart: yes
+
+Observation paths
+-----------------
+
+The host-side USB/netcat collector was armed before boot2 selection. The exact
+USB interface did not appear during the bounded candidate boot, so it captured
+no runtime record and was stopped after known-good Gemian returned.
+
+The changed-cycle pstore collector succeeded without removing remote records.
+Its private `console-ramoops` is 65,524 bytes with SHA-256:
+
+  35341fd1d4f0444ca69479233f95d951d9708d70891a479d7ef5666a88a01ed5
+
+The retained console is a tail window from kernel time 9.165652 through
+14.010138 seconds. It contains zero `gemini-a72-oneway-v1` records and zero
+`gemini-a72-hold-v1` records. It also contains zero held down-veto records and
+zero `Internal error`, `Unable to handle`, `Kernel panic`, or `Call trace`
+tokens. CPU9 was rejected before A72 action 14 times in that retained window.
+
+Why the success oracle was lost
+-------------------------------
+
+The exact parent runtime placed CPU8's completion marker at 1.931991 seconds.
+The held-online child schedules its substantive synchronous CPU8 measurements
+one and six seconds after that completion, so their expected times are about
+2.932 and 7.932 seconds. Both precede the first byte of this attempt's retained
+console window at 9.166 seconds. The independent watchdog ends the run near
+14 seconds, so normal console traffic overwrote the required early records
+before recovery.
+
+The continued CPU9 rejections and absence of a retained fault through the
+watchdog deadline are consistent with CPU8 remaining held online, but they are
+secondary evidence only. They do not substitute for the predeclared exact
+parent, sample-1, and sample-2 sequence.
+
+Post-return checks
+------------------
+
+Known-good kernel: 3.18.41+
+Architecture: aarch64
+Android boot reason: wdt_by_pass_pwk
+Live-GPT boot2 target: /dev/mmcblk0p30
+Active root: /dev/mmcblk0p29
+boot2 mounted: no
+boot2 holders: none
+CPU present: 0-9
+CPU online at the read-only snapshot: 4-5
+CPU8 offline: yes
+CPU9 offline: yes
+boot2 unchanged: yes
+
+Decision
+--------
+
+result=inconclusive-observation-window
+startup_failure_observed=no
+held_fault_observed=no
+cpu9_online_observed=no
+unchanged_repeat=prohibited
+
+This attempt neither passes nor rejects the held-online implementation. The
+next boot must add a decision-changing later CPU8 execution/accounting sample
+close enough to the existing watchdog deadline to remain in console-ramoops.
+It must retain the same early down barriers, CPU9 and CPU_OFF prohibitions,
+fixed watchdog ownership, startup path, and recovery behavior. A marker-only
+derivative or unchanged retry is insufficient.
