@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-scheduler-context` |
-| Status | `source-revision-pending` |
+| Status | `compile-tooling-ready` |
 | Subsystem | MT6797 retained Cortex-A72 pair and scheduler |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -38,14 +38,16 @@ watchdog recovery?
   and `include/linux/kthread.h`.
 - Build backend: Buildbox only; no native VM kernel build.
 - Validated source-generation repository commit:
-  `5efae676bfdf568c99c19c7f3e6bb0ee0d6f64de`.
+  `d9dd2f9e95cfed30aa322da672083d969a70fe8a`.
 - Exact reconstructed parent commit:
   `0bbc78db41f0334550232ad9b56734d57721faf3`.
 - Generated scheduler source commit:
-  `d674f430deb9012c5307d6672f80a2fc48adc74c`.
+  `4a9879f49ab0070b188c9cad6e379b6ba9a358af`.
 - Generated patch SHA-256:
-  `07168545c4c7972268610c7ec4dccf219744bb0d596571242f92f76dcea10beb`.
-- Stable patch ID: `a501f6da085275ebd4d60ffef0bb2b3e4a170224`.
+  `2eca26115bf539ee3329b88312b128dc13121a097bf813d4ba289771484dad22`.
+- Scheduler patchset SHA-256:
+  `821a20025d1cd0fc591c80b9893a85e86ce07819b9d50529605a8d358b4279f9`.
+- Stable patch ID: `b46999ead83f5a754ed89003af87142bbaadb9d2`.
 - Compile attempt 1 built both exact sources but failed the stack acceptance
   boundary; no accepted compile review, container, deployment, or runtime claim
   exists yet.
@@ -134,6 +136,11 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   23 negative mutations. Local patch review found only misaligned continuation
   indentation in the pointer-snapshot signature; that source-only package was
   not admitted or compiled, and no device action occurred.
+- Final generation from commit
+  `d9dd2f9e95cfed30aa322da672083d969a70fe8a` passed exact pair-v6 validation,
+  both hash vectors, all 23 negative mutations, changed-path inventory, and
+  package checksums. The admitted patch uses immutable static-result pointers
+  and contains no result-structure copy on the terminal stack.
 
 ## Analysis
 
@@ -144,11 +151,11 @@ context while preserving the established power and recovery boundary.
 
 ## Conclusion
 
-`source-revision-pending`: both exact kernels compiled, but the first comparison
-correctly rejected 1,056-byte terminal-worker stack use. The next revision will
-retain static result storage and snapshot immutable pointers instead of copying
-two result payloads onto the stack. No compile package, container, deployment,
-or hardware evidence exists.
+`compile-tooling-ready`: both exact kernels compiled in attempt 1, whose
+1,056-byte terminal stack was correctly rejected. The regenerated revision now
+retains static result storage, snapshots immutable pointers, rejects 23 source
+mutations, and is ready for the exact child-versus-pair-v6 compile comparison.
+No accepted compile package, container, deployment, or hardware evidence exists.
 
 ## Follow-up
 
