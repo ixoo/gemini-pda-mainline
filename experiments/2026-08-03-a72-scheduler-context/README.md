@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-scheduler-context` |
-| Status | `ordering-fix-generated` |
+| Status | `ordering-fix-compile-passed` |
 | Subsystem | MT6797 retained Cortex-A72 pair and scheduler |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -230,6 +230,17 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   `8a5b32d331493680e0a554d96572c9ec3d769e8075baf4f998cd7a2cfc617c28`;
   stable patch ID: `109450306004a18cdcd0c342c6edb1b7759a31a0`.
   No compile, container, or device action occurred.
+- Buildbox compile from repository commit
+  `66f3592aa281915a1fa998684353ea9f9395c85d` built the corrected child and
+  exact pair-v6 parent. The inherited coherency worker source is identical,
+  child/parent diagnostics match, CPU9 startup is unchanged, all 28 mutations
+  are rejected, and binary, terminal, configuration, package, and stack checks
+  pass. Corrected stack use is 96 bytes for the coherency worker, 784 for the
+  sample-3 terminal worker, 176 for the isolated reporter, and 96 for each
+  scheduler thread. The corrected `Image.gz-dtb` SHA-256 is
+  `f3b021cc8036a2b3ac205a16a6ff135dbeb70210cda27c639b1543b7a385449e`.
+  No container or device action occurred. See
+  [`results/compile-review-ordering-fix-20260803.txt`](results/compile-review-ordering-fix-20260803.txt).
 
 ## Analysis
 
@@ -240,11 +251,10 @@ context while preserving the established power and recovery boundary.
 
 ## Conclusion
 
-`ordering-fix-generated`: attempt 1 did not evaluate the scheduler oracle. The
-corrected source preserves the inherited coherency worker, passes 28 mutation
-tests, and runs the scheduler only after the complete parent predicate is
-snapshotted and passes. No corrected compile, container, deployment, or runtime
-claim exists yet.
+`ordering-fix-compile-passed`: the corrected source preserves the inherited
+coherency worker, passes 28 mutation tests, compiles with identical parent
+diagnostics, and remains within every stack boundary. No corrected container,
+deployment, or runtime claim exists yet.
 
 ## Follow-up
 

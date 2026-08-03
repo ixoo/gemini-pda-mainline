@@ -1080,6 +1080,15 @@ and all 28 negative mutations are rejected. The next ordered action is
 Buildbox-only child-versus-exact-parent compile, binary, diagnostics, and stack
 review. No corrected container or device action is authorized yet.
 
+The corrected child-versus-exact-parent Buildbox review now passes source,
+binary, diagnostics, configuration, and stack gates. The inherited coherency
+worker source is identical and its frame is restored to 96 bytes; every new or
+changed measured frame remains below 1,024 bytes. The next ordered action is a
+new reproducible Android-v0 container and independent offline validation from
+corrected Image.gz-dtb SHA-256
+`f3b021cc8036a2b3ac205a16a6ff135dbeb70210cda27c639b1543b7a385449e`.
+No corrected device action is authorized yet.
+
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback
 gates close.
