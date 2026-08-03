@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu9-retention-window` |
-| Status | `source-design-pending-buildbox-generation` |
+| Status | `source-review-passed-compile-pending` |
 | Subsystem | MT6797 CPU8/CPU9 retained pair sampling and HPS down pressure |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -51,6 +51,9 @@ and clean shutdown after verified readback.
   rejected mutation checks.
 - [`scripts/generate-on-buildbox`](scripts/generate-on-buildbox): Git-pinned
   Buildbox-only patch generation.
+- [`patches/`](patches/): one accepted Buildbox-generated logical child patch.
+- [`results/patch-generation-review-20260803.txt`](results/patch-generation-review-20260803.txt):
+  rejected broad anchor, exact accepted identities, checks, and decision.
 
 ## Procedure
 
@@ -77,10 +80,11 @@ the decision terminal.
 
 ## Conclusion
 
-`source-design-pending-buildbox-generation`: the smallest decision-changing
-child is specified. No compile or runtime claim exists yet.
+`source-review-passed-compile-pending`: Buildbox reconstructed the exact parent,
+generated one logical three-file child, passed static review, and rejected four
+mutations. No compile or runtime claim exists yet.
 
 ## Follow-up
 
-Generate and independently validate the child patch on Buildbox, then commit
-the accepted patch identity before submitting the exact-parent compile gate.
+Commit the accepted patch identity, then submit the exact CPU9-parent versus
+retention-window-child compile, diagnostics, disassembly, and stack gate.

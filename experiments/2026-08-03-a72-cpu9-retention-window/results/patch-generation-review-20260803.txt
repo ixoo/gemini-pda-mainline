@@ -1,0 +1,68 @@
+CPU9 retention-window Buildbox patch-generation review
+======================================================
+
+Date: 2026-08-03
+Result: accepted-source-review
+
+Buildbox input
+--------------
+
+Repository commit:
+  9a29e07b918414e3a017aefde32d81de61af8ecf
+Vendor source commit:
+  59e00a9144d782e148332009a835b99c43382467
+Exact generated CPU9 parent commit:
+  1a3fe9c78f60a5576e5c0c9488932cc0869fd7fd
+Exact parent CPU9 patchset SHA-256:
+  17733d2ae50c16f9d0db2d4bd4075fa5a72ce081606db7d3bf1bfe83f4159a2b
+
+First rejected generator revision
+---------------------------------
+
+Repository commit `d9ab1c9c3dedb74767f0f2de17f4bf8d8c7a812d` failed before
+patch creation because the timing text occurred in both the CPU9 branch and
+the preserved CPU8 fallback. The generator expected one anchor and found two.
+No package was produced. The accepted revision anchors the edit on the CPU9
+hit-counter context and asserts that the fallback timing remains unchanged.
+
+Accepted generated output
+-------------------------
+
+Generated commit:
+  d572811955bf36b164a64e3a88a1465fde2ed675
+Generated patch count: 1
+Changed paths: 3
+Generated patch SHA-256:
+  96534c0ab40a359426919e4f12d4a1f27f72c7bb2e358f9327c17b08c8acd224
+
+The validated patch changes only:
+
+- `arch/arm64/kernel/psci.c`;
+- `drivers/misc/mediatek/base/power/mt6797/mt_hotplug_strategy_algo.c`;
+- `kernel/cpu.c`.
+
+The CPU9 pair delays are exactly two seconds after samples 1 and 2; the
+initial one-second post-completion delay remains inherited. The CPU8 fallback
+keeps its original five/four-second schedule. Pair records use unique `v2`
+markers. Every public CPU8/CPU9 down request still returns `-EPERM` before
+notifiers or platform callbacks. The first HPS-observed `-EPERM` emits one
+atomic marker and identical later HPS warnings are suppressed.
+
+Validation
+----------
+
+- Buildbox reconstructed the exact vendor source and complete parent chain.
+- `git diff --check`: pass.
+- Static source contract: pass.
+- Four timing, identity, veto, and bounded-report mutations: rejected.
+- Generated path inventory: exact.
+- Bundle strict checksum verification after fetch: pass.
+- Native VM kernel build: not run, by policy.
+- Kernel compile: not run at this source-generation gate.
+- Device action: none.
+
+Decision
+--------
+
+The generated patch is accepted for repository review and an exact-parent
+Buildbox compile comparison. This is not a boot candidate or runtime result.
