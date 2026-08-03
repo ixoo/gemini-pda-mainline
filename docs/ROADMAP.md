@@ -1074,6 +1074,12 @@ unchanged, snapshots and decides the complete parent predicate, and only then
 runs the bounded scheduler phase before adjacent pair-v6/pair-v7 terminals. No
 scheduler-context runtime claim exists yet.
 
+That corrective source has now been generated from the exact pair-v6 parent on
+Buildbox. The inherited coherency worker is unchanged, both hash vectors pass,
+and all 28 negative mutations are rejected. The next ordered action is
+Buildbox-only child-versus-exact-parent compile, binary, diagnostics, and stack
+review. No corrected container or device action is authorized yet.
+
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback
 gates close.

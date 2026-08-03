@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-scheduler-context` |
-| Status | `ordering-fix-designed` |
+| Status | `ordering-fix-generated` |
 | Subsystem | MT6797 retained Cortex-A72 pair and scheduler |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -37,17 +37,18 @@ watchdog recovery?
 - Kernel thread API reference: exact upstream Linux v7.1 `kernel/kthread.c`
   and `include/linux/kthread.h`.
 - Build backend: Buildbox only; no native VM kernel build.
-- Validated source-generation repository commit:
+- Attempt-1 source-generation repository commit:
   `53307958dcbd715039e5cbab326b0094488d7c90`.
 - Exact reconstructed parent commit:
   `0bbc78db41f0334550232ad9b56734d57721faf3`.
-- Generated scheduler source commit:
+- Attempt-1 generated scheduler source commit:
   `d62f75d8a2f1759bdffc4f318303ed613fb2760f`.
-- Generated patch SHA-256:
+- Attempt-1 generated patch SHA-256:
   `ed2abf428ec51af4614b9e9adb94a1a12b9333224868a241a0525139f85e6625`.
-- Scheduler patchset SHA-256:
+- Attempt-1 scheduler patchset SHA-256:
   `30316bc63934d7fdc022367bb8b465e794c8c91ec9956d6233e02bddad55fffe`.
-- Stable patch ID: `9e4f5361be7ef72f8eb11f289827ec7e6370e764`.
+- Attempt-1 stable patch ID:
+  `9e4f5361be7ef72f8eb11f289827ec7e6370e764`.
 - Compile attempt 1 built both exact sources but failed the stack acceptance
   boundary; no accepted compile review, container, deployment, or runtime claim
   exists yet.
@@ -218,6 +219,17 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   publication, missing post-snapshot reset, and missing pre-terminal execution.
   This revision is design/source-tooling only until Buildbox regenerates and
   validates a new patch.
+- Buildbox regeneration from repository commit
+  `a2bec2d89edfdf7c5c9c70907ef90fb7d064bbfb` reconstructed the exact pair-v6
+  parent, kept its coherency worker source unchanged, passed both scheduler hash
+  vectors, rejected all 28 negative mutations, and produced one changed-path-
+  checked patch. Corrected generated source commit:
+  `bf100f042aaa6d5e4eecccc077b5d82d076d704e`; patch SHA-256:
+  `eaebe9bcf22450ccf18016f5272d835c68aba4c413f947d3035b46f2a0b39df5`;
+  patchset SHA-256:
+  `8a5b32d331493680e0a554d96572c9ec3d769e8075baf4f998cd7a2cfc617c28`;
+  stable patch ID: `109450306004a18cdcd0c342c6edb1b7759a31a0`.
+  No compile, container, or device action occurred.
 
 ## Analysis
 
@@ -228,11 +240,11 @@ context while preserving the established power and recovery boundary.
 
 ## Conclusion
 
-`ordering-fix-designed`: attempt 1 did not evaluate the scheduler oracle. The
-corrective generator and validator now require an unchanged inherited
-publication path and scheduler execution only after the complete parent
-predicate is snapshotted and passes. No regenerated source, compile, container,
-deployment, or corrected runtime claim exists yet.
+`ordering-fix-generated`: attempt 1 did not evaluate the scheduler oracle. The
+corrected source preserves the inherited coherency worker, passes 28 mutation
+tests, and runs the scheduler only after the complete parent predicate is
+snapshotted and passes. No corrected compile, container, deployment, or runtime
+claim exists yet.
 
 ## Follow-up
 
