@@ -473,24 +473,27 @@ printf 'baseline_source_build=passed\n'
 [[ -s "${baseline_output}/arch/arm64/boot/Image.gz-dtb" && \
    -s "${baseline_output}/vmlinux" && -s "${baseline_output}/System.map" ]] || \
   die "baseline compile outputs are incomplete"
-mkdir -p "${output}/focused-disassembly" \
-  "${baseline_output}/focused-disassembly"
-for symbol in cpu_down hps_algo_do_cluster_action \
-  mt6797_a72_one_way_secondary_complete; do
-  "${cross_prefix}objdump" -dr --disassemble="${symbol}" \
-    "${output}/vmlinux" > \
-    "${output}/focused-disassembly/${symbol}.txt"
-  "${cross_prefix}objdump" -dr --disassemble="${symbol}" \
-    "${baseline_output}/vmlinux" > \
-    "${baseline_output}/focused-disassembly/${symbol}.txt"
-done
+readonly -a common_disassembly_symbols=(
+  cpu_down
+  hps_algo_do_cluster_action
+  mt6797_a72_one_way_secondary_complete
+)
+changed_disassembly_symbols=("${common_disassembly_symbols[@]}")
 if [[ "${build_mode}" == held ]]; then
-  for symbol in mt6797_a72_hold_ipi mt6797_a72_hold_workfn; do
-    "${cross_prefix}objdump" -dr --disassemble="${symbol}" \
-      "${output}/vmlinux" > \
-      "${output}/focused-disassembly/${symbol}.txt"
-  done
+  changed_disassembly_symbols+=(
+    mt6797_a72_hold_ipi
+    mt6797_a72_hold_workfn
+  )
 fi
+readonly -a changed_disassembly_symbols
+"${cross_prefix}objdump" -dr "${output}/vmlinux" | \
+  python3 "${held_experiment_dir}/scripts/extract-disassembly.py" \
+    --output-dir "${output}/focused-disassembly" \
+    "${changed_disassembly_symbols[@]}"
+"${cross_prefix}objdump" -dr "${baseline_output}/vmlinux" | \
+  python3 "${held_experiment_dir}/scripts/extract-disassembly.py" \
+    --output-dir "${baseline_output}/focused-disassembly" \
+    "${common_disassembly_symbols[@]}"
 for symbol in cpu_down hps_algo_do_cluster_action \
   mt6797_a72_one_way_secondary_complete; do
   grep -q "<${symbol}>:" \
