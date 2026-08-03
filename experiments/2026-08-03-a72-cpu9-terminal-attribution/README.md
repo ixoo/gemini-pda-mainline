@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu9-terminal-attribution` |
-| Status | `source-design-review-pending` |
+| Status | `patch-generation-passed-compile-pending` |
 | Subsystem | MT6797 CPU8/CPU9 retained pair and HPS down-pressure attribution |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -48,14 +48,20 @@ HPS caller and reads that state only after the third already-proven callback.
   Buildbox-only patch generation.
 - [`scripts/build-on-buildbox`](scripts/build-on-buildbox): exact retention
   parent versus terminal-attribution child compilation.
+- [`patches/`](patches/): one accepted Buildbox-generated logical child patch.
+- [`results/patch-generation-review-20260803.txt`](results/patch-generation-review-20260803.txt):
+  exact identities, mutation results, path/order audit, and compile-only
+  acceptance decision.
 
 ## Conclusion
 
-`source-design-review-pending`: the runtime result defines a decision-changing
-observation-only child. No source patch, compile result, boot artifact, or
-runtime claim exists yet.
+`patch-generation-passed-compile-pending`: Buildbox reconstructed and validated
+the exact retention-window parent, rejected seven child mutations, and produced
+one two-file observation-only patch. Publication ordering, side-effect scope,
+path inventory, provenance, and bundle checks pass. No compile result, boot
+artifact, or runtime claim exists yet.
 
 ## Follow-up
 
-Generate the exact child patch on Buildbox, reject source mutations, and review
-the complete diff before extending the shared Buildbox compile mode.
+Commit and push the accepted patch and review, then run the exact-parent
+Buildbox compile mode and review binary, diagnostics, and stack evidence.

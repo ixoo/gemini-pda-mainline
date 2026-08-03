@@ -1,0 +1,94 @@
+From 0cea53b8b19e5b58e6b2cb748466d6e620a4c911 Mon Sep 17 00:00:00 2001
+From: Gemini A72 experiment <noreply@gemini-a72.invalid>
+Date: Mon, 3 Aug 2026 14:30:00 +0000
+Subject: [PATCH] diagnostic: carry HPS attribution in CPU9 terminal
+
+Snapshot the first HPS down veto and matching request count.
+
+Include that state in the already-proven third pair terminal.
+
+Keep CPU startup, timing, power, and recovery unchanged.
+---
+ arch/arm64/kernel/psci.c                      | 14 ++++++++++-
+ .../power/mt6797/mt_hotplug_strategy_algo.c   | 24 ++++++++++++++++++-
+ 2 files changed, 36 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/kernel/psci.c b/arch/arm64/kernel/psci.c
+index 4ed5a1db5..ec5a2349b 100644
+--- a/arch/arm64/kernel/psci.c
++++ b/arch/arm64/kernel/psci.c
+@@ -544,9 +544,18 @@ static void mt6797_a72_hold_ipi(void *data)
+ 	smp_mb();
+ }
+ 
++#ifdef CONFIG_MTK_A72_CPU9_CLUSTER_REUSE
++extern void mt6797_a72_hps_down_snapshot(int *reported, int *cpu, int *error,
++					 int *count);
++#endif
++
+ static void mt6797_a72_hold_workfn(struct work_struct *work)
+ {
+ #ifdef CONFIG_MTK_A72_CPU9_CLUSTER_REUSE
++	int hps_reported;
++	int hps_cpu;
++	int hps_error;
++	int hps_count;
+ 	int observed_cpu8 = -1;
+ 	int observed_cpu9 = -1;
+ 	int hits8 = atomic_read(&mt6797_a72_hold_hits);
+@@ -591,7 +600,10 @@ static void mt6797_a72_hold_workfn(struct work_struct *work)
+ 		}
+ 		return;
+ 	}
+-	pr_emerg("gemini-a72-pair-v2 result=pass sample=3 cpu8=8 cpu9=9 online8=1 online9=1 hits8=3 hits9=3\n");
++	mt6797_a72_hps_down_snapshot(&hps_reported, &hps_cpu,
++				      &hps_error, &hps_count);
++	pr_emerg("gemini-a72-pair-v3 result=pass sample=3 cpu8=8 cpu9=9 online8=1 online9=1 hits8=3 hits9=3 hps_reported=%d hps_cpu=%d hps_error=%d hps_count=%d\n",
++		 hps_reported, hps_cpu, hps_error, hps_count);
+ 	console_lock();
+ 	console_unlock();
+ #else
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt_hotplug_strategy_algo.c b/drivers/misc/mediatek/base/power/mt6797/mt_hotplug_strategy_algo.c
+index c825361bf..dc151f36f 100644
+--- a/drivers/misc/mediatek/base/power/mt6797/mt_hotplug_strategy_algo.c
++++ b/drivers/misc/mediatek/base/power/mt6797/mt_hotplug_strategy_algo.c
+@@ -227,6 +227,19 @@ static int hps_algo_check_criteria(void)
+ 
+ #ifdef CONFIG_MTK_A72_CPU9_CLUSTER_REUSE
+ static atomic_t mt6797_a72_hps_down_reported = ATOMIC_INIT(0);
++static atomic_t mt6797_a72_hps_down_first_cpu = ATOMIC_INIT(-1);
++static atomic_t mt6797_a72_hps_down_first_error = ATOMIC_INIT(0);
++static atomic_t mt6797_a72_hps_down_count = ATOMIC_INIT(0);
++
++void mt6797_a72_hps_down_snapshot(int *reported, int *cpu, int *error,
++				  int *count)
++{
++	*reported = atomic_read(&mt6797_a72_hps_down_reported);
++	smp_rmb();
++	*cpu = atomic_read(&mt6797_a72_hps_down_first_cpu);
++	*error = atomic_read(&mt6797_a72_hps_down_first_error);
++	*count = atomic_read(&mt6797_a72_hps_down_count);
++}
+ #endif
+ 
+ static int hps_algo_do_cluster_action(unsigned int cluster_id)
+@@ -295,9 +308,18 @@ static int hps_algo_do_cluster_action(unsigned int cluster_id)
+ #ifdef CONFIG_MTK_A72_CPU9_CLUSTER_REUSE
+ 					if ((cpu == 8 || cpu == 9) &&
+ 					    hotplug_ret == -EPERM) {
+-						if (!atomic_xchg(&mt6797_a72_hps_down_reported, 1))
++						atomic_inc(&mt6797_a72_hps_down_count);
++						if (atomic_cmpxchg(&mt6797_a72_hps_down_reported,
++								   0, -1) == 0) {
++							atomic_set(&mt6797_a72_hps_down_first_cpu,
++								   cpu);
++							atomic_set(&mt6797_a72_hps_down_first_error,
++								   hotplug_ret);
++							smp_wmb();
++							atomic_set(&mt6797_a72_hps_down_reported, 1);
+ 							pr_emerg("gemini-a72-retain-v1 result=hps-down-held-first cpu=%d error=%d\n",
+ 								 cpu, hotplug_ret);
++						}
+ 					} else
+ #endif
+ 						hps_warn("[Info]CPU %d --!\n", cpu);

@@ -1,0 +1,64 @@
+CPU9 terminal-attribution Buildbox patch review
+===============================================
+
+Date: 2026-08-03
+Decision: accepted-for-exact-parent-compile-review
+
+Buildbox identity
+-----------------
+
+Repository commit:
+  7bff8a0247820ab2bfa9d54d990be5dc71293b09
+Vendor source commit:
+  59e00a9144d782e148332009a835b99c43382467
+Exact retention-window parent commit:
+  d572811955bf36b164a64e3a88a1465fde2ed675
+Exact parent patchset SHA-256:
+  9ce572fbc87a1444bb71894dd4528f39dc065065a45b36db52a14791f167eeec
+Generated child commit:
+  0cea53b8b19e5b58e6b2cb748466d6e620a4c911
+Generated patch SHA-256:
+  993a64bcfa04c0d47a29b7f8c10829cb6dd72e4195e4962ad94d4b5d835ddb42
+Validated bundle manifest SHA-256:
+  c9c02b26545117e8b6a1afd42c66a365c6eaa7f12507a0f3b8cdf31261f433a6
+
+Source and mutation review
+--------------------------
+
+Buildbox reconstructed the exact retention-window parent and its four-mutation
+validator passed before applying the child. The child validator then passed
+before and after the generated commit and rejected all seven declared
+mutations: sample timing, missing count, non-atomic claim, missing write/read
+barriers, incomplete terminal, and unbounded one-shot reporting.
+
+The generated patch changes exactly:
+
+  arch/arm64/kernel/psci.c
+  drivers/misc/mediatek/base/power/mt6797/mt_hotplug_strategy_algo.c
+
+It contains 36 insertions and 2 deletions. It does not touch generic secondary
+completion, public `cpu_down`, CPU9 PSCI startup, watchdog, regulator, DA921x,
+SPM, TOPRGU, configuration, or device tree source.
+
+Publication/order review
+------------------------
+
+Every matching HPS CPU8/CPU9 `-EPERM` increments one atomic count. Exactly one
+caller claims state `0 -> -1`, writes the first CPU and actual error, executes
+`smp_wmb()`, then publishes state `1`. The read-only snapshot reads publication
+state, executes `smp_rmb()`, and then reads first CPU/error/count. A snapshot of
+`-1` is explicitly non-pass rather than being silently promoted.
+
+The snapshot performs only atomic reads and one read barrier. The existing
+sample-3 site is the only caller. Earlier pair samples/faults and all delays are
+unchanged; the old sample-3 text alone becomes the unique self-contained
+`pair-v3` terminal.
+
+Decision
+--------
+
+Accept the exact generated patch for a full Buildbox compile comparison against
+the exact retention-window parent. This is not a boot candidate and authorizes
+no device action. Compile review must confirm exact configuration, source
+invariants, marker inventory, binary presence/change, diagnostics, and bounded
+stack use before container work.
