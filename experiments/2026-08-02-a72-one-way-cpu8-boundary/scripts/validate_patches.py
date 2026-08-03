@@ -123,7 +123,10 @@ def validate_files(files: dict[str, str]) -> None:
     rollback = boot[boot.index("rollback:\n"): boot.index("postiso_fault:\n")]
     if "bool rollback_fault = false" not in boot:
         raise ValidationError("independent rollback-failure state absent")
-    if "fault = true" in boot:
+    if (
+        "\tbool fault = false;" in boot
+        or "{ fault = true; goto rollback; }" in boot
+    ):
         raise ValidationError("forward failure contaminates rollback result")
     for token in (
         "MT6797_A72_PHASE_ROLLBACK_BUCK_DISABLE",
