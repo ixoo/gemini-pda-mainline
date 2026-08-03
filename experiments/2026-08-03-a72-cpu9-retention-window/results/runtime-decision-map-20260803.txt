@@ -2,7 +2,7 @@ CPU9 retention-window guarded runtime decision map
 ==================================================
 
 Date: 2026-08-03
-Status: offline review passed; deployment pending
+Status: deployment passed; runtime pending
 Runtime result: not tested
 
 Exact experiment identity
@@ -140,8 +140,8 @@ whole-device writes remain outside authorization.
 Next action
 -----------
 
-Commit and push this exact map and tooling, then deploy the accepted image to
-live-GPT-resolved inactive boot2 with the guarded installer.
+Arm changed-cycle pstore and optional read-only netcat capture, then physically
+select boot2 once and classify the returned evidence under this map.
 
 Offline tool review
 -------------------

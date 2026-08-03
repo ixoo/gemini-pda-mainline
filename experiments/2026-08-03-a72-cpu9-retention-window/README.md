@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu9-retention-window` |
-| Status | `runtime-map-passed-deployment-pending` |
+| Status | `deployment-passed-runtime-pending` |
 | Subsystem | MT6797 CPU8/CPU9 retained pair sampling and HPS down pressure |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -74,6 +74,9 @@ and clean shutdown after verified readback.
 - [`results/runtime-decision-map-20260803.txt`](results/runtime-decision-map-20260803.txt):
   predeclared changed-cycle hypothesis, exact pass/failure classes, tool
   identities, and deployment boundary.
+- [`results/deployment-20260803.txt`](results/deployment-20260803.txt): exact
+  live-GPT target, predecessor, candidate/readback identity, power state,
+  no-backup policy, and confirmed shutdown.
 
 ## Procedure
 
@@ -100,16 +103,17 @@ the decision terminal.
 
 ## Conclusion
 
-`runtime-map-passed-deployment-pending`: Buildbox source and compile review
+`deployment-passed-runtime-pending`: Buildbox source and compile review
 pass. Two independent Android-v0 construction roots are byte-identical, and
 the independent parser accepts the exact kernel, inherited ramdisk, header,
 padding, provenance, and offline-only boundary. The guarded installer and
 read-only capture tools pass their static contracts against the predeclared
-runtime map. No boot or runtime claim exists yet.
+runtime map. The live-resolved inactive boot2 write and independent full
+readback passed, and the device shut down cleanly. No boot or runtime claim
+exists yet.
 
 ## Follow-up
 
-Commit and push the exact runtime map and tools, then install only the accepted
-full image to live-GPT-resolved inactive boot2. After verified readback and
-automatic shutdown, arm the independent capture paths before manual boot2
-selection.
+Arm the independent changed-cycle pstore and optional read-only netcat capture
+paths, then physically select boot2 once. Classify the returned evidence only
+under the predeclared runtime map.

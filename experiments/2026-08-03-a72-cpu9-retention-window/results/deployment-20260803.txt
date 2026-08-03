@@ -1,0 +1,38 @@
+CPU9 retention-window guarded boot2 deployment
+==============================================
+
+Date: 2026-08-03
+Result: write-synced-flushed-full-readback-verified
+
+Repository runtime-gate commit:
+  2158e2d
+Target logical name:
+  boot2
+Live GPT target:
+  /dev/mmcblk0p30
+Active root:
+  /dev/mmcblk0p29
+Predecessor SHA-256:
+  b32bca348efc0fcaffe2b5909c6246d66a4d0fec4102cee091103c42db604d69
+Candidate and full readback SHA-256:
+  6f1e5f45c8f75cdfde5a996f902f499d685566c3bec227efa6cdb56aaeffa115
+Known-good boot ID before shutdown:
+  57678acd-c7bf-4ef8-a74a-3a59436dc7ca
+External power, capacity, health:
+  1 | 67 | Good
+
+The live probe resolved exactly one writable, inactive, unmounted 16 MiB
+logical boot2 and found the exact expected predecessor. The installer staged
+only the accepted candidate, synchronized and flushed the write, and required
+matching on-device and independent host-streamed full-partition readbacks. It
+removed its temporary readback and created no fresh predecessor backup.
+
+The evidence summary was flushed before a clean poweroff request. SSH closed
+with the poweroff and the bounded reachability check confirmed the device was
+unreachable. It was not rebooted automatically. The ignored private evidence
+summary SHA-256 is:
+  8d81004ab9adf5c3b627cc44257f743683a2cdbf19b0cf173a3af05925a8f8cd
+
+Next action: arm changed-cycle pstore and optional read-only netcat capture,
+then have the owner physically select boot2 once. Classify only under
+runtime-decision-map-20260803.txt after return to ordinary Gemian.

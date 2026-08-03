@@ -30,7 +30,9 @@ the loop. Positive identity-gated observations are unaffected.
   directly attributable record. Exact-parent Buildbox source generation,
   compilation, diagnostics, binary anchors, and stack review pass. Two
   deterministic Android-v0 constructions and the guarded runtime/deployment
-  contract pass offline review; device deployment is pending.
+  contract pass offline review. The live-GPT-resolved inactive boot2 write,
+  independent full readback, no-backup policy, and clean shutdown passed;
+  runtime is pending.
 - [2026-08-03 A72 CPU9 cluster reuse](2026-08-03-a72-cpu9-cluster-reuse/README.md)
   — brought CPU8 and CPU9 into Linux online accounting and completed two
   synchronous callbacks on each. Its declared run is rejected because HPS
