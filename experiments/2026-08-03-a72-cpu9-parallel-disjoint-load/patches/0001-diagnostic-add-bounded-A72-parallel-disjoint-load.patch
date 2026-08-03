@@ -1,0 +1,362 @@
+From 0bbc78db41f0334550232ad9b56734d57721faf3 Mon Sep 17 00:00:00 2001
+From: Gemini A72 experiment <noreply@gemini-a72.invalid>
+Date: Mon, 3 Aug 2026 22:30:00 +0000
+Subject: [PATCH] diagnostic: add bounded A72 parallel disjoint load
+
+Preserve pair-v5, then run finite simultaneous work on disjoint cache lines.
+
+Publish exact barriers, hashes, mismatch location, and completion.
+
+Keep startup, CPU_OFF prohibition, power, HPS, and recovery unchanged.
+---
+ arch/arm64/kernel/psci.c | 262 ++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 258 insertions(+), 4 deletions(-)
+
+diff --git a/arch/arm64/kernel/psci.c b/arch/arm64/kernel/psci.c
+index 84d52f03e..70ff12cd2 100644
+--- a/arch/arm64/kernel/psci.c
++++ b/arch/arm64/kernel/psci.c
+@@ -793,6 +793,193 @@ static bool mt6797_a72_coh_passed(void)
+ 	       READ_ONCE(mt6797_a72_coh_seq9) == MT6797_A72_COH_ROUNDS;
+ }
+ 
++#define MT6797_A72_PL_ROUNDS 128
++#define MT6797_A72_PL_LINES 1024
++#define MT6797_A72_PL_WORDS 8
++#define MT6797_A72_PL_SPIN_BUDGET (1U << 26)
++#define MT6797_A72_PL_HASH_INIT 1469598103934665603ULL
++#define MT6797_A72_PL_HASH_PRIME 1099511628211ULL
++
++struct mt6797_a72_pl_line {
++	u64 words[MT6797_A72_PL_WORDS];
++} __aligned(64);
++
++struct mt6797_a72_pl_result {
++	int cpu;
++	int error;
++	int done;
++	u64 write_hash;
++	u64 read_hash;
++	int bad_round;
++	int bad_line;
++	int bad_word;
++	u64 expected;
++	u64 actual;
++};
++
++static struct mt6797_a72_pl_line
++	mt6797_a72_pl_data[MT6797_A72_PL_LINES] __aligned(64);
++static struct mt6797_a72_pl_result mt6797_a72_pl_result8;
++static struct mt6797_a72_pl_result mt6797_a72_pl_result9;
++static atomic_t mt6797_a72_pl_reported = ATOMIC_INIT(0);
++static atomic_t mt6797_a72_pl_ready = ATOMIC_INIT(0);
++static atomic_t mt6797_a72_pl_written = ATOMIC_INIT(0);
++static atomic_t mt6797_a72_pl_verified = ATOMIC_INIT(0);
++
++static u64 mt6797_a72_pl_pattern(int writer, int round, int line, int word)
++{
++	u64 value = 0xd6e8feb86659fd93ULL;
++
++	value ^= (u64)writer << 60;
++	value ^= (u64)round << 32;
++	value ^= (u64)line << 8;
++	value ^= (u64)word;
++	value ^= value << 13;
++	value ^= value >> 7;
++	value ^= value << 17;
++	return value;
++}
++
++static u64 mt6797_a72_pl_hash(u64 hash, u64 value)
++{
++	return (hash ^ value) * MT6797_A72_PL_HASH_PRIME;
++}
++
++static int mt6797_a72_pl_wait(atomic_t *counter, int expected,
++			      unsigned int *budget)
++{
++	while (atomic_read(counter) != expected) {
++		if (!(*budget)--)
++			return -ETIMEDOUT;
++		cpu_relax();
++	}
++	smp_rmb();
++	return 0;
++}
++
++static void mt6797_a72_pl_write(int writer, int round, u64 *hash)
++{
++	int line;
++	int word;
++	int parity = writer == 8 ? 0 : 1;
++
++	for (line = parity; line < MT6797_A72_PL_LINES; line += 2) {
++		for (word = 0; word < MT6797_A72_PL_WORDS; word++) {
++			u64 value = mt6797_a72_pl_pattern(writer, round,
++						 line, word);
++
++			WRITE_ONCE(mt6797_a72_pl_data[line].words[word], value);
++			*hash = mt6797_a72_pl_hash(*hash, value);
++		}
++	}
++}
++
++static int mt6797_a72_pl_verify(int writer, int round, u64 *hash,
++				struct mt6797_a72_pl_result *result)
++{
++	int line;
++	int word;
++	int parity = writer == 8 ? 0 : 1;
++
++	for (line = parity; line < MT6797_A72_PL_LINES; line += 2) {
++		for (word = 0; word < MT6797_A72_PL_WORDS; word++) {
++			u64 expected = mt6797_a72_pl_pattern(writer, round,
++						    line, word);
++			u64 actual = READ_ONCE(mt6797_a72_pl_data[line].words[word]);
++
++			*hash = mt6797_a72_pl_hash(*hash, actual);
++			if (actual != expected) {
++				result->bad_round = round;
++				result->bad_line = line;
++				result->bad_word = word;
++				result->expected = expected;
++				result->actual = actual;
++				return -EILSEQ;
++			}
++		}
++	}
++	return 0;
++}
++
++static void mt6797_a72_pl_ipi(void *unused)
++{
++	unsigned int budget = MT6797_A72_PL_SPIN_BUDGET;
++	int cpu = smp_processor_id();
++	struct mt6797_a72_pl_result *result;
++	u64 write_hash = MT6797_A72_PL_HASH_INIT;
++	u64 read_hash = MT6797_A72_PL_HASH_INIT;
++	int error = 0;
++	int barrier_error;
++	int round;
++
++	if (cpu == 8)
++		result = &mt6797_a72_pl_result8;
++	else if (cpu == 9)
++		result = &mt6797_a72_pl_result9;
++	else
++		return;
++	result->cpu = cpu;
++	for (round = 1; round <= MT6797_A72_PL_ROUNDS; round++) {
++		atomic_inc(&mt6797_a72_pl_ready);
++		error = mt6797_a72_pl_wait(&mt6797_a72_pl_ready,
++					    2 * round, &budget);
++		if (error)
++			break;
++		mt6797_a72_pl_write(cpu, round, &write_hash);
++		smp_wmb();
++		atomic_inc(&mt6797_a72_pl_written);
++		error = mt6797_a72_pl_wait(&mt6797_a72_pl_written,
++					    2 * round, &budget);
++		if (error)
++			break;
++		error = mt6797_a72_pl_verify(cpu == 8 ? 9 : 8, round,
++					      &read_hash, result);
++		smp_wmb();
++		atomic_inc(&mt6797_a72_pl_verified);
++		barrier_error = mt6797_a72_pl_wait(&mt6797_a72_pl_verified,
++						    2 * round, &budget);
++		if (!error)
++			error = barrier_error;
++		if (error)
++			break;
++		result->done = round;
++	}
++	result->write_hash = write_hash;
++	result->read_hash = read_hash;
++	result->error = error;
++}
++
++static void mt6797_a72_pl_reset(void)
++{
++	memset(&mt6797_a72_pl_result8, 0, sizeof(mt6797_a72_pl_result8));
++	memset(&mt6797_a72_pl_result9, 0, sizeof(mt6797_a72_pl_result9));
++	mt6797_a72_pl_result8.cpu = -1;
++	mt6797_a72_pl_result9.cpu = -1;
++	atomic_set(&mt6797_a72_pl_ready, 0);
++	atomic_set(&mt6797_a72_pl_written, 0);
++	atomic_set(&mt6797_a72_pl_verified, 0);
++	atomic_set(&mt6797_a72_pl_reported, -1);
++}
++
++static bool mt6797_a72_ml_passed(void)
++{
++	return atomic_read(&mt6797_a72_ml_reported) == 1 &&
++	       mt6797_a72_ml_result8.cpu == 8 &&
++	       mt6797_a72_ml_result9.cpu == 9 &&
++	       !mt6797_a72_ml_result8.error &&
++	       !mt6797_a72_ml_result9.error &&
++	       mt6797_a72_ml_result8.done == MT6797_A72_ML_ROUNDS &&
++	       mt6797_a72_ml_result9.done == MT6797_A72_ML_ROUNDS &&
++	       mt6797_a72_ml_result8.write_hash != 0 &&
++	       mt6797_a72_ml_result9.write_hash != 0 &&
++	       mt6797_a72_ml_result8.write_hash ==
++		mt6797_a72_ml_result9.read_hash &&
++	       mt6797_a72_ml_result9.write_hash ==
++		mt6797_a72_ml_result8.read_hash &&
++	       !mt6797_a72_ml_result8.bad_round &&
++	       !mt6797_a72_ml_result9.bad_round;
++}
++
+ static void mt6797_a72_coh_workfn(struct work_struct *work)
+ {
+ 	cpumask_t targets;
+@@ -807,11 +994,13 @@ static void mt6797_a72_coh_workfn(struct work_struct *work)
+ 	WRITE_ONCE(mt6797_a72_coh_seq9, 0);
+ 	WRITE_ONCE(mt6797_a72_coh_turn, 8);
+ 	mt6797_a72_ml_reset();
++	mt6797_a72_pl_reset();
+ 	smp_wmb();
+ 	if (smp_processor_id() != 0) {
+ 		atomic_set(&mt6797_a72_coh_error8, -EXDEV);
+ 		atomic_set(&mt6797_a72_coh_error9, -EXDEV);
+ 		atomic_set(&mt6797_a72_ml_reported, 2);
++		atomic_set(&mt6797_a72_pl_reported, 2);
+ 		goto publish;
+ 	}
+ 	cpumask_clear(&targets);
+@@ -823,8 +1012,17 @@ static void mt6797_a72_coh_workfn(struct work_struct *work)
+ 		smp_call_function_many(&targets, mt6797_a72_ml_ipi, NULL, true);
+ 		smp_wmb();
+ 		atomic_set(&mt6797_a72_ml_reported, 1);
++		if (mt6797_a72_ml_passed()) {
++			smp_call_function_many(&targets, mt6797_a72_pl_ipi,
++					       NULL, true);
++			smp_wmb();
++			atomic_set(&mt6797_a72_pl_reported, 1);
++		} else {
++			atomic_set(&mt6797_a72_pl_reported, 2);
++		}
+ 	} else {
+ 		atomic_set(&mt6797_a72_ml_reported, 2);
++		atomic_set(&mt6797_a72_pl_reported, 2);
+ 	}
+ publish:
+ 	atomic_set(&mt6797_a72_coh_final_seq8,
+@@ -843,6 +1041,7 @@ static void mt6797_a72_coh_schedule(void)
+ 		atomic_set(&mt6797_a72_coh_error8, -EBUSY);
+ 		atomic_set(&mt6797_a72_coh_error9, -EBUSY);
+ 		atomic_set(&mt6797_a72_ml_reported, 2);
++		atomic_set(&mt6797_a72_pl_reported, 2);
+ 		smp_wmb();
+ 		atomic_set(&mt6797_a72_coh_reported, 2);
+ 	}
+@@ -873,6 +1072,20 @@ static void mt6797_a72_ml_snapshot(int *reported,
+ 	*result8 = mt6797_a72_ml_result8;
+ 	*result9 = mt6797_a72_ml_result9;
+ }
++
++static void mt6797_a72_pl_snapshot(int *reported,
++				   struct mt6797_a72_pl_result *result8,
++				   struct mt6797_a72_pl_result *result9,
++				   int *ready, int *written, int *verified)
++{
++	*reported = atomic_read(&mt6797_a72_pl_reported);
++	smp_rmb();
++	*result8 = mt6797_a72_pl_result8;
++	*result9 = mt6797_a72_pl_result9;
++	*ready = atomic_read(&mt6797_a72_pl_ready);
++	*written = atomic_read(&mt6797_a72_pl_written);
++	*verified = atomic_read(&mt6797_a72_pl_verified);
++}
+ #endif
+ 
+ static void mt6797_a72_hold_workfn(struct work_struct *work)
+@@ -893,6 +1106,12 @@ static void mt6797_a72_hold_workfn(struct work_struct *work)
+ 	int ml_reported;
+ 	struct mt6797_a72_ml_result ml_result8;
+ 	struct mt6797_a72_ml_result ml_result9;
++	int pl_reported;
++	struct mt6797_a72_pl_result pl_result8;
++	struct mt6797_a72_pl_result pl_result9;
++	int pl_ready;
++	int pl_written;
++	int pl_verified;
+ 	int observed_cpu8 = -1;
+ 	int observed_cpu9 = -1;
+ 	int hits8 = atomic_read(&mt6797_a72_hold_hits);
+@@ -946,6 +1165,8 @@ static void mt6797_a72_hold_workfn(struct work_struct *work)
+ 				 &coh_error8, &coh_error9,
+ 				 &coh_seq8, &coh_seq9);
+ 	mt6797_a72_ml_snapshot(&ml_reported, &ml_result8, &ml_result9);
++	mt6797_a72_pl_snapshot(&pl_reported, &pl_result8, &pl_result9,
++				 &pl_ready, &pl_written, &pl_verified);
+ 	if (hps_reported == 1 && hps_cpu == 9 && hps_error == -EPERM &&
+ 	    hps_count > 0 &&
+ 	    coh_reported == 1 && coh_rounds == MT6797_A72_COH_ROUNDS &&
+@@ -959,8 +1180,19 @@ static void mt6797_a72_hold_workfn(struct work_struct *work)
+ 	    ml_result8.write_hash != 0 && ml_result9.write_hash != 0 &&
+ 	    ml_result8.write_hash == ml_result9.read_hash &&
+ 	    ml_result9.write_hash == ml_result8.read_hash &&
+-	    !ml_result8.bad_round && !ml_result9.bad_round)
+-		pr_emerg("gemini-a72-pair-v5 result=pass sample=3 cpu8=8 cpu9=9 online8=1 online9=1 hits8=3 hits9=3 hps_reported=%d hps_cpu=%d hps_error=%d hps_count=%d coh_reported=%d coh_rounds=%d coh_cpu8=%d coh_cpu9=%d coh_error8=%d coh_error9=%d coh_seq8=%d coh_seq9=%d ml_reported=%d ml_rounds=64 ml_lines=256 ml_words=8 ml_cpu8=%d ml_cpu9=%d ml_error8=%d ml_error9=%d ml_done8=%d ml_done9=%d ml_hash8w=%016llx ml_hash8r=%016llx ml_hash9w=%016llx ml_hash9r=%016llx ml_bad_round=%d ml_bad_line=%d ml_bad_word=%d ml_expected=%016llx ml_actual=%016llx\n",
++	    !ml_result8.bad_round && !ml_result9.bad_round &&
++	    pl_reported == 1 && pl_result8.cpu == 8 && pl_result9.cpu == 9 &&
++	    !pl_result8.error && !pl_result9.error &&
++	    pl_result8.done == MT6797_A72_PL_ROUNDS &&
++	    pl_result9.done == MT6797_A72_PL_ROUNDS &&
++	    pl_ready == 2 * MT6797_A72_PL_ROUNDS &&
++	    pl_written == 2 * MT6797_A72_PL_ROUNDS &&
++	    pl_verified == 2 * MT6797_A72_PL_ROUNDS &&
++	    pl_result8.write_hash != 0 && pl_result9.write_hash != 0 &&
++	    pl_result8.write_hash == pl_result9.read_hash &&
++	    pl_result9.write_hash == pl_result8.read_hash &&
++	    !pl_result8.bad_round && !pl_result9.bad_round)
++		pr_emerg("gemini-a72-pair-v6 result=pass sample=3 cpu8=8 cpu9=9 online8=1 online9=1 hits8=3 hits9=3 hps_reported=%d hps_cpu=%d hps_error=%d hps_count=%d coh_reported=%d coh_rounds=%d coh_cpu8=%d coh_cpu9=%d coh_error8=%d coh_error9=%d coh_seq8=%d coh_seq9=%d ml_reported=%d ml_rounds=64 ml_lines=256 ml_words=8 ml_cpu8=%d ml_cpu9=%d ml_error8=%d ml_error9=%d ml_done8=%d ml_done9=%d ml_hash8w=%016llx ml_hash8r=%016llx ml_hash9w=%016llx ml_hash9r=%016llx ml_bad_round=%d ml_bad_line=%d ml_bad_word=%d ml_expected=%016llx ml_actual=%016llx pl_reported=%d pl_rounds=128 pl_lines=1024 pl_words=8 pl_cpu8=%d pl_cpu9=%d pl_error8=%d pl_error9=%d pl_done8=%d pl_done9=%d pl_ready=%d pl_written=%d pl_verified=%d pl_hash8w=%016llx pl_hash8r=%016llx pl_hash9w=%016llx pl_hash9r=%016llx pl_bad_round=%d pl_bad_line=%d pl_bad_word=%d pl_expected=%016llx pl_actual=%016llx\n",
+ 			 hps_reported, hps_cpu, hps_error, hps_count,
+ 			 coh_reported, coh_rounds, coh_cpu8, coh_cpu9,
+ 			 coh_error8, coh_error9, coh_seq8, coh_seq9,
+@@ -971,12 +1203,23 @@ static void mt6797_a72_hold_workfn(struct work_struct *work)
+ 			 (unsigned long long)ml_result8.read_hash,
+ 			 (unsigned long long)ml_result9.write_hash,
+ 			 (unsigned long long)ml_result9.read_hash,
++			 0, 0, 0, 0ULL, 0ULL,
++			 pl_reported, pl_result8.cpu, pl_result9.cpu,
++			 pl_result8.error, pl_result9.error,
++			 pl_result8.done, pl_result9.done,
++			 pl_ready, pl_written, pl_verified,
++			 (unsigned long long)pl_result8.write_hash,
++			 (unsigned long long)pl_result8.read_hash,
++			 (unsigned long long)pl_result9.write_hash,
++			 (unsigned long long)pl_result9.read_hash,
+ 			 0, 0, 0, 0ULL, 0ULL);
+ 	else {
+ 		struct mt6797_a72_ml_result *bad = ml_result8.error ?
+ 			&ml_result8 : &ml_result9;
++		struct mt6797_a72_pl_result *pl_bad = pl_result8.error ?
++			&pl_result8 : &pl_result9;
+ 
+-		pr_emerg("gemini-a72-pair-v5 result=fault sample=3 cpu8=8 cpu9=9 online8=1 online9=1 hits8=3 hits9=3 hps_reported=%d hps_cpu=%d hps_error=%d hps_count=%d coh_reported=%d coh_rounds=%d coh_cpu8=%d coh_cpu9=%d coh_error8=%d coh_error9=%d coh_seq8=%d coh_seq9=%d ml_reported=%d ml_rounds=64 ml_lines=256 ml_words=8 ml_cpu8=%d ml_cpu9=%d ml_error8=%d ml_error9=%d ml_done8=%d ml_done9=%d ml_hash8w=%016llx ml_hash8r=%016llx ml_hash9w=%016llx ml_hash9r=%016llx ml_bad_round=%d ml_bad_line=%d ml_bad_word=%d ml_expected=%016llx ml_actual=%016llx\n",
++		pr_emerg("gemini-a72-pair-v6 result=fault sample=3 cpu8=8 cpu9=9 online8=1 online9=1 hits8=3 hits9=3 hps_reported=%d hps_cpu=%d hps_error=%d hps_count=%d coh_reported=%d coh_rounds=%d coh_cpu8=%d coh_cpu9=%d coh_error8=%d coh_error9=%d coh_seq8=%d coh_seq9=%d ml_reported=%d ml_rounds=64 ml_lines=256 ml_words=8 ml_cpu8=%d ml_cpu9=%d ml_error8=%d ml_error9=%d ml_done8=%d ml_done9=%d ml_hash8w=%016llx ml_hash8r=%016llx ml_hash9w=%016llx ml_hash9r=%016llx ml_bad_round=%d ml_bad_line=%d ml_bad_word=%d ml_expected=%016llx ml_actual=%016llx pl_reported=%d pl_rounds=128 pl_lines=1024 pl_words=8 pl_cpu8=%d pl_cpu9=%d pl_error8=%d pl_error9=%d pl_done8=%d pl_done9=%d pl_ready=%d pl_written=%d pl_verified=%d pl_hash8w=%016llx pl_hash8r=%016llx pl_hash9w=%016llx pl_hash9r=%016llx pl_bad_round=%d pl_bad_line=%d pl_bad_word=%d pl_expected=%016llx pl_actual=%016llx\n",
+ 			 hps_reported, hps_cpu, hps_error, hps_count,
+ 			 coh_reported, coh_rounds, coh_cpu8, coh_cpu9,
+ 			 coh_error8, coh_error9, coh_seq8, coh_seq9,
+@@ -989,7 +1232,18 @@ static void mt6797_a72_hold_workfn(struct work_struct *work)
+ 			 (unsigned long long)ml_result9.read_hash,
+ 			 bad->bad_round, bad->bad_line, bad->bad_word,
+ 			 (unsigned long long)bad->expected,
+-			 (unsigned long long)bad->actual);
++			 (unsigned long long)bad->actual,
++			 pl_reported, pl_result8.cpu, pl_result9.cpu,
++			 pl_result8.error, pl_result9.error,
++			 pl_result8.done, pl_result9.done,
++			 pl_ready, pl_written, pl_verified,
++			 (unsigned long long)pl_result8.write_hash,
++			 (unsigned long long)pl_result8.read_hash,
++			 (unsigned long long)pl_result9.write_hash,
++			 (unsigned long long)pl_result9.read_hash,
++			 pl_bad->bad_round, pl_bad->bad_line, pl_bad->bad_word,
++			 (unsigned long long)pl_bad->expected,
++			 (unsigned long long)pl_bad->actual);
+ 	}
+ 	console_lock();
+ 	console_unlock();

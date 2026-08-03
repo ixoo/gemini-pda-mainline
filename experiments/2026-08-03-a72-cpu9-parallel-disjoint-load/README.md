@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu9-parallel-disjoint-load` |
-| Status | `source-generation-ready` |
+| Status | `source-generated; compile-review-pending` |
 | Subsystem | MT6797 retained Cortex-A72 pair and cache coherency |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -35,9 +35,20 @@ watchdog recovery, or changed power boundary?
   mismatches, complete HPS/scalar attribution, watchdog-class recovery, offline
   recovery CPUs 8/9, and unchanged boot2.
 - Build backend: Buildbox only; no native VM kernel build.
-- The deterministic transformer, static contract validator, and Buildbox-only
-  patch generator are implemented locally. No generated source patch, compile,
-  container, deployment, or runtime claim exists yet.
+- Buildbox reconstructed the exact pair-v5 parent, applied the deterministic
+  child transformation, and produced one source patch changing only
+  `arch/arm64/kernel/psci.c`.
+- Source-review repository commit:
+  `b980bb9a3fef35f32be717757ec4216061d5c8ca`.
+- Exact generated parent commit:
+  `f465d671ed82fd2a461c7a6b0f567452e70400d8`.
+- Generated child commit:
+  `0bbc78db4` (Buildbox detached source-review commit).
+- Generated patch SHA-256:
+  `17d222165657e6679df3b7be6e1c712a15ec979012755cdbc95ae087eeed48f4`.
+- Pair-v5 validation: four pattern vectors and 16 negative mutations passed.
+- Pair-v6 validation: four pattern vectors and 19 negative mutations passed.
+- No compile, container, deployment, device action, or runtime claim exists.
 
 ## Safety assessment
 
@@ -58,19 +69,19 @@ static BSS and no payload is placed on the callback stack.
   independent payload vectors, safety inventory, and negative mutations.
 - [`scripts/generate-on-buildbox`](scripts/generate-on-buildbox): clean-pushed-
   commit Buildbox patch generation with exact parent provenance.
+- [`patches/series`](patches/series): exact generated source-review patch order.
 
 ## Conclusion
 
-`source-generation-ready`: pair-v5 proves repeatable alternating data
-integrity, but not concurrent writers. This child isolates parallel disjoint
-ownership as the next decision-changing observation. Its local tooling passes
-Python syntax, shell syntax, independently recomputed payload vectors, and
-whitespace checks. Exact source generation, positive validation, and mutation
-rejection must run on Buildbox before any compile, container, deployment, or
-device access.
+`source-generated; compile-review-pending`: pair-v5 proves repeatable
+alternating data integrity, but not concurrent writers. The exact generated
+pair-v6 source satisfies its positive contract and rejects all selected
+mutations. This is source evidence only; it is not yet a compiled candidate and
+cannot be deployed.
 
 ## Follow-up
 
-Commit and push this source review, then generate the exact child patch on
-Buildbox. Fetch and inspect only the validated review package before adding a
-compile workflow.
+Add an exact pair-v6-versus-pair-v5 Buildbox compile review. Require identical
+config and diagnostics, unchanged inherited symbols, linked parallel callback
+and terminal, bounded stack use, and a non-identical child kernel before any
+container work.
