@@ -243,7 +243,7 @@ def orchestrator_step(source: Path) -> None:
         "\t  aid for one pinned downstream kernel and is not an A72 power driver.\n\n"
         "config MTK_A72_ONE_WAY_CPU8\n"
         "\tbool \"MT6797 one-way CPU8 startup experiment\"\n"
-        "\tdepends on SMP && HOTPLUG_CPU && CL2_BUCK_CTRL\n"
+        "\tdepends on SMP && HOTPLUG_CPU\n"
         "\tdepends on MTK_A72_TRANSITION_OBSERVER\n"
         "\tdepends on MTK_WATCHDOG && MTK_WD_KICKER\n"
         "\tdepends on PSTORE && PSTORE_CONSOLE && PSTORE_RAM\n"

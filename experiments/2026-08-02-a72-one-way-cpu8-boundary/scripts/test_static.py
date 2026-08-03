@@ -27,6 +27,7 @@ def main() -> int:
         ("wdt", "timeout != 12", "timeout != 20"),
         ("wdt", "MTK_WDT_MODE_DUAL_MODE | MTK_WDT_MODE_EXT_POL |", "MTK_WDT_MODE_DUAL_MODE |"),
         ("wdt", "MTK_WDT_MODE_AUTO_RESTART)) !=", "MTK_WDT_MODE_EXTEN)) !="),
+        ("psci", "#define CONFIG_CL2_BUCK_CTRL\t1", "#define CONFIG_CL2_BUCK_CTRL\t0"),
         ("psci", "if (cpu == 9) {", "if (cpu == 10) {"),
         ("psci", "if (cpu == 8 || cpu == 9)", "if (cpu == 9)"),
         ("psci", 'stage = "isolation-write"', 'stage = "isolation-skipped"'),
@@ -38,7 +39,7 @@ def main() -> int:
         ("idvfs", "!(calibration_second & 0xffff)", "false"),
         ("idvfs", "(selector_second & 0xfff) != 0x8fb", "(selector_second & 0xfff) != 0x8fa"),
         ("dcm", "(snapshot.final & snapshot.mask) != 0x0d", "false"),
-        ("kconfig", "depends on SMP && HOTPLUG_CPU && CL2_BUCK_CTRL", "depends on SMP"),
+        ("kconfig", "depends on SMP && HOTPLUG_CPU", "depends on SMP"),
         ("kconfig", "depends on PSTORE && PSTORE_CONSOLE && PSTORE_RAM", "depends on PSTORE"),
     )
     for name, old, new in mutations:

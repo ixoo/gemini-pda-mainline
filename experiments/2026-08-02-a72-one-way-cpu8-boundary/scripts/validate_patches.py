@@ -51,7 +51,7 @@ def validate_files(files: dict[str, str]) -> None:
 
     require_once(kconfig, "config MTK_A72_ONE_WAY_CPU8", "Kconfig option")
     for dependency in (
-        "depends on SMP && HOTPLUG_CPU && CL2_BUCK_CTRL",
+        "depends on SMP && HOTPLUG_CPU",
         "depends on MTK_A72_TRANSITION_OBSERVER",
         "depends on MTK_WATCHDOG && MTK_WD_KICKER",
         "depends on PSTORE && PSTORE_CONSOLE && PSTORE_RAM",
@@ -101,6 +101,16 @@ def validate_files(files: dict[str, str]) -> None:
 
     boot = psci[psci.index("static int mt6797_a72_one_way_boot"):]
     boot = boot[: boot.index("int mt6797_a72_one_way_secondary_complete")]
+    require_once(psci, "#define CONFIG_CL2_BUCK_CTRL\t1", "pinned CL2 source guard")
+    require_order(
+        psci,
+        (
+            "#ifdef CONFIG_ARCH_MT6797\n#ifdef CONFIG_CL2_BUCK_CTRL",
+            "static int mt6797_a72_one_way_boot",
+            "static int cpu_power_on_buck",
+        ),
+        "one-way CL2 source enclosure",
+    )
     require_order(
         boot,
         (
