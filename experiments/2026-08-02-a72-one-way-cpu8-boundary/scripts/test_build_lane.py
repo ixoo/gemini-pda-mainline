@@ -18,8 +18,9 @@ def require(condition: bool, message: str) -> None:
         raise AssertionError(message)
 
 
-def patchset_hash(directory: Path) -> str:
-    names = [line for line in (directory / "series").read_text().splitlines() if line]
+def patchset_hash(directory: Path, names: list[str] | None = None) -> str:
+    if names is None:
+        names = [line for line in (directory / "series").read_text().splitlines() if line]
     manifest = bytearray()
     for name in names:
         require("/" not in name and name.endswith(".patch"), "unsafe series name")
@@ -32,12 +33,18 @@ def main() -> int:
     buildbox = (REPOSITORY / "scripts/buildbox").read_text()
     lane = (EXPERIMENT / "scripts/build-on-buildbox").read_text()
     parent_hash = patchset_hash(OBSERVER / "patches")
-    rollback_hash = patchset_hash(ROLLBACK / "patches")
+    rollback_hash = patchset_hash(
+        ROLLBACK / "patches",
+        [
+            "0001-diagnostic-extend-A72-observer-rollback-ABI.patch",
+            "0002-diagnostic-add-exact-A72-rollback-owner-operations.patch",
+        ],
+    )
     one_way_hash = patchset_hash(EXPERIMENT / "patches")
 
     expected = {
         parent_hash: "3584e9dd5ffb041573b851f31f3a96eaa0a684acb880fd59560762e5abc58be0",
-        rollback_hash: "fd4da13202c62a6ea21a216ffc9eb2650d70dcaa216a8ca1b3c64e5ef5c10b9d",
+        rollback_hash: "76a00aeb9ebefe0c964e70e56b63977071d2f2b12b12ce52ecdb7bb298f8fdd3",
         one_way_hash: "2ce261bdd9bcd5fe02133414c7d6535c213c06ad3af0e37ffbbc34feee7819c2",
     }
     require(all(actual == wanted for actual, wanted in expected.items()),
@@ -47,7 +54,7 @@ def main() -> int:
         "build-gemian-one-way-compile",
         "fetch-gemian-one-way-compile",
         "gemian-a72-one-way-compile-review",
-        "baseline_source_parent_rollback",
+        "baseline_source_parent_rollback_owners",
         *expected.values(),
     ]:
         require(token in buildbox, f"Buildbox wrapper missing {token!r}")
@@ -55,11 +62,11 @@ def main() -> int:
     for token in [
         'readonly SOURCE_COMMIT=59e00a9144d782e148332009a835b99c43382467',
         'readonly TARGET_EXTRA_CFLAGS=-fstack-usage',
-        '"${parent_patchset_sha}:${rollback_patchset_sha}" 0',
-        '"${parent_patchset_sha}:${rollback_patchset_sha}:${one_way_patchset_sha}" 1',
+        '"${parent_patchset_sha}:${accepted_rollback_patchset_sha}" 0',
+        '"${parent_patchset_sha}:${accepted_rollback_patchset_sha}:${one_way_patchset_sha}" 1',
         "--enable MTK_A72_TRANSITION_OBSERVER",
         "--enable MTK_A72_ONE_WAY_CPU8",
-        'baseline_source_parent_rollback: true',
+        'baseline_source_parent_rollback_owners: true',
         'purpose: "one-way-compile-review-only"',
         'boot_candidate: false',
         'outputs/baseline/stack-usage.tar',

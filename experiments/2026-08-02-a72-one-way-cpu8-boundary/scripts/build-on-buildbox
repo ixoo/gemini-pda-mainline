@@ -50,14 +50,17 @@ readonly rollback_experiment_dir
 readonly manifest="${observer_experiment_dir}/inputs/stretch-cross-toolchain.tsv"
 readonly baseline_config="${observer_experiment_dir}/inputs/active-gemian.config"
 readonly parent_patch_series="${observer_experiment_dir}/patches/series"
-readonly rollback_patch_series="${rollback_experiment_dir}/patches/series"
+readonly -a accepted_rollback_patches=(
+  0001-diagnostic-extend-A72-observer-rollback-ABI.patch
+  0002-diagnostic-add-exact-A72-rollback-owner-operations.patch
+)
 readonly one_way_patch_series="${experiment_dir}/patches/series"
 manifest_sha="$(sha256sum "${manifest}" | awk '{print $1}')"
 readonly manifest_sha
 parent_patchset_sha="$(cd "${observer_experiment_dir}/patches" && while IFS= read -r patch; do sha256sum "${patch}"; done < series | sha256sum | awk '{print $1}')"
 readonly parent_patchset_sha
-rollback_patchset_sha="$(cd "${rollback_experiment_dir}/patches" && while IFS= read -r patch; do sha256sum "${patch}"; done < series | sha256sum | awk '{print $1}')"
-readonly rollback_patchset_sha
+accepted_rollback_patchset_sha="$(cd "${rollback_experiment_dir}/patches" && for patch in "${accepted_rollback_patches[@]}"; do sha256sum "${patch}"; done | sha256sum | awk '{print $1}')"
+readonly accepted_rollback_patchset_sha
 one_way_patchset_sha="$(cd "${experiment_dir}/patches" && while IFS= read -r patch; do sha256sum "${patch}"; done < series | sha256sum | awk '{print $1}')"
 readonly one_way_patchset_sha
 [[ "$(sha256sum "${baseline_config}" | awk '{print $1}')" == "${CONFIG_SHA256}" ]] || \
@@ -229,7 +232,7 @@ prepare_variant() {
   trap 'test -n "${partial:-}" && test -d "${partial}" && rm -rf -- "${partial}"' RETURN
   git clone --no-checkout "${source_mirror}" "${partial}"
   git -C "${partial}" checkout --detach "${SOURCE_COMMIT}"
-  while IFS= read -r patch; do
+  for patch in "${accepted_rollback_patches[@]}"; do
     [[ "${patch}" =~ ^[A-Za-z0-9_.+-]+\.patch$ ]] || die "unsafe observer patch name"
     git -C "${partial}" apply --check "${observer_experiment_dir}/patches/${patch}"
     git -C "${partial}" apply "${observer_experiment_dir}/patches/${patch}"
@@ -241,7 +244,7 @@ prepare_variant() {
       "${rollback_experiment_dir}/patches/${patch}"
     git -C "${partial}" apply \
       "${rollback_experiment_dir}/patches/${patch}"
-  done < "${rollback_patch_series}"
+  done
   if [[ "${include_one_way}" == 1 ]]; then
     while IFS= read -r patch; do
       [[ "${patch}" =~ ^[A-Za-z0-9_.+-]+\.patch$ ]] || \
@@ -261,13 +264,13 @@ prepare_variant() {
 
 prepare_toolchain
 readonly source_mirror="${source_root}/gemian-linux-kernel-3.18.git"
-readonly prepared_source="${source_root}/gemian-one-way/${parent_patchset_sha:0:16}-${rollback_patchset_sha:0:16}-${one_way_patchset_sha:0:16}"
-readonly baseline_source="${source_root}/gemian-rollback/${parent_patchset_sha:0:16}-${rollback_patchset_sha:0:16}"
+readonly prepared_source="${source_root}/gemian-one-way/${parent_patchset_sha:0:16}-${accepted_rollback_patchset_sha:0:16}-${one_way_patchset_sha:0:16}"
+readonly baseline_source="${source_root}/gemian-rollback-owners/${parent_patchset_sha:0:16}-${accepted_rollback_patchset_sha:0:16}"
 prepare_mirror
-prepare_variant "${baseline_source}" .gemini-rollback-state \
-  "${parent_patchset_sha}:${rollback_patchset_sha}" 0
+prepare_variant "${baseline_source}" .gemini-rollback-owners-state \
+  "${parent_patchset_sha}:${accepted_rollback_patchset_sha}" 0
 prepare_variant "${prepared_source}" .gemini-one-way-state \
-  "${parent_patchset_sha}:${rollback_patchset_sha}:${one_way_patchset_sha}" 1
+  "${parent_patchset_sha}:${accepted_rollback_patchset_sha}:${one_way_patchset_sha}" 1
 
 readonly toolchain="${toolchain_root}/${manifest_sha}"
 readonly cross_prefix="${toolchain}/wrappers/aarch64-linux-gnu-"
@@ -533,7 +536,7 @@ jq -n \
   --arg source_url "${SOURCE_URL}" \
   --arg source_commit "${SOURCE_COMMIT}" \
   --arg parent_patchset_sha256 "${parent_patchset_sha}" \
-  --arg rollback_patchset_sha256 "${rollback_patchset_sha}" \
+  --arg accepted_rollback_patchset_sha256 "${accepted_rollback_patchset_sha}" \
   --arg one_way_patchset_sha256 "${one_way_patchset_sha}" \
   --arg config_sha256 "${CONFIG_SHA256}" \
   --arg toolchain_manifest_sha256 "${manifest_sha}" \
@@ -547,7 +550,7 @@ jq -n \
   '{repository_commit: $repository_commit, repository_dirty: false,
     source_url: $source_url, source_commit: $source_commit,
     parent_patchset_sha256: $parent_patchset_sha256,
-    rollback_patchset_sha256: $rollback_patchset_sha256,
+    accepted_rollback_patchset_sha256: $accepted_rollback_patchset_sha256,
     one_way_patchset_sha256: $one_way_patchset_sha256,
     baseline_config_sha256: $config_sha256,
     toolchain_manifest_sha256: $toolchain_manifest_sha256,
@@ -556,7 +559,7 @@ jq -n \
     target_architecture: $target_architecture, host_extra_cflags: "-fcommon",
     target_extra_cflags: "-fstack-usage",
     baseline_comparison: true, diagnostics_identical: true,
-    baseline_source_parent_rollback: true, stack_usage_captured: true,
+    baseline_source_parent_rollback_owners: true, stack_usage_captured: true,
     stack_usage_file_count: $stack_usage_file_count,
     baseline_stack_usage_file_count: $baseline_stack_usage_file_count,
     purpose: "one-way-compile-review-only",

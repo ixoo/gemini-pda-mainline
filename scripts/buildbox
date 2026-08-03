@@ -641,12 +641,12 @@ else
     [[ -s "${package}/${required}" ]]
   done
   jq -e '
-    .baseline_source_parent_rollback == true and
+    .baseline_source_parent_rollback_owners == true and
     .baseline_stack_usage_file_count > 100 and
     .parent_patchset_sha256 ==
       "3584e9dd5ffb041573b851f31f3a96eaa0a684acb880fd59560762e5abc58be0" and
-    .rollback_patchset_sha256 ==
-      "fd4da13202c62a6ea21a216ffc9eb2650d70dcaa216a8ca1b3c64e5ef5c10b9d" and
+    .accepted_rollback_patchset_sha256 ==
+      "76a00aeb9ebefe0c964e70e56b63977071d2f2b12b12ce52ecdb7bb298f8fdd3" and
     .one_way_patchset_sha256 ==
       "2ce261bdd9bcd5fe02133414c7d6535c213c06ad3af0e37ffbbc34feee7819c2" and
     .purpose == "one-way-compile-review-only"
