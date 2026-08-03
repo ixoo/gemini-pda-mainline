@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-scheduler-context` |
-| Status | `compile-review-passed` |
+| Status | `offline-container-passed` |
 | Subsystem | MT6797 retained Cortex-A72 pair and scheduler |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -78,6 +78,13 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   commit Buildbox source reconstruction and format-patch generator.
 - [`scripts/build-on-buildbox`](scripts/build-on-buildbox): Buildbox-only child
   versus exact pair-v6 compile, diagnostics, disassembly, and stack comparison.
+- [`scripts/assemble.py`](scripts/assemble.py): pinned pair-v6 Android-v0
+  assembler specialization for the accepted scheduler kernel.
+- [`scripts/build-candidate.sh`](scripts/build-candidate.sh): reproducible,
+  offline-only candidate construction with two raw and padded constructions.
+- [`scripts/test_candidate.py`](scripts/test_candidate.py): independent tool,
+  manifest, Android-v0, extent, image-ID, ramdisk, padding, and provenance
+  validator.
 - [`patches/series`](patches/series): exact generated experiment-only scheduler-
   context source patch.
 
@@ -169,6 +176,14 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   the 1,024-byte boundary. This is compile-review evidence only; no container
   or device action occurred. See
   [`results/compile-review-20260803.txt`](results/compile-review-20260803.txt).
+- Two independent offline candidate roots each performed two raw assemblies and
+  two padded constructions. All copies are byte-identical and both independent
+  validations passed. The accepted raw Android-v0 SHA-256 is
+  `f9fddf01576aa6915c030b1952b290d937ef9a0ba9512a6adb0ab02de2e5fff3`;
+  the exact 16 MiB boot2 SHA-256 is
+  `24377665fa5b9112266890844c06c453bb50e17680b6f6f956035c234c26ff0f`.
+  No device was accessed. See
+  [`results/offline-container-review-20260803.txt`](results/offline-container-review-20260803.txt).
 
 ## Analysis
 
@@ -179,10 +194,9 @@ context while preserving the established power and recovery boundary.
 
 ## Conclusion
 
-`compile-review-passed`: the isolated reporter preserves the pair-v6 parent
-worker at 784 bytes, every new measured frame is below 1,024 bytes, child and
-exact-parent diagnostics match, and the scheduler-specific binary boundaries
-pass. No Android-v0 container, deployment, or hardware evidence exists.
+`offline-container-passed`: the exact compile-reviewed scheduler kernel is now
+embedded in a reproducible, independently validated Android-v0 container with
+a fixed full-partition identity. No deployment or hardware evidence exists.
 
 ## Follow-up
 

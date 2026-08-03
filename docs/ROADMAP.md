@@ -1054,10 +1054,12 @@ or suspend validation.
 
 The scheduler-context child has now passed exact-source generation, 25
 negative mutations, Buildbox child-versus-exact-parent compilation, binary and
-terminal boundaries, identical diagnostics, and the 1,024-byte stack gate. The
-next ordered action is reproducible Android-v0 container construction and
-independent offline validation from the accepted Image.gz-dtb. No boot2 write
-or scheduler-context runtime claim exists yet.
+terminal boundaries, identical diagnostics, the 1,024-byte stack gate, and
+reproducible independent Android-v0 container validation. The exact full boot2
+SHA-256 is `24377665fa5b9112266890844c06c453bb50e17680b6f6f956035c234c26ff0f`.
+The next ordered action is guarded-installer and runtime-decision-map review,
+followed by one live-GPT-resolved boot2 deployment. No boot2 write or
+scheduler-context runtime claim exists yet.
 
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback

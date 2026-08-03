@@ -1,0 +1,58 @@
+CPU8/CPU9 scheduler-context offline container review
+Date: 2026-08-03
+
+Decision: accept the exact padded container for guarded boot2 deployment only
+after the installer and runtime decision map pass their static tests. No device
+was accessed in this review.
+
+Exact identities
+----------------
+
+Compile repository commit:
+  697ac3984c9b52c285cb7fcdb076dcec4dbf8ef0
+Child Image.gz-dtb SHA-256:
+  9d2d9db5bd66bcc33c7c072248b5d907b75e5ceb8bf810c88bfd0019e128f402
+Parallel parent patchset SHA-256:
+  94d3b07355e1ddb67f3f643165570255bb1f42131b3b67c074d270e8581989e2
+Scheduler patchset SHA-256:
+  30316bc63934d7fdc022367bb8b465e794c8c91ec9956d6233e02bddad55fffe
+Known-good active boot input SHA-256:
+  1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513
+Retained ramdisk SHA-256:
+  a1ee05445e9a2bd8fbc1f75d7cda326b9ca7a6d3b644cbb1d5fc0ac167835be4
+Raw Android-v0 SHA-256:
+  f9fddf01576aa6915c030b1952b290d937ef9a0ba9512a6adb0ab02de2e5fff3
+Full 16 MiB padded SHA-256:
+  24377665fa5b9112266890844c06c453bb50e17680b6f6f956035c234c26ff0f
+Candidate manifest SHA-256:
+  a2c207ebcaa7fdae4e5144f2075b6838f677e9bacca7fcee5bee32d43c326384
+
+Validation
+----------
+
+- Two independent ignored output roots each performed two raw assemblies and
+  two independent padding constructions; all raw and padded outputs are
+  byte-identical.
+- Both roots pass the independent candidate validator with pinned assembler,
+  pair-v6 parent assembler, builder, source builder, compile commit, patchsets,
+  kernel, active-boot, ramdisk, raw, and padded identities.
+- The raw container is 14,813,184 bytes and has Android-v0 magic, unchanged
+  addresses, 2,048-byte pages, unchanged command line, and no second stage or
+  separate DT extent.
+- The embedded kernel is exactly 8,455,991 bytes and matches the final
+  validated Buildbox child image.
+- The retained 6,354,621-byte ramdisk matches the known-good Gemian input.
+- The legacy image ID, aligned extents, zero padding, exact 16,777,216-byte
+  partition size, manifests, and provenance validate independently.
+- The builder contains no device path, network address, transport, reboot,
+  shutdown, or partition-writing action. Runtime remains untested.
+
+Acceptance boundary
+-------------------
+
+This fixes the exact artifact identity but does not itself authorize a write
+outside the standing live-GPT-resolved inactive boot2 policy. Before deployment,
+the installer must verify target identity, inactive/unmounted state, size,
+power, predecessor checksum, full write/readback, and clean shutdown. The
+runtime map must require adjacent complete pair-v6 and pair-v7 success terminals
+plus changed watchdog recovery.
