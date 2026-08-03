@@ -30,6 +30,11 @@ def validate_source(psci: str) -> None:
     work = psci[psci.index("static void mt6797_a72_hold_workfn") :]
     work = work[: work.index("static void mt6797_a72_one_way_marker")]
     once(work, "smp_call_function_single(8", "CPU8 synchronous IPI")
+    once(
+        work,
+        "ret || observed_cpu != 8 || !cpu_online(8) || cpu_online(9)",
+        "exact IPI/accounting failure predicate",
+    )
     once(work, "sample == 1 ? 5000 : 4000", "exact late timing")
     once(work, "sample < 3", "three-sample bound")
     once(work, "result=pass sample=3 cpu=8 cpu8=1 cpu9=0 hits=3", "terminal")
