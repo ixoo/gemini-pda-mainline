@@ -1,0 +1,65 @@
+CPU8/CPU9 parallel disjoint-load runtime attempt 1
+Date: 2026-08-03
+
+Decision: inconclusive observation. The exact candidate recovered safely, but
+no pair-v6 terminal or fault survived collection. This is neither a pass nor a
+kernel-failure claim. One repeat is justified only with the changed independent
+live observation path described below.
+
+Exact identities
+----------------
+
+Repository compile commit:
+  ad7807ccc50bebd0aaeafcbe4dadb4c11c44b850
+Parallel patchset SHA-256:
+  94d3b07355e1ddb67f3f643165570255bb1f42131b3b67c074d270e8581989e2
+Raw Android-v0 SHA-256:
+  6673d9ff6b9ff0a2bb4cf7a89815d73022208975dca713176c71a3b0865c7c51
+Full boot2 SHA-256:
+  0beead0b00485ad18333aca4d688fcd549c813113b7ec0554a6761c7147b17fb
+Recovery pstore console SHA-256:
+  6794a629a225d975d92f2bcbd40e80f5bbb8f369b57bfef35571331b6f67b680
+Recovery pstore archive SHA-256:
+  8d31d438d691767f8d77288deabb78385fe3e2f955d2601fe733bfea06cc61a0
+
+Attribution and recovery
+------------------------
+
+- Deployment baseline Gemian boot ID:
+  `482ec3bb-e1dc-4cbe-95b9-70b6dc5d5001`.
+- The owner reported physical pair-v6 boot2 selection.
+- Immediate read-only recovery found ordinary Gemian boot ID:
+  `dab03dc6-a111-4f92-b969-a4066001ed5a`.
+- Recovery kernel/architecture: `3.18.41+` / aarch64.
+- Filtered boot arguments: `boot_reason=4` and
+  `androidboot.bootreason=wdt_by_pass_pwk`.
+- Recovery online CPU mask was `0-1`; CPU8 and CPU9 each reported `online=0`.
+- Live GPT exposed one unmounted 16 MiB `/dev/mmcblk0p30 boot2`.
+- Full boot2 checksum remained exact pair-v6.
+- Battery telemetry was present, 100%, Full, and Good.
+
+Observation failure
+-------------------
+
+The initially armed USB/netcat collector exhausted its five-minute interface
+wait before physical selection. It produced no runtime capture. An immediate
+retry began after the owner reported boot2 start but the short USB enumeration
+window had already passed. The device then automatically recovered.
+
+Read-only pstore capture began after recovery. Its 64 KiB console contained the
+current Gemian boot log and no `gemini-a72-pair-v6`, inherited pair terminal,
+panic, BUG, Internal error, Call trace, asynchronous SError, or lockup record.
+The pair-v6 boot log had been overwritten, so absence of the terminal cannot
+identify terminal-not-reached versus evidence loss.
+
+Next action
+-----------
+
+This follows the fixed `AUTOMATIC RESTART WITH NO PAIR-V6` branch. The next
+cycle may repeat the identical candidate only because it adds a durable,
+independent, decision-changing observation path: prove the source-pinned
+read-only USB collector is actively waiting while the device is off, and
+physically select boot2 within its reviewed five-minute window.
+If a complete pair-v6 terminal is captured, classify it under the original
+map. If the same automatic restart again yields no terminal, do not repeat the
+candidate unchanged.

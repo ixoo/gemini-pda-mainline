@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu9-parallel-disjoint-load` |
-| Status | `deployed-and-shutdown; first-runtime-pending` |
+| Status | `attempt-1-inconclusive; live-capture-repeat-pending` |
 | Subsystem | MT6797 retained Cortex-A72 pair and cache coherency |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -48,7 +48,7 @@ watchdog recovery, or changed power boundary?
   `17d222165657e6679df3b7be6e1c712a15ec979012755cdbc95ae087eeed48f4`.
 - Pair-v5 validation: four pattern vectors and 16 negative mutations passed.
 - Pair-v6 validation: four pattern vectors and 19 negative mutations passed.
-- No deployment, device action, or runtime claim exists yet.
+- No positive pair-v6 runtime claim exists yet.
 - Final Buildbox compile-review commit:
   `ad7807ccc50bebd0aaeafcbe4dadb4c11c44b850`.
 - Child `Image.gz-dtb` SHA-256:
@@ -86,6 +86,16 @@ watchdog recovery, or changed power boundary?
   `0beead0b00485ad18333aca4d688fcd549c813113b7ec0554a6761c7147b17fb`.
 - No fresh partition backup was made, temporary readback data was removed, and
   clean shutdown was confirmed by loss of reachability. There was no reboot.
+- Attempt 1 automatically recovered into Gemian with a changed boot ID and
+  watchdog-class boot reason. CPUs 8/9 were offline and exact pair-v6 boot2 was
+  unchanged. The pre-armed USB collector expired before physical selection;
+  its immediate retry missed the short boot window, and Gemian overwrote the
+  64 KiB ramoops console before capture. No pair-v6 terminal or fault survived.
+  The attempt is therefore inconclusive, not a pass or kernel failure.
+- A repeat is earned under the fixed `AUTOMATIC RESTART WITH NO PAIR-V6`
+  branch only with a materially stronger observation: the exact read-only
+  collector must be proven actively waiting and physical boot must occur inside
+  its reviewed five-minute USB window.
 
 ## Safety assessment
 
@@ -131,20 +141,23 @@ static BSS and no payload is placed on the callback stack.
   fixed pair-v6 deployment, recovery, pass, and reject branches.
 - [`results/deployment-20260803.txt`](results/deployment-20260803.txt): exact
   live-GPT write, full-readback, no-backup, and shutdown evidence.
+- [`results/runtime-attempt-1-inconclusive-20260803.txt`](results/runtime-attempt-1-inconclusive-20260803.txt):
+  attributable watchdog recovery with the terminal lost to observation timing.
 
 ## Conclusion
 
-`deployed-and-shutdown; first-runtime-pending`: source, mutation,
+`attempt-1-inconclusive; live-capture-repeat-pending`: source, mutation,
 comparative compile, binary, configuration, diagnostics, stack, two-root
 container reproducibility, and independent Android-v0 validation gates pass.
 The pair-v6 installer and read-only collector are source-pinned to accepted
 pair-v5 tools, the exact predecessor/candidate identities are mutation-tested,
-and the runtime decision map is fixed. The exact pair-v6 candidate is installed
-with full readback verification and the device is off. No pair-v6 runtime claim
-exists yet.
+and the runtime decision map is fixed. The exact pair-v6 candidate remains
+installed with full readback verification. Attempt 1 recovered safely but
+produced no retained terminal, so no pair-v6 runtime claim exists yet.
 
 ## Follow-up
 
-Arm changed-cycle pstore collection and physically select boot2 once under the
-fixed decision map. Classify only a complete attributable pair-v6 terminal and
-recovery cycle; screen color and restart alone are not evidence.
+Revalidate unchanged exact boot2, shut Gemian down, and arm the reviewed
+read-only USB/netcat collector before physical selection. Repeat once under the
+predeclared no-terminal branch and classify only a complete pair-v6 terminal;
+screen color and restart alone are not evidence.
