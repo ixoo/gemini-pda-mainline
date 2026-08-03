@@ -64,6 +64,15 @@ def validate(psci: str, cpu: str, hps: str) -> None:
         "#define MT6797_A72_SC_TIMEOUT_MS 2000",
         "#define MT6797_A72_SC_HASH8_EXPECTED 0xf678147669874ecdULL",
         "#define MT6797_A72_SC_HASH9_EXPECTED 0xc2274327e9c8104cULL",
+        "static u64 mt6797_a72_sc_step(u64 value, int cpu, unsigned int iteration)\n"
+        "{\n"
+        "\tvalue ^= (u64)cpu << 57;\n"
+        "\tvalue ^= (u64)iteration * 0x9e3779b97f4a7c15ULL;\n"
+        "\tvalue ^= value << 13;\n"
+        "\tvalue ^= value >> 7;\n"
+        "\tvalue ^= value << 17;\n"
+        "\treturn value;\n"
+        "}",
         "!!(current->flags & PF_KTHREAD) && !in_interrupt()",
         "cpu = get_cpu();\n\tput_cpu();",
         "atomic_inc(&mt6797_a72_sc_ready);",

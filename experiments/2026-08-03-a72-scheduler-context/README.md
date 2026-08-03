@@ -89,6 +89,11 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   legitimate clears per CPU, not two. The validator was tightened to inventory
   all three and require stop-then-clear adjacency. Again, no patch package,
   compile, or device action occurred.
+- The retry from commit `4df04b0e951cc917ef6d25eab753ec75a93cd10d`
+  reached the negative-mutation suite. Its changed recurrence constant was not
+  rejected because the independently recomputed hash vectors were not yet tied
+  to the exact source recurrence. The validator now requires the full recurrence
+  function body. No patch package, compile, or device action occurred.
 
 ## Analysis
 
