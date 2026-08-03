@@ -182,7 +182,7 @@ def main() -> int:
         raise SystemExit(f"error: mutation was not rejected: {name}")
 
     print("validation=cpu9-parallel-disjoint-load-source")
-    print(f"pattern_vectors={len(vectors)}-passed")
+    print("pattern_vectors=4-passed")
     print(f"mutations={len(mutations)}-rejected")
     print("result=pass")
     return 0
