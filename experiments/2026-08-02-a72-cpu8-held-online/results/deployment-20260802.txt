@@ -1,0 +1,68 @@
+CPU8 held-online guarded boot2 deployment
+=========================================
+
+Date: 2026-08-02
+Result: write, flush, full readback and shutdown verified
+Runtime result: not tested
+
+Exact candidate
+---------------
+
+Raw Android-v0 SHA-256:
+  53046cf314f76f213abafa53a1e79758ff835941d78a47ecc878d0a2e1ad3789
+Candidate manifest SHA-256:
+  93ad961f64bcdd54d5b94afc2ed23c18de329cdce55a30b6de350bbb1f4084bb
+Full boot2 candidate SHA-256:
+  936b9256709514938ddf2f3ab13e63bd9c8d37e991fe40a568aa36a8f8818018
+
+Live gates and write
+--------------------
+
+Known-good OS: Gemian 2019, kernel 3.18.41+, aarch64
+Logical target: boot2
+Live GPT target: /dev/mmcblk0p30
+Active root: /dev/mmcblk0p29
+Target size: 16777216 bytes
+Target mounted or active: no
+Power: present=1 capacity=90 health=Good
+Pre-deployment boot-ID SHA-256:
+  913548e5a7472f22c19fbccdd9deef42e783dc2128aeb133d2d5f7d7dc3f2c41
+Exact predecessor SHA-256:
+  fc7368ef0bd56b5c17fea277f78bfeae362da5f685be9f85686f991cdc4fefda
+
+The live GPT resolved exactly one writable 16 MiB boot2 partition. It was not
+the active root, mounted, held or swap. The candidate fit exactly. The helper
+uploaded a mode-0600 staging file, verified its hash, wrote four full 4 MiB
+blocks with fsync/notrunc, synchronized and flushed the block device, then
+verified the entire target.
+
+Full post-write target SHA-256:
+  936b9256709514938ddf2f3ab13e63bd9c8d37e991fe40a568aa36a8f8818018
+Independent full readback SHA-256:
+  936b9256709514938ddf2f3ab13e63bd9c8d37e991fe40a568aa36a8f8818018
+Fresh predecessor backup: no
+Temporary staging/readback removed: yes
+
+Shutdown
+--------
+
+Evidence was flushed before `systemctl poweroff`. The SSH session closed and
+the target remained unreachable across the post-shutdown probes. The helper
+did not reboot the device. The Gemini is powered off for owner-controlled boot
+selection.
+
+Private evidence identities
+---------------------------
+
+Deployment summary SHA-256:
+  74f01ef8043e1217f3f40bfc68ba041d306226f6c348fb8ac37c42dfbb8289ad
+Private manifest SHA-256:
+  f46a5bb1a41ad93d7689436c93b6b9cd73ad973a88fcdf4703ddf6bd2221dedb
+
+Decision
+--------
+
+The exact held-online candidate is installed and read back successfully. No
+runtime claim is made. Because changed-cycle pstore collection requires an
+initial reachable boot ID, first boot ordinary Gemian, arm collection, allow a
+clean host-requested shutdown, and only then manually select boot2.

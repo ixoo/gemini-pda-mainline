@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-02-a72-cpu8-held-online` |
-| Status | `offline-gates-passed-deployment-eligible-after-push` |
+| Status | `deployed-powered-off-runtime-pending` |
 | Subsystem | MT6797 HPS, generic CPU hotplug, CPU8 IPI/coherency |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-02 |
@@ -74,6 +74,8 @@ experiment and prohibits unchanged retry.
   reproducible Android-v0 assembly, padding, parsing, and offline-only decision.
 - [`results/runtime-decision-map-20260802.txt`](results/runtime-decision-map-20260802.txt):
   exact deployment boundary and mutually exclusive runtime decisions.
+- [`results/deployment-20260802.txt`](results/deployment-20260802.txt): exact
+  live-GPT write/readback and post-success shutdown evidence.
 
 ## Procedure
 
@@ -121,6 +123,6 @@ a boot candidate.
 
 ## Follow-up
 
-Commit and push the passed offline runtime gate, then perform one guarded boot2
-deployment from known-good Gemian. The installer must leave the device powered
-off for manual boot2 selection with retained-pstore collection already armed.
+Boot ordinary Gemian once to establish the retained-pstore collector's initial
+boot ID, let the host shut it down, then manually select boot2 with both
+observation paths armed.
