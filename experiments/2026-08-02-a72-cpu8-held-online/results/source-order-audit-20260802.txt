@@ -1,0 +1,74 @@
+CPU8 held-online source/order audit
+==================================
+
+Date: 2026-08-02
+Result: design boundary confirmed
+Device access during audit: none
+Kernel build during audit: none
+
+Pinned public source
+--------------------
+
+Commit: 59e00a9144d782e148332009a835b99c43382467
+kernel/cpu.c SHA-256:
+  74acd12f0402b52254bd7890446af8dc1ac85f30075d9d82e6c267e3f0ac19aa
+mt_hotplug_strategy_algo.c SHA-256:
+  1100eac008d27a9bab9bba3a445aa8b7d51d602e15146b0990bc759c7d7c7f09
+arch/arm64/kernel/psci.c SHA-256:
+  a1d5367bb23c4838deb862d01fc9f2aaabd854a8695f906191713f2398fdd11b
+
+Accepted one-way parent
+-----------------------
+
+Patch 1 SHA-256:
+  0d1bff920f6c9dc3fd3dbdc9a92064acbdb79e32c2de66854e4b30d7720b00cc
+Patch 2 SHA-256:
+  52b5c396156b9f71757120fa39bd4a9cff3588d1c392ad1632cb733fff663817
+Patch 3 SHA-256:
+  d901475205f21494d9b64aaffe35a569fdb4f9f491289b3e3bd03e97b339a2ca
+Patchset SHA-256:
+  d9649e1453a05bc8a016da6fa371e97480ff62aebad3dedd87d148d5cb574890
+
+Runtime-to-source ordering
+--------------------------
+
+The exact retained fault path was:
+
+  hps_algo_do_cluster_action -> cpu_down -> _cpu_down ->
+  __cpu_notify(CPU_DOWN_PREPARE) -> _mt_cpufreq_cpu_CB ->
+  cpuhvfs_notify_cluster_off -> translation fault
+
+The current platform `cpu_psci_cpu_disable()` rejection is called later from
+`take_cpu_down()` through `__cpu_disable()`. It cannot protect notifier entry.
+The panic therefore does not contradict CPU8 startup success; it proves that
+the veto is at the wrong ownership layer for generic hotplug ordering.
+
+Chosen boundary
+---------------
+
+- Clamp the HPS target for exact CPU bounds 8..9 to one while CPU8 is online,
+  before its power-down loop and before `cpu_down()`.
+- Independently reject CPU8/9 at the public `cpu_down()` entry before map/hotplug
+  locks, profiling, and notifier dispatch.
+- Preserve the existing late platform reject as defense in depth.
+- Add only two synchronous CPU8 IPIs after successful secondary completion,
+  at one and six seconds, with exact CPU/online/hit-count checks.
+
+Rejected alternatives
+---------------------
+
+- Platform-disable-only: already proved too late.
+- HPS-only skip: leaves another caller able to enter unsafe notifiers.
+- Generic-only veto: safe but leaves HPS repeatedly targeting an impossible
+  cluster count and does not express the experiment's held-online policy.
+- Disabling all CPU hotplug globally: changes CPU0..7 policy and is broader than
+  the observed fault.
+- CPU_OFF or guessed A72 power-down: violates the accepted one-way boundary.
+- Marker-only repeat: adds no independent execution/coherency evidence.
+
+Decision
+--------
+
+Generate three logical experiment-only patches with deterministic source-drift
+guards and mutation tests. The exact parent startup code and watchdog ownership
+must remain byte-identical. Buildbox is the only permitted kernel build backend.
