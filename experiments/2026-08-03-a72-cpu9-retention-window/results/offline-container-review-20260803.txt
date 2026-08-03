@@ -1,0 +1,96 @@
+CPU9 retention-window offline Android-v0 container review
+=========================================================
+
+Date: 2026-08-03
+Result: accepted-offline-container
+
+Pinned inputs
+-------------
+
+Buildbox repository commit:
+  be443b37972751708e628d8dc691d7f5c10be3ba
+Kernel field SHA-256:
+  97def9a894f84e316349fd01ca7a5044b9b786ea385bb34a4badf242a212c7d4
+Kernel field size: 8,447,137 bytes
+Exact parent CPU9 patchset SHA-256:
+  17733d2ae50c16f9d0db2d4bd4075fa5a72ce081606db7d3bf1bfe83f4159a2b
+Retention-window patchset SHA-256:
+  9ce572fbc87a1444bb71894dd4528f39dc065065a45b36db52a14791f167eeec
+Active Gemian boot SHA-256:
+  1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513
+Inherited ramdisk SHA-256:
+  a1ee05445e9a2bd8fbc1f75d7cda326b9ca7a6d3b644cbb1d5fc0ac167835be4
+
+Tool identities
+---------------
+
+Assembler SHA-256:
+  f6d36d5eeafe92936fb8c18bddf34eed92f28dd1b602989fb196e83206812885
+Candidate builder SHA-256:
+  e1d6a477689dd3f8fe6687f52d4aaa7d3d9b0fc44e7328024e942657003e3ff9
+Independent validator SHA-256:
+  a7f88a84ef9493b46cc2286b765dc4eb5231ff6a160a87a5584e06f2929e9b16
+Pinned CPU9 parent assembler SHA-256:
+  dbd00ee1f2dfbec6eb8c2d48a8e65a1f2ca888a5e6be400e05620cd04a597358
+Pinned stable source builder SHA-256:
+  65c39fa45b1f76fb85780473feb3b675bd5e6647934e68be2761bc823c07e0fe
+
+Rejected constructor revisions
+------------------------------
+
+The first derived constructor produced correct bytes but retained the parent
+`cluster-reuse` output-directory label. That regenerable output was removed.
+The next revision corrected the name but omitted the window patchset from
+candidate provenance. Two outputs from that revision were also removed. No
+rejected output was deployed or retained as a candidate.
+
+The accepted constructor derives directly from the pinned stable held-online
+builder and inserts the late, CPU9, and retention-window identities in one
+transformation. It requires the exact Buildbox purpose and all patchset hashes
+before assembly, and asserts the window provenance formatter exists before
+execution.
+
+Accepted construction
+---------------------
+
+Two separate output roots each performed two raw assemblies and two independent
+padding constructions. The two complete output roots are byte-identical.
+
+Raw Android-v0 image:
+
+- name: `gemian-a72-cpu9-retention-window.boot.img`;
+- size: 14,804,992 bytes;
+- SHA-256:
+  `140bed8c432d1ec3ee1d223e06bf51750fc6bbed37cb1d0f596c89f557bffe9c`.
+
+Full boot2 image:
+
+- name: `boot2-padded.img`;
+- size: 16,777,216 bytes;
+- SHA-256:
+  `6f1e5f45c8f75cdfde5a996f902f499d685566c3bec227efa6cdb56aaeffa115`.
+
+Independent validation
+----------------------
+
+The independent validator passed both output roots and checked:
+
+- pinned assembler, builder, parent assembler, and source-builder identities;
+- exact manifest inventory and every file checksum;
+- Android-v0 magic, header fields, load addresses, page size, empty name,
+  command line, zero second/DT fields, legacy image ID, and exact extent;
+- exact kernel field, unchanged ramdisk, raw size/hash, and padded size/hash;
+- raw-prefix equality and an all-zero padded tail;
+- repository, late, CPU9, window, kernel, ramdisk, raw, and padded identities
+  in candidate evidence; and
+- no device, network shell, reboot, poweroff, shutdown, or partition action in
+  the constructor.
+
+Decision and limits
+-------------------
+
+The full image with SHA-256
+`6f1e5f45c8f75cdfde5a996f902f499d685566c3bec227efa6cdb56aaeffa115`
+is the sole accepted retention-window candidate for the next guarded runtime
+map and boot2 deployment gates. Construction performed no device action. This
+does not prove boot, runtime behavior, or hardware support.

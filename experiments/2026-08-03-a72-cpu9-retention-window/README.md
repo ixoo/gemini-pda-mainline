@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu9-retention-window` |
-| Status | `compile-review-passed-container-pending` |
+| Status | `container-review-passed-runtime-map-pending` |
 | Subsystem | MT6797 CPU8/CPU9 retained pair sampling and HPS down pressure |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -54,11 +54,18 @@ and clean shutdown after verified readback.
 - [`scripts/build-on-buildbox`](scripts/build-on-buildbox): exact CPU9-parent
   versus retention-window-child compilation, binary, diagnostics, and stack
   comparison.
+- [`scripts/build-candidate.sh`](scripts/build-candidate.sh),
+  [`scripts/assemble.py`](scripts/assemble.py), and
+  [`scripts/test_candidate.py`](scripts/test_candidate.py): pinned Android-v0
+  construction and independent offline validation.
 - [`patches/`](patches/): one accepted Buildbox-generated logical child patch.
 - [`results/patch-generation-review-20260803.txt`](results/patch-generation-review-20260803.txt):
   rejected broad anchor, exact accepted identities, checks, and decision.
 - [`results/compile-review-20260803.txt`](results/compile-review-20260803.txt):
   exact-parent full builds, binary/source anchors, stack use, and decision.
+- [`results/offline-container-review-20260803.txt`](results/offline-container-review-20260803.txt):
+  rejected derivations, two exact constructions, parser checks, and accepted
+  full-partition identity.
 
 ## Procedure
 
@@ -85,14 +92,14 @@ the decision terminal.
 
 ## Conclusion
 
-`compile-review-passed-container-pending`: Buildbox reconstructed the exact
-parent and child, completed both full builds with exact configuration and
-identical diagnostics, proved the three intended binary sites changed while
-CPU9 startup source remained exact, and retained bounded stack use. No boot or
-runtime claim exists yet.
+`container-review-passed-runtime-map-pending`: Buildbox source and compile
+review pass. Two independent Android-v0 construction roots are byte-identical,
+and the independent parser accepts the exact kernel, inherited ramdisk, header,
+padding, provenance, and offline-only boundary. No boot or runtime claim exists
+yet.
 
 ## Follow-up
 
-Derive the Android-v0 candidate tooling from the accepted CPU9 parent, pin the
-new Buildbox package and kernel identity, and require independent byte-exact
-container reproduction before any boot2 deployment.
+Predeclare the exact changed-cycle runtime map, derive guarded deployment and
+read-only capture tooling, test their safety contracts, then install only the
+accepted full image to live-GPT-resolved inactive boot2.
