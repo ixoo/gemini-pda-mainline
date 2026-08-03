@@ -103,15 +103,18 @@ either workload starts. It does not claim simultaneous instruction issue.
 
 ## Publication and terminal
 
-The CPU0 worker resets scheduler-context state, completes pair-v6, runs the
-task lifecycle, executes a write barrier, and publishes completion. Sample 3
-takes one coherent snapshot after an acquire barrier. The snapshot exposes
-immutable pointers to the static result records after both tasks have stopped;
-it must not copy either result payload onto the terminal worker's stack.
+The CPU0 worker resets scheduler-context state, completes pair-v6, runs the task
+lifecycle, executes a write barrier, and publishes completion. Sample 3 first
+emits the byte-identical pair-v6 parent terminal. It then calls a `noinline`
+scheduler reporter with only the parent pass/fault boolean. That reporter takes
+one coherent snapshot after an acquire barrier and exposes immutable pointers
+to the static result records after both tasks have stopped. It must not copy
+either result payload onto the parent terminal worker's stack.
 
-The exact terminal version is pair-v7. Both pass and fault forms retain every
-pair-v6 field and add:
+The exact result is a two-line composite: the unchanged complete pair-v6 parent
+terminal followed immediately by one pair-v7 scheduler terminal. Pair-v7 adds:
 
+- `parent_pass`;
 - `sc_reported`;
 - `sc_iterations=262144 sc_rescheds=64`;
 - expected, starting, and ending CPU for each task;
@@ -121,10 +124,10 @@ pair-v6 field and add:
 - completed iterations and final ready/finished counters;
 - exact deterministic CPU8/CPU9 hashes.
 
-The positive suffix is:
+The positive pair-v7 line is:
 
 ```text
-sc_reported=1 sc_iterations=262144 sc_rescheds=64 sc_expected8=8 sc_start8=8 sc_end8=8 sc_expected9=9 sc_start9=9 sc_end9=9 sc_task8=1 sc_task9=1 sc_create8=0 sc_create9=0 sc_wake8=1 sc_wake9=1 sc_wait8=1 sc_wait9=1 sc_error8=0 sc_error9=0 sc_stop8=0 sc_stop9=0 sc_done8=262144 sc_done9=262144 sc_ready=2 sc_finished=2 sc_hash8=A sc_hash9=B
+gemini-a72-pair-v7 result=pass parent_pass=1 sc_reported=1 sc_iterations=262144 sc_rescheds=64 sc_expected8=8 sc_start8=8 sc_end8=8 sc_expected9=9 sc_start9=9 sc_end9=9 sc_task8=1 sc_task9=1 sc_create8=0 sc_create9=0 sc_wake8=1 sc_wake9=1 sc_wait8=1 sc_wait9=1 sc_error8=0 sc_error9=0 sc_stop8=0 sc_stop9=0 sc_done8=262144 sc_done9=262144 sc_ready=2 sc_finished=2 sc_hash8=A sc_hash9=B
 ```
 
 `A` is `f678147669874ecd` and `B` is `c2274327e9c8104c`, independently
@@ -135,11 +138,11 @@ online CPUs, or a watchdog restart are not a pass.
 
 ### Pass
 
-Require the complete pair-v7 pass, every inherited pair-v6 predicate, both
-exact scheduler hashes and lifecycle fields, changed-cycle watchdog recovery,
-offline recovery CPUs 8/9, unchanged unmounted boot2, and no panic, BUG,
-Internal error, Call trace, asynchronous SError, lockup, timeout, affinity
-warning, or unexpected fault.
+Require an immediately adjacent complete pair-v6 pass and pair-v7 pass with
+`parent_pass=1`, both exact scheduler hashes and lifecycle fields, changed-cycle
+watchdog recovery, offline recovery CPUs 8/9, unchanged unmounted boot2, and no
+panic, BUG, Internal error, Call trace, asynchronous SError, lockup, timeout,
+affinity warning, or unexpected fault.
 
 One pass earns one exact repeat. A second pass closes only bounded pinned
 kernel-task dispatch. It does not authorize CPU_OFF, migration, userspace load,
@@ -147,9 +150,9 @@ OPP/cpufreq, thermal, suspend, or another power boundary.
 
 ### Parent regression
 
-Any failed or incomplete pair-v6 field is a regression. Do not evaluate the
-scheduler suffix or repeat unchanged; compare exact source and binary boundaries
-against the parent.
+Any failed or incomplete pair-v6 field, or pair-v7 with `parent_pass=0`, is a
+regression. Do not evaluate the scheduler fields or repeat unchanged; compare
+exact source and binary boundaries against the parent.
 
 ### Creation, dispatch, placement, workload, or cleanup fault
 
@@ -189,8 +192,9 @@ Before container construction, exact parent-versus-child review must prove:
   completion, stop, cleanup order, error propagation, hash, and terminal field
   are rejected;
 - child and parent configs and diagnostics are identical; and
-- measured stack remains within the parent boundary with no workload array or
-  task payload placed on stack.
+- the pair-v6 terminal worker remains within its parent stack boundary, the
+  no-inline scheduler reporter has its own bounded frame, and no workload array
+  or task payload is placed on stack.
 
 ## Explicit non-goals
 

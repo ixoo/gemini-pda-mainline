@@ -30,8 +30,8 @@ def scheduler_hash(cpu: int) -> int:
 
 
 def validate(psci: str, cpu: str, hps: str) -> None:
-    require(psci.count("gemini-a72-pair-v7") == 2, "pair-v7 inventory changed")
-    require(psci.count("gemini-a72-pair-v6") == 0, "obsolete pair-v6 remains")
+    require(psci.count("gemini-a72-pair-v7") == 1, "pair-v7 inventory changed")
+    require(psci.count("gemini-a72-pair-v6") == 2, "pair-v6 terminal changed")
     require(psci.count("gemini-a72-pair-v2") == 3, "pair-v2 inventory changed")
     for token in (
         "#define MT6797_A72_PL_ROUNDS 128",
@@ -101,14 +101,18 @@ def validate(psci: str, cpu: str, hps: str) -> None:
         "kthread_stop(mt6797_a72_sc_task9);\n\t\tmt6797_a72_sc_task9 = NULL;",
         "mt6797_a72_sc_task8 = NULL;",
         "mt6797_a72_sc_task9 = NULL;",
-        "const struct mt6797_a72_sc_result *sc_result8;",
-        "const struct mt6797_a72_sc_result *sc_result9;",
+        "static noinline void mt6797_a72_sc_terminal(bool parent_pass)",
+        "const struct mt6797_a72_sc_result *result8;",
+        "const struct mt6797_a72_sc_result *result9;",
         "*result8 = &mt6797_a72_sc_result8;",
         "*result9 = &mt6797_a72_sc_result9;",
-        "sc_result8->hash == MT6797_A72_SC_HASH8_EXPECTED",
-        "sc_result9->hash == MT6797_A72_SC_HASH9_EXPECTED",
-        "sc_result8->stop_result == sc_result8->error",
-        "sc_result9->stop_result == sc_result9->error",
+        "result8->hash == MT6797_A72_SC_HASH8_EXPECTED",
+        "result9->hash == MT6797_A72_SC_HASH9_EXPECTED",
+        "result8->stop_result == result8->error",
+        "result9->stop_result == result9->error",
+        "gemini-a72-pair-v7 result=%s parent_pass=%d",
+        "mt6797_a72_sc_terminal(true);",
+        "mt6797_a72_sc_terminal(false);",
         "sc_reported=%d sc_iterations=262144 sc_rescheds=64",
         "sc_wait8=%d sc_wait9=%d",
         "sc_hash8=%016llx sc_hash9=%016llx",
@@ -118,6 +122,9 @@ def validate(psci: str, cpu: str, hps: str) -> None:
     scheduler = psci.split("#define MT6797_A72_SC_ITERATIONS", 1)[1].split(
         "static void mt6797_a72_coh_workfn", 1
     )[0]
+    terminal = psci.split(
+        "static noinline void mt6797_a72_sc_terminal(bool parent_pass)", 1
+    )[1].split("#endif", 1)[0]
     require(scheduler.count("kthread_create_on_cpu(") == 2, "create count changed")
     require(scheduler.count("wake_up_process(") == 2, "wake count changed")
     require(
@@ -131,13 +138,18 @@ def validate(psci: str, cpu: str, hps: str) -> None:
     require(scheduler.count("kthread_stop(") == 2, "stop count changed")
     require(scheduler.count("cond_resched();") == 1, "reschedule call count changed")
     require(scheduler.count("complete(done);") == 1, "completion publication changed")
-    require(psci.count("sc_hash9=%016llx") == 2, "terminal inventory changed")
+    require(psci.count("sc_hash9=%016llx") == 1, "terminal inventory changed")
     require(psci.count("mt6797_a72_sc_task8 = NULL;") == 3, "CPU8 clear count changed")
     require(psci.count("mt6797_a72_sc_task9 = NULL;") == 3, "CPU9 clear count changed")
     require(
-        "struct mt6797_a72_sc_result sc_result8;" not in psci and
-        "struct mt6797_a72_sc_result sc_result9;" not in psci,
+        "struct mt6797_a72_sc_result result8;" not in psci and
+        "struct mt6797_a72_sc_result result9;" not in psci,
         "scheduler result payload moved onto terminal stack",
+    )
+    require(
+        psci.count("mt6797_a72_sc_terminal(true);") == 1 and
+        psci.count("mt6797_a72_sc_terminal(false);") == 1,
+        "composite terminal call inventory changed",
     )
 
     require(scheduler_hash(8) == 0xF678147669874ECD, "CPU8 hash vector changed")
@@ -163,7 +175,10 @@ def validate(psci: str, cpu: str, hps: str) -> None:
         "kmalloc",
         "vmalloc",
     ):
-        require(forbidden not in scheduler, f"scheduler path has forbidden action: {forbidden}")
+        require(
+            forbidden not in scheduler and forbidden not in terminal,
+            f"scheduler path has forbidden action: {forbidden}",
+        )
 
 
 def main() -> int:
@@ -246,12 +261,20 @@ def main() -> int:
             "",
         ),
         "missing-stop-result-check": (
-            "\t    sc_result9->stop_result == sc_result9->error &&\n",
+            "\t\t result9->stop_result == result9->error &&\n",
             "",
         ),
         "stack-result-copy": (
-            "\tconst struct mt6797_a72_sc_result *sc_result8;\n",
-            "\tstruct mt6797_a72_sc_result sc_result8;\n",
+            "\tconst struct mt6797_a72_sc_result *result8;\n",
+            "\tstruct mt6797_a72_sc_result result8;\n",
+        ),
+        "inline-terminal": (
+            "static noinline void mt6797_a72_sc_terminal(bool parent_pass)",
+            "static void mt6797_a72_sc_terminal(bool parent_pass)",
+        ),
+        "missing-parent-pass-call": (
+            "\t\tmt6797_a72_sc_terminal(true);\n",
+            "",
         ),
         "missing-clear-after-stop": (
             "\t\tmt6797_a72_sc_result8.stop_result =\n"
@@ -265,8 +288,8 @@ def main() -> int:
             "0xf678147669874eccULL",
         ),
         "missing-hash-gate": (
-            "\t    sc_result9->hash == MT6797_A72_SC_HASH9_EXPECTED)\n",
-            "\t    sc_result9->hash != 0)\n",
+            "\t\t result9->hash == MT6797_A72_SC_HASH9_EXPECTED;\n",
+            "\t\t result9->hash != 0;\n",
         ),
         "incomplete-terminal": (" sc_hash8=%016llx sc_hash9=%016llx", ""),
     }

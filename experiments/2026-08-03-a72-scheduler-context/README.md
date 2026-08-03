@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-scheduler-context` |
-| Status | `compile-tooling-ready` |
+| Status | `source-revision-pending` |
 | Subsystem | MT6797 retained Cortex-A72 pair and scheduler |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -37,7 +37,7 @@ watchdog recovery?
 - Kernel thread API reference: exact upstream Linux v7.1 `kernel/kthread.c`
   and `include/linux/kthread.h`.
 - Build backend: Buildbox only; no native VM kernel build.
-- Validated source-generation repository commit:
+- Compile-rejected source-generation repository commit:
   `d9dd2f9e95cfed30aa322da672083d969a70fe8a`.
 - Exact reconstructed parent commit:
   `0bbc78db41f0334550232ad9b56734d57721faf3`.
@@ -141,6 +141,15 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   both hash vectors, all 23 negative mutations, changed-path inventory, and
   package checksums. The admitted patch uses immutable static-result pointers
   and contains no result-structure copy on the terminal stack.
+- Buildbox compile attempt 2 from repository commit
+  `eba35a959d6fe69f46f9b2fa08feb7a543f03757` compiled both exact sources and
+  passed source, symbol, disassembly, and terminal checks before rejecting
+  `mt6797_a72_hold_workfn` at 1,072 bytes. Isolating result storage alone did
+  not restore the 1,024-byte boundary; the enlarged all-in-one terminal argument
+  list remained in the parent worker. The next revision preserves pair-v6
+  byte-for-byte and emits pair-v7 through a separate `noinline` reporter. No
+  package was accepted and no device action occurred. See
+  [`results/compile-attempt-2-terminal-stack-reject-20260803.txt`](results/compile-attempt-2-terminal-stack-reject-20260803.txt).
 
 ## Analysis
 
@@ -151,11 +160,11 @@ context while preserving the established power and recovery boundary.
 
 ## Conclusion
 
-`compile-tooling-ready`: both exact kernels compiled in attempt 1, whose
-1,056-byte terminal stack was correctly rejected. The regenerated revision now
-retains static result storage, snapshots immutable pointers, rejects 23 source
-mutations, and is ready for the exact child-versus-pair-v6 compile comparison.
-No accepted compile package, container, deployment, or hardware evidence exists.
+`source-revision-pending`: both compile attempts built the child and exact
+pair-v6 parent but correctly rejected 1,056-byte and 1,072-byte parent-terminal
+frames. The next revision leaves the pair-v6 terminal unchanged and isolates
+pair-v7 formatting in a no-inline bounded reporter. No accepted compile package,
+container, deployment, or hardware evidence exists.
 
 ## Follow-up
 

@@ -923,6 +923,7 @@ elif [[ "${mode}" == scheduler ]]; then
     outputs/focused-disassembly/mt6797_a72_ml_ipi.txt \
     outputs/focused-disassembly/mt6797_a72_pl_ipi.txt \
     outputs/focused-disassembly/mt6797_a72_sc_thread.txt \
+    outputs/focused-disassembly/mt6797_a72_sc_terminal.txt \
     outputs/baseline/focused-disassembly/mt6797_a72_coh_workfn.txt \
     outputs/baseline/focused-disassembly/mt6797_a72_ml_ipi.txt \
     outputs/baseline/focused-disassembly/mt6797_a72_pl_ipi.txt; do
@@ -945,12 +946,17 @@ elif [[ "${mode}" == scheduler ]]; then
     grep -q " ${symbol}$" "${package}/outputs/baseline/System.map"
   done
   grep -q ' mt6797_a72_sc_thread$' "${package}/outputs/System.map"
+  grep -q ' mt6797_a72_sc_terminal$' "${package}/outputs/System.map"
   ! grep -qE ' mt6797_a72_sc_' "${package}/outputs/baseline/System.map"
-  grep -aFq 'gemini-a72-pair-v7 result=pass sample=3' \
+  grep -aFq 'gemini-a72-pair-v6 result=pass sample=3' \
     "${package}/outputs/vmlinux"
-  grep -aFq 'gemini-a72-pair-v7 result=fault sample=3' \
+  grep -aFq 'gemini-a72-pair-v6 result=fault sample=3' \
+    "${package}/outputs/vmlinux"
+  grep -aFq 'gemini-a72-pair-v7 result=%s parent_pass=%d' \
     "${package}/outputs/vmlinux"
   grep -q '^mt6797_a72_sc_thread=' \
+    "${package}/outputs/scheduler-stack.txt"
+  grep -q '^mt6797_a72_sc_terminal=' \
     "${package}/outputs/scheduler-stack.txt"
   [[ "$(tar -tf "${package}/outputs/baseline/stack-usage.tar" | wc -l)" -gt 100 ]]
 elif [[ "${mode}" == parallel ]]; then

@@ -1083,6 +1083,7 @@ elif [[ "${build_mode}" == scheduler ]]; then
   changed_disassembly_symbols+=(
     mt6797_a72_pl_ipi
     mt6797_a72_sc_thread
+    mt6797_a72_sc_terminal
   )
 fi
 readonly -a changed_disassembly_symbols
@@ -1161,7 +1162,8 @@ if [[ "${build_mode}" == scheduler ]]; then
         die "scheduler comparison is missing inherited ${symbol}"
     done
   done
-  for symbol in mt6797_a72_sc_thread mt6797_a72_sc_result8 \
+  for symbol in mt6797_a72_sc_thread mt6797_a72_sc_terminal \
+    mt6797_a72_sc_result8 \
     mt6797_a72_sc_result9 mt6797_a72_sc_task8 mt6797_a72_sc_task9; do
     grep -q " ${symbol}$" "${output}/System.map" || \
       die "scheduler build is missing ${symbol}"
@@ -1172,17 +1174,23 @@ if [[ "${build_mode}" == scheduler ]]; then
   grep -q '<mt6797_a72_sc_thread>:' \
     "${output}/focused-disassembly/mt6797_a72_sc_thread.txt" || \
     die "scheduler disassembly is missing its task entry"
+  grep -q '<mt6797_a72_sc_terminal>:' \
+    "${output}/focused-disassembly/mt6797_a72_sc_terminal.txt" || \
+    die "scheduler disassembly is missing its isolated terminal reporter"
   if cmp "${output}/focused-disassembly/mt6797_a72_coh_workfn.txt" \
     "${baseline_output}/focused-disassembly/mt6797_a72_coh_workfn.txt" \
     >/dev/null; then
     die "scheduler integration is binary-identical to pair-v6"
   fi
   "${cross_prefix}strings" "${output}/vmlinux" | \
-    grep -F 'gemini-a72-pair-v7 result=pass sample=3 cpu8=8 cpu9=9 online8=1 online9=1 hits8=3 hits9=3' >/dev/null || \
-    die "scheduler build is missing the pair-v7 pass terminal"
+    grep -F 'gemini-a72-pair-v6 result=pass sample=3 cpu8=8 cpu9=9 online8=1 online9=1 hits8=3 hits9=3' >/dev/null || \
+    die "scheduler build changed the pair-v6 pass terminal"
   "${cross_prefix}strings" "${output}/vmlinux" | \
-    grep -F 'gemini-a72-pair-v7 result=fault sample=3 cpu8=8 cpu9=9 online8=1 online9=1 hits8=3 hits9=3' >/dev/null || \
-    die "scheduler build is missing the pair-v7 fault terminal"
+    grep -F 'gemini-a72-pair-v6 result=fault sample=3 cpu8=8 cpu9=9 online8=1 online9=1 hits8=3 hits9=3' >/dev/null || \
+    die "scheduler build changed the pair-v6 fault terminal"
+  "${cross_prefix}strings" "${output}/vmlinux" | \
+    grep -F 'gemini-a72-pair-v7 result=%s parent_pass=%d' >/dev/null || \
+    die "scheduler build is missing the isolated pair-v7 terminal"
   "${cross_prefix}strings" "${output}/vmlinux" | \
     grep -F 'sc_reported=%d sc_iterations=262144 sc_rescheds=64 sc_expected8=%d sc_start8=%d sc_end8=%d sc_expected9=%d sc_start9=%d sc_end9=%d sc_task8=%d sc_task9=%d sc_create8=%d sc_create9=%d sc_wake8=%d sc_wake9=%d sc_wait8=%d sc_wait9=%d' >/dev/null || \
     die "scheduler build is missing its complete lifecycle fields"
@@ -1194,7 +1202,7 @@ if [[ "${build_mode}" == scheduler ]]; then
     die "pair-v6 parent unexpectedly contains pair-v7"
   fi
   find "${output}" -type f -name '*.su' -exec \
-    grep -hE 'mt6797_a72_(sc_thread|sc_run|coh_workfn|hold_workfn)' {} + > \
+    grep -hE 'mt6797_a72_(sc_thread|sc_run|sc_terminal|coh_workfn|hold_workfn)' {} + > \
     "${output}/scheduler-stack.raw" || :
   python3 - "${output}/scheduler-stack.raw" > \
     "${output}/scheduler-stack.txt" <<'PY'
@@ -1203,6 +1211,7 @@ import sys
 
 expected = {
     "mt6797_a72_sc_thread": 512,
+    "mt6797_a72_sc_terminal": 1024,
     "mt6797_a72_coh_workfn": 512,
     "mt6797_a72_hold_workfn": 1024,
 }
