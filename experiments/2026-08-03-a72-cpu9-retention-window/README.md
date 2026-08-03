@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu9-retention-window` |
-| Status | `container-review-passed-runtime-map-pending` |
+| Status | `runtime-map-passed-deployment-pending` |
 | Subsystem | MT6797 CPU8/CPU9 retained pair sampling and HPS down pressure |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -66,6 +66,14 @@ and clean shutdown after verified readback.
 - [`results/offline-container-review-20260803.txt`](results/offline-container-review-20260803.txt):
   rejected derivations, two exact constructions, parser checks, and accepted
   full-partition identity.
+- [`scripts/install-boot2.sh`](scripts/install-boot2.sh),
+  [`scripts/capture-live-outcome.sh`](scripts/capture-live-outcome.sh), and
+  [`scripts/test_runtime_tools.py`](scripts/test_runtime_tools.py): guarded
+  boot2 deployment, optional read-only netcat capture, and offline contract
+  validation.
+- [`results/runtime-decision-map-20260803.txt`](results/runtime-decision-map-20260803.txt):
+  predeclared changed-cycle hypothesis, exact pass/failure classes, tool
+  identities, and deployment boundary.
 
 ## Procedure
 
@@ -92,14 +100,16 @@ the decision terminal.
 
 ## Conclusion
 
-`container-review-passed-runtime-map-pending`: Buildbox source and compile
-review pass. Two independent Android-v0 construction roots are byte-identical,
-and the independent parser accepts the exact kernel, inherited ramdisk, header,
-padding, provenance, and offline-only boundary. No boot or runtime claim exists
-yet.
+`runtime-map-passed-deployment-pending`: Buildbox source and compile review
+pass. Two independent Android-v0 construction roots are byte-identical, and
+the independent parser accepts the exact kernel, inherited ramdisk, header,
+padding, provenance, and offline-only boundary. The guarded installer and
+read-only capture tools pass their static contracts against the predeclared
+runtime map. No boot or runtime claim exists yet.
 
 ## Follow-up
 
-Predeclare the exact changed-cycle runtime map, derive guarded deployment and
-read-only capture tooling, test their safety contracts, then install only the
-accepted full image to live-GPT-resolved inactive boot2.
+Commit and push the exact runtime map and tools, then install only the accepted
+full image to live-GPT-resolved inactive boot2. After verified readback and
+automatic shutdown, arm the independent capture paths before manual boot2
+selection.
