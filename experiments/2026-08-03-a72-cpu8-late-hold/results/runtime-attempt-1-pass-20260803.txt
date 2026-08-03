@@ -1,0 +1,94 @@
+CPU8 late-hold runtime attempt 1
+================================
+
+Date: 2026-08-03
+Result: pass-late-cpu8-execution-accounting
+Device variant: named Gemini PDA x27 project device
+
+Attributable terminal
+---------------------
+
+The changed-cycle `console-ramoops` contains exactly one late-hold-v2 record:
+
+  [   12.415481] psci: gemini-a72-hold-v2 result=pass sample=3 cpu=8 cpu8=1 cpu9=0 hits=3
+
+There are zero held-v1 records, zero held-v2 faults, zero down-veto records,
+zero panic/Internal-error/Call-trace records, and zero cpuhvfs notifier records.
+CPU9 was rejected before any A72 action 16 times in the retained window.
+
+The pass terminal is emitted only after the third synchronous CPU8 call
+returns successfully, its callback executes on CPU8, CPU8 remains accounted
+online, CPU9 remains offline, and the exact callback hit count reaches three.
+The validated source and machine code schedule sample 3 only after samples 1
+and 2 have passed their same CPU, accounting, exclusion, and hit-count checks.
+
+Retention boundary
+------------------
+
+The private console record is 65,524 bytes with SHA-256:
+
+  f76559eac18d458c3f40352c6efe23874fa4d1a810167ccaaf9c7a1bb3807b93
+
+Its complete retained timestamps run from 9.265655 through 14.098232 seconds.
+The early parent-completion, sample-1, and sample-2 lines precede that tail and
+were overwritten, as predicted from the prior attempt. Unlike a reprinted
+marker, the retained sample-3 terminal represents a new synchronous CPU8
+execution inside the retained window and carries the verified cumulative
+`hits=3` state.
+
+Changed-cycle and recovery evidence
+-----------------------------------
+
+Initial boot-ID SHA-256:
+  9f88489d2031d7ebc2d127fb11a8183c24bb10f5b7297ebd7e35ce47e5522df4
+Final boot-ID SHA-256:
+  6a53f2ecfa432c9a64879fc6333d19e1becf78fde454f26e6265c077fcc27448
+Boot ID changed: yes
+Recovery kernel: 3.18.41+
+Recovery architecture: aarch64
+Android boot reason: wdt_by_pass_pwk
+
+Post-return read-only checks:
+
+- live-GPT boot2 target: `/dev/mmcblk0p30`;
+- active root: `/dev/mmcblk0p29`;
+- boot2 mounted or held: no;
+- CPU present: 0-9;
+- CPU online snapshot: 4-5;
+- CPU8 offline under recovery OS: yes;
+- CPU9 offline under recovery OS: yes;
+- full boot2 SHA-256 unchanged:
+  `2e81e18610d99c69bee8867d2fe960245dfcdda1ca583965724598255ea871af`.
+
+Private evidence identities
+---------------------------
+
+Private capture manifest SHA-256:
+  d17e1815e2b4b34ceec5a799341f0c2d739ff8bf42c75e7d6afb3dd1cb49369b
+Cycle record SHA-256:
+  835ad93441f0513b8467c6083d2fc4c72d99fee30ed9f068a8733d935c3ba742
+Metadata SHA-256:
+  c30e5d5c354d36f3c276d50b0a887d6f19510717add9eca07068cdf40e7510ef
+
+The complete private manifest passed strict verification. Pstore records and
+partitions were not modified or removed. The optional USB/netcat collector did
+not observe the interface before the primary capture completed and was stopped.
+
+Decision
+--------
+
+result=pass-late-cpu8-execution-accounting
+cpu8_callback_cpu=8
+cpu8_online_at_late_sample=yes
+cpu9_online_at_late_sample=no
+callback_hits=3
+late_sample_uptime_seconds=12.415481
+recovery=changed-cycle-watchdog-class
+boot2_unchanged=yes
+
+This closes the bounded late-execution question. It does not establish
+long-term stability, stress coherency, safe CPU_OFF, cpufreq/OPP, thermal,
+suspend, or CPU9 behavior. The next decision-changing use of this unchanged
+artifact is one explicitly declared independent repeatability measurement. A
+second exact pass would close the repeatability part of Gate 7 and permit
+separate CPU9 experiment design while the remaining broader gates stay closed.

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu8-late-hold` |
-| Status | `deployed-runtime-baseline-pending` |
+| Status | `runtime-pass-repeatability-pending` |
 | Subsystem | MT6797 CPU8 IPI/coherency and retained pstore evidence |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -74,6 +74,8 @@ about two seconds between the third sample and recovery.
   pre-boot hypothesis, attributable evidence, and exact result actions.
 - [`results/deployment-20260803.txt`](results/deployment-20260803.txt): verified
   live-GPT boot2 write, full readback, cleanup, and shutdown evidence.
+- [`results/runtime-attempt-1-pass-20260803.txt`](results/runtime-attempt-1-pass-20260803.txt):
+  changed-cycle late CPU8 execution/accounting pass and recovery evidence.
 
 ## Procedure
 
@@ -112,7 +114,14 @@ The guarded installer subsequently resolved logical boot2 as `/dev/mmcblk0p30`
 while the known-good root was `/dev/mmcblk0p29`. It accepted the exact held-
 online predecessor, wrote the late candidate, flushed it, matched both target
 and independent full-partition readbacks, removed temporary copies, and left
-the device confirmed powered off. Runtime has not been tested.
+the device confirmed powered off before runtime testing.
+
+Runtime attempt 1 then returned through the fixed watchdog with a changed boot
+ID. The retained console contains exactly one held-v2 terminal at 12.415481
+seconds: sample 3 executed on CPU8, CPU8 was online, CPU9 was offline, and the
+cumulative callback count was exactly three. No held fault, down veto,
+predecessor terminal, notifier fault, panic, Internal error, or Call trace was
+retained. Known-good Gemian returned, and boot2 remained exact.
 
 ## Analysis
 
@@ -124,14 +133,16 @@ without executing CPU8 again would not meet the experiment contract.
 
 ## Conclusion
 
-`deployed-runtime-baseline-pending`: the exact parent, one logical patch,
+`runtime-pass-repeatability-pending`: the exact parent, one logical patch,
 timing, failure predicate, terminal, forbidden actions, mutations, full builds,
 diagnostics, machine code, stack-use gate, exact offline container, guarded
 installer, observation tools, runtime decision map, exact boot2 write/readback,
-and shutdown pass. Hardware behavior is not established.
+shutdown, late synchronous CPU8 execution/accounting, and watchdog recovery
+pass. This is bounded experiment evidence, not default or upstream support.
 
 ## Follow-up
 
-Boot ordinary Gemian once to arm changed-cycle collection, shut it down, then
-perform one manual boot2 selection and classify retained evidence. CPU9 remains
-blocked.
+Perform one explicitly declared unchanged-artifact repeatability measurement
+with a fresh changed-cycle capture. On a second exact pass, begin the separate
+CPU9 experiment design; broader stability, CPU_OFF, load, DVFS, thermal, and
+suspend gates remain closed.

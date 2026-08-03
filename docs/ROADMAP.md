@@ -888,6 +888,20 @@ deadline, so it both extends the bounded stability interval and remains in the
 retained console window. Only an exact clean pushed commit may be compiled on
 Buildbox; CPU9 startup, CPU_OFF, load, DVFS, thermal, and suspend remain blocked.
 
+The later-sample child passed exact-parent generation, mutation testing,
+Buildbox child/parent compilation, binary and stack review, reproducible
+Android-v0 construction, guarded deployment, and full boot2 readback. Its first
+runtime produced exactly one retained held-v2 terminal at 12.415481 seconds:
+sample 3 executed on CPU8, CPU8 remained accounted online, CPU9 remained
+offline, and the cumulative synchronous callback hit count was three. No held
+fault, down veto, predecessor-v1 terminal, notifier fault, panic, Internal
+error, or Call trace was retained. A changed boot ID, `wdt_by_pass_pwk`
+recovery, offline CPU8/9 under Gemian, and the unchanged full boot2 checksum
+close the bounded late-execution question. The next ordered action is one
+explicit independent repeatability measurement of this exact artifact; this
+is the declared repeatability hypothesis and adds a fresh changed-cycle and
+late-execution observation. CPU9 design may begin only after that second pass.
+
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback
 gates close.
