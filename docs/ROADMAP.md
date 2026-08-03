@@ -1098,6 +1098,16 @@ The next ordered action is to pin this identity and the rejected attempt-1
 predecessor in corrected deployment/runtime tooling, mutation-test those
 guards, and commit the complete clean provenance before device access.
 
+The corrected deployment/runtime tooling now passes all static gates and
+rejects four identity mutations. It authorizes only the exact transition from
+rejected attempt-1 boot2 SHA-256 `24377665fa5b9112266890844c06c453bb50e17680b6f6f956035c234c26ff0f`
+to corrected SHA-256
+`d34b2de509021d5fbbfcca62e3676202fe88b449786daf62b4eb466667fae093`.
+The next ordered action is to commit and push these clean guards, prearm the
+changed-cycle pstore observer from ordinary Gemian, perform the guarded boot2
+write/readback/shutdown, arm the read-only USB/netcat collector, and physically
+select boot2 once.
+
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback
 gates close.

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-scheduler-context` |
-| Status | `ordering-fix-container-passed` |
+| Status | `ordering-fix-runtime-tools-passed` |
 | Subsystem | MT6797 retained Cortex-A72 pair and scheduler |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -248,6 +248,15 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   `d34b2de509021d5fbbfcca62e3676202fe88b449786daf62b4eb466667fae093`.
   No device was accessed. See
   [`results/offline-container-review-ordering-fix-20260803.txt`](results/offline-container-review-ordering-fix-20260803.txt).
+- Corrected deployment/runtime tooling pins the rejected attempt-1 predecessor
+  `24377665fa5b9112266890844c06c453bb50e17680b6f6f956035c234c26ff0f`
+  and corrected successor
+  `d34b2de509021d5fbbfcca62e3676202fe88b449786daf62b4eb466667fae093`.
+  All four installer identity mutations are rejected; the live-GPT,
+  inactive/unmounted, no-fresh-backup, full-readback, cleanup, and shutdown
+  gates remain pinned. The read-only USB/netcat collector and complete decision
+  classes pass static validation. No corrected deployment occurred. See
+  [`results/runtime-decision-map-ordering-fix-20260803.txt`](results/runtime-decision-map-ordering-fix-20260803.txt).
 
 ## Analysis
 
@@ -258,11 +267,12 @@ context while preserving the established power and recovery boundary.
 
 ## Conclusion
 
-`ordering-fix-container-passed`: the corrected source preserves the inherited
+`ordering-fix-runtime-tools-passed`: the corrected source preserves the inherited
 coherency worker, passes 28 mutation tests, compiles with identical parent
 diagnostics, remains within every stack boundary, and has a reproducible,
-independently validated Android-v0 container. No corrected deployment or
-runtime claim exists yet.
+independently validated Android-v0 container. Corrected deployment and runtime
+guards are fixed and tested. No corrected deployment or runtime claim exists
+yet.
 
 ## Follow-up
 

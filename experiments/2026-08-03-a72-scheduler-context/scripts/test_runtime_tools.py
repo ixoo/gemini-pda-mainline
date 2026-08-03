@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate pair-v7 deployment and observation contracts."""
+"""Validate corrected pair-v7 deployment and observation contracts."""
 
 import hashlib
 import re
@@ -12,7 +12,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 EXPERIMENT = SCRIPT_DIR.parent
 INSTALLER = SCRIPT_DIR / "install-boot2.sh"
 LIVE = SCRIPT_DIR / "capture-live-outcome.sh"
-PLAN = EXPERIMENT / "results" / "runtime-decision-map-20260803.txt"
+PLAN = EXPERIMENT / "results" / "runtime-decision-map-ordering-fix-20260803.txt"
 PAIR5 = EXPERIMENT.parent / "2026-08-03-a72-cpu9-multiline-integrity"
 BASE_INSTALLER = (
     EXPERIMENT.parent
@@ -21,10 +21,10 @@ BASE_INSTALLER = (
     / "install-boot2.sh"
 )
 PINS = (
-    ("0beead0b00485ad18333aca4d688fcd549c813113b7ec0554a6761c7147b17fb", 2),
     ("24377665fa5b9112266890844c06c453bb50e17680b6f6f956035c234c26ff0f", 2),
-    ("a2c207ebcaa7fdae4e5144f2075b6838f677e9bacca7fcee5bee32d43c326384", 2),
-    ("gemian-a72-scheduler-context-f9fddf01576a", 2),
+    ("d34b2de509021d5fbbfcca62e3676202fe88b449786daf62b4eb466667fae093", 2),
+    ("53a338995f182a76437ed358d8fa02332c2b28123bb1407918eaf7505b373c6b", 2),
+    ("gemian-a72-scheduler-context-e40ee8a50694", 2),
 )
 
 
@@ -55,10 +55,10 @@ def main() -> int:
             f"installer identity mutation was not rejected: {token}",
         )
     for token in (
-        "EXPECTED_PREDECESSOR_SHA256=0beead0b00485ad18333aca4d688fcd549c813113b7ec0554a6761c7147b17fb",
-        "CANDIDATE_SHA256=24377665fa5b9112266890844c06c453bb50e17680b6f6f956035c234c26ff0f",
-        "ARTIFACT_MANIFEST_SHA256=a2c207ebcaa7fdae4e5144f2075b6838f677e9bacca7fcee5bee32d43c326384",
-        "ARTIFACT_NAME=gemian-a72-scheduler-context-f9fddf01576a",
+        "EXPECTED_PREDECESSOR_SHA256=24377665fa5b9112266890844c06c453bb50e17680b6f6f956035c234c26ff0f",
+        "CANDIDATE_SHA256=d34b2de509021d5fbbfcca62e3676202fe88b449786daf62b4eb466667fae093",
+        "ARTIFACT_MANIFEST_SHA256=53a338995f182a76437ed358d8fa02332c2b28123bb1407918eaf7505b373c6b",
+        "ARTIFACT_NAME=gemian-a72-scheduler-context-e40ee8a50694",
         "source pair-v5 installer changed",
         "GEMINI_A72_SCHEDULER_SCRIPT_DIR",
     ):
