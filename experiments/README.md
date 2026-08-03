@@ -23,6 +23,11 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-03 A72 CPU8/CPU9 bounded coherency](2026-08-03-a72-cpu9-bounded-coherency/README.md)
+  — predeclares a CPU0-pinned, 1,024-round concurrent CPU8↔CPU9 shared-memory
+  handshake with finite spin budgets and a durable pair-v4 terminal. Startup,
+  HPS vetoes, CPU_OFF prohibition, pair timing, power state, and watchdog
+  recovery remain exact; kernel source is not yet changed.
 - [2026-08-03 A72 CPU9 terminal attribution](2026-08-03-a72-cpu9-terminal-attribution/README.md)
   — carries the first HPS CPU-down veto and accumulated matching count into the
   already-proven sample-3 pair terminal. Exact-parent Buildbox compilation and
