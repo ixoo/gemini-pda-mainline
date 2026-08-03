@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu9-terminal-attribution` |
-| Status | `compile-passed-container-pending` |
+| Status | `offline-container-passed-runtime-map-pending` |
 | Subsystem | MT6797 CPU8/CPU9 retained pair and HPS down-pressure attribution |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -55,17 +55,27 @@ HPS caller and reads that state only after the third already-proven callback.
 - [`results/compile-review-20260803.txt`](results/compile-review-20260803.txt):
   exact-parent full builds, configuration, marker/binary ordering, diagnostics,
   stack bounds, and container-only acceptance decision.
+- [`scripts/assemble.py`](scripts/assemble.py),
+  [`scripts/build-candidate.sh`](scripts/build-candidate.sh), and
+  [`scripts/test_candidate.py`](scripts/test_candidate.py): pinned Android-v0
+  assembly, deterministic construction, and independent offline validation.
+- [`results/offline-container-review-20260803.txt`](results/offline-container-review-20260803.txt):
+  exact identities, two-construction comparison, inherited-ramdisk proof, and
+  offline-only acceptance decision.
 
 ## Conclusion
 
-`compile-passed-container-pending`: Buildbox reconstructed and validated the
-exact retention-window parent, rejected seven child mutations, and completed
-both full builds with byte-identical configurations and diagnostics. Source
-invariants, unique terminal/snapshot binaries, publication barriers, and
-bounded stack use pass. No boot artifact or runtime claim exists yet.
+`offline-container-passed-runtime-map-pending`: Buildbox reconstructed and
+validated the exact retention-window parent, rejected seven child mutations,
+and completed both full builds with byte-identical configurations and
+diagnostics. Two independent offline constructions then produced the same
+`05012d24...` raw Android-v0 image and `93329907...` exact-size boot2 image.
+The known-good ramdisk, command line, header addresses, and zero padding remain
+exact. No device was accessed and no runtime claim exists yet.
 
 ## Follow-up
 
-Commit and push the compile decision, then construct the Android-v0 image twice
-from the exact child kernel and inherited known-good ramdisk. Validate header,
-extents, identity, padding, and offline-only provenance independently.
+Predeclare and mutation-test the deployment/runtime tools and decision map.
+Only after that pushed gate may the exact padded image be written to live-GPT
+resolved inactive `boot2`, fully read back twice, and followed by a clean
+shutdown for one changed-cycle runtime test.

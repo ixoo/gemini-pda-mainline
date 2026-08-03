@@ -1,0 +1,34 @@
+CPU9 terminal-attribution offline container review
+Date: 2026-08-03
+
+Decision: pass for deployment/runtime-map tooling only; not a runtime result.
+
+Inputs
+- repository commit: ae0a7bb3dd494653f563c4637285bc76bfa46b65
+- terminal patchset: 2d94a2cd489e33a7df854ffec7533fbf969dc9c810e9eece57d118b905060310
+- Buildbox kernel field: a55de5dab85a36ace77fddf6e0adf198627b587be6f68e45d47584a896de3a1e
+- active boot source: 1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513
+- inherited ramdisk: a1ee05445e9a2bd8fbc1f75d7cda326b9ca7a6d3b644cbb1d5fc0ac167835be4
+
+Accepted output
+- raw Android-v0 image size: 14807040 bytes
+- raw SHA-256: 05012d24f84a578f9597e22af68dfaa04cb2c723c208b3917fa1b6d5252dce3f
+- exact boot2 size: 16777216 bytes
+- padded SHA-256: 933299078d78e5882055e73fcbf75447bac9abf7d42b2074f37d65fe81966a70
+
+Independent checks
+- Two separate output roots reconstructed the raw and padded images.
+- Both raw images and both padded images compared byte-for-byte identical.
+- The kernel field is exactly 8448082 bytes and matches the Buildbox result.
+- The ramdisk is exactly 6354621 bytes and byte-identical to the known-good input.
+- Android-v0 magic, page size, load addresses, empty name, command line, extents,
+  legacy SHA-1 image ID, zero suffix, and zero-only boot2 tail pass.
+- The candidate manifests contain only raw image, padded image, analysis, and
+  provenance; all listed hashes pass.
+- Builder inspection rejects device paths, network/device access, reboot,
+  poweroff, and shutdown actions. Construction accessed no device and wrote no
+  partition.
+
+The exact boot2 image is now eligible only for a separately reviewed and pushed
+deployment/runtime gate. It does not establish CPU8, CPU9, HPS attribution, or
+hardware support.

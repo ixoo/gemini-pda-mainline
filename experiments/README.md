@@ -24,13 +24,10 @@ the loop. Positive identity-gated observations are unaffected.
 ### Current DA921x, I2C6, and A72 line
 
 - [2026-08-03 A72 CPU9 terminal attribution](2026-08-03-a72-cpu9-terminal-attribution/README.md)
-  — derives a source-minimal child from the proven three-pair boundary. It
-  preserves CPU startup, callback timing, public-down vetoes, watchdog, and
-  power sequencing while carrying the first HPS CPU/error and total matching
-  request count into a unique durable terminal. Exact-parent Buildbox source
-  generation, seven mutation tripwires, exact-parent full compilation,
-  diagnostics, publication-barrier disassembly, and stack review pass;
-  deterministic Android-v0 construction is pending.
+  — carries the first HPS CPU-down veto and accumulated matching count into the
+  already-proven sample-3 pair terminal. Exact-parent Buildbox compilation and
+  two byte-identical offline Android-v0 constructions pass; deployment/runtime
+  tooling remains pending.
 - [2026-08-03 A72 CPU9 retention window](2026-08-03-a72-cpu9-retention-window/README.md)
   — preserves the proven PSCI-only CPU9 startup and every public CPU-down
   veto, moves all three synchronous CPU8/CPU9 pair samples inside the fixed
