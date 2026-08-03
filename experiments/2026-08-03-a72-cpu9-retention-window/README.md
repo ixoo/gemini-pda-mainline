@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu9-retention-window` |
-| Status | `source-review-passed-compile-pending` |
+| Status | `compile-review-passed-container-pending` |
 | Subsystem | MT6797 CPU8/CPU9 retained pair sampling and HPS down pressure |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -57,6 +57,8 @@ and clean shutdown after verified readback.
 - [`patches/`](patches/): one accepted Buildbox-generated logical child patch.
 - [`results/patch-generation-review-20260803.txt`](results/patch-generation-review-20260803.txt):
   rejected broad anchor, exact accepted identities, checks, and decision.
+- [`results/compile-review-20260803.txt`](results/compile-review-20260803.txt):
+  exact-parent full builds, binary/source anchors, stack use, and decision.
 
 ## Procedure
 
@@ -83,11 +85,14 @@ the decision terminal.
 
 ## Conclusion
 
-`source-review-passed-compile-pending`: Buildbox reconstructed the exact parent,
-generated one logical three-file child, passed static review, and rejected four
-mutations. No compile or runtime claim exists yet.
+`compile-review-passed-container-pending`: Buildbox reconstructed the exact
+parent and child, completed both full builds with exact configuration and
+identical diagnostics, proved the three intended binary sites changed while
+CPU9 startup source remained exact, and retained bounded stack use. No boot or
+runtime claim exists yet.
 
 ## Follow-up
 
-Commit the accepted patch identity, then submit the exact CPU9-parent versus
-retention-window-child compile, diagnostics, disassembly, and stack gate.
+Derive the Android-v0 candidate tooling from the accepted CPU9 parent, pin the
+new Buildbox package and kernel identity, and require independent byte-exact
+container reproduction before any boot2 deployment.
