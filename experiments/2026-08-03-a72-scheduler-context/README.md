@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-scheduler-context` |
-| Status | `source-generation-tooling-ready` |
+| Status | `source-patch-validated` |
 | Subsystem | MT6797 retained Cortex-A72 pair and scheduler |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -37,7 +37,16 @@ watchdog recovery?
 - Kernel thread API reference: exact upstream Linux v7.1 `kernel/kthread.c`
   and `include/linux/kthread.h`.
 - Build backend: Buildbox only; no native VM kernel build.
-- No source patch, compile, container, deployment, or runtime claim exists yet.
+- Validated source-generation repository commit:
+  `5efae676bfdf568c99c19c7f3e6bb0ee0d6f64de`.
+- Exact reconstructed parent commit:
+  `0bbc78db41f0334550232ad9b56734d57721faf3`.
+- Generated scheduler source commit:
+  `d674f430deb9012c5307d6672f80a2fc48adc74c`.
+- Generated patch SHA-256:
+  `07168545c4c7972268610c7ec4dccf219744bb0d596571242f92f76dcea10beb`.
+- Stable patch ID: `a501f6da085275ebd4d60ffef0bb2b3e4a170224`.
+- No compile, container, deployment, or runtime claim exists yet.
 
 ## Safety assessment
 
@@ -59,6 +68,8 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   lifecycle, hash-vector, safety-inventory, and negative-mutation validator.
 - [`scripts/generate-on-buildbox`](scripts/generate-on-buildbox): clean-pushed-
   commit Buildbox source reconstruction and format-patch generator.
+- [`patches/series`](patches/series): exact generated experiment-only scheduler-
+  context source patch.
 
 ## Procedure
 
@@ -99,6 +110,13 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   pair-v6 code rather than the uniquely named scheduler function. The mutation
   target is now scoped to the full scheduler-function prefix. No patch package,
   compile, or device action occurred.
+- Buildbox generation from commit
+  `5efae676bfdf568c99c19c7f3e6bb0ee0d6f64de` passed the inherited pair-v6
+  validator, both scheduler hash vectors, all 22 scheduler negative mutations,
+  generated-source validation, changed-path inventory, and package checksums.
+  The accepted package contains one patch changing only
+  `arch/arm64/kernel/psci.c`; it remains source-review-only and performed no
+  compile or device action.
 
 ## Analysis
 
@@ -109,10 +127,10 @@ context while preserving the established power and recovery boundary.
 
 ## Conclusion
 
-`source-generation-tooling-ready`: the question, safety boundary, deterministic
-source transformer, static validator, and Git-only Buildbox generation lane are
-specified. The transformer has not yet run against the reconstructed exact
-parent; no generated patch, compile, or hardware evidence exists.
+`source-patch-validated`: the deterministic child was generated against the
+exact reconstructed pair-v6 parent, all 22 negative mutations were rejected,
+and the one-file patch and provenance were checksum-verified. No compile,
+container, deployment, or hardware evidence exists.
 
 ## Follow-up
 
