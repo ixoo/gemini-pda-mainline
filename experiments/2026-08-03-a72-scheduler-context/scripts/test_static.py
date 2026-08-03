@@ -101,10 +101,14 @@ def validate(psci: str, cpu: str, hps: str) -> None:
         "kthread_stop(mt6797_a72_sc_task9);\n\t\tmt6797_a72_sc_task9 = NULL;",
         "mt6797_a72_sc_task8 = NULL;",
         "mt6797_a72_sc_task9 = NULL;",
-        "sc_result8.hash == MT6797_A72_SC_HASH8_EXPECTED",
-        "sc_result9.hash == MT6797_A72_SC_HASH9_EXPECTED",
-        "sc_result8.stop_result == sc_result8.error",
-        "sc_result9.stop_result == sc_result9.error",
+        "const struct mt6797_a72_sc_result *sc_result8;",
+        "const struct mt6797_a72_sc_result *sc_result9;",
+        "*result8 = &mt6797_a72_sc_result8;",
+        "*result9 = &mt6797_a72_sc_result9;",
+        "sc_result8->hash == MT6797_A72_SC_HASH8_EXPECTED",
+        "sc_result9->hash == MT6797_A72_SC_HASH9_EXPECTED",
+        "sc_result8->stop_result == sc_result8->error",
+        "sc_result9->stop_result == sc_result9->error",
         "sc_reported=%d sc_iterations=262144 sc_rescheds=64",
         "sc_wait8=%d sc_wait9=%d",
         "sc_hash8=%016llx sc_hash9=%016llx",
@@ -130,6 +134,11 @@ def validate(psci: str, cpu: str, hps: str) -> None:
     require(psci.count("sc_hash9=%016llx") == 2, "terminal inventory changed")
     require(psci.count("mt6797_a72_sc_task8 = NULL;") == 3, "CPU8 clear count changed")
     require(psci.count("mt6797_a72_sc_task9 = NULL;") == 3, "CPU9 clear count changed")
+    require(
+        "struct mt6797_a72_sc_result sc_result8;" not in psci and
+        "struct mt6797_a72_sc_result sc_result9;" not in psci,
+        "scheduler result payload moved onto terminal stack",
+    )
 
     require(scheduler_hash(8) == 0xF678147669874ECD, "CPU8 hash vector changed")
     require(scheduler_hash(9) == 0xC2274327E9C8104C, "CPU9 hash vector changed")
@@ -237,8 +246,12 @@ def main() -> int:
             "",
         ),
         "missing-stop-result-check": (
-            "\t    sc_result9.stop_result == sc_result9.error &&\n",
+            "\t    sc_result9->stop_result == sc_result9->error &&\n",
             "",
+        ),
+        "stack-result-copy": (
+            "\tconst struct mt6797_a72_sc_result *sc_result8;\n",
+            "\tstruct mt6797_a72_sc_result sc_result8;\n",
         ),
         "missing-clear-after-stop": (
             "\t\tmt6797_a72_sc_result8.stop_result =\n"
@@ -252,8 +265,8 @@ def main() -> int:
             "0xf678147669874eccULL",
         ),
         "missing-hash-gate": (
-            "\t    sc_result9.hash == MT6797_A72_SC_HASH9_EXPECTED)\n",
-            "\t    sc_result9.hash != 0)\n",
+            "\t    sc_result9->hash == MT6797_A72_SC_HASH9_EXPECTED)\n",
+            "\t    sc_result9->hash != 0)\n",
         ),
         "incomplete-terminal": (" sc_hash8=%016llx sc_hash9=%016llx", ""),
     }

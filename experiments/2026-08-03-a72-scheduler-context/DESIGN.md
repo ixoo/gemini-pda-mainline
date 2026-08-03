@@ -105,7 +105,9 @@ either workload starts. It does not claim simultaneous instruction issue.
 
 The CPU0 worker resets scheduler-context state, completes pair-v6, runs the
 task lifecycle, executes a write barrier, and publishes completion. Sample 3
-takes one coherent snapshot after an acquire barrier.
+takes one coherent snapshot after an acquire barrier. The snapshot exposes
+immutable pointers to the static result records after both tasks have stopped;
+it must not copy either result payload onto the terminal worker's stack.
 
 The exact terminal version is pair-v7. Both pass and fault forms retain every
 pair-v6 field and add:

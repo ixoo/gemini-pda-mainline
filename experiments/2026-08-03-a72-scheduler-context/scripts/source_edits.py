@@ -314,14 +314,14 @@ static void mt6797_a72_hold_workfn(struct work_struct *work)
     snapshot = """}
 
 static void mt6797_a72_sc_snapshot(int *reported,
-\t\t\t\t   struct mt6797_a72_sc_result *result8,
-\t\t\t\t   struct mt6797_a72_sc_result *result9,
+\t\t\t const struct mt6797_a72_sc_result **result8,
+\t\t\t const struct mt6797_a72_sc_result **result9,
 \t\t\t\t   int *ready, int *finished)
 {
 \t*reported = atomic_read(&mt6797_a72_sc_reported);
 \tsmp_rmb();
-\t*result8 = mt6797_a72_sc_result8;
-\t*result9 = mt6797_a72_sc_result9;
+\t*result8 = &mt6797_a72_sc_result8;
+\t*result9 = &mt6797_a72_sc_result9;
 \t*ready = atomic_read(&mt6797_a72_sc_ready);
 \t*finished = atomic_read(&mt6797_a72_sc_finished);
 }
@@ -336,8 +336,8 @@ static void mt6797_a72_hold_workfn(struct work_struct *work)
         "\tint pl_verified;\n\tint observed_cpu8 = -1;\n",
         "\tint pl_verified;\n"
         "\tint sc_reported;\n"
-        "\tstruct mt6797_a72_sc_result sc_result8;\n"
-        "\tstruct mt6797_a72_sc_result sc_result9;\n"
+        "\tconst struct mt6797_a72_sc_result *sc_result8;\n"
+        "\tconst struct mt6797_a72_sc_result *sc_result9;\n"
         "\tint sc_ready;\n\tint sc_finished;\n"
         "\tint observed_cpu8 = -1;\n",
     )
@@ -352,25 +352,25 @@ static void mt6797_a72_hold_workfn(struct work_struct *work)
     )
     pass_tail = "\t    !pl_result8.bad_round && !pl_result9.bad_round)\n"
     pass_scheduler = """\t    !pl_result8.bad_round && !pl_result9.bad_round &&
-\t    sc_reported == 1 && sc_result8.expected_cpu == 8 &&
-\t    sc_result9.expected_cpu == 9 && sc_result8.start_cpu == 8 &&
-\t    sc_result8.end_cpu == 8 && sc_result9.start_cpu == 9 &&
-\t    sc_result9.end_cpu == 9 && sc_result8.task_context == 1 &&
-\t    sc_result9.task_context == 1 && !sc_result8.create_error &&
-\t    !sc_result9.create_error && sc_result8.wake_result == 1 &&
-\t    sc_result9.wake_result == 1 && sc_result8.wait_complete == 1 &&
-\t    sc_result9.wait_complete == 1 && !sc_result8.error &&
-\t    !sc_result9.error && !sc_result8.stop_result &&
-\t    !sc_result9.stop_result &&
-\t    sc_result8.stop_result == sc_result8.error &&
-\t    sc_result9.stop_result == sc_result9.error &&
-\t    sc_result8.done == MT6797_A72_SC_ITERATIONS &&
-\t    sc_result9.done == MT6797_A72_SC_ITERATIONS &&
-\t    sc_result8.rescheds == MT6797_A72_SC_RESCHEDS &&
-\t    sc_result9.rescheds == MT6797_A72_SC_RESCHEDS &&
+\t    sc_reported == 1 && sc_result8->expected_cpu == 8 &&
+\t    sc_result9->expected_cpu == 9 && sc_result8->start_cpu == 8 &&
+\t    sc_result8->end_cpu == 8 && sc_result9->start_cpu == 9 &&
+\t    sc_result9->end_cpu == 9 && sc_result8->task_context == 1 &&
+\t    sc_result9->task_context == 1 && !sc_result8->create_error &&
+\t    !sc_result9->create_error && sc_result8->wake_result == 1 &&
+\t    sc_result9->wake_result == 1 && sc_result8->wait_complete == 1 &&
+\t    sc_result9->wait_complete == 1 && !sc_result8->error &&
+\t    !sc_result9->error && !sc_result8->stop_result &&
+\t    !sc_result9->stop_result &&
+\t    sc_result8->stop_result == sc_result8->error &&
+\t    sc_result9->stop_result == sc_result9->error &&
+\t    sc_result8->done == MT6797_A72_SC_ITERATIONS &&
+\t    sc_result9->done == MT6797_A72_SC_ITERATIONS &&
+\t    sc_result8->rescheds == MT6797_A72_SC_RESCHEDS &&
+\t    sc_result9->rescheds == MT6797_A72_SC_RESCHEDS &&
 \t    sc_ready == 2 && sc_finished == 2 &&
-\t    sc_result8.hash == MT6797_A72_SC_HASH8_EXPECTED &&
-\t    sc_result9.hash == MT6797_A72_SC_HASH9_EXPECTED)
+\t    sc_result8->hash == MT6797_A72_SC_HASH8_EXPECTED &&
+\t    sc_result9->hash == MT6797_A72_SC_HASH9_EXPECTED)
 """
     replace_exact(path, pass_tail, pass_scheduler)
     replace_exact(path, "gemini-a72-pair-v6", "gemini-a72-pair-v7", expected=2)
@@ -393,18 +393,18 @@ static void mt6797_a72_hold_workfn(struct work_struct *work)
 """
     pass_args_new = """\t\t\t 0, 0, 0, 0ULL, 0ULL,
 \t\t\t sc_reported,
-\t\t\t sc_result8.expected_cpu, sc_result8.start_cpu,
-\t\t\t sc_result8.end_cpu, sc_result9.expected_cpu,
-\t\t\t sc_result9.start_cpu, sc_result9.end_cpu,
-\t\t\t sc_result8.task_context, sc_result9.task_context,
-\t\t\t sc_result8.create_error, sc_result9.create_error,
-\t\t\t sc_result8.wake_result, sc_result9.wake_result,
-\t\t\t sc_result8.wait_complete, sc_result9.wait_complete,
-\t\t\t sc_result8.error, sc_result9.error,
-\t\t\t sc_result8.stop_result, sc_result9.stop_result,
-\t\t\t sc_result8.done, sc_result9.done, sc_ready, sc_finished,
-\t\t\t (unsigned long long)sc_result8.hash,
-\t\t\t (unsigned long long)sc_result9.hash);
+\t\t\t sc_result8->expected_cpu, sc_result8->start_cpu,
+\t\t\t sc_result8->end_cpu, sc_result9->expected_cpu,
+\t\t\t sc_result9->start_cpu, sc_result9->end_cpu,
+\t\t\t sc_result8->task_context, sc_result9->task_context,
+\t\t\t sc_result8->create_error, sc_result9->create_error,
+\t\t\t sc_result8->wake_result, sc_result9->wake_result,
+\t\t\t sc_result8->wait_complete, sc_result9->wait_complete,
+\t\t\t sc_result8->error, sc_result9->error,
+\t\t\t sc_result8->stop_result, sc_result9->stop_result,
+\t\t\t sc_result8->done, sc_result9->done, sc_ready, sc_finished,
+\t\t\t (unsigned long long)sc_result8->hash,
+\t\t\t (unsigned long long)sc_result9->hash);
 """
     replace_exact(path, pass_args, pass_args_new)
 
@@ -414,18 +414,18 @@ static void mt6797_a72_hold_workfn(struct work_struct *work)
     fault_args_new = """\t\t\t (unsigned long long)pl_bad->expected,
 \t\t\t (unsigned long long)pl_bad->actual,
 \t\t\t sc_reported,
-\t\t\t sc_result8.expected_cpu, sc_result8.start_cpu,
-\t\t\t sc_result8.end_cpu, sc_result9.expected_cpu,
-\t\t\t sc_result9.start_cpu, sc_result9.end_cpu,
-\t\t\t sc_result8.task_context, sc_result9.task_context,
-\t\t\t sc_result8.create_error, sc_result9.create_error,
-\t\t\t sc_result8.wake_result, sc_result9.wake_result,
-\t\t\t sc_result8.wait_complete, sc_result9.wait_complete,
-\t\t\t sc_result8.error, sc_result9.error,
-\t\t\t sc_result8.stop_result, sc_result9.stop_result,
-\t\t\t sc_result8.done, sc_result9.done, sc_ready, sc_finished,
-\t\t\t (unsigned long long)sc_result8.hash,
-\t\t\t (unsigned long long)sc_result9.hash);
+\t\t\t sc_result8->expected_cpu, sc_result8->start_cpu,
+\t\t\t sc_result8->end_cpu, sc_result9->expected_cpu,
+\t\t\t sc_result9->start_cpu, sc_result9->end_cpu,
+\t\t\t sc_result8->task_context, sc_result9->task_context,
+\t\t\t sc_result8->create_error, sc_result9->create_error,
+\t\t\t sc_result8->wake_result, sc_result9->wake_result,
+\t\t\t sc_result8->wait_complete, sc_result9->wait_complete,
+\t\t\t sc_result8->error, sc_result9->error,
+\t\t\t sc_result8->stop_result, sc_result9->stop_result,
+\t\t\t sc_result8->done, sc_result9->done, sc_ready, sc_finished,
+\t\t\t (unsigned long long)sc_result8->hash,
+\t\t\t (unsigned long long)sc_result9->hash);
 """
     replace_exact(path, fault_args, fault_args_new)
 

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-scheduler-context` |
-| Status | `compile-tooling-ready` |
+| Status | `source-revision-pending` |
 | Subsystem | MT6797 retained Cortex-A72 pair and scheduler |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -46,7 +46,9 @@ watchdog recovery?
 - Generated patch SHA-256:
   `07168545c4c7972268610c7ec4dccf219744bb0d596571242f92f76dcea10beb`.
 - Stable patch ID: `a501f6da085275ebd4d60ffef0bb2b3e4a170224`.
-- No compile, container, deployment, or runtime claim exists yet.
+- Compile attempt 1 built both exact sources but failed the stack acceptance
+  boundary; no accepted compile review, container, deployment, or runtime claim
+  exists yet.
 
 ## Safety assessment
 
@@ -119,6 +121,14 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   The accepted package contains one patch changing only
   `arch/arm64/kernel/psci.c`; it remains source-review-only and performed no
   compile or device action.
+- Buildbox compile attempt 1 from repository commit
+  `32056dde05e24cbb3d478579d6bbad298032c750` compiled the scheduler child and
+  exact pair-v6 parent, then rejected the child because
+  `mt6797_a72_hold_workfn` used 1,056 bytes of static stack, above the
+  1,024-byte boundary. The cause was two scheduler result structures copied
+  onto that worker's stack. No package was accepted and no device action
+  occurred. See
+  [`results/compile-attempt-1-stack-reject-20260803.txt`](results/compile-attempt-1-stack-reject-20260803.txt).
 
 ## Analysis
 
@@ -129,11 +139,11 @@ context while preserving the established power and recovery boundary.
 
 ## Conclusion
 
-`compile-tooling-ready`: the deterministic child was generated against the exact
-reconstructed pair-v6 parent, all 22 negative mutations were rejected, the
-one-file patch and provenance were checksum-verified, and the Buildbox-only
-compile comparison is wired for review. No compile, container, deployment, or
-hardware evidence exists.
+`source-revision-pending`: both exact kernels compiled, but the first comparison
+correctly rejected 1,056-byte terminal-worker stack use. The next revision will
+retain static result storage and snapshot immutable pointers instead of copying
+two result payloads onto the stack. No compile package, container, deployment,
+or hardware evidence exists.
 
 ## Follow-up
 
