@@ -1,0 +1,60 @@
+CPU8/CPU9 multi-cacheline integrity Buildbox patch review
+Date: 2026-08-03
+
+Decision: accept the generated source patch for exact-parent compilation only.
+This is not a boot candidate or runtime result.
+
+Exact identities
+----------------
+
+Repository generation commit:
+  c9344a8a452077829ba2ac3142eeddc5e7215646
+Vendor source commit:
+  59e00a9144d782e148332009a835b99c43382467
+Exact pair-v4 parent kernel commit:
+  1538019f969d14667974fa0f1d4ae3b1e2c0fe4d
+Exact parent coherence patchset SHA-256:
+  d4c40577b9e91fedfde048b29cb203311de264c526c71e3abd907fc6fafcf67f
+Generated multiline kernel commit:
+  f465d671ed82fd2a461c7a6b0f567452e70400d8
+Accepted patch SHA-256:
+  7dbbf400f2402c7763ae9fee73438b056086f459060749de8f4506e9638f83c0
+
+Source review
+-------------
+
+- Changed path inventory contains only `arch/arm64/kernel/psci.c`.
+- Diff size is 236 insertions and 7 deletions.
+- The complete pair-v4 scalar phase remains linked and runs first. The child
+  starts its new phase only after exact rounds, callback CPUs, errors, and final
+  sequences all match the parent pass contract.
+- Exactly one additional synchronous cross-call reuses the exact `{8, 9}` mask.
+- The shared static BSS object is exactly 256 aligned 64-byte lines (16 KiB).
+- CPU8 and CPU9 alternately write and verify every one of eight `u64` words per
+  line for 64 rounds, making 262,144 exact cross-CPU comparisons.
+- Every wait consumes one finite per-callback `1U << 24` budget. Every data loop
+  is bounded by the fixed round, line, and word constants.
+- Publication uses `WRITE_ONCE()`/`READ_ONCE()` and release/acquire barriers.
+- The complete pair-v5 pass/fault terminal retains every inherited pair, HPS,
+  and scalar field and adds actual CPUs, errors, completion, cross-hashes, and
+  the first exact mismatch coordinates and values.
+- Startup, public CPU-down, HPS policy, sample timing, watchdog, power, MMIO,
+  configuration, and storage paths are not changed by the patch.
+
+Static and mutation review
+--------------------------
+
+Buildbox first passed the exact pair-v4 parent validator. The child validator
+then passed four deterministic pattern vectors and rejected all 16 mutations,
+covering dimensions, finite wait, access annotations, writer/round pattern
+inputs, exact compare, target, synchronous wait mode, release barrier, hash
+cross-check, parent gate, static working-set placement, and terminal completeness.
+
+Acceptance boundary
+-------------------
+
+The patch is accepted only for exact pair-v4 parent versus pair-v5 child
+Buildbox compilation and binary/stack review. Compilation must prove the kernel
+API contract, identical configuration and diagnostics, linked bounded callbacks
+and barriers, complete terminals, and absence of the 16 KiB working set from
+the stack before container construction. No device was accessed.

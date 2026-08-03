@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu9-multiline-integrity` |
-| Status | `source-generation-tooling-ready` |
+| Status | `source-patch-accepted-for-buildbox-compile` |
 | Subsystem | MT6797 retained Cortex-A72 pair and cache coherency |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -33,9 +33,13 @@ mismatch, callback error, lost watchdog recovery, or changed power boundary?
   zero coherence errors, complete HPS CPU9 `-EPERM` attribution, watchdog-class
   recovery, offline recovery CPUs 8/9, and unchanged boot2.
 - Build backend: Buildbox only; no native VM kernel build.
-- Deterministic source-generation and static-mutation tooling is ready for a
-  clean, pushed Buildbox source-review run. No generated patch, compile,
-  container, deployment, or runtime claim exists yet.
+- Buildbox generated and validated the exact one-file source patch from clean
+  repository commit `c9344a8a452077829ba2ac3142eeddc5e7215646`.
+- Generated kernel commit:
+  `f465d671ed82fd2a461c7a6b0f567452e70400d8`.
+- Accepted patch SHA-256:
+  `7dbbf400f2402c7763ae9fee73438b056086f459060749de8f4506e9638f83c0`.
+- No compile, container, deployment, or runtime claim exists yet.
 
 ## Safety assessment
 
@@ -50,16 +54,19 @@ terminal snapshot before the inherited watchdog restart.
 
 - [`DESIGN.md`](DESIGN.md): exact working set, data oracle, synchronization,
   bounds, terminal, result classes, source invariants, and safety boundary.
+- [`patches/`](patches/): the accepted experiment-only source patch.
+- [`results/patch-generation-review-20260803.txt`](results/patch-generation-review-20260803.txt):
+  exact Buildbox generation identities and acceptance boundary.
 
 ## Conclusion
 
-`source-generation-tooling-ready`: the exact parent already proves repeatable
-scalar shared-memory visibility. The reviewed transformer adds the bounded
-multi-cacheline phase without changing a power boundary. It must still pass
-Buildbox source generation, mutation, compile/binary/stack, container,
-deployment, and runtime-map gates before device access.
+`source-patch-accepted-for-buildbox-compile`: Buildbox reproduced the exact
+pair-v4 parent, passed its static validator, applied the deterministic child
+transformer, rejected all 16 multiline mutations, and generated a patch that
+changes only `arch/arm64/kernel/psci.c`. It must still pass compile/binary/stack,
+container, deployment, and runtime-map gates before device access.
 
 ## Follow-up
 
-Commit and push the deterministic transformer and mutation harness, then submit
-that exact clean commit to Buildbox for source generation and review.
+Compile the accepted child and exact pair-v4 parent on Buildbox, then compare
+configuration, diagnostics, source boundaries, linked code, and stack usage.
