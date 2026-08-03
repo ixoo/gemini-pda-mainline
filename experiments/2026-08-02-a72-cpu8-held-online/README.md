@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-02-a72-cpu8-held-online` |
-| Status | `container-accepted-runtime-map-pending` |
+| Status | `offline-gates-passed-deployment-eligible-after-push` |
 | Subsystem | MT6797 HPS, generic CPU hotplug, CPU8 IPI/coherency |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-02 |
@@ -58,6 +58,10 @@ experiment and prohibits unchanged retry.
 - [`scripts/assemble.py`](scripts/assemble.py) and
   [`scripts/build-candidate.sh`](scripts/build-candidate.sh): pinned Android-v0
   assembly and two-path offline candidate construction.
+- [`scripts/install-boot2.sh`](scripts/install-boot2.sh): source-pinned guarded
+  live-GPT boot2 write, full readback, no-fresh-backup, and shutdown path.
+- [`scripts/capture-live-outcome.sh`](scripts/capture-live-outcome.sh): optional
+  read-only USB/netcat marker capture.
 - [`results/source-order-audit-20260802.txt`](results/source-order-audit-20260802.txt):
   exact runtime-to-source call ordering and chosen insertion points.
 - [`patches/`](patches/): exact three-patch Buildbox-generated follow-up.
@@ -68,6 +72,8 @@ experiment and prohibits unchanged retry.
   exact Buildbox identities, diagnostics, disassembly, and stack-use decision.
 - [`results/offline-container-review-20260802.txt`](results/offline-container-review-20260802.txt):
   reproducible Android-v0 assembly, padding, parsing, and offline-only decision.
+- [`results/runtime-decision-map-20260802.txt`](results/runtime-decision-map-20260802.txt):
+  exact deployment boundary and mutually exclusive runtime decisions.
 
 ## Procedure
 
@@ -115,6 +121,6 @@ a boot candidate.
 
 ## Follow-up
 
-Finish the exact runtime decision map, live and retained-evidence collectors,
-and guarded boot2 installer. Do not access the device until those gates pass
-and their evidence is pushed.
+Commit and push the passed offline runtime gate, then perform one guarded boot2
+deployment from known-good Gemian. The installer must leave the device powered
+off for manual boot2 selection with retained-pstore collection already armed.

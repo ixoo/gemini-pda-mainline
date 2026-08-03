@@ -1,0 +1,142 @@
+CPU8 held-online guarded runtime decision map
+=============================================
+
+Date: 2026-08-02
+Status: offline review passed; guarded deployment eligible after push
+Runtime result: not tested
+
+Exact experiment identity
+-------------------------
+
+Repository compile commit:
+  118ff3cb3e9a2fbee10a44ada748e46bbe9b5312
+Held-online patchset SHA-256:
+  e6da1e8cc976ad63dd9cf8a254bb7234d73589cfad6afeb07135403a27d03ba3
+Kernel field SHA-256:
+  9158af17b17e483ec68257378e5c4bd923b254e7242b5ba338f1324eec5f960b
+Compiled build identity:
+  #1 SMP PREEMPT Mon Aug 3 02:44:30 UTC 2026
+Raw Android-v0 SHA-256:
+  53046cf314f76f213abafa53a1e79758ff835941d78a47ecc878d0a2e1ad3789
+Full boot2 SHA-256:
+  936b9256709514938ddf2f3ab13e63bd9c8d37e991fe40a568aa36a8f8818018
+Expected boot2 predecessor SHA-256:
+  fc7368ef0bd56b5c17fea277f78bfeae362da5f685be9f85686f991cdc4fefda
+
+Pre-boot statement
+------------------
+
+Hypothesis:
+  The already-proven one-way startup will bring CPU8 online. HPS will retain a
+  target of one for the exact CPU8/9 cluster, every residual public CPU8/9
+  down request will return before notifier dispatch, and CPU8 will execute
+  synchronous callbacks at one and six seconds after completion while CPU9
+  remains offline.
+
+Unique attributable evidence:
+  One exact parent `cpu8-online-held/complete` marker, followed by one exact
+  held sample-1 marker and one exact `result=pass sample=2` marker, tied to the
+  compiled build identity and changed watchdog boot cycle. Screen color or an
+  apparent reboot is not kernel attribution.
+
+Observation paths:
+  1. Arm the read-only direct USB/netcat held-marker collector before manual
+     boot2 selection. It is optional because USB service may miss the fixed
+     watchdog window.
+  2. Arm `scripts/collect-device-pstore --wait-for-cycle` before selection.
+     After known-good Gemian returns, retain all pstore records without
+     deleting remote records.
+  3. On returned Gemian, prove changed boot ID, exact 2019 kernel,
+     watchdog-class reason, CPU8/9 offline, unchanged boot2 checksum, and an
+     inactive/unmounted live-GPT-resolved boot2.
+
+Offline tool review
+-------------------
+
+Guarded installer SHA-256:
+  074464f4bea0062dab763d2cc3ce69fb3b827c6fcafaea98e7f7b9910a66f602
+Direct USB/netcat collector SHA-256:
+  0b316d4028df77a1ae03263ea185c9f34955dc35260e4bced5de395cb3078f16
+Static/runtime contract test SHA-256:
+  53cdfc5eb7e1666ac97991dc1050fe599c35ae51b36cbcbb46f77ff945708e0a
+Pinned changed-boot pstore collector SHA-256:
+  9047084f3012aff47e23e56498d4bc0ae6f8fb7e4f15caec10abb6c15e9a9b3b
+
+- Bash and Python syntax passed.
+- Managed-VM ShellCheck passed for the installer and live collector. No native
+  VM kernel build was run.
+- Four exact installer identity mutations were rejected.
+- The live device program has no storage, CPU-online, reboot, shutdown, mount,
+  I2C, direct-register, or runtime-stimulus operation.
+- Success, unexpected down-veto, held fault, four parent failure terminals,
+  notifier/panic, missing evidence, and ambiguous restart have explicit
+  decisions.
+- The private candidate manifest validates and its full image and manifest
+  identities match the installer pins.
+- Installer derivation retains live GPT resolution, inactive/unmounted target,
+  exact size and writable state, exact predecessor, Good health, stable-power
+  floor, full write/readback, cleanup, no-fresh-backup, and shutdown gates.
+
+Success class
+-------------
+
+All of these are required, in order and exactly once:
+
+1. `gemini-a72-oneway-v1 result=cpu8-online-held stage=complete error=0`
+2. `gemini-a72-hold-v1 result=sample sample=1 cpu=8 cpu8=1 cpu9=0`
+3. `gemini-a72-hold-v1 result=pass sample=2 cpu=8 cpu8=1 cpu9=0`
+
+There must be no held `result=fault`, no `result=down-veto`, no CPU9 online,
+no cpuhvfs cluster-off notifier, and no panic before the pass marker. This
+proves only bounded CPU8 execution/accounting through two synchronous IPIs. It
+does not prove long-term stability, thermal safety, CPU_OFF, suspend, cpufreq,
+or CPU9 readiness.
+
+Failure and inconclusive classes
+--------------------------------
+
+Any `gemini-a72-hold-v1 result=down-veto`:
+  The generic safety barrier dominated notifier entry, but an unexpected
+  non-HPS caller requested CPU8/9 down. Reject the run even if IPI samples also
+  pass; classify the caller and do not retry unchanged.
+
+Any `gemini-a72-hold-v1 result=fault`:
+  The synchronous IPI, callback CPU identity, CPU accounting, CPU9 exclusion,
+  or rescheduling contract failed. Preserve the exact sample/error and do not
+  retry unchanged.
+
+Parent `result=rejected-prestate`, `result=rolled-back-preiso`,
+`result=fault-retain-preiso`, or `result=fault-retain-postiso`:
+  The already-proven startup did not reproduce. Preserve the last parent stage
+  and return to parent-stage analysis.
+
+cpuhvfs cluster-off notifier or panic before held pass:
+  The early barriers failed to dominate the observed crash path. Reject the
+  implementation; do not retry unchanged.
+
+Missing marker, duplicate/conflicting marker, missing build identity, absent
+changed-boot cycle, or pstore/live disagreement:
+  Inconclusive. Return to known-good Gemian and improve attribution before any
+  further boot.
+
+Automatic restart with no exact retained marker:
+  Recovery/serviceability only. It is not evidence about CPU8.
+
+Deployment boundary
+-------------------
+
+The installer may write only the exact full candidate to the live-GPT-resolved
+inactive, unmounted, writable 16 MiB logical `boot2`. It accepts only the exact
+one-way predecessor (or skips an already matching candidate), requires Good
+battery health and at least 65 percent capacity, synchronizes the write,
+requires matching on-device and independent full-partition readbacks, removes
+temporary staging, and shuts the device down. It records the predecessor hash
+and creates no fresh backup. Primary boot, boot3, preloader, NVRAM, GPT, and
+whole-device writes remain outside authorization.
+
+Next action
+-----------
+
+Commit and push this passed offline review, then perform one guarded deployment
+from known-good Gemian. The installer must leave the device powered off for
+manual boot2 selection while retained-pstore collection is already armed.
