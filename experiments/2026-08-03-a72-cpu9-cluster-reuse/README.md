@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu9-cluster-reuse` |
-| Status | `design-static-review-pending` |
+| Status | `source-generated-compile-pending` |
 | Subsystem | MT6797 CPU9 PSCI per-core startup with CPU8 retained |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -53,6 +53,9 @@ userspace control is introduced.
   inventory, and forbidden-action checks.
 - [`scripts/test_static.py`](scripts/test_static.py): rejection mutations for
   CPU identity, parent state, PSCI-only ordering, pair sampling, and recovery.
+- [`patches/`](patches/): one Buildbox-generated logical CPU9 child patch.
+- [`results/patch-generation-review-20260803.txt`](results/patch-generation-review-20260803.txt):
+  exact identities, rejected validator revisions, and accepted source review.
 
 ## Procedure
 
@@ -84,10 +87,11 @@ terminal substantive by synchronously executing on both A72 CPUs.
 
 ## Conclusion
 
-`design-static-review-pending`: runtime CPU8 foundation and natural CPU9
-trigger are established. No CPU9-capable source or artifact is accepted yet.
+`source-generated-compile-pending`: the exact late parent, one logical child,
+PSCI-only CPU9 path, pair sampler, forbidden actions, ordering, and all 16
+mutations pass on Buildbox. No CPU9-capable binary or artifact is accepted yet.
 
 ## Follow-up
 
-Machine-check the source transformation and mutations, then commit and push a
-clean revision before Buildbox patch generation. CPU9 remains disabled.
+Commit and push the exact generated patch, then compare full child and exact
+late-parent builds on Buildbox. CPU9 remains disabled.

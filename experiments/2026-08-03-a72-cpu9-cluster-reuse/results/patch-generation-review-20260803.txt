@@ -1,0 +1,56 @@
+CPU9 cluster-reuse patch-generation review
+==========================================
+
+Date: 2026-08-03
+Result: pass
+Device access: none
+Kernel build: none
+
+Exact generation
+----------------
+
+Repository generation commit:
+  7e786803cf8b1c188907421628d67e83f5120c49
+Pinned source:
+  59e00a9144d782e148332009a835b99c43382467
+Exact parent late patchset SHA-256:
+  f2bebc4a04888a6c83f0dc72c2de56d350c2a52ab9779ef07e3a01cb5b544d91
+Generated source commit:
+  1a3fe9c78f60a5576e5c0c9488932cc0869fd7fd
+Generated patch SHA-256:
+  4d72f15e739b788c32397927c03f52e6c6adde15c65008dd686ca50f62ce0a76
+Ordered child patchset SHA-256:
+  17733d2ae50c16f9d0db2d4bd4075fa5a72ce081606db7d3bf1bfe83f4159a2b
+Fetched package manifest SHA-256:
+  6696948229c5d074e53ba5df0433c152882b9ceb238aa5fe62ad91e91d4a3c93
+
+Review
+------
+
+- Buildbox applied the complete observer, rollback, one-way CPU8, held-online,
+  and late-sample parent chain in canonical experiment order.
+- The child is one logical 135-addition/2-removal patch across `psci.c`,
+  `smp.c`, and the experiment Kconfig.
+- CPU9 consumes one software one-shot, requires accepted and completed CPU8
+  cluster state, and invokes only standard PSCI `CPU_ON` for its existing map.
+- The CPU9 path contains no DA921x, SPM, TOPRGU, SRAM-LDO, DCM, CPU_OFF, or
+  CPU-down operation. Parent behavior remains selected when the child option
+  is disabled.
+- Generic secondary completion requires both CPUs online and schedules pair
+  sampling only after CPU9 completion. Three samples synchronously execute on
+  CPU8 and CPU9 with exact identity, accounting, and equal-hit predicates.
+- All 16 CPU/prestate/polarity/PSCI/pair/timing/completion/Kconfig mutations
+  were rejected.
+- Three earlier repository revisions stopped before package publication: two
+  used ambiguous global mutation anchors, and the third exposed a missing
+  exact polarity check for the cluster-ready predicate. The accepted validator
+  uses function-scoped mutations and requires `!(g_cl2_online & 1)` exactly.
+- The fetched patch is byte-identical to the Buildbox package, contains no
+  synthetic sign-off, and its strict manifest passes.
+
+Decision
+--------
+
+The source-generation gate passes. This is not a compile result and does not
+authorize a container, device write, or CPU9 runtime attempt. Commit and push
+the exact patch before an exact-child versus exact-late-parent Buildbox build.

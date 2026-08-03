@@ -1,0 +1,241 @@
+From 1a3fe9c78f60a5576e5c0c9488932cc0869fd7fd Mon Sep 17 00:00:00 2001
+From: Gemini A72 experiment <noreply@gemini-a72.invalid>
+Date: Mon, 3 Aug 2026 20:00:00 +0000
+Subject: [PATCH] diagnostic: start CPU9 by reusing the prepared cluster
+
+Accept one natural CPU9 request only after verified CPU8 completion.
+
+Use standard PSCI per-core startup without cluster preparation replay.
+
+Sample CPU8 and CPU9 synchronously before watchdog recovery.
+---
+ arch/arm64/kernel/psci.c                 | 116 +++++++++++++++++++++++
+ arch/arm64/kernel/smp.c                  |  12 ++-
+ drivers/misc/mediatek/base/power/Kconfig |   9 ++
+ 3 files changed, 135 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/kernel/psci.c b/arch/arm64/kernel/psci.c
+index b203a6ea1..2b546d2a0 100644
+--- a/arch/arm64/kernel/psci.c
++++ b/arch/arm64/kernel/psci.c
+@@ -531,6 +531,9 @@ static void mt6797_a72_obs_fixed_snapshot(unsigned int cpu, u16 phase)
+ static atomic_t mt6797_a72_one_way_attempted = ATOMIC_INIT(0);
+ static bool mt6797_a72_one_way_psci_accepted;
+ static atomic_t mt6797_a72_hold_hits = ATOMIC_INIT(0);
++static atomic_t mt6797_a72_cpu9_hits = ATOMIC_INIT(0);
++static atomic_t mt6797_a72_cpu9_attempted = ATOMIC_INIT(0);
++static bool mt6797_a72_cpu9_psci_accepted;
+ static struct delayed_work mt6797_a72_hold_work;
+ 
+ static void mt6797_a72_hold_ipi(void *data)
+@@ -543,6 +546,55 @@ static void mt6797_a72_hold_ipi(void *data)
+ 
+ static void mt6797_a72_hold_workfn(struct work_struct *work)
+ {
++#ifdef CONFIG_MTK_A72_CPU9_CLUSTER_REUSE
++	int observed_cpu8 = -1;
++	int observed_cpu9 = -1;
++	int hits8 = atomic_read(&mt6797_a72_hold_hits);
++	int hits9 = atomic_read(&mt6797_a72_cpu9_hits);
++	int sample = hits8 + 1;
++	int ret8 = -EIO;
++	int ret9 = -EIO;
++
++	if (hits8 == hits9) {
++		ret8 = smp_call_function_single(8, mt6797_a72_hold_ipi,
++					&observed_cpu8, 1);
++		ret9 = smp_call_function_single(9, mt6797_a72_hold_ipi,
++					&observed_cpu9, 1);
++	}
++	if (ret8 || ret9 || observed_cpu8 != 8 || observed_cpu9 != 9 ||
++	    !cpu_online(8) || !cpu_online(9) || hits8 != hits9) {
++		pr_emerg("gemini-a72-pair-v1 result=fault sample=%d cpu8=%d cpu9=%d online8=%d online9=%d hits8=%d hits9=%d error8=%d error9=%d\n",
++			 sample, observed_cpu8, observed_cpu9, cpu_online(8),
++			 cpu_online(9), hits8, hits9, ret8, ret9);
++		console_lock();
++		console_unlock();
++		return;
++	}
++	atomic_inc(&mt6797_a72_hold_hits);
++	atomic_inc(&mt6797_a72_cpu9_hits);
++	if (sample < 3) {
++		unsigned long delay = sample == 1 ? 5000 : 4000;
++
++		pr_emerg("gemini-a72-pair-v1 result=sample sample=%d cpu8=8 cpu9=9 online8=1 online9=1 hits8=%d hits9=%d\n",
++			 sample, atomic_read(&mt6797_a72_hold_hits),
++			 atomic_read(&mt6797_a72_cpu9_hits));
++		console_lock();
++		console_unlock();
++		if (!schedule_delayed_work(&mt6797_a72_hold_work,
++					   msecs_to_jiffies(delay))) {
++			pr_emerg("gemini-a72-pair-v1 result=fault sample=%d cpu8=-1 cpu9=-1 online8=%d online9=%d hits8=%d hits9=%d error8=%d error9=%d\n",
++				 sample + 1, cpu_online(8), cpu_online(9),
++				 atomic_read(&mt6797_a72_hold_hits),
++				 atomic_read(&mt6797_a72_cpu9_hits), -EBUSY, -EBUSY);
++			console_lock();
++			console_unlock();
++		}
++		return;
++	}
++	pr_emerg("gemini-a72-pair-v1 result=pass sample=3 cpu8=8 cpu9=9 online8=1 online9=1 hits8=3 hits9=3\n");
++	console_lock();
++	console_unlock();
++#else
+ 	int observed_cpu = -1;
+ 	int sample = atomic_read(&mt6797_a72_hold_hits) + 1;
+ 	int ret;
+@@ -579,6 +631,7 @@ static void mt6797_a72_hold_workfn(struct work_struct *work)
+ 	pr_emerg("gemini-a72-hold-v2 result=pass sample=3 cpu=8 cpu8=1 cpu9=0 hits=3\n");
+ 	console_lock();
+ 	console_unlock();
++#endif
+ }
+ 
+ static void mt6797_a72_one_way_marker(const char *result,
+@@ -595,6 +648,42 @@ static void mt6797_a72_one_way_checkpoint(const char *stage)
+ 	pr_emerg("gemini-a72-oneway-v1 state=begin stage=%s\n", stage);
+ }
+ 
++#ifdef CONFIG_MTK_A72_CPU9_CLUSTER_REUSE
++static void mt6797_a72_cpu9_marker(const char *result,
++				   const char *stage, int error)
++{
++	pr_emerg("gemini-a72-cpu9-v1 result=%s stage=%s error=%d cpu8=%d cpu9=%d cluster=%u\n",
++		 result, stage, error, cpu_online(8), cpu_online(9),
++		 g_cl2_online & 1);
++	console_lock();
++	console_unlock();
++}
++
++static int mt6797_a72_cpu9_boot(unsigned int cpu)
++{
++	int ret;
++
++	if (cpu != 9)
++		return -EPERM;
++	if (atomic_xchg(&mt6797_a72_cpu9_attempted, 1))
++		return -EALREADY;
++	if (!READ_ONCE(mt6797_a72_one_way_psci_accepted) ||
++	    !(g_cl2_online & 1) || !cpu_online(8) || cpu_online(9)) {
++		mt6797_a72_cpu9_marker("rejected-prestate", "entry", -EINVAL);
++		return -EINVAL;
++	}
++	ret = psci_ops.cpu_on(cpu_logical_map(cpu), __pa(secondary_entry));
++	mt6797_a72_obs_lifecycle(cpu, MT6797_A72_PHASE_PSCI_MAPPED, ret,
++				 cpu_logical_map(cpu), __pa(secondary_entry));
++	if (ret) {
++		mt6797_a72_cpu9_marker("fault-retain-psci", "psci", ret);
++		return ret;
++	}
++	WRITE_ONCE(mt6797_a72_cpu9_psci_accepted, true);
++	return 0;
++}
++#endif
++
+ static int mt6797_a72_one_way_boot(unsigned int cpu)
+ {
+ 	struct mtk_wdt_recovery_state watchdog;
+@@ -772,6 +861,27 @@ int mt6797_a72_one_way_secondary_complete(unsigned int cpu,
+ {
+ 	int ret;
+ 
++#ifdef CONFIG_MTK_A72_CPU9_CLUSTER_REUSE
++	if (cpu == 9) {
++		if (!READ_ONCE(mt6797_a72_cpu9_psci_accepted) || !completed ||
++		    !(g_cl2_online & 1) || !cpu_online(8) || !cpu_online(9)) {
++			ret = -EIO;
++			mt6797_a72_cpu9_marker("fault-retain-secondary",
++					       "secondary", ret);
++			return ret;
++		}
++		mt6797_a72_cpu9_marker("cpu9-online-held", "complete", 0);
++		INIT_DELAYED_WORK(&mt6797_a72_hold_work,
++				  mt6797_a72_hold_workfn);
++		if (!schedule_delayed_work(&mt6797_a72_hold_work,
++					   msecs_to_jiffies(1000))) {
++			mt6797_a72_cpu9_marker("fault-retain-secondary",
++					       "pair-schedule", -EBUSY);
++			return -EBUSY;
++		}
++		return 0;
++	}
++#endif
+ 	if (cpu != 8)
+ 		return 0;
+ 	if (!READ_ONCE(mt6797_a72_one_way_psci_accepted) ||
+@@ -795,6 +905,7 @@ int mt6797_a72_one_way_secondary_complete(unsigned int cpu,
+ 	g_cl2_online |= 1;
+ 	mt6797_a72_one_way_marker("cpu8-online-held",
+ 					    "complete", 0);
++#ifndef CONFIG_MTK_A72_CPU9_CLUSTER_REUSE
+ 	INIT_DELAYED_WORK(&mt6797_a72_hold_work,
+ 			  mt6797_a72_hold_workfn);
+ 	if (!schedule_delayed_work(&mt6797_a72_hold_work,
+@@ -803,6 +914,7 @@ int mt6797_a72_one_way_secondary_complete(unsigned int cpu,
+ 					    "hold-schedule", -EBUSY);
+ 		return -EBUSY;
+ 	}
++#endif
+ 	return 0;
+ }
+ #endif
+@@ -954,8 +1066,12 @@ static int cpu_psci_cpu_boot(unsigned int cpu)
+ 
+ #ifdef CONFIG_MTK_A72_ONE_WAY_CPU8
+ 	if (cpu == 9) {
++#ifdef CONFIG_MTK_A72_CPU9_CLUSTER_REUSE
++		err = mt6797_a72_cpu9_boot(cpu);
++#else
+ 		pr_info("one-way: reject CPU9 before A72 action\n");
+ 		err = -EPERM;
++#endif
+ 		goto mt6797_a72_one_way_out;
+ 	}
+ 	if (cpu == 8) {
+diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
+index 1469b9ef7..785cfe206 100644
+--- a/arch/arm64/kernel/smp.c
++++ b/arch/arm64/kernel/smp.c
+@@ -144,7 +144,11 @@ int __cpu_up(unsigned int cpu, struct task_struct *idle)
+ 			wait_for_completion_timeout(&cpu_running,
+ 					    msecs_to_jiffies(3000));
+ #ifdef CONFIG_MTK_A72_ONE_WAY_CPU8
+-		if (cpu == 8)
++		if (cpu == 8
++#ifdef CONFIG_MTK_A72_CPU9_CLUSTER_REUSE
++		    || cpu == 9
++#endif
++		   )
+ 			ret = mt6797_a72_one_way_secondary_complete(cpu,
+ 				secondary_completed && cpu_online(cpu));
+ #endif
+@@ -157,7 +161,11 @@ int __cpu_up(unsigned int cpu, struct task_struct *idle)
+ 			pr_crit("CPU%u: failed to come online\n", cpu);
+ 			#ifdef CONFIG_ARCH_MT6797
+ #ifdef CONFIG_MTK_A72_ONE_WAY_CPU8
+-			if (cpu != 8)
++			if (cpu != 8
++#ifdef CONFIG_MTK_A72_CPU9_CLUSTER_REUSE
++			    && cpu != 9
++#endif
++			   )
+ #endif
+ 				BUG_ON(1);
+ 			#endif
+diff --git a/drivers/misc/mediatek/base/power/Kconfig b/drivers/misc/mediatek/base/power/Kconfig
+index db224fc85..c6b413ad4 100644
+--- a/drivers/misc/mediatek/base/power/Kconfig
++++ b/drivers/misc/mediatek/base/power/Kconfig
+@@ -116,3 +116,12 @@ config MTK_A72_ONE_WAY_CPU8
+ 	  Run one fail-closed CPU8 startup with exact pre-isolation
+ 	  rollback and post-isolation power retention. CPU9 and CPU-off
+ 	  are forbidden. This experiment always ends by watchdog reset.
++
++config MTK_A72_CPU9_CLUSTER_REUSE
++	bool "MT6797 one-way CPU9 cluster-reuse experiment"
++	depends on MTK_A72_ONE_WAY_CPU8
++	default n
++	help
++	  Permit one natural CPU9 request only after the exact one-way CPU8
++	  completion. Reuse the prepared cluster through standard PSCI and
++	  retain both CPUs until the inherited watchdog reset.
