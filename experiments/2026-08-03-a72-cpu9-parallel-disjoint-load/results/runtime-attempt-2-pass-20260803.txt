@@ -1,0 +1,72 @@
+CPU8/CPU9 parallel disjoint-load runtime attempt 2
+Date: 2026-08-03
+
+Decision: pass. One exact repeatability cycle is earned by the predeclared
+decision map. This does not authorize CPU_OFF, removal of the HPS veto, longer
+load, a power boundary, or production-online CPU8/CPU9.
+
+Exact identities
+----------------
+
+Repository compile commit:
+  ad7807ccc50bebd0aaeafcbe4dadb4c11c44b850
+Parallel patchset SHA-256:
+  94d3b07355e1ddb67f3f643165570255bb1f42131b3b67c074d270e8581989e2
+Raw Android-v0 SHA-256:
+  6673d9ff6b9ff0a2bb4cf7a89815d73022208975dca713176c71a3b0865c7c51
+Full boot2 SHA-256:
+  0beead0b00485ad18333aca4d688fcd549c813113b7ec0554a6761c7147b17fb
+Pstore console SHA-256:
+  07786ccd422ce4465a04b68882ff3a876c2f613c190eb945c51246a9afe35333
+Pstore archive SHA-256:
+  302234d55333cf712e86aaf51673718dd151575181ad21fcfc5fd768f399ff4a
+
+Attributable terminal
+---------------------
+
+At 10.775497 seconds, retained `console-ramoops` contains exactly:
+
+  psci: gemini-a72-pair-v6 result=pass sample=3 cpu8=8 cpu9=9 online8=1 online9=1 hits8=3 hits9=3 hps_reported=1 hps_cpu=9 hps_error=-1 hps_count=82 coh_reported=1 coh_rounds=1024 coh_cpu8=8 coh_cpu9=9 coh_error8=0 coh_error9=0 coh_seq8=1024 coh_seq9=1024 ml_reported=1 ml_rounds=64 ml_lines=256 ml_words=8 ml_cpu8=8 ml_cpu9=9 ml_error8=0 ml_error9=0 ml_done8=64 ml_done9=64 ml_hash8w=34e574e95cbe0383 ml_hash8r=432574e95cbe0383 ml_hash9w=432574e95cbe0383 ml_hash9r=34e574e95cbe0383 ml_bad_round=0 ml_bad_line=0 ml_bad_word=0 ml_expected=0000000000000000 ml_actual=0000000000000000 pl_reported=1 pl_rounds=128 pl_lines=1024 pl_words=8 pl_cpu8=8 pl_cpu9=9 pl_error8=0 pl_error9=0 pl_done8=128 pl_done9=128 pl_ready=256 pl_written=256 pl_verified=256 pl_hash8w=d7bbe01c2e3d0383 pl_hash8r=f5e6a0ebae7d0383 pl_hash9w=f5e6a0ebae7d0383 pl_hash9r=d7bbe01c2e3d0383 pl_bad_round=0 pl_bad_line=0 pl_bad_word=0 pl_expected=0000000000000000 pl_actual=0000000000000000
+
+This satisfies every predeclared positive predicate:
+
+- CPUs 8 and 9 were Linux-accounted online and completed all three inherited
+  callbacks;
+- the fail-closed HPS down veto remained attributed to CPU9 with `-EPERM` and
+  82 bounded requests;
+- both CPUs completed the inherited 1,024-round scalar and 64-round multiline
+  phases with zero errors, exact counts, and cross-matching hashes;
+- each CPU completed 128 simultaneous disjoint-write and peer-read rounds over
+  its 512 peer-owned lines and eight words per line: 524,288 checks per CPU and
+  1,048,576 exact cross-CPU checks in total;
+- ready, written, and verified counters each reached exactly 256;
+- parallel errors are zero, both completion counts are 128, both write hashes
+  are nonzero and cross-match the opposite read hashes, and all mismatch fields
+  are zero; and
+- retained pstore contains no pair-v6 fault, panic, BUG, Internal error, Call
+  trace, asynchronous SError, lockup, or unable-to-handle-kernel record.
+
+Recovery and integrity
+----------------------
+
+The repeat baseline was ordinary Gemian boot ID
+`dab03dc6-a111-4f92-b969-a4066001ed5a`. The guarded helper proved exact pair-v6
+boot2 by full readback, skipped the write, and confirmed clean shutdown. The
+owner then reported physical boot2 start and automatic Gemian restart. Immediate
+recovery had new boot ID `d5e6c266-d65d-495f-9331-a132f7b32f9d`.
+
+Recovery ran `3.18.41+` on aarch64. Filtered boot arguments reported
+`boot_reason=4` and `androidboot.bootreason=wdt_by_pass_pwk`. The online CPU mask
+was `4-5`; CPU8 and CPU9 each reported `online=0`. Live GPT exposed exactly one
+unmounted `/dev/mmcblk0p30 boot2`, whose full checksum remained exact pair-v6.
+Battery telemetry was present, 100 percent, Full, and Good.
+
+Conclusion and next action
+--------------------------
+
+This is direct evidence that retained CPUs 8 and 9 can concurrently write and
+cross-verify disjoint halves of the exact 64 KiB working set for 128 bounded
+rounds after reproducing all inherited gates. Per the fixed map, run one exact
+unchanged cycle with changed-cycle pstore pre-armed. A second pass would establish
+repeatability only for this bounded oracle. It would not authorize CPU_OFF,
+DVFS/OPP, scheduler load, thermal stress, suspend, or production integration.

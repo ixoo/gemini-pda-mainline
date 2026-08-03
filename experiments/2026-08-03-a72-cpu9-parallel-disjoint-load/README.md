@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu9-parallel-disjoint-load` |
-| Status | `attempt-1-inconclusive; live-capture-repeat-pending` |
+| Status | `attempt-2-pass; exact-repeat-earned` |
 | Subsystem | MT6797 retained Cortex-A72 pair and cache coherency |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -48,7 +48,7 @@ watchdog recovery, or changed power boundary?
   `17d222165657e6679df3b7be6e1c712a15ec979012755cdbc95ae087eeed48f4`.
 - Pair-v5 validation: four pattern vectors and 16 negative mutations passed.
 - Pair-v6 validation: four pattern vectors and 19 negative mutations passed.
-- No positive pair-v6 runtime claim exists yet.
+- Positive pair-v6 runtime evidence is limited to attempt 2 below.
 - Final Buildbox compile-review commit:
   `ad7807ccc50bebd0aaeafcbe4dadb4c11c44b850`.
 - Child `Image.gz-dtb` SHA-256:
@@ -61,7 +61,7 @@ watchdog recovery, or changed power boundary?
   bytes, complete terminal worker 784 bytes; the working set is not on stack.
 - The compile bundle alone was not a boot candidate; the independently
   reproduced padded container below is the accepted exact candidate for
-  guarded deployment. It has not yet produced runtime evidence.
+  guarded deployment and produced the attempt-2 result below.
 - Two independent offline container roots produced byte-identical Android-v0
   images and exact 16 MiB padded images.
 - Raw Android-v0 SHA-256:
@@ -96,6 +96,14 @@ watchdog recovery, or changed power boundary?
   branch only with a materially stronger observation: the exact read-only
   collector must be proven actively waiting and physical boot must occur inside
   its reviewed five-minute USB window.
+- Attempt 2 produced the complete pair-v6 pass terminal in retained pstore.
+  CPUs 8 and 9 completed all inherited phases and all 128 concurrent rounds;
+  ready/written/verified were 256/256/256, errors and mismatch fields were zero,
+  and each nonzero write hash exactly matched the peer's read hash.
+- Recovery used a new Gemian boot ID with watchdog-class boot reason. CPUs 8/9
+  were offline, exact pair-v6 boot2 was unchanged, and no panic, BUG, Internal
+  error, Call trace, asynchronous SError, lockup, or pair-v6 fault was present.
+  The fixed map earns one exact repeat and no additional unchanged cycles.
 
 ## Safety assessment
 
@@ -143,21 +151,25 @@ static BSS and no payload is placed on the callback stack.
   live-GPT write, full-readback, no-backup, and shutdown evidence.
 - [`results/runtime-attempt-1-inconclusive-20260803.txt`](results/runtime-attempt-1-inconclusive-20260803.txt):
   attributable watchdog recovery with the terminal lost to observation timing.
+- [`results/runtime-attempt-2-pass-20260803.txt`](results/runtime-attempt-2-pass-20260803.txt):
+  complete concurrent-load pass and recovery integrity evidence.
 
 ## Conclusion
 
-`attempt-1-inconclusive; live-capture-repeat-pending`: source, mutation,
+`attempt-2-pass; exact-repeat-earned`: source, mutation,
 comparative compile, binary, configuration, diagnostics, stack, two-root
 container reproducibility, and independent Android-v0 validation gates pass.
 The pair-v6 installer and read-only collector are source-pinned to accepted
 pair-v5 tools, the exact predecessor/candidate identities are mutation-tested,
 and the runtime decision map is fixed. The exact pair-v6 candidate remains
-installed with full readback verification. Attempt 1 recovered safely but
-produced no retained terminal, so no pair-v6 runtime claim exists yet.
+installed with full readback verification. Attempt 1 lost its terminal, but
+attempt 2 directly passed every inherited and parallel predicate with safe
+recovery. This establishes one bounded concurrent-load pass, not repeatability
+or production-online CPU support.
 
 ## Follow-up
 
-Revalidate unchanged exact boot2, shut Gemian down, and arm the reviewed
-read-only USB/netcat collector before physical selection. Repeat once under the
-predeclared no-terminal branch and classify only a complete pair-v6 terminal;
-screen color and restart alone are not evidence.
+Arm changed-cycle pstore collection from the current Gemian baseline, revalidate
+unchanged exact boot2, and shut down. Run one exact repeat under the fixed PASS
+branch. A second pass closes only bounded pair-v6 repeatability and must lead to
+a changed next experiment; no third unchanged cycle is permitted.
