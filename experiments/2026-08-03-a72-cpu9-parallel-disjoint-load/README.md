@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu9-parallel-disjoint-load` |
-| Status | `source-generated; compile-review-pending` |
+| Status | `source-generated; compile-workflow-ready` |
 | Subsystem | MT6797 retained Cortex-A72 pair and cache coherency |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -69,19 +69,24 @@ static BSS and no payload is placed on the callback stack.
   independent payload vectors, safety inventory, and negative mutations.
 - [`scripts/generate-on-buildbox`](scripts/generate-on-buildbox): clean-pushed-
   commit Buildbox patch generation with exact parent provenance.
+- [`scripts/build-on-buildbox`](scripts/build-on-buildbox): pair-v6 versus exact
+  pair-v5 comparative compile entry point.
 - [`patches/series`](patches/series): exact generated source-review patch order.
 
 ## Conclusion
 
-`source-generated; compile-review-pending`: pair-v5 proves repeatable
+`source-generated; compile-workflow-ready`: pair-v5 proves repeatable
 alternating data integrity, but not concurrent writers. The exact generated
 pair-v6 source satisfies its positive contract and rejects all selected
-mutations. This is source evidence only; it is not yet a compiled candidate and
-cannot be deployed.
+mutations. The Buildbox compile workflow now requires exact parent provenance,
+identical configuration and diagnostics, inherited-symbol presence, linked
+pair-v6 callback/data/terminal state, explicit acquire/release instructions,
+and static stack usage no greater than 512 bytes for the new callback and its
+two enclosing workers. This is still source/tooling evidence only; it is not a
+compiled candidate and cannot be deployed.
 
 ## Follow-up
 
-Add an exact pair-v6-versus-pair-v5 Buildbox compile review. Require identical
-config and diagnostics, unchanged inherited symbols, linked parallel callback
-and terminal, bounded stack use, and a non-identical child kernel before any
-container work.
+Commit and push the compile workflow, run the exact pair-v6-versus-pair-v5
+Buildbox comparison, then fetch and inspect only the validated package before
+any container work.

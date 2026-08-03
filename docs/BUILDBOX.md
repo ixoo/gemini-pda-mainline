@@ -188,6 +188,26 @@ identical extracted diagnostics, recovery symbols only in the changed build,
 and checksum-covered stack-usage archives. Its package is compile-review-only
 and is not yet a boot candidate.
 
+## Gemian pair-v6 parallel-load compile-review lane
+
+The bounded parallel disjoint-load child is compiled only after its generated
+patch is reviewed and tracked:
+
+```sh
+./scripts/buildbox build-gemian-cpu9-parallel-compile
+./scripts/buildbox fetch-gemian-cpu9-parallel-compile
+```
+
+This lane compares pair-v6 against the exact pair-v5 multiline parent with the
+same pinned Gemian source, Stretch toolchain, normalized configuration, DCT
+oracle, target stack instrumentation, and extracted diagnostics. Validation
+requires the complete inherited symbol inventory in both builds; new parallel
+callback and 64 KiB static working-set symbols only in the child; linked pair-v6
+pass and fault terminals; emitted acquire/release barriers; non-identical
+integration code; and bounded static stack reports for the new callback and
+its enclosing workers. Its package is compile-review-only, never a boot
+candidate, and performs no device action.
+
 ## Remote storage and concurrency
 
 Buildbox uses its persistent home volume for the Git mirror, verified kernel
