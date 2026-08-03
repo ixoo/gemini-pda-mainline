@@ -186,11 +186,17 @@ static void mt6797_a72_hold_workfn(struct work_struct *work)
 """
     replace_once(path, old, new)
 
-    old = """\t\tconsole_lock();
+    old = """\t\tpr_emerg("gemini-a72-pair-v2 result=sample sample=%d cpu8=8 cpu9=9 online8=1 online9=1 hits8=%d hits9=%d\\n",
+\t\t\t sample, atomic_read(&mt6797_a72_hold_hits),
+\t\t\t atomic_read(&mt6797_a72_cpu9_hits));
+\t\tconsole_lock();
 \t\tconsole_unlock();
 \t\tif (!schedule_delayed_work(&mt6797_a72_hold_work,
 """
-    new = """\t\tconsole_lock();
+    new = """\t\tpr_emerg("gemini-a72-pair-v2 result=sample sample=%d cpu8=8 cpu9=9 online8=1 online9=1 hits8=%d hits9=%d\\n",
+\t\t\t sample, atomic_read(&mt6797_a72_hold_hits),
+\t\t\t atomic_read(&mt6797_a72_cpu9_hits));
+\t\tconsole_lock();
 \t\tconsole_unlock();
 \t\tif (sample == 2)
 \t\t\tmt6797_a72_coh_schedule();
