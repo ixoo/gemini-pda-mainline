@@ -1,0 +1,47 @@
+CPU8/CPU9 multi-cacheline integrity offline container review
+Date: 2026-08-03
+
+Decision: accept the exact padded container for guarded boot2 deployment only
+after the installer and runtime decision map pass their own static tests. No
+device was accessed in this review.
+
+Exact identities
+----------------
+
+Compile repository commit:
+  fb647817cd573e3dd8719821da8742bc5433979b
+Child Image.gz-dtb SHA-256:
+  81f076198ae314d187790beecee8d9b5edda3c4432e51a0f36a22dbe326fc468
+Known-good active boot input SHA-256:
+  1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513
+Retained ramdisk SHA-256:
+  a1ee05445e9a2bd8fbc1f75d7cda326b9ca7a6d3b644cbb1d5fc0ac167835be4
+Raw Android-v0 SHA-256:
+  4e3c1b1095ee87e0af3c45595ea83d859d53188a53aba10672202bf45938986a
+Full 16 MiB padded SHA-256:
+  5227729e34ca42cf606f43008ec753fce15147693ce7a670818db58c5903fa48
+
+Validation
+----------
+
+- Two independent ignored output roots produced byte-identical raw and padded
+  files.
+- The raw container is 14,809,088 bytes and has Android-v0 magic, unchanged
+  addresses, 2,048-byte pages, unchanged command line, and no second stage or
+  separate DT extent.
+- The embedded kernel is exactly 8,450,207 bytes and matches the accepted
+  Buildbox child image checksum.
+- The 6,354,621-byte ramdisk matches the known-good Gemian input checksum.
+- The legacy image ID, aligned extents, zero padding, exact 16,777,216-byte
+  partition size, manifests, and provenance all validate independently.
+- The builder contains no device path, address, transport, reboot, shutdown,
+  or partition-writing action. Runtime remains untested.
+
+Acceptance boundary
+-------------------
+
+This fixes the exact artifact identity but does not authorize a write outside
+the standing live-GPT-resolved inactive boot2 policy. Before deployment, the
+installer must verify target identity, inactive/unmounted state, size, power,
+predecessor checksum, full write/readback, and clean shutdown. The runtime map
+must require the complete pair-v5 terminal and changed watchdog recovery.
