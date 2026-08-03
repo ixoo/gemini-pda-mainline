@@ -1023,6 +1023,19 @@ integrity/load child that preserves startup, HPS veto, CPU_OFF prohibition,
 power state, and watchdog recovery. CPU_OFF and later power boundaries remain
 blocked.
 
+That changed multi-cacheline child has now passed its source, mutation,
+Buildbox compile/binary/stack, reproducible container, guarded deployment, and
+two runtime gates. Pair-v5 completed the inherited 1,024-round scalar exchange
+and then 64 alternating rounds over 256 aligned cachelines in both exact
+cycles: 262,144 exact cross-CPU word checks per cycle, zero errors or
+mismatches, and identical cross-matching hashes. Both watchdog recoveries had
+CPUs 8/9 offline and unchanged unmounted boot2. The bounded multi-cacheline
+oracle is repeatable; do not run a third unchanged cycle. The next ordered
+action is a separately designed finite parallel/disjoint-load child that adds a
+decision-changing observation while preserving startup, prior scalar and
+multiline gates, the HPS veto, CPU_OFF prohibition, power state, and watchdog
+recovery. CPU_OFF and later power boundaries remain blocked.
+
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback
 gates close.

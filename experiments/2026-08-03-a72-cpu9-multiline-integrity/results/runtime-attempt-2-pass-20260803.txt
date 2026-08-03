@@ -1,0 +1,77 @@
+CPU8/CPU9 multi-cacheline integrity runtime attempt 2
+Date: 2026-08-03
+
+Decision: pass. This closes repeatability only for the exact bounded pair-v5
+multi-cacheline oracle. Do not run a third unchanged cycle. CPU_OFF, removal of
+the HPS veto, a power transition, and general coherency/load remain unauthorized.
+
+Exact identities
+----------------
+
+Repository compile commit:
+  fb647817cd573e3dd8719821da8742bc5433979b
+Multiline patchset SHA-256:
+  c7a9b020563c4abb74059bbf72705839c528a81d577c7031ddfb36de647fd896
+Raw Android-v0 SHA-256:
+  4e3c1b1095ee87e0af3c45595ea83d859d53188a53aba10672202bf45938986a
+Full boot2 SHA-256:
+  5227729e34ca42cf606f43008ec753fce15147693ce7a670818db58c5903fa48
+Pstore console SHA-256:
+  80b2e9c03f532c26675edc22ee3bec8053894a41e147b20c94ce823695dcb3a7
+Pstore archive SHA-256:
+  3b58810fb65ebf3f102bf9c9aed2a134f6dc9ee5630c2a603ee89543003593d6
+
+Attributable terminal
+---------------------
+
+At 11.425346 seconds, retained `console-ramoops` contains exactly:
+
+  psci: gemini-a72-pair-v5 result=pass sample=3 cpu8=8 cpu9=9 online8=1 online9=1 hits8=3 hits9=3 hps_reported=1 hps_cpu=9 hps_error=-1 hps_count=85 coh_reported=1 coh_rounds=1024 coh_cpu8=8 coh_cpu9=9 coh_error8=0 coh_error9=0 coh_seq8=1024 coh_seq9=1024 ml_reported=1 ml_rounds=64 ml_lines=256 ml_words=8 ml_cpu8=8 ml_cpu9=9 ml_error8=0 ml_error9=0 ml_done8=64 ml_done9=64 ml_hash8w=34e574e95cbe0383 ml_hash8r=432574e95cbe0383 ml_hash9w=432574e95cbe0383 ml_hash9r=34e574e95cbe0383 ml_bad_round=0 ml_bad_line=0 ml_bad_word=0 ml_expected=0000000000000000 ml_actual=0000000000000000
+
+This exactly reproduces attempt 1 except for elapsed timestamp and bounded HPS
+request count (85 rather than 88). Both attempts have:
+
+- three inherited callbacks per CPU with CPUs 8/9 online;
+- CPU9 HPS attribution to the fail-closed `-EPERM` veto;
+- 1,024/1,024 scalar sequences on exact CPUs 8/9 with zero errors;
+- 64/64 multiline rounds, 262,144 exact cross-CPU checks, and zero errors;
+- identical deterministic hashes `34e574e95cbe0383` and
+  `432574e95cbe0383`, cross-matched in both directions;
+- zero mismatch coordinates and values; and
+- no pair-v5 fault, panic, BUG, Internal error, Call trace, asynchronous SError,
+  lockup, or unable-to-handle-kernel record.
+
+Recovery, integrity, and continuity
+-----------------------------------
+
+Attempt 1 recovered as ordinary-Gemian boot ID
+`50182514-892b-4deb-83fb-59c9af8718d3`. The repeat observer was armed from that
+baseline; Gemian was shut down cleanly and both the host reachability check and
+observer confirmed disconnection. The observer was later stopped while the
+unit remained off after no physical selection occurred. A subsequent read-only
+probe still found the device off. The owner then reported physical boot2 start
+and automatic Gemian restart. Immediate recovery had new boot ID
+`482ec3bb-e1dc-4cbe-95b9-70b6dc5d5001`; pstore was captured read-only after
+recovery, so its own `wait_for_cycle` field is `no` and this distinction is not
+silently promoted to prearmed reconnect evidence.
+
+The direct chain—known prior boot ID, confirmed clean shutdown/disconnect,
+continued off state, owner-reported boot2 selection, different immediate
+recovery ID, candidate-only pair-v5 terminal, watchdog-class boot reason, and
+unchanged exact boot2—attributes the cycle. Recovery reported `boot_reason=4`,
+`androidboot.bootreason=wdt_by_pass_pwk`, kernel `3.18.41+`, CPU online mask `4`,
+and CPU8/CPU9 `online=0`. Live GPT exposed exactly one unmounted
+`/dev/mmcblk0p30 boot2`, whose full checksum remained
+`5227729e34ca42cf606f43008ec753fce15147693ce7a670818db58c5903fa48`.
+Battery telemetry was 100 percent, Not charging, and Good.
+
+Conclusion and next action
+--------------------------
+
+The bounded pair-v5 multi-cacheline integrity oracle is repeatable across two
+exact cycles. Do not run it unchanged again. The next ordered action is design
+of a changed finite parallel/disjoint-load oracle that adds a materially new
+observation while retaining CPU startup, scalar/multiline gates, the HPS veto,
+CPU_OFF prohibition, power state, and watchdog recovery. This result does not
+establish general cache coherency, scheduler stability, CPU_OFF, DVFS/OPP,
+thermal behavior, suspend, or production integration.
