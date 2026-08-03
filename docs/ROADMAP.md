@@ -932,6 +932,13 @@ The next ordered action is guarded-installer and runtime decision-map review
 for this sole accepted checksum; no device write is authorized by this result
 alone.
 
+The guarded installer and runtime decision map now pass offline review. The
+installer inherits live-GPT resolution, inactive/unmounted boot2, exact
+predecessor, stable-power, full readback, cleanup, no-fresh-backup, and clean
+shutdown gates; the optional netcat path remains read-only. The next ordered
+action is one deployment from known-good Gemian followed by one manually
+selected boot2 cycle with changed-cycle pstore as the primary observation.
+
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback
 gates close.

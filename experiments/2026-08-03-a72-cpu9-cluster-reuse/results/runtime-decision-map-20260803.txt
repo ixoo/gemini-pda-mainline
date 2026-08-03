@@ -1,0 +1,150 @@
+CPU9 cluster-reuse guarded runtime decision map
+================================================
+
+Date: 2026-08-03
+Status: offline review passed; guarded deployment eligible after push
+Runtime result: not tested
+
+Exact experiment identity
+-------------------------
+
+Repository compile commit:
+  c82acf76c6c18fd3280bf8cb4e91a3ac49eaacf1
+Late-parent patchset SHA-256:
+  f2bebc4a04888a6c83f0dc72c2de56d350c2a52ab9779ef07e3a01cb5b544d91
+CPU9 child patchset SHA-256:
+  17733d2ae50c16f9d0db2d4bd4075fa5a72ce081606db7d3bf1bfe83f4159a2b
+Kernel field SHA-256:
+  7a592d62d837fa61b7c57ec2e8be65d4a25203685b4936f2848fc3600563039a
+Compiled build identity:
+  #1 SMP PREEMPT Mon Aug 3 12:36:14 UTC 2026
+Raw Android-v0 SHA-256:
+  fef3d814c217f68ce56e12ca92616915a78e48be5945dee79e87adf149d0e2d3
+Full boot2 SHA-256:
+  b32bca348efc0fcaffe2b5909c6246d66a4d0fec4102cee091103c42db604d69
+Expected boot2 predecessor SHA-256:
+  2e81e18610d99c69bee8867d2fe960245dfcdda1ca583965724598255ea871af
+
+Pre-boot statement
+------------------
+
+Hypothesis:
+  The repeatable one-way parent will prepare cluster 2 and retain CPU8. The
+  first natural HPS CPU9 request will consume the CPU9 one-shot only after the
+  verified CPU8/cluster state, use standard PSCI CPU_ON without replaying
+  cluster preparation, and complete generic secondary startup. CPU8 and CPU9
+  will then each execute three synchronous callbacks about one, six, and ten
+  seconds after CPU9 completion before the inherited fixed watchdog restarts
+  the device.
+
+Unique attributable evidence:
+  One exact CPU8 complete marker, one exact CPU9 complete marker, pair samples
+  1 and 2, and the unique pair `result=pass sample=3` terminal, all tied to the
+  compiled build identity and a changed watchdog cycle. Screen color or an
+  apparent reboot is not kernel attribution.
+
+Observation paths:
+  1. Arm the optional read-only USB/netcat collector before manual boot2
+     selection. USB may not enumerate within the fixed watchdog window.
+  2. Arm `scripts/collect-device-pstore --target gemini@192.168.1.50
+     --wait-for-cycle` before selection. Retain all records; delete none.
+  3. On returned Gemian, prove changed boot ID, exact known-good kernel,
+     watchdog-class reason, CPU8/9 offline, unchanged boot2 checksum, and an
+     inactive/unmounted live-GPT-resolved boot2.
+
+Offline tool review
+-------------------
+
+Guarded installer SHA-256:
+  1410ea59c1110f555d75cfbc2fb82e698c964205d79a7b36fba5b7dcbc06f378
+Direct USB/netcat collector SHA-256:
+  30d3ac6fa33ac95e1909271ea50227f4e943cab29f61f692dfe5e66ec73ac51c
+Static/runtime contract test SHA-256:
+  837ec9d62f4438d6cca01e3532f19fab2ffcf64cefa779f22215b2d6d2964bfe
+Pinned changed-boot pstore collector SHA-256:
+  9047084f3012aff47e23e56498d4bc0ae6f8fb7e4f15caec10abb6c15e9a9b3b
+
+- The installer pins and derives the reviewed guarded held-online installer.
+  It changes only exact predecessor, candidate, manifest, artifact,
+  experiment, description, and private staging identities.
+- Live GPT resolution, inactive/unmounted target, exact size and predecessor,
+  stable power, full write/readback, no-fresh-backup, cleanup, and shutdown
+  gates remain inherited and source-pinned.
+- The optional live collector derives from the reviewed read-only collector;
+  it changes only private output, pair-marker, and terminal-shape contracts.
+- Four exact installer identity mutations were rejected. All success, failure,
+  inconclusive, changed-cycle, and unchanged-retry decisions are present.
+- Bash and Python syntax and managed-VM ShellCheck passed. The candidate
+  manifest and full image match the installer pins. No device was contacted.
+
+Success class
+-------------
+
+All of these are required in order and without conflicts:
+
+1. `gemini-a72-oneway-v1 result=cpu8-online-held stage=complete error=0`
+2. `gemini-a72-cpu9-v1 result=cpu9-online-held stage=complete error=0 cpu8=1 cpu9=1 cluster=1`
+3. `gemini-a72-pair-v1 result=sample sample=1 cpu8=8 cpu9=9 online8=1 online9=1 hits8=1 hits9=1`
+4. `gemini-a72-pair-v1 result=sample sample=2 cpu8=8 cpu9=9 online8=1 online9=1 hits8=2 hits9=2`
+5. `gemini-a72-pair-v1 result=pass sample=3 cpu8=8 cpu9=9 online8=1 online9=1 hits8=3 hits9=3`
+
+There must be no CPU9 fault/rejection, pair fault, down-veto, held-v1/v2 pass,
+cpuhvfs cluster-off notifier, panic, Internal error, or Call trace before the
+pair pass marker. This proves bounded CPU8/CPU9 execution, online accounting,
+and shared-cluster reuse through the third synchronous pair only. It does not
+prove long-term stability, load coherency, thermal safety, CPU_OFF, suspend, or
+cpufreq/OPP safety.
+
+Failure and inconclusive classes
+--------------------------------
+
+Any `gemini-a72-pair-v1 result=fault`:
+  Reject the run. Preserve sample, CPU identities, online bits, hit counts, and
+  both errors; no unchanged retry.
+
+CPU9 `result=rejected-prestate`, `result=fault-retain-psci`, or
+`result=fault-retain-secondary`:
+  The CPU8/cluster prestate, standard PSCI call, or generic CPU9 completion
+  failed. Retain the powered cluster until watchdog recovery, preserve the
+  exact stage/error, and return to that boundary. No unchanged retry.
+
+Any inherited `result=down-veto`:
+  Reject the run even if pair samples pass. The barrier dominated, but an
+  unexpected caller requested CPU8/9 down. Classify the caller; do not retry
+  unchanged.
+
+Parent `result=rejected-prestate`, `result=rolled-back-preiso`,
+`result=fault-retain-preiso`, or `result=fault-retain-postiso`:
+  The repeatable CPU8 startup did not reproduce. Preserve the last parent
+  stage and return to parent-stage analysis.
+
+cpuhvfs cluster-off notifier or panic before pair pass:
+  The inherited barriers failed to dominate the crash path. Reject the
+  implementation; do not retry unchanged.
+
+Missing pair sample or terminal, duplicate/conflicting terminal, held-v1/v2
+pass without pair evidence, missing build identity, absent changed cycle, or
+pstore/live disagreement:
+  Inconclusive. Return to known-good Gemian and improve attribution before a
+  different candidate. Do not repeat this exact artifact unchanged.
+
+Automatic restart with no exact retained marker:
+  Recovery/serviceability only. It is not evidence about CPU9.
+
+Deployment boundary
+-------------------
+
+The installer may write only the exact full candidate to the live-GPT-resolved
+inactive, unmounted, writable 16 MiB logical `boot2`. It accepts only the exact
+late-CPU8 predecessor (or skips an already matching candidate), requires Good
+battery health and at least 65 percent capacity, synchronizes the write,
+requires matching on-device and independent full-partition readbacks, removes
+temporary staging, and shuts the device down. It records the predecessor hash
+and creates no fresh backup. Primary boot, boot3, preloader, NVRAM, GPT, and
+whole-device writes remain outside authorization.
+
+Next action
+-----------
+
+Commit and push this review, deploy once from known-good Gemian, arm both
+collectors, and leave the device powered off for manual boot2 selection.

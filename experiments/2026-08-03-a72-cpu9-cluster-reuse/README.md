@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu9-cluster-reuse` |
-| Status | `container-accepted-deployment-review-pending` |
+| Status | `deployment-eligible-runtime-pending` |
 | Subsystem | MT6797 CPU9 PSCI per-core startup with CPU8 retained |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -59,6 +59,10 @@ userspace control is introduced.
   [`scripts/assemble.py`](scripts/assemble.py), and
   [`scripts/test_candidate.py`](scripts/test_candidate.py): pinned offline
   Android-v0 construction and independent validation.
+- [`scripts/install-boot2.sh`](scripts/install-boot2.sh),
+  [`scripts/capture-live-outcome.sh`](scripts/capture-live-outcome.sh), and
+  [`scripts/test_runtime_tools.py`](scripts/test_runtime_tools.py): guarded
+  boot2 deployment, read-only netcat observation, and offline contract tests.
 - [`patches/`](patches/): one Buildbox-generated logical CPU9 child patch.
 - [`results/patch-generation-review-20260803.txt`](results/patch-generation-review-20260803.txt):
   exact identities, rejected validator revisions, and accepted source review.
@@ -66,6 +70,8 @@ userspace control is introduced.
   exact child/parent compile, gate corrections, binary, and stack decision.
 - [`results/offline-container-review-20260803.txt`](results/offline-container-review-20260803.txt):
   three-build reproduction, Android-v0 parse, padding, and candidate decision.
+- [`results/runtime-decision-map-20260803.txt`](results/runtime-decision-map-20260803.txt):
+  pre-boot hypothesis, exact success/failure classes, and deployment boundary.
 
 ## Procedure
 
@@ -105,14 +111,15 @@ terminal substantive by synchronously executing on both A72 CPUs.
 
 ## Conclusion
 
-`container-accepted-deployment-review-pending`: the exact late parent, one logical child,
+`deployment-eligible-runtime-pending`: the exact late parent, one logical child,
 PSCI-only CPU9 path, pair sampler, forbidden actions, ordering, all 16
 mutations, two full builds, identical diagnostics, durable-caller disassembly,
 bounded stack review, and three independent exact Android-v0 constructions
-pass. The guarded deployment/runtime decision map remains pending.
+pass. The guarded deployment/runtime decision map also passes offline review;
+no runtime claim exists yet.
 
 ## Follow-up
 
-Derive and independently validate the guarded installer and runtime decision
-map for the sole accepted padded checksum. CPU9 remains disabled on the device
-until those offline gates pass.
+Commit and push the guarded runtime review, install the sole accepted padded
+checksum once from known-good Gemian, and shut the device down for manual boot2
+selection with both observation paths armed.
