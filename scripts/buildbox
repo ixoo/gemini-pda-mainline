@@ -105,6 +105,10 @@ Commands:
                         Compare bounded coherency and exact terminal parent
   fetch-gemian-cpu9-coherency-compile
                         Fetch that validated compile-review bundle for HEAD
+  build-gemian-cpu9-multiline-compile
+                        Compare multiline integrity and exact coherency parent
+  fetch-gemian-cpu9-multiline-compile
+                        Fetch that validated compile-review bundle for HEAD
 
 Environment:
   BUILDBOX_HOST         SSH target (default: buildbox)
@@ -492,7 +496,7 @@ build_gemian_observer() {
   local sha
 
   case "${mode}" in
-    observer|rollback|recovery|one-way|held|late|cpu9|window|terminal|coherence) ;;
+    observer|rollback|recovery|one-way|held|late|cpu9|window|terminal|coherence|multiline) ;;
     *) die "invalid Gemian compile-review mode: ${mode}" ;;
   esac
 
@@ -575,6 +579,11 @@ case "${mode}" in
     readonly job_suffix=gemian-a72-cpu9-coherency
     readonly job_purpose=gemian-a72-cpu9-bounded-coherency-compile-review
     readonly build_script=experiments/2026-08-03-a72-cpu9-bounded-coherency/scripts/build-on-buildbox
+    ;;
+  multiline)
+    readonly job_suffix=gemian-a72-cpu9-multiline
+    readonly job_purpose=gemian-a72-cpu9-multiline-integrity-compile-review
+    readonly build_script=experiments/2026-08-03-a72-cpu9-multiline-integrity/scripts/build-on-buildbox
     ;;
   *) exit 2 ;;
 esac
@@ -1026,6 +1035,10 @@ fetch_gemian_observer() {
       job_suffix=gemian-a72-cpu9-coherency
       job_purpose=gemian-a72-cpu9-bounded-coherency-compile-review
       ;;
+    multiline)
+      job_suffix=gemian-a72-cpu9-multiline
+      job_purpose=gemian-a72-cpu9-multiline-integrity-compile-review
+      ;;
     *) die "invalid Gemian compile-review mode: ${mode}" ;;
   esac
   sha="$(git -C "${REPO_DIR}" rev-parse HEAD)"
@@ -1078,7 +1091,8 @@ case "${package}" in "${artifact_root}"/*) ;; *) exit 1 ;; esac
    ($mode == "cpu9" and .purpose == "cpu9-cluster-reuse-compile-review-only") or
    ($mode == "window" and .purpose == "cpu9-retention-window-compile-review-only") or
    ($mode == "terminal" and .purpose == "cpu9-terminal-attribution-compile-review-only") or
-   ($mode == "coherence" and .purpose == "cpu9-bounded-coherency-compile-review-only"))
+   ($mode == "coherence" and .purpose == "cpu9-bounded-coherency-compile-review-only") or
+   ($mode == "multiline" and .purpose == "cpu9-multiline-integrity-compile-review-only"))
 ' "${package}/provenance/build.json" >/dev/null
 tar -C "$(dirname "${package}")" -cf - -- "$(basename "${package}")"
 REMOTE
@@ -2524,6 +2538,8 @@ case "${COMMAND}" in
   fetch-gemian-cpu9-terminal-compile) fetch_gemian_observer terminal ;;
   build-gemian-cpu9-coherency-compile) build_gemian_observer coherence ;;
   fetch-gemian-cpu9-coherency-compile) fetch_gemian_observer coherence ;;
+  build-gemian-cpu9-multiline-compile) build_gemian_observer multiline ;;
+  fetch-gemian-cpu9-multiline-compile) fetch_gemian_observer multiline ;;
   help|-h|--help) usage ;;
   *) usage >&2; exit 2 ;;
 esac

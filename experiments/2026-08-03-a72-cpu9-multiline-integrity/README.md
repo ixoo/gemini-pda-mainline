@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu9-multiline-integrity` |
-| Status | `source-patch-accepted-for-buildbox-compile` |
+| Status | `buildbox-compile-tooling-ready` |
 | Subsystem | MT6797 retained Cortex-A72 pair and cache coherency |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -55,16 +55,19 @@ terminal snapshot before the inherited watchdog restart.
 - [`DESIGN.md`](DESIGN.md): exact working set, data oracle, synchronization,
   bounds, terminal, result classes, source invariants, and safety boundary.
 - [`patches/`](patches/): the accepted experiment-only source patch.
+- [`scripts/build-on-buildbox`](scripts/build-on-buildbox): exact pair-v4 versus
+  pair-v5 compile, binary, configuration, diagnostics, and stack comparison.
 - [`results/patch-generation-review-20260803.txt`](results/patch-generation-review-20260803.txt):
   exact Buildbox generation identities and acceptance boundary.
 
 ## Conclusion
 
-`source-patch-accepted-for-buildbox-compile`: Buildbox reproduced the exact
+`buildbox-compile-tooling-ready`: Buildbox reproduced the exact
 pair-v4 parent, passed its static validator, applied the deterministic child
 transformer, rejected all 16 multiline mutations, and generated a patch that
-changes only `arch/arm64/kernel/psci.c`. It must still pass compile/binary/stack,
-container, deployment, and runtime-map gates before device access.
+changes only `arch/arm64/kernel/psci.c`. The comparative compile workflow is now
+ready, but it must still pass compile/binary/stack, container, deployment, and
+runtime-map gates before device access.
 
 ## Follow-up
 
