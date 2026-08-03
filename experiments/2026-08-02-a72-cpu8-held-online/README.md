@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-02-a72-cpu8-held-online` |
-| Status | `compile-accepted-container-pending` |
+| Status | `container-accepted-runtime-map-pending` |
 | Subsystem | MT6797 HPS, generic CPU hotplug, CPU8 IPI/coherency |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-02 |
@@ -55,6 +55,9 @@ experiment and prohibits unchanged retry.
   source preparation and three-patch generation.
 - [`scripts/build-on-buildbox`](scripts/build-on-buildbox): Buildbox-only exact
   held-online versus one-way-parent compile review entry point.
+- [`scripts/assemble.py`](scripts/assemble.py) and
+  [`scripts/build-candidate.sh`](scripts/build-candidate.sh): pinned Android-v0
+  assembly and two-path offline candidate construction.
 - [`results/source-order-audit-20260802.txt`](results/source-order-audit-20260802.txt):
   exact runtime-to-source call ordering and chosen insertion points.
 - [`patches/`](patches/): exact three-patch Buildbox-generated follow-up.
@@ -63,6 +66,8 @@ experiment and prohibits unchanged retry.
   source-flow review.
 - [`results/compile-review-20260802.txt`](results/compile-review-20260802.txt):
   exact Buildbox identities, diagnostics, disassembly, and stack-use decision.
+- [`results/offline-container-review-20260802.txt`](results/offline-container-review-20260802.txt):
+  reproducible Android-v0 assembly, padding, parsing, and offline-only decision.
 
 ## Procedure
 
@@ -110,6 +115,6 @@ a boot candidate.
 
 ## Follow-up
 
-Independently reconstruct and validate the exact Android-v0 container and its
-runtime decision map. Do not access the device until those gates pass and their
-evidence is pushed.
+Finish the exact runtime decision map, live and retained-evidence collectors,
+and guarded boot2 installer. Do not access the device until those gates pass
+and their evidence is pushed.
