@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+readonly script_dir
+repository_dir="$(cd "${script_dir}/../../.." && pwd -P)"
+readonly repository_dir
+
+exec "${repository_dir}/experiments/2026-08-02-a72-one-way-cpu8-boundary/scripts/build-on-buildbox" \
+  "$@" late

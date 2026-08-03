@@ -23,6 +23,17 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-03 A72 late CPU8 hold](2026-08-03-a72-cpu8-late-hold/README.md)
+  — specifies a third substantive synchronous CPU8 callback at about ten
+  seconds, late enough to survive the measured retained-console window while
+  extending the bounded stability interval. Source generation and compilation
+  are pending; CPU9, CPU_OFF, load, DVFS, thermal, and suspend remain blocked.
+- [2026-08-02 A72 CPU8 held online](2026-08-02-a72-cpu8-held-online/README.md)
+  — adds HPS and generic pre-notifier down barriers plus synchronous CPU8
+  samples at about one and six seconds. Its first runtime returned through the
+  fixed watchdog with no retained fault, but the 64 KiB console tail began
+  after both required samples. The result is inconclusive, and the unchanged
+  artifact must not be repeated.
 - [2026-08-02 A72 recovery-only watchdog/pstore discriminator](2026-08-02-a72-recovery-only-discriminator/README.md)
   — defines the immediate no-A72 prerequisite for the one-way CPU8 path. Its
   deterministic source generator rejects CPU8/9 before platform action,
