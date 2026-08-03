@@ -67,6 +67,11 @@ def validate_files(files: dict[str, str]) -> None:
     once(psci, "static void mt6797_a72_hold_workfn", "hold work")
     work = psci[psci.index("static void mt6797_a72_hold_workfn") :]
     work = work[: work.index("static void mt6797_a72_one_way_marker")]
+    once(
+        work,
+        "ret || observed_cpu != 8 || !cpu_online(8) || cpu_online(9)",
+        "exact IPI/accounting failure predicate",
+    )
     ordered(
         work,
         (
