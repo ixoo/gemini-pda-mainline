@@ -1,0 +1,67 @@
+CPU8/CPU9 scheduler-context compile review
+Date: 2026-08-03
+Result: PASS
+
+Repository commit:
+  697ac3984c9b52c285cb7fcdb076dcec4dbf8ef0
+Kernel source commit:
+  59e00a9144d782e148332009a835b99c43382467
+Exact reconstructed pair-v6 parent commit:
+  0bbc78db41f0334550232ad9b56734d57721faf3
+Scheduler source commit:
+  d62f75d8a2f1759bdffc4f318303ed613fb2760f
+Scheduler patch SHA-256:
+  ed2abf428ec51af4614b9e9adb94a1a12b9333224868a241a0525139f85e6625
+Scheduler patchset SHA-256:
+  30316bc63934d7fdc022367bb8b465e794c8c91ec9956d6233e02bddad55fffe
+Stable patch ID:
+  9e4f5361be7ef72f8eb11f289827ec7e6370e764
+
+Build backend: Buildbox only
+Build mode: scheduler
+Purpose: a72-scheduler-context-compile-review-only
+Boot candidate: false
+Completed UTC: 2026-08-03T23:04:57Z
+
+Validation:
+  exact pair-v6 source validator: PASS
+  scheduler source validator: PASS
+  scheduler negative mutations rejected: 25/25
+  child compile: PASS
+  exact pair-v6 parent compile: PASS
+  child/parent diagnostics identical: PASS
+  CPU9 startup source identical: PASS
+  scheduler child-only symbol boundary: PASS
+  focused disassembly boundary: PASS
+  terminal-format boundary: PASS
+  package checksum verification: PASS
+
+Configuration delta from the manifest baseline:
+  CONFIG_ANBOX: missing -> n
+  CONFIG_MTK_A72_CPU9_CLUSTER_REUSE: missing -> y
+  CONFIG_MTK_A72_ONE_WAY_CPU8: missing -> y
+  CONFIG_MTK_A72_TRANSITION_OBSERVER: missing -> y
+
+Diagnostics in both child and exact parent:
+  WARNING: modpost: Found 69 section mismatch(es).
+
+Static stack use in the accepted child:
+  mt6797_a72_coh_workfn: 112 bytes
+  mt6797_a72_hold_workfn: 784 bytes
+  mt6797_a72_sc_terminal: 176 bytes
+  mt6797_a72_sc_thread: 96 bytes
+Acceptance boundary: 1,024 bytes
+Child stack-usage files: 2,484
+Parent stack-usage files: 2,484
+
+Accepted child output SHA-256:
+  Image.gz-dtb: 9d2d9db5bd66bcc33c7c072248b5d907b75e5ceb8bf810c88bfd0019e128f402
+  vmlinux: 0d5552c3f2495df85c8e65ba867d55605c83785ec3cb90ba9290263d19f8a788
+  System.map: 67bfe7a508e0c2fc26d8c9fac7d5e4df87c302f1daddc532f202708809d71f44
+
+Interpretation:
+  The isolated no-inline scheduler reporter restored the inherited parent
+  worker to 784 bytes and kept every new measured frame below the acceptance
+  boundary. This closes source, mutation, compile, binary, diagnostics, and
+  stack review only. No Android-v0 container was constructed, no boot2 write
+  occurred, and no hardware/runtime support claim follows from this result.

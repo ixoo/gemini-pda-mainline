@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-scheduler-context` |
-| Status | `compile-tooling-ready` |
+| Status | `compile-review-passed` |
 | Subsystem | MT6797 retained Cortex-A72 pair and scheduler |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -51,6 +51,10 @@ watchdog recovery?
 - Compile attempt 1 built both exact sources but failed the stack acceptance
   boundary; no accepted compile review, container, deployment, or runtime claim
   exists yet.
+- Accepted compile repository commit:
+  `697ac3984c9b52c285cb7fcdb076dcec4dbf8ef0`.
+- Accepted `Image.gz-dtb` SHA-256:
+  `9d2d9db5bd66bcc33c7c072248b5d907b75e5ceb8bf810c88bfd0019e128f402`.
 
 ## Safety assessment
 
@@ -155,6 +159,16 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   terminals, added one no-inline pair-v7 reporter, passed both hash vectors and
   all 25 negative mutations, and produced a one-file checksum-verified patch.
   No compile or device action occurred.
+- Buildbox compile from repository commit
+  `697ac3984c9b52c285cb7fcdb076dcec4dbf8ef0` built the scheduler child and
+  exact pair-v6 parent. Their diagnostics were identical, CPU9 startup source
+  was unchanged, all 25 negative mutations were rejected, and the source,
+  symbol, disassembly, terminal, package, and configuration checks passed. The
+  accepted stack use is 784 bytes for the inherited parent worker, 176 bytes
+  for the isolated reporter, and 96 bytes for each scheduler thread, all below
+  the 1,024-byte boundary. This is compile-review evidence only; no container
+  or device action occurred. See
+  [`results/compile-review-20260803.txt`](results/compile-review-20260803.txt).
 
 ## Analysis
 
@@ -165,11 +179,10 @@ context while preserving the established power and recovery boundary.
 
 ## Conclusion
 
-`compile-tooling-ready`: both prior compile attempts correctly rejected expanded
-parent-terminal frames. The regenerated revision leaves pair-v6 terminal text
-and arguments unchanged, isolates pair-v7 formatting in a no-inline reporter,
-and rejects 25 source mutations. No accepted compile package, container,
-deployment, or hardware evidence exists.
+`compile-review-passed`: the isolated reporter preserves the pair-v6 parent
+worker at 784 bytes, every new measured frame is below 1,024 bytes, child and
+exact-parent diagnostics match, and the scheduler-specific binary boundaries
+pass. No Android-v0 container, deployment, or hardware evidence exists.
 
 ## Follow-up
 
