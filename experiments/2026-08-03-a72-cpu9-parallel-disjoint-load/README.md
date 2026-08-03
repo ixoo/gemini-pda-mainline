@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu9-parallel-disjoint-load` |
-| Status | `deployment-ready; first-runtime-pending` |
+| Status | `deployed-and-shutdown; first-runtime-pending` |
 | Subsystem | MT6797 retained Cortex-A72 pair and cache coherency |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -75,6 +75,17 @@ watchdog recovery, or changed power boundary?
   exact pair-v5 (`5227729e...`), so this cycle is excluded from pair-v6 runtime
   evidence. The unchanged recovery boot ID prevents treating the retained
   pair-v5 pstore terminal as a newly attributable repeat.
+- Deployment tooling commit:
+  `59e8d7bbc6effae49248554df6bfe23ea6cc1d81`.
+- The guarded installer resolved live-GPT `boot2` as `/dev/mmcblk0p30`, proved
+  it inactive and unmounted, and confirmed 100% battery with good health.
+- Full predecessor SHA-256 matched exact pair-v5:
+  `5227729e34ca42cf606f43008ec753fce15147693ce7a670818db58c5903fa48`.
+- The write was synced and flushed; both target-side and independent streamed
+  full-partition readbacks matched exact pair-v6:
+  `0beead0b00485ad18333aca4d688fcd549c813113b7ec0554a6761c7147b17fb`.
+- No fresh partition backup was made, temporary readback data was removed, and
+  clean shutdown was confirmed by loss of reachability. There was no reboot.
 
 ## Safety assessment
 
@@ -118,19 +129,22 @@ static BSS and no payload is placed on the callback stack.
   collector, identity-mutation, and decision-map contract validator.
 - [`results/runtime-decision-map-20260803.txt`](results/runtime-decision-map-20260803.txt):
   fixed pair-v6 deployment, recovery, pass, and reject branches.
+- [`results/deployment-20260803.txt`](results/deployment-20260803.txt): exact
+  live-GPT write, full-readback, no-backup, and shutdown evidence.
 
 ## Conclusion
 
-`deployment-ready; first-runtime-pending`: source, mutation,
+`deployed-and-shutdown; first-runtime-pending`: source, mutation,
 comparative compile, binary, configuration, diagnostics, stack, two-root
 container reproducibility, and independent Android-v0 validation gates pass.
 The pair-v6 installer and read-only collector are source-pinned to accepted
 pair-v5 tools, the exact predecessor/candidate identities are mutation-tested,
-and the runtime decision map is fixed. No pair-v6 device write or runtime claim
+and the runtime decision map is fixed. The exact pair-v6 candidate is installed
+with full readback verification and the device is off. No pair-v6 runtime claim
 exists yet.
 
 ## Follow-up
 
-Install the exact pair-v6 padded image only through the guarded helper. After
-verified full-partition readback and clean shutdown, arm changed-cycle pstore
-collection and physically select boot2 once under the fixed decision map.
+Arm changed-cycle pstore collection and physically select boot2 once under the
+fixed decision map. Classify only a complete attributable pair-v6 terminal and
+recovery cycle; screen color and restart alone are not evidence.

@@ -1,0 +1,49 @@
+CPU8/CPU9 parallel disjoint-load guarded boot2 deployment
+Date: 2026-08-03
+
+Scope
+-----
+
+- Exact experiment: `2026-08-03-a72-cpu9-parallel-disjoint-load`.
+- Exact reviewed deployment-tooling commit:
+  `59e8d7bbc6effae49248554df6bfe23ea6cc1d81`.
+- Target: named Gemini PDA x27 in ordinary known-good Gemian.
+- Authorization: standing owner authorization for exact validated boot2 only.
+- Fresh predecessor backup: no; recovery uses the verified project-wide backup.
+
+Live gates
+----------
+
+- Architecture/kernel/root: aarch64, Gemian `3.18.41+`, `/dev/mmcblk0p29`.
+- Live GPT resolved exactly one logical `boot2`: `/dev/mmcblk0p30`.
+- Target type/size/state: partition, 16,777,216 bytes, writable, inactive,
+  unmounted, no holders, not swap, and distinct from active root.
+- Power gate: battery present, 100%, health Good.
+- Exact predecessor full-partition SHA-256:
+  `5227729e34ca42cf606f43008ec753fce15147693ce7a670818db58c5903fa48`.
+- Exact candidate full-partition SHA-256:
+  `0beead0b00485ad18333aca4d688fcd549c813113b7ec0554a6761c7147b17fb`.
+
+Result
+------
+
+- Result: `write-synced-flushed-full-readback-verified`.
+- The exact 16 MiB candidate was written only to live-GPT-resolved boot2.
+- Target-side post-flush full checksum matched the candidate.
+- Independent streamed full-partition readback checksum matched the candidate
+  and compared byte-for-byte with the local candidate.
+- Temporary upload and readback copies were removed.
+- Deployment summary SHA-256:
+  `6ecb5bd09b71b5955602c8dab9eea77e17eecc80d32183ada56373e75f4b3e33`.
+- Evidence manifest SHA-256:
+  `6d099deaf91fc9e3039de02310b642764954dde05dae917bf4d7e2700ef17496`.
+- Clean poweroff returned success and the device became unreachable.
+- Automatic reboot: no.
+
+Boundary
+--------
+
+This is deployment evidence, not runtime evidence. The next action is one
+physical boot2 selection under the precommitted runtime decision map. Only a
+complete attributable pair-v6 terminal plus changed-cycle recovery can support
+a runtime claim.
