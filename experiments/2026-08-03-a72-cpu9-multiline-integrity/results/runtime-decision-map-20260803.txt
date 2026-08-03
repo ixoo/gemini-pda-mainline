@@ -1,0 +1,104 @@
+CPU8/CPU9 multi-cacheline integrity deployment and runtime decision map
+Date: 2026-08-03
+
+This map is fixed before any device write. It authorizes one attributable boot
+of the exact candidate below after the installer and runtime tools have passed,
+been committed, and been pushed. It is not runtime evidence.
+
+Exact candidate
+---------------
+
+Repository compile commit:
+  fb647817cd573e3dd8719821da8742bc5433979b
+Multiline patchset SHA-256:
+  c7a9b020563c4abb74059bbf72705839c528a81d577c7031ddfb36de647fd896
+Kernel field SHA-256:
+  81f076198ae314d187790beecee8d9b5edda3c4432e51a0f36a22dbe326fc468
+Raw Android-v0 SHA-256:
+  4e3c1b1095ee87e0af3c45595ea83d859d53188a53aba10672202bf45938986a
+Full boot2 SHA-256:
+  5227729e34ca42cf606f43008ec753fce15147693ce7a670818db58c5903fa48
+Expected boot2 predecessor SHA-256:
+  eda1d5bb312aa937e41499ea8fd13a5f8ae95865399605fe7cf93ee61daaa23d
+
+Hypothesis and attributable observation
+---------------------------------------
+
+The exact pair-v4 parent passed twice: CPUs 8 and 9 completed the inherited
+callbacks, bounded HPS down-pressure was vetoed with `-EPERM`, and the finite
+1,024-round scalar exchange completed without error. This child preserves that
+phase and then alternates deterministic payloads across 256 aligned cachelines,
+eight words per line, for 64 bounded rounds.
+
+The only positive result is one complete `gemini-a72-pair-v5 result=pass` line
+with all inherited pair/HPS/scalar values and these multiline values:
+
+  ml_reported=1 ml_rounds=64 ml_lines=256 ml_words=8
+  ml_cpu8=8 ml_cpu9=9 ml_error8=0 ml_error9=0
+  ml_done8=64 ml_done9=64
+  ml_hash8w=X ml_hash8r=Y ml_hash9w=Y ml_hash9r=X
+  ml_bad_round=0 ml_bad_line=0 ml_bad_word=0
+  ml_expected=0000000000000000 ml_actual=0000000000000000
+
+Both X and Y must be nonzero 16-digit hexadecimal values and cross-match
+exactly. The inherited values must be `hps_reported=1`, `hps_cpu=9`,
+`hps_error=-1`, `hps_count greater than zero`, `coh_reported=1`,
+`coh_rounds=1024`, `coh_cpu8=8`, `coh_cpu9=9`, `coh_error8=0`,
+`coh_error9=0`, `coh_seq8=1024`, and `coh_seq9=1024` in the same line.
+Marker text, screen color, online CPUs, or hash equality without exact word
+comparison completion is not a pass.
+
+Observation sequence
+--------------------
+
+1. In ordinary Gemian, run the reviewed installer. It must resolve exactly one
+   live-GPT logical boot2, prove it inactive/unmounted, record predecessor
+   checksum without a fresh backup, verify two full readbacks, remove temporary
+   readbacks, and shut the device down cleanly.
+2. Arm `scripts/collect-device-pstore --target gemini@192.168.1.50 --wait-for-cycle`
+   before physical boot2 selection. The USB/netcat collector
+   is read-only and secondary.
+3. Physically select boot2 once. Expected visible behavior is the inherited
+   bounded automatic watchdog restart; screen color alone is not evidence.
+4. On ordinary-Gemian recovery, require a changed boot ID, watchdog-class
+   reason, CPUs 8/9 offline, inactive/unmounted live-GPT boot2, and full boot2
+   checksum `5227729e34ca42cf606f43008ec753fce15147693ce7a670818db58c5903fa48`.
+5. Search only attributable changed-cycle pstore/console evidence for the
+   complete pair-v5 terminal and fault exclusions.
+
+Decision branches
+-----------------
+
+PASS
+  Require the complete positive terminal, exact hash cross-match, automatic
+  watchdog recovery, changed-cycle continuity, no panic, BUG, Internal error,
+  Call trace, timeout, asynchronous SError, lockup, or unexpected fault, CPUs
+  8/9 offline after recovery, and unchanged boot2. One exact repeat is then
+  earned. Do not enable CPU_OFF or cross a power boundary.
+
+PAIR-V5 FAULT OR MULTILINE MISMATCH
+  Any `gemini-a72-pair-v5 result=fault`, nonzero `ml_error*`, incomplete round,
+  hash cross-mismatch, wrong CPU, or nonzero mismatch coordinate/value is a
+  reject. Record every terminal field and recovery fact. Do not repeat
+  unchanged; use the first mismatch/error boundary for the next source change.
+
+SCALAR-PARENT FAILURE
+  Any inherited HPS/scalar value outside the exact parent pass contract is a
+  regression. Do not evaluate multiline success and do not repeat unchanged.
+
+AUTOMATIC RESTART WITH NO PAIR-V5
+  Classify terminal-not-reached versus evidence loss using changed-cycle pstore,
+  earlier pair-v2/v4 state, watchdog reason, and console continuity. Repeat only
+  if a new independent observation can distinguish those classes.
+
+NO AUTOMATIC RESTART OR LOST RECOVERY
+  Treat as a safety failure. Recover through known-good Gemian, preserve pstore,
+  verify boot2 identity, and do not repeat unchanged.
+
+Success boundary
+----------------
+
+One pass establishes only bounded exact data integrity for this 16 KiB,
+262,144-check exchange between retained CPUs 8 and 9. A second exact pass would
+establish repeatability. Neither result authorizes CPU_OFF, removes the HPS veto,
+proves general coherency under load, or makes CPU8/CPU9 production-online.
