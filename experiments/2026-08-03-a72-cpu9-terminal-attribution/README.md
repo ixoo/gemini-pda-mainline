@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu9-terminal-attribution` |
-| Status | `offline-container-passed-runtime-map-pending` |
+| Status | `runtime-ready-deployment-pending` |
 | Subsystem | MT6797 CPU8/CPU9 retained pair and HPS down-pressure attribution |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -62,20 +62,29 @@ HPS caller and reads that state only after the third already-proven callback.
 - [`results/offline-container-review-20260803.txt`](results/offline-container-review-20260803.txt):
   exact identities, two-construction comparison, inherited-ramdisk proof, and
   offline-only acceptance decision.
+- [`scripts/install-boot2.sh`](scripts/install-boot2.sh),
+  [`scripts/capture-live-outcome.sh`](scripts/capture-live-outcome.sh), and
+  [`scripts/test_runtime_tools.py`](scripts/test_runtime_tools.py): guarded
+  boot2 deployment, optional read-only USB/netcat capture, and mutation-tested
+  runtime contract.
+- [`results/runtime-decision-map-20260803.txt`](results/runtime-decision-map-20260803.txt):
+  predeclared exact pass, failure, inconclusive, recovery, and follow-up map.
 
 ## Conclusion
 
-`offline-container-passed-runtime-map-pending`: Buildbox reconstructed and
+`runtime-ready-deployment-pending`: Buildbox reconstructed and
 validated the exact retention-window parent, rejected seven child mutations,
 and completed both full builds with byte-identical configurations and
 diagnostics. Two independent offline constructions then produced the same
 `05012d24...` raw Android-v0 image and `93329907...` exact-size boot2 image.
 The known-good ramdisk, command line, header addresses, and zero padding remain
-exact. No device was accessed and no runtime claim exists yet.
+exact. Guarded deployment and read-only collection tools pass their source,
+identity, no-backup, readback, shutdown, and result-class tests. No device was
+accessed and no runtime claim exists yet.
 
 ## Follow-up
 
-Predeclare and mutation-test the deployment/runtime tools and decision map.
-Only after that pushed gate may the exact padded image be written to live-GPT
-resolved inactive `boot2`, fully read back twice, and followed by a clean
-shutdown for one changed-cycle runtime test.
+Commit and push this runtime gate. Then write the exact padded image to
+live-GPT-resolved inactive `boot2`, require two full matching readbacks, publish
+sanitized deployment evidence, and leave the device shut down for one
+changed-cycle runtime test.

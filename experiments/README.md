@@ -26,8 +26,9 @@ the loop. Positive identity-gated observations are unaffected.
 - [2026-08-03 A72 CPU9 terminal attribution](2026-08-03-a72-cpu9-terminal-attribution/README.md)
   — carries the first HPS CPU-down veto and accumulated matching count into the
   already-proven sample-3 pair terminal. Exact-parent Buildbox compilation and
-  two byte-identical offline Android-v0 constructions pass; deployment/runtime
-  tooling remains pending.
+  two byte-identical offline Android-v0 constructions pass. The guarded
+  no-backup, two-readback, clean-shutdown deployment and predeclared runtime
+  contracts pass offline review; device deployment remains pending.
 - [2026-08-03 A72 CPU9 retention window](2026-08-03-a72-cpu9-retention-window/README.md)
   — preserves the proven PSCI-only CPU9 startup and every public CPU-down
   veto, moves all three synchronous CPU8/CPU9 pair samples inside the fixed

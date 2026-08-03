@@ -1,0 +1,161 @@
+CPU9 terminal-attribution guarded runtime decision map
+=====================================================
+
+Date: 2026-08-03
+Status: predeclared; no device deployment or runtime result
+
+Exact experiment identity
+-------------------------
+
+Repository compile commit:
+  ae0a7bb3dd494653f563c4637285bc76bfa46b65
+Retention-window parent patchset SHA-256:
+  9ce572fbc87a1444bb71894dd4528f39dc065065a45b36db52a14791f167eeec
+Terminal-attribution patchset SHA-256:
+  2d94a2cd489e33a7df854ffec7533fbf969dc9c810e9eece57d118b905060310
+Kernel field SHA-256:
+  a55de5dab85a36ace77fddf6e0adf198627b587be6f68e45d47584a896de3a1e
+Compiled build identity:
+  #1 SMP PREEMPT Mon Aug 3 14:33:47 UTC 2026
+Raw Android-v0 SHA-256:
+  05012d24f84a578f9597e22af68dfaa04cb2c723c208b3917fa1b6d5252dce3f
+Full boot2 SHA-256:
+  933299078d78e5882055e73fcbf75447bac9abf7d42b2074f37d65fe81966a70
+Expected boot2 predecessor SHA-256:
+  6f1e5f45c8f75cdfde5a996f902f499d685566c3bec227efa6cdb56aaeffa115
+
+Pre-boot statement
+------------------
+
+Hypothesis:
+  The exact proven PSCI-only CPU9 startup, three synchronous CPU8/CPU9 pair
+  callbacks, public CPU-down veto, timings, and watchdog recovery remain
+  unchanged. HPS naturally requests CPU9 down. The sample-3 terminal snapshots
+  the completed first matching HPS -EPERM publication and total matching
+  request count, making both facts durable in the retained console tail.
+
+Unique attributable evidence:
+  Exactly one terminal matching
+  `gemini-a72-pair-v3 result=pass sample=3 cpu8=8 cpu9=9 online8=1
+  online9=1 hits8=3 hits9=3 hps_reported=1 hps_cpu=9 hps_error=-1
+  hps_count=N`, where N is a positive decimal integer. The pair-v3 terminal
+  exists only in this candidate. Build identity and a changed watchdog cycle
+  are also required. Screen color or an apparent reboot is not attribution.
+
+Observation paths:
+  1. Arm the optional read-only USB/netcat collector before manual boot2
+     selection. USB may not enumerate within the fixed watchdog window.
+  2. Arm `scripts/collect-device-pstore --target gemini@192.168.1.50
+     --wait-for-cycle` before selection. Retain all records; delete none.
+  3. On returned Gemian, prove changed boot ID, exact 3.18.41+ recovery kernel,
+     watchdog-class reason, CPU8/9 offline, unchanged boot2 checksum, and an
+     inactive/unmounted live-GPT-resolved boot2.
+
+Success class
+-------------
+
+All of these are required in one attributable changed cycle:
+
+1. Exact candidate build identity or exact pair-v3 candidate terminal.
+2. Exactly one pair-v3 pass terminal with sample=3, cpu8=8, cpu9=9,
+   online8=1, online9=1, hits8=3, hits9=3, hps_reported=1, hps_cpu=9,
+   hps_error=-1, and hps_count greater than zero.
+3. Changed-cycle watchdog recovery to known-good Gemian with CPU8/9 offline and
+   the exact boot2 full-partition checksum unchanged.
+
+If inherited pair-v2 samples 1 or 2 are retained, each must be unique, ordered,
+show CPUs 8 and 9 online, and carry matching cumulative hit counts. Their
+absence from the fixed-size tail does not invalidate the self-contained pair-v3
+terminal.
+
+There must be no pair-v2 fault, CPU9 rejected/fault state, parent startup fault,
+generic `result=down-veto`, panic, Internal error, BUG, or Call trace before the
+pass terminal. This proves bounded retained CPU8/CPU9 execution and HPS
+attribution through the third pair only. It does not prove long-term stability,
+load coherency, thermal safety, CPU_OFF, suspend, or cpufreq/OPP.
+
+Failure and inconclusive classes
+--------------------------------
+
+Any `gemini-a72-pair-v2 result=fault`:
+  Reject the run. Preserve sample, CPU identities, online bits, hit counts, and
+  both errors; no unchanged retry.
+
+CPU9 `result=rejected-prestate`, `result=fault-retain-psci`, or
+`result=fault-retain-secondary`:
+  The proven CPU9 startup failed to reproduce. Preserve the powered cluster
+  until watchdog recovery and reject the run; no unchanged retry.
+
+pair-v3 with hps_reported=0:
+  No complete first HPS publication was visible by sample 3. Reject the
+  attribution hypothesis; no unchanged retry.
+
+pair-v3 with hps_reported=-1:
+  The snapshot raced an incomplete publication. Reject the synchronization
+  contract; no unchanged retry.
+
+pair-v3 with hps_cpu other than 9, hps_error other than -1, hps_count=0, or
+non-positive/non-decimal count:
+  The expected HPS CPU9 -EPERM boundary was not proved. Reject; no unchanged
+  retry.
+
+Any generic `result=down-veto`, conflicting pair-v3 terminal, panic, Internal
+error, BUG, Call trace, lost recovery, changed boot2 checksum, or unexpected
+serviceability regression:
+  Reject and return to the known-good path. Do not repeat unchanged.
+
+Missing exact pair-v3 pass, missing build identity, absent changed cycle, or
+pstore/live disagreement:
+  Inconclusive. Improve attribution with a changed artifact; do not repeat this
+  exact candidate unchanged.
+
+Automatic restart with no exact retained marker:
+  Recovery/serviceability only. It is not CPU9 attribution evidence.
+
+Pass follow-up
+--------------
+
+One exact pass advances the CPU9 retained-execution boundary but is not a
+reliability claim. Repeat this exact accepted candidate once with a new changed
+cycle. Two exact passes then unblock a separate bounded coherency/load design;
+they do not authorize CPU_OFF, DVFS, thermal, suspend, or default-profile
+enablement.
+
+Deployment boundary
+-------------------
+
+The installer may write only the exact full candidate to the live-GPT-resolved
+inactive, unmounted, writable 16 MiB logical boot2. It accepts only the exact
+retention-window predecessor or skips an already matching candidate, requires
+Good battery health and at least 65 percent capacity, synchronizes the write,
+requires matching on-device and independent full-partition readbacks, removes
+temporary staging, and shuts the device down. It records the predecessor hash
+and creates no fresh backup. Primary boot, boot3, preloader, NVRAM, GPT, and
+whole-device writes remain outside authorization.
+
+Next action
+-----------
+
+After the runtime tools and this map are committed and pushed, install the
+exact candidate to boot2, verify both full readbacks, publish sanitized
+deployment evidence, and leave the device shut down for one manual boot2
+selection.
+
+Offline tool review
+-------------------
+
+Guarded installer SHA-256:
+  d3079f577c5d067fac8578bcc9606e0fd0d8fd4ea5854d15fb7c1ca469a4e808
+Read-only live collector SHA-256:
+  21a8ab25204afc5869a2cdbe9eafd518aef6a65e43683dd8331918c5bffdc234
+Runtime-tool validator SHA-256:
+  15ac2b69e841f1c6288e1a541d6a451942739b00a3967ef7953edbb1c55d9809
+Pstore collector SHA-256:
+  9047084f3012aff47e23e56498d4bc0ae6f8fb7e4f15caec10abb6c15e9a9b3b
+
+The validator passed the pinned source identities, candidate, predecessor,
+manifest, logical-target, battery, readback, cleanup, no-backup, and shutdown
+contracts. It rejected four installer identity mutations, proved the live
+collector inherits the read-only device program, and confirmed every declared
+result class. Bash syntax and Python byte compilation passed. ShellCheck is
+unavailable on this host and was not run.
