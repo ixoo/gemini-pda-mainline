@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu9-bounded-coherency` |
-| Status | `deployment-runtime-tools-passed-write-pending` |
+| Status | `boot2-deployed-shutdown-confirmed-runtime-pending` |
 | Subsystem | MT6797 retained Cortex-A72 pair and cache coherency |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -73,10 +73,13 @@ continue after recovery.
 - [`results/runtime-decision-map-20260803.txt`](results/runtime-decision-map-20260803.txt):
   exact candidate, pair-v4 pass/fault oracle, changed-cycle requirements, and
   predeclared decision branches.
+- [`results/deployment-20260803.txt`](results/deployment-20260803.txt): exact
+  live-GPT target, predecessor/candidate/readback identities, no-backup policy,
+  temporary cleanup, and confirmed shutdown.
 
 ## Conclusion
 
-`deployment-runtime-tools-passed-write-pending`: Buildbox compiled the bounded-
+`boot2-deployed-shutdown-confirmed-runtime-pending`: Buildbox compiled the bounded-
 coherency child and exact terminal parent from repository commit `938cdef`,
 with identical configuration deltas and compiler diagnostics. Linked child
 code contains the expected synchronous IPI/work callbacks and acquire/release
@@ -87,11 +90,12 @@ byte-identical raw and padded Android-v0 images with the unchanged known-good
 ramdisk. The guarded installer pins the exact terminal predecessor, creates no
 fresh backup, requires two full readbacks, and powers off after success. The
 read-only collector requires the complete pair-v4/HPS/coherence terminal. This
-remains pre-deployment evidence, not hardware support.
+exact candidate replaced the expected terminal predecessor on live-GPT-resolved
+inactive `boot2`; two full readbacks matched and shutdown was confirmed. This
+is deployment evidence, not runtime hardware support.
 
 ## Follow-up
 
-Commit and push the reviewed deployment/runtime gate. When ordinary Gemian is
-reachable, install the exact candidate to live-GPT-resolved inactive `boot2`,
-verify two full readbacks, and leave the device shut down for one attributable
-physical selection.
+Publish the sanitized deployment record, arm changed-cycle pstore (and optional
+read-only USB/netcat capture), then physically select `boot2` once. Apply the
+predeclared pair-v4 decision map after immediate ordinary-Gemian recovery.

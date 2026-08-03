@@ -1,0 +1,33 @@
+CPU8/CPU9 bounded coherency boot2 deployment
+Date: 2026-08-03
+
+experiment=2026-08-03-a72-cpu9-bounded-coherency
+result=write-synced-flushed-two-full-readbacks-verified
+target_logical_name=boot2
+target=/dev/mmcblk0p30
+root=/dev/mmcblk0p29
+predecessor_sha256=933299078d78e5882055e73fcbf75447bac9abf7d42b2074f37d65fe81966a70
+fresh_predecessor_backup=no
+candidate_sha256=eda1d5bb312aa937e41499ea8fd13a5f8ae95865399605fe7cf93ee61daaa23d
+readback_1_sha256=eda1d5bb312aa937e41499ea8fd13a5f8ae95865399605fe7cf93ee61daaa23d
+readback_2_sha256=eda1d5bb312aa937e41499ea8fd13a5f8ae95865399605fe7cf93ee61daaa23d
+ordinary_gemian_boot_id=816e7c0b-71bd-4290-abf5-1144add4f0d8
+power_external=1
+battery_percent=94
+battery_health=Good
+temporary_readback_removed=yes
+shutdown_requested_after_evidence_flush=yes
+poweroff_request_result=success
+post_shutdown_reachability=unreachable
+reboot=no
+next_action=arm-changed-cycle-observers-then-owner-physically-selects-boot2-once
+
+The installer resolved exactly one logical boot2 from the live GPT, proved it
+was neither the active root nor mounted, and matched the exact terminal-parent
+predecessor. Per project policy it recorded the predecessor checksum but made
+no fresh partition backup. The exact candidate fit the 16 MiB target, was
+written, synced, flushed, and matched two independent full-partition readbacks.
+Temporary readback material was removed before the device was shut down.
+
+This record establishes only exact deployment and shutdown. It does not claim
+that the candidate booted or that CPUs 8 and 9 completed the coherency oracle.
