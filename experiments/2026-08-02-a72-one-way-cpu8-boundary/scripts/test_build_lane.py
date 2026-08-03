@@ -64,6 +64,8 @@ def main() -> int:
         'readonly TARGET_EXTRA_CFLAGS=-fstack-usage',
         '"${parent_patchset_sha}:${accepted_rollback_patchset_sha}" 0',
         '"${parent_patchset_sha}:${accepted_rollback_patchset_sha}:${one_way_patchset_sha}" 1',
+        'done < "${parent_patch_series}"',
+        'for patch in "${accepted_rollback_patches[@]}"; do',
         "--enable MTK_A72_TRANSITION_OBSERVER",
         "--enable MTK_A72_ONE_WAY_CPU8",
         'baseline_source_parent_rollback_owners: true',

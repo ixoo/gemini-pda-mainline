@@ -232,12 +232,12 @@ prepare_variant() {
   trap 'test -n "${partial:-}" && test -d "${partial}" && rm -rf -- "${partial}"' RETURN
   git clone --no-checkout "${source_mirror}" "${partial}"
   git -C "${partial}" checkout --detach "${SOURCE_COMMIT}"
-  for patch in "${accepted_rollback_patches[@]}"; do
+  while IFS= read -r patch; do
     [[ "${patch}" =~ ^[A-Za-z0-9_.+-]+\.patch$ ]] || die "unsafe observer patch name"
     git -C "${partial}" apply --check "${observer_experiment_dir}/patches/${patch}"
     git -C "${partial}" apply "${observer_experiment_dir}/patches/${patch}"
   done < "${parent_patch_series}"
-  while IFS= read -r patch; do
+  for patch in "${accepted_rollback_patches[@]}"; do
     [[ "${patch}" =~ ^[A-Za-z0-9_.+-]+\.patch$ ]] || \
       die "unsafe rollback patch name"
     git -C "${partial}" apply --check \
