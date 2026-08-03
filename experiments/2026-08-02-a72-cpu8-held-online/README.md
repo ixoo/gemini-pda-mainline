@@ -46,6 +46,13 @@ experiment and prohibits unchanged retry.
   model with no I/O or hardware action.
 - [`scripts/test_hold_model.py`](scripts/test_hold_model.py): positive and
   fail-closed model cases.
+- [`scripts/source_edits.py`](scripts/source_edits.py): deterministic three-step
+  source transformation for the exact one-way parent.
+- [`scripts/validate_patches.py`](scripts/validate_patches.py) and
+  [`scripts/test_static.py`](scripts/test_static.py): ordering, forbidden-path,
+  inventory, and mutation gates.
+- [`scripts/generate-on-buildbox`](scripts/generate-on-buildbox): Buildbox-only
+  source preparation and three-patch generation.
 - [`results/source-order-audit-20260802.txt`](results/source-order-audit-20260802.txt):
   exact runtime-to-source call ordering and chosen insertion points.
 

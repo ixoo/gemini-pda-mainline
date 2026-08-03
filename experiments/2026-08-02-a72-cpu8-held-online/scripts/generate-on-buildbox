@@ -1,0 +1,160 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+export LC_ALL=C
+
+readonly SOURCE_COMMIT=59e00a9144d782e148332009a835b99c43382467
+readonly SOURCE_URL=https://github.com/gemian/gemini-linux-kernel-3.18.git
+
+die() { printf 'error: %s\n' "$*" >&2; exit 1; }
+[[ "$#" -eq 3 ]] || die 'expected PROJECT_COMMIT SOURCE_ROOT OUTPUT_ROOT'
+readonly project_commit=$1
+readonly source_root=$2
+readonly output_root=$3
+[[ "$project_commit" =~ ^[0-9a-f]{40}$ ]] || die 'invalid project commit'
+[[ "$source_root" == /workspace/gemini-pda/* ]] || die 'unsafe source root'
+[[ "$output_root" == /workspace/gemini-pda/* ]] || die 'unsafe output root'
+
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+experiment_dir="$(cd -- "$script_dir/.." && pwd -P)"
+repository_dir="$(cd -- "$experiment_dir/../.." && pwd -P)"
+readonly script_dir experiment_dir repository_dir
+[[ "$(git -C "$repository_dir" rev-parse HEAD)" == "$project_commit" ]] ||
+	die 'project checkout does not match requested commit'
+[[ -z "$(git -C "$repository_dir" status --porcelain)" ]] ||
+	die 'project checkout is dirty'
+for command in git python3 sha256sum; do
+	command -v "$command" >/dev/null 2>&1 || die "missing command: $command"
+done
+
+readonly mirror="$source_root/gemian-linux-kernel-3.18.git"
+readonly work_root=/workspace/gemini-pda/cpu8-held-work
+readonly package="$output_root/gemian-a72-cpu8-held-patches-${project_commit:0:12}"
+readonly partial="${package}.partial.$$"
+mkdir -p "$source_root" "$work_root" "$output_root"
+[[ ! -e "$partial" ]] || die 'stale output partial exists'
+
+if [[ -d "$package" && ! -L "$package" ]]; then
+	grep -Fx "repository_commit=$project_commit" "$package/provenance/generation.txt" >/dev/null ||
+		die 'existing package commit mismatch'
+	(cd "$package" && sha256sum --check --strict SHA256SUMS >/dev/null)
+	printf 'Generated CPU8 held-online patch review at %s\n' "$package"
+	exit 0
+fi
+[[ ! -e "$package" ]] || die 'unsafe existing package path'
+
+if [[ ! -d "$mirror" ]]; then
+	git clone --mirror "$SOURCE_URL" "${mirror}.partial"
+	mv "${mirror}.partial" "$mirror"
+fi
+[[ "$(git --git-dir="$mirror" remote get-url origin)" == "$SOURCE_URL" ]] ||
+	die 'vendor mirror origin mismatch'
+git --git-dir="$mirror" fetch origin "$SOURCE_COMMIT"
+[[ "$(git --git-dir="$mirror" rev-parse FETCH_HEAD)" == "$SOURCE_COMMIT" ]] ||
+	die 'vendor source fetch mismatch'
+
+work="$(mktemp -d "$work_root/held.XXXXXX")"
+readonly work
+cleanup() {
+	[[ ! -d "$work" || "$work" != "$work_root"/held.* ]] || rm -rf -- "$work"
+	[[ ! -d "$partial" || "$partial" != "$output_root"/*.partial.* ]] || rm -rf -- "$partial"
+}
+trap cleanup EXIT
+
+git clone --no-checkout "$mirror" "$work/source"
+git -C "$work/source" checkout --detach "$SOURCE_COMMIT"
+git -C "$work/source" config user.name 'Gemini A72 experiment'
+git -C "$work/source" config user.email noreply@gemini-a72.invalid
+while IFS= read -r parent_patch; do
+	[[ "$parent_patch" =~ ^[A-Za-z0-9_.+-]+\.patch$ ]] || die 'unsafe observer patch name'
+	git -C "$work/source" am --committer-date-is-author-date \
+		"$repository_dir/experiments/2026-07-23-gemian-a72-owner-observer/patches/$parent_patch"
+done <"$repository_dir/experiments/2026-07-23-gemian-a72-owner-observer/patches/series"
+for parent_patch in \
+	0001-diagnostic-extend-A72-observer-rollback-ABI.patch \
+	0002-diagnostic-add-exact-A72-rollback-owner-operations.patch; do
+	git -C "$work/source" am --committer-date-is-author-date \
+		"$repository_dir/experiments/2026-08-02-a72-pre-isolation-rollback-discriminator/patches/$parent_patch"
+done
+while IFS= read -r parent_patch; do
+	[[ "$parent_patch" =~ ^[A-Za-z0-9_.+-]+\.patch$ ]] || die 'unsafe one-way patch name'
+	git -C "$work/source" am --committer-date-is-author-date \
+		"$repository_dir/experiments/2026-08-02-a72-one-way-cpu8-boundary/patches/$parent_patch"
+done <"$repository_dir/experiments/2026-08-02-a72-one-way-cpu8-boundary/patches/series"
+
+mkdir -p "$partial/patches" "$partial/provenance"
+commit_step() {
+	local commit_date=$1 subject=$2 body_one=$3 body_two=$4 body_three=$5
+	shift 5
+	git -C "$work/source" diff --check
+	git -C "$work/source" add -- "$@"
+	git -C "$work/source" diff --cached --check
+	GIT_AUTHOR_NAME='Gemini A72 experiment' \
+	GIT_AUTHOR_EMAIL=noreply@gemini-a72.invalid \
+	GIT_COMMITTER_NAME='Gemini A72 experiment' \
+	GIT_COMMITTER_EMAIL=noreply@gemini-a72.invalid \
+	GIT_AUTHOR_DATE="$commit_date" GIT_COMMITTER_DATE="$commit_date" \
+		git -C "$work/source" commit --no-gpg-sign \
+			-m "$subject" -m "$body_one" -m "$body_two" -m "$body_three"
+}
+
+python3 "$script_dir/source_edits.py" --source "$work/source" --step generic-veto
+commit_step 2026-08-03T02:20:00Z \
+	'hotplug: reject one-way CPU8 down before notifiers' \
+	'Reject CPU8 and CPU9 at public cpu_down entry in the experiment profile.' \
+	'Dominate map locks, profiling, CPU_DOWN_PREPARE, and platform callbacks.' \
+	'Leave CPU0 through CPU7 hotplug unchanged.' \
+	kernel/cpu.c
+
+python3 "$script_dir/source_edits.py" --source "$work/source" --step hps-floor
+commit_step 2026-08-03T02:21:00Z \
+	'power: hold one CPU in the one-way A72 cluster' \
+	'Clamp the exact HPS CPU8/9 cluster target to one while CPU8 is online.' \
+	'Prevent the observed normal policy caller from requesting CPU8 down.' \
+	'Retain the generic entry veto as defense against every other caller.' \
+	drivers/misc/mediatek/base/power/mt6797/mt_hotplug_strategy_algo.c
+
+python3 "$script_dir/source_edits.py" --source "$work/source" --step hold-probe
+commit_step 2026-08-03T02:22:00Z \
+	'diagnostic: sample held CPU8 with two IPIs' \
+	'Run synchronous callbacks on CPU8 at one and six seconds after completion.' \
+	'Require exact CPU identity, accounting, CPU9 absence, and hit count.' \
+	'Add no load, hotplug request, control interface, or watchdog refresh.' \
+	arch/arm64/kernel/psci.c
+
+readonly patch1=0001-hotplug-reject-one-way-CPU8-down-before-notifiers.patch
+readonly patch2=0002-power-hold-one-CPU-in-the-one-way-A72-cluster.patch
+readonly patch3=0003-diagnostic-sample-held-CPU8-with-two-IPIs.patch
+git -C "$work/source" format-patch -1 --no-signature --stdout HEAD~2 >"$partial/patches/$patch1"
+git -C "$work/source" format-patch -1 --no-signature --stdout HEAD~1 >"$partial/patches/$patch2"
+git -C "$work/source" format-patch -1 --no-signature --stdout HEAD >"$partial/patches/$patch3"
+printf '%s\n' "$patch1" "$patch2" "$patch3" >"$partial/patches/series"
+
+python3 "$script_dir/validate_patches.py" --patch-dir "$partial/patches" --source "$work/source"
+python3 "$script_dir/test_static.py" --source "$work/source"
+git -C "$work/source" diff --check
+[[ -z "$(git -C "$work/source" status --porcelain)" ]] || die 'generated source is dirty'
+
+cat >"$partial/provenance/generation.txt" <<EOF
+purpose=experiment-only-cpu8-held-online-source-review
+boot_candidate=false
+device_action=none
+repository_commit=$project_commit
+source_url=$SOURCE_URL
+source_commit=$SOURCE_COMMIT
+parent_observer_patch_count=7
+accepted_rollback_patch_count=2
+parent_one_way_patchset_sha256=d9649e1453a05bc8a016da6fa371e97480ff62aebad3dedd87d148d5cb574890
+generated_patch_count=3
+generator=experiments/2026-08-02-a72-cpu8-held-online/scripts/generate-on-buildbox
+native_vm_kernel_build=no
+EOF
+(
+	cd "$partial"
+	find patches provenance -type f -print0 | sort -z | xargs -0 sha256sum >SHA256SUMS
+	sha256sum --check --strict SHA256SUMS >/dev/null
+)
+mv "$partial" "$package"
+trap - EXIT
+rm -rf -- "$work"
+printf 'Generated CPU8 held-online patch review at %s\n' "$package"
