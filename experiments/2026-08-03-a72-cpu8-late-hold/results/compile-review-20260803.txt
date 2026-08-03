@@ -1,0 +1,75 @@
+CPU8 late-hold Buildbox compile review
+======================================
+
+Date: 2026-08-03
+Repository commit: cc20c4a57fa467ee803d0a4b5b31e5babb7b52b5
+Source commit: 59e00a9144d782e148332009a835b99c43382467
+Late-hold patchset SHA-256:
+  f2bebc4a04888a6c83f0dc72c2de56d350c2a52ab9779ef07e3a01cb5b544d91
+Exact baseline: held-online patchset
+Build backend: Buildbox x86_64 only
+Native VM kernel build: no
+Device access: none
+
+Toolchain and configuration
+---------------------------
+
+Compiler: aarch64-linux-gnu-gcc-6 (Debian 6.3.0-18) 6.3.0 20170516
+Linker: GNU ld (GNU Binutils for Debian) 2.28
+Python: 2.7.13
+Toolchain manifest SHA-256:
+  a45d945f092461a611d276ad7d0a0fea1ea8a7f93db413908bcb892c12817d14
+Resolved configuration SHA-256:
+  1eabab56be03d3565ccbb3295842d73d405a35e003a81a901ce841beade633fa
+Configuration delta: observer and one-way CPU8 enabled, plus inherited explicit
+  CONFIG_ANBOX=n normalization; no child-specific configuration delta
+
+Build outputs
+-------------
+
+Image.gz-dtb SHA-256:
+  9827c9c8c66501a913e38c255aa8a15e6eaf784f3e7c57d032d76809e80710cf
+vmlinux SHA-256:
+  8723310efa723f1eced6210d5ffba4e9196e8a3833fa23ff35fdcfb8be107ede
+System.map SHA-256:
+  4e28d45cb192c8eafe06d298e3d380ac9300c16bfbcbb7bb857c388a87e75218
+Build identity:
+  #1 SMP PREEMPT Mon Aug 3 11:24:16 UTC 2026
+
+Both the child and exact held-online parent completed full `Image.gz-dtb`
+builds. Each captured 2,484 stack-use reports. Their only extracted diagnostic
+is the same inherited vendor modpost summary of 69 section mismatches; the
+diagnostic files are byte-identical.
+
+Binary and stack review
+-----------------------
+
+The child contains only the v2 sample, fault, and three-hit terminal strings;
+the inherited generic down barrier remains versioned v1. The exact terminal is:
+
+  gemini-a72-hold-v2 result=pass sample=3 cpu=8 cpu8=1 cpu9=0 hits=3
+
+Focused disassembly proves one synchronous call to CPU8, exact callback CPU 8
+comparison, CPU8 online and CPU9 offline bit tests, one atomic hit increment,
+the sample bound of three, and compiled 5,000/4,000 ms selection before the
+delayed-work queue. The CPU8 IPI callback is byte-identical to the parent.
+Differences in `cpu_down` and HPS are relocation-only consequences of shifted
+rodata/data addresses; their source and stack reports are unchanged.
+
+Stack use in the affected functions:
+
+  mt6797_a72_hold_ipi: 32 bytes child, 32 parent
+  mt6797_a72_hold_workfn: 80 bytes child, 64 parent
+  mt6797_a72_one_way_secondary_complete: 48 bytes child, 48 parent
+
+The 16-byte delayed-work-frame increase is accepted: the function runs in
+process-context workqueue execution, is non-recursive, performs no large local
+allocation, and remains only 80 bytes. The startup completion and IPI callback
+do not grow.
+
+Decision
+--------
+
+result=compile-accepted
+boot_candidate=no
+next_action=construct and independently validate an exact Android-v0 container using this Image.gz-dtb

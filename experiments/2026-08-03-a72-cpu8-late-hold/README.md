@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu8-late-hold` |
-| Status | `source-accepted-compile-pending` |
+| Status | `compile-accepted-container-pending` |
 | Subsystem | MT6797 CPU8 IPI/coherency and retained pstore evidence |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -54,6 +54,8 @@ about two seconds between the third sample and recovery.
 - [`patches/`](patches/): the one logical Buildbox-generated child patch.
 - [`results/patch-generation-review-20260803.txt`](results/patch-generation-review-20260803.txt):
   two rejected validator revisions and the accepted source identity.
+- [`results/compile-review-20260803.txt`](results/compile-review-20260803.txt):
+  exact child/parent compile, diagnostics, disassembly, and stack decision.
 
 ## Procedure
 
@@ -76,7 +78,13 @@ patch. Two earlier generation revisions stopped before publication: one had an
 ambiguous mutation anchor, and the next exposed that loose token-order checks
 did not reject a wrong callback CPU. The accepted validator requires the full
 IPI/accounting predicate exactly once and rejects all seven unsafe mutations.
-No kernel compile or device action has occurred.
+
+The exact clean patch commit then passed full child and held-online-parent
+builds on Buildbox. Both have the same sole inherited 69-mismatch modpost
+summary and 2,484 stack reports. Disassembly confirms CPU8, CPU8-online, CPU9-
+offline, three-hit, and 5,000/4,000 ms branches. The workqueue frame grows from
+64 to 80 bytes; the IPI callback and startup-completion frames are unchanged.
+No device action has occurred.
 
 ## Analysis
 
@@ -88,11 +96,12 @@ without executing CPU8 again would not meet the experiment contract.
 
 ## Conclusion
 
-`source-accepted-compile-pending`: the exact parent, one logical patch, timing,
-failure predicate, terminal, forbidden actions, and mutation gates pass.
-Hardware behavior is not established.
+`compile-accepted-container-pending`: the exact parent, one logical patch,
+timing, failure predicate, terminal, forbidden actions, mutations, full builds,
+diagnostics, machine code, and stack-use gate pass. Hardware behavior is not
+established.
 
 ## Follow-up
 
-Commit and push the generated patch, then compile it against the exact
-held-online parent on Buildbox. CPU9 remains blocked.
+Construct and independently validate an exact Android-v0 container using the
+accepted Buildbox image. CPU9 remains blocked.
