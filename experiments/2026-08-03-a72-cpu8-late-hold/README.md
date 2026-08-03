@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu8-late-hold` |
-| Status | `offline-accepted-deployment-tooling-pending` |
+| Status | `deployment-eligible-runtime-pending` |
 | Subsystem | MT6797 CPU8 IPI/coherency and retained pstore evidence |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -64,6 +64,14 @@ about two seconds between the third sample and recovery.
   manifest, ramdisk, padding, provenance, and offline-only checks.
 - [`results/offline-container-review-20260803.txt`](results/offline-container-review-20260803.txt):
   exact candidate identity and independent acceptance record.
+- [`scripts/install-boot2.sh`](scripts/install-boot2.sh): guarded exact-candidate
+  boot2 installer with full readback and clean shutdown.
+- [`scripts/capture-live-outcome.sh`](scripts/capture-live-outcome.sh): optional
+  read-only direct USB/netcat terminal capture.
+- [`scripts/test_runtime_tools.py`](scripts/test_runtime_tools.py): installer,
+  collector, and decision-class contract checks.
+- [`results/runtime-decision-map-20260803.txt`](results/runtime-decision-map-20260803.txt):
+  pre-boot hypothesis, attributable evidence, and exact result actions.
 
 ## Procedure
 
@@ -108,12 +116,13 @@ without executing CPU8 again would not meet the experiment contract.
 
 ## Conclusion
 
-`offline-accepted-deployment-tooling-pending`: the exact parent, one logical
-patch, timing, failure predicate, terminal, forbidden actions, mutations, full
-builds, diagnostics, machine code, stack-use gate, and exact offline container
-pass. Hardware behavior is not established.
+`deployment-eligible-runtime-pending`: the exact parent, one logical patch,
+timing, failure predicate, terminal, forbidden actions, mutations, full builds,
+diagnostics, machine code, stack-use gate, exact offline container, guarded
+installer, observation tools, and runtime decision map pass. Hardware behavior
+is not established.
 
 ## Follow-up
 
-Review the guarded boot2 installer and runtime decision map, then perform one
-verified deployment and changed-cycle capture. CPU9 remains blocked.
+Perform one verified boot2 deployment and changed-cycle capture. CPU9 remains
+blocked.
