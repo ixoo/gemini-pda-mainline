@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
+set -Eeuo pipefail
+
+trap 'rc=$?; trap - ERR; printf "error: compile-review line %s status %s\n" \
+  "${LINENO}" "${rc}" >&2; exit "${rc}"' ERR
 
 readonly SOURCE_COMMIT=59e00a9144d782e148332009a835b99c43382467
 readonly SOURCE_URL=https://github.com/gemian/gemini-linux-kernel-3.18.git
