@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-cpu9-terminal-attribution` |
-| Status | `runtime-ready-deployment-pending` |
+| Status | `deployed-shutdown-awaiting-runtime` |
 | Subsystem | MT6797 CPU8/CPU9 retained pair and HPS down-pressure attribution |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -69,22 +69,25 @@ HPS caller and reads that state only after the third already-proven callback.
   runtime contract.
 - [`results/runtime-decision-map-20260803.txt`](results/runtime-decision-map-20260803.txt):
   predeclared exact pass, failure, inconclusive, recovery, and follow-up map.
+- [`results/deployment-20260803.txt`](results/deployment-20260803.txt): exact
+  live-GPT target, predecessor, two readbacks, cleanup, no-backup, and confirmed
+  shutdown evidence.
 
 ## Conclusion
 
-`runtime-ready-deployment-pending`: Buildbox reconstructed and
+`deployed-shutdown-awaiting-runtime`: Buildbox reconstructed and
 validated the exact retention-window parent, rejected seven child mutations,
 and completed both full builds with byte-identical configurations and
 diagnostics. Two independent offline constructions then produced the same
 `05012d24...` raw Android-v0 image and `93329907...` exact-size boot2 image.
 The known-good ramdisk, command line, header addresses, and zero padding remain
 exact. Guarded deployment and read-only collection tools pass their source,
-identity, no-backup, readback, shutdown, and result-class tests. No device was
-accessed and no runtime claim exists yet.
+identity, no-backup, readback, shutdown, and result-class tests. The exact
+candidate was written to live-GPT-resolved inactive boot2, matched two complete
+readbacks, and the device was shut down. No boot or runtime claim exists yet.
 
 ## Follow-up
 
-Commit and push this runtime gate. Then write the exact padded image to
-live-GPT-resolved inactive `boot2`, require two full matching readbacks, publish
-sanitized deployment evidence, and leave the device shut down for one
-changed-cycle runtime test.
+Commit and push the sanitized deployment evidence. Then arm changed-cycle
+pstore and optional read-only USB/netcat observers before one physical boot2
+selection. Classify only under the predeclared map.

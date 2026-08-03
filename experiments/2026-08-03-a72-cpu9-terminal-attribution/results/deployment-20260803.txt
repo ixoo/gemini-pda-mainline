@@ -1,0 +1,34 @@
+CPU9 terminal-attribution boot2 deployment
+Date: 2026-08-03
+
+result=write-synced-flushed-full-readback-verified
+repository_gate_commit=47fe420
+target_logical_name=boot2
+target=/dev/mmcblk0p30
+known_good_root=/dev/mmcblk0p29
+predecessor_sha256=6f1e5f45c8f75cdfde5a996f902f499d685566c3bec227efa6cdb56aaeffa115
+fresh_predecessor_backup=no
+candidate_sha256=933299078d78e5882055e73fcbf75447bac9abf7d42b2074f37d65fe81966a70
+on_device_readback_sha256=933299078d78e5882055e73fcbf75447bac9abf7d42b2074f37d65fe81966a70
+independent_stream_readback_sha256=933299078d78e5882055e73fcbf75447bac9abf7d42b2074f37d65fe81966a70
+known_good_boot_id=05933b1a-cc49-4f01-b5e3-14c65408b22d
+external_power_online=1
+battery_capacity_percent=90
+battery_health=Good
+temporary_staging_removed=yes
+temporary_readback_removed=yes
+shutdown=confirmed-unreachable
+reboot=no
+runtime_result=not-tested
+next_action=arm changed-cycle pstore and optional read-only netcat observers, then physically select boot2 once
+
+The installer resolved logical boot2 from the live GPT, proved it was the exact
+inactive, unmounted, writable 16 MiB target, and verified Gemian was rooted on
+the distinct primary partition. It accepted only the exact retention-window
+predecessor. The write was synchronized and flushed; both the on-device full
+checksum and an independent full streamed readback matched the exact candidate
+byte-for-byte. No fresh partition backup was created. The device was shut down
+cleanly after evidence flush and confirmed unreachable.
+
+This is deployment evidence only. It does not establish that the candidate
+booted or that CPU8, CPU9, HPS attribution, or recovery passed.

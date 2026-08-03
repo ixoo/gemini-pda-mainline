@@ -28,7 +28,9 @@ the loop. Positive identity-gated observations are unaffected.
   already-proven sample-3 pair terminal. Exact-parent Buildbox compilation and
   two byte-identical offline Android-v0 constructions pass. The guarded
   no-backup, two-readback, clean-shutdown deployment and predeclared runtime
-  contracts pass offline review; device deployment remains pending.
+  contracts pass offline review. The exact candidate is installed on inactive
+  boot2 with two matching full readbacks, and the device is shut down awaiting
+  one changed-cycle runtime test.
 - [2026-08-03 A72 CPU9 retention window](2026-08-03-a72-cpu9-retention-window/README.md)
   — preserves the proven PSCI-only CPU9 startup and every public CPU-down
   veto, moves all three synchronous CPU8/CPU9 pair samples inside the fixed
