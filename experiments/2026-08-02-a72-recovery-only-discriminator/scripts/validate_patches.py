@@ -146,12 +146,14 @@ def validate(patch_dir: Path) -> None:
 
     for token in (
         "static struct delayed_work recovery_discriminator_work",
+        "cpu_hotplug_disable()",
         "spin_lock(&lock)",
         "!g_kicker_init || !g_wd_api || !g_wd_api->ready",
         "g_enable = 0",
         "ret = mtk_wdt_recovery_arm(12, &state)",
         "if (ret && !state.owned)",
         "g_enable = 1",
+        "cpu_hotplug_enable()",
         "gemini-a72-recovery-v1 stage=armed timeout=12s a72=forbidden",
         "console_lock()",
         "console_unlock()",
@@ -161,6 +163,7 @@ def validate(patch_dir: Path) -> None:
     ordered(
         trigger_added,
         [
+            "cpu_hotplug_disable()",
             "spin_lock(&lock)",
             "g_enable = 0",
             "mtk_wdt_recovery_arm(12, &state)",
@@ -173,6 +176,8 @@ def validate(patch_dir: Path) -> None:
         "kicker handoff",
     )
     require(trigger_added.count("schedule_delayed_work") == 1, "trigger count changed")
+    require(trigger_added.count("cpu_hotplug_disable()") == 1, "hotplug exclusion count changed")
+    require(trigger_added.count("cpu_hotplug_enable()") == 2, "hotplug restore count changed")
     require(trigger_added.count("stage=armed") == 1, "terminal marker count changed")
 
     print("PASS: recovery-only patch series ownership and no-A72 contract")

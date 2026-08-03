@@ -62,6 +62,7 @@ def main() -> int:
         (p2, "+\tmtk_wdt_recovery_owned = true;", "+\tmtk_wdt_recovery_owned = false;", "mtk_wdt_recovery_owned = true"),
         (p2, "+\tmt_reg_sync_writel(MTK_WDT_RESTART_KEY, MTK_WDT_RESTART);", "+\t/* restart removed */", "missing or unordered 'mt_reg_sync_writel(MTK_WDT_RESTART_KEY'"),
         (p3, "+\tg_enable = 0;", "+\tg_enable = 1;", "g_enable = 0"),
+        (p3, "+\tcpu_hotplug_disable();", "+\t/* hotplug exclusion removed */", "cpu_hotplug_disable()"),
         (p3, "+\tret = mtk_wdt_recovery_arm(12, &state);", "+\tret = mtk_wdt_recovery_arm(30, &state);", "ret = mtk_wdt_recovery_arm(12, &state)"),
         (p3, "+\tschedule_delayed_work(&recovery_discriminator_work, 15 * HZ);", "+\tschedule_delayed_work(&recovery_discriminator_work, 0);", "schedule_delayed_work(&recovery_discriminator_work, 15 * HZ)"),
         (p3, "+\t\tpr_emerg(\"gemini-a72-recovery-v1 stage=armed timeout=12s a72=forbidden\\n\");", "+\t\tpr_emerg(\"recovery armed\\n\");", "stage=armed timeout=12s a72=forbidden"),

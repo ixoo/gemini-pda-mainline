@@ -28,10 +28,12 @@ operation. It has no userspace control.
 
 The watchdog handoff runs once from delayed work after the ordinary kicker has
 initialized. Under the kicker's own lock it stops future kicks and invokes one
-TOPRGU-owner operation. That operation takes the TOPRGU register lock, blocks
-later restart calls, programs a fixed 12-second reset-only deadline, reloads it
-once, and returns exact readback. A pre-ownership failure restores normal
-kicker service. Any result after ownership is terminal and must reset.
+TOPRGU-owner operation while CPU-hotplug exclusion closes the only no-lock
+reload caller. That operation takes the TOPRGU register lock, blocks later
+ordinary restart calls, programs a fixed 12-second reset-only deadline,
+reloads it once, and returns exact readback. A pre-ownership failure restores
+normal kicker and hotplug service. Any result after ownership is terminal and
+must reset.
 
 ## Evidence contract
 

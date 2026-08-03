@@ -4,11 +4,12 @@
 
 The normal Gemian kicker serializes its global state and every ordinary
 external-watchdog kick beneath `wd_common_drv.c`'s `lock`. The discriminator
-uses that same lock. It first proves the kicker and watchdog API are ready,
-sets `g_enable` to zero, and calls the low-level arm helper without releasing
-the lock. Any kicker already inside the lock completes before takeover; any
-kicker waiting behind takeover encounters either disabled kicker state or the
-low-level terminal-owner interlock.
+first takes the kernel CPU-hotplug exclusion, because the only TOPRGU no-lock
+reload caller is the CPU-hotplug notifier, then uses the kicker lock. It proves
+the kicker and watchdog API are ready, sets `g_enable` to zero, and calls the
+low-level arm helper without releasing the lock. Any kicker already inside the
+lock completes before takeover; any kicker waiting behind takeover encounters
+either disabled kicker state or the low-level terminal-owner interlock.
 
 The low-level helper serializes all TOPRGU access beneath
 `rgu_reg_operation_spinlock`. It refuses an uninitialized mapping or any
@@ -18,8 +19,8 @@ reset-only mode, and one restart key in that order and returns readback.
 
 ## Failure domains
 
-- Before low-level ownership, failure restores `g_enable=1`; the ordinary
-  kicker remains the recovery owner.
+- Before low-level ownership, failure restores `g_enable=1` and releases the
+  CPU-hotplug exclusion; the ordinary kicker remains the recovery owner.
 - At or after low-level ownership, failure never restores the kicker and never
   rewrites the previous watchdog mode. It emits a terminal failure marker and
   waits for reset.
