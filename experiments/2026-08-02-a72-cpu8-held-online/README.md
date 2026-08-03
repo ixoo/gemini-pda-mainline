@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-02-a72-cpu8-held-online` |
-| Status | `source-patches-accepted-compile-pending` |
+| Status | `compile-accepted-container-pending` |
 | Subsystem | MT6797 HPS, generic CPU hotplug, CPU8 IPI/coherency |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-02 |
@@ -61,6 +61,8 @@ experiment and prohibits unchanged retry.
 - [`results/patch-generation-review-20260802.txt`](results/patch-generation-review-20260802.txt):
   two rejected validator drafts, final identities, 11 mutations, and manual
   source-flow review.
+- [`results/compile-review-20260802.txt`](results/compile-review-20260802.txt):
+  exact Buildbox identities, diagnostics, disassembly, and stack-use decision.
 
 ## Procedure
 
@@ -82,6 +84,10 @@ The parent runtime brought CPU8 online exactly once, then faulted about 1.17
 seconds later when HPS entered `_cpu_down` and a CPU_DOWN_PREPARE notifier called
 `cpuhvfs_notify_cluster_off` before the platform CPU-disable veto.
 
+The exact held-online child and one-way parent both compile on Buildbox with
+identical diagnostics. Binary review confirms the two early barriers and the
+one- and six-second IPI path; existing affected stack frames do not grow.
+
 ## Analysis
 
 The startup path is no longer the blocker. An HPS-only skip would prevent the
@@ -97,12 +103,13 @@ merely preserving the original online marker.
 
 ## Conclusion
 
-`confirmed-design-boundary`: the post-success crash precedes the existing
-platform veto. Source generation is authorized for the exact two-layer early
-veto plus bounded IPI hold proof; another unchanged one-way candidate is not.
+`compile-accepted`: the post-success crash precedes the existing platform veto,
+and the exact two-layer early veto plus bounded IPI proof passes source,
+mutation, compilation, binary, diagnostics, and stack-use review. It is not yet
+a boot candidate.
 
 ## Follow-up
 
-Generate, mutate, review, and compile the exact three-patch follow-up on
-Buildbox. Do not access the device until the new container and runtime gates
-pass and their evidence is pushed.
+Independently reconstruct and validate the exact Android-v0 container and its
+runtime decision map. Do not access the device until those gates pass and their
+evidence is pushed.

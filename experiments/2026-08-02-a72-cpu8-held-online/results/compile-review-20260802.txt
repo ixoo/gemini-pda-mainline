@@ -1,0 +1,105 @@
+CPU8 held-online Buildbox compile review
+========================================
+
+Date: 2026-08-02
+Result: accepted for independent container reconstruction
+Device access: none
+Native VM kernel build: none
+Boot candidate: no
+
+Chronology
+----------
+
+Repository commit d72fd3586949a107807c5af702e867b4b55a3d28 compiled both
+the held-online child and exact one-way parent successfully. Its post-build
+audit then stopped because the pinned 2017 objdump does not accept the newer
+`--disassemble=SYMBOL` form. No package or candidate was accepted from that
+attempt.
+
+The audit was changed to stream ordinary pinned-toolchain disassembly through
+a fail-closed named-function extractor. Positive, missing-symbol and duplicate
+request tests, Python syntax, Bash syntax and managed-VM ShellCheck passed.
+
+Exact accepted build
+--------------------
+
+Repository commit:
+  118ff3cb3e9a2fbee10a44ada748e46bbe9b5312
+Source commit:
+  59e00a9144d782e148332009a835b99c43382467
+Observer patchset SHA-256:
+  3584e9dd5ffb041573b851f31f3a96eaa0a684acb880fd59560762e5abc58be0
+Accepted rollback-owner patchset SHA-256:
+  76a00aeb9ebefe0c964e70e56b63977071d2f2b12b12ce52ecdb7bb298f8fdd3
+One-way parent patchset SHA-256:
+  d9649e1453a05bc8a016da6fa371e97480ff62aebad3dedd87d148d5cb574890
+Held-online patchset SHA-256 over the three ordered patch hashes:
+  e6da1e8cc976ad63dd9cf8a254bb7234d73589cfad6afeb07135403a27d03ba3
+Baseline configuration SHA-256:
+  231d8a2ffe7afac3a4cc62c27d0eb6fe8bd9165ebd096e3e3346dd6df35c18f4
+Toolchain manifest SHA-256:
+  a45d945f092461a611d276ad7d0a0fea1ea8a7f93db413908bcb892c12817d14
+Normalized cust.dtsi SHA-256:
+  7a7eb416499346afff30c15f967ccb9cf79323c076204b6a953515db74811632
+Buildbox package SHA256SUMS SHA-256:
+  1468177a861d53a81c34e296d14f1a3195548eb9cfb8643f168a891d5d5cf5ef
+
+Changed Image.gz-dtb:
+  size=8443792
+  sha256=9158af17b17e483ec68257378e5c4bd923b254e7242b5ba338f1324eec5f960b
+Changed vmlinux SHA-256:
+  190e6b3dabbf188eec0588183e12eb7b3f0452bc31fb3c416a2eec8aada801c2
+Exact-parent Image.gz-dtb SHA-256:
+  7db100cd58b4f358a0c7b3a41cf520a20cdd5303c9999a0e16863b2e44fa237e
+Exact-parent vmlinux SHA-256:
+  e8e6ddb83ab1183edbea88f0a1f1c6cc072c31341f3d47f49e928dd8364ec614
+
+Source and compile gates
+------------------------
+
+- The applied held source passed the exact veto/IPI contract and all 11
+  mutations again on Buildbox.
+- Changed and parent configuration deltas are identical: ANBOX normalization,
+  MTK_A72_TRANSITION_OBSERVER=y and MTK_A72_ONE_WAY_CPU8=y.
+- Changed and parent compiler diagnostics are identical. Both contain only the
+  already-shared vendor warning: 69 modpost section mismatches.
+- Both stack archives contain 2484 compiler stack-usage records and validate
+  against their built output trees.
+- The exact one-way parent contains no held-online symbol or marker.
+
+Stack-use review
+----------------
+
+Function                                      Child  Parent  Decision
+cpu_down                                        112     112  unchanged
+hps_algo_do_cluster_action                       80      80  unchanged
+mt6797_a72_one_way_secondary_complete             48      48  unchanged
+mt6797_a72_hold_workfn                            64       -  bounded new work
+mt6797_a72_hold_ipi                               32       -  bounded new IPI
+
+Binary control-flow review
+--------------------------
+
+- `cpu_down` begins by subtracting eight from the requested CPU, comparing the
+  result with one, and branching CPU8/9 to a printk plus -EPERM return. The
+  prior RAM-console recorder, locks and `_cpu_down` call occur only after the
+  non-CPU8/9 fall-through.
+- HPS first compares the exact cluster bounds with 8 and 9, tests CPU8 online
+  when the target is zero, and conditionally raises that target to one before
+  either power-up or power-down loop.
+- The one-way completion retains its 48-byte frame, finishes the established
+  CPU8 success path, initializes delayed work, converts 1000 ms, and queues the
+  first sample.
+- The 64-byte work function calls `smp_call_function_single` for CPU8, checks
+  callback CPU8, CPU8 online and CPU9 offline, and converts 5000 ms before
+  queueing its second and terminal sample.
+- The 32-byte IPI callback obtains the executing CPU, stores it through the
+  provided pointer, executes a full inner-shareable barrier and returns.
+
+Decision
+--------
+
+The exact compiled kernel is accepted as the sole input to independent
+Android-v0 container reconstruction and runtime-map validation. It is not a
+boot candidate yet. No device write or unchanged one-way retry is authorized
+by this compile result alone.
