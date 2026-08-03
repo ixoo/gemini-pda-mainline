@@ -32,9 +32,18 @@ def main() -> int:
     VALIDATOR.validate_source(text)
     mutations = (
         ("smp_call_function_single(8", "smp_call_function_single(7"),
-        ("observed_cpu != 8", "observed_cpu != 7"),
-        ("!cpu_online(8)", "!cpu_online(7)"),
-        ("cpu_online(9)", "cpu_online(7)"),
+        (
+            "ret || observed_cpu != 8 || !cpu_online(8) || cpu_online(9)",
+            "ret || observed_cpu != 7 || !cpu_online(8) || cpu_online(9)",
+        ),
+        (
+            "ret || observed_cpu != 8 || !cpu_online(8) || cpu_online(9)",
+            "ret || observed_cpu != 8 || !cpu_online(7) || cpu_online(9)",
+        ),
+        (
+            "ret || observed_cpu != 8 || !cpu_online(8) || cpu_online(9)",
+            "ret || observed_cpu != 8 || !cpu_online(8) || cpu_online(7)",
+        ),
         ("sample < 3", "sample < 2"),
         ("sample == 1 ? 5000 : 4000", "sample == 1 ? 5000 : 9000"),
         (
