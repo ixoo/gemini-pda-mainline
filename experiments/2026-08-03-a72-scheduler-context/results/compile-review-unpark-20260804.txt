@@ -1,0 +1,132 @@
+CPU8/CPU9 scheduler kthread-unpark compile review
+=================================================
+
+Date: 2026-08-04 UTC
+Result: PASS
+
+Exact identities
+----------------
+
+- Repository commit:
+  `4f647c333056fd51aa2850957bb94ace508bedee`.
+- Vendor source commit:
+  `59e00a9144d782e148332009a835b99c43382467`.
+- Exact phase-parent patchset SHA-256:
+  `b2c971d4a1860ec09616a61dbd8a29fde488f7d99deb8bd6bfbf2c517b2c3493`.
+- Exact unpark `0003` patch SHA-256:
+  `7b05002ff89f53a15e1eeb7d3b9588ac08443902626da4b706045d418513f486`.
+- Admitted unpark patchset SHA-256:
+  `bd5799cecd14aa34a87562b09507a6d9f18f11cd138420bcba629f12793e7bfe`.
+- Buildbox job:
+  `4f647c333056fd51aa2850957bb94ace508bedee-gemian-a72-scheduler`.
+
+Build contract
+--------------
+
+- Build backend: Buildbox only.
+- Build mode: scheduler.
+- Purpose: `a72-scheduler-unpark-compile-review-only`.
+- Boot candidate: false.
+- Completed UTC: 2026-08-04T23:23:31Z.
+- Native VM kernel build: no.
+- Android-v0 container construction: no.
+- Device access: none.
+
+Validation
+----------
+
+- Exact reconstructed child source passes parent reverse-normalization, the
+  pinned kthread lifecycle contract, and all 20 negative mutations.
+- The child and exact rejected phase parent both compile successfully.
+- Child and parent resolved configurations and configuration deltas are
+  byte-identical.
+- Child and parent diagnostics are byte-identical.
+- Kthread lifecycle core, CPU9 startup, and HPS source remain identical.
+- Focused child disassembly contains exactly two calls each to
+  `kthread_create_on_cpu()`, `kthread_unpark()`, and `kthread_stop()` in the
+  scheduler runner, with no scheduler-runner `wake_up_process()` call.
+- Focused phase-parent disassembly contains exactly two calls each to
+  `kthread_create_on_cpu()`, `wake_up_process()`, and `kthread_stop()` in the
+  same runner, with no `kthread_unpark()` call.
+- Both binaries retain the create-time park, `TASK_PARKED` park loop,
+  public/internal unpark, `TASK_PARKED` bind/wake masks, stop-time unpark plus
+  ordinary wake and completion, and `TASK_NORMAL` wake mask.
+- The child binary contains `sc_unpark8`/`sc_unpark9` and all four unpark
+  before/after markers, contains no legacy `sc_wake8` field, and retains all 31
+  distinct phase-marker strings.
+- Required symbols, call targets, state masks, terminal schema, phase schema,
+  stack reports, source identities, package purpose, and provenance gates pass.
+- All 68 payload files pass the strict checksum manifest. The package has 69
+  regular files including `SHA256SUMS`, no unlisted payload, and no symlink.
+- Sensitive-data review found no credential, key, private host path, device
+  identifier, raw device content, or proprietary input.
+
+Diagnostics and stack
+---------------------
+
+Both child and exact parent contain the same single diagnostic line:
+
+  WARNING: modpost: Found 69 section mismatch(es).
+
+Static stack use in the unpark child:
+
+  mt6797_a72_coh_workfn: 96 bytes (limit 512)
+  mt6797_a72_hold_workfn: 784 bytes (limit 1,024)
+  mt6797_a72_sc_terminal: 208 bytes (limit 1,024)
+  mt6797_a72_sc_thread: 96 bytes (limit 512)
+
+Child stack-usage files: 2,484.
+Parent stack-usage files: 2,484.
+Resolved child and parent configuration SHA-256:
+  `05e389b6de653a4a9b63ad3f3c259be13bdda7f07bbe25ae0b81ec7a7c5c2a9b`.
+Target compiler:
+  `aarch64-linux-gnu-gcc-6 (Debian 6.3.0-18) 6.3.0 20170516`.
+Target linker:
+  `GNU ld (GNU Binutils for Debian) 2.28`.
+
+Exact output SHA-256
+-------------------
+
+Child:
+
+  Image.gz-dtb:
+    b7ed626161490c64939f791e1caaaf6f4ffb03ecf55466776a19b74f02bb349c
+  vmlinux:
+    f564d91656b9bbd2a3daf8014b5e77b803351bd602559361968f6002b079b398
+  System.map:
+    0e30deb55685c7a4943d0e8319004f72db29dd82c9cb376f98f39275e0f2b452
+
+Exact phase parent:
+
+  Image.gz-dtb:
+    db80f8d5f847a6c2db2ef735751aed061a5f5a934a649c33acac09638392c501
+  vmlinux:
+    aff7f21aaa62567f6d59294521079fef82f6a66bf97abea6f12767aa9d31acd3
+  System.map:
+    d6039615b5857072571602aba3c1658f53bedf9fd2e08b6eb019c2defbc67b84
+
+Shared review outputs:
+
+  child diagnostics:
+    f60899a1c59153d7d36474c415bc6e302db89a74bc53a062cb56fa21eb269465
+  parent diagnostics:
+    f60899a1c59153d7d36474c415bc6e302db89a74bc53a062cb56fa21eb269465
+  scheduler stack report:
+    75c0777a6535c1d27b211a98fb22ade27a2cad279eec3386da9625c7c0e97842
+  package SHA256SUMS:
+    d36a6a12e2ef4d0501df78f8fa9a94e763c1907f155c5f008182eed2d1f0b7f2
+
+Interpretation and boundary
+---------------------------
+
+This closes source, mutation, compile, configuration, diagnostics, focused
+binary-lifecycle, terminal, phase, stack, package, and provenance review for
+the exact unpark child. It establishes that the intended activation correction
+is present in the accepted binary and that the unchanged lifecycle semantics
+match the pinned vendor contract.
+
+It does not establish that CPU8 or CPU9 executes the tasks at runtime, does not
+reclassify the previous incomplete trace, and does not create or accept a boot
+container. The package remains compile-review-only with
+`boot_candidate=false`, and no device action occurred. Ordered successor work
+remains solely in `docs/ROADMAP.md`.

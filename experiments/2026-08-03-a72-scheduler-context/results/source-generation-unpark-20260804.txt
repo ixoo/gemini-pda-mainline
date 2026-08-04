@@ -85,7 +85,6 @@ Decision
 
 Admit only the exact generated `0003` below the historical `0001+0002` parent
 and pin the canonical three-patch identity in both Buildbox compile/fetch
-gates. Do not stage the fetched package below `artifacts/`. The next ordered
-action is a Buildbox-only child-versus-phase-parent compile and package review.
-This result is not a compile, boot-container, boot-candidate, deployment, or
-runtime claim.
+gates. Do not stage the fetched package below `artifacts/`. This result is not
+a compile, boot-container, boot-candidate, deployment, or runtime claim.
+Ordered successor work remains solely in `docs/ROADMAP.md`.

@@ -13,6 +13,8 @@ readonly PHASE_PATCH_SHA256=30f2b94232d6cf87991a761dd533a4d90a21545c98132079dd73
 readonly PHASE_PARENT_COMMIT=cf1b6bc5110d60741b77372a481f7debc02078b2
 readonly PHASE_PARENT_PATCHSET_SHA256=b2c971d4a1860ec09616a61dbd8a29fde488f7d99deb8bd6bfbf2c517b2c3493
 readonly GENERATED_PATCH=0003-diagnostic-unpark-A72-scheduler-context-tasks.patch
+readonly GENERATED_PATCH_SHA256=7b05002ff89f53a15e1eeb7d3b9588ac08443902626da4b706045d418513f486
+readonly ADMITTED_PATCHSET_SHA256=bd5799cecd14aa34a87562b09507a6d9f18f11cd138420bcba629f12793e7bfe
 
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 [[ "$#" -eq 3 ]] || die 'expected PROJECT_COMMIT SOURCE_ROOT OUTPUT_ROOT'
@@ -26,7 +28,7 @@ repository_dir="$(cd -- "$script_dir/../../.." && pwd -P)"
 readonly script_dir repository_dir
 [[ "$(git -C "$repository_dir" rev-parse HEAD)" == "$project_commit" ]] || die 'project checkout mismatch'
 [[ -z "$(git -C "$repository_dir" status --porcelain)" ]] || die 'project checkout is dirty'
-for command in awk cp diff find git grep mkdir mktemp mv python3 rm sha256sum sort xargs; do
+for command in awk cmp cp diff find git grep mkdir mktemp mv python3 rm sha256sum sort xargs; do
   command -v "$command" >/dev/null || die "missing command: $command"
 done
 
@@ -77,18 +79,31 @@ for parent in 2026-08-02-a72-one-way-cpu8-boundary 2026-08-02-a72-cpu8-held-onli
   apply_series "$parent"
 done
 readonly scheduler_patches="$repository_dir/experiments/2026-08-03-a72-scheduler-context/patches"
-diff -u <(printf '%s\n' "$START_GATE_PATCH" "$PHASE_PATCH") \
-  "$scheduler_patches/series" >/dev/null || die 'phase parent series changed'
+diff -u <(printf '%s\n' "$START_GATE_PATCH" "$PHASE_PATCH" \
+  "$GENERATED_PATCH") "$scheduler_patches/series" >/dev/null || \
+  die 'admitted unpark series changed'
 [[ "$(sha256sum "$scheduler_patches/$START_GATE_PATCH" | awk '{print $1}')" == \
   "$START_GATE_PATCH_SHA256" ]] || die 'start-gate patch identity changed'
 [[ "$(sha256sum "$scheduler_patches/$PHASE_PATCH" | awk '{print $1}')" == \
   "$PHASE_PATCH_SHA256" ]] || die 'phase-attribution patch identity changed'
+[[ -f "$scheduler_patches/$GENERATED_PATCH" && \
+  ! -L "$scheduler_patches/$GENERATED_PATCH" ]] || \
+  die 'admitted unpark patch is absent or unsafe'
+[[ "$(sha256sum "$scheduler_patches/$GENERATED_PATCH" | awk '{print $1}')" == \
+  "$GENERATED_PATCH_SHA256" ]] || die 'admitted unpark patch identity changed'
 phase_parent_patchset_sha="$({
   printf '%s\n' "$START_GATE_PATCH_SHA256" "$PHASE_PATCH_SHA256"
 } | sha256sum | awk '{print $1}')"
 readonly phase_parent_patchset_sha
 [[ "$phase_parent_patchset_sha" == "$PHASE_PARENT_PATCHSET_SHA256" ]] || \
   die 'phase parent patchset identity changed'
+admitted_patchset_sha="$({
+  printf '%s\n' "$START_GATE_PATCH_SHA256" "$PHASE_PATCH_SHA256" \
+    "$GENERATED_PATCH_SHA256"
+} | sha256sum | awk '{print $1}')"
+readonly admitted_patchset_sha
+[[ "$admitted_patchset_sha" == "$ADMITTED_PATCHSET_SHA256" ]] || \
+  die 'admitted unpark patchset identity changed'
 
 git -C "$work/source" am --committer-date-is-author-date \
   "$scheduler_patches/$START_GATE_PATCH"
@@ -133,6 +148,11 @@ python3 "$script_dir/test_unpark_child.py" --source "$work/source" \
 [[ -z "$(git -C "$work/source" status --porcelain)" ]] || die 'generated source is dirty'
 generated_patch_sha="$(sha256sum "$partial/patches/$GENERATED_PATCH" | awk '{print $1}')"
 readonly generated_patch_sha
+[[ "$generated_patch_sha" == "$GENERATED_PATCH_SHA256" ]] || \
+  die 'regenerated unpark patch identity changed'
+cmp "$partial/patches/$GENERATED_PATCH" \
+  "$scheduler_patches/$GENERATED_PATCH" >/dev/null || \
+  die 'regenerated unpark patch differs from admitted patch'
 cat >"$partial/provenance/generation.txt" <<EOF
 purpose=experiment-only-a72-scheduler-unpark-source-review
 boot_candidate=false
@@ -150,6 +170,9 @@ exact_phase_parent_commit=$phase_parent_commit
 generated_source_commit=$unpark_commit
 generated_patch=$GENERATED_PATCH
 generated_patch_sha256=$generated_patch_sha
+admitted_patch_sha256=$GENERATED_PATCH_SHA256
+admitted_patchset_sha256=$admitted_patchset_sha
+generated_matches_admitted=yes
 parent_patch_count=2
 parent_patches_exported=no
 generated_patch_count=1

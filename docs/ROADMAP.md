@@ -1253,11 +1253,14 @@ clean pushed source-tooling revision, independently reviewed, admitted after
 the exact historical parent, and pinned in the compile/package gates; exact
 identities and validation remain in the
 [generation record](../experiments/2026-08-03-a72-scheduler-context/results/source-generation-unpark-20260804.txt).
-The next ordered action, only after the admitted revision is clean and pushed,
-is a Buildbox-only child-versus-phase-parent compile, followed by package,
-source, configuration, diagnostics, call-target, state-mask, marker, terminal,
-stack, and provenance review. No unchanged repeat, container, write, or device
-boot is authorized.
+The Buildbox-only child-versus-phase-parent compile and package review now
+passes; exact identities and acceptance evidence remain in the
+[compile record](../experiments/2026-08-03-a72-scheduler-context/results/compile-review-unpark-20260804.txt).
+The next ordered action is reproducible Android-v0 construction from that exact
+accepted child kernel in two independent roots, followed by independent
+structural, ramdisk, legacy-ID, extent, zero-padding, provenance, and
+offline-only validation. No unchanged repeat, write, or device boot is
+authorized.
 
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback

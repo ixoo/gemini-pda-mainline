@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-scheduler-context` |
-| Status | `blocked-unpark-buildbox-compile-pending` |
+| Status | `blocked-unpark-offline-container-pending` |
 | Subsystem | MT6797 retained Cortex-A72 pair and scheduler |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 through 2026-08-04 |
@@ -480,6 +480,18 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   `bd5799cecd14aa34a87562b09507a6d9f18f11cd138420bcba629f12793e7bfe`.
   No compile, container, device action, or native VM build occurred. See
   [`results/source-generation-unpark-20260804.txt`](results/source-generation-unpark-20260804.txt).
+- Buildbox compiled the exact unpark child and rejected phase parent from
+  repository commit `4f647c333056fd51aa2850957bb94ace508bedee`. Both builds
+  pass with byte-identical configurations and diagnostics; focused
+  disassembly proves the intended two unpark calls only in the child while
+  retaining the pinned park/unpark/stop state masks and call edges. All 31
+  phase strings remain, each measured frame stays within its 512- or
+  1,024-byte bound, and all package checksums pass. Accepted child
+  `Image.gz-dtb` SHA-256 is
+  `b7ed626161490c64939f791e1caaaf6f4ffb03ecf55466776a19b74f02bb349c`.
+  This is compile review only: `boot_candidate=false`, no container, no native
+  VM build, and no device action. See
+  [`results/compile-review-unpark-20260804.txt`](results/compile-review-unpark-20260804.txt).
 
 ## Analysis
 
@@ -490,7 +502,7 @@ context while preserving the established power and recovery boundary.
 
 ## Conclusion
 
-`blocked-unpark-buildbox-compile-pending`: phase-attribution attempt 1 is an
+`blocked-unpark-offline-container-pending`: phase-attribution attempt 1 is an
 attributable restart with incomplete trace under the fixed decision map. The
 guarded exact boot2 write and shutdown succeeded, but retained pstore cannot
 localize the reset beyond its valid marker prefix. A separate exact-source/
@@ -500,8 +512,10 @@ retained no-task prefix and the earlier serialized execution. This mechanism
 does not promote the incomplete trace to a first-unmatched boundary and does
 not establish a scheduler/runqueue defect. The exact unpark-only child has now
 been generated, independently reviewed, admitted after the historical parent,
-and pinned in the compile/package gates. Reject the previous boot artifact
-unchanged; no compile or boot-candidate claim exists for the unpark child yet.
+and compiled against that exact parent. Source, mutation, configuration,
+diagnostics, lifecycle-disassembly, marker, terminal, stack, package, and
+provenance gates pass. Reject the previous boot artifact unchanged; no
+boot-container or boot-candidate claim exists for the unpark child yet.
 Continue only through the ordered action in `docs/ROADMAP.md`.
 
 ## Follow-up

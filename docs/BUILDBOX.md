@@ -224,9 +224,11 @@ phase-attribution patches, then changes only the parked-thread activation
 contract from `wake_up_process()` to `kthread_unpark()`. It revises the
 void-operation result and marker schema, validates the exact kernel kthread
 lifecycle, rejects the fixed mutation set, proves byte equality after reverse
-normalization, and exports one checksum-covered `0003` format-patch review. It
-performs no kernel compile, container construction, device access, or partition
-action.
+normalization, and exports one checksum-covered `0003` format-patch review.
+After admission, regeneration additionally requires the exact tracked
+three-patch series and byte-compares the regenerated `0003` with the admitted
+patch. It performs no kernel compile, container construction, device access, or
+partition action.
 
 After the generated patch is reviewed and tracked, compile it against the exact
 rejected phase-attribution parent with:
