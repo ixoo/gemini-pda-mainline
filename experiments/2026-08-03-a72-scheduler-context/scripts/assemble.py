@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 PARENT_SHA256 = "9938defe0e4b83d0845135c4a27b534f5d28fafa5eac4bbe345f7badf2405094"
-KERNEL_FIELD_SHA256 = "f3b021cc8036a2b3ac205a16a6ff135dbeb70210cda27c639b1543b7a385449e"
+KERNEL_FIELD_SHA256 = "21a64e59bbf0a83123ee936cc0dc7bdf00e793d8c290a0e557e24d826abefd2a"
 PARENT = (
     Path(__file__).resolve().parents[2]
     / "2026-08-03-a72-cpu9-parallel-disjoint-load"

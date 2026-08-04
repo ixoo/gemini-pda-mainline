@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-scheduler-context` |
-| Status | `blocked-start-gate-compile-passed` |
+| Status | `blocked-start-gate-container-passed` |
 | Subsystem | MT6797 retained Cortex-A72 pair and scheduler |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -305,6 +305,13 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   `21a64e59bbf0a83123ee936cc0dc7bdf00e793d8c290a0e557e24d826abefd2a`.
   No container or device action occurred. See
   [`results/compile-review-start-gate-20260804.txt`](results/compile-review-start-gate-20260804.txt).
+- Two independent start-gate container roots are byte-identical and pass the
+  independently pinned Android-v0 validator. The raw SHA-256 is
+  `78dd52721a762eb8dbeca29af3b9ca7c0ac7546e9aeaf1aaccf7585c25752d1f`;
+  the exact 16 MiB boot2 SHA-256 is
+  `2e8c611b1dbe5b79b13f2dec9cf9d77d9b7973a732f63702a6228600bef464b3`.
+  No device was accessed. See
+  [`results/offline-container-review-start-gate-20260804.txt`](results/offline-container-review-start-gate-20260804.txt).
 
 ## Analysis
 
@@ -315,12 +322,13 @@ context while preserving the established power and recovery boundary.
 
 ## Conclusion
 
-`blocked-start-gate-compile-passed`: the explicit ready/block/release/done
+`blocked-start-gate-container-passed`: the explicit ready/block/release/done
 protocol passes exact-parent generation, both hash vectors, all 33 mutations,
 child/parent compilation, identical diagnostics, expanded-terminal binary, and
-stack gates. The complete parent gate and all workload, placement, cleanup,
-power, and recovery boundaries remain fixed. Container, deployment, and
-runtime claims do not exist yet.
+stack gates, and has a reproducible independently validated Android-v0
+container. The complete parent gate and all workload, placement, cleanup,
+power, and recovery boundaries remain fixed. Deployment and runtime claims do
+not exist yet.
 
 ## Follow-up
 

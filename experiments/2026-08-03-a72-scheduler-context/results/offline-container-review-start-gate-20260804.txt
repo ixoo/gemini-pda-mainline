@@ -1,0 +1,58 @@
+CPU8/CPU9 blocked-start-gate offline container review
+Date: 2026-08-04 UTC
+
+Decision: accept the exact padded start-gate container for guarded boot2
+deployment only after its deployment and runtime tools pass static validation.
+No device was accessed in this review.
+
+Exact identities
+----------------
+
+Compile repository commit:
+  703d59b239aae6c6f66308a097ede32fc3bdd678
+Child Image.gz-dtb SHA-256:
+  21a64e59bbf0a83123ee936cc0dc7bdf00e793d8c290a0e557e24d826abefd2a
+Parallel parent patchset SHA-256:
+  94d3b07355e1ddb67f3f643165570255bb1f42131b3b67c074d270e8581989e2
+Start-gate scheduler patchset SHA-256:
+  970c090c080f0a5b03738ea7bdec65edaebc7b1d3b179488202587c157edc845
+Known-good active boot input SHA-256:
+  1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513
+Retained ramdisk SHA-256:
+  a1ee05445e9a2bd8fbc1f75d7cda326b9ca7a6d3b644cbb1d5fc0ac167835be4
+Raw Android-v0 SHA-256:
+  78dd52721a762eb8dbeca29af3b9ca7c0ac7546e9aeaf1aaccf7585c25752d1f
+Full 16 MiB padded SHA-256:
+  2e8c611b1dbe5b79b13f2dec9cf9d77d9b7973a732f63702a6228600bef464b3
+Candidate manifest SHA-256:
+  1383686ddfed408190fdbbe59bf512d3ba3a52a49e6aa2ff30dfed3e01f379b7
+
+Validation
+----------
+
+- Two independent ignored output roots each performed two raw assemblies and
+  two independent padding constructions; every generated file is
+  byte-identical across the roots.
+- Both roots pass the independently pinned candidate validator for tooling,
+  compile commit, patchsets, kernel, active boot, ramdisk, raw image, and padded
+  image identities.
+- The raw Android-v0 container is 14,817,280 bytes with unchanged addresses,
+  2,048-byte pages, command line, and empty second-stage and DT extents.
+- The embedded start-gate kernel is exactly 8,458,259 bytes and matches the
+  validated Buildbox child image.
+- The retained 6,354,621-byte ramdisk matches the known-good Gemian input.
+- The legacy image ID, aligned extents, zero padding, exact 16,777,216-byte
+  partition size, manifests, and provenance validate independently.
+- The builder contains no device path, network address, transport, reboot,
+  shutdown, or partition-writing action. Runtime remains untested.
+
+Acceptance boundary
+-------------------
+
+This fixes the exact start-gate artifact identity but does not bypass the
+standing live-GPT-resolved inactive boot2 policy. Before deployment, the
+installer must pin the current rejected rendezvous predecessor, validate exact
+target identity, inactivity, size and power, verify full write/readback, remove
+temporary state, and shut down cleanly. The runtime map must add all four new
+ready/start fields and retain every complete pair-v6, recovery, and
+serviceability requirement.

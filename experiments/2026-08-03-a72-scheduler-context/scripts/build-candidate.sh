@@ -29,13 +29,13 @@ if [[ -n "$bundle" ]]; then
 	[[ -f "$bundle/provenance/build.json" && ! -L "$bundle/provenance/build.json" ]] ||
 		die 'scheduler compile provenance is missing or unsafe'
 	[[ "$(jq -er '.repository_commit' "$bundle/provenance/build.json")" == \
-		66f3592aa281915a1fa998684353ea9f9395c85d ]] ||
+		703d59b239aae6c6f66308a097ede32fc3bdd678 ]] ||
 		die 'compile repository commit changed'
 	[[ "$(jq -er '.parallel_patchset_sha256' "$bundle/provenance/build.json")" == \
 		94d3b07355e1ddb67f3f643165570255bb1f42131b3b67c074d270e8581989e2 ]] ||
 		die 'pair-v6 parent patchset changed'
 	[[ "$(jq -er '.scheduler_patchset_sha256' "$bundle/provenance/build.json")" == \
-		8a5b32d331493680e0a554d96572c9ec3d769e8075baf4f998cd7a2cfc617c28 ]] ||
+		970c090c080f0a5b03738ea7bdec65edaebc7b1d3b179488202587c157edc845 ]] ||
 		die 'scheduler patchset changed'
 	[[ "$(jq -er '.build_mode' "$bundle/provenance/build.json")" == scheduler ]] ||
 		die 'scheduler compile mode changed'
@@ -50,11 +50,11 @@ trap cleanup EXIT
 chmod 0700 "$derived"
 perl -0pe '
 	s#script_dir="\$\(cd -- "\$\(dirname -- "\$\{BASH_SOURCE\[0\]\}"\)" && pwd -P\)"#script_dir="\${GEMINI_A72_SCHEDULER_SCRIPT_DIR:?missing}"#g;
-	s#118ff3cb3e9a2fbee10a44ada748e46bbe9b5312#66f3592aa281915a1fa998684353ea9f9395c85d#g;
-	s#9158af17b17e483ec68257378e5c4bd923b254e7242b5ba338f1324eec5f960b#f3b021cc8036a2b3ac205a16a6ff135dbeb70210cda27c639b1543b7a385449e#g;
-	s#53046cf314f76f213abafa53a1e79758ff835941d78a47ecc878d0a2e1ad3789#e40ee8a50694f49d75cd023d6b2b29df4505e83dc7316f54b6fa15d5151742a7#g;
-	s#936b9256709514938ddf2f3ab13e63bd9c8d37e991fe40a568aa36a8f8818018#d34b2de509021d5fbbfcca62e3676202fe88b449786daf62b4eb466667fae093#g;
-	s#readonly HELD_PATCHSET_SHA256=e6da1e8cc976ad63dd9cf8a254bb7234d73589cfad6afeb07135403a27d03ba3#readonly HELD_PATCHSET_SHA256=e6da1e8cc976ad63dd9cf8a254bb7234d73589cfad6afeb07135403a27d03ba3\nreadonly LATE_PATCHSET_SHA256=f2bebc4a04888a6c83f0dc72c2de56d350c2a52ab9779ef07e3a01cb5b544d91\nreadonly CPU9_PATCHSET_SHA256=17733d2ae50c16f9d0db2d4bd4075fa5a72ce081606db7d3bf1bfe83f4159a2b\nreadonly WINDOW_PATCHSET_SHA256=9ce572fbc87a1444bb71894dd4528f39dc065065a45b36db52a14791f167eeec\nreadonly TERMINAL_PATCHSET_SHA256=2d94a2cd489e33a7df854ffec7533fbf969dc9c810e9eece57d118b905060310\nreadonly COHERENCE_PATCHSET_SHA256=d4c40577b9e91fedfde048b29cb203311de264c526c71e3abd907fc6fafcf67f\nreadonly MULTILINE_PATCHSET_SHA256=c7a9b020563c4abb74059bbf72705839c528a81d577c7031ddfb36de647fd896\nreadonly PARALLEL_PATCHSET_SHA256=94d3b07355e1ddb67f3f643165570255bb1f42131b3b67c074d270e8581989e2\nreadonly SCHEDULER_PATCHSET_SHA256=8a5b32d331493680e0a554d96572c9ec3d769e8075baf4f998cd7a2cfc617c28#g;
+	s#118ff3cb3e9a2fbee10a44ada748e46bbe9b5312#703d59b239aae6c6f66308a097ede32fc3bdd678#g;
+	s#9158af17b17e483ec68257378e5c4bd923b254e7242b5ba338f1324eec5f960b#21a64e59bbf0a83123ee936cc0dc7bdf00e793d8c290a0e557e24d826abefd2a#g;
+	s#53046cf314f76f213abafa53a1e79758ff835941d78a47ecc878d0a2e1ad3789#78dd52721a762eb8dbeca29af3b9ca7c0ac7546e9aeaf1aaccf7585c25752d1f#g;
+	s#936b9256709514938ddf2f3ab13e63bd9c8d37e991fe40a568aa36a8f8818018#2e8c611b1dbe5b79b13f2dec9cf9d77d9b7973a732f63702a6228600bef464b3#g;
+	s#readonly HELD_PATCHSET_SHA256=e6da1e8cc976ad63dd9cf8a254bb7234d73589cfad6afeb07135403a27d03ba3#readonly HELD_PATCHSET_SHA256=e6da1e8cc976ad63dd9cf8a254bb7234d73589cfad6afeb07135403a27d03ba3\nreadonly LATE_PATCHSET_SHA256=f2bebc4a04888a6c83f0dc72c2de56d350c2a52ab9779ef07e3a01cb5b544d91\nreadonly CPU9_PATCHSET_SHA256=17733d2ae50c16f9d0db2d4bd4075fa5a72ce081606db7d3bf1bfe83f4159a2b\nreadonly WINDOW_PATCHSET_SHA256=9ce572fbc87a1444bb71894dd4528f39dc065065a45b36db52a14791f167eeec\nreadonly TERMINAL_PATCHSET_SHA256=2d94a2cd489e33a7df854ffec7533fbf969dc9c810e9eece57d118b905060310\nreadonly COHERENCE_PATCHSET_SHA256=d4c40577b9e91fedfde048b29cb203311de264c526c71e3abd907fc6fafcf67f\nreadonly MULTILINE_PATCHSET_SHA256=c7a9b020563c4abb74059bbf72705839c528a81d577c7031ddfb36de647fd896\nreadonly PARALLEL_PATCHSET_SHA256=94d3b07355e1ddb67f3f643165570255bb1f42131b3b67c074d270e8581989e2\nreadonly SCHEDULER_PATCHSET_SHA256=970c090c080f0a5b03738ea7bdec65edaebc7b1d3b179488202587c157edc845#g;
 	s#held-online-compile-review-only#a72-scheduler-context-compile-review-only#g;
 	s#\.gemian-a72-held#\.gemian-a72-scheduler#g;
 	s#gemian-a72-cpu8-held-online\.boot\.img#gemian-a72-scheduler-context.boot.img#g;
@@ -66,12 +66,12 @@ perl -0pe '
 chmod 0700 "$derived"
 
 for token in \
-	'REPOSITORY_COMMIT=66f3592aa281915a1fa998684353ea9f9395c85d' \
+	'REPOSITORY_COMMIT=703d59b239aae6c6f66308a097ede32fc3bdd678' \
 	'PARALLEL_PATCHSET_SHA256=94d3b07355e1ddb67f3f643165570255bb1f42131b3b67c074d270e8581989e2' \
-	'SCHEDULER_PATCHSET_SHA256=8a5b32d331493680e0a554d96572c9ec3d769e8075baf4f998cd7a2cfc617c28' \
-	'KERNEL_SHA256=f3b021cc8036a2b3ac205a16a6ff135dbeb70210cda27c639b1543b7a385449e' \
-	'EXPECTED_RAW_SHA256=e40ee8a50694f49d75cd023d6b2b29df4505e83dc7316f54b6fa15d5151742a7' \
-	'EXPECTED_PADDED_SHA256=d34b2de509021d5fbbfcca62e3676202fe88b449786daf62b4eb466667fae093' \
+	'SCHEDULER_PATCHSET_SHA256=970c090c080f0a5b03738ea7bdec65edaebc7b1d3b179488202587c157edc845' \
+	'KERNEL_SHA256=21a64e59bbf0a83123ee936cc0dc7bdf00e793d8c290a0e557e24d826abefd2a' \
+	'EXPECTED_RAW_SHA256=78dd52721a762eb8dbeca29af3b9ca7c0ac7546e9aeaf1aaccf7585c25752d1f' \
+	'EXPECTED_PADDED_SHA256=2e8c611b1dbe5b79b13f2dec9cf9d77d9b7973a732f63702a6228600bef464b3' \
 	'a72-scheduler-context-compile-review-only' \
 	'scheduler_patchset_sha256=%s' \
 	'gemian-a72-scheduler-context-candidate'; do

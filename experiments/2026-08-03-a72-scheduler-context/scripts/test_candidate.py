@@ -26,18 +26,18 @@ SOURCE_BUILDER = (
     / "build-candidate.sh"
 )
 EXPECTED = {
-    "assembler_sha256": "01dc2bbecb37867f565053ec71c643eae8715254b3393b78fe18122ad8a2beef",
+    "assembler_sha256": "961ffe39f2fdb0a32f1a425c78821af9b684a494221e0ac7a81a0d48f40937ce",
     "parent_assembler_sha256": "9938defe0e4b83d0845135c4a27b534f5d28fafa5eac4bbe345f7badf2405094",
-    "builder_sha256": "e075c3db9d94395eaa982e3c0f568db07b6b8ef5cc05be04d161d939bea903ef",
+    "builder_sha256": "df9ca5d8ae576528988cc093ae2d83792adfdfe7447e855218e870bde138582c",
     "source_builder_sha256": "65c39fa45b1f76fb85780473feb3b675bd5e6647934e68be2761bc823c07e0fe",
-    "repository_commit": "66f3592aa281915a1fa998684353ea9f9395c85d",
+    "repository_commit": "703d59b239aae6c6f66308a097ede32fc3bdd678",
     "parallel_patchset_sha256": "94d3b07355e1ddb67f3f643165570255bb1f42131b3b67c074d270e8581989e2",
-    "scheduler_patchset_sha256": "8a5b32d331493680e0a554d96572c9ec3d769e8075baf4f998cd7a2cfc617c28",
-    "kernel_field_sha256": "f3b021cc8036a2b3ac205a16a6ff135dbeb70210cda27c639b1543b7a385449e",
+    "scheduler_patchset_sha256": "970c090c080f0a5b03738ea7bdec65edaebc7b1d3b179488202587c157edc845",
+    "kernel_field_sha256": "21a64e59bbf0a83123ee936cc0dc7bdf00e793d8c290a0e557e24d826abefd2a",
     "active_boot_sha256": "1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513",
     "active_ramdisk_sha256": "a1ee05445e9a2bd8fbc1f75d7cda326b9ca7a6d3b644cbb1d5fc0ac167835be4",
-    "raw_sha256": "e40ee8a50694f49d75cd023d6b2b29df4505e83dc7316f54b6fa15d5151742a7",
-    "padded_sha256": "d34b2de509021d5fbbfcca62e3676202fe88b449786daf62b4eb466667fae093",
+    "raw_sha256": "78dd52721a762eb8dbeca29af3b9ca7c0ac7546e9aeaf1aaccf7585c25752d1f",
+    "padded_sha256": "2e8c611b1dbe5b79b13f2dec9cf9d77d9b7973a732f63702a6228600bef464b3",
 }
 RAW_NAME = "gemian-a72-scheduler-context.boot.img"
 PADDED_NAME = "boot2-padded.img"
@@ -122,7 +122,7 @@ def validate_candidate(candidate: Path) -> None:
     raw = (candidate / RAW_NAME).read_bytes()
     padded = (candidate / PADDED_NAME).read_bytes()
     require(
-        len(raw) == 14_813_184 and digest(raw) == EXPECTED["raw_sha256"],
+        len(raw) == 14_817_280 and digest(raw) == EXPECTED["raw_sha256"],
         "raw changed",
     )
     require(
@@ -155,7 +155,7 @@ def validate_candidate(candidate: Path) -> None:
     kernel = raw[kernel_offset : kernel_offset + kernel_size]
     ramdisk = raw[ramdisk_offset : ramdisk_offset + ramdisk_size]
     require(
-        kernel_size == 8_456_089
+        kernel_size == 8_458_259
         and digest(kernel) == EXPECTED["kernel_field_sha256"],
         "kernel changed",
     )

@@ -1153,6 +1153,14 @@ the start-gate `Image.gz-dtb` SHA-256 is
 The next ordered action is a new reproducible Android-v0 container and two
 independent offline validations. No device action is authorized yet.
 
+The start-gate Android-v0 container is now byte-reproducible across two
+independent roots and passes structural, ramdisk, legacy-ID, extent,
+zero-padding, provenance, and offline-only gates. Its exact full boot2 SHA-256
+is `2e8c611b1dbe5b79b13f2dec9cf9d77d9b7973a732f63702a6228600bef464b3`.
+The next ordered action is to pin this successor, the currently installed
+rejected predecessor, and the four new ready/start fields in deployment and
+runtime tooling; static and mutation validation must pass before device access.
+
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback
 gates close.
