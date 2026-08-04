@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-scheduler-context` |
-| Status | `blocked-start-gate-source-prepared` |
+| Status | `blocked-start-gate-generated` |
 | Subsystem | MT6797 retained Cortex-A72 pair and scheduler |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -283,6 +283,17 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   `wake_up_process()` returns of either zero or one are accepted only alongside
   independently proven task execution. This is source-tooling preparation
   only; Buildbox has not generated or compiled the revision.
+- Buildbox generation from repository commit
+  `236dd0631c2a50ac34a3fa9b8cd8651c9e1a45bc` reconstructed the exact pair-v6
+  parent, passed both scheduler hash vectors, rejected all 33 mutations, and
+  produced a one-path patch. Generated source commit:
+  `7de241d42df128848ddbc37a090d4440fb7fa09f`; patch SHA-256:
+  `23cfff979bee079a41c0a82e43d5c7b3b0f55f8fc29115b2337fb6121f06409b`;
+  patchset SHA-256:
+  `970c090c080f0a5b03738ea7bdec65edaebc7b1d3b179488202587c157edc845`;
+  stable patch ID: `6a0ddf1846650bd5e3b70a22b47adc3289449d0d`.
+  No compile, container, or device action occurred. See
+  [`results/source-generation-start-gate-20260804.txt`](results/source-generation-start-gate-20260804.txt).
 
 ## Analysis
 
@@ -293,11 +304,11 @@ context while preserving the established power and recovery boundary.
 
 ## Conclusion
 
-`blocked-start-gate-source-prepared`: the rejected busy spin has been replaced
-in source tooling by an explicit ready/block/release/done protocol, while the
-complete parent gate and all workload, placement, cleanup, power, and recovery
-boundaries remain fixed. Generation, mutation validation on the exact parent,
-compile, container, deployment, and runtime claims do not exist yet.
+`blocked-start-gate-generated`: the explicit ready/block/release/done protocol
+has been generated from the exact pair-v6 parent and passes both hash vectors
+and all 33 mutations. The complete parent gate and all workload, placement,
+cleanup, power, and recovery boundaries remain fixed. Compile, container,
+deployment, and runtime claims do not exist yet.
 
 ## Follow-up
 

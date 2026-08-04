@@ -1,0 +1,43 @@
+CPU8/CPU9 scheduler blocked-start-gate source generation
+Date: 2026-08-04 UTC
+Result: PASS
+
+Repository generation commit:
+  236dd0631c2a50ac34a3fa9b8cd8651c9e1a45bc
+Kernel source commit:
+  59e00a9144d782e148332009a835b99c43382467
+Exact reconstructed pair-v6 parent commit:
+  0bbc78db41f0334550232ad9b56734d57721faf3
+Exact parent parallel patchset SHA-256:
+  94d3b07355e1ddb67f3f643165570255bb1f42131b3b67c074d270e8581989e2
+Generated source commit:
+  7de241d42df128848ddbc37a090d4440fb7fa09f
+Generated patch SHA-256:
+  23cfff979bee079a41c0a82e43d5c7b3b0f55f8fc29115b2337fb6121f06409b
+Generated patchset SHA-256:
+  970c090c080f0a5b03738ea7bdec65edaebc7b1d3b179488202587c157edc845
+Stable patch ID:
+  6a0ddf1846650bd5e3b70a22b47adc3289449d0d
+Generated package manifest SHA-256:
+  44d300c1e2f3b0c7945103aed541638db7da81efe60e8f2b740180b28589e422
+
+Validation:
+  exact pair-v6 parent source validator: PASS
+  scheduler hash vectors: 2/2 PASS
+  scheduler negative mutations rejected: 33/33
+  generated patch count: 1
+  changed path: arch/arm64/kernel/psci.c only
+  patch and package checksum verification: PASS
+  native VM kernel build: no
+  device action: none
+  boot candidate: false
+
+Interpretation:
+  Each exact-CPU task now publishes a per-CPU ready completion and blocks on a
+  shared start completion. The parent applies one shared ready deadline,
+  authorizes start only after both ready completions, releases the shared gate,
+  and applies a fresh shared done deadline. The terminal separately exposes
+  parent-ready, task-start, workload, and cleanup results. The inherited
+  coherency worker remains outside the child source region. This closes source
+  generation and mutation review only; no compile, container, or device action
+  occurred.

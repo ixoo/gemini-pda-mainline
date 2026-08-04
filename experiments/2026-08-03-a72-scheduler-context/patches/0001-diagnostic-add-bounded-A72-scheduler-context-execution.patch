@@ -1,19 +1,19 @@
-From bf100f042aaa6d5e4eecccc077b5d82d076d704e Mon Sep 17 00:00:00 2001
+From 7de241d42df128848ddbc37a090d4440fb7fa09f Mon Sep 17 00:00:00 2001
 From: Gemini A72 experiment <noreply@gemini-a72.invalid>
-Date: Mon, 3 Aug 2026 23:30:00 +0000
-Subject: [PATCH] diagnostic: add bounded A72 scheduler-context execution
+Date: Tue, 4 Aug 2026 00:20:00 +0000
+Subject: [PATCH] diagnostic: gate A72 scheduler work after task readiness
 
-Preserve pair-v6, then dispatch one normal bound kthread per A72.
+Preserve pair-v6, then block each bound kthread behind one parent-released start gate.
 
-Publish exact task context, placement, workload, and cleanup results.
+Publish exact readiness, gate, task context, placement, workload, and cleanup results.
 
 Keep startup, CPU_OFF prohibition, power, HPS, and recovery unchanged.
 ---
- arch/arm64/kernel/psci.c | 263 ++++++++++++++++++++++++++++++++++++++-
- 1 file changed, 261 insertions(+), 2 deletions(-)
+ arch/arm64/kernel/psci.c | 293 ++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 291 insertions(+), 2 deletions(-)
 
 diff --git a/arch/arm64/kernel/psci.c b/arch/arm64/kernel/psci.c
-index 70ff12cd2..1198a68bc 100644
+index 70ff12cd2..80af015dd 100644
 --- a/arch/arm64/kernel/psci.c
 +++ b/arch/arm64/kernel/psci.c
 @@ -20,6 +20,10 @@
@@ -27,15 +27,15 @@ index 70ff12cd2..1198a68bc 100644
  #endif
  #include <linux/init.h>
  #include <linux/of.h>
-@@ -980,6 +984,199 @@ static bool mt6797_a72_ml_passed(void)
+@@ -980,6 +984,224 @@ static bool mt6797_a72_ml_passed(void)
  	       !mt6797_a72_ml_result9.bad_round;
  }
  
 +#define MT6797_A72_SC_ITERATIONS 262144
 +#define MT6797_A72_SC_RESCHED_INTERVAL 4096
 +#define MT6797_A72_SC_RESCHEDS 64
-+#define MT6797_A72_SC_SPIN_BUDGET (1U << 25)
-+#define MT6797_A72_SC_TIMEOUT_MS 2000
++#define MT6797_A72_SC_READY_TIMEOUT_MS 2000
++#define MT6797_A72_SC_DONE_TIMEOUT_MS 2000
 +#define MT6797_A72_SC_HASH_INIT 1469598103934665603ULL
 +#define MT6797_A72_SC_HASH_PRIME 1099511628211ULL
 +#define MT6797_A72_SC_HASH8_EXPECTED 0xf678147669874ecdULL
@@ -48,6 +48,8 @@ index 70ff12cd2..1198a68bc 100644
 +	int task_context;
 +	int create_error;
 +	int wake_result;
++	int ready_complete;
++	int start_complete;
 +	int wait_complete;
 +	int error;
 +	int stop_result;
@@ -60,11 +62,15 @@ index 70ff12cd2..1198a68bc 100644
 +static struct mt6797_a72_sc_result mt6797_a72_sc_result9;
 +static struct task_struct *mt6797_a72_sc_task8;
 +static struct task_struct *mt6797_a72_sc_task9;
++static DECLARE_COMPLETION(mt6797_a72_sc_ready8);
++static DECLARE_COMPLETION(mt6797_a72_sc_ready9);
++static DECLARE_COMPLETION(mt6797_a72_sc_start);
 +static DECLARE_COMPLETION(mt6797_a72_sc_done8);
 +static DECLARE_COMPLETION(mt6797_a72_sc_done9);
 +static atomic_t mt6797_a72_sc_reported = ATOMIC_INIT(0);
 +static atomic_t mt6797_a72_sc_ready = ATOMIC_INIT(0);
 +static atomic_t mt6797_a72_sc_finished = ATOMIC_INIT(0);
++static atomic_t mt6797_a72_sc_start_allowed = ATOMIC_INIT(0);
 +
 +static u64 mt6797_a72_sc_step(u64 value, int cpu, unsigned int iteration)
 +{
@@ -79,14 +85,16 @@ index 70ff12cd2..1198a68bc 100644
 +static int mt6797_a72_sc_thread(void *data)
 +{
 +	struct mt6797_a72_sc_result *result = data;
++	struct completion *ready;
 +	struct completion *done;
-+	unsigned int budget = MT6797_A72_SC_SPIN_BUDGET;
 +	u64 value = 0xd6e8feb86659fd93ULL ^ (u64)result->expected_cpu;
 +	u64 hash = MT6797_A72_SC_HASH_INIT;
 +	unsigned int iteration;
 +	int cpu;
 +	int error = 0;
 +
++	ready = result->expected_cpu == 8 ? &mt6797_a72_sc_ready8 :
++		&mt6797_a72_sc_ready9;
 +	done = result->expected_cpu == 8 ? &mt6797_a72_sc_done8 :
 +		&mt6797_a72_sc_done9;
 +	result->task_context = !!(current->flags & PF_KTHREAD) && !in_interrupt();
@@ -99,15 +107,15 @@ index 70ff12cd2..1198a68bc 100644
 +		error = -EXDEV;
 +
 +	atomic_inc(&mt6797_a72_sc_ready);
-+	while (atomic_read(&mt6797_a72_sc_ready) != 2) {
-+		if (!budget--) {
-+			if (!error)
-+				error = -ETIMEDOUT;
-+			break;
-+		}
-+		cpu_relax();
-+	}
++	complete(ready);
++	result->start_complete = !!wait_for_completion_timeout(
++		&mt6797_a72_sc_start,
++		msecs_to_jiffies(MT6797_A72_SC_READY_TIMEOUT_MS));
 +	smp_rmb();
++	if (!error && !result->start_complete)
++		error = -ETIMEDOUT;
++	else if (!error && !atomic_read(&mt6797_a72_sc_start_allowed))
++		error = -ECANCELED;
 +	if (!error) {
 +		for (iteration = 0; iteration < MT6797_A72_SC_ITERATIONS;
 +		     iteration++) {
@@ -165,16 +173,21 @@ index 70ff12cd2..1198a68bc 100644
 +	mt6797_a72_sc_result9.stop_result = -ECANCELED;
 +	mt6797_a72_sc_task8 = NULL;
 +	mt6797_a72_sc_task9 = NULL;
++	reinit_completion(&mt6797_a72_sc_ready8);
++	reinit_completion(&mt6797_a72_sc_ready9);
++	reinit_completion(&mt6797_a72_sc_start);
 +	reinit_completion(&mt6797_a72_sc_done8);
 +	reinit_completion(&mt6797_a72_sc_done9);
 +	atomic_set(&mt6797_a72_sc_ready, 0);
 +	atomic_set(&mt6797_a72_sc_finished, 0);
++	atomic_set(&mt6797_a72_sc_start_allowed, 0);
 +	atomic_set(&mt6797_a72_sc_reported, -1);
 +}
 +
 +static void mt6797_a72_sc_run(void)
 +{
-+	unsigned long deadline;
++	unsigned long ready_deadline;
++	unsigned long done_deadline;
 +
 +	mt6797_a72_sc_task8 = kthread_create_on_cpu(mt6797_a72_sc_thread,
 +					&mt6797_a72_sc_result8, 8,
@@ -203,11 +216,23 @@ index 70ff12cd2..1198a68bc 100644
 +		wake_up_process(mt6797_a72_sc_task8);
 +	mt6797_a72_sc_result9.wake_result =
 +		wake_up_process(mt6797_a72_sc_task9);
-+	deadline = jiffies + msecs_to_jiffies(MT6797_A72_SC_TIMEOUT_MS);
++	ready_deadline = jiffies +
++		msecs_to_jiffies(MT6797_A72_SC_READY_TIMEOUT_MS);
++	mt6797_a72_sc_result8.ready_complete =
++		mt6797_a72_sc_wait_until(&mt6797_a72_sc_ready8, ready_deadline);
++	mt6797_a72_sc_result9.ready_complete =
++		mt6797_a72_sc_wait_until(&mt6797_a72_sc_ready9, ready_deadline);
++	if (mt6797_a72_sc_result8.ready_complete &&
++	    mt6797_a72_sc_result9.ready_complete)
++		atomic_set(&mt6797_a72_sc_start_allowed, 1);
++	smp_wmb();
++	complete_all(&mt6797_a72_sc_start);
++	done_deadline = jiffies +
++		msecs_to_jiffies(MT6797_A72_SC_DONE_TIMEOUT_MS);
 +	mt6797_a72_sc_result8.wait_complete =
-+		mt6797_a72_sc_wait_until(&mt6797_a72_sc_done8, deadline);
++		mt6797_a72_sc_wait_until(&mt6797_a72_sc_done8, done_deadline);
 +	mt6797_a72_sc_result9.wait_complete =
-+		mt6797_a72_sc_wait_until(&mt6797_a72_sc_done9, deadline);
++		mt6797_a72_sc_wait_until(&mt6797_a72_sc_done9, done_deadline);
 +
 +stop:
 +	if (mt6797_a72_sc_task8) {
@@ -227,7 +252,7 @@ index 70ff12cd2..1198a68bc 100644
  static void mt6797_a72_coh_workfn(struct work_struct *work)
  {
  	cpumask_t targets;
-@@ -1086,6 +1283,63 @@ static void mt6797_a72_pl_snapshot(int *reported,
+@@ -1086,6 +1308,68 @@ static void mt6797_a72_pl_snapshot(int *reported,
  	*written = atomic_read(&mt6797_a72_pl_written);
  	*verified = atomic_read(&mt6797_a72_pl_verified);
  }
@@ -261,8 +286,11 @@ index 70ff12cd2..1198a68bc 100644
 +		 result8->end_cpu == 8 && result9->start_cpu == 9 &&
 +		 result9->end_cpu == 9 && result8->task_context == 1 &&
 +		 result9->task_context == 1 && !result8->create_error &&
-+		 !result9->create_error && result8->wake_result == 1 &&
-+		 result9->wake_result == 1 && result8->wait_complete == 1 &&
++		 !result9->create_error && result8->wake_result >= 0 &&
++		 result8->wake_result <= 1 && result9->wake_result >= 0 &&
++		 result9->wake_result <= 1 && result8->ready_complete == 1 &&
++		 result9->ready_complete == 1 && result8->start_complete == 1 &&
++		 result9->start_complete == 1 && result8->wait_complete == 1 &&
 +		 result9->wait_complete == 1 && !result8->error &&
 +		 !result9->error && !result8->stop_result &&
 +		 !result9->stop_result && result8->stop_result == result8->error &&
@@ -274,13 +302,15 @@ index 70ff12cd2..1198a68bc 100644
 +		 ready == 2 && finished == 2 &&
 +		 result8->hash == MT6797_A72_SC_HASH8_EXPECTED &&
 +		 result9->hash == MT6797_A72_SC_HASH9_EXPECTED;
-+	pr_emerg("gemini-a72-pair-v7 result=%s parent_pass=%d sc_reported=%d sc_iterations=262144 sc_rescheds=64 sc_expected8=%d sc_start8=%d sc_end8=%d sc_expected9=%d sc_start9=%d sc_end9=%d sc_task8=%d sc_task9=%d sc_create8=%d sc_create9=%d sc_wake8=%d sc_wake9=%d sc_wait8=%d sc_wait9=%d sc_error8=%d sc_error9=%d sc_stop8=%d sc_stop9=%d sc_done8=%d sc_done9=%d sc_ready=%d sc_finished=%d sc_hash8=%016llx sc_hash9=%016llx\n",
++	pr_emerg("gemini-a72-pair-v7 result=%s parent_pass=%d sc_reported=%d sc_iterations=262144 sc_rescheds=64 sc_expected8=%d sc_start8=%d sc_end8=%d sc_expected9=%d sc_start9=%d sc_end9=%d sc_task8=%d sc_task9=%d sc_create8=%d sc_create9=%d sc_wake8=%d sc_wake9=%d sc_readywait8=%d sc_readywait9=%d sc_startwait8=%d sc_startwait9=%d sc_wait8=%d sc_wait9=%d sc_error8=%d sc_error9=%d sc_stop8=%d sc_stop9=%d sc_done8=%d sc_done9=%d sc_ready=%d sc_finished=%d sc_hash8=%016llx sc_hash9=%016llx\n",
 +		 passed ? "pass" : "fault", parent_pass, reported,
 +		 result8->expected_cpu, result8->start_cpu, result8->end_cpu,
 +		 result9->expected_cpu, result9->start_cpu, result9->end_cpu,
 +		 result8->task_context, result9->task_context,
 +		 result8->create_error, result9->create_error,
 +		 result8->wake_result, result9->wake_result,
++		 result8->ready_complete, result9->ready_complete,
++		 result8->start_complete, result9->start_complete,
 +		 result8->wait_complete, result9->wait_complete,
 +		 result8->error, result9->error,
 +		 result8->stop_result, result9->stop_result,
@@ -291,7 +321,7 @@ index 70ff12cd2..1198a68bc 100644
  #endif
  
  static void mt6797_a72_hold_workfn(struct work_struct *work)
-@@ -1167,6 +1421,7 @@ static void mt6797_a72_hold_workfn(struct work_struct *work)
+@@ -1167,6 +1451,7 @@ static void mt6797_a72_hold_workfn(struct work_struct *work)
  	mt6797_a72_ml_snapshot(&ml_reported, &ml_result8, &ml_result9);
  	mt6797_a72_pl_snapshot(&pl_reported, &pl_result8, &pl_result9,
  				 &pl_ready, &pl_written, &pl_verified);
@@ -299,7 +329,7 @@ index 70ff12cd2..1198a68bc 100644
  	if (hps_reported == 1 && hps_cpu == 9 && hps_error == -EPERM &&
  	    hps_count > 0 &&
  	    coh_reported == 1 && coh_rounds == MT6797_A72_COH_ROUNDS &&
-@@ -1191,7 +1446,8 @@ static void mt6797_a72_hold_workfn(struct work_struct *work)
+@@ -1191,7 +1476,8 @@ static void mt6797_a72_hold_workfn(struct work_struct *work)
  	    pl_result8.write_hash != 0 && pl_result9.write_hash != 0 &&
  	    pl_result8.write_hash == pl_result9.read_hash &&
  	    pl_result9.write_hash == pl_result8.read_hash &&
@@ -309,7 +339,7 @@ index 70ff12cd2..1198a68bc 100644
  		pr_emerg("gemini-a72-pair-v6 result=pass sample=3 cpu8=8 cpu9=9 online8=1 online9=1 hits8=3 hits9=3 hps_reported=%d hps_cpu=%d hps_error=%d hps_count=%d coh_reported=%d coh_rounds=%d coh_cpu8=%d coh_cpu9=%d coh_error8=%d coh_error9=%d coh_seq8=%d coh_seq9=%d ml_reported=%d ml_rounds=64 ml_lines=256 ml_words=8 ml_cpu8=%d ml_cpu9=%d ml_error8=%d ml_error9=%d ml_done8=%d ml_done9=%d ml_hash8w=%016llx ml_hash8r=%016llx ml_hash9w=%016llx ml_hash9r=%016llx ml_bad_round=%d ml_bad_line=%d ml_bad_word=%d ml_expected=%016llx ml_actual=%016llx pl_reported=%d pl_rounds=128 pl_lines=1024 pl_words=8 pl_cpu8=%d pl_cpu9=%d pl_error8=%d pl_error9=%d pl_done8=%d pl_done9=%d pl_ready=%d pl_written=%d pl_verified=%d pl_hash8w=%016llx pl_hash8r=%016llx pl_hash9w=%016llx pl_hash9r=%016llx pl_bad_round=%d pl_bad_line=%d pl_bad_word=%d pl_expected=%016llx pl_actual=%016llx\n",
  			 hps_reported, hps_cpu, hps_error, hps_count,
  			 coh_reported, coh_rounds, coh_cpu8, coh_cpu9,
-@@ -1213,12 +1469,14 @@ static void mt6797_a72_hold_workfn(struct work_struct *work)
+@@ -1213,12 +1499,14 @@ static void mt6797_a72_hold_workfn(struct work_struct *work)
  			 (unsigned long long)pl_result9.write_hash,
  			 (unsigned long long)pl_result9.read_hash,
  			 0, 0, 0, 0ULL, 0ULL);
@@ -325,7 +355,7 @@ index 70ff12cd2..1198a68bc 100644
  		pr_emerg("gemini-a72-pair-v6 result=fault sample=3 cpu8=8 cpu9=9 online8=1 online9=1 hits8=3 hits9=3 hps_reported=%d hps_cpu=%d hps_error=%d hps_count=%d coh_reported=%d coh_rounds=%d coh_cpu8=%d coh_cpu9=%d coh_error8=%d coh_error9=%d coh_seq8=%d coh_seq9=%d ml_reported=%d ml_rounds=64 ml_lines=256 ml_words=8 ml_cpu8=%d ml_cpu9=%d ml_error8=%d ml_error9=%d ml_done8=%d ml_done9=%d ml_hash8w=%016llx ml_hash8r=%016llx ml_hash9w=%016llx ml_hash9r=%016llx ml_bad_round=%d ml_bad_line=%d ml_bad_word=%d ml_expected=%016llx ml_actual=%016llx pl_reported=%d pl_rounds=128 pl_lines=1024 pl_words=8 pl_cpu8=%d pl_cpu9=%d pl_error8=%d pl_error9=%d pl_done8=%d pl_done9=%d pl_ready=%d pl_written=%d pl_verified=%d pl_hash8w=%016llx pl_hash8r=%016llx pl_hash9w=%016llx pl_hash9r=%016llx pl_bad_round=%d pl_bad_line=%d pl_bad_word=%d pl_expected=%016llx pl_actual=%016llx\n",
  			 hps_reported, hps_cpu, hps_error, hps_count,
  			 coh_reported, coh_rounds, coh_cpu8, coh_cpu9,
-@@ -1244,6 +1502,7 @@ static void mt6797_a72_hold_workfn(struct work_struct *work)
+@@ -1244,6 +1532,7 @@ static void mt6797_a72_hold_workfn(struct work_struct *work)
  			 pl_bad->bad_round, pl_bad->bad_line, pl_bad->bad_word,
  			 (unsigned long long)pl_bad->expected,
  			 (unsigned long long)pl_bad->actual);

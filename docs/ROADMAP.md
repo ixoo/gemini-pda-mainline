@@ -1137,6 +1137,14 @@ negative mutations cover the new protocol. The next ordered action is exact-
 parent generation and mutation validation on Buildbox. No compile, container,
 or device action is authorized yet.
 
+Exact-parent Buildbox generation now passes both scheduler hash vectors and
+rejects all 33 start-gate mutations. The generated patch changes only
+`arch/arm64/kernel/psci.c` and has patchset SHA-256
+`970c090c080f0a5b03738ea7bdec65edaebc7b1d3b179488202587c157edc845`.
+The next ordered action is a Buildbox-only child-versus-exact-parent compile,
+binary, diagnostics, terminal, and stack review. No container or device action
+is authorized yet.
+
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback
 gates close.
