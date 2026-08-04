@@ -1,0 +1,116 @@
+CPU8/CPU9 blocked-start-gate deployment and runtime decision map
+Date: 2026-08-04 UTC
+
+This map is fixed before any start-gate device write. It authorizes one
+attributable boot after the installer and runtime tools pass, are committed,
+and are pushed. It is not runtime evidence.
+
+Exact candidate
+---------------
+
+Repository compile commit:
+  703d59b239aae6c6f66308a097ede32fc3bdd678
+Start-gate scheduler patchset SHA-256:
+  970c090c080f0a5b03738ea7bdec65edaebc7b1d3b179488202587c157edc845
+Kernel field SHA-256:
+  21a64e59bbf0a83123ee936cc0dc7bdf00e793d8c290a0e557e24d826abefd2a
+Raw Android-v0 SHA-256:
+  78dd52721a762eb8dbeca29af3b9ca7c0ac7546e9aeaf1aaccf7585c25752d1f
+Full boot2 SHA-256:
+  2e8c611b1dbe5b79b13f2dec9cf9d77d9b7973a732f63702a6228600bef464b3
+Expected rendezvous-rejected boot2 predecessor SHA-256:
+  d34b2de509021d5fbbfcca62e3676202fe88b449786daf62b4eb466667fae093
+
+Hypothesis and unique observation
+---------------------------------
+
+The previous cycle proved that both bound kernel threads entered ordinary task
+context on CPUs 8/9, but CPU8 consumed the peer-ready spin before CPU9 joined.
+This child removes that spin. Each task publishes a per-CPU ready completion
+and blocks on one shared start gate. The parent boundedly observes both ready
+completions, authorizes and releases the start gate, then gives the unchanged
+deterministic workloads a fresh shared completion deadline.
+
+The only positive result is an adjacent complete pair-v6 pass followed by this
+exact pair-v7 pass contract:
+
+  gemini-a72-pair-v7 result=pass parent_pass=1
+  sc_reported=1 sc_iterations=262144 sc_rescheds=64
+  sc_expected8=8 sc_start8=8 sc_end8=8
+  sc_expected9=9 sc_start9=9 sc_end9=9
+  sc_task8=1 sc_task9=1 sc_create8=0 sc_create9=0
+  sc_wake8 and sc_wake9 must each be 0 or 1
+  sc_readywait8=1 sc_readywait9=1
+  sc_startwait8=1 sc_startwait9=1
+  sc_wait8=1 sc_wait9=1
+  sc_error8=0 sc_error9=0 sc_stop8=0 sc_stop9=0
+  sc_done8=262144 sc_done9=262144 sc_ready=2 sc_finished=2
+  sc_hash8=f678147669874ecd sc_hash9=c2274327e9c8104c
+
+Zero and one are both valid `wake_up_process()` return values here only because
+the independent task-context, CPU, ready, start, done, and hash fields prove
+actual execution. The pair-v6 line must retain its complete established pass
+contract. Screen color or automatic restart alone is not evidence.
+
+Observation sequence
+--------------------
+
+1. In ordinary Gemian, arm
+   `scripts/collect-device-pstore --target gemini@192.168.1.50 --wait-for-cycle`
+   so the observer records the initial boot ID before deployment shutdown.
+2. While that observer waits, run the reviewed installer. It must resolve
+   exactly one live-GPT boot2, prove it inactive and unmounted, record the
+   rendezvous-rejected predecessor checksum without a fresh backup, write only
+   when different, verify full-partition readback, remove temporary copies,
+   and shut the device down cleanly.
+3. Arm the read-only USB/netcat collector, then physically select boot2 once.
+   Expected visible behavior is the inherited bounded automatic watchdog
+   restart into ordinary Gemian.
+4. After recovery, require changed-cycle continuity, watchdog-class recovery,
+   CPUs 8/9 offline, inactive/unmounted boot2, and full checksum
+   `2e8c611b1dbe5b79b13f2dec9cf9d77d9b7973a732f63702a6228600bef464b3`.
+5. Classify only the attributable changed-cycle pstore/console evidence.
+
+Decision branches
+-----------------
+
+PASS
+  Require adjacent complete pair-v6 and pair-v7 pass terminals, every exact
+  readiness, start-gate, task, workload, completion, and hash field above,
+  automatic recovery, no panic/BUG/Internal error/Call trace/timeout/SError/
+  lockup, CPUs 8/9 offline after recovery, and unchanged boot2.
+  One exact repeat is then earned. Do not enable CPU_OFF.
+
+READY OR START-GATE FAILURE
+  Any missing per-CPU ready completion, start wait, global ready/finished
+  count, or a timeout/cancellation is a reject. Record all fields. Do not repeat
+  unchanged; use the first failed ready/start field to design the next change.
+
+WORKLOAD OR CLEANUP FAILURE
+  Any wrong CPU or task context, nonzero create/error/stop result, incomplete
+  done/reschedule count, expired done wait, or wrong hash is a reject. Record
+  every field and do not repeat unchanged.
+
+INHERITED-PARENT FAILURE
+  Any pair-v6 value outside its exact pass contract is a regression. Do not
+  evaluate scheduler success or repeat unchanged.
+
+AUTOMATIC RESTART WITH NO PAIR-V7
+  Distinguish terminal-not-reached from evidence loss using changed-cycle
+  pstore, the complete pair-v6 line if present, watchdog reason, and console
+  continuity. Repeat only if a new independent observation can distinguish
+  those classes.
+
+NO AUTOMATIC RESTART OR LOST RECOVERY
+  Treat as a safety failure. Recover through known-good Gemian, preserve
+  pstore, verify boot2 identity, and do not repeat unchanged.
+
+Success boundary
+----------------
+
+One pass establishes only bounded task-context readiness, parent-controlled
+release, exact-CPU execution, completion, and cleanup for this two-thread
+oracle. A second exact pass establishes repeatability. Neither result
+authorizes CPU_OFF, removes the HPS veto, proves production scheduling, load,
+thermal, OPP/cpufreq, or suspend stability, or makes CPUs 8/9
+production-online.

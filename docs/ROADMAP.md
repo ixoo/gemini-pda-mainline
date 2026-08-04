@@ -1161,6 +1161,16 @@ The next ordered action is to pin this successor, the currently installed
 rejected predecessor, and the four new ready/start fields in deployment and
 runtime tooling; static and mutation validation must pass before device access.
 
+The start-gate deployment/runtime tools now pass all static gates and reject
+four installer identity mutations. They authorize only the transition from
+installed rejected checksum
+`d34b2de509021d5fbbfcca62e3676202fe88b449786daf62b4eb466667fae093` to
+start-gate checksum
+`2e8c611b1dbe5b79b13f2dec9cf9d77d9b7973a732f63702a6228600bef464b3`,
+and require all four new ready/start fields. The next ordered action is to
+commit and push the clean guards, prearm changed-cycle pstore, perform the
+guarded write/readback/shutdown, arm USB/netcat, and select boot2 once.
+
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback
 gates close.

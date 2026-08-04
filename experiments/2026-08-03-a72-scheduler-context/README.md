@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-scheduler-context` |
-| Status | `blocked-start-gate-container-passed` |
+| Status | `blocked-start-gate-runtime-tools-passed` |
 | Subsystem | MT6797 retained Cortex-A72 pair and scheduler |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -312,6 +312,17 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   `2e8c611b1dbe5b79b13f2dec9cf9d77d9b7973a732f63702a6228600bef464b3`.
   No device was accessed. See
   [`results/offline-container-review-start-gate-20260804.txt`](results/offline-container-review-start-gate-20260804.txt).
+- Start-gate deployment/runtime tooling pins the installed rendezvous-rejected
+  predecessor
+  `d34b2de509021d5fbbfcca62e3676202fe88b449786daf62b4eb466667fae093`
+  and successor
+  `2e8c611b1dbe5b79b13f2dec9cf9d77d9b7973a732f63702a6228600bef464b3`.
+  Four installer identity mutations are rejected; all live-GPT,
+  inactive/unmounted, no-fresh-backup, full-readback, cleanup, and shutdown
+  gates remain pinned. The read-only collector now requires all four ready/start
+  fields, and the fixed decision map covers every readiness, workload,
+  recovery, and serviceability branch. No start-gate deployment occurred. See
+  [`results/runtime-decision-map-start-gate-20260804.txt`](results/runtime-decision-map-start-gate-20260804.txt).
 
 ## Analysis
 
@@ -322,13 +333,14 @@ context while preserving the established power and recovery boundary.
 
 ## Conclusion
 
-`blocked-start-gate-container-passed`: the explicit ready/block/release/done
+`blocked-start-gate-runtime-tools-passed`: the explicit ready/block/release/done
 protocol passes exact-parent generation, both hash vectors, all 33 mutations,
 child/parent compilation, identical diagnostics, expanded-terminal binary, and
 stack gates, and has a reproducible independently validated Android-v0
-container. The complete parent gate and all workload, placement, cleanup,
-power, and recovery boundaries remain fixed. Deployment and runtime claims do
-not exist yet.
+container. Exact predecessor/successor deployment and expanded runtime guards
+also pass static tests. The complete parent gate and all workload, placement,
+cleanup, power, and recovery boundaries remain fixed. Deployment and runtime
+claims do not exist yet.
 
 ## Follow-up
 

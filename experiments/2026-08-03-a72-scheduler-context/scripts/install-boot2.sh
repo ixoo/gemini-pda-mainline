@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Source-pin and derive the guarded boot2 installer for the corrected pair-v7
+# Source-pin and derive the guarded boot2 installer for the blocked-start-gate
 # scheduler-context candidate from the accepted pair-v6 installer.
 set -euo pipefail
 export LC_ALL=C
@@ -25,21 +25,21 @@ trap cleanup EXIT
 chmod 0700 "$derived"
 perl -0pe '
 	s#script_dir="\$\(cd -- "\$\(dirname -- "\$\{BASH_SOURCE\[0\]\}"\)" && pwd -P\)"#script_dir="\${GEMINI_A72_SCHEDULER_SCRIPT_DIR:?missing}"#g;
-	s#5227729e34ca42cf606f43008ec753fce15147693ce7a670818db58c5903fa48#d34b2de509021d5fbbfcca62e3676202fe88b449786daf62b4eb466667fae093#g;
-	s#eda1d5bb312aa937e41499ea8fd13a5f8ae95865399605fe7cf93ee61daaa23d#24377665fa5b9112266890844c06c453bb50e17680b6f6f956035c234c26ff0f#g;
-	s#56b85e0f597436938bec5f20889ed53f4079a274e6cd82d56fb81a097522bb58#53a338995f182a76437ed358d8fa02332c2b28123bb1407918eaf7505b373c6b#g;
-	s#gemian-a72-cpu9-multiline-integrity-4e3c1b1095ee#gemian-a72-scheduler-context-e40ee8a50694#g;
-	s#Gemian A72 CPU9 multiline-integrity candidate#Gemian A72 corrected scheduler-context candidate#g;
+	s#5227729e34ca42cf606f43008ec753fce15147693ce7a670818db58c5903fa48#2e8c611b1dbe5b79b13f2dec9cf9d77d9b7973a732f63702a6228600bef464b3#g;
+	s#eda1d5bb312aa937e41499ea8fd13a5f8ae95865399605fe7cf93ee61daaa23d#d34b2de509021d5fbbfcca62e3676202fe88b449786daf62b4eb466667fae093#g;
+	s#56b85e0f597436938bec5f20889ed53f4079a274e6cd82d56fb81a097522bb58#1383686ddfed408190fdbbe59bf512d3ba3a52a49e6aa2ff30dfed3e01f379b7#g;
+	s#gemian-a72-cpu9-multiline-integrity-4e3c1b1095ee#gemian-a72-scheduler-context-78dd52721a76#g;
+	s#Gemian A72 CPU9 multiline-integrity candidate#Gemian A72 blocked-start-gate scheduler candidate#g;
 	s#2026-08-03-a72-cpu9-multiline-integrity#2026-08-03-a72-scheduler-context#g;
 	s#\.gemian-a72-cpu9-multiline#\.gemian-a72-scheduler#g;
 ' "$source_installer" >"$derived"
 chmod 0700 "$derived"
 
 for token in \
-	'EXPECTED_PREDECESSOR_SHA256=24377665fa5b9112266890844c06c453bb50e17680b6f6f956035c234c26ff0f' \
-	'CANDIDATE_SHA256=d34b2de509021d5fbbfcca62e3676202fe88b449786daf62b4eb466667fae093' \
-	'ARTIFACT_MANIFEST_SHA256=53a338995f182a76437ed358d8fa02332c2b28123bb1407918eaf7505b373c6b' \
-	'ARTIFACT_NAME=gemian-a72-scheduler-context-e40ee8a50694' \
+	'EXPECTED_PREDECESSOR_SHA256=d34b2de509021d5fbbfcca62e3676202fe88b449786daf62b4eb466667fae093' \
+	'CANDIDATE_SHA256=2e8c611b1dbe5b79b13f2dec9cf9d77d9b7973a732f63702a6228600bef464b3' \
+	'ARTIFACT_MANIFEST_SHA256=1383686ddfed408190fdbbe59bf512d3ba3a52a49e6aa2ff30dfed3e01f379b7' \
+	'ARTIFACT_NAME=gemian-a72-scheduler-context-78dd52721a76' \
 	'2026-08-03-a72-scheduler-context'; do
 	grep -Fq "$token" "$derived" || die "derived installer lacks: $token"
 done

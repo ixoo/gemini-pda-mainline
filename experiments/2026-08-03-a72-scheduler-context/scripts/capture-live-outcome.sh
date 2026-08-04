@@ -112,7 +112,7 @@ set -e
 printf 'nc_exit_status=%s\n' "$nc_status" >>"$output"
 grep -Eq 'pair6_terminal_line=.*gemini-a72-pair-v6 result=(pass|fault) ' "$output" ||
 	die 'complete pair-v6 terminal was not captured'
-grep -Eq 'pair7_terminal_line=.*gemini-a72-pair-v7 result=(pass|fault) parent_pass=[01] sc_reported=-?[0-9]+ sc_iterations=262144 sc_rescheds=64 sc_expected8=-?[0-9]+ sc_start8=-?[0-9]+ sc_end8=-?[0-9]+ sc_expected9=-?[0-9]+ sc_start9=-?[0-9]+ sc_end9=-?[0-9]+ sc_task8=-?[0-9]+ sc_task9=-?[0-9]+ sc_create8=-?[0-9]+ sc_create9=-?[0-9]+ sc_wake8=-?[0-9]+ sc_wake9=-?[0-9]+ sc_wait8=-?[0-9]+ sc_wait9=-?[0-9]+ sc_error8=-?[0-9]+ sc_error9=-?[0-9]+ sc_stop8=-?[0-9]+ sc_stop9=-?[0-9]+ sc_done8=[0-9]+ sc_done9=[0-9]+ sc_ready=[0-9]+ sc_finished=[0-9]+ sc_hash8=[0-9a-f]{16} sc_hash9=[0-9a-f]{16}$' "$output" ||
+grep -Eq 'pair7_terminal_line=.*gemini-a72-pair-v7 result=(pass|fault) parent_pass=[01] sc_reported=-?[0-9]+ sc_iterations=262144 sc_rescheds=64 sc_expected8=-?[0-9]+ sc_start8=-?[0-9]+ sc_end8=-?[0-9]+ sc_expected9=-?[0-9]+ sc_start9=-?[0-9]+ sc_end9=-?[0-9]+ sc_task8=-?[0-9]+ sc_task9=-?[0-9]+ sc_create8=-?[0-9]+ sc_create9=-?[0-9]+ sc_wake8=-?[0-9]+ sc_wake9=-?[0-9]+ sc_readywait8=-?[0-9]+ sc_readywait9=-?[0-9]+ sc_startwait8=-?[0-9]+ sc_startwait9=-?[0-9]+ sc_wait8=-?[0-9]+ sc_wait9=-?[0-9]+ sc_error8=-?[0-9]+ sc_error9=-?[0-9]+ sc_stop8=-?[0-9]+ sc_stop9=-?[0-9]+ sc_done8=[0-9]+ sc_done9=[0-9]+ sc_ready=[0-9]+ sc_finished=[0-9]+ sc_hash8=[0-9a-f]{16} sc_hash9=[0-9a-f]{16}$' "$output" ||
 	die 'captured pair-v7 terminal is malformed'
 grep -Fxq '__A72_SCHEDULER_LIVE_TERMINAL_CAPTURED__' "$output" ||
 	die 'terminal capture terminator is absent'

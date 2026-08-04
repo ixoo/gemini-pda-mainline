@@ -12,7 +12,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 EXPERIMENT = SCRIPT_DIR.parent
 INSTALLER = SCRIPT_DIR / "install-boot2.sh"
 LIVE = SCRIPT_DIR / "capture-live-outcome.sh"
-PLAN = EXPERIMENT / "results" / "runtime-decision-map-ordering-fix-20260803.txt"
+PLAN = EXPERIMENT / "results" / "runtime-decision-map-start-gate-20260804.txt"
 PAIR5 = EXPERIMENT.parent / "2026-08-03-a72-cpu9-multiline-integrity"
 BASE_INSTALLER = (
     EXPERIMENT.parent
@@ -21,10 +21,10 @@ BASE_INSTALLER = (
     / "install-boot2.sh"
 )
 PINS = (
-    ("24377665fa5b9112266890844c06c453bb50e17680b6f6f956035c234c26ff0f", 2),
     ("d34b2de509021d5fbbfcca62e3676202fe88b449786daf62b4eb466667fae093", 2),
-    ("53a338995f182a76437ed358d8fa02332c2b28123bb1407918eaf7505b373c6b", 2),
-    ("gemian-a72-scheduler-context-e40ee8a50694", 2),
+    ("2e8c611b1dbe5b79b13f2dec9cf9d77d9b7973a732f63702a6228600bef464b3", 2),
+    ("1383686ddfed408190fdbbe59bf512d3ba3a52a49e6aa2ff30dfed3e01f379b7", 2),
+    ("gemian-a72-scheduler-context-78dd52721a76", 2),
 )
 
 
@@ -55,10 +55,10 @@ def main() -> int:
             f"installer identity mutation was not rejected: {token}",
         )
     for token in (
-        "EXPECTED_PREDECESSOR_SHA256=24377665fa5b9112266890844c06c453bb50e17680b6f6f956035c234c26ff0f",
-        "CANDIDATE_SHA256=d34b2de509021d5fbbfcca62e3676202fe88b449786daf62b4eb466667fae093",
-        "ARTIFACT_MANIFEST_SHA256=53a338995f182a76437ed358d8fa02332c2b28123bb1407918eaf7505b373c6b",
-        "ARTIFACT_NAME=gemian-a72-scheduler-context-e40ee8a50694",
+        "EXPECTED_PREDECESSOR_SHA256=d34b2de509021d5fbbfcca62e3676202fe88b449786daf62b4eb466667fae093",
+        "CANDIDATE_SHA256=2e8c611b1dbe5b79b13f2dec9cf9d77d9b7973a732f63702a6228600bef464b3",
+        "ARTIFACT_MANIFEST_SHA256=1383686ddfed408190fdbbe59bf512d3ba3a52a49e6aa2ff30dfed3e01f379b7",
+        "ARTIFACT_NAME=gemian-a72-scheduler-context-78dd52721a76",
         "source pair-v5 installer changed",
         "GEMINI_A72_SCHEDULER_SCRIPT_DIR",
     ):
@@ -78,7 +78,7 @@ def main() -> int:
     help_text = subprocess.run(
         [str(INSTALLER), "--help"], check=True, capture_output=True, text=True
     ).stdout
-    require("scheduler-context" in help_text, "installer help changed")
+    require("blocked-start-gate scheduler" in help_text, "installer help changed")
     require("without creating a partition" in help_text, "no-backup policy changed")
     require("shuts the device down cleanly" in help_text, "shutdown policy changed")
 
@@ -102,6 +102,8 @@ def main() -> int:
         "gemini-a72-pair-v7 result=(pass|fault)",
         "sc_iterations=262144 sc_rescheds=64",
         "sc_task8=-?[0-9]+ sc_task9=-?[0-9]+",
+        "sc_readywait8=-?[0-9]+ sc_readywait9=-?[0-9]+",
+        "sc_startwait8=-?[0-9]+ sc_startwait9=-?[0-9]+",
         "sc_done8=[0-9]+ sc_done9=[0-9]+ sc_ready=[0-9]+ sc_finished=[0-9]+",
         "sc_hash8=[0-9a-f]{16} sc_hash9=[0-9a-f]{16}",
         "__A72_SCHEDULER_LIVE_TERMINAL_CAPTURED__",
@@ -116,7 +118,10 @@ def main() -> int:
         "sc_expected8=8 sc_start8=8 sc_end8=8",
         "sc_expected9=9 sc_start9=9 sc_end9=9",
         "sc_task8=1 sc_task9=1 sc_create8=0 sc_create9=0",
-        "sc_wake8=1 sc_wake9=1 sc_wait8=1 sc_wait9=1",
+        "sc_wake8 and sc_wake9 must each be 0 or 1",
+        "sc_readywait8=1 sc_readywait9=1",
+        "sc_startwait8=1 sc_startwait9=1",
+        "sc_wait8=1 sc_wait9=1",
         "sc_error8=0 sc_error9=0 sc_stop8=0 sc_stop9=0",
         "sc_done8=262144 sc_done9=262144 sc_ready=2 sc_finished=2",
         "sc_hash8=f678147669874ecd sc_hash9=c2274327e9c8104c",
