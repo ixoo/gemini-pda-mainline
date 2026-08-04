@@ -93,7 +93,7 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   unpark child versus exact rejected phase parent compile, diagnostics,
   lifecycle/call-target disassembly, and stack comparison.
 - [`scripts/assemble.py`](scripts/assemble.py): pinned pair-v6 Android-v0
-  assembler specialization for the exact phase-attribution kernel.
+  assembler specialization for the exact unpark kernel.
 - [`scripts/build-candidate.sh`](scripts/build-candidate.sh): reproducible,
   offline-only candidate construction with two raw and padded constructions.
 - [`scripts/test_candidate.py`](scripts/test_candidate.py): independent tool,
@@ -492,6 +492,16 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   This is compile review only: `boot_candidate=false`, no container, no native
   VM build, and no device action. See
   [`results/compile-review-unpark-20260804.txt`](results/compile-review-unpark-20260804.txt).
+- Current-main source regeneration at repository commit
+  `300cf6fa3026190f21656449c202603ec5b2e62b` reproduced admitted `0003`
+  byte-for-byte and records `generated_matches_admitted=yes`. The offline
+  candidate tooling is retargeted to the exact accepted compile package,
+  kernel, phase-parent/child, raw, padded, and sidecar identities while
+  preserving two raw assemblies, two padding constructions, the 11-assembler
+  offline chain, and six negative mutations. A disposable end-to-end
+  construction passed and was removed; no retained container or device action
+  has occurred. See
+  [`results/offline-container-tooling-unpark-20260804.txt`](results/offline-container-tooling-unpark-20260804.txt).
 
 ## Analysis
 

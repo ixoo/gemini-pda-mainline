@@ -1,0 +1,103 @@
+CPU8/CPU9 scheduler kthread-unpark offline-container tooling
+============================================================
+
+Date: 2026-08-04 UTC
+Result: exact offline tooling prepared; construction pending
+
+Accepted fixed inputs
+---------------------
+
+- Compile repository commit:
+  `4f647c333056fd51aa2850957bb94ace508bedee`.
+- Compile package `SHA256SUMS` SHA-256:
+  `d36a6a12e2ef4d0501df78f8fa9a94e763c1907f155c5f008182eed2d1f0b7f2`.
+- Compile purpose:
+  `a72-scheduler-unpark-compile-review-only`.
+- Compile package boot-candidate field: false.
+- Exact phase-parent patchset SHA-256:
+  `b2c971d4a1860ec09616a61dbd8a29fde488f7d99deb8bd6bfbf2c517b2c3493`.
+- Exact unpark child patchset SHA-256:
+  `bd5799cecd14aa34a87562b09507a6d9f18f11cd138420bcba629f12793e7bfe`.
+- Accepted `Image.gz-dtb` SHA-256:
+  `b7ed626161490c64939f791e1caaaf6f4ffb03ecf55466776a19b74f02bb349c`.
+- Kernel field size: 8,455,343 bytes.
+- Known-good active Gemian boot SHA-256:
+  `1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513`.
+- Retained ramdisk SHA-256:
+  `a1ee05445e9a2bd8fbc1f75d7cda326b9ca7a6d3b644cbb1d5fc0ac167835be4`.
+
+Exact predicted container identities
+------------------------------------
+
+- Raw Android-v0 filename:
+  `gemian-a72-scheduler-unpark.boot.img`.
+- Raw size: 14,813,184 bytes.
+- Raw SHA-256:
+  `f3e235f3c196667e892f6ed611db37f77ab465ce90b59be763bf3dddedc1fd5c`.
+- Legacy Android image ID:
+  `95fa04ebaafb05be7e9d37bde2baff116ebade7e`.
+- Padded filename: `boot2-padded.img`.
+- Padded size: 16,777,216 bytes.
+- Padded SHA-256:
+  `5b38e542586cf70f3fcf3de049f351671f96fab985e0d93fa79f90e2d04012c5`.
+- Expected sidecar SHA-256:
+  - `analysis.txt`:
+    `92e91589e1c2ed8277975db362a8f2244a421cd8496e17a279001dac5c5bc524`;
+  - `provenance.txt`:
+    `519df6a18a67dac2805ca4022073e3ca619034d9a088f6b9090b7a4b822883ee`;
+  - `SHA256SUMS`:
+    `9928d416e8ad50a35652ab58721c6a3747b1e8f00ff5fa4883e3100550c634f5`.
+
+Prepared tooling
+----------------
+
+- `assemble.py` SHA-256:
+  `0605ef23fce46a376b779b77c3085d6ff1ef9695b6c4bff14dba67668b21ee9e`.
+- `build-candidate.sh` SHA-256:
+  `9d21928e9b8b23a8fd3edfe676df3b9fce4ca9e2f5be152b25205ac85ac5a1b8`.
+- `test_candidate.py` SHA-256:
+  `c738461472eede4e7c87ac331836802e82d682158cc3390b6a135f06fcf26e91`.
+- Pinned parent assembler SHA-256:
+  `9938defe0e4b83d0845135c4a27b534f5d28fafa5eac4bbe345f7badf2405094`.
+- Pinned source builder SHA-256:
+  `65c39fa45b1f76fb85780473feb3b675bd5e6647934e68be2761bc823c07e0fe`.
+
+The wrapper now requires the exact compile-package checksum manifest before
+the inherited strict package check. It requires the compile commit, phase
+parent, unpark child, scheduler mode, unpark purpose, and false boot-candidate
+field. The derived builder emits both scheduler patchset identities, performs
+two raw assemblies and two independent padding constructions, and uses unique
+unpark filenames.
+
+The independent validator pins the wrapper, source builder, and complete
+11-assembler chain. It requires the exact file inventory, Android-v0 header,
+legacy image ID, embedded kernel and retained ramdisk, aligned extents,
+16 MiB zero padding, evidence records, and offline-only action boundary. Its
+existing six negative candidate mutations remain unchanged.
+
+Local validation
+----------------
+
+- Bash syntax: PASS.
+- ShellCheck: PASS.
+- Python syntax and CLI parsing: PASS.
+- Exact tool-pin and offline-action scan: PASS; the validator reached the
+  intentionally empty fixture inventory boundary only after tool validation.
+- Independent disposable construction and full validator: PASS.
+- Exact raw, padded, analysis, provenance, and manifest identities: PASS.
+- Candidate mutations: 6/6 rejected.
+- Temporary construction root: removed.
+- Whitespace validation: PASS.
+- Native VM kernel build: no.
+- Retained candidate: no; construction evidence remains pending.
+- Device access or partition write: none.
+
+Boundary
+--------
+
+The exact container identities above are deterministic predictions confirmed
+by a disposable validation run. They are not accepted retained-container
+evidence until two independent ignored output roots reproduce every file
+byte-for-byte and both pass the complete validator and mutation set. No boot
+candidate, deployment, or runtime claim exists here. Ordered successor work
+remains solely in `docs/ROADMAP.md`.

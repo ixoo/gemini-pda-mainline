@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Independently validate the phase-attribution Android-v0 candidate."""
+"""Independently validate the unpark Android-v0 candidate."""
 
 import argparse
 import hashlib
@@ -29,26 +29,28 @@ SOURCE_BUILDER = (
     / "build-candidate.sh"
 )
 EXPECTED = {
-    "assembler_sha256": "60116c1591d111cb68cf7581d59458072878547b5ce472d08264721b4eaa00e4",
+    "assembler_sha256": "0605ef23fce46a376b779b77c3085d6ff1ef9695b6c4bff14dba67668b21ee9e",
     "parent_assembler_sha256": "9938defe0e4b83d0845135c4a27b534f5d28fafa5eac4bbe345f7badf2405094",
-    "builder_sha256": "32519d9f60f3f5692edebf6349bfa3627d040ca86cefd8414296de9d062d007d",
+    "builder_sha256": "9d21928e9b8b23a8fd3edfe676df3b9fce4ca9e2f5be152b25205ac85ac5a1b8",
     "source_builder_sha256": "65c39fa45b1f76fb85780473feb3b675bd5e6647934e68be2761bc823c07e0fe",
-    "repository_commit": "a50c12f11862bde5b27de8de0a91ac72529b1bd7",
+    "compile_package_sha256sums": "d36a6a12e2ef4d0501df78f8fa9a94e763c1907f155c5f008182eed2d1f0b7f2",
+    "repository_commit": "4f647c333056fd51aa2850957bb94ace508bedee",
     "parallel_patchset_sha256": "94d3b07355e1ddb67f3f643165570255bb1f42131b3b67c074d270e8581989e2",
-    "scheduler_patchset_sha256": "b2c971d4a1860ec09616a61dbd8a29fde488f7d99deb8bd6bfbf2c517b2c3493",
-    "kernel_field_sha256": "932dfc84eaea2aa5971a0ade98d5ddb8d592e400830fba47aa81d2a7b02c5811",
+    "scheduler_phase_parent_patchset_sha256": "b2c971d4a1860ec09616a61dbd8a29fde488f7d99deb8bd6bfbf2c517b2c3493",
+    "scheduler_patchset_sha256": "bd5799cecd14aa34a87562b09507a6d9f18f11cd138420bcba629f12793e7bfe",
+    "kernel_field_sha256": "b7ed626161490c64939f791e1caaaf6f4ffb03ecf55466776a19b74f02bb349c",
     "active_boot_sha256": "1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513",
     "active_ramdisk_sha256": "a1ee05445e9a2bd8fbc1f75d7cda326b9ca7a6d3b644cbb1d5fc0ac167835be4",
-    "raw_sha256": "d06e220da65830b7a58620b03a9ecd8e78d27ee28b2ca905b046fe3198c7375c",
-    "padded_sha256": "2268e23559e8d36e4339a4fd912d0108721ed818e628dfc857cab2ab8e8049a8",
+    "raw_sha256": "f3e235f3c196667e892f6ed611db37f77ab465ce90b59be763bf3dddedc1fd5c",
+    "padded_sha256": "5b38e542586cf70f3fcf3de049f351671f96fab985e0d93fa79f90e2d04012c5",
 }
-RAW_NAME = "gemian-a72-scheduler-phase-attribution.boot.img"
+RAW_NAME = "gemian-a72-scheduler-unpark.boot.img"
 PADDED_NAME = "boot2-padded.img"
 EXPECTED_FILES = {RAW_NAME, PADDED_NAME, "analysis.txt", "provenance.txt", "SHA256SUMS"}
 EXPECTED_FILE_SHA256 = {
-    "analysis.txt": "82e7431d47d205afce9d1eacd64913bf3679ca1718207e984e1986ac18a84fc5",
-    "provenance.txt": "ee39d31143915b129af0b24443464ebd76ef994b072cb4ead505a43bdb47b703",
-    "SHA256SUMS": "e10e38baeb290d00e73e587111024ec7ddf96974604837e31e980c7c62618df4",
+    "analysis.txt": "92e91589e1c2ed8277975db362a8f2244a421cd8496e17a279001dac5c5bc524",
+    "provenance.txt": "519df6a18a67dac2805ca4022073e3ca619034d9a088f6b9090b7a4b822883ee",
+    "SHA256SUMS": "9928d416e8ad50a35652ab58721c6a3747b1e8f00ff5fa4883e3100550c634f5",
 }
 EXPECTED_CMDLINE = b"bootopt=64S3,32N2,64N2 log_buf_len=4M"
 ASSEMBLER_CHAIN = (
@@ -250,7 +252,7 @@ def validate_candidate(candidate: Path) -> None:
     kernel = raw[kernel_offset : kernel_offset + kernel_size]
     ramdisk = raw[ramdisk_offset : ramdisk_offset + ramdisk_size]
     require(
-        kernel_size == 8_454_392
+        kernel_size == 8_455_343
         and digest(kernel) == EXPECTED["kernel_field_sha256"],
         "kernel changed",
     )
@@ -286,6 +288,9 @@ def validate_candidate(candidate: Path) -> None:
     expected_evidence = {
         "repository_commit": EXPECTED["repository_commit"],
         "parallel_patchset_sha256": EXPECTED["parallel_patchset_sha256"],
+        "scheduler_phase_parent_patchset_sha256": EXPECTED[
+            "scheduler_phase_parent_patchset_sha256"
+        ],
         "scheduler_patchset_sha256": EXPECTED["scheduler_patchset_sha256"],
         "kernel_field_sha256": EXPECTED["kernel_field_sha256"],
         "active_boot_sha256": EXPECTED["active_boot_sha256"],
@@ -363,7 +368,7 @@ def validate_mutations(candidate: Path) -> None:
         ("unsafe-manifest-path", unsafe_manifest_path, "unsafe manifest record"),
     )
     for name, mutate, expected in mutations:
-        with tempfile.TemporaryDirectory(prefix=f"a72-phase-{name}-") as temporary:
+        with tempfile.TemporaryDirectory(prefix=f"a72-unpark-{name}-") as temporary:
             mutated = Path(temporary) / "candidate"
             shutil.copytree(candidate, mutated)
             mutate(mutated)
@@ -387,7 +392,7 @@ def main() -> int:
     validate_tools()
     validate_candidate(candidate)
     validate_mutations(candidate)
-    print("validation=a72-scheduler-phase-attribution-candidate")
+    print("validation=a72-scheduler-unpark-candidate")
     print("checks=tool-pins,manifest,android-v0,ramdisk,padding,provenance,offline-only")
     print("assembler_chain=11-pinned-offline")
     print("candidate_mutations=6-rejected")

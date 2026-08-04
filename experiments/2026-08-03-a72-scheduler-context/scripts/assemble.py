@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Assemble phase-attribution pair-v7 with the pinned Android-v0 contract."""
+"""Assemble the unpark pair-v7 child with the pinned Android-v0 contract."""
 
 import hashlib
 import importlib.util
@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 PARENT_SHA256 = "9938defe0e4b83d0845135c4a27b534f5d28fafa5eac4bbe345f7badf2405094"
-KERNEL_FIELD_SHA256 = "932dfc84eaea2aa5971a0ade98d5ddb8d592e400830fba47aa81d2a7b02c5811"
+KERNEL_FIELD_SHA256 = "b7ed626161490c64939f791e1caaaf6f4ffb03ecf55466776a19b74f02bb349c"
 PARENT = (
     Path(__file__).resolve().parents[2]
     / "2026-08-03-a72-cpu9-parallel-disjoint-load"

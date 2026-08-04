@@ -88,3 +88,18 @@ and pin the canonical three-patch identity in both Buildbox compile/fetch
 gates. Do not stage the fetched package below `artifacts/`. This result is not
 a compile, boot-container, boot-candidate, deployment, or runtime claim.
 Ordered successor work remains solely in `docs/ROADMAP.md`.
+
+Current-main reproducibility closure
+------------------------------------
+
+Repository commit `300cf6fa3026190f21656449c202603ec5b2e62b` reran the
+source-only generation lane with the admitted three-patch series present.
+Buildbox job
+`300cf6fa3026190f21656449c202603ec5b2e62b-gemian-a72-scheduler-context-patchgen`
+passed the parent, phase-marker, lifecycle, equivalence, and mutation gates.
+Its package `SHA256SUMS` SHA-256 is
+`f53e95ba02da1a185435129320b17257fda9cb33a108f13d31446e9028d148e0`.
+Provenance records `generated_matches_admitted=yes`, and direct comparison
+proves the regenerated `0003` is byte-identical to the admitted patch at
+SHA-256
+`7b05002ff89f53a15e1eeb7d3b9588ac08443902626da4b706045d418513f486`.
