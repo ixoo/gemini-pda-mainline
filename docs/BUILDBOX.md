@@ -211,21 +211,25 @@ action.
 
 ## Gemian scheduler-context patch-generation lane
 
-The bounded scheduler-context child is generated from the exact pair-v6 source
-history only from a clean pushed commit:
+The current scheduler-context successor is generated from the exact rejected
+phase-attribution source only from a clean pushed commit:
 
 ```sh
 ./scripts/buildbox generate-gemian-scheduler-patches
 ./scripts/buildbox fetch-gemian-scheduler-patches
 ```
 
-The lane reconstructs and validates the complete pair-v6 parent, applies the
-deterministic task-context transformation, rejects the fixed mutation set, and
-exports one checksum-covered format-patch review. It performs no kernel compile,
-container construction, device access, or partition action.
+The lane reconstructs and validates the unchanged task-context and
+phase-attribution patches, then changes only the parked-thread activation
+contract from `wake_up_process()` to `kthread_unpark()`. It revises the
+void-operation result and marker schema, validates the exact kernel kthread
+lifecycle, rejects the fixed mutation set, proves byte equality after reverse
+normalization, and exports one checksum-covered `0003` format-patch review. It
+performs no kernel compile, container construction, device access, or partition
+action.
 
 After the generated patch is reviewed and tracked, compile it against the exact
-pair-v6 parent with:
+rejected phase-attribution parent with:
 
 ```sh
 ./scripts/buildbox build-gemian-scheduler-compile
@@ -234,11 +238,11 @@ pair-v6 parent with:
 
 The compile lane reuses the pinned Gemian source, Stretch toolchain, normalized
 configuration, DCT oracle, diagnostics comparison, and stack instrumentation.
-It requires the complete pair-v6 symbol and terminal inventory in the parent,
-new bounded scheduler-task symbols and pair-v7 terminals only in the child,
-identical startup/HPS sources, and bounded task/coherency/terminal stack use.
-The package is compile-review-only, never a boot candidate, and performs no
-device action.
+It requires exact parent-versus-child create, park, unpark, wake, and stop call
+targets; identical lifecycle-core, startup, and HPS sources; the revised
+terminal and phase strings only in the child; and bounded task/coherency/
+terminal stack use. The package is compile-review-only, never a boot candidate,
+and performs no device action.
 
 ## Remote storage and concurrency
 

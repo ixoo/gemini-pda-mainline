@@ -7,6 +7,7 @@ readonly SCRIPT_DIR
 REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd -P)"
 readonly REPO_DIR
 readonly REMOTE_URL="https://github.com/ixoo/gemini-pda-mainline.git"
+readonly EXPECTED_SCHEDULER_UNPARK_PATCHSET_SHA256=PENDING_AFTER_0003_GENERATION
 readonly BUILDBOX_HOST="${BUILDBOX_HOST:-buildbox}"
 readonly CONNECT_TIMEOUT="${BUILDBOX_CONNECT_TIMEOUT:-5}"
 readonly DEFAULT_JOBS=64
@@ -522,8 +523,9 @@ build_gemian_observer() {
   identity="$(require_clean_pushed_head)"
   IFS=$'\t' read -r sha branch <<< "${identity}"
   jobs="$(job_count)"
-  printf -v remote_command 'bash -s -- %q %q %q %q' \
-    "${sha}" "${branch}" "${jobs}" "${mode}"
+  printf -v remote_command 'bash -s -- %q %q %q %q %q' \
+    "${sha}" "${branch}" "${jobs}" "${mode}" \
+    "${EXPECTED_SCHEDULER_UNPARK_PATCHSET_SHA256}"
 
   printf 'Submitting Gemian %s compile review %s to %s\n' \
     "${mode}" "${sha}" "${BUILDBOX_HOST}"
@@ -534,6 +536,7 @@ readonly commit="$1"
 readonly branch="$2"
 readonly jobs="$3"
 readonly mode="$4"
+readonly expected_scheduler_patchset="$5"
 readonly remote_url=https://github.com/ixoo/gemini-pda-mainline.git
 readonly persistent_root="${HOME}/gemini-pda-buildbox"
 readonly mirror="${persistent_root}/repo.git"
@@ -924,22 +927,37 @@ elif [[ "${mode}" == scheduler ]]; then
     outputs/focused-disassembly/mt6797_a72_pl_ipi.txt \
     outputs/focused-disassembly/mt6797_a72_sc_thread.txt \
     outputs/focused-disassembly/mt6797_a72_sc_terminal.txt \
+    outputs/focused-disassembly/__kthread_parkme.txt \
+    outputs/focused-disassembly/__kthread_unpark.txt \
+    outputs/focused-disassembly/kthread_create_on_cpu.txt \
+    outputs/focused-disassembly/kthread_park.txt \
+    outputs/focused-disassembly/kthread_stop.txt \
+    outputs/focused-disassembly/kthread_unpark.txt \
+    outputs/focused-disassembly/wake_up_process.txt \
     outputs/baseline/focused-disassembly/mt6797_a72_coh_workfn.txt \
     outputs/baseline/focused-disassembly/mt6797_a72_ml_ipi.txt \
     outputs/baseline/focused-disassembly/mt6797_a72_pl_ipi.txt \
     outputs/baseline/focused-disassembly/mt6797_a72_sc_thread.txt \
-    outputs/baseline/focused-disassembly/mt6797_a72_sc_terminal.txt; do
+    outputs/baseline/focused-disassembly/mt6797_a72_sc_terminal.txt \
+    outputs/baseline/focused-disassembly/__kthread_parkme.txt \
+    outputs/baseline/focused-disassembly/__kthread_unpark.txt \
+    outputs/baseline/focused-disassembly/kthread_create_on_cpu.txt \
+    outputs/baseline/focused-disassembly/kthread_park.txt \
+    outputs/baseline/focused-disassembly/kthread_stop.txt \
+    outputs/baseline/focused-disassembly/kthread_unpark.txt \
+    outputs/baseline/focused-disassembly/wake_up_process.txt; do
     [[ -s "${package}/${required}" ]]
   done
-  jq -e '
-    .baseline_source_exact_scheduler_parent == true and
+  jq -e --arg scheduler_patchset "${expected_scheduler_patchset}" '
+    .baseline_source_exact_scheduler_phase_parent == true and
     .cpu9_startup_source_identical == true and
     .baseline_stack_usage_file_count > 100 and
     .parallel_patchset_sha256 ==
       "94d3b07355e1ddb67f3f643165570255bb1f42131b3b67c074d270e8581989e2" and
-    .scheduler_patchset_sha256 ==
+    .scheduler_phase_parent_patchset_sha256 ==
       "b2c971d4a1860ec09616a61dbd8a29fde488f7d99deb8bd6bfbf2c517b2c3493" and
-    .purpose == "a72-scheduler-phase-attribution-compile-review-only"
+    .scheduler_patchset_sha256 == $scheduler_patchset and
+    .purpose == "a72-scheduler-unpark-compile-review-only"
   ' "${package}/provenance/build.json" >/dev/null
   for symbol in mt6797_a72_coh_ipi mt6797_a72_coh_workfn \
     mt6797_a72_ml_ipi mt6797_a72_ml_data mt6797_a72_pl_ipi \
@@ -957,6 +975,11 @@ elif [[ "${mode}" == scheduler ]]; then
     "${package}/outputs/vmlinux"
   grep -aFq 'gemini-a72-pair-v7 result=%s parent_pass=%d' \
     "${package}/outputs/vmlinux"
+  grep -aFq 'sc_unpark8=%d sc_unpark9=%d' \
+    "${package}/outputs/vmlinux"
+  ! grep -aFq 'sc_wake8=' "${package}/outputs/vmlinux"
+  grep -aFq 'phase=unpark8-before' "${package}/outputs/vmlinux"
+  grep -aFq 'phase=unpark9-before' "${package}/outputs/vmlinux"
   grep -aFq 'gemini-a72-sc-phase' "${package}/outputs/vmlinux"
   grep -q '^mt6797_a72_sc_thread=' \
     "${package}/outputs/scheduler-stack.txt"
@@ -1207,6 +1230,10 @@ fetch_gemian_observer() {
       ;;
     *) die "invalid Gemian compile-review mode: ${mode}" ;;
   esac
+  if [[ "${mode}" == scheduler ]]; then
+    [[ "${EXPECTED_SCHEDULER_UNPARK_PATCHSET_SHA256}" =~ ^[0-9a-f]{64}$ ]] || \
+      die "scheduler unpark child patchset hash pin is pending"
+  fi
   sha="$(git -C "${REPO_DIR}" rev-parse HEAD)"
   [[ "${sha}" =~ ^[0-9a-f]{40}$ ]] || die "invalid HEAD commit"
   job_key="${sha}-${job_suffix}"
@@ -1228,14 +1255,16 @@ fetch_gemian_observer() {
   temporary="$(mktemp -d "$(dirname "${destination}")/.fetch.XXXXXX")"
   trap 'test -n "${temporary:-}" && test -d "${temporary}" && rm -rf -- "${temporary}"' EXIT
 
-  printf -v remote_command 'bash -s -- %q %q %q %q' \
-    "${job_key}" "${sha}" "${job_purpose}" "${mode}"
+  printf -v remote_command 'bash -s -- %q %q %q %q %q' \
+    "${job_key}" "${sha}" "${job_purpose}" "${mode}" \
+    "${EXPECTED_SCHEDULER_UNPARK_PATCHSET_SHA256}"
   ssh_buildbox "${remote_command}" <<'REMOTE' | tar -C "${temporary}" -xf -
 set -euo pipefail
 readonly job_key="$1"
 readonly commit="$2"
 readonly job_purpose="$3"
 readonly mode="$4"
+readonly expected_scheduler_patchset="$5"
 readonly artifact_root=/workspace/gemini-pda/gemian-artifacts
 readonly record="/workspace/gemini-pda/jobs/${job_key}.json"
 [[ -f "${record}" && ! -L "${record}" ]]
@@ -1245,7 +1274,8 @@ package="$(jq -er --arg commit "${commit}" --arg purpose "${job_purpose}" '
 ' "${record}")"
 case "${package}" in "${artifact_root}"/*) ;; *) exit 1 ;; esac
 [[ -d "${package}" && ! -L "${package}" ]]
-  jq -e --arg commit "${commit}" --arg mode "${mode}" '
+  jq -e --arg commit "${commit}" --arg mode "${mode}" \
+    --arg scheduler_patchset "${expected_scheduler_patchset}" '
   .repository_commit == $commit and .repository_dirty == false and
   .build_mode == $mode and
   .boot_candidate == false and
@@ -1261,7 +1291,12 @@ case "${package}" in "${artifact_root}"/*) ;; *) exit 1 ;; esac
    ($mode == "coherence" and .purpose == "cpu9-bounded-coherency-compile-review-only") or
    ($mode == "multiline" and .purpose == "cpu9-multiline-integrity-compile-review-only") or
    ($mode == "parallel" and .purpose == "cpu9-parallel-disjoint-load-compile-review-only") or
-   ($mode == "scheduler" and .purpose == "a72-scheduler-phase-attribution-compile-review-only"))
+   ($mode == "scheduler" and
+    .purpose == "a72-scheduler-unpark-compile-review-only" and
+    .baseline_source_exact_scheduler_phase_parent == true and
+    .scheduler_phase_parent_patchset_sha256 ==
+      "b2c971d4a1860ec09616a61dbd8a29fde488f7d99deb8bd6bfbf2c517b2c3493" and
+    .scheduler_patchset_sha256 == $scheduler_patchset))
 ' "${package}/provenance/build.json" >/dev/null
 tar -C "$(dirname "${package}")" -cf - -- "$(basename "${package}")"
 REMOTE

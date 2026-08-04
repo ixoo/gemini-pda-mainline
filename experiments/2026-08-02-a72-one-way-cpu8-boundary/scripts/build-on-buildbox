@@ -96,6 +96,14 @@ readonly coherence_patch_series="${coherence_experiment_dir}/patches/series"
 readonly multiline_patch_series="${multiline_experiment_dir}/patches/series"
 readonly parallel_patch_series="${parallel_experiment_dir}/patches/series"
 readonly scheduler_patch_series="${scheduler_experiment_dir}/patches/series"
+readonly -a scheduler_phase_parent_patches=(
+  0001-diagnostic-add-bounded-A72-scheduler-context-execution.patch
+  0002-diagnostic-add-A72-scheduler-phase-attribution.patch
+)
+readonly scheduler_unpark_patch=0003-diagnostic-unpark-A72-scheduler-context-tasks.patch
+readonly EXPECTED_SCHEDULER_PHASE_PARENT_PATCHSET_SHA256=b2c971d4a1860ec09616a61dbd8a29fde488f7d99deb8bd6bfbf2c517b2c3493
+# Replace this sentinel only with the admitted three-patch series identity.
+readonly EXPECTED_SCHEDULER_UNPARK_PATCHSET_SHA256=PENDING_AFTER_0003_GENERATION
 manifest_sha="$(sha256sum "${manifest}" | awk '{print $1}')"
 readonly manifest_sha
 parent_patchset_sha="$(cd "${observer_experiment_dir}/patches" && while IFS= read -r patch; do sha256sum "${patch}"; done < series | sha256sum | awk '{print $1}')"
@@ -201,10 +209,32 @@ if [[ "${build_mode}" == parallel || "${build_mode}" == scheduler ]]; then
      94d3b07355e1ddb67f3f643165570255bb1f42131b3b67c074d270e8581989e2 ]] || \
     die "parallel disjoint-load patchset identity mismatch"
 fi
+scheduler_phase_parent_patchset_sha=not-selected
 scheduler_patchset_sha=not-selected
 if [[ "${build_mode}" == scheduler ]]; then
   [[ -f "${scheduler_patch_series}" ]] || \
     die "scheduler-context patch series is absent"
+  expected_scheduler_series="$(
+    printf '%s\n' "${scheduler_phase_parent_patches[@]}" \
+      "${scheduler_unpark_patch}"
+  )"
+  readonly expected_scheduler_series
+  [[ "$(<"${scheduler_patch_series}")" == "${expected_scheduler_series}" ]] || \
+    die "scheduler-context series is not exact phase-parent plus unpark child"
+  scheduler_phase_parent_patchset_sha="$({
+    cd "${scheduler_experiment_dir}/patches"
+    for patch in "${scheduler_phase_parent_patches[@]}"; do
+      [[ -f "${patch}" && ! -L "${patch}" ]] || \
+        die "scheduler phase-parent patch is absent or unsafe: ${patch}"
+      sha256sum "${patch}" | awk '{print $1}'
+    done
+  } | sha256sum | awk '{print $1}')"
+  [[ "${scheduler_phase_parent_patchset_sha}" == \
+     "${EXPECTED_SCHEDULER_PHASE_PARENT_PATCHSET_SHA256}" ]] || \
+    die "scheduler phase-parent patchset identity mismatch"
+  [[ -f "${scheduler_experiment_dir}/patches/${scheduler_unpark_patch}" && \
+     ! -L "${scheduler_experiment_dir}/patches/${scheduler_unpark_patch}" ]] || \
+    die "scheduler unpark child patch is absent or unsafe"
   scheduler_patchset_sha="$({
     cd "${scheduler_experiment_dir}/patches"
     while IFS= read -r patch; do
@@ -212,11 +242,14 @@ if [[ "${build_mode}" == scheduler ]]; then
     done < series
   } | sha256sum | awk '{print $1}')"
 fi
+readonly scheduler_phase_parent_patchset_sha
 readonly scheduler_patchset_sha
 if [[ "${build_mode}" == scheduler ]]; then
+  [[ "${EXPECTED_SCHEDULER_UNPARK_PATCHSET_SHA256}" =~ ^[0-9a-f]{64}$ ]] || \
+    die "scheduler unpark child patchset hash pin is pending"
   [[ "${scheduler_patchset_sha}" == \
-     b2c971d4a1860ec09616a61dbd8a29fde488f7d99deb8bd6bfbf2c517b2c3493 ]] || \
-    die "scheduler-context patchset identity mismatch"
+     "${EXPECTED_SCHEDULER_UNPARK_PATCHSET_SHA256}" ]] || \
+    die "scheduler unpark child patchset identity mismatch"
 fi
 [[ "$(sha256sum "${baseline_config}" | awk '{print $1}')" == "${CONFIG_SHA256}" ]] || \
   die "active Gemian configuration hash mismatch"
@@ -502,7 +535,7 @@ prepare_variant() {
       [[ "${patch}" =~ ^[A-Za-z0-9_.+-]+\.patch$ ]] || \
         die "unsafe scheduler-context patch name"
       if [[ "${include_scheduler}" == 2 && \
-            "${patch}" != 0001-diagnostic-add-bounded-A72-scheduler-context-execution.patch ]]; then
+            "${patch}" == "${scheduler_unpark_patch}" ]]; then
         continue
       fi
       git -C "${partial}" apply --check \
@@ -525,59 +558,22 @@ readonly source_mirror="${source_root}/gemian-linux-kernel-3.18.git"
 prepare_mirror
 if [[ "${build_mode}" == scheduler ]]; then
   readonly prepared_source="${source_root}/gemian-scheduler/${parent_patchset_sha:0:16}-${accepted_rollback_patchset_sha:0:16}-${one_way_patchset_sha:0:16}-${held_patchset_sha:0:16}-${late_patchset_sha:0:16}-${cpu9_patchset_sha:0:16}-${window_patchset_sha:0:16}-${terminal_patchset_sha:0:16}-${coherence_patchset_sha:0:16}-${multiline_patchset_sha:0:16}-${parallel_patchset_sha:0:16}-${scheduler_patchset_sha:0:16}"
-  readonly baseline_source="${source_root}/gemian-scheduler-parent/${parent_patchset_sha:0:16}-${accepted_rollback_patchset_sha:0:16}-${one_way_patchset_sha:0:16}-${held_patchset_sha:0:16}-${late_patchset_sha:0:16}-${cpu9_patchset_sha:0:16}-${window_patchset_sha:0:16}-${terminal_patchset_sha:0:16}-${coherence_patchset_sha:0:16}-${multiline_patchset_sha:0:16}-${parallel_patchset_sha:0:16}-970c090c080f0a5b"
+  readonly baseline_source="${source_root}/gemian-scheduler-phase-parent/${parent_patchset_sha:0:16}-${accepted_rollback_patchset_sha:0:16}-${one_way_patchset_sha:0:16}-${held_patchset_sha:0:16}-${late_patchset_sha:0:16}-${cpu9_patchset_sha:0:16}-${window_patchset_sha:0:16}-${terminal_patchset_sha:0:16}-${coherence_patchset_sha:0:16}-${multiline_patchset_sha:0:16}-${parallel_patchset_sha:0:16}-${scheduler_phase_parent_patchset_sha:0:16}"
   prepare_variant "${baseline_source}" .gemini-scheduler-parent-state \
-    "${parent_patchset_sha}:${accepted_rollback_patchset_sha}:${one_way_patchset_sha}:${held_patchset_sha}:${late_patchset_sha}:${cpu9_patchset_sha}:${window_patchset_sha}:${terminal_patchset_sha}:${coherence_patchset_sha}:${multiline_patchset_sha}:${parallel_patchset_sha}:970c090c080f0a5b03738ea7bdec65edaebc7b1d3b179488202587c157edc845" 1 1 1 1 1 1 1 1 1 2
+    "${parent_patchset_sha}:${accepted_rollback_patchset_sha}:${one_way_patchset_sha}:${held_patchset_sha}:${late_patchset_sha}:${cpu9_patchset_sha}:${window_patchset_sha}:${terminal_patchset_sha}:${coherence_patchset_sha}:${multiline_patchset_sha}:${parallel_patchset_sha}:${scheduler_phase_parent_patchset_sha}" 1 1 1 1 1 1 1 1 1 2
   prepare_variant "${prepared_source}" .gemini-scheduler-state \
     "${parent_patchset_sha}:${accepted_rollback_patchset_sha}:${one_way_patchset_sha}:${held_patchset_sha}:${late_patchset_sha}:${cpu9_patchset_sha}:${window_patchset_sha}:${terminal_patchset_sha}:${coherence_patchset_sha}:${multiline_patchset_sha}:${parallel_patchset_sha}:${scheduler_patchset_sha}" 1 1 1 1 1 1 1 1 1 1
-  python3 "${scheduler_experiment_dir}/scripts/test_static.py" \
-    --source "${baseline_source}"
-  python3 "${scheduler_experiment_dir}/scripts/test_phase_markers.py" \
-    --source "${prepared_source}" \
-    --parent-psci "${baseline_source}/arch/arm64/kernel/psci.c"
   for source_file in arch/arm64/kernel/smp.c kernel/cpu.c \
+    kernel/kthread.c kernel/sched/core.c include/linux/kthread.h \
+    include/linux/sched.h \
     drivers/misc/mediatek/base/power/mt6797/mt_hotplug_strategy_algo.c; do
     cmp "${prepared_source}/${source_file}" \
       "${baseline_source}/${source_file}" >/dev/null || \
       die "scheduler-context unexpectedly changed ${source_file}"
   done
-  python3 - "${prepared_source}/arch/arm64/kernel/psci.c" \
-    "${baseline_source}/arch/arm64/kernel/psci.c" <<'PY'
-import pathlib
-import sys
-
-def function(path, name):
-    text = pathlib.Path(path).read_text()
-    marker = name + "("
-    marker_offset = text.index(marker)
-    start = text.rfind("\n", 0, marker_offset) + 1
-    brace = text.index("{", marker_offset)
-    depth = 0
-    for offset in range(brace, len(text)):
-        if text[offset] == "{":
-            depth += 1
-        elif text[offset] == "}":
-            depth -= 1
-            if depth == 0:
-                return text[start:offset + 1]
-    raise SystemExit("unterminated function: " + name)
-
-for name in (
-    "mt6797_a72_cpu9_boot",
-    "mt6797_a72_coh_wait_turn",
-    "mt6797_a72_coh_ipi",
-    "mt6797_a72_ml_wait_turn",
-    "mt6797_a72_ml_ipi",
-    "mt6797_a72_pl_pattern",
-    "mt6797_a72_pl_hash",
-    "mt6797_a72_pl_wait",
-    "mt6797_a72_pl_write",
-    "mt6797_a72_pl_verify",
-    "mt6797_a72_pl_ipi",
-):
-    if function(sys.argv[1], name) != function(sys.argv[2], name):
-        raise SystemExit("scheduler-context changed inherited function: " + name)
-PY
+  python3 "${scheduler_experiment_dir}/scripts/test_unpark_child.py" \
+    --source "${prepared_source}" \
+    --parent-psci "${baseline_source}/arch/arm64/kernel/psci.c"
 elif [[ "${build_mode}" == parallel ]]; then
   readonly prepared_source="${source_root}/gemian-parallel/${parent_patchset_sha:0:16}-${accepted_rollback_patchset_sha:0:16}-${one_way_patchset_sha:0:16}-${held_patchset_sha:0:16}-${late_patchset_sha:0:16}-${cpu9_patchset_sha:0:16}-${window_patchset_sha:0:16}-${terminal_patchset_sha:0:16}-${coherence_patchset_sha:0:16}-${multiline_patchset_sha:0:16}-${parallel_patchset_sha:0:16}"
   readonly baseline_source="${source_root}/gemian-multiline/${parent_patchset_sha:0:16}-${accepted_rollback_patchset_sha:0:16}-${one_way_patchset_sha:0:16}-${held_patchset_sha:0:16}-${late_patchset_sha:0:16}-${cpu9_patchset_sha:0:16}-${window_patchset_sha:0:16}-${terminal_patchset_sha:0:16}-${coherence_patchset_sha:0:16}-${multiline_patchset_sha:0:16}"
@@ -992,6 +988,12 @@ expected.append(("CONFIG_MTK_A72_TRANSITION_OBSERVER", "missing", "y"))
 if changes != expected:
     raise SystemExit("baseline config is not the exact selected parent")
 PY
+if [[ "${build_mode}" == scheduler ]]; then
+  cmp "${output}/.config" "${baseline_output}/.config" >/dev/null || \
+    die "scheduler unpark child and phase parent resolved configurations differ"
+  cmp "${output}/config.diff" "${baseline_output}/config.diff" >/dev/null || \
+    die "scheduler unpark child and phase parent configuration deltas differ"
+fi
 readonly baseline_dct_output="${baseline_output}/arch/arm64/boot/dts"
 mkdir -p "${baseline_dct_output}"
 (
@@ -1085,15 +1087,29 @@ if [[ "${build_mode}" == parallel ]]; then
   changed_disassembly_symbols+=(mt6797_a72_pl_ipi)
 elif [[ "${build_mode}" == scheduler ]]; then
   baseline_disassembly_symbols+=(
+    __kthread_parkme
+    __kthread_unpark
+    kthread_create_on_cpu
+    kthread_park
+    kthread_stop
+    kthread_unpark
     mt6797_a72_ml_ipi
     mt6797_a72_pl_ipi
     mt6797_a72_sc_thread
     mt6797_a72_sc_terminal
+    wake_up_process
   )
   changed_disassembly_symbols+=(
+    __kthread_parkme
+    __kthread_unpark
+    kthread_create_on_cpu
+    kthread_park
+    kthread_stop
+    kthread_unpark
     mt6797_a72_pl_ipi
     mt6797_a72_sc_thread
     mt6797_a72_sc_terminal
+    wake_up_process
   )
 fi
 readonly -a changed_disassembly_symbols
@@ -1173,12 +1189,24 @@ if [[ "${build_mode}" == scheduler ]]; then
     done
   done
   for map in "${output}/System.map" "${baseline_output}/System.map"; do
-    for symbol in mt6797_a72_sc_thread mt6797_a72_sc_terminal \
+    for symbol in __kthread_parkme __kthread_unpark kthread_create_on_cpu \
+      kthread_park kthread_stop kthread_unpark wake_up_process \
+      mt6797_a72_sc_thread \
+      mt6797_a72_sc_terminal \
       mt6797_a72_sc_result8 mt6797_a72_sc_result9 \
       mt6797_a72_sc_task8 mt6797_a72_sc_task9; do
       grep -q " ${symbol}$" "${map}" || \
-        die "scheduler phase comparison is missing ${symbol}"
+        die "scheduler unpark comparison is missing ${symbol}"
     done
+  done
+  for symbol in __kthread_parkme __kthread_unpark kthread_create_on_cpu \
+    kthread_park kthread_stop kthread_unpark wake_up_process; do
+    grep -q "<${symbol}>:" \
+      "${output}/focused-disassembly/${symbol}.txt" || \
+      die "scheduler child disassembly is missing ${symbol}"
+    grep -q "<${symbol}>:" \
+      "${baseline_output}/focused-disassembly/${symbol}.txt" || \
+      die "scheduler phase-parent disassembly is missing ${symbol}"
   done
   grep -q '<mt6797_a72_sc_thread>:' \
     "${output}/focused-disassembly/mt6797_a72_sc_thread.txt" || \
@@ -1186,6 +1214,91 @@ if [[ "${build_mode}" == scheduler ]]; then
   grep -q '<mt6797_a72_sc_terminal>:' \
     "${output}/focused-disassembly/mt6797_a72_sc_terminal.txt" || \
     die "scheduler disassembly is missing its isolated terminal reporter"
+  python3 - "${output}/focused-disassembly" \
+    "${baseline_output}/focused-disassembly" <<'PY'
+import collections
+import pathlib
+import re
+import sys
+
+child_root = pathlib.Path(sys.argv[1])
+parent_root = pathlib.Path(sys.argv[2])
+
+def read(root, symbol):
+    return (root / (symbol + ".txt")).read_text()
+
+def calls(text):
+    return collections.Counter(
+        re.findall(r"\bbl\s+[0-9a-f]+\s+<([^>]+)>", text)
+    )
+
+child_calls = calls(read(child_root, "mt6797_a72_hold_workfn"))
+parent_calls = calls(read(parent_root, "mt6797_a72_hold_workfn"))
+child_expected = {
+    "kthread_create_on_cpu": 2,
+    "kthread_unpark": 2,
+    "wake_up_process": 0,
+    "kthread_stop": 2,
+}
+parent_expected = {
+    "kthread_create_on_cpu": 2,
+    "kthread_unpark": 0,
+    "wake_up_process": 2,
+    "kthread_stop": 2,
+}
+for symbol, count in child_expected.items():
+    if child_calls[symbol] != count:
+        raise SystemExit(
+            "scheduler child {} call count is {}, expected {}".format(
+                symbol, child_calls[symbol], count
+            )
+        )
+for symbol, count in parent_expected.items():
+    if parent_calls[symbol] != count:
+        raise SystemExit(
+            "scheduler phase parent {} call count is {}, expected {}".format(
+                symbol, parent_calls[symbol], count
+            )
+        )
+
+def validate_core(root, label):
+    create = read(root, "kthread_create_on_cpu")
+    parkme = read(root, "__kthread_parkme")
+    park = read(root, "kthread_park")
+    public_unpark = read(root, "kthread_unpark")
+    internal_unpark = read(root, "__kthread_unpark")
+    stop = read(root, "kthread_stop")
+    wake = read(root, "wake_up_process")
+    if calls(create)["kthread_park"] != 1:
+        raise SystemExit(label + " kthread_create_on_cpu park call changed")
+    if "#0x200" not in parkme:
+        raise SystemExit(label + " __kthread_parkme lacks TASK_PARKED state")
+    park_calls = calls(park)
+    for symbol in ("wake_up_process", "wait_for_completion"):
+        if park_calls[symbol] != 1:
+            raise SystemExit(label + " kthread_park call changed: " + symbol)
+    if calls(public_unpark)["__kthread_unpark"] != 1:
+        raise SystemExit(label + " kthread_unpark call changed")
+    internal_calls = calls(internal_unpark)
+    for symbol in (
+        "clear_bit", "test_and_clear_bit", "__kthread_bind", "wake_up_state"
+    ):
+        if internal_calls[symbol] != 1:
+            raise SystemExit(label + " __kthread_unpark call changed: " + symbol)
+    if internal_unpark.count("#0x200") != 2:
+        raise SystemExit(label + " __kthread_unpark TASK_PARKED mask changed")
+    stop_calls = calls(stop)
+    for symbol in (
+        "__kthread_unpark", "wake_up_process", "wait_for_completion"
+    ):
+        if stop_calls[symbol] != 1:
+            raise SystemExit(label + " kthread_stop call changed: " + symbol)
+    if calls(wake)["try_to_wake_up"] != 2 or wake.count("#0x3") != 2:
+        raise SystemExit(label + " wake_up_process TASK_NORMAL mask changed")
+
+validate_core(child_root, "scheduler child")
+validate_core(parent_root, "scheduler phase parent")
+PY
   "${cross_prefix}strings" "${output}/vmlinux" | \
     grep -F 'gemini-a72-pair-v6 result=pass sample=3 cpu8=8 cpu9=9 online8=1 online9=1 hits8=3 hits9=3' >/dev/null || \
     die "scheduler build changed the pair-v6 pass terminal"
@@ -1196,24 +1309,49 @@ if [[ "${build_mode}" == scheduler ]]; then
     grep -F 'gemini-a72-pair-v7 result=%s parent_pass=%d' >/dev/null || \
     die "scheduler build is missing the isolated pair-v7 terminal"
   "${cross_prefix}strings" "${output}/vmlinux" | \
-    grep -F 'sc_reported=%d sc_iterations=262144 sc_rescheds=64 sc_expected8=%d sc_start8=%d sc_end8=%d sc_expected9=%d sc_start9=%d sc_end9=%d sc_task8=%d sc_task9=%d sc_create8=%d sc_create9=%d sc_wake8=%d sc_wake9=%d sc_readywait8=%d sc_readywait9=%d sc_startwait8=%d sc_startwait9=%d sc_wait8=%d sc_wait9=%d' >/dev/null || \
+    grep -F 'sc_reported=%d sc_iterations=262144 sc_rescheds=64 sc_expected8=%d sc_start8=%d sc_end8=%d sc_expected9=%d sc_start9=%d sc_end9=%d sc_task8=%d sc_task9=%d sc_create8=%d sc_create9=%d sc_unpark8=%d sc_unpark9=%d sc_readywait8=%d sc_readywait9=%d sc_startwait8=%d sc_startwait9=%d sc_wait8=%d sc_wait9=%d' >/dev/null || \
     die "scheduler build is missing its complete lifecycle fields"
   "${cross_prefix}strings" "${baseline_output}/vmlinux" | \
-    grep -F 'gemini-a72-pair-v7 result=%s parent_pass=%d' >/dev/null || \
-    die "scheduler baseline is missing exact rejected start-gate terminal"
+    grep -F 'sc_reported=%d sc_iterations=262144 sc_rescheds=64 sc_expected8=%d sc_start8=%d sc_end8=%d sc_expected9=%d sc_start9=%d sc_end9=%d sc_task8=%d sc_task9=%d sc_create8=%d sc_create9=%d sc_wake8=%d sc_wake9=%d sc_readywait8=%d sc_readywait9=%d sc_startwait8=%d sc_startwait9=%d sc_wait8=%d sc_wait9=%d' >/dev/null || \
+    die "scheduler baseline is missing exact rejected phase-parent fields"
+  if "${cross_prefix}strings" "${output}/vmlinux" | \
+    grep -F 'sc_wake8=' >/dev/null; then
+    die "scheduler unpark child retains rejected wake terminal fields"
+  fi
+  if "${cross_prefix}strings" "${baseline_output}/vmlinux" | \
+    grep -F 'sc_unpark8=' >/dev/null; then
+    die "scheduler phase parent unexpectedly contains unpark terminal fields"
+  fi
   for phase in task-ready-before task-ready-after task-start-wait-before \
     task-start-wait-after task-work-before task-work-after task-done-before \
     task-done-after create8-before create8-after create9-before create9-after \
-    wake8-before wake8-after wake9-before wake9-after ready8-wait-before \
-    ready8-wait-after ready9-wait-before ready9-wait-after release-before \
+    ready8-wait-before ready8-wait-after ready9-wait-before ready9-wait-after \
+    release-before \
     release-after done8-wait-before done8-wait-after done9-wait-before \
     done9-wait-after stop8-before stop8-after stop9-before stop9-after run-exit; do
     "${cross_prefix}strings" "${output}/vmlinux" | grep -F "phase=${phase}" >/dev/null || \
-      die "scheduler build is missing phase marker ${phase}"
+      die "scheduler unpark child is missing shared phase marker ${phase}"
+    "${cross_prefix}strings" "${baseline_output}/vmlinux" | \
+      grep -F "phase=${phase}" >/dev/null || \
+      die "scheduler phase parent is missing shared phase marker ${phase}"
   done
+  for phase in unpark8-before unpark8-after unpark9-before unpark9-after; do
+    "${cross_prefix}strings" "${output}/vmlinux" | \
+      grep -F "phase=${phase}" >/dev/null || \
+      die "scheduler unpark child is missing activation marker ${phase}"
+  done
+  for phase in wake8-before wake8-after wake9-before wake9-after; do
+    "${cross_prefix}strings" "${baseline_output}/vmlinux" | \
+      grep -F "phase=${phase}" >/dev/null || \
+      die "scheduler phase parent is missing activation marker ${phase}"
+  done
+  if "${cross_prefix}strings" "${output}/vmlinux" | \
+    grep -F 'phase=wake' >/dev/null; then
+    die "scheduler unpark child retains rejected wake phase markers"
+  fi
   if "${cross_prefix}strings" "${baseline_output}/vmlinux" | \
-    grep -F 'gemini-a72-sc-phase' >/dev/null; then
-    die "rejected start-gate parent unexpectedly contains phase markers"
+    grep -F 'phase=unpark' >/dev/null; then
+    die "scheduler phase parent unexpectedly contains unpark phase markers"
   fi
   find "${output}" -type f -name '*.su' -exec \
     grep -hE 'mt6797_a72_(sc_thread|sc_run|sc_terminal|coh_workfn|hold_workfn)' {} + > \
@@ -1670,6 +1808,8 @@ jq -n \
   --arg coherence_patchset_sha256 "${coherence_patchset_sha}" \
   --arg multiline_patchset_sha256 "${multiline_patchset_sha}" \
   --arg parallel_patchset_sha256 "${parallel_patchset_sha}" \
+  --arg scheduler_phase_parent_patchset_sha256 \
+    "${scheduler_phase_parent_patchset_sha}" \
   --arg scheduler_patchset_sha256 "${scheduler_patchset_sha}" \
   --arg build_mode "${build_mode}" \
   --arg config_sha256 "${CONFIG_SHA256}" \
@@ -1695,6 +1835,8 @@ jq -n \
     coherence_patchset_sha256: $coherence_patchset_sha256,
     multiline_patchset_sha256: $multiline_patchset_sha256,
     parallel_patchset_sha256: $parallel_patchset_sha256,
+    scheduler_phase_parent_patchset_sha256:
+      $scheduler_phase_parent_patchset_sha256,
     scheduler_patchset_sha256: $scheduler_patchset_sha256,
     baseline_config_sha256: $config_sha256,
     toolchain_manifest_sha256: $toolchain_manifest_sha256,
@@ -1712,7 +1854,7 @@ jq -n \
     baseline_source_exact_terminal: ($build_mode == "coherence"),
     baseline_source_exact_coherence: ($build_mode == "multiline"),
     baseline_source_exact_multiline: ($build_mode == "parallel"),
-    baseline_source_exact_scheduler_parent: ($build_mode == "scheduler"),
+    baseline_source_exact_scheduler_phase_parent: ($build_mode == "scheduler"),
     cpu9_startup_source_identical: ($build_mode == "window" or
       $build_mode == "terminal" or $build_mode == "coherence" or
       $build_mode == "multiline" or $build_mode == "parallel" or
@@ -1721,7 +1863,7 @@ jq -n \
     stack_usage_file_count: $stack_usage_file_count,
     baseline_stack_usage_file_count: $baseline_stack_usage_file_count,
     purpose: (if $build_mode == "scheduler" then
-      "a72-scheduler-phase-attribution-compile-review-only" elif $build_mode == "parallel" then
+      "a72-scheduler-unpark-compile-review-only" elif $build_mode == "parallel" then
       "cpu9-parallel-disjoint-load-compile-review-only" elif $build_mode == "multiline" then
       "cpu9-multiline-integrity-compile-review-only" elif $build_mode == "coherence" then
       "cpu9-bounded-coherency-compile-review-only" elif $build_mode == "terminal" then

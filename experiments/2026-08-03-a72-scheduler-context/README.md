@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-scheduler-context` |
-| Status | `blocked-kthread-unpark-correction-required` |
+| Status | `blocked-unpark-buildbox-generation-pending` |
 | Subsystem | MT6797 retained Cortex-A72 pair and scheduler |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 through 2026-08-04 |
@@ -63,23 +63,32 @@ The child may add only one finite task-context phase after every pair-v6 parent
 predicate passes. It must not alter CPU startup, HPS veto/timing, CPU_OFF
 prohibition, watchdog, power sequencing, clocks, reset, MMIO, regulator state,
 sample timing, or recovery. It creates exactly two normal-priority kernel
-threads, binds them before first wake to CPUs 8 and 9, bounds all internal waits
+threads, binds them before activation to CPUs 8 and 9, bounds all internal waits
 and work, stops both before publication, and treats incomplete cleanup as a
 terminal fault. The retained watchdog remains the independent recovery bound.
 
 ## Associated code
 
-- [`DESIGN.md`](DESIGN.md): exact lifecycle, workload, task-context oracle,
-  bounds, terminal, result classes, and invariants.
+- [`DESIGN.md`](DESIGN.md): historical exact lifecycle, workload, task-context
+  oracle, bounds, terminal, result classes, and invariants for the rejected
+  wake-based child.
+- [`DESIGN-UNPARK.md`](DESIGN-UNPARK.md): bounded successor contract correcting
+  only parked-thread activation and its evidence schema.
 - [`scripts/source_edits.py`](scripts/source_edits.py): deterministic exact-
   parent scheduler-context transformation.
 - [`scripts/test_static.py`](scripts/test_static.py): inherited-boundary,
   lifecycle, hash-vector, safety-inventory, and negative-mutation validator.
+- [`scripts/unpark_edits.py`](scripts/unpark_edits.py): deterministic one-path
+  activation correction for the exact rejected phase-attribution source.
+- [`scripts/test_unpark_child.py`](scripts/test_unpark_child.py): exact-parent
+  equivalence, lifecycle-source, schema, ordering, and negative-mutation
+  validator for the unpark child.
 - [`scripts/generate-on-buildbox`](scripts/generate-on-buildbox): clean-pushed-
-  commit Buildbox source reconstruction and format-patch generator.
-- [`scripts/build-on-buildbox`](scripts/build-on-buildbox): Buildbox-only phase
-  child versus exact rejected start-gate parent compile, diagnostics,
-  disassembly, and stack comparison.
+  commit reconstruction of the exact phase parent and one-patch unpark
+  successor generator.
+- [`scripts/build-on-buildbox`](scripts/build-on-buildbox): Buildbox-only
+  unpark child versus exact rejected phase parent compile, diagnostics,
+  lifecycle/call-target disassembly, and stack comparison.
 - [`scripts/assemble.py`](scripts/assemble.py): pinned pair-v6 Android-v0
   assembler specialization for the exact phase-attribution kernel.
 - [`scripts/build-candidate.sh`](scripts/build-candidate.sh): reproducible,
@@ -445,6 +454,17 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   serialized CPU8/CPU9 execution, without changing either fixed runtime
   classification. See
   [`results/source-binary-kthread-park-contract-20260804.txt`](results/source-binary-kthread-park-contract-20260804.txt).
+- The source-only unpark successor preserves the exact rejected `0001+0002`
+  parent and prepares a future one-path `0003`. Six finite replacements change
+  only the two parked-task activations and their void-operation fields/markers;
+  reverse normalization must restore parent `psci.c` byte-for-byte. The finite
+  fixture and an exact reconstructed vendor/parent source both pass the
+  lifecycle and equivalence validator and reject all 20 mutations. The
+  Buildbox generator exports only `0003`, while compile and package-fetch paths
+  deliberately hard-stop on a pending all-three-patch hash until that generated
+  patch is reviewed. No Buildbox generation, compile, container, or device
+  action has occurred. See
+  [`results/source-tooling-unpark-20260804.txt`](results/source-tooling-unpark-20260804.txt).
 
 ## Analysis
 
@@ -455,7 +475,7 @@ context while preserving the established power and recovery boundary.
 
 ## Conclusion
 
-`blocked-kthread-unpark-correction-required`: phase-attribution attempt 1 is an
+`blocked-unpark-buildbox-generation-pending`: phase-attribution attempt 1 is an
 attributable restart with incomplete trace under the fixed decision map. The
 guarded exact boot2 write and shutdown succeeded, but retained pstore cannot
 localize the reset beyond its valid marker prefix. A separate exact-source/
@@ -463,8 +483,12 @@ binary audit establishes that the rejected design left its per-CPU kthreads
 parked and released them only through ordered stop cleanup, accounting for the
 retained no-task prefix and the earlier serialized execution. This mechanism
 does not promote the incomplete trace to a first-unmatched boundary and does
-not establish a scheduler/runqueue defect. Reject the current artifact
-unchanged and continue only through the ordered action in `docs/ROADMAP.md`.
+not establish a scheduler/runqueue defect. The finite unpark-only editor,
+exact-parent/lifecycle validator, exact reconstructed-source check, 20-mutation
+self-test, generator, and pending-identity compile/package gates are now
+prepared. Reject the current artifact unchanged; no generated successor or
+compile claim exists yet. Continue only through the ordered action in
+`docs/ROADMAP.md`.
 
 ## Follow-up
 

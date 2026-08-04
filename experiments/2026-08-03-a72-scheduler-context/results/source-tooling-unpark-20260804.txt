@@ -1,0 +1,109 @@
+CPU8/CPU9 scheduler kthread-unpark source tooling
+==================================================
+
+Date: 2026-08-04 UTC
+Result: source-tooling-prepared; Buildbox generation pending
+
+Finding and parent
+------------------
+
+The rejected activation contract calls `wake_up_process()` on tasks returned
+parked by `kthread_create_on_cpu()`. The exact source/binary audit proves that
+the selected wake mask cannot release `TASK_PARKED`; ordered stop cleanup later
+unparks the tasks instead.
+
+The immediate source parent remains the exact, runtime-rejected two-patch
+phase-attribution series:
+
+- `0001-diagnostic-add-bounded-A72-scheduler-context-execution.patch`
+  SHA-256:
+  `23cfff979bee079a41c0a82e43d5c7b3b0f55f8fc29115b2337fb6121f06409b`;
+- `0002-diagnostic-add-A72-scheduler-phase-attribution.patch`
+  SHA-256:
+  `30f2b94232d6cf87991a761dd533a4d90a21545c98132079dd73cbeb2cd00234`;
+- combined parent patchset SHA-256:
+  `b2c971d4a1860ec09616a61dbd8a29fde488f7d99deb8bd6bfbf2c517b2c3493`;
+- reconstructed start-gate source commit:
+  `7de241d42df128848ddbc37a090d4440fb7fa09f`; and
+- reconstructed phase-parent source commit:
+  `cf1b6bc5110d60741b77372a481f7debc02078b2`.
+
+Prepared finite child
+---------------------
+
+The new source-only contract preserves both historical patches byte-for-byte
+and prepares one future logical `0003` that changes only
+`arch/arm64/kernel/psci.c`:
+
+- exactly two initial `wake_up_process()` calls become exactly two
+  `kthread_unpark()` calls;
+- each void call is followed by parent publication of
+  `unpark_issued = 1`; no return value is invented;
+- `wake_result`, `sc_wake8`, and `sc_wake9` become `unpark_issued`,
+  `sc_unpark8`, and `sc_unpark9`;
+- PASS requires both issuance fields to equal one; and
+- the four parent wake phase names become `unpark8`/`unpark9` before/after
+  names while the other 27 marker strings remain unchanged.
+
+Creation, binding, ready/start/done completions, shared deadlines and release,
+deterministic workload and hashes, placement checks, cleanup, pair-v6 gate,
+HPS veto, CPU_OFF prohibition, power, and watchdog boundaries are outside the
+finite replacement set.
+
+Validation contract
+-------------------
+
+- The editor accepts six unique parent anchors and rejects an already changed
+  or ambiguous source.
+- The child validator reverse-normalizes all six replacements and requires
+  byte-identical phase-parent `psci.c`.
+- The scheduler section must contain two creates, two unparks, zero experiment
+  `wake_up_process()` calls, and two stops in exact source order.
+- Exact vendor lifecycle functions must prove create-on-CPU parks,
+  `__kthread_parkme()` uses `TASK_PARKED`, public and internal unpark clear and
+  wake that state, stop retains cleanup-unpark and completion, and ordinary
+  wake remains restricted to `TASK_NORMAL`.
+- Header declarations and exact `TASK_NORMAL`/`TASK_PARKED` definitions are
+  pinned.
+- Twenty decision-relevant source, ordering, schema, lifecycle, declaration,
+  and state-mask mutations are rejected by the finite self-test.
+- The Buildbox generator reconstructs and validates exact `0001`, then exact
+  `0002`, applies the finite child, and exports only
+  `0003-diagnostic-unpark-A72-scheduler-context-tasks.patch` with checksum and
+  provenance coverage.
+- The shared compiler and package validator are prepared to compare and admit
+  the future child against the exact phase parent at source, configuration,
+  symbol, disassembly call-target, task-state-mask, terminal, marker,
+  diagnostic, stack, and provenance boundaries. Their all-three-patch SHA-256
+  is deliberately a non-hex pending sentinel, so a scheduler compile cannot
+  start before generated `0003` is reviewed and the admitted series identity
+  is pinned.
+
+Local validation
+----------------
+
+- Python finite self-test: PASS.
+- Exact-parent reverse normalization in the finite fixture: PASS.
+- Lifecycle-source fixture: PASS.
+- Independent exact reconstructed vendor/parent source validation: PASS.
+- Exact reconstructed-source reverse normalization: PASS.
+- Negative mutations: 20/20 rejected against both the fixture and the exact
+  reconstructed source.
+- Python syntax and CLI parsing: PASS.
+- Bash syntax for the Buildbox orchestrator, generator, wrapper, and shared
+  compiler: PASS.
+- ShellCheck for the Buildbox orchestrator, generator, wrapper, and shared
+  compiler: PASS.
+- Pending-identity scheduler package-fetch guard: PASS; refused before network
+  access with the non-hex sentinel.
+- Whitespace validation: PASS.
+- Native VM kernel build: no.
+- Buildbox generation or compile: no.
+- Container or device action: none.
+
+Boundary
+--------
+
+This result prepares reviewable source tooling only. It does not establish a
+generated child identity, compile success, binary behavior, a boot candidate,
+or hardware progress. Ordered successor work remains in `docs/ROADMAP.md`.

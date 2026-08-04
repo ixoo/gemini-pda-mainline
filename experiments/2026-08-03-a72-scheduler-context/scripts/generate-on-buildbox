@@ -5,6 +5,14 @@ export LC_ALL=C
 
 readonly SOURCE_COMMIT=59e00a9144d782e148332009a835b99c43382467
 readonly SOURCE_URL=https://github.com/gemian/gemini-linux-kernel-3.18.git
+readonly START_GATE_PATCH=0001-diagnostic-add-bounded-A72-scheduler-context-execution.patch
+readonly START_GATE_PATCH_SHA256=23cfff979bee079a41c0a82e43d5c7b3b0f55f8fc29115b2337fb6121f06409b
+readonly START_GATE_COMMIT=7de241d42df128848ddbc37a090d4440fb7fa09f
+readonly PHASE_PATCH=0002-diagnostic-add-A72-scheduler-phase-attribution.patch
+readonly PHASE_PATCH_SHA256=30f2b94232d6cf87991a761dd533a4d90a21545c98132079dd73cbeb2cd00234
+readonly PHASE_PARENT_COMMIT=cf1b6bc5110d60741b77372a481f7debc02078b2
+readonly PHASE_PARENT_PATCHSET_SHA256=b2c971d4a1860ec09616a61dbd8a29fde488f7d99deb8bd6bfbf2c517b2c3493
+readonly GENERATED_PATCH=0003-diagnostic-unpark-A72-scheduler-context-tasks.patch
 
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 [[ "$#" -eq 3 ]] || die 'expected PROJECT_COMMIT SOURCE_ROOT OUTPUT_ROOT'
@@ -18,16 +26,19 @@ repository_dir="$(cd -- "$script_dir/../../.." && pwd -P)"
 readonly script_dir repository_dir
 [[ "$(git -C "$repository_dir" rev-parse HEAD)" == "$project_commit" ]] || die 'project checkout mismatch'
 [[ -z "$(git -C "$repository_dir" status --porcelain)" ]] || die 'project checkout is dirty'
-for command in cp git python3 sha256sum; do command -v "$command" >/dev/null || die "missing command: $command"; done
+for command in awk cp diff find git grep mkdir mktemp mv python3 rm sha256sum sort xargs; do
+  command -v "$command" >/dev/null || die "missing command: $command"
+done
 
 readonly mirror="$source_root/gemian-linux-kernel-3.18.git"
 readonly work_root=/workspace/gemini-pda/a72-scheduler-context-work
-readonly package="$output_root/gemian-a72-scheduler-phase-markers-${project_commit:0:12}"
+readonly package="$output_root/gemian-a72-scheduler-unpark-${project_commit:0:12}"
 readonly partial="${package}.partial.$$"
 mkdir -p "$source_root" "$work_root" "$output_root"
 [[ ! -e "$partial" ]] || die 'stale output partial exists'
 if [[ -d "$package" && ! -L "$package" ]]; then
   grep -Fx "repository_commit=$project_commit" "$package/provenance/generation.txt" >/dev/null || die 'existing package commit mismatch'
+  grep -Fx 'purpose=experiment-only-a72-scheduler-unpark-source-review' "$package/provenance/generation.txt" >/dev/null || die 'existing package purpose mismatch'
   (cd "$package" && sha256sum --check --strict SHA256SUMS >/dev/null)
   printf 'Generated A72 scheduler-context patch review at %s\n' "$package"
   exit 0
@@ -65,45 +76,93 @@ done
 for parent in 2026-08-02-a72-one-way-cpu8-boundary 2026-08-02-a72-cpu8-held-online 2026-08-03-a72-cpu8-late-hold 2026-08-03-a72-cpu9-cluster-reuse 2026-08-03-a72-cpu9-retention-window 2026-08-03-a72-cpu9-terminal-attribution 2026-08-03-a72-cpu9-bounded-coherency 2026-08-03-a72-cpu9-multiline-integrity 2026-08-03-a72-cpu9-parallel-disjoint-load; do
   apply_series "$parent"
 done
-apply_series 2026-08-03-a72-scheduler-context
+readonly scheduler_patches="$repository_dir/experiments/2026-08-03-a72-scheduler-context/patches"
+diff -u <(printf '%s\n' "$START_GATE_PATCH" "$PHASE_PATCH") \
+  "$scheduler_patches/series" >/dev/null || die 'phase parent series changed'
+[[ "$(sha256sum "$scheduler_patches/$START_GATE_PATCH" | awk '{print $1}')" == \
+  "$START_GATE_PATCH_SHA256" ]] || die 'start-gate patch identity changed'
+[[ "$(sha256sum "$scheduler_patches/$PHASE_PATCH" | awk '{print $1}')" == \
+  "$PHASE_PATCH_SHA256" ]] || die 'phase-attribution patch identity changed'
+phase_parent_patchset_sha="$({
+  printf '%s\n' "$START_GATE_PATCH_SHA256" "$PHASE_PATCH_SHA256"
+} | sha256sum | awk '{print $1}')"
+readonly phase_parent_patchset_sha
+[[ "$phase_parent_patchset_sha" == "$PHASE_PARENT_PATCHSET_SHA256" ]] || \
+  die 'phase parent patchset identity changed'
 
-parent_commit="$(git -C "$work/source" rev-parse HEAD)"
-readonly parent_commit
+git -C "$work/source" am --committer-date-is-author-date \
+  "$scheduler_patches/$START_GATE_PATCH"
+start_gate_commit="$(git -C "$work/source" rev-parse HEAD)"
+readonly start_gate_commit
+[[ "$start_gate_commit" == "$START_GATE_COMMIT" ]] || \
+  die 'reconstructed start-gate commit changed'
 python3 "$script_dir/test_static.py" --source "$work/source"
-cp "$work/source/arch/arm64/kernel/psci.c" "$work/parent-psci.c"
-python3 "$script_dir/phase_marker_edits.py" --source "$work/source"
-git -C "$work/source" diff --check
+cp "$work/source/arch/arm64/kernel/psci.c" "$work/start-gate-parent-psci.c"
+
+git -C "$work/source" am --committer-date-is-author-date \
+  "$scheduler_patches/$PHASE_PATCH"
+phase_parent_commit="$(git -C "$work/source" rev-parse HEAD)"
+readonly phase_parent_commit
+[[ "$phase_parent_commit" == "$PHASE_PARENT_COMMIT" ]] || \
+  die 'reconstructed phase parent commit changed'
 python3 "$script_dir/test_phase_markers.py" --source "$work/source" \
-  --parent-psci "$work/parent-psci.c"
+  --parent-psci "$work/start-gate-parent-psci.c"
+cp "$work/source/arch/arm64/kernel/psci.c" "$work/phase-parent-psci.c"
+
+python3 "$script_dir/unpark_edits.py" --source "$work/source"
+git -C "$work/source" diff --check
+python3 "$script_dir/test_unpark_child.py" --source "$work/source" \
+  --parent-psci "$work/phase-parent-psci.c"
 git -C "$work/source" add -- arch/arm64/kernel/psci.c
 git -C "$work/source" diff --cached --check
-GIT_AUTHOR_NAME='Gemini A72 experiment' GIT_AUTHOR_EMAIL=noreply@gemini-a72.invalid GIT_COMMITTER_NAME='Gemini A72 experiment' GIT_COMMITTER_EMAIL=noreply@gemini-a72.invalid GIT_AUTHOR_DATE=2026-08-04T01:10:00Z GIT_COMMITTER_DATE=2026-08-04T01:10:00Z git -C "$work/source" commit --no-gpg-sign -m 'diagnostic: attribute A72 scheduler start-gate phases' -m 'Add durable pre/post markers around the unchanged rejected start-gate protocol.' -m 'Preserve workload, timeouts, power, CPU_OFF prohibition, and watchdog recovery.'
+diff -u <(printf '%s\n' arch/arm64/kernel/psci.c) \
+  <(git -C "$work/source" diff --cached --name-only) >/dev/null || \
+  die 'unpark child path inventory changed'
+GIT_AUTHOR_NAME='Gemini A72 experiment' GIT_AUTHOR_EMAIL=noreply@gemini-a72.invalid GIT_COMMITTER_NAME='Gemini A72 experiment' GIT_COMMITTER_EMAIL=noreply@gemini-a72.invalid GIT_AUTHOR_DATE=2026-08-04T23:30:00Z GIT_COMMITTER_DATE=2026-08-04T23:30:00Z git -C "$work/source" commit --no-gpg-sign -m 'diagnostic: unpark A72 scheduler-context tasks' -m 'Use the per-CPU kthread unpark contract for the two intended activations.' -m 'Preserve the bounded rendezvous, workload, power, CPU_OFF prohibition, and watchdog recovery.'
+unpark_commit="$(git -C "$work/source" rev-parse HEAD)"
+readonly unpark_commit
 
 mkdir -p "$partial/patches" "$partial/provenance"
-readonly patch=0002-diagnostic-add-A72-scheduler-phase-attribution.patch
-git -C "$work/source" format-patch -1 --no-signature --stdout HEAD >"$partial/patches/$patch"
-printf '%s\n' "$patch" >"$partial/patches/series"
+git -C "$work/source" format-patch -1 --no-signature --stdout HEAD \
+  >"$partial/patches/$GENERATED_PATCH"
+printf '%s\n' "$GENERATED_PATCH" >"$partial/patches/series"
 git -C "$work/source" diff-tree --no-commit-id --name-only -r HEAD >"$partial/provenance/changed-paths.txt"
 diff -u <(printf '%s\n' arch/arm64/kernel/psci.c) "$partial/provenance/changed-paths.txt" >/dev/null || die 'generated patch path inventory changed'
-python3 "$script_dir/test_phase_markers.py" --source "$work/source" \
-  --parent-psci "$work/parent-psci.c"
+python3 "$script_dir/test_unpark_child.py" --source "$work/source" \
+  --parent-psci "$work/phase-parent-psci.c"
 [[ -z "$(git -C "$work/source" status --porcelain)" ]] || die 'generated source is dirty'
-parent_patchset_sha="$({ cd "$repository_dir/experiments/2026-08-03-a72-scheduler-context/patches"; while IFS= read -r name; do sha256sum "$name" | awk '{print $1}'; done <series; } | sha256sum | awk '{print $1}')"
+generated_patch_sha="$(sha256sum "$partial/patches/$GENERATED_PATCH" | awk '{print $1}')"
+readonly generated_patch_sha
 cat >"$partial/provenance/generation.txt" <<EOF
-purpose=experiment-only-a72-scheduler-phase-attribution-source-review
+purpose=experiment-only-a72-scheduler-unpark-source-review
 boot_candidate=false
 device_action=none
 repository_commit=$project_commit
 source_url=$SOURCE_URL
 source_commit=$SOURCE_COMMIT
-exact_parent_commit=$parent_commit
-exact_parent_start_gate_patchset_sha256=$parent_patchset_sha
+exact_start_gate_patch=$START_GATE_PATCH
+exact_start_gate_patch_sha256=$START_GATE_PATCH_SHA256
+exact_start_gate_commit=$start_gate_commit
+exact_phase_attribution_patch=$PHASE_PATCH
+exact_phase_attribution_patch_sha256=$PHASE_PATCH_SHA256
+exact_phase_parent_patchset_sha256=$phase_parent_patchset_sha
+exact_phase_parent_commit=$phase_parent_commit
+generated_source_commit=$unpark_commit
+generated_patch=$GENERATED_PATCH
+generated_patch_sha256=$generated_patch_sha
+parent_patch_count=2
+parent_patches_exported=no
 generated_patch_count=1
+exported_patch_scope=0003-only
+start_gate_validator=experiments/2026-08-03-a72-scheduler-context/scripts/test_static.py
+phase_parent_validator=experiments/2026-08-03-a72-scheduler-context/scripts/test_phase_markers.py
+child_editor=experiments/2026-08-03-a72-scheduler-context/scripts/unpark_edits.py
+child_validator=experiments/2026-08-03-a72-scheduler-context/scripts/test_unpark_child.py
 generator=experiments/2026-08-03-a72-scheduler-context/scripts/generate-on-buildbox
 native_vm_kernel_build=no
 EOF
 (cd "$partial"; find patches provenance -type f -print0 | sort -z | xargs -0 sha256sum >SHA256SUMS; sha256sum --check --strict SHA256SUMS >/dev/null)
 mv "$partial" "$package"
-trap - EXIT
 rm -rf -- "$work"
+trap - EXIT
 printf 'Generated A72 scheduler-context patch review at %s\n' "$package"

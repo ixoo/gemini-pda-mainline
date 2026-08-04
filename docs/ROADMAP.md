@@ -1248,11 +1248,14 @@ and the subsequent
 remain in the experiment record. The audit identifies the deterministic design
 error: the per-CPU tasks are created parked, the selected wake operation does
 not release that state, and ordered stop cleanup does.
-Reject the artifact unchanged. The next ordered action is a one-path successor
-using `kthread_unpark()`, with its void-operation terminal and marker contract
-plus exact-source, binary-call-edge, and negative-mutation gates revised before
-a Buildbox-only compile. No unchanged repeat, container, write, or device boot
-is authorized.
+Reject the artifact unchanged. The unpark successor's source tooling is
+prepared; exact validation evidence remains in the
+[experiment record](../experiments/2026-08-03-a72-scheduler-context/results/source-tooling-unpark-20260804.txt).
+Compile and package-fetch paths remain fail-closed pending a generated child
+identity. The next ordered action, only from the clean pushed tooling revision,
+is Buildbox generation of the single successor patch, followed by package,
+patch, provenance, and mutation review. No compile, unchanged repeat,
+container, write, or device boot is authorized.
 
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback
