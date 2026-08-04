@@ -13,16 +13,17 @@ from pathlib import Path
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
+EXPERIMENTS = SCRIPT_DIR.parent.parent
 ASSEMBLER = SCRIPT_DIR / "assemble.py"
 BUILDER = SCRIPT_DIR / "build-candidate.sh"
 PARENT_ASSEMBLER = (
-    SCRIPT_DIR.parent.parent
+    EXPERIMENTS
     / "2026-08-03-a72-cpu9-parallel-disjoint-load"
     / "scripts"
     / "assemble.py"
 )
 SOURCE_BUILDER = (
-    SCRIPT_DIR.parent.parent
+    EXPERIMENTS
     / "2026-08-02-a72-cpu8-held-online"
     / "scripts"
     / "build-candidate.sh"
@@ -50,6 +51,73 @@ EXPECTED_FILE_SHA256 = {
     "SHA256SUMS": "e10e38baeb290d00e73e587111024ec7ddf96974604837e31e980c7c62618df4",
 }
 EXPECTED_CMDLINE = b"bootopt=64S3,32N2,64N2 log_buf_len=4M"
+ASSEMBLER_CHAIN = (
+    (ASSEMBLER, EXPECTED["assembler_sha256"]),
+    (PARENT_ASSEMBLER, EXPECTED["parent_assembler_sha256"]),
+    (
+        EXPERIMENTS
+        / "2026-08-03-a72-cpu9-multiline-integrity"
+        / "scripts"
+        / "assemble.py",
+        "a7e14b94947aca21038668463b307bbcf59304d55e329e6d7278b4ae2778ea1d",
+    ),
+    (
+        EXPERIMENTS
+        / "2026-08-03-a72-cpu9-bounded-coherency"
+        / "scripts"
+        / "assemble.py",
+        "2121b03995070321e49293d7e895433dab7a530de095b760d359910e5598252b",
+    ),
+    (
+        EXPERIMENTS
+        / "2026-08-03-a72-cpu9-terminal-attribution"
+        / "scripts"
+        / "assemble.py",
+        "ed11b681d25ccd0c902226f04ecd3435b3dc85233adcc3274885ec08491f8145",
+    ),
+    (
+        EXPERIMENTS
+        / "2026-08-03-a72-cpu9-retention-window"
+        / "scripts"
+        / "assemble.py",
+        "f6d36d5eeafe92936fb8c18bddf34eed92f28dd1b602989fb196e83206812885",
+    ),
+    (
+        EXPERIMENTS
+        / "2026-08-03-a72-cpu9-cluster-reuse"
+        / "scripts"
+        / "assemble.py",
+        "dbd00ee1f2dfbec6eb8c2d48a8e65a1f2ca888a5e6be400e05620cd04a597358",
+    ),
+    (
+        EXPERIMENTS
+        / "2026-08-03-a72-cpu8-late-hold"
+        / "scripts"
+        / "assemble.py",
+        "231f916492bc8477064f792e6bb07ea0d5362b60aa364af44912fb0b205d5ce4",
+    ),
+    (
+        EXPERIMENTS
+        / "2026-08-02-a72-cpu8-held-online"
+        / "scripts"
+        / "assemble.py",
+        "c53c40898a25b1b4a0ddeaab310d7e8cb84e08bb4ba9edd8f0e05129fceaeccf",
+    ),
+    (
+        EXPERIMENTS
+        / "2026-08-02-a72-one-way-cpu8-boundary"
+        / "scripts"
+        / "assemble.py",
+        "2c6e59da67357c946f1ce6e4300fadaf732add0e124f25ba84aefe2a222bbb4b",
+    ),
+    (
+        EXPERIMENTS
+        / "2026-08-02-gemian-a72-bounded-observer-boot"
+        / "scripts"
+        / "assemble.py",
+        "532f6f0dec5030a7b066f3baefa53580ec148317f633d4dd8d43308d30ac03b3",
+    ),
+)
 
 
 def digest(data: bytes) -> str:
@@ -66,21 +134,26 @@ def align(value: int, page: int) -> int:
 
 
 def validate_tools() -> None:
-    assembler = ASSEMBLER.read_bytes()
     builder = BUILDER.read_bytes()
-    parent_assembler = PARENT_ASSEMBLER.read_bytes()
     source_builder = SOURCE_BUILDER.read_bytes()
-    require(digest(assembler) == EXPECTED["assembler_sha256"], "assembler changed")
+    assembler_parts = []
+    for path, expected in ASSEMBLER_CHAIN:
+        require(
+            path.is_file() and not path.is_symlink(),
+            f"unsafe assembler: {path.name}",
+        )
+        content = path.read_bytes()
+        require(
+            digest(content) == expected,
+            f"assembler chain changed: {path.parent.parent.name}",
+        )
+        assembler_parts.append(content)
     require(digest(builder) == EXPECTED["builder_sha256"], "builder changed")
-    require(
-        digest(parent_assembler) == EXPECTED["parent_assembler_sha256"],
-        "parent assembler changed",
-    )
     require(
         digest(source_builder) == EXPECTED["source_builder_sha256"],
         "source builder changed",
     )
-    tooling = assembler + builder + parent_assembler + source_builder
+    tooling = b"".join(assembler_parts) + builder + source_builder
     tool_hashes = {
         "assembler_sha256",
         "parent_assembler_sha256",
@@ -316,6 +389,7 @@ def main() -> int:
     validate_mutations(candidate)
     print("validation=a72-scheduler-phase-attribution-candidate")
     print("checks=tool-pins,manifest,android-v0,ramdisk,padding,provenance,offline-only")
+    print("assembler_chain=11-pinned-offline")
     print("candidate_mutations=6-rejected")
     print("result=pass")
     return 0
