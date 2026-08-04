@@ -1241,13 +1241,13 @@ ramdisk, legacy-ID, extent, zero-padding, provenance, and offline-only
 validation. No device action is authorized yet.
 
 Phase-attribution attempt 1 produced an attributable restart with incomplete
-trace; its exact deployment and classification evidence remain in the
-[experiment record](../experiments/2026-08-03-a72-scheduler-context/results/runtime-phase-attribution-attempt-1-incomplete-trace-20260804.txt).
-A subsequent exact-source/binary audit identifies the deterministic design
+trace. Exact [deployment evidence](../experiments/2026-08-03-a72-scheduler-context/results/deployment-phase-attribution-20260804.txt),
+[runtime classification](../experiments/2026-08-03-a72-scheduler-context/results/runtime-phase-attribution-attempt-1-incomplete-trace-20260804.txt),
+and the subsequent
+[source/binary audit](../experiments/2026-08-03-a72-scheduler-context/results/source-binary-kthread-park-contract-20260804.txt)
+remain in the experiment record. The audit identifies the deterministic design
 error: the per-CPU tasks are created parked, the selected wake operation does
-not release that state, and ordered stop cleanup does; its exact evidence also
-remains in the
-[experiment record](../experiments/2026-08-03-a72-scheduler-context/results/source-binary-kthread-park-contract-20260804.txt).
+not release that state, and ordered stop cleanup does.
 Reject the artifact unchanged. The next ordered action is a one-path successor
 using `kthread_unpark()`, with its void-operation terminal and marker contract
 plus exact-source, binary-call-edge, and negative-mutation gates revised before

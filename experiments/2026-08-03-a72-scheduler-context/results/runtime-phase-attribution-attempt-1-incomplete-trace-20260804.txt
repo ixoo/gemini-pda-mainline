@@ -78,8 +78,9 @@ Therefore record only:
 
 Do not claim that CPU8 failed, that the done8 wait caused or remained active at
 reset, that either readiness wait timed out, or that the preceding candidate's
-NULL dereference recurred. Full-size objects, clean final newlines, and matching
-checksums establish faithful copying, not semantic completeness through reset.
+NULL dereference recurred. Matching source-manifest checksums establish
+faithful copying of the retained objects, not semantic completeness through
+reset.
 
 Recovery and evidence integrity
 -------------------------------
@@ -87,7 +88,7 @@ Recovery and evidence integrity
 - Recovery was ordinary Gemian `3.18.41+` on aarch64 with filtered boot reason
   `boot_reason=4` and `androidboot.bootreason=wdt_by_pass_pwk`.
 - CPUs 8 and 9 were offline. Live-GPT boot2 remained inactive and unmounted
-  with the exact candidate checksum. SSH serviceability returned.
+  with the exact candidate checksum. Known-good Gemian serviceability returned.
 - No USB/netcat capture was retained. The prearmed read-only collector produced
   no candidate output, performed no write or stimulus, and was stopped after
   pstore recovery completed.

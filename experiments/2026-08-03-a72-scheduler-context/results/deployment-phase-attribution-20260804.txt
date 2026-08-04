@@ -13,6 +13,8 @@ override did not waive any live-device safety or readback requirement.
 
 - Compile repository commit:
   a50c12f11862bde5b27de8de0a91ac72529b1bd7
+- Phase-attribution scheduler patchset SHA-256:
+  b2c971d4a1860ec09616a61dbd8a29fde488f7d99deb8bd6bfbf2c517b2c3493
 - Kernel field / Image.gz-dtb SHA-256:
   932dfc84eaea2aa5971a0ade98d5ddb8d592e400830fba47aa81d2a7b02c5811
 - Raw Android-v0 SHA-256:

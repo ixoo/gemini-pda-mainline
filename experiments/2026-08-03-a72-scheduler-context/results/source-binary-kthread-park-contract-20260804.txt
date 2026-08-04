@@ -2,8 +2,8 @@ CPU8/CPU9 exact source/binary audit: per-CPU kthread park contract
 =================================================================
 
 Date: 2026-08-04 UTC
-Decision: replace the two initial `wake_up_process()` calls with
-`kthread_unpark()` before another compile or runtime attempt.
+Finding: the rejected activation contract cannot release its parked per-CPU
+tasks; reject the artifact unchanged.
 
 Question
 --------
