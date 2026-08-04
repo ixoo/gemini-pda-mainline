@@ -44,6 +44,11 @@ EXPECTED = {
 RAW_NAME = "gemian-a72-scheduler-phase-attribution.boot.img"
 PADDED_NAME = "boot2-padded.img"
 EXPECTED_FILES = {RAW_NAME, PADDED_NAME, "analysis.txt", "provenance.txt", "SHA256SUMS"}
+EXPECTED_FILE_SHA256 = {
+    "analysis.txt": "82e7431d47d205afce9d1eacd64913bf3679ca1718207e984e1986ac18a84fc5",
+    "provenance.txt": "ee39d31143915b129af0b24443464ebd76ef994b072cb4ead505a43bdb47b703",
+    "SHA256SUMS": "e10e38baeb290d00e73e587111024ec7ddf96974604837e31e980c7c62618df4",
+}
 EXPECTED_CMDLINE = b"bootopt=64S3,32N2,64N2 log_buf_len=4M"
 
 
@@ -95,7 +100,10 @@ def validate_tools() -> None:
         rb"\bpoweroff\b",
         rb"\bshutdown\b",
     ):
-        require(re.search(pattern, builder) is None, f"device action in builder: {pattern!r}")
+        require(
+            re.search(pattern, tooling) is None,
+            f"device action in executed tooling: {pattern!r}",
+        )
     run = subprocess.run(
         [str(BUILDER), "--help"], check=True, capture_output=True, text=True
     )
@@ -105,7 +113,12 @@ def validate_tools() -> None:
 def validate_candidate(candidate: Path) -> None:
     entries = list(candidate.iterdir())
     require(
-        all(entry.is_file() and not entry.is_symlink() for entry in entries),
+        all(
+            entry.is_file()
+            and not entry.is_symlink()
+            and entry.stat().st_nlink == 1
+            for entry in entries
+        ),
         "unsafe candidate entry",
     )
     require({entry.name for entry in entries} == EXPECTED_FILES, "inventory changed")
@@ -181,26 +194,42 @@ def validate_candidate(candidate: Path) -> None:
         raw[576:596] == image_id.digest() and set(raw[596:608]) <= {0},
         "legacy image ID changed",
     )
-    evidence = (candidate / "analysis.txt").read_text() + (
-        candidate / "provenance.txt"
-    ).read_text()
-    for key, value in EXPECTED.items():
-        if key not in {
-            "assembler_sha256",
-            "parent_assembler_sha256",
-            "builder_sha256",
-            "source_builder_sha256",
-        }:
-            require(f"{key}={value}" in evidence, f"evidence lacks {key}")
-    for token in (
-        "experiment=2026-08-03-a72-scheduler-context",
-        "device_access=none",
-        "partition_write=none",
-        "runtime_result=not-tested",
-        "raw_assemblies_identical=yes",
-        "padded_constructions_identical=yes",
-    ):
-        require(token in evidence, f"evidence lacks {token}")
+    evidence_files = ("analysis.txt", "provenance.txt")
+    evidence_records = {}
+    for name in evidence_files:
+        records = {}
+        for line in (candidate / name).read_text().splitlines():
+            match = re.fullmatch(r"([a-z0-9_]+)=([^\r\n]+)", line)
+            require(match is not None, f"malformed evidence record: {name}: {line!r}")
+            key, value = match.groups()
+            require(key not in records, f"duplicate evidence key: {name}:{key}")
+            records[key] = value
+        for key in evidence_records.keys() & records.keys():
+            require(
+                evidence_records[key] == records[key],
+                f"conflicting evidence key: {key}",
+            )
+        evidence_records.update(records)
+    expected_evidence = {
+        "repository_commit": EXPECTED["repository_commit"],
+        "parallel_patchset_sha256": EXPECTED["parallel_patchset_sha256"],
+        "scheduler_patchset_sha256": EXPECTED["scheduler_patchset_sha256"],
+        "kernel_field_sha256": EXPECTED["kernel_field_sha256"],
+        "active_boot_sha256": EXPECTED["active_boot_sha256"],
+        "active_ramdisk_sha256": EXPECTED["active_ramdisk_sha256"],
+        "raw_sha256": EXPECTED["raw_sha256"],
+        "padded_sha256": EXPECTED["padded_sha256"],
+        "experiment": "2026-08-03-a72-scheduler-context",
+        "device_access": "none",
+        "partition_write": "none",
+        "runtime_result": "not-tested",
+        "raw_assemblies_identical": "yes",
+        "padded_constructions_identical": "yes",
+    }
+    for key, value in expected_evidence.items():
+        require(evidence_records.get(key) == value, f"evidence changed: {key}")
+    for name, expected in EXPECTED_FILE_SHA256.items():
+        require(digest((candidate / name).read_bytes()) == expected, f"{name} changed")
 
 
 def refresh_manifest_record(candidate: Path, name: str) -> None:
@@ -234,6 +263,11 @@ def validate_mutations(candidate: Path) -> None:
         path.write_text(text.replace("partition_write=none", "partition_write=changed"))
         refresh_manifest_record(mutated, "provenance.txt")
 
+    def conflicting_provenance(mutated: Path) -> None:
+        path = mutated / "provenance.txt"
+        path.write_text(path.read_text() + "partition_write=changed\n")
+        refresh_manifest_record(mutated, "provenance.txt")
+
     def unmanifested_entry(mutated: Path) -> None:
         (mutated / "unexpected.txt").write_text("unexpected\n")
 
@@ -249,8 +283,9 @@ def validate_mutations(candidate: Path) -> None:
         (
             "provenance-boundary",
             provenance_boundary_missing,
-            "evidence lacks partition_write=none",
+            "evidence changed: partition_write",
         ),
+        ("conflicting-provenance", conflicting_provenance, "duplicate evidence key"),
         ("unmanifested-entry", unmanifested_entry, "inventory changed"),
         ("unsafe-manifest-path", unsafe_manifest_path, "unsafe manifest record"),
     )
@@ -271,12 +306,17 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--candidate", type=Path, required=True)
     args = parser.parse_args()
+    require(
+        args.candidate.is_dir() and not args.candidate.is_symlink(),
+        "unsafe candidate root",
+    )
+    candidate = args.candidate.resolve()
     validate_tools()
-    validate_candidate(args.candidate.resolve())
-    validate_mutations(args.candidate.resolve())
+    validate_candidate(candidate)
+    validate_mutations(candidate)
     print("validation=a72-scheduler-phase-attribution-candidate")
     print("checks=tool-pins,manifest,android-v0,ramdisk,padding,provenance,offline-only")
-    print("candidate_mutations=5-rejected")
+    print("candidate_mutations=6-rejected")
     print("result=pass")
     return 0
 
