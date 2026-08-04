@@ -74,7 +74,7 @@ git -C "$work/source" diff --check
 python3 "$script_dir/test_static.py" --source "$work/source"
 git -C "$work/source" add -- arch/arm64/kernel/psci.c
 git -C "$work/source" diff --cached --check
-GIT_AUTHOR_NAME='Gemini A72 experiment' GIT_AUTHOR_EMAIL=noreply@gemini-a72.invalid GIT_COMMITTER_NAME='Gemini A72 experiment' GIT_COMMITTER_EMAIL=noreply@gemini-a72.invalid GIT_AUTHOR_DATE=2026-08-03T23:30:00Z GIT_COMMITTER_DATE=2026-08-03T23:30:00Z git -C "$work/source" commit --no-gpg-sign -m 'diagnostic: add bounded A72 scheduler-context execution' -m 'Preserve pair-v6, then dispatch one normal bound kthread per A72.' -m 'Publish exact task context, placement, workload, and cleanup results.' -m 'Keep startup, CPU_OFF prohibition, power, HPS, and recovery unchanged.'
+GIT_AUTHOR_NAME='Gemini A72 experiment' GIT_AUTHOR_EMAIL=noreply@gemini-a72.invalid GIT_COMMITTER_NAME='Gemini A72 experiment' GIT_COMMITTER_EMAIL=noreply@gemini-a72.invalid GIT_AUTHOR_DATE=2026-08-04T00:20:00Z GIT_COMMITTER_DATE=2026-08-04T00:20:00Z git -C "$work/source" commit --no-gpg-sign -m 'diagnostic: gate A72 scheduler work after task readiness' -m 'Preserve pair-v6, then block each bound kthread behind one parent-released start gate.' -m 'Publish exact readiness, gate, task context, placement, workload, and cleanup results.' -m 'Keep startup, CPU_OFF prohibition, power, HPS, and recovery unchanged.'
 
 mkdir -p "$partial/patches" "$partial/provenance"
 readonly patch=0001-diagnostic-add-bounded-A72-scheduler-context-execution.patch

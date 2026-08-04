@@ -59,10 +59,14 @@ def validate(psci: str, cpu: str, hps: str) -> None:
         "#define MT6797_A72_SC_ITERATIONS 262144",
         "#define MT6797_A72_SC_RESCHED_INTERVAL 4096",
         "#define MT6797_A72_SC_RESCHEDS 64",
-        "#define MT6797_A72_SC_SPIN_BUDGET (1U << 25)",
-        "#define MT6797_A72_SC_TIMEOUT_MS 2000",
+        "#define MT6797_A72_SC_READY_TIMEOUT_MS 2000",
+        "#define MT6797_A72_SC_DONE_TIMEOUT_MS 2000",
         "#define MT6797_A72_SC_HASH8_EXPECTED 0xf678147669874ecdULL",
         "#define MT6797_A72_SC_HASH9_EXPECTED 0xc2274327e9c8104cULL",
+        "static DECLARE_COMPLETION(mt6797_a72_sc_ready8);",
+        "static DECLARE_COMPLETION(mt6797_a72_sc_ready9);",
+        "static DECLARE_COMPLETION(mt6797_a72_sc_start);",
+        "static atomic_t mt6797_a72_sc_start_allowed = ATOMIC_INIT(0);",
         "static u64 mt6797_a72_sc_step(u64 value, int cpu, unsigned int iteration)\n"
         "{\n"
         "\tvalue ^= (u64)cpu << 57;\n"
@@ -75,8 +79,15 @@ def validate(psci: str, cpu: str, hps: str) -> None:
         "!!(current->flags & PF_KTHREAD) && !in_interrupt()",
         "cpu = get_cpu();\n\tput_cpu();",
         "atomic_inc(&mt6797_a72_sc_ready);",
-        "while (atomic_read(&mt6797_a72_sc_ready) != 2)",
-        "if (!budget--)",
+        "complete(ready);",
+        "wait_for_completion_timeout(\n"
+        "\t\t&mt6797_a72_sc_start,\n"
+        "\t\tmsecs_to_jiffies(MT6797_A72_SC_READY_TIMEOUT_MS))",
+        "!atomic_read(&mt6797_a72_sc_start_allowed)",
+        "reinit_completion(&mt6797_a72_sc_ready8);",
+        "reinit_completion(&mt6797_a72_sc_ready9);",
+        "reinit_completion(&mt6797_a72_sc_start);",
+        "atomic_set(&mt6797_a72_sc_start_allowed, 0);",
         "iteration < MT6797_A72_SC_ITERATIONS",
         "(iteration + 1) % MT6797_A72_SC_RESCHED_INTERVAL",
         "cond_resched();",
@@ -88,12 +99,19 @@ def validate(psci: str, cpu: str, hps: str) -> None:
         '"gemini-a72-sc/%u"',
         "wake_up_process(mt6797_a72_sc_task8)",
         "wake_up_process(mt6797_a72_sc_task9)",
-        "deadline = jiffies + msecs_to_jiffies(MT6797_A72_SC_TIMEOUT_MS);",
+        "ready_deadline = jiffies +\n"
+        "\t\tmsecs_to_jiffies(MT6797_A72_SC_READY_TIMEOUT_MS);",
+        "mt6797_a72_sc_wait_until(&mt6797_a72_sc_ready8, ready_deadline)",
+        "mt6797_a72_sc_wait_until(&mt6797_a72_sc_ready9, ready_deadline)",
+        "atomic_set(&mt6797_a72_sc_start_allowed, 1);",
+        "complete_all(&mt6797_a72_sc_start);",
+        "done_deadline = jiffies +\n"
+        "\t\tmsecs_to_jiffies(MT6797_A72_SC_DONE_TIMEOUT_MS);",
         "if (completion_done(done))",
         "if (time_after_eq(jiffies, deadline))",
         "wait_for_completion_timeout(done, remaining)",
-        "mt6797_a72_sc_wait_until(&mt6797_a72_sc_done8, deadline)",
-        "mt6797_a72_sc_wait_until(&mt6797_a72_sc_done9, deadline)",
+        "mt6797_a72_sc_wait_until(&mt6797_a72_sc_done8, done_deadline)",
+        "mt6797_a72_sc_wait_until(&mt6797_a72_sc_done9, done_deadline)",
         "kthread_stop(mt6797_a72_sc_task8)",
         "kthread_stop(mt6797_a72_sc_task9)",
         "kthread_stop(mt6797_a72_sc_task8);\n\t\tmt6797_a72_sc_task8 = NULL;",
@@ -111,10 +129,16 @@ def validate(psci: str, cpu: str, hps: str) -> None:
         "result9->hash == MT6797_A72_SC_HASH9_EXPECTED",
         "result8->stop_result == result8->error",
         "result9->stop_result == result9->error",
+        "result8->ready_complete == 1",
+        "result9->ready_complete == 1",
+        "result8->start_complete == 1",
+        "result9->start_complete == 1",
         "gemini-a72-pair-v7 result=%s parent_pass=%d",
         "mt6797_a72_sc_terminal(true);",
         "mt6797_a72_sc_terminal(false);",
         "sc_reported=%d sc_iterations=262144 sc_rescheds=64",
+        "sc_readywait8=%d sc_readywait9=%d",
+        "sc_startwait8=%d sc_startwait9=%d",
         "sc_wait8=%d sc_wait9=%d",
         "sc_hash8=%016llx sc_hash9=%016llx",
     ):
@@ -135,16 +159,43 @@ def validate(psci: str, cpu: str, hps: str) -> None:
     require(scheduler.count("kthread_create_on_cpu(") == 2, "create count changed")
     require(scheduler.count("wake_up_process(") == 2, "wake count changed")
     require(
-        scheduler.count("wait_for_completion_timeout(") == 1,
+        scheduler.count("wait_for_completion_timeout(") == 2,
         "bounded wait primitive count changed",
     )
     require(
-        scheduler.count("mt6797_a72_sc_wait_until(") == 3,
+        scheduler.count("mt6797_a72_sc_wait_until(") == 5,
         "shared-deadline wait call count changed",
     )
     require(scheduler.count("kthread_stop(") == 2, "stop count changed")
     require(scheduler.count("cond_resched();") == 1, "reschedule call count changed")
     require(scheduler.count("complete(done);") == 1, "completion publication changed")
+    require(scheduler.count("complete(ready);") == 1, "ready publication changed")
+    require(scheduler.count("complete_all(&mt6797_a72_sc_start);") == 1,
+            "start-gate release changed")
+    thread = scheduler.split("static int mt6797_a72_sc_thread(void *data)", 1)[1].split(
+        "static bool mt6797_a72_sc_wait_until", 1
+    )[0]
+    run = scheduler.split("static void mt6797_a72_sc_run(void)", 1)[1]
+    require(
+        thread.index("atomic_inc(&mt6797_a72_sc_ready);")
+        < thread.index("complete(ready);")
+        < thread.index("wait_for_completion_timeout(")
+        < thread.index("iteration < MT6797_A72_SC_ITERATIONS"),
+        "task ready/start/work ordering changed",
+    )
+    require(
+        run.index("wake_up_process(mt6797_a72_sc_task9)")
+        < run.index("ready_deadline = jiffies")
+        < run.index("mt6797_a72_sc_result8.ready_complete")
+        < run.index("mt6797_a72_sc_result9.ready_complete")
+        < run.index("atomic_set(&mt6797_a72_sc_start_allowed, 1);")
+        < run.index("complete_all(&mt6797_a72_sc_start);")
+        < run.index("done_deadline = jiffies")
+        < run.index("mt6797_a72_sc_result8.wait_complete")
+        < run.index("mt6797_a72_sc_result9.wait_complete")
+        < run.index("stop:"),
+        "parent ready/release/done ordering changed",
+    )
     require(psci.count("sc_hash9=%016llx") == 1, "terminal inventory changed")
     require(psci.count("mt6797_a72_sc_task8 = NULL;") == 3, "CPU8 clear count changed")
     require(psci.count("mt6797_a72_sc_task9 = NULL;") == 3, "CPU9 clear count changed")
@@ -242,24 +293,30 @@ def main() -> int:
             "#define MT6797_A72_SC_RESCHED_INTERVAL 4096",
             "#define MT6797_A72_SC_RESCHED_INTERVAL 4095",
         ),
-        "wrong-spin-budget": (
-            "#define MT6797_A72_SC_SPIN_BUDGET (1U << 25)",
-            "#define MT6797_A72_SC_SPIN_BUDGET (1U << 26)",
+        "wrong-ready-timeout": (
+            "#define MT6797_A72_SC_READY_TIMEOUT_MS 2000",
+            "#define MT6797_A72_SC_READY_TIMEOUT_MS 3000",
         ),
-        "wrong-timeout": (
-            "#define MT6797_A72_SC_TIMEOUT_MS 2000",
-            "#define MT6797_A72_SC_TIMEOUT_MS 3000",
+        "wrong-done-timeout": (
+            "#define MT6797_A72_SC_DONE_TIMEOUT_MS 2000",
+            "#define MT6797_A72_SC_DONE_TIMEOUT_MS 3000",
         ),
         "missing-task-context": (
             "!!(current->flags & PF_KTHREAD) && !in_interrupt()",
             "true",
         ),
         "wrong-cpu9": ("&mt6797_a72_sc_result9, 9,", "&mt6797_a72_sc_result9, 8,"),
-        "unbounded-ready": (
-            "while (atomic_read(&mt6797_a72_sc_ready) != 2) {\n"
-            "\t\tif (!budget--) {",
-            "while (atomic_read(&mt6797_a72_sc_ready) != 2) {\n"
-            "\t\tif (false) {",
+        "missing-ready-publication": ("\tcomplete(ready);\n", ""),
+        "missing-start-wait": (
+            "\tresult->start_complete = !!wait_for_completion_timeout(\n"
+            "\t\t&mt6797_a72_sc_start,\n"
+            "\t\tmsecs_to_jiffies(MT6797_A72_SC_READY_TIMEOUT_MS));\n",
+            "\tresult->start_complete = 1;\n",
+        ),
+        "missing-start-allowed-check": (
+            "\telse if (!error && !atomic_read(&mt6797_a72_sc_start_allowed))\n"
+            "\t\terror = -ECANCELED;\n",
+            "",
         ),
         "missing-resched": ("\t\t\t\tcond_resched();\n", ""),
         "wrong-recurrence": (
@@ -286,13 +343,28 @@ def main() -> int:
             "\t\twake_up_process(mt6797_a72_sc_task9);\n",
             "",
         ),
-        "independent-deadline": (
-            "deadline = jiffies + msecs_to_jiffies(MT6797_A72_SC_TIMEOUT_MS);",
-            "deadline = jiffies + msecs_to_jiffies(MT6797_A72_SC_TIMEOUT_MS * 2);",
+        "missing-parent-ready-wait": (
+            "\tmt6797_a72_sc_result9.ready_complete =\n"
+            "\t\tmt6797_a72_sc_wait_until(&mt6797_a72_sc_ready9, ready_deadline);\n",
+            "\tmt6797_a72_sc_result9.ready_complete = 1;\n",
+        ),
+        "missing-start-allow": (
+            "\t\tatomic_set(&mt6797_a72_sc_start_allowed, 1);\n",
+            "",
+        ),
+        "missing-start-release": (
+            "\tcomplete_all(&mt6797_a72_sc_start);\n",
+            "",
+        ),
+        "independent-done-deadline": (
+            "done_deadline = jiffies +\n"
+            "\t\tmsecs_to_jiffies(MT6797_A72_SC_DONE_TIMEOUT_MS);",
+            "done_deadline = jiffies +\n"
+            "\t\tmsecs_to_jiffies(MT6797_A72_SC_DONE_TIMEOUT_MS * 2);",
         ),
         "missing-wait": (
             "\tmt6797_a72_sc_result9.wait_complete =\n"
-            "\t\tmt6797_a72_sc_wait_until(&mt6797_a72_sc_done9, deadline);\n",
+            "\t\tmt6797_a72_sc_wait_until(&mt6797_a72_sc_done9, done_deadline);\n",
             "",
         ),
         "missing-stop": (

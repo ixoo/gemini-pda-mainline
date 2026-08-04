@@ -1128,6 +1128,15 @@ child with a bounded scheduler-friendly start protocol that cannot monopolize
 CPU8 while awaiting CPU9, followed by generation and negative mutation tests;
 no Buildbox compile, container, or device action is authorized yet.
 
+The bounded start-gate source tooling is now prepared. Each exact-CPU task
+publishes its own ready completion and blocks; the parent boundedly observes
+both, authorizes and releases one shared start gate, then applies a fresh
+bounded deadline to the unchanged independent workloads and done completions.
+The terminal separately reports parent-ready and task-start waits, and 33
+negative mutations cover the new protocol. The next ordered action is exact-
+parent generation and mutation validation on Buildbox. No compile, container,
+or device action is authorized yet.
+
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback
 gates close.

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-scheduler-context` |
-| Status | `ordering-fix-runtime-rendezvous-rejected` |
+| Status | `blocked-start-gate-source-prepared` |
 | Subsystem | MT6797 retained Cortex-A72 pair and scheduler |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -273,6 +273,16 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   This is a rendezvous/timing design failure, not evidence that CPU8 failed to
   dispatch. Do not repeat this image. See
   [`results/runtime-ordering-fix-attempt-1-rendezvous-timeout-20260804.txt`](results/runtime-ordering-fix-attempt-1-rendezvous-timeout-20260804.txt).
+- The next source revision replaces the peer-ready busy spin with three bounded
+  completion phases. Each task publishes a per-CPU ready completion and blocks;
+  the parent observes both readiness completions before releasing one shared
+  start gate; only then do both tasks run the unchanged workload and publish
+  independent done completions. Separate 2,000 ms ready and done deadlines,
+  explicit start authorization, four new terminal fields, and 33 negative
+  mutations distinguish readiness, release, workload, and cleanup. Observed
+  `wake_up_process()` returns of either zero or one are accepted only alongside
+  independently proven task execution. This is source-tooling preparation
+  only; Buildbox has not generated or compiled the revision.
 
 ## Analysis
 
@@ -283,11 +293,11 @@ context while preserving the established power and recovery boundary.
 
 ## Conclusion
 
-`ordering-fix-runtime-rendezvous-rejected`: the corrected publication ordering
-worked, pair-v6 passed completely, and both bound tasks entered task context on
-CPUs 8/9. CPU9 completed exactly; CPU8 timed out only at the peer-ready spin.
-The exact image is rejected and must not run unchanged. A bounded
-scheduler-friendly start protocol is required before another compile or boot.
+`blocked-start-gate-source-prepared`: the rejected busy spin has been replaced
+in source tooling by an explicit ready/block/release/done protocol, while the
+complete parent gate and all workload, placement, cleanup, power, and recovery
+boundaries remain fixed. Generation, mutation validation on the exact parent,
+compile, container, deployment, and runtime claims do not exist yet.
 
 ## Follow-up
 
