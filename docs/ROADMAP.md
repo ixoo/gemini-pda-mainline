@@ -1248,14 +1248,16 @@ and the subsequent
 remain in the experiment record. The audit identifies the deterministic design
 error: the per-CPU tasks are created parked, the selected wake operation does
 not release that state, and ordered stop cleanup does.
-Reject the artifact unchanged. The unpark successor's source tooling is
-prepared; exact validation evidence remains in the
-[experiment record](../experiments/2026-08-03-a72-scheduler-context/results/source-tooling-unpark-20260804.txt).
-Compile and package-fetch paths remain fail-closed pending a generated child
-identity. The next ordered action, only from the clean pushed tooling revision,
-is Buildbox generation of the single successor patch, followed by package,
-patch, provenance, and mutation review. No compile, unchanged repeat,
-container, write, or device boot is authorized.
+Reject the artifact unchanged. The unpark successor was generated from the
+clean pushed source-tooling revision, independently reviewed, admitted after
+the exact historical parent, and pinned in the compile/package gates; exact
+identities and validation remain in the
+[generation record](../experiments/2026-08-03-a72-scheduler-context/results/source-generation-unpark-20260804.txt).
+The next ordered action, only after the admitted revision is clean and pushed,
+is a Buildbox-only child-versus-phase-parent compile, followed by package,
+source, configuration, diagnostics, call-target, state-mask, marker, terminal,
+stack, and provenance review. No unchanged repeat, container, write, or device
+boot is authorized.
 
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback

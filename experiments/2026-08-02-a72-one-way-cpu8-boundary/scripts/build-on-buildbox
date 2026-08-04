@@ -102,8 +102,8 @@ readonly -a scheduler_phase_parent_patches=(
 )
 readonly scheduler_unpark_patch=0003-diagnostic-unpark-A72-scheduler-context-tasks.patch
 readonly EXPECTED_SCHEDULER_PHASE_PARENT_PATCHSET_SHA256=b2c971d4a1860ec09616a61dbd8a29fde488f7d99deb8bd6bfbf2c517b2c3493
-# Replace this sentinel only with the admitted three-patch series identity.
-readonly EXPECTED_SCHEDULER_UNPARK_PATCHSET_SHA256=PENDING_AFTER_0003_GENERATION
+# Exact admitted phase-parent plus unpark child series identity.
+readonly EXPECTED_SCHEDULER_UNPARK_PATCHSET_SHA256=bd5799cecd14aa34a87562b09507a6d9f18f11cd138420bcba629f12793e7bfe
 manifest_sha="$(sha256sum "${manifest}" | awk '{print $1}')"
 readonly manifest_sha
 parent_patchset_sha="$(cd "${observer_experiment_dir}/patches" && while IFS= read -r patch; do sha256sum "${patch}"; done < series | sha256sum | awk '{print $1}')"

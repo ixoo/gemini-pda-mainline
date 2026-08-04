@@ -1,0 +1,91 @@
+CPU8/CPU9 scheduler kthread-unpark source generation
+====================================================
+
+Date: 2026-08-04 UTC
+Result: exact source child generated, reviewed, and admitted; compile pending
+
+Submitted source-tooling revision
+---------------------------------
+
+- Repository commit:
+  `152fe6287951fb707b92aeaf04ecaf1aa3499d92`.
+- Remote:
+  `https://github.com/ixoo/gemini-pda-mainline.git`.
+- Buildbox job:
+  `152fe6287951fb707b92aeaf04ecaf1aa3499d92-gemian-a72-scheduler-context-patchgen`.
+- Source:
+  `https://github.com/gemian/gemini-linux-kernel-3.18.git` at
+  `59e00a9144d782e148332009a835b99c43382467`.
+- Native VM kernel build: no.
+
+Pinned parent reconstruction
+----------------------------
+
+- Start-gate patch SHA-256:
+  `23cfff979bee079a41c0a82e43d5c7b3b0f55f8fc29115b2337fb6121f06409b`.
+- Reconstructed start-gate commit:
+  `7de241d42df128848ddbc37a090d4440fb7fa09f`.
+- Phase-attribution patch SHA-256:
+  `30f2b94232d6cf87991a761dd533a4d90a21545c98132079dd73cbeb2cd00234`.
+- Reconstructed phase-parent commit:
+  `cf1b6bc5110d60741b77372a481f7debc02078b2`.
+- Exact two-patch parent series SHA-256:
+  `b2c971d4a1860ec09616a61dbd8a29fde488f7d99deb8bd6bfbf2c517b2c3493`.
+
+Generated child identities
+--------------------------
+
+- Generated source commit:
+  `feceb816e374f16b962c334e7070f03ef0c8a832`.
+- Generated patch:
+  `0003-diagnostic-unpark-A72-scheduler-context-tasks.patch`.
+- Raw patch SHA-256:
+  `7b05002ff89f53a15e1eeb7d3b9588ac08443902626da4b706045d418513f486`.
+- Stable patch ID:
+  `17a4a7b455d15ca8a5bbfc17288ae232c4a2b951`.
+- Canonical admitted three-patch series SHA-256:
+  `bd5799cecd14aa34a87562b09507a6d9f18f11cd138420bcba629f12793e7bfe`.
+- Buildbox package checksum-manifest SHA-256:
+  `a4b56802cb64debf9b566de804d2da1bedcba56f773936fbb2a5e7ef82c49539`.
+
+Review
+------
+
+- The strict package checksum check passed for every covered file, and the
+  package contained no unlisted file or symlink.
+- The exported series contains only the new `0003`; neither historical parent
+  patch was re-exported.
+- The changed-path inventory contains only `arch/arm64/kernel/psci.c`.
+- The patch has four hunks with 13 insertions and 14 deletions. Mechanical hunk
+  reconstruction proves that all changed lines are exactly the six finite
+  transformations in `DESIGN-UNPARK.md`: the result field, CPU8 activation,
+  CPU9 activation, PASS gate, terminal field names, and terminal arguments.
+- The input blob chain is continuous with tracked `0002`, and the generated
+  output blob matches the finite editor result.
+- Exact source validation passed against the reconstructed vendor/parent
+  source. The lifecycle contract passed and all 20 negative mutations were
+  rejected.
+- Purpose and safety boundaries are
+  `experiment-only-a72-scheduler-unpark-source-review`,
+  `boot_candidate=false`, `device_action=none`, and
+  `native_vm_kernel_build=no`.
+- Sensitive-data review found no credential, key, private host path, device
+  identifier, binary payload, proprietary input, or raw artifact.
+
+Archive boundary
+----------------
+
+The generated patch retains a clearly synthetic, non-certifying `From:`
+identity and has no `Signed-off-by`. This experiment-only archive is explicitly
+not submission-ready. It must receive truthful author metadata and any
+appropriate DCO certification before an upstream submission.
+
+Decision
+--------
+
+Admit only the exact generated `0003` below the historical `0001+0002` parent
+and pin the canonical three-patch identity in both Buildbox compile/fetch
+gates. Do not stage the fetched package below `artifacts/`. The next ordered
+action is a Buildbox-only child-versus-phase-parent compile and package review.
+This result is not a compile, boot-container, boot-candidate, deployment, or
+runtime claim.

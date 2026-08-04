@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-scheduler-context` |
-| Status | `blocked-unpark-buildbox-generation-pending` |
+| Status | `blocked-unpark-buildbox-compile-pending` |
 | Subsystem | MT6797 retained Cortex-A72 pair and scheduler |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 through 2026-08-04 |
@@ -37,6 +37,9 @@ watchdog recovery?
 - Kernel thread API reference: exact upstream Linux v7.1 `kernel/kthread.c`
   and `include/linux/kthread.h`.
 - Build backend: Buildbox only; no native VM kernel build.
+- The generated successor patch retains a synthetic, non-certifying `From:`
+  identity without a `Signed-off-by`. This experiment-only archive is
+  explicitly not submission-ready.
 - Attempt-1 source-generation repository commit:
   `53307958dcbd715039e5cbab326b0094488d7c90`.
 - Exact reconstructed parent commit:
@@ -106,8 +109,8 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   transport-truncation validator for the captured USB format.
 - [`scripts/test_runtime_tools.py`](scripts/test_runtime_tools.py): installer,
   no-backup, shutdown, read-only collector, and decision-map validator.
-- [`patches/series`](patches/series): exact generated experiment-only scheduler-
-  context source patch.
+- [`patches/series`](patches/series): exact historical phase parent followed by
+  the generated experiment-only unpark child.
 
 ## Procedure
 
@@ -465,6 +468,18 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   patch is reviewed. No Buildbox generation, compile, container, or device
   action has occurred. See
   [`results/source-tooling-unpark-20260804.txt`](results/source-tooling-unpark-20260804.txt).
+- Buildbox source generation from clean pushed repository commit
+  `152fe6287951fb707b92aeaf04ecaf1aa3499d92` reconstructed and validated both
+  historical parent patches, then exported only the unpark `0003`. Strict
+  package checksums, exact path and hunk inventories, finite-editor
+  equivalence, the pinned lifecycle contract, and all 20 mutations passed.
+  Patch SHA-256 is
+  `7b05002ff89f53a15e1eeb7d3b9588ac08443902626da4b706045d418513f486`;
+  stable patch ID is `17a4a7b455d15ca8a5bbfc17288ae232c4a2b951`;
+  admitted three-patch series SHA-256 is
+  `bd5799cecd14aa34a87562b09507a6d9f18f11cd138420bcba629f12793e7bfe`.
+  No compile, container, device action, or native VM build occurred. See
+  [`results/source-generation-unpark-20260804.txt`](results/source-generation-unpark-20260804.txt).
 
 ## Analysis
 
@@ -475,7 +490,7 @@ context while preserving the established power and recovery boundary.
 
 ## Conclusion
 
-`blocked-unpark-buildbox-generation-pending`: phase-attribution attempt 1 is an
+`blocked-unpark-buildbox-compile-pending`: phase-attribution attempt 1 is an
 attributable restart with incomplete trace under the fixed decision map. The
 guarded exact boot2 write and shutdown succeeded, but retained pstore cannot
 localize the reset beyond its valid marker prefix. A separate exact-source/
@@ -483,12 +498,11 @@ binary audit establishes that the rejected design left its per-CPU kthreads
 parked and released them only through ordered stop cleanup, accounting for the
 retained no-task prefix and the earlier serialized execution. This mechanism
 does not promote the incomplete trace to a first-unmatched boundary and does
-not establish a scheduler/runqueue defect. The finite unpark-only editor,
-exact-parent/lifecycle validator, exact reconstructed-source check, 20-mutation
-self-test, generator, and pending-identity compile/package gates are now
-prepared. Reject the current artifact unchanged; no generated successor or
-compile claim exists yet. Continue only through the ordered action in
-`docs/ROADMAP.md`.
+not establish a scheduler/runqueue defect. The exact unpark-only child has now
+been generated, independently reviewed, admitted after the historical parent,
+and pinned in the compile/package gates. Reject the previous boot artifact
+unchanged; no compile or boot-candidate claim exists for the unpark child yet.
+Continue only through the ordered action in `docs/ROADMAP.md`.
 
 ## Follow-up
 

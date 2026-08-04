@@ -1,2 +1,3 @@
 0001-diagnostic-add-bounded-A72-scheduler-context-execution.patch
 0002-diagnostic-add-A72-scheduler-phase-attribution.patch
+0003-diagnostic-unpark-A72-scheduler-context-tasks.patch

@@ -1,0 +1,76 @@
+From feceb816e374f16b962c334e7070f03ef0c8a832 Mon Sep 17 00:00:00 2001
+From: Gemini A72 experiment <noreply@gemini-a72.invalid>
+Date: Tue, 4 Aug 2026 23:30:00 +0000
+Subject: [PATCH] diagnostic: unpark A72 scheduler-context tasks
+
+Use the per-CPU kthread unpark contract for the two intended activations.
+
+Preserve the bounded rendezvous, workload, power, CPU_OFF prohibition, and watchdog recovery.
+---
+ arch/arm64/kernel/psci.c | 27 +++++++++++++--------------
+ 1 file changed, 13 insertions(+), 14 deletions(-)
+
+diff --git a/arch/arm64/kernel/psci.c b/arch/arm64/kernel/psci.c
+index cf61d8a8f..32beb2bcd 100644
+--- a/arch/arm64/kernel/psci.c
++++ b/arch/arm64/kernel/psci.c
+@@ -1000,7 +1000,7 @@ struct mt6797_a72_sc_result {
+ 	int end_cpu;
+ 	int task_context;
+ 	int create_error;
+-	int wake_result;
++	int unpark_issued;
+ 	int ready_complete;
+ 	int start_complete;
+ 	int wait_complete;
+@@ -1177,14 +1177,14 @@ static void mt6797_a72_sc_run(void)
+ 	if (!mt6797_a72_sc_task8 || !mt6797_a72_sc_task9)
+ 		goto stop;
+ 
+-	pr_emerg("gemini-a72-sc-phase phase=wake8-before\n");
+-	mt6797_a72_sc_result8.wake_result =
+-		wake_up_process(mt6797_a72_sc_task8);
+-	pr_emerg("gemini-a72-sc-phase phase=wake8-after\n");
+-	pr_emerg("gemini-a72-sc-phase phase=wake9-before\n");
+-	mt6797_a72_sc_result9.wake_result =
+-		wake_up_process(mt6797_a72_sc_task9);
+-	pr_emerg("gemini-a72-sc-phase phase=wake9-after\n");
++	pr_emerg("gemini-a72-sc-phase phase=unpark8-before\n");
++	kthread_unpark(mt6797_a72_sc_task8);
++	mt6797_a72_sc_result8.unpark_issued = 1;
++	pr_emerg("gemini-a72-sc-phase phase=unpark8-after\n");
++	pr_emerg("gemini-a72-sc-phase phase=unpark9-before\n");
++	kthread_unpark(mt6797_a72_sc_task9);
++	mt6797_a72_sc_result9.unpark_issued = 1;
++	pr_emerg("gemini-a72-sc-phase phase=unpark9-after\n");
+ 	ready_deadline = jiffies +
+ 		msecs_to_jiffies(MT6797_A72_SC_READY_TIMEOUT_MS);
+ 	pr_emerg("gemini-a72-sc-phase phase=ready8-wait-before\n");
+@@ -1369,9 +1369,8 @@ static noinline void mt6797_a72_sc_terminal(bool parent_pass)
+ 		 result8->end_cpu == 8 && result9->start_cpu == 9 &&
+ 		 result9->end_cpu == 9 && result8->task_context == 1 &&
+ 		 result9->task_context == 1 && !result8->create_error &&
+-		 !result9->create_error && result8->wake_result >= 0 &&
+-		 result8->wake_result <= 1 && result9->wake_result >= 0 &&
+-		 result9->wake_result <= 1 && result8->ready_complete == 1 &&
++		 !result9->create_error && result8->unpark_issued == 1 &&
++		 result9->unpark_issued == 1 && result8->ready_complete == 1 &&
+ 		 result9->ready_complete == 1 && result8->start_complete == 1 &&
+ 		 result9->start_complete == 1 && result8->wait_complete == 1 &&
+ 		 result9->wait_complete == 1 && !result8->error &&
+@@ -1385,13 +1384,13 @@ static noinline void mt6797_a72_sc_terminal(bool parent_pass)
+ 		 ready == 2 && finished == 2 &&
+ 		 result8->hash == MT6797_A72_SC_HASH8_EXPECTED &&
+ 		 result9->hash == MT6797_A72_SC_HASH9_EXPECTED;
+-	pr_emerg("gemini-a72-pair-v7 result=%s parent_pass=%d sc_reported=%d sc_iterations=262144 sc_rescheds=64 sc_expected8=%d sc_start8=%d sc_end8=%d sc_expected9=%d sc_start9=%d sc_end9=%d sc_task8=%d sc_task9=%d sc_create8=%d sc_create9=%d sc_wake8=%d sc_wake9=%d sc_readywait8=%d sc_readywait9=%d sc_startwait8=%d sc_startwait9=%d sc_wait8=%d sc_wait9=%d sc_error8=%d sc_error9=%d sc_stop8=%d sc_stop9=%d sc_done8=%d sc_done9=%d sc_ready=%d sc_finished=%d sc_hash8=%016llx sc_hash9=%016llx\n",
++	pr_emerg("gemini-a72-pair-v7 result=%s parent_pass=%d sc_reported=%d sc_iterations=262144 sc_rescheds=64 sc_expected8=%d sc_start8=%d sc_end8=%d sc_expected9=%d sc_start9=%d sc_end9=%d sc_task8=%d sc_task9=%d sc_create8=%d sc_create9=%d sc_unpark8=%d sc_unpark9=%d sc_readywait8=%d sc_readywait9=%d sc_startwait8=%d sc_startwait9=%d sc_wait8=%d sc_wait9=%d sc_error8=%d sc_error9=%d sc_stop8=%d sc_stop9=%d sc_done8=%d sc_done9=%d sc_ready=%d sc_finished=%d sc_hash8=%016llx sc_hash9=%016llx\n",
+ 		 passed ? "pass" : "fault", parent_pass, reported,
+ 		 result8->expected_cpu, result8->start_cpu, result8->end_cpu,
+ 		 result9->expected_cpu, result9->start_cpu, result9->end_cpu,
+ 		 result8->task_context, result9->task_context,
+ 		 result8->create_error, result9->create_error,
+-		 result8->wake_result, result9->wake_result,
++		 result8->unpark_issued, result9->unpark_issued,
+ 		 result8->ready_complete, result9->ready_complete,
+ 		 result8->start_complete, result9->start_complete,
+ 		 result8->wait_complete, result9->wait_complete,
