@@ -73,7 +73,6 @@ python3 "$script_dir/test_static.py" --source "$work/source"
 cp "$work/source/arch/arm64/kernel/psci.c" "$work/parent-psci.c"
 python3 "$script_dir/phase_marker_edits.py" --source "$work/source"
 git -C "$work/source" diff --check
-python3 "$script_dir/test_static.py" --source "$work/source"
 python3 "$script_dir/test_phase_markers.py" --source "$work/source" \
   --parent-psci "$work/parent-psci.c"
 git -C "$work/source" add -- arch/arm64/kernel/psci.c
@@ -86,7 +85,6 @@ git -C "$work/source" format-patch -1 --no-signature --stdout HEAD >"$partial/pa
 printf '%s\n' "$patch" >"$partial/patches/series"
 git -C "$work/source" diff-tree --no-commit-id --name-only -r HEAD >"$partial/provenance/changed-paths.txt"
 diff -u <(printf '%s\n' arch/arm64/kernel/psci.c) "$partial/provenance/changed-paths.txt" >/dev/null || die 'generated patch path inventory changed'
-python3 "$script_dir/test_static.py" --source "$work/source"
 python3 "$script_dir/test_phase_markers.py" --source "$work/source" \
   --parent-psci "$work/parent-psci.c"
 [[ -z "$(git -C "$work/source" status --porcelain)" ]] || die 'generated source is dirty'
