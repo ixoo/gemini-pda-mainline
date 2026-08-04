@@ -1,0 +1,74 @@
+CPU8/CPU9 blocked-start-gate runtime attempt 2: preterminal NULL fault
+======================================================================
+
+Decision: REJECT the exact start-gate image. Do not repeat it unchanged and do
+not make a CPU8/CPU9 scheduler-success claim.
+
+Exact candidate and cycle
+-------------------------
+
+- Full 16 MiB boot2 SHA-256:
+  2e8c611b1dbe5b79b13f2dec9cf9d77d9b7973a732f63702a6228600bef464b3
+- Embedded Image.gz-dtb SHA-256:
+  21a64e59bbf0a83123ee936cc0dc7bdf00e793d8c290a0e557e24d826abefd2a
+- Buildbox repository commit:
+  703d59b239aae6c6f66308a097ede32fc3bdd678
+- Initial Gemian boot ID:
+  21327ec5-2136-4296-8f3b-c80d50331402
+- Recovered Gemian boot ID:
+  d45f7cea-cd42-4259-bfb3-5b5de9cf5ac8
+- Observer disconnect: 2026-08-04T00:59:18Z
+- Observer reconnect: 2026-08-04T01:00:24Z
+
+Observations
+------------
+
+- Before shutdown, the guarded installer re-resolved live-GPT boot2 as
+  `/dev/mmcblk0p30`, proved normal root `/dev/mmcblk0p29`, found the exact
+  candidate already installed, skipped the write, matched the full readback,
+  and confirmed clean shutdown. No fresh backup was created.
+- The owner reported physically selecting boot2 and then the immediate
+  automatic reboot to Gemian.
+- The prearmed observer recorded disconnect, reconnect, and a changed boot ID.
+  Its capture is therefore attributable to this exact cycle.
+- The retained console is continuous from ordinary candidate userspace startup
+  through a fatal line at 14.121403 seconds:
+  `Unable to handle kernel NULL pointer dereference at virtual address 00000166`.
+  The final retained line is the following page-table line; no PC, LR, task,
+  or call trace survived the reset.
+- Neither `gemini-a72-pair-v6` nor `gemini-a72-pair-v7` occurs in the retained
+  console. The console contains the entire interval in which the preceding
+  ordering-fix candidate emitted both terminals at 13.149 seconds, so this is
+  terminal-not-reached rather than the earlier post-recovery evidence loss.
+- The exact child calls `mt6797_a72_sc_run()` after the pair-v6 preconditions
+  pass but before it emits either terminal. Therefore the absence of both
+  terminals is consistent with a fault while that bounded child is running;
+  without PC/LR or phase markers, the exact failing instruction is unknown.
+- Console-ramoops SHA-256:
+  066d322bdf5893d6c99dd5eb91e2cf7c5be4643ac0f0f090f6b97c59195e1658
+- Pstore archive SHA-256:
+  e94cb777f42736d478f9a4cdb94b2a36a85489457cbfa1b90cf921d30ff78843
+- The USB network interface never appeared on the host. The USB/netcat
+  collector was stopped after changed-cycle pstore completed; it captured no
+  candidate output and performed no device write or runtime stimulus.
+- Recovery reports `androidboot.bootreason=wdt_by_pass_pwk`, normal root
+  `/dev/mmcblk0p29`, online CPU set 4, CPUs 8/9 offline, inactive and unmounted
+  boot2, exact unchanged boot2 checksum, and 84 percent battery.
+
+Classification and next discriminator
+-------------------------------------
+
+This is the fixed `AUTOMATIC RESTART WITH NO PAIR-V7` branch with attributable
+terminal-not-reached evidence plus a fatal kernel marker. It cannot satisfy the
+PASS branch, which forbids fatal markers and requires adjacent complete pair-v6
+and pair-v7 terminals. The exact artifact is rejected.
+
+The next source child must not change the power, scheduler workload, completion
+protocol, timeout, or recovery boundary. It may add short durable phase markers
+immediately before and after task creation, wake, both ready waits, shared-gate
+release, both done waits, and each stop. Those markers are decision-changing:
+the last completed phase determines whether to inspect creation, readiness,
+release, workload, completion, or cleanup. Generate that one-path child from
+the exact rejected parent and reject negative marker/order mutations before any
+Buildbox compile. No unchanged repeat, new container, or device action is
+authorized yet.

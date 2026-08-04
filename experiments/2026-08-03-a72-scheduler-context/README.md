@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-scheduler-context` |
-| Status | `blocked-start-gate-runtime-inconclusive-evidence-loss` |
+| Status | `blocked-start-gate-preterminal-null-deref` |
 | Subsystem | MT6797 retained Cortex-A72 pair and scheduler |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -339,6 +339,16 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   just-in-time USB/netcat and changed-cycle pstore as a new independent
   observation path. See
   [`results/runtime-start-gate-attempt-1-evidence-loss-20260804.txt`](results/runtime-start-gate-attempt-1-evidence-loss-20260804.txt).
+- Start-gate runtime attempt 2 used just-in-time changed-cycle pstore and an
+  already-matching checksum verification; no write occurred. The attributable
+  console contains no pair-v6 or pair-v7 terminal and ends at 14.121403 seconds
+  with a kernel NULL-pointer dereference at virtual address `00000166` before
+  PC/LR or a call trace could be retained. The console covers the interval in
+  which the preceding candidate emitted both terminals, so this distinguishes
+  terminal-not-reached from attempt 1's evidence loss. Watchdog-class recovery
+  returned the normal root with CPUs 8/9 offline and boot2 exact. Reject this
+  artifact unchanged. See
+  [`results/runtime-start-gate-attempt-2-preterminal-null-deref-20260804.txt`](results/runtime-start-gate-attempt-2-preterminal-null-deref-20260804.txt).
 
 ## Analysis
 
@@ -349,7 +359,7 @@ context while preserving the established power and recovery boundary.
 
 ## Conclusion
 
-`blocked-start-gate-runtime-inconclusive-evidence-loss`: the explicit ready/block/release/done
+`blocked-start-gate-preterminal-null-deref`: the explicit ready/block/release/done
 protocol passes exact-parent generation, both hash vectors, all 33 mutations,
 child/parent compilation, identical diagnostics, expanded-terminal binary, and
 stack gates, and has a reproducible independently validated Android-v0
@@ -360,7 +370,11 @@ watchdog-class cycle and recovered safely, but the observers expired before
 physical selection and retained no attributable candidate terminal. The
 complete parent gate and all workload, placement, cleanup, power, and recovery
 boundaries remain fixed. No start-gate runtime claim exists yet; one exact
-repeat is earned only with just-in-time independent capture.
+repeat was earned only with just-in-time independent capture. That repeat now
+proves a preterminal fatal NULL dereference, but the retained record lacks the
+PC/LR and phase needed to identify the exact failing operation. Reject the
+image unchanged. The next source-only action adds decision-changing durable
+phase attribution without changing the tested protocol or safety boundary.
 
 ## Follow-up
 

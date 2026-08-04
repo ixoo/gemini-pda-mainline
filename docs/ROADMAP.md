@@ -1191,6 +1191,21 @@ because that new independent observation path can distinguish capture loss
 from terminal-not-reached. No design change, Buildbox build, or new boot2 write
 is authorized or needed before that observation.
 
+The just-in-time repeat now distinguishes terminal-not-reached from capture
+loss. Its changed-cycle console spans candidate userspace startup through a
+fatal NULL-pointer dereference at 14.121403 seconds, contains neither pair-v6
+nor pair-v7, and ends before PC/LR or a call trace. The exact child runs the
+start-gate oracle before emitting either terminal, so the failure is
+consistent with that bounded region but cannot yet be assigned to creation,
+readiness, release, workload, completion, or cleanup. Watchdog recovery is
+healthy, CPUs 8/9 are offline, and boot2 remains exact. Reject this artifact
+unchanged. The next ordered action is a one-path source child from the exact
+rejected parent that adds durable pre/post markers around each existing
+start-gate phase, with marker/order mutation validation before a Buildbox-only
+compile. Do not change the workload, synchronization protocol, timeouts, power
+boundary, or recovery path, and do not build a container or access the device
+yet.
+
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback
 gates close.
