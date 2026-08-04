@@ -1171,6 +1171,14 @@ and require all four new ready/start fields. The next ordered action is to
 commit and push the clean guards, prearm changed-cycle pstore, perform the
 guarded write/readback/shutdown, arm USB/netcat, and select boot2 once.
 
+The guarded start-gate write has now resolved inactive, unmounted live-GPT
+boot2, confirmed the rejected predecessor, written the exact successor,
+matched its full-partition readback, removed temporary state, and shut the
+device down without requesting reboot. The prearmed changed-cycle observer saw
+the deployment shutdown. The next ordered action is to arm the expanded
+read-only USB/netcat collector and physically select boot2 once; only the fixed
+start-gate decision map may classify the result.
+
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback
 gates close.

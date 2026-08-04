@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-scheduler-context` |
-| Status | `blocked-start-gate-runtime-tools-passed` |
+| Status | `blocked-start-gate-deployed-awaiting-runtime` |
 | Subsystem | MT6797 retained Cortex-A72 pair and scheduler |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -323,6 +323,12 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   fields, and the fixed decision map covers every readiness, workload,
   recovery, and serviceability branch. No start-gate deployment occurred. See
   [`results/runtime-decision-map-start-gate-20260804.txt`](results/runtime-decision-map-start-gate-20260804.txt).
+- The guarded deployment resolved live GPT boot2 as `/dev/mmcblk0p30`, proved
+  active root `/dev/mmcblk0p29`, matched the rendezvous-rejected predecessor,
+  wrote and fully read back the start-gate 16 MiB image, removed temporary
+  state, and confirmed clean shutdown. No fresh backup or reboot was requested.
+  The prearmed changed-cycle observer saw the deployment shutdown. See
+  [`results/deployment-start-gate-20260804.txt`](results/deployment-start-gate-20260804.txt).
 
 ## Analysis
 
@@ -333,14 +339,15 @@ context while preserving the established power and recovery boundary.
 
 ## Conclusion
 
-`blocked-start-gate-runtime-tools-passed`: the explicit ready/block/release/done
+`blocked-start-gate-deployed-awaiting-runtime`: the explicit ready/block/release/done
 protocol passes exact-parent generation, both hash vectors, all 33 mutations,
 child/parent compilation, identical diagnostics, expanded-terminal binary, and
 stack gates, and has a reproducible independently validated Android-v0
 container. Exact predecessor/successor deployment and expanded runtime guards
-also pass static tests. The complete parent gate and all workload, placement,
-cleanup, power, and recovery boundaries remain fixed. Deployment and runtime
-claims do not exist yet.
+also pass static tests; the exact image is installed with full readback and the
+device is cleanly shut down. The complete parent gate and all workload,
+placement, cleanup, power, and recovery boundaries remain fixed. No start-gate
+runtime claim exists yet.
 
 ## Follow-up
 

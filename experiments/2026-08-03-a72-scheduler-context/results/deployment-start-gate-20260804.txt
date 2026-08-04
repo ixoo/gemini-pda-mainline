@@ -1,0 +1,25 @@
+CPU8/CPU9 blocked-start-gate boot2 deployment
+Date: 2026-08-04 UTC
+Result: write-synced-flushed-full-readback-verified
+
+Target logical name: boot2
+Resolved target: /dev/mmcblk0p30
+Active root: /dev/mmcblk0p29
+Boot ID: b1243937-c45f-4874-9624-393370833ff9
+Power: online=1 capacity=83 status=Good
+
+Predecessor full-partition SHA-256:
+  d34b2de509021d5fbbfcca62e3676202fe88b449786daf62b4eb466667fae093
+Fresh predecessor backup: no; recovery uses the verified project-wide backup.
+Start-gate candidate full-partition SHA-256:
+  2e8c611b1dbe5b79b13f2dec9cf9d77d9b7973a732f63702a6228600bef464b3
+Full-partition readback SHA-256:
+  2e8c611b1dbe5b79b13f2dec9cf9d77d9b7973a732f63702a6228600bef464b3
+
+Temporary readback removed: yes
+Shutdown requested only after evidence flush: yes
+Poweroff SSH result: connection closed by the remote host
+Post-shutdown reachability: unreachable
+Automatic reboot requested: no
+Changed-cycle pstore observer: prearmed; deployment shutdown observed
+Next action: owner physically selects boot2 once.
