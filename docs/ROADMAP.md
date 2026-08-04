@@ -1206,6 +1206,17 @@ compile. Do not change the workload, synchronization protocol, timeouts, power
 boundary, or recovery path, and do not build a container or access the device
 yet.
 
+The phase-attribution source tooling is now prepared. It derives from the exact
+rejected start-gate series, adds 31 short markers around task readiness/start/
+work/done and parent create/wake/ready/release/done/stop phases, and requires
+that stripping those marker lines restores the parent `psci.c` byte for byte.
+All 31 missing-marker mutations plus task-order and parent-order swaps are
+rejected by the new validator. Local syntax and whitespace checks pass; local ShellCheck is
+unavailable and remains pending. The next ordered action is clean pushed-commit
+Buildbox generation from the exact rejected parent, including the parent
+contract, marker equivalence, all negative mutations, and one-path patch
+inventory. No compile, container, or device action is authorized yet.
+
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback
 gates close.

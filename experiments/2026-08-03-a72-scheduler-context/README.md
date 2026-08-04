@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-scheduler-context` |
-| Status | `blocked-start-gate-preterminal-null-deref` |
+| Status | `blocked-phase-attribution-source-tooling-prepared` |
 | Subsystem | MT6797 retained Cortex-A72 pair and scheduler |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -349,6 +349,15 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   returned the normal root with CPUs 8/9 offline and boot2 exact. Reject this
   artifact unchanged. See
   [`results/runtime-start-gate-attempt-2-preterminal-null-deref-20260804.txt`](results/runtime-start-gate-attempt-2-preterminal-null-deref-20260804.txt).
+- Phase-attribution source tooling now derives from the exact rejected
+  start-gate patch series and adds 31 short durable lines around the unchanged
+  task and parent phases. Its validator strips those lines and requires
+  byte-for-byte equality with the parent, fixes phase order, and rejects every
+  individual missing-marker mutation plus two ordering swaps. Local Python syntax/CLI, generator shell
+  syntax, and whitespace checks pass; ShellCheck is unavailable locally and
+  remains pending. No exact-parent generation, compile, container, or device
+  action occurred. See
+  [`results/source-tooling-phase-attribution-20260804.txt`](results/source-tooling-phase-attribution-20260804.txt).
 
 ## Analysis
 
@@ -359,7 +368,7 @@ context while preserving the established power and recovery boundary.
 
 ## Conclusion
 
-`blocked-start-gate-preterminal-null-deref`: the explicit ready/block/release/done
+`blocked-phase-attribution-source-tooling-prepared`: the explicit ready/block/release/done
 protocol passes exact-parent generation, both hash vectors, all 33 mutations,
 child/parent compilation, identical diagnostics, expanded-terminal binary, and
 stack gates, and has a reproducible independently validated Android-v0
@@ -375,6 +384,8 @@ proves a preterminal fatal NULL dereference, but the retained record lacks the
 PC/LR and phase needed to identify the exact failing operation. Reject the
 image unchanged. The next source-only action adds decision-changing durable
 phase attribution without changing the tested protocol or safety boundary.
+That tooling is now prepared with 31 exact markers and 33 negative mutations;
+exact-parent Buildbox generation and one-path review remain pending.
 
 ## Follow-up
 

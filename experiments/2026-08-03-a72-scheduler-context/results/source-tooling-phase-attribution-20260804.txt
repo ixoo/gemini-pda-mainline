@@ -1,0 +1,54 @@
+CPU8/CPU9 scheduler phase-attribution source tooling
+=====================================================
+
+Date: 2026-08-04 UTC
+Result: tooling-prepared; exact-parent generation pending
+
+Hypothesis
+----------
+
+The rejected start-gate image faults after its inherited pair-v6 preconditions
+but before either terminal. Durable pre/post phase markers around the unchanged
+child can identify the last completed task or parent operation even when the
+fault record again loses PC/LR and its call trace.
+
+Prepared contract
+-----------------
+
+- Exact parent: the rejected start-gate patch series already admitted by this
+  experiment.
+- Changed source path: `arch/arm64/kernel/psci.c` only.
+- Added source markers: 31 unique lines.
+- Per-task markers include the expected CPU and surround ready publication,
+  shared-start wait, deterministic workload, and done publication.
+- Parent markers surround both creates, both wakes, both ready waits, shared
+  release, both done waits, both stops, and final publication.
+- The marker validator removes every marker line and requires byte-for-byte
+  equality with the exact parent `psci.c`; any non-marker change is rejected.
+- All 31 individual missing-marker mutations plus task-order and parent-order
+  swaps are rejected (33 mutations total).
+- Workload, hashes, synchronization calls, timeouts, CPU_OFF veto, power path,
+  HPS observation, and watchdog recovery are inherited unchanged.
+
+Local validation
+----------------
+
+- Python source syntax: PASS.
+- Python CLI parsing: PASS.
+- Buildbox generator `bash -n`: PASS.
+- `git diff --check`: PASS.
+- ShellCheck: not run; ShellCheck is absent on the development host. It remains
+  required before admission.
+- Native VM kernel build: no.
+- Buildbox generation or compile: no.
+- Device access: no.
+- Boot candidate: false.
+
+Next gate
+---------
+
+Commit and push the tooling, then run exact-parent generation on Buildbox. The
+remote job must reconstruct and validate the rejected start-gate parent, apply
+  only the 31 marker lines, reject all 33 mutations, prove the one-path diff, and
+produce a reviewable `0002` patch. No compile, container, or device action is
+authorized by this tooling result.
