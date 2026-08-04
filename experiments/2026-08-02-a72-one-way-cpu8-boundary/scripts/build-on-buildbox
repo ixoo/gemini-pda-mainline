@@ -2,7 +2,8 @@
 
 set -Eeuo pipefail
 
-# shellcheck disable=SC2154 -- rc is assigned inside the ERR trap command.
+# `rc` is assigned inside the ERR trap command.
+# shellcheck disable=SC2154
 
 trap 'rc=$?; trap - ERR; printf "error: compile-review line %s status %s\n" \
   "${LINENO}" "${rc}" >&2; exit "${rc}"' ERR
