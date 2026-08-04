@@ -1,0 +1,109 @@
+CPU8/CPU9 phase-attribution runtime attempt 1: incomplete trace
+================================================================
+
+Date: 2026-08-04 UTC
+Decision: ATTRIBUTABLE RESTART WITH INCOMPLETE TRACE
+
+Reject the exact phase-attribution image unchanged. Do not infer a failing CPU,
+an operation active at reset, or recurrence of the predecessor's NULL fault.
+
+Exact candidate and cycle
+-------------------------
+
+- Full 16 MiB boot2 SHA-256:
+  2268e23559e8d36e4339a4fd912d0108721ed818e628dfc857cab2ab8e8049a8
+- Embedded Image.gz-dtb SHA-256:
+  932dfc84eaea2aa5971a0ade98d5ddb8d592e400830fba47aa81d2a7b02c5811
+- Compile repository commit:
+  a50c12f11862bde5b27de8de0a91ac72529b1bd7
+- Cycle start: 2026-08-04T22:05:26Z
+- Disconnect observed: 2026-08-04T22:06:23Z
+- Reconnect observed: 2026-08-04T22:07:20Z
+- Initial boot-ID SHA-256:
+  24c7ce036833b9e010127c773e366f79a4cb45a610f6a0312c2e803936ead4ec
+- Final boot-ID SHA-256:
+  3d83d1a89958b4387acbc2735bc11cfc5c06c4039a3e5accc7301a5ccaa9c741
+
+The owner reported boot2 starting and then an automatic restart into Gemian.
+The prearmed observer independently recorded disconnect, reconnect, and a
+changed boot ID, so the recovered pstore belongs to this exact cycle.
+
+Retained trace
+--------------
+
+The 65,524-byte, 816-line console contains 15 phase records. All are parent
+records; no CPU8 or CPU9 task phase and no pair-v6 or pair-v7 terminal is
+retained. Its ordered marker prefix is:
+
+  10.745378 create8-before
+  10.745928 create8-after
+  10.745945 create9-before
+  10.750563 create9-after
+  10.750588 wake8-before
+  10.750601 wake8-after
+  10.750614 wake9-before
+  10.750627 wake9-after
+  10.750640 ready8-wait-before
+  12.745347 ready8-wait-after
+  12.745377 ready9-wait-before
+  12.745393 ready9-wait-after
+  12.745408 release-before
+  12.745421 release-after
+  12.745434 done8-wait-before
+
+The fixed parser accepts these 15 records as a valid source prefix. The last
+completed retained operation is release; the final retained unmatched marker
+is `done8-wait-before`. Ordinary kernel logging continues through a complete
+line at 14.019825, 1.274391 seconds after that marker. No panic, NULL fault,
+BUG, Internal error, Call trace, asynchronous SError, lockup, PC/LR, or
+continuous reset line follows it.
+
+Classification
+--------------
+
+Changed-cycle pstore and watchdog-class Gemian recovery make the restart
+attributable. They do not create a continuous causal bridge from the unmatched
+marker to reset. The fixed `FIRST UNMATCHED PHASE BOUNDARY` branch requires
+continuous fatal/reset evidence after the marker, which is absent. The fixed
+`ATTRIBUTABLE RESTART WITH INCOMPLETE TRACE` branch exactly covers a trace
+continuous from `create8-before` that ends on a valid prefix without a
+continuous fatal tail or matching after record.
+
+Therefore record only:
+
+- last completed retained phase: release;
+- last retained unmatched marker: `done8-wait-before`;
+- retained task phases: none; and
+- exact artifact: rejected unchanged.
+
+Do not claim that CPU8 failed, that the done8 wait caused or remained active at
+reset, that either readiness wait timed out, or that the preceding candidate's
+NULL dereference recurred. Full-size objects, clean final newlines, and matching
+checksums establish faithful copying, not semantic completeness through reset.
+
+Recovery and evidence integrity
+-------------------------------
+
+- Recovery was ordinary Gemian `3.18.41+` on aarch64 with filtered boot reason
+  `boot_reason=4` and `androidboot.bootreason=wdt_by_pass_pwk`.
+- CPUs 8 and 9 were offline. Live-GPT boot2 remained inactive and unmounted
+  with the exact candidate checksum. SSH serviceability returned.
+- No USB/netcat capture was retained. The prearmed read-only collector produced
+  no candidate output, performed no write or stimulus, and was stopped after
+  pstore recovery completed.
+- Console-ramoops SHA-256:
+  `72b447c8f9e878bae66a4896b3040046fe801195ec21547a3d9db0385936266e`.
+- Pmsg-ramoops-0 SHA-256:
+  `1c9fe59a4d6ece88953fe594a9c251ccd47e78c7ec4ccde7a804a144cd4bedb7`.
+- Pstore archive SHA-256:
+  `751c01b218f44314f6785120f0212975ec1c49a36f8cdb58fea4613dd7d6873a`.
+- Cycle record SHA-256:
+  `36cd577f12fc80dbab0063d69f6268eb433f6faff3fc9d633cbb590605c8a038`.
+- Metadata record SHA-256:
+  `a8b4d0c51c859e24ccd1eaa6aaaff40075ea90e84649f839e7fb4a770e2e0e8a`.
+- Pstore `SHA256SUMS` SHA-256:
+  `d4cb65074416e61396e52fba8269db04ad800063110691e08a7d79f9d6331622`.
+- Every entry in both ignored checksum manifests verified.
+
+The independent source/binary audit that determines the next child is recorded
+separately; it does not retroactively strengthen this runtime classification.

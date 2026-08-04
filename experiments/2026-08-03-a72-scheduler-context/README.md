@@ -5,10 +5,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-scheduler-context` |
-| Status | `blocked-phase-attribution-runtime-guards-passed` |
+| Status | `blocked-kthread-unpark-correction-required` |
 | Subsystem | MT6797 retained Cortex-A72 pair and scheduler |
 | Device variant | Gemini PDA x27, named project device |
-| Date(s) | 2026-08-03 |
+| Date(s) | 2026-08-03 through 2026-08-04 |
 | Investigator(s) | Gemini mainline project |
 | Tracking issue | Roadmap Gate 8 scheduler-context execution |
 
@@ -420,6 +420,31 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   compilation, the complete runtime test, and whitespace checks pass. No
   deployment or device access occurred. See
   [`results/runtime-tools-phase-attribution-20260804.txt`](results/runtime-tools-phase-attribution-20260804.txt).
+- The guarded deployment resolved live-GPT boot2 as `/dev/mmcblk0p30`, proved
+  it inactive and unmounted against ordinary Gemian root `/dev/mmcblk0p29`,
+  matched the exact rejected predecessor, wrote only the exact 16 MiB
+  phase-attribution successor, synchronized and flushed it, and matched a full
+  readback. No fresh backup was created. Temporary state was removed and the
+  device was cleanly shut down without an automatic reboot before the owner
+  selected boot2 once. See
+  [`results/deployment-phase-attribution-20260804.txt`](results/deployment-phase-attribution-20260804.txt).
+- The prearmed observer recorded one attributable changed-boot-ID cycle after
+  boot2 started and automatically returned to Gemian. Pstore retains a valid
+  15-parent-marker prefix through `release-after` and then
+  `done8-wait-before`, but ordinary logging continues for 1.274391 seconds
+  without a fatal/reset tail. The fixed map therefore classifies the result as
+  `ATTRIBUTABLE RESTART WITH INCOMPLETE TRACE`, not a first-unmatched boundary.
+  There are no retained task markers or pair terminals. Reject the exact image
+  unchanged without assigning a failing CPU or operation at reset. See
+  [`results/runtime-phase-attribution-attempt-1-incomplete-trace-20260804.txt`](results/runtime-phase-attribution-attempt-1-incomplete-trace-20260804.txt).
+- A separate exact-source/binary audit identifies a deterministic design
+  error: `kthread_create_on_cpu()` returns each worker parked,
+  `wake_up_process()` does not release `TASK_PARKED`, and ordered
+  `kthread_stop()` cleanup does unpark the tasks. This accounts for the
+  retained no-task prefix and supersedes the earlier causal interpretation of
+  serialized CPU8/CPU9 execution, without changing either fixed runtime
+  classification. See
+  [`results/source-binary-kthread-park-contract-20260804.txt`](results/source-binary-kthread-park-contract-20260804.txt).
 
 ## Analysis
 
@@ -430,20 +455,16 @@ context while preserving the established power and recovery boundary.
 
 ## Conclusion
 
-`blocked-phase-attribution-runtime-guards-passed`: the rejected start-gate image
-completed its static, container, and deployment gates, but its attributable
-repeat reached a fatal preterminal NULL dereference without retaining PC/LR or
-the exact failing phase. Reject that image unchanged. The phase-attribution
-child changes observation only: its one-path `0002` adds 31 durable marker
-lines, strips byte-for-byte to the rejected parent, rejects all 33 marker/order
-mutations, and passes exact-child-versus-parent Buildbox source, diagnostics,
-configuration, binary, marker, package, ShellCheck, and stack review. The exact
-kernel package remains `boot_candidate=false`; the separately constructed
-Android-v0 image is byte-reproducible across two independent roots and passes
-independent structure, provenance, offline-only, and six-mutation validation.
-The exact deployment, numbered-snapshot capture, parser, decision map, and
-success/fault mutation gates now also pass without device access. No
-phase-attribution deployment or runtime claim exists.
+`blocked-kthread-unpark-correction-required`: phase-attribution attempt 1 is an
+attributable restart with incomplete trace under the fixed decision map. The
+guarded exact boot2 write and shutdown succeeded, but retained pstore cannot
+localize the reset beyond its valid marker prefix. A separate exact-source/
+binary audit establishes that the rejected design left its per-CPU kthreads
+parked and released them only through ordered stop cleanup, accounting for the
+retained no-task prefix and the earlier serialized execution. This mechanism
+does not promote the incomplete trace to a first-unmatched boundary and does
+not establish a scheduler/runqueue defect. Reject the current artifact
+unchanged and continue only through the ordered action in `docs/ROADMAP.md`.
 
 ## Follow-up
 

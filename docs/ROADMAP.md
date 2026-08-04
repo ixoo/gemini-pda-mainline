@@ -1240,18 +1240,19 @@ exact input in two independent roots, followed by independent structural,
 ramdisk, legacy-ID, extent, zero-padding, provenance, and offline-only
 validation. No device action is authorized yet.
 
-The phase-attribution Android-v0 container gate is closed; exact identity and
-validation evidence remain in the
-[experiment record](../experiments/2026-08-03-a72-scheduler-context/results/offline-container-review-phase-attribution-20260804.txt).
-The separate deployment/runtime guard gate is also closed; its exact identities,
-snapshot parser, decision classes, and mutation evidence remain in the
-[experiment record](../experiments/2026-08-03-a72-scheduler-context/results/runtime-tools-phase-attribution-20260804.txt).
-The next ordered action, only from the clean pushed guard revision, is to arm
-changed-cycle pstore just in time, perform the exact guarded
-write/readback/cleanup/shutdown, arm the read-only USB/netcat collector while
-the device is off, and physically select boot2 once. Classify pstore first and
-use only the fixed decision map; transport-truncated USB evidence remains
-secondary and cannot manufacture the next phase.
+Phase-attribution attempt 1 produced an attributable restart with incomplete
+trace; its exact deployment and classification evidence remain in the
+[experiment record](../experiments/2026-08-03-a72-scheduler-context/results/runtime-phase-attribution-attempt-1-incomplete-trace-20260804.txt).
+A subsequent exact-source/binary audit identifies the deterministic design
+error: the per-CPU tasks are created parked, the selected wake operation does
+not release that state, and ordered stop cleanup does; its exact evidence also
+remains in the
+[experiment record](../experiments/2026-08-03-a72-scheduler-context/results/source-binary-kthread-park-contract-20260804.txt).
+Reject the artifact unchanged. The next ordered action is a one-path successor
+using `kthread_unpark()`, with its void-operation terminal and marker contract
+plus exact-source, binary-call-edge, and negative-mutation gates revised before
+a Buildbox-only compile. No unchanged repeat, container, write, or device boot
+is authorized.
 
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback

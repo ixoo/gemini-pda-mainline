@@ -1,0 +1,57 @@
+CPU8/CPU9 phase-attribution boot2 deployment
+================================================
+
+Date: 2026-08-04 UTC
+Result: write-synced-flushed-full-readback-verified
+
+Authorization and exact candidate
+---------------------------------
+
+The owner explicitly authorized writing this exact boot2 candidate despite
+the Buildbox compile package recording `boot_candidate=false`. That one-image
+override did not waive any live-device safety or readback requirement.
+
+- Compile repository commit:
+  a50c12f11862bde5b27de8de0a91ac72529b1bd7
+- Kernel field / Image.gz-dtb SHA-256:
+  932dfc84eaea2aa5971a0ade98d5ddb8d592e400830fba47aa81d2a7b02c5811
+- Raw Android-v0 SHA-256:
+  d06e220da65830b7a58620b03a9ecd8e78d27ee28b2ca905b046fe3198c7375c
+- Candidate manifest SHA-256:
+  e10e38baeb290d00e73e587111024ec7ddf96974604837e31e980c7c62618df4
+- Full 16 MiB boot2 SHA-256:
+  2268e23559e8d36e4339a4fd912d0108721ed818e628dfc857cab2ab8e8049a8
+
+Guarded deployment
+------------------
+
+- The helper resolved logical `boot2` from the live GPT as
+  `/dev/mmcblk0p30`; ordinary Gemian root was `/dev/mmcblk0p29`.
+- The target was inactive, unmounted, the expected size, and writable.
+- External power was online, capacity was 100 percent, and health was Good.
+- The exact predecessor full-partition SHA-256 was
+  `2e8c611b1dbe5b79b13f2dec9cf9d77d9b7973a732f63702a6228600bef464b3`.
+- No fresh predecessor backup was created; recovery continues to rely on the
+  verified project-wide backup captured at project start.
+- The candidate fit, was padded to the target size, written, synchronized,
+  flushed, and read back in full.
+- The full readback SHA-256 was exactly
+  `2268e23559e8d36e4339a4fd912d0108721ed818e628dfc857cab2ab8e8049a8`.
+- Temporary readback state was removed.
+- Deployment boot-ID SHA-256 was
+  `64a222e690f2e5c4a76b7a2773b034b116ae8bd3edb7c218b9abe57299352023`.
+- The helper shut Gemian down only after evidence was flushed, confirmed the
+  device unreachable, and did not request a reboot. The owner then physically
+  selected boot2 once.
+
+Evidence integrity
+------------------
+
+- Sanitized deployment summary SHA-256:
+  `6e68d60ee23e3d217f250280fddfddbbd105b8d5b7df3fba31458e5b09ee2bc1`.
+- Deployment `SHA256SUMS` SHA-256:
+  `4356dac72d764449e3470eeed04f221ffaa145cc12d2cde532f5d19cc54916f5`.
+- Every entry in the ignored deployment evidence checksum manifest verified.
+
+This record establishes only an exact, guarded boot2 installation and clean
+handoff. Runtime classification is recorded separately.

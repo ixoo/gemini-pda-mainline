@@ -1,0 +1,116 @@
+CPU8/CPU9 exact source/binary audit: per-CPU kthread park contract
+=================================================================
+
+Date: 2026-08-04 UTC
+Decision: replace the two initial `wake_up_process()` calls with
+`kthread_unpark()` before another compile or runtime attempt.
+
+Question
+--------
+
+Why did repeated scheduler-context candidates create both per-CPU tasks yet
+fail to dispatch them through their intended activation calls?
+
+Exact audited inputs
+--------------------
+
+- Phase-attribution compile repository commit:
+  `a50c12f11862bde5b27de8de0a91ac72529b1bd7`.
+- Generated phase source commit:
+  `cf1b6bc5110d60741b77372a481f7debc02078b2`.
+- Exact start-gate parent source commit:
+  `7de241d42df128848ddbc37a090d4440fb7fa09f`.
+- Vendor source commit:
+  `59e00a9144d782e148332009a835b99c43382467`.
+- Phase-attribution scheduler patchset SHA-256:
+  `b2c971d4a1860ec09616a61dbd8a29fde488f7d99deb8bd6bfbf2c517b2c3493`.
+- Accepted vmlinux SHA-256:
+  `8a8c94b73c88f47693955c21c135d33a0879f01aeb32d5ebeb40a0c3cdf894ac`.
+- Accepted System.map SHA-256:
+  `b5712bfb23d7201ae9c85efcbe2a609ddea4ad7bfec71dd5f3a4156b051ad68f`.
+- Buildbox package `SHA256SUMS` SHA-256:
+  `68e304a88631a361cd3c91cc7330e9629f7721e303cb804599e3ad62df6d7768`.
+- Disassembler: Homebrew LLVM 22.1.8 `llvm-objdump`.
+
+Every entry in the fetched Buildbox package checksum manifest verified before
+the audit.
+
+Exact lifecycle contract
+------------------------
+
+The accepted binary contains these exact symbols:
+
+  ffffffc0000c3d10 __kthread_parkme
+  ffffffc0000c3f80 __kthread_unpark
+  ffffffc0000c42c0 kthread_unpark
+  ffffffc0000c42f0 kthread_park
+  ffffffc0000c4398 kthread_create_on_cpu
+  ffffffc0000c43f0 kthread_stop
+  ffffffc0000d38c0 wake_up_process
+  ffffffc0000d3928 wake_up_state
+
+Focused disassembly proves these decision-relevant edges and state masks:
+
+1. `kthread_create_on_cpu()` creates the task, records its CPU, and calls
+   `kthread_park()` before returning it to the experiment.
+2. `__kthread_parkme()` stores task state `0x200` (512, `TASK_PARKED`) while
+   the park bit remains set.
+3. `wake_up_process()` calls `try_to_wake_up()` with state mask `0x3`
+   (`TASK_NORMAL`). It does not clear the kthread park bits and its mask does
+   not include `TASK_PARKED`.
+4. `kthread_unpark()` calls `__kthread_unpark()`, which clears the park state
+   and calls `wake_up_state(task, 0x200)`.
+5. `kthread_stop()` sets the stop bit, calls `__kthread_unpark()`, then calls
+   `wake_up_process()` and waits for task completion.
+
+The experiment source creates two tasks with `kthread_create_on_cpu()` and then
+uses exactly two `wake_up_process()` calls as its intended activation. The
+binary contract proves that those calls cannot release the parked tasks. The
+later cleanup calls `kthread_stop()` first for CPU8 and then CPU9, so cleanup,
+not the intended activation path, unparks the tasks serially.
+
+Reinterpretation of prior evidence
+----------------------------------
+
+The corrected busy-spin candidate built at repository commit
+`66f3592aa281915a1fa998684353ea9f9395c85d` contains the same relevant symbol
+addresses, call edges, and state masks. Its retained terminal remains valid as
+raw evidence, but its earlier causal interpretation is superseded:
+
+- both successful creates returned parked per-CPU tasks;
+- both initial wake results were zero because neither call released
+  `TASK_PARKED`;
+- after the parent waits expired, `kthread_stop(task8)` unparked CPU8 first;
+- CPU8 ran alone, exhausted the peer-ready spin, and returned `-ETIMEDOUT` with
+  its initial hash;
+- only then did `kthread_stop(task9)` unpark CPU9, which observed ready count 2
+  and completed its full deterministic workload and expected hash.
+
+Thus the prior CPU9 delay was serial cleanup-unpark order, not demonstrated
+scheduler/runqueue latency. The accumulated results do prove that both tasks
+were created and that cleanup later obtained task-context execution on their
+exact CPUs; they do not test concurrent dispatch through the intended start
+gate.
+
+Decision boundary
+-----------------
+
+Reject the exact phase-attribution artifact unchanged. Any successor must:
+
+- replace exactly the two intended `wake_up_process()` calls with exactly two
+  `kthread_unpark()` calls;
+- replace the return-valued `wake_result` contract with an honest void-operation
+  field such as `unpark_issued`, requiring exactly one issuance per created
+  task;
+- rename parent `wake8`/`wake9` phase markers and terminal fields to
+  `unpark8`/`unpark9`;
+- forbid `wake_up_process()` in the experiment path and statically require the
+  two unpark calls;
+- pin exact-source and accepted-binary proof that create-on-CPU parks, unpark
+  clears/wakes `TASK_PARKED`, and stop unparks during cleanup; and
+- preserve task creation/binding, readiness and shared release gate, workload,
+  timeouts, cleanup, pair-v6 gate, HPS veto, CPU_OFF prohibition, power, and
+  watchdog boundaries unchanged.
+
+This audit does not order the successor work or authorize device action; that
+ownership remains in `docs/ROADMAP.md`.
