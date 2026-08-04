@@ -1,0 +1,103 @@
+CPU8/CPU9 scheduler phase-attribution offline container review
+===============================================================
+
+Date: 2026-08-04 UTC
+Decision: PASS
+
+The exact phase-attribution Android-v0 container is accepted for later guarded
+deployment only after separate deployment and runtime tools pass their static
+and mutation gates. No device was accessed in this review.
+
+Exact identities
+----------------
+
+- Container-construction repository commit:
+  b2f11e96dc4141c801d3e02fa10970f42fc9dea8
+- Accepted-validator repository commit:
+  396017d751c345929edada3a008f49e0572d07be
+- Compile repository commit:
+  a50c12f11862bde5b27de8de0a91ac72529b1bd7
+- Phase-attribution scheduler patchset SHA-256:
+  b2c971d4a1860ec09616a61dbd8a29fde488f7d99deb8bd6bfbf2c517b2c3493
+- Child `Image.gz-dtb` SHA-256:
+  932dfc84eaea2aa5971a0ade98d5ddb8d592e400830fba47aa81d2a7b02c5811
+- Compile-package `SHA256SUMS` SHA-256:
+  68e304a88631a361cd3c91cc7330e9629f7721e303cb804599e3ad62df6d7768
+- Known-good active boot input SHA-256:
+  1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513
+- Retained ramdisk SHA-256:
+  a1ee05445e9a2bd8fbc1f75d7cda326b9ca7a6d3b644cbb1d5fc0ac167835be4
+- Raw Android-v0 SHA-256:
+  d06e220da65830b7a58620b03a9ecd8e78d27ee28b2ca905b046fe3198c7375c
+- Full 16 MiB padded SHA-256:
+  2268e23559e8d36e4339a4fd912d0108721ed818e628dfc857cab2ab8e8049a8
+- Candidate manifest SHA-256:
+  e10e38baeb290d00e73e587111024ec7ddf96974604837e31e980c7c62618df4
+
+Pinned tooling SHA-256
+----------------------
+
+  assemble.py: 60116c1591d111cb68cf7581d59458072878547b5ce472d08264721b4eaa00e4
+  build-candidate.sh: 32519d9f60f3f5692edebf6349bfa3627d040ca86cefd8414296de9d062d007d
+  test_candidate.py: fe579e454ab87686dc7ffe28e789a7467bd9083f7cad6331dbb90f005873b43b
+
+Validation
+----------
+
+- The complete fetched Buildbox compile package passes its recorded checksum
+  inventory.
+- Two independent ignored output roots each performed two raw assemblies and
+  two independent padding constructions.
+- Every generated file is byte-identical across the two roots.
+- Both roots pass the independently pinned tooling, manifest, Android-v0,
+  ramdisk, legacy image-ID, extent, padding, provenance, and offline-only
+  validator.
+- All 11 assemblers in the transitive construction chain are independently
+  hash-pinned and scanned together with the wrapper and source builders for
+  prohibited device, network, or lifecycle actions.
+- Each root rejects 6/6 negative candidate mutations: raw/manifest mismatch,
+  recomputed-manifest padded-identity mismatch, missing no-write provenance,
+  conflicting duplicate provenance, an unmanifested extra file, and an unsafe
+  manifest path.
+- The raw Android-v0 image is 14,813,184 bytes. Its embedded kernel is exactly
+  8,454,392 bytes and matches the accepted Buildbox child image.
+- The retained ramdisk is exactly 6,354,621 bytes and matches the known-good
+  Gemian input.
+- Kernel, ramdisk, second-stage, tags, page-size, command-line, legacy image-ID,
+  aligned extents, and empty second-stage/DT fields match the retained
+  Android-v0 contract.
+- The padded image is exactly 16,777,216 bytes, begins with the complete raw
+  image, and contains only zeroes after the raw extent.
+- The exact committed shell builder passes Bash syntax and ShellCheck. Both
+  Python tools pass syntax validation.
+- The complete executed assembler and builder chain contains no target-device
+  partition path, network address, SSH, netcat, reboot, shutdown, poweroff, or
+  partition-writing action.
+
+Generated sidecar SHA-256
+-------------------------
+
+  analysis.txt: 82e7431d47d205afce9d1eacd64913bf3679ca1718207e984e1986ac18a84fc5
+  provenance.txt: ee39d31143915b129af0b24443464ebd76ef994b072cb4ead505a43bdb47b703
+
+Corrected validation gates
+--------------------------
+
+The first validator hardening at repository commit `a86a7cc` replaced
+substring-only provenance checks with unique exact key/value parsing, pinned
+both sidecars and the complete manifest, rejected contradictory provenance,
+and added candidate-root and link-count checks. Review then found that its
+offline scan covered only the immediate assembler parent rather than the full
+dynamically imported chain. No unconditional PASS was recorded from that
+intermediate validator. Commit `396017d` pins and scans all 11 assemblers plus
+the wrapper and source builders; both independent roots pass that final
+validator and all six negative mutations.
+
+Acceptance boundary
+-------------------
+
+This review fixes the exact phase-attribution artifact identity. It does not
+authorize a device write by itself and does not establish a runtime result.
+The current installed boot2 predecessor remains the rejected start-gate image
+until a separately reviewed guarded installer proves otherwise. Device access,
+partition write, boot selection, and runtime result were all absent here.

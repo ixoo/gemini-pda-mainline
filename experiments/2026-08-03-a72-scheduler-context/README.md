@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-scheduler-context` |
-| Status | `blocked-phase-attribution-compile-passed` |
+| Status | `blocked-phase-attribution-container-passed` |
 | Subsystem | MT6797 retained Cortex-A72 pair and scheduler |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -81,12 +81,12 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   child versus exact rejected start-gate parent compile, diagnostics,
   disassembly, and stack comparison.
 - [`scripts/assemble.py`](scripts/assemble.py): pinned pair-v6 Android-v0
-  assembler specialization for the accepted scheduler kernel.
+  assembler specialization for the exact phase-attribution kernel.
 - [`scripts/build-candidate.sh`](scripts/build-candidate.sh): reproducible,
   offline-only candidate construction with two raw and padded constructions.
 - [`scripts/test_candidate.py`](scripts/test_candidate.py): independent tool,
-  manifest, Android-v0, extent, image-ID, ramdisk, padding, and provenance
-  validator.
+  inventory, manifest, Android-v0, extent, image-ID, ramdisk, padding,
+  provenance, offline-only, and negative-mutation validator.
 - [`scripts/install-boot2.sh`](scripts/install-boot2.sh): exact predecessor,
   live-GPT target, inactive/unmounted, full-readback, cleanup, and clean-shutdown
   deployment contract.
@@ -385,6 +385,21 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   is made because build time and output path metadata were not normalized. No
   container or device action occurred. See
   [`results/compile-review-phase-attribution-20260804.txt`](results/compile-review-phase-attribution-20260804.txt).
+- Container tooling committed at
+  `b2f11e96dc4141c801d3e02fa10970f42fc9dea8` pins the exact accepted kernel,
+  compile commit, phase patchset, retained ramdisk, raw image, and padded image.
+  The accepted validator at `396017d751c345929edada3a008f49e0572d07be`
+  pins the sidecars and complete manifest, parses unique exact evidence records,
+  rejects conflicting provenance, and pins and scans the complete 11-assembler
+  construction chain plus both builders for offline-only violations.
+  Two independent ignored roots are byte-identical after two raw assemblies
+  and two padding constructions per root. Both pass the independent Android-v0
+  validator and each rejects all six candidate mutations. The raw SHA-256 is
+  `d06e220da65830b7a58620b03a9ecd8e78d27ee28b2ca905b046fe3198c7375c`;
+  the exact 16 MiB boot2 SHA-256 is
+  `2268e23559e8d36e4339a4fd912d0108721ed818e628dfc857cab2ab8e8049a8`.
+  No device was accessed. See
+  [`results/offline-container-review-phase-attribution-20260804.txt`](results/offline-container-review-phase-attribution-20260804.txt).
 
 ## Analysis
 
@@ -395,7 +410,7 @@ context while preserving the established power and recovery boundary.
 
 ## Conclusion
 
-`blocked-phase-attribution-compile-passed`: the rejected start-gate image
+`blocked-phase-attribution-container-passed`: the rejected start-gate image
 completed its static, container, and deployment gates, but its attributable
 repeat reached a fatal preterminal NULL dereference without retaining PC/LR or
 the exact failing phase. Reject that image unchanged. The phase-attribution
@@ -403,8 +418,11 @@ child changes observation only: its one-path `0002` adds 31 durable marker
 lines, strips byte-for-byte to the rejected parent, rejects all 33 marker/order
 mutations, and passes exact-child-versus-parent Buildbox source, diagnostics,
 configuration, binary, marker, package, ShellCheck, and stack review. The exact
-kernel input is pinned with `boot_candidate=false`. No phase-attribution
-Android-v0 container, deployment, device action, or runtime claim exists.
+kernel package remains `boot_candidate=false`; the separately constructed
+Android-v0 image is now byte-reproducible across two independent roots and
+passes independent structure, provenance, offline-only, and six-mutation
+validation. No phase-attribution deployment, device action, or runtime claim
+exists.
 
 ## Follow-up
 

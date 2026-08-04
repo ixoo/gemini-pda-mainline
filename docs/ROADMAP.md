@@ -1240,6 +1240,16 @@ exact input in two independent roots, followed by independent structural,
 ramdisk, legacy-ID, extent, zero-padding, provenance, and offline-only
 validation. No device action is authorized yet.
 
+The phase-attribution Android-v0 container gate is closed; exact identity and
+validation evidence remain in the
+[experiment record](../experiments/2026-08-03-a72-scheduler-context/results/offline-container-review-phase-attribution-20260804.txt).
+The next ordered action is to pin the currently installed rejected start-gate
+predecessor and this successor in the guarded installer, and to extend the
+runtime collector and fixed decision map with the complete ordered phase-marker
+set recorded by the experiment.
+All identity, no-backup, full-readback, shutdown, marker-order, recovery, and
+serviceability mutations must pass before device access.
+
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback
 gates close.
