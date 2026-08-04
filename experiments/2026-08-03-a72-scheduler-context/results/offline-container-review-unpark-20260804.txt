@@ -1,0 +1,85 @@
+CPU8/CPU9 scheduler kthread-unpark offline container review
+===========================================================
+
+Date: 2026-08-04 UTC
+Result: PASS
+Device access: none
+Partition write: none
+Runtime result: not tested
+
+Accepted inputs
+---------------
+
+- Tooling repository commit:
+  `6869e27e9715e89ff4f18c4c792498b25afad419`.
+- Compile repository commit:
+  `4f647c333056fd51aa2850957bb94ace508bedee`.
+- Compile package `SHA256SUMS` SHA-256:
+  `d36a6a12e2ef4d0501df78f8fa9a94e763c1907f155c5f008182eed2d1f0b7f2`.
+- Exact phase-parent patchset SHA-256:
+  `b2c971d4a1860ec09616a61dbd8a29fde488f7d99deb8bd6bfbf2c517b2c3493`.
+- Exact unpark child patchset SHA-256:
+  `bd5799cecd14aa34a87562b09507a6d9f18f11cd138420bcba629f12793e7bfe`.
+- Accepted `Image.gz-dtb` SHA-256:
+  `b7ed626161490c64939f791e1caaaf6f4ffb03ecf55466776a19b74f02bb349c`.
+- Known-good active Gemian boot SHA-256:
+  `1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513`.
+- Preserved ramdisk SHA-256:
+  `a1ee05445e9a2bd8fbc1f75d7cda326b9ca7a6d3b644cbb1d5fc0ac167835be4`.
+
+Exact retained result
+---------------------
+
+- Raw Android-v0 filename: `gemian-a72-scheduler-unpark.boot.img`.
+- Raw Android-v0 size: 14,813,184 bytes.
+- Raw Android-v0 SHA-256:
+  `f3e235f3c196667e892f6ed611db37f77ab465ce90b59be763bf3dddedc1fd5c`.
+- Legacy Android image ID:
+  `95fa04ebaafb05be7e9d37bde2baff116ebade7e`.
+- Kernel field size: 8,455,343 bytes.
+- Exact boot2-sized filename: `boot2-padded.img`.
+- Exact boot2-sized image size: 16,777,216 bytes.
+- Exact boot2-sized image SHA-256:
+  `5b38e542586cf70f3fcf3de049f351671f96fab985e0d93fa79f90e2d04012c5`.
+- Zero-padded tail: 1,964,032 bytes.
+- `analysis.txt` SHA-256:
+  `92e91589e1c2ed8277975db362a8f2244a421cd8496e17a279001dac5c5bc524`.
+- `provenance.txt` SHA-256:
+  `519df6a18a67dac2805ca4022073e3ca619034d9a088f6b9090b7a4b822883ee`.
+- `SHA256SUMS` SHA-256:
+  `9928d416e8ad50a35652ab58721c6a3747b1e8f00ff5fa4883e3100550c634f5`.
+
+Independent review
+------------------
+
+- Two retained constructions used separate ignored output roots and the same
+  canonical, regular, non-symlink known-good boot input.
+- Each construction performed two complete Android-v0 assemblies and found
+  them byte-identical.
+- Each construction performed copy-and-truncate and zero-fill-then-overlay
+  padding and found the resulting exact 16 MiB images byte-identical.
+- Every output file from the two retained roots is byte-identical. Each root
+  contains exactly five regular, non-symlink, single-link, mode-0600 files.
+- Both strict checksum manifests pass with no unlisted payload.
+- Independent binary parsing of both roots confirms the exact Android-v0
+  layout, page and load addresses, legacy image ID, kernel and ramdisk extents,
+  raw prefix, and all-zero padded tail.
+- Both independent validator runs pass the complete 11-assembler tool chain,
+  exact file inventory, manifest, provenance, offline-only action boundary,
+  and all structural and identity gates.
+- Each run rejects all six candidate mutations; 12/12 mutation cases were
+  rejected across the two retained roots.
+- Provenance records both raw assemblies and both padding constructions as
+  identical, with `device_access=none`, `partition_write=none`, and
+  `runtime_result=not-tested`.
+- Native VM kernel build: no.
+
+Decision and boundary
+---------------------
+
+The exact 16 MiB image with SHA-256
+`5b38e542586cf70f3fcf3de049f351671f96fab985e0d93fa79f90e2d04012c5`
+is accepted as the sole offline-container input for guarded deployment and
+runtime-tool review. This result does not itself authorize a partition write
+or establish any runtime, CPU8, or CPU9 claim. Ordered successor work remains
+solely in `docs/ROADMAP.md`.

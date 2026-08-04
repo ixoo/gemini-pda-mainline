@@ -1256,11 +1256,19 @@ identities and validation remain in the
 The Buildbox-only child-versus-phase-parent compile and package review now
 passes; exact identities and acceptance evidence remain in the
 [compile record](../experiments/2026-08-03-a72-scheduler-context/results/compile-review-unpark-20260804.txt).
-The next ordered action is reproducible Android-v0 construction from that exact
-accepted child kernel in two independent roots, followed by independent
-structural, ramdisk, legacy-ID, extent, zero-padding, provenance, and
-offline-only validation. No unchanged repeat, write, or device boot is
-authorized.
+Two independent retained Android-v0 constructions from that exact accepted
+child kernel are byte-identical and pass structural, ramdisk, legacy-ID,
+extent, zero-padding, provenance, offline-only, pinned-tool-chain, and negative-
+mutation validation. The exact accepted 16 MiB image SHA-256 is
+`5b38e542586cf70f3fcf3de049f351671f96fab985e0d93fa79f90e2d04012c5`;
+exact identities and review remain in the
+[offline-container record](../experiments/2026-08-03-a72-scheduler-context/results/offline-container-review-unpark-20260804.txt).
+The next ordered action is to retarget and independently validate the guarded
+live-GPT boot2 installer, fixed runtime decision map, changed-cycle pstore
+observer, and read-only USB/netcat collector to this exact successor and the
+rejected `2268e23559e8d36e4339a4fd912d0108721ed818e628dfc857cab2ab8e8049a8`
+predecessor. Commit and push that clean tooling/evidence revision before any
+device access. No unchanged repeat, write, or device boot is authorized yet.
 
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback

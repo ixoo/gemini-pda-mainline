@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-scheduler-context` |
-| Status | `blocked-unpark-offline-container-pending` |
+| Status | `blocked-unpark-deployment-runtime-tooling-pending` |
 | Subsystem | MT6797 retained Cortex-A72 pair and scheduler |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 through 2026-08-04 |
@@ -502,6 +502,15 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   construction passed and was removed; no retained container or device action
   has occurred. See
   [`results/offline-container-tooling-unpark-20260804.txt`](results/offline-container-tooling-unpark-20260804.txt).
+- Two retained constructions in separate ignored roots now reproduce every
+  unpark container file byte-for-byte. Each root passed strict manifests, two
+  raw assemblies, two padding paths, independent Android-v0, ramdisk,
+  legacy-ID, extent, zero-tail, provenance, and offline-only review, the pinned
+  11-assembler chain, and all six negative mutations. The accepted exact
+  16 MiB image SHA-256 is
+  `5b38e542586cf70f3fcf3de049f351671f96fab985e0d93fa79f90e2d04012c5`.
+  No native VM build or device action occurred. See
+  [`results/offline-container-review-unpark-20260804.txt`](results/offline-container-review-unpark-20260804.txt).
 
 ## Analysis
 
@@ -512,7 +521,7 @@ context while preserving the established power and recovery boundary.
 
 ## Conclusion
 
-`blocked-unpark-offline-container-pending`: phase-attribution attempt 1 is an
+`blocked-unpark-deployment-runtime-tooling-pending`: phase-attribution attempt 1 is an
 attributable restart with incomplete trace under the fixed decision map. The
 guarded exact boot2 write and shutdown succeeded, but retained pstore cannot
 localize the reset beyond its valid marker prefix. A separate exact-source/
@@ -524,9 +533,11 @@ not establish a scheduler/runqueue defect. The exact unpark-only child has now
 been generated, independently reviewed, admitted after the historical parent,
 and compiled against that exact parent. Source, mutation, configuration,
 diagnostics, lifecycle-disassembly, marker, terminal, stack, package, and
-provenance gates pass. Reject the previous boot artifact unchanged; no
-boot-container or boot-candidate claim exists for the unpark child yet.
-Continue only through the ordered action in `docs/ROADMAP.md`.
+provenance gates pass. Two independent retained constructions now establish
+the exact unpark Android-v0 container and its 16 MiB padded identity. Reject
+the previous boot artifact unchanged; the accepted offline container is not
+yet a deployment or runtime result. Continue only through the ordered action
+in `docs/ROADMAP.md`.
 
 ## Follow-up
 
