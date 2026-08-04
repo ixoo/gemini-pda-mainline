@@ -71,8 +71,16 @@ def edit(source: Path) -> None:
         "task-done-after",
     )
 
-    mark(path, "\tmt6797_a72_sc_task8 = kthread_create_on_cpu(\n", "create8-before")
-    mark(path, "\tmt6797_a72_sc_task9 = kthread_create_on_cpu(\n", "create9-before")
+    mark(
+        path,
+        "\tmt6797_a72_sc_task8 = kthread_create_on_cpu(mt6797_a72_sc_thread,\n",
+        "create8-before",
+    )
+    mark(
+        path,
+        "\tmt6797_a72_sc_task9 = kthread_create_on_cpu(mt6797_a72_sc_thread,\n",
+        "create9-before",
+    )
     mark(path, "\tif (IS_ERR(mt6797_a72_sc_task8)) {\n", "create8-after")
     mark(path, "\tif (IS_ERR(mt6797_a72_sc_task9)) {\n", "create9-after")
     mark(path, "\tmt6797_a72_sc_result8.wake_result =\n", "wake8-before")
