@@ -1261,7 +1261,7 @@ case "${package}" in "${artifact_root}"/*) ;; *) exit 1 ;; esac
    ($mode == "coherence" and .purpose == "cpu9-bounded-coherency-compile-review-only") or
    ($mode == "multiline" and .purpose == "cpu9-multiline-integrity-compile-review-only") or
    ($mode == "parallel" and .purpose == "cpu9-parallel-disjoint-load-compile-review-only") or
-   ($mode == "scheduler" and .purpose == "a72-scheduler-context-compile-review-only"))
+   ($mode == "scheduler" and .purpose == "a72-scheduler-phase-attribution-compile-review-only"))
 ' "${package}/provenance/build.json" >/dev/null
 tar -C "$(dirname "${package}")" -cf - -- "$(basename "${package}")"
 REMOTE
