@@ -1,0 +1,72 @@
+CPU8/CPU9 scheduler phase-attribution source generation
+========================================================
+
+Date: 2026-08-04 UTC
+Result: PASS
+
+Exact identities
+----------------
+
+- Successful repository generation commit:
+  baf7370a13675fe62e08ba19ba168448753058a0
+- Vendor source commit:
+  59e00a9144d782e148332009a835b99c43382467
+- Exact rejected start-gate parent commit:
+  7de241d42df128848ddbc37a090d4440fb7fa09f
+- Exact parent start-gate patchset SHA-256:
+  970c090c080f0a5b03738ea7bdec65edaebc7b1d3b179488202587c157edc845
+- Generated phase-attribution source commit:
+  cf1b6bc5110d60741b77372a481f7debc02078b2
+- Generated `0002` patch SHA-256:
+  30f2b94232d6cf87991a761dd533a4d90a21545c98132079dd73cbeb2cd00234
+- Generated `0002` stable patch ID:
+  3dba39ce423f82bf979f301786c948dd46c5391b
+- Admitted two-patch experiment series SHA-256:
+  b2c971d4a1860ec09616a61dbd8a29fde488f7d99deb8bd6bfbf2c517b2c3493
+- Fetched package SHA256SUMS file SHA-256:
+  28f9e01f04c564ae72f90d4d96c52c11e439fb3d13fdd0dd77b3f8b853adbb03
+
+Validation
+----------
+
+- Full prerequisite patch chain reconstruction: PASS.
+- Exact rejected start-gate parent source validator: PASS.
+- Parent scheduler hash vectors: 2/2 PASS.
+- Parent scheduler negative mutations: 33/33 rejected.
+- Phase markers: 31/31 exact and unique.
+- Missing-marker and order mutations: 33/33 rejected.
+- Strip-all-markers comparison to exact parent `psci.c`: byte-identical.
+- Generated patch count: 1 (`0002`).
+- Generated changed path: `arch/arm64/kernel/psci.c` only.
+- Generated diff: 31 insertions, no deletion or non-marker change.
+- Package checksum verification: PASS.
+- Admitted patch copy versus fetched package: byte-identical.
+- Buildbox ShellCheck of the exact generator: PASS.
+- Native VM kernel build: no.
+- Buildbox compile: no.
+- Device action: none.
+- Boot candidate: false.
+
+Corrected generation gates
+--------------------------
+
+- Repository commit `2913afe18c8f5702ab673b3c1a747b60203a2445`
+  stopped before patch generation because both create anchors omitted the
+  function-name continuation present in the exact parent. The anchors were
+  corrected; no source patch or compile was produced.
+- Repository commit `ff5563c637b0f39583d69194e3ff15603e9e6594`
+  stopped because the inherited parent validator correctly rejected a marker
+  inserted between `kthread_stop()` and pointer clearing. Generation now runs
+  that validator on the pristine exact parent, then independently requires
+  strip-all-marker byte equality on the child. No source patch or compile was
+  produced by the failed attempt.
+
+Interpretation and next gate
+----------------------------
+
+The admitted child changes observation only. It does not fix or work around the
+NULL fault and is not a boot candidate. The next ordered action is a
+Buildbox-only child-versus-exact-parent compile, diagnostics, symbol, stack,
+terminal, marker-string, and patch-order review. No container or device action
+is authorized until that compile review passes and a separate reproducible
+container is validated.

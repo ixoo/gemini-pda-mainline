@@ -1,0 +1,136 @@
+From cf1b6bc5110d60741b77372a481f7debc02078b2 Mon Sep 17 00:00:00 2001
+From: Gemini A72 experiment <noreply@gemini-a72.invalid>
+Date: Tue, 4 Aug 2026 01:10:00 +0000
+Subject: [PATCH] diagnostic: attribute A72 scheduler start-gate phases
+
+Add durable pre/post markers around the unchanged rejected start-gate protocol.
+
+Preserve workload, timeouts, power, CPU_OFF prohibition, and watchdog recovery.
+---
+ arch/arm64/kernel/psci.c | 31 +++++++++++++++++++++++++++++++
+ 1 file changed, 31 insertions(+)
+
+diff --git a/arch/arm64/kernel/psci.c b/arch/arm64/kernel/psci.c
+index 80af015dd..cf61d8a8f 100644
+--- a/arch/arm64/kernel/psci.c
++++ b/arch/arm64/kernel/psci.c
+@@ -1059,16 +1059,21 @@ static int mt6797_a72_sc_thread(void *data)
+ 	else if (cpu != result->expected_cpu)
+ 		error = -EXDEV;
+ 
++	pr_emerg("gemini-a72-sc-phase cpu=%d phase=task-ready-before\n", result->expected_cpu);
+ 	atomic_inc(&mt6797_a72_sc_ready);
+ 	complete(ready);
++	pr_emerg("gemini-a72-sc-phase cpu=%d phase=task-ready-after\n", result->expected_cpu);
++	pr_emerg("gemini-a72-sc-phase cpu=%d phase=task-start-wait-before\n", result->expected_cpu);
+ 	result->start_complete = !!wait_for_completion_timeout(
+ 		&mt6797_a72_sc_start,
+ 		msecs_to_jiffies(MT6797_A72_SC_READY_TIMEOUT_MS));
++	pr_emerg("gemini-a72-sc-phase cpu=%d phase=task-start-wait-after\n", result->expected_cpu);
+ 	smp_rmb();
+ 	if (!error && !result->start_complete)
+ 		error = -ETIMEDOUT;
+ 	else if (!error && !atomic_read(&mt6797_a72_sc_start_allowed))
+ 		error = -ECANCELED;
++	pr_emerg("gemini-a72-sc-phase cpu=%d phase=task-work-before\n", result->expected_cpu);
+ 	if (!error) {
+ 		for (iteration = 0; iteration < MT6797_A72_SC_ITERATIONS;
+ 		     iteration++) {
+@@ -1089,11 +1094,14 @@ static int mt6797_a72_sc_thread(void *data)
+ 		error = -EXDEV;
+ 	if (!error && (!(current->flags & PF_KTHREAD) || in_interrupt()))
+ 		error = -EINVAL;
++	pr_emerg("gemini-a72-sc-phase cpu=%d phase=task-work-after\n", result->expected_cpu);
+ 	result->hash = hash;
+ 	result->error = error;
+ 	smp_wmb();
+ 	atomic_inc(&mt6797_a72_sc_finished);
++	pr_emerg("gemini-a72-sc-phase cpu=%d phase=task-done-before\n", result->expected_cpu);
+ 	complete(done);
++	pr_emerg("gemini-a72-sc-phase cpu=%d phase=task-done-after\n", result->expected_cpu);
+ 	return error;
+ }
+ 
+@@ -1142,9 +1150,11 @@ static void mt6797_a72_sc_run(void)
+ 	unsigned long ready_deadline;
+ 	unsigned long done_deadline;
+ 
++	pr_emerg("gemini-a72-sc-phase phase=create8-before\n");
+ 	mt6797_a72_sc_task8 = kthread_create_on_cpu(mt6797_a72_sc_thread,
+ 					&mt6797_a72_sc_result8, 8,
+ 					"gemini-a72-sc/%u");
++	pr_emerg("gemini-a72-sc-phase phase=create8-after\n");
+ 	if (IS_ERR(mt6797_a72_sc_task8)) {
+ 		mt6797_a72_sc_result8.create_error =
+ 			PTR_ERR(mt6797_a72_sc_task8);
+@@ -1152,9 +1162,11 @@ static void mt6797_a72_sc_run(void)
+ 	} else {
+ 		mt6797_a72_sc_result8.create_error = 0;
+ 	}
++	pr_emerg("gemini-a72-sc-phase phase=create9-before\n");
+ 	mt6797_a72_sc_task9 = kthread_create_on_cpu(mt6797_a72_sc_thread,
+ 					&mt6797_a72_sc_result9, 9,
+ 					"gemini-a72-sc/%u");
++	pr_emerg("gemini-a72-sc-phase phase=create9-after\n");
+ 	if (IS_ERR(mt6797_a72_sc_task9)) {
+ 		mt6797_a72_sc_result9.create_error =
+ 			PTR_ERR(mt6797_a72_sc_task9);
+@@ -1165,39 +1177,58 @@ static void mt6797_a72_sc_run(void)
+ 	if (!mt6797_a72_sc_task8 || !mt6797_a72_sc_task9)
+ 		goto stop;
+ 
++	pr_emerg("gemini-a72-sc-phase phase=wake8-before\n");
+ 	mt6797_a72_sc_result8.wake_result =
+ 		wake_up_process(mt6797_a72_sc_task8);
++	pr_emerg("gemini-a72-sc-phase phase=wake8-after\n");
++	pr_emerg("gemini-a72-sc-phase phase=wake9-before\n");
+ 	mt6797_a72_sc_result9.wake_result =
+ 		wake_up_process(mt6797_a72_sc_task9);
++	pr_emerg("gemini-a72-sc-phase phase=wake9-after\n");
+ 	ready_deadline = jiffies +
+ 		msecs_to_jiffies(MT6797_A72_SC_READY_TIMEOUT_MS);
++	pr_emerg("gemini-a72-sc-phase phase=ready8-wait-before\n");
+ 	mt6797_a72_sc_result8.ready_complete =
+ 		mt6797_a72_sc_wait_until(&mt6797_a72_sc_ready8, ready_deadline);
++	pr_emerg("gemini-a72-sc-phase phase=ready8-wait-after\n");
++	pr_emerg("gemini-a72-sc-phase phase=ready9-wait-before\n");
+ 	mt6797_a72_sc_result9.ready_complete =
+ 		mt6797_a72_sc_wait_until(&mt6797_a72_sc_ready9, ready_deadline);
++	pr_emerg("gemini-a72-sc-phase phase=ready9-wait-after\n");
+ 	if (mt6797_a72_sc_result8.ready_complete &&
+ 	    mt6797_a72_sc_result9.ready_complete)
+ 		atomic_set(&mt6797_a72_sc_start_allowed, 1);
+ 	smp_wmb();
++	pr_emerg("gemini-a72-sc-phase phase=release-before\n");
+ 	complete_all(&mt6797_a72_sc_start);
++	pr_emerg("gemini-a72-sc-phase phase=release-after\n");
+ 	done_deadline = jiffies +
+ 		msecs_to_jiffies(MT6797_A72_SC_DONE_TIMEOUT_MS);
++	pr_emerg("gemini-a72-sc-phase phase=done8-wait-before\n");
+ 	mt6797_a72_sc_result8.wait_complete =
+ 		mt6797_a72_sc_wait_until(&mt6797_a72_sc_done8, done_deadline);
++	pr_emerg("gemini-a72-sc-phase phase=done8-wait-after\n");
++	pr_emerg("gemini-a72-sc-phase phase=done9-wait-before\n");
+ 	mt6797_a72_sc_result9.wait_complete =
+ 		mt6797_a72_sc_wait_until(&mt6797_a72_sc_done9, done_deadline);
++	pr_emerg("gemini-a72-sc-phase phase=done9-wait-after\n");
+ 
+ stop:
+ 	if (mt6797_a72_sc_task8) {
++		pr_emerg("gemini-a72-sc-phase phase=stop8-before\n");
+ 		mt6797_a72_sc_result8.stop_result =
+ 			kthread_stop(mt6797_a72_sc_task8);
++		pr_emerg("gemini-a72-sc-phase phase=stop8-after\n");
+ 		mt6797_a72_sc_task8 = NULL;
+ 	}
+ 	if (mt6797_a72_sc_task9) {
++		pr_emerg("gemini-a72-sc-phase phase=stop9-before\n");
+ 		mt6797_a72_sc_result9.stop_result =
+ 			kthread_stop(mt6797_a72_sc_task9);
++		pr_emerg("gemini-a72-sc-phase phase=stop9-after\n");
+ 		mt6797_a72_sc_task9 = NULL;
+ 	}
++	pr_emerg("gemini-a72-sc-phase phase=run-exit\n");
+ 	smp_wmb();
+ 	atomic_set(&mt6797_a72_sc_reported, 1);
+ }

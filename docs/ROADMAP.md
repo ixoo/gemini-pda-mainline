@@ -1217,6 +1217,18 @@ Buildbox generation from the exact rejected parent, including the parent
 contract, marker equivalence, all negative mutations, and one-path patch
 inventory. No compile, container, or device action is authorized yet.
 
+Buildbox exact-parent generation now passes after two bounded tooling-gate
+corrections that produced no patch. The accepted job reconstructed and
+validated the rejected start-gate parent, retained its two hash vectors and 33
+negative mutations, inserted exactly 31 phase markers, rejected all 33 marker
+mutations, and proved marker-stripped `psci.c` byte-identical to the parent.
+The generated `0002` changes only `arch/arm64/kernel/psci.c`; its SHA-256 is
+`30f2b94232d6cf87991a761dd533a4d90a21545c98132079dd73cbeb2cd00234`.
+The next ordered action is a Buildbox-only child-versus-exact-parent compile
+with diagnostics, configuration, symbols, stack, expanded-terminal, and all
+phase-marker strings reviewed. No container or device action is authorized
+yet.
+
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback
 gates close.

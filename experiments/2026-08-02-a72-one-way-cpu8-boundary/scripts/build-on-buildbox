@@ -212,7 +212,7 @@ fi
 readonly scheduler_patchset_sha
 if [[ "${build_mode}" == scheduler ]]; then
   [[ "${scheduler_patchset_sha}" == \
-     970c090c080f0a5b03738ea7bdec65edaebc7b1d3b179488202587c157edc845 ]] || \
+     b2c971d4a1860ec09616a61dbd8a29fde488f7d99deb8bd6bfbf2c517b2c3493 ]] || \
     die "scheduler-context patchset identity mismatch"
 fi
 [[ "$(sha256sum "${baseline_config}" | awk '{print $1}')" == "${CONFIG_SHA256}" ]] || \
@@ -494,10 +494,14 @@ prepare_variant() {
         "${parallel_experiment_dir}/patches/${patch}"
     done < "${parallel_patch_series}"
   fi
-  if [[ "${include_scheduler}" == 1 ]]; then
+  if [[ "${include_scheduler}" == 1 || "${include_scheduler}" == 2 ]]; then
     while IFS= read -r patch; do
       [[ "${patch}" =~ ^[A-Za-z0-9_.+-]+\.patch$ ]] || \
         die "unsafe scheduler-context patch name"
+      if [[ "${include_scheduler}" == 2 && \
+            "${patch}" != 0001-diagnostic-add-bounded-A72-scheduler-context-execution.patch ]]; then
+        continue
+      fi
       git -C "${partial}" apply --check \
         "${scheduler_experiment_dir}/patches/${patch}"
       git -C "${partial}" apply \
@@ -518,15 +522,16 @@ readonly source_mirror="${source_root}/gemian-linux-kernel-3.18.git"
 prepare_mirror
 if [[ "${build_mode}" == scheduler ]]; then
   readonly prepared_source="${source_root}/gemian-scheduler/${parent_patchset_sha:0:16}-${accepted_rollback_patchset_sha:0:16}-${one_way_patchset_sha:0:16}-${held_patchset_sha:0:16}-${late_patchset_sha:0:16}-${cpu9_patchset_sha:0:16}-${window_patchset_sha:0:16}-${terminal_patchset_sha:0:16}-${coherence_patchset_sha:0:16}-${multiline_patchset_sha:0:16}-${parallel_patchset_sha:0:16}-${scheduler_patchset_sha:0:16}"
-  readonly baseline_source="${source_root}/gemian-parallel/${parent_patchset_sha:0:16}-${accepted_rollback_patchset_sha:0:16}-${one_way_patchset_sha:0:16}-${held_patchset_sha:0:16}-${late_patchset_sha:0:16}-${cpu9_patchset_sha:0:16}-${window_patchset_sha:0:16}-${terminal_patchset_sha:0:16}-${coherence_patchset_sha:0:16}-${multiline_patchset_sha:0:16}-${parallel_patchset_sha:0:16}"
-  prepare_variant "${baseline_source}" .gemini-parallel-state \
-    "${parent_patchset_sha}:${accepted_rollback_patchset_sha}:${one_way_patchset_sha}:${held_patchset_sha}:${late_patchset_sha}:${cpu9_patchset_sha}:${window_patchset_sha}:${terminal_patchset_sha}:${coherence_patchset_sha}:${multiline_patchset_sha}:${parallel_patchset_sha}" 1 1 1 1 1 1 1 1 1 0
+  readonly baseline_source="${source_root}/gemian-scheduler-parent/${parent_patchset_sha:0:16}-${accepted_rollback_patchset_sha:0:16}-${one_way_patchset_sha:0:16}-${held_patchset_sha:0:16}-${late_patchset_sha:0:16}-${cpu9_patchset_sha:0:16}-${window_patchset_sha:0:16}-${terminal_patchset_sha:0:16}-${coherence_patchset_sha:0:16}-${multiline_patchset_sha:0:16}-${parallel_patchset_sha:0:16}-970c090c080f0a5b"
+  prepare_variant "${baseline_source}" .gemini-scheduler-parent-state \
+    "${parent_patchset_sha}:${accepted_rollback_patchset_sha}:${one_way_patchset_sha}:${held_patchset_sha}:${late_patchset_sha}:${cpu9_patchset_sha}:${window_patchset_sha}:${terminal_patchset_sha}:${coherence_patchset_sha}:${multiline_patchset_sha}:${parallel_patchset_sha}:970c090c080f0a5b03738ea7bdec65edaebc7b1d3b179488202587c157edc845" 1 1 1 1 1 1 1 1 1 2
   prepare_variant "${prepared_source}" .gemini-scheduler-state \
     "${parent_patchset_sha}:${accepted_rollback_patchset_sha}:${one_way_patchset_sha}:${held_patchset_sha}:${late_patchset_sha}:${cpu9_patchset_sha}:${window_patchset_sha}:${terminal_patchset_sha}:${coherence_patchset_sha}:${multiline_patchset_sha}:${parallel_patchset_sha}:${scheduler_patchset_sha}" 1 1 1 1 1 1 1 1 1 1
-  python3 "${parallel_experiment_dir}/scripts/test_static.py" \
-    --source "${baseline_source}"
   python3 "${scheduler_experiment_dir}/scripts/test_static.py" \
-    --source "${prepared_source}"
+    --source "${baseline_source}"
+  python3 "${scheduler_experiment_dir}/scripts/test_phase_markers.py" \
+    --source "${prepared_source}" \
+    --parent-psci "${baseline_source}/arch/arm64/kernel/psci.c"
   for source_file in arch/arm64/kernel/smp.c kernel/cpu.c \
     drivers/misc/mediatek/base/power/mt6797/mt_hotplug_strategy_algo.c; do
     cmp "${prepared_source}/${source_file}" \
@@ -1079,6 +1084,8 @@ elif [[ "${build_mode}" == scheduler ]]; then
   baseline_disassembly_symbols+=(
     mt6797_a72_ml_ipi
     mt6797_a72_pl_ipi
+    mt6797_a72_sc_thread
+    mt6797_a72_sc_terminal
   )
   changed_disassembly_symbols+=(
     mt6797_a72_pl_ipi
@@ -1162,26 +1169,20 @@ if [[ "${build_mode}" == scheduler ]]; then
         die "scheduler comparison is missing inherited ${symbol}"
     done
   done
-  for symbol in mt6797_a72_sc_thread mt6797_a72_sc_terminal \
-    mt6797_a72_sc_result8 \
-    mt6797_a72_sc_result9 mt6797_a72_sc_task8 mt6797_a72_sc_task9; do
-    grep -q " ${symbol}$" "${output}/System.map" || \
-      die "scheduler build is missing ${symbol}"
+  for map in "${output}/System.map" "${baseline_output}/System.map"; do
+    for symbol in mt6797_a72_sc_thread mt6797_a72_sc_terminal \
+      mt6797_a72_sc_result8 mt6797_a72_sc_result9 \
+      mt6797_a72_sc_task8 mt6797_a72_sc_task9; do
+      grep -q " ${symbol}$" "${map}" || \
+        die "scheduler phase comparison is missing ${symbol}"
+    done
   done
-  if grep -qE ' mt6797_a72_sc_' "${baseline_output}/System.map"; then
-    die "pair-v6 parent unexpectedly contains scheduler-context symbols"
-  fi
   grep -q '<mt6797_a72_sc_thread>:' \
     "${output}/focused-disassembly/mt6797_a72_sc_thread.txt" || \
     die "scheduler disassembly is missing its task entry"
   grep -q '<mt6797_a72_sc_terminal>:' \
     "${output}/focused-disassembly/mt6797_a72_sc_terminal.txt" || \
     die "scheduler disassembly is missing its isolated terminal reporter"
-  if cmp "${output}/focused-disassembly/mt6797_a72_coh_workfn.txt" \
-    "${baseline_output}/focused-disassembly/mt6797_a72_coh_workfn.txt" \
-    >/dev/null; then
-    die "scheduler integration is binary-identical to pair-v6"
-  fi
   "${cross_prefix}strings" "${output}/vmlinux" | \
     grep -F 'gemini-a72-pair-v6 result=pass sample=3 cpu8=8 cpu9=9 online8=1 online9=1 hits8=3 hits9=3' >/dev/null || \
     die "scheduler build changed the pair-v6 pass terminal"
@@ -1195,11 +1196,21 @@ if [[ "${build_mode}" == scheduler ]]; then
     grep -F 'sc_reported=%d sc_iterations=262144 sc_rescheds=64 sc_expected8=%d sc_start8=%d sc_end8=%d sc_expected9=%d sc_start9=%d sc_end9=%d sc_task8=%d sc_task9=%d sc_create8=%d sc_create9=%d sc_wake8=%d sc_wake9=%d sc_readywait8=%d sc_readywait9=%d sc_startwait8=%d sc_startwait9=%d sc_wait8=%d sc_wait9=%d' >/dev/null || \
     die "scheduler build is missing its complete lifecycle fields"
   "${cross_prefix}strings" "${baseline_output}/vmlinux" | \
-    grep -F 'gemini-a72-pair-v6 result=pass sample=3 cpu8=8 cpu9=9 online8=1 online9=1 hits8=3 hits9=3' >/dev/null || \
-    die "scheduler baseline is missing exact pair-v6"
+    grep -F 'gemini-a72-pair-v7 result=%s parent_pass=%d' >/dev/null || \
+    die "scheduler baseline is missing exact rejected start-gate terminal"
+  for phase in task-ready-before task-ready-after task-start-wait-before \
+    task-start-wait-after task-work-before task-work-after task-done-before \
+    task-done-after create8-before create8-after create9-before create9-after \
+    wake8-before wake8-after wake9-before wake9-after ready8-wait-before \
+    ready8-wait-after ready9-wait-before ready9-wait-after release-before \
+    release-after done8-wait-before done8-wait-after done9-wait-before \
+    done9-wait-after stop8-before stop8-after stop9-before stop9-after run-exit; do
+    "${cross_prefix}strings" "${output}/vmlinux" | grep -F "phase=${phase}" >/dev/null || \
+      die "scheduler build is missing phase marker ${phase}"
+  done
   if "${cross_prefix}strings" "${baseline_output}/vmlinux" | \
-    grep -F 'gemini-a72-pair-v7' >/dev/null; then
-    die "pair-v6 parent unexpectedly contains pair-v7"
+    grep -F 'gemini-a72-sc-phase' >/dev/null; then
+    die "rejected start-gate parent unexpectedly contains phase markers"
   fi
   find "${output}" -type f -name '*.su' -exec \
     grep -hE 'mt6797_a72_(sc_thread|sc_run|sc_terminal|coh_workfn|hold_workfn)' {} + > \
@@ -1698,7 +1709,7 @@ jq -n \
     baseline_source_exact_terminal: ($build_mode == "coherence"),
     baseline_source_exact_coherence: ($build_mode == "multiline"),
     baseline_source_exact_multiline: ($build_mode == "parallel"),
-    baseline_source_exact_parallel: ($build_mode == "scheduler"),
+    baseline_source_exact_scheduler_parent: ($build_mode == "scheduler"),
     cpu9_startup_source_identical: ($build_mode == "window" or
       $build_mode == "terminal" or $build_mode == "coherence" or
       $build_mode == "multiline" or $build_mode == "parallel" or
@@ -1707,7 +1718,7 @@ jq -n \
     stack_usage_file_count: $stack_usage_file_count,
     baseline_stack_usage_file_count: $baseline_stack_usage_file_count,
     purpose: (if $build_mode == "scheduler" then
-      "a72-scheduler-context-compile-review-only" elif $build_mode == "parallel" then
+      "a72-scheduler-phase-attribution-compile-review-only" elif $build_mode == "parallel" then
       "cpu9-parallel-disjoint-load-compile-review-only" elif $build_mode == "multiline" then
       "cpu9-multiline-integrity-compile-review-only" elif $build_mode == "coherence" then
       "cpu9-bounded-coherency-compile-review-only" elif $build_mode == "terminal" then

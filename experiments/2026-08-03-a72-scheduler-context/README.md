@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-scheduler-context` |
-| Status | `blocked-phase-attribution-source-tooling-prepared` |
+| Status | `blocked-phase-attribution-source-generated` |
 | Subsystem | MT6797 retained Cortex-A72 pair and scheduler |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -358,6 +358,17 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   remains pending. No exact-parent generation, compile, container, or device
   action occurred. See
   [`results/source-tooling-phase-attribution-20260804.txt`](results/source-tooling-phase-attribution-20260804.txt).
+- Buildbox exact-parent generation at repository commit `baf7370a13675fe62e08ba19ba168448753058a0`
+  reconstructs and validates the rejected start-gate parent, retains its two
+  hash vectors and 33 negative mutations, adds exactly 31 marker lines, rejects
+  all 33 marker mutations, and proves byte-identical parent source after marker
+  stripping. The generated `0002` changes only `arch/arm64/kernel/psci.c` with
+  31 insertions; patch SHA-256 is
+  `30f2b94232d6cf87991a761dd533a4d90a21545c98132079dd73cbeb2cd00234`.
+  Two earlier generation submissions stopped at an incorrect create anchor and
+  validator layering respectively, before producing a patch. No compile,
+  container, or device action occurred. See
+  [`results/source-generation-phase-attribution-20260804.txt`](results/source-generation-phase-attribution-20260804.txt).
 
 ## Analysis
 
@@ -368,7 +379,7 @@ context while preserving the established power and recovery boundary.
 
 ## Conclusion
 
-`blocked-phase-attribution-source-tooling-prepared`: the explicit ready/block/release/done
+`blocked-phase-attribution-source-generated`: the explicit ready/block/release/done
 protocol passes exact-parent generation, both hash vectors, all 33 mutations,
 child/parent compilation, identical diagnostics, expanded-terminal binary, and
 stack gates, and has a reproducible independently validated Android-v0
@@ -384,8 +395,9 @@ proves a preterminal fatal NULL dereference, but the retained record lacks the
 PC/LR and phase needed to identify the exact failing operation. Reject the
 image unchanged. The next source-only action adds decision-changing durable
 phase attribution without changing the tested protocol or safety boundary.
-That tooling is now prepared with 31 exact markers and 33 negative mutations;
-exact-parent Buildbox generation and one-path review remain pending.
+That tooling is now admitted as a one-path `0002` after exact-parent Buildbox
+generation, byte-equivalence review, 31 exact insertions, and 33 negative
+mutations. Buildbox child-versus-parent compile and binary review remain pending.
 
 ## Follow-up
 
