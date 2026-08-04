@@ -1,0 +1,132 @@
+CPU8/CPU9 phase-attribution deployment/runtime tool review
+==========================================================
+
+Date: 2026-08-04 UTC
+
+Decision
+--------
+
+Accept the exact phase-attribution deployment and observation tools for one
+guarded boot2 installation and one attributable physical selection only after
+this complete revision is committed and pushed. This is offline tooling
+evidence, not deployment or runtime evidence. No device was accessed.
+
+Exact deployment identities
+---------------------------
+
+Expected rejected start-gate predecessor boot2 SHA-256:
+  2e8c611b1dbe5b79b13f2dec9cf9d77d9b7973a732f63702a6228600bef464b3
+Exact phase-attribution successor boot2 SHA-256:
+  2268e23559e8d36e4339a4fd912d0108721ed818e628dfc857cab2ab8e8049a8
+Candidate manifest SHA-256:
+  e10e38baeb290d00e73e587111024ec7ddf96974604837e31e980c7c62618df4
+Artifact name:
+  gemian-a72-scheduler-phase-attribution-d06e220da658
+
+Reviewed tool identities
+------------------------
+
+install-boot2.sh SHA-256:
+  2326576c384a2ade49d1f579bca02533846c0bec5280d02efeeeccec59dc5e3c
+capture-live-outcome.sh SHA-256:
+  0f45b5589e38259c791ff16010b43ad84f63f5746f387d89fc38c8c26787375d
+validate_phase_capture.py SHA-256:
+  862440bc8db3dfbb9af5ea56c86e6f22d7cdc83c1be64e5d14568c4f0ecf2124
+test_runtime_tools.py SHA-256:
+  64346fa97f61234a7f4f06291e0a6a9d6d841846359898bcd9d7d09eb0d96e86
+Fixed decision-map SHA-256:
+  b4174f700c844a850b439ff696b39c52e2f72f0be2c505ca1b9bf809867976dc
+
+Deployment safety review
+------------------------
+
+The derived installer pins all four identities above and retains the reviewed
+base installer's fail-closed gates:
+
+- resolve exactly one boot2 from the live GPT;
+- require boot2 to be inactive, unmounted, writable, exact-sized, and on
+  stable power;
+- require the exact predecessor or skip an already matching successor;
+- record the predecessor checksum without creating a fresh partition backup;
+- pad and write only the exact successor, then sync and flush;
+- require an independent matching full-partition readback;
+- remove temporary readback state; and
+- shut down cleanly after success without requesting reboot.
+
+The USB/netcat helper remains read-only on the device. Its remote program reads
+only dmesg, kernel identity, and CPU online/present state. Static forbidden-
+operation checks reject block-device paths, CPU-online writes, storage tools,
+mounting, reboot, poweroff, shutdown, and kexec.
+
+Capture and classifier review
+-----------------------------
+
+The collector emits complete numbered snapshots once per second and places a
+leading newline before snapshot 1 so the inherited interactive USB-shell
+prompt cannot prefix its control record. The host parser requires:
+
+- contiguous, closed snapshot envelopes and exact payload counts;
+- exactly one syntactically complete marker or pair terminal per payload line;
+- one of the reachable parent control-flow prefixes and an exact per-CPU task
+  prefix from a continuous create8-before history;
+- monotonic full event history across cumulative snapshots;
+- exact source-pinned pair-v6 and pair-v7 field schemas;
+- the established exact pair-v6 and pair-v7 PASS vectors, including hashes,
+  with fault fields that report successful waits activating their causal edges;
+- adjacent final pair-v6/pair-v7 records immediately after run-exit whenever
+  scheduler markers exist;
+- exact equality between snapshot terminals and terminal metadata;
+- all 39 phase records and PASS-only causal edges for pair-v7 pass; and
+- a distinct transport-truncated class for an unclosed final envelope.
+
+Marker-free inherited-parent faults, create-failure cleanup, timeout ordering,
+and a normally entered path whose task never dispatches before kthread_stop
+remain valid fault structures. They are not promoted to PASS. Pstore remains
+the primary changed-cycle evidence; USB is secondary corroboration.
+
+Validation
+----------
+
+Host tools:
+  ShellCheck 0.11.0
+  Python 3.14.6
+
+Passed:
+
+- bash syntax for both shell tools;
+- ShellCheck for both shell tools;
+- Python bytecode compilation for the parser and test suite;
+- installer and collector help-path checks;
+- Git whitespace validation; and
+- the complete runtime-tool suite, which reported:
+
+  validation=a72-scheduler-phase-runtime-tools
+  installer_identity_mutations=4-rejected
+  phase_marker_source=31-unique
+  phase_marker_success_path=39-records
+  phase_marker_mutations=10-rejected
+  capture_format=numbered-full-snapshots
+  pair_terminal_schemas=source-pinned
+  pair_terminal_semantics=exact-pass-field-conditioned-fault
+  capture_mutations=26-rejected
+  fault_branches=create-failure-timeout-undispatched-accepted
+  installer=exact-predecessor-candidate-readback-shutdown
+  live_collector=read-only-pstore-primary-usb-secondary
+  result_classes=9-complete
+  result=pass
+
+The negative cases include identity replacement, missing/unknown/duplicate or
+reordered markers, wrong/missing CPU fields, impossible PASS causality,
+unreachable parent jumps, unsafe marker occurrence counts, nonmonotonic or
+vanishing event history, terminal-before-run-exit, incomplete pair-v6,
+snapshot/metadata disagreement, unclosed-only capture, and task execution
+without an earlier wake.
+
+Next boundary
+-------------
+
+After the clean revision is pushed, arm changed-cycle pstore just in time, run
+the exact guarded installer, require matching readback and confirmed shutdown,
+then arm USB/netcat while the device is off. The owner physically selects
+boot2 once. Classify the recovered pstore first under the fixed decision map;
+screen color or automatic restart alone remains nonclassifying.

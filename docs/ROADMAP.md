@@ -1243,12 +1243,15 @@ validation. No device action is authorized yet.
 The phase-attribution Android-v0 container gate is closed; exact identity and
 validation evidence remain in the
 [experiment record](../experiments/2026-08-03-a72-scheduler-context/results/offline-container-review-phase-attribution-20260804.txt).
-The next ordered action is to pin the currently installed rejected start-gate
-predecessor and this successor in the guarded installer, and to extend the
-runtime collector and fixed decision map with the complete ordered phase-marker
-set recorded by the experiment.
-All identity, no-backup, full-readback, shutdown, marker-order, recovery, and
-serviceability mutations must pass before device access.
+The separate deployment/runtime guard gate is also closed; its exact identities,
+snapshot parser, decision classes, and mutation evidence remain in the
+[experiment record](../experiments/2026-08-03-a72-scheduler-context/results/runtime-tools-phase-attribution-20260804.txt).
+The next ordered action, only from the clean pushed guard revision, is to arm
+changed-cycle pstore just in time, perform the exact guarded
+write/readback/cleanup/shutdown, arm the read-only USB/netcat collector while
+the device is off, and physically select boot2 once. Classify pstore first and
+use only the fixed decision map; transport-truncated USB evidence remains
+secondary and cannot manufacture the next phase.
 
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback

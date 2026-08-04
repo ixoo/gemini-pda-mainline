@@ -23,6 +23,11 @@ This is a bounded task-context diagnostic. It is not userspace scheduling,
 migration, capacity/energy-model validation, long-duration load, or production
 scheduler qualification.
 
+The current phase-attribution child derives from the exact rejected start-gate
+revision. It changes observation only by adding durable pre/post markers around
+the existing task and parent phases. It does not change the synchronization,
+workload, timeouts, power boundary, or recovery path.
+
 ## Exact execution contract
 
 ### Parent gate and owner
@@ -68,39 +73,52 @@ not manufactured by disabling preemption across the phase.
 
 State is static and initialized before creation. Each task:
 
-1. increments one shared `ready` atomic and waits until it equals exactly 2;
-2. consumes one task-local total spin budget of `1U << 25` while waiting;
-3. executes exactly 262,144 iterations of a pure unsigned-64-bit recurrence
+1. increments one shared `ready` atomic and completes its CPU-specific ready
+   completion;
+2. blocks for at most 2,000 ms on one shared start completion;
+3. after an acquire barrier, requires the parent's explicit `start_allowed`
+   authorization; a release without authorization is a bounded cancellation;
+4. executes exactly 262,144 iterations of a pure unsigned-64-bit recurrence
    seeded by its assigned CPU number;
-4. invokes `cond_resched()` after every 4,096 iterations, exactly 64 call sites
+5. invokes `cond_resched()` after every 4,096 iterations, exactly 64 call sites
    per task, without changing affinity or priority;
-5. folds every deterministic value into a task-local 64-bit hash;
-6. verifies its ending CPU and task context;
-7. stores result, error, completed iterations, and hash, executes `smp_wmb()`,
+6. folds every deterministic value into a task-local 64-bit hash;
+7. verifies its ending CPU and task context;
+8. stores result, error, completed iterations, and hash, executes `smp_wmb()`,
    increments `finished`, and completes its task-specific completion object;
-8. returns its exact error code normally from the thread function.
+9. returns its exact error code normally from the thread function.
 
 The recurrence uses fixed constants, XOR, shifts, and unsigned arithmetic. It
 must not depend on time, addresses, randomness, scheduler counters, prior data,
 or device state. A static validator independently computes both exact hashes.
 
-The `ready == 2` rendezvous proves both bound tasks were dispatched before
-either workload starts. It does not claim simultaneous instruction issue.
+The two ready completions plus the parent-authorized shared release prove both
+bound tasks were dispatched and blocked before either workload starts. They do
+not claim simultaneous instruction issue.
 
 ### CPU0 wait and cleanup
 
-- Wake CPU8 then CPU9 exactly once with `wake_up_process()` and require each
-  return value to be 1.
-- Wait on each completion with an absolute phase deadline derived once from
-  `jiffies + msecs_to_jiffies(2000)`. Do not grant two independent two-second
-  windows.
-- Internal waits remain finite, so a completion timeout does not create an
-  unbounded thread. After the waits, call `kthread_stop()` exactly once for each
-  successfully created task, even on fault.
-- Require both stop returns to equal the corresponding task result and require
-  both to be zero for a pass.
-- Clear both task pointers after stop. Publication before both stop calls and
-  any surviving task pointer are terminal faults.
+- Wake CPU8 then CPU9 exactly once with `wake_up_process()`. Zero and one are
+  the only accepted return values, and either is meaningful only when the
+  independent task-context, CPU, ready, start, done, and hash fields later
+  prove execution.
+- Derive one ready deadline from
+  `jiffies + msecs_to_jiffies(2000)` and use its remaining time for both
+  CPU-specific ready completions. Do not grant two independent windows.
+- Set `start_allowed` only when both ready waits succeed, publish it with a
+  barrier, and call `complete_all()` exactly once even on readiness failure so
+  any created task exits through bounded cancellation.
+- Derive one fresh 2,000 ms done deadline after release and use its remaining
+  time for both CPU-specific done completions.
+- Every explicit completion wait has a finite deadline. After those waits,
+  call `kthread_stop()` exactly once for each successfully created task, even
+  on fault. `kthread_stop()` has no independent software timeout; the retained
+  hardware watchdog bounds a task that cannot complete cleanup.
+- For PASS, require both stop returns to equal the corresponding task result
+  and require both to be zero.
+- Clear both task pointers after every required stop. Publication before every
+  successfully created task has stopped, or any surviving task pointer, is a
+  terminal fault.
 - The retained hardware watchdog remains the outer recovery bound if scheduler
   dispatch or cleanup violates the expected finite behavior.
 
@@ -114,7 +132,8 @@ byte-identical pair-v6 terminal; its fault branch marks scheduler execution
 ineligible without creating a task. Each branch then calls a `noinline`
 scheduler reporter with only the already-decided parent pass/fault boolean.
 That reporter takes one coherent snapshot after an acquire barrier and exposes
-immutable pointers to the static result records after both tasks have stopped.
+immutable pointers to the static result records after every successfully
+created task has stopped.
 It must not copy either result payload onto the parent terminal worker's stack.
 
 This ordering is an explicit invariant: the child may delay terminal text only
@@ -131,19 +150,64 @@ terminal followed immediately by one pair-v7 scheduler terminal. Pair-v7 adds:
 - expected, starting, and ending CPU for each task;
 - task-context flags for each task;
 - creation errors, wake returns, task errors, and stop returns;
-- per-task completion-wait success;
+- per-task ready-wait, start-wait, and completion-wait success;
 - completed iterations and final ready/finished counters;
 - exact deterministic CPU8/CPU9 hashes.
 
 The positive pair-v7 line is:
 
 ```text
-gemini-a72-pair-v7 result=pass parent_pass=1 sc_reported=1 sc_iterations=262144 sc_rescheds=64 sc_expected8=8 sc_start8=8 sc_end8=8 sc_expected9=9 sc_start9=9 sc_end9=9 sc_task8=1 sc_task9=1 sc_create8=0 sc_create9=0 sc_wake8=1 sc_wake9=1 sc_wait8=1 sc_wait9=1 sc_error8=0 sc_error9=0 sc_stop8=0 sc_stop9=0 sc_done8=262144 sc_done9=262144 sc_ready=2 sc_finished=2 sc_hash8=A sc_hash9=B
+gemini-a72-pair-v7 result=pass parent_pass=1 sc_reported=1 sc_iterations=262144 sc_rescheds=64 sc_expected8=8 sc_start8=8 sc_end8=8 sc_expected9=9 sc_start9=9 sc_end9=9 sc_task8=1 sc_task9=1 sc_create8=0 sc_create9=0 sc_wake8=W8 sc_wake9=W9 sc_readywait8=1 sc_readywait9=1 sc_startwait8=1 sc_startwait9=1 sc_wait8=1 sc_wait9=1 sc_error8=0 sc_error9=0 sc_stop8=0 sc_stop9=0 sc_done8=262144 sc_done9=262144 sc_ready=2 sc_finished=2 sc_hash8=A sc_hash9=B
 ```
 
 `A` is `f678147669874ecd` and `B` is `c2274327e9c8104c`, independently
-precomputed from the fixed recurrence. Partial marker text, thread names,
-online CPUs, or a watchdog restart are not a pass.
+precomputed from the fixed recurrence. `W8` and `W9` are each zero or one, with
+execution established independently by the remaining fields. Partial marker
+text, thread names, online CPUs, or a watchdog restart are not a pass.
+
+### Phase-attribution marker contract
+
+The observation-only child adds 31 unique `gemini-a72-sc-phase` source strings.
+The complete successful path emits 23 ordered parent records and eight ordered
+task records for each of CPUs 8 and 9, for 39 runtime records. Parent records
+have no CPU field; task records require the exact CPU field.
+
+The parent order is create8, create9, wake8, wake9, ready8 wait, ready9 wait,
+release, done8 wait, done9 wait, stop8, stop9, and run-exit, with before/after
+records around every operation except run-exit. Each CPU independently orders
+task ready, start wait, work, and done, each with before/after records. CPU8 and
+CPU9 task records may interleave in either scheduler-valid order; no global
+task order may be invented.
+
+Every trace known continuous from create8-before preserves a prefix of one
+reachable parent source path, each emitted task stream as an exact prefix,
+task-done-after before its emitted stop-after, and run-exit after every emitted
+stop-after. The stronger
+cross-causal checks belong to PASS, or to a fault field that independently
+claims the corresponding wait succeeded: the relevant wake-before precedes
+the task's first record, both task-ready-before records precede release-before,
+release-before precedes a successful task-start-wait-after, and task-done-before
+precedes a successful parent done-wait-after.
+
+On a create failure, `kthread_stop()` can terminate the surviving never-woken
+kernel task without invoking its thread function, so no task marker is
+required between that CPU's stop-before and stop-after; the other CPU can have
+no task or stop records. Any emitted task marker requires the corresponding
+explicit wake-before. Readiness or done timeouts can also let release or a
+parent wait-after precede a late task record. These are pair-v7 fault branches,
+not PASS-order violations. A retained before record without its
+matching after record identifies the bounded operation in progress only when
+continuous fatal/reset evidence rules out capture truncation; concurrent open
+task phases must both be reported rather than assigning an unsupported failing
+CPU.
+
+A retained pstore trace whose first phase record is not create8-before is
+head-truncated evidence, not proof of a source-order violation. Preserve its
+records and validate only relative source order among the retained records, but
+do not localize a phase unless another continuous observation establishes the
+missing head. The USB snapshot validator requires continuity from
+create8-before and labels a lost or unclosed transport boundary instead of
+manufacturing that continuity.
 
 ## Result classes
 
@@ -167,10 +231,12 @@ exact source and binary boundaries against the parent.
 
 ### Creation, dispatch, placement, workload, or cleanup fault
 
-Any create error, wake result other than 1, incomplete completion wait, wrong
-task context/CPU, incomplete iteration count, wrong ready/finished count, hash
-mismatch, nonzero task error, or stop/result mismatch rejects the candidate.
-Record the first exact boundary and do not repeat unchanged.
+Any create error, wake result outside zero or one, incomplete ready/start/done
+wait, wrong task context/CPU, incomplete iteration count, wrong ready/finished
+count, hash mismatch, nonzero task error, or stop/result mismatch rejects the
+candidate. Record the earliest source/phase boundary corroborated by the full
+field vector; if retained order cannot distinguish co-failing fields, report
+all of them. Do not repeat unchanged.
 
 ### Restart without pair-v7
 
@@ -201,8 +267,10 @@ Before container construction, exact parent-versus-child review must prove:
 - SCHED_NORMAL is inherited and no scheduler policy, priority, nice, cpuset, or
   post-create affinity operation is added;
 - task-context and start/end CPU checks, exact workload/`cond_resched()` bounds,
-  one shared deadline, internal spin bound, both completions, unconditional
-  two-task cleanup, stop/result checks, and pointer clearing are present;
+  one shared ready deadline, one fresh shared done deadline, two ready
+  completions, one authorized shared release, both done completions,
+  cleanup of every successfully created task, stop/result checks, and pointer
+  clearing are present;
 - representative mutations of parent gate, target CPU, task count, context
   check, recurrence, iteration/reschedule bound, rendezvous, deadline, wake,
   completion, stop, cleanup order, error propagation, hash, and terminal field

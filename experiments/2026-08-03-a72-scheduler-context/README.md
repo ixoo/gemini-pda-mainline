@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-scheduler-context` |
-| Status | `blocked-phase-attribution-container-passed` |
+| Status | `blocked-phase-attribution-runtime-guards-passed` |
 | Subsystem | MT6797 retained Cortex-A72 pair and scheduler |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -91,7 +91,10 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   live-GPT target, inactive/unmounted, full-readback, cleanup, and clean-shutdown
   deployment contract.
 - [`scripts/capture-live-outcome.sh`](scripts/capture-live-outcome.sh): optional
-  read-only USB/netcat capture of adjacent pair-v6 and pair-v7 terminals.
+  read-only USB/netcat capture of numbered complete phase/pair snapshots.
+- [`scripts/validate_phase_capture.py`](scripts/validate_phase_capture.py):
+  exact-occurrence, source-order, monotonic-snapshot, success/fault, and
+  transport-truncation validator for the captured USB format.
 - [`scripts/test_runtime_tools.py`](scripts/test_runtime_tools.py): installer,
   no-backup, shutdown, read-only collector, and decision-map validator.
 - [`patches/series`](patches/series): exact generated experiment-only scheduler-
@@ -400,6 +403,23 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   `2268e23559e8d36e4339a4fd912d0108721ed818e628dfc857cab2ab8e8049a8`.
   No device was accessed. See
   [`results/offline-container-review-phase-attribution-20260804.txt`](results/offline-container-review-phase-attribution-20260804.txt).
+- Phase-attribution deployment/runtime tooling pins the rejected start-gate
+  boot2 predecessor, exact padded successor, candidate manifest, and artifact
+  name. The inherited live-GPT, inactive/unmounted, no-fresh-backup,
+  full-readback, temporary-cleanup, and clean-shutdown gates remain intact.
+  The read-only USB/netcat collector now emits numbered complete snapshots
+  instead of count-based deltas and invokes the same parser exercised by the
+  static suite. The parser requires one exact marker occurrence per line,
+  reachable parent/task structure, monotonic event history, source-pinned
+  complete pair terminals, exact PASS vectors, successful-fault-field causal
+  edges, all 39 records for PASS, and a distinct transport-truncated class.
+  Four installer identity mutations, ten marker/order mutations, and
+  twenty-six captured-format mutations are rejected; valid alternate CPU
+  interleaving, create-failure, timeout, undispatched-task, and marker-free
+  parent-fault branches remain accepted. Bash syntax, ShellCheck, Python
+  compilation, the complete runtime test, and whitespace checks pass. No
+  deployment or device access occurred. See
+  [`results/runtime-tools-phase-attribution-20260804.txt`](results/runtime-tools-phase-attribution-20260804.txt).
 
 ## Analysis
 
@@ -410,7 +430,7 @@ context while preserving the established power and recovery boundary.
 
 ## Conclusion
 
-`blocked-phase-attribution-container-passed`: the rejected start-gate image
+`blocked-phase-attribution-runtime-guards-passed`: the rejected start-gate image
 completed its static, container, and deployment gates, but its attributable
 repeat reached a fatal preterminal NULL dereference without retaining PC/LR or
 the exact failing phase. Reject that image unchanged. The phase-attribution
@@ -419,10 +439,11 @@ lines, strips byte-for-byte to the rejected parent, rejects all 33 marker/order
 mutations, and passes exact-child-versus-parent Buildbox source, diagnostics,
 configuration, binary, marker, package, ShellCheck, and stack review. The exact
 kernel package remains `boot_candidate=false`; the separately constructed
-Android-v0 image is now byte-reproducible across two independent roots and
-passes independent structure, provenance, offline-only, and six-mutation
-validation. No phase-attribution deployment, device action, or runtime claim
-exists.
+Android-v0 image is byte-reproducible across two independent roots and passes
+independent structure, provenance, offline-only, and six-mutation validation.
+The exact deployment, numbered-snapshot capture, parser, decision map, and
+success/fault mutation gates now also pass without device access. No
+phase-attribution deployment or runtime claim exists.
 
 ## Follow-up
 
