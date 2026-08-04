@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-scheduler-context` |
-| Status | `blocked-phase-attribution-source-generated` |
+| Status | `blocked-phase-attribution-compile-passed` |
 | Subsystem | MT6797 retained Cortex-A72 pair and scheduler |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -77,8 +77,9 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   lifecycle, hash-vector, safety-inventory, and negative-mutation validator.
 - [`scripts/generate-on-buildbox`](scripts/generate-on-buildbox): clean-pushed-
   commit Buildbox source reconstruction and format-patch generator.
-- [`scripts/build-on-buildbox`](scripts/build-on-buildbox): Buildbox-only child
-  versus exact pair-v6 compile, diagnostics, disassembly, and stack comparison.
+- [`scripts/build-on-buildbox`](scripts/build-on-buildbox): Buildbox-only phase
+  child versus exact rejected start-gate parent compile, diagnostics,
+  disassembly, and stack comparison.
 - [`scripts/assemble.py`](scripts/assemble.py): pinned pair-v6 Android-v0
   assembler specialization for the accepted scheduler kernel.
 - [`scripts/build-candidate.sh`](scripts/build-candidate.sh): reproducible,
@@ -353,10 +354,11 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   start-gate patch series and adds 31 short durable lines around the unchanged
   task and parent phases. Its validator strips those lines and requires
   byte-for-byte equality with the parent, fixes phase order, and rejects every
-  individual missing-marker mutation plus two ordering swaps. Local Python syntax/CLI, generator shell
-  syntax, and whitespace checks pass; ShellCheck is unavailable locally and
-  remains pending. No exact-parent generation, compile, container, or device
-  action occurred. See
+  individual missing-marker mutation plus two ordering swaps. Local Python
+  syntax/CLI, generator shell syntax, and whitespace checks passed; ShellCheck
+  was unavailable locally at that checkpoint, and later exact-checkout
+  Buildbox checks passed. No exact-parent generation, compile, container, or
+  device action occurred. See
   [`results/source-tooling-phase-attribution-20260804.txt`](results/source-tooling-phase-attribution-20260804.txt).
 - Buildbox exact-parent generation at repository commit `baf7370a13675fe62e08ba19ba168448753058a0`
   reconstructs and validates the rejected start-gate parent, retains its two
@@ -369,6 +371,20 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   validator layering respectively, before producing a patch. No compile,
   container, or device action occurred. See
   [`results/source-generation-phase-attribution-20260804.txt`](results/source-generation-phase-attribution-20260804.txt).
+- Buildbox child-versus-exact-parent compilation from repository commit
+  `a50c12f11862bde5b27de8de0a91ac72529b1bd7` passes source, mutation,
+  configuration, diagnostics, symbol, expanded-terminal, focused-disassembly,
+  package, and stack gates. All 31 phase-marker strings are present in the
+  child binary, and both exact builds produced 2,484 stack-usage files. The four
+  measured child frames are 96, 784, 208, and 96 bytes, all below the 1,024-byte
+  boundary. The exact accepted `Image.gz-dtb` SHA-256 is
+  `932dfc84eaea2aa5971a0ade98d5ddb8d592e400830fba47aa81d2a7b02c5811`.
+  Two earlier end-to-end submissions exposed only stale package-purpose and
+  ShellCheck-annotation gates; the exact final checkout fixes both and passes
+  all relevant ShellCheck invocations. No cross-job byte-reproducibility claim
+  is made because build time and output path metadata were not normalized. No
+  container or device action occurred. See
+  [`results/compile-review-phase-attribution-20260804.txt`](results/compile-review-phase-attribution-20260804.txt).
 
 ## Analysis
 
@@ -379,25 +395,16 @@ context while preserving the established power and recovery boundary.
 
 ## Conclusion
 
-`blocked-phase-attribution-source-generated`: the explicit ready/block/release/done
-protocol passes exact-parent generation, both hash vectors, all 33 mutations,
-child/parent compilation, identical diagnostics, expanded-terminal binary, and
-stack gates, and has a reproducible independently validated Android-v0
-container. Exact predecessor/successor deployment and expanded runtime guards
-also pass static tests, and the exact image remains installed with a matching
-full-partition checksum. Runtime attempt 1 completed a changed-ID,
-watchdog-class cycle and recovered safely, but the observers expired before
-physical selection and retained no attributable candidate terminal. The
-complete parent gate and all workload, placement, cleanup, power, and recovery
-boundaries remain fixed. No start-gate runtime claim exists yet; one exact
-repeat was earned only with just-in-time independent capture. That repeat now
-proves a preterminal fatal NULL dereference, but the retained record lacks the
-PC/LR and phase needed to identify the exact failing operation. Reject the
-image unchanged. The next source-only action adds decision-changing durable
-phase attribution without changing the tested protocol or safety boundary.
-That tooling is now admitted as a one-path `0002` after exact-parent Buildbox
-generation, byte-equivalence review, 31 exact insertions, and 33 negative
-mutations. Buildbox child-versus-parent compile and binary review remain pending.
+`blocked-phase-attribution-compile-passed`: the rejected start-gate image
+completed its static, container, and deployment gates, but its attributable
+repeat reached a fatal preterminal NULL dereference without retaining PC/LR or
+the exact failing phase. Reject that image unchanged. The phase-attribution
+child changes observation only: its one-path `0002` adds 31 durable marker
+lines, strips byte-for-byte to the rejected parent, rejects all 33 marker/order
+mutations, and passes exact-child-versus-parent Buildbox source, diagnostics,
+configuration, binary, marker, package, ShellCheck, and stack review. The exact
+kernel input is pinned with `boot_candidate=false`. No phase-attribution
+Android-v0 container, deployment, device action, or runtime claim exists.
 
 ## Follow-up
 

@@ -1,0 +1,120 @@
+CPU8/CPU9 scheduler phase-attribution compile review
+=====================================================
+
+Date: 2026-08-04 UTC
+Result: PASS
+
+Exact identities
+----------------
+
+- Repository commit:
+  a50c12f11862bde5b27de8de0a91ac72529b1bd7
+- Vendor source commit:
+  59e00a9144d782e148332009a835b99c43382467
+- Exact rejected start-gate parent source commit:
+  7de241d42df128848ddbc37a090d4440fb7fa09f
+- Exact rejected start-gate parent patchset SHA-256:
+  970c090c080f0a5b03738ea7bdec65edaebc7b1d3b179488202587c157edc845
+- Generated phase-attribution source commit:
+  cf1b6bc5110d60741b77372a481f7debc02078b2
+- Phase-attribution `0002` patch SHA-256:
+  30f2b94232d6cf87991a761dd533a4d90a21545c98132079dd73cbeb2cd00234
+- Phase-attribution `0002` stable patch ID:
+  3dba39ce423f82bf979f301786c948dd46c5391b
+- Admitted phase-attribution patchset SHA-256:
+  b2c971d4a1860ec09616a61dbd8a29fde488f7d99deb8bd6bfbf2c517b2c3493
+
+Build contract
+--------------
+
+- Build backend: Buildbox only.
+- Build mode: scheduler.
+- Purpose: `a72-scheduler-phase-attribution-compile-review-only`.
+- Boot candidate: false.
+- Completed UTC: 2026-08-04T20:23:55Z.
+- Native VM kernel build: no.
+- Android-v0 container construction: no.
+- Device access: none.
+
+Validation
+----------
+
+- Exact rejected start-gate parent source validator: PASS.
+- Parent scheduler hash vectors: 2/2 PASS.
+- Parent scheduler negative mutations: 33/33 rejected.
+- Phase-attribution source validator: PASS.
+- Phase marker and order mutations: 33/33 rejected.
+- Marker-stripped child `psci.c` versus exact parent: byte-identical.
+- Child compile: PASS.
+- Exact rejected start-gate parent compile: PASS.
+- Child/parent configuration comparison: PASS.
+- Child/parent diagnostics identical: PASS.
+- CPU9 startup source identical: PASS.
+- Scheduler child-only symbol boundary: PASS.
+- Expanded terminal present in the child binary: PASS.
+- Phase-marker strings present in the child binary: 31/31 PASS.
+- Focused disassembly boundary: PASS.
+- Configuration and package checks: PASS.
+- Complete fetched-package checksum verification: PASS.
+- Exact-checkout ShellCheck for the Buildbox entry point, shared compiler, and
+  scheduler generator: PASS.
+
+Diagnostics and stack
+---------------------
+
+Both child and exact parent contain the same single diagnostic line:
+
+  WARNING: modpost: Found 69 section mismatch(es).
+
+Static stack use in the phase-attribution child:
+
+  mt6797_a72_coh_workfn: 96 bytes
+  mt6797_a72_hold_workfn: 784 bytes
+  mt6797_a72_sc_terminal: 208 bytes
+  mt6797_a72_sc_thread: 96 bytes
+
+Acceptance boundary: 1,024 bytes.
+Child stack-usage files: 2,484.
+Parent stack-usage files: 2,484.
+Resolved child and parent configuration SHA-256:
+  05e389b6de653a4a9b63ad3f3c259be13bdda7f07bbe25ae0b81ec7a7c5c2a9b
+Target compiler:
+  aarch64-linux-gnu-gcc-6 (Debian 6.3.0-18) 6.3.0 20170516
+Target linker:
+  GNU ld (GNU Binutils for Debian) 2.28
+
+Exact accepted output SHA-256
+----------------------------
+
+  Image.gz-dtb: 932dfc84eaea2aa5971a0ade98d5ddb8d592e400830fba47aa81d2a7b02c5811
+  vmlinux: 8a8c94b73c88f47693955c21c135d33a0879f01aeb32d5ebeb40a0c3cdf894ac
+  System.map: b5712bfb23d7201ae9c85efcbe2a609ddea4ad7bfec71dd5f3a4156b051ad68f
+  child diagnostics: f60899a1c59153d7d36474c415bc6e302db89a74bc53a062cb56fa21eb269465
+  parent diagnostics: f60899a1c59153d7d36474c415bc6e302db89a74bc53a062cb56fa21eb269465
+  scheduler stack report: 75c0777a6535c1d27b211a98fb22ade27a2cad279eec3386da9625c7c0e97842
+  package SHA256SUMS: 68e304a88631a361cd3c91cc7330e9629f7721e303cb804599e3ad62df6d7768
+
+Chronology and interpretation
+-----------------------------
+
+The first exact phase-attribution compile completed at admitted repository
+commit `df20635a78b391017f334e828f4369da31c11d1c`, but end-to-end acceptance
+exposed two tooling-hygiene defects outside the kernel result: the package
+fetcher still required the superseded scheduler purpose, and a shared ERR-trap
+ShellCheck annotation was malformed. Commits `11e7ce7` and `a50c12f` corrected
+those gates. The exact final checkout then passed all three relevant ShellCheck
+invocations, repeated the full child and exact-parent build, and produced the
+checksum-verified package recorded above.
+
+Output hashes from the earlier and final jobs are not asserted to be
+byte-reproducible across jobs. The binaries embed a build time and a
+commit-specific output path, so that metadata was not normalized. The accepted
+claim is the exact pinned final package plus the within-job child/parent
+diagnostics, configuration, source, symbol, terminal, marker, and stack review.
+Any later container reproducibility claim must use the exact accepted
+`Image.gz-dtb` as a fixed input and require byte-identical Android-v0 outputs
+from two independent roots.
+
+This closes compile review only. It neither fixes the rejected start-gate NULL
+fault nor establishes runtime progress on CPU8 or CPU9. No container was
+constructed and no device action occurred.

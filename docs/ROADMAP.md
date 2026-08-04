@@ -1229,6 +1229,17 @@ with diagnostics, configuration, symbols, stack, expanded-terminal, and all
 phase-marker strings reviewed. No container or device action is authorized
 yet.
 
+The phase-attribution child-versus-exact-parent Buildbox review now passes
+source, all 66 parent/marker negative mutations, compilation, identical
+diagnostics, configuration, symbols, expanded-terminal, 31 phase-marker,
+package, ShellCheck, and stack gates. Every measured child frame remains below
+1,024 bytes; the exact accepted `Image.gz-dtb` SHA-256 is
+`932dfc84eaea2aa5971a0ade98d5ddb8d592e400830fba47aa81d2a7b02c5811`.
+The next ordered action is a reproducible Android-v0 construction from that
+exact input in two independent roots, followed by independent structural,
+ramdisk, legacy-ID, extent, zero-padding, provenance, and offline-only
+validation. No device action is authorized yet.
+
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback
 gates close.
