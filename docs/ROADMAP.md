@@ -1145,6 +1145,14 @@ The next ordered action is a Buildbox-only child-versus-exact-parent compile,
 binary, diagnostics, terminal, and stack review. No container or device action
 is authorized yet.
 
+The start-gate child-versus-exact-parent Buildbox review now passes source,
+mutation, compile, binary, expanded-terminal, diagnostics, configuration,
+package, and stack gates. Every measured child frame remains below 1,024 bytes;
+the start-gate `Image.gz-dtb` SHA-256 is
+`21a64e59bbf0a83123ee936cc0dc7bdf00e793d8c290a0e557e24d826abefd2a`.
+The next ordered action is a new reproducible Android-v0 container and two
+independent offline validations. No device action is authorized yet.
+
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback
 gates close.

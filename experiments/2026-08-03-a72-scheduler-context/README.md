@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-scheduler-context` |
-| Status | `blocked-start-gate-generated` |
+| Status | `blocked-start-gate-compile-passed` |
 | Subsystem | MT6797 retained Cortex-A72 pair and scheduler |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -294,6 +294,17 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   stable patch ID: `6a0ddf1846650bd5e3b70a22b47adc3289449d0d`.
   No compile, container, or device action occurred. See
   [`results/source-generation-start-gate-20260804.txt`](results/source-generation-start-gate-20260804.txt).
+- Buildbox compilation from repository commit
+  `703d59b239aae6c6f66308a097ede32fc3bdd678` built the start-gate child and
+  exact pair-v6 parent. Both diagnostics contain only the same 69 section-
+  mismatch warning; CPU9 startup source, configuration, package, symbols,
+  disassembly boundaries, expanded terminal, and all 33 mutations pass. Stack
+  frames are 96 bytes for the inherited coherency worker, 784 for the terminal
+  work, 208 for the isolated reporter, and 96 for each scheduler thread, all
+  below 1,024 bytes. The `Image.gz-dtb` SHA-256 is
+  `21a64e59bbf0a83123ee936cc0dc7bdf00e793d8c290a0e557e24d826abefd2a`.
+  No container or device action occurred. See
+  [`results/compile-review-start-gate-20260804.txt`](results/compile-review-start-gate-20260804.txt).
 
 ## Analysis
 
@@ -304,11 +315,12 @@ context while preserving the established power and recovery boundary.
 
 ## Conclusion
 
-`blocked-start-gate-generated`: the explicit ready/block/release/done protocol
-has been generated from the exact pair-v6 parent and passes both hash vectors
-and all 33 mutations. The complete parent gate and all workload, placement,
-cleanup, power, and recovery boundaries remain fixed. Compile, container,
-deployment, and runtime claims do not exist yet.
+`blocked-start-gate-compile-passed`: the explicit ready/block/release/done
+protocol passes exact-parent generation, both hash vectors, all 33 mutations,
+child/parent compilation, identical diagnostics, expanded-terminal binary, and
+stack gates. The complete parent gate and all workload, placement, cleanup,
+power, and recovery boundaries remain fixed. Container, deployment, and
+runtime claims do not exist yet.
 
 ## Follow-up
 

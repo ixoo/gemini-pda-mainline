@@ -1,0 +1,61 @@
+CPU8/CPU9 blocked-start-gate compile review
+Date: 2026-08-04 UTC
+Result: PASS
+
+Repository commit:
+  703d59b239aae6c6f66308a097ede32fc3bdd678
+Kernel source commit:
+  59e00a9144d782e148332009a835b99c43382467
+Exact pair-v6 parent patchset SHA-256:
+  94d3b07355e1ddb67f3f643165570255bb1f42131b3b67c074d270e8581989e2
+Start-gate scheduler patchset SHA-256:
+  970c090c080f0a5b03738ea7bdec65edaebc7b1d3b179488202587c157edc845
+
+Build backend: Buildbox only
+Build mode: scheduler
+Purpose: a72-scheduler-context-compile-review-only
+Boot candidate: false
+Completed UTC: 2026-08-04T00:21:52Z
+
+Validation:
+  exact pair-v6 source validator: PASS
+  start-gate scheduler source validator: PASS
+  scheduler negative mutations rejected: 33/33
+  child compile: PASS
+  exact pair-v6 parent compile: PASS
+  child/parent diagnostics identical: PASS
+  CPU9 startup source identical: PASS
+  scheduler child-only symbol boundary: PASS
+  expanded terminal present in binary: PASS
+  focused disassembly boundary: PASS
+  configuration and package checks: PASS
+
+Diagnostics in both child and exact parent:
+  WARNING: modpost: Found 69 section mismatch(es).
+
+Static stack use in the start-gate child:
+  mt6797_a72_coh_workfn: 96 bytes
+  mt6797_a72_hold_workfn: 784 bytes
+  mt6797_a72_sc_terminal: 208 bytes
+  mt6797_a72_sc_thread: 96 bytes
+Acceptance boundary: 1,024 bytes
+Child stack-usage files: 2,484
+Parent stack-usage files: 2,484
+
+Start-gate child output SHA-256:
+  Image.gz-dtb: 21a64e59bbf0a83123ee936cc0dc7bdf00e793d8c290a0e557e24d826abefd2a
+  vmlinux: 1ea60d17e414affae80cc7e743a10ce574003d8fc422d554770acaeae9a75784
+  System.map: 49ab96ba0a3e3dbf52b938e1ebba2835a7fbd5ba91b0bbb328990b88dce9f333
+Package manifest SHA-256:
+  f1e8ad9205bb8bcd61c9ecceef78819ecb68c28c3bec0e839caf8e0cd48b639d
+
+Chronology and interpretation:
+  The first Buildbox run at repository commit
+  92d075719224c52f02a693220678cd572225ac27 compiled both child and parent but
+  refused packaging because its binary terminal validator still expected the
+  old adjacent field sequence. No compile claim or package was accepted from
+  that run. Commit 703d59b expanded the validator to require all four new
+  ready/start fields, and the full child/parent build and packaging workflow
+  then passed. This closes source, mutation, compile, binary, diagnostics,
+  terminal, configuration, package, and stack review only. No Android-v0
+  container was constructed and no device action occurred.
