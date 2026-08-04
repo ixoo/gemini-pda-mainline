@@ -1,0 +1,63 @@
+CPU8/CPU9 blocked-start-gate runtime attempt 1: evidence loss
+================================================================
+
+Decision: INCONCLUSIVE. Do not make a scheduler, CPU8, CPU9, start-gate, or
+workload claim from this attempt. One exact repeat is earned only with a newly
+prearmed independent observation path that can distinguish a missing terminal
+from capture loss.
+
+Exact candidate
+---------------
+
+- Full 16 MiB boot2 SHA-256:
+  2e8c611b1dbe5b79b13f2dec9cf9d77d9b7973a732f63702a6228600bef464b3
+- Embedded Image.gz-dtb SHA-256:
+  21a64e59bbf0a83123ee936cc0dc7bdf00e793d8c290a0e557e24d826abefd2a
+- Buildbox repository commit:
+  703d59b239aae6c6f66308a097ede32fc3bdd678
+- Runtime decision map:
+  runtime-decision-map-start-gate-20260804.txt
+
+Observations
+------------
+
+- The owner reported physically selecting boot2 and subsequently reported the
+  automatic reboot to Gemian in progress.
+- The predeployment Gemian boot ID was
+  b1243937-c45f-4874-9624-393370833ff9.
+- The recovered Gemian boot ID is
+  21327ec5-2136-4296-8f3b-c80d50331402. The changed ID independently confirms
+  that a boot cycle occurred.
+- The 300-second USB/netcat collector and 900-second changed-cycle pstore
+  observer both expired before the delayed physical boot. A USB collector
+  rearmed during recovery captured no candidate output.
+- A bounded post-recovery pstore collection contains a Gemian 3.18.41+
+  console record beginning during userspace initialization. It contains no
+  `gemini-a72-pair-v6` or `gemini-a72-pair-v7` terminal and no candidate panic,
+  BUG, Internal error, Call trace, timeout, SError, or lockup marker.
+- Post-recovery console-ramoops SHA-256:
+  b36d28fddb327c1df05eb278b91b96d0bccb4ba6c01e7d7d66b9bbe8a2bc0461
+- Post-recovery pstore archive SHA-256:
+  debdd82e08678cab40496deadba58835250da6b8836ccade783490dc3c804284
+- Recovery reports `androidboot.bootreason=wdt_by_pass_pwk`.
+- Recovery is on `/dev/mmcblk0p29`; live-GPT boot2 remains inactive and
+  unmounted. CPUs 8 and 9 are offline, the online CPU set is 4-5, battery is
+  85 percent with status `Not charging`, and the full boot2 read checksum still
+  equals the exact candidate checksum above.
+
+Inference and boundary
+----------------------
+
+The physical selection report, changed boot ID, watchdog-class recovery, and
+unchanged boot2 establish a real candidate/recovery cycle. They do not
+establish whether pair-v6 ran, whether pair-v7 reached either task, or whether
+the blocked start gate passed. The retained pstore record belongs to the
+recovery boot and cannot distinguish a terminal that was never reached from a
+candidate terminal overwritten before collection.
+
+This matches the fixed `AUTOMATIC RESTART WITH NO PAIR-V7` branch. Repeating the
+same image is justified only because just-in-time USB/netcat plus changed-cycle
+pstore provide a new independent observation path; it is not a repeatability
+test and it does not weaken any pass field. Arm both observers immediately
+before shutdown/physical selection, then classify only their attributable
+changed-cycle evidence.

@@ -1179,6 +1179,18 @@ the deployment shutdown. The next ordered action is to arm the expanded
 read-only USB/netcat collector and physically select boot2 once; only the fixed
 start-gate decision map may classify the result.
 
+Start-gate runtime attempt 1 completed a changed-boot-ID, watchdog-class
+candidate/recovery cycle, and Gemian recovered on its normal root with CPUs
+8/9 offline and inactive boot2 still matching the exact candidate. Both
+prearmed observers expired before the delayed physical selection, however,
+and the later pstore capture contains only recovery-kernel startup with no
+pair-v6 or pair-v7 terminal. This is evidence loss, not a scheduler result.
+The next ordered action is one exact repeat with changed-cycle pstore and the
+expanded USB/netcat collector armed just in time; the repeat is earned solely
+because that new independent observation path can distinguish capture loss
+from terminal-not-reached. No design change, Buildbox build, or new boot2 write
+is authorized or needed before that observation.
+
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback
 gates close.
