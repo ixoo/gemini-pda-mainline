@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-"""Independently validate the corrected scheduler-context Android-v0 candidate."""
+"""Independently validate the phase-attribution Android-v0 candidate."""
 
 import argparse
 import hashlib
 import re
+import shutil
 import struct
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 
@@ -26,21 +28,22 @@ SOURCE_BUILDER = (
     / "build-candidate.sh"
 )
 EXPECTED = {
-    "assembler_sha256": "961ffe39f2fdb0a32f1a425c78821af9b684a494221e0ac7a81a0d48f40937ce",
+    "assembler_sha256": "60116c1591d111cb68cf7581d59458072878547b5ce472d08264721b4eaa00e4",
     "parent_assembler_sha256": "9938defe0e4b83d0845135c4a27b534f5d28fafa5eac4bbe345f7badf2405094",
-    "builder_sha256": "df9ca5d8ae576528988cc093ae2d83792adfdfe7447e855218e870bde138582c",
+    "builder_sha256": "32519d9f60f3f5692edebf6349bfa3627d040ca86cefd8414296de9d062d007d",
     "source_builder_sha256": "65c39fa45b1f76fb85780473feb3b675bd5e6647934e68be2761bc823c07e0fe",
-    "repository_commit": "703d59b239aae6c6f66308a097ede32fc3bdd678",
+    "repository_commit": "a50c12f11862bde5b27de8de0a91ac72529b1bd7",
     "parallel_patchset_sha256": "94d3b07355e1ddb67f3f643165570255bb1f42131b3b67c074d270e8581989e2",
-    "scheduler_patchset_sha256": "970c090c080f0a5b03738ea7bdec65edaebc7b1d3b179488202587c157edc845",
-    "kernel_field_sha256": "21a64e59bbf0a83123ee936cc0dc7bdf00e793d8c290a0e557e24d826abefd2a",
+    "scheduler_patchset_sha256": "b2c971d4a1860ec09616a61dbd8a29fde488f7d99deb8bd6bfbf2c517b2c3493",
+    "kernel_field_sha256": "932dfc84eaea2aa5971a0ade98d5ddb8d592e400830fba47aa81d2a7b02c5811",
     "active_boot_sha256": "1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513",
     "active_ramdisk_sha256": "a1ee05445e9a2bd8fbc1f75d7cda326b9ca7a6d3b644cbb1d5fc0ac167835be4",
-    "raw_sha256": "78dd52721a762eb8dbeca29af3b9ca7c0ac7546e9aeaf1aaccf7585c25752d1f",
-    "padded_sha256": "2e8c611b1dbe5b79b13f2dec9cf9d77d9b7973a732f63702a6228600bef464b3",
+    "raw_sha256": "d06e220da65830b7a58620b03a9ecd8e78d27ee28b2ca905b046fe3198c7375c",
+    "padded_sha256": "2268e23559e8d36e4339a4fd912d0108721ed818e628dfc857cab2ab8e8049a8",
 }
-RAW_NAME = "gemian-a72-scheduler-context.boot.img"
+RAW_NAME = "gemian-a72-scheduler-phase-attribution.boot.img"
 PADDED_NAME = "boot2-padded.img"
+EXPECTED_FILES = {RAW_NAME, PADDED_NAME, "analysis.txt", "provenance.txt", "SHA256SUMS"}
 EXPECTED_CMDLINE = b"bootopt=64S3,32N2,64N2 log_buf_len=4M"
 
 
@@ -100,6 +103,12 @@ def validate_tools() -> None:
 
 
 def validate_candidate(candidate: Path) -> None:
+    entries = list(candidate.iterdir())
+    require(
+        all(entry.is_file() and not entry.is_symlink() for entry in entries),
+        "unsafe candidate entry",
+    )
+    require({entry.name for entry in entries} == EXPECTED_FILES, "inventory changed")
     manifest = candidate / "SHA256SUMS"
     require(manifest.is_file() and not manifest.is_symlink(), "unsafe manifest")
     seen = set()
@@ -115,14 +124,14 @@ def validate_candidate(candidate: Path) -> None:
         require(digest(path.read_bytes()) == expected, f"manifest mismatch: {name}")
         seen.add(name)
     require(
-        seen == {RAW_NAME, PADDED_NAME, "analysis.txt", "provenance.txt"},
+        seen == EXPECTED_FILES - {"SHA256SUMS"},
         "inventory changed",
     )
 
     raw = (candidate / RAW_NAME).read_bytes()
     padded = (candidate / PADDED_NAME).read_bytes()
     require(
-        len(raw) == 14_817_280 and digest(raw) == EXPECTED["raw_sha256"],
+        len(raw) == 14_813_184 and digest(raw) == EXPECTED["raw_sha256"],
         "raw changed",
     )
     require(
@@ -155,7 +164,7 @@ def validate_candidate(candidate: Path) -> None:
     kernel = raw[kernel_offset : kernel_offset + kernel_size]
     ramdisk = raw[ramdisk_offset : ramdisk_offset + ramdisk_size]
     require(
-        kernel_size == 8_458_259
+        kernel_size == 8_454_392
         and digest(kernel) == EXPECTED["kernel_field_sha256"],
         "kernel changed",
     )
@@ -194,14 +203,80 @@ def validate_candidate(candidate: Path) -> None:
         require(token in evidence, f"evidence lacks {token}")
 
 
+def refresh_manifest_record(candidate: Path, name: str) -> None:
+    manifest = candidate / "SHA256SUMS"
+    suffix = f"  ./{name}"
+    lines = manifest.read_text().splitlines()
+    matches = [index for index, line in enumerate(lines) if line.endswith(suffix)]
+    require(len(matches) == 1, f"manifest record missing: {name}")
+    lines[matches[0]] = f"{digest((candidate / name).read_bytes())}{suffix}"
+    manifest.write_text("\n".join(lines) + "\n")
+
+
+def validate_mutations(candidate: Path) -> None:
+    def raw_manifest_mismatch(mutated: Path) -> None:
+        path = mutated / RAW_NAME
+        data = bytearray(path.read_bytes())
+        data[0] ^= 0xFF
+        path.write_bytes(data)
+
+    def padded_identity_mismatch(mutated: Path) -> None:
+        path = mutated / PADDED_NAME
+        data = bytearray(path.read_bytes())
+        data[-1] = 1
+        path.write_bytes(data)
+        refresh_manifest_record(mutated, PADDED_NAME)
+
+    def provenance_boundary_missing(mutated: Path) -> None:
+        path = mutated / "provenance.txt"
+        text = path.read_text()
+        require("partition_write=none" in text, "test provenance changed")
+        path.write_text(text.replace("partition_write=none", "partition_write=changed"))
+        refresh_manifest_record(mutated, "provenance.txt")
+
+    def unmanifested_entry(mutated: Path) -> None:
+        (mutated / "unexpected.txt").write_text("unexpected\n")
+
+    def unsafe_manifest_path(mutated: Path) -> None:
+        path = mutated / "SHA256SUMS"
+        text = path.read_text()
+        require("./analysis.txt" in text, "test manifest changed")
+        path.write_text(text.replace("./analysis.txt", "../analysis.txt", 1))
+
+    mutations = (
+        ("raw-manifest", raw_manifest_mismatch, f"manifest mismatch: {RAW_NAME}"),
+        ("padded-identity", padded_identity_mismatch, "padded changed"),
+        (
+            "provenance-boundary",
+            provenance_boundary_missing,
+            "evidence lacks partition_write=none",
+        ),
+        ("unmanifested-entry", unmanifested_entry, "inventory changed"),
+        ("unsafe-manifest-path", unsafe_manifest_path, "unsafe manifest record"),
+    )
+    for name, mutate, expected in mutations:
+        with tempfile.TemporaryDirectory(prefix=f"a72-phase-{name}-") as temporary:
+            mutated = Path(temporary) / "candidate"
+            shutil.copytree(candidate, mutated)
+            mutate(mutated)
+            try:
+                validate_candidate(mutated)
+            except AssertionError as error:
+                require(expected in str(error), f"{name} rejected for wrong reason: {error}")
+            else:
+                raise AssertionError(f"mutation accepted: {name}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--candidate", type=Path, required=True)
     args = parser.parse_args()
     validate_tools()
     validate_candidate(args.candidate.resolve())
-    print("validation=a72-scheduler-context-candidate")
+    validate_mutations(args.candidate.resolve())
+    print("validation=a72-scheduler-phase-attribution-candidate")
     print("checks=tool-pins,manifest,android-v0,ramdisk,padding,provenance,offline-only")
+    print("candidate_mutations=5-rejected")
     print("result=pass")
     return 0
 
