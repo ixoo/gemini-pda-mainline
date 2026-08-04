@@ -1,0 +1,86 @@
+CPU8/CPU9 corrected scheduler-context runtime attempt 1
+Date: 2026-08-04 UTC
+
+Decision: reject this exact corrected pair-v7 image. Do not repeat it
+unchanged. The ordering correction worked and the scheduler oracle ran, but
+CPU8 exhausted the bounded peer-ready spin before CPU9 joined the rendezvous.
+
+Exact identities
+----------------
+
+Repository compile commit:
+  66f3592aa281915a1fa998684353ea9f9395c85d
+Corrected scheduler patchset SHA-256:
+  8a5b32d331493680e0a554d96572c9ec3d769e8075baf4f998cd7a2cfc617c28
+Full boot2 SHA-256:
+  d34b2de509021d5fbbfcca62e3676202fe88b449786daf62b4eb466667fae093
+Pstore console SHA-256:
+  8e34e4871940ccd4c5b7ff81c9786716830c25fd42e2244c38cb38da5fa6a483
+Pstore archive SHA-256:
+  b2baec5be7c8894622a66cf5cd353b1ef7b0a9a20d3902c60d04b923faf78dad
+
+Attributable terminals
+----------------------
+
+At 13.149418 seconds, retained console-ramoops reports a complete pair-v6
+pass. CPU8 and CPU9 are both online on the expected CPUs, HPS rejection is
+intact, and coherency, multiline, and parallel fields, counts, hashes, and
+mismatch sentinels all match the established exact pass contract.
+
+At 13.149541 seconds, the adjacent pair-v7 terminal reports:
+
+  result=fault parent_pass=1 sc_reported=1
+  sc_iterations=262144 sc_rescheds=64
+  sc_expected8=8 sc_start8=8 sc_end8=8
+  sc_expected9=9 sc_start9=9 sc_end9=9
+  sc_task8=1 sc_task9=1 sc_create8=0 sc_create9=0
+  sc_wake8=0 sc_wake9=0 sc_wait8=0 sc_wait9=0
+  sc_error8=-110 sc_error9=0 sc_stop8=-110 sc_stop9=0
+  sc_done8=0 sc_done9=262144 sc_ready=2 sc_finished=2
+  sc_hash8=14650fb0739d0383 sc_hash9=c2274327e9c8104c
+
+Observation versus inference
+----------------------------
+
+Observed: `parent_pass=1` proves the corrected ordering evaluated the complete
+published pair-v6 predicate before starting scheduler work. Both kernel threads
+were created, entered ordinary task context, and ran on their exact bound CPUs.
+CPU9 completed all 262,144 iterations with the exact expected hash. CPU8
+started and ended on CPU8 but completed no workload iteration, retained its
+initial hash, and returned `-ETIMEDOUT`. Both threads incremented the ready and
+finished counters. Both parent completion waits expired against their shared
+deadline. A zero `wake_up_process()` return is not treated as absence of task
+execution because the task-context, CPU, ready, finished, and CPU9 completion
+fields independently prove that both tasks ran.
+
+Source-established failing phase: CPU8 can assign `-ETIMEDOUT` only while
+spinning for `sc_ready == 2`. Therefore CPU8 entered first, reported ready, and
+exhausted the bounded spin before CPU9 reported ready. CPU9 subsequently saw
+the final ready count and completed normally. The evidence does not establish
+why CPU9 was delayed relative to the spin budget; treating this as a CPU8
+dispatch failure would contradict CPU8's exact task-context and CPU fields.
+
+Recovery and integrity
+----------------------
+
+The prearmed observer recorded deployment shutdown, a changed boot cycle, and
+recovery into ordinary Gemian boot ID
+`b1243937-c45f-4874-9624-393370833ff9`. Recovery ran `3.18.41+` on aarch64 with
+filtered boot reason `androidboot.bootreason=wdt_by_pass_pwk`. CPU8 and CPU9
+both reported `online=0`; live boot2 was unmounted and retained the exact
+corrected full checksum. The 65,524-byte retained console contains no panic,
+BUG, Internal error, Call trace, asynchronous SError, or lockup record. The
+first USB listener expired before physical selection and the replacement was
+too late for the short boot2 window; changed-cycle pstore is the primary
+attributable evidence.
+
+Next action
+-----------
+
+Do not repeat this image. Replace the asymmetric busy-spin rendezvous with a
+bounded scheduler-friendly start protocol that cannot consume CPU8's budget
+while waiting for CPU9 to be dispatched. Preserve exact task binding,
+task-context and CPU observation, deterministic per-CPU work, independent
+completion, cleanup, the complete pair-v6 gate, HPS veto, CPU_OFF prohibition,
+watchdog recovery, and serviceability boundaries. Generate and mutation-test
+that child before any Buildbox compile or device action.

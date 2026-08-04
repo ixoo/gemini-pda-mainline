@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-scheduler-context` |
-| Status | `ordering-fix-deployed-awaiting-runtime` |
+| Status | `ordering-fix-runtime-rendezvous-rejected` |
 | Subsystem | MT6797 retained Cortex-A72 pair and scheduler |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 |
@@ -264,6 +264,15 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   was created and no reboot was requested. The prearmed changed-cycle observer
   saw the deployment shutdown. See
   [`results/deployment-ordering-fix-20260803.txt`](results/deployment-ordering-fix-20260803.txt).
+- Corrected runtime attempt 1 produced adjacent complete pair-v6 pass and
+  pair-v7 `parent_pass=1`, so the publication fix worked and the scheduler
+  oracle ran. Both bound tasks entered ordinary task context on their exact
+  CPUs. CPU9 completed the exact workload and hash; CPU8 exhausted the
+  peer-ready spin before CPU9 joined, then both parent waits expired. Recovery
+  was changed-cycle and watchdog-class with CPUs 8/9 offline and boot2 exact.
+  This is a rendezvous/timing design failure, not evidence that CPU8 failed to
+  dispatch. Do not repeat this image. See
+  [`results/runtime-ordering-fix-attempt-1-rendezvous-timeout-20260804.txt`](results/runtime-ordering-fix-attempt-1-rendezvous-timeout-20260804.txt).
 
 ## Analysis
 
@@ -274,12 +283,11 @@ context while preserving the established power and recovery boundary.
 
 ## Conclusion
 
-`ordering-fix-deployed-awaiting-runtime`: the corrected source preserves the inherited
-coherency worker, passes 28 mutation tests, compiles with identical parent
-diagnostics, remains within every stack boundary, and has a reproducible,
-independently validated Android-v0 container. Corrected deployment and runtime
-guards are fixed and tested; the exact corrected image is installed and the
-device is cleanly shut down. No corrected runtime claim exists yet.
+`ordering-fix-runtime-rendezvous-rejected`: the corrected publication ordering
+worked, pair-v6 passed completely, and both bound tasks entered task context on
+CPUs 8/9. CPU9 completed exactly; CPU8 timed out only at the peer-ready spin.
+The exact image is rejected and must not run unchanged. A bounded
+scheduler-friendly start protocol is required before another compile or boot.
 
 ## Follow-up
 

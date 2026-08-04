@@ -1116,6 +1116,18 @@ prearmed and observed the deployment shutdown. The next ordered action is to
 arm the read-only USB/netcat collector and physically select boot2 once; only
 the fixed adjacent pair-v6/pair-v7 and recovery decision map may classify it.
 
+That corrected runtime observation closes the publication-ordering question
+and rejects the busy-spin rendezvous. Pair-v6 passed completely and pair-v7
+reported `parent_pass=1`; both bound kernel threads entered ordinary task
+context on their exact CPUs. CPU9 completed the exact workload and hash. CPU8
+entered on CPU8 but exhausted the peer-ready spin before CPU9 joined, after
+which both parent waits expired. Changed-cycle watchdog recovery returned CPUs
+8/9 offline with boot2 exact and no fatal console marker. This is not a CPU8
+dispatch failure. Do not repeat the image. The next ordered action is a source
+child with a bounded scheduler-friendly start protocol that cannot monopolize
+CPU8 while awaiting CPU9, followed by generation and negative mutation tests;
+no Buildbox compile, container, or device action is authorized yet.
+
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback
 gates close.
