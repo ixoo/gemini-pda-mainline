@@ -1192,7 +1192,7 @@ if [[ "${build_mode}" == scheduler ]]; then
     grep -F 'gemini-a72-pair-v7 result=%s parent_pass=%d' >/dev/null || \
     die "scheduler build is missing the isolated pair-v7 terminal"
   "${cross_prefix}strings" "${output}/vmlinux" | \
-    grep -F 'sc_reported=%d sc_iterations=262144 sc_rescheds=64 sc_expected8=%d sc_start8=%d sc_end8=%d sc_expected9=%d sc_start9=%d sc_end9=%d sc_task8=%d sc_task9=%d sc_create8=%d sc_create9=%d sc_wake8=%d sc_wake9=%d sc_wait8=%d sc_wait9=%d' >/dev/null || \
+    grep -F 'sc_reported=%d sc_iterations=262144 sc_rescheds=64 sc_expected8=%d sc_start8=%d sc_end8=%d sc_expected9=%d sc_start9=%d sc_end9=%d sc_task8=%d sc_task9=%d sc_create8=%d sc_create9=%d sc_wake8=%d sc_wake9=%d sc_readywait8=%d sc_readywait9=%d sc_startwait8=%d sc_startwait9=%d sc_wait8=%d sc_wait9=%d' >/dev/null || \
     die "scheduler build is missing its complete lifecycle fields"
   "${cross_prefix}strings" "${baseline_output}/vmlinux" | \
     grep -F 'gemini-a72-pair-v6 result=pass sample=3 cpu8=8 cpu9=9 online8=1 online9=1 hits8=3 hits9=3' >/dev/null || \
