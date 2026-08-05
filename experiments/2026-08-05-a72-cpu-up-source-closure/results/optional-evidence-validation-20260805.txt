@@ -1,0 +1,12 @@
+experiment=2026-08-05-a72-cpu-up-source-closure
+official_source_root_recheck=pass
+official_source_file_hashes=43
+selected_config_recheck=pass
+selected_config_values=47
+forced_cmdline_mismatched_32bit_el0=absent
+official_source_corruption=reject
+selected_config_corruption=reject
+base_negative_mutations=441
+optional_evidence_mutations=2
+prepared_source_root_recheck=not_run
+result=pass

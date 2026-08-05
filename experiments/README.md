@@ -23,6 +23,17 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-05 A72 CPU-up source closure](2026-08-05-a72-cpu-up-source-closure/README.md)
+  — pins the exact Linux 7.1.3 source and selected configuration, proves that
+  an A53-only boot cannot admit a late A72 without pre-finalizing the complete
+  A72 capability set, and freezes A41 plus the P30K/C/P/E/U and P32A/D/F/X/R
+  failure closures. The selected post-CPU_ON callback set is fallible;
+  `.cpu_disable` is the first target rollback guard before topology, online,
+  IPI, and IRQ teardown, while die/kill remain defense for early and deeper
+  paths. Timeout requires cancellation-versus-publication arbitration and a
+  target park acknowledgment. Dynamic numeric CPUHP slots remain a same-boot
+  A25 proof gap. This is source-only: the A26 veto remains and no patch, build,
+  CPU_ON/OFF, or device action is authorized.
 - [2026-08-05 A72 membership and admission contract](2026-08-05-a72-membership-admission-contract/README.md)
   — freezes the exact token and boot-local one-shot attempts, the only legal
   Linux membership/provider transitions, symmetric public/internal admission
@@ -32,9 +43,10 @@ the loop. Positive identity-gated observations are unaffected.
   reschedule after each of the first two exact same-generation CPU8/CPU9
   samples at about 1, 6, and 10 seconds. Any later M02 proof failure enters
   retained-state P19 `FAULT`; no membership commit precedes sample 3. The
-  source audit identifies A39 early-secondary death/status paths and A37
-  generic automatic rollback after CPU_ON; A39 interception ends in P30 and
-  guarded A37 rollback in P32 terminal `FAULT`, not retained success. `DEAD`
+  later source closure corrects and supersedes its detailed P30/P32 mechanism:
+  A39 interception ends in branch-specific P30, and A37 rollback first needs
+  a `.cpu_disable` guard before the retained die/kill defense. Both remain
+  terminal `FAULT`, not retained success. `DEAD`
   and generic warn-only sync/kill paths do not prove physical off. The A26
   boot and A14 disable vetoes are all-applicable while startup/PM,
   scheduler/observer,

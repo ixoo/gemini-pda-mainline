@@ -1,0 +1,48 @@
+id	option	selected_value	reachability	closure_effect
+C01	CONFIG_SMP	y	Secondary CPU startup and CPUHP paths are compiled.	Required base condition.
+C02	CONFIG_HOTPLUG_CPU	y	can_rollback_cpu is unconditionally true and arm64 teardown is compiled.	P32 automatic rollback is reachable after CPU_ON.
+C03	CONFIG_HOTPLUG_CORE_SYNC	y	Controller waits for AP lifecycle state.	Inventory synchronization warnings and continuation.
+C04	CONFIG_HOTPLUG_CORE_SYNC_DEAD	y	Controller dead cleanup reaches arch cpu_kill.	P30 and P32 kill guards remain required.
+C05	CONFIG_PADATA	y	Dynamic padata online and offline callbacks are registered.	ENOMEM makes the callback set fallible.
+C06	CONFIG_LEDS_TRIGGER_CPU	y	A dynamic CPU LED callback is registered.	Selected callback returns zero.
+C07	CONFIG_ARM_ARCH_TIMER	y	Timer STARTING callbacks are registered.	Selected STARTING callbacks are atomic no-fail.
+C08	CONFIG_ARM64_ERRATUM_1742098	y	Cortex-A72 matches a local erratum absent on Cortex-A53.	A41 must pre-account it and suppress compat AES.
+C09	CONFIG_ARM64_WORKAROUND_SPECULATIVE_AT	y	The speculative-AT capability table is compiled.	A41 must pre-account the selected A72 match.
+C10	CONFIG_ARM64_ERRATUM_1319367	y	All Cortex-A72 revisions enter the speculative-AT match list.	A41 deterministic required capability.
+C11	CONFIG_ARM64_4K_PAGES	y	Pre-C granule validation uses 4 KiB.	Exact A72 architectural support proof remains required.
+C12	CONFIG_ARM64_VA_BITS_52	y	52-bit VA support code is compiled.	A41 must attest whether boot alternatives actually selected 52-bit VA.
+C13	CONFIG_ARM64_LPA2	y	52-bit VA may use LPA2 when supported.	Do not infer the runtime VA mode from Kconfig alone.
+C14	CONFIG_UNMAP_KERNEL_AT_EL0	y	KPTI capability and alternatives participate in finalization.	Retain full local-capability inventory rather than only three known conflicts.
+C15	CONFIG_MITIGATE_SPECTRE_BRANCH_HISTORY	y	BHB mitigation implementation is enabled.	A41 must finalize A72 k=8 and vector/alternative state early.
+C16	CONFIG_COMPAT	y	AArch32 userspace HWCAP publication is active.	Erratum 1742098 must remove COMPAT_HWCAP2_AES before publication.
+C17	CONFIG_RANDOMIZE_BASE	n	Spectre-v3a capability entry is compiled out in this profile.	Any change to y reopens the capability inventory.
+C18	CONFIG_SUSPEND	n	Suspend callback paths are absent from this CPU-up inventory.	Does not close the separate PM owner for future profiles.
+C19	CONFIG_CPU_IDLE	n	CPU-idle driver callbacks are absent.	No idle-driver callback may be inferred for broader profiles.
+C20	CONFIG_CPU_FREQ	n	CPU-frequency callbacks are absent.	No cpufreq callback may be inferred for broader profiles.
+C21	CONFIG_VIRTUALIZATION	n	KVM is unavailable in the selected configuration.	Speculative-AT still remains a verified local capability.
+C22	CONFIG_PERF_EVENTS	n	Perf CPUHP callback resolves to the selected stub.	Selected up and down results are zero.
+C23	CONFIG_SOFTLOCKUP_DETECTOR	n	Soft-lockup CPUHP callbacks resolve to stubs.	No watchdog closure is inferred.
+C24	CONFIG_HARDLOCKUP_DETECTOR	n	Hard-lockup CPUHP callbacks resolve to stubs.	No watchdog closure is inferred.
+C25	CONFIG_IO_URING	y	io-wq unconditionally registers a multi-instance dynamic CPUHP state at subsys init.	Inventory the state even when no io-wq instance is live.
+C26	CONFIG_ARM_SDE_INTERFACE	y	SDEI CPUHP code is linked and registers dynamically only after a successful firmware-interface probe.	Inventory fallible up/down callbacks conditionally.
+C27	CONFIG_ARM64_SVE	y	SVE verification code is compiled but skipped only when the A53-finalized system capability is false.	Dynamically absent is not configuration-excluded; retain the verifier proof.
+C28	CONFIG_ARM64_SME	y	SME verification code is compiled but skipped only when the A53-finalized system capability is false.	Dynamically absent is not configuration-excluded; retain the verifier proof.
+C29	CONFIG_ARM64_MPAM	n	The MPAM capability entry and late verifier remain compiled; the A53-finalized system capability is expected false.	Dynamically absent is not configuration-excluded; retain the verifier proof.
+C30	CONFIG_ARM64_PSEUDO_NMI	n	Pseudo-NMI strict capability paths are configuration-excluded.	Reaudit after configuration drift.
+C31	CONFIG_ARM_GIC_V3	y	GICv3 support and its strict CPU-interface capability are selected.	Exact A72 ID-field and SRE-usability proof remains open in K12.
+C32	CONFIG_ARM64_PTR_AUTH	y	Pointer-authentication capability and userspace feature logic are compiled.	A53-finalized absence must be verified rather than called configuration-excluded.
+C33	CONFIG_ARM64_PTR_AUTH_KERNEL	y	Kernel pointer-authentication support is compiled.	A53-finalized system state and A72 compatibility remain in the exhaustive capability/HWCAP audit.
+C34	CONFIG_ARM64_MTE	y	MTE capability and verifier code are compiled.	A53-finalized absence must be verified rather than called configuration-excluded.
+C35	CONFIG_ARM64_BTI	y	BTI capability and HWCAP logic are compiled.	A53-finalized absence must be verified rather than called configuration-excluded.
+C36	CONFIG_ARM64_RAS_EXTN	y	RAS extension capability code is compiled.	Retain in exact A53/A72 capability and HWCAP comparison.
+C37	CONFIG_EFI	n	GICv3 ITS EFI memreserve CPUHP registration returns before reserving a dynamic state.	Configuration drift can insert and shift a state; reaudit it.
+C38	CONFIG_CMDLINE_FORCE	y	The exact forced command line lacks allow_mismatched_32bit_el0.	The linked conditional state remains an explicit drift gate despite being absent from the selected boot parameters.
+C39	CONFIG_NO_HZ_COMMON	y	Timer-migration CPUHP code is selected and its online callback is reachable.	Retain the EINVAL invariant path in the fixed fallible callback set.
+C40	CONFIG_PARAVIRT	y	Arm64 paravirtual-time CPUHP code is linked.	SMCCC feature results decide registration; configuration does not exclude H10.
+C41	CONFIG_ARM_GIC_V3_ITS	y	GICv3 ITS memreserve CPUHP code is linked.	CONFIG_EFI=n is the selected exclusion; EFI and ITS drift can insert H09.
+C42	CONFIG_BLOCK	y	Block MQ multi-instance CPUHP code is selected.	Retain block-MQ instance and rollback effects in H03 and P32.
+C43	CONFIG_IO_WQ	y	The io-wq implementation and its dynamic multi-instance CPUHP state are linked.	CONFIG_IO_URING selects this direct compile gate; H07 always reserves its state.
+C44	CONFIG_PRINTK	y	The printk implementation and dynamic ONLINE callback are active.	Retain printk as the final mandatory dynamic state.
+C45	CONFIG_SYSFS	y	CPU capacity cpuinfo cacheinfo and related userspace-object operations are active.	Their device and attribute errors remain reachable P32 triggers.
+C46	CONFIG_NUMA	y	Arm64 NUMA setup and removal paths are active.	The primary P32D guard must precede NUMA removal as a real selected effect.
+C47	CONFIG_HOTPLUG_CORE_SYNC_FULL	absent (n)	Only the DEAD synchronization subset selects the parent core-sync machinery; ALIVE and ONLINE waits are absent.	Inventory DEAD synchronization only; full ALIVE and ONLINE synchronization waits are not selected.

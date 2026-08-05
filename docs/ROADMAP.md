@@ -1312,18 +1312,35 @@ approximately 10-second sample. All three require exact CPU8/CPU9 identities,
 equal cumulative hits, and final `3/3`. Any post-full-bringup M02 proof or
 scheduling failure enters P19 `FAULT`, and P10 cannot commit before sample 3.
 
-The exact Linux 7.1.3 audit puts CPU-up closure ahead of off completion. A39
-shows that the `CPU_KILL_ME` early-secondary path can bypass
-`cpu_can_disable`, clear the present mask through `cpu_die_early()`, and reach
-target `cpu_die` plus controller `cpu_kill`. That branch,
-`CPU_PANIC_KERNEL`, pre-C `CPU_STUCK_IN_KERNEL`, and unknown/default timeout
-each require an exact impossibility proof or branch-specific interception that
-cannot issue CPU_OFF or affinity. A37 separately shows that a post-CPU_ON
-callback failure can enter generic teardown under the live up token. If paired
-MT6797 target/controller guards are used, P32 deliberately records
-`VERIFYING -> FAULT`: CPU_OFF and affinity are suppressed, membership/provider
-stay conservative, `cpu_online_mask` may diverge under A30, and recovery is
-platform/external-reset-only. This is not retained-up success.
+The exact source-only
+[A72 CPU-up source closure](../experiments/2026-08-05-a72-cpu-up-source-closure/README.md)
+now completes the source-attributed early-secondary and post-CPU_ON path
+inventory and freezes its branch contracts, while exact same-boot dynamic
+CPUHP slot identity remains an explicit A25 proof gap. A41 identifies the first
+deterministic admission blocker: an A53-only boot finalizes arm64 state before
+a late A72 can introduce BHB (`k=8`), erratum 1742098, and speculative-AT
+capabilities.
+Their mitigation parameters, alternatives, vectors, compat-HWCAP effects, and
+every conditional local capability must be pre-accounted before finalization;
+a raw late capability bit is unsafe. Strict boot-capability and ELF-HWCAP
+compatibility remain explicit proof rows.
+
+P30K/C/P/E/U separate CPU_KILL_ME, post-C bare STUCK, panic, pre-C reasoned
+STUCK, and default timeout. The timeout path now requires exact-generation
+cancellation-versus-publication arbitration because global task, status,
+early-status, and completion state can be reused while a target publishes
+late. No bounded target park acknowledgment means global CPU-up quarantine and
+panic/platform reset, not ordinary runtime failure. P14/P15 publication belongs
+immediately after `__cpu_up()==0` before later CPUHP synchronization.
+
+P32A/D/F/X/R freezes the automatic rollback closure. The controller publishes
+P32 before `cpuhp_reset_state()` and the outer reverse range. Target
+`.cpu_disable` is the first guard before topology/NUMA removal, online clear,
+IPI teardown, and IRQ migration; die/kill remain mandatory defense for the
+early and deeper paths. Because higher callbacks may already be removed and
+cleanup failures are swallowed behind the original startup error, every
+branch is fail-stop, preserves its exact callback/architecture prefix, and
+requires a side channel. P32 is not retained-up success.
 
 The off side remains blocked independently. `DEAD` precedes PSCI `CPU_OFF` and
 is not physical-off proof; generic pre-CPU_OFF synchronization and later
@@ -1335,18 +1352,32 @@ independently concurrency-safe revalidation. The A26 boot veto and A14 disable
 veto are all-applicable: neither may be relaxed until every requirement each
 names for that operation is implemented and proven.
 
-The next ordered work remains source-only. First complete the selected
-early-secondary status and post-CPU_ON callback/automatic-rollback inventories
-and specify and mutation-test every P30/P32 closure. Then close the M02
-delayed-work scheduler/observer owner and failure propagation. Next close A40
-private-ledger writer/caller freshness. Only after those CPU-up and
-branch-selection gates pass, specify the full A14 off-completion owner:
-complete CPU-ops and CPUHP/PM inventories, exact target handoff, secure-call
-concurrency, one-query result propagation, and bounded independent post-OFF
-observers. Until all applicable A26/A14 gates close, do not generate a
-CPU_ON/CPU_OFF patch or candidate, build a kernel, or use the device. Passive
-provider work may proceed in parallel only within its existing no-write,
-no-consumer boundary.
+The next ordered work remains source-only:
+
+1. Implement and mutation-test A41's pre-finalization profile owner, including
+   exact capability enumeration, BHB `k=8`, compat AES suppression,
+   alternatives/HWCAP assertions, configuration-drift rejection, and
+   A36/P17/P18 attestation.
+2. Implement and mutation-test P30K/C/P/E/U, including the generation-scoped
+   timeout arbitration, global completion/status redesign, target park
+   acknowledgment, exact P14/P15 controller point, and global fail-stop
+   interlock.
+3. Complete A25 and implement P32A/D/F/X/R using either a reviewed core
+   no-auto-rollback interface or the fail-stop `.cpu_disable` plus die/kill
+   guard design, retaining every partial callback and architecture effect.
+4. Revalidate every applicable A26 CPU-up gate. The source-only implementation
+   must keep the current CPU boot veto; passing source tests alone does not
+   authorize a build.
+5. Close the M02 delayed-work scheduler/observer owner and failure propagation,
+   then close A40 private-ledger writer/caller freshness.
+6. Only after those CPU-up and branch-selection gates pass, specify the full
+   A14 off-completion owner: complete CPU-ops and CPUHP/PM inventories, exact
+   target handoff, secure-call concurrency, one-query result propagation, and
+   bounded independent post-OFF observers.
+
+Until all applicable A26/A14 gates close, do not generate a CPU_ON/CPU_OFF
+candidate, build a kernel, or use the device. Passive provider work may proceed
+in parallel only within its existing no-write, no-consumer boundary.
 
 CPU_OFF, suspend/resume, later power boundaries, a mainline provider write,
 and default-profile A72 consumers remain blocked until their separate ownership

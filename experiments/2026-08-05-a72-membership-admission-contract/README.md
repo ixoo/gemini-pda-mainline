@@ -12,6 +12,14 @@
 | Investigator(s) | Project maintainers |
 | Tracking issue | Roadmap Gate 4 |
 
+> **Current mechanism notice:** The detailed A37/A39/P30/P32 mechanics below
+> are retained as historical chronology. The later
+> [A72 CPU-up source closure](../2026-08-05-a72-cpu-up-source-closure/README.md)
+> is the current design authority for implementation review of A41 and the
+> P30/P32 mechanism;
+> use its P30K/C/P/E/U, P32A/D/F/X/R, primary `.cpu_disable`, and moved P14/P15
+> contracts before implementation review.
+
 ## Question or hypothesis
 
 Can Linux-side A72 membership, provider-reference ownership, admission, and
@@ -308,6 +316,38 @@ python3 experiments/2026-08-05-a72-membership-admission-contract/scripts/test_co
   owner remains unresolved.
 
 ## Analysis
+
+### Source-closure correction (2026-08-05)
+
+The later
+[`A72 CPU-up source closure`](../2026-08-05-a72-cpu-up-source-closure/README.md)
+is the current design authority for implementation review of A41 and the
+P30/P32 mechanism.
+This frozen experiment remains authoritative for phase, membership, provider,
+admission, and one-shot ownership, but its original P30/P32 descriptions are
+chronological inputs rather than a sufficient implementation design.
+
+The correction is substantive:
+
+- A41 must pre-account every false-on-A53/true-on-A72 local capability and all
+  mitigation, parameter, alternative, and HWCAP side effects before arm64
+  finalization. The deterministic minimum includes BHB with A72 `k=8`,
+  erratum 1742098 with compat AES suppression, and speculative-AT.
+- P30 is split into P30K/C/P/E/U. Default timeout is not proof that the target
+  parked; exact-generation cancellation must arbitrate against late
+  SUCCESS/online/completion, and a missing park acknowledgment is fail-stop.
+- P32 is split into P32A/D/F/X/R and must be controller-published before outer
+  rollback. Exact `.cpu_disable` is the primary target guard before topology,
+  online, IPI, and IRQ effects. The earlier paired die/kill proposal remains a
+  mandatory defense for `cpu_die_early()` and deeper rollback, not the primary
+  A37 boundary.
+- P14/P15 must be published immediately after successful `__cpu_up()` and
+  before later CPUHP synchronization. Generic CPU-up return never proves that
+  rollback cleanup succeeded.
+
+The existing frozen TSVs and transcript are intentionally unchanged. Apply the
+linked correction before any implementation review; neither document
+authorizes a build or device action.
 
 The hypothesis is confirmed only as a source-level constraint. The phase and
 ledger model prevents optimistic software state from outrunning physical

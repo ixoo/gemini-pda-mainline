@@ -1,5 +1,11 @@
 # A72 membership and admission design
 
+> **Current mechanism notice:** Detailed A37/A39/P30/P32 mechanics retained in
+> this file are historical. The later
+> [A72 CPU-up source closure](../2026-08-05-a72-cpu-up-source-closure/DESIGN.md)
+> supersedes those implementation details while preserving this design's
+> phase, membership/provider, admission, one-shot, and reset-only ownership.
+
 ## Separate ledgers and identities
 
 `members` is a Linux-owned two-bit A72 ledger:
@@ -392,6 +398,27 @@ conservative/FAULT. A30 classifies that as terminal divergence with no
 rollback. A custom `cpu_kill` alone cannot stop generic publication; a core
 interface/propagation change or reviewed outer completion sidechannel consumed
 before transaction/HPS success is required.
+
+## Source-closure correction (2026-08-05)
+
+The later
+[`A72 CPU-up source closure`](../2026-08-05-a72-cpu-up-source-closure/DESIGN.md)
+supersedes this design's detailed A37/A39 implementation mechanism while
+preserving P30 and P32 as the only phase edges.
+
+Its A41 prerequisite requires complete late-A72 capability pre-accounting
+before arm64 alternatives and user-HWCAP finalization. P30K/C/P/E/U add exact
+generation cancellation/publication arbitration, shared-completion protection,
+target park acknowledgment, and the post-C bare-STUCK branch. P32A/D/F/X/R
+requires controller publication before rollback and makes target
+`.cpu_disable` the first guard before topology/NUMA, online, IPI, or IRQ
+teardown. Target `.cpu_die` and controller `.cpu_kill` remain mandatory defense
+for `cpu_die_early()` and deeper rollback. P14/P15 publication moves to the
+controller point immediately after `__cpu_up()==0`.
+
+Use the linked source-closure design for implementation and mutation review.
+The phase, membership/provider, admission, and reset-only ownership frozen here
+remain normative.
 
 ## Authorization boundary
 
