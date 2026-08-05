@@ -23,6 +23,14 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-05 A72 safe-off ownership contract](2026-08-05-a72-safe-off-ownership-contract/README.md)
+  — reconciles the Gate 4 evidence into separate fail-closed contracts for
+  CPU9-off with CPU8 retained and for the final A72-off transition. Explicit
+  owners, pre-states, readbacks, timeouts, inverses, and failure responses are
+  frozen. The current evidence does not assign the membership/notifier ledger,
+  policy/suspend admission coordinator, secure CPU_OFF branches,
+  post-isolation writers, or final provider release, so no CPU_OFF candidate,
+  build, or device boot is authorized.
 - [2026-08-03 A72 CPU8/CPU9 scheduler-context execution](2026-08-03-a72-scheduler-context/README.md)
   — diagnosed parked-task activation in the rejected phase parent, changed only
   the two activations to explicit unpark, and passed two exact fixed-map runtime

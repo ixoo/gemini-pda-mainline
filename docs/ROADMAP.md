@@ -1276,16 +1276,24 @@ establishes repeatable bounded CPU8/CPU9 task execution, completion, and cleanup
 with attributable watchdog recovery. Do not run a third identical cycle or
 enable CPU_OFF.
 
-The next ordered action is an offline Gate 4 safe-off ownership contract, not
-another device boot. Reconcile the machine-checked ownership matrix with the
-later pre-isolation rollback and CPU9 startup/execution evidence, then model
-CPU9-off while CPU8 retains the cluster separately from last-A72-off. For each
-post-isolation boundary, assign the exact source/binary owner, frozen pre-state,
-independent readback, timeout, inverse, and failure response; identify where
-reset recovery remains the only defensible action. Freeze that contract and
-its negative-mutation matrix before generating any CPU_OFF candidate. Keep the
-HPS veto and CPU_OFF prohibition intact. Passive provider work may proceed in
-parallel only within its existing no-write, no-consumer boundary.
+The offline [Gate 4 safe-off ownership contract](../experiments/2026-08-05-a72-safe-off-ownership-contract/README.md)
+now separates CPU9-off with CPU8 retained from the final A72-off transaction
+and freezes each boundary's owner, pre-state, readback, timeout, inverse, and
+failure response. It rejects the vendor pre-affinity shared-state ordering and
+remains blocking: neither transition is implementation-eligible, and another
+unchanged device boot cannot close an ownership gap.
+
+The next ordered action is an exact offline audit of the verified private
+secure payload's CPU_OFF paths together with a source-level CPU8/CPU9
+membership, policy/suspend-admission, and hotplug-notifier contract. Attribute
+per-core CPU9-off versus last-core cluster/CCI/SPM/SRAM effects, then define the
+locked membership and provider-reference updates and prove that policy and
+suspend admission remain frozen while generic notifier dispatch cannot enter
+cluster-off policy for a non-last CPU. This step may change only the contract
+and supporting audit evidence: do not generate a CPU_OFF candidate, build a
+kernel, or use the device. Keep the HPS veto and CPU_OFF prohibition intact.
+Passive provider work may proceed in parallel only within its existing
+no-write, no-consumer boundary.
 
 CPU_OFF, suspend/resume, later power boundaries, a mainline provider write,
 and default-profile A72 consumers remain blocked until their separate ownership
