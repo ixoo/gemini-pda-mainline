@@ -1,0 +1,17 @@
+command=PYTHONDONTWRITEBYTECODE=1 python3 scripts/oracle.py
+PARTIAL_P24_CLOSED_ADMISSION_HOOKS
+public_order=PUBLIC_HOOK -> CPU_POSSIBLE -> NODE_ONLINE_WORK -> CPU_MAPS_LOCK
+internal_order=INTERNAL_HOOK -> PER_CPU_STATE -> CPUS_WRITE_LOCK -> CPUHP_STATE -> CPUHP_CALLBACK -> CPU_BOOT_METHOD
+admission_probes=32
+pass_through=22
+eagain=4
+eperm=2
+einval=4
+owner_validator_calls=10
+direct_internal_paths=THAW,SMT
+reachable_hook_states=1
+a72_authorizations=0
+violations=0
+PASS closed generic admission-hook contract
+build=not-run
+device_action=none

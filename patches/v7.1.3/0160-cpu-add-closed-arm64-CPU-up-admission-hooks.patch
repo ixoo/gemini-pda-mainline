@@ -1,0 +1,459 @@
+From 7fb9cec977e636c7df35b26588b493c05a1f102f Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Project <noreply@invalid>
+Date: Wed, 5 Aug 2026 18:05:40 -0400
+Subject: [PATCH 160/160] cpu: add closed arm64 CPU-up admission hooks
+
+Add weak public and internal CPU-up admission hooks to the generic hotplug
+path, and dispatch optional callbacks through arm64 CPU operations. Public
+checks precede CPU-map work; internal checks cover direct thaw and SMT
+paths before CPUHP locking or callbacks.
+
+Wire MT6797 CPU8 and CPU9 to leaf-only CLOSED-owner validation. The hooks
+never start a transaction or return success for an A72 target, while CPU0
+through CPU7 and methods without callbacks retain existing behavior.
+Keep the existing MT6797 boot and disable vetoes unchanged.
+
+Extend the default-off KUnit suite to prove callback routing and complete
+owner/P30 non-mutation. This experiment-only change has no certifying
+sign-off and is not submission-ready.
+---
+ arch/arm64/Kconfig                            |  4 +-
+ arch/arm64/Kconfig.platforms                  | 15 ++++-
+ arch/arm64/include/asm/cpu_ops.h              | 10 ++++
+ .../arm64/include/asm/mt6797_a72_membership.h | 17 ++++++
+ arch/arm64/kernel/mt6797_a72_membership.c     | 57 ++++++++++++++++++-
+ .../arm64/kernel/mt6797_a72_membership_test.c | 51 +++++++++++++++++
+ arch/arm64/kernel/mt6797_psci.c               | 30 ++++++++++
+ arch/arm64/kernel/smp.c                       | 28 +++++++++
+ include/linux/cpu.h                           |  3 +
+ kernel/cpu.c                                  | 22 ++++++-
+ 10 files changed, 230 insertions(+), 7 deletions(-)
+
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 34136b5a1..e3c8e942d 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -2554,10 +2554,12 @@ config ARM64_MT6797_A72_P24_OWNER_KUNIT_TEST
+ 	depends on KUNIT=y
+ 	depends on ARM64_MT6797_A72_P30_PROTOCOL_MODEL
+ 	select ARM64_MT6797_A72_P24_TRANSACTION_OWNER_MODEL
++	select ARM64_MT6797_A72_P24_ADMISSION_HOOKS
+ 	help
+ 	  Exercise the lifecycle-closed owner boundary. The tests verify that
+ 	  CPU8 and CPU9 probes cannot consume an attempt, allocate a token,
+-	  publish or mutate P30, or make a CPU_ON transaction reachable.
++	  publish or mutate P30, or make a CPU_ON transaction reachable. They
++	  also cover the read-only public and internal admission checks.
+ 
+ source "arch/arm64/kvm/Kconfig"
+ 
+diff --git a/arch/arm64/Kconfig.platforms b/arch/arm64/Kconfig.platforms
+index 1e2b5515c..b2d88686d 100644
+--- a/arch/arm64/Kconfig.platforms
++++ b/arch/arm64/Kconfig.platforms
+@@ -219,8 +219,19 @@ config ARM64_MT6797_A72_P24_TRANSACTION_OWNER_MODEL
+ 	depends on ARM64_MT6797_A72_P30_PROTOCOL_MODEL
+ 	help
+ 	  Build the lifecycle-closed owner for future P17/P18/P24 membership
+-	  transactions. The owner has no production caller or opener. It rejects
+-	  before P31/A38, allocates no token, and cannot issue CPU_ON.
++	  transactions. The transaction-begin path has no production caller or
++	  opener. It rejects before P31/A38, allocates no token, and cannot issue
++	  CPU_ON.
++
++config ARM64_MT6797_A72_P24_ADMISSION_HOOKS
++	bool "Install closed MT6797 A72 CPU-up admission hooks"
++	depends on ARM64_MT6797_A72_P24_TRANSACTION_OWNER_MODEL
++	help
++	  Install public and leaf-only internal CPU-up checks for MT6797 CPU8
++	  and CPU9. Both hooks are read-only denials: they do not begin a
++	  transaction, change P30, or make the existing CPU boot veto reachable.
++	  CPU0 through CPU7 and methods without admission callbacks retain their
++	  existing behavior. This option adds no owner opener or success path.
+ 
+ config ARCH_MESON
+ 	bool "Amlogic Platforms"
+diff --git a/arch/arm64/include/asm/cpu_ops.h b/arch/arm64/include/asm/cpu_ops.h
+index b1c54aedf..3c88b5239 100644
+--- a/arch/arm64/include/asm/cpu_ops.h
++++ b/arch/arm64/include/asm/cpu_ops.h
+@@ -5,6 +5,7 @@
+ #ifndef __ASM_CPU_OPS_H
+ #define __ASM_CPU_OPS_H
+ 
++#include <linux/cpuhotplug.h>
+ #include <linux/init.h>
+ #include <linux/threads.h>
+ 
+@@ -20,6 +21,11 @@
+  * @cpu_prepare: Early one-time preparation step for a cpu. If there is a
+  *		mechanism for doing so, tests whether it is possible to boot
+  *		the given CPU.
++ * @cpu_up_preflight: Optional public CPU-up admission check before CPU-map
++ *		locking or generic CPUHP work.
++ * @cpu_up_validate: Optional leaf-only CPU-up admission check for public and
++ *		direct internal paths. Must not sleep or acquire CPU-map, CPUHP, or
++ *		outer transition locks.
+  * @cpu_boot:	Boots a cpu into the kernel.
+  * @cpu_postboot: Optionally, perform any post-boot cleanup or necessary
+  *		synchronisation. Called from the cpu being booted.
+@@ -36,6 +42,10 @@ struct cpu_operations {
+ 	const char	*name;
+ 	int		(*cpu_init)(unsigned int);
+ 	int		(*cpu_prepare)(unsigned int);
++	int		(*cpu_up_preflight)(unsigned int cpu,
++					    enum cpuhp_state target);
++	int		(*cpu_up_validate)(unsigned int cpu, int tasks_frozen,
++					   enum cpuhp_state target);
+ 	int		(*cpu_boot)(unsigned int);
+ 	void		(*cpu_postboot)(void);
+ #ifdef CONFIG_HOTPLUG_CPU
+diff --git a/arch/arm64/include/asm/mt6797_a72_membership.h b/arch/arm64/include/asm/mt6797_a72_membership.h
+index 3ad056555..0a39957d6 100644
+--- a/arch/arm64/include/asm/mt6797_a72_membership.h
++++ b/arch/arm64/include/asm/mt6797_a72_membership.h
+@@ -178,6 +178,10 @@ struct mt6797_a72_owner_snapshot {
+ int
+ mt6797_a72_membership_begin_up(unsigned int cpu, enum cpuhp_state target,
+ 			       struct mt6797_a72_transaction *transaction);
++int mt6797_a72_membership_preflight_up(unsigned int cpu,
++				       enum cpuhp_state target);
++int mt6797_a72_membership_validate_up(unsigned int cpu, int tasks_frozen,
++				      enum cpuhp_state target);
+ bool
+ mt6797_a72_membership_owns_up_token(const struct arm64_late_cpu_up_token *token);
+ int mt6797_a72_membership_copy_up_token(struct arm64_late_cpu_up_token *token);
+@@ -192,6 +196,19 @@ mt6797_a72_membership_begin_up(unsigned int cpu, enum cpuhp_state target,
+ 	return -EOPNOTSUPP;
+ }
+ 
++static inline int
++mt6797_a72_membership_preflight_up(unsigned int cpu, enum cpuhp_state target)
++{
++	return -EOPNOTSUPP;
++}
++
++static inline int
++mt6797_a72_membership_validate_up(unsigned int cpu, int tasks_frozen,
++				  enum cpuhp_state target)
++{
++	return -EOPNOTSUPP;
++}
++
+ static inline bool
+ mt6797_a72_membership_owns_up_token(const struct arm64_late_cpu_up_token *token)
+ {
+diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt6797_a72_membership.c
+index e894e7944..1ae49b7b5 100644
+--- a/arch/arm64/kernel/mt6797_a72_membership.c
++++ b/arch/arm64/kernel/mt6797_a72_membership.c
+@@ -2,9 +2,10 @@
+ /*
+  * Lifecycle-closed transaction owner for future MT6797 A72 membership.
+  *
+- * This object deliberately has no production caller or opener. CLOSED is a
+- * meta/lifecycle boundary before P31/A38, not an early substitute for the
+- * future P31 -> A28 -> mint -> A36 ordering.
++ * The transaction-begin path deliberately has no production caller or opener.
++ * Read-only admission callbacks may inspect CLOSED. This meta/lifecycle
++ * boundary precedes P31/A38 and is not an early substitute for the future
++ * P31 -> A28 -> mint -> A36 ordering.
+  */
+ 
+ #include <linux/compiler.h>
+@@ -65,6 +66,56 @@ mt6797_a72_up_token_equal(const struct arm64_late_cpu_up_token *left,
+ 	return !memcmp(left, right, sizeof(*left));
+ }
+ 
++static int
++mt6797_a72_membership_check_up(unsigned int cpu, int tasks_frozen,
++			       enum cpuhp_state target)
++{
++	enum mt6797_a72_membership_operation operation;
++	unsigned long flags;
++	int ret;
++
++	operation = mt6797_a72_up_operation(cpu);
++	if (operation == MT6797_A72_OPERATION_NONE || target != CPUHP_ONLINE)
++		return -EINVAL;
++	if (tasks_frozen)
++		return -EPERM;
++
++	/* This leaf-only gate must remain safe under cpu_add_remove_lock. */
++	if (READ_ONCE(a72_owner.health) == MT6797_A72_OWNER_CLOSED)
++		return -EAGAIN;
++
++	raw_spin_lock_irqsave(&a72_state_lock, flags);
++	switch (a72_owner.health) {
++	case MT6797_A72_OWNER_CLOSED:
++		ret = -EAGAIN;
++		break;
++	case MT6797_A72_OWNER_FAULTED:
++		ret = -ESHUTDOWN;
++		break;
++	case MT6797_A72_OWNER_AVAILABLE:
++		ret = -EOPNOTSUPP;
++		break;
++	default:
++		ret = -EPROTO;
++		break;
++	}
++	raw_spin_unlock_irqrestore(&a72_state_lock, flags);
++
++	return ret;
++}
++
++int mt6797_a72_membership_preflight_up(unsigned int cpu,
++				       enum cpuhp_state target)
++{
++	return mt6797_a72_membership_check_up(cpu, 0, target);
++}
++
++int mt6797_a72_membership_validate_up(unsigned int cpu, int tasks_frozen,
++				      enum cpuhp_state target)
++{
++	return mt6797_a72_membership_check_up(cpu, tasks_frozen, target);
++}
++
+ int
+ mt6797_a72_membership_begin_up(unsigned int cpu, enum cpuhp_state target,
+ 			       struct mt6797_a72_transaction *transaction)
+diff --git a/arch/arm64/kernel/mt6797_a72_membership_test.c b/arch/arm64/kernel/mt6797_a72_membership_test.c
+index 0f1fc0fc9..130ce74b5 100644
+--- a/arch/arm64/kernel/mt6797_a72_membership_test.c
++++ b/arch/arm64/kernel/mt6797_a72_membership_test.c
+@@ -5,8 +5,11 @@
+ #include <linux/module.h>
+ #include <linux/string.h>
+ 
++#include <asm/cpu_ops.h>
+ #include <asm/mt6797_a72_membership.h>
+ 
++extern const struct cpu_operations mt6797_psci_ops;
++
+ struct owner_observation {
+ 	struct mt6797_a72_owner_snapshot owner;
+ 	struct arm64_late_cpu_startup_snapshot p30;
+@@ -125,6 +128,52 @@ static void mt6797_a72_owner_cpu9_denied(struct kunit *test)
+ 	expect_unchanged(test, &before, &after);
+ }
+ 
++static void mt6797_a72_owner_public_hook_denied(struct kunit *test)
++{
++	struct owner_observation before;
++	struct owner_observation after;
++	int ret;
++
++	KUNIT_ASSERT_NOT_NULL(test, mt6797_psci_ops.cpu_up_preflight);
++	owner_observe(&before);
++	ret = mt6797_psci_ops.cpu_up_preflight(0, CPUHP_ONLINE);
++	KUNIT_EXPECT_EQ(test, ret, 0);
++	ret = mt6797_psci_ops.cpu_up_preflight(7, CPUHP_ONLINE);
++	KUNIT_EXPECT_EQ(test, ret, 0);
++	ret = mt6797_psci_ops.cpu_up_preflight(8, CPUHP_ONLINE);
++	KUNIT_EXPECT_EQ(test, ret, -EAGAIN);
++	ret = mt6797_psci_ops.cpu_up_preflight(9, CPUHP_ONLINE);
++	KUNIT_EXPECT_EQ(test, ret, -EAGAIN);
++	ret = mt6797_psci_ops.cpu_up_preflight(8, CPUHP_AP_ONLINE);
++	KUNIT_EXPECT_EQ(test, ret, -EINVAL);
++	owner_observe(&after);
++	expect_unchanged(test, &before, &after);
++}
++
++static void mt6797_a72_owner_internal_hook_denied(struct kunit *test)
++{
++	struct owner_observation before;
++	struct owner_observation after;
++	int ret;
++
++	KUNIT_ASSERT_NOT_NULL(test, mt6797_psci_ops.cpu_up_validate);
++	owner_observe(&before);
++	ret = mt6797_psci_ops.cpu_up_validate(0, 0, CPUHP_ONLINE);
++	KUNIT_EXPECT_EQ(test, ret, 0);
++	ret = mt6797_psci_ops.cpu_up_validate(7, 0, CPUHP_ONLINE);
++	KUNIT_EXPECT_EQ(test, ret, 0);
++	ret = mt6797_psci_ops.cpu_up_validate(8, 0, CPUHP_ONLINE);
++	KUNIT_EXPECT_EQ(test, ret, -EAGAIN);
++	ret = mt6797_psci_ops.cpu_up_validate(9, 0, CPUHP_ONLINE);
++	KUNIT_EXPECT_EQ(test, ret, -EAGAIN);
++	ret = mt6797_psci_ops.cpu_up_validate(8, 1, CPUHP_ONLINE);
++	KUNIT_EXPECT_EQ(test, ret, -EPERM);
++	ret = mt6797_psci_ops.cpu_up_validate(9, 0, CPUHP_AP_ONLINE);
++	KUNIT_EXPECT_EQ(test, ret, -EINVAL);
++	owner_observe(&after);
++	expect_unchanged(test, &before, &after);
++}
++
+ static void mt6797_a72_owner_non_target_invalid(struct kunit *test)
+ {
+ 	struct mt6797_a72_transaction transaction;
+@@ -206,6 +255,8 @@ static struct kunit_case mt6797_a72_owner_cases[] = {
+ 	KUNIT_CASE(mt6797_a72_owner_initial_closed),
+ 	KUNIT_CASE(mt6797_a72_owner_cpu8_denied),
+ 	KUNIT_CASE(mt6797_a72_owner_cpu9_denied),
++	KUNIT_CASE(mt6797_a72_owner_public_hook_denied),
++	KUNIT_CASE(mt6797_a72_owner_internal_hook_denied),
+ 	KUNIT_CASE(mt6797_a72_owner_non_target_invalid),
+ 	KUNIT_CASE(mt6797_a72_owner_intermediate_target_invalid),
+ 	KUNIT_CASE(mt6797_a72_owner_repeat_is_diagnostic),
+diff --git a/arch/arm64/kernel/mt6797_psci.c b/arch/arm64/kernel/mt6797_psci.c
+index c25c7957c..734b3f192 100644
+--- a/arch/arm64/kernel/mt6797_psci.c
++++ b/arch/arm64/kernel/mt6797_psci.c
+@@ -21,6 +21,7 @@
+ #include <asm/cpufeature.h>
+ #include <asm/cputype.h>
+ #include <asm/late_cpu_profile.h>
++#include <asm/mt6797_a72_membership.h>
+ #include <asm/smp.h>
+ 
+ extern const struct cpu_operations cpu_psci_ops;
+@@ -1387,6 +1388,31 @@ static int __init mt6797_psci_cpu_prepare(unsigned int cpu)
+ 	return cpu_psci_ops.cpu_prepare(cpu);
+ }
+ 
++#ifdef CONFIG_ARM64_MT6797_A72_P24_ADMISSION_HOOKS
++static bool mt6797_psci_is_a72(unsigned int cpu)
++{
++	return cpu == 8 || cpu == 9;
++}
++
++static int mt6797_psci_cpu_up_preflight(unsigned int cpu,
++					enum cpuhp_state target)
++{
++	if (!mt6797_psci_is_a72(cpu))
++		return 0;
++
++	return mt6797_a72_membership_preflight_up(cpu, target);
++}
++
++static int mt6797_psci_cpu_up_validate(unsigned int cpu, int tasks_frozen,
++				       enum cpuhp_state target)
++{
++	if (!mt6797_psci_is_a72(cpu))
++		return 0;
++
++	return mt6797_a72_membership_validate_up(cpu, tasks_frozen, target);
++}
++#endif
++
+ static int mt6797_psci_cpu_boot(unsigned int cpu)
+ {
+ 	pr_warn_ratelimited("CPU%u boot rejected: A72 power sequence inactive\n",
+@@ -1406,6 +1432,10 @@ const struct cpu_operations mt6797_psci_ops = {
+ 	.name		= "mediatek,mt6797-psci",
+ 	.cpu_init	= mt6797_psci_cpu_init,
+ 	.cpu_prepare	= mt6797_psci_cpu_prepare,
++#ifdef CONFIG_ARM64_MT6797_A72_P24_ADMISSION_HOOKS
++	.cpu_up_preflight = mt6797_psci_cpu_up_preflight,
++	.cpu_up_validate = mt6797_psci_cpu_up_validate,
++#endif
+ 	.cpu_boot	= mt6797_psci_cpu_boot,
+ #ifdef CONFIG_HOTPLUG_CPU
+ 	.cpu_can_disable = mt6797_psci_cpu_can_disable,
+diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
+index e7a41f62c..01f50ca09 100644
+--- a/arch/arm64/kernel/smp.c
++++ b/arch/arm64/kernel/smp.c
+@@ -92,6 +92,34 @@ static inline int op_cpu_kill(unsigned int cpu)
+ }
+ #endif
+ 
++int arch_cpu_up_preflight(unsigned int cpu, enum cpuhp_state target)
++{
++	const struct cpu_operations *ops;
++
++	if (cpu >= nr_cpu_ids)
++		return 0;
++
++	ops = get_cpu_ops(cpu);
++	if (ops && ops->cpu_up_preflight)
++		return ops->cpu_up_preflight(cpu, target);
++
++	return 0;
++}
++
++int arch_cpu_up_validate(unsigned int cpu, int tasks_frozen,
++			 enum cpuhp_state target)
++{
++	const struct cpu_operations *ops;
++
++	if (cpu >= nr_cpu_ids)
++		return 0;
++
++	ops = get_cpu_ops(cpu);
++	if (ops && ops->cpu_up_validate)
++		return ops->cpu_up_validate(cpu, tasks_frozen, target);
++
++	return 0;
++}
+ 
+ /*
+  * Boot a secondary CPU, and assign it the specified idle task.
+diff --git a/include/linux/cpu.h b/include/linux/cpu.h
+index 9b6b0d87f..65424b788 100644
+--- a/include/linux/cpu.h
++++ b/include/linux/cpu.h
+@@ -118,6 +118,9 @@ extern bool cpuhp_tasks_frozen;
+ int add_cpu(unsigned int cpu);
+ int cpu_device_up(struct device *dev);
+ void notify_cpu_starting(unsigned int cpu);
++int arch_cpu_up_preflight(unsigned int cpu, enum cpuhp_state target);
++int arch_cpu_up_validate(unsigned int cpu, int tasks_frozen,
++			 enum cpuhp_state target);
+ extern void cpu_maps_update_begin(void);
+ extern void cpu_maps_update_done(void);
+ int bringup_hibernate_cpu(unsigned int sleep_cpu);
+diff --git a/kernel/cpu.c b/kernel/cpu.c
+index bc4f7a9ba..b4c7d7dd9 100644
+--- a/kernel/cpu.c
++++ b/kernel/cpu.c
+@@ -1615,10 +1615,15 @@ void cpuhp_online_idle(enum cpuhp_state state)
+ /* Requires cpu_add_remove_lock to be held */
+ static int _cpu_up(unsigned int cpu, int tasks_frozen, enum cpuhp_state target)
+ {
+-	struct cpuhp_cpu_state *st = per_cpu_ptr(&cpuhp_state, cpu);
++	struct cpuhp_cpu_state *st;
+ 	struct task_struct *idle;
+ 	int ret = 0;
+ 
++	ret = arch_cpu_up_validate(cpu, tasks_frozen, target);
++	if (ret)
++		return ret;
++
++	st = per_cpu_ptr(&cpuhp_state, cpu);
+ 	cpus_write_lock();
+ 
+ 	if (!cpu_present(cpu)) {
+@@ -1682,6 +1687,10 @@ static int cpu_up(unsigned int cpu, enum cpuhp_state target)
+ {
+ 	int err = 0;
+ 
++	err = arch_cpu_up_preflight(cpu, target);
++	if (err)
++		return err;
++
+ 	if (!cpu_possible(cpu)) {
+ 		pr_err("can't online cpu %d because it is not configured as may-hotadd at boot time\n",
+ 		       cpu);
+@@ -1709,6 +1718,17 @@ static int cpu_up(unsigned int cpu, enum cpuhp_state target)
+ 	return err;
+ }
+ 
++int __weak arch_cpu_up_preflight(unsigned int cpu, enum cpuhp_state target)
++{
++	return 0;
++}
++
++int __weak arch_cpu_up_validate(unsigned int cpu, int tasks_frozen,
++				enum cpuhp_state target)
++{
++	return 0;
++}
++
+ /**
+  * cpu_device_up - Bring up a cpu device
+  * @dev: Pointer to the cpu device to online
+-- 
+2.50.1 (Apple Git-155)
+

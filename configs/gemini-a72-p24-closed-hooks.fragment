@@ -1,0 +1,6 @@
+# Source-only P24 closed admission hooks. This selection authorizes no kernel
+# build, runtime execution, owner success path, or CPU_ON. Keep KUnit disabled
+# in this blocked profile; CPU8 and CPU9 remain read-only denials.
+CONFIG_ARM64_MT6797_A72_P24_ADMISSION_HOOKS=y
+# CONFIG_ARM64_MT6797_A72_P24_OWNER_KUNIT_TEST is not set
+CONFIG_LOCALVERSION="-gemini-p24-hooks-closed"

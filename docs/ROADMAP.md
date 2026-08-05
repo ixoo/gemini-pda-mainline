@@ -1504,6 +1504,19 @@ to `PARTIAL_P24_CLOSED_OWNER_MODEL`; it does not implement P17, P18, P24, a
 generic admission hook, the P31/A28/mint/A36 transaction, or any hardware
 operation.
 
+The next source-only
+[P24 closed admission-hook model](../experiments/2026-08-05-a72-p24-closed-hooks/README.md)
+adds two generic CPU-up gates. Public requests reach a weak preflight before
+CPU-map work, while direct thaw and SMT paths reach a leaf-only validation
+before CPUHP locking, state changes, or callbacks. Arm64 dispatches optional
+CPU-method callbacks: methods without them and MT6797 CPU0 through CPU7 retain
+their existing behavior, while CPU8 and CPU9 route to the read-only closed
+owner. The hooks add no transaction, transaction-begin caller, opener,
+attempt, token, P30 publication, or positive A72 path; the existing MT6797
+boot and disable vetoes remain independent backstops. This advances the source
+only to `PARTIAL_P24_CLOSED_ADMISSION_HOOKS`. It is not P17, P18, P24, a
+kernel build, or runtime CPU admission.
+
 P32A/D/F/X/R freezes the automatic rollback closure. The controller publishes
 P32 before `cpuhp_reset_state()` and the outer reverse range. Target
 `.cpu_disable` is the first guard before topology/NUMA removal, online clear,
@@ -1525,15 +1538,16 @@ names for that operation is implemented and proven.
 
 The next ordered work remains source-only:
 
-1. Add separately reviewed, fail-closed generic admission hook sites around the
-   closed P24 owner, without adding an opener or making CPU_ON reachable. Then
-   implement the authoritative P17/P18/P24 transaction in the frozen
-   P31 -> A28 -> mint -> A36 order and integrate its exact token with the
-   dormant P30 model and controller call sites. Replace the reused global
-   startup task/status/completion state, add bounded publication and PARKED
-   waits, the real target park acknowledgment, the immediate post-`__cpu_up()`
-   P14/P15 hook, branch-specific effect rules, and unconditional global
-   panic/reset enforcement. Preserve the current A26/A14 vetoes throughout.
+1. Implement the authoritative P17/P18/P24 transaction behind the closed hooks
+   in the frozen P31 -> A28 -> mint -> A36 order and integrate its exact token
+   with the dormant P30 model and controller call sites. Before any preflight
+   may return success, add the paired lifecycle closures: clean abort only when
+   CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
+   timeout cancellation/publication arbitration, bounded publication and
+   PARKED waits, the real target park acknowledgment, and the immediate
+   post-`__cpu_up()` P14/P15 hook. Replace the reused global startup
+   task/status/completion state, enforce branch-specific effects and global
+   panic/reset, and preserve the current A26/A14 vetoes throughout.
 2. Prove and implement P30E through one authoritative MMU-off-visible object
    shared with the controller, including exact tuple layout, cache maintenance,
    point-of-coherency and barrier ordering, assembly failure publication, and

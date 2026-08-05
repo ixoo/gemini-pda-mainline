@@ -1,0 +1,16 @@
+command=PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate.py
+validation=p24-closed-admission-hooks
+claim=PARTIAL_P24_CLOSED_ADMISSION_HOOKS
+patch_sha256=5fd606b8eb6554d7e9bcdc7a62548091f4e86476593b6999204f719013b8b287
+patch_id_stable=4e9efdbc51626664a77d08ce402101c4080e4cee
+source_state_sha256=afa58437e1c1dc851ec131f56e297a2db9ade31ec510aad8160708c0a8f0e9bd
+config_inputs_sha256=6eca02a9f2831249d9353b2822cd0c3661f20bc540f13e460c5d5cee57bf396d
+admission_probes=32
+mutations_rejected=39/39
+reviewers=2-GO
+kunit=10-cases-not-built-or-run
+production_callers=0
+profiles_checked=65
+build=not-run
+device_action=none
+status=PASS

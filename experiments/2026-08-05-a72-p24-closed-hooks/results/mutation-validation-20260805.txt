@@ -1,0 +1,44 @@
+command=PYTHONDONTWRITEBYTECODE=1 python3 scripts/test_mutations.py
+PASS public-hook-omitted: PUBLIC_HOOK_PRESENT
+PASS internal-hook-omitted: INTERNAL_HOOK_PRESENT
+PASS public-after-cpu-possible: PUBLIC_BEFORE_CPU_POSSIBLE
+PASS public-after-node-work: PUBLIC_BEFORE_NODE_WORK
+PASS public-after-maps: PUBLIC_BEFORE_MAPS
+PASS internal-after-per-cpu: INTERNAL_BEFORE_PER_CPU
+PASS internal-after-cpus-write: INTERNAL_BEFORE_CPUS_WRITE
+PASS internal-after-cpuhp: INTERNAL_BEFORE_CPUHP
+PASS internal-after-callback: INTERNAL_BEFORE_CALLBACK
+PASS internal-after-cpu-boot: INTERNAL_BEFORE_CPU_BOOT
+PASS thaw-bypasses-internal: THAW_USES_INTERNAL_HOOK
+PASS smt-bypasses-internal: SMT_USES_INTERNAL_HOOK
+PASS weak-default-denies: WEAK_DEFAULT_PASS_THROUGH
+PASS optional-method-denies: OPTIONAL_CALLBACK_PASS_THROUGH
+PASS mt6797-a53-denied: MT6797_A53_PASS_THROUGH
+PASS bounds-capture-policy: BOUNDS_PRESERVE_GENERIC
+PASS closed-a72-admitted: A72_CLOSED_DENIAL
+PASS intermediate-target-accepted: INTERMEDIATE_TARGET_REJECTED
+PASS frozen-internal-accepted: FROZEN_INTERNAL_REJECTED
+PASS transaction-begin-called: NO_BEGIN_UP
+PASS early-transition-mutex: EARLY_NO_TRANSITION_MUTEX
+PASS transaction-allocated: NO_TRANSACTION
+PASS output-persisted: NO_OUTPUT
+PASS owner-opened: NO_OPENER
+PASS p31-entered: NO_P31
+PASS a38-consumed: NO_A38
+PASS attempt-consumed: NO_ATTEMPT_CONSUMPTION
+PASS token-allocated: NO_TOKEN
+PASS membership-phase-entered: MEMBERSHIP_REMAINS_UNINITIALIZED
+PASS p17-published: NO_P17
+PASS p18-published: NO_P18
+PASS p30-mutated: NO_P30
+PASS provider-mutated: NO_PROVIDER_EFFECT
+PASS membership-mutated: NO_MEMBER_EFFECT
+PASS hardware-mutated: NO_HARDWARE_EFFECT
+PASS cpu-on-issued: NO_CPU_ON
+PASS cpu-boot-called: NO_CPU_BOOT
+PASS cpu-boot-backstop-removed: CPU_BOOT_BACKSTOP_RETAINED
+PASS cpu-disable-backstop-removed: CPU_DISABLE_BACKSTOP_RETAINED
+mutations_rejected=39/39
+PASS intended-check closed-hook mutation suite
+build=not-run
+device_action=none
