@@ -1,0 +1,17 @@
+$ PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate.py
+validation=p30-generation-protocol
+claim=PARTIAL_P30_PROTOCOL_MODEL
+patch_sha256=7055f48c5257689b19e9ab32c71075d23ea041eb735a66b59482f0c1a7d9957c
+patch_id_stable=422751b76eef2f08ff7d8419651a9193ba9a43cc
+source_state_sha256=dab76fafaf0c21695cfb242329c442ceb137e835f7ca143272b07ef8e7be47fb
+config_inputs_sha256=699f14786e1d64eb3811f0b6c481c31d9e0e77fc96b64eb4d12ebbbfde3b23b0
+reachable_states=144
+accepted_transitions=240
+mutations_rejected=17/17
+reviewers=2-GO
+kunit=17-cases-not-built-or-run
+production_callers=0
+profiles_checked=63
+build=not-run
+device_action=none
+status=PASS

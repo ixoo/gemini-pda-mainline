@@ -261,6 +261,23 @@
           "configs/gemini-a72-a41-kernel-identity.fragment"
         ]
       },
+      "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-reject-gate-a41-kernel-identity-p30-protocol": {
+        "base": "defconfig",
+        "patch_series": "patches/series-a72-reject-gate-a41-kernel-identity-p30-protocol",
+        "fragments": [
+          "configs/gemini-handoff.fragment",
+          "configs/gemini-usbdiag.fragment",
+          "configs/gemini-clk-ignore-unused.fragment",
+          "configs/gemini-observability.fragment",
+          "configs/gemini-fbcon-rotation.fragment",
+          "configs/gemini-keyboard.fragment",
+          "configs/gemini-keyboard-wrrd.fragment",
+          "configs/gemini-keyboard-manual-reboot.fragment",
+          "configs/gemini-smp8.fragment",
+          "configs/gemini-a72-a41-kernel-identity.fragment",
+          "configs/gemini-a72-p30-protocol.fragment"
+        ]
+      },
       "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-reject-gate-cpu8-request": {
         "base": "defconfig",
         "patch_series": "patches/series-a72-reject-gate",

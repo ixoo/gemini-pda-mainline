@@ -1,0 +1,6 @@
+# Source-only P30 arbitration protocol model. The code has no production
+# caller and cannot arm or issue CPU_ON. Keep KUnit out of the blocked profile;
+# the independent oracle and static suite own this milestone's evidence.
+CONFIG_ARM64_MT6797_A72_P30_PROTOCOL_MODEL=y
+# CONFIG_ARM64_LATE_CPU_STARTUP_KUNIT_TEST is not set
+CONFIG_LOCALVERSION="-gemini-p30-model-blocked"

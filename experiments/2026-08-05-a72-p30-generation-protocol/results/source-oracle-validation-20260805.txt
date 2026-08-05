@@ -1,0 +1,34 @@
+PARTIAL_P30_PROTOCOL_MODEL
+
+$ PYTHONDONTWRITEBYTECODE=1 python3 scripts/oracle.py
+PARTIAL_P30_PROTOCOL_MODEL
+reachable_states=144
+accepted_transitions=240
+opaque_generation_witness=CPU8/gen42 -> CPU9/gen7
+golden_actions=12
+violations=0
+PASS corrected bounded contract
+
+$ PYTHONDONTWRITEBYTECODE=1 python3 scripts/test_mutations.py
+PASS global-generation-floor: PER_OPERATION_OPAQUE_GENERATION
+PASS retired-token-replay: ONE_SHOT_RETIREMENT
+PASS prepared-ambiguity-aborts: PREPARED_FAULTING
+PASS armed-fault-without-quarantine: ARMED_FAULTING
+PASS prearmed-target-claim-dropped: PREARMED_TARGET_CLAIM_FAULT
+PASS second-winner: SINGLE_WINNER
+PASS publishing-interrupted: PUBLISHING_INDIVISIBLE
+PASS quarantined-retirement: QUARANTINE_RETIREMENT
+PASS quarantine-blocks-drain: QUARANTINE_ALLOWS_DRAIN
+PASS retirement-without-drain: DRAIN_BEFORE_RETIREMENT
+PASS caller-owned-online-result: INTERNAL_ONLINE_OBSERVATION
+PASS target-tuple-ignored: EXACT_TARGET_TUPLE
+PASS c-to-k-cross-closure: K_C_P_E_U_TERMINAL_RULES
+PASS p-generic-park: P_INTERLOCK
+PASS panic-without-interlock: P_INTERLOCK
+PASS quarantine-first-cause-replaced: QUARANTINE_STICKY
+PASS terminal-record-mutated: TERMINAL_IMMUTABILITY
+mutations_rejected=17/17
+PASS intended-check mutation suite
+
+Scope: independent Python standard-library model only. No kernel source,
+configuration, build, package, network, or device action was used.

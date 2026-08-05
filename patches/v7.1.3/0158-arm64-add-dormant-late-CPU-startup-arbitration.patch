@@ -1,0 +1,1876 @@
+From 1402ad95c4db48dd38140c62aea6bf916853f414 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Project <noreply@invalid>
+Date: Wed, 5 Aug 2026 16:13:31 -0400
+Subject: [PATCH 158/158] arm64: add dormant late-CPU startup arbitration
+
+Add a C-only, generation-scoped state model for future P30 ownership. Require exact controller and target identities, serialize every transition and snapshot, retain operation-scoped one-shot history, drain an indivisible publisher, and make quarantine sticky and fail-closed.
+
+Cover success retirement, CPU8-to-CPU9 reuse, cancellation and publication races, PREPARED/ABORTED/ARMED faults, K/C/P/E/U terminal rules, exact target mismatch, completion and online validation, and panic ordering with a default-off KUnit suite.
+
+The model has no production caller, does not provide the future P24 owner or P30E MMU-off wire object, and leaves the MT6797 CPU boot and disable vetoes unchanged.
+
+This experiment-only change has no certifying sign-off and is not submission-ready.
+---
+ arch/arm64/Kconfig                        |  16 +
+ arch/arm64/Kconfig.platforms              |   9 +
+ arch/arm64/include/asm/late_cpu_startup.h | 188 +++++
+ arch/arm64/kernel/Makefile                |   2 +
+ arch/arm64/kernel/late_cpu_startup.c      | 849 ++++++++++++++++++++++
+ arch/arm64/kernel/late_cpu_startup_test.c | 718 ++++++++++++++++++
+ arch/arm64/kernel/mt6797_psci.c           |   4 +-
+ 7 files changed, 1784 insertions(+), 2 deletions(-)
+ create mode 100644 arch/arm64/include/asm/late_cpu_startup.h
+ create mode 100644 arch/arm64/kernel/late_cpu_startup.c
+ create mode 100644 arch/arm64/kernel/late_cpu_startup_test.c
+
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index aa8909f1e..5e4e850da 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -2533,6 +2533,22 @@ config ARM64_LATE_CPU_RUNTIME_IDENTITY
+ 	  running vmlinux GNU build ID, and the forced command line. It does not
+ 	  collect target-CPU evidence or make a late CPU admissible.
+ 
++config ARM64_LATE_CPU_STARTUP_FAILSTOP
++	bool
++	help
++	  Internal protocol model for a future generation-scoped late-CPU
++	  startup controller. The model has no production caller and does not
++	  issue or authorize CPU_ON.
++
++config ARM64_LATE_CPU_STARTUP_KUNIT_TEST
++	bool "KUnit tests for the late-CPU startup protocol model"
++	depends on KUNIT=y
++	select ARM64_LATE_CPU_STARTUP_FAILSTOP
++	help
++	  Exercise the dormant protocol model's legal state transitions, exact
++	  token matching, completion ownership, terminal records, non-reuse,
++	  and sticky quarantine contract.
++
+ source "arch/arm64/kvm/Kconfig"
+ 
+ source "kernel/livepatch/Kconfig"
+diff --git a/arch/arm64/Kconfig.platforms b/arch/arm64/Kconfig.platforms
+index 1bfe04f5b..4e21e2bfe 100644
+--- a/arch/arm64/Kconfig.platforms
++++ b/arch/arm64/Kconfig.platforms
+@@ -205,6 +205,15 @@ config ARM64_MT6797_A72_FIXTURE_EVIDENCE
+ 	  unavailable-commit blockers. This option is for source validation only;
+ 	  it neither describes hardware nor enables a CPU boot path.
+ 
++config ARM64_MT6797_A72_P30_PROTOCOL_MODEL
++	bool "Build the dormant MT6797 A72 P30 protocol model"
++	depends on ARM64_MT6797_A72_CAPABILITY_PROFILE
++	select ARM64_LATE_CPU_STARTUP_FAILSTOP
++	help
++	  Build the inert generation-scoped startup arbitration primitive for
++	  source review. It has no production caller, does not publish P30 or
++	  P14/P15, and leaves the MT6797 CPU boot and disable vetoes unchanged.
++
+ config ARCH_MESON
+ 	bool "Amlogic Platforms"
+ 	help
+diff --git a/arch/arm64/include/asm/late_cpu_startup.h b/arch/arm64/include/asm/late_cpu_startup.h
+new file mode 100644
+index 000000000..46bc06bc7
+--- /dev/null
++++ b/arch/arm64/include/asm/late_cpu_startup.h
+@@ -0,0 +1,188 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __ASM_LATE_CPU_STARTUP_H
++#define __ASM_LATE_CPU_STARTUP_H
++
++#include <linux/bits.h>
++#include <linux/types.h>
++
++#include <asm/late_cpu_profile.h>
++
++/* Version of this dormant C protocol model, not an assembly wire ABI. */
++#define ARM64_LATE_CPU_STARTUP_ABI 1
++#define ARM64_LATE_CPU_STARTUP_OPERATION_SLOTS 2
++
++enum arm64_late_cpu_startup_owner {
++	ARM64_LATE_CPU_STARTUP_OWNER_NONE,
++	ARM64_LATE_CPU_STARTUP_OWNER_MEMBERSHIP,
++};
++
++enum arm64_late_cpu_startup_operation {
++	ARM64_LATE_CPU_STARTUP_OP_NONE,
++	ARM64_LATE_CPU_STARTUP_OP_CPU8_UP,
++	ARM64_LATE_CPU_STARTUP_OP_CPU9_UP,
++};
++
++/* P30K/C/P/E/U are closure cases, not membership phases. */
++enum arm64_late_cpu_startup_branch {
++	ARM64_LATE_CPU_STARTUP_BRANCH_NONE,
++	ARM64_LATE_CPU_STARTUP_BRANCH_K,
++	ARM64_LATE_CPU_STARTUP_BRANCH_C,
++	ARM64_LATE_CPU_STARTUP_BRANCH_P,
++	ARM64_LATE_CPU_STARTUP_BRANCH_E,
++	ARM64_LATE_CPU_STARTUP_BRANCH_U,
++};
++
++/* C-model states only; P30E still requires a separate MMU-off wire object. */
++enum arm64_late_cpu_startup_state {
++	ARM64_LATE_CPU_STARTUP_FREE,
++	ARM64_LATE_CPU_STARTUP_PREPARED,
++	ARM64_LATE_CPU_STARTUP_ABORTED,
++	ARM64_LATE_CPU_STARTUP_ARMED,
++	ARM64_LATE_CPU_STARTUP_PUBLISHING,
++	ARM64_LATE_CPU_STARTUP_PUBLISHED,
++	ARM64_LATE_CPU_STARTUP_CANCELLED,
++	ARM64_LATE_CPU_STARTUP_FAILING,
++	ARM64_LATE_CPU_STARTUP_FAULTED,
++	ARM64_LATE_CPU_STARTUP_PARKED,
++	ARM64_LATE_CPU_STARTUP_PANICKED,
++};
++
++enum arm64_late_cpu_startup_claim {
++	ARM64_LATE_CPU_STARTUP_CLAIM_WON,
++	ARM64_LATE_CPU_STARTUP_CLAIM_PUBLISHER,
++	ARM64_LATE_CPU_STARTUP_CLAIM_CANCELLED,
++	ARM64_LATE_CPU_STARTUP_CLAIM_FAILURE,
++	ARM64_LATE_CPU_STARTUP_CLAIM_FAULTED,
++	ARM64_LATE_CPU_STARTUP_CLAIM_TERMINAL,
++	ARM64_LATE_CPU_STARTUP_CLAIM_STALE,
++	ARM64_LATE_CPU_STARTUP_CLAIM_QUARANTINED,
++};
++
++enum arm64_late_cpu_quarantine_cause {
++	ARM64_LATE_CPU_QUARANTINE_NONE,
++	ARM64_LATE_CPU_QUARANTINE_CANCELLED,
++	ARM64_LATE_CPU_QUARANTINE_CPU_ON_UNPROVEN,
++	ARM64_LATE_CPU_QUARANTINE_CPU_ON_FAULT,
++	ARM64_LATE_CPU_QUARANTINE_TARGET_FAILURE,
++	ARM64_LATE_CPU_QUARANTINE_PARKED,
++	ARM64_LATE_CPU_QUARANTINE_PANICKED,
++	ARM64_LATE_CPU_QUARANTINE_ONLINE_MISMATCH,
++	ARM64_LATE_CPU_QUARANTINE_IDENTITY,
++	ARM64_LATE_CPU_QUARANTINE_ILLEGAL_EDGE,
++	ARM64_LATE_CPU_QUARANTINE_REUSE,
++};
++
++/* Conservative prefix of effects possible before publication or parking. */
++#define ARM64_LATE_CPU_EFFECT_MM BIT_ULL(0)
++#define ARM64_LATE_CPU_EFFECT_RCU_STARTING BIT_ULL(1)
++#define ARM64_LATE_CPU_EFFECT_GIC BIT_ULL(2)
++#define ARM64_LATE_CPU_EFFECT_CPUINFO BIT_ULL(3)
++#define ARM64_LATE_CPU_EFFECT_TOPOLOGY BIT_ULL(4)
++#define ARM64_LATE_CPU_EFFECT_STARTING BIT_ULL(5)
++#define ARM64_LATE_CPU_EFFECT_IPI BIT_ULL(6)
++#define ARM64_LATE_CPU_EFFECT_NUMA BIT_ULL(7)
++#define ARM64_LATE_CPU_EFFECT_PRESENT_CLEAR BIT_ULL(8)
++#define ARM64_LATE_CPU_EFFECT_RCU_DEAD BIT_ULL(9)
++#define ARM64_LATE_CPU_EFFECT_DIE_GUARD BIT_ULL(10)
++#define ARM64_LATE_CPU_EFFECT_MASK GENMASK_ULL(10, 0)
++
++/* Immutable identity copied from the future P17/P18/P24 transaction owner. */
++struct arm64_late_cpu_up_token {
++	u32 abi;
++	u16 owner;
++	u16 operation;
++	u32 target_cpu;
++	u32 reserved;
++	u64 target_mpidr;
++	u64 generation;
++	u64 cookie;
++	u64 plan_identity[ARM64_LATE_CPU_ID_WORDS];
++};
++
++/* Exact target-side subset of the immutable controller token. */
++struct arm64_late_cpu_startup_target {
++	u32 cpu;
++	u32 reserved;
++	u64 mpidr;
++	u64 generation;
++	u64 cookie;
++};
++
++struct arm64_late_cpu_startup_terminal {
++	u32 terminal_from;
++	u32 claimed_branch;
++	u32 branch;
++	u32 reserved;
++	u64 reason;
++	u64 effects;
++};
++
++struct arm64_late_cpu_startup_snapshot {
++	struct arm64_late_cpu_up_token token;
++	struct arm64_late_cpu_up_token
++		retired_token[ARM64_LATE_CPU_STARTUP_OPERATION_SLOTS];
++	struct arm64_late_cpu_up_token quarantine_token;
++	struct arm64_late_cpu_startup_terminal terminal;
++	u64 success_effects;
++	u32 state;
++	u32 completion_consumed;
++	u32 online_validated;
++	u32 park_committed;
++	u32 stuck_interlock;
++	u32 quarantined;
++	u32 quarantine_cause;
++	u32 retired_mask;
++};
++
++#ifdef CONFIG_ARM64_LATE_CPU_STARTUP_FAILSTOP
++int arm64_late_cpu_startup_prepare(const struct arm64_late_cpu_up_token *token);
++int arm64_late_cpu_startup_abort_unissued(
++	const struct arm64_late_cpu_up_token *token);
++int arm64_late_cpu_startup_release_aborted(
++	const struct arm64_late_cpu_up_token *token);
++int arm64_late_cpu_startup_arm_before_cpu_on(
++	const struct arm64_late_cpu_up_token *token);
++int arm64_late_cpu_startup_fault_cpu_on_unproven(
++	const struct arm64_late_cpu_up_token *token,
++	enum arm64_late_cpu_startup_state *winner);
++int arm64_late_cpu_startup_cpu_on_fault(
++	const struct arm64_late_cpu_up_token *token,
++	enum arm64_late_cpu_startup_state *winner);
++enum arm64_late_cpu_startup_claim
++arm64_late_cpu_startup_cancel(const struct arm64_late_cpu_up_token *token);
++enum arm64_late_cpu_startup_claim arm64_late_cpu_startup_claim_publish(
++	const struct arm64_late_cpu_startup_target *target);
++int arm64_late_cpu_startup_publish(
++	const struct arm64_late_cpu_startup_target *target, u64 effects);
++int arm64_late_cpu_startup_consume_published(
++	const struct arm64_late_cpu_up_token *token);
++int arm64_late_cpu_startup_retire_published_after_p14_p15(
++	const struct arm64_late_cpu_up_token *token);
++enum arm64_late_cpu_startup_claim arm64_late_cpu_startup_claim_failure(
++	const struct arm64_late_cpu_startup_target *target,
++	enum arm64_late_cpu_startup_branch branch);
++int arm64_late_cpu_startup_park(
++	const struct arm64_late_cpu_startup_target *target,
++	enum arm64_late_cpu_startup_branch final_branch, u64 reason,
++	u64 effects);
++int arm64_late_cpu_startup_panic_park(
++	const struct arm64_late_cpu_startup_target *target, u64 reason,
++	u64 effects);
++int arm64_late_cpu_startup_publish_panicked(
++	const struct arm64_late_cpu_up_token *token);
++void arm64_late_cpu_startup_snapshot(
++	struct arm64_late_cpu_startup_snapshot *snapshot);
++bool arm64_late_cpu_startup_quarantined(void);
++#else
++static inline bool arm64_late_cpu_startup_quarantined(void)
++{
++	return false;
++}
++#endif
++
++#ifdef CONFIG_ARM64_LATE_CPU_STARTUP_KUNIT_TEST
++void arm64_late_cpu_startup_test_reset(void);
++void arm64_late_cpu_startup_test_set_online(u32 cpu, bool online);
++#endif
++
++#endif /* __ASM_LATE_CPU_STARTUP_H */
+diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
+index 4fb460cec..6f1e4ac42 100644
+--- a/arch/arm64/kernel/Makefile
++++ b/arch/arm64/kernel/Makefile
+@@ -47,6 +47,8 @@ obj-$(CONFIG_PERF_EVENTS)		+= perf_regs.o perf_callchain.o
+ obj-$(CONFIG_HARDLOCKUP_DETECTOR_PERF)	+= watchdog_hld.o
+ obj-$(CONFIG_HAVE_HW_BREAKPOINT)	+= hw_breakpoint.o
+ obj-$(CONFIG_ARM64_LATE_CPU_PROFILE)	+= late_cpu_profile.o
++obj-$(CONFIG_ARM64_LATE_CPU_STARTUP_FAILSTOP) += late_cpu_startup.o
++obj-$(CONFIG_ARM64_LATE_CPU_STARTUP_KUNIT_TEST) += late_cpu_startup_test.o
+ obj-$(CONFIG_HAVE_STATIC_CALL)		+= static_call.o
+ obj-$(CONFIG_CPU_PM)			+= sleep.o suspend.o
+ obj-$(CONFIG_KGDB)			+= kgdb.o
+diff --git a/arch/arm64/kernel/late_cpu_startup.c b/arch/arm64/kernel/late_cpu_startup.c
+new file mode 100644
+index 000000000..373b5b82e
+--- /dev/null
++++ b/arch/arm64/kernel/late_cpu_startup.c
+@@ -0,0 +1,849 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Dormant generation-scoped late-CPU startup arbitration model
++ *
++ * This file deliberately has no production caller. It freezes a C-only P30
++ * state machine without inventing the future membership token owner or
++ * weakening the MT6797 CPU boot and disable vetoes. It is not an MMU-off wire
++ * object and makes no P30E cache, point-of-coherency, or barrier claim.
++ */
++
++#include <linux/atomic.h>
++#include <linux/completion.h>
++#include <linux/cpu.h>
++#include <linux/errno.h>
++#include <linux/spinlock.h>
++#include <linux/string.h>
++
++#include <asm/late_cpu_startup.h>
++
++struct arm64_late_cpu_startup_control {
++	raw_spinlock_t lock;
++	atomic_t state;
++	struct arm64_late_cpu_up_token token;
++	struct arm64_late_cpu_up_token
++		retired_token[ARM64_LATE_CPU_STARTUP_OPERATION_SLOTS];
++	struct arm64_late_cpu_up_token quarantine_token;
++	struct arm64_late_cpu_startup_terminal terminal;
++	u64 success_effects;
++	struct completion published;
++	atomic_t quarantined;
++	u32 quarantine_cause;
++	u32 retired_mask;
++	bool completion_consumed;
++	bool online_validated;
++	bool park_committed;
++	bool stuck_interlock;
++#ifdef CONFIG_ARM64_LATE_CPU_STARTUP_KUNIT_TEST
++	u32 test_online_cpu;
++	bool test_online;
++#endif
++};
++
++static struct arm64_late_cpu_startup_control late_startup = {
++	.lock = __RAW_SPIN_LOCK_UNLOCKED(late_startup.lock),
++	.state = ATOMIC_INIT(ARM64_LATE_CPU_STARTUP_FREE),
++	.published = COMPLETION_INITIALIZER(late_startup.published),
++	.quarantined = ATOMIC_INIT(0),
++};
++
++static int late_startup_operation_slot(u16 operation)
++{
++	switch (operation) {
++	case ARM64_LATE_CPU_STARTUP_OP_CPU8_UP:
++		return 0;
++	case ARM64_LATE_CPU_STARTUP_OP_CPU9_UP:
++		return 1;
++	default:
++		return -EINVAL;
++	}
++}
++
++static bool late_startup_identity_empty(const u64 *identity)
++{
++	u64 value = 0;
++	unsigned int i;
++
++	for (i = 0; i < ARM64_LATE_CPU_ID_WORDS; i++)
++		value |= identity[i];
++
++	return !value;
++}
++
++static bool
++late_startup_token_valid(const struct arm64_late_cpu_up_token *token)
++{
++	if (!token || token->abi != ARM64_LATE_CPU_STARTUP_ABI ||
++	    token->owner != ARM64_LATE_CPU_STARTUP_OWNER_MEMBERSHIP ||
++	    token->reserved || !token->generation || !token->cookie ||
++	    late_startup_identity_empty(token->plan_identity))
++		return false;
++
++	switch (token->operation) {
++	case ARM64_LATE_CPU_STARTUP_OP_CPU8_UP:
++		return token->target_cpu == 8 && token->target_mpidr == 0x200;
++	case ARM64_LATE_CPU_STARTUP_OP_CPU9_UP:
++		return token->target_cpu == 9 && token->target_mpidr == 0x201;
++	default:
++		return false;
++	}
++}
++
++static bool
++late_startup_token_matches_locked(const struct arm64_late_cpu_up_token *token)
++{
++	return token && !memcmp(token, &late_startup.token, sizeof(*token));
++}
++
++static bool late_startup_target_matches_locked(
++	const struct arm64_late_cpu_startup_target *target)
++{
++	return target && !target->reserved &&
++	       target->cpu == late_startup.token.target_cpu &&
++	       target->mpidr == late_startup.token.target_mpidr &&
++	       target->generation == late_startup.token.generation &&
++	       target->cookie == late_startup.token.cookie;
++}
++
++static void
++late_startup_latch_quarantine_locked(enum arm64_late_cpu_quarantine_cause cause)
++{
++	int state;
++
++	if (atomic_read(&late_startup.quarantined))
++		return;
++
++	state = atomic_read(&late_startup.state);
++	if (state == ARM64_LATE_CPU_STARTUP_FREE)
++		return;
++	late_startup.quarantine_token = late_startup.token;
++	late_startup.quarantine_cause = cause;
++	if (state == ARM64_LATE_CPU_STARTUP_PREPARED ||
++	    state == ARM64_LATE_CPU_STARTUP_ABORTED ||
++	    state == ARM64_LATE_CPU_STARTUP_ARMED)
++		atomic_set_release(&late_startup.state,
++				   ARM64_LATE_CPU_STARTUP_FAULTED);
++	atomic_set_release(&late_startup.quarantined, 1);
++}
++
++static enum arm64_late_cpu_startup_claim
++late_startup_classify_locked(enum arm64_late_cpu_startup_state state)
++{
++	switch (state) {
++	case ARM64_LATE_CPU_STARTUP_PUBLISHING:
++	case ARM64_LATE_CPU_STARTUP_PUBLISHED:
++		return ARM64_LATE_CPU_STARTUP_CLAIM_PUBLISHER;
++	case ARM64_LATE_CPU_STARTUP_CANCELLED:
++		return ARM64_LATE_CPU_STARTUP_CLAIM_CANCELLED;
++	case ARM64_LATE_CPU_STARTUP_FAILING:
++		return ARM64_LATE_CPU_STARTUP_CLAIM_FAILURE;
++	case ARM64_LATE_CPU_STARTUP_FAULTED:
++		return ARM64_LATE_CPU_STARTUP_CLAIM_FAULTED;
++	case ARM64_LATE_CPU_STARTUP_PARKED:
++	case ARM64_LATE_CPU_STARTUP_PANICKED:
++		return ARM64_LATE_CPU_STARTUP_CLAIM_TERMINAL;
++	default:
++		return ARM64_LATE_CPU_STARTUP_CLAIM_STALE;
++	}
++}
++
++static int
++late_startup_require_token_locked(const struct arm64_late_cpu_up_token *token)
++{
++	if (late_startup_token_matches_locked(token))
++		return 0;
++	if (atomic_read(&late_startup.state) >= ARM64_LATE_CPU_STARTUP_ARMED)
++		late_startup_latch_quarantine_locked(
++			ARM64_LATE_CPU_QUARANTINE_IDENTITY);
++	return -ESTALE;
++}
++
++static void late_startup_retire_token_locked(void)
++{
++	int slot = late_startup_operation_slot(late_startup.token.operation);
++
++	if (slot < 0)
++		return;
++	late_startup.retired_token[slot] = late_startup.token;
++	late_startup.retired_mask |= BIT(slot);
++}
++
++static void late_startup_clear_active_locked(void)
++{
++	memset(&late_startup.token, 0, sizeof(late_startup.token));
++	memset(&late_startup.terminal, 0, sizeof(late_startup.terminal));
++	late_startup.success_effects = 0;
++	late_startup.completion_consumed = false;
++	late_startup.online_validated = false;
++	late_startup.park_committed = false;
++	late_startup.stuck_interlock = false;
++}
++
++static bool late_startup_target_online_locked(u32 cpu)
++{
++#ifdef CONFIG_ARM64_LATE_CPU_STARTUP_KUNIT_TEST
++	return cpu == late_startup.test_online_cpu && late_startup.test_online;
++#else
++	return cpu_online(cpu);
++#endif
++}
++
++int arm64_late_cpu_startup_prepare(const struct arm64_late_cpu_up_token *token)
++{
++	unsigned long flags;
++	int slot;
++	int state;
++	int ret = 0;
++
++	if (!late_startup_token_valid(token))
++		return -EINVAL;
++	slot = late_startup_operation_slot(token->operation);
++	if (slot < 0)
++		return slot;
++
++	raw_spin_lock_irqsave(&late_startup.lock, flags);
++	if (atomic_read(&late_startup.quarantined)) {
++		ret = -ESHUTDOWN;
++		goto out;
++	}
++	state = atomic_read(&late_startup.state);
++	if (state != ARM64_LATE_CPU_STARTUP_FREE) {
++		if (state >= ARM64_LATE_CPU_STARTUP_ARMED)
++			late_startup_latch_quarantine_locked(
++				ARM64_LATE_CPU_QUARANTINE_REUSE);
++		ret = -EBUSY;
++		goto out;
++	}
++	if (late_startup.retired_mask & BIT(slot)) {
++		ret = -EALREADY;
++		goto out;
++	}
++
++	late_startup.token = *token;
++	memset(&late_startup.terminal, 0, sizeof(late_startup.terminal));
++	late_startup.success_effects = 0;
++	late_startup.completion_consumed = false;
++	late_startup.online_validated = false;
++	late_startup.park_committed = false;
++	late_startup.stuck_interlock = false;
++	reinit_completion(&late_startup.published);
++	atomic_set_release(&late_startup.state,
++			   ARM64_LATE_CPU_STARTUP_PREPARED);
++out:
++	raw_spin_unlock_irqrestore(&late_startup.lock, flags);
++	return ret;
++}
++
++int arm64_late_cpu_startup_abort_unissued(
++	const struct arm64_late_cpu_up_token *token)
++{
++	unsigned long flags;
++	int ret;
++
++	raw_spin_lock_irqsave(&late_startup.lock, flags);
++	ret = late_startup_require_token_locked(token);
++	if (ret)
++		goto out;
++	if (atomic_read(&late_startup.quarantined)) {
++		ret = -ESHUTDOWN;
++		goto out;
++	}
++	if (atomic_read(&late_startup.state) !=
++	    ARM64_LATE_CPU_STARTUP_PREPARED) {
++		late_startup_latch_quarantine_locked(
++			ARM64_LATE_CPU_QUARANTINE_ILLEGAL_EDGE);
++		ret = -EPROTO;
++		goto out;
++	}
++
++	atomic_set_release(&late_startup.state, ARM64_LATE_CPU_STARTUP_ABORTED);
++	ret = 0;
++out:
++	raw_spin_unlock_irqrestore(&late_startup.lock, flags);
++	return ret;
++}
++
++int arm64_late_cpu_startup_release_aborted(
++	const struct arm64_late_cpu_up_token *token)
++{
++	unsigned long flags;
++	int ret;
++
++	raw_spin_lock_irqsave(&late_startup.lock, flags);
++	ret = late_startup_require_token_locked(token);
++	if (ret)
++		goto out;
++	if (atomic_read(&late_startup.quarantined)) {
++		ret = -ESHUTDOWN;
++		goto out;
++	}
++	if (atomic_read(&late_startup.state) !=
++	    ARM64_LATE_CPU_STARTUP_ABORTED) {
++		late_startup_latch_quarantine_locked(
++			ARM64_LATE_CPU_QUARANTINE_REUSE);
++		ret = -EPROTO;
++		goto out;
++	}
++
++	late_startup_retire_token_locked();
++	late_startup_clear_active_locked();
++	atomic_set_release(&late_startup.state, ARM64_LATE_CPU_STARTUP_FREE);
++	ret = 0;
++out:
++	raw_spin_unlock_irqrestore(&late_startup.lock, flags);
++	return ret;
++}
++
++int arm64_late_cpu_startup_arm_before_cpu_on(
++	const struct arm64_late_cpu_up_token *token)
++{
++	unsigned long flags;
++	int state;
++	int ret;
++
++	raw_spin_lock_irqsave(&late_startup.lock, flags);
++	state = atomic_read(&late_startup.state);
++	if (atomic_read(&late_startup.quarantined)) {
++		ret = -ESHUTDOWN;
++		goto out;
++	}
++	if (!late_startup_token_matches_locked(token)) {
++		if (state == ARM64_LATE_CPU_STARTUP_PREPARED)
++			atomic_set_release(&late_startup.state,
++					   ARM64_LATE_CPU_STARTUP_FAULTED);
++		late_startup_latch_quarantine_locked(
++			ARM64_LATE_CPU_QUARANTINE_IDENTITY);
++		ret = -ESTALE;
++		goto out;
++	}
++	if (state != ARM64_LATE_CPU_STARTUP_PREPARED) {
++		late_startup_latch_quarantine_locked(
++			ARM64_LATE_CPU_QUARANTINE_ILLEGAL_EDGE);
++		ret = -EPROTO;
++		goto out;
++	}
++
++	/* The future owner must call this immediately before its first CPU_ON. */
++	atomic_set_release(&late_startup.state, ARM64_LATE_CPU_STARTUP_ARMED);
++	ret = 0;
++out:
++	raw_spin_unlock_irqrestore(&late_startup.lock, flags);
++	return ret;
++}
++
++int arm64_late_cpu_startup_fault_cpu_on_unproven(
++	const struct arm64_late_cpu_up_token *token,
++	enum arm64_late_cpu_startup_state *winner)
++{
++	unsigned long flags;
++	int state;
++	int ret;
++
++	raw_spin_lock_irqsave(&late_startup.lock, flags);
++	state = atomic_read(&late_startup.state);
++	if (!late_startup_token_matches_locked(token)) {
++		if (state == ARM64_LATE_CPU_STARTUP_PREPARED)
++			atomic_set_release(&late_startup.state,
++					   ARM64_LATE_CPU_STARTUP_FAULTED);
++		late_startup_latch_quarantine_locked(
++			ARM64_LATE_CPU_QUARANTINE_IDENTITY);
++		ret = -ESTALE;
++		goto record;
++	}
++	if (state != ARM64_LATE_CPU_STARTUP_PREPARED) {
++		late_startup_latch_quarantine_locked(
++			ARM64_LATE_CPU_QUARANTINE_CPU_ON_UNPROVEN);
++		ret = -EUCLEAN;
++		goto record;
++	}
++
++	atomic_set_release(&late_startup.state, ARM64_LATE_CPU_STARTUP_FAULTED);
++	late_startup_latch_quarantine_locked(
++		ARM64_LATE_CPU_QUARANTINE_CPU_ON_UNPROVEN);
++	ret = 0;
++record:
++	if (winner)
++		*winner = atomic_read(&late_startup.state);
++	raw_spin_unlock_irqrestore(&late_startup.lock, flags);
++	return ret;
++}
++
++int arm64_late_cpu_startup_cpu_on_fault(
++	const struct arm64_late_cpu_up_token *token,
++	enum arm64_late_cpu_startup_state *winner)
++{
++	unsigned long flags;
++	int state;
++	int ret;
++
++	raw_spin_lock_irqsave(&late_startup.lock, flags);
++	state = atomic_read(&late_startup.state);
++	ret = late_startup_require_token_locked(token);
++	if (ret)
++		goto record;
++	if (state != ARM64_LATE_CPU_STARTUP_ARMED) {
++		late_startup_latch_quarantine_locked(
++			ARM64_LATE_CPU_QUARANTINE_CPU_ON_FAULT);
++		ret = -EUCLEAN;
++		goto record;
++	}
++
++	atomic_set_release(&late_startup.state, ARM64_LATE_CPU_STARTUP_FAULTED);
++	late_startup_latch_quarantine_locked(
++		ARM64_LATE_CPU_QUARANTINE_CPU_ON_FAULT);
++	ret = 0;
++record:
++	if (winner)
++		*winner = atomic_read(&late_startup.state);
++	raw_spin_unlock_irqrestore(&late_startup.lock, flags);
++	return ret;
++}
++
++enum arm64_late_cpu_startup_claim
++arm64_late_cpu_startup_cancel(const struct arm64_late_cpu_up_token *token)
++{
++	unsigned long flags;
++	enum arm64_late_cpu_startup_claim claim;
++	int state;
++
++	raw_spin_lock_irqsave(&late_startup.lock, flags);
++	state = atomic_read(&late_startup.state);
++	if (late_startup_require_token_locked(token)) {
++		claim = ARM64_LATE_CPU_STARTUP_CLAIM_STALE;
++		goto out;
++	}
++	if (state != ARM64_LATE_CPU_STARTUP_ARMED) {
++		claim = late_startup_classify_locked(state);
++		goto out;
++	}
++
++	atomic_set_release(&late_startup.state,
++			   ARM64_LATE_CPU_STARTUP_CANCELLED);
++	late_startup_latch_quarantine_locked(
++		ARM64_LATE_CPU_QUARANTINE_CANCELLED);
++	claim = ARM64_LATE_CPU_STARTUP_CLAIM_WON;
++out:
++	raw_spin_unlock_irqrestore(&late_startup.lock, flags);
++	return claim;
++}
++
++enum arm64_late_cpu_startup_claim arm64_late_cpu_startup_claim_publish(
++	const struct arm64_late_cpu_startup_target *target)
++{
++	unsigned long flags;
++	enum arm64_late_cpu_startup_claim claim;
++	int state;
++
++	raw_spin_lock_irqsave(&late_startup.lock, flags);
++	/* The lock acquire-observes state before any plain token field is read. */
++	state = atomic_read(&late_startup.state);
++	if (!late_startup_target_matches_locked(target)) {
++		late_startup_latch_quarantine_locked(
++			ARM64_LATE_CPU_QUARANTINE_IDENTITY);
++		claim = ARM64_LATE_CPU_STARTUP_CLAIM_STALE;
++		goto out;
++	}
++	if (state == ARM64_LATE_CPU_STARTUP_PREPARED ||
++	    state == ARM64_LATE_CPU_STARTUP_ABORTED) {
++		late_startup_latch_quarantine_locked(
++			ARM64_LATE_CPU_QUARANTINE_ILLEGAL_EDGE);
++		claim = ARM64_LATE_CPU_STARTUP_CLAIM_FAULTED;
++		goto out;
++	}
++	if (state != ARM64_LATE_CPU_STARTUP_ARMED) {
++		if (state == ARM64_LATE_CPU_STARTUP_PUBLISHED &&
++		    atomic_read(&late_startup.quarantined))
++			claim = ARM64_LATE_CPU_STARTUP_CLAIM_QUARANTINED;
++		else
++			claim = late_startup_classify_locked(state);
++		goto out;
++	}
++	if (atomic_read(&late_startup.quarantined)) {
++		claim = ARM64_LATE_CPU_STARTUP_CLAIM_QUARANTINED;
++		goto out;
++	}
++
++	atomic_set_release(&late_startup.state,
++			   ARM64_LATE_CPU_STARTUP_PUBLISHING);
++	claim = ARM64_LATE_CPU_STARTUP_CLAIM_WON;
++out:
++	raw_spin_unlock_irqrestore(&late_startup.lock, flags);
++	return claim;
++}
++
++int arm64_late_cpu_startup_publish(
++	const struct arm64_late_cpu_startup_target *target, u64 effects)
++{
++	unsigned long flags;
++	bool complete_published = false;
++	int state;
++	int ret;
++
++	raw_spin_lock_irqsave(&late_startup.lock, flags);
++	state = atomic_read(&late_startup.state);
++	if (!late_startup_target_matches_locked(target)) {
++		if (state == ARM64_LATE_CPU_STARTUP_PREPARED)
++			atomic_set_release(&late_startup.state,
++					   ARM64_LATE_CPU_STARTUP_FAULTED);
++		late_startup_latch_quarantine_locked(
++			ARM64_LATE_CPU_QUARANTINE_IDENTITY);
++		ret = -ESTALE;
++		goto out;
++	}
++	if (state != ARM64_LATE_CPU_STARTUP_PUBLISHING) {
++		late_startup_latch_quarantine_locked(
++			ARM64_LATE_CPU_QUARANTINE_ILLEGAL_EDGE);
++		ret = -EPROTO;
++		goto out;
++	}
++	if (effects & ~ARM64_LATE_CPU_EFFECT_MASK) {
++		/* The owner retains PUBLISHING and may finish with a valid record. */
++		late_startup_latch_quarantine_locked(
++			ARM64_LATE_CPU_QUARANTINE_ILLEGAL_EDGE);
++		ret = -EINVAL;
++		goto out;
++	}
++
++	/* No cancellable check is permitted inside this owned publication. */
++	late_startup.success_effects = effects;
++	atomic_set_release(&late_startup.state,
++			   ARM64_LATE_CPU_STARTUP_PUBLISHED);
++	complete_published = true;
++	ret = 0;
++out:
++	raw_spin_unlock_irqrestore(&late_startup.lock, flags);
++	if (complete_published)
++		complete(&late_startup.published);
++	return ret;
++}
++
++int arm64_late_cpu_startup_consume_published(
++	const struct arm64_late_cpu_up_token *token)
++{
++	unsigned long flags;
++	bool quarantined;
++	int ret;
++
++	raw_spin_lock_irqsave(&late_startup.lock, flags);
++	ret = late_startup_require_token_locked(token);
++	if (ret)
++		goto out;
++	if (atomic_read(&late_startup.state) !=
++	    ARM64_LATE_CPU_STARTUP_PUBLISHED) {
++		ret = -EAGAIN;
++		goto out;
++	}
++	if (late_startup.completion_consumed) {
++		ret = atomic_read(&late_startup.quarantined) ? -ESHUTDOWN :
++							       -EALREADY;
++		goto out;
++	}
++	if (!try_wait_for_completion(&late_startup.published)) {
++		ret = -EAGAIN;
++		goto out;
++	}
++
++	late_startup.completion_consumed = true;
++	quarantined = atomic_read(&late_startup.quarantined);
++	/* Sample the exact CPU only after observing PUBLISHED and completion. */
++	if (!late_startup_target_online_locked(token->target_cpu)) {
++		late_startup_latch_quarantine_locked(
++			ARM64_LATE_CPU_QUARANTINE_ONLINE_MISMATCH);
++		ret = quarantined ? -ESHUTDOWN : -EUCLEAN;
++		goto out;
++	}
++	late_startup.online_validated = true;
++	ret = quarantined ? -ESHUTDOWN : 0;
++out:
++	raw_spin_unlock_irqrestore(&late_startup.lock, flags);
++	return ret;
++}
++
++int arm64_late_cpu_startup_retire_published_after_p14_p15(
++	const struct arm64_late_cpu_up_token *token)
++{
++	unsigned long flags;
++	int ret;
++
++	raw_spin_lock_irqsave(&late_startup.lock, flags);
++	ret = late_startup_require_token_locked(token);
++	if (ret)
++		goto out;
++	if (atomic_read(&late_startup.quarantined)) {
++		ret = -ESHUTDOWN;
++		goto out;
++	}
++	if (atomic_read(&late_startup.state) !=
++		    ARM64_LATE_CPU_STARTUP_PUBLISHED ||
++	    !late_startup.completion_consumed ||
++	    !late_startup.online_validated) {
++		late_startup_latch_quarantine_locked(
++			ARM64_LATE_CPU_QUARANTINE_REUSE);
++		ret = -EPROTO;
++		goto out;
++	}
++
++	late_startup_retire_token_locked();
++	late_startup_clear_active_locked();
++	atomic_set_release(&late_startup.state, ARM64_LATE_CPU_STARTUP_FREE);
++	ret = 0;
++out:
++	raw_spin_unlock_irqrestore(&late_startup.lock, flags);
++	return ret;
++}
++
++enum arm64_late_cpu_startup_claim arm64_late_cpu_startup_claim_failure(
++	const struct arm64_late_cpu_startup_target *target,
++	enum arm64_late_cpu_startup_branch branch)
++{
++	unsigned long flags;
++	enum arm64_late_cpu_startup_claim claim;
++	int state;
++
++	raw_spin_lock_irqsave(&late_startup.lock, flags);
++	/* The lock acquire-observes state before any plain token field is read. */
++	state = atomic_read(&late_startup.state);
++	if (!late_startup_target_matches_locked(target)) {
++		late_startup_latch_quarantine_locked(
++			ARM64_LATE_CPU_QUARANTINE_IDENTITY);
++		claim = ARM64_LATE_CPU_STARTUP_CLAIM_STALE;
++		goto out;
++	}
++	if (state == ARM64_LATE_CPU_STARTUP_PREPARED ||
++	    state == ARM64_LATE_CPU_STARTUP_ABORTED) {
++		late_startup_latch_quarantine_locked(
++			ARM64_LATE_CPU_QUARANTINE_ILLEGAL_EDGE);
++		claim = ARM64_LATE_CPU_STARTUP_CLAIM_FAULTED;
++		goto out;
++	}
++	if (state != ARM64_LATE_CPU_STARTUP_ARMED) {
++		claim = late_startup_classify_locked(state);
++		goto out;
++	}
++	if (branch < ARM64_LATE_CPU_STARTUP_BRANCH_K ||
++	    branch > ARM64_LATE_CPU_STARTUP_BRANCH_U) {
++		late_startup_latch_quarantine_locked(
++			ARM64_LATE_CPU_QUARANTINE_ILLEGAL_EDGE);
++		claim = ARM64_LATE_CPU_STARTUP_CLAIM_STALE;
++		goto out;
++	}
++
++	late_startup.terminal.claimed_branch = branch;
++	late_startup.terminal.branch = branch;
++	atomic_set_release(&late_startup.state, ARM64_LATE_CPU_STARTUP_FAILING);
++	late_startup_latch_quarantine_locked(
++		ARM64_LATE_CPU_QUARANTINE_TARGET_FAILURE);
++	claim = ARM64_LATE_CPU_STARTUP_CLAIM_WON;
++out:
++	raw_spin_unlock_irqrestore(&late_startup.lock, flags);
++	return claim;
++}
++
++int arm64_late_cpu_startup_park(
++	const struct arm64_late_cpu_startup_target *target,
++	enum arm64_late_cpu_startup_branch final_branch, u64 reason,
++	u64 effects)
++{
++	unsigned long flags;
++	enum arm64_late_cpu_startup_branch claimed;
++	int state;
++	int ret;
++
++	raw_spin_lock_irqsave(&late_startup.lock, flags);
++	state = atomic_read(&late_startup.state);
++	if (!late_startup_target_matches_locked(target)) {
++		late_startup_latch_quarantine_locked(
++			ARM64_LATE_CPU_QUARANTINE_IDENTITY);
++		ret = -ESTALE;
++		goto out;
++	}
++	if (!reason || effects & ~ARM64_LATE_CPU_EFFECT_MASK) {
++		late_startup_latch_quarantine_locked(
++			ARM64_LATE_CPU_QUARANTINE_ILLEGAL_EDGE);
++		ret = -EINVAL;
++		goto out;
++	}
++	if (late_startup.park_committed)
++		goto illegal;
++
++	claimed = late_startup.terminal.claimed_branch;
++	if (state == ARM64_LATE_CPU_STARTUP_CANCELLED ||
++	    state == ARM64_LATE_CPU_STARTUP_FAULTED) {
++		if (final_branch != ARM64_LATE_CPU_STARTUP_BRANCH_U)
++			goto illegal;
++	} else if (state == ARM64_LATE_CPU_STARTUP_FAILING) {
++		/* P must use panic_park() and the controller interlock. */
++		if (claimed == ARM64_LATE_CPU_STARTUP_BRANCH_P)
++			goto illegal;
++		if (final_branch != claimed &&
++		    !(claimed == ARM64_LATE_CPU_STARTUP_BRANCH_K &&
++		      final_branch == ARM64_LATE_CPU_STARTUP_BRANCH_C))
++			goto illegal;
++	} else {
++		goto illegal;
++	}
++
++	/* Branch-specific effect policy belongs to the future integrated hooks. */
++	late_startup.terminal.terminal_from = state;
++	late_startup.terminal.branch = final_branch;
++	late_startup.terminal.reason = reason;
++	late_startup.terminal.effects = effects;
++	late_startup.park_committed = true;
++	atomic_set_release(&late_startup.state, ARM64_LATE_CPU_STARTUP_PARKED);
++	late_startup_latch_quarantine_locked(ARM64_LATE_CPU_QUARANTINE_PARKED);
++	ret = 0;
++	goto out;
++
++illegal:
++	late_startup_latch_quarantine_locked(
++		ARM64_LATE_CPU_QUARANTINE_ILLEGAL_EDGE);
++	ret = -EPROTO;
++out:
++	raw_spin_unlock_irqrestore(&late_startup.lock, flags);
++	return ret;
++}
++
++int arm64_late_cpu_startup_panic_park(
++	const struct arm64_late_cpu_startup_target *target, u64 reason,
++	u64 effects)
++{
++	unsigned long flags;
++	int state;
++	int ret;
++
++	raw_spin_lock_irqsave(&late_startup.lock, flags);
++	state = atomic_read(&late_startup.state);
++	if (!late_startup_target_matches_locked(target)) {
++		late_startup_latch_quarantine_locked(
++			ARM64_LATE_CPU_QUARANTINE_IDENTITY);
++		ret = -ESTALE;
++		goto out;
++	}
++	if (!reason || effects & ~ARM64_LATE_CPU_EFFECT_MASK) {
++		late_startup_latch_quarantine_locked(
++			ARM64_LATE_CPU_QUARANTINE_ILLEGAL_EDGE);
++		ret = -EINVAL;
++		goto out;
++	}
++	if (state != ARM64_LATE_CPU_STARTUP_FAILING ||
++	    late_startup.terminal.claimed_branch !=
++		    ARM64_LATE_CPU_STARTUP_BRANCH_P ||
++	    late_startup.park_committed) {
++		late_startup_latch_quarantine_locked(
++			ARM64_LATE_CPU_QUARANTINE_ILLEGAL_EDGE);
++		ret = -EPROTO;
++		goto out;
++	}
++
++	late_startup.terminal.terminal_from = state;
++	late_startup.terminal.branch = ARM64_LATE_CPU_STARTUP_BRANCH_P;
++	late_startup.terminal.reason = reason;
++	late_startup.terminal.effects = effects;
++	late_startup.park_committed = true;
++	ret = 0;
++out:
++	raw_spin_unlock_irqrestore(&late_startup.lock, flags);
++	return ret;
++}
++
++int arm64_late_cpu_startup_publish_panicked(
++	const struct arm64_late_cpu_up_token *token)
++{
++	unsigned long flags;
++	int ret;
++
++	raw_spin_lock_irqsave(&late_startup.lock, flags);
++	ret = late_startup_require_token_locked(token);
++	if (ret)
++		goto out;
++	if (atomic_read(&late_startup.state) !=
++		    ARM64_LATE_CPU_STARTUP_FAILING ||
++	    late_startup.terminal.claimed_branch !=
++		    ARM64_LATE_CPU_STARTUP_BRANCH_P ||
++	    late_startup.terminal.branch != ARM64_LATE_CPU_STARTUP_BRANCH_P ||
++	    !late_startup.park_committed || late_startup.stuck_interlock) {
++		late_startup_latch_quarantine_locked(
++			ARM64_LATE_CPU_QUARANTINE_ILLEGAL_EDGE);
++		ret = -EPROTO;
++		goto out;
++	}
++
++	late_startup.stuck_interlock = true;
++	atomic_set_release(&late_startup.state,
++			   ARM64_LATE_CPU_STARTUP_PANICKED);
++	late_startup_latch_quarantine_locked(
++		ARM64_LATE_CPU_QUARANTINE_PANICKED);
++	ret = 0;
++out:
++	raw_spin_unlock_irqrestore(&late_startup.lock, flags);
++	return ret;
++}
++
++void arm64_late_cpu_startup_snapshot(
++	struct arm64_late_cpu_startup_snapshot *snapshot)
++{
++	unsigned long flags;
++
++	if (!snapshot)
++		return;
++
++	raw_spin_lock_irqsave(&late_startup.lock, flags);
++	snapshot->state = atomic_read(&late_startup.state);
++	snapshot->token = late_startup.token;
++	memcpy(snapshot->retired_token, late_startup.retired_token,
++	       sizeof(snapshot->retired_token));
++	snapshot->quarantine_token = late_startup.quarantine_token;
++	snapshot->terminal = late_startup.terminal;
++	snapshot->success_effects = late_startup.success_effects;
++	snapshot->completion_consumed = late_startup.completion_consumed;
++	snapshot->online_validated = late_startup.online_validated;
++	snapshot->park_committed = late_startup.park_committed;
++	snapshot->stuck_interlock = late_startup.stuck_interlock;
++	snapshot->quarantined = atomic_read(&late_startup.quarantined);
++	snapshot->quarantine_cause = late_startup.quarantine_cause;
++	snapshot->retired_mask = late_startup.retired_mask;
++	raw_spin_unlock_irqrestore(&late_startup.lock, flags);
++}
++
++bool arm64_late_cpu_startup_quarantined(void)
++{
++	return atomic_read_acquire(&late_startup.quarantined);
++}
++
++#ifdef CONFIG_ARM64_LATE_CPU_STARTUP_KUNIT_TEST
++void arm64_late_cpu_startup_test_reset(void)
++{
++	unsigned long flags;
++
++	raw_spin_lock_irqsave(&late_startup.lock, flags);
++	memset(&late_startup.token, 0, sizeof(late_startup.token));
++	memset(late_startup.retired_token, 0,
++	       sizeof(late_startup.retired_token));
++	memset(&late_startup.quarantine_token, 0,
++	       sizeof(late_startup.quarantine_token));
++	memset(&late_startup.terminal, 0, sizeof(late_startup.terminal));
++	late_startup.success_effects = 0;
++	late_startup.quarantine_cause = ARM64_LATE_CPU_QUARANTINE_NONE;
++	late_startup.retired_mask = 0;
++	late_startup.completion_consumed = false;
++	late_startup.online_validated = false;
++	late_startup.park_committed = false;
++	late_startup.stuck_interlock = false;
++	late_startup.test_online_cpu = 0;
++	late_startup.test_online = false;
++	reinit_completion(&late_startup.published);
++	atomic_set(&late_startup.quarantined, 0);
++	atomic_set_release(&late_startup.state, ARM64_LATE_CPU_STARTUP_FREE);
++	raw_spin_unlock_irqrestore(&late_startup.lock, flags);
++}
++
++void arm64_late_cpu_startup_test_set_online(u32 cpu, bool online)
++{
++	unsigned long flags;
++
++	raw_spin_lock_irqsave(&late_startup.lock, flags);
++	late_startup.test_online_cpu = cpu;
++	late_startup.test_online = online;
++	raw_spin_unlock_irqrestore(&late_startup.lock, flags);
++}
++#endif
+diff --git a/arch/arm64/kernel/late_cpu_startup_test.c b/arch/arm64/kernel/late_cpu_startup_test.c
+new file mode 100644
+index 000000000..5bd367a6a
+--- /dev/null
++++ b/arch/arm64/kernel/late_cpu_startup_test.c
+@@ -0,0 +1,718 @@
++// SPDX-License-Identifier: GPL-2.0-only
++
++#include <kunit/test.h>
++#include <linux/kernel.h>
++#include <linux/module.h>
++#include <linux/string.h>
++
++#include <asm/late_cpu_startup.h>
++
++static const struct arm64_late_cpu_up_token cpu8_token = {
++	.abi = ARM64_LATE_CPU_STARTUP_ABI,
++	.owner = ARM64_LATE_CPU_STARTUP_OWNER_MEMBERSHIP,
++	.operation = ARM64_LATE_CPU_STARTUP_OP_CPU8_UP,
++	.target_cpu = 8,
++	.target_mpidr = 0x200,
++	.generation = 42,
++	.cookie = 0x8a720001,
++	.plan_identity = { 1, 2, 3, 4 },
++};
++
++/* The lower opaque generation deliberately rejects a global ordering rule. */
++static const struct arm64_late_cpu_up_token cpu9_token = {
++	.abi = ARM64_LATE_CPU_STARTUP_ABI,
++	.owner = ARM64_LATE_CPU_STARTUP_OWNER_MEMBERSHIP,
++	.operation = ARM64_LATE_CPU_STARTUP_OP_CPU9_UP,
++	.target_cpu = 9,
++	.target_mpidr = 0x201,
++	.generation = 7,
++	.cookie = 0x9a720001,
++	.plan_identity = { 5, 6, 7, 8 },
++};
++
++static const struct arm64_late_cpu_startup_target cpu8_target = {
++	.cpu = 8,
++	.mpidr = 0x200,
++	.generation = 42,
++	.cookie = 0x8a720001,
++};
++
++static const struct arm64_late_cpu_startup_target cpu9_target = {
++	.cpu = 9,
++	.mpidr = 0x201,
++	.generation = 7,
++	.cookie = 0x9a720001,
++};
++
++static int late_cpu_startup_test_init(struct kunit *test)
++{
++	(void)test;
++	arm64_late_cpu_startup_test_reset();
++	return 0;
++}
++
++static void late_cpu_startup_invalid_token_test(struct kunit *test)
++{
++	struct arm64_late_cpu_up_token token = cpu8_token;
++
++	token.generation = 0;
++	KUNIT_EXPECT_EQ(test, arm64_late_cpu_startup_prepare(&token), -EINVAL);
++	token = cpu8_token;
++	token.target_mpidr = 0x201;
++	KUNIT_EXPECT_EQ(test, arm64_late_cpu_startup_prepare(&token), -EINVAL);
++	KUNIT_EXPECT_FALSE(test, arm64_late_cpu_startup_quarantined());
++}
++
++static void late_cpu_startup_abort_is_one_shot_test(struct kunit *test)
++{
++	struct arm64_late_cpu_startup_snapshot snapshot = {};
++	struct arm64_late_cpu_up_token replay = cpu8_token;
++
++	KUNIT_ASSERT_EQ(test, arm64_late_cpu_startup_prepare(&cpu8_token), 0);
++	KUNIT_ASSERT_EQ(test,
++			arm64_late_cpu_startup_abort_unissued(&cpu8_token), 0);
++	KUNIT_ASSERT_EQ(test,
++			arm64_late_cpu_startup_release_aborted(&cpu8_token), 0);
++	replay.generation = 100;
++	replay.cookie++;
++	KUNIT_EXPECT_EQ(test, arm64_late_cpu_startup_prepare(&replay),
++			-EALREADY);
++	KUNIT_EXPECT_EQ(test, arm64_late_cpu_startup_prepare(&cpu9_token), 0);
++	arm64_late_cpu_startup_snapshot(&snapshot);
++	KUNIT_EXPECT_EQ(test, snapshot.state,
++			(u32)ARM64_LATE_CPU_STARTUP_PREPARED);
++	KUNIT_EXPECT_EQ(test, snapshot.retired_mask, (u32)BIT(0));
++	KUNIT_EXPECT_EQ(test, snapshot.retired_token[0].generation,
++			cpu8_token.generation);
++	KUNIT_EXPECT_FALSE(test, snapshot.quarantined);
++}
++
++static void late_cpu_startup_unproven_cpu_on_test(struct kunit *test)
++{
++	struct arm64_late_cpu_startup_snapshot snapshot = {};
++	enum arm64_late_cpu_startup_state winner;
++
++	KUNIT_ASSERT_EQ(test, arm64_late_cpu_startup_prepare(&cpu8_token), 0);
++	KUNIT_ASSERT_EQ(test,
++			arm64_late_cpu_startup_fault_cpu_on_unproven(
++				&cpu8_token, &winner),
++			0);
++	KUNIT_EXPECT_EQ(test, winner,
++			(enum arm64_late_cpu_startup_state)
++				ARM64_LATE_CPU_STARTUP_FAULTED);
++	KUNIT_EXPECT_EQ(test,
++			arm64_late_cpu_startup_arm_before_cpu_on(&cpu8_token),
++			-ESHUTDOWN);
++	KUNIT_ASSERT_EQ(test,
++			arm64_late_cpu_startup_park(
++				&cpu8_target, ARM64_LATE_CPU_STARTUP_BRANCH_U,
++				0x100, ARM64_LATE_CPU_EFFECT_MM),
++			0);
++	arm64_late_cpu_startup_snapshot(&snapshot);
++	KUNIT_EXPECT_EQ(test, snapshot.state,
++			(u32)ARM64_LATE_CPU_STARTUP_PARKED);
++	KUNIT_EXPECT_EQ(test, snapshot.quarantine_cause,
++			(u32)ARM64_LATE_CPU_QUARANTINE_CPU_ON_UNPROVEN);
++}
++
++static void late_cpu_startup_cpu_on_fault_test(struct kunit *test)
++{
++	struct arm64_late_cpu_startup_snapshot snapshot = {};
++	enum arm64_late_cpu_startup_state winner;
++
++	KUNIT_ASSERT_EQ(test, arm64_late_cpu_startup_prepare(&cpu8_token), 0);
++	KUNIT_ASSERT_EQ(
++		test, arm64_late_cpu_startup_arm_before_cpu_on(&cpu8_token), 0);
++	KUNIT_ASSERT_EQ(
++		test, arm64_late_cpu_startup_cpu_on_fault(&cpu8_token, &winner),
++		0);
++	KUNIT_EXPECT_EQ(test, winner,
++			(enum arm64_late_cpu_startup_state)
++				ARM64_LATE_CPU_STARTUP_FAULTED);
++	KUNIT_ASSERT_EQ(test,
++			arm64_late_cpu_startup_park(
++				&cpu8_target, ARM64_LATE_CPU_STARTUP_BRANCH_U,
++				0x200, ARM64_LATE_CPU_EFFECT_MM),
++			0);
++	arm64_late_cpu_startup_snapshot(&snapshot);
++	KUNIT_EXPECT_EQ(test, snapshot.terminal.terminal_from,
++			(u32)ARM64_LATE_CPU_STARTUP_FAULTED);
++	KUNIT_EXPECT_EQ(test, snapshot.quarantine_cause,
++			(u32)ARM64_LATE_CPU_QUARANTINE_CPU_ON_FAULT);
++}
++
++static void late_cpu_startup_cancel_wins_test(struct kunit *test)
++{
++	struct arm64_late_cpu_startup_snapshot snapshot = {};
++	enum arm64_late_cpu_startup_claim claim;
++
++	KUNIT_ASSERT_EQ(test, arm64_late_cpu_startup_prepare(&cpu8_token), 0);
++	KUNIT_ASSERT_EQ(
++		test, arm64_late_cpu_startup_arm_before_cpu_on(&cpu8_token), 0);
++	claim = arm64_late_cpu_startup_cancel(&cpu8_token);
++	KUNIT_ASSERT_EQ(test, claim,
++			(enum arm64_late_cpu_startup_claim)
++				ARM64_LATE_CPU_STARTUP_CLAIM_WON);
++	claim = arm64_late_cpu_startup_claim_publish(&cpu8_target);
++	KUNIT_EXPECT_EQ(test, claim,
++			(enum arm64_late_cpu_startup_claim)
++				ARM64_LATE_CPU_STARTUP_CLAIM_CANCELLED);
++	KUNIT_ASSERT_EQ(test,
++			arm64_late_cpu_startup_park(
++				&cpu8_target, ARM64_LATE_CPU_STARTUP_BRANCH_U,
++				0x300, ARM64_LATE_CPU_EFFECT_MM),
++			0);
++	arm64_late_cpu_startup_snapshot(&snapshot);
++	KUNIT_EXPECT_EQ(test, snapshot.state,
++			(u32)ARM64_LATE_CPU_STARTUP_PARKED);
++	KUNIT_EXPECT_EQ(test, snapshot.terminal.terminal_from,
++			(u32)ARM64_LATE_CPU_STARTUP_CANCELLED);
++	KUNIT_EXPECT_EQ(test, snapshot.terminal.branch,
++			(u32)ARM64_LATE_CPU_STARTUP_BRANCH_U);
++	KUNIT_EXPECT_TRUE(test, snapshot.park_committed);
++	KUNIT_EXPECT_TRUE(test, snapshot.quarantined);
++}
++
++static void late_cpu_startup_cpu8_then_cpu9_test(struct kunit *test)
++{
++	struct arm64_late_cpu_startup_snapshot snapshot = {};
++	struct arm64_late_cpu_up_token replay = cpu8_token;
++	enum arm64_late_cpu_startup_claim claim;
++
++	arm64_late_cpu_startup_test_set_online(8, true);
++	KUNIT_ASSERT_EQ(test, arm64_late_cpu_startup_prepare(&cpu8_token), 0);
++	KUNIT_ASSERT_EQ(
++		test, arm64_late_cpu_startup_arm_before_cpu_on(&cpu8_token), 0);
++	claim = arm64_late_cpu_startup_claim_publish(&cpu8_target);
++	KUNIT_ASSERT_EQ(test, claim,
++			(enum arm64_late_cpu_startup_claim)
++				ARM64_LATE_CPU_STARTUP_CLAIM_WON);
++	KUNIT_EXPECT_EQ(test, arm64_late_cpu_startup_cancel(&cpu8_token),
++			(enum arm64_late_cpu_startup_claim)
++				ARM64_LATE_CPU_STARTUP_CLAIM_PUBLISHER);
++	KUNIT_ASSERT_EQ(test,
++			arm64_late_cpu_startup_publish(
++				&cpu8_target,
++				ARM64_LATE_CPU_EFFECT_MM |
++					ARM64_LATE_CPU_EFFECT_RCU_STARTING),
++			0);
++	KUNIT_ASSERT_EQ(
++		test, arm64_late_cpu_startup_consume_published(&cpu8_token), 0);
++	KUNIT_EXPECT_EQ(test,
++			arm64_late_cpu_startup_consume_published(&cpu8_token),
++			-EALREADY);
++	KUNIT_ASSERT_EQ(test,
++			arm64_late_cpu_startup_retire_published_after_p14_p15(
++				&cpu8_token),
++			0);
++
++	replay.generation = 1000;
++	replay.cookie++;
++	KUNIT_EXPECT_EQ(test, arm64_late_cpu_startup_prepare(&replay),
++			-EALREADY);
++	KUNIT_ASSERT_EQ(test, arm64_late_cpu_startup_prepare(&cpu9_token), 0);
++	KUNIT_ASSERT_EQ(
++		test, arm64_late_cpu_startup_arm_before_cpu_on(&cpu9_token), 0);
++	KUNIT_ASSERT_EQ(test,
++			arm64_late_cpu_startup_claim_publish(&cpu9_target),
++			(enum arm64_late_cpu_startup_claim)
++				ARM64_LATE_CPU_STARTUP_CLAIM_WON);
++	KUNIT_ASSERT_EQ(test,
++			arm64_late_cpu_startup_publish(
++				&cpu9_target, ARM64_LATE_CPU_EFFECT_MM),
++			0);
++	arm64_late_cpu_startup_test_set_online(9, true);
++	KUNIT_ASSERT_EQ(
++		test, arm64_late_cpu_startup_consume_published(&cpu9_token), 0);
++	KUNIT_ASSERT_EQ(test,
++			arm64_late_cpu_startup_retire_published_after_p14_p15(
++				&cpu9_token),
++			0);
++	arm64_late_cpu_startup_snapshot(&snapshot);
++	KUNIT_EXPECT_EQ(test, snapshot.state, (u32)ARM64_LATE_CPU_STARTUP_FREE);
++	KUNIT_EXPECT_EQ(test, snapshot.retired_mask, (u32)(BIT(0) | BIT(1)));
++	KUNIT_EXPECT_EQ(test, snapshot.retired_token[0].generation, (u64)42);
++	KUNIT_EXPECT_EQ(test, snapshot.retired_token[1].generation, (u64)7);
++	KUNIT_EXPECT_FALSE(test, snapshot.quarantined);
++}
++
++static void late_cpu_startup_armed_quarantine_test(struct kunit *test)
++{
++	struct arm64_late_cpu_startup_snapshot snapshot = {};
++	struct arm64_late_cpu_startup_target wrong = cpu8_target;
++
++	wrong.cpu = 9;
++	KUNIT_ASSERT_EQ(test, arm64_late_cpu_startup_prepare(&cpu8_token), 0);
++	KUNIT_ASSERT_EQ(
++		test, arm64_late_cpu_startup_arm_before_cpu_on(&cpu8_token), 0);
++	KUNIT_EXPECT_EQ(test, arm64_late_cpu_startup_claim_publish(&wrong),
++			(enum arm64_late_cpu_startup_claim)
++				ARM64_LATE_CPU_STARTUP_CLAIM_STALE);
++	KUNIT_EXPECT_EQ(test,
++			arm64_late_cpu_startup_claim_publish(&cpu8_target),
++			(enum arm64_late_cpu_startup_claim)
++				ARM64_LATE_CPU_STARTUP_CLAIM_FAULTED);
++	KUNIT_ASSERT_EQ(test,
++			arm64_late_cpu_startup_park(
++				&cpu8_target, ARM64_LATE_CPU_STARTUP_BRANCH_U,
++				0x400, ARM64_LATE_CPU_EFFECT_MM),
++			0);
++	KUNIT_EXPECT_EQ(test, arm64_late_cpu_startup_prepare(&cpu9_token),
++			-ESHUTDOWN);
++	arm64_late_cpu_startup_snapshot(&snapshot);
++	KUNIT_EXPECT_EQ(test, snapshot.state,
++			(u32)ARM64_LATE_CPU_STARTUP_PARKED);
++	KUNIT_EXPECT_EQ(test, snapshot.quarantine_cause,
++			(u32)ARM64_LATE_CPU_QUARANTINE_IDENTITY);
++	KUNIT_EXPECT_EQ(test, snapshot.quarantine_token.generation,
++			cpu8_token.generation);
++}
++
++static void late_cpu_startup_publishing_quarantine_test(struct kunit *test)
++{
++	struct arm64_late_cpu_startup_snapshot snapshot = {};
++
++	arm64_late_cpu_startup_test_set_online(8, true);
++	KUNIT_ASSERT_EQ(test, arm64_late_cpu_startup_prepare(&cpu8_token), 0);
++	KUNIT_ASSERT_EQ(
++		test, arm64_late_cpu_startup_arm_before_cpu_on(&cpu8_token), 0);
++	KUNIT_ASSERT_EQ(test,
++			arm64_late_cpu_startup_claim_publish(&cpu8_target),
++			(enum arm64_late_cpu_startup_claim)
++				ARM64_LATE_CPU_STARTUP_CLAIM_WON);
++	KUNIT_EXPECT_EQ(
++		test, arm64_late_cpu_startup_publish(&cpu8_target, BIT_ULL(63)),
++		-EINVAL);
++	KUNIT_EXPECT_EQ(test,
++			arm64_late_cpu_startup_claim_publish(&cpu8_target),
++			(enum arm64_late_cpu_startup_claim)
++				ARM64_LATE_CPU_STARTUP_CLAIM_PUBLISHER);
++	KUNIT_ASSERT_EQ(test,
++			arm64_late_cpu_startup_publish(
++				&cpu8_target, ARM64_LATE_CPU_EFFECT_MM),
++			0);
++	KUNIT_EXPECT_EQ(test,
++			arm64_late_cpu_startup_claim_publish(&cpu8_target),
++			(enum arm64_late_cpu_startup_claim)
++				ARM64_LATE_CPU_STARTUP_CLAIM_QUARANTINED);
++	KUNIT_EXPECT_EQ(test,
++			arm64_late_cpu_startup_consume_published(&cpu8_token),
++			-ESHUTDOWN);
++	KUNIT_EXPECT_EQ(test,
++			arm64_late_cpu_startup_retire_published_after_p14_p15(
++				&cpu8_token),
++			-ESHUTDOWN);
++	arm64_late_cpu_startup_snapshot(&snapshot);
++	KUNIT_EXPECT_EQ(test, snapshot.state,
++			(u32)ARM64_LATE_CPU_STARTUP_PUBLISHED);
++	KUNIT_EXPECT_TRUE(test, snapshot.completion_consumed);
++	KUNIT_EXPECT_TRUE(test, snapshot.online_validated);
++	KUNIT_EXPECT_EQ(test, snapshot.quarantine_cause,
++			(u32)ARM64_LATE_CPU_QUARANTINE_ILLEGAL_EDGE);
++}
++
++static void late_cpu_startup_publishing_wrong_target_test(struct kunit *test)
++{
++	struct arm64_late_cpu_startup_snapshot snapshot = {};
++	struct arm64_late_cpu_startup_target wrong = cpu8_target;
++
++	wrong.generation++;
++	arm64_late_cpu_startup_test_set_online(8, true);
++	KUNIT_ASSERT_EQ(test, arm64_late_cpu_startup_prepare(&cpu8_token), 0);
++	KUNIT_ASSERT_EQ(
++		test, arm64_late_cpu_startup_arm_before_cpu_on(&cpu8_token), 0);
++	KUNIT_ASSERT_EQ(test,
++			arm64_late_cpu_startup_claim_publish(&cpu8_target),
++			(enum arm64_late_cpu_startup_claim)
++				ARM64_LATE_CPU_STARTUP_CLAIM_WON);
++	KUNIT_EXPECT_EQ(test, arm64_late_cpu_startup_claim_publish(&wrong),
++			(enum arm64_late_cpu_startup_claim)
++				ARM64_LATE_CPU_STARTUP_CLAIM_STALE);
++	KUNIT_ASSERT_EQ(test,
++			arm64_late_cpu_startup_publish(
++				&cpu8_target, ARM64_LATE_CPU_EFFECT_MM),
++			0);
++	KUNIT_EXPECT_EQ(test,
++			arm64_late_cpu_startup_consume_published(&cpu8_token),
++			-ESHUTDOWN);
++	arm64_late_cpu_startup_snapshot(&snapshot);
++	KUNIT_EXPECT_EQ(test, snapshot.state,
++			(u32)ARM64_LATE_CPU_STARTUP_PUBLISHED);
++	KUNIT_EXPECT_EQ(test, snapshot.quarantine_cause,
++			(u32)ARM64_LATE_CPU_QUARANTINE_IDENTITY);
++	KUNIT_EXPECT_TRUE(test, snapshot.completion_consumed);
++	KUNIT_EXPECT_TRUE(test, snapshot.online_validated);
++}
++
++static void late_cpu_startup_online_mismatch_test(struct kunit *test)
++{
++	struct arm64_late_cpu_startup_snapshot snapshot = {};
++
++	arm64_late_cpu_startup_test_set_online(8, false);
++	KUNIT_ASSERT_EQ(test, arm64_late_cpu_startup_prepare(&cpu8_token), 0);
++	KUNIT_ASSERT_EQ(
++		test, arm64_late_cpu_startup_arm_before_cpu_on(&cpu8_token), 0);
++	KUNIT_ASSERT_EQ(test,
++			arm64_late_cpu_startup_claim_publish(&cpu8_target),
++			(enum arm64_late_cpu_startup_claim)
++				ARM64_LATE_CPU_STARTUP_CLAIM_WON);
++	KUNIT_ASSERT_EQ(test,
++			arm64_late_cpu_startup_publish(
++				&cpu8_target, ARM64_LATE_CPU_EFFECT_MM),
++			0);
++	KUNIT_EXPECT_EQ(test,
++			arm64_late_cpu_startup_consume_published(&cpu8_token),
++			-EUCLEAN);
++	KUNIT_EXPECT_EQ(test,
++			arm64_late_cpu_startup_retire_published_after_p14_p15(
++				&cpu8_token),
++			-ESHUTDOWN);
++	arm64_late_cpu_startup_snapshot(&snapshot);
++	KUNIT_EXPECT_TRUE(test, snapshot.completion_consumed);
++	KUNIT_EXPECT_FALSE(test, snapshot.online_validated);
++	KUNIT_EXPECT_EQ(test, snapshot.quarantine_cause,
++			(u32)ARM64_LATE_CPU_QUARANTINE_ONLINE_MISMATCH);
++}
++
++static void late_cpu_startup_premature_retire_test(struct kunit *test)
++{
++	struct arm64_late_cpu_startup_snapshot snapshot = {};
++
++	arm64_late_cpu_startup_test_set_online(8, true);
++	KUNIT_ASSERT_EQ(test, arm64_late_cpu_startup_prepare(&cpu8_token), 0);
++	KUNIT_ASSERT_EQ(
++		test, arm64_late_cpu_startup_arm_before_cpu_on(&cpu8_token), 0);
++	KUNIT_ASSERT_EQ(test,
++			arm64_late_cpu_startup_claim_publish(&cpu8_target),
++			(enum arm64_late_cpu_startup_claim)
++				ARM64_LATE_CPU_STARTUP_CLAIM_WON);
++	KUNIT_ASSERT_EQ(test,
++			arm64_late_cpu_startup_publish(
++				&cpu8_target, ARM64_LATE_CPU_EFFECT_MM),
++			0);
++	KUNIT_EXPECT_EQ(test,
++			arm64_late_cpu_startup_retire_published_after_p14_p15(
++				&cpu8_token),
++			-EPROTO);
++	KUNIT_EXPECT_EQ(test,
++			arm64_late_cpu_startup_consume_published(&cpu8_token),
++			-ESHUTDOWN);
++	arm64_late_cpu_startup_snapshot(&snapshot);
++	KUNIT_EXPECT_EQ(test, snapshot.state,
++			(u32)ARM64_LATE_CPU_STARTUP_PUBLISHED);
++	KUNIT_EXPECT_EQ(test, snapshot.retired_mask, (u32)0);
++	KUNIT_EXPECT_EQ(test, snapshot.quarantine_cause,
++			(u32)ARM64_LATE_CPU_QUARANTINE_REUSE);
++}
++
++static void late_cpu_startup_terminal_branches_test(struct kunit *test)
++{
++	static const struct {
++		enum arm64_late_cpu_startup_branch claimed;
++		enum arm64_late_cpu_startup_branch final;
++		u64 reason;
++	} cases[] = {
++		{ ARM64_LATE_CPU_STARTUP_BRANCH_K,
++		  ARM64_LATE_CPU_STARTUP_BRANCH_K, 0x501 },
++		{ ARM64_LATE_CPU_STARTUP_BRANCH_C,
++		  ARM64_LATE_CPU_STARTUP_BRANCH_C, 0x502 },
++		{ ARM64_LATE_CPU_STARTUP_BRANCH_E,
++		  ARM64_LATE_CPU_STARTUP_BRANCH_E, 0x503 },
++		{ ARM64_LATE_CPU_STARTUP_BRANCH_U,
++		  ARM64_LATE_CPU_STARTUP_BRANCH_U, 0x504 },
++	};
++	struct arm64_late_cpu_startup_snapshot snapshot;
++	unsigned int i;
++
++	for (i = 0; i < ARRAY_SIZE(cases); i++) {
++		arm64_late_cpu_startup_test_reset();
++		KUNIT_ASSERT_EQ(test,
++				arm64_late_cpu_startup_prepare(&cpu8_token), 0);
++		KUNIT_ASSERT_EQ(
++			test,
++			arm64_late_cpu_startup_arm_before_cpu_on(&cpu8_token),
++			0);
++		KUNIT_ASSERT_EQ(test,
++				arm64_late_cpu_startup_claim_failure(
++					&cpu8_target, cases[i].claimed),
++				(enum arm64_late_cpu_startup_claim)
++					ARM64_LATE_CPU_STARTUP_CLAIM_WON);
++		KUNIT_ASSERT_EQ(test,
++				arm64_late_cpu_startup_park(
++					&cpu8_target, cases[i].final,
++					cases[i].reason,
++					ARM64_LATE_CPU_EFFECT_MM),
++				0);
++		memset(&snapshot, 0, sizeof(snapshot));
++		arm64_late_cpu_startup_snapshot(&snapshot);
++		KUNIT_EXPECT_EQ(test, snapshot.state,
++				(u32)ARM64_LATE_CPU_STARTUP_PARKED);
++		KUNIT_EXPECT_EQ(test, snapshot.terminal.claimed_branch,
++				(u32)cases[i].claimed);
++		KUNIT_EXPECT_EQ(test, snapshot.terminal.branch,
++				(u32)cases[i].final);
++		KUNIT_EXPECT_EQ(test, snapshot.terminal.reason,
++				cases[i].reason);
++	}
++}
++
++static void late_cpu_startup_k_to_c_immutability_test(struct kunit *test)
++{
++	struct arm64_late_cpu_startup_snapshot before = {};
++	struct arm64_late_cpu_startup_snapshot after = {};
++	struct arm64_late_cpu_startup_target wrong = cpu8_target;
++
++	wrong.cookie++;
++
++	KUNIT_ASSERT_EQ(test, arm64_late_cpu_startup_prepare(&cpu8_token), 0);
++	KUNIT_ASSERT_EQ(
++		test, arm64_late_cpu_startup_arm_before_cpu_on(&cpu8_token), 0);
++	KUNIT_ASSERT_EQ(test,
++			arm64_late_cpu_startup_claim_failure(
++				&cpu8_target, ARM64_LATE_CPU_STARTUP_BRANCH_K),
++			(enum arm64_late_cpu_startup_claim)
++				ARM64_LATE_CPU_STARTUP_CLAIM_WON);
++	KUNIT_EXPECT_EQ(test,
++			arm64_late_cpu_startup_claim_failure(
++				&wrong, ARM64_LATE_CPU_STARTUP_BRANCH_K),
++			(enum arm64_late_cpu_startup_claim)
++				ARM64_LATE_CPU_STARTUP_CLAIM_STALE);
++	KUNIT_EXPECT_EQ(test,
++			arm64_late_cpu_startup_park(
++				&wrong, ARM64_LATE_CPU_STARTUP_BRANCH_C, 0x5ff,
++				ARM64_LATE_CPU_EFFECT_MM),
++			-ESTALE);
++	KUNIT_ASSERT_EQ(test,
++			arm64_late_cpu_startup_park(
++				&cpu8_target, ARM64_LATE_CPU_STARTUP_BRANCH_C,
++				0x600,
++				ARM64_LATE_CPU_EFFECT_PRESENT_CLEAR |
++					ARM64_LATE_CPU_EFFECT_RCU_DEAD |
++					ARM64_LATE_CPU_EFFECT_DIE_GUARD),
++			0);
++	arm64_late_cpu_startup_snapshot(&before);
++	KUNIT_EXPECT_EQ(test,
++			arm64_late_cpu_startup_park(
++				&cpu8_target, ARM64_LATE_CPU_STARTUP_BRANCH_C,
++				0x601, ARM64_LATE_CPU_EFFECT_MM),
++			-EPROTO);
++	arm64_late_cpu_startup_snapshot(&after);
++	KUNIT_EXPECT_EQ(test, before.terminal.claimed_branch,
++			(u32)ARM64_LATE_CPU_STARTUP_BRANCH_K);
++	KUNIT_EXPECT_EQ(test, before.terminal.branch,
++			(u32)ARM64_LATE_CPU_STARTUP_BRANCH_C);
++	KUNIT_EXPECT_EQ(test, after.terminal.reason, before.terminal.reason);
++	KUNIT_EXPECT_EQ(test, after.terminal.effects, before.terminal.effects);
++}
++
++static void late_cpu_startup_panic_order_test(struct kunit *test)
++{
++	struct arm64_late_cpu_startup_snapshot snapshot = {};
++	struct arm64_late_cpu_startup_target wrong = cpu8_target;
++
++	wrong.cookie++;
++	KUNIT_ASSERT_EQ(test, arm64_late_cpu_startup_prepare(&cpu8_token), 0);
++	KUNIT_ASSERT_EQ(
++		test, arm64_late_cpu_startup_arm_before_cpu_on(&cpu8_token), 0);
++	KUNIT_ASSERT_EQ(test,
++			arm64_late_cpu_startup_claim_failure(
++				&cpu8_target, ARM64_LATE_CPU_STARTUP_BRANCH_P),
++			(enum arm64_late_cpu_startup_claim)
++				ARM64_LATE_CPU_STARTUP_CLAIM_WON);
++	KUNIT_EXPECT_EQ(test,
++			arm64_late_cpu_startup_park(
++				&cpu8_target, ARM64_LATE_CPU_STARTUP_BRANCH_P,
++				0x700, 0),
++			-EPROTO);
++	KUNIT_EXPECT_EQ(test,
++			arm64_late_cpu_startup_publish_panicked(&cpu8_token),
++			-EPROTO);
++	KUNIT_EXPECT_EQ(test,
++			arm64_late_cpu_startup_panic_park(&wrong, 0x701, 0),
++			-ESTALE);
++	KUNIT_ASSERT_EQ(test,
++			arm64_late_cpu_startup_panic_park(
++				&cpu8_target, 0x702, ARM64_LATE_CPU_EFFECT_MM),
++			0);
++	KUNIT_EXPECT_EQ(
++		test, arm64_late_cpu_startup_panic_park(&cpu8_target, 0x703, 0),
++		-EPROTO);
++	KUNIT_ASSERT_EQ(
++		test, arm64_late_cpu_startup_publish_panicked(&cpu8_token), 0);
++	arm64_late_cpu_startup_snapshot(&snapshot);
++	KUNIT_EXPECT_EQ(test, snapshot.state,
++			(u32)ARM64_LATE_CPU_STARTUP_PANICKED);
++	KUNIT_EXPECT_EQ(test, snapshot.terminal.claimed_branch,
++			(u32)ARM64_LATE_CPU_STARTUP_BRANCH_P);
++	KUNIT_EXPECT_EQ(test, snapshot.terminal.reason, (u64)0x702);
++	KUNIT_EXPECT_TRUE(test, snapshot.park_committed);
++	KUNIT_EXPECT_TRUE(test, snapshot.stuck_interlock);
++}
++
++static void late_cpu_startup_target_tuple_test(struct kunit *test)
++{
++	struct arm64_late_cpu_startup_snapshot snapshot;
++	struct arm64_late_cpu_startup_target wrong;
++	unsigned int i;
++
++	for (i = 0; i < 5; i++) {
++		arm64_late_cpu_startup_test_reset();
++		wrong = cpu8_target;
++		switch (i) {
++		case 0:
++			wrong.cpu++;
++			break;
++		case 1:
++			wrong.reserved = 1;
++			break;
++		case 2:
++			wrong.mpidr++;
++			break;
++		case 3:
++			wrong.generation++;
++			break;
++		default:
++			wrong.cookie++;
++			break;
++		}
++
++		KUNIT_ASSERT_EQ(test,
++				arm64_late_cpu_startup_prepare(&cpu8_token), 0);
++		KUNIT_ASSERT_EQ(
++			test,
++			arm64_late_cpu_startup_arm_before_cpu_on(&cpu8_token),
++			0);
++		KUNIT_EXPECT_EQ(test,
++				arm64_late_cpu_startup_claim_publish(&wrong),
++				(enum arm64_late_cpu_startup_claim)
++					ARM64_LATE_CPU_STARTUP_CLAIM_STALE);
++		memset(&snapshot, 0, sizeof(snapshot));
++		arm64_late_cpu_startup_snapshot(&snapshot);
++		KUNIT_EXPECT_EQ(test, snapshot.state,
++				(u32)ARM64_LATE_CPU_STARTUP_FAULTED);
++		KUNIT_EXPECT_EQ(test, snapshot.quarantine_cause,
++				(u32)ARM64_LATE_CPU_QUARANTINE_IDENTITY);
++		KUNIT_ASSERT_EQ(test,
++				arm64_late_cpu_startup_park(
++					&cpu8_target,
++					ARM64_LATE_CPU_STARTUP_BRANCH_U,
++					0x800 + i, ARM64_LATE_CPU_EFFECT_MM),
++				0);
++	}
++}
++
++static void late_cpu_startup_invalid_failure_branch_test(struct kunit *test)
++{
++	struct arm64_late_cpu_startup_snapshot snapshot = {};
++
++	KUNIT_ASSERT_EQ(test, arm64_late_cpu_startup_prepare(&cpu8_token), 0);
++	KUNIT_ASSERT_EQ(
++		test, arm64_late_cpu_startup_arm_before_cpu_on(&cpu8_token), 0);
++	KUNIT_EXPECT_EQ(test,
++			arm64_late_cpu_startup_claim_failure(
++				&cpu8_target,
++				ARM64_LATE_CPU_STARTUP_BRANCH_NONE),
++			(enum arm64_late_cpu_startup_claim)
++				ARM64_LATE_CPU_STARTUP_CLAIM_STALE);
++	KUNIT_EXPECT_EQ(test,
++			arm64_late_cpu_startup_claim_publish(&cpu8_target),
++			(enum arm64_late_cpu_startup_claim)
++				ARM64_LATE_CPU_STARTUP_CLAIM_FAULTED);
++	KUNIT_ASSERT_EQ(test,
++			arm64_late_cpu_startup_park(
++				&cpu8_target, ARM64_LATE_CPU_STARTUP_BRANCH_U,
++				0x900, ARM64_LATE_CPU_EFFECT_MM),
++			0);
++	arm64_late_cpu_startup_snapshot(&snapshot);
++	KUNIT_EXPECT_EQ(test, snapshot.state,
++			(u32)ARM64_LATE_CPU_STARTUP_PARKED);
++	KUNIT_EXPECT_EQ(test, snapshot.quarantine_cause,
++			(u32)ARM64_LATE_CPU_QUARANTINE_ILLEGAL_EDGE);
++
++	arm64_late_cpu_startup_test_reset();
++	KUNIT_ASSERT_EQ(test, arm64_late_cpu_startup_prepare(&cpu8_token), 0);
++	KUNIT_ASSERT_EQ(
++		test, arm64_late_cpu_startup_arm_before_cpu_on(&cpu8_token), 0);
++	KUNIT_ASSERT_EQ(test, arm64_late_cpu_startup_cancel(&cpu8_token),
++			(enum arm64_late_cpu_startup_claim)
++				ARM64_LATE_CPU_STARTUP_CLAIM_WON);
++	KUNIT_EXPECT_EQ(test,
++			arm64_late_cpu_startup_claim_failure(
++				&cpu8_target,
++				ARM64_LATE_CPU_STARTUP_BRANCH_NONE),
++			(enum arm64_late_cpu_startup_claim)
++				ARM64_LATE_CPU_STARTUP_CLAIM_CANCELLED);
++}
++
++static void late_cpu_startup_prearmed_target_claim_test(struct kunit *test)
++{
++	struct arm64_late_cpu_startup_snapshot snapshot = {};
++
++	KUNIT_ASSERT_EQ(test, arm64_late_cpu_startup_prepare(&cpu8_token), 0);
++	KUNIT_EXPECT_EQ(test,
++			arm64_late_cpu_startup_claim_publish(&cpu8_target),
++			(enum arm64_late_cpu_startup_claim)
++				ARM64_LATE_CPU_STARTUP_CLAIM_FAULTED);
++	KUNIT_EXPECT_EQ(test,
++			arm64_late_cpu_startup_arm_before_cpu_on(&cpu8_token),
++			-ESHUTDOWN);
++	KUNIT_ASSERT_EQ(test,
++			arm64_late_cpu_startup_park(
++				&cpu8_target, ARM64_LATE_CPU_STARTUP_BRANCH_U,
++				0xa00, ARM64_LATE_CPU_EFFECT_MM),
++			0);
++	arm64_late_cpu_startup_snapshot(&snapshot);
++	KUNIT_EXPECT_EQ(test, snapshot.state,
++			(u32)ARM64_LATE_CPU_STARTUP_PARKED);
++	KUNIT_EXPECT_EQ(test, snapshot.quarantine_cause,
++			(u32)ARM64_LATE_CPU_QUARANTINE_ILLEGAL_EDGE);
++
++	arm64_late_cpu_startup_test_reset();
++	KUNIT_ASSERT_EQ(test, arm64_late_cpu_startup_prepare(&cpu8_token), 0);
++	KUNIT_ASSERT_EQ(test,
++			arm64_late_cpu_startup_abort_unissued(&cpu8_token), 0);
++	KUNIT_EXPECT_EQ(test,
++			arm64_late_cpu_startup_claim_failure(
++				&cpu8_target, ARM64_LATE_CPU_STARTUP_BRANCH_K),
++			(enum arm64_late_cpu_startup_claim)
++				ARM64_LATE_CPU_STARTUP_CLAIM_FAULTED);
++	KUNIT_EXPECT_EQ(test,
++			arm64_late_cpu_startup_release_aborted(&cpu8_token),
++			-ESHUTDOWN);
++	KUNIT_ASSERT_EQ(test,
++			arm64_late_cpu_startup_park(
++				&cpu8_target, ARM64_LATE_CPU_STARTUP_BRANCH_U,
++				0xa01, ARM64_LATE_CPU_EFFECT_MM),
++			0);
++}
++
++static struct kunit_case late_cpu_startup_test_cases[] = {
++	KUNIT_CASE(late_cpu_startup_invalid_token_test),
++	KUNIT_CASE(late_cpu_startup_abort_is_one_shot_test),
++	KUNIT_CASE(late_cpu_startup_unproven_cpu_on_test),
++	KUNIT_CASE(late_cpu_startup_cpu_on_fault_test),
++	KUNIT_CASE(late_cpu_startup_cancel_wins_test),
++	KUNIT_CASE(late_cpu_startup_cpu8_then_cpu9_test),
++	KUNIT_CASE(late_cpu_startup_armed_quarantine_test),
++	KUNIT_CASE(late_cpu_startup_publishing_quarantine_test),
++	KUNIT_CASE(late_cpu_startup_publishing_wrong_target_test),
++	KUNIT_CASE(late_cpu_startup_online_mismatch_test),
++	KUNIT_CASE(late_cpu_startup_premature_retire_test),
++	KUNIT_CASE(late_cpu_startup_terminal_branches_test),
++	KUNIT_CASE(late_cpu_startup_k_to_c_immutability_test),
++	KUNIT_CASE(late_cpu_startup_panic_order_test),
++	KUNIT_CASE(late_cpu_startup_target_tuple_test),
++	KUNIT_CASE(late_cpu_startup_invalid_failure_branch_test),
++	KUNIT_CASE(late_cpu_startup_prearmed_target_claim_test),
++	{}
++};
++
++static struct kunit_suite late_cpu_startup_test_suite = {
++	.name = "arm64-late-cpu-startup",
++	.init = late_cpu_startup_test_init,
++	.test_cases = late_cpu_startup_test_cases,
++};
++
++kunit_test_suite(late_cpu_startup_test_suite);
++
++MODULE_LICENSE("GPL");
+diff --git a/arch/arm64/kernel/mt6797_psci.c b/arch/arm64/kernel/mt6797_psci.c
+index 1f8085f75..c25c7957c 100644
+--- a/arch/arm64/kernel/mt6797_psci.c
++++ b/arch/arm64/kernel/mt6797_psci.c
+@@ -62,8 +62,8 @@ static const u64 mt6797_a72_config_input_identity[ARM64_LATE_CPU_ID_WORDS] __ini
+ };
+ #else
+ static const u64 mt6797_a72_config_input_identity[ARM64_LATE_CPU_ID_WORDS] __initconst = {
+-	0x4dca4e50ab039fbc, 0x60593e86d20d02e7,
+-	0x4e257dc6b5bb1afa, 0x94b38be6295b5203,
++	0x699f14786e1d64eb, 0x3811f0b6c481c31d,
++	0x9e0e77fc96b64eb4, 0xd12ebbbfde3b23b0,
+ };
+ #endif
+ 
+-- 
+2.50.1 (Apple Git-155)
+

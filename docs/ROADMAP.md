@@ -1473,6 +1473,24 @@ late. No bounded target park acknowledgment means global CPU-up quarantine and
 panic/platform reset, not ordinary runtime failure. P14/P15 publication belongs
 immediately after `__cpu_up()==0` before later CPUHP synchronization.
 
+The current canonical series now freezes the first implementation slice as
+`PARTIAL_P30_PROTOCOL_MODEL`; the
+[P30 generation arbitration experiment](../experiments/2026-08-05-a72-p30-generation-protocol/README.md)
+owns its exact provenance and audit evidence. Its dormant C-only object models
+exact-token CPU8/CPU9 arbitration, sticky first-cause quarantine, indivisible
+publication completion and draining, per-operation opaque one-shot retirement,
+and K/C/P/E/U terminal ownership. Static review and a bounded independent
+oracle accepted that source-only model, while its KUnit coverage remains
+unexecuted.
+
+It has no production callers: P24 ownership, global startup-state replacement,
+bounded waits, the actual target park point, P14/P15, branch effect enforcement,
+and panic/reset enforcement remain absent. The object is not an assembly ABI
+and proves no P30E MMU-off visibility, cache, PoC, or barrier ordering. The
+existing MT6797 CPU boot path still returns `-EAGAIN`, CPU disable still returns
+false, and A26/A14 remain closed. No build, package, candidate, deployment, or
+device action occurred.
+
 P32A/D/F/X/R freezes the automatic rollback closure. The controller publishes
 P32 before `cpuhp_reset_state()` and the outer reverse range. Target
 `.cpu_disable` is the first guard before topology/NUMA removal, online clear,
@@ -1494,14 +1512,22 @@ names for that operation is implemented and proven.
 
 The next ordered work remains source-only:
 
-1. Implement and mutation-test P30K/C/P/E/U, including the generation-scoped
-   timeout arbitration, global completion/status redesign, target park
-   acknowledgment, exact P14/P15 controller point, and global fail-stop
-   interlock.
-2. Complete A25 and implement P32A/D/F/X/R using either a reviewed core
+1. Integrate the reviewed dormant P30 model with the future authoritative
+   P17/P18/P24 membership token owner and exact C/controller call sites. Replace
+   the reused global startup task/status/completion state, add bounded
+   publication and PARKED waits, the real target park acknowledgment, the
+   immediate post-`__cpu_up()` P14/P15 hook, branch-specific effect rules, and
+   unconditional global panic/reset enforcement. Preserve the current A26/A14
+   vetoes throughout.
+2. Prove and implement P30E through one authoritative MMU-off-visible object
+   shared with the controller, including exact tuple layout, cache maintenance,
+   point-of-coherency and barrier ordering, assembly failure publication, and
+   fail-closed P30U routing for every ambiguous or stale observation. The
+   dormant C control object cannot substitute for this proof.
+3. Complete A25 and implement P32A/D/F/X/R using either a reviewed core
    no-auto-rollback interface or the fail-stop `.cpu_disable` plus die/kill
    guard design, retaining every partial callback and architecture effect.
-3. Revalidate every applicable A26 CPU-up gate and its A14 CPU-off dependency.
+4. Revalidate every applicable A26 CPU-up gate and its A14 CPU-off dependency.
    Only after those closures may a separately reviewed evidence-only target
    transaction be considered; a trusted pre-Linux handoff is the alternative.
    Then return to A41 for separate CPU8/CPU9 registers, cache, WA1/WA2/WA3,
@@ -1509,9 +1535,9 @@ The next ordered work remains source-only:
    HWCAPs, canonical evidence/plan identity, the infallible architecture-owned
    pre-finalization commit, and READY binding to A36/P17/P18. Source tests alone
    do not authorize a build, CPU_ON/OFF request, or device action.
-4. Close the M02 delayed-work scheduler/observer owner and failure propagation,
+5. Close the M02 delayed-work scheduler/observer owner and failure propagation,
    then close A40 private-ledger writer/caller freshness.
-5. Only after those CPU-up and branch-selection gates pass, specify the full
+6. Only after those CPU-up and branch-selection gates pass, specify the full
    A14 off-completion owner: complete CPU-ops and CPUHP/PM inventories, exact
    target handoff, secure-call concurrency, one-query result propagation, and
    bounded independent post-OFF observers.
