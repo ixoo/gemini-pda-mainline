@@ -1,0 +1,567 @@
+From 7fcc8ca433d2306d2e3d005289d6cf01dfbf0f4c Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Project <noreply@invalid>
+Date: Wed, 5 Aug 2026 10:21:42 -0400
+Subject: [PATCH] arm64: preserve per-target late-CPU capability state
+
+Represent each late CPU target independently. Bind each target slot to an
+exact logical CPU before classification.
+
+Add the ABI 4 runtime-binding boundary. Keep incomplete or fixture-only
+evidence from reaching plan publication.
+
+This experiment-only change has no certifying sign-off and is not
+submission-ready.
+---
+ arch/arm64/include/asm/late_cpu_profile.h |  51 ++++++++++-
+ arch/arm64/kernel/cpufeature.c            | 102 ++++++++++++++++------
+ arch/arm64/kernel/late_cpu_profile.c      |  49 ++++++++++-
+ arch/arm64/kernel/mt6797_psci.c           |  94 ++++++++++++++++----
+ 4 files changed, 247 insertions(+), 49 deletions(-)
+
+diff --git a/arch/arm64/include/asm/late_cpu_profile.h b/arch/arm64/include/asm/late_cpu_profile.h
+index f5ddaed1b..66a79c640 100644
+--- a/arch/arm64/include/asm/late_cpu_profile.h
++++ b/arch/arm64/include/asm/late_cpu_profile.h
+@@ -9,7 +9,7 @@
+ 
+ #include <asm/cpucaps.h>
+ 
+-#define ARM64_LATE_CPU_PLAN_ABI		3
++#define ARM64_LATE_CPU_PLAN_ABI		4
+ #define ARM64_LATE_CPU_PROFILE_ID_LEN	32
+ #define ARM64_LATE_CPU_ID_WORDS		4
+ #define ARM64_LATE_CPU_MAX_TARGETS	2
+@@ -55,6 +55,9 @@ enum arm64_late_cpu_cap_state {
+ #define ARM64_LATE_CPU_BLOCK_ATTESTATION_USERS	BIT_ULL(13)
+ #define ARM64_LATE_CPU_BLOCK_SOURCE_IDENTITY	BIT_ULL(14)
+ #define ARM64_LATE_CPU_BLOCK_FIRMWARE_WA3	BIT_ULL(15)
++#define ARM64_LATE_CPU_BLOCK_EFFECT_PLAN		BIT_ULL(16)
++#define ARM64_LATE_CPU_BLOCK_PLAN_VALIDATION	BIT_ULL(17)
++#define ARM64_LATE_CPU_BLOCK_RUNTIME_BINDING	BIT_ULL(18)
+ 
+ enum arm64_late_cpu_mitigation_state {
+ 	ARM64_LATE_CPU_MITIGATION_UNRESOLVED,
+@@ -241,6 +244,37 @@ struct arm64_late_cpu_system_cap_evidence {
+ 	u64 ctr_strict_mask;
+ };
+ 
++enum arm64_late_cpu_binding_origin {
++	ARM64_LATE_CPU_BINDING_NONE,
++	ARM64_LATE_CPU_BINDING_FIXTURE,
++	ARM64_LATE_CPU_BINDING_RUNTIME,
++};
++
++#define ARM64_LATE_CPU_BIND_RESOLVED_CONFIG_VALID	BIT(0)
++#define ARM64_LATE_CPU_BIND_RUNNING_CONFIG_VALID	BIT(1)
++#define ARM64_LATE_CPU_BIND_BUILT_IMAGE_VALID		BIT(2)
++#define ARM64_LATE_CPU_BIND_RUNNING_IMAGE_VALID		BIT(3)
++#define ARM64_LATE_CPU_BIND_EXPECTED_CMDLINE_VALID	BIT(4)
++#define ARM64_LATE_CPU_BIND_RUNNING_CMDLINE_VALID	BIT(5)
++#define ARM64_LATE_CPU_BIND_VALID_MASK				\
++	(ARM64_LATE_CPU_BIND_RESOLVED_CONFIG_VALID |		\
++	 ARM64_LATE_CPU_BIND_RUNNING_CONFIG_VALID |		\
++	 ARM64_LATE_CPU_BIND_BUILT_IMAGE_VALID |			\
++	 ARM64_LATE_CPU_BIND_RUNNING_IMAGE_VALID |		\
++	 ARM64_LATE_CPU_BIND_EXPECTED_CMDLINE_VALID |		\
++	 ARM64_LATE_CPU_BIND_RUNNING_CMDLINE_VALID)
++
++struct arm64_late_cpu_runtime_binding {
++	u32 valid;
++	u32 origin;
++	u64 resolved_config_identity[ARM64_LATE_CPU_ID_WORDS];
++	u64 running_config_identity[ARM64_LATE_CPU_ID_WORDS];
++	u64 built_image_identity[ARM64_LATE_CPU_ID_WORDS];
++	u64 running_image_identity[ARM64_LATE_CPU_ID_WORDS];
++	u64 expected_cmdline_identity[ARM64_LATE_CPU_ID_WORDS];
++	u64 running_cmdline_identity[ARM64_LATE_CPU_ID_WORDS];
++};
++
+ /* Method choices are separate from the inputs which classify a capability. */
+ #define ARM64_LATE_CPU_TARGET_METHOD_CONDUIT_VALID	BIT(0)
+ #define ARM64_LATE_CPU_TARGET_METHOD_V2_VALID		BIT(1)
+@@ -268,7 +302,9 @@ struct arm64_late_cpu_evidence {
+ 	/* Non-circular inputs; neither field proves the running image/config. */
+ 	u64 source_parent_identity[ARM64_LATE_CPU_ID_WORDS];
+ 	u64 config_input_identity[ARM64_LATE_CPU_ID_WORDS];
++	struct arm64_late_cpu_runtime_binding binding;
+ 	u64 evidence_identity[ARM64_LATE_CPU_ID_WORDS];
++	u32 target_cpu[ARM64_LATE_CPU_MAX_TARGETS];
+ 	u64 expected_target_mpidr[ARM64_LATE_CPU_MAX_TARGETS];
+ 	u64 observed_target_mpidr[ARM64_LATE_CPU_MAX_TARGETS];
+ 	u32 expected_target_midr[ARM64_LATE_CPU_MAX_TARGETS];
+@@ -282,6 +318,12 @@ struct arm64_late_cpu_evidence {
+ 	u64 blocker_mask;
+ };
+ 
++/* Per-target results preserve disagreement and future typed-effect masks. */
++struct arm64_late_cpu_target_plan {
++	DECLARE_BITMAP(classified_local_caps, ARM64_NCAPS);
++	DECLARE_BITMAP(local_caps, ARM64_NCAPS);
++};
++
+ /* Core-normalized and single-copy published only after complete validation. */
+ struct arm64_late_cpu_plan {
+ 	u32 abi;
+@@ -294,6 +336,8 @@ struct arm64_late_cpu_plan {
+ 	DECLARE_BITMAP(classified_local_caps, ARM64_NCAPS);
+ 	DECLARE_BITMAP(early_local_caps, ARM64_NCAPS);
+ 	DECLARE_BITMAP(target_local_caps, ARM64_NCAPS);
++	struct arm64_late_cpu_target_plan
++		target[ARM64_LATE_CPU_MAX_TARGETS];
+ 	DECLARE_BITMAP(required_local_caps, ARM64_NCAPS);
+ 	DECLARE_BITMAP(conflicting_local_caps, ARM64_NCAPS);
+ 	struct arm64_late_cpu_effect_plan effects;
+@@ -327,7 +371,9 @@ struct arm64_late_cpu_ready_token {
+ 	u64 plan_identity[ARM64_LATE_CPU_ID_WORDS];
+ 	u64 source_parent_identity[ARM64_LATE_CPU_ID_WORDS];
+ 	u64 config_input_identity[ARM64_LATE_CPU_ID_WORDS];
++	struct arm64_late_cpu_runtime_binding binding;
+ 	u64 evidence_identity[ARM64_LATE_CPU_ID_WORDS];
++	u32 target_cpu[ARM64_LATE_CPU_MAX_TARGETS];
+ 	u64 expected_target_mpidr[ARM64_LATE_CPU_MAX_TARGETS];
+ 	u64 observed_target_mpidr[ARM64_LATE_CPU_MAX_TARGETS];
+ 	u32 expected_target_midr[ARM64_LATE_CPU_MAX_TARGETS];
+@@ -344,7 +390,8 @@ struct arm64_late_cpu_profile {
+ 	enum arm64_late_cpu_cap_state
+ 	(*classify_local_cap)(const struct arm64_cpu_capabilities *cap,
+ 			      const struct arm64_cpu_capabilities *match,
+-			      const struct arm64_late_cpu_evidence *evidence);
++			      const struct arm64_late_cpu_evidence *evidence,
++			      unsigned int target);
+ 	int (*validate_plan)(const struct arm64_late_cpu_plan *plan);
+ 	int (*prepare)(struct arm64_late_cpu_evidence *evidence,
+ 		       const struct cpumask *registered_targets);
+diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
+index 91d8f5b0a..bd225c5e3 100644
+--- a/arch/arm64/kernel/cpufeature.c
++++ b/arch/arm64/kernel/cpufeature.c
+@@ -3318,6 +3318,7 @@ static int __init
+ classify_late_cpu_cap(const struct arm64_cpu_capabilities *cap,
+ 		      struct arm64_late_cpu_plan *draft,
+ 		      const struct arm64_late_cpu_profile *profile,
++		      unsigned int target,
+ 		      enum arm64_late_cpu_cap_state *target_state)
+ {
+ 	const struct arm64_cpu_capabilities *match;
+@@ -3327,7 +3328,7 @@ classify_late_cpu_cap(const struct arm64_cpu_capabilities *cap,
+ 
+ 	if (!cap->match_list) {
+ 		*target_state = profile->classify_local_cap(cap, cap,
+-						  &draft->evidence);
++						  &draft->evidence, target);
+ 		return *target_state <= ARM64_LATE_CPU_CAP_PRESENT ? 0 : -EINVAL;
+ 	}
+ 
+@@ -3344,7 +3345,7 @@ classify_late_cpu_cap(const struct arm64_cpu_capabilities *cap,
+ 		}
+ 
+ 		member_state = profile->classify_local_cap(cap, match,
+-						   &draft->evidence);
++						   &draft->evidence, target);
+ 		switch (member_state) {
+ 		case ARM64_LATE_CPU_CAP_UNRESOLVED:
+ 			unresolved = true;
+@@ -3396,11 +3397,16 @@ late_cpu_effect_plan_empty(const struct arm64_late_cpu_effect_plan *effects)
+ int __init arm64_plan_late_cpu_capabilities(struct arm64_late_cpu_plan *draft,
+ 					    const struct arm64_late_cpu_profile *profile)
+ {
++	cpumask_t indexed_targets;
+ 	bool incomplete = false;
+ 	bool invalid = false;
++	unsigned int target;
+ 	int i;
+ 
+ 	if (!draft || !profile || !profile->classify_local_cap ||
++	    !profile->target_count ||
++	    profile->target_count > ARM64_LATE_CPU_MAX_TARGETS ||
++	    cpumask_weight(&draft->target_cpus) != profile->target_count ||
+ 	    draft->local_caps_planned ||
+ 	    system_capabilities_finalized() ||
+ 	    cpus_have_cap(ARM64_ALWAYS_SYSTEM) ||
+@@ -3413,10 +3419,29 @@ int __init arm64_plan_late_cpu_capabilities(struct arm64_late_cpu_plan *draft,
+ 	    !bitmap_empty(draft->conflicting_local_caps, ARM64_NCAPS) ||
+ 	    !late_cpu_effect_plan_empty(&draft->effects))
+ 		return -EINVAL;
++	cpumask_clear(&indexed_targets);
++	for (target = 0; target < profile->target_count; target++) {
++		unsigned int cpu = draft->evidence.target_cpu[target];
++
++		if (cpu >= nr_cpu_ids ||
++		    !cpumask_test_cpu(cpu, &draft->target_cpus) ||
++		    cpumask_test_and_set_cpu(cpu, &indexed_targets))
++			return -EINVAL;
++	}
++	if (!cpumask_equal(&indexed_targets, &draft->target_cpus))
++		return -EINVAL;
++	for (target = 0; target < ARM64_LATE_CPU_MAX_TARGETS; target++)
++		if (!bitmap_empty(draft->target[target].classified_local_caps,
++				  ARM64_NCAPS) ||
++		    !bitmap_empty(draft->target[target].local_caps, ARM64_NCAPS) ||
++		    (target >= profile->target_count &&
++		     draft->evidence.target_cpu[target]))
++			return -EINVAL;
+ 
+ 	for (i = 0; i < ARM64_NCAPS; i++) {
+ 		const struct arm64_cpu_capabilities *cap = cpucap_ptrs[i];
+-		enum arm64_late_cpu_cap_state target_state;
++		bool all_classified = true;
++		bool any_present = false;
+ 		bool early_has_cap;
+ 
+ 		if (!cap)
+@@ -3435,26 +3460,48 @@ int __init arm64_plan_late_cpu_capabilities(struct arm64_late_cpu_plan *draft,
+ 		if (early_has_cap)
+ 			__set_bit(i, draft->early_local_caps);
+ 
+-		if (classify_late_cpu_cap(cap, draft, profile, &target_state)) {
+-			invalid = true;
+-			continue;
+-		}
+-		switch (target_state) {
+-		case ARM64_LATE_CPU_CAP_UNRESOLVED:
+-			incomplete = true;
+-			continue;
+-		case ARM64_LATE_CPU_CAP_ABSENT:
+-			break;
+-		case ARM64_LATE_CPU_CAP_PRESENT:
+-			__set_bit(i, draft->target_local_caps);
+-			break;
+-		default:
+-			invalid = true;
+-			continue;
++		for (target = 0; target < profile->target_count; target++) {
++			enum arm64_late_cpu_cap_state target_state;
++
++			if (classify_late_cpu_cap(cap, draft, profile, target,
++						  &target_state)) {
++				invalid = true;
++				all_classified = false;
++				continue;
++			}
++			switch (target_state) {
++			case ARM64_LATE_CPU_CAP_UNRESOLVED:
++				incomplete = true;
++				all_classified = false;
++				continue;
++			case ARM64_LATE_CPU_CAP_ABSENT:
++				break;
++			case ARM64_LATE_CPU_CAP_PRESENT:
++				any_present = true;
++				__set_bit(i, draft->target[target].local_caps);
++				break;
++			default:
++				invalid = true;
++				all_classified = false;
++				continue;
++			}
++
++			__set_bit(i, draft->target[target].classified_local_caps);
++			if (early_has_cap &&
++			    target_state == ARM64_LATE_CPU_CAP_ABSENT &&
++			    !cpucap_late_cpu_optional(cap))
++				__set_bit(i, draft->conflicting_local_caps);
++			else if (!early_has_cap &&
++				 target_state == ARM64_LATE_CPU_CAP_PRESENT &&
++				 !cpucap_late_cpu_permitted(cap))
++				__set_bit(i, draft->required_local_caps);
+ 		}
+ 
++		if (!all_classified)
++			continue;
+ 		__set_bit(i, draft->classified_local_caps);
+-		if (target_state == ARM64_LATE_CPU_CAP_PRESENT) {
++		if (any_present) {
++			__set_bit(i, draft->target_local_caps);
+ 			switch (i) {
+ 			case ARM64_MISMATCHED_CACHE_TYPE:
+ 			case ARM64_SPECTRE_V2:
+@@ -3474,14 +3521,8 @@ int __init arm64_plan_late_cpu_capabilities(struct arm64_late_cpu_plan *draft,
+ 			}
+ 		}
+ 
+-		if (early_has_cap &&
+-		    target_state == ARM64_LATE_CPU_CAP_ABSENT &&
+-		    !cpucap_late_cpu_optional(cap))
+-			__set_bit(i, draft->conflicting_local_caps);
+-		else if (!early_has_cap &&
+-			 target_state == ARM64_LATE_CPU_CAP_PRESENT &&
+-			 !cpucap_late_cpu_permitted(cap)) {
+-			__set_bit(i, draft->required_local_caps);
++		if (!early_has_cap && any_present &&
++		    !cpucap_late_cpu_permitted(cap)) {
+ 			switch (i) {
+ 			case ARM64_SPECTRE_BHB:
+ 			case ARM64_WORKAROUND_1742098:
+@@ -3501,6 +3542,11 @@ int __init arm64_plan_late_cpu_capabilities(struct arm64_late_cpu_plan *draft,
+ 	    !bitmap_equal(draft->compiled_local_caps,
+ 			  draft->classified_local_caps, ARM64_NCAPS))
+ 		return -EAGAIN;
++	for (target = 0; target < profile->target_count; target++)
++		if (!bitmap_equal(draft->compiled_local_caps,
++				  draft->target[target].classified_local_caps,
++				  ARM64_NCAPS))
++			return -EAGAIN;
+ 	if (!bitmap_empty(draft->conflicting_local_caps, ARM64_NCAPS))
+ 		return -EINVAL;
+ 
+diff --git a/arch/arm64/kernel/late_cpu_profile.c b/arch/arm64/kernel/late_cpu_profile.c
+index afabf66fe..26da85255 100644
+--- a/arch/arm64/kernel/late_cpu_profile.c
++++ b/arch/arm64/kernel/late_cpu_profile.c
+@@ -56,6 +56,42 @@ static bool __init late_profile_plan_has_identity(const struct arm64_late_cpu_pl
+ 	return false;
+ }
+ 
++static bool __init
++late_profile_identity_empty(const u64 identity[ARM64_LATE_CPU_ID_WORDS])
++{
++	unsigned int i;
++
++	for (i = 0; i < ARM64_LATE_CPU_ID_WORDS; i++)
++		if (identity[i])
++			return false;
++
++	return true;
++}
++
++static bool __init
++late_profile_runtime_binding_complete(const struct arm64_late_cpu_runtime_binding *binding)
++{
++	if (binding->origin != ARM64_LATE_CPU_BINDING_RUNTIME ||
++	    binding->valid != ARM64_LATE_CPU_BIND_VALID_MASK ||
++	    late_profile_identity_empty(binding->resolved_config_identity) ||
++	    late_profile_identity_empty(binding->running_config_identity) ||
++	    late_profile_identity_empty(binding->built_image_identity) ||
++	    late_profile_identity_empty(binding->running_image_identity) ||
++	    late_profile_identity_empty(binding->expected_cmdline_identity) ||
++	    late_profile_identity_empty(binding->running_cmdline_identity))
++		return false;
++
++	return !memcmp(binding->resolved_config_identity,
++		       binding->running_config_identity,
++		       sizeof(binding->resolved_config_identity)) &&
++	       !memcmp(binding->built_image_identity,
++		       binding->running_image_identity,
++		       sizeof(binding->built_image_identity)) &&
++	       !memcmp(binding->expected_cmdline_identity,
++		       binding->running_cmdline_identity,
++		       sizeof(binding->expected_cmdline_identity));
++}
++
+ static bool __init
+ late_profile_effects_match(const struct arm64_late_cpu_effect_plan *left,
+ 			   const struct arm64_late_cpu_effect_plan *right)
+@@ -207,11 +243,17 @@ void __init arm64_prepare_late_cpu_profile(void)
+ 		return;
+ 	}
+ 	draft.evidence = evidence;
++	if (!late_profile_runtime_binding_complete(&draft.evidence.binding))
++		draft.evidence.blocker_mask |=
++			ARM64_LATE_CPU_BLOCK_RUNTIME_BINDING;
+ 	plan_ret = arm64_plan_late_cpu_capabilities(&draft, &late_profile);
+ 	validate_ret = late_profile.validate_plan(&draft);
+-	if (plan_ret || validate_ret)
++	if (plan_ret)
+ 		draft.evidence.blocker_mask |=
+ 			ARM64_LATE_CPU_BLOCK_CAP_INVENTORY;
++	if (validate_ret)
++		draft.evidence.blocker_mask |=
++			ARM64_LATE_CPU_BLOCK_PLAN_VALIDATION;
+ 
+ 	if (ret || plan_ret || validate_ret || draft.evidence.blocker_mask) {
+ 		u64 blockers = draft.evidence.blocker_mask ?:
+@@ -253,7 +295,7 @@ void __init arm64_commit_late_cpu_profile(void)
+ 		panic("late CPU profile reached capability commit out of order");
+ 
+ 	/*
+-	 * ABI 3 deliberately publishes no mutation path. The complete canonical
++	 * ABI 4 deliberately publishes no mutation path. The complete canonical
+ 	 * evaluator must add one architecture-owned, callback-free commit before
+ 	 * it can make PLAN_FROZEN reachable for a production profile.
+ 	 */
+@@ -334,9 +376,12 @@ void __init arm64_finalize_late_cpu_profile_user(void)
+ 	memcpy(late_ready_token.config_input_identity,
+ 	       late_plan.evidence.config_input_identity,
+ 	       sizeof(late_ready_token.config_input_identity));
++	late_ready_token.binding = late_plan.evidence.binding;
+ 	memcpy(late_ready_token.evidence_identity,
+ 	       late_plan.evidence.evidence_identity,
+ 	       sizeof(late_ready_token.evidence_identity));
++	memcpy(late_ready_token.target_cpu, late_plan.evidence.target_cpu,
++	       sizeof(late_ready_token.target_cpu));
+ 	memcpy(late_ready_token.expected_target_mpidr,
+ 	       late_plan.evidence.expected_target_mpidr,
+ 	       sizeof(late_ready_token.expected_target_mpidr));
+diff --git a/arch/arm64/kernel/mt6797_psci.c b/arch/arm64/kernel/mt6797_psci.c
+index 32be25a56..03eceade7 100644
+--- a/arch/arm64/kernel/mt6797_psci.c
++++ b/arch/arm64/kernel/mt6797_psci.c
+@@ -38,16 +38,18 @@ extern const struct cpu_operations cpu_psci_ops;
+ 	 ARM64_LATE_CPU_BLOCK_VA_MODE |				\
+ 	 ARM64_LATE_CPU_BLOCK_GIC |					\
+ 	 ARM64_LATE_CPU_BLOCK_HWCAP |					\
+-	 ARM64_LATE_CPU_BLOCK_ATTESTATION_USERS)
++	 ARM64_LATE_CPU_BLOCK_ATTESTATION_USERS |			\
++	 ARM64_LATE_CPU_BLOCK_EFFECT_PLAN |				\
++	 ARM64_LATE_CPU_BLOCK_RUNTIME_BINDING)
+ 
+ static const u64 mt6797_a72_source_parent_identity[ARM64_LATE_CPU_ID_WORDS] __initconst = {
+-	0xbf192fa874aea983, 0x8cece3f58eec0bba,
+-	0x2a18dc43bfe094ad, 0x9f6d635b9809ca32,
++	0xf073150a6bbfb6af, 0x1d4262f4b7545341,
++	0x18181ee40284d60a, 0x59aa1068740d118d,
+ };
+ 
+ static const u64 mt6797_a72_config_input_identity[ARM64_LATE_CPU_ID_WORDS] __initconst = {
+-	0x6fa24adaa512d804, 0x172b170b205f574b,
+-	0x4d461b4263bc0d3, 0x74c6499f78b7f3d7c,
++	0x4dfe301404e0d972, 0x342311b51e9c9674,
++	0xd7ec3bc5198912fb, 0x2ec7f6167f72fb3e,
+ };
+ 
+ static bool __init mt6797_a72_kpti_policy_static(void)
+@@ -88,13 +90,14 @@ mt6797_a72_expected_erratum_state(const struct arm64_cpu_capabilities *match,
+ static enum arm64_late_cpu_cap_state __init
+ mt6797_a72_classify_local_cap(const struct arm64_cpu_capabilities *cap,
+ 			      const struct arm64_cpu_capabilities *match,
+-			      const struct arm64_late_cpu_evidence *evidence)
++			      const struct arm64_late_cpu_evidence *evidence,
++			      unsigned int target)
+ {
+-	if (!evidence || evidence->abi != ARM64_LATE_CPU_PLAN_ABI ||
+-	    evidence->expected_target_mpidr[0] != 0x200 ||
+-	    evidence->expected_target_mpidr[1] != 0x201 ||
+-	    evidence->expected_target_midr[0] != MIDR_CORTEX_A72 ||
+-	    evidence->expected_target_midr[1] != MIDR_CORTEX_A72 ||
++	if (!evidence || target >= ARM64_LATE_CPU_MAX_TARGETS ||
++	    evidence->abi != ARM64_LATE_CPU_PLAN_ABI ||
++	    evidence->target_cpu[target] != 8 + target ||
++	    evidence->expected_target_mpidr[target] != 0x200 + target ||
++	    evidence->expected_target_midr[target] != MIDR_CORTEX_A72 ||
+ 	    !mt6797_a72_cap_descriptor_shape(cap, match))
+ 		return ARM64_LATE_CPU_CAP_UNRESOLVED;
+ 
+@@ -330,6 +333,30 @@ mt6797_a72_target_method_empty(const struct arm64_late_cpu_target_method_evidenc
+ 	       !method->bhb_vector_template && !method->bhb_v2_non_vulnerable;
+ }
+ 
++static bool __init
++mt6797_a72_identity_empty(const u64 identity[ARM64_LATE_CPU_ID_WORDS])
++{
++	unsigned int i;
++
++	for (i = 0; i < ARM64_LATE_CPU_ID_WORDS; i++)
++		if (identity[i])
++			return false;
++
++	return true;
++}
++
++static bool __init
++mt6797_a72_binding_empty(const struct arm64_late_cpu_runtime_binding *binding)
++{
++	return !binding->valid && !binding->origin &&
++	       mt6797_a72_identity_empty(binding->resolved_config_identity) &&
++	       mt6797_a72_identity_empty(binding->running_config_identity) &&
++	       mt6797_a72_identity_empty(binding->built_image_identity) &&
++	       mt6797_a72_identity_empty(binding->running_image_identity) &&
++	       mt6797_a72_identity_empty(binding->expected_cmdline_identity) &&
++	       mt6797_a72_identity_empty(binding->running_cmdline_identity);
++}
++
+ static bool __init
+ mt6797_a72_evidence_is_expected_only(const struct arm64_late_cpu_evidence *evidence)
+ {
+@@ -350,7 +377,9 @@ mt6797_a72_evidence_is_expected_only(const struct arm64_late_cpu_evidence *evide
+ 	    evidence->expected_target_mpidr[0] != 0x200 ||
+ 	    evidence->expected_target_mpidr[1] != 0x201 ||
+ 	    evidence->expected_target_midr[0] != MIDR_CORTEX_A72 ||
+-	    evidence->expected_target_midr[1] != MIDR_CORTEX_A72)
++	    evidence->expected_target_midr[1] != MIDR_CORTEX_A72 ||
++	    evidence->target_cpu[0] != 8 || evidence->target_cpu[1] != 9 ||
++	    !mt6797_a72_binding_empty(&evidence->binding))
+ 		return false;
+ 
+ 	for (i = 0; i < ARM64_LATE_CPU_MAX_TARGETS; i++)
+@@ -360,9 +389,8 @@ mt6797_a72_evidence_is_expected_only(const struct arm64_late_cpu_evidence *evide
+ 		    evidence->target_cap[i].valid ||
+ 		    !mt6797_a72_target_method_empty(&evidence->target_method[i]))
+ 			return false;
+-	for (i = 0; i < ARM64_LATE_CPU_ID_WORDS; i++)
+-		if (evidence->evidence_identity[i])
+-			return false;
++	if (!mt6797_a72_identity_empty(evidence->evidence_identity))
++		return false;
+ 
+ 	return !evidence->system_cap.valid;
+ }
+@@ -370,10 +398,11 @@ mt6797_a72_evidence_is_expected_only(const struct arm64_late_cpu_evidence *evide
+ static int __init
+ mt6797_a72_validate_cap_plan(const struct arm64_late_cpu_plan *plan)
+ {
++	unsigned int target;
+ 	unsigned int i;
+ 
+ 	if (!plan || plan->abi != ARM64_LATE_CPU_PLAN_ABI ||
+-	    strcmp(plan->profile_id, "mt6797-a53-a72-a41-v3") ||
++	    strcmp(plan->profile_id, "mt6797-a53-a72-a41-v4") ||
+ 	    cpumask_weight(&plan->target_cpus) != 2 ||
+ 	    !cpumask_test_cpu(8, &plan->target_cpus) ||
+ 	    !cpumask_test_cpu(9, &plan->target_cpus) ||
+@@ -401,6 +430,35 @@ mt6797_a72_validate_cap_plan(const struct arm64_late_cpu_plan *plan)
+ 	    !mt6797_a72_effects_are_provisional(&plan->effects) ||
+ 	    plan->expected_compat_hwcap || plan->expected_compat_hwcap2)
+ 		return -EINVAL;
++	for (target = 0; target < ARM64_LATE_CPU_MAX_TARGETS; target++) {
++		if (bitmap_weight(plan->target[target].classified_local_caps,
++				  ARM64_NCAPS) !=
++			    ARRAY_SIZE(mt6797_a72_present_caps) +
++			    ARRAY_SIZE(mt6797_a72_absent_caps) ||
++		    !mt6797_a72_bitmap_exact(plan->target[target].local_caps,
++			    mt6797_a72_present_caps,
++			    ARRAY_SIZE(mt6797_a72_present_caps)) ||
++		    !bitmap_subset(plan->target[target].local_caps,
++				   plan->target[target].classified_local_caps,
++				   ARM64_NCAPS))
++			return -EINVAL;
++		for (i = 0; i < ARRAY_SIZE(mt6797_a72_present_caps); i++)
++			if (!test_bit(mt6797_a72_present_caps[i],
++				      plan->target[target].local_caps))
++				return -EINVAL;
++		for (i = 0; i < ARRAY_SIZE(mt6797_a72_absent_caps); i++)
++			if (!test_bit(mt6797_a72_absent_caps[i],
++				      plan->target[target].classified_local_caps) ||
++			    test_bit(mt6797_a72_absent_caps[i],
++				     plan->target[target].local_caps))
++				return -EINVAL;
++		for (i = 0; i < ARRAY_SIZE(mt6797_a72_unresolved_caps); i++)
++			if (test_bit(mt6797_a72_unresolved_caps[i],
++				     plan->target[target].classified_local_caps) ||
++			    test_bit(mt6797_a72_unresolved_caps[i],
++				     plan->target[target].local_caps))
++				return -EINVAL;
++	}
+ 
+ 	for (i = 0; i < ARRAY_SIZE(mt6797_a72_present_caps); i++)
+ 		if (!test_bit(mt6797_a72_present_caps[i],
+@@ -540,6 +598,8 @@ mt6797_a72_profile_prepare(struct arm64_late_cpu_evidence *evidence,
+ 	memcpy(evidence->config_input_identity,
+ 	       mt6797_a72_config_input_identity,
+ 	       sizeof(evidence->config_input_identity));
++	evidence->target_cpu[0] = 8;
++	evidence->target_cpu[1] = 9;
+ 	evidence->expected_target_mpidr[0] = 0x200;
+ 	evidence->expected_target_mpidr[1] = 0x201;
+ 	evidence->expected_target_midr[0] = MIDR_CORTEX_A72;
+@@ -556,7 +616,7 @@ mt6797_a72_profile_prepare(struct arm64_late_cpu_evidence *evidence,
+ }
+ 
+ static const struct arm64_late_cpu_profile mt6797_a72_profile __initconst = {
+-	.name = "mt6797-a53-a72-a41-v3",
++	.name = "mt6797-a53-a72-a41-v4",
+ 	.target_count = 2,
+ 	.classify_local_cap = mt6797_a72_classify_local_cap,
+ 	.validate_plan = mt6797_a72_validate_cap_plan,
+-- 
+2.50.1 (Apple Git-155)
+

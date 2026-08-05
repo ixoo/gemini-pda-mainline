@@ -1,0 +1,26 @@
+key	value	evidence
+implementation_state	PARTIAL_PER_TARGET_PLAN_BOUNDARY	patch 0153 and exact validator
+a41_complete	no	six dynamic rows plus runtime binding, effects, commit, and consumers remain open
+plan_abi	4	arch/arm64/include/asm/late_cpu_profile.h
+target_slot_0	CPU8	exact unique mapping checked before classification
+target_slot_1	CPU9	exact unique mapping checked before classification
+per_target_classified_count	34	independent exact bitmap validation
+per_target_present_count	4	slots 9,66,94,121 per target
+per_target_absent_count	30	prior static census per target
+per_target_unresolved_count	6	slots 33,36,69,79,81,82 per target
+runtime_binding_origin	NONE	expected-only profile requires an empty binding
+runtime_binding_complete	no	complete matching declared-RUNTIME fields required; trusted producer deferred
+effect_plan_complete	no	dynamic typed effects remain unavailable
+local_caps_planned	0	both targets retain six unresolved rows
+canonical_plan_identity	unavailable	all identity words remain zero
+profile_validate_plan	-EAGAIN	exact partial draft is never blessed
+profile_prepare	-EAGAIN	standing blocker mask retained
+plan_frozen_reachable	no	validation, binding, effect, and inventory blockers
+committed_reachable	no	PLAN_FROZEN unreachable and mutation unavailable
+ready_reachable	no	no committed/verified/finalized receipt
+cpu_boot_veto	-EAGAIN	patch 0092 retained
+cpu_disable_veto	false	patch 0092 retained
+maxcpus	8	configs/gemini-smp8.fragment retained
+build_authorized	no	Roadmap source gates remain open
+device_action_authorized	no	no attributable runtime hypothesis yet
+boot_candidate	false	no build or package

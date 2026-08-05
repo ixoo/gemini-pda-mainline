@@ -1384,7 +1384,7 @@ This advances A41 only to `PARTIAL_IMMUTABLE_PLAN_BOUNDARY`; the A26 boot
 and A14 disable vetoes plus `maxcpus=8` remain, and no build, boot candidate,
 or device action is authorized.
 
-The next source-only
+The follow-on source-only
 [A41 expected-A72 static census](../experiments/2026-08-05-a72-a41-static-census/README.md)
 implements the provisional evaluator across that complete 40-row inventory.
 It resolves exactly 4 profile-static rows PRESENT and 30 ABSENT while leaving
@@ -1398,6 +1398,35 @@ then deliberately returns `-EAGAIN`. No observed target MIDR, dynamic method,
 plan identity, PLAN_FROZEN, COMMITTED, or READY state is produced. This
 advances A41 only to `PARTIAL_STATIC_CAPABILITY_CENSUS`; all build and device
 prohibitions remain unchanged.
+
+The subsequent source-only
+[A41 per-target capability planning](../experiments/2026-08-05-a72-a41-per-target-plan/README.md)
+bumps the boundary to ABI 4 and binds slot 0 to CPU8 and slot 1 to CPU9 before
+any classification. The core evaluates all local descriptors independently,
+retains exact per-target classified/present bitmaps, forms the aggregate only
+from both attributable results, and rejects duplicate, substituted, residual,
+or unregistered target mappings. A versioned provenance record separates
+resolved/running configuration, built/running image, and expected/running
+command-line identities; only complete matching fields declared RUNTIME could
+pass the architecture guard, never a record declared FIXTURE. The origin and
+identity fields still come from the profile and are not independently attested
+by this milestone, so a trusted runtime producer remains a separate gate. Both
+targets remain at the same
+34-classified, 4-present, 30-absent, 6-unresolved census; runtime binding and
+typed effects remain blocked, validation and preparation return `-EAGAIN`, and
+the plan identity stays zero. This advances A41 only to
+`PARTIAL_PER_TARGET_PLAN_BOUNDARY`; `maxcpus=8`, patch-0092 boot/disable vetoes,
+and all build/device prohibitions remain unchanged.
+
+The next ordered A41 step is a source-only, pure six-row fixture evaluator.
+It must implement the Linux-owned GICv5/ICH, effective-CTR, Spectre-v2,
+Spectre-v4, and BHB predicates independently for CPU8 and CPU9, re-derive every
+method from immutable inputs, preserve exact target masks and typed effects,
+and remain blocked by non-RUNTIME provenance and the unavailable commit path.
+It must not treat fixture success as runtime provenance; a later milestone must
+add and validate the independently trusted producer before any publication
+path can open. No build or device action is justified until the source/evidence
+evaluator and its mutation suite close their gate.
 
 P30K/C/P/E/U separate CPU_KILL_ME, post-C bare STUCK, panic, pre-C reasoned
 STUCK, and default timeout. The timeout path now requires exact-generation

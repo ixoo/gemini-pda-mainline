@@ -1,0 +1,37 @@
+validation=a41-per-target-mutations
+PASS mutate_manifest_count
+PASS mutate_profile_series
+PASS mutate_fragment
+PASS mutate_maxcpus
+PASS mutate_series_duplicate
+PASS mutate_series_parent
+PASS mutate_author
+PASS mutate_signoff
+PASS mutate_callback_collapse
+PASS mutate_mapping_membership
+PASS mutate_mapping_unique
+PASS mutate_mapping_swap
+PASS mutate_per_target_bitmap
+PASS mutate_aggregate_gate
+PASS mutate_runtime_origin
+PASS mutate_runtime_valid
+PASS mutate_runtime_equality
+PASS mutate_runtime_blocker
+PASS mutate_validation_blocker
+PASS mutate_ready_copy
+PASS mutate_dirty_plan_guard
+PASS mutate_abi_commit_comment
+PASS mutate_boot_veto
+PASS mutate_disable_veto
+PASS source_binding_early_success
+PASS source_binding_crosswire
+PASS source_profile_early_success
+PASS source_classifier_target_collapse
+PASS source_commit_panic_removed
+PASS source_per_target_bitmap_collapse
+PASS source_mapping_unique_removed
+PASS source_runtime_origin_fixture
+network_accessed=no
+build_invoked=no
+device_accessed=no
+RESULT PASS 32/32

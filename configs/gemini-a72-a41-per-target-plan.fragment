@@ -1,0 +1,5 @@
+# A41 per-target capability-plan boundary. CPU8 and CPU9 results are retained
+# independently, but the six target-dependent rows and typed effects remain
+# blocked. Keep maxcpus=8 plus the patch-0092 boot and disable vetoes.
+CONFIG_ARM64_MT6797_A72_CAPABILITY_PROFILE=y
+CONFIG_LOCALVERSION="-gemini-a41-target-blocked"

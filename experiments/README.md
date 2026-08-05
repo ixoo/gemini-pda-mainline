@@ -23,6 +23,18 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-05 A41 attributable per-target capability planning](2026-08-05-a72-a41-per-target-plan/README.md)
+  — advances the blocked planner to ABI 4, binds target slots uniquely to CPU8
+  and CPU9 before classification, and preserves independent classified/present
+  bitmaps so one target cannot hide disagreement from the other. Complete
+  matching fields declared RUNTIME are now an architecture-owned publication
+  prerequisite; data declared FIXTURE cannot satisfy it. ABI 4 does not yet
+  attest the profile-supplied origin, so a trusted runtime producer remains a
+  later gate.
+  Both targets remain at 34 classified / 4 present / 6 unresolved and the
+  partial validator returns `-EAGAIN`. This is
+  `PARTIAL_PER_TARGET_PLAN_BOUNDARY`: no build, boot candidate, device action,
+  or hardware-support claim is authorized.
 - [2026-08-05 A41 expected-A72 static capability census](2026-08-05-a72-a41-static-census/README.md)
   — implements the source-owned provisional evaluator for all 40 compiled
   local descriptors. It classifies exactly 4 expected-A72 rows PRESENT and 30

@@ -1,0 +1,31 @@
+validation=a41-per-target-plan-offline
+PASS experiment-inventory
+PASS manifest-profile
+PASS configuration-identity
+PASS all-profile-series
+PASS selected-series
+PASS patch-provenance
+PASS claim-boundary
+PASS veto-preservation
+PASS frozen-results
+PASS source-identity
+PASS patch-application
+PASS per-target-planner
+PASS runtime-binding-guard
+PASS publication-vetoes
+PASS static-tooling
+patch_sha256=c89fa4c00ee56fbf259f3ddbc19d7434fb08d7bac91530db5f8d5f5d54e3caa7
+series_sha256=85874b97036200f24cb0f72cc4bc2592963f8aeb71fa9dfeb88d6e2c95ff19ca
+patchset_sha256=e7f8a5aadc4103ae0723bdac55ec5405600cabdcca9bfd0fe50453f09e0af012
+source_state_sha256=78fcb018e5693cc258127ea6e2655319f55b80135c1230cb42fbf70c6d2e6deb
+config_sha256=4dfe301404e0d972342311b51e9c9674d7ec3bc5198912fb2ec7f6167f72fb3e
+target0=CPU8:34-classified:4-present:6-unresolved
+target1=CPU9:34-classified:4-present:6-unresolved
+implementation_state=PARTIAL_PER_TARGET_PLAN_BOUNDARY
+a41_complete=no
+network_accessed=no
+build_invoked=no
+device_accessed=no
+build_authorized=no
+device_action_authorized=no
+RESULT PASS 15/15
