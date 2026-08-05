@@ -1,0 +1,8 @@
+claim=PARTIAL_A36_FROZEN_TOKEN_MINT
+probes=3
+closed_unchanged=1
+cpu8_token=1
+cpu9_token=1
+p30_armed=0
+cpu_on_calls=0
+status=PASS

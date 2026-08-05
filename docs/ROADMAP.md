@@ -1536,6 +1536,15 @@ closed, the test-only AVAILABLE seed is not an opener, and no token, P30,
 provider, CPUHP, CPU_ON, build, package, candidate, or device result exists.
 This advances the source only to `PARTIAL_P31_ATTEMPT_LEDGER`.
 
+The follow-on source-only
+[A36 frozen-token experiment](../experiments/2026-08-05-a72-a36-frozen-token/README.md)
+retains the transition lock from P31 through A28 and token minting. It binds
+the frozen transaction to the exact READY profile identity, target MPIDR, and
+operation budgets, but does not validate hardware prestate, arm P30, publish
+P17/P18, call a provider, change CPUHP state, issue CPU_ON, build, package, or
+touch the device. This advances the source only to
+`PARTIAL_A36_FROZEN_TOKEN_MINT`.
+
 P32A/D/F/X/R freezes the automatic rollback closure. The controller publishes
 P32 before `cpuhp_reset_state()` and the outer reverse range. Target
 `.cpu_disable` is the first guard before topology/NUMA removal, online clear,

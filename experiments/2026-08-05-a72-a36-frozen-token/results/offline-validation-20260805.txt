@@ -1,0 +1,13 @@
+validation=a36-frozen-token
+patch_sha256=7e75cd5bd1a8bff124e52cdc15f3bb973334d88fbca56853ede6bd3838e7e732
+patch_bytes=21882
+ready_identity=exact
+transition_lock_scope=p31-through-mint
+frozen_tokens=2
+a36_hardware_prestate=not-run
+p30_armed=0
+cpu_on_calls=0
+production_callers=0
+build=not-run
+device_action=none
+status=PASS

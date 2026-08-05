@@ -1,0 +1,9 @@
+mutation=bad-abi result=-EPERM
+mutation=bad-profile result=-EPERM
+mutation=empty-plan result=-EPERM
+mutation=bad-target result=-EPERM
+mutation=bad-expected-mpidr result=-EPERM
+mutation=bad-observed-mpidr result=-EPERM
+mutation=a28-reject result=-EPERM
+mutations_rejected=7/7
+status=PASS
