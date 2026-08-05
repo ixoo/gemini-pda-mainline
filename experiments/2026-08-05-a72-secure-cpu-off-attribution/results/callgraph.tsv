@@ -1,0 +1,17 @@
+id	stage	function	address	caller	gate	semantic	bounded	replay_control
+CG01	cpu-off-entry	psci_cpu_off	0x10c528	standard-psci-dispatch	accepted-cpu-off-request	target-cpu-self-side-off-entry	not-a-wait	none
+CG02	affinity-off-orchestration	psci_afflvl_off	0x10af18	psci_cpu_off	per-affinity-level	generic-state-and-platform-off-orchestration	not-a-wait	none
+CG03	affinity-level-0	psci_afflvl0_off	0x10ad2c	psci_afflvl_off	level=0	generic-level-0-off	not-a-wait	none
+CG04	affinity-level-1	psci_afflvl1_off	0x10ae88	psci_afflvl_off	level=1	generic-level-1-off	not-a-wait	none
+CG05	affinity-level-2	psci_afflvl2_off	0x10adf8	psci_afflvl_off	level=2	generic-level-2-off	not-a-wait	none
+CG06	platform-off-callback	platform_affinst_off	0x102304	psci_afflvl_off	linear-id>7	cpu8-cpu9-skip-callback-cci-disable-and-disable-scu	not-a-wait	none
+CG07	powerdown-cache-maintenance	psci_do_pwrdown_cache_maintenance	0x1101f4	psci_cpu_off	platform-off-state-prepared	generic-powerdown-cache-maintenance	not-a-wait	none
+CG08	terminal-wfi	psci_power_down_wfi	0x1101e0	psci_cpu_off	off-path-complete	infinite-post-off-wfi	nonreturning	none
+CG09	aarch64-smc-dispatch	psci_smc_handler_aarch64	0x10c654	standard-smc-service	fid=0xc4000004	routes-aarch64-affinity-info	not-a-wait	none
+CG10	active-affinity-info	psci_affinity_info	0x10c58c	psci_smc_handler_aarch64	[target-node+0x0a].bit0=1;linear-id>7	active-query-dispatches-deferred-a72-hardware-off	unbounded-per-call	private-big_on-bit-not-query
+CG11	replay-gate	power_off_big	0x102a88-0x102aac	psci_affinity_info	private-big_on&BIT(linear-id-8)	hardware-teardown-skipped-after-target-bit-clear	not-a-wait	private-big_on-bit
+CG12	per-core-and-last-core-dispatch	power_off_big	0x102a0c	psci_affinity_info	replay-gate-set	per-core-mtcmos-then-zero-ledger-last-core-branch	unbounded-internal	private-big_on-bit
+CG13	cci-withdrawal	cci_disable	0x100430	power_off_big	private-big_on=0	cci-snoop-and-dvm-withdrawal	unbounded-internal	private-big_on-zero
+CG14	cluster-off	power_off_cl3	0x102764	power_off_big	private-big_on=0	cluster-shared-off-sequence	unbounded-internal	private-big_on-zero
+CG15	retained-cpu-observer-prohibited	psci_affinity_info	0x10c58c	linux-retained-cpu-observer	present-cpu8;private-big_on-bit0=1	query-enters-power_off_big-and-can-wait-for-retained-cpu8-wfi	unbounded-per-call	forbidden-not-an-observer
+CG16	already-off-observer-prohibited	psci_affinity_info	0x10c58c	linux-independent-observer	already-off-cpu9	query-depends-on-private-replay-gate-and-is-not-an-independent-oracle	not-an-independent-bound	private-big_on-bit-required

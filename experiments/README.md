@@ -23,14 +23,27 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-05 A72 secure CPU-off attribution](2026-08-05-a72-secure-cpu-off-attribution/README.md)
+  — audits the exact verified private payload without publishing binary bytes.
+  Target `CPU_OFF` follows the generic TF-A v1.1 path into WFI, and the
+  controlling CPU's `AFFINITY_INFO` call actively invokes A72 teardown. CPU9
+  with CPU8 retained has an exact decision-relevant diagnostic-monitor,
+  per-core, and private secure-ledger write subset and avoids every
+  cluster-power branch. Last CPU8 additionally withdraws CCI and runs
+  cluster/SPM, B-mux/PLL, and `0x10006290` bit-1 teardown. Querying retained
+  CPU8 through `AFFINITY_INFO` would itself enter teardown rather than observe
+  ON state. Unbounded secure waits and unresolved SRAM/DCM, provider,
+  independent-readback, admission, notifier, and runtime ownership keep
+  CPU_OFF prohibited.
 - [2026-08-05 A72 safe-off ownership contract](2026-08-05-a72-safe-off-ownership-contract/README.md)
   — reconciles the Gate 4 evidence into separate fail-closed contracts for
   CPU9-off with CPU8 retained and for the final A72-off transition. Explicit
   owners, pre-states, readbacks, timeouts, inverses, and failure responses are
-  frozen. The current evidence does not assign the membership/notifier ledger,
-  policy/suspend admission coordinator, secure CPU_OFF branches,
-  post-isolation writers, or final provider release, so no CPU_OFF candidate,
-  build, or device boot is authorized.
+  frozen. The later secure audit closes the branch attribution but corrects the
+  passive-`AFFINITY_INFO` assumption. Membership/provider ledger,
+  policy/suspend admission, notifier exclusion, bounded observers, SRAM/DCM,
+  runtime, and final provider release remain unresolved, so no CPU_OFF
+  candidate, build, or device boot is authorized.
 - [2026-08-03 A72 CPU8/CPU9 scheduler-context execution](2026-08-03-a72-scheduler-context/README.md)
   — diagnosed parked-task activation in the rejected phase parent, changed only
   the two activations to explicit unpark, and passed two exact fixed-map runtime

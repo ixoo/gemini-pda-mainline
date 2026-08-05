@@ -1,0 +1,33 @@
+Validation date: 2026-08-05 UTC
+Repository action: offline sanitized attribution only
+Kernel build: not run
+Device action: none
+
+Command:
+  python3 experiments/2026-08-05-a72-secure-cpu-off-attribution/scripts/validate_audit.py
+
+validation=a72-secure-cpu-off-attribution
+result=PASS
+payload_sha256=2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3
+callgraph_rows=16
+callgraph_sha256=0007ba7868cbd68bb2a4ef6ad66240c7e00715e08934ca5d05ca482dfd464354
+effect_rows=45
+effect_inventory_sha256=deaa6686582e6e3f2e3453ff626f14b2ec555d9be468ac2f67fb350e6eead8bc
+last_core_unbounded_waits=8
+cpu9_unbounded_waits=2
+affinity_info=active-unbounded-target-only-not-independent-observer
+cpu9_cluster_resource_effects=empty
+cpu_off_authorized=no
+build_authorized=no
+device_action_authorized=no
+
+Command:
+  python3 experiments/2026-08-05-a72-secure-cpu-off-attribution/scripts/test_audit.py
+
+validation=a72-secure-cpu-off-attribution-mutations
+result=PASS
+mutations_rejected=22
+retained_cpu_affinity_info=forbidden
+cpu_off_authorized=no
+build_authorized=no
+device_action_authorized=no

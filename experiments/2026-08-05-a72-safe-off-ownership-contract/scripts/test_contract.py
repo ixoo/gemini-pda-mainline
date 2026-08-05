@@ -94,8 +94,28 @@ def main() -> int:
     VALIDATOR.validate_contract(base_contract)
     VALIDATOR.validate_reconciliation(base_reconciliation)
     VALIDATOR.validate_evidence()
+    base_report = VALIDATOR.validation_report(base_contract, base_reconciliation)
+    VALIDATOR.validate_authorization(base_report)
 
     mutations: list[tuple[str, Callable[[], None]]] = []
+
+    mutations.append(
+        (
+            "new-cpu-off-authorization",
+            lambda: expect_rejected(
+                "new-cpu-off-authorization",
+                "blocking authorization markers changed",
+                lambda: VALIDATOR.validate_authorization(
+                    [
+                        "cpu_off_candidate_authorized=yes"
+                        if line == "cpu_off_candidate_authorized=no"
+                        else line
+                        for line in base_report
+                    ]
+                ),
+            ),
+        )
+    )
 
     def add_contract(
         label: str,
@@ -158,8 +178,8 @@ def main() -> int:
     )
     add_contract(
         "unresolved-owner-promoted",
-        "unresolved owner promoted in L09",
-        lambda rows: mutate_row(rows, "L09", decision="contract-defined"),
+        "unresolved owner promoted in L11",
+        lambda rows: mutate_row(rows, "L11", decision="contract-defined"),
     )
     add_contract(
         "unresolved-timeout-promoted",
@@ -216,15 +236,17 @@ def main() -> int:
             ),
         ),
     )
-    cpu9_secure_gate_tokens = (
-        "secure-cpu9-off-callgraph=exact-attributed",
-        "shared-write-set=empty",
-        "per-core-effects-only",
+    target_source_tokens = (
+        "preparation=exact-source-closed",
+        "gic-deactivation=exact-source-closed",
+        "cache-maintenance=exact-source-closed",
+        "wfi-entry=exact-source-closed",
+        "no-a72-mtcmos-teardown",
     )
-    for token in cpu9_secure_gate_tokens:
+    for token in target_source_tokens:
         add_contract(
-            f"cpu9-secure-audit-missing-{token}",
-            f"CPU9 secure off audit missing {token}",
+            f"cpu9-target-source-missing-{token}",
+            f"target CPU_OFF source path missing {token} in C04",
             lambda rows, token=token: mutate_row(
                 rows,
                 "C04",
@@ -234,8 +256,157 @@ def main() -> int:
             ),
         )
     add_contract(
+        "target-falsely-tears-down-mtcmos",
+        "target CPU_OFF falsely gained MTCMOS teardown in C04",
+        lambda rows: mutate_row(
+            rows,
+            "C04",
+            success_readback=next(
+                row for row in rows if row["id"] == "C04"
+            )["success_readback"].replace(
+                "no-a72-mtcmos-teardown", "a72-mtcmos-teardown=performed", 1
+            ),
+        ),
+    )
+    add_contract(
+        "passive-affinity-info",
+        "AFFINITY_INFO was made passive in C05",
+        lambda rows: mutate_row(rows, "C05", physical_writer="none-observation"),
+    )
+    add_contract(
+        "false-complete-affinity-timeout",
+        "timeout changed in C05",
+        lambda rows: mutate_row(rows, "C05", timeout="10x10ms-affinity-polls"),
+    )
+    add_contract(
+        "replay-by-query-assumption",
+        "AFFINITY_INFO replay control misattributed in C05",
+        lambda rows: mutate_row(
+            rows,
+            "C05",
+            required_prestate=next(
+                row for row in rows if row["id"] == "C05"
+            )["required_prestate"].replace(
+                "hardware-replay-control=firmware-private-big_on-not-query-count",
+                "hardware-replay-control=query-count",
+                1,
+            ),
+        ),
+    )
+    cpu9_effect_tokens = (
+        "cpu9-pwr-con-0x10006244=clear-bit2-then-bit0",
+        "diagnostic-0x10222400=write-0x0000001b",
+        "diagnostic-0x10222404=read-twice",
+        "firmware-private-big_on-transition=0x3-to-0x1",
+        "cluster-power-write-set=empty",
+        "clock-write-set=empty",
+        "cci-write-set=empty",
+        "spm-shared-write-set=empty",
+        "provider-write-set=empty",
+    )
+    for token in cpu9_effect_tokens:
+        add_contract(
+            f"cpu9-effect-missing-{token}",
+            f"CPU9 power_off_big effect missing {token}",
+            lambda rows, token=token: mutate_row(
+                rows,
+                "C05",
+                success_readback=next(
+                    row for row in rows if row["id"] == "C05"
+                )["success_readback"].replace(token, "removed", 1),
+            ),
+        )
+    add_contract(
+        "false-empty-all-shared-write-set",
+        "CPU9 secure-control writes were hidden by an empty shared set",
+        lambda rows: mutate_row(
+            rows,
+            "C05",
+            success_readback=(
+                next(row for row in rows if row["id"] == "C05")["success_readback"]
+                + ";all-shared-write-set=empty"
+            ),
+        ),
+    )
+    add_contract(
+        "cpu9-cluster-effect",
+        "CPU9 power_off_big effect missing cluster-power-write-set=empty",
+        lambda rows: mutate_row(
+            rows,
+            "C05",
+            success_readback=next(
+                row for row in rows if row["id"] == "C05"
+            )["success_readback"].replace(
+                "cluster-power-write-set=empty",
+                "cluster-power-write-set=teardown",
+                1,
+            ),
+        ),
+    )
+    add_contract(
+        "retained-cpu8-affinity-query",
+        "retained CPU8 was queried through active AFFINITY_INFO",
+        lambda rows: mutate_row(
+            rows,
+            "C05",
+            success_readback=(
+                next(row for row in rows if row["id"] == "C05")["success_readback"]
+                + ";cpu8-affinity-info-level0=on"
+            ),
+        ),
+    )
+    add_contract(
+        "already-off-cpu9-affinity-query",
+        "already-off CPU9 was requeried through active AFFINITY_INFO",
+        lambda rows: mutate_row(
+            rows,
+            "L05",
+            success_readback=(
+                next(row for row in rows if row["id"] == "L05")["success_readback"]
+                + ";cpu9-affinity-info-level0=off"
+            ),
+        ),
+    )
+
+    last_core_effect_tokens = (
+        "cpu8-pwr-con-0x10006240=clear-bit2-then-bit0",
+        "firmware-private-big_on-transition=0x1-to-0x0",
+        "cci-snoop-dvm=withdrawn",
+        "cluster-snoop-control-0x10396000=exact-source-attributed",
+        "internal-bus-protection-0x10001234=or-0x00000444",
+        "b-mux-0x1001a270=clear-bit0",
+        "b-pll-0x102224a0=clear-bit0",
+        "spm-0x10006218=set-bit4-clear-bit2-then-bit0",
+        "spm-0x10006290=or-0x2",
+    )
+    for token in last_core_effect_tokens:
+        add_contract(
+            f"last-core-effect-missing-{token}",
+            f"last-core power_off_big effect missing {token}",
+            lambda rows, token=token: mutate_row(
+                rows,
+                "L05",
+                success_readback=next(
+                    row for row in rows if row["id"] == "L05"
+                )["success_readback"].replace(token, "removed", 1),
+            ),
+        )
+    add_contract(
+        "last-core-isolation-source-missing",
+        "last-core isolation source attribution missing",
+        lambda rows: mutate_row(
+            rows,
+            "L10",
+            success_readback=next(
+                row for row in rows if row["id"] == "L10"
+            )["success_readback"].replace(
+                "spm-0x10006290-source-operation=or-0x2", "removed", 1
+            ),
+        ),
+    )
+    add_contract(
         "responsiveness-before-affinity",
-        "CPU8 responsiveness gate precedes affinity OFF",
+        "CPU8 responsiveness gate precedes active affinity teardown",
         lambda rows: mutate_row(rows, "C05", proof_order="6"),
     )
     add_contract(
@@ -245,7 +416,7 @@ def main() -> int:
     )
     add_contract(
         "shared-teardown-before-affinity",
-        "last-user post-OFF attribution gate precedes affinity proof in L06",
+        "last-user post-query attribution gate precedes active teardown in L06",
         lambda rows: mutate_row(rows, "L05", proof_order="7"),
     )
     add_contract(
@@ -279,7 +450,8 @@ def main() -> int:
         "b-clock=captured",
         "cci-clock=captured",
         "cci-admission=on",
-        "all-readbacks-owner-attributed",
+        "firmware-private-big_on-entry-proof=unresolved",
+        "all-resource-readbacks-owner-attributed",
     )
     for token in entry_tokens:
         add_contract(
@@ -327,8 +499,9 @@ def main() -> int:
         "cpu8=online",
         "cpu9=offline",
         "members=0x1",
+        "firmware-private-big_on=0x1-source-attributed",
         "provider-ref=1",
-        "shared-state=bit-exact-C02-entry",
+        "shared-resource-state=bit-exact-C02-entry",
         "policy-admission=released",
         "suspend-admission=released",
         "transition-lock=released",
@@ -448,9 +621,11 @@ def main() -> int:
         ),
     )
     add_contract(
-        "off-path-requester-promoted",
-        "unresolved off-path requester promoted in L09",
-        lambda rows: mutate_row(rows, "L09", requester="secure-psci-cpu-off"),
+        "sram-requester-promoted",
+        "unresolved SRAM requester was invented",
+        lambda rows: mutate_row(
+            rows, "L11", requester="linux-a72-state-machine-affinity-info"
+        ),
     )
     add_contract(
         "weak-nonempty-prestate",
@@ -459,7 +634,7 @@ def main() -> int:
     )
     add_contract(
         "weak-nonempty-readback",
-        "canonical contract row changed in L05",
+        "AFFINITY_INFO completion result missing in L05",
         lambda rows: mutate_row(
             rows, "L05", success_readback="cpu8-affinity-info-level0=off"
         ),
@@ -477,7 +652,7 @@ def main() -> int:
 
     add_contract(
         "swapped-affinity-and-secure-boundaries",
-        "canonical contract row changed in L05",
+        "AFFINITY_INFO teardown boundary missing in L05",
         swap_last_boundaries,
     )
 
@@ -558,7 +733,7 @@ def main() -> int:
         "result=pass",
     ]
     expected_transcript = "\n".join(
-        VALIDATOR.validation_report(base_contract, base_reconciliation)
+        base_report
         + mutation_report
     ) + "\n"
     actual_transcript = RESULT.read_text(encoding="utf-8")

@@ -1283,17 +1283,29 @@ failure response. It rejects the vendor pre-affinity shared-state ordering and
 remains blocking: neither transition is implementation-eligible, and another
 unchanged device boot cannot close an ownership gap.
 
-The next ordered action is an exact offline audit of the verified private
-secure payload's CPU_OFF paths together with a source-level CPU8/CPU9
-membership, policy/suspend-admission, and hotplug-notifier contract. Attribute
-per-core CPU9-off versus last-core cluster/CCI/SPM/SRAM effects, then define the
-locked membership and provider-reference updates and prove that policy and
-suspend admission remain frozen while generic notifier dispatch cannot enter
-cluster-off policy for a non-last CPU. This step may change only the contract
-and supporting audit evidence: do not generate a CPU_OFF candidate, build a
-kernel, or use the device. Keep the HPS veto and CPU_OFF prohibition intact.
-Passive provider work may proceed in parallel only within its existing
-no-write, no-consumer boundary.
+The exact offline [secure CPU-off attribution audit](../experiments/2026-08-05-a72-secure-cpu-off-attribution/README.md)
+now pins the verified private payload's generic TF-A v1.1 path and corrects a
+critical contract assumption: target `CPU_OFF` parks the A72, while the
+controlling CPU's later `AFFINITY_INFO` call actively invokes the hardware
+teardown. CPU9-off with CPU8 retained changes the target core, a diagnostic
+monitor, and the private secure membership ledger without entering any
+cluster-power branch. Last-CPU8 teardown additionally owns CCI withdrawal,
+cluster/SPM shutdown, the B mux and PLL, and SPM external-isolation bit 1.
+Several secure WFI and acknowledgement waits are unbounded. The audit finds no
+MP2 DCM or SRAM-LDO write in that callgraph and does not establish provider,
+independent readback, policy, notifier, suspend, or runtime completion.
+
+The next ordered action is a source-only contract for an exact CPU8/CPU9
+membership and real provider-reference ledger, early ordinary-hotplug and
+direct-suspend admission, notifier exclusion, and bounded independent
+post-transition observers. It must account for active `AFFINITY_INFO`, define
+the only locked ledger update points, preserve the HPS veto, and leave every
+unbounded secure wait under independently owned terminal recovery. In
+particular, it must never use `AFFINITY_INFO` to check that a retained A72 is
+ON: this payload would enter that CPU's active teardown path. This step may
+change only contract and supporting source-audit evidence: do not generate a
+CPU_OFF candidate, build a kernel, or use the device. Passive provider work may
+proceed in parallel only within its existing no-write, no-consumer boundary.
 
 CPU_OFF, suspend/resume, later power boundaries, a mainline provider write,
 and default-profile A72 consumers remain blocked until their separate ownership
