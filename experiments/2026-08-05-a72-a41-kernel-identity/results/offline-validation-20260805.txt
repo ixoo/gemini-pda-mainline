@@ -1,0 +1,36 @@
+validation=a41-kernel-identity-offline
+PASS experiment-safety
+PASS manifest-profile
+PASS configuration-identity
+PASS all-profile-series-invariant
+PASS selected-series-identity
+PASS two-patch-provenance-and-inventory
+PASS no-external-actions
+PASS abi7-interface-and-kconfig
+PASS exact-buildid-helper
+PASS exact-buildid-kunit-contract
+PASS core-private-identity-owner
+PASS of-record-topology-and-allowlist
+PASS identity-hash-and-endian-contract
+PASS running-producer-bounds-and-cmdline
+PASS atomic-collection-lifecycle
+PASS seal-publication-and-polarity
+PASS profile-cross-binding-and-overlay
+PASS profile-observation-and-fixture-separation
+PASS architecture-hook-order
+PASS retained-commit-boot-disable-vetoes
+PASS source-identity-application-and-static-tools
+patch_0156_sha256=4bdf4f1d264ab3a7a1debaf4a731df9d7edcf6fa292ab72ab0eaabe9c72597b6
+patch_0157_sha256=e184e3c9e04bc51a75001d8dfcdde87ff333dfdab235cf7780dc89f491561950
+series_sha256=d81fba3214e53bf3f05f4fde64e43f70638e863d04e01355e396a5990f21289d
+patchset_sha256=b048363e27e86326bf0fdd24af2d739d69658929b3de7e147634ecf266d134e5
+source_state_sha256=1bafbcc101bb2094216fb1d25e33045984f50bd4d49d3c48b5ec3283664abcf3
+config_sha256=4dca4e50ab039fbc60593e86d20d02e74e257dc6b5bb1afa94b38be6295b5203
+implementation_state=ABI7_KERNEL_IDENTITY_BOUNDARY_BLOCKED
+successful_seal_state=SEALED_IDENTITY
+target_runtime_evidence=absent
+a41_complete=no
+network_accessed=no
+build_invoked=no
+device_accessed=no
+RESULT PASS 21/21

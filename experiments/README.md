@@ -23,15 +23,23 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-05 A41 kernel-identity binding boundary](2026-08-05-a72-a41-kernel-identity/README.md)
+  — advances the blocked lifecycle to ABI 7 with a strict static expected
+  record and independent arm64-core producers for the running embedded
+  IKCONFIG, exact GNU build ID, and forced command line. Complete matching
+  inputs can publish only `SEALED_IDENTITY`; no package record was emitted,
+  and target/system evidence, capability commit, READY, boot, and disable
+  gates remain closed. This is `PARTIAL_KERNEL_IDENTITY_BINDING`, not a build,
+  runtime, device, or hardware-support result. The roadmap alone owns the
+  remaining ordered gates.
 - [2026-08-05 A41 core-owned runtime-evidence boundary](2026-08-05-a72-a41-runtime-evidence-owner/README.md)
   — advances the blocked lifecycle to ABI 6 with a private arm64-core evidence
   record, an exact post-hyp/pre-finalization seal, release/acquire publication,
   and rejection of profile-declared RUNTIME origin or profile observations.
   The core has no producer, so it seals `SEALED_EMPTY`; the fixture remains
   evaluator-only and every plan, commit, READY, boot, and disable gate stays
-  closed. This is `PARTIAL_RUNTIME_EVIDENCE_OWNER_BOUNDARY`: the next source
-  gate is independent configuration/image/command-line identity production,
-  not a build or device action.
+  closed. This is `PARTIAL_RUNTIME_EVIDENCE_OWNER_BOUNDARY`; its ABI-7
+  identity-binding successor is recorded above.
 - [2026-08-05 A41 pure six-row fixture evaluator](2026-08-05-a72-a41-six-row-fixture/README.md)
   — advances the blocked planner to ABI 5 and evaluates the six formerly
   unresolved GIC/ICH, cache, Spectre-v2, Spectre-v4, and BHB rows for CPU8 and

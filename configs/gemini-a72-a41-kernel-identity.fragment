@@ -1,0 +1,6 @@
+# A41 source-only kernel-identity producer. The core may bind a strict expected
+# record to running IKCONFIG, GNU build ID, and forced command line; target
+# evidence, capability commit, maxcpus=8, and CPU admission remain blocked.
+CONFIG_ARM64_MT6797_A72_CAPABILITY_PROFILE=y
+# CONFIG_ARM64_MT6797_A72_FIXTURE_EVIDENCE is not set
+CONFIG_LOCALVERSION="-gemini-a41-identity-blocked"

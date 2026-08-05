@@ -1,0 +1,27 @@
+field_or_state	current_abi7_owner	current_value_or_rule	authoritative_producer	consumer_or_verifier	claim_limit
+expected_record_node	static OF tree	exact /chosen/gemini-late-cpu-provenance leaf	validated package DT construction	arm64 exact parser	source contract only; no package record was built
+expected_record_properties	static OF tree	15 explicit plus synthesized name; exact set; order independent	validated package plus OF unflattening	arm64 allowlist and independent oracle	no running-* or dynamic property authority
+record_identity	static expected record	SHA-256 of explicit big-endian 384-byte serialization	validated package	arm64 recomputation	integrity cross-reference; not a signature
+expected_ikconfig_identity	static expected record	nonzero 32-byte domain digest	validated package	arm64 identity comparison	expected half only
+running_ikconfig_identity	arm64 core	hash of bounded kernel_config_data range	resident kernel IKCONFIG bytes	arm64 identity comparison	kernel attribution only
+expected_gnu_build_id_identity	static expected record	nonzero 32-byte domain digest	validated package	arm64 identity comparison	expected half only
+running_gnu_build_id_identity	arm64 core	hash of sole exact nonzero 20-byte GNU build ID	in-memory ELF note range	arm64 identity comparison	linked-image attribution; not mutable-text measurement
+expected_cmdline_identity	static expected record	nonzero 32-byte domain digest	validated package	arm64 identity comparison	expected half only
+running_cmdline_identity	arm64 core	hash of exact forced saved command line	compiled CONFIG_CMDLINE and saved_command_line	arm64 identity comparison	requires exact bytes and length
+config_input_identity	manifest profile and MT6797 profile	4dca4e50ab039fbc60593e86d20d02e74e257dc6b5bb1afa94b38be6295b5203	ordered manifest inputs	profile cross-binding	input identity; not resolved .config
+profile_target_binding	profile plus static expected record	profile v7; CPUs 8/9; MPIDRs 0x200/0x201	profile registration and package record	arm64 cross-binding	expectations only
+private_identity_storage	arm64 core private __initdata	stack-staged then assigned once on complete success	arm64 collector	arm64 seal	no writable profile pointer
+identity_collection_state	arm64 core	UNCOLLECTED then FAILED or VERIFIED	arm64 collector	arm64 seal	one-shot pre-finalization lifecycle
+runtime_evidence_state	arm64 core	OPEN then SEALED_EMPTY or SEALED_IDENTITY; FAULT on inconsistency	arm64 seal	arm64 preparation	no SEALED_RUNTIME state
+runtime_binding_origin_validity	arm64 core	RUNTIME plus all six valid bits only after three matching pairs	arm64 identity collector and seal	binding completeness and profile preparation	RUNTIME labels identity binding only
+runtime_overlay	arm64 core	binding only; clear only RUNTIME_BINDING after cross-binding	arm64 preparation	profile planner	no target/system/evidence identity overlay
+observed_target_mpidr_midr_revidr	arm64 private evidence	all zero; unavailable	future CPU8/CPU9-local collector	future arm64 target verifier	no current observation
+target_capability_policy	arm64 private evidence	all zero in production	future target-local collector plus arm64 policy	future canonical evaluator	fixture values are not runtime
+system_capability_evidence	arm64 private evidence	all zero	future arm64 system collector	future planner and verifier	unavailable
+canonical_evidence_identity	arm64 core	zero and unavailable	future complete field serialization	future plan and READY chain	unavailable
+fixture_evidence	MT6797 source fixture	explicit FIXTURE; disabled by selected fragment	static source fixture	pure evaluator	cannot consume or claim runtime binding
+profile_prepare_and_validation	MT6797 profile	both return -EAGAIN	fail-closed source policy	arm64 receipt	no PLAN_FROZEN
+commit_ready_admission	arm64 core	commit unavailable; READY and admission unreachable	future architecture transaction	future consumers	no current publication
+cpu_boot_disable_gates	MT6797 CPU operations	boot -EAGAIN; disable false	patch 0092	CPU operations	standing vetoes retained
+maxcpus_policy	selected configuration	maxcpus=8	inherited profile fragment	kernel command-line producer	safety gate retained
+package_container_partition_hashes	build/deployment tooling	absent	future Buildbox package and deployment evidence	external validators	cannot satisfy target-local evidence

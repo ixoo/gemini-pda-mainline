@@ -1,0 +1,50 @@
+validation=a41-kernel-identity-mutations
+PASS repo-manifest-profile-missing -> manifest-profile
+PASS repo-profile-series-substitution -> manifest-profile
+PASS repo-fragment-fixture-enable -> configuration-identity
+PASS repo-selected-series-duplicate -> all-profile-series-invariant
+PASS repo-canonical-order-change -> all-profile-series-invariant
+PASS repo-patch-source-change -> two-patch-provenance-and-inventory
+PASS repo-patch-inventory-change -> two-patch-provenance-and-inventory
+PASS repo-external-action-injection -> no-external-actions
+PASS source-abi-downgrade -> abi7-interface-and-kconfig
+PASS source-kconfig-producer-loss -> abi7-interface-and-kconfig
+PASS source-buildid-duplicate-loss -> exact-buildid-helper
+PASS source-buildid-bounds-loss -> exact-buildid-helper
+PASS source-buildid-zero-loss -> exact-buildid-helper
+PASS source-buildid-alias-staging-loss -> exact-buildid-helper
+PASS source-buildid-failure-zero-loss -> exact-buildid-helper
+PASS source-buildid-kunit-wiring-loss -> exact-buildid-kunit-contract
+PASS source-private-owner-export -> core-private-identity-owner
+PASS source-of-name-loss -> of-record-topology-and-allowlist
+PASS source-of-dynamic-property-loss -> of-record-topology-and-allowlist
+PASS source-record-identity-polarity -> identity-hash-and-endian-contract
+PASS source-digest-endian-loss -> identity-hash-and-endian-contract
+PASS source-ikconfig-bound-loss -> running-producer-bounds-and-cmdline
+PASS source-exact-helper-loss -> running-producer-bounds-and-cmdline
+PASS source-cmdline-equality-loss -> running-producer-bounds-and-cmdline
+PASS source-global-staging-loss -> atomic-collection-lifecycle
+PASS source-late-collect-guard-polarity -> atomic-collection-lifecycle
+PASS source-sealed-empty-polarity -> seal-publication-and-polarity
+PASS source-sealed-identity-promotion -> seal-publication-and-polarity
+PASS source-release-loss -> seal-publication-and-polarity
+PASS source-acquire-loss -> profile-cross-binding-and-overlay
+PASS source-crossbind-profile-loss -> profile-cross-binding-and-overlay
+PASS source-crossbind-config-loss -> profile-cross-binding-and-overlay
+PASS source-crossbind-target-loss -> profile-cross-binding-and-overlay
+PASS source-overlay-condition-change -> profile-cross-binding-and-overlay
+PASS source-overlay-scope-broadened -> profile-cross-binding-and-overlay
+PASS source-profile-observation-rejection-loss -> profile-observation-and-fixture-separation
+PASS source-fixture-claims-runtime -> profile-observation-and-fixture-separation
+PASS source-collect-order-change -> architecture-hook-order
+PASS source-profile-prepare-success -> retained-commit-boot-disable-vetoes
+PASS source-profile-validator-success -> retained-commit-boot-disable-vetoes
+PASS source-core-commit-blocker-loss -> retained-commit-boot-disable-vetoes
+PASS source-core-commit-panic-loss -> retained-commit-boot-disable-vetoes
+PASS source-cpu-boot-veto-loss -> retained-commit-boot-disable-vetoes
+PASS source-cpu-disable-veto-loss -> retained-commit-boot-disable-vetoes
+mutations_rejected=44
+network_accessed=no
+build_invoked=no
+device_accessed=no
+RESULT PASS 44/44

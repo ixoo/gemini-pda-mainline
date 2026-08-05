@@ -1444,17 +1444,26 @@ the runtime-binding and commit-path blockers, and cannot freeze a plan or
 admit CPU8/CPU9. This advances A41 only to
 `PARTIAL_RUNTIME_EVIDENCE_OWNER_BOUNDARY`; it is not a build or runtime result.
 
-The next ordered A41 step is the independent boot-provenance identity
-producer and verifier inside that core-owned boundary. A strict package-derived
-expected record must be distinct from core-derived running IKCONFIG, linked
-image build-ID, and forced command-line identities; partial, substituted,
-paired-oracle, and drifted pairs must remain blocked. That closes only the
-configuration/image/command-line sub-contract. Actual CPU8/CPU9 register,
-cache, GIC/hyp, firmware, ASID, translation, capability, and HWCAP evidence
-still requires each target to execute or an independently trusted pre-Linux
-attestation. Standard PSCI cannot read those registers remotely, and no direct
-CPU_ON/CPU_OFF side call may bypass A26, A14, P30, or the standing boot/disable
-vetoes. No build or device action is justified by the ABI-6 milestone.
+The next source-only
+[A41 kernel-identity binding](../experiments/2026-08-05-a72-a41-kernel-identity/README.md)
+bumps the lifecycle to ABI 7 and closes only the configuration, image, and
+command-line sub-contract. A strict static expected record is parsed from the
+exact `/chosen/gemini-late-cpu-provenance` leaf while the arm64 core derives
+the running embedded IKCONFIG, exact GNU build ID, and forced command line
+independently. Complete matching inputs can publish `SEALED_IDENTITY`; every
+missing, malformed, duplicate, dynamic, substituted, partial, or drifted input
+seals empty. Profile ID, configuration-input identity, CPU numbers, MPIDRs,
+and the registered target mask must cross-bind before only the runtime-binding
+blocker can clear. The record publishes no target observations, system
+evidence, capability commitment, plan identity, READY state, or CPU-admission
+authority. This advances A41 only to `PARTIAL_KERNEL_IDENTITY_BINDING`; it is
+not a build, boot candidate, runtime result, or hardware-support claim.
+
+Actual CPU8/CPU9 register, cache, GIC/hyp, firmware, ASID, translation,
+capability, and HWCAP evidence still requires each target to execute or an
+independently trusted pre-Linux attestation. Standard PSCI cannot read those
+registers remotely, and no direct CPU_ON/CPU_OFF side call may bypass A26,
+A14, P30, or the standing boot/disable vetoes.
 
 P30K/C/P/E/U separate CPU_KILL_ME, post-C bare STUCK, panic, pre-C reasoned
 STUCK, and default timeout. The timeout path now requires exact-generation
@@ -1485,21 +1494,14 @@ names for that operation is implemented and proven.
 
 The next ordered work remains source-only:
 
-1. Continue A41 from the blocked ABI-6 owner boundary. First implement and
-   mutation-test the strict package-derived expected record plus independent
-   core producers for the running IKCONFIG, linked-image build ID, and forced
-   command line. Keep the private record sealed empty on every missing,
-   malformed, partial, substituted, paired-oracle, or drifted input. Do not
-   put CPU8/CPU9 observations in DT and do not authorize a build or device
-   action from this identity-only source milestone.
-2. Implement and mutation-test P30K/C/P/E/U, including the generation-scoped
+1. Implement and mutation-test P30K/C/P/E/U, including the generation-scoped
    timeout arbitration, global completion/status redesign, target park
    acknowledgment, exact P14/P15 controller point, and global fail-stop
    interlock.
-3. Complete A25 and implement P32A/D/F/X/R using either a reviewed core
+2. Complete A25 and implement P32A/D/F/X/R using either a reviewed core
    no-auto-rollback interface or the fail-stop `.cpu_disable` plus die/kill
    guard design, retaining every partial callback and architecture effect.
-4. Revalidate every applicable A26 CPU-up gate and its A14 CPU-off dependency.
+3. Revalidate every applicable A26 CPU-up gate and its A14 CPU-off dependency.
    Only after those closures may a separately reviewed evidence-only target
    transaction be considered; a trusted pre-Linux handoff is the alternative.
    Then return to A41 for separate CPU8/CPU9 registers, cache, WA1/WA2/WA3,
@@ -1507,9 +1509,9 @@ The next ordered work remains source-only:
    HWCAPs, canonical evidence/plan identity, the infallible architecture-owned
    pre-finalization commit, and READY binding to A36/P17/P18. Source tests alone
    do not authorize a build, CPU_ON/OFF request, or device action.
-5. Close the M02 delayed-work scheduler/observer owner and failure propagation,
+4. Close the M02 delayed-work scheduler/observer owner and failure propagation,
    then close A40 private-ledger writer/caller freshness.
-6. Only after those CPU-up and branch-selection gates pass, specify the full
+5. Only after those CPU-up and branch-selection gates pass, specify the full
    A14 off-completion owner: complete CPU-ops and CPUHP/PM inventories, exact
    target handoff, secure-call concurrency, one-query result propagation, and
    bounded independent post-OFF observers.

@@ -1,0 +1,56 @@
+key	value	evidence
+implementation_state	ABI7_KERNEL_IDENTITY_BOUNDARY_BLOCKED	exact patches 0156 and 0157 plus independent oracle
+a41_complete	no	target evidence mutation commit READY and admission remain unavailable
+plan_abi	7	ARM64_LATE_CPU_PLAN_ABI
+kernel_profile_id	mt6797-a53-a72-a41-v7	MT6797 profile descriptor and OF record
+reviewed_source_parent	bcfb60248633bec2cdb6ab70540d5807d305c4e7	exact ABI6 parent commit
+reviewed_source_parent_tree	b23bf9e6332c865ef15606a41f11e75262e06fbf	exact ABI6 parent tree
+buildid_source_commit	15d862a4fc495505104d1732b3c97f0ad0aa867c	patch 0156 source commit
+buildid_source_tree	b065acbe5785436ac9b89164e31f6e64bf668bb9	patch 0156 result tree
+arm64_source_commit	22942d1697a9506132165ff8bfd30c92d5a5fe1e	patch 0157 final source commit
+arm64_source_tree	c9d028016968c6f5b0439be23e26e55a175b7cbf	patch 0157 final tree
+format_patch_0156_sha256	4bdf4f1d264ab3a7a1debaf4a731df9d7edcf6fa292ab72ab0eaabe9c72597b6	exact repository patch bytes
+format_patch_0157_sha256	e184e3c9e04bc51a75001d8dfcdde87ff333dfdab235cf7780dc89f491561950	exact repository patch bytes
+source_range_diff_sha256	90e8ad3c3f9be58ef8f089f72f935e6f54aaa2473ada1145eebdb67a79593239	git diff --binary parent..final
+selected_series_entry_count	99	noncomment entries in selected series
+selected_series_sha256	d81fba3214e53bf3f05f4fde64e43f70638e863d04e01355e396a5990f21289d	exact selected series bytes
+ordered_patchset_identity	b048363e27e86326bf0fdd24af2d739d69658929b3de7e147634ecf266d134e5	selected series plus ordered patch identities
+selected_source_state_identity	1bafbcc101bb2094216fb1d25e33045984f50bd4d49d3c48b5ec3283664abcf3	kernel archive plus ordered patchset
+ordered_config_input_identity	4dca4e50ab039fbc60593e86d20d02e74e257dc6b5bb1afa94b38be6295b5203	exact manifest profile inputs and embedded u64 words
+runtime_identity_storage_owner	arm64_core	private late_runtime_identity __initdata
+expected_record_schema	1	exact static OF property contract
+expected_record_property_count	16	15 explicit properties plus synthesized name
+expected_record_property_order	independent	seen-bit allowlist; oracle accepts reversed and rotated order
+running_ikconfig_producer	implemented_bounded	resident embedded gzip range at most 4 MiB
+running_build_id_producer	implemented_bounded	sole nonzero exact 20-byte GNU build ID in at most 64 KiB notes
+running_cmdline_producer	implemented_forced_exact	saved bytes length and NUL equal CONFIG_CMDLINE
+identity_pair_count	3	IKCONFIG GNU build ID and command line
+current_successful_seal_result	SEALED_IDENTITY	binding only
+sealed_runtime_reachable	no	kernel owner has no SEALED_RUNTIME state
+runtime_evidence_complete	no	no target or system runtime evidence
+target_evidence_complete	no	CPU8 and CPU9 were not executed or observed
+profile_cross_binding	implemented	profile config CPUs MPIDRs target mask record and binding checked
+runtime_overlay	binding_only	clears only ARM64_LATE_CPU_BLOCK_RUNTIME_BINDING
+fixture_evidence	disabled_selected_profile	fixture path remains explicit FIXTURE only
+profile_prepare	-EAGAIN	publication veto retained
+profile_validate_plan	-EAGAIN	plan blessing veto retained
+commit_path	unavailable	COMMIT_PATH retained and commit panics if reached
+plan_frozen_reachable	no	standing blockers and EAGAIN force BLOCKED
+ready_reachable	no	no committed verified finalized receipt
+cpu_boot_veto	-EAGAIN	patch 0092 retained
+cpu_disable_veto	false	patch 0092 retained
+maxcpus	8	inherited selected fragment retained
+buildid_kunit_contract	9_cases_present_not_run	source and wiring reviewed; no build
+identity_oracle_tests	48_passed	independent frozen-vector and adversarial oracle
+offline_validator	21_passed	exact repository source application and static checks
+adversarial_mutations	44_rejected	each repository and source mutation failed its intended check
+strict_checkpatch	0_errors_0_warnings_0_checks	reviewed exclusions MISSING_SIGN_OFF FILE_PATH_CHANGES AVOID_EXTERNS CAMELCASE
+duplicate_include_check	passed_five_changed_c_files	checkincludes.pl
+kernel_build	not_run	source-only milestone
+runtime_test	not_run	no emulator or device action
+network_access	none	no network action
+device_access	none	no device action
+boot_candidate	false	no build package OF record or deployment
+build_authorized	no	A41 source gates remain open
+device_action_authorized	no	no attributable runtime hypothesis or candidate
+hardware_support_claim	none	no compile runtime or physical CPU evidence

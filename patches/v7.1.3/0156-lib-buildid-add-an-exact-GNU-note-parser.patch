@@ -1,0 +1,534 @@
+From 15d862a4fc495505104d1732b3c97f0ad0aa867c Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Project <noreply@invalid>
+Date: Wed, 5 Aug 2026 14:29:55 -0400
+Subject: [PATCH] lib/buildid: add an exact GNU note parser
+
+Add a bounded helper that scans the complete note buffer and accepts
+exactly one nonzero GNU build ID of the requested size. Keep the legacy
+parser unchanged, make success safe for overlapping input/output buffers,
+and zero the output on every representable failure.
+
+Cover the strict contract with a default-off KUnit suite, including
+malformed, duplicate, overflow, unaligned, and aliasing cases.
+
+This experiment-only change has no certifying sign-off and is not
+submission-ready.
+---
+ include/linux/buildid.h |   2 +
+ lib/Kconfig.debug       |  11 ++
+ lib/Makefile            |   1 +
+ lib/buildid.c           |  77 +++++++++
+ lib/buildid_test.c      | 359 ++++++++++++++++++++++++++++++++++++++++
+ 5 files changed, 450 insertions(+)
+ create mode 100644 lib/buildid_test.c
+
+diff --git a/include/linux/buildid.h b/include/linux/buildid.h
+index 7acc06b22..38a451111 100644
+--- a/include/linux/buildid.h
++++ b/include/linux/buildid.h
+@@ -13,6 +13,8 @@ int build_id_parse(struct vm_area_struct *vma, unsigned char *build_id, __u32 *s
+ int build_id_parse_file(struct file *file, unsigned char *build_id, __u32 *size);
+ int build_id_parse_nofault(struct vm_area_struct *vma, unsigned char *build_id, __u32 *size);
+ int build_id_parse_buf(const void *buf, unsigned char *build_id, u32 buf_size);
++int build_id_parse_buf_exact(const void *buf, unsigned char *build_id,
++			     u32 buf_size, u32 expected_size);
+ 
+ #if IS_ENABLED(CONFIG_STACKTRACE_BUILD_ID) || IS_ENABLED(CONFIG_VMCORE_INFO)
+ extern unsigned char vmlinux_build_id[BUILD_ID_SIZE_MAX];
+diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+index 8ff5adcfe..48564e9ca 100644
+--- a/lib/Kconfig.debug
++++ b/lib/Kconfig.debug
+@@ -2942,6 +2942,17 @@ config CMDLINE_KUNIT_TEST
+ 
+ 	  If unsure, say N.
+ 
++config BUILDID_KUNIT_TEST
++	bool "KUnit test for strict build ID note parsing"
++	depends on KUNIT=y
++	default n
++	help
++	  This builds unit tests for strict parsing of GNU build ID notes,
++	  including malformed input, duplicate notes, and overlapping buffers.
++
++	  This test is intended for kernel developers and should not be enabled
++	  in production kernels. If unsure, say N.
++
+ config BASE64_KUNIT
+ 	tristate "KUnit test for base64 decoding and encoding" if !KUNIT_ALL_TESTS
+ 	depends on KUNIT
+diff --git a/lib/Makefile b/lib/Makefile
+index f33a24bf1..de44c0dea 100644
+--- a/lib/Makefile
++++ b/lib/Makefile
+@@ -62,6 +62,7 @@ obj-y += bcd.o sort.o parser.o debug_locks.o random32.o \
+ obj-y += string_helpers.o
+ obj-y += hexdump.o
+ obj-$(CONFIG_TEST_HEXDUMP) += test_hexdump.o
++obj-$(CONFIG_BUILDID_KUNIT_TEST) += buildid_test.o
+ obj-y += kstrtox.o
+ obj-$(CONFIG_FIND_BIT_BENCHMARK) += find_bit_benchmark.o
+ obj-$(CONFIG_FIND_BIT_BENCHMARK_RUST) += find_bit_benchmark_rust.o
+diff --git a/lib/buildid.c b/lib/buildid.c
+index c4b737640..e7adfee27 100644
+--- a/lib/buildid.c
++++ b/lib/buildid.c
+@@ -7,6 +7,7 @@
+ #include <linux/pagemap.h>
+ #include <linux/fs.h>
+ #include <linux/secretmem.h>
++#include <linux/string.h>
+ 
+ #define BUILD_ID 3
+ 
+@@ -390,6 +391,82 @@ int build_id_parse_buf(const void *buf, unsigned char *build_id, u32 buf_size)
+ 	return err;
+ }
+ 
++/**
++ * build_id_parse_buf_exact - Get one exact build ID from a note buffer
++ * @buf: ELF note section(s) to parse
++ * @build_id: Buffer for the build ID, at least BUILD_ID_SIZE_MAX bytes long
++ * @buf_size: Size of @buf in bytes
++ * @expected_size: Required build ID size, from 1 through BUILD_ID_SIZE_MAX
++ *
++ * Scan the complete buffer and require exactly one GNU build-ID note with the
++ * requested size and a nonzero descriptor.  Reject malformed notes, trailing
++ * data, and duplicate GNU build-ID notes.  @build_id is zeroed on failure and
++ * zero-padded on success.
++ *
++ * Return: 0 on success, -EINVAL otherwise
++ */
++int build_id_parse_buf_exact(const void *buf, unsigned char *build_id,
++			     u32 buf_size, u32 expected_size)
++{
++	static const char note_name[] = "GNU";
++	unsigned char parsed[BUILD_ID_SIZE_MAX];
++	const u8 *bytes = buf;
++	const u8 *found = NULL;
++	u32 offset = 0;
++
++	if (!build_id)
++		return -EINVAL;
++	if (!buf || !expected_size || expected_size > BUILD_ID_SIZE_MAX)
++		goto invalid;
++
++	while (offset < buf_size) {
++		const u8 *name, *desc;
++		Elf32_Nhdr nhdr;
++		u32 name_size, desc_size, note_size;
++
++		if (buf_size - offset < sizeof(nhdr))
++			goto invalid;
++
++		memcpy(&nhdr, bytes + offset, sizeof(nhdr));
++		if (check_add_overflow(nhdr.n_namesz, 3U, &name_size) ||
++		    check_add_overflow(nhdr.n_descsz, 3U, &desc_size))
++			goto invalid;
++		name_size &= ~3U;
++		desc_size &= ~3U;
++
++		note_size = sizeof(nhdr);
++		if (check_add_overflow(note_size, name_size, &note_size) ||
++		    check_add_overflow(note_size, desc_size, &note_size) ||
++		    note_size > buf_size - offset)
++			goto invalid;
++
++		name = bytes + offset + sizeof(nhdr);
++		desc = name + name_size;
++		if (nhdr.n_type == BUILD_ID &&
++		    nhdr.n_namesz == sizeof(note_name) &&
++		    !memcmp(name, note_name, sizeof(note_name))) {
++			if (found || nhdr.n_descsz != expected_size ||
++			    !memchr_inv(desc, 0, expected_size))
++				goto invalid;
++			found = desc;
++		}
++
++		offset += note_size;
++	}
++
++	if (!found)
++		goto invalid;
++
++	memcpy(parsed, found, expected_size);
++	memset(build_id, 0, BUILD_ID_SIZE_MAX);
++	memcpy(build_id, parsed, expected_size);
++	return 0;
++
++invalid:
++	memset(build_id, 0, BUILD_ID_SIZE_MAX);
++	return -EINVAL;
++}
++
+ #if IS_ENABLED(CONFIG_STACKTRACE_BUILD_ID) || IS_ENABLED(CONFIG_VMCORE_INFO)
+ unsigned char vmlinux_build_id[BUILD_ID_SIZE_MAX] __ro_after_init;
+ 
+diff --git a/lib/buildid_test.c b/lib/buildid_test.c
+new file mode 100644
+index 000000000..27464f4bf
+--- /dev/null
++++ b/lib/buildid_test.c
+@@ -0,0 +1,359 @@
++// SPDX-License-Identifier: GPL-2.0
++
++#include <kunit/test.h>
++#include <linux/buildid.h>
++#include <linux/elf.h>
++#include <linux/errno.h>
++#include <linux/kernel.h>
++#include <linux/module.h>
++#include <linux/string.h>
++
++#define BUILDID_NOTE_TYPE	3
++#define BUILDID_TEST_BUF_SIZE	160
++
++static const u8 buildid_test_gnu_name[] = "GNU";
++static const u8 buildid_test_other_name[] = "Linux";
++static const u8 buildid_test_id[BUILD_ID_SIZE_MAX] = {
++	0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
++	0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10,
++	0x11, 0x12, 0x13, 0x14,
++};
++
++static const u8 buildid_test_zeros[BUILD_ID_SIZE_MAX];
++
++static size_t buildid_test_append_note(u8 *buf, size_t offset,
++				       size_t capacity, u32 type,
++				       const void *name, u32 namesz,
++				       const void *desc, u32 descsz)
++{
++	Elf32_Nhdr nhdr = {
++		.n_namesz = namesz,
++		.n_descsz = descsz,
++		.n_type = type,
++	};
++	size_t name_space = ALIGN((size_t)namesz, 4);
++	size_t desc_space = ALIGN((size_t)descsz, 4);
++	size_t note_size = sizeof(nhdr) + name_space + desc_space;
++
++	if (offset > capacity || note_size > capacity - offset)
++		return SIZE_MAX;
++
++	memset(buf + offset, 0, note_size);
++	memcpy(buf + offset, &nhdr, sizeof(nhdr));
++	if (namesz)
++		memcpy(buf + offset + sizeof(nhdr), name, namesz);
++	if (descsz)
++		memcpy(buf + offset + sizeof(nhdr) + name_space, desc, descsz);
++
++	return offset + note_size;
++}
++
++static size_t buildid_test_append_gnu_note(u8 *buf, size_t offset,
++					   size_t capacity,
++					   const void *desc, u32 descsz)
++{
++	return buildid_test_append_note(buf, offset, capacity,
++					BUILDID_NOTE_TYPE,
++					buildid_test_gnu_name,
++					sizeof(buildid_test_gnu_name),
++					desc, descsz);
++}
++
++static void buildid_test_expect_rejected(struct kunit *test, const void *buf,
++					 u32 buf_size, u32 expected_size,
++					 const char *reason)
++{
++	u8 output[BUILD_ID_SIZE_MAX];
++	int ret;
++
++	memset(output, 0xa5, sizeof(output));
++	ret = build_id_parse_buf_exact(buf, output, buf_size, expected_size);
++
++	KUNIT_EXPECT_EQ_MSG(test, ret, -EINVAL, "%s", reason);
++	KUNIT_EXPECT_MEMEQ_MSG(test, output, buildid_test_zeros, sizeof(output),
++			       "%s", reason);
++}
++
++static void buildid_test_valid_with_neighbors(struct kunit *test)
++{
++	static const u8 other_desc[] = { 0xa1, 0xb2, 0xc3 };
++	u8 buf[BUILDID_TEST_BUF_SIZE] = {};
++	u8 output[BUILD_ID_SIZE_MAX];
++	size_t size = 0;
++	int ret;
++
++	size = buildid_test_append_note(buf, size, sizeof(buf), 0x42,
++					buildid_test_other_name,
++					sizeof(buildid_test_other_name),
++					other_desc, sizeof(other_desc));
++	KUNIT_ASSERT_NE(test, size, SIZE_MAX);
++	size = buildid_test_append_gnu_note(buf, size, sizeof(buf),
++					    buildid_test_id,
++					    sizeof(buildid_test_id));
++	KUNIT_ASSERT_NE(test, size, SIZE_MAX);
++	size = buildid_test_append_note(buf, size, sizeof(buf), 0x43,
++					buildid_test_other_name,
++					sizeof(buildid_test_other_name),
++					other_desc, sizeof(other_desc));
++	KUNIT_ASSERT_NE(test, size, SIZE_MAX);
++
++	memset(output, 0xa5, sizeof(output));
++	ret = build_id_parse_buf_exact(buf, output, size,
++				       BUILD_ID_SIZE_MAX);
++
++	KUNIT_EXPECT_EQ(test, ret, 0);
++	KUNIT_EXPECT_MEMEQ(test, output, buildid_test_id, sizeof(output));
++}
++
++static void buildid_test_short_valid_zero_padded(struct kunit *test)
++{
++	u8 buf[BUILDID_TEST_BUF_SIZE] = {};
++	u8 output[BUILD_ID_SIZE_MAX];
++	u8 expected[BUILD_ID_SIZE_MAX] = {};
++	size_t size;
++	int ret;
++
++	size = buildid_test_append_gnu_note(buf, 0, sizeof(buf),
++					    buildid_test_id, 7);
++	KUNIT_ASSERT_NE(test, size, SIZE_MAX);
++	memcpy(expected, buildid_test_id, 7);
++	memset(output, 0xa5, sizeof(output));
++
++	ret = build_id_parse_buf_exact(buf, output, size, 7);
++
++	KUNIT_EXPECT_EQ(test, ret, 0);
++	KUNIT_EXPECT_MEMEQ(test, output, expected, sizeof(output));
++}
++
++static void buildid_test_rejected_candidates(struct kunit *test)
++{
++	u8 buf[BUILDID_TEST_BUF_SIZE] = {};
++	u8 zero_id[BUILD_ID_SIZE_MAX] = {};
++	size_t size;
++
++	size = buildid_test_append_gnu_note(buf, 0, sizeof(buf),
++					    buildid_test_id,
++					    sizeof(buildid_test_id));
++	KUNIT_ASSERT_NE(test, size, SIZE_MAX);
++	size = buildid_test_append_gnu_note(buf, size, sizeof(buf),
++					    buildid_test_id,
++					    sizeof(buildid_test_id));
++	KUNIT_ASSERT_NE(test, size, SIZE_MAX);
++	buildid_test_expect_rejected(test, buf, size, BUILD_ID_SIZE_MAX,
++				     "duplicate GNU build ID");
++
++	memset(buf, 0, sizeof(buf));
++	size = buildid_test_append_gnu_note(buf, 0, sizeof(buf),
++					    buildid_test_id,
++					    BUILD_ID_SIZE_MAX - 1);
++	KUNIT_ASSERT_NE(test, size, SIZE_MAX);
++	buildid_test_expect_rejected(test, buf, size, BUILD_ID_SIZE_MAX,
++				     "wrong build ID size");
++
++	memset(buf, 0, sizeof(buf));
++	size = buildid_test_append_gnu_note(buf, 0, sizeof(buf), zero_id,
++					    sizeof(zero_id));
++	KUNIT_ASSERT_NE(test, size, SIZE_MAX);
++	buildid_test_expect_rejected(test, buf, size, BUILD_ID_SIZE_MAX,
++				     "all-zero build ID");
++
++	memset(buf, 0, sizeof(buf));
++	size = buildid_test_append_note(buf, 0, sizeof(buf), 0x42,
++					buildid_test_other_name,
++					sizeof(buildid_test_other_name),
++					buildid_test_id, 4);
++	KUNIT_ASSERT_NE(test, size, SIZE_MAX);
++	buildid_test_expect_rejected(test, buf, size, BUILD_ID_SIZE_MAX,
++				     "missing GNU build ID");
++}
++
++static void buildid_test_truncated_notes(struct kunit *test)
++{
++	static const u8 short_name[] = { 'X', 'Y', '\0' };
++	static const u8 short_desc[] = { 0x21, 0x22, 0x23 };
++	Elf32_Nhdr nhdr = {
++		.n_namesz = sizeof(buildid_test_gnu_name),
++		.n_descsz = BUILD_ID_SIZE_MAX,
++		.n_type = BUILDID_NOTE_TYPE,
++	};
++	u8 buf[BUILDID_TEST_BUF_SIZE] = {};
++	size_t size, valid_size;
++
++	memcpy(buf, &nhdr, sizeof(nhdr));
++	buildid_test_expect_rejected(test, buf, sizeof(nhdr) - 1,
++				     BUILD_ID_SIZE_MAX, "truncated header");
++	buildid_test_expect_rejected(test, buf, sizeof(nhdr) + 3,
++				     BUILD_ID_SIZE_MAX, "truncated name");
++
++	memset(buf, 0, sizeof(buf));
++	valid_size = buildid_test_append_gnu_note(buf, 0, sizeof(buf),
++						  buildid_test_id,
++						  sizeof(buildid_test_id));
++	KUNIT_ASSERT_NE(test, valid_size, SIZE_MAX);
++	buildid_test_expect_rejected(test, buf, valid_size - 1,
++				     BUILD_ID_SIZE_MAX,
++				     "truncated descriptor");
++
++	size = buildid_test_append_note(buf, valid_size, sizeof(buf), 0x42,
++					short_name, sizeof(short_name), NULL, 0);
++	KUNIT_ASSERT_NE(test, size, SIZE_MAX);
++	buildid_test_expect_rejected(test, buf, size - 1,
++				     BUILD_ID_SIZE_MAX,
++				     "truncated name padding");
++
++	memset(buf + valid_size, 0, sizeof(buf) - valid_size);
++	size = buildid_test_append_note(buf, valid_size, sizeof(buf), 0x42,
++					buildid_test_gnu_name,
++					sizeof(buildid_test_gnu_name),
++					short_desc, sizeof(short_desc));
++	KUNIT_ASSERT_NE(test, size, SIZE_MAX);
++	buildid_test_expect_rejected(test, buf, size - 1,
++				     BUILD_ID_SIZE_MAX,
++				     "truncated descriptor padding");
++
++	memset(buf + valid_size, 0, sizeof(buf) - valid_size);
++	buf[valid_size] = 0xff;
++	buildid_test_expect_rejected(test, buf, valid_size + 1,
++				     BUILD_ID_SIZE_MAX, "trailing byte");
++}
++
++static void buildid_test_u32_size_overflow(struct kunit *test)
++{
++	static const struct {
++		u32 namesz;
++		u32 descsz;
++		const char *reason;
++	} cases[] = {
++		{ U32_MAX, 0, "name alignment overflow" },
++		{ 0, U32_MAX, "descriptor alignment overflow" },
++		{ U32_MAX - 3, 0, "name total-size overflow" },
++		{ 0, U32_MAX - 3, "descriptor total-size overflow" },
++	};
++	u8 buf[sizeof(Elf32_Nhdr)] = {};
++	size_t i;
++
++	for (i = 0; i < ARRAY_SIZE(cases); i++) {
++		Elf32_Nhdr nhdr = {
++			.n_namesz = cases[i].namesz,
++			.n_descsz = cases[i].descsz,
++			.n_type = BUILDID_NOTE_TYPE,
++		};
++
++		memcpy(buf, &nhdr, sizeof(nhdr));
++		buildid_test_expect_rejected(test, buf, sizeof(buf),
++					     BUILD_ID_SIZE_MAX,
++					     cases[i].reason);
++	}
++}
++
++static void buildid_test_unaligned_input(struct kunit *test)
++{
++	u8 buf[BUILDID_TEST_BUF_SIZE] = {};
++	u8 output[BUILD_ID_SIZE_MAX];
++	size_t end;
++	int ret;
++
++	end = buildid_test_append_gnu_note(buf, 1, sizeof(buf),
++					   buildid_test_id,
++					   sizeof(buildid_test_id));
++	KUNIT_ASSERT_NE(test, end, SIZE_MAX);
++	memset(output, 0xa5, sizeof(output));
++
++	ret = build_id_parse_buf_exact(buf + 1, output, end - 1,
++				       BUILD_ID_SIZE_MAX);
++
++	KUNIT_EXPECT_EQ(test, ret, 0);
++	KUNIT_EXPECT_MEMEQ(test, output, buildid_test_id, sizeof(output));
++}
++
++static void buildid_test_invalid_arguments(struct kunit *test)
++{
++	u8 buf[BUILDID_TEST_BUF_SIZE] = {};
++	u8 output[BUILD_ID_SIZE_MAX];
++	size_t size;
++	int ret;
++
++	size = buildid_test_append_gnu_note(buf, 0, sizeof(buf),
++					    buildid_test_id,
++					    sizeof(buildid_test_id));
++	KUNIT_ASSERT_NE(test, size, SIZE_MAX);
++
++	buildid_test_expect_rejected(test, buf, size, 0,
++				     "zero expected size");
++	buildid_test_expect_rejected(test, buf, size, BUILD_ID_SIZE_MAX + 1,
++				     "oversized expected size");
++	buildid_test_expect_rejected(test, NULL, 0, BUILD_ID_SIZE_MAX,
++				     "NULL input buffer");
++	buildid_test_expect_rejected(test, buf, 0, BUILD_ID_SIZE_MAX,
++				     "empty input buffer");
++
++	memset(output, 0xa5, sizeof(output));
++	ret = build_id_parse_buf_exact(buf, NULL, size, BUILD_ID_SIZE_MAX);
++	KUNIT_EXPECT_EQ(test, ret, -EINVAL);
++}
++
++static void buildid_test_success_output_alias(struct kunit *test)
++{
++	u8 buf[BUILDID_TEST_BUF_SIZE] = {};
++	u8 *descriptor;
++	size_t size;
++	int ret;
++
++	size = buildid_test_append_gnu_note(buf, 0, sizeof(buf),
++					    buildid_test_id,
++					    sizeof(buildid_test_id));
++	KUNIT_ASSERT_NE(test, size, SIZE_MAX);
++	descriptor = buf + sizeof(Elf32_Nhdr) +
++		     ALIGN(sizeof(buildid_test_gnu_name), 4);
++
++	ret = build_id_parse_buf_exact(buf, descriptor, size,
++				       BUILD_ID_SIZE_MAX);
++
++	KUNIT_EXPECT_EQ(test, ret, 0);
++	KUNIT_EXPECT_MEMEQ(test, descriptor, buildid_test_id, BUILD_ID_SIZE_MAX);
++}
++
++static void buildid_test_failure_output_alias(struct kunit *test)
++{
++	u8 buf[BUILDID_TEST_BUF_SIZE] = {};
++	u8 *descriptor;
++	size_t size;
++	int ret;
++
++	size = buildid_test_append_gnu_note(buf, 0, sizeof(buf),
++					    buildid_test_id,
++					    sizeof(buildid_test_id));
++	KUNIT_ASSERT_NE(test, size, SIZE_MAX);
++	descriptor = buf + sizeof(Elf32_Nhdr) +
++		     ALIGN(sizeof(buildid_test_gnu_name), 4);
++	buf[size++] = 0xff;
++
++	ret = build_id_parse_buf_exact(buf, descriptor, size,
++				       BUILD_ID_SIZE_MAX);
++
++	KUNIT_EXPECT_EQ(test, ret, -EINVAL);
++	KUNIT_EXPECT_MEMEQ(test, descriptor, buildid_test_zeros, BUILD_ID_SIZE_MAX);
++}
++
++static struct kunit_case buildid_test_cases[] = {
++	KUNIT_CASE(buildid_test_valid_with_neighbors),
++	KUNIT_CASE(buildid_test_short_valid_zero_padded),
++	KUNIT_CASE(buildid_test_rejected_candidates),
++	KUNIT_CASE(buildid_test_truncated_notes),
++	KUNIT_CASE(buildid_test_u32_size_overflow),
++	KUNIT_CASE(buildid_test_unaligned_input),
++	KUNIT_CASE(buildid_test_invalid_arguments),
++	KUNIT_CASE(buildid_test_success_output_alias),
++	KUNIT_CASE(buildid_test_failure_output_alias),
++	{}
++};
++
++static struct kunit_suite buildid_test_suite = {
++	.name = "buildid-exact",
++	.test_cases = buildid_test_cases,
++};
++
++kunit_test_suite(buildid_test_suite);
++
++MODULE_DESCRIPTION("KUnit tests for strict GNU build ID note parsing");
++MODULE_LICENSE("GPL");
+-- 
+2.50.1 (Apple Git-155)
+
