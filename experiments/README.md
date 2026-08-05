@@ -24,11 +24,13 @@ the loop. Positive identity-gated observations are unaffected.
 ### Current DA921x, I2C6, and A72 line
 
 - [2026-08-03 A72 CPU8/CPU9 scheduler-context execution](2026-08-03-a72-scheduler-context/README.md)
-  — freezes the next Gate 8 question after the repeatable pair-v6 parent: two
-  normal-priority kernel threads are created and CPU-bound before first wake,
-  must rendezvous in task context on CPUs 8/9, complete exact finite workloads,
-  and exit through the standard kthread lifecycle. Design review is in progress;
-  no source, compile, deployment, or runtime claim exists.
+  — diagnosed parked-task activation in the rejected phase parent, changed only
+  the two activations to explicit unpark, and passed the first fixed-map runtime
+  cycle. Complete changed-cycle pstore proves both normal-priority bound tasks
+  ran on CPUs 8/9, rendezvoused, completed 262,144 exact iterations each, and
+  exited through ordered cleanup before watchdog recovery. Recovery CPUs were
+  offline and boot2 was unchanged. One exact repeat is next; CPU_OFF and
+  production enablement remain prohibited.
 - [2026-08-03 A72 CPU8/CPU9 parallel disjoint load](2026-08-03-a72-cpu9-parallel-disjoint-load/README.md)
   — passed twice after one observation-loss cycle. In each accepted run CPUs 8
   and 9 concurrently wrote disjoint halves of a 64 KiB set for 128 rounds and

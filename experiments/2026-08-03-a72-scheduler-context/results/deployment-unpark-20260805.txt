@@ -1,0 +1,70 @@
+CPU8/CPU9 scheduler-unpark boot2 deployment
+============================================
+
+Date: 2026-08-05 UTC
+Result: write-synced-flushed-full-readback-verified
+
+Authorization and exact candidate
+---------------------------------
+
+The repository's standing exact-boot2 authorization applies to this accepted
+offline container. The Buildbox compile package remains honestly labeled
+`boot_candidate=false`; the separately constructed container, fixed decision
+map, guarded installer, and pushed runtime-tool revision select the exact
+deployable image without relabeling that compile package.
+
+- Runtime-tool repository commit:
+  185d72641a9a9ec05578275f698fbf3515db485f
+- Compile repository commit:
+  4f647c333056fd51aa2850957bb94ace508bedee
+- Compile-package `SHA256SUMS` SHA-256:
+  d36a6a12e2ef4d0501df78f8fa9a94e763c1907f155c5f008182eed2d1f0b7f2
+- Exact phase-parent patchset SHA-256:
+  b2c971d4a1860ec09616a61dbd8a29fde488f7d99deb8bd6bfbf2c517b2c3493
+- Exact unpark child patchset SHA-256:
+  bd5799cecd14aa34a87562b09507a6d9f18f11cd138420bcba629f12793e7bfe
+- Kernel field / `Image.gz-dtb` SHA-256:
+  b7ed626161490c64939f791e1caaaf6f4ffb03ecf55466776a19b74f02bb349c
+- Raw Android-v0 SHA-256:
+  f3e235f3c196667e892f6ed611db37f77ab465ce90b59be763bf3dddedc1fd5c
+- Candidate manifest SHA-256:
+  9928d416e8ad50a35652ab58721c6a3747b1e8f00ff5fa4883e3100550c634f5
+- Full 16 MiB boot2 SHA-256:
+  5b38e542586cf70f3fcf3de049f351671f96fab985e0d93fa79f90e2d04012c5
+
+Guarded deployment
+------------------
+
+- The changed-cycle pstore observer was bound to ordinary Gemian and waiting
+  for a stable disconnect before installation began.
+- The helper resolved logical `boot2` from the live GPT as
+  `/dev/mmcblk0p30`; ordinary Gemian root was `/dev/mmcblk0p29`.
+- The target was inactive, unmounted, exactly 16 MiB, and writable.
+- The battery was present, capacity was 81 percent, and health was Good.
+- The exact predecessor full-partition SHA-256 was
+  `2268e23559e8d36e4339a4fd912d0108721ed818e628dfc857cab2ab8e8049a8`.
+- No fresh predecessor backup was created; recovery continues to rely on the
+  verified project-wide device backup captured at project start.
+- The candidate fit, was padded to the target size, written, synchronized,
+  flushed, and read back in full through an independent host-side stream.
+- The full readback SHA-256 was exactly
+  `5b38e542586cf70f3fcf3de049f351671f96fab985e0d93fa79f90e2d04012c5`.
+- Temporary readback and remote staging state were removed.
+- Deployment boot-ID SHA-256 was
+  `3d83d1a89958b4387acbc2735bc11cfc5c06c4039a3e5accc7301a5ccaa9c741`;
+  the raw boot ID remains only in ignored private evidence.
+- The helper flushed its evidence, requested a clean shutdown, confirmed the
+  device unreachable, and did not request a reboot. The pstore observer then
+  confirmed the stable disconnect at 2026-08-05T00:23:41Z.
+
+Evidence integrity
+------------------
+
+- Private deployment-summary SHA-256:
+  `5d800439bddf20503ccfcc9deb78c675626f0d5e1940341bc910bc471a88d739`.
+- Private deployment `SHA256SUMS` SHA-256:
+  `7cc7fe1a6c5ae9c1654f802b9e9ed18d28764ed3c6d2a748fa1b6717785536a2`.
+- Every entry in the ignored deployment checksum manifest verified.
+
+This record establishes only the exact guarded installation, matching full
+readback, and clean handoff. Runtime classification is recorded separately.

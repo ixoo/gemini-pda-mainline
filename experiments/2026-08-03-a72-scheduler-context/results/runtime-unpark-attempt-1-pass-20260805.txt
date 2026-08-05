@@ -1,0 +1,144 @@
+CPU8/CPU9 scheduler-unpark runtime attempt 1
+============================================
+
+Date: 2026-08-05 UTC
+Decision: PASS
+
+The exact unpark successor passes the fixed decision map once. Both bound
+normal-priority kernel threads ran in scheduler context on their intended A72
+CPUs, rendezvoused, completed their exact finite workloads, and stopped
+cleanly. One exact repeat is earned. This result does not authorize CPU_OFF or
+production enablement.
+
+Exact candidate and fixed classifier
+------------------------------------
+
+- Full 16 MiB boot2 SHA-256:
+  5b38e542586cf70f3fcf3de049f351671f96fab985e0d93fa79f90e2d04012c5
+- Embedded `Image.gz-dtb` SHA-256:
+  b7ed626161490c64939f791e1caaaf6f4ffb03ecf55466776a19b74f02bb349c
+- Compile repository commit:
+  4f647c333056fd51aa2850957bb94ace508bedee
+- Exact unpark child patchset SHA-256:
+  bd5799cecd14aa34a87562b09507a6d9f18f11cd138420bcba629f12793e7bfe
+- Runtime-tool repository commit:
+  185d72641a9a9ec05578275f698fbf3515db485f
+- Fixed decision-map SHA-256:
+  663500e882e6086458bbf8736d0f36207373ae1c5c5e1a3384c6ab6a856bbbb4
+- Committed parser SHA-256:
+  3871817a60f6c8919eaf483d50e956a42bece2ada598b042474861f2e4b860a3
+
+Attributable cycle
+------------------
+
+- Observer start: 2026-08-05T00:22:40Z.
+- Stable deployment-shutdown disconnect: 2026-08-05T00:23:41Z.
+- Known-good reconnect: 2026-08-05T00:26:02Z.
+- Initial boot-ID SHA-256:
+  `3d83d1a89958b4387acbc2735bc11cfc5c06c4039a3e5accc7301a5ccaa9c741`.
+- Final boot-ID SHA-256:
+  `db5a29d404482b500a64001549ddd7e0b3bdeb43aab7789cf343786fbd7c5044`.
+- `boot_id_changed=yes`.
+
+The owner physically selected boot2 and reported its automatic return toward
+Gemian. The prearmed observer independently required the stable disconnect,
+then accepted only Gemian with a changed boot ID and captured that cycle's
+pstore. The recovered command line reported `boot_reason=4` and
+`androidboot.bootreason=wdt_by_pass_pwk`.
+
+The owner selected boot2 before the optional read-only USB/netcat collector was
+armed, so no secondary USB capture exists. This is recorded as an observation-
+sequence deviation, not inferred away. The fixed PASS branch requires the
+changed-cycle primary pstore and recovery predicates below; it does not require
+USB corroboration. The complete primary record makes another observation path
+unnecessary for this classification.
+
+Complete scheduler trace
+------------------------
+
+The 65,524-byte retained console contains exactly 39 phase records from
+10.885381 through 10.900792 seconds:
+
+- 23 parent records, in the complete exact order from `create8-before` through
+  `run-exit`;
+- eight CPU8 task records, in exact ready, start-wait, work, and done order;
+- eight CPU9 task records, in that same exact per-CPU order; and
+- every fixed cross-causal edge, including unpark before first task execution,
+  both ready publications before release, release before task work, task done
+  before parent completion, and cleanup before `run-exit`.
+
+The committed validator accepted a one-snapshot projection of the retained
+pstore event stream with `phase_records=39` and `terminal_result=pass`. Its
+USB-specific host-terminator class is not used to classify primary pstore.
+There is no retained kernel panic, NULL dereference, BUG, Internal error, Call
+trace, asynchronous SError, or lockup marker.
+
+Adjacent exact terminals
+------------------------
+
+Immediately after `run-exit`, pair-v6 reports its complete inherited PASS
+contract. Both A72 CPUs were online for all three samples; the scalar exchange,
+1,024-round coherency test, 64-round multi-cacheline test, and 128-round
+parallel/disjoint test all completed with their exact counts and hashes, zero
+errors, and zero mismatch sentinels. The fail-closed HPS CPU9-down veto recorded
+84 expected rejections.
+
+The adjacent pair-v7 terminal reports:
+
+  result=pass parent_pass=1 sc_reported=1
+  sc_iterations=262144 sc_rescheds=64
+  sc_expected8=8 sc_start8=8 sc_end8=8
+  sc_expected9=9 sc_start9=9 sc_end9=9
+  sc_task8=1 sc_task9=1 sc_create8=0 sc_create9=0
+  sc_unpark8=1 sc_unpark9=1
+  sc_readywait8=1 sc_readywait9=1
+  sc_startwait8=1 sc_startwait9=1 sc_wait8=1 sc_wait9=1
+  sc_error8=0 sc_error9=0 sc_stop8=0 sc_stop9=0
+  sc_done8=262144 sc_done9=262144 sc_ready=2 sc_finished=2
+  sc_hash8=f678147669874ecd sc_hash9=c2274327e9c8104c
+
+These fields and the marker order independently establish that both parked
+tasks were explicitly unparked, dispatched on the intended CPUs, released only
+after both were ready, completed the exact workloads, and exited through
+ordered stop cleanup.
+
+Recovery and evidence integrity
+-------------------------------
+
+- Recovery was ordinary Gemian `3.18.41+` on aarch64 with root
+  `/dev/mmcblk0p29`.
+- CPU8 and CPU9 were present and each reported `online=0` after recovery.
+- Live GPT resolved exactly one `boot2`, `/dev/mmcblk0p30`; it was inactive,
+  unmounted, writable, and had no holders.
+- The post-recovery full boot2 SHA-256 remained exactly
+  `5b38e542586cf70f3fcf3de049f351671f96fab985e0d93fa79f90e2d04012c5`.
+- Console-ramoops SHA-256:
+  `b28ff65c20b9e865ad3d0f4789c43a8b902a94580f04330f293918eab27210bd`.
+- Pmsg-ramoops-0 SHA-256:
+  `82ede24eb538855d2ea4a5fc30292f06496d9251fa1226b6f6219c74077d8a5d`.
+- Pstore archive SHA-256:
+  `fe32fe219d7de9f31ebd9f575fcf19d371f7968c70d70d7f8e518374fdc583da`.
+- Cycle record SHA-256:
+  `1cd420c2cf764a2274007eb50b8f1f24527fec0d19d5114756c6abf7251f9ed7`.
+- Metadata record SHA-256:
+  `31a4bd82094ce2ffa7908b01aad74776999523ad66dbd353977cfe9656969323`.
+- Private post-recovery check SHA-256:
+  `2579f4f46fff1b100c8b822b92e945b73a487a11e6943b3ffc6b38955886d3b7`.
+- Pstore `SHA256SUMS` SHA-256:
+  `201a7c370c21a3571677d529cafa9f22ecd1367e2bd9e593f65539a7c365a5bc`.
+- Every entry in both ignored evidence checksum manifests verified.
+
+Decision and limits
+-------------------
+
+Every fixed PASS predicate is satisfied: complete valid trace, `run-exit`,
+adjacent exact pair-v6 and pair-v7 passes, no fatal marker, changed-cycle
+watchdog recovery, offline recovery CPUs 8/9, inactive unmounted boot2, and its
+unchanged exact checksum. One exact repeat is therefore earned.
+
+This first pass establishes bounded scheduler-context readiness, release,
+execution, completion, and cleanup for both retained A72 CPUs on the named
+unit. It does not establish repeatability yet and does not authorize CPU_OFF,
+remove the HPS veto, prove production scheduling or sustained load, validate
+thermal or OPP/cpufreq behavior, validate suspend/resume, or enable CPUs 8/9 in
+a default profile.

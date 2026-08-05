@@ -1259,29 +1259,34 @@ passes; exact identities and acceptance evidence remain in the
 Two independent retained Android-v0 constructions from that exact accepted
 child kernel are byte-identical and pass structural, ramdisk, legacy-ID,
 extent, zero-padding, provenance, offline-only, pinned-tool-chain, and negative-
-mutation validation. The exact accepted 16 MiB image SHA-256 is
-`5b38e542586cf70f3fcf3de049f351671f96fab985e0d93fa79f90e2d04012c5`;
-exact identities and review remain in the
+mutation validation. Exact identities and review remain in the
 [offline-container record](../experiments/2026-08-03-a72-scheduler-context/results/offline-container-review-unpark-20260804.txt).
 The guarded live-GPT boot2 installer, fixed runtime decision map, changed-cycle
 pstore observer, and read-only USB/netcat collector now pass independent
-review for that exact successor and the rejected
-`2268e23559e8d36e4339a4fd912d0108721ed818e628dfc857cab2ab8e8049a8`
-predecessor. The final parser source-pins the unpark marker and pair-v7 schema,
-requires exact unpark field/marker causality, and rejects legacy wake evidence;
-the exact review is in the
+review for the exact successor and rejected phase predecessor. The final
+parser source-pins the unpark marker and pair-v7 schema, requires exact unpark
+field/marker causality, and rejects legacy wake evidence; the exact review is
+in the
 [runtime-tool record](../experiments/2026-08-03-a72-scheduler-context/results/runtime-tools-unpark-20260804.txt)
 under the fixed
 [decision map](../experiments/2026-08-03-a72-scheduler-context/results/runtime-decision-map-unpark-20260804.txt).
-After this clean tooling/evidence revision is pushed, the next ordered action
-is to prearm the unique changed-cycle pstore observer, require its explicit
-disconnect-wait readiness, and run the guarded installer once from ordinary
-Gemian. It must match the exact predecessor, write only the exact successor,
-pass flush and independent full readback, remove temporary state, and shut the
-device down without reboot. While it is off, arm the read-only USB/netcat
-observer and physically select boot2 once. Only the fixed unpark decision map
-may classify the resulting changed-ID cycle. Do not repeat the old image or
-perform any unobserved boot.
+The accepted unpark successor has now passed its
+[guarded deployment](../experiments/2026-08-03-a72-scheduler-context/results/deployment-unpark-20260805.txt)
+and one
+[fixed-map runtime cycle](../experiments/2026-08-03-a72-scheduler-context/results/runtime-unpark-attempt-1-pass-20260805.txt).
+Changed-cycle primary pstore contains the complete phase trace and exact
+pair-v6/pair-v7 PASS terminals; both bound tasks completed on their intended
+CPUs, and watchdog recovery returned with CPUs 8/9 offline and boot2 unchanged.
+
+The next ordered action is one exact unchanged repeat from a fresh ordinary-
+Gemian baseline. Prearm a unique changed-cycle pstore observer and require its
+disconnect-wait readiness; run the reviewed installer's already-current path
+so no write occurs while inactive/unmounted boot2 identity, full readback, and
+clean shutdown are re-established. While the device is off, arm the read-only
+USB/netcat observer and physically select boot2 once. Only the fixed unpark
+decision map may classify the cycle. A second PASS closes only bounded
+scheduler-context repeatability; do not run a third identical cycle or enable
+CPU_OFF.
 
 CPU9, suspend/resume, later power boundaries, a mainline provider write, and
 any A72 consumer remain blocked until their separate ownership and rollback

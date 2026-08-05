@@ -5,10 +5,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-scheduler-context` |
-| Status | `blocked-unpark-deployment-pending` |
+| Status | `attempt-1-pass-repeat-earned` |
 | Subsystem | MT6797 retained Cortex-A72 pair and scheduler |
 | Device variant | Gemini PDA x27, named project device |
-| Date(s) | 2026-08-03 through 2026-08-04 |
+| Date(s) | 2026-08-03 through 2026-08-05 |
 | Investigator(s) | Gemini mainline project |
 | Tracking issue | Roadmap Gate 8 scheduler-context execution |
 
@@ -524,6 +524,24 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   [`results/runtime-decision-map-unpark-20260804.txt`](results/runtime-decision-map-unpark-20260804.txt)
   and
   [`results/runtime-tools-unpark-20260804.txt`](results/runtime-tools-unpark-20260804.txt).
+- The guarded unpark deployment resolved live GPT boot2 as
+  `/dev/mmcblk0p30`, proved ordinary Gemian root `/dev/mmcblk0p29`, matched the
+  rejected phase predecessor, wrote and fully read back the exact accepted
+  16 MiB successor, removed temporary state, and cleanly shut the device down
+  without requesting a reboot. No fresh backup was created. The already-armed
+  pstore observer confirmed the shutdown. See
+  [`results/deployment-unpark-20260805.txt`](results/deployment-unpark-20260805.txt).
+- Unpark runtime attempt 1 passes the fixed map. Changed-cycle primary pstore
+  retains the complete 39-record trace, `run-exit`, and adjacent exact pair-v6
+  and pair-v7 PASS terminals. CPU8 and CPU9 each ran all 262,144 bounded
+  scheduler-context iterations on the intended CPU with their exact hashes;
+  both readiness, release, completion, unpark, and cleanup contracts passed.
+  Watchdog-class recovery returned ordinary Gemian with CPUs 8/9 offline,
+  inactive unmounted boot2, and its full checksum unchanged. Physical boot2
+  selection preceded the optional USB observer, so no secondary USB record
+  exists; the complete primary pstore satisfies every fixed PASS predicate.
+  One exact repeat is earned. See
+  [`results/runtime-unpark-attempt-1-pass-20260805.txt`](results/runtime-unpark-attempt-1-pass-20260805.txt).
 
 ## Analysis
 
@@ -532,26 +550,25 @@ integrity. It does not prove that the scheduler can dispatch and cleanly retire
 ordinary tasks on both retained A72 CPUs. This child changes only that execution
 context while preserving the established power and recovery boundary.
 
+The first exact unpark cycle now proves that bounded dispatch and cleanup once:
+both per-CPU tasks entered normal scheduler context on their intended CPUs,
+rendezvoused through the predeclared start gate, completed the deterministic
+workload, and exited cleanly. Repeatability, production scheduling, CPU_OFF,
+and every later power-management boundary remain separate claims.
+
 ## Conclusion
 
-`blocked-unpark-deployment-pending`: phase-attribution attempt 1 is an
-attributable restart with incomplete trace under the fixed decision map. The
-guarded exact boot2 write and shutdown succeeded, but retained pstore cannot
-localize the reset beyond its valid marker prefix. A separate exact-source/
-binary audit establishes that the rejected design left its per-CPU kthreads
-parked and released them only through ordered stop cleanup, accounting for the
-retained no-task prefix and the earlier serialized execution. This mechanism
-does not promote the incomplete trace to a first-unmatched boundary and does
-not establish a scheduler/runqueue defect. The exact unpark-only child has now
-been generated, independently reviewed, admitted after the historical parent,
-and compiled against that exact parent. Source, mutation, configuration,
-diagnostics, lifecycle-disassembly, marker, terminal, stack, package, and
-provenance gates pass. Two independent retained constructions now establish
-the exact unpark Android-v0 container and its 16 MiB padded identity. The
-guarded installer and fixed pstore/USB decision path now pass exact source,
-identity, offline-action, causality, and mutation review. Reject the previous
-boot artifact unchanged; the accepted successor is not yet a deployment or
-runtime result. Continue only through the ordered action in `docs/ROADMAP.md`.
+`attempt-1-pass-repeat-earned`: the source/binary diagnosis was correct.
+Replacing only the two parked-task activation calls with `kthread_unpark()`
+produced one complete scheduler-context PASS without changing the inherited
+pair-v6, safety, or recovery boundary. Both CPU8 and CPU9 tasks ran on their
+intended CPUs, completed the exact finite workload, and exited through ordered
+cleanup; changed-cycle watchdog recovery, offline recovery CPUs, and unchanged
+boot2 all passed. This closes one bounded observation, not repeatability or
+production support. The fixed map earns exactly one identical repeat. CPU_OFF,
+the HPS-veto removal, sustained scheduling/load, OPP/cpufreq, thermal,
+suspend/resume, and default-profile integration remain unauthorized or
+unproved. Continue only through the ordered action in `docs/ROADMAP.md`.
 
 ## Follow-up
 
