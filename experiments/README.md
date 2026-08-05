@@ -23,6 +23,17 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-05 A41 immutable evidence/plan/receipt boundary](2026-08-05-a72-a41-immutable-plan/README.md)
+  — replaces the mixed three-capability draft with ABI 3 separation between
+  fallible evidence, a state-free immutable plan, an architecture-owned
+  receipt, and the copied READY token. The exact selected-profile census is
+  40 compiled local descriptors: 4 source/profile-static PRESENT, 30 ABSENT,
+  and 6 evidence-dependent. Full per-target register, cache, GIC/hyp,
+  WA1/WA2/WA3, ASID, granule, VA, HWCAP, and typed-effect boundaries are
+  described, but the classifier resolves nothing, validation and preparation
+  return `-EAGAIN`, and the architecture mutation implementation is
+  unavailable. This is `PARTIAL_IMMUTABLE_PLAN_BOUNDARY`: no build, boot
+  candidate, device action, or hardware-support claim is authorized.
 - [2026-08-05 A41 canonical read-only capability planner](2026-08-05-a72-a41-canonical-planner/README.md)
   — extends the blocked A41 lifecycle with iteration-bounded traversal of
   surviving canonical arm64 descriptors and a read-only plan for BHB loop

@@ -1359,6 +1359,31 @@ native/compat HWCAPs, and A36/P17/P18 consumers remain open. This advances A41
 only to `PARTIAL_READ_ONLY_PLANNER`; it does not relax A26/A14, authorize a
 build, or justify device action.
 
+The follow-on source-only
+[A41 immutable-plan boundary](../experiments/2026-08-05-a72-a41-immutable-plan/README.md)
+corrects the partial planner's three-row completeness assumption. The exact
+selected expected profile contains 40 compiled local descriptors: 4 can be
+classified PRESENT from source/profile-static inputs, 30 ABSENT, and 6 remain
+evidence-dependent (GICv5 legacy, ICH_HCR_EL2.TDIR, mismatched cache type,
+Spectre-v2, Spectre-v4, and BHB). AMU and hardware dirty-bit management are
+already early-present and are not new effects. BHB capability state depends
+on target CSV2.3; ClearBHB, ECBHB, WA3, conduit, Spectre-v2 state, and policy
+select its method, so loop `k=8` is not evidence of presence.
+
+Patch 0151 introduces ABI 3 separation between fallible per-target evidence,
+a state-free immutable complete plan, an architecture-owned monotonic
+receipt, and the only READY token later admission consumers may observe. It
+describes full separate CPU8/CPU9 AArch64 and AArch32 ID images, cache,
+GIC/hyp, WA1/WA2/WA3, ASID, granule, active-VA, native/compat-HWCAP, and typed
+CTR/Spectre/BHB/compat-AES/speculative-AT effects. The architecture commit
+entry now precedes normal system capability finalization, but its mutation
+implementation is unavailable. The MT6797 classifier returns UNRESOLVED for
+every row, validation and preparation return `-EAGAIN`, no canonical plan
+identity is written, and PLAN_FROZEN, COMMITTED, and READY remain unreachable.
+This advances A41 only to `PARTIAL_IMMUTABLE_PLAN_BOUNDARY`; the A26 boot
+and A14 disable vetoes plus `maxcpus=8` remain, and no build, boot candidate,
+or device action is authorized.
+
 P30K/C/P/E/U separate CPU_KILL_ME, post-C bare STUCK, panic, pre-C reasoned
 STUCK, and default timeout. The timeout path now requires exact-generation
 cancellation-versus-publication arbitration because global task, status,
@@ -1388,16 +1413,18 @@ names for that operation is implemented and proven.
 
 The next ordered work remains source-only:
 
-1. Complete A41 from the canonical read-only planner: classify every remaining
-   compiled local predicate from an exact resolved/running configuration and
-   safe target evidence; validate the complete target register, cache,
-   firmware, ASID, translation, GIC, strict/system/boot-capability, and
-   native/compat-HWCAP state; freeze one immutable complete plan; then add a
-   separate infallible architecture-owned pre-finalization commit for the full
-   target register and Spectre/BHB state, including BHB `k=8`, erratum 1742098,
-   speculative-AT, and compat AES suppression. Assert the resulting
-   alternatives and vectors and bind the exact READY identity to A36/P17/P18.
-   Mutation tests must keep every incomplete or drifted branch blocked.
+1. Complete A41 from the ABI 3 immutable-plan boundary. First implement the
+   exhaustive evaluator for the exact 40-row census: resolve the six
+   evidence-dependent capability states from an exact resolved/running
+   configuration and safe per-target evidence, validate the complete target
+   register, cache, firmware WA1/WA2/WA3, ASID, translation, GIC,
+   strict/system/boot-capability, and native/compat-HWCAP state, and compute
+   one canonical field-wise plan identity. Then implement the separate
+   infallible architecture-owned pre-finalization commit for the exact typed
+   CTR, Spectre-v2, Spectre-v4, BHB, erratum 1742098, speculative-AT, and
+   compat-AES effects. Assert the resulting alternatives and vectors and bind
+   the exact READY identity to A36/P17/P18. Mutation tests must keep every
+   incomplete or drifted branch blocked.
 2. Implement and mutation-test P30K/C/P/E/U, including the generation-scoped
    timeout arbitration, global completion/status redesign, target park
    acknowledgment, exact P14/P15 controller point, and global fail-stop

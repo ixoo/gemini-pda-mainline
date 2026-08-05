@@ -1,0 +1,32 @@
+key	value	basis
+implementation_state	PARTIAL_IMMUTABLE_PLAN_BOUNDARY	patch 0151
+a41_complete	no	classifier validator and preparation reject
+plan_abi	3	ARM64_LATE_CPU_PLAN_ABI
+source_parent_identity	a1573b40b7b8f5a8a87f7a2b9a431090bf714ed52c79cf1e93c78d28ce633c56	previous exact planner source state
+config_input_identity	91694455fdc124725704ea5f0cfdeecbd9e51829d20021f328714aca76b2edb8	ordered manifest profile inputs
+compiled_local_cap_count	40	exact selected source and expected profile census
+static_present_count	4	AMU HW_DBM 1742098 speculative-AT
+static_absent_count	30	exact A72 or selected-profile exclusions
+evidence_dependent_count	6	slots 33 36 69 79 81 82
+fallible_evidence	separate	arm64_late_cpu_evidence
+immutable_plan	separate	arm64_late_cpu_plan
+architecture_receipt	separate	arm64_late_cpu_receipt
+ready_token	separate	arm64_late_cpu_ready_token
+full_target_register_image	described	AArch64 and AArch32 ID register fields plus cache GIC hyp and firmware evidence
+typed_effect_count	6	CTR Spectre-v2 Spectre-v4 BHB compat-AES speculative-AT
+firmware_workaround_count	3	WA1 WA2 WA3
+canonical_plan_identity	unavailable	future exhaustive evaluator owns field-wise identity
+profile_classifier	all_unresolved	no partial census can freeze
+profile_validate_plan	-EAGAIN	no partial plan can freeze
+profile_prepare	-EAGAIN	all current evidence remains blocked
+architecture_commit	mutation_unavailable	entry is ordered before finalization but cannot mutate
+plan_frozen_reachable	no	identity absent plus deliberate classifier rejection
+committed_reachable	no	commit implementation unavailable
+ready_reachable	no	verification chain cannot start
+cpu_boot_veto	-EAGAIN	patch 0092 safety boundary retained
+cpu_disable_veto	false	patch 0092 safety boundary retained
+maxcpus	8	selected profile inherits gemini-smp8 fragment
+boot_candidate	false	source-only archive
+build_authorized	no	A41 gates remain open
+device_action_authorized	no	A41 gates remain open
+hardware_support_claim	none	no build or runtime evidence

@@ -1,0 +1,17 @@
+bit	symbol	owner	current_state	abi3_binding
+0	ARM64_LATE_CPU_BLOCK_REGISTRATION	core	conditional	bounded target registration plus descriptor identity
+1	ARM64_LATE_CPU_BLOCK_TOPOLOGY	profile	conditional	exact ten-CPU topology and CPU8/CPU9 target mask
+2	ARM64_LATE_CPU_BLOCK_CONFIGURATION	profile	blocked	resolved and running configuration identity
+3	ARM64_LATE_CPU_BLOCK_CAP_INVENTORY	core	blocked	all 40 compiled local descriptors classified
+4	ARM64_LATE_CPU_BLOCK_FIRMWARE_WA1	profile	blocked	target Spectre-v2 state and method evidence
+5	ARM64_LATE_CPU_BLOCK_FIRMWARE_WA2	profile	blocked	target Spectre-v4 state and method evidence
+6	ARM64_LATE_CPU_BLOCK_ID_REGISTERS	profile	blocked	full separate CPU8/CPU9 register images
+7	ARM64_LATE_CPU_BLOCK_CACHE_TYPE	profile	blocked	raw and effective CTR plus CLIDR and system comparison
+8	ARM64_LATE_CPU_BLOCK_ASID	profile	blocked	per-target ASID width compatibility
+9	ARM64_LATE_CPU_BLOCK_GRANULE	profile	blocked	per-target active-granule compatibility
+10	ARM64_LATE_CPU_BLOCK_VA_MODE	profile	blocked	per-target active-VA-mode compatibility
+11	ARM64_LATE_CPU_BLOCK_GIC	profile	blocked	ICC_SRE ICC_IDR0 ICH_VTR and hyp usability
+12	ARM64_LATE_CPU_BLOCK_HWCAP	profile	blocked	exact native and compat HWCAP compatibility
+13	ARM64_LATE_CPU_BLOCK_ATTESTATION_USERS	profile	blocked	one READY identity bound to A36 P17 and P18
+14	ARM64_LATE_CPU_BLOCK_SOURCE_IDENTITY	profile	blocked	non-circular build and running-image identity
+15	ARM64_LATE_CPU_BLOCK_FIRMWARE_WA3	profile	blocked	target BHB method evidence
