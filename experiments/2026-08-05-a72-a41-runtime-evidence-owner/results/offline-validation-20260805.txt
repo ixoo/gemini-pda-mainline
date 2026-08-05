@@ -1,0 +1,30 @@
+validation=a41-runtime-evidence-owner-offline
+PASS experiment-safety
+PASS manifest-profile
+PASS configuration-identity
+PASS all-profile-series-invariant
+PASS selected-series-identity
+PASS patch-provenance-and-inventory
+PASS no-external-actions
+PASS abi6-interface
+PASS core-private-owner
+PASS seal-order-and-publication
+PASS profile-runtime-rejection
+PASS profile-observation-rejection
+PASS fixture-runtime-distinction
+PASS prepare-validate-commit-vetoes
+PASS boot-disable-vetoes
+PASS source-identity-and-patch-application
+PASS static-tooling
+patch_sha256=bc52553d645d9d33c77e6b31e630be2243b8cb3984729422fc0ef0a7d5d45928
+series_sha256=04a20ca7ac3d979c8334ab419baed203d80c2d1c183b3a00cd44eb095293455f
+patchset_sha256=ff75286cf2372fac435f5e4aae284411df8b7b9db1b167258927a707da070477
+source_state_sha256=c22cfc0af5aa41ca03ce1e13844866d559eac09a08718191b8857e50078f9092
+config_sha256=7b875e34f11c7c6d007124aacc3e1e013acc41cc1628913a94cfddf0be8d7a74
+implementation_state=ABI6_OWNER_BOUNDARY_BLOCKED
+runtime_producer=absent
+a41_complete=no
+network_accessed=no
+build_invoked=no
+device_accessed=no
+RESULT PASS 17/17

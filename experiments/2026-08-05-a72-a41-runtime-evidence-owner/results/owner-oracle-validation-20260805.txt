@@ -1,0 +1,27 @@
+test_all_three_identity_pairs_must_agree (__main__.OwnerOracleTest.test_all_three_identity_pairs_must_agree) ... ok
+test_both_target_records_are_required (__main__.OwnerOracleTest.test_both_target_records_are_required) ... ok
+test_complete_fixture_evaluates_but_never_counts_runtime (__main__.OwnerOracleTest.test_complete_fixture_evaluates_but_never_counts_runtime) ... ok
+test_completeness_contract_is_independent_and_exact (__main__.OwnerOracleTest.test_completeness_contract_is_independent_and_exact) ... ok
+test_core_starts_open_and_preseal_profile_is_blocked (__main__.OwnerOracleTest.test_core_starts_open_and_preseal_profile_is_blocked) ... ok
+test_duplicate_target_identity_is_rejected (__main__.OwnerOracleTest.test_duplicate_target_identity_is_rejected) ... ok
+test_each_record_must_bind_the_ordered_identity_pair (__main__.OwnerOracleTest.test_each_record_must_bind_the_ordered_identity_pair) ... ok
+test_empty_duplicate_and_unexpected_evidence_are_rejected (__main__.OwnerOracleTest.test_empty_duplicate_and_unexpected_evidence_are_rejected) ... ok
+test_every_target_field_is_required (__main__.OwnerOracleTest.test_every_target_field_is_required) ... ok
+test_identity_pairs_must_be_present_and_nonempty (__main__.OwnerOracleTest.test_identity_pairs_must_be_present_and_nonempty) ... ok
+test_no_profile_origin_can_reach_production (__main__.OwnerOracleTest.test_no_profile_origin_can_reach_production) ... ok
+test_none_origin_cannot_carry_evidence (__main__.OwnerOracleTest.test_none_origin_cannot_carry_evidence) ... ok
+test_none_origin_is_blocked_by_sealed_empty_record (__main__.OwnerOracleTest.test_none_origin_is_blocked_by_sealed_empty_record) ... ok
+test_paired_oracle_sample_is_rejected (__main__.OwnerOracleTest.test_paired_oracle_sample_is_rejected) ... ok
+test_post_evaluation_replay_and_mutation_are_rejected (__main__.OwnerOracleTest.test_post_evaluation_replay_and_mutation_are_rejected) ... ok
+test_profile_declared_runtime_has_no_positive_path (__main__.OwnerOracleTest.test_profile_declared_runtime_has_no_positive_path) ... ok
+test_profile_has_no_seal_or_provider_control (__main__.OwnerOracleTest.test_profile_has_no_seal_or_provider_control) ... ok
+test_repeated_or_post_seal_attempt_faults_private_state (__main__.OwnerOracleTest.test_repeated_or_post_seal_attempt_faults_private_state) ... ok
+test_string_runtime_label_is_not_an_origin_attestation (__main__.OwnerOracleTest.test_string_runtime_label_is_not_an_origin_attestation) ... ok
+test_submission_generation_drift_is_rejected (__main__.OwnerOracleTest.test_submission_generation_drift_is_rejected) ... ok
+test_swapped_target_records_are_rejected (__main__.OwnerOracleTest.test_swapped_target_records_are_rejected) ... ok
+test_target_generation_drift_is_rejected (__main__.OwnerOracleTest.test_target_generation_drift_is_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 22 tests in 0.002s
+
+OK

@@ -1,0 +1,29 @@
+field_or_state	current_abi6_owner	current_value_or_rule	future_authoritative_producer	consumer_or_verifier	claim_limit
+runtime_evidence_storage	arm64 core private __initdata	ABI 6; not exposed to profiles	arm64 core producer path only	arm64 seal and preparation	ownership boundary only; no producer exists
+runtime_evidence_state	arm64 core	OPEN then SEALED_EMPTY; SEALED_RUNTIME reserved; FAULT on invalid seal	arm64 seal state machine	arm64 preparation acquire-load	SEALED_EMPTY is not runtime evidence
+seal_order	arm64 smp core	immediately after hyp_mode_check and before arm64_prepare_late_cpu_profile and setup_system_features	fixed boot ordering	seal precondition checks plus preparation	post-hyp and pre-finalization only
+profile_source_parent_identity	MT6797 profile	expected source input only	validated source/package metadata	profile and external source audit	does not identify running image
+profile_config_input_identity	MT6797 profile	expected ordered config-input identity only	validated manifest/package metadata	profile and external config audit	does not identify resolved or running config
+target_cpu_expectations	MT6797 profile	logical CPUs 8 and 9	selected profile and validated topology	arm64 registration and profile validator	expectation only
+target_mpidr_midr_expectations	MT6797 profile	MPIDR 0x200/0x201 and Cortex-A72 model	selected profile plus future DT expected record	core topology comparison	expectation only; never an observation
+runtime_binding_origin_validity	arm64 core	NONE and zero in current private record	core identity producer after complete comparison	seal plus late_profile_runtime_binding_complete	profile RUNTIME is rejected
+expected_config_image_identity	unimplemented	absent	validated package to future DT parser	arm64 core identity verifier	future record only
+running_config_image_identity	unimplemented	absent	arm64 core hash of resident IKCONFIG gzip	arm64 core identity verifier	future producer only; distinct from raw .config hash
+expected_image_build_id_identity	unimplemented	absent	validated package to future DT parser	arm64 core identity verifier	future record only
+running_image_build_id_identity	unimplemented	absent	arm64 core parse and hash of in-memory GNU build ID	arm64 core identity verifier	linked-image attribution; not full live-text measurement
+expected_cmdline_identity	unimplemented	absent	validated compiled forced cmdline to future DT parser	arm64 core identity verifier	future record only
+running_cmdline_identity	unimplemented	absent	arm64 core hash of saved_command_line	arm64 core identity verifier	requires byte equality with CONFIG_CMDLINE under CMDLINE_FORCE
+observed_target_mpidr_midr_revidr	arm64 private record	all zero; profile NONE cannot supply	CPU8 and CPU9 target-local collector	arm64 core target mapping verifier	no current observation
+target_register_cache_evidence	arm64 private record	all zero; profile NONE cannot supply	each target-local collector plus core CTR recomputation	canonical capability evaluator	no current observation
+target_gic_hyp_evidence	arm64 private record	all zero; profile NONE cannot supply	each target-local collector with EL-aware probes	arm64 core GIC/hyp verifier	no current observation
+target_firmware_wa_evidence	arm64 private record	all zero; profile NONE cannot supply	each target-local collector using its actual conduit	arm64 core SMCCC status verifier	CPU0 responses cannot substitute
+target_policy_evidence	arm64 private record for production; profile for FIXTURE	zero in production; explicit synthetic values in fixture	arm64 core from current conduit and mitigation policy	core/profile evaluator	fixture policy is not runtime policy
+system_capability_evidence	arm64 private record	all zero in production	arm64 core from boot CPU and current system state	core planner and verifier	profile NONE cannot supply
+canonical_evidence_identity	arm64 core	zero and unavailable	core field-wise serialization after all producers complete	seal plan and READY chain	future only
+profile_fixture_evidence	MT6797 profile	explicit FIXTURE retained for pure six-row evaluation	static source fixture	profile validator and mutation tests	cannot be overlaid or published as runtime
+profile_runtime_observations	forbidden	RUNTIME origin or NONE with nonempty runtime fields blocks	none	arm64 preparation	paired-oracle path closed
+runtime_overlay	arm64 core	unreachable because SEALED_RUNTIME has no producer	core after complete sealed runtime record	arm64 preparation	future consumption path only
+blocker_receipt	arm64 core with conservative profile inputs	RUNTIME_BINDING and COMMIT_PATH retained	core lifecycle	late receipt state	BLOCKED only
+capability_plan	arm64 core normalized scratch plus profile evaluator	fixture may calculate rows and effects; identity remains zero	future complete runtime evaluator	core plan validation	no PLAN_FROZEN
+commit_receipt_ready_token	arm64 core	commit unavailable and READY unreachable	future architecture mutation and verification transaction	system user and admission consumers	no current publication
+full_image_container_partition_hashes	build deployment tooling	absent from this source-only record	Buildbox package candidate builder and boot2 readback	external provenance and deployment validators	cannot be embedded self-referentially or satisfy target-local evidence

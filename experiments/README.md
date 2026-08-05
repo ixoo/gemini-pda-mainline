@@ -23,6 +23,15 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-05 A41 core-owned runtime-evidence boundary](2026-08-05-a72-a41-runtime-evidence-owner/README.md)
+  — advances the blocked lifecycle to ABI 6 with a private arm64-core evidence
+  record, an exact post-hyp/pre-finalization seal, release/acquire publication,
+  and rejection of profile-declared RUNTIME origin or profile observations.
+  The core has no producer, so it seals `SEALED_EMPTY`; the fixture remains
+  evaluator-only and every plan, commit, READY, boot, and disable gate stays
+  closed. This is `PARTIAL_RUNTIME_EVIDENCE_OWNER_BOUNDARY`: the next source
+  gate is independent configuration/image/command-line identity production,
+  not a build or device action.
 - [2026-08-05 A41 pure six-row fixture evaluator](2026-08-05-a72-a41-six-row-fixture/README.md)
   — advances the blocked planner to ABI 5 and evaluates the six formerly
   unresolved GIC/ICH, cache, Spectre-v2, Spectre-v4, and BHB rows for CPU8 and
@@ -30,8 +39,8 @@ the loop. Positive identity-gated observations are unaffected.
   present / 32 absent and a complete typed-effect draft, but FIXTURE provenance,
   runtime binding, the unavailable commit path, deliberate `-EAGAIN`, and the
   existing CPU admission vetoes prevent publication. This is
-  `PARTIAL_SIX_ROW_FIXTURE_EVALUATOR`: the next gate is an independently trusted
-  runtime evidence producer, not a build or device action.
+  `PARTIAL_SIX_ROW_FIXTURE_EVALUATOR`; its runtime-owner successor is recorded
+  above. It is not a build or device action.
 - [2026-08-05 A41 attributable per-target capability planning](2026-08-05-a72-a41-per-target-plan/README.md)
   — advances the blocked planner to ABI 4, binds target slots uniquely to CPU8
   and CPU9 before classification, and preserves independent classified/present

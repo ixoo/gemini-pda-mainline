@@ -1,0 +1,35 @@
+validation=a41-runtime-evidence-owner-mutations
+PASS repo-manifest-profile-missing
+PASS repo-profile-series-substitution
+PASS repo-fragment-policy-change
+PASS repo-selected-series-duplicate
+PASS repo-canonical-order-change
+PASS repo-patch-source-change
+PASS repo-patch-inventory-change
+PASS repo-external-action-injection
+PASS source-abi-downgrade
+PASS source-seal-order-change
+PASS source-late-seal-guard-polarity
+PASS source-runtime-binding-completeness-polarity
+PASS source-runtime-seal-state-polarity
+PASS source-release-publication-loss
+PASS source-acquire-consumption-loss
+PASS source-private-record-export
+PASS source-private-record-pointer-escape
+PASS source-profile-runtime-rejection-loss
+PASS source-profile-observation-rejection-loss
+PASS source-observed-field-gap
+PASS source-fixture-claims-runtime
+PASS source-runtime-overlay-condition-change
+PASS source-empty-runtime-blocker-loss
+PASS source-profile-prepare-success
+PASS source-profile-validator-success
+PASS source-core-commit-blocker-loss
+PASS source-core-commit-panic-loss
+PASS source-cpu-boot-veto-loss
+PASS source-cpu-disable-veto-loss
+mutations_rejected=29
+network_accessed=no
+build_invoked=no
+device_accessed=no
+RESULT PASS 29/29

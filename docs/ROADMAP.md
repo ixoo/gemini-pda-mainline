@@ -1432,15 +1432,29 @@ PLAN_FROZEN, COMMITTED, READY, and CPU admission remain unavailable. This
 advances A41 only to `PARTIAL_SIX_ROW_FIXTURE_EVALUATOR`; it is not arbitrary
 firmware-domain coverage, hardware evidence, a build, or a device result.
 
-The next ordered A41 step is an independently trusted runtime evidence
-producer and verifier. It must own and attest the CPU8/CPU9 register, cache,
-GIC/hyp, firmware, resolved/running configuration, image, and command-line
-records instead of accepting a profile's self-declared origin. Its negative
-tests must distinguish both targets, exercise every ICH acquisition branch,
-and reject incomplete, substituted, paired-oracle, or drifted records. Only
-after that producer closes may A41 define a canonical plan identity and the
-separate architecture-owned commit path. No build or device action is
-justified by the fixture milestone.
+The follow-on source-only
+[A41 runtime-evidence owner boundary](../experiments/2026-08-05-a72-a41-runtime-evidence-owner/README.md)
+bumps the lifecycle to ABI 6. The arm64 core now owns a private evidence
+record, seals it after hyp-mode resolution and before profile preparation,
+and rejects a profile-declared RUNTIME origin or origin NONE paired with any
+runtime observation. Release/acquire publication defines the future producer
+boundary. The explicit fixture remains available only to the pure evaluator.
+No producer exists yet, so the current record seals `SEALED_EMPTY`, retains
+the runtime-binding and commit-path blockers, and cannot freeze a plan or
+admit CPU8/CPU9. This advances A41 only to
+`PARTIAL_RUNTIME_EVIDENCE_OWNER_BOUNDARY`; it is not a build or runtime result.
+
+The next ordered A41 step is the independent boot-provenance identity
+producer and verifier inside that core-owned boundary. A strict package-derived
+expected record must be distinct from core-derived running IKCONFIG, linked
+image build-ID, and forced command-line identities; partial, substituted,
+paired-oracle, and drifted pairs must remain blocked. That closes only the
+configuration/image/command-line sub-contract. Actual CPU8/CPU9 register,
+cache, GIC/hyp, firmware, ASID, translation, capability, and HWCAP evidence
+still requires each target to execute or an independently trusted pre-Linux
+attestation. Standard PSCI cannot read those registers remotely, and no direct
+CPU_ON/CPU_OFF side call may bypass A26, A14, P30, or the standing boot/disable
+vetoes. No build or device action is justified by the ABI-6 milestone.
 
 P30K/C/P/E/U separate CPU_KILL_ME, post-C bare STUCK, panic, pre-C reasoned
 STUCK, and default timeout. The timeout path now requires exact-generation
@@ -1471,18 +1485,13 @@ names for that operation is implemented and proven.
 
 The next ordered work remains source-only:
 
-1. Complete A41 from the blocked ABI 5 fixture evaluator. Next implement and
-   validate the independently trusted runtime evidence producer for separate
-   CPU8 and CPU9 identities, registers, cache, firmware WA1/WA2/WA3, ASID,
-   translation, GIC/hyp, resolved/running configuration, image, command line,
-   strict/system/boot-capability, and native/compat-HWCAP state. Keep the
-   profile from self-attesting that evidence. Then compute one canonical
-   field-wise plan identity and implement the separate infallible
-   architecture-owned pre-finalization commit for the exact typed CTR,
-   Spectre-v2, Spectre-v4, BHB, erratum 1742098, speculative-AT, and compat-AES
-   effects. Assert the resulting alternatives and vectors and bind the exact
-   READY identity to A36/P17/P18. Mutation tests must keep every incomplete,
-   substituted, paired-oracle, or drifted branch blocked.
+1. Continue A41 from the blocked ABI-6 owner boundary. First implement and
+   mutation-test the strict package-derived expected record plus independent
+   core producers for the running IKCONFIG, linked-image build ID, and forced
+   command line. Keep the private record sealed empty on every missing,
+   malformed, partial, substituted, paired-oracle, or drifted input. Do not
+   put CPU8/CPU9 observations in DT and do not authorize a build or device
+   action from this identity-only source milestone.
 2. Implement and mutation-test P30K/C/P/E/U, including the generation-scoped
    timeout arbitration, global completion/status redesign, target park
    acknowledgment, exact P14/P15 controller point, and global fail-stop
@@ -1490,9 +1499,14 @@ The next ordered work remains source-only:
 3. Complete A25 and implement P32A/D/F/X/R using either a reviewed core
    no-auto-rollback interface or the fail-stop `.cpu_disable` plus die/kill
    guard design, retaining every partial callback and architecture effect.
-4. Revalidate every applicable A26 CPU-up gate. The source-only implementation
-   must keep the current CPU boot veto; passing source tests alone does not
-   authorize a build.
+4. Revalidate every applicable A26 CPU-up gate and its A14 CPU-off dependency.
+   Only after those closures may a separately reviewed evidence-only target
+   transaction be considered; a trusted pre-Linux handoff is the alternative.
+   Then return to A41 for separate CPU8/CPU9 registers, cache, WA1/WA2/WA3,
+   ASID, translation, GIC/hyp, boot/system/strict capabilities, native/compat
+   HWCAPs, canonical evidence/plan identity, the infallible architecture-owned
+   pre-finalization commit, and READY binding to A36/P17/P18. Source tests alone
+   do not authorize a build, CPU_ON/OFF request, or device action.
 5. Close the M02 delayed-work scheduler/observer owner and failure propagation,
    then close A40 private-ledger writer/caller freshness.
 6. Only after those CPU-up and branch-selection gates pass, specify the full

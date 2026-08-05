@@ -1,0 +1,361 @@
+From bcfb60248633bec2cdb6ab70540d5807d305c4e7 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Project <noreply@invalid>
+Date: Wed, 5 Aug 2026 13:01:14 -0400
+Subject: [PATCH] arm64: separate late-CPU runtime evidence ownership
+
+Move production runtime observations behind an arm64-owned private
+record and seal it immediately before late-profile preparation. Reject
+profile-authored runtime origin or observations while retaining explicit
+fixture evaluation and every existing publication and CPU admission
+blocker.
+
+This experiment-only change has no certifying sign-off and is not
+submission-ready.
+---
+ arch/arm64/include/asm/late_cpu_profile.h |  13 +-
+ arch/arm64/kernel/late_cpu_profile.c      | 165 +++++++++++++++++++++-
+ arch/arm64/kernel/mt6797_psci.c           |  12 +-
+ arch/arm64/kernel/smp.c                   |   1 +
+ 4 files changed, 177 insertions(+), 14 deletions(-)
+
+diff --git a/arch/arm64/include/asm/late_cpu_profile.h b/arch/arm64/include/asm/late_cpu_profile.h
+index 15f42e98b..eb199eb56 100644
+--- a/arch/arm64/include/asm/late_cpu_profile.h
++++ b/arch/arm64/include/asm/late_cpu_profile.h
+@@ -9,7 +9,7 @@
+ 
+ #include <asm/cpucaps.h>
+ 
+-#define ARM64_LATE_CPU_PLAN_ABI		5
++#define ARM64_LATE_CPU_PLAN_ABI		6
+ #define ARM64_LATE_CPU_PROFILE_ID_LEN	32
+ #define ARM64_LATE_CPU_ID_WORDS		4
+ #define ARM64_LATE_CPU_MAX_TARGETS	2
+@@ -373,7 +373,10 @@ struct arm64_late_cpu_target_policy_evidence {
+ 	u8 spectre_v4_policy;
+ };
+ 
+-/* Fallible profile inputs. A partial record is never published as a plan. */
++/*
++ * Core-sealed runtime observations or an explicit profile fixture. A partial
++ * record is never published as a plan.
++ */
+ struct arm64_late_cpu_evidence {
+ 	u32 abi;
+ 	/* Non-circular inputs; neither field proves the running image/config. */
+@@ -473,6 +476,7 @@ struct arm64_late_cpu_profile {
+ 	int (*validate_plan)(const struct arm64_late_cpu_plan *plan);
+ 	int (*derive_effects)(const struct arm64_late_cpu_plan *plan,
+ 			      struct arm64_late_cpu_effect_plan *effects);
++	/* Expected-only production input or an explicit FIXTURE; never RUNTIME. */
+ 	int (*prepare)(struct arm64_late_cpu_evidence *evidence,
+ 		       const struct cpumask *registered_targets);
+ 	int (*verify_system)(const struct arm64_late_cpu_plan *plan,
+@@ -485,6 +489,7 @@ struct arm64_late_cpu_profile {
+ void __init arm64_activate_late_cpu_profile(const struct arm64_late_cpu_profile *profile);
+ void __init arm64_register_late_cpu_target(const struct arm64_late_cpu_profile *profile,
+ 					   unsigned int cpu);
++void __init arm64_seal_late_cpu_runtime_evidence(void);
+ void __init arm64_prepare_late_cpu_profile(void);
+ void __init arm64_commit_late_cpu_profile(void);
+ int __init arm64_plan_late_cpu_capabilities(struct arm64_late_cpu_plan *draft,
+@@ -560,6 +565,10 @@ arm64_register_late_cpu_target(const struct arm64_late_cpu_profile *profile,
+ {
+ }
+ 
++static inline void __init arm64_seal_late_cpu_runtime_evidence(void)
++{
++}
++
+ static inline void __init arm64_prepare_late_cpu_profile(void)
+ {
+ }
+diff --git a/arch/arm64/kernel/late_cpu_profile.c b/arch/arm64/kernel/late_cpu_profile.c
+index 50a6f1d82..1764809ee 100644
+--- a/arch/arm64/kernel/late_cpu_profile.c
++++ b/arch/arm64/kernel/late_cpu_profile.c
+@@ -16,6 +16,7 @@
+ #include <linux/printk.h>
+ #include <linux/string.h>
+ 
++#include <asm/cpufeature.h>
+ #include <asm/late_cpu_profile.h>
+ 
+ static struct arm64_late_cpu_profile late_profile __initdata;
+@@ -23,6 +24,24 @@ static bool late_profile_active __initdata;
+ static cpumask_t late_profile_targets __initdata;
+ static bool late_profile_registration_fault __initdata;
+ 
++/*
++ * Runtime observations have a separate owner from profile expectations.
++ * A future producer may populate this private record before the seal point;
++ * profiles never receive a writable reference to it.
++ */
++enum late_runtime_evidence_state {
++	LATE_RUNTIME_EVIDENCE_OPEN,
++	LATE_RUNTIME_EVIDENCE_SEALED_EMPTY,
++	LATE_RUNTIME_EVIDENCE_SEALED_RUNTIME,
++	LATE_RUNTIME_EVIDENCE_FAULT,
++};
++
++static struct arm64_late_cpu_evidence late_runtime_evidence __initdata = {
++	.abi = ARM64_LATE_CPU_PLAN_ABI,
++};
++
++static u32 late_runtime_evidence_state __initdata;
++
+ static struct arm64_late_cpu_plan late_plan __ro_after_init;
+ static struct arm64_late_cpu_receipt late_receipt __ro_after_init = {
+ 	.abi = ARM64_LATE_CPU_PLAN_ABI,
+@@ -92,6 +111,109 @@ late_profile_runtime_binding_complete(const struct arm64_late_cpu_runtime_bindin
+ 		       sizeof(binding->expected_cmdline_identity));
+ }
+ 
++static bool __init
++late_profile_binding_empty(const struct arm64_late_cpu_runtime_binding *binding)
++{
++	return !binding->valid &&
++	       binding->origin == ARM64_LATE_CPU_BINDING_NONE &&
++	       late_profile_identity_empty(binding->resolved_config_identity) &&
++	       late_profile_identity_empty(binding->running_config_identity) &&
++	       late_profile_identity_empty(binding->built_image_identity) &&
++	       late_profile_identity_empty(binding->running_image_identity) &&
++	       late_profile_identity_empty(binding->expected_cmdline_identity) &&
++	       late_profile_identity_empty(binding->running_cmdline_identity);
++}
++
++/* Profile-owned production input may describe expectations, never observations. */
++static bool __init
++late_profile_runtime_fields_empty(const struct arm64_late_cpu_evidence *evidence)
++{
++	unsigned int target;
++
++	if (!late_profile_binding_empty(&evidence->binding) ||
++	    !late_profile_identity_empty(evidence->evidence_identity))
++		return false;
++
++	for (target = 0; target < ARM64_LATE_CPU_MAX_TARGETS; target++)
++		if (evidence->observed_target_mpidr[target] ||
++		    evidence->observed_target_midr[target] ||
++		    evidence->observed_target_revidr[target] ||
++		    memchr_inv(&evidence->target_cap[target], 0,
++			       sizeof(evidence->target_cap[target])) ||
++		    memchr_inv(&evidence->target_policy[target], 0,
++			       sizeof(evidence->target_policy[target])))
++			return false;
++
++	return !memchr_inv(&evidence->system_cap, 0,
++			   sizeof(evidence->system_cap));
++}
++
++static void __init
++late_profile_apply_runtime_evidence(struct arm64_late_cpu_evidence *evidence)
++{
++	unsigned int target;
++
++	evidence->binding = late_runtime_evidence.binding;
++	memcpy(evidence->evidence_identity,
++	       late_runtime_evidence.evidence_identity,
++	       sizeof(evidence->evidence_identity));
++	for (target = 0; target < ARM64_LATE_CPU_MAX_TARGETS; target++) {
++		evidence->observed_target_mpidr[target] =
++			late_runtime_evidence.observed_target_mpidr[target];
++		evidence->observed_target_midr[target] =
++			late_runtime_evidence.observed_target_midr[target];
++		evidence->observed_target_revidr[target] =
++			late_runtime_evidence.observed_target_revidr[target];
++		evidence->target_cap[target] =
++			late_runtime_evidence.target_cap[target];
++		evidence->target_policy[target] =
++			late_runtime_evidence.target_policy[target];
++	}
++	evidence->system_cap = late_runtime_evidence.system_cap;
++	evidence->blocker_mask |= late_runtime_evidence.blocker_mask;
++}
++
++void __init arm64_seal_late_cpu_runtime_evidence(void)
++{
++	u32 state = READ_ONCE(late_runtime_evidence_state);
++
++	if (state != LATE_RUNTIME_EVIDENCE_OPEN ||
++	    system_capabilities_finalized() ||
++	    cpus_have_cap(ARM64_ALWAYS_SYSTEM)) {
++		/* Publish the fault before profile preparation examines state. */
++		smp_store_release(&late_runtime_evidence_state,
++				  LATE_RUNTIME_EVIDENCE_FAULT);
++		return;
++	}
++
++	if (late_runtime_evidence.abi != ARM64_LATE_CPU_PLAN_ABI ||
++	    (late_runtime_evidence.binding.origin !=
++		     ARM64_LATE_CPU_BINDING_NONE &&
++	     late_runtime_evidence.binding.origin !=
++		     ARM64_LATE_CPU_BINDING_RUNTIME) ||
++	    (late_runtime_evidence.binding.origin ==
++		     ARM64_LATE_CPU_BINDING_RUNTIME &&
++	     !late_profile_runtime_binding_complete(&late_runtime_evidence.binding))) {
++		/* Publish the fault before profile preparation examines state. */
++		smp_store_release(&late_runtime_evidence_state,
++				  LATE_RUNTIME_EVIDENCE_FAULT);
++		return;
++	}
++
++	/* No producer exists in ABI 6, so the private record remains empty. */
++	if (late_runtime_evidence.binding.origin ==
++	    ARM64_LATE_CPU_BINDING_NONE)
++		late_runtime_evidence.blocker_mask |=
++			ARM64_LATE_CPU_BLOCK_RUNTIME_BINDING;
++
++	state = late_runtime_evidence.binding.origin ==
++		ARM64_LATE_CPU_BINDING_RUNTIME ?
++		LATE_RUNTIME_EVIDENCE_SEALED_RUNTIME :
++		LATE_RUNTIME_EVIDENCE_SEALED_EMPTY;
++	/* Publish every core-owned field before profile planning may consume it. */
++	smp_store_release(&late_runtime_evidence_state, state);
++}
++
+ static bool __init
+ late_profile_target_effects_match(
+ 	const struct arm64_late_cpu_target_effect_plan *left,
+@@ -245,12 +367,13 @@ arm64_register_late_cpu_target(const struct arm64_late_cpu_profile *profile,
+ 
+ void __init arm64_prepare_late_cpu_profile(void)
+ {
+-	struct arm64_late_cpu_evidence evidence = {
++	struct arm64_late_cpu_evidence profile_evidence = {
+ 		.abi = ARM64_LATE_CPU_PLAN_ABI,
+ 	};
+ 	struct arm64_late_cpu_plan draft = {
+ 		.abi = ARM64_LATE_CPU_PLAN_ABI,
+ 	};
++	u32 runtime_state;
+ 	int validate_ret;
+ 	int effect_ret;
+ 	int plan_ret;
+@@ -264,6 +387,14 @@ void __init arm64_prepare_late_cpu_profile(void)
+ 				   "registration identity changed");
+ 		return;
+ 	}
++	/* Pairs with the release stores at the architecture seal point. */
++	runtime_state = smp_load_acquire(&late_runtime_evidence_state);
++	if (runtime_state != LATE_RUNTIME_EVIDENCE_SEALED_EMPTY &&
++	    runtime_state != LATE_RUNTIME_EVIDENCE_SEALED_RUNTIME) {
++		late_profile_block(ARM64_LATE_CPU_BLOCK_RUNTIME_BINDING,
++				   "runtime evidence was not sealed");
++		return;
++	}
+ 	if (cpumask_weight(&late_profile_targets) != late_profile.target_count) {
+ 		late_profile_block(ARM64_LATE_CPU_BLOCK_REGISTRATION,
+ 				   "target registrations are incomplete");
+@@ -280,17 +411,39 @@ void __init arm64_prepare_late_cpu_profile(void)
+ 	strscpy(draft.profile_id, late_receipt.profile_id,
+ 		sizeof(draft.profile_id));
+ 	cpumask_copy(&draft.target_cpus, &late_profile_targets);
+-	ret = late_profile.prepare(&evidence, &late_profile_targets);
+-	if (evidence.abi != ARM64_LATE_CPU_PLAN_ABI) {
++	ret = late_profile.prepare(&profile_evidence, &late_profile_targets);
++	if (profile_evidence.abi != ARM64_LATE_CPU_PLAN_ABI) {
+ 		late_profile_block(ARM64_LATE_CPU_BLOCK_CAP_INVENTORY,
+ 				   "prepare altered evidence ABI");
+ 		return;
+ 	}
+-	draft.evidence = evidence;
++	if (profile_evidence.binding.origin ==
++	    ARM64_LATE_CPU_BINDING_RUNTIME) {
++		late_profile_block(ARM64_LATE_CPU_BLOCK_RUNTIME_BINDING,
++				   "profile declared runtime evidence");
++		return;
++	}
++	if (profile_evidence.binding.origin != ARM64_LATE_CPU_BINDING_NONE &&
++	    profile_evidence.binding.origin != ARM64_LATE_CPU_BINDING_FIXTURE) {
++		late_profile_block(ARM64_LATE_CPU_BLOCK_RUNTIME_BINDING,
++				   "profile declared an invalid evidence origin");
++		return;
++	}
++
++	draft.evidence = profile_evidence;
++	if (profile_evidence.binding.origin == ARM64_LATE_CPU_BINDING_NONE) {
++		if (!late_profile_runtime_fields_empty(&profile_evidence)) {
++			late_profile_block(ARM64_LATE_CPU_BLOCK_RUNTIME_BINDING,
++					   "profile supplied runtime observations");
++			return;
++		}
++		if (runtime_state == LATE_RUNTIME_EVIDENCE_SEALED_RUNTIME)
++			late_profile_apply_runtime_evidence(&draft.evidence);
++	}
+ 	if (!late_profile_runtime_binding_complete(&draft.evidence.binding))
+ 		draft.evidence.blocker_mask |=
+ 			ARM64_LATE_CPU_BLOCK_RUNTIME_BINDING;
+-	/* ABI 5 has no architecture-owned mutation implementation. */
++	/* ABI 6 has no architecture-owned mutation implementation. */
+ 	draft.evidence.blocker_mask |= ARM64_LATE_CPU_BLOCK_COMMIT_PATH;
+ 	plan_ret = arm64_plan_late_cpu_capabilities(&draft, &late_profile);
+ 	effect_ret = plan_ret ? -EAGAIN :
+@@ -348,7 +501,7 @@ void __init arm64_commit_late_cpu_profile(void)
+ 		panic("late CPU profile reached capability commit out of order");
+ 
+ 	/*
+-	 * ABI 5 deliberately publishes no mutation path. The complete canonical
++	 * ABI 6 deliberately publishes no mutation path. The complete canonical
+ 	 * evaluator must add one architecture-owned, callback-free commit before
+ 	 * it can make PLAN_FROZEN reachable for a production profile.
+ 	 */
+diff --git a/arch/arm64/kernel/mt6797_psci.c b/arch/arm64/kernel/mt6797_psci.c
+index 5fa89a11d..f6ab90cee 100644
+--- a/arch/arm64/kernel/mt6797_psci.c
++++ b/arch/arm64/kernel/mt6797_psci.c
+@@ -57,8 +57,8 @@ static const u64 mt6797_a72_source_parent_identity[ARM64_LATE_CPU_ID_WORDS] __in
+ 
+ #ifdef CONFIG_ARM64_MT6797_A72_FIXTURE_EVIDENCE
+ static const u64 mt6797_a72_config_input_identity[ARM64_LATE_CPU_ID_WORDS] __initconst = {
+-	0x8ab011246184c5ff, 0xf4885bdc38fef09d,
+-	0x24cc31960235fb76, 0x40ea081505949815,
++	0x7b875e34f11c7c6d, 0x007124aacc3e1e01,
++	0x3acc41cc1628913a, 0x94cfddf0be8d7a74,
+ };
+ #else
+ static const u64 mt6797_a72_config_input_identity[ARM64_LATE_CPU_ID_WORDS] __initconst = {
+@@ -69,8 +69,8 @@ static const u64 mt6797_a72_config_input_identity[ARM64_LATE_CPU_ID_WORDS] __ini
+ 
+ #ifdef CONFIG_ARM64_MT6797_A72_FIXTURE_EVIDENCE
+ static const u64 mt6797_a72_fixture_evidence_identity[ARM64_LATE_CPU_ID_WORDS] __initconst = {
+-	0xc41b8b84d68f9c0f, 0x05a9a047d319de9c,
+-	0xfe8d41e8b792cb50, 0x9ffa4be08341e887,
++	0x09c1750da0e98f35, 0x673ef55cf6389158,
++	0xe301a82bbd675634, 0x2fe28427cc4d6118,
+ };
+ #endif
+ 
+@@ -1023,7 +1023,7 @@ mt6797_a72_validate_cap_plan(const struct arm64_late_cpu_plan *plan)
+ 	unsigned int i;
+ 
+ 	if (!plan || plan->abi != ARM64_LATE_CPU_PLAN_ABI ||
+-	    strcmp(plan->profile_id, "mt6797-a53-a72-a41-v5") ||
++	    strcmp(plan->profile_id, "mt6797-a53-a72-a41-v6") ||
+ 	    cpumask_weight(&plan->target_cpus) != 2 ||
+ 	    !cpumask_test_cpu(8, &plan->target_cpus) ||
+ 	    !cpumask_test_cpu(9, &plan->target_cpus) ||
+@@ -1327,7 +1327,7 @@ mt6797_a72_profile_prepare(struct arm64_late_cpu_evidence *evidence,
+ }
+ 
+ static const struct arm64_late_cpu_profile mt6797_a72_profile __initconst = {
+-	.name = "mt6797-a53-a72-a41-v5",
++	.name = "mt6797-a53-a72-a41-v6",
+ 	.target_count = 2,
+ 	.classify_local_cap = mt6797_a72_classify_local_cap,
+ 	.validate_plan = mt6797_a72_validate_cap_plan,
+diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
+index 6f760ec29..05e6b27c4 100644
+--- a/arch/arm64/kernel/smp.c
++++ b/arch/arm64/kernel/smp.c
+@@ -440,6 +440,7 @@ void __init smp_cpus_done(unsigned int max_cpus)
+ {
+ 	pr_info("SMP: Total of %d processors activated.\n", num_online_cpus());
+ 	hyp_mode_check();
++	arm64_seal_late_cpu_runtime_evidence();
+ 	arm64_prepare_late_cpu_profile();
+ 	setup_system_features();
+ 	arm64_verify_late_cpu_profile_system();
+-- 
+2.50.1 (Apple Git-155)
+

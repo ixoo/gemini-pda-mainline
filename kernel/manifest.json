@@ -229,6 +229,22 @@
           "configs/gemini-a72-a41-six-row-fixture.fragment"
         ]
       },
+      "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-reject-gate-a41-runtime-evidence-owner": {
+        "base": "defconfig",
+        "patch_series": "patches/series-a72-reject-gate-a41-runtime-evidence-owner",
+        "fragments": [
+          "configs/gemini-handoff.fragment",
+          "configs/gemini-usbdiag.fragment",
+          "configs/gemini-clk-ignore-unused.fragment",
+          "configs/gemini-observability.fragment",
+          "configs/gemini-fbcon-rotation.fragment",
+          "configs/gemini-keyboard.fragment",
+          "configs/gemini-keyboard-wrrd.fragment",
+          "configs/gemini-keyboard-manual-reboot.fragment",
+          "configs/gemini-smp8.fragment",
+          "configs/gemini-a72-a41-runtime-evidence-owner.fragment"
+        ]
+      },
       "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-reject-gate-cpu8-request": {
         "base": "defconfig",
         "patch_series": "patches/series-a72-reject-gate",

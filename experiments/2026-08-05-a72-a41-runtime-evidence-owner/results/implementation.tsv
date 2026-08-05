@@ -1,0 +1,63 @@
+key	value	evidence
+implementation_state	PARTIAL_RUNTIME_EVIDENCE_OWNER_BOUNDARY	documentation exact patch 0155 and independent ownership oracle
+a41_complete	no	runtime identities target observations mutation consumers and admission remain open
+plan_abi	6	ARM64_LATE_CPU_PLAN_ABI
+kernel_profile_id	mt6797-a53-a72-a41-v6	MT6797 late-CPU profile descriptor
+reviewed_source_parent	57d36fd59821b7de2fd81c938414e7f3c5a54229	exact ABI-5 source parent
+reviewed_source_parent_tree	253625b12d09411997e1877a58ffd843f417ad7d	exact ABI-5 parent tree
+source_commit	bcfb60248633bec2cdb6ab70540d5807d305c4e7	prepared source commit for ABI-6 ownership boundary
+source_tree	b23bf9e6332c865ef15606a41f11e75262e06fbf	exact tree produced by patch 0155
+format_patch_commit	bcfb60248633bec2cdb6ab70540d5807d305c4e7	exact patch From header and prepared source commit
+format_patch_sha256	bc52553d645d9d33c77e6b31e630be2243b8cb3984729422fc0ef0a7d5d45928	patches/v7.1.3/0155-arm64-separate-late-CPU-runtime-evidence-ownership.patch
+selected_series_entry_count	97	noncomment entries in patches/series-a72-reject-gate-a41-runtime-evidence-owner
+selected_series_sha256	04a20ca7ac3d979c8334ab419baed203d80c2d1c183b3a00cd44eb095293455f	exact selected series bytes
+ordered_patchset_identity	ff75286cf2372fac435f5e4aae284411df8b7b9db1b167258927a707da070477	selected series plus ordered patch identities
+selected_source_state_identity	c22cfc0af5aa41ca03ce1e13844866d559eac09a08718191b8857e50078f9092	kernel release archive and ordered patchset
+ordered_config_input_identity	7b875e34f11c7c6d007124aacc3e1e013acc41cc1628913a94cfddf0be8d7a74	exact named manifest profile inputs
+fixture_evidence_identity	09c1750da0e98f35673ef55cf6389158e301a82bbd6756342fe28427cc4d6118	ABI-6 source fixture only
+runtime_storage_owner	arm64_core	private late_runtime_evidence __initdata
+runtime_producer_api	unavailable	no public or private population path exists in ABI 6
+initial_runtime_state	OPEN	zero-initialized private state
+initial_runtime_origin	NONE	zero-initialized binding origin
+initial_runtime_validity	0	zero-initialized binding valid mask
+seal_function	arm64_seal_late_cpu_runtime_evidence	new architecture-owned seal entry point
+seal_hook	smp_cpus_done after hyp_mode_check and before arm64_prepare_late_cpu_profile	exact arm64 boot ordering
+finalization_order	seal before setup_system_features	system capabilities alternatives and user HWCAP not finalized at seal
+seal_publication	release	core publishes private fields before state
+prepare_consumption	acquire	preparation loads sealed state before profile callback use
+current_seal_result	SEALED_EMPTY	no producer leaves origin NONE
+current_seal_blocker	ARM64_LATE_CPU_BLOCK_RUNTIME_BINDING	core adds blocker before SEALED_EMPTY publication
+sealed_runtime_reachable	no	state reserved but no producer can set even a binding-complete private RUNTIME record; whole-record completeness remains future work
+fault_state	fail_closed	repeated late invalid-ABI invalid-origin or incomplete-RUNTIME-binding seal faults
+profile_runtime_origin	rejected	profile declared runtime evidence
+profile_invalid_origin	rejected	profile declared an invalid evidence origin
+profile_none_with_observations	rejected	profile supplied runtime observations
+profile_fixture	retained	pure source evaluator may use explicit FIXTURE only
+runtime_binding_complete	no	private record is sealed empty and fixture cannot publish
+future_dt_identity_record	specified_not_implemented	no parser generator or runtime comparison exists in ABI 6
+future_target_local_collector	specified_not_implemented	no CPU8 or CPU9 execution or OFF receipt exists
+fixture_capability_evaluator	retained	source-only six-row classifier and typed-effect scratch result
+profile_prepare	-EAGAIN	current MT6797 profile deliberately rejects publication
+profile_validate_plan	-EAGAIN	fixture or expected-only plan is never blessed
+plan_identity	unavailable	all canonical plan identity words remain zero
+commit_path	unavailable	ARM64_LATE_CPU_BLOCK_COMMIT_PATH always added
+plan_frozen_reachable	no	standing blockers and zero identity force BLOCKED
+committed_reachable	no	PLAN_FROZEN unreachable and architecture mutation unavailable
+ready_reachable	no	no committed verified finalized receipt
+cpu8_cpu9_runtime_observations	none	no target-local collector device access or firmware transaction
+cpu_boot_veto	-EAGAIN	patch 0092 retained
+cpu_disable_veto	false	patch 0092 retained
+maxcpus	8	existing selected safety fragment retained
+source_diff_whitespace_check	passed	git diff --check on exact four-file source change
+ownership_oracle_tests	22_passed	independent adversarial source-contract tests
+offline_validator	17_passed	exact repository source application and static contracts
+adversarial_mutations	29_rejected	eight repository and twenty-one source mutations
+strict_checkpatch	0_errors_0_warnings_0_checks	MISSING_SIGN_OFF excluded under repository noncertifying-patch policy
+duplicate_include_check	passed	three changed C source files
+kernel_build	not_run	source implementation and offline validation only
+runtime_test	not_run	no device or emulator action
+network_access	none	no network action
+build_authorized	no	A41 source gates remain open
+device_action_authorized	no	no attributable runtime hypothesis or candidate
+boot_candidate	false	no build package DT record container or deployment
+hardware_support_claim	none	no compile runtime or physical CPU evidence
