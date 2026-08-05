@@ -1,0 +1,64 @@
+CPU8/CPU9 scheduler-unpark repeat preflight and shutdown
+========================================================
+
+Date: 2026-08-05 UTC
+Result: skipped-already-matching-full-readback-verified-shutdown
+
+The fixed map earned exactly one unchanged repeat after attempt 1 passed. The
+accepted image was already installed, so the reviewed installer followed its
+`already_current=yes` branch: it performed no upload and no partition write,
+but repeated every live target, power, full-readback, cleanup, and shutdown
+gate before the owner physically selected boot2.
+
+Exact identity
+--------------
+
+- Runtime-tool and first-PASS evidence base:
+  `484c5e3c856cf1a034f3784699e0cc7a84c5421a`.
+- Compile repository commit:
+  `4f647c333056fd51aa2850957bb94ace508bedee`.
+- Kernel field / `Image.gz-dtb` SHA-256:
+  `b7ed626161490c64939f791e1caaaf6f4ffb03ecf55466776a19b74f02bb349c`.
+- Full 16 MiB boot2 SHA-256:
+  `5b38e542586cf70f3fcf3de049f351671f96fab985e0d93fa79f90e2d04012c5`.
+- Initial Gemian boot-ID SHA-256:
+  `db5a29d404482b500a64001549ddd7e0b3bdeb43aab7789cf343786fbd7c5044`.
+
+Guarded already-current path
+----------------------------
+
+- The fresh changed-cycle pstore observer was bound to ordinary Gemian and
+  explicitly waiting for a stable disconnect before the installer ran.
+- Live GPT resolved exactly one logical `boot2`, `/dev/mmcblk0p30`; ordinary
+  Gemian root was `/dev/mmcblk0p29`.
+- Boot2 was inactive, unmounted, exactly 16 MiB, writable, and already had the
+  exact accepted full-partition checksum.
+- The battery was present, capacity was 88 percent, and health was Good.
+- Both probe and post gates reported `already_current=yes` with the same exact
+  target checksum. The upload/write branch did not run.
+- No fresh predecessor backup was created.
+- An independent host-side full readback matched the accepted checksum and
+  byte comparison; its temporary copy was removed.
+- The helper flushed its evidence, requested a clean shutdown, confirmed the
+  device unreachable, and did not request a reboot. The cycle observer
+  confirmed the stable disconnect at 2026-08-05T00:47:59Z.
+
+The derived private `deployment-summary.txt` retains its installer's pinned
+historical `predecessor_sha256` constant even on the already-current branch.
+That field is not the live repeat pre-state. The summary's
+`result=skipped-already-matching`, the separately retained probe/post output,
+and the matching full readback establish the no-write outcome.
+
+Evidence integrity
+------------------
+
+- Private already-current check SHA-256:
+  `c98b9111f2bf651ca57f3856d64b3a9caf91dd9ee4511868102aabfd5350e1cf`.
+- Private deployment-summary SHA-256:
+  `ce131525890f5abeb841004b602d1a2704405cc590b3cf141ffdfec45ba05ba1`.
+- Private deployment `SHA256SUMS` SHA-256:
+  `6533c14030beb5638037d84479fc46595b4428af37b65a833b4593d9d4888edd`.
+- Every entry in the installer's ignored checksum manifest verified.
+
+This record establishes the repeat's exact no-write preflight, full readback,
+and clean handoff only. Runtime repeatability is classified separately.

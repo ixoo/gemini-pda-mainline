@@ -25,12 +25,14 @@ the loop. Positive identity-gated observations are unaffected.
 
 - [2026-08-03 A72 CPU8/CPU9 scheduler-context execution](2026-08-03-a72-scheduler-context/README.md)
   — diagnosed parked-task activation in the rejected phase parent, changed only
-  the two activations to explicit unpark, and passed the first fixed-map runtime
-  cycle. Complete changed-cycle pstore proves both normal-priority bound tasks
-  ran on CPUs 8/9, rendezvoused, completed 262,144 exact iterations each, and
-  exited through ordered cleanup before watchdog recovery. Recovery CPUs were
-  offline and boot2 was unchanged. One exact repeat is next; CPU_OFF and
-  production enablement remain prohibited.
+  the two activations to explicit unpark, and passed two exact fixed-map runtime
+  cycles. In each fresh changed-cycle pstore record, both normal-priority bound
+  tasks ran on CPUs 8/9, rendezvoused, completed the finite workload, and exited
+  through the same ordered cleanup with identical task hashes.
+  Watchdog recovery returned with CPUs 8/9 offline and boot2 unchanged both
+  times. Bounded scheduler-context execution is repeatable. CPU_OFF and
+  production enablement remain prohibited; complete power-owner rollback
+  remains open.
 - [2026-08-03 A72 CPU8/CPU9 parallel disjoint load](2026-08-03-a72-cpu9-parallel-disjoint-load/README.md)
   — passed twice after one observation-loss cycle. In each accepted run CPUs 8
   and 9 concurrently wrote disjoint halves of a 64 KiB set for 128 rounds and

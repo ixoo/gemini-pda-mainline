@@ -1,0 +1,150 @@
+CPU8/CPU9 scheduler-unpark runtime attempt 2
+============================================
+
+Date: 2026-08-05 UTC
+Decision: PASS — bounded scheduler-context repeatability established
+
+The one unchanged repeat earned by attempt 1 passes the fixed decision map.
+Two fresh attributable cycles now establish repeatable bounded unpark,
+readiness, release, scheduler-context execution, completion, and ordered
+cleanup on CPU8 and CPU9. Do not run this exact candidate a third time.
+
+Exact candidate and fixed classifier
+------------------------------------
+
+- Full 16 MiB boot2 SHA-256:
+  `5b38e542586cf70f3fcf3de049f351671f96fab985e0d93fa79f90e2d04012c5`.
+- Embedded `Image.gz-dtb` SHA-256:
+  `b7ed626161490c64939f791e1caaaf6f4ffb03ecf55466776a19b74f02bb349c`.
+- Compile repository commit:
+  `4f647c333056fd51aa2850957bb94ace508bedee`.
+- Exact unpark child patchset SHA-256:
+  `bd5799cecd14aa34a87562b09507a6d9f18f11cd138420bcba629f12793e7bfe`.
+- Fixed decision-map SHA-256:
+  `663500e882e6086458bbf8736d0f36207373ae1c5c5e1a3384c6ab6a856bbbb4`.
+- Committed parser SHA-256:
+  `3871817a60f6c8919eaf483d50e956a42bece2ada598b042474861f2e4b860a3`.
+
+Attributable cycle
+------------------
+
+- Observer start: 2026-08-05T00:47:02Z.
+- Stable preselection disconnect: 2026-08-05T00:47:59Z.
+- Known-good reconnect: 2026-08-05T00:52:33Z.
+- Initial boot-ID SHA-256:
+  `db5a29d404482b500a64001549ddd7e0b3bdeb43aab7789cf343786fbd7c5044`.
+- Final boot-ID SHA-256:
+  `64f1caf7455487093b58a7e39d3e55b7bf162479a39bda8fd84e205a63e15576`.
+- `boot_id_changed=yes`.
+
+Attempt 2 begins from attempt 1's exact final boot-ID hash, then ends on a new
+identity. Archive pre/post hashes match the new final identity, which rules out
+an old archive copied before the recovered boot stabilized. The owner reported
+boot2 starting and its automatic return toward Gemian while both observers
+were running.
+
+Complete primary trace
+----------------------
+
+The fresh 65,524-byte, 808-line console has SHA-256
+`86d056e78a2afb454ae21c0edd493fc24a081405673a31747c1f7a7732e20e16`,
+distinct from attempt 1. It contains exactly 39 phase records from 11.435532
+through 11.452445 seconds:
+
+- 23 complete parent records from `create8-before` through `run-exit`;
+- eight complete CPU8 task records in ready, start-wait, work, and done order;
+- eight complete CPU9 task records in that same exact per-CPU order; and
+- every required cross-causal unpark, readiness, release, done, stop, and
+  `run-exit` edge.
+
+The timestamp-stripped 39-record sequence has SHA-256
+`060c9fb30dc56d948cc40db7b15162e61e105c2a7bbd27ffb4c6d736e15f44fa`
+in both attempts. The committed validator accepts the attempt-2 pstore event
+projection with `phase_records=39` and `terminal_result=pass`. No retained
+kernel panic, NULL dereference, BUG, Internal error, Call trace, asynchronous
+SError, or lockup marker is present.
+
+Adjacent exact terminals
+------------------------
+
+Immediately after `run-exit`, pair-v6 reports its complete inherited PASS
+contract. It records `sample=3`, CPUs 8/9 online, three callback hits each,
+1,024 exact coherency rounds, 64 multi-cacheline rounds, and 128
+parallel/disjoint rounds with all exact hashes, zero errors, and zero mismatch
+sentinels. The HPS CPU9-down veto count is the permitted positive value 88;
+attempt 1 reported 84. After replacing only that positive count by a fixed
+token, the pair-v6 lines in both attempts have the same SHA-256:
+`05b3d21788cc8b98402fac2fcd2e78c62969057e612be1e39ef2f88bbd3d476d`.
+
+The adjacent pair-v7 terminal reports:
+
+  result=pass parent_pass=1 sc_reported=1
+  sc_iterations=262144 sc_rescheds=64
+  sc_expected8=8 sc_start8=8 sc_end8=8
+  sc_expected9=9 sc_start9=9 sc_end9=9
+  sc_task8=1 sc_task9=1 sc_create8=0 sc_create9=0
+  sc_unpark8=1 sc_unpark9=1
+  sc_readywait8=1 sc_readywait9=1
+  sc_startwait8=1 sc_startwait9=1 sc_wait8=1 sc_wait9=1
+  sc_error8=0 sc_error9=0 sc_stop8=0 sc_stop9=0
+  sc_done8=262144 sc_done9=262144 sc_ready=2 sc_finished=2
+  sc_hash8=f678147669874ecd sc_hash9=c2274327e9c8104c
+
+Its normalized SHA-256 is
+`35b2f7ae64190494ca584665722fade4c000628369751266ab3215d7bae52778`
+in both attempts. The pair-v7 field vector, phase sequence, workload counts,
+and task hashes are therefore exact repeat observations, not merely two values
+that each satisfy a broad predicate.
+
+Secondary USB outcome
+---------------------
+
+The read-only USB/netcat collector was armed while the device was off. The
+owner reported boot2 starting while the process was still running, but the
+collector reached its 300-second deadline without observing the exact Gemini
+USB interface and created no candidate capture. It performed no device write
+or runtime stimulus. Private collector-outcome SHA-256:
+`50c8d4ca874f29dba1b8d14609ea9648d213d7e0acf6a7f5d8897831d288ac67`.
+
+This is missing optional secondary evidence, not a device or classifier
+failure. The fixed map makes changed-cycle pstore primary and USB secondary;
+the complete primary trace independently satisfies every PASS requirement.
+
+Recovery and evidence integrity
+-------------------------------
+
+- Recovery was ordinary Gemian `3.18.41+` on aarch64 with watchdog-class
+  `boot_reason=4` and `androidboot.bootreason=wdt_by_pass_pwk`.
+- The read-only recovery check's boot-ID hash matches the cycle's final hash.
+- Gemian root was `/dev/mmcblk0p29`; CPU8 and CPU9 were present and each
+  reported `online=0`.
+- Live GPT resolved exactly one `boot2`, `/dev/mmcblk0p30`; it was non-root,
+  unmounted, writable, and had no holders.
+- The post-recovery full boot2 SHA-256 remained exactly
+  `5b38e542586cf70f3fcf3de049f351671f96fab985e0d93fa79f90e2d04012c5`.
+- Pmsg-ramoops-0 SHA-256:
+  `cd532ef0e3f164cf550caaf14acd85f2976ea69881e128441be2aa8bf0daba44`.
+- Pstore archive SHA-256:
+  `e615688dbf3d8f29cd135cf009dab64baf5f0a1067ceae7e7fabbd34dc86f3dd`.
+- Cycle record SHA-256:
+  `3a98a82a5bc44c6fe886e3051729659c371e3cbe0968158c06a489670a7f7e85`.
+- Metadata record SHA-256:
+  `26f15999fa48af03c1014da5b44ec5544921bbfdae44a7d4115eebbf761e8271`.
+- Pstore `SHA256SUMS` SHA-256:
+  `ef0c45020fc6a5dfaad18e22a49fce18674c30c3e16b69ff53f17156dd8d1cef`.
+- Private post-recovery check SHA-256:
+  `9ab992b64e7090a97ceb5b196027342e4c9ed5cdeca585e1513847fb805e198d`.
+- Every entry in the ignored pstore checksum manifest verified.
+
+Decision and limits
+-------------------
+
+Attempt 2 satisfies every fixed PASS predicate and supplies the exact repeat
+earned by attempt 1. The result therefore establishes repeatable bounded
+scheduler-context execution and cleanup for both retained A72 CPUs on the
+named Gemini PDA.
+
+It does not authorize CPU_OFF or removal of the HPS veto, prove production
+scheduling, sustained or userspace load, establish OPP/cpufreq or thermal
+behavior, validate suspend/resume, assign every power/rollback owner, or enable
+CPUs 8/9 in a default profile. Those remain distinct ordered gates.

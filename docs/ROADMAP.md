@@ -29,7 +29,7 @@ Cortex-A72 pair.
 | I2C6 transfer | Native packed/FIFO one-byte pointer plus one-byte read is proven for the fixed diagnostic shape. | Do not generalize this to arbitrary transfers or writes. |
 | Legacy board contract | The fixed `0x68`/`0x69` tuple is stable and DA9213/DA9214/DA9215-compatible. | The read-only board-contract gate is closed; unique silicon identity remains open. |
 | Linux regulator provider | The upstream DA9211/A-family probe is incompatible and no suitable legacy provider is active. | Implement a genuine legacy-family contract instead of emulating it in the A-family probe. |
-| Cortex-A72 | CPU8 and CPU9 remain offline; rail ownership, rollback, resume, and the full power sequence are unproved. | Keep both CPUs disconnected until the provider gates below pass. |
+| Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. An experiment-only retained-cluster path now provides repeatable bounded execution and scheduler-context cleanup on both CPUs, but safe offlining, rail ownership, rollback, resume, and production integration remain unproved. | Keep both CPUs disconnected from the default profile until the provider and safe-off gates below pass. |
 
 The durable technical boundary is in
 [DA921x, I2C6, and Cortex-A72](hardware/da921x-i2c6-a72.md). The exact
@@ -69,7 +69,7 @@ Work on eMMC, logging, keyboard coverage, USB roles, display/touch, and other
 independent subsystems may proceed in parallel only when it preserves the
 fixed DA921x/A72 experiment baseline. The immediate critical chain is:
 
-`event regression -> read-only DA921x bind -> passive provider -> bounded write -> CPU8 -> CPU9`
+`safe-off/rollback ownership -> passive provider -> bounded write -> production CPU8 -> production CPU9`
 
 ## Ordered gates
 
@@ -1270,27 +1270,26 @@ in the
 [runtime-tool record](../experiments/2026-08-03-a72-scheduler-context/results/runtime-tools-unpark-20260804.txt)
 under the fixed
 [decision map](../experiments/2026-08-03-a72-scheduler-context/results/runtime-decision-map-unpark-20260804.txt).
-The accepted unpark successor has now passed its
-[guarded deployment](../experiments/2026-08-03-a72-scheduler-context/results/deployment-unpark-20260805.txt)
-and one
-[fixed-map runtime cycle](../experiments/2026-08-03-a72-scheduler-context/results/runtime-unpark-attempt-1-pass-20260805.txt).
-Changed-cycle primary pstore contains the complete phase trace and exact
-pair-v6/pair-v7 PASS terminals; both bound tasks completed on their intended
-CPUs, and watchdog recovery returned with CPUs 8/9 offline and boot2 unchanged.
+The
+[scheduler-context experiment](../experiments/2026-08-03-a72-scheduler-context/README.md)
+establishes repeatable bounded CPU8/CPU9 task execution, completion, and cleanup
+with attributable watchdog recovery. Do not run a third identical cycle or
+enable CPU_OFF.
 
-The next ordered action is one exact unchanged repeat from a fresh ordinary-
-Gemian baseline. Prearm a unique changed-cycle pstore observer and require its
-disconnect-wait readiness; run the reviewed installer's already-current path
-so no write occurs while inactive/unmounted boot2 identity, full readback, and
-clean shutdown are re-established. While the device is off, arm the read-only
-USB/netcat observer and physically select boot2 once. Only the fixed unpark
-decision map may classify the cycle. A second PASS closes only bounded
-scheduler-context repeatability; do not run a third identical cycle or enable
-CPU_OFF.
+The next ordered action is an offline Gate 4 safe-off ownership contract, not
+another device boot. Reconcile the machine-checked ownership matrix with the
+later pre-isolation rollback and CPU9 startup/execution evidence, then model
+CPU9-off while CPU8 retains the cluster separately from last-A72-off. For each
+post-isolation boundary, assign the exact source/binary owner, frozen pre-state,
+independent readback, timeout, inverse, and failure response; identify where
+reset recovery remains the only defensible action. Freeze that contract and
+its negative-mutation matrix before generating any CPU_OFF candidate. Keep the
+HPS veto and CPU_OFF prohibition intact. Passive provider work may proceed in
+parallel only within its existing no-write, no-consumer boundary.
 
-CPU9, suspend/resume, later power boundaries, a mainline provider write, and
-any A72 consumer remain blocked until their separate ownership and rollback
-gates close.
+CPU_OFF, suspend/resume, later power boundaries, a mainline provider write,
+and default-profile A72 consumers remain blocked until their separate ownership
+and rollback gates close.
 
 Exit: observations and inference are separated, every required writer has one
 owner, and a failed step has a bounded rollback path.

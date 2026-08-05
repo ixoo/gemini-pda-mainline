@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-scheduler-context` |
-| Status | `attempt-1-pass-repeat-earned` |
+| Status | `bounded-scheduler-context-repeatable` |
 | Subsystem | MT6797 retained Cortex-A72 pair and scheduler |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 through 2026-08-05 |
@@ -542,6 +542,22 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   exists; the complete primary pstore satisfies every fixed PASS predicate.
   One exact repeat is earned. See
   [`results/runtime-unpark-attempt-1-pass-20260805.txt`](results/runtime-unpark-attempt-1-pass-20260805.txt).
+- The exact repeat preflight found boot2 already matching, so the installer did
+  not upload or write anything. It re-proved the live-GPT target, inactive and
+  unmounted state, healthy battery, matching full readback, temporary cleanup,
+  and clean shutdown before physical selection. See
+  [`results/deployment-unpark-repeat-20260805.txt`](results/deployment-unpark-repeat-20260805.txt).
+- Unpark runtime attempt 2 passes the same fixed map and closes bounded
+  scheduler-context repeatability. Its fresh changed-cycle pstore contains the
+  complete 39-record trace and adjacent exact pair-v6/pair-v7 PASS terminals.
+  The timestamp-stripped phase sequence, pair-v7 field vector, workload counts,
+  and task hashes are identical across both attempts; the only pair-v6 delta is
+  the permitted positive HPS-veto count, 84 then 88. Watchdog recovery again
+  returned ordinary Gemian with CPUs 8/9 offline and boot2 unchanged. The
+  prearmed optional USB collector timed out without seeing the exact interface;
+  it performed no write or stimulus, and the complete primary pstore remains
+  sufficient. Do not run a third identical cycle. See
+  [`results/runtime-unpark-attempt-2-repeatability-pass-20260805.txt`](results/runtime-unpark-attempt-2-repeatability-pass-20260805.txt).
 
 ## Analysis
 
@@ -550,27 +566,28 @@ integrity. It does not prove that the scheduler can dispatch and cleanly retire
 ordinary tasks on both retained A72 CPUs. This child changes only that execution
 context while preserving the established power and recovery boundary.
 
-The first exact unpark cycle now proves that bounded dispatch and cleanup once:
-both per-CPU tasks entered normal scheduler context on their intended CPUs,
-rendezvoused through the predeclared start gate, completed the deterministic
-workload, and exited cleanly. Repeatability, production scheduling, CPU_OFF,
+Two exact unpark cycles now prove this bounded dispatch and cleanup path is
+repeatable: both per-CPU tasks entered normal scheduler context on their
+intended CPUs, rendezvoused through the predeclared start gate, completed the
+deterministic workload, and exited cleanly. Production scheduling, CPU_OFF,
 and every later power-management boundary remain separate claims.
 
 ## Conclusion
 
-`attempt-1-pass-repeat-earned`: the source/binary diagnosis was correct.
-Replacing only the two parked-task activation calls with `kthread_unpark()`
-produced one complete scheduler-context PASS without changing the inherited
-pair-v6, safety, or recovery boundary. Both CPU8 and CPU9 tasks ran on their
-intended CPUs, completed the exact finite workload, and exited through ordered
-cleanup; changed-cycle watchdog recovery, offline recovery CPUs, and unchanged
-boot2 all passed. This closes one bounded observation, not repeatability or
-production support. The fixed map earns exactly one identical repeat. CPU_OFF,
-the HPS-veto removal, sustained scheduling/load, OPP/cpufreq, thermal,
-suspend/resume, and default-profile integration remain unauthorized or
-unproved. Continue only through the ordered action in `docs/ROADMAP.md`.
+`bounded-scheduler-context-repeatable`: the source/binary diagnosis was correct.
+Replacing only the two parked-task activation calls with
+`kthread_unpark()` produced two complete scheduler-context PASS cycles without
+changing the inherited pair-v6, safety, or recovery boundary. Both CPU8 and
+CPU9 tasks repeatedly ran on their intended CPUs, completed the exact finite
+workload with identical phase order and hashes, and exited through ordered
+cleanup; both changed-cycle watchdog recoveries, offline recovery CPUs, and
+unchanged boot2 passed. No third identical cycle is justified. CPU_OFF, the
+HPS-veto removal, sustained or userspace scheduling/load, OPP/cpufreq, thermal,
+suspend/resume, complete owner/rollback assignment, and default-profile
+integration remain unauthorized or unproved. Continue only through the
+ordered action in `docs/ROADMAP.md`.
 
 ## Follow-up
 
-Continue only through the ordered Gate 8 action in
+Continue only through the ordered Gate 4 action in
 [`docs/ROADMAP.md`](../../docs/ROADMAP.md).
