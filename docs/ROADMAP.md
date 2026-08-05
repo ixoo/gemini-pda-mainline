@@ -1325,6 +1325,25 @@ every conditional local capability must be pre-accounted before finalization;
 a raw late capability bit is unsafe. Strict boot-capability and ELF-HWCAP
 compatibility remain explicit proof rows.
 
+The source-only
+[A41 partial capability profile](../experiments/2026-08-05-a72-a41-capability-profile/README.md)
+now adds the first default-off, isolated implementation scaffold. Canonical
+patches 0148/0149 provide a boot-scoped arm64 attestation lifecycle, independent
+MT6797 profile activation, bounded target registration, immutable staged
+verification, and release/acquire publication. The exact pre-A41 source parent
+and ordered configuration inputs are recorded without claiming that they prove
+the running image. Expected target identities are separate from unresolved
+observations. The selected profile plans exactly BHB loop `k=8`, erratum
+1742098, and speculative-AT, but source/configuration, capability inventory,
+registers, firmware, cache/ASID/translation, GIC, HWCAP, and attestation-user
+proofs remain explicit blockers; preparation therefore always returns
+`-EAGAIN` before any live capability or CPU path can change. The patch-0092
+boot and disable vetoes, together with inherited `maxcpus=8`, remain the
+independent CPU admission/removal safety boundary. This closes only the
+fail-closed lifecycle/profile scaffold. A41 is not complete, READY is
+unreachable for the selected profile, and no build, boot candidate, or device
+action is authorized.
+
 P30K/C/P/E/U separate CPU_KILL_ME, post-C bare STUCK, panic, pre-C reasoned
 STUCK, and default timeout. The timeout path now requires exact-generation
 cancellation-versus-publication arbitration because global task, status,
@@ -1354,10 +1373,14 @@ names for that operation is implemented and proven.
 
 The next ordered work remains source-only:
 
-1. Implement and mutation-test A41's pre-finalization profile owner, including
-   exact capability enumeration, BHB `k=8`, compat AES suppression,
-   alternatives/HWCAP assertions, configuration-drift rejection, and
-   A36/P17/P18 attestation.
+1. Complete A41 on the partial fail-closed scaffold: add the canonical,
+   exhaustive conditional-capability enumerator; validate exact current
+   source, resolved configuration, target registers, and firmware responses;
+   perform the infallible pre-finalization commit for BHB `k=8`, erratum
+   1742098, speculative-AT, and compat AES suppression; assert the resulting
+   alternatives, vectors, strict capabilities, and native/compat HWCAPs; and
+   bind the exact READY attestation to A36/P17/P18 consumers. Mutation tests
+   must keep every incomplete or drifted branch blocked.
 2. Implement and mutation-test P30K/C/P/E/U, including the generation-scoped
    timeout arbitration, global completion/status redesign, target park
    acknowledgment, exact P14/P15 controller point, and global fail-stop

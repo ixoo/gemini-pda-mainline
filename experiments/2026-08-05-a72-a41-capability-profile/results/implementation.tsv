@@ -1,0 +1,25 @@
+key	value	evidence
+implementation_state	PARTIAL_FAIL_CLOSED	0148/0149 source contract
+a41_complete	no	selected profile cannot pass preparation
+framework_lifecycle	implemented	prepare/system/user phases exist
+attestation_schema	implemented	versioned immutable record interface exists
+profile_registration	implemented	MT6797 target profile is isolated and registered
+independent_activation	implemented	CPU0 activation does not depend on custom CPU8/9 methods
+non_circular_input_identities	recorded_not_runtime_proof	pre-A41 source parent and ordered A41 configuration-input digests are distinct from current source/resolved-config proof
+target_observation_validity	explicit	expected and observed register values are separate
+capability_inventory_enumerator	not_implemented	CAP_INVENTORY remains mandatory blocker
+planned_capability_count	3	exact draft required_local_caps entries
+planned_capabilities	ARM64_SPECTRE_BHB,ARM64_WORKAROUND_1742098,ARM64_WORKAROUND_SPECULATIVE_AT	0149 prepare plan
+planned_bhb_method	ARM64_LATE_CPU_BHB_LOOP	0149 prepare plan
+planned_bhb_k	8	0149 prepare plan
+profile_commit	unreachable_for_selected_profile	prepare returns -EAGAIN with blockers
+production_ready_reachable	no	BLOCKED short-circuits both finalizers
+production_cpu_on_path	absent	0092 veto remains active
+production_capability_mutation_path	absent	only draft attestation bits are written
+a36_attestation_binding	interface_only	no downstream A36 consumer is enabled
+current_cpu_boot_veto	required	0092 returns -EAGAIN
+current_cpu_disable_veto	required	0092 returns false
+boot_candidate	false	source-only partial milestone
+build_authorized	no	no build is part of this experiment
+device_action_authorized	no	no deployment, boot, or device operation is authorized
+hardware_support_claim	none	no compile or runtime evidence

@@ -23,6 +23,17 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-05 A41 partial fail-closed capability profile](2026-08-05-a72-a41-capability-profile/README.md)
+  — adds canonical patches 0148/0149 and one default-off isolated profile for
+  the first arm64 pre-finalization attestation scaffold. Independent activation,
+  bounded target registration, immutable stage checks, exact non-circular
+  source/configuration inputs, expected-versus-observed target fields, and
+  READY publication guards are machine-checked. The selected MT6797 profile
+  records only the three known capability-plan bits and BHB `k=8`, remains
+  unconditionally BLOCKED before any live capability or CPU-path mutation, and
+  retains patch 0092 plus `maxcpus=8` as the separate CPU admission/removal
+  boundary. This is `PARTIAL_FAIL_CLOSED`, not complete A41, a build, a boot
+  candidate, or a hardware-support result.
 - [2026-08-05 A72 CPU-up source closure](2026-08-05-a72-cpu-up-source-closure/README.md)
   — pins the exact Linux 7.1.3 source and selected configuration, proves that
   an A53-only boot cannot admit a late A72 without pre-finalizing the complete

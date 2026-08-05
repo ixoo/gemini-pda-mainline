@@ -1,0 +1,16 @@
+bit	symbol	profile_disposition	evidence_status
+0	ARM64_LATE_CPU_BLOCK_REGISTRATION	framework_guard	invalid or inconsistent registration blocks
+1	ARM64_LATE_CPU_BLOCK_TOPOLOGY	conditional_guard	exact ten-CPU topology required
+2	ARM64_LATE_CPU_BLOCK_CONFIGURATION	mandatory_blocker	current resolved configuration proof absent
+3	ARM64_LATE_CPU_BLOCK_CAP_INVENTORY	mandatory_blocker	canonical capability inventory absent
+4	ARM64_LATE_CPU_BLOCK_FIRMWARE_WA1	mandatory_blocker	SMCCC workaround-1 proof absent
+5	ARM64_LATE_CPU_BLOCK_FIRMWARE_WA2	mandatory_blocker	SMCCC workaround-2 proof absent
+6	ARM64_LATE_CPU_BLOCK_ID_REGISTERS	mandatory_blocker	target ID-register proof absent
+7	ARM64_LATE_CPU_BLOCK_CACHE_TYPE	mandatory_blocker	effective cache-type proof absent
+8	ARM64_LATE_CPU_BLOCK_ASID	mandatory_blocker	ASID-width proof absent
+9	ARM64_LATE_CPU_BLOCK_GRANULE	mandatory_blocker	translation-granule proof absent
+10	ARM64_LATE_CPU_BLOCK_VA_MODE	mandatory_blocker	active VA-mode proof absent
+11	ARM64_LATE_CPU_BLOCK_GIC	mandatory_blocker	GIC CPU-interface proof absent
+12	ARM64_LATE_CPU_BLOCK_HWCAP	mandatory_blocker	ELF and compat HWCAP proof absent
+13	ARM64_LATE_CPU_BLOCK_ATTESTATION_USERS	mandatory_blocker	consumer transaction binding absent
+14	ARM64_LATE_CPU_BLOCK_SOURCE_IDENTITY	mandatory_blocker	current source implementation proof absent

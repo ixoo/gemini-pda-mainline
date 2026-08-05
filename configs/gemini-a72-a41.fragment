@@ -1,0 +1,6 @@
+# Source-only A41 profile. Enable the fail-closed MT6797 late-A72 capability
+# owner while retaining the inherited maxcpus=8 policy and patch-0092 boot and
+# disable vetoes. Every unresolved capability and attestation proof keeps the
+# implementation blocked; this fragment does not request CPU8 or CPU9.
+CONFIG_ARM64_MT6797_A72_CAPABILITY_PROFILE=y
+CONFIG_LOCALVERSION="-gemini-a41-blocked"

@@ -1,0 +1,24 @@
+PASS experiment-record
+PASS patch-identities
+PASS series-order
+PASS manifest-isolation
+PASS patch-preimages
+PASS lifecycle-order
+PASS registration-fail-closed
+PASS callback-integrity
+PASS blocker-model
+PASS planned-capabilities
+PASS production-path-absence
+PASS veto-preservation
+PASS identity-and-lifetime
+PASS partial-markers
+PASS offline-boundary
+PASS sequential-source-application
+patch_0148_sha256=953a990c6c9f0f91822b9923a2adf6ebf71e326ea5c570dd133c4178059750fb
+patch_0149_sha256=3c0911601d73ba73cce6a122d62df4e4f0273aeb9474e81c871aba2214feadc0
+config_inputs_sha256=ef8a5a3fe57629be71f466008afad67183f5184f9acc2faaddff999c6fe4048e
+implementation_state=PARTIAL_FAIL_CLOSED
+a41_complete=no
+build_authorized=no
+device_action_authorized=no
+RESULT PASS 16/16

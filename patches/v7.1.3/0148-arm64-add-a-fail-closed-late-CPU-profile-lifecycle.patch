@@ -1,0 +1,534 @@
+From 5ba594da7b561ceed4d8b060bf12a3bfa3bcbe23 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Project <noreply@invalid>
+Date: Wed, 5 Aug 2026 05:02:02 -0400
+Subject: [PATCH 148/149] arm64: add a fail-closed late CPU profile lifecycle
+
+Add boot-scoped activation, target registration, preparation, system
+verification, user-feature finalization, and a versioned attestation schema
+for CPUs deliberately held offline through arm64 capability finalization.
+
+The owner validates all fallible inputs before any infallible commit. The
+core publishes READY only after immutable system and user assertions, while
+invalid or incomplete profiles remain BLOCKED. This is an attestation
+lifecycle, not a CPU_ON admission mechanism.
+
+This experiment-only change has no certifying sign-off and is not
+submission-ready.
+---
+ arch/arm64/Kconfig                        |   8 +
+ arch/arm64/include/asm/late_cpu_profile.h | 137 ++++++++++
+ arch/arm64/kernel/Makefile                |   1 +
+ arch/arm64/kernel/late_cpu_profile.c      | 301 ++++++++++++++++++++++
+ arch/arm64/kernel/smp.c                   |   4 +
+ 5 files changed, 451 insertions(+)
+ create mode 100644 arch/arm64/include/asm/late_cpu_profile.h
+ create mode 100644 arch/arm64/kernel/late_cpu_profile.c
+
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 10c69474f..24559b5d7 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -2513,6 +2513,14 @@ endmenu # "CPU Power Management"
+ 
+ source "drivers/acpi/Kconfig"
+ 
++config ARM64_LATE_CPU_PROFILE
++	bool
++	help
++	  Internal support for a platform to describe CPUs which are expected to
++	  remain offline until after arm64 capability finalization. The evidence
++	  lifecycle is fail closed; it is neither a CPU boot nor admission
++	  mechanism.
++
+ source "arch/arm64/kvm/Kconfig"
+ 
+ source "kernel/livepatch/Kconfig"
+diff --git a/arch/arm64/include/asm/late_cpu_profile.h b/arch/arm64/include/asm/late_cpu_profile.h
+new file mode 100644
+index 000000000..1215abfdf
+--- /dev/null
++++ b/arch/arm64/include/asm/late_cpu_profile.h
+@@ -0,0 +1,137 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __ASM_LATE_CPU_PROFILE_H
++#define __ASM_LATE_CPU_PROFILE_H
++
++#include <linux/bitmap.h>
++#include <linux/cpumask.h>
++#include <linux/init.h>
++#include <linux/types.h>
++
++#include <asm/cpucaps.h>
++
++#define ARM64_LATE_CPU_ATTESTATION_ABI	1
++#define ARM64_LATE_CPU_PROFILE_ID_LEN	32
++#define ARM64_LATE_CPU_ID_WORDS		4
++#define ARM64_LATE_CPU_MAX_TARGETS	2
++
++enum arm64_late_cpu_profile_state {
++	ARM64_LATE_CPU_PROFILE_NONE,
++	ARM64_LATE_CPU_PROFILE_REGISTERED,
++	ARM64_LATE_CPU_PROFILE_BLOCKED,
++	ARM64_LATE_CPU_PROFILE_PREPARED,
++	ARM64_LATE_CPU_PROFILE_SYSTEM_VERIFIED,
++	ARM64_LATE_CPU_PROFILE_READY,
++};
++
++enum arm64_late_cpu_bhb_method {
++	ARM64_LATE_CPU_BHB_UNRESOLVED,
++	ARM64_LATE_CPU_BHB_LOOP,
++	ARM64_LATE_CPU_BHB_FIRMWARE,
++	ARM64_LATE_CPU_BHB_INSTRUCTION,
++	ARM64_LATE_CPU_BHB_HARDWARE,
++};
++
++/* Every unresolved proof keeps the production profile blocked. */
++#define ARM64_LATE_CPU_BLOCK_REGISTRATION	BIT_ULL(0)
++#define ARM64_LATE_CPU_BLOCK_TOPOLOGY		BIT_ULL(1)
++#define ARM64_LATE_CPU_BLOCK_CONFIGURATION	BIT_ULL(2)
++#define ARM64_LATE_CPU_BLOCK_CAP_INVENTORY	BIT_ULL(3)
++#define ARM64_LATE_CPU_BLOCK_FIRMWARE_WA1	BIT_ULL(4)
++#define ARM64_LATE_CPU_BLOCK_FIRMWARE_WA2	BIT_ULL(5)
++#define ARM64_LATE_CPU_BLOCK_ID_REGISTERS	BIT_ULL(6)
++#define ARM64_LATE_CPU_BLOCK_CACHE_TYPE		BIT_ULL(7)
++#define ARM64_LATE_CPU_BLOCK_ASID		BIT_ULL(8)
++#define ARM64_LATE_CPU_BLOCK_GRANULE		BIT_ULL(9)
++#define ARM64_LATE_CPU_BLOCK_VA_MODE		BIT_ULL(10)
++#define ARM64_LATE_CPU_BLOCK_GIC			BIT_ULL(11)
++#define ARM64_LATE_CPU_BLOCK_HWCAP		BIT_ULL(12)
++#define ARM64_LATE_CPU_BLOCK_ATTESTATION_USERS	BIT_ULL(13)
++#define ARM64_LATE_CPU_BLOCK_SOURCE_IDENTITY	BIT_ULL(14)
++
++struct arm64_late_cpu_attestation {
++	u32 abi;
++	u32 state;
++	char profile_id[ARM64_LATE_CPU_PROFILE_ID_LEN];
++	cpumask_t target_cpus;
++	/* Non-circular inputs; neither field proves the running image/config. */
++	u64 source_parent_identity[ARM64_LATE_CPU_ID_WORDS];
++	u64 config_input_identity[ARM64_LATE_CPU_ID_WORDS];
++	u64 evidence_identity[ARM64_LATE_CPU_ID_WORDS];
++	u64 expected_target_mpidr[ARM64_LATE_CPU_MAX_TARGETS];
++	u32 expected_target_midr[ARM64_LATE_CPU_MAX_TARGETS];
++	u32 observed_target_midr[ARM64_LATE_CPU_MAX_TARGETS];
++	u32 observed_target_revidr[ARM64_LATE_CPU_MAX_TARGETS];
++	DECLARE_BITMAP(required_local_caps, ARM64_NCAPS);
++	u64 blocker_mask;
++	u64 ctr_raw;
++	u64 ctr_effective;
++	u64 expected_elf_hwcap[3];
++	u32 expected_compat_hwcap;
++	u32 expected_compat_hwcap2;
++	s32 smccc_wa1;
++	s32 smccc_wa2;
++	u16 asid_bits;
++	u8 page_shift;
++	u8 va_bits;
++	u8 bhb_method;
++	u8 bhb_loop_count;
++	u8 gic_sre_usable;
++	u8 strict_caps_verified;
++	u8 observed_target_registers_valid[ARM64_LATE_CPU_MAX_TARGETS];
++	u8 smccc_wa1_valid;
++	u8 smccc_wa2_valid;
++	u8 alternatives_finalized;
++	u8 user_hwcaps_finalized;
++	u64 cookie;
++};
++
++struct arm64_late_cpu_profile {
++	const char *name;
++	u8 target_count;
++	int (*prepare)(struct arm64_late_cpu_attestation *draft,
++		       const struct cpumask *registered_targets);
++	int (*verify_system)(const struct arm64_late_cpu_attestation *attestation);
++	int (*finalize_user)(const struct arm64_late_cpu_attestation *attestation);
++};
++
++#ifdef CONFIG_ARM64_LATE_CPU_PROFILE
++void __init arm64_activate_late_cpu_profile(const struct arm64_late_cpu_profile *profile);
++void __init arm64_register_late_cpu_target(const struct arm64_late_cpu_profile *profile,
++					   unsigned int cpu);
++void __init arm64_prepare_late_cpu_profile(void);
++void __init arm64_verify_late_cpu_profile_system(void);
++void __init arm64_finalize_late_cpu_profile_user(void);
++const struct arm64_late_cpu_attestation *
++arm64_get_late_cpu_attestation(void);
++#else
++static inline void __init
++arm64_activate_late_cpu_profile(const struct arm64_late_cpu_profile *profile)
++{
++}
++
++static inline void __init
++arm64_register_late_cpu_target(const struct arm64_late_cpu_profile *profile,
++			       unsigned int cpu)
++{
++}
++
++static inline void __init arm64_prepare_late_cpu_profile(void)
++{
++}
++
++static inline void __init arm64_verify_late_cpu_profile_system(void)
++{
++}
++
++static inline void __init arm64_finalize_late_cpu_profile_user(void)
++{
++}
++
++static inline const struct arm64_late_cpu_attestation *
++arm64_get_late_cpu_attestation(void)
++{
++	return NULL;
++}
++#endif
++
++#endif /* __ASM_LATE_CPU_PROFILE_H */
+diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
+index ef1f74332..4fb460cec 100644
+--- a/arch/arm64/kernel/Makefile
++++ b/arch/arm64/kernel/Makefile
+@@ -46,6 +46,7 @@ obj-$(CONFIG_MODULES)			+= module.o module-plts.o
+ obj-$(CONFIG_PERF_EVENTS)		+= perf_regs.o perf_callchain.o
+ obj-$(CONFIG_HARDLOCKUP_DETECTOR_PERF)	+= watchdog_hld.o
+ obj-$(CONFIG_HAVE_HW_BREAKPOINT)	+= hw_breakpoint.o
++obj-$(CONFIG_ARM64_LATE_CPU_PROFILE)	+= late_cpu_profile.o
+ obj-$(CONFIG_HAVE_STATIC_CALL)		+= static_call.o
+ obj-$(CONFIG_CPU_PM)			+= sleep.o suspend.o
+ obj-$(CONFIG_KGDB)			+= kgdb.o
+diff --git a/arch/arm64/kernel/late_cpu_profile.c b/arch/arm64/kernel/late_cpu_profile.c
+new file mode 100644
+index 000000000..c611c2846
+--- /dev/null
++++ b/arch/arm64/kernel/late_cpu_profile.c
+@@ -0,0 +1,301 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Fail-closed arm64 profile for CPUs expected after capability finalization.
++ *
++ * A profile callback must complete every fallible check before prepare()
++ * returns success. A successful profile is then committed infallibly by its
++ * architecture owner before normal system capability and alternatives setup.
++ * This lifecycle attests that work; it does not admit a CPU_ON request.
++ */
++
++#define pr_fmt(fmt) "arm64-late-cpu-profile: " fmt
++
++#include <linux/init.h>
++#include <linux/kernel.h>
++#include <linux/panic.h>
++#include <linux/printk.h>
++#include <linux/string.h>
++
++#include <asm/late_cpu_profile.h>
++
++static struct arm64_late_cpu_profile late_profile __initdata;
++static bool late_profile_active __initdata;
++static cpumask_t late_profile_targets __initdata;
++static bool late_profile_registration_fault __initdata;
++
++static struct arm64_late_cpu_attestation late_attestation __ro_after_init = {
++	.abi = ARM64_LATE_CPU_ATTESTATION_ABI,
++	.state = ARM64_LATE_CPU_PROFILE_NONE,
++};
++
++static void __init late_profile_block(u64 blockers, const char *reason)
++{
++	if (!late_attestation.profile_id[0])
++		strscpy(late_attestation.profile_id, "invalid-registration",
++			sizeof(late_attestation.profile_id));
++	late_attestation.blocker_mask |= blockers;
++	/* Publish the complete blocker record before exposing BLOCKED. */
++	smp_store_release(&late_attestation.state,
++			  ARM64_LATE_CPU_PROFILE_BLOCKED);
++	pr_warn("%.*s blocked: %s (proof mask %#llx)\n",
++		ARM64_LATE_CPU_PROFILE_ID_LEN, late_attestation.profile_id, reason,
++		late_attestation.blocker_mask);
++}
++
++static bool __init
++late_profile_identity_matches(const struct arm64_late_cpu_attestation *before,
++			      const struct arm64_late_cpu_attestation *after)
++{
++	return before->abi == after->abi &&
++	       !memcmp(before->profile_id, after->profile_id,
++		       sizeof(before->profile_id)) &&
++	       cpumask_equal(&before->target_cpus, &after->target_cpus) &&
++	       !memcmp(before->source_parent_identity,
++		       after->source_parent_identity,
++		       sizeof(before->source_parent_identity)) &&
++	       !memcmp(before->config_input_identity,
++		       after->config_input_identity,
++		       sizeof(before->config_input_identity)) &&
++	       !memcmp(before->evidence_identity, after->evidence_identity,
++		       sizeof(before->evidence_identity)) &&
++	       !memcmp(before->expected_target_mpidr,
++		       after->expected_target_mpidr,
++		       sizeof(before->expected_target_mpidr)) &&
++	       !memcmp(before->expected_target_midr,
++		       after->expected_target_midr,
++		       sizeof(before->expected_target_midr)) &&
++	       !memcmp(before->observed_target_midr,
++		       after->observed_target_midr,
++		       sizeof(before->observed_target_midr)) &&
++	       !memcmp(before->observed_target_revidr,
++		       after->observed_target_revidr,
++		       sizeof(before->observed_target_revidr)) &&
++	       bitmap_equal(before->required_local_caps,
++			    after->required_local_caps, ARM64_NCAPS) &&
++	       before->blocker_mask == after->blocker_mask &&
++	       before->ctr_raw == after->ctr_raw &&
++	       before->ctr_effective == after->ctr_effective &&
++	       !memcmp(before->expected_elf_hwcap,
++		       after->expected_elf_hwcap,
++		       sizeof(before->expected_elf_hwcap)) &&
++	       before->expected_compat_hwcap == after->expected_compat_hwcap &&
++	       before->expected_compat_hwcap2 == after->expected_compat_hwcap2 &&
++	       before->smccc_wa1 == after->smccc_wa1 &&
++	       before->smccc_wa2 == after->smccc_wa2 &&
++	       before->asid_bits == after->asid_bits &&
++	       before->page_shift == after->page_shift &&
++	       before->va_bits == after->va_bits &&
++	       before->bhb_method == after->bhb_method &&
++	       before->bhb_loop_count == after->bhb_loop_count &&
++	       before->gic_sre_usable == after->gic_sre_usable &&
++	       before->strict_caps_verified == after->strict_caps_verified &&
++	       !memcmp(before->observed_target_registers_valid,
++		       after->observed_target_registers_valid,
++		       sizeof(before->observed_target_registers_valid)) &&
++	       before->smccc_wa1_valid == after->smccc_wa1_valid &&
++	       before->smccc_wa2_valid == after->smccc_wa2_valid &&
++	       before->cookie == after->cookie;
++}
++
++static bool __init
++late_profile_descriptor_matches(const struct arm64_late_cpu_profile *profile)
++{
++	return profile && profile->name && profile->prepare &&
++	       strnlen(profile->name, ARM64_LATE_CPU_PROFILE_ID_LEN) <
++		       ARM64_LATE_CPU_PROFILE_ID_LEN &&
++	       late_profile_active &&
++	       !strcmp(late_profile.name, profile->name) &&
++	       late_profile.target_count == profile->target_count &&
++	       late_profile.prepare == profile->prepare &&
++	       late_profile.verify_system == profile->verify_system &&
++	       late_profile.finalize_user == profile->finalize_user;
++}
++
++static bool __init
++late_profile_core_matches(const struct arm64_late_cpu_attestation *draft)
++{
++	return draft->abi == ARM64_LATE_CPU_ATTESTATION_ABI &&
++	       draft->state == ARM64_LATE_CPU_PROFILE_REGISTERED &&
++	       !memcmp(draft->profile_id, late_attestation.profile_id,
++		       sizeof(draft->profile_id)) &&
++	       cpumask_equal(&draft->target_cpus, &late_profile_targets) &&
++	       !draft->strict_caps_verified &&
++	       !draft->alternatives_finalized &&
++	       !draft->user_hwcaps_finalized;
++}
++
++void __init
++arm64_activate_late_cpu_profile(const struct arm64_late_cpu_profile *profile)
++{
++	if (!profile || !profile->name || !profile->prepare ||
++	    !profile->target_count ||
++	    profile->target_count > ARM64_LATE_CPU_MAX_TARGETS) {
++		late_profile_registration_fault = true;
++		return;
++	}
++
++	if (!late_profile_active) {
++		if (strscpy(late_attestation.profile_id, profile->name,
++			    sizeof(late_attestation.profile_id)) < 0) {
++			late_profile_registration_fault = true;
++			return;
++		}
++		late_profile = *profile;
++		late_profile.name = late_attestation.profile_id;
++		late_profile_active = true;
++		WRITE_ONCE(late_attestation.state,
++			   ARM64_LATE_CPU_PROFILE_REGISTERED);
++	} else if (!late_profile_descriptor_matches(profile)) {
++		late_profile_registration_fault = true;
++	}
++}
++
++void __init
++arm64_register_late_cpu_target(const struct arm64_late_cpu_profile *profile,
++			       unsigned int cpu)
++{
++	if (!late_profile_descriptor_matches(profile) || cpu >= nr_cpu_ids) {
++		late_profile_registration_fault = true;
++		return;
++	}
++
++	if (cpumask_test_and_set_cpu(cpu, &late_profile_targets))
++		late_profile_registration_fault = true;
++}
++
++void __init arm64_prepare_late_cpu_profile(void)
++{
++	struct arm64_late_cpu_attestation draft;
++	int ret;
++
++	if (!late_profile_active && !late_profile_registration_fault)
++		return;
++
++	if (late_profile_registration_fault) {
++		late_profile_block(ARM64_LATE_CPU_BLOCK_REGISTRATION,
++				   "registration identity changed");
++		return;
++	}
++	if (cpumask_weight(&late_profile_targets) != late_profile.target_count) {
++		cpumask_copy(&late_attestation.target_cpus,
++			     &late_profile_targets);
++		late_profile_block(ARM64_LATE_CPU_BLOCK_REGISTRATION,
++				   "target registrations are incomplete");
++		return;
++	}
++
++	if (READ_ONCE(late_attestation.state) !=
++	    ARM64_LATE_CPU_PROFILE_REGISTERED) {
++		late_profile_block(ARM64_LATE_CPU_BLOCK_REGISTRATION,
++				   "invalid prepare state");
++		return;
++	}
++
++	cpumask_copy(&late_attestation.target_cpus, &late_profile_targets);
++	draft = late_attestation;
++	ret = late_profile.prepare(&draft, &late_profile_targets);
++	if (!late_profile_core_matches(&draft)) {
++		late_profile_block(ARM64_LATE_CPU_BLOCK_CAP_INVENTORY,
++				   "prepare altered core identity");
++		return;
++	}
++	if (ret || draft.blocker_mask) {
++		u64 blockers = draft.blocker_mask ?:
++			       ARM64_LATE_CPU_BLOCK_CAP_INVENTORY;
++
++		late_attestation = draft;
++		late_profile_block(blockers,
++				   "required evidence is incomplete");
++		return;
++	}
++	if (!draft.cookie) {
++		late_profile_block(ARM64_LATE_CPU_BLOCK_CAP_INVENTORY,
++				   "prepared identity is incomplete");
++		return;
++	}
++
++	late_attestation = draft;
++	/* Publish the complete plan before exposing PREPARED. */
++	smp_store_release(&late_attestation.state,
++			  ARM64_LATE_CPU_PROFILE_PREPARED);
++	pr_info("%s prepared with cookie %#llx\n",
++		late_attestation.profile_id, late_attestation.cookie);
++}
++
++void __init arm64_verify_late_cpu_profile_system(void)
++{
++	struct arm64_late_cpu_attestation before;
++	struct arm64_late_cpu_attestation draft;
++	int ret;
++
++	if (READ_ONCE(late_attestation.state) == ARM64_LATE_CPU_PROFILE_BLOCKED)
++		return;
++	if (!late_profile_active)
++		return;
++
++	if (READ_ONCE(late_attestation.state) !=
++	    ARM64_LATE_CPU_PROFILE_PREPARED || !late_profile.verify_system)
++		panic("late CPU profile reached system finalization out of order");
++
++	before = late_attestation;
++	draft = before;
++	ret = late_profile.verify_system(&draft);
++	if (ret || draft.state != ARM64_LATE_CPU_PROFILE_PREPARED ||
++	    draft.blocker_mask ||
++	    !late_profile_identity_matches(&before, &draft) ||
++	    draft.alternatives_finalized || draft.user_hwcaps_finalized)
++		panic("late CPU profile system verification failed: %d", ret);
++
++	late_attestation = draft;
++	late_attestation.strict_caps_verified = 1;
++	late_attestation.alternatives_finalized = 1;
++	/* Publish the system assertions before exposing SYSTEM_VERIFIED. */
++	smp_store_release(&late_attestation.state,
++			  ARM64_LATE_CPU_PROFILE_SYSTEM_VERIFIED);
++}
++
++void __init arm64_finalize_late_cpu_profile_user(void)
++{
++	struct arm64_late_cpu_attestation before;
++	struct arm64_late_cpu_attestation draft;
++	int ret;
++
++	if (READ_ONCE(late_attestation.state) == ARM64_LATE_CPU_PROFILE_BLOCKED)
++		return;
++	if (!late_profile_active)
++		return;
++
++	if (READ_ONCE(late_attestation.state) !=
++	    ARM64_LATE_CPU_PROFILE_SYSTEM_VERIFIED ||
++	    !late_profile.finalize_user)
++		panic("late CPU profile reached user finalization out of order");
++
++	before = late_attestation;
++	draft = before;
++	ret = late_profile.finalize_user(&draft);
++	if (ret || draft.state != ARM64_LATE_CPU_PROFILE_SYSTEM_VERIFIED ||
++	    draft.blocker_mask ||
++	    !late_profile_identity_matches(&before, &draft) ||
++	    !draft.strict_caps_verified || !draft.alternatives_finalized ||
++	    draft.user_hwcaps_finalized)
++		panic("late CPU profile user verification failed: %d", ret);
++
++	late_attestation = draft;
++	late_attestation.user_hwcaps_finalized = 1;
++	/* Publish every user feature assertion before exposing READY. */
++	smp_store_release(&late_attestation.state,
++			  ARM64_LATE_CPU_PROFILE_READY);
++	pr_info("%s ready with cookie %#llx\n",
++		late_attestation.profile_id, late_attestation.cookie);
++}
++
++const struct arm64_late_cpu_attestation *
++arm64_get_late_cpu_attestation(void)
++{
++	/* A36 consumers may observe the record only after READY publication. */
++	if (smp_load_acquire(&late_attestation.state) !=
++	    ARM64_LATE_CPU_PROFILE_READY)
++		return NULL;
++
++	return &late_attestation;
++}
+diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
+index 1aa324104..6f760ec29 100644
+--- a/arch/arm64/kernel/smp.c
++++ b/arch/arm64/kernel/smp.c
+@@ -44,6 +44,7 @@
+ #include <asm/cpu_ops.h>
+ #include <asm/daifflags.h>
+ #include <asm/kvm_mmu.h>
++#include <asm/late_cpu_profile.h>
+ #include <asm/mmu_context.h>
+ #include <asm/numa.h>
+ #include <asm/processor.h>
+@@ -439,8 +440,11 @@ void __init smp_cpus_done(unsigned int max_cpus)
+ {
+ 	pr_info("SMP: Total of %d processors activated.\n", num_online_cpus());
+ 	hyp_mode_check();
++	arm64_prepare_late_cpu_profile();
+ 	setup_system_features();
++	arm64_verify_late_cpu_profile_system();
+ 	setup_user_features();
++	arm64_finalize_late_cpu_profile_user();
+ 	mark_linear_text_alias_ro();
+ }
+ 
+-- 
+2.50.1 (Apple Git-155)
+

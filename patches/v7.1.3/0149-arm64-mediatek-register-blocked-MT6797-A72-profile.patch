@@ -1,0 +1,267 @@
+From 08eb3392a57d30922cd06a4af0e55ee49628cdce Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Project <noreply@invalid>
+Date: Wed, 5 Aug 2026 05:05:35 -0400
+Subject: [PATCH 149/149] arm64: mediatek: register blocked MT6797 A72 profile
+
+Register the exact Gemini MT6797 A53/A72 topology with the arm64 late-CPU
+attestation lifecycle. Activate the requirement independently of A72 CPU-op
+discovery so missing or drifted targets cannot silently remove the profile.
+
+Record the exact pre-A41 source parent, ordered configuration inputs,
+expected target identities, BHB k=8, erratum 1742098, and speculative-AT
+plan. Keep current source, configuration, register, firmware, HWCAP,
+capability-inventory, and attestation-user proofs blocked. Return -EAGAIN
+before changing any live capability, alternative, vector, HWCAP, or CPU
+path.
+
+The existing MT6797 cpu_boot -EAGAIN and cpu_can_disable=false
+vetoes remain unchanged. This post-SMP evidence lifecycle is not the CPU
+admission gate.
+
+This experiment-only change has no certifying sign-off and is not
+submission-ready.
+---
+ arch/arm64/Kconfig.platforms     |  12 +++
+ arch/arm64/include/asm/cpu_ops.h |   4 +
+ arch/arm64/kernel/cpu_ops.c      |   8 +-
+ arch/arm64/kernel/mt6797_psci.c  | 158 ++++++++++++++++++++++++++++++-
+ 4 files changed, 180 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/Kconfig.platforms b/arch/arm64/Kconfig.platforms
+index 72c812e76..50f67e765 100644
+--- a/arch/arm64/Kconfig.platforms
++++ b/arch/arm64/Kconfig.platforms
+@@ -182,6 +182,18 @@ config ARCH_MEDIATEK
+ 	  This enables support for MediaTek MT27xx, MT65xx, MT76xx
+ 	  & MT81xx ARMv8 SoCs
+ 
++config ARM64_MT6797_A72_CAPABILITY_PROFILE
++	bool "Fail-closed MT6797 late Cortex-A72 capability profile"
++	depends on ARCH_MEDIATEK && SMP
++	select ARM64_LATE_CPU_PROFILE
++	help
++	  Register the exact MT6797 Cortex-A53 plus late Cortex-A72 topology
++	  with the arm64 capability-finalization owner. The production profile
++	  remains blocked until its register, firmware, capability, HWCAP, and
++	  transaction-attestation evidence is complete. This option neither
++	  enables nor admits a CPU boot path; an independent early veto remains
++	  required.
++
+ config ARCH_MESON
+ 	bool "Amlogic Platforms"
+ 	help
+diff --git a/arch/arm64/include/asm/cpu_ops.h b/arch/arm64/include/asm/cpu_ops.h
+index a444c8915..b1c54aedf 100644
+--- a/arch/arm64/include/asm/cpu_ops.h
++++ b/arch/arm64/include/asm/cpu_ops.h
+@@ -49,6 +49,10 @@ struct cpu_operations {
+ int __init init_cpu_ops(int cpu);
+ extern const struct cpu_operations *get_cpu_ops(int cpu);
+ 
++#ifdef CONFIG_ARM64_MT6797_A72_CAPABILITY_PROFILE
++void __init mt6797_activate_a72_capability_profile(void);
++#endif
++
+ static inline void __init init_bootcpu_ops(void)
+ {
+ 	init_cpu_ops(0);
+diff --git a/arch/arm64/kernel/cpu_ops.c b/arch/arm64/kernel/cpu_ops.c
+index b773e4dbe..938f8042c 100644
+--- a/arch/arm64/kernel/cpu_ops.c
++++ b/arch/arm64/kernel/cpu_ops.c
+@@ -104,7 +104,13 @@ static const char *__init cpu_read_enable_method(int cpu)
+  */
+ int __init init_cpu_ops(int cpu)
+ {
+-	const char *enable_method = cpu_read_enable_method(cpu);
++	const char *enable_method;
++
++#ifdef CONFIG_ARM64_MT6797_A72_CAPABILITY_PROFILE
++	if (!cpu)
++		mt6797_activate_a72_capability_profile();
++#endif
++	enable_method = cpu_read_enable_method(cpu);
+ 
+ 	if (!enable_method)
+ 		return -ENODEV;
+diff --git a/arch/arm64/kernel/mt6797_psci.c b/arch/arm64/kernel/mt6797_psci.c
+index 2777a3ee0..45ef7a6c9 100644
+--- a/arch/arm64/kernel/mt6797_psci.c
++++ b/arch/arm64/kernel/mt6797_psci.c
+@@ -7,16 +7,172 @@
+ 
+ #define pr_fmt(fmt) "mt6797-psci: " fmt
+ 
++#include <linux/cpu.h>
+ #include <linux/errno.h>
++#include <linux/init.h>
++#include <linux/of.h>
+ #include <linux/printk.h>
++#include <linux/string.h>
+ 
+ #include <asm/cpu_ops.h>
++#include <asm/cputype.h>
++#include <asm/late_cpu_profile.h>
++#include <asm/smp.h>
+ 
+ extern const struct cpu_operations cpu_psci_ops;
+ 
++#ifdef CONFIG_ARM64_MT6797_A72_CAPABILITY_PROFILE
++#define MT6797_A72_PROFILE_BLOCKERS					\
++	(ARM64_LATE_CPU_BLOCK_CONFIGURATION |				\
++	 ARM64_LATE_CPU_BLOCK_SOURCE_IDENTITY |			\
++	 ARM64_LATE_CPU_BLOCK_CAP_INVENTORY |				\
++	 ARM64_LATE_CPU_BLOCK_FIRMWARE_WA1 |				\
++	 ARM64_LATE_CPU_BLOCK_FIRMWARE_WA2 |				\
++	 ARM64_LATE_CPU_BLOCK_ID_REGISTERS |				\
++	 ARM64_LATE_CPU_BLOCK_CACHE_TYPE |				\
++	 ARM64_LATE_CPU_BLOCK_ASID |					\
++	 ARM64_LATE_CPU_BLOCK_GRANULE |				\
++	 ARM64_LATE_CPU_BLOCK_VA_MODE |				\
++	 ARM64_LATE_CPU_BLOCK_GIC |					\
++	 ARM64_LATE_CPU_BLOCK_HWCAP |					\
++	 ARM64_LATE_CPU_BLOCK_ATTESTATION_USERS)
++
++static bool __init mt6797_a72_profile_config_gates_match(void)
++{
++	return IS_ENABLED(CONFIG_SMP) &&
++	       IS_ENABLED(CONFIG_HOTPLUG_CPU) &&
++	       IS_ENABLED(CONFIG_ARM64_ERRATUM_1742098) &&
++	       IS_ENABLED(CONFIG_ARM64_WORKAROUND_SPECULATIVE_AT) &&
++	       IS_ENABLED(CONFIG_ARM64_ERRATUM_1319367) &&
++	       IS_ENABLED(CONFIG_MITIGATE_SPECTRE_BRANCH_HISTORY) &&
++	       IS_ENABLED(CONFIG_COMPAT) &&
++	       IS_ENABLED(CONFIG_ARM64_4K_PAGES) &&
++	       IS_ENABLED(CONFIG_ARM64_VA_BITS_52) &&
++	       IS_ENABLED(CONFIG_ARM64_LPA2) &&
++	       IS_ENABLED(CONFIG_UNMAP_KERNEL_AT_EL0) &&
++	       IS_ENABLED(CONFIG_ARM_GIC_V3) &&
++	       IS_ENABLED(CONFIG_CMDLINE_FORCE) &&
++	       !IS_ENABLED(CONFIG_RANDOMIZE_BASE) &&
++	       !IS_ENABLED(CONFIG_VIRTUALIZATION) &&
++	       !IS_ENABLED(CONFIG_ARM64_PSEUDO_NMI) &&
++	       !strstr(saved_command_line, "nospectre_bhb") &&
++	       !strstr(saved_command_line, "mitigations=off") &&
++	       !strstr(saved_command_line, "allow_mismatched_32bit_el0");
++}
++
++static bool __init
++mt6797_a72_profile_topology_exact(const struct cpumask *registered_targets)
++{
++	static const u64 expected_mpidr[] = {
++		0x000, 0x001, 0x002, 0x003, 0x100,
++		0x101, 0x102, 0x103, 0x200, 0x201,
++	};
++	struct device_node *dn;
++	const char *actual_enable_method;
++	const char *expected_compatible;
++	const char *expected_enable_method;
++	unsigned int cpu;
++	bool valid = true;
++
++	if (!of_machine_is_compatible("planet,gemini-pda") ||
++	    !of_machine_is_compatible("mediatek,mt6797") ||
++	    num_possible_cpus() != ARRAY_SIZE(expected_mpidr) ||
++	    num_online_cpus() != 8 ||
++	    cpumask_weight(registered_targets) != 2 ||
++	    !cpumask_test_cpu(8, registered_targets) ||
++	    !cpumask_test_cpu(9, registered_targets))
++		return false;
++
++	for_each_possible_cpu(cpu) {
++		if (cpu >= ARRAY_SIZE(expected_mpidr) ||
++		    cpu_logical_map(cpu) != expected_mpidr[cpu] ||
++		    (cpu < 8 && !cpu_online(cpu)) ||
++		    (cpu >= 8 && cpu_online(cpu)))
++			return false;
++
++		dn = of_get_cpu_node(cpu, NULL);
++		if (!dn)
++			return false;
++
++		expected_compatible = cpu < 8 ?
++			"arm,cortex-a53" : "arm,cortex-a72";
++		expected_enable_method = cpu < 8 ?
++			"psci" : "mediatek,mt6797-psci";
++		if (!of_device_is_compatible(dn, expected_compatible) ||
++		    of_get_cpu_hwid(dn, 0) != expected_mpidr[cpu] ||
++		    of_property_read_string(dn, "enable-method",
++					    &actual_enable_method) ||
++		    strcmp(actual_enable_method, expected_enable_method))
++			valid = false;
++		of_node_put(dn);
++
++		if (!valid)
++			return false;
++	}
++
++	return true;
++}
++
++static int __init
++mt6797_a72_profile_prepare(struct arm64_late_cpu_attestation *draft,
++			   const struct cpumask *registered_targets)
++{
++	static const u64 source_parent_identity[ARM64_LATE_CPU_ID_WORDS] = {
++		0x2ef15df475d00e5a, 0xe0f85a1f25866cd4,
++		0x267a407af974b5c8, 0xcf992ad2e15e0a9b,
++	};
++	static const u64 config_input_identity[ARM64_LATE_CPU_ID_WORDS] = {
++		0xef8a5a3fe57629be, 0x71f466008afad671,
++		0x83f5184f9acc2faa, 0xddff999c6fe4048e,
++	};
++
++	memcpy(draft->source_parent_identity, source_parent_identity,
++	       sizeof(draft->source_parent_identity));
++	memcpy(draft->config_input_identity, config_input_identity,
++	       sizeof(draft->config_input_identity));
++	draft->expected_target_mpidr[0] = 0x200;
++	draft->expected_target_mpidr[1] = 0x201;
++	draft->expected_target_midr[0] = MIDR_CORTEX_A72;
++	draft->expected_target_midr[1] = MIDR_CORTEX_A72;
++	__set_bit(ARM64_SPECTRE_BHB, draft->required_local_caps);
++	__set_bit(ARM64_WORKAROUND_1742098, draft->required_local_caps);
++	__set_bit(ARM64_WORKAROUND_SPECULATIVE_AT,
++		  draft->required_local_caps);
++	draft->bhb_method = ARM64_LATE_CPU_BHB_LOOP;
++	draft->bhb_loop_count = 8;
++	draft->blocker_mask = MT6797_A72_PROFILE_BLOCKERS;
++
++	if (!mt6797_a72_profile_config_gates_match())
++		draft->blocker_mask |= ARM64_LATE_CPU_BLOCK_CONFIGURATION;
++	if (!mt6797_a72_profile_topology_exact(registered_targets))
++		draft->blocker_mask |= ARM64_LATE_CPU_BLOCK_TOPOLOGY;
++
++	/* No system capability, alternative, vector, or HWCAP is changed. */
++	return -EAGAIN;
++}
++
++static const struct arm64_late_cpu_profile mt6797_a72_profile __initconst = {
++	.name = "mt6797-a53-a72-a41-v1",
++	.target_count = 2,
++	.prepare = mt6797_a72_profile_prepare,
++};
++
++void __init mt6797_activate_a72_capability_profile(void)
++{
++	arm64_activate_late_cpu_profile(&mt6797_a72_profile);
++}
++#endif
++
+ static int __init mt6797_psci_cpu_init(unsigned int cpu)
+ {
+-	return cpu_psci_ops.cpu_init(cpu);
++	int ret;
++
++	ret = cpu_psci_ops.cpu_init(cpu);
++#ifdef CONFIG_ARM64_MT6797_A72_CAPABILITY_PROFILE
++	if (!ret)
++		arm64_register_late_cpu_target(&mt6797_a72_profile, cpu);
++#endif
++	return ret;
+ }
+ 
+ static int __init mt6797_psci_cpu_prepare(unsigned int cpu)
+-- 
+2.50.1 (Apple Git-155)
+
