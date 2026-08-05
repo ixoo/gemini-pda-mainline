@@ -1,0 +1,18 @@
+command=PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate.py
+validation=p24-closed-owner
+claim=PARTIAL_P24_CLOSED_OWNER_MODEL
+patch_sha256=39cd3a9e158f2d7ed3e95856002f450709f5886f11e66c9920bb62952394e515
+patch_id_stable=fd8812286327768700ca7bfae4b548a836b04f1d
+source_state_sha256=035390e2350cfff576de28083db6904fbdddcc061c4231683942aa13b5c19452
+config_inputs_sha256=0fe5961a34c6f2ae14b12d36a30f9f9d7a852f6d628f9344f51297942de0cb58
+named_prerequisite_subsets=8192
+exact_admission_probes=32768
+exact_denials=32768
+mutations_rejected=25/25
+reviewers=3-GO
+kunit=8-cases-not-built-or-run
+production_callers=0
+profiles_checked=64
+build=not-run
+device_action=none
+status=PASS

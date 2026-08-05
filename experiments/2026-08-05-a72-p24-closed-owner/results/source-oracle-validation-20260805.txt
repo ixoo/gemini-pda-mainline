@@ -1,0 +1,17 @@
+command=PYTHONDONTWRITEBYTECODE=1 python3 scripts/oracle.py
+PARTIAL_P24_CLOSED_OWNER_MODEL
+named_prerequisites=13
+named_prerequisite_subsets=8192
+exact_requests=2
+caller_readiness_values=2
+exact_admission_probes=32768
+exact_denials=32768
+malformed_probes=12
+malformed_rejections=12
+reachable_owner_states=1
+authorized_outcomes=0
+sequential_denial_witness=CPU8/gen42 -> CPU9/gen7
+violations=0
+PASS immutable CLOSED/UNINITIALIZED denial contract
+build=not-run
+device_action=none

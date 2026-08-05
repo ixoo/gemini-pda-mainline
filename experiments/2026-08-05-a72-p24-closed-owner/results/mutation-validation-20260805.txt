@@ -1,0 +1,30 @@
+command=PYTHONDONTWRITEBYTECODE=1 python3 scripts/test_mutations.py
+PASS caller-readiness-authorizes: CALLER_READINESS_NOT_AUTHORITY
+PASS bounded-list-authorizes: BOUNDED_LIST_NOT_AUTHORITY
+PASS a26-veto-ignored: A26_VETO_REQUIRED
+PASS all-applicable-review-inferred: ALL_APPLICABLE_REVIEW_REMAINS_FALSE
+PASS implementation-enabled-inferred: IMPLEMENTATION_ENABLED_REMAINS_FALSE
+PASS malformed-identity-enters-owner: EXACT_REQUEST_IDENTITY
+PASS p31-entered-before-denial: P31_NOT_ENTERED
+PASS a38-consumed-before-denial: A38_NOT_CONSUMED
+PASS attempt-consumed-before-denial: ATTEMPT_NOT_CONSUMED
+PASS live-token-allocated: NO_LIVE_TOKEN
+PASS membership-enters-frozen: MEMBERSHIP_PHASE_UNINITIALIZED
+PASS p17-published: P17_NOT_PUBLISHED
+PASS p18-published: P18_NOT_PUBLISHED
+PASS p30-handoff: P30_NOT_REACHED
+PASS provider-mutated: PROVIDER_UNTOUCHED
+PASS membership-committed: MEMBERSHIP_UNTOUCHED
+PASS hardware-mutated: HARDWARE_UNTOUCHED
+PASS cpu-on-issued: CPU_ON_NOT_ISSUED
+PASS p14-published: P14_NOT_PUBLISHED
+PASS p15-published: P15_NOT_PUBLISHED
+PASS a33-committed: A33_NOT_COMMITTED
+PASS p32-entered: P32_NOT_ENTERED
+PASS denial-record-mutated: DENIAL_IMMUTABLE
+PASS denial-acknowledged: ACK_NOT_AUTHORITY
+PASS reset-opens-owner: RESET_NOT_AUTHORITY
+mutations_rejected=25/25
+PASS intended-check CLOSED-owner mutation suite
+build=not-run
+device_action=none

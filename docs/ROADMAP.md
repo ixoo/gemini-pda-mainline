@@ -1491,6 +1491,19 @@ existing MT6797 CPU boot path still returns `-EAGAIN`, CPU disable still returns
 false, and A26/A14 remain closed. No build, package, candidate, deployment, or
 device action occurred.
 
+The follow-on source-only
+[P24 closed transaction-owner model](../experiments/2026-08-05-a72-p24-closed-owner/README.md)
+adds the lifecycle and storage boundary that future P17/P18/P24 integration
+will require. It begins `CLOSED` and explicitly `UNINITIALIZED`; CPU8 and CPU9
+probes are denied before P31 or A38 and cannot consume an attempt, mint a
+transaction, claim a P30 token, change provider or membership state, or reach
+CPU_ON. Read-only snapshots make that no-effect boundary independently
+reviewable. There is deliberately no production caller or opener, and the
+default-off KUnit coverage remains unexecuted. This advances the source only
+to `PARTIAL_P24_CLOSED_OWNER_MODEL`; it does not implement P17, P18, P24, a
+generic admission hook, the P31/A28/mint/A36 transaction, or any hardware
+operation.
+
 P32A/D/F/X/R freezes the automatic rollback closure. The controller publishes
 P32 before `cpuhp_reset_state()` and the outer reverse range. Target
 `.cpu_disable` is the first guard before topology/NUMA removal, online clear,
@@ -1512,13 +1525,15 @@ names for that operation is implemented and proven.
 
 The next ordered work remains source-only:
 
-1. Integrate the reviewed dormant P30 model with the future authoritative
-   P17/P18/P24 membership token owner and exact C/controller call sites. Replace
-   the reused global startup task/status/completion state, add bounded
-   publication and PARKED waits, the real target park acknowledgment, the
-   immediate post-`__cpu_up()` P14/P15 hook, branch-specific effect rules, and
-   unconditional global panic/reset enforcement. Preserve the current A26/A14
-   vetoes throughout.
+1. Add separately reviewed, fail-closed generic admission hook sites around the
+   closed P24 owner, without adding an opener or making CPU_ON reachable. Then
+   implement the authoritative P17/P18/P24 transaction in the frozen
+   P31 -> A28 -> mint -> A36 order and integrate its exact token with the
+   dormant P30 model and controller call sites. Replace the reused global
+   startup task/status/completion state, add bounded publication and PARKED
+   waits, the real target park acknowledgment, the immediate post-`__cpu_up()`
+   P14/P15 hook, branch-specific effect rules, and unconditional global
+   panic/reset enforcement. Preserve the current A26/A14 vetoes throughout.
 2. Prove and implement P30E through one authoritative MMU-off-visible object
    shared with the controller, including exact tuple layout, cache maintenance,
    point-of-coherency and barrier ordering, assembly failure publication, and

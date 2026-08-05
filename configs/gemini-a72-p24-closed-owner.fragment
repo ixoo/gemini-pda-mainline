@@ -1,0 +1,6 @@
+# Source-only P24 closed transaction owner model. It has no production caller
+# or opener, cannot consume an attempt, allocate a token, publish or mutate
+# P30, or issue CPU_ON. Keep KUnit disabled in this blocked profile.
+CONFIG_ARM64_MT6797_A72_P24_TRANSACTION_OWNER_MODEL=y
+# CONFIG_ARM64_MT6797_A72_P24_OWNER_KUNIT_TEST is not set
+CONFIG_LOCALVERSION="-gemini-p24-owner-closed"
