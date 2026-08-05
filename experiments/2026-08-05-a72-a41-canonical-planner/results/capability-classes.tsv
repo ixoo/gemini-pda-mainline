@@ -1,0 +1,9 @@
+class	scope	result	closure
+canonical_slots	all surviving non-null cpucap_ptrs	structurally validated	read-only slot bitmap plus source-identity omission guard
+deterministic_target	local	BHB 1742098 speculative-AT	exact three-cap draft only
+conditional_local	local	Spectre-v2 Spectre-v4 CTR KPTI and other predicates	UNRESOLVED retains CAP_INVENTORY
+strict_boot	boot	exact equality unproven	GIC and ID evidence blocker
+boot_feature	boot	target may not miss finalized true state	ID and VA evidence blocker
+system_feature	system	target may not miss finalized true state	ID strict and HWCAP blockers
+native_hwcap	userspace	complete bitmap unproven	HWCAP blocker
+compat_hwcap	userspace	complete bitmap plus AES fixup unproven	HWCAP and 1742098 blockers

@@ -1,0 +1,16 @@
+bit	symbol	owner	status	evidence_needed
+0	ARM64_LATE_CPU_BLOCK_REGISTRATION	core	conditional	exact bounded target registration
+1	ARM64_LATE_CPU_BLOCK_TOPOLOGY	profile	conditional	exact live ten-CPU A53/A72 topology
+2	ARM64_LATE_CPU_BLOCK_CONFIGURATION	profile	blocked	exact resolved and running configuration plus command line
+3	ARM64_LATE_CPU_BLOCK_CAP_INVENTORY	core	blocked	every compiled local predicate explicitly classified
+4	ARM64_LATE_CPU_BLOCK_FIRMWARE_WA1	profile	blocked	exact target WA1 response and conduit
+5	ARM64_LATE_CPU_BLOCK_FIRMWARE_WA2	profile	blocked	exact target WA2 response and policy
+6	ARM64_LATE_CPU_BLOCK_ID_REGISTERS	profile	blocked	exact CPU8 and CPU9 MIDR REVIDR and complete ID image
+7	ARM64_LATE_CPU_BLOCK_CACHE_TYPE	profile	blocked	exact raw and effective target CTR plus CLIDR comparison
+8	ARM64_LATE_CPU_BLOCK_ASID	profile	blocked	target ASID width not smaller than frozen allocator width
+9	ARM64_LATE_CPU_BLOCK_GRANULE	profile	blocked	exact target 4-KiB granule support
+10	ARM64_LATE_CPU_BLOCK_VA_MODE	profile	blocked	actual finalized VA mode and target compatibility
+11	ARM64_LATE_CPU_BLOCK_GIC	profile	blocked	exact GIC CPU-interface SRE and strict-cap state
+12	ARM64_LATE_CPU_BLOCK_HWCAP	profile	blocked	exact native and compat HWCAP compatibility
+13	ARM64_LATE_CPU_BLOCK_ATTESTATION_USERS	profile	blocked	A36 P17 and P18 consume the same READY identity
+14	ARM64_LATE_CPU_BLOCK_SOURCE_IDENTITY	profile	blocked	exact descriptor source plus non-circular current build and running-image identity

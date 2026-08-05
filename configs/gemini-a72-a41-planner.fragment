@@ -1,0 +1,4 @@
+# A41 read-only canonical capability planner. The profile remains blocked and
+# retains maxcpus=8 plus the independent patch-0092 boot and disable vetoes.
+CONFIG_ARM64_MT6797_A72_CAPABILITY_PROFILE=y
+CONFIG_LOCALVERSION="-gemini-a41-planner-blocked"

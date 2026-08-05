@@ -1,0 +1,635 @@
+From 4c0300398ae77c99faca19bb6333868e1f70b299 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Project <noreply@invalid>
+Date: Wed, 5 Aug 2026 06:18:38 -0400
+Subject: [PATCH] arm64: add read-only late-CPU capability planner
+
+Enumerate every canonical arm64 capability slot, validate descriptor
+and bounded match-list structure, and classify local late-CPU state
+without invoking live match callbacks.
+
+Record only draft bitmaps and explicit BHB, compat-AES, and
+speculative-AT effects. Unknown or incomplete target classifications
+retain the capability-inventory blocker; no live capability, vector,
+alternative, HWCAP, or CPU path is changed.
+
+This experiment-only change has no certifying sign-off and is not
+submission-ready.
+---
+ arch/arm64/include/asm/late_cpu_profile.h |  41 ++++-
+ arch/arm64/kernel/cpu_errata.c            |  48 +++++
+ arch/arm64/kernel/cpufeature.c            | 210 ++++++++++++++++++++++
+ arch/arm64/kernel/late_cpu_profile.c      |  39 +++-
+ arch/arm64/kernel/mt6797_psci.c           |  79 +++++++-
+ 5 files changed, 406 insertions(+), 11 deletions(-)
+
+diff --git a/arch/arm64/include/asm/late_cpu_profile.h b/arch/arm64/include/asm/late_cpu_profile.h
+index 1215abfdf..45f7fa222 100644
+--- a/arch/arm64/include/asm/late_cpu_profile.h
++++ b/arch/arm64/include/asm/late_cpu_profile.h
+@@ -9,7 +9,7 @@
+ 
+ #include <asm/cpucaps.h>
+ 
+-#define ARM64_LATE_CPU_ATTESTATION_ABI	1
++#define ARM64_LATE_CPU_ATTESTATION_ABI	2
+ #define ARM64_LATE_CPU_PROFILE_ID_LEN	32
+ #define ARM64_LATE_CPU_ID_WORDS		4
+ #define ARM64_LATE_CPU_MAX_TARGETS	2
+@@ -31,6 +31,12 @@ enum arm64_late_cpu_bhb_method {
+ 	ARM64_LATE_CPU_BHB_HARDWARE,
+ };
+ 
++enum arm64_late_cpu_cap_state {
++	ARM64_LATE_CPU_CAP_UNRESOLVED,
++	ARM64_LATE_CPU_CAP_ABSENT,
++	ARM64_LATE_CPU_CAP_PRESENT,
++};
++
+ /* Every unresolved proof keeps the production profile blocked. */
+ #define ARM64_LATE_CPU_BLOCK_REGISTRATION	BIT_ULL(0)
+ #define ARM64_LATE_CPU_BLOCK_TOPOLOGY		BIT_ULL(1)
+@@ -48,6 +54,16 @@ enum arm64_late_cpu_bhb_method {
+ #define ARM64_LATE_CPU_BLOCK_ATTESTATION_USERS	BIT_ULL(13)
+ #define ARM64_LATE_CPU_BLOCK_SOURCE_IDENTITY	BIT_ULL(14)
+ 
++/* Read-only plan effects. No bit authorizes a live mutation. */
++#define ARM64_LATE_CPU_EFFECT_BHB_MAX_K			BIT_ULL(0)
++#define ARM64_LATE_CPU_EFFECT_BHB_SYSTEM_LOOP		BIT_ULL(1)
++#define ARM64_LATE_CPU_EFFECT_BHB_MITIGATION_STATE	BIT_ULL(2)
++#define ARM64_LATE_CPU_EFFECT_BHB_VECTOR_TEMPLATE	BIT_ULL(3)
++#define ARM64_LATE_CPU_EFFECT_BHB_ALTERNATIVE		BIT_ULL(4)
++#define ARM64_LATE_CPU_EFFECT_BHB_V2_DEPENDENCY		BIT_ULL(5)
++#define ARM64_LATE_CPU_EFFECT_COMPAT_AES_CLEAR		BIT_ULL(6)
++#define ARM64_LATE_CPU_EFFECT_SPEC_AT_FINALIZATION	BIT_ULL(7)
++
+ struct arm64_late_cpu_attestation {
+ 	u32 abi;
+ 	u32 state;
+@@ -61,7 +77,15 @@ struct arm64_late_cpu_attestation {
+ 	u32 expected_target_midr[ARM64_LATE_CPU_MAX_TARGETS];
+ 	u32 observed_target_midr[ARM64_LATE_CPU_MAX_TARGETS];
+ 	u32 observed_target_revidr[ARM64_LATE_CPU_MAX_TARGETS];
++	/* Canonical, core-owned read-only planning result. */
++	DECLARE_BITMAP(canonical_caps, ARM64_NCAPS);
++	DECLARE_BITMAP(compiled_local_caps, ARM64_NCAPS);
++	DECLARE_BITMAP(classified_local_caps, ARM64_NCAPS);
++	DECLARE_BITMAP(early_local_caps, ARM64_NCAPS);
++	DECLARE_BITMAP(target_local_caps, ARM64_NCAPS);
+ 	DECLARE_BITMAP(required_local_caps, ARM64_NCAPS);
++	DECLARE_BITMAP(conflicting_local_caps, ARM64_NCAPS);
++	u64 planned_effects;
+ 	u64 blocker_mask;
+ 	u64 ctr_raw;
+ 	u64 ctr_effective;
+@@ -82,12 +106,20 @@ struct arm64_late_cpu_attestation {
+ 	u8 smccc_wa2_valid;
+ 	u8 alternatives_finalized;
+ 	u8 user_hwcaps_finalized;
++	u8 local_caps_planned;
+ 	u64 cookie;
+ };
+ 
++struct arm64_cpu_capabilities;
++
+ struct arm64_late_cpu_profile {
+ 	const char *name;
+ 	u8 target_count;
++	enum arm64_late_cpu_cap_state
++	(*classify_local_cap)(const struct arm64_cpu_capabilities *cap,
++			      const struct arm64_cpu_capabilities *match,
++			      const struct arm64_late_cpu_attestation *attestation);
++	int (*validate_plan)(const struct arm64_late_cpu_attestation *attestation);
+ 	int (*prepare)(struct arm64_late_cpu_attestation *draft,
+ 		       const struct cpumask *registered_targets);
+ 	int (*verify_system)(const struct arm64_late_cpu_attestation *attestation);
+@@ -99,6 +131,13 @@ void __init arm64_activate_late_cpu_profile(const struct arm64_late_cpu_profile
+ void __init arm64_register_late_cpu_target(const struct arm64_late_cpu_profile *profile,
+ 					   unsigned int cpu);
+ void __init arm64_prepare_late_cpu_profile(void);
++int __init arm64_plan_late_cpu_capabilities(struct arm64_late_cpu_attestation *draft,
++					    const struct arm64_late_cpu_profile *profile);
++enum arm64_late_cpu_cap_state __init
++arm64_late_cpu_midr_all_versions(const struct arm64_cpu_capabilities *cap,
++				 u32 model);
++bool __init
++arm64_late_cpu_cap_uses_multi_entry_match(const struct arm64_cpu_capabilities *cap);
+ void __init arm64_verify_late_cpu_profile_system(void);
+ void __init arm64_finalize_late_cpu_profile_user(void);
+ const struct arm64_late_cpu_attestation *
+diff --git a/arch/arm64/kernel/cpu_errata.c b/arch/arm64/kernel/cpu_errata.c
+index 4b0d5d932..6816b59a8 100644
+--- a/arch/arm64/kernel/cpu_errata.c
++++ b/arch/arm64/kernel/cpu_errata.c
+@@ -13,6 +13,7 @@
+ #include <asm/cpufeature.h>
+ #include <asm/fpsimd.h>
+ #include <asm/kvm_asm.h>
++#include <asm/late_cpu_profile.h>
+ #include <asm/smp_plat.h>
+ 
+ static u64 target_impl_cpu_num;
+@@ -96,6 +97,53 @@ is_affected_midr_range_list(const struct arm64_cpu_capabilities *entry,
+ 	return is_midr_in_range_list(entry->midr_range_list);
+ }
+ 
++#ifdef CONFIG_ARM64_LATE_CPU_PROFILE
++bool __init
++arm64_late_cpu_cap_uses_multi_entry_match(const struct arm64_cpu_capabilities *cap)
++{
++	return cap->matches == cpucap_multi_entry_cap_matches;
++}
++
++enum arm64_late_cpu_cap_state __init
++arm64_late_cpu_midr_all_versions(const struct arm64_cpu_capabilities *cap,
++				 u32 model)
++{
++	const u32 rv_all = MIDR_CPU_VAR_REV(0xf, 0xf);
++	const struct midr_range *range;
++	bool partial = false;
++	int i;
++
++	if (cap->matches == is_affected_midr_range) {
++		range = &cap->midr_range;
++		if (range->model != model)
++			return ARM64_LATE_CPU_CAP_ABSENT;
++		if (cap->fixed_revs)
++			return ARM64_LATE_CPU_CAP_UNRESOLVED;
++		if (!range->rv_min && range->rv_max == rv_all)
++			return ARM64_LATE_CPU_CAP_PRESENT;
++		return ARM64_LATE_CPU_CAP_UNRESOLVED;
++	}
++
++	if (cap->matches != is_affected_midr_range_list ||
++	    !cap->midr_range_list)
++		return ARM64_LATE_CPU_CAP_UNRESOLVED;
++
++	range = cap->midr_range_list;
++	for (i = 0; i < ARM64_NCAPS; i++, range++) {
++		if (!range->model)
++			return partial ? ARM64_LATE_CPU_CAP_UNRESOLVED :
++					 ARM64_LATE_CPU_CAP_ABSENT;
++		if (range->model != model)
++			continue;
++		if (!range->rv_min && range->rv_max == rv_all)
++			return ARM64_LATE_CPU_CAP_PRESENT;
++		partial = true;
++	}
++
++	return ARM64_LATE_CPU_CAP_UNRESOLVED;
++}
++#endif
++
+ static bool __maybe_unused
+ is_kryo_midr(const struct arm64_cpu_capabilities *entry, int scope)
+ {
+diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
+index 6d53bb15c..134d782be 100644
+--- a/arch/arm64/kernel/cpufeature.c
++++ b/arch/arm64/kernel/cpufeature.c
+@@ -85,6 +85,7 @@
+ #include <asm/hwcap.h>
+ #include <asm/insn.h>
+ #include <asm/kvm_host.h>
++#include <asm/late_cpu_profile.h>
+ #include <asm/mmu.h>
+ #include <asm/mmu_context.h>
+ #include <asm/mpam.h>
+@@ -3191,6 +3192,215 @@ static const struct arm64_cpu_capabilities arm64_features[] = {
+ 	{},
+ };
+ 
++#ifdef CONFIG_ARM64_LATE_CPU_PROFILE
++static int __init
++validate_late_cpu_cap_descriptor(const struct arm64_cpu_capabilities *cap, int slot)
++{
++	const struct arm64_cpu_capabilities *match;
++	int i;
++
++	if (cap->capability != slot)
++		return -EINVAL;
++	switch (cap->type) {
++	case ARM64_CPUCAP_LOCAL_CPU_ERRATUM:
++	case ARM64_CPUCAP_SYSTEM_FEATURE:
++	case ARM64_CPUCAP_WEAK_LOCAL_CPU_FEATURE:
++	case ARM64_CPUCAP_EARLY_LOCAL_CPU_FEATURE:
++	case ARM64_CPUCAP_STRICT_BOOT_CPU_FEATURE:
++	case ARM64_CPUCAP_BOOT_CPU_FEATURE:
++		break;
++	default:
++		return -EINVAL;
++	}
++
++	if (!cap->match_list)
++		return 0;
++	if ((cap->type & SCOPE_LOCAL_CPU) &&
++	    !arm64_late_cpu_cap_uses_multi_entry_match(cap))
++		return -EINVAL;
++
++	match = cap->match_list;
++	for (i = 0; i < ARM64_NCAPS; i++, match++) {
++		if (!match->matches)
++			return 0;
++		if (match->match_list)
++			return -EINVAL;
++	}
++
++	return -E2BIG;
++}
++
++static int __init
++classify_late_cpu_cap(const struct arm64_cpu_capabilities *cap,
++		      struct arm64_late_cpu_attestation *draft,
++		      const struct arm64_late_cpu_profile *profile,
++		      enum arm64_late_cpu_cap_state *target_state)
++{
++	const struct arm64_cpu_capabilities *match;
++	bool present = false;
++	bool unresolved = false;
++	int i;
++
++	if (!cap->match_list) {
++		*target_state = profile->classify_local_cap(cap, cap, draft);
++		return *target_state <= ARM64_LATE_CPU_CAP_PRESENT ? 0 : -EINVAL;
++	}
++
++	match = cap->match_list;
++	for (i = 0; i < ARM64_NCAPS; i++, match++) {
++		enum arm64_late_cpu_cap_state member_state;
++
++		if (!match->matches) {
++			*target_state = present ?
++				ARM64_LATE_CPU_CAP_PRESENT :
++				(unresolved ? ARM64_LATE_CPU_CAP_UNRESOLVED :
++					      ARM64_LATE_CPU_CAP_ABSENT);
++			return 0;
++		}
++
++		member_state = profile->classify_local_cap(cap, match, draft);
++		switch (member_state) {
++		case ARM64_LATE_CPU_CAP_UNRESOLVED:
++			unresolved = true;
++			break;
++		case ARM64_LATE_CPU_CAP_ABSENT:
++			break;
++		case ARM64_LATE_CPU_CAP_PRESENT:
++			present = true;
++			break;
++		default:
++			return -EINVAL;
++		}
++	}
++
++	return -E2BIG;
++}
++
++int __init arm64_plan_late_cpu_capabilities(struct arm64_late_cpu_attestation *draft,
++					    const struct arm64_late_cpu_profile *profile)
++{
++	bool incomplete = false;
++	bool invalid = false;
++	int i;
++
++	if (!draft || !profile || !profile->classify_local_cap ||
++	    draft->local_caps_planned ||
++	    system_capabilities_finalized() ||
++	    cpus_have_cap(ARM64_ALWAYS_SYSTEM) ||
++	    !bitmap_empty(draft->canonical_caps, ARM64_NCAPS) ||
++	    !bitmap_empty(draft->compiled_local_caps, ARM64_NCAPS) ||
++	    !bitmap_empty(draft->classified_local_caps, ARM64_NCAPS) ||
++	    !bitmap_empty(draft->early_local_caps, ARM64_NCAPS) ||
++	    !bitmap_empty(draft->target_local_caps, ARM64_NCAPS) ||
++	    !bitmap_empty(draft->required_local_caps, ARM64_NCAPS) ||
++	    !bitmap_empty(draft->conflicting_local_caps, ARM64_NCAPS) ||
++	    draft->planned_effects)
++		return -EINVAL;
++
++	for (i = 0; i < ARM64_NCAPS; i++) {
++		const struct arm64_cpu_capabilities *cap = cpucap_ptrs[i];
++		enum arm64_late_cpu_cap_state target_state;
++		bool early_has_cap;
++
++		if (!cap)
++			continue;
++
++		__set_bit(i, draft->canonical_caps);
++		if (validate_late_cpu_cap_descriptor(cap, i)) {
++			invalid = true;
++			continue;
++		}
++		if (!(cap->type & SCOPE_LOCAL_CPU))
++			continue;
++
++		__set_bit(i, draft->compiled_local_caps);
++		early_has_cap = cpus_have_cap(i);
++		if (early_has_cap)
++			__set_bit(i, draft->early_local_caps);
++
++		if (classify_late_cpu_cap(cap, draft, profile, &target_state)) {
++			invalid = true;
++			continue;
++		}
++		switch (target_state) {
++		case ARM64_LATE_CPU_CAP_UNRESOLVED:
++			incomplete = true;
++			continue;
++		case ARM64_LATE_CPU_CAP_ABSENT:
++			break;
++		case ARM64_LATE_CPU_CAP_PRESENT:
++			__set_bit(i, draft->target_local_caps);
++			break;
++		default:
++			invalid = true;
++			continue;
++		}
++
++		__set_bit(i, draft->classified_local_caps);
++		if (target_state == ARM64_LATE_CPU_CAP_PRESENT) {
++			switch (i) {
++			case ARM64_SPECTRE_BHB:
++				if (draft->bhb_method != ARM64_LATE_CPU_BHB_LOOP ||
++				    !draft->bhb_loop_count) {
++					invalid = true;
++					break;
++				}
++				draft->planned_effects |=
++					ARM64_LATE_CPU_EFFECT_BHB_MAX_K |
++					ARM64_LATE_CPU_EFFECT_BHB_SYSTEM_LOOP |
++					ARM64_LATE_CPU_EFFECT_BHB_MITIGATION_STATE |
++					ARM64_LATE_CPU_EFFECT_BHB_VECTOR_TEMPLATE |
++					ARM64_LATE_CPU_EFFECT_BHB_ALTERNATIVE |
++					ARM64_LATE_CPU_EFFECT_BHB_V2_DEPENDENCY;
++				break;
++			case ARM64_WORKAROUND_1742098:
++				draft->planned_effects |=
++					ARM64_LATE_CPU_EFFECT_COMPAT_AES_CLEAR;
++				break;
++			case ARM64_WORKAROUND_SPECULATIVE_AT:
++				draft->planned_effects |=
++					ARM64_LATE_CPU_EFFECT_SPEC_AT_FINALIZATION;
++				break;
++			default:
++				break;
++			}
++		}
++
++		if (early_has_cap &&
++		    target_state == ARM64_LATE_CPU_CAP_ABSENT &&
++		    !cpucap_late_cpu_optional(cap))
++			__set_bit(i, draft->conflicting_local_caps);
++		else if (!early_has_cap &&
++			 target_state == ARM64_LATE_CPU_CAP_PRESENT &&
++			 !cpucap_late_cpu_permitted(cap)) {
++			__set_bit(i, draft->required_local_caps);
++			switch (i) {
++			case ARM64_SPECTRE_BHB:
++			case ARM64_WORKAROUND_1742098:
++			case ARM64_WORKAROUND_SPECULATIVE_AT:
++				break;
++			default:
++				/* A new required cap needs an audited effect plan. */
++				invalid = true;
++				break;
++			}
++		}
++	}
++
++	if (invalid)
++		return -EINVAL;
++	if (incomplete ||
++	    !bitmap_equal(draft->compiled_local_caps,
++			  draft->classified_local_caps, ARM64_NCAPS))
++		return -EAGAIN;
++	if (!bitmap_empty(draft->conflicting_local_caps, ARM64_NCAPS))
++		return -EINVAL;
++
++	draft->local_caps_planned = 1;
++	return 0;
++}
++#endif
++
+ #define HWCAP_CPUID_MATCH(reg, field, min_value)			\
+ 		.matches = has_user_cpuid_feature,			\
+ 		ARM64_CPUID_FIELDS(reg, field, min_value)
+diff --git a/arch/arm64/kernel/late_cpu_profile.c b/arch/arm64/kernel/late_cpu_profile.c
+index c611c2846..0e3f7bae7 100644
+--- a/arch/arm64/kernel/late_cpu_profile.c
++++ b/arch/arm64/kernel/late_cpu_profile.c
+@@ -70,8 +70,21 @@ late_profile_identity_matches(const struct arm64_late_cpu_attestation *before,
+ 	       !memcmp(before->observed_target_revidr,
+ 		       after->observed_target_revidr,
+ 		       sizeof(before->observed_target_revidr)) &&
++	       bitmap_equal(before->canonical_caps,
++			    after->canonical_caps, ARM64_NCAPS) &&
++	       bitmap_equal(before->compiled_local_caps,
++			    after->compiled_local_caps, ARM64_NCAPS) &&
++	       bitmap_equal(before->classified_local_caps,
++			    after->classified_local_caps, ARM64_NCAPS) &&
++	       bitmap_equal(before->early_local_caps,
++			    after->early_local_caps, ARM64_NCAPS) &&
++	       bitmap_equal(before->target_local_caps,
++			    after->target_local_caps, ARM64_NCAPS) &&
+ 	       bitmap_equal(before->required_local_caps,
+ 			    after->required_local_caps, ARM64_NCAPS) &&
++	       bitmap_equal(before->conflicting_local_caps,
++			    after->conflicting_local_caps, ARM64_NCAPS) &&
++	       before->planned_effects == after->planned_effects &&
+ 	       before->blocker_mask == after->blocker_mask &&
+ 	       before->ctr_raw == after->ctr_raw &&
+ 	       before->ctr_effective == after->ctr_effective &&
+@@ -94,6 +107,9 @@ late_profile_identity_matches(const struct arm64_late_cpu_attestation *before,
+ 		       sizeof(before->observed_target_registers_valid)) &&
+ 	       before->smccc_wa1_valid == after->smccc_wa1_valid &&
+ 	       before->smccc_wa2_valid == after->smccc_wa2_valid &&
++	       before->alternatives_finalized == after->alternatives_finalized &&
++	       before->user_hwcaps_finalized == after->user_hwcaps_finalized &&
++	       before->local_caps_planned == after->local_caps_planned &&
+ 	       before->cookie == after->cookie;
+ }
+ 
+@@ -106,6 +122,8 @@ late_profile_descriptor_matches(const struct arm64_late_cpu_profile *profile)
+ 	       late_profile_active &&
+ 	       !strcmp(late_profile.name, profile->name) &&
+ 	       late_profile.target_count == profile->target_count &&
++	       late_profile.classify_local_cap == profile->classify_local_cap &&
++	       late_profile.validate_plan == profile->validate_plan &&
+ 	       late_profile.prepare == profile->prepare &&
+ 	       late_profile.verify_system == profile->verify_system &&
+ 	       late_profile.finalize_user == profile->finalize_user;
+@@ -119,15 +137,25 @@ late_profile_core_matches(const struct arm64_late_cpu_attestation *draft)
+ 	       !memcmp(draft->profile_id, late_attestation.profile_id,
+ 		       sizeof(draft->profile_id)) &&
+ 	       cpumask_equal(&draft->target_cpus, &late_profile_targets) &&
++	       bitmap_empty(draft->canonical_caps, ARM64_NCAPS) &&
++	       bitmap_empty(draft->compiled_local_caps, ARM64_NCAPS) &&
++	       bitmap_empty(draft->classified_local_caps, ARM64_NCAPS) &&
++	       bitmap_empty(draft->early_local_caps, ARM64_NCAPS) &&
++	       bitmap_empty(draft->target_local_caps, ARM64_NCAPS) &&
++	       bitmap_empty(draft->required_local_caps, ARM64_NCAPS) &&
++	       bitmap_empty(draft->conflicting_local_caps, ARM64_NCAPS) &&
++	       !draft->planned_effects &&
+ 	       !draft->strict_caps_verified &&
+ 	       !draft->alternatives_finalized &&
+-	       !draft->user_hwcaps_finalized;
++	       !draft->user_hwcaps_finalized &&
++	       !draft->local_caps_planned;
+ }
+ 
+ void __init
+ arm64_activate_late_cpu_profile(const struct arm64_late_cpu_profile *profile)
+ {
+ 	if (!profile || !profile->name || !profile->prepare ||
++	    !profile->classify_local_cap || !profile->validate_plan ||
+ 	    !profile->target_count ||
+ 	    profile->target_count > ARM64_LATE_CPU_MAX_TARGETS) {
+ 		late_profile_registration_fault = true;
+@@ -166,6 +194,8 @@ arm64_register_late_cpu_target(const struct arm64_late_cpu_profile *profile,
+ void __init arm64_prepare_late_cpu_profile(void)
+ {
+ 	struct arm64_late_cpu_attestation draft;
++	int validate_ret;
++	int plan_ret;
+ 	int ret;
+ 
+ 	if (!late_profile_active && !late_profile_registration_fault)
+@@ -199,7 +229,12 @@ void __init arm64_prepare_late_cpu_profile(void)
+ 				   "prepare altered core identity");
+ 		return;
+ 	}
+-	if (ret || draft.blocker_mask) {
++	plan_ret = arm64_plan_late_cpu_capabilities(&draft, &late_profile);
++	validate_ret = late_profile.validate_plan(&draft);
++	if (plan_ret || validate_ret)
++		draft.blocker_mask |= ARM64_LATE_CPU_BLOCK_CAP_INVENTORY;
++
++	if (ret || plan_ret || validate_ret || draft.blocker_mask) {
+ 		u64 blockers = draft.blocker_mask ?:
+ 			       ARM64_LATE_CPU_BLOCK_CAP_INVENTORY;
+ 
+diff --git a/arch/arm64/kernel/mt6797_psci.c b/arch/arm64/kernel/mt6797_psci.c
+index 45ef7a6c9..f01f6c4f7 100644
+--- a/arch/arm64/kernel/mt6797_psci.c
++++ b/arch/arm64/kernel/mt6797_psci.c
+@@ -15,6 +15,7 @@
+ #include <linux/string.h>
+ 
+ #include <asm/cpu_ops.h>
++#include <asm/cpufeature.h>
+ #include <asm/cputype.h>
+ #include <asm/late_cpu_profile.h>
+ #include <asm/smp.h>
+@@ -25,7 +26,6 @@ extern const struct cpu_operations cpu_psci_ops;
+ #define MT6797_A72_PROFILE_BLOCKERS					\
+ 	(ARM64_LATE_CPU_BLOCK_CONFIGURATION |				\
+ 	 ARM64_LATE_CPU_BLOCK_SOURCE_IDENTITY |			\
+-	 ARM64_LATE_CPU_BLOCK_CAP_INVENTORY |				\
+ 	 ARM64_LATE_CPU_BLOCK_FIRMWARE_WA1 |				\
+ 	 ARM64_LATE_CPU_BLOCK_FIRMWARE_WA2 |				\
+ 	 ARM64_LATE_CPU_BLOCK_ID_REGISTERS |				\
+@@ -37,6 +37,71 @@ extern const struct cpu_operations cpu_psci_ops;
+ 	 ARM64_LATE_CPU_BLOCK_HWCAP |					\
+ 	 ARM64_LATE_CPU_BLOCK_ATTESTATION_USERS)
+ 
++static enum arm64_late_cpu_cap_state __init
++mt6797_a72_classify_local_cap(const struct arm64_cpu_capabilities *cap,
++			      const struct arm64_cpu_capabilities *match,
++			      const struct arm64_late_cpu_attestation *attestation)
++{
++	switch (cap->capability) {
++	case ARM64_SPECTRE_BHB:
++		if (match != cap ||
++		    attestation->bhb_method != ARM64_LATE_CPU_BHB_LOOP ||
++		    attestation->bhb_loop_count != 8)
++			return ARM64_LATE_CPU_CAP_UNRESOLVED;
++		return ARM64_LATE_CPU_CAP_PRESENT;
++	case ARM64_WORKAROUND_1742098:
++	case ARM64_WORKAROUND_SPECULATIVE_AT:
++		if (match != cap)
++			return ARM64_LATE_CPU_CAP_UNRESOLVED;
++		return arm64_late_cpu_midr_all_versions(match, MIDR_CORTEX_A72);
++	default:
++		return ARM64_LATE_CPU_CAP_UNRESOLVED;
++	}
++}
++
++static int __init
++mt6797_a72_validate_cap_plan(const struct arm64_late_cpu_attestation *attestation)
++{
++	const u64 expected_effects =
++		ARM64_LATE_CPU_EFFECT_BHB_MAX_K |
++		ARM64_LATE_CPU_EFFECT_BHB_SYSTEM_LOOP |
++		ARM64_LATE_CPU_EFFECT_BHB_MITIGATION_STATE |
++		ARM64_LATE_CPU_EFFECT_BHB_VECTOR_TEMPLATE |
++		ARM64_LATE_CPU_EFFECT_BHB_ALTERNATIVE |
++		ARM64_LATE_CPU_EFFECT_BHB_V2_DEPENDENCY |
++		ARM64_LATE_CPU_EFFECT_COMPAT_AES_CLEAR |
++		ARM64_LATE_CPU_EFFECT_SPEC_AT_FINALIZATION;
++	static const unsigned int expected_caps[] = {
++		ARM64_SPECTRE_BHB,
++		ARM64_WORKAROUND_1742098,
++		ARM64_WORKAROUND_SPECULATIVE_AT,
++	};
++	unsigned int i;
++
++	if (attestation->bhb_method != ARM64_LATE_CPU_BHB_LOOP ||
++	    attestation->bhb_loop_count != 8 ||
++	    attestation->planned_effects != expected_effects ||
++	    bitmap_weight(attestation->target_local_caps, ARM64_NCAPS) !=
++		    ARRAY_SIZE(expected_caps) ||
++	    bitmap_weight(attestation->required_local_caps, ARM64_NCAPS) !=
++		    ARRAY_SIZE(expected_caps) ||
++	    !bitmap_empty(attestation->conflicting_local_caps, ARM64_NCAPS))
++		return -EINVAL;
++
++	for (i = 0; i < ARRAY_SIZE(expected_caps); i++) {
++		unsigned int cap = expected_caps[i];
++
++		if (!test_bit(cap, attestation->canonical_caps) ||
++		    !test_bit(cap, attestation->compiled_local_caps) ||
++		    !test_bit(cap, attestation->classified_local_caps) ||
++		    !test_bit(cap, attestation->target_local_caps) ||
++		    !test_bit(cap, attestation->required_local_caps))
++			return -EINVAL;
++	}
++
++	return 0;
++}
++
+ static bool __init mt6797_a72_profile_config_gates_match(void)
+ {
+ 	return IS_ENABLED(CONFIG_SMP) &&
+@@ -122,8 +187,8 @@ mt6797_a72_profile_prepare(struct arm64_late_cpu_attestation *draft,
+ 		0x267a407af974b5c8, 0xcf992ad2e15e0a9b,
+ 	};
+ 	static const u64 config_input_identity[ARM64_LATE_CPU_ID_WORDS] = {
+-		0xef8a5a3fe57629be, 0x71f466008afad671,
+-		0x83f5184f9acc2faa, 0xddff999c6fe4048e,
++		0x528b2bbdea4df1e8, 0x72d4671e73a788d0,
++		0xecf3469d1ba24d63, 0x35ed158a1b8f63cf,
+ 	};
+ 
+ 	memcpy(draft->source_parent_identity, source_parent_identity,
+@@ -134,10 +199,6 @@ mt6797_a72_profile_prepare(struct arm64_late_cpu_attestation *draft,
+ 	draft->expected_target_mpidr[1] = 0x201;
+ 	draft->expected_target_midr[0] = MIDR_CORTEX_A72;
+ 	draft->expected_target_midr[1] = MIDR_CORTEX_A72;
+-	__set_bit(ARM64_SPECTRE_BHB, draft->required_local_caps);
+-	__set_bit(ARM64_WORKAROUND_1742098, draft->required_local_caps);
+-	__set_bit(ARM64_WORKAROUND_SPECULATIVE_AT,
+-		  draft->required_local_caps);
+ 	draft->bhb_method = ARM64_LATE_CPU_BHB_LOOP;
+ 	draft->bhb_loop_count = 8;
+ 	draft->blocker_mask = MT6797_A72_PROFILE_BLOCKERS;
+@@ -152,8 +213,10 @@ mt6797_a72_profile_prepare(struct arm64_late_cpu_attestation *draft,
+ }
+ 
+ static const struct arm64_late_cpu_profile mt6797_a72_profile __initconst = {
+-	.name = "mt6797-a53-a72-a41-v1",
++	.name = "mt6797-a53-a72-a41-v2",
+ 	.target_count = 2,
++	.classify_local_cap = mt6797_a72_classify_local_cap,
++	.validate_plan = mt6797_a72_validate_cap_plan,
+ 	.prepare = mt6797_a72_profile_prepare,
+ };
+ 
+-- 
+2.50.1 (Apple Git-155)

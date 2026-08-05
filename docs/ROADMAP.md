@@ -1344,6 +1344,21 @@ fail-closed lifecycle/profile scaffold. A41 is not complete, READY is
 unreachable for the selected profile, and no build, boot candidate, or device
 action is authorized.
 
+The source-only
+[A41 canonical read-only planner](../experiments/2026-08-05-a72-a41-canonical-planner/README.md)
+now extends that scaffold with iteration-bounded traversal of the surviving
+canonical arm64 capability descriptors before system finalization. It derives
+only the known
+BHB loop `k=8`, erratum 1742098, and speculative-AT draft and records their
+required future effects; it performs no capability, mitigation, vector,
+alternative, HWCAP, or CPU-path mutation. Every other local predicate remains
+unresolved, so the capability-inventory blocker stays set. Exact configuration
+and source identity, target and cache registers, firmware responses,
+ASID/granule/active-VA compatibility, GIC, strict/system/boot capabilities,
+native/compat HWCAPs, and A36/P17/P18 consumers remain open. This advances A41
+only to `PARTIAL_READ_ONLY_PLANNER`; it does not relax A26/A14, authorize a
+build, or justify device action.
+
 P30K/C/P/E/U separate CPU_KILL_ME, post-C bare STUCK, panic, pre-C reasoned
 STUCK, and default timeout. The timeout path now requires exact-generation
 cancellation-versus-publication arbitration because global task, status,
@@ -1373,14 +1388,16 @@ names for that operation is implemented and proven.
 
 The next ordered work remains source-only:
 
-1. Complete A41 on the partial fail-closed scaffold: add the canonical,
-   exhaustive conditional-capability enumerator; validate exact current
-   source, resolved configuration, target registers, and firmware responses;
-   perform the infallible pre-finalization commit for BHB `k=8`, erratum
-   1742098, speculative-AT, and compat AES suppression; assert the resulting
-   alternatives, vectors, strict capabilities, and native/compat HWCAPs; and
-   bind the exact READY attestation to A36/P17/P18 consumers. Mutation tests
-   must keep every incomplete or drifted branch blocked.
+1. Complete A41 from the canonical read-only planner: classify every remaining
+   compiled local predicate from an exact resolved/running configuration and
+   safe target evidence; validate the complete target register, cache,
+   firmware, ASID, translation, GIC, strict/system/boot-capability, and
+   native/compat-HWCAP state; freeze one immutable complete plan; then add a
+   separate infallible architecture-owned pre-finalization commit for the full
+   target register and Spectre/BHB state, including BHB `k=8`, erratum 1742098,
+   speculative-AT, and compat AES suppression. Assert the resulting
+   alternatives and vectors and bind the exact READY identity to A36/P17/P18.
+   Mutation tests must keep every incomplete or drifted branch blocked.
 2. Implement and mutation-test P30K/C/P/E/U, including the generation-scoped
    timeout arbitration, global completion/status redesign, target park
    acknowledgment, exact P14/P15 controller point, and global fail-stop

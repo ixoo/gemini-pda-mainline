@@ -1,0 +1,9 @@
+bit	symbol	scope	status
+0	ARM64_LATE_CPU_EFFECT_BHB_MAX_K	global max_bhb_k=8	planned-only
+1	ARM64_LATE_CPU_EFFECT_BHB_SYSTEM_LOOP	global system_bhb_mitigations BHB_LOOP	planned-only
+2	ARM64_LATE_CPU_EFFECT_BHB_MITIGATION_STATE	global spectre_bhb_state	planned-only
+3	ARM64_LATE_CPU_EFFECT_BHB_VECTOR_TEMPLATE	global patched vector template	planned-only
+4	ARM64_LATE_CPU_EFFECT_BHB_ALTERNATIVE	global alternatives	planned-only
+5	ARM64_LATE_CPU_EFFECT_BHB_V2_DEPENDENCY	global exact non-vulnerable Spectre-v2 prerequisite	planned-only
+6	ARM64_LATE_CPU_EFFECT_COMPAT_AES_CLEAR	compat HWCAP2 AES suppression	planned-only
+7	ARM64_LATE_CPU_EFFECT_SPEC_AT_FINALIZATION	capability finalization under selected KVM-disabled profile	planned-only

@@ -1,0 +1,42 @@
+A41 canonical read-only planner kernel static review
+date=2026-08-05 America/New_York
+source_base_commit=df9447fb8be9b03a643b00111dd25f6ce62be719
+source_parent_commit=08eb3392a57d30922cd06a4af0e55ee49628cdce
+source_head_commit=4c0300398ae77c99faca19bb6333868e1f70b299
+source_head_tree=f29f66ee14829fca4a452d4a390ad6f23556b64e
+source_diff_sha256=bd416e32c751263092d36228f5dd9234eecb5996b0f0a887f04695a5a89cff6f
+patch_0150_sha256=d9244d9f3815092b492608cd7882e471bd5026dc15f5ed4afe32ad94961dd427
+
+review_1=git show --check --stat HEAD
+review_1_result=clean
+review_2=git apply --reverse --check --whitespace=error-all patch-0150
+review_2_result=clean exact postimage
+review_3=checkpatch.pl --strict --no-tree patch-0150
+review_3_errors=1
+review_3_warnings=0
+review_3_checks=0
+review_3_lines=567
+review_3_expected_error=Missing Signed-off-by
+review_3_disposition=experiment-only synthetic author; no certifying sign-off; not submission-ready
+review_4=checkincludes.pl on all five changed paths
+review_4_output=No duplicate includes found.
+review_5=independent compile/API and init-lifetime source audit
+review_5_result=no blocker found
+review_6=independent arm64 capability-table and MIDR semantics audit
+review_6_result=no exact-source blocker; surviving-slot and C-object-extent limitations retained in design
+review_7=git diff --check
+review_7_result=clean
+review_8=bounded new-file license and sensitive-data scan
+review_8_result=clean
+review_8_scope=planner patch series fragment experiment files and added lines in modified repository files
+review_8_license=project-authored validation and documentation; no vendored proprietary or submission-ready material
+review_9=independent exact full-script and frozen-evidence enforcement audit
+review_9_validator_sha256=adecebe14d3cfd49b6f6c608c2f0f9f3bf09a34244ee3828f5f2c06e6eaf1612
+review_9_mutation_suite_sha256=bb2bdeb0f08293404ba1dfac6cc0c2e92893e6d25c9a4153c2a3108d6279aab4
+manual_exact_script_review=clean_before_execution
+review_9_result=clean
+
+compile_run=no
+build_run=no
+device_action_run=no
+RESULT=PASS_WITH_EXPECTED_EXPERIMENT_ONLY_SIGNOFF_EXCEPTION

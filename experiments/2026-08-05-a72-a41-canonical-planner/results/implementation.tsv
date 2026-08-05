@@ -1,0 +1,26 @@
+key	value	evidence
+implementation_state	PARTIAL_READ_ONLY_PLANNER	patch 0150 source contract
+a41_complete	no	unresolved local and non-local proof rows remain
+source_parent_identity	pre_a41_non_circular	not the post-0150 source or a running-image proof
+config_input_identity	exact_selected_input_digest	not a resolved or running .config proof
+canonical_slot_traversal	implemented	cpucap_ptrs slots 0 through ARM64_NCAPS minus one
+descriptor_structure_guard	implemented	slot exact composite type local OR callback and iteration-limited match-list checks
+live_target_match_callbacks	invoked_no	classifier never evaluates the executing A53 as A72
+midr_all_versions_helper	implemented	exact canonical predicate and A72 all-revisions row required
+deterministic_target_cap_count	3	BHB 1742098 speculative-AT
+deterministic_required_cap_count	3	exact A53 early-set postcondition
+planned_bhb_method	ARM64_LATE_CPU_BHB_LOOP	exact-plan validation
+planned_bhb_k	8	exact-plan validation
+planned_effect_count	8	effects.tsv
+remaining_local_classification	unresolved	default classifier result
+cap_inventory_owner	core	profile cannot clear the blocker
+profile_prepare_result	-EAGAIN	PREPARED unreachable
+profile_commit	absent	no commit callback or live mutation API
+production_ready_reachable	no	blocked profile and null public accessor
+production_cpu_on_path	absent	patch-0092 veto unchanged
+current_cpu_boot_veto	required	cpu_boot returns -EAGAIN
+current_cpu_disable_veto	required	cpu_can_disable returns false
+boot_candidate	false	no package compile or candidate validation
+build_authorized	no	A41 remains incomplete
+device_action_authorized	no	no deployment or runtime experiment
+hardware_support_claim	none	source-only result

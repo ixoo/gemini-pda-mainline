@@ -23,6 +23,16 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-05 A41 canonical read-only capability planner](2026-08-05-a72-a41-canonical-planner/README.md)
+  — extends the blocked A41 lifecycle with iteration-bounded traversal of
+  surviving canonical arm64 descriptors and a read-only plan for BHB loop
+  `k=8`, erratum
+  1742098, speculative-AT, and their required future effects. Every other
+  local predicate and all configuration, source-identity, firmware,
+  register/cache/ASID/translation, GIC, HWCAP, and attestation-user proofs
+  remain blocked. This is `PARTIAL_READ_ONLY_PLANNER`: A41 is incomplete, the
+  A26 boot and A14 disable vetoes plus `maxcpus=8` remain, and no build, boot
+  candidate, device action, or hardware-support claim is authorized.
 - [2026-08-05 A41 partial fail-closed capability profile](2026-08-05-a72-a41-capability-profile/README.md)
   — adds canonical patches 0148/0149 and one default-off isolated profile for
   the first arm64 pre-finalization attestation scaffold. Independent activation,
