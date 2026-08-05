@@ -12,10 +12,10 @@ PARENT_PHASES = (
     "create8-after",
     "create9-before",
     "create9-after",
-    "wake8-before",
-    "wake8-after",
-    "wake9-before",
-    "wake9-after",
+    "unpark8-before",
+    "unpark8-after",
+    "unpark9-before",
+    "unpark9-after",
     "ready8-wait-before",
     "ready8-wait-after",
     "ready9-wait-before",
@@ -80,7 +80,7 @@ PAIR7_FIELDS = (
     "parent_pass", "sc_reported", "sc_iterations", "sc_rescheds",
     "sc_expected8", "sc_start8", "sc_end8", "sc_expected9", "sc_start9",
     "sc_end9", "sc_task8", "sc_task9", "sc_create8", "sc_create9",
-    "sc_wake8", "sc_wake9", "sc_readywait8", "sc_readywait9",
+    "sc_unpark8", "sc_unpark9", "sc_readywait8", "sc_readywait9",
     "sc_startwait8", "sc_startwait9", "sc_wait8", "sc_wait9",
     "sc_error8", "sc_error9", "sc_stop8", "sc_stop9", "sc_done8",
     "sc_done9", "sc_ready", "sc_finished", "sc_hash8", "sc_hash9",
@@ -130,6 +130,7 @@ PAIR7_PASS_EXACT = {
     "sc_rescheds": "64", "sc_expected8": "8", "sc_start8": "8",
     "sc_end8": "8", "sc_expected9": "9", "sc_start9": "9", "sc_end9": "9",
     "sc_task8": "1", "sc_task9": "1", "sc_create8": "0", "sc_create9": "0",
+    "sc_unpark8": "1", "sc_unpark9": "1",
     "sc_readywait8": "1", "sc_readywait9": "1", "sc_startwait8": "1",
     "sc_startwait9": "1", "sc_wait8": "1", "sc_wait9": "1",
     "sc_error8": "0", "sc_error9": "0", "sc_stop8": "0", "sc_stop9": "0",
@@ -137,7 +138,7 @@ PAIR7_PASS_EXACT = {
     "sc_finished": "2", "sc_hash8": "f678147669874ecd",
     "sc_hash9": "c2274327e9c8104c",
 }
-TERMINATOR = "__A72_SCHEDULER_PHASE_TERMINAL_CAPTURED__"
+TERMINATOR = "__A72_SCHEDULER_UNPARK_TERMINAL_CAPTURED__"
 
 
 class CaptureError(ValueError):
@@ -163,13 +164,13 @@ def valid_complete_trace() -> list[tuple[int | None, str]]:
         (None, "create8-after"),
         (None, "create9-before"),
         (None, "create9-after"),
-        (None, "wake8-before"),
-        (None, "wake8-after"),
+        (None, "unpark8-before"),
+        (None, "unpark8-after"),
         (8, "task-ready-before"),
         (8, "task-ready-after"),
         (8, "task-start-wait-before"),
-        (None, "wake9-before"),
-        (None, "wake9-after"),
+        (None, "unpark9-before"),
+        (None, "unpark9-after"),
         (9, "task-ready-before"),
         (9, "task-ready-after"),
         (9, "task-start-wait-before"),
@@ -271,8 +272,6 @@ def validate_pair6_pass(values: dict[str, str]) -> None:
 def validate_pair7_pass(values: dict[str, str]) -> None:
     for name, expected in PAIR7_PASS_EXACT.items():
         require(values[name] == expected, f"pair-v7 pass field changed: {name}")
-    for name in ("sc_wake8", "sc_wake9"):
-        require(values[name] in ("0", "1"), f"pair-v7 pass wake field changed: {name}")
 
 
 def validate_fault_field_causality(
@@ -296,6 +295,22 @@ def validate_fault_field_causality(
         )
 
     for cpu in (8, 9):
+        unpark_field = f"sc_unpark{cpu}"
+        unpark_before = (None, f"unpark{cpu}-before")
+        unpark_after = (None, f"unpark{cpu}-after")
+        require(
+            values[unpark_field] in ("0", "1"),
+            f"{unpark_field} is outside the source domain",
+        )
+        require_edge(
+            unpark_field,
+            unpark_before,
+            unpark_after,
+        )
+        require(
+            unpark_after not in positions or values[unpark_field] == "1",
+            f"{unpark_field}=0 contradicts its after marker",
+        )
         ready = f"sc_readywait{cpu}"
         require_edge(
             ready,
@@ -329,11 +344,7 @@ def synthetic_pair_line(
     if result == "pass" and version == 6:
         semantic_values = {**PAIR6_PASS_EXACT, "hps_count": "1"}
     elif result == "pass" and version == 7:
-        semantic_values = {
-            **PAIR7_PASS_EXACT,
-            "sc_wake8": "0",
-            "sc_wake9": "0",
-        }
+        semantic_values = PAIR7_PASS_EXACT
     fields = []
     for name in PAIR_FIELDS[version]:
         if name in semantic_values:
@@ -388,11 +399,11 @@ def validate_structural_sequence(records: list[tuple[int | None, str]]) -> None:
                 positions[create_after] < positions[(cpu, task[0])],
                 f"CPU{cpu} task precedes create-after",
             )
-            wake_before = (None, f"wake{cpu}-before")
-            require(wake_before in positions, f"CPU{cpu} task lacks wake-before")
+            unpark_before = (None, f"unpark{cpu}-before")
+            require(unpark_before in positions, f"CPU{cpu} task lacks unpark-before")
             require(
-                positions[wake_before] < positions[(cpu, task[0])],
-                f"CPU{cpu} task precedes wake-before",
+                positions[unpark_before] < positions[(cpu, task[0])],
+                f"CPU{cpu} task precedes unpark-before",
             )
         task_done_after = (cpu, "task-done-after")
         stop_after = (None, f"stop{cpu}-after")
@@ -425,7 +436,7 @@ def validate_success_sequence(records: list[tuple[int | None, str]]) -> None:
         task = tuple(phase for record_cpu, phase in records if record_cpu == cpu)
         require(task == TASK_PHASES, f"successful CPU{cpu} task trace changed")
         causal_pairs = (
-            ((None, f"wake{cpu}-before"), (cpu, "task-ready-before")),
+            ((None, f"unpark{cpu}-before"), (cpu, "task-ready-before")),
             ((cpu, "task-ready-before"), (None, f"ready{cpu}-wait-after")),
             ((cpu, "task-ready-before"), (None, "release-before")),
             ((None, "release-before"), (cpu, "task-start-wait-after")),
@@ -438,6 +449,41 @@ def validate_success_sequence(records: list[tuple[int | None, str]]) -> None:
                 positions[first] < positions[second],
                 f"successful causal order changed: {first} -> {second}",
             )
+
+
+def validate_terminal_semantics(
+    records: list[tuple[int | None, str]],
+    pair6: tuple[int, str, str, dict[str, str]],
+    pair7: tuple[int, str, str, dict[str, str]],
+) -> str:
+    """Validate source and decision semantics for one complete terminal pair."""
+    require(pair6[0] == 6, "terminal pair-v6 has the wrong version")
+    require(pair7[0] == 7, "terminal pair-v7 has the wrong version")
+    terminal_result = pair7[1]
+    if terminal_result == "pass":
+        require(pair6[1] == "pass", "pair-v7 pass lacks a pair-v6 pass")
+        validate_pair6_pass(pair6[3])
+        validate_pair7_pass(pair7[3])
+        validate_success_sequence(records)
+    elif records:
+        require(pair6[1] == "pass", "scheduler fault lacks a pair-v6 pass")
+        validate_pair6_pass(pair6[3])
+        require(
+            (None, "run-exit") in records,
+            "pair-v7 fault terminal precedes run-exit",
+        )
+        require(
+            pair7[3]["parent_pass"] == "1",
+            "scheduler fault trace lacks parent_pass=1",
+        )
+        validate_fault_field_causality(records, pair7[3])
+    else:
+        validate_fault_field_causality(records, pair7[3])
+        require(
+            pair6[1] == "fault" and pair7[3]["parent_pass"] == "0",
+            "marker-free pair-v7 fault lacks parent_pass=0",
+        )
+    return terminal_result
 
 
 def render_snapshot(
@@ -564,39 +610,21 @@ def analyze_capture_text(text: str) -> dict[str, str | int]:
         pair7 = parse_pair(pair7_metadata[0])
         require(pair6[0] == 6, "pair-v6 metadata has the wrong version")
         require(pair7[0] == 7, "pair-v7 metadata has the wrong version")
-        terminal_result = pair7[1]
         require(
             len(latest_pairs) == 2
             and latest_pairs[0][2] == pair6[2]
             and latest_pairs[1][2] == pair7[2],
             "terminal metadata differs from the latest complete snapshot",
         )
-        if terminal_result == "pass":
-            require(pair6[1] == "pass", "pair-v7 pass lacks a pair-v6 pass")
-            validate_pair6_pass(pair6[3])
-            validate_pair7_pass(pair7[3])
-            validate_success_sequence(latest_records)
-        elif latest_records:
-            require(pair6[1] == "pass", "scheduler fault lacks a pair-v6 pass")
-            validate_pair6_pass(pair6[3])
-            require(
-                (None, "run-exit") in latest_records,
-                "pair-v7 fault terminal precedes run-exit",
-            )
-            require(
-                pair7[3]["parent_pass"] == "1",
-                "scheduler fault trace lacks parent_pass=1",
-            )
-            validate_fault_field_causality(latest_records, pair7[3])
-        else:
-            validate_fault_field_causality(latest_records, pair7[3])
-            require(
-                pair6[1] == "fault" and pair7[3]["parent_pass"] == "0",
-                "marker-free pair-v7 fault lacks parent_pass=0",
-            )
+        terminal_result = validate_terminal_semantics(
+            latest_records, latest_pairs[0], latest_pairs[1]
+        )
         capture_class = "terminal"
     else:
-        require(bool(latest_records), "latest complete snapshot has no phase marker")
+        require(
+            bool(latest_records) or bool(latest_pairs),
+            "latest complete snapshot has no phase marker",
+        )
         require(
             not pair6_metadata and not pair7_metadata,
             "pair metadata lacks its capture terminator",
@@ -606,15 +634,20 @@ def analyze_capture_text(text: str) -> dict[str, str | int]:
             or (len(latest_pairs) == 2 and latest_pairs[0][0] == 6),
             "latest snapshot has a partial or duplicated pair terminal",
         )
-        pair7_seen = bool(latest_pairs)
-        if pair7_seen or transport_tail == "truncated":
+        if latest_pairs:
+            terminal_result = validate_terminal_semantics(
+                latest_records, latest_pairs[0], latest_pairs[1]
+            )
+            capture_class = "transport-truncated-valid-snapshot"
+        elif transport_tail == "truncated":
+            terminal_result = "absent"
             capture_class = "transport-truncated-valid-snapshot"
         else:
+            terminal_result = "absent"
             capture_class = "valid-prefix"
-        terminal_result = "absent"
 
     return {
-        "validation": "a72-scheduler-phase-capture-structure-pass",
+        "validation": "a72-scheduler-unpark-capture-structure-pass",
         "snapshot_count": len(snapshots),
         "latest_sequence": snapshots[-1][0],
         "phase_records": len(latest_records),

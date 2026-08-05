@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-03-a72-scheduler-context` |
-| Status | `blocked-unpark-deployment-runtime-tooling-pending` |
+| Status | `blocked-unpark-deployment-pending` |
 | Subsystem | MT6797 retained Cortex-A72 pair and scheduler |
 | Device variant | Gemini PDA x27, named project device |
 | Date(s) | 2026-08-03 through 2026-08-04 |
@@ -511,6 +511,19 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   `5b38e542586cf70f3fcf3de049f351671f96fab985e0d93fa79f90e2d04012c5`.
   No native VM build or device action occurred. See
   [`results/offline-container-review-unpark-20260804.txt`](results/offline-container-review-unpark-20260804.txt).
+- The guarded installer, fixed decision map, changed-cycle pstore contract,
+  and read-only USB/netcat observer are now pinned to that exact successor and
+  the rejected phase predecessor. The parser derives final marker and pair-v7
+  schemas from admitted `0003`, requires both PASS unpark fields to equal one,
+  preserves a valid task-before-unpark-after interleaving, and enforces both
+  directions of unpark field/marker causality, including complete pair
+  snapshots whose later host terminator is lost. Four installer, 14 marker/order,
+  and 39 capture/schema/semantic mutations are rejected; all nine result
+  classes and the no-backup/readback/shutdown boundary pass. No device action
+  occurred. See
+  [`results/runtime-decision-map-unpark-20260804.txt`](results/runtime-decision-map-unpark-20260804.txt)
+  and
+  [`results/runtime-tools-unpark-20260804.txt`](results/runtime-tools-unpark-20260804.txt).
 
 ## Analysis
 
@@ -521,7 +534,7 @@ context while preserving the established power and recovery boundary.
 
 ## Conclusion
 
-`blocked-unpark-deployment-runtime-tooling-pending`: phase-attribution attempt 1 is an
+`blocked-unpark-deployment-pending`: phase-attribution attempt 1 is an
 attributable restart with incomplete trace under the fixed decision map. The
 guarded exact boot2 write and shutdown succeeded, but retained pstore cannot
 localize the reset beyond its valid marker prefix. A separate exact-source/
@@ -534,10 +547,11 @@ been generated, independently reviewed, admitted after the historical parent,
 and compiled against that exact parent. Source, mutation, configuration,
 diagnostics, lifecycle-disassembly, marker, terminal, stack, package, and
 provenance gates pass. Two independent retained constructions now establish
-the exact unpark Android-v0 container and its 16 MiB padded identity. Reject
-the previous boot artifact unchanged; the accepted offline container is not
-yet a deployment or runtime result. Continue only through the ordered action
-in `docs/ROADMAP.md`.
+the exact unpark Android-v0 container and its 16 MiB padded identity. The
+guarded installer and fixed pstore/USB decision path now pass exact source,
+identity, offline-action, causality, and mutation review. Reject the previous
+boot artifact unchanged; the accepted successor is not yet a deployment or
+runtime result. Continue only through the ordered action in `docs/ROADMAP.md`.
 
 ## Follow-up
 

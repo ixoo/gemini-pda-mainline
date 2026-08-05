@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""Validate phase-attribution deployment and observation contracts."""
+"""Validate kthread-unpark deployment and observation contracts."""
 
 import hashlib
 import re
+import shlex
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 import validate_phase_capture as phase_capture
@@ -12,12 +14,14 @@ import validate_phase_capture as phase_capture
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 EXPERIMENT = SCRIPT_DIR.parent
+REPO_ROOT = EXPERIMENT.parent.parent
 INSTALLER = SCRIPT_DIR / "install-boot2.sh"
 LIVE = SCRIPT_DIR / "capture-live-outcome.sh"
+PSTORE = REPO_ROOT / "scripts" / "collect-device-pstore"
 PLAN = (
     EXPERIMENT
     / "results"
-    / "runtime-decision-map-phase-attribution-20260804.txt"
+    / "runtime-decision-map-unpark-20260804.txt"
 )
 PHASE_PATCH = (
     EXPERIMENT
@@ -29,6 +33,11 @@ SCHEDULER_PATCH = (
     / "patches"
     / "0001-diagnostic-add-bounded-A72-scheduler-context-execution.patch"
 )
+UNPARK_PATCH = (
+    EXPERIMENT
+    / "patches"
+    / "0003-diagnostic-unpark-A72-scheduler-context-tasks.patch"
+)
 PAIR5 = EXPERIMENT.parent / "2026-08-03-a72-cpu9-multiline-integrity"
 BASE_INSTALLER = (
     EXPERIMENT.parent
@@ -37,11 +46,12 @@ BASE_INSTALLER = (
     / "install-boot2.sh"
 )
 PINS = (
-    ("2e8c611b1dbe5b79b13f2dec9cf9d77d9b7973a732f63702a6228600bef464b3", 2),
     ("2268e23559e8d36e4339a4fd912d0108721ed818e628dfc857cab2ab8e8049a8", 2),
-    ("e10e38baeb290d00e73e587111024ec7ddf96974604837e31e980c7c62618df4", 2),
-    ("gemian-a72-scheduler-phase-attribution-d06e220da658", 2),
+    ("5b38e542586cf70f3fcf3de049f351671f96fab985e0d93fa79f90e2d04012c5", 2),
+    ("9928d416e8ad50a35652ab58721c6a3747b1e8f00ff5fa4883e3100550c634f5", 2),
+    ("gemian-a72-scheduler-unpark-f3e235f3c196", 2),
 )
+REJECTION_COUNTS = {"installer": 0, "marker": 0, "capture": 0}
 
 
 def require(condition: bool, message: str) -> None:
@@ -49,18 +59,57 @@ def require(condition: bool, message: str) -> None:
         raise AssertionError(message)
 
 
+def expect_installer_identity_rejection(installer: str, token: str) -> None:
+    """Execute one mutated wrapper and require its derived-output guard."""
+    script_dir_assignment = (
+        'script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"'
+    )
+    require(
+        installer.count(script_dir_assignment) == 1,
+        "installer script-dir assignment changed",
+    )
+    mutated = installer.replace(token, "0" * len(token), 1).replace(
+        script_dir_assignment,
+        f"script_dir={shlex.quote(str(SCRIPT_DIR))}",
+        1,
+    )
+    with tempfile.TemporaryDirectory(
+        prefix=".runtime-installer-test."
+    ) as temporary:
+        wrapper = Path(temporary) / "install-boot2.sh"
+        wrapper.write_text(mutated, encoding="utf-8")
+        wrapper.chmod(0o700)
+        result = subprocess.run(
+            [str(wrapper), "--help"], capture_output=True, text=True, check=False
+        )
+    require(result.returncode == 2, f"installer identity mutation ran: {token}")
+    require(
+        "derived installer lacks:" in result.stderr and token in result.stderr,
+        f"installer identity mutation failed at the wrong boundary: {token}",
+    )
+    REJECTION_COUNTS["installer"] += 1
+
+
 def expect_marker_rejection(name: str, records: list[tuple[int | None, str]]) -> None:
     try:
         phase_capture.validate_success_sequence(records)
     except phase_capture.CaptureError:
+        REJECTION_COUNTS["marker"] += 1
         return
     raise AssertionError(f"marker mutation accepted: {name}")
 
 
-def expect_capture_rejection(name: str, capture: str) -> None:
+def expect_capture_rejection(
+    name: str, capture: str, expected_reason: str | None = None
+) -> None:
     try:
         phase_capture.analyze_capture_text(capture)
-    except phase_capture.CaptureError:
+    except phase_capture.CaptureError as error:
+        if expected_reason is not None and expected_reason not in str(error):
+            raise AssertionError(
+                f"capture mutation rejected for the wrong reason: {name}: {error}"
+            ) from error
+        REJECTION_COUNTS["capture"] += 1
         return
     raise AssertionError(f"capture mutation accepted: {name}")
 
@@ -74,16 +123,37 @@ def terminal_capture(
     pair7 = phase_capture.synthetic_pair_line(
         7, result, parent_pass=int(bool(records))
     )
+    snapshot = phase_capture.render_snapshot(
+        1, records, pair_result=result, pair6_result=pair6_result
+    )
+    if result == "fault":
+        for cpu in (8, 9):
+            if (None, f"unpark{cpu}-after") in records:
+                snapshot = snapshot.replace(
+                    f"sc_unpark{cpu}=0", f"sc_unpark{cpu}=1"
+                )
+                pair7 = pair7.replace(
+                    f"sc_unpark{cpu}=0", f"sc_unpark{cpu}=1", 1
+                )
     return "\n".join(
         (
-            phase_capture.render_snapshot(
-                1, records, pair_result=result, pair6_result=pair6_result
-            ),
+            snapshot,
             f"pair6_terminal_line={pair6}",
             f"pair7_terminal_line={pair7}",
             phase_capture.TERMINATOR,
         )
     )
+
+
+def unterminated_terminal_capture(
+    records: list[tuple[int | None, str]],
+    result: str = "pass",
+    pair6_result: str = "pass",
+) -> str:
+    """Remove only host metadata/terminator after one complete pair snapshot."""
+    return terminal_capture(records, result, pair6_result).split(
+        "\npair6_terminal_line=", 1
+    )[0]
 
 
 def main() -> int:
@@ -92,6 +162,7 @@ def main() -> int:
     plan = PLAN.read_text(encoding="utf-8")
     phase_patch = PHASE_PATCH.read_text(encoding="utf-8")
     scheduler_patch = SCHEDULER_PATCH.read_text(encoding="utf-8")
+    unpark_patch = UNPARK_PATCH.read_text(encoding="utf-8")
     validator_source = (SCRIPT_DIR / "validate_phase_capture.py").read_text(
         encoding="utf-8"
     )
@@ -105,18 +176,42 @@ def main() -> int:
         == "0c669ab85063015fa83b7e28a506e1bcf8cdafc4994726009becf92151fda7e7",
         "guarded base installer changed",
     )
+    require(
+        hashlib.sha256(UNPARK_PATCH.read_bytes()).hexdigest()
+        == "7b05002ff89f53a15e1eeb7d3b9588ac08443902626da4b706045d418513f486",
+        "unpark patch changed",
+    )
+    pstore_source = PSTORE.read_text(encoding="utf-8")
+    require(
+        hashlib.sha256(PSTORE.read_bytes()).hexdigest()
+        == "9047084f3012aff47e23e56498d4bc0ae6f8fb7e4f15caec10abb6c15e9a9b3b",
+        "changed-cycle pstore helper changed",
+    )
+    pstore_help = subprocess.run(
+        [str(PSTORE), "--help"], check=True, capture_output=True, text=True
+    ).stdout
+    for token in (
+        "--wait-for-cycle",
+        "--wait-seconds N",
+        "Require SSH to go down and return before capture",
+        "The capture does not write or delete pstore entries",
+        "Waiting for $target to remain disconnected across two probes",
+        "known-good OS and a new boot ID",
+        "Pstore entries and partitions were not modified or removed",
+    ):
+        require(
+            token in pstore_help or token in pstore_source,
+            f"pstore helper contract lacks: {token}",
+        )
 
     for token, count in PINS:
         require(installer.count(token) == count, f"installer pin count changed: {token}")
-        require(
-            installer.replace(token, "0" * len(token), 1).count(token) == count - 1,
-            f"installer identity mutation was not rejected: {token}",
-        )
+        expect_installer_identity_rejection(installer, token)
     for token in (
-        "EXPECTED_PREDECESSOR_SHA256=2e8c611b1dbe5b79b13f2dec9cf9d77d9b7973a732f63702a6228600bef464b3",
-        "CANDIDATE_SHA256=2268e23559e8d36e4339a4fd912d0108721ed818e628dfc857cab2ab8e8049a8",
-        "ARTIFACT_MANIFEST_SHA256=e10e38baeb290d00e73e587111024ec7ddf96974604837e31e980c7c62618df4",
-        "ARTIFACT_NAME=gemian-a72-scheduler-phase-attribution-d06e220da658",
+        "EXPECTED_PREDECESSOR_SHA256=2268e23559e8d36e4339a4fd912d0108721ed818e628dfc857cab2ab8e8049a8",
+        "CANDIDATE_SHA256=5b38e542586cf70f3fcf3de049f351671f96fab985e0d93fa79f90e2d04012c5",
+        "ARTIFACT_MANIFEST_SHA256=9928d416e8ad50a35652ab58721c6a3747b1e8f00ff5fa4883e3100550c634f5",
+        "ARTIFACT_NAME=gemian-a72-scheduler-unpark-f3e235f3c196",
         "source pair-v5 installer changed",
         "GEMINI_A72_SCHEDULER_SCRIPT_DIR",
     ):
@@ -136,14 +231,14 @@ def main() -> int:
     help_text = subprocess.run(
         [str(INSTALLER), "--help"], check=True, capture_output=True, text=True
     ).stdout
-    require("phase-attribution scheduler" in help_text, "installer help changed")
+    require("scheduler kthread-unpark" in help_text, "installer help changed")
     require("without creating a partition" in help_text, "no-backup policy changed")
     require("shuts the device down cleanly" in help_text, "shutdown policy changed")
 
     live_help = subprocess.run(
         [str(LIVE), "--help"], check=True, capture_output=True, text=True
     ).stderr
-    require("a72-scheduler-phase-attempt-N" in live_help, "live output changed")
+    require("a72-scheduler-unpark-attempt-N" in live_help, "live output changed")
     device_program = live.split("<<'DEVICE'\n", 1)[1].split("\nDEVICE\n", 1)[0]
     for forbidden in (
         r"/dev/mmc",
@@ -169,16 +264,30 @@ def main() -> int:
         "phase_capture_class=phase-prefix",
         "sc_iterations=262144 sc_rescheds=64",
         "sc_task8=-?[0-9]+ sc_task9=-?[0-9]+",
+        "sc_unpark8=-?[0-9]+ sc_unpark9=-?[0-9]+",
         "sc_readywait8=-?[0-9]+ sc_readywait9=-?[0-9]+",
         "sc_startwait8=-?[0-9]+ sc_startwait9=-?[0-9]+",
         "sc_done8=[0-9]+ sc_done9=[0-9]+ sc_ready=[0-9]+ sc_finished=[0-9]+",
         "sc_hash8=[0-9a-f]{16} sc_hash9=[0-9a-f]{16}",
-        "__A72_SCHEDULER_PHASE_TERMINAL_CAPTURED__",
-        "validation=a72-scheduler-phase-terminal-capture-pass",
-        "validation=a72-scheduler-phase-prefix-structure-pass",
-        "validation=a72-scheduler-phase-transport-truncated-preserved",
+        "__A72_SCHEDULER_UNPARK_TERMINAL_CAPTURED__",
+        "validation=a72-scheduler-unpark-terminal-capture-pass",
+        "validation=a72-scheduler-unpark-prefix-structure-pass",
+        "validation=a72-scheduler-unpark-transport-truncated-preserved",
     ):
         require(token in live, f"live collector lacks: {token}")
+    for legacy in (
+        "sc_wake8",
+        "sc_wake9",
+        "phase=wake8",
+        "phase=wake9",
+        "__A72_SCHEDULER_PHASE_TERMINAL_CAPTURED__",
+    ):
+        require(legacy not in live, f"live collector retains legacy token: {legacy}")
+    for legacy in ("sc_wake8", "sc_wake9", '"wake8-before"', '"wake9-before"'):
+        require(
+            legacy not in validator_source,
+            f"capture validator retains legacy token: {legacy}",
+        )
     for token in (
         "snapshot sequence is not contiguous from one",
         "snapshot payload line count changed",
@@ -199,11 +308,35 @@ def main() -> int:
         phase_patch,
         flags=re.MULTILINE,
     )
-    parent_source_phases = re.findall(
+    phase_parent_source_phases = re.findall(
         r'^\+\s*pr_emerg\("gemini-a72-sc-phase phase=([a-z0-9-]+)\\n"',
         phase_patch,
         flags=re.MULTILINE,
     )
+    removed_parent_phases = re.findall(
+        r'^-\s*pr_emerg\("gemini-a72-sc-phase phase=([a-z0-9-]+)\\n"',
+        unpark_patch,
+        flags=re.MULTILINE,
+    )
+    added_parent_phases = re.findall(
+        r'^\+\s*pr_emerg\("gemini-a72-sc-phase phase=([a-z0-9-]+)\\n"',
+        unpark_patch,
+        flags=re.MULTILINE,
+    )
+    require(
+        tuple(removed_parent_phases)
+        == ("wake8-before", "wake8-after", "wake9-before", "wake9-after"),
+        "unpark patch removed phase inventory changed",
+    )
+    require(
+        tuple(added_parent_phases)
+        == ("unpark8-before", "unpark8-after", "unpark9-before", "unpark9-after"),
+        "unpark patch added phase inventory changed",
+    )
+    phase_replacements = dict(zip(removed_parent_phases, added_parent_phases))
+    parent_source_phases = [
+        phase_replacements.get(phase, phase) for phase in phase_parent_source_phases
+    ]
     source_phases = parent_source_phases + task_source_phases
     require(len(source_phases) == 31, "phase source marker count changed")
     require(len(set(source_phases)) == 31, "phase source markers are not unique")
@@ -216,16 +349,34 @@ def main() -> int:
         "task phase source order changed",
     )
 
+    removed_pair7 = re.search(
+        r'^-\s*pr_emerg\("gemini-a72-pair-v7 result=%s ([^"\\]+)\\n"',
+        unpark_patch,
+        flags=re.MULTILINE,
+    )
+    require(removed_pair7 is not None, "legacy pair-v7 terminal is absent")
+    require(
+        "sc_wake8=%d sc_wake9=%d" in removed_pair7.group(1)
+        and "sc_unpark" not in removed_pair7.group(1),
+        "legacy pair-v7 terminal schema changed",
+    )
     for version, result_expression in ((6, "pass"), (7, "%s")):
-        terminal = re.search(
-            rf'gemini-a72-pair-v{version} result={result_expression} ([^"\\]+)\\n"',
-            scheduler_patch,
+        terminal_source = scheduler_patch if version == 6 else unpark_patch
+        line_prefix = r"^[ +]\s*" if version == 6 else r"^\+\s*"
+        terminal_matches = re.findall(
+            rf'{line_prefix}pr_emerg\("gemini-a72-pair-v{version} '
+            rf'result={result_expression} ([^"\\]+)\\n"',
+            terminal_source,
+            flags=re.MULTILINE,
         )
-        require(terminal is not None, f"pair-v{version} source terminal is absent")
+        require(
+            len(terminal_matches) == 1,
+            f"pair-v{version} source terminal is absent or ambiguous",
+        )
         source_fields = []
         source_exact = {}
         source_hex = set()
-        for token in terminal.group(1).split():
+        for token in terminal_matches[0].split():
             name, separator, value = token.partition("=")
             require(separator == "=" and bool(value), "source terminal token malformed")
             source_fields.append(name)
@@ -258,11 +409,29 @@ def main() -> int:
     del alternate[6:9]
     alternate[11:11] = cpu8_pre_release
     phase_capture.validate_success_sequence(alternate)
+    early_cpu8 = valid.copy()
+    early_cpu8_prefix = [
+        (8, "task-ready-before"),
+        (8, "task-ready-after"),
+        (8, "task-start-wait-before"),
+    ]
+    early_cpu8 = [record for record in early_cpu8 if record not in early_cpu8_prefix]
+    unpark8_before = early_cpu8.index((None, "unpark8-before")) + 1
+    early_cpu8[unpark8_before:unpark8_before] = early_cpu8_prefix
+    phase_capture.validate_success_sequence(early_cpu8)
 
     mutations: dict[str, list[tuple[int | None, str]]] = {}
     mutations["missing-marker"] = valid[:-1]
     mutations["unknown-phase"] = valid.copy()
     mutations["unknown-phase"][6] = (8, "task-unknown-before")
+    for cpu in (8, 9):
+        for boundary in ("before", "after"):
+            name = f"legacy-wake{cpu}-{boundary}-marker"
+            mutations[name] = valid.copy()
+            legacy_index = mutations[name].index(
+                (None, f"unpark{cpu}-{boundary}")
+            )
+            mutations[name][legacy_index] = (None, f"wake{cpu}-{boundary}")
     mutations["duplicate-marker"] = valid[:7] + [valid[6]] + valid[7:]
     mutations["parent-reversal"] = valid.copy()
     mutations["parent-reversal"][0], mutations["parent-reversal"][1] = (
@@ -379,6 +548,42 @@ def main() -> int:
         "marker-free parent fault was rejected",
     )
 
+    unterminated_pass = unterminated_terminal_capture(valid)
+    unterminated_pass_result = phase_capture.analyze_capture_text(unterminated_pass)
+    require(
+        unterminated_pass_result["capture_class"]
+        == "transport-truncated-valid-snapshot"
+        and unterminated_pass_result["terminal_result"] == "pass",
+        "valid unterminated pair terminal changed",
+    )
+    unterminated_fault = unterminated_terminal_capture(
+        undispatched_failure, result="fault"
+    )
+    unterminated_fault_result = phase_capture.analyze_capture_text(
+        unterminated_fault
+    )
+    require(
+        unterminated_fault_result["capture_class"]
+        == "transport-truncated-valid-snapshot"
+        and unterminated_fault_result["terminal_result"] == "fault",
+        "valid unterminated fault terminal changed",
+    )
+    expect_capture_rejection(
+        "unterminated-pass-unpark-not-issued",
+        unterminated_pass.replace("sc_unpark8=1", "sc_unpark8=0"),
+        "pair-v7 pass field changed: sc_unpark8",
+    )
+    expect_capture_rejection(
+        "unterminated-fault-unpark-out-of-domain",
+        unterminated_fault.replace("sc_unpark8=1", "sc_unpark8=2"),
+        "sc_unpark8 is outside the source domain",
+    )
+    expect_capture_rejection(
+        "unterminated-fault-unpark-marker-without-issued",
+        unterminated_fault.replace("sc_unpark8=1", "sc_unpark8=0"),
+        "sc_unpark8=0 contradicts its after marker",
+    )
+
     doubled = prefix_capture.replace(
         "gemini-a72-sc-phase phase=create8-before",
         "gemini-a72-sc-phase phase=create8-before "
@@ -410,7 +615,7 @@ def main() -> int:
         ),
     )
     expect_capture_rejection(
-        "task-without-wake",
+        "task-without-unpark",
         phase_capture.render_snapshot(
             1,
             [
@@ -459,10 +664,40 @@ def main() -> int:
     for index, line in enumerate(mismatched_metadata_lines):
         if line.startswith("pair7_terminal_line="):
             mismatched_metadata_lines[index] = line.replace(
-                "sc_wake8=0", "sc_wake8=1", 1
+                "sc_unpark8=1", "sc_unpark8=0", 1
             )
     expect_capture_rejection(
         "snapshot-metadata-mismatch", "\n".join(mismatched_metadata_lines)
+    )
+    for cpu in (8, 9):
+        expect_capture_rejection(
+            f"legacy-wake{cpu}-field-schema",
+            terminal_capture(valid).replace(
+                f"sc_unpark{cpu}=1", f"sc_wake{cpu}=1"
+            ),
+            f"field order changed at sc_unpark{cpu}",
+        )
+    expect_capture_rejection(
+        "pass-unpark-not-issued",
+        terminal_capture(valid).replace("sc_unpark8=1", "sc_unpark8=0"),
+        "pair-v7 pass field changed: sc_unpark8",
+    )
+    expect_capture_rejection(
+        "fault-unpark-marker-without-issued",
+        terminal_capture(undispatched_failure, result="fault").replace(
+            "sc_unpark8=1", "sc_unpark8=0"
+        ),
+        "sc_unpark8=0 contradicts its after marker",
+    )
+    expect_capture_rejection(
+        "fault-unpark-issued-without-markers",
+        parent_fault_capture.replace("sc_unpark8=0", "sc_unpark8=1"),
+        "sc_unpark8=1 lacks causal marker",
+    )
+    expect_capture_rejection(
+        "fault-unpark-out-of-domain",
+        parent_fault_capture.replace("sc_unpark8=0", "sc_unpark8=2"),
+        "sc_unpark8 is outside the source domain",
     )
     expect_capture_rejection(
         "pair-history-disappears",
@@ -481,10 +716,22 @@ def main() -> int:
         "pair-v6-pass-semantic-mismatch",
         terminal_capture(valid).replace("hps_reported=1", "hps_reported=0"),
     )
-    ready_success_mismatch = terminal_capture(
+    ready_fault_baseline = terminal_capture(
         mutations["ready-completion-causal-order"], result="fault"
-    ).replace("sc_readywait8=0", "sc_readywait8=1")
-    expect_capture_rejection("fault-ready-success-causality", ready_success_mismatch)
+    )
+    require(
+        phase_capture.analyze_capture_text(ready_fault_baseline)["capture_class"]
+        == "terminal",
+        "ready-fault baseline was rejected",
+    )
+    ready_success_mismatch = ready_fault_baseline.replace(
+        "sc_readywait8=0", "sc_readywait8=1"
+    )
+    expect_capture_rejection(
+        "fault-ready-success-causality",
+        ready_success_mismatch,
+        "sc_readywait8=1 contradicts causal marker order",
+    )
 
     start_early = valid.copy()
     cpu8_after_start = [
@@ -503,15 +750,29 @@ def main() -> int:
     start_early = [record for record in start_early if record not in cpu8_after_start]
     release_before = start_early.index((None, "release-before"))
     start_early[release_before:release_before] = cpu8_after_start
-    start_success_mismatch = terminal_capture(start_early, result="fault").replace(
+    start_fault_baseline = terminal_capture(start_early, result="fault")
+    require(
+        phase_capture.analyze_capture_text(start_fault_baseline)["capture_class"]
+        == "terminal",
+        "start-fault baseline was rejected",
+    )
+    start_success_mismatch = start_fault_baseline.replace(
         "sc_startwait8=0", "sc_startwait8=1"
     )
-    expect_capture_rejection("fault-start-success-causality", start_success_mismatch)
+    expect_capture_rejection(
+        "fault-start-success-causality",
+        start_success_mismatch,
+        "sc_startwait8=1 contradicts causal marker order",
+    )
 
     done_success_mismatch = terminal_capture(timeout_failure, result="fault").replace(
         "sc_wait9=0", "sc_wait9=1"
     )
-    expect_capture_rejection("fault-done-success-causality", done_success_mismatch)
+    expect_capture_rejection(
+        "fault-done-success-causality",
+        done_success_mismatch,
+        "sc_wait9=1 contradicts causal marker order",
+    )
     truncated_result = phase_capture.analyze_capture_text(
         "\n".join(
             (
@@ -539,6 +800,10 @@ def main() -> int:
         "ATTRIBUTABLE RESTART WITH INCOMPLETE TRACE",
         "NO ATTRIBUTABLE MARKER OR EVIDENCE LOSS",
         "LOST RECOVERY OR SAFETY FAILURE",
+        "Compile package boot-candidate field: false",
+        "d36a6a12e2ef4d0501df78f8fa9a94e763c1907f155c5f008182eed2d1f0b7f2",
+        "No prior one-image override is reused",
+        "a72-scheduler-unpark-attempt-1",
         "--wait-for-cycle --wait-seconds 900",
         "without a fresh backup",
         "matching full-partition readback",
@@ -558,7 +823,7 @@ def main() -> int:
         "sc_expected8=8 sc_start8=8 sc_end8=8",
         "sc_expected9=9 sc_start9=9 sc_end9=9",
         "sc_task8=1 sc_task9=1 sc_create8=0 sc_create9=0",
-        "sc_wake8 and sc_wake9 must each be 0 or 1",
+        "sc_unpark8=1 sc_unpark9=1",
         "sc_readywait8=1 sc_readywait9=1",
         "sc_startwait8=1 sc_startwait9=1",
         "sc_wait8=1 sc_wait9=1",
@@ -569,17 +834,25 @@ def main() -> int:
     ):
         require(token in plan_words, f"runtime decision missing: {token}")
 
-    print("validation=a72-scheduler-phase-runtime-tools")
-    print("installer_identity_mutations=4-rejected")
+    require(
+        REJECTION_COUNTS == {"installer": 4, "marker": 14, "capture": 39},
+        f"negative coverage changed: {REJECTION_COUNTS}",
+    )
+    print("validation=a72-scheduler-unpark-runtime-tools")
+    print(
+        f"installer_identity_mutations={REJECTION_COUNTS['installer']}-rejected"
+    )
     print("phase_marker_source=31-unique")
     print("phase_marker_success_path=39-records")
-    print(f"phase_marker_mutations={len(mutations)}-rejected")
+    print(f"phase_marker_mutations={REJECTION_COUNTS['marker']}-rejected")
     print("capture_format=numbered-full-snapshots")
     print("pair_terminal_schemas=source-pinned")
     print("pair_terminal_semantics=exact-pass-field-conditioned-fault")
-    print(f"capture_mutations={len(mutations) + 16}-rejected")
+    print(f"capture_mutations={REJECTION_COUNTS['capture']}-rejected")
     print("fault_branches=create-failure-timeout-undispatched-accepted")
+    print("unpark_fields=domain-bidirectional-marker-causality")
     print("installer=exact-predecessor-candidate-readback-shutdown")
+    print("pstore=read-only-changed-cycle-helper-pinned")
     print("live_collector=read-only-pstore-primary-usb-secondary")
     print("result_classes=9-complete")
     print("result=pass")

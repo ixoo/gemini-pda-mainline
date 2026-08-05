@@ -1,0 +1,141 @@
+CPU8/CPU9 kthread-unpark deployment and runtime-tool review
+===========================================================
+
+Date: 2026-08-04 UTC
+Result: PASS
+Device access: none
+Partition write: none
+Runtime result: not tested
+
+Accepted boundary
+-----------------
+
+- Clean pushed offline-container evidence commit:
+  `2974810cd1d1adae333565f957c32114c0a951d7`.
+- Compile repository commit:
+  `4f647c333056fd51aa2850957bb94ace508bedee`.
+- Compile package `SHA256SUMS` SHA-256:
+  `d36a6a12e2ef4d0501df78f8fa9a94e763c1907f155c5f008182eed2d1f0b7f2`.
+- Compile package purpose:
+  `a72-scheduler-unpark-compile-review-only`.
+- Compile package boot-candidate field: false.
+- Exact phase-parent patchset SHA-256:
+  `b2c971d4a1860ec09616a61dbd8a29fde488f7d99deb8bd6bfbf2c517b2c3493`.
+- Exact unpark child patchset SHA-256:
+  `bd5799cecd14aa34a87562b09507a6d9f18f11cd138420bcba629f12793e7bfe`.
+- Exact accepted offline-container predecessor SHA-256:
+  `2268e23559e8d36e4339a4fd912d0108721ed818e628dfc857cab2ab8e8049a8`.
+- Exact accepted offline-container successor SHA-256:
+  `5b38e542586cf70f3fcf3de049f351671f96fab985e0d93fa79f90e2d04012c5`.
+- Exact candidate manifest SHA-256:
+  `9928d416e8ad50a35652ab58721c6a3747b1e8f00ff5fa4883e3100550c634f5`.
+- Exact candidate directory name:
+  `gemian-a72-scheduler-unpark-f3e235f3c196`.
+
+The compile package retains its honest compile-only, false boot-candidate
+metadata. The guarded deployment consumes the separately constructed and
+accepted exact offline container; it adds no force or metadata-bypass option
+and does not reuse the prior phase-candidate one-image override. Selection is
+instead bound to the accepted container, the fixed map, the guarded gates, and
+the project's standing authorization for the latest validated boot2 candidate.
+
+Tool identities
+---------------
+
+- Guarded installer SHA-256:
+  `29236d880bf33377d77eee66183ad682016b1769ef0b541f519bdb3e90a503b3`.
+- Read-only USB/netcat collector SHA-256:
+  `728330028dd45ae16d659246e9a02c520a10be2f6f39ef13ef976090dc33a53c`.
+- Capture parser SHA-256:
+  `3871817a60f6c8919eaf483d50e956a42bece2ada598b042474861f2e4b860a3`.
+- Runtime-tool validator SHA-256:
+  `3a5e6e136b476b2fc6c3b5630d163a1da4202f5d6d6901fa06fbad139b06d5ec`.
+- Fixed unpark decision-map SHA-256:
+  `663500e882e6086458bbf8736d0f36207373ae1c5c5e1a3384c6ab6a856bbbb4`.
+- Generic changed-cycle pstore helper SHA-256:
+  `9047084f3012aff47e23e56498d4bc0ae6f8fb7e4f15caec10abb6c15e9a9b3b`.
+- Pinned pair-v5/multiline source-installer SHA-256:
+  `a2a3f292f0bb857be0251c7bacabecfa9157b2034d3a7ecc1ccd6b5541b672c9`.
+- Pinned guarded base-installer SHA-256:
+  `0c669ab85063015fa83b7e28a506e1bcf8cdafc4994726009becf92151fda7e7`.
+
+Guarded deployment review
+-------------------------
+
+- The derived installer contains the predecessor, successor, candidate
+  manifest, and artifact-directory identities exactly twice: once in its
+  finite substitution and once in its fail-closed derived-output check.
+- Four independent identity mutations are rejected.
+- The pinned base retains exact-target SSH, live-GPT resolution of one logical
+  boot2 row, exact size and writable state, inactive/unmounted/non-swap/no-
+  holder checks, normal Gemian root separation, and an above-80-percent healthy
+  battery gate.
+- The old full-partition checksum is recorded without a fresh backup. A write
+  is skipped when the successor is already exact; otherwise only the exact
+  16 MiB successor is staged and written.
+- Write, sync, flush, post-write checksum, independent full-partition readback,
+  byte comparison, temporary cleanup, and evidence checks remain required.
+- Verified success always requests a clean poweroff, proves the device became
+  unreachable, records `reboot=no`, and leaves physical boot2 selection to the
+  owner.
+
+Runtime observation review
+--------------------------
+
+- The generic pstore helper is checksum-pinned. It is read-only toward pstore
+  and partitions, requires stable disconnect, known-good reconnect, and a
+  changed boot ID, and binds metadata and archive capture to that recovered ID.
+- Changed-cycle pstore remains primary. The USB/netcat collector is a
+  read-only secondary observer with no partition path, CPU-online write,
+  reboot, shutdown, poweroff, mount, I2C, or runtime-stimulus operation.
+- The USB collector uses a new ignored output namespace and unpark-specific
+  framing. It emits numbered complete snapshots and preserves a separately
+  classified transport-truncated envelope.
+- Pair-v6 remains pinned to the exact inherited `0001` source terminal. Pair-v7
+  is pinned only to the added child line in exact `0003`; the removed legacy
+  wake terminal cannot satisfy the source-schema check.
+- A complete numbered snapshot containing adjacent pair-v6/pair-v7 terminals
+  undergoes full pass/fault and unpark-causality validation even when netcat
+  loses the later host metadata and terminator. Valid complete unterminated
+  PASS and fault snapshots remain honestly transport-truncated; impossible
+  unpark values in that same form are rejected at their semantic boundary.
+- The final source inventory overlays exactly four removed wake markers with
+  four unpark markers while preserving the other 27 phase strings: 31 unique
+  strings and 39 records on the complete success path.
+- Pair-v7 fields retain their exact positions with only
+  `sc_wake8/sc_wake9` replaced by `sc_unpark8/sc_unpark9`. Each unpark field is
+  limited to zero or one, PASS requires both to be one, issued fields require
+  ordered before/after markers, and an after marker requires issued equal one.
+- A valid positive interleaving lets CPU8 emit its ready prefix after
+  unpark8-before but before unpark8-after, preserving the real scheduling
+  freedom of `kthread_unpark()`.
+- Complete PASS, create failure, readiness/done timeout, undispatched task,
+  marker-free parent fault, and alternate CPU interleaving fixtures pass.
+- Fourteen marker/order mutations and 39 captured-format/schema/semantic
+  mutations are rejected, including legacy wake markers and fields, unpark
+  values outside zero/one, PASS with an unissued activation, and both directions
+  of marker/field contradiction.
+- The fixed decision map retains nine complete result classes. Screen color or
+  automatic reboot alone remains nonclassifying.
+
+Validation
+----------
+
+- Installer and collector Bash syntax: PASS.
+- Installer and collector ShellCheck: PASS.
+- Parser and runtime-validator Python compilation: PASS.
+- Installer, collector, and pstore helper CLI parsing/help: PASS.
+- Complete runtime-tool validator: PASS.
+- Whitespace validation: PASS.
+- Sensitive-data and offline-action scan: PASS.
+- Native VM kernel build: no.
+- Device access, partition read/write, reboot, shutdown, or runtime stimulus:
+  none.
+
+Decision and boundary
+---------------------
+
+The exact successor now passes offline-container, guarded-installer, fixed-map,
+changed-cycle-pstore, USB/netcat, source-schema, causality, and mutation review.
+This record is not deployment or runtime evidence and makes no CPU8/CPU9
+runtime claim. Ordered successor work remains solely in `docs/ROADMAP.md`.

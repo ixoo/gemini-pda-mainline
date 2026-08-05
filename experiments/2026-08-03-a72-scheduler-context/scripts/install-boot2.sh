@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# Source-pin and derive the guarded boot2 installer for the phase-attribution
-# scheduler-context candidate from the accepted pair-v6 installer.
+# Source-pin and derive the guarded boot2 installer for the scheduler-context
+# kthread-unpark candidate from the accepted pair-v5/multiline installer.
 set -euo pipefail
 export LC_ALL=C
 umask 077
@@ -26,21 +26,21 @@ trap cleanup EXIT
 chmod 0700 "$derived"
 perl -0pe '
 	s#script_dir="\$\(cd -- "\$\(dirname -- "\$\{BASH_SOURCE\[0\]\}"\)" && pwd -P\)"#script_dir="\${GEMINI_A72_SCHEDULER_SCRIPT_DIR:?missing}"#g;
-	s#5227729e34ca42cf606f43008ec753fce15147693ce7a670818db58c5903fa48#2268e23559e8d36e4339a4fd912d0108721ed818e628dfc857cab2ab8e8049a8#g;
-	s#eda1d5bb312aa937e41499ea8fd13a5f8ae95865399605fe7cf93ee61daaa23d#2e8c611b1dbe5b79b13f2dec9cf9d77d9b7973a732f63702a6228600bef464b3#g;
-	s#56b85e0f597436938bec5f20889ed53f4079a274e6cd82d56fb81a097522bb58#e10e38baeb290d00e73e587111024ec7ddf96974604837e31e980c7c62618df4#g;
-	s#gemian-a72-cpu9-multiline-integrity-4e3c1b1095ee#gemian-a72-scheduler-phase-attribution-d06e220da658#g;
-	s#Gemian A72 CPU9 multiline-integrity candidate#Gemian A72 phase-attribution scheduler candidate#g;
+	s#5227729e34ca42cf606f43008ec753fce15147693ce7a670818db58c5903fa48#5b38e542586cf70f3fcf3de049f351671f96fab985e0d93fa79f90e2d04012c5#g;
+	s#eda1d5bb312aa937e41499ea8fd13a5f8ae95865399605fe7cf93ee61daaa23d#2268e23559e8d36e4339a4fd912d0108721ed818e628dfc857cab2ab8e8049a8#g;
+	s#56b85e0f597436938bec5f20889ed53f4079a274e6cd82d56fb81a097522bb58#9928d416e8ad50a35652ab58721c6a3747b1e8f00ff5fa4883e3100550c634f5#g;
+	s#gemian-a72-cpu9-multiline-integrity-4e3c1b1095ee#gemian-a72-scheduler-unpark-f3e235f3c196#g;
+	s#Gemian A72 CPU9 multiline-integrity candidate#Gemian A72 scheduler kthread-unpark candidate#g;
 	s#2026-08-03-a72-cpu9-multiline-integrity#2026-08-03-a72-scheduler-context#g;
-	s#\.gemian-a72-cpu9-multiline#\.gemian-a72-scheduler-phase#g;
+	s#\.gemian-a72-cpu9-multiline#\.gemian-a72-scheduler-unpark#g;
 ' "$source_installer" >"$derived"
 chmod 0700 "$derived"
 
 for token in \
-	'EXPECTED_PREDECESSOR_SHA256=2e8c611b1dbe5b79b13f2dec9cf9d77d9b7973a732f63702a6228600bef464b3' \
-	'CANDIDATE_SHA256=2268e23559e8d36e4339a4fd912d0108721ed818e628dfc857cab2ab8e8049a8' \
-	'ARTIFACT_MANIFEST_SHA256=e10e38baeb290d00e73e587111024ec7ddf96974604837e31e980c7c62618df4' \
-	'ARTIFACT_NAME=gemian-a72-scheduler-phase-attribution-d06e220da658' \
+	'EXPECTED_PREDECESSOR_SHA256=2268e23559e8d36e4339a4fd912d0108721ed818e628dfc857cab2ab8e8049a8' \
+	'CANDIDATE_SHA256=5b38e542586cf70f3fcf3de049f351671f96fab985e0d93fa79f90e2d04012c5' \
+	'ARTIFACT_MANIFEST_SHA256=9928d416e8ad50a35652ab58721c6a3747b1e8f00ff5fa4883e3100550c634f5' \
+	'ARTIFACT_NAME=gemian-a72-scheduler-unpark-f3e235f3c196' \
 	'2026-08-03-a72-scheduler-context'; do
 	grep -Fq "$token" "$derived" || die "derived installer lacks: $token"
 done

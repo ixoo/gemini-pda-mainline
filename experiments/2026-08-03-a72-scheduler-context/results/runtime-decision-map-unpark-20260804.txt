@@ -1,0 +1,243 @@
+CPU8/CPU9 kthread-unpark deployment and runtime decision map
+============================================================
+
+Date: 2026-08-04 UTC
+
+This map is fixed before any kthread-unpark device write. It authorizes one
+attributable boot only after the installer, collector, parser, decision map,
+and static mutation tests are committed and pushed. It is not runtime evidence.
+
+Exact candidate
+---------------
+
+Compile repository commit:
+  4f647c333056fd51aa2850957bb94ace508bedee
+Compile package `SHA256SUMS` SHA-256:
+  d36a6a12e2ef4d0501df78f8fa9a94e763c1907f155c5f008182eed2d1f0b7f2
+Compile purpose:
+  a72-scheduler-unpark-compile-review-only
+Compile package boot-candidate field:
+  false
+Exact phase-parent patchset SHA-256:
+  b2c971d4a1860ec09616a61dbd8a29fde488f7d99deb8bd6bfbf2c517b2c3493
+Exact unpark child patchset SHA-256:
+  bd5799cecd14aa34a87562b09507a6d9f18f11cd138420bcba629f12793e7bfe
+Kernel field SHA-256:
+  b7ed626161490c64939f791e1caaaf6f4ffb03ecf55466776a19b74f02bb349c
+Raw Android-v0 SHA-256:
+  f3e235f3c196667e892f6ed611db37f77ab465ce90b59be763bf3dddedc1fd5c
+Full boot2 SHA-256:
+  5b38e542586cf70f3fcf3de049f351671f96fab985e0d93fa79f90e2d04012c5
+Candidate manifest SHA-256:
+  9928d416e8ad50a35652ab58721c6a3747b1e8f00ff5fa4883e3100550c634f5
+Expected rejected phase-attribution boot2 predecessor SHA-256:
+  2268e23559e8d36e4339a4fd912d0108721ed818e628dfc857cab2ab8e8049a8
+
+The compile package remains honestly labeled compile-review-only and false as
+a boot candidate. Deployment consumes the separately constructed and accepted
+offline container above; it does not relabel or directly deploy the compile
+package. The accepted container, this fixed map, the guarded installer, and the
+project's standing exact-boot2 authorization together select only the exact
+16 MiB identity above. No prior one-image override is reused.
+
+Hypothesis and unique observation
+---------------------------------
+
+The rejected predecessor produced an attributable restart with an incomplete
+trace. A separate exact source and binary audit identifies a deterministic
+design error: `kthread_create_on_cpu()` returns each task parked, while the
+selected `wake_up_process()` call does not release `TASK_PARKED`; ordered stop
+cleanup later unparks it. The child changes only those two intended activation
+operations to `kthread_unpark()`, plus the exact activation field and marker
+names. It does not change the workload, synchronization, timeout, startup,
+power, CPU_OFF prohibition, watchdog, or recovery path.
+
+The decision-changing evidence is whether either task now runs after its
+unpark-before marker, together with the complete ordered phase history and
+adjacent pair-v6/pair-v7 terminals when available. Changed-cycle pstore is
+primary. The read-only USB/netcat stream is secondary corroboration and may
+preserve a prefix, but cannot replace boot-ID continuity or recovery evidence.
+Screen color or an automatic restart alone is not classifying evidence.
+
+Marker contract
+---------------
+
+Every record begins with `gemini-a72-sc-phase`. Parent records have no CPU
+field. Task records require `cpu=8` or `cpu=9`.
+
+The successful parent path has this order, with before/after around each item
+except the final run-exit record:
+
+  create8
+  create9
+  unpark8
+  unpark9
+  ready8-wait
+  ready9-wait
+  release
+  done8-wait
+  done9-wait
+  stop8
+  stop9
+  run-exit
+
+Each CPU independently has this task order, with before/after around every
+item:
+
+  task-ready
+  task-start-wait
+  task-work
+  task-done
+
+The complete successful path therefore has 23 parent records and eight task
+records for each CPU, or 39 runtime records from 31 unique source strings.
+CPU8 and CPU9 task records may interleave in either scheduler-valid order; no
+global CPU8-versus-CPU9 order may be inferred. A task may run after its
+unpark-before record and before the parent emits unpark-after.
+
+PASS-only cross-causal requirements:
+
+- unpark-before for a CPU precedes that task's first record;
+- both task-ready-before records precede release-before;
+- release-before precedes either task-start-wait-after;
+- task-done-before precedes that CPU's parent done-wait-after;
+- task-done-after precedes that CPU's stop-after; and
+- run-exit follows every executed stop-after record.
+
+Every trace known continuous from create8-before, including a fault trace, must
+retain a prefix of one reachable parent source path, each emitted task stream
+as an exact prefix, task-done-after before its emitted stop-after, and run-exit
+after every emitted stop-after. A pair-v7 `sc_unparkN=1` requires that CPU's
+ordered unpark-before/unpark-after markers. An unpark-after marker requires
+`sc_unparkN=1`; each unpark field is restricted to zero or one. The stronger
+PASS list above applies only to PASS or when the corresponding pair-v7 field
+independently reports success. A readiness or done timeout can legitimately
+let release or a parent wait-after precede a late task record. Head-truncated
+pstore is evidence loss and cannot be tested as a complete prefix.
+
+A create failure can skip unpark, ready, release, and done phases before
+bounded cleanup. `kthread_stop()` can terminate the one successfully created
+but still parked task without invoking its thread function, so no task marker
+is required between stop-before and stop-after. Any emitted task marker
+requires the corresponding explicit unpark-before. The other CPU may have no
+task or stop records. Such a branch requires corroborating create-after,
+stop/run-exit, and pair-v7 fault fields; it is not a complete-path order error.
+
+Observation sequence
+--------------------
+
+1. In ordinary Gemian, just in time before installation, start
+   `scripts/collect-device-pstore --target gemini@192.168.1.50 --output artifacts/device-pstore/a72-scheduler-unpark-attempt-1 --wait-for-cycle --wait-seconds 900`.
+   Require its explicit waiting-for-disconnect readiness before proceeding; it
+   must bind the initial boot ID before the installer's shutdown.
+2. Run the reviewed installer. It must resolve exactly one live-GPT boot2,
+   prove it inactive and unmounted, require the exact rejected predecessor,
+   record its checksum without a fresh backup, write only the exact successor,
+   verify a matching full-partition readback, remove temporary state, sync the
+   deployment evidence, and shut the device down cleanly without reboot.
+3. While the device is off, arm the read-only USB/netcat collector at
+   `artifacts/runtime-captures/a72-scheduler-unpark-attempt-1/runtime.txt` and
+   physically select boot2 once. The inherited expected visible behavior is a
+   bounded automatic watchdog restart into ordinary Gemian.
+4. After recovery, require changed boot-ID continuity, watchdog-class recovery,
+   the known-good Gemian root, CPUs 8/9 offline, inactive and unmounted boot2,
+   and unchanged full boot2 checksum
+   `5b38e542586cf70f3fcf3de049f351671f96fab985e0d93fa79f90e2d04012c5`.
+5. Classify the attributable changed-cycle pstore first. The USB helper emits
+   numbered complete log snapshots; its host validator requires exact marker
+   occurrence counts, source-valid structure, monotonic snapshot history, and
+   the unpark pair-v7 schema. It labels an unclosed final envelope as
+   transport-truncated instead of a complete prefix. Use USB only as
+   corroboration and never extend the retained pstore prefix by assumption.
+
+Decision branches
+-----------------
+
+PASS
+  Require the complete valid 39-record phase trace, run-exit before terminal,
+  an adjacent complete pair-v6 pass and exact pair-v7 pass, no fatal marker,
+  changed-cycle watchdog recovery, CPUs 8/9 offline after recovery, and exact
+  unchanged boot2. One exact repeat is then earned. Do not enable CPU_OFF.
+
+  The exact pair-v7 success contract is:
+
+    gemini-a72-pair-v7 result=pass parent_pass=1
+    sc_reported=1 sc_iterations=262144 sc_rescheds=64
+    sc_expected8=8 sc_start8=8 sc_end8=8
+    sc_expected9=9 sc_start9=9 sc_end9=9
+    sc_task8=1 sc_task9=1 sc_create8=0 sc_create9=0
+    sc_unpark8=1 sc_unpark9=1
+    sc_readywait8=1 sc_readywait9=1
+    sc_startwait8=1 sc_startwait9=1
+    sc_wait8=1 sc_wait9=1
+    sc_error8=0 sc_error9=0 sc_stop8=0 sc_stop9=0
+    sc_done8=262144 sc_done9=262144 sc_ready=2 sc_finished=2
+    sc_hash8=f678147669874ecd sc_hash9=c2274327e9c8104c
+
+FIRST UNMATCHED PHASE BOUNDARY
+  A retained before record without its matching after record, followed by
+  continuous fatal/reset evidence rather than arbitrary capture truncation,
+  identifies the operation in progress. Record the last completed parent phase
+  and both concurrently open task phases, if any. Reject the artifact unchanged
+  and inspect only that bounded operation; never invent one failing CPU.
+
+EXPLICIT PAIR-V7 FAULT
+  A complete pair-v7 fault terminal is classified by its exact create, unpark,
+  ready, start, done, task-context, CPU, error, stop, count, and hash fields.
+  Reject unchanged and use the earliest attributable source/phase boundary
+  corroborated by the complete field vector. If several fields fail without a
+  retained ordering boundary, report all co-failing fields and do not invent a
+  single cause or CPU. Do not override the vector from screen or reboot
+  behavior.
+
+INHERITED PAIR-V6 REGRESSION
+  Any pair-v6 value outside its exact pass contract is a parent regression. Do
+  not evaluate scheduler success or repeat unchanged.
+
+RUN-EXIT OR TERMINAL-PUBLICATION BOUNDARY
+  Run-exit without the adjacent pair terminals localizes the failure after
+  task cleanup and before or during terminal publication only when continuous
+  fatal/reset evidence follows and rules out capture truncation. Otherwise use
+  ATTRIBUTABLE RESTART WITH INCOMPLETE TRACE. A terminal before run-exit
+  violates the source contract. Reject unchanged in either established case.
+
+MARKER CONTRACT VIOLATION
+  An unknown or legacy phase/field, invalid CPU, duplicate source-instance
+  record, reversed parent or per-CPU task order, task phase without CPU, parent
+  phase with CPU, impossible source-invariant order, impossible field/marker
+  relation, impossible success-claimed cross-causal order, or a claimed
+  complete trace with fewer than 39 records invalidates phase inference.
+  Preserve the evidence, reject the capture as a classifier input, and do not
+  repeat solely from that malformed trace. A missing trace head is not by
+  itself a contract violation.
+
+ATTRIBUTABLE RESTART WITH INCOMPLETE TRACE
+  Changed-cycle pstore that is continuous from create8-before may end on a
+  valid marker prefix without a continuous fatal tail or matching after record.
+  Record only the retained prefix. Do not infer the next phase and do not
+  repeat unchanged unless a new independent observation path can distinguish
+  truncation from terminal-not-reached.
+
+NO ATTRIBUTABLE MARKER OR EVIDENCE LOSS
+  A changed cycle with no phase record cannot localize the scheduler fault. A
+  trace whose first retained phase is not create8-before is head-truncated
+  evidence and also cannot localize the phase from missing history alone.
+  Preserve its valid suffix, then separate evidence loss from pre-marker
+  failure using console continuity, inherited terminals if present, boot
+  reason, and recovery state. Do not reuse a prior visual screen-color report
+  or unchanged pstore archive as kernel evidence.
+
+LOST RECOVERY OR SAFETY FAILURE
+  Missing automatic restart, wrong recovery identity, changed boot2, online
+  recovery CPU8/9, unexpected heat, storage errors, or any undeclared fault is
+  a safety failure. Recover through known-good Gemian, preserve pstore, verify
+  boot2 identity, and do not repeat unchanged.
+
+Success boundary
+----------------
+
+One pass establishes only the inherited power/coherency boundary plus bounded
+two-thread readiness, authorized unpark, task-context execution, completion,
+and cleanup. A second exact pass establishes repeatability. Neither result
+authorizes CPU_OFF, removes the HPS veto, proves production scheduling, load,
+thermal, OPP/cpufreq, suspend, or makes CPUs 8/9 production-online.
