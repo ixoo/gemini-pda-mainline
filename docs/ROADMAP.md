@@ -1295,24 +1295,67 @@ Several secure WFI and acknowledgement waits are unbounded. The audit finds no
 MP2 DCM or SRAM-LDO write in that callgraph and does not establish provider,
 independent readback, policy, notifier, suspend, or runtime completion.
 
-The next ordered action is a source-only contract for an exact CPU8/CPU9
-membership and real provider-reference ledger, early ordinary-hotplug and
-direct-suspend admission, notifier exclusion, and bounded independent
-post-transition observers. It must account for active `AFFINITY_INFO`, define
-the only locked ledger update points, preserve the HPS veto, and leave every
-unbounded secure wait under independently owned terminal recovery. In
-particular, it must never use `AFFINITY_INFO` to check that a retained A72 is
-ON: this payload would enter that CPU's active teardown path. This step may
-change only contract and supporting source-audit evidence: do not generate a
-CPU_OFF candidate, build a kernel, or use the device. Passive provider work may
-proceed in parallel only within its existing no-write, no-consumer boundary.
+The source-only
+[A72 membership and admission contract](../experiments/2026-08-05-a72-membership-admission-contract/README.md)
+now freezes the exact operation-bearing token, boot-local one-shot operation
+attempts, the only legal Linux membership sequence
+(`0x0 -> 0x1 -> 0x3 -> 0x1 -> 0x0`), durable provider-reference transitions,
+symmetric public/internal up/down admission with frozen, thaw, and suspend
+bypasses denied, callback non-reentrancy, and the target-only one-query rule.
+Firmware-private `big_on` remains separate from Linux membership. M02 is exact
+rather than a generic observer gate: P15 first records CPU_ON return and
+same-MPIDR secondary completion; only after later generic callbacks, both CPUs
+online, and inherited cluster/DCM publication may its delayed work be
+scheduled. The exact order is initial schedule, approximately 1-second sample,
+first reschedule, approximately 6-second sample, second reschedule, then the
+approximately 10-second sample. All three require exact CPU8/CPU9 identities,
+equal cumulative hits, and final `3/3`. Any post-full-bringup M02 proof or
+scheduling failure enters P19 `FAULT`, and P10 cannot commit before sample 3.
+
+The exact Linux 7.1.3 audit puts CPU-up closure ahead of off completion. A39
+shows that the `CPU_KILL_ME` early-secondary path can bypass
+`cpu_can_disable`, clear the present mask through `cpu_die_early()`, and reach
+target `cpu_die` plus controller `cpu_kill`. That branch,
+`CPU_PANIC_KERNEL`, pre-C `CPU_STUCK_IN_KERNEL`, and unknown/default timeout
+each require an exact impossibility proof or branch-specific interception that
+cannot issue CPU_OFF or affinity. A37 separately shows that a post-CPU_ON
+callback failure can enter generic teardown under the live up token. If paired
+MT6797 target/controller guards are used, P32 deliberately records
+`VERIFYING -> FAULT`: CPU_OFF and affinity are suppressed, membership/provider
+stay conservative, `cpu_online_mask` may diverge under A30, and recovery is
+platform/external-reset-only. This is not retained-up success.
+
+The off side remains blocked independently. `DEAD` precedes PSCI `CPU_OFF` and
+is not physical-off proof; generic pre-CPU_OFF synchronization and later
+`cpu_kill` failures are warn-only, and generic PSCI can repeat active
+`AFFINITY_INFO` without bounding its first secure call. A40 also requires the
+private `big_on` branch proof to stay fresh from A31/P26 through P20 by a
+complete writer/caller exclusion or an immediately serialized, non-SMC or
+independently concurrency-safe revalidation. The A26 boot veto and A14 disable
+veto are all-applicable: neither may be relaxed until every requirement each
+names for that operation is implemented and proven.
+
+The next ordered work remains source-only. First complete the selected
+early-secondary status and post-CPU_ON callback/automatic-rollback inventories
+and specify and mutation-test every P30/P32 closure. Then close the M02
+delayed-work scheduler/observer owner and failure propagation. Next close A40
+private-ledger writer/caller freshness. Only after those CPU-up and
+branch-selection gates pass, specify the full A14 off-completion owner:
+complete CPU-ops and CPUHP/PM inventories, exact target handoff, secure-call
+concurrency, one-query result propagation, and bounded independent post-OFF
+observers. Until all applicable A26/A14 gates close, do not generate a
+CPU_ON/CPU_OFF patch or candidate, build a kernel, or use the device. Passive
+provider work may proceed in parallel only within its existing no-write,
+no-consumer boundary.
 
 CPU_OFF, suspend/resume, later power boundaries, a mainline provider write,
 and default-profile A72 consumers remain blocked until their separate ownership
 and rollback gates close.
 
 Exit: observations and inference are separated, every required writer has one
-owner, and a failed step has a bounded rollback path.
+owner, every pre-irreversible failure has a bounded no-effect or rollback
+proof, and every post-irreversible uncertainty has an attributable terminal
+recovery path.
 
 ### 5. Register a resource-only provider
 

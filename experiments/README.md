@@ -23,6 +23,24 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-05 A72 membership and admission contract](2026-08-05-a72-membership-admission-contract/README.md)
+  — freezes the exact token and boot-local one-shot attempts, the only legal
+  Linux membership/provider transitions, symmetric public/internal admission
+  with direct frozen/suspend bypasses denied, the target-only query budget,
+  and fresh private-branch proof through that query. After P15 secondary and
+  later generic callback completion, M02 requires an initial schedule and one
+  reschedule after each of the first two exact same-generation CPU8/CPU9
+  samples at about 1, 6, and 10 seconds. Any later M02 proof failure enters
+  retained-state P19 `FAULT`; no membership commit precedes sample 3. The
+  source audit identifies A39 early-secondary death/status paths and A37
+  generic automatic rollback after CPU_ON; A39 interception ends in P30 and
+  guarded A37 rollback in P32 terminal `FAULT`, not retained success. `DEAD`
+  and generic warn-only sync/kill paths do not prove physical off. The A26
+  boot and A14 disable vetoes are all-applicable while startup/PM,
+  scheduler/observer,
+  private-ledger, provider, secure-concurrency, completion-propagation, and
+  reset owners are unresolved; no implementation, build, CPU_OFF, or device
+  action is authorized.
 - [2026-08-05 A72 secure CPU-off attribution](2026-08-05-a72-secure-cpu-off-attribution/README.md)
   — audits the exact verified private payload without publishing binary bytes.
   Target `CPU_OFF` follows the generic TF-A v1.1 path into WFI, and the

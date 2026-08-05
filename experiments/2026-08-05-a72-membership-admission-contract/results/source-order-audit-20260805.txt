@@ -1,0 +1,403 @@
+A72 membership/admission source-order audit
+============================================
+
+Date: 2026-08-05 UTC (2026-08-04 America/New_York)
+Result: admission order and completion hazards attributed; inventories and implementation remain blocked
+Device access: none
+Kernel build: none
+
+Purpose
+-------
+
+This read-only audit separates the canonical Linux 7.1.3 implementation
+target from the public-equivalent Gemian 3.18 compatibility evidence. It pins
+the admission, suspend, CPUHP, PSCI-completion, HPS, CPUHVFS, and lock-order
+facts used by this experiment. Evidence from one source lane is not promoted
+to the other.
+
+Canonical Linux 7.1.3 source lane
+---------------------------------
+
+The source archive is pinned by kernel/manifest.json:
+
+  linux-7.1.3.tar.xz SHA-256:
+    be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+
+Audited prepared-source files:
+
+  kernel/cpu.c:
+    685422537d348390bffde2d1f1fd443b82b113a54171f877749e64881663d58d
+  drivers/base/cpu.c:
+    1f4073e4b9370668d48bd7d85291190a66e17a5d47f869b5be0a6a869336dea4
+  kernel/power/suspend.c:
+    71c4a16ad3db8cac349b7d8b52cdfddae26a8918216f18ec54a68c1761077576
+  kernel/power/main.c:
+    7b60dabe707cf070b416f6375946c213b96bf3f67c3161b69c9a4fcfc9f53955
+  include/linux/cpu.h:
+    d435dab0996f51d2fde317d904e376e2da0877b47e37d9245eda045cb6a6b2dc
+  include/linux/cpuhotplug.h:
+    bfcb84fea79dd339b708c7ff92ffb7594c1ca65a8abfab3152c86d79101ca056
+  arch/arm64/Kconfig:
+    292ff909b01950e1e83108d60ffd088cdf98e7b0b226c7a822fb87feb837674b
+  arch/arm64/kernel/smp.c:
+    3f34af99daddb6d30793d458aa504c66819506d1df936727af6fc5b8060ddc25
+  arch/arm64/kernel/setup.c:
+    d0572642224a071b14de5fdd61243d2086016faf3c29765817fd459b503110d6
+  arch/arm64/kernel/cpufeature.c:
+    1eb87f2754f7dd01393ef74429959dbc9fffa30b34dea6513045124c2ec8e031
+  arch/arm64/kernel/psci.c:
+    634062ea1c0034439a07d48abafd03081ee81466d88658f80354b24f2acf9e4d
+
+Canonical selected A72 patches:
+
+  patches/v7.1.3/0091-soc-mediatek-add-MT6797-A72-power-observer.patch:
+    ed46e44a7ba42a7084ab5fba59168f3d51fcfed40f50dee363e1d8f43e619e98
+  patches/v7.1.3/0092-arm64-mediatek-gate-MT6797-A72-PSCI-boot.patch:
+    cbd54d048e2233ffcb268174037248ade9ab8716f9816481d926b20b4bd3bba5
+
+Patch 0092 supplies cpu_init, cpu_prepare, cpu_boot, and
+cpu_can_disable=false. It has no cpu_disable, cpu_die, or cpu_kill owner.
+Historical unselected 0093 and 0111 cannot be used as an implementation
+foundation.
+
+Canonical selected-profile configuration inputs:
+
+  configs/gemini.fragment:
+    aa2a138abe1449bc5204099af349d271c5eb5337d2d932a8d02ea02f0a0ee8b8
+  configs/gemini-handoff.fragment:
+    cb786eb244637af11858cb0ca31c138be32bf0104582ec589fc0eb2d50933f5e
+
+Both fragments explicitly set CONFIG_ACPI=n.
+
+Pinned startup-design inputs carried forward by this contract:
+
+  experiments/2026-08-02-a72-one-way-cpu8-boundary/DESIGN.md:
+    257217f6ea0d513162e2888259ee8a4a6b76a614ee8d3b2bb43f5b841a67321a
+  experiments/2026-08-03-a72-cpu9-cluster-reuse/DESIGN.md:
+    9c75776937c4045dd4774546ec1985068eaf6c672f88f740757a146aeec45717
+
+Their boot-local one-shot policies, exact prestate, ordered CPU8 preparation,
+the no-provider-mutation pre-isolation rollback subset used by P29,
+provider/resource ownership, CPU_ON call-shape, secondary-completion, and
+post-completion gates are inputs here. In particular, the CPU9 predecessor
+schedules its static delayed observer only after accepted generic CPU9
+completion, both A72 CPUs are online, and the inherited cluster/DCM state is
+published. Its initial schedule and both reschedule checks must pass, only the
+third sample may publish success, and any scheduling failure is a terminal
+post-CPU_ON retained-state fault. The broader predecessor rollback after a
+confirmed provider vote is replaced here by stricter fault-retain handling.
+The older CPU8 design's post-CPU_ON AFFINITY_INFO reconciliation is superseded
+by the active-query audit and is not carried forward.
+
+Canonical admission, resume, and suspend order
+-----------------------------------------------
+
+The ordinary CPU-up device/sysfs path is:
+
+  cpu_device_up
+    -> static cpu_up
+    -> cpu_possible / try_online_node
+    -> cpu_maps_update_begin                 [cpu_add_remove_lock]
+    -> _cpu_up
+    -> cpus_write_lock                       [cpu_hotplug_lock]
+    -> cpuhp_set_state / CPUHP callbacks
+
+The public CPU-up preflight must be the first A72-specific action in cpu_up,
+before try_online_node or cpu_maps_update_begin. The authoritative internal
+check must likewise precede cpus_write_lock, cpuhp_set_state, and every CPUHP
+startup callback. Both checks accept only the exact CPU8-up or CPU9-up
+owner/operation/target/generation token and the final CPUHP_ONLINE requested
+state. The canonical PSCI boot callback calls exactly
+psci_ops.cpu_on(cpu_logical_map(cpu), __pa_symbol(secondary_entry)); the kernel
+callback has two arguments. CPU8 maps to MPIDR 0x200 and CPU9 to MPIDR 0x201
+under the pinned startup inputs. A later implementation must freeze and
+revalidate that exact logical mapping and entry address before consuming its
+one CPU_ON attempt.
+
+The ordinary device/sysfs path is:
+
+  cpu_device_down
+    -> static cpu_down
+    -> cpu_maps_update_begin                 [cpu_add_remove_lock]
+    -> cpu_down_maps_locked
+    -> _cpu_down
+    -> cpus_write_lock                       [cpu_hotplug_lock]
+    -> cpuhp_set_state / CPUHP callbacks
+
+The public preflight must therefore occur before cpu_maps_update_begin. The
+authoritative internal check must be the first A72-specific action in
+_cpu_down, before cpus_write_lock, cpuhp_set_state, or any CPUHP callback.
+Both down checks validate the same exact owner, target, operation, and
+generation and the final CPUHP_OFFLINE requested state. An intermediate
+CPUHP target is not a membership transition and must fail before callbacks.
+
+Public admission alone is incomplete. freeze_secondary_cpus calls
+_cpu_down(cpu, 1, CPUHP_OFFLINE) directly. smp_shutdown_nonboot_cpus and
+cpuhp_smt_disable also reach a maps-locked/internal path without the ordinary
+public cpu_down preflight. Every CPU8/CPU9 internal entry must therefore
+revalidate the exact token, and tasks_frozen=1 must always fail before CPUHP
+work. The direct denial may inspect a short published state snapshot; it must
+not acquire a transition mutex while cpu_add_remove_lock is already held.
+
+The up direction has equivalent bypasses. thaw_secondary_cpus calls
+_cpu_up(cpu, 1, CPUHP_ONLINE) directly, and cpuhp_smt_enable calls
+_cpu_up(cpu, 0, CPUHP_ONLINE) under the maps lock. Every direct CPU8/CPU9 up
+must fail without the exact up-operation token; tasks_frozen=1 is always
+denied. These internal checks also use only the leaf state snapshot and never
+reacquire the outer transition mutex.
+
+CPU device wrappers and physical-topology boundary
+--------------------------------------------------
+
+The exported CPU device wrappers do not change physical topology. Their exact
+selected-source order is:
+
+  add_cpu
+    -> lock_device_hotplug
+    -> device_online / cpu_subsys_online
+    -> cpu_device_up
+    -> cpu_up(cpu, CPUHP_ONLINE)
+
+  remove_cpu
+    -> lock_device_hotplug
+    -> device_offline / cpu_subsys_offline
+    -> cpu_device_down
+    -> cpu_down(cpu, CPUHP_OFFLINE)
+
+They must therefore reach the same public A72 up/down gates and exact token as
+the ordinary sysfs online/offline request.
+
+drivers/base/cpu.c exposes writable physical CPU probe/release attributes only
+under CONFIG_ARCH_CPU_PROBE_RELEASE. Arm64 does not select that symbol in the
+pinned Kconfig. Arm64 does select GENERIC_CPU_AUTOPROBE, but that selection
+only exposes the read-only CPU modalias attribute; it is not physical
+autoprobing or a topology mutation path.
+
+ACPI is disabled by both selected project fragments. Even in the conditional
+arm64 ACPI-hotplug source, arch_register_cpu and arch_unregister_cpu reject an
+external operation that would change cpu_present. No selected device/topology
+control path may alter CPU8/CPU9 present or possible state. A future
+configuration that exposes such a path requires a distinct reviewed topology
+transaction and must otherwise fail closed. This statement does not cover the
+selected internal cpu_die_early failure path below, which clears cpu_present
+during failed secondary bringup.
+
+Suspend emits PM_SUSPEND_PREPARE before the later suspend-enter path reaches
+freeze_secondary_cpus. A PM veto is therefore separately required whenever
+A72 membership, provider ownership, a transaction, or a fault is live. The
+complete selected PM-notifier inventory and exact priority remain open.
+
+CPU-up automatic rollback hazard
+--------------------------------
+
+There is an earlier arm64 failure path before the generic CPUHP callback
+rollback. secondary_start_kernel() calls check_local_cpu_capabilities(). After
+system capabilities are finalized, conflicts in local CPU features, ELF
+HWCAPs, SVE/SME vector lengths, KVM VMID/IPA limits, or MPAM capabilities can
+call cpu_die_early(). That function clears cpu_present for the target, reports
+RCU death, publishes CPU_KILL_ME, and, with HOTPLUG_CPU, invokes the target
+cpu_operations::cpu_die hook. The controlling __cpu_up() CPU_KILL_ME case then
+calls op_cpu_kill and therefore the method's cpu_kill hook.
+
+This selected path can reach CPU_OFF and active AFFINITY_INFO under an up
+operation before public/internal down admission and before cpuhp_up_callbacks
+could use the rollback rule described next. cpu_die_early calls ops->cpu_die
+directly, bypassing cpu_can_disable and the optional cpu_disable hook; the
+controller then calls op_cpu_kill. It also invalidates the entry present-state
+tuple. Other controller outcomes include pre-C CPU_STUCK_IN_KERNEL for 52-bit
+VA or unsupported page granule, unknown/timeout status, and CPU_PANIC_KERNEL;
+some capability conflicts choose the panic path instead of cpu_die_early.
+Those terminal outcomes do not themselves issue CPU_OFF/query, but they are
+also post-CPU_ON paths outside generic callback rollback. Enabling A72 CPU_ON
+therefore requires a complete selected early-caller and CPU boot-status
+inventory and either proof that every branch is impossible/non-failing for the
+exact profile or an MT6797 interception that publishes terminal uncertainty,
+parks without CPU_OFF, suppresses cpu_kill/affinity, and leaves recovery to the
+reviewed external reset/bootstrap path.
+
+With CONFIG_HOTPLUG_CPU enabled, can_rollback_cpu() returns true for every
+state. If cpuhp_up_callbacks() fails, it resets the CPUHP target to the prior
+state and invokes the teardown callback range. Once bringup has crossed the AP
+online boundary, that reverse range can cross CPUHP_TEARDOWN_CPU and its
+takedown_cpu callback, then reach the target cpu_die/CPU_OFF path and the
+controller cpu_kill path.
+
+This reverse transition does not call public cpu_down or early _cpu_down, so
+it bypasses the off-operation admission gates while the live token still says
+CPU8-up or CPU9-up. P16/P19-style retained-power handling cannot describe that
+generic inverse. Before the current CPU boot veto can be relaxed, the complete
+selected startup and rollback callback ranges must establish one reviewed
+design: every post-CPU_ON failure is impossible/non-failing and fallible
+validation occurs after the rollback window; the core/A72 path gains an exact
+no-auto-teardown result-propagation interface; or an MT6797 guard converts the
+up-operation teardown to terminal divergence without CPU_OFF or affinity.
+Until then an automatic rollback is terminal unknown, not a safe inverse.
+
+Arm64 CPU-operations disable contract
+-------------------------------------
+
+Arm64 arch_cpu_is_hotpluggable delegates to cpu_operations::cpu_can_disable;
+the selected MT6797 method returns false. Independently, target-side
+op_cpu_disable first requires a cpu_die hook or returns -EOPNOTSUPP, then calls
+the optional cpu_disable hook. Only after that succeeds does __cpu_disable
+remove topology/NUMA state, clear cpu_online, tear down IPIs, and migrate IRQs.
+The later target/controller path invokes cpu_die and cpu_kill as described
+below.
+
+Generic cpu_psci_ops implements all four responsibilities: cpu_can_disable
+rejects a resident trusted OS, cpu_disable verifies CPU_OFF support and repeats
+that trusted-OS rejection, cpu_die invokes CPU_OFF, and cpu_kill polls active
+AFFINITY_INFO. A future MT6797 method must specify and audit cpu_can_disable,
+the optional cpu_disable/resident-TOS policy, cpu_die, and cpu_kill together.
+Adding only die/kill callbacks is not a complete disable contract, and the
+existing false cpu_can_disable plus missing cpu_die remain rejection layers.
+
+CPUHP and PSCI completion boundary
+----------------------------------
+
+Arm64 selects HOTPLUG_CORE_SYNC_DEAD whenever HOTPLUG_CPU is enabled. The
+relevant order is:
+
+  target arm64 cpu_die
+    -> cpuhp_ap_report_dead
+    -> cpu_operations::cpu_die               [PSCI CPU_OFF]
+
+  controlling takedown_cpu
+    -> cpuhp_bp_sync_dead
+    -> arch_cpuhp_cleanup_dead_cpu
+    -> op_cpu_kill
+    -> cpu_operations::cpu_kill              [PSCI AFFINITY_INFO]
+
+DEAD is published inside arm64 cpu_die immediately before the target invokes
+cpu_operations::cpu_die. It is not proof of CPU_OFF entry, WFI, or physical
+power-off.
+
+The controlling CPU may leave cpuhp_bp_sync_dead as soon as DEAD is visible,
+before the target has entered cpu_operations::cpu_die. A future MT6797 owner
+therefore needs an exact target-to-controller OFF_COMMITTED publication
+immediately before the target SMC and a bounded non-SMC wait on the controller.
+OFF_COMMITTED is still intent, not proof of SMC entry. Before the controller
+may issue active AFFINITY_INFO, it also needs either exact firmware concurrent-
+SMC lock/deadlock proof or an owner-safe CPU_OFF-entry/WFI discriminator. The
+secure WFI poll proves neither concurrent-SMC safety nor controller ordering.
+
+Disabling HOTPLUG_CORE_SYNC_DEAD is not a fix. It skips
+arch_cpuhp_cleanup_dead_cpu and cpu_kill, so this payload never receives the
+active AFFINITY_INFO call that performs physical teardown.
+
+The enabled generic path is also incompatible with the contract in two
+independent ways:
+
+1. cpuhp_bp_sync_dead is void. Its approximately ten-second failure path only
+   logs that the CPU failed to report DEAD, skips cleanup/cpu_kill, and lets
+   generic teardown continue.
+2. arch_cpuhp_cleanup_dead_cpu is void. It only warns when cpu_kill returns an
+   error, so the error is not propagated to _cpu_down and generic teardown can
+   still continue.
+
+Generic cpu_psci_cpu_kill is not usable for MT6797 A72 off. It uses a nominal
+100-ms outer interval and repeatedly invokes AFFINITY_INFO, sleeping 100 to
+1000 microseconds between returned non-OFF results. The first synchronous SMC
+can remain inside an unbounded secure wait, so the interval is not a bound.
+Repeating the active call also violates the exact one-query contract.
+
+A future MT6797 completion owner must consume the exact target query budget
+before the call, issue only one level-0 AFFINITY_INFO for the owner-validated
+cpu_logical_map target MPIDR, record an OFF result for the same transaction,
+and make either pre-CPU_OFF synchronization uncertainty or kill uncertainty
+terminal to the outer coordinator. DEAD, OFF_COMMITTED, a warning, generic
+_cpu_down return, or a timer is not OFF proof. The exact propagation mechanism
+remains an implementation blocker.
+
+CPUHP_BP_PREPARE_DYN is also not an off-admission point. On the down path its
+teardown runs after takedown_cpu/platform death. Every selected CPUHP callback
+on both sides of CPUHP_TEARDOWN_CPU, and every startup callback through
+CPUHP_BRINGUP_CPU and the AP-online range, still requires an effect and
+reentrancy inventory before implementation.
+
+Public-equivalent Gemian compatibility lane
+-------------------------------------------
+
+The source evidence is public commit:
+
+  59e00a9144d782e148332009a835b99c43382467
+
+It is observer-relevant and public-equivalent, not the exact active Gemian
+source revision. Audited files:
+
+  kernel/cpu.c:
+    74acd12f0402b52254bd7890446af8dc1ac85f30075d9d82e6c267e3f0ac19aa
+  drivers/misc/mediatek/base/power/mt6797/mt_hotplug_strategy_algo.c:
+    1100eac008d27a9bab9bba3a445aa8b7d51d602e15146b0990bc759c7d7c7f09
+  drivers/misc/mediatek/base/power/mt6797/mt_hotplug_strategy_main.c:
+    12d85a9f8bd273288c60b95cdf7d039986645e3288a2162ffbc5437e23dd33a7
+  drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c:
+    3f69c3b3a331a70336f7a4010cd4482f6743b0b69cef6df4c641d5be259eccd3
+  drivers/misc/mediatek/base/power/mt6797/mt_cpufreq_hybrid.c:
+    2aeab8496b9ba7a107e380ff211fe7f08d76e69ad63ece7f0e099762dcf50712
+
+The natural HPS path is hps_algo_main -> hps_algo_do_cluster_action ->
+cpu_up/cpu_down while hps_ctxt.lock is held. HPS changes its algorithm-local
+online count after a hotplug call without gating that update on success. Future
+compatibility accounting must change only after the same operation and
+generation commits the matching Linux membership edge, in both directions.
+
+hps_ctxt.para_lock is used only for short parameter checks and is released
+before cpu_down. It is a sibling critical section, not part of one linear
+hotplug nesting chain. The source-supported natural down order is:
+
+  hps_ctxt.lock
+    -> optional a72_transition_lock
+    -> cpu_add_remove_lock
+    -> cpu_hotplug.lock
+    -> cpufreq_mutex
+    -> dvfs_lock
+
+The optional short para_lock branch sits below hps_ctxt.lock/the transition
+owner and returns before generic hotplug. Holding cpufreq_mutex across
+cpu_down would reverse the observed notifier acquisition and deadlock.
+
+The CPU hotplug notifier has default priority zero. Its last-cluster
+CPU_DOWN_PREPARE branch takes cpufreq_mutex, then CPUHVFS takes dvfs_lock and
+writes/polls shared cluster controls. Its CPU_DOWN_FAILED compensation can
+also request cluster-on effects. An exact token/classification check must
+therefore precede cpufreq_mutex and every owned A72 hotplug action must make
+the compatibility CPUHVFS shared write set empty. This is a compatibility
+constraint, not authorization to import HPS or CPUHVFS into Linux 7.1.3.
+
+The cpufreq PM notifier is explicitly priority zero, takes cpufreq_mutex, and
+mutates suspend DVFS state. HPS suspend also invokes CPU8/CPU9 down paths. A
+higher-priority veto can dominate the known callback, but the complete PM and
+CPU notifier inventories and the exact active Gemian revision remain open.
+
+Decision and unresolved work
+----------------------------
+
+The source audit closes the placement of the canonical up/down admission
+checks, the device-wrapper and selected topology boundary, the direct
+suspend/resume denials, the CPU-operations hook order, the pre-CPU_OFF meaning
+of SYNC_DEAD, the generic PSCI retry and warn-only completion hazards, the
+early-secondary death and automatic CPU-up rollback hazards, and the
+public-equivalent HPS, CPUHVFS, PM, and lock-order facts.
+
+It does not close:
+
+- the exact active Gemian source revision and configuration;
+- a complete selected CPUHP, CPU-notifier, and PM-notifier inventory;
+- a complete selected arm64 early-caller/CPU-boot-status inventory and safe
+  interception or impossibility proof;
+- a prevention or terminal interception contract for post-CPU_ON automatic
+  rollback through the off path;
+- an MT6797-specific one-query completion/result-propagation owner;
+- bounded secure completion or a reviewed terminal-reset mechanism;
+- an owner-safe private-ledger observation plus a complete writer/caller
+  inventory proving that the branch-selection value cannot change between
+  entry attestation and the active query;
+- provider-reference, DCM/SRAM, clock, SPM, and rail observations; or
+- implementation lockdep, compiled-profile, or runtime proof.
+
+implementation_authorized=no
+cpu_off_authorized=no
+build_authorized=no
+device_action_authorized=no
+device_action=none
