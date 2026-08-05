@@ -1,0 +1,20 @@
+validation=a41-six-row-fixture-kernel-static-review
+source_parent=7fcc8ca433d2306d2e3d005289d6cf01dfbf0f4c
+source_commit=57d36fd59821b7de2fd81c938414e7f3c5a54229
+source_tree=253625b12d09411997e1877a58ffd843f417ad7d
+source_diff_sha256=069ae9b8add4d197bf4c1de7bb0f874db91cd5129df9269aa30d6bf17a052199
+format_patch_sha256=71908b62b275710223523102448b7fbcecb8cd557a2537259274f7986f7a3445
+git_diff_check=PASS
+checkincludes=PASS
+checkpatch_errors=0
+checkpatch_warnings=0
+strict_checkpatch_errors=0
+strict_checkpatch_warnings=0
+strict_checkpatch_checks=100
+strict_checkpatch_types=OPEN_ENDED_LINE
+python_syntax=PASS
+native_build_invoked=no
+buildbox_build_invoked=no
+network_accessed=no
+device_accessed=no
+RESULT PASS

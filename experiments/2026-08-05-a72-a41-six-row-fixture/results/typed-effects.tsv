@@ -1,0 +1,70 @@
+scope	field	value	basis
+aggregate	ctr_mismatch.required	1	both exact targets classify ARM64_MISMATCHED_CACHE_TYPE PRESENT
+aggregate	ctr_mismatch.target_mask	0x3	target0 and target1 require the effect
+aggregate	ctr_mismatch.trap_ctr_el0	1	mismatched cache-type owner action
+aggregate	ctr_mismatch.alternative	1	mismatched cache-type alternative required
+aggregate	spectre_v2.required	1	both exact targets classify ARM64_SPECTRE_V2 PRESENT
+aggregate	spectre_v2.target_mask	0x3	target0 and target1 require the effect
+aggregate	spectre_v2.mitigation_state	ARM64_LATE_CPU_MITIGATION_MITIGATED	named WA1 SUCCESS with mitigations enabled
+aggregate	spectre_v2.conduit	ARM64_LATE_CPU_SMCCC_SMC	exact identical target policy
+aggregate	spectre_v2.callback	ARM64_LATE_CPU_V2_CALLBACK_SMC	exact SMC owner callback
+aggregate	spectre_v2.hyp_vector	ARM64_LATE_CPU_HYP_VECTOR_SPECTRE_DIRECT	hyp available and V2 mitigated
+aggregate	spectre_v2.alternative	1	shared V2 alternative required
+aggregate	spectre_v4.required	1	both exact targets classify ARM64_SPECTRE_V4 PRESENT
+aggregate	spectre_v4.target_mask	0x3	target0 and target1 require the effect
+aggregate	spectre_v4.mitigation_state	ARM64_LATE_CPU_MITIGATION_MITIGATED	named WA2 SUCCESS with mitigations enabled
+aggregate	spectre_v4.method	ARM64_LATE_CPU_V4_FIRMWARE	SSBS=0 and WA2 SUCCESS
+aggregate	spectre_v4.conduit	ARM64_LATE_CPU_SMCCC_SMC	exact identical target policy
+aggregate	spectre_v4.policy	ARM64_LATE_CPU_V4_POLICY_DYNAMIC	exact identical target policy
+aggregate	spectre_v4.callback_required_mask	0x3	dynamic firmware callback required for both targets
+aggregate	spectre_v4.firmware_alternative	1	system SSBS=0 and dynamic mitigated firmware method
+aggregate	bhb.required	1	both exact targets classify ARM64_SPECTRE_BHB PRESENT
+aggregate	bhb.target_mask	0x3	target0 and target1 require the effect
+aggregate	bhb.method	ARM64_LATE_CPU_BHB_LOOP	exact Cortex-A72 priority with ClearBHB=0 and ECBHB=0
+aggregate	bhb.loop_count	8	Cortex-A72 loop method
+aggregate	bhb.matcher_loop_count	8	maximum exact target matcher count
+aggregate	bhb.conduit	ARM64_LATE_CPU_SMCCC_NONE	loop method has no firmware conduit
+aggregate	bhb.system_method	0x1	loop method system bit BIT(0)
+aggregate	bhb.mitigation_state	ARM64_LATE_CPU_BHB_STATE_MITIGATED	V2 non-vulnerable and BHB mitigation configured
+aggregate	bhb.vector_template	ARM64_LATE_CPU_BHB_VECTOR_LOOP	loop method vector owner
+aggregate	bhb.hyp_vector	ARM64_LATE_CPU_HYP_VECTOR_SPECTRE_DIRECT	retained from the mitigated V2 target effect
+aggregate	bhb.alternative	1	shared BHB alternative required
+aggregate	bhb.v2_non_vulnerable	1	folded system V2 state is MITIGATED
+aggregate	compat_aes_clear	1	ARM64_WORKAROUND_1742098 is required
+aggregate	speculative_at_finalization	1	ARM64_WORKAROUND_SPECULATIVE_AT is required
+target0	valid	7	V2 V4 and BHB target effect fields valid
+target0	spectre_v2_state	ARM64_LATE_CPU_MITIGATION_MITIGATED	CPU8 fixture WA1 SUCCESS
+target0	spectre_v2_conduit	ARM64_LATE_CPU_SMCCC_SMC	CPU8 fixture policy
+target0	spectre_v2_callback	ARM64_LATE_CPU_V2_CALLBACK_SMC	CPU8 exact callback
+target0	spectre_v2_hyp_vector	ARM64_LATE_CPU_HYP_VECTOR_SPECTRE_DIRECT	CPU8 hyp available
+target0	spectre_v4_state	ARM64_LATE_CPU_MITIGATION_MITIGATED	CPU8 fixture WA2 SUCCESS
+target0	spectre_v4_method	ARM64_LATE_CPU_V4_FIRMWARE	CPU8 SSBS=0 and WA2 SUCCESS
+target0	spectre_v4_conduit	ARM64_LATE_CPU_SMCCC_SMC	CPU8 fixture policy
+target0	spectre_v4_policy	ARM64_LATE_CPU_V4_POLICY_DYNAMIC	CPU8 fixture policy
+target0	spectre_v4_callback_required	1	CPU8 dynamic firmware mitigation
+target0	bhb_method	ARM64_LATE_CPU_BHB_LOOP	CPU8 exact Cortex-A72 priority
+target0	bhb_loop_count	8	CPU8 loop method
+target0	bhb_matcher_loop_count	8	CPU8 ClearBHB=0
+target0	bhb_conduit	ARM64_LATE_CPU_SMCCC_NONE	CPU8 loop method
+target0	bhb_mitigation_state	ARM64_LATE_CPU_BHB_STATE_MITIGATED	CPU8 V2 non-vulnerable and BHB configured
+target0	bhb_vector_template	ARM64_LATE_CPU_BHB_VECTOR_LOOP	CPU8 loop vector
+target0	bhb_hyp_vector	ARM64_LATE_CPU_HYP_VECTOR_SPECTRE_DIRECT	CPU8 retained V2 hyp vector
+target0	bhb_v2_non_vulnerable	1	folded system V2 state is MITIGATED
+target1	valid	7	V2 V4 and BHB target effect fields valid
+target1	spectre_v2_state	ARM64_LATE_CPU_MITIGATION_MITIGATED	CPU9 fixture WA1 SUCCESS
+target1	spectre_v2_conduit	ARM64_LATE_CPU_SMCCC_SMC	CPU9 fixture policy
+target1	spectre_v2_callback	ARM64_LATE_CPU_V2_CALLBACK_SMC	CPU9 exact callback
+target1	spectre_v2_hyp_vector	ARM64_LATE_CPU_HYP_VECTOR_SPECTRE_DIRECT	CPU9 hyp available
+target1	spectre_v4_state	ARM64_LATE_CPU_MITIGATION_MITIGATED	CPU9 fixture WA2 SUCCESS
+target1	spectre_v4_method	ARM64_LATE_CPU_V4_FIRMWARE	CPU9 SSBS=0 and WA2 SUCCESS
+target1	spectre_v4_conduit	ARM64_LATE_CPU_SMCCC_SMC	CPU9 fixture policy
+target1	spectre_v4_policy	ARM64_LATE_CPU_V4_POLICY_DYNAMIC	CPU9 fixture policy
+target1	spectre_v4_callback_required	1	CPU9 dynamic firmware mitigation
+target1	bhb_method	ARM64_LATE_CPU_BHB_LOOP	CPU9 exact Cortex-A72 priority
+target1	bhb_loop_count	8	CPU9 loop method
+target1	bhb_matcher_loop_count	8	CPU9 ClearBHB=0
+target1	bhb_conduit	ARM64_LATE_CPU_SMCCC_NONE	CPU9 loop method
+target1	bhb_mitigation_state	ARM64_LATE_CPU_BHB_STATE_MITIGATED	CPU9 V2 non-vulnerable and BHB configured
+target1	bhb_vector_template	ARM64_LATE_CPU_BHB_VECTOR_LOOP	CPU9 loop vector
+target1	bhb_hyp_vector	ARM64_LATE_CPU_HYP_VECTOR_SPECTRE_DIRECT	CPU9 retained V2 hyp vector
+target1	bhb_v2_non_vulnerable	1	folded system V2 state is MITIGATED

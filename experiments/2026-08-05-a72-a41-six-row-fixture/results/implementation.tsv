@@ -1,0 +1,27 @@
+key	value	evidence
+implementation_state	PARTIAL_SIX_ROW_FIXTURE_EVALUATOR	patch 0154 exact source-only ABI-5 fixture contract
+a41_complete	no	runtime producer commit path consumers and CPU admission remain open
+plan_abi	5	ARM64_LATE_CPU_PLAN_ABI
+evidence_origin	FIXTURE	runtime binding explicitly cannot publish
+fixture_capability_rows	40	each target and aggregate fully classified
+fixture_present_count	8	slots 9,66,69,79,81,82,94,121
+fixture_absent_count	32	remaining compiled local rows
+fixture_required_count	6	slots 69,79,81,82,94,121
+local_caps_planned	1	exact classification completed in scratch plan
+effects_planned	1	exact typed effects completed in scratch plan
+effect_plan_complete	yes	all aggregate and per-target fields exact for this fixture only
+runtime_binding_complete	no	FIXTURE origin and zero running identity pairs
+profile_validate_plan	-EAGAIN	exact valid fixture is deliberately never blessed
+profile_prepare	-EAGAIN	no live system capability alternative vector or HWCAP mutation
+plan_identity	unavailable	all plan identity words remain zero
+commit_path	unavailable	COMMIT_PATH blocker retained and implementation fail-stops
+plan_frozen_reachable	no	standing blockers force BLOCKED
+committed_reachable	no	PLAN_FROZEN and architecture commit path unavailable
+ready_reachable	no	no committed verified finalized receipt
+cpu_boot_veto	-EAGAIN	patch 0092 retained
+cpu_disable_veto	false	patch 0092 retained
+maxcpus	8	configs/gemini-smp8.fragment retained
+build_authorized	no	source-only milestone
+device_action_authorized	no	no attributable runtime hypothesis or candidate
+boot_candidate	false	no build package or container
+hardware_support_claim	none	no compile runtime or physical CPU evidence

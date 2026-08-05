@@ -1418,15 +1418,29 @@ the plan identity stays zero. This advances A41 only to
 `PARTIAL_PER_TARGET_PLAN_BOUNDARY`; `maxcpus=8`, patch-0092 boot/disable vetoes,
 and all build/device prohibitions remain unchanged.
 
-The next ordered A41 step is a source-only, pure six-row fixture evaluator.
-It must implement the Linux-owned GICv5/ICH, effective-CTR, Spectre-v2,
-Spectre-v4, and BHB predicates independently for CPU8 and CPU9, re-derive every
-method from immutable inputs, preserve exact target masks and typed effects,
-and remain blocked by non-RUNTIME provenance and the unavailable commit path.
-It must not treat fixture success as runtime provenance; a later milestone must
-add and validate the independently trusted producer before any publication
-path can open. No build or device action is justified until the source/evidence
-evaluator and its mutation suite close their gate.
+The follow-on source-only
+[A41 six-row fixture evaluator](../experiments/2026-08-05-a72-a41-six-row-fixture/README.md)
+bumps the plan boundary to ABI 5 and implements pure Linux-owned GICv5/ICH,
+effective-CTR, Spectre-v2, Spectre-v4, and BHB evaluation independently for
+CPU8 and CPU9. An exact immutable FIXTURE record classifies all 40 rows for
+both targets, including the six previously unresolved rows, and derives the
+complete typed CTR, v2, v4, BHB, compat-AES, and speculative-AT effects. The
+fixture reaches 40 classified / 8 present / 32 absent with exact target masks,
+but it remains non-runtime evidence. The profile validator deliberately returns
+`-EAGAIN`; runtime binding, the architecture-owned commit path, plan identity,
+PLAN_FROZEN, COMMITTED, READY, and CPU admission remain unavailable. This
+advances A41 only to `PARTIAL_SIX_ROW_FIXTURE_EVALUATOR`; it is not arbitrary
+firmware-domain coverage, hardware evidence, a build, or a device result.
+
+The next ordered A41 step is an independently trusted runtime evidence
+producer and verifier. It must own and attest the CPU8/CPU9 register, cache,
+GIC/hyp, firmware, resolved/running configuration, image, and command-line
+records instead of accepting a profile's self-declared origin. Its negative
+tests must distinguish both targets, exercise every ICH acquisition branch,
+and reject incomplete, substituted, paired-oracle, or drifted records. Only
+after that producer closes may A41 define a canonical plan identity and the
+separate architecture-owned commit path. No build or device action is
+justified by the fixture milestone.
 
 P30K/C/P/E/U separate CPU_KILL_ME, post-C bare STUCK, panic, pre-C reasoned
 STUCK, and default timeout. The timeout path now requires exact-generation
@@ -1457,18 +1471,18 @@ names for that operation is implemented and proven.
 
 The next ordered work remains source-only:
 
-1. Complete A41 from the blocked static census. Next implement the safe
-   evidence evaluator for the six unresolved rows, requiring separate valid
-   observed Cortex-A72 identities for CPU8 and CPU9 plus an exact resolved and
-   running configuration. Validate the complete target register, cache,
-   firmware WA1/WA2/WA3, ASID, translation, GIC,
-   strict/system/boot-capability, and native/compat-HWCAP state before
-   computing one canonical field-wise plan identity. Then implement the
-   separate infallible architecture-owned pre-finalization commit for the
-   exact typed CTR, Spectre-v2, Spectre-v4, BHB, erratum 1742098,
-   speculative-AT, and compat-AES effects. Assert the resulting alternatives
-   and vectors and bind the exact READY identity to A36/P17/P18. Mutation tests
-   must keep every incomplete, substituted, or drifted branch blocked.
+1. Complete A41 from the blocked ABI 5 fixture evaluator. Next implement and
+   validate the independently trusted runtime evidence producer for separate
+   CPU8 and CPU9 identities, registers, cache, firmware WA1/WA2/WA3, ASID,
+   translation, GIC/hyp, resolved/running configuration, image, command line,
+   strict/system/boot-capability, and native/compat-HWCAP state. Keep the
+   profile from self-attesting that evidence. Then compute one canonical
+   field-wise plan identity and implement the separate infallible
+   architecture-owned pre-finalization commit for the exact typed CTR,
+   Spectre-v2, Spectre-v4, BHB, erratum 1742098, speculative-AT, and compat-AES
+   effects. Assert the resulting alternatives and vectors and bind the exact
+   READY identity to A36/P17/P18. Mutation tests must keep every incomplete,
+   substituted, paired-oracle, or drifted branch blocked.
 2. Implement and mutation-test P30K/C/P/E/U, including the generation-scoped
    timeout arbitration, global completion/status redesign, target park
    acknowledgment, exact P14/P15 controller point, and global fail-stop

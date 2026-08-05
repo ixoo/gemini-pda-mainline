@@ -1,0 +1,6 @@
+# A41 source-only six-row evaluator fixture. Synthetic records exercise the
+# owner-mirrored classifiers and typed effects; all live admission paths remain
+# blocked and maxcpus=8 is inherited from the shared profile.
+CONFIG_ARM64_MT6797_A72_CAPABILITY_PROFILE=y
+CONFIG_ARM64_MT6797_A72_FIXTURE_EVIDENCE=y
+CONFIG_LOCALVERSION="-gemini-a41-fixture-blocked"

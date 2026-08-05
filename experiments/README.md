@@ -23,6 +23,15 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-05 A41 pure six-row fixture evaluator](2026-08-05-a72-a41-six-row-fixture/README.md)
+  — advances the blocked planner to ABI 5 and evaluates the six formerly
+  unresolved GIC/ICH, cache, Spectre-v2, Spectre-v4, and BHB rows for CPU8 and
+  CPU9 from an exact immutable fixture. Both targets reach 40 classified / 8
+  present / 32 absent and a complete typed-effect draft, but FIXTURE provenance,
+  runtime binding, the unavailable commit path, deliberate `-EAGAIN`, and the
+  existing CPU admission vetoes prevent publication. This is
+  `PARTIAL_SIX_ROW_FIXTURE_EVALUATOR`: the next gate is an independently trusted
+  runtime evidence producer, not a build or device action.
 - [2026-08-05 A41 attributable per-target capability planning](2026-08-05-a72-a41-per-target-plan/README.md)
   — advances the blocked planner to ABI 4, binds target slots uniquely to CPU8
   and CPU9 before classification, and preserves independent classified/present

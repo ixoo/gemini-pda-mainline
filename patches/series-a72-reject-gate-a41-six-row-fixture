@@ -1,6 +1,7 @@
-# Ordered paths relative to this directory, one git-format-patch file per line.
-# Example:
-# v7.1.3/0001-arm64-dts-mediatek-add-gemini-pda.patch
+# A41 six-row fixture series: exact hardware-passed AD prefix through 0087,
+# followed by the fail-closed MT6797 A72 PSCI gate and blocked ABI 5 fixture tail.
+# Paths are relative to this directory. DA9214, reset-controller, observer, and
+# active A72 power-sequence patches are absent.
 v7.1.3/0001-dt-bindings-reset-mediatek-add-MT6797-infracfg-reset.patch
 v7.1.3/0002-clk-mediatek-mt6797-add-infracfg-reset-controller.patch
 v7.1.3/0003-arm64-dts-mediatek-mt6797-expose-infracfg-resets.patch
@@ -89,54 +90,7 @@ v7.1.3/0084-Input-matrix-keypad-add-optional-polling-mode.patch
 v7.1.3/0085-arm64-dts-mediatek-gemini-fix-AW9523-parent-EINT.patch
 v7.1.3/0086-i2c-mediatek-use-MT8173-data-for-MT6797.patch
 v7.1.3/0087-watchdog-mtk-prioritize-MT6797-TOPRGU-restart.patch
-v7.1.3/0088-dt-bindings-regulator-da9211-make-interrupts-optional.patch
-v7.1.3/0089-arm64-dts-mediatek-gemini-describe-DA9214-rail.patch
-v7.1.3/0090-watchdog-mtk-expose-MT6797-TOPRGU-resets.patch
-v7.1.3/0091-soc-mediatek-add-MT6797-A72-power-observer.patch
 v7.1.3/0092-arm64-mediatek-gate-MT6797-A72-PSCI-boot.patch
-v7.1.3/0094-dt-bindings-soc-mediatek-add-MT6797-DVFSP-handoff-observer.patch
-v7.1.3/0095-soc-mediatek-add-MT6797-DVFSP-handoff-observer.patch
-v7.1.3/0097-dt-bindings-soc-mediatek-add-MT6797-DVFSP-handoff-owner.patch
-v7.1.3/0098-soc-mediatek-add-MT6797-DVFSP-one-way-handoff.patch
-v7.1.3/0099-dt-bindings-mediatek-gate-MT6797-I2C-with-DVFSP-handoff.patch
-v7.1.3/0100-soc-mediatek-require-ready-MT6797-DVFSP-handoff-supplier.patch
-v7.1.3/0101-i2c-mediatek-require-MT6797-DVFSP-handoff.patch
-v7.1.3/0102-arm64-dts-mediatek-enable-childless-Gemini-I2C6-after-handoff.patch
-v7.1.3/0103-soc-mediatek-preserve-shared-MT6797-AP-DMA-owner.patch
-v7.1.3/0114-dt-bindings-i2c-mediatek-add-MT6797-iDVFS-controller.patch
-v7.1.3/0115-i2c-mediatek-support-MT6797-iDVFS-transfer-format.patch
-v7.1.3/0116-arm64-dts-mediatek-identify-Gemini-I2C6-iDVFS-block.patch
-v7.1.3/0117-i2c-mediatek-add-fixed-Orion-I2C6-diagnostic.patch
-v7.1.3/0118-i2c-mediatek-fix-Orion-I2C6-node-identity-check.patch
-v7.1.3/0119-i2c-mediatek-add-fixed-Quasar-native-path-canary.patch
-v7.1.3/0120-i2c-mediatek-add-fixed-Fermi-topology-fingerprint.patch
-v7.1.3/0121-i2c-mediatek-require-exact-Curie-board-control.patch
-v7.1.3/0122-i2c-mediatek-add-Gauss-exact-D3-discriminator.patch
-v7.1.3/0123-dt-bindings-regulator-add-legacy-direct-address-DA92.patch
-v7.1.3/0124-regulator-add-read-only-legacy-DA921x-identification.patch
-v7.1.3/0125-arm64-dts-mediatek-describe-Gemini-legacy-DA9214.patch
-v7.1.3/0126-i2c-mediatek-add-read-only-I2C6-lifecycle-oracle.patch
-v7.1.3/0127-i2c-add-Gemini-DA921x-OF-modalias-discriminator.patch
-v7.1.3/0128-i2c-add-Gemini-DA921x-private-OF-modalias-generation.patch
-v7.1.3/0129-i2c-add-Gemini-DA921x-private-uevent-insertion.patch
-v7.1.3/0130-i2c-add-Gemini-DA921x-real-uevent-rollback.patch
-v7.1.3/0131-kobject-suppress-Gemini-DA921x-uevent-before-dispatch.patch
-v7.1.3/0132-kobject-validate-dual-Gemini-DA921x-modalias-event.patch
-v7.1.3/0133-kobject-expose-Gemini-DA921x-validation-state.patch
-v7.1.3/0134-kobject-correct-Gemini-DA921x-validation-paths.patch
-v7.1.3/0135-kobject-expose-Gemini-DA921x-validation-stage.patch
-v7.1.3/0136-kobject-expose-Gemini-DA921x-envelope-state.patch
-v7.1.3/0137-kobject-expose-Gemini-DA921x-entry-classification.patch
-v7.1.3/0138-kobject-correct-Gemini-DA921x-OF-event-layout.patch
-v7.1.3/0139-kobject-validate-Gemini-DA921x-netlink-serialization.patch
-v7.1.3/0140-kobject-observe-Gemini-DA921x-uevent-listeners.patch
-v7.1.3/0141-kobject-exercise-Gemini-DA921x-no-listener-delivery.patch
-v7.1.3/0142-kobject-observe-Gemini-DA921x-bounded-listener.patch
-v7.1.3/0143-kobject-deliver-Gemini-DA921x-single-multicast.patch
-v7.1.3/0144-kobject-exercise-Gemini-DA921x-untagged-dispatch.patch
-v7.1.3/0145-kobject-exercise-Gemini-DA921x-net-broadcast-wrapper.patch
-v7.1.3/0146-kobject-exercise-Gemini-DA921x-normal-fallthrough.patch
-v7.1.3/0147-i2c-observe-Gemini-DA921x-natural-device-add.patch
 v7.1.3/0148-arm64-add-a-fail-closed-late-CPU-profile-lifecycle.patch
 v7.1.3/0149-arm64-mediatek-register-blocked-MT6797-A72-profile.patch
 v7.1.3/0150-arm64-add-read-only-late-CPU-capability-planner.patch

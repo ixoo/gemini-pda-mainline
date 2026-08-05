@@ -1,0 +1,41 @@
+validation=a41-six-row-fixture-offline
+PASS experiment-inventory
+PASS manifest-profile
+PASS configuration-identity
+PASS all-profile-series
+PASS selected-series
+PASS patch-provenance
+PASS fixture-tables
+PASS claim-boundary
+PASS frozen-results
+PASS source-identity
+PASS patch-application
+PASS six-row-source-contract
+PASS typed-effect-source-contract
+PASS fixture-provenance
+PASS commit-path-blocker
+PASS publication-vetoes
+PASS static-tooling
+PASS fixture-identity
+PASS gic-ich-oracle
+PASS ctr-oracle
+PASS spectre-v2-v4-oracle
+PASS spectre-bhb-oracle
+PASS asymmetric-target-oracle
+PASS typed-effects-oracle
+patch_sha256=71908b62b275710223523102448b7fbcecb8cd557a2537259274f7986f7a3445
+series_sha256=8c76d1cef1ddd7f452ef7604d6b2581c56c13c1a982e3492e0d0c31f20d9e3da
+patchset_sha256=1247936c6f7ed6850434cd2a8402a53c9588444a608fa33e965a5f9bf445ed5e
+source_state_sha256=2750c74f4c2c5c5ce0c07b90e57489fe6d412ec57fec7618b70a327623d5c058
+config_sha256=8ab011246184c5fff4885bdc38fef09d24cc31960235fb7640ea081505949815
+fixture_sha256=c41b8b84d68f9c0f05a9a047d319de9cfe8d41e8b792cb509ffa4be08341e887
+fixture_capabilities=40:8-present:32-absent:6-required
+typed_effect_fields=33-aggregate:18-target0:18-target1
+implementation_state=PARTIAL_SIX_ROW_FIXTURE_EVALUATOR
+a41_complete=no
+network_accessed=no
+build_invoked=no
+device_accessed=no
+build_authorized=no
+device_action_authorized=no
+RESULT PASS 24/24
