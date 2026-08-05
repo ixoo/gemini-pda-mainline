@@ -1,0 +1,30 @@
+key	value	evidence
+implementation_state	PARTIAL_STATIC_CAPABILITY_CENSUS	patch 0152 and exact validator
+a41_complete	no	six capability rows plus configuration/source/runtime/consumer proofs remain open
+plan_abi	3	arch/arm64/include/asm/late_cpu_profile.h
+source_parent_identity	bf192fa874aea9838cece3f58eec0bba2a18dc43bfe094ad9f6d635b9809ca32	exact patch-0151 selected source state
+config_input_identity	6fa24adaa512d804172b170b205f574b4d461b4263bc0d374c6499f78b7f3d7c	ordered selected profile inputs; not resolved config
+compiled_local_cap_count	40	mt6797_a72_compiled_caps
+classified_local_cap_count	34	validator exact bitmap
+static_present_count	4	slots 9,66,94,121
+static_absent_count	30	results/static-census.tsv
+evidence_dependent_count	6	slots 33,36,69,79,81,82
+required_local_caps	94,121	errata 1742098 and speculative-AT
+provisional_effects	compat_aes_clear,speculative_at_finalization	dynamic typed effects remain empty
+target_impl_override	must_be_inactive	MIDR-derived results otherwise unresolved
+kpti_state	unforced_profile_static	source safe-list plus command-line and __kpti_forced guards
+observed_target_midr	absent	ID_REGISTERS blocker retained
+resolved_running_config	absent	CONFIGURATION blocker retained
+profile_validate_plan	-EAGAIN	exact partial draft never blessed
+profile_prepare	-EAGAIN	standing blocker mask retained
+local_caps_planned	0	incomplete core planner
+canonical_plan_identity	unavailable	all identity words remain zero
+plan_frozen_reachable	no	partial validation and blockers
+committed_reachable	no	PLAN_FROZEN unreachable and mutation unavailable
+ready_reachable	no	no committed/verified/finalized receipt
+cpu_boot_veto	-EAGAIN	patch 0092 retained
+cpu_disable_veto	false	patch 0092 retained
+maxcpus	8	configs/gemini-smp8.fragment retained
+build_authorized	no	Roadmap A26/A14 prohibition
+device_action_authorized	no	Roadmap A26/A14 prohibition
+boot_candidate	false	no build or package

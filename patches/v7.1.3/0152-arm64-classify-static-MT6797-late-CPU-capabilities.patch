@@ -1,0 +1,796 @@
+From 63e5d894150a5d5d1d897a639199a096815bb385 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Project <noreply@invalid>
+Date: Wed, 5 Aug 2026 09:29:37 -0400
+Subject: [PATCH] arm64: classify static MT6797 late-CPU capabilities
+
+Add the blocked expected-A72 40-row static census while
+preserving six evidence-dependent rows and every admission/commit veto.
+
+This experiment-only change has no certifying sign-off and is not
+submission-ready.
+---
+ arch/arm64/include/asm/late_cpu_profile.h |   8 +
+ arch/arm64/kernel/cpu_errata.c            |  82 +++++
+ arch/arm64/kernel/cpufeature.c            | 142 ++++++--
+ arch/arm64/kernel/mt6797_psci.c           | 421 +++++++++++++++++++++-
+ 4 files changed, 610 insertions(+), 43 deletions(-)
+
+diff --git a/arch/arm64/include/asm/late_cpu_profile.h b/arch/arm64/include/asm/late_cpu_profile.h
+index 79446800e..f5ddaed1b 100644
+--- a/arch/arm64/include/asm/late_cpu_profile.h
++++ b/arch/arm64/include/asm/late_cpu_profile.h
+@@ -365,8 +365,16 @@ int __init arm64_plan_late_cpu_capabilities(struct arm64_late_cpu_plan *draft,
+ enum arm64_late_cpu_cap_state __init
+ arm64_late_cpu_midr_all_versions(const struct arm64_cpu_capabilities *cap,
+ 				 u32 model);
++enum arm64_late_cpu_cap_state __init
++arm64_late_cpu_erratum_state(const struct arm64_cpu_capabilities *cap,
++			     u32 model);
++enum arm64_late_cpu_cap_state __init
++arm64_late_cpu_static_feature_state(const struct arm64_cpu_capabilities *cap,
++				    const struct arm64_cpu_capabilities *match,
++				    u32 model);
+ bool __init
+ arm64_late_cpu_cap_uses_multi_entry_match(const struct arm64_cpu_capabilities *cap);
++bool __init arm64_late_cpu_target_impl_override_active(void);
+ void __init arm64_verify_late_cpu_profile_system(void);
+ void __init arm64_finalize_late_cpu_profile_user(void);
+ const struct arm64_late_cpu_ready_token *
+diff --git a/arch/arm64/kernel/cpu_errata.c b/arch/arm64/kernel/cpu_errata.c
+index 6816b59a8..0252ff217 100644
+--- a/arch/arm64/kernel/cpu_errata.c
++++ b/arch/arm64/kernel/cpu_errata.c
+@@ -98,6 +98,11 @@ is_affected_midr_range_list(const struct arm64_cpu_capabilities *entry,
+ }
+ 
+ #ifdef CONFIG_ARM64_LATE_CPU_PROFILE
++bool __init arm64_late_cpu_target_impl_override_active(void)
++{
++	return target_impl_cpu_num || target_impl_cpus;
++}
++
+ bool __init
+ arm64_late_cpu_cap_uses_multi_entry_match(const struct arm64_cpu_capabilities *cap)
+ {
+@@ -686,6 +691,83 @@ static const struct midr_range erratum_ac04_cpu_23_list[] = {
+ };
+ #endif
+ 
++#ifdef CONFIG_ARM64_LATE_CPU_PROFILE
++#ifdef CONFIG_ARM64_ERRATUM_4193714
++static enum arm64_late_cpu_cap_state __init
++late_cpu_midr_range_state(const struct arm64_cpu_capabilities *cap, u32 model)
++{
++	const u32 rv_all = MIDR_CPU_VAR_REV(0xf, 0xf);
++	const struct midr_range *range = &cap->midr_range;
++
++	if (range->model != model)
++		return ARM64_LATE_CPU_CAP_ABSENT;
++	if (cap->fixed_revs)
++		return ARM64_LATE_CPU_CAP_UNRESOLVED;
++	if (!range->rv_min && range->rv_max == rv_all)
++		return ARM64_LATE_CPU_CAP_PRESENT;
++
++	return ARM64_LATE_CPU_CAP_UNRESOLVED;
++}
++#endif
++
++static enum arm64_late_cpu_cap_state __init
++late_cpu_midr_range_list_state(const struct midr_range *range, u32 model)
++{
++	const u32 rv_all = MIDR_CPU_VAR_REV(0xf, 0xf);
++	bool partial = false;
++	int i;
++
++	if (!range)
++		return ARM64_LATE_CPU_CAP_UNRESOLVED;
++
++	for (i = 0; i < ARM64_NCAPS; i++, range++) {
++		if (!range->model)
++			return partial ? ARM64_LATE_CPU_CAP_UNRESOLVED :
++					 ARM64_LATE_CPU_CAP_ABSENT;
++		if (range->model != model)
++			continue;
++		if (!range->rv_min && range->rv_max == rv_all)
++			return ARM64_LATE_CPU_CAP_PRESENT;
++		partial = true;
++	}
++
++	return ARM64_LATE_CPU_CAP_UNRESOLVED;
++}
++
++enum arm64_late_cpu_cap_state __init
++arm64_late_cpu_erratum_state(const struct arm64_cpu_capabilities *cap,
++			     u32 model)
++{
++	const u32 kryo_mask = MIDR_IMPLEMENTOR_MASK |
++		(0xf00 << MIDR_PARTNUM_SHIFT) | MIDR_ARCHITECTURE_MASK;
++
++	if (!cap || arm64_late_cpu_target_impl_override_active())
++		return ARM64_LATE_CPU_CAP_UNRESOLVED;
++
++	if (cap->matches == is_kryo_midr)
++		return (model & kryo_mask) == cap->midr_range.model ?
++			ARM64_LATE_CPU_CAP_UNRESOLVED :
++			ARM64_LATE_CPU_CAP_ABSENT;
++#ifdef CONFIG_ARM64_ERRATUM_1463225
++	if (cap->matches == has_cortex_a76_erratum_1463225)
++		return late_cpu_midr_range_list_state(cap->midr_range_list,
++							 model);
++#endif
++	if (cap->matches == needs_tx2_tvm_workaround)
++		return late_cpu_midr_range_list_state(cap->midr_range_list,
++							 model);
++#ifdef CONFIG_ARM64_ERRATUM_4193714
++	if (cap->matches == has_sme_dvmsync_erratum)
++		return late_cpu_midr_range_state(cap, model);
++#endif
++	if (cap->matches == has_impdef_pmuv3)
++		return late_cpu_midr_range_list_state(impdef_pmuv3_cpus,
++							 model);
++
++	return arm64_late_cpu_midr_all_versions(cap, model);
++}
++#endif
++
+ const struct arm64_cpu_capabilities arm64_errata[] = {
+ #ifdef CONFIG_ARM64_WORKAROUND_CLEAN_CACHE
+ 	{
+diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
+index 0ce805c3c..91d8f5b0a 100644
+--- a/arch/arm64/kernel/cpufeature.c
++++ b/arch/arm64/kernel/cpufeature.c
+@@ -1794,29 +1794,28 @@ has_useable_cnp(const struct arm64_cpu_capabilities *entry, int scope)
+ 
+ static bool __meltdown_safe = true;
+ static int __kpti_forced; /* 0: not forced, >0: forced on, <0: forced off */
++static const struct midr_range kpti_safe_list[] = {
++	MIDR_ALL_VERSIONS(MIDR_CAVIUM_THUNDERX2),
++	MIDR_ALL_VERSIONS(MIDR_BRCM_VULCAN),
++	MIDR_ALL_VERSIONS(MIDR_BRAHMA_B53),
++	MIDR_ALL_VERSIONS(MIDR_CORTEX_A35),
++	MIDR_ALL_VERSIONS(MIDR_CORTEX_A53),
++	MIDR_ALL_VERSIONS(MIDR_CORTEX_A55),
++	MIDR_ALL_VERSIONS(MIDR_CORTEX_A57),
++	MIDR_ALL_VERSIONS(MIDR_CORTEX_A72),
++	MIDR_ALL_VERSIONS(MIDR_CORTEX_A73),
++	MIDR_ALL_VERSIONS(MIDR_HISI_TSV110),
++	MIDR_ALL_VERSIONS(MIDR_NVIDIA_CARMEL),
++	MIDR_ALL_VERSIONS(MIDR_QCOM_KRYO_2XX_GOLD),
++	MIDR_ALL_VERSIONS(MIDR_QCOM_KRYO_2XX_SILVER),
++	MIDR_ALL_VERSIONS(MIDR_QCOM_KRYO_3XX_SILVER),
++	MIDR_ALL_VERSIONS(MIDR_QCOM_KRYO_4XX_SILVER),
++	{ /* sentinel */ }
++};
+ 
+ static bool unmap_kernel_at_el0(const struct arm64_cpu_capabilities *entry,
+ 				int scope)
+ {
+-	/* List of CPUs that are not vulnerable and don't need KPTI */
+-	static const struct midr_range kpti_safe_list[] = {
+-		MIDR_ALL_VERSIONS(MIDR_CAVIUM_THUNDERX2),
+-		MIDR_ALL_VERSIONS(MIDR_BRCM_VULCAN),
+-		MIDR_ALL_VERSIONS(MIDR_BRAHMA_B53),
+-		MIDR_ALL_VERSIONS(MIDR_CORTEX_A35),
+-		MIDR_ALL_VERSIONS(MIDR_CORTEX_A53),
+-		MIDR_ALL_VERSIONS(MIDR_CORTEX_A55),
+-		MIDR_ALL_VERSIONS(MIDR_CORTEX_A57),
+-		MIDR_ALL_VERSIONS(MIDR_CORTEX_A72),
+-		MIDR_ALL_VERSIONS(MIDR_CORTEX_A73),
+-		MIDR_ALL_VERSIONS(MIDR_HISI_TSV110),
+-		MIDR_ALL_VERSIONS(MIDR_NVIDIA_CARMEL),
+-		MIDR_ALL_VERSIONS(MIDR_QCOM_KRYO_2XX_GOLD),
+-		MIDR_ALL_VERSIONS(MIDR_QCOM_KRYO_2XX_SILVER),
+-		MIDR_ALL_VERSIONS(MIDR_QCOM_KRYO_3XX_SILVER),
+-		MIDR_ALL_VERSIONS(MIDR_QCOM_KRYO_4XX_SILVER),
+-		{ /* sentinel */ }
+-	};
+ 	char const *str = "kpti command line option";
+ 	bool meltdown_safe;
+ 
+@@ -2120,6 +2119,16 @@ static bool hvhe_possible(const struct arm64_cpu_capabilities *entry,
+ 	return arm64_test_sw_feature_override(ARM64_SW_FEATURE_OVERRIDE_HVHE);
+ }
+ 
++static const struct midr_range supports_bbml2_noabort_list[] = {
++	MIDR_REV_RANGE(MIDR_CORTEX_X4, 0, 3, 0xf),
++	MIDR_REV_RANGE(MIDR_NEOVERSE_V3, 0, 2, 0xf),
++	MIDR_REV_RANGE(MIDR_NEOVERSE_V3AE, 0, 2, 0xf),
++	MIDR_ALL_VERSIONS(MIDR_NVIDIA_OLYMPUS),
++	MIDR_ALL_VERSIONS(MIDR_AMPERE1),
++	MIDR_ALL_VERSIONS(MIDR_AMPERE1A),
++	{}
++};
++
+ bool cpu_supports_bbml2_noabort(void)
+ {
+ 	/*
+@@ -2134,16 +2143,6 @@ bool cpu_supports_bbml2_noabort(void)
+ 	 * implementors attest to the fact that the implementation never raises
+ 	 * TLB conflict aborts for BBML2 mapping granularity changes.
+ 	 */
+-	static const struct midr_range supports_bbml2_noabort_list[] = {
+-		MIDR_REV_RANGE(MIDR_CORTEX_X4, 0, 3, 0xf),
+-		MIDR_REV_RANGE(MIDR_NEOVERSE_V3, 0, 2, 0xf),
+-		MIDR_REV_RANGE(MIDR_NEOVERSE_V3AE, 0, 2, 0xf),
+-		MIDR_ALL_VERSIONS(MIDR_NVIDIA_OLYMPUS),
+-		MIDR_ALL_VERSIONS(MIDR_AMPERE1),
+-		MIDR_ALL_VERSIONS(MIDR_AMPERE1A),
+-		{}
+-	};
+-
+ 	/* Does our cpu guarantee to never raise TLB conflict aborts? */
+ 	if (!is_midr_in_range_list(supports_bbml2_noabort_list))
+ 		return false;
+@@ -3193,6 +3192,91 @@ static const struct arm64_cpu_capabilities arm64_features[] = {
+ };
+ 
+ #ifdef CONFIG_ARM64_LATE_CPU_PROFILE
++static enum arm64_late_cpu_cap_state __init
++late_cpu_model_range_list_state(const struct midr_range *range, u32 model)
++{
++	const u32 rv_all = MIDR_CPU_VAR_REV(0xf, 0xf);
++	bool partial = false;
++	int i;
++
++	for (i = 0; i < ARM64_NCAPS; i++, range++) {
++		if (!range->model)
++			return partial ? ARM64_LATE_CPU_CAP_UNRESOLVED :
++					 ARM64_LATE_CPU_CAP_ABSENT;
++		if (range->model != model)
++			continue;
++		if (!range->rv_min && range->rv_max == rv_all)
++			return ARM64_LATE_CPU_CAP_PRESENT;
++		partial = true;
++	}
++
++	return ARM64_LATE_CPU_CAP_UNRESOLVED;
++}
++
++enum arm64_late_cpu_cap_state __init
++arm64_late_cpu_static_feature_state(const struct arm64_cpu_capabilities *cap,
++				    const struct arm64_cpu_capabilities *match,
++				    u32 model)
++{
++	if (!cap || cap != match || cap->match_list)
++		return ARM64_LATE_CPU_CAP_UNRESOLVED;
++
++	switch (cap->capability) {
++#ifdef CONFIG_ARM64_AMU_EXTN
++	case ARM64_HAS_AMU_EXTN:
++		if (cap->type == ARM64_CPUCAP_WEAK_LOCAL_CPU_FEATURE &&
++		    cap->matches == has_amu && cap->cpu_enable == cpu_amu_enable &&
++		    cap->cpus == &amu_cpus)
++			return ARM64_LATE_CPU_CAP_PRESENT;
++		break;
++#endif
++#ifdef CONFIG_ARM64_HW_AFDBM
++	case ARM64_HW_DBM:
++		if (cap->type == ARM64_CPUCAP_WEAK_LOCAL_CPU_FEATURE &&
++		    cap->matches == has_hw_dbm &&
++		    cap->cpu_enable == cpu_enable_hw_dbm &&
++		    cap->cpus == &dbm_cpus)
++			return ARM64_LATE_CPU_CAP_PRESENT;
++		break;
++#endif
++	case ARM64_HAS_BBML2_NOABORT:
++		if (!arm64_late_cpu_target_impl_override_active() &&
++		    cap->type == ARM64_CPUCAP_EARLY_LOCAL_CPU_FEATURE &&
++		    cap->matches == has_bbml2_noabort && !cap->cpu_enable &&
++		    !cap->cpus)
++			return late_cpu_model_range_list_state(supports_bbml2_noabort_list,
++							       model);
++		break;
++	case ARM64_UNMAP_KERNEL_AT_EL0:
++		if (!arm64_late_cpu_target_impl_override_active() &&
++		    !__kpti_forced &&
++		    cap->type ==
++			    ARM64_CPUCAP_BOOT_RESTRICTED_CPU_LOCAL_FEATURE &&
++		    cap->matches == unmap_kernel_at_el0 &&
++		    cap->cpu_enable == cpu_enable_kpti && !cap->cpus &&
++		    late_cpu_model_range_list_state(kpti_safe_list, model) ==
++			    ARM64_LATE_CPU_CAP_PRESENT)
++			return ARM64_LATE_CPU_CAP_ABSENT;
++		break;
++	case ARM64_HAS_GICV5_LEGACY:
++		if (cap->type == ARM64_CPUCAP_EARLY_LOCAL_CPU_FEATURE &&
++		    cap->matches == test_has_gicv5_legacy &&
++		    !cap->cpu_enable && !cap->cpus)
++			return ARM64_LATE_CPU_CAP_UNRESOLVED;
++		break;
++	case ARM64_HAS_ICH_HCR_EL2_TDIR:
++		if (cap->type == ARM64_CPUCAP_EARLY_LOCAL_CPU_FEATURE &&
++		    cap->matches == can_trap_icv_dir_el1 &&
++		    !cap->cpu_enable && !cap->cpus)
++			return ARM64_LATE_CPU_CAP_UNRESOLVED;
++		break;
++	default:
++		break;
++	}
++
++	return ARM64_LATE_CPU_CAP_UNRESOLVED;
++}
++
+ static int __init
+ validate_late_cpu_cap_descriptor(const struct arm64_cpu_capabilities *cap, int slot)
+ {
+diff --git a/arch/arm64/kernel/mt6797_psci.c b/arch/arm64/kernel/mt6797_psci.c
+index 1b6d589ba..32be25a56 100644
+--- a/arch/arm64/kernel/mt6797_psci.c
++++ b/arch/arm64/kernel/mt6797_psci.c
+@@ -7,9 +7,11 @@
+ 
+ #define pr_fmt(fmt) "mt6797-psci: " fmt
+ 
++#include <linux/bitmap.h>
+ #include <linux/cpu.h>
+ #include <linux/errno.h>
+ #include <linux/init.h>
++#include <linux/kernel.h>
+ #include <linux/of.h>
+ #include <linux/printk.h>
+ #include <linux/string.h>
+@@ -38,19 +40,390 @@ extern const struct cpu_operations cpu_psci_ops;
+ 	 ARM64_LATE_CPU_BLOCK_HWCAP |					\
+ 	 ARM64_LATE_CPU_BLOCK_ATTESTATION_USERS)
+ 
++static const u64 mt6797_a72_source_parent_identity[ARM64_LATE_CPU_ID_WORDS] __initconst = {
++	0xbf192fa874aea983, 0x8cece3f58eec0bba,
++	0x2a18dc43bfe094ad, 0x9f6d635b9809ca32,
++};
++
++static const u64 mt6797_a72_config_input_identity[ARM64_LATE_CPU_ID_WORDS] __initconst = {
++	0x6fa24adaa512d804, 0x172b170b205f574b,
++	0x4d461b4263bc0d3, 0x74c6499f78b7f3d7c,
++};
++
++static bool __init mt6797_a72_kpti_policy_static(void)
++{
++#ifdef CONFIG_CMDLINE_FORCE
++	return IS_ENABLED(CONFIG_UNMAP_KERNEL_AT_EL0) &&
++	       !IS_ENABLED(CONFIG_RANDOMIZE_BASE) &&
++	       strstr(CONFIG_CMDLINE, "nokaslr") &&
++	       !strstr(CONFIG_CMDLINE, "kpti=") &&
++	       !strcmp(saved_command_line, CONFIG_CMDLINE);
++#else
++	return false;
++#endif
++}
++
++static bool __init
++mt6797_a72_cap_descriptor_shape(const struct arm64_cpu_capabilities *cap,
++				const struct arm64_cpu_capabilities *match)
++{
++	if (!cap || !match || !match->matches || match->match_list)
++		return false;
++	if (!cap->match_list)
++		return cap == match;
++
++	return cap != match && arm64_late_cpu_cap_uses_multi_entry_match(cap);
++}
++
++static enum arm64_late_cpu_cap_state __init
++mt6797_a72_expected_erratum_state(const struct arm64_cpu_capabilities *match,
++				  enum arm64_late_cpu_cap_state expected)
++{
++	enum arm64_late_cpu_cap_state state;
++
++	state = arm64_late_cpu_erratum_state(match, MIDR_CORTEX_A72);
++	return state == expected ? state : ARM64_LATE_CPU_CAP_UNRESOLVED;
++}
++
+ static enum arm64_late_cpu_cap_state __init
+ mt6797_a72_classify_local_cap(const struct arm64_cpu_capabilities *cap,
+ 			      const struct arm64_cpu_capabilities *match,
+ 			      const struct arm64_late_cpu_evidence *evidence)
+ {
+-	/* ABI 3 defines the boundary; the exhaustive evaluator follows. */
++	if (!evidence || evidence->abi != ARM64_LATE_CPU_PLAN_ABI ||
++	    evidence->expected_target_mpidr[0] != 0x200 ||
++	    evidence->expected_target_mpidr[1] != 0x201 ||
++	    evidence->expected_target_midr[0] != MIDR_CORTEX_A72 ||
++	    evidence->expected_target_midr[1] != MIDR_CORTEX_A72 ||
++	    !mt6797_a72_cap_descriptor_shape(cap, match))
++		return ARM64_LATE_CPU_CAP_UNRESOLVED;
++
++	switch (cap->capability) {
++	case ARM64_HAS_AMU_EXTN:
++	case ARM64_HW_DBM:
++		if (cap->type != ARM64_CPUCAP_WEAK_LOCAL_CPU_FEATURE)
++			break;
++		return arm64_late_cpu_static_feature_state(cap, match,
++							   MIDR_CORTEX_A72);
++	case ARM64_HAS_GICV5_LEGACY:
++	case ARM64_HAS_ICH_HCR_EL2_TDIR:
++	case ARM64_HAS_BBML2_NOABORT:
++		if (cap->type != ARM64_CPUCAP_EARLY_LOCAL_CPU_FEATURE)
++			break;
++		return arm64_late_cpu_static_feature_state(cap, match,
++							   MIDR_CORTEX_A72);
++	case ARM64_UNMAP_KERNEL_AT_EL0:
++		if (cap->type !=
++			    ARM64_CPUCAP_BOOT_RESTRICTED_CPU_LOCAL_FEATURE ||
++		    !mt6797_a72_kpti_policy_static())
++			break;
++		return arm64_late_cpu_static_feature_state(cap, match,
++							   MIDR_CORTEX_A72);
++	case ARM64_MISMATCHED_CACHE_TYPE:
++	case ARM64_SPECTRE_V2:
++	case ARM64_SPECTRE_V4:
++	case ARM64_SPECTRE_BHB:
++		/* Target registers and mitigation methods are not populated yet. */
++		if (cap->type != ARM64_CPUCAP_LOCAL_CPU_ERRATUM)
++			break;
++		return ARM64_LATE_CPU_CAP_UNRESOLVED;
++	case ARM64_WORKAROUND_1742098:
++	case ARM64_WORKAROUND_SPECULATIVE_AT:
++		if (cap->type != ARM64_CPUCAP_LOCAL_CPU_ERRATUM)
++			break;
++		return mt6797_a72_expected_erratum_state(match,
++						 ARM64_LATE_CPU_CAP_PRESENT);
++	case ARM64_WORKAROUND_1418040:
++	case ARM64_WORKAROUND_2457168:
++		if (cap->type != ARM64_CPUCAP_WEAK_LOCAL_CPU_FEATURE)
++			break;
++		return mt6797_a72_expected_erratum_state(match,
++						 ARM64_LATE_CPU_CAP_ABSENT);
++	case ARM64_WORKAROUND_843419:
++	case ARM64_WORKAROUND_845719:
++	case ARM64_WORKAROUND_858921:
++	case ARM64_WORKAROUND_1463225:
++	case ARM64_WORKAROUND_1508412:
++	case ARM64_WORKAROUND_2077057:
++	case ARM64_WORKAROUND_2645198:
++	case ARM64_WORKAROUND_2658417:
++	case ARM64_WORKAROUND_4193714:
++	case ARM64_WORKAROUND_AMPERE_AC03_CPU_38:
++	case ARM64_WORKAROUND_AMPERE_AC04_CPU_23:
++	case ARM64_WORKAROUND_TSB_FLUSH_FAILURE:
++	case ARM64_WORKAROUND_CAVIUM_23154:
++	case ARM64_WORKAROUND_CAVIUM_27456:
++	case ARM64_WORKAROUND_CAVIUM_30115:
++	case ARM64_WORKAROUND_CAVIUM_TX2_219_PRFM:
++	case ARM64_WORKAROUND_CAVIUM_TX2_219_TVM:
++	case ARM64_WORKAROUND_CLEAN_CACHE:
++	case ARM64_WORKAROUND_DEVICE_LOAD_ACQUIRE:
++	case ARM64_WORKAROUND_NVIDIA_CARMEL_CNP:
++	case ARM64_WORKAROUND_PMUV3_IMPDEF_TRAPS:
++	case ARM64_WORKAROUND_QCOM_FALKOR_E1003:
++	case ARM64_WORKAROUND_QCOM_ORYON_CNTVOFF:
++	case ARM64_WORKAROUND_REPEAT_TLBI:
++	case ARM64_WORKAROUND_SPECULATIVE_SSBS:
++	case ARM64_WORKAROUND_SPECULATIVE_UNPRIV_LOAD:
++		if (cap->type != ARM64_CPUCAP_LOCAL_CPU_ERRATUM)
++			break;
++		return mt6797_a72_expected_erratum_state(match,
++						 ARM64_LATE_CPU_CAP_ABSENT);
++	default:
++		break;
++	}
++
+ 	return ARM64_LATE_CPU_CAP_UNRESOLVED;
+ }
+ 
++static const u16 mt6797_a72_compiled_caps[] __initconst = {
++	ARM64_HAS_AMU_EXTN,
++	ARM64_HAS_GICV5_LEGACY,
++	ARM64_HAS_ICH_HCR_EL2_TDIR,
++	ARM64_HAS_BBML2_NOABORT,
++	ARM64_HW_DBM,
++	ARM64_MISMATCHED_CACHE_TYPE,
++	ARM64_SPECTRE_V2,
++	ARM64_SPECTRE_V4,
++	ARM64_SPECTRE_BHB,
++	ARM64_UNMAP_KERNEL_AT_EL0,
++	ARM64_WORKAROUND_843419,
++	ARM64_WORKAROUND_845719,
++	ARM64_WORKAROUND_858921,
++	ARM64_WORKAROUND_1418040,
++	ARM64_WORKAROUND_1463225,
++	ARM64_WORKAROUND_1508412,
++	ARM64_WORKAROUND_1742098,
++	ARM64_WORKAROUND_2077057,
++	ARM64_WORKAROUND_2457168,
++	ARM64_WORKAROUND_2645198,
++	ARM64_WORKAROUND_2658417,
++	ARM64_WORKAROUND_4193714,
++	ARM64_WORKAROUND_AMPERE_AC03_CPU_38,
++	ARM64_WORKAROUND_AMPERE_AC04_CPU_23,
++	ARM64_WORKAROUND_TSB_FLUSH_FAILURE,
++	ARM64_WORKAROUND_CAVIUM_23154,
++	ARM64_WORKAROUND_CAVIUM_27456,
++	ARM64_WORKAROUND_CAVIUM_30115,
++	ARM64_WORKAROUND_CAVIUM_TX2_219_PRFM,
++	ARM64_WORKAROUND_CAVIUM_TX2_219_TVM,
++	ARM64_WORKAROUND_CLEAN_CACHE,
++	ARM64_WORKAROUND_DEVICE_LOAD_ACQUIRE,
++	ARM64_WORKAROUND_NVIDIA_CARMEL_CNP,
++	ARM64_WORKAROUND_PMUV3_IMPDEF_TRAPS,
++	ARM64_WORKAROUND_QCOM_FALKOR_E1003,
++	ARM64_WORKAROUND_QCOM_ORYON_CNTVOFF,
++	ARM64_WORKAROUND_REPEAT_TLBI,
++	ARM64_WORKAROUND_SPECULATIVE_AT,
++	ARM64_WORKAROUND_SPECULATIVE_SSBS,
++	ARM64_WORKAROUND_SPECULATIVE_UNPRIV_LOAD,
++};
++
++static const u16 mt6797_a72_present_caps[] __initconst = {
++	ARM64_HAS_AMU_EXTN,
++	ARM64_HW_DBM,
++	ARM64_WORKAROUND_1742098,
++	ARM64_WORKAROUND_SPECULATIVE_AT,
++};
++
++static const u16 mt6797_a72_unresolved_caps[] __initconst = {
++	ARM64_HAS_GICV5_LEGACY,
++	ARM64_HAS_ICH_HCR_EL2_TDIR,
++	ARM64_MISMATCHED_CACHE_TYPE,
++	ARM64_SPECTRE_V2,
++	ARM64_SPECTRE_V4,
++	ARM64_SPECTRE_BHB,
++};
++
++static const u16 mt6797_a72_absent_caps[] __initconst = {
++	ARM64_HAS_BBML2_NOABORT,
++	ARM64_UNMAP_KERNEL_AT_EL0,
++	ARM64_WORKAROUND_843419,
++	ARM64_WORKAROUND_845719,
++	ARM64_WORKAROUND_858921,
++	ARM64_WORKAROUND_1418040,
++	ARM64_WORKAROUND_1463225,
++	ARM64_WORKAROUND_1508412,
++	ARM64_WORKAROUND_2077057,
++	ARM64_WORKAROUND_2457168,
++	ARM64_WORKAROUND_2645198,
++	ARM64_WORKAROUND_2658417,
++	ARM64_WORKAROUND_4193714,
++	ARM64_WORKAROUND_AMPERE_AC03_CPU_38,
++	ARM64_WORKAROUND_AMPERE_AC04_CPU_23,
++	ARM64_WORKAROUND_TSB_FLUSH_FAILURE,
++	ARM64_WORKAROUND_CAVIUM_23154,
++	ARM64_WORKAROUND_CAVIUM_27456,
++	ARM64_WORKAROUND_CAVIUM_30115,
++	ARM64_WORKAROUND_CAVIUM_TX2_219_PRFM,
++	ARM64_WORKAROUND_CAVIUM_TX2_219_TVM,
++	ARM64_WORKAROUND_CLEAN_CACHE,
++	ARM64_WORKAROUND_DEVICE_LOAD_ACQUIRE,
++	ARM64_WORKAROUND_NVIDIA_CARMEL_CNP,
++	ARM64_WORKAROUND_PMUV3_IMPDEF_TRAPS,
++	ARM64_WORKAROUND_QCOM_FALKOR_E1003,
++	ARM64_WORKAROUND_QCOM_ORYON_CNTVOFF,
++	ARM64_WORKAROUND_REPEAT_TLBI,
++	ARM64_WORKAROUND_SPECULATIVE_SSBS,
++	ARM64_WORKAROUND_SPECULATIVE_UNPRIV_LOAD,
++};
++
++static const u16 mt6797_a72_required_caps[] __initconst = {
++	ARM64_WORKAROUND_1742098,
++	ARM64_WORKAROUND_SPECULATIVE_AT,
++};
++
++static bool __init
++mt6797_a72_bitmap_exact(const unsigned long *bitmap, const u16 *caps,
++			unsigned int count)
++{
++	unsigned int i;
++
++	if (bitmap_weight(bitmap, ARM64_NCAPS) != count)
++		return false;
++	for (i = 0; i < count; i++)
++		if (!test_bit(caps[i], bitmap))
++			return false;
++
++	return true;
++}
++
++static bool __init
++mt6797_a72_effects_are_provisional(const struct arm64_late_cpu_effect_plan *effects)
++{
++	return !effects->ctr_mismatch.required &&
++	       !effects->ctr_mismatch.target_mask &&
++	       !effects->ctr_mismatch.trap_ctr_el0 &&
++	       !effects->ctr_mismatch.alternative &&
++	       !effects->spectre_v2.required &&
++	       !effects->spectre_v2.target_mask &&
++	       !effects->spectre_v2.mitigation_state &&
++	       !effects->spectre_v2.conduit &&
++	       !effects->spectre_v2.callback &&
++	       !effects->spectre_v2.hyp_vector &&
++	       !effects->spectre_v2.alternative &&
++	       !effects->spectre_v4.required &&
++	       !effects->spectre_v4.target_mask &&
++	       !effects->spectre_v4.mitigation_state &&
++	       !effects->spectre_v4.method &&
++	       !effects->spectre_v4.conduit &&
++	       !effects->spectre_v4.policy &&
++	       !effects->spectre_v4.firmware_alternative &&
++	       !effects->bhb.required && !effects->bhb.target_mask &&
++	       !effects->bhb.method && !effects->bhb.loop_count &&
++	       !effects->bhb.system_method &&
++	       !effects->bhb.mitigation_state &&
++	       !effects->bhb.vector_template && !effects->bhb.alternative &&
++	       !effects->bhb.v2_non_vulnerable &&
++	       effects->compat_aes_clear == 1 &&
++	       effects->speculative_at_finalization == 1;
++}
++
++static bool __init
++mt6797_a72_target_method_empty(const struct arm64_late_cpu_target_method_evidence *method)
++{
++	return !method->valid && !method->smccc_conduit &&
++	       !method->spectre_v2_state && !method->spectre_v2_callback &&
++	       !method->spectre_v4_state && !method->spectre_v4_method &&
++	       !method->spectre_v4_policy && !method->bhb_method &&
++	       !method->bhb_loop_count && !method->bhb_mitigation_state &&
++	       !method->bhb_vector_template && !method->bhb_v2_non_vulnerable;
++}
++
++static bool __init
++mt6797_a72_evidence_is_expected_only(const struct arm64_late_cpu_evidence *evidence)
++{
++	unsigned int i;
++
++	if (evidence->abi != ARM64_LATE_CPU_PLAN_ABI ||
++	    memcmp(evidence->source_parent_identity,
++		   mt6797_a72_source_parent_identity,
++		   sizeof(evidence->source_parent_identity)) ||
++	    memcmp(evidence->config_input_identity,
++		   mt6797_a72_config_input_identity,
++		   sizeof(evidence->config_input_identity)) ||
++	    (evidence->blocker_mask & MT6797_A72_PROFILE_BLOCKERS) !=
++		    MT6797_A72_PROFILE_BLOCKERS ||
++	    evidence->blocker_mask &
++		    ~(MT6797_A72_PROFILE_BLOCKERS |
++		      ARM64_LATE_CPU_BLOCK_TOPOLOGY) ||
++	    evidence->expected_target_mpidr[0] != 0x200 ||
++	    evidence->expected_target_mpidr[1] != 0x201 ||
++	    evidence->expected_target_midr[0] != MIDR_CORTEX_A72 ||
++	    evidence->expected_target_midr[1] != MIDR_CORTEX_A72)
++		return false;
++
++	for (i = 0; i < ARM64_LATE_CPU_MAX_TARGETS; i++)
++		if (evidence->observed_target_mpidr[i] ||
++		    evidence->observed_target_midr[i] ||
++		    evidence->observed_target_revidr[i] ||
++		    evidence->target_cap[i].valid ||
++		    !mt6797_a72_target_method_empty(&evidence->target_method[i]))
++			return false;
++	for (i = 0; i < ARM64_LATE_CPU_ID_WORDS; i++)
++		if (evidence->evidence_identity[i])
++			return false;
++
++	return !evidence->system_cap.valid;
++}
++
+ static int __init
+ mt6797_a72_validate_cap_plan(const struct arm64_late_cpu_plan *plan)
+ {
+-	/* Never bless a partial census as a frozen capability plan. */
++	unsigned int i;
++
++	if (!plan || plan->abi != ARM64_LATE_CPU_PLAN_ABI ||
++	    strcmp(plan->profile_id, "mt6797-a53-a72-a41-v3") ||
++	    cpumask_weight(&plan->target_cpus) != 2 ||
++	    !cpumask_test_cpu(8, &plan->target_cpus) ||
++	    !cpumask_test_cpu(9, &plan->target_cpus) ||
++	    plan->local_caps_planned ||
++	    !mt6797_a72_evidence_is_expected_only(&plan->evidence) ||
++	    !mt6797_a72_bitmap_exact(plan->compiled_local_caps,
++				     mt6797_a72_compiled_caps,
++				     ARRAY_SIZE(mt6797_a72_compiled_caps)) ||
++	    !mt6797_a72_bitmap_exact(plan->target_local_caps,
++				     mt6797_a72_present_caps,
++				     ARRAY_SIZE(mt6797_a72_present_caps)) ||
++	    !mt6797_a72_bitmap_exact(plan->required_local_caps,
++				     mt6797_a72_required_caps,
++				     ARRAY_SIZE(mt6797_a72_required_caps)) ||
++	    !bitmap_empty(plan->conflicting_local_caps, ARM64_NCAPS) ||
++	    bitmap_weight(plan->classified_local_caps, ARM64_NCAPS) !=
++		ARRAY_SIZE(mt6797_a72_present_caps) +
++		ARRAY_SIZE(mt6797_a72_absent_caps) ||
++	    !test_bit(ARM64_HAS_AMU_EXTN, plan->early_local_caps) ||
++	    !test_bit(ARM64_HW_DBM, plan->early_local_caps) ||
++	    test_bit(ARM64_UNMAP_KERNEL_AT_EL0, plan->early_local_caps) ||
++	    test_bit(ARM64_WORKAROUND_1742098, plan->early_local_caps) ||
++	    test_bit(ARM64_WORKAROUND_SPECULATIVE_AT,
++		     plan->early_local_caps) ||
++	    !mt6797_a72_effects_are_provisional(&plan->effects) ||
++	    plan->expected_compat_hwcap || plan->expected_compat_hwcap2)
++		return -EINVAL;
++
++	for (i = 0; i < ARRAY_SIZE(mt6797_a72_present_caps); i++)
++		if (!test_bit(mt6797_a72_present_caps[i],
++			      plan->classified_local_caps))
++			return -EINVAL;
++	for (i = 0; i < ARRAY_SIZE(mt6797_a72_absent_caps); i++)
++		if (!test_bit(mt6797_a72_absent_caps[i],
++			      plan->classified_local_caps))
++			return -EINVAL;
++	for (i = 0; i < ARRAY_SIZE(mt6797_a72_unresolved_caps); i++)
++		if (test_bit(mt6797_a72_unresolved_caps[i],
++			     plan->classified_local_caps) ||
++		    test_bit(mt6797_a72_unresolved_caps[i],
++			     plan->target_local_caps))
++			return -EINVAL;
++	for (i = 0; i < ARRAY_SIZE(plan->expected_elf_hwcap); i++)
++		if (plan->expected_elf_hwcap[i])
++			return -EINVAL;
++	for (i = 0; i < ARRAY_SIZE(plan->identity); i++)
++		if (plan->identity[i])
++			return -EINVAL;
++
++	/* Expected-MIDR census only: observed MIDR_VALID proof is still absent. */
+ 	return -EAGAIN;
+ }
+ 
+@@ -58,8 +431,35 @@ static bool __init mt6797_a72_profile_config_gates_match(void)
+ {
+ 	return IS_ENABLED(CONFIG_SMP) &&
+ 	       IS_ENABLED(CONFIG_HOTPLUG_CPU) &&
++	       IS_ENABLED(CONFIG_ARM64_AMU_EXTN) &&
++	       IS_ENABLED(CONFIG_ARM64_HW_AFDBM) &&
++	       IS_ENABLED(CONFIG_ARM64_ERRATUM_843419) &&
++	       IS_ENABLED(CONFIG_ARM64_ERRATUM_845719) &&
++	       IS_ENABLED(CONFIG_ARM64_ERRATUM_858921) &&
++	       IS_ENABLED(CONFIG_ARM64_ERRATUM_1418040) &&
++	       IS_ENABLED(CONFIG_ARM64_ERRATUM_1463225) &&
++	       IS_ENABLED(CONFIG_ARM64_ERRATUM_1508412) &&
+ 	       IS_ENABLED(CONFIG_ARM64_ERRATUM_1742098) &&
++	       IS_ENABLED(CONFIG_ARM64_ERRATUM_2077057) &&
++	       IS_ENABLED(CONFIG_ARM64_ERRATUM_2457168) &&
++	       IS_ENABLED(CONFIG_ARM64_ERRATUM_2645198) &&
++	       IS_ENABLED(CONFIG_ARM64_ERRATUM_2658417) &&
++	       IS_ENABLED(CONFIG_ARM64_ERRATUM_4193714) &&
++	       IS_ENABLED(CONFIG_AMPERE_ERRATUM_AC03_CPU_38) &&
++	       IS_ENABLED(CONFIG_AMPERE_ERRATUM_AC04_CPU_23) &&
++	       IS_ENABLED(CONFIG_ARM64_WORKAROUND_TSB_FLUSH_FAILURE) &&
++	       IS_ENABLED(CONFIG_CAVIUM_ERRATUM_23154) &&
++	       IS_ENABLED(CONFIG_CAVIUM_ERRATUM_27456) &&
++	       IS_ENABLED(CONFIG_CAVIUM_ERRATUM_30115) &&
++	       IS_ENABLED(CONFIG_CAVIUM_TX2_ERRATUM_219) &&
++	       IS_ENABLED(CONFIG_ARM64_WORKAROUND_CLEAN_CACHE) &&
++	       IS_ENABLED(CONFIG_ARM64_ERRATUM_832075) &&
++	       IS_ENABLED(CONFIG_NVIDIA_CARMEL_CNP_ERRATUM) &&
++	       IS_ENABLED(CONFIG_QCOM_FALKOR_ERRATUM_1003) &&
++	       IS_ENABLED(CONFIG_ARM64_WORKAROUND_REPEAT_TLBI) &&
+ 	       IS_ENABLED(CONFIG_ARM64_WORKAROUND_SPECULATIVE_AT) &&
++	       IS_ENABLED(CONFIG_ARM64_ERRATUM_3194386) &&
++	       IS_ENABLED(CONFIG_ARM64_WORKAROUND_SPECULATIVE_UNPRIV_LOAD) &&
+ 	       IS_ENABLED(CONFIG_ARM64_ERRATUM_1319367) &&
+ 	       IS_ENABLED(CONFIG_MITIGATE_SPECTRE_BRANCH_HISTORY) &&
+ 	       IS_ENABLED(CONFIG_COMPAT) &&
+@@ -68,7 +468,7 @@ static bool __init mt6797_a72_profile_config_gates_match(void)
+ 	       IS_ENABLED(CONFIG_ARM64_LPA2) &&
+ 	       IS_ENABLED(CONFIG_UNMAP_KERNEL_AT_EL0) &&
+ 	       IS_ENABLED(CONFIG_ARM_GIC_V3) &&
+-	       IS_ENABLED(CONFIG_CMDLINE_FORCE) &&
++	       mt6797_a72_kpti_policy_static() &&
+ 	       !IS_ENABLED(CONFIG_RANDOMIZE_BASE) &&
+ 	       !IS_ENABLED(CONFIG_VIRTUALIZATION) &&
+ 	       !IS_ENABLED(CONFIG_ARM64_PSEUDO_NMI) &&
+@@ -134,18 +534,11 @@ static int __init
+ mt6797_a72_profile_prepare(struct arm64_late_cpu_evidence *evidence,
+ 			   const struct cpumask *registered_targets)
+ {
+-	static const u64 source_parent_identity[ARM64_LATE_CPU_ID_WORDS] = {
+-		0xa1573b40b7b8f5a8, 0xa87f7a2b9a431090,
+-		0xbf714ed52c79cf1e, 0x93c78d28ce633c56,
+-	};
+-	static const u64 config_input_identity[ARM64_LATE_CPU_ID_WORDS] = {
+-		0x91694455fdc12472, 0x5704ea5f0cfdeecb,
+-		0xd9e51829d20021f3, 0x28714aca76b2edb8,
+-	};
+-
+-	memcpy(evidence->source_parent_identity, source_parent_identity,
++	memcpy(evidence->source_parent_identity,
++	       mt6797_a72_source_parent_identity,
+ 	       sizeof(evidence->source_parent_identity));
+-	memcpy(evidence->config_input_identity, config_input_identity,
++	memcpy(evidence->config_input_identity,
++	       mt6797_a72_config_input_identity,
+ 	       sizeof(evidence->config_input_identity));
+ 	evidence->expected_target_mpidr[0] = 0x200;
+ 	evidence->expected_target_mpidr[1] = 0x201;
+-- 
+2.50.1 (Apple Git-155)
+

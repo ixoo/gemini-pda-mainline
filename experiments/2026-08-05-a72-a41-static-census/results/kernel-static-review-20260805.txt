@@ -1,0 +1,37 @@
+validation=a41-static-census-kernel-review
+date=2026-08-05
+source_parent_commit=9257e46ea3fd8da4766cfd0dba4b15af56cf0d6a
+source_parent_tree=30c9cf493dda6501620e0713e657184566e5f339
+source_commit=63e5d894150a5d5d1d897a639199a096815bb385
+source_tree=c3db9d87cf885b6e2313041e1e3b8b28ea8e98c1
+diff_sha256=ab27efd5d334ac4fd18a41371db6efaf7d07bf5ead2df9991d612ba5ddcaf4c0
+patch_0152_sha256=61ff3351799c9313d89b4ab572f6511371e04f6c6f3625b3d730ad7d77b9abbf
+files_changed=4
+insertions=610
+deletions=43
+git_diff_check=PASS
+checkincludes=PASS no_duplicate_includes
+checkpatch_diff=PASS errors=0 warnings=0 checks=0 lines=748
+checkpatch_format_patch=EXPECTED_NON_SUBMISSION errors=1 warnings=0 checks=0 type=MISSING_SIGN_OFF
+synthetic_author=Gemini Mainline Project <noreply@invalid>
+certifying_signoff=absent
+submission_ready=no
+compiled_local_caps=40
+static_present=4
+static_absent=30
+evidence_dependent=6
+required_caps=2
+independent_semantic_review=PASS
+independent_api_config_review=PASS
+review_fix=late_cpu_midr_range_state guarded by CONFIG_ARM64_ERRATUM_4193714
+target_impl_override_guard=PASS
+kpti_private_list_and_force_guard=PASS
+identity_and_blocker_guard=PASS
+method_and_evidence_empty_guard=PASS
+boot_veto_unchanged=PASS
+disable_veto_unchanged=PASS
+plan_publication_reachable=no
+build_performed=no
+device_accessed=no
+network_accessed=no
+result=PASS_SOURCE_ONLY

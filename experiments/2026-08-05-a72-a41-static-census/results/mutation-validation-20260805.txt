@@ -1,0 +1,34 @@
+validation=a41-static-census-mutations
+date=2026-08-05
+build_performed=no
+device_accessed=no
+network_accessed=no
+PASS baseline
+PASS patch-source-commit mutation=01
+PASS patch-subject mutation=02
+PASS synthetic-signoff mutation=03
+PASS source-parent-identity mutation=04
+PASS config-input-identity mutation=05
+PASS selected-series-drop mutation=06
+PASS selected-series-order mutation=07
+PASS manifest-series-selection mutation=08
+PASS all-profile-series-order mutation=09
+PASS census-partition mutation=10
+PASS completion-claim mutation=11
+PASS target-override-guard mutation=12
+PASS kpti-force-guard mutation=13
+PASS mandatory-blocker-mask mutation=14
+PASS target-method-empty mutation=15
+PASS partial-validator-eagain mutation=16
+PASS plan-identity-write mutation=17
+PASS inherited-boot-veto mutation=18
+PASS inherited-disable-veto mutation=19
+PASS maxcpus-guard mutation=20
+PASS external-action mutation=21
+PASS unexpected-residue mutation=22
+validator_sha256=a52019ee9021b507f91876ff22eeb1580108e7c18f4fb918c5b7f58bf058dfbd
+mutation_suite_sha256=a7ce2a3bca1742e4f5bbd87320e03da19cdbaa03043d7382b826f11e24624e23
+python_version=3.14.6
+baseline_static_checks=4
+mutation_count=22
+RESULT PASS 22/22

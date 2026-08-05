@@ -1384,6 +1384,21 @@ This advances A41 only to `PARTIAL_IMMUTABLE_PLAN_BOUNDARY`; the A26 boot
 and A14 disable vetoes plus `maxcpus=8` remain, and no build, boot candidate,
 or device action is authorized.
 
+The next source-only
+[A41 expected-A72 static census](../experiments/2026-08-05-a72-a41-static-census/README.md)
+implements the provisional evaluator across that complete 40-row inventory.
+It resolves exactly 4 profile-static rows PRESENT and 30 ABSENT while leaving
+the 6 target/firmware-dependent rows unresolved. Source-owned helpers inspect
+the actual private KPTI, BBML2, and erratum matcher data without executing a
+target predicate on an A53; KPTI command-line state and the architecture's
+hypervisor target-implementation override both fail closed. The partial
+validator requires the exact expected-only identities, standing blockers,
+bitmaps, required-cap set, and provisional compat-AES/speculative-AT effects,
+then deliberately returns `-EAGAIN`. No observed target MIDR, dynamic method,
+plan identity, PLAN_FROZEN, COMMITTED, or READY state is produced. This
+advances A41 only to `PARTIAL_STATIC_CAPABILITY_CENSUS`; all build and device
+prohibitions remain unchanged.
+
 P30K/C/P/E/U separate CPU_KILL_ME, post-C bare STUCK, panic, pre-C reasoned
 STUCK, and default timeout. The timeout path now requires exact-generation
 cancellation-versus-publication arbitration because global task, status,
@@ -1413,18 +1428,18 @@ names for that operation is implemented and proven.
 
 The next ordered work remains source-only:
 
-1. Complete A41 from the ABI 3 immutable-plan boundary. First implement the
-   exhaustive evaluator for the exact 40-row census: resolve the six
-   evidence-dependent capability states from an exact resolved/running
-   configuration and safe per-target evidence, validate the complete target
-   register, cache, firmware WA1/WA2/WA3, ASID, translation, GIC,
-   strict/system/boot-capability, and native/compat-HWCAP state, and compute
-   one canonical field-wise plan identity. Then implement the separate
-   infallible architecture-owned pre-finalization commit for the exact typed
-   CTR, Spectre-v2, Spectre-v4, BHB, erratum 1742098, speculative-AT, and
-   compat-AES effects. Assert the resulting alternatives and vectors and bind
-   the exact READY identity to A36/P17/P18. Mutation tests must keep every
-   incomplete or drifted branch blocked.
+1. Complete A41 from the blocked static census. Next implement the safe
+   evidence evaluator for the six unresolved rows, requiring separate valid
+   observed Cortex-A72 identities for CPU8 and CPU9 plus an exact resolved and
+   running configuration. Validate the complete target register, cache,
+   firmware WA1/WA2/WA3, ASID, translation, GIC,
+   strict/system/boot-capability, and native/compat-HWCAP state before
+   computing one canonical field-wise plan identity. Then implement the
+   separate infallible architecture-owned pre-finalization commit for the
+   exact typed CTR, Spectre-v2, Spectre-v4, BHB, erratum 1742098,
+   speculative-AT, and compat-AES effects. Assert the resulting alternatives
+   and vectors and bind the exact READY identity to A36/P17/P18. Mutation tests
+   must keep every incomplete, substituted, or drifted branch blocked.
 2. Implement and mutation-test P30K/C/P/E/U, including the generation-scoped
    timeout arbitration, global completion/status redesign, target park
    acknowledgment, exact P14/P15 controller point, and global fail-stop

@@ -1,0 +1,41 @@
+slot	symbol	state	basis
+9	ARM64_HAS_AMU_EXTN	PRESENT	compiled matcher is unconditional; weak-local enable remains target-ID-gated
+33	ARM64_HAS_GICV5_LEGACY	UNRESOLVED	target GICv5 CPU-interface and legacy-interface registers required
+36	ARM64_HAS_ICH_HCR_EL2_TDIR	UNRESOLVED	target hyp/GIC state and ICH_VTR_EL2 or HVC result required
+47	ARM64_HAS_BBML2_NOABORT	ABSENT	actual source-owned allowlist is A72-disjoint
+66	ARM64_HW_DBM	PRESENT	compiled matcher is unconditional; weak-local enable remains target-ID-gated
+69	ARM64_MISMATCHED_CACHE_TYPE	UNRESOLVED	target raw/effective CTR and finalized system CTR required
+79	ARM64_SPECTRE_V2	UNRESOLVED	target CSV2 and exact WA1/conduit evidence required
+81	ARM64_SPECTRE_V4	UNRESOLVED	target SSBS and exact WA2/conduit/policy evidence required
+82	ARM64_SPECTRE_BHB	UNRESOLVED	target CSV2.3 determines state; ClearBHB/ECBHB/WA3 and policy determine method
+85	ARM64_UNMAP_KERNEL_AT_EL0	ABSENT	A72 is source-safe-listed and guarded KPTI state is unforced
+87	ARM64_WORKAROUND_843419	ABSENT	selected multi-entry members are A72-disjoint
+88	ARM64_WORKAROUND_845719	ABSENT	canonical range list is A72-disjoint
+89	ARM64_WORKAROUND_858921	ABSENT	A73-only range
+90	ARM64_WORKAROUND_1418040	ABSENT	canonical range list is A72-disjoint
+91	ARM64_WORKAROUND_1463225	ABSENT	custom predicate's A76/Kryo range is A72-disjoint
+92	ARM64_WORKAROUND_1508412	ABSENT	A77-only range
+94	ARM64_WORKAROUND_1742098	PRESENT	broken_aarch32_aes contains all A72 revisions
+98	ARM64_WORKAROUND_2077057	ABSENT	A510-only range
+99	ARM64_WORKAROUND_2457168	ABSENT	A510-only range
+100	ARM64_WORKAROUND_2645198	ABSENT	A715-only range
+101	ARM64_WORKAROUND_2658417	ABSENT	A510-only range
+102	ARM64_WORKAROUND_4193714	ABSENT	custom predicate's C1-Pro range is A72-disjoint
+104	ARM64_WORKAROUND_AMPERE_AC03_CPU_38	ABSENT	Ampere-only range list
+105	ARM64_WORKAROUND_AMPERE_AC04_CPU_23	ABSENT	Ampere-only range list
+107	ARM64_WORKAROUND_TSB_FLUSH_FAILURE	ABSENT	canonical range list is A72-disjoint
+109	ARM64_WORKAROUND_CAVIUM_23154	ABSENT	Cavium/Octeon-only range list
+110	ARM64_WORKAROUND_CAVIUM_27456	ABSENT	ThunderX-only range list
+111	ARM64_WORKAROUND_CAVIUM_30115	ABSENT	ThunderX-only range list
+112	ARM64_WORKAROUND_CAVIUM_TX2_219_PRFM	ABSENT	Vulcan/ThunderX2-only range list
+113	ARM64_WORKAROUND_CAVIUM_TX2_219_TVM	ABSENT	custom predicate's TX2-family range is A72-disjoint
+114	ARM64_WORKAROUND_CLEAN_CACHE	ABSENT	selected affected A53 revisions exclude A72
+115	ARM64_WORKAROUND_DEVICE_LOAD_ACQUIRE	ABSENT	A57-only range
+116	ARM64_WORKAROUND_NVIDIA_CARMEL_CNP	ABSENT	Carmel-only range
+117	ARM64_WORKAROUND_PMUV3_IMPDEF_TRAPS	ABSENT	custom predicate's Apple range list is A72-disjoint
+118	ARM64_WORKAROUND_QCOM_FALKOR_E1003	ABSENT	selected multi-entry members are A72-disjoint
+119	ARM64_WORKAROUND_QCOM_ORYON_CNTVOFF	ABSENT	Oryon-only range list
+120	ARM64_WORKAROUND_REPEAT_TLBI	ABSENT	selected multi-entry members are A72-disjoint
+121	ARM64_WORKAROUND_SPECULATIVE_AT	PRESENT	selected erratum-1319367 member contains all A72 revisions
+122	ARM64_WORKAROUND_SPECULATIVE_SSBS	ABSENT	canonical range list is A72-disjoint
+123	ARM64_WORKAROUND_SPECULATIVE_UNPRIV_LOAD	ABSENT	A510/A520-only range list

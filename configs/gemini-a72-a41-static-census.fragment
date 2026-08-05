@@ -1,0 +1,5 @@
+# A41 expected-A72 static capability census. Exactly six target/firmware
+# predicates remain unresolved, so maxcpus=8 plus the patch-0092 boot and
+# disable vetoes stay mandatory. This profile cannot freeze or commit a plan.
+CONFIG_ARM64_MT6797_A72_CAPABILITY_PROFILE=y
+CONFIG_LOCALVERSION="-gemini-a41-static-blocked"

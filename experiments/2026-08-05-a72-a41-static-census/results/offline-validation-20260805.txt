@@ -1,0 +1,24 @@
+validation=a41-static-census-offline
+date=2026-08-05
+source_checkout=managed-prepared-tree
+source_commit=63e5d894150a5d5d1d897a639199a096815bb385
+build_performed=no
+device_accessed=no
+network_accessed=no
+PASS manifest-config
+PASS series-identities
+PASS patch-identity
+PASS claim-tables
+PASS patch-application
+PASS static-census-guards
+PASS veto-preservation
+patch_sha256=61ff3351799c9313d89b4ab572f6511371e04f6c6f3625b3d730ad7d77b9abbf
+series_sha256=12b46a348af31ebbe506480716e2bb517044da095e5902b8bfb59622188e859f
+patchset_sha256=c06e83ea4491a28c18a5db9563497413984e578c9bdbb2ce6f3da35e2e115352
+source_state_sha256=f073150a6bbfb6af1d4262f4b754534118181ee40284d60a59aa1068740d118d
+config_sha256=6fa24adaa512d804172b170b205f574b4d461b4263bc0d374c6499f78b7f3d7c
+implementation_state=PARTIAL_STATIC_CAPABILITY_CENSUS
+a41_complete=no
+build_authorized=no
+device_action_authorized=no
+RESULT PASS 7/7

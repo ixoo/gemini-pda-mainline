@@ -23,6 +23,17 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-05 A41 expected-A72 static capability census](2026-08-05-a72-a41-static-census/README.md)
+  — implements the source-owned provisional evaluator for all 40 compiled
+  local descriptors. It classifies exactly 4 expected-A72 rows PRESENT and 30
+  ABSENT while leaving GICv5 legacy, ICH_HCR_EL2.TDIR, cache-type mismatch,
+  Spectre-v2, Spectre-v4, and BHB unresolved. KPTI and private MIDR-list
+  predicates are evaluated without running target callbacks, hypervisor target
+  substitution fails closed, and the partial validator requires the exact
+  identities, blockers, bitmaps, and two provisional effects before returning
+  `-EAGAIN`. This is `PARTIAL_STATIC_CAPABILITY_CENSUS`: no plan identity,
+  build, boot candidate, device action, or hardware-support claim is
+  authorized.
 - [2026-08-05 A41 immutable evidence/plan/receipt boundary](2026-08-05-a72-a41-immutable-plan/README.md)
   — replaces the mixed three-capability draft with ABI 3 separation between
   fallible evidence, a state-free immutable plan, an architecture-owned
