@@ -1,0 +1,318 @@
+From 950bdf93669e32ac465d5ff9431703f9b93a19c9 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 5 Aug 2026 19:00:49 -0400
+Subject: [PATCH] arm64: add dormant P31 attempt consumption
+
+Consume one exact boot-local attempt under the transition owner.
+
+Require the observer window and exact operation before A28.
+
+Preserve the consumed bit across A28 rejection.
+
+Keep the owner without a token or CPU effect.
+
+This experiment-only change has no production caller or opener.
+
+It has no CPU_ON operation, build, or device claim.
+
+The patch is not submission-ready.
+---
+ .../arm64/include/asm/mt6797_a72_membership.h |  11 +-
+ arch/arm64/kernel/mt6797_a72_membership.c     | 102 ++++++++++++++++--
+ .../arm64/kernel/mt6797_a72_membership_test.c |  77 +++++++++++++
+ 3 files changed, 179 insertions(+), 11 deletions(-)
+
+diff --git a/arch/arm64/include/asm/mt6797_a72_membership.h b/arch/arm64/include/asm/mt6797_a72_membership.h
+index b78099cea..52fabea6d 100644
+--- a/arch/arm64/include/asm/mt6797_a72_membership.h
++++ b/arch/arm64/include/asm/mt6797_a72_membership.h
+@@ -12,9 +12,10 @@
+ 
+ /*
+  * Version of a dormant C owner-model layout, not a P17/P18/P24 token ABI or
+- * wire/hardware ABI. This slice implements no bootstrap, attempt consumption,
+- * generation allocation, provider or CPUHP effect, P30 handoff, P14/P15,
+- * hardware mutation, or CPU_ON operation.
++ * wire/hardware ABI. This slice consumes a P31 attempt only in an explicitly
++ * opened owner state; it implements no bootstrap, generation allocation,
++ * provider or CPUHP effect, P30 handoff, P14/P15, hardware mutation, or
++ * CPU_ON operation.
+  */
+ #define MT6797_A72_TRANSACTION_ABI 1
+ #define MT6797_A72_OPERATION_SLOTS 4
+@@ -86,6 +87,8 @@ enum mt6797_a72_owner_fault {
+ #define MT6797_A72_ENTRY_CPU8_POSSIBLE BIT(2)
+ #define MT6797_A72_ENTRY_CPU9_POSSIBLE BIT(3)
+ #define MT6797_A72_ENTRY_FLAGS_MASK GENMASK(3, 0)
++#define MT6797_A72_OBSERVER_WINDOW_CLOSED 0
++#define MT6797_A72_OBSERVER_WINDOW_OPEN 1
+ 
+ /* Diagnostic only: this non-exhaustive list can never authorize a request. */
+ #define MT6797_A72_BLOCK_A34_BOOTSTRAP BIT_ULL(0)
+@@ -135,6 +138,7 @@ struct mt6797_a72_entry_snapshot {
+ 	u32 online_mask;
+ 	u32 cpuhp_state_cpu8;
+ 	u32 cpuhp_state_cpu9;
++	u32 observer_window;
+ 	u32 flags;
+ 	u64 cpu8_mpidr;
+ 	u64 cpu9_mpidr;
+@@ -260,6 +264,7 @@ mt6797_a72_membership_snapshot(struct mt6797_a72_owner_snapshot *snapshot)
+ 
+ #ifdef CONFIG_ARM64_MT6797_A72_P24_OWNER_KUNIT_TEST
+ void mt6797_a72_membership_test_reset(void);
++void mt6797_a72_membership_test_seed_available(void);
+ #endif
+ 
+ #endif /* __ASM_MT6797_A72_MEMBERSHIP_H */
+diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt6797_a72_membership.c
+index 315260a5a..3d8507004 100644
+--- a/arch/arm64/kernel/mt6797_a72_membership.c
++++ b/arch/arm64/kernel/mt6797_a72_membership.c
+@@ -3,9 +3,10 @@
+  * Lifecycle-closed transaction owner for future MT6797 A72 membership.
+  *
+  * The transaction-begin path deliberately has no production caller or opener.
+- * Read-only admission callbacks may inspect CLOSED. This meta/lifecycle
+- * boundary precedes P31/A38 and is not an early substitute for the future
+- * P31 -> A28 -> mint -> A36 ordering.
++ * Read-only admission callbacks may inspect CLOSED. A dormant P31 ledger
++ * consumes a one-shot attempt only in a test-seeded AVAILABLE state, then
++ * passes the same request to the read-only A28 check. It is not an early
++ * substitute for the future P31 -> A28 -> mint -> A36 ordering.
+  */
+ 
+ #include <linux/compiler.h>
+@@ -66,6 +67,69 @@ mt6797_a72_up_token_equal(const struct arm64_late_cpu_up_token *left,
+ 	return !memcmp(left, right, sizeof(*left));
+ }
+ 
++static int
++mt6797_a72_membership_p31_consume_attempt(unsigned int cpu,
++						enum cpuhp_state target,
++						u32 attempt,
++						const struct mt6797_a72_entry_snapshot *entry)
++{
++	enum mt6797_a72_membership_operation operation;
++	unsigned long flags;
++	u32 expected_attempt;
++	int ret;
++
++	if (!entry || target != CPUHP_ONLINE)
++		return -EINVAL;
++
++	operation = mt6797_a72_up_operation(cpu);
++	switch (operation) {
++	case MT6797_A72_OPERATION_CPU8_UP:
++		expected_attempt = MT6797_A72_ATTEMPT_CPU8_UP;
++		break;
++	case MT6797_A72_OPERATION_CPU9_UP:
++		expected_attempt = MT6797_A72_ATTEMPT_CPU9_UP;
++		break;
++	default:
++		return -EINVAL;
++	}
++
++	if (attempt != expected_attempt ||
++	    entry->observer_window != MT6797_A72_OBSERVER_WINDOW_OPEN)
++		return -EPERM;
++
++	mutex_lock(&a72_transition_lock);
++	raw_spin_lock_irqsave(&a72_state_lock, flags);
++	switch (a72_owner.health) {
++	case MT6797_A72_OWNER_CLOSED:
++		ret = -EAGAIN;
++		break;
++	case MT6797_A72_OWNER_FAULTED:
++		ret = -ESHUTDOWN;
++		break;
++	case MT6797_A72_OWNER_AVAILABLE:
++		if (a72_owner.phase != MT6797_A72_PHASE_IDLE) {
++			ret = -EBUSY;
++			break;
++		}
++		if (!(a72_owner.attempts_available & expected_attempt) ||
++		    (a72_owner.attempts_consumed & expected_attempt)) {
++			ret = -EALREADY;
++			break;
++		}
++		a72_owner.attempts_available &= ~expected_attempt;
++		a72_owner.attempts_consumed |= expected_attempt;
++		ret = 0;
++		break;
++	default:
++		ret = -EPROTO;
++		break;
++	}
++	raw_spin_unlock_irqrestore(&a72_state_lock, flags);
++	mutex_unlock(&a72_transition_lock);
++
++	return ret;
++}
++
+ static int
+ mt6797_a72_membership_check_up(unsigned int cpu, int tasks_frozen,
+ 			       enum cpuhp_state target)
+@@ -177,18 +241,21 @@ mt6797_a72_membership_begin_up(unsigned int cpu, enum cpuhp_state target,
+ 		return -EINVAL;
+ 	memset(transaction, 0, sizeof(*transaction));
+ 
++	ret = mt6797_a72_membership_p31_consume_attempt(cpu, target, attempt, entry);
++	if (ret)
++		return ret;
++
+ 	ret = mt6797_a72_membership_validate_entry(cpu, target, attempt,
+ 						   entry);
+ 	if (ret)
+ 		return ret;
+ 
+ 	/*
+-	 * There is intentionally no production CLOSED -> AVAILABLE writer.
+-	 * The pre-P31 denial changes no attempt, generation, token, or ledger.
++	 * There is intentionally no production CLOSED -> AVAILABLE writer. A
++	 * consumed attempt remains consumed when this dormant owner returns its
++	 * no-implementation result; A34 is the only future reset authority.
+ 	 */
+-	if (READ_ONCE(a72_owner.health) == MT6797_A72_OWNER_CLOSED)
+-		return -EAGAIN;
+-
++	ret = -EOPNOTSUPP;
+ 	mutex_lock(&a72_transition_lock);
+ 	raw_spin_lock_irqsave(&a72_state_lock, flags);
+ 	switch (a72_owner.health) {
+@@ -299,4 +366,23 @@ void mt6797_a72_membership_test_reset(void)
+ 	raw_spin_unlock_irqrestore(&a72_state_lock, flags);
+ 	mutex_unlock(&a72_transition_lock);
+ }
++
++void mt6797_a72_membership_test_seed_available(void)
++{
++	unsigned long flags;
++
++	/* Harness-only state; no production path can open the CLOSED owner. */
++	mutex_lock(&a72_transition_lock);
++	raw_spin_lock_irqsave(&a72_state_lock, flags);
++	memset(&a72_owner, 0, sizeof(a72_owner));
++	a72_owner.diagnostic_blockers = MT6797_A72_BLOCK_MASK;
++	a72_owner.health = MT6797_A72_OWNER_AVAILABLE;
++	a72_owner.phase = MT6797_A72_PHASE_IDLE;
++	a72_owner.provider_state = MT6797_A72_PROVIDER_NONE;
++	a72_owner.bootstrap_valid = 1;
++	a72_owner.members_valid = 1;
++	a72_owner.attempts_available = MT6797_A72_ATTEMPT_MASK;
++	raw_spin_unlock_irqrestore(&a72_state_lock, flags);
++	mutex_unlock(&a72_transition_lock);
++}
+ #endif
+diff --git a/arch/arm64/kernel/mt6797_a72_membership_test.c b/arch/arm64/kernel/mt6797_a72_membership_test.c
+index fd779fef3..5a756615c 100644
+--- a/arch/arm64/kernel/mt6797_a72_membership_test.c
++++ b/arch/arm64/kernel/mt6797_a72_membership_test.c
+@@ -29,6 +29,7 @@ mt6797_a72_entry_for_up(unsigned int cpu)
+ 	struct mt6797_a72_entry_snapshot entry = {
+ 		.cpuhp_state_cpu8 = CPUHP_OFFLINE,
+ 		.cpuhp_state_cpu9 = CPUHP_OFFLINE,
++		.observer_window = MT6797_A72_OBSERVER_WINDOW_OPEN,
+ 		.flags = MT6797_A72_ENTRY_CPU8_PRESENT |
+ 			 MT6797_A72_ENTRY_CPU9_PRESENT |
+ 			 MT6797_A72_ENTRY_CPU8_POSSIBLE |
+@@ -47,6 +48,15 @@ mt6797_a72_entry_for_up(unsigned int cpu)
+ 	return entry;
+ }
+ 
++static struct mt6797_a72_entry_snapshot
++mt6797_a72_entry_for_up_closed_window(unsigned int cpu)
++{
++	struct mt6797_a72_entry_snapshot entry = mt6797_a72_entry_for_up(cpu);
++
++	entry.observer_window = MT6797_A72_OBSERVER_WINDOW_CLOSED;
++	return entry;
++}
++
+ static void
+ owner_observe(struct owner_observation *observation)
+ {
+@@ -323,6 +333,72 @@ static void mt6797_a72_owner_entry_snapshot_gate(struct kunit *test)
+ 	expect_unchanged(test, &before, &after);
+ }
+ 
++static void mt6797_a72_owner_p31_consumes_once(struct kunit *test)
++{
++	struct owner_observation before;
++	struct owner_observation after;
++	struct mt6797_a72_entry_snapshot entry = mt6797_a72_entry_for_up(8);
++	struct mt6797_a72_entry_snapshot malformed = entry;
++	struct mt6797_a72_transaction transaction;
++	int difference;
++	int ret;
++
++	mt6797_a72_membership_test_seed_available();
++	owner_observe(&before);
++	ret = mt6797_a72_membership_begin_up(8, CPUHP_ONLINE,
++					     MT6797_A72_ATTEMPT_CPU8_UP,
++					     &entry, &transaction);
++	KUNIT_EXPECT_EQ(test, ret, -EOPNOTSUPP);
++	KUNIT_EXPECT_TRUE(test, mt6797_a72_transaction_empty(&transaction));
++	owner_observe(&after);
++	KUNIT_EXPECT_EQ(test, after.owner.health,
++			(u32)MT6797_A72_OWNER_AVAILABLE);
++	KUNIT_EXPECT_EQ(test, after.owner.phase,
++			(u32)MT6797_A72_PHASE_IDLE);
++	KUNIT_EXPECT_EQ(test, after.owner.attempts_available,
++			(u32)(MT6797_A72_ATTEMPT_MASK &
++			       ~MT6797_A72_ATTEMPT_CPU8_UP));
++	KUNIT_EXPECT_EQ(test, after.owner.attempts_consumed,
++			(u32)MT6797_A72_ATTEMPT_CPU8_UP);
++	difference = memcmp(&before.p30, &after.p30, sizeof(before.p30));
++	KUNIT_EXPECT_EQ(test, difference, 0);
++
++	ret = mt6797_a72_membership_begin_up(8, CPUHP_ONLINE,
++					     MT6797_A72_ATTEMPT_CPU8_UP,
++					     &entry, &transaction);
++	KUNIT_EXPECT_EQ(test, ret, -EALREADY);
++	KUNIT_EXPECT_TRUE(test, mt6797_a72_transaction_empty(&transaction));
++
++	malformed = mt6797_a72_entry_for_up(9);
++	malformed.members = 0;
++	ret = mt6797_a72_membership_begin_up(9, CPUHP_ONLINE,
++					     MT6797_A72_ATTEMPT_CPU9_UP,
++					     &malformed, &transaction);
++	KUNIT_EXPECT_EQ(test, ret, -EPERM);
++	owner_observe(&after);
++	KUNIT_EXPECT_EQ(test, after.owner.attempts_available,
++			(u32)(MT6797_A72_ATTEMPT_MASK &
++			       ~(MT6797_A72_ATTEMPT_CPU8_UP |
++				 MT6797_A72_ATTEMPT_CPU9_UP)));
++	KUNIT_EXPECT_EQ(test, after.owner.attempts_consumed,
++			(u32)(MT6797_A72_ATTEMPT_CPU8_UP |
++			       MT6797_A72_ATTEMPT_CPU9_UP));
++
++	entry = mt6797_a72_entry_for_up_closed_window(9);
++	ret = mt6797_a72_membership_begin_up(9, CPUHP_ONLINE,
++					     MT6797_A72_ATTEMPT_CPU9_UP,
++					     &entry, &transaction);
++	KUNIT_EXPECT_EQ(test, ret, -EPERM);
++	owner_observe(&after);
++	KUNIT_EXPECT_EQ(test, after.owner.attempts_available,
++			(u32)(MT6797_A72_ATTEMPT_MASK &
++			       ~(MT6797_A72_ATTEMPT_CPU8_UP |
++				 MT6797_A72_ATTEMPT_CPU9_UP)));
++	KUNIT_EXPECT_EQ(test, after.owner.attempts_consumed,
++			(u32)(MT6797_A72_ATTEMPT_CPU8_UP |
++			       MT6797_A72_ATTEMPT_CPU9_UP));
++}
++
+ static void mt6797_a72_owner_forged_token_rejected(struct kunit *test)
+ {
+ 	struct owner_observation before;
+@@ -374,6 +450,7 @@ static struct kunit_case mt6797_a72_owner_cases[] = {
+ 	KUNIT_CASE(mt6797_a72_owner_intermediate_target_invalid),
+ 	KUNIT_CASE(mt6797_a72_owner_repeat_is_diagnostic),
+ 	KUNIT_CASE(mt6797_a72_owner_entry_snapshot_gate),
++	KUNIT_CASE(mt6797_a72_owner_p31_consumes_once),
+ 	KUNIT_CASE(mt6797_a72_owner_forged_token_rejected),
+ 	KUNIT_CASE(mt6797_a72_owner_no_live_token),
+ 	{ }
+-- 
+2.50.1 (Apple Git-155)
+

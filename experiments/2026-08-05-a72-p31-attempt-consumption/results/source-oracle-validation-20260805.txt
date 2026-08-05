@@ -1,0 +1,8 @@
+claim=PARTIAL_P31_ATTEMPT_LEDGER
+probes=5
+closed_unchanged=1
+one_shot_consumption=2
+a28_rejection_preserves_consumption=1
+token_allocations=0
+p30_mutations=0
+status=PASS

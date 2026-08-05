@@ -1,0 +1,6 @@
+mutation=closed-window result=-EPERM
+mutation=wrong-attempt result=-EPERM
+mutation=a28-reject result=-EPERM
+mutation=already-consumed result=-EALREADY
+mutations_rejected=4/4
+status=PASS

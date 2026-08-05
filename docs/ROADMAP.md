@@ -1527,6 +1527,15 @@ caller, transaction success, P30 mutation, CPU_ON operation, build, package,
 candidate, or device result. This advances the source only to
 `PARTIAL_A28_READ_ONLY_ENTRY_GATE`.
 
+The next source-only
+[P31 attempt-ledger experiment](../experiments/2026-08-05-a72-p31-attempt-consumption/README.md)
+adds the one-shot boot-local attempt edge before A28. It requires the explicit
+observer window, consumes only the matching operation bit under the transition
+owner, and never rearms it after A28 rejection. The production owner remains
+closed, the test-only AVAILABLE seed is not an opener, and no token, P30,
+provider, CPUHP, CPU_ON, build, package, candidate, or device result exists.
+This advances the source only to `PARTIAL_P31_ATTEMPT_LEDGER`.
+
 P32A/D/F/X/R freezes the automatic rollback closure. The controller publishes
 P32 before `cpuhp_reset_state()` and the outer reverse range. Target
 `.cpu_disable` is the first guard before topology/NUMA removal, online clear,

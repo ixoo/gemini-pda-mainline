@@ -1,0 +1,13 @@
+validation=p31-attempt-ledger
+patch_sha256=8518993e00adb44f7b3afe737b4879e6a4477bbd89b3ab7fd9a9e01066eb5fc8
+patch_bytes=11454
+observer_window_required=1
+attempts_consumed=2
+a28_rejection_rearms=0
+production_callers=0
+token_allocations=0
+p30_mutations=0
+cpu_on_calls=0
+build=not-run
+device_action=none
+status=PASS
