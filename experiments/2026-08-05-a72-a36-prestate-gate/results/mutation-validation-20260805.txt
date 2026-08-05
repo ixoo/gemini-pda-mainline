@@ -1,0 +1,12 @@
+mutation=bad-abi result=-EPERM
+mutation=bad-operation result=-EPERM
+mutation=bad-mpidr result=-EPERM
+mutation=bad-entry result=-EPERM
+mutation=bad-generation result=-EPERM
+mutation=bad-cookie result=-EPERM
+mutation=bad-cpu8-spm result=-EPERM
+mutation=bad-cpu8-page result=-EPERM
+mutation=bad-cpu9-cluster result=-EPERM
+mutation=bad-watchdog result=-EPERM
+mutations_rejected=10/10
+status=PASS

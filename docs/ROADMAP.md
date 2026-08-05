@@ -1545,6 +1545,17 @@ P17/P18, call a provider, change CPUHP state, issue CPU_ON, build, package, or
 touch the device. This advances the source only to
 `PARTIAL_A36_FROZEN_TOKEN_MINT`.
 
+The follow-on source-only
+[A36 prestate-gate experiment](../experiments/2026-08-05-a72-a36-prestate-gate/README.md)
+validates the immutable operation-specific prestate after token minting. CPU8
+is bound to the exact one-way DA921x/SPM/PWRAP/DCM and observer-owner record;
+CPU9 is bound to the inherited CPU8 cluster/DCM state and empty shared-write
+set. Both require the exact generation, cookie, MPIDR, observer window, and
+physical `secondary_entry`; a mismatch retires the token as terminal
+`REJECTED` without rearming or producing hardware, P17/P18, provider, CPUHP,
+CPU_ON, build, package, candidate, or device effects. This advances the source
+only to `PARTIAL_A36_PRESTATE_GATE`.
+
 P32A/D/F/X/R freezes the automatic rollback closure. The controller publishes
 P32 before `cpuhp_reset_state()` and the outer reverse range. Target
 `.cpu_disable` is the first guard before topology/NUMA removal, online clear,

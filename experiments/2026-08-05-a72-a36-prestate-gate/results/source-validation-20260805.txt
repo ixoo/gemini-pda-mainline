@@ -1,0 +1,13 @@
+claim=PARTIAL_A36_PRESTATE_GATE
+source_commit=816311d70
+patch_sha256=1312a266dec50e38a982609510b20001168448ab8ff160c41f57e99f3752d24d
+patch_bytes=24834
+probes=2
+cpu8_valid=1
+cpu9_valid=1
+entry_pa_bound=1
+generation_cookie_bound=1
+checkpatch=only-intentional-missing-signoff
+hardware_access=0
+cpu_on_calls=0
+status=PASS
