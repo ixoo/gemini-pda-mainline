@@ -1,0 +1,12 @@
+claim=PARTIAL_P17_P18_PUBLICATION
+source_commit=07b50996f
+patch_sha256=cf793cb0f5cc3b81d7f71eb44163a0fc2a3a1a2e10fc4f0569234897caf24dbb
+patch_bytes=14015
+probes=2
+p17_cpu8=1
+p18_cpu9=1
+provider_calls=0
+cpu_on_calls=0
+phase_after=ON_ISSUED
+checkpatch=only-intentional-missing-signoff
+status=PASS

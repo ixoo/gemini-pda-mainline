@@ -1556,6 +1556,15 @@ physical `secondary_entry`; a mismatch retires the token as terminal
 CPU_ON, build, package, candidate, or device effects. This advances the source
 only to `PARTIAL_A36_PRESTATE_GATE`.
 
+The follow-on source-only
+[P17/P18 publication experiment](../experiments/2026-08-05-a72-p17-p18-publication/README.md)
+adds the pre-effect `ON_ISSUED` ledger edge. CPU8/P17 requires provider
+`NONE`; CPU9/P18 requires the exact durable M01 provider identity still
+`HELD`. The edge is one-shot and C-only: it does not call a provider, change
+CPUHP or membership, arm P30, issue CPU_ON, build, package, deploy, or touch
+the device. This advances the source only to
+`PARTIAL_P17_P18_PUBLICATION`.
+
 P32A/D/F/X/R freezes the automatic rollback closure. The controller publishes
 P32 before `cpuhp_reset_state()` and the outer reverse range. Target
 `.cpu_disable` is the first guard before topology/NUMA removal, online clear,

@@ -1,0 +1,10 @@
+mutation=a36-missing result=-EPERM
+mutation=wrong-phase result=-EPERM
+mutation=duplicate-p17 result=-EPERM
+mutation=p17-provider-held result=-EPERM
+mutation=p18-provider-none result=-EPERM
+mutation=p18-provider-generation result=-EPERM
+mutation=p18-provider-cookie result=-EPERM
+mutation=wrong-operation result=-EPERM
+mutations_rejected=8/8
+status=PASS
