@@ -1,0 +1,9 @@
+mutation=attempt result=-EPERM
+mutation=members result=-EPERM
+mutation=provider result=-EPERM
+mutation=online result=-EPERM
+mutation=flags result=-EPERM
+mutation=cpuhp result=-EPERM
+mutation=mpidr result=-EPERM
+mutations_rejected=7/7
+status=PASS

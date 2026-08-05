@@ -1,0 +1,5 @@
+claim=PARTIAL_A28_READ_ONLY_ENTRY_GATE
+probes=6
+valid_tuples=2
+state_mutations=0
+status=PASS

@@ -1,0 +1,11 @@
+source_git_diff_check=PASS
+manifest_series_validation=PASS
+oracle=PASS
+mutation_runner=PASS
+checkpatch_errors=1-expected-missing-signoff
+checkpatch_warnings=0
+checkpatch_checks=13-style-alignment
+signoff=absent-by-design-experiment-only
+kernel_build=not-run-by-policy
+kunit=not-built-or-run
+device_action=none

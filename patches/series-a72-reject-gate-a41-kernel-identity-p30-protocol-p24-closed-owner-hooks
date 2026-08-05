@@ -106,3 +106,4 @@ v7.1.3/0157-arm64-bind-late-CPU-profile-to-kernel-identity.patch
 v7.1.3/0158-arm64-add-dormant-late-CPU-startup-arbitration.patch
 v7.1.3/0159-arm64-add-closed-A72-transaction-owner-model.patch
 v7.1.3/0160-cpu-add-closed-arm64-CPU-up-admission-hooks.patch
+v7.1.3/0161-arm64-add-read-only-A28-entry-admission-gate.patch

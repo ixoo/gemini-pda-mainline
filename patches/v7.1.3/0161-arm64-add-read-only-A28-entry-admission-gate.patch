@@ -1,0 +1,358 @@
+From 351b772019a6f4818d7327ccbf014237e81c258e Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 5 Aug 2026 18:44:44 -0400
+Subject: [PATCH] arm64: add read-only A28 entry admission gate
+
+Validate exact A28 CPU8/CPU9 entry snapshots before the dormant owner path.
+
+Keep the check read-only and lifecycle-closed. Exercise valid tuples and targeted mutations without consuming P31 attempts or changing owner/P30 state.
+
+This experiment-only change has no production caller, success path, CPU_ON operation, build, or device claim and is not submission-ready.
+---
+ .../arm64/include/asm/mt6797_a72_membership.h |  27 ++++
+ arch/arm64/kernel/mt6797_a72_membership.c     |  58 +++++++-
+ .../arm64/kernel/mt6797_a72_membership_test.c | 126 +++++++++++++++++-
+ 3 files changed, 201 insertions(+), 10 deletions(-)
+
+diff --git a/arch/arm64/include/asm/mt6797_a72_membership.h b/arch/arm64/include/asm/mt6797_a72_membership.h
+index 0a39957d6..b78099cea 100644
+--- a/arch/arm64/include/asm/mt6797_a72_membership.h
++++ b/arch/arm64/include/asm/mt6797_a72_membership.h
+@@ -80,6 +80,13 @@ enum mt6797_a72_owner_fault {
+ #define MT6797_A72_ATTEMPT_CPU8_LAST_OFF BIT(3)
+ #define MT6797_A72_ATTEMPT_MASK GENMASK(3, 0)
+ 
++/* Exact generic A28 entry snapshot bits; no bit is a capability. */
++#define MT6797_A72_ENTRY_CPU8_PRESENT BIT(0)
++#define MT6797_A72_ENTRY_CPU9_PRESENT BIT(1)
++#define MT6797_A72_ENTRY_CPU8_POSSIBLE BIT(2)
++#define MT6797_A72_ENTRY_CPU9_POSSIBLE BIT(3)
++#define MT6797_A72_ENTRY_FLAGS_MASK GENMASK(3, 0)
++
+ /* Diagnostic only: this non-exhaustive list can never authorize a request. */
+ #define MT6797_A72_BLOCK_A34_BOOTSTRAP BIT_ULL(0)
+ #define MT6797_A72_BLOCK_A41_READY BIT_ULL(1)
+@@ -177,7 +184,12 @@ struct mt6797_a72_owner_snapshot {
+ #ifdef CONFIG_ARM64_MT6797_A72_P24_TRANSACTION_OWNER_MODEL
+ int
+ mt6797_a72_membership_begin_up(unsigned int cpu, enum cpuhp_state target,
++			       u32 attempt,
++			       const struct mt6797_a72_entry_snapshot *entry,
+ 			       struct mt6797_a72_transaction *transaction);
++int mt6797_a72_membership_validate_entry(unsigned int cpu,
++					 enum cpuhp_state target, u32 attempt,
++					 const struct mt6797_a72_entry_snapshot *entry);
+ int mt6797_a72_membership_preflight_up(unsigned int cpu,
+ 				       enum cpuhp_state target);
+ int mt6797_a72_membership_validate_up(unsigned int cpu, int tasks_frozen,
+@@ -189,13 +201,28 @@ void mt6797_a72_membership_snapshot(struct mt6797_a72_owner_snapshot *snapshot);
+ #else
+ static inline int
+ mt6797_a72_membership_begin_up(unsigned int cpu, enum cpuhp_state target,
++			       u32 attempt,
++			       const struct mt6797_a72_entry_snapshot *entry,
+ 			       struct mt6797_a72_transaction *transaction)
+ {
++	(void)attempt;
++	(void)entry;
+ 	if (transaction)
+ 		memset(transaction, 0, sizeof(*transaction));
+ 	return -EOPNOTSUPP;
+ }
+ 
++static inline int mt6797_a72_membership_validate_entry(unsigned int cpu,
++						 enum cpuhp_state target, u32 attempt,
++						 const struct mt6797_a72_entry_snapshot *entry)
++{
++	(void)cpu;
++	(void)target;
++	(void)attempt;
++	(void)entry;
++	return -EOPNOTSUPP;
++}
++
+ static inline int
+ mt6797_a72_membership_preflight_up(unsigned int cpu, enum cpuhp_state target)
+ {
+diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt6797_a72_membership.c
+index 1ae49b7b5..315260a5a 100644
+--- a/arch/arm64/kernel/mt6797_a72_membership.c
++++ b/arch/arm64/kernel/mt6797_a72_membership.c
+@@ -116,11 +116,60 @@ int mt6797_a72_membership_validate_up(unsigned int cpu, int tasks_frozen,
+ 	return mt6797_a72_membership_check_up(cpu, tasks_frozen, target);
+ }
+ 
++int mt6797_a72_membership_validate_entry(unsigned int cpu,
++					 enum cpuhp_state target, u32 attempt,
++					 const struct mt6797_a72_entry_snapshot *entry)
++{
++	enum mt6797_a72_membership_operation operation;
++	u32 expected_attempt;
++	u32 expected_members;
++	u32 expected_provider;
++	u32 expected_online;
++	u32 expected_cpu8_state;
++
++	if (!entry || target != CPUHP_ONLINE)
++		return -EINVAL;
++	/* P31 owns attempt consumption; this A28 check is read-only. */
++
++	operation = mt6797_a72_up_operation(cpu);
++	switch (operation) {
++	case MT6797_A72_OPERATION_CPU8_UP:
++		expected_attempt = MT6797_A72_ATTEMPT_CPU8_UP;
++		expected_members = 0;
++		expected_provider = MT6797_A72_PROVIDER_NONE;
++		expected_online = 0;
++		expected_cpu8_state = CPUHP_OFFLINE;
++		break;
++	case MT6797_A72_OPERATION_CPU9_UP:
++		expected_attempt = MT6797_A72_ATTEMPT_CPU9_UP;
++		expected_members = BIT(0);
++		expected_provider = MT6797_A72_PROVIDER_HELD;
++		expected_online = BIT(0);
++		expected_cpu8_state = CPUHP_ONLINE;
++		break;
++	default:
++		return -EINVAL;
++	}
++
++	if (attempt != expected_attempt ||
++	    entry->flags != MT6797_A72_ENTRY_FLAGS_MASK ||
++	    entry->members != expected_members ||
++	    entry->provider_state != expected_provider ||
++	    entry->online_mask != expected_online ||
++	    entry->cpuhp_state_cpu8 != expected_cpu8_state ||
++	    entry->cpuhp_state_cpu9 != CPUHP_OFFLINE ||
++	    entry->cpu8_mpidr != 0x200 || entry->cpu9_mpidr != 0x201)
++		return -EPERM;
++
++	return 0;
++}
++
+ int
+ mt6797_a72_membership_begin_up(unsigned int cpu, enum cpuhp_state target,
++			       u32 attempt,
++			       const struct mt6797_a72_entry_snapshot *entry,
+ 			       struct mt6797_a72_transaction *transaction)
+ {
+-	enum mt6797_a72_membership_operation operation;
+ 	unsigned long flags;
+ 	int ret;
+ 
+@@ -128,9 +177,10 @@ mt6797_a72_membership_begin_up(unsigned int cpu, enum cpuhp_state target,
+ 		return -EINVAL;
+ 	memset(transaction, 0, sizeof(*transaction));
+ 
+-	operation = mt6797_a72_up_operation(cpu);
+-	if (operation == MT6797_A72_OPERATION_NONE || target != CPUHP_ONLINE)
+-		return -EINVAL;
++	ret = mt6797_a72_membership_validate_entry(cpu, target, attempt,
++						   entry);
++	if (ret)
++		return ret;
+ 
+ 	/*
+ 	 * There is intentionally no production CLOSED -> AVAILABLE writer.
+diff --git a/arch/arm64/kernel/mt6797_a72_membership_test.c b/arch/arm64/kernel/mt6797_a72_membership_test.c
+index 130ce74b5..fd779fef3 100644
+--- a/arch/arm64/kernel/mt6797_a72_membership_test.c
++++ b/arch/arm64/kernel/mt6797_a72_membership_test.c
+@@ -23,6 +23,30 @@ mt6797_a72_transaction_empty(const struct mt6797_a72_transaction *transaction)
+ 	return !memcmp(transaction, &empty, sizeof(empty));
+ }
+ 
++static struct mt6797_a72_entry_snapshot
++mt6797_a72_entry_for_up(unsigned int cpu)
++{
++	struct mt6797_a72_entry_snapshot entry = {
++		.cpuhp_state_cpu8 = CPUHP_OFFLINE,
++		.cpuhp_state_cpu9 = CPUHP_OFFLINE,
++		.flags = MT6797_A72_ENTRY_CPU8_PRESENT |
++			 MT6797_A72_ENTRY_CPU9_PRESENT |
++			 MT6797_A72_ENTRY_CPU8_POSSIBLE |
++			 MT6797_A72_ENTRY_CPU9_POSSIBLE,
++		.cpu8_mpidr = 0x200,
++		.cpu9_mpidr = 0x201,
++	};
++
++	if (cpu == 9) {
++		entry.members = BIT(0);
++		entry.provider_state = MT6797_A72_PROVIDER_HELD;
++		entry.online_mask = BIT(0);
++		entry.cpuhp_state_cpu8 = CPUHP_ONLINE;
++	}
++
++	return entry;
++}
++
+ static void
+ owner_observe(struct owner_observation *observation)
+ {
+@@ -100,12 +124,15 @@ static void mt6797_a72_owner_cpu8_denied(struct kunit *test)
+ {
+ 	struct owner_observation before;
+ 	struct owner_observation after;
++	struct mt6797_a72_entry_snapshot entry = mt6797_a72_entry_for_up(8);
+ 	struct mt6797_a72_transaction transaction;
+ 	int ret;
+ 
+ 	owner_observe(&before);
+ 	memset(&transaction, 0xa5, sizeof(transaction));
+-	ret = mt6797_a72_membership_begin_up(8, CPUHP_ONLINE, &transaction);
++	ret = mt6797_a72_membership_begin_up(8, CPUHP_ONLINE,
++					     MT6797_A72_ATTEMPT_CPU8_UP,
++					     &entry, &transaction);
+ 	KUNIT_EXPECT_EQ(test, ret, -EAGAIN);
+ 	KUNIT_EXPECT_TRUE(test, mt6797_a72_transaction_empty(&transaction));
+ 	owner_observe(&after);
+@@ -116,12 +143,15 @@ static void mt6797_a72_owner_cpu9_denied(struct kunit *test)
+ {
+ 	struct owner_observation before;
+ 	struct owner_observation after;
++	struct mt6797_a72_entry_snapshot entry = mt6797_a72_entry_for_up(9);
+ 	struct mt6797_a72_transaction transaction;
+ 	int ret;
+ 
+ 	owner_observe(&before);
+ 	memset(&transaction, 0x5a, sizeof(transaction));
+-	ret = mt6797_a72_membership_begin_up(9, CPUHP_ONLINE, &transaction);
++	ret = mt6797_a72_membership_begin_up(9, CPUHP_ONLINE,
++					     MT6797_A72_ATTEMPT_CPU9_UP,
++					     &entry, &transaction);
+ 	KUNIT_EXPECT_EQ(test, ret, -EAGAIN);
+ 	KUNIT_EXPECT_TRUE(test, mt6797_a72_transaction_empty(&transaction));
+ 	owner_observe(&after);
+@@ -179,7 +209,8 @@ static void mt6797_a72_owner_non_target_invalid(struct kunit *test)
+ 	struct mt6797_a72_transaction transaction;
+ 	int ret;
+ 
+-	ret = mt6797_a72_membership_begin_up(7, CPUHP_ONLINE, &transaction);
++	ret = mt6797_a72_membership_begin_up(7, CPUHP_ONLINE, 0, NULL,
++					     &transaction);
+ 	KUNIT_EXPECT_EQ(test, ret, -EINVAL);
+ 	KUNIT_EXPECT_TRUE(test, mt6797_a72_transaction_empty(&transaction));
+ }
+@@ -189,7 +220,8 @@ static void mt6797_a72_owner_intermediate_target_invalid(struct kunit *test)
+ 	struct mt6797_a72_transaction transaction;
+ 	int ret;
+ 
+-	ret = mt6797_a72_membership_begin_up(8, CPUHP_AP_ONLINE, &transaction);
++	ret = mt6797_a72_membership_begin_up(8, CPUHP_AP_ONLINE, 0, NULL,
++					     &transaction);
+ 	KUNIT_EXPECT_EQ(test, ret, -EINVAL);
+ 	KUNIT_EXPECT_TRUE(test, mt6797_a72_transaction_empty(&transaction));
+ }
+@@ -198,18 +230,99 @@ static void mt6797_a72_owner_repeat_is_diagnostic(struct kunit *test)
+ {
+ 	struct owner_observation before;
+ 	struct owner_observation after;
++	struct mt6797_a72_entry_snapshot entry = mt6797_a72_entry_for_up(8);
+ 	struct mt6797_a72_transaction transaction;
+ 	int ret;
+ 
+ 	owner_observe(&before);
+-	ret = mt6797_a72_membership_begin_up(8, CPUHP_ONLINE, &transaction);
++	ret = mt6797_a72_membership_begin_up(8, CPUHP_ONLINE,
++					     MT6797_A72_ATTEMPT_CPU8_UP,
++					     &entry, &transaction);
+ 	KUNIT_EXPECT_EQ(test, ret, -EAGAIN);
+-	ret = mt6797_a72_membership_begin_up(8, CPUHP_ONLINE, &transaction);
++	ret = mt6797_a72_membership_begin_up(8, CPUHP_ONLINE,
++					     MT6797_A72_ATTEMPT_CPU8_UP,
++					     &entry, &transaction);
+ 	KUNIT_EXPECT_EQ(test, ret, -EAGAIN);
+ 	owner_observe(&after);
+ 	expect_unchanged(test, &before, &after);
+ }
+ 
++static void mt6797_a72_owner_entry_snapshot_gate(struct kunit *test)
++{
++	const struct mt6797_a72_entry_snapshot cpu8 =
++		mt6797_a72_entry_for_up(8);
++	const struct mt6797_a72_entry_snapshot cpu9 =
++		mt6797_a72_entry_for_up(9);
++	struct owner_observation before;
++	struct owner_observation after;
++	struct mt6797_a72_entry_snapshot mutated;
++
++	owner_observe(&before);
++	KUNIT_EXPECT_EQ(test,
++			mt6797_a72_membership_validate_entry(8, CPUHP_ONLINE,
++				MT6797_A72_ATTEMPT_CPU8_UP,
++				&cpu8), 0);
++	KUNIT_EXPECT_EQ(test,
++			mt6797_a72_membership_validate_entry(9, CPUHP_ONLINE,
++				MT6797_A72_ATTEMPT_CPU9_UP,
++				&cpu9), 0);
++
++	mutated = cpu8;
++	mutated.members = BIT(0);
++	KUNIT_EXPECT_EQ(test,
++			mt6797_a72_membership_validate_entry(8, CPUHP_ONLINE,
++				MT6797_A72_ATTEMPT_CPU8_UP,
++				&mutated), -EPERM);
++	mutated = cpu8;
++	mutated.provider_state = MT6797_A72_PROVIDER_HELD;
++	KUNIT_EXPECT_EQ(test,
++			mt6797_a72_membership_validate_entry(8, CPUHP_ONLINE,
++				MT6797_A72_ATTEMPT_CPU8_UP,
++				&mutated), -EPERM);
++	mutated = cpu9;
++	mutated.online_mask = 0;
++	KUNIT_EXPECT_EQ(test,
++			mt6797_a72_membership_validate_entry(9, CPUHP_ONLINE,
++				MT6797_A72_ATTEMPT_CPU9_UP,
++				&mutated), -EPERM);
++	mutated = cpu8;
++	mutated.flags &= ~MT6797_A72_ENTRY_CPU9_POSSIBLE;
++	KUNIT_EXPECT_EQ(test,
++			mt6797_a72_membership_validate_entry(8, CPUHP_ONLINE,
++				MT6797_A72_ATTEMPT_CPU8_UP,
++				&mutated), -EPERM);
++	mutated = cpu8;
++	mutated.cpuhp_state_cpu8 = CPUHP_ONLINE;
++	KUNIT_EXPECT_EQ(test,
++			mt6797_a72_membership_validate_entry(8, CPUHP_ONLINE,
++				MT6797_A72_ATTEMPT_CPU8_UP,
++				&mutated), -EPERM);
++	mutated = cpu8;
++	mutated.cpu9_mpidr = 0x301;
++	KUNIT_EXPECT_EQ(test,
++			mt6797_a72_membership_validate_entry(8, CPUHP_ONLINE,
++				MT6797_A72_ATTEMPT_CPU8_UP,
++				&mutated), -EPERM);
++	KUNIT_EXPECT_EQ(test,
++			mt6797_a72_membership_validate_entry(8, CPUHP_ONLINE,
++				MT6797_A72_ATTEMPT_CPU9_UP,
++				&cpu8), -EPERM);
++	KUNIT_EXPECT_EQ(test,
++			mt6797_a72_membership_validate_entry(8, CPUHP_AP_ONLINE,
++				MT6797_A72_ATTEMPT_CPU8_UP,
++				&cpu8), -EINVAL);
++	KUNIT_EXPECT_EQ(test,
++			mt6797_a72_membership_validate_entry(7, CPUHP_ONLINE,
++				MT6797_A72_ATTEMPT_CPU8_UP,
++				&cpu8), -EINVAL);
++	KUNIT_EXPECT_EQ(test,
++			mt6797_a72_membership_validate_entry(8, CPUHP_ONLINE,
++				MT6797_A72_ATTEMPT_CPU8_UP,
++				NULL), -EINVAL);
++	owner_observe(&after);
++	expect_unchanged(test, &before, &after);
++}
++
+ static void mt6797_a72_owner_forged_token_rejected(struct kunit *test)
+ {
+ 	struct owner_observation before;
+@@ -260,6 +373,7 @@ static struct kunit_case mt6797_a72_owner_cases[] = {
+ 	KUNIT_CASE(mt6797_a72_owner_non_target_invalid),
+ 	KUNIT_CASE(mt6797_a72_owner_intermediate_target_invalid),
+ 	KUNIT_CASE(mt6797_a72_owner_repeat_is_diagnostic),
++	KUNIT_CASE(mt6797_a72_owner_entry_snapshot_gate),
+ 	KUNIT_CASE(mt6797_a72_owner_forged_token_rejected),
+ 	KUNIT_CASE(mt6797_a72_owner_no_live_token),
+ 	{ }
+-- 
+2.50.1 (Apple Git-155)
+

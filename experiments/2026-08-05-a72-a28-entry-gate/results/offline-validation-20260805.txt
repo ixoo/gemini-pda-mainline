@@ -1,0 +1,12 @@
+validation=a28-read-only-entry-gate
+patch_sha256=469928fc12f0d018de2b012d6047240dabe31366f5e0dabed34e3ce7d096cdd2
+patch_bytes=13092
+valid_tuples=2
+mutations_rejected=7/7
+production_callers=0
+attempt_consumption=0
+p30_mutations=0
+cpu_on_calls=0
+build=not-run
+device_action=none
+status=PASS

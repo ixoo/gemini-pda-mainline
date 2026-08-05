@@ -1517,6 +1517,16 @@ boot and disable vetoes remain independent backstops. This advances the source
 only to `PARTIAL_P24_CLOSED_ADMISSION_HOOKS`. It is not P17, P18, P24, a
 kernel build, or runtime CPU admission.
 
+The follow-on source-only
+[A28 read-only entry-gate experiment](../experiments/2026-08-05-a72-a28-entry-gate/README.md)
+adds an exact validator for the CPU8 and CPU9 entry snapshots: attempt
+identity, presence/possible bits, membership, provider, online mask, CPUHP
+state, and MPIDR. It is read-only and leaves the owner and dormant P30 state
+unchanged. P31 still owns attempt consumption, and there is no production
+caller, transaction success, P30 mutation, CPU_ON operation, build, package,
+candidate, or device result. This advances the source only to
+`PARTIAL_A28_READ_ONLY_ENTRY_GATE`.
+
 P32A/D/F/X/R freezes the automatic rollback closure. The controller publishes
 P32 before `cpuhp_reset_state()` and the outer reverse range. Target
 `.cpu_disable` is the first guard before topology/NUMA removal, online clear,
