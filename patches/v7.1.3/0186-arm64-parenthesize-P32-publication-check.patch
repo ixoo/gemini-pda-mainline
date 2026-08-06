@@ -1,0 +1,26 @@
+From 0000000000000000000000000000000000000186 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 6 Aug 2026 00:00:00 -0400
+Subject: [PATCH] arm64: parenthesize P32 publication check
+
+Make the CPU-range and error test explicit in the dormant P32 publication
+guard so the compiler cannot infer an unintended precedence relationship.
+
+This experiment-only change has no certifying sign-off and is not
+submission-ready.
+---
+ arch/arm64/kernel/mt6797_a72_membership.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt6797_a72_membership.c
+--- a/arch/arm64/kernel/mt6797_a72_membership.c
++++ b/arch/arm64/kernel/mt6797_a72_membership.c
+@@ -174,5 +174,5 @@ int mt6797_a72_membership_publish_p32(unsigned int cpu,
+ 	int ret = -EPERM;
+ 
+-	if (cpu != 8 && cpu != 9 || !error)
++	if ((cpu != 8 && cpu != 9) || !error)
+ 		return -EINVAL;
+ 
+--
+2.50.1
