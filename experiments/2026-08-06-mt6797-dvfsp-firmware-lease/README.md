@@ -92,6 +92,7 @@ be copied directly into a mainline failure/PM path.
 - [State-owner transition-hold Buildbox validation](results/state-owner-transition-hold-buildbox-20260806.txt)
 - [Bounded PCM adapter admission model](results/pcm-adapter-model-20260806.txt)
 - [Bounded PCM admission shell Buildbox validation](results/pcm-adapter-shell-buildbox-20260806.txt)
+- [Protected state-owner identity Buildbox validation](results/state-owner-identity-buildbox-20260806.txt)
 - [Mainline clock/state-owner inventory](results/mainline-clock-owner-inventory-20260806.txt)
 - [Current-head bfd04ae full-profile Buildbox resume](results/current-head-bfd04ae-full-buildbox-20260806.txt)
 - [Receiver register-window identity reconciliation](results/receiver-register-identity-20260806.txt)
@@ -204,3 +205,16 @@ The next discriminator remains the real protected MCUMIXED/DVFSP and BigiDVFS
 startup-state owner. Only after that owner is independently reviewed can the
 external callbacks be bound and the PCM image/residency/start and runtime
 lease path be tested.
+
+Patch `0195` now adds an exact, default-off identity gate for that owner. The
+pushed commit `5e94f04` applied all 184 series entries on Buildbox, compiled
+the full profile, produced 119 DTBs, passed package checksums, and fetched the
+validated package locally. It requires the MCUMIXED/DVFSP CPU-PLL backend and
+the separate BigiDVFS secure backend, with the complete resource mask and a
+nonzero owner handle; the owner remains unregistered and no provider or MMIO
+path is enabled. See the [protected identity Buildbox result](results/state-owner-identity-buildbox-20260806.txt).
+
+The next real gate is still a reviewed implementation of the protected
+MCUMIXED/DVFSP and BigiDVFS startup-state owner. Only after that owner is
+independently reviewed can callbacks be bound and the PCM
+image/residency/start and runtime lease path be tested.

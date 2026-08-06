@@ -1838,6 +1838,17 @@ The next ordered work remains source-only:
    startup-state owner; only after that is independently reviewed may the
    external callbacks be bound and PCM image residency/start and runtime lease
    evidence be collected.
+   Patch `0195` now makes the owner identity prerequisite exact and
+   default-off: registration must identify both the MCUMIXED/DVFSP CPU-PLL
+   backend and the separate BigiDVFS secure backend, claim the complete
+   protected resource mask, and return a nonzero owner handle. The full
+   184-entry series and package passed Buildbox at commit `5e94f04`; the
+   owner remains unregistered, with no provider, MMIO, firmware start, or
+   device action. See the [protected identity Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/state-owner-identity-buildbox-20260806.txt).
+   The next ordered step is to implement and independently review those two
+   protected startup-state backends, including authoritative OPP/frequency/
+   voltage/VSRAM capture and transition ownership, before binding callbacks or
+   admitting PCM image residency/start.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and

@@ -1,0 +1,58 @@
+# Protected MT6797 state-owner identity Buildbox validation
+
+Date: 2026-08-06 America/New_York
+
+claim=COMPILE_ONLY_PROTECTED_STATE_OWNER_IDENTITY
+repository_commit=5e94f04a7be68a20c45b27e0743ac88da42fb4a4
+origin=https://github.com/ixoo/gemini-pda-mainline.git
+build_backend=buildbox
+buildbox_job=5e94f04a7be68a20c45b27e0743ac88da42fb4a4-full-m0
+buildbox_status=validated
+artifact=linux-7.1.3-gemini-995a08e97932
+kernel_release=7.1.3-gemini
+build_profile=full
+generated_utc=2026-08-06T18:23:32Z
+patch_count=184
+patch_series=patches/series
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=995a08e97932735bd20c2b969c032f0ea19d3cb90acc857af59159afda56cbe4
+config_inputs_sha256=501347b25c258f3e7f4070c7d83419e7d23357f496d80e30ea53d037ff456660
+config_sha256=1ebe807ccec725fd35ac4c75609632a89ef0f82ad9b8e258d1b1bc78dddf02ad
+config_fragment_count=1
+modules_built=false
+build_architecture=x86_64
+target_architecture=arm64
+toolchain_mode=cross
+compiler=aarch64-linux-gnu-gcc_(Debian_12.2.0-14)_12.2.0
+linker=GNU_ld_(GNU_Binutils_for_Debian)_2.40
+dtb_count=119
+sha256sums=passed
+hardware_write=none
+device_action=none
+package_fetch=success;validated_package_only
+local_package=artifacts/buildbox/5e94f04a7be68a20c45b27e0743ac88da42fb4a4/linux-7.1.3-gemini-995a08e97932
+
+Image_sha256=34eb847a18e7d0d78ffc5a20d117822191bfae0bd9370554db7531837cfda2f4
+Image_gz_sha256=9f1266e11deb800802b14b0301adac0f29d524e8f5405d5bacc8da4f71d5f58b
+System_map_sha256=72f0133ab141b48527775daa58434cdb8d834dea5269a76a7a3fb60f87dae655
+gemini_dtb_sha256=e2424e337a30dbc112496ae841bde655058c01d79cd399f2d518154d5faba60c
+kernel_config_sha256=1ebe807ccec725fd35ac4c75609632a89ef0f82ad9b8e258d1b1bc78dddf02ad
+build_provenance_sha256=816dcf9dba14194b7567d6c19d6c810717c9d3457430494b787c12248d11a57b
+sha256sums_manifest_sha256=7e81bde3833951a7fb5ae38af0436d1b3172645976016d8ed3597a2c54d1cd58
+
+state_owner_identity=0195;default_off;exact_mcumixed_dvfsp_and_bigidvfs;registered_owner=0;no_provider;no_mmio
+pcm_adapter_shell=0194;default_off;registered_adapter=0;no_provider;no_mmio;no_transition
+hardware_support_claim=NONE
+boot_candidate=false
+
+The exact pushed revision applied all 184 entries in the selected series,
+including 0195, compiled the full arm64 profile, produced 119 DTBs, and
+passed package SHA-256 validation. The single validated package was fetched
+locally.
+
+This is compile-only source evidence for the protected identity gate. It
+requires an owner to identify both exact protected domains: the
+MCUMIXED/DVFSP CPU-PLL backend and the BigiDVFS secure backend, with the
+complete resource mask and a nonzero opaque handle. No provider is
+registered, no callback is bound, no PCM image is loaded or started, no
+MMIO/secure-monitor path is enabled, and the device was not touched.

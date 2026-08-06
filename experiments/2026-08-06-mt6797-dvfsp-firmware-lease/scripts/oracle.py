@@ -20,6 +20,7 @@ ADAPTER_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-adapter-mode
 CLOCK_RESULT = Path(__file__).resolve().parents[1] / "results/mainline-clock-owner-inventory-20260806.txt"
 BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-transition-hold-buildbox-20260806.txt"
 ADAPTER_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-adapter-shell-buildbox-20260806.txt"
+IDENTITY_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-identity-buildbox-20260806.txt"
 
 
 def require(text: str, needle: str, label: str) -> None:
@@ -42,6 +43,7 @@ def main() -> None:
     clock_result = CLOCK_RESULT.read_text()
     build_result = BUILD_RESULT.read_text()
     adapter_build_result = ADAPTER_BUILD_RESULT.read_text()
+    identity_build_result = IDENTITY_BUILD_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     names = [Path(line).name for line in SERIES.read_text().splitlines()
@@ -260,6 +262,24 @@ def main() -> None:
         require(adapter_build_result, needle, label)
 
     for needle, label in (
+        ("claim=COMPILE_ONLY_PROTECTED_STATE_OWNER_IDENTITY", "identity-build-claim"),
+        ("repository_commit=5e94f04a7be68a20c45b27e0743ac88da42fb4a4", "identity-build-commit"),
+        ("origin=https://github.com/ixoo/gemini-pda-mainline.git", "identity-build-origin"),
+        ("build_backend=buildbox", "identity-build-backend"),
+        ("buildbox_status=validated", "identity-build-status"),
+        ("patch_count=184", "identity-build-patch-count"),
+        ("artifact=linux-7.1.3-gemini-995a08e97932", "identity-build-artifact"),
+        ("dtb_count=119", "identity-build-dtb-count"),
+        ("sha256sums=passed", "identity-build-checksums"),
+        ("package_fetch=success;validated_package_only", "identity-build-fetch"),
+        ("state_owner_identity=0195;default_off;exact_mcumixed_dvfsp_and_bigidvfs;registered_owner=0;no_provider;no_mmio", "identity-build-gate"),
+        ("hardware_write=none", "identity-build-no-write"),
+        ("device_action=none", "identity-build-no-device"),
+        ("boot_candidate=false", "identity-build-not-candidate"),
+    ):
+        require(identity_build_result, needle, label)
+
+    for needle, label in (
         ("claim=PUBLIC_GEMIAN_HYBRID_DVFSP_OWNER_REVALIDATED", "owner-claim"),
         ("source_commit=8cfe6596a503612e3332d9c26e292a19525a7f07", "owner-source"),
         ("source_license_basis=repository_COPYING_and_LICENSE_GPLv2;hybrid_header_GPLv2", "owner-license"),
@@ -313,6 +333,7 @@ def main() -> None:
     print("state_owner_buildbox=validated;transition_hold_compile_only;boot_candidate=false")
     print("pcm_adapter_shell=0194;default_off;registered_adapter=0;no_provider;no_mmio;transition_order_enforced")
     print("state_owner_identity=0195;default_off;exact_mcumixed_dvfsp_and_bigidvfs;registered_owner=0;no_provider;no_mmio")
+    print("state_owner_identity_buildbox=validated;compile_only;registered_owner=0;no_provider;no_mmio;boot_candidate=false")
     print("pcm_adapter_contract=source-only;bounded-admission-model;callback-registration-gated")
     print("clock_owner_inventory=generic_ccf_only;protected_owner_absent;A72_observer_read_only")
     print("pcm_start_contract=defined;residency_and_start_required_before_callback_registration")
