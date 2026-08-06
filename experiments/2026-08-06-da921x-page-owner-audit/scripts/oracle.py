@@ -18,6 +18,7 @@ MANIFEST = ROOT / "kernel/manifest.json"
 CORE_DISPATCH = Path(__file__).resolve().parents[1] / "results/i2c-core-dispatch-20260806.txt"
 DVFSP_LEASE = Path(__file__).resolve().parents[1] / "results/dvfsp-lease-audit-20260806.txt"
 BUILDBOX_LEASE = Path(__file__).resolve().parents[1] / "results/buildbox-transfer-lease-20260806.txt"
+FIRMWARE_LEASE = Path(__file__).resolve().parents[1] / "results/firmware-owner-lease-20260806.txt"
 LEDGER = Path(__file__).resolve().parents[1] / "results/source-audit.tsv"
 RECONCILIATION = Path(__file__).resolve().parents[1] / "results/source-reconciliation-20260806.txt"
 CROSSCHECK = ROOT / "experiments/2026-07-23-da9214-resource-only/results/da9214-datasheet-crosscheck-20260723.txt"
@@ -44,6 +45,7 @@ def main() -> None:
     core_dispatch = CORE_DISPATCH.read_text()
     dvfsp_lease = DVFSP_LEASE.read_text()
     buildbox_lease = BUILDBOX_LEASE.read_text()
+    firmware_lease = FIRMWARE_LEASE.read_text()
     ledger = LEDGER.read_text()
     reconciliation = RECONCILIATION.read_text()
     crosscheck = CROSSCHECK.read_text()
@@ -122,6 +124,17 @@ def main() -> None:
         ("status=PASS_BUILDBOX_TRANSFER_LEASE", "buildbox-status"),
     ):
         require(buildbox_lease, needle, label)
+    for needle, label in (
+        ("vendor_user=SEMA_I2C_DRV;enum_user=1", "firmware-user"),
+        ("vendor_pause_source=PAUSE_I2CDRV;pause_map_bit=0x2", "firmware-pause-source"),
+        ("vendor_acquire_success=drop_DVFSP_prepared_I2C_APPM_reference;record_pause_map_bit", "firmware-clock-release"),
+        ("external_writer_audit=negative_for_direct_PCM_restart_writer_in_retained_LK_TEE_SCP_payloads", "firmware-writer-audit"),
+        ("mainline_firmware_lease=unproven", "firmware-lease-gap"),
+        ("required_closure=receiver-side_stopped-state_and_clock_validation;explicit_external-owner-proof;sticky-fault_and_resume-revalidation", "firmware-closure"),
+        ("decision=BLOCK_WRITABLE_PROVIDER", "firmware-decision"),
+        ("status=PASS_FIRMWARE_LEASE_RECONCILIATION_NEGATIVE", "firmware-status"),
+    ):
+        require(firmware_lease, needle, label)
     for needle, label in (
         ("observation_legacy_page_control=I2C_REG_PAGE_00x_selects_0x000_through_0x0ff", "legacy-page-window"),
         ("observation_legacy_page_control_2=I2C_REG_PAGE_01x_selects_0x100_through_0x17f", "legacy-page-window-2"),

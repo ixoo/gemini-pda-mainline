@@ -1669,9 +1669,13 @@ The next ordered work remains source-only:
    generation/cookie lease across each MT65xx I2C6 transfer and serializes
    suspend/resume permission changes, but it does not represent the vendor
    `SEMA_I2C_DRV` operation. The exact package and checksum evidence is in the
-   [page/ownership audit](../experiments/2026-08-06-da921x-page-owner-audit/results/buildbox-transfer-lease-20260806.txt).
-   The next source-only discriminator is the firmware-owner lease, followed by
-   page/control-mask ownership, settled readback, and rollback-owner proof.
+   [page/ownership audit](../experiments/2026-08-06-da921x-page-owner-audit/results/buildbox-transfer-lease-20260806.txt),
+   and the reconciled firmware contract is recorded in
+   [firmware-owner-lease-20260806.txt](../experiments/2026-08-06-da921x-page-owner-audit/results/firmware-owner-lease-20260806.txt).
+   The next source-only discriminator is receiver-side proof of that
+   firmware-owner lease, including stopped-state and shared-clock validation,
+   followed by page/control-mask ownership, settled readback, and
+   rollback-owner proof.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and

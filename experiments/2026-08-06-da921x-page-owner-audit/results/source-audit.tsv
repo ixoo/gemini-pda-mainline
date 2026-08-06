@@ -19,5 +19,5 @@ core_dispatch	expanded;master_xfer-path-proven	managed-linux-7.1.3-source;I2C-co
 linux_bus_lock	provider-root-lock;core-lock-precondition-proven	0170;managed-linux-7.1.3-source	PASS_LINUX_SERIALIZATION
 dvfsp_ready	state-and-permission-ready;entry-check-proven	0100;0101;dvfsp-lease-audit	PASS_READY_GATE
 mainline_transfer_lease	0174-validated;generation-cookie;PM-lock-integrated;Buildbox-pass	0174;dvfsp-lease-audit;buildbox-transfer-lease	PASS_BUILDBOX_CONTRACT
-firmware_owner_lease	unproven;vendor_SEMA_I2C_DRV_not_represented	0100;0101;vendor-crosscheck;dvfsp-lease-audit	BLOCK_WRITABLE_PROVIDER
+firmware_owner_lease	unproven;vendor_SEMA_I2C_DRV_not_represented	0100;0101;vendor-crosscheck;dvfsp-lease-audit;firmware-owner-lease-20260806	BLOCK_WRITABLE_PROVIDER
 hardware_action	none	source-only audit	PASS_SAFETY
