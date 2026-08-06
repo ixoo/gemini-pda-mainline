@@ -142,7 +142,7 @@ from the still-blocking mainline gaps:
 
 ```text
 page_encoding=partially-proven
-page_owner=candidate-owner;mainline-handoff-unproven
+page_owner=candidate-owner;ready-gate-only;firmware-lease-unproven
 write_transport=vendor-shape-known;mainline-arbitration-unproven
 control_mask=vendor-bit0-known;mainline-contract-unproven
 post_settle_readback=vendor-observed;provider-unimplemented

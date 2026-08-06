@@ -8,7 +8,7 @@ provider_enable_mask	0x01	0170;legacy-source-crosscheck	vendor-bit-known-mainlin
 a36_page_value	0x80	0164;ownership-rollback-audit	prestate-and-vendor-page-revert-observed
 a36_buckb_vsel	0x46	0164;ownership-rollback-audit	prestate-and-vendor-vsel-observed
 page_encoding	partially-proven	legacy-datasheet;Gemian-source;runtime-page-revert	BLOCK_WRITABLE_PROVIDER
-page_owner	candidate-owner;handoff-unproven	Gemian-da9214-mutex;DVFSP-semaphore-gap	BLOCK_WRITABLE_PROVIDER
+page_owner	candidate-owner;ready-gate-only;firmware-lease-unproven	Gemian-da9214-mutex;DVFSP-semaphore-gap	BLOCK_WRITABLE_PROVIDER
 write_transport	vendor-shape-known;mainline-arbitration-unproven	Gemian-i2c-transfer;mainline-I2C6-gap	BLOCK_WRITABLE_PROVIDER
 control_mask	vendor-bit0-known;mainline-contract-unproven	Gemian-read-modify-write;no-mainline-owner	BLOCK_WRITABLE_PROVIDER
 post_settle_readback	vendor-observed;provider-unimplemented	owner-observer;current-provider-read-only	BLOCK_WRITABLE_PROVIDER

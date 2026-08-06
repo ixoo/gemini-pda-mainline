@@ -136,7 +136,7 @@ def main() -> None:
     require(core_dispatch, "core_lock_precondition=Adapter lock must be held when calling this function", "core-lock-precondition")
     for field in (
         "page_encoding\tpartially-proven",
-        "page_owner\tcandidate-owner;handoff-unproven",
+        "page_owner\tcandidate-owner;ready-gate-only;firmware-lease-unproven",
         "write_transport\tvendor-shape-known;mainline-arbitration-unproven",
         "control_mask\tvendor-bit0-known;mainline-contract-unproven",
         "post_settle_readback\tvendor-observed;provider-unimplemented",
@@ -146,7 +146,7 @@ def main() -> None:
         require(ledger, field, field.replace("\t", "="))
 
     print("page_encoding=partially-proven")
-    print("page_owner=candidate-owner;mainline-handoff-unproven")
+    print("page_owner=candidate-owner;ready-gate-only;firmware-lease-unproven")
     print("write_transport=vendor-shape-known;mainline-arbitration-unproven")
     print("control_mask=vendor-bit0-known;mainline-contract-unproven")
     print("post_settle_readback=vendor-observed;provider-unimplemented")
