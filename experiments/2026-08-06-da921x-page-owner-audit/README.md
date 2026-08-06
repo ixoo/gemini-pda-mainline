@@ -26,11 +26,14 @@ natural CPU8 cycle.
 
 ## Provenance and environment
 
-- Repository commit reviewed: `2bbd82d4ba817a649f3041b163f76e5d829429e7`.
+- Repository commit reviewed: `aaec484bacff7789ae445e3553da235219028dd0`.
 - Exact provider patch inputs: `0170`, `0172`, and `0173` in
   [`patches/series`](../../patches/series).
-- The latest provider profile was Buildbox-validated separately; this audit
-  creates no kernel build and no boot candidate.
+- The provider-owner refusal profile was Buildbox-validated at the reviewed
+  commit. Its exact result, including the final configuration and checksums,
+  is recorded in
+  [`results/buildbox-handoff-profile-20260806.txt`](results/buildbox-handoff-profile-20260806.txt).
+  The build remains compile-only and creates no boot candidate.
 - Read-only board-contract evidence:
   [`da921x-i2c6-a72.md`](../../docs/hardware/da921x-i2c6-a72.md) and the linked
   identification lifecycle records.
@@ -111,6 +114,11 @@ The source and sanitized runtime record establish these facts:
   current mainline provider has no matching arbitration proof. The vendor
   observer's post-settle readbacks and pre-isolation inverse are useful
   evidence, but the mainline provider still has no equivalent transaction.
+- The selected profile now enables the existing MT6797 DVFSP handoff owner
+  before the I2C6-backed provider path. Buildbox confirms
+  `CONFIG_MTK_MT6797_DVFSP_HANDOFF=y` together with the provider-owner
+  refusal boundary. This closes a configuration omission; it does not prove
+  a writable transaction or change the fail-closed refusal.
 - No bounded inverse exists for a provider write at or beyond the unresolved
   external-isolation boundary. The release callback therefore remains a
   structured `-EOPNOTSUPP` refusal.

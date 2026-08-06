@@ -1,0 +1,45 @@
+Buildbox validation: DVFSP-gated provider-owner refusal profile
+=================================================================
+
+status=PASS_COMPILE_ONLY
+repository_commit=aaec484bacff7789ae445e3553da235219028dd0
+repository_dirty=false
+remote=https://github.com/ixoo/gemini-pda-mainline.git
+build_profile=a72-p24-provider-owner-refusal
+kernel_release=7.1.3-gemini-da921x-owner
+generated_utc=2026-08-06T02:20:40Z
+buildbox_job=aaec484bacff7789ae445e3553da235219028dd0-a72-p24-provider-owner-refusal-m0
+artifact=linux-7.1.3-gemini-a72-p24-provider-owner-refusal-29a00957-a1b4e306
+
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=29a009571ea466cb6853923dbe45699ce4f83bfd84fbb0a736e0ca38c3d294c3
+config_sha256=2e3dfb4d9f545bbbf21522d1790aeba531a21a9a49fac427467713ed94dc7389
+config_fragment_count=17
+patch_count=162
+image_gzip_sha256=eb2465e671d64715f89c5f4d7d4b5effafa7e0a39d2d1e428442b46cedbe98f4
+image_gzip_decompressed_size=13832200
+image_effective_size=14417920
+dtb_count=119
+sha256sums=passed
+modules_built=false
+
+CONFIG_MTK_MT6797_DVFSP_HANDOFF=y
+CONFIG_ARM64_MT6797_A72_PROVIDER_OWNER=y
+CONFIG_I2C_MT65XX=y
+CONFIG_REGULATOR_DA9213_LEGACY_PROVIDER=y
+
+The profile now selects the existing MT6797 DVFSP handoff owner before the
+I2C6-backed read-only DA921x resource provider and the paired provider-owner
+refusal boundary. The release callback remains fail-closed with
+EOPNOTSUPP; no register-data write, regulator vote, CPU_ON, candidate
+assembly, or device action is present.
+
+Warnings observed during the compile are non-fatal and pre-existing in the
+selected dormant path: unused DA921x provider-release helper, a large stack
+frame in late_cpu_profile.c, and the upstream mt6797.dtsi ranges_format DT
+warning. They do not change the source audit decision.
+
+hardware_write=none
+candidate_assembly=none
+device_action=none
+fetched_package=artifacts/buildbox/aaec484bacff7789ae445e3553da235219028dd0/linux-7.1.3-gemini-a72-p24-provider-owner-refusal-29a00957-a1b4e306

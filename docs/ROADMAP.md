@@ -1657,7 +1657,10 @@ The next ordered work remains source-only:
    `0x80`/`0x46` values, but does not prove mainline I2C6/DVFSP ownership or a
    rollback-capable provider transaction. Existing direct-address reads and
    vendor-shaped writes therefore still do not authorize a mainline DA921x
-   page-selector or register-data write.
+   page-selector or register-data write. The provider-owner refusal profile
+   now selects the existing MT6797 DVFSP handoff owner and passed exact
+   Buildbox validation; this closes a configuration omission only and does not
+   advance the writable-provider or device gates.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and
