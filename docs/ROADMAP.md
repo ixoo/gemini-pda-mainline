@@ -2016,12 +2016,22 @@ The next ordered work remains source-only:
    No caller registers the binding, so this remains compile-only evidence with
    no provider, hardware, firmware, device, or CPU8/CPU9 action. See the
    [runtime notifier binding Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/runtime-binding-buildbox-20260806.txt).
+   Patch `0209` adds the missing source-to-owner conversion boundary: it joins
+   the decoded protected-clock state, calibrated MON/EEM table state, and the
+   future owner's complete live fields for all four clusters. It rejects
+   incomplete or guessed state, requires each current frequency to match both
+   the decoded clock and a calibrated table row, and checks provenance,
+   generations, and bank/phase identity. Revision `7b59354` applies all 198
+   canonical entries on Buildbox, produces 119 DTBs, passes package checksums,
+   and has its validated package fetched. This is still compile-only; the
+   owner/provider remain unregistered and no hardware, firmware, device, or
+   CPU8/CPU9 action occurred. See the [state-snapshot Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/state-snapshot-buildbox-20260806.txt).
    The next ordered gate remains an independently reviewed implementation of
    the real calibrated EEM/PTP/PPM state owner with clock/rail arbitration,
    generation-producing callbacks, and runtime invalidation/transition-lock
-   proof. The decoder, event ledger, and notifier binding are conversion and
-   lifecycle seams, not ownership proof. Until that provider exists, the
-   protected backends and CPU8/CPU9 admission remain closed.
+   proof. The decoder, event ledger, notifier binding, and snapshot assembler
+   are conversion and lifecycle seams, not ownership proof. Until that provider
+   exists, the protected backends and CPU8/CPU9 admission remain closed.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and

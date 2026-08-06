@@ -411,6 +411,21 @@ still compile-only evidence with no provider, hardware, firmware, device, or
 CPU8/CPU9 action. See the [runtime notifier binding Buildbox
 result](results/runtime-binding-buildbox-20260806.txt).
 
+Patch `0209` adds the missing source-to-owner conversion boundary. It assembles
+the decoded protected-clock state, the calibrated MON/EEM table state, and the
+future owner's live OPP, voltage, VSRAM, membership, ceiling/floor, clock, and
+rail fields into the existing complete four-cluster startup snapshot. The
+assembler rejects incomplete, guessed, stale, or mismatched inputs: every
+current frequency must match the decoded clock and a calibrated table row, and
+the provenance, generation, and all bank/phase requirements must agree. The
+exact pushed revision `7b59354` applied all 198 series entries on Buildbox,
+produced 119 DTBs, passed package checksums, and fetched the validated package;
+see the [state-snapshot Buildbox result](results/state-snapshot-buildbox-20260806.txt).
+This remains compile-only conversion evidence: the owner/provider are still
+unregistered and default-off, and there was no hardware, firmware, device,
+CPU8, or CPU9 action. The assembler closes the conversion gap but is not an
+owner and cannot authorize a transition.
+
 The next gate is still the real MT6797 EEM/PTP/thermal and PMIC/clock provider
 that supplies those inputs from efuse and live hardware, arbitrates the shared
 EEM/thermal resource, and independently proves clock/rail transition locking

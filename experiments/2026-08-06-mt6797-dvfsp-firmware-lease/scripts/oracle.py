@@ -23,6 +23,7 @@ EEM_CALIBRATION_PATCH = ROOT / "patches/v7.1.3/0205-soc-mediatek-derive-calibrat
 CLOCK_STATE_PATCH = ROOT / "patches/v7.1.3/0206-soc-mediatek-decode-protected-clock-readback.patch"
 RUNTIME_PATCH = ROOT / "patches/v7.1.3/0207-soc-mediatek-bind-runtime-invalidation-events.patch"
 RUNTIME_BINDING_PATCH = ROOT / "patches/v7.1.3/0208-soc-mediatek-register-runtime-notifier-binding.patch"
+STATE_SNAPSHOT_PATCH = ROOT / "patches/v7.1.3/0209-soc-mediatek-assemble-protected-state-snapshot.patch"
 SERIES = ROOT / "patches/series"
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
 START_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-start-contract-20260806.txt"
@@ -48,6 +49,7 @@ EEM_CALIBRATION_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/ee
 CLOCK_STATE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/clock-state-decoder-buildbox-20260806.txt"
 RUNTIME_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/runtime-invalidation-buildbox-20260806.txt"
 RUNTIME_BINDING_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/runtime-binding-buildbox-20260806.txt"
+STATE_SNAPSHOT_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-snapshot-buildbox-20260806.txt"
 
 
 def require(text: str, needle: str, label: str) -> None:
@@ -74,6 +76,7 @@ def main() -> None:
     clock_state_patch = CLOCK_STATE_PATCH.read_text()
     runtime_patch = RUNTIME_PATCH.read_text()
     runtime_binding_patch = RUNTIME_BINDING_PATCH.read_text()
+    state_snapshot_patch = STATE_SNAPSHOT_PATCH.read_text()
     design = DESIGN.read_text()
     start_result = START_RESULT.read_text()
     owner_result = OWNER_RESULT.read_text()
@@ -98,12 +101,14 @@ def main() -> None:
     clock_state_build_result = CLOCK_STATE_BUILD_RESULT.read_text()
     runtime_build_result = RUNTIME_BUILD_RESULT.read_text()
     runtime_binding_build_result = RUNTIME_BINDING_BUILD_RESULT.read_text()
+    state_snapshot_build_result = STATE_SNAPSHOT_BUILD_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     eem_calibration_source = eem_calibration_patch[eem_calibration_patch.index("diff --git"):]
     clock_state_source = clock_state_patch[clock_state_patch.index("diff --git"):]
     runtime_source = runtime_patch[runtime_patch.index("diff --git"):]
     runtime_binding_source = runtime_binding_patch[runtime_binding_patch.index("diff --git"):]
+    state_snapshot_source = state_snapshot_patch[state_snapshot_patch.index("diff --git"):]
     names = [Path(line).name for line in SERIES.read_text().splitlines()
              if line and not line.startswith("#")]
 
@@ -440,6 +445,21 @@ def main() -> None:
         ("No caller registers this binding", "runtime-binding-default-off"),
     ):
         require(runtime_binding_patch, needle, label)
+    for needle, label in (
+        ("MT6797_DVFSP_STATE_SNAPSHOT_ABI", "state-snapshot-abi"),
+        ("struct mt6797_dvfsp_state_snapshot_input", "state-snapshot-input"),
+        ("mt6797_dvfsp_state_snapshot_assemble", "state-snapshot-assemble"),
+        ("MT6797_DVFSP_STATE_OWNER_ABI", "state-snapshot-owner-output"),
+        ("MT6797_DVFSP_STATE_FIELD_ALL", "state-snapshot-complete-fields"),
+        ("MT6797_DVFSP_STATE_CLUSTER_MASK", "state-snapshot-all-clusters"),
+        ("clock->frequency_khz != input->frequency_khz[cluster]", "state-snapshot-clock-match"),
+        ("mt6797_dvfsp_snapshot_table_match", "state-snapshot-table-match"),
+        ("MT6797_DVFSP_CALIBRATION_STATE_PHASE_MON", "state-snapshot-mon-phase"),
+        ("MT6797_DVFSP_CALIBRATION_STATE_BANK_ALL", "state-snapshot-bank-mask"),
+        ("no default or board guess", "state-snapshot-no-guesses"),
+        ("does not read hardware", "state-snapshot-no-hardware"),
+    ):
+        require(state_snapshot_patch, needle, label)
     calibration_builder_added = "\n".join(
         line[1:] for line in eem_calibration_patch.splitlines()
         if line.startswith("+") and not line.startswith("+++")
@@ -894,6 +914,26 @@ def main() -> None:
     ):
         require(runtime_binding_build_result, needle, label)
     for needle, label in (
+        ("claim=COMPILE_ONLY_MT6797_PROTECTED_STATE_SNAPSHOT_ASSEMBLER", "state-snapshot-build-claim"),
+        ("repository_commit=7b59354fb53b8f03d020852557deab2be6a023b4", "state-snapshot-build-commit"),
+        ("origin=https://github.com/ixoo/gemini-pda-mainline.git", "state-snapshot-build-origin"),
+        ("build_backend=buildbox", "state-snapshot-build-backend"),
+        ("buildbox_status=validated", "state-snapshot-build-status"),
+        ("patch_count=198", "state-snapshot-build-patch-count"),
+        ("artifact=linux-7.1.3-gemini-dvfsp-protected-readback-607464d7-b6696a3c", "state-snapshot-build-artifact"),
+        ("dtb_count=119", "state-snapshot-build-dtb-count"),
+        ("sha256sums=passed", "state-snapshot-build-checksums"),
+        ("package_fetch=success;validated_package_only", "state-snapshot-build-fetch"),
+        ("state_snapshot_contract=0209;all_four_clusters;clock_frequency_match;calibration_row_match;provenance_match;complete_live_fields;read_only;default_off", "state-snapshot-build-contract"),
+        ("owner=unregistered", "state-snapshot-build-owner-unregistered"),
+        ("provider=none", "state-snapshot-build-no-provider"),
+        ("secure_write=none", "state-snapshot-build-no-secure-write"),
+        ("hardware_write=none", "state-snapshot-build-no-write"),
+        ("device_action=none", "state-snapshot-build-no-device"),
+        ("boot_candidate=false", "state-snapshot-build-not-candidate"),
+    ):
+        require(state_snapshot_build_result, needle, label)
+    for needle, label in (
         ("repeat_run_repository_commit=6c3cb4fad5a4895f6a69d7913089553b6751e34c", "readback-repeat-commit"),
         ("repeat_run_buildbox_job=6c3cb4fad5a4895f6a69d7913089553b6751e34c-dvfsp-protected-readback-m0", "readback-repeat-job"),
         ("repeat_run_status=validated", "readback-repeat-status"),
@@ -945,6 +985,8 @@ def main() -> None:
         raise AssertionError("runtime invalidation ledger is not after the clock-state decoder")
     if names.index("0207-soc-mediatek-bind-runtime-invalidation-events.patch") >= names.index("0208-soc-mediatek-register-runtime-notifier-binding.patch"):
         raise AssertionError("runtime notifier binding is not after the runtime invalidation ledger")
+    if names.index("0208-soc-mediatek-register-runtime-notifier-binding.patch") >= names.index("0209-soc-mediatek-assemble-protected-state-snapshot.patch"):
+        raise AssertionError("state snapshot assembler is not after the runtime notifier binding")
 
     for forbidden in ("readl(", "writel(", "i2c_transfer", "regulator_enable(",
                       "regulator_disable(", "psci_ops.cpu_on", "cpu_up("):
@@ -979,6 +1021,8 @@ def main() -> None:
                       "i2c_transfer", "platform_driver", "cpu_up(", "secure_write"):
         if forbidden in clock_state_source:
             raise AssertionError(f"unexpected clock-state operation: {forbidden}")
+        if forbidden in state_snapshot_source:
+            raise AssertionError(f"unexpected state-snapshot operation: {forbidden}")
     for forbidden in ("readl(", "writel(", "regulator_", "clk_", "arm_smccc",
                       "i2c_transfer", "platform_driver", "cpu_up(", "secure_write",
                       "register_cpu_notifier", "register_pm_notifier",
@@ -991,6 +1035,11 @@ def main() -> None:
                       "unregister_cpu_notifier(", "notifier_call_chain"):
         if forbidden in runtime_binding_source:
             raise AssertionError(f"unexpected runtime binding operation: {forbidden}")
+    for forbidden in ("readl(", "writel(", "regulator_", "clk_", "arm_smccc",
+                      "i2c_transfer", "platform_driver", "cpu_up(",
+                      "psci_ops.cpu_on", "secure_write"):
+        if forbidden in state_snapshot_source:
+            raise AssertionError(f"unexpected state-snapshot operation: {forbidden}")
 
     print("claim=PARTIAL_FIRMWARE_LEASE_CALLBACK_CONTRACT")
     print("registered_owner=0")
@@ -1020,6 +1069,7 @@ def main() -> None:
     print("clock_state_decoder=0206;raw_ll_l_b_cci_readbacks;vendor_26mhz_formula;pcw_posdiv_and_divider_decode;generation_tagged;inflight_change_rejected;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("runtime_invalidation=0207;vendor_cpu_online_cpu_down_prepare_cpu_down_failed_pm_suspend_prepare_pm_post_suspend;clock_rail_pcm_fault_mapping;monotonic_sequence;generation_epoch;replay_rejected;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("runtime_binding=0208;active_owner_required;cpuhp_online_down_prepare_down_failed;pm_suspend_resume_notifier;generation_tagged_source_callback;ledger_serialized;registration_atomic;disarm_before_unregistration;registered=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
+    print("state_snapshot_assembler=0209;all_four_clusters;clock_frequency_match;calibration_row_match;provenance_match;complete_live_fields;read_only;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("pcm_adapter_contract=source-only;bounded-admission-model;callback-registration-gated")
     print("clock_owner_inventory=generic_ccf_only;protected_owner_absent;A72_observer_read_only")
     print("pcm_start_contract=defined;residency_and_start_required_before_callback_registration")
