@@ -1,0 +1,17 @@
+mutation=wrong-operation result=rejected
+mutation=wrong-result result=rejected
+mutation=not-returned result=rejected
+mutation=vote-requested result=rejected
+mutation=provider-mutated result=rejected
+mutation=rail-mutated result=rejected
+mutation=stale-generation result=rejected
+mutation=stale-cookie result=rejected
+mutation=wrong-effect-mask result=rejected
+mutation=residual-effect result=rejected
+mutation=p28-started result=rejected
+mutation=cpu-on-issued result=rejected
+mutation=rollback-stale-generation result=rejected
+mutation=rollback-stale-cookie result=rejected
+mutation=duplicate-p29 result=rejected
+mutations_rejected=15/15
+status=PASS

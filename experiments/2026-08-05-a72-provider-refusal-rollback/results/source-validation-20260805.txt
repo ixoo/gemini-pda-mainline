@@ -1,0 +1,12 @@
+claim=PARTIAL_R03_P29_REFUSAL_ROLLBACK
+source_commit=847682ea4
+patch_sha256=8de98ffcdfebfc48c662faa40c36f1b59fa6bffb8cfae3a0c8c8383785388780
+patch_bytes=16065
+r03=returned-before-vote-provider-none
+p29=exact-p27-restoration-rejected-retired
+provider_calls=0
+cpu_on_calls=0
+build=not-run
+device_action=none
+checkpatch=only-intentional-missing-signoff
+status=PASS

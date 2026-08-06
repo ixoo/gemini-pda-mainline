@@ -1,0 +1,433 @@
+From 847682ea4e614a098ca61d9c6ca3e1e35b5173fc Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 5 Aug 2026 20:25:39 -0400
+Subject: [PATCH] arm64: model dormant A72 provider refusal rollback
+
+---
+ .../arm64/include/asm/mt6797_a72_membership.h |  62 +++++++-
+ arch/arm64/kernel/mt6797_a72_membership.c     | 141 +++++++++++++++++-
+ .../arm64/kernel/mt6797_a72_membership_test.c | 131 ++++++++++++++++
+ 3 files changed, 332 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/include/asm/mt6797_a72_membership.h b/arch/arm64/include/asm/mt6797_a72_membership.h
+index 3973dd76b..b292eac47 100644
+--- a/arch/arm64/include/asm/mt6797_a72_membership.h
++++ b/arch/arm64/include/asm/mt6797_a72_membership.h
+@@ -116,10 +116,15 @@ enum mt6797_a72_p27_stage {
+ 	MT6797_A72_P27_STAGE_COMPLETE,
+ };
+ 
+-/* R01/R02 are an attested source-only provider boundary, not a call shim. */
++/* R01/R02/R03 are an attested source-only provider boundary, not a call shim. */
+ #define MT6797_A72_PROVIDER_ACQUIRE_ABI 1
+ #define MT6797_A72_PROVIDER_ACQUIRE_SETTLE_US 1000
+ #define MT6797_A72_PROVIDER_ORIGIN_M01 1
++#define MT6797_A72_PROVIDER_REJECT_ABI 1
++#define MT6797_A72_PROVIDER_REJECTED_BEFORE_VOTE 1
++
++/* P29 is an attested pre-isolation rollback, not an inverse-MMIO API. */
++#define MT6797_A72_P29_ROLLBACK_ABI 1
+ 
+ /* Diagnostic only: this non-exhaustive list can never authorize a request. */
+ #define MT6797_A72_BLOCK_A34_BOOTSTRAP BIT_ULL(0)
+@@ -226,6 +231,31 @@ struct mt6797_a72_provider_acquire_proof {
+ 	u64 origin_generation;
+ };
+ 
++struct mt6797_a72_provider_rejection {
++	u32 abi;
++	u32 operation;
++	u32 result;
++	u32 returned;
++	u32 vote_requested;
++	u32 provider_mutated;
++	u32 rail_mutated;
++	u32 reserved;
++	u64 transaction_generation;
++	u64 transaction_cookie;
++};
++
++struct mt6797_a72_p29_rollback_proof {
++	u32 abi;
++	u32 operation;
++	u32 restored_effect_mask;
++	u32 residual_effect_mask;
++	u32 p28_started;
++	u32 cpu_on_issued;
++	u32 reserved;
++	u64 transaction_generation;
++	u64 transaction_cookie;
++};
++
+ struct mt6797_a72_transaction {
+ 	struct mt6797_a72_transaction_identity identity;
+ 	struct mt6797_a72_call_budgets budgets;
+@@ -244,6 +274,8 @@ struct mt6797_a72_transaction {
+ 	u32 p17_p18_published;
+ 	u32 p27_valid;
+ 	u32 provider_acquire_valid;
++	u32 provider_rejection_valid;
++	u32 p29_valid;
+ 	u32 freeze_release_count;
+ 	u32 valid;
+ };
+@@ -296,6 +328,12 @@ int mt6797_a72_membership_begin_provider_acquire(
+ int mt6797_a72_membership_confirm_provider_acquire(
+ 	struct mt6797_a72_transaction *transaction,
+ 	const struct mt6797_a72_provider_acquire_proof *proof);
++int mt6797_a72_membership_reject_provider_acquire(
++	struct mt6797_a72_transaction *transaction,
++	const struct mt6797_a72_provider_rejection *rejection);
++int mt6797_a72_membership_complete_p29_rollback(
++	struct mt6797_a72_transaction *transaction,
++	const struct mt6797_a72_p29_rollback_proof *rollback);
+ int mt6797_a72_membership_validate_entry(unsigned int cpu,
+ 					 enum cpuhp_state target, u32 attempt,
+ 					 const struct mt6797_a72_entry_snapshot *entry);
+@@ -381,6 +419,28 @@ mt6797_a72_membership_confirm_provider_acquire(
+ 	return -EOPNOTSUPP;
+ }
+ 
++static inline int
++mt6797_a72_membership_reject_provider_acquire(
++	struct mt6797_a72_transaction *transaction,
++	const struct mt6797_a72_provider_rejection *rejection)
++{
++	(void)rejection;
++	if (transaction)
++		memset(transaction, 0, sizeof(*transaction));
++	return -EOPNOTSUPP;
++}
++
++static inline int
++mt6797_a72_membership_complete_p29_rollback(
++	struct mt6797_a72_transaction *transaction,
++	const struct mt6797_a72_p29_rollback_proof *rollback)
++{
++	(void)rollback;
++	if (transaction)
++		memset(transaction, 0, sizeof(*transaction));
++	return -EOPNOTSUPP;
++}
++
+ static inline int mt6797_a72_membership_validate_entry(unsigned int cpu,
+ 						 enum cpuhp_state target, u32 attempt,
+ 						 const struct mt6797_a72_entry_snapshot *entry)
+diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt6797_a72_membership.c
+index a92e89cb5..216a996c2 100644
+--- a/arch/arm64/kernel/mt6797_a72_membership.c
++++ b/arch/arm64/kernel/mt6797_a72_membership.c
+@@ -8,7 +8,9 @@
+  * retains the transition lock across A28, frozen-token minting, and the
+  * immutable A36 prestate check. A dormant P17/P18 publication ledger may
+  * advance only the C phase to ON_ISSUED; provider calls and all hardware,
+- * CPUHP, and CPU_ON effects remain absent.
++ * CPUHP, and CPU_ON effects remain absent. R03/P29 only records a returned
++ * before-vote rejection and an exact pre-isolation rollback; it performs no
++ * inverse hardware operation.
+  */
+ 
+ #include <linux/compiler.h>
+@@ -676,6 +678,143 @@ int mt6797_a72_membership_confirm_provider_acquire(
+ 	return ret;
+ }
+ 
++static bool
++mt6797_a72_provider_rejection_valid(
++	const struct mt6797_a72_provider_rejection *rejection,
++	const struct mt6797_a72_transaction_identity *identity)
++{
++	if (!rejection || !identity)
++		return false;
++
++	return rejection->abi == MT6797_A72_PROVIDER_REJECT_ABI &&
++		rejection->operation == ARM64_LATE_CPU_STARTUP_OP_CPU8_UP &&
++		rejection->result == MT6797_A72_PROVIDER_REJECTED_BEFORE_VOTE &&
++		rejection->returned == 1 && !rejection->vote_requested &&
++		!rejection->provider_mutated && !rejection->rail_mutated &&
++		!rejection->reserved &&
++		rejection->transaction_generation == identity->generation &&
++		rejection->transaction_cookie == identity->cookie;
++}
++
++int mt6797_a72_membership_reject_provider_acquire(
++	struct mt6797_a72_transaction *transaction,
++	const struct mt6797_a72_provider_rejection *rejection)
++{
++	unsigned long flags;
++	int ret = -EPERM;
++
++	if (!transaction || !rejection)
++		return -EINVAL;
++
++	mutex_lock(&a72_transition_lock);
++	raw_spin_lock_irqsave(&a72_state_lock, flags);
++	if (a72_owner.health != MT6797_A72_OWNER_AVAILABLE ||
++	    a72_owner.phase != MT6797_A72_PHASE_ON_ISSUED ||
++	    !a72_owner.active.valid || !a72_owner.active.p17_p18_published ||
++	    !a72_owner.active.p27_valid ||
++	    a72_owner.active.p27_preparation.stage !=
++		    MT6797_A72_P27_STAGE_COMPLETE ||
++	    a72_owner.active.identity.operation !=
++		    ARM64_LATE_CPU_STARTUP_OP_CPU8_UP ||
++	    a72_owner.members ||
++	    a72_owner.provider_state != MT6797_A72_PROVIDER_ACQUIRE_INFLIGHT ||
++	    a72_owner.active.budgets.provider_acquire !=
++		    MT6797_A72_BUDGET_CONSUMED ||
++	    a72_owner.active.provider_acquire_valid ||
++	    a72_owner.active.provider_rejection_valid ||
++	    memcmp(&a72_owner.active.identity, &transaction->identity,
++		   sizeof(a72_owner.active.identity)) ||
++	    !mt6797_a72_provider_rejection_valid(rejection,
++						      &a72_owner.active.identity))
++		goto out_state;
++
++	/* R03 proves a returned refusal before any provider or rail mutation. */
++	memset(&a72_owner.provider_identity, 0,
++	       sizeof(a72_owner.provider_identity));
++	memset(&a72_owner.active.provider_identity, 0,
++	       sizeof(a72_owner.active.provider_identity));
++	a72_owner.active.provider_rejection = *rejection;
++	a72_owner.active.provider_rejection_valid = 1;
++	a72_owner.provider_state = MT6797_A72_PROVIDER_NONE;
++	*transaction = a72_owner.active;
++	ret = 0;
++
++out_state:
++	raw_spin_unlock_irqrestore(&a72_state_lock, flags);
++	mutex_unlock(&a72_transition_lock);
++	return ret;
++}
++
++static bool
++mt6797_a72_p29_rollback_valid(
++	const struct mt6797_a72_p29_rollback_proof *rollback,
++	const struct mt6797_a72_transaction_identity *identity)
++{
++	if (!rollback || !identity)
++		return false;
++
++	return rollback->abi == MT6797_A72_P29_ROLLBACK_ABI &&
++		rollback->operation == ARM64_LATE_CPU_STARTUP_OP_CPU8_UP &&
++		rollback->restored_effect_mask == MT6797_A72_P27_EFFECT_MASK &&
++		rollback->residual_effect_mask == 0 &&
++		!rollback->p28_started && !rollback->cpu_on_issued &&
++		!rollback->reserved &&
++		rollback->transaction_generation == identity->generation &&
++		rollback->transaction_cookie == identity->cookie;
++}
++
++int mt6797_a72_membership_complete_p29_rollback(
++	struct mt6797_a72_transaction *transaction,
++	const struct mt6797_a72_p29_rollback_proof *rollback)
++{
++	unsigned int slot;
++	unsigned long flags;
++	int ret = -EPERM;
++
++	if (!transaction || !rollback)
++		return -EINVAL;
++
++	mutex_lock(&a72_transition_lock);
++	raw_spin_lock_irqsave(&a72_state_lock, flags);
++	if (a72_owner.health != MT6797_A72_OWNER_AVAILABLE ||
++	    a72_owner.phase != MT6797_A72_PHASE_ON_ISSUED ||
++	    !a72_owner.active.valid || !a72_owner.active.p17_p18_published ||
++	    !a72_owner.active.p27_valid ||
++	    a72_owner.active.p27_preparation.stage !=
++		    MT6797_A72_P27_STAGE_COMPLETE ||
++	    a72_owner.active.identity.operation !=
++		    ARM64_LATE_CPU_STARTUP_OP_CPU8_UP ||
++	    a72_owner.members ||
++	    a72_owner.provider_state != MT6797_A72_PROVIDER_NONE ||
++	    !a72_owner.active.provider_rejection_valid ||
++	    a72_owner.active.p29_valid ||
++	    a72_owner.active.budgets.cpu_on != MT6797_A72_BUDGET_AVAILABLE ||
++	    memcmp(&a72_owner.active.identity, &transaction->identity,
++		   sizeof(a72_owner.active.identity)) ||
++	    !mt6797_a72_p29_rollback_valid(rollback,
++					 &a72_owner.active.identity))
++		goto out_state;
++
++	/* P29 records exact P27 restoration, then P21 retires the generation. */
++	a72_owner.active.p29_rollback = *rollback;
++	a72_owner.active.p29_valid = 1;
++	slot = ARM64_LATE_CPU_STARTUP_OP_CPU8_UP -
++		ARM64_LATE_CPU_STARTUP_OP_CPU8_UP;
++	a72_owner.retired[slot] = a72_owner.active;
++	a72_owner.retired_mask |= BIT(slot);
++	*transaction = a72_owner.retired[slot];
++	memset(&a72_owner.active, 0, sizeof(a72_owner.active));
++	a72_owner.controller = NULL;
++	a72_owner.controller_cookie = 0;
++	a72_owner.phase = MT6797_A72_PHASE_REJECTED;
++	ret = 0;
++
++out_state:
++	raw_spin_unlock_irqrestore(&a72_state_lock, flags);
++	mutex_unlock(&a72_transition_lock);
++	return ret;
++}
++
+ static int
+ mt6797_a72_membership_check_up(unsigned int cpu, int tasks_frozen,
+ 			       enum cpuhp_state target)
+diff --git a/arch/arm64/kernel/mt6797_a72_membership_test.c b/arch/arm64/kernel/mt6797_a72_membership_test.c
+index ec2a69bb7..38265e33c 100644
+--- a/arch/arm64/kernel/mt6797_a72_membership_test.c
++++ b/arch/arm64/kernel/mt6797_a72_membership_test.c
+@@ -749,6 +749,33 @@ mt6797_a72_provider_acquire_proof_for(
+ 	};
+ }
+ 
++static struct mt6797_a72_provider_rejection
++mt6797_a72_provider_rejection_for(
++	const struct mt6797_a72_transaction *transaction)
++{
++	return (struct mt6797_a72_provider_rejection) {
++		.abi = MT6797_A72_PROVIDER_REJECT_ABI,
++		.operation = transaction->identity.operation,
++		.result = MT6797_A72_PROVIDER_REJECTED_BEFORE_VOTE,
++		.returned = 1,
++		.transaction_generation = transaction->identity.generation,
++		.transaction_cookie = transaction->identity.cookie,
++	};
++}
++
++static struct mt6797_a72_p29_rollback_proof
++mt6797_a72_p29_rollback_for(
++	const struct mt6797_a72_transaction *transaction)
++{
++	return (struct mt6797_a72_p29_rollback_proof) {
++		.abi = MT6797_A72_P29_ROLLBACK_ABI,
++		.operation = transaction->identity.operation,
++		.restored_effect_mask = MT6797_A72_P27_EFFECT_MASK,
++		.transaction_generation = transaction->identity.generation,
++		.transaction_cookie = transaction->identity.cookie,
++	};
++}
++
+ static void mt6797_a72_owner_p27_cpu8_preparation_once(struct kunit *test)
+ {
+ 	struct mt6797_a72_entry_snapshot entry = mt6797_a72_entry_for_up(8);
+@@ -925,6 +952,108 @@ static void mt6797_a72_owner_r02_rejects_bad_proof_or_cpu9(struct kunit *test)
+ 	expect_unchanged(test, &before, &after);
+ }
+ 
++static void mt6797_a72_owner_r03_p29_rejects_and_retires(struct kunit *test)
++{
++	struct mt6797_a72_provider_rejection rejection;
++	struct mt6797_a72_p29_rollback_proof rollback;
++	struct mt6797_a72_transaction transaction;
++	struct owner_observation before;
++	struct owner_observation after;
++	int ret;
++
++	ret = mt6797_a72_test_seed_cpu8_p27(&transaction);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	ret = mt6797_a72_membership_begin_provider_acquire(&transaction);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	rejection = mt6797_a72_provider_rejection_for(&transaction);
++	ret = mt6797_a72_membership_reject_provider_acquire(&transaction,
++							    &rejection);
++	KUNIT_EXPECT_EQ(test, ret, 0);
++	owner_observe(&after);
++	KUNIT_EXPECT_EQ(test, after.owner.phase,
++			(u32)MT6797_A72_PHASE_ON_ISSUED);
++	KUNIT_EXPECT_EQ(test, after.owner.provider_state,
++			(u32)MT6797_A72_PROVIDER_NONE);
++	KUNIT_EXPECT_TRUE(test, after.owner.active.provider_rejection_valid);
++	KUNIT_EXPECT_FALSE(test, after.owner.active.p29_valid);
++	KUNIT_EXPECT_EQ(test, after.owner.members, (u32)0);
++
++	rollback = mt6797_a72_p29_rollback_for(&transaction);
++	ret = mt6797_a72_membership_complete_p29_rollback(&transaction,
++							  &rollback);
++	KUNIT_EXPECT_EQ(test, ret, 0);
++	owner_observe(&after);
++	KUNIT_EXPECT_EQ(test, after.owner.phase,
++			(u32)MT6797_A72_PHASE_REJECTED);
++	KUNIT_EXPECT_EQ(test, after.owner.provider_state,
++			(u32)MT6797_A72_PROVIDER_NONE);
++	KUNIT_EXPECT_EQ(test, after.owner.members, (u32)0);
++	KUNIT_EXPECT_EQ(test, after.owner.retired_mask, (u32)BIT(0));
++	KUNIT_EXPECT_FALSE(test, after.owner.active.valid);
++	KUNIT_EXPECT_TRUE(test, after.owner.retired[0].p29_valid);
++
++	owner_observe(&before);
++	ret = mt6797_a72_membership_complete_p29_rollback(&transaction,
++							  &rollback);
++	KUNIT_EXPECT_EQ(test, ret, -EPERM);
++	owner_observe(&after);
++	expect_unchanged(test, &before, &after);
++}
++
++static void mt6797_a72_owner_r03_p29_mutations_rejected(struct kunit *test)
++{
++	struct mt6797_a72_entry_snapshot entry;
++	struct arm64_late_cpu_ready_token ready;
++	struct mt6797_a72_a36_prestate prestate;
++	struct mt6797_a72_provider_rejection rejection;
++	struct mt6797_a72_p29_rollback_proof rollback;
++	struct mt6797_a72_transaction transaction;
++	struct owner_observation before;
++	struct owner_observation after;
++	int ret;
++
++	ret = mt6797_a72_test_seed_cpu8_p27(&transaction);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	ret = mt6797_a72_membership_begin_provider_acquire(&transaction);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	rejection = mt6797_a72_provider_rejection_for(&transaction);
++	rejection.vote_requested = 1;
++	owner_observe(&before);
++	ret = mt6797_a72_membership_reject_provider_acquire(&transaction,
++							    &rejection);
++	KUNIT_EXPECT_EQ(test, ret, -EPERM);
++	owner_observe(&after);
++	expect_unchanged(test, &before, &after);
++
++	rejection = mt6797_a72_provider_rejection_for(&transaction);
++	ret = mt6797_a72_membership_reject_provider_acquire(&transaction,
++							    &rejection);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	rollback = mt6797_a72_p29_rollback_for(&transaction);
++	rollback.residual_effect_mask = MT6797_A72_P27_PWRAP_ASSERTED;
++	owner_observe(&before);
++	ret = mt6797_a72_membership_complete_p29_rollback(&transaction,
++							  &rollback);
++	KUNIT_EXPECT_EQ(test, ret, -EPERM);
++	owner_observe(&after);
++	expect_unchanged(test, &before, &after);
++
++	mt6797_a72_membership_test_seed_available_cpu9();
++	entry = mt6797_a72_entry_for_up(9);
++	ready = mt6797_a72_ready_token_for_up();
++	prestate = mt6797_a72_prestate_for_up(9);
++	ret = mt6797_a72_membership_begin_up(9, CPUHP_ONLINE,
++					     MT6797_A72_ATTEMPT_CPU9_UP,
++					     &entry, &ready, &prestate,
++					     &transaction);
++	KUNIT_EXPECT_EQ(test, ret, 0);
++	ret = mt6797_a72_membership_publish_up(&transaction);
++	KUNIT_EXPECT_EQ(test, ret, 0);
++	ret = mt6797_a72_membership_complete_p29_rollback(&transaction,
++							  &rollback);
++	KUNIT_EXPECT_EQ(test, ret, -EPERM);
++}
++
+ static void mt6797_a72_owner_forged_token_rejected(struct kunit *test)
+ {
+ 	struct owner_observation before;
+@@ -987,6 +1116,8 @@ static struct kunit_case mt6797_a72_owner_cases[] = {
+ 	KUNIT_CASE(mt6797_a72_owner_p27_rejects_bad_or_cpu9_proof),
+ 	KUNIT_CASE(mt6797_a72_owner_r01_r02_provider_once),
+ 	KUNIT_CASE(mt6797_a72_owner_r02_rejects_bad_proof_or_cpu9),
++	KUNIT_CASE(mt6797_a72_owner_r03_p29_rejects_and_retires),
++	KUNIT_CASE(mt6797_a72_owner_r03_p29_mutations_rejected),
+ 	KUNIT_CASE(mt6797_a72_owner_forged_token_rejected),
+ 	KUNIT_CASE(mt6797_a72_owner_no_live_token),
+ 	{ }
+-- 
+2.50.1 (Apple Git-155)
+
