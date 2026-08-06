@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-06-a72-p30e-mmuoff-contract` |
-| Status | `Buildbox-validated dormant implementation; owner handoff and physical-range proof pass; secondary_entry integration blocked` |
+| Status | `Buildbox-validated dormant implementation; secondary_entry binding passes; CPU admission and broader production integration blocked` |
 | Subsystem | arm64 late CPU8/CPU9 startup arbitration and target-side publication |
 | Device variant | Planet Gemini PDA, MT6797; no live-device action |
 | Date | 2026-08-06 America/New_York |
@@ -88,9 +88,15 @@ identity checks explicit in the request/target seam; its Buildbox package is
 recorded in the validation result. Patch `0179` now populates those fields in
 the dormant owner-side handoff from the frozen transaction and a distinct
 READY-owned expectation. Patch `0180` adds the linker and controller-side
-range proof described above. The physical-slot/wire-identity audit is recorded in
-[physical-slot review](results/physical-slot-wire-identity-audit-20260806.txt):
-the remaining source-only gate is a separately reviewed `secondary_entry`
-binding under the same owner, including its MMU-off address and publication
-handoff. CPU8/CPU9 admission and device use remain blocked until that gate and
-the broader A25/A26/A14/provider gates close.
+range proof described above. Patch `0181` now binds the exact canonical
+`secondary_entry` physical address through the authoritative owner/request and
+adds a guarded target claim at the entry seam. Only an armed matching target
+may publish; an unarmed or unrelated target follows the existing startup,
+while malformed/ambiguous state parks fail-closed. Target publication occurs
+before Linux CPU success/online, and early CPU failure publishes a terminal
+P30E failure. The physical-slot/wire-identity audit is recorded in
+[physical-slot review](results/physical-slot-wire-identity-audit-20260806.txt).
+The selected MT6797 PSCI method still returns `-EAGAIN`, so this remains
+source-only and does not issue CPU_ON or perform device I/O. CPU8/CPU9
+admission and device use remain blocked until the broader
+P30/P32/A41/provider/A26/A14 gates close.

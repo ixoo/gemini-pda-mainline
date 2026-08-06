@@ -1822,14 +1822,19 @@ The next ordered work remains source-only:
    enforce exact two-slot placement without directional-section overlap and
    inside `_text.._end`, which arm64 reserves with memblock; the controller
    rejects a selected slot outside those bounds. Its 169-patch Buildbox
-   package and validated local fetch are recorded in the same result. The
-   remaining source-only gate is a separately reviewed `secondary_entry`
-   binding under the same owner. The
-   [physical-slot/wire-identity audit](../experiments/2026-08-06-a72-p30e-mmuoff-contract/results/physical-slot-wire-identity-audit-20260806.txt)
-   records the residual entry blocker. The target symbols are still not wired
-   to `secondary_entry`; this remains an implementation gate, not admission
-   authorization. The dormant C control object cannot substitute for the
-   MMU-off proof or open a CPU_ON path.
+   package and validated local fetch are recorded in the same result. Patch
+   `0181` now closes that source-only entry seam: the authoritative owner and
+   request carry the exact `__pa_symbol(secondary_entry)` address, the
+   canonical entry performs a guarded P30E claim, and malformed/ambiguous state
+   parks fail-closed. Target publication is ordered before `CPU_BOOT_SUCCESS`
+   and Linux online, with an early-failure publication path. Its exact
+   pushed-head 170-patch Buildbox package and validated local fetch are recorded
+   in the [Buildbox result](../experiments/2026-08-06-a72-p30e-mmuoff-contract/results/buildbox-validation-20260806.txt),
+   with the source comparison and physical audit in the linked experiment
+   records. This closes the `secondary_entry` implementation gate only; the
+   broader P30/P32/A41/provider/A26/A14 integration and admission gates remain
+   open. The existing MT6797 PSCI method still returns `-EAGAIN`, so no CPU_ON,
+   device action, or CPU8/CPU9 support claim is authorized.
 3. Complete A25 and implement P32A/D/F/X/R using either a reviewed core
    no-auto-rollback interface or the fail-stop `.cpu_disable` plus die/kill
    guard design, retaining every partial callback and architecture effect.
