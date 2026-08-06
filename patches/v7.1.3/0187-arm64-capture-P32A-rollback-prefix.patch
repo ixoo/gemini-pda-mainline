@@ -187,7 +187,7 @@ diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
 +				 const struct cpu_up_rollback_trace *trace)
  {
  	const struct cpu_operations *ops;
-@@ -132,4 +133,4 @@ int arch_cpu_up_rollback(unsigned int cpu, enum cpuhp_state state, int error)
+@@ -132,4 +133,4 @@
  
  	ops = get_cpu_ops(cpu);
  	if (ops && ops->cpu_up_rollback)
