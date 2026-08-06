@@ -53,6 +53,7 @@ implementation remain unproven.
 - [Protocol design](DESIGN.md)
 - [Static oracle](scripts/oracle.py)
 - [Source validation](results/source-validation-20260806.txt)
+- [Initial Buildbox input failure and repair](results/buildbox-failure-20260806.txt)
 - [Patch 0175](../../patches/v7.1.3/0175-soc-mediatek-define-I2C6-firmware-lease-contract.patch)
 
 Run from the repository root:

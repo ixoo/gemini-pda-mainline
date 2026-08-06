@@ -18,9 +18,9 @@ regulator, CPUHP, or CPU_ON operation.
 
 This is an experiment-only patch and is not submission-ready.
 ---
- drivers/soc/mediatek/mt6797-dvfsp-handoff.c      | 266 ++++++++++++++++++++++
- include/linux/soc/mediatek/mt6797-dvfsp-handoff.h |  97 +++++++++
- 2 files changed, 363 insertions(+)
+ drivers/soc/mediatek/mt6797-dvfsp-handoff.c      | 298 ++++++++++++++++++++++++++++
+ include/linux/soc/mediatek/mt6797-dvfsp-handoff.h | 106 +++++++++++
+ 2 files changed, 404 insertions(+)
 
 diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
 index 0b6d5c1..1f4e0d2 100644
@@ -34,7 +34,7 @@ index 0b6d5c1..1f4e0d2 100644
  #include <linux/kconfig.h>
  #include <linux/types.h>
  
-@@ -14,6 +15,55 @@ struct mt6797_dvfsp_i2c6_lease {
+@@ -14,6 +15,59 @@ struct mt6797_dvfsp_i2c6_lease {
  	u64 cookie;
  };
  
@@ -94,7 +94,7 @@ index 0b6d5c1..1f4e0d2 100644
  #if IS_REACHABLE(CONFIG_MTK_MT6797_DVFSP_HANDOFF)
  struct mt6797_dvfsp_handoff *
  mt6797_dvfsp_handoff_get(struct device *consumer);
-@@ -47,6 +97,25 @@ mt6797_dvfsp_handoff_end_i2c6_transfer(
+@@ -47,4 +97,20 @@ mt6797_dvfsp_handoff_end_i2c6_transfer(
  	int transfer_result);
 +int mt6797_dvfsp_handoff_i2c6_fw_register(
 +	struct mt6797_dvfsp_handoff *handoff,
@@ -115,7 +115,7 @@ index 0b6d5c1..1f4e0d2 100644
  /* The readiness test is atomic; clock validation is sleepable. */
  bool
  mt6797_dvfsp_handoff_is_ready_atomic(struct mt6797_dvfsp_handoff *handoff);
-@@ -75,6 +144,57 @@ mt6797_dvfsp_handoff_end_i2c6_transfer(
+@@ -75,6 +144,42 @@ mt6797_dvfsp_handoff_end_i2c6_transfer(
  	return -ENODEV;
  }
  
@@ -162,7 +162,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/
 index 0000000..8f3a1ce 100644
 --- a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
-@@ -15,6 +15,7 @@
+@@ -15,6 +15,8 @@
  #include <linux/platform_device.h>
  #include <linux/pm.h>
  #include <linux/regmap.h>
@@ -171,7 +171,7 @@ index 0000000..8f3a1ce 100644
 +#include <linux/string.h>
  #include <linux/workqueue.h>
  
-@@ -143,6 +144,10 @@ struct mt6797_dvfsp_handoff {
+@@ -143,4 +144,9 @@ struct mt6797_dvfsp_handoff {
  	int last_transfer_result;
  	bool transfer_active;
 +	struct mutex fw_owner_lock;
@@ -181,7 +181,7 @@ index 0000000..8f3a1ce 100644
 +	struct mt6797_dvfsp_i2c6_fw_lease fw_lease;
  	struct completion terminal;
  	struct delayed_work late_work;
-@@ -691,6 +696,278 @@ mt6797_dvfsp_handoff_end_i2c6_transfer(
+@@ -691,6 +696,296 @@ mt6797_dvfsp_handoff_end_i2c6_transfer(
  	return ret;
  }
  EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_end_i2c6_transfer);
@@ -478,7 +478,7 @@ index 0000000..8f3a1ce 100644
 +
  int
  mt6797_dvfsp_handoff_require_ready(struct mt6797_dvfsp_handoff *handoff)
-@@ -1284,6 +1568,7 @@ static int mt6797_dvfsp_handoff_probe(struct platform_device *pdev)
+@@ -1284,5 +1568,6 @@ static int mt6797_dvfsp_handoff_probe(struct platform_device *pdev)
  	handoff->reason = "resources-not-ready";
  	mutex_init(&handoff->lock);
  	mutex_init(&handoff->transfer_lock);

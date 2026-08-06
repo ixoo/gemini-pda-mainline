@@ -1,0 +1,11 @@
+claim=PARTIAL_FIRMWARE_LEASE_CALLBACK_CONTRACT
+attempted_commit=5d01b13e89fdfe19f96e40674b03e3049550650d
+profile=a72-p24-provider-owner-refusal
+failure_stage=patch-application
+failure=0175-corrupt-patch-at-line-97
+cause=unified-diff-hunk-counts-did-not-match-added-context
+correction=all_0175_hunk_counts_recomputed;no_source_semantics_changed
+device_action=none
+kernel_build=not-started
+followup=push-corrected-commit-and-rerun-exact-Buildbox-profile
+status=BUILD_INPUT_FAILURE_REPAIRED
