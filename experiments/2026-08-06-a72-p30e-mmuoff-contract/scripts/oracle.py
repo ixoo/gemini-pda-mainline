@@ -1,0 +1,169 @@
+#!/usr/bin/env python3
+"""Validate the bounded P30E MMU-off-visible object contract."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, replace
+
+
+FIELDS = (
+    "magic", "abi_and_size", "boot_identity_0", "boot_identity_1",
+    "boot_identity_2", "boot_identity_3", "operation", "target_cpu",
+    "target_mpidr", "generation", "cookie", "controller_state",
+    "target_state", "target_sequence", "controller_sequence",
+    "target_reason", "target_effects", "target_entry_pc", "target_entry_sp",
+    "crc64",
+)
+IMMUTABLE = frozenset(FIELDS[:11])
+CONTROLLER_OWNED = frozenset({"controller_state", "controller_sequence", "crc64"})
+TARGET_OWNED = frozenset({
+    "target_state", "target_sequence", "target_reason", "target_effects",
+    "target_entry_pc", "target_entry_sp",
+})
+STATES = ("EMPTY", "ARMED", "TARGET_CLAIMED", "TARGET_PUBLISHED",
+          "FAILED", "PARKED", "PANICKED")
+LEGAL = {
+    "EMPTY": ("ARMED",),
+    "ARMED": ("TARGET_CLAIMED", "FAILED", "PARKED", "PANICKED"),
+    "TARGET_CLAIMED": ("TARGET_PUBLISHED", "FAILED", "PARKED", "PANICKED"),
+    "TARGET_PUBLISHED": (),
+    "FAILED": (),
+    "PARKED": (),
+    "PANICKED": (),
+}
+WRITER = {field: "controller" for field in IMMUTABLE | CONTROLLER_OWNED}
+WRITER.update({field: "target" for field in TARGET_OWNED})
+
+
+@dataclass(frozen=True)
+class Contract:
+    fields: tuple[str, ...] = FIELDS
+    immutable: frozenset[str] = IMMUTABLE
+    controller_owned: frozenset[str] = CONTROLLER_OWNED
+    target_owned: frozenset[str] = TARGET_OWNED
+    states: tuple[str, ...] = STATES
+    legal: dict[str, tuple[str, ...]] | None = None
+    writer: dict[str, str] | None = None
+    controller_flush_order: tuple[str, ...] = (
+        "write_header", "compute_crc", "clean_to_poc", "dsb_sy",
+        "publish_armed_release",
+    )
+    target_publish_order: tuple[str, ...] = (
+        "write_result", "increment_target_sequence", "clean_to_poc",
+        "dsb_sy", "publish_terminal_release",
+    )
+    controller_readback_order: tuple[str, ...] = (
+        "dsb_sy", "invalidate_complete_range", "read_full_object",
+    )
+    fail_closed: tuple[str, ...] = (
+        "bad_header", "bad_crc", "bad_identity", "bad_sequence",
+        "bad_state", "unreadable", "timeout_unproven_cpu_on", "nonreturn",
+        "stale_generation", "mismatched_terminal", "failed_readback",
+    )
+    p14_p15_requires: tuple[str, ...] = (
+        "target_published", "complete_readback", "exact_token",
+        "online_sample", "no_quarantine",
+    )
+
+
+def validate(contract: Contract) -> None:
+    if contract.legal is None:
+        contract = replace(contract, legal=LEGAL)
+    if contract.writer is None:
+        contract = replace(contract, writer=WRITER)
+    if len(contract.fields) != 20 or contract.fields != FIELDS:
+        raise AssertionError("layout is not the fixed 20-word wire object")
+    if not contract.immutable <= set(contract.fields[:11]):
+        raise AssertionError("immutable header escaped the first 11 words")
+    if contract.controller_owned & contract.target_owned:
+        raise AssertionError("field has two owners")
+    if contract.immutable & contract.target_owned:
+        raise AssertionError("immutable field is target-owned")
+    if set(contract.writer) != set(contract.fields):
+        raise AssertionError("every field needs exactly one writer")
+    if any(owner not in {"controller", "target"} for owner in contract.writer.values()):
+        raise AssertionError("unknown field writer")
+    if tuple(contract.states) != STATES:
+        raise AssertionError("state vocabulary changed")
+    if set(contract.legal) != set(STATES):
+        raise AssertionError("state transition table incomplete")
+    if contract.legal != LEGAL:
+        raise AssertionError("state transition table widened or reordered")
+    if contract.legal["TARGET_PUBLISHED"]:
+        raise AssertionError("published state gained a successor")
+    for state, successors in contract.legal.items():
+        if any(successor not in STATES for successor in successors):
+            raise AssertionError(f"unknown transition from {state}")
+    if contract.controller_flush_order != (
+        "write_header", "compute_crc", "clean_to_poc", "dsb_sy",
+        "publish_armed_release",
+    ):
+        raise AssertionError("controller arming order weakened")
+    if contract.target_publish_order != (
+        "write_result", "increment_target_sequence", "clean_to_poc",
+        "dsb_sy", "publish_terminal_release",
+    ):
+        raise AssertionError("target publication order weakened")
+    if contract.controller_readback_order != (
+        "dsb_sy", "invalidate_complete_range", "read_full_object",
+    ):
+        raise AssertionError("controller readback order weakened")
+    required_failures = {
+        "bad_header", "bad_crc", "bad_identity", "bad_sequence", "bad_state",
+        "unreadable", "timeout_unproven_cpu_on", "nonreturn", "stale_generation",
+        "mismatched_terminal", "failed_readback",
+    }
+    if not required_failures <= set(contract.fail_closed):
+        raise AssertionError("fail-closed causes were removed")
+    required_commit = {
+        "target_published", "complete_readback", "exact_token", "online_sample",
+        "no_quarantine",
+    }
+    if not required_commit <= set(contract.p14_p15_requires):
+        raise AssertionError("P14/P15 gained an incomplete path")
+
+
+def expect_reject(label: str, mutation) -> None:
+    try:
+        validate(mutation())
+    except AssertionError:
+        return
+    raise AssertionError(f"mutation accepted: {label}")
+
+
+def main() -> None:
+    base = Contract()
+    validate(base)
+    mutations = (
+        ("drop-magic", lambda: replace(base, fields=base.fields[1:])),
+        ("share-field-owner", lambda: replace(base, target_owned=base.target_owned | {"magic"})),
+        ("target-writes-controller-state", lambda: replace(base, target_owned=base.target_owned | {"controller_state"})),
+        ("add-published-successor", lambda: replace(base, legal={**LEGAL, "TARGET_PUBLISHED": ("ARMED",)})),
+        ("allow-target-before-armed", lambda: replace(base, legal={**LEGAL, "EMPTY": ("ARMED", "TARGET_CLAIMED")})),
+        ("drop-clean", lambda: replace(base, controller_flush_order=("write_header", "compute_crc", "dsb_sy", "publish_armed_release"))),
+        ("publish-before-clean", lambda: replace(base, target_publish_order=("write_result", "publish_terminal_release", "clean_to_poc", "dsb_sy"))),
+        ("read-state-only", lambda: replace(base, controller_readback_order=("dsb_sy", "read_full_object"))),
+        ("drop-stale-fault", lambda: replace(base, fail_closed=tuple(x for x in base.fail_closed if x != "stale_generation"))),
+        ("allow-commit-before-readback", lambda: replace(base, p14_p15_requires=tuple(x for x in base.p14_p15_requires if x != "complete_readback"))),
+        ("allow-commit-under-quarantine", lambda: replace(base, p14_p15_requires=tuple(x for x in base.p14_p15_requires if x != "no_quarantine"))),
+        ("drop-exact-token", lambda: replace(base, p14_p15_requires=tuple(x for x in base.p14_p15_requires if x != "exact_token"))),
+        ("drop-sequence", lambda: replace(base, target_publish_order=("write_result", "clean_to_poc", "dsb_sy", "publish_terminal_release"))),
+        ("drop-barrier", lambda: replace(base, target_publish_order=("write_result", "increment_target_sequence", "clean_to_poc", "publish_terminal_release"))),
+        ("unknown-writer", lambda: replace(base, writer={**WRITER, "magic": "firmware"})),
+    )
+    for label, mutation in mutations:
+        expect_reject(label, mutation)
+    print("layout_words=20")
+    print("immutable_words=0..10")
+    print("controller_owned=controller_state;controller_sequence;crc64")
+    print("target_owned=target_state;target_sequence;target_reason;target_effects;target_entry_pc;target_entry_sp")
+    print("states=EMPTY->ARMED->TARGET_CLAIMED->terminal")
+    print("cache_order=clean_to_poc;dsb_sy;release;invalidate_complete_range;full_readback")
+    print("negative_mutations=15;all_rejected=1")
+    print("p14_p15_requires=target_published;complete_readback;exact_token;online_sample;no_quarantine")
+    print("hardware_action=none")
+    print("status=PASS_P30E_MMUS_OFF_WIRE_CONTRACT")
+
+
+if __name__ == "__main__":
+    main()

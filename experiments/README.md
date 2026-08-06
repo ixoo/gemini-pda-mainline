@@ -33,6 +33,11 @@ the loop. Positive identity-gated observations are unaffected.
   `PARTIAL_P30_PROTOCOL_MODEL`: there are zero production callers, KUnit was
   not run, P24/P14/P15 and bounded park/wait/panic hooks are absent, P30E has no
   MMU-off object or coherency proof, and A26/A14 remain closed.
+- [2026-08-06 P30E MMU-off-visible object contract](2026-08-06-a72-p30e-mmuoff-contract/README.md)
+  — defines the fixed physical 20-word controller/target object, separate
+  field writers, cache/barrier order, exact-token publication, and fail-closed
+  P30U handling. It is a source-only contract; no assembly implementation,
+  CPU_ON/OFF action, build, or device result exists yet.
 - [2026-08-05 A41 kernel-identity binding boundary](2026-08-05-a72-a41-kernel-identity/README.md)
   — advances the blocked lifecycle to ABI 7 with a strict static expected
   record and independent arm64-core producers for the running embedded

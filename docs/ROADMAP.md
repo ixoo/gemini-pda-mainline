@@ -1786,7 +1786,12 @@ The next ordered work remains source-only:
    shared with the controller, including exact tuple layout, cache maintenance,
    point-of-coherency and barrier ordering, assembly failure publication, and
    fail-closed P30U routing for every ambiguous or stale observation. The
-   dormant C control object cannot substitute for this proof.
+   [P30E wire-object contract](../experiments/2026-08-06-a72-p30e-mmuoff-contract/README.md)
+   now freezes that source-only boundary: a 20-word physical object, separate
+   controller/target writers, full-range clean/readback, and exact-token
+   P14/P15 prerequisites. It is not an assembly implementation or admission
+   authorization. The dormant C control object cannot substitute for this
+   proof.
 3. Complete A25 and implement P32A/D/F/X/R using either a reviewed core
    no-auto-rollback interface or the fail-stop `.cpu_disable` plus die/kill
    guard design, retaining every partial callback and architecture effect.
