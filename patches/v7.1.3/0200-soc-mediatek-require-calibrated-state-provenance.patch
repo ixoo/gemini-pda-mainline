@@ -150,7 +150,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/
 +	identity->provenance = owner->provenance;
  
  	return 0;
-@@ -1776,10 +1795,11 @@ mt6797_dvfsp_state_snapshot_equal(
+@@ -1778,9 +1797,11 @@ mt6797_dvfsp_state_snapshot_equal(
  mt6797_dvfsp_state_snapshot_equal(
  	const struct mt6797_dvfsp_state_snapshot *left,
  	const struct mt6797_dvfsp_state_snapshot *right)
