@@ -17,6 +17,7 @@ TRANSITION_OWNER_PATCH = ROOT / "patches/v7.1.3/0199-soc-mediatek-bind-protected
 PROVENANCE_PATCH = ROOT / "patches/v7.1.3/0200-soc-mediatek-require-calibrated-state-provenance.patch"
 CALIBRATION_LIFECYCLE_PATCH = ROOT / "patches/v7.1.3/0201-soc-mediatek-bind-calibration-lifecycle-to-state-owner.patch"
 TRANSITION_LOCK_PATCH = ROOT / "patches/v7.1.3/0202-soc-mediatek-bind-protected-owner-to-transition-lock.patch"
+CALIBRATED_TABLE_PATCH = ROOT / "patches/v7.1.3/0203-soc-mediatek-require-calibrated-table-state.patch"
 SERIES = ROOT / "patches/series"
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
 START_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-start-contract-20260806.txt"
@@ -36,6 +37,7 @@ TRANSITION_OWNER_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/p
 PROVENANCE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/calibrated-state-provenance-buildbox-20260806.txt"
 CALIBRATION_LIFECYCLE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/calibration-lifecycle-buildbox-20260806.txt"
 TRANSITION_LOCK_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/transition-lock-buildbox-20260806.txt"
+CALIBRATED_TABLE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/calibrated-table-state-buildbox-20260806.txt"
 
 
 def require(text: str, needle: str, label: str) -> None:
@@ -56,6 +58,7 @@ def main() -> None:
     provenance_patch = PROVENANCE_PATCH.read_text()
     calibration_lifecycle_patch = CALIBRATION_LIFECYCLE_PATCH.read_text()
     transition_lock_patch = TRANSITION_LOCK_PATCH.read_text()
+    calibrated_table_patch = CALIBRATED_TABLE_PATCH.read_text()
     design = DESIGN.read_text()
     start_result = START_RESULT.read_text()
     owner_result = OWNER_RESULT.read_text()
@@ -74,6 +77,7 @@ def main() -> None:
     provenance_build_result = PROVENANCE_BUILD_RESULT.read_text()
     calibration_lifecycle_build_result = CALIBRATION_LIFECYCLE_BUILD_RESULT.read_text()
     transition_lock_build_result = TRANSITION_LOCK_BUILD_RESULT.read_text()
+    calibrated_table_build_result = CALIBRATED_TABLE_BUILD_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     names = [Path(line).name for line in SERIES.read_text().splitlines()
@@ -256,6 +260,27 @@ def main() -> None:
         ("provider is registered by default", "calibration-default-off"),
     ):
         require(calibration_lifecycle_patch, needle, label)
+    for needle, label in (
+        ("MT6797_DVFSP_CALIBRATION_STATE_ABI", "calibrated-state-abi"),
+        ("MT6797_DVFSP_CALIBRATION_STATE_PHASE_MON", "calibrated-state-mon-phase"),
+        ("MT6797_DVFSP_CALIBRATION_STATE_BANK_ALL", "calibrated-state-bank-mask"),
+        ("MT6797_DVFSP_CALIBRATION_TABLE_MAX", "calibrated-state-table-bound"),
+        ("struct mt6797_dvfsp_calibration_table_entry", "calibrated-state-table-entry"),
+        ("struct mt6797_dvfsp_calibration_state", "calibrated-state-struct"),
+        ("snapshot_state", "calibrated-state-callback"),
+        ("mt6797_dvfsp_calibration_state_check", "calibrated-state-check"),
+        ("entry->frequency_khz <= previous_frequency", "calibrated-state-frequency-order"),
+        ("entry->vsram_uv - entry->vproc_uv < 10000", "calibrated-state-rail-delta-min"),
+        ("entry->vsram_uv - entry->vproc_uv > 30000", "calibrated-state-rail-delta-max"),
+        ("entry->vsram_uv < 1000000", "calibrated-state-vsram-floor"),
+        ("entry->vsram_uv > 1200000", "calibrated-state-vsram-ceiling"),
+        ("thermal_generation", "calibrated-state-thermal-generation"),
+        ("clock_owner_generation", "calibrated-state-clock-generation"),
+        ("rail_owner_generation", "calibrated-state-rail-generation"),
+        ("owner->calibration_ops->snapshot_state", "calibrated-state-owner-admission"),
+        ("default owner remains", "calibrated-state-default-off"),
+    ):
+        require(calibrated_table_patch, needle, label)
     for needle, label in (
         ("## Startup-state adapter seam", "design-state-seam"),
         ("`snapshot`", "design-snapshot"),
@@ -582,6 +607,26 @@ def main() -> None:
     ):
         require(transition_lock_build_result, needle, label)
     for needle, label in (
+        ("claim=COMPILE_ONLY_CALIBRATED_TABLE_STATE_ADMISSION", "calibrated-table-build-claim"),
+        ("repository_commit=__CALIBRATED_TABLE_COMMIT__", "calibrated-table-build-commit"),
+        ("origin=https://github.com/ixoo/gemini-pda-mainline.git", "calibrated-table-build-origin"),
+        ("build_backend=buildbox", "calibrated-table-build-backend"),
+        ("buildbox_status=validated", "calibrated-table-build-status"),
+        ("patch_count=192", "calibrated-table-build-patch-count"),
+        ("artifact=__CALIBRATED_TABLE_ARTIFACT__", "calibrated-table-build-artifact"),
+        ("dtb_count=119", "calibrated-table-build-dtb-count"),
+        ("sha256sums=passed", "calibrated-table-build-checksums"),
+        ("package_fetch=success;validated_package_only", "calibrated-table-build-fetch"),
+        ("calibrated_table_contract=0203;MON_phase;BIG_L_2L_CCI_banks;frequency_voltage_vsram_ppm_rows;thermal_clock_rail_generations;default_off", "calibrated-table-build-contract"),
+        ("owner=unregistered", "calibrated-table-build-owner-unregistered"),
+        ("provider=none", "calibrated-table-build-no-provider"),
+        ("secure_write=none", "calibrated-table-build-no-secure-write"),
+        ("hardware_write=none", "calibrated-table-build-no-write"),
+        ("device_action=none", "calibrated-table-build-no-device"),
+        ("boot_candidate=false", "calibrated-table-build-not-candidate"),
+    ):
+        require(calibrated_table_build_result, needle, label)
+    for needle, label in (
         ("repeat_run_repository_commit=6c3cb4fad5a4895f6a69d7913089553b6751e34c", "readback-repeat-commit"),
         ("repeat_run_buildbox_job=6c3cb4fad5a4895f6a69d7913089553b6751e34c-dvfsp-protected-readback-m0", "readback-repeat-job"),
         ("repeat_run_status=validated", "readback-repeat-status"),
@@ -621,6 +666,8 @@ def main() -> None:
         raise AssertionError("calibration lifecycle is not after calibrated provenance contract")
     if names.index("0201-soc-mediatek-bind-calibration-lifecycle-to-state-owner.patch") >= names.index("0202-soc-mediatek-bind-protected-owner-to-transition-lock.patch"):
         raise AssertionError("transition lock is not after calibration lifecycle")
+    if names.index("0202-soc-mediatek-bind-protected-owner-to-transition-lock.patch") >= names.index("0203-soc-mediatek-require-calibrated-table-state.patch"):
+        raise AssertionError("calibrated table state is not after the transition lock")
 
     for forbidden in ("readl(", "writel(", "i2c_transfer", "regulator_enable(",
                       "regulator_disable(", "psci_ops.cpu_on", "cpu_up("):
@@ -644,6 +691,8 @@ def main() -> None:
             raise AssertionError(f"unexpected calibration lifecycle hardware operation: {forbidden}")
         if forbidden in transition_lock_patch:
             raise AssertionError(f"unexpected transition-lock hardware operation: {forbidden}")
+        if forbidden in calibrated_table_patch:
+            raise AssertionError(f"unexpected calibrated-table hardware operation: {forbidden}")
 
     print("claim=PARTIAL_FIRMWARE_LEASE_CALLBACK_CONTRACT")
     print("registered_owner=0")
@@ -667,6 +716,7 @@ def main() -> None:
     print("calibrated_state_provenance=0200;all_required_sources;mutable_table_epoch;calibration_handle;backend_provenance_match;registered_owner=0;no_provider;no_secure_write;boot_candidate=false")
     print("calibration_lifecycle=0201;provenance_snapshot_validate_hold_release;backend_echo_required;registered_owner=0;no_provider;no_mmio;boot_candidate=false")
     print("transition_lock=0202;external_lock_unlock;composite_snapshot_validate_hold_release;registered_owner=0;no_provider;no_mmio;boot_candidate=false")
+    print("calibrated_table_state=0203;MON_phase;BIG_L_2L_CCI_banks;frequency_voltage_vsram_ppm_rows;thermal_clock_rail_generations;registered_owner=0;no_provider;no_mmio;boot_candidate=false")
     print("pcm_adapter_contract=source-only;bounded-admission-model;callback-registration-gated")
     print("clock_owner_inventory=generic_ccf_only;protected_owner_absent;A72_observer_read_only")
     print("pcm_start_contract=defined;residency_and_start_required_before_callback_registration")

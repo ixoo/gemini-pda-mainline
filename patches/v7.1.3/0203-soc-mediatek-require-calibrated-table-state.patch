@@ -1,0 +1,163 @@
+From 0000000000000000000000000000000000000203 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 7 Aug 2026 01:00:00 -0400
+Subject: [PATCH] soc: mediatek: require calibrated table state
+
+The protected owner now requires a concrete calibrated-state snapshot in
+addition to provenance. Require the future MT6797 EEM/PTP/PPM provider to
+publish a stable MON-phase snapshot covering the BIG, L, 2L, and CCI banks,
+with complete frequency/voltage/PPM rows and independent thermal, clock-owner,
+and rail-owner generations. Validate that payload while the transition lock
+is held before the paired backend snapshots can be accepted.
+
+This is an admission contract, not an EEM driver: it does not map the shared
+EEM/thermal window, read efuses, call secure firmware, change a regulator or
+clock, register a provider, or admit CPU8/CPU9. The default owner remains
+unregistered. This patch is experiment-only and not submission-ready.
+---
+ drivers/soc/mediatek/mt6797-dvfsp-handoff.c       | 58 +++++++++++++++++++++-
+ include/linux/soc/mediatek/mt6797-dvfsp-handoff.h | 42 ++++++++++++++++
+ 2 files changed, 99 insertions(+), 1 deletion(-)
+
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
+@@ -80,5 +80,46 @@ struct mt6797_dvfsp_state_provenance {
+ 	u64 calibration_handle;
+ };
++
++#define MT6797_DVFSP_CALIBRATION_STATE_ABI		1
++#define MT6797_DVFSP_CALIBRATION_STATE_PHASE_INIT01	1
++#define MT6797_DVFSP_CALIBRATION_STATE_PHASE_INIT02	2
++#define MT6797_DVFSP_CALIBRATION_STATE_PHASE_MON		3
++#define MT6797_DVFSP_CALIBRATION_STATE_BANK_BIG		BIT(0)
++#define MT6797_DVFSP_CALIBRATION_STATE_BANK_L		BIT(3)
++#define MT6797_DVFSP_CALIBRATION_STATE_BANK_2L		BIT(4)
++#define MT6797_DVFSP_CALIBRATION_STATE_BANK_CCI		BIT(5)
++#define MT6797_DVFSP_CALIBRATION_STATE_BANK_ALL		\
++	(MT6797_DVFSP_CALIBRATION_STATE_BANK_BIG | \
++	 MT6797_DVFSP_CALIBRATION_STATE_BANK_L | \
++	 MT6797_DVFSP_CALIBRATION_STATE_BANK_2L | \
++	 MT6797_DVFSP_CALIBRATION_STATE_BANK_CCI)
++#define MT6797_DVFSP_CALIBRATION_TABLE_MAX		16
++
++struct mt6797_dvfsp_calibration_table_entry {
++	u32 frequency_khz;
++	u32 vproc_uv;
++	u32 vsram_uv;
++	u32 ppm_limit_khz;
++};
++
++struct mt6797_dvfsp_calibration_cluster {
++	u32 table_count;
++	struct mt6797_dvfsp_calibration_table_entry
++		table[MT6797_DVFSP_CALIBRATION_TABLE_MAX];
++};
++
++struct mt6797_dvfsp_calibration_state {
++	u32 abi;
++	u32 phase;
++	u32 bank_mask;
++	s32 temperature_millic;
++	u64 thermal_generation;
++	u64 clock_owner_generation;
++	u64 rail_owner_generation;
++	struct mt6797_dvfsp_state_provenance provenance;
++	struct mt6797_dvfsp_calibration_cluster
++		cluster[MT6797_DVFSP_STATE_CLUSTER_COUNT];
++};
+ 
+ struct mt6797_dvfsp_state_snapshot {
+ 	u32 abi;
+@@ -191,6 +231,8 @@ struct mt6797_dvfsp_state_calibration_ops {
+ 	u32 abi;
+ 	int (*snapshot)(void *context,
+ 			struct mt6797_dvfsp_state_provenance *provenance);
++	int (*snapshot_state)(void *context,
++			struct mt6797_dvfsp_calibration_state *state);
+ 	int (*validate)(void *context,
+ 			const struct mt6797_dvfsp_state_provenance *provenance);
+ 	int (*hold)(void *context,
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+@@ -1607,6 +1607,48 @@ mt6797_dvfsp_state_provenance_equal(
+ 		left->calibration_handle == right->calibration_handle;
+ }
+ 
++static int
++mt6797_dvfsp_calibration_state_check(
++	const struct mt6797_dvfsp_calibration_state *state)
++{
++	unsigned int i;
++
++	if (!state || state->abi != MT6797_DVFSP_CALIBRATION_STATE_ABI ||
++	    state->phase != MT6797_DVFSP_CALIBRATION_STATE_PHASE_MON ||
++	    state->bank_mask != MT6797_DVFSP_CALIBRATION_STATE_BANK_ALL ||
++	    !state->thermal_generation || !state->clock_owner_generation ||
++	    !state->rail_owner_generation ||
++	    mt6797_dvfsp_state_provenance_check(&state->provenance))
++		return -EPROTO;
++
++	for (i = 0; i < MT6797_DVFSP_STATE_CLUSTER_COUNT; i++) {
++		const struct mt6797_dvfsp_calibration_cluster *cluster =
++			&state->cluster[i];
++		unsigned int j;
++		u32 previous_frequency = 0;
++
++		if (!cluster->table_count ||
++		    cluster->table_count > MT6797_DVFSP_CALIBRATION_TABLE_MAX)
++			return -EPROTO;
++		for (j = 0; j < cluster->table_count; j++) {
++			const struct mt6797_dvfsp_calibration_table_entry *entry =
++				&cluster->table[j];
++
++			if (!entry->frequency_khz ||
++			    entry->frequency_khz <= previous_frequency ||
++			    !entry->vproc_uv || !entry->vsram_uv ||
++			    !entry->ppm_limit_khz || entry->vsram_uv < entry->vproc_uv ||
++			    entry->vsram_uv - entry->vproc_uv < 10000 ||
++			    entry->vsram_uv - entry->vproc_uv > 30000 ||
++			    entry->vsram_uv < 1000000 || entry->vsram_uv > 1200000)
++				return -EPROTO;
++			previous_frequency = entry->frequency_khz;
++		}
++	}
++
++	return 0;
++}
++
+ static int
+ mt6797_dvfsp_state_snapshot_check(
+ 	const struct mt6797_dvfsp_state_snapshot *snapshot)
+@@ -1813,4 +1857,5 @@ mt6797_dvfsp_protected_state_owner_check(
+ 	if (!owner->calibration_ops || !owner->calibration_ops->snapshot ||
++	    !owner->calibration_ops->snapshot_state ||
+ 	    !owner->calibration_ops->validate ||
+ 	    !owner->calibration_ops->hold ||
+ 	    !owner->calibration_ops->release ||
+@@ -1869,4 +1914,5 @@ mt6797_dvfsp_protected_state_owner_collect_locked(
+ 	const struct mt6797_dvfsp_state_backend_ops *cpu;
+ 	const struct mt6797_dvfsp_state_backend_ops *big;
+ 	struct mt6797_dvfsp_state_provenance provenance;
++	struct mt6797_dvfsp_calibration_state calibration_state;
+ 	int ret;
+@@ -1877,6 +1923,16 @@ mt6797_dvfsp_protected_state_owner_collect_locked(
+ 	if (ret)
+ 		return ret;
+ 
++	memset(&calibration_state, 0, sizeof(calibration_state));
++	ret = owner->calibration_ops->snapshot_state(
++		owner->calibration_context, &calibration_state);
++	if (ret)
++		return ret;
++	ret = mt6797_dvfsp_calibration_state_check(&calibration_state);
++	if (ret || !mt6797_dvfsp_state_provenance_equal(
++			&calibration_state.provenance, &owner->provenance))
++		return -EPROTO;
++
+ 	cpu = owner->cpu_pll_ops;
+ 	big = owner->big_cluster_ops;
+ 	memset(cpu_snapshot, 0, sizeof(*cpu_snapshot));
+-- 
+2.39.5
