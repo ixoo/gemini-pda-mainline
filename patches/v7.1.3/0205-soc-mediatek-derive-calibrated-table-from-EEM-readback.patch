@@ -18,9 +18,9 @@ write, provider registration, device boot, or CPU8/CPU9 admission is added.
 Missing or contradictory inputs fail closed. This patch is experiment-only
 and not submission-ready.
 ---
- drivers/thermal/mediatek/auxadc_thermal.c       | 216 ++++++++++++++++++++++++
+ drivers/thermal/mediatek/auxadc_thermal.c       | 215 ++++++++++++++++++++++++
  include/linux/soc/mediatek/mt6797-eem-calibration.h |  60 ++++++++
- 2 files changed, 276 insertions(+)
+ 2 files changed, 275 insertions(+)
  create mode 100644 include/linux/soc/mediatek/mt6797-eem-calibration.h
 
 diff --git a/include/linux/soc/mediatek/mt6797-eem-calibration.h b/include/linux/soc/mediatek/mt6797-eem-calibration.h
@@ -99,7 +99,7 @@ diff --git a/drivers/thermal/mediatek/auxadc_thermal.c b/drivers/thermal/mediate
  
 +#include <linux/soc/mediatek/mt6797-eem-calibration.h>
  #include <linux/soc/mediatek/mt6797-eem-readback.h>
-@@ -1059,5 +1059,219 @@
+@@ -1059,5 +1059,218 @@
  EXPORT_SYMBOL_GPL(mt6797_thermal_eem_readback);
  
 +#define MT6797_EEM_CALIBRATION_EEM_BASE_UV	700000
@@ -265,7 +265,6 @@ diff --git a/drivers/thermal/mediatek/auxadc_thermal.c b/drivers/thermal/mediate
 +			return -EPROTO;
 +
 +		for (row = 0; row < MT6797_EEM_CALIBRATION_ROWS; row++) {
-+			u32 vproc_uv;
 +			u32 vsram_uv = input->vsram_uv[bank_index][row];
 +
 +			if (!input->frequency_pct[bank_index][row] ||
