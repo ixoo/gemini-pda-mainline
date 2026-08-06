@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | 2026-08-06-a72-provider-release-boundary |
-| Status | source-complete; Buildbox pending |
+| Status | completed (source, static, Buildbox validation) |
 | Subsystem | MT6797 A72 provider-owner lifecycle |
 | Device variant | Planet Gemini PDA, MT6797; no live-device action |
 | Claim | PARTIAL_PROVIDER_RELEASE_REFUSAL |
@@ -28,11 +28,19 @@ proved DA921x page ownership/selector semantics or a write/readback/rollback
 transaction. The existing direct-address reads are not sufficient evidence for
 an arbitrary write.
 
+Buildbox validated the exact pushed commit and fetched the package. The build
+was compile-only: it produced no boot candidate and took no device action. One
+non-fatal `-Wunused-function` warning for the dormant release callback was
+recorded in [the validation result](results/buildbox-validation-20260806.txt).
+
 ## Provenance
 
 - Patch: [0173](../../patches/v7.1.3/0173-arm64-add-provider-release-refusal-boundary.patch)
 - Series: [canonical series](../../patches/series)
 - Profile: a72-p24-provider-owner-refusal
+- Commit: `b7473749666bb4592345e17e712b2bce8bb3c360`
+- Patch SHA-256: `39d499200d82cd7debbd0ad2e9591f0a4f98005b7844cee0531e10ef823a7647`
+- Buildbox result: [validation record](results/buildbox-validation-20260806.txt)
 - Device action: none
 - Boot candidate: none
 
