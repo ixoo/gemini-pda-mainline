@@ -22,6 +22,7 @@ BUILDBOX_LEASE = Path(__file__).resolve().parents[1] / "results/buildbox-transfe
 FIRMWARE_LEASE = Path(__file__).resolve().parents[1] / "results/firmware-owner-lease-20260806.txt"
 PCM_SCAN = Path(__file__).resolve().parents[1] / "results/pcm-firmware-owner-scan-20260806.txt"
 PUBLIC_HYBRID_PCM_AUDIT = Path(__file__).resolve().parents[1] / "results/public-hybrid-pcm-owner-disassembly-20260806.txt"
+PCM_LOAD_PATH_AUDIT = Path(__file__).resolve().parents[1] / "results/mainline-pcm-load-path-audit-20260806.txt"
 SECURE_IMAGE_SCAN = Path(__file__).resolve().parents[1] / "results/secure-owner-image-scan-20260806.txt"
 TEE_DISASSEMBLY = Path(__file__).resolve().parents[1] / "results/tee-owner-disassembly-20260806.txt"
 SCP_ALIAS_INVENTORY = Path(__file__).resolve().parents[1] / "results/scp-alias-inventory-20260806.txt"
@@ -56,6 +57,7 @@ def main() -> None:
     firmware_lease = FIRMWARE_LEASE.read_text()
     pcm_scan = PCM_SCAN.read_text()
     public_hybrid_pcm_audit = PUBLIC_HYBRID_PCM_AUDIT.read_text()
+    pcm_load_path_audit = PCM_LOAD_PATH_AUDIT.read_text()
     secure_image_scan = SECURE_IMAGE_SCAN.read_text()
     tee_disassembly = TEE_DISASSEMBLY.read_text()
     scp_alias_inventory = SCP_ALIAS_INVENTORY.read_text()
@@ -152,7 +154,7 @@ def main() -> None:
         ("mainline_firmware_lease=unproven;historical_receiver_attribution_does_not_provide_mainline_callback_or_replacement_protocol", "firmware-lease-gap"),
         ("reviewed_protocol=0175_callback_contract;default-unregistered;Buildbox-pass", "firmware-protocol-contract"),
         ("protocol_effect=contract-only;no_MMIO;no_I2C;no_regulator;no_CPU_ON", "firmware-protocol-no-effect"),
-        ("required_closure=identify_or_replace_mainline_firmware_lease_invocation;prove_page_control-mask_settle-readback_and_rollback_owner;sticky-fault_and_resume-revalidation", "firmware-closure"),
+        ("required_closure=establish_PCM_residency_and_start_kick_contract_then_identify_or_replace_mainline_firmware_lease_invocation;prove_page_control-mask_settle-readback_and_rollback_owner;sticky-fault_and_resume-revalidation", "firmware-closure"),
         ("repeat_prohibition=do_not_repeat_Candidate_AO_stopped-state_or_clock-normalization_boot", "no-repeat-ao"),
         ("decision=BLOCK_WRITABLE_PROVIDER", "firmware-decision"),
         ("status=PASS_HISTORICAL_RECEIVER_OWNER_MAINLINE_LEASE_OPEN", "firmware-status"),
@@ -186,6 +188,24 @@ def main() -> None:
         ("status=PASS_PUBLIC_HYBRID_PCM_RECEIVER_OWNER_MAINLINE_LEASE_OPEN", "public-hybrid-status"),
     ):
         require(public_hybrid_pcm_audit, needle, label)
+    for needle, label in (
+        ("kernel_source=linux-7.1.3;manifest_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc", "pcm-load-source-pin"),
+        ("handoff_resource_binding=CSPM_0x11015000_plus_0x1000_only", "pcm-load-cspm-only"),
+        ("handoff_csram_resource=absent;0x0012a000_not_mapped", "pcm-load-csram-absent"),
+        ("handoff_firmware_request=request_firmware_not-found_in_MT6797_DVFSP_path", "pcm-load-firmware-absent"),
+        ("handoff_pcm_residency=not-established;no_mainline_image_buffer_or_firmware_name", "pcm-load-residency-gap"),
+        ("handoff_im_kick=not-implemented;no_IM_PTR_IM_LEN_or_IM_KICK_sequence", "pcm-load-im-kick-gap"),
+        ("handoff_pcm_kick=not-implemented;no_PCM_CON0_kick_or_FSM_IM_READY_start_path", "pcm-load-pcm-kick-gap"),
+        ("handoff_csram_initialization=not-implemented;no_initial_records_or_log_repo", "pcm-load-csram-init-gap"),
+        ("i2c6_firmware_calls=not-found_in_mainline_handoff_and_i2c_mt65xx", "pcm-load-i2c6-call-gap"),
+        ("linux_transfer_lease=0174_generation_cookie_only;not_vendor_SEMA_I2C_DRV", "pcm-load-linux-lease-only"),
+        ("firmware_contract=0175_default-unregistered_callback;no_registered_owner;no_MMIO_or_firmware_start", "pcm-load-contract-only"),
+        ("current_receiver_state=read-only_stopped-state_validation;handoff_does_not_start_PCM", "pcm-load-stopped-receiver"),
+        ("safety_consequence=SW_PAUSE_FW_DONE_direct_handshake_is_invalid_while_PCM_residency_and_start_are_unproven", "pcm-load-safety-boundary"),
+        ("decision=BLOCK_MAINLINE_FIRMWARE_LEASE_AND_WRITABLE_PROVIDER", "pcm-load-decision"),
+        ("status=PASS_MAINLINE_PCM_LOAD_PATH_AUDIT", "pcm-load-status"),
+    ):
+        require(pcm_load_path_audit, needle, label)
     for needle, label in (
         ("source=project-start-full-backup;read_only;no_new_backup;raw_contents_not_staged", "secure-scan-source"),
         ("lk_sha256=75ec9f0ba97af9e68d964b304e0de809f9b4546982570bd16b2e7fe88823282c", "secure-lk-hash"),
@@ -292,6 +312,10 @@ def main() -> None:
         "firmware_protocol_contract\t0175-default-unregistered;Buildbox-pass",
         "firmware_owner_lease\thistorical-hybrid-PCM-attributed;mainline-lease-unproven",
         "receiver_authority\thistorical-hybrid-PCM-proven;runtime-mainline-handshake-unproven",
+        "mainline_pcm_load_path\tCSPM-only-read-only-handoff;CSRAM-unmapped;request_firmware-absent;PCM-start-kick-absent",
+        "mainline_pcm_residency\tunproven;no-mainline-image-buffer-or-firmware-name",
+        "mainline_pcm_start_contract\tvendor-reset-IM-KICK-PCM-KICK-CSRAM-sequence-not-implemented",
+        "mainline_i2c6_firmware_invocation\tnot-found;0174-generation-cookie-only;0175-default-unregistered",
         "pcm_firmware_owner_scan\tnegative-direct-literal;archive-boundary-only;decoded-public-hybrid-audit-added",
         "public_hybrid_pcm_owner_disassembly\texact-version-match;SW_PAUSE_bit13;FW_DONE_bit15;I2C6_path;mainline-lease-open",
         "secure_owner_image_scan\tLK-generic-I2C;ATF-CSPM-interference-attributed;SCP-DVFS-SPM;no-PCM-restart-SEMA-owner",
@@ -315,6 +339,10 @@ def main() -> None:
     print("mainline_transfer_lease=0174-validated;generation-cookie;PM-lock-integrated;Buildbox-pass")
     print("firmware_owner_lease=historical-hybrid-PCM-attributed;mainline-lease-unproven")
     print("receiver_authority=historical-hybrid-PCM-proven;runtime-mainline-handshake-unproven")
+    print("mainline_pcm_load_path=CSPM-only-read-only-handoff;CSRAM-unmapped;request_firmware-absent;PCM-start-kick-absent")
+    print("mainline_pcm_residency=unproven;no-mainline-image-buffer-or-firmware-name")
+    print("mainline_pcm_start_contract=vendor-reset-IM-KICK-PCM-KICK-CSRAM-sequence-not-implemented")
+    print("mainline_i2c6_firmware_invocation=not-found;0174-generation-cookie-only;0175-default-unregistered")
     print("scp_computed_address_audit=additional_local_aliases;no_forbidden_target_construction;no_pause_release")
     print("secure_owner_image_scan=negative;ATF-CSPM-interference-attributed;LK-generic-I2C;SCP-DVFS-SPM;no-PCM-restart-SEMA-owner")
     print("decision=BLOCK_WRITABLE_PROVIDER")

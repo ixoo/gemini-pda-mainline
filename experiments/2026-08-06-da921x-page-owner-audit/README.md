@@ -196,6 +196,18 @@ The source and sanitized runtime record establish these facts:
   or rollback ownership for a provider write. The raw nine-file Gemian archive
   scan remains a negative literal-only result, not a contradiction. See
   [`results/public-hybrid-pcm-owner-disassembly-20260806.txt`](results/public-hybrid-pcm-owner-disassembly-20260806.txt).
+- A source-only audit of the selected Linux 7.1.3 handoff then closed the next
+  boundary. The mainline DT/binding maps only the CSPM window at `0x11015000`;
+  the current handoff maps resource index 0 only, so the vendor CSRAM window at
+  `0x0012a000` is not present. No MT6797 DVFSP path requests firmware, keeps a
+  PCM image resident, initializes CSRAM, or performs the vendor reset,
+  `IM_PTR`/`IM_LEN`, `IM_KICK`, `FSM_IM_READY`, and `PCM_KICK` start sequence.
+  I2C6 has no firmware acquire/release invocation; patch `0174` is only a
+  Linux generation/cookie transfer lease and patch `0175` is a default-off,
+  unregistered callback contract. The current handoff therefore validates a
+  stopped receiver and cannot safely invoke the decoded `SW_PAUSE`/`FW_DONE`
+  protocol. The sanitized result is in
+  [`results/mainline-pcm-load-path-audit-20260806.txt`](results/mainline-pcm-load-path-audit-20260806.txt).
 - The retained secure images add a bounded negative cross-domain check. LK
   contains generic bootloader I2C markers but no named `SEMA_I2C_DRV` marker;
   TEE/ATF contains the MT6797 PSCI/iDVFS paths, and the existing direct-
@@ -307,12 +319,13 @@ acquire/release refusal boundary remain the correct implementation boundary.
 
 ## Follow-up
 
-The next source-only action is to prove that the already validated one-way
-receiver is authoritative for the firmware ownership lease corresponding to
-`SEMA_I2C_DRV`, or to obtain a separately reviewed firmware protocol. Do not
-repeat Candidate AO's stopped-state/clock-normalization boot. In parallel,
-close the DA921x page/control-mask, settled readback, and rollback-owner
-boundaries. The validated Linux lease maps the mainline handoff into a
-default-off provider without claiming hardware support. Only after those
-ownership and rollback gates close may a writable implementation be designed.
+The next source-only action is to establish an attributable PCM residency and
+start/kick/resource contract, or to obtain a separately reviewed trusted owner
+that already provides it. Only then can the mainline path invoke or safely
+replace the historical `SEMA_I2C_DRV` lease. Do not repeat Candidate AO's
+stopped-state/clock-normalization boot. In parallel, close the DA921x
+page/control-mask, settled readback, and rollback-owner boundaries. The
+validated Linux lease maps the mainline handoff into a default-off provider
+without claiming hardware support. Only after those ownership and rollback
+gates close may a writable implementation be designed.
 The P24/P28/P30/P32/A26/A14 gates remain independent blockers.

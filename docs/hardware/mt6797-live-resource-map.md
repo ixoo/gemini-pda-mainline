@@ -252,8 +252,11 @@ cannot be treated as the final voltage contract.
 The optional hybrid DVFSP path maps `CSPM` at `0x11015000`, a 12 KiB CSRAM
 window at `0x0012a000`, and runs an embedded PCM instruction array behind the
 vendor `mediatek,mt6797-dvfsp` node. This is a vendor firmware/register ABI,
-not a Linux `firmware-name` contract. Do not copy the PCM array or enable
-guessed OPP voltages.
+not a Linux `firmware-name` contract. The current mainline handoff is
+read-only and maps CSPM only: it has no CSRAM mapping, PCM loader or residency
+contract, start/kick sequence, or writable provider. Do not copy the PCM array
+or enable guessed OPP voltages. See the
+[mainline PCM load-path audit](../../experiments/2026-08-06-da921x-page-owner-audit/results/mainline-pcm-load-path-audit-20260806.txt).
 
 Suspend and deep-idle add a separate vendor firmware boundary. The SPM v2
 `mt_spm.c` implementation maps the vendor `mediatek,sleep` block together
@@ -274,7 +277,7 @@ The vendor DT resource nodes are:
 | thermal controller | `0x1100b000 + 0x1000` | SPI 78 LOW | `INFRA_THERM` (`therm-main`) | Linux 7.1.3's generic `auxadc_thermal` bank architecture is reusable; the local disabled variant supplies MT6797 timing, valid-mask, buffer, IRQ/protection, and conversion data. Keep the DT resource disabled pending calibration and runtime safety evidence |
 | thermal AUXADC | `0x11001000 + 0x1000` | SPI 74 | `INFRA_AUXADC` (`auxadc-main`) | Reuse the generic `mt6577_auxadc` register-shape layer as a candidate for channel 11 and the clock contract; keep the node disabled until the indirect thermal-controller path is implemented and validated |
 | EEM/PTP calibration | `0x1100b000 + 0x1000` (shared with thermal controller) | SPI 129 LOW | `MFG_BG3D`, `SCP_SYS_MFG`, `INFRA_THERM` | no MT6797 EEM/SVS match; Linux SVS phase/error and OPP-adjustment patterns are reusable, but MT6797 EEM register, efuse, clock/power, and DA9214 contracts need a dedicated variant/provider; do not add an independent overlapping MMIO node |
-| DVFSP/CSPM | `0x11015000 + 0x1000`; CSRAM `0x0012a000 + 0x3000` | SPI 161 LOW | `INFRA_I2C_APPM` (`i2c`) | no mainline driver or binding |
+| DVFSP/CSPM | `0x11015000 + 0x1000`; CSRAM `0x0012a000 + 0x3000` | SPI 161 LOW | `INFRA_I2C_APPM` (`i2c`) | mainline read-only stopped-state handoff maps CSPM only; no PCM loader/start path or writable provider |
 
 The TOPRGU watchdog is a separate always-on safety resource at
 `0x10007000`. The vendor DT and live flattened tree agree on `GIC_SPI 137`

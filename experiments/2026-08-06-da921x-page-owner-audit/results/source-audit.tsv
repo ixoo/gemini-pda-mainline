@@ -25,6 +25,10 @@ receiver_authority	historical-hybrid-PCM-proven;runtime-mainline-handshake-unpro
 firmware_protocol_contract	0175-default-unregistered;Buildbox-pass	2026-08-06-mt6797-dvfsp-firmware-lease	CONTRACT_ONLY
 pcm_firmware_owner_scan	negative-direct-literal;archive-boundary-only;decoded-public-hybrid-audit-added	pcm-firmware-owner-scan-20260806;public-hybrid-pcm-owner-disassembly-20260806	LIMITED_SCAN_SUPERSEDED_BY_DECODED_AUDIT
 public_hybrid_pcm_owner_disassembly	exact-version-match;SW_PAUSE_bit13;FW_DONE_bit15;I2C6_path;mainline-lease-open	public-hybrid-pcm-owner-disassembly-20260806	PASS_HISTORICAL_RECEIVER_OWNER_ONLY
+mainline_pcm_load_path	CSPM-only-read-only-handoff;CSRAM-unmapped;request_firmware-absent;PCM-start-kick-absent	mainline-pcm-load-path-audit-20260806	BLOCK_MAINLINE_FIRMWARE_LEASE
+mainline_pcm_residency	unproven;no-mainline-image-buffer-or-firmware-name	mainline-pcm-load-path-audit-20260806	BLOCK_MAINLINE_FIRMWARE_LEASE
+mainline_pcm_start_contract	vendor-reset-IM-KICK-PCM-KICK-CSRAM-sequence-not-implemented	mainline-pcm-load-path-audit-20260806	BLOCK_MAINLINE_FIRMWARE_LEASE
+mainline_i2c6_firmware_invocation	not-found;0174-generation-cookie-only;0175-default-unregistered	mainline-pcm-load-path-audit-20260806	BLOCK_WRITABLE_PROVIDER
 secure_owner_image_scan	LK-generic-I2C;ATF-CSPM-interference-attributed;SCP-DVFS-SPM;no-PCM-restart-SEMA-owner	secure-owner-image-scan-20260806	NO_NEW_OWNER_AUTHORITY
 tee_owner_disassembly	ATF-keyed-CSPM-plus-0;secure-semaphore-plus-0x448;no-PCM-plus-0x18	tee-owner-disassembly-20260806	NO_NEW_OWNER_AUTHORITY
 scp_alias_inventory	0x400a-SPM-PMIC;0xa000-clock;0xe000e100-NVIC;no-PCM-owner	scp-alias-inventory-20260806	NO_NEW_OWNER_AUTHORITY

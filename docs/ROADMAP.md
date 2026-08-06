@@ -26,6 +26,7 @@ Cortex-A72 pair.
 | Recoverable development boot | Linux 7.1.3 candidates boot from non-primary `boot2`; console, keyboard, USB gadget shell, and native reboot are available. | Preserve this serviceability set as a mandatory gate. |
 | Cortex-A53 cluster | CPU0–7 can be online together. | Keep this baseline fixed while regulator work proceeds. |
 | I2C6 ownership | DVFSP handoff and shared AP-DMA ownership are understood well enough for the fixed native path. | Do not disturb the working I2C5/AP-DMA owner. |
+| DVFSP/PCM firmware lease | The historical receiver is positively attributed to the embedded MT6797 hybrid PCM, but mainline has only a read-only stopped-state handoff. | The selected handoff maps CSPM only: no CSRAM mapping, firmware request, PCM residency, start/kick sequence, or callable `SEMA_I2C_DRV` path. Keep I2C6 provider writes blocked. |
 | I2C6 transfer | Native packed/FIFO one-byte pointer plus one-byte read is proven for the fixed diagnostic shape. | Do not generalize this to arbitrary transfers or writes. |
 | Legacy board contract | The fixed `0x68`/`0x69` tuple is stable and DA9213/DA9214/DA9215-compatible. | The read-only board-contract gate is closed; unique silicon identity remains open. |
 | Linux regulator provider | The upstream DA9211/A-family probe is incompatible and no suitable legacy provider is active. | Implement a genuine legacy-family contract instead of emulating it in the A-family probe. |
@@ -1687,6 +1688,15 @@ The next ordered work remains source-only:
    the historical receiver protocol to embedded hybrid PCM firmware, but it
    still does not establish a callable mainline firmware lease or authorize a
    replacement. The evidence is in the [public hybrid PCM owner audit](../experiments/2026-08-06-da921x-page-owner-audit/results/public-hybrid-pcm-owner-disassembly-20260806.txt).
+   A source-only mainline load-path audit now makes the missing prerequisite
+   explicit: the selected handoff maps only CSPM `0x11015000 + 0x1000`, does
+   not map CSRAM `0x0012a000`, does not request or retain a PCM image, and does
+   not implement the vendor reset/IM kick/PCM kick/CSRAM initialization
+   sequence. I2C6 has no firmware acquire/release call; `0174` is only the
+   Linux generation/cookie lease and `0175` remains an unregistered contract.
+   Direct `SW_PAUSE`/`FW_DONE` access would therefore target a stopped,
+   unstarted receiver and is not a valid next patch. See the
+   [mainline PCM load-path audit](../experiments/2026-08-06-da921x-page-owner-audit/results/mainline-pcm-load-path-audit-20260806.txt).
    The retained full-backup LK, TEE/ATF, and SCP images were then scanned
    read-only: LK exposes generic bootloader I2C markers, ATF exposes PSCI/iDVFS
    secure-power paths and its existing direct-immediate audit attributes CSPM

@@ -82,6 +82,13 @@ closely tied to vendor power management and must not be assumed suitable for a
 mainline driver. The modem image remains behind the retained proprietary
 baseband boundary. Logging filters are not kernel dependencies.
 
+The current mainline DVFSP handoff is deliberately narrower: it validates a
+stopped receiver through the CSPM window only. It does not map CSRAM, request
+or retain a PCM image, perform the vendor start/kick sequence, or expose a
+callable `SEMA_I2C_DRV` lease. The provider therefore remains read-only until
+the firmware residency/start contract or a trusted external owner is proved.
+See the [mainline PCM load-path audit](../../experiments/2026-08-06-da921x-page-owner-audit/results/mainline-pcm-load-path-audit-20260806.txt).
+
 The dated package-to-firmware reconciliation is recorded in the
 [transport and firmware boundary audit](../../experiments/2026-07-14-transport-firmware-boundary-audit/README.md).
 For the package it examined, the audit found that the packaged SCP/RPMSG,

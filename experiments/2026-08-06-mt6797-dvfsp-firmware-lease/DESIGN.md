@@ -7,6 +7,13 @@ holds its generation/cookie across one MT65xx I2C6 transfer. It does not prove
 the vendor firmware pause source. Patch `0175` therefore adds a second,
 private lease whose only authority is a registered external owner.
 
+The current mainline handoff is not that owner: it maps only CSPM, validates a
+stopped receiver, and has no CSRAM mapping, PCM image residency, firmware
+request, or reset/IM/PCM kick sequence. A future owner must first establish
+those start/resource facts, or explicitly identify a trusted firmware service
+that has already started and owns the PCM. A direct `SW_PAUSE`/`FW_DONE`
+implementation without that prerequisite is rejected.
+
 ```text
 Linux transfer lease {generation,cookie}
         |
