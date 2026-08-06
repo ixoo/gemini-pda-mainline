@@ -7,6 +7,10 @@ the race between the handoff's entry readiness predicate and the lifetime of
 one I2C6 transfer. It does not authorize a DA921x register-data write, a
 regulator vote, or a CPU request.
 
+Patch `0174` implements this contract and passed the exact pushed Buildbox
+compile/package validation. That result is compile evidence only; it does not
+prove the vendor firmware semaphore or authorize device validation.
+
 ## Existing boundary
 
 The selected profile connects Gemini I2C6 to `dvfsp_handoff`. The MT65xx

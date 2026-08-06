@@ -17,6 +17,7 @@ HANDOFF_FRAGMENT = ROOT / "configs/gemini-dvfsp-handoff-owner.fragment"
 MANIFEST = ROOT / "kernel/manifest.json"
 CORE_DISPATCH = Path(__file__).resolve().parents[1] / "results/i2c-core-dispatch-20260806.txt"
 DVFSP_LEASE = Path(__file__).resolve().parents[1] / "results/dvfsp-lease-audit-20260806.txt"
+BUILDBOX_LEASE = Path(__file__).resolve().parents[1] / "results/buildbox-transfer-lease-20260806.txt"
 LEDGER = Path(__file__).resolve().parents[1] / "results/source-audit.tsv"
 RECONCILIATION = Path(__file__).resolve().parents[1] / "results/source-reconciliation-20260806.txt"
 CROSSCHECK = ROOT / "experiments/2026-07-23-da9214-resource-only/results/da9214-datasheet-crosscheck-20260723.txt"
@@ -42,6 +43,7 @@ def main() -> None:
     manifest = MANIFEST.read_text()
     core_dispatch = CORE_DISPATCH.read_text()
     dvfsp_lease = DVFSP_LEASE.read_text()
+    buildbox_lease = BUILDBOX_LEASE.read_text()
     ledger = LEDGER.read_text()
     reconciliation = RECONCILIATION.read_text()
     crosscheck = CROSSCHECK.read_text()
@@ -104,12 +106,22 @@ def main() -> None:
     for needle, label in (
         ("ready_check=mt6797_dvfsp_handoff_require_ready_locks_handoff_and_checks_both", "ready-check-contract"),
         ("transfer_entry=mtk_i2c_transfer_calls_require_ready_before_transfer", "transfer-entry-check"),
-        ("transfer_lease_api=0174-candidate;Buildbox-pending", "lease-api-candidate"),
-        ("ready_check_scope=entry_predicate_only;0174-holds-lease-across-transfer-candidate", "lease-scope-candidate"),
+        ("transfer_lease_api=0174-validated;Buildbox-pass", "lease-api-validated"),
+        ("ready_check_scope=entry_predicate_only;0174-holds-lease-across-transfer-validated", "lease-scope-validated"),
         ("firmware_semaphore=vendor_SEMA_I2C_DRV_not_represented", "vendor-semaphore-gap"),
         ("status=", "handoff-audit-present"),
     ):
         require(dvfsp_lease, needle, label)
+    for needle, label in (
+        ("repository_commit=8b9bf76f81484551d759f8753ecf9b3979324d6f", "buildbox-commit"),
+        ("artifact=linux-7.1.3-gemini-a72-p24-provider-owner-refusal-57066ffc-a1b4e306", "buildbox-artifact"),
+        ("patchset_sha256=57066ffc155374ba7e6453367dde8a98bd10d9b237d88857d39c8c2365ae084b", "buildbox-patchset"),
+        ("config_sha256=2e3dfb4d9f545bbbf21522d1790aeba531a21a9a49fac427467713ed94dc7389", "buildbox-config"),
+        ("sha256sums=passed", "buildbox-checksums"),
+        ("hardware_write=none", "buildbox-no-write"),
+        ("status=PASS_BUILDBOX_TRANSFER_LEASE", "buildbox-status"),
+    ):
+        require(buildbox_lease, needle, label)
     for needle, label in (
         ("observation_legacy_page_control=I2C_REG_PAGE_00x_selects_0x000_through_0x0ff", "legacy-page-window"),
         ("observation_legacy_page_control_2=I2C_REG_PAGE_01x_selects_0x100_through_0x17f", "legacy-page-window-2"),
@@ -168,7 +180,7 @@ def main() -> None:
     print("core_dispatch=expanded;master_xfer-path-proven")
     print("linux_bus_lock=provider-root-lock;core-lock-precondition-proven")
     print("dvfsp_ready=state-and-permission-ready;entry-check-proven")
-    print("mainline_transfer_lease=0174-candidate;generation-cookie;PM-lock-integrated")
+    print("mainline_transfer_lease=0174-validated;generation-cookie;PM-lock-integrated;Buildbox-pass")
     print("firmware_owner_lease=unproven;vendor_SEMA_I2C_DRV_not_represented")
     print("decision=BLOCK_WRITABLE_PROVIDER")
     print("hardware_action=none")

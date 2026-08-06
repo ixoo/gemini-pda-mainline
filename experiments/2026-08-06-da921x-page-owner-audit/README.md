@@ -26,14 +26,18 @@ natural CPU8 cycle.
 
 ## Provenance and environment
 
-- Repository commit reviewed: `aaec484bacff7789ae445e3553da235219028dd0`.
+- Repository commit reviewed: `8b9bf76f81484551d759f8753ecf9b3979324d6f`.
 - Exact provider patch inputs: `0170`, `0172`, and `0173` in
   [`patches/series`](../../patches/series).
-- The provider-owner refusal profile was Buildbox-validated at the reviewed
-  commit. Its exact result, including the final configuration and checksums,
-  is recorded in
+- The provider-owner refusal profile's earlier baseline was Buildbox-validated
+  at commit `aaec484bacff7789ae445e3553da235219028dd0`. Its exact result,
+  including the final configuration and checksums, is recorded in
   [`results/buildbox-handoff-profile-20260806.txt`](results/buildbox-handoff-profile-20260806.txt).
   The build remains compile-only and creates no boot candidate.
+- The lease implementation was validated from the exact pushed reviewed
+  commit by Buildbox. Its package identity, patch/config checksums, and
+  no-write result are recorded in
+  [`results/buildbox-transfer-lease-20260806.txt`](results/buildbox-transfer-lease-20260806.txt).
 - Read-only board-contract evidence:
   [`da921x-i2c6-a72.md`](../../docs/hardware/da921x-i2c6-a72.md) and the linked
   identification lifecycle records.
@@ -128,15 +132,20 @@ The source and sanitized runtime record establish these facts:
   dispatch bypass; the exact excerpt and hash are in
   [`results/i2c-core-dispatch-20260806.txt`](results/i2c-core-dispatch-20260806.txt).
   The provider also takes the root adapter lock required by the core. The
-  handoff audit now shows the precise remaining gap: readiness is checked at
-  transfer entry, but no lease/token is held across the transfer and the
-  vendor `SEMA_I2C_DRV` ownership operation is not represented. See
+  handoff audit initially showed the precise remaining gap: readiness was
+  checked at transfer entry, but no lease/token was held across the transfer
+  and the vendor `SEMA_I2C_DRV` ownership operation was not represented. Patch
+  `0174` now closes the Linux-side transfer lifetime with a generation/cookie,
+  paired cleanup, and PM serialization; Buildbox validated the exact result.
+  The vendor semaphore/firmware owner is still unproven. See
   [`results/dvfsp-lease-audit-20260806.txt`](results/dvfsp-lease-audit-20260806.txt).
   This still does not authorize a write.
-- Patch `0174` is now a candidate implementation of that Linux-side lease:
+- Patch `0174` is now a Buildbox-validated implementation of that Linux-side lease:
   it carries a generation/cookie across the complete MT65xx I2C6 transfer,
   serializes suspend/resume permission changes, and faults stale or duplicate
-  release. It is pending a clean pushed Buildbox validation. It does not
+  release. Its exact compile/package result is recorded in
+  [`results/buildbox-transfer-lease-20260806.txt`](results/buildbox-transfer-lease-20260806.txt).
+  It does not
   represent the vendor `SEMA_I2C_DRV` semaphore, add a DA921x write, or
   authorize a device action.
 - No bounded inverse exists for a provider write at or beyond the unresolved
@@ -180,11 +189,10 @@ acquire/release refusal boundary remain the correct implementation boundary.
 
 ## Follow-up
 
-The next source-only action is the transfer-lease contract in
-[`DESIGN.md`](DESIGN.md): serialize the handoff state transition with each
-I2C6 transfer and require an exact generation/token on release. It maps the
-mainline handoff into a default-off provider without claiming hardware
-support. Only after that contract and the DA921x rollback boundary close may a
-writable implementation be designed. It must still pass Buildbox from a
-clean pushed commit before any device consideration, and the
-P24/P28/P30/P32/A26/A14 gates remain independent blockers.
+The next source-only action is to prove the vendor firmware ownership lease
+corresponding to `SEMA_I2C_DRV`, then close the DA921x page/control-mask,
+settle-readback, and rollback-owner boundaries. The validated Linux lease maps
+the mainline handoff into a default-off provider without claiming hardware
+support. Only after those ownership and rollback gates close may a writable
+implementation be designed. The P24/P28/P30/P32/A26/A14 gates remain
+independent blockers.

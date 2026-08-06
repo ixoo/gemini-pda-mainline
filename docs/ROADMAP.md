@@ -1665,9 +1665,13 @@ The next ordered work remains source-only:
    the MT65xx transfer check, and the pinned I2C core confirms that
    `__i2c_transfer()` reaches `master_xfer` under the provider's root adapter
    lock. Linux-side bus serialization is therefore closed; the separate
-   firmware/DVFSP owner lease remains open: the current handoff checks
-   readiness at transfer entry but holds no generation/token across the
-   transfer and does not represent the vendor semaphore operation.
+   firmware/DVFSP owner lease remains open: patch `0174` now holds a validated
+   generation/cookie lease across each MT65xx I2C6 transfer and serializes
+   suspend/resume permission changes, but it does not represent the vendor
+   `SEMA_I2C_DRV` operation. The exact package and checksum evidence is in the
+   [page/ownership audit](../experiments/2026-08-06-da921x-page-owner-audit/results/buildbox-transfer-lease-20260806.txt).
+   The next source-only discriminator is the firmware-owner lease, followed by
+   page/control-mask ownership, settled readback, and rollback-owner proof.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and
