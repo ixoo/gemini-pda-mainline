@@ -1675,15 +1675,24 @@ The next ordered work remains source-only:
    The retained nine-file Gemian PCM archive adds only a bounded negative
    literal scan: no direct CSPM base, PCM control address, CSRAM base, or
    `FW_DONE` value appears, while the vcorefs key/bit patterns are not
-   decodable owner proof. The archive contains no LK/TEE/SCP payloads, so it
-   does not close the external-owner question; see the
-   [PCM scan](../experiments/2026-08-06-da921x-page-owner-audit/results/pcm-firmware-owner-scan-20260806.txt).
+   decodable owner proof. The archive contains no LK/TEE/SCP payloads; this
+   remains a negative literal-only result, not the final receiver attribution.
+   See the [PCM scan](../experiments/2026-08-06-da921x-page-owner-audit/results/pcm-firmware-owner-scan-20260806.txt).
+   A decoder-backed audit of the public Gemini MT6797 hybrid PCM source then
+   matched the exact `pcm_dvfs_v0.1_160131_02` version named by the retained
+   vendor ELF. It finds calls that write SW_PAUSE bit 13 to
+   `0x11015608/0c/10`, read/write FW_DONE bit 15 in
+   `0x11015614/18/1c/20`, and the same decoded hybrid function's direct I2C6
+   path at `0x1100e000` with a CSRAM log update. This positively attributes
+   the historical receiver protocol to embedded hybrid PCM firmware, but it
+   still does not establish a callable mainline firmware lease or authorize a
+   replacement. The evidence is in the [public hybrid PCM owner audit](../experiments/2026-08-06-da921x-page-owner-audit/results/public-hybrid-pcm-owner-disassembly-20260806.txt).
    The retained full-backup LK, TEE/ATF, and SCP images were then scanned
    read-only: LK exposes generic bootloader I2C markers, ATF exposes PSCI/iDVFS
    secure-power paths and its existing direct-immediate audit attributes CSPM
    secure-semaphore writes, while SCP exposes DVFS/SPM/IPI paths. The exact
-   external audit still finds no PCM-restart writer or `SEMA_I2C_DRV` owner;
-   an SCP-local alias remains unexcluded, and none of the six images contains
+   external audit still finds no PCM-restart writer or `SEMA_I2C_DRV` owner in
+   those six secure/boot images; an SCP-local alias remains unexcluded, and none of the six images contains
    the direct controller or CSPM/CSRAM literals. This bounded cross-check adds
    no `SEMA_I2C_DRV` authority. See the
    [secure-image scan](../experiments/2026-08-06-da921x-page-owner-audit/results/secure-owner-image-scan-20260806.txt).
@@ -1699,17 +1708,18 @@ The next ordered work remains source-only:
    Linux-side contract: semaphore user 1 routes to `PAUSE_I2CDRV`, writes
    SW_PAUSE bit 13 across three clusters, polls FW_DONE bit 15 across three
    status words for 2 ms, and releases the paired clock/reference state around
-   one I2C transaction. This strengthens the protocol identity but still does
-   not prove that the Candidate AO receiver is authoritative or identify the
-   external firmware writer; see the
+   one I2C transaction. Together with the decoded public PCM audit, this
+   attributes the historical receiver implementation; the current mainline
+   invocation path remains unproven. See the
    [vendor-kernel contract](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-kernel-sema-contract-20260806.txt).
    The vendor ELF and Candidate AN observer also match exactly on the CSPM
    register window and offsets (`0x11015000..0x11015fff`, `CON1 0x01c`,
    `PWR_IO_EN 0x02c`, `REG15 0x13c`, timer `0x150`, FSM `0x178`, and
    `SW_RSV0..6 0x608..0x620`). This proves receiver register-window identity,
-   including the three pause and three FW_DONE words, but not receiver
-   authority: Candidate AN did not exercise the handshake, observed no
-   FW_DONE response, and left I2C_APPM ungated. See the
+   including the three pause and three FW_DONE words. Together with the
+   decoded public PCM audit this attributes the historical receiver, but
+   Candidate AN did not exercise a runtime handshake, observed no FW_DONE
+   response, and left I2C_APPM ungated. See the
    [register identity reconciliation](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/receiver-register-identity-20260806.txt).
    A bounded Thumb disassembly now explains the most tempting SCP aliases:
    the bit-13 branch is the DMA 4GB-remap initializer, the nearby `0x2000`
@@ -1744,9 +1754,9 @@ The next ordered work remains source-only:
    Candidate AO already provides the named-unit receiver-side stopped-state
    and shared-clock normalization evidence, with a stable 45-second late check
    while I2C6 remained disabled; do not repeat that boot. The next source-only
-   discriminator is proof that this one-way receiver is authoritative for the
-   vendor per-transfer `SEMA_I2C_DRV` lease, or a separately reviewed firmware
-   protocol, followed by page/control-mask ownership, settled readback, and
+   discriminator is to identify a callable mainline path to the historical
+   `SEMA_I2C_DRV` lease or specify a separately reviewed replacement protocol,
+   followed by page/control-mask ownership, settled readback, and
    rollback-owner proof.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,

@@ -8,7 +8,7 @@ provider_enable_mask	0x01	0170;legacy-source-crosscheck	vendor-bit-known-mainlin
 a36_page_value	0x80	0164;ownership-rollback-audit	prestate-and-vendor-page-revert-observed
 a36_buckb_vsel	0x46	0164;ownership-rollback-audit	prestate-and-vendor-vsel-observed
 page_encoding	partially-proven	legacy-datasheet;Gemian-source;runtime-page-revert	BLOCK_WRITABLE_PROVIDER
-page_owner	candidate-owner;ready-gate-only;firmware-lease-unproven	Gemian-da9214-mutex;DVFSP-semaphore-gap	BLOCK_WRITABLE_PROVIDER
+page_owner	candidate-owner;ready-gate-only;mainline-firmware-lease-unproven	Gemian-da9214-mutex;DVFSP-semaphore-gap;public-hybrid-pcm-owner-disassembly-20260806	BLOCK_WRITABLE_PROVIDER
 write_transport	vendor-shape-known;mainline-arbitration-unproven	Gemian-i2c-transfer;mainline-I2C6-gap	BLOCK_WRITABLE_PROVIDER
 control_mask	vendor-bit0-known;mainline-contract-unproven	Gemian-read-modify-write;no-mainline-owner	BLOCK_WRITABLE_PROVIDER
 post_settle_readback	vendor-observed;provider-unimplemented	owner-observer;current-provider-read-only	BLOCK_WRITABLE_PROVIDER
@@ -19,11 +19,12 @@ core_dispatch	expanded;master_xfer-path-proven	managed-linux-7.1.3-source;I2C-co
 linux_bus_lock	provider-root-lock;core-lock-precondition-proven	0170;managed-linux-7.1.3-source	PASS_LINUX_SERIALIZATION
 dvfsp_ready	state-and-permission-ready;entry-check-proven	0100;0101;dvfsp-lease-audit	PASS_READY_GATE
 mainline_transfer_lease	0174-validated;generation-cookie;PM-lock-integrated;Buildbox-pass	0174;dvfsp-lease-audit;buildbox-transfer-lease	PASS_BUILDBOX_CONTRACT
-firmware_owner_lease	unproven;vendor_SEMA_I2C_DRV_not_represented	0100;0101;vendor-crosscheck;dvfsp-lease-audit;firmware-owner-lease-20260806	BLOCK_WRITABLE_PROVIDER
+firmware_owner_lease	historical-hybrid-PCM-attributed;mainline-lease-unproven	firmware-owner-lease-20260806;public-hybrid-pcm-owner-disassembly-20260806	BLOCK_WRITABLE_PROVIDER
 receiver_register_identity	exact-offset-match-proven	vendor-kernel-sema-contract;receiver-register-identity-20260806	PASS_REGISTER_IDENTITY_ONLY
-receiver_authority	unproven-no-handshake	receiver-register-identity-20260806;Candidate-AN	BLOCK_WRITABLE_PROVIDER
+receiver_authority	historical-hybrid-PCM-proven;runtime-mainline-handshake-unproven	public-hybrid-pcm-owner-disassembly-20260806;receiver-register-identity-20260806;Candidate-AN	BLOCK_WRITABLE_PROVIDER
 firmware_protocol_contract	0175-default-unregistered;Buildbox-pass	2026-08-06-mt6797-dvfsp-firmware-lease	CONTRACT_ONLY
-pcm_firmware_owner_scan	negative-direct-literal;archive-boundary-only	pcm-firmware-owner-scan-20260806	NO_NEW_OWNER_AUTHORITY
+pcm_firmware_owner_scan	negative-direct-literal;archive-boundary-only;decoded-public-hybrid-audit-added	pcm-firmware-owner-scan-20260806;public-hybrid-pcm-owner-disassembly-20260806	LIMITED_SCAN_SUPERSEDED_BY_DECODED_AUDIT
+public_hybrid_pcm_owner_disassembly	exact-version-match;SW_PAUSE_bit13;FW_DONE_bit15;I2C6_path;mainline-lease-open	public-hybrid-pcm-owner-disassembly-20260806	PASS_HISTORICAL_RECEIVER_OWNER_ONLY
 secure_owner_image_scan	LK-generic-I2C;ATF-CSPM-interference-attributed;SCP-DVFS-SPM;no-PCM-restart-SEMA-owner	secure-owner-image-scan-20260806	NO_NEW_OWNER_AUTHORITY
 tee_owner_disassembly	ATF-keyed-CSPM-plus-0;secure-semaphore-plus-0x448;no-PCM-plus-0x18	tee-owner-disassembly-20260806	NO_NEW_OWNER_AUTHORITY
 scp_alias_inventory	0x400a-SPM-PMIC;0xa000-clock;0xe000e100-NVIC;no-PCM-owner	scp-alias-inventory-20260806	NO_NEW_OWNER_AUTHORITY

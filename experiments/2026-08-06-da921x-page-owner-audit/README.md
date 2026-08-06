@@ -162,15 +162,17 @@ The source and sanitized runtime record establish these facts:
   `SEMA_I2C_DRV` is a firmware pause-source lease, not a Linux generation
   token or a hardware semaphore. The direct LK/TEE/SCP audit remains negative
   for a PCM restart writer; it attributes ATF secure clock/semaphore access,
-  while an SCP computed/local alias remains unexcluded. Linux therefore cannot
-  claim the `SEMA_I2C_DRV` firmware owner from the current evidence; the
+  while an SCP computed/local alias remains unexcluded. The public hybrid PCM
+  image now identifies the historical receiver, but Linux still cannot claim a
+  callable `SEMA_I2C_DRV` firmware lease from the current evidence; the
   provider stays fail-closed.
   Candidate AO already validated the receiver-side stopped PCM signature and
   one balanced ungated-to-gated I2C_APPM transition with a stable 45-second
   late check while I2C6 remained disabled. That result must not be repeated;
-  the receiver patch contains no `PAUSE_I2CDRV` or `FW_DONE` protocol, so the
-  remaining question is whether the validated stopped receiver is authoritative
-  for the vendor per-transfer lease.
+  the receiver patch contains no `PAUSE_I2CDRV` or `FW_DONE` protocol. The
+  public hybrid PCM audit now attributes the historical receiver, but the
+  remaining question is how the mainline path can invoke or safely replace
+  that per-transfer lease.
 - The retained Gemian archive was scanned read-only for a direct literal owner
   implementation. The nine `pcm_*.bin` files contain no raw little-endian CSPM
   base (`0x11015000`), PCM control address (`0x11015018`), CSRAM base
@@ -181,6 +183,19 @@ The source and sanitized runtime record establish these facts:
   userspace SPM blobs only; it does not contain the LK, TEE, or SCP payloads
   needed to close the external-owner question. The bounded result is in
   [`results/pcm-firmware-owner-scan-20260806.txt`](results/pcm-firmware-owner-scan-20260806.txt).
+- A decoder-backed audit of the public Gemini MT6797 hybrid PCM source changes
+  the historical attribution without changing the mainline safety boundary.
+  The exact public `pcm_dvfs_v0.1_160131_02` array matches the version string in
+  the retained vendor ELF. Its decoded helper calls write SW_PAUSE bit 13 to
+  `0x11015608/0c/10`, read/write FW_DONE bit 15 in
+  `0x11015614/18/1c/20`, and occur in the same decoded hybrid function as the
+  direct I2C6 transaction path at `0x1100e000` and its CSRAM log update. This
+  positively attributes the historical receiver protocol to the embedded
+  hybrid PCM image; it does not prove that the current mainline kernel can
+  invoke that firmware lease, nor does it provide page-mask, settled-readback,
+  or rollback ownership for a provider write. The raw nine-file Gemian archive
+  scan remains a negative literal-only result, not a contradiction. See
+  [`results/public-hybrid-pcm-owner-disassembly-20260806.txt`](results/public-hybrid-pcm-owner-disassembly-20260806.txt).
 - The retained secure images add a bounded negative cross-domain check. LK
   contains generic bootloader I2C markers but no named `SEMA_I2C_DRV` marker;
   TEE/ATF contains the MT6797 PSCI/iDVFS paths, and the existing direct-
@@ -226,26 +241,29 @@ The source and sanitized runtime record establish these facts:
   it carries the vendor pause source, `SW_PAUSE`/`FW_DONE` masks, 2 ms bound,
   Linux generation/cookie, and a paired opaque release handle. It is
   default-unregistered and contains no MMIO or I2C operation, so it narrows the
-  protocol boundary without proving that the receiver or any external domain
-  is authoritative. Its exact Buildbox validation is recorded in the contract
-  experiment; attributable firmware evidence remains required. The contract is
+  protocol boundary without proving a callable mainline lease. Its exact
+  Buildbox validation is recorded in the contract experiment. The contract is
   tracked in the [firmware lease experiment](../2026-08-06-mt6797-dvfsp-firmware-lease/)
-  and still requires external-owner evidence.
+  and still requires a mainline invocation or separately reviewed replacement
+  protocol.
 - The exact retained vendor-kernel ELF provides positive Linux-side evidence
   for the same contract: semaphore user 1 routes to
   `cspm_pause_pcm_running(PAUSE_I2CDRV)`, writes SW_PAUSE bit 13 for all three
   clusters, polls FW_DONE bit 15 for all three status words within 2 ms, and
   releases the paired clock/reference state around the I2C transaction. This
-  validates the historical caller contract but does not establish that the
-  Candidate AO stopped receiver is authoritative or identify a separate
-  secure/SCP writer. See the [vendor-kernel contract](../2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-kernel-sema-contract-20260806.txt).
+  validates the historical caller contract; the decoder-backed public PCM
+  audit separately attributes the historical receiver implementation. The
+  current mainline invocation path remains unproven. See the
+  [vendor-kernel contract](../2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-kernel-sema-contract-20260806.txt)
+  and [public hybrid PCM audit](results/public-hybrid-pcm-owner-disassembly-20260806.txt).
 - The vendor ELF and Candidate AN observer also match exactly on the CSPM
   register window and offsets: `0x11015000..0x11015fff`, `CON1 0x01c`,
   `PWR_IO_EN 0x02c`, `REG15 0x13c`, timer `0x150`, FSM `0x178`, and
   `SW_RSV0..6 0x608..0x620`, including the three pause and three FW_DONE
-  words. This proves receiver register-window identity, not authority:
-  Candidate AN did not exercise the handshake, observed no FW_DONE response,
-  and left I2C_APPM ungated. See the [register identity reconciliation](../2026-08-06-mt6797-dvfsp-firmware-lease/results/receiver-register-identity-20260806.txt).
+  words. Together with the decoded public PCM audit this attributes the
+  historical receiver implementation, but it does not establish a runtime
+  mainline handshake: Candidate AN did not exercise it, observed no FW_DONE
+  response, and left I2C_APPM ungated. See the [register identity reconciliation](../2026-08-06-mt6797-dvfsp-firmware-lease/results/receiver-register-identity-20260806.txt).
 - No bounded inverse exists for a provider write at or beyond the unresolved
   external-isolation boundary. The release callback therefore remains a
   structured `-EOPNOTSUPP` refusal.
@@ -255,9 +273,9 @@ from the still-blocking mainline gaps:
 
 ```text
 page_encoding=partially-proven
-page_owner=candidate-owner;ready-gate-only;firmware-lease-unproven
+page_owner=candidate-owner;ready-gate-only;mainline-firmware-lease-unproven
 receiver_register_identity=exact-offset-match-proven
-receiver_authority=unproven-no-handshake
+receiver_authority=historical-hybrid-PCM-proven;runtime-mainline-handshake-unproven
 write_transport=vendor-shape-known;mainline-arbitration-unproven
 control_mask=vendor-bit0-known;mainline-contract-unproven
 post_settle_readback=vendor-observed;provider-unimplemented
