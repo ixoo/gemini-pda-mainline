@@ -1,0 +1,57 @@
+# MT6797 state-owner transition-hold Buildbox validation
+
+Date: 2026-08-06 America/New_York
+
+claim=COMPILE_ONLY_DORMANT_STATE_OWNER_TRANSITION_HOLD
+repository_commit=9ba17484c9312798fdfa7115ec2460664c94200e
+origin=https://github.com/ixoo/gemini-pda-mainline.git
+build_backend=buildbox
+buildbox_job=9ba17484c9312798fdfa7115ec2460664c94200e-full-m0
+buildbox_status=validated
+artifact=linux-7.1.3-gemini-835255b2e374
+kernel_release=7.1.3-gemini
+build_profile=full
+generated_utc=2026-08-06T17:04:41Z
+patch_count=182
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=835255b2e3744420a28118f092badc6dc7df9b1ec851d47474596f6e72dec5c7
+config_inputs_sha256=501347b25c258f3e7f4070c7d83419e7d23357f496d80e30ea53d037ff456660
+config_sha256=1ebe807ccec725fd35ac4c75609632a89ef0f82ad9b8e258d1b1bc78dddf02ad
+config_fragment_count=1
+modules_built=false
+build_architecture=x86_64
+target_architecture=arm64
+toolchain_mode=cross
+compiler=aarch64-linux-gnu-gcc_(Debian_12.2.0-14)_12.2.0
+linker=GNU_ld_(GNU_Binutils_for_Debian)_2.40
+dtb_count=119
+sha256sums=passed
+hardware_write=none
+device_action=none
+package_fetch=success;validated_package_only
+local_package=artifacts/buildbox/9ba17484c9312798fdfa7115ec2460664c94200e/linux-7.1.3-gemini-835255b2e374
+
+Image_sha256=ee2e17ab5ec449d6ea020430838cc4d362208d97e766fad94d5a560b8d4f9cfe
+Image_gz_sha256=863776818aef4a55cb3dd4f3ea4995935a4de48a8bf5ec91a6680b341c87800f
+System_map_sha256=72f0133ab141b48527775daa58434cdb8d834dea5269a76a7a3fb60f87dae655
+gemini_dtb_sha256=e2424e337a30dbc112496ae841bde655058c01d79cd399f2d518154d5faba60c
+kernel_config_sha256=1ebe807ccec725fd35ac4c75609632a89ef0f82ad9b8e258d1b1bc78dddf02ad
+build_provenance_sha256=a994323422928dfdd51aae089f6b943942ebd0f4f1e63e5087adcfc757ce740e
+
+state_owner_contract=0192+0193;dormant;registered_owner=0;transition_hold=defined;no_provider;no_mmio;no_transition
+pcm_adapter_model=pass;negative_cases=8
+hardware_support_claim=NONE
+boot_candidate=false
+
+The exact pushed revision applied all 182 entries in the selected patch
+series, including the state-owner transition-hold patch `0193`, compiled the
+full arm64 profile, produced the kernel image and 119 DTBs, and passed package
+SHA-256 validation. The validated package was fetched locally through the
+Buildbox package workflow.
+
+This is compile-only contract evidence. The transition hold checks exact
+startup-state generation, cluster mask, and nonzero owner handle, blocks
+unregister while active, and leaves a failed release sticky. No protected
+owner is registered, no PCM image is loaded, no provider is enabled, no
+hardware is accessed, and no device write, boot, or CPU8/CPU9 admission is
+authorized.

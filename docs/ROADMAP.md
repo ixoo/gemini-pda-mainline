@@ -1811,6 +1811,12 @@ The next ordered work remains source-only:
    series on Buildbox at pushed commit `e537c2c`; its validated package is
    compile-only evidence and leaves the owner unregistered, with no PCM start,
    provider write, or device action. See the [state-owner Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/state-owner-contract-buildbox-20260806.txt).
+   Its transition-hold extension (`0193`) now also passes the exact 182-entry
+   full-profile Buildbox build at pushed commit `9ba1748`; the package was
+   fetched and checksum-validated, but remains compile-only. The hold token
+   binds startup-state generation, cluster mask, and owner handle,
+   while the owner remains unregistered and the provider stays blocked. See
+   the [transition-hold Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/state-owner-transition-hold-buildbox-20260806.txt).
    The following adapter admission boundary is now modeled source-only: exact
    image identity/residency, complete startup-state generation, exact
    CSPM/CSRAM and clock/semaphore ownership, ordered start acknowledgements,

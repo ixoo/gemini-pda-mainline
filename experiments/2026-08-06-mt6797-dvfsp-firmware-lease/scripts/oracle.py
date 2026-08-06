@@ -16,6 +16,7 @@ STATE_RESULT = Path(__file__).resolve().parents[1] / "results/public-owner-start
 ADAPTER_DESIGN = Path(__file__).resolve().parents[1] / "PCM_ADAPTER_DESIGN.md"
 ADAPTER_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-adapter-model-20260806.txt"
 CLOCK_RESULT = Path(__file__).resolve().parents[1] / "results/mainline-clock-owner-inventory-20260806.txt"
+BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-transition-hold-buildbox-20260806.txt"
 
 
 def require(text: str, needle: str, label: str) -> None:
@@ -34,6 +35,7 @@ def main() -> None:
     adapter_design = ADAPTER_DESIGN.read_text()
     adapter_result = ADAPTER_RESULT.read_text()
     clock_result = CLOCK_RESULT.read_text()
+    build_result = BUILD_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     names = [Path(line).name for line in SERIES.read_text().splitlines()
@@ -173,6 +175,25 @@ def main() -> None:
         require(clock_result, needle, label)
 
     for needle, label in (
+        ("claim=COMPILE_ONLY_DORMANT_STATE_OWNER_TRANSITION_HOLD", "build-claim"),
+        ("repository_commit=9ba17484c9312798fdfa7115ec2460664c94200e", "build-commit"),
+        ("origin=https://github.com/ixoo/gemini-pda-mainline.git", "build-origin"),
+        ("build_backend=buildbox", "build-backend"),
+        ("buildbox_status=validated", "build-status"),
+        ("patch_count=182", "build-patch-count"),
+        ("artifact=linux-7.1.3-gemini-835255b2e374", "build-artifact"),
+        ("dtb_count=119", "build-dtb-count"),
+        ("sha256sums=passed", "build-checksums"),
+        ("package_fetch=success;validated_package_only", "build-fetch"),
+        ("state_owner_contract=0192+0193;dormant;registered_owner=0;transition_hold=defined;no_provider;no_mmio;no_transition", "build-state-owner"),
+        ("pcm_adapter_model=pass;negative_cases=8", "build-adapter-model"),
+        ("hardware_write=none", "build-no-write"),
+        ("device_action=none", "build-no-device"),
+        ("boot_candidate=false", "build-not-candidate"),
+    ):
+        require(build_result, needle, label)
+
+    for needle, label in (
         ("claim=PUBLIC_GEMIAN_HYBRID_DVFSP_OWNER_REVALIDATED", "owner-claim"),
         ("source_commit=8cfe6596a503612e3332d9c26e292a19525a7f07", "owner-source"),
         ("source_license_basis=repository_COPYING_and_LICENSE_GPLv2;hybrid_header_GPLv2", "owner-license"),
@@ -215,6 +236,7 @@ def main() -> None:
     print("hardware_writes=0")
     print("device_action=none")
     print("state_owner_contract=0192+0193-dormant;registered_owner=0;no_provider;no_mmio;transition_hold_only")
+    print("state_owner_buildbox=validated;transition_hold_compile_only;boot_candidate=false")
     print("pcm_adapter_contract=source-only;bounded-admission-model;callback-registration-gated")
     print("clock_owner_inventory=generic_ccf_only;protected_owner_absent;A72_observer_read_only")
     print("pcm_start_contract=defined;residency_and_start_required_before_callback_registration")

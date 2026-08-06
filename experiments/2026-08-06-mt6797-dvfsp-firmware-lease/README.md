@@ -89,6 +89,7 @@ be copied directly into a mainline failure/PM path.
 - [Buildbox validation after owner-source review](results/public-owner-buildbox-validation-20260806.txt)
 - [Current-head full-profile Buildbox resume](results/current-head-full-buildbox-20260806.txt)
 - [Dormant state-owner contract Buildbox validation](results/state-owner-contract-buildbox-20260806.txt)
+- [State-owner transition-hold Buildbox validation](results/state-owner-transition-hold-buildbox-20260806.txt)
 - [Bounded PCM adapter admission model](results/pcm-adapter-model-20260806.txt)
 - [Mainline clock/state-owner inventory](results/mainline-clock-owner-inventory-20260806.txt)
 - [Current-head bfd04ae full-profile Buildbox resume](results/current-head-bfd04ae-full-buildbox-20260806.txt)
@@ -178,6 +179,12 @@ suspend/resume. See the [adapter model result](results/pcm-adapter-model-2026080
 Patch `0193` now pins the startup-state generation across the future
 multi-step start sequence with an exact transition-hold token; it remains
 dormant and unregistered until a real protected owner exists.
+
+The exact pushed commit `9ba17484c9312798fdfa7115ec2460664c94200e` now passes
+the full 182-entry Buildbox series and package checks, with the validated
+package fetched locally. This is compile-only evidence for patch `0193`; it
+does not establish a protected owner, PCM image/start path, provider vote, or
+device action. See the [transition-hold Buildbox result](results/state-owner-transition-hold-buildbox-20260806.txt).
 
 A bounded read-only Buildbox inventory confirms the missing implementation seam:
 the current tree has generic MT6797 topckgen/apmixedsys providers but no
