@@ -77,9 +77,11 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h b/include/linux/s
 diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
 --- a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
-@@ -1910,6 +1910,14 @@ mt6797_dvfsp_protected_state_owner_check(
+@@ -1780,6 +1780,15 @@ mt6797_dvfsp_protected_state_owner_check(
  	if (!owner || !owner->cpu_pll_ops || !owner->big_cluster_ops ||
  	    !owner->owner_handle || !owner->transition_handle)
+ 		return -EINVAL;
+ 	if (mt6797_dvfsp_state_provenance_check(&owner->provenance))
  		return -EINVAL;
 +	if (!owner->calibration_ops || !owner->calibration_ops->snapshot ||
 +	    !owner->calibration_ops->validate ||
