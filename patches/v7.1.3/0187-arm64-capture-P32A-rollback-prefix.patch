@@ -37,9 +37,9 @@ diff --git a/arch/arm64/include/asm/cpu_ops.h b/arch/arm64/include/asm/cpu_ops.h
  /**
   * struct cpu_operations - Callback operations for hotplugging CPUs.
 @@ -28,6 +28,6 @@
- * @cpu_up_validate: Optional leaf-only CPU-up admission check for public and
- *		direct internal paths. Must not sleep or acquire CPU-map, CPUHP, or
- *		outer transition locks.
+  * @cpu_up_validate: Optional leaf-only CPU-up admission check for public and
+  *		direct internal paths. Must not sleep or acquire CPU-map, CPUHP, or
+  *		outer transition locks.
 - * @cpu_up_rollback: Optional controller-side publication before generic CPUHP
 - *		outer rollback. It receives the failing callback state and result.
 + * @cpu_up_rollback: Optional controller-side publication before generic CPUHP
@@ -57,12 +57,13 @@ diff --git a/arch/arm64/include/asm/cpu_ops.h b/arch/arm64/include/asm/cpu_ops.h
 diff --git a/arch/arm64/include/asm/mt6797_a72_membership.h b/arch/arm64/include/asm/mt6797_a72_membership.h
 --- a/arch/arm64/include/asm/mt6797_a72_membership.h
 +++ b/arch/arm64/include/asm/mt6797_a72_membership.h
-@@ -4,6 +4,7 @@
+@@ -4,7 +4,8 @@
  
  #include <linux/bits.h>
  #include <linux/cpuhotplug.h>
 +#include <linux/cpu.h>
  #include <linux/errno.h>
+ #include <linux/mt6797-a72-provider.h>
  #include <linux/string.h>
  #include <linux/types.h>
 @@ -103,4 +104,6 @@ struct mt6797_a72_p32_record {
