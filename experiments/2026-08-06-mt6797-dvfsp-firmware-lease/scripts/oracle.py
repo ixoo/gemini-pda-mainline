@@ -9,6 +9,7 @@ PATCH = ROOT / "patches/v7.1.3/0175-soc-mediatek-define-I2C6-firmware-lease-cont
 STATE_OWNER_PATCH = ROOT / "patches/v7.1.3/0192-soc-mediatek-define-MT6797-state-owner-contract.patch"
 STATE_HOLD_PATCH = ROOT / "patches/v7.1.3/0193-soc-mediatek-add-MT6797-state-owner-transition-hold.patch"
 PCM_ADAPTER_PATCH = ROOT / "patches/v7.1.3/0194-soc-mediatek-add-bounded-MT6797-PCM-admission.patch"
+STATE_IDENTITY_PATCH = ROOT / "patches/v7.1.3/0195-soc-mediatek-require-protected-state-owner-identity.patch"
 SERIES = ROOT / "patches/series"
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
 START_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-start-contract-20260806.txt"
@@ -31,6 +32,7 @@ def main() -> None:
     state_owner_patch = STATE_OWNER_PATCH.read_text()
     state_hold_patch = STATE_HOLD_PATCH.read_text()
     pcm_adapter_patch = PCM_ADAPTER_PATCH.read_text()
+    state_identity_patch = STATE_IDENTITY_PATCH.read_text()
     design = DESIGN.read_text()
     start_result = START_RESULT.read_text()
     owner_result = OWNER_RESULT.read_text()
@@ -112,6 +114,21 @@ def main() -> None:
         ("All callbacks remain external and unregistered by default", "pcm-default-off-claim"),
     ):
         require(pcm_adapter_patch, needle, label)
+
+    for needle, label in (
+        ("MT6797_DVFSP_STATE_OWNER_IDENTITY_ABI", "state-owner-identity-abi"),
+        ("MT6797_DVFSP_STATE_OWNER_RESOURCE_ALL", "state-owner-identity-resources"),
+        ("MT6797_DVFSP_STATE_OWNER_BACKEND_MCUMIXED_DVFSP", "state-owner-cpu-pll-backend"),
+        ("MT6797_DVFSP_STATE_OWNER_BACKEND_BIGIDVFS_SMCCC", "state-owner-bigi-backend"),
+        ("struct mt6797_dvfsp_state_owner_identity", "state-owner-identity-struct"),
+        ("int (*identify)(", "state-owner-identify-callback"),
+        ("mt6797_dvfsp_state_owner_identity_check", "state-owner-identity-check"),
+        ("!ops->identify", "state-owner-identity-required"),
+        ("handoff->state_owner_identity", "state-owner-identity-retained"),
+        ("mt6797_dvfsp_handoff_state_owner_identity", "state-owner-identity-api"),
+        ("does not implement either backend", "state-owner-identity-no-backend"),
+    ):
+        require(state_identity_patch, needle, label)
     for needle, label in (
         ("## Startup-state adapter seam", "design-state-seam"),
         ("`snapshot`", "design-snapshot"),
@@ -266,6 +283,8 @@ def main() -> None:
         raise AssertionError("state-owner transition hold is not after the state-owner contract")
     if names.index("0193-soc-mediatek-add-MT6797-state-owner-transition-hold.patch") >= names.index("0194-soc-mediatek-add-bounded-MT6797-PCM-admission.patch"):
         raise AssertionError("PCM adapter shell is not after the transition hold")
+    if names.index("0194-soc-mediatek-add-bounded-MT6797-PCM-admission.patch") >= names.index("0195-soc-mediatek-require-protected-state-owner-identity.patch"):
+        raise AssertionError("protected state-owner identity is not after the PCM adapter shell")
 
     for forbidden in ("readl(", "writel(", "i2c_transfer", "regulator_enable(",
                       "regulator_disable(", "psci_ops.cpu_on", "cpu_up("):
@@ -277,6 +296,8 @@ def main() -> None:
             raise AssertionError(f"unexpected state-hold hardware operation: {forbidden}")
         if forbidden in pcm_adapter_patch:
             raise AssertionError(f"unexpected PCM adapter hardware operation: {forbidden}")
+        if forbidden in state_identity_patch:
+            raise AssertionError(f"unexpected state-owner identity hardware operation: {forbidden}")
 
     print("claim=PARTIAL_FIRMWARE_LEASE_CALLBACK_CONTRACT")
     print("registered_owner=0")
@@ -291,6 +312,7 @@ def main() -> None:
     print("state_owner_contract=0192+0193-dormant;registered_owner=0;no_provider;no_mmio;transition_hold_only")
     print("state_owner_buildbox=validated;transition_hold_compile_only;boot_candidate=false")
     print("pcm_adapter_shell=0194;default_off;registered_adapter=0;no_provider;no_mmio;transition_order_enforced")
+    print("state_owner_identity=0195;default_off;exact_mcumixed_dvfsp_and_bigidvfs;registered_owner=0;no_provider;no_mmio")
     print("pcm_adapter_contract=source-only;bounded-admission-model;callback-registration-gated")
     print("clock_owner_inventory=generic_ccf_only;protected_owner_absent;A72_observer_read_only")
     print("pcm_start_contract=defined;residency_and_start_required_before_callback_registration")
