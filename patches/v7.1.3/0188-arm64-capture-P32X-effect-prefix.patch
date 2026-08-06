@@ -1,0 +1,250 @@
+From 0000000000000000000000000000000000000188 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 6 Aug 2026 00:00:00 -0400
+Subject: [PATCH] arm64: capture P32X effect prefix
+
+Record ordered architecture and terminal CPUHP effects at their exact arm64
+and generic boundaries. The CPU_OFF and affinity-information identities are
+forbidden effects; the CPU_OFF boundary records an attempted entry, while a
+P32 guard refusal is not presented as a completed topology or power
+transition. This source slice adds evidence only and does not open CPU_ON,
+CPU_OFF, affinity, provider, or device I/O.
+
+P32R ledger handoff and completeness policy remain separate follow-ups.
+This experiment-only change has no certifying sign-off and is not
+submission-ready.
+---
+ arch/arm64/kernel/smp.c | 31 +++++++++++++++++++++++++++++++
+ include/linux/cpu.h     | 36 ++++++++++++++++++++++++++++++++++++
+ kernel/cpu.c            | 73 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 139 insertions(+), 1 deletion(-)
+
+diff --git a/include/linux/cpu.h b/include/linux/cpu.h
+--- a/include/linux/cpu.h
++++ b/include/linux/cpu.h
+@@ -123,6 +123,35 @@ struct cpu_up_rollback_event {
+ 	u32 state;
+ 	u32 instance;
+ 	s32 result;
+ 	u32 flags;
+ };
+ 
++#define CPU_UP_ROLLBACK_MAX_EFFECTS 32U
++#define CPU_UP_ROLLBACK_EFFECT_BEGIN 1U
++#define CPU_UP_ROLLBACK_EFFECT_COMPLETE 2U
++#define CPU_UP_ROLLBACK_EFFECT_BLOCKED 3U
++
++enum cpu_up_rollback_effect {
++	CPU_UP_ROLLBACK_EFFECT_CPU_OFF_ATTEMPT,
++	CPU_UP_ROLLBACK_EFFECT_TOPOLOGY_REMOVE,
++	CPU_UP_ROLLBACK_EFFECT_NUMA_REMOVE,
++	CPU_UP_ROLLBACK_EFFECT_ONLINE_CLEAR,
++	CPU_UP_ROLLBACK_EFFECT_IPI_TEARDOWN,
++	CPU_UP_ROLLBACK_EFFECT_IRQ_MIGRATE,
++	CPU_UP_ROLLBACK_EFFECT_DEAD_PUBLISH,
++	CPU_UP_ROLLBACK_EFFECT_PARK,
++	CPU_UP_ROLLBACK_EFFECT_RCU_DEAD,
++	CPU_UP_ROLLBACK_EFFECT_RCU_MIGRATE,
++	CPU_UP_ROLLBACK_EFFECT_LOCKDEP_CLEANUP,
++	CPU_UP_ROLLBACK_EFFECT_KILL_OBSERVED,
++	CPU_UP_ROLLBACK_EFFECT_AFFINITY_INFO_ATTEMPT,
++	CPU_UP_ROLLBACK_EFFECT_GUARD,
++	CPU_UP_ROLLBACK_EFFECT_COUNT,
++};
++
++struct cpu_up_rollback_effect_event {
++	u32 effect;
++	u32 phase;
++	s32 result;
++};
++
+@@ -137,9 +172,16 @@ struct cpu_up_rollback_trace {
+ 	s32 nested_result;
+ 	u32 outer_reset;
+ 	u32 reverse_complete;
+ 	struct cpu_up_rollback_event event[CPU_UP_ROLLBACK_MAX_EVENTS];
++	u32 effect_count;
++	u32 effect_overflow;
++	u32 effect_unknown;
++	struct cpu_up_rollback_effect_event effect[CPU_UP_ROLLBACK_MAX_EFFECTS];
+ };
+ 
++void arch_cpu_up_rollback_effect(unsigned int cpu,
++				 enum cpu_up_rollback_effect effect,
++				 u32 phase, int result);
+ 
+ int arch_cpu_up_rollback(unsigned int cpu, enum cpuhp_state state, int error,
+ 			 const struct cpu_up_rollback_trace *trace);
+diff --git a/kernel/cpu.c b/kernel/cpu.c
+--- a/kernel/cpu.c
++++ b/kernel/cpu.c
+@@ -154,5 +157,54 @@ static bool cpuhp_step_empty(bool bringup, struct cpuhp_step *step)
+ 	return bringup ? !step->startup.single : !step->teardown.single;
+ }
+ 
++static inline void cpuhp_record_rollback_effect(
++	struct cpuhp_cpu_state *st, enum cpu_up_rollback_effect effect,
++	u32 phase, int result)
++{
++#ifdef CONFIG_ARM64_MT6797_A72_P32_ROLLBACK
++	struct cpu_up_rollback_trace *trace = &st->rollback_trace;
++	struct cpu_up_rollback_effect_event *event;
++
++	if (effect >= CPU_UP_ROLLBACK_EFFECT_COUNT ||
++	    phase < CPU_UP_ROLLBACK_EFFECT_BEGIN ||
++	    phase > CPU_UP_ROLLBACK_EFFECT_BLOCKED) {
++		trace->effect_unknown = 1;
++		return;
++	}
++	if (trace->effect_count >= CPU_UP_ROLLBACK_MAX_EFFECTS) {
++		trace->effect_overflow = 1;
++		return;
++	}
++	event = &trace->effect[trace->effect_count++];
++	event->effect = effect;
++	event->phase = phase;
++	event->result = result;
++#else
++	(void)st;
++	(void)effect;
++	(void)phase;
++	(void)result;
++#endif
++}
++
++void arch_cpu_up_rollback_effect(unsigned int cpu,
++				 enum cpu_up_rollback_effect effect,
++				 u32 phase, int result)
++{
++#ifdef CONFIG_ARM64_MT6797_A72_P32_ROLLBACK
++	struct cpuhp_cpu_state *st;
++
++	if (cpu >= nr_cpu_ids)
++		return;
++	st = per_cpu_ptr(&cpuhp_state, cpu);
++	cpuhp_record_rollback_effect(st, effect, phase, result);
++#else
++	(void)cpu;
++	(void)effect;
++	(void)phase;
++	(void)result;
++#endif
++}
++
+ /**
+  * cpuhp_invoke_callback - Invoke the callbacks for a given state
+@@ -1267,4 +1335,8 @@ static int take_cpu_down(void *_param)
+ 	/* Park the stopper thread */
++	arch_cpu_up_rollback_effect(cpu, CPU_UP_ROLLBACK_EFFECT_PARK,
++				    CPU_UP_ROLLBACK_EFFECT_BEGIN, 0);
+ 	stop_machine_park(cpu);
++	arch_cpu_up_rollback_effect(cpu, CPU_UP_ROLLBACK_EFFECT_PARK,
++				    CPU_UP_ROLLBACK_EFFECT_COMPLETE, 0);
+ 	return 0;
+ }
+@@ -1342,8 +1412,12 @@ static int takedown_cpu(unsigned int cpu)
+ 	/* This actually kills the CPU. */
+ 	__cpu_die(cpu);
+ 
+ 	cpuhp_bp_sync_dead(cpu);
+ 
++	arch_cpu_up_rollback_effect(cpu, CPU_UP_ROLLBACK_EFFECT_LOCKDEP_CLEANUP,
++				    CPU_UP_ROLLBACK_EFFECT_BEGIN, 0);
+ 	lockdep_cleanup_dead_cpu(cpu, idle_thread_get(cpu));
++	arch_cpu_up_rollback_effect(cpu, CPU_UP_ROLLBACK_EFFECT_LOCKDEP_CLEANUP,
++				    CPU_UP_ROLLBACK_EFFECT_COMPLETE, 0);
+ 
+ 	/*
+@@ -1351,6 +1429,10 @@ static int takedown_cpu(unsigned int cpu)
+ 	 * waiting for its completion.
+ 	 */
++	arch_cpu_up_rollback_effect(cpu, CPU_UP_ROLLBACK_EFFECT_RCU_MIGRATE,
++				    CPU_UP_ROLLBACK_EFFECT_BEGIN, 0);
+ 	rcutree_migrate_callbacks(cpu);
++	arch_cpu_up_rollback_effect(cpu, CPU_UP_ROLLBACK_EFFECT_RCU_MIGRATE,
++				    CPU_UP_ROLLBACK_EFFECT_COMPLETE, 0);
+ 
+ 	return 0;
+ }
+@@ -1367,4 +1453,10 @@ void cpuhp_report_idle_dead(void)
+ 	BUG_ON(st->state != CPUHP_AP_OFFLINE);
+ 	tick_assert_timekeeping_handover();
++	arch_cpu_up_rollback_effect(smp_processor_id(),
++				    CPU_UP_ROLLBACK_EFFECT_RCU_DEAD,
++				    CPU_UP_ROLLBACK_EFFECT_BEGIN, 0);
+ 	rcutree_report_cpu_dead();
++	arch_cpu_up_rollback_effect(smp_processor_id(),
++				    CPU_UP_ROLLBACK_EFFECT_RCU_DEAD,
++				    CPU_UP_ROLLBACK_EFFECT_COMPLETE, 0);
+ 	st->state = CPUHP_AP_IDLE_DEAD;
+@@ -1376,3 +1469,9 @@ void cpuhp_report_idle_dead(void)
+ 	smp_call_function_single(cpumask_first(cpu_online_mask),
++	arch_cpu_up_rollback_effect(smp_processor_id(),
++				    CPU_UP_ROLLBACK_EFFECT_DEAD_PUBLISH,
++				    CPU_UP_ROLLBACK_EFFECT_BEGIN, 0);
+ 				 cpuhp_complete_idle_dead, st, 0);
++	arch_cpu_up_rollback_effect(smp_processor_id(),
++				    CPU_UP_ROLLBACK_EFFECT_DEAD_PUBLISH,
++				    CPU_UP_ROLLBACK_EFFECT_COMPLETE, 0);
+ }
+diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
+--- a/arch/arm64/kernel/smp.c
++++ b/arch/arm64/kernel/smp.c
+@@ -299,9 +299,24 @@ int __cpu_disable(void)
+ 	unsigned int cpu = smp_processor_id();
+ 	int ret;
+ 
++	arch_cpu_up_rollback_effect(cpu, CPU_UP_ROLLBACK_EFFECT_CPU_OFF_ATTEMPT,
++				    CPU_UP_ROLLBACK_EFFECT_BEGIN, 0);
+ 	ret = op_cpu_disable(cpu);
+-	if (ret)
++	if (ret) {
++		arch_cpu_up_rollback_effect(cpu, CPU_UP_ROLLBACK_EFFECT_GUARD,
++					    CPU_UP_ROLLBACK_EFFECT_BLOCKED, ret);
+ 		return ret;
++	}
+ 
++	arch_cpu_up_rollback_effect(cpu, CPU_UP_ROLLBACK_EFFECT_GUARD,
++				    CPU_UP_ROLLBACK_EFFECT_COMPLETE, 0);
++	arch_cpu_up_rollback_effect(cpu, CPU_UP_ROLLBACK_EFFECT_TOPOLOGY_REMOVE,
++				    CPU_UP_ROLLBACK_EFFECT_BEGIN, 0);
+ 	remove_cpu_topology(cpu);
++	arch_cpu_up_rollback_effect(cpu, CPU_UP_ROLLBACK_EFFECT_TOPOLOGY_REMOVE,
++				    CPU_UP_ROLLBACK_EFFECT_COMPLETE, 0);
++	arch_cpu_up_rollback_effect(cpu, CPU_UP_ROLLBACK_EFFECT_NUMA_REMOVE,
++				    CPU_UP_ROLLBACK_EFFECT_BEGIN, 0);
+ 	numa_remove_cpu(cpu);
++	arch_cpu_up_rollback_effect(cpu, CPU_UP_ROLLBACK_EFFECT_NUMA_REMOVE,
++				    CPU_UP_ROLLBACK_EFFECT_COMPLETE, 0);
+@@ -315,2 +343,10 @@ int __cpu_disable(void)
++	arch_cpu_up_rollback_effect(cpu, CPU_UP_ROLLBACK_EFFECT_ONLINE_CLEAR,
++					    CPU_UP_ROLLBACK_EFFECT_BEGIN, 0);
+ 	set_cpu_online(cpu, false);
++	arch_cpu_up_rollback_effect(cpu, CPU_UP_ROLLBACK_EFFECT_ONLINE_CLEAR,
++				    CPU_UP_ROLLBACK_EFFECT_COMPLETE, 0);
++	arch_cpu_up_rollback_effect(cpu, CPU_UP_ROLLBACK_EFFECT_IPI_TEARDOWN,
++				    CPU_UP_ROLLBACK_EFFECT_BEGIN, 0);
+ 	ipi_teardown(cpu);
++	arch_cpu_up_rollback_effect(cpu, CPU_UP_ROLLBACK_EFFECT_IPI_TEARDOWN,
++				    CPU_UP_ROLLBACK_EFFECT_COMPLETE, 0);
+@@ -321,4 +365,6 @@ int __cpu_disable(void)
+ 	irq_migrate_all_off_this_cpu();
++	arch_cpu_up_rollback_effect(cpu, CPU_UP_ROLLBACK_EFFECT_IRQ_MIGRATE,
++				    CPU_UP_ROLLBACK_EFFECT_COMPLETE, 0);
+ 
+ 	return 0;
+ }
+@@ -345,7 +373,11 @@ void arch_cpuhp_cleanup_dead_cpu(unsigned int cpu)
+ 	 * in-kernel synchronisation, try to get the firmware to help us to
+ 	 * verify that it has really left the kernel before we consider clobbering
+ 	 * anything it might still be using.
+ 	 */
++	arch_cpu_up_rollback_effect(cpu, CPU_UP_ROLLBACK_EFFECT_KILL_OBSERVED,
++				    CPU_UP_ROLLBACK_EFFECT_BEGIN, 0);
+ 	err = op_cpu_kill(cpu);
++	arch_cpu_up_rollback_effect(cpu, CPU_UP_ROLLBACK_EFFECT_KILL_OBSERVED,
++				    CPU_UP_ROLLBACK_EFFECT_COMPLETE, err);
+ 	if (err)
+ 		pr_warn("CPU%d may not have shut down cleanly: %d\n", cpu, err);
+--
+2.50.1

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-06-a72-p32-r-review` |
-| Status | `open` (P32A audited; P32X placement reviewed; Buildbox, P32X implementation, and P32R remain open) |
+| Status | `open` (P32A/P32X source slices audited; Buildbox and P32R remain open) |
 | Subsystem | P32A/D/F/X/R rollback ownership and terminal ledger handoff |
 | Device variant | Planet Gemini PDA, MT6797; no live-device action |
 | Date | 2026-08-06 America/New_York |
@@ -19,13 +19,12 @@ target disable/die guards, controller kill suppression, and one-shot side
 channel consumption.
 
 The review initially identified three integration gaps. The P32A callback
-prefix is now represented by source patch `0187` and passes the independent
-format-patch/source audit, but it still needs Buildbox validation. Two
-integration gaps remain:
+prefix is now represented by source patch `0187`, and the P32X effect-prefix
+source slice is represented by `0188`; both pass independent
+format-patch/source audits, but Buildbox validation is still required. One
+integration gap remains:
 
-1. P32X has no complete architecture-effect prefix for topology, NUMA,
-   online/present masks, IPI, IRQ, RCU, and lockdep divergence.
-2. P32R consumption changes the P32 record only; it does not yet hand the
+1. P32R consumption changes the P32 record only; it does not yet hand the
    terminal divergence into the membership/provider/A30 ledger before any
    completion or HPS accounting.
 
@@ -51,5 +50,7 @@ authorized.
 The exact P32X operation placement is now recorded in
 [`P32X-PLACEMENT.md`](P32X-PLACEMENT.md), with its source-reference result in
 [`results/p32x-placement-review-20260806.txt`](results/p32x-placement-review-20260806.txt).
-This narrows the next source patch to the arm64 disable boundary first; it is
-not an implementation or support claim.
+The `0188` effect-prefix source audit is recorded in
+[`results/p32x-effect-prefix-source-audit-20260806.txt`](results/p32x-effect-prefix-source-audit-20260806.txt).
+It is not a compiler, Buildbox, runtime, or support claim; P32R completeness
+and ledger handoff remain open.

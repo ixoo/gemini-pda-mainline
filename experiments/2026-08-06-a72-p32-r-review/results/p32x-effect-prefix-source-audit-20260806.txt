@@ -1,0 +1,21 @@
+P32X effect-prefix source audit
+===============================
+
+Date: 2026-08-06 America/New_York
+Repository head before recording: 454da32767ae41c9c35499b92eb4c0bfe5d5e98e
+Patch: patches/v7.1.3/0188-arm64-capture-P32X-effect-prefix.patch
+Patch SHA-256: f4e1879c9ab8a47e23626713e5929cf0e9753884157c093141e551082a6b25e0
+
+claim=P32X_EFFECT_PREFIX_SOURCE_AUDIT
+format_patch_parse=PASS
+arm64_disable_order=PASS
+dead_rcu_park_lockdep_kill_boundaries=PASS
+forbidden_operation_scan=PASS
+status=PASS
+
+The source slice records ordered effect events at the arm64 disable boundary
+and the separate DEAD/RCU/park/lockdep/controller-kill boundaries. CPU_OFF and
+affinity-information attempts are represented as forbidden effect identities;
+the patch does not call either operation. This is source/format-patch evidence
+only. It is not a compiler, Buildbox, hardware, CPU_ON, CPU_OFF, or support
+result. P32R completeness/ledger handoff remains open.
