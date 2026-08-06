@@ -78,6 +78,12 @@ def publish_outer(tx: Transaction) -> None:
     tx.trace.outer_reset = True
 
 
+def publish_dynamic(tx: Transaction) -> None:
+    """Model a dynamic multi-instance callback in execution order."""
+    tx.trace.append(Event("startup", 50, 0, 0))
+    tx.trace.append(Event("startup", 50, 1, 0))
+
+
 def reverse(tx: Transaction) -> None:
     tx.trace.append(Event("rollback", 41, 0, 0))
     tx.trace.append(Event("rollback", 40, 0, 0))
@@ -118,13 +124,26 @@ def main() -> int:
     tx = Transaction()
     publish_nested(tx)
     publish_outer(tx)
+    publish_dynamic(tx)
     reverse(tx)
     tx.parked = True
     for effect in sorted(REQUIRED_EFFECTS):
         tx.trace.effect(effect)
+    assert [event.instance for event in tx.trace.events[2:4]] == [0, 1]
+    assert tx.trace.events[0].direction == "rollback"
+    assert tx.trace.events[1].warning
     assert complete(tx, 7, 0xA5, -19) == "0"
     assert tx.handoff == "FAULT_ROLLBACK_RECORDED"
     assert tx.retired
+    probes += 1
+
+    incomplete = Transaction()
+    publish_nested(incomplete)
+    publish_outer(incomplete)
+    incomplete.parked = True
+    for effect in sorted(REQUIRED_EFFECTS):
+        incomplete.trace.effect(effect)
+    assert complete(incomplete, 7, 0xA5, -19) == "-EINPROGRESS"
     probes += 1
 
     assert complete(tx, 7, 0xA5, -19) == "-EAGAIN"
@@ -170,12 +189,26 @@ def main() -> int:
     assert unknown.handoff == "FAULT_ROLLBACK_LOST"
     probes += 1
 
+    unknown_event = Transaction()
+    publish_nested(unknown_event)
+    publish_outer(unknown_event)
+    reverse(unknown_event)
+    unknown_event.parked = True
+    for effect in sorted(REQUIRED_EFFECTS):
+        unknown_event.trace.effect(effect)
+    unknown_event.trace.effect("UNLISTED_EFFECT")
+    assert complete(unknown_event, 7, 0xA5, -19) == "-EIO"
+    assert unknown_event.handoff == "FAULT_ROLLBACK_LOST"
+    probes += 1
+
     print("claim=P32R_INTEGRATION_CONTRACT_ORACLE")
     print(f"probes={probes}")
     print("nested_before_outer=1")
+    print("dynamic_multi_instance_order=0,1")
     print("identity_and_error_mutations_rejected=3/3")
+    print("pre_reverse_completion_rejected=1")
     print("overflow_rejected=1")
-    print("forbidden_effect_rejected=1")
+    print("forbidden_and_unknown_effects_rejected=2/2")
     print("ledger_handoff_one_shot=1")
     print("status=PASS")
     return 0

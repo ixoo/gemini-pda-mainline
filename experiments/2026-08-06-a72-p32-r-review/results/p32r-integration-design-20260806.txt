@@ -2,20 +2,22 @@ P32A/P32X/P32R integration design model
 =======================================
 
 Date: 2026-08-06 America/New_York
-Repository head before recording: f2f156b
+Repository head before recording: 91cbb9f16a98a7bd29347ac84637a5150ed95a31
 Origin: https://github.com/ixoo/gemini-pda-mainline.git
 
 claim=P32R_INTEGRATION_CONTRACT_ORACLE
-probes=7
+probes=9
 nested_before_outer=1
+dynamic_multi_instance_order=0,1
 identity_and_error_mutations_rejected=3/3
+pre_reverse_completion_rejected=1
 overflow_rejected=1
-forbidden_effect_rejected=1
+forbidden_and_unknown_effects_rejected=2/2
 ledger_handoff_one_shot=1
 status=PASS
 
 design_sha256=4aa9d450448e21aab332cf80e136b154c64f6dd744e3f9d4da004973b5b0156d
-oracle_sha256=260e5193003b5abf7a69c8f429913d625009f85b66ba07c27a1a9a532557aff2
+oracle_sha256=8069b602ee24a66c809d5413aaf6a92785e1d2885579dafde45e671ecee5501c
 
 This is source-design evidence only. The P32A/P32X/P32R kernel integration,
 Buildbox build, and all CPU_ON/CPU_OFF/device actions remain closed.

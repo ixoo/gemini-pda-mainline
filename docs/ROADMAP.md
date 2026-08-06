@@ -1853,7 +1853,7 @@ The next ordered work remains source-only:
    [integration design](../experiments/2026-08-06-a72-p32-r-review/DESIGN.md)
    now fixes the bounded callback vector, effect mask, overflow/unknown
    fail-stop behavior, and owner-only ledger handoff that the next source
-   patches must implement; the accompanying seven-probe model is design
+   patches must implement; the accompanying nine-probe model is design
    evidence, not kernel or runtime validation. The first P32A source slice
    (`0187`) now records the bounded callback prefix, nested AP reset marker,
    outer reset, and reverse-range completion, with a source/format-patch audit

@@ -37,7 +37,7 @@ The bounded implementation contract is now recorded in
 [`DESIGN.md`](DESIGN.md). It defines separate callback-prefix,
 architecture-effect, and ledger-handoff records, rejects truncation and
 unknown effects, and keeps provider/membership changes owner-controlled. The
-independent seven-probe model is
+independent nine-probe model is
 [`scripts/integration_oracle.py`](scripts/integration_oracle.py), with its
 result in
 [`results/p32r-integration-design-20260806.txt`](results/p32r-integration-design-20260806.txt).
