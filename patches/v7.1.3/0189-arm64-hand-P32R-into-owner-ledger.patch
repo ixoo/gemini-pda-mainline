@@ -100,13 +100,13 @@ diff --git a/kernel/cpu.c b/kernel/cpu.c
 --- a/kernel/cpu.c
 +++ b/kernel/cpu.c
 @@ -1140,5 +1140,12 @@ static int cpuhp_up_callbacks(unsigned int cpu, struct cpuhp_cpu_state *st,
- 	st->rollback_trace.reverse_complete = !rollback_ret &&
+ 		st->rollback_trace.reverse_complete = !rollback_ret &&
  			can_rollback_cpu(st);
-+	st->rollback_trace.callback_complete =
++		st->rollback_trace.callback_complete =
 +			st->rollback_trace.reverse_complete &&
 +			!st->rollback_trace.overflow &&
 +			!st->rollback_trace.callback_unknown;
-+	st->rollback_trace.effect_complete =
++		st->rollback_trace.effect_complete =
 +			!st->rollback_trace.effect_overflow &&
 +			!st->rollback_trace.effect_unknown;
  #endif
@@ -115,7 +115,7 @@ diff --git a/kernel/cpu.c b/kernel/cpu.c
 diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt6797_a72_membership.c
 --- a/arch/arm64/kernel/mt6797_a72_membership.c
 +++ b/arch/arm64/kernel/mt6797_a72_membership.c
-@@ -329,43 +329,135 @@ int mt6797_a72_membership_p32_cpu_kill(unsigned int cpu)
+@@ -329,43 +329,134 @@ int mt6797_a72_membership_p32_cpu_kill(unsigned int cpu)
  	return ret;
  }
 +static void
@@ -179,7 +179,6 @@ diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt679
 +	a72_owner.phase = MT6797_A72_PHASE_FAULT;
 +	return 0;
 +}
-+
  
  int mt6797_a72_membership_consume_p32(unsigned int cpu, int rollback_error,
  					      const struct cpu_up_rollback_trace *trace)

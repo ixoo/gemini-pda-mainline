@@ -7,7 +7,7 @@ Origin: https://github.com/ixoo/gemini-pda-mainline.git
 
 claim=P32R_OWNER_LEDGER_SOURCE_AUDIT
 patch=v7.1.3/0189-arm64-hand-P32R-into-owner-ledger.patch
-patch_sha256=a01ab834737c5a559444a9c657056d057e6864bbcb52b607bcd1d8c3449fb01a
+patch_sha256=1a2cd77e6d8a3afc9e72d55d5ba3d9853b982f0ca7217119f817a52206170882
 format_patch_parse=PASS
 owner_only_handoff=PASS
 snapshot_and_provider_fault_boundary=PASS
@@ -19,7 +19,7 @@ numstat:
 39	0	arch/arm64/include/asm/mt6797_a72_membership.h
 3	0	include/linux/cpu.h
 7	0	kernel/cpu.c
-92	0	arch/arm64/kernel/mt6797_a72_membership.c
+91	0	arch/arm64/kernel/mt6797_a72_membership.c
 
 The source slice captures the exact transaction identity, membership/provider
 snapshot, callback/effect completeness, and terminal disposition before
