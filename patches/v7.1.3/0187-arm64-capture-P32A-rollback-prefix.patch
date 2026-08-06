@@ -162,7 +162,7 @@ diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt679
 diff --git a/arch/arm64/kernel/mt6797_psci.c b/arch/arm64/kernel/mt6797_psci.c
 --- a/arch/arm64/kernel/mt6797_psci.c
 +++ b/arch/arm64/kernel/mt6797_psci.c
-@@ -1414,10 +1414,11 @@ const struct cpu_operations mt6797_psci_ops = {
+@@ -1414,9 +1414,10 @@ const struct cpu_operations mt6797_psci_ops = {
  #ifdef CONFIG_ARM64_MT6797_A72_P32_ROLLBACK
  static int mt6797_psci_cpu_up_rollback(unsigned int cpu,
 -				       enum cpuhp_state state, int error)
@@ -175,7 +175,6 @@ diff --git a/arch/arm64/kernel/mt6797_psci.c b/arch/arm64/kernel/mt6797_psci.c
 -	return mt6797_a72_membership_publish_p32(cpu, state, error);
 +	return mt6797_a72_membership_publish_p32(cpu, state, error, trace);
  }
- #endif
 diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
 --- a/arch/arm64/kernel/smp.c
 +++ b/arch/arm64/kernel/smp.c
@@ -259,8 +258,8 @@ diff --git a/kernel/cpu.c b/kernel/cpu.c
 --- a/kernel/cpu.c
 +++ b/kernel/cpu.c
 @@ -80,4 +80,7 @@ struct cpuhp_cpu_state {
- 	struct completion done_up;
- 	struct completion done_down;
+ 	struct completion	done_up;
+ 	struct completion	done_down;
 +#ifdef CONFIG_ARM64_MT6797_A72_P32_ROLLBACK
 +	struct cpu_up_rollback_trace rollback_trace;
 +#endif
