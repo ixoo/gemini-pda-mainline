@@ -1,0 +1,487 @@
+From 0000000000000000000000000000000000000175 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 6 Aug 2026 00:00:00 -0400
+Subject: [PATCH] soc: mediatek: define I2C6 firmware lease contract
+
+The vendor I2C6 path uses a firmware pause-source lease (`SEMA_I2C_DRV`)
+around one physical transaction.  The Linux generation/cookie lease does not
+prove that protocol, so describe the missing external-owner boundary without
+emulating it in Linux.
+
+The private callback contract requires both acquire and release operations,
+echoes the Linux transfer identity, carries the vendor pause source and
+timeout, and requires all three pause acknowledgements on acquire.  A
+structured refusal is accepted only before a lease is held.  Any malformed,
+stale, timed-out, or unpaired result faults the handoff and retains the lease.
+No callback is registered by this patch, and the patch performs no MMIO, I2C,
+regulator, CPUHP, or CPU_ON operation.
+
+This is an experiment-only patch and is not submission-ready.
+---
+ drivers/soc/mediatek/mt6797-dvfsp-handoff.c      | 266 ++++++++++++++++++++++
+ include/linux/soc/mediatek/mt6797-dvfsp-handoff.h |  97 +++++++++
+ 2 files changed, 363 insertions(+)
+
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
+index 0b6d5c1..1f4e0d2 100644
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
+@@ -4,6 +4,7 @@
+ 
+ #include <linux/err.h>
+ #include <linux/errno.h>
++#include <linux/bitops.h>
+ #include <linux/kconfig.h>
+ #include <linux/types.h>
+ 
+@@ -14,6 +15,55 @@ struct mt6797_dvfsp_i2c6_lease {
+ 	u64 cookie;
+ };
+ 
++/*
++ * This is a private platform callback, not a userspace or regulator ABI.
++ * The callback owner is external to Linux and is not present by default.
++ */
++#define MT6797_DVFSP_I2C6_FW_ABI		1
++#define MT6797_DVFSP_I2C6_FW_USER		1
++#define MT6797_DVFSP_I2C6_FW_PAUSE_SOURCE	0x2
++#define MT6797_DVFSP_I2C6_FW_SW_PAUSE_BIT	BIT(13)
++#define MT6797_DVFSP_I2C6_FW_DONE_BIT		BIT(15)
++#define MT6797_DVFSP_I2C6_FW_WORDS		GENMASK(2, 0)
++#define MT6797_DVFSP_I2C6_FW_TIMEOUT_US	2000
++
++struct mt6797_dvfsp_i2c6_fw_lease {
++	u64 generation;
++	u64 cookie;
++	u64 owner_handle;
++};
++
++struct mt6797_dvfsp_i2c6_fw_request {
++	u32 abi;
++	u32 user;
++	u32 pause_source;
++	u32 sw_pause_bit;
++	u32 fw_done_bit;
++	u32 timeout_us;
++	u64 generation;
++	u64 cookie;
++	u64 owner_handle;
++};
++
++struct mt6797_dvfsp_i2c6_fw_response {
++	u32 abi;
++	u32 user;
++	s32 status;
++	u32 returned;
++	u32 pause_source_map;
++	u32 sw_pause_words;
++	u32 fw_done_words;
++	u32 reserved;
++	u64 generation;
++	u64 cookie;
++	u64 owner_handle;
++};
++
++struct mt6797_dvfsp_i2c6_fw_ops {
++	int (*acquire)(void *context,
++			      const struct mt6797_dvfsp_i2c6_fw_request *request,
++			      struct mt6797_dvfsp_i2c6_fw_response *response);
++	int (*release)(void *context,
++			      const struct mt6797_dvfsp_i2c6_fw_request *request,
++			      struct mt6797_dvfsp_i2c6_fw_response *response);
++};
++
+ #if IS_REACHABLE(CONFIG_MTK_MT6797_DVFSP_HANDOFF)
+ struct mt6797_dvfsp_handoff *
+ mt6797_dvfsp_handoff_get(struct device *consumer);
+@@ -47,6 +97,25 @@ mt6797_dvfsp_handoff_end_i2c6_transfer(
+ 	int transfer_result);
++int mt6797_dvfsp_handoff_i2c6_fw_register(
++	struct mt6797_dvfsp_handoff *handoff,
++	const struct mt6797_dvfsp_i2c6_fw_ops *ops, void *context);
++int mt6797_dvfsp_handoff_i2c6_fw_unregister(
++	struct mt6797_dvfsp_handoff *handoff,
++	const struct mt6797_dvfsp_i2c6_fw_ops *ops, void *context);
++int mt6797_dvfsp_handoff_i2c6_fw_acquire(
++	struct mt6797_dvfsp_handoff *handoff,
++	const struct mt6797_dvfsp_i2c6_lease *lease,
++	struct mt6797_dvfsp_i2c6_fw_lease *fw_lease,
++	struct mt6797_dvfsp_i2c6_fw_response *response);
++int mt6797_dvfsp_handoff_i2c6_fw_release(
++	struct mt6797_dvfsp_handoff *handoff,
++	const struct mt6797_dvfsp_i2c6_lease *lease,
++	const struct mt6797_dvfsp_i2c6_fw_lease *fw_lease,
++	struct mt6797_dvfsp_i2c6_fw_response *response);
+ /* The readiness test is atomic; clock validation is sleepable. */
+ bool
+ mt6797_dvfsp_handoff_is_ready_atomic(struct mt6797_dvfsp_handoff *handoff);
+@@ -75,6 +144,57 @@ mt6797_dvfsp_handoff_end_i2c6_transfer(
+ 	return -ENODEV;
+ }
+ 
++static inline int
++mt6797_dvfsp_handoff_i2c6_fw_register(
++	struct mt6797_dvfsp_handoff *handoff,
++	const struct mt6797_dvfsp_i2c6_fw_ops *ops, void *context)
++{
++	return -ENODEV;
++}
++
++static inline int
++mt6797_dvfsp_handoff_i2c6_fw_unregister(
++	struct mt6797_dvfsp_handoff *handoff,
++	const struct mt6797_dvfsp_i2c6_fw_ops *ops, void *context)
++{
++	return -ENODEV;
++}
++
++static inline int
++mt6797_dvfsp_handoff_i2c6_fw_acquire(
++	struct mt6797_dvfsp_handoff *handoff,
++	const struct mt6797_dvfsp_i2c6_lease *lease,
++	struct mt6797_dvfsp_i2c6_fw_lease *fw_lease,
++	struct mt6797_dvfsp_i2c6_fw_response *response)
++{
++	return -ENODEV;
++}
++
++static inline int
++mt6797_dvfsp_handoff_i2c6_fw_release(
++	struct mt6797_dvfsp_handoff *handoff,
++	const struct mt6797_dvfsp_i2c6_lease *lease,
++	const struct mt6797_dvfsp_i2c6_fw_lease *fw_lease,
++	struct mt6797_dvfsp_i2c6_fw_response *response)
++{
++	return -ENODEV;
++}
++
+ static inline bool
+ mt6797_dvfsp_handoff_is_ready_atomic(struct mt6797_dvfsp_handoff *handoff)
+ {
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+index 0000000..8f3a1ce 100644
+--- a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+@@ -15,6 +15,7 @@
+ #include <linux/platform_device.h>
+ #include <linux/pm.h>
+ #include <linux/regmap.h>
+ #include <linux/soc/mediatek/mt6797-dvfsp-handoff.h>
++#include <linux/lockdep.h>
++#include <linux/string.h>
+ #include <linux/workqueue.h>
+ 
+@@ -143,6 +144,10 @@ struct mt6797_dvfsp_handoff {
+ 	int last_transfer_result;
+ 	bool transfer_active;
++	struct mutex fw_owner_lock;
++	const struct mt6797_dvfsp_i2c6_fw_ops *fw_ops;
++	void *fw_context;
++	bool fw_lease_active;
++	struct mt6797_dvfsp_i2c6_fw_lease fw_lease;
+ 	struct completion terminal;
+ 	struct delayed_work late_work;
+@@ -691,6 +696,278 @@ mt6797_dvfsp_handoff_end_i2c6_transfer(
+ 	return ret;
+ }
+ EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_end_i2c6_transfer);
+ 
++static void
++mt6797_dvfsp_handoff_i2c6_fw_fault(struct mt6797_dvfsp_handoff *handoff,
++					  const char *reason)
++{
++	mutex_lock(&handoff->lock);
++	mt6797_dvfsp_fault_locked(handoff, reason);
++	mutex_unlock(&handoff->lock);
++}
++
++static void
++mt6797_dvfsp_i2c6_fw_request_init(
++	struct mt6797_dvfsp_i2c6_fw_request *request,
++	const struct mt6797_dvfsp_i2c6_lease *lease,
++	const struct mt6797_dvfsp_i2c6_fw_lease *fw_lease)
++{
++	memset(request, 0, sizeof(*request));
++	request->abi = MT6797_DVFSP_I2C6_FW_ABI;
++	request->user = MT6797_DVFSP_I2C6_FW_USER;
++	request->pause_source = MT6797_DVFSP_I2C6_FW_PAUSE_SOURCE;
++	request->sw_pause_bit = MT6797_DVFSP_I2C6_FW_SW_PAUSE_BIT;
++	request->fw_done_bit = MT6797_DVFSP_I2C6_FW_DONE_BIT;
++	request->timeout_us = MT6797_DVFSP_I2C6_FW_TIMEOUT_US;
++	request->generation = lease->generation;
++	request->cookie = lease->cookie;
++	if (fw_lease)
++		request->owner_handle = fw_lease->owner_handle;
++}
++
++static void
++mt6797_dvfsp_i2c6_fw_refusal(
++	const struct mt6797_dvfsp_i2c6_fw_request *request,
++	struct mt6797_dvfsp_i2c6_fw_response *response)
++{
++	memset(response, 0, sizeof(*response));
++	response->abi = request->abi;
++	response->user = request->user;
++	response->status = -EOPNOTSUPP;
++	response->returned = 1;
++	response->generation = request->generation;
++	response->cookie = request->cookie;
++}
++
++static bool
++mt6797_dvfsp_i2c6_fw_refusal_valid(
++	const struct mt6797_dvfsp_i2c6_fw_request *request,
++	const struct mt6797_dvfsp_i2c6_fw_response *response)
++{
++	return response->abi == request->abi &&
++		response->user == request->user &&
++		response->status == -EOPNOTSUPP &&
++		response->returned == 1 &&
++		response->generation == request->generation &&
++		response->cookie == request->cookie &&
++		!response->pause_source_map && !response->sw_pause_words &&
++		!response->fw_done_words && !response->owner_handle &&
++		!response->reserved;
++}
++
++static int
++mt6797_dvfsp_i2c6_fw_response_validate(
++	const struct mt6797_dvfsp_i2c6_fw_request *request,
++	const struct mt6797_dvfsp_i2c6_fw_response *response,
++	bool release)
++{
++	if (response->abi != request->abi || response->user != request->user ||
++	    response->status || response->returned != 1 ||
++	    response->generation != request->generation ||
++	    response->cookie != request->cookie || response->reserved)
++		return -EPROTO;
++
++	if (!release &&
++	    (response->pause_source_map != MT6797_DVFSP_I2C6_FW_PAUSE_SOURCE ||
++	     response->sw_pause_words != MT6797_DVFSP_I2C6_FW_WORDS ||
++	     response->fw_done_words != MT6797_DVFSP_I2C6_FW_WORDS ||
++     !response->owner_handle))
++		return -EPROTO;
++
++	if (release &&
++	    (response->owner_handle != request->owner_handle ||
++	     response->pause_source_map || response->sw_pause_words))
++		return -EPROTO;
++
++	return 0;
++}
++
++int mt6797_dvfsp_handoff_i2c6_fw_register(
++	struct mt6797_dvfsp_handoff *handoff,
++	const struct mt6797_dvfsp_i2c6_fw_ops *ops, void *context)
++{
++	int ret = 0;
++
++	if (!handoff || !ops || !ops->acquire || !ops->release)
++		return -EINVAL;
++
++	mutex_lock(&handoff->fw_owner_lock);
++	if (handoff->fw_ops) {
++		ret = -EBUSY;
++	} else {
++		handoff->fw_ops = ops;
++		handoff->fw_context = context;
++	}
++	mutex_unlock(&handoff->fw_owner_lock);
++
++	return ret;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_i2c6_fw_register);
++
++int mt6797_dvfsp_handoff_i2c6_fw_unregister(
++	struct mt6797_dvfsp_handoff *handoff,
++	const struct mt6797_dvfsp_i2c6_fw_ops *ops, void *context)
++{
++	int ret = 0;
++
++	if (!handoff || !ops)
++		return -EINVAL;
++
++	mutex_lock(&handoff->fw_owner_lock);
++	if (handoff->fw_lease_active) {
++		ret = -EBUSY;
++	} else if (handoff->fw_ops != ops || handoff->fw_context != context) {
++		ret = -ENOENT;
++	} else {
++		handoff->fw_ops = NULL;
++		handoff->fw_context = NULL;
++	}
++	mutex_unlock(&handoff->fw_owner_lock);
++
++	return ret;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_i2c6_fw_unregister);
++
++int mt6797_dvfsp_handoff_i2c6_fw_acquire(
++	struct mt6797_dvfsp_handoff *handoff,
++	const struct mt6797_dvfsp_i2c6_lease *lease,
++	struct mt6797_dvfsp_i2c6_fw_lease *fw_lease,
++	struct mt6797_dvfsp_i2c6_fw_response *response)
++{
++	const struct mt6797_dvfsp_i2c6_fw_ops *ops;
++	struct mt6797_dvfsp_i2c6_fw_request request;
++	void *context;
++	const char *fault_reason = NULL;
++	int ret;
++
++	if (!handoff || !lease || !fw_lease || !response)
++		return -EINVAL;
++
++	lockdep_assert_held(&handoff->transfer_lock);
++	memset(fw_lease, 0, sizeof(*fw_lease));
++
++	mutex_lock(&handoff->fw_owner_lock);
++	mutex_lock(&handoff->lock);
++	if (handoff->state != MT6797_DVFSP_READY ||
++	    !handoff->transfer_active ||
++	    lease->generation != handoff->transfer_generation ||
++	    lease->cookie != handoff->transfer_cookie) {
++		mutex_unlock(&handoff->lock);
++		mutex_unlock(&handoff->fw_owner_lock);
++		return -EHOSTDOWN;
++	}
++	if (handoff->fw_lease_active) {
++		mutex_unlock(&handoff->lock);
++		mutex_unlock(&handoff->fw_owner_lock);
++		return -EBUSY;
++	}
++
++	mt6797_dvfsp_i2c6_fw_request_init(&request, lease, NULL);
++	ops = handoff->fw_ops;
++	context = handoff->fw_context;
++	if (!ops) {
++		mt6797_dvfsp_i2c6_fw_refusal(&request, response);
++		mutex_unlock(&handoff->lock);
++		mutex_unlock(&handoff->fw_owner_lock);
++		return -EOPNOTSUPP;
++	}
++	mutex_unlock(&handoff->lock);
++
++	memset(response, 0, sizeof(*response));
++	ret = ops->acquire(context, &request, response);
++	if (ret == -EOPNOTSUPP) {
++		if (!mt6797_dvfsp_i2c6_fw_refusal_valid(&request, response)) {
++			ret = -EPROTO;
++			fault_reason = "i2c6-fw-acquire-refusal-invalid";
++		}
++		goto out_callback;
++	}
++	if (ret) {
++		fault_reason = "i2c6-fw-acquire-failed";
++		goto out_callback;
++	}
++
++	mutex_lock(&handoff->lock);
++	if (handoff->state != MT6797_DVFSP_READY ||
++	    !handoff->transfer_active) {
++		ret = -EHOSTDOWN;
++		fault_reason = "i2c6-fw-acquire-state-changed";
++	} else {
++		ret = mt6797_dvfsp_i2c6_fw_response_validate(
++			&request, response, false);
++		if (ret) {
++			fault_reason = "i2c6-fw-acquire-response-invalid";
++		} else {
++			fw_lease->generation = lease->generation;
++			fw_lease->cookie = lease->cookie;
++			fw_lease->owner_handle = response->owner_handle;
++			handoff->fw_lease = *fw_lease;
++			handoff->fw_lease_active = true;
++		}
++	}
++	mutex_unlock(&handoff->lock);
++
++out_callback:
++	mutex_unlock(&handoff->fw_owner_lock);
++	if (fault_reason)
++		mt6797_dvfsp_handoff_i2c6_fw_fault(handoff, fault_reason);
++	return ret;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_i2c6_fw_acquire);
++
++int mt6797_dvfsp_handoff_i2c6_fw_release(
++	struct mt6797_dvfsp_handoff *handoff,
++	const struct mt6797_dvfsp_i2c6_lease *lease,
++	const struct mt6797_dvfsp_i2c6_fw_lease *fw_lease,
++	struct mt6797_dvfsp_i2c6_fw_response *response)
++{
++	const struct mt6797_dvfsp_i2c6_fw_ops *ops;
++	struct mt6797_dvfsp_i2c6_fw_request request;
++	void *context;
++	const char *fault_reason = NULL;
++	int ret;
++
++	if (!handoff || !lease || !fw_lease || !response)
++		return -EINVAL;
++
++	lockdep_assert_held(&handoff->transfer_lock);
++
++	mutex_lock(&handoff->fw_owner_lock);
++	mutex_lock(&handoff->lock);
++	if (!handoff->fw_lease_active ||
++	    memcmp(&handoff->fw_lease, fw_lease, sizeof(*fw_lease)) ||
++	    fw_lease->generation != lease->generation ||
++	    fw_lease->cookie != lease->cookie ||
++	    lease->generation != handoff->transfer_generation ||
++	    lease->cookie != handoff->transfer_cookie) {
++		mutex_unlock(&handoff->lock);
++		mutex_unlock(&handoff->fw_owner_lock);
++		return -EPERM;
++	}
++
++	mt6797_dvfsp_i2c6_fw_request_init(&request, lease, fw_lease);
++	ops = handoff->fw_ops;
++	context = handoff->fw_context;
++	if (!ops) {
++		mutex_unlock(&handoff->lock);
++		mutex_unlock(&handoff->fw_owner_lock);
++		mt6797_dvfsp_handoff_i2c6_fw_fault(
++			handoff, "i2c6-fw-release-owner-missing");
++		return -EHOSTDOWN;
++	}
++	mutex_unlock(&handoff->lock);
++
++	memset(response, 0, sizeof(*response));
++	ret = ops->release(context, &request, response);
++	if (ret == -EOPNOTSUPP) {
++		fault_reason = "i2c6-fw-release-refused";
++		goto release_out_callback;
++	}
++	if (ret) {
++		fault_reason = "i2c6-fw-release-failed";
++		goto release_out_callback;
++	}
++
++	mutex_lock(&handoff->lock);
++	ret = mt6797_dvfsp_i2c6_fw_response_validate(
++		&request, response, true);
++	if (ret) {
++		fault_reason = "i2c6-fw-release-response-invalid";
++	} else {
++		handoff->fw_lease_active = false;
++		memset(&handoff->fw_lease, 0, sizeof(handoff->fw_lease));
++	}
++	mutex_unlock(&handoff->lock);
++
++release_out_callback:
++	mutex_unlock(&handoff->fw_owner_lock);
++	if (fault_reason)
++		mt6797_dvfsp_handoff_i2c6_fw_fault(handoff, fault_reason);
++	return ret;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_i2c6_fw_release);
++
+ int
+ mt6797_dvfsp_handoff_require_ready(struct mt6797_dvfsp_handoff *handoff)
+@@ -1284,6 +1568,7 @@ static int mt6797_dvfsp_handoff_probe(struct platform_device *pdev)
+ 	handoff->reason = "resources-not-ready";
+ 	mutex_init(&handoff->lock);
+ 	mutex_init(&handoff->transfer_lock);
++	mutex_init(&handoff->fw_owner_lock);
+ 	init_completion(&handoff->terminal);
+ 	atomic_set(&handoff->terminal_grant, 0);

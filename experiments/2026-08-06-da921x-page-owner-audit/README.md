@@ -171,6 +171,14 @@ The source and sanitized runtime record establish these facts:
   userspace SPM blobs only; it does not contain the LK, TEE, or SCP payloads
   needed to close the external-owner question. The bounded result is in
   [`results/pcm-firmware-owner-scan-20260806.txt`](results/pcm-firmware-owner-scan-20260806.txt).
+- Patch `0175` now defines the separately reviewed firmware callback contract:
+  it carries the vendor pause source, `SW_PAUSE`/`FW_DONE` masks, 2 ms bound,
+  Linux generation/cookie, and a paired opaque release handle. It is
+  default-unregistered and contains no MMIO or I2C operation, so it narrows the
+  protocol boundary without proving that the receiver or any external domain
+  is authoritative. The contract is tracked in the
+  [firmware lease experiment](../2026-08-06-mt6797-dvfsp-firmware-lease/)
+  and still requires exact Buildbox validation and external-owner evidence.
 - No bounded inverse exists for a provider write at or beyond the unresolved
   external-isolation boundary. The release callback therefore remains a
   structured `-EOPNOTSUPP` refusal.

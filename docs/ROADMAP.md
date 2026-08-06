@@ -1678,6 +1678,13 @@ The next ordered work remains source-only:
    decodable owner proof. The archive contains no LK/TEE/SCP payloads, so it
    does not close the external-owner question; see the
    [PCM scan](../experiments/2026-08-06-da921x-page-owner-audit/results/pcm-firmware-owner-scan-20260806.txt).
+   Patch `0175` now defines a separately reviewed, default-unregistered
+   callback contract for the vendor pause-source lease, including exact
+   generation/cookie, 2 ms timeout, three-word pause/acknowledgement checks,
+   and paired release. It performs no MMIO or device operation and does not
+   prove an external owner; Buildbox validation and attributable firmware
+   evidence remain required. See the
+   [firmware lease contract](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/).
    Candidate AO already provides the named-unit receiver-side stopped-state
    and shared-clock normalization evidence, with a stable 45-second late check
    while I2C6 remained disabled; do not repeat that boot. The next source-only

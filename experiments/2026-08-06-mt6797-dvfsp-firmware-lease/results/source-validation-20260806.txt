@@ -1,0 +1,15 @@
+claim=PARTIAL_FIRMWARE_LEASE_CALLBACK_CONTRACT
+patch=patches/v7.1.3/0175-soc-mediatek-define-I2C6-firmware-lease-contract.patch
+profile=a72-p24-provider-owner-refusal
+registered_owner=0
+pause_source=0x2
+sw_pause_bit=13
+fw_done_bit=15
+timeout_us=2000
+acquire_words=3_pause;3_fw_done
+release_requires_same_owner_handle=1
+hardware_writes=0
+device_action=none
+buildbox=pending
+decision=DEFINE_REVIEWED_PROTOCOL;KEEP_EXTERNAL_OWNER_UNPROVEN
+status=PASS_SOURCE_CONTRACT

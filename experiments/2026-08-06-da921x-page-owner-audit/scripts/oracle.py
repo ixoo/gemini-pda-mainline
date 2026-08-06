@@ -138,6 +138,8 @@ def main() -> None:
         ("receiver_i2c6_activity=none;I2C6_disabled_childless", "receiver-no-i2c6"),
         ("receiver_semantic_mapping=absent;AO_does_not_implement_PAUSE_I2CDRV_or_FW_DONE", "receiver-semantic-gap"),
         ("mainline_firmware_lease=unproven", "firmware-lease-gap"),
+        ("reviewed_protocol=0175_callback_contract;default-unregistered;Buildbox-pending", "firmware-protocol-contract"),
+        ("protocol_effect=contract-only;no_MMIO;no_I2C;no_regulator;no_CPU_ON", "firmware-protocol-no-effect"),
         ("required_closure=prove_one-way_receiver_authoritative_for_SEMA_I2C_DRV_or_add_reviewed_firmware_protocol;explicit_external-owner-proof;sticky-fault_and_resume-revalidation", "firmware-closure"),
         ("repeat_prohibition=do_not_repeat_Candidate_AO_stopped-state_or_clock-normalization_boot", "no-repeat-ao"),
         ("decision=BLOCK_WRITABLE_PROVIDER", "firmware-decision"),
@@ -205,6 +207,7 @@ def main() -> None:
         "post_settle_readback\tvendor-observed;provider-unimplemented",
         "rollback_owner\tpre-isolation-accepted;post-isolation-unresolved",
         "hardware_action\tnone",
+        "firmware_protocol_contract\t0175-default-unregistered;Buildbox-pending",
         "pcm_firmware_owner_scan\tnegative-direct-literal;archive-boundary-only",
     ):
         require(ledger, field, field.replace("\t", "="))
