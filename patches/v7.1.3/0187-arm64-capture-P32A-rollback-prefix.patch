@@ -178,18 +178,22 @@ diff --git a/arch/arm64/kernel/mt6797_psci.c b/arch/arm64/kernel/mt6797_psci.c
 diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
 --- a/arch/arm64/kernel/smp.c
 +++ b/arch/arm64/kernel/smp.c
-@@ -130,1 +130,2 @@ int arch_cpu_up_rollback(unsigned int cpu, enum cpuhp_state state, int error)
+@@ -129,3 +129,4 @@ int arch_cpu_up_rollback(unsigned int cpu, enum cpuhp_state state, int error)
+ 
 -int arch_cpu_up_rollback(unsigned int cpu, enum cpuhp_state state, int error)
 +int arch_cpu_up_rollback(unsigned int cpu, enum cpuhp_state state, int error,
 +				 const struct cpu_up_rollback_trace *trace)
+ {
 @@ -138,2 +139,2 @@ int arch_cpu_up_rollback(unsigned int cpu, enum cpuhp_state state, int error)
  	if (ops && ops->cpu_up_rollback)
 -		return ops->cpu_up_rollback(cpu, state, error);
 +		return ops->cpu_up_rollback(cpu, state, error, trace);
-@@ -145,1 +146,2 @@ int arch_cpu_up_rollback_complete(unsigned int cpu, int error)
+@@ -144,3 +145,4 @@ int arch_cpu_up_rollback_complete(unsigned int cpu, int error)
+ 
 -int arch_cpu_up_rollback_complete(unsigned int cpu, int error)
 +int arch_cpu_up_rollback_complete(unsigned int cpu, int error,
 +					 const struct cpu_up_rollback_trace *trace)
+ {
 @@ -158,5 +160,6 @@ int arch_cpu_up_rollback_complete(unsigned int cpu, int error)
  #else
  	(void)cpu;
