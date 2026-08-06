@@ -1,0 +1,8 @@
+# Resource-only provider boundary after the fixed legacy identification
+# transcript.  No regulator child, supply phandle, or A72 consumer is added;
+# the provider registers internal read-only descriptors only.
+CONFIG_REGULATOR_DA9213_LEGACY=y
+CONFIG_REGULATOR_DA9213_LEGACY_PROVIDER=y
+# Keep the incompatible paged A-family path disabled.
+# CONFIG_REGULATOR_DA9211 is not set
+CONFIG_LOCALVERSION="-gemini-da921x-resource"

@@ -1,0 +1,14 @@
+validation=manifest-series-invariant
+profiles_checked=66
+canonical_series=patches/series
+validation=resource-only-provider
+patch_sha256=fbc69a87603506f365cd5fcdb234084b1ff582b1d1a3b9baba319a6ffcc888f0
+patch_bytes=8690
+probe_identity_reads=14
+provider_operations=3
+writable_operations=0
+consumers=0
+cpu_on_calls=0
+hardware_write=none
+build=not-run
+status=PASS

@@ -1608,6 +1608,16 @@ MMIO, CPUHP, P30, or CPU_ON effect. The source advances only to
 `PARTIAL_P28_POSTPROVIDER_PREPARATION`; the real provider owner and P24 remain
 open.
 
+The next source-only
+[resource-only legacy provider experiment](../experiments/2026-08-05-da921x-resource-only-provider/README.md)
+adds an explicit opt-in Kconfig boundary after the fixed identification
+transcript. It registers two internal descriptors with only linear voltage
+listing, selector reads, and enable-state reads; no writable regulator
+operation, Device Tree consumer, IRQ, page selector, A72 hook, or CPU_ON path
+is present. The provider profile remains separate from the identification and
+lifecycle profiles, and the source advances only to
+`PARTIAL_RESOURCE_ONLY_PROVIDER` until its clean commit passes Buildbox.
+
 P32A/D/F/X/R freezes the automatic rollback closure. The controller publishes
 P32 before `cpuhp_reset_state()` and the outer reverse range. Target
 `.cpu_disable` is the first guard before topology/NUMA removal, online clear,
@@ -1631,9 +1641,9 @@ The next ordered work remains source-only:
 
 1. Implement the authoritative P17/P18/P24 transaction behind the closed hooks
    in the frozen P31 -> A28 -> mint -> A36 -> P17/P18 -> P27 order. The next
-   bounded seam is the real provider-owner R01/R02 transaction after the
-   source-only P28 post-provider preparation and R03/P29 refusal contracts;
-   integrate its
+   bounded seam is now the isolated resource-only provider boundary, followed
+   by the real provider-owner R01/R02 transaction after the source-only P28
+   post-provider preparation and R03/P29 refusal contracts; integrate its
    exact token with the dormant P30 model and controller call sites only after
    the provider and rollback owners are implemented.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when

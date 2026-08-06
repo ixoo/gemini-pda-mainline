@@ -1,0 +1,12 @@
+mutation=writable-set-voltage result=rejected
+mutation=writable-enable result=rejected
+mutation=writable-disable result=rejected
+mutation=writable-mode result=rejected
+mutation=missing-root-lock result=rejected
+mutation=missing-direct-read result=rejected
+mutation=wrong-vsel-a result=rejected
+mutation=wrong-enable-b result=rejected
+mutation=wrong-voltage-floor result=rejected
+mutation=provider-symbol-removed result=rejected
+mutations_rejected=10/10
+status=PASS

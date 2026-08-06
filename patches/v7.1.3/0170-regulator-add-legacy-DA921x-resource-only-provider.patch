@@ -1,0 +1,273 @@
+From f2e79a385ce383af99eadc60ae916e7d728c8025 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 5 Aug 2026 20:51:26 -0400
+Subject: [PATCH] regulator: model legacy resource-only provider
+
+---
+ drivers/regulator/Kconfig                   |  12 ++
+ drivers/regulator/da9213-legacy-regulator.c | 166 ++++++++++++++++++--
+ 2 files changed, 168 insertions(+), 10 deletions(-)
+
+diff --git a/drivers/regulator/Kconfig b/drivers/regulator/Kconfig
+index 705504411..2cd2a99ba 100644
+--- a/drivers/regulator/Kconfig
++++ b/drivers/regulator/Kconfig
+@@ -422,6 +422,18 @@ config REGULATOR_DA9213_LEGACY
+ 	  This driver can also be built as a module.  If so, the module is
+ 	  called da9213-legacy-regulator.
+ 
++config REGULATOR_DA9213_LEGACY_PROVIDER
++	bool "Dialog DA9213/DA9214/DA9215 legacy read-only provider"
++	depends on REGULATOR_DA9213_LEGACY
++	help
++	  Say y here to register a resource-only regulator provider after the
++	  fixed legacy identification transcript succeeds. The provider exposes
++	  only read-only voltage-selector and enable-state observations; it has no
++	  writable regulator operation, consumer, IRQ, or A72 integration.
++
++	  This is an offline/provider-boundary experiment. It does not establish
++	  rail ownership, constraints, rollback, suspend/resume, or CPU bring-up.
++
+ config REGULATOR_DBX500_PRCMU
+ 	bool
+ 
+diff --git a/drivers/regulator/da9213-legacy-regulator.c b/drivers/regulator/da9213-legacy-regulator.c
+index b5faee3e7..2f183939f 100644
+--- a/drivers/regulator/da9213-legacy-regulator.c
++++ b/drivers/regulator/da9213-legacy-regulator.c
+@@ -2,13 +2,15 @@
+ /*
+  * Read-only identification driver for legacy direct-address DA9213-DA9215.
+  *
+- * Provider support is intentionally absent.  Probe executes the fixed
+- * transcript below and stores no register data after each comparison.
++ * The default build is identification-only. An explicitly isolated provider
++ * build may register read-only resource descriptors after the same fixed
++ * transcript; it never exposes a writable regulator operation or A72 consumer.
+  */
+ 
+ #include <linux/i2c.h>
+ #include <linux/module.h>
+ #include <linux/of.h>
++#include <linux/regulator/driver.h>
+ 
+ #define DA9213_LEGACY_PRIMARY_ADDR	0x68
+ #define DA9213_LEGACY_PAGE2_ADDR	0x69
+@@ -29,6 +31,16 @@ struct da9213_legacy_sample {
+ 	u8 expected;
+ };
+ 
++struct da9213_legacy {
++	struct device *dev;
++	struct i2c_client *client;
++	struct i2c_client *page2;
++	const struct da9213_legacy_variant *variant;
++#if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_PROVIDER)
++	struct regulator_dev *rdev[2];
++#endif
++};
++
+ static const struct da9213_legacy_variant da9213_legacy_da9213 = {
+ 	.name = "DA9213",
+ };
+@@ -51,6 +63,125 @@ static const struct da9213_legacy_sample da9213_legacy_samples[] = {
+ 	{ DA9213_LEGACY_PRIMARY, 0xda, 0x46 },
+ };
+ 
++#if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_PROVIDER)
++
++#define DA9213_LEGACY_BUCK_COUNT	2
++#define DA9213_LEGACY_MIN_UV		300000
++#define DA9213_LEGACY_MAX_UV		1570000
++#define DA9213_LEGACY_STEP_UV		10000
++#define DA9213_LEGACY_VSEL_MASK		0x7f
++#define DA9213_LEGACY_ENABLE_MASK	0x01
++
++static const u8 da9213_legacy_vsel_reg[DA9213_LEGACY_BUCK_COUNT] = {
++	0xd7, 0xd9,
++};
++
++static const u8 da9213_legacy_cont_reg[DA9213_LEGACY_BUCK_COUNT] = {
++	0x5d, 0x5e,
++};
++
++static int da9213_legacy_read_reg(struct da9213_legacy *chip, u8 reg,
++				  unsigned int *value)
++{
++	struct i2c_msg msgs[2] = { };
++	u8 pointer = reg;
++	u8 data = 0;
++	int ret;
++
++	msgs[0].addr = chip->client->addr;
++	msgs[0].len = 1;
++	msgs[0].buf = &pointer;
++	msgs[1].addr = chip->client->addr;
++	msgs[1].flags = I2C_M_RD;
++	msgs[1].len = 1;
++	msgs[1].buf = &data;
++
++	i2c_lock_bus(chip->client->adapter, I2C_LOCK_ROOT_ADAPTER);
++	ret = __i2c_transfer(chip->client->adapter, msgs, ARRAY_SIZE(msgs));
++	i2c_unlock_bus(chip->client->adapter, I2C_LOCK_ROOT_ADAPTER);
++	if (ret < 0)
++		return ret;
++	if (ret != ARRAY_SIZE(msgs))
++		return -EIO;
++
++	*value = data;
++	return 0;
++}
++
++static int da9213_legacy_get_voltage_sel(struct regulator_dev *rdev)
++{
++	struct da9213_legacy *chip = rdev_get_drvdata(rdev);
++	unsigned int value;
++	int ret;
++
++	ret = da9213_legacy_read_reg(chip,
++				     da9213_legacy_vsel_reg[rdev_get_id(rdev)],
++				     &value);
++	if (ret)
++		return ret;
++
++	return value & DA9213_LEGACY_VSEL_MASK;
++}
++
++static int da9213_legacy_is_enabled(struct regulator_dev *rdev)
++{
++	struct da9213_legacy *chip = rdev_get_drvdata(rdev);
++	unsigned int value;
++	int ret;
++
++	ret = da9213_legacy_read_reg(chip,
++				     da9213_legacy_cont_reg[rdev_get_id(rdev)],
++				     &value);
++	if (ret)
++		return ret;
++
++	return !!(value & DA9213_LEGACY_ENABLE_MASK);
++}
++
++static const struct regulator_ops da9213_legacy_readonly_ops = {
++	.get_voltage_sel = da9213_legacy_get_voltage_sel,
++	.list_voltage = regulator_list_voltage_linear,
++	.is_enabled = da9213_legacy_is_enabled,
++};
++
++#define DA9213_LEGACY_BUCK(_id)						\
++{								\
++	.name = "DA9213-legacy-BUCK" #_id,				\
++	.ops = &da9213_legacy_readonly_ops,				\
++	.type = REGULATOR_VOLTAGE,					\
++	.id = _id,							\
++	.n_voltages = (DA9213_LEGACY_MAX_UV -			\
++				DA9213_LEGACY_MIN_UV) / DA9213_LEGACY_STEP_UV + 1,\
++	.min_uV = DA9213_LEGACY_MIN_UV,				\
++	.uV_step = DA9213_LEGACY_STEP_UV,				\
++	.owner = THIS_MODULE,					\
++}
++
++static const struct regulator_desc da9213_legacy_regulators[] = {
++	DA9213_LEGACY_BUCK(0),
++	DA9213_LEGACY_BUCK(1),
++};
++
++static int da9213_legacy_register_provider(struct da9213_legacy *chip)
++{
++	struct regulator_config config = {
++		.dev = chip->dev,
++		.driver_data = chip,
++	};
++	unsigned int i;
++
++	for (i = 0; i < ARRAY_SIZE(da9213_legacy_regulators); i++) {
++		chip->rdev[i] = devm_regulator_register(chip->dev,
++						&da9213_legacy_regulators[i], &config);
++		if (IS_ERR(chip->rdev[i]))
++			return PTR_ERR(chip->rdev[i]);
++	}
++
++	return 0;
++}
++
++#endif
++
+ static int da9213_legacy_validate_node(struct i2c_client *client)
+ {
+ 	struct device_node *regulators;
+@@ -123,8 +254,8 @@ static int da9213_legacy_read_sample(struct i2c_client *client,
+ 
+ static int da9213_legacy_probe(struct i2c_client *client)
+ {
++	struct da9213_legacy *chip;
+ 	const struct da9213_legacy_variant *variant;
+-	struct i2c_client *page2;
+ 	int pass;
+ 	unsigned int sample;
+ 	int ret = 0;
+@@ -133,6 +264,14 @@ static int da9213_legacy_probe(struct i2c_client *client)
+ 	if (!variant)
+ 		return -ENODEV;
+ 
++	chip = devm_kzalloc(&client->dev, sizeof(*chip), GFP_KERNEL);
++	if (!chip)
++		return -ENOMEM;
++	chip->dev = &client->dev;
++	chip->client = client;
++	chip->variant = variant;
++	i2c_set_clientdata(client, chip);
++
+ 	ret = da9213_legacy_validate_node(client);
+ 	if (ret)
+ 		return dev_err_probe(&client->dev, ret,
+@@ -142,17 +281,17 @@ static int da9213_legacy_probe(struct i2c_client *client)
+ 		return dev_err_probe(&client->dev, -EOPNOTSUPP,
+ 				     "adapter lacks raw I2C transfers\n");
+ 
+-	page2 = devm_i2c_new_dummy_device(&client->dev, client->adapter,
+-					  DA9213_LEGACY_PAGE2_ADDR);
+-	if (IS_ERR(page2))
+-		return dev_err_probe(&client->dev, PTR_ERR(page2),
++	chip->page2 = devm_i2c_new_dummy_device(&client->dev, client->adapter,
++						DA9213_LEGACY_PAGE2_ADDR);
++	if (IS_ERR(chip->page2))
++		return dev_err_probe(&client->dev, PTR_ERR(chip->page2),
+ 				     "failed to claim page2 address\n");
+ 
+ 	i2c_lock_bus(client->adapter, I2C_LOCK_ROOT_ADAPTER);
+ 	for (pass = 0; pass < DA9213_LEGACY_PASSES; pass++) {
+ 		for (sample = 0; sample < ARRAY_SIZE(da9213_legacy_samples);
+ 		     sample++) {
+-			ret = da9213_legacy_read_sample(client, page2,
++			ret = da9213_legacy_read_sample(client, chip->page2,
+ 							&da9213_legacy_samples[sample]);
+ 			if (ret)
+ 				goto out_unlock;
+@@ -164,8 +303,15 @@ static int da9213_legacy_probe(struct i2c_client *client)
+ 		return dev_err_probe(&client->dev, ret,
+ 				     "read-only identity transcript failed\n");
+ 
++#if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_PROVIDER)
++	ret = da9213_legacy_register_provider(chip);
++	if (ret)
++		return dev_err_probe(&client->dev, ret,
++				     "failed to register read-only provider\n");
++#endif
++
+ 	dev_info(&client->dev,
+-		 "%s legacy direct-address identity matched; no regulators exposed\n",
++		 "%s legacy direct-address identity matched; provider is read-only\n",
+ 		 variant->name);
+ 
+ 	return 0;
+@@ -197,5 +343,5 @@ static struct i2c_driver da9213_legacy_driver = {
+ module_i2c_driver(da9213_legacy_driver);
+ 
+ MODULE_AUTHOR("Julien Etienne <julien.etienne@gmail.com>");
+-MODULE_DESCRIPTION("Dialog DA9213-DA9215 read-only legacy identification");
++MODULE_DESCRIPTION("Dialog DA9213-DA9215 legacy identification and read-only provider");
+ MODULE_LICENSE("GPL");
+-- 
+2.50.1 (Apple Git-155)
+
