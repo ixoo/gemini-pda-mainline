@@ -27,10 +27,7 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h b/include/linux/s
 index 1f4e0d2..b836a6a 100644
 --- a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
 +++ b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
-@@ -15,3 +15,74 @@ struct mt6797_dvfsp_i2c6_lease {
- 	u64 generation;
- 	u64 cookie;
- };
+@@ -18,0 +19,71 @@
 +/*
 + * This private contract describes an authoritative state owner. It is not
 + * an OPP, clock, regulator, or userspace ABI. No owner is registered by
@@ -182,10 +179,7 @@ index 8f3a1ce..6f347c0 100644
  	struct completion terminal;
  	struct delayed_work late_work;
  	struct mt6797_dvfsp_snapshot samples[MT6797_DVFSP_SAMPLE_COUNT];
-@@ -1570,3 +1573,147 @@ EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_get);
- 	return handoff;
- }
- EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_get);
+@@ -1573,0 +1573,144 @@
 +static int
 +mt6797_dvfsp_state_snapshot_check(
 +	const struct mt6797_dvfsp_state_snapshot *snapshot)
