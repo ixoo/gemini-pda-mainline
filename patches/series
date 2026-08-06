@@ -188,3 +188,4 @@ v7.1.3/0195-soc-mediatek-require-protected-state-owner-identity.patch
 v7.1.3/0196-soc-mediatek-compose-protected-state-backends.patch
 v7.1.3/0197-soc-mediatek-add-disabled-MT6797-protected-clock-readback.patch
 v7.1.3/0198-soc-mediatek-add-disabled-MT6797-BigiDVFS-readback.patch
+v7.1.3/0199-soc-mediatek-bind-protected-state-to-transition-owner.patch

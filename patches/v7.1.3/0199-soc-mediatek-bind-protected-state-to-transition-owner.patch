@@ -1,0 +1,124 @@
+From 0000000000000000000000000000000000000199 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 6 Aug 2026 18:00:00 -0400
+Subject: [PATCH] soc: mediatek: bind protected state to transition owner
+
+The historical MT6797 startup-state owner samples OPP, frequency, voltage,
+VSRAM, limits, and membership under one cpufreq transition lock. The 0196
+composition currently requires matching state generations, but two backend
+callbacks could still describe different transition owners. Add an explicit
+opaque transition-owner handle to the state identity, backend snapshots, and
+multi-checkpoint holds. The composition accepts the protected pair only when
+both backends echo the same nonzero handle and every hold preserves it.
+
+This is a binding contract, not a lock implementation: the future owner must
+prove that its handle represents the real transition lock and invalidate the
+state generation on every clock, rail, suspend, or calibration transition.
+No owner is registered by default. This patch adds no MMIO, secure-monitor
+call, regulator operation, firmware image, PCM start, callback registration,
+or CPU_ON path. It is an experiment-only contract and is not submission-ready.
+---
+ drivers/soc/mediatek/mt6797-dvfsp-handoff.c       | 25 +++++++++++++++------
+ include/linux/soc/mediatek/mt6797-dvfsp-handoff.h |  4 ++++
+ 2 files changed, 22 insertions(+), 7 deletions(-)
+
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
+@@ -75,6 +75,7 @@ struct mt6797_dvfsp_state_snapshot {
+ struct mt6797_dvfsp_state_hold {
+ 	u64 generation;
+ 	u32 cluster_mask;
+ 	u32 reserved;
+ 	u64 owner_handle;
++	u64 transition_handle;
+ };
+@@ -116,4 +117,5 @@ struct mt6797_dvfsp_state_owner_identity {
+ 	u32 big_cluster_backend;
+ 	u32 reserved;
+ 	u64 owner_handle;
++	u64 transition_handle;
+ };
+@@ -165,7 +167,8 @@ struct mt6797_dvfsp_state_backend_snapshot {
+ 	u32 resource_mask;
+ 	u32 cluster_mask;
+ 	u64 generation;
+ 	u64 owner_handle;
++	u64 transition_handle;
+ 	struct mt6797_dvfsp_state_cluster
+ 		cluster[MT6797_DVFSP_STATE_CLUSTER_COUNT];
+ };
+@@ -214,4 +217,5 @@ struct mt6797_dvfsp_protected_state_owner {
+ 	const struct mt6797_dvfsp_state_backend_ops *big_cluster_ops;
+ 	void *big_cluster_context;
+ 	u64 owner_handle;
++	u64 transition_handle;
+ };
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+@@ -1660,4 +1660,5 @@ mt6797_dvfsp_state_hold_check(
+ 	if (!hold->generation || hold->generation != snapshot->generation ||
+ 	    hold->cluster_mask != snapshot->cluster_mask ||
+-	    hold->reserved || !hold->owner_handle)
++	    hold->reserved || !hold->owner_handle ||
++	    !hold->transition_handle)
+ 		return -EPROTO;
+@@ -1785,4 +1785,5 @@ mt6797_dvfsp_state_owner_identity_check(
+ 	    identity->big_cluster_backend !=
+ 		MT6797_DVFSP_STATE_OWNER_BACKEND_BIGIDVFS_SMCCC ||
+-	    identity->reserved || !identity->owner_handle)
++	    identity->reserved || !identity->owner_handle ||
++	    !identity->transition_handle)
+ 		return -EPROTO;
+@@ -1880,6 +1880,7 @@ mt6797_dvfsp_state_backend_check(
+ 	    snapshot->backend != ops->backend ||
+ 	    snapshot->resource_mask != ops->resource_mask ||
+ 	    snapshot->cluster_mask != ops->cluster_mask ||
+-	    !snapshot->generation || !snapshot->owner_handle ||
++	    !snapshot->generation || !snapshot->owner_handle ||
++	    !snapshot->transition_handle ||
+ 	    snapshot->cluster_mask & ~MT6797_DVFSP_STATE_CLUSTER_MASK)
+ 		return -EPROTO;
+@@ -1910,3 +1911,3 @@ mt6797_dvfsp_protected_state_owner_check(
+ 	if (!owner || !owner->cpu_pll_ops || !owner->big_cluster_ops ||
+-	    !owner->owner_handle)
++	    !owner->owner_handle || !owner->transition_handle)
+ 		return -EINVAL;
+@@ -1978,3 +1979,6 @@ mt6797_dvfsp_protected_state_owner_collect(
+ 	if (cpu_snapshot->owner_handle != owner->owner_handle ||
+ 	    big_snapshot->owner_handle != owner->owner_handle)
+ 		return -EPROTO;
++	if (cpu_snapshot->transition_handle != owner->transition_handle ||
++	    big_snapshot->transition_handle != owner->transition_handle)
++		return -EPROTO;
+@@ -2034,2 +2038,3 @@ mt6797_dvfsp_protected_state_owner_identify(
+ 	identity->big_cluster_backend = owner->big_cluster_ops->backend;
+ 	identity->owner_handle = owner->owner_handle;
++	identity->transition_handle = owner->transition_handle;
+@@ -2155,3 +2160,4 @@ mt6797_dvfsp_protected_state_owner_hold(
+ 	if (cpu_hold.generation != cpu_snapshot.generation ||
+ 	    cpu_hold.cluster_mask != cpu_snapshot.cluster_mask ||
+-	    cpu_hold.reserved || cpu_hold.owner_handle != owner->owner_handle) {
++	    cpu_hold.reserved || cpu_hold.owner_handle != owner->owner_handle ||
++	    cpu_hold.transition_handle != owner->transition_handle) {
+@@ -2171,3 +2176,4 @@ mt6797_dvfsp_protected_state_owner_hold(
+ 	if (big_hold.generation != big_snapshot.generation ||
+ 	    big_hold.cluster_mask != big_snapshot.cluster_mask ||
+-	    big_hold.reserved || big_hold.owner_handle != owner->owner_handle) {
++	    big_hold.reserved || big_hold.owner_handle != owner->owner_handle ||
++	    big_hold.transition_handle != owner->transition_handle) {
+@@ -2182,3 +2188,4 @@ mt6797_dvfsp_protected_state_owner_hold(
+ 	hold->generation = snapshot->generation;
+ 	hold->cluster_mask = snapshot->cluster_mask;
+ 	hold->owner_handle = owner->owner_handle;
++	hold->transition_handle = owner->transition_handle;
+@@ -2221,4 +2228,5 @@ mt6797_dvfsp_protected_state_owner_release(
+ 	if (!hold || !hold->generation ||
+ 	    hold->cluster_mask != MT6797_DVFSP_STATE_CLUSTER_MASK ||
+-	    hold->reserved || hold->owner_handle != owner->owner_handle)
++	    hold->reserved || hold->owner_handle != owner->owner_handle ||
++	    hold->transition_handle != owner->transition_handle)
+ 		return -EPROTO;
+-- 
+2.43.0
