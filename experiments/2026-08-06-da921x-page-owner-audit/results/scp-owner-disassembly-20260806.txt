@@ -1,0 +1,65 @@
+# Retained SCP owner disassembly
+
+date=2026-08-06
+scope=read-only;retained-scp1-image;no-device-action;no-new-backup
+image_role=SCP_CM4_A
+image_sha256=3c65097eeeb4e2d29dd125752cfb648c6da5e3651eabc9dad1da672b2558cd66
+method=bounded-Thumb-disassembly-and-PC-relative-literal-following
+code_extent=0x00000800-0x0000736f
+
+## Observed paths
+
+scp_strings=drivers/CM4_A/mt6797/dvfs/src/dvfs.c;SPM_request;SPM_SW_RSV_3;clock-control;IPI_DVFS
+scp_direct_literals=I2C6_0x1100e000=0;CSPM_0x11015000=0;PCM_CON0_0x11015018=0;CSRAM_0x0012a000=0
+
+# Function 0x269c is called from the CM4-A initialization path at 0x6ed0.
+# Its literal 0xa0001f00 is tested at bit 13 and it writes one of two magic
+# values to 0x400a0014. The selected log strings are DMA.c's 4GB remap
+# messages, so this is a DMA address-remap decision, not SPM_SW_RSV/SEMA_I2C_DRV.
+offset_0x269c=DMA_4GB_remap_init
+offset_0x269c_alias=0xa0001f00
+offset_0x269c_test=bit13_0x2000
+offset_0x269c_write=0x400a0014
+offset_0x269c_logs=Support_4GB_DRAM_remap_reg_init;Not_support_4GB_DRAM
+offset_0x269c_owner=DMA_remap;not_PCM_restart;not_SEMA_I2C_DRV
+
+# Function 0x2b00 is reached from DVFS clock-setting paths and writes local
+# clock/control aliases (0xa0000104, 0xa0000220, 0xa0001b00, 0xa0000224).
+# The nearby interrupt-control function at 0x2bb4 contains the
+# 0xe000e100 literal for the Cortex-M NVIC pending-clear window;
+# the 0x2000 store targets an interrupt bit, not a PCM FW_DONE response.
+offset_0x2b00=DVFS_clock_setting
+offset_0x2b00_aliases=0xa0000104;0xa0000220;0xa0001b00;0xa0000224
+offset_0x2bb4_0x2c50_target=0xe000e100_plus_0x180;NVIC_pending_clear_window
+offset_0x2c50_value=0x2000;interrupt_bit13
+offset_0x2b00_owner=CM4_clock_and_interrupt_control;not_PCM_restart;not_SEMA_I2C_DRV
+
+# Function 0x2754 follows the DVFS/SPM request path. It uses CM4-local
+# aliases, PMIC-wrapper access, SPM status polling, and the logged
+# SPM_SW_RSV_3/IRQ/FW-status diagnostics. The disassembly does not expose a
+# physical CSPM/PCM base, a named I2C6 owner, or the vendor pause/release
+# transaction. These local aliases therefore cannot be promoted to a firmware
+# lease owner.
+offset_0x2754=DVFS_SPM_request_path
+offset_0x2754_logs=SPM_request;SPM_cur_volt;SPM_SW_RSV_3;irq_status;request_spm_timeout
+offset_0x2754_transport=PMIC_wrapper_and_local_SPM_status;no_named_I2C6_owner
+offset_0x2754_owner=SPM_DVFS_path;SEMA_I2C_DRV_unproven
+
+## Decision
+
+discriminator=DMA_and_NVIC_paths_explained;DVFS_SPM_aliases_remain_non-authoritative
+positive_SEMA_I2C_DRV_receiver=none
+external_owner=unproven
+computed_or_secure_alias_residual=not_excluded_by_bounded_disassembly
+decision=BLOCK_WRITABLE_PROVIDER
+hardware_action=none
+status=PASS_NEGATIVE_SCP_OWNER_DISCRIMINATION
+
+## Limits
+
+This is a bounded raw-image analysis, not a complete firmware decompilation or
+symbol recovery. It distinguishes the tested aliases from the DMA, clock, and
+NVIC paths using nearby call sites and log strings, but it does not prove that
+every computed or secure alias is absent. A separately reviewed firmware
+protocol or an attributable receiver implementation remains required before
+any DA921x write or provider-owner registration.

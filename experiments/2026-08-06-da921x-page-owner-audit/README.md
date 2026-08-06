@@ -193,6 +193,16 @@ The source and sanitized runtime record establish these facts:
   accesses and secure aliases remain unexcluded, and no `SEMA_I2C_DRV` owner
   is promoted. See
   [`results/secure-owner-image-scan-20260806.txt`](results/secure-owner-image-scan-20260806.txt).
+- A bounded Thumb disassembly of the retained SCP image narrows the remaining
+  alias ambiguity without promoting an owner. The bit-13 test at the DMA
+  remap initializer is paired with the `Support 4GB DRAM`/`Not support 4GB
+  DRAM` messages and writes the DMA remap register. A nearby `0x2000` write
+  targets the Cortex-M NVIC pending-clear window from an interrupt-control
+  path. The DVFS/SPM function logs `SPM_SW_RSV_3` and polls local status, but
+  exposes no physical CSPM/PCM base, I2C6 owner, or pause/release transaction.
+  These paths are generic DMA, interrupt, clock, and SPM plumbing—not
+  `SEMA_I2C_DRV` proof. Computed or secure aliases remain unexcluded. See
+  [`results/scp-owner-disassembly-20260806.txt`](results/scp-owner-disassembly-20260806.txt).
 - Patch `0175` now defines the separately reviewed firmware callback contract:
   it carries the vendor pause source, `SW_PAUSE`/`FW_DONE` masks, 2 ms bound,
   Linux generation/cookie, and a paired opaque release handle. It is

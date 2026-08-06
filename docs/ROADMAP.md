@@ -1687,6 +1687,13 @@ The next ordered work remains source-only:
    the direct controller or CSPM/CSRAM literals. This bounded cross-check adds
    no `SEMA_I2C_DRV` authority. See the
    [secure-image scan](../experiments/2026-08-06-da921x-page-owner-audit/results/secure-owner-image-scan-20260806.txt).
+   A bounded Thumb disassembly now explains the most tempting SCP aliases:
+   the bit-13 branch is the DMA 4GB-remap initializer, the nearby `0x2000`
+   write clears a Cortex-M NVIC pending bit, and the DVFS/SPM path only logs
+   and polls local SPM status. None exposes a physical CSPM/PCM base, I2C6
+   owner, or pause/release transaction. This narrows the SCP ambiguity but
+   does not exclude computed or secure aliases; see the
+   [SCP disassembly](../experiments/2026-08-06-da921x-page-owner-audit/results/scp-owner-disassembly-20260806.txt).
    Patch `0175` now defines a separately reviewed, default-unregistered
    callback contract for the vendor pause-source lease, including exact
    generation/cookie, 2 ms timeout, three-word pause/acknowledgement checks,
