@@ -31,7 +31,7 @@ index 3a9be64c5..5f955a73a 100644
  		return -EINVAL;
  
  	mutex_lock(&a72_provider_registry_lock);
-@@ -72,7 +74,28 @@ int mt6797_a72_provider_acquire(
+@@ -72,4 +74,24 @@ int mt6797_a72_provider_acquire(
  	return ret;
  }
  EXPORT_SYMBOL_GPL(mt6797_a72_provider_acquire);
@@ -56,10 +56,6 @@ index 3a9be64c5..5f955a73a 100644
 +	return ret;
 +}
 +EXPORT_SYMBOL_GPL(mt6797_a72_provider_release);
-+
- struct mt6797_a72_owner_state {
- 	struct mt6797_a72_transaction active;
- 	struct mt6797_a72_provider_identity provider_identity;
 diff --git a/drivers/regulator/da9213-legacy-regulator.c b/drivers/regulator/da9213-legacy-regulator.c
 index 02fc4105c..4f9a5f2ab 100644
 --- a/drivers/regulator/da9213-legacy-regulator.c
