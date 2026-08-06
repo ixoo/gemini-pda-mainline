@@ -7,6 +7,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 PATCH = ROOT / "patches/v7.1.3/0175-soc-mediatek-define-I2C6-firmware-lease-contract.patch"
 STATE_OWNER_PATCH = ROOT / "patches/v7.1.3/0192-soc-mediatek-define-MT6797-state-owner-contract.patch"
+STATE_HOLD_PATCH = ROOT / "patches/v7.1.3/0193-soc-mediatek-add-MT6797-state-owner-transition-hold.patch"
 SERIES = ROOT / "patches/series"
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
 START_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-start-contract-20260806.txt"
@@ -25,6 +26,7 @@ def require(text: str, needle: str, label: str) -> None:
 def main() -> None:
     patch = PATCH.read_text()
     state_owner_patch = STATE_OWNER_PATCH.read_text()
+    state_hold_patch = STATE_HOLD_PATCH.read_text()
     design = DESIGN.read_text()
     start_result = START_RESULT.read_text()
     owner_result = OWNER_RESULT.read_text()
@@ -64,6 +66,19 @@ def main() -> None:
         ("This patch adds no clock provider", "state-owner-no-provider"),
     ):
         require(state_owner_patch, needle, label)
+
+    for needle, label in (
+        ("struct mt6797_dvfsp_state_hold", "state-hold-struct"),
+        ("int (*hold)(", "state-hold-callback"),
+        ("int (*release)(", "state-release-callback"),
+        ("mt6797_dvfsp_handoff_state_hold", "state-hold-api"),
+        ("mt6797_dvfsp_handoff_state_release", "state-release-api"),
+        ("state_hold_active", "state-hold-lifetime"),
+        ("mt6797_dvfsp_state_hold_check", "state-hold-token-check"),
+        ("memcmp(&handoff->state_hold", "state-hold-exact-token"),
+        ("a failed\nrelease remains sticky", "state-hold-sticky-description"),
+    ):
+        require(state_hold_patch, needle, label)
     for needle, label in (
         ("## Startup-state adapter seam", "design-state-seam"),
         ("`snapshot`", "design-snapshot"),
@@ -120,6 +135,7 @@ def main() -> None:
         ("## Preconditions", "adapter-preconditions"),
         ("## Admission lifecycle", "adapter-lifecycle"),
         ("UNAVAILABLE", "adapter-unavailable"),
+        ("STATE_HELD", "adapter-state-hold"),
         ("RESET_INITIALIZED", "adapter-reset"),
         ("IMAGE_ACKED", "adapter-image-ack"),
         ("CONTROL_INITIALIZED", "adapter-control"),
@@ -133,8 +149,9 @@ def main() -> None:
 
     for needle, label in (
         ("claim=SOURCE_ONLY_BOUNDED_PCM_ADAPTER_ADMISSION", "adapter-claim"),
-        ("happy_path=SNAPSHOTTED>RESOURCES_HELD>IMAGE_READY>RESET_INITIALIZED>IMAGE_ACKED>CONTROL_INITIALIZED>RUNNING>LEASE_REGISTERED", "adapter-happy-path"),
-        ("negative_cases=7", "adapter-negative-cases"),
+        ("happy_path=SNAPSHOTTED>STATE_HELD>RESOURCES_HELD>IMAGE_READY>RESET_INITIALIZED>IMAGE_ACKED>CONTROL_INITIALIZED>RUNNING>LEASE_REGISTERED", "adapter-happy-path"),
+        ("negative_cases=8", "adapter-negative-cases"),
+        ("state_hold=exact_generation_cluster_mask_owner_handle;unregister_blocked_while_active", "adapter-state-hold"),
         ("resource_identity=exact", "adapter-resources"),
         ("generation_revalidation=reject_stale_and_invalidate", "adapter-generation"),
         ("owner_handle=exact_and_generation_bound", "adapter-handle"),
@@ -175,6 +192,8 @@ def main() -> None:
         raise AssertionError("firmware lease contract is not after Linux transfer lease")
     if names.index("0191-arm64-arm-P32-publication-from-on-issued-phase.patch") >= names.index("0192-soc-mediatek-define-MT6797-state-owner-contract.patch"):
         raise AssertionError("state-owner contract is not after the current handoff series")
+    if names.index("0192-soc-mediatek-define-MT6797-state-owner-contract.patch") >= names.index("0193-soc-mediatek-add-MT6797-state-owner-transition-hold.patch"):
+        raise AssertionError("state-owner transition hold is not after the state-owner contract")
 
     for forbidden in ("readl(", "writel(", "i2c_transfer", "regulator_enable(",
                       "regulator_disable(", "psci_ops.cpu_on", "cpu_up("):
@@ -182,6 +201,8 @@ def main() -> None:
             raise AssertionError(f"unexpected hardware operation: {forbidden}")
         if forbidden in state_owner_source:
             raise AssertionError(f"unexpected state-owner hardware operation: {forbidden}")
+        if forbidden in state_hold_patch:
+            raise AssertionError(f"unexpected state-hold hardware operation: {forbidden}")
 
     print("claim=PARTIAL_FIRMWARE_LEASE_CALLBACK_CONTRACT")
     print("registered_owner=0")
@@ -193,7 +214,7 @@ def main() -> None:
     print("release_requires_same_owner_handle=1")
     print("hardware_writes=0")
     print("device_action=none")
-    print("state_owner_contract=0192-dormant;registered_owner=0;no_provider;no_mmio;no_transition")
+    print("state_owner_contract=0192+0193-dormant;registered_owner=0;no_provider;no_mmio;transition_hold_only")
     print("pcm_adapter_contract=source-only;bounded-admission-model;callback-registration-gated")
     print("clock_owner_inventory=generic_ccf_only;protected_owner_absent;A72_observer_read_only")
     print("pcm_start_contract=defined;residency_and_start_required_before_callback_registration")

@@ -10,6 +10,7 @@ import re
 class Phase(Enum):
     UNAVAILABLE = "UNAVAILABLE"
     SNAPSHOTTED = "SNAPSHOTTED"
+    STATE_HELD = "STATE_HELD"
     RESOURCES_HELD = "RESOURCES_HELD"
     IMAGE_READY = "IMAGE_READY"
     RESET_INITIALIZED = "RESET_INITIALIZED"
@@ -69,6 +70,7 @@ class Adapter:
     def __init__(self):
         self.phase = Phase.UNAVAILABLE
         self.state = None
+        self.state_hold_handle = None
         self.resources = None
         self.image = None
         self.lease_generation = None
@@ -92,7 +94,7 @@ class Adapter:
         self.phase = Phase.SNAPSHOTTED
 
     def hold_resources(self, resources: Resources):
-        self._require(Phase.SNAPSHOTTED)
+        self._require(Phase.STATE_HELD)
         if (resources.cspm_base != self.CSPM_BASE or
                 resources.cspm_size != self.CSPM_SIZE or
                 resources.csram_base != self.CSRAM_BASE or
@@ -103,6 +105,14 @@ class Adapter:
             raise AdapterError("resource ownership is incomplete")
         self.resources = resources
         self.phase = Phase.RESOURCES_HELD
+
+    def hold_state(self, state: State, owner_handle: int):
+        self._require(Phase.SNAPSHOTTED)
+        self.revalidate(state)
+        if not owner_handle:
+            raise AdapterError("missing state-owner hold handle")
+        self.state_hold_handle = owner_handle
+        self.phase = Phase.STATE_HELD
 
     def admit_image(self, image: Image):
         self._require(Phase.RESOURCES_HELD)
@@ -169,12 +179,14 @@ class Adapter:
         self.owner_handle = None
 
     def invalidate(self, reason: str):
+        self.state_hold_handle = None
         self.owner_handle = None
         self.lease_generation = None
         self.reason = reason
         self.phase = Phase.INVALIDATED
 
     def fault(self, reason: str):
+        self.state_hold_handle = None
         self.owner_handle = None
         self.lease_generation = None
         self.reason = reason
@@ -204,6 +216,7 @@ def happy_path() -> Adapter:
     adapter = Adapter()
     state = State(7, Adapter.REQUIRED_CLUSTER_MASK)
     adapter.snapshot(state)
+    adapter.hold_state(state, 0xC10C)
     adapter.hold_resources(make_resources())
     adapter.admit_image(make_image())
     adapter.initialize_reset(state)
@@ -232,6 +245,7 @@ def main():
 
     wrong_resources = Adapter()
     wrong_resources.snapshot(State(1, 0xF))
+    wrong_resources.hold_state(State(1, 0xF), 0xC10C)
     expect_failure(lambda: wrong_resources.hold_resources(
         Resources(Adapter.CSPM_BASE, Adapter.CSPM_SIZE, 0, Adapter.CSRAM_SIZE,
                    "clock", "semaphore")), "wrong CSRAM identity")
@@ -239,6 +253,7 @@ def main():
 
     wrong_image = Adapter()
     wrong_image.snapshot(State(1, 0xF))
+    wrong_image.hold_state(State(1, 0xF), 0xC10C)
     wrong_image.hold_resources(make_resources())
     expect_failure(lambda: wrong_image.admit_image(
         Image("not-a-digest", "rev", "secure", 0x48000000, 8, 4, True, "held")),
@@ -247,6 +262,7 @@ def main():
 
     stale = Adapter()
     stale.snapshot(State(1, 0xF))
+    stale.hold_state(State(1, 0xF), 0xC10C)
     stale.hold_resources(make_resources())
     stale.admit_image(make_image())
     expect_failure(lambda: stale.initialize_reset(State(2, 0xF)),
@@ -256,6 +272,7 @@ def main():
 
     blocked = Adapter()
     blocked.snapshot(State(1, 0xF))
+    blocked.hold_state(State(1, 0xF), 0xC10C)
     blocked.hold_resources(make_resources())
     blocked.admit_image(make_image())
     blocked.initialize_reset(State(1, 0xF))
@@ -274,8 +291,14 @@ def main():
                    "lease after invalidation")
     cases += 1
 
+    no_hold = Adapter()
+    no_hold.snapshot(State(1, 0xF))
+    expect_failure(lambda: no_hold.hold_resources(make_resources()),
+                   "resources without state hold")
+    cases += 1
+
     print("adapter_contract=bounded_pcm_admission")
-    print("happy_path=SNAPSHOTTED>RESOURCES_HELD>IMAGE_READY>RESET_INITIALIZED>IMAGE_ACKED>CONTROL_INITIALIZED>RUNNING>LEASE_REGISTERED")
+    print("happy_path=SNAPSHOTTED>STATE_HELD>RESOURCES_HELD>IMAGE_READY>RESET_INITIALIZED>IMAGE_ACKED>CONTROL_INITIALIZED>RUNNING>LEASE_REGISTERED")
     print("negative_cases=%d" % cases)
     print("premature_lease=reject")
     print("incomplete_state=reject")

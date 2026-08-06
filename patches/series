@@ -182,3 +182,4 @@ v7.1.3/0189-arm64-hand-P32R-into-owner-ledger.patch
 v7.1.3/0190-arm64-close-P32A-P32X-coverage.patch
 v7.1.3/0191-arm64-arm-P32-publication-from-on-issued-phase.patch
 v7.1.3/0192-soc-mediatek-define-MT6797-state-owner-contract.patch
+v7.1.3/0193-soc-mediatek-add-MT6797-state-owner-transition-hold.patch

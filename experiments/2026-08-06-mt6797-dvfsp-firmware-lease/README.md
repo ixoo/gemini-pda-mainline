@@ -97,6 +97,7 @@ be copied directly into a mainline failure/PM path.
 - [Retained SCP local-alias inventory](../2026-08-06-da921x-page-owner-audit/results/scp-alias-inventory-20260806.txt)
 - [Patch 0175](../../patches/v7.1.3/0175-soc-mediatek-define-I2C6-firmware-lease-contract.patch)
 - [Dormant state-owner contract](../../patches/v7.1.3/0192-soc-mediatek-define-MT6797-state-owner-contract.patch)
+- [Dormant state-owner transition hold](../../patches/v7.1.3/0193-soc-mediatek-add-MT6797-state-owner-transition-hold.patch)
 - [PCM start contract result](results/pcm-start-contract-20260806.txt)
 
 Run from the repository root:
@@ -173,6 +174,10 @@ generation, exact CSPM/CSRAM and clock/semaphore ownership, ordered reset and
 PCM-start acknowledgements, and generation-bound lease registration. It rejects
 premature callbacks and stale state or owner handles, and invalidates on
 suspend/resume. See the [adapter model result](results/pcm-adapter-model-20260806.txt).
+
+Patch `0193` now pins the startup-state generation across the future
+multi-step start sequence with an exact transition-hold token; it remains
+dormant and unregistered until a real protected owner exists.
 
 A bounded read-only Buildbox inventory confirms the missing implementation seam:
 the current tree has generic MT6797 topckgen/apmixedsys providers but no

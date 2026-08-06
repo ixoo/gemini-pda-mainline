@@ -66,6 +66,13 @@ gate remains open and the provider remains fail-closed. The conceptual
 `publish` step remains in [`DESIGN.md`](DESIGN.md) because it belongs to the
 future PCM adapter after a real owner is present.
 
+Patch `0193` adds the missing multi-checkpoint lifetime boundary as a dormant
+transition hold: an owner must return the exact state generation, cluster mask,
+and opaque handle; the handoff prevents a second hold or owner unregister while
+it is active; and a failed release remains sticky. This pins the state-owner
+contract across the future reset/image/control/PCM-kick sequence without
+performing any transition itself.
+
 The bounded admission ordering for that future adapter is now frozen in
 [`PCM_ADAPTER_DESIGN.md`](PCM_ADAPTER_DESIGN.md) and exercised by the
 source-only [`pcm_adapter_oracle.py`](scripts/pcm_adapter_oracle.py). Its

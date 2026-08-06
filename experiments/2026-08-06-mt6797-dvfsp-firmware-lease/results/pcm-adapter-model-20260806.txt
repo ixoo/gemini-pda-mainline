@@ -4,8 +4,9 @@ Date: 2026-08-06 America/New_York
 
 claim=SOURCE_ONLY_BOUNDED_PCM_ADAPTER_ADMISSION
 adapter_contract=bounded_pcm_admission
-happy_path=SNAPSHOTTED>RESOURCES_HELD>IMAGE_READY>RESET_INITIALIZED>IMAGE_ACKED>CONTROL_INITIALIZED>RUNNING>LEASE_REGISTERED
-negative_cases=7
+happy_path=SNAPSHOTTED>STATE_HELD>RESOURCES_HELD>IMAGE_READY>RESET_INITIALIZED>IMAGE_ACKED>CONTROL_INITIALIZED>RUNNING>LEASE_REGISTERED
+negative_cases=8
+state_hold=exact_generation_cluster_mask_owner_handle;unregister_blocked_while_active
 premature_lease=reject
 incomplete_state=reject
 resource_identity=exact

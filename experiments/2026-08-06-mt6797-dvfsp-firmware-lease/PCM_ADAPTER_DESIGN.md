@@ -31,6 +31,7 @@ The only legal forward path is:
 ```text
 UNAVAILABLE
   -> SNAPSHOTTED
+  -> STATE_HELD
   -> RESOURCES_HELD
   -> IMAGE_READY
   -> RESET_INITIALIZED
@@ -41,9 +42,12 @@ UNAVAILABLE
 ```
 
 `SNAPSHOTTED` requires a complete state snapshot for every cluster required by
-the start contract. `RESOURCES_HELD` requires one attributable owner for both
-memory windows and the clock/semaphore lifetime. `IMAGE_READY` requires the
-exact image identity and stable residency. The reset, instruction-memory
+the start contract. `STATE_HELD` requires the `0193` transition-hold token to
+echo the exact generation and cluster mask with a nonzero owner handle; the
+owner must prevent conflicting transitions until the token is released.
+Unregister is refused while the hold is active. `RESOURCES_HELD` requires one
+attributable owner for both memory windows and the clock/semaphore lifetime.
+`IMAGE_READY` requires the exact image identity and stable residency. The reset, instruction-memory
 acknowledgement, control/CSRAM initialization, and PCM kick are separate
 checkpoints so a failure cannot be mistaken for a running owner.
 
@@ -67,8 +71,8 @@ timeouts; a timeout is a terminal failure for that generation.
 Suspend, resume, clock loss, or rail transition invalidates the generation
 before a stale callback can reach the firmware owner. Release requires the
 same image generation, state generation, Linux transfer token, and opaque
-firmware owner handle. A mismatched token is rejected without a hardware
-operation.
+state/firmware owner handles. A mismatched token is rejected without a
+hardware operation; a failed state-hold release remains sticky.
 
 ## Model coverage
 
