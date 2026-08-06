@@ -1,0 +1,268 @@
+From 0000000000000000000000000000000000000201 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 6 Aug 2026 22:00:00 -0400
+Subject: [PATCH] soc: mediatek: bind calibration lifecycle to state owner
+
+The calibrated-state provenance contract rejects guessed tables, but the
+composition boundary still lets a future backend manufacture provenance
+without an attributable calibration owner holding the mutable table state.
+Add a calibration-owner callback set and bind its snapshot, validation, and
+hold/release lifetime to the protected CPU-PLL and BigiDVFS pair.
+
+The calibration owner must echo the complete provenance, generation, and
+transition owner for every checkpoint. A failed calibration release faults
+the complete protected owner; suspend, clock, rail, and PCM invalidation are
+forwarded to the calibration owner as well as both protected backends.
+
+This patch implements the lifecycle admission boundary only. No calibration
+provider is registered by default, and it performs no MMIO, secure-monitor
+call, regulator operation, firmware action, PCM start, or CPU_ON operation.
+It is experiment-only and not submission-ready.
+---
+ drivers/soc/mediatek/mt6797-dvfsp-handoff.c       | 88 +++++++++++++++++++--
+ include/linux/soc/mediatek/mt6797-dvfsp-handoff.h | 27 ++++++
+ 2 files changed, 112 insertions(+), 3 deletions(-)
+
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
+@@ -79,6 +79,7 @@ struct mt6797_dvfsp_state_hold {
+ 	u32 reserved;
+ 	u64 owner_handle;
+ 	u64 transition_handle;
++	struct mt6797_dvfsp_state_provenance provenance;
+ };
+ 
+ enum mt6797_dvfsp_state_invalidation_reason {
+@@ -164,6 +165,30 @@ struct mt6797_dvfsp_state_backend_ops {
+ 			enum mt6797_dvfsp_state_invalidation_reason reason);
+ };
+ 
++#define MT6797_DVFSP_STATE_CALIBRATION_ABI	1
++
++struct mt6797_dvfsp_state_calibration_hold {
++	u64 generation;
++	u64 transition_handle;
++	u64 owner_handle;
++	struct mt6797_dvfsp_state_provenance provenance;
++};
++
++struct mt6797_dvfsp_state_calibration_ops {
++	u32 abi;
++	int (*snapshot)(void *context,
++			struct mt6797_dvfsp_state_provenance *provenance);
++	int (*validate)(void *context,
++			const struct mt6797_dvfsp_state_provenance *provenance);
++	int (*hold)(void *context,
++			const struct mt6797_dvfsp_state_snapshot *snapshot,
++			struct mt6797_dvfsp_state_calibration_hold *hold);
++	int (*release)(void *context,
++			const struct mt6797_dvfsp_state_calibration_hold *hold);
++	void (*invalidate)(void *context,
++			enum mt6797_dvfsp_state_invalidation_reason reason);
++};
++
+ /* Keep the backend descriptors and callbacks immutable while registered. */
+ struct mt6797_dvfsp_protected_state_owner {
+ 	const struct mt6797_dvfsp_state_backend_ops *cpu_pll_ops;
+@@ -174,6 +204,8 @@ struct mt6797_dvfsp_protected_state_owner {
+ 	void *big_cluster_context;
+ 	u64 owner_handle;
+ 	u64 transition_handle;
++	const struct mt6797_dvfsp_state_calibration_ops *calibration_ops;
++	void *calibration_context;
+ 	struct mt6797_dvfsp_state_provenance provenance;
+ };
+ #define MT6797_DVFSP_PCM_ADAPTER_ABI		1
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+@@ -1910,6 +1910,14 @@ mt6797_dvfsp_protected_state_owner_check(
+ 	if (!owner || !owner->cpu_pll_ops || !owner->big_cluster_ops ||
+ 	    !owner->owner_handle || !owner->transition_handle)
+ 		return -EINVAL;
++	if (!owner->calibration_ops || !owner->calibration_ops->snapshot ||
++	    !owner->calibration_ops->validate ||
++	    !owner->calibration_ops->hold ||
++	    !owner->calibration_ops->release ||
++	    !owner->calibration_ops->invalidate ||
++	    owner->calibration_ops->abi !=
++		MT6797_DVFSP_STATE_CALIBRATION_ABI)
++		return -EINVAL;
+ 
+ 	cpu = owner->cpu_pll_ops;
+ 	big = owner->big_cluster_ops;
+@@ -1955,5 +1960,6 @@ mt6797_dvfsp_protected_state_owner_collect(
+ 	const struct mt6797_dvfsp_state_backend_ops *cpu;
+ 	const struct mt6797_dvfsp_state_backend_ops *big;
++	struct mt6797_dvfsp_state_provenance provenance;
+ 	int ret;
+ 
+ 	ret = mt6797_dvfsp_protected_state_owner_check(owner);
+@@ -1962,5 +1968,15 @@ mt6797_dvfsp_protected_state_owner_collect(
+ 	if (ret)
+ 		return ret;
+ 
++	memset(&provenance, 0, sizeof(provenance));
++	ret = owner->calibration_ops->snapshot(owner->calibration_context,
++						&provenance);
++	if (ret)
++		return ret;
++	ret = mt6797_dvfsp_state_provenance_check(&provenance);
++	if (ret || !mt6797_dvfsp_state_provenance_equal(
++			&provenance, &owner->provenance))
++		return -EPROTO;
++
+ 	cpu = owner->cpu_pll_ops;
+ 	big = owner->big_cluster_ops;
+@@ -1983,10 +1997,16 @@ mt6797_dvfsp_protected_state_owner_collect(
+ 	if (cpu_snapshot->generation != big_snapshot->generation)
+ 		return -EAGAIN;
++	if (!mt6797_dvfsp_state_provenance_equal(&cpu_snapshot->provenance,
++			&provenance) ||
++	    !mt6797_dvfsp_state_provenance_equal(&big_snapshot->provenance,
++			&provenance))
++		return -EPROTO;
+ 
+ 	memset(snapshot, 0, sizeof(*snapshot));
+ 	snapshot->abi = MT6797_DVFSP_STATE_OWNER_ABI;
+ 	snapshot->cluster_mask = cpu_snapshot->cluster_mask |
+ 		big_snapshot->cluster_mask;
+ 	snapshot->generation = cpu_snapshot->generation;
++	snapshot->provenance = provenance;
+ 	snapshot->cluster[MT6797_DVFSP_STATE_CLUSTER_LL] =
+ 		cpu_snapshot->cluster[MT6797_DVFSP_STATE_CLUSTER_LL];
+@@ -2040,6 +2061,11 @@ mt6797_dvfsp_protected_state_owner_validate(
+ 	if (!mt6797_dvfsp_state_snapshot_equal(snapshot, &fresh))
+ 		return -EAGAIN;
+ 
++	ret = owner->calibration_ops->validate(owner->calibration_context,
++						&fresh.provenance);
++	if (ret)
++		return ret;
++
+ 	ret = owner->cpu_pll_ops->validate(owner->cpu_pll_context,
+ 					    &cpu_snapshot);
+ 	if (ret)
+@@ -2068,8 +2093,9 @@ mt6797_dvfsp_protected_state_owner_release_pair(
+ 	const struct mt6797_dvfsp_protected_state_owner *owner,
+ 	const struct mt6797_dvfsp_state_hold *cpu_hold, bool cpu_held,
+ 	const struct mt6797_dvfsp_state_hold *big_hold, bool big_held)
+ {
+ 	int ret = 0;
+ 	int release_ret;
++	struct mt6797_dvfsp_state_calibration_hold calibration_hold;
+ 
+ 	if (big_held) {
+@@ -2084,6 +2111,28 @@ mt6797_dvfsp_protected_state_owner_release_pair(
+ 		if (!ret && release_ret)
+ 			ret = release_ret;
+ 	}
++
++	if (cpu_held || big_held) {
++		memset(&calibration_hold, 0, sizeof(calibration_hold));
++		if (cpu_held)
++			calibration_hold = (struct mt6797_dvfsp_state_calibration_hold) {
++				.generation = cpu_hold->generation,
++				.transition_handle = cpu_hold->transition_handle,
++				.owner_handle = cpu_hold->owner_handle,
++				.provenance = cpu_hold->provenance,
++			};
++		else if (big_held)
++			calibration_hold = (struct mt6797_dvfsp_state_calibration_hold) {
++				.generation = big_hold->generation,
++				.transition_handle = big_hold->transition_handle,
++				.owner_handle = big_hold->owner_handle,
++				.provenance = big_hold->provenance,
++			};
++		release_ret = owner->calibration_ops->release(
++			owner->calibration_context, &calibration_hold);
++		if (!ret && release_ret)
++			ret = release_ret;
++	}
+ 
+ 	return ret;
+ }
+@@ -2099,5 +2145,7 @@ mt6797_dvfsp_protected_state_owner_hold(
+ 	struct mt6797_dvfsp_state_hold cpu_hold;
+ 	struct mt6797_dvfsp_state_hold big_hold;
+ 	const struct mt6797_dvfsp_protected_state_owner *owner = context;
++	struct mt6797_dvfsp_state_calibration_hold calibration_hold;
++	bool calibration_held = false;
+ 	bool cpu_held = false;
+ 	bool big_held = false;
+@@ -2118,5 +2166,20 @@ mt6797_dvfsp_protected_state_owner_hold(
+ 	if (!mt6797_dvfsp_state_snapshot_equal(snapshot, &fresh))
+ 		return -EAGAIN;
+ 
++	memset(&calibration_hold, 0, sizeof(calibration_hold));
++	ret = owner->calibration_ops->hold(owner->calibration_context, &fresh,
++						&calibration_hold);
++	if (ret)
++		return ret;
++	calibration_held = true;
++	if (calibration_hold.generation != fresh.generation ||
++	    calibration_hold.transition_handle != owner->transition_handle ||
++	    calibration_hold.owner_handle != owner->owner_handle ||
++	    !mt6797_dvfsp_state_provenance_equal(
++			&calibration_hold.provenance, &fresh.provenance)) {
++		ret = -EPROTO;
++		goto rollback;
++	}
++
+ 	memset(&cpu_hold, 0, sizeof(cpu_hold));
+ 	ret = owner->cpu_pll_ops->hold(owner->cpu_pll_context,
+@@ -2126,6 +2193,8 @@ mt6797_dvfsp_protected_state_owner_hold(
+ 	if (cpu_hold.generation != cpu_snapshot.generation ||
+ 	    cpu_hold.cluster_mask != cpu_snapshot.cluster_mask ||
+ 	    cpu_hold.reserved || cpu_hold.owner_handle != owner->owner_handle ||
+-	    cpu_hold.transition_handle != owner->transition_handle) {
++	    cpu_hold.transition_handle != owner->transition_handle ||
++	    !mt6797_dvfsp_state_provenance_equal(&cpu_hold.provenance,
++			&fresh.provenance)) {
+ 		ret = -EPROTO;
+ 		goto rollback;
+@@ -2142,6 +2211,8 @@ mt6797_dvfsp_protected_state_owner_hold(
+ 	if (big_hold.generation != big_snapshot.generation ||
+ 	    big_hold.cluster_mask != big_snapshot.cluster_mask ||
+ 	    big_hold.reserved || big_hold.owner_handle != owner->owner_handle ||
+-	    big_hold.transition_handle != owner->transition_handle) {
++	    big_hold.transition_handle != owner->transition_handle ||
++	    !mt6797_dvfsp_state_provenance_equal(&big_hold.provenance,
++			&fresh.provenance)) {
+ 		ret = -EPROTO;
+ 		goto rollback;
+@@ -2152,9 +2223,13 @@ mt6797_dvfsp_protected_state_owner_hold(
+ 	hold->cluster_mask = snapshot->cluster_mask;
+ 	hold->owner_handle = owner->owner_handle;
+ 	hold->transition_handle = owner->transition_handle;
++	hold->provenance = fresh.provenance;
+ 	return 0;
+ 
+ rollback:
+ 	rollback_ret = mt6797_dvfsp_protected_state_owner_release_pair(
+ 		owner, &cpu_hold, cpu_held, &big_hold, big_held);
++	if (calibration_held && !cpu_held && !big_held)
++		owner->calibration_ops->release(owner->calibration_context,
++						&calibration_hold);
+ 	owner->cpu_pll_ops->invalidate(
+@@ -2296,3 +2373,5 @@ mt6797_dvfsp_protected_state_owner_invalidate(
+ 	if (owner->big_cluster_ops && owner->big_cluster_ops->invalidate)
+ 		owner->big_cluster_ops->invalidate(owner->big_cluster_context, reason);
++	if (owner->calibration_ops && owner->calibration_ops->invalidate)
++		owner->calibration_ops->invalidate(owner->calibration_context, reason);
+ }
+@@ -2362,9 +2441,11 @@ mt6797_dvfsp_state_hold_check(
+ 	if (!hold->generation || hold->generation != snapshot->generation ||
+ 	    hold->cluster_mask != snapshot->cluster_mask ||
+ 	    hold->reserved || !hold->owner_handle ||
+ 	    !hold->transition_handle)
+ 		return -EPROTO;
++	if (!mt6797_dvfsp_state_provenance_equal(&hold->provenance,
++			&snapshot->provenance))
++		return -EPROTO;
+ 
+ 	return 0;
+ }
+--
+2.43.0

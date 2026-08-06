@@ -15,6 +15,7 @@ CLOCK_READBACK_PATCH = ROOT / "patches/v7.1.3/0197-soc-mediatek-add-disabled-MT6
 BIGIDVFS_READBACK_PATCH = ROOT / "patches/v7.1.3/0198-soc-mediatek-add-disabled-MT6797-BigiDVFS-readback.patch"
 TRANSITION_OWNER_PATCH = ROOT / "patches/v7.1.3/0199-soc-mediatek-bind-protected-state-to-transition-owner.patch"
 PROVENANCE_PATCH = ROOT / "patches/v7.1.3/0200-soc-mediatek-require-calibrated-state-provenance.patch"
+CALIBRATION_LIFECYCLE_PATCH = ROOT / "patches/v7.1.3/0201-soc-mediatek-bind-calibration-lifecycle-to-state-owner.patch"
 SERIES = ROOT / "patches/series"
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
 START_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-start-contract-20260806.txt"
@@ -50,6 +51,7 @@ def main() -> None:
     bigidvfs_readback_patch = BIGIDVFS_READBACK_PATCH.read_text()
     transition_owner_patch = TRANSITION_OWNER_PATCH.read_text()
     provenance_patch = PROVENANCE_PATCH.read_text()
+    calibration_lifecycle_patch = CALIBRATION_LIFECYCLE_PATCH.read_text()
     design = DESIGN.read_text()
     start_result = START_RESULT.read_text()
     owner_result = OWNER_RESULT.read_text()
@@ -231,6 +233,23 @@ def main() -> None:
         ("identity->provenance = owner->provenance", "provenance-identity-echo"),
     ):
         require(provenance_patch, needle, label)
+    for needle, label in (
+        ("MT6797_DVFSP_STATE_CALIBRATION_ABI", "calibration-owner-abi"),
+        ("struct mt6797_dvfsp_state_calibration_hold", "calibration-hold"),
+        ("struct mt6797_dvfsp_state_calibration_ops", "calibration-ops"),
+        ("calibration_ops->snapshot", "calibration-snapshot"),
+        ("calibration_ops->validate", "calibration-validate"),
+        ("calibration_ops->hold", "calibration-hold-callback"),
+        ("calibration_ops->release", "calibration-release-callback"),
+        ("calibration_ops->invalidate", "calibration-invalidate"),
+        ("calibration_ops->abi", "calibration-abi-check"),
+        ("cpu_snapshot->provenance", "calibration-backend-match"),
+        ("snapshot->provenance = provenance", "calibration-snapshot-echo"),
+        ("hold->provenance = fresh.provenance", "calibration-hold-echo"),
+        ("!mt6797_dvfsp_state_provenance_equal(&hold->provenance", "calibration-hold-check"),
+        ("provider is registered by default", "calibration-default-off"),
+    ):
+        require(calibration_lifecycle_patch, needle, label)
     for needle, label in (
         ("## Startup-state adapter seam", "design-state-seam"),
         ("`snapshot`", "design-snapshot"),
@@ -549,6 +568,8 @@ def main() -> None:
         raise AssertionError("transition-owner contract is not after BigiDVFS readback")
     if names.index("0199-soc-mediatek-bind-protected-state-to-transition-owner.patch") >= names.index("0200-soc-mediatek-require-calibrated-state-provenance.patch"):
         raise AssertionError("calibrated provenance contract is not after transition-owner contract")
+    if names.index("0200-soc-mediatek-require-calibrated-state-provenance.patch") >= names.index("0201-soc-mediatek-bind-calibration-lifecycle-to-state-owner.patch"):
+        raise AssertionError("calibration lifecycle is not after calibrated provenance contract")
 
     for forbidden in ("readl(", "writel(", "i2c_transfer", "regulator_enable(",
                       "regulator_disable(", "psci_ops.cpu_on", "cpu_up("):
@@ -568,6 +589,8 @@ def main() -> None:
             raise AssertionError(f"unexpected transition-owner hardware operation: {forbidden}")
         if forbidden in provenance_patch:
             raise AssertionError(f"unexpected provenance hardware operation: {forbidden}")
+        if forbidden in calibration_lifecycle_patch:
+            raise AssertionError(f"unexpected calibration lifecycle hardware operation: {forbidden}")
 
     print("claim=PARTIAL_FIRMWARE_LEASE_CALLBACK_CONTRACT")
     print("registered_owner=0")
@@ -589,6 +612,7 @@ def main() -> None:
     print("protected_readback=0197+0198;compile_only;both_nodes_disabled;clock_semaphore_and_bigidvfs_reg_read_only;registered_owner=0;no_provider;no_secure_write;boot_candidate=false")
     print("protected_transition_owner=0199;shared_transition_handle;generation_bound;both_protected_backends;all_holds;registered_owner=0;no_provider;no_secure_write;boot_candidate=false")
     print("calibrated_state_provenance=0200;all_required_sources;mutable_table_epoch;calibration_handle;backend_provenance_match;registered_owner=0;no_provider;no_secure_write;boot_candidate=false")
+    print("calibration_lifecycle=0201;provenance_snapshot_validate_hold_release;backend_echo_required;registered_owner=0;no_provider;no_mmio;boot_candidate=false")
     print("pcm_adapter_contract=source-only;bounded-admission-model;callback-registration-gated")
     print("clock_owner_inventory=generic_ccf_only;protected_owner_absent;A72_observer_read_only")
     print("pcm_start_contract=defined;residency_and_start_required_before_callback_registration")

@@ -190,3 +190,4 @@ v7.1.3/0197-soc-mediatek-add-disabled-MT6797-protected-clock-readback.patch
 v7.1.3/0198-soc-mediatek-add-disabled-MT6797-BigiDVFS-readback.patch
 v7.1.3/0199-soc-mediatek-bind-protected-state-to-transition-owner.patch
 v7.1.3/0200-soc-mediatek-require-calibrated-state-provenance.patch
+v7.1.3/0201-soc-mediatek-bind-calibration-lifecycle-to-state-owner.patch
