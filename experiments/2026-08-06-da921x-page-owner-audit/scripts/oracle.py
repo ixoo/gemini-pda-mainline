@@ -121,6 +121,8 @@ def main() -> None:
         if forbidden in transfer:
             raise SystemExit(f"unexpected-provider-write-token={forbidden}")
     require(transfer, "msgs[1].flags = I2C_M_RD", "read-only-transfer")
+    require(transfer, "i2c_lock_bus(chip->client->adapter, I2C_LOCK_ROOT_ADAPTER)", "provider-root-lock")
+    require(core_dispatch, "core_lock_precondition=Adapter lock must be held when calling this function", "core-lock-precondition")
     for field in (
         "page_encoding\tpartially-proven",
         "page_owner\tcandidate-owner;handoff-unproven",
@@ -141,7 +143,8 @@ def main() -> None:
     print("mainline_handoff=profile-selected;I2C6-access-controller;ready-gate-present")
     print("provider_transfer=direct-__i2c_transfer;write-absent")
     print("core_dispatch=expanded;master_xfer-path-proven")
-    print("per_transfer_lease=unproven;dispatch-expanded")
+    print("linux_bus_lock=provider-root-lock;core-lock-precondition-proven")
+    print("firmware_owner_lease=unproven;handoff-ready-only")
     print("decision=BLOCK_WRITABLE_PROVIDER")
     print("hardware_action=none")
     print("status=PASS_NEGATIVE_AUDIT")

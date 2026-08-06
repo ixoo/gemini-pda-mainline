@@ -11,6 +11,7 @@ The pinned core source proves the dispatch chain used by the provider's
 `__i2c_transfer()` call:
 
 function=__i2c_transfer
+core_lock_precondition=Adapter lock must be held when calling this function
 adapter_dispatch=adap->algo->master_xfer(adap, msgs, num)
 public_wrapper=ret = __i2c_transfer(adap, msgs, num)
 
