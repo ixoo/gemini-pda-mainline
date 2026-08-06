@@ -1787,12 +1787,14 @@ The next ordered work remains source-only:
    point-of-coherency and barrier ordering, assembly failure publication, and
    fail-closed P30U routing for every ambiguous or stale observation. The
    [P30E wire-object contract](../experiments/2026-08-06-a72-p30e-mmuoff-contract/README.md)
-   now freezes that source-only boundary: a 20-word physical object, separate
+   now freezes that source-only boundary: a 20-word object intended for a
+   physical handoff, separate
    controller/target writers, full-range clean/readback, and exact-token
    P14/P15 prerequisites. The pinned implementation seam now selects a
    dedicated `.mmuoff.data.bidirectional` section with separate 2 KiB CPU8 and
-   CPU9 slots, MPIDR `0x200`/`0x201` selection in `.idmap.text` `secondary_entry`,
-   immutable identity validation, and full-range cache publication/readback;
+   CPU9 slots, MPIDR `0x200`/`0x201` selection in a dormant `.idmap.text`
+   implementation seam, target CPU/MPIDR validation, and full-range cache
+   publication/readback;
    the [implementation seam audit](../experiments/2026-08-06-a72-p30e-mmuoff-contract/results/implementation-seam-audit-20260806.txt)
    records the source evidence. The default-off assembly/C implementation now
    applies through the full series and passes the exact Buildbox package
@@ -1804,12 +1806,15 @@ The next ordered work remains source-only:
    the current evidence is in the
    [implementation comparison](../experiments/2026-08-06-a72-p30e-mmuoff-contract/results/implementation-contract-comparison-20260806.txt)
    and [Buildbox result](../experiments/2026-08-06-a72-p30e-mmuoff-contract/results/buildbox-validation-20260806.txt).
-   The remaining source-only gate is physical slot-handoff/wire-identity
-   review, followed by integration only behind the authoritative P17/P18/P24
-   owner. The target symbols are still not wired to `secondary_entry`; this
-   remains an implementation gate, not admission authorization. The dormant C
-   control object cannot substitute for the MMU-off proof or open a CPU_ON
-   path.
+   The remaining source-only gate is now explicit: the controller API has no
+   slot physical-address/range handoff, and the MMU-off side has no independent
+   expected boot-identity comparison. The
+   [physical-slot/wire-identity audit](../experiments/2026-08-06-a72-p30e-mmuoff-contract/results/physical-slot-wire-identity-audit-20260806.txt)
+   records those blockers. The authoritative P17/P18/P24 owner must define
+   those bindings before any entry integration is reviewed. The target symbols
+   are still not wired to `secondary_entry`; this remains an implementation
+   gate, not admission authorization. The dormant C control object cannot
+   substitute for the MMU-off proof or open a CPU_ON path.
 3. Complete A25 and implement P32A/D/F/X/R using either a reviewed core
    no-auto-rollback interface or the fail-stop `.cpu_disable` plus die/kill
    guard design, retaining every partial callback and architecture effect.
