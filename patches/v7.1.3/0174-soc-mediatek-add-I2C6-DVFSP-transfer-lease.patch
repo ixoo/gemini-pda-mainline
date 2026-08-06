@@ -16,10 +16,10 @@ a regulator vote, or connect CPU_ON.
 
 This is an experiment-only patch and is not submission-ready.
 ---
- drivers/i2c/busses/i2c-mt65xx.c                   | 15 +++++++++++++++
+ drivers/i2c/busses/i2c-mt65xx.c                   | 16 +++++++++++++++++
  drivers/soc/mediatek/mt6797-dvfsp-handoff.c      | 89 ++++++++++++++++++++++++
  include/linux/soc/mediatek/mt6797-dvfsp-handoff.h | 29 ++++++++++++++++++++
- 3 files changed, 133 insertions(+)
+ 3 files changed, 134 insertions(+)
 
 diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
 index 6abbc77..0b6d5c1 100644
@@ -273,10 +273,11 @@ index 478c356..0000000 100644
 -			return ret;
 +			goto err_lease;
  	}
-@@ -1941,5 +1949,12 @@ err_regulator:
+@@ -1941,5 +1949,13 @@ err_regulator:
  	if (i2c->adap.bus_regulator)
  		regulator_disable(i2c->adap.bus_regulator);
 +
++err_lease:
 +	if (lease_active) {
 +		lease_ret = mt6797_dvfsp_handoff_end_i2c6_transfer(
 +			i2c->dvfsp_handoff, &lease, ret);
