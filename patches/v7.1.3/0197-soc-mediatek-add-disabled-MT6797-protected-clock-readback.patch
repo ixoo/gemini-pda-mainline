@@ -19,13 +19,13 @@ and calibrated OPP state remain separate gates.
 The DT node is disabled and the compile-only profile does not enable it. This
 is an experiment-only transport and is not submission-ready.
 ---
- .../mediatek,mt6797-dvfsp-clock-backend.yaml       |  79 ++++++++++
+ .../mediatek,mt6797-dvfsp-clock-backend.yaml       |  65 ++++++++
  .../boot/dts/mediatek/mt6797.dtsi                  |  12 +++
  drivers/soc/mediatek/Kconfig                       |  17 +++
  drivers/soc/mediatek/Makefile                      |   1 +
- .../soc/mediatek/mt6797-dvfsp-clock-backend.c      | 199 +++++++++++++++++++++
- .../soc/mediatek/mt6797-dvfsp-clock-backend.h      |  46 +++++
- 6 files changed, 354 insertions(+)
+ .../soc/mediatek/mt6797-dvfsp-clock-backend.c      | 209 +++++++++++++++++++++
+ .../soc/mediatek/mt6797-dvfsp-clock-backend.h      |  32 ++++
+ 6 files changed, 339 insertions(+)
  create mode 100644 Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-dvfsp-clock-backend.yaml
  create mode 100644 drivers/soc/mediatek/mt6797-dvfsp-clock-backend.c
  create mode 100644 include/linux/soc/mediatek/mt6797-dvfsp-clock-backend.h
@@ -35,7 +35,7 @@ new file mode 100644
 index 000000000000..000000000000
 --- /dev/null
 +++ b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-dvfsp-clock-backend.yaml
-@@ -0,0 +1,79 @@
+@@ -0,0 +1,65 @@
 +# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
 +%YAML 1.2
 +---
@@ -104,7 +104,7 @@ index 000000000000..000000000000
 diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
 --- a/arch/arm64/boot/dts/mediatek/mt6797.dtsi
 +++ b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
-@@ -674,6 +674,18 @@
+@@ -674,5 +674,15 @@
  		mediatek,infracfg = <&infrasys>;
  		status = "disabled";
  	};
@@ -123,7 +123,7 @@ diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/medi
 diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
 --- a/drivers/soc/mediatek/Kconfig
 +++ b/drivers/soc/mediatek/Kconfig
-@@ -88,6 +88,23 @@ config MTK_MT6797_DVFSP_HANDOFF
+@@ -88,6 +88,22 @@ config MTK_MT6797_DVFSP_HANDOFF
  
  	This option is for bounded Gemini PDA bring-up experiments only.
  
@@ -162,7 +162,7 @@ new file mode 100644
 index 000000000000..000000000000
 --- /dev/null
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-clock-backend.c
-@@ -0,0 +1,199 @@
+@@ -0,0 +1,209 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/*
 + * Disabled-only MT6797 MCUMIXED/DVFSP clock-window readback transport.
@@ -377,7 +377,7 @@ new file mode 100644
 index 000000000000..000000000000
 --- /dev/null
 +++ b/include/linux/soc/mediatek/mt6797-dvfsp-clock-backend.h
-@@ -0,0 +1,46 @@
+@@ -0,0 +1,32 @@
 +/* SPDX-License-Identifier: GPL-2.0-only */
 +#ifndef __LINUX_SOC_MEDIATEK_MT6797_DVFSP_CLOCK_BACKEND_H
 +#define __LINUX_SOC_MEDIATEK_MT6797_DVFSP_CLOCK_BACKEND_H
