@@ -1,9 +1,9 @@
-page_encoding=unproven
-page_owner=unproven
-write_transport=unproven
-control_mask=unproven
-post_settle_readback=unproven
-rollback_owner=unproven
+page_encoding=partially-proven
+page_owner=candidate-owner;mainline-handoff-unproven
+write_transport=vendor-shape-known;mainline-arbitration-unproven
+control_mask=vendor-bit0-known;mainline-contract-unproven
+post_settle_readback=vendor-observed;provider-unimplemented
+rollback_owner=pre-isolation-accepted;post-isolation-unresolved
 decision=BLOCK_WRITABLE_PROVIDER
 hardware_action=none
 status=PASS_NEGATIVE_AUDIT

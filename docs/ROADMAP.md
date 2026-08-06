@@ -1652,10 +1652,12 @@ The next ordered work remains source-only:
    P28 post-provider preparation, and the R03/P29 rollback closure still
    precede integrating its exact token with the dormant P30 model and
    controller call sites. The [DA921x page/ownership audit](../experiments/2026-08-06-da921x-page-owner-audit/README.md)
-   confirms that the recurring `0x80`/`0x46` values are prestate evidence,
-   not yet a page-selector or register-data write contract. Existing
-   direct-address reads therefore do not authorize a DA921x page-selector or
-   register-data write.
+   reconciles the existing legacy page-window, `PAGE_REVERT`, vendor mutex,
+   and vendor transfer evidence: it partially explains the recurring
+   `0x80`/`0x46` values, but does not prove mainline I2C6/DVFSP ownership or a
+   rollback-capable provider transaction. Existing direct-address reads and
+   vendor-shaped writes therefore still do not authorize a mainline DA921x
+   page-selector or register-data write.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and

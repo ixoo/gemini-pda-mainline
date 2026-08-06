@@ -10,6 +10,10 @@ PATCH_0164 = ROOT / "patches/v7.1.3/0164-arm64-validate-frozen-A72-A36-prestates
 PATCH_0172 = ROOT / "patches/v7.1.3/0172-arm64-add-provider-owner-callback-refusal-boundary.patch"
 PATCH_0173 = ROOT / "patches/v7.1.3/0173-arm64-add-provider-release-refusal-boundary.patch"
 LEDGER = Path(__file__).resolve().parents[1] / "results/source-audit.tsv"
+RECONCILIATION = Path(__file__).resolve().parents[1] / "results/source-reconciliation-20260806.txt"
+CROSSCHECK = ROOT / "experiments/2026-07-23-da9214-resource-only/results/da9214-datasheet-crosscheck-20260723.txt"
+OBSERVER_DESIGN = ROOT / "experiments/2026-07-23-gemian-a72-owner-observer/DESIGN.md"
+OBSERVER_PATCH = ROOT / "experiments/2026-07-23-gemian-a72-owner-observer/patches/0002-diagnostic-add-owner-local-fixed-A72-snapshots.patch"
 
 
 def require(text: str, needle: str, label: str) -> None:
@@ -23,6 +27,10 @@ def main() -> None:
     p0172 = PATCH_0172.read_text()
     p0173 = PATCH_0173.read_text()
     ledger = LEDGER.read_text()
+    reconciliation = RECONCILIATION.read_text()
+    crosscheck = CROSSCHECK.read_text()
+    observer_design = OBSERVER_DESIGN.read_text()
+    observer_patch = OBSERVER_PATCH.read_text()
 
     for needle, label in (
         ("primary_address\t0x68", "primary-address"),
@@ -51,6 +59,30 @@ def main() -> None:
     require(p0164, "#define MT6797_A72_A36_BUCKB_VSEL 0x46", "source-a36-vsel")
     require(p0172, "provider-owner acquire refused: read-only resource boundary", "acquire-refusal")
     require(p0173, "provider-owner release refused: no rollback owner", "release-refusal")
+    for needle, label in (
+        ("observation_legacy_page_control=I2C_REG_PAGE_00x_selects_0x000_through_0x0ff", "legacy-page-window"),
+        ("observation_legacy_page_control_2=I2C_REG_PAGE_01x_selects_0x100_through_0x17f", "legacy-page-window-2"),
+        ("observation_live_page_con=0x80_REVERT_set", "observed-page-revert"),
+        ("active_rail_write_gate=prove_DVFSP_quiescent_or_implement_and_validate_the_matching_I2C6_ownership_protocol", "dvfsp-gate"),
+    ):
+        require(crosscheck, needle, label)
+    for needle, label in (
+        ("DA9214 | page", "vendor-register-contract"),
+        ("da9214_i2c_access", "vendor-owner-mutex"),
+    ):
+        require(observer_design, needle, label)
+    for needle, label in (
+        ("DA9214_A72_PAGE_REVERT", "page-revert-token"),
+        ("da9214_a72_write_locked", "vendor-write-helper"),
+        ("da9214_a72_config_locked", "vendor-rmw-helper"),
+    ):
+        require(observer_patch, needle, label)
+    for needle, label in (
+        ("vendor_transfer_shape=pointer/read_and_two-byte_read-modify-write", "reconciliation-transfer"),
+        ("vendor_dvfsp_arbitration=SEMA_I2C_DRV_pause_around_each_I2C6_transfer", "reconciliation-dvfsp"),
+        ("mainline_dvfsp_arbitration=unproven", "reconciliation-mainline-gap"),
+    ):
+        require(reconciliation, needle, label)
 
     # Restrict the negative write check to the provider's transfer block. The
     # source is allowed to mention future writes in documentation comments.
@@ -62,22 +94,22 @@ def main() -> None:
             raise SystemExit(f"unexpected-provider-write-token={forbidden}")
     require(transfer, "msgs[1].flags = I2C_M_RD", "read-only-transfer")
     for field in (
-        "page_encoding\tunproven",
-        "page_owner\tunproven",
-        "write_transport\tunproven",
-        "control_mask\tunproven",
-        "post_settle_readback\tunproven",
-        "rollback_owner\tunproven",
+        "page_encoding\tpartially-proven",
+        "page_owner\tcandidate-owner;handoff-unproven",
+        "write_transport\tvendor-shape-known;mainline-arbitration-unproven",
+        "control_mask\tvendor-bit0-known;mainline-contract-unproven",
+        "post_settle_readback\tvendor-observed;provider-unimplemented",
+        "rollback_owner\tpre-isolation-accepted;post-isolation-unresolved",
         "hardware_action\tnone",
     ):
         require(ledger, field, field.replace("\t", "="))
 
-    print("page_encoding=unproven")
-    print("page_owner=unproven")
-    print("write_transport=unproven")
-    print("control_mask=unproven")
-    print("post_settle_readback=unproven")
-    print("rollback_owner=unproven")
+    print("page_encoding=partially-proven")
+    print("page_owner=candidate-owner;mainline-handoff-unproven")
+    print("write_transport=vendor-shape-known;mainline-arbitration-unproven")
+    print("control_mask=vendor-bit0-known;mainline-contract-unproven")
+    print("post_settle_readback=vendor-observed;provider-unimplemented")
+    print("rollback_owner=pre-isolation-accepted;post-isolation-unresolved")
     print("decision=BLOCK_WRITABLE_PROVIDER")
     print("hardware_action=none")
     print("status=PASS_NEGATIVE_AUDIT")

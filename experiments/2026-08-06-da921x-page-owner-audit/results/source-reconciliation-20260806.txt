@@ -1,0 +1,19 @@
+# Existing DA921x source/evidence reconciliation
+
+date=2026-08-06
+scope=read-only repository review; no device access
+
+legacy_page_windows=REG_PAGE_0x0_selects_0x000_to_0x0ff;REG_PAGE_0x1_selects_0x100_to_0x17f
+page_revert=0x80_documented_and_observed
+vendor_registers=BUCKB_ENABLE_0x5e;BUCKB_VSEL_0xd9
+vendor_owner_lock=da9214_i2c_access_mutex
+vendor_transfer_shape=pointer/read_and_two-byte_read-modify-write
+vendor_post_readback=observed_in_vendor_A72_observer
+vendor_dvfsp_arbitration=SEMA_I2C_DRV_pause_around_each_I2C6_transfer
+mainline_dvfsp_arbitration=unproven
+mainline_provider_write=absent
+pre_isolation_rollback=accepted_for_prior_bounded_discriminator
+post_isolation_rollback=unresolved
+
+decision=BLOCK_WRITABLE_PROVIDER
+interpretation=The existing source and runtime evidence partially close page semantics and vendor transaction shape, but do not transfer I2C6/DVFSP ownership or rollback authority to the mainline provider.

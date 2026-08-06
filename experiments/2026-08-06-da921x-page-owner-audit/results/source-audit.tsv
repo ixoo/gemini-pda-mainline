@@ -3,14 +3,14 @@ primary_address	0x68	0170;da921x-i2c6-a72.md	observed-read-only
 page2_client_address	0x69	0170;da921x-i2c6-a72.md	observed-read-only
 provider_vsel_registers	0xd7,0xd9	0170	read-only-direct-address
 provider_control_registers	0x5d,0x5e	0170	read-only-direct-address
-provider_vsel_mask	0x7f	0170	model-only-unproven-for-write
-provider_enable_mask	0x01	0170	model-only-unproven-for-write
-a36_page_value	0x80	0164;ownership-rollback-audit	prestate-assertion-not-page-api
-a36_buckb_vsel	0x46	0164;ownership-rollback-audit	prestate-assertion-not-write-contract
-page_encoding	unproven	no selected source or independent readback	BLOCK_WRITABLE_PROVIDER
-page_owner	unproven	Linux/firmware/page2 ownership split unresolved	BLOCK_WRITABLE_PROVIDER
-write_transport	unproven	no validated register-data write shape	BLOCK_WRITABLE_PROVIDER
-control_mask	unproven	no preserved control-byte contract	BLOCK_WRITABLE_PROVIDER
-post_settle_readback	unproven	no provider-owned write/readback pair	BLOCK_WRITABLE_PROVIDER
-rollback_owner	unproven	external-isolation inverse remains unresolved	BLOCK_WRITABLE_PROVIDER
+provider_vsel_mask	0x7f	0170;legacy-source-crosscheck	vendor-table-known-mainline-write-unproven
+provider_enable_mask	0x01	0170;legacy-source-crosscheck	vendor-bit-known-mainline-write-unproven
+a36_page_value	0x80	0164;ownership-rollback-audit	prestate-and-vendor-page-revert-observed
+a36_buckb_vsel	0x46	0164;ownership-rollback-audit	prestate-and-vendor-vsel-observed
+page_encoding	partially-proven	legacy-datasheet;Gemian-source;runtime-page-revert	BLOCK_WRITABLE_PROVIDER
+page_owner	candidate-owner;handoff-unproven	Gemian-da9214-mutex;DVFSP-semaphore-gap	BLOCK_WRITABLE_PROVIDER
+write_transport	vendor-shape-known;mainline-arbitration-unproven	Gemian-i2c-transfer;mainline-I2C6-gap	BLOCK_WRITABLE_PROVIDER
+control_mask	vendor-bit0-known;mainline-contract-unproven	Gemian-read-modify-write;no-mainline-owner	BLOCK_WRITABLE_PROVIDER
+post_settle_readback	vendor-observed;provider-unimplemented	owner-observer;current-provider-read-only	BLOCK_WRITABLE_PROVIDER
+rollback_owner	pre-isolation-accepted;post-isolation-unresolved	rollback-runtime;ownership-matrix	BLOCK_WRITABLE_PROVIDER
 hardware_action	none	source-only audit	PASS_SAFETY

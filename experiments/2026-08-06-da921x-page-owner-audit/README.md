@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-06-da921x-page-owner-audit` |
-| Status | `completed` (negative source-only audit) |
+| Status | `completed` (partial source reconciliation; writable path rejected) |
 | Subsystem | legacy DA9213/DA9214/DA9215 page, BUCKB, and provider ownership |
 | Device variant | Planet Gemini PDA, MT6797; no live-device action |
 | Date | 2026-08-06 America/New_York |
@@ -100,37 +100,49 @@ The source and sanitized runtime record establish these facts:
 - The extracted userspace payload has no DA921x/page/BUCKB strings. This is a
   negative inventory result only; it does not substitute for private firmware
   or vendor-kernel ownership evidence.
+- A prior pinned datasheet/source cross-check does provide partial page
+  semantics: legacy `REG_PAGE 0x0`/`0x1` address windows and the `0x80`
+  `PAGE_REVERT` behavior are documented, and the public Gemian driver fixes
+  the owner-local mutex and vendor-shaped read/modify/write sequence. The
+  reconciliation is recorded in
+  [`results/source-reconciliation-20260806.txt`](results/source-reconciliation-20260806.txt).
+- That vendor evidence does not transfer ownership to the current mainline
+  I2C6 path. The vendor driver pauses DVFSP around each transfer, while the
+  current mainline provider has no matching arbitration proof. The vendor
+  observer's post-settle readbacks and pre-isolation inverse are useful
+  evidence, but the mainline provider still has no equivalent transaction.
 - No bounded inverse exists for a provider write at or beyond the unresolved
   external-isolation boundary. The release callback therefore remains a
   structured `-EOPNOTSUPP` refusal.
 
-The machine-readable ledger and oracle passed with all six ownership/write
-requirements unresolved:
+The machine-readable ledger and oracle passed with the source facts separated
+from the still-blocking mainline gaps:
 
 ```text
-page_encoding=unproven
-page_owner=unproven
-write_transport=unproven
-control_mask=unproven
-post_settle_readback=unproven
-rollback_owner=unproven
+page_encoding=partially-proven
+page_owner=candidate-owner;mainline-handoff-unproven
+write_transport=vendor-shape-known;mainline-arbitration-unproven
+control_mask=vendor-bit0-known;mainline-contract-unproven
+post_settle_readback=vendor-observed;provider-unimplemented
+rollback_owner=pre-isolation-accepted;post-isolation-unresolved
 decision=BLOCK_WRITABLE_PROVIDER
 hardware_action=none
 ```
 
 ## Analysis
 
-The observed `0x80` and `0x46` values are useful prestate evidence, but they
-are not an API contract. The direct-address read path cannot be promoted into
-a page-selector or register-data write merely because the values recur in a
-natural vendor cycle. A future provider must establish one owner for page
-selection and one owner for the rail mutation, serialize them with the
-existing I2C6/resource owners, read back the complete affected state after the
-settle interval, and release only with a same-generation handle. If any
-post-state differs, it must retain/fault rather than guess an inverse.
+The existing evidence does establish more than the first pass of this audit:
+the legacy page windows, `PAGE_REVERT`, register addresses, vendor mutex, and
+vendor transfer shape are attributable. It still does not make those vendor
+operations a mainline API. A future provider must transfer I2C6/DVFSP
+ownership explicitly, establish one owner for page selection and one owner for
+the rail mutation, read back the complete affected state after the settle
+interval, and release only with a same-generation handle. If any post-state
+differs, it must retain/fault rather than guess an inverse.
 
-This negative result is progress: it rules out the tempting but unsafe next
-patch and narrows the next evidence request to the exact six missing rows.
+This reconciliation is progress: it rules out both an unsafe direct write and
+an unnecessary search for already-recorded page semantics. The next work is a
+source-only mainline ownership/arbitration seam, not a device boot.
 
 ## Conclusion
 
@@ -140,9 +152,9 @@ acquire/release refusal boundary remain the correct implementation boundary.
 
 ## Follow-up
 
-The next source-only action is to resolve page ownership from an attributable
-vendor-source/binary contract or a separately designed read-only observation
-that distinguishes page state from the `0x69` client address. Only after that
-review closes may a default-off bounded write be designed. It must still pass
-Buildbox from a clean pushed commit before any device consideration, and the
+The next source-only action is to specify the mainline I2C6/DVFSP ownership
+handoff and map the vendor transaction into a default-off provider without
+claiming hardware support. Only after that contract and the rollback boundary
+close may a writable implementation be designed. It must still pass Buildbox
+from a clean pushed commit before any device consideration, and the
 P24/P28/P30/P32/A26/A14 gates remain independent blockers.
