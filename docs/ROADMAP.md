@@ -1810,13 +1810,17 @@ The next ordered work remains source-only:
    request carries an explicit slot physical address, the controller checks it
    against the retained static slot and 2 KiB alignment, and the MMU-off side
    compares a separate four-word target-identity sidecar before operation or
-   terminal-state publication. The pushed-head 167-patch Buildbox package and
-   local fetch/revalidation pass are recorded in the
+   terminal-state publication. Patch `0179` adds the dormant authoritative
+   owner-side handoff: the frozen P17/P18/P24 transaction and a distinct
+   READY-owned target expectation are equality-checked and copied into one
+   exact slot request description. The handoff does not arm P30E, call
+   `secondary_entry`, issue CPU_ON/OFF, or change Linux membership. The
+   pushed-head 168-patch Buildbox package and local fetch/revalidation pass are
+   recorded in the
    [Buildbox result](../experiments/2026-08-06-a72-p30e-mmuoff-contract/results/buildbox-validation-20260806.txt).
-   The remaining source-only gate is now the authoritative binding of those
-   fields: the P17/P18/P24 owner must populate them from the frozen transaction
-   and a distinct READY-owned expectation, and prove the reserved non-reclaimed
-   physical range. The
+   The remaining source-only gates are proof of the reserved non-reclaimed
+   physical range and runtime alias exclusion, followed by a separately
+   reviewed `secondary_entry` binding under the same owner. The
    [physical-slot/wire-identity audit](../experiments/2026-08-06-a72-p30e-mmuoff-contract/results/physical-slot-wire-identity-audit-20260806.txt)
    records the residual owner and range blockers. The target symbols are still
    not wired to `secondary_entry`; this remains an implementation gate, not

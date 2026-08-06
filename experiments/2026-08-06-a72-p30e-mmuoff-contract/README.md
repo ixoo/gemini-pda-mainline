@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-06-a72-p30e-mmuoff-contract` |
-| Status | `Buildbox-validated dormant implementation; production integration blocked` |
+| Status | `Buildbox-validated dormant implementation; owner handoff passes; production integration blocked` |
 | Subsystem | arm64 late CPU8/CPU9 startup arbitration and target-side publication |
 | Device variant | Planet Gemini PDA, MT6797; no live-device action |
 | Date | 2026-08-06 America/New_York |
@@ -36,10 +36,12 @@ The corrected implementation now passes the callable-flow and operation/MPIDR
 identity comparison. Follow-up patch `0178` adds an explicit slot-physical
 address to the controller request, validates it against the retained static
 slot and alignment, and adds a separate target-identity sidecar that the
-MMU-off path compares before publication. The API and target comparison pass
-static review and the pushed-head Buildbox package; the physical reserved-range
-proof and authoritative P17/P18/P24 owner binding remain blocked. The complete
-current review is recorded in
+MMU-off path compares before publication. Patch `0179` binds the frozen
+P17/P18/P24 transaction to a distinct READY-owned target expectation and exact
+static slot address in a dormant owner-side handoff description. The handoff
+does not arm P30E, call `secondary_entry`, issue CPU_ON/OFF, or change Linux
+membership. The physical reserved-range proof and entry integration remain
+blocked. The complete current review is recorded in
 [implementation comparison](results/implementation-contract-comparison-20260806.txt).
 
 ## Safety boundary
@@ -79,9 +81,11 @@ complete implementation package for this profile. The first comparison found
 compile-invisible control-flow and identity gaps; those repairs now pass the
 corrected comparison. Patch `0178` now makes the physical slot and target
 identity checks explicit in the request/target seam; its Buildbox package is
-recorded in the validation result. The physical-slot/wire-identity audit is
-recorded in [physical-slot review](results/physical-slot-wire-identity-audit-20260806.txt):
-the authoritative P17/P18/P24 owner must still populate those fields from the
-frozen transaction and a distinct READY-owned expectation, prove the reserved
-physical range, and bind the entry path before integration can be reviewed.
-CPU8/CPU9 admission and device use remain blocked until those gates close.
+recorded in the validation result. Patch `0179` now populates those fields in
+the dormant owner-side handoff from the frozen transaction and a distinct
+READY-owned expectation. The physical-slot/wire-identity audit is recorded in
+[physical-slot review](results/physical-slot-wire-identity-audit-20260806.txt):
+the remaining source-only gates are proof of a reserved, non-reclaimed physical
+range with no runtime alias, followed by a separately reviewed
+`secondary_entry` binding. CPU8/CPU9 admission and device use remain blocked
+until those gates close.
