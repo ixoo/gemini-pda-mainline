@@ -512,6 +512,7 @@ package_artifacts() {
   local package_name
   local repository_commit
   local repository_dirty
+  local resolved_config_sha256
   local temporary
   local sums_file
   local fragment
@@ -566,6 +567,8 @@ package_artifacts() {
   done < <(for_each_config_fragment)
   for_each_patch copy_patch_to_provenance
 
+  resolved_config_sha256="$(sha256sum "${BUILD_DIR}/.config" | awk '{print $1}')"
+
   config_fragments_json="$(jq -cer --arg profile "${KERNEL_PROFILE}" \
     '.config.profiles[$profile].fragments' "${MANIFEST}")"
 
@@ -578,7 +581,7 @@ package_artifacts() {
     --arg config_inputs_sha256 "${config_input_hash}" \
     --arg source_sha256 "${SOURCE_SHA256}" \
     --arg patchset_sha256 "${patch_hash}" \
-    --arg config_sha256 "$(sha256sum "${BUILD_DIR}/.config" | awk '{print $1}')" \
+    --arg config_sha256 "${resolved_config_sha256}" \
     --argjson modules_built "${modules_built}" \
     --arg build_architecture "${BUILD_ARCHITECTURE}" \
     --arg target_architecture "${ARCH}" \
@@ -619,6 +622,28 @@ package_artifacts() {
       repository_commit: $repository_commit,
       repository_dirty: $repository_dirty
     }' > "${PACKAGE_DIR}/provenance/build.json"
+
+  # ABI-7's expected record is package authority, not kernel source. Emit it
+  # only when the selected image contains the matching producer, and fail
+  # closed if the DT tooling or the Gemini DTB is unavailable.
+  if grep -Fqx 'CONFIG_ARM64_LATE_CPU_RUNTIME_IDENTITY=y' \
+      "${BUILD_DIR}/.config"; then
+    for command in python3 dtc fdtoverlay fdtget; do
+      require_command "${command}"
+    done
+    python3 "${SCRIPT_DIR}/generate-late-cpu-provenance.py" \
+      --vmlinux "${BUILD_DIR}/vmlinux" \
+      --config "${BUILD_DIR}/.config" \
+      --image "${PACKAGE_DIR}/Image" \
+      --dtb "${PACKAGE_DIR}/dtbs/mediatek/mt6797-gemini-pda.dtb" \
+      --record-json "${PACKAGE_DIR}/provenance/a41-record.json" \
+      --profile-id 'mt6797-a53-a72-a41-v7' \
+      --source-sha256 "${SOURCE_SHA256}" \
+      --patchset-sha256 "${patch_hash}" \
+      --config-inputs-sha256 "${config_input_hash}" \
+      --resolved-config-sha256 "${resolved_config_sha256}" \
+      --build-provenance "${PACKAGE_DIR}/provenance/build.json"
+  fi
 
   sums_file="${temporary}.SHA256SUMS"
   (
