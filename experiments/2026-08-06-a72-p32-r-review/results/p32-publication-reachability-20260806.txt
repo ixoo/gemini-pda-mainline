@@ -1,0 +1,18 @@
+P32 publication reachability audit
+===================================
+
+Date: 2026-08-06 America/New_York
+Pre-fix source commit: f6f0fe9
+Fix patch: 0191-arm64-arm-P32-publication-from-on-issued-phase.patch
+
+observation=mt6797_a72_membership_publish_p32 required MT6797_A72_PHASE_VERIFYING
+observation=the pinned owner state machine declares VERIFYING but has no
+assignment to that phase; P17/P18 publication assigns ON_ISSUED before the
+CPUHP rollback callback can publish P32
+decision=SOURCE_DEFECT_REACHABILITY_FIXED
+fix=publication guard now requires MT6797_A72_PHASE_ON_ISSUED
+scope=default-off source only; no CPU_ON, CPU_OFF, affinity, provider, or
+device operation
+independent_gate=A39 remains open because cpu_die_early and all early-secondary
+status branches still require a separate terminal attribution inventory
+status=PASS_FIX_RECORDED_PENDING_BUILDBOX

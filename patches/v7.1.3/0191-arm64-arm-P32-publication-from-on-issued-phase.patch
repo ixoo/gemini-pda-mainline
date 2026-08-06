@@ -1,0 +1,29 @@
+From 0000000000000000000000000000000000000191 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 6 Aug 2026 00:00:00 -0400
+Subject: [PATCH] arm64: arm P32 publication from ON_ISSUED phase
+
+The P17/P18 owner publication advances an active CPU8/CPU9 transaction to
+ON_ISSUED before generic CPUHP callbacks run. Require that live phase when
+the rollback side channel is published; VERIFYING has no transition in the
+current owner state machine and made P32 publication unreachable.
+
+This default-off source change does not open CPU_ON, CPU_OFF, affinity,
+provider, or device I/O. It is experiment-only and has no certifying
+sign-off.
+---
+ arch/arm64/kernel/mt6797_a72_membership.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt6797_a72_membership.c
+--- a/arch/arm64/kernel/mt6797_a72_membership.c
++++ b/arch/arm64/kernel/mt6797_a72_membership.c
+@@ -231,5 +231,5 @@ int mt6797_a72_membership_publish_p32(unsigned int cpu,
+ 	transaction = &a72_owner.active;
+ 	if (a72_owner.health != MT6797_A72_OWNER_AVAILABLE ||
+-	    a72_owner.phase != MT6797_A72_PHASE_VERIFYING ||
++	    a72_owner.phase != MT6797_A72_PHASE_ON_ISSUED ||
+ 	    !transaction->valid || transaction->p32_valid ||
+ 	    transaction->identity.target_cpu != cpu ||
+-- 
+2.50.1

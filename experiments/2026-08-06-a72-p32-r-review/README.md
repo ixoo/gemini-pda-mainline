@@ -9,11 +9,11 @@
 | Subsystem | P32A/D/F/X/R rollback ownership and terminal ledger handoff |
 | Device variant | Planet Gemini PDA, MT6797; no live-device action |
 | Date | 2026-08-06 America/New_York |
-| Claim | `P32_HOOKS_VALIDATED_P32R_SOURCE_COMPLETE` |
+| Claim | `P32_HOOKS_VALIDATED_P32R_SOURCE_COMPLETE` (pending 0191 Buildbox refresh) |
 
 ## Findings
 
-The current 0182–0190 source passes the hook-level obligations: publication
+The current 0182–0191 source passes the hook-level obligations: publication
 before outer rollback, exact generation/MPIDR/cookie/operation identity,
 target disable/die guards, controller kill suppression, and one-shot side
 channel consumption.
@@ -43,6 +43,15 @@ The first source slice is recorded in
 and parses as a format-patch. The dedicated source audit now closes the P32X
 architecture-effect and P32R ledger coverage gaps with explicit inventory and
 effect masks. No CPU_ON/OFF or device action is authorized.
+
+A read-only Buildbox-source audit then found that `publish_p32()` was gated on
+`MT6797_A72_PHASE_VERIFYING`, a declared phase with no transition in the pinned
+owner state machine. Patch `0191` changes that guard to the live
+`MT6797_A72_PHASE_ON_ISSUED` phase established by P17/P18 publication. The
+observation and fix are recorded in
+[`results/p32-publication-reachability-20260806.txt`](results/p32-publication-reachability-20260806.txt).
+The fix requires a fresh dedicated Buildbox validation; A39 early-secondary
+terminal attribution remains a separate admission blocker.
 
 The first Buildbox submission exposed an integration defect in `0187`: patch
 `0182` had already introduced the rollback callback declaration, so the source

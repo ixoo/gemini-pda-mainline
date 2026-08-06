@@ -19,6 +19,7 @@ PATCHES = [ROOT / "patches/v7.1.3" / name for name in (
     "0188-arm64-capture-P32X-effect-prefix.patch",
     "0189-arm64-hand-P32R-into-owner-ledger.patch",
     "0190-arm64-close-P32A-P32X-coverage.patch",
+    "0191-arm64-arm-P32-publication-from-on-issued-phase.patch",
 )]
 
 
@@ -37,10 +38,12 @@ def main() -> int:
     require(tuple(closure) == ("P32A", "P32D", "P32F", "P32X", "P32R"),
             "P32 closure table is not canonical")
     source = "\n".join(path.read_text() for path in PATCHES)
+    reachability_fix = PATCHES[-1].read_text()
 
     # These are the source-only properties implemented by 0182-0190.
     for token in (
         "mt6797_a72_membership_publish_p32",
+        "MT6797_A72_PHASE_ON_ISSUED",
         "arch_cpu_up_rollback_complete",
         "MT6797_A72_P32_GUARD_DISABLE",
         "MT6797_A72_P32_GUARD_DIE",
@@ -80,6 +83,11 @@ def main() -> int:
         "handoff->effect_missing_mask",
     ):
         require(token in source, f"implemented P32 token missing: {token}")
+
+    require("-\t    a72_owner.phase != MT6797_A72_PHASE_VERIFYING" in reachability_fix,
+            "reachability fix must replace the unreachable VERIFYING guard")
+    require("+\t    a72_owner.phase != MT6797_A72_PHASE_ON_ISSUED" in reachability_fix,
+            "reachability fix must arm the live ON_ISSUED guard")
 
     require("p32_valid" in source and "callback_state" in source,
             "P32 record lacks its current minimal publication fields")
