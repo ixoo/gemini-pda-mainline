@@ -15,7 +15,7 @@ A41_IDENTITY = ROOT / "experiments/2026-08-05-a72-a41-kernel-identity/results/im
 A41_OWNER = ROOT / "experiments/2026-08-05-a72-a41-runtime-evidence-owner/results/implementation.tsv"
 A41_PROFILE = ROOT / "experiments/2026-08-05-a72-a41-capability-profile/README.md"
 PROVIDER_ORACLE = ROOT / "experiments/2026-08-06-da921x-page-owner-audit/results/oracle.txt"
-P32_RESULT = ROOT / "experiments/2026-08-06-a72-p32-hook-audit/results/p32-warning-clean-build-20260806.txt"
+P32_RESULT = ROOT / "experiments/2026-08-06-a72-p32-r-review/results/p32r-buildbox-validation-20260806.txt"
 A25_RESULT = ROOT / "experiments/2026-08-06-a72-a25-callback-review/results/a25-review-20260806.txt"
 
 
@@ -71,9 +71,10 @@ def main() -> int:
                             "hardware_action=none", "status=PASS_NEGATIVE_AUDIT")
     require("write-absent" in provider, "provider audit no longer proves write absence")
 
-    p32 = require_text(P32_RESULT, "Patch count: 175", "Package and provenance validation: passed")
+    p32 = require_text(P32_RESULT, "claim=P32R_COMPLETE_SERIES_BUILDBOX_VALIDATED",
+                       "status=PASS_BUILDBOX_VALIDATED", "device_boot_or_write=NOT_PERFORMED")
     a25 = require_text(A25_RESULT, "status=PASS_PARTIAL_A25", "same_boot_numeric_identity=OPEN_H13")
-    require("passed" in p32 and "PASS_PARTIAL_A25" in a25,
+    require("PASS_BUILDBOX_VALIDATED" in p32 and "PASS_PARTIAL_A25" in a25,
             "current source-only evidence is not passing")
 
     print("claim=PARTIAL_ADMISSION_GATE_REAUDIT")

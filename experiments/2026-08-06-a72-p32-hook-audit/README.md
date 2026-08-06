@@ -22,8 +22,8 @@ an optimistic success result?
 This is a read-only audit of the pinned Linux 7.1.3 source after the current
 canonical patch series. The source archive SHA-256 is
 `be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc`; the
-current 175-patch series SHA-256 is
-`557246d06de95b1d3459466c727ab56133c1512a1bf0a3e3683478c61c8cfefa`.
+current 178-entry series SHA-256 is
+`8d243aa3733871f3e096b6c62a66fc6a6376f7a516a8bcd0474218e1b150c261`.
 The source-only profile was built and fetched through Buildbox; no candidate
 was assembled for boot, and no device, CPU, PSCI, or partition operation
 occurred.
@@ -65,22 +65,22 @@ reachability.
 
 ## Conclusion
 
-`confirmed` as an exact source hook map. Patches `0182`–`0186` now supply a
+`confirmed` as an exact source hook map. Patches `0182`–`0189` now supply a
 default-off exact-generation side channel, target `.cpu_disable`/`.cpu_die`
 guards, a controller `.cpu_kill` path that avoids affinity, one-shot
-consumption, exact operation-to-target identity binding, and an explicit
-publication-range check. The 175-patch profile builds successfully through
+consumption, exact operation-to-target identity binding, an explicit
+publication-range check, complete callback/effect prefixes, and the owner-only
+ledger handoff. The current 178-entry profile builds successfully through
 Buildbox and the independent 13-probe
 mutation oracle passes, with all existing CPU_ON/CPU_OFF and provider vetoes
 intact. A25 review and the A41/provider/A26/A14 admission gates remain open;
 CPU_ON, CPU_OFF, and device gates remain closed.
 The separate [P32R integration review](../2026-08-06-a72-p32-r-review/README.md)
-also confirms that full callback/effect-prefix retention and the
-membership/provider/A30 ledger handoff are still open.
+records the complete source/package validation and the remaining admission
+gates; it does not establish runtime support.
 
 ## Follow-up
 
-Implement and review the P32A/P32X prefix records and P32R ledger handoff,
-then re-audit A41, provider, P30, and the remaining A26/A14 gates. Do not relax
-the boot or disable vetoes and do not create a device candidate until those
-gates are independently closed.
+Re-audit A41, provider, P30, and the remaining A26/A14 gates against the
+validated current series. Do not relax the boot or disable vetoes and do not
+create a device candidate until those gates are independently closed.

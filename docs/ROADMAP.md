@@ -1844,16 +1844,18 @@ The next ordered work remains source-only:
    side channel and those fail-stop guards behind a default-off profile.
    Patches `0183`–`0186` now close side-channel consumption, consumed-generation
    retirement, exact operation-to-target identity binding, and the warning-clean
-   publication check. The 175-patch Buildbox package, fetched checksum
+   publication check. The earlier 175-patch Buildbox package, fetched checksum
    validation, and independent 13-probe mutation oracle pass, with no hardware
-   write. The current PSCI boot and disable vetoes remain intact.
+   write; the current 178-entry package and later P32 source slices are
+   recorded below. The current PSCI boot and disable vetoes remain intact.
    The [P32R integration review](../experiments/2026-08-06-a72-p32-r-review/README.md)
-   confirms that complete callback/architecture-effect prefix retention and
+   initially confirms that complete callback/architecture-effect prefix
+   retention and
    the membership/provider/A30 ledger handoff are still open. Its
    [integration design](../experiments/2026-08-06-a72-p32-r-review/DESIGN.md)
    now fixes the bounded callback vector, effect mask, overflow/unknown
-   fail-stop behavior, and owner-only ledger handoff that the next source
-   patches must implement; the accompanying 15-probe model now also checks
+   fail-stop behavior, and owner-only ledger handoff; the accompanying
+   15-probe model now also checks
    full trace identity, membership/provider snapshot handoff, A30 fault
    disposition, and rejection after premature side effects. It remains design
    evidence, not kernel or runtime validation. The first P32A source slice
@@ -1875,14 +1877,14 @@ The next ordered work remains source-only:
    Buildbox compile/package validation. The independent ledger model is
    stronger, but neither it nor the package substitutes for hardware evidence.
    No device action is authorized.
-4. Complete the A25 callback/rollback review and re-audit P32R against the
-   mutation result, then finish P32A/D/F/X/R using either a reviewed core
-   no-auto-rollback interface or the fail-stop `.cpu_disable` plus die/kill
-   guard design, retaining every partial callback and architecture effect.
-   The current [A25 review](../experiments/2026-08-06-a72-a25-callback-review/README.md)
-   passes H01–H15, mandatory dynamic ordering, conditional insertion
-   classification, and P32A/D/F/X/R; H13 remains open because no same-boot
-   numeric CPUHP-state capture exists yet.
+4. The current [A25 review](../experiments/2026-08-06-a72-a25-callback-review/README.md)
+   and P32R mutation re-audit now cover the 178-entry series, pass H01–H15,
+   mandatory dynamic ordering, conditional insertion classification, all five
+   P32 closure rows, and P32 patches 0182–0189. H13 remains open because no
+   same-boot numeric CPUHP-state capture exists yet. The fail-stop
+   `.cpu_disable` plus die/kill guard design retains every partial callback and
+   architecture effect, but it remains source-only and does not relax the
+   current boot or disable vetoes.
 5. Revalidate every applicable A26 CPU-up gate and its A14 CPU-off dependency.
    Only after those closures may a separately reviewed evidence-only target
    transaction be considered; a trusted pre-Linux handoff is the alternative.

@@ -15,7 +15,8 @@
 
 This review rechecks the current A25 callback inventory H01–H15, the mandatory
 dynamic relative order and conditional insertion points, and the P32A/D/F/X/R
-rollback contracts against the current 175-patch series. It is deliberately
+rollback contracts against the current 178-entry series, including source
+slices 0187–0189. It is deliberately
 not a same-boot CPUHP-state capture and does not assign absolute `DYN+N`
 slots.
 
@@ -23,7 +24,7 @@ slots.
 
 The review passes all 15 callback rows, the three mandatory dynamic-order
 chains, four conditional insertion classifications, all five P32 closure rows,
-and the current P32 patches 0182–0186. H13 remains open because the required
+and current P32 patches 0182–0189. H13 remains open because the required
 same-boot hotplug-state, module/probe, firmware, and boot-parameter capture is
 not present. Therefore A25 is not fully closed, and no CPU_ON/OFF or device
 action is authorized.

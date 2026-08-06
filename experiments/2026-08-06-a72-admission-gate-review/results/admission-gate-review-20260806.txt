@@ -2,7 +2,7 @@ A72 admission-gate re-audit
 ===========================
 
 Date: 2026-08-06 America/New_York
-Repository head: 0d592b7
+Repository head: cca2159
 Origin: https://github.com/ixoo/gemini-pda-mainline.git
 
 claim=PARTIAL_ADMISSION_GATE_REAUDIT
@@ -16,6 +16,9 @@ A41=INCOMPLETE_READY_UNREACHABLE
 provider=BLOCK_WRITABLE_PROVIDER
 cpu_on_cpu_off_device_action=CLOSED
 admission_contract_sha256=d3c10bf62bb89df8301fb2c06145b06ebbdbe8be29437a555a27c33a8ffd0ae5
+current_series_entries=178
+current_p32_patches=0182-0189
+buildbox_validation=PASS_BUILDBOX_VALIDATED
 status=PASS_BLOCKERS_CONFIRMED
 
 The next implementation work is gate closure, not a device trial: complete the

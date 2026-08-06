@@ -2,7 +2,7 @@ A25 callback and rollback review
 ================================
 
 Date: 2026-08-06 America/New_York
-Repository head: 922d2ed (review inputs are the current 175-patch series)
+Repository head: cca2159 (review inputs are the current 178-entry series)
 Origin: https://github.com/ixoo/gemini-pda-mainline.git
 
 claim=PARTIAL_A25_SOURCE_ROLLBACK_REVIEW
@@ -10,13 +10,13 @@ callback_rows=15/15
 mandatory_dynamic_order=3/3
 conditional_insertions=4/4
 p32_closure_rows=5/5
-current_p32_patches=5/5
+current_p32_patches=8/8
 same_boot_numeric_identity=OPEN_H13
 cpu_on_cpu_off_device_action=CLOSED
 callback_inventory_sha256=d697709a5c5f7800d521d75ab43c701e7e2c28f295a9f171798c02ce3fbb40a5
 p32_closure_sha256=7d5b1830a750d6bfa54e756d78ff2846450f49014dc0d6ce476d28733ffb74fc
-series_sha256=a1a322342fa61620c9edc753145af9afa34e999e85e0f267b5e30a5c4cbd67f7
-patchset_sha256=557246d06de95b1d3459466c727ab56133c1512a1bf0a3e3683478c61c8cfefa
+series_sha256=8d243aa3733871f3e096b6c62a66fc6a6376f7a516a8bcd0474218e1b150c261
+patchset_sha256=8a84a33602b72f545f2f775ef2ebf16cc0dfb4e580857b0e851f19290a9b778c
 status=PASS_PARTIAL_A25
 
 H13 remains open: the source inventory does not provide the same-boot
