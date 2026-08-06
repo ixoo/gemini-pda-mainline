@@ -14,6 +14,28 @@ record a cryptographic identity for the image. A version string alone is not
 enough. The owner must also identify the loader domain and its lifetime: Linux,
 secure firmware, or a separately controlled service.
 
+## Public reference-owner evidence
+
+The public Gemian 3.18 source now supplies a positive historical reference for
+the owner shape. At commit
+`8cfe6596a503612e3332d9c26e292a19525a7f07`,
+`mt_cpufreq_hybrid.c` maps CSPM `0x11015000 + 0x1000` and CSRAM
+`0x0012a000 + 0x3000` in one probe, obtains the `INFRA_I2C_APPM` clock, and
+initializes the SW/HW status windows. Its `cspm_go_to_dvfs()` performs the
+reset, image fetch, register/event/wakeup setup, CSRAM record initialization,
+and PCM kick. The same source routes `SEMA_I2C_DRV` to the three-word
+SW_PAUSE/FW_DONE pause and paired release path. The exact source hashes and
+line anchors are in
+[`results/public-hybrid-owner-source-20260806.txt`](results/public-hybrid-owner-source-20260806.txt).
+
+This is reference-owner evidence, not permission to copy the vendor driver or
+firmware array. The source contains both governor and non-governor descriptors,
+and neither the selected mainline variant nor an image redistribution boundary
+has been admitted. Its `BUG()` and unbounded wait failure behavior is also not
+acceptable for a mainline owner. The adapter must use bounded, sticky-fault
+failure paths and explicit suspend/resume/clock rollback before it can register
+the callback in patch `0175`.
+
 ## Required resources and order
 
 The owner must prove all of the following in one attributable start path:

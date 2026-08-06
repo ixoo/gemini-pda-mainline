@@ -5,11 +5,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-06-mt6797-dvfsp-firmware-lease` |
-| Status | `source/static/Buildbox complete; external owner unproven` |
+| Status | `public hybrid owner source identified; mainline owner and image admission unproven` |
 | Subsystem | MT6797 DVFSP/CSPM, I2C6 firmware ownership |
 | Device variant | Planet Gemini PDA, MT6797; no live-device action |
 | Date | 2026-08-06 America/New_York |
-| Claim | `PARTIAL_FIRMWARE_LEASE_CALLBACK_CONTRACT` |
+| Claim | `PARTIAL_HYBRID_OWNER_SOURCE_IDENTIFIED` |
 
 ## Question
 
@@ -45,6 +45,22 @@ register-window identity, not receiver authority. Candidate AN disabled I2C6,
 did not exercise the pause handshake, observed no FW_DONE response, and left
 I2C_APPM ungated, so the external owner gate remains open.
 
+A read-only revalidation of the public Gemian kernel source now identifies the
+historical hybrid owner directly. Its `cspm_probe()` maps CSPM and CSRAM under
+one owner, obtains the `INFRA_I2C_APPM` clock, and initializes the SW/HW status
+windows. Its `cspm_go_to_dvfs()` performs the reset, instruction-memory fetch,
+register/event/wakeup setup, CSRAM record initialization, and PCM kick. The
+same owner routes `SEMA_I2C_DRV` through the three-word SW_PAUSE/FW_DONE
+handshake and paired clock release. The source embeds both governor and
+non-governor PCM descriptors; the exact mainline variant and redistributable
+image boundary remain unproven. The complete source identity and line anchors
+are recorded in
+[`results/public-hybrid-owner-source-20260806.txt`](results/public-hybrid-owner-source-20260806.txt).
+This closes historical owner attribution, not the current mainline owner gate:
+the handoff still maps only CSPM, has no PCM image residency/start path, and
+registers no callback. Vendor `BUG()` and unbounded wait behavior also cannot
+be copied directly into a mainline failure/PM path.
+
 ## Safety and nonclaims
 
 - The patch adds no `readl()`, `writel()`, I2C transfer, regulator operation,
@@ -65,6 +81,7 @@ I2C_APPM ungated, so the external owner gate remains open.
 - [Buildbox validation](results/buildbox-validation-20260806.txt)
 - [Initial Buildbox input failure and repair](results/buildbox-failure-20260806.txt)
 - [Exact retained vendor-kernel SEMA contract](results/vendor-kernel-sema-contract-20260806.txt)
+- [Public hybrid owner source](results/public-hybrid-owner-source-20260806.txt)
 - [Receiver register-window identity reconciliation](results/receiver-register-identity-20260806.txt)
 - [Retained TEE secure-owner disassembly](../2026-08-06-da921x-page-owner-audit/results/tee-owner-disassembly-20260806.txt)
 - [Retained SCP local-alias inventory](../2026-08-06-da921x-page-owner-audit/results/scp-alias-inventory-20260806.txt)
@@ -89,7 +106,11 @@ side evidence for the contract: user 1 is routed to
 `cspm_pause_pcm_running(PAUSE_I2CDRV)`, with three SW_PAUSE bit-13 writes,
 three FW_DONE bit-15 polls, the 2 ms bound, and paired release around the
 I2C transaction. This confirms the historical caller contract but not the
-external firmware receiver owner. The bounded SCP disassembly narrowed likely local aliases to DMA
+external firmware receiver owner. The public hybrid source now supplies a
+positive historical owner path, but the exact PCM variant, image redistribution
+boundary, and a robust mainline adapter remain open; see the
+[public hybrid owner source](results/public-hybrid-owner-source-20260806.txt).
+The bounded SCP disassembly narrowed likely local aliases to DMA
 remap, interrupt, clock, and generic SPM/DVFS paths; it did not identify the
 `SEMA_I2C_DRV` owner or a pause/release implementation. See the
 [vendor-kernel contract](results/vendor-kernel-sema-contract-20260806.txt) and the

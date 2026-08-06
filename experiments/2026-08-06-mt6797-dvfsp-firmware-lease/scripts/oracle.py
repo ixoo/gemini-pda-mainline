@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[3]
 PATCH = ROOT / "patches/v7.1.3/0175-soc-mediatek-define-I2C6-firmware-lease-contract.patch"
 SERIES = ROOT / "patches/series"
 START_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-start-contract-20260806.txt"
+OWNER_RESULT = Path(__file__).resolve().parents[1] / "results/public-hybrid-owner-source-20260806.txt"
 
 
 def require(text: str, needle: str, label: str) -> None:
@@ -18,6 +19,7 @@ def require(text: str, needle: str, label: str) -> None:
 def main() -> None:
     patch = PATCH.read_text()
     start_result = START_RESULT.read_text()
+    owner_result = OWNER_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     names = [Path(line).name for line in SERIES.read_text().splitlines()
              if line and not line.startswith("#")]
@@ -51,6 +53,19 @@ def main() -> None:
     ):
         require(start_result, needle, label)
 
+    for needle, label in (
+        ("claim=PUBLIC_GEMIAN_HYBRID_DVFSP_OWNER_REVALIDATED", "owner-claim"),
+        ("source_commit=8cfe6596a503612e3332d9c26e292a19525a7f07", "owner-source"),
+        ("resource_cspm=0x11015000_plus_0x1000", "owner-cspm"),
+        ("resource_csram=0x0012a000_plus_0x3000", "owner-csram"),
+        ("start_order=reset_and_init_PCM;IM_PTR_IM_LEN;IM_KICK;FSM_IM_READY;PCM_registers;event_vectors;wakeup_events;PCM_KICK;CSRAM_records", "owner-start"),
+        ("lease_pause=three_SW_PAUSE_bit13_words;three_FW_DONE_bit15_words;2ms_timeout", "owner-lease"),
+        ("selected_descriptor_for_mainline=unproven", "owner-variant"),
+        ("current_mainline_owner=unimplemented", "owner-mainline-state"),
+        ("decision=SOURCE_OWNER_IDENTIFIED;KEEP_MAINLINE_PROVIDER_BLOCKED", "owner-decision"),
+    ):
+        require(owner_result, needle, label)
+
     if names.index("0174-soc-mediatek-add-I2C6-DVFSP-transfer-lease.patch") >= names.index("0175-soc-mediatek-define-I2C6-firmware-lease-contract.patch"):
         raise AssertionError("firmware lease contract is not after Linux transfer lease")
 
@@ -70,6 +85,9 @@ def main() -> None:
     print("hardware_writes=0")
     print("device_action=none")
     print("pcm_start_contract=defined;residency_and_start_required_before_callback_registration")
+    print("historical_owner_source=identified;public_gemian_hybrid")
+    print("mainline_owner=unimplemented;provider=blocked")
+    print("image_variant=unproven;firmware_redistribution=unproven")
     print("status=PASS_STATIC")
 
 

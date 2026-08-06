@@ -1776,11 +1776,19 @@ The next ordered work remains source-only:
    [firmware lease contract](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/).
    Candidate AO already provides the named-unit receiver-side stopped-state
    and shared-clock normalization evidence, with a stable 45-second late check
-   while I2C6 remained disabled; do not repeat that boot. The next source-only
-   discriminator is to identify a callable mainline path to the historical
-   `SEMA_I2C_DRV` lease or specify a separately reviewed replacement protocol,
-   followed by page/control-mask ownership, settled readback, and
-   rollback-owner proof.
+   while I2C6 remained disabled; do not repeat that boot. The public Gemian
+   hybrid source now supplies a positive historical owner path: one driver owns
+   CSPM+CSRAM, the I2C_APPM clock, PCM start, and the `SEMA_I2C_DRV`
+   pause/release sequence. This closes source attribution only; it does not
+   select the embedded image variant, establish redistribution rights, or
+   create a callable current-mainline owner. The exact source hashes and line
+   anchors are in the [public hybrid owner source result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/public-hybrid-owner-source-20260806.txt).
+   The next source-only discriminator is therefore a reviewed mainline adapter
+   boundary: admit the exact image and loader domain, replace vendor
+   `BUG()`/unbounded waits with bounded sticky-fault paths, prove suspend/resume
+   and clock rollback, then register the existing callback contract. Only after
+   that owner path is independently reviewed do page/control-mask ownership,
+   settled readback, and rollback-owner proof advance.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and
