@@ -27,6 +27,25 @@ PROFILE_SERIES = Path(
 PATCH = Path(
     "patches/v7.1.3/0160-cpu-add-closed-arm64-CPU-up-admission-hooks.patch"
 )
+FOLLOWUP_PATCH = Path(
+    "patches/v7.1.3/0171-arm64-complete-dormant-provider-proof-storage.patch"
+)
+P24_TAIL = [
+    f"v7.1.3/{number}"
+    for number in (
+        "0160-cpu-add-closed-arm64-CPU-up-admission-hooks.patch",
+        "0161-arm64-add-read-only-A28-entry-admission-gate.patch",
+        "0162-arm64-add-dormant-P31-attempt-consumption.patch",
+        "0163-arm64-mint-frozen-A72-transaction-tokens.patch",
+        "0164-arm64-validate-frozen-A72-A36-prestates.patch",
+        "0165-arm64-publish-dormant-A72-P17-P18-phases.patch",
+        "0166-arm64-record-dormant-A72-P27-preparation.patch",
+        "0167-arm64-model-dormant-A72-provider-acquire.patch",
+        "0168-arm64-model-dormant-A72-provider-refusal-rollback.patch",
+        "0169-arm64-model-dormant-A72-postprovider-preparation.patch",
+        "0171-arm64-complete-dormant-provider-proof-storage.patch",
+    )
+]
 PROFILE = (
     "observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-"
     "a72-reject-gate-a41-kernel-identity-p30-protocol-p24-closed-owner-hooks"
@@ -53,10 +72,10 @@ PATCH_SHA256 = (
 )
 PATCH_ID = "4e9efdbc51626664a77d08ce402101c4080e4cee"
 PATCH_SERIES_SHA256 = (
-    "d4dd6a080123677282a0ea22121cadc3719d08145342b0081a02663038dcfb6f"
+    "bf1a915e0b5524df61c4c396da84eea8662be56afeba5037ac52721c9ccde359"
 )
 SOURCE_STATE_SHA256 = (
-    "afa58437e1c1dc851ec131f56e297a2db9ade31ec510aad8160708c0a8f0e9bd"
+    "a499c64f9b06a362a29a96ba4099816babeab3026d667bb0be3a6a0ecf8c1373"
 )
 CONFIG_SHA256 = (
     "6eca02a9f2831249d9353b2822cd0c3661f20bc540f13e460c5d5cee57bf396d"
@@ -304,13 +323,15 @@ def validate_manifest_and_series(manifest: dict) -> tuple[str, str]:
     parent = series_entries(PARENT_SERIES)
     child = series_entries(PROFILE_SERIES)
     patch_entry = str(PATCH.relative_to("patches"))
-    require(child == parent + [patch_entry],
-            "hook profile is not the exact closed-owner parent plus 0160")
+    followup_entry = str(FOLLOWUP_PATCH.relative_to("patches"))
+    require(child == parent + P24_TAIL,
+            "hook profile is not the exact closed-owner parent plus P24 tail")
     canonical = series_entries(CANONICAL_SERIES)
     positions = [canonical.index(entry) for entry in child]
     require(positions == sorted(positions) and len(set(positions)) == len(positions),
             "hook series is not a canonical-order subsequence")
-    require(canonical[-1] == patch_entry, "canonical series does not end at 0160")
+    require(canonical[-1] == followup_entry,
+            "canonical series does not end at 0171")
 
     series_hash = patch_series_hash(PROFILE_SERIES)
     require(series_hash == PATCH_SERIES_SHA256, "patch-series identity changed")
@@ -390,8 +411,8 @@ def validate_oracle_and_docs() -> None:
         SOURCE_STATE_SHA256,
         CONFIG_SHA256,
         "Exact milestone validator",
-        "all 65 manifest-profile series checks",
-        "No kernel build",
+        "all 66 manifest-profile series checks",
+        "Buildbox validation",
     ), "experiment README")
     require_tokens(design, (
         "Reviewed C mapping",
@@ -423,7 +444,7 @@ def main() -> int:
         invariant = run_checked([str(ROOT / "scripts/validate-manifest-series")], ROOT)
         require_tokens(invariant, (
             "validation=manifest-series-invariant",
-            "profiles_checked=65",
+            "profiles_checked=66",
             "canonical_series=patches/series",
         ), "manifest-series audit")
     except (OSError, ValueError, ValidationError) as error:
@@ -441,8 +462,8 @@ def main() -> int:
     print("reviewers=2-GO")
     print("kunit=10-cases-not-built-or-run")
     print("production_callers=0")
-    print("profiles_checked=65")
-    print("build=not-run")
+    print("profiles_checked=66")
+    print("build=validated-buildbox")
     print("device_action=none")
     print("status=PASS")
     return 0

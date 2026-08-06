@@ -32,17 +32,21 @@ method. Direct thaw and SMT callers both reach the internal hook.
   stable patch-id `4e9efdbc51626664a77d08ce402101c4080e4cee`, prepared commit
   `7fb9cec977e636c7df35b26588b493c05a1f102f`.
 - Selected source-state SHA-256:
-  `afa58437e1c1dc851ec131f56e297a2db9ade31ec510aad8160708c0a8f0e9bd`;
+  `be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc`;
+  resolved P24 patch-series state SHA-256:
+  `a499c64f9b06a362a29a96ba4099816babeab3026d667bb0be3a6a0ecf8c1373`.
   configuration-input SHA-256:
   `6eca02a9f2831249d9353b2822cd0c3661f20bc540f13e460c5d5cee57bf396d`.
 - Runtime: Python 3 standard library only for the independent oracle and
-  exact validator.
+  exact validator; Buildbox used the pinned cross-toolchain for the compile
+  lane.
 - The oracle imports no kernel module and reads no Linux source, patch,
   generated constant, configuration, build product, package metadata, result
   transcript, or device state. The validator separately pins the patch,
   profile, source-order tokens, safety backstops, and these experiment files.
-- No kernel configuration was resolved and no compiler, build backend,
-  package, boot image, target partition, network, or device was used.
+- The corrected Buildbox profile resolved configuration and produced a
+  compile-review package; no boot image was assembled for deployment, no
+  target partition was touched, and no device action occurred.
 
 ## Safety assessment
 
@@ -62,6 +66,8 @@ owner transaction entry, or a device, and none writes hardware or artifacts.
 - [Kernel static review](results/kernel-static-review-20260805.txt)
 - [Offline integration validation](results/offline-validation-20260805.txt)
 - [`0160` closed-hook patch](../../patches/v7.1.3/0160-cpu-add-closed-arm64-CPU-up-admission-hooks.patch)
+- [`0171` proof-storage correction](../../patches/v7.1.3/0171-arm64-complete-dormant-provider-proof-storage.patch)
+- [Buildbox validation](results/buildbox-validation-20260806.txt)
 
 No privileges or external dependencies are required. The validator invokes
 only repository-local scripts and the standard Git patch-id and manifest
@@ -110,7 +116,7 @@ selection.
   path. The existing MT6797 boot and disable vetoes remain unchanged.
 - The exact offline validator passed the patch identity, source-order and
   dispatch checks, profile/configuration binding, documentation, oracle,
-  mutation suite, and all 65 manifest-profile series checks.
+  mutation suite, and all 66 manifest-profile series checks.
 - The first Buildbox attempt for the exact P24 profile exposed a source compile
   defect in the preceding R03/P29 ledger: its transaction referenced durable
   `provider_rejection` and `p29_rollback` records that were not stored. Patch

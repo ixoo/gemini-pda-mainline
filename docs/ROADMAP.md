@@ -1513,9 +1513,11 @@ CPU-method callbacks: methods without them and MT6797 CPU0 through CPU7 retain
 their existing behavior, while CPU8 and CPU9 route to the read-only closed
 owner. The hooks add no transaction, transaction-begin caller, opener,
 attempt, token, P30 publication, or positive A72 path; the existing MT6797
-boot and disable vetoes remain independent backstops. This advances the source
-only to `PARTIAL_P24_CLOSED_ADMISSION_HOOKS`. It is not P17, P18, P24, a
-kernel build, or runtime CPU admission.
+boot and disable vetoes remain independent backstops. The exact isolated
+profile now passes Buildbox after the R03/P29 proof-storage correction, with
+all 119 DTBs and package checksums validated. This advances the source to
+`PARTIAL_P24_CLOSED_ADMISSION_HOOKS` but remains compile-only; it is not P17,
+P18, P24 success, or runtime CPU admission.
 
 The follow-on source-only
 [A28 read-only entry-gate experiment](../experiments/2026-08-05-a72-a28-entry-gate/README.md)
