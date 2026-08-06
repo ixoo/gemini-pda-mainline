@@ -1695,6 +1695,14 @@ The next ordered work remains source-only:
    not prove that the Candidate AO receiver is authoritative or identify the
    external firmware writer; see the
    [vendor-kernel contract](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-kernel-sema-contract-20260806.txt).
+   The vendor ELF and Candidate AN observer also match exactly on the CSPM
+   register window and offsets (`0x11015000..0x11015fff`, `CON1 0x01c`,
+   `PWR_IO_EN 0x02c`, `REG15 0x13c`, timer `0x150`, FSM `0x178`, and
+   `SW_RSV0..6 0x608..0x620`). This proves receiver register-window identity,
+   including the three pause and three FW_DONE words, but not receiver
+   authority: Candidate AN did not exercise the handshake, observed no
+   FW_DONE response, and left I2C_APPM ungated. See the
+   [register identity reconciliation](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/receiver-register-identity-20260806.txt).
    A bounded Thumb disassembly now explains the most tempting SCP aliases:
    the bit-13 branch is the DMA 4GB-remap initializer, the nearby `0x2000`
    write clears a Cortex-M NVIC pending bit, and the DVFS/SPM path only logs

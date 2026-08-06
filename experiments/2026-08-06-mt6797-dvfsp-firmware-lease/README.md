@@ -37,6 +37,14 @@ This is a protocol boundary, not proof that the stopped one-way receiver is
 authoritative for the vendor firmware. The external owner and any firmware
 implementation remain unproven.
 
+The exact retained vendor-kernel ELF and the Candidate AN observer now have a
+stronger reconciliation: both use the same CSPM window
+(`0x11015000..0x11015fff`) and the same `SW_RSV0..6` offsets, including the
+three SW_PAUSE bit-13 words and three FW_DONE bit-15 words. This proves
+register-window identity, not receiver authority. Candidate AN disabled I2C6,
+did not exercise the pause handshake, observed no FW_DONE response, and left
+I2C_APPM ungated, so the external owner gate remains open.
+
 ## Safety and nonclaims
 
 - The patch adds no `readl()`, `writel()`, I2C transfer, regulator operation,
@@ -56,6 +64,7 @@ implementation remain unproven.
 - [Buildbox validation](results/buildbox-validation-20260806.txt)
 - [Initial Buildbox input failure and repair](results/buildbox-failure-20260806.txt)
 - [Exact retained vendor-kernel SEMA contract](results/vendor-kernel-sema-contract-20260806.txt)
+- [Receiver register-window identity reconciliation](results/receiver-register-identity-20260806.txt)
 - [Patch 0175](../../patches/v7.1.3/0175-soc-mediatek-define-I2C6-firmware-lease-contract.patch)
 
 Run from the repository root:
@@ -81,5 +90,8 @@ remap, interrupt, clock, and generic SPM/DVFS paths; it did not identify the
 `SEMA_I2C_DRV` owner or a pause/release implementation. See the
 [vendor-kernel contract](results/vendor-kernel-sema-contract-20260806.txt) and the
 [SCP disassembly result](../2026-08-06-da921x-page-owner-audit/results/scp-owner-disassembly-20260806.txt).
-Until then the DA921x provider remains fail-closed and the Candidate AO boot
-must not be repeated.
+The observer and vendor ELF also match the receiver register window and exact
+pause/status offsets, but no pause/FW_DONE handshake was exercised; see the
+[register identity reconciliation](results/receiver-register-identity-20260806.txt).
+Until then the DA921x provider remains fail-closed and the Candidate AO/AN
+stopped-state or clock-normalization boot must not be repeated.

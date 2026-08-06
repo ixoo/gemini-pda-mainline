@@ -1,0 +1,65 @@
+# Vendor SEMA receiver register-window identity
+
+date=2026-08-06
+scope=read-only;source/runtime-reconciliation;no-device-action;no-new-backup
+vendor_kernel_field_sha256=b53d191dc41d3f7364b0fa62b4bc920b1d013a1942b2e6b06727263fc56fcf4d
+vendor_kernel_elf_sha256=cc66df06194d3315335462760962165e1dcb2e50221574aeb45a0805bb17a162
+vendor_contract=SEMA_I2C_DRV;user=1;PAUSE_I2CDRV;pause_map_bit=0x2
+observer_experiment=2026-07-24-mt6797-dvfsp-handoff-observer
+observer_candidate=AN
+observer_capture=runtime-candidate-an-validated-20260724.txt
+observer_capture_sha256=6278c99ffe80e2f79541a1313195e58907255ee93f909cb903a7b430c41f8adb
+
+## Exact register-window match
+
+vendor_cspm_window=0x11015000..0x11015fff
+observer_cspm_window=0x11015000..0x11015fff
+offset_pcm_con1=0x01c;observer_name=CSPM_PCM_CON1
+offset_pcm_pwr_io_en=0x02c;observer_name=CSPM_PCM_PWR_IO_EN
+offset_pcm_reg15_data=0x13c;observer_name=CSPM_PCM_REG15_DATA
+offset_pcm_timer_out=0x150;observer_name=CSPM_PCM_TIMER_OUT
+offset_pcm_fsm_sta=0x178;observer_name=CSPM_PCM_FSM_STA
+offset_sw_rsv0=0x608;offset_sw_rsv1=0x60c;offset_sw_rsv2=0x610
+offset_sw_rsv3=0x614;offset_sw_rsv4=0x618;offset_sw_rsv5=0x61c
+offset_sw_rsv6=0x620
+vendor_pause_words=base+0x608,base+0x60c,base+0x610;SW_PAUSE_bit13
+vendor_done_words=base+0x614,base+0x618,base+0x61c;FW_DONE_bit15
+vendor_pause_bound_us=2000;vendor_delay_us=10
+register_identity=PROVEN_EXACT_OFFSET_MATCH
+
+## Candidate AN observation of the same fields
+
+candidate_pcm_con1=0x00006c00
+candidate_pcm_pwr_io_en=0x00000000
+candidate_pcm_reg15_data=0x00000000
+candidate_pcm_fsm_sta=0x00048490
+candidate_sw_rsv0_rsv6=0xbabebabe
+candidate_timer_before_after=0-0
+candidate_i2c_appm_gate=clear-ungated
+candidate_i2c6=dt-disabled;no-adapter;no-client;no-regulator
+candidate_runtime_result=unknown
+candidate_strict_quiescent_stopped_contract=failed
+candidate_pause_handshake=not-exercised
+candidate_fw_done_response=not-observed
+
+## Authority decision
+
+receiver_register_identity=PROVEN_EXACT_OFFSET_MATCH
+receiver_authority=UNPROVEN_NO_HANDSHAKE
+positive_sema_i2c_drv_response=none
+external_firmware_owner=unproven;SCP_computed_or_local_alias_unexcluded
+decision=BLOCK_WRITABLE_PROVIDER
+hardware_action=none
+repeat_prohibition=do_not_repeat_Candidate_AN_stopped-state_or_clock-normalization_boot
+status=PASS_REGISTER_IDENTITY_AUTHORITY_OPEN
+
+## Limits
+
+The exact vendor ELF and the observer patch identify the same CSPM register
+window and the same pause/status offsets. This is stronger than a generic
+reset-state resemblance, but it is not proof that Candidate AN's one-way
+receiver is the authoritative implementation of the vendor per-transfer
+`SEMA_I2C_DRV` lease. Candidate AN disabled I2C6, did not write SW_PAUSE, did
+not observe FW_DONE, and left I2C_APPM ungated. The result therefore cannot
+authorize callback registration, a DA921x transaction, CPU8/CPU9 admission,
+or a device boot.

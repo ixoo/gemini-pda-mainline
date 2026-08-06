@@ -220,6 +220,13 @@ The source and sanitized runtime record establish these facts:
   validates the historical caller contract but does not establish that the
   Candidate AO stopped receiver is authoritative or identify a separate
   secure/SCP writer. See the [vendor-kernel contract](../2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-kernel-sema-contract-20260806.txt).
+- The vendor ELF and Candidate AN observer also match exactly on the CSPM
+  register window and offsets: `0x11015000..0x11015fff`, `CON1 0x01c`,
+  `PWR_IO_EN 0x02c`, `REG15 0x13c`, timer `0x150`, FSM `0x178`, and
+  `SW_RSV0..6 0x608..0x620`, including the three pause and three FW_DONE
+  words. This proves receiver register-window identity, not authority:
+  Candidate AN did not exercise the handshake, observed no FW_DONE response,
+  and left I2C_APPM ungated. See the [register identity reconciliation](../2026-08-06-mt6797-dvfsp-firmware-lease/results/receiver-register-identity-20260806.txt).
 - No bounded inverse exists for a provider write at or beyond the unresolved
   external-isolation boundary. The release callback therefore remains a
   structured `-EOPNOTSUPP` refusal.
@@ -230,6 +237,8 @@ from the still-blocking mainline gaps:
 ```text
 page_encoding=partially-proven
 page_owner=candidate-owner;ready-gate-only;firmware-lease-unproven
+receiver_register_identity=exact-offset-match-proven
+receiver_authority=unproven-no-handshake
 write_transport=vendor-shape-known;mainline-arbitration-unproven
 control_mask=vendor-bit0-known;mainline-contract-unproven
 post_settle_readback=vendor-observed;provider-unimplemented
