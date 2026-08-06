@@ -1,0 +1,22 @@
+P32X architecture-effect placement review
+==========================================
+
+Date: 2026-08-06 America/New_York
+Repository head before recording: 18dea5b7f5c5911fcde3ebe76253914cd8e7f8fe
+Placement document SHA-256: cb788f2daeef7680c4cfd1ecfcbcb61dbdfc98f30da1c83505c4ea3cbb85e260
+Upstream references:
+- https://github.com/torvalds/linux/blob/v7.1/kernel/cpu.c
+- https://github.com/torvalds/linux/blob/v7.1/arch/arm64/kernel/smp.c
+
+claim=P32X_EFFECT_PLACEMENT_REVIEW
+arm64_disable_order=op_cpu_disable,topology,numa,online,ipi,irq
+dead_order=cpu_die,cpuhp_report_idle_dead,rcu,dead_ipi
+controller_order=cpu_kill,lockdep_cleanup,rcu_migrate
+cpu_off_attempt=FORBIDDEN_MARKER
+affinity_info_attempt=FORBIDDEN_MARKER
+default_profile_effect=NOOP_REQUIRED
+status=SOURCE_PLACEMENT_READY
+
+The review identifies exact operation boundaries for the next source slice.
+It does not implement the hooks, prove compilation, or authorize CPU_ON/OFF or
+device activity. Buildbox validation remains required.

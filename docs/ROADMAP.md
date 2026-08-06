@@ -1859,8 +1859,10 @@ The next ordered work remains source-only:
    outer reset, and reverse-range completion, with a source/format-patch audit
    recorded in the experiment. Buildbox was unavailable during that audit;
    the required Buildbox compile remains the next gate, followed by P32X
-   architecture-effect capture and the P32R ledger handoff. No device action
-   is authorized.
+   architecture-effect capture and the P32R ledger handoff. The P32X placement
+   review now fixes the arm64 disable order and separate DEAD/RCU/park,
+   lockdep, and controller-kill boundaries for the next source patch. No
+   device action is authorized.
 4. Complete the A25 callback/rollback review and re-audit P32R against the
    mutation result, then finish P32A/D/F/X/R using either a reviewed core
    no-auto-rollback interface or the fail-stop `.cpu_disable` plus die/kill
