@@ -1,0 +1,22 @@
+P32 independent mutation validation
+====================================
+
+Date: 2026-08-06 America/New_York
+Script: scripts/test_mutations.py
+Oracle: scripts/oracle.py
+
+claim=P32_EXACT_GENERATION_ROLLBACK_ORACLE
+probes=13
+nested_publication_before_outer_reset=1
+identity_mutations_rejected=5/5
+missing_park_branch_X=1
+mismatched_error_branch_X=1
+consumed_generation_retired=1
+forbidden_cpu_off_affinity=0
+status=PASS
+
+The model covers publication ordering after nested AP rollback, exact
+CPU/operation/MPIDR/generation/cookie matching, duplicate disable guarding,
+target parking without CPU_OFF, controller kill without affinity, missing-park
+and mismatched-error branch X, and one-shot P32R consumption. It is an
+independent source oracle, not hardware or runtime evidence.

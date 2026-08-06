@@ -9,7 +9,7 @@
 | Subsystem | arm64 CPUHP rollback, target `cpu_disable`/`cpu_die`, controller `cpu_kill` |
 | Device variant | Planet Gemini PDA, MT6797; no live-device action |
 | Date | 2026-08-06 America/New_York |
-| Claim | `P32_SOURCE_GUARDS_BUILD_VALIDATED` |
+| Claim | `P32_SOURCE_GUARDS_AND_MUTATIONS_BUILD_VALIDATED` |
 
 ## Question
 
@@ -22,15 +22,20 @@ an optimistic success result?
 This is a read-only audit of the pinned Linux 7.1.3 source after the current
 canonical patch series. The source archive SHA-256 is
 `be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc`; the
-current 170-patch series SHA-256 is
-`2dd161c6fe9eb471c1531111822090959a1199947658e14b300d652812bbfa57`.
-No kernel was built, no candidate was assembled, and no device, CPU, PSCI, or
-partition operation occurred.
+current 174-patch series SHA-256 is
+`f4ac9f743e1e12da58bfe1f5e0e8714e443714c117e1164b34e13f0bd0ae65dd`.
+The source-only profile was built and fetched through Buildbox; no candidate
+was assembled for boot, and no device, CPU, PSCI, or partition operation
+occurred.
 
 The patched-source file identities used for the audit are recorded in
 [`results/p32-hook-source-audit-20260806.txt`](results/p32-hook-source-audit-20260806.txt).
-The default-off implementation and its Buildbox provenance are recorded in
-[`results/p32-implementation-build-20260806.txt`](results/p32-implementation-build-20260806.txt).
+The initial default-off implementation and its Buildbox provenance are recorded in
+[`results/p32-implementation-build-20260806.txt`](results/p32-implementation-build-20260806.txt);
+the tightened identity/consumption build is recorded in
+[`results/p32-identity-build-20260806.txt`](results/p32-identity-build-20260806.txt).
+The independent mutation oracle result is recorded in
+[`results/p32-mutation-validation-20260806.txt`](results/p32-mutation-validation-20260806.txt).
 The normative branch contract remains the
 [A72 CPU-up source-closure design](../2026-08-05-a72-cpu-up-source-closure/DESIGN.md).
 
@@ -58,17 +63,18 @@ reachability.
 
 ## Conclusion
 
-`confirmed` as an exact source hook map. Patch `0182` now supplies a
+`confirmed` as an exact source hook map. Patches `0182`–`0185` now supply a
 default-off exact-generation side channel, target `.cpu_disable`/`.cpu_die`
-guards, and a controller `.cpu_kill` path that avoids affinity. The profile
-builds successfully through Buildbox with all existing CPU_ON/CPU_OFF and
-provider vetoes intact. P32R consumption, mutation coverage, A25 review, and
-the A41/provider/A26/A14 admission gates remain open; CPU_ON, CPU_OFF, and
-device gates remain closed.
+guards, a controller `.cpu_kill` path that avoids affinity, one-shot
+consumption, and exact operation-to-target identity binding. The 174-patch
+profile builds successfully through Buildbox and the independent 13-probe
+mutation oracle passes, with all existing CPU_ON/CPU_OFF and provider vetoes
+intact. A25 review and the A41/provider/A26/A14 admission gates remain open;
+CPU_ON, CPU_OFF, and device gates remain closed.
 
 ## Follow-up
 
-Add mutation tests for nested rollback and every guard-loss branch, review the
-P32R consumption point, then re-audit A25, A41, provider, P30, and the remaining
-A26/A14 gates. Do not relax the boot or disable vetoes and do not create a
-device candidate until those gates are independently closed.
+Review the P32R source against the oracle result, then re-audit A25, A41,
+provider, P30, and the remaining A26/A14 gates. Do not relax the boot or disable
+vetoes and do not create a device candidate until those gates are independently
+closed.

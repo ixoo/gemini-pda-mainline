@@ -1,0 +1,34 @@
+P32 identity/consumption guard Buildbox result
+===============================================
+
+Date: 2026-08-06 America/New_York
+Repository commit: c8196902a0083a2f5ac2cba6bd4872334fe4e637
+Origin: https://github.com/ixoo/gemini-pda-mainline.git
+Profile: a72-p32-rollback
+Backend: Buildbox (cross build; no native VM build)
+
+Patches 0184 and 0185 retire a consumed P32 generation from later guard
+matching and bind the P32 operation label exactly to target CPU8 or CPU9.
+Buildbox first reported a patch-format error for 0185; the correction was
+published as follow-up commit c819690 and the full series then applied cleanly.
+
+Buildbox package: linux-7.1.3-gemini-a72-p32-rollback-f4ac9f74-a52199d2
+Buildbox job: c8196902a0083a2f5ac2cba6bd4872334fe4e637-a72-p32-rollback-m0
+Kernel release: 7.1.3-gemini-p32-rollback-blocked
+Source SHA-256: be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+Patch-series SHA-256: f4ac9f743e1e12da58bfe1f5e0e8714e443714c117e1164b34e13f0bd0ae65dd
+Patch count: 174
+Config SHA-256: d0049ede621750a7db9a351302383d163ffc200f448c0eb321d3827b65bcf7f6
+Image.gz SHA-256: 369b2c89be5ed0b99872bba19d286d87a110cad8ff548abaa4b174cddbdb6464
+Image.gz decompressed size: 13494280
+Image effective size: 14090240
+Gemini DTB SHA-256: e2424e337a30dbc112496ae841bde655058c01d79cd399f2d518154d5faba60c
+DTB count: 119
+Modules: not built
+Package and provenance validation: passed
+Local package fetch and checksum validation: passed
+Hardware write: none
+
+The profile retains the existing CPU_ON/CPU_OFF, provider, and admission
+vetoes. The result is source/build evidence only: no candidate installation,
+boot, runtime claim, or device action occurred.
