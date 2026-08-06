@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-05-a72-provider-refusal-rollback` |
-| Status | `source-only` (static and bounded-model review; Buildbox pending) |
+| Status | `completed` (source, static, bounded-model, and Buildbox validation) |
 | Subsystem | MT6797 A72 provider refusal and pre-isolation rollback boundary |
 | Device variant | Planet Gemini PDA, MT6797; no live-device action |
 | Date | 2026-08-05 America/New_York |
@@ -56,7 +56,7 @@ and reset-only recovery remain open.
 - [Exact validator](scripts/validate.py)
 - [Source transcript](results/source-validation-20260805.txt)
 - [Mutation transcript](results/mutation-validation-20260805.txt)
-- [Buildbox validation](results/buildbox-validation-20260805.txt) (when recorded)
+- [Buildbox validation](results/buildbox-validation-20260805.txt)
 
 Run from the repository root:
 
@@ -68,6 +68,8 @@ PYTHONDONTWRITEBYTECODE=1 python3 experiments/2026-08-05-a72-provider-refusal-ro
 
 ## Conclusion
 
-`PARTIAL_R03_P29_REFUSAL_ROLLBACK` is source-only until the exact pushed commit
-passes Buildbox. The next implementation gate is P28's ordered isolation and
-SRAM boundary; no hardware path is opened by this experiment.
+`PARTIAL_R03_P29_REFUSAL_ROLLBACK` is confirmed for the reviewed source,
+bounded model, and exact pushed-commit Buildbox compile. The package is not a
+boot candidate: no deployment or device action is authorized by this result.
+The next implementation gate is P28's ordered isolation and SRAM boundary; no
+hardware path is opened by this experiment.
