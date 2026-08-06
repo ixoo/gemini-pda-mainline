@@ -1,0 +1,136 @@
+From 0000000000000000000000000000000000000183 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 6 Aug 2026 00:00:00 -0400
+Subject: [PATCH] arm64: consume P32 rollback side channel
+
+Consume the exact-generation P32 record after generic CPUHP reverse
+callbacks have completed. A parked target is accepted only when the original
+callback error still matches; a missing park or mismatched error is a terminal
+guard-loss branch. The original CPUHP error remains the public result.
+
+This experiment-only change has no certifying sign-off and is not
+submission-ready.
+---
+ arch/arm64/include/asm/mt6797_a72_membership.h |  9 ++++++---
+ arch/arm64/kernel/mt6797_a72_membership.c     | 21 +++++++++++++++------
+ arch/arm64/kernel/smp.c                       | 18 ++++++++++++++++++
+ include/linux/cpu.h                            |  1 +
+ kernel/cpu.c                                   |  2 ++
+ 5 files changed, 42 insertions(+), 13 deletions(-)
+
+diff --git a/arch/arm64/include/asm/mt6797_a72_membership.h b/arch/arm64/include/asm/mt6797_a72_membership.h
+--- a/arch/arm64/include/asm/mt6797_a72_membership.h
++++ b/arch/arm64/include/asm/mt6797_a72_membership.h
+@@ -475,5 +475,5 @@ int mt6797_a72_membership_validate_up(unsigned int cpu, int tasks_frozen,
+ int mt6797_a72_membership_p32_cpu_disable(unsigned int cpu);
+ bool mt6797_a72_membership_p32_cpu_die(unsigned int cpu);
+ int mt6797_a72_membership_p32_cpu_kill(unsigned int cpu);
+-int mt6797_a72_membership_consume_p32(unsigned int cpu, int *error);
++int mt6797_a72_membership_consume_p32(unsigned int cpu, int rollback_error);
+ void mt6797_a72_membership_snapshot(struct mt6797_a72_owner_snapshot *snapshot);
+@@ -647,8 +647,7 @@ mt6797_a72_membership_copy_up_token(struct arm64_late_cpu_up_token *token)
+ static inline int mt6797_a72_membership_consume_p32(unsigned int cpu,
+-						    int *error)
++						    int rollback_error)
+ {
+ 	(void)cpu;
+-	if (error)
+-		*error = 0;
++	(void)rollback_error;
+ 	return -EOPNOTSUPP;
+ }
+diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt6797_a72_membership.c
+--- a/arch/arm64/kernel/mt6797_a72_membership.c
++++ b/arch/arm64/kernel/mt6797_a72_membership.c
+@@ -296,21 +296,28 @@ int mt6797_a72_membership_p32_cpu_kill(unsigned int cpu)
+ }
+ 
+-int mt6797_a72_membership_consume_p32(unsigned int cpu, int *error)
++int mt6797_a72_membership_consume_p32(unsigned int cpu, int rollback_error)
+ {
+ 	unsigned long flags;
+ 	int ret = -EAGAIN;
+ 
+-	if (error)
+-		*error = 0;
+-
+ 	raw_spin_lock_irqsave(&a72_state_lock, flags);
+-	if (mt6797_a72_p32_target_locked(cpu) &&
+-	    a72_owner.active.p32.state == MT6797_A72_P32_STATE_PARKED) {
+-		if (error)
+-			*error = a72_owner.active.p32.cpu_up_error;
++	if (mt6797_a72_p32_target_locked(cpu)) {
++		if (a72_owner.active.p32.state != MT6797_A72_P32_STATE_PARKED) {
++			a72_owner.active.p32.branch = MT6797_A72_P32_BRANCH_X;
++			ret = -EIO;
++			goto out;
++		}
++		if (a72_owner.active.p32.cpu_up_error != rollback_error) {
++			a72_owner.active.p32.branch = MT6797_A72_P32_BRANCH_X;
++			ret = -EUCLEAN;
++			goto out;
++		}
++
++		a72_owner.active.p32.branch = MT6797_A72_P32_BRANCH_R;
+ 		a72_owner.active.p32.state = MT6797_A72_P32_STATE_CONSUMED;
+-		ret = -EIO;
++		ret = 0;
+ 	}
++out:
+ 	raw_spin_unlock_irqrestore(&a72_state_lock, flags);
+ 	return ret;
+ }
+diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
+--- a/arch/arm64/kernel/smp.c
++++ b/arch/arm64/kernel/smp.c
+@@ -145,7 +145,27 @@ int arch_cpu_up_rollback(unsigned int cpu, enum cpuhp_state state, int error)
+ 	return 0;
+ }
+ 
++int arch_cpu_up_rollback_complete(unsigned int cpu, int error)
++{
++#ifdef CONFIG_ARM64_MT6797_A72_P32_ROLLBACK
++	int ret;
++
++	if (cpu >= nr_cpu_ids)
++		return 0;
++
++	ret = mt6797_a72_membership_consume_p32(cpu, error);
++	if (ret == -EAGAIN)
++		return 0;
++
++	return ret;
++#else
++	(void)cpu;
++	(void)error;
++	return 0;
++#endif
++}
++
+ /*
+  * Boot a secondary CPU, and assign it the specified idle task.
+  * This also gives us the initial stack to use for this CPU.
+  */
+diff --git a/include/linux/cpu.h b/include/linux/cpu.h
+--- a/include/linux/cpu.h
++++ b/include/linux/cpu.h
+@@ -120,4 +120,5 @@ int arch_cpu_up_preflight(unsigned int cpu, enum cpuhp_state target);
+ int arch_cpu_up_validate(unsigned int cpu, int tasks_frozen,
+ 			 enum cpuhp_state target);
+ int arch_cpu_up_rollback(unsigned int cpu, enum cpuhp_state state, int error);
++int arch_cpu_up_rollback_complete(unsigned int cpu, int error);
+ extern void cpu_maps_update_begin(void);
+diff --git a/kernel/cpu.c b/kernel/cpu.c
+--- a/kernel/cpu.c
++++ b/kernel/cpu.c
+@@ -1036,6 +1036,8 @@ static int cpuhp_up_callbacks(unsigned int cpu, struct cpuhp_cpu_state *st,
+ 		if (can_rollback_cpu(st))
+ 			WARN_ON(cpuhp_invoke_callback_range(false, cpu, st,
+ 							    prev_state));
++		if (arch_cpu_up_rollback_complete(cpu, ret))
++			pr_err("CPU%u P32 rollback consumption failed\n", cpu);
+ 	}
+ 	return ret;
+ }
+--
+2.50.1
