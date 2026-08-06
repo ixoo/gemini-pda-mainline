@@ -136,7 +136,7 @@ diff --git a/kernel/cpu.c b/kernel/cpu.c
 +				    CPU_UP_ROLLBACK_EFFECT_COMPLETE, 0);
  
  	/*
-@@ -1412,1 +1469,5 @@ static int takedown_cpu(unsigned int cpu)
+@@ -1351,1 +1429,5 @@ static int takedown_cpu(unsigned int cpu)
 +	arch_cpu_up_rollback_effect(cpu, CPU_UP_ROLLBACK_EFFECT_RCU_MIGRATE,
 +				    CPU_UP_ROLLBACK_EFFECT_BEGIN, 0);
  	rcutree_migrate_callbacks(cpu);
@@ -166,7 +166,7 @@ diff --git a/kernel/cpu.c b/kernel/cpu.c
 diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
 --- a/arch/arm64/kernel/smp.c
 +++ b/arch/arm64/kernel/smp.c
-@@ -391,1 +391,3 @@ int __cpu_disable(void)
+@@ -392,1 +392,3 @@ int __cpu_disable(void)
 -	ret = op_cpu_disable(cpu);
 +	arch_cpu_up_rollback_effect(cpu, CPU_UP_ROLLBACK_EFFECT_CPU_OFF_ATTEMPT,
 +				    CPU_UP_ROLLBACK_EFFECT_BEGIN, 0);

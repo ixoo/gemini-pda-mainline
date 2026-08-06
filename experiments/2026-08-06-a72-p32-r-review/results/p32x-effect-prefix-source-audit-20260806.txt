@@ -4,7 +4,7 @@ P32X effect-prefix source audit
 Date: 2026-08-06 America/New_York
 Repository head before recording: 454da32767ae41c9c35499b92eb4c0bfe5d5e98e
 Patch: patches/v7.1.3/0188-arm64-capture-P32X-effect-prefix.patch
-Patch SHA-256: 382001d19734097f005486222ec5d7dcca023ec285cba15e1fa65238516e90dd
+Patch SHA-256: c94bb1c74743f946280f42e91bb6bdd9ce19464159ea674df2792eada5550ffb
 
 claim=P32X_EFFECT_PREFIX_SOURCE_AUDIT
 format_patch_parse=PASS
