@@ -1802,6 +1802,11 @@ The next ordered work remains source-only:
    contract. Only after that owner path is independently reviewed do
    page/control-mask ownership, settled readback, and rollback-owner proof
    advance.
+   A public Gemian source rerun independently reproduces the protected
+   MCUMIXED/DVFSP clock boundary and the separate BigiDVFS path; it is
+   corroboration only because its MT6797 cpufreq source differs from the
+   separately pinned Planet reference. See the [public CPU-clock
+   corroboration](../experiments/2026-07-12-mt6797-clock-power-reset-recovery/results/public-gemian-cpu-clock-backend-20260806.txt).
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and

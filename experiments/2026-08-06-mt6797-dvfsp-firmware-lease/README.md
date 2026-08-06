@@ -85,6 +85,7 @@ be copied directly into a mainline failure/PM path.
 - [Exact retained vendor-kernel SEMA contract](results/vendor-kernel-sema-contract-20260806.txt)
 - [Public hybrid owner source](results/public-hybrid-owner-source-20260806.txt)
 - [Public owner startup-state boundary](results/public-owner-startup-state-20260806.txt)
+- [Public Gemian CPU-clock owner corroboration](../2026-07-12-mt6797-clock-power-reset-recovery/results/public-gemian-cpu-clock-backend-20260806.txt)
 - [Buildbox validation after owner-source review](results/public-owner-buildbox-validation-20260806.txt)
 - [Current-head full-profile Buildbox resume](results/current-head-full-buildbox-20260806.txt)
 - [Current-head bfd04ae full-profile Buildbox resume](results/current-head-bfd04ae-full-buildbox-20260806.txt)

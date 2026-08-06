@@ -69,6 +69,13 @@ current 72-patch rerun is recorded in
 It reads the pinned vendor tree with `git show`, compares Linux 7.1.3 CCF
 coverage, and emits source hashes plus the recovered ownership boundary.
 
+A separate rerun against the already-managed public Gemian Git checkout is
+recorded in
+[`results/public-gemian-cpu-clock-backend-20260806.txt`](results/public-gemian-cpu-clock-backend-20260806.txt).
+It corroborates the protected clock-owner and secure BigiDVFS boundaries, but
+is explicitly not a replacement for the pinned Planet source because the
+MT6797 cpufreq file differs.
+
 ## Procedure
 
 1. Confirm the key-only, noninteractive SSH path with `BatchMode=yes`.
