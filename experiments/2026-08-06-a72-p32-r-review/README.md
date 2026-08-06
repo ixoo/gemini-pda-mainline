@@ -73,3 +73,11 @@ checksum/provenance records are in
 [`results/p32r-buildbox-validation-20260806.txt`](results/p32r-buildbox-validation-20260806.txt).
 This closes the compile/package gate only; no device boot or write was
 performed, and the A25/A26/A14 admission gates remain open.
+
+The first dedicated `a72-p32-rollback` profile build at `7864f80` exposed a
+real guarded-source signature defect that the generic `full` profile could not
+see. It is recorded in
+[`results/p32r-buildbox-failure-20260806.txt`](results/p32r-buildbox-failure-20260806.txt).
+Patch `0190` fixes that call and closes the inventory/effect-coverage gaps; a
+fresh dedicated-profile Buildbox result is required before treating those
+source claims as validated.

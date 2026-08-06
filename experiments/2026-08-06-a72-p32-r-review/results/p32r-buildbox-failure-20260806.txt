@@ -1,0 +1,24 @@
+P32R dedicated-profile Buildbox baseline failure
+=================================================
+
+Date: 2026-08-06 America/New_York
+Repository commit: 7864f80504159882ae3d1e1eb2da791598163cb9
+Origin: https://github.com/ixoo/gemini-pda-mainline.git
+Build backend: buildbox
+Profile: a72-p32-rollback
+Hardware action: none
+
+The dedicated P32 profile was submitted to Buildbox after the generic `full`
+profile had passed. Unlike `full`, this profile enables
+CONFIG_ARM64_MT6797_A72_P32_ROLLBACK and therefore compiles the guarded P32
+source. The build reached the arm64 objects and failed at the pre-existing
+0187--0189 integration defect:
+
+arch/arm64/kernel/smp.c:154:15: error: too few arguments to function
+'mt6797_a72_membership_consume_p32'
+
+The declaration and definition already accepted `(cpu, rollback_error, trace)`
+but the caller still passed only `(cpu, error)`. No package was produced and
+the result was not a boot candidate. This failure motivated source patch 0190;
+the patch must pass a fresh dedicated-profile Buildbox build before any device
+consideration.

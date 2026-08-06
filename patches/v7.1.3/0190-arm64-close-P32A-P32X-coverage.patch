@@ -1,0 +1,284 @@
+From 0000000000000000000000000000000000000190 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 6 Aug 2026 00:00:00 -0400
+Subject: [PATCH] arm64: close P32A and P32X coverage gaps
+
+Bind the bounded P32A event vector to the live CPUHP registration inventory
+before arming it, and classify an event beyond that inventory as unknown.
+Track explicit P32X required, observed, missing, and forbidden effect masks,
+including the no-affinity and present-preserved markers, so an uninstrumented
+operation cannot be accepted as a complete rollback. Pass the trace through
+the owner handoff with the corrected signature.
+
+This default-off source change remains fail-closed and does not open CPU_ON,
+CPU_OFF, affinity, provider, or device I/O. It is experiment-only and has no
+certifying sign-off.
+---
+ arch/arm64/include/asm/mt6797_a72_membership.h | 10 ++++++
+ arch/arm64/kernel/mt6797_a72_membership.c     | 16 ++++++++++
+ arch/arm64/kernel/smp.c                       |  2 +-
+ include/linux/cpu.h                            | 24 +++++++++++++++-
+ kernel/cpu.c                                   | 58 ++++++++++++++++++++++++++-
+ 5 files changed, 106 insertions(+), 4 deletions(-)
+
+diff --git a/arch/arm64/include/asm/mt6797_a72_membership.h b/arch/arm64/include/asm/mt6797_a72_membership.h
+--- a/arch/arm64/include/asm/mt6797_a72_membership.h
++++ b/arch/arm64/include/asm/mt6797_a72_membership.h
+@@ -268,14 +268,20 @@ struct mt6797_a72_p32r_ledger_handoff {
+ 	u32 callback_complete;
+ 	u32 callback_overflow;
+ 	u32 callback_unknown;
++	u32 callback_capacity;
++	u32 callback_inventory;
+ 	u32 effect_complete;
+ 	u32 effect_overflow;
+ 	u32 effect_unknown;
++	u32 effect_required_mask;
++	u32 effect_seen_mask;
++	u32 effect_missing_mask;
++	u32 effect_forbidden_mask;
+ 	u32 provider_state;
+ 	u32 owner_phase;
+ 	u32 members;
+ 	u32 reserved;
+ 	struct mt6797_a72_transaction_identity identity;
+ 	struct mt6797_a72_entry_snapshot membership;
+ 	struct mt6797_a72_provider_identity provider_identity;
+ 	u64 diagnostic_blockers;
+ };
+diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt6797_a72_membership.c
+--- a/arch/arm64/kernel/mt6797_a72_membership.c
++++ b/arch/arm64/kernel/mt6797_a72_membership.c
+@@ -244,6 +244,12 @@ mt6797_a72_p32r_capture_locked(struct mt6797_a72_transaction *transaction,
+ 	if (trace) {
+ 		handoff->callback_complete = trace->callback_complete;
+ 		handoff->callback_overflow = trace->overflow;
+ 		handoff->callback_unknown = trace->callback_unknown;
++		handoff->callback_capacity = trace->callback_capacity;
++		handoff->callback_inventory = trace->callback_inventory;
+ 		handoff->effect_complete = trace->effect_complete;
+ 		handoff->effect_overflow = trace->effect_overflow;
+ 		handoff->effect_unknown = trace->effect_unknown;
++		handoff->effect_required_mask = trace->effect_required_mask;
++		handoff->effect_seen_mask = trace->effect_seen_mask;
++		handoff->effect_missing_mask = trace->effect_missing_mask;
++		handoff->effect_forbidden_mask = trace->effect_forbidden_mask;
+ 	}
+ 	transaction->p32r_valid = 1;
+ }
+@@ -386,8 +392,14 @@ int mt6797_a72_membership_consume_p32(unsigned int cpu, int rollback_error,
+ 		if (!trace->callback_complete || trace->callback_unknown ||
+ 		    trace->effect_unknown || trace->effect_overflow ||
+-		    !trace->effect_complete) {
++		    !trace->effect_complete ||
++		    trace->callback_capacity == 0 ||
++		    trace->callback_inventory > trace->callback_capacity ||
++		    trace->event_count > trace->callback_inventory ||
++		    trace->effect_missing_mask ||
++		    trace->effect_forbidden_mask) {
+ 			mt6797_a72_p32r_lose_locked(&a72_owner.active, trace);
+ 			a72_owner.active.p32.branch = MT6797_A72_P32_BRANCH_X;
+ 			ret = -EIO;
+ 			goto out;
+ 		}
+diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
+--- a/arch/arm64/kernel/smp.c
++++ b/arch/arm64/kernel/smp.c
+@@ -151,7 +151,7 @@ int arch_cpu_up_rollback_complete(unsigned int cpu, int error,
+ 	if (cpu >= nr_cpu_ids)
+ 		return 0;
+ 
+-	ret = mt6797_a72_membership_consume_p32(cpu, error);
++	ret = mt6797_a72_membership_consume_p32(cpu, error, trace);
+ 	if (ret == -EAGAIN)
+ 		return 0;
+diff --git a/include/linux/cpu.h b/include/linux/cpu.h
+--- a/include/linux/cpu.h
++++ b/include/linux/cpu.h
+@@ -121,7 +121,7 @@ int arch_cpu_up_preflight(unsigned int cpu, enum cpuhp_state target);
+ int arch_cpu_up_validate(unsigned int cpu, int tasks_frozen,
+ 			 enum cpuhp_state target);
+-#define CPU_UP_ROLLBACK_MAX_EVENTS 128U
++#define CPU_UP_ROLLBACK_MAX_EVENTS 256U
+ #define CPU_UP_ROLLBACK_EVENT_WARNING BIT(0)
+@@ -149,6 +149,8 @@ enum cpu_up_rollback_effect {
+ 	CPU_UP_ROLLBACK_EFFECT_RCU_MIGRATE,
+ 	CPU_UP_ROLLBACK_EFFECT_LOCKDEP_CLEANUP,
+ 	CPU_UP_ROLLBACK_EFFECT_KILL_OBSERVED,
++	CPU_UP_ROLLBACK_EFFECT_PRESENT_CLEAR,
++	CPU_UP_ROLLBACK_EFFECT_NO_AFFINITY,
+ 	CPU_UP_ROLLBACK_EFFECT_AFFINITY_INFO_ATTEMPT,
+ 	CPU_UP_ROLLBACK_EFFECT_UNKNOWN,
+ 	CPU_UP_ROLLBACK_EFFECT_GUARD,
+ 	CPU_UP_ROLLBACK_EFFECT_COUNT,
+ };
+ 
++#define CPU_UP_ROLLBACK_EFFECT_FORBIDDEN_MASK \
++	(BIT(CPU_UP_ROLLBACK_EFFECT_CPU_OFF_ATTEMPT) | \
++	 BIT(CPU_UP_ROLLBACK_EFFECT_AFFINITY_INFO_ATTEMPT) | \
++	 BIT(CPU_UP_ROLLBACK_EFFECT_UNKNOWN))
++
+ struct cpu_up_rollback_effect_event {
+ 	u32 effect;
+ 	u32 phase;
+ 	s32 result;
+@@ -171,14 +179,24 @@ struct cpu_up_rollback_trace {
+ 	u32 nested_result;
+ 	u32 outer_reset;
+ 	u32 reverse_complete;
+ 	u32 callback_complete;
+ 	u32 callback_unknown;
++	u32 callback_capacity;
++	u32 callback_inventory;
++	u32 rollback_armed;
+ 	struct cpu_up_rollback_event event[CPU_UP_ROLLBACK_MAX_EVENTS];
+ 	u32 effect_count;
+ 	u32 effect_overflow;
+ 	u32 effect_unknown;
+ 	u32 effect_complete;
++	u32 effect_required_mask;
++	u32 effect_seen_mask;
++	u32 effect_missing_mask;
++	u32 effect_forbidden_mask;
+ 	struct cpu_up_rollback_effect_event effect[CPU_UP_ROLLBACK_MAX_EFFECTS];
+ };
+diff --git a/kernel/cpu.c b/kernel/cpu.c
+--- a/kernel/cpu.c
++++ b/kernel/cpu.c
+@@ -154,6 +154,43 @@ static bool cpuhp_step_empty(bool bringup, struct cpuhp_step *step)
+ 	return bringup ? !step->startup.single : !step->teardown.single;
+ }
++static unsigned int cpuhp_rollback_step_inventory(bool bringup,
++						struct cpuhp_step *step)
++{
++	struct hlist_node *node;
++	unsigned int count = 0;
++
++	if (!step->multi_instance)
++		return (bringup ? step->startup.single : step->teardown.single) ?
++			1 : 0;
++	if (!(bringup ? step->startup.multi : step->teardown.multi))
++		return 0;
++
++	hlist_for_each(node, &step->list) {
++		if (count >= CPU_UP_ROLLBACK_MAX_EVENTS)
++			return CPU_UP_ROLLBACK_MAX_EVENTS + 1;
++		count++;
++	}
++	return count;
++}
++
++static u32 cpuhp_rollback_callback_inventory(enum cpuhp_state previous,
++						 enum cpuhp_state target)
++{
++		enum cpuhp_state state;
++		u32 count = 0;
++
++		if (target <= previous)
++			return 0;
++		for (state = previous + 1; state <= target; state++) {
++			count += cpuhp_rollback_step_inventory(true,
++								cpuhp_get_step(state));
++			count += cpuhp_rollback_step_inventory(false,
++								cpuhp_get_step(state));
++			if (count > CPU_UP_ROLLBACK_MAX_EVENTS)
++				return CPU_UP_ROLLBACK_MAX_EVENTS + 1;
++		}
++		return count;
++	}
+ static inline void cpuhp_record_rollback_effect(
+ 	struct cpuhp_cpu_state *st, enum cpu_up_rollback_effect effect,
+ 	u32 phase, int result)
+@@ -164,16 +201,34 @@ static inline void cpuhp_record_rollback_effect(
+ 	struct cpu_up_rollback_trace *trace = &st->rollback_trace;
+ 	struct cpu_up_rollback_effect_event *event;
+ 
++	if (!trace->rollback_armed)
++		return;
+ 	if (effect >= CPU_UP_ROLLBACK_EFFECT_COUNT ||
+ 	    phase < CPU_UP_ROLLBACK_EFFECT_BEGIN ||
+ 	    phase > CPU_UP_ROLLBACK_EFFECT_BLOCKED) {
+ 		trace->effect_unknown = 1;
++		trace->effect_forbidden_mask |=
++			BIT(CPU_UP_ROLLBACK_EFFECT_UNKNOWN);
+ 		return;
+ 	}
++	if (!(CPU_UP_ROLLBACK_EFFECT_FORBIDDEN_MASK & BIT(effect))) {
++		if (phase == CPU_UP_ROLLBACK_EFFECT_BEGIN ||
++		    phase == CPU_UP_ROLLBACK_EFFECT_BLOCKED)
++			trace->effect_required_mask |= BIT(effect);
++		if (phase == CPU_UP_ROLLBACK_EFFECT_COMPLETE ||
++		    phase == CPU_UP_ROLLBACK_EFFECT_BLOCKED)
++			trace->effect_seen_mask |= BIT(effect);
++	} else {
++		trace->effect_forbidden_mask |= BIT(effect);
++	}
+ 	if (trace->effect_count >= CPU_UP_ROLLBACK_MAX_EFFECTS) {
+ 		trace->effect_overflow = 1;
+ 		return;
+@@ -220,6 +275,14 @@ static inline void cpuhp_record_rollback_event(
+ 	struct cpu_up_rollback_trace *trace = &st->rollback_trace;
+ 	struct cpu_up_rollback_event *event;
+ 
++	if (!trace->rollback_armed)
++		return;
++	if (!trace->callback_inventory ||
++	    trace->event_count >= trace->callback_inventory) {
++		trace->callback_unknown = 1;
++		return;
++	}
+ 	if (trace->event_count >= CPU_UP_ROLLBACK_MAX_EVENTS) {
+ 		trace->overflow = 1;
+ 		return;
+@@ -1120,9 +1183,19 @@ static int cpuhp_up_callbacks(unsigned int cpu, struct cpuhp_cpu_state *st,
+ #ifdef CONFIG_ARM64_MT6797_A72_P32_ROLLBACK
+ 	memset(&st->rollback_trace, 0, sizeof(st->rollback_trace));
+ 	rollback_trace = &st->rollback_trace;
++	st->rollback_trace.rollback_armed = 1;
++	st->rollback_trace.callback_capacity = CPU_UP_ROLLBACK_MAX_EVENTS;
++	st->rollback_trace.callback_inventory =
++		cpuhp_rollback_callback_inventory(prev_state, target);
++	if (st->rollback_trace.callback_inventory >
++	    st->rollback_trace.callback_capacity)
++		st->rollback_trace.callback_unknown = 1;
++	arch_cpu_up_rollback_effect(cpu, CPU_UP_ROLLBACK_EFFECT_NO_AFFINITY,
++					    CPU_UP_ROLLBACK_EFFECT_BLOCKED, 0);
+ #endif
+ 	ret = cpuhp_invoke_callback_range(true, cpu, st, target);
+@@ -1140,10 +1213,21 @@ static int cpuhp_up_callbacks(unsigned int cpu, struct cpuhp_cpu_state *st,
+ 		st->rollback_trace.reverse_complete = !rollback_ret &&
+ 			can_rollback_cpu(st);
+ 		st->rollback_trace.callback_complete =
+ 			st->rollback_trace.reverse_complete &&
+ 			!st->rollback_trace.overflow &&
+-			!st->rollback_trace.callback_unknown;
++			!st->rollback_trace.callback_unknown &&
++			st->rollback_trace.callback_capacity != 0 &&
++			st->rollback_trace.callback_inventory <=
++				st->rollback_trace.callback_capacity &&
++			st->rollback_trace.event_count <=
++				st->rollback_trace.callback_inventory;
++		arch_cpu_up_rollback_effect(cpu, CPU_UP_ROLLBACK_EFFECT_PRESENT_CLEAR,
++					    CPU_UP_ROLLBACK_EFFECT_BLOCKED,
++					    cpu_present(cpu) ? 0 : -EUCLEAN);
++		if (!cpu_present(cpu))
++			st->rollback_trace.effect_unknown = 1;
++		st->rollback_trace.effect_missing_mask =
++			st->rollback_trace.effect_required_mask &
++			~st->rollback_trace.effect_seen_mask;
+ 		st->rollback_trace.effect_complete =
+ 			!st->rollback_trace.effect_overflow &&
+-			!st->rollback_trace.effect_unknown;
++			!st->rollback_trace.effect_unknown &&
++			!st->rollback_trace.effect_missing_mask &&
++			!st->rollback_trace.effect_forbidden_mask;
+ #endif
+ 		if (arch_cpu_up_rollback_complete(cpu, ret,
+ 							rollback_trace))
+ 			pr_err("CPU%u P32 rollback consumption failed\n", cpu);
++#ifdef CONFIG_ARM64_MT6797_A72_P32_ROLLBACK
++		st->rollback_trace.rollback_armed = 0;
++#endif
+ 	}
+--
+2.50.1

@@ -179,3 +179,4 @@ v7.1.3/0186-arm64-parenthesize-P32-publication-check.patch
 v7.1.3/0187-arm64-capture-P32A-rollback-prefix.patch
 v7.1.3/0188-arm64-capture-P32X-effect-prefix.patch
 v7.1.3/0189-arm64-hand-P32R-into-owner-ledger.patch
+v7.1.3/0190-arm64-close-P32A-P32X-coverage.patch
