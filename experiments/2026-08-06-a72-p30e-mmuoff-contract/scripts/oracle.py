@@ -141,6 +141,9 @@ def main() -> None:
         "linker_sections=.mmuoff.data.write;__mmuoff_data_start;clean_to_poc_required_for_MMU-off-writeback;separate_.mmuoff.data.read;__mmuoff_data_end",
         "existing_mmuoff_writer=__early_cpu_boot_status;long;section=.mmuoff.data.write;target_writes_failure_status_before_controller_read",
         "existing_mmuoff_reader=secondary_holding_pen_release;volatile_ulong;section=.mmuoff.data.read;controller_writes;target_reads;dcache_clean_inval_poc;sev",
+        "psci_cpu_on_signature=cpu_on(unsigned_long_cpuid,unsigned_long_entry_point);no_context_id_argument",
+        "secondary_entry_arguments=none;head.S_mov_x0_xzr_then_init_kernel_el_then_secondary_startup",
+        "target_slot_selection=static_per-target_slot_or_assembly-global_physical_base_selected_from_MPIDR;context-pointer_handoff_unavailable",
         "directional_gap=existing_linker_sections_separate_MMU-off-writeback_and_MMU-off-readback_lanes;P30E_needs_bidirectional_fields",
         "placement_consequence=split_controller_and_target_write_lanes_or_add_a_dedicated_aligned_bidirectional_section_with_explicit_cache_protocol",
         "decision=SOURCE_PLACEMENT_FEASIBLE_BUT_P30E_IMPLEMENTATION_OPEN",
@@ -174,6 +177,7 @@ def main() -> None:
     print("states=EMPTY->ARMED->TARGET_CLAIMED->terminal")
     print("cache_order=clean_to_poc;dsb_sy;release;invalidate_complete_range;full_readback")
     print("source_placement=existing_directional_mmuoff_lanes;bidirectional_split_or_dedicated_section_required")
+    print("target_handoff=PSCI_no_context;static_slot_or_MPIDR_selection_required")
     print("negative_mutations=15;all_rejected=1")
     print("p14_p15_requires=target_published;complete_readback;exact_token;online_sample;no_quarantine")
     print("hardware_action=none")

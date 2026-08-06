@@ -49,6 +49,14 @@ token to assembly. The target never dereferences a normal C virtual pointer.
 The physical address must be range-checked, naturally aligned, and tied to the
 same boot identity before release.
 
+The selected Linux PSCI interface is `cpu_on(cpuid, entry_point)` with no
+context-id argument, and `secondary_entry` starts with no caller-provided
+arguments before `init_kernel_el` and `secondary_startup`. Therefore the
+implementation cannot smuggle an object pointer through PSCI. It must select a
+static CPU8/CPU9 slot or an assembly-global physical base and use the target's
+MPIDR to choose/validate the slot. A target slot chosen only by a mutable C
+pointer or a caller-provided success value is rejected.
+
 The selected Linux source already has `.mmuoff.data.write` and
 `.mmuoff.data.read` linker lanes. Existing code uses the write lane for
 `__early_cpu_boot_status` (target writes, controller reads) and the read lane

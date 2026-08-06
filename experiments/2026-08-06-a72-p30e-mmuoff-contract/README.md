@@ -63,6 +63,8 @@ linker placement, target entry point, cache operations, and architecture
 barriers are reviewed against the selected Linux source. The current source
 has reusable `.mmuoff.data.write` and `.mmuoff.data.read` lanes, but they are
 directional; the bidirectional P30E object must split its write lanes or add a
-dedicated aligned section with a complete cache protocol. Then compare the
-implementation to this contract and the P30 model with Buildbox. Until that
-comparison passes, CPU8/CPU9 admission and device use remain blocked.
+dedicated aligned section with a complete cache protocol. PSCI also provides no
+context pointer, so the target slot must be selected statically or by MPIDR in
+assembly. Then compare the implementation to this contract and the P30 model
+with Buildbox. Until that comparison passes, CPU8/CPU9 admission and device
+use remain blocked.
