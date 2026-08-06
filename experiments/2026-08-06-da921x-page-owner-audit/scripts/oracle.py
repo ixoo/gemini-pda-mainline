@@ -24,6 +24,7 @@ PCM_SCAN = Path(__file__).resolve().parents[1] / "results/pcm-firmware-owner-sca
 SECURE_IMAGE_SCAN = Path(__file__).resolve().parents[1] / "results/secure-owner-image-scan-20260806.txt"
 TEE_DISASSEMBLY = Path(__file__).resolve().parents[1] / "results/tee-owner-disassembly-20260806.txt"
 SCP_ALIAS_INVENTORY = Path(__file__).resolve().parents[1] / "results/scp-alias-inventory-20260806.txt"
+SCP_COMPUTED_ADDRESS_AUDIT = Path(__file__).resolve().parents[1] / "results/scp-computed-address-audit-20260806.txt"
 LEDGER = Path(__file__).resolve().parents[1] / "results/source-audit.tsv"
 RECONCILIATION = Path(__file__).resolve().parents[1] / "results/source-reconciliation-20260806.txt"
 CROSSCHECK = ROOT / "experiments/2026-07-23-da9214-resource-only/results/da9214-datasheet-crosscheck-20260723.txt"
@@ -56,6 +57,7 @@ def main() -> None:
     secure_image_scan = SECURE_IMAGE_SCAN.read_text()
     tee_disassembly = TEE_DISASSEMBLY.read_text()
     scp_alias_inventory = SCP_ALIAS_INVENTORY.read_text()
+    scp_computed_address_audit = SCP_COMPUTED_ADDRESS_AUDIT.read_text()
     ledger = LEDGER.read_text()
     reconciliation = RECONCILIATION.read_text()
     crosscheck = CROSSCHECK.read_text()
@@ -140,7 +142,7 @@ def main() -> None:
         ("vendor_acquire_success=drop_DVFSP_prepared_I2C_APPM_reference;record_pause_map_bit", "firmware-clock-release"),
         ("external_writer_audit=negative_for_direct_PCM_restart_writer_in_retained_LK_TEE_SCP_payloads", "firmware-writer-audit"),
         ("external_attribution=ATF_secure_CSPM_clock_and_semaphore_access", "firmware-atf-attribution"),
-        ("external_residual=SCP_computed_or_local_alias_unexcluded;PCM_restart_SEMA_I2C_DRV_owner_unproven", "firmware-residual-gap"),
+        ("external_residual=SCP_computed_or_secure_alias_unexcluded;PCM_restart_SEMA_I2C_DRV_owner_unproven", "firmware-residual-gap"),
         ("receiver_stopped_state=Candidate_AO_runtime_validated;PCM_signature_stable;45s_late_check_passed", "receiver-stopped-state"),
         ("receiver_shared_clock=Candidate_AO_runtime_validated;one_CCF_enable_disable;ungated_to_gated;late_gate_stable", "receiver-clock-normalization"),
         ("receiver_i2c6_activity=none;I2C6_disabled_childless", "receiver-no-i2c6"),
@@ -207,6 +209,17 @@ def main() -> None:
         ("status=PASS_SCP_ALIAS_INVENTORY_NEGATIVE", "scp-alias-status"),
     ):
         require(scp_alias_inventory, needle, label)
+    for needle, label in (
+        ("image_sha256=3c65097eeeb4e2d29dd125752cfb648c6da5e3651eabc9dad1da672b2558cd66", "scp-computed-image-hash"),
+        ("dvfs_spm_pc_literals=0xa000601c;0x400ac118;0x400ac614;0x400a001c;0x400a0070;0x400a0020;0x400ac098;0x400ac13c", "scp-computed-dvfs-aliases"),
+        ("clock_pc_literals=0xa0000104;0xa0000220;0xa0001b00;0xa0000224", "scp-computed-clock-aliases"),
+        ("irq_pc_literals=0x400a4010;0x400a4004;0xe000e100", "scp-computed-irq-aliases"),
+        ("forbidden_target_literals=not-found", "scp-computed-forbidden-targets"),
+        ("address_like_immediate_context=encoded_SPM_request_or_status_value_builder;not_dereferenced_as_pointer", "scp-computed-immediate-context"),
+        ("pause_release_instruction_pattern=not-observed", "scp-computed-no-lease"),
+        ("status=PASS_SCP_COMPUTED_ADDRESS_SCAN_NEGATIVE", "scp-computed-status"),
+    ):
+        require(scp_computed_address_audit, needle, label)
     require(p0098, "I2C6 remains disabled", "ao-i2c6-disabled-contract")
     require(p0098, "does not implement per-transfer DVFSP coordination", "ao-no-per-transfer-contract")
     for forbidden, label in (("PAUSE_I2CDRV", "ao-pause-source"), ("FW_DONE", "ao-firmware-ack")):
@@ -263,6 +276,7 @@ def main() -> None:
         "secure_owner_image_scan\tLK-generic-I2C;ATF-CSPM-interference-attributed;SCP-DVFS-SPM;no-PCM-restart-SEMA-owner",
         "tee_owner_disassembly\tATF-keyed-CSPM-plus-0;secure-semaphore-plus-0x448;no-PCM-plus-0x18",
         "scp_alias_inventory\t0x400a-SPM-PMIC;0xa000-clock;0xe000e100-NVIC;no-PCM-owner",
+        "scp_computed_address_audit\t0xa000601c;0x400a4010;0x400a4004;no-forbidden-target-construction;no-pause-release",
     ):
         require(ledger, field, field.replace("\t", "="))
 
@@ -279,6 +293,7 @@ def main() -> None:
     print("dvfsp_ready=state-and-permission-ready;entry-check-proven")
     print("mainline_transfer_lease=0174-validated;generation-cookie;PM-lock-integrated;Buildbox-pass")
     print("firmware_owner_lease=unproven;vendor_SEMA_I2C_DRV_not_represented")
+    print("scp_computed_address_audit=additional_local_aliases;no_forbidden_target_construction;no_pause_release")
     print("secure_owner_image_scan=negative;ATF-CSPM-interference-attributed;LK-generic-I2C;SCP-DVFS-SPM;no-PCM-restart-SEMA-owner")
     print("decision=BLOCK_WRITABLE_PROVIDER")
     print("hardware_action=none")

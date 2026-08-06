@@ -212,6 +212,16 @@ The source and sanitized runtime record establish these facts:
   `SEMA_I2C_DRV` proof. Computed or secure aliases remain unexcluded. See
   [`results/scp-owner-disassembly-20260806.txt`](results/scp-owner-disassembly-20260806.txt)
   and the exact [SCP alias inventory](results/scp-alias-inventory-20260806.txt).
+- A follow-up bounded computed-address scan followed every PC-relative literal
+  in the DVFS/SPM, clock-setting, and interrupt-control windows and checked
+  immediate address construction. It adds `0xa000601c`, `0x400a4010`, and
+  `0x400a4004` to the classified SCP-local control/clock/IRQ set; the only
+  address-like immediate (`orr #0xa0000`) builds an encoded SPM request/status
+  value and is not dereferenced as a pointer. No AP I2C6/CSPM/PCM/CSRAM or
+  shared-memory target is constructed in these paths, and no pause/release
+  transaction appears. Complete CM4 and secure address translation remains
+  unavailable, so this strengthens but does not close the owner proof. See
+  the [computed-address audit](results/scp-computed-address-audit-20260806.txt).
 - Patch `0175` now defines the separately reviewed firmware callback contract:
   it carries the vendor pause source, `SW_PAUSE`/`FW_DONE` masks, 2 ms bound,
   Linux generation/cookie, and a paired opaque release handle. It is

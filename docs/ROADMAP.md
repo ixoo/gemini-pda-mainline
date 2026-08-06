@@ -1721,6 +1721,16 @@ The next ordered work remains source-only:
    `0xe000e100+0x180` NVIC paths without promoting an owner. See the
    [SCP disassembly](../experiments/2026-08-06-da921x-page-owner-audit/results/scp-owner-disassembly-20260806.txt)
    and [SCP alias inventory](../experiments/2026-08-06-da921x-page-owner-audit/results/scp-alias-inventory-20260806.txt).
+   A follow-up bounded computed-address scan follows the PC-relative literals
+   in the DVFS/SPM, clock-setting, and interrupt-control windows and checks
+   immediate address construction. It classifies the additional
+   `0xa000601c`, `0x400a4010`, and `0x400a4004` references as SCP-local
+   control/clock/IRQ state; the only address-like immediate (`orr #0xa0000`)
+   builds an encoded SPM request/status value rather than a pointer. No AP
+   I2C6/CSPM/PCM/CSRAM or shared-memory target is constructed in those paths,
+   and no pause/release transaction appears. Complete CM4 and secure address
+   translation remains unavailable, so this strengthens but does not close
+   the owner proof; see the [computed-address audit](../experiments/2026-08-06-da921x-page-owner-audit/results/scp-computed-address-audit-20260806.txt).
    Patch `0175` now defines a separately reviewed, default-unregistered
    callback contract for the vendor pause-source lease, including exact
    generation/cookie, 2 ms timeout, three-word pause/acknowledgement checks,

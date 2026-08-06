@@ -1,0 +1,51 @@
+# Retained SCP computed-address audit
+
+date=2026-08-06
+scope=read-only;retained-scp1-image;no-device-action;no-new-backup
+image_role=SCP_CM4_A
+image_sha256=3c65097eeeb4e2d29dd125752cfb648c6da5e3651eabc9dad1da672b2558cd66
+code_extent=0x00000800-0x0000736f
+method=bounded-Thumb-disassembly;PC-relative-literal-following;immediate-construction-scan
+
+## Additional alias-bearing paths
+
+dvfs_spm_pc_literals=0xa000601c;0x400ac118;0x400ac614;0x400a001c;0x400a0070;0x400a0020;0x400ac098;0x400ac13c
+dvfs_spm_value_literal=0xbabe0000
+dvfs_spm_context=SPM_request;SPM_SW_RSV_3;SPM_cur_volt;irq_status;request_spm_timeout
+dvfs_spm_interpretation=SCP_local_control_and_SPM_PMIC_aliases;no_physical_CSPM_or_PCM_target
+
+clock_pc_literals=0xa0000104;0xa0000220;0xa0001b00;0xa0000224
+clock_context=DVFS_clock_setting;clock_field_mask_and_status_poll
+clock_interpretation=SCP_local_clock_aliases;no_physical_CSPM_or_PCM_target
+
+irq_pc_literals=0x400a4010;0x400a4004;0xe000e100
+irq_context=SPM_IRQ_status_ack_and_interrupt_control
+irq_interpretation=SCP_local_IRQ_or_SPM_aliases;NVIC_pending_clear;no_physical_CSPM_or_PCM_target
+
+## Computed-address discriminator
+
+movw_movt_forbidden_target=not-observed
+forbidden_direct_or_computed_targets=0x1100e000;0x11015000;0x11015018;0x0012a000;0xbfdf0000;0x8f000000
+forbidden_target_literals=not-found
+address_like_immediate=offset_0x1f90;orr_r2_r2_0xa0000
+address_like_immediate_context=encoded_SPM_request_or_status_value_builder;not_dereferenced_as_pointer
+pause_release_instruction_pattern=not-observed
+sema_i2cdrv_receiver=not-observed
+
+## Decision
+
+result=additional_SCP_aliases_classified_as_local_control_clock_IRQ_or_SPM_paths
+computed_physical_owner=not-found_in_bounded_scan
+external_owner=unproven;complete_CM4_or_secure_address_translation_unavailable
+decision=BLOCK_WRITABLE_PROVIDER
+hardware_action=none
+status=PASS_SCP_COMPUTED_ADDRESS_SCAN_NEGATIVE
+
+## Limits
+
+This is a bounded raw-image analysis, not a complete firmware decompilation or
+secure-world address-map proof. The newly followed literals and immediate
+construction do not expose the AP I2C6/CSPM/PCM/CSRAM targets, but absence from
+these paths does not exclude a computed or secure alias elsewhere. The result
+therefore strengthens the negative discriminator without authorizing callback
+registration, a DA921x write, CPU8/CPU9 admission, or a device boot.
