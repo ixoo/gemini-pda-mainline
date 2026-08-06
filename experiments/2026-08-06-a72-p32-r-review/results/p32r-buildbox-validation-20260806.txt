@@ -72,3 +72,57 @@ series validation because the intervening changes are review documentation
 only. This revalidation supersedes the earlier “fresh Buildbox validation”
 wording but does not close the semantic P32A/P32X/P32R gaps or authorize a
 device action.
+
+Dedicated P32 rollback profile validation
+------------------------------------------
+
+The first dedicated profile build at `7864f80` failed in guarded source and is
+recorded separately in `p32r-buildbox-failure-20260806.txt`. After the 0190
+source repair, the exact pushed commit below built the dedicated profile with
+the guarded P32 code enabled.
+
+Date: 2026-08-06 America/New_York
+Repository commit: f6f0fe985f67f9b1068d9935314bc485a5abbdea
+Origin: https://github.com/ixoo/gemini-pda-mainline.git
+
+claim=P32R_DEDICATED_PROFILE_BUILDBOX_VALIDATED
+build_backend=buildbox
+buildbox_job=f6f0fe985f67f9b1068d9935314bc485a5abbdea-a72-p32-rollback-m0
+buildbox_status=validated
+build_profile=a72-p32-rollback
+kernel_release=7.1.3-gemini-p32-rollback-blocked
+package_name=linux-7.1.3-gemini-a72-p32-rollback-24fe45e7-a52199d2
+package_completed_utc=2026-08-06T14:32:21Z
+modules_built=false
+repository_dirty=false
+build_architecture=x86_64
+target_architecture=arm64
+toolchain_mode=cross
+compiler=aarch64-linux-gnu-gcc (Debian 12.2.0-14)
+linker=GNU ld (GNU Binutils for Debian) 2.40
+ccache_enabled=true
+
+patch_count=179
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=24fe45e720adc278ccd551214df6870ac63a7e9a0e5deb64d617abaaeb722cb7
+config_inputs_sha256=a52199d2d49d09e17b5808c03bc2794a3954700639d7949ebb72403899966be
+config_sha256=56d121ddabdf778cbfa9ba0e4a0855dbf41ea4ca16f00c0e6b6d9bc7125705ba
+CONFIG_ARM64_MT6797_A72_P32_ROLLBACK=y
+fetch_package_checksum_validation=PASS
+
+Image_sha256=bb58bdc4d2ff2ce8e73e25c011718dffc7f4b84c2ad1cfe1d6ae831793a09ecf
+Image_gz_sha256=7471cbc89bc94d05765e3c03edf89f3f06b5ea2df76cb99a9fcbb2e85c736cfc
+System_map_sha256=bf872f0af40aaadcc90b92d4c27fa820f97981e7c746ecf53012aef9cb39621c
+gemini_dtb_sha256=567170a5f82abd7ea39674e05a974bf30f43bbd19df1587e3276fb43cd90b569
+build_provenance_sha256=1aa53972bfb65e05488527b37bb02125b41c23fb39c3bf6d7d84369a017662c9
+dtb_count=119
+sha256sums=passed
+fetched_package=artifacts/buildbox/f6f0fe985f67f9b1068d9935314bc485a5abbdea/linux-7.1.3-gemini-a72-p32-rollback-24fe45e7-a52199d2
+
+status=PASS_DEDICATED_BUILDBOX_VALIDATED
+device_boot_or_write=NOT_PERFORMED
+hardware_support_claim=NONE
+
+This validates compilation, package integrity, and provenance for the
+guarded source profile. It does not establish boot success, CPU8/CPU9
+availability, provider readiness, or permission to write a device.

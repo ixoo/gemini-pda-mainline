@@ -68,7 +68,7 @@ def main() -> int:
 
     series_lines = [line.strip() for line in SERIES.read_text().splitlines()
                     if line.strip() and not line.startswith("#")]
-    require(len(series_lines) == 178, "current series is not the 178-entry review target")
+    require(len(series_lines) == 179, "current series is not the 179-entry review target")
     for suffix in (
         "0182-arm64-add-dormant-P32-rollback-guards.patch",
         "0183-arm64-consume-P32-rollback-side-channel.patch",
@@ -78,6 +78,7 @@ def main() -> int:
         "0187-arm64-capture-P32A-rollback-prefix.patch",
         "0188-arm64-capture-P32X-effect-prefix.patch",
         "0189-arm64-hand-P32R-into-owner-ledger.patch",
+        "0190-arm64-close-P32A-P32X-coverage.patch",
     ):
         require(any(line.endswith(suffix) for line in series_lines), f"missing current P32 patch {suffix}")
 
@@ -107,7 +108,7 @@ def main() -> int:
     print("mandatory_dynamic_order=3/3")
     print("conditional_insertions=4/4")
     print("p32_closure_rows=5/5")
-    print("current_p32_patches=8/8")
+    print("current_p32_patches=9/9")
     print("same_boot_numeric_identity=OPEN_H13")
     print("cpu_on_cpu_off_device_action=CLOSED")
     print(f"callback_inventory_sha256={callback_sha256}")

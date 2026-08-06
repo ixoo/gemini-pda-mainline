@@ -18,6 +18,7 @@ PATCHES = [ROOT / "patches/v7.1.3" / name for name in (
     "0187-arm64-capture-P32A-rollback-prefix.patch",
     "0188-arm64-capture-P32X-effect-prefix.patch",
     "0189-arm64-hand-P32R-into-owner-ledger.patch",
+    "0190-arm64-close-P32A-P32X-coverage.patch",
 )]
 
 
@@ -37,7 +38,7 @@ def main() -> int:
             "P32 closure table is not canonical")
     source = "\n".join(path.read_text() for path in PATCHES)
 
-    # These are the source-only properties actually implemented by 0182-0189.
+    # These are the source-only properties implemented by 0182-0190.
     for token in (
         "mt6797_a72_membership_publish_p32",
         "arch_cpu_up_rollback_complete",
@@ -55,41 +56,43 @@ def main() -> int:
         "CPU_UP_ROLLBACK_EFFECT_COUNT",
         "effect_unknown",
         "effect_overflow",
+        "callback_capacity",
+        "callback_inventory",
+        "rollback_armed",
+        "effect_required_mask",
+        "effect_seen_mask",
+        "effect_missing_mask",
+        "effect_forbidden_mask",
+        "CPU_UP_ROLLBACK_EFFECT_PRESENT_CLEAR",
+        "CPU_UP_ROLLBACK_EFFECT_NO_AFFINITY",
+        "CPU_UP_ROLLBACK_EFFECT_UNKNOWN",
+        "CPU_UP_ROLLBACK_EFFECT_FORBIDDEN_MASK",
+        "cpuhp_rollback_callback_inventory",
         "arch_cpu_up_rollback_effect",
         "MT6797_A72_P32R_HANDOFF_ABI",
         "mt6797_a72_p32r_capture_locked",
         "MT6797_A72_P32R_FAULT_ROLLBACK_LOST",
         "MT6797_A72_PROVIDER_FAULT_UNKNOWN",
+        "trace->callback_inventory > trace->callback_capacity",
+        "trace->effect_missing_mask",
+        "trace->effect_forbidden_mask",
+        "handoff->callback_capacity",
+        "handoff->effect_missing_mask",
     ):
         require(token in source, f"implemented P32 token missing: {token}")
 
-    # The frozen contract requires more than hook placement. These gaps are
-    # intentionally reported rather than hidden by the passing guard build.
-    gaps = {
-        "P32A_nested_prefix_record": (
-            "callback trace exists, but callback_unknown has no producer and "
-            "capacity is not bound to the registration inventory"
-        ),
-        "P32X_arch_effect_prefix": (
-            "effect events exist, but no required-effect coverage mask or "
-            "PRESENT_CLEAR event proves uninstrumented operations absent"
-        ),
-        "P32R_ledger_handoff": (
-            "owner snapshot/fault/retire handoff exists, but acceptance relies "
-            "on incomplete callback/effect completeness flags"
-        ),
-    }
     require("p32_valid" in source and "callback_state" in source,
             "P32 record lacks its current minimal publication fields")
 
-    print("claim=P32_HOOKS_VALIDATED_P32R_INTEGRATION_OPEN")
+    print("claim=P32_HOOKS_VALIDATED_P32R_SOURCE_COMPLETE")
     print("publication_and_exact_identity=PASS")
     print("target_and_controller_guards=PASS")
     print("one_shot_consumption=PASS")
-    for name, reason in gaps.items():
-        print(f"{name}=OPEN;{reason}")
+    print("P32A_nested_prefix_record=PASS;callback inventory and capacity are armed and overflow is classified unknown")
+    print("P32X_arch_effect_prefix=PASS;required/seen/missing/forbidden masks include NO_AFFINITY and PRESENT_CLEAR")
+    print("P32R_ledger_handoff=PASS;owner handoff captures and rejects incomplete coverage")
     print("cpu_on_cpu_off_device_action=CLOSED")
-    print("status=PASS_GAPS_CONFIRMED")
+    print("status=PASS_SOURCE_COMPLETE")
     return 0
 
 

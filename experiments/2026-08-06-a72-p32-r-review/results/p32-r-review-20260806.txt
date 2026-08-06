@@ -2,17 +2,19 @@ P32R integration review
 =======================
 
 Date: 2026-08-06 America/New_York
-Repository head: 1df5a24
+Repository head: f6f0fe9
 Origin: https://github.com/ixoo/gemini-pda-mainline.git
 
-claim=P32_HOOKS_VALIDATED_P32R_INTEGRATION_OPEN
+claim=P32_HOOKS_VALIDATED_P32R_SOURCE_COMPLETE
 publication_and_exact_identity=PASS
 target_and_controller_guards=PASS
 one_shot_consumption=PASS
-P32A_nested_prefix_record=OPEN;callback trace exists, but callback_unknown has no producer and capacity is not bound to the registration inventory
-P32X_arch_effect_prefix=OPEN;effect events exist, but no required-effect coverage mask or PRESENT_CLEAR event proves uninstrumented operations absent
-P32R_ledger_handoff=OPEN;owner snapshot/fault/retire handoff exists, but acceptance relies on incomplete callback/effect completeness flags
+P32A_nested_prefix_record=PASS;callback inventory and capacity are armed and overflow is classified unknown
+P32X_arch_effect_prefix=PASS;required/seen/missing/forbidden masks include NO_AFFINITY and PRESENT_CLEAR
+P32R_ledger_handoff=PASS;owner handoff captures and rejects incomplete coverage
 cpu_on_cpu_off_device_action=CLOSED
-status=PASS_GAPS_CONFIRMED
+status=PASS_SOURCE_COMPLETE
 
-This is a source review of the current patch series, not runtime evidence.
+This is a source review of the current patch series, not runtime or hardware
+support evidence. The dedicated guarded profile is separately validated by
+the Buildbox record in `p32r-buildbox-validation-20260806.txt`.

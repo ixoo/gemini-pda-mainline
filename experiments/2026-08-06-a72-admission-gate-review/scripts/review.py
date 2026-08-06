@@ -71,10 +71,12 @@ def main() -> int:
                             "hardware_action=none", "status=PASS_NEGATIVE_AUDIT")
     require("write-absent" in provider, "provider audit no longer proves write absence")
 
-    p32 = require_text(P32_RESULT, "claim=P32R_COMPLETE_SERIES_BUILDBOX_VALIDATED",
-                       "status=PASS_BUILDBOX_VALIDATED", "device_boot_or_write=NOT_PERFORMED")
+    p32 = require_text(P32_RESULT, "claim=P32R_DEDICATED_PROFILE_BUILDBOX_VALIDATED",
+                       "status=PASS_DEDICATED_BUILDBOX_VALIDATED",
+                       "CONFIG_ARM64_MT6797_A72_P32_ROLLBACK=y",
+                       "device_boot_or_write=NOT_PERFORMED")
     a25 = require_text(A25_RESULT, "status=PASS_PARTIAL_A25", "same_boot_numeric_identity=OPEN_H13")
-    require("PASS_BUILDBOX_VALIDATED" in p32 and "PASS_PARTIAL_A25" in a25,
+    require("PASS_DEDICATED_BUILDBOX_VALIDATED" in p32 and "PASS_PARTIAL_A25" in a25,
             "current source-only evidence is not passing")
 
     print("claim=PARTIAL_ADMISSION_GATE_REAUDIT")

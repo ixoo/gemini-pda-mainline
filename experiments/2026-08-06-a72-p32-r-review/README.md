@@ -5,26 +5,28 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-06-a72-p32-r-review` |
-| Status | `open` (P32A/P32X/P32R source slices and complete Buildbox package audited; device gates remain closed) |
+| Status | `open` (P32A/P32X/P32R source slices and dedicated Buildbox package audited; device gates remain closed) |
 | Subsystem | P32A/D/F/X/R rollback ownership and terminal ledger handoff |
 | Device variant | Planet Gemini PDA, MT6797; no live-device action |
 | Date | 2026-08-06 America/New_York |
-| Claim | `P32_HOOKS_VALIDATED_P32R_INTEGRATION_OPEN` |
+| Claim | `P32_HOOKS_VALIDATED_P32R_SOURCE_COMPLETE` |
 
 ## Findings
 
-The current 0182–0186 source passes the hook-level obligations: publication
+The current 0182–0190 source passes the hook-level obligations: publication
 before outer rollback, exact generation/MPIDR/cookie/operation identity,
 target disable/die guards, controller kill suppression, and one-shot side
 channel consumption.
 
 The review initially identified three integration gaps. The P32A callback
-prefix is represented by source patch `0187`, the P32X effect-prefix source
-slice by `0188`, and the P32R owner-ledger handoff by `0189`. Each passes an
-independent format-patch/source audit, and the complete series has since
-passed Buildbox validation. Semantic completeness remains open.
+prefix is represented by source patches `0187` and `0190`, the P32X
+effect-prefix source slice by `0188` and `0190`, and the P32R owner-ledger
+handoff by `0189` and `0190`. The source audit now verifies registration
+inventory/capacity coverage, required/seen/missing/forbidden effect masks, and
+owner rejection of incomplete coverage. The dedicated profile has passed
+Buildbox validation with the guarded P32 code enabled.
 
-The executable check records these gaps in
+The executable check records this source-complete result in
 [`results/p32-r-review-20260806.txt`](results/p32-r-review-20260806.txt).
 No CPU_ON/OFF or device action is authorized.
 
@@ -38,11 +40,9 @@ result in
 [`results/p32r-integration-design-20260806.txt`](results/p32r-integration-design-20260806.txt).
 The first source slice is recorded in
 [`results/p32a-prefix-source-audit-20260806.txt`](results/p32a-prefix-source-audit-20260806.txt)
-and parses as a format-patch. P32X architecture-effect capture and the P32R
-ledger handoff remain open: `callback_unknown` has no producer, effect
-coverage has no required-effect mask or `PRESENT_CLEAR` event, and the owner
-handoff consequently relies on incomplete completeness flags. No CPU_ON/OFF or
-device action is authorized.
+and parses as a format-patch. The dedicated source audit now closes the P32X
+architecture-effect and P32R ledger coverage gaps with explicit inventory and
+effect masks. No CPU_ON/OFF or device action is authorized.
 
 The first Buildbox submission exposed an integration defect in `0187`: patch
 `0182` had already introduced the rollback callback declaration, so the source
@@ -56,7 +56,7 @@ The exact P32X operation placement is now recorded in
 [`results/p32x-placement-review-20260806.txt`](results/p32x-placement-review-20260806.txt).
 The `0188` effect-prefix source audit is recorded in
 [`results/p32x-effect-prefix-source-audit-20260806.txt`](results/p32x-effect-prefix-source-audit-20260806.txt).
-It is not a compiler, Buildbox, runtime, or support claim.
+It is not a runtime or hardware-support claim.
 
 The model now exercises the owner-ledger boundary explicitly: it preserves the
 pre-fault membership/provider snapshot, moves a held provider to
@@ -65,10 +65,9 @@ provider/HPS/membership/retry side effects, and rejects mutations to the full
 trace identity. The kernel-side owner handoff is now implemented by `0189`;
 its source audit is recorded in
 [`results/p32r-owner-ledger-source-audit-20260806.txt`](results/p32r-owner-ledger-source-audit-20260806.txt).
-The complete 178-entry series has a clean Buildbox validation for pushed
-commit `49e2d6f4c0e634c8beaedb99a0c29ead1ad0ff6f`, and was revalidated at the
-current review head `2c6714926bc6ef66ea45eeb42012f4abfc208a01` after the
-documentation corrections. The validated package and fetched
+The complete 179-entry series has a dedicated `a72-p32-rollback` Buildbox
+validation at pushed commit `f6f0fe985f67f9b1068d9935314bc485a5abbdea`, with
+`CONFIG_ARM64_MT6797_A72_P32_ROLLBACK=y`. The validated package and fetched
 checksum/provenance records are in
 [`results/p32r-buildbox-validation-20260806.txt`](results/p32r-buildbox-validation-20260806.txt).
 This closes the compile/package gate only; no device boot or write was
@@ -78,6 +77,5 @@ The first dedicated `a72-p32-rollback` profile build at `7864f80` exposed a
 real guarded-source signature defect that the generic `full` profile could not
 see. It is recorded in
 [`results/p32r-buildbox-failure-20260806.txt`](results/p32r-buildbox-failure-20260806.txt).
-Patch `0190` fixes that call and closes the inventory/effect-coverage gaps; a
-fresh dedicated-profile Buildbox result is required before treating those
-source claims as validated.
+Patch `0190` fixed that call and closed the inventory/effect-coverage gaps;
+the successful dedicated-profile result above validates the guarded source.

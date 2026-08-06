@@ -1852,10 +1852,10 @@ The next ordered work remains source-only:
    retirement, exact operation-to-target identity binding, and the warning-clean
    publication check. The earlier 175-patch Buildbox package, fetched checksum
    validation, and independent 13-probe mutation oracle pass, with no hardware
-   write; the current 178-entry package and later P32 source slices are
+   write; the current 179-entry package and later P32 source slices are
    recorded below. The current PSCI boot and disable vetoes remain intact.
    The [P32R integration review](../experiments/2026-08-06-a72-p32-r-review/README.md)
-   initially confirms that complete callback/architecture-effect prefix
+   initially confirmed that complete callback/architecture-effect prefix
    retention and
    the membership/provider/A30 ledger handoff are still open. Its
    [integration design](../experiments/2026-08-06-a72-p32-r-review/DESIGN.md)
@@ -1879,14 +1879,19 @@ The next ordered work remains source-only:
    the exact transaction and pre-fault membership/provider snapshots, preserves
    callback/effect completeness, marks a held provider `FAULT_UNKNOWN` without
    calling it, and retires only an accepted generation. Its source audit is
-   recorded in the experiment, and the complete series now has a clean
-   Buildbox compile/package validation. The independent ledger model is
-   stronger, but neither it nor the package substitutes for hardware evidence.
-   No device action is authorized.
+   recorded in the experiment. Patch `0190` now closes the source-level
+   inventory/capacity and required/seen/missing/forbidden effect coverage
+   gaps, and the owner handoff rejects incomplete coverage. The exact
+   179-entry dedicated `a72-p32-rollback` profile passed Buildbox with
+   `CONFIG_ARM64_MT6797_A72_P32_ROLLBACK=y` at pushed commit
+   `f6f0fe985f67f9b1068d9935314bc485a5abbdea`; its package and checksums are
+   recorded in the linked result. This closes the source and compile/package
+   gate only; the independent ledger model and package do not substitute for
+   hardware evidence. No device action is authorized.
 4. The current [A25 review](../experiments/2026-08-06-a72-a25-callback-review/README.md)
-   and P32R mutation re-audit now cover the 178-entry series, pass H01–H15,
+   and P32R mutation re-audit now cover the 179-entry series, pass H01–H15,
    mandatory dynamic ordering, conditional insertion classification, all five
-   P32 closure rows, and P32 patches 0182–0189. H13 remains open because no
+   P32 closure rows, and P32 patches 0182–0190. H13 remains open because no
    same-boot numeric CPUHP-state capture exists yet. The fail-stop
    `.cpu_disable` plus die/kill guard design retains every partial callback and
    architecture effect, but it remains source-only and does not relax the
