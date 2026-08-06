@@ -164,11 +164,11 @@ diff --git a/kernel/cpu.c b/kernel/cpu.c
 +				    CPU_UP_ROLLBACK_EFFECT_COMPLETE, 0);
  	st->state = CPUHP_AP_IDLE_DEAD;
 @@ -1376,3 +1469,9 @@ void cpuhp_report_idle_dead(void)
- 	smp_call_function_single(cpumask_first(cpu_online_mask),
 +	arch_cpu_up_rollback_effect(smp_processor_id(),
 +				    CPU_UP_ROLLBACK_EFFECT_DEAD_PUBLISH,
 +				    CPU_UP_ROLLBACK_EFFECT_BEGIN, 0);
- 				 cpuhp_complete_idle_dead, st, 0);
+ 	smp_call_function_single(cpumask_first(cpu_online_mask),
+ 					 cpuhp_complete_idle_dead, st, 0);
 +	arch_cpu_up_rollback_effect(smp_processor_id(),
 +				    CPU_UP_ROLLBACK_EFFECT_DEAD_PUBLISH,
 +				    CPU_UP_ROLLBACK_EFFECT_COMPLETE, 0);

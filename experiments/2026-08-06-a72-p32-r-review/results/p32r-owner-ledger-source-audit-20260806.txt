@@ -7,7 +7,7 @@ Origin: https://github.com/ixoo/gemini-pda-mainline.git
 
 claim=P32R_OWNER_LEDGER_SOURCE_AUDIT
 patch=v7.1.3/0189-arm64-hand-P32R-into-owner-ledger.patch
-patch_sha256=c33bcaf7b144a74f40b2860956784bab1b470fc2c8d28e67685ab867d6f935fa
+patch_sha256=a2e47e4226faf1efae4cc4cf03c8edde1a861fc44703bbcb83804c0b73e26d3f
 format_patch_parse=PASS
 owner_only_handoff=PASS
 snapshot_and_provider_fault_boundary=PASS

@@ -25,7 +25,7 @@ submission-ready.
 diff --git a/arch/arm64/include/asm/mt6797_a72_membership.h b/arch/arm64/include/asm/mt6797_a72_membership.h
 --- a/arch/arm64/include/asm/mt6797_a72_membership.h
 +++ b/arch/arm64/include/asm/mt6797_a72_membership.h
-@@ -194,4 +194,40 @@ struct mt6797_a72_p32_record {
+@@ -194,4 +194,21 @@ struct mt6797_a72_p32_record {
  	u64 cookie;
  	struct cpu_up_rollback_trace callback_trace;
  	u32 callback_trace_valid;
@@ -47,6 +47,17 @@ diff --git a/arch/arm64/include/asm/mt6797_a72_membership.h b/arch/arm64/include
 +	MT6797_A72_P32R_FAULT_ROLLBACK_LOST,
 +};
 +
+@@ -276,10 +276,29 @@ struct mt6797_a72_entry_snapshot {
+ 	u32 members;
+ 	u32 provider_state;
+ 	u32 online_mask;
+ 	u32 cpuhp_state_cpu8;
+ 	u32 cpuhp_state_cpu9;
+ 	u32 observer_window;
+ 	u32 flags;
+ 	u64 cpu8_mpidr;
+ 	u64 cpu9_mpidr;
+ };
 +struct mt6797_a72_p32r_ledger_handoff {
 +	u32 abi;
 +	u32 valid;
