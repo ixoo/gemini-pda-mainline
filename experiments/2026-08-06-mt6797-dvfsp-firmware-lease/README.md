@@ -105,6 +105,7 @@ be copied directly into a mainline failure/PM path.
 - [Calibrated table-state Buildbox validation](results/calibrated-table-state-buildbox-20260806.txt)
 - [Locked MT6797 EEM readback Buildbox validation](results/eem-readback-buildbox-20260806.txt)
 - [EEM calibration-builder Buildbox validation](results/eem-calibration-builder-buildbox-20260806.txt)
+- [Protected clock-state decoder Buildbox validation](results/clock-state-decoder-buildbox-20260806.txt)
 - [Receiver register-window identity reconciliation](results/receiver-register-identity-20260806.txt)
 - [Retained TEE secure-owner disassembly](../2026-08-06-da921x-page-owner-audit/results/tee-owner-disassembly-20260806.txt)
 - [Retained SCP local-alias inventory](../2026-08-06-da921x-page-owner-audit/results/scp-alias-inventory-20260806.txt)
@@ -374,8 +375,21 @@ still compile-only: the thermal node and provider remain default-off, no EEM
 phase or hardware write occurred, and CPU8/CPU9 admission remains closed. See
 the [calibration-builder Buildbox result](results/eem-calibration-builder-buildbox-20260806.txt).
 
+Patch `0206` adds the source-backed, read-only decoder over the existing
+protected LL/L/CCI and BigiDVFS clock samples. It preserves generation tags and
+raw mux/divider selectors, rejects malformed or in-flight PLL samples, and
+applies the recovered 26 MHz PCW/POSDIV and ARMPLLDIV_CKDIV formulas to derive
+LL, L, B, and CCI frequencies. Revision `4d5d8da` applied all 195 series
+entries on Buildbox, compiled the full arm64 kernel, produced 119 DTBs, passed
+package checksums, and fetched the validated package. This remains a pure
+conversion boundary: no clock or rail owner, provider, secure call, hardware
+write, firmware action, device boot, or CPU8/CPU9 admission is enabled. See the
+[clock-state decoder Buildbox result](results/clock-state-decoder-buildbox-20260806.txt).
+
 The next gate is the real MT6797 EEM/PTP/thermal and PMIC/clock provider that
 supplies those inputs from efuse and live hardware, arbitrates the shared
 EEM/thermal resource, and independently proves runtime invalidation and
-transition-lock behavior. Until then the protected backends and CPU8/CPU9
-admission remain closed.
+transition-lock behavior. The decoder now supplies the deterministic
+readback-to-frequency boundary, but it is not an owner and cannot be used to
+authorize a transition. Until the owner exists, the protected backends and
+CPU8/CPU9 admission remain closed.

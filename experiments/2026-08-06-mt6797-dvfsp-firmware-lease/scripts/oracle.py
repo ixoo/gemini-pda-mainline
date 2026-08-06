@@ -20,6 +20,7 @@ TRANSITION_LOCK_PATCH = ROOT / "patches/v7.1.3/0202-soc-mediatek-bind-protected-
 CALIBRATED_TABLE_PATCH = ROOT / "patches/v7.1.3/0203-soc-mediatek-require-calibrated-table-state.patch"
 EEM_READBACK_PATCH = ROOT / "patches/v7.1.3/0204-thermal-mediatek-add-locked-MT6797-EEM-readback.patch"
 EEM_CALIBRATION_PATCH = ROOT / "patches/v7.1.3/0205-soc-mediatek-derive-calibrated-table-from-EEM-readback.patch"
+CLOCK_STATE_PATCH = ROOT / "patches/v7.1.3/0206-soc-mediatek-decode-protected-clock-readback.patch"
 SERIES = ROOT / "patches/series"
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
 START_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-start-contract-20260806.txt"
@@ -42,6 +43,7 @@ TRANSITION_LOCK_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/tr
 CALIBRATED_TABLE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/calibrated-table-state-buildbox-20260806.txt"
 EEM_READBACK_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/eem-readback-buildbox-20260806.txt"
 EEM_CALIBRATION_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/eem-calibration-builder-buildbox-20260806.txt"
+CLOCK_STATE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/clock-state-decoder-buildbox-20260806.txt"
 
 
 def require(text: str, needle: str, label: str) -> None:
@@ -65,6 +67,7 @@ def main() -> None:
     calibrated_table_patch = CALIBRATED_TABLE_PATCH.read_text()
     eem_readback_patch = EEM_READBACK_PATCH.read_text()
     eem_calibration_patch = EEM_CALIBRATION_PATCH.read_text()
+    clock_state_patch = CLOCK_STATE_PATCH.read_text()
     design = DESIGN.read_text()
     start_result = START_RESULT.read_text()
     owner_result = OWNER_RESULT.read_text()
@@ -86,9 +89,11 @@ def main() -> None:
     calibrated_table_build_result = CALIBRATED_TABLE_BUILD_RESULT.read_text()
     eem_readback_build_result = EEM_READBACK_BUILD_RESULT.read_text()
     eem_calibration_build_result = EEM_CALIBRATION_BUILD_RESULT.read_text()
+    clock_state_build_result = CLOCK_STATE_BUILD_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     eem_calibration_source = eem_calibration_patch[eem_calibration_patch.index("diff --git"):]
+    clock_state_source = clock_state_patch[clock_state_patch.index("diff --git"):]
     names = [Path(line).name for line in SERIES.read_text().splitlines()
              if line and not line.startswith("#")]
 
@@ -361,6 +366,28 @@ def main() -> None:
         ("No default table", "eem-calibration-default-off"),
     ):
         require(eem_calibration_patch, needle, label)
+    for needle, label in (
+        ("MT6797_DVFSP_CLOCK_STATE_ABI", "clock-state-abi"),
+        ("MT6797_DVFSP_CLOCK_STATE_PARENT_MHZ", "clock-state-parent"),
+        ("MT6797_DVFSP_CLOCK_STATE_PCW_MASK", "clock-state-pcw"),
+        ("MT6797_DVFSP_CLOCK_STATE_POSDIV_MASK", "clock-state-posdiv"),
+        ("MT6797_DVFSP_CLOCK_STATE_PLL_CHANGE", "clock-state-inflight"),
+        ("MT6797_DVFSP_CLOCK_STATE_CLUSTER_COUNT", "clock-state-clusters"),
+        ("struct mt6797_dvfsp_clock_state_cluster", "clock-state-cluster"),
+        ("clock_sample_generation", "clock-state-clock-generation"),
+        ("big_sample_generation", "clock-state-big-generation"),
+        ("mt6797_dvfsp_clock_divider_decode", "clock-state-divider"),
+        ("mt6797_dvfsp_clock_frequency_decode", "clock-state-frequency"),
+        ("((u64)pll_pcw * MT6797_DVFSP_CLOCK_STATE_PARENT_MHZ) >> 14", "clock-state-vendor-formula"),
+        ("frequency *= 1000", "clock-state-khz-conversion"),
+        ("FIELD_GET", "clock-state-field-decode"),
+        ("pll_ll[1]", "clock-state-ll-readback"),
+        ("pll_l[1]", "clock-state-l-readback"),
+        ("pll_cci[1]", "clock-state-cci-readback"),
+        ("big->pll_enable_posdiv", "clock-state-b-readback"),
+        ("EXPORT_SYMBOL_GPL(mt6797_dvfsp_clock_state_decode)", "clock-state-export"),
+    ):
+        require(clock_state_patch, needle, label)
     calibration_builder_added = "\n".join(
         line[1:] for line in eem_calibration_patch.splitlines()
         if line.startswith("+") and not line.startswith("+++")
@@ -754,6 +781,26 @@ def main() -> None:
     ):
         require(eem_calibration_build_result, needle, label)
     for needle, label in (
+        ("claim=COMPILE_ONLY_MT6797_PROTECTED_CLOCK_STATE_DECODER", "clock-state-build-claim"),
+        ("repository_commit=4d5d8da9d363582d6307478f224d65d9bb6744d4", "clock-state-build-commit"),
+        ("origin=https://github.com/ixoo/gemini-pda-mainline.git", "clock-state-build-origin"),
+        ("build_backend=buildbox", "clock-state-build-backend"),
+        ("buildbox_status=validated", "clock-state-build-status"),
+        ("patch_count=195", "clock-state-build-patch-count"),
+        ("artifact=linux-7.1.3-gemini-dvfsp-protected-readback-041daf5c-b6696a3c", "clock-state-build-artifact"),
+        ("dtb_count=119", "clock-state-build-dtb-count"),
+        ("sha256sums=passed", "clock-state-build-checksums"),
+        ("package_fetch=success;validated_package_only", "clock-state-build-fetch"),
+        ("clock_state_contract=0206;raw_ll_l_b_cci_readbacks;vendor_26mhz_formula;pcw_posdiv_and_divider_decode;generation_tagged;inflight_change_rejected;default_off", "clock-state-build-contract"),
+        ("owner=unregistered", "clock-state-build-owner-unregistered"),
+        ("provider=none", "clock-state-build-no-provider"),
+        ("secure_write=none", "clock-state-build-no-secure-write"),
+        ("hardware_write=none", "clock-state-build-no-write"),
+        ("device_action=none", "clock-state-build-no-device"),
+        ("boot_candidate=false", "clock-state-build-not-candidate"),
+    ):
+        require(clock_state_build_result, needle, label)
+    for needle, label in (
         ("repeat_run_repository_commit=6c3cb4fad5a4895f6a69d7913089553b6751e34c", "readback-repeat-commit"),
         ("repeat_run_buildbox_job=6c3cb4fad5a4895f6a69d7913089553b6751e34c-dvfsp-protected-readback-m0", "readback-repeat-job"),
         ("repeat_run_status=validated", "readback-repeat-status"),
@@ -799,6 +846,8 @@ def main() -> None:
         raise AssertionError("EEM readback is not after calibrated table-state admission")
     if names.index("0204-thermal-mediatek-add-locked-MT6797-EEM-readback.patch") >= names.index("0205-soc-mediatek-derive-calibrated-table-from-EEM-readback.patch"):
         raise AssertionError("EEM calibration builder is not after EEM readback")
+    if names.index("0205-soc-mediatek-derive-calibrated-table-from-EEM-readback.patch") >= names.index("0206-soc-mediatek-decode-protected-clock-readback.patch"):
+        raise AssertionError("clock-state decoder is not after EEM calibration builder")
 
     for forbidden in ("readl(", "writel(", "i2c_transfer", "regulator_enable(",
                       "regulator_disable(", "psci_ops.cpu_on", "cpu_up("):
@@ -826,6 +875,13 @@ def main() -> None:
             raise AssertionError(f"unexpected calibrated-table hardware operation: {forbidden}")
         if forbidden in eem_calibration_source:
             raise AssertionError(f"unexpected EEM calibration hardware operation: {forbidden}")
+        if forbidden in clock_state_source:
+            raise AssertionError(f"unexpected clock-state hardware operation: {forbidden}")
+
+    for forbidden in ("readl(", "writel(", "regulator_", "clk_", "arm_smccc",
+                      "i2c_transfer", "platform_driver", "cpu_up(", "secure_write"):
+        if forbidden in clock_state_source:
+            raise AssertionError(f"unexpected clock-state operation: {forbidden}")
 
     print("claim=PARTIAL_FIRMWARE_LEASE_CALLBACK_CONTRACT")
     print("registered_owner=0")
@@ -852,6 +908,7 @@ def main() -> None:
     print("calibrated_table_state=0203;MON_phase;BIG_L_2L_CCI_banks;frequency_voltage_vsram_ppm_rows;thermal_clock_rail_generations;registered_owner=0;no_provider;no_mmio;boot_candidate=false")
     print("eem_readback=0204;thermal_owner_lock;selector_write_restore;BIG_L_2L_CCI;offsets_0x218_0x21c_0x248_0x24c;raw_status_frequency_vop_anchors;registered_owner=0;no_provider;no_secure_write;hardware_write=none;device_action=none;boot_candidate=false")
     print("eem_calibration_builder=0205;raw_readback_anchor_match;BIG_normal_unit_conversion;16_row_interpolation;temperature_offset;record_cap;vsram_delta;full_provenance;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
+    print("clock_state_decoder=0206;raw_ll_l_b_cci_readbacks;vendor_26mhz_formula;pcw_posdiv_and_divider_decode;generation_tagged;inflight_change_rejected;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("pcm_adapter_contract=source-only;bounded-admission-model;callback-registration-gated")
     print("clock_owner_inventory=generic_ccf_only;protected_owner_absent;A72_observer_read_only")
     print("pcm_start_contract=defined;residency_and_start_required_before_callback_registration")

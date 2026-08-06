@@ -1983,11 +1983,22 @@ The next ordered work remains source-only:
    thermal node and provider remain default-off, no EEM phase or hardware write
    occurred, and CPU8/CPU9 admission remains closed. See the
    [EEM calibration-builder Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/eem-calibration-builder-buildbox-20260806.txt).
+   Patch `0206` now adds a pure, source-backed decoder over the existing
+   disabled protected clock readbacks. It preserves generation tags and raw
+   mux/divider selectors, rejects malformed or in-flight PLL samples, and
+   applies the recovered 26 MHz PCW/POSDIV and ARMPLLDIV_CKDIV formulas to LL,
+   L, B, and CCI frequencies. Revision `4d5d8da` applies all 195 canonical
+   entries on Buildbox, compiles the full arm64 kernel, produces 119 DTBs,
+   passes package checksums, and has its validated package fetched. This is
+   still compile-only: no clock or rail owner, provider, secure call, hardware
+   write, firmware action, device boot, or CPU8/CPU9 admission is enabled. See
+   the [clock-state decoder Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/clock-state-decoder-buildbox-20260806.txt).
    The next ordered gate remains an independently reviewed implementation of
    the real calibrated EEM/PTP/PPM state owner with clock/rail arbitration and
-   runtime proof, using this shared-resource readback seam without treating raw
-   anchors as a calibrated table. Until that provider exists, the protected
-   backends and CPU8/CPU9 admission remain closed.
+   runtime proof, using this shared-resource readback and decoder seam without
+   treating raw anchors as a calibrated table or derived frequency as ownership
+   proof. Until that provider exists, the protected backends and CPU8/CPU9
+   admission remain closed.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and
