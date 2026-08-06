@@ -88,9 +88,9 @@ diff --git a/arch/arm64/include/asm/mt6797_a72_membership.h b/arch/arm64/include
  #else
 @@ -573,8 +578,10 @@ static inline int
  mt6797_a72_membership_publish_p32(unsigned int cpu,
--				      enum cpuhp_state callback_state, int error)
-+				      enum cpuhp_state callback_state, int error,
-+				      const struct cpu_up_rollback_trace *trace)
+-				  enum cpuhp_state callback_state, int error)
++				  enum cpuhp_state callback_state, int error,
++				  const struct cpu_up_rollback_trace *trace)
  {
  	(void)cpu;
  	(void)callback_state;
