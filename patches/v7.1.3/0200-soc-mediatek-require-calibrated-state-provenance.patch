@@ -113,7 +113,9 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/
 +		return ret;
  
  	if (snapshot->abi != MT6797_DVFSP_STATE_OWNER_ABI ||
-@@ -1792,2 +1811,2 @@ mt6797_dvfsp_state_owner_identity_check(
+@@ -1622,4 +1641,4 @@ mt6797_dvfsp_state_owner_identity_check(
+ 	    identity->reserved || !identity->owner_handle ||
+ 	    !identity->transition_handle)
  		return -EPROTO;
 -	return 0;
 +	return mt6797_dvfsp_state_provenance_check(&identity->provenance);
@@ -148,7 +150,11 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/
 +	identity->provenance = owner->provenance;
  
  	return 0;
-@@ -2039,7 +2069,8 @@ mt6797_dvfsp_state_snapshot_equal(
+@@ -1776,10 +1795,11 @@ mt6797_dvfsp_state_snapshot_equal(
+ mt6797_dvfsp_state_snapshot_equal(
+ 	const struct mt6797_dvfsp_state_snapshot *left,
+ 	const struct mt6797_dvfsp_state_snapshot *right)
+ {
  	return left->abi == right->abi &&
  		left->cluster_mask == right->cluster_mask &&
  		left->generation == right->generation &&
@@ -156,6 +162,5 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/
 +			&right->provenance) &&
  		!memcmp(left->cluster, right->cluster,
  			sizeof(left->cluster));
- }
 -- 
 2.43.0
