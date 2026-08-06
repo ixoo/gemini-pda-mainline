@@ -1881,17 +1881,21 @@ The next ordered work remains source-only:
    calling it, and retires only an accepted generation. Its source audit is
    recorded in the experiment. Patch `0190` now closes the source-level
    inventory/capacity and required/seen/missing/forbidden effect coverage
-   gaps, and the owner handoff rejects incomplete coverage. The exact
-   179-entry dedicated `a72-p32-rollback` profile passed Buildbox with
+   gaps, and the owner handoff rejects incomplete coverage. A read-only
+   Buildbox-source audit then found that P32 publication was gated on the
+   declared-but-never-entered `VERIFYING` phase; patch `0191` now requires the
+   live `ON_ISSUED` phase established by P17/P18 publication. The exact
+   180-entry dedicated `a72-p32-rollback` profile passed Buildbox with
    `CONFIG_ARM64_MT6797_A72_P32_ROLLBACK=y` at pushed commit
-   `f6f0fe985f67f9b1068d9935314bc485a5abbdea`; its package and checksums are
-   recorded in the linked result. This closes the source and compile/package
-   gate only; the independent ledger model and package do not substitute for
-   hardware evidence. No device action is authorized.
+   `f8b407420677dfdf2e641eebe02697ee6f65bb13`; its package and checksums are
+   recorded in the linked result. This closes the P32 publication reachability
+   and compile/package gates only; A39 early-secondary terminal attribution,
+   A25/H13, provider, A40, A41, A26, and A14 remain open. No device action is
+   authorized.
 4. The current [A25 review](../experiments/2026-08-06-a72-a25-callback-review/README.md)
-   and P32R mutation re-audit now cover the 179-entry series, pass H01–H15,
+   and P32R mutation re-audit now cover the 180-entry series, pass H01–H15,
    mandatory dynamic ordering, conditional insertion classification, all five
-   P32 closure rows, and P32 patches 0182–0190. H13 remains open because no
+   P32 closure rows, and P32 patches 0182–0191. H13 remains open because no
    same-boot numeric CPUHP-state capture exists yet. The fail-stop
    `.cpu_disable` plus die/kill guard design retains every partial callback and
    architecture effect, but it remains source-only and does not relax the

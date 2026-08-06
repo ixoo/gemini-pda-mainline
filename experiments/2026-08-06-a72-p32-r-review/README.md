@@ -9,7 +9,7 @@
 | Subsystem | P32A/D/F/X/R rollback ownership and terminal ledger handoff |
 | Device variant | Planet Gemini PDA, MT6797; no live-device action |
 | Date | 2026-08-06 America/New_York |
-| Claim | `P32_HOOKS_VALIDATED_P32R_SOURCE_COMPLETE` (pending 0191 Buildbox refresh) |
+| Claim | `P32_HOOKS_VALIDATED_P32R_SOURCE_COMPLETE` |
 
 ## Findings
 
@@ -74,10 +74,10 @@ provider/HPS/membership/retry side effects, and rejects mutations to the full
 trace identity. The kernel-side owner handoff is now implemented by `0189`;
 its source audit is recorded in
 [`results/p32r-owner-ledger-source-audit-20260806.txt`](results/p32r-owner-ledger-source-audit-20260806.txt).
-The complete 179-entry series has a dedicated `a72-p32-rollback` Buildbox
-validation at pushed commit `f6f0fe985f67f9b1068d9935314bc485a5abbdea`, with
+The complete 180-entry series has a dedicated `a72-p32-rollback` Buildbox
+validation at pushed commit `f8b407420677dfdf2e641eebe02697ee6f65bb13`, with
 `CONFIG_ARM64_MT6797_A72_P32_ROLLBACK=y`. The validated package and fetched
-checksum/provenance records are in
+checksum/provenance records, including the 0191 revalidation, are in
 [`results/p32r-buildbox-validation-20260806.txt`](results/p32r-buildbox-validation-20260806.txt).
 This closes the compile/package gate only; no device boot or write was
 performed, and the A25/A26/A14 admission gates remain open.

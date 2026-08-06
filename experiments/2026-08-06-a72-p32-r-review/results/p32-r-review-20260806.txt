@@ -2,7 +2,7 @@ P32R integration review
 =======================
 
 Date: 2026-08-06 America/New_York
-Repository head: f6f0fe9
+Repository head: f8b4074
 Origin: https://github.com/ixoo/gemini-pda-mainline.git
 
 claim=P32_HOOKS_VALIDATED_P32R_SOURCE_COMPLETE
@@ -14,6 +14,14 @@ P32X_arch_effect_prefix=PASS;required/seen/missing/forbidden masks include NO_AF
 P32R_ledger_handoff=PASS;owner handoff captures and rejects incomplete coverage
 cpu_on_cpu_off_device_action=CLOSED
 status=PASS_SOURCE_COMPLETE
+
+reachability_fix=0191 arm P32 publication from ON_ISSUED phase
+dedicated_buildbox_revalidation=PASS
+dedicated_buildbox_commit=f8b407420677dfdf2e641eebe02697ee6f65bb13
+dedicated_buildbox_package=linux-7.1.3-gemini-a72-p32-rollback-14dad783-a52199d2
+dedicated_buildbox_kernel_release=7.1.3-gemini-p32-rollback-blocked
+dedicated_buildbox_config=CONFIG_ARM64_MT6797_A72_P32_ROLLBACK=y
+dedicated_buildbox_device_action=NOT_PERFORMED
 
 This is a source review of the current patch series, not runtime or hardware
 support evidence. The dedicated guarded profile is separately validated by
