@@ -22,8 +22,7 @@ submission-ready.
 diff --git a/include/linux/cpu.h b/include/linux/cpu.h
 --- a/include/linux/cpu.h
 +++ b/include/linux/cpu.h
-@@ -133,1 +133,30 @@ struct cpu_up_rollback_event {
- };
+@@ -133,0 +134,29 @@ struct cpu_up_rollback_event {
 +#define CPU_UP_ROLLBACK_MAX_EFFECTS 32U
 +#define CPU_UP_ROLLBACK_EFFECT_BEGIN 1U
 +#define CPU_UP_ROLLBACK_EFFECT_COMPLETE 2U
@@ -53,23 +52,19 @@ diff --git a/include/linux/cpu.h b/include/linux/cpu.h
 +	s32 result;
 +};
 +
-@@ -144,1 +144,5 @@ struct cpu_up_rollback_trace {
- 	struct cpu_up_rollback_event event[CPU_UP_ROLLBACK_MAX_EVENTS];
+@@ -144,0 +145,4 @@ struct cpu_up_rollback_trace {
 +	u32 effect_count;
 +	u32 effect_overflow;
 +	u32 effect_unknown;
 +	struct cpu_up_rollback_effect_event effect[CPU_UP_ROLLBACK_MAX_EFFECTS];
-@@ -147,1 +151,4 @@ struct cpu_up_rollback_trace {
+@@ -146,0 +180,3 @@ struct cpu_up_rollback_trace {
 +void arch_cpu_up_rollback_effect(unsigned int cpu,
 +				 enum cpu_up_rollback_effect effect,
 +				 u32 phase, int result);
- int arch_cpu_up_rollback(unsigned int cpu, enum cpuhp_state state, int error,
- 			 const struct cpu_up_rollback_trace *trace);
 diff --git a/kernel/cpu.c b/kernel/cpu.c
 --- a/kernel/cpu.c
 +++ b/kernel/cpu.c
-@@ -158,1 +158,50 @@ static bool cpuhp_step_empty(bool bringup, struct cpuhp_step *step)
- }
+@@ -158,0 +159,49 @@ static bool cpuhp_step_empty(bool bringup, struct cpuhp_step *step)
 +static inline void cpuhp_record_rollback_effect(
 +	struct cpuhp_cpu_state *st, enum cpu_up_rollback_effect effect,
 +	u32 phase, int result)
@@ -141,17 +136,12 @@ diff --git a/kernel/cpu.c b/kernel/cpu.c
 +				    CPU_UP_ROLLBACK_EFFECT_COMPLETE, 0);
  
  	/*
-@@ -1351,6 +1429,10 @@ static int takedown_cpu(unsigned int cpu)
- 	 * waiting for its completion.
- 	 */
+@@ -1412,1 +1469,5 @@ static int takedown_cpu(unsigned int cpu)
 +	arch_cpu_up_rollback_effect(cpu, CPU_UP_ROLLBACK_EFFECT_RCU_MIGRATE,
 +				    CPU_UP_ROLLBACK_EFFECT_BEGIN, 0);
  	rcutree_migrate_callbacks(cpu);
 +	arch_cpu_up_rollback_effect(cpu, CPU_UP_ROLLBACK_EFFECT_RCU_MIGRATE,
 +				    CPU_UP_ROLLBACK_EFFECT_COMPLETE, 0);
- 
- 	return 0;
- }
 @@ -1367,4 +1453,10 @@ void cpuhp_report_idle_dead(void)
  	BUG_ON(st->state != CPUHP_AP_OFFLINE);
  	tick_assert_timekeeping_handover();
@@ -176,27 +166,32 @@ diff --git a/kernel/cpu.c b/kernel/cpu.c
 diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
 --- a/arch/arm64/kernel/smp.c
 +++ b/arch/arm64/kernel/smp.c
-@@ -392,6 +392,21 @@ int __cpu_disable(void)
+@@ -391,1 +391,3 @@ int __cpu_disable(void)
+-	ret = op_cpu_disable(cpu);
 +	arch_cpu_up_rollback_effect(cpu, CPU_UP_ROLLBACK_EFFECT_CPU_OFF_ATTEMPT,
 +				    CPU_UP_ROLLBACK_EFFECT_BEGIN, 0);
- 	ret = op_cpu_disable(cpu);
++	ret = op_cpu_disable(cpu);
+@@ -393,2 +395,5 @@ int __cpu_disable(void)
 -	if (ret)
 +	if (ret) {
 +		arch_cpu_up_rollback_effect(cpu, CPU_UP_ROLLBACK_EFFECT_GUARD,
 +					    CPU_UP_ROLLBACK_EFFECT_BLOCKED, ret);
  		return ret;
 +	}
- 
+@@ -396,1 +401,7 @@ int __cpu_disable(void)
+-	remove_cpu_topology(cpu);
 +	arch_cpu_up_rollback_effect(cpu, CPU_UP_ROLLBACK_EFFECT_GUARD,
 +				    CPU_UP_ROLLBACK_EFFECT_COMPLETE, 0);
 +	arch_cpu_up_rollback_effect(cpu, CPU_UP_ROLLBACK_EFFECT_TOPOLOGY_REMOVE,
 +				    CPU_UP_ROLLBACK_EFFECT_BEGIN, 0);
- 	remove_cpu_topology(cpu);
++	remove_cpu_topology(cpu);
 +	arch_cpu_up_rollback_effect(cpu, CPU_UP_ROLLBACK_EFFECT_TOPOLOGY_REMOVE,
 +				    CPU_UP_ROLLBACK_EFFECT_COMPLETE, 0);
+@@ -397,1 +405,5 @@ int __cpu_disable(void)
+-	numa_remove_cpu(cpu);
 +	arch_cpu_up_rollback_effect(cpu, CPU_UP_ROLLBACK_EFFECT_NUMA_REMOVE,
 +				    CPU_UP_ROLLBACK_EFFECT_BEGIN, 0);
- 	numa_remove_cpu(cpu);
++	numa_remove_cpu(cpu);
 +	arch_cpu_up_rollback_effect(cpu, CPU_UP_ROLLBACK_EFFECT_NUMA_REMOVE,
 +				    CPU_UP_ROLLBACK_EFFECT_COMPLETE, 0);
 @@ -315,2 +343,10 @@ int __cpu_disable(void)
