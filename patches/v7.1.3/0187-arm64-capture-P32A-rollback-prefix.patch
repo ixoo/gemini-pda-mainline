@@ -1,0 +1,371 @@
+From 0000000000000000000000000000000000000187 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 6 Aug 2026 00:00:00 -0400
+Subject: [PATCH] arm64: capture P32A rollback prefix
+
+Capture generic CPUHP callback events and nested AP reset state in a bounded
+per-CPU trace. Publish the trace with the exact P32 identity before the outer
+reset, then hand the completed trace to the owner after the reverse range.
+Overflow is retained as evidence and cannot be treated as success.
+
+This is the P32A source slice only. Architecture-effect capture and the
+membership/provider/A30 terminal handoff remain separate follow-ups. The
+existing CPU_ON and CPU_OFF vetoes are unchanged and this patch performs no
+device operation.
+
+This experiment-only change has no certifying sign-off and is not
+submission-ready.
+---
+ arch/arm64/include/asm/cpu_ops.h                |  6 ++++
+ arch/arm64/include/asm/mt6797_a72_membership.h | 17 +++++--
+ arch/arm64/kernel/mt6797_a72_membership.c      | 23 +++++++--
+ arch/arm64/kernel/mt6797_psci.c                |  5 +-
+ arch/arm64/kernel/smp.c                        | 20 +++++--
+ include/linux/cpu.h                             | 27 +++++++++
+ kernel/cpu.c                                    | 59 +++++++++++++++++++++++-
+ 7 files changed, 136 insertions(+), 15 deletions(-)
+
+diff --git a/arch/arm64/include/asm/cpu_ops.h b/arch/arm64/include/asm/cpu_ops.h
+--- a/arch/arm64/include/asm/cpu_ops.h
++++ b/arch/arm64/include/asm/cpu_ops.h
+@@ -8,5 +8,7 @@
+ #include <linux/init.h>
+ #include <linux/threads.h>
+ 
++struct cpu_up_rollback_trace;
++
+ /**
+  * struct cpu_operations - Callback operations for hotplugging CPUs.
+@@ -28,4 +30,6 @@
+  * @cpu_up_validate: Optional leaf-only CPU-up admission check for public and
+  *		direct internal paths. Must not sleep or acquire CPU-map, CPUHP, or
+  *		outer transition locks.
++ * @cpu_up_rollback: Optional controller-side publication before generic CPUHP
++ *		outer rollback. It receives the failing state, result, and trace.
+  * @cpu_boot:	Boots a cpu into the kernel.
+@@ -49,4 +53,6 @@ struct cpu_operations {
+ 	int		(*cpu_up_validate)(unsigned int cpu, int tasks_frozen,
+ 					   enum cpuhp_state target);
++	int		(*cpu_up_rollback)(unsigned int cpu, enum cpuhp_state state,
++					   int error, const struct cpu_up_rollback_trace *trace);
+ 	int		(*cpu_boot)(unsigned int);
+ 	void		(*cpu_postboot)(void);
+diff --git a/arch/arm64/include/asm/mt6797_a72_membership.h b/arch/arm64/include/asm/mt6797_a72_membership.h
+--- a/arch/arm64/include/asm/mt6797_a72_membership.h
++++ b/arch/arm64/include/asm/mt6797_a72_membership.h
+@@ -4,6 +4,7 @@
+ 
+ #include <linux/bits.h>
+ #include <linux/cpuhotplug.h>
++#include <linux/cpu.h>
+ #include <linux/errno.h>
+ #include <linux/string.h>
+ #include <linux/types.h>
+@@ -103,4 +104,6 @@ struct mt6797_a72_p32_record {
+ 	u64 target_mpidr;
+ 	u64 generation;
+ 	u64 cookie;
++	struct cpu_up_rollback_trace callback_trace;
++	u32 callback_trace_valid;
+ };
+@@ -432,8 +435,10 @@ int mt6797_a72_membership_publish_p32(unsigned int cpu,
+ 					      enum cpuhp_state callback_state,
+-					      int error);
++					      int error,
++					      const struct cpu_up_rollback_trace *trace);
+ int mt6797_a72_membership_p32_cpu_disable(unsigned int cpu);
+ bool mt6797_a72_membership_p32_cpu_die(unsigned int cpu);
+ int mt6797_a72_membership_p32_cpu_kill(unsigned int cpu);
+-int mt6797_a72_membership_consume_p32(unsigned int cpu, int rollback_error);
++int mt6797_a72_membership_consume_p32(unsigned int cpu, int rollback_error,
++					     const struct cpu_up_rollback_trace *trace);
+ void mt6797_a72_membership_snapshot(struct mt6797_a72_owner_snapshot *snapshot);
+ #else
+@@ -573,8 +578,10 @@ static inline int
+ mt6797_a72_membership_publish_p32(unsigned int cpu,
+-					  enum cpuhp_state callback_state, int error)
++					  enum cpuhp_state callback_state, int error,
++					  const struct cpu_up_rollback_trace *trace)
+ {
+ 	(void)cpu;
+ 	(void)callback_state;
+ 	(void)error;
++	(void)trace;
+ 	return -EOPNOTSUPP;
+ }
+@@ -646,7 +653,9 @@ static inline int mt6797_a72_membership_p32_cpu_kill(unsigned int cpu)
+ static inline int mt6797_a72_membership_consume_p32(unsigned int cpu,
+-						    int rollback_error)
++						    int rollback_error,
++						    const struct cpu_up_rollback_trace *trace)
+ {
+ 	(void)cpu;
+ 	(void)rollback_error;
++	(void)trace;
+ 	return -EOPNOTSUPP;
+ }
+diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt6797_a72_membership.c
+--- a/arch/arm64/kernel/mt6797_a72_membership.c
++++ b/arch/arm64/kernel/mt6797_a72_membership.c
+@@ -217,9 +217,10 @@ int mt6797_a72_membership_publish_p32(unsigned int cpu,
+ 					      enum cpuhp_state callback_state,
+-					      int error)
++					      int error,
++					      const struct cpu_up_rollback_trace *trace)
+ {
+ 	unsigned long flags;
+ 	struct mt6797_a72_transaction *transaction;
+ 	int ret = -EPERM;
+ 
+-	if ((cpu != 8 && cpu != 9) || !error)
++	if ((cpu != 8 && cpu != 9) || !error || !trace)
+ 		return -EINVAL;
+@@ -250,4 +251,6 @@ int mt6797_a72_membership_publish_p32(unsigned int cpu,
+ 	transaction->p32.target_mpidr = transaction->identity.target_mpidr;
+ 	transaction->p32.generation = transaction->identity.generation;
+ 	transaction->p32.cookie = transaction->identity.cookie;
++	transaction->p32.callback_trace = *trace;
++	transaction->p32.callback_trace_valid = 1;
+ 	transaction->p32_valid = 1;
+@@ -329,6 +332,7 @@ int mt6797_a72_membership_p32_cpu_kill(unsigned int cpu)
+ }
+ 
+-int mt6797_a72_membership_consume_p32(unsigned int cpu, int rollback_error)
++int mt6797_a72_membership_consume_p32(unsigned int cpu, int rollback_error,
++					      const struct cpu_up_rollback_trace *trace)
+ {
+ 	unsigned long flags;
+ 	int ret = -EAGAIN;
+@@ -338,4 +342,17 @@ int mt6797_a72_membership_consume_p32(unsigned int cpu, int rollback_error)
+ 	raw_spin_lock_irqsave(&a72_state_lock, flags);
+ 	if (mt6797_a72_p32_target_locked(cpu)) {
++		if (!trace) {
++			a72_owner.active.p32.branch = MT6797_A72_P32_BRANCH_X;
++			ret = -EINVAL;
++			goto out;
++		}
++		a72_owner.active.p32.callback_trace = *trace;
++		a72_owner.active.p32.callback_trace_valid = 1;
++		if (trace->overflow || !trace->outer_reset ||
++		    !trace->reverse_complete) {
++			a72_owner.active.p32.branch = MT6797_A72_P32_BRANCH_X;
++			ret = -EIO;
++			goto out;
++		}
+ 		if (a72_owner.active.p32.state != MT6797_A72_P32_STATE_PARKED) {
+ 			a72_owner.active.p32.branch = MT6797_A72_P32_BRANCH_X;
+diff --git a/arch/arm64/kernel/mt6797_psci.c b/arch/arm64/kernel/mt6797_psci.c
+--- a/arch/arm64/kernel/mt6797_psci.c
++++ b/arch/arm64/kernel/mt6797_psci.c
+@@ -1414,10 +1414,11 @@ const struct cpu_operations mt6797_psci_ops = {
+ #ifdef CONFIG_ARM64_MT6797_A72_P32_ROLLBACK
+ static int mt6797_psci_cpu_up_rollback(unsigned int cpu,
+-					       enum cpuhp_state state, int error)
++					       enum cpuhp_state state, int error,
++					       const struct cpu_up_rollback_trace *trace)
+ {
+ 	if (cpu != 8 && cpu != 9)
+ 		return 0;
+ 
+-	return mt6797_a72_membership_publish_p32(cpu, state, error);
++	return mt6797_a72_membership_publish_p32(cpu, state, error, trace);
+ }
+ #endif
+diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
+--- a/arch/arm64/kernel/smp.c
++++ b/arch/arm64/kernel/smp.c
+@@ -122,6 +122,7 @@ int arch_cpu_up_validate(unsigned int cpu, int tasks_frozen,
+ 	return 0;
+ }
+ 
+-int arch_cpu_up_rollback(unsigned int cpu, enum cpuhp_state state, int error)
++int arch_cpu_up_rollback(unsigned int cpu, enum cpuhp_state state, int error,
++				 const struct cpu_up_rollback_trace *trace)
+ {
+ 	const struct cpu_operations *ops;
+@@ -132,4 +133,4 @@ int arch_cpu_up_rollback(unsigned int cpu, enum cpuhp_state state, int error)
+ 
+ 	ops = get_cpu_ops(cpu);
+ 	if (ops && ops->cpu_up_rollback)
+-		return ops->cpu_up_rollback(cpu, state, error);
++		return ops->cpu_up_rollback(cpu, state, error, trace);
+@@ -145,12 +146,13 @@ int arch_cpu_up_rollback(unsigned int cpu, enum cpuhp_state state, int error)
+ 	return 0;
+ }
+ 
+-int arch_cpu_up_rollback_complete(unsigned int cpu, int error)
++int arch_cpu_up_rollback_complete(unsigned int cpu, int error,
++					 const struct cpu_up_rollback_trace *trace)
+ {
+ #ifdef CONFIG_ARM64_MT6797_A72_P32_ROLLBACK
+ 	int ret;
+ 
+ 	if (cpu >= nr_cpu_ids)
+ 		return 0;
+ 
+-	ret = mt6797_a72_membership_consume_p32(cpu, error);
++	ret = mt6797_a72_membership_consume_p32(cpu, error, trace);
+@@ -158,5 +160,6 @@ int arch_cpu_up_rollback_complete(unsigned int cpu, int error)
+ #else
+ 	(void)cpu;
+ 	(void)error;
++	(void)trace;
+ 	return 0;
+ #endif
+diff --git a/include/linux/cpu.h b/include/linux/cpu.h
+--- a/include/linux/cpu.h
++++ b/include/linux/cpu.h
+@@ -116,7 +116,32 @@ void notify_cpu_starting(unsigned int cpu);
+ int arch_cpu_up_preflight(unsigned int cpu, enum cpuhp_state target);
+ int arch_cpu_up_validate(unsigned int cpu, int tasks_frozen,
+ 			 enum cpuhp_state target);
+-int arch_cpu_up_rollback(unsigned int cpu, enum cpuhp_state state, int error);
+-int arch_cpu_up_rollback_complete(unsigned int cpu, int error);
++#define CPU_UP_ROLLBACK_MAX_EVENTS 128U
++#define CPU_UP_ROLLBACK_EVENT_WARNING BIT(0)
++
++struct cpu_up_rollback_event {
++	u32 direction;
++	u32 state;
++	u32 instance;
++	s32 result;
++	u32 flags;
++};
++
++struct cpu_up_rollback_trace {
++	u32 event_count;
++	u32 overflow;
++	u32 nested_valid;
++	u32 nested_prev_state;
++	u32 nested_state;
++	s32 nested_result;
++	u32 outer_reset;
++	u32 reverse_complete;
++	struct cpu_up_rollback_event event[CPU_UP_ROLLBACK_MAX_EVENTS];
++};
++
++int arch_cpu_up_rollback(unsigned int cpu, enum cpuhp_state state, int error,
++			 const struct cpu_up_rollback_trace *trace);
++int arch_cpu_up_rollback_complete(unsigned int cpu, int error,
++					 const struct cpu_up_rollback_trace *trace);
+ extern void cpu_maps_update_begin(void);
+ extern void cpu_maps_update_done(void);
+diff --git a/kernel/cpu.c b/kernel/cpu.c
+--- a/kernel/cpu.c
++++ b/kernel/cpu.c
+@@ -80,4 +80,7 @@ struct cpuhp_cpu_state {
+ 	struct completion done_up;
+ 	struct completion done_down;
++#ifdef CONFIG_ARM64_MT6797_A72_P32_ROLLBACK
++	struct cpu_up_rollback_trace rollback_trace;
++#endif
+ #endif
+ };
+@@ -154,5 +157,32 @@ static bool cpuhp_step_empty(bool bringup, struct cpuhp_step *step)
+ 	return bringup ? !step->startup.single : !step->teardown.single;
+ }
+ 
++static inline void cpuhp_record_rollback_event(
++	struct cpuhp_cpu_state *st, bool bringup, enum cpuhp_state state,
++	unsigned int instance, int result)
++{
++#ifdef CONFIG_ARM64_MT6797_A72_P32_ROLLBACK
++	struct cpu_up_rollback_trace *trace = &st->rollback_trace;
++	struct cpu_up_rollback_event *event;
++
++	if (trace->event_count >= CPU_UP_ROLLBACK_MAX_EVENTS) {
++		trace->overflow = 1;
++		return;
++	}
++	event = &trace->event[trace->event_count++];
++	event->direction = bringup ? 1 : 2;
++	event->state = state;
++	event->instance = instance;
++	event->result = result;
++	event->flags = 0;
++#else
++	(void)st;
++	(void)bringup;
++	(void)state;
++	(void)instance;
++	(void)result;
++#endif
++}
++
+ /**
+  * cpuhp_invoke_callback - Invoke the callbacks for a given state
+@@ -193,4 +216,5 @@ static int cpuhp_invoke_callback(unsigned int cpu, enum cpuhp_state state,
+ 		trace_cpuhp_enter(cpu, st->target, state, cb);
+ 		ret = cb(cpu);
+ 		trace_cpuhp_exit(cpu, st->state, state, ret);
++		cpuhp_record_rollback_event(st, bringup, state, 0, ret);
+ 		return ret;
+@@ -203,4 +227,5 @@ static int cpuhp_invoke_callback(unsigned int cpu, enum cpuhp_state state,
+ 		trace_cpuhp_multi_enter(cpu, st->target, state, cbm, node);
+ 		ret = cbm(cpu, node);
+ 		trace_cpuhp_exit(cpu, st->state, state, ret);
++		cpuhp_record_rollback_event(st, bringup, state, 0, ret);
+ 		return ret;
+@@ -215,4 +240,5 @@ static int cpuhp_invoke_callback(unsigned int cpu, enum cpuhp_state state,
+ 		trace_cpuhp_multi_enter(cpu, st->target, state, cbm, node);
+ 		ret = cbm(cpu, node);
+ 		trace_cpuhp_exit(cpu, st->state, state, ret);
++		cpuhp_record_rollback_event(st, bringup, state, cnt, ret);
+ 		if (ret) {
+@@ -240,4 +266,5 @@ err:
+ 		trace_cpuhp_multi_enter(cpu, st->target, state, cbm, node);
+ 		ret = cbm(cpu, node);
+ 		trace_cpuhp_exit(cpu, st->state, state, ret);
++		cpuhp_record_rollback_event(st, bringup, state, cnt, ret);
+ 		/*
+@@ -790,3 +817,9 @@ static int cpuhp_kick_ap(int cpu, struct cpuhp_cpu_state *st,
+ 	if ((ret = st->result)) {
+ 		cpuhp_reset_state(cpu, st, prev_state);
++#ifdef CONFIG_ARM64_MT6797_A72_P32_ROLLBACK
++		st->rollback_trace.nested_valid = 1;
++		st->rollback_trace.nested_prev_state = prev_state;
++		st->rollback_trace.nested_state = st->state;
++		st->rollback_trace.nested_result = ret;
++#endif
+ 		__cpuhp_kick_ap(st);
+@@ -1021,4 +1054,10 @@ static int cpuhp_up_callbacks(unsigned int cpu, struct cpuhp_cpu_state *st,
+ 	enum cpuhp_state prev_state = st->state;
+ 	int ret = 0;
++	const struct cpu_up_rollback_trace *rollback_trace = NULL;
++	int rollback_ret = 0;
+ 
++#ifdef CONFIG_ARM64_MT6797_A72_P32_ROLLBACK
++	memset(&st->rollback_trace, 0, sizeof(st->rollback_trace));
++	rollback_trace = &st->rollback_trace;
++#endif
+ 	ret = cpuhp_invoke_callback_range(true, cpu, st, target);
+@@ -1030,13 +1066,23 @@ static int cpuhp_up_callbacks(unsigned int cpu, struct cpuhp_cpu_state *st,
+ 		pr_debug("CPU UP failed (%d) CPU %u state %s (%d)\n",
+ 			 ret, cpu, cpuhp_get_step(st->state)->name,
+ 			 st->state);
+-		if (arch_cpu_up_rollback(cpu, st->state, ret))
++		if (arch_cpu_up_rollback(cpu, st->state, ret,
++					 rollback_trace))
+ 			pr_err("CPU%u P32 rollback publication failed\n", cpu);
+ 
+ 		cpuhp_reset_state(cpu, st, prev_state);
++#ifdef CONFIG_ARM64_MT6797_A72_P32_ROLLBACK
++		st->rollback_trace.outer_reset = 1;
++#endif
+ 		if (can_rollback_cpu(st))
+-			WARN_ON(cpuhp_invoke_callback_range(false, cpu, st,
+-							    prev_state));
+-		if (arch_cpu_up_rollback_complete(cpu, ret))
++			rollback_ret = cpuhp_invoke_callback_range(false, cpu, st,
++								prev_state);
++		WARN_ON(rollback_ret);
++#ifdef CONFIG_ARM64_MT6797_A72_P32_ROLLBACK
++		st->rollback_trace.reverse_complete = !rollback_ret &&
++			can_rollback_cpu(st);
++#endif
++		if (arch_cpu_up_rollback_complete(cpu, ret,
++							rollback_trace))
+ 			pr_err("CPU%u P32 rollback consumption failed\n", cpu);
+ 	}
+--
+2.50.1

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-06-a72-p32-r-review` |
-| Status | `open` (integration contract designed and modeled; source implementation remains open) |
+| Status | `open` (P32A callback-prefix source slice audited; Buildbox and P32X/P32R remain open) |
 | Subsystem | P32A/D/F/X/R rollback ownership and terminal ledger handoff |
 | Device variant | Planet Gemini PDA, MT6797; no live-device action |
 | Date | 2026-08-06 America/New_York |
@@ -41,4 +41,9 @@ independent seven-probe model is
 [`scripts/integration_oracle.py`](scripts/integration_oracle.py), with its
 result in
 [`results/p32r-integration-design-20260806.txt`](results/p32r-integration-design-20260806.txt).
-This is design evidence only; it does not close the source or Buildbox gate.
+The first source slice is recorded in
+[`results/p32a-prefix-source-audit-20260806.txt`](results/p32a-prefix-source-audit-20260806.txt)
+and parses as a format-patch. Buildbox was unavailable at the audit, so this
+is not compiler or hardware evidence. P32X architecture-effect capture and
+the P32R ledger handoff remain open; no CPU_ON/OFF or device action is
+authorized.

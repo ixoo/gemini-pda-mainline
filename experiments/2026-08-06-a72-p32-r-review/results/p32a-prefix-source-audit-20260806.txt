@@ -1,0 +1,30 @@
+P32A callback-prefix source audit
+=================================
+
+Date: 2026-08-06 America/New_York
+Repository head before recording: 7802905c6245fa86372c23088416f699f72db460
+Patch: patches/v7.1.3/0187-arm64-capture-P32A-rollback-prefix.patch
+Patch SHA-256: bb94307efb9cf1c953d9b0179fbda1f32af1172b290ba7771be5250c9bb16f7c
+
+claim=P32A_CALLBACK_PREFIX_SOURCE_AUDIT
+format_patch_parse=PASS
+callback_record_sites=4
+nested_outer_reverse_markers=PASS
+config_off_nullable_trace=PASS
+forbidden_effect_scan=PASS
+status=PASS
+
+The audit is source/patch evidence only. It confirms the bounded callback
+prefix, nested reset marker, outer reset marker, reverse-range completion
+marker, and a nullable generic trace path when the P32 profile is disabled.
+It does not establish compiler, Buildbox, hardware, CPU_ON, CPU_OFF, or device
+support. P32X architecture-effect capture and P32R ledger handoff remain open.
+
+Buildbox status at this audit: deferred. `./scripts/buildbox doctor` could not
+resolve `buildbox.lab.shoreswarm.com`; the repository policy forbids a native
+VM fallback.
+
+Independent design oracle (unchanged) also passed:
+claim=P32R_INTEGRATION_CONTRACT_ORACLE
+probes=7
+status=PASS
