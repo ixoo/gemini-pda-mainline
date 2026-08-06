@@ -81,7 +81,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/
  mt6797_dvfsp_protected_state_owner_check(
  	const struct mt6797_dvfsp_protected_state_owner *owner)
 @@ -1797,5 +1819,11 @@ mt6797_dvfsp_protected_state_owner_check(
- 			MT6797_DVFSP_STATE_CALIBRATION_ABI)
+ 		MT6797_DVFSP_STATE_CALIBRATION_ABI)
  		return -EINVAL;
 +	if (!owner->transition_lock_ops ||
 +	    owner->transition_lock_ops->abi !=
