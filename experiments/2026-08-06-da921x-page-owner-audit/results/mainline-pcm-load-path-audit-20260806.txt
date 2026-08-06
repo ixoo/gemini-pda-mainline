@@ -28,3 +28,31 @@ required_next_gate=licensed_attributable_PCM_loader_start_kick_resource_contract
 decision=BLOCK_MAINLINE_FIRMWARE_LEASE_AND_WRITABLE_PROVIDER
 hardware_action=none
 status=PASS_MAINLINE_PCM_LOAD_PATH_AUDIT
+
+Current exact Buildbox prepared-source revalidation
+----------------------------------------------------
+
+date=2026-08-06
+repository_head=8b8b2c40df0b9a9ffa03ba5ea1173c79ff1e2573
+buildbox_source=linux-7.1.3-series-source
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+handoff_file=drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+handoff_file_sha256=1788ab338bdaf6dd0b9851c1dc170771db5a42a08d24f0fe604e04b68321448f
+cspm_mapping=devm_platform_ioremap_resource(pdev,0);CSPM_registers_read_only
+csram_mapping=absent;no_resource_index_1_or_CSRAM_mapping_in_handoff
+request_firmware=absent_in_exact_handoff_file
+pcm_start=absent;no_IM_PTR_IM_LEN_IM_KICK_PCM_KICK_start_sequence
+sema_i2c_drv_mainline_marker=absent;count=0
+request_firmware_marker_count=0
+csram_marker_count=0
+i2c6_fw_callbacks=default-unregistered;registered_owner=0
+linux_transfer_lease=0174_generation_cookie_only;not_vendor_SEMA_I2C_DRV
+decision=KEEP_PROVIDER_BLOCKED
+hardware_action=none
+status=PASS_CURRENT_PREPARED_SOURCE_REVALIDATION
+
+This is a stronger negative revalidation of the exact prepared source used by
+the Buildbox profile. It does not establish a licensed or attributable PCM
+image loader, residency contract, start/kick sequence, or external owner, and
+therefore does not authorize a writable provider, P30 integration, or device
+action.
