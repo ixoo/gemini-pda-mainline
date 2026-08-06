@@ -1672,9 +1672,12 @@ The next ordered work remains source-only:
    [page/ownership audit](../experiments/2026-08-06-da921x-page-owner-audit/results/buildbox-transfer-lease-20260806.txt),
    and the reconciled firmware contract is recorded in
    [firmware-owner-lease-20260806.txt](../experiments/2026-08-06-da921x-page-owner-audit/results/firmware-owner-lease-20260806.txt).
-   The next source-only discriminator is receiver-side proof of that
-   firmware-owner lease, including stopped-state and shared-clock validation,
-   followed by page/control-mask ownership, settled readback, and
+   Candidate AO already provides the named-unit receiver-side stopped-state
+   and shared-clock normalization evidence, with a stable 45-second late check
+   while I2C6 remained disabled; do not repeat that boot. The next source-only
+   discriminator is proof that this one-way receiver is authoritative for the
+   vendor per-transfer `SEMA_I2C_DRV` lease, or a separately reviewed firmware
+   protocol, followed by page/control-mask ownership, settled readback, and
    rollback-owner proof.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,

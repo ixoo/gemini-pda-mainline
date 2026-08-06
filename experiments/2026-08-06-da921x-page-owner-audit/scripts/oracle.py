@@ -129,8 +129,12 @@ def main() -> None:
         ("vendor_pause_source=PAUSE_I2CDRV;pause_map_bit=0x2", "firmware-pause-source"),
         ("vendor_acquire_success=drop_DVFSP_prepared_I2C_APPM_reference;record_pause_map_bit", "firmware-clock-release"),
         ("external_writer_audit=negative_for_direct_PCM_restart_writer_in_retained_LK_TEE_SCP_payloads", "firmware-writer-audit"),
+        ("receiver_stopped_state=Candidate_AO_runtime_validated;PCM_signature_stable;45s_late_check_passed", "receiver-stopped-state"),
+        ("receiver_shared_clock=Candidate_AO_runtime_validated;one_CCF_enable_disable;ungated_to_gated;late_gate_stable", "receiver-clock-normalization"),
+        ("receiver_i2c6_activity=none;I2C6_disabled_childless", "receiver-no-i2c6"),
         ("mainline_firmware_lease=unproven", "firmware-lease-gap"),
-        ("required_closure=receiver-side_stopped-state_and_clock_validation;explicit_external-owner-proof;sticky-fault_and_resume-revalidation", "firmware-closure"),
+        ("required_closure=prove_one-way_receiver_authoritative_for_SEMA_I2C_DRV_or_add_reviewed_firmware_protocol;explicit_external-owner-proof;sticky-fault_and_resume-revalidation", "firmware-closure"),
+        ("repeat_prohibition=do_not_repeat_Candidate_AO_stopped-state_or_clock-normalization_boot", "no-repeat-ao"),
         ("decision=BLOCK_WRITABLE_PROVIDER", "firmware-decision"),
         ("status=PASS_FIRMWARE_LEASE_RECONCILIATION_NEGATIVE", "firmware-status"),
     ):

@@ -155,6 +155,11 @@ The source and sanitized runtime record establish these facts:
   for a PCM restart writer, but ATF secure clock/semaphore access and an SCP
   computed/local alias remain unexcluded. Linux therefore cannot claim the
   firmware owner from the current evidence; the provider stays fail-closed.
+  Candidate AO already validated the receiver-side stopped PCM signature and
+  one balanced ungated-to-gated I2C_APPM transition with a stable 45-second
+  late check while I2C6 remained disabled. That result must not be repeated;
+  the remaining question is whether this receiver is authoritative for the
+  vendor per-transfer lease.
 - No bounded inverse exists for a provider write at or beyond the unresolved
   external-isolation boundary. The release callback therefore remains a
   structured `-EOPNOTSUPP` refusal.
@@ -196,11 +201,12 @@ acquire/release refusal boundary remain the correct implementation boundary.
 
 ## Follow-up
 
-The next source-only action is to obtain receiver-side proof of the firmware
-ownership lease corresponding to `SEMA_I2C_DRV`, including stopped-state and
-shared-clock validation, rather than infer it from the validated Linux lease.
-In parallel, close the DA921x page/control-mask, settled readback, and
-rollback-owner boundaries. The validated Linux lease maps the mainline handoff
-into a default-off provider without claiming hardware support. Only after
-those ownership and rollback gates close may a writable implementation be
-designed. The P24/P28/P30/P32/A26/A14 gates remain independent blockers.
+The next source-only action is to prove that the already validated one-way
+receiver is authoritative for the firmware ownership lease corresponding to
+`SEMA_I2C_DRV`, or to obtain a separately reviewed firmware protocol. Do not
+repeat Candidate AO's stopped-state/clock-normalization boot. In parallel,
+close the DA921x page/control-mask, settled readback, and rollback-owner
+boundaries. The validated Linux lease maps the mainline handoff into a
+default-off provider without claiming hardware support. Only after those
+ownership and rollback gates close may a writable implementation be designed.
+The P24/P28/P30/P32/A26/A14 gates remain independent blockers.
