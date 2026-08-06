@@ -23,7 +23,7 @@ submission-ready.
  arch/arm64/kernel/smp.c                        | 20 +++++--
  include/linux/cpu.h                             | 27 +++++++++
  kernel/cpu.c                                    | 59 +++++++++++++++++++++++-
- 7 files changed, 136 insertions(+), 15 deletions(-)
+ 7 files changed, 136 insertions(+), 23 deletions(-)
 
 diff --git a/arch/arm64/include/asm/cpu_ops.h b/arch/arm64/include/asm/cpu_ops.h
 --- a/arch/arm64/include/asm/cpu_ops.h
@@ -36,16 +36,20 @@ diff --git a/arch/arm64/include/asm/cpu_ops.h b/arch/arm64/include/asm/cpu_ops.h
 +
  /**
   * struct cpu_operations - Callback operations for hotplugging CPUs.
-@@ -28,4 +30,6 @@
-  * @cpu_up_validate: Optional leaf-only CPU-up admission check for public and
-  *		direct internal paths. Must not sleep or acquire CPU-map, CPUHP, or
-  *		outer transition locks.
+@@ -28,6 +28,6 @@
+ * @cpu_up_validate: Optional leaf-only CPU-up admission check for public and
+ *		direct internal paths. Must not sleep or acquire CPU-map, CPUHP, or
+ *		outer transition locks.
+- * @cpu_up_rollback: Optional controller-side publication before generic CPUHP
+- *		outer rollback. It receives the failing callback state and result.
 + * @cpu_up_rollback: Optional controller-side publication before generic CPUHP
-+ *		outer rollback. It receives the failing state, result, and trace.
++ *		outer rollback. It receives the failing callback state, result, and trace.
   * @cpu_boot:	Boots a cpu into the kernel.
-@@ -49,4 +53,6 @@ struct cpu_operations {
+@@ -49,6 +49,6 @@ struct cpu_operations {
  	int		(*cpu_up_validate)(unsigned int cpu, int tasks_frozen,
  					   enum cpuhp_state target);
+-	int		(*cpu_up_rollback)(unsigned int cpu, enum cpuhp_state state,
+-					   int error);
 +	int		(*cpu_up_rollback)(unsigned int cpu, enum cpuhp_state state,
 +					   int error, const struct cpu_up_rollback_trace *trace);
  	int		(*cpu_boot)(unsigned int);

@@ -43,6 +43,13 @@ is not compiler or hardware evidence. P32X architecture-effect capture and
 the P32R ledger handoff remain open; no CPU_ON/OFF or device action is
 authorized.
 
+The first Buildbox submission exposed an integration defect in `0187`: patch
+`0182` had already introduced the rollback callback declaration, so the source
+slice was repaired to replace that declaration rather than add a duplicate.
+The repair is recorded in
+[`results/p32a-prefix-source-repair-20260806.txt`](results/p32a-prefix-source-repair-20260806.txt);
+the complete series requires a fresh Buildbox validation.
+
 The exact P32X operation placement is now recorded in
 [`P32X-PLACEMENT.md`](P32X-PLACEMENT.md), with its source-reference result in
 [`results/p32x-placement-review-20260806.txt`](results/p32x-placement-review-20260806.txt).

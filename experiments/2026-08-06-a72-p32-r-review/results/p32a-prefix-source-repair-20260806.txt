@@ -1,0 +1,23 @@
+P32A callback-prefix source repair
+===================================
+
+Date: 2026-08-06 America/New_York
+Failed Buildbox commit: 6ec1890bd1fc4556add9f483192f8a1f39b887a3
+Origin: https://github.com/ixoo/gemini-pda-mainline.git
+
+claim=P32A_CALLBACK_PREFIX_SOURCE_REPAIR
+patch=patches/v7.1.3/0187-arm64-capture-P32A-rollback-prefix.patch
+patch_sha256=986855a246141527de18bcc5df115ed271e9fba544d4939544d33a972bf1e0e5
+failure=0187_hunks_did_not_apply_after_0182
+repair=replace_existing_cpu_up_rollback_comment_and_signature
+format_patch_parse=PASS
+callback_record_sites=4
+nested_outer_reverse_markers=PASS
+config_off_nullable_trace=PASS
+forbidden_effect_scan=PASS
+status=PASS_SOURCE_REPAIR_REQUIRES_BUILDBOX_REVALIDATION
+
+The previous 0187 source slice assumed the rollback callback declaration was
+absent, but 0182 already added it. The repaired patch replaces the existing
+declaration and preserves the trace handoff without duplicating the callback.
+No compiler, runtime, hardware, CPU_ON, CPU_OFF, or device claim is made here.
