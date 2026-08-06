@@ -1596,6 +1596,18 @@ MMIO, CPUHP, P30, or CPU_ON effect. The source advances only to
 `PARTIAL_R03_P29_REFUSAL_ROLLBACK`; P28 and the real provider owner remain
 open.
 
+The follow-on source-only
+[P28 post-provider preparation experiment](../experiments/2026-08-05-a72-p28-postprovider-preparation/README.md)
+adds the CPU8-only post-provider boundary after R02. It consumes a one-shot
+same-generation budget and accepts only the exact isolation `0x2 -> 0x0`,
+PWRAP deassertion, software-guard release, two 240 us waits, 1.1 V SRAM-LDO
+request, selector `0x8fb`, and stable/valid calibration proof bound to the
+held provider identity. Buildbox validates the exact 158-patch commit and
+all 119 DTBs; the ledger still performs no isolation write, provider call,
+MMIO, CPUHP, P30, or CPU_ON effect. The source advances only to
+`PARTIAL_P28_POSTPROVIDER_PREPARATION`; the real provider owner and P24 remain
+open.
+
 P32A/D/F/X/R freezes the automatic rollback closure. The controller publishes
 P32 before `cpuhp_reset_state()` and the outer reverse range. Target
 `.cpu_disable` is the first guard before topology/NUMA removal, online clear,
@@ -1619,8 +1631,9 @@ The next ordered work remains source-only:
 
 1. Implement the authoritative P17/P18/P24 transaction behind the closed hooks
    in the frozen P31 -> A28 -> mint -> A36 -> P17/P18 -> P27 order. The next
-   bounded seam is P28 plus the real provider-owner R01/R02 transaction, now
-   with the source-only R03/P29 refusal contract represented; integrate its
+   bounded seam is the real provider-owner R01/R02 transaction after the
+   source-only P28 post-provider preparation and R03/P29 refusal contracts;
+   integrate its
    exact token with the dormant P30 model and controller call sites only after
    the provider and rollback owners are implemented.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when

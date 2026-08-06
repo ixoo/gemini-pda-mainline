@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-05-a72-p28-postprovider-preparation` |
-| Status | `source-only` (static and bounded-model review; Buildbox pending) |
+| Status | `Buildbox-validated` (compile-only; no hardware action) |
 | Subsystem | MT6797 A72 post-provider isolation and SRAM preparation boundary |
 | Device variant | Planet Gemini PDA, MT6797; no live-device action |
 | Date | 2026-08-05 America/New_York |
@@ -67,6 +67,6 @@ PYTHONDONTWRITEBYTECODE=1 python3 experiments/2026-08-05-a72-p28-postprovider-pr
 
 ## Conclusion
 
-`PARTIAL_P28_POSTPROVIDER_PREPARATION` remains source-only until its exact
-pushed commit passes Buildbox. The next gate is the real provider-owner and
-P24 transaction integration; no hardware path is opened by this experiment.
+`PARTIAL_P28_POSTPROVIDER_PREPARATION` is Buildbox-validated for the exact
+pushed commit. The next gate is the real provider-owner and P24 transaction
+integration; no hardware path is opened by this experiment.
