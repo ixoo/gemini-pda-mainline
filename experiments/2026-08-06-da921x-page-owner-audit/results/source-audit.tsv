@@ -1,0 +1,16 @@
+field	value	evidence	decision
+primary_address	0x68	0170;da921x-i2c6-a72.md	observed-read-only
+page2_client_address	0x69	0170;da921x-i2c6-a72.md	observed-read-only
+provider_vsel_registers	0xd7,0xd9	0170	read-only-direct-address
+provider_control_registers	0x5d,0x5e	0170	read-only-direct-address
+provider_vsel_mask	0x7f	0170	model-only-unproven-for-write
+provider_enable_mask	0x01	0170	model-only-unproven-for-write
+a36_page_value	0x80	0164;ownership-rollback-audit	prestate-assertion-not-page-api
+a36_buckb_vsel	0x46	0164;ownership-rollback-audit	prestate-assertion-not-write-contract
+page_encoding	unproven	no selected source or independent readback	BLOCK_WRITABLE_PROVIDER
+page_owner	unproven	Linux/firmware/page2 ownership split unresolved	BLOCK_WRITABLE_PROVIDER
+write_transport	unproven	no validated register-data write shape	BLOCK_WRITABLE_PROVIDER
+control_mask	unproven	no preserved control-byte contract	BLOCK_WRITABLE_PROVIDER
+post_settle_readback	unproven	no provider-owned write/readback pair	BLOCK_WRITABLE_PROVIDER
+rollback_owner	unproven	external-isolation inverse remains unresolved	BLOCK_WRITABLE_PROVIDER
+hardware_action	none	source-only audit	PASS_SAFETY

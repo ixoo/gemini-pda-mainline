@@ -1,0 +1,9 @@
+page_encoding=unproven
+page_owner=unproven
+write_transport=unproven
+control_mask=unproven
+post_settle_readback=unproven
+rollback_owner=unproven
+decision=BLOCK_WRITABLE_PROVIDER
+hardware_action=none
+status=PASS_NEGATIVE_AUDIT
