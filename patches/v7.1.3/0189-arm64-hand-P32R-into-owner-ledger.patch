@@ -116,7 +116,7 @@ diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt679
 --- a/arch/arm64/kernel/mt6797_a72_membership.c
 +++ b/arch/arm64/kernel/mt6797_a72_membership.c
 @@ -329,43 +329,134 @@ int mt6797_a72_membership_p32_cpu_kill(unsigned int cpu)
- 	return ret;
+ 	return -ETIMEDOUT;
  }
 +static void
 +mt6797_a72_p32r_capture_locked(struct mt6797_a72_transaction *transaction,
