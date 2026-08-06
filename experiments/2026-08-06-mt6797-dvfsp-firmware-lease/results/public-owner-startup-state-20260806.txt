@@ -1,0 +1,46 @@
+# Public hybrid PCM startup-state owner boundary
+
+date=2026-08-06
+scope=read-only-source-inventory;no-device-action;no-new-backup;no-firmware-copied
+public_source_repo=https://github.com/gemian/gemini-linux-kernel-3.18
+public_source_revision=8cfe6596a503612e3332d9c26e292a19525a7f07
+public_source_file=drivers/misc/mediatek/base/power/mt6797/mt_cpufreq_hybrid.c
+
+claim=PUBLIC_HYBRID_PCM_STARTUP_STATE_OWNER_REVALIDATED
+startup_state_api=struct_init_sta;passed_into_kick_dvfsp_path
+startup_state_update=__cspm_check_and_update_sta;hybrid_c_lines_1737-1791
+startup_state_fields=is_on;init_opp;init_freq;init_volt;init_vsram;ceiling_freq;floor_freq
+startup_state_records=CSRAM_OFFS_INIT_OPP;CSRAM_OFFS_INIT_FREQ;CSRAM_OFFS_INIT_VOLT;CSRAM_OFFS_INIT_VSRAM;ceiling_and_floor
+startup_state_suspend_rule=suspend_state_substitution_before_CS_RAM_initialization
+pcm_kick_input=__cspm_kick_pcm_to_run;M0_M1_M2_records;event_vectors;SW_HW_status;CSRAM_pause_source_and_log
+dvfs_control_inputs=twam_wfi_init=1;r7_ctrl_en=1;wake_src=WAKE_SRC_TWAM|WAKE_SRC_CPU
+start_dependency=authoritative_state_snapshot_before_PCM_KICK;state_change_aborts_start
+
+required_state_owner=authoritative_current_opp;frequency;voltage;vsram;ceiling;floor;cluster_membership;clock_and_rail_state
+required_state_lifetime=sample_under_owner_lock;consistent_with_regulator_and_clock_state;revalidate_after_suspend_resume;invalidate_on_fault
+fixed_state_policy=reject_guessed_defaults;reviewed_fixed_state_only_if_board_revision_and_rail_measurements_are_attributable
+
+mainline_inventory_source=Buildbox:/workspace/gemini-pda/src/linux-7.1.3-series-source
+mainline_handoff_file=drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+mainline_handoff_resources=CSPM_only;I2C_APPM_clock;CSRAM_unmapped
+mainline_init_sta_symbol=absent;word_bounded_search
+mainline_kick_dvfsp_symbol=absent;word_bounded_search
+mainline_mt6797_cpufreq_owner=absent;no_MT6797_specific_cpufreq_provider
+mainline_mt6797_opp_voltage_vsram_owner=absent;generic_OPP_core_and_unrelated_VSRAM_couplers_only
+mainline_dt_state_binding=absent;no_MT6797_operating_points_or_cpu_supply_binding
+mainline_cpu_topology=cpu8_cpu9_A72;mediatek_mt6797_psci;A72_power_node_disabled
+mainline_rail_nodes=DA9214_legacy_no_CPU_supply_or_OPP_binding;RT5735_VGPU_disabled;GPU_only_mali_supply
+
+decision=ADAPTER_BLOCKED_UNTIL_STARTUP_STATE_OWNER;KEEP_PROVIDER_BLOCKED
+next_source_gate=design_state_owner_interface_and_transition_lock;then_bound_mainline_PCM_adapter
+hardware_action=none
+device_boot_or_write=NOT_PERFORMED
+status=PASS_STARTUP_STATE_DEPENDENCY_IDENTIFIED
+
+This result records a source dependency, not an implementation or a hardware
+claim. The public owner requires a live, attributable startup-state owner
+before image residency and PCM kick. The current mainline handoff is a
+read-only stopped-state observer with CSPM and clock access only; generic OPP
+infrastructure or unrelated VSRAM couplers do not supply the MT6797 hybrid
+state contract. No firmware array, image, or proprietary payload was copied
+or staged.

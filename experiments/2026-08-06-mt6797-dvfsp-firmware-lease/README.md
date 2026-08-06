@@ -84,6 +84,7 @@ be copied directly into a mainline failure/PM path.
 - [Initial Buildbox input failure and repair](results/buildbox-failure-20260806.txt)
 - [Exact retained vendor-kernel SEMA contract](results/vendor-kernel-sema-contract-20260806.txt)
 - [Public hybrid owner source](results/public-hybrid-owner-source-20260806.txt)
+- [Public owner startup-state boundary](results/public-owner-startup-state-20260806.txt)
 - [Buildbox validation after owner-source review](results/public-owner-buildbox-validation-20260806.txt)
 - [Current-head full-profile Buildbox resume](results/current-head-full-buildbox-20260806.txt)
 - [Receiver register-window identity reconciliation](results/receiver-register-identity-20260806.txt)
@@ -135,12 +136,13 @@ stopped-state or clock-normalization boot must not be repeated.
 
 The PCM start contract is now explicit in
 [`PCM_START_CONTRACT.md`](PCM_START_CONTRACT.md). It makes image identity,
-CSPM/CSRAM residency, reset/IM/PCM kick order, CSRAM initialization, runtime
-lease responses, and fault/resume invalidation prerequisites for registering
-the callback. The current mainline handoff satisfies none of the start and
-residency requirements, so this result advances the design boundary only and
-does not authorize a loader, firmware copy, provider write, build, or device
-boot.
+CSPM/CSRAM residency, the authoritative OPP/frequency/voltage/VSRAM startup
+state, reset/IM/PCM kick order, CSRAM initialization, runtime lease responses,
+and fault/resume invalidation prerequisites for registering the callback. The
+current mainline handoff has no MT6797 startup-state owner, so this result
+advances the design boundary only and does not authorize a loader, firmware
+copy, provider write, build, or device boot. See the
+[startup-state boundary result](results/public-owner-startup-state-20260806.txt).
 
 The owner-source review itself was validated on Buildbox at pushed commit
 `5aced75e948be894fda47ef59a9b41434f02589b` with the dedicated

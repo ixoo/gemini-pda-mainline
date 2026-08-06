@@ -38,6 +38,29 @@ acceptable for a mainline owner. The adapter must use bounded, sticky-fault
 failure paths and explicit suspend/resume/clock rollback before it can register
 the callback in patch `0175`.
 
+## Startup-state owner
+
+The public start path has a prerequisite separate from image loading: the PCM
+kick receives a structured startup state. Before the image is started, the
+historical owner derives and publishes the current `is_on`, initial OPP,
+frequency, voltage, VSRAM, ceiling, and floor state, including the
+suspend-state substitution rule. It then uses that state while writing the
+initial CSRAM records and the M0/M1/M2 control records. The TWAM/WFI,
+R7-control, and wake-source settings are also part of that start input. The
+exact source anchors and current mainline inventory are recorded in
+[`results/public-owner-startup-state-20260806.txt`](results/public-owner-startup-state-20260806.txt).
+
+The mainline adapter therefore requires an attributable state owner before it
+can map CSRAM or request PCM run. That owner must provide, under a transition
+lock, the current OPP, frequency, voltage, VSRAM, ceiling/floor, cluster
+membership, and clock/rail state. It must be consistent with the Linux
+regulator and clock owners, remain valid through image start, and invalidate the
+start generation on a concurrent transition, suspend/resume, clock loss, or
+PCM fault. A fixed-state table is acceptable only after a reviewed board,
+revision, and rail-measurement contract proves that the table is authoritative;
+guessed defaults are not acceptable. The current handoff has no such MT6797
+state owner, so this gate remains open and the provider remains fail-closed.
+
 ## Required resources and order
 
 The owner must prove all of the following in one attributable start path:
@@ -54,8 +77,11 @@ The owner must prove all of the following in one attributable start path:
    is issued, and the owner observes the hardware image-ready state within a
    bounded timeout.
 6. PCM registers, event and wakeup vectors, per-cluster control words, CSRAM
-   log/record pointers, and initial OPP/frequency/voltage/SRAM state are
-   initialized before PCM run is requested.
+   log/record pointers, and the startup-state owner's initial
+   OPP/frequency/voltage/VSRAM, ceiling/floor, and cluster-membership state are
+   initialized before PCM run is requested. If any state input changes while
+   the start sequence is in progress, the owner must abort and invalidate the
+   generation rather than start with a stale snapshot.
 7. PCM run is acknowledged as active and its generation is bound to the Linux
    transfer lease. Only then may the owner implement `SEMA_I2C_DRV` acquire.
 
@@ -85,10 +111,12 @@ The following are explicitly insufficient and must return `-EOPNOTSUPP`:
 - a CSPM-only mapping with no CSRAM or image-residency proof;
 - a `firmware-name` property or `request_firmware()` call without the complete
   start/resource/owner contract;
+- statically guessed OPP, frequency, voltage, VSRAM, ceiling/floor, or cluster
+  values without a current Linux state owner and transition lock;
 - a stopped-state observer or Linux generation/cookie lease alone; and
 - direct SW_PAUSE/FW_DONE writes while PCM start and ownership are unproven.
 
-Exit requires an attributable owner, exact image identity, complete start
-ordering, bounded start acknowledgement, runtime lease responses, and
-independent fault/resume evidence. Until then the provider remains read-only
-and CPU8/CPU9 remain disconnected.
+Exit requires an attributable startup-state owner and PCM owner, exact image
+identity, complete start ordering, bounded start acknowledgement, runtime lease
+responses, and independent fault/resume evidence. Until then the provider
+remains read-only and CPU8/CPU9 remain disconnected.

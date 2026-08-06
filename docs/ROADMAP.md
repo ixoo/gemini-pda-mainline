@@ -1783,12 +1783,20 @@ The next ordered work remains source-only:
    select the embedded image variant, establish redistribution rights, or
    create a callable current-mainline owner. The exact source hashes and line
    anchors are in the [public hybrid owner source result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/public-hybrid-owner-source-20260806.txt).
-   The next source-only discriminator is therefore a reviewed mainline adapter
-   boundary: admit the exact image and loader domain, replace vendor
-   `BUG()`/unbounded waits with bounded sticky-fault paths, prove suspend/resume
-   and clock rollback, then register the existing callback contract. Only after
-   that owner path is independently reviewed do page/control-mask ownership,
-   settled readback, and rollback-owner proof advance.
+   The public start path also requires a structured startup-state owner before
+   the PCM kick: current OPP, frequency, voltage, VSRAM, ceiling/floor,
+   cluster membership, and clock/rail state must be sampled under a transition
+   lock and written into the initial CSRAM/control records. The current
+   mainline handoff has no MT6797 owner for that state; generic OPP support and
+   unrelated VSRAM couplers are not a substitute. The exact inventory and
+   decision are in the [startup-state boundary result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/public-owner-startup-state-20260806.txt).
+   The next source-only discriminator is therefore a reviewed state-owner
+   interface followed by a bounded mainline adapter: admit the exact image and
+   loader domain, replace vendor `BUG()`/unbounded waits with bounded
+   sticky-fault paths, prove suspend/resume and clock rollback, then register
+   the existing callback contract. Only after that owner path is independently
+   reviewed do page/control-mask ownership, settled readback, and
+   rollback-owner proof advance.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and
