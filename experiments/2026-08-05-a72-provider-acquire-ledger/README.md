@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-05-a72-provider-acquire-ledger` |
-| Status | `completed` (source-only, static and bounded-model review) |
+| Status | `completed` (source, static, bounded-model, and Buildbox validation) |
 | Subsystem | MT6797 A72 R01/R02 provider-owner boundary |
 | Device variant | Planet Gemini PDA, MT6797; no live-device action |
 | Date | 2026-08-05 America/New_York |
@@ -57,6 +57,7 @@ action.
 - [Exact validator](scripts/validate.py)
 - [Source transcript](results/source-validation-20260805.txt)
 - [Mutation transcript](results/mutation-validation-20260805.txt)
+- [Buildbox validation](results/buildbox-validation-20260805.txt)
 
 Run from the repository root:
 
@@ -68,6 +69,8 @@ PYTHONDONTWRITEBYTECODE=1 python3 experiments/2026-08-05-a72-provider-acquire-le
 
 ## Conclusion
 
-`PARTIAL_R01_R02_PROVIDER_LEDGER` is confirmed for the reviewed source and
-bounded model. The next gate is the explicit R03/P29 refusal-and-rollback
-edge, followed by P28 only after a real provider-owner implementation exists.
+`PARTIAL_R01_R02_PROVIDER_LEDGER` is confirmed for the reviewed source,
+bounded model, and exact pushed-commit Buildbox compile. The package is not a
+boot candidate: no deployment or device action is authorized by this result.
+The next gate is the explicit R03/P29 refusal-and-rollback edge, followed by
+P28 only after a real provider-owner implementation exists.

@@ -41,6 +41,7 @@ class Proof:
     cookie: int
     held_generation: int
     held_cookie: int
+    origin_generation: int
 
 
 def begin(tx: Transaction) -> Transaction | None:
@@ -59,7 +60,7 @@ def confirm(tx: Transaction, proof: Proof) -> Transaction | None:
             proof.enabled != 1 or proof.vsel != 0x46 or proof.origin != 1 or
             proof.generation != tx.generation or proof.cookie != tx.cookie or
             not proof.held_generation or not proof.held_cookie or
-            proof.held_generation != proof.generation + 1):
+            proof.origin_generation != proof.held_generation):
         return None
     return replace(tx, provider_state=HELD, held_generation=proof.held_generation,
                    held_cookie=proof.held_cookie, acquire_confirmed=True)
@@ -69,7 +70,7 @@ def main() -> None:
     inflight = begin(Transaction(CPU8))
     assert inflight is not None
     proof = Proof(CPU8, 1000, 0x80, 1, 0x46, 1,
-                  inflight.generation, inflight.cookie, 2, 0xA7200101)
+                  inflight.generation, inflight.cookie, 2, 0xA7200101, 2)
     held = confirm(inflight, proof)
     print("claim=PARTIAL_R01_R02_PROVIDER_LEDGER")
     print("r01_inflight=%d" % (inflight is not None))

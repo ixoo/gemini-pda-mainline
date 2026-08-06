@@ -10,7 +10,7 @@ def main() -> None:
     inflight = begin(Transaction(CPU8))
     assert inflight is not None
     proof = Proof(CPU8, 1000, 0x80, 1, 0x46, 1,
-                  inflight.generation, inflight.cookie, 2, 0xA7200101)
+                  inflight.generation, inflight.cookie, 2, 0xA7200101, 2)
     mutations = {
         "wrong-operation": replace(proof, operation=9),
         "wrong-settle": replace(proof, settle_us=999),
@@ -20,6 +20,7 @@ def main() -> None:
         "stale-generation": replace(proof, generation=0),
         "stale-cookie": replace(proof, cookie=0),
         "missing-held-id": replace(proof, held_cookie=0),
+        "wrong-origin-generation": replace(proof, origin_generation=1),
         "duplicate-r01": begin(inflight),
     }
     rejected = 0
