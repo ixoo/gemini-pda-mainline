@@ -1849,7 +1849,12 @@ The next ordered work remains source-only:
    write. The current PSCI boot and disable vetoes remain intact.
    The [P32R integration review](../experiments/2026-08-06-a72-p32-r-review/README.md)
    confirms that complete callback/architecture-effect prefix retention and
-   the membership/provider/A30 ledger handoff are still open.
+   the membership/provider/A30 ledger handoff are still open. Its
+   [integration design](../experiments/2026-08-06-a72-p32-r-review/DESIGN.md)
+   now fixes the bounded callback vector, effect mask, overflow/unknown
+   fail-stop behavior, and owner-only ledger handoff that the next source
+   patches must implement; the accompanying seven-probe model is design
+   evidence, not kernel or runtime validation.
 4. Complete the A25 callback/rollback review and re-audit P32R against the
    mutation result, then finish P32A/D/F/X/R using either a reviewed core
    no-auto-rollback interface or the fail-stop `.cpu_disable` plus die/kill

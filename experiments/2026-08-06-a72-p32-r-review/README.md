@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-06-a72-p32-r-review` |
-| Status | `open` (hook/identity guards validated; P32R integration gaps confirmed) |
+| Status | `open` (integration contract designed and modeled; source implementation remains open) |
 | Subsystem | P32A/D/F/X/R rollback ownership and terminal ledger handoff |
 | Device variant | Planet Gemini PDA, MT6797; no live-device action |
 | Date | 2026-08-06 America/New_York |
@@ -32,3 +32,13 @@ remain:
 The executable check records these gaps in
 [`results/p32-r-review-20260806.txt`](results/p32-r-review-20260806.txt).
 No CPU_ON/OFF or device action is authorized.
+
+The bounded implementation contract is now recorded in
+[`DESIGN.md`](DESIGN.md). It defines separate callback-prefix,
+architecture-effect, and ledger-handoff records, rejects truncation and
+unknown effects, and keeps provider/membership changes owner-controlled. The
+independent seven-probe model is
+[`scripts/integration_oracle.py`](scripts/integration_oracle.py), with its
+result in
+[`results/p32r-integration-design-20260806.txt`](results/p32r-integration-design-20260806.txt).
+This is design evidence only; it does not close the source or Buildbox gate.
