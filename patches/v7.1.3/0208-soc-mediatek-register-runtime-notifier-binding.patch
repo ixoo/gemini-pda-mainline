@@ -1,0 +1,340 @@
+From 0000000000000000000000000000000000000208 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 7 Aug 2026 01:15:00 -0400
+Subject: [PATCH] soc: mediatek: register runtime notifier binding
+
+The 0207 ledger needs a real lifecycle source before its event mapping can
+protect a future state owner. Add a bounded binding that uses the Linux CPU
+hotplug state machine and PM notifier chain only after an owner explicitly
+registers it. The hotplug callbacks distinguish a failed down transition from
+a later successful bring-up using the online mask and a pending-down bit.
+
+The source callback supplies the generation-tagged event; the binding checks
+the requested type, serializes the ledger, and converts failures into the
+fail-closed CPU/PM notifier result. Registration requires an already active
+state owner and both notifier registrations succeed before the binding is
+armed. Unregistration disarms first and removes both hooks before freeing
+state. No caller registers this binding, and it performs no hardware access,
+provider operation, firmware call, or CPU_ON operation. This patch is
+experiment-only and is not submission-ready.
+---
+ drivers/soc/mediatek/Makefile                    |   1 +
+ drivers/soc/mediatek/mt6797-dvfsp-runtime-bind.c | 267 ++++++++++++++++++++++
+ include/linux/soc/mediatek/mt6797-dvfsp-runtime.h |  24 +++
+ 3 files changed, 292 insertions(+)
+
+diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
+--- a/drivers/soc/mediatek/Makefile
++++ b/drivers/soc/mediatek/Makefile
+@@ -1 +1,2 @@
+ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-runtime.o
++obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-runtime-bind.o
+
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-runtime.h b/include/linux/soc/mediatek/mt6797-dvfsp-runtime.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-runtime.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-runtime.h
+@@ -39,6 +39,30 @@ struct mt6797_dvfsp_runtime_ledger {
+ int mt6797_dvfsp_runtime_event_apply(
+ 	struct mt6797_dvfsp_handoff *handoff,
+ 	const struct mt6797_dvfsp_runtime_event *event,
+ 	struct mt6797_dvfsp_runtime_ledger *ledger);
++
++#define MT6797_DVFSP_RUNTIME_BINDING_ABI	1
++#define MT6797_DVFSP_RUNTIME_CPU_NONE		(~0U)
++
++struct mt6797_dvfsp_runtime_source_ops {
++	u32 abi;
++	int (*event)(void *context, u32 type, unsigned int cpu,
++			     struct mt6797_dvfsp_runtime_event *event);
++};
++
++struct mt6797_dvfsp_runtime_binding {
++	u32 abi;
++	void *private_data;
++};
++
++void mt6797_dvfsp_runtime_binding_init(
++	struct mt6797_dvfsp_runtime_binding *binding);
++int mt6797_dvfsp_runtime_binding_register(
++	struct mt6797_dvfsp_runtime_binding *binding,
++	struct mt6797_dvfsp_handoff *handoff,
++	const struct mt6797_dvfsp_runtime_source_ops *source_ops,
++	void *source_context);
++int mt6797_dvfsp_runtime_binding_unregister(
++	struct mt6797_dvfsp_runtime_binding *binding);
+ 
+ #endif /* __LINUX_SOC_MEDIATEK_MT6797_DVFSP_RUNTIME_H */
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-runtime-bind.c b/drivers/soc/mediatek/mt6797-dvfsp-runtime-bind.c
+new file mode 100644
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-dvfsp-runtime-bind.c
+@@ -0,0 +1,267 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * CPU-hotplug and PM lifecycle binding for the MT6797 DVFSP event ledger.
++ *
++ * This binding is inert until a real state owner explicitly registers it. The
++ * owner supplies each generation-tagged event; this file only connects the
++ * kernel lifecycle sources to the 0207 conversion boundary.
++ */
++
++#include <linux/cpuhotplug.h>
++#include <linux/cpumask.h>
++#include <linux/errno.h>
++#include <linux/kernel.h>
++#include <linux/module.h>
++#include <linux/mutex.h>
++#include <linux/notifier.h>
++#include <linux/slab.h>
++#include <linux/suspend.h>
++#include <linux/types.h>
++
++#include <linux/soc/mediatek/mt6797-dvfsp-runtime.h>
++
++struct mt6797_dvfsp_runtime_binding_state {
++	struct mt6797_dvfsp_handoff *handoff;
++	const struct mt6797_dvfsp_runtime_source_ops *source_ops;
++	void *source_context;
++	struct mt6797_dvfsp_runtime_ledger ledger;
++	struct mutex lock;
++	struct notifier_block pm_notifier;
++	cpumask_t down_pending;
++	int hotplug_state;
++	bool hotplug_registered;
++	bool pm_registered;
++	bool active;
++};
++
++static DEFINE_MUTEX(mt6797_dvfsp_runtime_global_lock);
++static struct mt6797_dvfsp_runtime_binding_state
++	*mt6797_dvfsp_runtime_global;
++
++static int mt6797_dvfsp_runtime_emit_locked(
++	struct mt6797_dvfsp_runtime_binding_state *state, u32 type,
++	unsigned int cpu)
++{
++	struct mt6797_dvfsp_runtime_event event = {
++		.abi = MT6797_DVFSP_RUNTIME_ABI,
++		.type = type,
++	};
++	int ret;
++
++	if (!state->active || !state->source_ops ||
++		state->source_ops->abi != MT6797_DVFSP_RUNTIME_ABI ||
++		!state->source_ops->event)
++		return -ENODEV;
++
++	ret = state->source_ops->event(state->source_context, type, cpu,
++				       &event);
++	if (ret)
++		return ret;
++	if (event.type != type)
++		return -EPROTO;
++
++	return mt6797_dvfsp_runtime_event_apply(state->handoff, &event,
++						&state->ledger);
++}
++
++static int mt6797_dvfsp_runtime_cpu_startup(unsigned int cpu)
++{
++	struct mt6797_dvfsp_runtime_binding_state *state;
++	u32 type;
++	int ret;
++
++	state = READ_ONCE(mt6797_dvfsp_runtime_global);
++	if (!state)
++		return 0;
++
++	mutex_lock(&state->lock);
++	if (!state->active) {
++		ret = 0;
++		goto out_unlock;
++	}
++
++	if (cpumask_test_and_clear_cpu(cpu, &state->down_pending))
++		type = cpu_online(cpu) ?
++			MT6797_DVFSP_RUNTIME_CPU_DOWN_FAILED :
++			MT6797_DVFSP_RUNTIME_CPU_ONLINE;
++	else
++		type = MT6797_DVFSP_RUNTIME_CPU_ONLINE;
++	ret = mt6797_dvfsp_runtime_emit_locked(state, type, cpu);
++
++out_unlock:
++	mutex_unlock(&state->lock);
++	return ret;
++}
++
++static int mt6797_dvfsp_runtime_cpu_teardown(unsigned int cpu)
++{
++	struct mt6797_dvfsp_runtime_binding_state *state;
++	int ret;
++
++	state = READ_ONCE(mt6797_dvfsp_runtime_global);
++	if (!state)
++		return 0;
++
++	mutex_lock(&state->lock);
++	if (!state->active) {
++		ret = 0;
++		goto out_unlock;
++	}
++
++	ret = mt6797_dvfsp_runtime_emit_locked(
++		state, MT6797_DVFSP_RUNTIME_CPU_DOWN_PREPARE, cpu);
++	if (!ret)
++		cpumask_set_cpu(cpu, &state->down_pending);
++
++out_unlock:
++	mutex_unlock(&state->lock);
++	return ret;
++}
++
++static int mt6797_dvfsp_runtime_pm_notify(struct notifier_block *notifier,
++					   unsigned long action, void *data)
++{
++	struct mt6797_dvfsp_runtime_binding_state *state =
++		container_of(notifier, struct mt6797_dvfsp_runtime_binding_state,
++			     pm_notifier);
++	u32 type;
++	int ret;
++
++	switch (action) {
++	case PM_SUSPEND_PREPARE:
++		type = MT6797_DVFSP_RUNTIME_PM_SUSPEND_PREPARE;
++		break;
++	case PM_POST_SUSPEND:
++		type = MT6797_DVFSP_RUNTIME_PM_POST_SUSPEND;
++		break;
++	default:
++		return NOTIFY_DONE;
++	}
++
++	mutex_lock(&state->lock);
++	ret = mt6797_dvfsp_runtime_emit_locked(
++		state, type, MT6797_DVFSP_RUNTIME_CPU_NONE);
++	mutex_unlock(&state->lock);
++
++	return ret ? notifier_from_errno(ret) : NOTIFY_OK;
++}
++
++void mt6797_dvfsp_runtime_binding_init(
++	struct mt6797_dvfsp_runtime_binding *binding)
++{
++	if (!binding)
++		return;
++
++	binding->abi = MT6797_DVFSP_RUNTIME_BINDING_ABI;
++	binding->private_data = NULL;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_runtime_binding_init);
++
++static void mt6797_dvfsp_runtime_binding_disarm(
++	struct mt6797_dvfsp_runtime_binding *binding,
++	struct mt6797_dvfsp_runtime_binding_state *state)
++{
++	mutex_lock(&state->lock);
++	state->active = false;
++	mutex_unlock(&state->lock);
++
++	mutex_lock(&mt6797_dvfsp_runtime_global_lock);
++	if (mt6797_dvfsp_runtime_global == state)
++		mt6797_dvfsp_runtime_global = NULL;
++	mutex_unlock(&mt6797_dvfsp_runtime_global_lock);
++
++	if (state->pm_registered) {
++		unregister_pm_notifier(&state->pm_notifier);
++		state->pm_registered = false;
++	}
++	if (state->hotplug_registered) {
++		cpuhp_remove_state_nocalls(state->hotplug_state);
++		state->hotplug_registered = false;
++	}
++
++	binding->private_data = NULL;
++	kfree(state);
++}
++
++int mt6797_dvfsp_runtime_binding_register(
++	struct mt6797_dvfsp_runtime_binding *binding,
++	struct mt6797_dvfsp_handoff *handoff,
++	const struct mt6797_dvfsp_runtime_source_ops *source_ops,
++	void *source_context)
++{
++	struct mt6797_dvfsp_state_owner_identity identity;
++	struct mt6797_dvfsp_runtime_binding_state *state;
++	int ret;
++
++	if (!binding || binding->abi != MT6797_DVFSP_RUNTIME_BINDING_ABI ||
++		binding->private_data || !handoff || !source_ops ||
++		source_ops->abi != MT6797_DVFSP_RUNTIME_ABI ||
++		!source_ops->event)
++		return -EINVAL;
++
++	ret = mt6797_dvfsp_handoff_state_owner_identity(handoff, &identity);
++	if (ret)
++		return ret;
++
++	state = kzalloc(sizeof(*state), GFP_KERNEL);
++	if (!state)
++		return -ENOMEM;
++	state->handoff = handoff;
++	state->source_ops = source_ops;
++	state->source_context = source_context;
++	mutex_init(&state->lock);
++	cpumask_clear(&state->down_pending);
++	state->pm_notifier.notifier_call = mt6797_dvfsp_runtime_pm_notify;
++
++	mutex_lock(&mt6797_dvfsp_runtime_global_lock);
++	if (mt6797_dvfsp_runtime_global) {
++		ret = -EBUSY;
++		mutex_unlock(&mt6797_dvfsp_runtime_global_lock);
++		kfree(state);
++		return ret;
++	}
++	mt6797_dvfsp_runtime_global = state;
++	binding->private_data = state;
++	mutex_unlock(&mt6797_dvfsp_runtime_global_lock);
++
++	ret = cpuhp_setup_state_nocalls(CPUHP_AP_ONLINE_DYN,
++					"mt6797-dvfsp/runtime:online",
++					mt6797_dvfsp_runtime_cpu_startup,
++					mt6797_dvfsp_runtime_cpu_teardown);
++	if (ret < 0)
++		goto err_disarm;
++	state->hotplug_state = ret;
++	state->hotplug_registered = true;
++
++	ret = register_pm_notifier(&state->pm_notifier);
++	if (ret)
++		goto err_disarm;
++	state->pm_registered = true;
++
++	mutex_lock(&state->lock);
++	state->active = true;
++	mutex_unlock(&state->lock);
++	return 0;
++
++err_disarm:
++	mt6797_dvfsp_runtime_binding_disarm(binding, state);
++	return ret;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_runtime_binding_register);
++
++int mt6797_dvfsp_runtime_binding_unregister(
++	struct mt6797_dvfsp_runtime_binding *binding)
++{
++	struct mt6797_dvfsp_runtime_binding_state *state;
++
++	if (!binding || binding->abi != MT6797_DVFSP_RUNTIME_BINDING_ABI ||
++		!binding->private_data)
++		return -ENOENT;
++
++	state = binding->private_data;
++	mt6797_dvfsp_runtime_binding_disarm(binding, state);
++	return 0;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_runtime_binding_unregister);
++
++MODULE_DESCRIPTION("MT6797 DVFSP runtime notifier binding");
++MODULE_LICENSE("GPL");
