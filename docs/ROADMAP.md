@@ -1799,15 +1799,17 @@ The next ordered work remains source-only:
    validation recorded in the
    [Buildbox result](../experiments/2026-08-06-a72-p30e-mmuoff-contract/results/buildbox-validation-20260806.txt).
    The first implementation-to-contract comparison found compile-invisible
-   control-flow and operation-identity gaps: the target symbols are not wired
-   to `secondary_entry`, several direct branches reach a helper that does not
-   preserve the caller's link register, and the selected operation is not
-   cross-checked against the selected CPU. The exact blocking review is in the
-   [implementation comparison](../experiments/2026-08-06-a72-p30e-mmuoff-contract/results/implementation-contract-comparison-20260806.txt).
-   The next source-only action is to repair those gaps and rerun the comparison,
-   then proceed to authoritative P17/P18/P24 integration. This remains an
-   implementation gate, not admission authorization. The dormant C control
-   object cannot substitute for the MMU-off proof or open a CPU_ON path.
+   control-flow and operation-identity gaps. Those repairs now pass the
+   corrected source comparison and the complete Buildbox package validation;
+   the current evidence is in the
+   [implementation comparison](../experiments/2026-08-06-a72-p30e-mmuoff-contract/results/implementation-contract-comparison-20260806.txt)
+   and [Buildbox result](../experiments/2026-08-06-a72-p30e-mmuoff-contract/results/buildbox-validation-20260806.txt).
+   The remaining source-only gate is physical slot-handoff/wire-identity
+   review, followed by integration only behind the authoritative P17/P18/P24
+   owner. The target symbols are still not wired to `secondary_entry`; this
+   remains an implementation gate, not admission authorization. The dormant C
+   control object cannot substitute for the MMU-off proof or open a CPU_ON
+   path.
 3. Complete A25 and implement P32A/D/F/X/R using either a reviewed core
    no-auto-rollback interface or the fail-stop `.cpu_disable` plus die/kill
    guard design, retaining every partial callback and architecture effect.

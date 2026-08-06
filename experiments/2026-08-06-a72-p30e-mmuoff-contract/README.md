@@ -32,8 +32,9 @@ canonical Linux 7.1.3 series and passes the Buildbox kernel-artifact package
 validation; the exact result is recorded in
 [Buildbox validation](results/buildbox-validation-20260806.txt). It still has
 no production caller, CPU_ON/OFF operation, boot candidate, or device action.
-The first implementation-to-contract comparison found compile-invisible
-control-flow and identity gaps; the exact blocking review is recorded in
+The corrected implementation now passes the callable-flow and operation/MPIDR
+identity comparison; the remaining blocker is deliberate entry-path and
+P17/P18/P24 integration. The complete current review is recorded in
 [implementation comparison](results/implementation-contract-comparison-20260806.txt).
 
 ## Safety boundary
@@ -70,9 +71,8 @@ separate 2 KiB CPU8/CPU9 slots. The implementation uses MPIDR `0x200` or
 `0x201` in the `.idmap.text` target path, validates the immutable identity
 words, and uses the full-range cache protocol. Buildbox now validates the
 complete implementation package for this profile. The first comparison found
-compile-invisible control-flow and identity gaps; the exact blocking review is
-recorded in [implementation comparison](results/implementation-contract-comparison-20260806.txt).
-The next source-only gate is to repair those gaps, rerun the comparison
-against this contract and the P30 model, and only then proceed to authoritative
-P17/P18/P24 admission integration. CPU8/CPU9 admission and device use remain
-blocked until those gates close.
+compile-invisible control-flow and identity gaps; those repairs now pass the
+corrected comparison. The next source-only gate is to review physical slot
+handoff and wire identity, then integrate only behind the authoritative
+P17/P18/P24 owner. CPU8/CPU9 admission and device use remain blocked until
+those gates close.
