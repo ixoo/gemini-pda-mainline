@@ -23,10 +23,9 @@ validated. This is an experiment-only contract and is not submission-ready.
 diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
 --- a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
 +++ b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
-@@ -103,3 +103,97 @@ struct mt6797_dvfsp_state_owner_ops {
+@@ -103,2 +103,96 @@ struct mt6797_dvfsp_state_owner_ops {
  			   enum mt6797_dvfsp_state_invalidation_reason reason);
  };
- 
 +#define MT6797_DVFSP_PCM_ADAPTER_ABI		1
 +#define MT6797_DVFSP_PCM_IMAGE_HASH_BYTES	32
 +#define MT6797_DVFSP_PCM_RESOURCE_CSPM		BIT(0)
@@ -650,12 +649,11 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/
 +}
 +EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_pcm_adapter_phase);
 +
-@@ -1838,7 +1838,9 @@ static int mt6797_dvfsp_handoff_probe(struct platform_device *pdev)
+@@ -1838,6 +1838,8 @@ static int mt6797_dvfsp_handoff_probe(struct platform_device *pdev)
  	handoff->reason = "resources-not-ready";
  	mutex_init(&handoff->lock);
  	mutex_init(&handoff->transfer_lock);
  	mutex_init(&handoff->fw_owner_lock);
- 	mutex_init(&handoff->state_owner_lock);
 +	mutex_init(&handoff->pcm_adapter_lock);
 +	handoff->pcm_adapter_phase = MT6797_DVFSP_PCM_PHASE_UNAVAILABLE;
  	init_completion(&handoff->terminal);
