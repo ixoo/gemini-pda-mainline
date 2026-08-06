@@ -1817,6 +1817,10 @@ The next ordered work remains source-only:
    and generation-bound lease registration. The model rejects premature or
    stale use and invalidates across suspend/resume; it is not a firmware owner
    or boot evidence. See the [PCM adapter model](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/pcm-adapter-model-20260806.txt).
+   A bounded Buildbox source inventory confirms the target seam: generic
+   topckgen/apmixedsys clocks and the read-only A72 observer are present, but
+   MT6797 cpufreq, protected MCUMIXED/DVFSP ownership, and the BigiDVFS secure
+   backend are absent. See the [clock/state-owner inventory](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/mainline-clock-owner-inventory-20260806.txt).
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and

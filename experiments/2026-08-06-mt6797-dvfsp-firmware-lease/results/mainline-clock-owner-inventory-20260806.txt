@@ -1,0 +1,40 @@
+# MT6797 mainline clock/state-owner inventory
+
+Date: 2026-08-06 America/New_York
+
+claim=MAINLINE_MT6797_CLOCK_STATE_OWNER_INVENTORY
+repository_commit=e537c2c3b955a02aa26ffb086f410311426b482d
+buildbox_source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+source_tree=/workspace/gemini-pda/src/linux-7.1.3
+clock_source=drivers/clk/mediatek/clk-mt6797.c
+clock_source_sha256=aea5041078556536d0bac36fb76e5b3fcd2746fbae78c4a730c70fae0ab76b4a
+a72_observer_source=drivers/soc/mediatek/mt6797-a72-power.c
+a72_observer_source_sha256=01e0b74e4bd8851ca5dd1cf4d13312a68142a3da2078b022e5da5825d48c2291
+
+clock_nodes=topckgen@0x10000000;apmixed@0x1000c000
+clock_compatibles=mediatek,mt6797-topckgen;mediatek,mt6797-apmixedsys
+generic_clock_math=topckgen_factors_and_muxes;apmixedsys_plls
+cpu_pll_provider=absent;no_MT6797_ARMPLL_CPU_mux_divider_owner
+mt6797_cpufreq_source=absent;drivers/cpufreq_has_no_MT6797_match
+protected_clock_owner=absent;MCUMIXED_DVFSP_semaphore_unrepresented
+big_cluster_secure_owner=absent;BigiDVFS_SMCCC_backend_unrepresented
+
+a72_observer_reads=exclusive_vproc_regulator;MCUCFG_MP2_SYNC_DCM;MCUCFG_BIG_ARMPLL_CON0
+a72_observer_writes=none
+a72_cpu_on=denied
+a72_state_owner=not_an_OPP_frequency_voltage_VSRAM_clock_rail_owner
+cpu8_binding=MPIDR_0x200;mediatek,mt6797-psci
+cpu9_binding=MPIDR_0x201;mediatek,mt6797-psci
+
+decision=DO_NOT_EXTEND_GENERIC_CCF_OR_OBSERVER;DESIGN_PROTECTED_STATE_OWNER
+next_gate=identify_MCUMIXED_DVFSP_owner_and_BigiDVFS_backend;then_bind_0192_snapshot_validate_invalidate
+hardware_writes=0
+device_action=none
+status=PASS_READ_ONLY_INVENTORY
+
+This inventory was collected from the already prepared Buildbox source tree;
+no source was copied to or from Buildbox and no build or device action was
+performed. The generic clock providers and read-only A72 observer are useful
+evidence, but neither can serve as the authoritative startup-state owner
+required by the PCM adapter. The exact source identity is tied to the prior
+validated Buildbox source SHA; this result does not claim hardware support.

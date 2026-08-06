@@ -90,6 +90,7 @@ be copied directly into a mainline failure/PM path.
 - [Current-head full-profile Buildbox resume](results/current-head-full-buildbox-20260806.txt)
 - [Dormant state-owner contract Buildbox validation](results/state-owner-contract-buildbox-20260806.txt)
 - [Bounded PCM adapter admission model](results/pcm-adapter-model-20260806.txt)
+- [Mainline clock/state-owner inventory](results/mainline-clock-owner-inventory-20260806.txt)
 - [Current-head bfd04ae full-profile Buildbox resume](results/current-head-bfd04ae-full-buildbox-20260806.txt)
 - [Receiver register-window identity reconciliation](results/receiver-register-identity-20260806.txt)
 - [Retained TEE secure-owner disassembly](../2026-08-06-da921x-page-owner-audit/results/tee-owner-disassembly-20260806.txt)
@@ -172,3 +173,9 @@ generation, exact CSPM/CSRAM and clock/semaphore ownership, ordered reset and
 PCM-start acknowledgements, and generation-bound lease registration. It rejects
 premature callbacks and stale state or owner handles, and invalidates on
 suspend/resume. See the [adapter model result](results/pcm-adapter-model-20260806.txt).
+
+A bounded read-only Buildbox inventory confirms the missing implementation seam:
+the current tree has generic MT6797 topckgen/apmixedsys providers but no
+MT6797 cpufreq driver, protected MCUMIXED/DVFSP clock owner, or BigiDVFS secure
+backend. The existing A72 observer reads Vproc/MCUCFG state and denies CPU_ON;
+it is not a startup-state owner. See the [clock/state-owner inventory](results/mainline-clock-owner-inventory-20260806.txt).

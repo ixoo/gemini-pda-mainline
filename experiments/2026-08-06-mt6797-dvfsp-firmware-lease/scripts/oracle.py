@@ -14,6 +14,7 @@ OWNER_RESULT = Path(__file__).resolve().parents[1] / "results/public-hybrid-owne
 STATE_RESULT = Path(__file__).resolve().parents[1] / "results/public-owner-startup-state-20260806.txt"
 ADAPTER_DESIGN = Path(__file__).resolve().parents[1] / "PCM_ADAPTER_DESIGN.md"
 ADAPTER_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-adapter-model-20260806.txt"
+CLOCK_RESULT = Path(__file__).resolve().parents[1] / "results/mainline-clock-owner-inventory-20260806.txt"
 
 
 def require(text: str, needle: str, label: str) -> None:
@@ -30,6 +31,7 @@ def main() -> None:
     state_result = STATE_RESULT.read_text()
     adapter_design = ADAPTER_DESIGN.read_text()
     adapter_result = ADAPTER_RESULT.read_text()
+    clock_result = CLOCK_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     names = [Path(line).name for line in SERIES.read_text().splitlines()
@@ -141,6 +143,19 @@ def main() -> None:
         require(adapter_result, needle, label)
 
     for needle, label in (
+        ("claim=MAINLINE_MT6797_CLOCK_STATE_OWNER_INVENTORY", "clock-inventory-claim"),
+        ("clock_compatibles=mediatek,mt6797-topckgen;mediatek,mt6797-apmixedsys", "clock-generic-providers"),
+        ("mt6797_cpufreq_source=absent", "clock-no-cpufreq"),
+        ("protected_clock_owner=absent", "clock-no-protected-owner"),
+        ("big_cluster_secure_owner=absent", "clock-no-bigi-owner"),
+        ("a72_observer_writes=none", "clock-observer-read-only"),
+        ("a72_cpu_on=denied", "clock-observer-denies-cpu-on"),
+        ("decision=DO_NOT_EXTEND_GENERIC_CCF_OR_OBSERVER", "clock-decision"),
+        ("status=PASS_READ_ONLY_INVENTORY", "clock-status"),
+    ):
+        require(clock_result, needle, label)
+
+    for needle, label in (
         ("claim=PUBLIC_GEMIAN_HYBRID_DVFSP_OWNER_REVALIDATED", "owner-claim"),
         ("source_commit=8cfe6596a503612e3332d9c26e292a19525a7f07", "owner-source"),
         ("source_license_basis=repository_COPYING_and_LICENSE_GPLv2;hybrid_header_GPLv2", "owner-license"),
@@ -180,6 +195,7 @@ def main() -> None:
     print("device_action=none")
     print("state_owner_contract=0192-dormant;registered_owner=0;no_provider;no_mmio;no_transition")
     print("pcm_adapter_contract=source-only;bounded-admission-model;callback-registration-gated")
+    print("clock_owner_inventory=generic_ccf_only;protected_owner_absent;A72_observer_read_only")
     print("pcm_start_contract=defined;residency_and_start_required_before_callback_registration")
     print("startup_state_owner=unproven;mainline=absent")
     print("historical_owner_source=identified;public_gemian_hybrid")
