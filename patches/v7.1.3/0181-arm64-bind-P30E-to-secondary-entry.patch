@@ -86,7 +86,7 @@ diff --git a/arch/arm64/kernel/head.S b/arch/arm64/kernel/head.S
 +.Lp30e_secondary_resume:
 +	mov	x0, x20
 +#endif
- b	secondary_startup
+ 	b	secondary_startup
  SYM_FUNC_END(secondary_entry)
 diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt6797_a72_membership.c
 --- a/arch/arm64/kernel/mt6797_a72_membership.c
@@ -119,8 +119,17 @@ diff --git a/arch/arm64/kernel/mt6797_a72_p30e.c b/arch/arm64/kernel/mt6797_a72_
  
  static_assert(sizeof(struct arm64_mt6797_a72_p30e_wire) ==
  	      ARM64_MT6797_A72_P30E_WIRE_BYTES);
-@@ -165,6 +166,8 @@ int arm64_mt6797_a72_p30e_arm(unsigned int cpu,
- 	    (request->operation != ARM64_MT6797_A72_P30E_OPERATION_CPU9_UP) ||
+@@ -163,12 +163,14 @@ int arm64_mt6797_a72_p30e_arm(unsigned int cpu,
+ 	if (!request || !p30e_slot(cpu) ||
+ 	    (request->operation != ARM64_MT6797_A72_P30E_OPERATION_CPU8_UP &&
+ 	     request->operation != ARM64_MT6797_A72_P30E_OPERATION_CPU9_UP) ||
+ 	    !request->slot_pa ||
+ 	    request->slot_pa != arm64_mt6797_a72_p30e_slot_pa(cpu) ||
+ 	    request->slot_pa & (ARM64_MT6797_A72_P30E_SLOT_BYTES - 1) ||
+ 	    (cpu == ARM64_MT6797_A72_P30E_CPU8 &&
+ 	     request->operation != ARM64_MT6797_A72_P30E_OPERATION_CPU8_UP) ||
+ 	    (cpu == ARM64_MT6797_A72_P30E_CPU9 &&
+ 	     request->operation != ARM64_MT6797_A72_P30E_OPERATION_CPU9_UP) ||
  	    !request->generation || !request->cookie)
  		return -EINVAL;
 +	if (!request->entry_pa || request->entry_pa != __pa_symbol(secondary_entry))
@@ -141,10 +150,7 @@ diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
  #include <asm/processor.h>
  #include <asm/smp_plat.h>
  #include <asm/sections.h>
-@@ -278,6 +281,22 @@ asmlinkage notrace void secondary_start_kernel(void)
- 	pr_info("CPU%u: Booted secondary processor 0x%010lx [0x%08x]\n",
- 						 cpu, (unsigned long)mpidr,
- 						 read_cpuid_id());
+@@ -284,3 +284,19 @@ asmlinkage notrace void secondary_start_kernel(void)
 +#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
 +	{
 +		int p30e_ret;
