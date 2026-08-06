@@ -168,7 +168,7 @@ diff --git a/kernel/cpu.c b/kernel/cpu.c
 +				    CPU_UP_ROLLBACK_EFFECT_DEAD_PUBLISH,
 +				    CPU_UP_ROLLBACK_EFFECT_BEGIN, 0);
  	smp_call_function_single(cpumask_first(cpu_online_mask),
- 					 cpuhp_complete_idle_dead, st, 0);
+ 				 cpuhp_complete_idle_dead, st, 0);
 +	arch_cpu_up_rollback_effect(smp_processor_id(),
 +				    CPU_UP_ROLLBACK_EFFECT_DEAD_PUBLISH,
 +				    CPU_UP_ROLLBACK_EFFECT_COMPLETE, 0);
