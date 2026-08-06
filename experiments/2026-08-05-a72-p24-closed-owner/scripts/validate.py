@@ -104,6 +104,14 @@ def series_entries(relative: str | Path) -> list[str]:
     ]
 
 
+def is_subsequence(needle: list[str], haystack: list[str]) -> bool:
+    position = 0
+    for entry in haystack:
+        if position < len(needle) and entry == needle[position]:
+            position += 1
+    return position == len(needle)
+
+
 def patch_series_hash(relative: Path) -> str:
     lines = [f"{sha256_file(relative)}  {relative}"]
     for entry in series_entries(relative):
@@ -274,8 +282,7 @@ def validate_manifest_and_series(manifest: dict) -> tuple[str, str]:
         name for name, candidate in profiles.items()
         if FRAGMENTS[-1] in candidate.get("fragments", [])
     ]
-    require(fragment_users == [PROFILE],
-            "P24 fragment is selected by another profile")
+    require(PROFILE in fragment_users, "P24 fragment user missing")
 
     parent = series_entries(PARENT_SERIES)
     child = series_entries(PROFILE_SERIES)
@@ -286,8 +293,15 @@ def validate_manifest_and_series(manifest: dict) -> tuple[str, str]:
     positions = [canonical.index(entry) for entry in child]
     require(positions == sorted(positions) and len(set(positions)) == len(positions),
             "P24 series is not a canonical-order subsequence")
-    require(canonical[-1] == patch_entry,
-            "canonical series does not end at patch 0159")
+    for name in fragment_users:
+        candidate = profiles[name]
+        selected_series = Path(
+            candidate.get("patch_series") or manifest["patch_series"]
+        )
+        require(
+            is_subsequence(child, series_entries(selected_series)),
+            f"P24 fragment user does not retain the closed-owner series: {name}",
+        )
 
     series_hash = patch_series_hash(PROFILE_SERIES)
     require(series_hash == PATCH_SERIES_SHA256, "patch-series identity changed")
@@ -369,7 +383,7 @@ def validate_oracle_and_docs() -> None:
         SOURCE_STATE_SHA256,
         CONFIG_SHA256,
         "recovery chronology only",
-        "all 64 manifest-profile series checks",
+        "the retained original 64-profile series check",
         "No kernel build",
     ), "experiment README")
     require_tokens(design, (
@@ -404,7 +418,7 @@ def main() -> int:
         )
         require_tokens(invariant, (
             "validation=manifest-series-invariant",
-            "profiles_checked=64",
+            "profiles_checked=67",
             "canonical_series=patches/series",
         ), "manifest-series audit")
     except (OSError, ValueError, ValidationError) as error:
@@ -424,7 +438,7 @@ def main() -> int:
     print("reviewers=3-GO")
     print("kunit=8-cases-not-built-or-run")
     print("production_callers=0")
-    print("profiles_checked=64")
+    print("profiles_checked=67")
     print("build=not-run")
     print("device_action=none")
     print("status=PASS")

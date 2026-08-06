@@ -61,6 +61,7 @@ device.
 - [Mutation transcript](results/mutation-validation-20260805.txt)
 - [Kernel static review](results/kernel-static-review-20260805.txt)
 - [Offline integration validation](results/offline-validation-20260805.txt)
+- [Validator refresh](results/validator-refresh-20260806.txt)
 - [`0159` closed-owner patch](../../patches/v7.1.3/0159-arm64-add-closed-A72-transaction-owner-model.patch)
 
 No privileges or external dependencies are required.
@@ -116,7 +117,12 @@ suite, documentation, safety gates, and every manifest profile.
   nor rejects it.
 - The exact offline validator passed the patch and reviewed-source identities,
   profile/configuration binding, documentation, oracle, mutation suite, and
-  all 64 manifest-profile series checks.
+  the retained original 64-profile series check.
+- A 2026-08-06 validator refresh now permits the intentionally shared
+  closed-owner fragment in descendant profiles, verifies that each such
+  profile retains the complete closed-owner series as an ordered subsequence,
+  and passes the current 67-profile manifest audit. The original milestone
+  transcript remains historical evidence; the refresh is recorded separately.
 - No kernel build, KUnit execution, runtime test, network access, or device
   action was performed.
 

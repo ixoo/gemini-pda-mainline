@@ -1,0 +1,16 @@
+validation=p24-closed-owner-refresh
+date=2026-08-06
+scope=read-only-validator-maintenance;no-device-action
+change=allow-intentional-descendant-reuse-of-closed-owner-fragment;require-parent-series-subsequence
+original_transcript=offline-validation-20260805.txt;profiles_checked=64
+current_manifest_audit=profiles_checked=67;canonical_series=patches/series
+p24_closed_owner_profile=retained
+p24_closed_hooks_profile=retains_closed_owner_series=yes
+a72_p24_provider_owner_refusal_profile=retains_closed_owner_series=yes
+oracle=PASS_PARTIAL_P24_CLOSED_OWNER_MODEL
+mutations=PASS_25_of_25
+validator=PASS
+build=not-run
+device_action=none
+decision=VALIDATOR_REFRESH_ONLY
+status=PASS
