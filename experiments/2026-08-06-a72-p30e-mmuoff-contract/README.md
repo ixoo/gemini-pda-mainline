@@ -33,11 +33,13 @@ validation; the exact result is recorded in
 [Buildbox validation](results/buildbox-validation-20260806.txt). It still has
 no production caller, CPU_ON/OFF operation, boot candidate, or device action.
 The corrected implementation now passes the callable-flow and operation/MPIDR
-identity comparison. The physical-slot and wire-identity review found that the
-controller API still lacks an explicit slot-physical-address handoff and the
-MMU-off side lacks an independent expected boot identity; entry-path and
-P17/P18/P24 integration therefore remain blocked. The complete current review
-is recorded in
+identity comparison. Follow-up patch `0178` adds an explicit slot-physical
+address to the controller request, validates it against the retained static
+slot and alignment, and adds a separate target-identity sidecar that the
+MMU-off path compares before publication. The API and target comparison pass
+static review and the pushed-head Buildbox package; the physical reserved-range
+proof and authoritative P17/P18/P24 owner binding remain blocked. The complete
+current review is recorded in
 [implementation comparison](results/implementation-contract-comparison-20260806.txt).
 
 ## Safety boundary
@@ -75,9 +77,11 @@ separate 2 KiB CPU8/CPU9 slots. The implementation uses MPIDR `0x200` or
 words, and uses the full-range cache protocol. Buildbox now validates the
 complete implementation package for this profile. The first comparison found
 compile-invisible control-flow and identity gaps; those repairs now pass the
-corrected comparison. The physical-slot/wire-identity audit is recorded in
-[physical-slot review](results/physical-slot-wire-identity-audit-20260806.txt):
-the authoritative P17/P18/P24 owner must still define the slot physical
-handoff and an independent boot-identity expectation before entry integration
-can be reviewed. CPU8/CPU9 admission and device use remain blocked until
-those gates close.
+corrected comparison. Patch `0178` now makes the physical slot and target
+identity checks explicit in the request/target seam; its Buildbox package is
+recorded in the validation result. The physical-slot/wire-identity audit is
+recorded in [physical-slot review](results/physical-slot-wire-identity-audit-20260806.txt):
+the authoritative P17/P18/P24 owner must still populate those fields from the
+frozen transaction and a distinct READY-owned expectation, prove the reserved
+physical range, and bind the entry path before integration can be reviewed.
+CPU8/CPU9 admission and device use remain blocked until those gates close.

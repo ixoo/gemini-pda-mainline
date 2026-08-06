@@ -1806,15 +1806,22 @@ The next ordered work remains source-only:
    the current evidence is in the
    [implementation comparison](../experiments/2026-08-06-a72-p30e-mmuoff-contract/results/implementation-contract-comparison-20260806.txt)
    and [Buildbox result](../experiments/2026-08-06-a72-p30e-mmuoff-contract/results/buildbox-validation-20260806.txt).
-   The remaining source-only gate is now explicit: the controller API has no
-   slot physical-address/range handoff, and the MMU-off side has no independent
-   expected boot-identity comparison. The
+   Patch `0178` now closes the API-side portions of those observations: the
+   request carries an explicit slot physical address, the controller checks it
+   against the retained static slot and 2 KiB alignment, and the MMU-off side
+   compares a separate four-word target-identity sidecar before operation or
+   terminal-state publication. The pushed-head 167-patch Buildbox package and
+   local fetch/revalidation pass are recorded in the
+   [Buildbox result](../experiments/2026-08-06-a72-p30e-mmuoff-contract/results/buildbox-validation-20260806.txt).
+   The remaining source-only gate is now the authoritative binding of those
+   fields: the P17/P18/P24 owner must populate them from the frozen transaction
+   and a distinct READY-owned expectation, and prove the reserved non-reclaimed
+   physical range. The
    [physical-slot/wire-identity audit](../experiments/2026-08-06-a72-p30e-mmuoff-contract/results/physical-slot-wire-identity-audit-20260806.txt)
-   records those blockers. The authoritative P17/P18/P24 owner must define
-   those bindings before any entry integration is reviewed. The target symbols
-   are still not wired to `secondary_entry`; this remains an implementation
-   gate, not admission authorization. The dormant C control object cannot
-   substitute for the MMU-off proof or open a CPU_ON path.
+   records the residual owner and range blockers. The target symbols are still
+   not wired to `secondary_entry`; this remains an implementation gate, not
+   admission authorization. The dormant C control object cannot substitute for
+   the MMU-off proof or open a CPU_ON path.
 3. Complete A25 and implement P32A/D/F/X/R using either a reviewed core
    no-auto-rollback interface or the fail-stop `.cpu_disable` plus die/kill
    guard design, retaining every partial callback and architecture effect.
