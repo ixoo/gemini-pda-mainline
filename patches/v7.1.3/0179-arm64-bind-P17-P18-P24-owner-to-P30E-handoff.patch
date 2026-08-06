@@ -1,0 +1,173 @@
+From 0000000000000000000000000000000000000179 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 6 Aug 2026 00:00:00 -0400
+Subject: [PATCH] arm64: bind P17 P18 P24 owner to P30E handoff
+
+Add the dormant owner-side handoff seam that turns a frozen transaction and
+the READY token into one exact P30E request description. Validate that the
+owner still holds the frozen transaction, that the wire identity matches the
+READY-owned expectation, and that the selected static slot has an aligned
+physical address. Keep the handoff preparation separate from arming, target
+entry, CPU_ON/OFF, and Linux membership.
+
+The handoff carries the frozen transaction identity separately from the
+READY-owned target expectation. The existing P30E arm/readback and MMU-off
+target primitives remain uncalled.
+
+This experiment-only change has no certifying sign-off and is not
+submission-ready.
+---
+ arch/arm64/include/asm/mt6797_a72_membership.h | 30 ++++++++++++++++
+ arch/arm64/kernel/mt6797_a72_membership.c     | 93 ++++++++++++++++++++++++++
+ 2 files changed, 123 insertions(+)
+
+diff --git a/arch/arm64/include/asm/mt6797_a72_membership.h b/arch/arm64/include/asm/mt6797_a72_membership.h
+--- a/arch/arm64/include/asm/mt6797_a72_membership.h
++++ b/arch/arm64/include/asm/mt6797_a72_membership.h
+@@ -371,6 +371,36 @@
+ mt6797_a72_membership_validate_up_prestate(const struct mt6797_a72_transaction *transaction,
+ 						   const struct mt6797_a72_a36_prestate *prestate);
+ int mt6797_a72_membership_publish_up(struct mt6797_a72_transaction *transaction);
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++struct mt6797_a72_p30e_handoff {
++	u32 target_cpu;
++	u32 reserved;
++	u64 slot_pa;
++	u64 wire_boot_identity[ARM64_LATE_CPU_ID_WORDS];
++	u64 target_boot_identity[ARM64_LATE_CPU_ID_WORDS];
++	u64 operation;
++	u64 generation;
++	u64 cookie;
++};
++
++int mt6797_a72_membership_prepare_p30e_handoff(
++	const struct mt6797_a72_transaction *transaction,
++	const struct arm64_late_cpu_ready_token *ready,
++	struct mt6797_a72_p30e_handoff *handoff);
++#else
++struct mt6797_a72_p30e_handoff;
++
++static inline int mt6797_a72_membership_prepare_p30e_handoff(
++	const struct mt6797_a72_transaction *transaction,
++	const struct arm64_late_cpu_ready_token *ready,
++	struct mt6797_a72_p30e_handoff *handoff)
++{
++	(void)transaction;
++	(void)ready;
++	(void)handoff;
++	return -EOPNOTSUPP;
++}
++#endif
+ int mt6797_a72_membership_begin_p27_preparation(struct mt6797_a72_transaction *transaction);
+ int mt6797_a72_membership_complete_p27_preparation(
+ 	struct mt6797_a72_transaction *transaction,
+
+diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt6797_a72_membership.c
+--- a/arch/arm64/kernel/mt6797_a72_membership.c
++++ b/arch/arm64/kernel/mt6797_a72_membership.c
+@@ -25,6 +25,9 @@
+ #include <asm/memory.h>
+ #include <asm/mt6797_a72_membership.h>
+ #include <asm/smp.h>
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++#include <asm/mt6797_a72_p30e.h>
++#endif
+ 
+ static DEFINE_MUTEX(a72_transition_lock);
+ static DEFINE_RAW_SPINLOCK(a72_state_lock);
+@@ -538,3 +538,93 @@
+ }
+ 
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++int mt6797_a72_membership_prepare_p30e_handoff(
++	const struct mt6797_a72_transaction *transaction,
++	const struct arm64_late_cpu_ready_token *ready,
++	struct mt6797_a72_p30e_handoff *handoff)
++{
++	const struct mt6797_a72_transaction_identity *identity;
++	phys_addr_t slot_pa;
++	unsigned int cpu;
++	unsigned long flags;
++	u64 operation;
++	int ret;
++
++	if (!transaction || !ready || !handoff)
++		return -EINVAL;
++
++	memset(handoff, 0, sizeof(*handoff));
++	identity = &transaction->identity;
++	cpu = identity->target_cpu;
++	ret = mt6797_a72_ready_token_validate(cpu, ready);
++	if (ret)
++		return ret;
++	if (!transaction->valid || !transaction->a36_valid ||
++	    !transaction->p30_token_valid ||
++	    identity->abi != MT6797_A72_TRANSACTION_ABI ||
++	    identity->owner != ARM64_LATE_CPU_STARTUP_OWNER_MEMBERSHIP ||
++	    identity->cpuhp_target != CPUHP_ONLINE ||
++	    (identity->operation != ARM64_LATE_CPU_STARTUP_OP_CPU8_UP &&
++	     identity->operation != ARM64_LATE_CPU_STARTUP_OP_CPU9_UP) ||
++	    !identity->generation || !identity->cookie ||
++	    identity->generation == ~0ULL || identity->cookie == ~0ULL ||
++	    memcmp(transaction->p30_token.plan_identity,
++		   ready->plan_identity,
++		   sizeof(ready->plan_identity)) ||
++	    transaction->p30_token.operation != identity->operation ||
++	    transaction->p30_token.target_cpu != cpu ||
++	    transaction->p30_token.target_mpidr != identity->target_mpidr)
++		return -EPERM;
++
++	switch (identity->operation) {
++	case ARM64_LATE_CPU_STARTUP_OP_CPU8_UP:
++		if (cpu != ARM64_MT6797_A72_P30E_CPU8 ||
++		    identity->target_mpidr != ARM64_MT6797_A72_P30E_MPIDR_CPU8)
++			return -EPERM;
++		operation = ARM64_MT6797_A72_P30E_OPERATION_CPU8_UP;
++		break;
++	case ARM64_LATE_CPU_STARTUP_OP_CPU9_UP:
++		if (cpu != ARM64_MT6797_A72_P30E_CPU9 ||
++		    identity->target_mpidr != ARM64_MT6797_A72_P30E_MPIDR_CPU9)
++			return -EPERM;
++		operation = ARM64_MT6797_A72_P30E_OPERATION_CPU9_UP;
++		break;
++	default:
++		return -EINVAL;
++	}
++
++	mutex_lock(&a72_transition_lock);
++	raw_spin_lock_irqsave(&a72_state_lock, flags);
++	if (a72_owner.health != MT6797_A72_OWNER_AVAILABLE ||
++	    a72_owner.phase != MT6797_A72_PHASE_FROZEN ||
++	    !a72_owner.active.valid || !a72_owner.active.a36_valid ||
++	    !a72_owner.active.p30_token_valid ||
++	    memcmp(&a72_owner.active.identity, identity,
++		   sizeof(a72_owner.active.identity)))
++		ret = -EBUSY;
++	else {
++		slot_pa = arm64_mt6797_a72_p30e_slot_pa(cpu);
++		if (!slot_pa ||
++		    slot_pa & (ARM64_MT6797_A72_P30E_SLOT_BYTES - 1)) {
++			ret = -EPROTO;
++		} else {
++			handoff->target_cpu = cpu;
++			handoff->slot_pa = slot_pa;
++			handoff->operation = operation;
++			memcpy(handoff->wire_boot_identity,
++			       transaction->p30_token.plan_identity,
++			       sizeof(handoff->wire_boot_identity));
++			memcpy(handoff->target_boot_identity,
++			       ready->plan_identity,
++			       sizeof(handoff->target_boot_identity));
++			handoff->generation = identity->generation;
++			handoff->cookie = identity->cookie;
++			ret = 0;
++		}
++	}
++	raw_spin_unlock_irqrestore(&a72_state_lock, flags);
++	mutex_unlock(&a72_transition_lock);
++	return ret;
++}
++#endif
+ int mt6797_a72_membership_begin_p27_preparation(
+-- 
+2.50.1

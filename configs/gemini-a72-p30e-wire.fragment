@@ -2,4 +2,7 @@
 # primitives have no production caller; the existing CPU8/CPU9 boot and
 # disable vetoes remain active and no CPU_ON/OFF path is enabled.
 CONFIG_ARM64_MT6797_A72_P30E_WIRE=y
+# Enable only the dormant owner-side handoff seam; it has no production
+# caller and cannot arm P30E or issue CPU_ON.
+CONFIG_ARM64_MT6797_A72_P24_TRANSACTION_OWNER_MODEL=y
 CONFIG_LOCALVERSION="-gemini-p30e-wire-blocked"
