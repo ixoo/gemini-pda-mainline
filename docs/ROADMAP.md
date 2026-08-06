@@ -1791,12 +1791,17 @@ The next ordered work remains source-only:
    unrelated VSRAM couplers are not a substitute. The exact inventory and
    decision are in the [startup-state boundary result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/public-owner-startup-state-20260806.txt).
    The next source-only discriminator is therefore a reviewed state-owner
-   interface followed by a bounded mainline adapter: admit the exact image and
-   loader domain, replace vendor `BUG()`/unbounded waits with bounded
-   sticky-fault paths, prove suspend/resume and clock rollback, then register
-   the existing callback contract. Only after that owner path is independently
-   reviewed do page/control-mask ownership, settled readback, and
-   rollback-owner proof advance.
+   interface, starting with a disabled read-only MT6797 clock/state contract:
+   the existing A72 observer reads Vproc only, while the protected CPU-PLL
+   path needs the MCUMIXED/DVFSP semaphore and the A72 path needs a separate
+   BigiDVFS secure backend. Direct CPU-PLL MMIO or a static OPP table is not an
+   owner. After that contract is independently reviewed, build the bounded
+   mainline PCM adapter: admit the exact image and loader domain, replace
+   vendor `BUG()`/unbounded waits with bounded sticky-fault paths, prove
+   suspend/resume and clock rollback, then register the existing callback
+   contract. Only after that owner path is independently reviewed do
+   page/control-mask ownership, settled readback, and rollback-owner proof
+   advance.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and

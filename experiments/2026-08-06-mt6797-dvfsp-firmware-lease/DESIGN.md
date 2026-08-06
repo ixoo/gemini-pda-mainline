@@ -45,6 +45,22 @@ IMAGE_READY -> RUNNING`, with every failure or asynchronous transition entering
 must be satisfied before adding a loader, mapping CSRAM, or registering the
 callback in patch `0175`.
 
+## State-owner selection
+
+The existing MT6797 A72 observer is not a state owner: it only reads the
+external Vproc snapshot and deliberately denies `CPU_ON`. The reusable clock
+backend research identifies the actual missing owner pieces as an MT6797
+CPU-PLL/mux/divider provider, the MCUMIXED/DVFSP semaphore boundary, and a
+separate secure BigiDVFS backend for the A72 cluster. Generic MediaTek CCF
+math and the generic OPP framework are reusable components, not ownership of
+those protected transitions. Direct CPU-PLL MMIO is unsafe, and the vendor
+EEM/PTP path makes a static downstream OPP table non-authoritative.
+
+The next implementation seam is consequently a disabled, read-only MT6797
+clock/state contract that proves the cross-owner read path. Only after that
+contract is independently reviewed can it become the live state owner used by
+the PCM adapter; no voltage or frequency transition is implied by this design.
+
 ```text
 Linux transfer lease {generation,cookie}
         |
