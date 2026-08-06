@@ -65,9 +65,11 @@ provider/HPS/membership/retry side effects, and rejects mutations to the full
 trace identity. The kernel-side owner handoff is now implemented by `0189`;
 its source audit is recorded in
 [`results/p32r-owner-ledger-source-audit-20260806.txt`](results/p32r-owner-ledger-source-audit-20260806.txt).
-The complete 178-entry series now has a clean Buildbox validation for pushed
-commit `49e2d6f4c0e634c8beaedb99a0c29ead1ad0ff6f`. The validated package and
-fetched checksum/provenance record are in
+The complete 178-entry series has a clean Buildbox validation for pushed
+commit `49e2d6f4c0e634c8beaedb99a0c29ead1ad0ff6f`, and was revalidated at the
+current review head `2c6714926bc6ef66ea45eeb42012f4abfc208a01` after the
+documentation corrections. The validated package and fetched
+checksum/provenance records are in
 [`results/p32r-buildbox-validation-20260806.txt`](results/p32r-buildbox-validation-20260806.txt).
 This closes the compile/package gate only; no device boot or write was
 performed, and the A25/A26/A14 admission gates remain open.

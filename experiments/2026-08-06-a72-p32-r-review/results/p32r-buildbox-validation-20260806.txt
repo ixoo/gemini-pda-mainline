@@ -42,3 +42,33 @@ This is a reproducible cross-build and package-provenance result. It does not
 establish that the image boots, that CPU8/CPU9 can be enabled, or that any
 device write is safe. The fetched package remains under the ignored
 `artifacts/buildbox/` tree and is not staged.
+
+Revalidation at documentation head
+-----------------------------------
+
+The exact same source series was revalidated on Buildbox after the review
+clarifications, from pushed commit
+2c6714926bc6ef66ea45eeb42012f4abfc208a01. The worktree was clean and the
+origin remained https://github.com/ixoo/gemini-pda-mainline.git. No source
+tree or build directory was copied to Buildbox.
+
+buildbox_job=2c6714926bc6ef66ea45eeb42012f4abfc208a01-full-m0
+package_completed_utc=2026-08-06T14:03:01Z
+package_name=linux-7.1.3-gemini-8a84a33602b7
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=8a84a33602b72f545f2f775ef2ebf16cc0dfb4e580857b0e851f19290a9b778c
+config_inputs_sha256=501347b25c258f3e7f4070c7d83419e7d23357f496d80e30ea53d037ff456660
+config_sha256=1ebe807ccec725fd35ac4c75609632a89ef0f82ad9b8e258d1b1bc78dddf02ad
+Image_sha256=236e01774700bae14c85ba1e26ba8e0bd76134c673eb64ef9dc026b7f40a1330
+Image_gz_sha256=c99305319dde211c69a4c55a3c0d02b767e1d2e2ff97c6d43f1d580f43cce2e2
+gemini_dtb_sha256=e2424e337a30dbc112496ae841bde655058c01d79cd399f2d518154d5faba60c
+build_provenance_sha256=6e5d80252e617289dc748aa2c3dc32c7964a31914230ca1ac1376a812c468981
+dtb_count=119
+sha256sums=passed
+fetched_package=artifacts/buildbox/2c6714926bc6ef66ea45eeb42012f4abfc208a01/linux-7.1.3-gemini-8a84a33602b7
+
+The package image and Gemini DTB are byte-identical to the prior complete-
+series validation because the intervening changes are review documentation
+only. This revalidation supersedes the earlier “fresh Buildbox validation”
+wording but does not close the semantic P32A/P32X/P32R gaps or authorize a
+device action.
