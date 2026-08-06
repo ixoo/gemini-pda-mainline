@@ -13,4 +13,7 @@ write_transport	vendor-shape-known;mainline-arbitration-unproven	Gemian-i2c-tran
 control_mask	vendor-bit0-known;mainline-contract-unproven	Gemian-read-modify-write;no-mainline-owner	BLOCK_WRITABLE_PROVIDER
 post_settle_readback	vendor-observed;provider-unimplemented	owner-observer;current-provider-read-only	BLOCK_WRITABLE_PROVIDER
 rollback_owner	pre-isolation-accepted;post-isolation-unresolved	rollback-runtime;ownership-matrix	BLOCK_WRITABLE_PROVIDER
+mainline_handoff	profile-selected;I2C6-access-controller;ready-gate-present	0100;0101;0102;handoff-profile	PASS_HANDOFF_GATE_ONLY
+provider_transfer	direct-__i2c_transfer;write-absent	0170;read-only-provider	PASS_READ_ONLY
+per_transfer_lease	unproven;dispatch-expansion-not-pinned	0101;0170;source-only-review	BLOCK_WRITABLE_PROVIDER
 hardware_action	none	source-only audit	PASS_SAFETY

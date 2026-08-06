@@ -119,6 +119,13 @@ The source and sanitized runtime record establish these facts:
   `CONFIG_MTK_MT6797_DVFSP_HANDOFF=y` together with the provider-owner
   refusal boundary. This closes a configuration omission; it does not prove
   a writable transaction or change the fail-closed refusal.
+- The source chain now has an attributable handoff gate: the Gemini I2C6 DT
+  node names `dvfsp_handoff`, the MT65xx transfer entry checks
+  `mt6797_dvfsp_handoff_require_ready()`, and the selected profile enables the
+  supplier. The provider still reaches the adapter through `__i2c_transfer()`
+  and remains read-only. A separately serialized per-transfer lease and an
+  independently expanded kernel-core dispatch proof are still unproven, so
+  this closes only the ready-gate configuration seam.
 - No bounded inverse exists for a provider write at or beyond the unresolved
   external-isolation boundary. The release callback therefore remains a
   structured `-EOPNOTSUPP` refusal.

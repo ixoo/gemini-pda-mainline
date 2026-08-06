@@ -9,6 +9,11 @@ PATCH_0170 = ROOT / "patches/v7.1.3/0170-regulator-add-legacy-DA921x-resource-on
 PATCH_0164 = ROOT / "patches/v7.1.3/0164-arm64-validate-frozen-A72-A36-prestates.patch"
 PATCH_0172 = ROOT / "patches/v7.1.3/0172-arm64-add-provider-owner-callback-refusal-boundary.patch"
 PATCH_0173 = ROOT / "patches/v7.1.3/0173-arm64-add-provider-release-refusal-boundary.patch"
+PATCH_0100 = ROOT / "patches/v7.1.3/0100-soc-mediatek-require-ready-MT6797-DVFSP-handoff-supplier.patch"
+PATCH_0101 = ROOT / "patches/v7.1.3/0101-i2c-mediatek-require-MT6797-DVFSP-handoff.patch"
+PATCH_0102 = ROOT / "patches/v7.1.3/0102-arm64-dts-mediatek-enable-childless-Gemini-I2C6-after-handoff.patch"
+HANDOFF_FRAGMENT = ROOT / "configs/gemini-dvfsp-handoff-owner.fragment"
+MANIFEST = ROOT / "kernel/manifest.json"
 LEDGER = Path(__file__).resolve().parents[1] / "results/source-audit.tsv"
 RECONCILIATION = Path(__file__).resolve().parents[1] / "results/source-reconciliation-20260806.txt"
 CROSSCHECK = ROOT / "experiments/2026-07-23-da9214-resource-only/results/da9214-datasheet-crosscheck-20260723.txt"
@@ -26,6 +31,11 @@ def main() -> None:
     p0164 = PATCH_0164.read_text()
     p0172 = PATCH_0172.read_text()
     p0173 = PATCH_0173.read_text()
+    p0100 = PATCH_0100.read_text()
+    p0101 = PATCH_0101.read_text()
+    p0102 = PATCH_0102.read_text()
+    handoff_fragment = HANDOFF_FRAGMENT.read_text()
+    manifest = MANIFEST.read_text()
     ledger = LEDGER.read_text()
     reconciliation = RECONCILIATION.read_text()
     crosscheck = CROSSCHECK.read_text()
@@ -59,6 +69,15 @@ def main() -> None:
     require(p0164, "#define MT6797_A72_A36_BUCKB_VSEL 0x46", "source-a36-vsel")
     require(p0172, "provider-owner acquire refused: read-only resource boundary", "acquire-refusal")
     require(p0173, "provider-owner release refused: no rollback owner", "release-refusal")
+    for needle, label in (
+        ("mt6797_dvfsp_handoff_require_ready", "handoff-ready-api"),
+        ("EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_require_ready)", "handoff-ready-export"),
+    ):
+        require(p0100, needle, label)
+    require(p0101, "ret = mt6797_dvfsp_handoff_require_ready(", "i2c6-transfer-handoff-check")
+    require(p0102, "access-controllers = <&dvfsp_handoff>;", "i2c6-access-controller")
+    require(handoff_fragment, "CONFIG_MTK_MT6797_DVFSP_HANDOFF=y", "handoff-config")
+    require(manifest, '"configs/gemini-dvfsp-handoff-owner.fragment"', "handoff-profile-fragment")
     for needle, label in (
         ("observation_legacy_page_control=I2C_REG_PAGE_00x_selects_0x000_through_0x0ff", "legacy-page-window"),
         ("observation_legacy_page_control_2=I2C_REG_PAGE_01x_selects_0x100_through_0x17f", "legacy-page-window-2"),
@@ -110,6 +129,9 @@ def main() -> None:
     print("control_mask=vendor-bit0-known;mainline-contract-unproven")
     print("post_settle_readback=vendor-observed;provider-unimplemented")
     print("rollback_owner=pre-isolation-accepted;post-isolation-unresolved")
+    print("mainline_handoff=profile-selected;I2C6-access-controller;ready-gate-present")
+    print("provider_transfer=direct-__i2c_transfer;write-absent")
+    print("per_transfer_lease=unproven;dispatch-expansion-not-pinned")
     print("decision=BLOCK_WRITABLE_PROVIDER")
     print("hardware_action=none")
     print("status=PASS_NEGATIVE_AUDIT")

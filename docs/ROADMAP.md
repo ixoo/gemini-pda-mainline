@@ -1660,7 +1660,10 @@ The next ordered work remains source-only:
    page-selector or register-data write. The provider-owner refusal profile
    now selects the existing MT6797 DVFSP handoff owner and passed exact
    Buildbox validation; this closes a configuration omission only and does not
-   advance the writable-provider or device gates.
+   advance the writable-provider or device gates. The source audit now
+   attributes the I2C6 ready gate from the Gemini DT access-controller through
+   the MT65xx transfer check, while per-transfer lease/dispatch proof remains
+   open.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and
