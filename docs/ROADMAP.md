@@ -1458,8 +1458,11 @@ and the registered target mask must cross-bind before only the runtime-binding
 blocker can clear. The record publishes no target observations, system
 evidence, capability commitment, plan identity, READY state, or CPU-admission
 authority. The exact profile also passed a Buildbox compile/package validation
-at commit `92a1c5d1…`; its Gemini DTB lacks the expected provenance leaf, so
-the package-authority producer remains open. This advances A41 only to
+at commit `b81126b0…`. The package authority emitted and the fetched Gemini DTB
+contains exactly one `/chosen/gemini-late-cpu-provenance` leaf with a
+recomputed matching `record-identity`. This closes only the package-producer
+sub-step: the record has not been accepted by a running kernel and supplies no
+target observation. This advances A41 only to
 `PARTIAL_KERNEL_IDENTITY_BINDING`; the package is not a boot candidate,
 runtime result, or hardware-support claim.
 

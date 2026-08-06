@@ -15,14 +15,14 @@
 
 ## Question or hypothesis
 
-Can ABI 7 independently bind an exact static OF record to the running kernel's
-embedded IKCONFIG, GNU build ID, and forced command line, publish only
-`SEALED_IDENTITY`, and retain every target-evidence, commit, and CPU-admission
-gate?
+Can ABI 7 independently bind an exact package-owned static OF record to the
+running kernel's embedded IKCONFIG, GNU build ID, and forced command line,
+publish only `SEALED_IDENTITY`, and retain every target-evidence, commit, and
+CPU-admission gate?
 
-This experiment tests that source boundary. It does not produce the package OF
-record, build a kernel, collect CPU8/CPU9 observations, freeze or commit a
-plan, publish READY, or admit a late CPU.
+This experiment tests that source boundary and validates the package-authority
+producer on Buildbox. It does not collect CPU8/CPU9 observations, freeze or
+commit a plan, publish READY, or admit a late CPU.
 
 ## Provenance and environment
 
@@ -60,16 +60,17 @@ plan, publish READY, or admit a late CPU.
 - ABI/profile: `ARM64_LATE_CPU_PLAN_ABI=7`,
   `mt6797-a53-a72-a41-v7`.
 - The exact profile was resolved and built on Buildbox at pushed commit
-  `92a1c5d1ef635bec562c919494ff22e1e1c129c9`; the validated package is
-  recorded in [`results/buildbox-validation-20260806.txt`](results/buildbox-validation-20260806.txt).
+  `b81126b00db7e1096394560c99b724c01fac3e8c`; the package-authority result is
+  recorded in [`results/buildbox-provenance-validation-20260806.txt`](results/buildbox-provenance-validation-20260806.txt).
 - Buildbox used the pinned x86_64 host, arm64 cross toolchain, 119-DTB package,
-  and passed package checksums. The only compiler warning was the existing
-  2768-byte `arm64_prepare_late_cpu_profile` stack frame; no build errors
-  occurred.
-- The built Gemini DTB does not contain the expected
-  `/chosen/gemini-late-cpu-provenance` leaf (`FDT_ERR_NOTFOUND`). This confirms
-  the package-authority producer remains unimplemented; the package is not a
-  boot candidate.
+  and passed package checksums. This run completed without compiler errors;
+  the earlier compile-only result recorded the existing 2768-byte
+  `arm64_prepare_late_cpu_profile` frame warning.
+- The package-authority producer emitted exactly one
+  `/chosen/gemini-late-cpu-provenance` leaf in the Gemini DTB, including the
+  required `record-identity`; the independently recomputed identity matched
+  `0519d74a…b82e8`. This is package evidence only and does not show that a
+  running kernel accepted the record.
 - No deployment path, target partition, boot, shutdown, or device write was
   used.
 
@@ -101,6 +102,7 @@ evidence for this experiment.
 - [Offline transcript](results/offline-validation-20260805.txt)
 - [Mutation transcript](results/mutation-validation-20260805.txt)
 - [Kernel static review](results/kernel-static-review-20260805.txt)
+- [Buildbox package-authority validation](results/buildbox-provenance-validation-20260806.txt)
 - [Patches 0156](../../patches/v7.1.3/0156-lib-buildid-add-an-exact-GNU-note-parser.patch)
   and [0157](../../patches/v7.1.3/0157-arm64-bind-late-CPU-profile-to-kernel-identity.patch)
 - [Selected series](../../patches/series-a72-reject-gate-a41-kernel-identity)
@@ -123,8 +125,9 @@ evidence for this experiment.
    disable, and `maxcpus=8` boundaries remain closed.
 8. Run the independent 48-case identity oracle.
 9. Run the exact repository/source validator and intended-check mutation suite.
-10. Run source diff whitespace, Checkpatch, and duplicate-include review. Do
-    not compile, build, package, deploy, or access the device.
+10. Run source diff whitespace, Checkpatch, and duplicate-include review.
+11. Build and fetch the exact profile on Buildbox, then inspect the package
+    provenance JSON and Gemini DTB. Do not deploy or access the device.
 
 ## Observations
 
@@ -139,17 +142,18 @@ evidence for this experiment.
 - No target observation, runtime evidence identity, plan identity, capability
   mutation, commit, READY token, or admission path is added.
 - The independent oracle passed 48/48 cases.
-- No KUnit execution or runtime test was performed. The Buildbox package is a
+- The Buildbox package-authority producer emitted the exact ABI-7 record and
+  the fetched DTB passed the strict property/identity inspection. No KUnit
+  execution or runtime test was performed. The package is a
   compile/provenance result only; it is not hardware support evidence.
 
 ## Analysis
 
-ABI 7 closes the immediate missing-producer gap without conflating kernel
-identity with target runtime safety. The expected record is intended to be
-supplied by the validated package authority; no package authority was emitted
-or exercised in this source-only milestone. The running values come only from
-architecture-owned memory. Equality is useful only because those authorities
-are distinct and the core publishes a complete binding atomically.
+ABI 7 closes the immediate package-producer gap without conflating kernel
+identity with target runtime safety. The validated package authority emits the
+expected record, while the running values come only from architecture-owned
+memory. Equality is useful only because those authorities are distinct and the
+core publishes a complete binding atomically.
 
 The record does not establish secure boot or measure mutable live text. Its
 build-ID component inherits the strength of a 20-byte SHA-1 build ID, and the
@@ -162,11 +166,11 @@ CPU9 remain offline and unobserved.
 ## Conclusion
 
 Confirmed for exact patches 0156/0157, their offline contracts, and the
-validated Buildbox compile at commit `92a1c5d…`:
+validated Buildbox compile/package at commit `b81126b…`:
 `PARTIAL_KERNEL_IDENTITY_BINDING`. The core can produce and seal a verified
-kernel identity binding as `SEALED_IDENTITY`, while the package OF producer,
-complete runtime evidence, PLAN_FROZEN, COMMITTED, READY, and CPU admission
-remain unreachable.
+kernel identity binding as `SEALED_IDENTITY`; the package OF producer now emits
+the static record, while complete runtime evidence, PLAN_FROZEN, COMMITTED,
+READY, and CPU admission remain unreachable.
 
 `a41_complete=no`, `runtime_evidence_complete=no`,
 `target_evidence_complete=no`, `boot_candidate=false`, `build_authorized=no`,
