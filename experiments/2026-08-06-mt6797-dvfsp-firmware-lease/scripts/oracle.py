@@ -19,6 +19,7 @@ CALIBRATION_LIFECYCLE_PATCH = ROOT / "patches/v7.1.3/0201-soc-mediatek-bind-cali
 TRANSITION_LOCK_PATCH = ROOT / "patches/v7.1.3/0202-soc-mediatek-bind-protected-owner-to-transition-lock.patch"
 CALIBRATED_TABLE_PATCH = ROOT / "patches/v7.1.3/0203-soc-mediatek-require-calibrated-table-state.patch"
 EEM_READBACK_PATCH = ROOT / "patches/v7.1.3/0204-thermal-mediatek-add-locked-MT6797-EEM-readback.patch"
+EEM_CALIBRATION_PATCH = ROOT / "patches/v7.1.3/0205-soc-mediatek-derive-calibrated-table-from-EEM-readback.patch"
 SERIES = ROOT / "patches/series"
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
 START_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-start-contract-20260806.txt"
@@ -40,6 +41,7 @@ CALIBRATION_LIFECYCLE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "resu
 TRANSITION_LOCK_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/transition-lock-buildbox-20260806.txt"
 CALIBRATED_TABLE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/calibrated-table-state-buildbox-20260806.txt"
 EEM_READBACK_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/eem-readback-buildbox-20260806.txt"
+EEM_CALIBRATION_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/eem-calibration-builder-buildbox-20260806.txt"
 
 
 def require(text: str, needle: str, label: str) -> None:
@@ -62,6 +64,7 @@ def main() -> None:
     transition_lock_patch = TRANSITION_LOCK_PATCH.read_text()
     calibrated_table_patch = CALIBRATED_TABLE_PATCH.read_text()
     eem_readback_patch = EEM_READBACK_PATCH.read_text()
+    eem_calibration_patch = EEM_CALIBRATION_PATCH.read_text()
     design = DESIGN.read_text()
     start_result = START_RESULT.read_text()
     owner_result = OWNER_RESULT.read_text()
@@ -82,8 +85,10 @@ def main() -> None:
     transition_lock_build_result = TRANSITION_LOCK_BUILD_RESULT.read_text()
     calibrated_table_build_result = CALIBRATED_TABLE_BUILD_RESULT.read_text()
     eem_readback_build_result = EEM_READBACK_BUILD_RESULT.read_text()
+    eem_calibration_build_result = EEM_CALIBRATION_BUILD_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
+    eem_calibration_source = eem_calibration_patch[eem_calibration_patch.index("diff --git"):]
     names = [Path(line).name for line in SERIES.read_text().splitlines()
              if line and not line.startswith("#")]
 
@@ -324,6 +329,46 @@ def main() -> None:
                       "devm_ioremap", "INIT01", "INIT02", "MON"):
         if forbidden in eem_added:
             raise AssertionError(f"unexpected EEM readback operation: {forbidden}")
+    for needle, label in (
+        ("MT6797_EEM_CALIBRATION_ABI", "eem-calibration-abi"),
+        ("MT6797_EEM_CALIBRATION_ROWS", "eem-calibration-row-count"),
+        ("MT6797_EEM_CALIBRATION_MON_ENABLE", "eem-calibration-mon-enable"),
+        ("MT6797_EEM_CALIBRATION_MON_STATUS_MASK", "eem-calibration-status-mask"),
+        ("MT6797_EEM_CALIBRATION_TEMP_OFFSET_UV", "eem-calibration-temperature-offset"),
+        ("MT6797_EEM_CALIBRATION_VSRAM_MIN_UV", "eem-calibration-vsram-floor"),
+        ("MT6797_EEM_CALIBRATION_VSRAM_MAX_UV", "eem-calibration-vsram-ceiling"),
+        ("struct mt6797_eem_calibration_input", "eem-calibration-input"),
+        ("frequency_pct", "eem-calibration-frequency-percent"),
+        ("frequency_khz", "eem-calibration-frequency-khz"),
+        ("record_vproc_uv", "eem-calibration-recorded-cap"),
+        ("vsram_uv", "eem-calibration-vsram"),
+        ("ppm_limit_khz", "eem-calibration-ppm-limit"),
+        ("thermal_generation", "eem-calibration-thermal-generation"),
+        ("clock_owner_generation", "eem-calibration-clock-generation"),
+        ("rail_owner_generation", "eem-calibration-rail-generation"),
+        ("mt6797_eem_calibration_provenance_check", "eem-calibration-provenance"),
+        ("mt6797_eem_calibration_interpolate", "eem-calibration-interpolation"),
+        ("div_s64", "eem-calibration-signed-interpolation"),
+        ("MT6797_EEM_CALIBRATION_BIG_BASE_UV", "eem-calibration-big-units"),
+        ("MT6797_EEM_CALIBRATION_EEM_BASE_UV", "eem-calibration-normal-units"),
+        ("bank->vop", "eem-calibration-vop-source"),
+        ("MT6797_EEM_READBACK_BANK_BIG", "eem-calibration-big-bank"),
+        ("MT6797_EEM_READBACK_BANK_CCI", "eem-calibration-cci-bank"),
+        ("input->readback->selector_before != input->readback->selector_after", "eem-calibration-selector-check"),
+        ("state->phase = MT6797_DVFSP_CALIBRATION_STATE_PHASE_MON", "eem-calibration-mon-phase"),
+        ("cluster->table_count = MT6797_EEM_CALIBRATION_ROWS", "eem-calibration-table-count"),
+        ("EXPORT_SYMBOL_GPL(mt6797_eem_calibration_build)", "eem-calibration-export"),
+        ("No default table", "eem-calibration-default-off"),
+    ):
+        require(eem_calibration_patch, needle, label)
+    calibration_builder_added = "\n".join(
+        line[1:] for line in eem_calibration_patch.splitlines()
+        if line.startswith("+") and not line.startswith("+++")
+    )
+    for forbidden in ("readl(", "writel(", "regulator_", "clk_", "i2c_transfer",
+                      "arm_smccc", "cpu_up(", "platform_driver", "INIT01", "INIT02"):
+        if forbidden in calibration_builder_added:
+            raise AssertionError(f"unexpected EEM calibration operation: {forbidden}")
     for needle, label in (
         ("## Startup-state adapter seam", "design-state-seam"),
         ("`snapshot`", "design-snapshot"),
@@ -690,6 +735,25 @@ def main() -> None:
     ):
         require(eem_readback_build_result, needle, label)
     for needle, label in (
+        ("claim=COMPILE_ONLY_MT6797_EEM_CALIBRATION_TABLE_BUILDER", "eem-calibration-build-claim"),
+        ("repository_commit=df2c410d594ad19c32cc8b3d090fd0fe18bdc13d", "eem-calibration-build-commit"),
+        ("origin=https://github.com/ixoo/gemini-pda-mainline.git", "eem-calibration-build-origin"),
+        ("build_backend=buildbox", "eem-calibration-build-backend"),
+        ("buildbox_status=validated", "eem-calibration-build-status"),
+        ("patch_count=194", "eem-calibration-build-patch-count"),
+        ("artifact=linux-7.1.3-gemini-dvfsp-protected-readback-2cf5e38e-b6696a3c", "eem-calibration-build-artifact"),
+        ("dtb_count=119", "eem-calibration-build-dtb-count"),
+        ("sha256sums=passed", "eem-calibration-build-checksums"),
+        ("package_fetch=success;validated_package_only", "eem-calibration-build-fetch"),
+        ("eem_calibration_contract=0205;raw-readback-anchor-match;BIG-and-normal-unit-conversion;16-row-interpolation;temperature-offset;VMIN-VMAX-and-record-cap;VSRAM-delta;full-provenance;default-off", "eem-calibration-build-contract"),
+        ("owner=unregistered", "eem-calibration-build-owner-unregistered"),
+        ("provider=none", "eem-calibration-build-no-provider"),
+        ("hardware_write=none", "eem-calibration-build-no-write"),
+        ("device_action=none", "eem-calibration-build-no-device"),
+        ("boot_candidate=false", "eem-calibration-build-not-candidate"),
+    ):
+        require(eem_calibration_build_result, needle, label)
+    for needle, label in (
         ("repeat_run_repository_commit=6c3cb4fad5a4895f6a69d7913089553b6751e34c", "readback-repeat-commit"),
         ("repeat_run_buildbox_job=6c3cb4fad5a4895f6a69d7913089553b6751e34c-dvfsp-protected-readback-m0", "readback-repeat-job"),
         ("repeat_run_status=validated", "readback-repeat-status"),
@@ -733,6 +797,8 @@ def main() -> None:
         raise AssertionError("calibrated table state is not after the transition lock")
     if names.index("0203-soc-mediatek-require-calibrated-table-state.patch") >= names.index("0204-thermal-mediatek-add-locked-MT6797-EEM-readback.patch"):
         raise AssertionError("EEM readback is not after calibrated table-state admission")
+    if names.index("0204-thermal-mediatek-add-locked-MT6797-EEM-readback.patch") >= names.index("0205-soc-mediatek-derive-calibrated-table-from-EEM-readback.patch"):
+        raise AssertionError("EEM calibration builder is not after EEM readback")
 
     for forbidden in ("readl(", "writel(", "i2c_transfer", "regulator_enable(",
                       "regulator_disable(", "psci_ops.cpu_on", "cpu_up("):
@@ -758,6 +824,8 @@ def main() -> None:
             raise AssertionError(f"unexpected transition-lock hardware operation: {forbidden}")
         if forbidden in calibrated_table_patch:
             raise AssertionError(f"unexpected calibrated-table hardware operation: {forbidden}")
+        if forbidden in eem_calibration_source:
+            raise AssertionError(f"unexpected EEM calibration hardware operation: {forbidden}")
 
     print("claim=PARTIAL_FIRMWARE_LEASE_CALLBACK_CONTRACT")
     print("registered_owner=0")
@@ -783,6 +851,7 @@ def main() -> None:
     print("transition_lock=0202;external_lock_unlock;composite_snapshot_validate_hold_release;registered_owner=0;no_provider;no_mmio;boot_candidate=false")
     print("calibrated_table_state=0203;MON_phase;BIG_L_2L_CCI_banks;frequency_voltage_vsram_ppm_rows;thermal_clock_rail_generations;registered_owner=0;no_provider;no_mmio;boot_candidate=false")
     print("eem_readback=0204;thermal_owner_lock;selector_write_restore;BIG_L_2L_CCI;offsets_0x218_0x21c_0x248_0x24c;raw_status_frequency_vop_anchors;registered_owner=0;no_provider;no_secure_write;hardware_write=none;device_action=none;boot_candidate=false")
+    print("eem_calibration_builder=0205;raw_readback_anchor_match;BIG_normal_unit_conversion;16_row_interpolation;temperature_offset;record_cap;vsram_delta;full_provenance;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("pcm_adapter_contract=source-only;bounded-admission-model;callback-registration-gated")
     print("clock_owner_inventory=generic_ccf_only;protected_owner_absent;A72_observer_read_only")
     print("pcm_start_contract=defined;residency_and_start_required_before_callback_registration")

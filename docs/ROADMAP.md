@@ -1970,6 +1970,19 @@ The next ordered work remains source-only:
    provider remain default-off; no EEM phase, calibrated VPROC/VSRAM/PPM table,
    rail/clock/secure-firmware action, device boot, or CPU8/CPU9 admission
    occurred. See the [EEM readback Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/eem-readback-buildbox-20260806.txt).
+   Patch `0205` now adds the source-backed, read-only conversion boundary from
+   that locked readback into the calibrated-state contract. It requires
+   caller-owned silicon-selected frequency/PPM rows, recorded VPROC caps, live
+   VSRAM, voltage limits, temperature, owner generations, and complete
+   provenance; it matches the eight anchors, applies the BIG versus normal EEM
+   units, interpolates all sixteen rows, applies the low-temperature offset and
+   caps, and validates the VSRAM delta. Revision `df2c410` applies all 194
+   canonical entries on Buildbox, compiles the full arm64 kernel without
+   warnings from the new helper, produces 119 DTBs, passes package checksums,
+   and has its validated package fetched. This remains compile-only: the
+   thermal node and provider remain default-off, no EEM phase or hardware write
+   occurred, and CPU8/CPU9 admission remains closed. See the
+   [EEM calibration-builder Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/eem-calibration-builder-buildbox-20260806.txt).
    The next ordered gate remains an independently reviewed implementation of
    the real calibrated EEM/PTP/PPM state owner with clock/rail arbitration and
    runtime proof, using this shared-resource readback seam without treating raw
