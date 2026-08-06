@@ -23,7 +23,7 @@ validated. This is an experiment-only contract and is not submission-ready.
 diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
 --- a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
 +++ b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
-@@ -103,6 +103,100 @@ struct mt6797_dvfsp_state_owner_ops {
+@@ -103,3 +103,97 @@ struct mt6797_dvfsp_state_owner_ops {
  			   enum mt6797_dvfsp_state_invalidation_reason reason);
  };
  
@@ -121,9 +121,6 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h b/include/linux/s
 +			  enum mt6797_dvfsp_pcm_adapter_fault fault);
 +};
 +
- #if IS_REACHABLE(CONFIG_MTK_MT6797_DVFSP_HANDOFF)
- struct mt6797_dvfsp_handoff *
- mt6797_dvfsp_handoff_get(struct device *consumer);
 @@ -202,5 +290,22 @@ void mt6797_dvfsp_handoff_state_invalidate(
  	struct mt6797_dvfsp_handoff *handoff,
  	enum mt6797_dvfsp_state_invalidation_reason reason);
@@ -218,7 +215,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/
  	struct completion terminal;
  	struct delayed_work late_work;
  	struct mt6797_dvfsp_snapshot samples[MT6797_DVFSP_SAMPLE_COUNT];
-@@ -1816,6 +1822,437 @@ void mt6797_dvfsp_handoff_state_invalidate(
+@@ -1816,3 +1822,434 @@ void mt6797_dvfsp_handoff_state_invalidate(
  }
  EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_state_invalidate);
  
@@ -653,9 +650,6 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/
 +}
 +EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_pcm_adapter_phase);
 +
- int
- mt6797_dvfsp_handoff_require_ready(struct mt6797_dvfsp_handoff *handoff)
- {
 @@ -1838,7 +1838,9 @@ static int mt6797_dvfsp_handoff_probe(struct platform_device *pdev)
  	handoff->reason = "resources-not-ready";
  	mutex_init(&handoff->lock);
