@@ -106,6 +106,7 @@ be copied directly into a mainline failure/PM path.
 - [Locked MT6797 EEM readback Buildbox validation](results/eem-readback-buildbox-20260806.txt)
 - [EEM calibration-builder Buildbox validation](results/eem-calibration-builder-buildbox-20260806.txt)
 - [Protected clock-state decoder Buildbox validation](results/clock-state-decoder-buildbox-20260806.txt)
+- [Runtime invalidation ledger Buildbox validation](results/runtime-invalidation-buildbox-20260806.txt)
 - [Receiver register-window identity reconciliation](results/receiver-register-identity-20260806.txt)
 - [Retained TEE secure-owner disassembly](../2026-08-06-da921x-page-owner-audit/results/tee-owner-disassembly-20260806.txt)
 - [Retained SCP local-alias inventory](../2026-08-06-da921x-page-owner-audit/results/scp-alias-inventory-20260806.txt)
@@ -386,10 +387,22 @@ conversion boundary: no clock or rail owner, provider, secure call, hardware
 write, firmware action, device boot, or CPU8/CPU9 admission is enabled. See the
 [clock-state decoder Buildbox result](results/clock-state-decoder-buildbox-20260806.txt).
 
-The next gate is the real MT6797 EEM/PTP/thermal and PMIC/clock provider that
-supplies those inputs from efuse and live hardware, arbitrates the shared
-EEM/thermal resource, and independently proves runtime invalidation and
-transition-lock behavior. The decoder now supplies the deterministic
-readback-to-frequency boundary, but it is not an owner and cannot be used to
-authorize a transition. Until the owner exists, the protected backends and
-CPU8/CPU9 admission remain closed.
+Patch `0207` now binds the vendor-identified CPU and PM transition events plus
+clock, rail, and PCM-fault events to the existing state-owner invalidation
+reasons through a default-off monotonic event ledger. It rejects replayed or
+non-monotonic sequence/generation events without registering notifiers or
+touching hardware. Revision `870dcc1` applied all 196 series entries on
+Buildbox, compiled the full arm64 kernel, produced 119 DTBs, passed package
+checksums, and fetched the validated package. This is compile-only evidence:
+the state owner and provider remain unregistered, and no secure call, firmware
+action, device boot, or CPU8/CPU9 admission occurred. See the [runtime
+invalidation Buildbox result](results/runtime-invalidation-buildbox-20260806.txt).
+
+The next gate is still the real MT6797 EEM/PTP/thermal and PMIC/clock provider
+that supplies those inputs from efuse and live hardware, arbitrates the shared
+EEM/thermal resource, and independently proves clock/rail transition locking
+and runtime invalidation. The decoder and event ledger now supply deterministic
+conversion and invalidation boundaries, but neither is an owner and neither
+can authorize a transition. Actual CPU/PM notifier integration and runtime
+proof remain open; until that owner exists, the protected backends and CPU8/CPU9
+admission remain closed.

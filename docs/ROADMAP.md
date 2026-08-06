@@ -1993,12 +1993,24 @@ The next ordered work remains source-only:
    still compile-only: no clock or rail owner, provider, secure call, hardware
    write, firmware action, device boot, or CPU8/CPU9 admission is enabled. See
    the [clock-state decoder Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/clock-state-decoder-buildbox-20260806.txt).
+   Patch `0207` now binds the vendor-identified CPU and PM transition events
+   (`CPU_ONLINE`, `CPU_DOWN_PREPARE`, `CPU_DOWN_FAILED`,
+   `PM_SUSPEND_PREPARE`, and `PM_POST_SUSPEND`) plus clock, rail, and PCM-fault
+   events to the existing state-owner invalidation reasons through a default-off
+   monotonic event ledger. Replayed or non-monotonic sequence/generation events
+   are rejected; no notifier is registered and no hardware operation is added.
+   Revision `870dcc1` applies all 196 canonical entries on Buildbox, compiles
+   the full arm64 profile, produces 119 DTBs, passes package checksums, and has
+   its validated package fetched. This remains compile-only: the owner/provider
+   stay unregistered and no secure call, firmware action, device boot, or
+   CPU8/CPU9 admission occurred. See the [runtime invalidation Buildbox
+   result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/runtime-invalidation-buildbox-20260806.txt).
    The next ordered gate remains an independently reviewed implementation of
-   the real calibrated EEM/PTP/PPM state owner with clock/rail arbitration and
-   runtime proof, using this shared-resource readback and decoder seam without
-   treating raw anchors as a calibrated table or derived frequency as ownership
-   proof. Until that provider exists, the protected backends and CPU8/CPU9
-   admission remain closed.
+   the real calibrated EEM/PTP/PPM state owner with clock/rail arbitration,
+   actual CPU/PM notifier integration, and runtime invalidation/transition-lock
+   proof. The decoder and event ledger are conversion and invalidation seams,
+   not ownership proof. Until that provider exists, the protected backends and
+   CPU8/CPU9 admission remain closed.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and
