@@ -10,13 +10,13 @@ stale identity and must not enter the rollback side channel.
 This experiment-only change has no certifying sign-off and is not
 submission-ready.
 ---
- arch/arm64/kernel/mt6797_a72_membership.c | 2 ++
- 1 file changed, 2 insertions(+)
+ arch/arm64/kernel/mt6797_a72_membership.c | 4 ++++
+ 1 file changed, 4 insertions(+)
 
 diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt6797_a72_membership.c
 --- a/arch/arm64/kernel/mt6797_a72_membership.c
 +++ b/arch/arm64/kernel/mt6797_a72_membership.c
-@@ -205,4 +205,6 @@ mt6797_a72_p32_target_locked(unsigned int cpu)
+@@ -125,5 +125,7 @@ mt6797_a72_p32_target_locked(unsigned int cpu)
  		(transaction->identity.operation ==
  		 ARM64_LATE_CPU_STARTUP_OP_CPU8_UP ||
  		 transaction->identity.operation ==
@@ -24,7 +24,7 @@ diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt679
 +		transaction->identity.operation == (cpu == 8 ?
 +		 ARM64_LATE_CPU_STARTUP_OP_CPU8_UP : ARM64_LATE_CPU_STARTUP_OP_CPU9_UP) &&
  		transaction->identity.target_cpu == cpu &&
-@@ -237,4 +239,6 @@ int mt6797_a72_membership_publish_p32(unsigned int cpu,
+@@ -237,5 +239,7 @@ int mt6797_a72_membership_publish_p32(unsigned int cpu,
  	    (transaction->identity.operation !=
  		 ARM64_LATE_CPU_STARTUP_OP_CPU8_UP &&
  	     transaction->identity.operation !=
