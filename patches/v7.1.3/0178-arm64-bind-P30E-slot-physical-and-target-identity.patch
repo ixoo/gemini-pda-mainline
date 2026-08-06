@@ -1,0 +1,152 @@
+From 0000000000000000000000000000000000000178 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 6 Aug 2026 00:00:00 -0400
+Subject: [PATCH] arm64: bind P30E slot physical address and target identity
+
+Make the dormant P30E request carry the exact physical slot address selected
+by the controller and validate it against the linker symbol before arming.
+Keep a separate target-expected boot identity in the reserved slot metadata;
+MMU-off claim rejects a wire identity that does not match that expectation.
+
+The 20-word wire layout is unchanged. This remains default-off, has no
+secondary_entry caller, and cannot issue CPU_ON/OFF or publish Linux
+membership.
+
+This experiment-only change has no certifying sign-off and is not
+submission-ready.
+---
+ arch/arm64/include/asm/mt6797_a72_p30e.h       | 12 +++++++++--
+ arch/arm64/kernel/mt6797_a72_p30e.c            | 23 +++++++++++++++++++
+ arch/arm64/kernel/mt6797_a72_p30e_asm.S        | 12 ++++++++++++
+ 3 files changed, 45 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/include/asm/mt6797_a72_p30e.h b/arch/arm64/include/asm/mt6797_a72_p30e.h
+--- a/arch/arm64/include/asm/mt6797_a72_p30e.h
++++ b/arch/arm64/include/asm/mt6797_a72_p30e.h
+@@ -4,6 +4,7 @@
+ 
+ #define ARM64_MT6797_A72_P30E_WIRE_WORDS	20
+ #define ARM64_MT6797_A72_P30E_WIRE_BYTES	160
++#define ARM64_MT6797_A72_P30E_TARGET_BOOT_ID_BYTES	32
+ #define ARM64_MT6797_A72_P30E_SLOT_BYTES	2048
+ #define ARM64_MT6797_A72_P30E_MAGIC		0x5033304557495245
+ #define ARM64_MT6797_A72_P30E_ABI_AND_SIZE	0x0000000100000014
+@@ -48,6 +49,8 @@
+ #define ARM64_MT6797_A72_P30E_TARGET_ENTRY_PC_WORD	17
+ #define ARM64_MT6797_A72_P30E_TARGET_ENTRY_SP_WORD	18
+ #define ARM64_MT6797_A72_P30E_CRC64_WORD	19
++#define ARM64_MT6797_A72_P30E_TARGET_BOOT_ID_OFF	160
++#define ARM64_MT6797_A72_P30E_TARGET_BOOT_ID_WORDS	4
+ 
+ #define ARM64_MT6797_A72_P30E_MAGIC_OFF	0
+ #define ARM64_MT6797_A72_P30E_ABI_OFF	8
+@@ -79,11 +82,15 @@
+ struct arm64_mt6797_a72_p30e_slot {
+ 	struct arm64_mt6797_a72_p30e_wire wire;
+-	u8 reserved[ARM64_MT6797_A72_P30E_SLOT_BYTES -
+-		    ARM64_MT6797_A72_P30E_WIRE_BYTES];
++	__le64 target_boot_identity[ARM64_MT6797_A72_P30E_TARGET_BOOT_ID_WORDS];
++	u8 reserved[ARM64_MT6797_A72_P30E_SLOT_BYTES -
++		    ARM64_MT6797_A72_P30E_WIRE_BYTES -
++		    ARM64_MT6797_A72_P30E_TARGET_BOOT_ID_BYTES];
+ };
+ 
+ struct arm64_mt6797_a72_p30e_request {
+ 	u64 boot_identity[4];
++	u64 target_boot_identity[4];
++	u64 slot_pa;
+ 	u64 operation;
+ 	u64 generation;
+ 	u64 cookie;
+@@ -90,6 +99,7 @@
+ extern struct arm64_mt6797_a72_p30e_slot
+ arm64_mt6797_a72_p30e_cpu9_slot;
+ 
++phys_addr_t arm64_mt6797_a72_p30e_slot_pa(unsigned int cpu);
+ int arm64_mt6797_a72_p30e_arm(unsigned int cpu,
+ 				      const struct arm64_mt6797_a72_p30e_request *request);
+ int arm64_mt6797_a72_p30e_readback(unsigned int cpu,
+diff --git a/arch/arm64/kernel/mt6797_a72_p30e.c b/arch/arm64/kernel/mt6797_a72_p30e.c
+--- a/arch/arm64/kernel/mt6797_a72_p30e.c
++++ b/arch/arm64/kernel/mt6797_a72_p30e.c
+@@ -16,6 +16,7 @@
+ #include <linux/types.h>
+ 
+ #include <asm/barrier.h>
+ #include <asm/cacheflush.h>
++#include <asm/memory.h>
+ #include <asm/mt6797_a72_p30e.h>
+ 
+@@ -44,7 +45,19 @@ static u64 p30e_mpidr(unsigned int cpu)
+ 		ARM64_MT6797_A72_P30E_MPIDR_CPU8 :
+ 		ARM64_MT6797_A72_P30E_MPIDR_CPU9;
+ }
+ 
++phys_addr_t arm64_mt6797_a72_p30e_slot_pa(unsigned int cpu)
++{
++	switch (cpu) {
++	case ARM64_MT6797_A72_P30E_CPU8:
++		return __pa_symbol(arm64_mt6797_a72_p30e_cpu8_slot);
++	case ARM64_MT6797_A72_P30E_CPU9:
++		return __pa_symbol(arm64_mt6797_a72_p30e_cpu9_slot);
++	default:
++		return 0;
++	}
++}
++
+ static u64 p30e_word(const struct arm64_mt6797_a72_p30e_wire *wire,
+ 			     unsigned int index)
+ {
+@@ -122,6 +135,9 @@ int arm64_mt6797_a72_p30e_arm(unsigned int cpu,
+ 	if (!request || !p30e_slot(cpu) ||
+ 	    (request->operation != ARM64_MT6797_A72_P30E_OPERATION_CPU8_UP &&
+ 	     request->operation != ARM64_MT6797_A72_P30E_OPERATION_CPU9_UP) ||
++	    !request->slot_pa ||
++	    request->slot_pa != arm64_mt6797_a72_p30e_slot_pa(cpu) ||
++	    request->slot_pa & (ARM64_MT6797_A72_P30E_SLOT_BYTES - 1) ||
+ 	    (cpu == ARM64_MT6797_A72_P30E_CPU8 &&
+ 	     request->operation != ARM64_MT6797_A72_P30E_OPERATION_CPU8_UP) ||
+ 	    (cpu == ARM64_MT6797_A72_P30E_CPU9 &&
+@@ -129,5 +147,9 @@ int arm64_mt6797_a72_p30e_arm(unsigned int cpu,
+ 	    !request->generation || !request->cookie)
+ 		return -EINVAL;
+ 
++	for (i = 0; i < ARRAY_SIZE(request->target_boot_identity); i++)
++		if (!request->target_boot_identity[i])
++			return -EINVAL;
++
+ 	slot = p30e_slot(cpu);
+ 	raw_spin_lock_irqsave(&p30e_lock, flags);
+@@ -148,6 +173,9 @@ int arm64_mt6797_a72_p30e_arm(unsigned int cpu,
+ 	for (i = 0; i < ARRAY_SIZE(request->boot_identity); i++)
+ 		p30e_put(&slot->wire,
+ 			 ARM64_MT6797_A72_P30E_BOOT_ID0_WORD + i,
+ 			 request->boot_identity[i]);
++	for (i = 0; i < ARRAY_SIZE(request->target_boot_identity); i++)
++		WRITE_ONCE(slot->target_boot_identity[i],
++			   cpu_to_le64(request->target_boot_identity[i]));
+ 	p30e_put(&slot->wire, ARM64_MT6797_A72_P30E_OPERATION_WORD,
+ 		 request->operation);
+diff --git a/arch/arm64/kernel/mt6797_a72_p30e_asm.S b/arch/arm64/kernel/mt6797_a72_p30e_asm.S
+--- a/arch/arm64/kernel/mt6797_a72_p30e_asm.S
++++ b/arch/arm64/kernel/mt6797_a72_p30e_asm.S
+@@ -130,5 +130,17 @@ SYM_FUNC_START(arm64_mt6797_a72_p30e_target_claim)
+ 	mov	x5, #3
+ 	b.ne	p30e_publish_failure
++	mov	x6, #0
++.Lp30e_boot_identity:
++	add	x3, x1, #ARM64_MT6797_A72_P30E_BOOT_ID0_OFF
++	ldr	x4, [x3, x6, lsl #3]
++	add	x3, x1, #ARM64_MT6797_A72_P30E_TARGET_BOOT_ID_OFF
++	ldr	x7, [x3, x6, lsl #3]
++	cmp	x4, x7
++	mov	x5, #9
++	b.ne	p30e_publish_failure
++	add	x6, x6, #1
++	cmp	x6, #ARM64_MT6797_A72_P30E_TARGET_BOOT_ID_WORDS
++	b.lo	.Lp30e_boot_identity
+ 	ldr	x4, [x1, #ARM64_MT6797_A72_P30E_OPERATION_OFF]
+ 	cmp	x2, #ARM64_MT6797_A72_P30E_CPU8
+ 	b.ne	.Lp30e_operation_cpu9
+--
+2.45.0
