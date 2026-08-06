@@ -1,0 +1,163 @@
+From 0000000000000000000000000000000000000200 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 6 Aug 2026 20:30:00 -0400
+Subject: [PATCH] soc: mediatek: require calibrated state provenance
+
+The historical MT6797 startup state is selected from efuse variant data,
+EEM/PTP-mutated voltage tables, PPM limits, and live clock and rail owners.
+The protected state composition now binds both backends to one transition
+owner, but it would still accept a backend that returned a guessed static
+table. Require every identity and snapshot to carry the complete calibration
+source set, a mutable-table epoch, and a nonzero opaque calibration handle;
+the CPU-PLL and BigiDVFS snapshots must echo the same provenance.
+
+This is a fail-closed provenance contract, not a calibration or hardware
+implementation. It adds no MMIO, secure-monitor call, regulator operation,
+firmware image, PCM start, callback registration, or CPU_ON path. No owner is
+registered by default. This patch is experiment-only and not submission-ready.
+---
+ drivers/soc/mediatek/mt6797-dvfsp-handoff.c      | 47 +++++++++++++++++++++++
+ include/linux/soc/mediatek/mt6797-dvfsp-handoff.h | 25 ++++++++++++
+ 2 files changed, 72 insertions(+)
+
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
+@@ -75,8 +75,27 @@ struct mt6797_dvfsp_state_cluster {
+ 	u32 rail_state;
+ };
++#define MT6797_DVFSP_STATE_PROVENANCE_ABI		1
++#define MT6797_DVFSP_STATE_PROVENANCE_EFUSE_VARIANT	BIT(0)
++#define MT6797_DVFSP_STATE_PROVENANCE_EEM_PTP		BIT(1)
++#define MT6797_DVFSP_STATE_PROVENANCE_PPM_LIMIT	BIT(2)
++#define MT6797_DVFSP_STATE_PROVENANCE_LIVE_VPROC	BIT(3)
++#define MT6797_DVFSP_STATE_PROVENANCE_LIVE_VSRAM	BIT(4)
++#define MT6797_DVFSP_STATE_PROVENANCE_CLOCK_OWNER	BIT(5)
++#define MT6797_DVFSP_STATE_PROVENANCE_RAIL_OWNER	BIT(6)
++#define MT6797_DVFSP_STATE_PROVENANCE_SOURCE_ALL	GENMASK(6, 0)
++
++struct mt6797_dvfsp_state_provenance {
++	u32 abi;
++	u32 source_mask;
++	u32 variant_id;
++	u32 table_epoch;
++	u64 calibration_handle;
++};
++
+ struct mt6797_dvfsp_state_snapshot {
+ 	u32 abi;
+ 	u32 cluster_mask;
+ 	u64 generation;
++	struct mt6797_dvfsp_state_provenance provenance;
+ 	struct mt6797_dvfsp_state_cluster
+ 		cluster[MT6797_DVFSP_STATE_CLUSTER_COUNT];
+@@ -116,5 +135,6 @@ struct mt6797_dvfsp_state_owner_identity {
+ 	u32 reserved;
+ 	u64 owner_handle;
+ 	u64 transition_handle;
++	struct mt6797_dvfsp_state_provenance provenance;
+ };
+ #define MT6797_DVFSP_STATE_BACKEND_ABI		1
+@@ -165,5 +185,6 @@ struct mt6797_dvfsp_state_backend_snapshot {
+ 	u64 generation;
+ 	u64 owner_handle;
+ 	u64 transition_handle;
++	struct mt6797_dvfsp_state_provenance provenance;
+ 	struct mt6797_dvfsp_state_cluster
+ 		cluster[MT6797_DVFSP_STATE_CLUSTER_COUNT];
+@@ -214,5 +235,6 @@ struct mt6797_dvfsp_protected_state_owner {
+ 	void *big_cluster_context;
+ 	u64 owner_handle;
+ 	u64 transition_handle;
++	struct mt6797_dvfsp_state_provenance provenance;
+ };
+ #define MT6797_DVFSP_PCM_ADAPTER_ABI		1
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+@@ -1573,7 +1573,38 @@
+ static int
++mt6797_dvfsp_state_provenance_check(
++	const struct mt6797_dvfsp_state_provenance *provenance)
++{
++	if (!provenance ||
++	    provenance->abi != MT6797_DVFSP_STATE_PROVENANCE_ABI ||
++	    provenance->source_mask !=
++		MT6797_DVFSP_STATE_PROVENANCE_SOURCE_ALL ||
++	    !provenance->table_epoch || !provenance->calibration_handle)
++		return -EPROTO;
++
++	return 0;
++}
++
++static bool
++mt6797_dvfsp_state_provenance_equal(
++	const struct mt6797_dvfsp_state_provenance *left,
++	const struct mt6797_dvfsp_state_provenance *right)
++{
++	return left->abi == right->abi &&
++		left->source_mask == right->source_mask &&
++		left->variant_id == right->variant_id &&
++		left->table_epoch == right->table_epoch &&
++		left->calibration_handle == right->calibration_handle;
++}
++
++static int
+ mt6797_dvfsp_state_snapshot_check(
+ 	const struct mt6797_dvfsp_state_snapshot *snapshot)
+ {
+ 	unsigned int i;
++	int ret;
++
++	ret = mt6797_dvfsp_state_provenance_check(&snapshot->provenance);
++	if (ret)
++		return ret;
+ 
+ 	if (snapshot->abi != MT6797_DVFSP_STATE_OWNER_ABI ||
+@@ -1792,2 +1811,4 @@ mt6797_dvfsp_state_owner_identity_check(
+ 		return -EPROTO;
++
++	return mt6797_dvfsp_state_provenance_check(&identity->provenance);
+ }
+@@ -1887,3 +1908,5 @@ mt6797_dvfsp_state_backend_check(
+ 		return -EPROTO;
++	if (mt6797_dvfsp_state_provenance_check(&snapshot->provenance))
++		return -EPROTO;
+ 
+ 	for (i = 0; i < MT6797_DVFSP_STATE_CLUSTER_COUNT; i++) {
+@@ -1916,5 +1939,7 @@ mt6797_dvfsp_protected_state_owner_check(
+ 	if (!owner || !owner->cpu_pll_ops || !owner->big_cluster_ops ||
+ 	    !owner->owner_handle || !owner->transition_handle)
+ 		return -EINVAL;
++	if (mt6797_dvfsp_state_provenance_check(&owner->provenance))
++		return -EINVAL;
+ 
+ 	cpu = owner->cpu_pll_ops;
+@@ -1985,4 +2010,9 @@ mt6797_dvfsp_protected_state_owner_collect(
+ 	if (cpu_snapshot->transition_handle != owner->transition_handle ||
+ 	    big_snapshot->transition_handle != owner->transition_handle)
+ 		return -EPROTO;
++	if (!mt6797_dvfsp_state_provenance_equal(&cpu_snapshot->provenance,
++			&big_snapshot->provenance) ||
++	    !mt6797_dvfsp_state_provenance_equal(&cpu_snapshot->provenance,
++			&owner->provenance))
++		return -EPROTO;
+ 	if (cpu_snapshot->cluster_mask & big_snapshot->cluster_mask ||
+@@ -2014,5 +2043,6 @@ mt6797_dvfsp_protected_state_owner_identify(
+ 	identity->big_cluster_backend = owner->big_cluster_ops->backend;
+ 	identity->owner_handle = owner->owner_handle;
+ 	identity->transition_handle = owner->transition_handle;
++	identity->provenance = owner->provenance;
+ 
+ 	return 0;
+@@ -2039,7 +2069,8 @@ mt6797_dvfsp_state_snapshot_equal(
+ 	return left->abi == right->abi &&
+ 		left->cluster_mask == right->cluster_mask &&
+ 		left->generation == right->generation &&
++		mt6797_dvfsp_state_provenance_equal(&left->provenance,
++			&right->provenance) &&
+ 		!memcmp(left->cluster, right->cluster,
+ 			sizeof(left->cluster));
+ }
+-- 
+2.43.0
