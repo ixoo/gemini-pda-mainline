@@ -123,10 +123,7 @@ diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/medi
 diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
 --- a/drivers/soc/mediatek/Kconfig
 +++ b/drivers/soc/mediatek/Kconfig
-@@ -88,4 +88,20 @@ config MTK_MT6797_DVFSP_HANDOFF
- 
- 	This option is for bounded Gemini PDA bring-up experiments only.
- 
+@@ -96,1 +96,17 @@
 +config MTK_MT6797_DVFSP_CLOCK_BACKEND
 +	bool "MediaTek MT6797 protected CPU clock readback transport"
 +	depends on ARM64 && ARCH_MEDIATEK && OF && COMMON_CLK
