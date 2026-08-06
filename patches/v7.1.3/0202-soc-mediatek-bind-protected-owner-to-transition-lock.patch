@@ -234,11 +234,11 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/
 @@ -2167,11 +2192,12 @@ mt6797_dvfsp_protected_state_owner_release(
  	if (ret) {
  		owner->cpu_pll_ops->invalidate(
- 		owner->cpu_pll_context,
- 		MT6797_DVFSP_STATE_INVALID_PCM_FAULT);
+ 			owner->cpu_pll_context,
+ 			MT6797_DVFSP_STATE_INVALID_PCM_FAULT);
  		owner->big_cluster_ops->invalidate(
- 		owner->big_cluster_context,
- 		MT6797_DVFSP_STATE_INVALID_PCM_FAULT);
+ 			owner->big_cluster_context,
+ 			MT6797_DVFSP_STATE_INVALID_PCM_FAULT);
  	}
 +	mt6797_dvfsp_protected_state_owner_transition_unlock(owner);
  
