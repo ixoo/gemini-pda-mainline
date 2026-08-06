@@ -28,10 +28,8 @@ submission-ready.
 diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
 --- a/drivers/soc/mediatek/Makefile
 +++ b/drivers/soc/mediatek/Makefile
-@@ -8,3 +8,4 @@ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-handoff.o
- obj-$(CONFIG_MTK_MT6797_DVFSP_CLOCK_BACKEND) += mt6797-dvfsp-clock-backend.o
+@@ -0,0 +1 @@
 +obj-$(CONFIG_MTK_MT6797_DVFSP_CLOCK_BACKEND) += mt6797-dvfsp-clock-state.o
- obj-$(CONFIG_MTK_MT6797_DVFSP_BIGIDVFS_BACKEND) += mt6797-bigidvfs-backend.o
 
 diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-clock-state.h b/include/linux/soc/mediatek/mt6797-dvfsp-clock-state.h
 new file mode 100644
