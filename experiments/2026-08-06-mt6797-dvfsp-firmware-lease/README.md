@@ -52,8 +52,10 @@ windows. Its `cspm_go_to_dvfs()` performs the reset, instruction-memory fetch,
 register/event/wakeup setup, CSRAM record initialization, and PCM kick. The
 same owner routes `SEMA_I2C_DRV` through the three-word SW_PAUSE/FW_DONE
 handshake and paired clock release. The source embeds both governor and
-non-governor PCM descriptors; the exact mainline variant and redistributable
-image boundary remain unproven. The complete source identity and line anchors
+non-governor PCM descriptors; the non-governor `pcm_dvfs_v0.1_160131_02`
+descriptor matches the retained vendor ELF and public array identity. The
+repository and header are GPLv2, but source attribution, notice propagation,
+and mainline image packaging still require an explicit admission step. The complete source identity and line anchors
 are recorded in
 [`results/public-hybrid-owner-source-20260806.txt`](results/public-hybrid-owner-source-20260806.txt).
 This closes historical owner attribution, not the current mainline owner gate:

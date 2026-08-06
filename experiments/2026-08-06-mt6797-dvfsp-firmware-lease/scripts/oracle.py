@@ -56,11 +56,13 @@ def main() -> None:
     for needle, label in (
         ("claim=PUBLIC_GEMIAN_HYBRID_DVFSP_OWNER_REVALIDATED", "owner-claim"),
         ("source_commit=8cfe6596a503612e3332d9c26e292a19525a7f07", "owner-source"),
+        ("source_license_basis=repository_COPYING_and_LICENSE_GPLv2;hybrid_header_GPLv2", "owner-license"),
         ("resource_cspm=0x11015000_plus_0x1000", "owner-cspm"),
         ("resource_csram=0x0012a000_plus_0x3000", "owner-csram"),
         ("start_order=reset_and_init_PCM;IM_PTR_IM_LEN;IM_KICK;FSM_IM_READY;PCM_registers;event_vectors;wakeup_events;PCM_KICK;CSRAM_records", "owner-start"),
         ("lease_pause=three_SW_PAUSE_bit13_words;three_FW_DONE_bit15_words;2ms_timeout", "owner-lease"),
         ("historical_descriptor_match=pcm_dvfs_v0.1_160131_02;retained_vendor_ELF_string_match", "owner-descriptor-match"),
+        ("reference_target_descriptor=pcm_dvfs_v0.1_160131_02;2025_u32", "owner-reference-target"),
         ("selected_descriptor_for_mainline=unproven", "owner-variant"),
         ("current_mainline_owner=unimplemented", "owner-mainline-state"),
         ("decision=SOURCE_OWNER_IDENTIFIED;KEEP_MAINLINE_PROVIDER_BLOCKED", "owner-decision"),

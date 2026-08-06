@@ -28,10 +28,12 @@ SW_PAUSE/FW_DONE pause and paired release path. The exact source hashes and
 line anchors are in
 [`results/public-hybrid-owner-source-20260806.txt`](results/public-hybrid-owner-source-20260806.txt).
 
-This is reference-owner evidence, not permission to copy the vendor driver or
-firmware array. The source contains both governor and non-governor descriptors,
-and neither the selected mainline variant nor an image redistribution boundary
-has been admitted. Its `BUG()` and unbounded wait failure behavior is also not
+The repository `COPYING`/`LICENSE` and the firmware header provide a GPLv2
+license basis for the public reference image; source attribution and the GPL
+notice must travel with any future derived implementation. The non-governor
+descriptor `pcm_dvfs_v0.1_160131_02` (2025 words) matches the retained vendor
+ELF string and the public array identity, but mainline packaging has not yet
+been admitted. Its `BUG()` and unbounded wait failure behavior is also not
 acceptable for a mainline owner. The adapter must use bounded, sticky-fault
 failure paths and explicit suspend/resume/clock rollback before it can register
 the callback in patch `0175`.
