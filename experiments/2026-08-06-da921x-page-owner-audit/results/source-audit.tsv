@@ -22,4 +22,5 @@ mainline_transfer_lease	0174-validated;generation-cookie;PM-lock-integrated;Buil
 firmware_owner_lease	unproven;vendor_SEMA_I2C_DRV_not_represented	0100;0101;vendor-crosscheck;dvfsp-lease-audit;firmware-owner-lease-20260806	BLOCK_WRITABLE_PROVIDER
 firmware_protocol_contract	0175-default-unregistered;Buildbox-pass	2026-08-06-mt6797-dvfsp-firmware-lease	CONTRACT_ONLY
 pcm_firmware_owner_scan	negative-direct-literal;archive-boundary-only	pcm-firmware-owner-scan-20260806	NO_NEW_OWNER_AUTHORITY
+secure_owner_image_scan	LK-generic-I2C;ATF-CSPM-interference-attributed;SCP-DVFS-SPM;no-PCM-restart-SEMA-owner	secure-owner-image-scan-20260806	NO_NEW_OWNER_AUTHORITY
 hardware_action	none	source-only audit	PASS_SAFETY

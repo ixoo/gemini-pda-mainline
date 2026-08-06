@@ -1678,6 +1678,15 @@ The next ordered work remains source-only:
    decodable owner proof. The archive contains no LK/TEE/SCP payloads, so it
    does not close the external-owner question; see the
    [PCM scan](../experiments/2026-08-06-da921x-page-owner-audit/results/pcm-firmware-owner-scan-20260806.txt).
+   The retained full-backup LK, TEE/ATF, and SCP images were then scanned
+   read-only: LK exposes generic bootloader I2C markers, ATF exposes PSCI/iDVFS
+   secure-power paths and its existing direct-immediate audit attributes CSPM
+   secure-semaphore writes, while SCP exposes DVFS/SPM/IPI paths. The exact
+   external audit still finds no PCM-restart writer or `SEMA_I2C_DRV` owner;
+   an SCP-local alias remains unexcluded, and none of the six images contains
+   the direct controller or CSPM/CSRAM literals. This bounded cross-check adds
+   no `SEMA_I2C_DRV` authority. See the
+   [secure-image scan](../experiments/2026-08-06-da921x-page-owner-audit/results/secure-owner-image-scan-20260806.txt).
    Patch `0175` now defines a separately reviewed, default-unregistered
    callback contract for the vendor pause-source lease, including exact
    generation/cookie, 2 ms timeout, three-word pause/acknowledgement checks,

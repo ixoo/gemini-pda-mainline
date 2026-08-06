@@ -21,6 +21,7 @@ DVFSP_LEASE = Path(__file__).resolve().parents[1] / "results/dvfsp-lease-audit-2
 BUILDBOX_LEASE = Path(__file__).resolve().parents[1] / "results/buildbox-transfer-lease-20260806.txt"
 FIRMWARE_LEASE = Path(__file__).resolve().parents[1] / "results/firmware-owner-lease-20260806.txt"
 PCM_SCAN = Path(__file__).resolve().parents[1] / "results/pcm-firmware-owner-scan-20260806.txt"
+SECURE_IMAGE_SCAN = Path(__file__).resolve().parents[1] / "results/secure-owner-image-scan-20260806.txt"
 LEDGER = Path(__file__).resolve().parents[1] / "results/source-audit.tsv"
 RECONCILIATION = Path(__file__).resolve().parents[1] / "results/source-reconciliation-20260806.txt"
 CROSSCHECK = ROOT / "experiments/2026-07-23-da9214-resource-only/results/da9214-datasheet-crosscheck-20260723.txt"
@@ -50,6 +51,7 @@ def main() -> None:
     buildbox_lease = BUILDBOX_LEASE.read_text()
     firmware_lease = FIRMWARE_LEASE.read_text()
     pcm_scan = PCM_SCAN.read_text()
+    secure_image_scan = SECURE_IMAGE_SCAN.read_text()
     ledger = LEDGER.read_text()
     reconciliation = RECONCILIATION.read_text()
     crosscheck = CROSSCHECK.read_text()
@@ -133,6 +135,8 @@ def main() -> None:
         ("vendor_pause_source=PAUSE_I2CDRV;pause_map_bit=0x2", "firmware-pause-source"),
         ("vendor_acquire_success=drop_DVFSP_prepared_I2C_APPM_reference;record_pause_map_bit", "firmware-clock-release"),
         ("external_writer_audit=negative_for_direct_PCM_restart_writer_in_retained_LK_TEE_SCP_payloads", "firmware-writer-audit"),
+        ("external_attribution=ATF_secure_CSPM_clock_and_semaphore_access", "firmware-atf-attribution"),
+        ("external_residual=SCP_computed_or_local_alias_unexcluded;PCM_restart_SEMA_I2C_DRV_owner_unproven", "firmware-residual-gap"),
         ("receiver_stopped_state=Candidate_AO_runtime_validated;PCM_signature_stable;45s_late_check_passed", "receiver-stopped-state"),
         ("receiver_shared_clock=Candidate_AO_runtime_validated;one_CCF_enable_disable;ungated_to_gated;late_gate_stable", "receiver-clock-normalization"),
         ("receiver_i2c6_activity=none;I2C6_disabled_childless", "receiver-no-i2c6"),
@@ -158,6 +162,23 @@ def main() -> None:
         ("status=PASS_LIMITED_PCM_SCAN_NEGATIVE", "pcm-status"),
     ):
         require(pcm_scan, needle, label)
+    for needle, label in (
+        ("source=project-start-full-backup;read_only;no_new_backup;raw_contents_not_staged", "secure-scan-source"),
+        ("lk_sha256=75ec9f0ba97af9e68d964b304e0de809f9b4546982570bd16b2e7fe88823282c", "secure-lk-hash"),
+        ("tee1_sha256=2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3", "secure-tee-hash"),
+        ("scp1_sha256=3c65097eeeb4e2d29dd125752cfb648c6da5e3651eabc9dad1da672b2558cd66", "secure-scp-hash"),
+        ("lk_named_sema_i2cdrv_strings=0", "secure-lk-semaphore-gap"),
+        ("tee_i2c6_strings=0", "secure-tee-i2c6-gap"),
+        ("scp_i2c6_strings=0", "secure-scp-i2c6-gap"),
+        ("scp_named_sema_i2cdrv_strings=0", "secure-scp-semaphore-gap"),
+        ("crosscheck=external-cspm-writer-audit-20260724;ATF_CSPM_owner_attributed;PCM_restart_owner_not-found", "secure-owner-crosscheck"),
+        ("tee_direct_constructor_cspm=found;keyed_0x0b160001;secure_semaphore_0x11015448", "secure-atf-owner"),
+        ("tee_direct_pcm_con0_kick_reset=not-found", "secure-pcm-restart-gap"),
+        ("negative_result=secure_images_do_not_identify_the_PCM_restart_SEMA_I2C_DRV_lease_owner", "secure-owner-negative"),
+        ("interpretation=bounded_strings_and_literal_scan;computed_or_secure_alias_access_remains_unexcluded", "secure-scan-boundary"),
+        ("status=PASS_LIMITED_SECURE_IMAGE_SCAN_NEGATIVE", "secure-scan-status"),
+    ):
+        require(secure_image_scan, needle, label)
     require(p0098, "I2C6 remains disabled", "ao-i2c6-disabled-contract")
     require(p0098, "does not implement per-transfer DVFSP coordination", "ao-no-per-transfer-contract")
     for forbidden, label in (("PAUSE_I2CDRV", "ao-pause-source"), ("FW_DONE", "ao-firmware-ack")):
@@ -209,6 +230,7 @@ def main() -> None:
         "hardware_action\tnone",
         "firmware_protocol_contract\t0175-default-unregistered;Buildbox-pass",
         "pcm_firmware_owner_scan\tnegative-direct-literal;archive-boundary-only",
+        "secure_owner_image_scan\tLK-generic-I2C;ATF-CSPM-interference-attributed;SCP-DVFS-SPM;no-PCM-restart-SEMA-owner",
     ):
         require(ledger, field, field.replace("\t", "="))
 
@@ -225,6 +247,7 @@ def main() -> None:
     print("dvfsp_ready=state-and-permission-ready;entry-check-proven")
     print("mainline_transfer_lease=0174-validated;generation-cookie;PM-lock-integrated;Buildbox-pass")
     print("firmware_owner_lease=unproven;vendor_SEMA_I2C_DRV_not_represented")
+    print("secure_owner_image_scan=negative;ATF-CSPM-interference-attributed;LK-generic-I2C;SCP-DVFS-SPM;no-PCM-restart-SEMA-owner")
     print("decision=BLOCK_WRITABLE_PROVIDER")
     print("hardware_action=none")
     print("status=PASS_NEGATIVE_AUDIT")

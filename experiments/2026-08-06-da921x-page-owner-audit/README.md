@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-06-da921x-page-owner-audit` |
-| Status | `completed` (partial source reconciliation; writable path rejected) |
+| Status | `completed` (partial source/image reconciliation; writable path rejected) |
 | Subsystem | legacy DA9213/DA9214/DA9215 page, BUCKB, and provider ownership |
 | Device variant | Planet Gemini PDA, MT6797; no live-device action |
 | Date | 2026-08-06 America/New_York |
@@ -19,10 +19,10 @@ Do the pinned read-only source, the dormant A36 model, and the sanitized
 runtime observations establish enough DA921x page/selector ownership to add a
 single bounded BUCKB write with readback and rollback?
 
-The audit is deliberately source-only. It distinguishes observed bytes and
-source constants from a proven page-selector protocol, writer owner, and
-inverse operation. It does not try another device boot or repeat a successful
-natural CPU8 cycle.
+The audit is deliberately hardware-independent. It distinguishes observed
+bytes, source constants, and bounded scans of the retained private images from
+a proven page-selector protocol, writer owner, and inverse operation. It does
+not try another device boot or repeat a successful natural CPU8 cycle.
 
 ## Provenance and environment
 
@@ -46,12 +46,16 @@ natural CPU8 cycle.
 - The managed immutable userspace payload was searched separately; the
   bounded result is recorded in
   [`results/vendor-payload-search-20260806.txt`](results/vendor-payload-search-20260806.txt).
+- The retained full-backup LK, TEE/ATF, and SCP images were scanned separately;
+  the bounded result is recorded in
+  [`results/secure-owner-image-scan-20260806.txt`](results/secure-owner-image-scan-20260806.txt).
 
 ## Safety assessment
 
 This is a read-only repository audit. It performs no I2C transfer, page
-selection, register-data write, regulator vote, CPU request, partition access,
-boot, reboot, or power transition. No device backup is created or needed.
+selection, register-data write, regulator vote, CPU request, device access,
+boot, reboot, or power transition. It reads only the already-retained,
+Git-ignored full-backup images; no new device backup is created or needed.
 
 The current standing boot2 authorization is not relevant: the audit does not
 produce a candidate eligible for installation. A writable provider remains
@@ -62,6 +66,9 @@ forbidden until the missing owner and rollback evidence is closed.
 - [`scripts/oracle.py`](scripts/oracle.py) checks the exact source facts and
   rejects the audit if the selected provider path gains a write or page-control
   operation.
+- [`scripts/audit-secure-owner-images.sh`](scripts/audit-secure-owner-images.sh)
+  performs the bounded read-only LK/TEE/SCP image scan without staging raw
+  contents.
 - [`results/source-audit.tsv`](results/source-audit.tsv) is the sanitized
   row-by-row evidence ledger.
 - [`results/oracle.txt`](results/oracle.txt) records the repeatable result.
@@ -83,6 +90,8 @@ python3 experiments/2026-08-06-da921x-page-owner-audit/scripts/oracle.py
    inverse owner.
 4. Fail closed if any of those requirements is absent or if the selected
    provider path contains a state-changing transfer.
+5. Scan the retained LK, TEE/ATF, and SCP images for bounded owner markers and
+   direct controller/CSPM literals, retaining only hashes and sanitized counts.
 
 ## Observations
 
@@ -152,9 +161,10 @@ The source and sanitized runtime record establish these facts:
   [`results/firmware-owner-lease-20260806.txt`](results/firmware-owner-lease-20260806.txt):
   `SEMA_I2C_DRV` is a firmware pause-source lease, not a Linux generation
   token or a hardware semaphore. The direct LK/TEE/SCP audit remains negative
-  for a PCM restart writer, but ATF secure clock/semaphore access and an SCP
-  computed/local alias remain unexcluded. Linux therefore cannot claim the
-  firmware owner from the current evidence; the provider stays fail-closed.
+  for a PCM restart writer; it attributes ATF secure clock/semaphore access,
+  while an SCP computed/local alias remains unexcluded. Linux therefore cannot
+  claim the `SEMA_I2C_DRV` firmware owner from the current evidence; the
+  provider stays fail-closed.
   Candidate AO already validated the receiver-side stopped PCM signature and
   one balanced ungated-to-gated I2C_APPM transition with a stable 45-second
   late check while I2C6 remained disabled. That result must not be repeated;
@@ -171,14 +181,27 @@ The source and sanitized runtime record establish these facts:
   userspace SPM blobs only; it does not contain the LK, TEE, or SCP payloads
   needed to close the external-owner question. The bounded result is in
   [`results/pcm-firmware-owner-scan-20260806.txt`](results/pcm-firmware-owner-scan-20260806.txt).
+- The retained secure images add a bounded negative cross-domain check. LK
+  contains generic bootloader I2C markers but no named `SEMA_I2C_DRV` marker;
+  TEE/ATF contains the MT6797 PSCI/iDVFS paths, and the existing direct-
+  immediate audit attributes its CSPM/secure-semaphore writes; SCP contains
+  CM4-A DVFS/SPM/IPI paths but no I2C6 or `SEMA_I2C_DRV` marker. The exact
+  external audit still finds no PCM-restart writer, while an SCP-local alias
+  remains unexcluded. None of the six images contains a direct little-endian
+  `0x1100e000`, `0x11015000`, `0x11015018`, or `0x0012a000` literal. The new
+  scan is therefore only a bounded strings/literal cross-check; computed
+  accesses and secure aliases remain unexcluded, and no `SEMA_I2C_DRV` owner
+  is promoted. See
+  [`results/secure-owner-image-scan-20260806.txt`](results/secure-owner-image-scan-20260806.txt).
 - Patch `0175` now defines the separately reviewed firmware callback contract:
   it carries the vendor pause source, `SW_PAUSE`/`FW_DONE` masks, 2 ms bound,
   Linux generation/cookie, and a paired opaque release handle. It is
   default-unregistered and contains no MMIO or I2C operation, so it narrows the
   protocol boundary without proving that the receiver or any external domain
-  is authoritative. The contract is tracked in the
-  [firmware lease experiment](../2026-08-06-mt6797-dvfsp-firmware-lease/)
-  and still requires exact Buildbox validation and external-owner evidence.
+  is authoritative. Its exact Buildbox validation is recorded in the contract
+  experiment; attributable firmware evidence remains required. The contract is
+  tracked in the [firmware lease experiment](../2026-08-06-mt6797-dvfsp-firmware-lease/)
+  and still requires external-owner evidence.
 - No bounded inverse exists for a provider write at or beyond the unresolved
   external-isolation boundary. The release callback therefore remains a
   structured `-EOPNOTSUPP` refusal.
