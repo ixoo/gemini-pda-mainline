@@ -510,7 +510,8 @@ new file mode 100644
 +	bl	p30e_clean_slot
 +	bl	p30e_select_slot
 +	mov	x4, #ARM64_MT6797_A72_P30E_FAILED
-+	stlr	x4, [x1, #ARM64_MT6797_A72_P30E_TARGET_STATE_OFF]
++	add	x3, x1, #ARM64_MT6797_A72_P30E_TARGET_STATE_OFF
++	stlr	x4, [x3]
 +	mov	x0, #-EPROTO
 +	ret
 +SYM_FUNC_END(p30e_publish_failure)
@@ -545,13 +546,15 @@ new file mode 100644
 +	mov	x5, #7
 +	b.ne	p30e_publish_failure
 +.Lp30e_operation_ok:
-+	ldar	x4, [x1, #ARM64_MT6797_A72_P30E_CONTROLLER_STATE_OFF]
++	add	x3, x1, #ARM64_MT6797_A72_P30E_CONTROLLER_STATE_OFF
++	ldar	x4, [x3]
 +	cmp	x4, #ARM64_MT6797_A72_P30E_EMPTY
 +	b.eq	.Lp30e_claim_not_armed
 +	cmp	x4, #ARM64_MT6797_A72_P30E_ARMED
 +	mov	x5, #5
 +	b.ne	p30e_publish_failure
-+	ldar	x4, [x1, #ARM64_MT6797_A72_P30E_TARGET_STATE_OFF]
++	add	x3, x1, #ARM64_MT6797_A72_P30E_TARGET_STATE_OFF
++	ldar	x4, [x3]
 +	cmp	x4, #ARM64_MT6797_A72_P30E_EMPTY
 +	mov	x5, #5
 +	b.ne	p30e_publish_failure
@@ -570,7 +573,8 @@ new file mode 100644
 +	bl	p30e_clean_slot
 +	bl	p30e_select_slot
 +	mov	x4, #ARM64_MT6797_A72_P30E_TARGET_CLAIMED
-+	stlr	x4, [x1, #ARM64_MT6797_A72_P30E_TARGET_STATE_OFF]
++	add	x3, x1, #ARM64_MT6797_A72_P30E_TARGET_STATE_OFF
++	stlr	x4, [x3]
 +	mov	x0, #0
 +	ret
 +.Lp30e_claim_not_armed:
@@ -603,7 +607,8 @@ new file mode 100644
 +	bl	p30e_select_slot
 +	cmp	x0, #0
 +	b.lt	.Lp30e_publish_no_target
-+	ldar	x4, [x1, #ARM64_MT6797_A72_P30E_TARGET_STATE_OFF]
++	add	x3, x1, #ARM64_MT6797_A72_P30E_TARGET_STATE_OFF
++	ldar	x4, [x3]
 +	cmp	x4, #ARM64_MT6797_A72_P30E_TARGET_CLAIMED
 +	b.ne	.Lp30e_publish_not_claimed
 +	ldr	x10, [x1, #ARM64_MT6797_A72_P30E_TARGET_SEQUENCE_OFF]
@@ -615,7 +620,8 @@ new file mode 100644
 +	str	x9, [x1, #ARM64_MT6797_A72_P30E_TARGET_ENTRY_SP_OFF]
 +	bl	p30e_clean_slot
 +	bl	p30e_select_slot
-+	stlr	x5, [x1, #ARM64_MT6797_A72_P30E_TARGET_STATE_OFF]
++	add	x3, x1, #ARM64_MT6797_A72_P30E_TARGET_STATE_OFF
++	stlr	x5, [x3]
 +	mov	x0, #0
 +	ret
 +.Lp30e_publish_bad_state:
