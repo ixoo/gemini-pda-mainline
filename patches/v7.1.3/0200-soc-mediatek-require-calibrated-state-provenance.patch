@@ -23,7 +23,7 @@ registered by default. This patch is experiment-only and not submission-ready.
 diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
 --- a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
 +++ b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
-@@ -75,8 +75,27 @@ struct mt6797_dvfsp_state_cluster {
+@@ -63,2 +63,19 @@ struct mt6797_dvfsp_state_cluster {
  	u32 rail_state;
  };
 +#define MT6797_DVFSP_STATE_PROVENANCE_ABI		1
@@ -43,8 +43,7 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h b/include/linux/s
 +	u32 table_epoch;
 +	u64 calibration_handle;
 +};
-+
- struct mt6797_dvfsp_state_snapshot {
+@@ -66,5 +66,6 @@ struct mt6797_dvfsp_state_snapshot {
  	u32 abi;
  	u32 cluster_mask;
  	u64 generation;
@@ -114,11 +113,10 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/
 +		return ret;
  
  	if (snapshot->abi != MT6797_DVFSP_STATE_OWNER_ABI ||
-@@ -1792,2 +1811,4 @@ mt6797_dvfsp_state_owner_identity_check(
+@@ -1792,2 +1811,2 @@ mt6797_dvfsp_state_owner_identity_check(
  		return -EPROTO;
-+
+-	return 0;
 +	return mt6797_dvfsp_state_provenance_check(&identity->provenance);
- }
 @@ -1887,3 +1908,5 @@ mt6797_dvfsp_state_backend_check(
  		return -EPROTO;
 +	if (mt6797_dvfsp_state_provenance_check(&snapshot->provenance))
