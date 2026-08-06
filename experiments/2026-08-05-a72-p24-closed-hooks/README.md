@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-05-a72-p24-closed-hooks` |
-| Status | `completed` (reviewed exact C mapping plus independent source oracle) |
+| Status | `Buildbox-validated` (after proof-storage compile correction; no hardware action) |
 | Subsystem | Generic CPU-up and arm64 MT6797 admission boundaries |
 | Device variant | Planet Gemini PDA, MT6797; no live-device action |
 | Date(s) | 2026-08-05 America/New_York |
@@ -111,9 +111,14 @@ selection.
 - The exact offline validator passed the patch identity, source-order and
   dispatch checks, profile/configuration binding, documentation, oracle,
   mutation suite, and all 65 manifest-profile series checks.
-- No kernel build, KUnit execution, runtime test, network access, or device
-  action was performed. Any Gemian reboot reports during this source-only
-  work remain recovery chronology, not evidence for this claim.
+- The first Buildbox attempt for the exact P24 profile exposed a source compile
+  defect in the preceding R03/P29 ledger: its transaction referenced durable
+  `provider_rejection` and `p29_rollback` records that were not stored. Patch
+  0171 adds those two records; the corrected profile is validated separately
+  in [Buildbox validation](results/buildbox-validation-20260806.txt). No KUnit
+  execution, runtime test, network access, or device action was performed.
+  Any Gemian reboot reports during this source-only work remain recovery
+  chronology, not evidence for this claim.
 
 ## Analysis
 

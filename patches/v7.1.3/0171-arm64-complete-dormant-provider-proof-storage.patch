@@ -1,0 +1,32 @@
+From 89397e0925c25f9d9e4ddbc3924b8de6e57c54f7 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 5 Aug 2026 21:20:00 -0400
+Subject: [PATCH] arm64: complete dormant provider proof storage
+
+Store the R03 provider-rejection and P29 rollback proof records in the
+dormant MT6797 A72 transaction. The preceding source-only edges already
+validate and publish these records; retaining them makes the exact profile
+compile when the refusal and rollback model is selected.
+
+This experiment-only correction has no certifying sign-off and is not
+submission-ready. It adds no provider call, hardware effect, or CPU_ON path.
+
+---
+ arch/arm64/include/asm/mt6797_a72_membership.h | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/arch/arm64/include/asm/mt6797_a72_membership.h b/arch/arm64/include/asm/mt6797_a72_membership.h
+index 000000000..000000000 100644
+--- a/arch/arm64/include/asm/mt6797_a72_membership.h
++++ b/arch/arm64/include/asm/mt6797_a72_membership.h
+@@ -310,6 +310,8 @@ struct mt6797_a72_transaction {
+ 	struct mt6797_a72_p27_preparation p27_preparation;
+ 	struct mt6797_a72_provider_acquire_proof provider_acquire_proof;
+ 	struct mt6797_a72_provider_identity provider_identity;
++	struct mt6797_a72_provider_rejection provider_rejection;
++	struct mt6797_a72_p29_rollback_proof p29_rollback;
+ 	struct mt6797_a72_p28_preparation p28_preparation;
+ 	struct arm64_late_cpu_up_token p30_token;
+ 	u64 controller_cookie;
+-- 
+2.43.0

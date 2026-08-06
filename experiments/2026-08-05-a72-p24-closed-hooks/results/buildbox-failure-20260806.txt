@@ -1,0 +1,7 @@
+repository_commit=89397e0925c25f9d9e4ddbc3924b8de6e57c54f7
+buildbox_job=89397e0925c25f9d9e4ddbc3924b8de6e57c54f7-observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-reject-gate-a41-kernel-identity-p30-protocol-p24-closed-owner-hooks-m0
+profile=observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-reject-gate-a41-kernel-identity-p30-protocol-p24-closed-owner-hooks
+status=FAIL_COMPILE
+error=mt6797_a72_membership.c:737:26: struct mt6797_a72_transaction has no member named provider_rejection
+error=mt6797_a72_membership.c:940:25: struct mt6797_a72_transaction has no member named p29_rollback
+device_action=none
