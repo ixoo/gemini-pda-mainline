@@ -7,7 +7,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 PATCH = ROOT / "patches/v7.1.3/0172-arm64-add-provider-owner-callback-refusal-boundary.patch"
 DRIVER = ROOT / "patches/v7.1.3/0172-arm64-add-provider-owner-callback-refusal-boundary.patch"
-SERIES = ROOT / "patches/series-a72-p24-provider-owner-refusal"
+SERIES = ROOT / "patches/series"
 FRAGMENT = ROOT / "configs/gemini-da921x-provider-owner-refusal.fragment"
 
 

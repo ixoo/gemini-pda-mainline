@@ -40,7 +40,7 @@ remain closed.
 - Patch bytes: `13512`
 - Source commit used to generate the patch: `826f6ef07`
 - Profile: `a72-p24-provider-owner-refusal`
-- Series: [series-a72-p24-provider-owner-refusal](../../patches/series-a72-p24-provider-owner-refusal)
+- Series: [canonical series](../../patches/series)
 
 ## Safety and nonclaims
 

@@ -1,0 +1,9 @@
+claim=PARTIAL_R01_R02_PROVIDER_CALLBACK_REFUSAL
+attempted_commit=91718831d5335e0c4b0b7539705bce304171b83f
+profile=a72-p24-provider-owner-refusal
+failure_stage=patch-application
+failure=0170-resource-provider-selected-without-its-0124-driver-parent
+cause=the-derived-profile-series-retained-the-P24-isolated-prefix-which-intentionally-omits-the-DA921x-driver
+device_action=none
+status=BUILD_INPUT_FAILURE
+followup=use-canonical-series-which-includes-0123-0124-0125-and-0170
