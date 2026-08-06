@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-05-a72-provider-owner-callback` |
-| Status | `running` (source and static validation; Buildbox pending) |
+| Status | `completed` (source, static, and Buildbox validation) |
 | Subsystem | MT6797 A72 R01/R02 provider-owner callback boundary |
 | Device variant | Planet Gemini PDA, MT6797; no live-device action |
 | Date | 2026-08-05 America/New_York |
@@ -41,6 +41,7 @@ remain closed.
 - Source commit used to generate the patch: `826f6ef07`
 - Profile: `a72-p24-provider-owner-refusal`
 - Series: [canonical series](../../patches/series)
+- Validated repository commit: `5e6c3f07915aa2816ebd918c82057fb1683bfc46`
 
 ## Safety and nonclaims
 
@@ -55,7 +56,7 @@ is authorized by this experiment.
 - [DESIGN.md](DESIGN.md) defines the request/response and lifetime contract.
 - [Static oracle](scripts/oracle.py)
 - [Source validation](results/source-validation-20260805.txt)
-- Buildbox validation will be recorded here before any later lifecycle work.
+- [Buildbox validation](results/buildbox-validation-20260806.txt)
 
 Run from the repository root:
 
@@ -65,9 +66,9 @@ PYTHONDONTWRITEBYTECODE=1 python3 experiments/2026-08-05-a72-provider-owner-call
 
 ## Conclusion
 
-The callback/refusal seam is source-complete and statically bounded. The claim
-remains provisional until the exact pushed commit passes the named Buildbox
-profile. Even after that compile result, the device remains out of scope.
+The callback/refusal seam is source-complete, statically bounded, and
+Buildbox-validated for the exact pushed commit. It remains compile-only; the
+device and CPU_ON path are out of scope.
 
 ## Follow-up
 
