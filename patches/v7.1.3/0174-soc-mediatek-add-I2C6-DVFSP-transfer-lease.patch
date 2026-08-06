@@ -243,7 +243,7 @@ diff --git a/drivers/i2c/busses/i2c-mt65xx.c b/drivers/i2c/busses/i2c-mt65xx.c
 index 478c356..0000000 100644
 --- a/drivers/i2c/busses/i2c-mt65xx.c
 +++ b/drivers/i2c/busses/i2c-mt65xx.c
-@@ -1246,6 +1246,9 @@ static int mtk_i2c_transfer(struct i2c_adapter *adap,
+@@ -1854,6 +1854,11 @@ static int mtk_i2c_transfer(struct i2c_adapter *adap,
  	int ret;
 +	int lease_ret;
  	int left_num = num;
@@ -252,8 +252,10 @@ index 478c356..0000000 100644
  	struct mtk_i2c *i2c = i2c_get_adapdata(adap);
 +	struct mt6797_dvfsp_i2c6_lease lease = { };
  
++	mtk_i2c_record_lifecycle_oracle(i2c, msgs, num);
++
  	if (i2c->dvfsp_handoff) {
-@@ -1259,3 +1262,8 @@ static int mtk_i2c_transfer(struct i2c_adapter *adap,
+@@ -1862,3 +1865,8 @@ static int mtk_i2c_transfer(struct i2c_adapter *adap,
  		if (ret)
  			return ret;
 +		ret = mt6797_dvfsp_handoff_begin_i2c6_transfer(
@@ -262,7 +264,14 @@ index 478c356..0000000 100644
 +			return ret;
 +		lease_active = true;
  	}
-@@ -1320,5 +1328,12 @@ err_regulator:
+@@ -1869,5 +1874,5 @@ static int mtk_i2c_transfer(struct i2c_adapter *adap,
+ 	if (i2c->adap.bus_regulator) {
+ 		ret = regulator_enable(i2c->adap.bus_regulator);
+ 		if (ret)
+-			return ret;
++			goto err_lease;
+ 	}
+@@ -1941,5 +1949,12 @@ err_regulator:
  	if (i2c->adap.bus_regulator)
  		regulator_disable(i2c->adap.bus_regulator);
 +
