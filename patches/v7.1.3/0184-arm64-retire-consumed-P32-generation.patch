@@ -1,0 +1,26 @@
+From 0000000000000000000000000000000000000184 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 6 Aug 2026 00:00:00 -0400
+Subject: [PATCH] arm64: retire consumed P32 generation from rollback guards
+
+Once P32R consumes the exact parked generation, no later completion or
+controller cleanup callback may match it again. Treat the consumed record as
+stale so a duplicate observation cannot rewrite the terminal R branch to X.
+
+This experiment-only change has no certifying sign-off and is not
+submission-ready.
+---
+ arch/arm64/kernel/mt6797_a72_membership.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt6797_a72_membership.c
+--- a/arch/arm64/kernel/mt6797_a72_membership.c
++++ b/arch/arm64/kernel/mt6797_a72_membership.c
+@@ -125,4 +125,5 @@ mt6797_a72_p32_target_locked(unsigned int cpu)
+ 	return a72_owner.health == MT6797_A72_OWNER_AVAILABLE &&
+ 		transaction->valid && transaction->p32_valid &&
++		transaction->p32.state != MT6797_A72_P32_STATE_CONSUMED &&
+ 		transaction->p32.abi == MT6797_A72_P32_ROLLBACK_ABI &&
+ 		transaction->p32.target_cpu == cpu &&
+--
+2.50.1
