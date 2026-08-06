@@ -25,7 +25,7 @@ submission-ready.
 diff --git a/arch/arm64/include/asm/mt6797_a72_membership.h b/arch/arm64/include/asm/mt6797_a72_membership.h
 --- a/arch/arm64/include/asm/mt6797_a72_membership.h
 +++ b/arch/arm64/include/asm/mt6797_a72_membership.h
-@@ -103,6 +103,42 @@ struct mt6797_a72_p32_record {
+@@ -194,4 +194,40 @@ struct mt6797_a72_p32_record {
  	u64 cookie;
  	struct cpu_up_rollback_trace callback_trace;
  	u32 callback_trace_valid;
@@ -66,8 +66,6 @@ diff --git a/arch/arm64/include/asm/mt6797_a72_membership.h b/arch/arm64/include
 +	struct mt6797_a72_provider_identity provider_identity;
 +	u64 diagnostic_blockers;
 +};
- /* Diagnostic only: this non-exhaustive list can never authorize a request. */
- #define MT6797_A72_BLOCK_A34_BOOTSTRAP BIT_ULL(0)
 @@ -302,5 +339,6 @@ struct mt6797_a72_transaction {
  	struct mt6797_a72_p28_preparation p28_preparation;
  	struct arm64_late_cpu_up_token p30_token;
@@ -101,20 +99,23 @@ diff --git a/include/linux/cpu.h b/include/linux/cpu.h
 diff --git a/kernel/cpu.c b/kernel/cpu.c
 --- a/kernel/cpu.c
 +++ b/kernel/cpu.c
-@@ -1080,5 +1080,9 @@ static int cpuhp_up_callbacks(unsigned int cpu, struct cpuhp_cpu_state *st,
- 	trace->reverse_complete = !rollback_ret &&
+@@ -1140,5 +1140,12 @@ static int cpuhp_up_callbacks(unsigned int cpu, struct cpuhp_cpu_state *st,
+ 	st->rollback_trace.reverse_complete = !rollback_ret &&
  			can_rollback_cpu(st);
-+	trace->callback_complete = trace->reverse_complete &&
-+			!trace->overflow && !trace->callback_unknown;
-+	trace->effect_complete = !trace->effect_overflow &&
-+			!trace->effect_unknown;
++	st->rollback_trace.callback_complete =
++			st->rollback_trace.reverse_complete &&
++			!st->rollback_trace.overflow &&
++			!st->rollback_trace.callback_unknown;
++	st->rollback_trace.effect_complete =
++			!st->rollback_trace.effect_overflow &&
++			!st->rollback_trace.effect_unknown;
  #endif
  		if (arch_cpu_up_rollback_complete(cpu, ret,
  							rollback_trace))
 diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt6797_a72_membership.c
 --- a/arch/arm64/kernel/mt6797_a72_membership.c
 +++ b/arch/arm64/kernel/mt6797_a72_membership.c
-@@ -329,46 +329,134 @@ int mt6797_a72_membership_p32_cpu_kill(unsigned int cpu)
+@@ -329,43 +329,135 @@ int mt6797_a72_membership_p32_cpu_kill(unsigned int cpu)
  	return ret;
  }
 +static void
@@ -179,6 +180,7 @@ diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt679
 +	return 0;
 +}
 +
+ 
  int mt6797_a72_membership_consume_p32(unsigned int cpu, int rollback_error,
  					      const struct cpu_up_rollback_trace *trace)
  {
@@ -188,7 +190,7 @@ diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt679
  	raw_spin_lock_irqsave(&a72_state_lock, flags);
  	if (mt6797_a72_p32_target_locked(cpu)) {
  		if (!trace) {
- 			mt6797_a72_p32r_lose_locked(&a72_owner.active, NULL);
++			mt6797_a72_p32r_lose_locked(&a72_owner.active, NULL);
  			a72_owner.active.p32.branch = MT6797_A72_P32_BRANCH_X;
  			ret = -EINVAL;
  			goto out;
@@ -197,19 +199,19 @@ diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt679
  		a72_owner.active.p32.callback_trace_valid = 1;
  		if (trace->overflow || !trace->outer_reset ||
  		    !trace->reverse_complete) {
- 			mt6797_a72_p32r_lose_locked(&a72_owner.active, trace);
++			mt6797_a72_p32r_lose_locked(&a72_owner.active, trace);
  			a72_owner.active.p32.branch = MT6797_A72_P32_BRANCH_X;
  			ret = -EIO;
  			goto out;
  		}
  		if (a72_owner.active.p32.state != MT6797_A72_P32_STATE_PARKED) {
- 			mt6797_a72_p32r_lose_locked(&a72_owner.active, trace);
++			mt6797_a72_p32r_lose_locked(&a72_owner.active, trace);
  			a72_owner.active.p32.branch = MT6797_A72_P32_BRANCH_X;
  			ret = -EIO;
  			goto out;
  		}
  		if (a72_owner.active.p32.cpu_up_error != rollback_error) {
- 			mt6797_a72_p32r_lose_locked(&a72_owner.active, trace);
++			mt6797_a72_p32r_lose_locked(&a72_owner.active, trace);
  			a72_owner.active.p32.branch = MT6797_A72_P32_BRANCH_X;
  			ret = -EUCLEAN;
  			goto out;
