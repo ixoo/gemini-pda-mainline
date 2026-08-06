@@ -23,6 +23,7 @@ BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-transi
 ADAPTER_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-adapter-shell-buildbox-20260806.txt"
 IDENTITY_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-identity-buildbox-20260806.txt"
 STATE_BACKEND_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/protected-state-backend-composition-buildbox-20260806.txt"
+PROTOCOL_RESULT = Path(__file__).resolve().parents[1] / "results/protected-owner-protocol-20260806.txt"
 
 
 def require(text: str, needle: str, label: str) -> None:
@@ -48,6 +49,7 @@ def main() -> None:
     adapter_build_result = ADAPTER_BUILD_RESULT.read_text()
     identity_build_result = IDENTITY_BUILD_RESULT.read_text()
     state_backend_build_result = STATE_BACKEND_BUILD_RESULT.read_text()
+    protocol_result = PROTOCOL_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     names = [Path(line).name for line in SERIES.read_text().splitlines()
@@ -338,6 +340,25 @@ def main() -> None:
     ):
         require(owner_result, needle, label)
 
+    for needle, label in (
+        ("claim=PROTECTED_OWNER_PROTOCOL_REVALIDATED", "protocol-claim"),
+        ("source_commit=8cfe6596a503612e3332d9c26e292a19525a7f07", "protocol-source"),
+        ("bigi_fid_enable=0xc20003b0;args=idvfs_ctrl,vproc_mv_x100,vsram_mv_x100", "protocol-bigi-enable"),
+        ("bigi_fid_pll_set_frequency=0xc20003b8;args=frequency_mhz", "protocol-bigi-pll"),
+        ("bigi_fid_sram_ldo_set=0xc20003bf;args=vsram_mv_x100", "protocol-bigi-sram"),
+        ("bigi_fid_read=0xc200035f;args=secure_register_address", "protocol-bigi-read"),
+        ("bigi_fid_write=0xc200035e;args=secure_register_address,value", "protocol-bigi-write"),
+        ("mcumixed_base=0x1001a000;length=0x1000", "protocol-mcumixed"),
+        ("semaphore_register=cspm_base_plus_0x440;hardware_semaphore=3_M0", "protocol-semaphore"),
+        ("acquire=write_1;read_bit0;retry_every_10us;200_iterations;timeout=2000us", "protocol-acquire"),
+        ("serialization=local_irq_save;kernel_spinlock;release_before_irq_restore", "protocol-serialization"),
+        ("shared_owners=kernel;SPM;ATF", "protocol-shared-owners"),
+        ("authoritative_state=missing;OPP;frequency;voltage;VSRAM;ceiling;floor;cluster_membership;clock_and_rail_state", "protocol-state-gap"),
+        ("decision=DO_NOT_REGISTER_WRITABLE_OWNER;KEEP_PROVIDER_AND_CPU8_CPU9_ADMISSION_BLOCKED", "protocol-decision"),
+        ("status=PASS_PROTOCOL_IDENTITIES_OWNER_IMPLEMENTATION_BLOCKED", "protocol-status"),
+    ):
+        require(protocol_result, needle, label)
+
     if names.index("0174-soc-mediatek-add-I2C6-DVFSP-transfer-lease.patch") >= names.index("0175-soc-mediatek-define-I2C6-firmware-lease-contract.patch"):
         raise AssertionError("firmware lease contract is not after Linux transfer lease")
     if names.index("0191-arm64-arm-P32-publication-from-on-issued-phase.patch") >= names.index("0192-soc-mediatek-define-MT6797-state-owner-contract.patch"):
@@ -388,6 +409,7 @@ def main() -> None:
     print("pcm_start_contract=defined;residency_and_start_required_before_callback_registration")
     print("startup_state_owner=unproven;mainline=absent")
     print("historical_owner_source=identified;public_gemian_hybrid")
+    print("protected_owner_protocol=identified;BigiDVFS_FIDs_and_MCUMIXED_semaphore;authoritative_state_owner_missing")
     print("mainline_owner=unimplemented;provider=blocked")
     print("image_variant=unproven;firmware_redistribution=unproven")
     print("status=PASS_STATIC")

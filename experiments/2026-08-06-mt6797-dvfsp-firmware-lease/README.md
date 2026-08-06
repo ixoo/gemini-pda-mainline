@@ -94,6 +94,7 @@ be copied directly into a mainline failure/PM path.
 - [Bounded PCM admission shell Buildbox validation](results/pcm-adapter-shell-buildbox-20260806.txt)
 - [Protected state-owner identity Buildbox validation](results/state-owner-identity-buildbox-20260806.txt)
 - [Protected state-backend composition Buildbox validation](results/protected-state-backend-composition-buildbox-20260806.txt)
+- [Protected-owner protocol identity revalidation](results/protected-owner-protocol-20260806.txt)
 - [Mainline clock/state-owner inventory](results/mainline-clock-owner-inventory-20260806.txt)
 - [Current-head bfd04ae full-profile Buildbox resume](results/current-head-bfd04ae-full-buildbox-20260806.txt)
 - [Receiver register-window identity reconciliation](results/receiver-register-identity-20260806.txt)
@@ -234,3 +235,14 @@ the [protected composition Buildbox result](results/protected-state-backend-comp
 The next gate is still the independently reviewed hardware implementation of
 the MCUMIXED/DVFSP CPU-PLL owner and BigiDVFS secure owner, including their
 authoritative OPP/frequency/voltage/VSRAM state and transition locks.
+
+The read-only protocol revalidation now closes the public identifiers needed
+to implement those adapters: the BigiDVFS secure FIDs and secure register
+offsets, and the MCUMIXED/DVFSP semaphore's exact acquire/release sequence,
+2 ms bound, IRQ/spinlock serialization, and shared kernel/SPM/ATF ownership.
+It also records why this is not yet an owner: the target firmware response and
+variant remain unvalidated, the authoritative OPP/rail/cluster-state contract
+is absent, and the historical fatal timeout paths need bounded mainline
+rollback. The next implementation gate is therefore a default-off,
+read-only protocol adapter with explicit state and transition-lock proof; no
+writable provider or CPU8/CPU9 admission is permitted until that proof exists.

@@ -1,0 +1,77 @@
+# MT6797 protected-owner protocol revalidation
+
+Date: 2026-08-06 America/New_York
+
+claim=PROTECTED_OWNER_PROTOCOL_REVALIDATED
+scope=read-only-public-source-audit;no-source-copied;no-device-action;no-new-backup
+source_repository=https://github.com/gemian/gemini-linux-kernel-3.18
+source_commit=8cfe6596a503612e3332d9c26e292a19525a7f07
+source_license_basis=repository_COPYING_and_LICENSE_GPLv2;header_GPLv2;no_or_later_statement
+idvfs_header=drivers/misc/mediatek/base/power/mt6797/mt_idvfs.h
+idvfs_header_sha256=7c0e142b4a61ef89f432195e779c9a3408a8b25282732dad9a0eb98be96cfd68
+idvfs_source=drivers/misc/mediatek/base/power/mt6797/mt_idvfs.c
+idvfs_source_sha256=7232f5ba7347511d97da6947c6833811b439d3116f95a13e631be40d7033b2e7
+freqhopping_source=drivers/misc/mediatek/freqhopping/mt6797/mt_freqhopping.c
+freqhopping_source_sha256=6f4165bdedd7ec318eb35e48fbc7da35967edb1af3729e47feb2537d944ac2a4
+
+## BigiDVFS secure-call identity
+
+bigi_fid_enable=0xc20003b0;args=idvfs_ctrl,vproc_mv_x100,vsram_mv_x100
+bigi_fid_disable=0xc20003b1;args=none
+bigi_fid_frequency=0xc20003b2;args=frequency_percent_x100
+bigi_fid_channel=0xc20003b3;args=channel,enable
+bigi_fid_swavg=0xc20003b4;args=length,enable
+bigi_fid_swavg_status=0xc20003b5;args=none
+bigi_fid_sw_mode=0xc20003b6;args=mode
+bigi_fid_slow_mode=0xc20003b7;args=mode
+bigi_fid_pll_set_frequency=0xc20003b8;args=frequency_mhz
+bigi_fid_pll_disable=0xc20003b9;args=none
+bigi_fid_pll_get_frequency=0xc20003ba;args=none
+bigi_fid_pll_set_posdiv=0xc20003bb;args=posdiv
+bigi_fid_pll_get_posdiv=0xc20003bc;args=none
+bigi_fid_pll_set_pcw=0xc20003bd;args=pcw
+bigi_fid_pll_get_pcw=0xc20003be;args=none
+bigi_fid_sram_ldo_set=0xc20003bf;args=vsram_mv_x100
+bigi_fid_sram_ldo_get=0xc20003c0;args=none
+bigi_fid_swreq=0xc20003c1;args=swreq
+bigi_fid_read=0xc200035f;args=secure_register_address
+bigi_fid_write=0xc200035e;args=secure_register_address,value
+bigi_arm64_conduit=smc;smc_imm=0;args_x1_x3;return_x0
+bigi_secure_registers=pll_pcw:0x102224a4;pll_enable_posdiv:0x102224a0;sram_selector:0x102222b0;control:0x10222470
+bigi_source_calls=enable:B0;disable:B1;pll_frequency:B8;sram_ldo:BF;swreq:C1;state_reads:35F;state_writes:35E
+bigi_source_ranges=pll_frequency:250..3000MHz;vsram:50000..120000(mV_x100)
+
+## MCUMIXED/DVFSP ownership identity
+
+mcumixed_base=0x1001a000;length=0x1000
+cspm_base=0x11015000;length=0x1000
+semaphore_register=cspm_base_plus_0x440;hardware_semaphore=3_M0
+internal_clock_enable=cspm_base_plus_0x0;value=0x0b160001
+acquire=write_1;read_bit0;retry_every_10us;200_iterations;timeout=2000us
+release=write_1;read_bit0_must_clear
+serialization=local_irq_save;kernel_spinlock;release_before_irq_restore
+read_write_ordering=200ns_delay_before_first_read_or_after_sequential_write
+shared_owners=kernel;SPM;ATF
+vendor_failure=BUG_on_timeout_or_release_failure;not_safe_to_copy_to_mainline
+
+## What this closes and what remains open
+
+protocol_identity=positive;exact_FIDs;exact_secure_offsets;exact_MCU_semaphore_sequence
+cpu_pll_access=protocol_identified;direct_MMIO_still_forbidden
+bigi_backend=ABI_identified;target_firmware_response_and_variant_not_runtime_validated
+authoritative_state=missing;OPP;frequency;voltage;VSRAM;ceiling;floor;cluster_membership;clock_and_rail_state
+transition_owner=missing;mainline_arbitration_with_SPM_ATF_and_regulator_state_unimplemented
+mainline_integration=absent;no_DT_resource_owner;no_clock_provider;no_secure_backend;no_state_owner_registration
+pcm_dependency=exact_startup_state_and_CSPM_CSRAM_residency_still_unproven
+decision=DO_NOT_REGISTER_WRITABLE_OWNER;KEEP_PROVIDER_AND_CPU8_CPU9_ADMISSION_BLOCKED
+next_gate=implement_bounded_read_only_protocol_adapters_then_prove_authoritative_state_and_transition_rollback
+hardware_write=none
+device_action=none
+status=PASS_PROTOCOL_IDENTITIES_OWNER_IMPLEMENTATION_BLOCKED
+
+The public source now supplies exact protocol identities, but protocol
+identifiers are not by themselves an ownership or hardware-support claim. The
+source does not provide a mainline regulator/OPP/cluster-state contract, and
+its timeout paths use fatal BUG behavior. No firmware image, source tree, or
+proprietary payload was copied or staged. The 0196 composition owner therefore
+remains unregistered and default-off.

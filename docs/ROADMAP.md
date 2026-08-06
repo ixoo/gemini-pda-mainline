@@ -1863,6 +1863,17 @@ The next ordered work remains source-only:
    both protected startup-state backends, including authoritative
    OPP/frequency/voltage/VSRAM capture, transition locks, suspend/fault
    invalidation, and runtime identity evidence.
+   A read-only public-source protocol revalidation now closes the exact
+   BigiDVFS secure-call family and the MCUMIXED/DVFSP semaphore sequence:
+   `0xc20003b0`--`0xc20003c1` plus secure read/write, the protected
+   `0x1001a000` window, CSPM `+0x440`, the 2 ms bounded acquire, and the
+   IRQ/spinlock release ordering. This is protocol identity only; the target
+   firmware variant/response, authoritative OPP/rail/cluster state, and
+   mainline arbitration with SPM/ATF remain unproven. The historical fatal
+   timeout paths cannot be copied directly. Keep the 0196 owner unregistered
+   and the provider/CPU8/CPU9 gates closed while the default-off adapters and
+   their rollback/state proof are implemented. See the
+   [protected-owner protocol result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/protected-owner-protocol-20260806.txt).
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and
