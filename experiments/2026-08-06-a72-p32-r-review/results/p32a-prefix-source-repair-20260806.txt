@@ -7,7 +7,7 @@ Origin: https://github.com/ixoo/gemini-pda-mainline.git
 
 claim=P32A_CALLBACK_PREFIX_SOURCE_REPAIR
 patch=patches/v7.1.3/0187-arm64-capture-P32A-rollback-prefix.patch
-patch_sha256=14abaeaa48cf5f96c790b69d066e3307ed2592322009b55a9faa4d0e403fcaef
+patch_sha256=30868d9cc2044d9afb0e969843baceb4054b9d70c142512488e0665c382d1ff3
 failure=0187_hunks_did_not_apply_after_0182
 repair=replace_existing_cpu_up_rollback_comment_and_signature
 format_patch_parse=PASS
