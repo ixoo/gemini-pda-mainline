@@ -1,0 +1,5 @@
+# Explicit provider-owner callback experiment.
+# The provider is still read-only and returns a structured pre-vote refusal;
+# no regulator write, CPU_ON, or A72 admission is enabled by this fragment.
+CONFIG_ARM64_MT6797_A72_PROVIDER_OWNER=y
+CONFIG_LOCALVERSION="-gemini-da921x-owner"

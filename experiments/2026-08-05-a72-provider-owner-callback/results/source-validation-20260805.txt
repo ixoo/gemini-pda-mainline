@@ -1,0 +1,13 @@
+claim=PARTIAL_R01_R02_PROVIDER_CALLBACK_REFUSAL
+patch=patches/v7.1.3/0172-arm64-add-provider-owner-callback-refusal-boundary.patch
+patch_sha256=becd82625a362af8bf46e91cfb6bfe439fc72b6fec612fcbd3c2eaf9d7b1ce87
+patch_bytes=13512
+profile=a72-p24-provider-owner-refusal
+provider_registration=explicit-opt-in
+callback_result=structured-EOPNOTSUPP-before-vote
+regulator_writes=0
+cpu_on_calls=0
+device_action=none
+oracle=PASS_STATIC
+buildbox=pending
+status=PASS_SOURCE_BOUNDARY

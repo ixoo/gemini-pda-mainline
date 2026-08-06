@@ -1,0 +1,392 @@
+From 826f6ef07d77e659b9a6e04dc61a21eb4abd03b6 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 5 Aug 2026 21:26:05 -0400
+Subject: [PATCH] arm64: add provider-owner callback refusal boundary
+
+---
+ arch/arm64/Kconfig                            |  10 ++
+ .../arm64/include/asm/mt6797_a72_membership.h |  19 ++-
+ arch/arm64/kernel/mt6797_a72_membership.c     | 125 ++++++++++++++++++
+ drivers/regulator/da9213-legacy-regulator.c   |  61 +++++++++
+ include/linux/mt6797-a72-provider.h           |  64 +++++++++
+ 5 files changed, 276 insertions(+), 3 deletions(-)
+ create mode 100644 include/linux/mt6797-a72-provider.h
+
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index e3c8e942d..75547bb60 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -2561,6 +2561,16 @@ config ARM64_MT6797_A72_P24_OWNER_KUNIT_TEST
+ 	  publish or mutate P30, or make a CPU_ON transaction reachable. They
+ 	  also cover the read-only public and internal admission checks.
+ 
++config ARM64_MT6797_A72_PROVIDER_OWNER
++	bool "MT6797 A72 provider-owner callback boundary"
++	depends on ARM64_MT6797_A72_P24_TRANSACTION_OWNER_MODEL
++	depends on REGULATOR_DA9213_LEGACY_PROVIDER
++	help
++	  Enable the explicitly isolated provider-owner callback boundary for the
++	  dormant MT6797 A72 transaction. The current legacy provider is
++	  read-only and therefore returns a clean pre-vote refusal; this option
++	  does not connect CPU_ON or authorize regulator writes.
++
+ source "arch/arm64/kvm/Kconfig"
+ 
+ source "kernel/livepatch/Kconfig"
+diff --git a/arch/arm64/include/asm/mt6797_a72_membership.h b/arch/arm64/include/asm/mt6797_a72_membership.h
+index 55d5ee35c..669e28ac6 100644
+--- a/arch/arm64/include/asm/mt6797_a72_membership.h
++++ b/arch/arm64/include/asm/mt6797_a72_membership.h
+@@ -5,6 +5,7 @@
+ #include <linux/bits.h>
+ #include <linux/cpuhotplug.h>
+ #include <linux/errno.h>
++#include <linux/mt6797-a72-provider.h>
+ #include <linux/string.h>
+ #include <linux/types.h>
+ 
+@@ -15,9 +16,9 @@
+  * wire/hardware ABI. This slice consumes a P31 attempt and can mint a frozen
+  * token only in an explicitly opened test state; A36 only validates an
+  * immutable caller-supplied prestate record. A dormant P17/P18 ledger may
+- * advance only the C phase to ON_ISSUED. It implements no bootstrap, provider
+- * call, CPUHP effect, P30 handoff, P14/P15, hardware mutation, or CPU_ON
+- * operation.
++ * advance only the C phase to ON_ISSUED. The explicitly isolated provider
++ * callback seam can return a read-only refusal, but it has no bootstrap,
++ * CPUHP effect, P30 handoff, P14/P15, hardware mutation, or CPU_ON operation.
+  */
+ #define MT6797_A72_TRANSACTION_ABI 1
+ #define MT6797_A72_OPERATION_SLOTS 4
+@@ -382,6 +383,8 @@ int mt6797_a72_membership_confirm_provider_acquire(
+ int mt6797_a72_membership_reject_provider_acquire(
+ 	struct mt6797_a72_transaction *transaction,
+ 	const struct mt6797_a72_provider_rejection *rejection);
++int mt6797_a72_membership_run_provider_acquire(struct mt6797_a72_transaction *transaction,
++	struct mt6797_a72_provider_response *response);
+ int mt6797_a72_membership_begin_p28_preparation(
+ 	struct mt6797_a72_transaction *transaction);
+ int mt6797_a72_membership_complete_p28_preparation(
+@@ -486,6 +489,16 @@ mt6797_a72_membership_reject_provider_acquire(
+ 	return -EOPNOTSUPP;
+ }
+ 
++static inline int
++mt6797_a72_membership_run_provider_acquire(struct mt6797_a72_transaction *transaction,
++	struct mt6797_a72_provider_response *response)
++{
++	(void)response;
++	if (transaction)
++		memset(transaction, 0, sizeof(*transaction));
++	return -EOPNOTSUPP;
++}
++
+ static inline int
+ mt6797_a72_membership_begin_p28_preparation(
+ 	struct mt6797_a72_transaction *transaction)
+diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt6797_a72_membership.c
+index 92ee459df..3a9be64c5 100644
+--- a/arch/arm64/kernel/mt6797_a72_membership.c
++++ b/arch/arm64/kernel/mt6797_a72_membership.c
+@@ -16,6 +16,7 @@
+ #include <linux/compiler.h>
+ #include <linux/cpumask.h>
+ #include <linux/errno.h>
++#include <linux/mt6797-a72-provider.h>
+ #include <linux/mutex.h>
+ #include <linux/sched.h>
+ #include <linux/spinlock.h>
+@@ -27,6 +28,64 @@
+ 
+ static DEFINE_MUTEX(a72_transition_lock);
+ static DEFINE_RAW_SPINLOCK(a72_state_lock);
++static DEFINE_MUTEX(a72_provider_registry_lock);
++
++static const struct mt6797_a72_provider_ops *a72_provider_ops;
++static void *a72_provider_context;
++
++int mt6797_a72_provider_register(const struct mt6797_a72_provider_ops *ops,
++				 void *context)
++{
++	int ret = 0;
++
++	if (!ops || !ops->acquire)
++		return -EINVAL;
++
++	mutex_lock(&a72_provider_registry_lock);
++	if (a72_provider_ops) {
++		ret = -EBUSY;
++	} else {
++		a72_provider_ops = ops;
++		a72_provider_context = context;
++	}
++	mutex_unlock(&a72_provider_registry_lock);
++
++	return ret;
++}
++EXPORT_SYMBOL_GPL(mt6797_a72_provider_register);
++
++void mt6797_a72_provider_unregister(const struct mt6797_a72_provider_ops *ops,
++				    void *context)
++{
++	mutex_lock(&a72_provider_registry_lock);
++	if (a72_provider_ops == ops && a72_provider_context == context) {
++		a72_provider_ops = NULL;
++		a72_provider_context = NULL;
++	}
++	mutex_unlock(&a72_provider_registry_lock);
++}
++EXPORT_SYMBOL_GPL(mt6797_a72_provider_unregister);
++
++int mt6797_a72_provider_acquire(
++	const struct mt6797_a72_provider_request *request,
++	struct mt6797_a72_provider_response *response)
++{
++	int ret;
++
++	if (!request || !response)
++		return -EINVAL;
++
++	mutex_lock(&a72_provider_registry_lock);
++	if (!a72_provider_ops)
++		ret = -ENODEV;
++	else
++		ret = a72_provider_ops->acquire(a72_provider_context,
++					       request, response);
++	mutex_unlock(&a72_provider_registry_lock);
++
++	return ret;
++}
++EXPORT_SYMBOL_GPL(mt6797_a72_provider_acquire);
+ 
+ struct mt6797_a72_owner_state {
+ 	struct mt6797_a72_transaction active;
+@@ -746,6 +805,72 @@ int mt6797_a72_membership_reject_provider_acquire(
+ 	return ret;
+ }
+ 
++int mt6797_a72_membership_run_provider_acquire(
++	struct mt6797_a72_transaction *transaction,
++	struct mt6797_a72_provider_response *response)
++{
++	struct mt6797_a72_provider_request request = { };
++	struct mt6797_a72_provider_acquire_proof proof = { };
++	struct mt6797_a72_provider_rejection rejection = { };
++	int ret;
++
++	if (!transaction || !response)
++		return -EINVAL;
++
++	memset(response, 0, sizeof(*response));
++	ret = mt6797_a72_membership_begin_provider_acquire(transaction);
++	if (ret)
++		return ret;
++
++	request.abi = MT6797_A72_PROVIDER_CALL_ABI;
++	request.operation = transaction->identity.operation;
++	request.settle_us = MT6797_A72_PROVIDER_ACQUIRE_SETTLE_US;
++	request.da921x_page = MT6797_A72_A36_DA921X_PAGE;
++	request.buckb_vsel = MT6797_A72_A36_BUCKB_VSEL;
++	request.transaction_generation = transaction->identity.generation;
++	request.transaction_cookie = transaction->identity.cookie;
++	ret = mt6797_a72_provider_acquire(&request, response);
++	if (!ret) {
++		proof.abi = MT6797_A72_PROVIDER_ACQUIRE_ABI;
++		proof.operation = transaction->identity.operation;
++		proof.settle_us = response->settle_us;
++		proof.da921x_page = response->da921x_page;
++		proof.buckb_enabled = response->buckb_enabled;
++		proof.buckb_vsel = response->buckb_vsel;
++		proof.origin = response->origin;
++		proof.held_identity.generation = response->held_handle.generation;
++		proof.held_identity.cookie = response->held_handle.cookie;
++		proof.transaction_generation = transaction->identity.generation;
++		proof.transaction_cookie = transaction->identity.cookie;
++		proof.origin_generation = response->origin_generation;
++		return mt6797_a72_membership_confirm_provider_acquire(transaction,
++								       &proof);
++	}
++
++	/* The read-only provider may return a structured refusal before any vote. */
++	if (ret != -EOPNOTSUPP ||
++	    response->abi != MT6797_A72_PROVIDER_CALL_ABI ||
++	    response->returned != 1 || response->vote_requested ||
++	    response->provider_mutated || response->rail_mutated ||
++	    response->reserved)
++		return ret;
++
++	rejection.abi = MT6797_A72_PROVIDER_REJECT_ABI;
++	rejection.operation = transaction->identity.operation;
++	rejection.result = MT6797_A72_PROVIDER_REJECTED_BEFORE_VOTE;
++	rejection.returned = response->returned;
++	rejection.vote_requested = response->vote_requested;
++	rejection.provider_mutated = response->provider_mutated;
++	rejection.rail_mutated = response->rail_mutated;
++	rejection.transaction_generation = transaction->identity.generation;
++	rejection.transaction_cookie = transaction->identity.cookie;
++	ret = mt6797_a72_membership_reject_provider_acquire(
++		transaction, &rejection);
++	if (!ret)
++		return -EOPNOTSUPP;
++	return ret;
++}
++
+ static bool
+ mt6797_a72_p28_preparation_valid(
+ 	const struct mt6797_a72_p28_preparation *preparation,
+diff --git a/drivers/regulator/da9213-legacy-regulator.c b/drivers/regulator/da9213-legacy-regulator.c
+index 2f183939f..02fc4105c 100644
+--- a/drivers/regulator/da9213-legacy-regulator.c
++++ b/drivers/regulator/da9213-legacy-regulator.c
+@@ -11,6 +11,9 @@
+ #include <linux/module.h>
+ #include <linux/of.h>
+ #include <linux/regulator/driver.h>
++#if IS_ENABLED(CONFIG_ARM64_MT6797_A72_PROVIDER_OWNER)
++#include <linux/mt6797-a72-provider.h>
++#endif
+ 
+ #define DA9213_LEGACY_PRIMARY_ADDR	0x68
+ #define DA9213_LEGACY_PAGE2_ADDR	0x69
+@@ -180,6 +183,58 @@ static int da9213_legacy_register_provider(struct da9213_legacy *chip)
+ 	return 0;
+ }
+ 
++#if IS_ENABLED(CONFIG_ARM64_MT6797_A72_PROVIDER_OWNER)
++
++static int da9213_legacy_provider_acquire(void *context,
++	const struct mt6797_a72_provider_request *request,
++	struct mt6797_a72_provider_response *response)
++{
++	struct da9213_legacy *chip = context;
++
++	if (!chip || !request || !response)
++		return -EINVAL;
++
++	memset(response, 0, sizeof(*response));
++	response->abi = MT6797_A72_PROVIDER_CALL_ABI;
++	response->returned = 1;
++	if (request->abi != MT6797_A72_PROVIDER_CALL_ABI ||
++	    request->operation != MT6797_A72_PROVIDER_OPERATION_CPU8_UP ||
++	    request->settle_us != MT6797_A72_PROVIDER_CALL_SETTLE_US ||
++	    request->da921x_page != MT6797_A72_PROVIDER_CALL_DA921X_PAGE ||
++	    request->buckb_vsel != MT6797_A72_PROVIDER_CALL_BUCKB_VSEL ||
++	    request->reserved)
++		return -EINVAL;
++
++	/* The current provider is deliberately read-only: no vote or rail write. */
++	dev_dbg(chip->dev,
++		"provider-owner acquire refused: read-only resource boundary\n");
++	return -EOPNOTSUPP;
++}
++
++static const struct mt6797_a72_provider_ops da9213_legacy_provider_ops = {
++	.acquire = da9213_legacy_provider_acquire,
++};
++
++static void da9213_legacy_provider_unregister(void *context)
++{
++	mt6797_a72_provider_unregister(&da9213_legacy_provider_ops, context);
++}
++
++static int da9213_legacy_register_owner(struct da9213_legacy *chip)
++{
++	int ret;
++
++	ret = mt6797_a72_provider_register(&da9213_legacy_provider_ops, chip);
++	if (ret)
++		return ret;
++
++	ret = devm_add_action_or_reset(chip->dev,
++				       da9213_legacy_provider_unregister, chip);
++	return ret;
++}
++
++#endif
++
+ #endif
+ 
+ static int da9213_legacy_validate_node(struct i2c_client *client)
+@@ -308,6 +363,12 @@ static int da9213_legacy_probe(struct i2c_client *client)
+ 	if (ret)
+ 		return dev_err_probe(&client->dev, ret,
+ 				     "failed to register read-only provider\n");
++#if IS_ENABLED(CONFIG_ARM64_MT6797_A72_PROVIDER_OWNER)
++	ret = da9213_legacy_register_owner(chip);
++	if (ret)
++		return dev_err_probe(&client->dev, ret,
++				     "failed to register provider-owner boundary\n");
++#endif
+ #endif
+ 
+ 	dev_info(&client->dev,
+diff --git a/include/linux/mt6797-a72-provider.h b/include/linux/mt6797-a72-provider.h
+new file mode 100644
+index 000000000..e05fca3fa
+--- /dev/null
++++ b/include/linux/mt6797-a72-provider.h
+@@ -0,0 +1,64 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __LINUX_MT6797_A72_PROVIDER_H
++#define __LINUX_MT6797_A72_PROVIDER_H
++
++#include <linux/types.h>
++
++/*
++ * This is a private, platform-scoped callback boundary. It is not a
++ * regulator consumer ABI and it does not authorize a hardware write by
++ * itself. The provider owns the callback context and must attest every
++ * returned field before the A72 owner can accept it.
++ */
++#define MT6797_A72_PROVIDER_CALL_ABI	1
++#define MT6797_A72_PROVIDER_OPERATION_CPU8_UP	1
++#define MT6797_A72_PROVIDER_CALL_SETTLE_US	1000
++#define MT6797_A72_PROVIDER_CALL_DA921X_PAGE	0x80
++#define MT6797_A72_PROVIDER_CALL_BUCKB_VSEL	0x46
++
++struct mt6797_a72_provider_handle {
++	u64 generation;
++	u64 cookie;
++};
++
++struct mt6797_a72_provider_request {
++	u32 abi;
++	u32 operation;
++	u32 settle_us;
++	u32 da921x_page;
++	u32 buckb_vsel;
++	u32 reserved;
++	u64 transaction_generation;
++	u64 transaction_cookie;
++};
++
++struct mt6797_a72_provider_response {
++	u32 abi;
++	u32 returned;
++	u32 vote_requested;
++	u32 provider_mutated;
++	u32 rail_mutated;
++	u32 settle_us;
++	u32 da921x_page;
++	u32 buckb_enabled;
++	u32 buckb_vsel;
++	u32 origin;
++	u32 reserved;
++	u64 origin_generation;
++	struct mt6797_a72_provider_handle held_handle;
++};
++
++struct mt6797_a72_provider_ops {
++	int (*acquire)(void *context,
++			const struct mt6797_a72_provider_request *request,
++			struct mt6797_a72_provider_response *response);
++};
++
++int mt6797_a72_provider_register(const struct mt6797_a72_provider_ops *ops,
++				 void *context);
++void mt6797_a72_provider_unregister(const struct mt6797_a72_provider_ops *ops,
++				    void *context);
++int mt6797_a72_provider_acquire(const struct mt6797_a72_provider_request *request,
++					struct mt6797_a72_provider_response *response);
++
++#endif /* __LINUX_MT6797_A72_PROVIDER_H */
