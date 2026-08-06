@@ -1665,7 +1665,9 @@ The next ordered work remains source-only:
    the MT65xx transfer check, and the pinned I2C core confirms that
    `__i2c_transfer()` reaches `master_xfer` under the provider's root adapter
    lock. Linux-side bus serialization is therefore closed; the separate
-   firmware/DVFSP owner lease remains open.
+   firmware/DVFSP owner lease remains open: the current handoff checks
+   readiness at transfer entry but holds no generation/token across the
+   transfer and does not represent the vendor semaphore operation.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and

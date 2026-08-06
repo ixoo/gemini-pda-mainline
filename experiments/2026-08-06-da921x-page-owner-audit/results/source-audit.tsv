@@ -17,5 +17,6 @@ mainline_handoff	profile-selected;I2C6-access-controller;ready-gate-present	0100
 provider_transfer	direct-__i2c_transfer;write-absent	0170;read-only-provider	PASS_READ_ONLY
 core_dispatch	expanded;master_xfer-path-proven	managed-linux-7.1.3-source;I2C-core-dispatch	PASS_CORE_DISPATCH
 linux_bus_lock	provider-root-lock;core-lock-precondition-proven	0170;managed-linux-7.1.3-source	PASS_LINUX_SERIALIZATION
-firmware_owner_lease	unproven;handoff-ready-only	0100;0101;vendor-crosscheck	BLOCK_WRITABLE_PROVIDER
+dvfsp_ready	state-and-permission-ready;entry-check-proven	0100;0101;dvfsp-lease-audit	PASS_READY_GATE
+firmware_owner_lease	unproven;ready-check-not-held-across-transfer	0100;0101;vendor-crosscheck	BLOCK_WRITABLE_PROVIDER
 hardware_action	none	source-only audit	PASS_SAFETY

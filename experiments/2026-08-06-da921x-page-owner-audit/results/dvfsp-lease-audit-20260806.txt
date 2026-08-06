@@ -1,0 +1,29 @@
+MT6797 DVFSP handoff lease audit
+================================
+
+scope=read-only patch and managed-source review; no device action
+source=0100-soc-mediatek-require-ready-MT6797-DVFSP-handoff-supplier.patch
+consumer=0101-i2c-mediatek-require-MT6797-DVFSP-handoff.patch
+
+ready_predicate=handoff.state_READY_and_permission_READY
+ready_check=mt6797_dvfsp_handoff_require_ready_locks_handoff_and_checks_both
+atomic_ready_predicate=permission_READY_only
+transfer_entry=mtk_i2c_transfer_calls_require_ready_before_transfer
+linux_serialization=provider_root_adapter_lock_and_core_master_xfer_precondition
+
+suspend_transition=permission_READY_to_BLOCKED_then_snapshot_revalidation
+suspend_failure=permission_FAULTED_and_EHOSTDOWN_or_EIO
+resume_transition=permission_BLOCKED_then_snapshot_revalidation_then_READY
+resume_failure=permission_FAULTED_and_EHOSTDOWN_or_EIO
+consumer_clock_validation=held_and_gated_samples_with_fault_on_mismatch
+
+transfer_lease_api=absent
+lease_token_or_generation=absent
+ready_check_scope=entry_predicate_only;not_held_across_transfer
+firmware_semaphore=vendor_SEMA_I2C_DRV_not_represented
+firmware_owner_lease=unproven
+
+decision=READY_GATE_ONLY;BLOCK_WRITABLE_PROVIDER
+next_contract=serialized_begin_end_lease_with_fault-retain_on_state_change
+hardware_action=none
+status=PASS_DVFSP_LEASE_AUDIT

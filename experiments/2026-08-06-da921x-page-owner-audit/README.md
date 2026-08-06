@@ -128,8 +128,11 @@ The source and sanitized runtime record establish these facts:
   dispatch bypass; the exact excerpt and hash are in
   [`results/i2c-core-dispatch-20260806.txt`](results/i2c-core-dispatch-20260806.txt).
   The provider also takes the root adapter lock required by the core. The
-  remaining gap is specifically a firmware/DVFSP owner lease beyond the
-  handoff-ready predicate, so this still does not authorize a write.
+  handoff audit now shows the precise remaining gap: readiness is checked at
+  transfer entry, but no lease/token is held across the transfer and the
+  vendor `SEMA_I2C_DRV` ownership operation is not represented. See
+  [`results/dvfsp-lease-audit-20260806.txt`](results/dvfsp-lease-audit-20260806.txt).
+  This still does not authorize a write.
 - No bounded inverse exists for a provider write at or beyond the unresolved
   external-isolation boundary. The release callback therefore remains a
   structured `-EOPNOTSUPP` refusal.

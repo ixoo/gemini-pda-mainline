@@ -15,6 +15,7 @@ PATCH_0102 = ROOT / "patches/v7.1.3/0102-arm64-dts-mediatek-enable-childless-Gem
 HANDOFF_FRAGMENT = ROOT / "configs/gemini-dvfsp-handoff-owner.fragment"
 MANIFEST = ROOT / "kernel/manifest.json"
 CORE_DISPATCH = Path(__file__).resolve().parents[1] / "results/i2c-core-dispatch-20260806.txt"
+DVFSP_LEASE = Path(__file__).resolve().parents[1] / "results/dvfsp-lease-audit-20260806.txt"
 LEDGER = Path(__file__).resolve().parents[1] / "results/source-audit.tsv"
 RECONCILIATION = Path(__file__).resolve().parents[1] / "results/source-reconciliation-20260806.txt"
 CROSSCHECK = ROOT / "experiments/2026-07-23-da9214-resource-only/results/da9214-datasheet-crosscheck-20260723.txt"
@@ -38,6 +39,7 @@ def main() -> None:
     handoff_fragment = HANDOFF_FRAGMENT.read_text()
     manifest = MANIFEST.read_text()
     core_dispatch = CORE_DISPATCH.read_text()
+    dvfsp_lease = DVFSP_LEASE.read_text()
     ledger = LEDGER.read_text()
     reconciliation = RECONCILIATION.read_text()
     crosscheck = CROSSCHECK.read_text()
@@ -87,6 +89,15 @@ def main() -> None:
         ("status=PASS_CORE_DISPATCH", "core-dispatch-status"),
     ):
         require(core_dispatch, needle, label)
+    for needle, label in (
+        ("ready_check=mt6797_dvfsp_handoff_require_ready_locks_handoff_and_checks_both", "ready-check-contract"),
+        ("transfer_entry=mtk_i2c_transfer_calls_require_ready_before_transfer", "transfer-entry-check"),
+        ("transfer_lease_api=absent", "lease-api-absence"),
+        ("ready_check_scope=entry_predicate_only;not_held_across_transfer", "lease-scope-gap"),
+        ("firmware_semaphore=vendor_SEMA_I2C_DRV_not_represented", "vendor-semaphore-gap"),
+        ("status=", "handoff-audit-present"),
+    ):
+        require(dvfsp_lease, needle, label)
     for needle, label in (
         ("observation_legacy_page_control=I2C_REG_PAGE_00x_selects_0x000_through_0x0ff", "legacy-page-window"),
         ("observation_legacy_page_control_2=I2C_REG_PAGE_01x_selects_0x100_through_0x17f", "legacy-page-window-2"),
@@ -144,7 +155,8 @@ def main() -> None:
     print("provider_transfer=direct-__i2c_transfer;write-absent")
     print("core_dispatch=expanded;master_xfer-path-proven")
     print("linux_bus_lock=provider-root-lock;core-lock-precondition-proven")
-    print("firmware_owner_lease=unproven;handoff-ready-only")
+    print("dvfsp_ready=state-and-permission-ready;entry-check-proven")
+    print("firmware_owner_lease=unproven;ready-check-not-held-across-transfer")
     print("decision=BLOCK_WRITABLE_PROVIDER")
     print("hardware_action=none")
     print("status=PASS_NEGATIVE_AUDIT")
