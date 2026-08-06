@@ -85,6 +85,7 @@ be copied directly into a mainline failure/PM path.
 - [Exact retained vendor-kernel SEMA contract](results/vendor-kernel-sema-contract-20260806.txt)
 - [Public hybrid owner source](results/public-hybrid-owner-source-20260806.txt)
 - [Buildbox validation after owner-source review](results/public-owner-buildbox-validation-20260806.txt)
+- [Current-head full-profile Buildbox resume](results/current-head-full-buildbox-20260806.txt)
 - [Receiver register-window identity reconciliation](results/receiver-register-identity-20260806.txt)
 - [Retained TEE secure-owner disassembly](../2026-08-06-da921x-page-owner-audit/results/tee-owner-disassembly-20260806.txt)
 - [Retained SCP local-alias inventory](../2026-08-06-da921x-page-owner-audit/results/scp-alias-inventory-20260806.txt)
