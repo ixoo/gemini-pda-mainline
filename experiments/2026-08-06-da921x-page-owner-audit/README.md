@@ -158,8 +158,9 @@ The source and sanitized runtime record establish these facts:
   Candidate AO already validated the receiver-side stopped PCM signature and
   one balanced ungated-to-gated I2C_APPM transition with a stable 45-second
   late check while I2C6 remained disabled. That result must not be repeated;
-  the remaining question is whether this receiver is authoritative for the
-  vendor per-transfer lease.
+  the receiver patch contains no `PAUSE_I2CDRV` or `FW_DONE` protocol, so the
+  remaining question is whether the validated stopped receiver is authoritative
+  for the vendor per-transfer lease.
 - No bounded inverse exists for a provider write at or beyond the unresolved
   external-isolation boundary. The release callback therefore remains a
   structured `-EOPNOTSUPP` refusal.

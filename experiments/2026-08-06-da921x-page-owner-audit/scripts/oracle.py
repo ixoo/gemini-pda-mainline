@@ -10,6 +10,7 @@ PATCH_0164 = ROOT / "patches/v7.1.3/0164-arm64-validate-frozen-A72-A36-prestates
 PATCH_0172 = ROOT / "patches/v7.1.3/0172-arm64-add-provider-owner-callback-refusal-boundary.patch"
 PATCH_0173 = ROOT / "patches/v7.1.3/0173-arm64-add-provider-release-refusal-boundary.patch"
 PATCH_0174 = ROOT / "patches/v7.1.3/0174-soc-mediatek-add-I2C6-DVFSP-transfer-lease.patch"
+PATCH_0098 = ROOT / "patches/v7.1.3/0098-soc-mediatek-add-MT6797-DVFSP-one-way-handoff.patch"
 PATCH_0100 = ROOT / "patches/v7.1.3/0100-soc-mediatek-require-ready-MT6797-DVFSP-handoff-supplier.patch"
 PATCH_0101 = ROOT / "patches/v7.1.3/0101-i2c-mediatek-require-MT6797-DVFSP-handoff.patch"
 PATCH_0102 = ROOT / "patches/v7.1.3/0102-arm64-dts-mediatek-enable-childless-Gemini-I2C6-after-handoff.patch"
@@ -37,6 +38,7 @@ def main() -> None:
     p0172 = PATCH_0172.read_text()
     p0173 = PATCH_0173.read_text()
     p0174 = PATCH_0174.read_text()
+    p0098 = PATCH_0098.read_text()
     p0100 = PATCH_0100.read_text()
     p0101 = PATCH_0101.read_text()
     p0102 = PATCH_0102.read_text()
@@ -132,6 +134,7 @@ def main() -> None:
         ("receiver_stopped_state=Candidate_AO_runtime_validated;PCM_signature_stable;45s_late_check_passed", "receiver-stopped-state"),
         ("receiver_shared_clock=Candidate_AO_runtime_validated;one_CCF_enable_disable;ungated_to_gated;late_gate_stable", "receiver-clock-normalization"),
         ("receiver_i2c6_activity=none;I2C6_disabled_childless", "receiver-no-i2c6"),
+        ("receiver_semantic_mapping=absent;AO_does_not_implement_PAUSE_I2CDRV_or_FW_DONE", "receiver-semantic-gap"),
         ("mainline_firmware_lease=unproven", "firmware-lease-gap"),
         ("required_closure=prove_one-way_receiver_authoritative_for_SEMA_I2C_DRV_or_add_reviewed_firmware_protocol;explicit_external-owner-proof;sticky-fault_and_resume-revalidation", "firmware-closure"),
         ("repeat_prohibition=do_not_repeat_Candidate_AO_stopped-state_or_clock-normalization_boot", "no-repeat-ao"),
@@ -139,6 +142,11 @@ def main() -> None:
         ("status=PASS_FIRMWARE_LEASE_RECONCILIATION_NEGATIVE", "firmware-status"),
     ):
         require(firmware_lease, needle, label)
+    require(p0098, "I2C6 remains disabled", "ao-i2c6-disabled-contract")
+    require(p0098, "does not implement per-transfer DVFSP coordination", "ao-no-per-transfer-contract")
+    for forbidden, label in (("PAUSE_I2CDRV", "ao-pause-source"), ("FW_DONE", "ao-firmware-ack")):
+        if forbidden in p0098:
+            raise SystemExit(f"unexpected-ao-vendor-lease-token={label}:{forbidden}")
     for needle, label in (
         ("observation_legacy_page_control=I2C_REG_PAGE_00x_selects_0x000_through_0x0ff", "legacy-page-window"),
         ("observation_legacy_page_control_2=I2C_REG_PAGE_01x_selects_0x100_through_0x17f", "legacy-page-window-2"),
