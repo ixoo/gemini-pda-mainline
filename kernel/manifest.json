@@ -1261,6 +1261,15 @@
                     "configs/gemini-handoff.fragment",
                     "configs/gemini-dvfsp-clock-backend.fragment"
                 ]
+            },
+            "dvfsp-protected-readback": {
+                "base": "defconfig",
+                "patch_series": "patches/series",
+                "fragments": [
+                    "configs/gemini-handoff.fragment",
+                    "configs/gemini-dvfsp-clock-backend.fragment",
+                    "configs/gemini-dvfsp-bigidvfs-readonly.fragment"
+                ]
             }
     }
   }

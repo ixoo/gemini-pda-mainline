@@ -1,0 +1,315 @@
+From 0000000000000000000000000000000000000198 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 6 Aug 2026 20:00:00 -0400
+Subject: [PATCH] soc: mediatek: add disabled MT6797 BigiDVFS readback
+
+The retained MT6797 secure-owner audit identifies one read-only secure
+register service, REG_READ at 0xc200035f, and four exact BigiDVFS register
+addresses. It does not prove that the header-advertised PLL getter FIDs are
+implemented by the target firmware, so do not call them merely because they
+exist in a public header.
+
+Expose only the proven, read-only service behind a disabled platform node. The
+driver accepts the four exact addresses, rejects every other address, treats
+unknown or sign-extended secure returns as a sticky fault, and serializes a
+complete raw-register sample. It never calls a secure write or state-changing
+FID, does not derive an OPP or voltage table, and does not register a
+BigiDVFS state owner or clock provider.
+
+This is an experiment-only transport and is not submission-ready.
+---
+ .../mediatek,mt6797-bigidvfs-backend.yaml           |  43 +++++
+ .../boot/dts/mediatek/mt6797.dtsi                  |   6 +
+ drivers/soc/mediatek/Kconfig                       |  14 ++
+ drivers/soc/mediatek/Makefile                      |   1 +
+ .../soc/mediatek/mt6797-bigidvfs-backend.c         | 153 +++++++++++++++++++++
+ .../soc/mediatek/mt6797-bigidvfs-backend.h         |  29 ++++
+ 6 files changed, 246 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-bigidvfs-backend.yaml
+ create mode 100644 drivers/soc/mediatek/mt6797-bigidvfs-backend.c
+ create mode 100644 include/linux/soc/mediatek/mt6797-bigidvfs-backend.h
+
+diff --git a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-bigidvfs-backend.yaml b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-bigidvfs-backend.yaml
+new file mode 100644
+index 000000000000..000000000000
+--- /dev/null
++++ b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-bigidvfs-backend.yaml
+@@ -0,0 +1,43 @@
++# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
++%YAML 1.2
++---
++$id: http://devicetree.org/schemas/soc/mediatek/mediatek,mt6797-bigidvfs-backend.yaml#
++$schema: http://devicetree.org/meta-schemas/core.yaml#
++
++title: MediaTek MT6797 BigiDVFS secure readback transport
++
++description: |
++  The MT6797 B-cluster clock and rail state is owned by a secure BigiDVFS
++  service. This optional transport exposes only the documented read-only
++  secure-register service and remains disabled until its target firmware
++  variant and return contract are independently validated. It is not a
++  regulator, clock provider, DVFSP state owner, or writable secure backend.
++
++maintainers:
++  - Julien Etienne <julien.etienne@gmail.com>
++
++properties:
++  compatible:
++    const: mediatek,mt6797-bigidvfs-backend
++
++  method:
++    const: smc
++
++  status:
++    enum: [ disabled, okay ]
++
++required:
++  - compatible
++  - method
++
++additionalProperties: false
++
++examples:
++  - |
++    soc {
++      dvfsp_bigidvfs_backend: dvfsp-bigidvfs-backend {
++        compatible = "mediatek,mt6797-bigidvfs-backend";
++        method = "smc";
++        status = "disabled";
++      };
++    };
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+--- a/arch/arm64/boot/dts/mediatek/mt6797.dtsi
++++ b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+@@ -684,4 +684,10 @@
+ 		status = "disabled";
+ 	};
++
++	dvfsp_bigidvfs_backend: dvfsp-bigidvfs-backend {
++		compatible = "mediatek,mt6797-bigidvfs-backend";
++		method = "smc";
++		status = "disabled";
++	};
+ 
+ 	i2c7: i2c@11010000 {
+diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
+--- a/drivers/soc/mediatek/Kconfig
++++ b/drivers/soc/mediatek/Kconfig
+@@ -112,1 +112,15 @@
++config MTK_MT6797_DVFSP_BIGIDVFS_BACKEND
++	bool "MediaTek MT6797 BigiDVFS secure readback transport"
++	depends on ARM64 && ARCH_MEDIATEK && OF
++	help
++	  Build the disabled-only BigiDVFS transport that reads the four exact
++	  secure register addresses through the documented REG_READ service.
++	  The target firmware variant and return contract remain unvalidated;
++	  unknown or sign-extended results become a sticky fault.
++
++	  This transport never calls a secure write or a state-changing FID,
++	  never derives an OPP or voltage table, and never registers a DVFSP
++	  state owner or clock provider. Its Device Tree node is disabled by
++	  default.
++
+ config MTK_PMIC_WRAP
+diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
+--- a/drivers/soc/mediatek/Makefile
++++ b/drivers/soc/mediatek/Makefile
+@@ -7,1 +7,2 @@
+ obj-$(CONFIG_MTK_MT6797_DVFSP_CLOCK_BACKEND) += mt6797-dvfsp-clock-backend.o
++obj-$(CONFIG_MTK_MT6797_DVFSP_BIGIDVFS_BACKEND) += mt6797-bigidvfs-backend.o
+diff --git a/drivers/soc/mediatek/mt6797-bigidvfs-backend.c b/drivers/soc/mediatek/mt6797-bigidvfs-backend.c
+new file mode 100644
+index 000000000000..000000000000
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-bigidvfs-backend.c
+@@ -0,0 +1,153 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Disabled-only MT6797 BigiDVFS secure-register readback transport.
++ *
++ * The retained firmware audit proves only REG_READ (0xc200035f) for this
++ * boundary. Keep the exact whitelist and raw sample separate from the future
++ * calibrated state owner; advertised getter FIDs are not assumed present.
++ */
++
++#include <linux/arm-smccc.h>
++#include <linux/device.h>
++#include <linux/errno.h>
++#include <linux/module.h>
++#include <linux/mutex.h>
++#include <linux/of.h>
++#include <linux/platform_device.h>
++#include <linux/slab.h>
++#include <linux/string.h>
++
++#include <linux/soc/mediatek/mt6797-bigidvfs-backend.h>
++
++struct mt6797_bigidvfs_backend {
++	struct mutex operation_lock;
++	bool faulted;
++	u64 sample_generation;
++};
++
++static bool mt6797_bigidvfs_address_allowed(u32 address)
++{
++	switch (address) {
++	case MT6797_BIGIDVFS_PLL_PCW:
++	case MT6797_BIGIDVFS_PLL_ENABLE_POSDIV:
++	case MT6797_BIGIDVFS_SRAM_SELECTOR:
++	case MT6797_BIGIDVFS_CONTROL:
++		return true;
++	default:
++		return false;
++	}
++}
++
++static int mt6797_bigidvfs_secure_read(u32 address, u32 *value)
++{
++	struct arm_smccc_res result;
++
++	if (!value || !mt6797_bigidvfs_address_allowed(address))
++		return -EINVAL;
++
++	arm_smccc_smc(MT6797_BIGIDVFS_FID_READ, address, 0, 0, 0, 0, 0, 0,
++		      &result);
++	/* REG_READ returns a zero-extended raw word; reject all error forms. */
++	if (result.a0 >> 32)
++		return -EIO;
++
++	*value = (u32)result.a0;
++	return 0;
++}
++
++static void mt6797_bigidvfs_mark_fault(
++	struct mt6797_bigidvfs_backend *backend)
++{
++	backend->faulted = true;
++}
++
++int mt6797_bigidvfs_backend_read(
++	struct device *dev, struct mt6797_bigidvfs_readback *readback)
++{
++	struct mt6797_bigidvfs_backend *backend;
++	int ret;
++
++	if (!dev || !readback)
++		return -EINVAL;
++
++	backend = dev_get_drvdata(dev);
++	if (!backend)
++		return -ENODEV;
++
++	mutex_lock(&backend->operation_lock);
++	if (backend->faulted) {
++		ret = -EIO;
++		goto out_unlock;
++	}
++
++	ret = mt6797_bigidvfs_secure_read(MT6797_BIGIDVFS_PLL_PCW,
++					  &readback->pll_pcw);
++	if (ret)
++		goto fault;
++	ret = mt6797_bigidvfs_secure_read(MT6797_BIGIDVFS_PLL_ENABLE_POSDIV,
++					  &readback->pll_enable_posdiv);
++	if (ret)
++		goto fault;
++	ret = mt6797_bigidvfs_secure_read(MT6797_BIGIDVFS_SRAM_SELECTOR,
++					  &readback->sram_selector);
++	if (ret)
++		goto fault;
++	ret = mt6797_bigidvfs_secure_read(MT6797_BIGIDVFS_CONTROL,
++					  &readback->control);
++	if (ret)
++		goto fault;
++
++	if (++backend->sample_generation == 0)
++		backend->sample_generation = 1;
++	readback->abi = MT6797_BIGIDVFS_BACKEND_ABI;
++	readback->reserved = 0;
++	readback->sample_generation = backend->sample_generation;
++	goto out_unlock;
++
++fault:
++	mt6797_bigidvfs_mark_fault(backend);
++out_unlock:
++	mutex_unlock(&backend->operation_lock);
++	return ret;
++}
++EXPORT_SYMBOL_GPL(mt6797_bigidvfs_backend_read);
++
++static int mt6797_bigidvfs_backend_probe(struct platform_device *pdev)
++{
++	struct mt6797_bigidvfs_backend *backend;
++	const char *method;
++
++	if (!pdev->dev.of_node ||
++	    of_property_read_string(pdev->dev.of_node, "method", &method) ||
++	    strcmp(method, "smc"))
++		return -EINVAL;
++
++	backend = devm_kzalloc(&pdev->dev, sizeof(*backend), GFP_KERNEL);
++	if (!backend)
++		return -ENOMEM;
++
++	mutex_init(&backend->operation_lock);
++	platform_set_drvdata(pdev, backend);
++	dev_info(&pdev->dev,
++		 "secure readback transport ready; owner unregistered\n");
++
++	return 0;
++}
++
++static const struct of_device_id mt6797_bigidvfs_backend_of_match[] = {
++	{ .compatible = "mediatek,mt6797-bigidvfs-backend" },
++	{ }
++};
++MODULE_DEVICE_TABLE(of, mt6797_bigidvfs_backend_of_match);
++
++static struct platform_driver mt6797_bigidvfs_backend_driver = {
++	.probe = mt6797_bigidvfs_backend_probe,
++	.driver = {
++		.name = "mt6797-bigidvfs-backend",
++		.of_match_table = mt6797_bigidvfs_backend_of_match,
++	},
++};
++module_platform_driver(mt6797_bigidvfs_backend_driver);
++
++MODULE_DESCRIPTION("Disabled MT6797 BigiDVFS secure readback transport");
++MODULE_LICENSE("GPL");
+diff --git a/include/linux/soc/mediatek/mt6797-bigidvfs-backend.h b/include/linux/soc/mediatek/mt6797-bigidvfs-backend.h
+new file mode 100644
+index 000000000000..000000000000
+--- /dev/null
++++ b/include/linux/soc/mediatek/mt6797-bigidvfs-backend.h
+@@ -0,0 +1,29 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __LINUX_SOC_MEDIATEK_MT6797_BIGIDVFS_BACKEND_H
++#define __LINUX_SOC_MEDIATEK_MT6797_BIGIDVFS_BACKEND_H
++
++#include <linux/types.h>
++
++struct device;
++
++#define MT6797_BIGIDVFS_BACKEND_ABI		1
++#define MT6797_BIGIDVFS_FID_READ			0xc200035fUL
++#define MT6797_BIGIDVFS_PLL_PCW			0x102224a4U
++#define MT6797_BIGIDVFS_PLL_ENABLE_POSDIV	0x102224a0U
++#define MT6797_BIGIDVFS_SRAM_SELECTOR		0x102222b0U
++#define MT6797_BIGIDVFS_CONTROL			0x10222470U
++
++struct mt6797_bigidvfs_readback {
++	u32 abi;
++	u32 reserved;
++	u64 sample_generation;
++	u32 pll_pcw;
++	u32 pll_enable_posdiv;
++	u32 sram_selector;
++	u32 control;
++};
++
++int mt6797_bigidvfs_backend_read(
++	struct device *dev, struct mt6797_bigidvfs_readback *readback);
++
++#endif /* __LINUX_SOC_MEDIATEK_MT6797_BIGIDVFS_BACKEND_H */
+-- 
+2.43.0
