@@ -610,7 +610,7 @@ new file mode 100644
 +	add	x3, x1, #ARM64_MT6797_A72_P30E_TARGET_STATE_OFF
 +	ldar	x4, [x3]
 +	cmp	x4, #ARM64_MT6797_A72_P30E_TARGET_CLAIMED
-+	b.ne	.Lp30e_publish_not_claimed
++	b.ne	1f
 +	ldr	x10, [x1, #ARM64_MT6797_A72_P30E_TARGET_SEQUENCE_OFF]
 +	add	x10, x10, #1
 +	str	x10, [x1, #ARM64_MT6797_A72_P30E_TARGET_SEQUENCE_OFF]
@@ -630,7 +630,7 @@ new file mode 100644
 +.Lp30e_publish_no_target:
 +	mov	x0, #-ENODEV
 +	ret
-+.Lp30e_publish_not_claimed:
++1:
 +	mov	x0, #-EALREADY
 +	ret
 +SYM_FUNC_END(arm64_mt6797_a72_p30e_target_publish)
