@@ -1267,6 +1267,7 @@
                 "patch_series": "patches/series",
                 "fragments": [
                     "configs/gemini-handoff.fragment",
+                    "configs/gemini-dvfsp-eem-readback.fragment",
                     "configs/gemini-dvfsp-clock-backend.fragment",
                     "configs/gemini-dvfsp-bigidvfs-readonly.fragment"
                 ]

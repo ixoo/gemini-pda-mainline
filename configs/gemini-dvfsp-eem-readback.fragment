@@ -1,0 +1,9 @@
+# Compile-only MT6797 EEM/PTP readback through the existing thermal owner.
+# The thermal and EEM DT resources remain disabled; this profile performs no
+# device probe, selector read, rail change, clock change, or CPU admission.
+CONFIG_THERMAL=y
+CONFIG_THERMAL_OF=y
+CONFIG_MTK_THERMAL=y
+CONFIG_MTK_SOC_THERMAL=y
+CONFIG_NVMEM=y
+CONFIG_NVMEM_MTK_ATAG_DEVINFO=y
