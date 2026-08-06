@@ -1885,6 +1885,18 @@ The next ordered work remains source-only:
    both protected startup-state backends, including authoritative
    OPP/frequency/voltage/VSRAM capture, transition locks, suspend/fault
    invalidation, and runtime identity evidence.
+   Patch `0199` now binds the CPU-PLL and BigiDVFS snapshots, protected owner
+   identity, and every paired transition hold to one nonzero opaque
+   transition-owner handle, in addition to the existing generation and owner
+   checks. The exact pushed commit `8f0aadf` applies all 188 canonical entries
+   on Buildbox, produces 119 DTBs, passes package checksums, and has its
+   validated package fetched. This is still a compile-only contract: it does
+   not implement or validate the historical `cpufreq_mutex`, register an
+   owner/provider, perform a secure or firmware operation, or admit CPU8/CPU9.
+   See the [protected transition-owner Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/protected-transition-owner-buildbox-20260806.txt).
+   The next step is the independently reviewed calibrated state owner and
+   transition-lock implementation with clock/rail arbitration,
+   suspend/fault invalidation, and runtime identity evidence.
    A read-only public-source protocol revalidation now closes the exact
    BigiDVFS secure-call family and the MCUMIXED/DVFSP semaphore sequence:
    `0xc20003b0`--`0xc20003c1` plus secure read/write, the protected

@@ -13,6 +13,7 @@ STATE_IDENTITY_PATCH = ROOT / "patches/v7.1.3/0195-soc-mediatek-require-protecte
 STATE_BACKEND_PATCH = ROOT / "patches/v7.1.3/0196-soc-mediatek-compose-protected-state-backends.patch"
 CLOCK_READBACK_PATCH = ROOT / "patches/v7.1.3/0197-soc-mediatek-add-disabled-MT6797-protected-clock-readback.patch"
 BIGIDVFS_READBACK_PATCH = ROOT / "patches/v7.1.3/0198-soc-mediatek-add-disabled-MT6797-BigiDVFS-readback.patch"
+TRANSITION_OWNER_PATCH = ROOT / "patches/v7.1.3/0199-soc-mediatek-bind-protected-state-to-transition-owner.patch"
 SERIES = ROOT / "patches/series"
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
 START_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-start-contract-20260806.txt"
@@ -28,6 +29,7 @@ STATE_BACKEND_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/prot
 PROTOCOL_RESULT = Path(__file__).resolve().parents[1] / "results/protected-owner-protocol-20260806.txt"
 DVFS_STATE_RESULT = Path(__file__).resolve().parents[1] / "results/public-dvfs-state-owner-20260806.txt"
 READBACK_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/protected-readback-buildbox-20260806.txt"
+TRANSITION_OWNER_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/protected-transition-owner-buildbox-20260806.txt"
 
 
 def require(text: str, needle: str, label: str) -> None:
@@ -44,6 +46,7 @@ def main() -> None:
     state_backend_patch = STATE_BACKEND_PATCH.read_text()
     clock_readback_patch = CLOCK_READBACK_PATCH.read_text()
     bigidvfs_readback_patch = BIGIDVFS_READBACK_PATCH.read_text()
+    transition_owner_patch = TRANSITION_OWNER_PATCH.read_text()
     design = DESIGN.read_text()
     start_result = START_RESULT.read_text()
     owner_result = OWNER_RESULT.read_text()
@@ -58,6 +61,7 @@ def main() -> None:
     protocol_result = PROTOCOL_RESULT.read_text()
     dvfs_state_result = DVFS_STATE_RESULT.read_text()
     readback_build_result = READBACK_BUILD_RESULT.read_text()
+    transition_owner_build_result = TRANSITION_OWNER_BUILD_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     names = [Path(line).name for line in SERIES.read_text().splitlines()
@@ -189,6 +193,20 @@ def main() -> None:
         require(bigidvfs_readback_patch, needle, label)
     if "0xc200035e" in bigidvfs_readback_patch or "FID_WRITE" in bigidvfs_readback_patch:
         raise AssertionError("BigiDVFS readback transport contains a secure write identifier")
+    for needle, label in (
+        ("transition_handle", "transition-handle-field"),
+        ("!hold->transition_handle", "transition-hold-required"),
+        ("!identity->transition_handle", "identity-transition-required"),
+        ("!snapshot->transition_handle", "backend-transition-required"),
+        ("!owner->transition_handle", "owner-transition-required"),
+        ("cpu_snapshot->transition_handle != owner->transition_handle", "cpu-transition-match"),
+        ("big_snapshot->transition_handle != owner->transition_handle", "big-transition-match"),
+        ("identity->transition_handle = owner->transition_handle", "identity-transition-echo"),
+        ("cpu_hold.transition_handle != owner->transition_handle", "cpu-hold-transition"),
+        ("big_hold.transition_handle != owner->transition_handle", "big-hold-transition"),
+        ("hold->transition_handle = owner->transition_handle", "hold-transition-echo"),
+    ):
+        require(transition_owner_patch, needle, label)
     for needle, label in (
         ("## Startup-state adapter seam", "design-state-seam"),
         ("`snapshot`", "design-snapshot"),
@@ -431,6 +449,26 @@ def main() -> None:
     ):
         require(readback_build_result, needle, label)
     for needle, label in (
+        ("claim=COMPILE_ONLY_PROTECTED_TRANSITION_OWNER_CONTRACT", "transition-build-claim"),
+        ("repository_commit=8f0aadfec73b7f36ad4c5bf613ffbfd6b27a35df", "transition-build-commit"),
+        ("origin=https://github.com/ixoo/gemini-pda-mainline.git", "transition-build-origin"),
+        ("build_backend=buildbox", "transition-build-backend"),
+        ("buildbox_status=validated", "transition-build-status"),
+        ("patch_count=188", "transition-build-patch-count"),
+        ("artifact=linux-7.1.3-gemini-dvfsp-protected-readback-650b9b01-11afba8d", "transition-build-artifact"),
+        ("dtb_count=119", "transition-build-dtb-count"),
+        ("sha256sums=passed", "transition-build-checksums"),
+        ("package_fetch=success;validated_package_only", "transition-build-fetch"),
+        ("transition_contract=0199;shared_transition_handle;generation_bound;both_protected_backends;all_holds;default_off", "transition-build-contract"),
+        ("owner=unregistered", "transition-build-owner-unregistered"),
+        ("provider=none", "transition-build-no-provider"),
+        ("secure_write=none", "transition-build-no-secure-write"),
+        ("hardware_write=none", "transition-build-no-write"),
+        ("device_action=none", "transition-build-no-device"),
+        ("boot_candidate=false", "transition-build-not-candidate"),
+    ):
+        require(transition_owner_build_result, needle, label)
+    for needle, label in (
         ("repeat_run_repository_commit=6c3cb4fad5a4895f6a69d7913089553b6751e34c", "readback-repeat-commit"),
         ("repeat_run_buildbox_job=6c3cb4fad5a4895f6a69d7913089553b6751e34c-dvfsp-protected-readback-m0", "readback-repeat-job"),
         ("repeat_run_status=validated", "readback-repeat-status"),
@@ -462,6 +500,8 @@ def main() -> None:
         raise AssertionError("clock readback transport is not after protected composition")
     if names.index("0197-soc-mediatek-add-disabled-MT6797-protected-clock-readback.patch") >= names.index("0198-soc-mediatek-add-disabled-MT6797-BigiDVFS-readback.patch"):
         raise AssertionError("BigiDVFS readback transport is not after clock readback")
+    if names.index("0198-soc-mediatek-add-disabled-MT6797-BigiDVFS-readback.patch") >= names.index("0199-soc-mediatek-bind-protected-state-to-transition-owner.patch"):
+        raise AssertionError("transition-owner contract is not after BigiDVFS readback")
 
     for forbidden in ("readl(", "writel(", "i2c_transfer", "regulator_enable(",
                       "regulator_disable(", "psci_ops.cpu_on", "cpu_up("):
@@ -477,6 +517,8 @@ def main() -> None:
             raise AssertionError(f"unexpected state-owner identity hardware operation: {forbidden}")
         if forbidden in state_backend_patch:
             raise AssertionError(f"unexpected protected state-backend hardware operation: {forbidden}")
+        if forbidden in transition_owner_patch:
+            raise AssertionError(f"unexpected transition-owner hardware operation: {forbidden}")
 
     print("claim=PARTIAL_FIRMWARE_LEASE_CALLBACK_CONTRACT")
     print("registered_owner=0")
@@ -496,6 +538,7 @@ def main() -> None:
     print("state_backend_composition=0196;default_off;exact_disjoint_cpu_pll_and_big_cluster_masks;generation_and_owner_handle_checked;registered_owner=0;no_provider;no_mmio")
     print("state_backend_composition_buildbox=validated;compile_only;registered_owner=0;no_provider;no_mmio;boot_candidate=false")
     print("protected_readback=0197+0198;compile_only;both_nodes_disabled;clock_semaphore_and_bigidvfs_reg_read_only;registered_owner=0;no_provider;no_secure_write;boot_candidate=false")
+    print("protected_transition_owner=0199;shared_transition_handle;generation_bound;both_protected_backends;all_holds;registered_owner=0;no_provider;no_secure_write;boot_candidate=false")
     print("pcm_adapter_contract=source-only;bounded-admission-model;callback-registration-gated")
     print("clock_owner_inventory=generic_ccf_only;protected_owner_absent;A72_observer_read_only")
     print("pcm_start_contract=defined;residency_and_start_required_before_callback_registration")

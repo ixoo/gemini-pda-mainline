@@ -284,3 +284,18 @@ from efuse, EEM/PTP, and PPM state, so copying a static OPP table would be an
 incorrect substitute. Mainline still has no equivalent cpufreq/calibration/
 rail owner; the next implementation task is to design that owner boundary and
 then bind the protected backends under one lock.
+
+Patch `0199` now closes the next contract gap: the CPU-PLL and BigiDVFS
+snapshots, protected owner identity, and every paired transition hold must
+echo one nonzero opaque transition-owner handle as well as the generation and
+owner handle. The exact pushed commit `8f0aadf` applied all 188 series entries
+on Buildbox, produced 119 DTBs, passed package checksums, and fetched the
+validated package. This remains compile-only evidence: the handle is a binding
+contract, not an implementation of the historical `cpufreq_mutex`; both
+backends remain default-off, with no provider, secure write, firmware action,
+or device boot. See the [protected transition-owner Buildbox result](results/protected-transition-owner-buildbox-20260806.txt).
+
+The remaining gate is the real, independently reviewed calibrated state owner
+and transition-lock implementation, including clock/rail arbitration,
+suspend/fault invalidation, and runtime identity evidence. CPU8/CPU9 admission
+and all hardware writes remain blocked until that gate is met.
