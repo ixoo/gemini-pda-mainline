@@ -1835,10 +1835,19 @@ The next ordered work remains source-only:
    broader P30/P32/A41/provider/A26/A14 integration and admission gates remain
    open. The existing MT6797 PSCI method still returns `-EAGAIN`, so no CPU_ON,
    device action, or CPU8/CPU9 support claim is authorized.
-3. Complete A25 and implement P32A/D/F/X/R using either a reviewed core
+3. The read-only [P32 hook audit](../experiments/2026-08-06-a72-p32-hook-audit/README.md)
+   now maps the exact implementation seams: publish before the outer
+   `cpuhp_reset_state()`/reverse range, retain the nested AP rollback prefix,
+   guard target `.cpu_disable` before topology/NUMA/online/IPI/IRQ teardown,
+   park from target `.cpu_die` without CPU_OFF, and suppress controller
+   affinity in `.cpu_kill`. The current PSCI boot and disable vetoes remain
+   intact. The next source-only implementation must add an exact-generation
+   side channel and these fail-stop guards, with P32R consumption before
+   membership/HPS completion.
+4. Complete A25 and implement P32A/D/F/X/R using either a reviewed core
    no-auto-rollback interface or the fail-stop `.cpu_disable` plus die/kill
    guard design, retaining every partial callback and architecture effect.
-4. Revalidate every applicable A26 CPU-up gate and its A14 CPU-off dependency.
+5. Revalidate every applicable A26 CPU-up gate and its A14 CPU-off dependency.
    Only after those closures may a separately reviewed evidence-only target
    transaction be considered; a trusted pre-Linux handoff is the alternative.
    Then return to A41 for separate CPU8/CPU9 registers, cache, WA1/WA2/WA3,
@@ -1846,9 +1855,9 @@ The next ordered work remains source-only:
    HWCAPs, canonical evidence/plan identity, the infallible architecture-owned
    pre-finalization commit, and READY binding to A36/P17/P18. Source tests alone
    do not authorize a build, CPU_ON/OFF request, or device action.
-5. Close the M02 delayed-work scheduler/observer owner and failure propagation,
+6. Close the M02 delayed-work scheduler/observer owner and failure propagation,
    then close A40 private-ledger writer/caller freshness.
-6. Only after those CPU-up and branch-selection gates pass, specify the full
+7. Only after those CPU-up and branch-selection gates pass, specify the full
    A14 off-completion owner: complete CPU-ops and CPUHP/PM inventories, exact
    target handoff, secure-call concurrency, one-query result propagation, and
    bounded independent post-OFF observers.
