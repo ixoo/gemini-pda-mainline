@@ -324,13 +324,7 @@ index 8f3a1ce..6f347c0 100644
 +}
 +EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_state_invalidate);
 +
-@@ -1589,7 +1710,7 @@ static int mt6797_dvfsp_handoff_probe(struct platform_device *pdev
- 	mutex_init(&handoff->lock);
- 	mutex_init(&handoff->transfer_lock);
- 	mutex_init(&handoff->fw_owner_lock);
+@@ -1592,0 +1592,1 @@
 +	mutex_init(&handoff->state_owner_lock);
- 	init_completion(&handoff->terminal);
- 	atomic_set(&handoff->terminal_grant, 0);
- 	atomic_set(&handoff->permission, MT6797_DVFSP_PERMISSION_BLOCKED);
 -- 
 2.43.0
