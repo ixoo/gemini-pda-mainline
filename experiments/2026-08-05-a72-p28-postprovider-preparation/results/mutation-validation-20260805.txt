@@ -1,0 +1,17 @@
+mutation=wrong-operation result=rejected
+mutation=wrong-stage result=rejected
+mutation=wrong-effect-mask result=rejected
+mutation=wrong-isolation-from result=rejected
+mutation=wrong-isolation-to result=rejected
+mutation=pwrap-not-deasserted result=rejected
+mutation=guard-not-released result=rejected
+mutation=wrong-wait-before result=rejected
+mutation=wrong-sram-voltage result=rejected
+mutation=wrong-wait-after result=rejected
+mutation=wrong-selector result=rejected
+mutation=unstable-calibration result=rejected
+mutation=stale-provider result=rejected
+mutation=stale-generation result=rejected
+mutation=duplicate-p28 result=rejected
+mutations_rejected=15/15
+status=PASS

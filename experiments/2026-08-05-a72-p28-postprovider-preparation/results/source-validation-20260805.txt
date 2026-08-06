@@ -1,0 +1,11 @@
+claim=PARTIAL_P28_POSTPROVIDER_PREPARATION
+source_commit=afdcd6c9f
+patch_sha256=2361e3e308bb1cd19079fb5de8699acd544d269bcf93ec986f24a2780d3f7c92
+patch_bytes=17473
+p28=held-provider-ordered-preparation-proof
+provider_calls=0
+cpu_on_calls=0
+build=not-run
+device_action=none
+checkpatch=only-intentional-missing-signoff
+status=PASS
