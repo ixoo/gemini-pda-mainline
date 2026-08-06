@@ -24,7 +24,7 @@ certifying sign-off.
 diff --git a/arch/arm64/include/asm/mt6797_a72_membership.h b/arch/arm64/include/asm/mt6797_a72_membership.h
 --- a/arch/arm64/include/asm/mt6797_a72_membership.h
 +++ b/arch/arm64/include/asm/mt6797_a72_membership.h
-@@ -268,14 +268,20 @@ struct mt6797_a72_p32r_ledger_handoff {
+@@ -268,16 +268,22 @@ struct mt6797_a72_p32r_ledger_handoff {
  	u32 callback_complete;
  	u32 callback_overflow;
  	u32 callback_unknown;
@@ -49,7 +49,7 @@ diff --git a/arch/arm64/include/asm/mt6797_a72_membership.h b/arch/arm64/include
 diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt6797_a72_membership.c
 --- a/arch/arm64/kernel/mt6797_a72_membership.c
 +++ b/arch/arm64/kernel/mt6797_a72_membership.c
-@@ -244,6 +244,12 @@ mt6797_a72_p32r_capture_locked(struct mt6797_a72_transaction *transaction,
+@@ -244,10 +244,16 @@ mt6797_a72_p32r_capture_locked(struct mt6797_a72_transaction *transaction,
  	if (trace) {
  		handoff->callback_complete = trace->callback_complete;
  		handoff->callback_overflow = trace->overflow;
@@ -66,7 +66,7 @@ diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt679
  	}
  	transaction->p32r_valid = 1;
  }
-@@ -386,8 +392,14 @@ int mt6797_a72_membership_consume_p32(unsigned int cpu, int rollback_error,
+@@ -386,9 +392,14 @@ int mt6797_a72_membership_consume_p32(unsigned int cpu, int rollback_error,
  		if (!trace->callback_complete || trace->callback_unknown ||
  		    trace->effect_unknown || trace->effect_overflow ||
 -		    !trace->effect_complete) {
@@ -95,13 +95,13 @@ diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
 diff --git a/include/linux/cpu.h b/include/linux/cpu.h
 --- a/include/linux/cpu.h
 +++ b/include/linux/cpu.h
-@@ -121,7 +121,7 @@ int arch_cpu_up_preflight(unsigned int cpu, enum cpuhp_state target);
+@@ -121,4 +121,4 @@ int arch_cpu_up_preflight(unsigned int cpu, enum cpuhp_state target);
  int arch_cpu_up_validate(unsigned int cpu, int tasks_frozen,
  			 enum cpuhp_state target);
 -#define CPU_UP_ROLLBACK_MAX_EVENTS 128U
 +#define CPU_UP_ROLLBACK_MAX_EVENTS 256U
  #define CPU_UP_ROLLBACK_EVENT_WARNING BIT(0)
-@@ -149,6 +149,8 @@ enum cpu_up_rollback_effect {
+@@ -149,13 +149,20 @@ enum cpu_up_rollback_effect {
  	CPU_UP_ROLLBACK_EFFECT_RCU_MIGRATE,
  	CPU_UP_ROLLBACK_EFFECT_LOCKDEP_CLEANUP,
  	CPU_UP_ROLLBACK_EFFECT_KILL_OBSERVED,
@@ -122,7 +122,7 @@ diff --git a/include/linux/cpu.h b/include/linux/cpu.h
  	u32 effect;
  	u32 phase;
  	s32 result;
-@@ -171,14 +179,24 @@ struct cpu_up_rollback_trace {
+@@ -171,13 +179,20 @@ struct cpu_up_rollback_trace {
  	u32 nested_result;
  	u32 outer_reset;
  	u32 reverse_complete;
@@ -145,7 +145,7 @@ diff --git a/include/linux/cpu.h b/include/linux/cpu.h
 diff --git a/kernel/cpu.c b/kernel/cpu.c
 --- a/kernel/cpu.c
 +++ b/kernel/cpu.c
-@@ -154,6 +154,43 @@ static bool cpuhp_step_empty(bool bringup, struct cpuhp_step *step)
+@@ -154,5 +154,43 @@ static bool cpuhp_step_empty(bool bringup, struct cpuhp_step *step)
  	return bringup ? !step->startup.single : !step->teardown.single;
  }
 +static unsigned int cpuhp_rollback_step_inventory(bool bringup,
@@ -189,7 +189,7 @@ diff --git a/kernel/cpu.c b/kernel/cpu.c
  static inline void cpuhp_record_rollback_effect(
  	struct cpuhp_cpu_state *st, enum cpu_up_rollback_effect effect,
  	u32 phase, int result)
-@@ -164,16 +201,34 @@ static inline void cpuhp_record_rollback_effect(
+@@ -164,12 +201,26 @@ static inline void cpuhp_record_rollback_effect(
  	struct cpu_up_rollback_trace *trace = &st->rollback_trace;
  	struct cpu_up_rollback_effect_event *event;
  
@@ -216,7 +216,7 @@ diff --git a/kernel/cpu.c b/kernel/cpu.c
  	if (trace->effect_count >= CPU_UP_ROLLBACK_MAX_EFFECTS) {
  		trace->effect_overflow = 1;
  		return;
-@@ -220,6 +275,14 @@ static inline void cpuhp_record_rollback_event(
+@@ -220,6 +275,13 @@ static inline void cpuhp_record_rollback_event(
  	struct cpu_up_rollback_trace *trace = &st->rollback_trace;
  	struct cpu_up_rollback_event *event;
  
@@ -230,7 +230,7 @@ diff --git a/kernel/cpu.c b/kernel/cpu.c
  	if (trace->event_count >= CPU_UP_ROLLBACK_MAX_EVENTS) {
  		trace->overflow = 1;
  		return;
-@@ -1120,9 +1183,19 @@ static int cpuhp_up_callbacks(unsigned int cpu, struct cpuhp_cpu_state *st,
+@@ -1120,5 +1183,14 @@ static int cpuhp_up_callbacks(unsigned int cpu, struct cpuhp_cpu_state *st,
  #ifdef CONFIG_ARM64_MT6797_A72_P32_ROLLBACK
  	memset(&st->rollback_trace, 0, sizeof(st->rollback_trace));
  	rollback_trace = &st->rollback_trace;
@@ -245,7 +245,7 @@ diff --git a/kernel/cpu.c b/kernel/cpu.c
 +					    CPU_UP_ROLLBACK_EFFECT_BLOCKED, 0);
  #endif
  	ret = cpuhp_invoke_callback_range(true, cpu, st, target);
-@@ -1140,10 +1213,21 @@ static int cpuhp_up_callbacks(unsigned int cpu, struct cpuhp_cpu_state *st,
+@@ -1140,15 +1213,32 @@ static int cpuhp_up_callbacks(unsigned int cpu, struct cpuhp_cpu_state *st,
  		st->rollback_trace.reverse_complete = !rollback_ret &&
  			can_rollback_cpu(st);
  		st->rollback_trace.callback_complete =
