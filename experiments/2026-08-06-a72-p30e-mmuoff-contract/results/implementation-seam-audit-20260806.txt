@@ -1,0 +1,18 @@
+# P30E implementation seam audit
+
+date=2026-08-06
+scope=read-only-pinned-arm64-source-audit;no-build;no-device-action
+kernel_source=linux-7.1.3
+source_files=arch/arm64/kernel/vmlinux.lds.S;arch/arm64/kernel/head.S;arch/arm64/kernel/psci.c;arch/arm64/kernel/smp.c;arch/arm64/mm/cache.S
+secondary_entry_section=.idmap.text;entry=secondary_entry;entry_arguments=none
+psci_handoff=cpu_on(unsigned_long_cpuid,unsigned_long_entry_point);no_context_id
+target_mpidr_map=0x200->p30e_cpu8_slot;0x201->p30e_cpu9_slot;other_values=P30U
+slot_layout=two_independent_slots;each_slot_alignment=SZ_2K;wire_words=20;wire_bytes=160;reserved_tail=SZ_2K-160
+linker_profile=dedicated_.mmuoff.data.bidirectional_after_directional_lanes
+target_identity_check=target_cpu_and_target_mpidr_before_claim
+entry_cache_pattern=existing_adr_l_to_cache_maintenance_from_MMU-off_idmap_code
+publication_scope=full_slot_range;dsb_sy;terminal_release
+controller_readback=dsb_sy;invalidate_full_slot_range;read_full_object
+implementation_status=DORMANT_ASSEMBLY_C_ARTIFACT_REMAINING
+hardware_action=none
+status=PASS_P30E_IMPLEMENTATION_SEAM_AUDIT

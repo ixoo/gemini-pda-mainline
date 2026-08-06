@@ -16,6 +16,7 @@ FIELDS = (
     "crc64",
 )
 SOURCE_AUDIT = Path(__file__).resolve().parents[1] / "results/source-placement-audit-20260806.txt"
+IMPLEMENTATION_AUDIT = Path(__file__).resolve().parents[1] / "results/implementation-seam-audit-20260806.txt"
 IMMUTABLE = frozenset(FIELDS[:11])
 CONTROLLER_OWNED = frozenset({"controller_state", "controller_sequence", "crc64"})
 TARGET_OWNED = frozenset({
@@ -151,6 +152,21 @@ def main() -> None:
     ):
         if needle not in source_audit:
             raise AssertionError(f"missing source placement fact: {needle}")
+    implementation_audit = IMPLEMENTATION_AUDIT.read_text()
+    for needle in (
+        "secondary_entry_section=.idmap.text;entry=secondary_entry;entry_arguments=none",
+        "psci_handoff=cpu_on(unsigned_long_cpuid,unsigned_long_entry_point);no_context_id",
+        "target_mpidr_map=0x200->p30e_cpu8_slot;0x201->p30e_cpu9_slot;other_values=P30U",
+        "slot_layout=two_independent_slots;each_slot_alignment=SZ_2K;wire_words=20;wire_bytes=160;reserved_tail=SZ_2K-160",
+        "linker_profile=dedicated_.mmuoff.data.bidirectional_after_directional_lanes",
+        "target_identity_check=target_cpu_and_target_mpidr_before_claim",
+        "publication_scope=full_slot_range;dsb_sy;terminal_release",
+        "controller_readback=dsb_sy;invalidate_full_slot_range;read_full_object",
+        "implementation_status=DORMANT_ASSEMBLY_C_ARTIFACT_REMAINING",
+        "status=PASS_P30E_IMPLEMENTATION_SEAM_AUDIT",
+    ):
+        if needle not in implementation_audit:
+            raise AssertionError(f"missing implementation seam fact: {needle}")
     mutations = (
         ("drop-magic", lambda: replace(base, fields=base.fields[1:])),
         ("share-field-owner", lambda: replace(base, target_owned=base.target_owned | {"magic"})),
@@ -178,6 +194,7 @@ def main() -> None:
     print("cache_order=clean_to_poc;dsb_sy;release;invalidate_complete_range;full_readback")
     print("source_placement=existing_directional_mmuoff_lanes;bidirectional_split_or_dedicated_section_required")
     print("target_handoff=PSCI_no_context;static_slot_or_MPIDR_selection_required")
+    print("implementation_profile=dedicated_bidirectional_section;two_SZ_2K_slots;MPIDR_0x200_0x201;assembly_identity_check")
     print("negative_mutations=15;all_rejected=1")
     print("p14_p15_requires=target_published;complete_readback;exact_token;online_sample;no_quarantine")
     print("hardware_action=none")

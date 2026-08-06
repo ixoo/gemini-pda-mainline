@@ -48,6 +48,7 @@ CPU_ON/OFF operation, build, package, boot candidate, or device action.
 - [Independent oracle](scripts/oracle.py)
 - [Validation result](results/contract-validation-20260806.txt)
 - [Pinned arm64 source-placement audit](results/source-placement-audit-20260806.txt)
+- [Implementation seam audit](results/implementation-seam-audit-20260806.txt)
 - [P30 generation model](../2026-08-05-a72-p30-generation-protocol/README.md)
 
 Run from the repository root:
@@ -58,13 +59,11 @@ PYTHONDONTWRITEBYTECODE=1 python3 experiments/2026-08-06-a72-p30e-mmuoff-contrac
 
 ## Follow-up
 
-Implement the object in a dedicated assembly/C patch only after the exact
-linker placement, target entry point, cache operations, and architecture
-barriers are reviewed against the selected Linux source. The current source
-has reusable `.mmuoff.data.write` and `.mmuoff.data.read` lanes, but they are
-directional; the bidirectional P30E object must split its write lanes or add a
-dedicated aligned section with a complete cache protocol. PSCI also provides no
-context pointer, so the target slot must be selected statically or by MPIDR in
-assembly. Then compare the implementation to this contract and the P30 model
-with Buildbox. Until that comparison passes, CPU8/CPU9 admission and device
-use remain blocked.
+The source audit now selects a dedicated aligned bidirectional section with
+separate 2 KiB CPU8/CPU9 slots. The target selector must use MPIDR `0x200` or
+`0x201` in the `.idmap.text` `secondary_entry` path, validate the immutable
+identity words, and use the full-range cache protocol. The next source-only
+artifact is the dormant assembly/C implementation of this profile. Then
+compare that implementation to this contract and the P30 model with Buildbox.
+Until that comparison passes, CPU8/CPU9 admission and device use remain
+blocked.

@@ -67,6 +67,33 @@ target-written fields into the corresponding aligned lanes, or add a dedicated
 aligned section and prove the complete bidirectional cache protocol. The
 existing scalar status/release fields are not a P30E object.
 
+## Pinned implementation profile
+
+The source audit selects the dedicated-section option for the first
+implementation review. Add a `.mmuoff.data.bidirectional` linker section,
+aligned to `SZ_2K`, after the existing directional lanes. Place two independent
+wire objects in that section: `p30e_cpu8_slot` and `p30e_cpu9_slot`. Each slot
+must begin at its own `SZ_2K` boundary; the 160-byte wire object occupies only
+the first 20 little-endian words and the remaining bytes are reserved padding.
+This prevents a CPU8 publication from sharing a cache-writeback granule with
+CPU9 or unrelated MMU-off data. The controller must use the same physical slot
+address that the target derives from the static symbol.
+
+The target-side selector is fixed in the MMU-off entry path: mask
+`MPIDR_EL1` with `MPIDR_HWID_BITMASK`, map `0x200` to CPU8's slot and `0x201`
+to CPU9's slot, and reject every other value. The entry point is the existing
+`.idmap.text` `secondary_entry`; no pointer or token is received in a register.
+The selector must validate the slot's immutable `target_cpu` and
+`target_mpidr` words before claiming it. A mismatch is P30U and cannot reach
+`secondary_startup`, P14, or P15.
+
+The target publication must use the existing arm64 MMU-off cache-maintenance
+call pattern (full slot range, full-system barrier, then terminal release),
+not a state-word-only store. The controller readback must invalidate the same
+full slot range before reading any result. The implementation patch must
+source-review the exact `adr_l`/cache-call sequence and record its instruction
+locations before it is admitted to a build profile.
+
 ## States and legal transitions
 
 ```text

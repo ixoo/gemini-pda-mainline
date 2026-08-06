@@ -1789,9 +1789,15 @@ The next ordered work remains source-only:
    [P30E wire-object contract](../experiments/2026-08-06-a72-p30e-mmuoff-contract/README.md)
    now freezes that source-only boundary: a 20-word physical object, separate
    controller/target writers, full-range clean/readback, and exact-token
-   P14/P15 prerequisites. It is not an assembly implementation or admission
-   authorization. The dormant C control object cannot substitute for this
-   proof.
+   P14/P15 prerequisites. The pinned implementation seam now selects a
+   dedicated `.mmuoff.data.bidirectional` section with separate 2 KiB CPU8 and
+   CPU9 slots, MPIDR `0x200`/`0x201` selection in `.idmap.text` `secondary_entry`,
+   immutable identity validation, and full-range cache publication/readback;
+   the [implementation seam audit](../experiments/2026-08-06-a72-p30e-mmuoff-contract/results/implementation-seam-audit-20260806.txt)
+   records the source evidence. The next artifact is still the dormant
+   assembly/C implementation and its Buildbox comparison. This remains an
+   implementation gate, not admission authorization. The dormant C control
+   object cannot substitute for this proof.
 3. Complete A25 and implement P32A/D/F/X/R using either a reviewed core
    no-auto-rollback interface or the fail-stop `.cpu_disable` plus die/kill
    guard design, retaining every partial callback and architecture effect.
