@@ -93,6 +93,7 @@ be copied directly into a mainline failure/PM path.
 - [Retained TEE secure-owner disassembly](../2026-08-06-da921x-page-owner-audit/results/tee-owner-disassembly-20260806.txt)
 - [Retained SCP local-alias inventory](../2026-08-06-da921x-page-owner-audit/results/scp-alias-inventory-20260806.txt)
 - [Patch 0175](../../patches/v7.1.3/0175-soc-mediatek-define-I2C6-firmware-lease-contract.patch)
+- [Dormant state-owner contract](../../patches/v7.1.3/0192-soc-mediatek-define-MT6797-state-owner-contract.patch)
 - [PCM start contract result](results/pcm-start-contract-20260806.txt)
 
 Run from the repository root:

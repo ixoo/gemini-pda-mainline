@@ -6,6 +6,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 PATCH = ROOT / "patches/v7.1.3/0175-soc-mediatek-define-I2C6-firmware-lease-contract.patch"
+STATE_OWNER_PATCH = ROOT / "patches/v7.1.3/0192-soc-mediatek-define-MT6797-state-owner-contract.patch"
 SERIES = ROOT / "patches/series"
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
 START_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-start-contract-20260806.txt"
@@ -20,11 +21,13 @@ def require(text: str, needle: str, label: str) -> None:
 
 def main() -> None:
     patch = PATCH.read_text()
+    state_owner_patch = STATE_OWNER_PATCH.read_text()
     design = DESIGN.read_text()
     start_result = START_RESULT.read_text()
     owner_result = OWNER_RESULT.read_text()
     state_result = STATE_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
+    state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     names = [Path(line).name for line in SERIES.read_text().splitlines()
              if line and not line.startswith("#")]
 
@@ -42,6 +45,19 @@ def main() -> None:
     require(patch, "handoff->fw_lease_active", "lease-lifetime")
     require(patch, "ret = -EBUSY", "unregister-while-held")
     require(patch, "No callback is registered by this patch", "default-off-claim")
+    for needle, label in (
+        ("MT6797_DVFSP_STATE_OWNER_ABI", "state-owner-abi"),
+        ("MT6797_DVFSP_STATE_FIELD_ALL", "state-owner-fields"),
+        ("mt6797_dvfsp_handoff_state_owner_register", "state-owner-register"),
+        ("mt6797_dvfsp_handoff_state_snapshot", "state-owner-snapshot"),
+        ("mt6797_dvfsp_handoff_state_validate", "state-owner-validate"),
+        ("mt6797_dvfsp_handoff_state_invalidate", "state-owner-invalidate"),
+        ("state_owner_ops->snapshot", "state-owner-callback"),
+        ("state_owner_ops->invalidate", "state-owner-fault"),
+        ("ret = -EOPNOTSUPP", "state-owner-absent"),
+        ("This patch adds no clock provider", "state-owner-no-provider"),
+    ):
+        require(state_owner_patch, needle, label)
     for needle, label in (
         ("## Startup-state adapter seam", "design-state-seam"),
         ("`snapshot`", "design-snapshot"),
@@ -63,7 +79,8 @@ def main() -> None:
         ("current_mainline_residency=unproven;CSPM-only-read-only-handoff;CSRAM-unmapped", "start-current-residency"),
         ("current_mainline_start=absent;no_firmware_request;no_image_buffer;no_IM_KICK;no_PCM_KICK;no_CS_RAM_records", "start-current-path"),
         ("current_mainline_startup_state=unproven;no_mt6797_opp_voltage_vsram_owner;generic_opp_core_not_owner", "start-current-state"),
-        ("current_mainline_owner=0175-default-unregistered;registered_owner=0", "start-current-owner"),
+        ("state_owner_contract=0192-dormant;registered_owner=0;incomplete_snapshot_rejected;generation_revalidation;invalidation_reasons=owner_removed|clock_transition|rail_transition|suspend_resume|pcm_fault", "start-state-owner-contract"),
+        ("current_mainline_owner=0175-default-unregistered;state_owner=0192-unregistered;registered_owner=0", "start-current-owner"),
         ("direct_handshake_policy=reject_SW_PAUSE_FW_DONE_without_residency_and_start_proof", "start-fail-closed"),
         ("decision=DEFINE_REQUIRED_PCM_START_BOUNDARY;REQUIRE_STARTUP_STATE_OWNER;KEEP_PROVIDER_FAIL_CLOSED", "start-decision"),
         ("status=PASS_PCM_START_CONTRACT_DEFINED", "start-status"),
@@ -111,11 +128,15 @@ def main() -> None:
 
     if names.index("0174-soc-mediatek-add-I2C6-DVFSP-transfer-lease.patch") >= names.index("0175-soc-mediatek-define-I2C6-firmware-lease-contract.patch"):
         raise AssertionError("firmware lease contract is not after Linux transfer lease")
+    if names.index("0191-arm64-arm-P32-publication-from-on-issued-phase.patch") >= names.index("0192-soc-mediatek-define-MT6797-state-owner-contract.patch"):
+        raise AssertionError("state-owner contract is not after the current handoff series")
 
     for forbidden in ("readl(", "writel(", "i2c_transfer", "regulator_enable(",
                       "regulator_disable(", "psci_ops.cpu_on", "cpu_up("):
         if forbidden in source:
             raise AssertionError(f"unexpected hardware operation: {forbidden}")
+        if forbidden in state_owner_source:
+            raise AssertionError(f"unexpected state-owner hardware operation: {forbidden}")
 
     print("claim=PARTIAL_FIRMWARE_LEASE_CALLBACK_CONTRACT")
     print("registered_owner=0")
@@ -127,6 +148,7 @@ def main() -> None:
     print("release_requires_same_owner_handle=1")
     print("hardware_writes=0")
     print("device_action=none")
+    print("state_owner_contract=0192-dormant;registered_owner=0;no_provider;no_mmio;no_transition")
     print("pcm_start_contract=defined;residency_and_start_required_before_callback_registration")
     print("startup_state_owner=unproven;mainline=absent")
     print("historical_owner_source=identified;public_gemian_hybrid")

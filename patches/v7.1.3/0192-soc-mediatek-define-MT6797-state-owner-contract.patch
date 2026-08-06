@@ -1,0 +1,346 @@
+From 0000000000000000000000000000000000000192 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 6 Aug 2026 12:30:00 -0400
+Subject: [PATCH] soc: mediatek: define MT6797 DVFSP state-owner contract
+
+The PCM start path needs an authoritative snapshot of the CPU cluster and
+rail state before it can initialize startup records or kick firmware. The
+existing MT6797 handoff has no OPP, frequency, voltage, VSRAM, ceiling/floor,
+clock, or rail owner, and generic OPP support is not such an owner.
+
+Define a private, default-unregistered state-owner contract. The owner must
+return complete state for every reported cluster under its own transition
+lock, provide a generation-based revalidation callback, and invalidate a
+published generation on asynchronous transitions or faults. The registry
+serializes callbacks and refuses incomplete snapshots; an absent owner is
+reported as -EOPNOTSUPP.
+
+This patch adds no clock provider, register access, regulator operation,
+secure-monitor call, firmware image, PCM start, callback registration, or
+CPU_ON path. It is an experiment-only contract and is not submission-ready.
+---
+ drivers/soc/mediatek/mt6797-dvfsp-handoff.c      | 149 ++++++++++++++++++++++++
+ include/linux/soc/mediatek/mt6797-dvfsp-handoff.h | 125 ++++++++++++++++++
+ 2 files changed, 273 insertions(+), 1 deletion(-)
+
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
+index 1f4e0d2..b836a6a 100644
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
+@@ -15,3 +15,74 @@ struct mt6797_dvfsp_i2c6_lease {
+ 	u64 cookie;
+ };
+ 
++/*
++ * This private contract describes an authoritative state owner. It is not
++ * an OPP, clock, regulator, or userspace ABI. No owner is registered by
++ * default. The owner callbacks must hold their own transition lock while
++ * sampling or validating hardware state and must not recursively call this
++ * registry.
++ */
++#define MT6797_DVFSP_STATE_OWNER_ABI		1
++#define MT6797_DVFSP_STATE_CLUSTER_MASK	GENMASK(3, 0)
++#define MT6797_DVFSP_STATE_CLUSTER_COUNT	4
++
++enum mt6797_dvfsp_state_cluster {
++	MT6797_DVFSP_STATE_CLUSTER_LL,
++	MT6797_DVFSP_STATE_CLUSTER_L,
++	MT6797_DVFSP_STATE_CLUSTER_B,
++	MT6797_DVFSP_STATE_CLUSTER_CCI,
++};
++
++enum mt6797_dvfsp_state_field {
++	MT6797_DVFSP_STATE_FIELD_FLAGS = 0,
++	MT6797_DVFSP_STATE_FIELD_OPP,
++	MT6797_DVFSP_STATE_FIELD_FREQUENCY,
++	MT6797_DVFSP_STATE_FIELD_VOLTAGE,
++	MT6797_DVFSP_STATE_FIELD_VSRAM,
++	MT6797_DVFSP_STATE_FIELD_CEILING,
++	MT6797_DVFSP_STATE_FIELD_FLOOR,
++	MT6797_DVFSP_STATE_FIELD_CLOCK,
++	MT6797_DVFSP_STATE_FIELD_RAIL,
++};
++
++#define MT6797_DVFSP_STATE_FIELD_ALL	GENMASK(8, 0)
++#define MT6797_DVFSP_STATE_FLAG_PRESENT	BIT(0)
++#define MT6797_DVFSP_STATE_FLAG_ON		BIT(1)
++
++struct mt6797_dvfsp_state_cluster {
++	u32 valid_fields;
++	u32 state_flags;
++	u32 opp_id;
++	u32 frequency_khz;
++	u32 voltage_uv;
++	u32 vsram_uv;
++	u32 ceiling_khz;
++	u32 floor_khz;
++	u32 clock_state;
++	u32 rail_state;
++};
++
++struct mt6797_dvfsp_state_snapshot {
++	u32 abi;
++	u32 cluster_mask;
++	u64 generation;
++	struct mt6797_dvfsp_state_cluster
++		cluster[MT6797_DVFSP_STATE_CLUSTER_COUNT];
++};
++
++enum mt6797_dvfsp_state_invalidation_reason {
++	MT6797_DVFSP_STATE_INVALID_OWNER_REMOVED,
++	MT6797_DVFSP_STATE_INVALID_CLOCK_TRANSITION,
++	MT6797_DVFSP_STATE_INVALID_RAIL_TRANSITION,
++	MT6797_DVFSP_STATE_INVALID_SUSPEND_RESUME,
++	MT6797_DVFSP_STATE_INVALID_PCM_FAULT,
++};
++
++struct mt6797_dvfsp_state_owner_ops {
++	int (*snapshot)(void *context,
++			       struct mt6797_dvfsp_state_snapshot *snapshot);
++	int (*validate)(void *context,
++			       const struct mt6797_dvfsp_state_snapshot *snapshot);
++	void (*invalidate)(void *context,
++			   enum mt6797_dvfsp_state_invalidation_reason reason);
++};
+@@ -92,5 +157,20 @@ int mt6797_dvfsp_handoff_i2c6_fw_release(
+ 	const struct mt6797_dvfsp_i2c6_fw_lease *fw_lease,
+ 	struct mt6797_dvfsp_i2c6_fw_response *response);
++int mt6797_dvfsp_handoff_state_owner_register(
++	struct mt6797_dvfsp_handoff *handoff,
++	const struct mt6797_dvfsp_state_owner_ops *ops, void *context);
++int mt6797_dvfsp_handoff_state_owner_unregister(
++	struct mt6797_dvfsp_handoff *handoff,
++	const struct mt6797_dvfsp_state_owner_ops *ops, void *context);
++int mt6797_dvfsp_handoff_state_snapshot(
++	struct mt6797_dvfsp_handoff *handoff,
++	struct mt6797_dvfsp_state_snapshot *snapshot);
++int mt6797_dvfsp_handoff_state_validate(
++	struct mt6797_dvfsp_handoff *handoff,
++	const struct mt6797_dvfsp_state_snapshot *snapshot);
++void mt6797_dvfsp_handoff_state_invalidate(
++	struct mt6797_dvfsp_handoff *handoff,
++	enum mt6797_dvfsp_state_invalidation_reason reason);
+ /* The readiness test is atomic; clock validation is sleepable. */
+ bool
+ mt6797_dvfsp_handoff_is_ready_atomic(struct mt6797_dvfsp_handoff *handoff);
+@@ -173,6 +251,45 @@ mt6797_dvfsp_handoff_i2c6_fw_release(
+ 	return -ENODEV;
+ }
+ 
++static inline int
++mt6797_dvfsp_handoff_state_owner_register(
++	struct mt6797_dvfsp_handoff *handoff,
++	const struct mt6797_dvfsp_state_owner_ops *ops, void *context)
++{
++	return -ENODEV;
++}
++
++static inline int
++mt6797_dvfsp_handoff_state_owner_unregister(
++	struct mt6797_dvfsp_handoff *handoff,
++	const struct mt6797_dvfsp_state_owner_ops *ops, void *context)
++{
++	return -ENODEV;
++}
++
++static inline int
++mt6797_dvfsp_handoff_state_snapshot(
++	struct mt6797_dvfsp_handoff *handoff,
++	struct mt6797_dvfsp_state_snapshot *snapshot)
++{
++	return -ENODEV;
++}
++
++static inline int
++mt6797_dvfsp_handoff_state_validate(
++	struct mt6797_dvfsp_handoff *handoff,
++	const struct mt6797_dvfsp_state_snapshot *snapshot)
++{
++	return -ENODEV;
++}
++
++static inline void
++mt6797_dvfsp_handoff_state_invalidate(
++	struct mt6797_dvfsp_handoff *handoff,
++	enum mt6797_dvfsp_state_invalidation_reason reason)
++{
++}
++
+ static inline bool
+ mt6797_dvfsp_handoff_is_ready_atomic(struct mt6797_dvfsp_handoff *handoff)
+ {
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+index 8f3a1ce..6f347c0 100644
+--- a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+@@ -146,5 +146,8 @@ struct mt6797_dvfsp_handoff {
+ 	bool fw_lease_active;
+ 	struct mt6797_dvfsp_i2c6_fw_lease fw_lease;
++	struct mutex state_owner_lock;
++	const struct mt6797_dvfsp_state_owner_ops *state_owner_ops;
++	void *state_owner_context;
+ 	struct completion terminal;
+ 	struct delayed_work late_work;
+ 	struct mt6797_dvfsp_snapshot samples[MT6797_DVFSP_SAMPLE_COUNT];
+@@ -1570,7 +1573,151 @@ EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_get);
+ 	return handoff;
+ }
+ EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_get);
+ 
++static int
++mt6797_dvfsp_state_snapshot_check(
++	const struct mt6797_dvfsp_state_snapshot *snapshot)
++{
++	unsigned int i;
++
++	if (snapshot->abi != MT6797_DVFSP_STATE_OWNER_ABI ||
++	    !snapshot->generation ||
++	    !snapshot->cluster_mask ||
++	    snapshot->cluster_mask & ~MT6797_DVFSP_STATE_CLUSTER_MASK)
++		return -EPROTO;
++
++	for (i = 0; i < MT6797_DVFSP_STATE_CLUSTER_COUNT; i++) {
++		const struct mt6797_dvfsp_state_cluster *cluster =
++			&snapshot->cluster[i];
++
++		if (!(snapshot->cluster_mask & BIT(i)))
++			continue;
++		if (cluster->valid_fields != MT6797_DVFSP_STATE_FIELD_ALL)
++			return -EPROTO;
++		if (cluster->state_flags & ~(MT6797_DVFSP_STATE_FLAG_PRESENT |
++					      MT6797_DVFSP_STATE_FLAG_ON))
++			return -EPROTO;
++	}
++
++	return 0;
++}
++
++int mt6797_dvfsp_handoff_state_owner_register(
++	struct mt6797_dvfsp_handoff *handoff,
++	const struct mt6797_dvfsp_state_owner_ops *ops, void *context)
++{
++	int ret = 0;
++
++	if (!handoff || !ops || !ops->snapshot || !ops->validate ||
++	    !ops->invalidate)
++		return -EINVAL;
++
++	mutex_lock(&handoff->state_owner_lock);
++	if (handoff->state_owner_ops) {
++		ret = -EBUSY;
++	} else {
++		handoff->state_owner_ops = ops;
++		handoff->state_owner_context = context;
++	}
++	mutex_unlock(&handoff->state_owner_lock);
++
++	return ret;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_state_owner_register);
++
++int mt6797_dvfsp_handoff_state_owner_unregister(
++	struct mt6797_dvfsp_handoff *handoff,
++	const struct mt6797_dvfsp_state_owner_ops *ops, void *context)
++{
++	int ret = 0;
++
++	if (!handoff || !ops)
++		return -EINVAL;
++
++	mutex_lock(&handoff->state_owner_lock);
++	if (handoff->state_owner_ops != ops ||
++	    handoff->state_owner_context != context) {
++		ret = -ENOENT;
++	} else {
++		handoff->state_owner_ops->invalidate(
++			handoff->state_owner_context,
++			MT6797_DVFSP_STATE_INVALID_OWNER_REMOVED);
++		handoff->state_owner_ops = NULL;
++		handoff->state_owner_context = NULL;
++	}
++	mutex_unlock(&handoff->state_owner_lock);
++
++	return ret;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_state_owner_unregister);
++
++int mt6797_dvfsp_handoff_state_snapshot(
++	struct mt6797_dvfsp_handoff *handoff,
++	struct mt6797_dvfsp_state_snapshot *snapshot)
++{
++	int ret;
++
++	if (!handoff || !snapshot)
++		return -EINVAL;
++
++	mutex_lock(&handoff->state_owner_lock);
++	if (!handoff->state_owner_ops) {
++		ret = -EOPNOTSUPP;
++		goto out_unlock;
++	}
++
++	memset(snapshot, 0, sizeof(*snapshot));
++	ret = handoff->state_owner_ops->snapshot(
++		handoff->state_owner_context, snapshot);
++	if (!ret)
++		ret = mt6797_dvfsp_state_snapshot_check(snapshot);
++
++out_unlock:
++	mutex_unlock(&handoff->state_owner_lock);
++	return ret;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_state_snapshot);
++
++int mt6797_dvfsp_handoff_state_validate(
++	struct mt6797_dvfsp_handoff *handoff,
++	const struct mt6797_dvfsp_state_snapshot *snapshot)
++{
++	int ret;
++
++	if (!handoff || !snapshot)
++		return -EINVAL;
++
++	ret = mt6797_dvfsp_state_snapshot_check(snapshot);
++	if (ret)
++		return ret;
++
++	mutex_lock(&handoff->state_owner_lock);
++	if (!handoff->state_owner_ops)
++		ret = -EOPNOTSUPP;
++	else
++		ret = handoff->state_owner_ops->validate(
++			handoff->state_owner_context, snapshot);
++	mutex_unlock(&handoff->state_owner_lock);
++
++	return ret;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_state_validate);
++
++void mt6797_dvfsp_handoff_state_invalidate(
++	struct mt6797_dvfsp_handoff *handoff,
++	enum mt6797_dvfsp_state_invalidation_reason reason)
++{
++	if (!handoff)
++		return;
++
++	mutex_lock(&handoff->state_owner_lock);
++	if (handoff->state_owner_ops)
++		handoff->state_owner_ops->invalidate(
++			handoff->state_owner_context, reason);
++	mutex_unlock(&handoff->state_owner_lock);
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_state_invalidate);
++
+ static int mt6797_dvfsp_handoff_probe(struct platform_device *pdev)
+ {
+ 	struct mt6797_dvfsp_handoff *handoff;
+@@ -1589,7 +1710,7 @@ static int mt6797_dvfsp_handoff_probe(struct platform_device *pdev
+ 	mutex_init(&handoff->lock);
+ 	mutex_init(&handoff->transfer_lock);
+ 	mutex_init(&handoff->fw_owner_lock);
++	mutex_init(&handoff->state_owner_lock);
+ 	init_completion(&handoff->terminal);
+ 	atomic_set(&handoff->terminal_grant, 0);
+ 	atomic_set(&handoff->permission, MT6797_DVFSP_PERMISSION_BLOCKED);
+-- 
+2.43.0

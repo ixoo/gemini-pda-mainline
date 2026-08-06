@@ -57,9 +57,17 @@ those protected transitions. Direct CPU-PLL MMIO is unsafe, and the vendor
 EEM/PTP path makes a static downstream OPP table non-authoritative.
 
 The next implementation seam is consequently a disabled, read-only MT6797
-clock/state contract that proves the cross-owner read path. Only after that
-contract is independently reviewed can it become the live state owner used by
-the PCM adapter; no voltage or frequency transition is implied by this design.
+clock/state contract that proves the cross-owner read path. Patch `0192`
+defines that dormant boundary as a private state-owner registry: `snapshot`
+must return every requested cluster's flags, OPP, frequency, voltage, VSRAM,
+ceiling, floor, clock state, rail state, and nonzero generation; `validate`
+must re-check that generation under the owner's transition lock; and
+`invalidate` covers owner removal, clock/rail transitions, suspend/resume, and
+PCM faults. The registry holds its lock across callbacks, rejects incomplete
+snapshots, and returns `-EOPNOTSUPP` while no owner is registered. It performs
+no MMIO or transition itself. Only after a real clock/rail owner is registered
+and independently reviewed can it become the live state owner used by the PCM
+adapter; no voltage or frequency transition is implied by this design.
 
 ```text
 Linux transfer lease {generation,cookie}

@@ -58,11 +58,13 @@ regulator and clock owners, remain valid through image start, and invalidate the
 start generation on a concurrent transition, suspend/resume, clock loss, or
 PCM fault. A fixed-state table is acceptable only after a reviewed board,
 revision, and rail-measurement contract proves that the table is authoritative;
-guessed defaults are not acceptable. The current handoff has no such MT6797
-state owner, so this gate remains open and the provider remains fail-closed.
-The conceptual `snapshot`/`validate`/`publish`/`invalidate` seam for that owner
-is recorded in [`DESIGN.md`](DESIGN.md); it is not yet an implemented kernel
-API.
+guessed defaults are not acceptable. Patch `0192` now defines a dormant
+private `snapshot`/`validate`/`invalidate` API with complete per-cluster field
+masks and generation checks, but registers no owner and performs no hardware
+access. The current handoff therefore still has no MT6797 state owner, so this
+gate remains open and the provider remains fail-closed. The conceptual
+`publish` step remains in [`DESIGN.md`](DESIGN.md) because it belongs to the
+future PCM adapter after a real owner is present.
 
 ## Required resources and order
 
