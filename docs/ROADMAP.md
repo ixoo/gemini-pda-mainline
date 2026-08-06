@@ -1859,6 +1859,15 @@ The next ordered work remains source-only:
    is compile-only evidence: the backend callbacks are external and
    unregistered, with no provider, MMIO, secure call, firmware action, or
    device boot. See the [protected composition Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/protected-state-backend-composition-buildbox-20260806.txt).
+   Patch `0197` now adds the smallest disabled-only MCUMIXED/CSPM clock
+   readback transport. The exact pushed commit `2c9d1b9` applies all 186
+   canonical entries on Buildbox, compiles the dedicated arm64 profile,
+   produces 119 DTBs, passes package checksums, and has its validated package
+   fetched. The profile keeps the DT node and infracfg driver disabled; the
+   transport only performs a bounded semaphore acquire/read/release sequence
+   and does not register an owner or clock provider. This is compile-only
+   protocol evidence with no secure call, firmware action, device write, or
+   CPU8/CPU9 admission. See the [protected clock readback Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/protected-clock-readback-buildbox-20260806.txt).
    The next ordered gate is the real, independently reviewed implementation of
    both protected startup-state backends, including authoritative
    OPP/frequency/voltage/VSRAM capture, transition locks, suspend/fault

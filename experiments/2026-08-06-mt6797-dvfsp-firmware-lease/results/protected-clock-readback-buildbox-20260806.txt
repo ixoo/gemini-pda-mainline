@@ -1,0 +1,66 @@
+# Protected MT6797 clock readback transport Buildbox validation
+
+Date: 2026-08-06 America/New_York
+
+claim=COMPILE_ONLY_PROTECTED_CLOCK_READBACK_TRANSPORT
+repository_commit=2c9d1b9898fc2fbf7fc9b3497b00157331c4e625
+origin=https://github.com/ixoo/gemini-pda-mainline.git
+build_backend=buildbox
+buildbox_job=2c9d1b9898fc2fbf7fc9b3497b00157331c4e625-dvfsp-clock-backend-readonly-m0
+buildbox_status=validated
+artifact=linux-7.1.3-gemini-dvfsp-clock-backend-readonly-b2709936-379f301f
+kernel_release=7.1.3-gemini-handoff
+build_profile=dvfsp-clock-backend-readonly
+generated_utc=2026-08-06T19:24:10Z
+patch_count=186
+patch_series=patches/series
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=b27099364db1955578bfbcbf2d75dc55a19da56d1c60aa2337f8176a7d5fe51b
+config_inputs_sha256=379f301ff66b3e96edae1df39ecd21dfd214c73d59edb22c3e0aa969dd1e17bc
+config_sha256=c026450263db24d9cdad87243d7a8e47e47bfaca5f32682239adc82310fd31f9
+config_fragment_count=2
+modules_built=false
+build_architecture=x86_64
+target_architecture=arm64
+toolchain_mode=cross
+compiler=aarch64-linux-gnu-gcc_(Debian_12.2.0-14)_12.2.0
+linker=GNU_ld_(GNU_Binutils_for_Debian)_2.40
+dtb_count=119
+sha256sums=passed
+hardware_write=none
+device_action=none
+package_fetch=success;validated_package_only
+local_package=artifacts/buildbox/2c9d1b9898fc2fbf7fc9b3497b00157331c4e625/linux-7.1.3-gemini-dvfsp-clock-backend-readonly-b2709936-379f301f
+
+Image_sha256=1b6e84acb3b23f32077242d2710491015155235036f8f81ccf51155cbc0eac85
+Image_gz_sha256=90488e00308c25f63221e544fffdb283c07e14c8b12e17fd4235169925de621e
+System_map_sha256=f55a75e5a58aa077ede271381d4d436b8fe2468d32a565b9797fbfbff4695081
+gemini_dtb_sha256=dcebecbf4122b481e9d7f8cdff67929e5f76a54ed68393a6f6843c0dd68a8b47
+kernel_config_sha256=c026450263db24d9cdad87243d7a8e47e47bfaca5f32682239adc82310fd31f9
+build_provenance_sha256=1665ff6348cd6ddab05e11b8ac1c09a2a2b2e8675f29c47266ad036faa2e182a
+sha256sums_manifest_sha256=5c08ce732644571f82d96adaf932a9db3b6e2b1b6de3aa47f7f189976b423c79
+
+clock_transport=0197;default_off;mcumixed_and_cspm_named_resources;bounded_read_only_semaphore_readback
+config=MTK_MT6797_DVFSP_CLOCK_BACKEND=y;MTK_INFRACFG=disabled
+node_status=disabled
+owner=unregistered
+provider=none
+mmio=disabled_at_runtime
+secure_call=none
+firmware_action=none
+hardware_support_claim=NONE
+boot_candidate=false
+
+The exact pushed revision applied all 186 canonical entries, including patch
+0197, compiled the dedicated arm64 profile, produced 119 DTBs, and passed
+package SHA-256 validation. The validated package was fetched locally.
+
+Patch 0197 is a compile-only transport boundary. It maps the named MCUMIXED
+and CSPM resources only when a separately enabled Device Tree node is present,
+uses the documented bounded semaphore acquire/release sequence, and reads raw
+LL/L/CCI divider and PLL words. The current profile leaves the node disabled,
+does not enable the infracfg driver, and registers no state owner or clock
+provider. It performs no PLL, divider, regulator, SRAM-LDO, secure-monitor, or
+firmware write. No device was booted or written; CPU8/CPU9 support remains
+unproven pending the authoritative calibrated state owner and the separate
+BigiDVFS backend.

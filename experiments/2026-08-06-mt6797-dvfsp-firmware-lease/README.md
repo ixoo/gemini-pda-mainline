@@ -94,6 +94,7 @@ be copied directly into a mainline failure/PM path.
 - [Bounded PCM admission shell Buildbox validation](results/pcm-adapter-shell-buildbox-20260806.txt)
 - [Protected state-owner identity Buildbox validation](results/state-owner-identity-buildbox-20260806.txt)
 - [Protected state-backend composition Buildbox validation](results/protected-state-backend-composition-buildbox-20260806.txt)
+- [Protected clock readback transport Buildbox validation](results/protected-clock-readback-buildbox-20260806.txt)
 - [Protected-owner protocol identity revalidation](results/protected-owner-protocol-20260806.txt)
 - [Public DVFS startup-state owner boundary](results/public-dvfs-state-owner-20260806.txt)
 - [Mainline clock/state-owner inventory](results/mainline-clock-owner-inventory-20260806.txt)
@@ -236,6 +237,18 @@ the [protected composition Buildbox result](results/protected-state-backend-comp
 The next gate is still the independently reviewed hardware implementation of
 the MCUMIXED/DVFSP CPU-PLL owner and BigiDVFS secure owner, including their
 authoritative OPP/frequency/voltage/VSRAM state and transition locks.
+
+Patch `0197` now adds the smallest compile-only MCUMIXED/CSPM clock readback
+transport. Its Device Tree node is disabled, its profile leaves
+`CONFIG_MTK_INFRACFG` disabled, and the helper performs only a bounded
+semaphore acquire/read/release sequence for raw LL/L/CCI clock-window words.
+The exact pushed commit `2c9d1b9` applied all 186 series entries on Buildbox,
+compiled the dedicated arm64 profile, produced 119 DTBs, passed package
+checksums, and fetched the validated package locally. No owner or clock
+provider is registered, no secure or firmware call is made, and no device
+action occurred. See the [protected clock readback Buildbox result](results/protected-clock-readback-buildbox-20260806.txt).
+This transport identifies and bounds the protected read path; it does not
+provide calibrated OPP/rail state or unlock CPU8/CPU9.
 
 The read-only protocol revalidation now closes the public identifiers needed
 to implement those adapters: the BigiDVFS secure FIDs and secure register
