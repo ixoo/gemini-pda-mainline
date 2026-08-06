@@ -1,0 +1,181 @@
+From 0000000000000000000000000000000000000181 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 6 Aug 2026 00:00:00 -0400
+Subject: [PATCH] arm64: bind P30E to secondary_entry
+
+Bind the dormant P30E target claim to the canonical arm64 secondary_entry
+without changing the normal unarmed path. A target that sees no armed object
+or an unrelated MPIDR continues to the existing startup; any malformed or
+ambiguous object is published failed by the P30E primitive and parked before
+secondary_startup. Publish the target result immediately before the existing
+CPU_BOOT_SUCCESS/online handoff, and publish a failure before early parking.
+
+Carry and validate the exact physical secondary_entry address through the
+owner handoff and future P30E arm request. The MT6797 PSCI boot method remains
+the existing -EAGAIN veto, so this source-only seam does not issue CPU_ON,
+change Linux membership, or perform device I/O.
+
+This experiment-only change has no certifying sign-off and is not
+submission-ready.
+---
+ arch/arm64/include/asm/mt6797_a72_membership.h |  1 +
+ arch/arm64/include/asm/mt6797_a72_p30e.h       |  1 +
+ arch/arm64/kernel/head.S                       | 24 ++++++++++++++++
+ arch/arm64/kernel/mt6797_a72_membership.c     |  7 +++++
+ arch/arm64/kernel/mt6797_a72_p30e.c            |  3 +++
+ arch/arm64/kernel/smp.c                        | 28 +++++++++++++++++++
+ 6 files changed, 64 insertions(+)
+
+diff --git a/arch/arm64/include/asm/mt6797_a72_membership.h b/arch/arm64/include/asm/mt6797_a72_membership.h
+--- a/arch/arm64/include/asm/mt6797_a72_membership.h
++++ b/arch/arm64/include/asm/mt6797_a72_membership.h
+@@ -374,6 +374,7 @@
+ struct mt6797_a72_p30e_handoff {
+ 	u32 target_cpu;
+ 	u32 reserved;
+ 	u64 slot_pa;
++	u64 entry_pa;
+ 	u64 wire_boot_identity[ARM64_LATE_CPU_ID_WORDS];
+ 	u64 target_boot_identity[ARM64_LATE_CPU_ID_WORDS];
+ 	u64 operation;
+diff --git a/arch/arm64/include/asm/mt6797_a72_p30e.h b/arch/arm64/include/asm/mt6797_a72_p30e.h
+--- a/arch/arm64/include/asm/mt6797_a72_p30e.h
++++ b/arch/arm64/include/asm/mt6797_a72_p30e.h
+@@ -79,6 +79,7 @@ struct arm64_mt6797_a72_p30e_request {
+ 	u64 boot_identity[4];
+ 	u64 target_boot_identity[4];
+ 	u64 slot_pa;
++	u64 entry_pa;
+ 	u64 operation;
+ 	u64 generation;
+ 	u64 cookie;
+diff --git a/arch/arm64/kernel/head.S b/arch/arm64/kernel/head.S
+--- a/arch/arm64/kernel/head.S
++++ b/arch/arm64/kernel/head.S
+@@ -30,6 +30,10 @@
+ #include <asm/virt.h>
+ 
+ #include "efi-header.S"
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++#include <asm/errno.h>
++#include <asm/mt6797_a72_p30e.h>
++#endif
+ 
+ #if (PAGE_OFFSET & 0x1fffff) != 0
+ #error PAGE_OFFSET must be at least 2MB aligned
+@@ -355,6 +359,26 @@ SYM_FUNC_START(secondary_entry)
+ 	mov	x0, xzr
+ 	bl	init_kernel_el			// w0=cpu_boot_mode
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++	/*
++	 * No context-id is supplied by PSCI. The target selects its static
++	 * slot from MPIDR and rejects every malformed or ambiguous object.
++	 * EAGAIN/ENODEV are the unchanged unarmed/non-A72 path.
++	 */
++	mov	x20, x0
++	bl	arm64_mt6797_a72_p30e_target_claim
++	cmp	x0, #0
++	b.eq	.Lp30e_secondary_resume
++	cmn	x0, #EAGAIN
++	b.eq	.Lp30e_secondary_resume
++	cmn	x0, #ENODEV
++	b.eq	.Lp30e_secondary_resume
++.Lp30e_secondary_park:
++	wfe
++	b	.Lp30e_secondary_park
++.Lp30e_secondary_resume:
++	mov	x0, x20
++#endif
+ b	secondary_startup
+ SYM_FUNC_END(secondary_entry)
+diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt6797_a72_membership.c
+--- a/arch/arm64/kernel/mt6797_a72_membership.c
++++ b/arch/arm64/kernel/mt6797_a72_membership.c
+@@ -577,6 +577,9 @@ int mt6797_a72_membership_prepare_p30e_handoff(
+ 	if (!transaction->valid || !transaction->a36_valid ||
+ 	    !transaction->p30_token_valid ||
++	    identity->cpu_on_entry_pa != __pa_symbol(secondary_entry) ||
++	    transaction->a36_prestate.secondary_entry_pa !=
++	    __pa_symbol(secondary_entry) ||
+ 	    identity->abi != MT6797_A72_TRANSACTION_ABI ||
+ 	    identity->owner != ARM64_LATE_CPU_STARTUP_OWNER_MEMBERSHIP ||
+ 	    identity->cpuhp_target != CPUHP_ONLINE ||
+@@ -615,6 +618,7 @@ int mt6797_a72_membership_prepare_p30e_handoff(
+ 		} else {
+ 			handoff->target_cpu = cpu;
+ 			handoff->slot_pa = slot_pa;
++			handoff->entry_pa = __pa_symbol(secondary_entry);
+ 			handoff->operation = operation;
+ 			memcpy(handoff->wire_boot_identity,
+ 			       transaction->p30_token.plan_identity,
+diff --git a/arch/arm64/kernel/mt6797_a72_p30e.c b/arch/arm64/kernel/mt6797_a72_p30e.c
+--- a/arch/arm64/kernel/mt6797_a72_p30e.c
++++ b/arch/arm64/kernel/mt6797_a72_p30e.c
+@@ -21,6 +21,7 @@
+ #include <asm/cacheflush.h>
+ #include <asm/memory.h>
+ #include <asm/mt6797_a72_p30e.h>
++#include <asm/smp.h>
+ 
+ static_assert(sizeof(struct arm64_mt6797_a72_p30e_wire) ==
+ 	      ARM64_MT6797_A72_P30E_WIRE_BYTES);
+@@ -165,6 +166,8 @@ int arm64_mt6797_a72_p30e_arm(unsigned int cpu,
+ 	    (request->operation != ARM64_MT6797_A72_P30E_OPERATION_CPU9_UP) ||
+ 	    !request->generation || !request->cookie)
+ 		return -EINVAL;
++	if (!request->entry_pa || request->entry_pa != __pa_symbol(secondary_entry))
++		return -EINVAL;
+ 
+ 	for (i = 0; i < ARRAY_SIZE(request->target_boot_identity); i++)
+ 		if (!request->target_boot_identity[i])
+diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
+--- a/arch/arm64/kernel/smp.c
++++ b/arch/arm64/kernel/smp.c
+@@ -47,6 +47,9 @@
+ #include <asm/late_cpu_profile.h>
+ #include <asm/mmu_context.h>
+ #include <asm/numa.h>
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++#include <asm/mt6797_a72_p30e.h>
++#endif
+ #include <asm/processor.h>
+ #include <asm/smp_plat.h>
+ #include <asm/sections.h>
+@@ -278,6 +281,21 @@ asmlinkage notrace void secondary_start_kernel(void)
+ 	pr_info("CPU%u: Booted secondary processor 0x%010lx [0x%08x]\n",
+ 						 cpu, (unsigned long)mpidr,
+ 						 read_cpuid_id());
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++	{
++		int p30e_ret;
++
++		p30e_ret = arm64_mt6797_a72_p30e_target_publish(
++			ARM64_MT6797_A72_P30E_TARGET_PUBLISHED, 0, 0,
++			(u64)__pa_symbol(secondary_entry), 0);
++		if (p30e_ret != -ENODEV && p30e_ret != -EALREADY && p30e_ret) {
++			(void)arm64_mt6797_a72_p30e_target_publish(
++				ARM64_MT6797_A72_P30E_FAILED, (u64)-p30e_ret, 0,
++				(u64)__pa_symbol(secondary_entry), 0);
++			update_cpu_boot_status(CPU_STUCK_IN_KERNEL);
++			cpu_park_loop();
++		}
++	}
++#endif
+ 	update_cpu_boot_status(CPU_BOOT_SUCCESS);
+ 	set_cpu_online(cpu, true);
+ 	complete(&cpu_running);
+@@ -437,6 +455,16 @@ void __noreturn cpu_die_early(void)
+ {
+ 	int cpu = smp_processor_id();
+ 
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++	(void)arm64_mt6797_a72_p30e_target_publish(
++		ARM64_MT6797_A72_P30E_FAILED, CPU_KILL_ME, 0,
++		(u64)__pa_symbol(secondary_entry), 0);
++#endif
++
+ 	pr_crit("CPU%d: will not boot\n", cpu);
+ 
+ /* Mark this CPU absent */
+-- 
+2.50.1
