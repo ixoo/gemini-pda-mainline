@@ -174,9 +174,11 @@ acquire/release refusal boundary remain the correct implementation boundary.
 
 ## Follow-up
 
-The next source-only action is to specify the mainline I2C6/DVFSP ownership
-handoff and map the vendor transaction into a default-off provider without
-claiming hardware support. Only after that contract and the rollback boundary
-close may a writable implementation be designed. It must still pass Buildbox
-from a clean pushed commit before any device consideration, and the
+The next source-only action is the transfer-lease contract in
+[`DESIGN.md`](DESIGN.md): serialize the handoff state transition with each
+I2C6 transfer and require an exact generation/token on release. It maps the
+mainline handoff into a default-off provider without claiming hardware
+support. Only after that contract and the DA921x rollback boundary close may a
+writable implementation be designed. It must still pass Buildbox from a
+clean pushed commit before any device consideration, and the
 P24/P28/P30/P32/A26/A14 gates remain independent blockers.
