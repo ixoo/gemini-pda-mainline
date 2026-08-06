@@ -2,16 +2,16 @@ P32R integration review
 =======================
 
 Date: 2026-08-06 America/New_York
-Repository head: ca326e1
+Repository head: 1df5a24
 Origin: https://github.com/ixoo/gemini-pda-mainline.git
 
 claim=P32_HOOKS_VALIDATED_P32R_INTEGRATION_OPEN
 publication_and_exact_identity=PASS
 target_and_controller_guards=PASS
 one_shot_consumption=PASS
-P32A_nested_prefix_record=OPEN;no controller record of cpuhp_kick_ap callback prefix or reset state
-P32X_arch_effect_prefix=OPEN;record has no topology/NUMA/online/present/IPI/IRQ/RCU/lockdep effect mask
-P32R_ledger_handoff=OPEN;consume path changes only P32 branch/state; no membership/provider/A30 ledger completion
+P32A_nested_prefix_record=OPEN;callback trace exists, but callback_unknown has no producer and capacity is not bound to the registration inventory
+P32X_arch_effect_prefix=OPEN;effect events exist, but no required-effect coverage mask or PRESENT_CLEAR event proves uninstrumented operations absent
+P32R_ledger_handoff=OPEN;owner snapshot/fault/retire handoff exists, but acceptance relies on incomplete callback/effect completeness flags
 cpu_on_cpu_off_device_action=CLOSED
 status=PASS_GAPS_CONFIRMED
 

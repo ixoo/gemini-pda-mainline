@@ -21,8 +21,8 @@ channel consumption.
 The review initially identified three integration gaps. The P32A callback
 prefix is represented by source patch `0187`, the P32X effect-prefix source
 slice by `0188`, and the P32R owner-ledger handoff by `0189`. Each passes an
-independent format-patch/source audit; Buildbox validation of the complete
-series is now the next gate.
+independent format-patch/source audit, and the complete series has since
+passed Buildbox validation. Semantic completeness remains open.
 
 The executable check records these gaps in
 [`results/p32-r-review-20260806.txt`](results/p32-r-review-20260806.txt).
@@ -38,10 +38,11 @@ result in
 [`results/p32r-integration-design-20260806.txt`](results/p32r-integration-design-20260806.txt).
 The first source slice is recorded in
 [`results/p32a-prefix-source-audit-20260806.txt`](results/p32a-prefix-source-audit-20260806.txt)
-and parses as a format-patch. Buildbox was unavailable at the audit, so this
-is not compiler or hardware evidence. P32X architecture-effect capture and
-the P32R ledger handoff remain open; no CPU_ON/OFF or device action is
-authorized.
+and parses as a format-patch. P32X architecture-effect capture and the P32R
+ledger handoff remain open: `callback_unknown` has no producer, effect
+coverage has no required-effect mask or `PRESENT_CLEAR` event, and the owner
+handoff consequently relies on incomplete completeness flags. No CPU_ON/OFF or
+device action is authorized.
 
 The first Buildbox submission exposed an integration defect in `0187`: patch
 `0182` had already introduced the rollback callback declaration, so the source

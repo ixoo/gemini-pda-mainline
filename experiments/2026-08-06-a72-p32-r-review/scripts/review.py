@@ -15,6 +15,9 @@ PATCHES = [ROOT / "patches/v7.1.3" / name for name in (
     "0184-arm64-retire-consumed-P32-generation.patch",
     "0185-arm64-bind-P32-operation-to-target.patch",
     "0186-arm64-parenthesize-P32-publication-check.patch",
+    "0187-arm64-capture-P32A-rollback-prefix.patch",
+    "0188-arm64-capture-P32X-effect-prefix.patch",
+    "0189-arm64-hand-P32R-into-owner-ledger.patch",
 )]
 
 
@@ -34,7 +37,7 @@ def main() -> int:
             "P32 closure table is not canonical")
     source = "\n".join(path.read_text() for path in PATCHES)
 
-    # These are the source-only properties actually implemented by 0182-0186.
+    # These are the source-only properties actually implemented by 0182-0189.
     for token in (
         "mt6797_a72_membership_publish_p32",
         "arch_cpu_up_rollback_complete",
@@ -45,6 +48,18 @@ def main() -> int:
         "target_mpidr",
         "generation",
         "cookie",
+        "struct cpu_up_rollback_trace",
+        "nested_valid",
+        "outer_reset",
+        "reverse_complete",
+        "CPU_UP_ROLLBACK_EFFECT_COUNT",
+        "effect_unknown",
+        "effect_overflow",
+        "arch_cpu_up_rollback_effect",
+        "MT6797_A72_P32R_HANDOFF_ABI",
+        "mt6797_a72_p32r_capture_locked",
+        "MT6797_A72_P32R_FAULT_ROLLBACK_LOST",
+        "MT6797_A72_PROVIDER_FAULT_UNKNOWN",
     ):
         require(token in source, f"implemented P32 token missing: {token}")
 
@@ -52,13 +67,16 @@ def main() -> int:
     # intentionally reported rather than hidden by the passing guard build.
     gaps = {
         "P32A_nested_prefix_record": (
-            "no controller record of cpuhp_kick_ap callback prefix or reset state"
+            "callback trace exists, but callback_unknown has no producer and "
+            "capacity is not bound to the registration inventory"
         ),
         "P32X_arch_effect_prefix": (
-            "record has no topology/NUMA/online/present/IPI/IRQ/RCU/lockdep effect mask"
+            "effect events exist, but no required-effect coverage mask or "
+            "PRESENT_CLEAR event proves uninstrumented operations absent"
         ),
         "P32R_ledger_handoff": (
-            "consume path changes only P32 branch/state; no membership/provider/A30 ledger completion"
+            "owner snapshot/fault/retire handoff exists, but acceptance relies "
+            "on incomplete callback/effect completeness flags"
         ),
     }
     require("p32_valid" in source and "callback_state" in source,
