@@ -7,6 +7,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 PATCH = ROOT / "patches/v7.1.3/0175-soc-mediatek-define-I2C6-firmware-lease-contract.patch"
 SERIES = ROOT / "patches/series"
+DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
 START_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-start-contract-20260806.txt"
 OWNER_RESULT = Path(__file__).resolve().parents[1] / "results/public-hybrid-owner-source-20260806.txt"
 STATE_RESULT = Path(__file__).resolve().parents[1] / "results/public-owner-startup-state-20260806.txt"
@@ -19,6 +20,7 @@ def require(text: str, needle: str, label: str) -> None:
 
 def main() -> None:
     patch = PATCH.read_text()
+    design = DESIGN.read_text()
     start_result = START_RESULT.read_text()
     owner_result = OWNER_RESULT.read_text()
     state_result = STATE_RESULT.read_text()
@@ -40,6 +42,16 @@ def main() -> None:
     require(patch, "handoff->fw_lease_active", "lease-lifetime")
     require(patch, "ret = -EBUSY", "unregister-while-held")
     require(patch, "No callback is registered by this patch", "default-off-claim")
+    for needle, label in (
+        ("## Startup-state adapter seam", "design-state-seam"),
+        ("`snapshot`", "design-snapshot"),
+        ("`validate`", "design-validate"),
+        ("`publish`", "design-publish"),
+        ("`invalidate`", "design-invalidate"),
+        ("UNAVAILABLE -> SNAPSHOTTED -> RESOURCES_HELD", "design-lifecycle"),
+        ("not yet a kernel API", "design-not-implemented"),
+    ):
+        require(design, needle, label)
     for needle, label in (
         ("required_image_identity=exact_image_hash;target_revision;license_or_access_boundary;loader_domain", "start-image-identity"),
         ("required_memory_contract=stable_physical_base_and_length;alignment;cache_maintenance;lifetime", "start-memory"),

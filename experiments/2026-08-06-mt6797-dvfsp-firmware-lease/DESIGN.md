@@ -14,6 +14,37 @@ those start/resource facts, or explicitly identify a trusted firmware service
 that has already started and owns the PCM. A direct `SW_PAUSE`/`FW_DONE`
 implementation without that prerequisite is rejected.
 
+## Startup-state adapter seam
+
+The PCM owner has two distinct authorities: the image/receiver owner and the
+Linux startup-state owner. The latter cannot be inferred from the firmware
+lease token. The public start path needs a coherent snapshot of the current
+cluster and rail state before it writes CSRAM records or requests PCM run.
+
+The reviewed adapter seam is conceptual, not yet a kernel API:
+
+1. `snapshot`: under the CPU/rail transition lock, return the current cluster
+   membership, `is_on` state, OPP identity, frequency, voltage, VSRAM,
+   ceiling/floor, clock state, rail state, and a monotonically identified state
+   generation.
+2. `validate`: immediately before image start and again immediately before
+   `PCM_KICK`, prove that the snapshot generation and all state fields still
+   match the live owners. A mismatch aborts the start and invalidates the
+   pending image generation.
+3. `publish`: copy only the validated snapshot into the initial CSRAM/control
+   records, with the image and state generations bound together. No guessed
+   OPP or voltage may be substituted for a missing field.
+4. `invalidate`: on a regulator/clock transition, suspend/resume, PCM fault,
+   or owner removal, revoke the bound generation and prevent a stale callback
+   from reaching the firmware lease.
+
+The intended lifecycle is `UNAVAILABLE -> SNAPSHOTTED -> RESOURCES_HELD ->
+IMAGE_READY -> RUNNING`, with every failure or asynchronous transition entering
+`INVALIDATED`/`FAULTED`. The current tree has no provider that can implement
+`snapshot`; the existing handoff remains a stopped-state observer. This seam
+must be satisfied before adding a loader, mapping CSRAM, or registering the
+callback in patch `0175`.
+
 ```text
 Linux transfer lease {generation,cookie}
         |
