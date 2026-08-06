@@ -21,11 +21,11 @@ is an experiment-only transport and is not submission-ready.
 ---
  .../mediatek,mt6797-dvfsp-clock-backend.yaml       |  65 ++++++++
  .../boot/dts/mediatek/mt6797.dtsi                  |  12 +++
- drivers/soc/mediatek/Kconfig                       |  17 +++
+ drivers/soc/mediatek/Kconfig                       |  16 +++
  drivers/soc/mediatek/Makefile                      |   1 +
  .../soc/mediatek/mt6797-dvfsp-clock-backend.c      | 209 +++++++++++++++++++++
  .../soc/mediatek/mt6797-dvfsp-clock-backend.h      |  32 ++++
- 6 files changed, 339 insertions(+)
+ 6 files changed, 338 insertions(+)
  create mode 100644 Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-dvfsp-clock-backend.yaml
  create mode 100644 drivers/soc/mediatek/mt6797-dvfsp-clock-backend.c
  create mode 100644 include/linux/soc/mediatek/mt6797-dvfsp-clock-backend.h
@@ -123,11 +123,10 @@ diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/medi
 diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
 --- a/drivers/soc/mediatek/Kconfig
 +++ b/drivers/soc/mediatek/Kconfig
-@@ -96,1 +96,17 @@
+@@ -96,1 +96,16 @@
 +config MTK_MT6797_DVFSP_CLOCK_BACKEND
 +	bool "MediaTek MT6797 protected CPU clock readback transport"
 +	depends on ARM64 && ARCH_MEDIATEK && OF && COMMON_CLK
-+	select MTK_INFRACFG
 +	help
 +	  Build the disabled-only MCUMIXED/DVFSP transport used to read the
 +	  MT6797 LL/L/CCI CPU clock window under its documented CSPM hardware
