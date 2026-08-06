@@ -1,0 +1,68 @@
+# Exact retained vendor-kernel SEMA_I2C_DRV contract
+
+date=2026-08-06
+scope=read-only;retained-vendor-kernel;no-device-action;no-new-backup
+kernel_field_sha256=b53d191dc41d3f7364b0fa62b4bc920b1d013a1942b2e6b06727263fc56fcf4d
+reconstructed_elf_sha256=cc66df06194d3315335462760962165e1dcb2e50221574aeb45a0805bb17a162
+build_string=3.18.41+_#7_SMP_PREEMPT_Fri_Mar_29_10:39:03_GMT_2019
+method=exact-ELF-symbol-resolution-and-AArch64-disassembly
+
+## Linux-side owner contract
+
+symbol_cspm_get_semaphore=0xffffffc00041f8e8
+symbol_cspm_release_semaphore=0xffffffc00041f0c0
+symbol_cspm_pause_pcm_running=0xffffffc00041f820
+symbol_cspm_unpause_pcm_to_run=0xffffffc00041eff8
+sema_user=1;name=SEMA_I2C_DRV
+get_user1_call=cspm_get_semaphore->cspm_pause_pcm_running
+release_user1_call=cspm_release_semaphore->cspm_unpause_pcm_to_run
+
+# The exact user-1 pause path writes the three SW_RSV0/1/2 backing locations
+# with bit 13, mirrors each value into the CSRAM shadow, waits 10 us, then
+# polls the three SW_RSV3/4/5 status locations for bit 15. The loop is 200
+# iterations at a 10 us delay, i.e. the vendor 2 ms bound. On success it
+# disables the DVFSP I2C_APPM clock reference while the caller retains the
+# controller's reference.
+pause_sw_pause=three_clusters;bit13;CSRAM_mirror
+pause_delay_us=10
+pause_fw_done=three_status_words;bit15
+pause_timeout_us=2000
+pause_success=clk_disable_DVFSP_I2C_APPM_reference
+
+# Release clears the pause-source map. Only when the map reaches zero does it
+# enable the DVFSP I2C_APPM reference, clear bit 13 on enabled clusters,
+# mirror the values, record completion, and wake waiters. Clock-enable failure
+# is a fatal path in the retained implementation.
+release_map=clear_user1_bit_0x2
+release_zero_map=clk_enable;clear_SW_PAUSE_enabled_clusters;CSRAM_mirror;wake_waiters
+release_clock_failure=fatal
+
+## I2C6 transaction binding
+
+symbol_i2c_transfer=0xffffffc000908b40
+i2c_get_dvfsp_calls=2;second_call=immediate_retry
+i2c_release_dvfsp_calls=1
+i2c_scope=one_physical_transaction;release_after_transfer_before_outer_clock_disable
+i2c_linux_write=vendor_kernel_contract_only;not_mainline_provider_write
+
+## Decision
+
+linux_vendor_contract=POSITIVE_EXACT_BINARY_EVIDENCE
+firmware_receiver_protocol=matches_SW_PAUSE_bit13_FW_DONE_bit15_three_words_2ms
+external_firmware_owner=unproven
+receiver_authority=not_established_by_vendor_kernel_alone
+mainline_registration=absent
+mainline_provider_write=absent
+decision=BLOCK_WRITABLE_PROVIDER
+hardware_action=none
+status=PASS_LINUX_VENDOR_CONTRACT_EXTERNAL_OWNER_OPEN
+
+## Limits
+
+This record proves the historical vendor Linux caller and its exact
+pause/release contract from the retained active-kernel ELF. It does not prove
+that the stopped receiver observed by Candidate AO is the authoritative
+implementation of `SEMA_I2C_DRV`, nor does it identify a separate secure/SCP
+writer of the PCM status words. A reviewed receiver implementation or
+attributable firmware-owner evidence remains required before registering the
+private callback or enabling any DA921x write.

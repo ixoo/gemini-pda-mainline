@@ -212,6 +212,14 @@ The source and sanitized runtime record establish these facts:
   experiment; attributable firmware evidence remains required. The contract is
   tracked in the [firmware lease experiment](../2026-08-06-mt6797-dvfsp-firmware-lease/)
   and still requires external-owner evidence.
+- The exact retained vendor-kernel ELF provides positive Linux-side evidence
+  for the same contract: semaphore user 1 routes to
+  `cspm_pause_pcm_running(PAUSE_I2CDRV)`, writes SW_PAUSE bit 13 for all three
+  clusters, polls FW_DONE bit 15 for all three status words within 2 ms, and
+  releases the paired clock/reference state around the I2C transaction. This
+  validates the historical caller contract but does not establish that the
+  Candidate AO stopped receiver is authoritative or identify a separate
+  secure/SCP writer. See the [vendor-kernel contract](../2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-kernel-sema-contract-20260806.txt).
 - No bounded inverse exists for a provider write at or beyond the unresolved
   external-isolation boundary. The release callback therefore remains a
   structured `-EOPNOTSUPP` refusal.

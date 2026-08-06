@@ -55,6 +55,7 @@ implementation remain unproven.
 - [Source validation](results/source-validation-20260806.txt)
 - [Buildbox validation](results/buildbox-validation-20260806.txt)
 - [Initial Buildbox input failure and repair](results/buildbox-failure-20260806.txt)
+- [Exact retained vendor-kernel SEMA contract](results/vendor-kernel-sema-contract-20260806.txt)
 - [Patch 0175](../../patches/v7.1.3/0175-soc-mediatek-define-I2C6-firmware-lease-contract.patch)
 
 Run from the repository root:
@@ -70,9 +71,15 @@ the named Buildbox profile and package checksum validation, and the single
 validated package has been fetched locally; this is compile-only evidence. The next
 hardware-independent gate is an attributable external owner implementing this
 protocol, or a reviewed one-way receiver proof that supplies the same
-responses. The bounded SCP disassembly narrowed likely local aliases to DMA
+responses. The exact retained vendor-kernel ELF now supplies positive Linux-
+side evidence for the contract: user 1 is routed to
+`cspm_pause_pcm_running(PAUSE_I2CDRV)`, with three SW_PAUSE bit-13 writes,
+three FW_DONE bit-15 polls, the 2 ms bound, and paired release around the
+I2C transaction. This confirms the historical caller contract but not the
+external firmware receiver owner. The bounded SCP disassembly narrowed likely local aliases to DMA
 remap, interrupt, clock, and generic SPM/DVFS paths; it did not identify the
 `SEMA_I2C_DRV` owner or a pause/release implementation. See the
+[vendor-kernel contract](results/vendor-kernel-sema-contract-20260806.txt) and the
 [SCP disassembly result](../2026-08-06-da921x-page-owner-audit/results/scp-owner-disassembly-20260806.txt).
 Until then the DA921x provider remains fail-closed and the Candidate AO boot
 must not be repeated.

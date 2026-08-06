@@ -1687,6 +1687,14 @@ The next ordered work remains source-only:
    the direct controller or CSPM/CSRAM literals. This bounded cross-check adds
    no `SEMA_I2C_DRV` authority. See the
    [secure-image scan](../experiments/2026-08-06-da921x-page-owner-audit/results/secure-owner-image-scan-20260806.txt).
+   The exact retained vendor-kernel ELF separately confirms the historical
+   Linux-side contract: semaphore user 1 routes to `PAUSE_I2CDRV`, writes
+   SW_PAUSE bit 13 across three clusters, polls FW_DONE bit 15 across three
+   status words for 2 ms, and releases the paired clock/reference state around
+   one I2C transaction. This strengthens the protocol identity but still does
+   not prove that the Candidate AO receiver is authoritative or identify the
+   external firmware writer; see the
+   [vendor-kernel contract](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-kernel-sema-contract-20260806.txt).
    A bounded Thumb disassembly now explains the most tempting SCP aliases:
    the bit-13 branch is the DMA 4GB-remap initializer, the nearby `0x2000`
    write clears a Cortex-M NVIC pending bit, and the DVFS/SPM path only logs
