@@ -1794,10 +1794,20 @@ The next ordered work remains source-only:
    CPU9 slots, MPIDR `0x200`/`0x201` selection in `.idmap.text` `secondary_entry`,
    immutable identity validation, and full-range cache publication/readback;
    the [implementation seam audit](../experiments/2026-08-06-a72-p30e-mmuoff-contract/results/implementation-seam-audit-20260806.txt)
-   records the source evidence. The next artifact is still the dormant
-   assembly/C implementation and its Buildbox comparison. This remains an
+   records the source evidence. The default-off assembly/C implementation now
+   applies through the full series and passes the exact Buildbox package
+   validation recorded in the
+   [Buildbox result](../experiments/2026-08-06-a72-p30e-mmuoff-contract/results/buildbox-validation-20260806.txt).
+   The first implementation-to-contract comparison found compile-invisible
+   control-flow and operation-identity gaps: the target symbols are not wired
+   to `secondary_entry`, several direct branches reach a helper that does not
+   preserve the caller's link register, and the selected operation is not
+   cross-checked against the selected CPU. The exact blocking review is in the
+   [implementation comparison](../experiments/2026-08-06-a72-p30e-mmuoff-contract/results/implementation-contract-comparison-20260806.txt).
+   The next source-only action is to repair those gaps and rerun the comparison,
+   then proceed to authoritative P17/P18/P24 integration. This remains an
    implementation gate, not admission authorization. The dormant C control
-   object cannot substitute for this proof.
+   object cannot substitute for the MMU-off proof or open a CPU_ON path.
 3. Complete A25 and implement P32A/D/F/X/R using either a reviewed core
    no-auto-rollback interface or the fail-stop `.cpu_disable` plus die/kill
    guard design, retaining every partial callback and architecture effect.

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-06-a72-p30e-mmuoff-contract` |
-| Status | `source-only contract complete; production integration blocked` |
+| Status | `Buildbox-validated dormant implementation; production integration blocked` |
 | Subsystem | arm64 late CPU8/CPU9 startup arbitration and target-side publication |
 | Device variant | Planet Gemini PDA, MT6797; no live-device action |
 | Date | 2026-08-06 America/New_York |
@@ -27,8 +27,14 @@ normal virtual pointer through the startup path. The dormant C object remains a
 controller model only and cannot authorize a target result by itself.
 
 The contract is validated by an independent finite oracle and 15 negative
-mutations. It does not add an assembly implementation, a production caller,
-CPU_ON/OFF operation, build, package, boot candidate, or device action.
+mutations. The default-off C/assembly implementation now applies through the
+canonical Linux 7.1.3 series and passes the Buildbox kernel-artifact package
+validation; the exact result is recorded in
+[Buildbox validation](results/buildbox-validation-20260806.txt). It still has
+no production caller, CPU_ON/OFF operation, boot candidate, or device action.
+The first implementation-to-contract comparison found compile-invisible
+control-flow and identity gaps; the exact blocking review is recorded in
+[implementation comparison](results/implementation-contract-comparison-20260806.txt).
 
 ## Safety boundary
 
@@ -59,11 +65,14 @@ PYTHONDONTWRITEBYTECODE=1 python3 experiments/2026-08-06-a72-p30e-mmuoff-contrac
 
 ## Follow-up
 
-The source audit now selects a dedicated aligned bidirectional section with
-separate 2 KiB CPU8/CPU9 slots. The target selector must use MPIDR `0x200` or
-`0x201` in the `.idmap.text` `secondary_entry` path, validate the immutable
-identity words, and use the full-range cache protocol. The next source-only
-artifact is the dormant assembly/C implementation of this profile. Then
-compare that implementation to this contract and the P30 model with Buildbox.
-Until that comparison passes, CPU8/CPU9 admission and device use remain
-blocked.
+The source audit selects a dedicated aligned bidirectional section with
+separate 2 KiB CPU8/CPU9 slots. The implementation uses MPIDR `0x200` or
+`0x201` in the `.idmap.text` target path, validates the immutable identity
+words, and uses the full-range cache protocol. Buildbox now validates the
+complete implementation package for this profile. The first comparison found
+compile-invisible control-flow and identity gaps; the exact blocking review is
+recorded in [implementation comparison](results/implementation-contract-comparison-20260806.txt).
+The next source-only gate is to repair those gaps, rerun the comparison
+against this contract and the P30 model, and only then proceed to authoritative
+P17/P18/P24 admission integration. CPU8/CPU9 admission and device use remain
+blocked until those gates close.
