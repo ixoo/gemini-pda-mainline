@@ -22,15 +22,8 @@ submission-ready.
 diff --git a/include/linux/cpu.h b/include/linux/cpu.h
 --- a/include/linux/cpu.h
 +++ b/include/linux/cpu.h
-@@ -127,8 +127,37 @@ struct cpu_up_rollback_event {
- struct cpu_up_rollback_event {
- 	u32 direction;
- 	u32 state;
- 	u32 instance;
- 	s32 result;
- 	u32 flags;
+@@ -133,1 +133,30 @@ struct cpu_up_rollback_event {
  };
- 
 +#define CPU_UP_ROLLBACK_MAX_EFFECTS 32U
 +#define CPU_UP_ROLLBACK_EFFECT_BEGIN 1U
 +#define CPU_UP_ROLLBACK_EFFECT_COMPLETE 2U
@@ -60,36 +53,23 @@ diff --git a/include/linux/cpu.h b/include/linux/cpu.h
 +	s32 result;
 +};
 +
-@@ -135,13 +164,20 @@ struct cpu_up_rollback_trace {
- struct cpu_up_rollback_trace {
- 	u32 event_count;
- 	u32 overflow;
- 	u32 nested_valid;
- 	s32 nested_result;
- 	u32 outer_reset;
- 	u32 reverse_complete;
+@@ -144,1 +144,5 @@ struct cpu_up_rollback_trace {
  	struct cpu_up_rollback_event event[CPU_UP_ROLLBACK_MAX_EVENTS];
 +	u32 effect_count;
 +	u32 effect_overflow;
 +	u32 effect_unknown;
 +	struct cpu_up_rollback_effect_event effect[CPU_UP_ROLLBACK_MAX_EFFECTS];
- };
- 
+@@ -147,1 +151,4 @@ struct cpu_up_rollback_trace {
 +void arch_cpu_up_rollback_effect(unsigned int cpu,
 +				 enum cpu_up_rollback_effect effect,
 +				 u32 phase, int result);
- 
  int arch_cpu_up_rollback(unsigned int cpu, enum cpuhp_state state, int error,
  			 const struct cpu_up_rollback_trace *trace);
 diff --git a/kernel/cpu.c b/kernel/cpu.c
 --- a/kernel/cpu.c
 +++ b/kernel/cpu.c
-@@ -155,7 +155,56 @@ static bool cpuhp_step_empty(bool bringup, struct cpuhp_step *step)
- static bool cpuhp_step_empty(bool bringup, struct cpuhp_step *step)
- {
- 	return bringup ? !step->startup.single : !step->teardown.single;
+@@ -158,1 +158,50 @@ static bool cpuhp_step_empty(bool bringup, struct cpuhp_step *step)
  }
- 
 +static inline void cpuhp_record_rollback_effect(
 +	struct cpuhp_cpu_state *st, enum cpu_up_rollback_effect effect,
 +	u32 phase, int result)
@@ -139,8 +119,6 @@ diff --git a/kernel/cpu.c b/kernel/cpu.c
 +#endif
 +}
 +
- /**
-  * cpuhp_invoke_callback - Invoke the callbacks for a given state
 @@ -1267,4 +1335,8 @@ static int take_cpu_down(void *_param)
  	/* Park the stopper thread */
 +	arch_cpu_up_rollback_effect(cpu, CPU_UP_ROLLBACK_EFFECT_PARK,
@@ -198,12 +176,7 @@ diff --git a/kernel/cpu.c b/kernel/cpu.c
 diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
 --- a/arch/arm64/kernel/smp.c
 +++ b/arch/arm64/kernel/smp.c
-@@ -387,11 +387,26 @@ int __cpu_disable(void)
- int __cpu_disable(void)
- {
- 	unsigned int cpu = smp_processor_id();
- 	int ret;
- 
+@@ -392,6 +392,21 @@ int __cpu_disable(void)
 +	arch_cpu_up_rollback_effect(cpu, CPU_UP_ROLLBACK_EFFECT_CPU_OFF_ATTEMPT,
 +				    CPU_UP_ROLLBACK_EFFECT_BEGIN, 0);
  	ret = op_cpu_disable(cpu);
@@ -244,25 +217,11 @@ diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
  
  	return 0;
  }
-@@ -433,15 +458,19 @@ void arch_cpuhp_cleanup_dead_cpu(unsigned int cpu)
- void arch_cpuhp_cleanup_dead_cpu(unsigned int cpu)
- {
- 	int err;
- 
- 	pr_debug("CPU%u: shutdown\n", cpu);
- 
- /*
-  * Now that the dying CPU is beyond the point of no return w.r.t.
- 	 * in-kernel synchronisation, try to get the firmware to help us to
- 	 * verify that it has really left the kernel before we consider clobbering
- 	 * anything it might still be using.
- 	 */
+@@ -445,1 +470,5 @@ void arch_cpuhp_cleanup_dead_cpu(unsigned int cpu)
 +	arch_cpu_up_rollback_effect(cpu, CPU_UP_ROLLBACK_EFFECT_KILL_OBSERVED,
 +				    CPU_UP_ROLLBACK_EFFECT_BEGIN, 0);
  	err = op_cpu_kill(cpu);
 +	arch_cpu_up_rollback_effect(cpu, CPU_UP_ROLLBACK_EFFECT_KILL_OBSERVED,
 +				    CPU_UP_ROLLBACK_EFFECT_COMPLETE, err);
- 	if (err)
- 		pr_warn("CPU%d may not have shut down cleanly: %d\n", cpu, err);
 --
 2.50.1
