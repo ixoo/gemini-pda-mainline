@@ -1897,6 +1897,16 @@ The next ordered work remains source-only:
    The next step is the independently reviewed calibrated state owner and
    transition-lock implementation with clock/rail arbitration,
    suspend/fault invalidation, and runtime identity evidence.
+   Patch `0200` now makes that boundary reject guessed static tables: the
+   protected identity and both backend snapshots must carry efuse-variant,
+   EEM/PTP, PPM-limit, live VPROC/VSRAM, clock-owner, and rail-owner
+   provenance, a mutable-table epoch, and a nonzero calibration handle, with
+   identical provenance across the two backends. The exact pushed revision
+   `4cecc04` applies all 189 canonical entries on Buildbox, produces 119 DTBs,
+   passes package checksums, and has its validated package fetched. Both
+   backends remain unregistered and default-off; the byte-identical dormant
+   image is not a hardware-support or CPU8/CPU9 result. See the
+   [calibrated-state provenance Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/calibrated-state-provenance-buildbox-20260806.txt).
    A read-only public-source protocol revalidation now closes the exact
    BigiDVFS secure-call family and the MCUMIXED/DVFSP semaphore sequence:
    `0xc20003b0`--`0xc20003c1` plus secure read/write, the protected

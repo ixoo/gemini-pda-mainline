@@ -299,3 +299,15 @@ The remaining gate is the real, independently reviewed calibrated state owner
 and transition-lock implementation, including clock/rail arbitration,
 suspend/fault invalidation, and runtime identity evidence. CPU8/CPU9 admission
 and all hardware writes remain blocked until that gate is met.
+
+Patch `0200` now makes the calibration boundary fail closed. The protected
+owner identity and both backend snapshots must identify the complete historical
+source set—efuse variant, EEM/PTP mutation, PPM limits, live VPROC/VSRAM, and
+clock/rail owners—plus a mutable-table epoch and nonzero calibration handle;
+the two backends must echo identical provenance. The exact pushed revision
+`4cecc04` applied all 189 series entries on Buildbox, produced 119 DTBs,
+passed package checksums, and fetched the validated package. Its dormant
+contract leaves both backends unregistered, so the packaged Image, Image.gz,
+System.map, and Gemini DTB remain byte-identical to the earlier dormant
+profile. This is not hardware support or CPU8/CPU9 evidence. See the
+[calibrated-state provenance Buildbox result](results/calibrated-state-provenance-buildbox-20260806.txt).

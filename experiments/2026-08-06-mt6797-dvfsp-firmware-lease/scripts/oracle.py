@@ -14,6 +14,7 @@ STATE_BACKEND_PATCH = ROOT / "patches/v7.1.3/0196-soc-mediatek-compose-protected
 CLOCK_READBACK_PATCH = ROOT / "patches/v7.1.3/0197-soc-mediatek-add-disabled-MT6797-protected-clock-readback.patch"
 BIGIDVFS_READBACK_PATCH = ROOT / "patches/v7.1.3/0198-soc-mediatek-add-disabled-MT6797-BigiDVFS-readback.patch"
 TRANSITION_OWNER_PATCH = ROOT / "patches/v7.1.3/0199-soc-mediatek-bind-protected-state-to-transition-owner.patch"
+PROVENANCE_PATCH = ROOT / "patches/v7.1.3/0200-soc-mediatek-require-calibrated-state-provenance.patch"
 SERIES = ROOT / "patches/series"
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
 START_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-start-contract-20260806.txt"
@@ -30,6 +31,7 @@ PROTOCOL_RESULT = Path(__file__).resolve().parents[1] / "results/protected-owner
 DVFS_STATE_RESULT = Path(__file__).resolve().parents[1] / "results/public-dvfs-state-owner-20260806.txt"
 READBACK_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/protected-readback-buildbox-20260806.txt"
 TRANSITION_OWNER_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/protected-transition-owner-buildbox-20260806.txt"
+PROVENANCE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/calibrated-state-provenance-buildbox-20260806.txt"
 
 
 def require(text: str, needle: str, label: str) -> None:
@@ -47,6 +49,7 @@ def main() -> None:
     clock_readback_patch = CLOCK_READBACK_PATCH.read_text()
     bigidvfs_readback_patch = BIGIDVFS_READBACK_PATCH.read_text()
     transition_owner_patch = TRANSITION_OWNER_PATCH.read_text()
+    provenance_patch = PROVENANCE_PATCH.read_text()
     design = DESIGN.read_text()
     start_result = START_RESULT.read_text()
     owner_result = OWNER_RESULT.read_text()
@@ -62,6 +65,7 @@ def main() -> None:
     dvfs_state_result = DVFS_STATE_RESULT.read_text()
     readback_build_result = READBACK_BUILD_RESULT.read_text()
     transition_owner_build_result = TRANSITION_OWNER_BUILD_RESULT.read_text()
+    provenance_build_result = PROVENANCE_BUILD_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     names = [Path(line).name for line in SERIES.read_text().splitlines()
@@ -207,6 +211,26 @@ def main() -> None:
         ("hold->transition_handle = owner->transition_handle", "hold-transition-echo"),
     ):
         require(transition_owner_patch, needle, label)
+    for needle, label in (
+        ("MT6797_DVFSP_STATE_PROVENANCE_ABI", "provenance-abi"),
+        ("MT6797_DVFSP_STATE_PROVENANCE_SOURCE_ALL", "provenance-source-mask"),
+        ("MT6797_DVFSP_STATE_PROVENANCE_EFUSE_VARIANT", "provenance-efuse"),
+        ("MT6797_DVFSP_STATE_PROVENANCE_EEM_PTP", "provenance-eem-ptp"),
+        ("MT6797_DVFSP_STATE_PROVENANCE_PPM_LIMIT", "provenance-ppm"),
+        ("MT6797_DVFSP_STATE_PROVENANCE_LIVE_VPROC", "provenance-vproc"),
+        ("MT6797_DVFSP_STATE_PROVENANCE_LIVE_VSRAM", "provenance-vsram"),
+        ("MT6797_DVFSP_STATE_PROVENANCE_CLOCK_OWNER", "provenance-clock-owner"),
+        ("MT6797_DVFSP_STATE_PROVENANCE_RAIL_OWNER", "provenance-rail-owner"),
+        ("struct mt6797_dvfsp_state_provenance", "provenance-struct"),
+        ("calibration_handle", "provenance-calibration-handle"),
+        ("table_epoch", "provenance-table-epoch"),
+        ("mt6797_dvfsp_state_provenance_check", "provenance-check"),
+        ("!provenance->table_epoch || !provenance->calibration_handle", "provenance-required"),
+        ("mt6797_dvfsp_state_provenance_equal", "provenance-equality"),
+        ("!mt6797_dvfsp_state_provenance_equal(&cpu_snapshot->provenance", "provenance-backend-match"),
+        ("identity->provenance = owner->provenance", "provenance-identity-echo"),
+    ):
+        require(provenance_patch, needle, label)
     for needle, label in (
         ("## Startup-state adapter seam", "design-state-seam"),
         ("`snapshot`", "design-snapshot"),
@@ -469,6 +493,27 @@ def main() -> None:
     ):
         require(transition_owner_build_result, needle, label)
     for needle, label in (
+        ("claim=COMPILE_ONLY_CALIBRATED_STATE_PROVENANCE", "provenance-build-claim"),
+        ("repository_commit=4cecc04bdcf52a4f150b1355ac4cf84a5330f331", "provenance-build-commit"),
+        ("origin=https://github.com/ixoo/gemini-pda-mainline.git", "provenance-build-origin"),
+        ("build_backend=buildbox", "provenance-build-backend"),
+        ("buildbox_status=validated", "provenance-build-status"),
+        ("patch_count=189", "provenance-build-patch-count"),
+        ("artifact=linux-7.1.3-gemini-dvfsp-protected-readback-2a9f732e-11afba8d", "provenance-build-artifact"),
+        ("dtb_count=119", "provenance-build-dtb-count"),
+        ("sha256sums=passed", "provenance-build-checksums"),
+        ("package_fetch=success;validated_package_only", "provenance-build-fetch"),
+        ("calibration_contract=0200;all_required_sources;mutable_table_epoch;calibration_handle;backend_provenance_match;default_off", "provenance-build-contract"),
+        ("required_sources=efuse_variant;EEM_PTP;PPM_limit;live_VPROC;live_VSRAM;clock_owner;rail_owner", "provenance-build-sources"),
+        ("owner=unregistered", "provenance-build-owner-unregistered"),
+        ("provider=none", "provenance-build-no-provider"),
+        ("secure_write=none", "provenance-build-no-secure-write"),
+        ("hardware_write=none", "provenance-build-no-write"),
+        ("device_action=none", "provenance-build-no-device"),
+        ("boot_candidate=false", "provenance-build-not-candidate"),
+    ):
+        require(provenance_build_result, needle, label)
+    for needle, label in (
         ("repeat_run_repository_commit=6c3cb4fad5a4895f6a69d7913089553b6751e34c", "readback-repeat-commit"),
         ("repeat_run_buildbox_job=6c3cb4fad5a4895f6a69d7913089553b6751e34c-dvfsp-protected-readback-m0", "readback-repeat-job"),
         ("repeat_run_status=validated", "readback-repeat-status"),
@@ -502,6 +547,8 @@ def main() -> None:
         raise AssertionError("BigiDVFS readback transport is not after clock readback")
     if names.index("0198-soc-mediatek-add-disabled-MT6797-BigiDVFS-readback.patch") >= names.index("0199-soc-mediatek-bind-protected-state-to-transition-owner.patch"):
         raise AssertionError("transition-owner contract is not after BigiDVFS readback")
+    if names.index("0199-soc-mediatek-bind-protected-state-to-transition-owner.patch") >= names.index("0200-soc-mediatek-require-calibrated-state-provenance.patch"):
+        raise AssertionError("calibrated provenance contract is not after transition-owner contract")
 
     for forbidden in ("readl(", "writel(", "i2c_transfer", "regulator_enable(",
                       "regulator_disable(", "psci_ops.cpu_on", "cpu_up("):
@@ -519,6 +566,8 @@ def main() -> None:
             raise AssertionError(f"unexpected protected state-backend hardware operation: {forbidden}")
         if forbidden in transition_owner_patch:
             raise AssertionError(f"unexpected transition-owner hardware operation: {forbidden}")
+        if forbidden in provenance_patch:
+            raise AssertionError(f"unexpected provenance hardware operation: {forbidden}")
 
     print("claim=PARTIAL_FIRMWARE_LEASE_CALLBACK_CONTRACT")
     print("registered_owner=0")
@@ -539,6 +588,7 @@ def main() -> None:
     print("state_backend_composition_buildbox=validated;compile_only;registered_owner=0;no_provider;no_mmio;boot_candidate=false")
     print("protected_readback=0197+0198;compile_only;both_nodes_disabled;clock_semaphore_and_bigidvfs_reg_read_only;registered_owner=0;no_provider;no_secure_write;boot_candidate=false")
     print("protected_transition_owner=0199;shared_transition_handle;generation_bound;both_protected_backends;all_holds;registered_owner=0;no_provider;no_secure_write;boot_candidate=false")
+    print("calibrated_state_provenance=0200;all_required_sources;mutable_table_epoch;calibration_handle;backend_provenance_match;registered_owner=0;no_provider;no_secure_write;boot_candidate=false")
     print("pcm_adapter_contract=source-only;bounded-admission-model;callback-registration-gated")
     print("clock_owner_inventory=generic_ccf_only;protected_owner_absent;A72_observer_read_only")
     print("pcm_start_contract=defined;residency_and_start_required_before_callback_registration")

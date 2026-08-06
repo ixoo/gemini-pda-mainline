@@ -1,0 +1,57 @@
+# Calibrated-state provenance contract Buildbox validation
+
+date_utc=2026-08-06T20:16:15Z
+claim=COMPILE_ONLY_CALIBRATED_STATE_PROVENANCE
+repository_commit=4cecc04bdcf52a4f150b1355ac4cf84a5330f331
+origin=https://github.com/ixoo/gemini-pda-mainline.git
+build_backend=buildbox
+buildbox_job=4cecc04bdcf52a4f150b1355ac4cf84a5330f331-dvfsp-protected-readback-m0
+buildbox_status=validated
+artifact=linux-7.1.3-gemini-dvfsp-protected-readback-2a9f732e-11afba8d
+kernel_release=7.1.3-gemini-handoff
+build_profile=dvfsp-protected-readback
+patch_count=189
+patch_series=patches/series
+config_inputs_sha256=11afba8d08d660d4aed9d907f7f149f6ebeddc2f7862a2e4a3c436dd07992486
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=2a9f732e3d4cadf26f7dee53879f43711db911b20e267034e7b53044e46d7894
+config_sha256=fcbecf7519fad818096ab763d7cc3b78f49f7f4791a676acc925a637037ea0c7
+config_fragment_count=3
+modules_built=false
+build_architecture=x86_64
+target_architecture=arm64
+toolchain_mode=cross
+compiler=aarch64-linux-gnu-gcc_Debian_12.2.0-14
+linker=GNU_ld_Debian_binutils_2.40
+dtb_count=119
+sha256sums=passed
+hardware_write=none
+device_action=none
+package_fetch=success;validated_package_only
+local_package=artifacts/buildbox/4cecc04bdcf52a4f150b1355ac4cf84a5330f331/linux-7.1.3-gemini-dvfsp-protected-readback-2a9f732e-11afba8d
+Image_sha256=c05c3dc10eec004d69b8a6cd21e57bbb90ee2e517be82b431f392b27afe0e6c7
+Image_gz_sha256=0784b18079e02b40994324f28aaad23b04d0975a340e57db7f11567b69bde4d4
+System_map_sha256=00be8f62213173b6abe20f241b297af60c42a0474aa5ffe2429e07e69a271fb9
+gemini_dtb_sha256=105a83069d42221539050ca968ea5156bdeed948ae88881429678423c43140bd
+kernel_config_sha256=fcbecf7519fad818096ab763d7cc3b78f49f7f4791a676acc925a637037ea0c7
+build_provenance_sha256=354729907bdeb6d617553351260672672b9cda8da639a763ad89ac35d5c67625
+sha256sums_manifest_sha256=19882e67f8cd5d8a33488ae595843efbc750057b4add4cbf93ab13cd68d692d7
+calibration_contract=0200;all_required_sources;mutable_table_epoch;calibration_handle;backend_provenance_match;default_off
+required_sources=efuse_variant;EEM_PTP;PPM_limit;live_VPROC;live_VSRAM;clock_owner;rail_owner
+transition_contract=0199;shared_transition_handle;generation_bound;both_protected_backends;all_holds
+owner=unregistered
+provider=none
+secure_write=none
+firmware_action=none
+hardware_support_claim=NONE
+boot_candidate=false
+output_comparison=Image_Image_gz_System_map_gemini_dtb_byte_identical_to_8f0aadf_package
+
+This compile-only revision rejects a protected owner whose state is merely a
+guessed static table. Identity and both backend snapshots must carry the
+complete historical calibration-source set, a mutable-table epoch, and a
+nonzero opaque calibration handle, and the two backends must echo identical
+provenance. The contract does not read efuses, invoke EEM/PTP/PPM, access a
+rail or clock, register an owner, perform a secure or firmware operation, or
+authorize a device boot. CPU8/CPU9 remain gated on the future authoritative
+owner implementation and runtime evidence.
