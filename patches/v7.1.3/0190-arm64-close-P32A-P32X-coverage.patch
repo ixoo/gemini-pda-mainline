@@ -230,7 +230,7 @@ diff --git a/kernel/cpu.c b/kernel/cpu.c
  	if (trace->event_count >= CPU_UP_ROLLBACK_MAX_EVENTS) {
  		trace->overflow = 1;
  		return;
-@@ -1120,5 +1183,14 @@ static int cpuhp_up_callbacks(unsigned int cpu, struct cpuhp_cpu_state *st,
+@@ -1120,5 +1118,14 @@ static int cpuhp_up_callbacks(unsigned int cpu, struct cpuhp_cpu_state *st,
  #ifdef CONFIG_ARM64_MT6797_A72_P32_ROLLBACK
  	memset(&st->rollback_trace, 0, sizeof(st->rollback_trace));
  	rollback_trace = &st->rollback_trace;
