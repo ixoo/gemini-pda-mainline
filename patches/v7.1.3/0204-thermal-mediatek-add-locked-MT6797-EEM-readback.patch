@@ -24,7 +24,7 @@ diff --git a/include/linux/soc/mediatek/mt6797-eem-readback.h b/include/linux/so
 new file mode 100644
 --- /dev/null
 +++ b/include/linux/soc/mediatek/mt6797-eem-readback.h
-@@ -0,0 +1,57 @@
+@@ -0,0 +1,54 @@
 +/* SPDX-License-Identifier: GPL-2.0-only */
 +#ifndef _LINUX_MT6797_EEM_READBACK_H
 +#define _LINUX_MT6797_EEM_READBACK_H
