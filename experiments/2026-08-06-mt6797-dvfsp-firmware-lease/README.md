@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-06-mt6797-dvfsp-firmware-lease` |
-| Status | `source/static complete; Buildbox pending` |
+| Status | `source/static/Buildbox complete; external owner unproven` |
 | Subsystem | MT6797 DVFSP/CSPM, I2C6 firmware ownership |
 | Device variant | Planet Gemini PDA, MT6797; no live-device action |
 | Date | 2026-08-06 America/New_York |
@@ -53,6 +53,7 @@ implementation remain unproven.
 - [Protocol design](DESIGN.md)
 - [Static oracle](scripts/oracle.py)
 - [Source validation](results/source-validation-20260806.txt)
+- [Buildbox validation](results/buildbox-validation-20260806.txt)
 - [Initial Buildbox input failure and repair](results/buildbox-failure-20260806.txt)
 - [Patch 0175](../../patches/v7.1.3/0175-soc-mediatek-define-I2C6-firmware-lease-contract.patch)
 
@@ -64,9 +65,9 @@ PYTHONDONTWRITEBYTECODE=1 python3 experiments/2026-08-06-mt6797-dvfsp-firmware-l
 
 ## Follow-up
 
-The exact pushed commit must pass the named Buildbox profile before the
-contract is accepted as compile evidence. The next hardware-independent gate
-is an attributable external owner implementing this protocol, or a reviewed
-one-way receiver proof that supplies the same responses. Until then the
-DA921x provider remains fail-closed and the Candidate AO boot must not be
-repeated.
+The exact pushed commit now passes the named Buildbox profile and package
+checksum validation; this is compile-only evidence. The next
+hardware-independent gate is an attributable external owner implementing this
+protocol, or a reviewed one-way receiver proof that supplies the same
+responses. Until then the DA921x provider remains fail-closed and the
+Candidate AO boot must not be repeated.
