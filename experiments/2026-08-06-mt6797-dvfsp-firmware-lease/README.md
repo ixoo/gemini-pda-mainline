@@ -95,6 +95,7 @@ be copied directly into a mainline failure/PM path.
 - [Protected state-owner identity Buildbox validation](results/state-owner-identity-buildbox-20260806.txt)
 - [Protected state-backend composition Buildbox validation](results/protected-state-backend-composition-buildbox-20260806.txt)
 - [Protected clock readback transport Buildbox validation](results/protected-clock-readback-buildbox-20260806.txt)
+- [Protected clock and BigiDVFS readback Buildbox validation](results/protected-readback-buildbox-20260806.txt)
 - [Protected-owner protocol identity revalidation](results/protected-owner-protocol-20260806.txt)
 - [Public DVFS startup-state owner boundary](results/public-dvfs-state-owner-20260806.txt)
 - [Mainline clock/state-owner inventory](results/mainline-clock-owner-inventory-20260806.txt)
@@ -249,6 +250,15 @@ provider is registered, no secure or firmware call is made, and no device
 action occurred. See the [protected clock readback Buildbox result](results/protected-clock-readback-buildbox-20260806.txt).
 This transport identifies and bounds the protected read path; it does not
 provide calibrated OPP/rail state or unlock CPU8/CPU9.
+
+The combined `dvfsp-protected-readback` profile now builds both protected
+readback transports at pushed commit `43b596a`. Patch `0198` uses only the
+documented `0xc200035f` secure REG_READ service and the four whitelisted
+BigiDVFS addresses; it does not call the unvalidated getter FIDs or any secure
+write. Buildbox applied all 187 series entries, produced 119 DTBs, passed
+package checksums, and fetched the validated package. Both nodes remain
+disabled, so this is still compile-only evidence and not CPU8/CPU9 support.
+See the [combined protected-readback Buildbox result](results/protected-readback-buildbox-20260806.txt).
 
 The read-only protocol revalidation now closes the public identifiers needed
 to implement those adapters: the BigiDVFS secure FIDs and secure register

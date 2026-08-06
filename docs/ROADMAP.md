@@ -1868,6 +1868,16 @@ The next ordered work remains source-only:
    and does not register an owner or clock provider. This is compile-only
    protocol evidence with no secure call, firmware action, device write, or
    CPU8/CPU9 admission. See the [protected clock readback Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/protected-clock-readback-buildbox-20260806.txt).
+   Patch `0198` now adds the matching disabled-only BigiDVFS readback
+   transport. It calls only the documented `0xc200035f` secure REG_READ
+   service, whitelists the four exact protected addresses, and rejects
+   sign-extended or unknown returns as a sticky fault; unvalidated getter FIDs
+   and secure writes are excluded. The exact pushed commit `43b596a` applies
+   all 187 canonical entries on Buildbox, compiles the combined arm64
+   profile, produces 119 DTBs, passes package checksums, and has its validated
+   package fetched. Both nodes remain disabled, with no owner/provider,
+   firmware action, device write, or CPU8/CPU9 admission. See the [combined
+   protected-readback Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/protected-readback-buildbox-20260806.txt).
    The next ordered gate is the real, independently reviewed implementation of
    both protected startup-state backends, including authoritative
    OPP/frequency/voltage/VSRAM capture, transition locks, suspend/fault

@@ -11,6 +11,8 @@ STATE_HOLD_PATCH = ROOT / "patches/v7.1.3/0193-soc-mediatek-add-MT6797-state-own
 PCM_ADAPTER_PATCH = ROOT / "patches/v7.1.3/0194-soc-mediatek-add-bounded-MT6797-PCM-admission.patch"
 STATE_IDENTITY_PATCH = ROOT / "patches/v7.1.3/0195-soc-mediatek-require-protected-state-owner-identity.patch"
 STATE_BACKEND_PATCH = ROOT / "patches/v7.1.3/0196-soc-mediatek-compose-protected-state-backends.patch"
+CLOCK_READBACK_PATCH = ROOT / "patches/v7.1.3/0197-soc-mediatek-add-disabled-MT6797-protected-clock-readback.patch"
+BIGIDVFS_READBACK_PATCH = ROOT / "patches/v7.1.3/0198-soc-mediatek-add-disabled-MT6797-BigiDVFS-readback.patch"
 SERIES = ROOT / "patches/series"
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
 START_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-start-contract-20260806.txt"
@@ -25,6 +27,7 @@ IDENTITY_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-own
 STATE_BACKEND_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/protected-state-backend-composition-buildbox-20260806.txt"
 PROTOCOL_RESULT = Path(__file__).resolve().parents[1] / "results/protected-owner-protocol-20260806.txt"
 DVFS_STATE_RESULT = Path(__file__).resolve().parents[1] / "results/public-dvfs-state-owner-20260806.txt"
+READBACK_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/protected-readback-buildbox-20260806.txt"
 
 
 def require(text: str, needle: str, label: str) -> None:
@@ -39,6 +42,8 @@ def main() -> None:
     pcm_adapter_patch = PCM_ADAPTER_PATCH.read_text()
     state_identity_patch = STATE_IDENTITY_PATCH.read_text()
     state_backend_patch = STATE_BACKEND_PATCH.read_text()
+    clock_readback_patch = CLOCK_READBACK_PATCH.read_text()
+    bigidvfs_readback_patch = BIGIDVFS_READBACK_PATCH.read_text()
     design = DESIGN.read_text()
     start_result = START_RESULT.read_text()
     owner_result = OWNER_RESULT.read_text()
@@ -52,6 +57,7 @@ def main() -> None:
     state_backend_build_result = STATE_BACKEND_BUILD_RESULT.read_text()
     protocol_result = PROTOCOL_RESULT.read_text()
     dvfs_state_result = DVFS_STATE_RESULT.read_text()
+    readback_build_result = READBACK_BUILD_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     names = [Path(line).name for line in SERIES.read_text().splitlines()
@@ -156,6 +162,33 @@ def main() -> None:
         ("No caller registers this owner", "protected-owner-default-off"),
     ):
         require(state_backend_patch, needle, label)
+
+    for needle, label in (
+        ("MT6797_DVFSP_CLOCK_BACKEND_ABI", "clock-readback-abi"),
+        ("MT6797_DVFSP_SEMAPHORE_RETRIES", "clock-readback-bound"),
+        ("MT6797_DVFSP_SEMAPHORE_HELD", "clock-readback-semaphore"),
+        ("mt6797_dvfsp_clock_mark_fault", "clock-readback-sticky-fault"),
+        ("status = \"disabled\"", "clock-readback-node-disabled"),
+        ("register a DVFSP state owner or clock provider", "clock-readback-no-owner"),
+    ):
+        require(clock_readback_patch, needle, label)
+
+    for needle, label in (
+        ("MT6797_BIGIDVFS_BACKEND_ABI", "bigidvfs-readback-abi"),
+        ("MT6797_BIGIDVFS_FID_READ", "bigidvfs-readback-fid"),
+        ("MT6797_BIGIDVFS_PLL_PCW", "bigidvfs-readback-pcw"),
+        ("MT6797_BIGIDVFS_PLL_ENABLE_POSDIV", "bigidvfs-readback-posdiv"),
+        ("MT6797_BIGIDVFS_SRAM_SELECTOR", "bigidvfs-readback-sram"),
+        ("MT6797_BIGIDVFS_CONTROL", "bigidvfs-readback-control"),
+        ("mt6797_bigidvfs_address_allowed", "bigidvfs-readback-whitelist"),
+        ("result.a0 >> 32", "bigidvfs-readback-return-check"),
+        ("mt6797_bigidvfs_mark_fault", "bigidvfs-readback-sticky-fault"),
+        ("status = \"disabled\"", "bigidvfs-readback-node-disabled"),
+        ("never calls a secure write", "bigidvfs-readback-no-write"),
+    ):
+        require(bigidvfs_readback_patch, needle, label)
+    if "0xc200035e" in bigidvfs_readback_patch or "FID_WRITE" in bigidvfs_readback_patch:
+        raise AssertionError("BigiDVFS readback transport contains a secure write identifier")
     for needle, label in (
         ("## Startup-state adapter seam", "design-state-seam"),
         ("`snapshot`", "design-snapshot"),
@@ -376,6 +409,28 @@ def main() -> None:
     ):
         require(dvfs_state_result, needle, label)
 
+    for needle, label in (
+        ("claim=COMPILE_ONLY_PROTECTED_READBACK_TRANSPORTS", "readback-build-claim"),
+        ("repository_commit=43b596a4940572d309a53055502a596fef13e7d8", "readback-build-commit"),
+        ("origin=https://github.com/ixoo/gemini-pda-mainline.git", "readback-build-origin"),
+        ("build_backend=buildbox", "readback-build-backend"),
+        ("buildbox_status=validated", "readback-build-status"),
+        ("patch_count=187", "readback-build-patch-count"),
+        ("artifact=linux-7.1.3-gemini-dvfsp-protected-readback-c34aa0be-11afba8d", "readback-build-artifact"),
+        ("dtb_count=119", "readback-build-dtb-count"),
+        ("sha256sums=passed", "readback-build-checksums"),
+        ("package_fetch=success;validated_package_only", "readback-build-fetch"),
+        ("clock_transport=0197;default_off;mcumixed_cspm;bounded_semaphore_readback", "readback-clock"),
+        ("bigidvfs_transport=0198;default_off;smc_0xc200035f;four_address_whitelist;read_only", "readback-bigidvfs"),
+        ("nodes=dvfsp-clock-backend:disabled;dvfsp-bigidvfs-backend:disabled", "readback-nodes"),
+        ("owner=unregistered", "readback-owner"),
+        ("secure_write=none", "readback-no-write"),
+        ("hardware_write=none", "readback-hardware-no-write"),
+        ("device_action=none", "readback-no-device"),
+        ("boot_candidate=false", "readback-not-candidate"),
+    ):
+        require(readback_build_result, needle, label)
+
     if names.index("0174-soc-mediatek-add-I2C6-DVFSP-transfer-lease.patch") >= names.index("0175-soc-mediatek-define-I2C6-firmware-lease-contract.patch"):
         raise AssertionError("firmware lease contract is not after Linux transfer lease")
     if names.index("0191-arm64-arm-P32-publication-from-on-issued-phase.patch") >= names.index("0192-soc-mediatek-define-MT6797-state-owner-contract.patch"):
@@ -388,6 +443,10 @@ def main() -> None:
         raise AssertionError("protected state-owner identity is not after the PCM adapter shell")
     if names.index("0195-soc-mediatek-require-protected-state-owner-identity.patch") >= names.index("0196-soc-mediatek-compose-protected-state-backends.patch"):
         raise AssertionError("protected state-backend composition is not after the owner identity gate")
+    if names.index("0196-soc-mediatek-compose-protected-state-backends.patch") >= names.index("0197-soc-mediatek-add-disabled-MT6797-protected-clock-readback.patch"):
+        raise AssertionError("clock readback transport is not after protected composition")
+    if names.index("0197-soc-mediatek-add-disabled-MT6797-protected-clock-readback.patch") >= names.index("0198-soc-mediatek-add-disabled-MT6797-BigiDVFS-readback.patch"):
+        raise AssertionError("BigiDVFS readback transport is not after clock readback")
 
     for forbidden in ("readl(", "writel(", "i2c_transfer", "regulator_enable(",
                       "regulator_disable(", "psci_ops.cpu_on", "cpu_up("):
@@ -421,6 +480,7 @@ def main() -> None:
     print("state_owner_identity_buildbox=validated;compile_only;registered_owner=0;no_provider;no_mmio;boot_candidate=false")
     print("state_backend_composition=0196;default_off;exact_disjoint_cpu_pll_and_big_cluster_masks;generation_and_owner_handle_checked;registered_owner=0;no_provider;no_mmio")
     print("state_backend_composition_buildbox=validated;compile_only;registered_owner=0;no_provider;no_mmio;boot_candidate=false")
+    print("protected_readback=0197+0198;compile_only;both_nodes_disabled;clock_semaphore_and_bigidvfs_reg_read_only;registered_owner=0;no_provider;no_secure_write;boot_candidate=false")
     print("pcm_adapter_contract=source-only;bounded-admission-model;callback-registration-gated")
     print("clock_owner_inventory=generic_ccf_only;protected_owner_absent;A72_observer_read_only")
     print("pcm_start_contract=defined;residency_and_start_required_before_callback_registration")
