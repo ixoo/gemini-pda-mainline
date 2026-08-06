@@ -1,0 +1,323 @@
+From 0000000000000000000000000000000000000205 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 7 Aug 2026 03:00:00 -0400
+Subject: [PATCH] soc: mediatek: derive calibrated table from EEM readback
+
+Add the source-backed, read-only conversion boundary between the locked
+MT6797 EEM readback and the existing calibrated-state admission contract.
+The caller must provide the exact silicon-selected descending frequency and
+PPM rows, recorded VPROC safety caps, live VSRAM values, voltage limits,
+thermal/clock/rail generations, and complete provenance. The helper verifies
+MON phase, matches all eight raw anchors, interpolates the sixteen-row VPROC
+table using the vendor's distinct BIG and L/2L/CCI EEM units, applies the
+documented low-temperature offset and recorded caps, and publishes rows in
+the admission contract's ascending order.
+
+No default table, efuse guess, OPP, regulator, clock, secure call, EEM phase
+write, provider registration, device boot, or CPU8/CPU9 admission is added.
+Missing or contradictory inputs fail closed. This patch is experiment-only
+and not submission-ready.
+---
+ drivers/thermal/mediatek/auxadc_thermal.c       | 216 ++++++++++++++++++++++++
+ include/linux/soc/mediatek/mt6797-eem-calibration.h |  60 ++++++++
+ 2 files changed, 276 insertions(+)
+ create mode 100644 include/linux/soc/mediatek/mt6797-eem-calibration.h
+
+diff --git a/include/linux/soc/mediatek/mt6797-eem-calibration.h b/include/linux/soc/mediatek/mt6797-eem-calibration.h
+new file mode 100644
+--- /dev/null
++++ b/include/linux/soc/mediatek/mt6797-eem-calibration.h
+@@ -0,0 +1,60 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef _LINUX_MT6797_EEM_CALIBRATION_H
++#define _LINUX_MT6797_EEM_CALIBRATION_H
++
++#include <linux/errno.h>
++#include <linux/bitops.h>
++#include <linux/kconfig.h>
++#include <linux/types.h>
++
++#include <linux/soc/mediatek/mt6797-dvfsp-handoff.h>
++#include <linux/soc/mediatek/mt6797-eem-readback.h>
++
++#define MT6797_EEM_CALIBRATION_ABI		1
++#define MT6797_EEM_CALIBRATION_ROWS		16
++#define MT6797_EEM_CALIBRATION_BANKS		4
++#define MT6797_EEM_CALIBRATION_MON_ENABLE	0x2
++#define MT6797_EEM_CALIBRATION_ENABLE_MASK	0x7
++#define MT6797_EEM_CALIBRATION_MON_STATUS_MASK	GENMASK(23, 16)
++#define MT6797_EEM_CALIBRATION_TEMP_OFFSET_UV	62500
++#define MT6797_EEM_CALIBRATION_VSRAM_MIN_UV	1000000
++#define MT6797_EEM_CALIBRATION_VSRAM_MAX_UV	1200000
++#define MT6797_EEM_CALIBRATION_VSRAM_DELTA_MIN_UV	10000
++#define MT6797_EEM_CALIBRATION_VSRAM_DELTA_MAX_UV	30000
++
++/* Arrays use the packed bank order BIG, L, 2L, CCI and EEM row order. */
++struct mt6797_eem_calibration_input {
++	const struct mt6797_eem_readback *readback;
++	u8 frequency_pct[MT6797_EEM_CALIBRATION_BANKS]
++		[MT6797_EEM_CALIBRATION_ROWS];
++	u32 frequency_khz[MT6797_EEM_CALIBRATION_BANKS]
++		[MT6797_EEM_CALIBRATION_ROWS];
++	u32 record_vproc_uv[MT6797_EEM_CALIBRATION_BANKS]
++		[MT6797_EEM_CALIBRATION_ROWS];
++	u32 vsram_uv[MT6797_EEM_CALIBRATION_BANKS]
++		[MT6797_EEM_CALIBRATION_ROWS];
++	u32 ppm_limit_khz[MT6797_EEM_CALIBRATION_BANKS]
++		[MT6797_EEM_CALIBRATION_ROWS];
++	u32 vmin_uv[MT6797_EEM_CALIBRATION_BANKS];
++	u32 vmax_uv[MT6797_EEM_CALIBRATION_BANKS];
++	s32 temperature_millic;
++	u64 thermal_generation;
++	u64 clock_owner_generation;
++	u64 rail_owner_generation;
++	struct mt6797_dvfsp_state_provenance provenance;
++};
++
++#if IS_ENABLED(CONFIG_MTK_SOC_THERMAL)
++int mt6797_eem_calibration_build(
++	const struct mt6797_eem_calibration_input *input,
++	struct mt6797_dvfsp_calibration_state *state);
++#else
++static inline int mt6797_eem_calibration_build(
++	const struct mt6797_eem_calibration_input *input,
++	struct mt6797_dvfsp_calibration_state *state)
++{
++	return -ENODEV;
++}
++#endif
++
++#endif
+
+diff --git a/drivers/thermal/mediatek/auxadc_thermal.c b/drivers/thermal/mediatek/auxadc_thermal.c
+--- a/drivers/thermal/mediatek/auxadc_thermal.c
++++ b/drivers/thermal/mediatek/auxadc_thermal.c
+@@ -19,4 +19,6 @@
+ #include <linux/reset.h>
++#include <linux/math64.h>
+ #include <linux/types.h>
+ 
++#include <linux/soc/mediatek/mt6797-eem-calibration.h>
+ #include <linux/soc/mediatek/mt6797-eem-readback.h>
+@@ -1059,5 +1059,219 @@
+ EXPORT_SYMBOL_GPL(mt6797_thermal_eem_readback);
+ 
++#define MT6797_EEM_CALIBRATION_EEM_BASE_UV	700000
++#define MT6797_EEM_CALIBRATION_EEM_STEP_UV	6250
++#define MT6797_EEM_CALIBRATION_BIG_BASE_UV	300000
++#define MT6797_EEM_CALIBRATION_BIG_STEP_UV	10000
++
++static int mt6797_eem_calibration_provenance_check(
++	const struct mt6797_dvfsp_state_provenance *provenance)
++{
++	if (!provenance ||
++	    provenance->abi != MT6797_DVFSP_STATE_PROVENANCE_ABI ||
++	    provenance->source_mask != MT6797_DVFSP_STATE_PROVENANCE_SOURCE_ALL ||
++	    !provenance->table_epoch || !provenance->calibration_handle)
++		return -EPROTO;
++
++	return 0;
++}
++
++static u32 mt6797_eem_calibration_code_to_uv(unsigned int bank, u8 code)
++{
++	if (bank == MT6797_EEM_READBACK_BANK_BIG)
++		return MT6797_EEM_CALIBRATION_BIG_BASE_UV +
++			(unsigned int)code * MT6797_EEM_CALIBRATION_BIG_STEP_UV;
++
++	return MT6797_EEM_CALIBRATION_EEM_BASE_UV +
++		(unsigned int)code * MT6797_EEM_CALIBRATION_EEM_STEP_UV;
++}
++
++static int mt6797_eem_calibration_interpolate(u8 target, u8 x0, u8 x1,
++						 u32 y0, u32 y1, u32 *result)
++{
++	s64 numerator;
++	s64 denominator;
++	s64 value;
++
++	if (!result)
++		return -EINVAL;
++	if (x0 == x1) {
++		if (y0 != y1)
++			return -EPROTO;
++		*result = y0;
++		return 0;
++	}
++
++	numerator = ((s64)y1 - (s64)y0) * ((s64)target - (s64)x0);
++	denominator = (s64)x1 - (s64)x0;
++	value = (s64)y0 + div_s64(numerator, denominator);
++	if (value < 0 || value > U32_MAX)
++		return -ERANGE;
++	*result = (u32)value;
++
++	return 0;
++}
++
++static int mt6797_eem_calibration_row_voltage(
++	const struct mt6797_eem_calibration_input *input,
++	const struct mt6797_eem_readback_bank *bank,
++	unsigned int bank_index, unsigned int row, u32 *vproc_uv)
++{
++	u32 raw_uv;
++	int ret;
++
++	if (row % 2 == 0) {
++		raw_uv = mt6797_eem_calibration_code_to_uv(
++			bank->bank, bank->vop[row / 2]);
++	} else if (row + 1 < MT6797_EEM_CALIBRATION_ROWS) {
++		ret = mt6797_eem_calibration_interpolate(
++			input->frequency_pct[bank_index][row],
++			input->frequency_pct[bank_index][row - 1],
++			input->frequency_pct[bank_index][row + 1],
++			mt6797_eem_calibration_code_to_uv(
++				bank->bank, bank->vop[(row - 1) / 2]),
++			mt6797_eem_calibration_code_to_uv(
++				bank->bank, bank->vop[(row + 1) / 2]),
++			&raw_uv);
++		if (ret)
++			return ret;
++	} else {
++		ret = mt6797_eem_calibration_interpolate(
++			input->frequency_pct[bank_index][row],
++			input->frequency_pct[bank_index][row - 3],
++			input->frequency_pct[bank_index][row - 1],
++			mt6797_eem_calibration_code_to_uv(
++				bank->bank, bank->vop[(row - 3) / 2]),
++			mt6797_eem_calibration_code_to_uv(
++				bank->bank, bank->vop[(row - 1) / 2]),
++			&raw_uv);
++		if (ret)
++			return ret;
++	}
++
++	if (input->temperature_millic <= 33000)
++		raw_uv += MT6797_EEM_CALIBRATION_TEMP_OFFSET_UV;
++	*vproc_uv = clamp_t(u32, raw_uv, input->vmin_uv[bank_index],
++				     input->vmax_uv[bank_index]);
++	if (*vproc_uv > input->record_vproc_uv[bank_index][row])
++		*vproc_uv = input->record_vproc_uv[bank_index][row];
++	if (*vproc_uv < input->vmin_uv[bank_index])
++		return -EPROTO;
++
++	return 0;
++}
++
++int mt6797_eem_calibration_build(
++	const struct mt6797_eem_calibration_input *input,
++	struct mt6797_dvfsp_calibration_state *state)
++{
++	static const u32 bank_ids[MT6797_EEM_CALIBRATION_BANKS] = {
++		MT6797_EEM_READBACK_BANK_BIG,
++		MT6797_EEM_READBACK_BANK_L,
++		MT6797_EEM_READBACK_BANK_2L,
++		MT6797_EEM_READBACK_BANK_CCI,
++	};
++	static const u32 cluster_ids[MT6797_EEM_CALIBRATION_BANKS] = {
++		MT6797_DVFSP_STATE_CLUSTER_B,
++		MT6797_DVFSP_STATE_CLUSTER_L,
++		MT6797_DVFSP_STATE_CLUSTER_LL,
++		MT6797_DVFSP_STATE_CLUSTER_CCI,
++	};
++	unsigned int bank_index;
++
++	if (!input || !state || !input->readback ||
++	    input->temperature_millic < -40000 ||
++	    input->temperature_millic > 150000 ||
++	    !input->thermal_generation || !input->clock_owner_generation ||
++	    !input->rail_owner_generation ||
++	    mt6797_eem_calibration_provenance_check(&input->provenance))
++		return -EPROTO;
++	if (input->readback->abi != MT6797_EEM_READBACK_ABI ||
++	    input->readback->bank_mask !=
++		(BIT(MT6797_EEM_READBACK_BANK_BIG) |
++		 BIT(MT6797_EEM_READBACK_BANK_L) |
++		 BIT(MT6797_EEM_READBACK_BANK_2L) |
++		 BIT(MT6797_EEM_READBACK_BANK_CCI)) ||
++	    input->readback->selector_before != input->readback->selector_after)
++		return -EAGAIN;
++
++	memset(state, 0, sizeof(*state));
++	state->abi = MT6797_DVFSP_CALIBRATION_STATE_ABI;
++	state->phase = MT6797_DVFSP_CALIBRATION_STATE_PHASE_MON;
++	state->bank_mask = MT6797_DVFSP_CALIBRATION_STATE_BANK_ALL;
++	state->temperature_millic = input->temperature_millic;
++	state->thermal_generation = input->thermal_generation;
++	state->clock_owner_generation = input->clock_owner_generation;
++	state->rail_owner_generation = input->rail_owner_generation;
++	state->provenance = input->provenance;
++
++	for (bank_index = 0; bank_index < MT6797_EEM_CALIBRATION_BANKS;
++	     bank_index++) {
++		const struct mt6797_eem_readback_bank *bank =
++			&input->readback->bank[bank_index];
++		struct mt6797_dvfsp_calibration_cluster *cluster;
++		unsigned int row;
++
++		if (bank->bank != bank_ids[bank_index] ||
++		    (bank->eem_enable & MT6797_EEM_CALIBRATION_ENABLE_MASK) !=
++			MT6797_EEM_CALIBRATION_MON_ENABLE ||
++		    bank->interrupt_status &
++			~MT6797_EEM_CALIBRATION_MON_STATUS_MASK)
++			return -EAGAIN;
++		if (input->vmin_uv[bank_index] >= input->vmax_uv[bank_index])
++			return -EPROTO;
++
++		for (row = 0; row < MT6797_EEM_CALIBRATION_ROWS; row++) {
++			u32 vproc_uv;
++			u32 vsram_uv = input->vsram_uv[bank_index][row];
++
++			if (!input->frequency_pct[bank_index][row] ||
++			    !input->frequency_khz[bank_index][row] ||
++			    !input->record_vproc_uv[bank_index][row] ||
++			    !input->ppm_limit_khz[bank_index][row] ||
++			    !vsram_uv ||
++			    (row && input->frequency_khz[bank_index][row] >=
++				input->frequency_khz[bank_index][row - 1]) ||
++			    (row && input->frequency_pct[bank_index][row] >
++				input->frequency_pct[bank_index][row - 1]) ||
++			    input->record_vproc_uv[bank_index][row] <
++				input->vmin_uv[bank_index] ||
++			    vsram_uv < MT6797_EEM_CALIBRATION_VSRAM_MIN_UV ||
++			    vsram_uv > MT6797_EEM_CALIBRATION_VSRAM_MAX_UV)
++				return -EPROTO;
++			if (row % 2 == 0 &&
++			    input->frequency_pct[bank_index][row] !=
++				bank->frequency_pct[row / 2])
++				return -EAGAIN;
++		}
++
++		cluster = &state->cluster[cluster_ids[bank_index]];
++		cluster->table_count = MT6797_EEM_CALIBRATION_ROWS;
++		for (row = 0; row < MT6797_EEM_CALIBRATION_ROWS; row++) {
++			struct mt6797_dvfsp_calibration_table_entry *entry =
++				&cluster->table[MT6797_EEM_CALIBRATION_ROWS - 1 - row];
++			u32 vsram_uv = input->vsram_uv[bank_index][row];
++			int ret;
++
++			ret = mt6797_eem_calibration_row_voltage(
++				input, bank, bank_index, row, &entry->vproc_uv);
++			if (ret)
++				return ret;
++			if (vsram_uv < entry->vproc_uv +
++				MT6797_EEM_CALIBRATION_VSRAM_DELTA_MIN_UV ||
++			    vsram_uv > entry->vproc_uv +
++				MT6797_EEM_CALIBRATION_VSRAM_DELTA_MAX_UV)
++				return -EPROTO;
++			entry->frequency_khz = input->frequency_khz[bank_index][row];
++			entry->vsram_uv = vsram_uv;
++			entry->ppm_limit_khz =
++				input->ppm_limit_khz[bank_index][row];
++		}
++	}
++
++	return 0;
++}
++EXPORT_SYMBOL_GPL(mt6797_eem_calibration_build);
++
+ static int mtk_read_temp(struct thermal_zone_device *tz, int *temperature)
+ {
+ 	struct mtk_thermal *mt = thermal_zone_device_priv(tz);
+-- 
+2.43.0
