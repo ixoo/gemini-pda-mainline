@@ -1,0 +1,265 @@
+From 0000000000000000000000000000000000000202 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 7 Aug 2026 00:30:00 -0400
+Subject: [PATCH] soc: mediatek: bind protected owner to transition lock
+
+The calibrated provenance and lifecycle contracts still leave the protected
+CPU-PLL, BigiDVFS, and calibration callbacks without one enforced transition
+lock. Require the future owner to provide an explicit lock/unlock pair and
+hold it across every composite snapshot, validation, and state hold/release.
+This is the point at which the historical cpufreq/rail arbitration becomes a
+provider obligation rather than an assumption in the handoff.
+
+The lock is supplied by the real clock/rail owner; this patch does not invent
+a mutex, access EEM/PTP or DVFSP registers, call secure firmware, change a
+regulator, load PCM, register an owner, or admit CPU8/CPU9. Registration stays
+fail-closed until the provider supplies the lock and all calibrated callbacks.
+It also closes the calibration-hold leak on a failed CPU-PLL hold.
+This patch is experiment-only and not submission-ready.
+---
+ drivers/soc/mediatek/mt6797-dvfsp-handoff.c       | 105 ++++++++++++++++++---
+ include/linux/soc/mediatek/mt6797-dvfsp-handoff.h |  10 +++
+ 2 files changed, 98 insertions(+), 17 deletions(-)
+
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
+@@ -198,6 +198,14 @@ struct mt6797_dvfsp_state_calibration_ops {
+ 	void (*invalidate)(void *context,
+ 			enum mt6797_dvfsp_state_invalidation_reason reason);
+ };
++
++#define MT6797_DVFSP_STATE_TRANSITION_LOCK_ABI	1
++
++struct mt6797_dvfsp_state_transition_lock_ops {
++	u32 abi;
++	int (*lock)(void *context);
++	void (*unlock)(void *context);
++};
+ 
+ /* Keep the backend descriptors and callbacks immutable while registered. */
+ struct mt6797_dvfsp_protected_state_owner {
+@@ -208,6 +216,8 @@ struct mt6797_dvfsp_protected_state_owner {
+ 	u64 transition_handle;
+ 	const struct mt6797_dvfsp_state_calibration_ops *calibration_ops;
+ 	void *calibration_context;
++	const struct mt6797_dvfsp_state_transition_lock_ops *transition_lock_ops;
++	void *transition_lock_context;
+ 	struct mt6797_dvfsp_state_provenance provenance;
+ };
+ #define MT6797_DVFSP_PCM_ADAPTER_ABI		1
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+@@ -1777,6 +1777,28 @@ mt6797_dvfsp_state_snapshot_check(
+ 	return 0;
+ }
+ 
++static int
++mt6797_dvfsp_protected_state_owner_transition_lock(
++	const struct mt6797_dvfsp_protected_state_owner *owner)
++{
++	if (!owner->transition_lock_ops ||
++	    owner->transition_lock_ops->abi !=
++		MT6797_DVFSP_STATE_TRANSITION_LOCK_ABI ||
++	    !owner->transition_lock_ops->lock ||
++	    !owner->transition_lock_ops->unlock)
++		return -EINVAL;
++
++	return owner->transition_lock_ops->lock(
++		owner->transition_lock_context);
++}
++
++static void
++mt6797_dvfsp_protected_state_owner_transition_unlock(
++	const struct mt6797_dvfsp_protected_state_owner *owner)
++{
++	owner->transition_lock_ops->unlock(owner->transition_lock_context);
++}
++
+ static int
+ mt6797_dvfsp_protected_state_owner_check(
+ 	const struct mt6797_dvfsp_protected_state_owner *owner)
+@@ -1795,5 +1818,11 @@ mt6797_dvfsp_protected_state_owner_check(
+ 			MT6797_DVFSP_STATE_CALIBRATION_ABI)
+ 		return -EINVAL;
++	if (!owner->transition_lock_ops ||
++	    owner->transition_lock_ops->abi !=
++		MT6797_DVFSP_STATE_TRANSITION_LOCK_ABI ||
++	    !owner->transition_lock_ops->lock ||
++	    !owner->transition_lock_ops->unlock)
++		return -EINVAL;
+ 
+ 	cpu = owner->cpu_pll_ops;
+ 	big = owner->big_cluster_ops;
+@@ -1824,6 +1851,6 @@ mt6797_dvfsp_state_snapshot_equal(
+ static int
+-mt6797_dvfsp_protected_state_owner_collect(
++mt6797_dvfsp_protected_state_owner_collect_locked(
+ 	const struct mt6797_dvfsp_protected_state_owner *owner,
+ 	struct mt6797_dvfsp_state_backend_snapshot *cpu_snapshot,
+ 	struct mt6797_dvfsp_state_backend_snapshot *big_snapshot,
+ 	struct mt6797_dvfsp_state_snapshot *snapshot)
+@@ -1903,3 +1930,21 @@ mt6797_dvfsp_protected_state_owner_collect_locked(
+ 	return mt6797_dvfsp_state_snapshot_check(snapshot);
+ }
+ 
++static int
++mt6797_dvfsp_protected_state_owner_collect(
++	const struct mt6797_dvfsp_protected_state_owner *owner,
++	struct mt6797_dvfsp_state_backend_snapshot *cpu_snapshot,
++	struct mt6797_dvfsp_state_backend_snapshot *big_snapshot,
++	struct mt6797_dvfsp_state_snapshot *snapshot)
++{
++	int ret;
++
++	ret = mt6797_dvfsp_protected_state_owner_transition_lock(owner);
++	if (ret)
++		return ret;
++	ret = mt6797_dvfsp_protected_state_owner_collect_locked(
++		owner, cpu_snapshot, big_snapshot, snapshot);
++	mt6797_dvfsp_protected_state_owner_transition_unlock(owner);
++
++	return ret;
++}
+@@ -1934,34 +1957,42 @@ mt6797_dvfsp_protected_state_owner_validate(
+ static int
+ mt6797_dvfsp_protected_state_owner_validate(
+ 	void *context, const struct mt6797_dvfsp_state_snapshot *snapshot)
+ {
+ 	struct mt6797_dvfsp_state_backend_snapshot cpu_snapshot;
+ 	struct mt6797_dvfsp_state_backend_snapshot big_snapshot;
+ 	struct mt6797_dvfsp_state_snapshot fresh;
+ 	const struct mt6797_dvfsp_protected_state_owner *owner = context;
+ 	int ret;
+ 
+ 	if (!snapshot)
+ 		return -EINVAL;
+ 	ret = mt6797_dvfsp_state_snapshot_check(snapshot);
+ 	if (ret)
+ 		return ret;
++	ret = mt6797_dvfsp_protected_state_owner_transition_lock(owner);
++	if (ret)
++		return ret;
+-	ret = mt6797_dvfsp_protected_state_owner_collect(
++	ret = mt6797_dvfsp_protected_state_owner_collect_locked(
+ 		owner, &cpu_snapshot, &big_snapshot, &fresh);
+ 	if (ret)
+-		return ret;
+-	if (!mt6797_dvfsp_state_snapshot_equal(snapshot, &fresh))
+-		return -EAGAIN;
++		goto out_unlock;
++	if (!mt6797_dvfsp_state_snapshot_equal(snapshot, &fresh)) {
++		ret = -EAGAIN;
++		goto out_unlock;
++	}
+ 
+ 	ret = owner->calibration_ops->validate(owner->calibration_context,
+ 						&fresh.provenance);
+ 	if (ret)
+-		return ret;
++		goto out_unlock;
+ 
+ 	ret = owner->cpu_pll_ops->validate(owner->cpu_pll_context,
+ 						    &cpu_snapshot);
+ 	if (ret)
+-		return ret;
+-	return owner->big_cluster_ops->validate(owner->big_cluster_context,
+-						&big_snapshot);
++		goto out_unlock;
++	ret = owner->big_cluster_ops->validate(owner->big_cluster_context,
++						&big_snapshot);
++out_unlock:
++	mt6797_dvfsp_protected_state_owner_transition_unlock(owner);
++	return ret;
+ }
+@@ -1989,11 +2046,16 @@ mt6797_dvfsp_protected_state_owner_hold(
+ 	if (!snapshot || !hold)
+ 		return -EINVAL;
+ 	ret = mt6797_dvfsp_state_snapshot_check(snapshot);
+ 	if (ret)
+ 		return ret;
+-	ret = mt6797_dvfsp_protected_state_owner_collect(
++	ret = mt6797_dvfsp_protected_state_owner_transition_lock(owner);
++	if (ret)
++		return ret;
++	ret = mt6797_dvfsp_protected_state_owner_collect_locked(
+ 		owner, &cpu_snapshot, &big_snapshot, &fresh);
+ 	if (ret)
+-		return ret;
+-	if (!mt6797_dvfsp_state_snapshot_equal(snapshot, &fresh))
+-		return -EAGAIN;
++		goto out_unlock;
++	if (!mt6797_dvfsp_state_snapshot_equal(snapshot, &fresh)) {
++		ret = -EAGAIN;
++		goto out_unlock;
++	}
+@@ -2020,4 +2082,4 @@ mt6797_dvfsp_protected_state_owner_hold(
+ 	ret = owner->calibration_ops->hold(owner->calibration_context, &fresh,
+ 						&calibration_hold);
+ 	if (ret)
+-		return ret;
++		goto out_unlock;
+@@ -2031,4 +2093,4 @@ mt6797_dvfsp_protected_state_owner_hold(
+ 	ret = owner->cpu_pll_ops->hold(owner->cpu_pll_context,
+ 					&cpu_snapshot, &cpu_hold);
+ 	if (ret)
+-		return ret;
++		goto rollback;
+@@ -2060,3 +2122,4 @@ mt6797_dvfsp_protected_state_owner_hold(
+ 	hold->transition_handle = owner->transition_handle;
+ 	hold->provenance = fresh.provenance;
+-	return 0;
++	ret = 0;
++	goto out_unlock;
+@@ -2078,3 +2141,5 @@ mt6797_dvfsp_protected_state_owner_hold(
+ 	if (rollback_ret)
+ 		ret = -EIO;
+-	return ret;
++out_unlock:
++	mt6797_dvfsp_protected_state_owner_transition_unlock(owner);
++	return ret;
+@@ -2300,8 +2357,11 @@ mt6797_dvfsp_protected_state_owner_release(
+ 	if (!hold || !hold->generation ||
+ 	    hold->cluster_mask != MT6797_DVFSP_STATE_CLUSTER_MASK ||
+ 	    hold->reserved || hold->owner_handle != owner->owner_handle ||
+ 	    hold->transition_handle != owner->transition_handle)
+ 		return -EPROTO;
++	ret = mt6797_dvfsp_protected_state_owner_transition_lock(owner);
++	if (ret)
++		return ret;
+ 
+ 	cpu_hold = *hold;
+ 	cpu_hold.cluster_mask = owner->cpu_pll_ops->cluster_mask;
+@@ -2320,11 +2377,12 @@ mt6797_dvfsp_protected_state_owner_release(
+ 	if (ret) {
+ 		owner->cpu_pll_ops->invalidate(
+ 			owner->cpu_pll_context,
+ 			MT6797_DVFSP_STATE_INVALID_PCM_FAULT);
+ 		owner->big_cluster_ops->invalidate(
+ 			owner->big_cluster_context,
+ 			MT6797_DVFSP_STATE_INVALID_PCM_FAULT);
+ 	}
++	mt6797_dvfsp_protected_state_owner_transition_unlock(owner);
+ 
+ 	return ret;
+ }
+@@ -2373,11 +2433,16 @@ mt6797_dvfsp_protected_state_owner_invalidate(
+ 	const struct mt6797_dvfsp_protected_state_owner *owner = context;
++	bool locked = false;
+ 
+ 	if (!owner)
+ 		return;
++	if (!mt6797_dvfsp_protected_state_owner_transition_lock(owner))
++		locked = true;
+ 	if (owner->cpu_pll_ops && owner->cpu_pll_ops->invalidate)
+ 		owner->cpu_pll_ops->invalidate(owner->cpu_pll_context, reason);
+ 	if (owner->big_cluster_ops && owner->big_cluster_ops->invalidate)
+ 		owner->big_cluster_ops->invalidate(owner->big_cluster_context, reason);
+ 	if (owner->calibration_ops && owner->calibration_ops->invalidate)
+ 		owner->calibration_ops->invalidate(owner->calibration_context, reason);
++	if (locked)
++		mt6797_dvfsp_protected_state_owner_transition_unlock(owner);
+ }
+-- 
+2.43.0
