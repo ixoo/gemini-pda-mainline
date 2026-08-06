@@ -1,0 +1,18 @@
+id	source	line	branch	observation	current_guard	decision
+A39-01	arch/arm64/kernel/smp.c	219-223	unknown-status	unknown status increments cpus_stuck_in_kernel and returns -EIO	no P32 early-status hook	OPEN_TERMINAL_GUARD
+A39-02	arch/arm64/kernel/smp.c	224-230	CPU_KILL_ME	controller calls op_cpu_kill before accepting early death	P32 cpu_kill requires p32_valid identity	OPEN_TERMINAL_GUARD
+A39-03	arch/arm64/kernel/smp.c	229-240	CPU_KILL_ME-kill-failed	failed kill falls through into stuck handling	no separate P32 early-status hook	OPEN_TERMINAL_GUARD
+A39-04	arch/arm64/kernel/smp.c	231-240	CPU_STUCK_IN_KERNEL	stuck status reports 52-bit-VA and granule reasons, then counts stuck	no P32 early-status hook	OPEN_TERMINAL_GUARD
+A39-05	arch/arm64/kernel/smp.c	241-243	CPU_PANIC_KERNEL	controller unconditionally panics on unsupported configuration	no target-specific terminal interception	OPEN_TERMINAL_GUARD
+A39-06	arch/arm64/kernel/smp.c	267-301	secondary-capability-entry	secondary_start_kernel calls check_local_cpu_capabilities before online	P32 publication occurs only on later rollback callback	OPEN_TERMINAL_GUARD
+A39-07	arch/arm64/kernel/smp.c	333-340	P30E-failure	P30E failure publishes FAILED, writes STUCK status, and parks	P30E marker only; no P32 terminal handoff	OPEN_TERMINAL_GUARD
+A39-08	arch/arm64/kernel/smp.c	520-544	cpu_die_early	clears cpu_present, reports RCU death, publishes KILL_ME, then parks	P32 guards are not called from cpu_die_early	OPEN_TERMINAL_GUARD
+A39-09	arch/arm64/kernel/cpufeature.c	4633-4635	capability-conflict	panic-or-cpu_die_early split depends on panic policy	no exact P32 early-failure identity	OPEN_TERMINAL_GUARD
+A39-10	arch/arm64/kernel/cpufeature.c	4656-4658	missing-elf-hwcap	missing advertised HWCAP calls cpu_die_early	no exact P32 early-failure identity	OPEN_TERMINAL_GUARD
+A39-11	arch/arm64/kernel/cpufeature.c	4675-4677	SVE-vector-mismatch	SVE vector mismatch calls cpu_die_early	no exact P32 early-failure identity	OPEN_TERMINAL_GUARD
+A39-12	arch/arm64/kernel/cpufeature.c	4688-4690	SME-vector-mismatch	SME vector mismatch calls cpu_die_early	no exact P32 early-failure identity	OPEN_TERMINAL_GUARD
+A39-13	arch/arm64/kernel/cpufeature.c	4712-4714	VMID-mismatch	VMID width mismatch calls cpu_die_early	no exact P32 early-failure identity	OPEN_TERMINAL_GUARD
+A39-14	arch/arm64/kernel/cpufeature.c	4721-4723	IPA-mismatch	IPA range mismatch calls cpu_die_early	no exact P32 early-failure identity	OPEN_TERMINAL_GUARD
+A39-15	arch/arm64/kernel/cpufeature.c	4734-4753	MPAM-mismatch	MPAM version/HCR/PARTID/PMG mismatches call cpu_die_early	no exact P32 early-failure identity	OPEN_TERMINAL_GUARD
+A39-16	arch/arm64/kernel/mt6797_a72_membership.c	166-215	P32-publish	0191 requires live ON_ISSUED phase and records the rollback trace	does not run before cpu_die_early	COVERAGE_NOT_EARLY
+A39-17	arch/arm64/kernel/mt6797_a72_membership.c	238-309	P32-die-kill	P32 die/kill guards require active exact p32_valid identity	no match for pre-publication early failure	COVERAGE_NOT_EARLY

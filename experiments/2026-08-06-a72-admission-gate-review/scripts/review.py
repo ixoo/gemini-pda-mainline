@@ -17,6 +17,7 @@ A41_PROFILE = ROOT / "experiments/2026-08-05-a72-a41-capability-profile/README.m
 PROVIDER_ORACLE = ROOT / "experiments/2026-08-06-da921x-page-owner-audit/results/oracle.txt"
 P32_RESULT = ROOT / "experiments/2026-08-06-a72-p32-r-review/results/p32r-buildbox-validation-20260806.txt"
 A25_RESULT = ROOT / "experiments/2026-08-06-a72-a25-callback-review/results/a25-review-20260806.txt"
+A39_RESULT = ROOT / "experiments/2026-08-06-a72-a39-early-secondary-inventory/results/early-secondary-inventory.tsv"
 
 
 def require(condition: bool, message: str) -> None:
@@ -76,15 +77,18 @@ def main() -> int:
                        "CONFIG_ARM64_MT6797_A72_P32_ROLLBACK=y",
                        "device_boot_or_write=NOT_PERFORMED")
     a25 = require_text(A25_RESULT, "status=PASS_PARTIAL_A25", "same_boot_numeric_identity=OPEN_H13")
+    a39 = require_text(A39_RESULT, "A39-01", "A39-17", "OPEN_TERMINAL_GUARD")
     require("PASS_DEDICATED_BUILDBOX_VALIDATED" in p32 and "PASS_PARTIAL_A25" in a25,
             "current source-only evidence is not passing")
+    require("cpu_die_early" in a39 and "CPU_PANIC_KERNEL" in a39,
+            "A39 early-secondary inventory is incomplete")
 
     print("claim=PARTIAL_ADMISSION_GATE_REAUDIT")
     print("A14=BLOCKED_DISABLE_VETO")
     print("A25=PARTIAL_SOURCE_REVIEW_H13_OPEN")
     print("A26=BLOCKED_BOOT_VETO")
     print("A37=BLOCKED_P32_TERMINAL_GUARD_REVIEW")
-    print("A39=BLOCKED_EARLY_SECONDARY_INVENTORY")
+    print("A39=BLOCKED_EARLY_SECONDARY_TERMINAL_GUARDS")
     print("A40=BLOCKED_PRIVATE_BRANCH_FRESHNESS")
     print("A41=INCOMPLETE_READY_UNREACHABLE")
     print("provider=BLOCK_WRITABLE_PROVIDER")

@@ -1891,7 +1891,10 @@ The next ordered work remains source-only:
    recorded in the linked result. This closes the P32 publication reachability
    and compile/package gates only; A39 early-secondary terminal attribution,
    A25/H13, provider, A40, A41, A26, and A14 remain open. No device action is
-   authorized.
+   authorized. The separate [A39 early-secondary inventory](../experiments/2026-08-06-a72-a39-early-secondary-inventory/README.md)
+   now covers all controller status branches, `cpu_die_early()`, and the
+   capability-failure callsites. It confirms that branch-specific terminal
+   guards are still open; inventory completion does not close A39.
 4. The current [A25 review](../experiments/2026-08-06-a72-a25-callback-review/README.md)
    and P32R mutation re-audit now cover the 180-entry series, pass H01–H15,
    mandatory dynamic ordering, conditional insertion classification, all five
