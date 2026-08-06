@@ -93,6 +93,7 @@ be copied directly into a mainline failure/PM path.
 - [Bounded PCM adapter admission model](results/pcm-adapter-model-20260806.txt)
 - [Bounded PCM admission shell Buildbox validation](results/pcm-adapter-shell-buildbox-20260806.txt)
 - [Protected state-owner identity Buildbox validation](results/state-owner-identity-buildbox-20260806.txt)
+- [Protected state-backend composition Buildbox validation](results/protected-state-backend-composition-buildbox-20260806.txt)
 - [Mainline clock/state-owner inventory](results/mainline-clock-owner-inventory-20260806.txt)
 - [Current-head bfd04ae full-profile Buildbox resume](results/current-head-bfd04ae-full-buildbox-20260806.txt)
 - [Receiver register-window identity reconciliation](results/receiver-register-identity-20260806.txt)
@@ -218,3 +219,18 @@ The next real gate is still a reviewed implementation of the protected
 MCUMIXED/DVFSP and BigiDVFS startup-state owner. Only after that owner is
 independently reviewed can callbacks be bound and the PCM
 image/residency/start and runtime lease path be tested.
+
+Patch `0196` now adds the bounded composition seam for those two protected
+domains. It validates exact backend descriptors, disjoint LL/L/CCI and B
+cluster masks, complete state fields, matching generations, and one owner
+handle; paired transition holds roll back and invalidate both sides on a
+failure. The exact pushed commit `06f0a87` applied all 185 series entries on
+Buildbox, compiled the full profile, produced 119 DTBs, passed package
+checksums, and fetched the validated package locally. This remains
+compile-only evidence: neither backend is implemented or registered, and no
+provider, MMIO, secure call, firmware action, or device boot is enabled. See
+the [protected composition Buildbox result](results/protected-state-backend-composition-buildbox-20260806.txt).
+
+The next gate is still the independently reviewed hardware implementation of
+the MCUMIXED/DVFSP CPU-PLL owner and BigiDVFS secure owner, including their
+authoritative OPP/frequency/voltage/VSRAM state and transition locks.

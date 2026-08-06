@@ -10,6 +10,7 @@ STATE_OWNER_PATCH = ROOT / "patches/v7.1.3/0192-soc-mediatek-define-MT6797-state
 STATE_HOLD_PATCH = ROOT / "patches/v7.1.3/0193-soc-mediatek-add-MT6797-state-owner-transition-hold.patch"
 PCM_ADAPTER_PATCH = ROOT / "patches/v7.1.3/0194-soc-mediatek-add-bounded-MT6797-PCM-admission.patch"
 STATE_IDENTITY_PATCH = ROOT / "patches/v7.1.3/0195-soc-mediatek-require-protected-state-owner-identity.patch"
+STATE_BACKEND_PATCH = ROOT / "patches/v7.1.3/0196-soc-mediatek-compose-protected-state-backends.patch"
 SERIES = ROOT / "patches/series"
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
 START_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-start-contract-20260806.txt"
@@ -21,6 +22,7 @@ CLOCK_RESULT = Path(__file__).resolve().parents[1] / "results/mainline-clock-own
 BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-transition-hold-buildbox-20260806.txt"
 ADAPTER_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-adapter-shell-buildbox-20260806.txt"
 IDENTITY_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-identity-buildbox-20260806.txt"
+STATE_BACKEND_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/protected-state-backend-composition-buildbox-20260806.txt"
 
 
 def require(text: str, needle: str, label: str) -> None:
@@ -34,6 +36,7 @@ def main() -> None:
     state_hold_patch = STATE_HOLD_PATCH.read_text()
     pcm_adapter_patch = PCM_ADAPTER_PATCH.read_text()
     state_identity_patch = STATE_IDENTITY_PATCH.read_text()
+    state_backend_patch = STATE_BACKEND_PATCH.read_text()
     design = DESIGN.read_text()
     start_result = START_RESULT.read_text()
     owner_result = OWNER_RESULT.read_text()
@@ -44,6 +47,7 @@ def main() -> None:
     build_result = BUILD_RESULT.read_text()
     adapter_build_result = ADAPTER_BUILD_RESULT.read_text()
     identity_build_result = IDENTITY_BUILD_RESULT.read_text()
+    state_backend_build_result = STATE_BACKEND_BUILD_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     names = [Path(line).name for line in SERIES.read_text().splitlines()
@@ -131,6 +135,23 @@ def main() -> None:
         ("does not implement either backend", "state-owner-identity-no-backend"),
     ):
         require(state_identity_patch, needle, label)
+    for needle, label in (
+        ("MT6797_DVFSP_STATE_BACKEND_ABI", "state-backend-abi"),
+        ("MT6797_DVFSP_STATE_BACKEND_CPU_PLL_CLUSTERS", "state-backend-cpu-clusters"),
+        ("MT6797_DVFSP_STATE_BACKEND_BIG_CLUSTER_CLUSTERS", "state-backend-big-cluster"),
+        ("struct mt6797_dvfsp_state_backend_snapshot", "state-backend-snapshot"),
+        ("struct mt6797_dvfsp_state_backend_ops", "state-backend-ops"),
+        ("struct mt6797_dvfsp_protected_state_owner", "protected-owner-struct"),
+        ("mt6797_dvfsp_state_backend_check", "state-backend-check"),
+        ("mt6797_dvfsp_protected_state_owner_collect", "protected-owner-collect"),
+        ("cpu_snapshot->generation != big_snapshot->generation", "state-backend-generation-match"),
+        ("cpu_snapshot->cluster_mask & big_snapshot->cluster_mask", "state-backend-disjoint-clusters"),
+        ("mt6797_dvfsp_protected_state_owner_release_pair", "state-backend-paired-release"),
+        ("mt6797_dvfsp_protected_state_owner_register", "protected-owner-register"),
+        ("mt6797_dvfsp_protected_state_owner_unregister", "protected-owner-unregister"),
+        ("No caller registers this owner", "protected-owner-default-off"),
+    ):
+        require(state_backend_patch, needle, label)
     for needle, label in (
         ("## Startup-state adapter seam", "design-state-seam"),
         ("`snapshot`", "design-snapshot"),
@@ -280,6 +301,28 @@ def main() -> None:
         require(identity_build_result, needle, label)
 
     for needle, label in (
+        ("claim=COMPILE_ONLY_PROTECTED_STATE_BACKEND_COMPOSITION", "backend-build-claim"),
+        ("repository_commit=06f0a87a6d9c9f71bf2f7ac5907f8f01241dd522", "backend-build-commit"),
+        ("origin=https://github.com/ixoo/gemini-pda-mainline.git", "backend-build-origin"),
+        ("build_backend=buildbox", "backend-build-backend"),
+        ("buildbox_status=validated", "backend-build-status"),
+        ("patch_count=185", "backend-build-patch-count"),
+        ("artifact=linux-7.1.3-gemini-88e6a33574c5", "backend-build-artifact"),
+        ("dtb_count=119", "backend-build-dtb-count"),
+        ("sha256sums=passed", "backend-build-checksums"),
+        ("package_fetch=success;validated_package_only", "backend-build-fetch"),
+        ("state_backend_composition=0196;default_off;cpu_pll_mcumixed_dvfsp;big_cluster_bigidvfs_smccc;exact_disjoint_cluster_masks;generation_and_owner_handle_checked", "backend-build-composition"),
+        ("registered_owner=0", "backend-build-owner-unregistered"),
+        ("provider=none", "backend-build-no-provider"),
+        ("mmio=none", "backend-build-no-mmio"),
+        ("secure_call=none", "backend-build-no-secure-call"),
+        ("hardware_write=none", "backend-build-no-write"),
+        ("device_action=none", "backend-build-no-device"),
+        ("boot_candidate=false", "backend-build-not-candidate"),
+    ):
+        require(state_backend_build_result, needle, label)
+
+    for needle, label in (
         ("claim=PUBLIC_GEMIAN_HYBRID_DVFSP_OWNER_REVALIDATED", "owner-claim"),
         ("source_commit=8cfe6596a503612e3332d9c26e292a19525a7f07", "owner-source"),
         ("source_license_basis=repository_COPYING_and_LICENSE_GPLv2;hybrid_header_GPLv2", "owner-license"),
@@ -305,6 +348,8 @@ def main() -> None:
         raise AssertionError("PCM adapter shell is not after the transition hold")
     if names.index("0194-soc-mediatek-add-bounded-MT6797-PCM-admission.patch") >= names.index("0195-soc-mediatek-require-protected-state-owner-identity.patch"):
         raise AssertionError("protected state-owner identity is not after the PCM adapter shell")
+    if names.index("0195-soc-mediatek-require-protected-state-owner-identity.patch") >= names.index("0196-soc-mediatek-compose-protected-state-backends.patch"):
+        raise AssertionError("protected state-backend composition is not after the owner identity gate")
 
     for forbidden in ("readl(", "writel(", "i2c_transfer", "regulator_enable(",
                       "regulator_disable(", "psci_ops.cpu_on", "cpu_up("):
@@ -318,6 +363,8 @@ def main() -> None:
             raise AssertionError(f"unexpected PCM adapter hardware operation: {forbidden}")
         if forbidden in state_identity_patch:
             raise AssertionError(f"unexpected state-owner identity hardware operation: {forbidden}")
+        if forbidden in state_backend_patch:
+            raise AssertionError(f"unexpected protected state-backend hardware operation: {forbidden}")
 
     print("claim=PARTIAL_FIRMWARE_LEASE_CALLBACK_CONTRACT")
     print("registered_owner=0")
@@ -334,6 +381,8 @@ def main() -> None:
     print("pcm_adapter_shell=0194;default_off;registered_adapter=0;no_provider;no_mmio;transition_order_enforced")
     print("state_owner_identity=0195;default_off;exact_mcumixed_dvfsp_and_bigidvfs;registered_owner=0;no_provider;no_mmio")
     print("state_owner_identity_buildbox=validated;compile_only;registered_owner=0;no_provider;no_mmio;boot_candidate=false")
+    print("state_backend_composition=0196;default_off;exact_disjoint_cpu_pll_and_big_cluster_masks;generation_and_owner_handle_checked;registered_owner=0;no_provider;no_mmio")
+    print("state_backend_composition_buildbox=validated;compile_only;registered_owner=0;no_provider;no_mmio;boot_candidate=false")
     print("pcm_adapter_contract=source-only;bounded-admission-model;callback-registration-gated")
     print("clock_owner_inventory=generic_ccf_only;protected_owner_absent;A72_observer_read_only")
     print("pcm_start_contract=defined;residency_and_start_required_before_callback_registration")

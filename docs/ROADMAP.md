@@ -1849,6 +1849,20 @@ The next ordered work remains source-only:
    protected startup-state backends, including authoritative OPP/frequency/
    voltage/VSRAM capture and transition ownership, before binding callbacks or
    admitting PCM image residency/start.
+   Patch `0196` now supplies the bounded composition seam for those two
+   protected domains. It accepts only exact MCUMIXED/DVFSP CPU-PLL and BigiDVFS
+   secure descriptors, merges complete LL/L/CCI and B snapshots only when
+   generations and owner handles agree, and pairs both transition holds with
+   fail-closed rollback/invalidation. The exact pushed commit `06f0a87` applies
+   all 185 series entries on Buildbox, compiles the full profile, produces 119
+   DTBs, passes package checksums, and has its validated package fetched. This
+   is compile-only evidence: the backend callbacks are external and
+   unregistered, with no provider, MMIO, secure call, firmware action, or
+   device boot. See the [protected composition Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/protected-state-backend-composition-buildbox-20260806.txt).
+   The next ordered gate is the real, independently reviewed implementation of
+   both protected startup-state backends, including authoritative
+   OPP/frequency/voltage/VSRAM capture, transition locks, suspend/fault
+   invalidation, and runtime identity evidence.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and
