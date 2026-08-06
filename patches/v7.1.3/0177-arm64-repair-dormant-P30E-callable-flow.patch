@@ -1,0 +1,108 @@
+From 0000000000000000000000000000000000000177 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 6 Aug 2026 00:00:00 -0400
+Subject: [PATCH] arm64: repair dormant P30E callable flow
+
+Preserve the caller's link register across the MMU-off cache and selector
+helpers, including fail-closed exits reached by direct branches. Require the
+operation word to match the MPIDR-selected CPU before claiming the slot.
+
+This remains a default-off experiment-only implementation with no
+secondary_entry caller, CPU_ON/OFF path, or Linux membership effect.
+
+This experiment-only change has no certifying sign-off and is not
+submission-ready.
+---
+ arch/arm64/kernel/mt6797_a72_p30e_asm.S | 22 +++++++++++++++++++++-
+ 1 file changed, 21 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm64/kernel/mt6797_a72_p30e_asm.S b/arch/arm64/kernel/mt6797_a72_p30e_asm.S
+--- a/arch/arm64/kernel/mt6797_a72_p30e_asm.S
++++ b/arch/arm64/kernel/mt6797_a72_p30e_asm.S
+@@ -82,6 +82,7 @@ SYM_FUNC_END(p30e_crc_bad)
+ 
+ /* x1 = selected slot, x5 = failure reason. */
+ SYM_FUNC_START_LOCAL(p30e_publish_failure)
++	/* Called by direct branches; x15 holds the public caller's link. */
+ 	mov	x4, #ARM64_MT6797_A72_P30E_FAILED
+ 	str	x4, [x1, #ARM64_MT6797_A72_P30E_TARGET_STATE_OFF]
+ 	mov	x4, #1
+@@ -97,10 +99,12 @@ SYM_FUNC_START_LOCAL(p30e_publish_failure)
+ 	add	x3, x1, #ARM64_MT6797_A72_P30E_TARGET_STATE_OFF
+ 	stlr	x4, [x3]
+ 	mov	x0, #-EPROTO
++	mov	x30, x15
+ 	ret
+ SYM_FUNC_END(p30e_publish_failure)
+ 
+ SYM_FUNC_START(arm64_mt6797_a72_p30e_target_claim)
++	mov	x15, x30
+ 	bl	p30e_select_slot
+ 	cmp	x0, #0
+ 	b.lt	.Lp30e_claim_no_target
+@@ -124,11 +128,19 @@ SYM_FUNC_START(arm64_mt6797_a72_p30e_target_claim)
+ 	mov	x5, #3
+ 	b.ne	p30e_publish_failure
+ 	ldr	x4, [x1, #ARM64_MT6797_A72_P30E_OPERATION_OFF]
++	cmp	x2, #ARM64_MT6797_A72_P30E_CPU8
++	b.ne	.Lp30e_operation_cpu9
+ 	cmp	x4, #ARM64_MT6797_A72_P30E_OPERATION_CPU8_UP
+ 	b.eq	.Lp30e_operation_ok
++	b	.Lp30e_bad_operation
++.Lp30e_operation_cpu9:
++	cmp	x2, #ARM64_MT6797_A72_P30E_CPU9
++	b.ne	.Lp30e_bad_operation
+ 	cmp	x4, #ARM64_MT6797_A72_P30E_OPERATION_CPU9_UP
++	b.eq	.Lp30e_operation_ok
++.Lp30e_bad_operation:
+ 	mov	x5, #7
+ 	b	p30e_publish_failure
++.Lp30e_operation_ok:
+-	.Lp30e_operation_ok:
+ 	add	x3, x1, #ARM64_MT6797_A72_P30E_CONTROLLER_STATE_OFF
+ 	ldar	x4, [x3]
+@@ -160,7 +172,9 @@ SYM_FUNC_START(arm64_mt6797_a72_p30e_target_claim)
+ 	add	x3, x1, #ARM64_MT6797_A72_P30E_TARGET_STATE_OFF
+ 	stlr	x4, [x3]
+ 	mov	x0, #0
++	mov	x30, x15
+ 	ret
+ .Lp30e_claim_not_armed:
+ 	mov	x0, #-EAGAIN
++	mov	x30, x15
+ 	ret
+@@ -174,9 +188,11 @@ SYM_FUNC_START(arm64_mt6797_a72_p30e_target_claim)
+ 	mov	x5, #4
+ 	b	p30e_publish_failure
+ .Lp30e_claim_no_target:
++	mov	x30, x15
+ 	ret
+ SYM_FUNC_END(arm64_mt6797_a72_p30e_target_claim)
+ 
+ SYM_FUNC_START(arm64_mt6797_a72_p30e_target_publish)
+ 	/* Preserve the terminal tuple across slot selection/cache maintenance. */
++	mov	x15, x30
+ 	mov	x5, x0
+@@ -207,16 +223,20 @@ SYM_FUNC_START(arm64_mt6797_a72_p30e_target_publish)
+ 	add	x3, x1, #ARM64_MT6797_A72_P30E_TARGET_STATE_OFF
+ 	stlr	x5, [x3]
+ 	mov	x0, #0
++	mov	x30, x15
+ 	ret
+ .Lp30e_publish_bad_state:
+ 	mov	x0, #-EINVAL
++	mov	x30, x15
+ 	ret
+ .Lp30e_publish_no_target:
+ 	mov	x0, #-ENODEV
++	mov	x30, x15
+ 	ret
+ .Lp30e_publish_not_claimed:
+ 	mov	x0, #-EALREADY
++	mov	x30, x15
+ 	ret
+ SYM_FUNC_END(arm64_mt6797_a72_p30e_target_publish)
+ 
+ 	.text
+--
+2.45.0
