@@ -1,0 +1,670 @@
+From 0000000000000000000000000000000000000194 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 6 Aug 2026 14:30:00 -0400
+Subject: [PATCH] soc: mediatek: add bounded MT6797 PCM admission shell
+
+The state-owner transition hold keeps a startup generation stable, but the
+future PCM owner still needs an ordered, generation-revalidated admission
+boundary. Define that shell around the existing state-owner contract: exact
+image identity and residency, exact CSPM/CSRAM resource identity, bounded
+reset/image/control/run checkpoints, and callback registration only after a
+run acknowledgement.
+
+All callbacks remain external and unregistered by default. The shell performs
+no MMIO, regulator, secure-monitor, firmware, I2C, CPU_ON, or provider
+operation. A failed checkpoint enters a sticky fault and never guesses an
+inverse; teardown and state-hold release are explicit and independently
+validated. This is an experiment-only contract and is not submission-ready.
+---
+ drivers/soc/mediatek/mt6797-dvfsp-handoff.c       | 440 ++++++++++++++++++++++
+ include/linux/soc/mediatek/mt6797-dvfsp-handoff.h | 157 ++++++++
+ 2 files changed, 597 insertions(+)
+
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
+@@ -103,6 +103,100 @@ struct mt6797_dvfsp_state_owner_ops {
+ 			   enum mt6797_dvfsp_state_invalidation_reason reason);
+ };
+ 
++#define MT6797_DVFSP_PCM_ADAPTER_ABI		1
++#define MT6797_DVFSP_PCM_IMAGE_HASH_BYTES	32
++#define MT6797_DVFSP_PCM_RESOURCE_CSPM		BIT(0)
++#define MT6797_DVFSP_PCM_RESOURCE_CSRAM		BIT(1)
++#define MT6797_DVFSP_PCM_RESOURCE_I2C_APPM	BIT(2)
++#define MT6797_DVFSP_PCM_RESOURCE_SEMAPHORE	BIT(3)
++#define MT6797_DVFSP_PCM_RESOURCE_ALL		GENMASK(3, 0)
++#define MT6797_DVFSP_PCM_CSPM_BASE		0x11015000ULL
++#define MT6797_DVFSP_PCM_CSPM_LENGTH		0x1000
++#define MT6797_DVFSP_PCM_CSRAM_BASE		0x0012a000ULL
++#define MT6797_DVFSP_PCM_CSRAM_LENGTH		0x3000
++
++enum mt6797_dvfsp_pcm_adapter_phase {
++	MT6797_DVFSP_PCM_PHASE_UNAVAILABLE,
++	MT6797_DVFSP_PCM_PHASE_SNAPSHOTTED,
++	MT6797_DVFSP_PCM_PHASE_STATE_HELD,
++	MT6797_DVFSP_PCM_PHASE_RESOURCES_HELD,
++	MT6797_DVFSP_PCM_PHASE_IMAGE_READY,
++	MT6797_DVFSP_PCM_PHASE_RESET_INITIALIZED,
++	MT6797_DVFSP_PCM_PHASE_IMAGE_ACKED,
++	MT6797_DVFSP_PCM_PHASE_CONTROL_INITIALIZED,
++	MT6797_DVFSP_PCM_PHASE_RUNNING,
++	MT6797_DVFSP_PCM_PHASE_LEASE_REGISTERED,
++	MT6797_DVFSP_PCM_PHASE_INVALIDATED,
++	MT6797_DVFSP_PCM_PHASE_FAULTED,
++};
++
++enum mt6797_dvfsp_pcm_adapter_fault {
++	MT6797_DVFSP_PCM_FAULT_OWNER_REMOVED,
++	MT6797_DVFSP_PCM_FAULT_STATE_CHANGED,
++	MT6797_DVFSP_PCM_FAULT_RESOURCE_IDENTITY,
++	MT6797_DVFSP_PCM_FAULT_IMAGE_IDENTITY,
++	MT6797_DVFSP_PCM_FAULT_CHECKPOINT,
++	MT6797_DVFSP_PCM_FAULT_TEARDOWN,
++};
++
++struct mt6797_dvfsp_pcm_image_identity {
++	u32 abi;
++	u32 target_revision;
++	u32 loader_domain;
++	u32 reserved;
++	u64 physical_base;
++	u32 length;
++	u32 alignment;
++	u8 sha256[MT6797_DVFSP_PCM_IMAGE_HASH_BYTES];
++};
++
++struct mt6797_dvfsp_pcm_resource_identity {
++	u32 abi;
++	u32 resource_mask;
++	u64 cspm_base;
++	u32 cspm_length;
++	u32 reserved;
++	u64 csram_base;
++	u32 csram_length;
++	u32 reserved2;
++	u64 owner_handle;
++};
++
++struct mt6797_dvfsp_pcm_adapter_identity {
++	u32 abi;
++	u32 cluster_mask;
++	u64 state_generation;
++	u64 state_owner_handle;
++	struct mt6797_dvfsp_pcm_image_identity image;
++	struct mt6797_dvfsp_pcm_resource_identity resources;
++};
++
++struct mt6797_dvfsp_pcm_adapter_ops {
++	int (*resources_acquire)(void *context,
++				 const struct mt6797_dvfsp_pcm_adapter_identity *identity,
++				 struct mt6797_dvfsp_pcm_resource_identity *resources);
++	int (*image_prepare)(void *context,
++				const struct mt6797_dvfsp_pcm_adapter_identity *identity,
++				struct mt6797_dvfsp_pcm_image_identity *image);
++	int (*reset_initialize)(void *context,
++				       const struct mt6797_dvfsp_pcm_adapter_identity *identity);
++	int (*image_acknowledge)(void *context,
++					const struct mt6797_dvfsp_pcm_adapter_identity *identity);
++	int (*control_initialize)(void *context,
++					  const struct mt6797_dvfsp_pcm_adapter_identity *identity);
++	int (*run)(void *context,
++		   const struct mt6797_dvfsp_pcm_adapter_identity *identity);
++	int (*lease_register)(void *context,
++				      const struct mt6797_dvfsp_pcm_adapter_identity *identity);
++	int (*lease_unregister)(void *context,
++					const struct mt6797_dvfsp_pcm_adapter_identity *identity);
++	int (*teardown)(void *context,
++				const struct mt6797_dvfsp_pcm_adapter_identity *identity,
++				enum mt6797_dvfsp_pcm_adapter_phase phase);
++	void (*invalidate)(void *context,
++			  enum mt6797_dvfsp_pcm_adapter_fault fault);
++};
++
+ #if IS_REACHABLE(CONFIG_MTK_MT6797_DVFSP_HANDOFF)
+ struct mt6797_dvfsp_handoff *
+ mt6797_dvfsp_handoff_get(struct device *consumer);
+@@ -202,5 +290,22 @@ void mt6797_dvfsp_handoff_state_invalidate(
+ 	struct mt6797_dvfsp_handoff *handoff,
+ 	enum mt6797_dvfsp_state_invalidation_reason reason);
++int mt6797_dvfsp_handoff_pcm_adapter_register(
++	struct mt6797_dvfsp_handoff *handoff,
++	const struct mt6797_dvfsp_pcm_adapter_ops *ops, void *context);
++int mt6797_dvfsp_handoff_pcm_adapter_unregister(
++	struct mt6797_dvfsp_handoff *handoff,
++	const struct mt6797_dvfsp_pcm_adapter_ops *ops, void *context);
++int mt6797_dvfsp_handoff_pcm_adapter_start(
++	struct mt6797_dvfsp_handoff *handoff,
++	const struct mt6797_dvfsp_pcm_image_identity *image);
++int mt6797_dvfsp_handoff_pcm_adapter_stop(
++	struct mt6797_dvfsp_handoff *handoff);
++int mt6797_dvfsp_handoff_pcm_adapter_invalidate(
++	struct mt6797_dvfsp_handoff *handoff,
++	enum mt6797_dvfsp_pcm_adapter_fault fault);
++enum mt6797_dvfsp_pcm_adapter_phase
++mt6797_dvfsp_handoff_pcm_adapter_phase(
++	struct mt6797_dvfsp_handoff *handoff);
+ /* The readiness test is atomic; clock validation is sleepable. */
+ bool
+ mt6797_dvfsp_handoff_is_ready_atomic(struct mt6797_dvfsp_handoff *handoff);
+@@ -329,8 +439,54 @@ mt6797_dvfsp_handoff_state_invalidate(
+ 	struct mt6797_dvfsp_handoff *handoff,
+ 	enum mt6797_dvfsp_state_invalidation_reason reason)
+ {
+ }
+ 
++static inline int
++mt6797_dvfsp_handoff_pcm_adapter_register(
++	struct mt6797_dvfsp_handoff *handoff,
++	const struct mt6797_dvfsp_pcm_adapter_ops *ops, void *context)
++{
++	return -ENODEV;
++}
++
++static inline int
++mt6797_dvfsp_handoff_pcm_adapter_unregister(
++	struct mt6797_dvfsp_handoff *handoff,
++	const struct mt6797_dvfsp_pcm_adapter_ops *ops, void *context)
++{
++	return -ENODEV;
++}
++
++static inline int
++mt6797_dvfsp_handoff_pcm_adapter_start(
++	struct mt6797_dvfsp_handoff *handoff,
++	const struct mt6797_dvfsp_pcm_image_identity *image)
++{
++	return -ENODEV;
++}
++
++static inline int
++mt6797_dvfsp_handoff_pcm_adapter_stop(
++	struct mt6797_dvfsp_handoff *handoff)
++{
++	return -ENODEV;
++}
++
++static inline int
++mt6797_dvfsp_handoff_pcm_adapter_invalidate(
++	struct mt6797_dvfsp_handoff *handoff,
++	enum mt6797_dvfsp_pcm_adapter_fault fault)
++{
++	return -ENODEV;
++}
++
++static inline enum mt6797_dvfsp_pcm_adapter_phase
++mt6797_dvfsp_handoff_pcm_adapter_phase(
++	struct mt6797_dvfsp_handoff *handoff)
++{
++	return MT6797_DVFSP_PCM_PHASE_UNAVAILABLE;
++}
++
+ static inline bool
+ mt6797_dvfsp_handoff_is_ready_atomic(struct mt6797_dvfsp_handoff *handoff)
+ {
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+@@ -154,5 +154,12 @@ struct mt6797_dvfsp_handoff {
+ 	bool state_hold_active;
+ 	struct mt6797_dvfsp_state_hold state_hold;
++	struct mutex pcm_adapter_lock;
++	const struct mt6797_dvfsp_pcm_adapter_ops *pcm_adapter_ops;
++	void *pcm_adapter_context;
++	enum mt6797_dvfsp_pcm_adapter_phase pcm_adapter_phase;
++	bool pcm_adapter_sticky_fault;
++	struct mt6797_dvfsp_pcm_adapter_identity pcm_adapter_identity;
++	struct mt6797_dvfsp_state_snapshot pcm_adapter_snapshot;
+ 	struct completion terminal;
+ 	struct delayed_work late_work;
+ 	struct mt6797_dvfsp_snapshot samples[MT6797_DVFSP_SAMPLE_COUNT];
+@@ -1816,6 +1822,437 @@ void mt6797_dvfsp_handoff_state_invalidate(
+ }
+ EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_state_invalidate);
+ 
++static bool
++mt6797_dvfsp_pcm_bytes_present(const u8 *bytes, size_t length)
++{
++	size_t i;
++
++	for (i = 0; i < length; i++)
++		if (bytes[i])
++			return true;
++
++	return false;
++}
++
++static int
++mt6797_dvfsp_pcm_image_check(
++	const struct mt6797_dvfsp_pcm_image_identity *image)
++{
++	if (!image || image->abi != MT6797_DVFSP_PCM_ADAPTER_ABI ||
++	    !image->target_revision || !image->loader_domain ||
++	    !image->physical_base || !image->length || !image->alignment ||
++	    !mt6797_dvfsp_pcm_bytes_present(
++		image->sha256, MT6797_DVFSP_PCM_IMAGE_HASH_BYTES))
++		return -EPROTO;
++
++	return 0;
++}
++
++static int
++mt6797_dvfsp_pcm_resource_check(
++	const struct mt6797_dvfsp_pcm_resource_identity *resources)
++{
++	if (!resources || resources->abi != MT6797_DVFSP_PCM_ADAPTER_ABI ||
++	    resources->resource_mask != MT6797_DVFSP_PCM_RESOURCE_ALL ||
++	    resources->cspm_base != MT6797_DVFSP_PCM_CSPM_BASE ||
++	    resources->cspm_length != MT6797_DVFSP_PCM_CSPM_LENGTH ||
++	    resources->csram_base != MT6797_DVFSP_PCM_CSRAM_BASE ||
++	    resources->csram_length != MT6797_DVFSP_PCM_CSRAM_LENGTH ||
++	    resources->reserved || resources->reserved2 ||
++	    !resources->owner_handle)
++		return -EPROTO;
++
++	return 0;
++}
++
++static bool
++mt6797_dvfsp_pcm_image_equal(
++	const struct mt6797_dvfsp_pcm_image_identity *left,
++	const struct mt6797_dvfsp_pcm_image_identity *right)
++{
++	return left->abi == right->abi &&
++		left->target_revision == right->target_revision &&
++		left->loader_domain == right->loader_domain &&
++		left->reserved == right->reserved &&
++		left->physical_base == right->physical_base &&
++		left->length == right->length &&
++		left->alignment == right->alignment &&
++		!memcmp(left->sha256, right->sha256,
++			MT6797_DVFSP_PCM_IMAGE_HASH_BYTES);
++}
++
++static bool
++mt6797_dvfsp_pcm_resource_equal(
++	const struct mt6797_dvfsp_pcm_resource_identity *left,
++	const struct mt6797_dvfsp_pcm_resource_identity *right)
++{
++	return left->abi == right->abi &&
++		left->resource_mask == right->resource_mask &&
++		left->cspm_base == right->cspm_base &&
++		left->cspm_length == right->cspm_length &&
++		left->reserved == right->reserved &&
++		left->csram_base == right->csram_base &&
++		left->csram_length == right->csram_length &&
++		left->reserved2 == right->reserved2 &&
++		left->owner_handle == right->owner_handle;
++}
++
++static int
++mt6797_dvfsp_pcm_identity_check(
++	const struct mt6797_dvfsp_pcm_adapter_identity *identity)
++{
++	if (!identity || identity->abi != MT6797_DVFSP_PCM_ADAPTER_ABI ||
++	    !identity->cluster_mask ||
++	    identity->cluster_mask & ~MT6797_DVFSP_STATE_CLUSTER_MASK ||
++	    !identity->state_generation || !identity->state_owner_handle)
++		return -EPROTO;
++
++	return mt6797_dvfsp_pcm_image_check(&identity->image);
++}
++
++static int
++mt6797_dvfsp_pcm_adapter_fault_locked(
++	struct mt6797_dvfsp_handoff *handoff,
++	enum mt6797_dvfsp_pcm_adapter_fault fault, int error)
++{
++	const struct mt6797_dvfsp_pcm_adapter_ops *ops =
++		handoff->pcm_adapter_ops;
++	int ret = error;
++
++	handoff->pcm_adapter_sticky_fault = true;
++	handoff->pcm_adapter_phase = MT6797_DVFSP_PCM_PHASE_FAULTED;
++	if (ops)
++		ops->invalidate(handoff->pcm_adapter_context, fault);
++
++	return ret;
++}
++
++static int
++mt6797_dvfsp_pcm_adapter_revalidate_locked(
++	struct mt6797_dvfsp_handoff *handoff)
++{
++	return mt6797_dvfsp_handoff_state_validate(
++		handoff, &handoff->pcm_adapter_snapshot);
++}
++
++static int
++mt6797_dvfsp_pcm_adapter_checkpoint_locked(
++	struct mt6797_dvfsp_handoff *handoff,
++	int (*checkpoint)(void *context,
++			 const struct mt6797_dvfsp_pcm_adapter_identity *identity),
++	enum mt6797_dvfsp_pcm_adapter_fault fault,
++	int unused_error)
++{
++	int ret;
++	(void)unused_error;
++	(void)fault;
++
++	ret = mt6797_dvfsp_pcm_adapter_revalidate_locked(handoff);
++	if (ret)
++		return ret;
++
++	return checkpoint(handoff->pcm_adapter_context,
++			   &handoff->pcm_adapter_identity);
++}
++
++int mt6797_dvfsp_handoff_pcm_adapter_register(
++	struct mt6797_dvfsp_handoff *handoff,
++	const struct mt6797_dvfsp_pcm_adapter_ops *ops, void *context)
++{
++	int ret = 0;
++
++	if (!handoff || !ops || !ops->resources_acquire ||
++	    !ops->image_prepare || !ops->reset_initialize ||
++	    !ops->image_acknowledge || !ops->control_initialize ||
++	    !ops->run || !ops->lease_register || !ops->lease_unregister ||
++	    !ops->teardown || !ops->invalidate)
++		return -EINVAL;
++
++	mutex_lock(&handoff->pcm_adapter_lock);
++	if (handoff->pcm_adapter_ops || handoff->pcm_adapter_sticky_fault) {
++		ret = -EBUSY;
++	} else {
++		handoff->pcm_adapter_ops = ops;
++		handoff->pcm_adapter_context = context;
++	}
++	mutex_unlock(&handoff->pcm_adapter_lock);
++
++	return ret;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_pcm_adapter_register);
++
++int mt6797_dvfsp_handoff_pcm_adapter_unregister(
++	struct mt6797_dvfsp_handoff *handoff,
++	const struct mt6797_dvfsp_pcm_adapter_ops *ops, void *context)
++{
++	int ret = 0;
++
++	if (!handoff || !ops)
++		return -EINVAL;
++
++	mutex_lock(&handoff->pcm_adapter_lock);
++	if (handoff->pcm_adapter_phase != MT6797_DVFSP_PCM_PHASE_UNAVAILABLE)
++		ret = -EBUSY;
++	else if (handoff->pcm_adapter_ops != ops ||
++		 handoff->pcm_adapter_context != context)
++		ret = -ENOENT;
++	else {
++		handoff->pcm_adapter_ops = NULL;
++		handoff->pcm_adapter_context = NULL;
++	}
++	mutex_unlock(&handoff->pcm_adapter_lock);
++
++	return ret;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_pcm_adapter_unregister);
++
++int mt6797_dvfsp_handoff_pcm_adapter_start(
++	struct mt6797_dvfsp_handoff *handoff,
++	const struct mt6797_dvfsp_pcm_image_identity *image)
++{
++	struct mt6797_dvfsp_state_snapshot snapshot;
++	struct mt6797_dvfsp_state_hold hold;
++	struct mt6797_dvfsp_pcm_resource_identity resources;
++	const struct mt6797_dvfsp_pcm_adapter_ops *ops;
++	enum mt6797_dvfsp_pcm_adapter_phase phase_before_fault;
++	bool hold_active = false;
++	int ret;
++
++	if (!handoff || !image)
++		return -EINVAL;
++
++	ret = mt6797_dvfsp_pcm_image_check(image);
++	if (ret)
++		return ret;
++
++	mutex_lock(&handoff->pcm_adapter_lock);
++	ops = handoff->pcm_adapter_ops;
++	if (!ops) {
++		ret = -EOPNOTSUPP;
++		goto out_unlock;
++	}
++	if (handoff->pcm_adapter_sticky_fault ||
++	    handoff->pcm_adapter_phase != MT6797_DVFSP_PCM_PHASE_UNAVAILABLE) {
++		ret = -EBUSY;
++		goto out_unlock;
++	}
++
++	ret = mt6797_dvfsp_handoff_state_snapshot(handoff, &snapshot);
++	if (ret)
++		goto out_unlock;
++	handoff->pcm_adapter_snapshot = snapshot;
++	handoff->pcm_adapter_phase = MT6797_DVFSP_PCM_PHASE_SNAPSHOTTED;
++
++	ret = mt6797_dvfsp_handoff_state_hold(handoff, &snapshot, &hold);
++	if (ret)
++		goto fault_state;
++	hold_active = true;
++	handoff->pcm_adapter_phase = MT6797_DVFSP_PCM_PHASE_STATE_HELD;
++
++	memset(&handoff->pcm_adapter_identity, 0,
++	       sizeof(handoff->pcm_adapter_identity));
++	handoff->pcm_adapter_identity.abi = MT6797_DVFSP_PCM_ADAPTER_ABI;
++	handoff->pcm_adapter_identity.cluster_mask = snapshot.cluster_mask;
++	handoff->pcm_adapter_identity.state_generation = snapshot.generation;
++	handoff->pcm_adapter_identity.state_owner_handle = hold.owner_handle;
++	handoff->pcm_adapter_identity.image = *image;
++	ret = mt6797_dvfsp_pcm_identity_check(
++		&handoff->pcm_adapter_identity);
++	if (ret)
++		goto fault_state;
++
++	memset(&resources, 0, sizeof(resources));
++	ret = ops->resources_acquire(handoff->pcm_adapter_context,
++				     &handoff->pcm_adapter_identity, &resources);
++	if (ret)
++		goto fault_state;
++	ret = mt6797_dvfsp_pcm_resource_check(&resources);
++	if (ret)
++		goto fault_resource;
++	handoff->pcm_adapter_identity.resources = resources;
++	handoff->pcm_adapter_phase = MT6797_DVFSP_PCM_PHASE_RESOURCES_HELD;
++
++	ret = ops->image_prepare(handoff->pcm_adapter_context,
++				 &handoff->pcm_adapter_identity,
++				 &handoff->pcm_adapter_identity.image);
++	if (ret)
++		goto fault_image;
++	if (!mt6797_dvfsp_pcm_image_equal(image,
++					  &handoff->pcm_adapter_identity.image)) {
++		ret = -EPROTO;
++		goto fault_image;
++	}
++	handoff->pcm_adapter_phase = MT6797_DVFSP_PCM_PHASE_IMAGE_READY;
++
++	ret = mt6797_dvfsp_pcm_adapter_checkpoint_locked(
++		handoff, ops->reset_initialize,
++		MT6797_DVFSP_PCM_FAULT_CHECKPOINT, -ETIMEDOUT);
++	if (ret)
++		goto fault_checkpoint;
++	handoff->pcm_adapter_phase = MT6797_DVFSP_PCM_PHASE_RESET_INITIALIZED;
++
++	ret = mt6797_dvfsp_pcm_adapter_checkpoint_locked(
++		handoff, ops->image_acknowledge,
++		MT6797_DVFSP_PCM_FAULT_CHECKPOINT, -ETIMEDOUT);
++	if (ret)
++		goto fault_checkpoint;
++	handoff->pcm_adapter_phase = MT6797_DVFSP_PCM_PHASE_IMAGE_ACKED;
++
++	ret = mt6797_dvfsp_pcm_adapter_checkpoint_locked(
++		handoff, ops->control_initialize,
++		MT6797_DVFSP_PCM_FAULT_CHECKPOINT, -ETIMEDOUT);
++	if (ret)
++		goto fault_checkpoint;
++	handoff->pcm_adapter_phase = MT6797_DVFSP_PCM_PHASE_CONTROL_INITIALIZED;
++
++	ret = mt6797_dvfsp_pcm_adapter_checkpoint_locked(
++		handoff, ops->run, MT6797_DVFSP_PCM_FAULT_CHECKPOINT,
++		-ETIMEDOUT);
++	if (ret)
++		goto fault_checkpoint;
++	handoff->pcm_adapter_phase = MT6797_DVFSP_PCM_PHASE_RUNNING;
++
++	ret = mt6797_dvfsp_pcm_adapter_checkpoint_locked(
++		handoff, ops->lease_register,
++		MT6797_DVFSP_PCM_FAULT_CHECKPOINT, -ETIMEDOUT);
++	if (ret)
++		goto fault_checkpoint;
++	handoff->pcm_adapter_phase = MT6797_DVFSP_PCM_PHASE_LEASE_REGISTERED;
++	ret = 0;
++	goto out_unlock;
++
++fault_checkpoint:
++	phase_before_fault = handoff->pcm_adapter_phase;
++	ret = mt6797_dvfsp_pcm_adapter_fault_locked(
++		handoff, MT6797_DVFSP_PCM_FAULT_CHECKPOINT, ret);
++	ops->teardown(handoff->pcm_adapter_context,
++		      &handoff->pcm_adapter_identity, phase_before_fault);
++	if (hold_active)
++		mt6797_dvfsp_handoff_state_release(handoff, &hold);
++	goto out_unlock;
++
++fault_image:
++	handoff->pcm_adapter_sticky_fault = true;
++	handoff->pcm_adapter_phase = MT6797_DVFSP_PCM_PHASE_FAULTED;
++	ops->teardown(handoff->pcm_adapter_context,
++		      &handoff->pcm_adapter_identity,
++		      MT6797_DVFSP_PCM_PHASE_RESOURCES_HELD);
++	ops->invalidate(handoff->pcm_adapter_context,
++			MT6797_DVFSP_PCM_FAULT_IMAGE_IDENTITY);
++	if (hold_active)
++		mt6797_dvfsp_handoff_state_release(handoff, &hold);
++	goto out_unlock;
++
++fault_resource:
++	ret = mt6797_dvfsp_pcm_adapter_fault_locked(
++		handoff, MT6797_DVFSP_PCM_FAULT_RESOURCE_IDENTITY, ret);
++	ops->teardown(handoff->pcm_adapter_context,
++		      &handoff->pcm_adapter_identity,
++		      MT6797_DVFSP_PCM_PHASE_STATE_HELD);
++	if (hold_active)
++		mt6797_dvfsp_handoff_state_release(handoff, &hold);
++	goto out_unlock;
++
++fault_state:
++	phase_before_fault = handoff->pcm_adapter_phase;
++	ret = mt6797_dvfsp_pcm_adapter_fault_locked(
++		handoff, MT6797_DVFSP_PCM_FAULT_STATE_CHANGED, ret);
++	if (hold_active && phase_before_fault >=
++	    MT6797_DVFSP_PCM_PHASE_RESOURCES_HELD)
++		ops->teardown(handoff->pcm_adapter_context,
++			      &handoff->pcm_adapter_identity,
++			      phase_before_fault);
++	if (hold_active)
++		mt6797_dvfsp_handoff_state_release(handoff, &hold);
++
++out_unlock:
++	mutex_unlock(&handoff->pcm_adapter_lock);
++	return ret;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_pcm_adapter_start);
++
++int mt6797_dvfsp_handoff_pcm_adapter_stop(
++	struct mt6797_dvfsp_handoff *handoff)
++{
++	const struct mt6797_dvfsp_pcm_adapter_ops *ops;
++	int ret;
++
++	if (!handoff)
++		return -EINVAL;
++
++	mutex_lock(&handoff->pcm_adapter_lock);
++	ops = handoff->pcm_adapter_ops;
++	if (!ops || handoff->pcm_adapter_phase !=
++	    MT6797_DVFSP_PCM_PHASE_LEASE_REGISTERED) {
++		ret = -EHOSTDOWN;
++		goto out_unlock;
++	}
++	ret = ops->lease_unregister(handoff->pcm_adapter_context,
++				   &handoff->pcm_adapter_identity);
++	if (ret)
++		goto fault;
++	ret = ops->teardown(handoff->pcm_adapter_context,
++				&handoff->pcm_adapter_identity,
++				MT6797_DVFSP_PCM_PHASE_LEASE_REGISTERED);
++	if (ret)
++		goto fault;
++	ret = mt6797_dvfsp_handoff_state_release(
++		handoff, &handoff->state_hold);
++	if (ret)
++		goto fault;
++	handoff->pcm_adapter_phase = MT6797_DVFSP_PCM_PHASE_UNAVAILABLE;
++	memset(&handoff->pcm_adapter_identity, 0,
++	       sizeof(handoff->pcm_adapter_identity));
++	goto out_unlock;
++
++fault:
++	ret = mt6797_dvfsp_pcm_adapter_fault_locked(
++		handoff, MT6797_DVFSP_PCM_FAULT_TEARDOWN, ret);
++out_unlock:
++	mutex_unlock(&handoff->pcm_adapter_lock);
++	return ret;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_pcm_adapter_stop);
++
++int mt6797_dvfsp_handoff_pcm_adapter_invalidate(
++	struct mt6797_dvfsp_handoff *handoff,
++	enum mt6797_dvfsp_pcm_adapter_fault fault)
++{
++	if (!handoff)
++		return -EINVAL;
++
++	mutex_lock(&handoff->pcm_adapter_lock);
++	if (handoff->pcm_adapter_phase ==
++	    MT6797_DVFSP_PCM_PHASE_UNAVAILABLE) {
++		mutex_unlock(&handoff->pcm_adapter_lock);
++		return -ENOENT;
++	}
++	handoff->pcm_adapter_sticky_fault = true;
++	handoff->pcm_adapter_phase = MT6797_DVFSP_PCM_PHASE_INVALIDATED;
++	if (handoff->pcm_adapter_ops)
++		handoff->pcm_adapter_ops->invalidate(
++			handoff->pcm_adapter_context, fault);
++	mutex_unlock(&handoff->pcm_adapter_lock);
++	return 0;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_pcm_adapter_invalidate);
++
++enum mt6797_dvfsp_pcm_adapter_phase
++mt6797_dvfsp_handoff_pcm_adapter_phase(
++	struct mt6797_dvfsp_handoff *handoff)
++{
++	enum mt6797_dvfsp_pcm_adapter_phase phase;
++
++	if (!handoff)
++		return MT6797_DVFSP_PCM_PHASE_FAULTED;
++
++	mutex_lock(&handoff->pcm_adapter_lock);
++	phase = handoff->pcm_adapter_phase;
++	mutex_unlock(&handoff->pcm_adapter_lock);
++	return phase;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_pcm_adapter_phase);
++
+ int
+ mt6797_dvfsp_handoff_require_ready(struct mt6797_dvfsp_handoff *handoff)
+ {
+@@ -1838,7 +1838,9 @@ static int mt6797_dvfsp_handoff_probe(struct platform_device *pdev)
+ 	handoff->reason = "resources-not-ready";
+ 	mutex_init(&handoff->lock);
+ 	mutex_init(&handoff->transfer_lock);
+ 	mutex_init(&handoff->fw_owner_lock);
+ 	mutex_init(&handoff->state_owner_lock);
++	mutex_init(&handoff->pcm_adapter_lock);
++	handoff->pcm_adapter_phase = MT6797_DVFSP_PCM_PHASE_UNAVAILABLE;
+ 	init_completion(&handoff->terminal);
+ 	atomic_set(&handoff->terminal_grant, 0);
+-- 
+2.43.0
