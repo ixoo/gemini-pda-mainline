@@ -243,7 +243,7 @@ diff --git a/drivers/i2c/busses/i2c-mt65xx.c b/drivers/i2c/busses/i2c-mt65xx.c
 index 478c356..0000000 100644
 --- a/drivers/i2c/busses/i2c-mt65xx.c
 +++ b/drivers/i2c/busses/i2c-mt65xx.c
-@@ -1854,7 +1854,10 @@ static int mtk_i2c_transfer(struct i2c_adapter *adap,
+@@ -1857,7 +1857,10 @@
  	int ret;
 +	int lease_ret;
  	int left_num = num;
