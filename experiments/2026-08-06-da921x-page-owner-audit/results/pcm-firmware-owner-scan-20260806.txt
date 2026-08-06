@@ -1,0 +1,26 @@
+# Vendor PCM firmware owner scan
+date=2026-08-06
+scope=read-only-private-archive-scan;no-device-action
+archive=gemini-vendor-firmware-20260711.tar.gz
+archive_sha256=4cced5d9684faef305eda2bf5a7528a3a47e77d46cf4788cb13112992ec0879c
+source=experiments/2026-07-11-gemian-firmware-inventory/results/manifest.sha256
+files=9;group=pcm_*.bin
+
+# The scan compares raw little-endian byte patterns only. It is not a
+# decoder for the MediaTek PCM instruction format and therefore cannot exclude
+# register-indirect or computed accesses.
+scan=cspm_base_0x11015000=0_all_files
+scan=pcm_con0_0x11015018=0_all_files
+scan=csram_base_0x0012a000=0_all_files
+scan=fw_done_bit_0x8000=0_all_files
+scan=semaphore_key_0x0b160001=1_vcorefs_file_each_hpm_lpm_ultra
+scan=sw_pause_bit_0x2000=3_deepidle;4_sodi;3_suspend;5_each_vcorefs_file
+
+archive_boundary=contains_Gemian_userspace_SPM_PCM_blobs_only;no_LK_TEE_SCP_payloads
+interpretation=negative_direct-literal-evidence;encoded-key-and-bit-values_not_owner-proof
+mainline_firmware_lease=unproven
+fail_closed_action=keep_I2C6_and_DA921x_provider_write_disabled;retain_provider_-EOPNOTSUPP
+next=prove_one-way_receiver_authority_for_SEMA_I2C_DRV_or_obtain_reviewed_LK_TEE_SCP_owner_protocol
+decision=NO_NEW_OWNER_AUTHORITY
+hardware_action=none
+status=PASS_LIMITED_PCM_SCAN_NEGATIVE

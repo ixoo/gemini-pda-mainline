@@ -20,6 +20,7 @@ CORE_DISPATCH = Path(__file__).resolve().parents[1] / "results/i2c-core-dispatch
 DVFSP_LEASE = Path(__file__).resolve().parents[1] / "results/dvfsp-lease-audit-20260806.txt"
 BUILDBOX_LEASE = Path(__file__).resolve().parents[1] / "results/buildbox-transfer-lease-20260806.txt"
 FIRMWARE_LEASE = Path(__file__).resolve().parents[1] / "results/firmware-owner-lease-20260806.txt"
+PCM_SCAN = Path(__file__).resolve().parents[1] / "results/pcm-firmware-owner-scan-20260806.txt"
 LEDGER = Path(__file__).resolve().parents[1] / "results/source-audit.tsv"
 RECONCILIATION = Path(__file__).resolve().parents[1] / "results/source-reconciliation-20260806.txt"
 CROSSCHECK = ROOT / "experiments/2026-07-23-da9214-resource-only/results/da9214-datasheet-crosscheck-20260723.txt"
@@ -48,6 +49,7 @@ def main() -> None:
     dvfsp_lease = DVFSP_LEASE.read_text()
     buildbox_lease = BUILDBOX_LEASE.read_text()
     firmware_lease = FIRMWARE_LEASE.read_text()
+    pcm_scan = PCM_SCAN.read_text()
     ledger = LEDGER.read_text()
     reconciliation = RECONCILIATION.read_text()
     crosscheck = CROSSCHECK.read_text()
@@ -142,6 +144,18 @@ def main() -> None:
         ("status=PASS_FIRMWARE_LEASE_RECONCILIATION_NEGATIVE", "firmware-status"),
     ):
         require(firmware_lease, needle, label)
+    for needle, label in (
+        ("files=9;group=pcm_*.bin", "pcm-file-set"),
+        ("scan=cspm_base_0x11015000=0_all_files", "pcm-cspm-base-negative"),
+        ("scan=pcm_con0_0x11015018=0_all_files", "pcm-control-negative"),
+        ("scan=csram_base_0x0012a000=0_all_files", "pcm-csram-negative"),
+        ("scan=fw_done_bit_0x8000=0_all_files", "pcm-fw-done-negative"),
+        ("archive_boundary=contains_Gemian_userspace_SPM_PCM_blobs_only;no_LK_TEE_SCP_payloads", "pcm-archive-boundary"),
+        ("interpretation=negative_direct-literal-evidence;encoded-key-and-bit-values_not_owner-proof", "pcm-interpretation"),
+        ("decision=NO_NEW_OWNER_AUTHORITY", "pcm-decision"),
+        ("status=PASS_LIMITED_PCM_SCAN_NEGATIVE", "pcm-status"),
+    ):
+        require(pcm_scan, needle, label)
     require(p0098, "I2C6 remains disabled", "ao-i2c6-disabled-contract")
     require(p0098, "does not implement per-transfer DVFSP coordination", "ao-no-per-transfer-contract")
     for forbidden, label in (("PAUSE_I2CDRV", "ao-pause-source"), ("FW_DONE", "ao-firmware-ack")):
@@ -191,6 +205,7 @@ def main() -> None:
         "post_settle_readback\tvendor-observed;provider-unimplemented",
         "rollback_owner\tpre-isolation-accepted;post-isolation-unresolved",
         "hardware_action\tnone",
+        "pcm_firmware_owner_scan\tnegative-direct-literal;archive-boundary-only",
     ):
         require(ledger, field, field.replace("\t", "="))
 

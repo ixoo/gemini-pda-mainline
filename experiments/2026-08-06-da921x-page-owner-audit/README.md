@@ -161,6 +161,16 @@ The source and sanitized runtime record establish these facts:
   the receiver patch contains no `PAUSE_I2CDRV` or `FW_DONE` protocol, so the
   remaining question is whether the validated stopped receiver is authoritative
   for the vendor per-transfer lease.
+- The retained Gemian archive was scanned read-only for a direct literal owner
+  implementation. The nine `pcm_*.bin` files contain no raw little-endian CSPM
+  base (`0x11015000`), PCM control address (`0x11015018`), CSRAM base
+  (`0x0012a000`), or `FW_DONE` (`0x8000`) literal. The three vcorefs blobs each
+  contain one encoded occurrence of the CSPM key and several `0x2000` values,
+  but the raw scan is not a PCM-instruction decoder and cannot turn those
+  values into proof of the `SEMA_I2C_DRV` protocol. The archive contains
+  userspace SPM blobs only; it does not contain the LK, TEE, or SCP payloads
+  needed to close the external-owner question. The bounded result is in
+  [`results/pcm-firmware-owner-scan-20260806.txt`](results/pcm-firmware-owner-scan-20260806.txt).
 - No bounded inverse exists for a provider write at or beyond the unresolved
   external-isolation boundary. The release callback therefore remains a
   structured `-EOPNOTSUPP` refusal.

@@ -1672,6 +1672,12 @@ The next ordered work remains source-only:
    [page/ownership audit](../experiments/2026-08-06-da921x-page-owner-audit/results/buildbox-transfer-lease-20260806.txt),
    and the reconciled firmware contract is recorded in
    [firmware-owner-lease-20260806.txt](../experiments/2026-08-06-da921x-page-owner-audit/results/firmware-owner-lease-20260806.txt).
+   The retained nine-file Gemian PCM archive adds only a bounded negative
+   literal scan: no direct CSPM base, PCM control address, CSRAM base, or
+   `FW_DONE` value appears, while the vcorefs key/bit patterns are not
+   decodable owner proof. The archive contains no LK/TEE/SCP payloads, so it
+   does not close the external-owner question; see the
+   [PCM scan](../experiments/2026-08-06-da921x-page-owner-audit/results/pcm-firmware-owner-scan-20260806.txt).
    Candidate AO already provides the named-unit receiver-side stopped-state
    and shared-clock normalization evidence, with a stable 45-second late check
    while I2C6 remained disabled; do not repeat that boot. The next source-only
