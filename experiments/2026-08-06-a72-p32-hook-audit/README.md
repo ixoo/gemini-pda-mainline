@@ -22,8 +22,8 @@ an optimistic success result?
 This is a read-only audit of the pinned Linux 7.1.3 source after the current
 canonical patch series. The source archive SHA-256 is
 `be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc`; the
-current 174-patch series SHA-256 is
-`f4ac9f743e1e12da58bfe1f5e0e8714e443714c117e1164b34e13f0bd0ae65dd`.
+current 175-patch series SHA-256 is
+`557246d06de95b1d3459466c727ab56133c1512a1bf0a3e3683478c61c8cfefa`.
 The source-only profile was built and fetched through Buildbox; no candidate
 was assembled for boot, and no device, CPU, PSCI, or partition operation
 occurred.

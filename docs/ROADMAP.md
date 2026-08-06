@@ -1851,6 +1851,10 @@ The next ordered work remains source-only:
    mutation result, then finish P32A/D/F/X/R using either a reviewed core
    no-auto-rollback interface or the fail-stop `.cpu_disable` plus die/kill
    guard design, retaining every partial callback and architecture effect.
+   The current [A25 review](../experiments/2026-08-06-a72-a25-callback-review/README.md)
+   passes H01–H15, mandatory dynamic ordering, conditional insertion
+   classification, and P32A/D/F/X/R; H13 remains open because no same-boot
+   numeric CPUHP-state capture exists yet.
 5. Revalidate every applicable A26 CPU-up gate and its A14 CPU-off dependency.
    Only after those closures may a separately reviewed evidence-only target
    transaction be considered; a trusted pre-Linux handoff is the alternative.
