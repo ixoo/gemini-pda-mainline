@@ -4,4 +4,5 @@ profile=observability-fbcon-rotation-keyboard-wrrd-manual-reboot-smp8-a72-reject
 status=FAIL_COMPILE
 error=mt6797_a72_membership.c:737:26: struct mt6797_a72_transaction has no member named provider_rejection
 error=mt6797_a72_membership.c:940:25: struct mt6797_a72_transaction has no member named p29_rollback
+series_followup=isolated P24 series intentionally omits DA921x driver; provider patch 0170 is not applicable there
 device_action=none

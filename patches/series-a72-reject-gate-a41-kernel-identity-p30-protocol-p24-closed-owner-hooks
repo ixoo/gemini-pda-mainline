@@ -115,5 +115,4 @@ v7.1.3/0166-arm64-record-dormant-A72-P27-preparation.patch
 v7.1.3/0167-arm64-model-dormant-A72-provider-acquire.patch
 v7.1.3/0168-arm64-model-dormant-A72-provider-refusal-rollback.patch
 v7.1.3/0169-arm64-model-dormant-A72-postprovider-preparation.patch
-v7.1.3/0170-regulator-add-legacy-DA921x-resource-only-provider.patch
 v7.1.3/0171-arm64-complete-dormant-provider-proof-storage.patch
