@@ -1615,8 +1615,10 @@ transcript. It registers two internal descriptors with only linear voltage
 listing, selector reads, and enable-state reads; no writable regulator
 operation, Device Tree consumer, IRQ, page selector, A72 hook, or CPU_ON path
 is present. The provider profile remains separate from the identification and
-lifecycle profiles, and the source advances only to
-`PARTIAL_RESOURCE_ONLY_PROVIDER` until its clean commit passes Buildbox.
+lifecycle profiles. Buildbox validates the exact pushed 159-patch commit,
+all 119 DTBs, and the package checksums; the source therefore advances to
+`PARTIAL_RESOURCE_ONLY_PROVIDER`. This is compile-only evidence and does not
+establish hardware support or open any device gate.
 
 P32A/D/F/X/R freezes the automatic rollback closure. The controller publishes
 P32 before `cpuhp_reset_state()` and the outer reverse range. Target
@@ -1641,9 +1643,10 @@ The next ordered work remains source-only:
 
 1. Implement the authoritative P17/P18/P24 transaction behind the closed hooks
    in the frozen P31 -> A28 -> mint -> A36 -> P17/P18 -> P27 order. The next
-   bounded seam is now the isolated resource-only provider boundary, followed
-   by the real provider-owner R01/R02 transaction after the source-only P28
-   post-provider preparation and R03/P29 refusal contracts; integrate its
+   the isolated resource-only provider boundary is now Buildbox-validated;
+   the next bounded seam is the real provider-owner R01/R02 transaction after
+   the source-only P28 post-provider preparation and R03/P29 refusal contracts;
+   integrate its
    exact token with the dormant P30 model and controller call sites only after
    the provider and rollback owners are implemented.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when

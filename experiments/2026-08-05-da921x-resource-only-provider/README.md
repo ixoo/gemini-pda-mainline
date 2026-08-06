@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-05-da921x-resource-only-provider` |
-| Status | `source-only` (static review; Buildbox pending) |
+| Status | `Buildbox-validated` (compile-only; no hardware action) |
 | Subsystem | legacy DA9213/DA9214/DA9215 regulator provider boundary |
 | Device variant | Planet Gemini PDA, MT6797; no live-device action |
 | Date | 2026-08-05 America/New_York |
@@ -43,7 +43,7 @@ support.
 
 ## Safety and nonclaims
 
-This is source-only. It performs no device access, boot, partition read,
+This remains compile-only. It performs no device access, boot, partition read,
 partition write, regulator request, or CPU request. Registration is default-off
 and isolated to the named profile. The provider has no writable regulator
 operation, so it cannot select a voltage, change enable state, alter mode or
@@ -57,7 +57,7 @@ are correct on hardware. CPU8 and CPU9 remain disconnected.
 - [Static validator](scripts/validate.py)
 - [Source validation](results/source-validation-20260805.txt)
 - [Mutation validation](results/mutation-validation-20260805.txt)
-- [Buildbox validation](results/buildbox-validation-20260805.txt) (when recorded)
+- [Buildbox validation](results/buildbox-validation-20260805.txt)
 
 Run from the repository root:
 
@@ -67,7 +67,7 @@ PYTHONDONTWRITEBYTECODE=1 python3 experiments/2026-08-05-da921x-resource-only-pr
 
 ## Conclusion
 
-`PARTIAL_RESOURCE_ONLY_PROVIDER` remains source-only until the exact clean
-commit passes Buildbox. A passing compile would close only this provider
-registration boundary; the real provider-owner transaction, P24/CPU_ON,
+`PARTIAL_RESOURCE_ONLY_PROVIDER` is Buildbox-validated for the exact pushed
+commit. This closes only the source/provider-registration boundary; it does
+not establish hardware support. The real provider-owner transaction, P24/CPU_ON,
 rollback, safe-off, and all device gates remain closed.
