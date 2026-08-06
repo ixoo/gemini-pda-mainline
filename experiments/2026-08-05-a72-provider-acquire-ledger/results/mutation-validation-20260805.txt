@@ -1,0 +1,11 @@
+mutation=wrong-operation result=rejected
+mutation=wrong-settle result=rejected
+mutation=wrong-page result=rejected
+mutation=wrong-vsel result=rejected
+mutation=wrong-origin result=rejected
+mutation=stale-generation result=rejected
+mutation=stale-cookie result=rejected
+mutation=missing-held-id result=rejected
+mutation=duplicate-r01 result=rejected
+mutations_rejected=9/9
+status=PASS

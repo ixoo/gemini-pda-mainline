@@ -1574,6 +1574,16 @@ PWRAP prefix. The C ledger has no MMIO, provider, CPUHP, P30, or CPU_ON effect;
 R01/R02 and P28 remain contract-only. This advances the source only to
 `PARTIAL_P27_PREPARATION_LEDGER`.
 
+The follow-on source-only
+[R01/R02 provider-acquire ledger experiment](../experiments/2026-08-05-a72-provider-acquire-ledger/README.md)
+adds the CPU8 provider boundary after P27. R01 consumes the one-shot acquire
+budget and publishes `ACQUIRE_INFLIGHT`; R02 accepts only a same-generation
+proof of the inherited settle/page/BUCKB/VSEL facts and a durable M01-origin
+identity before publishing `HELD`. This is still an attestation-shaped C
+ledger: it makes no provider call, regulator vote, hardware mutation, P28
+effect, or CPU_ON request. R03/P29 refusal and rollback plus P28 remain open;
+the source advances only to `PARTIAL_R01_R02_PROVIDER_LEDGER`.
+
 P32A/D/F/X/R freezes the automatic rollback closure. The controller publishes
 P32 before `cpuhp_reset_state()` and the outer reverse range. Target
 `.cpu_disable` is the first guard before topology/NUMA removal, online clear,

@@ -112,3 +112,4 @@ v7.1.3/0163-arm64-mint-frozen-A72-transaction-tokens.patch
 v7.1.3/0164-arm64-validate-frozen-A72-A36-prestates.patch
 v7.1.3/0165-arm64-publish-dormant-A72-P17-P18-phases.patch
 v7.1.3/0166-arm64-record-dormant-A72-P27-preparation.patch
+v7.1.3/0167-arm64-model-dormant-A72-provider-acquire.patch

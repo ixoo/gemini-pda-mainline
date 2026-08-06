@@ -1,0 +1,12 @@
+claim=PARTIAL_R01_R02_PROVIDER_LEDGER
+source_commit=7201af73e
+patch_sha256=79cf88744122528cde95304c34f6daa00100b7ed5b6e49ee8cb3df0f30cfe410
+patch_bytes=14403
+r01=acquire-inflight
+r02=durable-held-proof
+provider_calls=0
+cpu_on_calls=0
+build=not-run
+device_action=none
+checkpatch=only-intentional-missing-signoff
+status=PASS
