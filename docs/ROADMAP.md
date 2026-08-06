@@ -2005,12 +2005,23 @@ The next ordered work remains source-only:
    stay unregistered and no secure call, firmware action, device boot, or
    CPU8/CPU9 admission occurred. See the [runtime invalidation Buildbox
    result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/runtime-invalidation-buildbox-20260806.txt).
+   Patch `0208` now connects that ledger to the Linux 7.1.3 lifecycle APIs:
+   the CPU-hotplug state machine supplies online/down-prepare/down-failed
+   events, and the PM notifier chain supplies suspend/resume events. Binding
+   registration requires an active state owner, arms only after both hooks
+   succeed, serializes the generation-tagged source callback with the ledger,
+   and disarms before removing hooks. Revision `44f617d` applies all 197
+   canonical entries on Buildbox, compiles the full arm64 profile, produces
+   119 DTBs, passes package checksums, and has its validated package fetched.
+   No caller registers the binding, so this remains compile-only evidence with
+   no provider, hardware, firmware, device, or CPU8/CPU9 action. See the
+   [runtime notifier binding Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/runtime-binding-buildbox-20260806.txt).
    The next ordered gate remains an independently reviewed implementation of
    the real calibrated EEM/PTP/PPM state owner with clock/rail arbitration,
-   actual CPU/PM notifier integration, and runtime invalidation/transition-lock
-   proof. The decoder and event ledger are conversion and invalidation seams,
-   not ownership proof. Until that provider exists, the protected backends and
-   CPU8/CPU9 admission remain closed.
+   generation-producing callbacks, and runtime invalidation/transition-lock
+   proof. The decoder, event ledger, and notifier binding are conversion and
+   lifecycle seams, not ownership proof. Until that provider exists, the
+   protected backends and CPU8/CPU9 admission remain closed.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and

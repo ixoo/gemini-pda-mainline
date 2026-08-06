@@ -107,6 +107,7 @@ be copied directly into a mainline failure/PM path.
 - [EEM calibration-builder Buildbox validation](results/eem-calibration-builder-buildbox-20260806.txt)
 - [Protected clock-state decoder Buildbox validation](results/clock-state-decoder-buildbox-20260806.txt)
 - [Runtime invalidation ledger Buildbox validation](results/runtime-invalidation-buildbox-20260806.txt)
+- [Runtime notifier binding Buildbox validation](results/runtime-binding-buildbox-20260806.txt)
 - [Receiver register-window identity reconciliation](results/receiver-register-identity-20260806.txt)
 - [Retained TEE secure-owner disassembly](../2026-08-06-da921x-page-owner-audit/results/tee-owner-disassembly-20260806.txt)
 - [Retained SCP local-alias inventory](../2026-08-06-da921x-page-owner-audit/results/scp-alias-inventory-20260806.txt)
@@ -398,11 +399,24 @@ the state owner and provider remain unregistered, and no secure call, firmware
 action, device boot, or CPU8/CPU9 admission occurred. See the [runtime
 invalidation Buildbox result](results/runtime-invalidation-buildbox-20260806.txt).
 
+Patch `0208` now connects that ledger to the real Linux 7.1.3 lifecycle APIs:
+the CPU-hotplug state machine supplies online/down-prepare/down-failed events,
+and the PM notifier chain supplies suspend/resume events. Registration requires
+an active state owner, arms only after both hooks succeed, serializes the
+generation-tagged source callback with the ledger, and disarms before removing
+the hooks. Revision `44f617d` applied all 197 series entries on Buildbox,
+compiled the full arm64 kernel, produced 119 DTBs, passed package checksums,
+and fetched the validated package. No caller registers the binding, so this is
+still compile-only evidence with no provider, hardware, firmware, device, or
+CPU8/CPU9 action. See the [runtime notifier binding Buildbox
+result](results/runtime-binding-buildbox-20260806.txt).
+
 The next gate is still the real MT6797 EEM/PTP/thermal and PMIC/clock provider
 that supplies those inputs from efuse and live hardware, arbitrates the shared
 EEM/thermal resource, and independently proves clock/rail transition locking
-and runtime invalidation. The decoder and event ledger now supply deterministic
-conversion and invalidation boundaries, but neither is an owner and neither
-can authorize a transition. Actual CPU/PM notifier integration and runtime
-proof remain open; until that owner exists, the protected backends and CPU8/CPU9
+and runtime invalidation. The decoder, event ledger, and notifier binding now
+provide deterministic conversion and lifecycle boundaries, but none is an
+owner and none can authorize a transition. The protected owner still needs
+real EEM/PTP/rail state, transition-lock integration, generation-producing
+callbacks, and runtime proof; until then, the owner/provider and CPU8/CPU9
 admission remain closed.

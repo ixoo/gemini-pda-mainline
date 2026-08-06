@@ -1,0 +1,52 @@
+date_utc=2026-08-06T23:30:18Z
+claim=COMPILE_ONLY_MT6797_DVFSP_RUNTIME_NOTIFIER_BINDING
+repository_commit=44f617d82eca1f61aac64eda7a142b97296ebbe3
+origin=https://github.com/ixoo/gemini-pda-mainline.git
+build_backend=buildbox
+buildbox_job=44f617d82eca1f61aac64eda7a142b97296ebbe3-dvfsp-protected-readback-m0
+buildbox_status=validated
+artifact=linux-7.1.3-gemini-dvfsp-protected-readback-ff8a3bd0-b6696a3c
+kernel_release=7.1.3-gemini-handoff
+build_profile=dvfsp-protected-readback
+patch_count=197
+patch_series=patches/series
+config_inputs_sha256=b6696a3cd52df7cf50d4763ba9be84fd4bd2539100222b0adfdd5b9ac5684234
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=ff8a3bd0928364cae35942c7a92cef944e9d543c85dc15e8b05fdf01071acc62
+config_sha256=9561561944c875d1fadb5cee822fb9fa572a2e9cf82e4b8a45921e9a43828ef4
+config_fragment_count=4
+modules_built=false
+build_architecture=x86_64
+target_architecture=arm64
+toolchain_mode=cross
+compiler=aarch64-linux-gnu-gcc_Debian_12.2.0-14
+linker=GNU_ld_Debian_binutils_2.40
+dtb_count=119
+sha256sums=passed
+package_fetch=success;validated_package_only
+local_package=artifacts/buildbox/44f617d82eca1f61aac64eda7a142b97296ebbe3/linux-7.1.3-gemini-dvfsp-protected-readback-ff8a3bd0-b6696a3c
+Image_sha256=542218ccf7fd4620ca88a206f0e4ca157f75314dc9d10c82ad729f4525609bae
+Image_gz_sha256=506106d18bbd9a159c08f76933783753392dd33addfc3b99d278e758a881de85
+System_map_sha256=a8f877e11dbe64d0486b0bdb115851a4feecac56046cc2a36182493f355bc121
+gemini_dtb_sha256=105a83069d42221539050ca968ea5156bdeed948ae88881429678423c43140bd
+kernel_config_sha256=9561561944c875d1fadb5cee822fb9fa572a2e9cf82e4b8a45921e9a43828ef4
+build_provenance_sha256=c322154e74ed357bc387db282673c201593d297ad440203a15312832e82b594f
+sha256sums_manifest_sha256=9c829bc3f0e0d0280479743c1ea6237e9bfef7a65a45266e15236bd25a14f8ba
+runtime_binding_contract=0208;requires_active_state_owner;cpuhp_online_down_prepare_down_failed;pm_suspend_resume_notifier;generation_tagged_source_callback;ledger_serialized;registration_atomic;disarm_before_unregistration;default_off
+owner=unregistered
+runtime_binding_registered=0
+provider=none
+secure_write=none
+hardware_write=none
+device_action=none
+hardware_support_claim=NONE
+boot_candidate=false
+
+This Buildbox run validates patch 0208 as a compile-only lifecycle binding
+around the 0207 runtime ledger. The binding uses the Linux 7.1.3 CPU-hotplug
+state machine rather than the removed legacy CPU notifier API, and uses the PM
+notifier chain for suspend/resume. It requires an already registered state
+owner, arms only after both hooks succeed, rejects source type mismatches and
+ledger replay through the 0207 path, and disarms before removing hooks. No
+caller registers it; no provider, MMIO, secure call, firmware action, device
+boot, or CPU8/CPU9 admission occurred.

@@ -22,6 +22,7 @@ EEM_READBACK_PATCH = ROOT / "patches/v7.1.3/0204-thermal-mediatek-add-locked-MT6
 EEM_CALIBRATION_PATCH = ROOT / "patches/v7.1.3/0205-soc-mediatek-derive-calibrated-table-from-EEM-readback.patch"
 CLOCK_STATE_PATCH = ROOT / "patches/v7.1.3/0206-soc-mediatek-decode-protected-clock-readback.patch"
 RUNTIME_PATCH = ROOT / "patches/v7.1.3/0207-soc-mediatek-bind-runtime-invalidation-events.patch"
+RUNTIME_BINDING_PATCH = ROOT / "patches/v7.1.3/0208-soc-mediatek-register-runtime-notifier-binding.patch"
 SERIES = ROOT / "patches/series"
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
 START_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-start-contract-20260806.txt"
@@ -46,6 +47,7 @@ EEM_READBACK_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/eem-r
 EEM_CALIBRATION_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/eem-calibration-builder-buildbox-20260806.txt"
 CLOCK_STATE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/clock-state-decoder-buildbox-20260806.txt"
 RUNTIME_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/runtime-invalidation-buildbox-20260806.txt"
+RUNTIME_BINDING_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/runtime-binding-buildbox-20260806.txt"
 
 
 def require(text: str, needle: str, label: str) -> None:
@@ -71,6 +73,7 @@ def main() -> None:
     eem_calibration_patch = EEM_CALIBRATION_PATCH.read_text()
     clock_state_patch = CLOCK_STATE_PATCH.read_text()
     runtime_patch = RUNTIME_PATCH.read_text()
+    runtime_binding_patch = RUNTIME_BINDING_PATCH.read_text()
     design = DESIGN.read_text()
     start_result = START_RESULT.read_text()
     owner_result = OWNER_RESULT.read_text()
@@ -94,11 +97,13 @@ def main() -> None:
     eem_calibration_build_result = EEM_CALIBRATION_BUILD_RESULT.read_text()
     clock_state_build_result = CLOCK_STATE_BUILD_RESULT.read_text()
     runtime_build_result = RUNTIME_BUILD_RESULT.read_text()
+    runtime_binding_build_result = RUNTIME_BINDING_BUILD_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     eem_calibration_source = eem_calibration_patch[eem_calibration_patch.index("diff --git"):]
     clock_state_source = clock_state_patch[clock_state_patch.index("diff --git"):]
     runtime_source = runtime_patch[runtime_patch.index("diff --git"):]
+    runtime_binding_source = runtime_binding_patch[runtime_binding_patch.index("diff --git"):]
     names = [Path(line).name for line in SERIES.read_text().splitlines()
              if line and not line.startswith("#")]
 
@@ -414,6 +419,27 @@ def main() -> None:
         ("EXPORT_SYMBOL_GPL(mt6797_dvfsp_runtime_event_apply)", "runtime-export"),
     ):
         require(runtime_patch, needle, label)
+    for needle, label in (
+        ("MT6797_DVFSP_RUNTIME_BINDING_ABI", "runtime-binding-abi"),
+        ("MT6797_DVFSP_RUNTIME_CPU_NONE", "runtime-binding-cpu-sentinel"),
+        ("struct mt6797_dvfsp_runtime_source_ops", "runtime-binding-source-ops"),
+        ("struct mt6797_dvfsp_runtime_binding", "runtime-binding-struct"),
+        ("mt6797_dvfsp_runtime_binding_init", "runtime-binding-init"),
+        ("mt6797_dvfsp_runtime_binding_register", "runtime-binding-register"),
+        ("mt6797_dvfsp_runtime_binding_unregister", "runtime-binding-unregister"),
+        ("cpuhp_setup_state_nocalls", "runtime-binding-cpuhp-register"),
+        ("cpuhp_remove_state_nocalls", "runtime-binding-cpuhp-remove"),
+        ("CPUHP_AP_ONLINE_DYN", "runtime-binding-cpuhp-state"),
+        ("register_pm_notifier", "runtime-binding-pm-register"),
+        ("unregister_pm_notifier", "runtime-binding-pm-remove"),
+        ("mt6797_dvfsp_handoff_state_owner_identity", "runtime-binding-owner-required"),
+        ("down_pending", "runtime-binding-down-pending"),
+        ("cpu_online(cpu)", "runtime-binding-down-failed-discriminator"),
+        ("notifier_from_errno", "runtime-binding-fail-closed-notifier"),
+        ("state->active = false", "runtime-binding-disarm"),
+        ("No caller registers this binding", "runtime-binding-default-off"),
+    ):
+        require(runtime_binding_patch, needle, label)
     calibration_builder_added = "\n".join(
         line[1:] for line in eem_calibration_patch.splitlines()
         if line.startswith("+") and not line.startswith("+++")
@@ -847,6 +873,27 @@ def main() -> None:
     ):
         require(runtime_build_result, needle, label)
     for needle, label in (
+        ("claim=COMPILE_ONLY_MT6797_DVFSP_RUNTIME_NOTIFIER_BINDING", "runtime-binding-build-claim"),
+        ("repository_commit=44f617d82eca1f61aac64eda7a142b97296ebbe3", "runtime-binding-build-commit"),
+        ("origin=https://github.com/ixoo/gemini-pda-mainline.git", "runtime-binding-build-origin"),
+        ("build_backend=buildbox", "runtime-binding-build-backend"),
+        ("buildbox_status=validated", "runtime-binding-build-status"),
+        ("patch_count=197", "runtime-binding-build-patch-count"),
+        ("artifact=linux-7.1.3-gemini-dvfsp-protected-readback-ff8a3bd0-b6696a3c", "runtime-binding-build-artifact"),
+        ("dtb_count=119", "runtime-binding-build-dtb-count"),
+        ("sha256sums=passed", "runtime-binding-build-checksums"),
+        ("package_fetch=success;validated_package_only", "runtime-binding-build-fetch"),
+        ("runtime_binding_contract=0208;requires_active_state_owner;cpuhp_online_down_prepare_down_failed;pm_suspend_resume_notifier;generation_tagged_source_callback;ledger_serialized;registration_atomic;disarm_before_unregistration;default_off", "runtime-binding-build-contract"),
+        ("owner=unregistered", "runtime-binding-build-owner-unregistered"),
+        ("runtime_binding_registered=0", "runtime-binding-build-not-registered"),
+        ("provider=none", "runtime-binding-build-no-provider"),
+        ("secure_write=none", "runtime-binding-build-no-secure-write"),
+        ("hardware_write=none", "runtime-binding-build-no-write"),
+        ("device_action=none", "runtime-binding-build-no-device"),
+        ("boot_candidate=false", "runtime-binding-build-not-candidate"),
+    ):
+        require(runtime_binding_build_result, needle, label)
+    for needle, label in (
         ("repeat_run_repository_commit=6c3cb4fad5a4895f6a69d7913089553b6751e34c", "readback-repeat-commit"),
         ("repeat_run_buildbox_job=6c3cb4fad5a4895f6a69d7913089553b6751e34c-dvfsp-protected-readback-m0", "readback-repeat-job"),
         ("repeat_run_status=validated", "readback-repeat-status"),
@@ -896,6 +943,8 @@ def main() -> None:
         raise AssertionError("clock-state decoder is not after EEM calibration builder")
     if names.index("0206-soc-mediatek-decode-protected-clock-readback.patch") >= names.index("0207-soc-mediatek-bind-runtime-invalidation-events.patch"):
         raise AssertionError("runtime invalidation ledger is not after the clock-state decoder")
+    if names.index("0207-soc-mediatek-bind-runtime-invalidation-events.patch") >= names.index("0208-soc-mediatek-register-runtime-notifier-binding.patch"):
+        raise AssertionError("runtime notifier binding is not after the runtime invalidation ledger")
 
     for forbidden in ("readl(", "writel(", "i2c_transfer", "regulator_enable(",
                       "regulator_disable(", "psci_ops.cpu_on", "cpu_up("):
@@ -936,6 +985,12 @@ def main() -> None:
                       "notifier_call_chain"):
         if forbidden in runtime_source:
             raise AssertionError(f"unexpected runtime invalidation operation: {forbidden}")
+    for forbidden in ("readl(", "writel(", "regulator_", "clk_", "arm_smccc",
+                      "i2c_transfer", "platform_driver", "cpu_up(",
+                      "psci_ops.cpu_on", "secure_write", "register_cpu_notifier(",
+                      "unregister_cpu_notifier(", "notifier_call_chain"):
+        if forbidden in runtime_binding_source:
+            raise AssertionError(f"unexpected runtime binding operation: {forbidden}")
 
     print("claim=PARTIAL_FIRMWARE_LEASE_CALLBACK_CONTRACT")
     print("registered_owner=0")
@@ -964,6 +1019,7 @@ def main() -> None:
     print("eem_calibration_builder=0205;raw_readback_anchor_match;BIG_normal_unit_conversion;16_row_interpolation;temperature_offset;record_cap;vsram_delta;full_provenance;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("clock_state_decoder=0206;raw_ll_l_b_cci_readbacks;vendor_26mhz_formula;pcw_posdiv_and_divider_decode;generation_tagged;inflight_change_rejected;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("runtime_invalidation=0207;vendor_cpu_online_cpu_down_prepare_cpu_down_failed_pm_suspend_prepare_pm_post_suspend;clock_rail_pcm_fault_mapping;monotonic_sequence;generation_epoch;replay_rejected;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
+    print("runtime_binding=0208;active_owner_required;cpuhp_online_down_prepare_down_failed;pm_suspend_resume_notifier;generation_tagged_source_callback;ledger_serialized;registration_atomic;disarm_before_unregistration;registered=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("pcm_adapter_contract=source-only;bounded-admission-model;callback-registration-gated")
     print("clock_owner_inventory=generic_ccf_only;protected_owner_absent;A72_observer_read_only")
     print("pcm_start_contract=defined;residency_and_start_required_before_callback_registration")
