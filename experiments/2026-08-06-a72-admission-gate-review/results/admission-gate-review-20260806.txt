@@ -1,0 +1,24 @@
+A72 admission-gate re-audit
+===========================
+
+Date: 2026-08-06 America/New_York
+Repository head: 0d592b7
+Origin: https://github.com/ixoo/gemini-pda-mainline.git
+
+claim=PARTIAL_ADMISSION_GATE_REAUDIT
+A14=BLOCKED_DISABLE_VETO
+A25=PARTIAL_SOURCE_REVIEW_H13_OPEN
+A26=BLOCKED_BOOT_VETO
+A37=BLOCKED_P32_TERMINAL_GUARD_REVIEW
+A39=BLOCKED_EARLY_SECONDARY_INVENTORY
+A40=BLOCKED_PRIVATE_BRANCH_FRESHNESS
+A41=INCOMPLETE_READY_UNREACHABLE
+provider=BLOCK_WRITABLE_PROVIDER
+cpu_on_cpu_off_device_action=CLOSED
+admission_contract_sha256=d3c10bf62bb89df8301fb2c06145b06ebbdbe8be29437a555a27c33a8ffd0ae5
+status=PASS_BLOCKERS_CONFIRMED
+
+The next implementation work is gate closure, not a device trial: complete the
+same-boot A25 identity path when a correctly attributable target-kernel boot is
+authorized, close A41 runtime evidence and finalization, prove the provider
+owner/rollback transaction, and resolve A39/A40 before revisiting A26/A14.
