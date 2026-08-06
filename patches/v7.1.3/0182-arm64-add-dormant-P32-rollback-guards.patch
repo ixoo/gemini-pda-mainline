@@ -1,0 +1,480 @@
+From 0000000000000000000000000000000000000182 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 6 Aug 2026 00:00:00 -0400
+Subject: [PATCH] arm64: add dormant P32 rollback guards
+
+Add a source-only P32 side channel for the exact A72 up transaction. The
+generic CPUHP owner publishes the generation and callback-prefix state before
+its outer rollback reset; the target .cpu_disable guard stops before topology,
+NUMA, online-mask, IPI, or IRQ effects. If rollback reaches .cpu_die, the
+target publishes a park acknowledgement and parks without CPU_OFF, while the
+controller .cpu_kill path waits without affinity and returns nonzero.
+
+The MT6797 boot and disable vetoes remain unchanged. The new callbacks are
+default-off, have no production transaction opener, and do not issue CPU_ON,
+CPU_OFF, AFFINITY_INFO, provider release, or device I/O.
+
+This experiment-only change has no certifying sign-off and is not
+submission-ready.
+---
+ arch/arm64/Kconfig.platforms                  | 10 ++++
+ arch/arm64/include/asm/cpu_ops.h              |  5 ++
+ arch/arm64/include/asm/mt6797_a72_membership.h | 64 ++++++++++++++++++
+ arch/arm64/kernel/mt6797_psci.c               | 51 ++++++++++++++++
+ arch/arm64/kernel/mt6797_a72_membership.c     | 143 +++++++++++++++++++++++++
+ arch/arm64/kernel/smp.c                       | 23 ++++++
+ include/linux/cpu.h                            |  2 +
+ kernel/cpu.c                                   |  8 +++
+ 8 files changed, 324 insertions(+)
+
+diff --git a/arch/arm64/Kconfig.platforms b/arch/arm64/Kconfig.platforms
+--- a/arch/arm64/Kconfig.platforms
++++ b/arch/arm64/Kconfig.platforms
+@@ -230,11 +230,21 @@ config ARM64_MT6797_A72_P24_ADMISSION_HOOKS
+ 	  Install public and leaf-only internal CPU-up checks for MT6797 CPU8
+ 	  and CPU9. Both hooks are read-only denials: they do not begin a
+ 	  transaction, change P30, or make the existing CPU boot veto reachable.
+ 	  CPU0 through CPU7 and methods without admission callbacks retain their
+ 	  existing behavior. This option adds no owner opener or success path.
+ 
++config ARM64_MT6797_A72_P32_ROLLBACK
++	bool "Install dormant MT6797 A72 P32 rollback guards"
++	depends on HOTPLUG_CPU
++	depends on ARM64_MT6797_A72_P24_TRANSACTION_OWNER_MODEL
++	help
++	  Add the exact-generation P32 side channel and fail-stop target and
++	  controller CPUHP rollback guards. The owner remains closed, the
++	  MT6797 boot and disable vetoes remain active, and no CPU_ON, CPU_OFF,
++	  affinity, provider, or device operation is opened.
++
+ config ARCH_MESON
+ 	bool "Amlogic Platforms"
+ 	help
+ 	  This enables support for the arm64 based Amlogic SoCs
+ 	  such as the s905, S905X/D, S912, A113X/D or S905X/D2
+diff --git a/arch/arm64/include/asm/cpu_ops.h b/arch/arm64/include/asm/cpu_ops.h
+--- a/arch/arm64/include/asm/cpu_ops.h
++++ b/arch/arm64/include/asm/cpu_ops.h
+@@ -26,4 +26,6 @@
+  * @cpu_up_validate: Optional leaf-only CPU-up admission check for public and
+  *		direct internal paths. Must not sleep or acquire CPU-map, CPUHP, or
+  *		outer transition locks.
++ * @cpu_up_rollback: Optional controller-side publication before generic CPUHP
++ *		outer rollback. It receives the failing callback state and result.
+  * @cpu_boot:	Boots a cpu into the kernel.
+@@ -47,4 +47,6 @@ struct cpu_operations {
+ 	int		(*cpu_up_validate)(unsigned int cpu, int tasks_frozen,
+ 					   enum cpuhp_state target);
++	int		(*cpu_up_rollback)(unsigned int cpu, enum cpuhp_state state,
++					   int error);
+ 	int		(*cpu_boot)(unsigned int);
+ 	void		(*cpu_postboot)(void);
+diff --git a/arch/arm64/include/asm/mt6797_a72_membership.h b/arch/arm64/include/asm/mt6797_a72_membership.h
+--- a/arch/arm64/include/asm/mt6797_a72_membership.h
++++ b/arch/arm64/include/asm/mt6797_a72_membership.h
+@@ -152,5 +152,44 @@ struct mt6797_a72_p29_rollback_proof {
+ /* P29 is an attested pre-isolation rollback, not an inverse-MMIO API. */
+ #define MT6797_A72_P29_ROLLBACK_ABI 1
+ 
++/* P32 is a generation-bound rollback side channel, not a CPU_OFF API. */
++#define MT6797_A72_P32_ROLLBACK_ABI 1
++#define MT6797_A72_P32_KILL_SPINS 100000U
++#define MT6797_A72_P32_GUARD_DISABLE BIT(0)
++#define MT6797_A72_P32_GUARD_DIE BIT(1)
++#define MT6797_A72_P32_GUARD_KILL BIT(2)
++#define MT6797_A72_P32_GUARD_PARK BIT(3)
++
++enum mt6797_a72_p32_state {
++	MT6797_A72_P32_STATE_NONE,
++	MT6797_A72_P32_STATE_PUBLISHED,
++	MT6797_A72_P32_STATE_GUARDED,
++	MT6797_A72_P32_STATE_PARKED,
++	MT6797_A72_P32_STATE_CONSUMED,
++};
++
++enum mt6797_a72_p32_branch {
++	MT6797_A72_P32_BRANCH_NONE,
++	MT6797_A72_P32_BRANCH_A,
++	MT6797_A72_P32_BRANCH_D,
++	MT6797_A72_P32_BRANCH_F,
++	MT6797_A72_P32_BRANCH_X,
++	MT6797_A72_P32_BRANCH_R,
++};
++
++struct mt6797_a72_p32_record {
++	u32 abi;
++	u32 state;
++	u32 branch;
++	u32 guard_flags;
++	u32 cpu_up_error;
++	u32 callback_state;
++	u32 target_cpu;
++	u32 reserved;
++	u64 target_mpidr;
++	u64 generation;
++	u64 cookie;
++};
++
+ /* Diagnostic only: this non-exhaustive list can never authorize a request. */
+ #define MT6797_A72_BLOCK_A34_BOOTSTRAP BIT_ULL(0)
+@@ -302,4 +302,5 @@ struct mt6797_a72_transaction {
+ 	struct mt6797_a72_p28_preparation p28_preparation;
+ 	struct arm64_late_cpu_up_token p30_token;
++	struct mt6797_a72_p32_record p32;
+ 	u64 controller_cookie;
+ 	u64 effect_prefix;
+@@ -317,4 +317,5 @@ struct mt6797_a72_transaction {
+ 	u32 p28_valid;
+ 	u32 p29_valid;
++	u32 p32_valid;
+ 	u32 freeze_release_count;
+ 	u32 valid;
+@@ -432,5 +432,12 @@ int mt6797_a72_membership_validate_up(unsigned int cpu, int tasks_frozen,
+ bool
+ mt6797_a72_membership_owns_up_token(const struct arm64_late_cpu_up_token *token);
+ int mt6797_a72_membership_copy_up_token(struct arm64_late_cpu_up_token *token);
++int mt6797_a72_membership_publish_p32(unsigned int cpu,
++				      enum cpuhp_state callback_state,
++				      int error);
++int mt6797_a72_membership_p32_cpu_disable(unsigned int cpu);
++bool mt6797_a72_membership_p32_cpu_die(unsigned int cpu);
++int mt6797_a72_membership_p32_cpu_kill(unsigned int cpu);
++int mt6797_a72_membership_consume_p32(unsigned int cpu, int *error);
+ void mt6797_a72_membership_snapshot(struct mt6797_a72_owner_snapshot *snapshot);
+ #else
+@@ -571,6 +607,43 @@ mt6797_a72_membership_copy_up_token(struct arm64_late_cpu_up_token *token)
+ 	return -EOPNOTSUPP;
+ }
+ 
++static inline int
++mt6797_a72_membership_publish_p32(unsigned int cpu,
++				  enum cpuhp_state callback_state, int error)
++{
++	(void)cpu;
++	(void)callback_state;
++	(void)error;
++	return -EOPNOTSUPP;
++}
++
++static inline int mt6797_a72_membership_p32_cpu_disable(unsigned int cpu)
++{
++	(void)cpu;
++	return 0;
++}
++
++static inline bool mt6797_a72_membership_p32_cpu_die(unsigned int cpu)
++{
++	(void)cpu;
++	return false;
++}
++
++static inline int mt6797_a72_membership_p32_cpu_kill(unsigned int cpu)
++{
++	(void)cpu;
++	return 0;
++}
++
++static inline int mt6797_a72_membership_consume_p32(unsigned int cpu,
++						    int *error)
++{
++	(void)cpu;
++	if (error)
++		*error = 0;
++	return -EOPNOTSUPP;
++}
++
+ static inline void
+ mt6797_a72_membership_snapshot(struct mt6797_a72_owner_snapshot *snapshot)
+ {
+diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt6797_a72_membership.c
+--- a/arch/arm64/kernel/mt6797_a72_membership.c
++++ b/arch/arm64/kernel/mt6797_a72_membership.c
+@@ -120,6 +120,159 @@ static struct mt6797_a72_owner_state a72_owner = {
+ 	.provider_state = MT6797_A72_PROVIDER_NONE,
+ };
+ 
++static bool
++mt6797_a72_p32_target_locked(unsigned int cpu)
++{
++	const struct mt6797_a72_transaction *transaction = &a72_owner.active;
++
++	return a72_owner.health == MT6797_A72_OWNER_AVAILABLE &&
++		transaction->valid && transaction->p32_valid &&
++		transaction->p32.abi == MT6797_A72_P32_ROLLBACK_ABI &&
++		transaction->p32.target_cpu == cpu &&
++		(transaction->identity.operation ==
++		 ARM64_LATE_CPU_STARTUP_OP_CPU8_UP ||
++		 transaction->identity.operation ==
++		 ARM64_LATE_CPU_STARTUP_OP_CPU9_UP) &&
++		transaction->identity.target_cpu == cpu &&
++		transaction->p30_token.target_cpu == cpu &&
++		transaction->p30_token.target_mpidr ==
++			transaction->p32.target_mpidr &&
++		transaction->identity.generation == transaction->p32.generation &&
++		transaction->identity.cookie == transaction->p32.cookie;
++}
++
++int mt6797_a72_membership_publish_p32(unsigned int cpu,
++				      enum cpuhp_state callback_state,
++				      int error)
++{
++	unsigned long flags;
++	struct mt6797_a72_transaction *transaction;
++	int ret = -EPERM;
++
++	if (cpu != 8 && cpu != 9 || !error)
++		return -EINVAL;
++
++	raw_spin_lock_irqsave(&a72_state_lock, flags);
++	transaction = &a72_owner.active;
++	if (a72_owner.health != MT6797_A72_OWNER_AVAILABLE ||
++	    a72_owner.phase != MT6797_A72_PHASE_VERIFYING ||
++	    !transaction->valid || transaction->p32_valid ||
++	    transaction->identity.target_cpu != cpu ||
++	    (transaction->identity.operation !=
++		 ARM64_LATE_CPU_STARTUP_OP_CPU8_UP &&
++	     transaction->identity.operation !=
++		 ARM64_LATE_CPU_STARTUP_OP_CPU9_UP) ||
++	    transaction->identity.generation == 0 ||
++	    transaction->identity.cookie == 0) {
++		ret = -EAGAIN;
++		goto out;
++	}
++
++	transaction->p32.abi = MT6797_A72_P32_ROLLBACK_ABI;
++	transaction->p32.state = MT6797_A72_P32_STATE_PUBLISHED;
++	transaction->p32.branch = MT6797_A72_P32_BRANCH_A;
++	transaction->p32.cpu_up_error = error;
++	transaction->p32.callback_state = callback_state;
++	transaction->p32.target_cpu = cpu;
++	transaction->p32.target_mpidr = transaction->identity.target_mpidr;
++	transaction->p32.generation = transaction->identity.generation;
++	transaction->p32.cookie = transaction->identity.cookie;
++	transaction->p32_valid = 1;
++	a72_owner.diagnostic_blockers |= MT6797_A72_BLOCK_P32_ROLLBACK;
++	a72_owner.phase = MT6797_A72_PHASE_FAULT;
++	ret = 0;
++out:
++	raw_spin_unlock_irqrestore(&a72_state_lock, flags);
++	return ret;
++}
++
++int mt6797_a72_membership_p32_cpu_disable(unsigned int cpu)
++{
++	unsigned long flags;
++	int ret = 0;
++
++	raw_spin_lock_irqsave(&a72_state_lock, flags);
++	if (mt6797_a72_p32_target_locked(cpu)) {
++		if (a72_owner.active.p32.guard_flags &
++		    MT6797_A72_P32_GUARD_DISABLE)
++			ret = -EALREADY;
++		else {
++			a72_owner.active.p32.guard_flags |=
++				MT6797_A72_P32_GUARD_DISABLE;
++			a72_owner.active.p32.branch = MT6797_A72_P32_BRANCH_D;
++			a72_owner.active.p32.state = MT6797_A72_P32_STATE_GUARDED;
++			ret = -EIO;
++		}
++	}
++	raw_spin_unlock_irqrestore(&a72_state_lock, flags);
++	return ret;
++}
++
++bool mt6797_a72_membership_p32_cpu_die(unsigned int cpu)
++{
++	unsigned long flags;
++	bool park = false;
++
++	raw_spin_lock_irqsave(&a72_state_lock, flags);
++	if (mt6797_a72_p32_target_locked(cpu)) {
++		a72_owner.active.p32.guard_flags |=
++			MT6797_A72_P32_GUARD_DIE | MT6797_A72_P32_GUARD_PARK;
++		a72_owner.active.p32.branch = MT6797_A72_P32_BRANCH_F;
++		a72_owner.active.p32.state = MT6797_A72_P32_STATE_PARKED;
++		park = true;
++	}
++	raw_spin_unlock_irqrestore(&a72_state_lock, flags);
++	return park;
++}
++
++int mt6797_a72_membership_p32_cpu_kill(unsigned int cpu)
++{
++	unsigned int spin;
++
++	for (spin = 0; spin < MT6797_A72_P32_KILL_SPINS; spin++) {
++		unsigned long flags;
++		bool matched;
++		bool parked;
++
++		raw_spin_lock_irqsave(&a72_state_lock, flags);
++		matched = mt6797_a72_p32_target_locked(cpu);
++		parked = matched &&
++			a72_owner.active.p32.state == MT6797_A72_P32_STATE_PARKED;
++		if (parked) {
++			a72_owner.active.p32.guard_flags |=
++				MT6797_A72_P32_GUARD_KILL;
++			raw_spin_unlock_irqrestore(&a72_state_lock, flags);
++			return -EIO;
++		}
++		raw_spin_unlock_irqrestore(&a72_state_lock, flags);
++		if (!matched)
++			return 0;
++		cpu_relax();
++	}
++
++	return -ETIMEDOUT;
++}
++
++int mt6797_a72_membership_consume_p32(unsigned int cpu, int *error)
++{
++	unsigned long flags;
++	int ret = -EAGAIN;
++
++	if (error)
++		*error = 0;
++
++	raw_spin_lock_irqsave(&a72_state_lock, flags);
++	if (mt6797_a72_p32_target_locked(cpu) &&
++	    a72_owner.active.p32.state == MT6797_A72_P32_STATE_PARKED) {
++		if (error)
++			*error = a72_owner.active.p32.cpu_up_error;
++		a72_owner.active.p32.state = MT6797_A72_P32_STATE_CONSUMED;
++		ret = -EIO;
++	}
++	raw_spin_unlock_irqrestore(&a72_state_lock, flags);
++	return ret;
++}
++
+ static enum mt6797_a72_membership_operation
+ mt6797_a72_up_operation(unsigned int cpu)
+ {
+diff --git a/arch/arm64/kernel/mt6797_psci.c b/arch/arm64/kernel/mt6797_psci.c
+--- a/arch/arm64/kernel/mt6797_psci.c
++++ b/arch/arm64/kernel/mt6797_psci.c
+@@ -1412,5 +1415,49 @@ static int mt6797_psci_cpu_up_validate(unsigned int cpu, int tasks_frozen,
+ }
+ #endif
+ 
++#ifdef CONFIG_ARM64_MT6797_A72_P32_ROLLBACK
++static int mt6797_psci_cpu_up_rollback(unsigned int cpu,
++				       enum cpuhp_state state, int error)
++{
++	if (cpu != 8 && cpu != 9)
++		return 0;
++
++	return mt6797_a72_membership_publish_p32(cpu, state, error);
++}
++
++#ifdef CONFIG_HOTPLUG_CPU
++static int mt6797_psci_cpu_disable(unsigned int cpu)
++{
++	int ret;
++
++	ret = mt6797_a72_membership_p32_cpu_disable(cpu);
++	if (ret)
++		return ret;
++
++	return cpu_psci_ops.cpu_disable ? cpu_psci_ops.cpu_disable(cpu) :
++		-EOPNOTSUPP;
++}
++
++static void mt6797_psci_cpu_die(unsigned int cpu)
++{
++	if (mt6797_a72_membership_p32_cpu_die(cpu))
++		cpu_park_loop();
++
++	cpu_psci_ops.cpu_die(cpu);
++}
++
++static int mt6797_psci_cpu_kill(unsigned int cpu)
++{
++	int ret;
++
++	ret = mt6797_a72_membership_p32_cpu_kill(cpu);
++	if (ret)
++		return ret;
++
++	return cpu_psci_ops.cpu_kill ? cpu_psci_ops.cpu_kill(cpu) : 0;
++}
++#endif
++#endif
++
+ static int mt6797_psci_cpu_boot(unsigned int cpu)
+ {
+@@ -1432,8 +1478,16 @@ const struct cpu_operations mt6797_psci_ops = {
+ 	.cpu_up_preflight = mt6797_psci_cpu_up_preflight,
+ 	.cpu_up_validate = mt6797_psci_cpu_up_validate,
+ #endif
++#ifdef CONFIG_ARM64_MT6797_A72_P32_ROLLBACK
++	.cpu_up_rollback = mt6797_psci_cpu_up_rollback,
++#endif
+ 	.cpu_boot	= mt6797_psci_cpu_boot,
+ #ifdef CONFIG_HOTPLUG_CPU
+ 	.cpu_can_disable = mt6797_psci_cpu_can_disable,
++#ifdef CONFIG_ARM64_MT6797_A72_P32_ROLLBACK
++	.cpu_disable = mt6797_psci_cpu_disable,
++	.cpu_die = mt6797_psci_cpu_die,
++	.cpu_kill = mt6797_psci_cpu_kill,
++#endif
+ #endif
+ };
+diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
+--- a/arch/arm64/kernel/smp.c
++++ b/arch/arm64/kernel/smp.c
+@@ -48,4 +48,7 @@
+ #include <asm/mmu_context.h>
+ #include <asm/numa.h>
++#ifdef CONFIG_ARM64_MT6797_A72_P32_ROLLBACK
++#include <asm/mt6797_a72_membership.h>
++#endif
+ #ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
+ #include <asm/mt6797_a72_p30e.h>
+@@ -122,7 +125,21 @@ int arch_cpu_up_validate(unsigned int cpu, int tasks_frozen,
+ 	return 0;
+ }
+ 
++int arch_cpu_up_rollback(unsigned int cpu, enum cpuhp_state state, int error)
++{
++	const struct cpu_operations *ops;
++
++	if (cpu >= nr_cpu_ids)
++		return 0;
++
++	ops = get_cpu_ops(cpu);
++	if (ops && ops->cpu_up_rollback)
++		return ops->cpu_up_rollback(cpu, state, error);
++
++	return 0;
++}
++
+ /*
+  * Boot a secondary CPU, and assign it the specified idle task.
+  * This also gives us the initial stack to use for this CPU.
+  */
+diff --git a/include/linux/cpu.h b/include/linux/cpu.h
+--- a/include/linux/cpu.h
++++ b/include/linux/cpu.h
+@@ -119,6 +119,7 @@ int cpu_device_up(struct device *dev);
+ void notify_cpu_starting(unsigned int cpu);
+ int arch_cpu_up_preflight(unsigned int cpu, enum cpuhp_state target);
+ int arch_cpu_up_validate(unsigned int cpu, int tasks_frozen,
+ 			 enum cpuhp_state target);
++int arch_cpu_up_rollback(unsigned int cpu, enum cpuhp_state state, int error);
+ extern void cpu_maps_update_begin(void);
+ extern void cpu_maps_update_done(void);
+diff --git a/kernel/cpu.c b/kernel/cpu.c
+--- a/kernel/cpu.c
++++ b/kernel/cpu.c
+@@ -1025,6 +1025,8 @@ static int cpuhp_up_callbacks(unsigned int cpu, struct cpuhp_cpu_state *st,
+ 	if (ret) {
+ 		pr_debug("CPU UP failed (%d) CPU %u state %s (%d)\n",
+ 			 ret, cpu, cpuhp_get_step(st->state)->name,
+ 			 st->state);
++		if (arch_cpu_up_rollback(cpu, st->state, ret))
++			pr_err("CPU%u P32 rollback publication failed\n", cpu);
+ 
+ 		cpuhp_reset_state(cpu, st, prev_state);
+ 		if (can_rollback_cpu(st))
+--
+2.50.1
