@@ -331,8 +331,8 @@ apply_patch_file() {
   local relative="$1"
   local path="$2"
   echo "Applying ${relative}"
-  git -C "${PREPARED_TREE}" apply --check "${path}"
-  git -C "${PREPARED_TREE}" apply "${path}"
+  git -C "${PREPARED_TREE}" apply --check --unidiff-zero "${path}"
+  git -C "${PREPARED_TREE}" apply --unidiff-zero "${path}"
 }
 
 prepare_kernel() {
