@@ -23,13 +23,12 @@ submission-ready.
 diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
 --- a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
 +++ b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
-@@ -89,3 +89,6 @@
+@@ -89,2 +89,5 @@
 +struct mt6797_dvfsp_state_owner_identity;
  struct mt6797_dvfsp_state_owner_ops {
 +	int (*identify)(void *context,
 +					       struct mt6797_dvfsp_state_owner_identity *identity);
  	int (*snapshot)(void *context,
- 			       struct mt6797_dvfsp_state_snapshot *snapshot);
 @@ -99,4 +102,18 @@
  	void (*invalidate)(void *context,
  			   enum mt6797_dvfsp_state_invalidation_reason reason);
