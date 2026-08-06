@@ -89,7 +89,7 @@ diff --git a/drivers/thermal/mediatek/auxadc_thermal.c b/drivers/thermal/mediate
 +#include <linux/soc/mediatek/mt6797-eem-readback.h>
 +
  #include "../thermal_hwmon.h"
-@@ -78,2 +78,17 @@
+@@ -78,2 +78,19 @@
  #define PTPCORESEL		0x400
  
 +/* MT6797 EEM/PTP registers share thermal_base and PTPCORESEL. */
@@ -106,6 +106,8 @@ diff --git a/drivers/thermal/mediatek/auxadc_thermal.c b/drivers/thermal/mediate
 +#define MT6797_EEM_THERM_INTSTS	0x404
 +#define MT6797_EEM_MOD_INTSTS		0x408
 +#define MT6797_EEMCORESEL_MASK		GENMASK(2, 0)
++
++#define MT6797_EEM_EEMEN		0x238
 +
 @@ -945,6 +962,101 @@ static int mtk_thermal_bank_temperature(struct mtk_thermal_bank *bank)
  	return max;
@@ -163,7 +165,7 @@ diff --git a/drivers/thermal/mediatek/auxadc_thermal.c b/drivers/thermal/mediate
 +		readl(mt->thermal_base + PTPCORESEL);
 +
 +		bank->bank = bank_ids[i];
-+		bank->eem_enable = readl(mt->thermal_base + EEMEN);
++		bank->eem_enable = readl(mt->thermal_base + MT6797_EEM_EEMEN);
 +		bank->interrupt_status = readl(mt->thermal_base +
 +						MT6797_EEM_INTSTS);
 +		bank->interrupt_raw = readl(mt->thermal_base +
