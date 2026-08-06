@@ -1691,7 +1691,9 @@ The next ordered work remains source-only:
    callback contract for the vendor pause-source lease, including exact
    generation/cookie, 2 ms timeout, three-word pause/acknowledgement checks,
    and paired release. Its exact pushed profile now passes Buildbox compilation
-   and package checksums, but it performs no MMIO or device operation and does
+   and package checksums at the current pushed commit
+   `23c793aefaccef36253b37654397199c24a228d1`; its single validated package
+   has been fetched locally. It performs no MMIO or device operation and does
    not prove an external owner. Attributable firmware evidence remains
    required. See the
    [firmware lease contract](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/).

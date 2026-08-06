@@ -65,8 +65,9 @@ PYTHONDONTWRITEBYTECODE=1 python3 experiments/2026-08-06-mt6797-dvfsp-firmware-l
 
 ## Follow-up
 
-The exact pushed commit now passes the named Buildbox profile and package
-checksum validation; this is compile-only evidence. The next
+The exact pushed commit `23c793aefaccef36253b37654397199c24a228d1` now passes
+the named Buildbox profile and package checksum validation, and the single
+validated package has been fetched locally; this is compile-only evidence. The next
 hardware-independent gate is an attributable external owner implementing this
 protocol, or a reviewed one-way receiver proof that supplies the same
 responses. Until then the DA921x provider remains fail-closed and the
