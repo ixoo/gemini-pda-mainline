@@ -31,7 +31,7 @@ index 3a9be64c5..5f955a73a 100644
  		return -EINVAL;
  
  	mutex_lock(&a72_provider_registry_lock);
-@@ -72,4 +74,24 @@ int mt6797_a72_provider_acquire(
+@@ -86,4 +86,24 @@ int mt6797_a72_provider_acquire(
  	return ret;
  }
  EXPORT_SYMBOL_GPL(mt6797_a72_provider_acquire);
@@ -60,7 +60,7 @@ diff --git a/drivers/regulator/da9213-legacy-regulator.c b/drivers/regulator/da9
 index 02fc4105c..4f9a5f2ab 100644
 --- a/drivers/regulator/da9213-legacy-regulator.c
 +++ b/drivers/regulator/da9213-legacy-regulator.c
-@@ -277,8 +277,28 @@ static int da9213_legacy_provider_acquire(void *context,
+@@ -211,8 +211,28 @@ static int da9213_legacy_provider_acquire(void *context,
  	return -EOPNOTSUPP;
  }
  
