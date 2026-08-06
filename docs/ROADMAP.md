@@ -1565,6 +1565,15 @@ CPUHP or membership, arm P30, issue CPU_ON, build, package, deploy, or touch
 the device. This advances the source only to
 `PARTIAL_P17_P18_PUBLICATION`.
 
+The follow-on source-only
+[P27 preparation-ledger experiment](../experiments/2026-08-05-a72-p27-preparation-ledger/README.md)
+adds the CPU8-only preprovider preparation boundary after P17. It consumes
+the one-shot preparation budget before any real effect and records only the
+same-generation exact MP2-reset-release, B-PLL-ordering, and owner-locked
+PWRAP prefix. The C ledger has no MMIO, provider, CPUHP, P30, or CPU_ON effect;
+R01/R02 and P28 remain contract-only. This advances the source only to
+`PARTIAL_P27_PREPARATION_LEDGER`.
+
 P32A/D/F/X/R freezes the automatic rollback closure. The controller publishes
 P32 before `cpuhp_reset_state()` and the outer reverse range. Target
 `.cpu_disable` is the first guard before topology/NUMA removal, online clear,
@@ -1587,9 +1596,11 @@ names for that operation is implemented and proven.
 The next ordered work remains source-only:
 
 1. Implement the authoritative P17/P18/P24 transaction behind the closed hooks
-   in the frozen P31 -> A28 -> mint -> A36 order and integrate its exact token
-   with the dormant P30 model and controller call sites. Before any preflight
-   may return success, add the paired lifecycle closures: clean abort only when
+   in the frozen P31 -> A28 -> mint -> A36 -> P17/P18 -> P27 order. The next
+   bounded seam is P28 plus the real provider-owner R01/R02 transaction;
+   integrate its exact token with the dormant P30 model and controller call
+   sites only after the provider failure and P29 rollback edges are represented.
+   Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and
    PARKED waits, the real target park acknowledgment, and the immediate

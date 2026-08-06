@@ -1,0 +1,8 @@
+mutation=wrong-operation result=rejected
+mutation=wrong-stage result=rejected
+mutation=missing-effect result=rejected
+mutation=stale-generation result=rejected
+mutation=stale-cookie result=rejected
+mutation=duplicate-begin result=rejected
+mutations_rejected=6/6
+status=PASS

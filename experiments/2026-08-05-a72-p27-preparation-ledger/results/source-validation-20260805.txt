@@ -1,0 +1,11 @@
+claim=PARTIAL_P27_PREPARATION_LEDGER
+source_commit=16d7eb1ec
+patch_sha256=af0b038c21538fe0df14d23f4e6d41c244a6668e5f7db44d3a9767ed7abb82b7
+patch_bytes=13225
+p27=cpu8-only
+provider_calls=0
+cpu_on_calls=0
+build=not-run
+device_action=none
+checkpatch=only-intentional-missing-signoff
+status=PASS

@@ -1,0 +1,344 @@
+From 16d7eb1ecf8b17e99242ccc78fde9d346b068ba3 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 5 Aug 2026 19:59:08 -0400
+Subject: [PATCH] arm64: record dormant A72 P27 preparation
+
+Consume the CPU8 preprovider preparation budget only after P17.
+
+Model the exact MP2 reset, B-PLL ordering, and PWRAP prefix
+
+as an attested source-only ledger with no hardware or provider calls.
+
+Build, device, and submission remain absent.
+---
+ .../arm64/include/asm/mt6797_a72_membership.h |  49 ++++++++
+ arch/arm64/kernel/mt6797_a72_membership.c     |  92 +++++++++++++++
+ .../arm64/kernel/mt6797_a72_membership_test.c | 109 ++++++++++++++++++
+ 3 files changed, 250 insertions(+)
+
+diff --git a/arch/arm64/include/asm/mt6797_a72_membership.h b/arch/arm64/include/asm/mt6797_a72_membership.h
+index 8e7cb87f8..e06408958 100644
+--- a/arch/arm64/include/asm/mt6797_a72_membership.h
++++ b/arch/arm64/include/asm/mt6797_a72_membership.h
+@@ -101,6 +101,21 @@ enum mt6797_a72_owner_fault {
+ #define MT6797_A72_A36_SPM_218 0x00010132
+ #define MT6797_A72_A36_SPM_290 0x00000002
+ 
++/* P27 is an attested source-only preparation ledger, not an MMIO API. */
++#define MT6797_A72_P27_PREPARATION_ABI 1
++#define MT6797_A72_P27_MP2_RESET_RELEASED BIT(0)
++#define MT6797_A72_P27_BPLL_ORDER_READ BIT(1)
++#define MT6797_A72_P27_PWRAP_ASSERTED BIT(2)
++#define MT6797_A72_P27_EFFECT_MASK (MT6797_A72_P27_MP2_RESET_RELEASED | \
++					MT6797_A72_P27_BPLL_ORDER_READ | \
++					MT6797_A72_P27_PWRAP_ASSERTED)
++
++enum mt6797_a72_p27_stage {
++	MT6797_A72_P27_STAGE_NONE,
++	MT6797_A72_P27_STAGE_INFLIGHT,
++	MT6797_A72_P27_STAGE_COMPLETE,
++};
++
+ /* Diagnostic only: this non-exhaustive list can never authorize a request. */
+ #define MT6797_A72_BLOCK_A34_BOOTSTRAP BIT_ULL(0)
+ #define MT6797_A72_BLOCK_A41_READY BIT_ULL(1)
+@@ -182,11 +197,21 @@ struct mt6797_a72_a36_prestate {
+ 	u64 cookie;
+ };
+ 
++struct mt6797_a72_p27_preparation {
++	u32 abi;
++	u32 operation;
++	u32 stage;
++	u32 effect_mask;
++	u64 generation;
++	u64 cookie;
++};
++
+ struct mt6797_a72_transaction {
+ 	struct mt6797_a72_transaction_identity identity;
+ 	struct mt6797_a72_call_budgets budgets;
+ 	struct mt6797_a72_entry_snapshot entry;
+ 	struct mt6797_a72_a36_prestate a36_prestate;
++	struct mt6797_a72_p27_preparation p27_preparation;
+ 	struct mt6797_a72_provider_identity provider_identity;
+ 	struct arm64_late_cpu_up_token p30_token;
+ 	u64 controller_cookie;
+@@ -196,6 +221,7 @@ struct mt6797_a72_transaction {
+ 	u32 public_preflight;
+ 	u32 a36_valid;
+ 	u32 p17_p18_published;
++	u32 p27_valid;
+ 	u32 freeze_release_count;
+ 	u32 valid;
+ };
+@@ -239,6 +265,10 @@ int
+ mt6797_a72_membership_validate_up_prestate(const struct mt6797_a72_transaction *transaction,
+ 						   const struct mt6797_a72_a36_prestate *prestate);
+ int mt6797_a72_membership_publish_up(struct mt6797_a72_transaction *transaction);
++int mt6797_a72_membership_begin_p27_preparation(struct mt6797_a72_transaction *transaction);
++int mt6797_a72_membership_complete_p27_preparation(
++	struct mt6797_a72_transaction *transaction,
++	const struct mt6797_a72_p27_preparation *preparation);
+ int mt6797_a72_membership_validate_entry(unsigned int cpu,
+ 					 enum cpuhp_state target, u32 attempt,
+ 					 const struct mt6797_a72_entry_snapshot *entry);
+@@ -285,6 +315,25 @@ mt6797_a72_membership_publish_up(struct mt6797_a72_transaction *transaction)
+ 	return -EOPNOTSUPP;
+ }
+ 
++static inline int
++mt6797_a72_membership_begin_p27_preparation(struct mt6797_a72_transaction *transaction)
++{
++	if (transaction)
++		memset(transaction, 0, sizeof(*transaction));
++	return -EOPNOTSUPP;
++}
++
++static inline int
++mt6797_a72_membership_complete_p27_preparation(
++	struct mt6797_a72_transaction *transaction,
++	const struct mt6797_a72_p27_preparation *preparation)
++{
++	(void)preparation;
++	if (transaction)
++		memset(transaction, 0, sizeof(*transaction));
++	return -EOPNOTSUPP;
++}
++
+ static inline int mt6797_a72_membership_validate_entry(unsigned int cpu,
+ 						 enum cpuhp_state target, u32 attempt,
+ 						 const struct mt6797_a72_entry_snapshot *entry)
+diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt6797_a72_membership.c
+index da4f8d3a4..74a181119 100644
+--- a/arch/arm64/kernel/mt6797_a72_membership.c
++++ b/arch/arm64/kernel/mt6797_a72_membership.c
+@@ -475,6 +475,98 @@ int mt6797_a72_membership_publish_up(struct mt6797_a72_transaction *transaction)
+ 	return ret;
+ }
+ 
++int mt6797_a72_membership_begin_p27_preparation(
++	struct mt6797_a72_transaction *transaction)
++{
++	unsigned long flags;
++	int ret = -EPERM;
++
++	if (!transaction)
++		return -EINVAL;
++
++	mutex_lock(&a72_transition_lock);
++	raw_spin_lock_irqsave(&a72_state_lock, flags);
++	if (a72_owner.health != MT6797_A72_OWNER_AVAILABLE ||
++	    a72_owner.phase != MT6797_A72_PHASE_ON_ISSUED ||
++	    !a72_owner.active.valid || !a72_owner.active.p17_p18_published ||
++	    a72_owner.active.identity.operation !=
++		    ARM64_LATE_CPU_STARTUP_OP_CPU8_UP ||
++	    a72_owner.members ||
++	    a72_owner.provider_state != MT6797_A72_PROVIDER_NONE ||
++	    a72_owner.active.budgets.preparation !=
++		    MT6797_A72_BUDGET_AVAILABLE ||
++	    a72_owner.active.p27_preparation.stage !=
++		    MT6797_A72_P27_STAGE_NONE ||
++	    memcmp(&a72_owner.active.identity, &transaction->identity,
++		   sizeof(a72_owner.active.identity))) {
++		goto out_state;
++	}
++
++	/* Consume the one-shot budget before any real P27 effect is allowed. */
++	a72_owner.active.budgets.preparation = MT6797_A72_BUDGET_CONSUMED;
++	a72_owner.active.p27_preparation.abi =
++		MT6797_A72_P27_PREPARATION_ABI;
++	a72_owner.active.p27_preparation.operation =
++		ARM64_LATE_CPU_STARTUP_OP_CPU8_UP;
++	a72_owner.active.p27_preparation.stage =
++		MT6797_A72_P27_STAGE_INFLIGHT;
++	a72_owner.active.p27_preparation.generation =
++		a72_owner.active.identity.generation;
++	a72_owner.active.p27_preparation.cookie =
++		a72_owner.active.identity.cookie;
++	*transaction = a72_owner.active;
++	ret = 0;
++
++out_state:
++	raw_spin_unlock_irqrestore(&a72_state_lock, flags);
++	mutex_unlock(&a72_transition_lock);
++	return ret;
++}
++
++int mt6797_a72_membership_complete_p27_preparation(
++	struct mt6797_a72_transaction *transaction,
++	const struct mt6797_a72_p27_preparation *preparation)
++{
++	unsigned long flags;
++	int ret = -EPERM;
++
++	if (!transaction || !preparation)
++		return -EINVAL;
++
++	mutex_lock(&a72_transition_lock);
++	raw_spin_lock_irqsave(&a72_state_lock, flags);
++	if (a72_owner.health != MT6797_A72_OWNER_AVAILABLE ||
++	    a72_owner.phase != MT6797_A72_PHASE_ON_ISSUED ||
++	    !a72_owner.active.valid || !a72_owner.active.p17_p18_published ||
++	    a72_owner.active.identity.operation !=
++		    ARM64_LATE_CPU_STARTUP_OP_CPU8_UP ||
++	    a72_owner.members ||
++	    a72_owner.provider_state != MT6797_A72_PROVIDER_NONE ||
++	    a72_owner.active.p27_preparation.stage !=
++		    MT6797_A72_P27_STAGE_INFLIGHT ||
++	    a72_owner.active.budgets.preparation !=
++		    MT6797_A72_BUDGET_CONSUMED ||
++	    memcmp(&a72_owner.active.identity, &transaction->identity,
++		   sizeof(a72_owner.active.identity)) ||
++	    preparation->abi != MT6797_A72_P27_PREPARATION_ABI ||
++	    preparation->operation != ARM64_LATE_CPU_STARTUP_OP_CPU8_UP ||
++	    preparation->stage != MT6797_A72_P27_STAGE_COMPLETE ||
++	    preparation->effect_mask != MT6797_A72_P27_EFFECT_MASK ||
++	    preparation->generation != a72_owner.active.identity.generation ||
++	    preparation->cookie != a72_owner.active.identity.cookie)
++		goto out_state;
++
++	a72_owner.active.p27_preparation = *preparation;
++	a72_owner.active.p27_valid = 1;
++	*transaction = a72_owner.active;
++	ret = 0;
++
++out_state:
++	raw_spin_unlock_irqrestore(&a72_state_lock, flags);
++	mutex_unlock(&a72_transition_lock);
++	return ret;
++}
++
+ static int
+ mt6797_a72_membership_check_up(unsigned int cpu, int tasks_frozen,
+ 			       enum cpuhp_state target)
+diff --git a/arch/arm64/kernel/mt6797_a72_membership_test.c b/arch/arm64/kernel/mt6797_a72_membership_test.c
+index 899bed6d7..1aaf13274 100644
+--- a/arch/arm64/kernel/mt6797_a72_membership_test.c
++++ b/arch/arm64/kernel/mt6797_a72_membership_test.c
+@@ -688,6 +688,113 @@ static void mt6797_a72_owner_p18_without_provider_rejected(struct kunit *test)
+ 	KUNIT_EXPECT_TRUE(test, mt6797_a72_transaction_empty(&transaction));
+ }
+ 
++static struct mt6797_a72_p27_preparation
++mt6797_a72_p27_preparation_for(const struct mt6797_a72_transaction *transaction)
++{
++	return (struct mt6797_a72_p27_preparation) {
++		.abi = MT6797_A72_P27_PREPARATION_ABI,
++		.operation = transaction->identity.operation,
++		.stage = MT6797_A72_P27_STAGE_COMPLETE,
++		.effect_mask = MT6797_A72_P27_EFFECT_MASK,
++		.generation = transaction->identity.generation,
++		.cookie = transaction->identity.cookie,
++	};
++}
++
++static void mt6797_a72_owner_p27_cpu8_preparation_once(struct kunit *test)
++{
++	struct mt6797_a72_entry_snapshot entry = mt6797_a72_entry_for_up(8);
++	struct arm64_late_cpu_ready_token ready = mt6797_a72_ready_token_for_up();
++	struct mt6797_a72_a36_prestate prestate = mt6797_a72_prestate_for_up(8);
++	struct mt6797_a72_p27_preparation preparation;
++	struct mt6797_a72_transaction transaction;
++	struct owner_observation before;
++	struct owner_observation after;
++	int ret;
++
++	mt6797_a72_membership_test_seed_available();
++	ret = mt6797_a72_membership_begin_up(8, CPUHP_ONLINE,
++					     MT6797_A72_ATTEMPT_CPU8_UP,
++					     &entry, &ready, &prestate, &transaction);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	ret = mt6797_a72_membership_publish_up(&transaction);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	ret = mt6797_a72_membership_begin_p27_preparation(&transaction);
++	KUNIT_EXPECT_EQ(test, ret, 0);
++	KUNIT_EXPECT_EQ(test, transaction.budgets.preparation,
++			(u8)MT6797_A72_BUDGET_CONSUMED);
++	KUNIT_EXPECT_EQ(test, transaction.p27_preparation.stage,
++			(u32)MT6797_A72_P27_STAGE_INFLIGHT);
++	KUNIT_EXPECT_EQ(test, transaction.provider_identity.generation,
++			(u64)0);
++	KUNIT_EXPECT_EQ(test, transaction.entry.members, (u32)0);
++
++	preparation = mt6797_a72_p27_preparation_for(&transaction);
++	ret = mt6797_a72_membership_complete_p27_preparation(&transaction,
++							     &preparation);
++	KUNIT_EXPECT_EQ(test, ret, 0);
++	KUNIT_EXPECT_TRUE(test, transaction.p27_valid);
++	KUNIT_EXPECT_EQ(test, transaction.p27_preparation.stage,
++			(u32)MT6797_A72_P27_STAGE_COMPLETE);
++	owner_observe(&after);
++	KUNIT_EXPECT_EQ(test, after.owner.phase,
++			(u32)MT6797_A72_PHASE_ON_ISSUED);
++	KUNIT_EXPECT_EQ(test, after.owner.provider_state,
++			(u32)MT6797_A72_PROVIDER_NONE);
++	KUNIT_EXPECT_EQ(test, after.owner.members, (u32)0);
++
++	owner_observe(&before);
++	ret = mt6797_a72_membership_begin_p27_preparation(&transaction);
++	KUNIT_EXPECT_EQ(test, ret, -EPERM);
++	owner_observe(&after);
++	expect_unchanged(test, &before, &after);
++}
++
++static void mt6797_a72_owner_p27_rejects_bad_or_cpu9_proof(struct kunit *test)
++{
++	struct mt6797_a72_entry_snapshot entry = mt6797_a72_entry_for_up(8);
++	struct arm64_late_cpu_ready_token ready = mt6797_a72_ready_token_for_up();
++	struct mt6797_a72_a36_prestate prestate = mt6797_a72_prestate_for_up(8);
++	struct mt6797_a72_p27_preparation preparation;
++	struct mt6797_a72_transaction transaction;
++	struct owner_observation before;
++	struct owner_observation after;
++	int ret;
++
++	mt6797_a72_membership_test_seed_available();
++	ret = mt6797_a72_membership_begin_up(8, CPUHP_ONLINE,
++					     MT6797_A72_ATTEMPT_CPU8_UP,
++					     &entry, &ready, &prestate, &transaction);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	ret = mt6797_a72_membership_publish_up(&transaction);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	ret = mt6797_a72_membership_begin_p27_preparation(&transaction);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	preparation = mt6797_a72_p27_preparation_for(&transaction);
++	preparation.effect_mask ^= MT6797_A72_P27_BPLL_ORDER_READ;
++	owner_observe(&before);
++	ret = mt6797_a72_membership_complete_p27_preparation(&transaction,
++							     &preparation);
++	KUNIT_EXPECT_EQ(test, ret, -EPERM);
++	owner_observe(&after);
++	expect_unchanged(test, &before, &after);
++
++	mt6797_a72_membership_test_seed_available_cpu9();
++	entry = mt6797_a72_entry_for_up(9);
++	prestate = mt6797_a72_prestate_for_up(9);
++	ret = mt6797_a72_membership_begin_up(9, CPUHP_ONLINE,
++					     MT6797_A72_ATTEMPT_CPU9_UP,
++					     &entry, &ready, &prestate, &transaction);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	ret = mt6797_a72_membership_publish_up(&transaction);
++	KUNIT_ASSERT_EQ(test, ret, 0);
++	owner_observe(&before);
++	ret = mt6797_a72_membership_begin_p27_preparation(&transaction);
++	KUNIT_EXPECT_EQ(test, ret, -EPERM);
++	owner_observe(&after);
++	expect_unchanged(test, &before, &after);
++}
++
+ static void mt6797_a72_owner_forged_token_rejected(struct kunit *test)
+ {
+ 	struct owner_observation before;
+@@ -746,6 +853,8 @@ static struct kunit_case mt6797_a72_owner_cases[] = {
+ 	KUNIT_CASE(mt6797_a72_owner_p17_cpu8_publishes_once),
+ 	KUNIT_CASE(mt6797_a72_owner_p18_cpu9_preserves_provider),
+ 	KUNIT_CASE(mt6797_a72_owner_p18_without_provider_rejected),
++	KUNIT_CASE(mt6797_a72_owner_p27_cpu8_preparation_once),
++	KUNIT_CASE(mt6797_a72_owner_p27_rejects_bad_or_cpu9_proof),
+ 	KUNIT_CASE(mt6797_a72_owner_forged_token_rejected),
+ 	KUNIT_CASE(mt6797_a72_owner_no_live_token),
+ 	{ }
+-- 
+2.50.1 (Apple Git-155)
+
