@@ -687,6 +687,7 @@
                     "configs/gemini-a72-p30-protocol.fragment",
                     "configs/gemini-a72-p24-closed-owner.fragment",
                     "configs/gemini-a72-p24-closed-hooks.fragment",
+                    "configs/gemini-dvfsp-handoff-owner.fragment",
                     "configs/gemini-da921x-legacy-bind.fragment",
                     "configs/gemini-da921x-resource-only-provider.fragment",
                     "configs/gemini-da921x-provider-owner-refusal.fragment"
