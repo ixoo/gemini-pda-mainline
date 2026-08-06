@@ -1,0 +1,40 @@
+P32 source-only implementation/build result
+============================================
+
+Date: 2026-08-06 America/New_York
+Repository commit: 04b5dd978a38dfd8277122a4a9d0d0a335afd683
+Origin: https://github.com/ixoo/gemini-pda-mainline.git
+Profile: a72-p32-rollback
+Backend: Buildbox (cross build; no native VM build)
+
+The initial profile attempt at commit d0469d88235956a934c2e09376f665241ddf9cb3
+was rejected during configuration because the P30 protocol prerequisite was
+not selected. The profile was corrected by adding
+CONFIG_ARM64_MT6797_A72_P30_PROTOCOL_MODEL=y, pushed as the commit above, and
+then rebuilt. No source or device operation was performed for the rejected
+attempt.
+
+Buildbox package: linux-7.1.3-gemini-a72-p32-rollback-fa7152e3-a52199d2
+Buildbox job: 04b5dd978a38dfd8277122a4a9d0d0a335afd683-a72-p32-rollback-m0
+Kernel release: 7.1.3-gemini-p32-rollback-blocked
+Source SHA-256: be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+Patch-series SHA-256: fa7152e3ae4dae9d523e91ad3aeaa887806cb95fb5a30c6ef8c0e2f6b2199b80
+Patch count: 171
+Config SHA-256: d0049ede621750a7db9a351302383d163ffc200f448c0eb321d3827b65bcf7f6
+Image.gz SHA-256: 5d14d5c55b728c21b52149f67a603c2f5b5b6e9b1db0e2a50aeea60c68b9821f
+Image.gz decompressed size: 13494280
+Image effective size: 14090240
+Gemini DTB SHA-256: e2424e337a30dbc112496ae841bde655058c01d79cd399f2d518154d5faba60c
+DTB count: 119
+Modules: not built
+Package and provenance validation: passed
+Local package fetch and checksum validation: passed
+Hardware write: none
+
+Retained configuration confirms CONFIG_SMP=y,
+CONFIG_HOTPLUG_CPU=y, CONFIG_ARM64_MT6797_A72_CAPABILITY_PROFILE=y,
+CONFIG_ARM64_MT6797_A72_P30_PROTOCOL_MODEL=y,
+CONFIG_ARM64_MT6797_A72_P24_TRANSACTION_OWNER_MODEL=y, and
+CONFIG_ARM64_MT6797_A72_P32_ROLLBACK=y. The profile remains source-only:
+there is no production transaction opener, CPU_ON/OFF authorization, provider
+write, candidate installation, boot, or device action.

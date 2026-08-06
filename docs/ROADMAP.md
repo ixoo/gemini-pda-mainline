@@ -1840,11 +1840,12 @@ The next ordered work remains source-only:
    `cpuhp_reset_state()`/reverse range, retain the nested AP rollback prefix,
    guard target `.cpu_disable` before topology/NUMA/online/IPI/IRQ teardown,
    park from target `.cpu_die` without CPU_OFF, and suppress controller
-   affinity in `.cpu_kill`. The current PSCI boot and disable vetoes remain
-   intact. The next source-only implementation must add an exact-generation
-   side channel and these fail-stop guards, with P32R consumption before
-   membership/HPS completion.
-4. Complete A25 and implement P32A/D/F/X/R using either a reviewed core
+   affinity in `.cpu_kill`. Patch `0182` now implements that exact-generation
+   side channel and those fail-stop guards behind a default-off profile; the
+   171-patch Buildbox package and fetched checksum validation pass, with no
+   hardware write. The current PSCI boot and disable vetoes remain intact.
+4. Complete A25, review P32R consumption and mutation coverage, and finish
+   P32A/D/F/X/R using either a reviewed core
    no-auto-rollback interface or the fail-stop `.cpu_disable` plus die/kill
    guard design, retaining every partial callback and architecture effect.
 5. Revalidate every applicable A26 CPU-up gate and its A14 CPU-off dependency.
@@ -1863,8 +1864,9 @@ The next ordered work remains source-only:
    bounded independent post-OFF observers.
 
 Until all applicable A26/A14 gates close, do not generate a CPU_ON/CPU_OFF
-candidate, build a kernel, or use the device. Passive provider work may proceed
-in parallel only within its existing no-write, no-consumer boundary.
+candidate or use the device. Source-only builds and static review may proceed
+for the explicitly blocked profiles; passive provider work may proceed in
+parallel only within its existing no-write, no-consumer boundary.
 
 CPU_OFF, suspend/resume, later power boundaries, a mainline provider write,
 and default-profile A72 consumers remain blocked until their separate ownership

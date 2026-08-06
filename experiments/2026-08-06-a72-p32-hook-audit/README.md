@@ -5,11 +5,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-06-a72-p32-hook-audit` |
-| Status | `completed` (read-only source audit; implementation remains blocked) |
+| Status | `in progress` (source-only implementation build validated; runtime remains blocked) |
 | Subsystem | arm64 CPUHP rollback, target `cpu_disable`/`cpu_die`, controller `cpu_kill` |
 | Device variant | Planet Gemini PDA, MT6797; no live-device action |
 | Date | 2026-08-06 America/New_York |
-| Claim | `PARTIAL_P32_HOOK_MAP` |
+| Claim | `P32_SOURCE_GUARDS_BUILD_VALIDATED` |
 
 ## Question
 
@@ -29,6 +29,8 @@ partition operation occurred.
 
 The patched-source file identities used for the audit are recorded in
 [`results/p32-hook-source-audit-20260806.txt`](results/p32-hook-source-audit-20260806.txt).
+The default-off implementation and its Buildbox provenance are recorded in
+[`results/p32-implementation-build-20260806.txt`](results/p32-implementation-build-20260806.txt).
 The normative branch contract remains the
 [A72 CPU-up source-closure design](../2026-08-05-a72-cpu-up-source-closure/DESIGN.md).
 
@@ -56,18 +58,17 @@ reachability.
 
 ## Conclusion
 
-`confirmed` as an exact source hook map. The remaining implementation is finite
-but not yet present: it needs an exact-generation P32 side channel published
-before outer rollback, a fail-stop target `.cpu_disable` guard, a target
-`.cpu_die` park path without CPU_OFF, and a controller `.cpu_kill` path that
-does not call affinity and returns nonzero. P32R must consume the side channel
-before membership/HPS completion. CPU_ON, CPU_OFF, and device gates remain
-closed.
+`confirmed` as an exact source hook map. Patch `0182` now supplies a
+default-off exact-generation side channel, target `.cpu_disable`/`.cpu_die`
+guards, and a controller `.cpu_kill` path that avoids affinity. The profile
+builds successfully through Buildbox with all existing CPU_ON/CPU_OFF and
+provider vetoes intact. P32R consumption, mutation coverage, A25 review, and
+the A41/provider/A26/A14 admission gates remain open; CPU_ON, CPU_OFF, and
+device gates remain closed.
 
 ## Follow-up
 
-Implement the guarded P32 seam behind a default-off profile, add mutation tests
-for nested rollback and every guard-loss branch, then run the smallest exact
-Buildbox validation. Do not relax the boot or disable vetoes and do not create a
-device candidate until P32, A41, provider, P30, and the remaining A26/A14 gates
-are independently closed.
+Add mutation tests for nested rollback and every guard-loss branch, review the
+P32R consumption point, then re-audit A25, A41, provider, P30, and the remaining
+A26/A14 gates. Do not relax the boot or disable vetoes and do not create a
+device candidate until those gates are independently closed.
