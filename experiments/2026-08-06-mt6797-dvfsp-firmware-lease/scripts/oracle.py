@@ -24,6 +24,7 @@ ADAPTER_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-adapte
 IDENTITY_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-identity-buildbox-20260806.txt"
 STATE_BACKEND_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/protected-state-backend-composition-buildbox-20260806.txt"
 PROTOCOL_RESULT = Path(__file__).resolve().parents[1] / "results/protected-owner-protocol-20260806.txt"
+DVFS_STATE_RESULT = Path(__file__).resolve().parents[1] / "results/public-dvfs-state-owner-20260806.txt"
 
 
 def require(text: str, needle: str, label: str) -> None:
@@ -50,6 +51,7 @@ def main() -> None:
     identity_build_result = IDENTITY_BUILD_RESULT.read_text()
     state_backend_build_result = STATE_BACKEND_BUILD_RESULT.read_text()
     protocol_result = PROTOCOL_RESULT.read_text()
+    dvfs_state_result = DVFS_STATE_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     names = [Path(line).name for line in SERIES.read_text().splitlines()
@@ -358,6 +360,21 @@ def main() -> None:
         ("status=PASS_PROTOCOL_IDENTITIES_OWNER_IMPLEMENTATION_BLOCKED", "protocol-status"),
     ):
         require(protocol_result, needle, label)
+
+    for needle, label in (
+        ("claim=PUBLIC_DVFS_STATE_OWNER_REVALIDATED", "dvfs-state-claim"),
+        ("source_commit=8cfe6596a503612e3332d9c26e292a19525a7f07", "dvfs-state-source"),
+        ("state_function=__set_cpuhvfs_init_sta", "dvfs-state-function"),
+        ("state_fields=opp;freq;volt;vsram;ceiling;floor;is_on", "dvfs-state-fields"),
+        ("transition_lock=cpufreq_mutex;mutex_lock;is_in_cpufreq=1", "dvfs-transition-lock"),
+        ("transition_scope=_mt_cpufreq_set;voltage_up;frequency_and_CCI;voltage_down;opp_index_publication", "dvfs-transition-scope"),
+        ("state_table_inputs=efuse_date_code;efuse_function_code;EEM_PTP_mutable_voltage_tables;PPM_limits", "dvfs-calibration-inputs"),
+        ("mainline_cpufreq_owner=absent;Linux_7.1.3_has_no_MT6797_specific_driver", "dvfs-mainline-gap"),
+        ("static_table_policy=reject;source_has_calibration_and_mutable_PPM_limits", "dvfs-static-table-rejection"),
+        ("decision=KEEP_0196_OWNER_UNREGISTERED;KEEP_PROVIDER_AND_CPU8_CPU9_ADMISSION_BLOCKED", "dvfs-decision"),
+        ("status=PASS_HISTORICAL_STATE_OWNER_MAINLINE_GAP_OPEN", "dvfs-status"),
+    ):
+        require(dvfs_state_result, needle, label)
 
     if names.index("0174-soc-mediatek-add-I2C6-DVFSP-transfer-lease.patch") >= names.index("0175-soc-mediatek-define-I2C6-firmware-lease-contract.patch"):
         raise AssertionError("firmware lease contract is not after Linux transfer lease")

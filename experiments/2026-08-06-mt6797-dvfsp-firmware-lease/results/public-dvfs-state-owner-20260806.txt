@@ -1,0 +1,58 @@
+# Public MT6797 DVFS startup-state owner boundary
+
+Date: 2026-08-06 America/New_York
+
+claim=PUBLIC_DVFS_STATE_OWNER_REVALIDATED
+scope=read-only-public-source-audit;no-source-copied;no-device-action;no-new-backup
+source_repository=https://github.com/gemian/gemini-linux-kernel-3.18
+source_commit=8cfe6596a503612e3332d9c26e292a19525a7f07
+source_file=drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c
+source_sha256=3f69c3b3a331a70336f7a4010cd4482f6743b0b69cef6df4c641d5be259eccd3
+
+## Positive historical state contract
+
+state_function=__set_cpuhvfs_init_sta
+state_function_scope=CONFIG_HYBRID_CPU_DVFS;before_kick_dvfsp
+state_clusters=LL;L;B;CCI
+state_fields=opp;freq;volt;vsram;ceiling;floor;is_on
+state_opp_source=p->idx_opp_tbl;calibration_selected_opp_table
+state_frequency_source=p->ops->get_cur_phy_freq(p);physical_khz
+state_vproc_source=get_cur_volt_extbuck(p);calibration_and_live_rail
+state_vsram_source=p->ops->get_cur_vsram(p);live_sram_ldo
+state_limits_source=idx_opp_ppm_limit;idx_opp_ppm_base;ceiling_and_floor
+state_membership_source=p->armpll_is_available;cluster_on
+state_record_order=sync_opp_index;read_vproc;read_vsram;write_opp_freq_volt_vsram_limits_membership
+state_failure=BUG_on_sync_or_invalid_voltage;not_safe_to_copy_to_mainline
+
+## Positive transition ownership
+
+transition_lock=cpufreq_mutex;mutex_lock;is_in_cpufreq=1
+transition_scope=_mt_cpufreq_set;voltage_up;frequency_and_CCI;voltage_down;opp_index_publication
+transition_state_updates=p->idx_opp_tbl;p_cci->idx_opp_tbl
+transition_callbacks=CPU_ONLINE;CPU_DOWN_PREPARE;CPU_DOWN_FAILED;PM_SUSPEND_PREPARE;PM_POST_SUSPEND
+transition_suspend=cpufreq_lock;set_suspend_state;unlock;invalidate_required_for_PCM_generation
+state_table_inputs=efuse_date_code;efuse_function_code;EEM_PTP_mutable_voltage_tables;PPM_limits
+state_table_variants=multiple_date_and_function_code_tables;not_a_single_board_OPP_table
+
+## Mainline gap and implementation boundary
+
+mainline_cpufreq_owner=absent;Linux_7.1.3_has_no_MT6797_specific_driver
+mainline_state_function=absent;no_init_sta_equivalent
+mainline_transition_lock=absent;generic_cpufreq_lock_not_a_MT6797_owner
+mainline_calibration=absent;no_EEM_PTP_owner_or_selected_table
+mainline_rail_owner=absent;no_CPU_VPROC_VSRAM_OPP_binding
+mainline_protected_backends=absent;MCUMIXED_DVFSP_and_BigiDVFS_not_registered
+static_table_policy=reject;source_has_calibration_and_mutable_PPM_limits
+implementation_boundary=port_state_shape_and_lock_contract;do_not_copy_vendor_tables_or_FATAL_paths
+next_gate=mainline_calibration_and_rail_owner_design;then_protected_backend_snapshot_under_one_lock
+decision=KEEP_0196_OWNER_UNREGISTERED;KEEP_PROVIDER_AND_CPU8_CPU9_ADMISSION_BLOCKED
+hardware_write=none
+device_action=none
+status=PASS_HISTORICAL_STATE_OWNER_MAINLINE_GAP_OPEN
+
+The historical source now proves that a complete startup-state owner and
+transition lock existed, including the exact fields required by the PCM
+adapter. It does not make the vendor OPP tables portable: the tables depend on
+efuse-selected variants, EEM/PTP mutation, PPM limits, live regulator state,
+and vendor hardware owners. Mainline still lacks those owners, so this closes
+the state-shape attribution but not implementation or hardware support.

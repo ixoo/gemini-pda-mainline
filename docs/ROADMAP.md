@@ -1874,6 +1874,16 @@ The next ordered work remains source-only:
    and the provider/CPU8/CPU9 gates closed while the default-off adapters and
    their rollback/state proof are implemented. See the
    [protected-owner protocol result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/protected-owner-protocol-20260806.txt).
+   A public DVFS-state audit also revalidates the historical
+   `__set_cpuhvfs_init_sta()` owner: it samples OPP, physical frequency,
+   Vproc, VSRAM, ceiling/floor limits, and cluster membership under the
+   vendor `cpufreq_mutex` before the PCM kick. Its state tables depend on
+   efuse-selected variants, EEM/PTP mutation, and PPM limits, so a static OPP
+   table is not portable. Mainline still lacks the equivalent cpufreq,
+   calibration, and CPU-rail owner. The next implementation task is to define
+   that owner boundary and bind both protected backends under one transition
+   lock; keep the 0196 owner and provider gates closed meanwhile. See the
+   [public DVFS state-owner result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/public-dvfs-state-owner-20260806.txt).
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and

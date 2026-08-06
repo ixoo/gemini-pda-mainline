@@ -95,6 +95,7 @@ be copied directly into a mainline failure/PM path.
 - [Protected state-owner identity Buildbox validation](results/state-owner-identity-buildbox-20260806.txt)
 - [Protected state-backend composition Buildbox validation](results/protected-state-backend-composition-buildbox-20260806.txt)
 - [Protected-owner protocol identity revalidation](results/protected-owner-protocol-20260806.txt)
+- [Public DVFS startup-state owner boundary](results/public-dvfs-state-owner-20260806.txt)
 - [Mainline clock/state-owner inventory](results/mainline-clock-owner-inventory-20260806.txt)
 - [Current-head bfd04ae full-profile Buildbox resume](results/current-head-bfd04ae-full-buildbox-20260806.txt)
 - [Receiver register-window identity reconciliation](results/receiver-register-identity-20260806.txt)
@@ -246,3 +247,12 @@ is absent, and the historical fatal timeout paths need bounded mainline
 rollback. The next implementation gate is therefore a default-off,
 read-only protocol adapter with explicit state and transition-lock proof; no
 writable provider or CPU8/CPU9 admission is permitted until that proof exists.
+
+The public DVFS owner audit now supplies the missing historical state shape:
+`__set_cpuhvfs_init_sta()` samples OPP, physical frequency, Vproc, VSRAM,
+ceiling/floor limits, and cluster membership under the vendor `cpufreq_mutex`
+before the PCM kick. It also proves that the tables are selected and mutated
+from efuse, EEM/PTP, and PPM state, so copying a static OPP table would be an
+incorrect substitute. Mainline still has no equivalent cpufreq/calibration/
+rail owner; the next implementation task is to design that owner boundary and
+then bind the protected backends under one lock.
