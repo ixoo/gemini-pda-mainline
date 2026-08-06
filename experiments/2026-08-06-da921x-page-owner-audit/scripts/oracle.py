@@ -23,6 +23,7 @@ FIRMWARE_LEASE = Path(__file__).resolve().parents[1] / "results/firmware-owner-l
 PCM_SCAN = Path(__file__).resolve().parents[1] / "results/pcm-firmware-owner-scan-20260806.txt"
 SECURE_IMAGE_SCAN = Path(__file__).resolve().parents[1] / "results/secure-owner-image-scan-20260806.txt"
 TEE_DISASSEMBLY = Path(__file__).resolve().parents[1] / "results/tee-owner-disassembly-20260806.txt"
+SCP_ALIAS_INVENTORY = Path(__file__).resolve().parents[1] / "results/scp-alias-inventory-20260806.txt"
 LEDGER = Path(__file__).resolve().parents[1] / "results/source-audit.tsv"
 RECONCILIATION = Path(__file__).resolve().parents[1] / "results/source-reconciliation-20260806.txt"
 CROSSCHECK = ROOT / "experiments/2026-07-23-da9214-resource-only/results/da9214-datasheet-crosscheck-20260723.txt"
@@ -54,6 +55,7 @@ def main() -> None:
     pcm_scan = PCM_SCAN.read_text()
     secure_image_scan = SECURE_IMAGE_SCAN.read_text()
     tee_disassembly = TEE_DISASSEMBLY.read_text()
+    scp_alias_inventory = SCP_ALIAS_INVENTORY.read_text()
     ledger = LEDGER.read_text()
     reconciliation = RECONCILIATION.read_text()
     crosscheck = CROSSCHECK.read_text()
@@ -194,6 +196,17 @@ def main() -> None:
         ("status=PASS_TEE_OWNER_DISCRIMINATION_NEGATIVE", "tee-disassembly-status"),
     ):
         require(tee_disassembly, needle, label)
+    for needle, label in (
+        ("image_sha256=3c65097eeeb4e2d29dd125752cfb648c6da5e3651eabc9dad1da672b2558cd66", "scp-alias-hash"),
+        ("window_0x2754_local_aliases=0x400a001c;0x400a0020;0x400a0070;0x400ac098;0x400ac118;0x400ac13c;0x400ac614", "scp-spm-aliases"),
+        ("window_0x2b00_local_aliases=0xa0000104;0xa0000220;0xa0001b00;0xa0000224", "scp-clock-aliases"),
+        ("window_0x2bb4_write=base_plus_0x180;value=0x2000;NVIC_pending_clear", "scp-nvic-path"),
+        ("direct_pcm_con0_0x11015018=not-found", "scp-pcm-gap"),
+        ("direct_sw_pause_bit13_fw_done_bit15_protocol=not-observed", "scp-lease-gap"),
+        ("positive_sema_i2c_drv_receiver=none", "scp-no-receiver"),
+        ("status=PASS_SCP_ALIAS_INVENTORY_NEGATIVE", "scp-alias-status"),
+    ):
+        require(scp_alias_inventory, needle, label)
     require(p0098, "I2C6 remains disabled", "ao-i2c6-disabled-contract")
     require(p0098, "does not implement per-transfer DVFSP coordination", "ao-no-per-transfer-contract")
     for forbidden, label in (("PAUSE_I2CDRV", "ao-pause-source"), ("FW_DONE", "ao-firmware-ack")):
@@ -249,6 +262,7 @@ def main() -> None:
         "pcm_firmware_owner_scan\tnegative-direct-literal;archive-boundary-only",
         "secure_owner_image_scan\tLK-generic-I2C;ATF-CSPM-interference-attributed;SCP-DVFS-SPM;no-PCM-restart-SEMA-owner",
         "tee_owner_disassembly\tATF-keyed-CSPM-plus-0;secure-semaphore-plus-0x448;no-PCM-plus-0x18",
+        "scp_alias_inventory\t0x400a-SPM-PMIC;0xa000-clock;0xe000e100-NVIC;no-PCM-owner",
     ):
         require(ledger, field, field.replace("\t", "="))
 

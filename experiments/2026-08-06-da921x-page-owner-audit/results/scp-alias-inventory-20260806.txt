@@ -1,0 +1,56 @@
+# Retained SCP local-alias inventory
+
+date=2026-08-06
+scope=read-only;retained-scp1-image;no-device-action;no-new-backup
+image_role=SCP_CM4_A
+image_sha256=3c65097eeeb4e2d29dd125752cfb648c6da5e3651eabc9dad1da672b2558cd66
+code_extent=0x00000800-0x0000736f
+method=bounded-Thumb-disassembly;literal-pool-following;control-flow-window-review
+
+## Classified code windows
+
+window_0x269c=DMA_4GB_remap_init
+window_0x269c_read_alias=0xa0001f00;test_bit=13
+window_0x269c_write=0x400a0014;values=DMA_remap_magic_pair
+window_0x269c_evidence=Support_4GB_DRAM_remap_reg_init;Not_support_4GB_DRAM
+
+window_0x2754=DVFS_SPM_request_path
+window_0x2754_local_aliases=0x400a001c;0x400a0020;0x400a0070;0x400ac098;0x400ac118;0x400ac13c;0x400ac614
+window_0x2754_literals=SPM_SW_RSV_3;SPM_cur_volt;irq_status;request_spm_timeout;0xbabe0000
+window_0x2754_transport=CM4_local_SPM_and_PMIC_wrapper_aliases
+window_0x2754_sema_i2cdrv_transaction=not-observed
+
+window_0x2b00=DVFS_clock_setting
+window_0x2b00_local_aliases=0xa0000104;0xa0000220;0xa0001b00;0xa0000224
+window_0x2b00_operations=clock_field_mask;frequency_field_insert;control_bit_set;status_poll_until_0x1000
+window_0x2b00_sema_i2cdrv_transaction=not-observed
+
+window_0x2bb4=CM4_interrupt_control
+window_0x2bb4_nvic_base=0xe000e100
+window_0x2bb4_write=base_plus_0x180;value=0x2000;NVIC_pending_clear
+window_0x2bb4_sema_i2cdrv_transaction=not-observed
+
+## Cross-domain negatives
+
+direct_i2c6_0x1100e000=not-found
+direct_cspm_0x11015000=not-found
+direct_pcm_con0_0x11015018=not-found
+direct_csram_0x0012a000=not-found
+direct_sw_pause_bit13_fw_done_bit15_protocol=not-observed
+positive_sema_i2c_drv_receiver=none
+
+## Decision
+
+scp_aliases=bounded_and_classified_as_DMA_SPM_PMIC_clock_or_NVIC_paths
+scp_external_owner=unproven;computed_or_secure_alias_residual_remains
+decision=BLOCK_WRITABLE_PROVIDER
+hardware_action=none
+status=PASS_SCP_ALIAS_INVENTORY_NEGATIVE
+
+## Limits
+
+The literal pools and control-flow windows explain the observed local aliases,
+but a raw CM4 image does not provide complete symbols or secure-world address
+translation. This inventory therefore narrows, rather than eliminates, the
+computed/secure-alias residual. It does not authorize callback registration,
+a DA921x write, CPU8/CPU9 admission, or a device boot.

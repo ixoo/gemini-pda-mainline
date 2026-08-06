@@ -210,7 +210,8 @@ The source and sanitized runtime record establish these facts:
   exposes no physical CSPM/PCM base, I2C6 owner, or pause/release transaction.
   These paths are generic DMA, interrupt, clock, and SPM plumbing—not
   `SEMA_I2C_DRV` proof. Computed or secure aliases remain unexcluded. See
-  [`results/scp-owner-disassembly-20260806.txt`](results/scp-owner-disassembly-20260806.txt).
+  [`results/scp-owner-disassembly-20260806.txt`](results/scp-owner-disassembly-20260806.txt)
+  and the exact [SCP alias inventory](results/scp-alias-inventory-20260806.txt).
 - Patch `0175` now defines the separately reviewed firmware callback contract:
   it carries the vendor pause source, `SW_PAUSE`/`FW_DONE` masks, 2 ms bound,
   Linux generation/cookie, and a paired opaque release handle. It is

@@ -44,6 +44,7 @@ offset_0x2754=DVFS_SPM_request_path
 offset_0x2754_logs=SPM_request;SPM_cur_volt;SPM_SW_RSV_3;irq_status;request_spm_timeout
 offset_0x2754_transport=PMIC_wrapper_and_local_SPM_status;no_named_I2C6_owner
 offset_0x2754_owner=SPM_DVFS_path;SEMA_I2C_DRV_unproven
+alias_inventory=scp-alias-inventory-20260806.txt;0x400a_local_SPM_PMIC;0xa000_local_clock;0xe000e100_NVIC
 
 ## Decision
 

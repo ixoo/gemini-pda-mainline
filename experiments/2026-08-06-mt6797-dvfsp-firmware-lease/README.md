@@ -66,6 +66,7 @@ I2C_APPM ungated, so the external owner gate remains open.
 - [Exact retained vendor-kernel SEMA contract](results/vendor-kernel-sema-contract-20260806.txt)
 - [Receiver register-window identity reconciliation](results/receiver-register-identity-20260806.txt)
 - [Retained TEE secure-owner disassembly](../2026-08-06-da921x-page-owner-audit/results/tee-owner-disassembly-20260806.txt)
+- [Retained SCP local-alias inventory](../2026-08-06-da921x-page-owner-audit/results/scp-alias-inventory-20260806.txt)
 - [Patch 0175](../../patches/v7.1.3/0175-soc-mediatek-define-I2C6-firmware-lease-contract.patch)
 
 Run from the repository root:
@@ -95,6 +96,10 @@ The retained TEE disassembly separately identifies only keyed CSPM control and
 secure-semaphore `+0x448` ownership, with no direct PCM restart or
 `SW_RSV`/`FW_DONE` lease path; see the
 [TEE owner result](../2026-08-06-da921x-page-owner-audit/results/tee-owner-disassembly-20260806.txt).
+The SCP literal-pool inventory similarly classifies the remaining local
+`0x400a…`, `0xa000…`, and NVIC paths without identifying a pause/release owner;
+the computed/secure-alias residual remains explicit in the
+[SCP alias result](../2026-08-06-da921x-page-owner-audit/results/scp-alias-inventory-20260806.txt).
 The observer and vendor ELF also match the receiver register window and exact
 pause/status offsets, but no pause/FW_DONE handshake was exercised; see the
 [register identity reconciliation](results/receiver-register-identity-20260806.txt).

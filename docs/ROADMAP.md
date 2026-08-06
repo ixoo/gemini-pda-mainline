@@ -1716,8 +1716,11 @@ The next ordered work remains source-only:
    write clears a Cortex-M NVIC pending bit, and the DVFS/SPM path only logs
    and polls local SPM status. None exposes a physical CSPM/PCM base, I2C6
    owner, or pause/release transaction. This narrows the SCP ambiguity but
-   does not exclude computed or secure aliases; see the
-   [SCP disassembly](../experiments/2026-08-06-da921x-page-owner-audit/results/scp-owner-disassembly-20260806.txt).
+   does not exclude computed or secure aliases; the literal-pool inventory
+   classifies the remaining `0x400a…` SPM/PMIC, `0xa000…` clock, and
+   `0xe000e100+0x180` NVIC paths without promoting an owner. See the
+   [SCP disassembly](../experiments/2026-08-06-da921x-page-owner-audit/results/scp-owner-disassembly-20260806.txt)
+   and [SCP alias inventory](../experiments/2026-08-06-da921x-page-owner-audit/results/scp-alias-inventory-20260806.txt).
    Patch `0175` now defines a separately reviewed, default-unregistered
    callback contract for the vendor pause-source lease, including exact
    generation/cookie, 2 ms timeout, three-word pause/acknowledgement checks,

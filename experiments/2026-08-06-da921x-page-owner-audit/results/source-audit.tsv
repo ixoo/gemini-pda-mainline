@@ -26,4 +26,5 @@ firmware_protocol_contract	0175-default-unregistered;Buildbox-pass	2026-08-06-mt
 pcm_firmware_owner_scan	negative-direct-literal;archive-boundary-only	pcm-firmware-owner-scan-20260806	NO_NEW_OWNER_AUTHORITY
 secure_owner_image_scan	LK-generic-I2C;ATF-CSPM-interference-attributed;SCP-DVFS-SPM;no-PCM-restart-SEMA-owner	secure-owner-image-scan-20260806	NO_NEW_OWNER_AUTHORITY
 tee_owner_disassembly	ATF-keyed-CSPM-plus-0;secure-semaphore-plus-0x448;no-PCM-plus-0x18	tee-owner-disassembly-20260806	NO_NEW_OWNER_AUTHORITY
+scp_alias_inventory	0x400a-SPM-PMIC;0xa000-clock;0xe000e100-NVIC;no-PCM-owner	scp-alias-inventory-20260806	NO_NEW_OWNER_AUTHORITY
 hardware_action	none	source-only audit	PASS_SAFETY
