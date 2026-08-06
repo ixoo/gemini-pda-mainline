@@ -74,10 +74,10 @@ diff --git a/arch/arm64/include/asm/mt6797_a72_membership.h b/arch/arm64/include
 +	u32 callback_trace_valid;
  };
 @@ -432,8 +435,10 @@ int mt6797_a72_membership_publish_p32(unsigned int cpu,
- 					      enum cpuhp_state callback_state,
--					      int error);
-+					      int error,
-+					      const struct cpu_up_rollback_trace *trace);
+ 				      enum cpuhp_state callback_state,
+-				      int error);
++				      int error,
++				      const struct cpu_up_rollback_trace *trace);
  int mt6797_a72_membership_p32_cpu_disable(unsigned int cpu);
  bool mt6797_a72_membership_p32_cpu_die(unsigned int cpu);
  int mt6797_a72_membership_p32_cpu_kill(unsigned int cpu);
@@ -88,9 +88,9 @@ diff --git a/arch/arm64/include/asm/mt6797_a72_membership.h b/arch/arm64/include
  #else
 @@ -573,8 +578,10 @@ static inline int
  mt6797_a72_membership_publish_p32(unsigned int cpu,
--					  enum cpuhp_state callback_state, int error)
-+					  enum cpuhp_state callback_state, int error,
-+					  const struct cpu_up_rollback_trace *trace)
+-				      enum cpuhp_state callback_state, int error)
++				      enum cpuhp_state callback_state, int error,
++				      const struct cpu_up_rollback_trace *trace)
  {
  	(void)cpu;
  	(void)callback_state;
@@ -113,10 +113,10 @@ diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt679
 --- a/arch/arm64/kernel/mt6797_a72_membership.c
 +++ b/arch/arm64/kernel/mt6797_a72_membership.c
 @@ -217,9 +217,10 @@ int mt6797_a72_membership_publish_p32(unsigned int cpu,
- 					      enum cpuhp_state callback_state,
--					      int error)
-+					      int error,
-+					      const struct cpu_up_rollback_trace *trace)
+ 				      enum cpuhp_state callback_state,
+-				      int error)
++				      int error,
++				      const struct cpu_up_rollback_trace *trace)
  {
  	unsigned long flags;
  	struct mt6797_a72_transaction *transaction;
@@ -165,9 +165,9 @@ diff --git a/arch/arm64/kernel/mt6797_psci.c b/arch/arm64/kernel/mt6797_psci.c
 @@ -1414,10 +1414,11 @@ const struct cpu_operations mt6797_psci_ops = {
  #ifdef CONFIG_ARM64_MT6797_A72_P32_ROLLBACK
  static int mt6797_psci_cpu_up_rollback(unsigned int cpu,
--					       enum cpuhp_state state, int error)
-+					       enum cpuhp_state state, int error,
-+					       const struct cpu_up_rollback_trace *trace)
+-				       enum cpuhp_state state, int error)
++				       enum cpuhp_state state, int error,
++				       const struct cpu_up_rollback_trace *trace)
  {
  	if (cpu != 8 && cpu != 9)
  		return 0;
