@@ -16,6 +16,7 @@ BIGIDVFS_READBACK_PATCH = ROOT / "patches/v7.1.3/0198-soc-mediatek-add-disabled-
 TRANSITION_OWNER_PATCH = ROOT / "patches/v7.1.3/0199-soc-mediatek-bind-protected-state-to-transition-owner.patch"
 PROVENANCE_PATCH = ROOT / "patches/v7.1.3/0200-soc-mediatek-require-calibrated-state-provenance.patch"
 CALIBRATION_LIFECYCLE_PATCH = ROOT / "patches/v7.1.3/0201-soc-mediatek-bind-calibration-lifecycle-to-state-owner.patch"
+TRANSITION_LOCK_PATCH = ROOT / "patches/v7.1.3/0202-soc-mediatek-bind-protected-owner-to-transition-lock.patch"
 SERIES = ROOT / "patches/series"
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
 START_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-start-contract-20260806.txt"
@@ -34,6 +35,7 @@ READBACK_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/protected
 TRANSITION_OWNER_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/protected-transition-owner-buildbox-20260806.txt"
 PROVENANCE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/calibrated-state-provenance-buildbox-20260806.txt"
 CALIBRATION_LIFECYCLE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/calibration-lifecycle-buildbox-20260806.txt"
+TRANSITION_LOCK_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/transition-lock-buildbox-20260806.txt"
 
 
 def require(text: str, needle: str, label: str) -> None:
@@ -53,6 +55,7 @@ def main() -> None:
     transition_owner_patch = TRANSITION_OWNER_PATCH.read_text()
     provenance_patch = PROVENANCE_PATCH.read_text()
     calibration_lifecycle_patch = CALIBRATION_LIFECYCLE_PATCH.read_text()
+    transition_lock_patch = TRANSITION_LOCK_PATCH.read_text()
     design = DESIGN.read_text()
     start_result = START_RESULT.read_text()
     owner_result = OWNER_RESULT.read_text()
@@ -70,6 +73,7 @@ def main() -> None:
     transition_owner_build_result = TRANSITION_OWNER_BUILD_RESULT.read_text()
     provenance_build_result = PROVENANCE_BUILD_RESULT.read_text()
     calibration_lifecycle_build_result = CALIBRATION_LIFECYCLE_BUILD_RESULT.read_text()
+    transition_lock_build_result = TRANSITION_LOCK_BUILD_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     names = [Path(line).name for line in SERIES.read_text().splitlines()
@@ -556,6 +560,28 @@ def main() -> None:
     ):
         require(calibration_lifecycle_build_result, needle, label)
     for needle, label in (
+        ("claim=COMPILE_ONLY_PROTECTED_OWNER_TRANSITION_LOCK_BOUNDARY", "transition-lock-build-claim"),
+        ("repository_commit=d85cffe8f48d145df67b6d4eacfbb4f08abf603d", "transition-lock-build-commit"),
+        ("origin=https://github.com/ixoo/gemini-pda-mainline.git", "transition-lock-build-origin"),
+        ("build_backend=buildbox", "transition-lock-build-backend"),
+        ("buildbox_status=validated", "transition-lock-build-status"),
+        ("patch_count=191", "transition-lock-build-patch-count"),
+        ("artifact=linux-7.1.3-gemini-dvfsp-protected-readback-285eddaa-11afba8d", "transition-lock-build-artifact"),
+        ("dtb_count=119", "transition-lock-build-dtb-count"),
+        ("sha256sums=passed", "transition-lock-build-checksums"),
+        ("package_fetch=success;validated_package_only", "transition-lock-build-fetch"),
+        ("calibration_contract=0200;required_provenance;mutable_table_epoch;calibration_handle;backend_match;default_off", "transition-lock-build-calibration"),
+        ("calibration_lifecycle_contract=0201;snapshot_validate_hold_release_invalidate;exact_provenance_generation_transition_owner_echo", "transition-lock-build-lifecycle"),
+        ("transition_lock_contract=0202;external_lock_unlock;composite_snapshot_validate_hold_release;failed_cpu_hold_rollback;default_off", "transition-lock-build-contract"),
+        ("owner=unregistered", "transition-lock-build-owner-unregistered"),
+        ("provider=none", "transition-lock-build-no-provider"),
+        ("secure_write=none", "transition-lock-build-no-secure-write"),
+        ("hardware_write=none", "transition-lock-build-no-write"),
+        ("device_action=none", "transition-lock-build-no-device"),
+        ("boot_candidate=false", "transition-lock-build-not-candidate"),
+    ):
+        require(transition_lock_build_result, needle, label)
+    for needle, label in (
         ("repeat_run_repository_commit=6c3cb4fad5a4895f6a69d7913089553b6751e34c", "readback-repeat-commit"),
         ("repeat_run_buildbox_job=6c3cb4fad5a4895f6a69d7913089553b6751e34c-dvfsp-protected-readback-m0", "readback-repeat-job"),
         ("repeat_run_status=validated", "readback-repeat-status"),
@@ -593,6 +619,8 @@ def main() -> None:
         raise AssertionError("calibrated provenance contract is not after transition-owner contract")
     if names.index("0200-soc-mediatek-require-calibrated-state-provenance.patch") >= names.index("0201-soc-mediatek-bind-calibration-lifecycle-to-state-owner.patch"):
         raise AssertionError("calibration lifecycle is not after calibrated provenance contract")
+    if names.index("0201-soc-mediatek-bind-calibration-lifecycle-to-state-owner.patch") >= names.index("0202-soc-mediatek-bind-protected-owner-to-transition-lock.patch"):
+        raise AssertionError("transition lock is not after calibration lifecycle")
 
     for forbidden in ("readl(", "writel(", "i2c_transfer", "regulator_enable(",
                       "regulator_disable(", "psci_ops.cpu_on", "cpu_up("):
@@ -614,6 +642,8 @@ def main() -> None:
             raise AssertionError(f"unexpected provenance hardware operation: {forbidden}")
         if forbidden in calibration_lifecycle_patch:
             raise AssertionError(f"unexpected calibration lifecycle hardware operation: {forbidden}")
+        if forbidden in transition_lock_patch:
+            raise AssertionError(f"unexpected transition-lock hardware operation: {forbidden}")
 
     print("claim=PARTIAL_FIRMWARE_LEASE_CALLBACK_CONTRACT")
     print("registered_owner=0")
@@ -636,6 +666,7 @@ def main() -> None:
     print("protected_transition_owner=0199;shared_transition_handle;generation_bound;both_protected_backends;all_holds;registered_owner=0;no_provider;no_secure_write;boot_candidate=false")
     print("calibrated_state_provenance=0200;all_required_sources;mutable_table_epoch;calibration_handle;backend_provenance_match;registered_owner=0;no_provider;no_secure_write;boot_candidate=false")
     print("calibration_lifecycle=0201;provenance_snapshot_validate_hold_release;backend_echo_required;registered_owner=0;no_provider;no_mmio;boot_candidate=false")
+    print("transition_lock=0202;external_lock_unlock;composite_snapshot_validate_hold_release;registered_owner=0;no_provider;no_mmio;boot_candidate=false")
     print("pcm_adapter_contract=source-only;bounded-admission-model;callback-registration-gated")
     print("clock_owner_inventory=generic_ccf_only;protected_owner_absent;A72_observer_read_only")
     print("pcm_start_contract=defined;residency_and_start_required_before_callback_registration")

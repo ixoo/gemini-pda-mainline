@@ -1940,8 +1940,19 @@ The next ordered work remains source-only:
    default-off, with no calibration provider, firmware action, device boot, or
    CPU8/CPU9 admission. See the
    [calibration lifecycle Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/calibration-lifecycle-buildbox-20260806.txt).
+   Patch `0202` now requires an explicit external transition lock/unlock pair
+   from that future clock/rail owner and holds it across composite snapshot,
+   validation, paired hold/release, and invalidation; failed CPU-PLL holds also
+   roll back the calibration hold. The exact pushed revision `d85cffe` applies
+   all 191 canonical entries on Buildbox, produces 119 DTBs, passes package
+   checksums, and has its validated package fetched. This remains compile-only
+   admission evidence: the owner/provider remain unregistered and default-off,
+   with no calibration provider, firmware action, device boot, or CPU8/CPU9
+   admission. See the
+   [transition-lock Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/transition-lock-buildbox-20260806.txt).
    The next ordered gate remains an independently reviewed implementation of
-   the real calibrated EEM/PTP/PPM state owner with clock/rail arbitration and
+   the real calibrated EEM/PTP/PPM state owner with clock/rail arbitration,
+   including the shared EEM/thermal resource and PMIC/clock proof, followed by
    transition-lock runtime evidence.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
