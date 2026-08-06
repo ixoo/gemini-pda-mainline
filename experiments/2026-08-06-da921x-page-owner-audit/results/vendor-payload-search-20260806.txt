@@ -1,0 +1,14 @@
+# Bounded vendor-payload search
+
+date=2026-08-06
+access=managed reverse-engineering VM; read-only
+payload=immutable extracted userspace inventory
+selected_entries=721
+files_seen=700
+filename_matches=0
+strings_matches=0
+terms=da921,da9214,page_con,buckb,dvfs
+device_action=none
+source_tree_modified=false
+
+interpretation=The extracted userspace payload contains no attributable DA921x/page/BUCKB strings. This is not evidence that private firmware or an absent vendor kernel source lacks the owner; it only confirms that this payload cannot close the page-ownership contract.

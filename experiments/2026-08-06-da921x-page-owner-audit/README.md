@@ -36,6 +36,9 @@ natural CPU8 cycle.
   identification lifecycle records.
 - A72 prestate model: patch `0164`, with values carried into the dormant C
   ledger rather than a hardware access interface.
+- The managed immutable userspace payload was searched separately; the
+  bounded result is recorded in
+  [`results/vendor-payload-search-20260806.txt`](results/vendor-payload-search-20260806.txt).
 
 ## Safety assessment
 
@@ -94,6 +97,9 @@ The source and sanitized runtime record establish these facts:
   that the two linear voltage tables match the populated rail, or that the
   primary/page-2 client split is the same ownership boundary used by the A72
   power sequence.
+- The extracted userspace payload has no DA921x/page/BUCKB strings. This is a
+  negative inventory result only; it does not substitute for private firmware
+  or vendor-kernel ownership evidence.
 - No bounded inverse exists for a provider write at or beyond the unresolved
   external-isolation boundary. The release callback therefore remains a
   structured `-EOPNOTSUPP` refusal.
