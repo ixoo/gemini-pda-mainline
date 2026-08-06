@@ -16,9 +16,9 @@ monitor call, regulator operation, firmware image, PCM start, callback
 registration, or CPU_ON path. It is an experiment-only contract and is not
 submission-ready.
 ---
- drivers/soc/mediatek/mt6797-dvfsp-handoff.c       | 50 ++++++++++++++++++++++
- include/linux/soc/mediatek/mt6797-dvfsp-handoff.h | 28 ++++++++++++
- 2 files changed, 78 insertions(+)
+ drivers/soc/mediatek/mt6797-dvfsp-handoff.c       | 49 +++++++++++++++++++++
+ include/linux/soc/mediatek/mt6797-dvfsp-handoff.h | 27 ++++++++++++
+ 2 files changed, 76 insertions(+)
 
 diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
 --- a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
@@ -55,14 +55,13 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h b/include/linux/s
 +	struct mt6797_dvfsp_handoff *handoff,
 +	struct mt6797_dvfsp_state_owner_identity *identity);
  int mt6797_dvfsp_handoff_pcm_adapter_register(
-@@ -437,9 +437,17 @@
+@@ -437,9 +437,16 @@
  static inline void
  mt6797_dvfsp_handoff_state_invalidate(
  	struct mt6797_dvfsp_handoff *handoff,
  	enum mt6797_dvfsp_state_invalidation_reason reason)
  {
  }
- 
 +static inline int
 +mt6797_dvfsp_handoff_state_owner_identity(
 +	struct mt6797_dvfsp_handoff *handoff,
@@ -70,7 +69,7 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h b/include/linux/s
 +{
 +	return -ENODEV;
 +}
-+ 
+ 
  static inline int
  mt6797_dvfsp_handoff_pcm_adapter_register(
 diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
@@ -82,10 +81,9 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/
  	void *state_owner_context;
 +	struct mt6797_dvfsp_state_owner_identity state_owner_identity;
  	bool state_hold_active;
-@@ -1608,14 +1608,40 @@
+@@ -1608,14 +1608,39 @@
  	return 0;
  }
- 
 +static int
 +mt6797_dvfsp_state_owner_identity_check(
 +	const struct mt6797_dvfsp_state_owner_identity *identity)
@@ -101,7 +99,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/
 +		return -EPROTO;
 +	return 0;
 +}
-+ 
+ 
  int mt6797_dvfsp_handoff_state_owner_register(
  	struct mt6797_dvfsp_handoff *handoff,
  	const struct mt6797_dvfsp_state_owner_ops *ops, void *context)
