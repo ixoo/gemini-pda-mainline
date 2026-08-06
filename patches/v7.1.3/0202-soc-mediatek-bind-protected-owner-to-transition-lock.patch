@@ -219,7 +219,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/
 +out_unlock:
 +	mt6797_dvfsp_protected_state_owner_transition_unlock(owner);
 +	return ret;
-@@ -2300,8 +2357,11 @@ mt6797_dvfsp_protected_state_owner_release(
+@@ -2155,8 +2177,11 @@ mt6797_dvfsp_protected_state_owner_release(
  	if (!hold || !hold->generation ||
  	    hold->cluster_mask != MT6797_DVFSP_STATE_CLUSTER_MASK ||
  	    hold->reserved || hold->owner_handle != owner->owner_handle ||
@@ -231,7 +231,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/
  
  	cpu_hold = *hold;
  	cpu_hold.cluster_mask = owner->cpu_pll_ops->cluster_mask;
-@@ -2320,11 +2377,12 @@ mt6797_dvfsp_protected_state_owner_release(
+@@ -2167,11 +2192,12 @@ mt6797_dvfsp_protected_state_owner_release(
  	if (ret) {
  		owner->cpu_pll_ops->invalidate(
  		owner->cpu_pll_context,
@@ -244,7 +244,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/
  
  	return ret;
  }
-@@ -2373,11 +2433,16 @@ mt6797_dvfsp_protected_state_owner_invalidate(
+@@ -2183,11 +2208,16 @@ mt6797_dvfsp_protected_state_owner_invalidate(
  	const struct mt6797_dvfsp_protected_state_owner *owner = context;
 +	bool locked = false;
  
