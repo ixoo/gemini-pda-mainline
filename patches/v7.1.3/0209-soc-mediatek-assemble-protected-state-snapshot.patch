@@ -1,0 +1,244 @@
+From 0000000000000000000000000000000000000209 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 7 Aug 2026 01:45:00 -0400
+Subject: [PATCH] soc: mediatek: assemble protected state snapshot
+
+The protected clock decoder and calibrated EEM table builder now produce
+separate, validated read-only objects. Add the missing conversion boundary
+that assembles those objects with caller-supplied live OPP, voltage, VSRAM,
+membership, ceiling/floor, clock, and rail state into the complete four-cluster
+startup snapshot required by the existing state-owner contract.
+
+The assembler rejects guessed or incomplete fields, requires every current
+frequency to match both the decoded protected clock and a calibrated table
+row, and preserves the calibration provenance and generation identity. It
+does not read hardware, write a clock or rail, register an owner/provider,
+load firmware, or admit CPU8/CPU9. A real owner must still supply the input
+object while holding the transition lock. This patch is experiment-only and
+not submission-ready.
+---
+ drivers/soc/mediatek/Makefile                            |   1 +
+ drivers/soc/mediatek/mt6797-dvfsp-state-snapshot.c       | 157 +++++++++++++++
+ include/linux/soc/mediatek/mt6797-dvfsp-state-snapshot.h |  41 +++++
+ 3 files changed, 199 insertions(+)
+ create mode 100644 drivers/soc/mediatek/mt6797-dvfsp-state-snapshot.c
+ create mode 100644 include/linux/soc/mediatek/mt6797-dvfsp-state-snapshot.h
+
+diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
+--- a/drivers/soc/mediatek/Makefile
++++ b/drivers/soc/mediatek/Makefile
+@@ -1 +1,2 @@
+ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-runtime.o
++obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-state-snapshot.o
+
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-state-snapshot.h b/include/linux/soc/mediatek/mt6797-dvfsp-state-snapshot.h
+new file mode 100644
+--- /dev/null
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-state-snapshot.h
+@@ -0,0 +1,41 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __LINUX_SOC_MEDIATEK_MT6797_DVFSP_STATE_SNAPSHOT_H
++#define __LINUX_SOC_MEDIATEK_MT6797_DVFSP_STATE_SNAPSHOT_H
++
++#include <linux/types.h>
++
++#include <linux/soc/mediatek/mt6797-dvfsp-clock-state.h>
++#include <linux/soc/mediatek/mt6797-dvfsp-handoff.h>
++
++#define MT6797_DVFSP_STATE_SNAPSHOT_ABI		1
++
++/*
++ * This is a private source-to-owner conversion object. Every field is
++ * supplied by the future transition owner; no default or board guess is
++ * permitted here.
++ */
++struct mt6797_dvfsp_state_snapshot_input {
++	u32 abi;
++	u32 reserved;
++	u64 generation;
++	u64 owner_handle;
++	u64 transition_handle;
++	const struct mt6797_dvfsp_clock_state *clock;
++	const struct mt6797_dvfsp_calibration_state *calibration;
++	struct mt6797_dvfsp_state_provenance provenance;
++	u32 state_flags[MT6797_DVFSP_STATE_CLUSTER_COUNT];
++	u32 opp_id[MT6797_DVFSP_STATE_CLUSTER_COUNT];
++	u32 frequency_khz[MT6797_DVFSP_STATE_CLUSTER_COUNT];
++	u32 voltage_uv[MT6797_DVFSP_STATE_CLUSTER_COUNT];
++	u32 vsram_uv[MT6797_DVFSP_STATE_CLUSTER_COUNT];
++	u32 ceiling_khz[MT6797_DVFSP_STATE_CLUSTER_COUNT];
++	u32 floor_khz[MT6797_DVFSP_STATE_CLUSTER_COUNT];
++	u32 clock_state[MT6797_DVFSP_STATE_CLUSTER_COUNT];
++	u32 rail_state[MT6797_DVFSP_STATE_CLUSTER_COUNT];
++};
++
++int mt6797_dvfsp_state_snapshot_assemble(
++	const struct mt6797_dvfsp_state_snapshot_input *input,
++	struct mt6797_dvfsp_state_snapshot *snapshot);
++
++#endif /* __LINUX_SOC_MEDIATEK_MT6797_DVFSP_STATE_SNAPSHOT_H */
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-snapshot.c b/drivers/soc/mediatek/mt6797-dvfsp-state-snapshot.c
+new file mode 100644
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-dvfsp-state-snapshot.c
+@@ -0,0 +1,157 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Assemble the source-backed MT6797 protected startup-state snapshot.
++ *
++ * This file deliberately has no device, clock, regulator, or secure-monitor
++ * access. It only joins already validated conversion results with the live
++ * fields supplied by a future owner while that owner holds its transition
++ * lock.
++ */
++
++#include <linux/bitops.h>
++#include <linux/errno.h>
++#include <linux/module.h>
++#include <linux/string.h>
++#include <linux/types.h>
++
++#include <linux/soc/mediatek/mt6797-dvfsp-state-snapshot.h>
++
++static int mt6797_dvfsp_snapshot_provenance_check(
++	const struct mt6797_dvfsp_state_provenance *provenance)
++{
++	if (!provenance ||
++	    provenance->abi != MT6797_DVFSP_STATE_PROVENANCE_ABI ||
++	    provenance->source_mask != MT6797_DVFSP_STATE_PROVENANCE_SOURCE_ALL ||
++	    !provenance->table_epoch || !provenance->calibration_handle)
++		return -EPROTO;
++
++	return 0;
++}
++
++static bool mt6797_dvfsp_snapshot_provenance_equal(
++	const struct mt6797_dvfsp_state_provenance *left,
++	const struct mt6797_dvfsp_state_provenance *right)
++{
++	return left->abi == right->abi &&
++		left->source_mask == right->source_mask &&
++		left->variant_id == right->variant_id &&
++		left->table_epoch == right->table_epoch &&
++		left->calibration_handle == right->calibration_handle;
++}
++
++static int mt6797_dvfsp_snapshot_table_match(
++	const struct mt6797_dvfsp_calibration_cluster *cluster,
++	u32 frequency_khz)
++{
++	unsigned int i;
++
++	if (!cluster || !frequency_khz || !cluster->table_count ||
++	    cluster->table_count > MT6797_DVFSP_CALIBRATION_TABLE_MAX)
++		return -EPROTO;
++
++	for (i = 0; i < cluster->table_count; i++) {
++		const struct mt6797_dvfsp_calibration_table_entry *entry =
++			&cluster->table[i];
++
++		if (!entry->frequency_khz || !entry->vproc_uv ||
++		    !entry->vsram_uv || !entry->ppm_limit_khz ||
++		    entry->vsram_uv < entry->vproc_uv ||
++		    entry->vsram_uv - entry->vproc_uv < 10000 ||
++		    entry->vsram_uv - entry->vproc_uv > 30000)
++			return -EPROTO;
++		if (entry->frequency_khz == frequency_khz)
++			return 0;
++	}
++
++	return -EAGAIN;
++}
++
++static int mt6797_dvfsp_snapshot_cluster_check(
++	const struct mt6797_dvfsp_state_snapshot_input *input,
++	unsigned int cluster)
++{
++	const struct mt6797_dvfsp_state_cluster *calibration;
++	const struct mt6797_dvfsp_clock_state_cluster *clock;
++
++	if (input->state_flags[cluster] &
++	    ~(MT6797_DVFSP_STATE_FLAG_PRESENT | MT6797_DVFSP_STATE_FLAG_ON) ||
++	    !(input->state_flags[cluster] & MT6797_DVFSP_STATE_FLAG_PRESENT) ||
++	    !input->frequency_khz[cluster] ||
++	    !input->voltage_uv[cluster] || !input->vsram_uv[cluster] ||
++	    !input->ceiling_khz[cluster] || !input->floor_khz[cluster] ||
++	    input->floor_khz[cluster] > input->ceiling_khz[cluster] ||
++	    input->frequency_khz[cluster] < input->floor_khz[cluster] ||
++	    input->frequency_khz[cluster] > input->ceiling_khz[cluster])
++		return -EPROTO;
++
++	clock = &input->clock->cluster[cluster];
++	if (clock->frequency_khz != input->frequency_khz[cluster])
++		return -EAGAIN;
++
++	calibration = &input->calibration->cluster[cluster];
++	return mt6797_dvfsp_snapshot_table_match(calibration,
++		input->frequency_khz[cluster]);
++}
++
++int mt6797_dvfsp_state_snapshot_assemble(
++	const struct mt6797_dvfsp_state_snapshot_input *input,
++	struct mt6797_dvfsp_state_snapshot *snapshot)
++{
++	unsigned int i;
++	int ret;
++
++	if (!input || !snapshot || input->abi !=
++	    MT6797_DVFSP_STATE_SNAPSHOT_ABI || input->reserved ||
++	    !input->generation || !input->owner_handle ||
++	    !input->transition_handle || !input->clock || !input->calibration)
++		return -EINVAL;
++
++	if (input->clock->abi != MT6797_DVFSP_CLOCK_STATE_ABI ||
++	    !input->clock->clock_sample_generation ||
++	    !input->clock->big_sample_generation ||
++	    input->calibration->abi != MT6797_DVFSP_CALIBRATION_STATE_ABI ||
++	    input->calibration->phase !=
++		MT6797_DVFSP_CALIBRATION_STATE_PHASE_MON ||
++	    input->calibration->bank_mask !=
++		MT6797_DVFSP_CALIBRATION_STATE_BANK_ALL ||
++	    !input->calibration->thermal_generation ||
++	    !input->calibration->clock_owner_generation ||
++	    !input->calibration->rail_owner_generation ||
++	    mt6797_dvfsp_snapshot_provenance_check(&input->provenance) ||
++	    !mt6797_dvfsp_snapshot_provenance_equal(&input->provenance,
++		&input->calibration->provenance))
++		return -EPROTO;
++
++	for (i = 0; i < MT6797_DVFSP_STATE_CLUSTER_COUNT; i++) {
++		ret = mt6797_dvfsp_snapshot_cluster_check(input, i);
++		if (ret)
++			return ret;
++	}
++
++	memset(snapshot, 0, sizeof(*snapshot));
++	snapshot->abi = MT6797_DVFSP_STATE_OWNER_ABI;
++	snapshot->cluster_mask = MT6797_DVFSP_STATE_CLUSTER_MASK;
++	snapshot->generation = input->generation;
++
++	for (i = 0; i < MT6797_DVFSP_STATE_CLUSTER_COUNT; i++) {
++		struct mt6797_dvfsp_state_cluster *cluster =
++			&snapshot->cluster[i];
++
++		cluster->valid_fields = MT6797_DVFSP_STATE_FIELD_ALL;
++		cluster->state_flags = input->state_flags[i];
++		cluster->opp_id = input->opp_id[i];
++		cluster->frequency_khz = input->frequency_khz[i];
++		cluster->voltage_uv = input->voltage_uv[i];
++		cluster->vsram_uv = input->vsram_uv[i];
++		cluster->ceiling_khz = input->ceiling_khz[i];
++		cluster->floor_khz = input->floor_khz[i];
++		cluster->clock_state = input->clock_state[i];
++		cluster->rail_state = input->rail_state[i];
++	}
++
++	return 0;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_state_snapshot_assemble);
++
++MODULE_DESCRIPTION("MT6797 protected state snapshot assembler");
++MODULE_LICENSE("GPL");
+-- 
+2.43.0
