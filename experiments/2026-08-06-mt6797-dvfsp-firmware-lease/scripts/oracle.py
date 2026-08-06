@@ -608,12 +608,12 @@ def main() -> None:
         require(transition_lock_build_result, needle, label)
     for needle, label in (
         ("claim=COMPILE_ONLY_CALIBRATED_TABLE_STATE_ADMISSION", "calibrated-table-build-claim"),
-        ("repository_commit=__CALIBRATED_TABLE_COMMIT__", "calibrated-table-build-commit"),
+        ("repository_commit=652d1648fa0fa527e1014975df140f1a5b1058f5", "calibrated-table-build-commit"),
         ("origin=https://github.com/ixoo/gemini-pda-mainline.git", "calibrated-table-build-origin"),
         ("build_backend=buildbox", "calibrated-table-build-backend"),
         ("buildbox_status=validated", "calibrated-table-build-status"),
         ("patch_count=192", "calibrated-table-build-patch-count"),
-        ("artifact=__CALIBRATED_TABLE_ARTIFACT__", "calibrated-table-build-artifact"),
+        ("artifact=linux-7.1.3-gemini-dvfsp-protected-readback-c452a51f-11afba8d", "calibrated-table-build-artifact"),
         ("dtb_count=119", "calibrated-table-build-dtb-count"),
         ("sha256sums=passed", "calibrated-table-build-checksums"),
         ("package_fetch=success;validated_package_only", "calibrated-table-build-fetch"),

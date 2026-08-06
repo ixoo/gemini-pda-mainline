@@ -101,6 +101,8 @@ be copied directly into a mainline failure/PM path.
 - [Mainline clock/state-owner inventory](results/mainline-clock-owner-inventory-20260806.txt)
 - [Current-head bfd04ae full-profile Buildbox resume](results/current-head-bfd04ae-full-buildbox-20260806.txt)
 - [Calibration lifecycle Buildbox validation](results/calibration-lifecycle-buildbox-20260806.txt)
+- [Transition-lock Buildbox validation](results/transition-lock-buildbox-20260806.txt)
+- [Calibrated table-state Buildbox validation](results/calibrated-table-state-buildbox-20260806.txt)
 - [Receiver register-window identity reconciliation](results/receiver-register-identity-20260806.txt)
 - [Retained TEE secure-owner disassembly](../2026-08-06-da921x-page-owner-audit/results/tee-owner-disassembly-20260806.txt)
 - [Retained SCP local-alias inventory](../2026-08-06-da921x-page-owner-audit/results/scp-alias-inventory-20260806.txt)
@@ -327,3 +329,27 @@ occurred. See the [calibration lifecycle Buildbox result](results/calibration-li
 The next gate is still an independently reviewed provider that supplies the
 real EEM/PTP/PPM-calibrated state and clock/rail arbitration; this patch only
 closes the admission boundary around that future implementation.
+
+Patch `0202` then requires the future clock/rail owner to provide one external
+transition lock across composite snapshots, validation, paired holds/releases,
+and invalidation; failed CPU-PLL holds roll back the calibration hold. The
+exact pushed revision `d85cffe` applied 191 series entries on Buildbox and
+passed package checksums; see the
+[transition-lock result](results/transition-lock-buildbox-20260806.txt).
+
+Patch `0203` now requires the concrete calibrated-state payload that the
+future owner must return while that lock is held: stable MON phase, BIG/L/2L/
+CCI EEM/PTP banks, ordered frequency rows with VPROC/VSRAM/PPM values, and
+independent thermal, clock-owner, and rail-owner generations. The exact pushed
+revision `652d164` applied all 192 series entries, produced 119 DTBs, passed
+package checksums, and fetched the validated package. This remains
+compile-only admission evidence: the owner/provider are unregistered and
+default-off, with no EEM/thermal or PMIC/clock access, firmware action, device
+boot, or CPU8/CPU9 admission. See the
+[calibrated table-state result](results/calibrated-table-state-buildbox-20260806.txt).
+
+The next gate is the real MT6797 EEM/PTP/thermal and PMIC/clock provider that
+can populate this payload from efuse and live hardware, arbitrate the shared
+EEM/thermal resource, and independently prove runtime invalidation and
+transition-lock behavior. Until then the protected backends and CPU8/CPU9
+admission remain closed.

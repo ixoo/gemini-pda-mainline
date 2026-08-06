@@ -1950,10 +1950,21 @@ The next ordered work remains source-only:
    with no calibration provider, firmware action, device boot, or CPU8/CPU9
    admission. See the
    [transition-lock Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/transition-lock-buildbox-20260806.txt).
+   Patch `0203` now makes that lock-protected admission require a concrete
+   calibrated-state payload: stable MON phase, the BIG/L/2L/CCI EEM/PTP banks,
+   ordered frequency rows with VPROC/VSRAM/PPM values, and independent
+   thermal, clock-owner, and rail-owner generations. The exact pushed revision
+   `652d164` applies all 192 canonical entries on Buildbox, produces 119 DTBs,
+   passes package checksums, and has its validated package fetched. This is
+   still compile-only admission evidence: the owner/provider remain
+   unregistered and default-off, with no EEM/thermal or PMIC/clock access,
+   firmware action, device boot, or CPU8/CPU9 admission. See the
+   [calibrated table-state Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/calibrated-table-state-buildbox-20260806.txt).
    The next ordered gate remains an independently reviewed implementation of
    the real calibrated EEM/PTP/PPM state owner with clock/rail arbitration,
    including the shared EEM/thermal resource and PMIC/clock proof, followed by
-   transition-lock runtime evidence.
+   transition-lock runtime evidence. Until that provider exists, the protected
+   backends and CPU8/CPU9 admission remain closed.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and
