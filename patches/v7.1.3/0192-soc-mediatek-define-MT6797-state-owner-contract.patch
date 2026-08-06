@@ -27,7 +27,8 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h b/include/linux/s
 index 1f4e0d2..b836a6a 100644
 --- a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
 +++ b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
-@@ -15,3 +15,74 @@ struct mt6797_dvfsp_i2c6_lease {
+@@ -15,4 +15,75 @@ struct mt6797_dvfsp_i2c6_lease {
+ 	u64 generation;
  	u64 cookie;
  };
  
@@ -182,7 +183,7 @@ index 8f3a1ce..6f347c0 100644
  	struct completion terminal;
  	struct delayed_work late_work;
  	struct mt6797_dvfsp_snapshot samples[MT6797_DVFSP_SAMPLE_COUNT];
-@@ -1570,7 +1573,151 @@ EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_get);
+@@ -1570,4 +1573,148 @@ EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_get);
  	return handoff;
  }
  EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_get);
@@ -331,9 +332,6 @@ index 8f3a1ce..6f347c0 100644
 +}
 +EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_state_invalidate);
 +
- static int mt6797_dvfsp_handoff_probe(struct platform_device *pdev)
- {
- 	struct mt6797_dvfsp_handoff *handoff;
 @@ -1589,7 +1710,7 @@ static int mt6797_dvfsp_handoff_probe(struct platform_device *pdev
  	mutex_init(&handoff->lock);
  	mutex_init(&handoff->transfer_lock);
