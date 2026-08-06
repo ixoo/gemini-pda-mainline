@@ -13,8 +13,8 @@ secondary_entry caller, CPU_ON/OFF path, or Linux membership effect.
 This experiment-only change has no certifying sign-off and is not
 submission-ready.
 ---
- arch/arm64/kernel/mt6797_a72_p30e_asm.S | 22 +++++++++++++++++++++-
- 1 file changed, 21 insertions(+), 1 deletion(-)
+ arch/arm64/kernel/mt6797_a72_p30e_asm.S | 23 +++++++++++++++++++++--
+ 1 file changed, 21 insertions(+), 2 deletions(-)
 
 diff --git a/arch/arm64/kernel/mt6797_a72_p30e_asm.S b/arch/arm64/kernel/mt6797_a72_p30e_asm.S
 --- a/arch/arm64/kernel/mt6797_a72_p30e_asm.S
@@ -56,9 +56,10 @@ diff --git a/arch/arm64/kernel/mt6797_a72_p30e_asm.S b/arch/arm64/kernel/mt6797_
 +	b.eq	.Lp30e_operation_ok
 +.Lp30e_bad_operation:
  	mov	x5, #7
- 	b	p30e_publish_failure
+-	b.ne	p30e_publish_failure
++	b	p30e_publish_failure
 +.Lp30e_operation_ok:
--	.Lp30e_operation_ok:
+-.Lp30e_operation_ok:
  	add	x3, x1, #ARM64_MT6797_A72_P30E_CONTROLLER_STATE_OFF
  	ldar	x4, [x3]
 @@ -160,7 +172,9 @@ SYM_FUNC_START(arm64_mt6797_a72_p30e_target_claim)
@@ -83,7 +84,7 @@ diff --git a/arch/arm64/kernel/mt6797_a72_p30e_asm.S b/arch/arm64/kernel/mt6797_
  	/* Preserve the terminal tuple across slot selection/cache maintenance. */
 +	mov	x15, x30
  	mov	x5, x0
-@@ -207,16 +223,20 @@ SYM_FUNC_START(arm64_mt6797_a72_p30e_target_publish)
+@@ -207,16 +222,20 @@ SYM_FUNC_START(arm64_mt6797_a72_p30e_target_publish)
  	add	x3, x1, #ARM64_MT6797_A72_P30E_TARGET_STATE_OFF
  	stlr	x5, [x3]
  	mov	x0, #0

@@ -21,8 +21,8 @@ submission-ready.
  arch/arm64/kernel/vmlinux.lds.S                |   6 +
  arch/arm64/include/asm/mt6797_a72_p30e.h       | 105 +++++++++
  arch/arm64/kernel/mt6797_a72_p30e.c            | 212 +++++++++++++++++
- arch/arm64/kernel/mt6797_a72_p30e_asm.S        | 218 +++++++++++++++++
- 6 files changed, 555 insertions(+)
+ arch/arm64/kernel/mt6797_a72_p30e_asm.S        | 222 ++++++++++++++++++++
+ 6 files changed, 559 insertions(+)
  create mode 100644 arch/arm64/include/asm/mt6797_a72_p30e.h
  create mode 100644 arch/arm64/kernel/mt6797_a72_p30e.c
  create mode 100644 arch/arm64/kernel/mt6797_a72_p30e_asm.S
@@ -413,7 +413,7 @@ diff --git a/arch/arm64/kernel/mt6797_a72_p30e_asm.S b/arch/arm64/kernel/mt6797_
 new file mode 100644
 --- /dev/null
 +++ b/arch/arm64/kernel/mt6797_a72_p30e_asm.S
-@@ -0,0 +1,218 @@
+@@ -0,0 +1,222 @@
 +/* SPDX-License-Identifier: GPL-2.0-only */
 +/*
 + * Dormant MT6797 A72 P30E MMU-off claim/publication primitives.
