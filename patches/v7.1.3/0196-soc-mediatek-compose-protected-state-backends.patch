@@ -1,0 +1,513 @@
+From 0000000000000000000000000000000000000196 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 6 Aug 2026 16:30:00 -0400
+Subject: [PATCH] soc: mediatek: compose protected MT6797 state backends
+
+The state-owner identity gate names two independent protected domains: the
+MCUMIXED/DVFSP CPU-PLL path for the LL/L/CCI clusters and the BigiDVFS
+secure path for the B cluster. Define a small composition boundary that can
+combine
+their complete, generation-tagged snapshots and transition holds without
+pretending that either hardware backend is present.
+
+The composition validates exact backend descriptors, resource and cluster
+masks, owner handles, generations, and complete state fields. It only
+invokes callbacks supplied by a future backend owner; it performs no MMIO,
+secure-monitor call, regulator operation, clock operation, firmware action,
+provider registration, or CPU_ON operation. No caller registers this owner
+by default.
+This is an experiment-only contract and is not submission-ready.
+---
+ drivers/soc/mediatek/mt6797-dvfsp-handoff.c       | 390 +++++++++++++++++++++
+ include/linux/soc/mediatek/mt6797-dvfsp-handoff.h |  67 ++++
+ 2 files changed, 457 insertions(+)
+
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
+@@ -116,4 +116,49 @@ struct mt6797_dvfsp_state_owner_identity {
+ 	u64 owner_handle;
+ };
++#define MT6797_DVFSP_STATE_BACKEND_ABI		1
++#define MT6797_DVFSP_STATE_BACKEND_CPU_PLL_CLUSTERS \
++	(BIT(MT6797_DVFSP_STATE_CLUSTER_LL) | \
++	 BIT(MT6797_DVFSP_STATE_CLUSTER_L) | \
++	 BIT(MT6797_DVFSP_STATE_CLUSTER_CCI))
++#define MT6797_DVFSP_STATE_BACKEND_BIG_CLUSTER_CLUSTERS \
++	BIT(MT6797_DVFSP_STATE_CLUSTER_B)
++
++struct mt6797_dvfsp_state_backend_snapshot {
++	u32 abi;
++	u32 backend;
++	u32 resource_mask;
++	u32 cluster_mask;
++	u64 generation;
++	u64 owner_handle;
++	struct mt6797_dvfsp_state_cluster
++		cluster[MT6797_DVFSP_STATE_CLUSTER_COUNT];
++};
++
++struct mt6797_dvfsp_state_backend_ops {
++	u32 abi;
++	u32 backend;
++	u32 resource_mask;
++	u32 cluster_mask;
++	int (*snapshot)(void *context,
++			struct mt6797_dvfsp_state_backend_snapshot *snapshot);
++	int (*validate)(void *context,
++			const struct mt6797_dvfsp_state_backend_snapshot *snapshot);
++	int (*hold)(void *context,
++			const struct mt6797_dvfsp_state_backend_snapshot *snapshot,
++			struct mt6797_dvfsp_state_hold *hold);
++	int (*release)(void *context,
++			const struct mt6797_dvfsp_state_hold *hold);
++	void (*invalidate)(void *context,
++			enum mt6797_dvfsp_state_invalidation_reason reason);
++};
++
++/* Keep the backend descriptors and callbacks immutable while registered. */
++struct mt6797_dvfsp_protected_state_owner {
++	const struct mt6797_dvfsp_state_backend_ops *cpu_pll_ops;
++	void *cpu_pll_context;
++	const struct mt6797_dvfsp_state_backend_ops *big_cluster_ops;
++	void *big_cluster_context;
++	u64 owner_handle;
++};
+ #define MT6797_DVFSP_PCM_ADAPTER_ABI		1
+ #define MT6797_DVFSP_PCM_IMAGE_HASH_BYTES	32
+@@ -298,5 +344,11 @@ int mt6797_dvfsp_handoff_state_owner_identity(
+ 	struct mt6797_dvfsp_handoff *handoff,
+ 	struct mt6797_dvfsp_state_owner_identity *identity);
++int mt6797_dvfsp_protected_state_owner_register(
++	struct mt6797_dvfsp_handoff *handoff,
++	struct mt6797_dvfsp_protected_state_owner *owner);
++int mt6797_dvfsp_protected_state_owner_unregister(
++	struct mt6797_dvfsp_handoff *handoff,
++	struct mt6797_dvfsp_protected_state_owner *owner);
+ int mt6797_dvfsp_handoff_pcm_adapter_register(
+ 	struct mt6797_dvfsp_handoff *handoff,
+ 	const struct mt6797_dvfsp_pcm_adapter_ops *ops, void *context);
+@@ -446,7 +497,23 @@ mt6797_dvfsp_handoff_state_owner_identity(
+ 	return -ENODEV;
+ }
+ 
++static inline int
++mt6797_dvfsp_protected_state_owner_register(
++	struct mt6797_dvfsp_handoff *handoff,
++	struct mt6797_dvfsp_protected_state_owner *owner)
++{
++	return -ENODEV;
++}
++
++static inline int
++mt6797_dvfsp_protected_state_owner_unregister(
++	struct mt6797_dvfsp_handoff *handoff,
++	struct mt6797_dvfsp_protected_state_owner *owner)
++{
++	return -ENODEV;
++}
++
+ static inline int
+ mt6797_dvfsp_handoff_pcm_adapter_register(
+ 	struct mt6797_dvfsp_handoff *handoff,
+ 	const struct mt6797_dvfsp_pcm_adapter_ops *ops, void *context)
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+@@ -1711,4 +1711,394 @@ EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_state_owner_identity);
+ 
++static int
++mt6797_dvfsp_state_backend_check(
++	const struct mt6797_dvfsp_state_backend_snapshot *snapshot,
++	const struct mt6797_dvfsp_state_backend_ops *ops)
++{
++	unsigned int i;
++
++	if (!snapshot || !ops ||
++	    snapshot->abi != MT6797_DVFSP_STATE_BACKEND_ABI ||
++	    snapshot->abi != ops->abi ||
++	    snapshot->backend != ops->backend ||
++	    snapshot->resource_mask != ops->resource_mask ||
++	    snapshot->cluster_mask != ops->cluster_mask ||
++	    !snapshot->generation || !snapshot->owner_handle ||
++	    snapshot->cluster_mask & ~MT6797_DVFSP_STATE_CLUSTER_MASK)
++		return -EPROTO;
++
++	for (i = 0; i < MT6797_DVFSP_STATE_CLUSTER_COUNT; i++) {
++		const struct mt6797_dvfsp_state_cluster *cluster =
++			&snapshot->cluster[i];
++
++		if (!(snapshot->cluster_mask & BIT(i)))
++			continue;
++		if (cluster->valid_fields != MT6797_DVFSP_STATE_FIELD_ALL ||
++		    cluster->state_flags &
++			~(MT6797_DVFSP_STATE_FLAG_PRESENT |
++			  MT6797_DVFSP_STATE_FLAG_ON))
++			return -EPROTO;
++	}
++
++	return 0;
++}
++
++static int
++mt6797_dvfsp_protected_state_owner_check(
++	const struct mt6797_dvfsp_protected_state_owner *owner)
++{
++	const struct mt6797_dvfsp_state_backend_ops *cpu;
++	const struct mt6797_dvfsp_state_backend_ops *big;
++
++	if (!owner || !owner->cpu_pll_ops || !owner->big_cluster_ops ||
++	    !owner->owner_handle)
++		return -EINVAL;
++
++	cpu = owner->cpu_pll_ops;
++	big = owner->big_cluster_ops;
++	if (!cpu->snapshot || !cpu->validate || !cpu->hold ||
++	    !cpu->release || !cpu->invalidate ||
++	    !big->snapshot || !big->validate || !big->hold ||
++	    !big->release || !big->invalidate)
++		return -EINVAL;
++	if (cpu->abi != MT6797_DVFSP_STATE_BACKEND_ABI ||
++	    cpu->backend != MT6797_DVFSP_STATE_OWNER_BACKEND_MCUMIXED_DVFSP ||
++	    cpu->resource_mask != MT6797_DVFSP_STATE_OWNER_RESOURCE_CPU_PLL ||
++	    cpu->cluster_mask != MT6797_DVFSP_STATE_BACKEND_CPU_PLL_CLUSTERS ||
++	    big->abi != MT6797_DVFSP_STATE_BACKEND_ABI ||
++	    big->backend != MT6797_DVFSP_STATE_OWNER_BACKEND_BIGIDVFS_SMCCC ||
++	    big->resource_mask != MT6797_DVFSP_STATE_OWNER_RESOURCE_BIG_CLUSTER ||
++	    big->cluster_mask != MT6797_DVFSP_STATE_BACKEND_BIG_CLUSTER_CLUSTERS)
++		return -EPROTO;
++
++	return 0;
++}
++
++static bool
++mt6797_dvfsp_state_snapshot_equal(
++	const struct mt6797_dvfsp_state_snapshot *left,
++	const struct mt6797_dvfsp_state_snapshot *right)
++{
++	return left->abi == right->abi &&
++		left->cluster_mask == right->cluster_mask &&
++		left->generation == right->generation &&
++		!memcmp(left->cluster, right->cluster,
++			sizeof(left->cluster));
++}
++
++static int
++mt6797_dvfsp_protected_state_owner_collect(
++	const struct mt6797_dvfsp_protected_state_owner *owner,
++	struct mt6797_dvfsp_state_backend_snapshot *cpu_snapshot,
++	struct mt6797_dvfsp_state_backend_snapshot *big_snapshot,
++	struct mt6797_dvfsp_state_snapshot *snapshot)
++{
++	const struct mt6797_dvfsp_state_backend_ops *cpu;
++	const struct mt6797_dvfsp_state_backend_ops *big;
++	int ret;
++
++	ret = mt6797_dvfsp_protected_state_owner_check(owner);
++	if (ret)
++		return ret;
++
++	cpu = owner->cpu_pll_ops;
++	big = owner->big_cluster_ops;
++	memset(cpu_snapshot, 0, sizeof(*cpu_snapshot));
++	ret = cpu->snapshot(owner->cpu_pll_context, cpu_snapshot);
++	if (ret)
++		return ret;
++	ret = mt6797_dvfsp_state_backend_check(cpu_snapshot, cpu);
++	if (ret)
++		return ret;
++
++	memset(big_snapshot, 0, sizeof(*big_snapshot));
++	ret = big->snapshot(owner->big_cluster_context, big_snapshot);
++	if (ret)
++		return ret;
++	ret = mt6797_dvfsp_state_backend_check(big_snapshot, big);
++	if (ret)
++		return ret;
++
++	if (cpu_snapshot->owner_handle != owner->owner_handle ||
++	    big_snapshot->owner_handle != owner->owner_handle)
++		return -EPROTO;
++	if (cpu_snapshot->cluster_mask & big_snapshot->cluster_mask ||
++	    (cpu_snapshot->cluster_mask | big_snapshot->cluster_mask) !=
++		MT6797_DVFSP_STATE_CLUSTER_MASK)
++		return -EPROTO;
++	if (cpu_snapshot->generation != big_snapshot->generation)
++		return -EAGAIN;
++
++	memset(snapshot, 0, sizeof(*snapshot));
++	snapshot->abi = MT6797_DVFSP_STATE_OWNER_ABI;
++	snapshot->cluster_mask = cpu_snapshot->cluster_mask |
++		big_snapshot->cluster_mask;
++	snapshot->generation = cpu_snapshot->generation;
++	snapshot->cluster[MT6797_DVFSP_STATE_CLUSTER_LL] =
++		cpu_snapshot->cluster[MT6797_DVFSP_STATE_CLUSTER_LL];
++	snapshot->cluster[MT6797_DVFSP_STATE_CLUSTER_L] =
++		cpu_snapshot->cluster[MT6797_DVFSP_STATE_CLUSTER_L];
++	snapshot->cluster[MT6797_DVFSP_STATE_CLUSTER_CCI] =
++		cpu_snapshot->cluster[MT6797_DVFSP_STATE_CLUSTER_CCI];
++	snapshot->cluster[MT6797_DVFSP_STATE_CLUSTER_B] =
++		big_snapshot->cluster[MT6797_DVFSP_STATE_CLUSTER_B];
++
++	return mt6797_dvfsp_state_snapshot_check(snapshot);
++}
++
++static int
++mt6797_dvfsp_protected_state_owner_identify(
++	void *context, struct mt6797_dvfsp_state_owner_identity *identity)
++{
++	const struct mt6797_dvfsp_protected_state_owner *owner = context;
++	int ret;
++
++	if (!identity)
++		return -EINVAL;
++	ret = mt6797_dvfsp_protected_state_owner_check(owner);
++	if (ret)
++		return ret;
++
++	memset(identity, 0, sizeof(*identity));
++	identity->abi = MT6797_DVFSP_STATE_OWNER_IDENTITY_ABI;
++	identity->resource_mask = MT6797_DVFSP_STATE_OWNER_RESOURCE_ALL;
++	identity->cpu_pll_backend = owner->cpu_pll_ops->backend;
++	identity->big_cluster_backend = owner->big_cluster_ops->backend;
++	identity->owner_handle = owner->owner_handle;
++
++	return 0;
++}
++
++static int
++mt6797_dvfsp_protected_state_owner_snapshot(
++	void *context, struct mt6797_dvfsp_state_snapshot *snapshot)
++{
++	struct mt6797_dvfsp_state_backend_snapshot cpu_snapshot;
++	struct mt6797_dvfsp_state_backend_snapshot big_snapshot;
++
++	if (!snapshot)
++		return -EINVAL;
++
++	return mt6797_dvfsp_protected_state_owner_collect(
++		context, &cpu_snapshot, &big_snapshot, snapshot);
++}
++
++static int
++mt6797_dvfsp_protected_state_owner_validate(
++	void *context, const struct mt6797_dvfsp_state_snapshot *snapshot)
++{
++	struct mt6797_dvfsp_state_backend_snapshot cpu_snapshot;
++	struct mt6797_dvfsp_state_backend_snapshot big_snapshot;
++	struct mt6797_dvfsp_state_snapshot fresh;
++	const struct mt6797_dvfsp_protected_state_owner *owner = context;
++	int ret;
++
++	if (!snapshot)
++		return -EINVAL;
++	ret = mt6797_dvfsp_state_snapshot_check(snapshot);
++	if (ret)
++		return ret;
++	ret = mt6797_dvfsp_protected_state_owner_collect(
++		owner, &cpu_snapshot, &big_snapshot, &fresh);
++	if (ret)
++		return ret;
++	if (!mt6797_dvfsp_state_snapshot_equal(snapshot, &fresh))
++		return -EAGAIN;
++
++	ret = owner->cpu_pll_ops->validate(owner->cpu_pll_context,
++					    &cpu_snapshot);
++	if (ret)
++		return ret;
++	return owner->big_cluster_ops->validate(owner->big_cluster_context,
++						&big_snapshot);
++}
++
++static int
++mt6797_dvfsp_protected_state_owner_release_pair(
++	const struct mt6797_dvfsp_protected_state_owner *owner,
++	const struct mt6797_dvfsp_state_hold *cpu_hold, bool cpu_held,
++	const struct mt6797_dvfsp_state_hold *big_hold, bool big_held)
++{
++	int ret = 0;
++	int release_ret;
++
++	if (big_held) {
++		release_ret = owner->big_cluster_ops->release(
++			owner->big_cluster_context, big_hold);
++		if (release_ret)
++			ret = release_ret;
++	}
++	if (cpu_held) {
++		release_ret = owner->cpu_pll_ops->release(
++			owner->cpu_pll_context, cpu_hold);
++		if (!ret && release_ret)
++			ret = release_ret;
++	}
++
++	return ret;
++}
++
++static int
++mt6797_dvfsp_protected_state_owner_hold(
++	void *context, const struct mt6797_dvfsp_state_snapshot *snapshot,
++	struct mt6797_dvfsp_state_hold *hold)
++{
++	struct mt6797_dvfsp_state_backend_snapshot cpu_snapshot;
++	struct mt6797_dvfsp_state_backend_snapshot big_snapshot;
++	struct mt6797_dvfsp_state_snapshot fresh;
++	struct mt6797_dvfsp_state_hold cpu_hold;
++	struct mt6797_dvfsp_state_hold big_hold;
++	const struct mt6797_dvfsp_protected_state_owner *owner = context;
++	bool cpu_held = false;
++	bool big_held = false;
++	int rollback_ret;
++	int ret;
++
++	if (!snapshot || !hold)
++		return -EINVAL;
++	ret = mt6797_dvfsp_state_snapshot_check(snapshot);
++	if (ret)
++		return ret;
++	ret = mt6797_dvfsp_protected_state_owner_collect(
++		owner, &cpu_snapshot, &big_snapshot, &fresh);
++	if (ret)
++		return ret;
++	if (!mt6797_dvfsp_state_snapshot_equal(snapshot, &fresh))
++		return -EAGAIN;
++
++	memset(&cpu_hold, 0, sizeof(cpu_hold));
++	ret = owner->cpu_pll_ops->hold(owner->cpu_pll_context,
++					&cpu_snapshot, &cpu_hold);
++	if (ret)
++		return ret;
++	cpu_held = true;
++	if (cpu_hold.generation != cpu_snapshot.generation ||
++	    cpu_hold.cluster_mask != cpu_snapshot.cluster_mask ||
++	    cpu_hold.reserved || cpu_hold.owner_handle != owner->owner_handle) {
++		ret = -EPROTO;
++		goto rollback;
++	}
++
++	memset(&big_hold, 0, sizeof(big_hold));
++	ret = owner->big_cluster_ops->hold(owner->big_cluster_context,
++					&big_snapshot, &big_hold);
++	if (ret)
++		goto rollback;
++	big_held = true;
++	if (big_hold.generation != big_snapshot.generation ||
++	    big_hold.cluster_mask != big_snapshot.cluster_mask ||
++	    big_hold.reserved || big_hold.owner_handle != owner->owner_handle) {
++		ret = -EPROTO;
++		goto rollback;
++	}
++
++	memset(hold, 0, sizeof(*hold));
++	hold->generation = snapshot->generation;
++	hold->cluster_mask = snapshot->cluster_mask;
++	hold->owner_handle = owner->owner_handle;
++	return 0;
++
++rollback:
++	rollback_ret = mt6797_dvfsp_protected_state_owner_release_pair(
++		owner, &cpu_hold, cpu_held, &big_hold, big_held);
++	owner->cpu_pll_ops->invalidate(
++		owner->cpu_pll_context,
++		MT6797_DVFSP_STATE_INVALID_PCM_FAULT);
++	owner->big_cluster_ops->invalidate(
++		owner->big_cluster_context,
++		MT6797_DVFSP_STATE_INVALID_PCM_FAULT);
++	if (rollback_ret)
++		ret = -EIO;
++	return ret;
++}
++
++static int
++mt6797_dvfsp_protected_state_owner_release(
++	void *context, const struct mt6797_dvfsp_state_hold *hold)
++{
++	const struct mt6797_dvfsp_protected_state_owner *owner = context;
++	struct mt6797_dvfsp_state_hold cpu_hold;
++	struct mt6797_dvfsp_state_hold big_hold;
++	int ret;
++
++	ret = mt6797_dvfsp_protected_state_owner_check(owner);
++	if (ret)
++		return ret;
++	if (!hold || !hold->generation ||
++	    hold->cluster_mask != MT6797_DVFSP_STATE_CLUSTER_MASK ||
++	    hold->reserved || hold->owner_handle != owner->owner_handle)
++		return -EPROTO;
++
++	cpu_hold = *hold;
++	cpu_hold.cluster_mask = owner->cpu_pll_ops->cluster_mask;
++	big_hold = *hold;
++	big_hold.cluster_mask = owner->big_cluster_ops->cluster_mask;
++	ret = mt6797_dvfsp_protected_state_owner_release_pair(
++		owner, &cpu_hold, true, &big_hold, true);
++	if (ret) {
++		owner->cpu_pll_ops->invalidate(
++			owner->cpu_pll_context,
++			MT6797_DVFSP_STATE_INVALID_PCM_FAULT);
++		owner->big_cluster_ops->invalidate(
++			owner->big_cluster_context,
++			MT6797_DVFSP_STATE_INVALID_PCM_FAULT);
++	}
++
++	return ret;
++}
++
++static void
++mt6797_dvfsp_protected_state_owner_invalidate(
++	void *context, enum mt6797_dvfsp_state_invalidation_reason reason)
++{
++	const struct mt6797_dvfsp_protected_state_owner *owner = context;
++
++	if (!owner)
++		return;
++	if (owner->cpu_pll_ops && owner->cpu_pll_ops->invalidate)
++		owner->cpu_pll_ops->invalidate(owner->cpu_pll_context, reason);
++	if (owner->big_cluster_ops && owner->big_cluster_ops->invalidate)
++		owner->big_cluster_ops->invalidate(owner->big_cluster_context, reason);
++}
++
++static const struct mt6797_dvfsp_state_owner_ops
++mt6797_dvfsp_protected_state_owner_ops = {
++	.identify = mt6797_dvfsp_protected_state_owner_identify,
++	.snapshot = mt6797_dvfsp_protected_state_owner_snapshot,
++	.validate = mt6797_dvfsp_protected_state_owner_validate,
++	.hold = mt6797_dvfsp_protected_state_owner_hold,
++	.release = mt6797_dvfsp_protected_state_owner_release,
++	.invalidate = mt6797_dvfsp_protected_state_owner_invalidate,
++};
++
++int mt6797_dvfsp_protected_state_owner_register(
++	struct mt6797_dvfsp_handoff *handoff,
++	struct mt6797_dvfsp_protected_state_owner *owner)
++{
++	int ret;
++
++	if (!handoff || !owner)
++		return -EINVAL;
++	ret = mt6797_dvfsp_protected_state_owner_check(owner);
++	if (ret)
++		return ret;
++
++	return mt6797_dvfsp_handoff_state_owner_register(
++		handoff, &mt6797_dvfsp_protected_state_owner_ops, owner);
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_protected_state_owner_register);
++
++int mt6797_dvfsp_protected_state_owner_unregister(
++	struct mt6797_dvfsp_handoff *handoff,
++	struct mt6797_dvfsp_protected_state_owner *owner)
++{
++	if (!handoff || !owner)
++		return -EINVAL;
++
++	return mt6797_dvfsp_handoff_state_owner_unregister(
++		handoff, &mt6797_dvfsp_protected_state_owner_ops, owner);
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_protected_state_owner_unregister);
++
+ int mt6797_dvfsp_handoff_state_snapshot(
+ 	struct mt6797_dvfsp_handoff *handoff,
+ 	struct mt6797_dvfsp_state_snapshot *snapshot)
+-- 
+2.43.0
