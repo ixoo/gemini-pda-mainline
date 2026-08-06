@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+from pathlib import Path
 
 
 FIELDS = (
@@ -14,6 +15,7 @@ FIELDS = (
     "target_reason", "target_effects", "target_entry_pc", "target_entry_sp",
     "crc64",
 )
+SOURCE_AUDIT = Path(__file__).resolve().parents[1] / "results/source-placement-audit-20260806.txt"
 IMMUTABLE = frozenset(FIELDS[:11])
 CONTROLLER_OWNED = frozenset({"controller_state", "controller_sequence", "crc64"})
 TARGET_OWNED = frozenset({
@@ -134,6 +136,18 @@ def expect_reject(label: str, mutation) -> None:
 def main() -> None:
     base = Contract()
     validate(base)
+    source_audit = SOURCE_AUDIT.read_text()
+    for needle in (
+        "linker_sections=.mmuoff.data.write;__mmuoff_data_start;clean_to_poc_required_for_MMU-off-writeback;separate_.mmuoff.data.read;__mmuoff_data_end",
+        "existing_mmuoff_writer=__early_cpu_boot_status;long;section=.mmuoff.data.write;target_writes_failure_status_before_controller_read",
+        "existing_mmuoff_reader=secondary_holding_pen_release;volatile_ulong;section=.mmuoff.data.read;controller_writes;target_reads;dcache_clean_inval_poc;sev",
+        "directional_gap=existing_linker_sections_separate_MMU-off-writeback_and_MMU-off-readback_lanes;P30E_needs_bidirectional_fields",
+        "placement_consequence=split_controller_and_target_write_lanes_or_add_a_dedicated_aligned_bidirectional_section_with_explicit_cache_protocol",
+        "decision=SOURCE_PLACEMENT_FEASIBLE_BUT_P30E_IMPLEMENTATION_OPEN",
+        "status=PASS_P30E_SOURCE_PLACEMENT_AUDIT",
+    ):
+        if needle not in source_audit:
+            raise AssertionError(f"missing source placement fact: {needle}")
     mutations = (
         ("drop-magic", lambda: replace(base, fields=base.fields[1:])),
         ("share-field-owner", lambda: replace(base, target_owned=base.target_owned | {"magic"})),
@@ -159,6 +173,7 @@ def main() -> None:
     print("target_owned=target_state;target_sequence;target_reason;target_effects;target_entry_pc;target_entry_sp")
     print("states=EMPTY->ARMED->TARGET_CLAIMED->terminal")
     print("cache_order=clean_to_poc;dsb_sy;release;invalidate_complete_range;full_readback")
+    print("source_placement=existing_directional_mmuoff_lanes;bidirectional_split_or_dedicated_section_required")
     print("negative_mutations=15;all_rejected=1")
     print("p14_p15_requires=target_published;complete_readback;exact_token;online_sample;no_quarantine")
     print("hardware_action=none")

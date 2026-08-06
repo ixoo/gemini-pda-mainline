@@ -49,6 +49,16 @@ token to assembly. The target never dereferences a normal C virtual pointer.
 The physical address must be range-checked, naturally aligned, and tied to the
 same boot identity before release.
 
+The selected Linux source already has `.mmuoff.data.write` and
+`.mmuoff.data.read` linker lanes. Existing code uses the write lane for
+`__early_cpu_boot_status` (target writes, controller reads) and the read lane
+for `secondary_holding_pen_release` (controller writes, target reads), with
+`dcache_clean_inval_poc()` around the handoff. A bidirectional P30E object must
+not silently reuse one directional lane: either split its controller- and
+target-written fields into the corresponding aligned lanes, or add a dedicated
+aligned section and prove the complete bidirectional cache protocol. The
+existing scalar status/release fields are not a P30E object.
+
 ## States and legal transitions
 
 ```text
