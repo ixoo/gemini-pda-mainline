@@ -196,3 +196,4 @@ v7.1.3/0203-soc-mediatek-require-calibrated-table-state.patch
 v7.1.3/0204-thermal-mediatek-add-locked-MT6797-EEM-readback.patch
 v7.1.3/0205-soc-mediatek-derive-calibrated-table-from-EEM-readback.patch
 v7.1.3/0206-soc-mediatek-decode-protected-clock-readback.patch
+v7.1.3/0207-soc-mediatek-bind-runtime-invalidation-events.patch

@@ -1,0 +1,170 @@
+From 0000000000000000000000000000000000000207 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 7 Aug 2026 00:30:00 -0400
+Subject: [PATCH] soc: mediatek: bind runtime invalidation events
+
+The recovered MT6797 DVFS owner updates its state around CPU hotplug and
+suspend callbacks: CPU_ONLINE, CPU_DOWN_PREPARE, CPU_DOWN_FAILED,
+PM_SUSPEND_PREPARE, and PM_POST_SUSPEND. Bind those source-backed lifecycle
+events to the existing fail-closed state-owner invalidation reasons with a
+monotonic event sequence and generation epoch.
+
+The ledger is a conversion boundary for a future owner; it rejects malformed,
+replayed, or non-monotonic events before invalidating a published state. It
+does not register CPU or PM notifiers, read or write hardware, call firmware,
+register a provider, or admit CPU8/CPU9. This patch is experiment-only and not
+submission-ready.
+---
+ drivers/soc/mediatek/Makefile                    |   1 +
+ drivers/soc/mediatek/mt6797-dvfsp-runtime.c      |  85 +++++++++++++
+ include/linux/soc/mediatek/mt6797-dvfsp-runtime.h |  44 +++++++
+ 3 files changed, 130 insertions(+)
+ create mode 100644 drivers/soc/mediatek/mt6797-dvfsp-runtime.c
+ create mode 100644 include/linux/soc/mediatek/mt6797-dvfsp-runtime.h
+
+diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
+--- a/drivers/soc/mediatek/Makefile
++++ b/drivers/soc/mediatek/Makefile
+@@ -0,0 +1 @@
++obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-runtime.o
+
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-runtime.h b/include/linux/soc/mediatek/mt6797-dvfsp-runtime.h
+new file mode 100644
+--- /dev/null
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-runtime.h
+@@ -0,0 +1,44 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __LINUX_SOC_MEDIATEK_MT6797_DVFSP_RUNTIME_H
++#define __LINUX_SOC_MEDIATEK_MT6797_DVFSP_RUNTIME_H
++
++#include <linux/errno.h>
++#include <linux/types.h>
++
++#include <linux/soc/mediatek/mt6797-dvfsp-handoff.h>
++
++#define MT6797_DVFSP_RUNTIME_ABI		1
++#define MT6797_DVFSP_RUNTIME_EVENT_COUNT	8
++
++/* These lifecycle points are recovered from the vendor DVFS owner. */
++enum mt6797_dvfsp_runtime_event_type {
++	MT6797_DVFSP_RUNTIME_CPU_ONLINE,
++	MT6797_DVFSP_RUNTIME_CPU_DOWN_PREPARE,
++	MT6797_DVFSP_RUNTIME_CPU_DOWN_FAILED,
++	MT6797_DVFSP_RUNTIME_PM_SUSPEND_PREPARE,
++	MT6797_DVFSP_RUNTIME_PM_POST_SUSPEND,
++	MT6797_DVFSP_RUNTIME_CLOCK_TRANSITION,
++	MT6797_DVFSP_RUNTIME_RAIL_TRANSITION,
++	MT6797_DVFSP_RUNTIME_PCM_FAULT,
++};
++
++struct mt6797_dvfsp_runtime_event {
++	u32 abi;
++	u32 type;
++	u64 sequence;
++	u64 generation;
++};
++
++struct mt6797_dvfsp_runtime_ledger {
++	u32 abi;
++	u32 reserved;
++	u64 last_sequence;
++	u64 invalidated_generation;
++};
++
++int mt6797_dvfsp_runtime_event_apply(
++	struct mt6797_dvfsp_handoff *handoff,
++	const struct mt6797_dvfsp_runtime_event *event,
++	struct mt6797_dvfsp_runtime_ledger *ledger);
++
++#endif /* __LINUX_SOC_MEDIATEK_MT6797_DVFSP_RUNTIME_H */
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-runtime.c b/drivers/soc/mediatek/mt6797-dvfsp-runtime.c
+new file mode 100644
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-dvfsp-runtime.c
+@@ -0,0 +1,85 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Runtime invalidation conversion boundary for the MT6797 DVFSP owner.
++ *
++ * The future owner supplies serialized lifecycle events. This helper only
++ * validates their identity and maps them to the existing state-owner fault
++ * reasons; it does not subscribe to a notifier or access hardware.
++ */
++
++#include <linux/errno.h>
++#include <linux/module.h>
++#include <linux/types.h>
++
++#include <linux/soc/mediatek/mt6797-dvfsp-runtime.h>
++
++static int mt6797_dvfsp_runtime_reason(u32 type,
++		enum mt6797_dvfsp_state_invalidation_reason *reason)
++{
++	if (!reason)
++		return -EINVAL;
++
++	switch (type) {
++	case MT6797_DVFSP_RUNTIME_CPU_ONLINE:
++	case MT6797_DVFSP_RUNTIME_CPU_DOWN_PREPARE:
++	case MT6797_DVFSP_RUNTIME_CPU_DOWN_FAILED:
++	case MT6797_DVFSP_RUNTIME_CLOCK_TRANSITION:
++		*reason = MT6797_DVFSP_STATE_INVALID_CLOCK_TRANSITION;
++		return 0;
++	case MT6797_DVFSP_RUNTIME_PM_SUSPEND_PREPARE:
++	case MT6797_DVFSP_RUNTIME_PM_POST_SUSPEND:
++		*reason = MT6797_DVFSP_STATE_INVALID_SUSPEND_RESUME;
++		return 0;
++	case MT6797_DVFSP_RUNTIME_RAIL_TRANSITION:
++		*reason = MT6797_DVFSP_STATE_INVALID_RAIL_TRANSITION;
++		return 0;
++	case MT6797_DVFSP_RUNTIME_PCM_FAULT:
++		*reason = MT6797_DVFSP_STATE_INVALID_PCM_FAULT;
++		return 0;
++	default:
++		return -EPROTO;
++	}
++}
++
++static int mt6797_dvfsp_runtime_event_check(
++	const struct mt6797_dvfsp_runtime_event *event)
++{
++	if (!event || event->abi != MT6797_DVFSP_RUNTIME_ABI ||
++		!event->sequence || !event->generation ||
++		event->type >= MT6797_DVFSP_RUNTIME_EVENT_COUNT)
++		return -EPROTO;
++
++	return 0;
++}
++
++int mt6797_dvfsp_runtime_event_apply(
++	struct mt6797_dvfsp_handoff *handoff,
++	const struct mt6797_dvfsp_runtime_event *event,
++	struct mt6797_dvfsp_runtime_ledger *ledger)
++{
++	enum mt6797_dvfsp_state_invalidation_reason reason;
++	int ret;
++
++	if (!handoff || !ledger)
++		return -EINVAL;
++	ret = mt6797_dvfsp_runtime_event_check(event);
++	if (ret)
++		return ret;
++	if ((ledger->abi && ledger->abi != MT6797_DVFSP_RUNTIME_ABI) ||
++		ledger->reserved)
++		return -EPROTO;
++	if (ledger->last_sequence >= event->sequence ||
++		ledger->invalidated_generation >= event->generation)
++		return -EALREADY;
++	ret = mt6797_dvfsp_runtime_reason(event->type, &reason);
++	if (ret)
++		return ret;
++
++	/* The caller serializes this ledger with the owner transition lock. */
++	mt6797_dvfsp_handoff_state_invalidate(handoff, reason);
++	ledger->abi = MT6797_DVFSP_RUNTIME_ABI;
++	ledger->last_sequence = event->sequence;
++	ledger->invalidated_generation = event->generation;
++	return 0;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_runtime_event_apply);
