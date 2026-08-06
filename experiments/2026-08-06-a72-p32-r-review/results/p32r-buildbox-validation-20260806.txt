@@ -232,3 +232,55 @@ This revalidation is documentation-only relative to the prior 180-patch
 profile and confirms the exact pushed source head and fetched package. It
 does not close A39 early-secondary terminal attribution, provider readiness,
 A25/H13, A40, A41, or any boot/disable veto.
+
+Buildbox resume at current repository head
+-------------------------------------------
+
+Date: 2026-08-06 America/New_York
+Repository commit: 03a15abe85f8c185bef2620dbc04309ad76500eb
+Origin: https://github.com/ixoo/gemini-pda-mainline.git
+
+claim=P32R_DEDICATED_PROFILE_BUILDBOX_RESUMED_AND_FETCHED
+build_backend=buildbox
+buildbox_job=03a15abe85f8c185bef2620dbc04309ad76500eb-a72-p32-rollback-m0
+buildbox_status=validated
+build_profile=a72-p32-rollback
+kernel_release=7.1.3-gemini-p32-rollback-blocked
+package_name=linux-7.1.3-gemini-a72-p32-rollback-14dad783-a52199d2
+package_completed_utc=2026-08-06T15:17:52Z
+modules_built=false
+repository_dirty=false
+build_architecture=x86_64
+target_architecture=arm64
+toolchain_mode=cross
+compiler=aarch64-linux-gnu-gcc (Debian 12.2.0-14)
+linker=GNU ld (GNU Binutils for Debian) 2.40
+ccache_enabled=true
+
+patch_count=180
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=14dad7835e8ca830e4ea74b3660fc7620cf856e906412471161b5501a7f52c35
+config_inputs_sha256=a52199d2d49d09e17b5808c03bc2794a3954700639d7949ebb72403899966be
+config_sha256=56d121ddabdf778cbfa9ba0e4a0855dbf41ea4ca16f00c0e6b6d9bc7125705ba
+CONFIG_ARM64_MT6797_A72_P32_ROLLBACK=y
+fetch_package_checksum_validation=PASS
+
+Image_sha256=74a4b079b082a5a27cc1c70c5f79942259662d87538b475522a777a11be5109f
+Image_gz_sha256=6ffeb6536ac4d1d20dd256f9480495c14f06e94fb78f6ab316c997c3e0ef8a23
+System_map_sha256=bf872f0af40aaadcc90b92d4c27fa820f97981e7c746ecf53012aef9cb39621c
+gemini_dtb_sha256=f27f5e8485127bb752519fde466ce52c07d1b40aea0057a9911225b1679a5d47
+kernel_config_sha256=56d121ddabdf778cbfa9ba0e4a0855dbf41ea4ca16f00c0e6b6d9bc7125705ba
+build_provenance_sha256=82b3101fbfb6d26a875c9a3176e1ef9feaf9e92e7fdb1e2144c3816fec3085f8
+dtb_count=119
+sha256sums=passed
+fetched_package=artifacts/buildbox/03a15abe85f8c185bef2620dbc04309ad76500eb/linux-7.1.3-gemini-a72-p32-rollback-14dad783-a52199d2
+
+warning=mt6797_a72_membership_mint_up_token frame size 6576 exceeds 2048
+warning_disposition=nonfatal; package validation passed; no device action
+status=PASS_DEDICATED_BUILDBOX_RESUMED
+device_boot_or_write=NOT_PERFORMED
+hardware_support_claim=NONE
+
+This resume confirms the exact pushed documentation head and fetched package.
+It does not close A39 early-secondary terminal attribution, provider readiness,
+A25/H13, A40, A41, or any boot/disable veto.
