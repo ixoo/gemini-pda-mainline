@@ -169,3 +169,4 @@ v7.1.3/0176-arm64-add-dormant-P30E-MMU-off-wire-object.patch
 v7.1.3/0177-arm64-repair-dormant-P30E-callable-flow.patch
 v7.1.3/0178-arm64-bind-P30E-slot-physical-and-target-identity.patch
 v7.1.3/0179-arm64-bind-P17-P18-P24-owner-to-P30E-handoff.patch
+v7.1.3/0180-arm64-prove-P30E-reserved-slot-range.patch

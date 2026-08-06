@@ -1,0 +1,103 @@
+From 0000000000000000000000000000000000000180 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 6 Aug 2026 00:00:00 -0400
+Subject: [PATCH] arm64: prove P30E reserved slot range
+
+Make the dormant P30E linker section prove its complete two-slot placement:
+it must be aligned, non-overlapping with the directional MMU-off lanes, and
+inside the kernel image range that arm64 reserves with memblock. Check the
+same linker bounds in the controller-side physical-address helper before a
+slot address can be handed to the target path.
+
+The section assertions and range check do not arm P30E, call secondary_entry,
+issue CPU_ON/OFF, or publish Linux membership.
+
+This experiment-only change has no certifying sign-off and is not
+submission-ready.
+---
+ arch/arm64/kernel/mt6797_a72_p30e.c | 26 ++++++++++++++++++++++++--
+ arch/arm64/kernel/vmlinux.lds.S     | 19 +++++++++++++++++++
+ 2 files changed, 43 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/kernel/mt6797_a72_p30e.c b/arch/arm64/kernel/mt6797_a72_p30e.c
+--- a/arch/arm64/kernel/mt6797_a72_p30e.c
++++ b/arch/arm64/kernel/mt6797_a72_p30e.c
+@@ -34,6 +34,9 @@ struct arm64_mt6797_a72_p30e_slot arm64_mt6797_a72_p30e_cpu9_slot
+ 
+ static DEFINE_RAW_SPINLOCK(p30e_lock);
+ 
++extern char __mmuoff_data_bidirectional_start[];
++extern char __mmuoff_data_bidirectional_end[];
++
+ static struct arm64_mt6797_a72_p30e_slot *p30e_slot(unsigned int cpu)
+ {
+ 	switch (cpu) {
+@@ -53,16 +56,35 @@ static u64 p30e_mpidr(unsigned int cpu)
+ 		ARM64_MT6797_A72_P30E_MPIDR_CPU9;
+ }
+ 
++static bool p30e_slot_range_valid(phys_addr_t slot_pa)
++{
++	phys_addr_t start = __pa_symbol(__mmuoff_data_bidirectional_start);
++	phys_addr_t end = __pa_symbol(__mmuoff_data_bidirectional_end);
++
++	if (end < start || end - start < ARM64_MT6797_A72_P30E_SLOT_BYTES ||
++	    slot_pa < start || slot_pa > end ||
++	    ARM64_MT6797_A72_P30E_SLOT_BYTES > end - slot_pa)
++		return false;
++
++	return true;
++}
++
+ phys_addr_t arm64_mt6797_a72_p30e_slot_pa(unsigned int cpu)
+ {
++	phys_addr_t slot_pa;
++
+ 	switch (cpu) {
+ 	case ARM64_MT6797_A72_P30E_CPU8:
+-		return __pa_symbol(&arm64_mt6797_a72_p30e_cpu8_slot);
++		slot_pa = __pa_symbol(&arm64_mt6797_a72_p30e_cpu8_slot);
++		break;
+ 	case ARM64_MT6797_A72_P30E_CPU9:
+-		return __pa_symbol(&arm64_mt6797_a72_p30e_cpu9_slot);
++		slot_pa = __pa_symbol(&arm64_mt6797_a72_p30e_cpu9_slot);
++		break;
+ 	default:
+ 		return 0;
+ 	}
++
++	return p30e_slot_range_valid(slot_pa) ? slot_pa : 0;
+ }
+ 
+ static u64 p30e_word(const struct arm64_mt6797_a72_p30e_wire *wire,
+diff --git a/arch/arm64/kernel/vmlinux.lds.S b/arch/arm64/kernel/vmlinux.lds.S
+--- a/arch/arm64/kernel/vmlinux.lds.S
++++ b/arch/arm64/kernel/vmlinux.lds.S
+@@ -350,6 +350,25 @@ SECTIONS
+ 		__mmuoff_data_bidirectional_end = .;
+ 	}
+ 
++#ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
++	ASSERT(__mmuoff_data_bidirectional_start >= __mmuoff_data_end,
++	       "P30E section overlaps an MMU-off directional section")
++	ASSERT((__mmuoff_data_bidirectional_start & (SZ_2K - 1)) == 0,
++	       "P30E section is not 2 KiB aligned")
++	ASSERT(__mmuoff_data_bidirectional_end -
++	       __mmuoff_data_bidirectional_start == 2 * SZ_2K,
++	       "P30E section must contain exactly two 2 KiB slots")
++	ASSERT(__mmuoff_data_bidirectional_start >= _text &&
++	       __mmuoff_data_bidirectional_end <= _end,
++	       "P30E section must remain inside the reserved kernel image")
++	ASSERT(arm64_mt6797_a72_p30e_cpu8_slot ==
++	       __mmuoff_data_bidirectional_start,
++	       "P30E CPU8 slot is not the section start")
++	ASSERT(arm64_mt6797_a72_p30e_cpu9_slot ==
++	       arm64_mt6797_a72_p30e_cpu8_slot + SZ_2K,
++	       "P30E CPU9 slot is not the second 2 KiB slot")
++#endif
++
+ 	PECOFF_EDATA_PADDING
+ 	__pecoff_data_rawsize = ABSOLUTE(. - __initdata_begin);
+ 	_edata = .;
+-- 
+2.50.1
