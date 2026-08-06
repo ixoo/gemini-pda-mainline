@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-06-a72-p30e-mmuoff-contract` |
-| Status | `Buildbox-validated dormant implementation; owner handoff passes; production integration blocked` |
+| Status | `Buildbox-validated dormant implementation; owner handoff and physical-range proof pass; secondary_entry integration blocked` |
 | Subsystem | arm64 late CPU8/CPU9 startup arbitration and target-side publication |
 | Device variant | Planet Gemini PDA, MT6797; no live-device action |
 | Date | 2026-08-06 America/New_York |
@@ -40,8 +40,12 @@ MMU-off path compares before publication. Patch `0179` binds the frozen
 P17/P18/P24 transaction to a distinct READY-owned target expectation and exact
 static slot address in a dormant owner-side handoff description. The handoff
 does not arm P30E, call `secondary_entry`, issue CPU_ON/OFF, or change Linux
-membership. The physical reserved-range proof and entry integration remain
-blocked. The complete current review is recorded in
+membership. Follow-up patch `0180` now proves the two-slot section is aligned,
+non-overlapping with the directional MMU-off sections, and contained in the
+`_text.._end` kernel-image range that arm64 reserves with memblock; the
+controller-side helper rejects a slot outside those linker bounds. The
+remaining integration gate is a separately reviewed `secondary_entry` binding
+under the same owner. The complete current review is recorded in
 [implementation comparison](results/implementation-contract-comparison-20260806.txt).
 
 ## Safety boundary
@@ -83,9 +87,10 @@ corrected comparison. Patch `0178` now makes the physical slot and target
 identity checks explicit in the request/target seam; its Buildbox package is
 recorded in the validation result. Patch `0179` now populates those fields in
 the dormant owner-side handoff from the frozen transaction and a distinct
-READY-owned expectation. The physical-slot/wire-identity audit is recorded in
+READY-owned expectation. Patch `0180` adds the linker and controller-side
+range proof described above. The physical-slot/wire-identity audit is recorded in
 [physical-slot review](results/physical-slot-wire-identity-audit-20260806.txt):
-the remaining source-only gates are proof of a reserved, non-reclaimed physical
-range with no runtime alias, followed by a separately reviewed
-`secondary_entry` binding. CPU8/CPU9 admission and device use remain blocked
-until those gates close.
+the remaining source-only gate is a separately reviewed `secondary_entry`
+binding under the same owner, including its MMU-off address and publication
+handoff. CPU8/CPU9 admission and device use remain blocked until that gate and
+the broader A25/A26/A14/provider gates close.

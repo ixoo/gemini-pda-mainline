@@ -1818,14 +1818,18 @@ The next ordered work remains source-only:
    pushed-head 168-patch Buildbox package and local fetch/revalidation pass are
    recorded in the
    [Buildbox result](../experiments/2026-08-06-a72-p30e-mmuoff-contract/results/buildbox-validation-20260806.txt).
-   The remaining source-only gates are proof of the reserved non-reclaimed
-   physical range and runtime alias exclusion, followed by a separately
-   reviewed `secondary_entry` binding under the same owner. The
+   Patch `0180` now closes the reserved-range proof: link-time assertions
+   enforce exact two-slot placement without directional-section overlap and
+   inside `_text.._end`, which arm64 reserves with memblock; the controller
+   rejects a selected slot outside those bounds. Its 169-patch Buildbox
+   package and validated local fetch are recorded in the same result. The
+   remaining source-only gate is a separately reviewed `secondary_entry`
+   binding under the same owner. The
    [physical-slot/wire-identity audit](../experiments/2026-08-06-a72-p30e-mmuoff-contract/results/physical-slot-wire-identity-audit-20260806.txt)
-   records the residual owner and range blockers. The target symbols are still
-   not wired to `secondary_entry`; this remains an implementation gate, not
-   admission authorization. The dormant C control object cannot substitute for
-   the MMU-off proof or open a CPU_ON path.
+   records the residual entry blocker. The target symbols are still not wired
+   to `secondary_entry`; this remains an implementation gate, not admission
+   authorization. The dormant C control object cannot substitute for the
+   MMU-off proof or open a CPU_ON path.
 3. Complete A25 and implement P32A/D/F/X/R using either a reviewed core
    no-auto-rollback interface or the fail-stop `.cpu_disable` plus die/kill
    guard design, retaining every partial callback and architecture effect.
