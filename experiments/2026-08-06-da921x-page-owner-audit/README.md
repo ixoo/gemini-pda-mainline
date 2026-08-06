@@ -193,6 +193,14 @@ The source and sanitized runtime record establish these facts:
   accesses and secure aliases remain unexcluded, and no `SEMA_I2C_DRV` owner
   is promoted. See
   [`results/secure-owner-image-scan-20260806.txt`](results/secure-owner-image-scan-20260806.txt).
+- A bounded AArch64 disassembly of the retained TEE tightens that result. Its
+  20 direct CSPM accesses are limited to the keyed `+0` write (`0x0b160001`)
+  and the secure-semaphore `+0x448` write/poll on bit 0; no direct PCM
+  `+0x18` kick/reset or `SW_RSV0..6` lease words appear in the exact code
+  extent. This identifies ATF as an interfering secure control/semaphore
+  owner, not the missing `SEMA_I2C_DRV` receiver. Computed or secure aliases
+  remain out of scope. See
+  [`results/tee-owner-disassembly-20260806.txt`](results/tee-owner-disassembly-20260806.txt).
 - A bounded Thumb disassembly of the retained SCP image narrows the remaining
   alias ambiguity without promoting an owner. The bit-13 test at the DMA
   remap initializer is paired with the `Support 4GB DRAM`/`Not support 4GB

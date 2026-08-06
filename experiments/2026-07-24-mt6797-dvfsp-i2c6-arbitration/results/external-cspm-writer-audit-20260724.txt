@@ -33,6 +33,7 @@ tee_secure_semaphore_loads=5
 tee_direct_pcm_con0_plus_0x18=not-found
 tee_direct_pcm_kick_or_reset=not-found
 tee_classification=ATF-interfering-clock-and-semaphore-owner-not-observed-PCM-restart-owner
+tee_bounded_disassembly=../../2026-08-06-da921x-page-owner-audit/results/tee-owner-disassembly-20260806.txt;20_direct_accesses;plus_0_keyed_0x0b160001;plus_0x448_bit0_poll;no_plus_0x18_or_SW_RSV0_6
 lk_direct_cspm_base_or_pcm_con0=not-found
 lk_cspm_watchdog_latches=loads-only-at-plus-0x190,plus-0x194,plus-0x198
 lk_classification=diagnostic-read-only-for-observed-direct-references

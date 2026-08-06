@@ -1,0 +1,52 @@
+# Retained TEE secure-owner disassembly
+
+date=2026-08-06
+scope=read-only;retained-project-backup;no-device-action;no-new-backup
+image=mmcblk0p24-tee1.img;paired_image=mmcblk0p25-tee2.img
+image_sha256=2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3
+paired_image_sha256=2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3
+payload_extent=0x1000..0x17dff
+aarch64_map_base=0x000ff3c0
+method=bounded_AArch64_disassembly;Capstone_and_objdump_cross-check
+
+## Direct CSPM references
+
+direct_scan_target_window=0x11014000..0x11015fff
+direct_cspm_access_count=20
+direct_cspm_plus_0_stores=5
+direct_secure_semaphore_plus_0x448_stores=10
+direct_secure_semaphore_plus_0x448_loads=5
+keyed_cspm_plus_0_value=0x0b160001
+secure_semaphore_target=0x11015448
+secure_semaphore_write_value=1
+secure_semaphore_poll=bit0_until_set
+direct_pcm_con0_plus_0x18=not-found
+direct_sw_rsv0_rsv6_plus_0x608_0x620=not-found
+direct_csram_base_0x0012a000=not-found
+
+## Attributable code windows
+
+window_0x10289c=keyed_CSPM_plus_0_write;secure_semaphore_plus_0x448_write_poll;local_MMIO_followup
+window_0x102fb4=keyed_CSPM_plus_0_write;secure_semaphore_plus_0x448_write_poll;local_MMIO_followup
+window_0x1031e4=keyed_CSPM_plus_0_write;secure_semaphore_plus_0x448_write_poll;local_MMIO_followup
+window_0x10331c=keyed_CSPM_plus_0_write;secure_semaphore_plus_0x448_write_poll;local_MMIO_followup
+
+## Decision
+
+tee_role=ATF_secure_CSPM_control_and_semaphore_owner
+tee_pcm_restart_owner=not-observed
+tee_sema_i2c_drv_receiver=not-observed
+tee_sw_pause_fw_done_protocol=not-observed
+external_owner=unproven;SCP_computed_or_local_alias_unexcluded
+decision=BLOCK_WRITABLE_PROVIDER
+hardware_action=none
+status=PASS_TEE_OWNER_DISCRIMINATION_NEGATIVE
+
+## Limits
+
+The bounded disassembly confirms the existing ATF interpretation more
+precisely: its direct CSPM accesses are a keyed `+0` control write and a
+secure-semaphore `+0x448` write/poll sequence. It does not expose the vendor
+Linux `SEMA_I2C_DRV` pause-source words or a direct PCM kick/reset. This does
+not exclude computed or secure aliases elsewhere, and it does not identify the
+missing receiver owner in SCP or another firmware domain.

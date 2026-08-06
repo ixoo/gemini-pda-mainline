@@ -22,6 +22,7 @@ BUILDBOX_LEASE = Path(__file__).resolve().parents[1] / "results/buildbox-transfe
 FIRMWARE_LEASE = Path(__file__).resolve().parents[1] / "results/firmware-owner-lease-20260806.txt"
 PCM_SCAN = Path(__file__).resolve().parents[1] / "results/pcm-firmware-owner-scan-20260806.txt"
 SECURE_IMAGE_SCAN = Path(__file__).resolve().parents[1] / "results/secure-owner-image-scan-20260806.txt"
+TEE_DISASSEMBLY = Path(__file__).resolve().parents[1] / "results/tee-owner-disassembly-20260806.txt"
 LEDGER = Path(__file__).resolve().parents[1] / "results/source-audit.tsv"
 RECONCILIATION = Path(__file__).resolve().parents[1] / "results/source-reconciliation-20260806.txt"
 CROSSCHECK = ROOT / "experiments/2026-07-23-da9214-resource-only/results/da9214-datasheet-crosscheck-20260723.txt"
@@ -52,6 +53,7 @@ def main() -> None:
     firmware_lease = FIRMWARE_LEASE.read_text()
     pcm_scan = PCM_SCAN.read_text()
     secure_image_scan = SECURE_IMAGE_SCAN.read_text()
+    tee_disassembly = TEE_DISASSEMBLY.read_text()
     ledger = LEDGER.read_text()
     reconciliation = RECONCILIATION.read_text()
     crosscheck = CROSSCHECK.read_text()
@@ -179,6 +181,19 @@ def main() -> None:
         ("status=PASS_LIMITED_SECURE_IMAGE_SCAN_NEGATIVE", "secure-scan-status"),
     ):
         require(secure_image_scan, needle, label)
+    for needle, label in (
+        ("image_sha256=2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3", "tee-disassembly-hash"),
+        ("direct_cspm_access_count=20", "tee-disassembly-count"),
+        ("keyed_cspm_plus_0_value=0x0b160001", "tee-keyed-cspm"),
+        ("secure_semaphore_target=0x11015448", "tee-secure-semaphore"),
+        ("secure_semaphore_poll=bit0_until_set", "tee-semaphore-poll"),
+        ("direct_pcm_con0_plus_0x18=not-found", "tee-pcm-restart-gap"),
+        ("direct_sw_rsv0_rsv6_plus_0x608_0x620=not-found", "tee-sw-rsv-gap"),
+        ("tee_role=ATF_secure_CSPM_control_and_semaphore_owner", "tee-role"),
+        ("tee_sema_i2c_drv_receiver=not-observed", "tee-sema-gap"),
+        ("status=PASS_TEE_OWNER_DISCRIMINATION_NEGATIVE", "tee-disassembly-status"),
+    ):
+        require(tee_disassembly, needle, label)
     require(p0098, "I2C6 remains disabled", "ao-i2c6-disabled-contract")
     require(p0098, "does not implement per-transfer DVFSP coordination", "ao-no-per-transfer-contract")
     for forbidden, label in (("PAUSE_I2CDRV", "ao-pause-source"), ("FW_DONE", "ao-firmware-ack")):
@@ -223,6 +238,8 @@ def main() -> None:
     for field in (
         "page_encoding\tpartially-proven",
         "page_owner\tcandidate-owner;ready-gate-only;firmware-lease-unproven",
+        "receiver_register_identity\texact-offset-match-proven",
+        "receiver_authority\tunproven-no-handshake",
         "write_transport\tvendor-shape-known;mainline-arbitration-unproven",
         "control_mask\tvendor-bit0-known;mainline-contract-unproven",
         "post_settle_readback\tvendor-observed;provider-unimplemented",
@@ -231,6 +248,7 @@ def main() -> None:
         "firmware_protocol_contract\t0175-default-unregistered;Buildbox-pass",
         "pcm_firmware_owner_scan\tnegative-direct-literal;archive-boundary-only",
         "secure_owner_image_scan\tLK-generic-I2C;ATF-CSPM-interference-attributed;SCP-DVFS-SPM;no-PCM-restart-SEMA-owner",
+        "tee_owner_disassembly\tATF-keyed-CSPM-plus-0;secure-semaphore-plus-0x448;no-PCM-plus-0x18",
     ):
         require(ledger, field, field.replace("\t", "="))
 

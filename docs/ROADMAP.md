@@ -1687,6 +1687,14 @@ The next ordered work remains source-only:
    the direct controller or CSPM/CSRAM literals. This bounded cross-check adds
    no `SEMA_I2C_DRV` authority. See the
    [secure-image scan](../experiments/2026-08-06-da921x-page-owner-audit/results/secure-owner-image-scan-20260806.txt).
+   A bounded AArch64 disassembly of the retained TEE tightens the ATF result:
+   its 20 direct CSPM accesses are limited to the keyed `+0` write
+   (`0x0b160001`) and the secure-semaphore `+0x448` write/poll on bit 0; no
+   direct PCM `+0x18` kick/reset or `SW_RSV0..6` lease words appear in the
+   exact code extent. ATF is therefore an interfering secure
+   control/semaphore owner, not the missing `SEMA_I2C_DRV` receiver; computed
+   or secure aliases remain unexcluded. See the
+   [TEE owner disassembly](../experiments/2026-08-06-da921x-page-owner-audit/results/tee-owner-disassembly-20260806.txt).
    The exact retained vendor-kernel ELF separately confirms the historical
    Linux-side contract: semaphore user 1 routes to `PAUSE_I2CDRV`, writes
    SW_PAUSE bit 13 across three clusters, polls FW_DONE bit 15 across three

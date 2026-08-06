@@ -65,6 +65,7 @@ I2C_APPM ungated, so the external owner gate remains open.
 - [Initial Buildbox input failure and repair](results/buildbox-failure-20260806.txt)
 - [Exact retained vendor-kernel SEMA contract](results/vendor-kernel-sema-contract-20260806.txt)
 - [Receiver register-window identity reconciliation](results/receiver-register-identity-20260806.txt)
+- [Retained TEE secure-owner disassembly](../2026-08-06-da921x-page-owner-audit/results/tee-owner-disassembly-20260806.txt)
 - [Patch 0175](../../patches/v7.1.3/0175-soc-mediatek-define-I2C6-firmware-lease-contract.patch)
 
 Run from the repository root:
@@ -90,6 +91,10 @@ remap, interrupt, clock, and generic SPM/DVFS paths; it did not identify the
 `SEMA_I2C_DRV` owner or a pause/release implementation. See the
 [vendor-kernel contract](results/vendor-kernel-sema-contract-20260806.txt) and the
 [SCP disassembly result](../2026-08-06-da921x-page-owner-audit/results/scp-owner-disassembly-20260806.txt).
+The retained TEE disassembly separately identifies only keyed CSPM control and
+secure-semaphore `+0x448` ownership, with no direct PCM restart or
+`SW_RSV`/`FW_DONE` lease path; see the
+[TEE owner result](../2026-08-06-da921x-page-owner-audit/results/tee-owner-disassembly-20260806.txt).
 The observer and vendor ELF also match the receiver register window and exact
 pause/status offsets, but no pause/FW_DONE handshake was exercised; see the
 [register identity reconciliation](results/receiver-register-identity-20260806.txt).
