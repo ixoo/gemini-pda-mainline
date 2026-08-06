@@ -1,0 +1,44 @@
+P32R complete-series Buildbox validation
+==========================================
+
+Date: 2026-08-06 America/New_York
+Repository commit: 49e2d6f4c0e634c8beaedb99a0c29ead1ad0ff6f
+Origin: https://github.com/ixoo/gemini-pda-mainline.git
+
+claim=P32R_COMPLETE_SERIES_BUILDBOX_VALIDATED
+build_backend=buildbox
+buildbox_job=/workspace/gemini-pda/jobs/49e2d6f4c0e634c8beaedb99a0c29ead1ad0ff6f-full-m0.json
+buildbox_status=validated
+build_profile=full
+kernel_release=7.1.3-gemini
+package_name=linux-7.1.3-gemini-8a84a33602b7
+package_completed_utc=2026-08-06T13:13:53Z
+modules_built=false
+repository_dirty=false
+build_architecture=x86_64
+target_architecture=arm64
+toolchain_mode=cross
+compiler=aarch64-linux-gnu-gcc (Debian 12.2.0-14)
+linker=GNU ld (GNU Binutils for Debian) 2.40
+ccache_enabled=true
+
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=8a84a33602b72f545f2f775ef2ebf16cc0dfb4e580857b0e851f19290a9b778c
+config_inputs_sha256=501347b25c258f3e7f4070c7d83419e7d23357f496d80e30ea53d037ff456660
+config_sha256=1ebe807ccec725fd35ac4c75609632a89ef0f82ad9b8e258d1b1bc78dddf02ad
+fetch_package_checksum_validation=PASS
+
+Image_sha256=236e01774700bae14c85ba1e26ba8e0bd76134c673eb64ef9dc026b7f40a1330
+Image_gz_sha256=c99305319dde211c69a4c55a3c0d02b767e1d2e2ff97c6d43f1d580f43cce2e2
+System_map_sha256=565454331244d41d3ba9b971e919fb91dd521a09dd182e1dcf3e005a6edda439
+gemini_dtb_sha256=e2424e337a30dbc112496ae841bde655058c01d79cd399f2d518154d5faba60c
+fetched_package=artifacts/buildbox/49e2d6f4c0e634c8beaedb99a0c29ead1ad0ff6f/linux-7.1.3-gemini-8a84a33602b7
+
+status=PASS_BUILDBOX_VALIDATED
+device_boot_or_write=NOT_PERFORMED
+hardware_support_claim=NONE
+
+This is a reproducible cross-build and package-provenance result. It does not
+establish that the image boots, that CPU8/CPU9 can be enabled, or that any
+device write is safe. The fetched package remains under the ignored
+`artifacts/buildbox/` tree and is not staged.

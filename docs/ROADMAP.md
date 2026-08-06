@@ -1859,17 +1859,21 @@ The next ordered work remains source-only:
    evidence, not kernel or runtime validation. The first P32A source slice
    (`0187`) now records the bounded callback prefix, nested AP reset marker,
    outer reset, and reverse-range completion, with a source/format-patch audit
-   recorded in the experiment. Buildbox was unavailable during that audit;
-   the required Buildbox compile remains the next gate. The P32X source
+   recorded in the experiment. Buildbox was unavailable during that audit; the
+   required Buildbox compile was subsequently completed for pushed commit
+   `49e2d6f4c0e634c8beaedb99a0c29ead1ad0ff6f`, with the fetched package and
+   checksum/provenance record in the
+   [P32R Buildbox result](../experiments/2026-08-06-a72-p32-r-review/results/p32r-buildbox-validation-20260806.txt).
+   The P32X source
    slice (`0188`) now records the arm64 disable order and separate
    DEAD/RCU/park, lockdep, and controller-kill boundaries; its source audit
    passes. Patch `0189` now adds the owner-only P32R ledger handoff: it captures
    the exact transaction and pre-fault membership/provider snapshots, preserves
    callback/effect completeness, marks a held provider `FAULT_UNKNOWN` without
    calling it, and retires only an accepted generation. Its source audit is
-   recorded in the experiment, but the complete series still requires a clean
-   Buildbox compile. The independent ledger model is stronger, but it does not
-   substitute for a compiled source implementation.
+   recorded in the experiment, and the complete series now has a clean
+   Buildbox compile/package validation. The independent ledger model is
+   stronger, but neither it nor the package substitutes for hardware evidence.
    No device action is authorized.
 4. Complete the A25 callback/rollback review and re-audit P32R against the
    mutation result, then finish P32A/D/F/X/R using either a reviewed core

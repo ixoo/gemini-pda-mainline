@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-06-a72-p32-r-review` |
-| Status | `open` (P32A/P32X/P32R source slices audited; Buildbox remains open) |
+| Status | `open` (P32A/P32X/P32R source slices and complete Buildbox package audited; device gates remain closed) |
 | Subsystem | P32A/D/F/X/R rollback ownership and terminal ledger handoff |
 | Device variant | Planet Gemini PDA, MT6797; no live-device action |
 | Date | 2026-08-06 America/New_York |
@@ -64,5 +64,9 @@ provider/HPS/membership/retry side effects, and rejects mutations to the full
 trace identity. The kernel-side owner handoff is now implemented by `0189`;
 its source audit is recorded in
 [`results/p32r-owner-ledger-source-audit-20260806.txt`](results/p32r-owner-ledger-source-audit-20260806.txt).
-The complete series still requires a clean Buildbox compile before any later
-review or device consideration.
+The complete 189-patch series now has a clean Buildbox validation for pushed
+commit `49e2d6f4c0e634c8beaedb99a0c29ead1ad0ff6f`. The validated package and
+fetched checksum/provenance record are in
+[`results/p32r-buildbox-validation-20260806.txt`](results/p32r-buildbox-validation-20260806.txt).
+This closes the compile/package gate only; no device boot or write was
+performed, and the A25/A26/A14 admission gates remain open.
