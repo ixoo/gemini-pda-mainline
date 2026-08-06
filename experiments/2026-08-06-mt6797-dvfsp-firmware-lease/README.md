@@ -88,6 +88,7 @@ be copied directly into a mainline failure/PM path.
 - [Public Gemian CPU-clock owner corroboration](../2026-07-12-mt6797-clock-power-reset-recovery/results/public-gemian-cpu-clock-backend-20260806.txt)
 - [Buildbox validation after owner-source review](results/public-owner-buildbox-validation-20260806.txt)
 - [Current-head full-profile Buildbox resume](results/current-head-full-buildbox-20260806.txt)
+- [Dormant state-owner contract Buildbox validation](results/state-owner-contract-buildbox-20260806.txt)
 - [Current-head bfd04ae full-profile Buildbox resume](results/current-head-bfd04ae-full-buildbox-20260806.txt)
 - [Receiver register-window identity reconciliation](results/receiver-register-identity-20260806.txt)
 - [Retained TEE secure-owner disassembly](../2026-08-06-da921x-page-owner-audit/results/tee-owner-disassembly-20260806.txt)
@@ -153,3 +154,11 @@ The owner-source review itself was validated on Buildbox at pushed commit
 checksums. This is still compile-only evidence: no PCM image was loaded, no
 callback was registered, and no device action occurred. See the
 [Buildbox result](results/public-owner-buildbox-validation-20260806.txt).
+
+The dormant state-owner contract was then rebuilt on Buildbox at exact pushed
+commit `e537c2c3b955a02aa26ffb086f410311426b482d` after correcting a C tag
+namespace collision. All 192 patch files applied, the full profile compiled,
+119 DTBs and package checksums passed, and the validated package was fetched
+locally. This remains compile-only evidence: the state owner is unregistered,
+the PCM image/start path is absent, and no provider or device action occurred.
+See the [state-owner Buildbox result](results/state-owner-contract-buildbox-20260806.txt).

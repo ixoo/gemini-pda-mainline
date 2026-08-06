@@ -1,0 +1,55 @@
+# Dormant MT6797 state-owner contract Buildbox validation
+
+Date: 2026-08-06 America/New_York
+
+claim=COMPILE_ONLY_DORMANT_STATE_OWNER_CONTRACT
+repository_commit=e537c2c3b955a02aa26ffb086f410311426b482d
+origin=https://github.com/ixoo/gemini-pda-mainline.git
+build_backend=buildbox
+buildbox_job=e537c2c3b955a02aa26ffb086f410311426b482d-full-m0
+buildbox_status=validated
+artifact=linux-7.1.3-gemini-24386f462353
+kernel_release=7.1.3-gemini
+build_profile=full
+generated_utc=2026-08-06T16:44:33Z
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=24386f462353d74316b9999223aba49babcbbf2c513f2c609571a0dd6a664b41
+config_inputs_sha256=501347b25c258f3e7f4070c7d83419e7d23357f496d80e30ea53d037ff456660
+config_sha256=1ebe807ccec725fd35ac4c75609632a89ef0f82ad9b8e258d1b1bc78dddf02ad
+config_fragment_count=1
+modules_built=false
+build_architecture=x86_64
+target_architecture=arm64
+toolchain_mode=cross
+compiler=aarch64-linux-gnu-gcc_(Debian_12.2.0-14)_12.2.0
+linker=GNU_ld_(GNU_Binutils_for_Debian)_2.40
+dtb_count=119
+sha256sums=passed
+hardware_write=none
+device_action=none
+package_fetch=success;validated_package_only
+local_package=artifacts/buildbox/e537c2c3b955a02aa26ffb086f410311426b482d/linux-7.1.3-gemini-24386f462353
+
+Image_sha256=108a76401650483e59c1213fbc8c3de816b50d9d5866d3ea5549286bc2d49cd1
+Image_gz_sha256=2c79999f8f754360d5254f09320a52031d4a84293a1ddddd50c6ce8d380df841
+System_map_sha256=72f0133ab141b48527775daa58434cdb8d834dea5269a76a7a3fb60f87dae655
+gemini_dtb_sha256=e2424e337a30dbc112496ae841bde655058c01d79cd399f2d518154d5faba60c
+kernel_config_sha256=1ebe807ccec725fd35ac4c75609632a89ef0f82ad9b8e258d1b1bc78dddf02ad
+build_provenance_sha256=2d9323bac04550ce51e33813349aedb8e0b32d6dee7fcbec1a1c9abcd8e7e038
+
+state_owner_contract=0192;dormant;unregistered;no_provider;no_mmio;no_transition
+pcm_start_contract=defined;residency_and_start_required_before_callback_registration
+hardware_support_claim=NONE
+boot_candidate=false
+
+The exact pushed revision applied all 192 patch files in the selected series,
+compiled the full arm64 profile, produced the kernel image and 119 DTBs, and
+passed package SHA-256 validation. The fetched package is compile evidence for
+the dormant state-owner API only. It does not load a PCM image, establish
+CSPM/CSRAM startup state, register a firmware owner, enable I2C6, authorize a
+provider vote, boot CPU8/CPU9, or touch the device.
+
+The preceding Buildbox compile failure was a C tag-namespace collision between
+the enum and struct names in patch 0192; commit e537c2c renamed only the enum
+tag and the clean rebuild passed. This result does not promote the package to a
+boot candidate.

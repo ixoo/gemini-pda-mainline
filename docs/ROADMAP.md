@@ -1807,6 +1807,10 @@ The next ordered work remains source-only:
    corroboration only because its MT6797 cpufreq source differs from the
    separately pinned Planet reference. See the [public CPU-clock
    corroboration](../experiments/2026-07-12-mt6797-clock-power-reset-recovery/results/public-gemian-cpu-clock-backend-20260806.txt).
+   The disabled state-owner contract now applies and compiles through the full
+   series on Buildbox at pushed commit `e537c2c`; its validated package is
+   compile-only evidence and leaves the owner unregistered, with no PCM start,
+   provider write, or device action. See the [state-owner Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/state-owner-contract-buildbox-20260806.txt).
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and
