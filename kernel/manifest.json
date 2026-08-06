@@ -1253,6 +1253,14 @@
                     "configs/gemini-a72-a41-kernel-identity.fragment",
                     "configs/gemini-a72-p32-rollback.fragment"
                 ]
+            },
+            "dvfsp-clock-backend-readonly": {
+                "base": "defconfig",
+                "patch_series": "patches/series",
+                "fragments": [
+                    "configs/gemini-handoff.fragment",
+                    "configs/gemini-dvfsp-clock-backend.fragment"
+                ]
             }
     }
   }

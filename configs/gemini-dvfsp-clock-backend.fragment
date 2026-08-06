@@ -1,0 +1,3 @@
+# Compile-only protected clock transport. The DT node remains disabled, so
+# this profile performs no semaphore or clock-window access on a device.
+CONFIG_MTK_MT6797_DVFSP_CLOCK_BACKEND=y

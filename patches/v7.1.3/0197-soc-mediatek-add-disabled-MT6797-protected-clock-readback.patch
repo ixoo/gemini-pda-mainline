@@ -1,0 +1,414 @@
+From 0000000000000000000000000000000000000197 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 6 Aug 2026 18:00:00 -0400
+Subject: [PATCH] soc: mediatek: add disabled MT6797 protected clock readback
+
+The historical MT6797 CPU clock path protects LL/L/CCI register reads and
+writes with a CSPM hardware semaphore shared by the kernel, SPM, and ATF.
+Expose the smallest real mainline transport for that boundary: a disabled
+platform resource contract and a bounded, read-only clock-window read helper.
+
+The helper enables only the documented CSPM internal clock, acquires the
+documented semaphore with the bounded 2 ms loop, reads raw LL/L/CCI and
+divider words, and requires a bounded release. A timeout or release failure
+becomes sticky; no inverse is guessed. It never writes a CPU PLL, divider,
+regulator, SRAM-LDO, secure register, or firmware location, and it does not
+register a DVFSP state owner or clock provider. The B-cluster BigiDVFS path
+and calibrated OPP state remain separate gates.
+
+The DT node is disabled and the compile-only profile does not enable it. This
+is an experiment-only transport and is not submission-ready.
+---
+ .../mediatek,mt6797-dvfsp-clock-backend.yaml       |  79 ++++++++++
+ .../boot/dts/mediatek/mt6797.dtsi                  |  12 +++
+ drivers/soc/mediatek/Kconfig                       |  17 +++
+ drivers/soc/mediatek/Makefile                      |   1 +
+ .../soc/mediatek/mt6797-dvfsp-clock-backend.c      | 199 +++++++++++++++++++++
+ .../soc/mediatek/mt6797-dvfsp-clock-backend.h      |  46 +++++
+ 6 files changed, 354 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-dvfsp-clock-backend.yaml
+ create mode 100644 drivers/soc/mediatek/mt6797-dvfsp-clock-backend.c
+ create mode 100644 include/linux/soc/mediatek/mt6797-dvfsp-clock-backend.h
+
+diff --git a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-dvfsp-clock-backend.yaml b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-dvfsp-clock-backend.yaml
+new file mode 100644
+index 000000000000..000000000000
+--- /dev/null
++++ b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-dvfsp-clock-backend.yaml
+@@ -0,0 +1,79 @@
++# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
++%YAML 1.2
++---
++$id: http://devicetree.org/schemas/soc/mediatek/mediatek,mt6797-dvfsp-clock-backend.yaml#
++$schema: http://devicetree.org/meta-schemas/core.yaml#
++
++title: MediaTek MT6797 protected CPU clock readback transport
++
++description: |
++  The MT6797 LL/L/CCI CPU PLL and divider window is shared by Linux, SPM,
++  and ATF. This optional transport describes the MCUMIXED and CSPM windows
++  plus the I2C_APPM clock needed by the documented hardware semaphore. The
++  node is disabled unless a separately reviewed experiment enables it. The
++  transport is read-only with respect to CPU clock state and is not a clock
++  provider, DVFSP state owner, regulator, or B-cluster secure backend.
++
++maintainers:
++  - Julien Etienne <julien.etienne@gmail.com>
++
++properties:
++  compatible:
++    const: mediatek,mt6797-dvfsp-clock-backend
++
++  reg:
++    items:
++      - description: MCUMIXED CPU PLL and divider window
++      - description: CSPM semaphore and internal clock window
++
++  reg-names:
++    items:
++      - const: mcumixed
++      - const: cspm
++
++  clocks:
++    maxItems: 1
++
++  clock-names:
++    items:
++      - const: i2c
++
++  status:
++    enum: [ disabled, okay ]
++
++required:
++  - compatible
++  - reg
++  - reg-names
++  - clocks
++  - clock-names
++
++additionalProperties: false
++
++examples:
++  - |
++    soc {
++      dvfsp_clock_backend: dvfsp-clock-backend@1001a000 {
++        compatible = "mediatek,mt6797-dvfsp-clock-backend";
++        reg = <0 0x1001a000 0 0x1000>,
++              <0 0x11015000 0 0x1000>;
++        reg-names = "mcumixed", "cspm";
++        clocks = <&infrasys CLK_INFRA_I2C_APPM>;
++        clock-names = "i2c";
++        status = "disabled";
++      };
++    };
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+--- a/arch/arm64/boot/dts/mediatek/mt6797.dtsi
++++ b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+@@ -674,6 +674,18 @@
+ 		mediatek,infracfg = <&infrasys>;
+ 		status = "disabled";
+ 	};
++
++	dvfsp_clock_backend: dvfsp-clock-backend@1001a000 {
++		compatible = "mediatek,mt6797-dvfsp-clock-backend";
++		reg = <0 0x1001a000 0 0x1000>,
++		      <0 0x11015000 0 0x1000>;
++		reg-names = "mcumixed", "cspm";
++		clocks = <&infrasys CLK_INFRA_I2C_APPM>;
++		clock-names = "i2c";
++		status = "disabled";
++	};
+ 
+ 	/* CPU topology and PSCI nodes follow. */
+diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
+--- a/drivers/soc/mediatek/Kconfig
++++ b/drivers/soc/mediatek/Kconfig
+@@ -88,6 +88,23 @@ config MTK_MT6797_DVFSP_HANDOFF
+ 
+ 	This option is for bounded Gemini PDA bring-up experiments only.
+ 
++config MTK_MT6797_DVFSP_CLOCK_BACKEND
++	bool "MediaTek MT6797 protected CPU clock readback transport"
++	depends on ARM64 && ARCH_MEDIATEK && OF && COMMON_CLK
++	select MTK_INFRACFG
++	help
++	  Build the disabled-only MCUMIXED/DVFSP transport used to read the
++	  MT6797 LL/L/CCI CPU clock window under its documented CSPM hardware
++	  semaphore. The helper has a bounded acquire/release path and turns
++	  a timeout or release failure into a sticky fault.
++
++	  This transport does not write a CPU PLL, divider, regulator, or
++	  SRAM-LDO; it does not call the secure monitor, load firmware, or
++	  register a DVFSP state owner or clock provider. Its Device Tree
++	  node is disabled by default and the B-cluster BigiDVFS path remains
++	  separate.
++
+ config MTK_PMIC_WRAP
+ 	tristate "MediaTek PMIC Wrapper"
+ 	depends on ARCH_MEDIATEK || COMPILE_TEST
+diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
+--- a/drivers/soc/mediatek/Makefile
++++ b/drivers/soc/mediatek/Makefile
+@@ -4,6 +4,7 @@ obj-$(CONFIG_MTK_DVFSRC) += mtk-dvfsrc.o
+ obj-$(CONFIG_MTK_INFRACFG) += mtk-infracfg.o
+ obj-$(CONFIG_MTK_MT6797_A72_POWER) += mt6797-a72-power.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-handoff.o
++obj-$(CONFIG_MTK_MT6797_DVFSP_CLOCK_BACKEND) += mt6797-dvfsp-clock-backend.o
+ obj-$(CONFIG_MTK_PMIC_WRAP) += mtk-pmic-wrap.o
+ obj-$(CONFIG_MTK_REGULATOR_COUPLER) += mtk-regulator-coupler.o
+ obj-$(CONFIG_MTK_MMSYS) += mtk-mmsys.o
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-clock-backend.c b/drivers/soc/mediatek/mt6797-dvfsp-clock-backend.c
+new file mode 100644
+index 000000000000..000000000000
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-dvfsp-clock-backend.c
+@@ -0,0 +1,199 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Disabled-only MT6797 MCUMIXED/DVFSP clock-window readback transport.
++ *
++ * The CPU PLL and divider window is shared by Linux, SPM, and ATF. Keep the
++ * semaphore protocol here separate from the eventual calibrated state owner:
++ * this file can read raw words, but cannot make OPP or voltage decisions.
++ */
++
++#include <linux/bitops.h>
++#include <linux/clk.h>
++#include <linux/delay.h>
++#include <linux/device.h>
++#include <linux/io.h>
++#include <linux/module.h>
++#include <linux/mutex.h>
++#include <linux/of.h>
++#include <linux/platform_device.h>
++#include <linux/spinlock.h>
++
++#include <linux/soc/mediatek/mt6797-dvfsp-clock-backend.h>
++
++#define MT6797_DVFSP_CSPM_POWERON_EN		0x000
++#define MT6797_DVFSP_SEMAPHORE			0x440
++#define MT6797_DVFSP_SEMAPHORE_REQUEST		1
++#define MT6797_DVFSP_SEMAPHORE_HELD		BIT(0)
++#define MT6797_DVFSP_SEMAPHORE_POLL_US		10
++#define MT6797_DVFSP_SEMAPHORE_RETRIES		200
++#define MT6797_DVFSP_CSPM_POWERON_VALUE		0x0b160001
++
++#define MT6797_ARMPLL_LL			0x200
++#define MT6797_ARMPLL_L			0x210
++#define MT6797_ARMPLL_CCI			0x220
++#define MT6797_ARMPLL_WORDS			3
++#define MT6797_ARMPLLDIV_MUXSEL			0x270
++#define MT6797_ARMPLLDIV_CKDIV			0x274
++
++struct mt6797_dvfsp_clock_backend {
++	void __iomem *mcumixed;
++	void __iomem *cspm;
++	struct clk *i2c_clk;
++	struct mutex operation_lock;
++	spinlock_t semaphore_lock;
++	bool faulted;
++	u64 sample_generation;
++};
++
++static int
++mt6797_dvfsp_clock_semaphore_acquire(struct mt6797_dvfsp_clock_backend *backend)
++{
++	unsigned int i;
++
++	for (i = 0; i < MT6797_DVFSP_SEMAPHORE_RETRIES; i++) {
++		writel(MT6797_DVFSP_SEMAPHORE_REQUEST,
++		       backend->cspm + MT6797_DVFSP_SEMAPHORE);
++		if (readl(backend->cspm + MT6797_DVFSP_SEMAPHORE) &
++		    MT6797_DVFSP_SEMAPHORE_HELD)
++			return 0;
++		udelay(MT6797_DVFSP_SEMAPHORE_POLL_US);
++	}
++
++	return -ETIMEDOUT;
++}
++
++static int
++mt6797_dvfsp_clock_semaphore_release(struct mt6797_dvfsp_clock_backend *backend)
++{
++	unsigned int i;
++
++	for (i = 0; i < MT6797_DVFSP_SEMAPHORE_RETRIES; i++) {
++		writel(MT6797_DVFSP_SEMAPHORE_REQUEST,
++		       backend->cspm + MT6797_DVFSP_SEMAPHORE);
++		if (!(readl(backend->cspm + MT6797_DVFSP_SEMAPHORE) &
++		      MT6797_DVFSP_SEMAPHORE_HELD))
++			return 0;
++		udelay(MT6797_DVFSP_SEMAPHORE_POLL_US);
++	}
++
++	return -ETIMEDOUT;
++}
++
++static void
++mt6797_dvfsp_clock_mark_fault(struct mt6797_dvfsp_clock_backend *backend)
++{
++	backend->faulted = true;
++}
++
++int mt6797_dvfsp_clock_backend_read(
++	struct device *dev, struct mt6797_dvfsp_clock_readback *readback)
++{
++	struct mt6797_dvfsp_clock_backend *backend;
++	unsigned long flags;
++	unsigned int i;
++	int ret;
++	int release_ret;
++
++	if (!dev || !readback)
++		return -EINVAL;
++
++	backend = dev_get_drvdata(dev);
++	if (!backend)
++		return -ENODEV;
++
++	mutex_lock(&backend->operation_lock);
++	if (backend->faulted) {
++		ret = -EIO;
++		goto out_unlock;
++	}
++
++	ret = clk_prepare_enable(backend->i2c_clk);
++	if (ret)
++		goto out_unlock;
++
++	local_irq_save(flags);
++	spin_lock(&backend->semaphore_lock);
++
++	/* The historical owner enables the CSPM internal clock first. */
++	writel(MT6797_DVFSP_CSPM_POWERON_VALUE,
++	       backend->cspm + MT6797_DVFSP_CSPM_POWERON_EN);
++	readl(backend->cspm + MT6797_DVFSP_CSPM_POWERON_EN);
++
++	ret = mt6797_dvfsp_clock_semaphore_acquire(backend);
++	if (ret) {
++		mt6797_dvfsp_clock_mark_fault(backend);
++		goto out_spin;
++	}
++
++	memset(readback, 0, sizeof(*readback));
++	readback->abi = MT6797_DVFSP_CLOCK_BACKEND_ABI;
++	readback->sample_generation = ++backend->sample_generation;
++	readback->armplldiv_muxsel = readl(backend->mcumixed +
++						MT6797_ARMPLLDIV_MUXSEL);
++	readback->armplldiv_ckdiv = readl(backend->mcumixed +
++						MT6797_ARMPLLDIV_CKDIV);
++	for (i = 0; i < MT6797_ARMPLL_WORDS; i++) {
++		readback->pll_ll[i] = readl(backend->mcumixed +
++					   MT6797_ARMPLL_LL + i * sizeof(u32));
++		readback->pll_l[i] = readl(backend->mcumixed +
++					  MT6797_ARMPLL_L + i * sizeof(u32));
++		readback->pll_cci[i] = readl(backend->mcumixed +
++					   MT6797_ARMPLL_CCI + i * sizeof(u32));
++	}
++
++	release_ret = mt6797_dvfsp_clock_semaphore_release(backend);
++	if (release_ret) {
++		mt6797_dvfsp_clock_mark_fault(backend);
++		ret = release_ret;
++	}
++
++out_spin:
++	spin_unlock(&backend->semaphore_lock);
++	local_irq_restore(flags);
++	clk_disable_unprepare(backend->i2c_clk);
++
++out_unlock:
++	mutex_unlock(&backend->operation_lock);
++	return ret;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_clock_backend_read);
++
++static int mt6797_dvfsp_clock_backend_probe(struct platform_device *pdev)
++{
++	struct mt6797_dvfsp_clock_backend *backend;
++	int ret;
++
++	backend = devm_kzalloc(&pdev->dev, sizeof(*backend), GFP_KERNEL);
++	if (!backend)
++		return -ENOMEM;
++
++	backend->mcumixed = devm_platform_ioremap_resource_byname(
++		pdev, "mcumixed");
++	if (IS_ERR(backend->mcumixed))
++		return PTR_ERR(backend->mcumixed);
++
++	backend->cspm = devm_platform_ioremap_resource_byname(pdev, "cspm");
++	if (IS_ERR(backend->cspm))
++		return PTR_ERR(backend->cspm);
++
++	backend->i2c_clk = devm_clk_get(&pdev->dev, "i2c");
++	if (IS_ERR(backend->i2c_clk))
++		return PTR_ERR(backend->i2c_clk);
++
++	mutex_init(&backend->operation_lock);
++	spin_lock_init(&backend->semaphore_lock);
++	platform_set_drvdata(pdev, backend);
++	dev_info(&pdev->dev,
++		 "protected clock readback transport ready; owner unregistered\n");
++
++	ret = 0;
++	return ret;
++}
++
++static const struct of_device_id mt6797_dvfsp_clock_backend_of_match[] = {
++	{ .compatible = "mediatek,mt6797-dvfsp-clock-backend" },
++	{ }
++};
++MODULE_DEVICE_TABLE(of, mt6797_dvfsp_clock_backend_of_match);
++
++static struct platform_driver mt6797_dvfsp_clock_backend_driver = {
++	.probe = mt6797_dvfsp_clock_backend_probe,
++	.driver = {
++		.name = "mt6797-dvfsp-clock-backend",
++		.of_match_table = mt6797_dvfsp_clock_backend_of_match,
++	},
++};
++module_platform_driver(mt6797_dvfsp_clock_backend_driver);
++
++MODULE_DESCRIPTION("MT6797 protected CPU clock readback transport");
++MODULE_LICENSE("GPL");
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-clock-backend.h b/include/linux/soc/mediatek/mt6797-dvfsp-clock-backend.h
+new file mode 100644
+index 000000000000..000000000000
+--- /dev/null
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-clock-backend.h
+@@ -0,0 +1,46 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __LINUX_SOC_MEDIATEK_MT6797_DVFSP_CLOCK_BACKEND_H
++#define __LINUX_SOC_MEDIATEK_MT6797_DVFSP_CLOCK_BACKEND_H
++
++#include <linux/types.h>
++
++#define MT6797_DVFSP_CLOCK_BACKEND_ABI	1
++#define MT6797_DVFSP_CLOCK_BACKEND_MCUMIXED_BASE	0x1001a000ULL
++#define MT6797_DVFSP_CLOCK_BACKEND_MCUMIXED_LENGTH	0x1000
++#define MT6797_DVFSP_CLOCK_BACKEND_CSPM_BASE	0x11015000ULL
++#define MT6797_DVFSP_CLOCK_BACKEND_CSPM_LENGTH	0x1000
++#define MT6797_DVFSP_CLOCK_BACKEND_SEMAPHORE_OFFSET	0x440
++#define MT6797_DVFSP_CLOCK_BACKEND_SEMAPHORE_TIMEOUT_US	2000
++
++struct device;
++
++/* Raw words only: no frequency, OPP, voltage, or rail interpretation. */
++struct mt6797_dvfsp_clock_readback {
++	u32 abi;
++	u32 reserved;
++	u64 sample_generation;
++	u32 armplldiv_muxsel;
++	u32 armplldiv_ckdiv;
++	u32 pll_ll[3];
++	u32 pll_l[3];
++	u32 pll_cci[3];
++};
++
++int mt6797_dvfsp_clock_backend_read(
++	struct device *dev, struct mt6797_dvfsp_clock_readback *readback);
++
++#endif /* __LINUX_SOC_MEDIATEK_MT6797_DVFSP_CLOCK_BACKEND_H */
+-- 
+2.43.0
