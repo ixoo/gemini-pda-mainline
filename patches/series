@@ -162,3 +162,4 @@ v7.1.3/0169-arm64-model-dormant-A72-postprovider-preparation.patch
 v7.1.3/0170-regulator-add-legacy-DA921x-resource-only-provider.patch
 v7.1.3/0171-arm64-complete-dormant-provider-proof-storage.patch
 v7.1.3/0172-arm64-add-provider-owner-callback-refusal-boundary.patch
+v7.1.3/0173-arm64-add-provider-release-refusal-boundary.patch

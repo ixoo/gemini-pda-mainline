@@ -1,0 +1,117 @@
+From 0000000000000000000000000000000000000173 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Thu, 6 Aug 2026 00:00:00 -0400
+Subject: [PATCH] arm64: add provider release refusal boundary
+
+The read-only DA921x provider can now be called for acquire, but it must not
+pretend that a release or rollback exists.  Add the paired release callback
+to the private provider registry and return a structured refusal while the
+DA921x page-owner and write/readback proof remain open.
+
+This keeps the lifecycle contract explicit without generalizing the proven
+direct-address read transport into an unproven hardware write.  It adds no
+regulator operation, CPU_ON call, device candidate, or device action.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ arch/arm64/kernel/mt6797_a72_membership.c   |  25 ++++++++++++++++++++++++-
+ drivers/regulator/da9213-legacy-regulator.c |  23 +++++++++++++++++++++++
+ include/linux/mt6797-a72-provider.h         |   7 +++++++
+ 3 files changed, 54 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt6797_a72_membership.c
+index 3a9be64c5..5f955a73a 100644
+--- a/arch/arm64/kernel/mt6797_a72_membership.c
++++ b/arch/arm64/kernel/mt6797_a72_membership.c
+@@ -36,6 +36,6 @@ int mt6797_a72_provider_register(const struct mt6797_a72_provider_ops *ops,
+ 	int ret = 0;
+ 
+-	if (!ops || !ops->acquire)
++	if (!ops || !ops->acquire || !ops->release)
+ 		return -EINVAL;
+ 
+ 	mutex_lock(&a72_provider_registry_lock);
+@@ -72,7 +74,28 @@ int mt6797_a72_provider_acquire(
+ 	return ret;
+ }
+ EXPORT_SYMBOL_GPL(mt6797_a72_provider_acquire);
+ 
++int mt6797_a72_provider_release(
++	const struct mt6797_a72_provider_handle *handle,
++	struct mt6797_a72_provider_response *response)
++{
++	int ret;
++
++	if (!handle || !response)
++		return -EINVAL;
++
++	mutex_lock(&a72_provider_registry_lock);
++	if (!a72_provider_ops)
++		ret = -ENODEV;
++	else
++		ret = a72_provider_ops->release(a72_provider_context, handle,
++						response);
++	mutex_unlock(&a72_provider_registry_lock);
++
++	return ret;
++}
++EXPORT_SYMBOL_GPL(mt6797_a72_provider_release);
++
+ struct mt6797_a72_owner_state {
+ 	struct mt6797_a72_transaction active;
+ 	struct mt6797_a72_provider_identity provider_identity;
+diff --git a/drivers/regulator/da9213-legacy-regulator.c b/drivers/regulator/da9213-legacy-regulator.c
+index 02fc4105c..4f9a5f2ab 100644
+--- a/drivers/regulator/da9213-legacy-regulator.c
++++ b/drivers/regulator/da9213-legacy-regulator.c
+@@ -277,8 +277,28 @@ static int da9213_legacy_provider_acquire(void *context,
+ 	return -EOPNOTSUPP;
+ }
+ 
++static int da9213_legacy_provider_release(void *context,
++	const struct mt6797_a72_provider_handle *handle,
++	struct mt6797_a72_provider_response *response)
++{
++	if (!context || !handle || !response)
++		return -EINVAL;
++
++	memset(response, 0, sizeof(*response));
++	response->abi = MT6797_A72_PROVIDER_CALL_ABI;
++	response->returned = 1;
++	response->origin = 1;
++	response->reserved = 0;
++
++	/* Page ownership, write readback, and inverse proof are still open. */
++	dev_dbg(((struct da9213_legacy *)context)->dev,
++		"provider-owner release refused: no rollback owner\n");
++	return -EOPNOTSUPP;
++}
++
+ static const struct mt6797_a72_provider_ops da9213_legacy_provider_ops = {
+ 	.acquire = da9213_legacy_provider_acquire,
++	.release = da9213_legacy_provider_release,
+ };
+ 
+ static void da9213_legacy_provider_unregister(void *context)
+diff --git a/include/linux/mt6797-a72-provider.h b/include/linux/mt6797-a72-provider.h
+index e05fca3fa..f8de6a8d6 100644
+--- a/include/linux/mt6797-a72-provider.h
++++ b/include/linux/mt6797-a72-provider.h
+@@ -47,6 +48,9 @@ struct mt6797_a72_provider_ops {
+ 	int (*acquire)(void *context,
+ 			const struct mt6797_a72_provider_request *request,
+ 			struct mt6797_a72_provider_response *response);
++	int (*release)(void *context,
++			const struct mt6797_a72_provider_handle *handle,
++			struct mt6797_a72_provider_response *response);
+ };
+ 
+ int mt6797_a72_provider_register(const struct mt6797_a72_provider_ops *ops,
+@@ -57,5 +61,7 @@ void mt6797_a72_provider_unregister(const struct mt6797_a72_provider_ops *ops,
+ 				    void *context);
+ int mt6797_a72_provider_acquire(const struct mt6797_a72_provider_request *request,
+ 					struct mt6797_a72_provider_response *response);
++int mt6797_a72_provider_release(const struct mt6797_a72_provider_handle *handle,
++					struct mt6797_a72_provider_response *response);
+ 
+ #endif /* __LINUX_MT6797_A72_PROVIDER_H */

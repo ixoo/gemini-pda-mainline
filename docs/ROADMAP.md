@@ -1647,10 +1647,12 @@ The next ordered work remains source-only:
    in the frozen P31 -> A28 -> mint -> A36 -> P17/P18 -> P27 order. The next
    bounded seam is the real provider-owner R01/R02 transaction: the isolated
    resource-only provider and explicit pre-vote refusal callback are now
-   Buildbox-validated, while a writable provider transaction, the source-only
+   Buildbox-validated, and the paired release callback is explicitly refused
+   until its owner is proved. A writable provider transaction, the source-only
    P28 post-provider preparation, and the R03/P29 rollback closure still
    precede integrating its exact token with the dormant P30 model and
-   controller call sites.
+   controller call sites. Existing direct-address reads do not authorize a
+   DA921x page-selector or register-data write.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and
