@@ -1,0 +1,5 @@
+# Source-only P30E implementation profile. The wire object and MMU-off
+# primitives have no production caller; the existing CPU8/CPU9 boot and
+# disable vetoes remain active and no CPU_ON/OFF path is enabled.
+CONFIG_ARM64_MT6797_A72_P30E_WIRE=y
+CONFIG_LOCALVERSION="-gemini-p30e-wire-blocked"

@@ -1218,6 +1218,23 @@
                     "configs/gemini-da921x-natural-device-add.fragment",
                     "configs/gemini-da921x-post-event-lifecycle.fragment"
                 ]
+            },
+            "a72-p30e-wire": {
+                "base": "defconfig",
+                "patch_series": "patches/series",
+                "fragments": [
+                    "configs/gemini-handoff.fragment",
+                    "configs/gemini-usbdiag.fragment",
+                    "configs/gemini-clk-ignore-unused.fragment",
+                    "configs/gemini-observability.fragment",
+                    "configs/gemini-fbcon-rotation.fragment",
+                    "configs/gemini-keyboard.fragment",
+                    "configs/gemini-keyboard-wrrd.fragment",
+                    "configs/gemini-keyboard-manual-reboot.fragment",
+                    "configs/gemini-smp8.fragment",
+                    "configs/gemini-a72-p30-protocol.fragment",
+                    "configs/gemini-a72-p30e-wire.fragment"
+                ]
             }
     }
   }
