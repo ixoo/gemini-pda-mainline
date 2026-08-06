@@ -74,10 +74,13 @@ Buildbox and the independent 13-probe
 mutation oracle passes, with all existing CPU_ON/CPU_OFF and provider vetoes
 intact. A25 review and the A41/provider/A26/A14 admission gates remain open;
 CPU_ON, CPU_OFF, and device gates remain closed.
+The separate [P32R integration review](../2026-08-06-a72-p32-r-review/README.md)
+also confirms that full callback/effect-prefix retention and the
+membership/provider/A30 ledger handoff are still open.
 
 ## Follow-up
 
-Review the P32R source against the oracle result, then re-audit A25, A41,
-provider, P30, and the remaining A26/A14 gates. Do not relax the boot or disable
-vetoes and do not create a device candidate until those gates are independently
-closed.
+Implement and review the P32A/P32X prefix records and P32R ledger handoff,
+then re-audit A41, provider, P30, and the remaining A26/A14 gates. Do not relax
+the boot or disable vetoes and do not create a device candidate until those
+gates are independently closed.

@@ -1847,6 +1847,9 @@ The next ordered work remains source-only:
    publication check. The 175-patch Buildbox package, fetched checksum
    validation, and independent 13-probe mutation oracle pass, with no hardware
    write. The current PSCI boot and disable vetoes remain intact.
+   The [P32R integration review](../experiments/2026-08-06-a72-p32-r-review/README.md)
+   confirms that complete callback/architecture-effect prefix retention and
+   the membership/provider/A30 ledger handoff are still open.
 4. Complete the A25 callback/rollback review and re-audit P32R against the
    mutation result, then finish P32A/D/F/X/R using either a reviewed core
    no-auto-rollback interface or the fail-stop `.cpu_disable` plus die/kill
