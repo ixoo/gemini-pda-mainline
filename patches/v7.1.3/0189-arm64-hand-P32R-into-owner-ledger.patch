@@ -1,0 +1,253 @@
+From 0000000000000000000000000000000000000189 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 6 Aug 2026 00:00:00 -0400
+Subject: [PATCH] arm64: hand P32R into owner ledger
+
+Make P32R the owner-only terminal handoff for the exact rollback generation.
+Capture pre-fault membership and provider snapshots, retain callback and
+architecture-effect completeness, mark a held provider FAULT_UNKNOWN without
+calling it, and retire only an accepted generation. Incomplete or premature
+transactions become FAULT_ROLLBACK_LOST and leave the owner fail-stopped.
+
+This default-off source slice performs no provider release, membership commit,
+retry, CPU_ON, CPU_OFF, affinity, or device operation. Buildbox validation is
+still required.
+
+This experiment-only change has no certifying sign-off and is not
+submission-ready.
+---
+ arch/arm64/include/asm/mt6797_a72_membership.h | 39 +++++++++++
+ arch/arm64/kernel/mt6797_a72_membership.c     | 88 ++++++++++++++++++++++++-
+ include/linux/cpu.h                           |  3 +
+ kernel/cpu.c                                   |  4 +
+ 4 files changed, 134 insertions(+)
+
+diff --git a/arch/arm64/include/asm/mt6797_a72_membership.h b/arch/arm64/include/asm/mt6797_a72_membership.h
+--- a/arch/arm64/include/asm/mt6797_a72_membership.h
++++ b/arch/arm64/include/asm/mt6797_a72_membership.h
+@@ -103,6 +103,42 @@ struct mt6797_a72_p32_record {
+ 	u64 cookie;
+ 	struct cpu_up_rollback_trace callback_trace;
+ 	u32 callback_trace_valid;
+ };
++#define MT6797_A72_P32R_HANDOFF_ABI 1
++#define MT6797_A72_P32R_EFFECT_HPS_SUCCESS BIT(0)
++#define MT6797_A72_P32R_EFFECT_PROVIDER_RELEASE BIT(1)
++#define MT6797_A72_P32R_EFFECT_RETRY BIT(2)
++#define MT6797_A72_P32R_EFFECT_MEMBERSHIP_COMMIT BIT(3)
++#define MT6797_A72_P32R_EFFECT_MASK \
++	(MT6797_A72_P32R_EFFECT_HPS_SUCCESS | \
++	 MT6797_A72_P32R_EFFECT_PROVIDER_RELEASE | \
++	 MT6797_A72_P32R_EFFECT_RETRY | \
++	 MT6797_A72_P32R_EFFECT_MEMBERSHIP_COMMIT)
++
++enum mt6797_a72_p32r_disposition {
++	MT6797_A72_P32R_NONE,
++	MT6797_A72_P32R_FAULT_ROLLBACK_RECORDED,
++	MT6797_A72_P32R_FAULT_ROLLBACK_LOST,
++};
++
++struct mt6797_a72_p32r_ledger_handoff {
++	u32 abi;
++	u32 valid;
++	u32 disposition;
++	u32 callback_complete;
++	u32 callback_overflow;
++	u32 callback_unknown;
++	u32 effect_complete;
++	u32 effect_overflow;
++	u32 effect_unknown;
++	u32 provider_state;
++	u32 owner_phase;
++	u32 members;
++	u32 reserved;
++	struct mt6797_a72_transaction_identity identity;
++	struct mt6797_a72_entry_snapshot membership;
++	struct mt6797_a72_provider_identity provider_identity;
++	u64 diagnostic_blockers;
++};
+ /* Diagnostic only: this non-exhaustive list can never authorize a request. */
+ #define MT6797_A72_BLOCK_A34_BOOTSTRAP BIT_ULL(0)
+@@ -302,5 +339,6 @@ struct mt6797_a72_transaction {
+ 	struct mt6797_a72_p28_preparation p28_preparation;
+ 	struct arm64_late_cpu_up_token p30_token;
+ 	struct mt6797_a72_p32_record p32;
++	struct mt6797_a72_p32r_ledger_handoff p32r;
+ 	u64 controller_cookie;
+ 	u64 effect_prefix;
+@@ -317,4 +356,6 @@ struct mt6797_a72_transaction {
+ 	u32 p29_valid;
+ 	u32 p32_valid;
++	u32 p32r_valid;
++	u32 p32r_side_effects;
+ 	u32 freeze_release_count;
+ 	u32 valid;
+diff --git a/include/linux/cpu.h b/include/linux/cpu.h
+--- a/include/linux/cpu.h
++++ b/include/linux/cpu.h
+@@ -132,9 +132,12 @@ struct cpu_up_rollback_trace {
+ 	s32 nested_result;
+ 	u32 outer_reset;
+ 	u32 reverse_complete;
++	u32 callback_complete;
++	u32 callback_unknown;
+ 	struct cpu_up_rollback_event event[CPU_UP_ROLLBACK_MAX_EVENTS];
+ 	u32 effect_count;
+ 	u32 effect_overflow;
+ 	u32 effect_unknown;
++	u32 effect_complete;
+ 	struct cpu_up_rollback_effect_event effect[CPU_UP_ROLLBACK_MAX_EFFECTS];
+ };
+diff --git a/kernel/cpu.c b/kernel/cpu.c
+--- a/kernel/cpu.c
++++ b/kernel/cpu.c
+@@ -1080,5 +1080,9 @@ static int cpuhp_up_callbacks(unsigned int cpu, struct cpuhp_cpu_state *st,
+ 	trace->reverse_complete = !rollback_ret &&
+ 			can_rollback_cpu(st);
++	trace->callback_complete = trace->reverse_complete &&
++			!trace->overflow && !trace->callback_unknown;
++	trace->effect_complete = !trace->effect_overflow &&
++			!trace->effect_unknown;
+ #endif
+ 		if (arch_cpu_up_rollback_complete(cpu, ret,
+ 							rollback_trace))
+diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt6797_a72_membership.c
+--- a/arch/arm64/kernel/mt6797_a72_membership.c
++++ b/arch/arm64/kernel/mt6797_a72_membership.c
+@@ -329,46 +329,134 @@ int mt6797_a72_membership_p32_cpu_kill(unsigned int cpu)
+ 	return ret;
+ }
++static void
++mt6797_a72_p32r_capture_locked(struct mt6797_a72_transaction *transaction,
++				       const struct cpu_up_rollback_trace *trace,
++				       u32 disposition)
++{
++	struct mt6797_a72_p32r_ledger_handoff *handoff =
++		&transaction->p32r;
++
++	memset(handoff, 0, sizeof(*handoff));
++	handoff->abi = MT6797_A72_P32R_HANDOFF_ABI;
++	handoff->valid = 1;
++	handoff->disposition = disposition;
++	handoff->identity = transaction->identity;
++	handoff->membership = transaction->entry;
++	handoff->provider_identity = a72_owner.provider_identity;
++	handoff->provider_state = a72_owner.provider_state;
++	handoff->owner_phase = a72_owner.phase;
++	handoff->members = a72_owner.members;
++	handoff->diagnostic_blockers = a72_owner.diagnostic_blockers;
++	if (trace) {
++		handoff->callback_complete = trace->callback_complete;
++		handoff->callback_overflow = trace->overflow;
++		handoff->callback_unknown = trace->callback_unknown;
++		handoff->effect_complete = trace->effect_complete;
++		handoff->effect_overflow = trace->effect_overflow;
++		handoff->effect_unknown = trace->effect_unknown;
++	}
++	transaction->p32r_valid = 1;
++}
++
++static void
++mt6797_a72_p32r_lose_locked(struct mt6797_a72_transaction *transaction,
++				    const struct cpu_up_rollback_trace *trace)
++{
++	mt6797_a72_p32r_capture_locked(transaction, trace,
++					MT6797_A72_P32R_FAULT_ROLLBACK_LOST);
++	a72_owner.health = MT6797_A72_OWNER_FAULTED;
++	a72_owner.phase = MT6797_A72_PHASE_FAULT;
++}
++
++static int
++mt6797_a72_p32r_retire_locked(struct mt6797_a72_transaction *transaction)
++{
++	unsigned int slot;
++
++	if (transaction->identity.operation <
++			ARM64_LATE_CPU_STARTUP_OP_CPU8_UP ||
++		transaction->identity.operation >
++			ARM64_LATE_CPU_STARTUP_OP_CPU9_UP)
++		return -EINVAL;
++	slot = transaction->identity.operation -
++		ARM64_LATE_CPU_STARTUP_OP_CPU8_UP;
++	a72_owner.retired[slot] = *transaction;
++	a72_owner.retired_mask |= BIT(slot);
++	memset(&a72_owner.active, 0, sizeof(a72_owner.active));
++	a72_owner.controller = NULL;
++	a72_owner.controller_cookie = 0;
++	a72_owner.health = MT6797_A72_OWNER_FAULTED;
++	a72_owner.phase = MT6797_A72_PHASE_FAULT;
++	return 0;
++}
++
+ int mt6797_a72_membership_consume_p32(unsigned int cpu, int rollback_error,
+ 					      const struct cpu_up_rollback_trace *trace)
+ {
+ 	unsigned long flags;
+ 	int ret = -EAGAIN;
+ 
+ 	raw_spin_lock_irqsave(&a72_state_lock, flags);
+ 	if (mt6797_a72_p32_target_locked(cpu)) {
+ 		if (!trace) {
+ 			mt6797_a72_p32r_lose_locked(&a72_owner.active, NULL);
+ 			a72_owner.active.p32.branch = MT6797_A72_P32_BRANCH_X;
+ 			ret = -EINVAL;
+ 			goto out;
+ 		}
+ 		a72_owner.active.p32.callback_trace = *trace;
+ 		a72_owner.active.p32.callback_trace_valid = 1;
+ 		if (trace->overflow || !trace->outer_reset ||
+ 		    !trace->reverse_complete) {
+ 			mt6797_a72_p32r_lose_locked(&a72_owner.active, trace);
+ 			a72_owner.active.p32.branch = MT6797_A72_P32_BRANCH_X;
+ 			ret = -EIO;
+ 			goto out;
+ 		}
+ 		if (a72_owner.active.p32.state != MT6797_A72_P32_STATE_PARKED) {
+ 			mt6797_a72_p32r_lose_locked(&a72_owner.active, trace);
+ 			a72_owner.active.p32.branch = MT6797_A72_P32_BRANCH_X;
+ 			ret = -EIO;
+ 			goto out;
+ 		}
+ 		if (a72_owner.active.p32.cpu_up_error != rollback_error) {
+ 			mt6797_a72_p32r_lose_locked(&a72_owner.active, trace);
+ 			a72_owner.active.p32.branch = MT6797_A72_P32_BRANCH_X;
+ 			ret = -EUCLEAN;
+ 			goto out;
+ 		}
++		if (a72_owner.active.p32r_valid ||
++		    (a72_owner.active.p32r_side_effects &
++		     MT6797_A72_P32R_EFFECT_MASK)) {
++			mt6797_a72_p32r_lose_locked(&a72_owner.active, trace);
++			a72_owner.active.p32.branch = MT6797_A72_P32_BRANCH_X;
++			ret = -EPERM;
++			goto out;
++		}
++		if (!trace->callback_complete || trace->callback_unknown ||
++		    trace->effect_unknown || trace->effect_overflow ||
++		    !trace->effect_complete) {
++			mt6797_a72_p32r_lose_locked(&a72_owner.active, trace);
++			a72_owner.active.p32.branch = MT6797_A72_P32_BRANCH_X;
++			ret = -EIO;
++			goto out;
++		}
+ 
+ 		a72_owner.active.p32.branch = MT6797_A72_P32_BRANCH_R;
+ 		a72_owner.active.p32.state = MT6797_A72_P32_STATE_CONSUMED;
++		mt6797_a72_p32r_capture_locked(&a72_owner.active, trace,
++					MT6797_A72_P32R_FAULT_ROLLBACK_RECORDED);
++		if (a72_owner.provider_state != MT6797_A72_PROVIDER_NONE)
++			a72_owner.provider_state = MT6797_A72_PROVIDER_FAULT_UNKNOWN;
++		ret = mt6797_a72_p32r_retire_locked(&a72_owner.active);
++		if (ret) {
++			mt6797_a72_p32r_lose_locked(&a72_owner.active, trace);
++			a72_owner.active.p32.branch = MT6797_A72_P32_BRANCH_X;
++			goto out;
++		}
+ 		ret = 0;
+ 	}
+ out:
+ 	raw_spin_unlock_irqrestore(&a72_state_lock, flags);
+ 	return ret;
+ }
+--
+2.50.1

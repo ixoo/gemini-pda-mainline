@@ -1863,9 +1863,13 @@ The next ordered work remains source-only:
    the required Buildbox compile remains the next gate. The P32X source
    slice (`0188`) now records the arm64 disable order and separate
    DEAD/RCU/park, lockdep, and controller-kill boundaries; its source audit
-   passes, but Buildbox validation remains required before implementing the
-   P32R owner-ledger handoff. The independent ledger model is now stronger,
-   but it does not substitute for a compiled source implementation.
+   passes. Patch `0189` now adds the owner-only P32R ledger handoff: it captures
+   the exact transaction and pre-fault membership/provider snapshots, preserves
+   callback/effect completeness, marks a held provider `FAULT_UNKNOWN` without
+   calling it, and retires only an accepted generation. Its source audit is
+   recorded in the experiment, but the complete series still requires a clean
+   Buildbox compile. The independent ledger model is stronger, but it does not
+   substitute for a compiled source implementation.
    No device action is authorized.
 4. Complete the A25 callback/rollback review and re-audit P32R against the
    mutation result, then finish P32A/D/F/X/R using either a reviewed core

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-06-a72-p32-r-review` |
-| Status | `open` (P32A/P32X source slices audited; Buildbox and P32R remain open) |
+| Status | `open` (P32A/P32X/P32R source slices audited; Buildbox remains open) |
 | Subsystem | P32A/D/F/X/R rollback ownership and terminal ledger handoff |
 | Device variant | Planet Gemini PDA, MT6797; no live-device action |
 | Date | 2026-08-06 America/New_York |
@@ -19,14 +19,10 @@ target disable/die guards, controller kill suppression, and one-shot side
 channel consumption.
 
 The review initially identified three integration gaps. The P32A callback
-prefix is now represented by source patch `0187`, and the P32X effect-prefix
-source slice is represented by `0188`; both pass independent
-format-patch/source audits, but Buildbox validation is still required. One
-integration gap remains:
-
-1. P32R consumption changes the P32 record only; it does not yet hand the
-   terminal divergence into the membership/provider/A30 ledger before any
-   completion or HPS accounting.
+prefix is represented by source patch `0187`, the P32X effect-prefix source
+slice by `0188`, and the P32R owner-ledger handoff by `0189`. Each passes an
+independent format-patch/source audit; Buildbox validation of the complete
+series is now the next gate.
 
 The executable check records these gaps in
 [`results/p32-r-review-20260806.txt`](results/p32-r-review-20260806.txt).
@@ -52,12 +48,14 @@ The exact P32X operation placement is now recorded in
 [`results/p32x-placement-review-20260806.txt`](results/p32x-placement-review-20260806.txt).
 The `0188` effect-prefix source audit is recorded in
 [`results/p32x-effect-prefix-source-audit-20260806.txt`](results/p32x-effect-prefix-source-audit-20260806.txt).
-It is not a compiler, Buildbox, runtime, or support claim; P32R completeness
-and ledger handoff remain open.
+It is not a compiler, Buildbox, runtime, or support claim.
 
 The model now exercises the owner-ledger boundary explicitly: it preserves the
 pre-fault membership/provider snapshot, moves a held provider to
 `FAULT_UNKNOWN`, preserves a `NONE` provider state, rejects premature
 provider/HPS/membership/retry side effects, and rejects mutations to the full
-trace identity. The kernel-side owner handoff still requires an implementation
-and a clean Buildbox compile.
+trace identity. The kernel-side owner handoff is now implemented by `0189`;
+its source audit is recorded in
+[`results/p32r-owner-ledger-source-audit-20260806.txt`](results/p32r-owner-ledger-source-audit-20260806.txt).
+The complete series still requires a clean Buildbox compile before any later
+review or device consideration.

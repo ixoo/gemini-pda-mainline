@@ -1,0 +1,30 @@
+P32R owner-ledger source audit
+==============================
+
+Date: 2026-08-06 America/New_York
+Repository base before this source slice: 8f0cf18d6d1726ae1fd1829ee2c8f48ed6794f48
+Origin: https://github.com/ixoo/gemini-pda-mainline.git
+
+claim=P32R_OWNER_LEDGER_SOURCE_AUDIT
+patch=v7.1.3/0189-arm64-hand-P32R-into-owner-ledger.patch
+patch_sha256=f602683574328463434be26b66404960c3e59af844f0c6a17d17b5e872c18125
+format_patch_parse=PASS
+owner_only_handoff=PASS
+snapshot_and_provider_fault_boundary=PASS
+retire_after_capture=PASS
+forbidden_operation_scan=PASS
+status=PASS_SOURCE_ONLY
+
+numstat:
+39	0	arch/arm64/include/asm/mt6797_a72_membership.h
+3	0	include/linux/cpu.h
+4	0	kernel/cpu.c
+88	0	arch/arm64/kernel/mt6797_a72_membership.c
+
+The source slice captures the exact transaction identity, membership/provider
+snapshot, callback/effect completeness, and terminal disposition before
+retiring an accepted generation. A held provider is marked
+FAULT_UNKNOWN without invoking provider release. Incomplete, duplicate, or
+prematurely side-effected transactions fail closed as FAULT_ROLLBACK_LOST.
+No CPU_ON, CPU_OFF, affinity, provider call, device I/O, hardware write,
+runtime, compiler, or Buildbox claim is made by this record.

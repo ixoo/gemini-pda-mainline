@@ -178,3 +178,4 @@ v7.1.3/0185-arm64-bind-P32-operation-to-target.patch
 v7.1.3/0186-arm64-parenthesize-P32-publication-check.patch
 v7.1.3/0187-arm64-capture-P32A-rollback-prefix.patch
 v7.1.3/0188-arm64-capture-P32X-effect-prefix.patch
+v7.1.3/0189-arm64-hand-P32R-into-owner-ledger.patch
