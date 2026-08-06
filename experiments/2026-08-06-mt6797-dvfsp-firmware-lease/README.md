@@ -82,6 +82,7 @@ be copied directly into a mainline failure/PM path.
 - [Initial Buildbox input failure and repair](results/buildbox-failure-20260806.txt)
 - [Exact retained vendor-kernel SEMA contract](results/vendor-kernel-sema-contract-20260806.txt)
 - [Public hybrid owner source](results/public-hybrid-owner-source-20260806.txt)
+- [Buildbox validation after owner-source review](results/public-owner-buildbox-validation-20260806.txt)
 - [Receiver register-window identity reconciliation](results/receiver-register-identity-20260806.txt)
 - [Retained TEE secure-owner disassembly](../2026-08-06-da921x-page-owner-audit/results/tee-owner-disassembly-20260806.txt)
 - [Retained SCP local-alias inventory](../2026-08-06-da921x-page-owner-audit/results/scp-alias-inventory-20260806.txt)
@@ -137,3 +138,10 @@ the callback. The current mainline handoff satisfies none of the start and
 residency requirements, so this result advances the design boundary only and
 does not authorize a loader, firmware copy, provider write, build, or device
 boot.
+
+The owner-source review itself was validated on Buildbox at pushed commit
+`5aced75e948be894fda47ef59a9b41434f02589b` with the dedicated
+`a72-p32-rollback` profile; all 180 patches and 119 DTBs passed package
+checksums. This is still compile-only evidence: no PCM image was loaded, no
+callback was registered, and no device action occurred. See the
+[Buildbox result](results/public-owner-buildbox-validation-20260806.txt).

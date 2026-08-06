@@ -1,0 +1,54 @@
+# Buildbox validation after public hybrid owner-source review
+
+Date: 2026-08-06 America/New_York
+
+claim=PUBLIC_HYBRID_OWNER_SOURCE_REVIEW_BUILDBOX_VALIDATED
+repository_commit=5aced75e948be894fda47ef59a9b41434f02589b
+origin=https://github.com/ixoo/gemini-pda-mainline.git
+build_backend=buildbox
+buildbox_job=5aced75e948be894fda47ef59a9b41434f02589b-a72-p32-rollback-m0
+buildbox_status=validated
+artifact=linux-7.1.3-gemini-a72-p32-rollback-14dad783-a52199d2
+kernel_release=7.1.3-gemini-p32-rollback-blocked
+build_profile=a72-p32-rollback
+generated_utc=2026-08-06T15:42:36Z
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=14dad7835e8ca830e4ea74b3660fc7620cf856e906412471161b5501a7f52c35
+patch_series=patches/series
+patch_count=180
+config_inputs_sha256=a52199d2d49d09e17b5808c03bc2794a39547006339d7949ebb72403899966be
+config_sha256=56d121ddabdf778cbfa9ba0e4a0855dbf41ea4ca16f00c0e6b6d9bc7125705ba
+config_fragment_count=11
+modules_built=false
+build_architecture=x86_64
+target_architecture=arm64
+compiler=aarch64-linux-gnu-gcc_(Debian_12.2.0-14)
+linker=GNU_ld_(GNU_Binutils_for_Debian)_2.40
+dtb_count=119
+sha256sums=passed
+hardware_write=none
+device_action=none
+package_fetch=success;validated_package_only
+local_package=artifacts/buildbox/5aced75e948be894fda47ef59a9b41434f02589b/linux-7.1.3-gemini-a72-p32-rollback-14dad783-a52199d2
+
+Image_sha256=74a4b079b082a5a27cc1c70c5f79942259662d87538b475522a777a11be5109f
+Image_gz_sha256=6ffeb6536ac4d1d20dd256f9480495c14f06e94fb78f6ab316c997c3e0ef8a23
+System_map_sha256=bf872f0af40aaadcc90b92d4c27fa820f97981e7c746ecf53012aef9cb39621c
+gemini_dtb_sha256=f0f9341aab29dae8755ab1ef058b783cf66e3a4f76255565665fd296a846660c
+kernel_config_sha256=56d121ddabdf778cbfa9ba0e4a0855dbf41ea4ca16f00c0e6b6d9bc7125705ba
+build_provenance_sha256=cf79312f37b09a699899a3c8a5b7ace4e4be8dd051ea04eccf53f3357be664ef
+a41_record_sha256=fd5d9a98dda5427caf8ea2d142084b4aa2ec7d4ce64e5f51727a81729f0b7f79
+a41_record_identity=de3f98f571891ab24e43051eac11d33eef4a02b7d82b8dbfbfafc5d6812f71c5
+
+warning=mt6797_a72_membership_mint_up_token frame size 6576 exceeds 2048
+warning_disposition=nonfatal;package_validation_passed
+status=PASS_COMPILE_ONLY_CURRENT_OWNER_SOURCE_REVIEW
+hardware_support_claim=NONE
+boot_candidate=false
+
+This package validates the source/documentation head and the existing
+fail-closed kernel profile. It does not load a PCM image, register a firmware
+owner callback, enable I2C6, authorize a provider vote, boot CPU8/CPU9, or
+touch the device. The public owner-source result remains a reference contract;
+image variant, redistribution boundary, and bounded mainline implementation
+are still open.
