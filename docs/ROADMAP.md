@@ -1827,6 +1827,17 @@ The next ordered work remains source-only:
    topckgen/apmixedsys clocks and the read-only A72 observer are present, but
    MT6797 cpufreq, protected MCUMIXED/DVFSP ownership, and the BigiDVFS secure
    backend are absent. See the [clock/state-owner inventory](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/mainline-clock-owner-inventory-20260806.txt).
+   Patch `0194` now adds a bounded, default-off PCM admission shell around the
+   reviewed contract. The exact pushed commit `e1c88a6` applies the complete
+   183-entry series on Buildbox, compiles the full arm64 profile, produces 119
+   DTBs, passes package checksums, and has its validated package fetched. This
+   remains compile-only evidence: no adapter is registered, no provider or
+   MMIO path is enabled, and no device action is authorized. See the
+   [PCM admission shell Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/pcm-adapter-shell-buildbox-20260806.txt).
+   The next gate is still the real protected MCUMIXED/DVFSP and BigiDVFS
+   startup-state owner; only after that is independently reviewed may the
+   external callbacks be bound and PCM image residency/start and runtime lease
+   evidence be collected.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and

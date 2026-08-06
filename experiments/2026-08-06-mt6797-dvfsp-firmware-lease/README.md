@@ -91,6 +91,7 @@ be copied directly into a mainline failure/PM path.
 - [Dormant state-owner contract Buildbox validation](results/state-owner-contract-buildbox-20260806.txt)
 - [State-owner transition-hold Buildbox validation](results/state-owner-transition-hold-buildbox-20260806.txt)
 - [Bounded PCM adapter admission model](results/pcm-adapter-model-20260806.txt)
+- [Bounded PCM admission shell Buildbox validation](results/pcm-adapter-shell-buildbox-20260806.txt)
 - [Mainline clock/state-owner inventory](results/mainline-clock-owner-inventory-20260806.txt)
 - [Current-head bfd04ae full-profile Buildbox resume](results/current-head-bfd04ae-full-buildbox-20260806.txt)
 - [Receiver register-window identity reconciliation](results/receiver-register-identity-20260806.txt)
@@ -191,3 +192,15 @@ the current tree has generic MT6797 topckgen/apmixedsys providers but no
 MT6797 cpufreq driver, protected MCUMIXED/DVFSP clock owner, or BigiDVFS secure
 backend. The existing A72 observer reads Vproc/MCUCFG state and denies CPU_ON;
 it is not a startup-state owner. See the [clock/state-owner inventory](results/mainline-clock-owner-inventory-20260806.txt).
+
+Patch `0194` now provides the bounded, default-off PCM admission shell around
+that contract. The exact pushed commit `e1c88a6` applied all 183 series entries
+on Buildbox, compiled the full arm64 profile, produced 119 DTBs, passed package
+checksums, and fetched the validated package locally. This is compile-only
+evidence: no adapter is registered, no provider or MMIO path is enabled, and
+the device was not touched. See the [PCM admission shell Buildbox result](results/pcm-adapter-shell-buildbox-20260806.txt).
+
+The next discriminator remains the real protected MCUMIXED/DVFSP and BigiDVFS
+startup-state owner. Only after that owner is independently reviewed can the
+external callbacks be bound and the PCM image/residency/start and runtime
+lease path be tested.

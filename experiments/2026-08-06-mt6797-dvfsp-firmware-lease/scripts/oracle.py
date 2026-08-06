@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[3]
 PATCH = ROOT / "patches/v7.1.3/0175-soc-mediatek-define-I2C6-firmware-lease-contract.patch"
 STATE_OWNER_PATCH = ROOT / "patches/v7.1.3/0192-soc-mediatek-define-MT6797-state-owner-contract.patch"
 STATE_HOLD_PATCH = ROOT / "patches/v7.1.3/0193-soc-mediatek-add-MT6797-state-owner-transition-hold.patch"
+PCM_ADAPTER_PATCH = ROOT / "patches/v7.1.3/0194-soc-mediatek-add-bounded-MT6797-PCM-admission.patch"
 SERIES = ROOT / "patches/series"
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
 START_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-start-contract-20260806.txt"
@@ -17,6 +18,7 @@ ADAPTER_DESIGN = Path(__file__).resolve().parents[1] / "PCM_ADAPTER_DESIGN.md"
 ADAPTER_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-adapter-model-20260806.txt"
 CLOCK_RESULT = Path(__file__).resolve().parents[1] / "results/mainline-clock-owner-inventory-20260806.txt"
 BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-transition-hold-buildbox-20260806.txt"
+ADAPTER_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-adapter-shell-buildbox-20260806.txt"
 
 
 def require(text: str, needle: str, label: str) -> None:
@@ -28,6 +30,7 @@ def main() -> None:
     patch = PATCH.read_text()
     state_owner_patch = STATE_OWNER_PATCH.read_text()
     state_hold_patch = STATE_HOLD_PATCH.read_text()
+    pcm_adapter_patch = PCM_ADAPTER_PATCH.read_text()
     design = DESIGN.read_text()
     start_result = START_RESULT.read_text()
     owner_result = OWNER_RESULT.read_text()
@@ -36,6 +39,7 @@ def main() -> None:
     adapter_result = ADAPTER_RESULT.read_text()
     clock_result = CLOCK_RESULT.read_text()
     build_result = BUILD_RESULT.read_text()
+    adapter_build_result = ADAPTER_BUILD_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     names = [Path(line).name for line in SERIES.read_text().splitlines()
@@ -81,6 +85,33 @@ def main() -> None:
         ("a failed\nrelease remains sticky", "state-hold-sticky-description"),
     ):
         require(state_hold_patch, needle, label)
+
+    for needle, label in (
+        ("MT6797_DVFSP_PCM_ADAPTER_ABI", "pcm-adapter-abi"),
+        ("MT6797_DVFSP_PCM_IMAGE_HASH_BYTES", "pcm-image-hash"),
+        ("MT6797_DVFSP_PCM_RESOURCE_ALL", "pcm-resource-mask"),
+        ("MT6797_DVFSP_PCM_CSPM_BASE", "pcm-cspm-identity"),
+        ("MT6797_DVFSP_PCM_CSRAM_BASE", "pcm-csram-identity"),
+        ("MT6797_DVFSP_PCM_PHASE_UNAVAILABLE", "pcm-phase-unavailable"),
+        ("MT6797_DVFSP_PCM_PHASE_STATE_HELD", "pcm-phase-state-held"),
+        ("MT6797_DVFSP_PCM_PHASE_RESOURCES_HELD", "pcm-phase-resources"),
+        ("MT6797_DVFSP_PCM_PHASE_IMAGE_READY", "pcm-phase-image"),
+        ("MT6797_DVFSP_PCM_PHASE_RESET_INITIALIZED", "pcm-phase-reset"),
+        ("MT6797_DVFSP_PCM_PHASE_IMAGE_ACKED", "pcm-phase-image-ack"),
+        ("MT6797_DVFSP_PCM_PHASE_CONTROL_INITIALIZED", "pcm-phase-control"),
+        ("MT6797_DVFSP_PCM_PHASE_RUNNING", "pcm-phase-running"),
+        ("MT6797_DVFSP_PCM_PHASE_LEASE_REGISTERED", "pcm-phase-lease"),
+        ("mt6797_dvfsp_handoff_pcm_adapter_register", "pcm-adapter-register"),
+        ("mt6797_dvfsp_handoff_pcm_adapter_start", "pcm-adapter-start"),
+        ("mt6797_dvfsp_handoff_pcm_adapter_stop", "pcm-adapter-stop"),
+        ("mt6797_dvfsp_handoff_pcm_adapter_invalidate", "pcm-adapter-invalidate"),
+        ("mt6797_dvfsp_pcm_resource_check", "pcm-resource-check"),
+        ("mt6797_dvfsp_pcm_image_equal", "pcm-image-equality"),
+        ("mt6797_dvfsp_pcm_adapter_revalidate_locked", "pcm-generation-revalidation"),
+        ("pcm_adapter_sticky_fault", "pcm-sticky-fault"),
+        ("All callbacks remain external and unregistered by default", "pcm-default-off-claim"),
+    ):
+        require(pcm_adapter_patch, needle, label)
     for needle, label in (
         ("## Startup-state adapter seam", "design-state-seam"),
         ("`snapshot`", "design-snapshot"),
@@ -194,6 +225,24 @@ def main() -> None:
         require(build_result, needle, label)
 
     for needle, label in (
+        ("claim=COMPILE_ONLY_BOUNDED_PCM_ADAPTER_SHELL", "adapter-build-claim"),
+        ("repository_commit=e1c88a653eab8702817ce71a5fbccc07714afe9d", "adapter-build-commit"),
+        ("origin=https://github.com/ixoo/gemini-pda-mainline.git", "adapter-build-origin"),
+        ("build_backend=buildbox", "adapter-build-backend"),
+        ("buildbox_status=validated", "adapter-build-status"),
+        ("patch_count=183", "adapter-build-patch-count"),
+        ("artifact=linux-7.1.3-gemini-865cfc786d73", "adapter-build-artifact"),
+        ("dtb_count=119", "adapter-build-dtb-count"),
+        ("sha256sums=passed", "adapter-build-checksums"),
+        ("package_fetch=success;validated_package_only", "adapter-build-fetch"),
+        ("pcm_adapter_shell=0194;default_off;registered_adapter=0;no_provider;no_mmio;no_transition", "adapter-build-shell"),
+        ("hardware_write=none", "adapter-build-no-write"),
+        ("device_action=none", "adapter-build-no-device"),
+        ("boot_candidate=false", "adapter-build-not-candidate"),
+    ):
+        require(adapter_build_result, needle, label)
+
+    for needle, label in (
         ("claim=PUBLIC_GEMIAN_HYBRID_DVFSP_OWNER_REVALIDATED", "owner-claim"),
         ("source_commit=8cfe6596a503612e3332d9c26e292a19525a7f07", "owner-source"),
         ("source_license_basis=repository_COPYING_and_LICENSE_GPLv2;hybrid_header_GPLv2", "owner-license"),
@@ -215,6 +264,8 @@ def main() -> None:
         raise AssertionError("state-owner contract is not after the current handoff series")
     if names.index("0192-soc-mediatek-define-MT6797-state-owner-contract.patch") >= names.index("0193-soc-mediatek-add-MT6797-state-owner-transition-hold.patch"):
         raise AssertionError("state-owner transition hold is not after the state-owner contract")
+    if names.index("0193-soc-mediatek-add-MT6797-state-owner-transition-hold.patch") >= names.index("0194-soc-mediatek-add-bounded-MT6797-PCM-admission.patch"):
+        raise AssertionError("PCM adapter shell is not after the transition hold")
 
     for forbidden in ("readl(", "writel(", "i2c_transfer", "regulator_enable(",
                       "regulator_disable(", "psci_ops.cpu_on", "cpu_up("):
@@ -224,6 +275,8 @@ def main() -> None:
             raise AssertionError(f"unexpected state-owner hardware operation: {forbidden}")
         if forbidden in state_hold_patch:
             raise AssertionError(f"unexpected state-hold hardware operation: {forbidden}")
+        if forbidden in pcm_adapter_patch:
+            raise AssertionError(f"unexpected PCM adapter hardware operation: {forbidden}")
 
     print("claim=PARTIAL_FIRMWARE_LEASE_CALLBACK_CONTRACT")
     print("registered_owner=0")
@@ -237,6 +290,7 @@ def main() -> None:
     print("device_action=none")
     print("state_owner_contract=0192+0193-dormant;registered_owner=0;no_provider;no_mmio;transition_hold_only")
     print("state_owner_buildbox=validated;transition_hold_compile_only;boot_candidate=false")
+    print("pcm_adapter_shell=0194;default_off;registered_adapter=0;no_provider;no_mmio;transition_order_enforced")
     print("pcm_adapter_contract=source-only;bounded-admission-model;callback-registration-gated")
     print("clock_owner_inventory=generic_ccf_only;protected_owner_absent;A72_observer_read_only")
     print("pcm_start_contract=defined;residency_and_start_required_before_callback_registration")
