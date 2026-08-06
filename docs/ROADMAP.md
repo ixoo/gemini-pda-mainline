@@ -1445,7 +1445,7 @@ the runtime-binding and commit-path blockers, and cannot freeze a plan or
 admit CPU8/CPU9. This advances A41 only to
 `PARTIAL_RUNTIME_EVIDENCE_OWNER_BOUNDARY`; it is not a build or runtime result.
 
-The next source-only
+The
 [A41 kernel-identity binding](../experiments/2026-08-05-a72-a41-kernel-identity/README.md)
 bumps the lifecycle to ABI 7 and closes only the configuration, image, and
 command-line sub-contract. A strict static expected record is parsed from the
@@ -1457,8 +1457,11 @@ seals empty. Profile ID, configuration-input identity, CPU numbers, MPIDRs,
 and the registered target mask must cross-bind before only the runtime-binding
 blocker can clear. The record publishes no target observations, system
 evidence, capability commitment, plan identity, READY state, or CPU-admission
-authority. This advances A41 only to `PARTIAL_KERNEL_IDENTITY_BINDING`; it is
-not a build, boot candidate, runtime result, or hardware-support claim.
+authority. The exact profile also passed a Buildbox compile/package validation
+at commit `92a1c5d1…`; its Gemini DTB lacks the expected provenance leaf, so
+the package-authority producer remains open. This advances A41 only to
+`PARTIAL_KERNEL_IDENTITY_BINDING`; the package is not a boot candidate,
+runtime result, or hardware-support claim.
 
 Actual CPU8/CPU9 register, cache, GIC/hyp, firmware, ASID, translation,
 capability, and HWCAP evidence still requires each target to execute or an

@@ -5,10 +5,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-05-a72-a41-kernel-identity` |
-| Status | `completed` (offline source-contract validation only) |
+| Status | `completed` (offline source-contract validation plus Buildbox compile-only validation) |
 | Subsystem | generic ELF build-ID parsing, arm64 capability finalization, and MT6797 late Cortex-A72 profile |
 | Device variant | Planet Gemini PDA, MT6797; no live-device action |
-| Date(s) | 2026-08-05 America/New_York |
+| Date(s) | 2026-08-05 to 2026-08-06 America/New_York |
 | Investigator(s) | Project maintainers |
 | Tracking issue | Roadmap Gate 4, A41 |
 | Claim | `PARTIAL_KERNEL_IDENTITY_BINDING` |
@@ -59,16 +59,26 @@ plan, publish READY, or admit a late CPU.
   `90e8ad3c3f9be58ef8f089f72f935e6f54aaa2473ada1145eebdb67a79593239`.
 - ABI/profile: `ARM64_LATE_CPU_PLAN_ABI=7`,
   `mt6797-a53-a72-a41-v7`.
-- No configuration was resolved and no compiler, build, package, boot image,
-  deployment path, or target partition was used.
-- Network and device access: none.
+- The exact profile was resolved and built on Buildbox at pushed commit
+  `92a1c5d1ef635bec562c919494ff22e1e1c129c9`; the validated package is
+  recorded in [`results/buildbox-validation-20260806.txt`](results/buildbox-validation-20260806.txt).
+- Buildbox used the pinned x86_64 host, arm64 cross toolchain, 119-DTB package,
+  and passed package checksums. The only compiler warning was the existing
+  2768-byte `arm64_prepare_late_cpu_profile` stack frame; no build errors
+  occurred.
+- The built Gemini DTB does not contain the expected
+  `/chosen/gemini-late-cpu-provenance` leaf (`FDT_ERR_NOTFOUND`). This confirms
+  the package-authority producer remains unimplemented; the package is not a
+  boot candidate.
+- No deployment path, target partition, boot, shutdown, or device write was
+  used.
 
 ## Safety assessment
 
-The work changed and inspected source, generated two format patches, and ran
-bounded local repository/source validation. It did not build a kernel, call
-firmware, request CPU_ON, connect to the Gemini, write a partition, reboot, or
-shut down a device.
+The work changed and inspected source, generated two format patches, ran
+bounded local repository/source validation, and completed one compile-only
+Buildbox package validation. It did not call firmware, request CPU_ON, connect
+to the Gemini, write a partition, reboot, or shut down a device.
 
 The inherited `maxcpus=8`, patch-0092 CPU-boot `-EAGAIN`, CPU-disable false,
 profile `-EAGAIN`, and COMMIT_PATH gates remain. `SEALED_IDENTITY` contains no
@@ -129,8 +139,8 @@ evidence for this experiment.
 - No target observation, runtime evidence identity, plan identity, capability
   mutation, commit, READY token, or admission path is added.
 - The independent oracle passed 48/48 cases.
-- No KUnit execution, kernel build, runtime test, network access, or device
-  action was performed.
+- No KUnit execution or runtime test was performed. The Buildbox package is a
+  compile/provenance result only; it is not hardware support evidence.
 
 ## Analysis
 
@@ -151,20 +161,22 @@ CPU9 remain offline and unobserved.
 
 ## Conclusion
 
-Confirmed only for exact patches 0156/0157 and their offline contracts:
+Confirmed for exact patches 0156/0157, their offline contracts, and the
+validated Buildbox compile at commit `92a1c5d…`:
 `PARTIAL_KERNEL_IDENTITY_BINDING`. The core can produce and seal a verified
-kernel identity binding as `SEALED_IDENTITY`, while complete runtime evidence,
-PLAN_FROZEN, COMMITTED, READY, and CPU admission remain unreachable.
+kernel identity binding as `SEALED_IDENTITY`, while the package OF producer,
+complete runtime evidence, PLAN_FROZEN, COMMITTED, READY, and CPU admission
+remain unreachable.
 
 `a41_complete=no`, `runtime_evidence_complete=no`,
 `target_evidence_complete=no`, `boot_candidate=false`, `build_authorized=no`,
 and `device_action_authorized=no`.
 
-This is not a build result, runtime result, hardware-support result, or claim
-that CPU8 or CPU9 can execute safely.
+The Buildbox package is not a boot candidate, runtime result,
+hardware-support result, or claim that CPU8 or CPU9 can execute safely.
 
 ## Follow-up boundary
 
 [The roadmap](../../docs/ROADMAP.md) alone owns ordered next steps. This source
-experiment does not authorize a build, package, deployment, CPU_ON request,
-boot, or device action.
+experiment records a compile-only package validation but does not authorize a
+deployment, CPU_ON request, boot, or device action.
