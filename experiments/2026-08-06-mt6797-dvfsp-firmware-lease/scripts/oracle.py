@@ -430,6 +430,21 @@ def main() -> None:
         ("boot_candidate=false", "readback-not-candidate"),
     ):
         require(readback_build_result, needle, label)
+    for needle, label in (
+        ("repeat_run_repository_commit=6c3cb4fad5a4895f6a69d7913089553b6751e34c", "readback-repeat-commit"),
+        ("repeat_run_buildbox_job=6c3cb4fad5a4895f6a69d7913089553b6751e34c-dvfsp-protected-readback-m0", "readback-repeat-job"),
+        ("repeat_run_status=validated", "readback-repeat-status"),
+        ("repeat_run_generated_utc=2026-08-06T19:41:20Z", "readback-repeat-time"),
+        ("repeat_run_patch_count=187", "readback-repeat-patch-count"),
+        ("repeat_run_artifact=linux-7.1.3-gemini-dvfsp-protected-readback-c34aa0be-11afba8d", "readback-repeat-artifact"),
+        ("repeat_run_dtb_count=119", "readback-repeat-dtb-count"),
+        ("repeat_run_sha256sums=passed", "readback-repeat-checksums"),
+        ("repeat_run_package_fetch=success;validated_package_only", "readback-repeat-fetch"),
+        ("repeat_run_hardware_write=none", "readback-repeat-no-write"),
+        ("repeat_run_device_action=none", "readback-repeat-no-device"),
+        ("repeat_run_boot_candidate=false", "readback-repeat-not-candidate"),
+    ):
+        require(readback_build_result, needle, label)
 
     if names.index("0174-soc-mediatek-add-I2C6-DVFSP-transfer-lease.patch") >= names.index("0175-soc-mediatek-define-I2C6-firmware-lease-contract.patch"):
         raise AssertionError("firmware lease contract is not after Linux transfer lease")

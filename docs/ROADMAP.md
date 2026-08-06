@@ -1878,6 +1878,9 @@ The next ordered work remains source-only:
    package fetched. Both nodes remain disabled, with no owner/provider,
    firmware action, device write, or CPU8/CPU9 admission. See the [combined
    protected-readback Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/protected-readback-buildbox-20260806.txt).
+   The clean pushed follow-up revision `6c3cb4f` was rebuilt on Buildbox after
+   the resume request and reproduced byte-identical kernel, DTB, and map
+   outputs; it adds no device or CPU8/CPU9 evidence.
    The next ordered gate is the real, independently reviewed implementation of
    both protected startup-state backends, including authoritative
    OPP/frequency/voltage/VSRAM capture, transition locks, suspend/fault

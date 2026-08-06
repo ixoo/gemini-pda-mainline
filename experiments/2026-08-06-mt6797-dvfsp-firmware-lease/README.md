@@ -260,6 +260,11 @@ package checksums, and fetched the validated package. Both nodes remain
 disabled, so this is still compile-only evidence and not CPU8/CPU9 support.
 See the [combined protected-readback Buildbox result](results/protected-readback-buildbox-20260806.txt).
 
+The clean pushed follow-up revision `6c3cb4f` was rebuilt on Buildbox after the
+resume request. It reproduced the same validated artifact and byte-identical
+kernel, DTB, and map outputs; the repeat run also performed no device action
+and does not change the CPU8/CPU9 gate.
+
 The read-only protocol revalidation now closes the public identifiers needed
 to implement those adapters: the BigiDVFS secure FIDs and secure register
 offsets, and the MCUMIXED/DVFSP semaphore's exact acquire/release sequence,
