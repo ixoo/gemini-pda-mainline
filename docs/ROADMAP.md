@@ -1853,16 +1853,19 @@ The next ordered work remains source-only:
    [integration design](../experiments/2026-08-06-a72-p32-r-review/DESIGN.md)
    now fixes the bounded callback vector, effect mask, overflow/unknown
    fail-stop behavior, and owner-only ledger handoff that the next source
-   patches must implement; the accompanying nine-probe model is design
+   patches must implement; the accompanying 15-probe model now also checks
+   full trace identity, membership/provider snapshot handoff, A30 fault
+   disposition, and rejection after premature side effects. It remains design
    evidence, not kernel or runtime validation. The first P32A source slice
    (`0187`) now records the bounded callback prefix, nested AP reset marker,
    outer reset, and reverse-range completion, with a source/format-patch audit
    recorded in the experiment. Buildbox was unavailable during that audit;
-   the required Buildbox compile remains the next gate, followed by P32X
-   architecture-effect capture and the P32R ledger handoff. The P32X source
+   the required Buildbox compile remains the next gate. The P32X source
    slice (`0188`) now records the arm64 disable order and separate
    DEAD/RCU/park, lockdep, and controller-kill boundaries; its source audit
-   passes, but Buildbox validation remains required before P32R handoff work.
+   passes, but Buildbox validation remains required before implementing the
+   P32R owner-ledger handoff. The independent ledger model is now stronger,
+   but it does not substitute for a compiled source implementation.
    No device action is authorized.
 4. Complete the A25 callback/rollback review and re-audit P32R against the
    mutation result, then finish P32A/D/F/X/R using either a reviewed core

@@ -36,7 +36,7 @@ The bounded implementation contract is now recorded in
 [`DESIGN.md`](DESIGN.md). It defines separate callback-prefix,
 architecture-effect, and ledger-handoff records, rejects truncation and
 unknown effects, and keeps provider/membership changes owner-controlled. The
-independent nine-probe model is
+independent fifteen-probe model is
 [`scripts/integration_oracle.py`](scripts/integration_oracle.py), with its
 result in
 [`results/p32r-integration-design-20260806.txt`](results/p32r-integration-design-20260806.txt).
@@ -54,3 +54,10 @@ The `0188` effect-prefix source audit is recorded in
 [`results/p32x-effect-prefix-source-audit-20260806.txt`](results/p32x-effect-prefix-source-audit-20260806.txt).
 It is not a compiler, Buildbox, runtime, or support claim; P32R completeness
 and ledger handoff remain open.
+
+The model now exercises the owner-ledger boundary explicitly: it preserves the
+pre-fault membership/provider snapshot, moves a held provider to
+`FAULT_UNKNOWN`, preserves a `NONE` provider state, rejects premature
+provider/HPS/membership/retry side effects, and rejects mutations to the full
+trace identity. The kernel-side owner handoff still requires an implementation
+and a clean Buildbox compile.

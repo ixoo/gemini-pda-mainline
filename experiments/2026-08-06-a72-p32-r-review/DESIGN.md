@@ -106,7 +106,14 @@ The independent model in `scripts/integration_oracle.py` must cover:
 - every architecture-effect bit and forbidden CPU_OFF/affinity bits;
 - exact identity and original-error mutations;
 - ledger handoff only after reverse completion;
-- one-shot generation retirement and rejection of duplicate completion.
+- one-shot generation retirement and rejection of duplicate completion;
+- exact trace identity, including operation, target CPU, MPIDR, generation, and
+  cookie;
+- copying the pre-fault membership/provider snapshot into the terminal record,
+  changing a held provider to `FAULT_UNKNOWN`, and preserving `NONE` when no
+  provider reference existed;
+- rejection after any HPS-success, provider-release, retry, or membership-commit
+  side effect, with no terminal snapshot or generation retirement.
 
 Until a source patch implements this contract and passes a clean Buildbox
 build plus the model, the P32R review remains open and all device gates stay
