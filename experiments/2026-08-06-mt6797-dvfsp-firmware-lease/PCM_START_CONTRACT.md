@@ -66,6 +66,14 @@ gate remains open and the provider remains fail-closed. The conceptual
 `publish` step remains in [`DESIGN.md`](DESIGN.md) because it belongs to the
 future PCM adapter after a real owner is present.
 
+The bounded admission ordering for that future adapter is now frozen in
+[`PCM_ADAPTER_DESIGN.md`](PCM_ADAPTER_DESIGN.md) and exercised by the
+source-only [`pcm_adapter_oracle.py`](scripts/pcm_adapter_oracle.py). Its
+model rejects premature lease registration, incomplete state or resource
+identity, stale generations, stale owner handles, and use after
+suspend/resume invalidation. This does not implement a PCM owner or authorize
+firmware residency.
+
 ## Required resources and order
 
 The owner must prove all of the following in one attributable start path:

@@ -12,6 +12,8 @@ DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
 START_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-start-contract-20260806.txt"
 OWNER_RESULT = Path(__file__).resolve().parents[1] / "results/public-hybrid-owner-source-20260806.txt"
 STATE_RESULT = Path(__file__).resolve().parents[1] / "results/public-owner-startup-state-20260806.txt"
+ADAPTER_DESIGN = Path(__file__).resolve().parents[1] / "PCM_ADAPTER_DESIGN.md"
+ADAPTER_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-adapter-model-20260806.txt"
 
 
 def require(text: str, needle: str, label: str) -> None:
@@ -26,6 +28,8 @@ def main() -> None:
     start_result = START_RESULT.read_text()
     owner_result = OWNER_RESULT.read_text()
     state_result = STATE_RESULT.read_text()
+    adapter_design = ADAPTER_DESIGN.read_text()
+    adapter_result = ADAPTER_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     names = [Path(line).name for line in SERIES.read_text().splitlines()
@@ -111,6 +115,32 @@ def main() -> None:
         require(state_result, needle, label)
 
     for needle, label in (
+        ("## Preconditions", "adapter-preconditions"),
+        ("## Admission lifecycle", "adapter-lifecycle"),
+        ("UNAVAILABLE", "adapter-unavailable"),
+        ("RESET_INITIALIZED", "adapter-reset"),
+        ("IMAGE_ACKED", "adapter-image-ack"),
+        ("CONTROL_INITIALIZED", "adapter-control"),
+        ("LEASE_REGISTERED", "adapter-lease"),
+        ("Immediately before each irreversible-looking checkpoint", "adapter-revalidation"),
+        ("sticky `FAULTED`", "adapter-sticky-fault"),
+        ("does not select or copy a firmware image", "adapter-no-image"),
+        ("`scripts/pcm_adapter_oracle.py`", "adapter-model"),
+    ):
+        require(adapter_design, needle, label)
+
+    for needle, label in (
+        ("claim=SOURCE_ONLY_BOUNDED_PCM_ADAPTER_ADMISSION", "adapter-claim"),
+        ("happy_path=SNAPSHOTTED>RESOURCES_HELD>IMAGE_READY>RESET_INITIALIZED>IMAGE_ACKED>CONTROL_INITIALIZED>RUNNING>LEASE_REGISTERED", "adapter-happy-path"),
+        ("negative_cases=7", "adapter-negative-cases"),
+        ("resource_identity=exact", "adapter-resources"),
+        ("generation_revalidation=reject_stale_and_invalidate", "adapter-generation"),
+        ("owner_handle=exact_and_generation_bound", "adapter-handle"),
+        ("status=PASS_PCM_ADAPTER_MODEL", "adapter-status"),
+    ):
+        require(adapter_result, needle, label)
+
+    for needle, label in (
         ("claim=PUBLIC_GEMIAN_HYBRID_DVFSP_OWNER_REVALIDATED", "owner-claim"),
         ("source_commit=8cfe6596a503612e3332d9c26e292a19525a7f07", "owner-source"),
         ("source_license_basis=repository_COPYING_and_LICENSE_GPLv2;hybrid_header_GPLv2", "owner-license"),
@@ -149,6 +179,7 @@ def main() -> None:
     print("hardware_writes=0")
     print("device_action=none")
     print("state_owner_contract=0192-dormant;registered_owner=0;no_provider;no_mmio;no_transition")
+    print("pcm_adapter_contract=source-only;bounded-admission-model;callback-registration-gated")
     print("pcm_start_contract=defined;residency_and_start_required_before_callback_registration")
     print("startup_state_owner=unproven;mainline=absent")
     print("historical_owner_source=identified;public_gemian_hybrid")

@@ -1811,6 +1811,12 @@ The next ordered work remains source-only:
    series on Buildbox at pushed commit `e537c2c`; its validated package is
    compile-only evidence and leaves the owner unregistered, with no PCM start,
    provider write, or device action. See the [state-owner Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/state-owner-contract-buildbox-20260806.txt).
+   The following adapter admission boundary is now modeled source-only: exact
+   image identity/residency, complete startup-state generation, exact
+   CSPM/CSRAM and clock/semaphore ownership, ordered start acknowledgements,
+   and generation-bound lease registration. The model rejects premature or
+   stale use and invalidates across suspend/resume; it is not a firmware owner
+   or boot evidence. See the [PCM adapter model](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/pcm-adapter-model-20260806.txt).
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and

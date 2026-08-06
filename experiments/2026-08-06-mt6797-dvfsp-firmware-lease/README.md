@@ -89,6 +89,7 @@ be copied directly into a mainline failure/PM path.
 - [Buildbox validation after owner-source review](results/public-owner-buildbox-validation-20260806.txt)
 - [Current-head full-profile Buildbox resume](results/current-head-full-buildbox-20260806.txt)
 - [Dormant state-owner contract Buildbox validation](results/state-owner-contract-buildbox-20260806.txt)
+- [Bounded PCM adapter admission model](results/pcm-adapter-model-20260806.txt)
 - [Current-head bfd04ae full-profile Buildbox resume](results/current-head-bfd04ae-full-buildbox-20260806.txt)
 - [Receiver register-window identity reconciliation](results/receiver-register-identity-20260806.txt)
 - [Retained TEE secure-owner disassembly](../2026-08-06-da921x-page-owner-audit/results/tee-owner-disassembly-20260806.txt)
@@ -101,6 +102,7 @@ Run from the repository root:
 
 ```sh
 PYTHONDONTWRITEBYTECODE=1 python3 experiments/2026-08-06-mt6797-dvfsp-firmware-lease/scripts/oracle.py
+PYTHONDONTWRITEBYTECODE=1 python3 experiments/2026-08-06-mt6797-dvfsp-firmware-lease/scripts/pcm_adapter_oracle.py
 ```
 
 ## Follow-up
@@ -162,3 +164,11 @@ namespace collision. All 192 patch files applied, the full profile compiled,
 locally. This remains compile-only evidence: the state owner is unregistered,
 the PCM image/start path is absent, and no provider or device action occurred.
 See the [state-owner Buildbox result](results/state-owner-contract-buildbox-20260806.txt).
+
+The next adapter boundary is now explicit in
+[`PCM_ADAPTER_DESIGN.md`](PCM_ADAPTER_DESIGN.md). Its deterministic model
+requires exact image identity and residency, a complete startup-state
+generation, exact CSPM/CSRAM and clock/semaphore ownership, ordered reset and
+PCM-start acknowledgements, and generation-bound lease registration. It rejects
+premature callbacks and stale state or owner handles, and invalidates on
+suspend/resume. See the [adapter model result](results/pcm-adapter-model-20260806.txt).

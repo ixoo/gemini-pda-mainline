@@ -1,0 +1,28 @@
+# Bounded PCM adapter admission model
+
+Date: 2026-08-06 America/New_York
+
+claim=SOURCE_ONLY_BOUNDED_PCM_ADAPTER_ADMISSION
+adapter_contract=bounded_pcm_admission
+happy_path=SNAPSHOTTED>RESOURCES_HELD>IMAGE_READY>RESET_INITIALIZED>IMAGE_ACKED>CONTROL_INITIALIZED>RUNNING>LEASE_REGISTERED
+negative_cases=7
+premature_lease=reject
+incomplete_state=reject
+resource_identity=exact
+image_identity=sha256_target_revision_loader_domain_residency
+generation_revalidation=reject_stale_and_invalidate
+owner_handle=exact_and_generation_bound
+suspend_resume=invalidates_before_callback
+start_ack_timeout=sticky_fault
+pcm_kick_timeout=sticky_fault
+hardware_writes=0
+device_action=none
+status=PASS_PCM_ADAPTER_MODEL
+
+The deterministic model checks the required admission ordering and rejects
+premature callback registration, incomplete startup state, wrong CSPM/CSRAM
+resource identity, unidentified image residency, stale state generation,
+stale owner handles, and lease use after suspend/resume invalidation. It does
+not select or copy a firmware image, map hardware, register a callback in the
+kernel, or authorize a boot. It is design evidence only; a real protected
+startup-state and PCM owner remains required before implementation can advance.
