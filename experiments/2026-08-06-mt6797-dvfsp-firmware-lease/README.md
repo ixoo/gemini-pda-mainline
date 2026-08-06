@@ -311,3 +311,5 @@ contract leaves both backends unregistered, so the packaged Image, Image.gz,
 System.map, and Gemini DTB remain byte-identical to the earlier dormant
 profile. This is not hardware support or CPU8/CPU9 evidence. See the
 [calibrated-state provenance Buildbox result](results/calibrated-state-provenance-buildbox-20260806.txt).
+The current-head docs-only resume at `6883aff` rebuilt the same named profile
+and fetched its validated package; see the [resume receipt](results/calibrated-state-provenance-buildbox-resume-20260806.txt).
