@@ -1,0 +1,50 @@
+date_utc=2026-08-06T22:05:18Z
+claim=COMPILE_ONLY_MT6797_EEM_READBACK_BOUNDARY
+repository_commit=20ad8b66b9ad0408abc29889a1da5f04bf24c0f3
+origin=https://github.com/ixoo/gemini-pda-mainline.git
+build_backend=buildbox
+buildbox_job=20ad8b66b9ad0408abc29889a1da5f04bf24c0f3-dvfsp-protected-readback-m0
+buildbox_status=validated
+artifact=linux-7.1.3-gemini-dvfsp-protected-readback-f1a0fdb8-b6696a3c
+kernel_release=7.1.3-gemini-handoff
+build_profile=dvfsp-protected-readback
+patch_count=193
+patch_series=patches/series
+config_inputs_sha256=b6696a3cd52df7cf50d4763ba9be84fd4bd2539100222b0adfdd5b9ac5684234
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=f1a0fdb812dc5788019ea3bee6b27572615fd949f62aba82f306655dc8e9917e
+config_sha256=9561561944c875d1fadb5cee822fb9fa572a2e9cf82e4b8a45921e9a43828ef4
+config_fragment_count=4
+modules_built=false
+build_architecture=x86_64
+target_architecture=arm64
+toolchain_mode=cross
+compiler=aarch64-linux-gnu-gcc_Debian_12.2.0-14
+linker=GNU_ld_Debian_binutils_2.40
+dtb_count=119
+sha256sums=passed
+package_fetch=success;validated_package_only
+local_package=artifacts/buildbox/20ad8b66b9ad0408abc29889a1da5f04bf24c0f3/linux-7.1.3-gemini-dvfsp-protected-readback-f1a0fdb8-b6696a3c
+Image_sha256=207a7a07109ff7d2ea6d8faa6b3f61ea8984467a8b42947d7df61b71ea2b72fa
+Image_gz_sha256=16a9dee4d44c84529df26b615dbfd278cf424c0a40965ed0c6b2d5d899837ff9
+System_map_sha256=eaed21e13ffd94b08f7d7d5efe839082493d4bc2c5522e719f303a89c31ebc76
+gemini_dtb_sha256=105a83069d42221539050ca968ea5156bdeed948ae88881429678423c43140bd
+kernel_config_sha256=9561561944c875d1fadb5cee822fb9fa572a2e9cf82e4b8a45921e9a43828ef4
+build_provenance_sha256=cc658468aff053cbc5f7f96d5ea187a91bb3a725da0b0e49e649d8e3611d5197
+sha256sums_manifest_sha256=5d9c276b2a96a2ee49b2483eccf9222aff2b01e6c0e9d999cba638240a8ed50f
+eem_readback_contract=0204;thermal_owner_lock;selector_write_restore;BIG_L_2L_CCI;offsets_0x218_0x21c_0x248_0x24c;status_only;default_off
+owner=unregistered
+provider=none
+secure_write=none
+hardware_write=none
+device_action=none
+hardware_support_claim=NONE
+boot_candidate=false
+
+This Buildbox run validates patch 0204 as a compile-only, readback-only EEM/PTP
+boundary. The existing MT6797 thermal resource owns the shared window; the API
+serializes PTPCORESEL bank selection with that lock, reads raw status plus the
+documented frequency/VOP anchors for BIG/L/2L/CCI, and restores the exact
+selector word. It does not run EEM phases, derive VPROC/VSRAM/PPM tables,
+change rails or clocks, call secure firmware, register a provider, boot a
+device, or admit CPU8/CPU9. The thermal DT node remains disabled.

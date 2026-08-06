@@ -18,6 +18,7 @@ PROVENANCE_PATCH = ROOT / "patches/v7.1.3/0200-soc-mediatek-require-calibrated-s
 CALIBRATION_LIFECYCLE_PATCH = ROOT / "patches/v7.1.3/0201-soc-mediatek-bind-calibration-lifecycle-to-state-owner.patch"
 TRANSITION_LOCK_PATCH = ROOT / "patches/v7.1.3/0202-soc-mediatek-bind-protected-owner-to-transition-lock.patch"
 CALIBRATED_TABLE_PATCH = ROOT / "patches/v7.1.3/0203-soc-mediatek-require-calibrated-table-state.patch"
+EEM_READBACK_PATCH = ROOT / "patches/v7.1.3/0204-thermal-mediatek-add-locked-MT6797-EEM-readback.patch"
 SERIES = ROOT / "patches/series"
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
 START_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-start-contract-20260806.txt"
@@ -38,6 +39,7 @@ PROVENANCE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/calibra
 CALIBRATION_LIFECYCLE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/calibration-lifecycle-buildbox-20260806.txt"
 TRANSITION_LOCK_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/transition-lock-buildbox-20260806.txt"
 CALIBRATED_TABLE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/calibrated-table-state-buildbox-20260806.txt"
+EEM_READBACK_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/eem-readback-buildbox-20260806.txt"
 
 
 def require(text: str, needle: str, label: str) -> None:
@@ -59,6 +61,7 @@ def main() -> None:
     calibration_lifecycle_patch = CALIBRATION_LIFECYCLE_PATCH.read_text()
     transition_lock_patch = TRANSITION_LOCK_PATCH.read_text()
     calibrated_table_patch = CALIBRATED_TABLE_PATCH.read_text()
+    eem_readback_patch = EEM_READBACK_PATCH.read_text()
     design = DESIGN.read_text()
     start_result = START_RESULT.read_text()
     owner_result = OWNER_RESULT.read_text()
@@ -78,6 +81,7 @@ def main() -> None:
     calibration_lifecycle_build_result = CALIBRATION_LIFECYCLE_BUILD_RESULT.read_text()
     transition_lock_build_result = TRANSITION_LOCK_BUILD_RESULT.read_text()
     calibrated_table_build_result = CALIBRATED_TABLE_BUILD_RESULT.read_text()
+    eem_readback_build_result = EEM_READBACK_BUILD_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     names = [Path(line).name for line in SERIES.read_text().splitlines()
@@ -281,6 +285,45 @@ def main() -> None:
         ("default owner remains", "calibrated-state-default-off"),
     ):
         require(calibrated_table_patch, needle, label)
+    for needle, label in (
+        ("MT6797_EEM_READBACK_ABI", "eem-readback-abi"),
+        ("MT6797_EEM_READBACK_ANCHORS\t8", "eem-readback-anchor-count"),
+        ("MT6797_EEM_READBACK_BANK_COUNT\t4", "eem-readback-bank-count"),
+        ("MT6797_EEM_READBACK_BANK_BIG\t0", "eem-readback-big-bank"),
+        ("MT6797_EEM_READBACK_BANK_L\t\t3", "eem-readback-l-bank"),
+        ("MT6797_EEM_READBACK_BANK_2L\t4", "eem-readback-2l-bank"),
+        ("MT6797_EEM_READBACK_BANK_CCI\t5", "eem-readback-cci-bank"),
+        ("MT6797_EEM_FREQPCT30\t\t0x218", "eem-readback-freqpct30"),
+        ("MT6797_EEM_FREQPCT74\t\t0x21c", "eem-readback-freqpct74"),
+        ("MT6797_EEM_VOP30\t\t0x248", "eem-readback-vop30"),
+        ("MT6797_EEM_VOP74\t\t0x24c", "eem-readback-vop74"),
+        ("MT6797_EEM_EEMEN\t\t0x238", "eem-readback-eemen"),
+        ("MT6797_EEMCORESEL_MASK\t\tGENMASK(2, 0)", "eem-readback-selector-mask"),
+        ("mt6797_thermal_eem_readback", "eem-readback-api"),
+        ("mutex_lock(&mt->lock)", "eem-readback-lock"),
+        ("mutex_unlock(&mt->lock)", "eem-readback-unlock"),
+        ("readback->selector_before", "eem-readback-selector-before"),
+        ("readback->selector_after", "eem-readback-selector-after"),
+        ("restored_selector != selector", "eem-readback-selector-restore-check"),
+        ("platform_set_drvdata(pdev, mt)", "eem-readback-thermal-owner"),
+        ("This is a readback boundary, not a calibrated DVFSP provider", "eem-readback-default-off"),
+    ):
+        require(eem_readback_patch, needle, label)
+    eem_added = "\n".join(
+        line[1:] for line in eem_readback_patch.splitlines()
+        if line.startswith("+") and not line.startswith("+++")
+    )
+    if eem_added.count("writel(") != 2:
+        raise AssertionError("EEM readback must have exactly selector write and restore")
+    for selector_write in (
+        "writel(value, mt->thermal_base + PTPCORESEL);",
+        "writel(selector, mt->thermal_base + PTPCORESEL);",
+    ):
+        require(eem_added, selector_write, "eem-readback-selector-write")
+    for forbidden in ("regulator_", "clk_", "i2c_transfer", "psci_ops", "cpu_up(",
+                      "devm_ioremap", "INIT01", "INIT02", "MON"):
+        if forbidden in eem_added:
+            raise AssertionError(f"unexpected EEM readback operation: {forbidden}")
     for needle, label in (
         ("## Startup-state adapter seam", "design-state-seam"),
         ("`snapshot`", "design-snapshot"),
@@ -627,6 +670,26 @@ def main() -> None:
     ):
         require(calibrated_table_build_result, needle, label)
     for needle, label in (
+        ("claim=COMPILE_ONLY_MT6797_EEM_READBACK_BOUNDARY", "eem-readback-build-claim"),
+        ("repository_commit=20ad8b66b9ad0408abc29889a1da5f04bf24c0f3", "eem-readback-build-commit"),
+        ("origin=https://github.com/ixoo/gemini-pda-mainline.git", "eem-readback-build-origin"),
+        ("build_backend=buildbox", "eem-readback-build-backend"),
+        ("buildbox_status=validated", "eem-readback-build-status"),
+        ("patch_count=193", "eem-readback-build-patch-count"),
+        ("artifact=linux-7.1.3-gemini-dvfsp-protected-readback-f1a0fdb8-b6696a3c", "eem-readback-build-artifact"),
+        ("dtb_count=119", "eem-readback-build-dtb-count"),
+        ("sha256sums=passed", "eem-readback-build-checksums"),
+        ("package_fetch=success;validated_package_only", "eem-readback-build-fetch"),
+        ("eem_readback_contract=0204;thermal_owner_lock;selector_write_restore;BIG_L_2L_CCI;offsets_0x218_0x21c_0x248_0x24c;status_only;default_off", "eem-readback-build-contract"),
+        ("owner=unregistered", "eem-readback-build-owner-unregistered"),
+        ("provider=none", "eem-readback-build-no-provider"),
+        ("secure_write=none", "eem-readback-build-no-secure-write"),
+        ("hardware_write=none", "eem-readback-build-no-write"),
+        ("device_action=none", "eem-readback-build-no-device"),
+        ("boot_candidate=false", "eem-readback-build-not-candidate"),
+    ):
+        require(eem_readback_build_result, needle, label)
+    for needle, label in (
         ("repeat_run_repository_commit=6c3cb4fad5a4895f6a69d7913089553b6751e34c", "readback-repeat-commit"),
         ("repeat_run_buildbox_job=6c3cb4fad5a4895f6a69d7913089553b6751e34c-dvfsp-protected-readback-m0", "readback-repeat-job"),
         ("repeat_run_status=validated", "readback-repeat-status"),
@@ -668,6 +731,8 @@ def main() -> None:
         raise AssertionError("transition lock is not after calibration lifecycle")
     if names.index("0202-soc-mediatek-bind-protected-owner-to-transition-lock.patch") >= names.index("0203-soc-mediatek-require-calibrated-table-state.patch"):
         raise AssertionError("calibrated table state is not after the transition lock")
+    if names.index("0203-soc-mediatek-require-calibrated-table-state.patch") >= names.index("0204-thermal-mediatek-add-locked-MT6797-EEM-readback.patch"):
+        raise AssertionError("EEM readback is not after calibrated table-state admission")
 
     for forbidden in ("readl(", "writel(", "i2c_transfer", "regulator_enable(",
                       "regulator_disable(", "psci_ops.cpu_on", "cpu_up("):
@@ -717,6 +782,7 @@ def main() -> None:
     print("calibration_lifecycle=0201;provenance_snapshot_validate_hold_release;backend_echo_required;registered_owner=0;no_provider;no_mmio;boot_candidate=false")
     print("transition_lock=0202;external_lock_unlock;composite_snapshot_validate_hold_release;registered_owner=0;no_provider;no_mmio;boot_candidate=false")
     print("calibrated_table_state=0203;MON_phase;BIG_L_2L_CCI_banks;frequency_voltage_vsram_ppm_rows;thermal_clock_rail_generations;registered_owner=0;no_provider;no_mmio;boot_candidate=false")
+    print("eem_readback=0204;thermal_owner_lock;selector_write_restore;BIG_L_2L_CCI;offsets_0x218_0x21c_0x248_0x24c;raw_status_frequency_vop_anchors;registered_owner=0;no_provider;no_secure_write;hardware_write=none;device_action=none;boot_candidate=false")
     print("pcm_adapter_contract=source-only;bounded-admission-model;callback-registration-gated")
     print("clock_owner_inventory=generic_ccf_only;protected_owner_absent;A72_observer_read_only")
     print("pcm_start_contract=defined;residency_and_start_required_before_callback_registration")

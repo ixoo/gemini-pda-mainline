@@ -103,6 +103,7 @@ be copied directly into a mainline failure/PM path.
 - [Calibration lifecycle Buildbox validation](results/calibration-lifecycle-buildbox-20260806.txt)
 - [Transition-lock Buildbox validation](results/transition-lock-buildbox-20260806.txt)
 - [Calibrated table-state Buildbox validation](results/calibrated-table-state-buildbox-20260806.txt)
+- [Locked MT6797 EEM readback Buildbox validation](results/eem-readback-buildbox-20260806.txt)
 - [Receiver register-window identity reconciliation](results/receiver-register-identity-20260806.txt)
 - [Retained TEE secure-owner disassembly](../2026-08-06-da921x-page-owner-audit/results/tee-owner-disassembly-20260806.txt)
 - [Retained SCP local-alias inventory](../2026-08-06-da921x-page-owner-audit/results/scp-alias-inventory-20260806.txt)
@@ -347,6 +348,17 @@ compile-only admission evidence: the owner/provider are unregistered and
 default-off, with no EEM/thermal or PMIC/clock access, firmware action, device
 boot, or CPU8/CPU9 admission. See the
 [calibrated table-state result](results/calibrated-table-state-buildbox-20260806.txt).
+
+Patch `0204` now adds the first source-backed EEM/PTP readback seam through the
+existing MT6797 thermal resource owner. It serializes PTPCORESEL bank selection
+under the thermal lock, reads raw status and the documented frequency/VOP
+anchors for BIG/L/2L/CCI, and restores the exact selector word. Revision
+`20ad8b6` applied all 193 series entries, compiled the thermal object and full
+arm64 kernel on Buildbox, produced 119 DTBs, passed package checksums, and
+fetched the validated package. This is still compile-only: the thermal node is
+disabled, no provider is registered, no EEM phase or calibrated VPROC/VSRAM/PPM
+table is synthesized, and no rail, clock, secure-firmware, device, or CPU8/CPU9
+action occurred. See the [EEM readback Buildbox result](results/eem-readback-buildbox-20260806.txt).
 
 The next gate is the real MT6797 EEM/PTP/thermal and PMIC/clock provider that
 can populate this payload from efuse and live hardware, arbitrate the shared

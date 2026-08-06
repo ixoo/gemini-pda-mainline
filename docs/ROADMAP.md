@@ -1960,10 +1960,20 @@ The next ordered work remains source-only:
    unregistered and default-off, with no EEM/thermal or PMIC/clock access,
    firmware action, device boot, or CPU8/CPU9 admission. See the
    [calibrated table-state Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/calibrated-table-state-buildbox-20260806.txt).
+   Patch `0204` now adds a source-backed, readback-only EEM/PTP boundary through
+   the existing MT6797 thermal resource owner. It serializes PTPCORESEL bank
+   selection under the thermal lock, reads raw status plus the documented
+   frequency/VOP anchors for BIG/L/2L/CCI, and restores the exact selector
+   word. Revision `20ad8b6` applies all 193 canonical entries on Buildbox,
+   compiles the thermal object and full arm64 kernel, produces 119 DTBs, passes
+   package checksums, and fetches the validated package. The thermal node and
+   provider remain default-off; no EEM phase, calibrated VPROC/VSRAM/PPM table,
+   rail/clock/secure-firmware action, device boot, or CPU8/CPU9 admission
+   occurred. See the [EEM readback Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/eem-readback-buildbox-20260806.txt).
    The next ordered gate remains an independently reviewed implementation of
-   the real calibrated EEM/PTP/PPM state owner with clock/rail arbitration,
-   including the shared EEM/thermal resource and PMIC/clock proof, followed by
-   transition-lock runtime evidence. Until that provider exists, the protected
+   the real calibrated EEM/PTP/PPM state owner with clock/rail arbitration and
+   runtime proof, using this shared-resource readback seam without treating raw
+   anchors as a calibrated table. Until that provider exists, the protected
    backends and CPU8/CPU9 admission remain closed.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
