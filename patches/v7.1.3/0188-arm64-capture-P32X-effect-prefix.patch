@@ -22,7 +22,9 @@ submission-ready.
 diff --git a/include/linux/cpu.h b/include/linux/cpu.h
 --- a/include/linux/cpu.h
 +++ b/include/linux/cpu.h
-@@ -123,6 +123,35 @@ struct cpu_up_rollback_event {
+@@ -127,8 +127,37 @@ struct cpu_up_rollback_event {
+ struct cpu_up_rollback_event {
+ \tu32 direction;
  	u32 state;
  	u32 instance;
  	s32 result;
@@ -58,7 +60,11 @@ diff --git a/include/linux/cpu.h b/include/linux/cpu.h
 +	s32 result;
 +};
 +
-@@ -137,9 +172,16 @@ struct cpu_up_rollback_trace {
+@@ -135,13 +164,20 @@ struct cpu_up_rollback_trace {
+ struct cpu_up_rollback_trace {
+ \tu32 event_count;
+ \tu32 overflow;
+ \tu32 nested_valid;
  	s32 nested_result;
  	u32 outer_reset;
  	u32 reverse_complete;
@@ -78,7 +84,9 @@ diff --git a/include/linux/cpu.h b/include/linux/cpu.h
 diff --git a/kernel/cpu.c b/kernel/cpu.c
 --- a/kernel/cpu.c
 +++ b/kernel/cpu.c
-@@ -154,5 +157,54 @@ static bool cpuhp_step_empty(bool bringup, struct cpuhp_step *step)
+@@ -155,7 +155,56 @@ static bool cpuhp_step_empty(bool bringup, struct cpuhp_step *step)
+ static bool cpuhp_step_empty(bool bringup, struct cpuhp_step *step)
+ {
  	return bringup ? !step->startup.single : !step->teardown.single;
  }
  
@@ -190,7 +198,9 @@ diff --git a/kernel/cpu.c b/kernel/cpu.c
 diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
 --- a/arch/arm64/kernel/smp.c
 +++ b/arch/arm64/kernel/smp.c
-@@ -299,9 +299,24 @@ int __cpu_disable(void)
+@@ -387,11 +387,26 @@ int __cpu_disable(void)
+ int __cpu_disable(void)
+ {
  	unsigned int cpu = smp_processor_id();
  	int ret;
  
@@ -234,7 +244,15 @@ diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
  
  	return 0;
  }
-@@ -345,7 +373,11 @@ void arch_cpuhp_cleanup_dead_cpu(unsigned int cpu)
+@@ -433,15 +458,19 @@ void arch_cpuhp_cleanup_dead_cpu(unsigned int cpu)
+ void arch_cpuhp_cleanup_dead_cpu(unsigned int cpu)
+ {
+ \tint err;
+ 
+ \tpr_debug("CPU%u: shutdown\\n", cpu);
+ 
+ /*
+  * Now that the dying CPU is beyond the point of no return w.r.t.
  	 * in-kernel synchronisation, try to get the firmware to help us to
  	 * verify that it has really left the kernel before we consider clobbering
  	 * anything it might still be using.
