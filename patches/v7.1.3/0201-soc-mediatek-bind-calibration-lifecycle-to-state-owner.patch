@@ -254,7 +254,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/
 +	if (owner->calibration_ops && owner->calibration_ops->invalidate)
 +		owner->calibration_ops->invalidate(owner->calibration_context, reason);
  }
-@@ -2362,9 +2441,11 @@ mt6797_dvfsp_state_hold_check(
+@@ -2362,8 +2441,11 @@ mt6797_dvfsp_state_hold_check(
  	if (!hold->generation || hold->generation != snapshot->generation ||
  	    hold->cluster_mask != snapshot->cluster_mask ||
  	    hold->reserved || !hold->owner_handle ||
