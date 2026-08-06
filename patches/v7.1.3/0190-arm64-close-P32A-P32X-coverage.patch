@@ -245,7 +245,7 @@ diff --git a/kernel/cpu.c b/kernel/cpu.c
 +					    CPU_UP_ROLLBACK_EFFECT_BLOCKED, 0);
  #endif
  	ret = cpuhp_invoke_callback_range(true, cpu, st, target);
-@@ -1140,15 +1149,32 @@ static int cpuhp_up_callbacks(unsigned int cpu, struct cpuhp_cpu_state *st,
+@@ -1140,14 +1149,32 @@ static int cpuhp_up_callbacks(unsigned int cpu, struct cpuhp_cpu_state *st,
  		st->rollback_trace.reverse_complete = !rollback_ret &&
  			can_rollback_cpu(st);
  		st->rollback_trace.callback_complete =
