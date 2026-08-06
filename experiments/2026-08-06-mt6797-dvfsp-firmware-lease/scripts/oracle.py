@@ -33,6 +33,7 @@ DVFS_STATE_RESULT = Path(__file__).resolve().parents[1] / "results/public-dvfs-s
 READBACK_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/protected-readback-buildbox-20260806.txt"
 TRANSITION_OWNER_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/protected-transition-owner-buildbox-20260806.txt"
 PROVENANCE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/calibrated-state-provenance-buildbox-20260806.txt"
+CALIBRATION_LIFECYCLE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/calibration-lifecycle-buildbox-20260806.txt"
 
 
 def require(text: str, needle: str, label: str) -> None:
@@ -68,6 +69,7 @@ def main() -> None:
     readback_build_result = READBACK_BUILD_RESULT.read_text()
     transition_owner_build_result = TRANSITION_OWNER_BUILD_RESULT.read_text()
     provenance_build_result = PROVENANCE_BUILD_RESULT.read_text()
+    calibration_lifecycle_build_result = CALIBRATION_LIFECYCLE_BUILD_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     names = [Path(line).name for line in SERIES.read_text().splitlines()
@@ -532,6 +534,27 @@ def main() -> None:
         ("boot_candidate=false", "provenance-build-not-candidate"),
     ):
         require(provenance_build_result, needle, label)
+    for needle, label in (
+        ("claim=COMPILE_ONLY_CALIBRATION_LIFECYCLE_ADMISSION_BOUNDARY", "calibration-lifecycle-build-claim"),
+        ("repository_commit=f984738e2c73222c4d96e69a844591e825b7a3f6", "calibration-lifecycle-build-commit"),
+        ("origin=https://github.com/ixoo/gemini-pda-mainline.git", "calibration-lifecycle-build-origin"),
+        ("build_backend=buildbox", "calibration-lifecycle-build-backend"),
+        ("buildbox_status=validated", "calibration-lifecycle-build-status"),
+        ("patch_count=190", "calibration-lifecycle-build-patch-count"),
+        ("artifact=linux-7.1.3-gemini-dvfsp-protected-readback-3a9ff77d-11afba8d", "calibration-lifecycle-build-artifact"),
+        ("dtb_count=119", "calibration-lifecycle-build-dtb-count"),
+        ("sha256sums=passed", "calibration-lifecycle-build-checksums"),
+        ("package_fetch=success;validated_package_only", "calibration-lifecycle-build-fetch"),
+        ("calibration_contract=0200;required_provenance;mutable_table_epoch;calibration_handle;backend_match;default_off", "calibration-lifecycle-build-contract"),
+        ("calibration_lifecycle_contract=0201;snapshot_validate_hold_release_invalidate;exact_provenance_generation_transition_owner_echo", "calibration-lifecycle-build-lifecycle"),
+        ("owner=unregistered", "calibration-lifecycle-build-owner-unregistered"),
+        ("provider=none", "calibration-lifecycle-build-no-provider"),
+        ("secure_write=none", "calibration-lifecycle-build-no-secure-write"),
+        ("hardware_write=none", "calibration-lifecycle-build-no-write"),
+        ("device_action=none", "calibration-lifecycle-build-no-device"),
+        ("boot_candidate=false", "calibration-lifecycle-build-not-candidate"),
+    ):
+        require(calibration_lifecycle_build_result, needle, label)
     for needle, label in (
         ("repeat_run_repository_commit=6c3cb4fad5a4895f6a69d7913089553b6751e34c", "readback-repeat-commit"),
         ("repeat_run_buildbox_job=6c3cb4fad5a4895f6a69d7913089553b6751e34c-dvfsp-protected-readback-m0", "readback-repeat-job"),

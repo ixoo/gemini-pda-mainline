@@ -100,6 +100,7 @@ be copied directly into a mainline failure/PM path.
 - [Public DVFS startup-state owner boundary](results/public-dvfs-state-owner-20260806.txt)
 - [Mainline clock/state-owner inventory](results/mainline-clock-owner-inventory-20260806.txt)
 - [Current-head bfd04ae full-profile Buildbox resume](results/current-head-bfd04ae-full-buildbox-20260806.txt)
+- [Calibration lifecycle Buildbox validation](results/calibration-lifecycle-buildbox-20260806.txt)
 - [Receiver register-window identity reconciliation](results/receiver-register-identity-20260806.txt)
 - [Retained TEE secure-owner disassembly](../2026-08-06-da921x-page-owner-audit/results/tee-owner-disassembly-20260806.txt)
 - [Retained SCP local-alias inventory](../2026-08-06-da921x-page-owner-audit/results/scp-alias-inventory-20260806.txt)
@@ -313,3 +314,16 @@ profile. This is not hardware support or CPU8/CPU9 evidence. See the
 [calibrated-state provenance Buildbox result](results/calibrated-state-provenance-buildbox-20260806.txt).
 The current-head docs-only resume at `6883aff` rebuilt the same named profile
 and fetched its validated package; see the [resume receipt](results/calibrated-state-provenance-buildbox-resume-20260806.txt).
+
+Patch `0201` now binds that provenance to the protected owner's lifecycle. A
+future provider must snapshot and validate the complete calibration identity,
+hold it for the paired CPU-PLL/BigiDVFS transition, release it, and invalidate
+it with the same generation, transition owner, and provenance echoed by both
+backends. The exact pushed revision `f984738` applied all 190 series entries
+on Buildbox, produced 119 DTBs, passed package checksums, and fetched the
+validated package. The owner and provider remain unregistered and default-off;
+no calibration provider, firmware action, device boot, or CPU8/CPU9 admission
+occurred. See the [calibration lifecycle Buildbox result](results/calibration-lifecycle-buildbox-20260806.txt).
+The next gate is still an independently reviewed provider that supplies the
+real EEM/PTP/PPM-calibrated state and clock/rail arbitration; this patch only
+closes the admission boundary around that future implementation.

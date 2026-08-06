@@ -1,0 +1,53 @@
+date_utc=2026-08-06T20:44:13Z
+claim=COMPILE_ONLY_CALIBRATION_LIFECYCLE_ADMISSION_BOUNDARY
+repository_commit=f984738e2c73222c4d96e69a844591e825b7a3f6
+origin=https://github.com/ixoo/gemini-pda-mainline.git
+build_backend=buildbox
+buildbox_job=f984738e2c73222c4d96e69a844591e825b7a3f6-dvfsp-protected-readback-m0
+buildbox_status=validated
+artifact=linux-7.1.3-gemini-dvfsp-protected-readback-3a9ff77d-11afba8d
+kernel_release=7.1.3-gemini-handoff
+build_profile=dvfsp-protected-readback
+patch_count=190
+patch_series=patches/series
+config_inputs_sha256=11afba8d08d660d4aed9d907f7f149f6ebeddc2f7862a2e4a3c436dd07992486
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=3a9ff77d1184f19faf2bb057df86e76336bacf853ea15895341ca5901806d285
+config_sha256=fcbecf7519fad818096ab763d7cc3b78f49f7f4791a676acc925a637037ea0c7
+config_fragment_count=3
+modules_built=false
+build_architecture=x86_64
+target_architecture=arm64
+toolchain_mode=cross
+compiler=aarch64-linux-gnu-gcc_Debian_12.2.0-14
+linker=GNU_ld_Debian_binutils_2.40
+dtb_count=119
+sha256sums=passed
+hardware_write=none
+device_action=none
+package_fetch=success;validated_package_only
+local_package=artifacts/buildbox/f984738e2c73222c4d96e69a844591e825b7a3f6/linux-7.1.3-gemini-dvfsp-protected-readback-3a9ff77d-11afba8d
+Image_sha256=c05c3dc10eec004d69b8a6cd21e57bbb90ee2e517be82b431f392b27afe0e6c7
+Image_gz_sha256=0784b18079e02b40994324f28aaad23b04d0975a340e57db7f11567b69bde4d4
+System_map_sha256=00be8f62213173b6abe20f241b297af60c42a0474aa5ffe2429e07e69a271fb9
+gemini_dtb_sha256=105a83069d42221539050ca968ea5156bdeed948ae88881429678423c43140bd
+kernel_config_sha256=fcbecf7519fad818096ab763d7cc3b78f49f7f4791a676acc925a637037ea0c7
+build_provenance_sha256=90bc342f8ee9e181855872dbf286502865be508d4d7c7a7f064ec35bf08ebf89
+sha256sums_manifest_sha256=11dc765a9f740ec0da8e96f27290737a45138c661003047d77516ff3c05cbcb8
+calibration_contract=0200;required_provenance;mutable_table_epoch;calibration_handle;backend_match;default_off
+calibration_lifecycle_contract=0201;snapshot_validate_hold_release_invalidate;exact_provenance_generation_transition_owner_echo
+required_sources=efuse_variant;EEM_PTP;PPM_limit;live_VPROC;live_VSRAM;clock_owner;rail_owner
+transition_contract=0199;shared_transition_handle;generation_bound;both_protected_backends;all_holds
+owner=unregistered
+provider=none
+secure_write=none
+firmware_action=none
+hardware_support_claim=NONE
+boot_candidate=false
+
+This Buildbox run validates patch 0201 as a compile-only admission boundary.
+The protected owner now requires a future calibration provider to supply and
+validate the complete mutable-table provenance, hold it for the paired CPU-PLL
+and BigiDVFS transition, release it, and receive invalidation. No provider is
+registered by default, no calibration or firmware path is implemented, and no
+device or CPU8/CPU9 action occurred.

@@ -1928,6 +1928,21 @@ The next ordered work remains source-only:
    that owner boundary and bind both protected backends under one transition
    lock; keep the 0196 owner and provider gates closed meanwhile. See the
    [public DVFS state-owner result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/public-dvfs-state-owner-20260806.txt).
+   Patch `0201` now binds that required calibration provenance to the protected
+   owner lifecycle. A future provider must snapshot and validate the complete
+   mutable EEM/PTP/PPM state, hold it across the paired CPU-PLL/BigiDVFS
+   transition, release it, and receive suspend/fault invalidation; generation,
+   transition-owner, and provenance values must be echoed exactly by the
+   calibration owner and both protected backends. The exact pushed revision
+   `f984738` applies all 190 canonical entries on Buildbox, produces 119 DTBs,
+   passes package checksums, and has its validated package fetched. This is
+   compile-only admission evidence: the owner/provider remain unregistered and
+   default-off, with no calibration provider, firmware action, device boot, or
+   CPU8/CPU9 admission. See the
+   [calibration lifecycle Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/calibration-lifecycle-buildbox-20260806.txt).
+   The next ordered gate remains an independently reviewed implementation of
+   the real calibrated EEM/PTP/PPM state owner with clock/rail arbitration and
+   transition-lock runtime evidence.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and
