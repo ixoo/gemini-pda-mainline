@@ -1,6 +1,7 @@
 # Source-only P32 rollback guards. The transaction owner remains closed,
 # CPU8/CPU9 boot and disable vetoes remain active, and no CPU_ON/OFF, affinity,
 # provider, or device operation is enabled.
+CONFIG_ARM64_MT6797_A72_P30_PROTOCOL_MODEL=y
 CONFIG_ARM64_MT6797_A72_P24_TRANSACTION_OWNER_MODEL=y
 CONFIG_ARM64_MT6797_A72_P32_ROLLBACK=y
 # CONFIG_ARM64_MT6797_A72_P24_OWNER_KUNIT_TEST is not set
