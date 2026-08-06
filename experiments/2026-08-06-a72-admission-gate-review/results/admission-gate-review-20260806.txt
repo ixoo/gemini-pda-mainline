@@ -2,7 +2,7 @@ A72 admission-gate re-audit
 ===========================
 
 Date: 2026-08-06 America/New_York
-Repository head: e10b0be
+Repository head: 3b795e3
 Origin: https://github.com/ixoo/gemini-pda-mainline.git
 
 claim=PARTIAL_ADMISSION_GATE_REAUDIT

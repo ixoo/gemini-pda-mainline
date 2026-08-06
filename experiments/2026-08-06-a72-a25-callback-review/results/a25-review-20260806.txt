@@ -2,7 +2,7 @@ A25 callback and rollback review
 ================================
 
 Date: 2026-08-06 America/New_York
-Repository head: e10b0be (review inputs are the current 178-entry series)
+Repository head: 3b795e3 (review inputs are the current 178-entry series)
 Origin: https://github.com/ixoo/gemini-pda-mainline.git
 
 claim=PARTIAL_A25_SOURCE_ROLLBACK_REVIEW
