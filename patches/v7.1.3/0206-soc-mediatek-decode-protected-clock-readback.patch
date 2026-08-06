@@ -19,9 +19,9 @@ clock/state owner, or admit CPU8/CPU9. This patch is experiment-only and not
 submission-ready.
 ---
  drivers/soc/mediatek/Makefile                    |   1 +
- drivers/soc/mediatek/mt6797-dvfsp-clock-state.c  | 174 ++++++++++++++++++++
- include/linux/soc/mediatek/mt6797-dvfsp-clock-state.h |  46 ++++++
- 3 files changed, 221 insertions(+)
+ drivers/soc/mediatek/mt6797-dvfsp-clock-state.c  | 178 ++++++++++++++++++++
+ include/linux/soc/mediatek/mt6797-dvfsp-clock-state.h |  47 ++++++
+ 3 files changed, 226 insertions(+)
  create mode 100644 drivers/soc/mediatek/mt6797-dvfsp-clock-state.c
  create mode 100644 include/linux/soc/mediatek/mt6797-dvfsp-clock-state.h
 
@@ -35,7 +35,7 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-clock-state.h b/include/lin
 new file mode 100644
 --- /dev/null
 +++ b/include/linux/soc/mediatek/mt6797-dvfsp-clock-state.h
-@@ -0,0 +1,46 @@
+@@ -0,0 +1,47 @@
 +/* SPDX-License-Identifier: GPL-2.0-only */
 +#ifndef __LINUX_SOC_MEDIATEK_MT6797_DVFSP_CLOCK_STATE_H
 +#define __LINUX_SOC_MEDIATEK_MT6797_DVFSP_CLOCK_STATE_H
@@ -88,7 +88,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-clock-state.c b/drivers/soc/media
 new file mode 100644
 --- /dev/null
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-clock-state.c
-@@ -0,0 +1,174 @@
+@@ -0,0 +1,178 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/*
 + * Pure conversion of the disabled MT6797 protected clock readbacks.
