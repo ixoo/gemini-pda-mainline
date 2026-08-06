@@ -34,6 +34,8 @@ The initial default-off implementation and its Buildbox provenance are recorded 
 [`results/p32-implementation-build-20260806.txt`](results/p32-implementation-build-20260806.txt);
 the tightened identity/consumption build is recorded in
 [`results/p32-identity-build-20260806.txt`](results/p32-identity-build-20260806.txt).
+The warning-clean follow-up build is recorded in
+[`results/p32-warning-clean-build-20260806.txt`](results/p32-warning-clean-build-20260806.txt).
 The independent mutation oracle result is recorded in
 [`results/p32-mutation-validation-20260806.txt`](results/p32-mutation-validation-20260806.txt).
 The normative branch contract remains the
@@ -63,11 +65,12 @@ reachability.
 
 ## Conclusion
 
-`confirmed` as an exact source hook map. Patches `0182`–`0185` now supply a
+`confirmed` as an exact source hook map. Patches `0182`–`0186` now supply a
 default-off exact-generation side channel, target `.cpu_disable`/`.cpu_die`
 guards, a controller `.cpu_kill` path that avoids affinity, one-shot
-consumption, and exact operation-to-target identity binding. The 174-patch
-profile builds successfully through Buildbox and the independent 13-probe
+consumption, exact operation-to-target identity binding, and an explicit
+publication-range check. The 175-patch profile builds successfully through
+Buildbox and the independent 13-probe
 mutation oracle passes, with all existing CPU_ON/CPU_OFF and provider vetoes
 intact. A25 review and the A41/provider/A26/A14 admission gates remain open;
 CPU_ON, CPU_OFF, and device gates remain closed.

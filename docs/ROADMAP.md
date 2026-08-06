@@ -1842,11 +1842,11 @@ The next ordered work remains source-only:
    park from target `.cpu_die` without CPU_OFF, and suppress controller
    affinity in `.cpu_kill`. Patch `0182` now implements that exact-generation
    side channel and those fail-stop guards behind a default-off profile.
-   Patches `0183`–`0185` now close side-channel consumption, consumed-generation
-   retirement, and exact operation-to-target identity binding. The 174-patch
-   Buildbox package, fetched checksum validation, and independent 13-probe
-   mutation oracle pass, with no hardware write. The current PSCI boot and
-   disable vetoes remain intact.
+   Patches `0183`–`0186` now close side-channel consumption, consumed-generation
+   retirement, exact operation-to-target identity binding, and the warning-clean
+   publication check. The 175-patch Buildbox package, fetched checksum
+   validation, and independent 13-probe mutation oracle pass, with no hardware
+   write. The current PSCI boot and disable vetoes remain intact.
 4. Complete the A25 callback/rollback review and re-audit P32R against the
    mutation result, then finish P32A/D/F/X/R using either a reviewed core
    no-auto-rollback interface or the fail-stop `.cpu_disable` plus die/kill
