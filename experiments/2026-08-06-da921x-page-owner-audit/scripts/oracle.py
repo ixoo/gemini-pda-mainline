@@ -27,6 +27,7 @@ SECURE_IMAGE_SCAN = Path(__file__).resolve().parents[1] / "results/secure-owner-
 TEE_DISASSEMBLY = Path(__file__).resolve().parents[1] / "results/tee-owner-disassembly-20260806.txt"
 SCP_ALIAS_INVENTORY = Path(__file__).resolve().parents[1] / "results/scp-alias-inventory-20260806.txt"
 SCP_COMPUTED_ADDRESS_AUDIT = Path(__file__).resolve().parents[1] / "results/scp-computed-address-audit-20260806.txt"
+PCM_START_CONTRACT_RESULT = ROOT / "experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/pcm-start-contract-20260806.txt"
 LEDGER = Path(__file__).resolve().parents[1] / "results/source-audit.tsv"
 RECONCILIATION = Path(__file__).resolve().parents[1] / "results/source-reconciliation-20260806.txt"
 CROSSCHECK = ROOT / "experiments/2026-07-23-da9214-resource-only/results/da9214-datasheet-crosscheck-20260723.txt"
@@ -62,6 +63,7 @@ def main() -> None:
     tee_disassembly = TEE_DISASSEMBLY.read_text()
     scp_alias_inventory = SCP_ALIAS_INVENTORY.read_text()
     scp_computed_address_audit = SCP_COMPUTED_ADDRESS_AUDIT.read_text()
+    pcm_start_contract_result = PCM_START_CONTRACT_RESULT.read_text()
     ledger = LEDGER.read_text()
     reconciliation = RECONCILIATION.read_text()
     crosscheck = CROSSCHECK.read_text()
@@ -207,6 +209,17 @@ def main() -> None:
     ):
         require(pcm_load_path_audit, needle, label)
     for needle, label in (
+        ("required_image_identity=exact_image_hash;target_revision;license_or_access_boundary;loader_domain", "pcm-start-image-identity"),
+        ("required_resource_contract=CSPM_0x11015000_plus_0x1000;CSRAM_0x0012a000_plus_0x3000;I2C_APPM_clock;EMI_or_semaphore_owner", "pcm-start-resources"),
+        ("required_start_order=reset_init;IM_PTR_IM_LEN;IM_KICK;FSM_IM_READY;register_event_wakeup_init;PCM_KICK;CSRAM_records", "pcm-start-order"),
+        ("required_runtime_lease=three_SW_PAUSE_bit13;three_FW_DONE_bit15;2ms_bound;generation_bound_owner_handle;paired_release", "pcm-start-lease"),
+        ("current_mainline_residency=unproven;CSPM-only-read-only-handoff;CSRAM-unmapped", "pcm-start-current-residency"),
+        ("direct_handshake_policy=reject_SW_PAUSE_FW_DONE_without_residency_and_start_proof", "pcm-start-fail-closed"),
+        ("decision=DEFINE_REQUIRED_PCM_START_BOUNDARY;KEEP_PROVIDER_FAIL_CLOSED", "pcm-start-decision"),
+        ("status=PASS_PCM_START_CONTRACT_DEFINED", "pcm-start-status"),
+    ):
+        require(pcm_start_contract_result, needle, label)
+    for needle, label in (
         ("source=project-start-full-backup;read_only;no_new_backup;raw_contents_not_staged", "secure-scan-source"),
         ("lk_sha256=75ec9f0ba97af9e68d964b304e0de809f9b4546982570bd16b2e7fe88823282c", "secure-lk-hash"),
         ("tee1_sha256=2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3", "secure-tee-hash"),
@@ -316,6 +329,7 @@ def main() -> None:
         "mainline_pcm_residency\tunproven;no-mainline-image-buffer-or-firmware-name",
         "mainline_pcm_start_contract\tvendor-reset-IM-KICK-PCM-KICK-CSRAM-sequence-not-implemented",
         "mainline_i2c6_firmware_invocation\tnot-found;0174-generation-cookie-only;0175-default-unregistered",
+        "pcm_start_contract\tdefined;residency-start-resource-lease-fault-boundary",
         "pcm_firmware_owner_scan\tnegative-direct-literal;archive-boundary-only;decoded-public-hybrid-audit-added",
         "public_hybrid_pcm_owner_disassembly\texact-version-match;SW_PAUSE_bit13;FW_DONE_bit15;I2C6_path;mainline-lease-open",
         "secure_owner_image_scan\tLK-generic-I2C;ATF-CSPM-interference-attributed;SCP-DVFS-SPM;no-PCM-restart-SEMA-owner",
@@ -343,6 +357,7 @@ def main() -> None:
     print("mainline_pcm_residency=unproven;no-mainline-image-buffer-or-firmware-name")
     print("mainline_pcm_start_contract=vendor-reset-IM-KICK-PCM-KICK-CSRAM-sequence-not-implemented")
     print("mainline_i2c6_firmware_invocation=not-found;0174-generation-cookie-only;0175-default-unregistered")
+    print("pcm_start_contract=defined;residency-start-resource-lease-fault-boundary")
     print("scp_computed_address_audit=additional_local_aliases;no_forbidden_target_construction;no_pause_release")
     print("secure_owner_image_scan=negative;ATF-CSPM-interference-attributed;LK-generic-I2C;SCP-DVFS-SPM;no-PCM-restart-SEMA-owner")
     print("decision=BLOCK_WRITABLE_PROVIDER")

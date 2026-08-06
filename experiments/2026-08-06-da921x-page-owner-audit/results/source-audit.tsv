@@ -29,6 +29,7 @@ mainline_pcm_load_path	CSPM-only-read-only-handoff;CSRAM-unmapped;request_firmwa
 mainline_pcm_residency	unproven;no-mainline-image-buffer-or-firmware-name	mainline-pcm-load-path-audit-20260806	BLOCK_MAINLINE_FIRMWARE_LEASE
 mainline_pcm_start_contract	vendor-reset-IM-KICK-PCM-KICK-CSRAM-sequence-not-implemented	mainline-pcm-load-path-audit-20260806	BLOCK_MAINLINE_FIRMWARE_LEASE
 mainline_i2c6_firmware_invocation	not-found;0174-generation-cookie-only;0175-default-unregistered	mainline-pcm-load-path-audit-20260806	BLOCK_WRITABLE_PROVIDER
+pcm_start_contract	defined;residency-start-resource-lease-fault-boundary	../2026-08-06-mt6797-dvfsp-firmware-lease/results/pcm-start-contract-20260806	DEFINE_REQUIRED_PCM_START_BOUNDARY
 secure_owner_image_scan	LK-generic-I2C;ATF-CSPM-interference-attributed;SCP-DVFS-SPM;no-PCM-restart-SEMA-owner	secure-owner-image-scan-20260806	NO_NEW_OWNER_AUTHORITY
 tee_owner_disassembly	ATF-keyed-CSPM-plus-0;secure-semaphore-plus-0x448;no-PCM-plus-0x18	tee-owner-disassembly-20260806	NO_NEW_OWNER_AUTHORITY
 scp_alias_inventory	0x400a-SPM-PMIC;0xa000-clock;0xe000e100-NVIC;no-PCM-owner	scp-alias-inventory-20260806	NO_NEW_OWNER_AUTHORITY

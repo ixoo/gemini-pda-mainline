@@ -7,6 +7,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 PATCH = ROOT / "patches/v7.1.3/0175-soc-mediatek-define-I2C6-firmware-lease-contract.patch"
 SERIES = ROOT / "patches/series"
+START_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-start-contract-20260806.txt"
 
 
 def require(text: str, needle: str, label: str) -> None:
@@ -16,6 +17,7 @@ def require(text: str, needle: str, label: str) -> None:
 
 def main() -> None:
     patch = PATCH.read_text()
+    start_result = START_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     names = [Path(line).name for line in SERIES.read_text().splitlines()
              if line and not line.startswith("#")]
@@ -34,6 +36,20 @@ def main() -> None:
     require(patch, "handoff->fw_lease_active", "lease-lifetime")
     require(patch, "ret = -EBUSY", "unregister-while-held")
     require(patch, "No callback is registered by this patch", "default-off-claim")
+    for needle, label in (
+        ("required_image_identity=exact_image_hash;target_revision;license_or_access_boundary;loader_domain", "start-image-identity"),
+        ("required_memory_contract=stable_physical_base_and_length;alignment;cache_maintenance;lifetime", "start-memory"),
+        ("required_resource_contract=CSPM_0x11015000_plus_0x1000;CSRAM_0x0012a000_plus_0x3000;I2C_APPM_clock;EMI_or_semaphore_owner", "start-resources"),
+        ("required_start_order=reset_init;IM_PTR_IM_LEN;IM_KICK;FSM_IM_READY;register_event_wakeup_init;PCM_KICK;CSRAM_records", "start-order"),
+        ("required_runtime_lease=three_SW_PAUSE_bit13;three_FW_DONE_bit15;2ms_bound;generation_bound_owner_handle;paired_release", "start-runtime-lease"),
+        ("current_mainline_residency=unproven;CSPM-only-read-only-handoff;CSRAM-unmapped", "start-current-residency"),
+        ("current_mainline_start=absent;no_firmware_request;no_image_buffer;no_IM_KICK;no_PCM_KICK;no_CS_RAM_records", "start-current-path"),
+        ("current_mainline_owner=0175-default-unregistered;registered_owner=0", "start-current-owner"),
+        ("direct_handshake_policy=reject_SW_PAUSE_FW_DONE_without_residency_and_start_proof", "start-fail-closed"),
+        ("decision=DEFINE_REQUIRED_PCM_START_BOUNDARY;KEEP_PROVIDER_FAIL_CLOSED", "start-decision"),
+        ("status=PASS_PCM_START_CONTRACT_DEFINED", "start-status"),
+    ):
+        require(start_result, needle, label)
 
     if names.index("0174-soc-mediatek-add-I2C6-DVFSP-transfer-lease.patch") >= names.index("0175-soc-mediatek-define-I2C6-firmware-lease-contract.patch"):
         raise AssertionError("firmware lease contract is not after Linux transfer lease")
@@ -53,6 +69,7 @@ def main() -> None:
     print("release_requires_same_owner_handle=1")
     print("hardware_writes=0")
     print("device_action=none")
+    print("pcm_start_contract=defined;residency_and_start_required_before_callback_registration")
     print("status=PASS_STATIC")
 
 

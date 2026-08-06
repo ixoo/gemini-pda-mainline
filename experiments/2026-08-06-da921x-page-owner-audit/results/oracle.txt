@@ -15,6 +15,7 @@ mainline_pcm_load_path=CSPM-only-read-only-handoff;CSRAM-unmapped;request_firmwa
 mainline_pcm_residency=unproven;no-mainline-image-buffer-or-firmware-name
 mainline_pcm_start_contract=vendor-reset-IM-KICK-PCM-KICK-CSRAM-sequence-not-implemented
 mainline_i2c6_firmware_invocation=not-found;0174-generation-cookie-only;0175-default-unregistered
+pcm_start_contract=defined;residency-start-resource-lease-fault-boundary
 scp_computed_address_audit=additional_local_aliases;no_forbidden_target_construction;no_pause_release
 decision=BLOCK_WRITABLE_PROVIDER
 hardware_action=none

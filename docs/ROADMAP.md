@@ -1697,6 +1697,13 @@ The next ordered work remains source-only:
    Direct `SW_PAUSE`/`FW_DONE` access would therefore target a stopped,
    unstarted receiver and is not a valid next patch. See the
    [mainline PCM load-path audit](../experiments/2026-08-06-da921x-page-owner-audit/results/mainline-pcm-load-path-audit-20260806.txt).
+   The minimum replacement/loader boundary is now written as the
+   [PCM residency/start contract](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/PCM_START_CONTRACT.md): exact image identity and license,
+   stable image memory, CSPM plus CSRAM ownership, clock/semaphore lifetime,
+   reset/IM-ready/PCM-kick ordering, CSRAM initialization, and sticky
+   generation-bound fault/resume behavior are all required before callback
+   registration. Its source-only result keeps the provider fail-closed; it is
+   not a firmware copy or a build/device authorization.
    The retained full-backup LK, TEE/ATF, and SCP images were then scanned
    read-only: LK exposes generic bootloader I2C markers, ATF exposes PSCI/iDVFS
    secure-power paths and its existing direct-immediate audit attributes CSPM

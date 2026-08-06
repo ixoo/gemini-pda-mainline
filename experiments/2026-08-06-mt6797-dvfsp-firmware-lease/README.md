@@ -59,6 +59,7 @@ I2C_APPM ungated, so the external owner gate remains open.
 ## Evidence
 
 - [Protocol design](DESIGN.md)
+- [PCM residency/start contract](PCM_START_CONTRACT.md)
 - [Static oracle](scripts/oracle.py)
 - [Source validation](results/source-validation-20260806.txt)
 - [Buildbox validation](results/buildbox-validation-20260806.txt)
@@ -68,6 +69,7 @@ I2C_APPM ungated, so the external owner gate remains open.
 - [Retained TEE secure-owner disassembly](../2026-08-06-da921x-page-owner-audit/results/tee-owner-disassembly-20260806.txt)
 - [Retained SCP local-alias inventory](../2026-08-06-da921x-page-owner-audit/results/scp-alias-inventory-20260806.txt)
 - [Patch 0175](../../patches/v7.1.3/0175-soc-mediatek-define-I2C6-firmware-lease-contract.patch)
+- [PCM start contract result](results/pcm-start-contract-20260806.txt)
 
 Run from the repository root:
 
@@ -105,3 +107,12 @@ pause/status offsets, but no pause/FW_DONE handshake was exercised; see the
 [register identity reconciliation](results/receiver-register-identity-20260806.txt).
 Until then the DA921x provider remains fail-closed and the Candidate AO/AN
 stopped-state or clock-normalization boot must not be repeated.
+
+The PCM start contract is now explicit in
+[`PCM_START_CONTRACT.md`](PCM_START_CONTRACT.md). It makes image identity,
+CSPM/CSRAM residency, reset/IM/PCM kick order, CSRAM initialization, runtime
+lease responses, and fault/resume invalidation prerequisites for registering
+the callback. The current mainline handoff satisfies none of the start and
+residency requirements, so this result advances the design boundary only and
+does not authorize a loader, firmware copy, provider write, build, or device
+boot.
