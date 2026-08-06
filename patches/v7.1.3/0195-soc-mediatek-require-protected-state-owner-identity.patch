@@ -16,9 +16,9 @@ monitor call, regulator operation, firmware image, PCM start, callback
 registration, or CPU_ON path. It is an experiment-only contract and is not
 submission-ready.
 ---
- drivers/soc/mediatek/mt6797-dvfsp-handoff.c       | 49 +++++++++++++++++++++
- include/linux/soc/mediatek/mt6797-dvfsp-handoff.h | 27 ++++++++++++
- 2 files changed, 76 insertions(+)
+ drivers/soc/mediatek/mt6797-dvfsp-handoff.c       | 50 ++++++++++++++++++++++
+ include/linux/soc/mediatek/mt6797-dvfsp-handoff.h | 28 ++++++++++++
+ 2 files changed, 78 insertions(+)
 
 diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
 --- a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
@@ -82,7 +82,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/
  	void *state_owner_context;
 +	struct mt6797_dvfsp_state_owner_identity state_owner_identity;
  	bool state_hold_active;
-@@ -1608,4 +1608,19 @@
+@@ -1608,14 +1608,40 @@
  	return 0;
  }
  
@@ -101,11 +101,14 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/
 +		return -EPROTO;
 +	return 0;
 +}
++ 
  int mt6797_dvfsp_handoff_state_owner_register(
-@@ -1615,1 +1615,2 @@
+ 	struct mt6797_dvfsp_handoff *handoff,
+ 	const struct mt6797_dvfsp_state_owner_ops *ops, void *context)
+ {
  	int ret = 0;
 +	struct mt6797_dvfsp_state_owner_identity identity;
-@@ -1617,3 +1617,12 @@
+ 
  	if (!handoff || !ops || !ops->snapshot || !ops->validate ||
  	    !ops->hold || !ops->release || !ops->invalidate)
  		return -EINVAL;
@@ -118,6 +121,8 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/
 +	ret = mt6797_dvfsp_state_owner_identity_check(&identity);
 +	if (ret)
 +		return ret;
+ 
+ 	mutex_lock(&handoff->state_owner_lock);
 @@ -1624,4 +1624,5 @@
  	} else {
  		handoff->state_owner_ops = ops;
