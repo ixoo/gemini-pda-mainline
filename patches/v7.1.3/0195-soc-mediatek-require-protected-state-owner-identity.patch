@@ -16,31 +16,29 @@ monitor call, regulator operation, firmware image, PCM start, callback
 registration, or CPU_ON path. It is an experiment-only contract and is not
 submission-ready.
 ---
- drivers/soc/mediatek/mt6797-dvfsp-handoff.c       | 75 ++++++++++++++++++++++
- include/linux/soc/mediatek/mt6797-dvfsp-handoff.h | 54 ++++++++++++++++
- 2 files changed, 129 insertions(+)
+ drivers/soc/mediatek/mt6797-dvfsp-handoff.c       | 49 +++++++++++++++++++++
+ include/linux/soc/mediatek/mt6797-dvfsp-handoff.h | 27 ++++++++++++
+ 2 files changed, 76 insertions(+)
 
 diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
 --- a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
 +++ b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
-@@ -103,2 +103,3 @@ struct mt6797_dvfsp_state_owner_ops {
+@@ -103,1 +103,2 @@
 +struct mt6797_dvfsp_state_owner_identity;
  struct mt6797_dvfsp_state_owner_ops {
-@@ -103,2 +104,3 @@ struct mt6797_dvfsp_state_owner_ops {
+@@ -103,2 +104,4 @@
  struct mt6797_dvfsp_state_owner_ops {
 +	int (*identify)(void *context,
 +			       struct mt6797_dvfsp_state_owner_identity *identity);
  	int (*snapshot)(void *context,
-@@ -111,2 +113,17 @@ struct mt6797_dvfsp_state_owner_ops {
+@@ -111,2 +113,16 @@
  };
-+
 +#define MT6797_DVFSP_STATE_OWNER_IDENTITY_ABI	1
 +#define MT6797_DVFSP_STATE_OWNER_RESOURCE_CPU_PLL	BIT(0)
 +#define MT6797_DVFSP_STATE_OWNER_RESOURCE_BIG_CLUSTER	BIT(1)
 +#define MT6797_DVFSP_STATE_OWNER_RESOURCE_ALL	GENMASK(1, 0)
 +#define MT6797_DVFSP_STATE_OWNER_BACKEND_MCUMIXED_DVFSP	1
 +#define MT6797_DVFSP_STATE_OWNER_BACKEND_BIGIDVFS_SMCCC	2
-+
 +struct mt6797_dvfsp_state_owner_identity {
 +	u32 abi;
 +	u32 resource_mask;
@@ -50,19 +48,18 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h b/include/linux/s
 +	u64 owner_handle;
 +};
  #define MT6797_DVFSP_PCM_ADAPTER_ABI		1
-@@ -202,5 +219,8 @@ void mt6797_dvfsp_handoff_state_invalidate(
+@@ -202,3 +219,6 @@
  	struct mt6797_dvfsp_handoff *handoff,
  	enum mt6797_dvfsp_state_invalidation_reason reason);
 +int mt6797_dvfsp_handoff_state_owner_identity(
 +	struct mt6797_dvfsp_handoff *handoff,
 +	struct mt6797_dvfsp_state_owner_identity *identity);
  int mt6797_dvfsp_handoff_pcm_adapter_register(
-@@ -329,8 +349,16 @@ mt6797_dvfsp_handoff_state_invalidate(
+@@ -329,5 +349,12 @@
  	struct mt6797_dvfsp_handoff *handoff,
  	enum mt6797_dvfsp_state_invalidation_reason reason)
  {
  }
-
 +static inline int
 +mt6797_dvfsp_handoff_state_owner_identity(
 +	struct mt6797_dvfsp_handoff *handoff,
@@ -70,21 +67,17 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h b/include/linux/s
 +{
 +	return -ENODEV;
 +}
-+
  static inline int
  mt6797_dvfsp_handoff_pcm_adapter_register(
 diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
 --- a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
-@@ -154,5 +154,6 @@ struct mt6797_dvfsp_handoff {
+@@ -154,3 +154,4 @@
  	const struct mt6797_dvfsp_state_owner_ops *state_owner_ops;
  	void *state_owner_context;
 +	struct mt6797_dvfsp_state_owner_identity state_owner_identity;
  	bool state_hold_active;
-@@ -208,6 +209,24 @@ static int
- 	return 0;
- }
-
+@@ -211,1 +211,16 @@
 +static int
 +mt6797_dvfsp_state_owner_identity_check(
 +	const struct mt6797_dvfsp_state_owner_identity *identity)
@@ -98,25 +91,23 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/
 +		MT6797_DVFSP_STATE_OWNER_BACKEND_BIGIDVFS_SMCCC ||
 +	    identity->reserved || !identity->owner_handle)
 +		return -EPROTO;
-+
 +	return 0;
 +}
-+
  int mt6797_dvfsp_handoff_state_owner_register(
- 	struct mt6797_dvfsp_handoff *handoff,
-@@ -211,13 +230,25 @@ int mt6797_dvfsp_handoff_state_owner_register(
+@@ -211,4 +211,5 @@
  	struct mt6797_dvfsp_handoff *handoff,
  	const struct mt6797_dvfsp_state_owner_ops *ops, void *context)
  {
 +	struct mt6797_dvfsp_state_owner_identity identity;
  	int ret = 0;
-
+@@ -224,3 +224,5 @@
  	if (!handoff || !ops || !ops->snapshot || !ops->validate ||
  	    !ops->hold || !ops->release || !ops->invalidate)
  		return -EINVAL;
 +	if (!ops->identify)
 +		return -EINVAL;
-+
+@@ -224,2 +231,9 @@
+ 		return -EINVAL;
 +	memset(&identity, 0, sizeof(identity));
 +	ret = ops->identify(context, &identity);
 +	if (ret)
@@ -124,23 +115,22 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/
 +	ret = mt6797_dvfsp_state_owner_identity_check(&identity);
 +	if (ret)
 +		return ret;
-
  	mutex_lock(&handoff->state_owner_lock);
-@@ -224,6 +255,7 @@ int mt6797_dvfsp_handoff_state_owner_register(
+@@ -224,4 +238,5 @@
  	} else {
  		handoff->state_owner_ops = ops;
  		handoff->state_owner_context = context;
 +		handoff->state_owner_identity = identity;
  	}
-@@ -248,6 +280,7 @@ int mt6797_dvfsp_handoff_state_owner_unregister(
+@@ -248,3 +263,5 @@
  		handoff->state_owner_ops = NULL;
  		handoff->state_owner_context = NULL;
 +		memset(&handoff->state_owner_identity, 0,
 +		       sizeof(handoff->state_owner_identity));
  	}
-@@ -258,6 +291,33 @@ EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_state_owner_unregister);
+@@ -258,3 +275,23 @@
  EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_state_owner_unregister);
-
+ 
 +int mt6797_dvfsp_handoff_state_owner_identity(
 +	struct mt6797_dvfsp_handoff *handoff,
 +	struct mt6797_dvfsp_state_owner_identity *identity)
