@@ -89,9 +89,8 @@ diff --git a/drivers/thermal/mediatek/auxadc_thermal.c b/drivers/thermal/mediate
 +#include <linux/soc/mediatek/mt6797-eem-readback.h>
 +
  #include "../thermal_hwmon.h"
-@@ -78,5 +80,20 @@
- #define TEMP_ADCVALIDMASK_VALID_HIGH		BIT(5)
- #define TEMP_ADCVALIDMASK_VALID_POS(x)		(((x) & 0x1f) << 8)
+@@ -78,2 +78,17 @@
+ #define PTPCORESEL		0x400
  
 +/* MT6797 EEM/PTP registers share thermal_base and PTPCORESEL. */
 +#define MT6797_EEM_FREQPCT30		0x218
@@ -108,8 +107,6 @@ diff --git a/drivers/thermal/mediatek/auxadc_thermal.c b/drivers/thermal/mediate
 +#define MT6797_EEM_MOD_INTSTS		0x408
 +#define MT6797_EEMCORESEL_MASK		GENMASK(2, 0)
 +
- #define TEMP_ADCWRITECTRL_ADC_PNP_WRITE		BIT(0)
- #define TEMP_ADCWRITECTRL_ADC_MUX_WRITE		BIT(1)
 @@ -945,6 +962,101 @@ static int mtk_thermal_bank_temperature(struct mtk_thermal_bank *bank)
  	return max;
  }
@@ -212,7 +209,7 @@ diff --git a/drivers/thermal/mediatek/auxadc_thermal.c b/drivers/thermal/mediate
  static int mtk_read_temp(struct thermal_zone_device *tz, int *temperature)
  {
  	struct mtk_thermal *mt = thermal_zone_device_priv(tz);
-@@ -1367,4 +1448,5 @@ static int mtk_thermal_probe(struct platform_device *pdev)
+@@ -1367,5 +1448,6 @@ static int mtk_thermal_probe(struct platform_device *pdev)
  	mutex_init(&mt->lock);
  
  	mt->dev = &pdev->dev;
