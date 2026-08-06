@@ -133,6 +133,12 @@ The source and sanitized runtime record establish these facts:
   vendor `SEMA_I2C_DRV` ownership operation is not represented. See
   [`results/dvfsp-lease-audit-20260806.txt`](results/dvfsp-lease-audit-20260806.txt).
   This still does not authorize a write.
+- Patch `0174` is now a candidate implementation of that Linux-side lease:
+  it carries a generation/cookie across the complete MT65xx I2C6 transfer,
+  serializes suspend/resume permission changes, and faults stale or duplicate
+  release. It is pending a clean pushed Buildbox validation. It does not
+  represent the vendor `SEMA_I2C_DRV` semaphore, add a DA921x write, or
+  authorize a device action.
 - No bounded inverse exists for a provider write at or beyond the unresolved
   external-isolation boundary. The release callback therefore remains a
   structured `-EOPNOTSUPP` refusal.

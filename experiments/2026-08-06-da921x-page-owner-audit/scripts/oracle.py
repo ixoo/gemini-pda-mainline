@@ -9,6 +9,7 @@ PATCH_0170 = ROOT / "patches/v7.1.3/0170-regulator-add-legacy-DA921x-resource-on
 PATCH_0164 = ROOT / "patches/v7.1.3/0164-arm64-validate-frozen-A72-A36-prestates.patch"
 PATCH_0172 = ROOT / "patches/v7.1.3/0172-arm64-add-provider-owner-callback-refusal-boundary.patch"
 PATCH_0173 = ROOT / "patches/v7.1.3/0173-arm64-add-provider-release-refusal-boundary.patch"
+PATCH_0174 = ROOT / "patches/v7.1.3/0174-soc-mediatek-add-I2C6-DVFSP-transfer-lease.patch"
 PATCH_0100 = ROOT / "patches/v7.1.3/0100-soc-mediatek-require-ready-MT6797-DVFSP-handoff-supplier.patch"
 PATCH_0101 = ROOT / "patches/v7.1.3/0101-i2c-mediatek-require-MT6797-DVFSP-handoff.patch"
 PATCH_0102 = ROOT / "patches/v7.1.3/0102-arm64-dts-mediatek-enable-childless-Gemini-I2C6-after-handoff.patch"
@@ -33,6 +34,7 @@ def main() -> None:
     p0164 = PATCH_0164.read_text()
     p0172 = PATCH_0172.read_text()
     p0173 = PATCH_0173.read_text()
+    p0174 = PATCH_0174.read_text()
     p0100 = PATCH_0100.read_text()
     p0101 = PATCH_0101.read_text()
     p0102 = PATCH_0102.read_text()
@@ -74,6 +76,16 @@ def main() -> None:
     require(p0172, "provider-owner acquire refused: read-only resource boundary", "acquire-refusal")
     require(p0173, "provider-owner release refused: no rollback owner", "release-refusal")
     for needle, label in (
+        ("struct mt6797_dvfsp_i2c6_lease", "lease-struct"),
+        ("mt6797_dvfsp_handoff_begin_i2c6_transfer", "lease-begin-api"),
+        ("mt6797_dvfsp_handoff_end_i2c6_transfer", "lease-end-api"),
+        ("MT6797_DVFSP_TRANSFER_COOKIE_XOR", "lease-cookie"),
+        ("i2c6-transfer-lease-mismatch", "lease-mismatch-fault"),
+        ("mutex_lock(&handoff->transfer_lock)", "lease-lock"),
+        ("lease_active", "consumer-lease-use"),
+    ):
+        require(p0174, needle, label)
+    for needle, label in (
         ("mt6797_dvfsp_handoff_require_ready", "handoff-ready-api"),
         ("EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_require_ready)", "handoff-ready-export"),
     ):
@@ -92,8 +104,8 @@ def main() -> None:
     for needle, label in (
         ("ready_check=mt6797_dvfsp_handoff_require_ready_locks_handoff_and_checks_both", "ready-check-contract"),
         ("transfer_entry=mtk_i2c_transfer_calls_require_ready_before_transfer", "transfer-entry-check"),
-        ("transfer_lease_api=absent", "lease-api-absence"),
-        ("ready_check_scope=entry_predicate_only;not_held_across_transfer", "lease-scope-gap"),
+        ("transfer_lease_api=0174-candidate;Buildbox-pending", "lease-api-candidate"),
+        ("ready_check_scope=entry_predicate_only;0174-holds-lease-across-transfer-candidate", "lease-scope-candidate"),
         ("firmware_semaphore=vendor_SEMA_I2C_DRV_not_represented", "vendor-semaphore-gap"),
         ("status=", "handoff-audit-present"),
     ):
@@ -156,7 +168,8 @@ def main() -> None:
     print("core_dispatch=expanded;master_xfer-path-proven")
     print("linux_bus_lock=provider-root-lock;core-lock-precondition-proven")
     print("dvfsp_ready=state-and-permission-ready;entry-check-proven")
-    print("firmware_owner_lease=unproven;ready-check-not-held-across-transfer")
+    print("mainline_transfer_lease=0174-candidate;generation-cookie;PM-lock-integrated")
+    print("firmware_owner_lease=unproven;vendor_SEMA_I2C_DRV_not_represented")
     print("decision=BLOCK_WRITABLE_PROVIDER")
     print("hardware_action=none")
     print("status=PASS_NEGATIVE_AUDIT")

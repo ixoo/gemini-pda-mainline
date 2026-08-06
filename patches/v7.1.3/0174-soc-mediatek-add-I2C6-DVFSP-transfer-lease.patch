@@ -1,0 +1,279 @@
+From 0000000000000000000000000000000000000174 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 6 Aug 2026 00:00:00 -0400
+Subject: [PATCH] soc: mediatek: add I2C6 DVFSP transfer lease
+
+The existing MT6797 handoff checks readiness at I2C6 transfer entry, but the
+predicate is not held while clocks and the controller transaction execute.
+Add a private sleepable lease owned by the handoff and held by the MT65xx
+adapter across its complete transfer and cleanup path.
+
+Suspend and resume take the same lease lock before changing permission. A
+monotonic generation and cookie must match on release; a stale or duplicate
+release faults the handoff. This is Linux-side serialization only. It does
+not emulate the vendor SEMA_I2C_DRV semaphore, add a DA921x write, authorize
+a regulator vote, or connect CPU_ON.
+
+This is an experiment-only patch and is not submission-ready.
+---
+ drivers/i2c/busses/i2c-mt65xx.c                  | 20 ++++++++++++++++
+ drivers/soc/mediatek/mt6797-dvfsp-handoff.c     | 70 ++++++++++++++++++++++++
+ include/linux/soc/mediatek/mt6797-dvfsp-handoff.h | 23 ++++++++++
+ 3 files changed, 113 insertions(+)
+
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
+index 6abbc77..0b6d5c1 100644
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
+@@ -10,6 +10,11 @@ struct device;
+ struct mt6797_dvfsp_handoff;
+ 
++struct mt6797_dvfsp_i2c6_lease {
++	u64 generation;
++	u64 cookie;
++};
++
+ #if IS_REACHABLE(CONFIG_MTK_MT6797_DVFSP_HANDOFF)
+ struct mt6797_dvfsp_handoff *
+ mt6797_dvfsp_handoff_get(struct device *consumer);
+ int mt6797_dvfsp_handoff_require_ready(struct mt6797_dvfsp_handoff *handoff);
++int mt6797_dvfsp_handoff_begin_i2c6_transfer(
++	struct mt6797_dvfsp_handoff *handoff,
++	struct mt6797_dvfsp_i2c6_lease *lease);
++int mt6797_dvfsp_handoff_end_i2c6_transfer(
++	struct mt6797_dvfsp_handoff *handoff,
++	const struct mt6797_dvfsp_i2c6_lease *lease,
++	int transfer_result);
+ /* The readiness test is atomic; clock validation is sleepable. */
+ bool
+ mt6797_dvfsp_handoff_is_ready_atomic(struct mt6797_dvfsp_handoff *handoff);
+@@ -35,6 +40,24 @@ mt6797_dvfsp_handoff_require_ready(struct mt6797_dvfsp_handoff *handoff)
+ 	return -ENODEV;
+ }
+ 
++static inline int
++mt6797_dvfsp_handoff_begin_i2c6_transfer(
++	struct mt6797_dvfsp_handoff *handoff,
++	struct mt6797_dvfsp_i2c6_lease *lease)
++{
++	return -ENODEV;
++}
++
++static inline int
++mt6797_dvfsp_handoff_end_i2c6_transfer(
++	struct mt6797_dvfsp_handoff *handoff,
++	const struct mt6797_dvfsp_i2c6_lease *lease,
++	int transfer_result)
++{
++	return -ENODEV;
++}
++
+ static inline bool
+ mt6797_dvfsp_handoff_is_ready_atomic(struct mt6797_dvfsp_handoff *handoff)
+ {
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+index a07443d..0000000 100644
+--- a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+@@ -48,6 +48,8 @@
+ #define MT6797_DVFSP_LATE_DELAY_MS	45000
+ #define MT6797_DVFSP_PROBE_TIMEOUT_MS	50000
++#define MT6797_DVFSP_TRANSFER_COOKIE_XOR	0x4d54363739495452ULL
+ 
+ enum mt6797_dvfsp_sample_id {
+@@ -135,6 +137,11 @@ struct mt6797_dvfsp_handoff {
+ 	/* Protects state, samples, non-atomic counters, and late work. */
+ 	struct mutex lock;
++	/* Held from I2C6 transfer admission through clock cleanup. */
++	struct mutex transfer_lock;
++	u64 transfer_generation;
++	u64 transfer_cookie;
++	int last_transfer_result;
++	bool transfer_active;
+ 	struct completion terminal;
+@@ -459,6 +466,7 @@ static int mt6797_dvfsp_handoff_suspend_late(struct device *dev)
+ 	if (!atomic_read(&handoff->terminal_grant))
+ 		return 0;
+ 
++	mutex_lock(&handoff->transfer_lock);
+ 	if (atomic_cmpxchg(&handoff->permission,
+ 			   MT6797_DVFSP_PERMISSION_READY,
+ 			   MT6797_DVFSP_PERMISSION_BLOCKED) !=
+@@ -470,6 +478,7 @@ static int mt6797_dvfsp_handoff_suspend_late(struct device *dev)
+ 		atomic_set(&handoff->pm_fault,
+ 			   MT6797_DVFSP_PM_SUSPEND_INVALID);
+ 		atomic_set(&handoff->permission,
+ 			   MT6797_DVFSP_PERMISSION_FAULTED);
++		mutex_unlock(&handoff->transfer_lock);
+ 		return -EHOSTDOWN;
+ 	}
+@@ -483,6 +492,7 @@ static int mt6797_dvfsp_handoff_suspend_late(struct device *dev)
+ 		atomic_set(&handoff->pm_fault,
+ 			   MT6797_DVFSP_PM_SUSPEND_REVALIDATION);
+ 		atomic_set(&handoff->permission,
+ 			   MT6797_DVFSP_PERMISSION_FAULTED);
++		mutex_unlock(&handoff->transfer_lock);
+ 		return -EIO;
+ 	}
+ 
++	mutex_unlock(&handoff->transfer_lock);
+ 	return 0;
+ }
+@@ -499,6 +509,7 @@ static int mt6797_dvfsp_handoff_resume_early(struct device *dev)
+ 	if (!atomic_read(&handoff->terminal_grant))
+ 		return 0;
+ 
++	mutex_lock(&handoff->transfer_lock);
+ 	if (atomic_read(&handoff->permission) !=
+ 	    MT6797_DVFSP_PERMISSION_BLOCKED) {
+@@ -509,6 +520,7 @@ static int mt6797_dvfsp_handoff_resume_early(struct device *dev)
+ 		atomic_set(&handoff->pm_fault,
+ 			   MT6797_DVFSP_PM_RESUME_INVALID);
+ 		atomic_set(&handoff->permission,
+ 			   MT6797_DVFSP_PERMISSION_FAULTED);
++		mutex_unlock(&handoff->transfer_lock);
+ 		return -EHOSTDOWN;
+ 	}
+@@ -522,6 +534,7 @@ static int mt6797_dvfsp_handoff_resume_early(struct device *dev)
+ 		atomic_set(&handoff->pm_fault,
+ 			   MT6797_DVFSP_PM_RESUME_REVALIDATION);
+ 		atomic_set(&handoff->permission,
+ 			   MT6797_DVFSP_PERMISSION_FAULTED);
++		mutex_unlock(&handoff->transfer_lock);
+ 		return -EIO;
+ 	}
+@@ -533,8 +546,63 @@ static int mt6797_dvfsp_handoff_resume_early(struct device *dev)
+ 		atomic_set(&handoff->pm_fault,
+ 			   MT6797_DVFSP_PM_RESUME_INVALID);
+ 		atomic_set(&handoff->permission,
+ 			   MT6797_DVFSP_PERMISSION_FAULTED);
++		mutex_unlock(&handoff->transfer_lock);
+ 		return -EHOSTDOWN;
+ 	}
+ 
++	mutex_unlock(&handoff->transfer_lock);
+ 	return 0;
+ }
+@@ -676,6 +744,57 @@ static const struct attribute_group mt6797_dvfsp_handoff_group = {
+ 	.attrs = mt6797_dvfsp_handoff_attrs,
+ };
+ 
++int
++mt6797_dvfsp_handoff_begin_i2c6_transfer(
++	struct mt6797_dvfsp_handoff *handoff,
++	struct mt6797_dvfsp_i2c6_lease *lease)
++{
++	int ret = 0;
++
++	if (!handoff || !lease)
++		return -EINVAL;
++
++	mutex_lock(&handoff->transfer_lock);
++	mutex_lock(&handoff->lock);
++	if (handoff->state != MT6797_DVFSP_READY ||
++	    atomic_read(&handoff->permission) !=
++		    MT6797_DVFSP_PERMISSION_READY) {
++		ret = -EHOSTDOWN;
++		goto out_unlock;
++	}
++	if (handoff->transfer_active) {
++		ret = -EBUSY;
++		goto out_unlock;
++	}
++
++	handoff->transfer_generation++;
++	if (!handoff->transfer_generation) {
++		mt6797_dvfsp_fault_locked(handoff,
++					  "i2c6-transfer-generation-exhausted");
++		ret = -EHOSTDOWN;
++		goto out_unlock;
++	}
++	handoff->transfer_cookie = handoff->transfer_generation ^
++		MT6797_DVFSP_TRANSFER_COOKIE_XOR;
++	handoff->transfer_active = true;
++	lease->generation = handoff->transfer_generation;
++	lease->cookie = handoff->transfer_cookie;
++
++out_unlock:
++	mutex_unlock(&handoff->lock);
++	if (ret)
++		mutex_unlock(&handoff->transfer_lock);
++	return ret;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_begin_i2c6_transfer);
++
++int
++mt6797_dvfsp_handoff_end_i2c6_transfer(
++	struct mt6797_dvfsp_handoff *handoff,
++	const struct mt6797_dvfsp_i2c6_lease *lease,
++	int transfer_result)
++{
++	int ret = 0;
++
++	if (!handoff || !lease)
++		return -EINVAL;
++
++	mutex_lock(&handoff->lock);
++	if (!handoff->transfer_active ||
++	    lease->generation != handoff->transfer_generation ||
++	    lease->cookie != handoff->transfer_cookie) {
++		mt6797_dvfsp_fault_locked(handoff,
++					  "i2c6-transfer-lease-mismatch");
++		ret = -EPERM;
++	} else {
++		handoff->last_transfer_result = transfer_result;
++		handoff->transfer_active = false;
++		handoff->transfer_cookie = 0;
++	}
++	mutex_unlock(&handoff->lock);
++	mutex_unlock(&handoff->transfer_lock);
++	return ret;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_end_i2c6_transfer);
++
+ int
+ mt6797_dvfsp_handoff_require_ready(struct mt6797_dvfsp_handoff *handoff)
+@@ -1195,6 +1320,7 @@ static int mt6797_dvfsp_handoff_probe(struct platform_device *pdev)
+ 	handoff->reason = "resources-not-ready";
+ 	mutex_init(&handoff->lock);
++	mutex_init(&handoff->transfer_lock);
+ 	init_completion(&handoff->terminal);
+ 	atomic_set(&handoff->terminal_grant, 0);
+diff --git a/drivers/i2c/busses/i2c-mt65xx.c b/drivers/i2c/busses/i2c-mt65xx.c
+index 478c356..0000000 100644
+--- a/drivers/i2c/busses/i2c-mt65xx.c
++++ b/drivers/i2c/busses/i2c-mt65xx.c
+@@ -1246,11 +1246,14 @@ static int mtk_i2c_transfer(struct i2c_adapter *adap,
+ 	int ret;
++	int lease_ret;
+ 	int left_num = num;
+ 	bool write_then_read_en = false;
++	bool lease_active = false;
+ 	struct mtk_i2c *i2c = i2c_get_adapdata(adap);
++	struct mt6797_dvfsp_i2c6_lease lease = { };
+ 
+ 	if (i2c->dvfsp_handoff) {
+@@ -1259,6 +1262,11 @@ static int mtk_i2c_transfer(struct i2c_adapter *adap,
+ 		if (ret)
+ 			return ret;
++		ret = mt6797_dvfsp_handoff_begin_i2c6_transfer(
++			i2c->dvfsp_handoff, &lease);
++		if (ret)
++			return ret;
++		lease_active = true;
+ 	}
+@@ -1320,6 +1328,12 @@ err_regulator:
+ 	if (i2c->adap.bus_regulator)
+ 		regulator_disable(i2c->adap.bus_regulator);
++
++	if (lease_active) {
++		lease_ret = mt6797_dvfsp_handoff_end_i2c6_transfer(
++			i2c->dvfsp_handoff, &lease, ret);
++		if (!ret && lease_ret)
++			ret = lease_ret;
++	}
+ 
+ 	return ret;
+ }
+-- 
+2.43.0
