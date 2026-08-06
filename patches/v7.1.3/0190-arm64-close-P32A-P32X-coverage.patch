@@ -24,7 +24,7 @@ certifying sign-off.
 diff --git a/arch/arm64/include/asm/mt6797_a72_membership.h b/arch/arm64/include/asm/mt6797_a72_membership.h
 --- a/arch/arm64/include/asm/mt6797_a72_membership.h
 +++ b/arch/arm64/include/asm/mt6797_a72_membership.h
-@@ -268,16 +268,22 @@ struct mt6797_a72_p32r_ledger_handoff {
+@@ -268,15 +268,21 @@ struct mt6797_a72_p32r_ledger_handoff {
  	u32 callback_complete;
  	u32 callback_overflow;
  	u32 callback_unknown;
@@ -66,7 +66,7 @@ diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt679
  	}
  	transaction->p32r_valid = 1;
  }
-@@ -386,9 +392,14 @@ int mt6797_a72_membership_consume_p32(unsigned int cpu, int rollback_error,
+@@ -386,8 +392,13 @@ int mt6797_a72_membership_consume_p32(unsigned int cpu, int rollback_error,
  		if (!trace->callback_complete || trace->callback_unknown ||
  		    trace->effect_unknown || trace->effect_overflow ||
 -		    !trace->effect_complete) {
@@ -84,7 +84,7 @@ diff --git a/arch/arm64/kernel/mt6797_a72_membership.c b/arch/arm64/kernel/mt679
 diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
 --- a/arch/arm64/kernel/smp.c
 +++ b/arch/arm64/kernel/smp.c
-@@ -151,7 +151,7 @@ int arch_cpu_up_rollback_complete(unsigned int cpu, int error,
+@@ -151,6 +151,6 @@ int arch_cpu_up_rollback_complete(unsigned int cpu, int error,
  	if (cpu >= nr_cpu_ids)
  		return 0;
  
@@ -122,7 +122,7 @@ diff --git a/include/linux/cpu.h b/include/linux/cpu.h
  	u32 effect;
  	u32 phase;
  	s32 result;
-@@ -171,13 +179,20 @@ struct cpu_up_rollback_trace {
+@@ -171,12 +179,19 @@ struct cpu_up_rollback_trace {
  	u32 nested_result;
  	u32 outer_reset;
  	u32 reverse_complete;
