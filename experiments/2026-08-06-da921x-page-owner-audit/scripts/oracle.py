@@ -14,6 +14,7 @@ PATCH_0101 = ROOT / "patches/v7.1.3/0101-i2c-mediatek-require-MT6797-DVFSP-hando
 PATCH_0102 = ROOT / "patches/v7.1.3/0102-arm64-dts-mediatek-enable-childless-Gemini-I2C6-after-handoff.patch"
 HANDOFF_FRAGMENT = ROOT / "configs/gemini-dvfsp-handoff-owner.fragment"
 MANIFEST = ROOT / "kernel/manifest.json"
+CORE_DISPATCH = Path(__file__).resolve().parents[1] / "results/i2c-core-dispatch-20260806.txt"
 LEDGER = Path(__file__).resolve().parents[1] / "results/source-audit.tsv"
 RECONCILIATION = Path(__file__).resolve().parents[1] / "results/source-reconciliation-20260806.txt"
 CROSSCHECK = ROOT / "experiments/2026-07-23-da9214-resource-only/results/da9214-datasheet-crosscheck-20260723.txt"
@@ -36,6 +37,7 @@ def main() -> None:
     p0102 = PATCH_0102.read_text()
     handoff_fragment = HANDOFF_FRAGMENT.read_text()
     manifest = MANIFEST.read_text()
+    core_dispatch = CORE_DISPATCH.read_text()
     ledger = LEDGER.read_text()
     reconciliation = RECONCILIATION.read_text()
     crosscheck = CROSSCHECK.read_text()
@@ -78,6 +80,13 @@ def main() -> None:
     require(p0102, "access-controllers = <&dvfsp_handoff>;", "i2c6-access-controller")
     require(handoff_fragment, "CONFIG_MTK_MT6797_DVFSP_HANDOFF=y", "handoff-config")
     require(manifest, '"configs/gemini-dvfsp-handoff-owner.fragment"', "handoff-profile-fragment")
+    for needle, label in (
+        ("function=__i2c_transfer", "core-transfer-function"),
+        ("adapter_dispatch=adap->algo->master_xfer(adap, msgs, num)", "core-master-xfer-dispatch"),
+        ("public_wrapper=ret = __i2c_transfer(adap, msgs, num)", "core-public-wrapper"),
+        ("status=PASS_CORE_DISPATCH", "core-dispatch-status"),
+    ):
+        require(core_dispatch, needle, label)
     for needle, label in (
         ("observation_legacy_page_control=I2C_REG_PAGE_00x_selects_0x000_through_0x0ff", "legacy-page-window"),
         ("observation_legacy_page_control_2=I2C_REG_PAGE_01x_selects_0x100_through_0x17f", "legacy-page-window-2"),
@@ -131,7 +140,8 @@ def main() -> None:
     print("rollback_owner=pre-isolation-accepted;post-isolation-unresolved")
     print("mainline_handoff=profile-selected;I2C6-access-controller;ready-gate-present")
     print("provider_transfer=direct-__i2c_transfer;write-absent")
-    print("per_transfer_lease=unproven;dispatch-expansion-not-pinned")
+    print("core_dispatch=expanded;master_xfer-path-proven")
+    print("per_transfer_lease=unproven;dispatch-expanded")
     print("decision=BLOCK_WRITABLE_PROVIDER")
     print("hardware_action=none")
     print("status=PASS_NEGATIVE_AUDIT")

@@ -1662,8 +1662,9 @@ The next ordered work remains source-only:
    Buildbox validation; this closes a configuration omission only and does not
    advance the writable-provider or device gates. The source audit now
    attributes the I2C6 ready gate from the Gemini DT access-controller through
-   the MT65xx transfer check, while per-transfer lease/dispatch proof remains
-   open.
+   the MT65xx transfer check, and the pinned I2C core confirms that
+   `__i2c_transfer()` reaches `master_xfer`; the separate per-transfer lease
+   remains open.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and

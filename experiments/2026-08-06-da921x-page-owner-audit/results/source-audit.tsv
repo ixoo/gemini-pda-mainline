@@ -15,5 +15,6 @@ post_settle_readback	vendor-observed;provider-unimplemented	owner-observer;curre
 rollback_owner	pre-isolation-accepted;post-isolation-unresolved	rollback-runtime;ownership-matrix	BLOCK_WRITABLE_PROVIDER
 mainline_handoff	profile-selected;I2C6-access-controller;ready-gate-present	0100;0101;0102;handoff-profile	PASS_HANDOFF_GATE_ONLY
 provider_transfer	direct-__i2c_transfer;write-absent	0170;read-only-provider	PASS_READ_ONLY
-per_transfer_lease	unproven;dispatch-expansion-not-pinned	0101;0170;source-only-review	BLOCK_WRITABLE_PROVIDER
+core_dispatch	expanded;master_xfer-path-proven	managed-linux-7.1.3-source;I2C-core-dispatch	PASS_CORE_DISPATCH
+per_transfer_lease	unproven;dispatch-expanded	0101;0170;source-only-review	BLOCK_WRITABLE_PROVIDER
 hardware_action	none	source-only audit	PASS_SAFETY

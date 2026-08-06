@@ -1,0 +1,23 @@
+Pinned I2C core dispatch audit
+=============================
+
+scope=read-only managed Buildbox source inspection
+source_role=pinned-linux-7.1.3-base-source
+source_path=drivers/i2c/i2c-core-base.c
+excerpt_lines=2402-2506
+excerpt_sha256=91e207ce7c9e51d21bac3cebcdf5d0e06e08cccbcc8ad710566d63c37600d8d7
+
+The pinned core source proves the dispatch chain used by the provider's
+`__i2c_transfer()` call:
+
+function=__i2c_transfer
+adapter_dispatch=adap->algo->master_xfer(adap, msgs, num)
+public_wrapper=ret = __i2c_transfer(adap, msgs, num)
+
+This closes the question of a provider-side `__i2c_transfer()` bypassing the
+MT65xx adapter's `mt6797_dvfsp_handoff_require_ready()` check. It does not
+prove a separate per-transfer lease, DA921x page ownership, writable transport,
+post-settle readback, or rollback.
+
+status=PASS_CORE_DISPATCH
+hardware_action=none

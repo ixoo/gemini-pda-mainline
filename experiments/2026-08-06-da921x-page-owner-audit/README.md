@@ -123,9 +123,12 @@ The source and sanitized runtime record establish these facts:
   node names `dvfsp_handoff`, the MT65xx transfer entry checks
   `mt6797_dvfsp_handoff_require_ready()`, and the selected profile enables the
   supplier. The provider still reaches the adapter through `__i2c_transfer()`
-  and remains read-only. A separately serialized per-transfer lease and an
-  independently expanded kernel-core dispatch proof are still unproven, so
-  this closes only the ready-gate configuration seam.
+  and remains read-only. The pinned kernel-core excerpt now proves that this
+  call reaches `adap->algo->master_xfer()`, so there is no provider-side
+  dispatch bypass; the exact excerpt and hash are in
+  [`results/i2c-core-dispatch-20260806.txt`](results/i2c-core-dispatch-20260806.txt).
+  A separately serialized per-transfer lease remains unproven, so this still
+  does not authorize a write.
 - No bounded inverse exists for a provider write at or beyond the unresolved
   external-isolation boundary. The release callback therefore remains a
   structured `-EOPNOTSUPP` refusal.
