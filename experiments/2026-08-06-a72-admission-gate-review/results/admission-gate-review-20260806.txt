@@ -46,3 +46,40 @@ status=PASS_BLOCKERS_CONFIRMED
 The current-head Buildbox package is compile/package evidence only. The
 provider owner, A39 terminal attribution, A25/H13, A40, A41, and boot/disable
 vetoes remain open; no device boot or write was performed.
+
+Current-head re-audit after public hybrid owner attribution
+-------------------------------------------------------------
+
+Date: 2026-08-06 America/New_York
+Repository head: eff5236
+Origin: https://github.com/ixoo/gemini-pda-mainline.git
+
+claim=PARTIAL_ADMISSION_GATE_REAUDIT_CURRENT_OWNER_SOURCE_HEAD
+A14=BLOCKED_DISABLE_VETO
+A25=PARTIAL_SOURCE_REVIEW_H13_OPEN
+A26=BLOCKED_BOOT_VETO
+A37=BLOCKED_P32_TERMINAL_GUARD_REVIEW
+A39=BLOCKED_EARLY_SECONDARY_TERMINAL_GUARDS
+A40=BLOCKED_PRIVATE_BRANCH_FRESHNESS
+A41=INCOMPLETE_READY_UNREACHABLE
+provider=BLOCK_WRITABLE_PROVIDER
+cpu_on_cpu_off_device_action=CLOSED
+admission_contract_sha256=d3c10bf62bb89df8301fb2c06145b06ebbdbe8be29437a555a27c33a8ffd0ae5
+current_series_entries=180
+current_p32_patches=0182-0191
+historical_hybrid_owner_source=IDENTIFIED
+mainline_pcm_load_path=ABSENT
+mainline_pcm_residency=UNPROVEN
+mainline_pcm_start=ABSENT
+firmware_callback_owner=0
+buildbox_validation=PASS_PUBLIC_OWNER_SOURCE_REVIEW
+buildbox_commit=5aced75e948be894fda47ef59a9b41434f02589b
+buildbox_job=5aced75e948be894fda47ef59a9b41434f02589b-a72-p32-rollback-m0
+buildbox_package=linux-7.1.3-gemini-a72-p32-rollback-14dad783-a52199d2
+status=PASS_BLOCKERS_CONFIRMED
+
+The public source closes historical owner attribution but does not close the
+current mainline owner, image-admission, or runtime handshake gates. The next
+source-only step is a reviewed bounded adapter with an admitted image/loader
+domain and explicit suspend/resume, clock-loss, fault, timeout, and rollback
+semantics. No device boot or write is authorized.

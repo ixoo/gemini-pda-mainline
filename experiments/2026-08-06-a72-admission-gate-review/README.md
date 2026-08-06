@@ -27,3 +27,9 @@ partition, CPU_ON, CPU_OFF, provider write, or boot candidate action occurred.
 The executable checker and result are in
 [`scripts/review.py`](scripts/review.py) and
 [`results/admission-gate-review-20260806.txt`](results/admission-gate-review-20260806.txt).
+
+The current-head re-audit now records positive historical owner attribution
+from the public Gemian hybrid source, while keeping the mainline PCM load,
+residency, start, and callback-owner gates explicitly open. The owner-source
+review passed the dedicated Buildbox profile at `5aced75`; this changes no
+device or admission decision.
