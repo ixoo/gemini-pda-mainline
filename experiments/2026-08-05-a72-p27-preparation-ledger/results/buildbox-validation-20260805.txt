@@ -1,0 +1,13 @@
+commit=88a384c081fc7d868af492d2e8395a8ab0a22a23
+profile=full
+patch_count=155
+artifact=linux-7.1.3-gemini-2a40a8418988
+patchset_sha256=2a40a841898856e42c563316e2dc50f95abe2d027e2aa2177d64edd90412b848
+config_sha256=97e99cf70de380cdb7f47f96ef1587129b6f0d82da10b8b39f9ad567b7739966
+image_gzip_sha256=f57c34ff8f7d7856e4b2276cd326e0efc56c61d4c03945bb26d7c1666490a05c
+buildbox_job=88a384c081fc7d868af492d2e8395a8ab0a22a23-full-m0
+package_fetched=validated-only
+candidate_assembled=no
+hardware_write=none
+device_action=none
+status=PASS

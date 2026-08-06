@@ -28,9 +28,13 @@ owner-locked PWRAP assertion. The ledger remains `ON_ISSUED` and records no
 hardware operation itself.
 
 KUnit coverage proves one-shot consumption, rejects a malformed effect mask
-without changing the owner, and rejects CPU9. No provider call, regulator
-vote, MMIO access, CPUHP effect, P30 handoff, PSCI/CPU_ON call, build, package,
-deployment, or device action is present. The A26 CPU-up veto remains active.
+without changing the owner, and rejects CPU9. The patch contains no provider
+call, regulator vote, MMIO access, CPUHP effect, P30 handoff, or PSCI/CPU_ON
+call. The A26 CPU-up veto remains active.
+
+The exact pushed commit was then compiled on Buildbox using the full profile.
+All 155 canonical patches applied, the package validator passed, and no
+candidate was assembled or deployed. The build is compile evidence only.
 
 ## Provenance
 
@@ -44,7 +48,8 @@ deployment, or device action is present. The A26 CPU-up veto remains active.
 The preparation record is an attestation-shaped C object, not evidence that
 the device registers changed. P27/P28 provider-owner integration, R01/R02,
 P24 CPU_ON, secondary completion, P14/P15, P30/P32, and A41 closures remain
-open. This experiment does not authorize a build or device action.
+open. This experiment does not authorize candidate assembly, deployment, or
+device action.
 
 ## Evidence
 
@@ -54,6 +59,7 @@ open. This experiment does not authorize a build or device action.
 - [Exact validator](scripts/validate.py)
 - [Source transcript](results/source-validation-20260805.txt)
 - [Mutation transcript](results/mutation-validation-20260805.txt)
+- [Buildbox transcript](results/buildbox-validation-20260805.txt)
 
 Run from the repository root:
 
@@ -65,7 +71,7 @@ PYTHONDONTWRITEBYTECODE=1 python3 experiments/2026-08-05-a72-p27-preparation-led
 
 ## Conclusion
 
-`PARTIAL_P27_PREPARATION_LEDGER` is confirmed for the reviewed source and
-bounded model. The next implementation gate is P28 plus the real provider
-R01/R02 transaction; that work must remain dormant until its failure and
-rollback contract is separately represented.
+`PARTIAL_P27_PREPARATION_LEDGER` is confirmed for the reviewed source, bounded
+model, and Buildbox compile. The next implementation gate is P28 plus the
+real provider R01/R02 transaction; that work must remain dormant until its
+failure and rollback contract is separately represented.
