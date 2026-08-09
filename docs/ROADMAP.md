@@ -2026,6 +2026,16 @@ The next ordered work remains source-only:
    and has its validated package fetched. This is still compile-only; the
    owner/provider remain unregistered and no hardware, firmware, device, or
    CPU8/CPU9 action occurred. See the [state-snapshot Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/state-snapshot-buildbox-20260806.txt).
+   Patch `0210` now supplies one callback-only source adapter for the future
+   owner. Under the owner's transition lock it orders protected clock and
+   BigiDVFS readback, EEM readback and calibration construction, live-field
+   collection, and the four-cluster assembler; any missing source or
+   conversion failure aborts without publishing a snapshot. Revision `8b7434c`
+   applies all 199 canonical entries on Buildbox, produces 119 DTBs, passes
+   package checksums, and has its validated package fetched. This remains
+   compile-only: callbacks are external, no owner/provider is registered, and
+   no hardware, firmware, device, or CPU8/CPU9 action occurred. See the
+   [state-source adapter Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/state-source-adapter-buildbox-20260809.txt).
    The next ordered gate remains an independently reviewed implementation of
    the real calibrated EEM/PTP/PPM state owner with clock/rail arbitration,
    generation-producing callbacks, and runtime invalidation/transition-lock

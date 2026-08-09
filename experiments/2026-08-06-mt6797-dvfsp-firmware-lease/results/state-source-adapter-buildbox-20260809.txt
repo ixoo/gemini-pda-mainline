@@ -1,0 +1,42 @@
+# MT6797 protected-state source adapter Buildbox validation
+
+date_utc=2026-08-09T19:37:58Z
+claim=COMPILE_ONLY_MT6797_DVFSP_PROTECTED_STATE_SOURCE_ADAPTER
+repository_commit=8b7434cc8b954f0029d5eae89706dfa6c7dd7972
+origin=https://github.com/ixoo/gemini-pda-mainline.git
+build_backend=buildbox
+buildbox_job=8b7434cc8b954f0029d5eae89706dfa6c7dd7972-dvfsp-protected-readback-m0
+buildbox_status=validated
+artifact=linux-7.1.3-gemini-dvfsp-protected-readback-60e6a23f-b6696a3c
+patch_count=199
+dtb_count=119
+sha256sums=passed
+package_fetch=success;validated_package_only
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=60e6a23f65ef84d0ddb6b4bec0267e1628f6bca5211ec67a2240e2ce11cecad6
+config_sha256=9561561944c875d1fadb5cee822fb9fa572a2e9cf82e4b8a45921e9a43828ef4
+image_sha256=542218ccf7fd4620ca88a206f0e4ca157f75314dc9d10c82ad729f4525609bae
+image_gz_sha256=506106d18bbd9a159c08f76933783753392dd33addfc3b99d278e758a881de85
+system_map_sha256=a8f877e11dbe64d0486b0bdb115851a4feecac56046cc2a36182493f355bc121
+gemini_dtb_sha256=105a83069d42221539050ca968ea5156bdeed948ae88881429678423c43140bd
+build_provenance_sha256=4378056fc6f24faa6a204b10660dc1318bc4af151f4b543fe9224a18f9dca4a3
+sha256sums_manifest_sha256=7acd1a95b3bbf4ae32a9825d08f6bdba357138cbc44e74d9d9fed9b55f79d81f
+image_gzip_decompressed_size=11866120
+image_effective_size=12451840
+state_source_contract=0210;clock_readback;bigidvfs_readback;eem_readback;calibration_builder;clock_decoder;live_fields;four_cluster_assembler;caller_held_transition_lock;fail_closed;default_off
+owner=unregistered
+provider=none
+secure_write=none
+hardware_write=none
+device_action=none
+hardware_support_claim=NONE
+boot_candidate=false
+
+This is compile-only source-composition evidence. The adapter requires a
+future owner to supply callback implementations and hold its transition lock
+for the complete raw-readback, conversion, live-field, and snapshot sequence.
+It publishes nothing on a missing source or conversion failure and performs no
+MMIO, secure call, regulator/clock operation, firmware action, owner/provider
+registration, device boot, or CPU8/CPU9 admission. The package was fetched
+through the validated-package-only path; no artifact under `artifacts/` is
+part of the Git commit.

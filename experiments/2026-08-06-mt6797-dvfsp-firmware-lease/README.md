@@ -426,6 +426,18 @@ unregistered and default-off, and there was no hardware, firmware, device,
 CPU8, or CPU9 action. The assembler closes the conversion gap but is not an
 owner and cannot authorize a transition.
 
+Patch `0210` now provides one callback-only source adapter for the future
+owner. While that owner holds its transition lock, the adapter orders protected
+clock readback, BigiDVFS readback, EEM readback and calibration construction,
+then collects live fields and invokes the four-cluster assembler. Missing
+sources or any conversion failure abort without publishing a snapshot. The
+exact pushed revision `8b7434c` applied all 199 series entries on Buildbox,
+produced 119 DTBs, passed package checksums, and fetched the validated package;
+see the [state-source adapter Buildbox result](results/state-source-adapter-buildbox-20260809.txt).
+This narrows the integration seam but still does not implement the owner:
+callbacks remain external, registration is absent, and there was no hardware,
+firmware, device, CPU8, or CPU9 action.
+
 The next gate is still the real MT6797 EEM/PTP/thermal and PMIC/clock provider
 that supplies those inputs from efuse and live hardware, arbitrates the shared
 EEM/thermal resource, and independently proves clock/rail transition locking
