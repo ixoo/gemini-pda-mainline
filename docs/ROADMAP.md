@@ -2148,6 +2148,13 @@ The next ordered work remains source-only:
    package. See the [0219 Buildbox receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/state-owner-registration-gate-buildbox-20260809.txt).
    This confirms patch application and compilation only: the provider is still
    absent and CPU8/CPU9 admission remains closed.
+   A bounded read-only Gemian resource-owner probe confirms that vendor
+   `cspm`, `mt-eem`, `mt-ppm`, `mt-cpufreq`, and `mt_idvfs_driver` bindings are
+   present, but no authoritative generation or transition-lock endpoint is
+   exported. Existing procfs/debugfs surfaces therefore cannot serve as the
+   mainline owner. See the [resource-owner boundary probe](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/live-resource-owner-boundary-probe-20260810.txt).
+   The next provider must bridge efuse/PTP identity, mutable PPM rows, live
+   VPROC/VSRAM, and clock/rail generations under one transition lock.
    A read-only Gemian probe now confirms the runtime source boundary on the
    named device: the EEM handoff and 16-entry PPM tables are exposed, while
    one-second samples show OPP and VPROC/VSRAM changes that are not a coherent

@@ -547,6 +547,14 @@ validated package; see the [0219 Buildbox receipt](results/state-owner-registrat
 This confirms patch application and compilation only: the provider is still
 absent and CPU8/CPU9 admission remains closed.
 
+A bounded read-only Gemian resource-owner probe then confirmed that the vendor
+`cspm`, `mt-eem`, `mt-ppm`, `mt-cpufreq`, and `mt_idvfs_driver` bindings are
+present, while no authoritative generation or transition-lock endpoint is
+exported. The existing procfs/debugfs surfaces therefore cannot serve as the
+mainline owner; the sanitized result is in the [resource-owner boundary probe](results/live-resource-owner-boundary-probe-20260810.txt).
+The next provider must bridge efuse/PTP identity, mutable PPM rows, live
+VPROC/VSRAM, and clock/rail generations under one transition lock.
+
 A read-only Gemian probe then confirmed the missing runtime-owner evidence on the
 named device: `/proc/eem/eem_dump` exposes the 19-word EEM handoff and each PPM
 cluster exposes a 16-entry table, while one-second samples showed the OPP index

@@ -69,6 +69,7 @@ STATE_OWNER_SOURCE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results
 STATE_OWNER_ARBITRATION_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-arbitration-buildbox-20260809.txt"
 STATE_OWNER_ARBITRATION_FAULT_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-arbitration-fault-buildbox-20260809.txt"
 LIVE_DVFS_SOURCE_RESULT = Path(__file__).resolve().parents[1] / "results/live-dvfs-owner-source-probe-20260809.txt"
+LIVE_RESOURCE_OWNER_BOUNDARY_RESULT = Path(__file__).resolve().parents[1] / "results/live-resource-owner-boundary-probe-20260810.txt"
 STATE_OWNER_REGISTRATION_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-registration-buildbox-20260809.txt"
 STATE_OWNER_REGISTRATION_RERUN_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-registration-buildbox-rerun-20260809.txt"
 STATE_OWNER_REGISTRATION_GATE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-registration-gate-buildbox-20260809.txt"
@@ -143,6 +144,7 @@ def main() -> None:
     state_owner_arbitration_build_result = STATE_OWNER_ARBITRATION_BUILD_RESULT.read_text()
     state_owner_arbitration_fault_build_result = STATE_OWNER_ARBITRATION_FAULT_BUILD_RESULT.read_text()
     live_dvfs_source_result = LIVE_DVFS_SOURCE_RESULT.read_text()
+    live_resource_owner_boundary_result = LIVE_RESOURCE_OWNER_BOUNDARY_RESULT.read_text()
     state_owner_registration_build_result = STATE_OWNER_REGISTRATION_BUILD_RESULT.read_text()
     state_owner_registration_rerun_build_result = STATE_OWNER_REGISTRATION_RERUN_BUILD_RESULT.read_text()
     state_owner_registration_gate_build_result = STATE_OWNER_REGISTRATION_GATE_BUILD_RESULT.read_text()
@@ -1468,6 +1470,27 @@ def main() -> None:
     ):
         require(live_dvfs_source_result, needle, label)
     for needle, label in (
+        ("claim=READ_ONLY_GEMIAN_DVFSP_RESOURCE_OWNER_BOUNDARY", "live-resource-boundary-claim"),
+        ("target=gemini@192.168.1.50;transport=ssh;os=Gemian;kernel=3.18.41+;device_action=none;hardware_write=none;backup=none", "live-resource-boundary-target"),
+        ("power=usb:0;battery_status:Full;battery_capacity:100;battery_health:Good", "live-resource-boundary-power"),
+        ("cpu_online=0;cpu_possible=0-9", "live-resource-boundary-cpu-topology"),
+        ("platform_dvfsp=present;compatible=mediatek,mt6797-dvfsp;driver=cspm", "live-resource-boundary-dvfsp"),
+        ("platform_eem=present;compatible=mediatek,mt6797-eem_fsm;driver=mt-eem", "live-resource-boundary-eem"),
+        ("platform_dvfs_proc2=present;compatible=mediatek,dvfs_proc2;driver=none", "live-resource-boundary-dvfs-proc2"),
+        ("platform_ptp_idvfs=present;compatible=mediatek,idvfs;driver=mt_idvfs_driver", "live-resource-boundary-ptp"),
+        ("vendor_ppm_driver=bound;vendor_cpufreq_driver=bound", "live-resource-boundary-vendor-policy"),
+        ("readback_surfaces=eem_dump;ppm_cluster_tables;cpuhvfs_dvfsp_reg;clk_summary", "live-resource-boundary-surfaces"),
+        ("readback_payload=not_retained;procfs_and_debugfs_reads=metadata_and_hash_only", "live-resource-boundary-redaction"),
+        ("generation_endpoint=not_found", "live-resource-boundary-generation"),
+        ("transition_lock_endpoint=not_found", "live-resource-boundary-lock"),
+        ("mainline_state_owner=absent", "live-resource-boundary-mainline-owner"),
+        ("provider=none", "live-resource-boundary-no-provider"),
+        ("decision=vendor_resource_bindings_are_present_but_no_authoritative_generation_or_transition_lock_is_exported;procfs_debugfs_surfaces_cannot_register_the_mainline_owner", "live-resource-boundary-decision"),
+        ("required_next_provider=efuse_ptp_identity;mutable_ppm_rows;live_vproc_vsram;clock_rail_generation;single_transition_lock", "live-resource-boundary-next-provider"),
+        ("cpu8_cpu9_admission=closed;boot_candidate=false", "live-resource-boundary-no-admission"),
+    ):
+        require(live_resource_owner_boundary_result, needle, label)
+    for needle, label in (
         ("repeat_run_repository_commit=6c3cb4fad5a4895f6a69d7913089553b6751e34c", "readback-repeat-commit"),
         ("repeat_run_buildbox_job=6c3cb4fad5a4895f6a69d7913089553b6751e34c-dvfsp-protected-readback-m0", "readback-repeat-job"),
         ("repeat_run_status=validated", "readback-repeat-status"),
@@ -1649,6 +1672,7 @@ def main() -> None:
     print("state_owner_registration=0218;owned_registry_callbacks;identity_checked;hold_release_bound;unregister_invalidates;default_off;registered_owner=0;provider=none;no_hardware_write;device_action=none;boot_candidate=false")
     print("state_owner_registration_gate=0219;complete_snapshot_required;validated_before_publish;failure_clears_callbacks;default_off;registered_owner=0;provider=none;no_hardware_write;device_action=none;boot_candidate=false")
     print("live_dvfs_source_probe=20260809;eem_handoff_readable;ppm_tables_readable;opp_rail_state_mutable;proc_reads_nonatomic;raw_payload_redacted;owner_lock_and_generation_required;provider=none;cpu8_cpu9_admission=closed;boot_candidate=false")
+    print("live_resource_owner_boundary_probe=20260810;vendor_cspm_eem_ppm_cpufreq_idvfs_bound;mainline_owner_absent;generation_endpoint=not_found;transition_lock_endpoint=not_found;provider=none;cpu8_cpu9_admission=closed;boot_candidate=false")
     print("pcm_adapter_contract=source-only;bounded-admission-model;callback-registration-gated")
     print("clock_owner_inventory=generic_ccf_only;protected_owner_absent;A72_observer_read_only")
     print("pcm_start_contract=defined;residency_and_start_required_before_callback_registration")
