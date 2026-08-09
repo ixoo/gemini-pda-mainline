@@ -30,6 +30,7 @@ PTP_HANDOFF_PATCH = ROOT / "patches/v7.1.3/0212-nvmem-mediatek-expose-MT6797-PTP
 PTP_STATE_PATCH = ROOT / "patches/v7.1.3/0213-soc-mediatek-decode-MT6797-PTP-handoff-state.patch"
 PTP_CALIBRATION_PATCH = ROOT / "patches/v7.1.3/0214-soc-mediatek-bind-PTP-state-to-calibration-builder.patch"
 STATE_OWNER_SOURCE_PATCH = ROOT / "patches/v7.1.3/0215-soc-mediatek-add-calibrated-state-owner-source-binding.patch"
+STATE_OWNER_ARBITRATION_PATCH = ROOT / "patches/v7.1.3/0216-soc-mediatek-bind-state-owner-source-to-transition-generation.patch"
 SERIES = ROOT / "patches/series"
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
 START_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-start-contract-20260806.txt"
@@ -95,6 +96,7 @@ def main() -> None:
     ptp_state_patch = PTP_STATE_PATCH.read_text()
     ptp_calibration_patch = PTP_CALIBRATION_PATCH.read_text()
     state_owner_source_patch = STATE_OWNER_SOURCE_PATCH.read_text()
+    state_owner_arbitration_patch = STATE_OWNER_ARBITRATION_PATCH.read_text()
     design = DESIGN.read_text()
     start_result = START_RESULT.read_text()
     owner_result = OWNER_RESULT.read_text()
@@ -139,6 +141,7 @@ def main() -> None:
     ptp_state_source = ptp_state_patch[ptp_state_patch.index("diff --git"):]
     ptp_calibration_source = ptp_calibration_patch[ptp_calibration_patch.index("diff --git"):]
     state_owner_source_source = state_owner_source_patch[state_owner_source_patch.index("diff --git"):]
+    state_owner_arbitration_source = state_owner_arbitration_patch[state_owner_arbitration_patch.index("diff --git"):]
     names = [Path(line).name for line in SERIES.read_text().splitlines()
              if line and not line.startswith("#")]
 
@@ -594,6 +597,20 @@ def main() -> None:
         ("does not register the owner", "owner-source-no-registration"),
     ):
         require(state_owner_source_patch, needle, label)
+    for needle, label in (
+        ("MT6797_DVFSP_STATE_OWNER_ARBITRATION_ABI", "owner-arbitration-abi"),
+        ("struct mt6797_dvfsp_state_owner_arbitration_ops", "owner-arbitration-ops"),
+        ("int (*lock)(void *context)", "owner-arbitration-lock"),
+        ("void (*unlock)(void *context)", "owner-arbitration-unlock"),
+        ("read_generation", "owner-arbitration-generation"),
+        ("mt6797_dvfsp_arbitration_begin", "owner-arbitration-begin"),
+        ("mt6797_dvfsp_arbitration_end", "owner-arbitration-end"),
+        ("after != generation", "owner-arbitration-change-reject"),
+        ("*generation < arbitration->last_generation", "owner-arbitration-rollback-reject"),
+        ("mt6797_dvfsp_state_owner_arbitration_owner_ops_init", "owner-arbitration-dormant-ops"),
+        ("no handoff owner is registered", "owner-arbitration-no-registration"),
+    ):
+        require(state_owner_arbitration_patch, needle, label)
     bridge_added = "\n".join(
         line[1:] for line in state_source_backends_patch.splitlines()
         if line.startswith("+") and not line.startswith("+++")
@@ -608,6 +625,8 @@ def main() -> None:
                       "module_platform_driver", "cpu_up(", "secure_write"):
         if forbidden in state_owner_source_source:
             raise AssertionError(f"unexpected calibrated owner operation: {forbidden}")
+        if forbidden in state_owner_arbitration_source:
+            raise AssertionError(f"unexpected state-owner arbitration operation: {forbidden}")
     calibration_builder_added = "\n".join(
         line[1:] for line in eem_calibration_patch.splitlines()
         if line.startswith("+") and not line.startswith("+++")
@@ -1293,6 +1312,8 @@ def main() -> None:
         raise AssertionError("PTP calibration binding is not after the PTP state decoder")
     if names.index("0214-soc-mediatek-bind-PTP-state-to-calibration-builder.patch") >= names.index("0215-soc-mediatek-add-calibrated-state-owner-source-binding.patch"):
         raise AssertionError("calibrated state-owner source binding is not after PTP calibration binding")
+    if names.index("0215-soc-mediatek-add-calibrated-state-owner-source-binding.patch") >= names.index("0216-soc-mediatek-bind-state-owner-source-to-transition-generation.patch"):
+        raise AssertionError("state-owner arbitration is not after calibrated state-owner source binding")
 
     for forbidden in ("readl(", "writel(", "i2c_transfer", "regulator_enable(",
                       "regulator_disable(", "psci_ops.cpu_on", "cpu_up("):
@@ -1394,6 +1415,7 @@ def main() -> None:
     print("state_source_ptp_decode=0213;M_HW_RES1_7_9;BIG_L_2L_CCI;init_mon_required;dvfs_level;bin_spec;variant_id_required;pure;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("state_source_ptp_calibration=0214;ptp_state_required;bank_identity;init_mon;dvfs_level;bin_spec;builder_enforced;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("state_owner_source=0215;identity_callback;ptp_bound;calibration_rows;live_state;full_provenance;owner_handles;transition_mutex;dormant_registry_ops;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
+    print("state_owner_arbitration=0216;external_transition_lock;monotonic_generation;changed_generation_rejected;rollback_rejected;dormant_registry_ops;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("pcm_adapter_contract=source-only;bounded-admission-model;callback-registration-gated")
     print("clock_owner_inventory=generic_ccf_only;protected_owner_absent;A72_observer_read_only")
     print("pcm_start_contract=defined;residency_and_start_required_before_callback_registration")

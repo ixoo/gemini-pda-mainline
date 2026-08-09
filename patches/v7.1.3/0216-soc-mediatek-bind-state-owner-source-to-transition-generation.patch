@@ -1,0 +1,313 @@
+From 0000000000000000000000000000000000000216 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 10 Aug 2026 00:30:00 -0400
+Subject: [PATCH] soc: mediatek: bind state-owner source to transition generation
+
+The calibrated source binding serializes its callbacks, but its private mutex
+does not prove that a clock or rail transition is excluded from a snapshot.
+Add an explicit external transition-lock and monotonic-generation wrapper. The
+wrapper holds that lock across source readback, conversion, live-field
+assembly, and the generation check; a changed generation rejects the snapshot,
+and a generation rollback faults the source. It exposes dormant state-owner
+callbacks only and never registers them.
+
+This is an arbitration boundary, not a hardware owner. The external provider
+must supply the real clock/rail lock and generation callback; no register,
+secure, regulator, firmware, device, or CPU operation is performed here. This
+patch is experiment-only and not submission-ready.
+---
+ drivers/soc/mediatek/Makefile                         |   1 +
+ drivers/soc/mediatek/mt6797-dvfsp-state-owner-arbitration.c | 223 ++++++++++++++++++
+ include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h |  44 ++++
+ 3 files changed, 268 insertions(+)
+ create mode 100644 drivers/soc/mediatek/mt6797-dvfsp-state-owner-arbitration.c
+
+diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
+--- a/drivers/soc/mediatek/Makefile
++++ b/drivers/soc/mediatek/Makefile
+@@ -5,1 +5,2 @@
+ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-state-owner-source.o
++obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-state-owner-arbitration.o
+
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h b/include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h
+@@ -79,3 +79,47 @@ int mt6797_dvfsp_state_owner_source_owner_ops_init(
+ 	struct mt6797_dvfsp_state_owner_ops *ops);
+ 
++#define MT6797_DVFSP_STATE_OWNER_ARBITRATION_ABI	1
++
++struct mt6797_dvfsp_state_owner_arbitration_ops {
++	u32 abi;
++	int (*lock)(void *context);
++	void (*unlock)(void *context);
++	int (*read_generation)(void *context, u64 *generation);
++};
++
++struct mt6797_dvfsp_state_owner_arbitration {
++	struct mt6797_dvfsp_state_owner_source *source;
++	const struct mt6797_dvfsp_state_owner_arbitration_ops *ops;
++	void *context;
++	u64 last_generation;
++	bool initialized;
++};
++
++int mt6797_dvfsp_state_owner_arbitration_init(
++	struct mt6797_dvfsp_state_owner_arbitration *arbitration,
++	struct mt6797_dvfsp_state_owner_source *source,
++	const struct mt6797_dvfsp_state_owner_arbitration_ops *ops,
++	void *context);
++
++int mt6797_dvfsp_state_owner_arbitration_snapshot(
++	struct mt6797_dvfsp_state_owner_arbitration *arbitration,
++	struct mt6797_dvfsp_state_snapshot *snapshot);
++
++int mt6797_dvfsp_state_owner_arbitration_validate(
++	struct mt6797_dvfsp_state_owner_arbitration *arbitration,
++	const struct mt6797_dvfsp_state_snapshot *snapshot);
++
++int mt6797_dvfsp_state_owner_arbitration_identify(
++	struct mt6797_dvfsp_state_owner_arbitration *arbitration,
++	struct mt6797_dvfsp_state_owner_identity *identity);
++
++void mt6797_dvfsp_state_owner_arbitration_invalidate(
++	struct mt6797_dvfsp_state_owner_arbitration *arbitration,
++	enum mt6797_dvfsp_state_invalidation_reason reason);
++
++/* Populate dormant callbacks only; no handoff owner is registered. */
++int mt6797_dvfsp_state_owner_arbitration_owner_ops_init(
++	const struct mt6797_dvfsp_state_owner_arbitration *arbitration,
++	struct mt6797_dvfsp_state_owner_ops *ops);
++
+ #endif /* __LINUX_SOC_MEDIATEK_MT6797_DVFSP_STATE_OWNER_SOURCE_H */
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-owner-arbitration.c b/drivers/soc/mediatek/mt6797-dvfsp-state-owner-arbitration.c
+new file mode 100644
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-dvfsp-state-owner-arbitration.c
+@@ -0,0 +1,223 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Serialize the calibrated state source with the real transition owner.
++ *
++ * The caller supplies the external clock/rail lock and generation source.
++ * This wrapper performs no hardware operation and never registers a provider;
++ * it only rejects source snapshots that overlap a transition or regress in
++ * generation.
++ */
++
++#include <linux/errno.h>
++#include <linux/module.h>
++#include <linux/string.h>
++#include <linux/types.h>
++
++#include <linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h>
++
++static int mt6797_dvfsp_arbitration_check(
++	const struct mt6797_dvfsp_state_owner_arbitration *arbitration)
++{
++	if (!arbitration || !arbitration->initialized ||
++	    !arbitration->source || !arbitration->source->initialized ||
++	    !arbitration->ops || arbitration->ops->abi !=
++	    MT6797_DVFSP_STATE_OWNER_ARBITRATION_ABI ||
++	    !arbitration->ops->lock || !arbitration->ops->unlock ||
++	    !arbitration->ops->read_generation)
++		return -EINVAL;
++
++	return 0;
++}
++
++static int mt6797_dvfsp_arbitration_read_generation(
++	struct mt6797_dvfsp_state_owner_arbitration *arbitration,
++	u64 *generation)
++{
++	int ret;
++
++	ret = arbitration->ops->read_generation(arbitration->context,
++						 generation);
++	if (ret)
++		return ret;
++	if (!*generation || (arbitration->last_generation &&
++					*generation < arbitration->last_generation))
++		return -EPROTO;
++
++	return 0;
++}
++
++static int mt6797_dvfsp_arbitration_begin(
++	struct mt6797_dvfsp_state_owner_arbitration *arbitration,
++	u64 *generation)
++{
++	int ret;
++
++	ret = mt6797_dvfsp_arbitration_check(arbitration);
++	if (ret)
++		return ret;
++	ret = arbitration->ops->lock(arbitration->context);
++	if (ret)
++		return ret;
++	ret = mt6797_dvfsp_arbitration_read_generation(arbitration,
++							generation);
++	if (ret)
++		arbitration->ops->unlock(arbitration->context);
++
++	return ret;
++}
++
++static int mt6797_dvfsp_arbitration_end(
++	struct mt6797_dvfsp_state_owner_arbitration *arbitration,
++	u64 generation)
++{
++	u64 after;
++	int ret;
++
++	ret = mt6797_dvfsp_arbitration_read_generation(arbitration, &after);
++	if (!ret && after != generation)
++		ret = -EAGAIN;
++	if (!ret)
++		arbitration->last_generation = after;
++	arbitration->ops->unlock(arbitration->context);
++
++	return ret;
++}
++
++int mt6797_dvfsp_state_owner_arbitration_init(
++	struct mt6797_dvfsp_state_owner_arbitration *arbitration,
++	struct mt6797_dvfsp_state_owner_source *source,
++	const struct mt6797_dvfsp_state_owner_arbitration_ops *ops,
++	void *context)
++{
++	if (!arbitration || !source || !source->initialized || !ops ||
++	    ops->abi != MT6797_DVFSP_STATE_OWNER_ARBITRATION_ABI ||
++	    !ops->lock || !ops->unlock || !ops->read_generation)
++		return -EINVAL;
++
++	memset(arbitration, 0, sizeof(*arbitration));
++	arbitration->source = source;
++	arbitration->ops = ops;
++	arbitration->context = context;
++	arbitration->initialized = true;
++	return 0;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_state_owner_arbitration_init);
++
++int mt6797_dvfsp_state_owner_arbitration_snapshot(
++	struct mt6797_dvfsp_state_owner_arbitration *arbitration,
++	struct mt6797_dvfsp_state_snapshot *snapshot)
++{
++	u64 generation;
++	int ret;
++	int finish_ret;
++
++	if (!snapshot)
++		return -EINVAL;
++	ret = mt6797_dvfsp_arbitration_begin(arbitration, &generation);
++	if (ret)
++		return ret;
++	ret = mt6797_dvfsp_state_owner_source_snapshot(arbitration->source,
++							snapshot);
++	if (!ret && snapshot->generation != generation)
++		ret = -EAGAIN;
++	finish_ret = mt6797_dvfsp_arbitration_end(arbitration, generation);
++	if (!ret)
++		ret = finish_ret;
++
++	return ret;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_state_owner_arbitration_snapshot);
++
++int mt6797_dvfsp_state_owner_arbitration_validate(
++	struct mt6797_dvfsp_state_owner_arbitration *arbitration,
++	const struct mt6797_dvfsp_state_snapshot *snapshot)
++{
++	struct mt6797_dvfsp_state_snapshot fresh;
++	int ret;
++
++	if (!snapshot)
++		return -EINVAL;
++	ret = mt6797_dvfsp_state_owner_arbitration_snapshot(arbitration,
++							&fresh);
++	if (ret)
++		return ret;
++
++	return memcmp(&fresh, snapshot, sizeof(fresh)) ? -EAGAIN : 0;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_state_owner_arbitration_validate);
++
++int mt6797_dvfsp_state_owner_arbitration_identify(
++	struct mt6797_dvfsp_state_owner_arbitration *arbitration,
++	struct mt6797_dvfsp_state_owner_identity *identity)
++{
++	u64 generation;
++	int ret;
++	int finish_ret;
++
++	if (!identity)
++		return -EINVAL;
++	ret = mt6797_dvfsp_arbitration_begin(arbitration, &generation);
++	if (ret)
++		return ret;
++	ret = mt6797_dvfsp_state_owner_source_identify(arbitration->source,
++							identity);
++	finish_ret = mt6797_dvfsp_arbitration_end(arbitration, generation);
++
++	if (!ret)
++		ret = finish_ret;
++	return ret;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_state_owner_arbitration_identify);
++
++void mt6797_dvfsp_state_owner_arbitration_invalidate(
++	struct mt6797_dvfsp_state_owner_arbitration *arbitration,
++	 enum mt6797_dvfsp_state_invalidation_reason reason)
++{
++	if (!arbitration || !arbitration->source)
++		return;
++	mt6797_dvfsp_state_owner_source_invalidate(arbitration->source, reason);
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_state_owner_arbitration_invalidate);
++
++static int mt6797_dvfsp_state_owner_arbitration_identify_cb(
++	void *context, struct mt6797_dvfsp_state_owner_identity *identity)
++{
++	return mt6797_dvfsp_state_owner_arbitration_identify(context, identity);
++}
++
++static int mt6797_dvfsp_state_owner_arbitration_snapshot_cb(
++	void *context, struct mt6797_dvfsp_state_snapshot *snapshot)
++{
++	return mt6797_dvfsp_state_owner_arbitration_snapshot(context, snapshot);
++}
++
++static int mt6797_dvfsp_state_owner_arbitration_validate_cb(
++	void *context, const struct mt6797_dvfsp_state_snapshot *snapshot)
++{
++	return mt6797_dvfsp_state_owner_arbitration_validate(context, snapshot);
++}
++
++static void mt6797_dvfsp_state_owner_arbitration_invalidate_cb(
++	void *context, enum mt6797_dvfsp_state_invalidation_reason reason)
++{
++	mt6797_dvfsp_state_owner_arbitration_invalidate(context, reason);
++}
++
++int mt6797_dvfsp_state_owner_arbitration_owner_ops_init(
++	const struct mt6797_dvfsp_state_owner_arbitration *arbitration,
++	struct mt6797_dvfsp_state_owner_ops *ops)
++{
++	if (mt6797_dvfsp_arbitration_check(arbitration) || !ops)
++		return -EINVAL;
++
++	memset(ops, 0, sizeof(*ops));
++	ops->identify = mt6797_dvfsp_state_owner_arbitration_identify_cb;
++	ops->snapshot = mt6797_dvfsp_state_owner_arbitration_snapshot_cb;
++	ops->validate = mt6797_dvfsp_state_owner_arbitration_validate_cb;
++	ops->invalidate = mt6797_dvfsp_state_owner_arbitration_invalidate_cb;
++	return 0;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_state_owner_arbitration_owner_ops_init);
++
++MODULE_DESCRIPTION("MT6797 calibrated state-owner transition arbitration");
++MODULE_LICENSE("GPL");
+-- 
+2.43.0
