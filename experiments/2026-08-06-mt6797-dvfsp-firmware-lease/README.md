@@ -466,6 +466,16 @@ see the [Buildbox resume result](results/state-source-backend-bridge-buildbox-re
 This is reproducibility evidence only and does not change the owner/provider
 or CPU8/CPU9 gate.
 
+Patch `0213` adds the next source-backed conversion seam. It decodes the exact
+public MT6797 `M_HW_RES1`, `M_HW_RES7`, and `M_HW_RES9` bitfields into explicit
+BIG/L/2L/CCI INIT/MON, DVFS-level, and bin-selection state, and fails closed
+unless all four detector banks are enabled. It also makes the efuse-variant
+identity mandatory in the existing calibration provenance checks. The decoder
+is pure and remains callback-only: no provider registration, MMIO, secure
+operation, firmware action, device boot, or CPU8/CPU9 admission is included.
+The exact Buildbox result will be recorded after the pushed source commit is
+validated.
+
 The next gate is still the real MT6797 EEM/PTP/thermal and PMIC/clock provider
 that supplies those inputs from efuse and live hardware, arbitrates the shared
 EEM/thermal resource, and independently proves clock/rail transition locking

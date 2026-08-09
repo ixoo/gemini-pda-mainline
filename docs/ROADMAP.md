@@ -2070,6 +2070,14 @@ The next ordered work remains source-only:
    This remains compile-only: no calibration values were read from hardware,
    no firmware/rail/clock operation or device boot occurred, and CPU8/CPU9
    admission remains closed.
+   Patch `0213` now decodes the source-backed `M_HW_RES1`, `M_HW_RES7`, and
+   `M_HW_RES9` fields into explicit BIG/L/2L/CCI INIT/MON, DVFS-level, and
+   bin-selection state before the dormant calibration callback is reached.
+   The decoder is pure and fail-closed: all four detector banks must report
+   both INIT and MON enabled, and calibration provenance now requires a
+   nonzero efuse-variant identity. It adds no provider, MMIO, secure call,
+   rail/clock operation, firmware action, device boot, or CPU8/CPU9 admission;
+   Buildbox validation is the next checkpoint.
    The next ordered gate remains an independently reviewed implementation of
    the real calibrated EEM/PTP/PPM state owner with clock/rail arbitration,
    generation-producing callbacks, and runtime invalidation/transition-lock

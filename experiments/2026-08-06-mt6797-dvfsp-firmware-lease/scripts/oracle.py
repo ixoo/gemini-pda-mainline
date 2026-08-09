@@ -27,6 +27,7 @@ STATE_SNAPSHOT_PATCH = ROOT / "patches/v7.1.3/0209-soc-mediatek-assemble-protect
 STATE_SOURCE_PATCH = ROOT / "patches/v7.1.3/0210-soc-mediatek-add-protected-state-source-adapter.patch"
 STATE_SOURCE_BACKENDS_PATCH = ROOT / "patches/v7.1.3/0211-soc-mediatek-wire-protected-readbacks-to-state-source.patch"
 PTP_HANDOFF_PATCH = ROOT / "patches/v7.1.3/0212-nvmem-mediatek-expose-MT6797-PTP-handoff-source.patch"
+PTP_STATE_PATCH = ROOT / "patches/v7.1.3/0213-soc-mediatek-decode-MT6797-PTP-handoff-state.patch"
 SERIES = ROOT / "patches/series"
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
 START_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-start-contract-20260806.txt"
@@ -86,6 +87,7 @@ def main() -> None:
     state_source_patch = STATE_SOURCE_PATCH.read_text()
     state_source_backends_patch = STATE_SOURCE_BACKENDS_PATCH.read_text()
     ptp_handoff_patch = PTP_HANDOFF_PATCH.read_text()
+    ptp_state_patch = PTP_STATE_PATCH.read_text()
     design = DESIGN.read_text()
     start_result = START_RESULT.read_text()
     owner_result = OWNER_RESULT.read_text()
@@ -124,6 +126,7 @@ def main() -> None:
     state_source_source = state_source_patch[state_source_patch.index("diff --git"):]
     state_source_backends_source = state_source_backends_patch[state_source_backends_patch.index("diff --git"):]
     ptp_handoff_source = ptp_handoff_patch[ptp_handoff_patch.index("diff --git"):]
+    ptp_state_source = ptp_state_patch[ptp_state_patch.index("diff --git"):]
     names = [Path(line).name for line in SERIES.read_text().splitlines()
              if line and not line.startswith("#")]
 
@@ -525,6 +528,28 @@ def main() -> None:
         ("No platform driver is registered", "ptp-default-off"),
     ):
         require(ptp_handoff_patch, needle, label)
+    for needle, label in (
+        ("MT6797_DVFSP_PTP_STATE_ABI", "ptp-state-abi"),
+        ("MT6797_DVFSP_PTP_BANK_MASK_ALL", "ptp-state-all-banks"),
+        ("MT6797_DVFSP_PTP_BANK_BIG", "ptp-state-big-bank"),
+        ("MT6797_DVFSP_PTP_BANK_L", "ptp-state-l-bank"),
+        ("MT6797_DVFSP_PTP_BANK_2L", "ptp-state-2l-bank"),
+        ("MT6797_DVFSP_PTP_BANK_CCI", "ptp-state-cci-bank"),
+        ("struct mt6797_dvfsp_ptp_bank_state", "ptp-state-bank"),
+        ("init_enable", "ptp-state-init"),
+        ("mon_enable", "ptp-state-mon"),
+        ("dvfs_level", "ptp-state-dvfs-level"),
+        ("bin_spec", "ptp-state-bin"),
+        ("mt6797_dvfsp_ptp_decode", "ptp-state-decoder"),
+        ("handoff->m_hw_res[1]", "ptp-state-big-source"),
+        ("handoff->m_hw_res[7]", "ptp-state-l-source"),
+        ("handoff->m_hw_res[9]", "ptp-state-2l-cci-source"),
+        ("return -EAGAIN", "ptp-state-disabled-fail-closed"),
+        ("!provenance->variant_id", "ptp-state-variant-required"),
+        ("provider registration", "ptp-state-no-provider"),
+        ("no MMIO", "ptp-state-no-mmio"),
+    ):
+        require(ptp_state_patch, needle, label)
     bridge_added = "\n".join(
         line[1:] for line in state_source_backends_patch.splitlines()
         if line.startswith("+") and not line.startswith("+++")
@@ -1129,6 +1154,8 @@ def main() -> None:
         raise AssertionError("state-source backend bridge is not after the state source adapter")
     if names.index("0211-soc-mediatek-wire-protected-readbacks-to-state-source.patch") >= names.index("0212-nvmem-mediatek-expose-MT6797-PTP-handoff-source.patch"):
         raise AssertionError("PTP handoff source is not after the state-source backend bridge")
+    if names.index("0212-nvmem-mediatek-expose-MT6797-PTP-handoff-source.patch") >= names.index("0213-soc-mediatek-decode-MT6797-PTP-handoff-state.patch"):
+        raise AssertionError("PTP state decoder is not after the PTP handoff source")
 
     for forbidden in ("readl(", "writel(", "i2c_transfer", "regulator_enable(",
                       "regulator_disable(", "psci_ops.cpu_on", "cpu_up("):
@@ -1171,6 +1198,8 @@ def main() -> None:
             raise AssertionError(f"unexpected state-source bridge operation: {forbidden}")
         if forbidden in ptp_handoff_source:
             raise AssertionError(f"unexpected PTP handoff operation: {forbidden}")
+        if forbidden in ptp_state_source:
+            raise AssertionError(f"unexpected PTP state operation: {forbidden}")
     for forbidden in ("readl(", "writel(", "regulator_", "clk_", "arm_smccc",
                       "i2c_transfer", "platform_driver", "cpu_up(", "secure_write",
                       "register_cpu_notifier", "register_pm_notifier",

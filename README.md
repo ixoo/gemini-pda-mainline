@@ -57,6 +57,12 @@ full 201-entry kernel series, but does not read device calibration at runtime,
 register an owner/provider, write hardware, boot a device, or open CPU8/CPU9;
 see the [PTP handoff Buildbox result](experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/state-source-ptp-handoff-buildbox-20260809.txt).
 
+The next source-only seam decodes the public MT6797 `M_HW_RES1/7/9` detector
+fields for BIG/L/2L/CCI and requires all four INIT/MON states plus a nonzero
+efuse-variant provenance identity before calibration can proceed. It remains
+pure, default-off, and unregistered; Buildbox validation is pending and no
+device or CPU8/CPU9 action is implied.
+
 The profile-series invariant is repaired. The immediate task is the zero-write
 legacy-family driver and binding contract, not another ad hoc A72 boot. The
 exact sequence and exit criteria through isolated probe/bind/unbind and
