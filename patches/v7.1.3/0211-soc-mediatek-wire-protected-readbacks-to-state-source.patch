@@ -18,9 +18,9 @@ the owner's transition lock for the complete source snapshot.
 This is experiment-only and not submission-ready.
 ---
  drivers/soc/mediatek/Makefile                      |   1 +
- .../mediatek/mt6797-dvfsp-state-source-backends.c  | 122 ++++++++++++++++++++
- .../mediatek/mt6797-dvfsp-state-source-backends.h  |  38 +++++++
- 3 files changed, 161 insertions(+)
+ .../mediatek/mt6797-dvfsp-state-source-backends.c  | 88 ++++++++++++++++
+ .../mediatek/mt6797-dvfsp-state-source-backends.h  | 37 +++++++
+ 3 files changed, 126 insertions(+)
  create mode 100644 drivers/soc/mediatek/mt6797-dvfsp-state-source-backends.c
  create mode 100644 include/linux/soc/mediatek/mt6797-dvfsp-state-source-backends.h
 
@@ -36,7 +36,7 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-state-source-backends.h b/i
 new file mode 100644
 --- /dev/null
 +++ b/include/linux/soc/mediatek/mt6797-dvfsp-state-source-backends.h
-@@ -0,0 +1,38 @@
+@@ -0,0 +1,37 @@
 +/* SPDX-License-Identifier: GPL-2.0-only */
 +#ifndef __LINUX_SOC_MEDIATEK_MT6797_DVFSP_STATE_SOURCE_BACKENDS_H
 +#define __LINUX_SOC_MEDIATEK_MT6797_DVFSP_STATE_SOURCE_BACKENDS_H
@@ -79,7 +79,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-source-backends.c b/drivers
 new file mode 100644
 --- /dev/null
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-state-source-backends.c
-@@ -0,0 +1,122 @@
+@@ -0,0 +1,88 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/*
 + * Connect the reviewed MT6797 readback transports to the state-source seam.
