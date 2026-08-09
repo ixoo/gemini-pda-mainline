@@ -2113,6 +2113,14 @@ The next ordered work remains source-only:
    [transition-generation arbitration Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/state-owner-arbitration-buildbox-20260809.txt).
    This is still compile-only and unregistered: the real efuse/EEM/PMIC/clock
    provider and protected owner registration remain open.
+   Patch `0217` now latches arbitration faults: generation read errors,
+   zero/rollback, mid-snapshot changes, and explicit invalidation invalidate
+   the source and reject reuse until reinitialization. Revision `29ca791`
+   applies 206 canonical series entries on Buildbox, produces 119 DTBs, passes
+   package checksums, and fetches only the validated package. See the
+   [arbitration-fault Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/state-owner-arbitration-fault-buildbox-20260809.txt).
+   This remains a compile-only lifecycle guard: no real owner/provider,
+   hardware operation, device boot, or CPU8/CPU9 admission was added.
    The next ordered gate remains an independently reviewed implementation of
    the real calibrated EEM/PTP/PPM state owner with clock/rail arbitration,
    generation-producing callbacks, and runtime invalidation/transition-lock

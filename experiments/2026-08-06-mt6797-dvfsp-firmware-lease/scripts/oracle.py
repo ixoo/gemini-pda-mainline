@@ -65,6 +65,7 @@ PTP_STATE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-so
 PTP_CALIBRATION_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-source-ptp-calibration-buildbox-20260809.txt"
 STATE_OWNER_SOURCE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-source-buildbox-20260809.txt"
 STATE_OWNER_ARBITRATION_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-arbitration-buildbox-20260809.txt"
+STATE_OWNER_ARBITRATION_FAULT_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-arbitration-fault-buildbox-20260809.txt"
 
 
 def require(text: str, needle: str, label: str) -> None:
@@ -132,6 +133,7 @@ def main() -> None:
     ptp_calibration_build_result = PTP_CALIBRATION_BUILD_RESULT.read_text()
     state_owner_source_build_result = STATE_OWNER_SOURCE_BUILD_RESULT.read_text()
     state_owner_arbitration_build_result = STATE_OWNER_ARBITRATION_BUILD_RESULT.read_text()
+    state_owner_arbitration_fault_build_result = STATE_OWNER_ARBITRATION_FAULT_BUILD_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     eem_calibration_source = eem_calibration_patch[eem_calibration_patch.index("diff --git"):]
@@ -1292,6 +1294,36 @@ def main() -> None:
         ("device_boot=none", "state-owner-arbitration-build-no-boot"),
     ):
         require(state_owner_arbitration_build_result, needle, label)
+    for needle, label in (
+        ("claim=COMPILE_ONLY_MT6797_DVFSP_STATE_OWNER_ARBITRATION_FAULT_LATCH", "state-owner-arbitration-fault-build-claim"),
+        ("repository_commit=29ca7916439546ffaa834f8ffd67ee040576ae37", "state-owner-arbitration-fault-build-commit"),
+        ("origin=https://github.com/ixoo/gemini-pda-mainline.git", "state-owner-arbitration-fault-build-origin"),
+        ("repository_dirty=false", "state-owner-arbitration-fault-build-clean"),
+        ("build_backend=buildbox", "state-owner-arbitration-fault-build-backend"),
+        ("buildbox_status=validated", "state-owner-arbitration-fault-build-status"),
+        ("buildbox_job=29ca7916439546ffaa834f8ffd67ee040576ae37-dvfsp-protected-readback-m0", "state-owner-arbitration-fault-build-job"),
+        ("patch_count=206", "state-owner-arbitration-fault-build-patch-count"),
+        ("artifact=linux-7.1.3-gemini-dvfsp-protected-readback-49af5073-b6696a3c", "state-owner-arbitration-fault-build-artifact"),
+        ("source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc", "state-owner-arbitration-fault-build-source-hash"),
+        ("patchset_sha256=49af50734e103316040a014500f2c06d893b0e4bbca50710039f96a445642f42", "state-owner-arbitration-fault-build-patchset-hash"),
+        ("config_sha256=9561561944c875d1fadb5cee822fb9fa572a2e9cf82e4b8a45921e9a43828ef4", "state-owner-arbitration-fault-build-config-hash"),
+        ("image_gzip_sha256=ccaf4056cc522d4df11d9750d235dbf170916e90064ab8a993215e19a49c6fe4", "state-owner-arbitration-fault-build-image-hash"),
+        ("gemini_dtb_sha256=4ca3765d3ed1a39751c59387456de861091725321cdd5b7ec4cf715008a9d356", "state-owner-arbitration-fault-build-dtb-hash"),
+        ("dtb_count=119", "state-owner-arbitration-fault-build-dtb-count"),
+        ("sha256sums=passed", "state-owner-arbitration-fault-build-checksums"),
+        ("package_fetch=success;validated_package_only", "state-owner-arbitration-fault-build-fetch"),
+        ("fault_contract=0217;fault_latched;source_invalidated;reuse_rejected_until_reinit;clock_transition_reason", "state-owner-arbitration-fault-build-contract"),
+        ("owner=unregistered", "state-owner-arbitration-fault-build-owner-unregistered"),
+        ("provider=none", "state-owner-arbitration-fault-build-no-provider"),
+        ("secure_write=none", "state-owner-arbitration-fault-build-no-secure-write"),
+        ("hardware_write=none", "state-owner-arbitration-fault-build-no-write"),
+        ("device_action=none", "state-owner-arbitration-fault-build-no-device"),
+        ("hardware_support_claim=NONE", "state-owner-arbitration-fault-build-no-support-claim"),
+        ("boot_candidate=false", "state-owner-arbitration-fault-build-not-candidate"),
+        ("runtime_evidence=none", "state-owner-arbitration-fault-build-no-runtime"),
+        ("device_boot=none", "state-owner-arbitration-fault-build-no-boot"),
+    ):
+        require(state_owner_arbitration_fault_build_result, needle, label)
     for needle, label in (
         ("repeat_run_repository_commit=6c3cb4fad5a4895f6a69d7913089553b6751e34c", "readback-repeat-commit"),
         ("repeat_run_buildbox_job=6c3cb4fad5a4895f6a69d7913089553b6751e34c-dvfsp-protected-readback-m0", "readback-repeat-job"),

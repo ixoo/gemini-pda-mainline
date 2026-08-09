@@ -508,6 +508,16 @@ Buildbox result](results/state-owner-arbitration-buildbox-20260809.txt).
 This remains compile-only and unregistered; the real efuse/EEM/PMIC/clock
 provider and protected owner registration remain open.
 
+Patch `0217` closes the lifecycle gap in that arbitration seam: a generation
+read error, zero/rollback, mid-snapshot change, or explicit invalidation now
+latches the wrapper fault, invalidates the calibrated source, and rejects reuse
+until explicit reinitialization. Revision `29ca791` applied 206 canonical
+series entries on Buildbox, produced 119 DTBs, passed package checksums, and
+fetched only the validated package; see the [arbitration-fault Buildbox
+result](results/state-owner-arbitration-fault-buildbox-20260809.txt). This is
+still compile-only and unregistered: no real owner/provider callback, hardware
+operation, device boot, or CPU8/CPU9 admission was added.
+
 The next gate is still the real MT6797 EEM/PTP/thermal and PMIC/clock provider
 that supplies those inputs from efuse and live hardware, arbitrates the shared
 EEM/thermal resource, and independently proves clock/rail transition locking
