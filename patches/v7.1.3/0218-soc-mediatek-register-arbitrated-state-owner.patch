@@ -171,7 +171,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-owner-arbitration.c b/drive
  }
  EXPORT_SYMBOL_GPL(mt6797_dvfsp_state_owner_arbitration_owner_ops_init);
  
-@@ -319,5 +320,70 @@ int mt6797_dvfsp_state_owner_arbitration_owner_ops_init(
+@@ -307,5 +309,70 @@ int mt6797_dvfsp_state_owner_arbitration_owner_ops_init(
  }
  EXPORT_SYMBOL_GPL(mt6797_dvfsp_state_owner_arbitration_owner_ops_init);
  
