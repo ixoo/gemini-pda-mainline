@@ -459,6 +459,13 @@ fetched only the validated package; see the [Buildbox rerun result](results/stat
 This rerun changes no hardware or support status and does not advance the
 owner/provider or CPU8/CPU9 gate.
 
+The documentation head 85f3fb6 was subsequently rebuilt on Buildbox through
+the same explicit profile. It again applied all 200 series entries, produced
+119 DTBs, passed package checksums, and fetched only the validated package;
+see the [Buildbox resume result](results/state-source-backend-bridge-buildbox-resume-20260809.txt).
+This is reproducibility evidence only and does not change the owner/provider
+or CPU8/CPU9 gate.
+
 The next gate is still the real MT6797 EEM/PTP/thermal and PMIC/clock provider
 that supplies those inputs from efuse and live hardware, arbitrates the shared
 EEM/thermal resource, and independently proves clock/rail transition locking

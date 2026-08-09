@@ -2053,6 +2053,12 @@ The next ordered work remains source-only:
    fetched only the validated package; see the [Buildbox rerun result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/state-source-backend-bridge-buildbox-rerun-20260809.txt).
    This is a reproducibility confirmation only and does not change hardware
    support or open the owner/provider and CPU8/CPU9 gates.
+   The later documentation head 85f3fb6 was rebuilt through the same explicit
+   Buildbox profile, again applying all 200 canonical entries, producing 119
+   DTBs, passing package checksums, and fetching only the validated package.
+   See the [Buildbox resume result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/state-source-backend-bridge-buildbox-resume-20260809.txt).
+   This is reproducibility evidence only and does not change hardware support
+   or open the owner/provider and CPU8/CPU9 gates.
    The next ordered gate remains an independently reviewed implementation of
    the real calibrated EEM/PTP/PPM state owner with clock/rail arbitration,
    generation-producing callbacks, and runtime invalidation/transition-lock
