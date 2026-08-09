@@ -84,6 +84,16 @@ The seam is still default-off and unregistered: actual efuse/EEM/PMIC/clock
 source callbacks and protected owner registration remain open, with no
 hardware, firmware, device, or CPU8/CPU9 action.
 
+Patch `0216` binds that source to an external clock/rail transition lock and
+monotonic generation callback. It rejects a generation change during a full
+readback/conversion snapshot and rejects generation rollback, while exposing
+only dormant owner callbacks. Revision `0808526` applies 205 canonical series
+entries on Buildbox, produces 119 DTBs, passes package checksums, and fetches
+only the validated package; see the [transition-generation arbitration
+Buildbox result](experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/state-owner-arbitration-buildbox-20260809.txt).
+This is still compile-only and unregistered: the real efuse/EEM/PMIC/clock
+provider and protected owner registration remain open.
+
 The profile-series invariant is repaired. The immediate task is the zero-write
 legacy-family driver and binding contract, not another ad hoc A72 boot. The
 exact sequence and exit criteria through isolated probe/bind/unbind and

@@ -2104,6 +2104,15 @@ The next ordered work remains source-only:
    efuse/EEM, PMIC/clock, and generation-producing source callbacks plus
    protected owner registration are still the next implementation gate. No
    hardware, firmware, device, or CPU8/CPU9 action occurred.
+   Patch `0216` now binds that source to an external clock/rail transition lock
+   and monotonic generation callback. It rejects a generation change during a
+   full readback/conversion snapshot and rejects generation rollback, while
+   exposing only dormant owner callbacks. Revision `0808526` applies 205
+   canonical series entries on Buildbox, produces 119 DTBs, passes package
+   checksums, and fetches only the validated package. See the
+   [transition-generation arbitration Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/state-owner-arbitration-buildbox-20260809.txt).
+   This is still compile-only and unregistered: the real efuse/EEM/PMIC/clock
+   provider and protected owner registration remain open.
    The next ordered gate remains an independently reviewed implementation of
    the real calibrated EEM/PTP/PPM state owner with clock/rail arbitration,
    generation-producing callbacks, and runtime invalidation/transition-lock

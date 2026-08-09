@@ -498,6 +498,16 @@ package; see the [calibrated state-owner source Buildbox result](results/state-o
 The seam remains default-off and unregistered: actual efuse/EEM/PMIC/clock
 source callbacks and protected owner registration are not yet implemented.
 
+Patch `0216` binds that source to an external clock/rail transition lock and
+monotonic generation callback. It rejects a generation change during a full
+readback/conversion snapshot and rejects generation rollback, while exposing
+only dormant owner callbacks. Revision `0808526` applied 205 canonical series
+entries on Buildbox, produced 119 DTBs, passed package checksums, and fetched
+only the validated package; see the [transition-generation arbitration
+Buildbox result](results/state-owner-arbitration-buildbox-20260809.txt).
+This remains compile-only and unregistered; the real efuse/EEM/PMIC/clock
+provider and protected owner registration remain open.
+
 The next gate is still the real MT6797 EEM/PTP/thermal and PMIC/clock provider
 that supplies those inputs from efuse and live hardware, arbitrates the shared
 EEM/thermal resource, and independently proves clock/rail transition locking
