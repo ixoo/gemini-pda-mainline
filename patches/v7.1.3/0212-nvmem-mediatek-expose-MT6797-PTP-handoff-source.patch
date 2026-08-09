@@ -1,0 +1,326 @@
+From 0000000000000000000000000000000000000212 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 9 Aug 2026 18:00:00 -0400
+Subject: [PATCH] nvmem: mediatek: expose MT6797 PTP handoff source
+
+The MT6797 LK devinfo handoff contains the 19-word M_HW_RES payload consumed
+by the vendor EEM/PTP runtime. Extend the existing read-only ATAG provider
+with a separately named NVMEM cell so a future owner can prove calibration
+provenance without decoding or writing the opaque words in this patch.
+
+Thread that cell through the dormant state-source adapter as a mandatory
+read-only callback. The calibration callback receives the validated ABI and
+exact handoff words, while all calibration construction and live-state
+callbacks remain owner-supplied. No platform driver is registered, no clock,
+rail, secure, firmware, or CPU operation is added, and CPU8/CPU9 admission
+remains closed.
+
+This is experiment-only and not submission-ready.
+---
+ Documentation/devicetree/bindings/nvmem/mediatek,mt6797-atag.yaml | 14 +++++
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts                | 11 ++++
+ drivers/nvmem/mediatek-atag-devinfo.c                             | 43 ++++++++--
+ drivers/soc/mediatek/mt6797-dvfsp-state-source.c                  | 10 +++
+ include/linux/soc/mediatek/mt6797-dvfsp-ptp.h                    | 12 +++
+ include/linux/soc/mediatek/mt6797-dvfsp-state-source-backends.h  |  5 ++
+ include/linux/soc/mediatek/mt6797-dvfsp-state-source.h           |  9 +-
+ drivers/soc/mediatek/mt6797-dvfsp-state-source-backends.c        | 47 ++++++++++
+ 8 files changed, 145 insertions(+), 6 deletions(-)
+ create mode 100644 include/linux/soc/mediatek/mt6797-dvfsp-ptp.h
+
+diff --git a/Documentation/devicetree/bindings/nvmem/mediatek,mt6797-atag.yaml b/Documentation/devicetree/bindings/nvmem/mediatek,mt6797-atag.yaml
+--- a/Documentation/devicetree/bindings/nvmem/mediatek,mt6797-atag.yaml
++++ b/Documentation/devicetree/bindings/nvmem/mediatek,mt6797-atag.yaml
+@@ -38,14 +38,27 @@
+ patternProperties:
+   "^calibration-data@0$":
+     type: object
+     properties:
+       reg:
+         minItems: 1
+         maxItems: 1
+         items:
+           - items:
+               - const: 0
+               - const: 12
+     required:
+       - reg
+     additionalProperties: false
++  "^ptp-calibration-data@c$":
++    type: object
++    properties:
++      reg:
++        minItems: 1
++        maxItems: 1
++        items:
++          - items:
++              - const: 12
++              - const: 76
++    required:
++      - reg
++    additionalProperties: false
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -31,6 +31,10 @@
+ 			mt6797_thermal_calibration: calibration-data@0 {
+ 				reg = <0 12>;
+ 			};
++
++			mt6797_ptp_calibration: ptp-calibration-data@c {
++				reg = <12 76>;
++			};
+ 		};
+ 	};
+ 	memory@40000000 {
+@@ -356,5 +360,10 @@
+ &thermal {
+ 	nvmem-cells = <&mt6797_thermal_calibration>;
+ 	nvmem-cell-names = "calibration-data";
+ };
+ 
++&dvfsp {
++	nvmem-cells = <&mt6797_ptp_calibration>;
++	nvmem-cell-names = "ptp-calibration-data";
++};
++
+ &i2c0 {
+
+diff --git a/drivers/nvmem/mediatek-atag-devinfo.c b/drivers/nvmem/mediatek-atag-devinfo.c
+--- a/drivers/nvmem/mediatek-atag-devinfo.c
++++ b/drivers/nvmem/mediatek-atag-devinfo.c
+@@ -17,8 +17,13 @@
+ #define MT6797_ATAG_TOTAL_WORDS		(MT6797_ATAG_HEADER_WORDS + \
+ 					 MT6797_ATAG_PAYLOAD_WORDS + \
+ 					 MT6797_ATAG_TRAILER_WORDS)
+ #define MT6797_THERMAL_CELL_BYTES	(3 * sizeof(u32))
++#define MT6797_PTP_FIRST_PAYLOAD_WORD	51
++#define MT6797_PTP_WORDS		19
++#define MT6797_PTP_CELL_BYTES		(MT6797_PTP_WORDS * sizeof(u32))
++#define MT6797_ATAG_CELL_BYTES		(MT6797_THERMAL_CELL_BYTES + \
++					 MT6797_PTP_CELL_BYTES)
+ struct mt6797_atag_devinfo {
+-	u8 calibration[MT6797_THERMAL_CELL_BYTES];
++	u8 cells[MT6797_ATAG_CELL_BYTES];
+ };
+ static const unsigned int mt6797_thermal_word_order[] = { 32, 31, 33 };
+@@ -66,6 +70,16 @@
+-		put_unaligned_le32(value, &data->calibration[i * sizeof(u32)]);
++		put_unaligned_le32(value, &data->cells[i * sizeof(u32)]);
+ 	}
++	for (i = 0; i < MT6797_PTP_WORDS; i++) {
++		u32 value = mt6797_atag_word(property,
++					MT6797_ATAG_HEADER_WORDS +
++					MT6797_PTP_FIRST_PAYLOAD_WORD - 1 + i);
++
++		put_unaligned_le32(value,
++				   &data->cells[MT6797_THERMAL_CELL_BYTES +
++						i * sizeof(u32)]);
++	}
++
+ out:
+ 	of_node_put(chosen);
+ 	return ret;
+ }
+@@ -78,10 +95,10 @@
+ {
+ 	struct mt6797_atag_devinfo *data = context;
+
+-	if (offset > sizeof(data->calibration) ||
+-	    bytes > sizeof(data->calibration) - offset)
++	if (offset > sizeof(data->cells) ||
++	    bytes > sizeof(data->cells) - offset)
+ 		return -EINVAL;
+
+-	memcpy(value, data->calibration + offset, bytes);
++	memcpy(value, data->cells + offset, bytes);
+ 	return 0;
+ }
+@@ -92,6 +109,6 @@
+ 		.root_only = true,
+ 		.reg_read = mt6797_atag_read,
+-		.size = MT6797_THERMAL_CELL_BYTES,
++		.size = MT6797_ATAG_CELL_BYTES,
+ 		.word_size = sizeof(u32),
+ 		.stride = sizeof(u32),
+ 	};
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-ptp.h b/include/linux/soc/mediatek/mt6797-dvfsp-ptp.h
+new file mode 100644
+--- /dev/null
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-ptp.h
+@@ -0,0 +1,15 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __LINUX_SOC_MEDIATEK_MT6797_DVFSP_PTP_H
++#define __LINUX_SOC_MEDIATEK_MT6797_DVFSP_PTP_H
++
++#include <linux/types.h>
++
++#define MT6797_DVFSP_PTP_HANDOFF_ABI		1
++#define MT6797_DVFSP_PTP_HANDOFF_WORDS		19
++
++struct mt6797_dvfsp_ptp_handoff {
++	u32 abi;
++	u32 m_hw_res[MT6797_DVFSP_PTP_HANDOFF_WORDS];
++};
++
++#endif /* __LINUX_SOC_MEDIATEK_MT6797_DVFSP_PTP_H */
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-state-source.h b/include/linux/soc/mediatek/mt6797-dvfsp-state-source.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-state-source.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-state-source.h
+@@ -3,7 +3,8 @@
+ #include <linux/types.h>
+ #include <linux/soc/mediatek/mt6797-bigidvfs-backend.h>
+ #include <linux/soc/mediatek/mt6797-dvfsp-clock-state.h>
++#include <linux/soc/mediatek/mt6797-dvfsp-ptp.h>
+ #include <linux/soc/mediatek/mt6797-dvfsp-state-snapshot.h>
+ #include <linux/soc/mediatek/mt6797-eem-calibration.h>
+ #include <linux/soc/mediatek/mt6797-eem-readback.h>
+-#define MT6797_DVFSP_STATE_SOURCE_ABI		1
++#define MT6797_DVFSP_STATE_SOURCE_ABI		2
+@@ -35,8 +36,11 @@
+ 	int (*read_big)(void *context,
+ 		       struct mt6797_bigidvfs_readback *readback);
+ 	int (*read_eem)(void *context,
+ 		       struct mt6797_eem_readback *readback);
++	int (*read_ptp)(void *context,
++		       struct mt6797_dvfsp_ptp_handoff *handoff);
+ 	int (*fill_calibration)(void *context,
++				const struct mt6797_dvfsp_ptp_handoff *handoff,
+ 				const struct mt6797_eem_readback *readback,
+ 				struct mt6797_eem_calibration_input *input);
+ 	int (*fill_live)(void *context,
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-source.c b/drivers/soc/mediatek/mt6797-dvfsp-state-source.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-state-source.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-state-source.c
+@@ -19,4 +19,5 @@
+ 	if (!ops || ops->abi != MT6797_DVFSP_STATE_SOURCE_ABI ||
+ 	    !ops->read_clock || !ops->read_big || !ops->read_eem ||
++	    !ops->read_ptp ||
+ 	    !ops->fill_calibration || !ops->fill_live)
+ 		return -EINVAL;
+@@ -31,6 +31,7 @@
+ 	struct mt6797_dvfsp_clock_readback clock_readback;
+ 	struct mt6797_bigidvfs_readback big_readback;
+ 	struct mt6797_eem_readback eem_readback;
++	struct mt6797_dvfsp_ptp_handoff ptp_handoff;
+ 	struct mt6797_dvfsp_clock_state clock_state;
+ 	struct mt6797_eem_calibration_input calibration_input;
+ 	struct mt6797_dvfsp_calibration_state calibration_state;
+@@ -64,7 +65,12 @@
+ 	if (ret)
+ 		return ret;
++	memset(&ptp_handoff, 0, sizeof(ptp_handoff));
++	ret = ops->read_ptp(context, &ptp_handoff);
++	if (ret)
++		return ret;
++
+ 	memset(&calibration_input, 0, sizeof(calibration_input));
+-	ret = ops->fill_calibration(context, &eem_readback,
++	ret = ops->fill_calibration(context, &ptp_handoff, &eem_readback,
+ 					    &calibration_input);
+ 	if (ret)
+ 		return ret;
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-state-source-backends.h b/include/linux/soc/mediatek/mt6797-dvfsp-state-source-backends.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-state-source-backends.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-state-source-backends.h
+@@ -14,7 +14,8 @@
+ struct mt6797_dvfsp_state_source_devices {
+ 	struct device *clock_backend;
+ 	struct device *bigidvfs_backend;
+ 	struct device *thermal;
++	struct device *calibration_source;
+ };
+ int mt6797_dvfsp_state_source_backend_read_clock(
+ 	void *context, struct mt6797_dvfsp_clock_readback *readback);
+@@ -25,4 +27,6 @@
+ int mt6797_dvfsp_state_source_backend_read_eem(
+ 	void *context, struct mt6797_eem_readback *readback);
++int mt6797_dvfsp_state_source_backend_read_ptp(
++	void *context, struct mt6797_dvfsp_ptp_handoff *handoff);
+ /*
+  * Initialize only the three readback callbacks. The caller must still assign
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-source-backends.c b/drivers/soc/mediatek/mt6797-dvfsp-state-source-backends.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-state-source-backends.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-state-source-backends.c
+@@ -9,7 +9,10 @@
+ #include <linux/device.h>
+ #include <linux/errno.h>
+ #include <linux/kconfig.h>
++#include <linux/nvmem-consumer.h>
+ #include <linux/module.h>
++#include <linux/slab.h>
+ #include <linux/string.h>
++#include <linux/unaligned.h>
+ #include <linux/soc/mediatek/mt6797-bigidvfs-backend.h>
+ #include <linux/soc/mediatek/mt6797-dvfsp-clock-backend.h>
+@@ -55,6 +58,45 @@
+ }
+ EXPORT_SYMBOL_GPL(mt6797_dvfsp_state_source_backend_read_eem);
+
++int mt6797_dvfsp_state_source_backend_read_ptp(
++	void *context, struct mt6797_dvfsp_ptp_handoff *handoff)
++{
++	const struct mt6797_dvfsp_state_source_devices *devices = context;
++	struct nvmem_cell *cell;
++	void *buffer;
++	size_t length;
++	unsigned int i;
++
++	if (!devices || !devices->calibration_source || !handoff)
++		return -EINVAL;
++#if !IS_ENABLED(CONFIG_NVMEM_MTK_ATAG_DEVINFO)
++	return -ENODEV;
++#else
++	cell = nvmem_cell_get(devices->calibration_source,
++			      "ptp-calibration-data");
++	if (IS_ERR(cell))
++		return PTR_ERR(cell);
++
++	buffer = nvmem_cell_read(cell, &length);
++	nvmem_cell_put(cell);
++	if (IS_ERR(buffer))
++		return PTR_ERR(buffer);
++	if (length != MT6797_DVFSP_PTP_HANDOFF_WORDS * sizeof(u32)) {
++		kfree(buffer);
++		return -EINVAL;
++	}
++
++	memset(handoff, 0, sizeof(*handoff));
++	handoff->abi = MT6797_DVFSP_PTP_HANDOFF_ABI;
++	for (i = 0; i < MT6797_DVFSP_PTP_HANDOFF_WORDS; i++)
++		handoff->m_hw_res[i] =
++			get_unaligned_le32((u8 *)buffer + i * sizeof(u32));
++	kfree(buffer);
++	return 0;
++#endif
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_state_source_backend_read_ptp);
++
+ int mt6797_dvfsp_state_source_backend_ops_init(
+ 	const struct mt6797_dvfsp_state_source_devices *devices,
+ 	struct mt6797_dvfsp_state_source_ops *ops)
+@@ -63,17 +99,20 @@
+ 	if (!devices || !ops || !devices->clock_backend ||
+-	    !devices->bigidvfs_backend || !devices->thermal)
++	    !devices->bigidvfs_backend || !devices->thermal ||
++	    !devices->calibration_source)
+ 		return -EINVAL;
+ #if !IS_ENABLED(CONFIG_MTK_MT6797_DVFSP_CLOCK_BACKEND) || \
+ 	!IS_ENABLED(CONFIG_MTK_MT6797_DVFSP_BIGIDVFS_BACKEND) || \
+-	!IS_ENABLED(CONFIG_MTK_SOC_THERMAL)
++	!IS_ENABLED(CONFIG_MTK_SOC_THERMAL) || \
++	!IS_ENABLED(CONFIG_NVMEM_MTK_ATAG_DEVINFO)
+ 	return -ENODEV;
+ #else
+ 	memset(ops, 0, sizeof(*ops));
+ 	ops->abi = MT6797_DVFSP_STATE_SOURCE_ABI;
+ 	ops->read_clock = mt6797_dvfsp_state_source_backend_read_clock;
+ 	ops->read_big = mt6797_dvfsp_state_source_backend_read_big;
+ 	ops->read_eem = mt6797_dvfsp_state_source_backend_read_eem;
++	ops->read_ptp = mt6797_dvfsp_state_source_backend_read_ptp;
+ 	return 0;
+ #endif
+ }
+ EXPORT_SYMBOL_GPL(mt6797_dvfsp_state_source_backend_ops_init);
+-- 
+2.43.0
