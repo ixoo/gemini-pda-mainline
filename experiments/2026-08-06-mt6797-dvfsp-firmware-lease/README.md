@@ -518,6 +518,16 @@ result](results/state-owner-arbitration-fault-buildbox-20260809.txt). This is
 still compile-only and unregistered: no real owner/provider callback, hardware
 operation, device boot, or CPU8/CPU9 admission was added.
 
+Patch `0218` adds the explicit opt-in registration and unregistration lifecycle
+around the arbitration wrapper. It owns the callback table, binds the
+external transition hold/release callbacks, runs the existing protected
+identity check before registration, and invalidates the source before
+unregistration. Revision `340b9bd` applied 207 canonical series entries on
+Buildbox, produced 119 DTBs, passed package checksums, and fetched only the
+validated package; see the [state-owner registration Buildbox result](results/state-owner-registration-buildbox-20260809.txt).
+The default profile never calls this lifecycle: the provider remains absent,
+no hardware or device action occurred, and CPU8/CPU9 admission remains closed.
+
 A read-only Gemian probe then confirmed the missing runtime-owner evidence on the
 named device: `/proc/eem/eem_dump` exposes the 19-word EEM handoff and each PPM
 cluster exposes a 16-entry table, while one-second samples showed the OPP index
@@ -531,9 +541,9 @@ VPROC/VSRAM, PPM/membership, and EEM/PTP state snapshot.
 The next gate is still the real MT6797 EEM/PTP/thermal and PMIC/clock provider
 that supplies those inputs from efuse and live hardware, arbitrates the shared
 EEM/thermal resource, and independently proves clock/rail transition locking
-and runtime invalidation. The decoder, event ledger, and notifier binding now
-provide deterministic conversion and lifecycle boundaries, but none is an
-owner and none can authorize a transition. The protected owner still needs
-real EEM/PTP/rail state, transition-lock integration, generation-producing
-callbacks, and runtime proof; until then, the owner/provider and CPU8/CPU9
-admission remain closed.
+and runtime invalidation. The decoder, event ledger, notifier binding, and
+registration bridge now provide deterministic conversion and lifecycle
+boundaries, but none is an owner and none can authorize a transition without
+the real callbacks. The protected owner still needs real EEM/PTP/rail state,
+transition-lock integration, generation-producing callbacks, and runtime
+proof; until then, the owner/provider and CPU8/CPU9 admission remain closed.

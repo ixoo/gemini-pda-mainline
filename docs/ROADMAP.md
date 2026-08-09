@@ -2121,6 +2121,17 @@ The next ordered work remains source-only:
    [arbitration-fault Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/state-owner-arbitration-fault-buildbox-20260809.txt).
    This remains a compile-only lifecycle guard: no real owner/provider,
    hardware operation, device boot, or CPU8/CPU9 admission was added.
+   Patch `0218` now provides the explicit opt-in registration and
+   unregistration lifecycle for the arbitrated state owner. It stores the
+   callback table in the arbitration object, binds the external transition
+   hold/release callbacks, runs the existing protected identity check before
+   registration, and invalidates the source before unregistration. Revision
+   `340b9bd` applies 207 canonical series entries on Buildbox, produces 119
+   DTBs, passes package checksums, and fetches only the validated package; see
+   the [state-owner registration Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/state-owner-registration-buildbox-20260809.txt).
+   The lifecycle remains uncalled in the default profile: no provider is
+   registered, no hardware operation or device boot occurred, and CPU8/CPU9
+   admission remains closed.
    A read-only Gemian probe now confirms the runtime source boundary on the
    named device: the EEM handoff and 16-entry PPM tables are exposed, while
    one-second samples show OPP and VPROC/VSRAM changes that are not a coherent
@@ -2130,11 +2141,14 @@ The next ordered work remains source-only:
    publish one generation-tagged frequency, VPROC/VSRAM, PPM/membership, and
    EEM/PTP state snapshot.
    The next ordered gate remains an independently reviewed implementation of
-   the real calibrated EEM/PTP/PPM state owner with clock/rail arbitration,
-   generation-producing callbacks, and runtime invalidation/transition-lock
-   proof. The decoder, event ledger, notifier binding, and snapshot assembler
-   are conversion and lifecycle seams, not ownership proof. Until that provider
-   exists, the protected backends and CPU8/CPU9 admission remain closed.
+   the real calibrated EEM/PTP/PPM state provider: it must supply the actual
+   efuse-selected variant, mutable PPM rows and limits, live VPROC/VSRAM, and
+   clock/rail generation under one transition lock. The registration lifecycle
+   now exists, but it must continue to fail closed until those callbacks are
+   backed by named runtime evidence. The decoder, event ledger, notifier
+   binding, snapshot assembler, and registration bridge are conversion and
+   lifecycle seams, not hardware ownership proof. Until that provider exists,
+   the protected backends and CPU8/CPU9 admission remain closed.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and

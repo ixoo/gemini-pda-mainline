@@ -643,8 +643,8 @@ def main() -> None:
         ("mt6797_dvfsp_handoff_state_owner_unregister", "owner-registration-handoff-unregister"),
         ("mt6797_dvfsp_state_owner_arbitration_hold_cb", "owner-registration-hold-callback"),
         ("mt6797_dvfsp_state_owner_arbitration_release_cb", "owner-registration-release-callback"),
-        ("no caller invokes it in the default profile", "owner-registration-default-off"),
-        ("Registration still fails closed", "owner-registration-fail-closed"),
+        ("arbitration->registered", "owner-registration-default-state"),
+        ("!handoff || !arbitration || !arbitration->initialized", "owner-registration-fail-closed"),
     ):
         require(state_owner_registration_patch, needle, label)
     bridge_added = "\n".join(
@@ -1347,6 +1347,36 @@ def main() -> None:
         ("device_boot=none", "state-owner-arbitration-fault-build-no-boot"),
     ):
         require(state_owner_arbitration_fault_build_result, needle, label)
+    for needle, label in (
+        ("claim=COMPILE_ONLY_MT6797_DVFSP_STATE_OWNER_REGISTRATION_LIFECYCLE", "state-owner-registration-build-claim"),
+        ("repository_commit=340b9bd0e23cc3528e15428d5da8e17ecd2d822d", "state-owner-registration-build-commit"),
+        ("origin=https://github.com/ixoo/gemini-pda-mainline.git", "state-owner-registration-build-origin"),
+        ("repository_dirty=false", "state-owner-registration-build-clean"),
+        ("build_backend=buildbox", "state-owner-registration-build-backend"),
+        ("buildbox_status=validated", "state-owner-registration-build-status"),
+        ("buildbox_job=340b9bd0e23cc3528e15428d5da8e17ecd2d822d-dvfsp-protected-readback-m0", "state-owner-registration-build-job"),
+        ("patch_count=207", "state-owner-registration-build-patch-count"),
+        ("artifact=linux-7.1.3-gemini-dvfsp-protected-readback-d8a2359c-b6696a3c", "state-owner-registration-build-artifact"),
+        ("source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc", "state-owner-registration-build-source-hash"),
+        ("patchset_sha256=d8a2359c3fb193632a92a8cd004ae5568cd3f325381177d867c51882c443b894", "state-owner-registration-build-patchset-hash"),
+        ("config_sha256=9561561944c875d1fadb5cee822fb9fa572a2e9cf82e4b8a45921e9a43828ef4", "state-owner-registration-build-config-hash"),
+        ("image_gzip_sha256=ccaf4056cc522d4df11d9750d235dbf170916e90064ab8a993215e19a49c6fe4", "state-owner-registration-build-image-hash"),
+        ("gemini_dtb_sha256=4ca3765d3ed1a39751c59387456de861091725321cdd5b7ec4cf715008a9d356", "state-owner-registration-build-dtb-hash"),
+        ("dtb_count=119", "state-owner-registration-build-dtb-count"),
+        ("sha256sums=passed", "state-owner-registration-build-checksums"),
+        ("package_fetch=success;validated_package_only", "state-owner-registration-build-fetch"),
+        ("owner_registration_contract=0218;owned_registry_callbacks;identity_checked;external_transition_hold;generation_bound;unregister_invalidates;default_off", "state-owner-registration-build-contract"),
+        ("owner=unregistered", "state-owner-registration-build-owner-unregistered"),
+        ("provider=none", "state-owner-registration-build-no-provider"),
+        ("secure_write=none", "state-owner-registration-build-no-secure-write"),
+        ("hardware_write=none", "state-owner-registration-build-no-write"),
+        ("device_action=none", "state-owner-registration-build-no-device"),
+        ("hardware_support_claim=NONE", "state-owner-registration-build-no-support-claim"),
+        ("boot_candidate=false", "state-owner-registration-build-not-candidate"),
+        ("runtime_evidence=none", "state-owner-registration-build-no-runtime"),
+        ("device_boot=none", "state-owner-registration-build-no-boot"),
+    ):
+        require(state_owner_registration_build_result, needle, label)
     for needle, label in (
         ("claim=READ_ONLY_LIVE_DVFS_SOURCE_AVAILABILITY_AND_NONATOMICITY", "live-dvfs-probe-claim"),
         ("target=gemini;transport=ssh;os=Gemian;kernel=3.18.41+;device_action=none;hardware_write=none;backup=none", "live-dvfs-probe-target"),
