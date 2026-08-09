@@ -528,6 +528,19 @@ validated package; see the [state-owner registration Buildbox result](results/st
 The default profile never calls this lifecycle: the provider remains absent,
 no hardware or device action occurred, and CPU8/CPU9 admission remains closed.
 
+The clean documentation head `668a62f` was then rebuilt on Buildbox through
+the same explicit profile. It reproduced the 207-entry package, all image and
+DTB checksums, and fetched only the validated package; see the [Buildbox rerun
+receipt](results/state-owner-registration-buildbox-rerun-20260809.txt). This
+is compile-only reproducibility evidence and does not change the provider,
+hardware, device, or CPU8/CPU9 gate.
+
+Patch `0219` tightens that lifecycle boundary: the existing complete snapshot
+and validation callbacks must both succeed before the owner registry is
+published, and every failed registration clears the private callback table.
+It remains default-off and contains no hardware operation. A real calibrated
+EEM/PTP/PPM and PMIC/clock provider is still required.
+
 A read-only Gemian probe then confirmed the missing runtime-owner evidence on the
 named device: `/proc/eem/eem_dump` exposes the 19-word EEM handoff and each PPM
 cluster exposes a 16-entry table, while one-second samples showed the OPP index

@@ -1,0 +1,63 @@
+From 0000000000000000000000000000000000000219 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 10 Aug 2026 02:25:00 -0400
+Subject: [PATCH] soc: mediatek: require validated snapshot before owner
+ registration
+
+The state-owner lifecycle currently publishes the arbitration callbacks after
+the identity check, even though identity alone does not prove that a complete
+calibrated and live snapshot can be read coherently. Require the existing
+read-only snapshot and validation callbacks to succeed before publishing the
+owner registry callbacks, and clear the private callback object on every
+failure path.
+
+This is a fail-closed registration gate, not a provider. It performs no clock,
+rail, EEM, secure, firmware, or CPU operation itself and remains uncalled by
+the default profile. A real efuse/EEM/PPM/PMIC/clock provider and its external
+transition lock are still required before CPU8 or CPU9 admission.
+This patch is experiment-only and not submission-ready.
+---
+ drivers/soc/mediatek/mt6797-dvfsp-state-owner-arbitration.c | 14 +++++++++++++-
+ 1 file changed, 13 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-owner-arbitration.c b/drivers/soc/mediatek/mt6797-dvfsp-state-owner-arbitration.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-state-owner-arbitration.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-state-owner-arbitration.c
+@@ -309,5 +309,6 @@ int mt6797_dvfsp_state_owner_arbitration_register(
+ 	struct mt6797_dvfsp_handoff *handoff,
+ 	struct mt6797_dvfsp_state_owner_arbitration *arbitration)
+ {
++	struct mt6797_dvfsp_state_snapshot snapshot;
+ 	int ret;
+ 
+@@ -319,13 +320,22 @@ int mt6797_dvfsp_state_owner_arbitration_register(
+ 	ret = mt6797_dvfsp_state_owner_arbitration_owner_ops_init(
+ 		arbitration, &arbitration->owner_ops);
+ 	if (ret)
+ 		goto out_unlock;
++	memset(&snapshot, 0, sizeof(snapshot));
++	ret = mt6797_dvfsp_state_owner_arbitration_snapshot(
++		arbitration, &snapshot);
++	if (ret)
++		goto out_clear_ops;
++	ret = mt6797_dvfsp_state_owner_arbitration_validate(
++		arbitration, &snapshot);
++	if (ret)
++		goto out_clear_ops;
+ 	ret = mt6797_dvfsp_handoff_state_owner_register(
+ 		handoff, &arbitration->owner_ops, arbitration);
+ 	if (ret)
+-		goto out_unlock;
++		goto out_clear_ops;
+ 
+ 	arbitration->handoff = handoff;
+ 	arbitration->registered = true;
++	goto out_unlock;
++
++out_clear_ops:
++	memset(&arbitration->owner_ops, 0, sizeof(arbitration->owner_ops));
+ 
+ out_unlock:
+ 	mutex_unlock(&arbitration->lifecycle_lock);
+-- 
+2.43.0

@@ -33,6 +33,7 @@ STATE_OWNER_SOURCE_PATCH = ROOT / "patches/v7.1.3/0215-soc-mediatek-add-calibrat
 STATE_OWNER_ARBITRATION_PATCH = ROOT / "patches/v7.1.3/0216-soc-mediatek-bind-state-owner-source-to-transition-generation.patch"
 STATE_OWNER_ARBITRATION_FAULT_PATCH = ROOT / "patches/v7.1.3/0217-soc-mediatek-latch-transition-arbitration-faults.patch"
 STATE_OWNER_REGISTRATION_PATCH = ROOT / "patches/v7.1.3/0218-soc-mediatek-register-arbitrated-state-owner.patch"
+STATE_OWNER_REGISTRATION_GATE_PATCH = ROOT / "patches/v7.1.3/0219-soc-mediatek-require-validated-snapshot-before-registration.patch"
 SERIES = ROOT / "patches/series"
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
 START_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-start-contract-20260806.txt"
@@ -69,6 +70,7 @@ STATE_OWNER_ARBITRATION_BUILD_RESULT = Path(__file__).resolve().parents[1] / "re
 STATE_OWNER_ARBITRATION_FAULT_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-arbitration-fault-buildbox-20260809.txt"
 LIVE_DVFS_SOURCE_RESULT = Path(__file__).resolve().parents[1] / "results/live-dvfs-owner-source-probe-20260809.txt"
 STATE_OWNER_REGISTRATION_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-registration-buildbox-20260809.txt"
+STATE_OWNER_REGISTRATION_RERUN_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-registration-buildbox-rerun-20260809.txt"
 
 
 def require(text: str, needle: str, label: str) -> None:
@@ -105,6 +107,7 @@ def main() -> None:
     state_owner_arbitration_patch = STATE_OWNER_ARBITRATION_PATCH.read_text()
     state_owner_arbitration_fault_patch = STATE_OWNER_ARBITRATION_FAULT_PATCH.read_text()
     state_owner_registration_patch = STATE_OWNER_REGISTRATION_PATCH.read_text()
+    state_owner_registration_gate_patch = STATE_OWNER_REGISTRATION_GATE_PATCH.read_text()
     design = DESIGN.read_text()
     start_result = START_RESULT.read_text()
     owner_result = OWNER_RESULT.read_text()
@@ -140,6 +143,7 @@ def main() -> None:
     state_owner_arbitration_fault_build_result = STATE_OWNER_ARBITRATION_FAULT_BUILD_RESULT.read_text()
     live_dvfs_source_result = LIVE_DVFS_SOURCE_RESULT.read_text()
     state_owner_registration_build_result = STATE_OWNER_REGISTRATION_BUILD_RESULT.read_text()
+    state_owner_registration_rerun_build_result = STATE_OWNER_REGISTRATION_RERUN_BUILD_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     eem_calibration_source = eem_calibration_patch[eem_calibration_patch.index("diff --git"):]
@@ -156,6 +160,7 @@ def main() -> None:
     state_owner_arbitration_source = state_owner_arbitration_patch[state_owner_arbitration_patch.index("diff --git"):]
     state_owner_arbitration_fault_source = state_owner_arbitration_fault_patch[state_owner_arbitration_fault_patch.index("diff --git"):]
     state_owner_registration_source = state_owner_registration_patch[state_owner_registration_patch.index("diff --git"):]
+    state_owner_registration_gate_source = state_owner_registration_gate_patch[state_owner_registration_gate_patch.index("diff --git"):]
     names = [Path(line).name for line in SERIES.read_text().splitlines()
              if line and not line.startswith("#")]
 
@@ -1378,6 +1383,47 @@ def main() -> None:
     ):
         require(state_owner_registration_build_result, needle, label)
     for needle, label in (
+        ("Subject: [PATCH] soc: mediatek: require validated snapshot before", "state-owner-registration-gate-subject"),
+        ("struct mt6797_dvfsp_state_snapshot snapshot;", "state-owner-registration-gate-snapshot-storage"),
+        ("mt6797_dvfsp_state_owner_arbitration_snapshot(", "state-owner-registration-gate-snapshot"),
+        ("mt6797_dvfsp_state_owner_arbitration_validate(", "state-owner-registration-gate-validate"),
+        ("goto out_clear_ops;", "state-owner-registration-gate-failure-path"),
+        ("out_clear_ops:", "state-owner-registration-gate-clear-label"),
+        ("memset(&arbitration->owner_ops, 0, sizeof(arbitration->owner_ops));", "state-owner-registration-gate-clear-callbacks"),
+        ("A real efuse/EEM/PPM/PMIC/clock provider", "state-owner-registration-gate-no-provider"),
+    ):
+        require(state_owner_registration_gate_patch, needle, label)
+    for needle, label in (
+        ("claim=REPRODUCED_COMPILE_ONLY_MT6797_DVFSP_STATE_OWNER_REGISTRATION_LIFECYCLE", "state-owner-registration-rerun-claim"),
+        ("repository_commit=668a62fcf7d6cddd0f2a57cde695d060a0b86d65", "state-owner-registration-rerun-commit"),
+        ("origin=https://github.com/ixoo/gemini-pda-mainline.git", "state-owner-registration-rerun-origin"),
+        ("repository_dirty=false", "state-owner-registration-rerun-clean"),
+        ("build_backend=buildbox", "state-owner-registration-rerun-backend"),
+        ("buildbox_status=validated", "state-owner-registration-rerun-status"),
+        ("buildbox_job=668a62fcf7d6cddd0f2a57cde695d060a0b86d65-dvfsp-protected-readback-m0", "state-owner-registration-rerun-job"),
+        ("patch_count=207", "state-owner-registration-rerun-patch-count"),
+        ("artifact=linux-7.1.3-gemini-dvfsp-protected-readback-d8a2359c-b6696a3c", "state-owner-registration-rerun-artifact"),
+        ("source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc", "state-owner-registration-rerun-source-hash"),
+        ("patchset_sha256=d8a2359c3fb193632a92a8cd004ae5568cd3f325381177d867c51882c443b894", "state-owner-registration-rerun-patchset-hash"),
+        ("config_sha256=9561561944c875d1fadb5cee822fb9fa572a2e9cf82e4b8a45921e9a43828ef4", "state-owner-registration-rerun-config-hash"),
+        ("image_gzip_sha256=ccaf4056cc522d4df11d9750d235dbf170916e90064ab8a993215e19a49c6fe4", "state-owner-registration-rerun-image-hash"),
+        ("gemini_dtb_sha256=4ca3765d3ed1a39751c59387456de861091725321cdd5b7ec4cf715008a9d356", "state-owner-registration-rerun-dtb-hash"),
+        ("dtb_count=119", "state-owner-registration-rerun-dtb-count"),
+        ("sha256sums=passed", "state-owner-registration-rerun-checksums"),
+        ("package_fetch=success;validated_package_only", "state-owner-registration-rerun-fetch"),
+        ("owner_registration_contract=0218;owned_registry_callbacks;identity_checked;external_transition_hold;generation_bound;unregister_invalidates;default_off", "state-owner-registration-rerun-contract"),
+        ("owner=unregistered", "state-owner-registration-rerun-owner-unregistered"),
+        ("provider=none", "state-owner-registration-rerun-no-provider"),
+        ("secure_write=none", "state-owner-registration-rerun-no-secure-write"),
+        ("hardware_write=none", "state-owner-registration-rerun-no-write"),
+        ("device_action=none", "state-owner-registration-rerun-no-device"),
+        ("hardware_support_claim=NONE", "state-owner-registration-rerun-no-support-claim"),
+        ("boot_candidate=false", "state-owner-registration-rerun-not-candidate"),
+        ("runtime_evidence=none", "state-owner-registration-rerun-no-runtime"),
+        ("device_boot=none", "state-owner-registration-rerun-no-boot"),
+    ):
+        require(state_owner_registration_rerun_build_result, needle, label)
+    for needle, label in (
         ("claim=READ_ONLY_LIVE_DVFS_SOURCE_AVAILABILITY_AND_NONATOMICITY", "live-dvfs-probe-claim"),
         ("target=gemini;transport=ssh;os=Gemian;kernel=3.18.41+;device_action=none;hardware_write=none;backup=none", "live-dvfs-probe-target"),
         ("eem_endpoint=/proc/eem/eem_dump;readable=true;m_hw_res_words=19;init_modes=init1,init2;raw_payload=redacted", "live-dvfs-probe-eem"),
@@ -1461,6 +1507,8 @@ def main() -> None:
         raise AssertionError("state-owner arbitration fault latch is not after state-owner arbitration")
     if names.index("0217-soc-mediatek-latch-transition-arbitration-faults.patch") >= names.index("0218-soc-mediatek-register-arbitrated-state-owner.patch"):
         raise AssertionError("state-owner registration is not after the arbitration fault latch")
+    if names.index("0218-soc-mediatek-register-arbitrated-state-owner.patch") >= names.index("0219-soc-mediatek-require-validated-snapshot-before-registration.patch"):
+        raise AssertionError("validated registration gate is not after state-owner registration")
 
     for forbidden in ("readl(", "writel(", "i2c_transfer", "regulator_enable(",
                       "regulator_disable(", "psci_ops.cpu_on", "cpu_up("):
@@ -1499,6 +1547,8 @@ def main() -> None:
             raise AssertionError(f"unexpected state-snapshot operation: {forbidden}")
         if forbidden in state_source_source:
             raise AssertionError(f"unexpected state-source operation: {forbidden}")
+        if forbidden in state_owner_registration_gate_source:
+            raise AssertionError(f"unexpected state-owner registration gate operation: {forbidden}")
         if forbidden in state_source_backends_source:
             raise AssertionError(f"unexpected state-source bridge operation: {forbidden}")
         if forbidden in ptp_handoff_source:
@@ -1565,6 +1615,7 @@ def main() -> None:
     print("state_owner_arbitration=0216;external_transition_lock;monotonic_generation;changed_generation_rejected;rollback_rejected;dormant_registry_ops;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("state_owner_arbitration_fault=0217;fault_latched;source_invalidated;reuse_rejected_until_reinit;clock_transition_reason;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("state_owner_registration=0218;owned_registry_callbacks;identity_checked;hold_release_bound;unregister_invalidates;default_off;registered_owner=0;provider=none;no_hardware_write;device_action=none;boot_candidate=false")
+    print("state_owner_registration_gate=0219;complete_snapshot_required;validated_before_publish;failure_clears_callbacks;default_off;registered_owner=0;provider=none;no_hardware_write;device_action=none;boot_candidate=false")
     print("live_dvfs_source_probe=20260809;eem_handoff_readable;ppm_tables_readable;opp_rail_state_mutable;proc_reads_nonatomic;raw_payload_redacted;owner_lock_and_generation_required;provider=none;cpu8_cpu9_admission=closed;boot_candidate=false")
     print("pcm_adapter_contract=source-only;bounded-admission-model;callback-registration-gated")
     print("clock_owner_inventory=generic_ccf_only;protected_owner_absent;A72_observer_read_only")

@@ -2132,6 +2132,17 @@ The next ordered work remains source-only:
    The lifecycle remains uncalled in the default profile: no provider is
    registered, no hardware operation or device boot occurred, and CPU8/CPU9
    admission remains closed.
+   The clean documentation head `668a62f` was then rebuilt on Buildbox with
+   the same explicit profile; it reproduced the 207-entry package, all image
+   and DTB checksums, and fetched only the validated package. See the
+   [registration Buildbox rerun receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/state-owner-registration-buildbox-rerun-20260809.txt).
+   This is compile-only reproducibility evidence and does not change the
+   provider, hardware, device, or CPU8/CPU9 gate.
+   Patch `0219` now requires the existing complete snapshot and validation
+   callbacks to succeed before publishing the owner registry, and clears the
+   private callback table on every failed registration. It is default-off and
+   contains no hardware operation; a real calibrated EEM/PTP/PPM and
+   PMIC/clock provider is still required.
    A read-only Gemian probe now confirms the runtime source boundary on the
    named device: the EEM handoff and 16-entry PPM tables are exposed, while
    one-second samples show OPP and VPROC/VSRAM changes that are not a coherent
