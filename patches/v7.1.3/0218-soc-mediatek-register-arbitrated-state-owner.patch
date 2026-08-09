@@ -159,7 +159,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-owner-arbitration.c b/drive
 +	return ret;
 +}
 +
-@@ -300,7 +385,9 @@ int mt6797_dvfsp_state_owner_arbitration_owner_ops_init(
+@@ -300,6 +385,8 @@ int mt6797_dvfsp_state_owner_arbitration_owner_ops_init(
  	memset(ops, 0, sizeof(*ops));
  	ops->identify = mt6797_dvfsp_state_owner_arbitration_identify_cb;
  	ops->snapshot = mt6797_dvfsp_state_owner_arbitration_snapshot_cb;
