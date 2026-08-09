@@ -29,6 +29,7 @@ STATE_SOURCE_BACKENDS_PATCH = ROOT / "patches/v7.1.3/0211-soc-mediatek-wire-prot
 PTP_HANDOFF_PATCH = ROOT / "patches/v7.1.3/0212-nvmem-mediatek-expose-MT6797-PTP-handoff-source.patch"
 PTP_STATE_PATCH = ROOT / "patches/v7.1.3/0213-soc-mediatek-decode-MT6797-PTP-handoff-state.patch"
 PTP_CALIBRATION_PATCH = ROOT / "patches/v7.1.3/0214-soc-mediatek-bind-PTP-state-to-calibration-builder.patch"
+STATE_OWNER_SOURCE_PATCH = ROOT / "patches/v7.1.3/0215-soc-mediatek-add-calibrated-state-owner-source-binding.patch"
 SERIES = ROOT / "patches/series"
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
 START_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-start-contract-20260806.txt"
@@ -92,6 +93,7 @@ def main() -> None:
     ptp_handoff_patch = PTP_HANDOFF_PATCH.read_text()
     ptp_state_patch = PTP_STATE_PATCH.read_text()
     ptp_calibration_patch = PTP_CALIBRATION_PATCH.read_text()
+    state_owner_source_patch = STATE_OWNER_SOURCE_PATCH.read_text()
     design = DESIGN.read_text()
     start_result = START_RESULT.read_text()
     owner_result = OWNER_RESULT.read_text()
@@ -134,6 +136,7 @@ def main() -> None:
     ptp_handoff_source = ptp_handoff_patch[ptp_handoff_patch.index("diff --git"):]
     ptp_state_source = ptp_state_patch[ptp_state_patch.index("diff --git"):]
     ptp_calibration_source = ptp_calibration_patch[ptp_calibration_patch.index("diff --git"):]
+    state_owner_source_source = state_owner_source_patch[state_owner_source_patch.index("diff --git"):]
     names = [Path(line).name for line in SERIES.read_text().splitlines()
              if line and not line.startswith("#")]
 
@@ -571,6 +574,24 @@ def main() -> None:
         ("CPU8/CPU9 admission", "ptp-calibration-no-cpu-admission"),
     ):
         require(ptp_calibration_patch, needle, label)
+    for needle, label in (
+        ("MT6797_DVFSP_STATE_OWNER_SOURCE_ABI", "owner-source-abi"),
+        ("struct mt6797_dvfsp_state_owner_source_identity", "owner-source-identity"),
+        ("read_identity", "owner-source-identity-callback"),
+        ("fill_calibration", "owner-source-calibration-callback"),
+        ("fill_live", "owner-source-live-callback"),
+        ("invalidate", "owner-source-invalidation-callback"),
+        ("MT6797_DVFSP_STATE_PROVENANCE_SOURCE_ALL", "owner-source-full-provenance"),
+        ("input->provenance.abi", "owner-source-reject-callback-provenance"),
+        ("live->owner_handle != owner->owner_handle", "owner-source-owner-handle"),
+        ("live->transition_handle != owner->transition_handle", "owner-source-transition-handle"),
+        ("mt6797_dvfsp_state_source_snapshot", "owner-source-complete-snapshot"),
+        ("mutex_lock_interruptible", "owner-source-transition-lock"),
+        ("mt6797_dvfsp_ptp_decode", "owner-source-ptp-identity"),
+        ("mt6797_dvfsp_state_owner_source_owner_ops_init", "owner-source-dormant-ops"),
+        ("does not register the owner", "owner-source-no-registration"),
+    ):
+        require(state_owner_source_patch, needle, label)
     bridge_added = "\n".join(
         line[1:] for line in state_source_backends_patch.splitlines()
         if line.startswith("+") and not line.startswith("+++")
@@ -580,6 +601,11 @@ def main() -> None:
                       "cpu_up("):
         if forbidden in bridge_added:
             raise AssertionError(f"unexpected state-source bridge operation: {forbidden}")
+    for forbidden in ("readl(", "writel(", "regulator_", "clk_",
+                      "i2c_transfer", "arm_smccc", "platform_driver",
+                      "module_platform_driver", "cpu_up(", "secure_write"):
+        if forbidden in state_owner_source_source:
+            raise AssertionError(f"unexpected calibrated owner operation: {forbidden}")
     calibration_builder_added = "\n".join(
         line[1:] for line in eem_calibration_patch.splitlines()
         if line.startswith("+") and not line.startswith("+++")
@@ -1233,6 +1259,8 @@ def main() -> None:
         raise AssertionError("PTP state decoder is not after the PTP handoff source")
     if names.index("0213-soc-mediatek-decode-MT6797-PTP-handoff-state.patch") >= names.index("0214-soc-mediatek-bind-PTP-state-to-calibration-builder.patch"):
         raise AssertionError("PTP calibration binding is not after the PTP state decoder")
+    if names.index("0214-soc-mediatek-bind-PTP-state-to-calibration-builder.patch") >= names.index("0215-soc-mediatek-add-calibrated-state-owner-source-binding.patch"):
+        raise AssertionError("calibrated state-owner source binding is not after PTP calibration binding")
 
     for forbidden in ("readl(", "writel(", "i2c_transfer", "regulator_enable(",
                       "regulator_disable(", "psci_ops.cpu_on", "cpu_up("):
@@ -1333,6 +1361,7 @@ def main() -> None:
     print("state_source_ptp_handoff=0212;read_only_nvmem;19_word_m_hw_res;calibration_callback_input;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("state_source_ptp_decode=0213;M_HW_RES1_7_9;BIG_L_2L_CCI;init_mon_required;dvfs_level;bin_spec;variant_id_required;pure;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("state_source_ptp_calibration=0214;ptp_state_required;bank_identity;init_mon;dvfs_level;bin_spec;builder_enforced;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
+    print("state_owner_source=0215;identity_callback;ptp_bound;calibration_rows;live_state;full_provenance;owner_handles;transition_mutex;dormant_registry_ops;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("pcm_adapter_contract=source-only;bounded-admission-model;callback-registration-gated")
     print("clock_owner_inventory=generic_ccf_only;protected_owner_absent;A72_observer_read_only")
     print("pcm_start_contract=defined;residency_and_start_required_before_callback_registration")
