@@ -81,7 +81,7 @@ diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boo
  	nvmem-cell-names = "calibration-data";
  };
  
-+&dvfsp {
++&dvfsp_handoff {
 +	nvmem-cells = <&mt6797_ptp_calibration>;
 +	nvmem-cell-names = "ptp-calibration-data";
 +};
@@ -343,4 +343,3 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-source-backends.c b/drivers
  }
 -- 
 2.43.0
-
