@@ -2121,6 +2121,14 @@ The next ordered work remains source-only:
    [arbitration-fault Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/state-owner-arbitration-fault-buildbox-20260809.txt).
    This remains a compile-only lifecycle guard: no real owner/provider,
    hardware operation, device boot, or CPU8/CPU9 admission was added.
+   A read-only Gemian probe now confirms the runtime source boundary on the
+   named device: the EEM handoff and 16-entry PPM tables are exposed, while
+   one-second samples show OPP and VPROC/VSRAM changes that are not a coherent
+   frequency snapshot. Raw calibration/table payloads were redacted. See the
+   [sanitized live-source probe](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/live-dvfs-owner-source-probe-20260809.txt).
+   The next implementation must therefore hold the real transition lock and
+   publish one generation-tagged frequency, VPROC/VSRAM, PPM/membership, and
+   EEM/PTP state snapshot.
    The next ordered gate remains an independently reviewed implementation of
    the real calibrated EEM/PTP/PPM state owner with clock/rail arbitration,
    generation-producing callbacks, and runtime invalidation/transition-lock

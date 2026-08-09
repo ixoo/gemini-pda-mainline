@@ -518,6 +518,16 @@ result](results/state-owner-arbitration-fault-buildbox-20260809.txt). This is
 still compile-only and unregistered: no real owner/provider callback, hardware
 operation, device boot, or CPU8/CPU9 admission was added.
 
+A read-only Gemian probe then confirmed the missing runtime-owner evidence on the
+named device: `/proc/eem/eem_dump` exposes the 19-word EEM handoff and each PPM
+cluster exposes a 16-entry table, while one-second samples showed the OPP index
+and VPROC/VSRAM changing independently of the reported frequency. The reads
+were not atomic and the raw EEM/PPM payloads were not retained; see the
+[sanitized live-source probe](results/live-dvfs-owner-source-probe-20260809.txt).
+This makes the next implementation requirement concrete: a real owner must
+hold the transition lock and publish one generation-tagged frequency,
+VPROC/VSRAM, PPM/membership, and EEM/PTP state snapshot.
+
 The next gate is still the real MT6797 EEM/PTP/thermal and PMIC/clock provider
 that supplies those inputs from efuse and live hardware, arbitrates the shared
 EEM/thermal resource, and independently proves clock/rail transition locking

@@ -66,6 +66,7 @@ PTP_CALIBRATION_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/st
 STATE_OWNER_SOURCE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-source-buildbox-20260809.txt"
 STATE_OWNER_ARBITRATION_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-arbitration-buildbox-20260809.txt"
 STATE_OWNER_ARBITRATION_FAULT_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-arbitration-fault-buildbox-20260809.txt"
+LIVE_DVFS_SOURCE_RESULT = Path(__file__).resolve().parents[1] / "results/live-dvfs-owner-source-probe-20260809.txt"
 
 
 def require(text: str, needle: str, label: str) -> None:
@@ -134,6 +135,7 @@ def main() -> None:
     state_owner_source_build_result = STATE_OWNER_SOURCE_BUILD_RESULT.read_text()
     state_owner_arbitration_build_result = STATE_OWNER_ARBITRATION_BUILD_RESULT.read_text()
     state_owner_arbitration_fault_build_result = STATE_OWNER_ARBITRATION_FAULT_BUILD_RESULT.read_text()
+    live_dvfs_source_result = LIVE_DVFS_SOURCE_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     eem_calibration_source = eem_calibration_patch[eem_calibration_patch.index("diff --git"):]
@@ -1325,6 +1327,18 @@ def main() -> None:
     ):
         require(state_owner_arbitration_fault_build_result, needle, label)
     for needle, label in (
+        ("claim=READ_ONLY_LIVE_DVFS_SOURCE_AVAILABILITY_AND_NONATOMICITY", "live-dvfs-probe-claim"),
+        ("target=gemini;transport=ssh;os=Gemian;kernel=3.18.41+;device_action=none;hardware_write=none;backup=none", "live-dvfs-probe-target"),
+        ("eem_endpoint=/proc/eem/eem_dump;readable=true;m_hw_res_words=19;init_modes=init1,init2;raw_payload=redacted", "live-dvfs-probe-eem"),
+        ("ppm_endpoint=/proc/ppm/dump_cluster_{0,1,2}_dvfs_table;readable=true;entries_per_cluster=16;table_values=redacted", "live-dvfs-probe-ppm"),
+        ("sample_spacing=one_second;read_order=oppidx_then_frequency_then_voltage;atomicity=not_proven", "live-dvfs-probe-spacing"),
+        ("decision=runtime_opp_and_rail_state_is_mutable_and_proc_reads_are_not_a_coherent_snapshot", "live-dvfs-probe-decision"),
+        ("required_owner_contract=single_transition_lock;generation_before_and_after;live_frequency_vproc_vsram_ppm_membership_from_one_owner", "live-dvfs-probe-owner-contract"),
+        ("calibration_data=not_recorded;raw_eem_and_ppm_values=redacted", "live-dvfs-probe-redaction"),
+        ("provider=none;cpu8_cpu9_admission=closed;boot_candidate=false", "live-dvfs-probe-no-admission"),
+    ):
+        require(live_dvfs_source_result, needle, label)
+    for needle, label in (
         ("repeat_run_repository_commit=6c3cb4fad5a4895f6a69d7913089553b6751e34c", "readback-repeat-commit"),
         ("repeat_run_buildbox_job=6c3cb4fad5a4895f6a69d7913089553b6751e34c-dvfsp-protected-readback-m0", "readback-repeat-job"),
         ("repeat_run_status=validated", "readback-repeat-status"),
@@ -1497,6 +1511,7 @@ def main() -> None:
     print("state_owner_source=0215;identity_callback;ptp_bound;calibration_rows;live_state;full_provenance;owner_handles;transition_mutex;dormant_registry_ops;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("state_owner_arbitration=0216;external_transition_lock;monotonic_generation;changed_generation_rejected;rollback_rejected;dormant_registry_ops;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("state_owner_arbitration_fault=0217;fault_latched;source_invalidated;reuse_rejected_until_reinit;clock_transition_reason;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
+    print("live_dvfs_source_probe=20260809;eem_handoff_readable;ppm_tables_readable;opp_rail_state_mutable;proc_reads_nonatomic;raw_payload_redacted;owner_lock_and_generation_required;provider=none;cpu8_cpu9_admission=closed;boot_candidate=false")
     print("pcm_adapter_contract=source-only;bounded-admission-model;callback-registration-gated")
     print("clock_owner_inventory=generic_ccf_only;protected_owner_absent;A72_observer_read_only")
     print("pcm_start_contract=defined;residency_and_start_required_before_callback_registration")

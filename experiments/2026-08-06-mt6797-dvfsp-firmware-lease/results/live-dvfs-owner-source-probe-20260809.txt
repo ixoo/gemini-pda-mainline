@@ -1,0 +1,23 @@
+# Live Gemian runtime source probe
+
+Date: 2026-08-09 America/New_York
+
+claim=READ_ONLY_LIVE_DVFS_SOURCE_AVAILABILITY_AND_NONATOMICITY
+target=gemini;transport=ssh;os=Gemian;kernel=3.18.41+;device_action=none;hardware_write=none;backup=none
+cpu_possible=0-9;cpu_online=0;online_count=1
+eem_endpoint=/proc/eem/eem_dump;readable=true;m_hw_res_words=19;init_modes=init1,init2;raw_payload=redacted
+ppm_endpoint=/proc/ppm/dump_cluster_{0,1,2}_dvfs_table;readable=true;entries_per_cluster=16;table_values=redacted
+voltage_endpoint=/proc/cpufreq/cpufreq_volt;frequency_endpoint=/proc/cpufreq/cpufreq_freq;opp_endpoint=/proc/cpufreq/cpufreq_oppidx
+sample_a_oppidx=10;sample_a_frequency_khz=806000;sample_a_vproc_uv=880000;sample_a_vsram_uv=1000000
+sample_b_oppidx=12;sample_b_frequency_khz=624000;sample_b_vproc_uv=1000000;sample_b_vsram_uv=1100000
+sample_c_oppidx=12;sample_c_frequency_khz=624000;sample_c_vproc_uv=820000;sample_c_vsram_uv=1000000
+sample_spacing=one_second;read_order=oppidx_then_frequency_then_voltage;atomicity=not_proven
+decision=runtime_opp_and_rail_state_is_mutable_and_proc_reads_are_not_a_coherent_snapshot
+required_owner_contract=single_transition_lock;generation_before_and_after;live_frequency_vproc_vsram_ppm_membership_from_one_owner
+calibration_data=not_recorded;raw_eem_and_ppm_values=redacted
+provider=none;cpu8_cpu9_admission=closed;boot_candidate=false
+
+The endpoint availability and changing samples are hardware/runtime evidence,
+not support for a mainline provider. The different values are deliberately
+retained only as bounded state observations; the EEM payload and PPM table
+contents remain redacted. These reads did not change device state.
