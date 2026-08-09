@@ -1,0 +1,39 @@
+# MT6797 protected readback source bridge Buildbox validation
+
+date_utc=2026-08-09T19:53:04Z
+claim=COMPILE_ONLY_MT6797_DVFSP_PROTECTED_READBACK_SOURCE_BRIDGE
+repository_commit=e962efb26821d79f7e55a29a64b0dbd8ba9b7217
+origin=https://github.com/ixoo/gemini-pda-mainline.git
+build_backend=buildbox
+buildbox_status=validated
+buildbox_job=e962efb26821d79f7e55a29a64b0dbd8ba9b7217-dvfsp-protected-readback-m0
+artifact=linux-7.1.3-gemini-dvfsp-protected-readback-a259275d-b6696a3c
+patch_count=200
+dtb_count=119
+sha256sums=passed
+package_fetch=success;validated_package_only
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=a259275dd16641314a3ab9a6a15a93cd2285ff7c4617893c0a2e92ef016166a4
+config_sha256=9561561944c875d1fadb5cee822fb9fa572a2e9cf82e4b8a45921e9a43828ef4
+image_sha256=542218ccf7fd4620ca88a206f0e4ca157f75314dc9d10c82ad729f4525609bae
+image_gzip_sha256=506106d18bbd9a159c08f76933783753392dd33addfc3b99d278e758a881de85
+system_map_sha256=a8f877e11dbe64d0486b0bdb115851a4feecac56046cc2a36182493f355bc121
+gemini_dtb_sha256=105a83069d42221539050ca968ea5156bdeed948ae88881429678423c43140bd
+build_provenance_sha256=6f34e1f307db4a47e6c9c340595ee7bce1da0e6a41f0103d8e34c5e50d50cec4
+kernel_manifest_sha256=684b307f72362ddc1eadbfef761b6fc2f939266ef38b4ffda01ec6f32671f5fd
+bridge_contract=0211;caller_owned_device_tuple;clock_readback;bigidvfs_readback;eem_readback;missing_device_fail_closed;missing_backend_config_fail_closed;calibration_live_callbacks_required;no_registration
+owner=unregistered
+provider=none
+secure_write=none
+hardware_write=none
+device_action=none
+hardware_support_claim=NONE
+boot_candidate=false
+
+This compile-only result validates the 0211 bridge from caller-owned clock,
+BigiDVFS, and thermal devices to the existing protected readback transports.
+The bridge retains no device references and initializes only the three raw-read
+callbacks. Calibration-table and live-state callbacks remain mandatory owner
+inputs, so this patch cannot manufacture a provider or enable CPU8/CPU9. No
+platform driver, owner/provider registration, direct MMIO, secure write,
+firmware action, device boot, or hardware-support claim occurred.

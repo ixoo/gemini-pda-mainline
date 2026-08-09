@@ -2036,6 +2036,17 @@ The next ordered work remains source-only:
    compile-only: callbacks are external, no owner/provider is registered, and
    no hardware, firmware, device, or CPU8/CPU9 action occurred. See the
    [state-source adapter Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/state-source-adapter-buildbox-20260809.txt).
+   Patch `0211` now makes the three readback inputs concrete: a caller-owned
+   device tuple feeds the existing protected clock, BigiDVFS, and thermal EEM
+   transports into that adapter. Initialization fails closed for missing
+   devices or disabled backend configuration, retains no device references,
+   and leaves calibration-table and live-state callbacks mandatory for the
+   eventual owner. Revision `e962efb` applies all 200 canonical entries on
+   Buildbox, produces 119 DTBs, passes package checksums, and has its validated
+   package fetched. This remains compile-only: no provider/platform driver is
+   registered, and no direct MMIO, secure write, firmware, device, or CPU8/CPU9
+   action occurred. See the [source-backend bridge Buildbox
+   result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/state-source-backend-bridge-buildbox-20260809.txt).
    The next ordered gate remains an independently reviewed implementation of
    the real calibrated EEM/PTP/PPM state owner with clock/rail arbitration,
    generation-producing callbacks, and runtime invalidation/transition-lock

@@ -438,6 +438,20 @@ This narrows the integration seam but still does not implement the owner:
 callbacks remain external, registration is absent, and there was no hardware,
 firmware, device, CPU8, or CPU9 action.
 
+Patch `0211` now wires the existing clock, BigiDVFS, and thermal EEM readback
+transports into that source adapter through a caller-owned device tuple. The
+bridge fails closed for an incomplete tuple or disabled backend configuration,
+retains no device references, and initializes only the three raw-read
+callbacks; calibration-table and live-state callbacks remain mandatory inputs
+from the eventual owner. Revision `e962efb` applied all 200 series entries on
+Buildbox, produced 119 DTBs, passed package checksums, and fetched the
+validated package; see the [source-backend bridge Buildbox result](results/state-source-backend-bridge-buildbox-20260809.txt).
+This is still compile-only: no owner/provider registration, platform driver,
+direct MMIO, secure write, firmware action, device boot, or CPU8/CPU9 admission
+occurred. The remaining gate is the real calibrated EEM/PTP/PPM and PMIC/clock
+owner that supplies calibration and live state while arbitrating transitions
+and generation invalidation.
+
 The next gate is still the real MT6797 EEM/PTP/thermal and PMIC/clock provider
 that supplies those inputs from efuse and live hardware, arbitrates the shared
 EEM/thermal resource, and independently proves clock/rail transition locking
