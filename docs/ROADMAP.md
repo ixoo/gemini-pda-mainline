@@ -2148,6 +2148,12 @@ The next ordered work remains source-only:
    package. See the [0219 Buildbox receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/state-owner-registration-gate-buildbox-20260809.txt).
    This confirms patch application and compilation only: the provider is still
    absent and CPU8/CPU9 admission remains closed.
+   Clean follow-up head `4e7c502` was then rebuilt with the same explicit
+   profile, reproducing the same 208-entry package and checksums and fetching
+   only the validated package. See the [Buildbox resume receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/state-owner-registration-gate-buildbox-resume-20260810.txt).
+   This remains compile-only evidence: no provider or hardware support claim
+   was added, no device action occurred, and CPU8/CPU9 admission remains
+   closed.
    A bounded read-only Gemian resource-owner probe confirms that vendor
    `cspm`, `mt-eem`, `mt-ppm`, `mt-cpufreq`, and `mt_idvfs_driver` bindings are
    present, but no authoritative generation or transition-lock endpoint is

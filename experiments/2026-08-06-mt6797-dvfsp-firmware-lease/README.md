@@ -547,6 +547,12 @@ validated package; see the [0219 Buildbox receipt](results/state-owner-registrat
 This confirms patch application and compilation only: the provider is still
 absent and CPU8/CPU9 admission remains closed.
 
+The clean follow-up head `4e7c502` was rebuilt on Buildbox with the same
+explicit profile. It reproduced the same 208-entry package and checksums, and
+fetched only the validated package; see the [Buildbox resume receipt](results/state-owner-registration-gate-buildbox-resume-20260810.txt).
+This remains compile-only evidence: the provider is absent, no device action
+occurred, and CPU8/CPU9 admission remains closed.
+
 A bounded read-only Gemian resource-owner probe then confirmed that the vendor
 `cspm`, `mt-eem`, `mt-ppm`, `mt-cpufreq`, and `mt_idvfs_driver` bindings are
 present, while no authoritative generation or transition-lock endpoint is
