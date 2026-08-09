@@ -18,7 +18,7 @@ transition lock are still required before CPU8 or CPU9 admission.
 This patch is experiment-only and not submission-ready.
 ---
  drivers/soc/mediatek/mt6797-dvfsp-state-owner-arbitration.c | 14 +++++++++++++-
- 1 file changed, 13 insertions(+), 1 deletion(-)
+ 1 file changed, 14 insertions(+), 1 deletion(-)
 
 diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-owner-arbitration.c b/drivers/soc/mediatek/mt6797-dvfsp-state-owner-arbitration.c
 --- a/drivers/soc/mediatek/mt6797-dvfsp-state-owner-arbitration.c
@@ -30,7 +30,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-owner-arbitration.c b/drive
 +	struct mt6797_dvfsp_state_snapshot snapshot;
  	int ret;
  
-@@ -319,13 +320,22 @@ int mt6797_dvfsp_state_owner_arbitration_register(
+@@ -319,14 +320,27 @@ int mt6797_dvfsp_state_owner_arbitration_register(
  	ret = mt6797_dvfsp_state_owner_arbitration_owner_ops_init(
  		arbitration, &arbitration->owner_ops);
  	if (ret)
