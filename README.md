@@ -60,8 +60,11 @@ see the [PTP handoff Buildbox result](experiments/2026-08-06-mt6797-dvfsp-firmwa
 The next source-only seam decodes the public MT6797 `M_HW_RES1/7/9` detector
 fields for BIG/L/2L/CCI and requires all four INIT/MON states plus a nonzero
 efuse-variant provenance identity before calibration can proceed. It remains
-pure, default-off, and unregistered; Buildbox validation is pending and no
-device or CPU8/CPU9 action is implied.
+pure, default-off, and unregistered. Revision `e335ba8` applies all 202
+canonical entries on Buildbox, produces 119 DTBs, passes package checksums,
+and fetches only the validated package; see the [PTP state decoder Buildbox
+result](experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/state-source-ptp-decode-buildbox-20260809.txt).
+No runtime calibration was read and no device or CPU8/CPU9 action is implied.
 
 The profile-series invariant is repaired. The immediate task is the zero-write
 legacy-family driver and binding contract, not another ad hoc A72 boot. The

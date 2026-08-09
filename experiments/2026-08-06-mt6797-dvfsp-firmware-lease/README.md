@@ -473,8 +473,12 @@ unless all four detector banks are enabled. It also makes the efuse-variant
 identity mandatory in the existing calibration provenance checks. The decoder
 is pure and remains callback-only: no provider registration, MMIO, secure
 operation, firmware action, device boot, or CPU8/CPU9 admission is included.
-The exact Buildbox result will be recorded after the pushed source commit is
-validated.
+Revision `e335ba8` applies all 202 canonical entries on Buildbox, compiles the
+Gemini DTB and full arm64 image, produces 119 DTBs, passes package checksums,
+and fetches only the validated package; see the [PTP state decoder Buildbox
+result](results/state-source-ptp-decode-buildbox-20260809.txt). This is still
+compile-only: no runtime calibration was read and no hardware, firmware,
+device, or CPU8/CPU9 action occurred.
 
 The next gate is still the real MT6797 EEM/PTP/thermal and PMIC/clock provider
 that supplies those inputs from efuse and live hardware, arbitrates the shared

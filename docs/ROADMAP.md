@@ -2077,7 +2077,12 @@ The next ordered work remains source-only:
    both INIT and MON enabled, and calibration provenance now requires a
    nonzero efuse-variant identity. It adds no provider, MMIO, secure call,
    rail/clock operation, firmware action, device boot, or CPU8/CPU9 admission;
-   Buildbox validation is the next checkpoint.
+   revision `e335ba8` applies all 202 canonical entries on Buildbox, compiles
+   the Gemini DTB and full arm64 image, produces 119 DTBs, passes package
+   checksums, and fetches only the validated package. See the [PTP state
+   decoder Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/state-source-ptp-decode-buildbox-20260809.txt).
+   This remains compile-only: no runtime calibration was read and no hardware,
+   firmware, device, or CPU8/CPU9 action occurred.
    The next ordered gate remains an independently reviewed implementation of
    the real calibrated EEM/PTP/PPM state owner with clock/rail arbitration,
    generation-producing callbacks, and runtime invalidation/transition-lock

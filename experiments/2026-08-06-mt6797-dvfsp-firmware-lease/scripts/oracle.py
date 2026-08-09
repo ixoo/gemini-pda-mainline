@@ -57,6 +57,7 @@ STATE_SNAPSHOT_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/sta
 STATE_SOURCE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-source-adapter-buildbox-20260809.txt"
 STATE_SOURCE_BACKENDS_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-source-backend-bridge-buildbox-20260809.txt"
 PTP_HANDOFF_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-source-ptp-handoff-buildbox-20260809.txt"
+PTP_STATE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-source-ptp-decode-buildbox-20260809.txt"
 
 
 def require(text: str, needle: str, label: str) -> None:
@@ -116,6 +117,7 @@ def main() -> None:
     state_source_build_result = STATE_SOURCE_BUILD_RESULT.read_text()
     state_source_backends_build_result = STATE_SOURCE_BACKENDS_BUILD_RESULT.read_text()
     ptp_handoff_build_result = PTP_HANDOFF_BUILD_RESULT.read_text()
+    ptp_state_build_result = PTP_STATE_BUILD_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     eem_calibration_source = eem_calibration_patch[eem_calibration_patch.index("diff --git"):]
@@ -1095,6 +1097,30 @@ def main() -> None:
     ):
         require(ptp_handoff_build_result, needle, label)
     for needle, label in (
+        ("claim=COMPILE_ONLY_MT6797_DVFSP_PTP_STATE_DECODER", "ptp-state-build-claim"),
+        ("repository_commit=e335ba84da3edae756e7d713d68def30aaf8bfac", "ptp-state-build-commit"),
+        ("origin=https://github.com/ixoo/gemini-pda-mainline.git", "ptp-state-build-origin"),
+        ("repository_dirty=false", "ptp-state-build-clean"),
+        ("build_backend=buildbox", "ptp-state-build-backend"),
+        ("buildbox_status=validated", "ptp-state-build-status"),
+        ("buildbox_job=e335ba84da3edae756e7d713d68def30aaf8bfac-dvfsp-protected-readback-m0", "ptp-state-build-job"),
+        ("patch_count=202", "ptp-state-build-patch-count"),
+        ("artifact=linux-7.1.3-gemini-dvfsp-protected-readback-1d3fee21-b6696a3c", "ptp-state-build-artifact"),
+        ("dtb_count=119", "ptp-state-build-dtb-count"),
+        ("sha256sums=passed", "ptp-state-build-checksums"),
+        ("package_fetch=success;validated_package_only", "ptp-state-build-fetch"),
+        ("ptp_state_contract=0213;M_HW_RES1_7_9;BIG_L_2L_CCI;init_mon_required;dvfs_level;bin_spec;variant_id_required;pure;default_off", "ptp-state-build-contract"),
+        ("owner=unregistered", "ptp-state-build-owner-unregistered"),
+        ("provider=none", "ptp-state-build-no-provider"),
+        ("secure_write=none", "ptp-state-build-no-secure-write"),
+        ("hardware_write=none", "ptp-state-build-no-write"),
+        ("device_action=none", "ptp-state-build-no-device"),
+        ("hardware_support_claim=NONE", "ptp-state-build-no-support-claim"),
+        ("boot_candidate=false", "ptp-state-build-not-candidate"),
+        ("runtime_evidence=none", "ptp-state-build-no-runtime"),
+    ):
+        require(ptp_state_build_result, needle, label)
+    for needle, label in (
         ("repeat_run_repository_commit=6c3cb4fad5a4895f6a69d7913089553b6751e34c", "readback-repeat-commit"),
         ("repeat_run_buildbox_job=6c3cb4fad5a4895f6a69d7913089553b6751e34c-dvfsp-protected-readback-m0", "readback-repeat-job"),
         ("repeat_run_status=validated", "readback-repeat-status"),
@@ -1252,6 +1278,7 @@ def main() -> None:
     print("state_source_adapter=0210;clock_readback;bigidvfs_readback;eem_readback;calibration_builder;clock_decoder;live_fields;four_cluster_assembler;caller_held_transition_lock;fail_closed;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("state_source_backends=0211;caller_owned_device_tuple;clock_readback;bigidvfs_readback;eem_readback;calibration_live_callbacks_required;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("state_source_ptp_handoff=0212;read_only_nvmem;19_word_m_hw_res;calibration_callback_input;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
+    print("state_source_ptp_decode=0213;M_HW_RES1_7_9;BIG_L_2L_CCI;init_mon_required;dvfs_level;bin_spec;variant_id_required;pure;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("pcm_adapter_contract=source-only;bounded-admission-model;callback-registration-gated")
     print("clock_owner_inventory=generic_ccf_only;protected_owner_absent;A72_observer_read_only")
     print("pcm_start_contract=defined;residency_and_start_required_before_callback_registration")
