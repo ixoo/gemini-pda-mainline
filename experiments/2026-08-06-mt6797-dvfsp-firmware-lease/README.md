@@ -541,6 +541,12 @@ published, and every failed registration clears the private callback table.
 It remains default-off and contains no hardware operation. A real calibrated
 EEM/PTP/PPM and PMIC/clock provider is still required.
 
+The corrected patch revision `accd595` applied all 208 canonical entries on
+Buildbox, produced 119 DTBs, passed the package checksums, and fetched only the
+validated package; see the [0219 Buildbox receipt](results/state-owner-registration-gate-buildbox-20260809.txt).
+This confirms patch application and compilation only: the provider is still
+absent and CPU8/CPU9 admission remains closed.
+
 A read-only Gemian probe then confirmed the missing runtime-owner evidence on the
 named device: `/proc/eem/eem_dump` exposes the 19-word EEM handoff and each PPM
 cluster exposes a 16-entry table, while one-second samples showed the OPP index

@@ -2143,6 +2143,11 @@ The next ordered work remains source-only:
    private callback table on every failed registration. It is default-off and
    contains no hardware operation; a real calibrated EEM/PTP/PPM and
    PMIC/clock provider is still required.
+   Corrected revision `accd595` applies all 208 canonical entries on Buildbox,
+   produces 119 DTBs, passes package checksums, and fetches only the validated
+   package. See the [0219 Buildbox receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/state-owner-registration-gate-buildbox-20260809.txt).
+   This confirms patch application and compilation only: the provider is still
+   absent and CPU8/CPU9 admission remains closed.
    A read-only Gemian probe now confirms the runtime source boundary on the
    named device: the EEM handoff and 16-entry PPM tables are exposed, while
    one-second samples show OPP and VPROC/VSRAM changes that are not a coherent

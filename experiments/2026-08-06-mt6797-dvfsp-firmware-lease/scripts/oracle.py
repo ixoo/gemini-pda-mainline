@@ -71,6 +71,7 @@ STATE_OWNER_ARBITRATION_FAULT_BUILD_RESULT = Path(__file__).resolve().parents[1]
 LIVE_DVFS_SOURCE_RESULT = Path(__file__).resolve().parents[1] / "results/live-dvfs-owner-source-probe-20260809.txt"
 STATE_OWNER_REGISTRATION_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-registration-buildbox-20260809.txt"
 STATE_OWNER_REGISTRATION_RERUN_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-registration-buildbox-rerun-20260809.txt"
+STATE_OWNER_REGISTRATION_GATE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-registration-gate-buildbox-20260809.txt"
 
 
 def require(text: str, needle: str, label: str) -> None:
@@ -144,6 +145,7 @@ def main() -> None:
     live_dvfs_source_result = LIVE_DVFS_SOURCE_RESULT.read_text()
     state_owner_registration_build_result = STATE_OWNER_REGISTRATION_BUILD_RESULT.read_text()
     state_owner_registration_rerun_build_result = STATE_OWNER_REGISTRATION_RERUN_BUILD_RESULT.read_text()
+    state_owner_registration_gate_build_result = STATE_OWNER_REGISTRATION_GATE_BUILD_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     eem_calibration_source = eem_calibration_patch[eem_calibration_patch.index("diff --git"):]
@@ -1423,6 +1425,36 @@ def main() -> None:
         ("device_boot=none", "state-owner-registration-rerun-no-boot"),
     ):
         require(state_owner_registration_rerun_build_result, needle, label)
+    for needle, label in (
+        ("claim=COMPILE_ONLY_MT6797_DVFSP_VALIDATED_REGISTRATION_GATE", "state-owner-registration-gate-build-claim"),
+        ("repository_commit=accd595e2a15eb77124c270dbf630d544150ccee", "state-owner-registration-gate-build-commit"),
+        ("origin=https://github.com/ixoo/gemini-pda-mainline.git", "state-owner-registration-gate-build-origin"),
+        ("repository_dirty=false", "state-owner-registration-gate-build-clean"),
+        ("build_backend=buildbox", "state-owner-registration-gate-build-backend"),
+        ("buildbox_status=validated", "state-owner-registration-gate-build-status"),
+        ("buildbox_job=accd595e2a15eb77124c270dbf630d544150ccee-dvfsp-protected-readback-m0", "state-owner-registration-gate-build-job"),
+        ("patch_count=208", "state-owner-registration-gate-build-patch-count"),
+        ("artifact=linux-7.1.3-gemini-dvfsp-protected-readback-b2b5f802-b6696a3c", "state-owner-registration-gate-build-artifact"),
+        ("source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc", "state-owner-registration-gate-build-source-hash"),
+        ("patchset_sha256=b2b5f80240d516e089f14bd728920ffa6d46ffa17935e98fb736e07333c8bfae", "state-owner-registration-gate-build-patchset-hash"),
+        ("config_sha256=9561561944c875d1fadb5cee822fb9fa572a2e9cf82e4b8a45921e9a43828ef4", "state-owner-registration-gate-build-config-hash"),
+        ("image_gzip_sha256=ccaf4056cc522d4df11d9750d235dbf170916e90064ab8a993215e19a49c6fe4", "state-owner-registration-gate-build-image-hash"),
+        ("gemini_dtb_sha256=4ca3765d3ed1a39751c59387456de861091725321cdd5b7ec4cf715008a9d356", "state-owner-registration-gate-build-dtb-hash"),
+        ("dtb_count=119", "state-owner-registration-gate-build-dtb-count"),
+        ("sha256sums=passed", "state-owner-registration-gate-build-checksums"),
+        ("package_fetch=success;validated_package_only", "state-owner-registration-gate-build-fetch"),
+        ("state_owner_registration_gate=0219;complete_snapshot_required;validated_before_publish;failure_clears_callbacks;default_off", "state-owner-registration-gate-build-contract"),
+        ("owner=unregistered", "state-owner-registration-gate-build-owner-unregistered"),
+        ("provider=none", "state-owner-registration-gate-build-no-provider"),
+        ("secure_write=none", "state-owner-registration-gate-build-no-secure-write"),
+        ("hardware_write=none", "state-owner-registration-gate-build-no-write"),
+        ("device_action=none", "state-owner-registration-gate-build-no-device"),
+        ("hardware_support_claim=NONE", "state-owner-registration-gate-build-no-support-claim"),
+        ("boot_candidate=false", "state-owner-registration-gate-build-not-candidate"),
+        ("runtime_evidence=none", "state-owner-registration-gate-build-no-runtime"),
+        ("device_boot=none", "state-owner-registration-gate-build-no-boot"),
+    ):
+        require(state_owner_registration_gate_build_result, needle, label)
     for needle, label in (
         ("claim=READ_ONLY_LIVE_DVFS_SOURCE_AVAILABILITY_AND_NONATOMICITY", "live-dvfs-probe-claim"),
         ("target=gemini;transport=ssh;os=Gemian;kernel=3.18.41+;device_action=none;hardware_write=none;backup=none", "live-dvfs-probe-target"),
