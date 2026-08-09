@@ -159,7 +159,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-owner-arbitration.c b/drive
 +	return ret;
 +}
 +
-@@ -300,9 +385,11 @@ int mt6797_dvfsp_state_owner_arbitration_owner_ops_init(
+@@ -300,7 +385,9 @@ int mt6797_dvfsp_state_owner_arbitration_owner_ops_init(
  	memset(ops, 0, sizeof(*ops));
  	ops->identify = mt6797_dvfsp_state_owner_arbitration_identify_cb;
  	ops->snapshot = mt6797_dvfsp_state_owner_arbitration_snapshot_cb;
@@ -168,9 +168,6 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-owner-arbitration.c b/drive
 +	ops->release = mt6797_dvfsp_state_owner_arbitration_release_cb;
  	ops->invalidate = mt6797_dvfsp_state_owner_arbitration_invalidate_cb;
  	return 0;
- }
- EXPORT_SYMBOL_GPL(mt6797_dvfsp_state_owner_arbitration_owner_ops_init);
- 
 @@ -307,5 +309,70 @@ int mt6797_dvfsp_state_owner_arbitration_owner_ops_init(
  }
  EXPORT_SYMBOL_GPL(mt6797_dvfsp_state_owner_arbitration_owner_ops_init);
