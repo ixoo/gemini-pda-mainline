@@ -51,6 +51,12 @@ identify one unique DA921x model, prove a register-data write, register a
 regulator provider, establish rail ownership, or enable either Cortex-A72.
 Logical CPUs 8 and 9 remain offline by design.
 
+The latest source-only Buildbox gate adds a read-only 19-word LK PTP/EEM
+calibration handoff to the dormant state-source seam. It applies and links the
+full 201-entry kernel series, but does not read device calibration at runtime,
+register an owner/provider, write hardware, boot a device, or open CPU8/CPU9;
+see the [PTP handoff Buildbox result](experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/state-source-ptp-handoff-buildbox-20260809.txt).
+
 The profile-series invariant is repaired. The immediate task is the zero-write
 legacy-family driver and binding contract, not another ad hoc A72 boot. The
 exact sequence and exit criteria through isolated probe/bind/unbind and

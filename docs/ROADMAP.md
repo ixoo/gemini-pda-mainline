@@ -2059,6 +2059,17 @@ The next ordered work remains source-only:
    See the [Buildbox resume result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/state-source-backend-bridge-buildbox-resume-20260809.txt).
    This is reproducibility evidence only and does not change hardware support
    or open the owner/provider and CPU8/CPU9 gates.
+   Patch `0212` now exposes the retained LK `/chosen/atag,devinfo` 19-word
+   `M_HW_RES` handoff as a separately named, read-only NVMEM cell and passes
+   its validated ABI into the dormant calibration callback. The exact
+   `dvfsp_handoff` DTS consumer target is present but no owner or provider is
+   registered. Revision `91a64e6` applies all 201 canonical entries on
+   Buildbox, compiles the Gemini DTB and full arm64 image, produces 119 DTBs,
+   passes package checksums, and fetches only the validated package. See the
+   [PTP handoff Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/state-source-ptp-handoff-buildbox-20260809.txt).
+   This remains compile-only: no calibration values were read from hardware,
+   no firmware/rail/clock operation or device boot occurred, and CPU8/CPU9
+   admission remains closed.
    The next ordered gate remains an independently reviewed implementation of
    the real calibrated EEM/PTP/PPM state owner with clock/rail arbitration,
    generation-producing callbacks, and runtime invalidation/transition-lock

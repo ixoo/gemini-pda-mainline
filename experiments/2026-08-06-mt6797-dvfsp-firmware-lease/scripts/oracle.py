@@ -55,6 +55,7 @@ RUNTIME_BINDING_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/ru
 STATE_SNAPSHOT_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-snapshot-buildbox-20260806.txt"
 STATE_SOURCE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-source-adapter-buildbox-20260809.txt"
 STATE_SOURCE_BACKENDS_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-source-backend-bridge-buildbox-20260809.txt"
+PTP_HANDOFF_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-source-ptp-handoff-buildbox-20260809.txt"
 
 
 def require(text: str, needle: str, label: str) -> None:
@@ -112,6 +113,7 @@ def main() -> None:
     state_snapshot_build_result = STATE_SNAPSHOT_BUILD_RESULT.read_text()
     state_source_build_result = STATE_SOURCE_BUILD_RESULT.read_text()
     state_source_backends_build_result = STATE_SOURCE_BACKENDS_BUILD_RESULT.read_text()
+    ptp_handoff_build_result = PTP_HANDOFF_BUILD_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     eem_calibration_source = eem_calibration_patch[eem_calibration_patch.index("diff --git"):]
@@ -1044,6 +1046,29 @@ def main() -> None:
         ("boot_candidate=false", "state-source-bridge-build-not-candidate"),
     ):
         require(state_source_backends_build_result, needle, label)
+    for needle, label in (
+        ("claim=COMPILE_ONLY_MT6797_DVFSP_PTP_HANDOFF_SOURCE", "ptp-build-claim"),
+        ("repository_commit=91a64e62b7aea423b204b31b79e42a4aecfe2515", "ptp-build-commit"),
+        ("origin=https://github.com/ixoo/gemini-pda-mainline.git", "ptp-build-origin"),
+        ("repository_dirty=false", "ptp-build-clean"),
+        ("build_backend=buildbox", "ptp-build-backend"),
+        ("buildbox_status=validated", "ptp-build-status"),
+        ("buildbox_job=91a64e62b7aea423b204b31b79e42a4aecfe2515-dvfsp-protected-readback-m0", "ptp-build-job"),
+        ("patch_count=201", "ptp-build-patch-count"),
+        ("artifact=linux-7.1.3-gemini-dvfsp-protected-readback-88ff60bc-b6696a3c", "ptp-build-artifact"),
+        ("dtb_count=119", "ptp-build-dtb-count"),
+        ("sha256sums=passed", "ptp-build-checksums"),
+        ("package_fetch=success;validated_package_only", "ptp-build-fetch"),
+        ("ptp_contract=0212;read_only_nvmem;19_word_m_hw_res;calibration_callback_input;target=mt6797_dvfsp_handoff;no_registration", "ptp-build-contract"),
+        ("owner=unregistered", "ptp-build-owner-unregistered"),
+        ("provider=none", "ptp-build-no-provider"),
+        ("secure_write=none", "ptp-build-no-secure-write"),
+        ("hardware_write=none", "ptp-build-no-write"),
+        ("device_action=none", "ptp-build-no-device"),
+        ("hardware_support_claim=NONE", "ptp-build-no-support-claim"),
+        ("boot_candidate=false", "ptp-build-not-candidate"),
+    ):
+        require(ptp_handoff_build_result, needle, label)
     for needle, label in (
         ("repeat_run_repository_commit=6c3cb4fad5a4895f6a69d7913089553b6751e34c", "readback-repeat-commit"),
         ("repeat_run_buildbox_job=6c3cb4fad5a4895f6a69d7913089553b6751e34c-dvfsp-protected-readback-m0", "readback-repeat-job"),

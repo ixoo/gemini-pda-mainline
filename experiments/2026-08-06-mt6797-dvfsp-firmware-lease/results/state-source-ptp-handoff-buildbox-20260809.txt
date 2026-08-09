@@ -1,0 +1,43 @@
+# MT6797 PTP handoff source Buildbox validation
+
+date_utc=2026-08-09T21:06:36Z
+claim=COMPILE_ONLY_MT6797_DVFSP_PTP_HANDOFF_SOURCE
+repository_commit=91a64e62b7aea423b204b31b79e42a4aecfe2515
+origin=https://github.com/ixoo/gemini-pda-mainline.git
+repository_dirty=false
+build_backend=buildbox
+buildbox_status=validated
+buildbox_job=91a64e62b7aea423b204b31b79e42a4aecfe2515-dvfsp-protected-readback-m0
+artifact=linux-7.1.3-gemini-dvfsp-protected-readback-88ff60bc-b6696a3c
+kernel_release=7.1.3-gemini-handoff
+patch_count=201
+dtb_count=119
+sha256sums=passed
+package_fetch=success;validated_package_only
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=88ff60bcfb22a82614c34d65fddce63506abc7748dfefa27e6c7fc8720ee0673
+config_sha256=9561561944c875d1fadb5cee822fb9fa572a2e9cf82e4b8a45921e9a43828ef4
+image_sha256=b2032712dc3f64eae357c9cee067d5ddefee43cf2df5f87c0128961bd4419b56
+image_gzip_sha256=791ad459f6b6c4131a0bf9a9df8abb9c3a47b54cf539f37df0572fa49486762
+system_map_sha256=9e6fca34838efc41a07f2194c610027a293d5848e68be79847f799853864b5de
+gemini_dtb_sha256=4ca3765d3ed1a39751c59387456de861091725321cdd5b7ec4cf715008a9d356
+build_provenance_sha256=035e2dd20b2b52e4a6037a9b5f72f746bae709f124a617f2154be2de65bf27f2
+kernel_manifest_sha256=684b307f72362ddc1eadbfef761b6fc2f939266ef38b4ffda01ec6f32671f5fd
+config_fragment_count=4
+modules_built=false
+ptp_contract=0212;read_only_nvmem;19_word_m_hw_res;calibration_callback_input;target=mt6797_dvfsp_handoff;no_registration
+owner=unregistered
+provider=none
+secure_write=none
+hardware_write=none
+device_action=none
+hardware_support_claim=NONE
+boot_candidate=false
+
+The corrected 0212 patch applied after the complete canonical 0211 bridge, the
+Gemini DTS compiled with the existing dormant dvfsp_handoff phandle, and the
+arm64 kernel linked successfully on Buildbox. The validated package was fetched
+only under the ignored buildbox artifact tree. This is compile-only provenance
+for the read-only LK devinfo PTP handoff; it does not register an owner or
+provider, read hardware at runtime, write firmware or rails, boot a device, or
+open CPU8/CPU9 admission.
