@@ -32,6 +32,7 @@ PTP_CALIBRATION_PATCH = ROOT / "patches/v7.1.3/0214-soc-mediatek-bind-PTP-state-
 STATE_OWNER_SOURCE_PATCH = ROOT / "patches/v7.1.3/0215-soc-mediatek-add-calibrated-state-owner-source-binding.patch"
 STATE_OWNER_ARBITRATION_PATCH = ROOT / "patches/v7.1.3/0216-soc-mediatek-bind-state-owner-source-to-transition-generation.patch"
 STATE_OWNER_ARBITRATION_FAULT_PATCH = ROOT / "patches/v7.1.3/0217-soc-mediatek-latch-transition-arbitration-faults.patch"
+STATE_OWNER_REGISTRATION_PATCH = ROOT / "patches/v7.1.3/0218-soc-mediatek-register-arbitrated-state-owner.patch"
 SERIES = ROOT / "patches/series"
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
 START_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-start-contract-20260806.txt"
@@ -67,6 +68,7 @@ STATE_OWNER_SOURCE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results
 STATE_OWNER_ARBITRATION_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-arbitration-buildbox-20260809.txt"
 STATE_OWNER_ARBITRATION_FAULT_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-arbitration-fault-buildbox-20260809.txt"
 LIVE_DVFS_SOURCE_RESULT = Path(__file__).resolve().parents[1] / "results/live-dvfs-owner-source-probe-20260809.txt"
+STATE_OWNER_REGISTRATION_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-registration-buildbox-20260809.txt"
 
 
 def require(text: str, needle: str, label: str) -> None:
@@ -102,6 +104,7 @@ def main() -> None:
     state_owner_source_patch = STATE_OWNER_SOURCE_PATCH.read_text()
     state_owner_arbitration_patch = STATE_OWNER_ARBITRATION_PATCH.read_text()
     state_owner_arbitration_fault_patch = STATE_OWNER_ARBITRATION_FAULT_PATCH.read_text()
+    state_owner_registration_patch = STATE_OWNER_REGISTRATION_PATCH.read_text()
     design = DESIGN.read_text()
     start_result = START_RESULT.read_text()
     owner_result = OWNER_RESULT.read_text()
@@ -136,6 +139,7 @@ def main() -> None:
     state_owner_arbitration_build_result = STATE_OWNER_ARBITRATION_BUILD_RESULT.read_text()
     state_owner_arbitration_fault_build_result = STATE_OWNER_ARBITRATION_FAULT_BUILD_RESULT.read_text()
     live_dvfs_source_result = LIVE_DVFS_SOURCE_RESULT.read_text()
+    state_owner_registration_build_result = STATE_OWNER_REGISTRATION_BUILD_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     eem_calibration_source = eem_calibration_patch[eem_calibration_patch.index("diff --git"):]
@@ -151,6 +155,7 @@ def main() -> None:
     state_owner_source_source = state_owner_source_patch[state_owner_source_patch.index("diff --git"):]
     state_owner_arbitration_source = state_owner_arbitration_patch[state_owner_arbitration_patch.index("diff --git"):]
     state_owner_arbitration_fault_source = state_owner_arbitration_fault_patch[state_owner_arbitration_fault_patch.index("diff --git"):]
+    state_owner_registration_source = state_owner_registration_patch[state_owner_registration_patch.index("diff --git"):]
     names = [Path(line).name for line in SERIES.read_text().splitlines()
              if line and not line.startswith("#")]
 
@@ -628,6 +633,20 @@ def main() -> None:
         ("arbitration->faulted = true", "owner-arbitration-explicit-fault"),
     ):
         require(state_owner_arbitration_fault_patch, needle, label)
+    for needle, label in (
+        ("mt6797_dvfsp_state_owner_arbitration_register", "owner-registration-register-api"),
+        ("mt6797_dvfsp_state_owner_arbitration_unregister", "owner-registration-unregister-api"),
+        ("struct mt6797_dvfsp_state_owner_ops owner_ops", "owner-registration-owned-ops"),
+        ("struct mt6797_dvfsp_handoff *handoff", "owner-registration-handoff"),
+        ("bool registered", "owner-registration-state"),
+        ("mt6797_dvfsp_handoff_state_owner_register", "owner-registration-handoff-register"),
+        ("mt6797_dvfsp_handoff_state_owner_unregister", "owner-registration-handoff-unregister"),
+        ("mt6797_dvfsp_state_owner_arbitration_hold_cb", "owner-registration-hold-callback"),
+        ("mt6797_dvfsp_state_owner_arbitration_release_cb", "owner-registration-release-callback"),
+        ("no caller invokes it in the default profile", "owner-registration-default-off"),
+        ("Registration still fails closed", "owner-registration-fail-closed"),
+    ):
+        require(state_owner_registration_patch, needle, label)
     bridge_added = "\n".join(
         line[1:] for line in state_source_backends_patch.splitlines()
         if line.startswith("+") and not line.startswith("+++")
@@ -646,6 +665,8 @@ def main() -> None:
             raise AssertionError(f"unexpected state-owner arbitration operation: {forbidden}")
         if forbidden in state_owner_arbitration_fault_source:
             raise AssertionError(f"unexpected state-owner arbitration fault operation: {forbidden}")
+        if forbidden in state_owner_registration_source:
+            raise AssertionError(f"unexpected state-owner registration operation: {forbidden}")
     calibration_builder_added = "\n".join(
         line[1:] for line in eem_calibration_patch.splitlines()
         if line.startswith("+") and not line.startswith("+++")
@@ -1408,6 +1429,8 @@ def main() -> None:
         raise AssertionError("state-owner arbitration is not after calibrated state-owner source binding")
     if names.index("0216-soc-mediatek-bind-state-owner-source-to-transition-generation.patch") >= names.index("0217-soc-mediatek-latch-transition-arbitration-faults.patch"):
         raise AssertionError("state-owner arbitration fault latch is not after state-owner arbitration")
+    if names.index("0217-soc-mediatek-latch-transition-arbitration-faults.patch") >= names.index("0218-soc-mediatek-register-arbitrated-state-owner.patch"):
+        raise AssertionError("state-owner registration is not after the arbitration fault latch")
 
     for forbidden in ("readl(", "writel(", "i2c_transfer", "regulator_enable(",
                       "regulator_disable(", "psci_ops.cpu_on", "cpu_up("):
@@ -1511,6 +1534,7 @@ def main() -> None:
     print("state_owner_source=0215;identity_callback;ptp_bound;calibration_rows;live_state;full_provenance;owner_handles;transition_mutex;dormant_registry_ops;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("state_owner_arbitration=0216;external_transition_lock;monotonic_generation;changed_generation_rejected;rollback_rejected;dormant_registry_ops;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("state_owner_arbitration_fault=0217;fault_latched;source_invalidated;reuse_rejected_until_reinit;clock_transition_reason;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
+    print("state_owner_registration=0218;owned_registry_callbacks;identity_checked;hold_release_bound;unregister_invalidates;default_off;registered_owner=0;provider=none;no_hardware_write;device_action=none;boot_candidate=false")
     print("live_dvfs_source_probe=20260809;eem_handoff_readable;ppm_tables_readable;opp_rail_state_mutable;proc_reads_nonatomic;raw_payload_redacted;owner_lock_and_generation_required;provider=none;cpu8_cpu9_admission=closed;boot_candidate=false")
     print("pcm_adapter_contract=source-only;bounded-admission-model;callback-registration-gated")
     print("clock_owner_inventory=generic_ccf_only;protected_owner_absent;A72_observer_read_only")
