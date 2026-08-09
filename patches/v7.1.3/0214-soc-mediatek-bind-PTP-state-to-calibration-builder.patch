@@ -1,0 +1,91 @@
+From 0000000000000000000000000000000000000214 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 9 Aug 2026 22:00:00 -0400
+Subject: [PATCH] soc: mediatek: bind PTP state to calibration builder
+
+The source adapter now decodes the LK M_HW_RES detector state before asking
+the future owner to fill calibration inputs. Make that state a required input
+to the calibration builder and validate its ABI, bank identity, INIT/MON
+enables, DVFS levels, and bin selections. The builder therefore cannot accept
+opaque or hand-constructed EEM rows that ignore the silicon-selected detector
+state.
+
+This is a pure validation boundary. It performs no efuse or MMIO access, EEM
+phase change, regulator or clock operation, secure call, provider
+registration, firmware action, device boot, or CPU8/CPU9 admission. The owner
+must still supply the efuse variant, PPM rows, live rails, clocks, generations,
+and transition lock. This patch is experiment-only and not submission-ready.
+---
+ include/linux/soc/mediatek/mt6797-eem-calibration.h |  3 +++
+ drivers/thermal/mediatek/auxadc_thermal.c            | 34 ++++++++++++++++++++
+ drivers/soc/mediatek/mt6797-dvfsp-state-source.c     |  1 +
+ 3 files changed, 38 insertions(+)
+
+diff --git a/include/linux/soc/mediatek/mt6797-eem-calibration.h b/include/linux/soc/mediatek/mt6797-eem-calibration.h
+--- a/include/linux/soc/mediatek/mt6797-eem-calibration.h
++++ b/include/linux/soc/mediatek/mt6797-eem-calibration.h
+@@ -9,2 +9,3 @@
+ #include <linux/soc/mediatek/mt6797-dvfsp-handoff.h>
++#include <linux/soc/mediatek/mt6797-dvfsp-ptp.h>
+ #include <linux/soc/mediatek/mt6797-eem-readback.h>
+@@ -25,5 +26,6 @@
+ struct mt6797_eem_calibration_input {
+ 	const struct mt6797_eem_readback *readback;
++	const struct mt6797_dvfsp_ptp_state *ptp_state;
+ 	u8 frequency_pct[MT6797_EEM_CALIBRATION_BANKS]
+ 		[MT6797_EEM_CALIBRATION_ROWS];
+ 	u32 frequency_khz[MT6797_EEM_CALIBRATION_BANKS]
+
+diff --git a/drivers/thermal/mediatek/auxadc_thermal.c b/drivers/thermal/mediatek/auxadc_thermal.c
+--- a/drivers/thermal/mediatek/auxadc_thermal.c
++++ b/drivers/thermal/mediatek/auxadc_thermal.c
+@@ -1076,4 +1076,31 @@ mt6797_eem_calibration_provenance_check(
+ 	return 0;
+ }
++
++static int mt6797_eem_calibration_ptp_state_check(
++	const struct mt6797_dvfsp_ptp_state *state)
++{
++	static const u32 expected_banks[MT6797_EEM_CALIBRATION_BANKS] = {
++		MT6797_DVFSP_PTP_BANK_BIG,
++		MT6797_DVFSP_PTP_BANK_L,
++		MT6797_DVFSP_PTP_BANK_2L,
++		MT6797_DVFSP_PTP_BANK_CCI,
++	};
++	unsigned int i;
++
++	if (!state || state->abi != MT6797_DVFSP_PTP_STATE_ABI ||
++	    state->bank_mask != MT6797_DVFSP_PTP_BANK_MASK_ALL)
++		return -EPROTO;
++
++	for (i = 0; i < MT6797_EEM_CALIBRATION_BANKS; i++) {
++		const struct mt6797_dvfsp_ptp_bank_state *bank = &state->bank[i];
++
++		if (bank->bank != expected_banks[i] ||
++		    bank->init_enable != 1 || bank->mon_enable != 1 ||
++		    bank->dvfs_level > 3 || bank->bin_spec > 7)
++			return -EPROTO;
++	}
++
++	return 0;
++}
+ 
+ static u32 mt6797_eem_calibration_code_to_uv(unsigned int bank, u8 code)
+@@ -225,4 +257,6 @@ mt6797_eem_calibration_build(
+ 	if (!input || !state || !input->readback ||
++	    !input->ptp_state ||
++	    mt6797_eem_calibration_ptp_state_check(input->ptp_state) ||
+ 	    input->temperature_millic < -40000 ||
+ 	    input->temperature_millic > 150000 ||
+ 	    !input->thermal_generation || !input->clock_owner_generation ||
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-source.c b/drivers/soc/mediatek/mt6797-dvfsp-state-source.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-state-source.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-state-source.c
+@@ -178,3 +178,4 @@
+ 	calibration_input.readback = &eem_readback;
++	calibration_input.ptp_state = &ptp_state;
+ 	ret = mt6797_eem_calibration_build(&calibration_input,
+ 					   &calibration_state);
+-- 
+2.43.0

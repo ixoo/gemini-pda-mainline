@@ -28,6 +28,7 @@ STATE_SOURCE_PATCH = ROOT / "patches/v7.1.3/0210-soc-mediatek-add-protected-stat
 STATE_SOURCE_BACKENDS_PATCH = ROOT / "patches/v7.1.3/0211-soc-mediatek-wire-protected-readbacks-to-state-source.patch"
 PTP_HANDOFF_PATCH = ROOT / "patches/v7.1.3/0212-nvmem-mediatek-expose-MT6797-PTP-handoff-source.patch"
 PTP_STATE_PATCH = ROOT / "patches/v7.1.3/0213-soc-mediatek-decode-MT6797-PTP-handoff-state.patch"
+PTP_CALIBRATION_PATCH = ROOT / "patches/v7.1.3/0214-soc-mediatek-bind-PTP-state-to-calibration-builder.patch"
 SERIES = ROOT / "patches/series"
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
 START_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-start-contract-20260806.txt"
@@ -89,6 +90,7 @@ def main() -> None:
     state_source_backends_patch = STATE_SOURCE_BACKENDS_PATCH.read_text()
     ptp_handoff_patch = PTP_HANDOFF_PATCH.read_text()
     ptp_state_patch = PTP_STATE_PATCH.read_text()
+    ptp_calibration_patch = PTP_CALIBRATION_PATCH.read_text()
     design = DESIGN.read_text()
     start_result = START_RESULT.read_text()
     owner_result = OWNER_RESULT.read_text()
@@ -129,6 +131,7 @@ def main() -> None:
     state_source_backends_source = state_source_backends_patch[state_source_backends_patch.index("diff --git"):]
     ptp_handoff_source = ptp_handoff_patch[ptp_handoff_patch.index("diff --git"):]
     ptp_state_source = ptp_state_patch[ptp_state_patch.index("diff --git"):]
+    ptp_calibration_source = ptp_calibration_patch[ptp_calibration_patch.index("diff --git"):]
     names = [Path(line).name for line in SERIES.read_text().splitlines()
              if line and not line.startswith("#")]
 
@@ -552,6 +555,20 @@ def main() -> None:
         ("no MMIO", "ptp-state-no-mmio"),
     ):
         require(ptp_state_patch, needle, label)
+    for needle, label in (
+        ("mt6797_eem_calibration_ptp_state_check", "ptp-calibration-state-check"),
+        ("const struct mt6797_dvfsp_ptp_state *ptp_state", "ptp-calibration-state-input"),
+        ("expected_banks", "ptp-calibration-bank-map"),
+        ("bank->init_enable != 1", "ptp-calibration-init-required"),
+        ("bank->mon_enable != 1", "ptp-calibration-mon-required"),
+        ("bank->dvfs_level > 3", "ptp-calibration-dvfs-range"),
+        ("bank->bin_spec > 7", "ptp-calibration-bin-range"),
+        ("!input->ptp_state", "ptp-calibration-input-required"),
+        ("calibration_input.ptp_state = &ptp_state", "ptp-calibration-adapter-binding"),
+        ("provider\nregistration", "ptp-calibration-no-provider"),
+        ("CPU8/CPU9 admission", "ptp-calibration-no-cpu-admission"),
+    ):
+        require(ptp_calibration_patch, needle, label)
     bridge_added = "\n".join(
         line[1:] for line in state_source_backends_patch.splitlines()
         if line.startswith("+") and not line.startswith("+++")
@@ -1182,6 +1199,8 @@ def main() -> None:
         raise AssertionError("PTP handoff source is not after the state-source backend bridge")
     if names.index("0212-nvmem-mediatek-expose-MT6797-PTP-handoff-source.patch") >= names.index("0213-soc-mediatek-decode-MT6797-PTP-handoff-state.patch"):
         raise AssertionError("PTP state decoder is not after the PTP handoff source")
+    if names.index("0213-soc-mediatek-decode-MT6797-PTP-handoff-state.patch") >= names.index("0214-soc-mediatek-bind-PTP-state-to-calibration-builder.patch"):
+        raise AssertionError("PTP calibration binding is not after the PTP state decoder")
 
     for forbidden in ("readl(", "writel(", "i2c_transfer", "regulator_enable(",
                       "regulator_disable(", "psci_ops.cpu_on", "cpu_up("):
@@ -1226,6 +1245,8 @@ def main() -> None:
             raise AssertionError(f"unexpected PTP handoff operation: {forbidden}")
         if forbidden in ptp_state_source:
             raise AssertionError(f"unexpected PTP state operation: {forbidden}")
+        if forbidden in ptp_calibration_source:
+            raise AssertionError(f"unexpected PTP calibration operation: {forbidden}")
     for forbidden in ("readl(", "writel(", "regulator_", "clk_", "arm_smccc",
                       "i2c_transfer", "platform_driver", "cpu_up(", "secure_write",
                       "register_cpu_notifier", "register_pm_notifier",
@@ -1279,6 +1300,7 @@ def main() -> None:
     print("state_source_backends=0211;caller_owned_device_tuple;clock_readback;bigidvfs_readback;eem_readback;calibration_live_callbacks_required;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("state_source_ptp_handoff=0212;read_only_nvmem;19_word_m_hw_res;calibration_callback_input;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("state_source_ptp_decode=0213;M_HW_RES1_7_9;BIG_L_2L_CCI;init_mon_required;dvfs_level;bin_spec;variant_id_required;pure;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
+    print("state_source_ptp_calibration=0214;ptp_state_required;bank_identity;init_mon;dvfs_level;bin_spec;builder_enforced;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("pcm_adapter_contract=source-only;bounded-admission-model;callback-registration-gated")
     print("clock_owner_inventory=generic_ccf_only;protected_owner_absent;A72_observer_read_only")
     print("pcm_start_contract=defined;residency_and_start_required_before_callback_registration")

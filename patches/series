@@ -203,3 +203,4 @@ v7.1.3/0210-soc-mediatek-add-protected-state-source-adapter.patch
 v7.1.3/0211-soc-mediatek-wire-protected-readbacks-to-state-source.patch
 v7.1.3/0212-nvmem-mediatek-expose-MT6797-PTP-handoff-source.patch
 v7.1.3/0213-soc-mediatek-decode-MT6797-PTP-handoff-state.patch
+v7.1.3/0214-soc-mediatek-bind-PTP-state-to-calibration-builder.patch
