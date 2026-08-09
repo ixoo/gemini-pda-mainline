@@ -37,7 +37,7 @@ diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
 diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-ptp.h b/include/linux/soc/mediatek/mt6797-dvfsp-ptp.h
 --- a/include/linux/soc/mediatek/mt6797-dvfsp-ptp.h
 +++ b/include/linux/soc/mediatek/mt6797-dvfsp-ptp.h
-@@ -7,9 +7,39 @@
+@@ -7,9 +7,40 @@
 +#include <linux/bitops.h>
  
  #define MT6797_DVFSP_PTP_HANDOFF_ABI		1
@@ -154,13 +154,13 @@ new file mode 100644
 diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-source.c b/drivers/soc/mediatek/mt6797-dvfsp-state-source.c
 --- a/drivers/soc/mediatek/mt6797-dvfsp-state-source.c
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-state-source.c
-@@ -39,6 +39,7 @@ int mt6797_dvfsp_state_source_snapshot(
+@@ -39,4 +39,5 @@ int mt6797_dvfsp_state_source_snapshot(
  	struct mt6797_eem_readback eem_readback;
  	struct mt6797_dvfsp_ptp_handoff ptp_handoff;
 +	struct mt6797_dvfsp_ptp_state ptp_state;
  	struct mt6797_dvfsp_clock_state clock_state;
  	struct mt6797_eem_calibration_input calibration_input;
-@@ -72,8 +73,15 @@ int mt6797_dvfsp_state_source_snapshot(
+@@ -72,8 +73,13 @@ int mt6797_dvfsp_state_source_snapshot(
  	if (ret)
  		return ret;
  
@@ -179,7 +179,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-source.c b/drivers/soc/medi
 diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-state-source.h b/include/linux/soc/mediatek/mt6797-dvfsp-state-source.h
 --- a/include/linux/soc/mediatek/mt6797-dvfsp-state-source.h
 +++ b/include/linux/soc/mediatek/mt6797-dvfsp-state-source.h
-@@ -45,6 +45,7 @@ struct mt6797_dvfsp_state_source_ops {
+@@ -45,4 +45,5 @@ struct mt6797_dvfsp_state_source_ops {
  	int (*fill_calibration)(void *context,
  				const struct mt6797_dvfsp_ptp_handoff *handoff,
 +				const struct mt6797_dvfsp_ptp_state *ptp_state,
@@ -189,7 +189,7 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-state-source.h b/include/li
 diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
 --- a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
-@@ -1580,7 +1580,7 @@ mt6797_dvfsp_state_provenance_check(
+@@ -1580,4 +1580,5 @@ mt6797_dvfsp_state_provenance_check(
  	    provenance->source_mask !=
  		MT6797_DVFSP_STATE_PROVENANCE_SOURCE_ALL ||
 -	    !provenance->table_epoch || !provenance->calibration_handle)
@@ -200,7 +200,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/
 diff --git a/drivers/thermal/mediatek/auxadc_thermal.c b/drivers/thermal/mediatek/auxadc_thermal.c
 --- a/drivers/thermal/mediatek/auxadc_thermal.c
 +++ b/drivers/thermal/mediatek/auxadc_thermal.c
-@@ -1078,7 +1078,7 @@ mt6797_eem_calibration_provenance_check(
+@@ -1078,4 +1078,5 @@ mt6797_eem_calibration_provenance_check(
  	    provenance->abi != MT6797_DVFSP_STATE_PROVENANCE_ABI ||
  	    provenance->source_mask != MT6797_DVFSP_STATE_PROVENANCE_SOURCE_ALL ||
 -	    !provenance->table_epoch || !provenance->calibration_handle)
