@@ -83,7 +83,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-ptp.c b/drivers/soc/mediatek/mt67
 new file mode 100644
 --- /dev/null
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-ptp.c
-@@ -0,0 +1,82 @@
+@@ -0,0 +1,66 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/*
 + * Decode the read-only MT6797 LK M_HW_RES detector handoff.
