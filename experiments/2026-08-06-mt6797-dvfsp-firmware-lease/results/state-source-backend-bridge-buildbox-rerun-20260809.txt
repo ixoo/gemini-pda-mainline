@@ -1,0 +1,40 @@
+# MT6797 protected readback source bridge Buildbox rerun
+
+date_utc=2026-08-09T20:03:48Z
+claim=COMPILE_ONLY_MT6797_DVFSP_PROTECTED_READBACK_SOURCE_BRIDGE_RERUN
+repository_commit=75aa3e096c20c467b804d24f4b7497d7c701135b
+origin=https://github.com/ixoo/gemini-pda-mainline.git
+repository_dirty=false
+build_backend=buildbox
+buildbox_status=validated
+buildbox_job=75aa3e096c20c467b804d24f4b7497d7c701135b-dvfsp-protected-readback-m0
+artifact=linux-7.1.3-gemini-dvfsp-protected-readback-a259275d-b6696a3c
+patch_count=200
+dtb_count=119
+sha256sums=passed
+package_fetch=success;validated_package_only
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=a259275dd16641314a3ab9a6a15a93cd2285ff7c4617893c0a2e92ef016166a4
+config_sha256=9561561944c875d1fadb5cee822fb9fa572a2e9cf82e4b8a45921e9a43828ef4
+image_sha256=542218ccf7fd4620ca88a206f0e4ca157f75314dc9d10c82ad729f4525609bae
+image_gzip_sha256=506106d18bbd9a159c08f76933783753392dd33addfc3b99d278e758a881de85
+system_map_sha256=a8f877e11dbe64d0486b0bdb115851a4feecac56046cc2a36182493f355bc121
+gemini_dtb_sha256=105a83069d42221539050ca968ea5156bdeed948ae88881429678423c43140bd
+build_provenance_sha256=12064d119f97b954aef3da3c7295b192a3a6ac35d35e3359ef39a6c2bf9bfb28
+kernel_manifest_sha256=684b307f72362ddc1eadbfef761b6fc2f939266ef38b4ffda01ec6f32671f5fd
+bridge_contract=0211;caller_owned_device_tuple;clock_readback;bigidvfs_readback;eem_readback;missing_device_fail_closed;missing_backend_config_fail_closed;calibration_live_callbacks_required;no_registration
+owner=unregistered
+provider=none
+secure_write=none
+hardware_write=none
+device_action=none
+hardware_support_claim=NONE
+boot_candidate=false
+
+This is a clean-head Buildbox rerun of the previously validated 0211 bridge.
+The preceding source commit was unchanged except for documentation; the
+result confirms that the exact pushed head still applies the canonical series,
+reproduces the same package hashes, and fetches only the validated package.
+No native VM build, platform-driver registration, owner/provider registration,
+direct MMIO, secure write, firmware action, device boot, or hardware-support
+claim occurred.

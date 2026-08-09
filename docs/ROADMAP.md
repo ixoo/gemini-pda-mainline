@@ -2047,6 +2047,12 @@ The next ordered work remains source-only:
    registered, and no direct MMIO, secure write, firmware, device, or CPU8/CPU9
    action occurred. See the [source-backend bridge Buildbox
    result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/state-source-backend-bridge-buildbox-20260809.txt).
+   The clean pushed documentation head `75aa3e0` was subsequently rebuilt on
+   Buildbox to resume the workflow. It reapplied the same 200-entry series,
+   reproduced the package hashes, passed the 119-DTB checksum validation, and
+   fetched only the validated package; see the [Buildbox rerun result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/state-source-backend-bridge-buildbox-rerun-20260809.txt).
+   This is a reproducibility confirmation only and does not change hardware
+   support or open the owner/provider and CPU8/CPU9 gates.
    The next ordered gate remains an independently reviewed implementation of
    the real calibrated EEM/PTP/PPM state owner with clock/rail arbitration,
    generation-producing callbacks, and runtime invalidation/transition-lock

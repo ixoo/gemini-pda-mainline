@@ -452,6 +452,13 @@ occurred. The remaining gate is the real calibrated EEM/PTP/PPM and PMIC/clock
 owner that supplies calibration and live state while arbitrating transitions
 and generation invalidation.
 
+The clean pushed head `75aa3e0` was then rebuilt on Buildbox to resume the
+workflow after the documentation update. It applied the same 200-entry series,
+reproduced the package hashes, passed the 119-DTB checksum validation, and
+fetched only the validated package; see the [Buildbox rerun result](results/state-source-backend-bridge-buildbox-rerun-20260809.txt).
+This rerun changes no hardware or support status and does not advance the
+owner/provider or CPU8/CPU9 gate.
+
 The next gate is still the real MT6797 EEM/PTP/thermal and PMIC/clock provider
 that supplies those inputs from efuse and live hardware, arbitrates the shared
 EEM/thermal resource, and independently proves clock/rail transition locking
