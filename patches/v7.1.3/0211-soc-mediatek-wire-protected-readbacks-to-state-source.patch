@@ -1,0 +1,172 @@
+From 0000000000000000000000000000000000000211 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 9 Aug 2026 16:00:00 -0400
+Subject: [PATCH] soc: mediatek: wire protected readbacks to state source
+
+The state-source adapter has a complete ordering contract, but its three
+hardware read callbacks are still supplied ad hoc by a future owner. Expose a
+caller-owned device tuple and bridge those callbacks to the already reviewed
+clock, BigiDVFS, and thermal readback transports.
+
+The bridge performs no direct register or secure access and registers no
+driver. It refuses an incomplete device tuple or a profile that does not build
+all three readback transports. Calibration-table and live-field callbacks are
+left unset and remain mandatory owner-supplied inputs, so this does not create
+a provider or admit a CPU. The devices must remain alive and be protected by
+the owner's transition lock for the complete source snapshot.
+
+This is experiment-only and not submission-ready.
+---
+ drivers/soc/mediatek/Makefile                      |   1 +
+ .../mediatek/mt6797-dvfsp-state-source-backends.c  | 122 ++++++++++++++++++++
+ .../mediatek/mt6797-dvfsp-state-source-backends.h  |  38 +++++++
+ 3 files changed, 161 insertions(+)
+ create mode 100644 drivers/soc/mediatek/mt6797-dvfsp-state-source-backends.c
+ create mode 100644 include/linux/soc/mediatek/mt6797-dvfsp-state-source-backends.h
+
+diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
+--- a/drivers/soc/mediatek/Makefile
++++ b/drivers/soc/mediatek/Makefile
+@@ -2,2 +2,3 @@
+ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-runtime.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-state-source.o
++obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-state-source-backends.o
+
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-state-source-backends.h b/include/linux/soc/mediatek/mt6797-dvfsp-state-source-backends.h
+new file mode 100644
+--- /dev/null
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-state-source-backends.h
+@@ -0,0 +1,38 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __LINUX_SOC_MEDIATEK_MT6797_DVFSP_STATE_SOURCE_BACKENDS_H
++#define __LINUX_SOC_MEDIATEK_MT6797_DVFSP_STATE_SOURCE_BACKENDS_H
++
++#include <linux/types.h>
++
++#include <linux/soc/mediatek/mt6797-dvfsp-state-source.h>
++
++struct device;
++
++/*
++ * The owner supplies this tuple and keeps each device alive while invoking
++ * mt6797_dvfsp_state_source_snapshot(). No device reference is retained here.
++ */
++struct mt6797_dvfsp_state_source_devices {
++	struct device *clock_backend;
++	struct device *bigidvfs_backend;
++	struct device *thermal;
++};
++
++int mt6797_dvfsp_state_source_backend_read_clock(
++	void *context, struct mt6797_dvfsp_clock_readback *readback);
++int mt6797_dvfsp_state_source_backend_read_big(
++	void *context, struct mt6797_bigidvfs_readback *readback);
++int mt6797_dvfsp_state_source_backend_read_eem(
++	void *context, struct mt6797_eem_readback *readback);
++
++/*
++ * Initialize only the three readback callbacks. The caller must still assign
++ * fill_calibration and fill_live before using the source adapter; leaving
++ * either unset is rejected by its fail-closed callback check.
++ */
++int mt6797_dvfsp_state_source_backend_ops_init(
++	const struct mt6797_dvfsp_state_source_devices *devices,
++	struct mt6797_dvfsp_state_source_ops *ops);
++
++#endif /* __LINUX_SOC_MEDIATEK_MT6797_DVFSP_STATE_SOURCE_BACKENDS_H */
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-source-backends.c b/drivers/soc/mediatek/mt6797-dvfsp-state-source-backends.c
+new file mode 100644
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-dvfsp-state-source-backends.c
+@@ -0,0 +1,122 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Connect the reviewed MT6797 readback transports to the state-source seam.
++ *
++ * This file deliberately has no platform driver and retains no device
++ * references. The real owner supplies the device tuple and transition lock;
++ * calibration and live-state ownership remain separate mandatory callbacks.
++ */
++
++#include <linux/device.h>
++#include <linux/errno.h>
++#include <linux/kconfig.h>
++#include <linux/module.h>
++#include <linux/string.h>
++
++#include <linux/soc/mediatek/mt6797-bigidvfs-backend.h>
++#include <linux/soc/mediatek/mt6797-dvfsp-clock-backend.h>
++#include <linux/soc/mediatek/mt6797-dvfsp-state-source-backends.h>
++#include <linux/soc/mediatek/mt6797-eem-readback.h>
++
++int mt6797_dvfsp_state_source_backend_read_clock(
++	void *context, struct mt6797_dvfsp_clock_readback *readback)
++{
++	const struct mt6797_dvfsp_state_source_devices *devices = context;
++
++	if (!devices || !devices->clock_backend || !readback)
++		return -EINVAL;
++#if IS_ENABLED(CONFIG_MTK_MT6797_DVFSP_CLOCK_BACKEND)
++	return mt6797_dvfsp_clock_backend_read(devices->clock_backend,
++						readback);
++#else
++	return -ENODEV;
++#endif
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_state_source_backend_read_clock);
++
++int mt6797_dvfsp_state_source_backend_read_big(
++	void *context, struct mt6797_bigidvfs_readback *readback)
++{
++	const struct mt6797_dvfsp_state_source_devices *devices = context;
++
++	if (!devices || !devices->bigidvfs_backend || !readback)
++		return -EINVAL;
++#if IS_ENABLED(CONFIG_MTK_MT6797_DVFSP_BIGIDVFS_BACKEND)
++	return mt6797_bigidvfs_backend_read(devices->bigidvfs_backend,
++						readback);
++#else
++	return -ENODEV;
++#endif
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_state_source_backend_read_big);
++
++int mt6797_dvfsp_state_source_backend_read_eem(
++	void *context, struct mt6797_eem_readback *readback)
++{
++	const struct mt6797_dvfsp_state_source_devices *devices = context;
++
++	if (!devices || !devices->thermal || !readback)
++		return -EINVAL;
++	return mt6797_thermal_eem_readback(devices->thermal, readback);
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_state_source_backend_read_eem);
++
++int mt6797_dvfsp_state_source_backend_ops_init(
++	const struct mt6797_dvfsp_state_source_devices *devices,
++	struct mt6797_dvfsp_state_source_ops *ops)
++{
++	if (!devices || !ops || !devices->clock_backend ||
++	    !devices->bigidvfs_backend || !devices->thermal)
++		return -EINVAL;
++
++#if !IS_ENABLED(CONFIG_MTK_MT6797_DVFSP_CLOCK_BACKEND) || \
++	!IS_ENABLED(CONFIG_MTK_MT6797_DVFSP_BIGIDVFS_BACKEND) || \
++	!IS_ENABLED(CONFIG_MTK_SOC_THERMAL)
++	return -ENODEV;
++#else
++	memset(ops, 0, sizeof(*ops));
++	ops->abi = MT6797_DVFSP_STATE_SOURCE_ABI;
++	ops->read_clock = mt6797_dvfsp_state_source_backend_read_clock;
++	ops->read_big = mt6797_dvfsp_state_source_backend_read_big;
++	ops->read_eem = mt6797_dvfsp_state_source_backend_read_eem;
++	return 0;
++#endif
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_state_source_backend_ops_init);
++
++MODULE_DESCRIPTION("MT6797 protected readback source callbacks");
++MODULE_LICENSE("GPL");
+-- 
+2.43.0
