@@ -59,6 +59,7 @@ STATE_SOURCE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state
 STATE_SOURCE_BACKENDS_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-source-backend-bridge-buildbox-20260809.txt"
 PTP_HANDOFF_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-source-ptp-handoff-buildbox-20260809.txt"
 PTP_STATE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-source-ptp-decode-buildbox-20260809.txt"
+PTP_CALIBRATION_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-source-ptp-calibration-buildbox-20260809.txt"
 
 
 def require(text: str, needle: str, label: str) -> None:
@@ -120,6 +121,7 @@ def main() -> None:
     state_source_backends_build_result = STATE_SOURCE_BACKENDS_BUILD_RESULT.read_text()
     ptp_handoff_build_result = PTP_HANDOFF_BUILD_RESULT.read_text()
     ptp_state_build_result = PTP_STATE_BUILD_RESULT.read_text()
+    ptp_calibration_build_result = PTP_CALIBRATION_BUILD_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     eem_calibration_source = eem_calibration_patch[eem_calibration_patch.index("diff --git"):]
@@ -1137,6 +1139,36 @@ def main() -> None:
         ("runtime_evidence=none", "ptp-state-build-no-runtime"),
     ):
         require(ptp_state_build_result, needle, label)
+    for needle, label in (
+        ("claim=COMPILE_ONLY_MT6797_DVFSP_PTP_CALIBRATION_BINDING", "ptp-calibration-build-claim"),
+        ("repository_commit=be44cbc92e2a27967250f9bf44ce426ac0619fef", "ptp-calibration-build-commit"),
+        ("origin=https://github.com/ixoo/gemini-pda-mainline.git", "ptp-calibration-build-origin"),
+        ("repository_dirty=false", "ptp-calibration-build-clean"),
+        ("build_backend=buildbox", "ptp-calibration-build-backend"),
+        ("buildbox_status=validated", "ptp-calibration-build-status"),
+        ("buildbox_job=be44cbc92e2a27967250f9bf44ce426ac0619fef-dvfsp-protected-readback-m0", "ptp-calibration-build-job"),
+        ("patch_count=203", "ptp-calibration-build-patch-count"),
+        ("artifact=linux-7.1.3-gemini-dvfsp-protected-readback-bd70c6fb-b6696a3c", "ptp-calibration-build-artifact"),
+        ("source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc", "ptp-calibration-build-source-hash"),
+        ("patchset_sha256=bd70c6fb5c805e064c62f39bdbd059fb39b809233e8d1c57b4cad74637b534e7", "ptp-calibration-build-patchset-hash"),
+        ("config_sha256=9561561944c875d1fadb5cee822fb9fa572a2e9cf82e4b8a45921e9a43828ef4", "ptp-calibration-build-config-hash"),
+        ("image_gzip_sha256=ccaf4056cc522d4df11d9750d235dbf170916e90064ab8a993215e19a49c6fe4", "ptp-calibration-build-image-hash"),
+        ("gemini_dtb_sha256=4ca3765d3ed1a39751c59387456de861091725321cdd5b7ec4cf715008a9d356", "ptp-calibration-build-dtb-hash"),
+        ("dtb_count=119", "ptp-calibration-build-dtb-count"),
+        ("sha256sums=passed", "ptp-calibration-build-checksums"),
+        ("package_fetch=success;validated_package_only", "ptp-calibration-build-fetch"),
+        ("ptp_calibration_contract=0214;ptp_state_required;BIG_L_2L_CCI;init_mon;dvfs_level;bin_spec;builder_enforced;default_off", "ptp-calibration-build-contract"),
+        ("owner=unregistered", "ptp-calibration-build-owner-unregistered"),
+        ("provider=none", "ptp-calibration-build-no-provider"),
+        ("secure_write=none", "ptp-calibration-build-no-secure-write"),
+        ("hardware_write=none", "ptp-calibration-build-no-write"),
+        ("device_action=none", "ptp-calibration-build-no-device"),
+        ("hardware_support_claim=NONE", "ptp-calibration-build-no-support-claim"),
+        ("boot_candidate=false", "ptp-calibration-build-not-candidate"),
+        ("runtime_evidence=none", "ptp-calibration-build-no-runtime"),
+        ("device_boot=none", "ptp-calibration-build-no-boot"),
+    ):
+        require(ptp_calibration_build_result, needle, label)
     for needle, label in (
         ("repeat_run_repository_commit=6c3cb4fad5a4895f6a69d7913089553b6751e34c", "readback-repeat-commit"),
         ("repeat_run_buildbox_job=6c3cb4fad5a4895f6a69d7913089553b6751e34c-dvfsp-protected-readback-m0", "readback-repeat-job"),

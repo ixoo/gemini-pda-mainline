@@ -480,6 +480,16 @@ result](results/state-source-ptp-decode-buildbox-20260809.txt). This is still
 compile-only: no runtime calibration was read and no hardware, firmware,
 device, or CPU8/CPU9 action occurred.
 
+Patch `0214` closes a concrete conversion gap by making the decoded PTP state a
+required input to the calibration builder. The builder now validates the
+BIG/L/2L/CCI bank identity, INIT/MON enablement, DVFS level, and bin range
+before accepting calibration state. Revision `be44cbc` applied all 203
+canonical entries on Buildbox, compiled the Gemini DTB and full arm64 image,
+produced 119 DTBs, passed package checksums, and fetched only the validated
+package; see the [PTP calibration-binding Buildbox result](results/state-source-ptp-calibration-buildbox-20260809.txt).
+This is still a pure, default-off seam: no provider registration, runtime
+calibration read, hardware, firmware, device, or CPU8/CPU9 action occurred.
+
 The next gate is still the real MT6797 EEM/PTP/thermal and PMIC/clock provider
 that supplies those inputs from efuse and live hardware, arbitrates the shared
 EEM/thermal resource, and independently proves clock/rail transition locking

@@ -66,6 +66,15 @@ and fetches only the validated package; see the [PTP state decoder Buildbox
 result](experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/state-source-ptp-decode-buildbox-20260809.txt).
 No runtime calibration was read and no device or CPU8/CPU9 action is implied.
 
+Patch `0214` now makes the decoded PTP state a required input to the dormant
+calibration builder. The builder validates the BIG/L/2L/CCI bank identity,
+INIT/MON enablement, DVFS level, and bin range before accepting calibration
+state. Revision `be44cbc` applies all 203 canonical entries on Buildbox,
+produces 119 DTBs, passes package checksums, and fetches only the validated
+package; see the [PTP calibration-binding Buildbox result](experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/state-source-ptp-calibration-buildbox-20260809.txt).
+This remains compile-only: no provider registration, runtime calibration read,
+hardware or firmware operation, device boot, or CPU8/CPU9 admission occurred.
+
 The profile-series invariant is repaired. The immediate task is the zero-write
 legacy-family driver and binding contract, not another ad hoc A72 boot. The
 exact sequence and exit criteria through isolated probe/bind/unbind and

@@ -2083,6 +2083,16 @@ The next ordered work remains source-only:
    decoder Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/state-source-ptp-decode-buildbox-20260809.txt).
    This remains compile-only: no runtime calibration was read and no hardware,
    firmware, device, or CPU8/CPU9 action occurred.
+   Patch `0214` now makes the decoded PTP state a required calibration-builder
+   input and validates the BIG/L/2L/CCI bank identity, INIT/MON enablement,
+   DVFS level, and bin range before the builder accepts it. Revision `be44cbc`
+   applies all 203 canonical entries on Buildbox, compiles the Gemini DTB and
+   full arm64 image, produces 119 DTBs, passes package checksums, and fetches
+   only the validated package. See the [PTP calibration-binding Buildbox
+   result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/state-source-ptp-calibration-buildbox-20260809.txt).
+   This remains a pure, default-off conversion seam: no provider registration,
+   runtime calibration read, hardware, firmware, device, or CPU8/CPU9 action
+   occurred.
    The next ordered gate remains an independently reviewed implementation of
    the real calibrated EEM/PTP/PPM state owner with clock/rail arbitration,
    generation-producing callbacks, and runtime invalidation/transition-lock
