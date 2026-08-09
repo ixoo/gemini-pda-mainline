@@ -30,7 +30,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-owner-arbitration.c b/drive
 --- a/drivers/soc/mediatek/mt6797-dvfsp-state-owner-arbitration.c
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-state-owner-arbitration.c
 @@ -20,3 +20,4 @@ static int mt6797_dvfsp_arbitration_check(
- 	{
+ {
  	if (!arbitration || !arbitration->initialized ||
 +	    arbitration->faulted ||
  	    !arbitration->source || !arbitration->source->initialized ||
