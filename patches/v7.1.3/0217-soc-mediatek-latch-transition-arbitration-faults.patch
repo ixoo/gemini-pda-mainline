@@ -1,0 +1,103 @@
+From 0000000000000000000000000000000000000217 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 10 Aug 2026 01:30:00 -0400
+Subject: [PATCH] soc: mediatek: latch transition arbitration faults
+
+The transition-generation wrapper rejects a changed or regressed generation,
+but previously left the source reusable after that rejection. Latch the
+arbitration fault, invalidate the calibrated source, and reject every later
+snapshot or identity query until the wrapper is explicitly reinitialized.
+
+This is a fail-closed lifecycle boundary, not a hardware owner. It performs no
+register, secure, regulator, firmware, device, or CPU operation and does not
+register an owner or provider. The patch is experiment-only and not
+submission-ready.
+---
+ drivers/soc/mediatek/mt6797-dvfsp-state-owner-arbitration.c | 32 ++++++++++++++++++++--
+ include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h |  1 +
+ 2 files changed, 30 insertions(+), 3 deletions(-)
+
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h b/include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h
+@@ -51,3 +51,4 @@ struct mt6797_dvfsp_state_owner_arbitration {
+ 	u64 last_generation;
++	bool faulted;
+ 	bool initialized;
+ };
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-owner-arbitration.c b/drivers/soc/mediatek/mt6797-dvfsp-state-owner-arbitration.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-state-owner-arbitration.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-state-owner-arbitration.c
+@@ -28,3 +28,4 @@ static int mt6797_dvfsp_arbitration_check(
+ 	{
+ 	if (!arbitration || !arbitration->initialized ||
++	    arbitration->faulted ||
+ 	    !arbitration->source || !arbitration->source->initialized ||
+@@ -35,3 +35,17 @@ static int mt6797_dvfsp_arbitration_check(
+ 	return 0;
+ }
+ 
++static int mt6797_dvfsp_arbitration_fault(
++	struct mt6797_dvfsp_state_owner_arbitration *arbitration,
++	enum mt6797_dvfsp_state_invalidation_reason reason, int error)
++{
++	if (arbitration) {
++		arbitration->faulted = true;
++		if (arbitration->source)
++			mt6797_dvfsp_state_owner_source_invalidate(
++				arbitration->source, reason);
++	}
++
++	return error;
++}
++
+@@ -45,10 +61,15 @@ static int mt6797_dvfsp_arbitration_read_generation(
+ 	ret = arbitration->ops->read_generation(arbitration->context,
+ 						 generation);
+ 	if (ret)
+-		return ret;
+-	if (!*generation || (arbitration->last_generation &&
+-					*generation < arbitration->last_generation))
+-		return -EPROTO;
++		return mt6797_dvfsp_arbitration_fault(arbitration,
++			MT6797_DVFSP_STATE_INVALID_CLOCK_TRANSITION, ret);
++	if (!*generation)
++		return mt6797_dvfsp_arbitration_fault(arbitration,
++			MT6797_DVFSP_STATE_INVALID_CLOCK_TRANSITION, -EPROTO);
++	if (arbitration->last_generation &&
++	    *generation < arbitration->last_generation)
++		return mt6797_dvfsp_arbitration_fault(arbitration,
++			MT6797_DVFSP_STATE_INVALID_CLOCK_TRANSITION, -EPROTO);
+ 
+ 	return 0;
+ }
+@@ -80,6 +101,7 @@ static int mt6797_dvfsp_arbitration_end(
+ 	ret = mt6797_dvfsp_arbitration_read_generation(arbitration, &after);
+ 	if (!ret && after != generation)
+-		ret = -EAGAIN;
++		ret = mt6797_dvfsp_arbitration_fault(arbitration,
++			MT6797_DVFSP_STATE_INVALID_CLOCK_TRANSITION, -EAGAIN);
+ 	if (!ret)
+ 		arbitration->last_generation = after;
+ 	arbitration->ops->unlock(arbitration->context);
+@@ -128,7 +150,8 @@ int mt6797_dvfsp_state_owner_arbitration_snapshot(
+ 	ret = mt6797_dvfsp_state_owner_source_snapshot(arbitration->source,
+ 							snapshot);
+ 	if (!ret && snapshot->generation != generation)
+-		ret = -EAGAIN;
++		ret = mt6797_dvfsp_arbitration_fault(arbitration,
++			MT6797_DVFSP_STATE_INVALID_CLOCK_TRANSITION, -EAGAIN);
+ 	finish_ret = mt6797_dvfsp_arbitration_end(arbitration, generation);
+ 	if (!ret)
+ 		ret = finish_ret;
+@@ -186,5 +209,6 @@ void mt6797_dvfsp_state_owner_arbitration_invalidate(
+ 	if (!arbitration || !arbitration->source)
+ 		return;
++	arbitration->faulted = true;
+ 	mt6797_dvfsp_state_owner_source_invalidate(arbitration->source, reason);
+ }
+ EXPORT_SYMBOL_GPL(mt6797_dvfsp_state_owner_arbitration_invalidate);
+
+-- 
+2.43.0
