@@ -61,6 +61,7 @@ STATE_SOURCE_BACKENDS_BUILD_RESULT = Path(__file__).resolve().parents[1] / "resu
 PTP_HANDOFF_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-source-ptp-handoff-buildbox-20260809.txt"
 PTP_STATE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-source-ptp-decode-buildbox-20260809.txt"
 PTP_CALIBRATION_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-source-ptp-calibration-buildbox-20260809.txt"
+STATE_OWNER_SOURCE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-source-buildbox-20260809.txt"
 
 
 def require(text: str, needle: str, label: str) -> None:
@@ -124,6 +125,7 @@ def main() -> None:
     ptp_handoff_build_result = PTP_HANDOFF_BUILD_RESULT.read_text()
     ptp_state_build_result = PTP_STATE_BUILD_RESULT.read_text()
     ptp_calibration_build_result = PTP_CALIBRATION_BUILD_RESULT.read_text()
+    state_owner_source_build_result = STATE_OWNER_SOURCE_BUILD_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     eem_calibration_source = eem_calibration_patch[eem_calibration_patch.index("diff --git"):]
@@ -1195,6 +1197,36 @@ def main() -> None:
         ("device_boot=none", "ptp-calibration-build-no-boot"),
     ):
         require(ptp_calibration_build_result, needle, label)
+    for needle, label in (
+        ("claim=COMPILE_ONLY_MT6797_DVFSP_CALIBRATED_STATE_OWNER_SOURCE", "state-owner-source-build-claim"),
+        ("repository_commit=180d5d7f3cd0f5402a0f2f3f98b027d4eb7de7d0", "state-owner-source-build-commit"),
+        ("origin=https://github.com/ixoo/gemini-pda-mainline.git", "state-owner-source-build-origin"),
+        ("repository_dirty=false", "state-owner-source-build-clean"),
+        ("build_backend=buildbox", "state-owner-source-build-backend"),
+        ("buildbox_status=validated", "state-owner-source-build-status"),
+        ("buildbox_job=180d5d7f3cd0f5402a0f2f3f98b027d4eb7de7d0-dvfsp-protected-readback-m0", "state-owner-source-build-job"),
+        ("patch_count=204", "state-owner-source-build-patch-count"),
+        ("artifact=linux-7.1.3-gemini-dvfsp-protected-readback-744b7285-b6696a3c", "state-owner-source-build-artifact"),
+        ("source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc", "state-owner-source-build-source-hash"),
+        ("patchset_sha256=744b72853fe87aca2dfec4aa50964ce1874401aff0334693a667e4f287ed7586", "state-owner-source-build-patchset-hash"),
+        ("config_sha256=9561561944c875d1fadb5cee822fb9fa572a2e9cf82e4b8a45921e9a43828ef4", "state-owner-source-build-config-hash"),
+        ("image_gzip_sha256=ccaf4056cc522d4df11d9750d235dbf170916e90064ab8a993215e19a49c6fe4", "state-owner-source-build-image-hash"),
+        ("gemini_dtb_sha256=4ca3765d3ed1a39751c59387456de861091725321cdd5b7ec4cf715008a9d356", "state-owner-source-build-dtb-hash"),
+        ("dtb_count=119", "state-owner-source-build-dtb-count"),
+        ("sha256sums=passed", "state-owner-source-build-checksums"),
+        ("package_fetch=success;validated_package_only", "state-owner-source-build-fetch"),
+        ("owner_source_contract=0215;ptp_identity_required;full_provenance;calibration_rows;live_state;owner_handles;transition_mutex;dormant_registry_ops;default_off", "state-owner-source-build-contract"),
+        ("owner=unregistered", "state-owner-source-build-owner-unregistered"),
+        ("provider=none", "state-owner-source-build-no-provider"),
+        ("secure_write=none", "state-owner-source-build-no-secure-write"),
+        ("hardware_write=none", "state-owner-source-build-no-write"),
+        ("device_action=none", "state-owner-source-build-no-device"),
+        ("hardware_support_claim=NONE", "state-owner-source-build-no-support-claim"),
+        ("boot_candidate=false", "state-owner-source-build-not-candidate"),
+        ("runtime_evidence=none", "state-owner-source-build-no-runtime"),
+        ("device_boot=none", "state-owner-source-build-no-boot"),
+    ):
+        require(state_owner_source_build_result, needle, label)
     for needle, label in (
         ("repeat_run_repository_commit=6c3cb4fad5a4895f6a69d7913089553b6751e34c", "readback-repeat-commit"),
         ("repeat_run_buildbox_job=6c3cb4fad5a4895f6a69d7913089553b6751e34c-dvfsp-protected-readback-m0", "readback-repeat-job"),

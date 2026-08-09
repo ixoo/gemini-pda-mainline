@@ -2093,6 +2093,17 @@ The next ordered work remains source-only:
    This remains a pure, default-off conversion seam: no provider registration,
    runtime calibration read, hardware, firmware, device, or CPU8/CPU9 action
    occurred.
+   Patch `0215` now binds the PTP-derived silicon identity, calibration rows,
+   live state, full provenance, and owner/transition handles under one
+   transition mutex, with dormant owner callbacks for
+   identify/snapshot/validate/invalidate. Revision `180d5d7` applies 204
+   canonical series entries on Buildbox, produces 119 DTBs, passes package
+   checksums, and fetches only the validated package. See the [calibrated
+   state-owner source Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/state-owner-source-buildbox-20260809.txt).
+   This remains a source-only, default-off binding layer: the actual
+   efuse/EEM, PMIC/clock, and generation-producing source callbacks plus
+   protected owner registration are still the next implementation gate. No
+   hardware, firmware, device, or CPU8/CPU9 action occurred.
    The next ordered gate remains an independently reviewed implementation of
    the real calibrated EEM/PTP/PPM state owner with clock/rail arbitration,
    generation-producing callbacks, and runtime invalidation/transition-lock

@@ -490,6 +490,14 @@ package; see the [PTP calibration-binding Buildbox result](results/state-source-
 This is still a pure, default-off seam: no provider registration, runtime
 calibration read, hardware, firmware, device, or CPU8/CPU9 action occurred.
 
+Patch `0215` binds the PTP-derived silicon identity, calibration rows, live
+state, full provenance, and owner/transition handles under one transition
+mutex. Revision `180d5d7` applied 204 canonical series entries on Buildbox,
+produced 119 DTBs, passed package checksums, and fetched only the validated
+package; see the [calibrated state-owner source Buildbox result](results/state-owner-source-buildbox-20260809.txt).
+The seam remains default-off and unregistered: actual efuse/EEM/PMIC/clock
+source callbacks and protected owner registration are not yet implemented.
+
 The next gate is still the real MT6797 EEM/PTP/thermal and PMIC/clock provider
 that supplies those inputs from efuse and live hardware, arbitrates the shared
 EEM/thermal resource, and independently proves clock/rail transition locking

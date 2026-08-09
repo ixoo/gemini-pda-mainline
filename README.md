@@ -75,6 +75,15 @@ package; see the [PTP calibration-binding Buildbox result](experiments/2026-08-0
 This remains compile-only: no provider registration, runtime calibration read,
 hardware or firmware operation, device boot, or CPU8/CPU9 admission occurred.
 
+Patch `0215` binds the PTP-derived silicon identity, calibration rows, live
+state, full provenance, and owner/transition handles under one transition
+mutex. Revision `180d5d7` applies 204 canonical series entries on Buildbox,
+produces 119 DTBs, passes package checksums, and fetches only the validated
+package; see the [calibrated state-owner source Buildbox result](experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/state-owner-source-buildbox-20260809.txt).
+The seam is still default-off and unregistered: actual efuse/EEM/PMIC/clock
+source callbacks and protected owner registration remain open, with no
+hardware, firmware, device, or CPU8/CPU9 action.
+
 The profile-series invariant is repaired. The immediate task is the zero-write
 legacy-family driver and binding contract, not another ad hoc A72 boot. The
 exact sequence and exit criteria through isolated probe/bind/unbind and
