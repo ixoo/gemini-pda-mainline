@@ -38,7 +38,7 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-ptp.h b/include/linux/soc/m
 --- a/include/linux/soc/mediatek/mt6797-dvfsp-ptp.h
 +++ b/include/linux/soc/mediatek/mt6797-dvfsp-ptp.h
 @@ -7,9 +7,39 @@
- #include <linux/bitops.h>
++#include <linux/bitops.h>
  
  #define MT6797_DVFSP_PTP_HANDOFF_ABI		1
  #define MT6797_DVFSP_PTP_HANDOFF_WORDS		19
