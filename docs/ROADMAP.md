@@ -2799,6 +2799,27 @@ CPU9 admission remains closed. The next ordered action is attributable
 integration at the actual vendor writer sites, followed by separate read-only
 runtime registration evidence.
 
+A follow-up lock-context audit shows that the PTP-table and voltage writer
+sites execute under the vendor `cpufreq_lock` spinlock, while PPM dispatch is
+mutex-protected and then enters the same cpufreq callback path; see the [lock-context audit](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-writer-lock-context-audit-20260810.txt).
+The shared owner must be acquired before the cpufreq critical section, with
+every vendor callback chained under one transaction and an abort on every
+failure. Taking the owner mutex from inside the spinlocked writer is rejected.
+This sharpens the integration boundary but is not runtime evidence: no vendor
+source was copied, no setter or provider was called, no device action occurred,
+and CPU8/CPU9 admission remains closed. The next ordered action is an
+attributable vendor-boundary implementation at that pre-spinlock point,
+followed by separate read-only runtime registration evidence.
+
+Patch `0252` makes this safety boundary fail closed in code: writer acquisition
+returns `-EWOULDBLOCK` when interrupts are disabled or execution is atomic, and
+KUnit covers the IRQ-disabled refusal. This prevents a future call-site adapter
+from sleeping on the shared mutex after entering the vendor cpufreq spinlock.
+It remains dormant contract work; no vendor callback slot, provider, device,
+or CPU8/CPU9 path is enabled. The next ordered action remains the attributable
+vendor-boundary implementation at the pre-spinlock point, followed by separate
+read-only runtime registration evidence.
+
 Required evidence:
 
 - provider registration performs no register-data write;

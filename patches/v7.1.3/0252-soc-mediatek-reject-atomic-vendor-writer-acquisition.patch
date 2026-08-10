@@ -1,0 +1,65 @@
+From 0000000000000000000000000000000000000252 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 10 Aug 2026 22:30:00 -0400
+Subject: [PATCH] soc: mediatek: reject atomic vendor writer acquisition
+
+The pinned vendor call-site audit shows that the PTP-table and voltage writer
+paths execute under a cpufreq spinlock. Make the shared writer fail closed when
+begin is called with interrupts disabled or in an atomic context, instead of
+sleeping on the resource-owner mutex. Extend the hardware-free KUnit coverage
+with the IRQ-disabled refusal.
+
+The real integration must acquire the shared owner before entering the vendor
+cpufreq critical section. This remains an experiment-only safety contract: no
+vendor callback slot is installed, no MMIO is performed, and CPU8/CPU9 remain
+closed.
+---
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-kunit-test.c | 6 ++++++
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c            | 3 +++
+ 2 files changed, 9 insertions(+)
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-kunit-test.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-kunit-test.c
+index 69a94ff264374155475fc7171bf7bbd5f39df23b..74c5615fedc43c3904bc68abead1c48ef4c17436 100644
+--- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-kunit-test.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-kunit-test.c
+@@ -4,6 +4,7 @@
+ #include <kunit/test.h>
+ #include <linux/errno.h>
+ #include <linux/module.h>
++#include <linux/irqflags.h>
+ #include <linux/mutex.h>
+ #include <linux/string.h>
+ #include <linux/types.h>
+@@ -79,6 +80,11 @@ static void mt6797_dvfsp_vendor_writer_serializes_generation(
+ 			&calibration, &cspm, &ppm, &generation, &owner_handle,
+ 			&transition_handle, &provenance), 0);
+ 	KUNIT_EXPECT_EQ(test, generation, (u64)1);
++	local_irq_disable();
++	KUNIT_EXPECT_EQ(test,
++		mt6797_dvfsp_vendor_writer_begin(&writer, &generation),
++		-EWOULDBLOCK);
++	local_irq_enable();
+ 	KUNIT_EXPECT_EQ(test, owner_handle, (u64)1);
+ 	KUNIT_EXPECT_EQ(test, transition_handle, (u64)2);
+ 	KUNIT_EXPECT_EQ(test, calls, 1U);
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c
+index 373c4b45f34887785b895c9a18e8999c878723a8..5d897c1bd13fd4cf79b354525bb82c85fd9c59a2 100644
+--- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c
+@@ -9,6 +9,7 @@
+  */
+ 
+ #include <linux/errno.h>
++#include <linux/irqflags.h>
+ #include <linux/module.h>
+ #include <linux/string.h>
+ #include <linux/types.h>
+@@ -59,6 +60,8 @@ int mt6797_dvfsp_vendor_writer_begin(
+ 
+ 	if (ret || !generation)
+ 		return ret ? ret : -EINVAL;
++	if (in_atomic() || irqs_disabled())
++		return -EWOULDBLOCK;
+ 	if (READ_ONCE(writer->update_held))
+ 		return -EALREADY;
+ 
