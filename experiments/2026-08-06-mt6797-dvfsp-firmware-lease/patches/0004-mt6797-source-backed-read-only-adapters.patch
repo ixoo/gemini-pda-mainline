@@ -13,20 +13,19 @@ these hooks before treating multiple snapshots as one state.
 This is an experiment-only clean-room boundary and is intentionally not a
 provider or owner registration.
 ---
- drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c          |  1 +
- drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c          | 72 ++++++++++++
- drivers/misc/mediatek/base/power/mt6797/mt_cpufreq_hybrid.c   | 43 +++++++
+ drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-state.h | 128 ++++++++++++++++++++
+ drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c          | 74 ++++++++++++
+ drivers/misc/mediatek/base/power/mt6797/mt_cpufreq_hybrid.c   | 45 ++++++++
  drivers/misc/mediatek/base/power/mt6797/mt_eem.c             | 36 ++++++
- drivers/misc/mediatek/base/power/ppm_v1/src/mt_ppm_main.c     | 57 +++++++++
- drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-state.h | 164 ++++++++++++++++++++
- 6 files changed, 373 insertions(+)
+ drivers/misc/mediatek/base/power/ppm_v1/src/mt_ppm_main.c     | 59 ++++++++++
+ 5 files changed, 342 insertions(+)
 
 diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-state.h b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-state.h
 new file mode 100644
 index 000000000..000000000
 --- /dev/null
 +++ b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-state.h
-@@ -0,0 +1,164 @@
+@@ -0,0 +1,128 @@
 +/*
 + * SPDX-License-Identifier: GPL-2.0
 + *
