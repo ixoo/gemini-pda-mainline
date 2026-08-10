@@ -1293,3 +1293,20 @@ registration are not present, no vendor setter/provider is active, no device was
 booted or written, and CPU8/CPU9 admission remains closed. The next gate is to
 bind that adapter to the mainline owner registration and validate complete
 failure/remove/event delivery before any runtime or device experiment.
+
+Patch `0259` and experiment patch `0008` now provide that source-independent
+integration boundary. The mainline owner exports one ABI-1 adapter for the
+bridge, runtime-event table, and lifecycle callbacks; the vendor side pins the
+exact bridge/runtime/lifecycle table pointers, contexts, owner and transition
+handles, forwards probe/remove registration, and refuses teardown while the
+mainline owner remains registered. The mainline KUnit contract exercises the
+complete bind/register/unregister/unbind sequence without hardware access. The
+exact pushed commit `3f7446c` passed the full 248-patch Buildbox profile and the
+pinned vendor revision passed the sequential eight-patch compile of the writer,
+cpufreq, hybrid CSPM, EEM, and PPM objects; see the [lifecycle-integration
+Buildbox result](results/vendor-writer-lifecycle-integration-buildbox-20260811.txt).
+This closes the compile-only cross-tree boundary, not the runtime gate: no real
+external adapter has registered the owner, no provider or setter is active, no
+device action occurred, and CPU8/CPU9 admission remains closed. The next
+ordered step is a source-backed external adapter with read-only owner and
+invalidation evidence; do not boot or write a device for this compile result.

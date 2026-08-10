@@ -3141,6 +3141,22 @@ ordered gate is the actual vendor-aware caller lifecycle integration with
 complete failure/remove unwinding and event forwarding, followed by separate
 read-only runtime evidence.
 
+Patch `0259` and experiment patch `0008` now bind that boundary through one
+source-independent ABI-1 integration adapter. The mainline side requires exact
+bridge, runtime-event, lifecycle, context, owner-handle, and transition-handle
+identity; the vendor side forwards probe registration and remove unregistration
+and refuses teardown while the owner is still registered. The KUnit contract
+exercises bind, lifecycle registration, owner registration, reverse teardown,
+and unbind without touching hardware. The exact pushed commit `3f7446c` passed
+the full Buildbox profile with 248 canonical patches and 119 DTBs, and the
+pinned vendor revision passed the sequential eight-patch affected-object
+compile; see the [lifecycle-integration Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-writer-lifecycle-integration-buildbox-20260811.txt).
+This closes the compile-only cross-tree integration boundary only: the external
+adapter remains default-off and unregistered, no provider/setter/runtime owner
+or device action is claimed, and CPU8/CPU9 admission stays closed. The next
+ordered step is source-backed read-only owner and invalidation evidence from a
+real external adapter; no device boot or write is authorized by this result.
+
 Required evidence:
 
 - provider registration performs no register-data write;
