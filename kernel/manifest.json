@@ -1283,6 +1283,14 @@
                     "configs/gemini-dvfsp-eem-readback.fragment",
                     "configs/gemini-dvfsp-resource-owner.fragment"
                 ]
+            },
+            "dvfsp-owner-kunit": {
+                "base": "defconfig",
+                "patch_series": "patches/series",
+                "fragments": [
+                    "configs/gemini.fragment",
+                    "configs/gemini-dvfsp-owner-kunit.fragment"
+                ]
             }
     }
   }

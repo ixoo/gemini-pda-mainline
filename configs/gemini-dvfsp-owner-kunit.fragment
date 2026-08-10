@@ -1,0 +1,8 @@
+# Hardware-free KUnit coverage for the dedicated MT6797 DVFSP owner boundary.
+# The test uses fake struct device references and never probes the DT node or
+# invokes a clock, rail, firmware, secure-monitor, or CPU-hotplug operation.
+CONFIG_KUNIT=y
+CONFIG_MTK_MT6797_DVFSP_HANDOFF=y
+CONFIG_MTK_MT6797_DVFSP_RESOURCE_OWNER=y
+CONFIG_MTK_MT6797_DVFSP_OWNER_KUNIT_TEST=y
+CONFIG_LOCALVERSION="-gemini-dvfsp-owner-kunit"
