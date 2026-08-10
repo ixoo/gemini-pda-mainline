@@ -40,7 +40,7 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h b/include/linux/s
  #define MT6797_DVFSP_CALIBRATION_STATE_PHASE_INIT01	1
  #define MT6797_DVFSP_CALIBRATION_STATE_PHASE_INIT02	2
  #define MT6797_DVFSP_CALIBRATION_STATE_PHASE_MON		3
-@@ -115,6 +115,8 @@ struct mt6797_dvfsp_calibration_state {
+@@ -115,7 +115,9 @@ struct mt6797_dvfsp_calibration_state {
  	s32 temperature_millic;
  	u64 thermal_generation;
  	u64 clock_owner_generation;
@@ -62,7 +62,7 @@ diff --git a/include/linux/soc/mediatek/mt6797-eem-calibration.h b/include/linux
  #define MT6797_EEM_CALIBRATION_ROWS		16
  #define MT6797_EEM_CALIBRATION_BANKS		4
  #define MT6797_EEM_CALIBRATION_MON_ENABLE	0x2
-@@ -46,6 +46,7 @@ struct mt6797_eem_calibration_input {
+@@ -46,7 +46,8 @@ struct mt6797_eem_calibration_input {
  	s32 temperature_millic;
  	u64 thermal_generation;
  	u64 clock_owner_generation;
@@ -86,7 +86,7 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-state-source.h b/include/li
 diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h b/include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h
 --- a/include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h
 +++ b/include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h
-@@ -14,7 +14,7 @@
+@@ -14,6 +14,6 @@
  struct mt6797_dvfsp_handoff;
  
 -#define MT6797_DVFSP_STATE_OWNER_SOURCE_ABI	2
@@ -97,7 +97,7 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h b/incl
 diff --git a/drivers/thermal/mediatek/auxadc_thermal.c b/drivers/thermal/mediatek/auxadc_thermal.c
 --- a/drivers/thermal/mediatek/auxadc_thermal.c
 +++ b/drivers/thermal/mediatek/auxadc_thermal.c
-@@ -1296,7 +1296,8 @@ int mt6797_eem_calibration_build(
+@@ -1296,5 +1296,6 @@ int mt6797_eem_calibration_build(
  	    input->temperature_millic > 150000 ||
  	    !input->thermal_generation || !input->clock_owner_generation ||
  	    !input->rail_owner_generation ||
@@ -127,7 +127,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/
 diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-owner-source.c b/drivers/soc/mediatek/mt6797-dvfsp-state-owner-source.c
 --- a/drivers/soc/mediatek/mt6797-dvfsp-state-owner-source.c
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-state-owner-source.c
-@@ -182,6 +182,8 @@ static int mt6797_dvfsp_owner_fill_live(
+@@ -182,8 +182,10 @@ static int mt6797_dvfsp_owner_fill_live(
  	if (ret)
  		return ret;
  	if (!live->generation || live->owner_handle != owner->owner_handle ||
@@ -141,7 +141,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-owner-source.c b/drivers/so
 diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-source.c b/drivers/soc/mediatek/mt6797-dvfsp-state-source.c
 --- a/drivers/soc/mediatek/mt6797-dvfsp-state-source.c
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-state-source.c
-@@ -154,6 +154,9 @@ int mt6797_dvfsp_state_source_snapshot(
+@@ -154,5 +154,8 @@ int mt6797_dvfsp_state_source_snapshot(
  	if (ret)
  		return ret;
 +	if (!calibration_state.source_generation ||
@@ -153,7 +153,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-source.c b/drivers/soc/medi
 diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-snapshot.c b/drivers/soc/mediatek/mt6797-dvfsp-state-snapshot.c
 --- a/drivers/soc/mediatek/mt6797-dvfsp-state-snapshot.c
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-state-snapshot.c
-@@ -131,6 +131,8 @@ int mt6797_dvfsp_state_snapshot_assemble(
+@@ -131,7 +131,9 @@ int mt6797_dvfsp_state_snapshot_assemble(
  	    !input->calibration->thermal_generation ||
  	    !input->calibration->clock_owner_generation ||
  	    !input->calibration->rail_owner_generation ||
