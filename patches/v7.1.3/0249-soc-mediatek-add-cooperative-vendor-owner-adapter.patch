@@ -18,10 +18,10 @@ This is an experiment-only contract and not submission-ready.
 ---
  drivers/soc/mediatek/Kconfig                                      |  20 ++++
  drivers/soc/mediatek/Makefile                                     |   2 +
- drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c             | 235 ++++++++++++++++++++
- drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c                  | 105 +++++++++
- include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h            |  49 ++++
- 5 files changed, 411 insertions(+)
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c             | 269 ++++++++++++++++++++
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c                  | 120 +++++++++++++
+ include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h            |  58 ++++++
+ 5 files changed, 469 insertions(+)
  create mode 100644 drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
  create mode 100644 drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c
  create mode 100644 include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h
@@ -71,7 +71,7 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h b/include/li
 new file mode 100644
 --- /dev/null
 +++ b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h
-@@ -0,0 +1,49 @@
+@@ -0,0 +1,58 @@
 +/* SPDX-License-Identifier: GPL-2.0-only */
 +#ifndef __LINUX_SOC_MEDIATEK_MT6797_DVFSP_VENDOR_OWNER_H
 +#define __LINUX_SOC_MEDIATEK_MT6797_DVFSP_VENDOR_OWNER_H
@@ -134,7 +134,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c b/drivers/soc/medi
 new file mode 100644
 --- /dev/null
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c
-@@ -0,0 +1,105 @@
+@@ -0,0 +1,120 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/*
 + * Compose explicit vendor callbacks around the dormant MT6797 DVFSP owner.
@@ -259,7 +259,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c b/drivers/soc
 new file mode 100644
 --- /dev/null
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
-@@ -0,0 +1,235 @@
+@@ -0,0 +1,269 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/* Hardware-free KUnit coverage for the cooperative vendor owner adapter. */
 +
