@@ -2738,6 +2738,17 @@ This confirms compile-only reproducibility for the callback-boundary audit;
 the vendor-aware owner/provider gate remains open, and no device action or
 CPU8/CPU9 admission occurred.
 
+Patch `0248` corrected a dormant provider wiring bug: the calibrated provider
+now passes its embedded PPM source as the callback context, matching the PPM
+source ABI, with a hardware-free KUnit identity assertion. The exact pushed
+head `72be3a2` was resumed on Buildbox with the named `dvfsp-owner-kunit`
+profile. All 237 canonical patches, 119 DTBs, package/provenance checksums,
+and the validated-package-only fetch passed; see the [Buildbox resume
+receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/buildbox-resume-72be3a2-20260810.txt).
+This repairs the compile-only provider contract but does not supply a real
+vendor owner, register a provider, or authorize device action; CPU8/CPU9
+admission remains closed.
+
 Required evidence:
 
 - provider registration performs no register-data write;

@@ -953,3 +953,13 @@ Buildbox resume receipt](results/buildbox-resume-75986f0-20260810.txt) records
 the immutable provenance. This remains compile-only evidence: no owner/provider
 was registered, no device was booted or written, and CPU8/CPU9 admission remains
 closed.
+
+Patch `0248` corrected the dormant calibrated-provider PPM callback context to
+use its embedded PPM source, matching the callback ABI, and added a
+hardware-free KUnit identity assertion. The exact pushed head `72be3a2` was
+resumed on Buildbox with the named `dvfsp-owner-kunit` profile. All 237
+canonical patches, 119 DTBs, package/provenance checksums, and the
+validated-package-only fetch passed; see the [current-head Buildbox resume
+receipt](results/buildbox-resume-72be3a2-20260810.txt). This remains
+compile-only contract evidence: no owner/provider was registered, no device was
+booted or written, and CPU8/CPU9 admission remains closed.
