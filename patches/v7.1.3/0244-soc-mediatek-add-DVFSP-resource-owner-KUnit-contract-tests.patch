@@ -14,8 +14,8 @@ CPU. It is experiment-only and not submission-ready.
 ---
  drivers/soc/mediatek/Kconfig                    |   9 +++
  drivers/soc/mediatek/Makefile                   |   1 +
- drivers/soc/mediatek/mt6797-dvfsp-resource-owner-test.c | 186 ++++++++++++++++
- 3 files changed, 196 insertions(+)
+ drivers/soc/mediatek/mt6797-dvfsp-resource-owner-test.c | 191 +++++++++++++++++++
+ 3 files changed, 201 insertions(+)
  create mode 100644 drivers/soc/mediatek/mt6797-dvfsp-resource-owner-test.c
 
 diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
@@ -52,7 +52,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-resource-owner-test.c b/drivers/s
 new file mode 100644
 --- /dev/null
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-resource-owner-test.c
-@@ -0,0 +1,186 @@
+@@ -0,0 +1,191 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/*
 + * Hardware-free KUnit coverage for the MT6797 DVFSP resource owner.
@@ -65,6 +65,7 @@ new file mode 100644
 +#include <linux/device.h>
 +#include <linux/errno.h>
 +#include <linux/module.h>
++#include <linux/slab.h>
 +#include <linux/types.h>
 +
 +#include <linux/soc/mediatek/mt6797-dvfsp-resource-owner.h>
@@ -141,14 +142,16 @@ new file mode 100644
 +static void mt6797_dvfsp_owner_serializes_generation(struct kunit *test)
 +{
 +	struct mt6797_dvfsp_resource_owner owner = { };
-+	struct mt6797_dvfsp_owner_test_devices devices;
++	struct mt6797_dvfsp_owner_test_devices *devices;
 +	struct mt6797_dvfsp_state_source_devices tuple = { };
 +	struct mt6797_dvfsp_state_owner_arbitration_ops ops = { };
 +	u64 generation = 0;
 +	int ret;
 +
-+	mt6797_dvfsp_owner_test_devices_init(&devices);
-+	mt6797_dvfsp_owner_test_tuple(&devices, &tuple);
++	devices = kunit_kzalloc(test, sizeof(*devices), GFP_KERNEL);
++	KUNIT_ASSERT_NOT_NULL(test, devices);
++	mt6797_dvfsp_owner_test_devices_init(devices);
++	mt6797_dvfsp_owner_test_tuple(devices, &tuple);
 +	ret = mt6797_dvfsp_resource_owner_init(&owner, 0x67970002);
 +	KUNIT_EXPECT_EQ(test, ret, 0);
 +	if (ret)
@@ -192,18 +195,20 @@ new file mode 100644
 +		KUNIT_EXPECT_EQ(test,
 +				mt6797_dvfsp_resource_owner_detach(&owner), 0);
 +out_devices:
-+	mt6797_dvfsp_owner_test_devices_put(&devices);
++	mt6797_dvfsp_owner_test_devices_put(devices);
 +}
 +
 +static void mt6797_dvfsp_owner_binding_blocks_detach(struct kunit *test)
 +{
 +	struct mt6797_dvfsp_resource_owner owner = { };
-+	struct mt6797_dvfsp_owner_test_devices devices;
++	struct mt6797_dvfsp_owner_test_devices *devices;
 +	struct mt6797_dvfsp_state_source_devices tuple = { };
 +	int ret;
 +
-+	mt6797_dvfsp_owner_test_devices_init(&devices);
-+	mt6797_dvfsp_owner_test_tuple(&devices, &tuple);
++	devices = kunit_kzalloc(test, sizeof(*devices), GFP_KERNEL);
++	KUNIT_ASSERT_NOT_NULL(test, devices);
++	mt6797_dvfsp_owner_test_devices_init(devices);
++	mt6797_dvfsp_owner_test_tuple(devices, &tuple);
 +	ret = mt6797_dvfsp_resource_owner_init(&owner, 0x67970003);
 +	KUNIT_ASSERT_EQ(test, ret, 0);
 +	ret = mt6797_dvfsp_resource_owner_attach(&owner, &tuple);
@@ -221,7 +226,7 @@ new file mode 100644
 +	}
 +	KUNIT_EXPECT_EQ(test,
 +			mt6797_dvfsp_resource_owner_detach(&owner), 0);
-+	mt6797_dvfsp_owner_test_devices_put(&devices);
++	mt6797_dvfsp_owner_test_devices_put(devices);
 +}
 +
 +static struct kunit_case mt6797_dvfsp_owner_test_cases[] = {
