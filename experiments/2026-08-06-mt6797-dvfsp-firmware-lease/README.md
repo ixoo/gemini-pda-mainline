@@ -799,3 +799,39 @@ Buildbox, produced 119 DTBs, passed package checksums, and fetched only the
 validated package; see the [CSPM live-binding Buildbox receipt](results/cspm-live-binding-buildbox-20260810.txt).
 This remains compile-only and default-off: no provider registration, hardware
 write, device action, runtime evidence, or CPU8/CPU9 admission was added.
+
+Patch `0237` adds a read-only MT6797 efuse/PTP identity cell and pure CSPM
+VPROC/VSRAM code-to-microvolt conversion helpers. Buildbox validated revision
+`85e96f7` with 226 patches and 119 DTBs; no efuse read, rail write, provider
+registration, device action, or CPU8/CPU9 admission occurred. Patch `0238`
+binds that identity source to the dormant owner-source seam and requires
+explicit table-epoch and calibration-handle callbacks. Revision `6ffe283`
+validated 227 patches with the same default-off boundary.
+
+Patch `0239` adds the read-only PPM/CCI source adapter: it requires the vendor
+three-cluster rows, separate CCI table, four policy-limit banks, and one table
+epoch under the external PPM lock. Revision `51b3f30` validated 228 patches.
+Patch `0240` adds the live clock/rail source adapter with exact frequency,
+calibrated-row, CSPM-rail, owner-handle, transition-handle, and generation
+checks. Revision `84cfb27` validated 229 patches. Both remain dormant and
+compile-only.
+
+Patch `0241` composes the identity, live-state, and PPM/CCI adapters inside the
+calibrated provider without registration. Patch `0242` validates policy-derived
+CCI bounds against the calibrated row and provider-owned PPM ceiling. Patch
+`0243` routes validated generation-tagged lifecycle events through the provider
+invalidator without registering CPU-hotplug or PM notifier hooks. The first
+`eedafc7` submission stopped during 0243 patch application; corrected revision
+`da7cad7` validated all 232 patches on Buildbox, produced the arm64 image and
+119 DTBs, passed checksums, and fetched only the validated package. See the
+[source/runtime gates receipt](results/source-runtime-gates-buildbox-20260810.txt).
+
+A new named-device, read-only Gemian probe confirms `/proc/eem`, the three PPM
+tables, cpufreq frequency/voltage/OPP endpoints, and the clock debug tree are
+available, but finds no authoritative generation, transition-lock, or owner
+surface beyond generic `mt-cpufreq` and `mt-ppm` nodes. Raw payloads were not
+retained; only bounded metadata and hashes are recorded in the [runtime owner
+boundary v2 receipt](results/runtime-owner-boundary-v2-20260810.txt). The next
+implementation must introduce one dedicated generation/transition-lock owner
+that can prove coherent source snapshots before provider registration or any
+CPU8/CPU9 action is reconsidered.

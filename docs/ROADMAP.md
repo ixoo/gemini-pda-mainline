@@ -2575,6 +2575,17 @@ remains closed. The next ordered gate is named-device runtime evidence for the
 real lock, generation, identity, PPM/CCI, and live rail/clock callbacks; only
 after that evidence can source-backed registration validation be reconsidered.
 
+The first named-device runtime boundary probe on Gemian confirms the source
+surfaces are readable (`/proc/eem`, the three PPM tables, cpufreq frequency,
+voltage, and OPP endpoints, and the clock debug tree), but the bounded sysfs
+search finds no authoritative generation, transition-lock, or owner endpoint.
+Only the generic `mt-cpufreq` and `mt-ppm` platform nodes are visible. The
+sanitized hashes and negative result are recorded in the [runtime owner
+boundary v2 receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/runtime-owner-boundary-v2-20260810.txt).
+This confirms availability of source data, not a coherent owner contract; the
+next implementation must introduce one dedicated generation/lock owner before
+registration validation or any device boot is considered.
+
 Required evidence:
 
 - provider registration performs no register-data write;

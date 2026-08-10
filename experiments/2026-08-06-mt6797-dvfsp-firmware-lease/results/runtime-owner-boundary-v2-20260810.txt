@@ -1,0 +1,38 @@
+# Gemian runtime owner boundary probe v2
+
+generated_utc=2026-08-10T07:08:17Z
+claim=READ_ONLY_GEMIAN_DVFSP_RUNTIME_BOUNDARY_V2
+target=gemini@192.168.1.50
+transport=ssh
+kernel=3.18.41+
+architecture=aarch64
+device_action=none
+hardware_write=none
+backup=none
+cpu_possible=0-9
+cpu_present=0-9
+cpu_online=0
+uptime_seconds=454504
+eem_endpoint=/proc/eem/eem_dump;readable=true;bytes=48871;sha256=ed52cfa4ec3030392a56672c262a5c87abf8e1505d67eec73063a6fd117349ff
+ppm_endpoint=/proc/ppm/dump_cluster_0_dvfs_table;readable=true;bytes=122;sha256=500243df2746e948045a7e91ddfc84c93b453bf1ee0d272099b8173913c4f3c
+ppm_endpoint=/proc/ppm/dump_cluster_1_dvfs_table;readable=true;bytes=124;sha256=9d11646f4b5ac1035be1aa95985ffb68f7dd0a3fb614e033721fb75afe58e0fb
+ppm_endpoint=/proc/ppm/dump_cluster_2_dvfs_table;readable=true;bytes=126;sha256=6fd1e57110cd224e21b15dba5cf03497eaf97a60b1ddaaf26f9ee60c84b21c07
+frequency_endpoint=/proc/cpufreq/cpufreq_freq;readable=true;bytes=12;sha256=107a5dff453c370fb73b091760cd2cd139362ce41681919de43bf021a903520c
+voltage_endpoint=/proc/cpufreq/cpufreq_volt;readable=true;bytes=30;sha256=6dd304d2bb72f28f4144cb4f3992976ee8a36f5cc90f594251c25985190e78d7
+opp_endpoint=/proc/cpufreq/cpufreq_oppidx;readable=true;bytes=375;sha256=032d8d44577c203722a0f1c4bdd8e80dae1b79bceadbef1c63b89adeca05b7d
+clock_debug_surface=/sys/kernel/debug/clk;present=true
+clock_summary=/sys/kernel/debug/clk/clk_summary;present=true
+platform_owner_candidates=/sys/devices/platform/mt-cpufreq;/sys/devices/platform/mt-ppm
+named_generation_or_lock_files=none
+named_transition_or_owner_files=none
+mainline_state_owner=absent
+provider=none
+decision=readback_surfaces_are_present_but_no_authoritative_generation_or_single_transition_lock_surface_is_exported
+required_next_provider=efuse_ptp_identity;mutable_ppm_rows;live_vproc_vsram;clock_rail_generation;single_transition_lock
+cpu8_cpu9_admission=closed
+boot_candidate=false
+
+This read-only probe retained metadata and SHA-256 identities only; raw EEM,
+PPM, voltage, frequency, and OPP payloads were not retained. The runtime
+surfaces confirm availability of source data but do not provide the coherent
+owner contract required by the mainline provider. No device state changed.
