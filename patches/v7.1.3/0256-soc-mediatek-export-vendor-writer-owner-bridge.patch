@@ -1,0 +1,339 @@
+From 0000000000000000000000000000000000000256 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 11 Aug 2026 00:30:00 -0400
+Subject: [PATCH] soc: mediatek: export vendor writer owner bridge
+
+Expose a source-independent callback table for the existing MT6797 vendor
+writer bridge.  The table maps the pinned vendor begin/commit/abort and
+identity callbacks to the already-bound mainline writer, validates site and
+generation on every finish, and pins the callback identities to the same
+resource-owner lock and generation.
+
+The adapter is deliberately not a vendor caller and does not register a
+callback by itself.  It performs no MMIO, provider registration, firmware
+operation, device action, or CPU8/CPU9 admission; a separately reviewed
+vendor-side registration may consume its exact callback table.
+---
+ drivers/soc/mediatek/Kconfig                                      |  11 ++++
+ drivers/soc/mediatek/Makefile                                     |   2 +
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-bridge-kunit-test.c | 103 ++++++++++++
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-bridge.c          | 125 +++++++++++++
+ include/linux/soc/mediatek/mt6797-dvfsp-vendor-writer-bridge.h    |  56 ++++++
+ 5 files changed, 297 insertions(+)
+ create mode 100644 drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-bridge-kunit-test.c
+ create mode 100644 drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-bridge.c
+ create mode 100644 include/linux/soc/mediatek/mt6797-dvfsp-vendor-writer-bridge.h
+
+diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
+--- a/drivers/soc/mediatek/Kconfig
++++ b/drivers/soc/mediatek/Kconfig
+@@ -153,6 +153,17 @@ config MTK_MT6797_DVFSP_VENDOR_WRITER_KUNIT_TEST
+ 	  Exercise generation, abort, overflow, and provenance validation using
+ 	  fake callbacks and a fake mutex. No vendor callback or registration API
+ 	  is invoked.
+ 
++config MTK_MT6797_DVFSP_VENDOR_WRITER_BRIDGE
++	bool "MediaTek MT6797 vendor writer owner bridge"
++	depends on ARM64 && ARCH_MEDIATEK && OF
++	depends on MTK_MT6797_DVFSP_VENDOR_WRITER
++	help
++	  Export the exact callback table consumed by a separately reviewed
++	  vendor-side writer binding. The adapter shares the writer's owner,
++	  transition handle, mutex, and generation and is dormant by default.
++
++config MTK_MT6797_DVFSP_VENDOR_WRITER_BRIDGE_KUNIT_TEST
++	bool "KUnit tests for the MT6797 vendor writer owner bridge"
++	depends on KUNIT=y
++	depends on MTK_MT6797_DVFSP_VENDOR_WRITER_BRIDGE
++	default n
++
+ config MTK_MT6797_DVFSP_CLOCK_BACKEND
+ 	bool "MediaTek MT6797 protected CPU clock readback transport"
+ 	depends on ARM64 && ARCH_MEDIATEK && OF && COMMON_CLK
+diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
+--- a/drivers/soc/mediatek/Makefile
++++ b/drivers/soc/mediatek/Makefile
+@@ -17,6 +17,8 @@ obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_OWNER_KUNIT_TEST) += mt6797-dvfsp-vendor-owner-test.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_WRITER) += mt6797-dvfsp-vendor-writer.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_WRITER_KUNIT_TEST) += mt6797-dvfsp-vendor-writer-kunit-test.o
++obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_WRITER_BRIDGE) += mt6797-dvfsp-vendor-writer-bridge.o
++obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_WRITER_BRIDGE_KUNIT_TEST) += mt6797-dvfsp-vendor-writer-bridge-kunit-test.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_RESOURCE_OWNER) += mt6797-dvfsp-calibrated-provider.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-state-snapshot.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-runtime-bind.o
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-writer-bridge.h b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-writer-bridge.h
+new file mode 100644
+--- /dev/null
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-writer-bridge.h
+@@ -0,0 +1,56 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __LINUX_SOC_MEDIATEK_MT6797_DVFSP_VENDOR_WRITER_BRIDGE_H
++#define __LINUX_SOC_MEDIATEK_MT6797_DVFSP_VENDOR_WRITER_BRIDGE_H
++
++#include <linux/types.h>
++
++#include <linux/soc/mediatek/mt6797-dvfsp-vendor-writer.h>
++
++#define MT6797_DVFSP_VENDOR_WRITER_BRIDGE_ABI	1
++
++/*
++ * Keep site an unsigned integer at this source boundary: the pinned vendor
++ * tree has a private enum and must validate the same numeric IDs itself.
++ */
++struct mt6797_dvfsp_vendor_writer_bridge_ops {
++	u32 abi;
++	int (*begin)(void *context, unsigned int site, u64 *generation);
++	int (*commit)(void *context, unsigned int site, u64 generation);
++	int (*abort)(void *context, unsigned int site, u64 generation);
++	int (*read_identity)(void *context, u64 *owner_handle,
++				    u64 *transition_handle);
++};
++
++struct mt6797_dvfsp_vendor_writer_bridge {
++	struct mt6797_dvfsp_vendor_writer *writer;
++	unsigned int active_site;
++	u64 active_generation;
++	bool active;
++};
++
++int mt6797_dvfsp_vendor_writer_bridge_init(
++	struct mt6797_dvfsp_vendor_writer_bridge *bridge,
++	struct mt6797_dvfsp_vendor_writer *writer);
++
++const struct mt6797_dvfsp_vendor_writer_bridge_ops *
++mt6797_dvfsp_vendor_writer_bridge_ops(void);
++
++#endif /* __LINUX_SOC_MEDIATEK_MT6797_DVFSP_VENDOR_WRITER_BRIDGE_H */
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-bridge.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-bridge.c
+new file mode 100644
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-bridge.c
+@@ -0,0 +1,125 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Source-independent owner bridge for the MT6797 vendor writer.
++ *
++ * The callback table is consumed by an external vendor-side binding. This
++ * file only delegates to the already-bound mainline writer and never calls a
++ * vendor setter or performs hardware I/O.
++ */
++
++#include <linux/errno.h>
++#include <linux/export.h>
++#include <linux/module.h>
++#include <linux/string.h>
++#include <linux/types.h>
++
++#include <linux/soc/mediatek/mt6797-dvfsp-vendor-writer-bridge.h>
++
++static bool mt6797_dvfsp_vendor_writer_bridge_site_valid(unsigned int site)
++{
++	return site < MT6797_DVFSP_VENDOR_WRITER_SITE_COUNT;
++}
++
++static int mt6797_dvfsp_vendor_writer_bridge_begin(
++	void *context, unsigned int site, u64 *generation)
++{
++	struct mt6797_dvfsp_vendor_writer_bridge *bridge = context;
++	int ret;
++
++	if (!bridge || !bridge->writer || !generation ||
++	    !mt6797_dvfsp_vendor_writer_bridge_site_valid(site) ||
++	    bridge->active)
++		return -EINVAL;
++
++	ret = mt6797_dvfsp_vendor_writer_begin(bridge->writer, generation);
++	if (ret)
++		return ret;
++
++	bridge->active_site = site;
++	bridge->active_generation = *generation;
++	bridge->active = true;
++	return 0;
++}
++
++static int mt6797_dvfsp_vendor_writer_bridge_commit(
++	void *context, unsigned int site, u64 generation)
++{
++	struct mt6797_dvfsp_vendor_writer_bridge *bridge = context;
++
++	if (!bridge || !bridge->active || bridge->active_site != site ||
++	    bridge->active_generation != generation)
++		return -ESTALE;
++
++	{
++		int ret = mt6797_dvfsp_vendor_writer_commit(bridge->writer);
++
++		if (ret)
++			return ret;
++	}
++
++	bridge->active = false;
++	return 0;
++}
++
++static int mt6797_dvfsp_vendor_writer_bridge_abort(
++	void *context, unsigned int site, u64 generation)
++{
++	struct mt6797_dvfsp_vendor_writer_bridge *bridge = context;
++	bool identity_match;
++	int ret;
++
++	if (!bridge || !bridge->active)
++		return -EINVAL;
++
++	identity_match = bridge->active_site == site &&
++		bridge->active_generation == generation;
++	ret = mt6797_dvfsp_vendor_writer_abort(bridge->writer);
++	if (ret)
++		return ret;
++
++	bridge->active = false;
++	return identity_match ? 0 : -ESTALE;
++}
++
++static int mt6797_dvfsp_vendor_writer_bridge_read_identity(
++	void *context, u64 *owner_handle, u64 *transition_handle)
++{
++	struct mt6797_dvfsp_vendor_writer_bridge *bridge = context;
++
++	if (!bridge || !bridge->writer || !owner_handle ||
++	    !transition_handle || !bridge->writer->initialized ||
++	    !bridge->writer->owner_handle ||
++	    !bridge->writer->transition_handle)
++		return -EINVAL;
++
++	*owner_handle = bridge->writer->owner_handle;
++	*transition_handle = bridge->writer->transition_handle;
++	return 0;
++}
++
++static const struct mt6797_dvfsp_vendor_writer_bridge_ops
++mt6797_dvfsp_vendor_writer_bridge_callbacks = {
++	.abi = MT6797_DVFSP_VENDOR_WRITER_BRIDGE_ABI,
++	.begin = mt6797_dvfsp_vendor_writer_bridge_begin,
++	.commit = mt6797_dvfsp_vendor_writer_bridge_commit,
++	.abort = mt6797_dvfsp_vendor_writer_bridge_abort,
++	.read_identity = mt6797_dvfsp_vendor_writer_bridge_read_identity,
++};
++
++int mt6797_dvfsp_vendor_writer_bridge_init(
++	struct mt6797_dvfsp_vendor_writer_bridge *bridge,
++	struct mt6797_dvfsp_vendor_writer *writer)
++{
++	if (!bridge || !writer || !writer->initialized ||
++	    !writer->transition_lock || !writer->generation ||
++	    !writer->owner_handle || !writer->transition_handle)
++		return -EINVAL;
++
++	memset(bridge, 0, sizeof(*bridge));
++	bridge->writer = writer;
++	return 0;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_writer_bridge_init);
++
++const struct mt6797_dvfsp_vendor_writer_bridge_ops *
++mt6797_dvfsp_vendor_writer_bridge_ops(void)
++{
++	return &mt6797_dvfsp_vendor_writer_bridge_callbacks;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_writer_bridge_ops);
++
++MODULE_DESCRIPTION("MT6797 vendor writer owner bridge");
++MODULE_LICENSE("GPL");
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-bridge-kunit-test.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-bridge-kunit-test.c
+new file mode 100644
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-bridge-kunit-test.c
+@@ -0,0 +1,103 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/* Hardware-free coverage for the source-independent writer owner bridge. */
++
++#include <kunit/test.h>
++#include <linux/errno.h>
++#include <linux/mutex.h>
++#include <linux/types.h>
++
++#include <linux/soc/mediatek/mt6797-dvfsp-vendor-writer-bridge.h>
++
++static int mt6797_dvfsp_vendor_writer_bridge_test_provenance(
++	void *context, struct mt6797_dvfsp_state_provenance *provenance)
++{
++	return -EOPNOTSUPP;
++}
++
++static const struct mt6797_dvfsp_vendor_writer_ops
++mt6797_dvfsp_vendor_writer_bridge_test_writer_ops = {
++	.abi = MT6797_DVFSP_VENDOR_WRITER_ABI,
++	.read_provenance = mt6797_dvfsp_vendor_writer_bridge_test_provenance,
++};
++
++static void mt6797_dvfsp_vendor_writer_bridge_contract(struct kunit *test)
++{
++	struct mt6797_dvfsp_vendor_writer writer = { };
++	struct mt6797_dvfsp_vendor_writer_bridge bridge = { };
++	struct mutex lock;
++	const struct mt6797_dvfsp_vendor_writer_bridge_ops *ops;
++	u64 generation;
++	u64 owner_handle;
++	u64 transition_handle;
++	u64 shared_generation = 1;
++
++	mutex_init(&lock);
++	KUNIT_ASSERT_EQ(test,
++		mt6797_dvfsp_vendor_writer_init(&writer, &lock,
++			&shared_generation,
++			&mt6797_dvfsp_vendor_writer_bridge_test_writer_ops,
++			NULL, 0x67970031, 0x67970032), 0);
++	KUNIT_ASSERT_EQ(test,
++		mt6797_dvfsp_vendor_writer_bridge_init(&bridge, &writer), 0);
++	ops = mt6797_dvfsp_vendor_writer_bridge_ops();
++	KUNIT_ASSERT_NOT_ERR_OR_NULL(test, ops);
++	KUNIT_EXPECT_EQ(test, ops->abi,
++		(u32)MT6797_DVFSP_VENDOR_WRITER_BRIDGE_ABI);
++	KUNIT_ASSERT_EQ(test,
++		ops->read_identity(&bridge, &owner_handle, &transition_handle), 0);
++	KUNIT_EXPECT_EQ(test, owner_handle, (u64)0x67970031);
++	KUNIT_EXPECT_EQ(test, transition_handle, (u64)0x67970032);
++
++	KUNIT_ASSERT_EQ(test,
++		ops->begin(&bridge, MT6797_DVFSP_VENDOR_WRITER_SITE_VOLTAGE,
++			&generation), 0);
++	KUNIT_EXPECT_EQ(test, generation, (u64)1);
++	KUNIT_EXPECT_TRUE(test, bridge.active);
++	KUNIT_EXPECT_TRUE(test, mutex_is_locked(&lock));
++	KUNIT_EXPECT_EQ(test,
++		ops->commit(&bridge, MT6797_DVFSP_VENDOR_WRITER_SITE_VOLTAGE,
++			generation), 0);
++	KUNIT_EXPECT_FALSE(test, bridge.active);
++	KUNIT_EXPECT_EQ(test, shared_generation, (u64)2);
++
++	KUNIT_ASSERT_EQ(test,
++		ops->begin(&bridge, MT6797_DVFSP_VENDOR_WRITER_SITE_PTP_TABLE,
++			&generation), 0);
++	KUNIT_EXPECT_EQ(test,
++		ops->commit(&bridge, MT6797_DVFSP_VENDOR_WRITER_SITE_PTP_TABLE,
++			generation + 1), -ESTALE);
++	KUNIT_EXPECT_TRUE(test, bridge.active);
++	KUNIT_EXPECT_EQ(test,
++		ops->abort(&bridge, MT6797_DVFSP_VENDOR_WRITER_SITE_PTP_TABLE,
++			generation + 1), -ESTALE);
++	KUNIT_EXPECT_FALSE(test, bridge.active);
++	KUNIT_EXPECT_EQ(test, shared_generation, (u64)2);
++}
++
++static struct kunit_case mt6797_dvfsp_vendor_writer_bridge_cases[] = {
++	KUNIT_CASE(mt6797_dvfsp_vendor_writer_bridge_contract),
++	{ }
++};
++
++static struct kunit_suite mt6797_dvfsp_vendor_writer_bridge_suite = {
++	.name = "mt6797-dvfsp-vendor-writer-bridge",
++	.test_cases = mt6797_dvfsp_vendor_writer_bridge_cases,
++};
++
++kunit_test_suite(mt6797_dvfsp_vendor_writer_bridge_suite);
++
++MODULE_LICENSE("GPL");
+-- 
+2.43.0

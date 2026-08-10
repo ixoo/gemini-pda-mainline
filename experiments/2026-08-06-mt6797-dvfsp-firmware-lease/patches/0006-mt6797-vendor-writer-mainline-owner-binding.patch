@@ -1,0 +1,228 @@
+From 0000000000000000000000000000000000000006 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 11 Aug 2026 00:35:00 -0400
+Subject: [PATCH] power: bind vendor writer to mainline owner callback table
+
+Add the explicit cross-tree binding consumed by the clean-room MT6797 writer
+bridge. A separately built mainline owner supplies the ABI-1 callback table;
+this adapter pins the expected owner and transition handles, translates the
+private site enum, and rejects any identity mismatch before a transaction can
+begin.
+
+Registration remains an explicit external action and is absent by default.
+The binding performs no vendor setter, MMIO, provider registration, firmware
+operation, or device action; it only connects the already reviewed callback
+contract to the existing writer call sites.
+---
+ drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c | 104 ++++++++++++++++++++
+ drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h |  30 ++++++
+ 2 files changed, 134 insertions(+)
+
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h
+--- a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h
++++ b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h
+@@ -40,6 +40,30 @@ struct gemini_mt6797_dvfsp_vendor_writer_ops {
+ 	int (*read_identity)(void *context, u64 *owner_handle,
+ 			    u64 *transition_handle);
+ };
+ 
++#define GEMINI_MT6797_DVFSP_VENDOR_WRITER_MAINLINE_ABI	1
++
++/*
++ * This table mirrors the source-independent mainline owner bridge. The
++ * unsigned site ID intentionally avoids sharing a private enum across trees.
++ */
++struct gemini_mt6797_dvfsp_vendor_writer_mainline_ops {
++	u32 abi;
++	int (*begin)(void *context, unsigned int site, u64 *generation);
++	int (*commit)(void *context, unsigned int site, u64 generation);
++	int (*abort)(void *context, unsigned int site, u64 generation);
++	int (*read_identity)(void *context, u64 *owner_handle,
++				    u64 *transition_handle);
++};
++
++int gemini_mt6797_dvfsp_vendor_writer_register_mainline_owner(
++	const struct gemini_mt6797_dvfsp_vendor_writer_mainline_ops *ops,
++	void *context, u64 owner_handle, u64 transition_handle);
++int gemini_mt6797_dvfsp_vendor_writer_unregister_mainline_owner(
++	const struct gemini_mt6797_dvfsp_vendor_writer_mainline_ops *ops,
++	void *context, u64 owner_handle, u64 transition_handle);
++
+ #endif /* __MT6797_DVFSP_VENDOR_WRITER_H__ */
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
+--- a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
++++ b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
+@@ -18,6 +18,88 @@ static const struct gemini_mt6797_dvfsp_vendor_writer_ops
+ 	*gemini_mt6797_dvfsp_vendor_writer_ops;
+ static void *gemini_mt6797_dvfsp_vendor_writer_context;
+ 
++struct gemini_mt6797_dvfsp_vendor_writer_mainline_binding {
++	const struct gemini_mt6797_dvfsp_vendor_writer_mainline_ops *ops;
++	void *context;
++	u64 owner_handle;
++	u64 transition_handle;
++};
++
++static struct gemini_mt6797_dvfsp_vendor_writer_mainline_binding
++gemini_mt6797_dvfsp_vendor_writer_mainline_binding;
++
++static bool gemini_mt6797_dvfsp_vendor_writer_mainline_ops_valid(
++	const struct gemini_mt6797_dvfsp_vendor_writer_mainline_ops *ops)
++{
++	return ops && ops->abi == GEMINI_MT6797_DVFSP_VENDOR_WRITER_MAINLINE_ABI &&
++		ops->begin && ops->commit && ops->abort && ops->read_identity;
++}
++
++static int gemini_mt6797_dvfsp_vendor_writer_mainline_begin(
++	void *context,
++	enum gemini_mt6797_dvfsp_vendor_writer_site site, u64 *generation)
++{
++	struct gemini_mt6797_dvfsp_vendor_writer_mainline_binding *binding =
++		context;
++
++	if (!binding || !binding->ops ||
++		(unsigned int)site >= GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_COUNT)
++		return -EINVAL;
++
++	return binding->ops->begin(binding->context, (unsigned int)site,
++				   generation);
++}
++
++static int gemini_mt6797_dvfsp_vendor_writer_mainline_commit(
++	void *context,
++	enum gemini_mt6797_dvfsp_vendor_writer_site site, u64 generation)
++{
++	struct gemini_mt6797_dvfsp_vendor_writer_mainline_binding *binding =
++		context;
++
++	if (!binding || !binding->ops ||
++		(unsigned int)site >= GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_COUNT)
++		return -EINVAL;
++
++	return binding->ops->commit(binding->context, (unsigned int)site,
++				    generation);
++}
++
++static int gemini_mt6797_dvfsp_vendor_writer_mainline_abort(
++	void *context,
++	enum gemini_mt6797_dvfsp_vendor_writer_site site, u64 generation)
++{
++	struct gemini_mt6797_dvfsp_vendor_writer_mainline_binding *binding =
++		context;
++
++	if (!binding || !binding->ops ||
++		(unsigned int)site >= GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_COUNT)
++		return -EINVAL;
++
++	return binding->ops->abort(binding->context, (unsigned int)site,
++				   generation);
++}
++
++static int gemini_mt6797_dvfsp_vendor_writer_mainline_read_identity(
++	void *context, u64 *owner_handle, u64 *transition_handle)
++{
++	struct gemini_mt6797_dvfsp_vendor_writer_mainline_binding *binding =
++		context;
++	u64 observed_owner;
++	u64 observed_transition;
++	int ret;
++
++	if (!binding || !binding->ops || !owner_handle ||
++		!transition_handle)
++		return -EINVAL;
++
++	ret = binding->ops->read_identity(binding->context, &observed_owner,
++					  &observed_transition);
++	if (ret)
++		return ret;
++	if (observed_owner != binding->owner_handle ||
++		observed_transition != binding->transition_handle)
++		return -EPROTO;
++
++	*owner_handle = observed_owner;
++	*transition_handle = observed_transition;
++	return 0;
++}
++
++static const struct gemini_mt6797_dvfsp_vendor_writer_ops
++gemini_mt6797_dvfsp_vendor_writer_mainline_writer_ops = {
++	.abi = GEMINI_MT6797_DVFSP_VENDOR_WRITER_ABI,
++	.begin = gemini_mt6797_dvfsp_vendor_writer_mainline_begin,
++	.commit = gemini_mt6797_dvfsp_vendor_writer_mainline_commit,
++	.abort = gemini_mt6797_dvfsp_vendor_writer_mainline_abort,
++	.read_identity = gemini_mt6797_dvfsp_vendor_writer_mainline_read_identity,
++};
++
+ static bool gemini_mt6797_dvfsp_vendor_writer_ops_valid(
+ 	const struct gemini_mt6797_dvfsp_vendor_writer_ops *ops)
+ {
+@@ -72,6 +154,75 @@ int gemini_mt6797_dvfsp_vendor_writer_unregister(
+ }
+ EXPORT_SYMBOL_GPL(gemini_mt6797_dvfsp_vendor_writer_unregister);
+ 
++int gemini_mt6797_dvfsp_vendor_writer_register_mainline_owner(
++	const struct gemini_mt6797_dvfsp_vendor_writer_mainline_ops *ops,
++	void *context, u64 owner_handle, u64 transition_handle)
++{
++	int ret = 0;
++
++	if (!gemini_mt6797_dvfsp_vendor_writer_mainline_ops_valid(ops) ||
++		!context || !owner_handle || !transition_handle)
++		return -EINVAL;
++
++	mutex_lock(&gemini_mt6797_dvfsp_vendor_writer_lock);
++	if (gemini_mt6797_dvfsp_vendor_writer_ops) {
++		ret = -EBUSY;
++	} else {
++		gemini_mt6797_dvfsp_vendor_writer_mainline_binding.ops = ops;
++		gemini_mt6797_dvfsp_vendor_writer_mainline_binding.context = context;
++		gemini_mt6797_dvfsp_vendor_writer_mainline_binding.owner_handle =
++			owner_handle;
++		gemini_mt6797_dvfsp_vendor_writer_mainline_binding.transition_handle =
++			transition_handle;
++		gemini_mt6797_dvfsp_vendor_writer_ops =
++			&gemini_mt6797_dvfsp_vendor_writer_mainline_writer_ops;
++		gemini_mt6797_dvfsp_vendor_writer_context =
++			&gemini_mt6797_dvfsp_vendor_writer_mainline_binding;
++	}
++	mutex_unlock(&gemini_mt6797_dvfsp_vendor_writer_lock);
++
++	return ret;
++}
++EXPORT_SYMBOL_GPL(gemini_mt6797_dvfsp_vendor_writer_register_mainline_owner);
++
++int gemini_mt6797_dvfsp_vendor_writer_unregister_mainline_owner(
++	const struct gemini_mt6797_dvfsp_vendor_writer_mainline_ops *ops,
++	void *context, u64 owner_handle, u64 transition_handle)
++{
++	int ret = 0;
++
++	mutex_lock(&gemini_mt6797_dvfsp_vendor_writer_lock);
++	if (gemini_mt6797_dvfsp_vendor_writer_ops !=
++			&gemini_mt6797_dvfsp_vendor_writer_mainline_writer_ops ||
++		gemini_mt6797_dvfsp_vendor_writer_context !=
++			&gemini_mt6797_dvfsp_vendor_writer_mainline_binding ||
++		gemini_mt6797_dvfsp_vendor_writer_mainline_binding.ops != ops ||
++		gemini_mt6797_dvfsp_vendor_writer_mainline_binding.context != context ||
++		gemini_mt6797_dvfsp_vendor_writer_mainline_binding.owner_handle !=
++			owner_handle ||
++		gemini_mt6797_dvfsp_vendor_writer_mainline_binding.transition_handle !=
++			transition_handle) {
++		ret = -ENOENT;
++	} else {
++		gemini_mt6797_dvfsp_vendor_writer_ops = NULL;
++		gemini_mt6797_dvfsp_vendor_writer_context = NULL;
++		memset(&gemini_mt6797_dvfsp_vendor_writer_mainline_binding, 0,
++		       sizeof(gemini_mt6797_dvfsp_vendor_writer_mainline_binding));
++	}
++	mutex_unlock(&gemini_mt6797_dvfsp_vendor_writer_lock);
++
++	return ret;
++}
++EXPORT_SYMBOL_GPL(gemini_mt6797_dvfsp_vendor_writer_unregister_mainline_owner);
++
+ int gemini_mt6797_dvfsp_vendor_writer_begin(
+ 	struct gemini_mt6797_dvfsp_vendor_writer_transaction *transaction,
+ 	enum gemini_mt6797_dvfsp_vendor_writer_site site)
+-- 
+2.39.5

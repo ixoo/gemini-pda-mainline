@@ -3046,6 +3046,18 @@ claiming runtime ownership. The next ordered action is the actual reviewable
 owner callback binding, followed by separate read-only runtime owner evidence;
 CPU8/CPU9 admission remains closed.
 
+The follow-on candidate `0006` plus mainline patch `0256` now provide that
+reviewable cross-tree binding contract. Mainline exports one ABI-1 table for
+`begin`, `commit`, `abort`, and `read_identity` around the already shared
+resource-owner mutex/generation; it validates the site and generation on every
+finish. The vendor side accepts that exact table through an explicit
+`register_mainline_owner()` action, pins the expected owner and transition
+handles, translates the private site enum, and rejects identity mismatches.
+Neither side registers by default, calls a vendor setter, performs MMIO, or
+opens provider/runtime/CPU8/CPU9 admission. Buildbox validation of the pushed
+candidate and a separate read-only runtime owner-registration review are the
+next gates.
+
 Required evidence:
 
 - provider registration performs no register-data write;
