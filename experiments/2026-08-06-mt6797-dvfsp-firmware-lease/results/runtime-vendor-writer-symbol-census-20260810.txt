@@ -1,0 +1,35 @@
+# Gemian runtime vendor-writer symbol census
+
+generated_utc=2026-08-10T12:57:27Z
+claim=READ_ONLY_RUNTIME_VENDOR_WRITER_SYMBOL_SURFACE
+target=gemini@192.168.1.50
+transport=ssh
+kernel=3.18.41+
+architecture=aarch64
+hardware=MT6797X
+boot_id=6105c26f-2d8b-41b7-a60b-8887d4ca8394
+device_action=none
+hardware_write=none
+backup=none
+cpu_possible=0-9
+cpu_online=0-1
+
+symbol_scope=mt_cpufreq;mt_ppm;ppm_limit_callback
+symbol_names_present=mt_cpufreq_set_ptbl_registerCB;mt_cpufreq_setvolt_registerCB;mt_cpufreq_update_volt;mt_cpufreq_update_volt_b;mt_ppm_register_client;ppm_limit_callback
+symbol_names_absent_from_kallsyms=_restore_default_volt_b;_restore_default_volt;notify_cpu_volt_sampler
+symbol_names_sha256=9922475a85ed06423710606d9a5c8bd99a4eb0cf8096cecd2bef40a042200e35
+
+runtime_owner_registration=none
+authoritative_transition_lock=absent
+authoritative_generation_or_epoch=absent
+provider=none
+hardware_support_claim=NONE
+boot_candidate=false
+cpu8_cpu9_admission=closed
+
+decision=deployed_vendor_kernel_exposes_the_expected_mutable_writer_entrypoints_but_no_shared_owner_contract
+interpretation=runtime_identity_only;symbol_visibility_does_not_prove_callsite_lock_context_or_safe_registration
+next_gate=external_vendor_aware_caller_implementation_using_the_named_site_contract_then_separate_read_only_owner_registration
+
+Raw addresses and device payloads were not retained. The symbol-name list was
+read only and hashed after sorting; no device state changed.

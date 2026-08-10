@@ -2873,6 +2873,15 @@ The corrected [call-site audit](../experiments/2026-08-06-mt6797-dvfsp-firmware-
 and [lock-context audit](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-writer-lock-context-audit-20260810.txt)
 keep actual external caller binding and runtime registration as open gates.
 
+A fresh symbol-name-only census of the currently deployed Gemian kernel confirms
+the expected PTP and voltage callback setters, both exported voltage-table
+writers, the PPM setter, and `ppm_limit_callback`; it still exposes no shared
+owner, generation, or transition lock. The [runtime symbol census](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/runtime-vendor-writer-symbol-census-20260810.txt)
+is identity evidence only: raw addresses and payloads were not retained, and
+no device state changed. The next ordered gate remains an external
+vendor-aware caller implementation using the named descriptors, followed by
+separate read-only owner registration evidence.
+
 Required evidence:
 
 - provider registration performs no register-data write;
