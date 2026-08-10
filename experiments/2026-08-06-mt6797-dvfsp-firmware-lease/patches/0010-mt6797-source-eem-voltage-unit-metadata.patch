@@ -18,11 +18,11 @@ rail conversion, provider registration, and hardware actions remain closed.
 diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-state.h b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-state.h
 --- a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-state.h
 +++ b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-state.h
-@@ -15,2 +15,3 @@
+@@ -17,2 +17,3 @@
  #define GEMINI_MT6797_DVFSP_VENDOR_MAX_DETECTOR	6
  #define GEMINI_MT6797_DVFSP_VENDOR_MAX_FREQ	16
 +#define GEMINI_MT6797_DVFSP_VENDOR_EEM_VOLTAGE_UNIT_10UV	1
-@@ -111,4 +112,11 @@ struct gemini_mt6797_dvfsp_vendor_eem_detector {
+@@ -106,4 +106,11 @@ struct gemini_mt6797_dvfsp_vendor_eem_detector {
  	u32 volt_tbl[GEMINI_MT6797_DVFSP_VENDOR_MAX_FREQ];
  	u32 volt_tbl_init2[GEMINI_MT6797_DVFSP_VENDOR_MAX_FREQ];
  	u32 volt_tbl_pmic[GEMINI_MT6797_DVFSP_VENDOR_MAX_FREQ];
@@ -38,7 +38,7 @@ diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-state.h
 diff --git a/drivers/misc/mediatek/base/power/mt6797/mt_eem.c b/drivers/misc/mediatek/base/power/mt6797/mt_eem.c
 --- a/drivers/misc/mediatek/base/power/mt6797/mt_eem.c
 +++ b/drivers/misc/mediatek/base/power/mt6797/mt_eem.c
-@@ -6608,5 +6608,12 @@ int gemini_mt6797_dvfsp_vendor_eem_snapshot(
+@@ -6618,5 +6618,12 @@ int gemini_mt6797_dvfsp_vendor_eem_snapshot(
  			dst->volt_tbl[j] = det->volt_tbl[j];
  			dst->volt_tbl_init2[j] = det->volt_tbl_init2[j];
  			dst->volt_tbl_pmic[j] = det->volt_tbl_pmic[j];
@@ -55,7 +55,7 @@ diff --git a/drivers/misc/mediatek/base/power/mt6797/mt_eem.c b/drivers/misc/med
 diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
 --- a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
 +++ b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
-@@ -245,6 +245,14 @@ static int gemini_mt6797_dvfsp_vendor_source_snapshot(
+@@ -1015,5 +1015,13 @@ static int gemini_mt6797_dvfsp_vendor_source_snapshot(
  			dst->eem[i].volt_tbl_init2[j] =
  				eem.detector[i].volt_tbl_init2[j];
  			dst->eem[i].volt_tbl_pmic[j] =
