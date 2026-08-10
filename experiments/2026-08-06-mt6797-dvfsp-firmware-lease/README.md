@@ -1197,6 +1197,16 @@ gate is separate read-only runtime owner-registration evidence, followed by a
 source-backed provider only when its callbacks are tied to real calibrated
 EEM/PTP/PPM state under the shared transition lock.
 
+The pushed current head `9ab1ca4` was then resumed on Buildbox after the
+runtime-boundary evidence commit. The same `full` profile again passed all 244
+canonical patches, the arm64 link, 119 DTBs, package/provenance checksums, and
+validated-package-only fetch; see the [current-head Buildbox receipt](results/buildbox-resume-9ab1ca4-20260810.txt).
+This remains compile-only evidence: the vendor candidate is experiment-only,
+no owner/provider or setter was registered or called, no device action
+occurred, and CPU8/CPU9 admission remains closed. The next implementation is
+the source-backed read-only adapter described by the pinned vendor-source
+audit.
+
 A fresh read-only probe on the named Gemian device still finds only generic
 cpufreq/PPM surfaces and no attributable owner, generation, or transition-lock
 endpoint; see [runtime owner boundary v3](results/runtime-owner-boundary-v3-20260810.txt).

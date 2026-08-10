@@ -2987,6 +2987,15 @@ separate read-only runtime owner-registration evidence, followed by a
 source-backed provider only if its callbacks can be tied to real calibrated
 EEM/PTP/PPM state under the shared transition lock.
 
+The pushed current head `9ab1ca4` was resumed on Buildbox after the
+runtime-boundary evidence commit. The same full manifest profile again passed
+all 244 canonical patches, the arm64 link, 119 DTBs, package/provenance
+checksums, and validated-package-only fetch; see the [current-head Buildbox
+receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/buildbox-resume-9ab1ca4-20260810.txt).
+This remains compile-only evidence, with no device action or CPU8/CPU9
+admission. The ordered next step remains the source-backed read-only adapter,
+then a separate runtime owner-registration review.
+
 A fresh read-only probe on the named Gemian device still reports the ordinary
 `3.18.41+` kernel with CPUs `0-1` online and `0-9` possible. Its bounded
 platform/procfs scan finds generic `mt-cpufreq`, `mt-ppm`, and `mt-scpdvfs`
