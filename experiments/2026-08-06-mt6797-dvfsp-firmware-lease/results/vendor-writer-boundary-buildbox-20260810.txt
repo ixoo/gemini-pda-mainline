@@ -2,7 +2,7 @@
 
 date_utc=2026-08-10
 origin=https://github.com/ixoo/gemini-pda-mainline.git
-project_commit=b6719303bb5840568004c7e186038bb0de5fc319
+project_commit=612c9645c8e81f09d73af3cd5ee0154b4176cb3e
 vendor_origin=https://github.com/gemian/gemini-linux-kernel-3.18.git
 vendor_revision=d388d350cb2dda8f23b99be6fa5db9628896e87f
 vendor_mt_cpufreq_blob=2a3c757a85f6fb10679a9e929523fd9745f995a0
@@ -19,6 +19,7 @@ bridge_object=drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer
 affected_object=drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.o;passed
 
 ptp_table_writer_sites=4;begin_before_cpufreq_lock;finish_after_cpufreq_lock
+revalidation=612c9645c8e81f09d73af3cd5ee0154b4176cb3e;git_apply_defconfig_bridge_and_mt_cpufreq_passed
 ppm_site=1;begin_before_cpufreq_lock;finish_after_cpufreq_lock
 voltage_observer_outer_site=unbound;no_recursive_bridge_acquire
 observer_begin_call=absent
