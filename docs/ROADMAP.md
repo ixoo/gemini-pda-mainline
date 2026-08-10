@@ -2668,6 +2668,15 @@ DTBs passed validation, and only the checksummed package was fetched; see the
 This does not alter the owner boundary: registration, writable operation,
 device boot, and CPU8/CPU9 admission remain closed.
 
+A fresh read-only symbol census on the named Gemini found 75 concrete vendor
+cpufreq/PPM/EEM/iDVFS symbols, including table/voltage callback registration
+entrypoints, but no shared transition lock, generation/epoch, or owner token.
+The three lock-name matches are only clock-switch/no-lock helpers. The bounded
+result is recorded in the [runtime owner symbol census](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/runtime-owner-symbol-census-20260810.txt).
+This is the first runtime identity evidence for the callback surface, not a
+coherent-owner proof; the next ordered implementation is an explicit bridge
+around those sources with a separately supplied generation/lock owner.
+
 Required evidence:
 
 - provider registration performs no register-data write;

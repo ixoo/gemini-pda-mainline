@@ -1,0 +1,36 @@
+# Gemian MT6797 runtime owner symbol census
+
+generated_utc=2026-08-10T09:24:17Z
+claim=READ_ONLY_GEMIAN_DVFSP_RUNTIME_OWNER_SYMBOL_CENSUS_V1
+target=gemini@192.168.1.50
+transport=ssh
+kernel=3.18.41+
+architecture=aarch64
+device_action=none
+hardware_write=none
+backup=none
+cpu_possible=0-9
+cpu_present=0-9
+cpu_online=0-1
+symbol_scope=mt_cpufreq;_mt_cpufreq;mt_ppm;mt_eem;_mt_eem;idvfs;_mt_get_cpu_freq
+symbol_count=75
+symbol_names_sha256=11a3fe365b7e361eca2fe5b7439b6779a6f3b8c7b2bc8b4a6556d13f8684637c
+callback_symbol_count=3
+callback_symbols=_mt_cpufreq_pm_callback;mt_cpufreq_set_ptbl_registerCB;mt_cpufreq_setvolt_registerCB
+lock_or_generation_name_matches=3
+lock_or_generation_names=mt_cpufreq_clock_switch;mt_cpufreq_get_clock_switch;mt_cpufreq_get_cur_phy_freq_no_lock
+authoritative_transition_lock=absent
+authoritative_generation_or_epoch=absent
+authoritative_owner_token=absent
+provider=none
+hardware_support_claim=NONE
+boot_candidate=false
+cpu8_cpu9_admission=closed
+
+The running vendor kernel exposes concrete cpufreq, PPM, EEM, and iDVFS
+entrypoints plus table/voltage callback registration symbols. The bounded
+symbol census does not expose a shared transition lock, generation/epoch, or
+owner token; the three name matches are clock-switch/no-lock helpers rather
+than an ownership primitive. This is runtime identity evidence, not proof of a
+coherent snapshot or mainline hardware support. Raw symbol addresses and
+device payloads were not retained.

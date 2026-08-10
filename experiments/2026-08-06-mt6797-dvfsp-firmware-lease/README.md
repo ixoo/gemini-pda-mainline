@@ -882,3 +882,13 @@ checksums, and the validated-package-only fetch passed; the [resume receipt](res
 records the immutable provenance. This remains compile-only evidence: no owner
 or provider was registered, no hardware or firmware action occurred, and CPU8/
 CPU9 admission remains closed.
+
+A fresh read-only symbol census on the named Gemini now confirms 75 concrete
+vendor cpufreq/PPM/EEM/iDVFS symbols, including the PTP-table and voltage
+callback registration entrypoints. It still exposes no shared transition lock,
+generation/epoch, or owner token; the three lock-name matches are only
+clock-switch/no-lock helpers. The bounded result is the [runtime owner symbol
+census](results/runtime-owner-symbol-census-20260810.txt). This narrows the
+next implementation to an explicit bridge around the vendor callback sources,
+with a new owner generation supplied separately; no provider or CPU8/CPU9
+admission is enabled.
