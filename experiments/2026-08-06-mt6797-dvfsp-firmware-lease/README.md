@@ -963,3 +963,17 @@ validated-package-only fetch passed; see the [current-head Buildbox resume
 receipt](results/buildbox-resume-72be3a2-20260810.txt). This remains
 compile-only contract evidence: no owner/provider was registered, no device was
 booted or written, and CPU8/CPU9 admission remains closed.
+
+Patch `0249` adds a dormant cooperative vendor-owner adapter. It validates one
+ABI-stable callback table for identity, PPM/CCI policy, live state, and
+calibrated-provider invalidation, binds those sources to the existing resource
+owner, and deliberately does not call the vendor's single-slot registration
+setters. The exact pushed head `fc425cf` was resumed on Buildbox with the named
+`dvfsp-owner-kunit` profile. All 238 canonical patches, 119 DTBs,
+package/provenance checksums, and the validated-package-only fetch passed; see
+the [current-head Buildbox resume receipt](results/buildbox-resume-fc425cf-20260810.txt).
+This remains compile-only contract evidence: no vendor owner/provider was
+registered, no device was booted or written, and CPU8/CPU9 admission remains
+closed. The next gate is an attributable implementation of those callbacks at
+the vendor-aware writer boundary, followed by separate read-only runtime
+registration evidence.

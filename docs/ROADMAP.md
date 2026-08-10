@@ -2749,6 +2749,20 @@ This repairs the compile-only provider contract but does not supply a real
 vendor owner, register a provider, or authorize device action; CPU8/CPU9
 admission remains closed.
 
+Patch `0249` adds a dormant cooperative vendor-owner adapter. It validates one
+ABI-stable callback table for identity, PPM/CCI policy, live state, and
+calibrated-provider invalidation, binds those sources to the existing resource
+owner, and deliberately avoids the vendor's single-slot registration setters.
+The exact pushed head `fc425cf` passed the full 238-patch `dvfsp-owner-kunit`
+Buildbox build, all 119 DTB checks, package/provenance checksums, and the
+validated-package-only fetch; see the [Buildbox receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/buildbox-resume-fc425cf-20260810.txt).
+This is compile-only contract evidence, not hardware support: no vendor owner
+or provider was registered, no device or firmware action occurred, and CPU8/
+CPU9 admission remains closed. The next ordered implementation is the real
+vendor-aware writer integration that supplies these callbacks and one shared
+transition generation/lock, followed by a separate read-only runtime
+registration check.
+
 Required evidence:
 
 - provider registration performs no register-data write;
