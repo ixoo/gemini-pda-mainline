@@ -35,6 +35,7 @@ index b8dfff0b1..c4f3e6a21 100644
  	int ret;
 +	u64 owner_handle;
 +	u64 transition_handle;
+ 
 @@ -84,4 +87,6 @@ int gemini_mt6797_dvfsp_vendor_writer_begin(
  
  	transaction->site = GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_COUNT;
