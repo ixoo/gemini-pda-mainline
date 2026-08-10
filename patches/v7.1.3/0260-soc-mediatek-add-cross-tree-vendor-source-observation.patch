@@ -17,9 +17,9 @@ provider registration, firmware operation, device action, or CPU admission.
 This is an experiment-only cross-tree contract and is not submission-ready.
 ---
  drivers/soc/mediatek/Makefile                         |   1 +
- drivers/soc/mediatek/mt6797-dvfsp-vendor-source.c      | 144 ++++++++++++++++
- include/linux/soc/mediatek/mt6797-dvfsp-vendor-source.h | 132 ++++++++++++++
- 3 files changed, 277 insertions(+)
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-source.c      | 167 +++++++++++++++++
+ include/linux/soc/mediatek/mt6797-dvfsp-vendor-source.h | 145 +++++++++++++++
+ 3 files changed, 313 insertions(+)
  create mode 100644 drivers/soc/mediatek/mt6797-dvfsp-vendor-source.c
  create mode 100644 include/linux/soc/mediatek/mt6797-dvfsp-vendor-source.h
 
@@ -38,7 +38,7 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-source.h b/include/l
 new file mode 100644
 --- /dev/null
 +++ b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-source.h
-@@ -0,0 +1,132 @@
+@@ -0,0 +1,145 @@
 +/* SPDX-License-Identifier: GPL-2.0-only */
 +#ifndef __LINUX_SOC_MEDIATEK_MT6797_DVFSP_VENDOR_SOURCE_H
 +#define __LINUX_SOC_MEDIATEK_MT6797_DVFSP_VENDOR_SOURCE_H
@@ -189,7 +189,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-source.c b/drivers/soc/med
 new file mode 100644
 --- /dev/null
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-source.c
-@@ -0,0 +1,144 @@
+@@ -0,0 +1,167 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/*
 + * Validate source-backed snapshots supplied by the external vendor adapter.
