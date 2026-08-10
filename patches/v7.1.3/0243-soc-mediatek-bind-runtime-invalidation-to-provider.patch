@@ -22,7 +22,8 @@ This is experiment-only and not submission-ready.
 diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-runtime.h b/include/linux/soc/mediatek/mt6797-dvfsp-runtime.h
 --- a/include/linux/soc/mediatek/mt6797-dvfsp-runtime.h
 +++ b/include/linux/soc/mediatek/mt6797-dvfsp-runtime.h
-@@ -39,4 +39,11 @@ int mt6797_dvfsp_runtime_event_apply(
+@@ -39,5 +39,12 @@ int mt6797_dvfsp_runtime_event_apply(
+ 	struct mt6797_dvfsp_handoff *handoff,
  	const struct mt6797_dvfsp_runtime_event *event,
  	struct mt6797_dvfsp_runtime_ledger *ledger);
 +
