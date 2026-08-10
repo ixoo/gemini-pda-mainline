@@ -2963,6 +2963,18 @@ registered, no setter was called, no device action occurred, and CPU8/CPU9
 admission remains closed. The next ordered gate is the remaining lock-held
 contexts, then separate read-only owner-registration evidence.
 
+The [lock-held context audit](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-lock-held-context-audit-20260810.txt)
+then confirmed that the active vendor `cpufreq_lock` is mutex-based, the CPU
+notifier uses that mutex in its active lock regions, and the hardware-governor
+observer is dispatched from the dedicated `dvfs_nfy` kthread. Candidate
+[0003-mt6797-lock-held-observer-contexts.patch](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/patches/0003-mt6797-lock-held-observer-contexts.patch)
+therefore acquires the owner before those contexts' existing locks and still
+does not acquire it from the observer callback. All three patches applied and
+compiled on Buildbox; see the [lock-held Buildbox review](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-lock-held-context-buildbox-20260810.txt).
+This remains compile-only evidence with no owner/provider registration, setter
+call, device action, or CPU8/CPU9 admission. The next ordered gate is separate
+read-only owner-registration evidence.
+
 Required evidence:
 
 - provider registration performs no register-data write;
