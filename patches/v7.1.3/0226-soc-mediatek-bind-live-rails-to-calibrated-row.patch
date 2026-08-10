@@ -1,0 +1,86 @@
+From 0000000000000000000000000000000000000226 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 10 Aug 2026 09:15:00 -0400
+Subject: [PATCH] soc: mediatek: bind live rails to calibrated row
+
+The protected state assembler already requires a live frequency to match a
+calibrated row, but it accepts the live VPROC/VSRAM pair as merely nonzero.
+Return the exact matched calibration row and require both live rail values to
+match it. This prevents a provider from combining a frequency from one OPP
+with rails sampled from another transition, which is the incoherent condition
+observed by the read-only Gemian source probe.
+
+This is a fail-closed source boundary only. It adds no MMIO, regulator or
+clock operation, secure call, provider registration, firmware action, device
+boot, or CPU8/CPU9 admission. It is experiment-only and not submission-ready.
+---
+ drivers/soc/mediatek/mt6797-dvfsp-state-snapshot.c | 24 ++++++++++++++++++------
+ 1 file changed, 19 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-snapshot.c b/drivers/soc/mediatek/mt6797-dvfsp-state-snapshot.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-state-snapshot.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-state-snapshot.c
+@@ -42,25 +42,30 @@ static int mt6797_dvfsp_snapshot_provenance_equal(
+ static int mt6797_dvfsp_snapshot_table_match(
+ 	const struct mt6797_dvfsp_calibration_cluster *cluster,
+-	u32 frequency_khz)
++	u32 frequency_khz,
++	const struct mt6797_dvfsp_calibration_table_entry **matched_entry)
+ {
+ 	unsigned int i;
+ 
+-	if (!cluster || !frequency_khz || !cluster->table_count ||
++	if (!cluster || !matched_entry || !frequency_khz ||
++	    !cluster->table_count ||
+ 	    cluster->table_count > MT6797_DVFSP_CALIBRATION_TABLE_MAX)
+ 		return -EPROTO;
++	*matched_entry = NULL;
+ 
+ 	for (i = 0; i < cluster->table_count; i++) {
+ 		const struct mt6797_dvfsp_calibration_table_entry *entry =
+ 			&cluster->table[i];
+ 
+ 		if (!entry->frequency_khz || !entry->vproc_uv ||
+ 		    !entry->vsram_uv || !entry->ppm_limit_khz ||
+ 		    entry->vsram_uv < entry->vproc_uv ||
+ 		    entry->vsram_uv - entry->vproc_uv < 10000 ||
+ 		    entry->vsram_uv - entry->vproc_uv > 30000)
+ 			return -EPROTO;
+-		if (entry->frequency_khz == frequency_khz)
++		if (entry->frequency_khz == frequency_khz) {
++			*matched_entry = entry;
+ 			return 0;
++		}
+ 	}
+ 
+ 	return -EAGAIN;
+@@ -70,7 +74,9 @@ static int mt6797_dvfsp_snapshot_cluster_check(
+ 	unsigned int cluster)
+ {
+ 	const struct mt6797_dvfsp_state_cluster *calibration;
+ 	const struct mt6797_dvfsp_clock_state_cluster *clock;
++	const struct mt6797_dvfsp_calibration_table_entry *matched_entry;
++	int ret;
+ 
+ 	if (input->state_flags[cluster] &
+ 	    ~(MT6797_DVFSP_STATE_FLAG_PRESENT | MT6797_DVFSP_STATE_FLAG_ON) ||
+@@ -87,8 +93,15 @@ static int mt6797_dvfsp_snapshot_cluster_check(
+ 	clock = &input->clock->cluster[cluster];
+ 	if (clock->frequency_khz != input->frequency_khz[cluster])
+ 		return -EAGAIN;
+ 
+ 	calibration = &input->calibration->cluster[cluster];
+-	return mt6797_dvfsp_snapshot_table_match(calibration,
+-		input->frequency_khz[cluster]);
++	ret = mt6797_dvfsp_snapshot_table_match(calibration,
++		input->frequency_khz[cluster], &matched_entry);
++	if (ret)
++		return ret;
++	if (input->voltage_uv[cluster] != matched_entry->vproc_uv ||
++	    input->vsram_uv[cluster] != matched_entry->vsram_uv)
++		return -EAGAIN;
++
++	return 0;
+ }
+-- 
+2.43.0
