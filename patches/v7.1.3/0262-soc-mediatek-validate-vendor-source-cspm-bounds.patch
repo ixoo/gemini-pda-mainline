@@ -1,0 +1,40 @@
+From 0000000000000000000000000000000000000262 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 10 Aug 2026 18:00:00 -0400
+Subject: [PATCH] soc: mediatek: validate vendor source CSPM bounds
+
+Align the source-independent CSPM validator with the mainline decoder: a
+physical limit index of zero is valid, while values outside the bounded OPP
+range are refused. Keep the CCI record explicitly limit-less.
+
+This remains a read-only, default-off experiment contract; it performs no
+provider registration, firmware operation, device action, or CPU admission.
+---
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-source.c | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-source.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-source.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-source.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-source.c
+@@ -64,7 +64,7 @@ static int mt6797_dvfsp_vendor_source_table_check(
+ 			if (!domain->frequency_khz[row] || !domain->voltage[row] ||
+ 				!domain->voltage_original[row])
+ 				return -EPROTO;
+-}
++	}
+ 
+ 	for (i = 0; i < snapshot->cspm_cluster_count; i++) {
+@@ -72,9 +72,10 @@ static int mt6797_dvfsp_vendor_source_table_check(
+ 			&snapshot->cspm[i];
+ 
+ 		if (cluster->is_on > 1 || !cluster->volt || !cluster->vsram)
+ 			return -EPROTO;
+ 		if (i < MT6797_DVFSP_VENDOR_SOURCE_MAX_CLUSTER &&
+-		    (!cluster->ceiling || !cluster->floor ||
++		    (cluster->ceiling >= MT6797_DVFSP_VENDOR_SOURCE_MAX_OPP ||
++		     cluster->floor >= MT6797_DVFSP_VENDOR_SOURCE_MAX_OPP ||
+ 		     cluster->floor > cluster->ceiling))
+ 			return -EPROTO;
+ 		if (i == MT6797_DVFSP_VENDOR_SOURCE_MAX_CLUSTER &&
+-- 
+2.43.0
