@@ -64,10 +64,14 @@ VENDOR_WRITER_LIFECYCLE_PATCH = (Path(__file__).resolve().parents[1] /
                                  "patches/0007-mt6797-vendor-writer-lifecycle-runtime-events.patch")
 VENDOR_WRITER_LIFECYCLE_INTEGRATION_PATCH = (Path(__file__).resolve().parents[1] /
                                              "patches/0008-mt6797-vendor-writer-integration-lifecycle-adapter.patch")
+VENDOR_SOURCE_OBSERVATION_PATCH = (Path(__file__).resolve().parents[1] /
+                                   "patches/0009-mt6797-vendor-source-observation-adapter.patch")
 MAINLINE_WRITER_BRIDGE_PATCH = ROOT / "patches/v7.1.3/0256-soc-mediatek-export-vendor-writer-owner-bridge.patch"
 MAINLINE_WRITER_REGISTRATION_PATCH = ROOT / "patches/v7.1.3/0257-soc-mediatek-add-explicit-vendor-writer-registration-handoff.patch"
 MAINLINE_WRITER_RUNTIME_EVENTS_PATCH = ROOT / "patches/v7.1.3/0258-soc-mediatek-extend-vendor-writer-handoff-runtime-events.patch"
 MAINLINE_WRITER_LIFECYCLE_INTEGRATION_PATCH = ROOT / "patches/v7.1.3/0259-soc-mediatek-bind-vendor-writer-lifecycle-integration.patch"
+MAINLINE_SOURCE_OBSERVATION_PATCH = ROOT / "patches/v7.1.3/0260-soc-mediatek-add-cross-tree-vendor-source-observation.patch"
+MAINLINE_SOURCE_OWNER_PATCH = ROOT / "patches/v7.1.3/0261-soc-mediatek-bind-vendor-source-observation-owner.patch"
 VENDOR_WRITER_INTEGRATION_REVIEW_RESULT = (Path(__file__).resolve().parents[1] /
                                            "results/vendor-writer-mainline-owner-integration-review-20260810.txt")
 VENDOR_WRITER_REGISTRATION_BUILD_RESULT = (Path(__file__).resolve().parents[1] /
@@ -78,6 +82,8 @@ VENDOR_WRITER_LIFECYCLE_BUILD_RESULT = (Path(__file__).resolve().parents[1] /
                                         "results/vendor-writer-lifecycle-runtime-events-buildbox-20260811.txt")
 VENDOR_WRITER_LIFECYCLE_INTEGRATION_BUILD_RESULT = (Path(__file__).resolve().parents[1] /
                                                     "results/vendor-writer-lifecycle-integration-buildbox-20260811.txt")
+VENDOR_SOURCE_OBSERVATION_BUILD_RESULT = (Path(__file__).resolve().parents[1] /
+                                          "results/vendor-source-observation-owner-buildbox-20260810.txt")
 VENDOR_CALLER_LIFECYCLE_AUDIT_RESULT = (Path(__file__).resolve().parents[1] /
                                         "results/vendor-caller-lifecycle-invalidation-audit-20260811.txt")
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
@@ -250,15 +256,19 @@ def main() -> None:
     vendor_writer_binding_patch = VENDOR_WRITER_BINDING_PATCH.read_text()
     vendor_writer_lifecycle_patch = VENDOR_WRITER_LIFECYCLE_PATCH.read_text()
     vendor_writer_lifecycle_integration_patch = VENDOR_WRITER_LIFECYCLE_INTEGRATION_PATCH.read_text()
+    vendor_source_observation_patch = VENDOR_SOURCE_OBSERVATION_PATCH.read_text()
     mainline_writer_bridge_patch = MAINLINE_WRITER_BRIDGE_PATCH.read_text()
     mainline_writer_registration_patch = MAINLINE_WRITER_REGISTRATION_PATCH.read_text()
     mainline_writer_runtime_events_patch = MAINLINE_WRITER_RUNTIME_EVENTS_PATCH.read_text()
     mainline_writer_lifecycle_integration_patch = MAINLINE_WRITER_LIFECYCLE_INTEGRATION_PATCH.read_text()
+    mainline_source_observation_patch = MAINLINE_SOURCE_OBSERVATION_PATCH.read_text()
+    mainline_source_owner_patch = MAINLINE_SOURCE_OWNER_PATCH.read_text()
     vendor_writer_integration_review_result = VENDOR_WRITER_INTEGRATION_REVIEW_RESULT.read_text()
     vendor_writer_registration_build_result = VENDOR_WRITER_REGISTRATION_BUILD_RESULT.read_text()
     vendor_writer_runtime_events_build_result = VENDOR_WRITER_RUNTIME_EVENTS_BUILD_RESULT.read_text()
     vendor_writer_lifecycle_build_result = VENDOR_WRITER_LIFECYCLE_BUILD_RESULT.read_text()
     vendor_writer_lifecycle_integration_build_result = VENDOR_WRITER_LIFECYCLE_INTEGRATION_BUILD_RESULT.read_text()
+    vendor_source_observation_build_result = VENDOR_SOURCE_OBSERVATION_BUILD_RESULT.read_text()
     vendor_caller_lifecycle_audit_result = VENDOR_CALLER_LIFECYCLE_AUDIT_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
@@ -297,8 +307,8 @@ def main() -> None:
                                VENDOR_EXPERIMENT_SERIES.read_text().splitlines()
                                if line and not line.startswith("#")]
 
-    if vendor_experiment_names[-1] != "0008-mt6797-vendor-writer-integration-lifecycle-adapter.patch":
-        raise AssertionError("vendor lifecycle-integration patch is not last in its experiment series")
+    if vendor_experiment_names[-1] != "0009-mt6797-vendor-source-observation-adapter.patch":
+        raise AssertionError("vendor source-observation patch is not last in its experiment series")
     if names.index("0256-soc-mediatek-export-vendor-writer-owner-bridge.patch") >= names.index("0257-soc-mediatek-add-explicit-vendor-writer-registration-handoff.patch"):
         raise AssertionError("vendor writer registration handoff is not after the bridge")
     if names.index("0257-soc-mediatek-add-explicit-vendor-writer-registration-handoff.patch") >= names.index("0258-soc-mediatek-extend-vendor-writer-handoff-runtime-events.patch"):
@@ -483,6 +493,76 @@ def main() -> None:
         if forbidden in mainline_writer_lifecycle_integration_source:
             raise AssertionError(f"unexpected mainline lifecycle integration operation: {forbidden}")
 
+    mainline_source_observation_source = mainline_source_observation_patch[
+        mainline_source_observation_patch.index("diff --git"):]
+    for needle, label in (
+        ("MT6797_DVFSP_VENDOR_SOURCE_ABI\t1", "mainline-source-abi"),
+        ("MT6797_DVFSP_VENDOR_SOURCE_MAX_CLUSTER", "mainline-source-bounds"),
+        ("struct mt6797_dvfsp_vendor_source_snapshot", "mainline-source-snapshot"),
+        ("struct mt6797_dvfsp_vendor_source_identity", "mainline-source-identity"),
+        ("mt6797_dvfsp_vendor_source_init", "mainline-source-init"),
+        ("mt6797_dvfsp_vendor_source_snapshot", "mainline-source-snapshot-op"),
+        ("mt6797_dvfsp_vendor_source_identity", "mainline-source-identity-op"),
+        ("mt6797_dvfsp_vendor_source_invalidate", "mainline-source-invalidate"),
+        ("mt6797_dvfsp_vendor_source_exit", "mainline-source-exit"),
+        ("mt6797_dvfsp_vendor_source_ops_check", "mainline-source-ops-check"),
+        ("mt6797_dvfsp_vendor_source_table_check", "mainline-source-table-check"),
+    ):
+        require(mainline_source_observation_patch, needle, label)
+    for forbidden in (
+        "readl(", "writel(", "i2c_transfer", "regulator_", "clk_",
+        "platform_driver", "cpu_up(", "secure_write",
+        "mt_cpufreq_set_ptbl_registerCB", "mt_cpufreq_setvolt_registerCB",
+        "mt_ppm_register_client",
+    ):
+        if forbidden in mainline_source_observation_source:
+            raise AssertionError(f"unexpected mainline source observation operation: {forbidden}")
+
+    mainline_source_owner_source = mainline_source_owner_patch[
+        mainline_source_owner_patch.index("diff --git"):]
+    for needle, label in (
+        ("MT6797_DVFSP_VENDOR_INTEGRATION_ABI\t2", "mainline-source-owner-integration-abi"),
+        ("MT6797_DVFSP_VENDOR_WRITER_SITE_OBSERVE", "mainline-source-owner-observe-site"),
+        ("source_registration", "mainline-source-owner-registration"),
+        ("mt6797_dvfsp_vendor_source_init", "mainline-source-owner-init"),
+        ("mt6797_dvfsp_vendor_source_invalidate", "mainline-source-owner-invalidate"),
+        ("mt6797_dvfsp_vendor_source_exit", "mainline-source-owner-exit"),
+        ("mt6797_dvfsp_vendor_owner_runtime_event", "mainline-source-owner-runtime-adapter"),
+        ("return -EOPNOTSUPP", "mainline-source-owner-identity-refusal"),
+    ):
+        require(mainline_source_owner_patch, needle, label)
+    for forbidden in (
+        "readl(", "writel(", "i2c_transfer", "regulator_", "clk_",
+        "platform_driver", "cpu_up(", "secure_write",
+        "mt_cpufreq_set_ptbl_registerCB", "mt_cpufreq_setvolt_registerCB",
+        "mt_ppm_register_client",
+    ):
+        if forbidden in mainline_source_owner_source:
+            raise AssertionError(f"unexpected mainline source owner operation: {forbidden}")
+
+    vendor_source_observation_source = vendor_source_observation_patch[
+        vendor_source_observation_patch.index("diff --git"):]
+    for needle, label in (
+        ("GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_OBSERVE", "vendor-source-observe-site"),
+        ("GEMINI_MT6797_DVFSP_VENDOR_INTEGRATION_ABI\t2", "vendor-source-integration-abi"),
+        ("source_registration", "vendor-source-registration"),
+        ("gemini_mt6797_dvfsp_vendor_writer_abort_observation", "vendor-source-abort"),
+        ("MT6797_DVFSP_VENDOR_SOURCE_ABI", "vendor-source-abi"),
+        ("gemini_mt6797_dvfsp_vendor_source_snapshot", "vendor-source-snapshot"),
+        ("gemini_mt6797_dvfsp_vendor_source_identity", "vendor-source-identity"),
+        ("goto abort", "vendor-source-fail-closed"),
+        ("return -EOPNOTSUPP", "vendor-source-identity-refusal"),
+    ):
+        require(vendor_source_observation_patch, needle, label)
+    for forbidden in (
+        "readl(", "writel(", "i2c_transfer", "regulator_", "clk_",
+        "platform_driver", "cpu_up(", "secure_write",
+        "mt_cpufreq_set_ptbl_registerCB", "mt_cpufreq_setvolt_registerCB",
+        "mt_ppm_register_client",
+    ):
+        if forbidden in vendor_source_observation_source:
+            raise AssertionError(f"unexpected vendor source observation operation: {forbidden}")
+
     for needle, label in (
         ("claim=SOURCE_ONLY_MT6797_VENDOR_WRITER_MAINLINE_OWNER_INTEGRATION_REVIEW", "vendor-integration-review-claim"),
         ("vendor_revision=d388d350cb2dda8f23b99be6fa5db9628896e87f", "vendor-integration-review-revision"),
@@ -586,6 +666,36 @@ def main() -> None:
         ("cpu8_cpu9_admission=closed", "vendor-lifecycle-integration-build-no-admission"),
     ):
         require(vendor_writer_lifecycle_integration_build_result, needle, label)
+
+    for needle, label in (
+        ("claim=COMPILE_ONLY_MT6797_VENDOR_SOURCE_OBSERVATION_OWNER", "vendor-source-observation-build-claim"),
+        ("repository_commit=2c2035bc68bdd3ce0f6bef07359af07ba245b5a2", "vendor-source-observation-build-commit"),
+        ("build_backend=buildbox", "vendor-source-observation-build-backend"),
+        ("buildbox_job=2c2035bc68bdd3ce0f6bef07359af07ba245b5a2-full-m0", "vendor-source-observation-build-job"),
+        ("build_profile=full", "vendor-source-observation-build-profile"),
+        ("vendor_revision=d388d350cb2dda8f23b99be6fa5db9628896e87f", "vendor-source-observation-build-revision"),
+        ("vendor_series=0001..0009", "vendor-source-observation-build-series"),
+        ("vendor_series_sha256=b7252870cd77dc185b52aa4bc8321ccb6895e99e2cc1e931d3106861d0fd72bf", "vendor-source-observation-build-series-sha"),
+        ("patch_count=9", "vendor-source-observation-build-patches"),
+        ("git_apply_check=passed;sequential_check_then_apply;all_nine_patches", "vendor-source-observation-build-apply-check"),
+        ("git_diff_check=passed", "vendor-source-observation-build-diff-check"),
+        ("defconfig=gemini_modular_defconfig;passed", "vendor-source-observation-build-defconfig"),
+        ("prepare=passed", "vendor-source-observation-build-prepare"),
+        ("modules_prepare=passed", "vendor-source-observation-build-modules-prepare"),
+        ("affected_objects=passed", "vendor-source-observation-build-objects"),
+        ("object_1=drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.o;sha256=a8fbdc4847c10b668f863d0bf55415a7d4e341564444b7fb4af13d661bfc2d39", "vendor-source-observation-build-writer-hash"),
+        ("object_5=drivers/misc/mediatek/base/power/ppm_v1/src/mt_ppm_main.o;sha256=1e23e4e537cde6df714062e1ac742bb5a0db0395d97c95812777a6818ddb3899", "vendor-source-observation-build-ppm-hash"),
+        ("source_adapter=0009;source_abi=1;vendor_integration_abi=2", "vendor-source-observation-build-abi"),
+        ("observation_transaction=OBSERVE;held_writer_lock;abort_release;generation_unchanged_by_read", "vendor-source-observation-build-transaction"),
+        ("source_registration=provided_in_integration_callbacks;runtime_registration=none", "vendor-source-observation-build-registration"),
+        ("vendor_setter_called=none", "vendor-source-observation-build-no-setter"),
+        ("provider_registration=none", "vendor-source-observation-build-no-provider"),
+        ("hardware_write=none", "vendor-source-observation-build-no-write"),
+        ("device_action=none", "vendor-source-observation-build-no-action"),
+        ("boot_candidate=false", "vendor-source-observation-build-not-candidate"),
+        ("cpu8_cpu9_admission=closed", "vendor-source-observation-build-no-admission"),
+    ):
+        require(vendor_source_observation_build_result, needle, label)
 
     for needle, label in (
         ("claim=SOURCE_ONLY_MT6797_VENDOR_CALLER_LIFECYCLE_INVALIDATION_AUDIT", "vendor-caller-audit-claim"),
@@ -2874,6 +2984,7 @@ def main() -> None:
     print("vendor_writer_registration_handoff=0257;abi=1;explicit_external_register_unregister;bridge_context_pinned;owner_identity_pinned;teardown_guard;default_off;provider=none;registered_owner=0;hardware_write=none;device_action=none;cpu8_cpu9_admission=closed;boot_candidate=false")
     print("vendor_writer_runtime_event_handoff=0258;runtime_event_abi=1;eight_event_ids;cpu_none_sentinel;runtime_table_and_context_pinned;registration_requires_validated_runtime_callback;default_off;buildbox=validated;commit=8387f7fbf35bf86288cecd905dc7708c4f1e369d;patch_count=247;dtb_count=119;sha256sums=passed;package_fetch=success;validated_package_only;provider=none;registered_owner=0;hardware_write=none;device_action=none;cpu8_cpu9_admission=closed;boot_candidate=false")
     print("vendor_writer_lifecycle_runtime_events=0007;probe_remove_lifecycle_bound;failure_unwind;pm_ppm_hotcpu_cpufreq_cleanup;cpu_pm_clock_rail_events;deferred_pcm_fault;buildbox=validated;external_adapter_required;registered_owner=0;provider=none;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
+    print("vendor_source_observation=0009;source_abi=1;integration_abi=2;observe_transaction_abort;bounded_ppm_cpufreq_cspm_eem_snapshot;identity_fail_closed;buildbox=validated;commit=2c2035bc68bdd3ce0f6bef07359af07ba245b5a2;vendor_series=0001..0009;runtime_registration=none;provider=none;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("pcm_adapter_contract=source-only;bounded-admission-model;callback-registration-gated")
     print("clock_owner_inventory=generic_ccf_only;protected_owner_absent;A72_observer_read_only")
     print("pcm_start_contract=defined;residency_and_start_required_before_callback_registration")

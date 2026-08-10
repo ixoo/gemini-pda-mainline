@@ -1325,3 +1325,17 @@ external adapter has registered the owner, no provider or setter is active, no
 device action occurred, and CPU8/CPU9 admission remains closed. The next
 ordered step is a source-backed external adapter with read-only owner and
 invalidation evidence; do not boot or write a device for this compile result.
+
+Patch `0009` now supplies that source-backed, read-only observation adapter.
+It exposes the vendor PPM, cpufreq, CSPM, and EEM snapshots through the
+mainline source ABI, holds the shared `OBSERVE` transaction while copying
+bounded state, and releases through abort so reads do not advance the shared
+generation. Identity remains explicitly unsupported and registration remains
+default-off. The exact nine-patch vendor series applied and all five affected
+objects compiled on Buildbox at pushed commit `2c2035b`; the full mainline
+profile and validated-package-only fetch also passed. See the [source-
+observation owner Buildbox result](results/vendor-source-observation-owner-buildbox-20260810.txt).
+This is compile-only evidence: no runtime owner/provider or setter is active,
+no device action occurred, and CPU8/CPU9 admission remains closed. The next
+ordered step is a separate source-snapshot contract review and read-only
+runtime registration test; do not boot or write a device for this result.

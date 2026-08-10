@@ -3157,21 +3157,23 @@ or device action is claimed, and CPU8/CPU9 admission stays closed. The next
 ordered step is source-backed read-only owner and invalidation evidence from a
 real external adapter; no device boot or write is authorized by this result.
 
-Patch `0260` now adds the next source-independent boundary: a fixed-layout
-read-only snapshot ABI for PPM, cpufreq, CSPM, and EEM records, with bounded
-dimensions, a shared generation, exact owner/transition handles, an explicit
+Patches `0260` and `0261` now provide the fixed-layout, source-independent
+snapshot ABI and bind it to the mainline owner. The ABI covers bounded PPM,
+cpufreq, CSPM, and EEM records, exact owner/transition handles, an explicit
 invalidation hook, and a separate identity callback that fails closed unless a
 real PTP/efuse source supplies variant, table-epoch, and calibration identity.
-The exact pushed commit `0d06042` passed the full Buildbox profile with all 249
+The owner invalidates before forwarding runtime events and admits an explicit
+`OBSERVE` transaction whose release cannot advance the shared generation.
+The exact pushed commit `2c2035b` passed the full Buildbox profile with all 250
 canonical patches, 119 DTBs, package/provenance checksums, and
-validated-package-only fetch; see the [source-observation Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-source-observation-buildbox-20260810.txt).
-Two earlier submissions stopped before compilation at malformed patch context
-and were corrected transparently. This remains compile-only evidence: no
-vendor source adapter or owner registration is present, no provider/setter or
-device action occurred, and CPU8/CPU9 admission remains closed. The next
-ordered step is a separately reviewed vendor read-only adapter and mainline
-owner registration/invalidation integration, followed by Buildbox validation;
-do not boot or write.
+validated-package-only fetch. The pinned vendor revision accepted all nine
+experiment patches and the writer, cpufreq, hybrid CSPM, EEM, and PPM objects
+compiled; see the [source-observation owner Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-source-observation-owner-buildbox-20260810.txt).
+This remains compile-only evidence: the external adapter and provider are
+default-off, identity remains unsupported, no setter or device action occurred,
+and CPU8/CPU9 admission remains closed. The next ordered step is a separate
+source-snapshot contract review plus read-only runtime registration test; do
+not boot or write.
 
 Required evidence:
 
