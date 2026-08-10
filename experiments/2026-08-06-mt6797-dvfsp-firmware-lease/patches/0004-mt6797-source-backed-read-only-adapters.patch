@@ -302,7 +302,7 @@ index 147b673723d7fa417685a3c2b06cbe75100abaaf288663b08795efc04414f4bc..00000000
  #include <linux/types.h>
 +#include "mt6797-dvfsp-vendor-state.h"
  #include <linux/time.h>
-@@ -6573,6 +6573,55 @@
+@@ -6572,7 +6572,56 @@
  MODULE_DESCRIPTION("MediaTek EEM Driver v0.3");
  MODULE_LICENSE("GPL");
  #ifdef EARLY_PORTING
@@ -358,6 +358,7 @@ index 147b673723d7fa417685a3c2b06cbe75100abaaf288663b08795efc04414f4bc..00000000
 +	return 0;
 +}
 +EXPORT_SYMBOL_GPL(gemini_mt6797_dvfsp_vendor_eem_snapshot);
+ 
 diff --git a/drivers/misc/mediatek/base/power/ppm_v1/src/mt_ppm_main.c b/drivers/misc/mediatek/base/power/ppm_v1/src/mt_ppm_main.c
 index 89e8e20c62b8c5d8b45a63563a7c22b1e927712744bb243d05ca6589496bb9c2..000000000 100644
 --- a/drivers/misc/mediatek/base/power/ppm_v1/src/mt_ppm_main.c
@@ -370,7 +371,7 @@ index 89e8e20c62b8c5d8b45a63563a7c22b1e927712744bb243d05ca6589496bb9c2..00000000
  
  
  #define PPM_TIMER_INTERVAL_MS		(1000)
-@@ -1595,5 +1595,68 @@
+@@ -1594,6 +1594,69 @@
  arch_initcall(ppm_main_init);
  module_exit(ppm_main_exit);
  
@@ -439,5 +440,6 @@ index 89e8e20c62b8c5d8b45a63563a7c22b1e927712744bb243d05ca6589496bb9c2..00000000
 +	return 0;
 +}
 +EXPORT_SYMBOL_GPL(gemini_mt6797_dvfsp_vendor_ppm_snapshot);
+ 
 -- 
 2.39.5
