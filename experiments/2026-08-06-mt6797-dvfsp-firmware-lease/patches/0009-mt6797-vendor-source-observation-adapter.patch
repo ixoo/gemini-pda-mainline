@@ -83,10 +83,9 @@ diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.
  };
  
  const struct gemini_mt6797_dvfsp_vendor_integration_ops *
-@@ -844,3 +850,206 @@
+@@ -844,2 +850,205 @@
  }
  EXPORT_SYMBOL_GPL(gemini_mt6797_dvfsp_vendor_writer_finish);
- 
 +int gemini_mt6797_dvfsp_vendor_writer_abort_observation(
 +	struct gemini_mt6797_dvfsp_vendor_writer_transaction *transaction)
 +{
