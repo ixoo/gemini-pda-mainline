@@ -26,13 +26,9 @@ This is experiment-only and not submission-ready.
 diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
 --- a/drivers/soc/mediatek/Makefile
 +++ b/drivers/soc/mediatek/Makefile
-@@ -6,6 +6,7 @@ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-state-owner-arbitration.o
- obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-resource-owner.o
+@@ -1,1 +1,2 @@
  obj-$(CONFIG_MTK_MT6797_DVFSP_RESOURCE_OWNER) += mt6797-dvfsp-resource-provider.o
 +obj-$(CONFIG_MTK_MT6797_DVFSP_RESOURCE_OWNER) += mt6797-dvfsp-calibrated-provider.o
- obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-state-snapshot.o
- obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-runtime-bind.o
- obj-$(CONFIG_MTK_MT6797_DVFSP_CLOCK_BACKEND) += mt6797-dvfsp-clock-state.o
 
 diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-calibrated-provider.h b/include/linux/soc/mediatek/mt6797-dvfsp-calibrated-provider.h
 new file mode 100644
