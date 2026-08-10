@@ -121,6 +121,7 @@ be copied directly into a mainline failure/PM path.
 - [Vendor writer mainline-owner binding design](results/vendor-writer-mainline-owner-binding-design-20260811.txt)
 - [Mainline owner-bridge Buildbox resume](results/buildbox-resume-6b882064-20260811.txt)
 - [Vendor writer mainline-owner binding Buildbox validation](results/vendor-writer-mainline-owner-binding-buildbox-20260811.txt)
+- [Read-only runtime owner-registration review](results/runtime-owner-registration-review-20260810.txt)
 - [Vendor writer mainline-owner binding design](results/vendor-writer-mainline-owner-binding-design-20260811.txt)
 
 Run from the repository root:

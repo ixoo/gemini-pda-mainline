@@ -3065,6 +3065,16 @@ This is compile-only evidence: runtime owner registration remains unproven and
 CPU8/CPU9 admission stays closed. The next gate is a separate read-only
 runtime owner-registration review, with no device boot or write.
 
+That read-only review is now complete on the named Gemian device. The runtime
+still exposes only generic cpufreq/PPM/EEM/SCPDVFS surfaces; the consistency
+sample reports CPUs 0-1 online and 0-9 possible/present, but no attributable
+owner, generation, epoch, transition lock, mutex, or owner token. See the
+[runtime owner-registration review](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/runtime-owner-registration-review-20260810.txt).
+The mainline bridge therefore remains dormant and no provider registration,
+device write, boot, or CPU8/CPU9 admission is authorized. The next step is
+source-only integration review for a real shared owner and complete
+invalidation coverage.
+
 Required evidence:
 
 - provider registration performs no register-data write;

@@ -99,6 +99,7 @@ LIVE_RESOURCE_OWNER_BOUNDARY_RESULT = Path(__file__).resolve().parents[1] / "res
 RUNTIME_OWNER_BOUNDARY_V2_RESULT = Path(__file__).resolve().parents[1] / "results/runtime-owner-boundary-v2-20260810.txt"
 RUNTIME_OWNER_LIVE_HASH_REPEAT_RESULT = Path(__file__).resolve().parents[1] / "results/runtime-owner-live-hash-repeat-20260810.txt"
 RUNTIME_OWNER_TOKEN_CONTENT_RESULT = Path(__file__).resolve().parents[1] / "results/runtime-owner-token-content-probe-20260810.txt"
+RUNTIME_OWNER_REGISTRATION_REVIEW_RESULT = Path(__file__).resolve().parents[1] / "results/runtime-owner-registration-review-20260810.txt"
 SOURCE_RUNTIME_GATES_FULL_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/source-runtime-gates-buildbox-full-20260810.txt"
 VENDOR_PPM_OWNER_BOUNDARY_RESULT = Path(__file__).resolve().parents[1] / "results/vendor-ppm-owner-boundary-20260810.txt"
 STATE_OWNER_REGISTRATION_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-registration-buildbox-20260809.txt"
@@ -209,6 +210,7 @@ def main() -> None:
     runtime_owner_boundary_v2_result = RUNTIME_OWNER_BOUNDARY_V2_RESULT.read_text()
     runtime_owner_live_hash_repeat_result = RUNTIME_OWNER_LIVE_HASH_REPEAT_RESULT.read_text()
     runtime_owner_token_content_result = RUNTIME_OWNER_TOKEN_CONTENT_RESULT.read_text()
+    runtime_owner_registration_review_result = RUNTIME_OWNER_REGISTRATION_REVIEW_RESULT.read_text()
     source_runtime_gates_full_build_result = SOURCE_RUNTIME_GATES_FULL_BUILD_RESULT.read_text()
     vendor_ppm_owner_boundary_result = VENDOR_PPM_OWNER_BOUNDARY_RESULT.read_text()
     state_owner_registration_build_result = STATE_OWNER_REGISTRATION_BUILD_RESULT.read_text()
@@ -2287,6 +2289,36 @@ def main() -> None:
         ("boot_candidate=false", "runtime-owner-token-content-not-candidate"),
     ):
         require(runtime_owner_token_content_result, needle, label)
+    for needle, label in (
+        ("claim=READ_ONLY_GEMIAN_DVFSP_RUNTIME_OWNER_REGISTRATION_REVIEW", "runtime-owner-registration-review-claim"),
+        ("target=gemini@192.168.1.50", "runtime-owner-registration-review-target"),
+        ("transport=ssh", "runtime-owner-registration-review-transport"),
+        ("kernel=3.18.41+", "runtime-owner-registration-review-kernel"),
+        ("architecture=aarch64", "runtime-owner-registration-review-architecture"),
+        ("device_action=none", "runtime-owner-registration-review-no-device-action"),
+        ("hardware_write=none", "runtime-owner-registration-review-no-write"),
+        ("backup=none", "runtime-owner-registration-review-no-backup"),
+        ("cpu_possible=0-9", "runtime-owner-registration-review-possible"),
+        ("cpu_present=0-9", "runtime-owner-registration-review-present"),
+        ("cpu_online=0-1", "runtime-owner-registration-review-online"),
+        ("platform_candidates=mt-cpufreq;mt-ppm;mt-scpdvfs", "runtime-owner-registration-review-platform"),
+        ("generic_readback_surfaces=cpufreq;PPM;EEM", "runtime-owner-registration-review-surfaces"),
+        ("owner_generation_transition_matches=none", "runtime-owner-registration-review-no-match"),
+        ("owner_endpoint=absent", "runtime-owner-registration-review-no-owner-endpoint"),
+        ("provider_owner_endpoint=absent", "runtime-owner-registration-review-no-provider-endpoint"),
+        ("authoritative_generation=absent", "runtime-owner-registration-review-no-generation"),
+        ("authoritative_epoch=absent", "runtime-owner-registration-review-no-epoch"),
+        ("authoritative_transition_lock=absent", "runtime-owner-registration-review-no-lock"),
+        ("owner_token=absent", "runtime-owner-registration-review-no-token"),
+        ("runtime_owner_registration=none", "runtime-owner-registration-review-no-registration"),
+        ("raw_payload=not_retained", "runtime-owner-registration-review-redaction"),
+        ("provider=none", "runtime-owner-registration-review-no-provider"),
+        ("hardware_support_claim=NONE", "runtime-owner-registration-review-no-support-claim"),
+        ("boot_candidate=false", "runtime-owner-registration-review-not-candidate"),
+        ("cpu8_cpu9_admission=closed", "runtime-owner-registration-review-no-admission"),
+        ("decision=runtime_owner_registration_boundary_absent;mainline_owner_bridge_remains_dormant;generic_surfaces_are_not_authoritative", "runtime-owner-registration-review-decision"),
+    ):
+        require(runtime_owner_registration_review_result, needle, label)
     for needle, label in (
         ("claim=COMPILE_ONLY_MT6797_DVFSP_SOURCE_RUNTIME_GATES_FULL_PROFILE", "source-runtime-gates-full-claim"),
         ("repository_commit=8f869a19481945875690943530611d09f0a4a084", "source-runtime-gates-full-commit"),

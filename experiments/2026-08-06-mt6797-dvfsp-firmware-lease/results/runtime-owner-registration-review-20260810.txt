@@ -1,0 +1,36 @@
+# Gemian read-only runtime owner-registration review
+
+generated_utc=2026-08-10T17:00:00Z
+claim=READ_ONLY_GEMIAN_DVFSP_RUNTIME_OWNER_REGISTRATION_REVIEW
+target=gemini@192.168.1.50
+transport=ssh
+os=Gemian
+kernel=3.18.41+
+architecture=aarch64
+device_action=none
+hardware_write=none
+backup=none
+cpu_possible=0-9
+cpu_present=0-9
+cpu_online=0-1
+cpu_status=cpu0_online;cpu1_online;cpu2_cpu9_offline
+platform_candidates=mt-cpufreq;mt-ppm;mt-scpdvfs
+generic_readback_surfaces=cpufreq;PPM;EEM
+owner_generation_transition_matches=none
+owner_endpoint=absent
+provider_owner_endpoint=absent
+authoritative_generation=absent
+authoritative_epoch=absent
+authoritative_transition_lock=absent
+owner_token=absent
+runtime_owner_registration=none
+scan_roots=/sys/devices/platform;/proc/cpufreq;/proc/ppm;/proc/eem
+raw_payload=not_retained
+provider=none
+hardware_support_claim=NONE
+boot_candidate=false
+cpu8_cpu9_admission=closed
+observation=The named Gemian runtime remains the ordinary 3.18.41+ kernel with CPUs 0-1 online and 0-9 possible/present; a consistency sample confirms the online mask and per-CPU state.
+observation=Only generic cpufreq, PPM, EEM, and SCPDVFS surfaces are exported. No attributable owner, generation, epoch, transition lock, mutex, or owner token is exposed for runtime registration.
+decision=runtime_owner_registration_boundary_absent;mainline_owner_bridge_remains_dormant;generic_surfaces_are_not_authoritative
+next=do_not_register_provider_or_write_device;continue_source_review_only_until_a_real_shared_owner_and_all_invalidation_paths_are_proven
