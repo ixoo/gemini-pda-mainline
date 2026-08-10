@@ -3024,6 +3024,16 @@ occurred, and CPU8/CPU9 admission remains closed. The next ordered step is a
 separate read-only runtime owner-registration review only after a shared
 generation and every invalidation path are proven.
 
+The corrected current head `a463951` was then resumed on Buildbox with the
+full manifest profile. The arm64 cross-build passed configuration, the kernel
+artifact, all 119 DTBs, provenance and checksum validation, and only the
+validated package was fetched; see the [current-head Buildbox receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/buildbox-resume-a463951-20260810.txt).
+This remains compile-only evidence: no provider or owner was registered, no
+vendor setter or device action occurred, and CPU8/CPU9 admission remains
+closed. The next ordered gate is still a separate read-only runtime
+owner-registration review after the shared generation and every invalidation
+path are proven.
+
 Required evidence:
 
 - provider registration performs no register-data write;

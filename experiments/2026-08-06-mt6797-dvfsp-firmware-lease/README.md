@@ -116,6 +116,7 @@ be copied directly into a mainline failure/PM path.
 - [Dormant state-owner transition hold](../../patches/v7.1.3/0193-soc-mediatek-add-MT6797-state-owner-transition-hold.patch)
 - [PCM start contract result](results/pcm-start-contract-20260806.txt)
 - [Source-backed vendor state-adapter Buildbox validation](results/vendor-state-adapters-buildbox-20260810.txt)
+- [Current-head full-profile Buildbox resume](results/buildbox-resume-a463951-20260810.txt)
 
 Run from the repository root:
 
