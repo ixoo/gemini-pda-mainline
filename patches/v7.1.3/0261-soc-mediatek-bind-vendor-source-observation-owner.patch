@@ -196,9 +196,19 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c b/drivers/soc/medi
 diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
 --- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
-@@ -377,3 +377,28 @@ static const struct mt6797_dvfsp_vendor_integration_ops
+@@ -8,5 +8,7 @@
+ #include <linux/types.h>
+ 
+ #include <linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h>
+ 
++static const struct mt6797_dvfsp_vendor_source_registration
++mt6797_dvfsp_vendor_test_source_registration;
+ 
+ struct mt6797_dvfsp_vendor_test_devices {
+@@ -377,3 +377,29 @@ static const struct mt6797_dvfsp_vendor_integration_ops
  	.unregister_mainline_owner =
  		mt6797_dvfsp_vendor_test_integration_unregister_mainline,
++	.source_registration = &mt6797_dvfsp_vendor_test_source_registration,
  };
 +static int mt6797_dvfsp_vendor_test_source_snapshot(
 +	void *context, struct mt6797_dvfsp_vendor_source_snapshot *snapshot)
