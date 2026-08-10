@@ -934,3 +934,14 @@ package checksums, and the validated-package-only fetch passed; the [current
 head resume receipt](results/buildbox-resume-96607a3-20260810.txt) records the
 result. This remains compile-only evidence: the owner/provider are unregistered
 and CPU8/CPU9 admission remains closed.
+
+A source-only callback audit against the pinned public Gemian `main` revision
+`d388d350` then established that the vendor PTP-table and PPM-DVFS registration
+APIs each hold one callback slot. Calling them from a separate observer would
+replace the existing EEM private-table update or cpufreq policy-limit callback,
+respectively. The bounded [callback replacement audit](results/vendor-callback-replacement-audit-20260810.txt)
+records the exact source hashes, setter sites, and decision. This closes the
+unsafe standalone observer route; the next owner work must integrate at the
+vendor-aware driver boundary or add explicit cooperation from those writers.
+No vendor source was copied, no provider was registered, and CPU8/CPU9
+admission remains closed.

@@ -2718,6 +2718,18 @@ The exact pushed head `96607a3` was rebuilt on Buildbox with the
 234 canonical patches, 119 DTBs, package checksums, and the validated-package
 fetch passed. See the [resume receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/buildbox-resume-96607a3-20260810.txt).
 
+A source-only callback audit against the pinned public Gemian `main` revision
+`d388d350` found that the apparent vendor registration entrypoints are
+single-slot replacements, not composable observer hooks. The PTP table setter
+would replace the existing EEM private-table callback, and the PPM DVFS client
+setter would replace the cpufreq policy-limit callback. A separate owner cannot
+call either setter without disabling an existing policy path. The bounded
+[callback replacement audit](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-callback-replacement-audit-20260810.txt)
+therefore closes the unsafe observer-bridge route. The next implementation must
+be integrated at the vendor-aware driver boundary or introduce an explicit
+mainline owner contract with cooperation from those writers; no provider,
+hardware action, device boot, or CPU8/CPU9 admission is justified by this audit.
+
 Required evidence:
 
 - provider registration performs no register-data write;
