@@ -1092,3 +1092,12 @@ is identity evidence only: raw addresses and payloads were not retained, and
 no device state changed. The next gate remains an external vendor-aware caller
 implementation using the named descriptors, followed by separate read-only
 owner registration evidence.
+
+The exact current head `6a01dc5` was then resumed on Buildbox with the same
+`dvfsp-owner-kunit` profile. All 244 canonical patches applied, the arm64
+kernel linked, all 119 DTBs and package/provenance checksums passed, and only
+the validated package was fetched; see the [current-head Buildbox receipt](results/buildbox-resume-6a01dc5-20260810.txt).
+This commit records runtime symbol identity only, so the result adds no new
+hardware claim: vendor callers remain unbound, runtime owner registration is
+absent, no device was booted or written, and CPU8/CPU9 admission remains
+closed.
