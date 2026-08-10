@@ -22,9 +22,9 @@ call, device action, or CPU8/CPU9 admission.
  drivers/soc/mediatek/Kconfig                                      |  19 ++++
  drivers/soc/mediatek/Makefile                                     |   2 +
  drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-kunit-test.c      | 122 ++++++++++++
- drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c                 | 147 +++++++++++++
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c                 | 146 ++++++++++++
  include/linux/soc/mediatek/mt6797-dvfsp-vendor-writer.h          |  53 ++++++
- 5 files changed, 343 insertions(+)
+ 5 files changed, 342 insertions(+)
  create mode 100644 drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-kunit-test.c
  create mode 100644 drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c
  create mode 100644 include/linux/soc/mediatek/mt6797-dvfsp-vendor-writer.h
@@ -131,7 +131,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c b/drivers/soc/med
 new file mode 100644
 --- /dev/null
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c
-@@ -0,0 +1,147 @@
+@@ -0,0 +1,146 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/*
 + * Shared transition owner for a cooperative MT6797 vendor writer.
