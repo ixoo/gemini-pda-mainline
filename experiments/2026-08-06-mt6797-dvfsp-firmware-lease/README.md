@@ -630,3 +630,7 @@ package; see the [PPM state-source binding Buildbox result](results/ppm-state-so
 This remains compile-only and default-off: the real external PPM/EEM/PTP and
 PMIC/clock owner, generation callbacks, device boot, and CPU8/CPU9 admission
 remain closed.
+
+The clean pushed documentation commit `3f07c40` was then rebuilt on Buildbox;
+it reproduced the same content-addressed package and passed the same 119-DTB
+and package checks. The receipt records both Buildbox job identities.

@@ -1,11 +1,13 @@
 claim=COMPILE_ONLY_MT6797_DVFSP_PPM_STATE_SOURCE_BINDING
-repository_commit=7c4bd43855a06bf49be7998894d66e034ecc230a
+repository_commit=3f07c407f3d9ef8aba3f247a57824189230b900f
 origin=https://github.com/ixoo/gemini-pda-mainline.git
 repository_dirty=false
 build_backend=buildbox
 buildbox_status=validated
-buildbox_generated_utc=2026-08-10T00:55:15Z
-buildbox_job=7c4bd43855a06bf49be7998894d66e034ecc230a-dvfsp-protected-readback-m0
+buildbox_generated_utc=2026-08-10T01:00:17Z
+buildbox_job=3f07c407f3d9ef8aba3f247a57824189230b900f-dvfsp-protected-readback-m0
+previous_validated_repository_commit=7c4bd43855a06bf49be7998894d66e034ecc230a
+previous_buildbox_job=7c4bd43855a06bf49be7998894d66e034ecc230a-dvfsp-protected-readback-m0
 patch_count=212
 artifact=linux-7.1.3-gemini-dvfsp-protected-readback-aea1060a-b6696a3c
 kernel_release=7.1.3-gemini-handoff

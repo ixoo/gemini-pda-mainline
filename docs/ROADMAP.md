@@ -2223,6 +2223,9 @@ The next ordered work remains source-only:
    This remains compile-only and default-off: the real external PPM/EEM/PTP
    and PMIC/clock owner, generation callbacks, device boot, and CPU8/CPU9
    admission remain closed.
+   The clean pushed documentation commit `3f07c40` was subsequently rebuilt
+   on Buildbox and reproduced the same content-addressed package; the receipt
+   records both validated job identities.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and
