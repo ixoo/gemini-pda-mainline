@@ -914,9 +914,11 @@ performed.
 Patch `0246` now captures only that source-backed SB/0119 frequency identity in
 a pure reader with hardware-free KUnit coverage. It rejects the other decoded
 PTP date family and intentionally exposes no active policy limits, vendor PPM
-lock, calibration handle, or transition generation. Buildbox validation of this
-new patch is pending; no provider registration or device action is authorized
-by the fixture.
+lock, calibration handle, or transition generation. The exact pushed head
+`f9e8c58` passed the full 235-patch Buildbox build, all 119 DTB checks, package
+and provenance checksums, and validated-package-only fetch; see the [Buildbox
+receipt](results/buildbox-resume-f9e8c58-20260810.txt). This remains compile-only
+evidence: no provider registration or device action occurred.
 
 The current pushed head `96607a3` was then rebuilt with the explicit
 `dvfsp-owner-kunit` Buildbox profile. All 234 canonical patches, 119 DTBs,

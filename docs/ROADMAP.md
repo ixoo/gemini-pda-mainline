@@ -2695,6 +2695,15 @@ generation. The next ordered implementation remains a separately supplied
 owner for those fields; no provider registration, device boot, write, or
 CPU8/CPU9 admission is authorized by this table fixture.
 
+The exact pushed head `f9e8c58` then passed the full 235-patch
+`dvfsp-owner-kunit` Buildbox build, including Patch 0246. The arm64 Image,
+Gemini DTB, all 119 DTBs, package checksums, provenance, and
+validated-package-only fetch passed; see the [Buildbox receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/buildbox-resume-f9e8c58-20260810.txt).
+This confirms source/build reproducibility only. The next ordered gate is still
+the separately attributable runtime owner for mutable policy, calibration,
+transition lock, and generation; no device boot/write or CPU8/CPU9 admission
+occurred.
+
 The exact pushed head `96607a3` was rebuilt on Buildbox with the
 `dvfsp-owner-kunit` profile after the current-head receipt was recorded; all
 234 canonical patches, 119 DTBs, package checksums, and the validated-package
