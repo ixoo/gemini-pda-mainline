@@ -1,0 +1,207 @@
+From 0000000000000000000000000000000000000223 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 10 Aug 2026 05:10:00 -0400
+Subject: [PATCH] soc: mediatek: bind MT6797 PPM snapshot to state source
+
+The protected state source already requires PPM provenance, but its callback
+pipeline did not actually obtain or validate a PPM snapshot. Add the explicit
+read callback and pass the immutable snapshot to the live-state callback.
+Require its table epoch to match the calibrated provenance, verify every
+physical-cluster live frequency against the vendor's exact 16-entry table,
+and derive LL/L/B floor and ceiling from the vendor current-client indices.
+
+The CCI cluster still has no physical PPM limit source and receives no guessed
+limit. The owner-source binding requires the callback but remains default-off;
+this patch performs no provider registration, hardware operation, secure call,
+firmware action, device boot, or CPU8/CPU9 admission. It is experiment-only
+and not submission-ready.
+---
+ drivers/soc/mediatek/mt6797-dvfsp-state-owner-source.c | 30 ++++++++++++++++-
+ drivers/soc/mediatek/mt6797-dvfsp-state-source.c       | 42 +++++++++++++++++++-
+ include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h |  8 ++++
+ include/linux/soc/mediatek/mt6797-dvfsp-state-source.h |  8 ++++
+ 4 files changed, 84 insertions(+), 4 deletions(-)
+
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-state-source.h b/include/linux/soc/mediatek/mt6797-dvfsp-state-source.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-state-source.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-state-source.h
+@@ -5,7 +5,8 @@
+ #include <linux/types.h>
+ 
+ #include <linux/soc/mediatek/mt6797-bigidvfs-backend.h>
+ #include <linux/soc/mediatek/mt6797-dvfsp-clock-state.h>
++#include <linux/soc/mediatek/mt6797-dvfsp-ppm.h>
+ #include <linux/soc/mediatek/mt6797-dvfsp-ptp.h>
+ #include <linux/soc/mediatek/mt6797-dvfsp-state-snapshot.h>
+ #include <linux/soc/mediatek/mt6797-eem-calibration.h>
+@@ -43,6 +44,9 @@ struct mt6797_dvfsp_state_source_ops {
+ 	int (*read_eem)(void *context,
+ 		       struct mt6797_eem_readback *readback);
+ 	int (*read_ptp)(void *context,
+ 		       struct mt6797_dvfsp_ptp_handoff *handoff);
++	int (*read_ppm)(void *context,
++			const struct mt6797_dvfsp_ptp_state *ptp_state,
++			struct mt6797_dvfsp_ppm_snapshot *snapshot);
+ 	int (*fill_calibration)(void *context,
+ 				const struct mt6797_dvfsp_ptp_handoff *handoff,
+@@ -52,5 +56,6 @@ struct mt6797_dvfsp_state_source_ops {
+ 	int (*fill_live)(void *context,
+ 				const struct mt6797_dvfsp_clock_state *clock,
+ 				const struct mt6797_dvfsp_calibration_state *calibration,
++				const struct mt6797_dvfsp_ppm_snapshot *ppm,
+ 				struct mt6797_dvfsp_state_source_live *live);
+ };
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h b/include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h
+@@ -24,7 +24,10 @@ struct mt6797_dvfsp_state_owner_source_ops {
+ 	u32 abi;
+ 	int (*read_identity)(void *context,
+ 				const struct mt6797_dvfsp_ptp_state *ptp_state,
+ 				struct mt6797_dvfsp_state_owner_source_identity *identity);
++	int (*read_ppm)(void *context,
++				const struct mt6797_dvfsp_ptp_state *ptp_state,
++				struct mt6797_dvfsp_ppm_snapshot *snapshot);
+ 	int (*fill_calibration)(void *context,
+ 				const struct mt6797_dvfsp_ptp_handoff *handoff,
+ 				const struct mt6797_dvfsp_ptp_state *ptp_state,
+@@ -35,5 +38,6 @@ struct mt6797_dvfsp_state_owner_source_ops {
+ 	int (*fill_live)(void *context,
+ 				const struct mt6797_dvfsp_clock_state *clock,
+ 				const struct mt6797_dvfsp_calibration_state *calibration,
++				const struct mt6797_dvfsp_ppm_snapshot *ppm,
+ 				struct mt6797_dvfsp_state_source_live *live);
+ 	void (*invalidate)(void *context,
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-source.c b/drivers/soc/mediatek/mt6797-dvfsp-state-source.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-state-source.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-state-source.c
+@@ -20,5 +20,6 @@ static int mt6797_dvfsp_state_source_check(
+ 	if (!ops || ops->abi != MT6797_DVFSP_STATE_SOURCE_ABI ||
+ 	    !ops->read_clock || !ops->read_big || !ops->read_eem ||
+ 	    !ops->read_ptp ||
++	    !ops->read_ppm ||
+ 	    !ops->fill_calibration || !ops->fill_live)
+ 		return -EINVAL;
+@@ -35,5 +36,6 @@ int mt6797_dvfsp_state_source_snapshot(
+ 	struct mt6797_eem_readback eem_readback;
+ 	struct mt6797_dvfsp_ptp_handoff ptp_handoff;
+ 	struct mt6797_dvfsp_ptp_state ptp_state;
++	struct mt6797_dvfsp_ppm_snapshot ppm_snapshot;
+ 	struct mt6797_dvfsp_clock_state clock_state;
+ 	struct mt6797_eem_calibration_input calibration_input;
+@@ -76,6 +78,14 @@ int mt6797_dvfsp_state_source_snapshot(
+ 	ret = mt6797_dvfsp_ptp_decode(&ptp_handoff, &ptp_state);
+ 	if (ret)
+ 		return ret;
+ 
++	memset(&ppm_snapshot, 0, sizeof(ppm_snapshot));
++	ret = ops->read_ppm(context, &ptp_state, &ppm_snapshot);
++	if (ret)
++		return ret;
++	ret = mt6797_dvfsp_ppm_snapshot_validate(&ppm_snapshot);
++	if (ret)
++		return ret;
++
+ 	memset(&calibration_input, 0, sizeof(calibration_input));
+ 	ret = ops->fill_calibration(context, &ptp_handoff, &ptp_state,
+@@ -91,8 +101,42 @@ int mt6797_dvfsp_state_source_snapshot(
+ 		return ret;
+ 
+ 	memset(&live, 0, sizeof(live));
+-	ret = ops->fill_live(context, &clock_state, &calibration_state, &live);
++	ret = ops->fill_live(context, &clock_state, &calibration_state,
++				    &ppm_snapshot, &live);
+ 	if (ret)
+ 		return ret;
++	if (ppm_snapshot.table_epoch != calibration_state.provenance.table_epoch ||
++	    ppm_snapshot.table_epoch != live.provenance.table_epoch)
++		return -EAGAIN;
++	{
++		unsigned int cluster;
++
++		for (cluster = 0;
++		     cluster < MT6797_DVFSP_PPM_CLUSTER_COUNT; cluster++) {
++			u32 floor_khz;
++			u32 ceiling_khz;
++			unsigned int row;
++			bool found = false;
++
++			ret = mt6797_dvfsp_ppm_snapshot_current_limit(
++				&ppm_snapshot, cluster, &floor_khz, &ceiling_khz);
++			if (ret)
++				return ret;
++			if (!live.frequency_khz[cluster])
++				return -EPROTO;
++			for (row = 0;
++			     row < MT6797_DVFSP_PPM_TABLE_ENTRIES; row++) {
++				if (ppm_snapshot.cluster[cluster].frequency_khz[row] ==
++				    live.frequency_khz[cluster]) {
++					found = true;
++					break;
++				}
++			}
++			if (!found)
++				return -EAGAIN;
++			live.floor_khz[cluster] = floor_khz;
++			live.ceiling_khz[cluster] = ceiling_khz;
++		}
++	}
+ 
+ 	memset(&input, 0, sizeof(input));
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-owner-source.c b/drivers/soc/mediatek/mt6797-dvfsp-state-owner-source.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-state-owner-source.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-state-owner-source.c
+@@ -97,4 +97,17 @@ static int mt6797_dvfsp_owner_read_ptp(
+ 		&owner->devices, handoff);
+ }
+ 
++static int mt6797_dvfsp_owner_read_ppm(
++	void *context, const struct mt6797_dvfsp_ptp_state *ptp_state,
++	struct mt6797_dvfsp_ppm_snapshot *snapshot)
++{
++	struct mt6797_dvfsp_state_owner_source *owner = context;
++
++	if (!owner || !ptp_state || !snapshot || !owner->source_ops ||
++	    !owner->source_ops->read_ppm)
++		return -EINVAL;
++	return owner->source_ops->read_ppm(owner->source_context, ptp_state,
++					   snapshot);
++}
++
+ static int mt6797_dvfsp_owner_fill_calibration(
+@@ -147,14 +160,16 @@ static int mt6797_dvfsp_owner_fill_live(
+ static int mt6797_dvfsp_owner_fill_live(
+ 	void *context, const struct mt6797_dvfsp_clock_state *clock,
+ 	const struct mt6797_dvfsp_calibration_state *calibration,
++	const struct mt6797_dvfsp_ppm_snapshot *ppm,
+ 	struct mt6797_dvfsp_state_source_live *live)
+ {
+ 	struct mt6797_dvfsp_state_owner_source *owner = context;
+ 	int ret;
+ 
+-	if (!owner || !clock || !calibration || !live || !owner->source_ops ||
++	if (!owner || !clock || !calibration || !ppm || !live ||
++	    !owner->source_ops ||
+ 	    !owner->source_ops->fill_live)
+ 		return -EINVAL;
+ 
+ 	ret = owner->source_ops->fill_live(owner->source_context, clock,
+-						   calibration, live);
++						   calibration, ppm, live);
+@@ -203,5 +216,6 @@ int mt6797_dvfsp_state_owner_source_init(
+ 	if (!owner || !devices || !source_ops || source_ops->abi !=
+ 	    MT6797_DVFSP_STATE_OWNER_SOURCE_ABI ||
+-	    !source_ops->read_identity || !source_ops->fill_calibration ||
++	    !source_ops->read_identity || !source_ops->read_ppm ||
++	    !source_ops->fill_calibration ||
+ 	    !source_ops->fill_live || !source_ops->invalidate ||
+ 	    !owner_handle || !transition_handle)
+@@ -223,5 +239,6 @@ int mt6797_dvfsp_state_owner_source_init(
+ 	owner->adapter_ops.read_big = mt6797_dvfsp_owner_read_big;
+ 	owner->adapter_ops.read_eem = mt6797_dvfsp_owner_read_eem;
+ 	owner->adapter_ops.read_ptp = mt6797_dvfsp_owner_read_ptp;
++	owner->adapter_ops.read_ppm = mt6797_dvfsp_owner_read_ppm;
+ 	owner->adapter_ops.fill_calibration =
+ 		mt6797_dvfsp_owner_fill_calibration;
+-- 
+2.43.0
