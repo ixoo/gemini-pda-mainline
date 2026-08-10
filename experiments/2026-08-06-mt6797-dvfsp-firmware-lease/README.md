@@ -892,3 +892,11 @@ census](results/runtime-owner-symbol-census-20260810.txt). This narrows the
 next implementation to an explicit bridge around the vendor callback sources,
 with a new owner generation supplied separately; no provider or CPU8/CPU9
 admission is enabled.
+
+At the owner's request, the exact pushed head `a81b5e4` was resumed on Buildbox
+with the `dvfsp-owner-kunit` profile. All 234 canonical patches, 119 DTBs,
+package checksums, and the validated-package-only fetch passed; the [current
+head Buildbox resume receipt](results/buildbox-resume-a81b5e4-20260810.txt)
+records the immutable provenance. This remains compile-only evidence: no owner
+or provider was registered, no hardware or firmware action occurred, and CPU8/
+CPU9 admission remains closed.

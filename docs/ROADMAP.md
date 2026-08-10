@@ -2677,6 +2677,13 @@ This is the first runtime identity evidence for the callback surface, not a
 coherent-owner proof; the next ordered implementation is an explicit bridge
 around those sources with a separately supplied generation/lock owner.
 
+The exact pushed head `a81b5e4` was then resumed on Buildbox with the
+`dvfsp-owner-kunit` profile. All 234 canonical patches and 119 DTBs passed
+validation, package checksums passed, and only the validated package was
+fetched; see the [current-head Buildbox resume receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/buildbox-resume-a81b5e4-20260810.txt).
+This compile-only rerun changes no owner boundary: no registration, writable
+operation, device boot, or CPU8/CPU9 admission occurred.
+
 Required evidence:
 
 - provider registration performs no register-data write;
