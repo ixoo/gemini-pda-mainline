@@ -203,7 +203,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c b/drivers/soc
  
 +static const struct mt6797_dvfsp_vendor_source_registration
 +mt6797_dvfsp_vendor_test_source_registration;
- 
++ 
  struct mt6797_dvfsp_vendor_test_devices {
 @@ -377,3 +377,29 @@ static const struct mt6797_dvfsp_vendor_integration_ops
  	.unregister_mainline_owner =
