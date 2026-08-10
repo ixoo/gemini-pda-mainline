@@ -72,7 +72,7 @@ index b9073d2fa..f88eb3b13 100644
  int mt6797_thermal_eem_readback(struct device *dev,
  				 struct mt6797_eem_readback *readback)
  {
-@@ -1044,6 +1065,8 @@ int mt6797_thermal_eem_readback(struct device *dev,
+@@ -1044,6 +1065,9 @@ int mt6797_thermal_eem_readback(struct device *dev,
  		readback->bank_mask |= BIT(bank_ids[i]);
  	}
  
@@ -82,7 +82,7 @@ index b9073d2fa..f88eb3b13 100644
  	/* Restore the exact selector word, including unrelated control bits. */
  	writel(selector, mt->thermal_base + PTPCORESEL);
  	readl(mt->thermal_base + PTPCORESEL);
-@@ -1056,6 +1079,14 @@ int mt6797_thermal_eem_readback(struct device *dev,
+@@ -1056,7 +1079,9 @@ int mt6797_thermal_eem_readback(struct device *dev,
  					BIT(MT6797_EEM_READBACK_BANK_L) |
  					BIT(MT6797_EEM_READBACK_BANK_2L) |
  					BIT(MT6797_EEM_READBACK_BANK_CCI)))
@@ -92,7 +92,7 @@ index b9073d2fa..f88eb3b13 100644
  
  	return 0;
  }
-@@ -1219,7 +1250,8 @@ int mt6797_eem_calibration_build(
+@@ -1219,9 +1250,10 @@ int mt6797_eem_calibration_build(
  		 BIT(MT6797_EEM_READBACK_BANK_L) |
  		 BIT(MT6797_EEM_READBACK_BANK_2L) |
  		 BIT(MT6797_EEM_READBACK_BANK_CCI)) ||
