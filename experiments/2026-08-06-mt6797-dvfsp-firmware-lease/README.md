@@ -768,3 +768,23 @@ admission remains closed. The real calibrated provider still must supply
 efuse/PTP identity, coherent PPM/CCI rows, live VPROC/VSRAM, and
 clock/rail generation plus a single transition lock before any provider
 registration or CPU8/CPU9 experiment.
+
+Patch `0235` binds this source contract to the resource owner's lifetime. It
+requires the explicit efuse/PTP identity, PPM snapshot/policy, calibration,
+live-state, invalidation, and PPM lock callbacks; composes the existing source
+and generation-arbitration layers; and prevents resource detach while the
+calibrated source borrows its four devices. Exit invalidates the source before
+unbinding it. The binding only exposes snapshot, validation, identity, and
+dormant owner-callback helpers; it does not register the handoff owner or add a
+platform consumer.
+
+The first clean submission stopped before compilation on a Makefile context
+mismatch; the narrowed patch was pushed at `a28dd0f`. That revision then passed
+the named Buildbox profile and package validation: 224 patches, six config
+fragments, 119 DTBs, image/package checksums, and a validated package fetched
+locally. See the [calibrated-provider Buildbox receipt](results/calibrated-provider-buildbox-20260810.txt).
+This remains compile-only evidence: all required source callbacks are still
+external, registration is absent, no hardware action occurred, and CPU8/CPU9
+admission remains closed. The next implementation must provide the actual
+efuse/PTP identity, coherent PPM/CCI rows and limits, live VPROC/VSRAM, and
+clock/rail generation callbacks under the introduced transition lock.

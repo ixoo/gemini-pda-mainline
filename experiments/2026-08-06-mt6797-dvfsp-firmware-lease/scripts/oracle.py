@@ -39,6 +39,7 @@ RESOURCE_PROVIDER_PATCH = ROOT / "patches/v7.1.3/0231-dt-soc-mediatek-add-MT6797
 OWNER_ABI_REPAIR_PATCH = ROOT / "patches/v7.1.3/0232-soc-mediatek-repair-owner-abi-declarations.patch"
 BUILD_BOUNDARY_REPAIR_PATCH = ROOT / "patches/v7.1.3/0233-soc-mediatek-repair-handoff-and-snapshot-build-boundaries.patch"
 STATE_OWNER_INIT_REPAIR_PATCH = ROOT / "patches/v7.1.3/0234-soc-mediatek-repair-state-owner-initialization-boundary.patch"
+CALIBRATED_PROVIDER_PATCH = ROOT / "patches/v7.1.3/0235-soc-mediatek-bind-calibrated-provider-to-resource-owner.patch"
 STATE_OWNER_SOURCE_PATCH = ROOT / "patches/v7.1.3/0215-soc-mediatek-add-calibrated-state-owner-source-binding.patch"
 STATE_OWNER_ARBITRATION_PATCH = ROOT / "patches/v7.1.3/0216-soc-mediatek-bind-state-owner-source-to-transition-generation.patch"
 STATE_OWNER_ARBITRATION_FAULT_PATCH = ROOT / "patches/v7.1.3/0217-soc-mediatek-latch-transition-arbitration-faults.patch"
@@ -88,6 +89,7 @@ STATE_OWNER_REGISTRATION_GATE_RESUME_BUILD_RESULT = Path(__file__).resolve().par
 PPM_OWNER_LOCK_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/ppm-owner-lock-buildbox-20260810.txt"
 RESOURCE_OWNER_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/resource-owner-buildbox-20260810.txt"
 RESOURCE_PROVIDER_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/resource-owner-provider-buildbox-20260810.txt"
+CALIBRATED_PROVIDER_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/calibrated-provider-buildbox-20260810.txt"
 
 
 def require(text: str, needle: str, label: str) -> None:
@@ -130,6 +132,7 @@ def main() -> None:
     owner_abi_repair_patch = OWNER_ABI_REPAIR_PATCH.read_text()
     build_boundary_repair_patch = BUILD_BOUNDARY_REPAIR_PATCH.read_text()
     state_owner_init_repair_patch = STATE_OWNER_INIT_REPAIR_PATCH.read_text()
+    calibrated_provider_patch = CALIBRATED_PROVIDER_PATCH.read_text()
     state_owner_source_patch = STATE_OWNER_SOURCE_PATCH.read_text()
     state_owner_arbitration_patch = STATE_OWNER_ARBITRATION_PATCH.read_text()
     state_owner_arbitration_fault_patch = STATE_OWNER_ARBITRATION_FAULT_PATCH.read_text()
@@ -178,6 +181,7 @@ def main() -> None:
     ppm_owner_lock_build_result = PPM_OWNER_LOCK_BUILD_RESULT.read_text()
     resource_owner_build_result = RESOURCE_OWNER_BUILD_RESULT.read_text()
     resource_provider_build_result = RESOURCE_PROVIDER_BUILD_RESULT.read_text()
+    calibrated_provider_build_result = CALIBRATED_PROVIDER_BUILD_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     eem_calibration_source = eem_calibration_patch[eem_calibration_patch.index("diff --git"):]
@@ -195,6 +199,7 @@ def main() -> None:
     ppm_owner_lock_source = ppm_owner_lock_patch[ppm_owner_lock_patch.index("diff --git"):]
     resource_owner_source = resource_owner_patch[resource_owner_patch.index("diff --git"):]
     resource_provider_source = resource_provider_patch[resource_provider_patch.index("diff --git"):]
+    calibrated_provider_source = calibrated_provider_patch[calibrated_provider_patch.index("diff --git"):]
     state_owner_source_source = state_owner_source_patch[state_owner_source_patch.index("diff --git"):]
     state_owner_arbitration_source = state_owner_arbitration_patch[state_owner_arbitration_patch.index("diff --git"):]
     state_owner_arbitration_fault_source = state_owner_arbitration_fault_patch[state_owner_arbitration_fault_patch.index("diff --git"):]
@@ -691,6 +696,58 @@ def main() -> None:
         ("cpu8_cpu9_admission=closed", "resource-provider-build-no-admission"),
     ):
         require(resource_provider_build_result, needle, label)
+    for needle, label in (
+        ("struct mt6797_dvfsp_calibrated_provider", "calibrated-provider-struct"),
+        ("mt6797_dvfsp_resource_owner_bind_source", "calibrated-provider-bind-source"),
+        ("mt6797_dvfsp_resource_owner_unbind_source", "calibrated-provider-unbind-source"),
+        ("mt6797_dvfsp_state_owner_source_init", "calibrated-provider-source-init"),
+        ("mt6797_dvfsp_state_owner_arbitration_init", "calibrated-provider-arbitration-init"),
+        ("mt6797_dvfsp_calibrated_provider_snapshot", "calibrated-provider-snapshot"),
+        ("mt6797_dvfsp_calibrated_provider_validate", "calibrated-provider-validate"),
+        ("mt6797_dvfsp_calibrated_provider_identify", "calibrated-provider-identify"),
+        ("owner_ops_init", "calibrated-provider-owner-ops"),
+        ("never registers the handoff owner", "calibrated-provider-no-registration"),
+        ("invalidates the source before unbinding", "calibrated-provider-invalidate-order"),
+    ):
+        require(calibrated_provider_patch, needle, label)
+    for forbidden in ("module_platform_driver", "platform_driver", "register_platform_driver",
+                      "readl(", "writel(", "regulator_", "clk_", "i2c_transfer",
+                      "arm_smccc", "secure_write", "cpu_up(",
+                      "mt6797_dvfsp_handoff_state_owner_register"):
+        if forbidden in calibrated_provider_source:
+            raise AssertionError(f"unexpected calibrated-provider operation: {forbidden}")
+    for needle, label in (
+        ("claim=COMPILE_ONLY_MT6797_DVFSP_CALIBRATED_PROVIDER_BINDING", "calibrated-provider-build-claim"),
+        ("repository_commit=a28dd0f9d57b747258d2c70fbae7b14a9e3c010d", "calibrated-provider-build-commit"),
+        ("origin=https://github.com/ixoo/gemini-pda-mainline.git", "calibrated-provider-build-origin"),
+        ("repository_dirty=false", "calibrated-provider-build-clean"),
+        ("build_backend=buildbox", "calibrated-provider-build-backend"),
+        ("buildbox_status=validated", "calibrated-provider-build-status"),
+        ("buildbox_job=a28dd0f9d57b747258d2c70fbae7b14a9e3c010d-dvfsp-resource-owner-readonly-m0", "calibrated-provider-build-job"),
+        ("patch_count=224", "calibrated-provider-build-patch-count"),
+        ("artifact=linux-7.1.3-gemini-dvfsp-resource-owner-readonly-dede19ab-c548d243", "calibrated-provider-build-artifact"),
+        ("source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc", "calibrated-provider-build-source-hash"),
+        ("patchset_sha256=dede19ab1af13b847815bafd0b03a8623a61529269bb9d03506ac911640b0866", "calibrated-provider-build-patchset-hash"),
+        ("config_sha256=d3bab0cc2e45470b1138276919f9c10cd6371f6295e75a42fe998f34a418f156", "calibrated-provider-build-config-hash"),
+        ("image_gzip_sha256=10ca89bbe3faeacc596b923e35c0242dd487c8804714d531f8f3a4533328f94e", "calibrated-provider-build-image-hash"),
+        ("gemini_dtb_sha256=fb3041cfc01d360ea62e832582be4bcdac796c1f934e1f52763cd72574776fe4", "calibrated-provider-build-dtb-hash"),
+        ("dtb_count=119", "calibrated-provider-build-dtb-count"),
+        ("config_fragment_count=6", "calibrated-provider-build-config-count"),
+        ("sha256sums=passed", "calibrated-provider-build-checksums"),
+        ("package_fetch=success;validated_package_only", "calibrated-provider-build-fetch"),
+        ("resource_owner_lifecycle=0230;source_bound_detach_guard;explicit_bind_unbind;single_transition_mutex;monotonic_generation;writes_disabled", "calibrated-provider-resource-lifecycle"),
+        ("calibrated_provider_contract=0235;resource_owner_lifetime_bound;source_callbacks_required;ppm_owner_callbacks_required;arbitration_composed;owner_ops_dormant;registration_absent;writes_disabled", "calibrated-provider-contract"),
+        ("registered_owner=0", "calibrated-provider-build-unregistered"),
+        ("provider=none", "calibrated-provider-build-no-provider"),
+        ("hardware_write=none", "calibrated-provider-build-no-write"),
+        ("device_action=none", "calibrated-provider-build-no-device"),
+        ("hardware_support_claim=NONE", "calibrated-provider-build-no-support-claim"),
+        ("runtime_evidence=none", "calibrated-provider-build-no-runtime"),
+        ("device_boot=none", "calibrated-provider-build-no-boot"),
+        ("boot_candidate=false", "calibrated-provider-build-not-candidate"),
+        ("cpu8_cpu9_admission=closed", "calibrated-provider-build-no-admission"),
+    ):
+        require(calibrated_provider_build_result, needle, label)
     for forbidden in ("readl(", "writel(", "regulator_", "clk_", "i2c_transfer",
                       "arm_smccc", "platform_driver", "cpu_up(", "secure_write"):
         if forbidden in ppm_policy_source:
@@ -1986,6 +2043,8 @@ def main() -> None:
     print("resource_owner_buildbox=validated;commit=d506e280330959f37dc240dc3c82b3fc10e3f45d;patch_count=219;artifact=linux-7.1.3-gemini-a6e9a04d09f0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("resource_provider=0231;platform_driver;four_phandle_refs;explicit_bind_unbind;dt_node_disabled;writes_disabled;provider=none;registered_owner=0;hardware_write=none;device_action=none;boot_candidate=false")
     print("resource_provider_buildbox=validated;commit=3b18307e42cb0ce6daefd26cec2790bed570a5b5;profile=dvfsp-resource-owner-readonly;patch_count=223;artifact=linux-7.1.3-gemini-dvfsp-resource-owner-readonly-309e3bbe-c548d243;sha256sums=passed;package_fetch=success;validated_package_only;provider=none;registered_owner=0;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
+    print("calibrated_provider=0235;resource_owner_lifetime_bound;source_callbacks_required;ppm_owner_callbacks_required;arbitration_composed;owner_ops_dormant;registration_absent;writes_disabled;provider=none;registered_owner=0;hardware_write=none;device_action=none;boot_candidate=false")
+    print("calibrated_provider_buildbox=validated;commit=a28dd0f9d57b747258d2c70fbae7b14a9e3c010d;profile=dvfsp-resource-owner-readonly;patch_count=224;artifact=linux-7.1.3-gemini-dvfsp-resource-owner-readonly-dede19ab-c548d243;sha256sums=passed;package_fetch=success;validated_package_only;provider=none;registered_owner=0;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("owner_abi_repair=0232;ppm_owner_header_restored;snapshot_handles_declared;compile_boundary_only")
     print("build_boundary_repairs=0233+0234;handoff_return_export;calibration_cluster_type;state_owner_mutex_probe_init;duplicate_tail_removed;compile_boundary_only")
     print("clock_state_decoder=0206;raw_ll_l_b_cci_readbacks;vendor_26mhz_formula;pcw_posdiv_and_divider_decode;generation_tagged;inflight_change_rejected;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")

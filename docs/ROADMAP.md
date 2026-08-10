@@ -2488,6 +2488,17 @@ identity, coherent PPM/CCI rows, live VPROC/VSRAM, clock/rail generation, and
 one transition lock, followed by source-backed registration and runtime
 validation. CPU8/CPU9 admission remains closed until those gates pass.
 
+Patch 0235 now composes that source and generation-arbitration contract with
+the resource owner's lifetime: detach is rejected while the calibrated source
+is bound, and exit invalidates before unbinding. Its named Buildbox profile is
+validated at clean revision `a28dd0f9d57b747258d2c70fbae7b14a9e3c010d` with
+224 patches, 119 DTBs, and package checksums; see the
+[calibrated-provider receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/calibrated-provider-buildbox-20260810.txt).
+This is still a dormant callback binding, not a registered provider or
+hardware-support result. The next ordered implementation is the actual
+source-backed callback provider for efuse/PTP identity, PPM/CCI rows and
+limits, live VPROC/VSRAM, and clock/rail generation under that lock.
+
 Required evidence:
 
 - provider registration performs no register-data write;
