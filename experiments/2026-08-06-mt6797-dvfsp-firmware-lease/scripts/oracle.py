@@ -29,6 +29,7 @@ STATE_SOURCE_BACKENDS_PATCH = ROOT / "patches/v7.1.3/0211-soc-mediatek-wire-prot
 PTP_HANDOFF_PATCH = ROOT / "patches/v7.1.3/0212-nvmem-mediatek-expose-MT6797-PTP-handoff-source.patch"
 PTP_STATE_PATCH = ROOT / "patches/v7.1.3/0213-soc-mediatek-decode-MT6797-PTP-handoff-state.patch"
 PTP_CALIBRATION_PATCH = ROOT / "patches/v7.1.3/0214-soc-mediatek-bind-PTP-state-to-calibration-builder.patch"
+PPM_CALIBRATION_PATCH = ROOT / "patches/v7.1.3/0225-soc-mediatek-bind-PPM-snapshot-to-EEM-calibration.patch"
 STATE_OWNER_SOURCE_PATCH = ROOT / "patches/v7.1.3/0215-soc-mediatek-add-calibrated-state-owner-source-binding.patch"
 STATE_OWNER_ARBITRATION_PATCH = ROOT / "patches/v7.1.3/0216-soc-mediatek-bind-state-owner-source-to-transition-generation.patch"
 STATE_OWNER_ARBITRATION_FAULT_PATCH = ROOT / "patches/v7.1.3/0217-soc-mediatek-latch-transition-arbitration-faults.patch"
@@ -106,6 +107,7 @@ def main() -> None:
     ptp_handoff_patch = PTP_HANDOFF_PATCH.read_text()
     ptp_state_patch = PTP_STATE_PATCH.read_text()
     ptp_calibration_patch = PTP_CALIBRATION_PATCH.read_text()
+    ppm_calibration_patch = PPM_CALIBRATION_PATCH.read_text()
     state_owner_source_patch = STATE_OWNER_SOURCE_PATCH.read_text()
     state_owner_arbitration_patch = STATE_OWNER_ARBITRATION_PATCH.read_text()
     state_owner_arbitration_fault_patch = STATE_OWNER_ARBITRATION_FAULT_PATCH.read_text()
@@ -439,6 +441,19 @@ def main() -> None:
         ("No default table", "eem-calibration-default-off"),
     ):
         require(eem_calibration_patch, needle, label)
+    for needle, label in (
+        ("MT6797_DVFSP_STATE_SOURCE_ABI\t\t3", "ppm-calibration-source-abi"),
+        ("ppm_snapshot", "ppm-calibration-input"),
+        ("const struct mt6797_dvfsp_ppm_snapshot *ppm", "ppm-calibration-callback"),
+        ("mt6797_eem_calibration_ppm_check", "ppm-calibration-check"),
+        ("mt6797_dvfsp_ppm_snapshot_validate", "ppm-calibration-snapshot-validation"),
+        ("provenance.table_epoch", "ppm-calibration-epoch"),
+        ("MT6797_DVFSP_PPM_CLUSTER_B", "ppm-calibration-big-map"),
+        ("MT6797_DVFSP_PPM_CLUSTER_LL", "ppm-calibration-ll-map"),
+        ("frequency_khz[bank_index][row]", "ppm-calibration-frequency-identity"),
+        ("does not invent per-row PPM limits", "ppm-calibration-no-invention"),
+    ):
+        require(ppm_calibration_patch, needle, label)
     for needle, label in (
         ("MT6797_DVFSP_CLOCK_STATE_ABI", "clock-state-abi"),
         ("MT6797_DVFSP_CLOCK_STATE_PARENT_MHZ", "clock-state-parent"),
@@ -1689,6 +1704,7 @@ def main() -> None:
     print("calibrated_table_state=0203;MON_phase;BIG_L_2L_CCI_banks;frequency_voltage_vsram_ppm_rows;thermal_clock_rail_generations;registered_owner=0;no_provider;no_mmio;boot_candidate=false")
     print("eem_readback=0204;thermal_owner_lock;selector_write_restore;BIG_L_2L_CCI;offsets_0x218_0x21c_0x248_0x24c;raw_status_frequency_vop_anchors;registered_owner=0;no_provider;no_secure_write;hardware_write=none;device_action=none;boot_candidate=false")
     print("eem_calibration_builder=0205;raw_readback_anchor_match;BIG_normal_unit_conversion;16_row_interpolation;temperature_offset;record_cap;vsram_delta;full_provenance;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
+    print("ppm_calibration_binding=0225;ppm_snapshot_input;epoch_match;BIG_L_2L_frequency_identity;CCI_excluded;per_row_limits_provider_owned;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("clock_state_decoder=0206;raw_ll_l_b_cci_readbacks;vendor_26mhz_formula;pcw_posdiv_and_divider_decode;generation_tagged;inflight_change_rejected;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("runtime_invalidation=0207;vendor_cpu_online_cpu_down_prepare_cpu_down_failed_pm_suspend_prepare_pm_post_suspend;clock_rail_pcm_fault_mapping;monotonic_sequence;generation_epoch;replay_rejected;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("runtime_binding=0208;active_owner_required;cpuhp_online_down_prepare_down_failed;pm_suspend_resume_notifier;generation_tagged_source_callback;ledger_serialized;registration_atomic;disarm_before_unregistration;registered=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")

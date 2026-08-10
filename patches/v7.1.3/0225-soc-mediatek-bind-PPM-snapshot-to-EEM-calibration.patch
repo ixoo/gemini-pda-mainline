@@ -1,0 +1,148 @@
+From 0000000000000000000000000000000000000225 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 10 Aug 2026 08:00:00 -0400
+Subject: [PATCH] soc: mediatek: bind PPM snapshot to EEM calibration
+
+The calibration callback currently receives EEM and PTP state but not the
+exact PPM snapshot whose table epoch and physical frequency rows it must
+represent. Thread the validated PPM snapshot into the calibration input and
+require its epoch to match provenance before constructing the EEM table. The
+BIG/L/2L input rows are compared directly with the descending PPM rows; CCI
+remains outside this comparison because the vendor snapshot has no CCI table.
+
+This does not invent per-row PPM limits: those values remain an explicit
+provider-owned input and are still a missing part of the real provider. The
+boundary adds no MMIO, secure call, regulator or clock operation, provider
+registration, firmware action, device boot, or CPU8/CPU9 admission. It is
+experiment-only and not submission-ready.
+---
+ include/linux/soc/mediatek/mt6797-dvfsp-state-source.h |  6 +++--
+ include/linux/soc/mediatek/mt6797-eem-calibration.h    |  2 ++
+ drivers/soc/mediatek/mt6797-dvfsp-state-source.c      |  4 +++-
+ drivers/thermal/mediatek/auxadc_thermal.c             | 43 +++++++++++++++++++
+ 4 files changed, 47 insertions(+), 1 deletion(-)
+
+diff --git a/include/linux/soc/mediatek/mt6797-eem-calibration.h b/include/linux/soc/mediatek/mt6797-eem-calibration.h
+--- a/include/linux/soc/mediatek/mt6797-eem-calibration.h
++++ b/include/linux/soc/mediatek/mt6797-eem-calibration.h
+@@ -8,5 +8,6 @@
+ #include <linux/types.h>
+ 
+ #include <linux/soc/mediatek/mt6797-dvfsp-handoff.h>
++#include <linux/soc/mediatek/mt6797-dvfsp-ppm.h>
+ #include <linux/soc/mediatek/mt6797-dvfsp-ptp.h>
+ #include <linux/soc/mediatek/mt6797-eem-readback.h>
+@@ -27,5 +28,6 @@
+ struct mt6797_eem_calibration_input {
+ 	const struct mt6797_eem_readback *readback;
+ 	const struct mt6797_dvfsp_ptp_state *ptp_state;
++	const struct mt6797_dvfsp_ppm_snapshot *ppm_snapshot;
+ 	u8 frequency_pct[MT6797_EEM_CALIBRATION_BANKS]
+ 		[MT6797_EEM_CALIBRATION_ROWS];
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-state-source.h b/include/linux/soc/mediatek/mt6797-dvfsp-state-source.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-state-source.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-state-source.h
+@@ -12,4 +12,4 @@
+ #include <linux/soc/mediatek/mt6797-eem-calibration.h>
+ #include <linux/soc/mediatek/mt6797-eem-readback.h>
+ 
+-#define MT6797_DVFSP_STATE_SOURCE_ABI		2
++#define MT6797_DVFSP_STATE_SOURCE_ABI		3
+@@ -48,8 +48,9 @@ struct mt6797_dvfsp_state_source_ops {
+ 	int (*read_ppm)(void *context,
+ 			const struct mt6797_dvfsp_ptp_state *ptp_state,
+ 			struct mt6797_dvfsp_ppm_snapshot *snapshot);
+ 	int (*fill_calibration)(void *context,
+ 				const struct mt6797_dvfsp_ptp_handoff *handoff,
+ 				const struct mt6797_dvfsp_ptp_state *ptp_state,
++				const struct mt6797_dvfsp_ppm_snapshot *ppm,
+ 				const struct mt6797_eem_readback *readback,
+ 				struct mt6797_eem_calibration_input *input);
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-source.c b/drivers/soc/mediatek/mt6797-dvfsp-state-source.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-state-source.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-state-source.c
+@@ -124,12 +124,14 @@ int mt6797_dvfsp_state_source_snapshot(
+ 		return ret;
+ 
+ 	memset(&calibration_input, 0, sizeof(calibration_input));
+ 	ret = ops->fill_calibration(context, &ptp_handoff, &ptp_state,
++					    &ppm_snapshot,
+ 					    &eem_readback,
+ 					    &calibration_input);
+ 	if (ret)
+ 		return ret;
+ 	calibration_input.readback = &eem_readback;
+ 	calibration_input.ptp_state = &ptp_state;
++	calibration_input.ppm_snapshot = &ppm_snapshot;
+ 	ret = mt6797_eem_calibration_build(&calibration_input,
+ 					   &calibration_state);
+diff --git a/drivers/thermal/mediatek/auxadc_thermal.c b/drivers/thermal/mediatek/auxadc_thermal.c
+--- a/drivers/thermal/mediatek/auxadc_thermal.c
++++ b/drivers/thermal/mediatek/auxadc_thermal.c
+@@ -1169,6 +1169,42 @@ static int mt6797_eem_calibration_interpolate(u8 target, u8 x0, u8 x1,
+ 	return 0;
+ }
+ 
++static int mt6797_eem_calibration_ppm_check(
++	const struct mt6797_eem_calibration_input *input)
++{
++	static const u32 ppm_clusters[MT6797_DVFSP_PPM_CLUSTER_COUNT] = {
++		MT6797_DVFSP_PPM_CLUSTER_B,
++		MT6797_DVFSP_PPM_CLUSTER_L,
++		MT6797_DVFSP_PPM_CLUSTER_LL,
++	};
++	unsigned int bank_index;
++	int ret;
++
++	if (!input || !input->ppm_snapshot)
++		return -EINVAL;
++	ret = mt6797_dvfsp_ppm_snapshot_validate(input->ppm_snapshot);
++	if (ret)
++		return ret;
++	if (input->provenance.table_epoch !=
++	    input->ppm_snapshot->table_epoch)
++		return -EAGAIN;
++
++	for (bank_index = 0;
++	     bank_index < MT6797_DVFSP_PPM_CLUSTER_COUNT; bank_index++) {
++		const struct mt6797_dvfsp_ppm_cluster_snapshot *cluster =
++			&input->ppm_snapshot->cluster[ppm_clusters[bank_index]];
++		unsigned int row;
++
++		for (row = 0; row < MT6797_DVFSP_PPM_TABLE_ENTRIES; row++) {
++			if (input->frequency_khz[bank_index][row] !=
++			    cluster->frequency_khz[row])
++				return -EAGAIN;
++		}
++	}
++
++	return 0;
++}
++
+ static int mt6797_eem_calibration_row_voltage(
+ 	const struct mt6797_eem_calibration_input *input,
+ 	const struct mt6797_eem_readback_bank *bank,
+@@ -1235,13 +1271,18 @@ int mt6797_eem_calibration_build(
+ 		MT6797_DVFSP_STATE_CLUSTER_CCI,
+ 	};
+ 	unsigned int bank_index;
++	int ret;
+ 
+ 	if (!input || !state || !input->readback ||
+ 	    !input->ptp_state ||
++	    !input->ppm_snapshot ||
+ 	    mt6797_eem_calibration_ptp_state_check(input->ptp_state) ||
+ 	    input->temperature_millic < -40000 ||
+ 	    input->temperature_millic > 150000 ||
+ 	    !input->thermal_generation || !input->clock_owner_generation ||
+ 	    !input->rail_owner_generation ||
+ 	    mt6797_eem_calibration_provenance_check(&input->provenance))
+ 		return -EPROTO;
++	ret = mt6797_eem_calibration_ppm_check(input);
++	if (ret)
++		return ret;
+ 	if (input->readback->abi != MT6797_EEM_READBACK_ABI ||
+ 	    input->readback->bank_mask !=
+ 		(BIT(MT6797_EEM_READBACK_BANK_BIG) |
+-- 
+2.43.0
