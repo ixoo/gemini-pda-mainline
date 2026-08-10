@@ -3157,6 +3157,22 @@ or device action is claimed, and CPU8/CPU9 admission stays closed. The next
 ordered step is source-backed read-only owner and invalidation evidence from a
 real external adapter; no device boot or write is authorized by this result.
 
+Patch `0260` now adds the next source-independent boundary: a fixed-layout
+read-only snapshot ABI for PPM, cpufreq, CSPM, and EEM records, with bounded
+dimensions, a shared generation, exact owner/transition handles, an explicit
+invalidation hook, and a separate identity callback that fails closed unless a
+real PTP/efuse source supplies variant, table-epoch, and calibration identity.
+The exact pushed commit `0d06042` passed the full Buildbox profile with all 249
+canonical patches, 119 DTBs, package/provenance checksums, and
+validated-package-only fetch; see the [source-observation Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-source-observation-buildbox-20260810.txt).
+Two earlier submissions stopped before compilation at malformed patch context
+and were corrected transparently. This remains compile-only evidence: no
+vendor source adapter or owner registration is present, no provider/setter or
+device action occurred, and CPU8/CPU9 admission remains closed. The next
+ordered step is a separately reviewed vendor read-only adapter and mainline
+owner registration/invalidation integration, followed by Buildbox validation;
+do not boot or write.
+
 Required evidence:
 
 - provider registration performs no register-data write;

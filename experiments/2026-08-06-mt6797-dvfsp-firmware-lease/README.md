@@ -126,6 +126,7 @@ be copied directly into a mainline failure/PM path.
 - [Vendor writer mainline-owner binding design](results/vendor-writer-mainline-owner-binding-design-20260811.txt)
 - [Vendor writer registration handoff Buildbox validation](results/vendor-writer-registration-handoff-buildbox-20260810.txt)
 - [Vendor caller lifecycle and runtime invalidation audit](results/vendor-caller-lifecycle-invalidation-audit-20260811.txt)
+- [Cross-tree vendor source observation ABI Buildbox validation](results/vendor-source-observation-buildbox-20260810.txt)
 
 Run from the repository root:
 
@@ -135,6 +136,20 @@ PYTHONDONTWRITEBYTECODE=1 python3 experiments/2026-08-06-mt6797-dvfsp-firmware-l
 ```
 
 ## Follow-up
+
+The source-observation boundary in patch `0260` is now validated at exact
+pushed commit `0d060424eb55f52e253c9c17f7c4f034c479119d`: all 249 canonical
+patches applied, the full profile produced 119 DTBs, package checksums passed,
+and only the validated package was fetched. The fixed-layout ABI validates
+bounded PPM, cpufreq, CSPM, and EEM snapshots against a shared generation and
+owner/transition handles; identity remains a separate fail-closed callback and
+runtime invalidation is an explicit hook, not a registered notifier. Two
+earlier Buildbox attempts stopped at malformed Makefile/unified-diff context
+and were corrected before this successful run. This is compile-only evidence:
+no vendor source adapter is registered, no provider or setter is active, no
+device action occurred, and CPU8/CPU9 admission remains closed. The next gate
+is a separately reviewed vendor read-only adapter plus mainline owner
+registration/invalidation integration, followed by another Buildbox validation.
 
 The exact pushed commit `23c793aefaccef36253b37654397199c24a228d1` now passes
 the named Buildbox profile and package checksum validation, and the single
