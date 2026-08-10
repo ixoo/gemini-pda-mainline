@@ -2273,6 +2273,16 @@ The next ordered work remains source-only:
    reproduced the same content-addressed package, 119-DTB validation, and
    checksums; see the [Buildbox resume receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/ppm-policy-binding-buildbox-resume-20260810.txt).
    It changes documentation only and adds no new kernel or hardware evidence.
+   Patch `0228` now binds calibrated rows, live state, and the final snapshot to
+   one provider-owned `source_generation`. The builder publishes the epoch and
+   the owner wrapper, source adapter, and assembler require exact equality; the
+   independent clock and BigiDVFS backend counters remain distinct. Corrected
+   clean revision `fb6697f` applies all 217 canonical entries on Buildbox,
+   produces 119 DTBs, passes package checksums, and fetches only the validated
+   package; see the [shared-generation Buildbox receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/generation-coherence-buildbox-20260810.txt).
+   This remains compile-only and default-off: the real EEM/PTP/PPM and
+   PMIC/clock owner under one transition lock is still required, and device boot
+   plus CPU8/CPU9 admission remain closed.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and

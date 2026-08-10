@@ -689,3 +689,14 @@ the validated pipeline. It reproduced the same content-addressed package,
 119-DTB package validation, and checksums; see the [Buildbox resume receipt](results/ppm-policy-binding-buildbox-resume-20260810.txt).
 The follow-up changed documentation only and adds no new kernel or hardware
 evidence.
+
+Patch `0228` binds calibrated rows and live state to one provider-owned
+`source_generation`. The calibration builder publishes it, the owner wrapper
+and source adapter require an exact match, and the final snapshot assembler
+rejects missing or mismatched epochs. The patch deliberately does not equate
+the independent clock and BigiDVFS backend readback counters. Corrected clean
+revision `fb6697f` applied all 217 canonical entries on Buildbox, produced 119
+DTBs, passed package checksums, and fetched only the validated package; see the
+[shared-generation Buildbox receipt](results/generation-coherence-buildbox-20260810.txt).
+This remains compile-only and default-off: no real provider, hardware
+operation, device boot, or CPU8/CPU9 admission was added.
