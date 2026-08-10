@@ -2269,6 +2269,10 @@ The next ordered work remains source-only:
    This closes only the source boundary. A real provider must still obtain
    those rows and live rails under one transition lock, publish generations,
    and remain the prerequisite for any CPU8/CPU9 admission.
+   Clean documentation follow-up `d10796f` was rebuilt on Buildbox and
+   reproduced the same content-addressed package, 119-DTB validation, and
+   checksums; see the [Buildbox resume receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/ppm-policy-binding-buildbox-resume-20260810.txt).
+   It changes documentation only and adds no new kernel or hardware evidence.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and

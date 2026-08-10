@@ -683,3 +683,9 @@ Buildbox. It produced 119 DTBs, passed package checksums, and fetched only the
 validated package; see the [PPM policy binding Buildbox result](results/ppm-policy-binding-buildbox-20260810.txt).
 This remains compile-only and default-off: no provider registration, hardware
 operation, device boot, or CPU8/CPU9 admission was added.
+
+The clean documentation follow-up `d10796f` was rebuilt on Buildbox to resume
+the validated pipeline. It reproduced the same content-addressed package,
+119-DTB package validation, and checksums; see the [Buildbox resume receipt](results/ppm-policy-binding-buildbox-resume-20260810.txt).
+The follow-up changed documentation only and adds no new kernel or hardware
+evidence.
