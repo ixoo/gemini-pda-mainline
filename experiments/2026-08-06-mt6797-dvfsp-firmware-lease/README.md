@@ -1160,3 +1160,16 @@ callback takes that mutex before notifying. The public direct voltage/frequency
 helpers also need their own outer mapping. The observer itself therefore
 remains intentionally unwrapped; the next candidate must bind those outer
 contexts independently and preserve the existing PPM/lock ordering.
+
+Candidate [0002-mt6797-voltage-observer-outer-boundary.patch](patches/0002-mt6797-voltage-observer-outer-boundary.patch)
+now binds the sleepable normal policy path and the two public direct
+voltage/frequency helpers to the voltage descriptor. The PPM path remains bound
+by 0001, while CPU-hotplug and hardware-governor callers remain unbound because
+they already hold `cpufreq_lock`; the observer callback still performs no
+recursive bridge acquire. Both patches applied to the exact pinned vendor
+revision on Buildbox, and the vendor defconfig, bridge object, and affected
+`mt_cpufreq.o` all passed; see the [outer-boundary Buildbox review](results/vendor-voltage-observer-boundary-buildbox-20260810.txt).
+This is still compile-only integration evidence: no owner/provider was
+registered, no setter was called, no device action occurred, and CPU8/CPU9
+admission remains closed. The next gate is the remaining lock-held contexts,
+then separate read-only owner-registration evidence.
