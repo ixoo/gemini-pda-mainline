@@ -43,7 +43,7 @@ index b8dfff0b1..c4f3e6a21 100644
 +	transaction->owner_handle = 0;
 +	transaction->transition_handle = 0;
  	transaction->active = false;
-@@ -93,5 +98,10 @@ int gemini_mt6797_dvfsp_vendor_writer_begin(
+@@ -93,6 +98,11 @@ int gemini_mt6797_dvfsp_vendor_writer_begin(
  		mutex_unlock(&gemini_mt6797_dvfsp_vendor_writer_lock);
  		return -ENODEV;
  	}
