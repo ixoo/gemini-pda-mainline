@@ -1,0 +1,234 @@
+From 0000000000000000000000000000000000000221 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 10 Aug 2026 01:00:00 -0400
+Subject: [PATCH] soc: mediatek: add MT6797 CSPM live-state readback
+
+The retained MT6797 hybrid-DVFS source maps SW_RSV0..2 to the three physical
+cluster limit words and SW_RSV3..6 to the four current-state words. Read those
+words inside the existing CSPM semaphore transaction so a future owner can
+observe the current OPP, limit indices, pause/enable state, and raw VPROC/
+VSRAM codes with the same sample generation as the protected PLL readback.
+
+Decode only the documented bit fields and the vendor firmware-to-software OPP
+index reversal. Preserve the PMIC codes as raw values; their voltage units,
+PPM rows, membership policy, and transition generation remain provider-owned
+inputs. This is read-only, disabled by default, performs no EEM phase change,
+rail/clock write, secure call, firmware action, provider registration, device
+boot, or CPU8/CPU9 admission. It is experiment-only and not submission-ready.
+---
+ drivers/soc/mediatek/Makefile                          |  1 +
+ drivers/soc/mediatek/mt6797-dvfsp-clock-backend.c      |  8 ++++
+ drivers/soc/mediatek/mt6797-dvfsp-cspm-state.c         | 96 ++++++++++++++++++
+ include/linux/soc/mediatek/mt6797-dvfsp-clock-backend.h |  5 +-
+ include/linux/soc/mediatek/mt6797-dvfsp-cspm-state.h   | 45 ++++++++++
+ 5 files changed, 155 insertions(+), 1 deletion(-)
+ create mode 100644 drivers/soc/mediatek/mt6797-dvfsp-cspm-state.c
+ create mode 100644 include/linux/soc/mediatek/mt6797-dvfsp-cspm-state.h
+
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-clock-backend.h b/include/linux/soc/mediatek/mt6797-dvfsp-clock-backend.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-clock-backend.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-clock-backend.h
+@@ -5,5 +5,5 @@
+ #include <linux/types.h>
+ 
+-#define MT6797_DVFSP_CLOCK_BACKEND_ABI	1
++#define MT6797_DVFSP_CLOCK_BACKEND_ABI	2
+ #define MT6797_DVFSP_CLOCK_BACKEND_MCUMIXED_BASE	0x1001a000ULL
+ #define MT6797_DVFSP_CLOCK_BACKEND_MCUMIXED_LENGTH	0x1000
+@@ -20,6 +20,8 @@ struct mt6797_dvfsp_clock_readback {
+ 	u32 pll_ll[3];
+ 	u32 pll_l[3];
+ 	u32 pll_cci[3];
++	u32 cspm_swctrl[3];
++	u32 cspm_hwsta[4];
+ };
+ 
+ int mt6797_dvfsp_clock_backend_read(
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-clock-backend.c b/drivers/soc/mediatek/mt6797-dvfsp-clock-backend.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-clock-backend.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-clock-backend.c
+@@ -36,6 +36,14 @@
+ #define MT6797_ARMPLLDIV_MUXSEL			0x270
+ #define MT6797_ARMPLLDIV_CKDIV			0x274
+ 
++/* Vendor mt_cpufreq_hybrid.c maps these CSPM words to live DVFS state. */
++static const u32 mt6797_dvfsp_cspm_swctrl_offset[3] = {
++	0x608, 0x60c, 0x610,
++};
++static const u32 mt6797_dvfsp_cspm_hwsta_offset[4] = {
++	0x614, 0x618, 0x61c, 0x620,
++};
++
+ struct mt6797_dvfsp_clock_backend {
+ 	void __iomem *mcumixed;
+ 	void __iomem *cspm;
+@@ -90,2 +90,8 @@ int mt6797_dvfsp_clock_backend_read(
+-	release_ret = mt6797_dvfsp_clock_semaphore_release(backend);
++	for (i = 0; i < 3; i++)
++		readback->cspm_swctrl[i] = readl(backend->cspm +
++						 mt6797_dvfsp_cspm_swctrl_offset[i]);
++	for (i = 0; i < 4; i++)
++		readback->cspm_hwsta[i] = readl(backend->cspm +
++						 mt6797_dvfsp_cspm_hwsta_offset[i]);
++	release_ret = mt6797_dvfsp_clock_semaphore_release(backend);
+ 	if (release_ret) {
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-cspm-state.h b/include/linux/soc/mediatek/mt6797-dvfsp-cspm-state.h
+new file mode 100644
+--- /dev/null
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-cspm-state.h
+@@ -0,0 +1,45 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __LINUX_SOC_MEDIATEK_MT6797_DVFSP_CSPM_STATE_H
++#define __LINUX_SOC_MEDIATEK_MT6797_DVFSP_CSPM_STATE_H
++
++#include <linux/bitops.h>
++#include <linux/types.h>
++
++#include <linux/soc/mediatek/mt6797-dvfsp-clock-backend.h>
++
++#define MT6797_DVFSP_CSPM_STATE_ABI		1
++#define MT6797_DVFSP_CSPM_STATE_CLUSTER_COUNT	4
++#define MT6797_DVFSP_CSPM_STATE_PHYSICAL_COUNT	3
++#define MT6797_DVFSP_CSPM_STATE_OPP_COUNT	16
++
++#define MT6797_DVFSP_CSPM_STATE_VALID		BIT(0)
++#define MT6797_DVFSP_CSPM_STATE_ON		BIT(1)
++#define MT6797_DVFSP_CSPM_STATE_PAUSED		BIT(2)
++#define MT6797_DVFSP_CSPM_STATE_LIMITS_VALID	BIT(3)
++
++/* PMIC values are raw vendor codes until a proven regulator conversion exists. */
++struct mt6797_dvfsp_cspm_state_cluster {
++	u32 raw_swctrl;
++	u32 raw_hwsta;
++	u32 firmware_opp;
++	u32 software_opp;
++	u32 voltage_code;
++	u32 vsram_code;
++	u32 ceiling_opp;
++	u32 floor_opp;
++	u32 state_flags;
++};
++
++struct mt6797_dvfsp_cspm_state {
++	u32 abi;
++	u32 reserved;
++	u64 sample_generation;
++	struct mt6797_dvfsp_cspm_state_cluster
++		cluster[MT6797_DVFSP_CSPM_STATE_CLUSTER_COUNT];
++};
++
++int mt6797_dvfsp_cspm_state_decode(
++	const struct mt6797_dvfsp_clock_readback *readback,
++	struct mt6797_dvfsp_cspm_state *state);
++
++#endif /* __LINUX_SOC_MEDIATEK_MT6797_DVFSP_CSPM_STATE_H */
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-cspm-state.c b/drivers/soc/mediatek/mt6797-dvfsp-cspm-state.c
+new file mode 100644
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-dvfsp-cspm-state.c
+@@ -0,0 +1,96 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Decode the raw MT6797 CSPM live-state words recovered from the vendor
++ * hybrid-DVFS owner. No register or regulator access occurs here.
++ */
++
++#include <linux/bitfield.h>
++#include <linux/errno.h>
++#include <linux/module.h>
++#include <linux/string.h>
++
++#include <linux/soc/mediatek/mt6797-dvfsp-cspm-state.h>
++
++#define MT6797_CSPM_SW_F_MIN_MASK	GENMASK(3, 0)
++#define MT6797_CSPM_SW_F_MAX_MASK	GENMASK(7, 4)
++#define MT6797_CSPM_SW_PAUSE		BIT(13)
++#define MT6797_CSPM_CLUSTER_EN		BIT(14)
++#define MT6797_CSPM_F_CURR_MASK		GENMASK(3, 0)
++#define MT6797_CSPM_V_CURR_MASK		GENMASK(14, 8)
++#define MT6797_CSPM_VS_CURR_MASK	GENMASK(22, 16)
++
++static int mt6797_dvfsp_cspm_decode_physical(
++	u32 raw_swctrl, u32 raw_hwsta,
++	struct mt6797_dvfsp_cspm_state_cluster *cluster)
++{
++	u32 firmware_opp;
++
++	if (!cluster)
++		return -EINVAL;
++
++	firmware_opp = FIELD_GET(MT6797_CSPM_F_CURR_MASK, raw_hwsta);
++	if (firmware_opp >= MT6797_DVFSP_CSPM_STATE_OPP_COUNT)
++		return -EPROTO;
++
++	cluster->raw_swctrl = raw_swctrl;
++	cluster->raw_hwsta = raw_hwsta;
++	cluster->firmware_opp = firmware_opp;
++	cluster->software_opp =
++		MT6797_DVFSP_CSPM_STATE_OPP_COUNT - 1 - firmware_opp;
++	cluster->voltage_code = FIELD_GET(MT6797_CSPM_V_CURR_MASK,
++						  raw_hwsta);
++	cluster->vsram_code = FIELD_GET(MT6797_CSPM_VS_CURR_MASK,
++						   raw_hwsta);
++	cluster->ceiling_opp = FIELD_GET(MT6797_CSPM_SW_F_MAX_MASK,
++						 raw_swctrl);
++	cluster->floor_opp = FIELD_GET(MT6797_CSPM_SW_F_MIN_MASK,
++						 raw_swctrl);
++	cluster->state_flags = MT6797_DVFSP_CSPM_STATE_VALID |
++		MT6797_DVFSP_CSPM_STATE_LIMITS_VALID;
++	if (raw_swctrl & MT6797_CSPM_CLUSTER_EN)
++		cluster->state_flags |= MT6797_DVFSP_CSPM_STATE_ON;
++	if (raw_swctrl & MT6797_CSPM_SW_PAUSE)
++		cluster->state_flags |= MT6797_DVFSP_CSPM_STATE_PAUSED;
++
++	return 0;
++}
++
++int mt6797_dvfsp_cspm_state_decode(
++	const struct mt6797_dvfsp_clock_readback *readback,
++	struct mt6797_dvfsp_cspm_state *state)
++{
++	unsigned int i;
++	int ret;
++
++	if (!readback || !state ||
++	    readback->abi != MT6797_DVFSP_CLOCK_BACKEND_ABI ||
++	    readback->reserved || !readback->sample_generation)
++		return -EPROTO;
++
++	memset(state, 0, sizeof(*state));
++	state->abi = MT6797_DVFSP_CSPM_STATE_ABI;
++	state->sample_generation = readback->sample_generation;
++
++	for (i = 0; i < MT6797_DVFSP_CSPM_STATE_PHYSICAL_COUNT; i++) {
++		ret = mt6797_dvfsp_cspm_decode_physical(
++			readback->cspm_swctrl[i], readback->cspm_hwsta[i],
++			&state->cluster[i]);
++		if (ret)
++			return ret;
++	}
++
++	/* CCI has a current word but no physical-cluster limit word. */
++	ret = mt6797_dvfsp_cspm_decode_physical(
++		0, readback->cspm_hwsta[3], &state->cluster[3]);
++	if (ret)
++		return ret;
++	state->cluster[3].state_flags = MT6797_DVFSP_CSPM_STATE_VALID;
++	state->cluster[3].ceiling_opp = 0;
++	state->cluster[3].floor_opp = 0;
++
++	return 0;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_cspm_state_decode);
++
++MODULE_DESCRIPTION("MT6797 CSPM live-state readback decoder");
++MODULE_LICENSE("GPL");
+diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
+--- a/drivers/soc/mediatek/Makefile
++++ b/drivers/soc/mediatek/Makefile
+@@ -5,2 +5,3 @@ obj-$(CONFIG_MTK_MT6797_A72_POWER) += mt6797-a72-power.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-handoff.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_CLOCK_BACKEND) += mt6797-dvfsp-clock-backend.o
++obj-$(CONFIG_MTK_MT6797_DVFSP_CLOCK_BACKEND) += mt6797-dvfsp-cspm-state.o
+-- 
+2.43.0
