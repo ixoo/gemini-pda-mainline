@@ -1271,6 +1271,15 @@
                     "configs/gemini-dvfsp-clock-backend.fragment",
                     "configs/gemini-dvfsp-bigidvfs-readonly.fragment"
                 ]
+            },
+            "dvfsp-resource-owner-readonly": {
+                "base": "defconfig",
+                "patch_series": "patches/series",
+                "fragments": [
+                    "configs/gemini.fragment",
+                    "configs/gemini-dvfsp-handoff-owner.fragment",
+                    "configs/gemini-dvfsp-resource-owner.fragment"
+                ]
             }
     }
   }

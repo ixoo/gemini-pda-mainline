@@ -1,0 +1,302 @@
+From 0000000000000000000000000000000000000231 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 10 Aug 2026 12:20:00 -0400
+Subject: [PATCH] soc: mediatek: add MT6797 resource-only provider
+
+Add a disabled-by-default platform provider for the MT6797 resource-only
+owner. The provider resolves the four reviewed resource phandles, holds
+temporary OF/device references while attaching, and releases them after the
+owner takes its own references. Removal detaches the owner before devm frees
+the provider object.
+
+The provider intentionally performs no state readback, register or firmware
+operation, secure call, clock or rail change, handoff-owner registration, or
+CPU admission. A calibrated PPM/CCI, EEM/PTP, live-rail, and clock provider
+remains a separate required step.
+This patch is experiment-only and not submission-ready.
+---
+ Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-dvfsp-resource-owner.yaml | 64 +++++++++++
+ arch/arm64/boot/dts/mediatek/mt6797.dtsi                 |  9 +++
+ drivers/soc/mediatek/Kconfig                             | 12 +++
+ drivers/soc/mediatek/Makefile                            |  1 +
+ drivers/soc/mediatek/mt6797-dvfsp-resource-provider.c    | 145 +++++++++++++++++++++++
+ 5 files changed, 231 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-dvfsp-resource-owner.yaml
+ create mode 100644 drivers/soc/mediatek/mt6797-dvfsp-resource-provider.c
+
+diff --git a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-dvfsp-resource-owner.yaml b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-dvfsp-resource-owner.yaml
+new file mode 100644
+--- /dev/null
++++ b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-dvfsp-resource-owner.yaml
+@@ -0,0 +1,64 @@
++# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
++%YAML 1.2
++---
++$id: http://devicetree.org/schemas/soc/mediatek/mediatek,mt6797-dvfsp-resource-owner.yaml#
++$schema: http://devicetree.org/meta-schemas/core.yaml#
++
++title: MediaTek MT6797 DVFSP resource-only owner
++
++maintainers:
++  - Gemini Mainline Experiment <gemini-mainline@example.invalid>
++
++description: |
++  This optional node binds only the resource-lifetime owner for a future
++  MT6797 DVFSP state provider. It retains the four referenced device objects,
++  serializes a future transition, and tracks a monotonic generation. It does
++  not read clocks, rails, EEM, PTP, or PPM state; it does not access registers,
++  call firmware, change clocks or rails, or register a DVFSP state owner.
++  Keep the node disabled until every referenced backend has an independently
++  reviewed provider contract.
++
++properties:
++  compatible:
++    const: mediatek,mt6797-dvfsp-resource-owner
++
++  mediatek,clock-backend:
++    $ref: /schemas/types.yaml#/definitions/phandle
++    description: Protected CPU clock resource object.
++
++  mediatek,bigidvfs-backend:
++    $ref: /schemas/types.yaml#/definitions/phandle
++    description: BigiDVFS resource object.
++
++  mediatek,thermal:
++    $ref: /schemas/types.yaml#/definitions/phandle
++    description: EEM/thermal resource object.
++
++  mediatek,calibration-source:
++    $ref: /schemas/types.yaml#/definitions/phandle
++    description: Read-only calibration source resource object.
++
++  status:
++    enum: [ disabled, okay ]
++
++required:
++  - compatible
++  - mediatek,clock-backend
++  - mediatek,bigidvfs-backend
++  - mediatek,thermal
++  - mediatek,calibration-source
++
++additionalProperties: false
++
++examples:
++  - |
++    soc {
++      dvfsp_resource_owner: dvfsp-resource-owner {
++        compatible = "mediatek,mt6797-dvfsp-resource-owner";
++        mediatek,clock-backend = <&dvfsp_clock_backend>;
++        mediatek,bigidvfs-backend = <&dvfsp_bigidvfs_backend>;
++        mediatek,thermal = <&thermal>;
++        mediatek,calibration-source = <&dvfsp_handoff>;
++        status = "disabled";
++      };
++    };
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+--- a/arch/arm64/boot/dts/mediatek/mt6797.dtsi
++++ b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+@@ -690,7 +690,16 @@
+ 	dvfsp_bigidvfs_backend: dvfsp-bigidvfs-backend {
+ 		compatible = "mediatek,mt6797-bigidvfs-backend";
+ 		method = "smc";
+ 		status = "disabled";
+ 	};
++
++	dvfsp_resource_owner: dvfsp-resource-owner {
++		compatible = "mediatek,mt6797-dvfsp-resource-owner";
++		mediatek,clock-backend = <&dvfsp_clock_backend>;
++		mediatek,bigidvfs-backend = <&dvfsp_bigidvfs_backend>;
++		mediatek,thermal = <&thermal>;
++		mediatek,calibration-source = <&dvfsp_handoff>;
++		status = "disabled";
++	};
+ 
+ 	i2c7: i2c@11010000 {
+ 		compatible = "mediatek,mt6797-i2c",
+ 			     "mediatek,mt6577-i2c";
+diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
+--- a/drivers/soc/mediatek/Kconfig
++++ b/drivers/soc/mediatek/Kconfig
+@@ -85,6 +85,18 @@ config MTK_MT6797_DVFSP_HANDOFF
+ 
+ 	  This option is for bounded Gemini PDA bring-up experiments only.
+ 
++config MTK_MT6797_DVFSP_RESOURCE_OWNER
++	bool "MediaTek MT6797 DVFSP resource-only owner"
++	depends on ARM64 && ARCH_MEDIATEK && OF
++	depends on MTK_MT6797_DVFSP_HANDOFF
++	help
++	  Bind only the MT6797 DVFSP resource-lifetime owner. The provider
++	  resolves four Device Tree resources, retains their device references,
++	  and exposes no readback, hardware operation, firmware call, secure
++	  service, clock or regulator operation, state-owner registration, or
++	  CPU admission. Keep its Device Tree node disabled until a calibrated
++	  provider contract exists.
++
+ config MTK_MT6797_DVFSP_CLOCK_BACKEND
+ 	bool "MediaTek MT6797 protected CPU clock readback transport"
+ 	depends on ARM64 && ARCH_MEDIATEK && OF && COMMON_CLK
+diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
+--- a/drivers/soc/mediatek/Makefile
++++ b/drivers/soc/mediatek/Makefile
+@@ -6,6 +6,7 @@ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-ptp.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-state-owner-source.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-state-owner-arbitration.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-resource-owner.o
++obj-$(CONFIG_MTK_MT6797_DVFSP_RESOURCE_OWNER) += mt6797-dvfsp-resource-provider.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-state-snapshot.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-runtime-bind.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_CLOCK_BACKEND) += mt6797-dvfsp-clock-state.o
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-resource-provider.c b/drivers/soc/mediatek/mt6797-dvfsp-resource-provider.c
+new file mode 100644
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-dvfsp-resource-provider.c
+@@ -0,0 +1,145 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * MT6797 DVFSP resource-only provider.
++ *
++ * This provider binds only the resource-lifetime owner. It resolves the
++ * reviewed backend devices, retains references through the owner's explicit
++ * attach/detach lifecycle, and performs no readback, register access,
++ * firmware operation, secure call, clock change, rail change, or owner
++ * registration.
++ */
++
++#include <linux/device.h>
++#include <linux/errno.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/of_platform.h>
++#include <linux/platform_device.h>
++#include <linux/slab.h>
++
++#include <linux/soc/mediatek/mt6797-dvfsp-resource-owner.h>
++
++#define MT6797_DVFSP_RESOURCE_OWNER_LIFECYCLE_HANDLE	1
++
++struct mt6797_dvfsp_resource_provider {
++	struct mt6797_dvfsp_resource_owner owner;
++};
++
++static int mt6797_dvfsp_resource_provider_resolve(
++	struct device_node *provider,
++	const char *property, struct device **device)
++{
++	struct device_node *resource_node;
++	struct platform_device *resource_pdev;
++
++	resource_node = of_parse_phandle(provider, property, 0);
++	if (!resource_node)
++		return -EINVAL;
++
++	resource_pdev = of_find_device_by_node(resource_node);
++	of_node_put(resource_node);
++	if (!resource_pdev)
++		return -EPROBE_DEFER;
++
++	*device = &resource_pdev->dev;
++	return 0;
++}
++
++static void mt6797_dvfsp_resource_provider_put_devices(
++	struct mt6797_dvfsp_state_source_devices *devices)
++{
++	if (!devices)
++		return;
++	if (devices->calibration_source)
++		put_device(devices->calibration_source);
++	if (devices->thermal)
++		put_device(devices->thermal);
++	if (devices->bigidvfs_backend)
++		put_device(devices->bigidvfs_backend);
++	if (devices->clock_backend)
++		put_device(devices->clock_backend);
++}
++
++static int mt6797_dvfsp_resource_provider_probe(struct platform_device *pdev)
++{
++	struct mt6797_dvfsp_resource_provider *provider;
++	struct mt6797_dvfsp_state_source_devices devices = { };
++	int ret;
++
++	provider = devm_kzalloc(&pdev->dev, sizeof(*provider), GFP_KERNEL);
++	if (!provider)
++		return -ENOMEM;
++
++	ret = mt6797_dvfsp_resource_provider_resolve(
++		pdev->dev.of_node, "mediatek,clock-backend",
++		&devices.clock_backend);
++	if (ret)
++		return dev_err_probe(&pdev->dev, ret,
++				     "clock backend is not available\n");
++	ret = mt6797_dvfsp_resource_provider_resolve(
++		pdev->dev.of_node, "mediatek,bigidvfs-backend",
++		&devices.bigidvfs_backend);
++	if (ret)
++		goto err_put_devices;
++	ret = mt6797_dvfsp_resource_provider_resolve(
++		pdev->dev.of_node, "mediatek,thermal", &devices.thermal);
++	if (ret)
++		goto err_put_devices;
++	ret = mt6797_dvfsp_resource_provider_resolve(
++		pdev->dev.of_node, "mediatek,calibration-source",
++		&devices.calibration_source);
++	if (ret)
++		goto err_put_devices;
++
++	ret = mt6797_dvfsp_resource_owner_init(&provider->owner,
++			MT6797_DVFSP_RESOURCE_OWNER_LIFECYCLE_HANDLE);
++	if (ret)
++		goto err_put_devices;
++	ret = mt6797_dvfsp_resource_owner_attach(&provider->owner, &devices);
++	mt6797_dvfsp_resource_provider_put_devices(&devices);
++	if (ret)
++		return dev_err_probe(&pdev->dev, ret,
++				     "cannot attach resource owner\n");
++
++	platform_set_drvdata(pdev, provider);
++	dev_info(&pdev->dev,
++		 "resource-only owner bound; writes disabled; provider unregistered\n");
++	return 0;
++
++err_put_devices:
++	mt6797_dvfsp_resource_provider_put_devices(&devices);
++	return dev_err_probe(&pdev->dev, ret,
++				     "resource dependency is not available\n");
++}
++
++static void mt6797_dvfsp_resource_provider_remove(struct platform_device *pdev)
++{
++	struct mt6797_dvfsp_resource_provider *provider =
++		platform_get_drvdata(pdev);
++	int ret;
++
++	if (!provider)
++		return;
++	ret = mt6797_dvfsp_resource_owner_detach(&provider->owner);
++	if (ret && ret != -ENOENT)
++		dev_warn(&pdev->dev, "resource owner detach failed: %d\n", ret);
++}
++
++static const struct of_device_id mt6797_dvfsp_resource_provider_of_match[] = {
++	{ .compatible = "mediatek,mt6797-dvfsp-resource-owner" },
++	{ }
++};
++MODULE_DEVICE_TABLE(of, mt6797_dvfsp_resource_provider_of_match);
++
++static struct platform_driver mt6797_dvfsp_resource_provider_driver = {
++	.probe = mt6797_dvfsp_resource_provider_probe,
++	.remove = mt6797_dvfsp_resource_provider_remove,
++	.driver = {
++		.name = "mt6797-dvfsp-resource-owner",
++		.of_match_table = mt6797_dvfsp_resource_provider_of_match,
++	},
++};
++module_platform_driver(mt6797_dvfsp_resource_provider_driver);
++
++MODULE_DESCRIPTION("MT6797 DVFSP resource-only provider");
++MODULE_LICENSE("GPL");
+--
+2.43.0

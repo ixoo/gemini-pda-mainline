@@ -1,0 +1,4 @@
+# Compile the disabled-by-default resource-only provider. Its DT node and all
+# referenced DVFSP backends remain disabled, so this profile performs no
+# hardware readback or state transition.
+CONFIG_MTK_MT6797_DVFSP_RESOURCE_OWNER=y
