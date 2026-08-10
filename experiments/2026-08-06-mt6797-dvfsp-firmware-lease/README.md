@@ -727,3 +727,17 @@ passed package checksums, and fetched only the validated package; see the
 [PPM owner-lock Buildbox result](results/ppm-owner-lock-buildbox-20260810.txt).
 This remains compile-only and default-off: no real provider, hardware
 operation, device boot, or CPU8/CPU9 admission was added.
+
+Patch `0230` adds the first concrete resource-only owner lifecycle. It retains
+the four backend device references across explicit attach/detach, waits for
+active transition holds before detach, and exposes one transition mutex plus a
+monotonic generation through the arbitration-ops adapter. It has no DT match,
+consumer binding, hardware access, write path, handoff registration, or CPU
+admission; writes are permanently disabled in this lifecycle. Clean revision
+`d506e28` applied all 219 canonical entries on Buildbox, produced 119 DTBs,
+passed package checksums, and fetched only the validated package; see the
+[resource-owner Buildbox result](results/resource-owner-buildbox-20260810.txt).
+This is a compile-only resource boundary, not hardware support: the real
+provider still must supply PPM/CCI rows, EEM/PTP identity, live VPROC/VSRAM,
+and clock/rail callbacks before any state-owner registration or CPU8/CPU9
+admission.

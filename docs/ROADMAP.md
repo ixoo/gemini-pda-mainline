@@ -2300,11 +2300,23 @@ The next ordered work remains source-only:
    exists in the vendor structs. The exact revision, source hashes, and
    sanitized field summary are recorded in the [vendor PPM owner-boundary
    result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-ppm-owner-boundary-20260810.txt).
-   The next implementation gate is therefore a real mainline owner that
-   introduces one transition lock and generation and bridges PPM/CCI rows,
-   EEM/PTP identity, live VPROC/VSRAM, and clock state. Until that owner is
+   The next implementation still requires a real mainline state provider;
+   the resource-only lifecycle below supplies serialization and device
+   lifetime, but not the missing state callbacks. Until that provider is
    backed by named runtime evidence, provider registration and CPU8/CPU9
    admission remain closed.
+   Patch `0230` adds that resource-only lifecycle: explicit attach/detach
+   retains the four backend device references, one transition mutex and a
+   monotonic generation are exposed through an arbitration adapter, and the
+   write path is permanently disabled. Clean revision `d506e28` applies all
+   219 canonical entries on Buildbox, produces 119 DTBs, passes package
+   checksums, and fetches only the validated package; see the
+   [resource-owner Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/resource-owner-buildbox-20260810.txt).
+   This is still compile-only and default-off: it has no DT match, consumer
+   binding, hardware operation, owner registration, device boot, or CPU8/CPU9
+   admission. The next implementation must connect the real PPM/CCI rows,
+   EEM/PTP identity, live VPROC/VSRAM, and clock/rail callbacks to this
+   lifecycle before any provider registration can succeed.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and

@@ -82,6 +82,7 @@ STATE_OWNER_REGISTRATION_RERUN_BUILD_RESULT = Path(__file__).resolve().parents[1
 STATE_OWNER_REGISTRATION_GATE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-registration-gate-buildbox-20260809.txt"
 STATE_OWNER_REGISTRATION_GATE_RESUME_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-registration-gate-buildbox-resume-20260810.txt"
 PPM_OWNER_LOCK_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/ppm-owner-lock-buildbox-20260810.txt"
+RESOURCE_OWNER_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/resource-owner-buildbox-20260810.txt"
 
 
 def require(text: str, needle: str, label: str) -> None:
@@ -166,6 +167,7 @@ def main() -> None:
     state_owner_registration_gate_build_result = STATE_OWNER_REGISTRATION_GATE_BUILD_RESULT.read_text()
     state_owner_registration_gate_resume_build_result = STATE_OWNER_REGISTRATION_GATE_RESUME_BUILD_RESULT.read_text()
     ppm_owner_lock_build_result = PPM_OWNER_LOCK_BUILD_RESULT.read_text()
+    resource_owner_build_result = RESOURCE_OWNER_BUILD_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     eem_calibration_source = eem_calibration_patch[eem_calibration_patch.index("diff --git"):]
@@ -584,6 +586,32 @@ def main() -> None:
         ("cpu8_cpu9_admission=closed", "ppm-owner-build-no-admission"),
     ):
         require(ppm_owner_lock_build_result, needle, label)
+    for needle, label in (
+        ("claim=COMPILE_ONLY_MT6797_DVFSP_RESOURCE_ONLY_OWNER", "resource-owner-build-claim"),
+        ("repository_commit=d506e280330959f37dc240dc3c82b3fc10e3f45d", "resource-owner-build-commit"),
+        ("origin=https://github.com/ixoo/gemini-pda-mainline.git", "resource-owner-build-origin"),
+        ("repository_dirty=false", "resource-owner-build-clean"),
+        ("build_backend=buildbox", "resource-owner-build-backend"),
+        ("buildbox_status=validated", "resource-owner-build-status"),
+        ("patch_count=219", "resource-owner-build-patch-count"),
+        ("artifact=linux-7.1.3-gemini-a6e9a04d09f0", "resource-owner-build-artifact"),
+        ("source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc", "resource-owner-build-source-hash"),
+        ("patchset_sha256=a6e9a04d09f0a380255154752224b0ec08c37e447b65d4366cff9e3094aff432", "resource-owner-build-patchset-hash"),
+        ("config_sha256=d8a4d95723824a07bf50aab07795a05bb5b7244d88a969073b7629bc33dac24f", "resource-owner-build-config-hash"),
+        ("image_gzip_sha256=ba1238db5b413af94359ed257acaf1548425df0b7582753d81491d2c2979bc5d", "resource-owner-build-image-hash"),
+        ("gemini_dtb_sha256=4ca3765d3ed1a39751c59387456de861091725321cdd5b7ec4cf715008a9d356", "resource-owner-build-dtb-hash"),
+        ("dtb_count=119", "resource-owner-build-dtb-count"),
+        ("sha256sums=passed", "resource-owner-build-checksums"),
+        ("package_fetch=success;validated_package_only", "resource-owner-build-fetch"),
+        ("resource_owner_contract=0230;explicit_attach_detach;four_device_refs_retained;single_transition_mutex;monotonic_generation;arbitration_ops_only;writes_disabled", "resource-owner-build-contract"),
+        ("registered_owner=0", "resource-owner-build-unregistered"),
+        ("provider=none", "resource-owner-build-no-provider"),
+        ("hardware_write=none", "resource-owner-build-no-write"),
+        ("device_action=none", "resource-owner-build-no-device"),
+        ("boot_candidate=false", "resource-owner-build-not-candidate"),
+        ("cpu8_cpu9_admission=closed", "resource-owner-build-no-admission"),
+    ):
+        require(resource_owner_build_result, needle, label)
     for forbidden in ("readl(", "writel(", "regulator_", "clk_", "i2c_transfer",
                       "arm_smccc", "platform_driver", "cpu_up(", "secure_write"):
         if forbidden in ppm_policy_source:
@@ -1876,6 +1904,7 @@ def main() -> None:
     print("generation_coherence=0228;common_source_generation;calibration_live_snapshot_exact_match;backend_local_counters_not_equated;provider_owned;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("ppm_owner_lock_binding=0229;explicit_lock_unlock;atomic_ppm_policy_copy;four_bank_policy;shared_table_epoch;transition_lock_outer;provider=none;registered_owner=0;no_hardware_write;device_action=none;boot_candidate=false")
     print("resource_owner=0230;device_refs_retained;explicit_attach_detach;single_transition_mutex;monotonic_generation;arbitration_ops_only;writes_disabled;provider=none;registered_owner=0;device_action=none;boot_candidate=false")
+    print("resource_owner_buildbox=validated;commit=d506e280330959f37dc240dc3c82b3fc10e3f45d;patch_count=219;artifact=linux-7.1.3-gemini-a6e9a04d09f0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("clock_state_decoder=0206;raw_ll_l_b_cci_readbacks;vendor_26mhz_formula;pcw_posdiv_and_divider_decode;generation_tagged;inflight_change_rejected;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("runtime_invalidation=0207;vendor_cpu_online_cpu_down_prepare_cpu_down_failed_pm_suspend_prepare_pm_post_suspend;clock_rail_pcm_fault_mapping;monotonic_sequence;generation_epoch;replay_rejected;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("runtime_binding=0208;active_owner_required;cpuhp_online_down_prepare_down_failed;pm_suspend_resume_notifier;generation_tagged_source_callback;ledger_serialized;registration_atomic;disarm_before_unregistration;registered=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
