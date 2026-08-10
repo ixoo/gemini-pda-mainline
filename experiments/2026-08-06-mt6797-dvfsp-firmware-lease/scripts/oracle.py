@@ -54,6 +54,10 @@ STATE_OWNER_ARBITRATION_FAULT_PATCH = ROOT / "patches/v7.1.3/0217-soc-mediatek-l
 STATE_OWNER_REGISTRATION_PATCH = ROOT / "patches/v7.1.3/0218-soc-mediatek-register-arbitrated-state-owner.patch"
 STATE_OWNER_REGISTRATION_GATE_PATCH = ROOT / "patches/v7.1.3/0219-soc-mediatek-require-validated-snapshot-before-registration.patch"
 SERIES = ROOT / "patches/series"
+VENDOR_EXPERIMENT_SERIES = (Path(__file__).resolve().parents[1] /
+                            "patches/series")
+VENDOR_WRITER_IDENTITY_PATCH = (Path(__file__).resolve().parents[1] /
+                                "patches/0005-mt6797-vendor-writer-shared-owner-identity.patch")
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
 START_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-start-contract-20260806.txt"
 OWNER_RESULT = Path(__file__).resolve().parents[1] / "results/public-hybrid-owner-source-20260806.txt"
@@ -218,6 +222,7 @@ def main() -> None:
     ppm_cci_source_build_result = PPM_CCI_SOURCE_BUILD_RESULT.read_text()
     live_state_source_build_result = LIVE_STATE_SOURCE_BUILD_RESULT.read_text()
     source_runtime_gates_build_result = SOURCE_RUNTIME_GATES_BUILD_RESULT.read_text()
+    vendor_writer_identity_patch = VENDOR_WRITER_IDENTITY_PATCH.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     eem_calibration_source = eem_calibration_patch[eem_calibration_patch.index("diff --git"):]
@@ -251,6 +256,29 @@ def main() -> None:
     state_owner_registration_gate_source = state_owner_registration_gate_patch[state_owner_registration_gate_patch.index("diff --git"):]
     names = [Path(line).name for line in SERIES.read_text().splitlines()
              if line and not line.startswith("#")]
+    vendor_experiment_names = [line for line in
+                               VENDOR_EXPERIMENT_SERIES.read_text().splitlines()
+                               if line and not line.startswith("#")]
+
+    if vendor_experiment_names[-1] != "0005-mt6797-vendor-writer-shared-owner-identity.patch":
+        raise AssertionError("vendor identity patch is not last in its experiment series")
+    for needle, label in (
+        ("GEMINI_MT6797_DVFSP_VENDOR_WRITER_ABI\t2", "vendor-writer-identity-abi"),
+        ("read_identity", "vendor-writer-identity-callback"),
+        ("owner_handle", "vendor-writer-owner-handle"),
+        ("transition_handle", "vendor-writer-transition-handle"),
+        ("return ret ? ret : -EPROTO", "vendor-writer-identity-fail-closed"),
+    ):
+        require(vendor_writer_identity_patch, needle, label)
+    vendor_writer_identity_source = vendor_writer_identity_patch[
+        vendor_writer_identity_patch.index("diff --git"):]
+    for forbidden in (
+        "readl(", "writel(", "i2c_transfer", "regulator_",
+        "clk_", "platform_driver", "mt_cpufreq_set_ptbl_registerCB",
+        "mt_cpufreq_setvolt_registerCB", "mt_ppm_register_client", "cpu_up(",
+    ):
+        if forbidden in vendor_writer_identity_source:
+            raise AssertionError(f"unexpected vendor identity operation: {forbidden}")
 
     require(patch, "MT6797_DVFSP_I2C6_FW_ABI", "protocol-abi")
     require(patch, "MT6797_DVFSP_I2C6_FW_PAUSE_SOURCE\t0x2", "pause-source")
@@ -2487,6 +2515,7 @@ def main() -> None:
     print("runtime_owner_token_content=procfs_no_owner_tokens;generic_clock_lock_labels_unattributed;generation_epoch_transition_owner_mutex_atomic_absent;provider=none;cpu8_cpu9_admission=closed;boot_candidate=false")
     print("source_runtime_gates_buildbox_full=validated;commit=8f869a19481945875690943530611d09f0a4a084;profile=full;patch_count=232;dtb_count=119;sha256sums=passed;package_fetch=success;validated_package_only;provider=none;registered_owner=0;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("vendor_ppm_owner_boundary=20260810;vendor_revision=8cfe6596a503612e3332d9c26e292a19525a7f07;ppm_lock=ppm_main_info.lock;cpufreq_lock=dvfs_lock;eem_locks=independent;shared_generation=absent;single_transition_lock=absent;provider=none;cpu8_cpu9_admission=closed;boot_candidate=false")
+    print("vendor_writer_shared_owner_identity=0005;abi=2;read_identity_required;nonzero_owner_handle;nonzero_transition_handle;metadata_only;provider=none;registered_owner=0;hardware_write=none;device_action=none;cpu8_cpu9_admission=closed;boot_candidate=false")
     print("pcm_adapter_contract=source-only;bounded-admission-model;callback-registration-gated")
     print("clock_owner_inventory=generic_ccf_only;protected_owner_absent;A72_observer_read_only")
     print("pcm_start_contract=defined;residency_and_start_required_before_callback_registration")
