@@ -1345,3 +1345,13 @@ teardown refusal while registered; see the [owner-KUnit Buildbox result](results
 Buildbox does not execute KUnit, so this remains compile-only evidence: no real
 external registration, provider, setter, device action, or CPU8/CPU9 admission
 is claimed. Do not boot or write a device for this result.
+
+Patch `0262` corrects the source validator's CSPM bound semantics: physical
+limit index zero is valid, physical limits must stay within the 16-entry OPP
+range, and CCI remains limit-less. The exact 251-patch `dvfsp-owner-kunit`
+profile passed on Buildbox with 119 DTBs and package/provenance checksums; see
+the [CSPM semantic-bound Buildbox result](results/vendor-source-observation-cspm-bounds-buildbox-20260810.txt).
+KUnit was not executed, no provider/setter or external runtime registration was
+performed, no device action occurred, and CPU8/CPU9 admission remains closed.
+The next step is source-to-provider field/identity mapping and an isolated
+runtime KUnit runner; do not boot or write a device for this compile result.

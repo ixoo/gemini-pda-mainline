@@ -72,6 +72,7 @@ MAINLINE_WRITER_RUNTIME_EVENTS_PATCH = ROOT / "patches/v7.1.3/0258-soc-mediatek-
 MAINLINE_WRITER_LIFECYCLE_INTEGRATION_PATCH = ROOT / "patches/v7.1.3/0259-soc-mediatek-bind-vendor-writer-lifecycle-integration.patch"
 MAINLINE_SOURCE_OBSERVATION_PATCH = ROOT / "patches/v7.1.3/0260-soc-mediatek-add-cross-tree-vendor-source-observation.patch"
 MAINLINE_SOURCE_OWNER_PATCH = ROOT / "patches/v7.1.3/0261-soc-mediatek-bind-vendor-source-observation-owner.patch"
+MAINLINE_SOURCE_CSPM_BOUNDS_PATCH = ROOT / "patches/v7.1.3/0262-soc-mediatek-validate-vendor-source-cspm-bounds.patch"
 VENDOR_WRITER_INTEGRATION_REVIEW_RESULT = (Path(__file__).resolve().parents[1] /
                                            "results/vendor-writer-mainline-owner-integration-review-20260810.txt")
 VENDOR_WRITER_REGISTRATION_BUILD_RESULT = (Path(__file__).resolve().parents[1] /
@@ -86,6 +87,8 @@ VENDOR_SOURCE_OBSERVATION_BUILD_RESULT = (Path(__file__).resolve().parents[1] /
                                           "results/vendor-source-observation-owner-buildbox-20260810.txt")
 VENDOR_SOURCE_RUNTIME_KUNIT_BUILD_RESULT = (Path(__file__).resolve().parents[1] /
                                             "results/vendor-source-observation-runtime-registration-kunit-buildbox-20260810.txt")
+VENDOR_SOURCE_CSPM_BOUNDS_BUILD_RESULT = (Path(__file__).resolve().parents[1] /
+                                          "results/vendor-source-observation-cspm-bounds-buildbox-20260810.txt")
 VENDOR_CALLER_LIFECYCLE_AUDIT_RESULT = (Path(__file__).resolve().parents[1] /
                                         "results/vendor-caller-lifecycle-invalidation-audit-20260811.txt")
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
@@ -265,6 +268,7 @@ def main() -> None:
     mainline_writer_lifecycle_integration_patch = MAINLINE_WRITER_LIFECYCLE_INTEGRATION_PATCH.read_text()
     mainline_source_observation_patch = MAINLINE_SOURCE_OBSERVATION_PATCH.read_text()
     mainline_source_owner_patch = MAINLINE_SOURCE_OWNER_PATCH.read_text()
+    mainline_source_cspm_bounds_patch = MAINLINE_SOURCE_CSPM_BOUNDS_PATCH.read_text()
     vendor_writer_integration_review_result = VENDOR_WRITER_INTEGRATION_REVIEW_RESULT.read_text()
     vendor_writer_registration_build_result = VENDOR_WRITER_REGISTRATION_BUILD_RESULT.read_text()
     vendor_writer_runtime_events_build_result = VENDOR_WRITER_RUNTIME_EVENTS_BUILD_RESULT.read_text()
@@ -272,6 +276,7 @@ def main() -> None:
     vendor_writer_lifecycle_integration_build_result = VENDOR_WRITER_LIFECYCLE_INTEGRATION_BUILD_RESULT.read_text()
     vendor_source_observation_build_result = VENDOR_SOURCE_OBSERVATION_BUILD_RESULT.read_text()
     vendor_source_runtime_kunit_build_result = VENDOR_SOURCE_RUNTIME_KUNIT_BUILD_RESULT.read_text()
+    vendor_source_cspm_bounds_build_result = VENDOR_SOURCE_CSPM_BOUNDS_BUILD_RESULT.read_text()
     vendor_caller_lifecycle_audit_result = VENDOR_CALLER_LIFECYCLE_AUDIT_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
@@ -543,6 +548,25 @@ def main() -> None:
         if forbidden in mainline_source_owner_source:
             raise AssertionError(f"unexpected mainline source owner operation: {forbidden}")
 
+    mainline_source_cspm_bounds_source = mainline_source_cspm_bounds_patch[
+        mainline_source_cspm_bounds_patch.index("diff --git"):]
+    for needle, label in (
+        ("MT6797_DVFSP_VENDOR_SOURCE_MAX_OPP", "mainline-source-cspm-opp-bound"),
+        ("cluster->ceiling >= MT6797_DVFSP_VENDOR_SOURCE_MAX_OPP", "mainline-source-cspm-ceiling-bound"),
+        ("cluster->floor >= MT6797_DVFSP_VENDOR_SOURCE_MAX_OPP", "mainline-source-cspm-floor-bound"),
+        ("cluster->floor > cluster->ceiling", "mainline-source-cspm-order-bound"),
+        ("cluster->ceiling || cluster->floor", "mainline-source-cspm-cci-limitless"),
+    ):
+        require(mainline_source_cspm_bounds_patch, needle, label)
+    for forbidden in (
+        "readl(", "writel(", "i2c_transfer", "regulator_", "clk_",
+        "platform_driver", "cpu_up(", "secure_write",
+        "mt_cpufreq_set_ptbl_registerCB", "mt_cpufreq_setvolt_registerCB",
+        "mt_ppm_register_client", "provider_registration", "hardware_write",
+    ):
+        if forbidden in mainline_source_cspm_bounds_source:
+            raise AssertionError(f"unexpected mainline CSPM bounds operation: {forbidden}")
+
     vendor_source_observation_source = vendor_source_observation_patch[
         vendor_source_observation_patch.index("diff --git"):]
     for needle, label in (
@@ -724,6 +748,29 @@ def main() -> None:
         ("decision=owner_source_runtime_registration_contract_compile_validated", "vendor-source-runtime-kunit-decision"),
     ):
         require(vendor_source_runtime_kunit_build_result, needle, label)
+
+    for needle, label in (
+        ("claim=COMPILE_ONLY_MT6797_VENDOR_SOURCE_OBSERVATION_CSPM_SEMANTIC_BOUNDS", "vendor-source-cspm-bounds-claim"),
+        ("repository_commit=254e5a51d0eff5a2f8c74037c24a4eb8fe4cb020", "vendor-source-cspm-bounds-commit"),
+        ("build_backend=buildbox", "vendor-source-cspm-bounds-backend"),
+        ("buildbox_job=254e5a51d0eff5a2f8c74037c24a4eb8fe4cb020-dvfsp-owner-kunit-m0", "vendor-source-cspm-bounds-job"),
+        ("build_profile=dvfsp-owner-kunit", "vendor-source-cspm-bounds-profile"),
+        ("patch_count=251", "vendor-source-cspm-bounds-patches"),
+        ("dtb_count=119", "vendor-source-cspm-bounds-dtbs"),
+        ("sha256sums=passed", "vendor-source-cspm-bounds-checksums"),
+        ("package_fetch=success;validated_package_only", "vendor-source-cspm-bounds-fetch"),
+        ("semantic_fix=0262;CSPM_physical_limit_zero_valid;physical_limits_bounded_0_to_15;CCI_limits_must_be_zero", "vendor-source-cspm-bounds-fix"),
+        ("kunit=compiled_only;not_executed", "vendor-source-cspm-bounds-not-executed"),
+        ("runtime_owner_registration=not_executed;default_off", "vendor-source-cspm-bounds-no-runtime-owner"),
+        ("provider_registration=none", "vendor-source-cspm-bounds-no-provider"),
+        ("vendor_setter_called=none", "vendor-source-cspm-bounds-no-setter"),
+        ("hardware_write=none", "vendor-source-cspm-bounds-no-write"),
+        ("device_action=none", "vendor-source-cspm-bounds-no-action"),
+        ("boot_candidate=false", "vendor-source-cspm-bounds-not-candidate"),
+        ("cpu8_cpu9_admission=closed", "vendor-source-cspm-bounds-no-admission"),
+        ("decision=cspm_source_semantic_bound_compile_validated;provider_conversion_identity_and_runtime_execution_remain_unproven;hardware_support_closed", "vendor-source-cspm-bounds-decision"),
+    ):
+        require(vendor_source_cspm_bounds_build_result, needle, label)
 
     for needle, label in (
         ("claim=SOURCE_ONLY_MT6797_VENDOR_CALLER_LIFECYCLE_INVALIDATION_AUDIT", "vendor-caller-audit-claim"),
@@ -3014,6 +3061,7 @@ def main() -> None:
     print("vendor_writer_lifecycle_runtime_events=0007;probe_remove_lifecycle_bound;failure_unwind;pm_ppm_hotcpu_cpufreq_cleanup;cpu_pm_clock_rail_events;deferred_pcm_fault;buildbox=validated;external_adapter_required;registered_owner=0;provider=none;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("vendor_source_observation=0009;source_abi=1;integration_abi=2;observe_transaction_abort;bounded_ppm_cpufreq_cspm_eem_snapshot;identity_fail_closed;buildbox=validated;commit=2c2035bc68bdd3ce0f6bef07359af07ba245b5a2;vendor_series=0001..0009;runtime_registration=none;provider=none;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("vendor_source_runtime_registration_kunit=validated;profile=dvfsp-owner-kunit;commit=435d151448a7facc961afbb6288d219cc81f717d;patch_count=250;dtb_count=119;sha256sums=passed;kunit=compiled_only;not_executed;source_registration_bound;owner_invalidation_contract;teardown_guard;runtime_registration=not_executed;provider=none;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
+    print("vendor_source_cspm_bounds=0262;validated;profile=dvfsp-owner-kunit;commit=254e5a51d0eff5a2f8c74037c24a4eb8fe4cb020;patch_count=251;dtb_count=119;sha256sums=passed;CSPM_physical_limit_zero_valid;physical_limits_bounded_0_to_15;CCI_limits_must_be_zero;kunit=compiled_only;not_executed;runtime_registration=not_executed;provider=none;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("pcm_adapter_contract=source-only;bounded-admission-model;callback-registration-gated")
     print("clock_owner_inventory=generic_ccf_only;protected_owner_absent;A72_observer_read_only")
     print("pcm_start_contract=defined;residency_and_start_required_before_callback_registration")

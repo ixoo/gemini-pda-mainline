@@ -1,0 +1,38 @@
+# MT6797 vendor source-observation CSPM semantic-bound Buildbox validation
+
+date_utc=2026-08-10T21:54:49Z
+claim=COMPILE_ONLY_MT6797_VENDOR_SOURCE_OBSERVATION_CSPM_SEMANTIC_BOUNDS
+repository=https://github.com/ixoo/gemini-pda-mainline.git
+repository_commit=254e5a51d0eff5a2f8c74037c24a4eb8fe4cb020
+repository_dirty=false
+build_backend=buildbox
+buildbox_status=validated
+buildbox_job=254e5a51d0eff5a2f8c74037c24a4eb8fe4cb020-dvfsp-owner-kunit-m0
+build_profile=dvfsp-owner-kunit
+kernel_release=7.1.3-gemini-dvfsp-owner-kunit
+artifact=linux-7.1.3-gemini-dvfsp-owner-kunit-ba0e36eb-570e7702
+package_fetch=success;validated_package_only
+local_package=artifacts/buildbox/254e5a51d0eff5a2f8c74037c24a4eb8fe4cb020/linux-7.1.3-gemini-dvfsp-owner-kunit-ba0e36eb-570e7702
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=ba0e36eb0ed5512f69203286fe24f682619ab7a2f5e0fbe9bf46c36958eb5133
+config_sha256=28c2e03824763b990541cebe4d7fce625beed7c8669d9ae7bf15f905d5e124fa
+patch_count=251
+dtb_count=119
+sha256sums=passed
+
+semantic_fix=0262;CSPM_physical_limit_zero_valid;physical_limits_bounded_0_to_15;CCI_limits_must_be_zero
+compile_scope=source_validator_and_owner_KUnit_profile;hardware_free
+kunit=compiled_only;not_executed;Buildbox_has_no_runtime_KUnit_runner
+runtime_owner_registration=not_executed;default_off
+provider_registration=none
+vendor_setter_called=none
+hardware_write=none
+device_action=none
+hardware_support_claim=NONE
+boot_candidate=false
+runtime_evidence=none
+cpu8_cpu9_admission=closed
+
+observation=The source validator previously rejected the valid CSPM limit index zero; patch 0262 now checks the bounded OPP range while preserving a limit-less CCI record. The 251-patch owner-KUnit profile applies and links cleanly with all 119 DTBs and passing package checksums.
+decision=cspm_source_semantic_bound_compile_validated;provider_conversion_identity_and_runtime_execution_remain_unproven;hardware_support_closed
+next=complete the source-to-provider field/identity mapping review and locate or add an isolated runtime KUnit runner; do not boot or write a device

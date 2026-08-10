@@ -3184,6 +3184,18 @@ action, or CPU8/CPU9 admission is claimed. The next ordered step is source
 snapshot semantic review and, only if an isolated runner exists, runtime test;
 do not boot or write.
 
+Patch `0262` now aligns the source validator with the mainline CSPM decoder:
+physical limit index zero is valid, physical limits are bounded by the 16-entry
+OPP range, and the CCI record remains explicitly limit-less. The exact 251-patch
+`dvfsp-owner-kunit` Buildbox profile applied and linked all 119 DTBs with
+passing package/provenance checksums; see the [CSPM semantic-bound Buildbox
+result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-source-observation-cspm-bounds-buildbox-20260810.txt).
+This is still compile-only evidence: KUnit was not executed, no external
+provider or setter was called, no device action occurred, and CPU8/CPU9
+admission remains closed. The next ordered step is to complete the
+source-to-provider field/identity mapping review and locate or add an isolated
+runtime KUnit runner; do not boot or write a device.
+
 Required evidence:
 
 - provider registration performs no register-data write;
