@@ -75,10 +75,10 @@ diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.
 index feca4ef32..f0a3b5c87 100644
 --- a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h
 +++ b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h
-@@ -23,1 +23,1 @@
+@@ -23,7 +23,9 @@
 -#define GEMINI_MT6797_DVFSP_VENDOR_WRITER_ABI	1
 +#define GEMINI_MT6797_DVFSP_VENDOR_WRITER_ABI	2
-@@ -26,5 +26,7 @@
+ 
  struct gemini_mt6797_dvfsp_vendor_writer_transaction {
  	enum gemini_mt6797_dvfsp_vendor_writer_site site;
  	u64 generation;
