@@ -2652,6 +2652,15 @@ boundary separately. Until that owner and runtime evidence exist, provider
 registration, writable operation, device boot, and CPU8/CPU9 admission stay
 blocked.
 
+The public kernel repository's newer `main` ref `d388d350` was then rechecked
+against the earlier `master`-ref audit. The exact MT6797 PPM, hybrid cpufreq,
+EEM, and PPM-internal files still provide separate locks but no shared
+generation or single transition owner; the [public-main owner-boundary receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-public-main-owner-boundary-20260810.txt)
+records the source hashes and bounded token scan. This confirms the blocker is
+not stale-source drift. The next ordered action remains an attributable
+mainline owner implementation or new named runtime owner evidence, followed by
+a separate read-only registration check.
+
 Required evidence:
 
 - provider registration performs no register-data write;

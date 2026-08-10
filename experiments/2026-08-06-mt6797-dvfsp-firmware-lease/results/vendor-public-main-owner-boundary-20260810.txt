@@ -1,0 +1,44 @@
+# MT6797 public-kernel main-branch owner-boundary revalidation
+
+generated_utc=2026-08-10T09:04:45Z
+claim=SOURCE_ONLY_MT6797_PUBLIC_MAIN_OWNER_BOUNDARY_REVALIDATION
+public_source_repo=https://github.com/gemian/gemini-linux-kernel-3.18
+public_source_ref=refs/heads/main
+public_source_revision=d388d350cb2dda8f23b99be6fa5db9628896e87f
+public_source_revision_date=2023-11-24T15:16:24Z
+previous_audit_revision=8cfe6596a503612e3332d9c26e292a19525a7f07
+audit_scope=managed_vm_git_show_exact_paths;no_source_copy;no_device_action
+
+ppm_header=drivers/misc/mediatek/base/power/ppm_v1/inc/mt_ppm_internal.h;sha256=54f1581c179e6b08b3b98c58002491e58d40c79ea77d882ab83de6e2123ec4ea
+ppm_api=drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/mt_ppm_api.h;sha256=abf3f35cb59f4fe7bf0aa920a53db3e6bfd570bd084e24e018c5bd2ea827a951
+ppm_core=drivers/misc/mediatek/base/power/ppm_v1/src/mt_ppm_main.c;sha256=89e8e20c62b8c5d8b45a63563a7c22b1e927712744bb243d05ca6589496bb9c2
+cpufreq_hybrid=drivers/misc/mediatek/base/power/mt6797/mt_cpufreq_hybrid.c;sha256=6094e778fe3eb0f2c24ffb63bb404af2e40da519514ddbba608bea3b5500fb63
+cpufreq=drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c;sha256=a420033f65c49bf509182388fcb803161e69e93cf7d334b723fe7a0c55b8c293
+eem=drivers/misc/mediatek/base/power/mt6797/mt_eem.c;sha256=147b673723d7fa417685a3c2b06cbe75100abaaf288663b08795efc04414f4bc
+
+public_main_vs_previous_master=source_files_have_small_behavior_and_mode_changes;no_new_owner_layer
+ppm_policy_lock=ppm_main_info.lock;type=mutex;scope=ppm_data
+cpufreq_transition_lock=dvfs_lock;type=spinlock;scope=hybrid_cspm_and_pll_state
+eem_owner_locks=eem_spinlock;record_mutex;mt_ptp_lock;independent_from_ppm_and_dvfs
+shared_generation_field=absent_in_exact_public_main_files
+single_transition_lock=absent_in_exact_public_main_files
+owner_token_scan=only_generic_module_owner_designators;no_dvfsp_owner_generation_epoch_transition_token
+required_bridge=ppm_policy+cci_rows+eem_ptp+live_vproc_vsram+clock_state+generation+single_transition_lock
+
+decision=PUBLIC_MAIN_REVALIDATES_EXTERNAL_OWNER_BLOCKER
+next_source_gate=obtain_attributable_mainline_owner_implementation_or_new_runtime_owner_evidence
+provider_registration=blocked
+writable_operation=blocked
+hardware_write=none
+device_action=none
+vendor_code_copied=none
+cpu8_cpu9_admission=closed
+boot_candidate=false
+
+The public `main` ref is newer than the previously audited `master` ref, but
+the exact MT6797 PPM, hybrid cpufreq, EEM, and PPM-internal files still have
+separate locks and no shared generation or transition owner. The branch delta
+does not provide an attributable callback source for the dormant mainline
+provider. This is a new source revision check, not a new kernel implementation;
+the next implementation must still be backed by a real owner or new named
+runtime evidence. No vendor source was copied into the repository.

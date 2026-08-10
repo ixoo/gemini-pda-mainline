@@ -866,3 +866,12 @@ matches came from generic clock-debug output and cannot establish a DVFSP
 transition owner; the [token-content receipt](results/runtime-owner-token-content-probe-20260810.txt)
 retains only bounded labels and scan metadata. This closes the procfs/debugfs discovery path;
 the next owner work must be a real mainline callback/provider boundary.
+
+The public repository's current `main` ref (`d388d350`) was revalidated after
+the earlier `master`-ref audit. Its exact MT6797 PPM, hybrid cpufreq, EEM, and
+PPM-internal files still expose separate policy, hybrid-CSPM, and EEM/PTP locks
+without a shared generation or single transition owner; the small branch delta
+does not add an attributable callback source. The bounded source-only result is
+the [public-main owner-boundary receipt](results/vendor-public-main-owner-boundary-20260810.txt).
+No vendor source was copied and no device action occurred; provider registration
+and CPU8/CPU9 admission remain closed.
