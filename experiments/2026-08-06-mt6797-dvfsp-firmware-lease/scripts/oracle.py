@@ -31,6 +31,7 @@ PTP_STATE_PATCH = ROOT / "patches/v7.1.3/0213-soc-mediatek-decode-MT6797-PTP-han
 PTP_CALIBRATION_PATCH = ROOT / "patches/v7.1.3/0214-soc-mediatek-bind-PTP-state-to-calibration-builder.patch"
 PPM_CALIBRATION_PATCH = ROOT / "patches/v7.1.3/0225-soc-mediatek-bind-PPM-snapshot-to-EEM-calibration.patch"
 LIVE_RAIL_BINDING_PATCH = ROOT / "patches/v7.1.3/0226-soc-mediatek-bind-live-rails-to-calibrated-row.patch"
+PPM_POLICY_PATCH = ROOT / "patches/v7.1.3/0227-soc-mediatek-bind-PPM-policy-rows-to-calibration.patch"
 STATE_OWNER_SOURCE_PATCH = ROOT / "patches/v7.1.3/0215-soc-mediatek-add-calibrated-state-owner-source-binding.patch"
 STATE_OWNER_ARBITRATION_PATCH = ROOT / "patches/v7.1.3/0216-soc-mediatek-bind-state-owner-source-to-transition-generation.patch"
 STATE_OWNER_ARBITRATION_FAULT_PATCH = ROOT / "patches/v7.1.3/0217-soc-mediatek-latch-transition-arbitration-faults.patch"
@@ -110,6 +111,7 @@ def main() -> None:
     ptp_calibration_patch = PTP_CALIBRATION_PATCH.read_text()
     ppm_calibration_patch = PPM_CALIBRATION_PATCH.read_text()
     live_rail_binding_patch = LIVE_RAIL_BINDING_PATCH.read_text()
+    ppm_policy_patch = PPM_POLICY_PATCH.read_text()
     state_owner_source_patch = STATE_OWNER_SOURCE_PATCH.read_text()
     state_owner_arbitration_patch = STATE_OWNER_ARBITRATION_PATCH.read_text()
     state_owner_arbitration_fault_patch = STATE_OWNER_ARBITRATION_FAULT_PATCH.read_text()
@@ -166,6 +168,7 @@ def main() -> None:
     ptp_handoff_source = ptp_handoff_patch[ptp_handoff_patch.index("diff --git"):]
     ptp_state_source = ptp_state_patch[ptp_state_patch.index("diff --git"):]
     ptp_calibration_source = ptp_calibration_patch[ptp_calibration_patch.index("diff --git"):]
+    ppm_policy_source = ppm_policy_patch[ppm_policy_patch.index("diff --git"):]
     state_owner_source_source = state_owner_source_patch[state_owner_source_patch.index("diff --git"):]
     state_owner_arbitration_source = state_owner_arbitration_patch[state_owner_arbitration_patch.index("diff --git"):]
     state_owner_arbitration_fault_source = state_owner_arbitration_fault_patch[state_owner_arbitration_fault_patch.index("diff --git"):]
@@ -466,6 +469,30 @@ def main() -> None:
         ("CPU8/CPU9 admission", "live-rail-no-cpu-admission"),
     ):
         require(live_rail_binding_patch, needle, label)
+    for needle, label in (
+        ("MT6797_DVFSP_PPM_POLICY_ABI", "ppm-policy-abi"),
+        ("MT6797_DVFSP_PPM_POLICY_BANK_COUNT\t4", "ppm-policy-four-banks"),
+        ("MT6797_DVFSP_PPM_POLICY_BANK_CCI", "ppm-policy-cci-bank"),
+        ("struct mt6797_dvfsp_ppm_policy_snapshot", "ppm-policy-struct"),
+        ("u32 limit_khz", "ppm-policy-limit-rows"),
+        ("mt6797_dvfsp_ppm_policy_validate", "ppm-policy-validation"),
+        ("provider-owned MT6797 PPM policy rows", "ppm-policy-provider-owned"),
+        ("!policy->limit_khz[bank][row]", "ppm-policy-limit-required"),
+        ("const struct mt6797_dvfsp_ppm_policy_snapshot *ppm_policy", "ppm-policy-calibration-input"),
+        ("MT6797_DVFSP_STATE_SOURCE_ABI\t\t4", "ppm-policy-source-abi-bump"),
+        ("struct mt6797_dvfsp_ppm_policy_snapshot *policy", "ppm-policy-source-output"),
+        ("MT6797_DVFSP_STATE_OWNER_SOURCE_ABI\t2", "ppm-policy-owner-abi-bump"),
+        ("fix the owner wrapper", "ppm-policy-owner-wrapper-fix"),
+        ("handoff, ptp_state, ppm, policy, readback", "ppm-policy-owner-callback-arguments"),
+        ("calibration_input.ppm_policy = &ppm_policy", "ppm-policy-adapter-binding"),
+    ):
+        require(ppm_policy_patch, needle, label)
+    if "CCI bank" not in ppm_policy_patch or "no row, CCI limit, or" not in ppm_policy_patch or "generation is fabricated" not in ppm_policy_patch:
+        raise AssertionError("PPM policy must make CCI and non-fabrication explicit")
+    for forbidden in ("readl(", "writel(", "regulator_", "clk_", "i2c_transfer",
+                      "arm_smccc", "platform_driver", "cpu_up(", "secure_write"):
+        if forbidden in ppm_policy_source:
+            raise AssertionError(f"unexpected PPM policy operation: {forbidden}")
     for needle, label in (
         ("MT6797_DVFSP_CLOCK_STATE_ABI", "clock-state-abi"),
         ("MT6797_DVFSP_CLOCK_STATE_PARENT_MHZ", "clock-state-parent"),
@@ -1627,6 +1654,8 @@ def main() -> None:
         raise AssertionError("state-owner registration is not after the arbitration fault latch")
     if names.index("0218-soc-mediatek-register-arbitrated-state-owner.patch") >= names.index("0219-soc-mediatek-require-validated-snapshot-before-registration.patch"):
         raise AssertionError("validated registration gate is not after state-owner registration")
+    if names.index("0226-soc-mediatek-bind-live-rails-to-calibrated-row.patch") >= names.index("0227-soc-mediatek-bind-PPM-policy-rows-to-calibration.patch"):
+        raise AssertionError("PPM policy binding is not after live rail binding")
 
     for forbidden in ("readl(", "writel(", "i2c_transfer", "regulator_enable(",
                       "regulator_disable(", "psci_ops.cpu_on", "cpu_up("):
@@ -1656,6 +1685,8 @@ def main() -> None:
             raise AssertionError(f"unexpected EEM calibration hardware operation: {forbidden}")
         if forbidden in clock_state_source:
             raise AssertionError(f"unexpected clock-state hardware operation: {forbidden}")
+        if forbidden in ppm_policy_source:
+            raise AssertionError(f"unexpected PPM policy hardware operation: {forbidden}")
 
     for forbidden in ("readl(", "writel(", "regulator_", "clk_", "arm_smccc",
                       "i2c_transfer", "platform_driver", "cpu_up(", "secure_write"):
@@ -1722,6 +1753,7 @@ def main() -> None:
     print("eem_calibration_builder=0205;raw_readback_anchor_match;BIG_normal_unit_conversion;16_row_interpolation;temperature_offset;record_cap;vsram_delta;full_provenance;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("ppm_calibration_binding=0225;ppm_snapshot_input;epoch_match;BIG_L_2L_frequency_identity;CCI_excluded;per_row_limits_provider_owned;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("live_rail_binding=0226;frequency_row_selected;VPROC_VSRAM_exact_calibration_row_match;generation_provider_still_required;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
+    print("ppm_policy_binding=0227;all_four_banks;CCI_included;limit_rows_exact;epoch_match;provider_owned;owner_ppm_argument_bound;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("clock_state_decoder=0206;raw_ll_l_b_cci_readbacks;vendor_26mhz_formula;pcw_posdiv_and_divider_decode;generation_tagged;inflight_change_rejected;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("runtime_invalidation=0207;vendor_cpu_online_cpu_down_prepare_cpu_down_failed_pm_suspend_prepare_pm_post_suspend;clock_rail_pcm_fault_mapping;monotonic_sequence;generation_epoch;replay_rejected;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("runtime_binding=0208;active_owner_required;cpuhp_online_down_prepare_down_failed;pm_suspend_resume_notifier;generation_tagged_source_callback;ledger_serialized;registration_atomic;disarm_before_unregistration;registered=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")

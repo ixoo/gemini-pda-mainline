@@ -1,0 +1,295 @@
+From 0000000000000000000000000000000000000227 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 10 Aug 2026 09:10:00 -0400
+Subject: [PATCH] soc: mediatek: bind PPM policy rows to calibration
+
+The protected EEM table has four banks (BIG, L, 2L, and CCI), while the
+vendor PPM snapshot exposes only three physical CPU clusters and no per-row
+limit source. Define an explicit provider-owned policy snapshot for all four
+banks and require its frequency and limit rows, including CCI, to match the
+calibration input and one table epoch.
+
+Thread the policy object through the state-source and owner-source callbacks,
+and fix the owner wrapper so its calibration callback receives the validated
+PPM snapshot it is meant to describe. A provider must copy both objects while
+holding the vendor PPM and external transition locks; no row, CCI limit, or
+generation is fabricated here. The ABI is bumped and the owner remains
+default-off: this patch performs no MMIO, regulator or clock operation,
+secure call, provider registration, device boot, or CPU8/CPU9 admission. It
+is experiment-only and not submission-ready.
+---
+ drivers/soc/mediatek/Makefile                  |   1 +
+ drivers/soc/mediatek/mt6797-dvfsp-ppm-policy.c |  79 ++++++++++++++++
+ drivers/soc/mediatek/mt6797-dvfsp-state-owner-source.c |  22 +++-
+ drivers/soc/mediatek/mt6797-dvfsp-state-source.c |  10 +-
+ drivers/thermal/mediatek/auxadc_thermal.c      |  18 ++++
+ include/linux/soc/mediatek/mt6797-dvfsp-ppm-policy.h |  38 +++++++
+ include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h |  8 +-
+ include/linux/soc/mediatek/mt6797-dvfsp-state-source.h |  6 +-
+ include/linux/soc/mediatek/mt6797-eem-calibration.h |  2 +
+ 9 files changed, 173 insertions(+), 10 deletions(-)
+ create mode 100644 drivers/soc/mediatek/mt6797-dvfsp-ppm-policy.c
+ create mode 100644 include/linux/soc/mediatek/mt6797-dvfsp-ppm-policy.h
+
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-ppm-policy.h b/include/linux/soc/mediatek/mt6797-dvfsp-ppm-policy.h
+new file mode 100644
+--- /dev/null
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-ppm-policy.h
+@@ -0,0 +1,33 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __LINUX_SOC_MEDIATEK_MT6797_DVFSP_PPM_POLICY_H
++#define __LINUX_SOC_MEDIATEK_MT6797_DVFSP_PPM_POLICY_H
++
++#include <linux/types.h>
++
++#define MT6797_DVFSP_PPM_POLICY_ABI		1
++#define MT6797_DVFSP_PPM_POLICY_BANK_COUNT	4
++#define MT6797_DVFSP_PPM_POLICY_TABLE_ENTRIES	16
++#define MT6797_DVFSP_PPM_POLICY_BANK_BIG	0
++#define MT6797_DVFSP_PPM_POLICY_BANK_L		1
++#define MT6797_DVFSP_PPM_POLICY_BANK_2L	2
++#define MT6797_DVFSP_PPM_POLICY_BANK_CCI	3
++
++/*
++ * Provider-owned PPM policy rows in EEM's packed bank order. The CCI bank
++ * is intentional: the vendor three-cluster snapshot has no CCI limit table,
++ * so a provider must supply this row set rather than infer one.
++ */
++struct mt6797_dvfsp_ppm_policy_snapshot {
++	u32 abi;
++	u32 reserved;
++	u64 table_epoch;
++	u32 frequency_khz[MT6797_DVFSP_PPM_POLICY_BANK_COUNT]
++		[MT6797_DVFSP_PPM_POLICY_TABLE_ENTRIES];
++	u32 limit_khz[MT6797_DVFSP_PPM_POLICY_BANK_COUNT]
++		[MT6797_DVFSP_PPM_POLICY_TABLE_ENTRIES];
++};
++
++int mt6797_dvfsp_ppm_policy_validate(
++	const struct mt6797_dvfsp_ppm_policy_snapshot *policy);
++
++#endif /* __LINUX_SOC_MEDIATEK_MT6797_DVFSP_PPM_POLICY_H */
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-ppm-policy.c b/drivers/soc/mediatek/mt6797-dvfsp-ppm-policy.c
+new file mode 100644
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-dvfsp-ppm-policy.c
+@@ -0,0 +1,55 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Validate provider-owned MT6797 PPM policy rows.
++ *
++ * This object contains no vendor transport and performs no I/O. A real
++ * provider must copy all four banks, including CCI, while holding the PPM
++ * policy lock and the external clock/rail transition lock.
++ */
++
++#include <linux/errno.h>
++#include <linux/module.h>
++#include <linux/types.h>
++
++#include <linux/soc/mediatek/mt6797-dvfsp-ppm-policy.h>
++
++static int mt6797_dvfsp_ppm_policy_bank_check(
++	const struct mt6797_dvfsp_ppm_policy_snapshot *policy,
++	u32 bank)
++{
++	u32 previous_frequency = ~0U;
++	u32 row;
++
++	for (row = 0; row < MT6797_DVFSP_PPM_POLICY_TABLE_ENTRIES; row++) {
++		if (!policy->frequency_khz[bank][row] ||
++		    policy->frequency_khz[bank][row] >= previous_frequency ||
++		    !policy->limit_khz[bank][row])
++			return -EPROTO;
++		previous_frequency = policy->frequency_khz[bank][row];
++	}
++
++	return 0;
++}
++
++int mt6797_dvfsp_ppm_policy_validate(
++	const struct mt6797_dvfsp_ppm_policy_snapshot *policy)
++{
++	u32 bank;
++	int ret;
++
++	if (!policy || policy->abi != MT6797_DVFSP_PPM_POLICY_ABI ||
++	    policy->reserved || !policy->table_epoch)
++		return -EPROTO;
++
++	for (bank = 0; bank < MT6797_DVFSP_PPM_POLICY_BANK_COUNT; bank++) {
++		ret = mt6797_dvfsp_ppm_policy_bank_check(policy, bank);
++		if (ret)
++			return ret;
++	}
++
++	return 0;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_ppm_policy_validate);
++
++MODULE_DESCRIPTION("MT6797 provider-owned PPM policy contract");
++MODULE_LICENSE("GPL");
+
+diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
+--- a/drivers/soc/mediatek/Makefile
++++ b/drivers/soc/mediatek/Makefile
+@@ -17,3 +17,4 @@ obj-$(CONFIG_MTK_MT6797_DVFSP_CLOCK_BACKEND) += mt6797-dvfsp-clock-backend.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_CLOCK_BACKEND) += mt6797-dvfsp-cspm-state.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-ppm.o
++obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-ppm-policy.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_BIGIDVFS_BACKEND) += mt6797-bigidvfs-backend.o
+
+diff --git a/include/linux/soc/mediatek/mt6797-eem-calibration.h b/include/linux/soc/mediatek/mt6797-eem-calibration.h
+--- a/include/linux/soc/mediatek/mt6797-eem-calibration.h
++++ b/include/linux/soc/mediatek/mt6797-eem-calibration.h
+@@ -8,4 +8,5 @@
+ #include <linux/soc/mediatek/mt6797-dvfsp-handoff.h>
+ #include <linux/soc/mediatek/mt6797-dvfsp-ppm.h>
++#include <linux/soc/mediatek/mt6797-dvfsp-ppm-policy.h>
+ #include <linux/soc/mediatek/mt6797-dvfsp-ptp.h>
+ #include <linux/soc/mediatek/mt6797-eem-readback.h>
+@@ -27,5 +28,6 @@
+ 	const struct mt6797_eem_readback *readback;
+ 	const struct mt6797_dvfsp_ptp_state *ptp_state;
+ 	const struct mt6797_dvfsp_ppm_snapshot *ppm_snapshot;
++	const struct mt6797_dvfsp_ppm_policy_snapshot *ppm_policy;
+ 	u8 frequency_pct[MT6797_EEM_CALIBRATION_BANKS]
+ 		[MT6797_EEM_CALIBRATION_ROWS];
+
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-state-source.h b/include/linux/soc/mediatek/mt6797-dvfsp-state-source.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-state-source.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-state-source.h
+@@ -7,4 +7,5 @@
+ #include <linux/soc/mediatek/mt6797-bigidvfs-backend.h>
+ #include <linux/soc/mediatek/mt6797-dvfsp-clock-state.h>
+ #include <linux/soc/mediatek/mt6797-dvfsp-ppm.h>
++#include <linux/soc/mediatek/mt6797-dvfsp-ppm-policy.h>
+ #include <linux/soc/mediatek/mt6797-dvfsp-ptp.h>
+@@ -13,3 +14,3 @@
+ #include <linux/soc/mediatek/mt6797-eem-readback.h>
+ 
+-#define MT6797_DVFSP_STATE_SOURCE_ABI		3
++#define MT6797_DVFSP_STATE_SOURCE_ABI		4
+@@ -52,5 +53,6 @@ struct mt6797_dvfsp_state_source_ops {
+ 				const struct mt6797_dvfsp_ptp_handoff *handoff,
+ 				const struct mt6797_dvfsp_ptp_state *ptp_state,
+ 				const struct mt6797_dvfsp_ppm_snapshot *ppm,
++				struct mt6797_dvfsp_ppm_policy_snapshot *policy,
+ 				const struct mt6797_eem_readback *readback,
+ 				struct mt6797_eem_calibration_input *input);
+
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h b/include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h
+@@ -12,3 +12,3 @@
+ struct mt6797_dvfsp_handoff;
+ 
+-#define MT6797_DVFSP_STATE_OWNER_SOURCE_ABI	1
++#define MT6797_DVFSP_STATE_OWNER_SOURCE_ABI	2
+@@ -32,6 +32,8 @@ struct mt6797_dvfsp_state_owner_source_ops {
+ 	int (*fill_calibration)(void *context,
+ 				const struct mt6797_dvfsp_ptp_handoff *handoff,
+ 				const struct mt6797_dvfsp_ptp_state *ptp_state,
++				const struct mt6797_dvfsp_ppm_snapshot *ppm,
++				struct mt6797_dvfsp_ppm_policy_snapshot *policy,
+ 				const struct mt6797_eem_readback *readback,
+ 				const struct mt6797_dvfsp_state_owner_source_identity *identity,
+ 				struct mt6797_eem_calibration_input *input);
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-source.c b/drivers/soc/mediatek/mt6797-dvfsp-state-source.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-state-source.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-state-source.c
+@@ -73,4 +73,5 @@ int mt6797_dvfsp_state_source_snapshot(
+ 	struct mt6797_dvfsp_ptp_handoff ptp_handoff;
+ 	struct mt6797_dvfsp_ptp_state ptp_state;
+ 	struct mt6797_dvfsp_ppm_snapshot ppm_snapshot;
++	struct mt6797_dvfsp_ppm_policy_snapshot ppm_policy;
+ 	struct mt6797_dvfsp_clock_state clock_state;
+@@ -126,11 +126,17 @@ int mt6797_dvfsp_state_source_snapshot(
++	memset(&ppm_policy, 0, sizeof(ppm_policy));
+ 	ret = ops->fill_calibration(context, &ptp_handoff, &ptp_state,
+ 					    &ppm_snapshot,
++					    &ppm_policy,
+ 					    &eem_readback,
+ 					    &calibration_input);
+ 	if (ret)
+ 		return ret;
+ 	calibration_input.readback = &eem_readback;
+ 	calibration_input.ptp_state = &ptp_state;
+ 	calibration_input.ppm_snapshot = &ppm_snapshot;
++	ret = mt6797_dvfsp_ppm_policy_validate(&ppm_policy);
++	if (ret)
++		return ret;
++	calibration_input.ppm_policy = &ppm_policy;
+ 	ret = mt6797_eem_calibration_build(&calibration_input,
+ 					   &calibration_state);
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-owner-source.c b/drivers/soc/mediatek/mt6797-dvfsp-state-owner-source.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-state-owner-source.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-state-owner-source.c
+@@ -114,4 +114,6 @@ static int mt6797_dvfsp_owner_fill_calibration(
+ 	void *context, const struct mt6797_dvfsp_ptp_handoff *handoff,
+ 	const struct mt6797_dvfsp_ptp_state *ptp_state,
++	const struct mt6797_dvfsp_ppm_snapshot *ppm,
++	struct mt6797_dvfsp_ppm_policy_snapshot *policy,
+ 	const struct mt6797_eem_readback *readback,
+ 	struct mt6797_eem_calibration_input *input)
+@@ -122,5 +124,6 @@ static int mt6797_dvfsp_owner_fill_calibration(
+ 	int ret;
+ 
+-	if (!owner || !handoff || !ptp_state || !readback || !input ||
++	if (!owner || !handoff || !ptp_state || !ppm || !policy ||
++	    !readback || !input ||
+ 	    !owner->source_ops || !owner->source_ops->read_identity ||
+ 	    !owner->source_ops->fill_calibration)
+@@ -136,6 +139,6 @@ static int mt6797_dvfsp_owner_fill_calibration(
+ 		return ret;
+ 
+ 	ret = owner->source_ops->fill_calibration(owner->source_context,
+-			handoff, ptp_state, readback, &identity, input);
++			handoff, ptp_state, ppm, policy, readback, &identity, input);
+ 	if (ret)
+ 		return ret;
+@@ -146,2 +149,5 @@ static int mt6797_dvfsp_owner_fill_calibration(
+ 	    input->provenance.calibration_handle)
+ 		return -EPROTO;
++	ret = mt6797_dvfsp_ppm_policy_validate(policy);
++	if (ret)
++		return ret;
+
+diff --git a/drivers/thermal/mediatek/auxadc_thermal.c b/drivers/thermal/mediatek/auxadc_thermal.c
+--- a/drivers/thermal/mediatek/auxadc_thermal.c
++++ b/drivers/thermal/mediatek/auxadc_thermal.c
+@@ -1180,6 +1180,6 @@ static int mt6797_eem_calibration_ppm_check(
+ 	unsigned int bank_index;
+ 	int ret;
+ 
+-	if (!input || !input->ppm_snapshot)
++	if (!input || !input->ppm_snapshot || !input->ppm_policy)
+ 		return -EINVAL;
+ 	ret = mt6797_dvfsp_ppm_snapshot_validate(input->ppm_snapshot);
+@@ -1189,6 +1189,21 @@ static int mt6797_eem_calibration_ppm_check(
+ 		input->ppm_snapshot->table_epoch)
+ 		return -EAGAIN;
++	ret = mt6797_dvfsp_ppm_policy_validate(input->ppm_policy);
++	if (ret)
++		return ret;
++	if (input->provenance.table_epoch != input->ppm_policy->table_epoch)
++		return -EAGAIN;
++	for (bank_index = 0;
++	     bank_index < MT6797_DVFSP_PPM_POLICY_BANK_COUNT; bank_index++) {
++		unsigned int row;
++
++		for (row = 0; row < MT6797_DVFSP_PPM_POLICY_TABLE_ENTRIES; row++)
++			if (input->frequency_khz[bank_index][row] !=
++				    input->ppm_policy->frequency_khz[bank_index][row] ||
++			    input->ppm_limit_khz[bank_index][row] !=
++				    input->ppm_policy->limit_khz[bank_index][row])
++				return -EAGAIN;
++	}
+ 
+ 	for (bank_index = 0;
+ 	     bank_index < MT6797_DVFSP_PPM_CLUSTER_COUNT; bank_index++) {
+-- 
+2.43.0
