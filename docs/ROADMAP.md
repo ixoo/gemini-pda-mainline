@@ -3089,6 +3089,20 @@ covering PTP, voltage outer, PPM, CPU-hotplug, and hardware-governor contexts,
 with fail-closed abort/rollback semantics, followed by exact Buildbox
 validation. No device boot/write or CPU8/CPU9 admission is authorized.
 
+Patch `0257` now supplies the missing mainline-side registration handoff: an
+external vendor-aware caller may explicitly register and unregister the exact
+ABI-1 bridge table, while the adapter pins bridge context and owner identities
+and blocks teardown until unregister succeeds. The repaired exact pushed
+commit `c5e0bdd` passed the full Buildbox profile: all 246 canonical patches,
+119 DTBs, package/provenance checksums, and validated-package-only fetch. This
+is compile-only evidence; registration remains default-off, no vendor setter,
+provider, MMIO, firmware, or device action occurred, and CPU8/CPU9 admission
+remains closed. The next ordered gate is a reviewable vendor-aware caller
+covering the named PTP, voltage-observer, PPM, CPU-hotplug, and
+hardware-governor contexts plus complete runtime invalidation coverage, then a
+separate read-only runtime review. See the [registration handoff Buildbox
+result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-writer-registration-handoff-buildbox-20260810.txt).
+
 Required evidence:
 
 - provider registration performs no register-data write;

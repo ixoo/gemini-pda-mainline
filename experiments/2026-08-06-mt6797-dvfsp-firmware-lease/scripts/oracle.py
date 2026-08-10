@@ -64,6 +64,8 @@ MAINLINE_WRITER_BRIDGE_PATCH = ROOT / "patches/v7.1.3/0256-soc-mediatek-export-v
 MAINLINE_WRITER_REGISTRATION_PATCH = ROOT / "patches/v7.1.3/0257-soc-mediatek-add-explicit-vendor-writer-registration-handoff.patch"
 VENDOR_WRITER_INTEGRATION_REVIEW_RESULT = (Path(__file__).resolve().parents[1] /
                                            "results/vendor-writer-mainline-owner-integration-review-20260810.txt")
+VENDOR_WRITER_REGISTRATION_BUILD_RESULT = (Path(__file__).resolve().parents[1] /
+                                           "results/vendor-writer-registration-handoff-buildbox-20260810.txt")
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
 START_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-start-contract-20260806.txt"
 OWNER_RESULT = Path(__file__).resolve().parents[1] / "results/public-hybrid-owner-source-20260806.txt"
@@ -235,6 +237,7 @@ def main() -> None:
     mainline_writer_bridge_patch = MAINLINE_WRITER_BRIDGE_PATCH.read_text()
     mainline_writer_registration_patch = MAINLINE_WRITER_REGISTRATION_PATCH.read_text()
     vendor_writer_integration_review_result = VENDOR_WRITER_INTEGRATION_REVIEW_RESULT.read_text()
+    vendor_writer_registration_build_result = VENDOR_WRITER_REGISTRATION_BUILD_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     eem_calibration_source = eem_calibration_patch[eem_calibration_patch.index("diff --git"):]
@@ -375,6 +378,24 @@ def main() -> None:
         ("decision=exact_cross_tree_callback_binding_is_compile_validated_but_real_vendor_caller_integration_and_complete_runtime_invalidation_coverage_remain_unproven;do_not_claim_runtime_owner_or_hardware_support", "vendor-integration-review-decision"),
     ):
         require(vendor_writer_integration_review_result, needle, label)
+
+    for needle, label in (
+        ("claim=COMPILE_ONLY_MT6797_VENDOR_WRITER_REGISTRATION_HANDOFF", "vendor-registration-build-claim"),
+        ("repository_commit=c5e0bdd36623ea2d3378d6f8e0467b0e4dd0d97f", "vendor-registration-build-commit"),
+        ("backend=buildbox", "vendor-registration-build-backend"),
+        ("build_profile=full", "vendor-registration-build-profile"),
+        ("patch_count=246", "vendor-registration-build-patches"),
+        ("dtb_count=119", "vendor-registration-build-dtbs"),
+        ("sha256sums=passed", "vendor-registration-build-checksums"),
+        ("package_fetch=validated-package-only", "vendor-registration-build-fetch"),
+        ("patch_0257=ABI_1;explicit_external_register_unregister;bridge_context_pinned;owner_identity_pinned;teardown_guard;default_off", "vendor-registration-build-handoff"),
+        ("runtime_owner_registration=none", "vendor-registration-build-no-runtime-owner"),
+        ("hardware_write=none", "vendor-registration-build-no-write"),
+        ("device_action=none", "vendor-registration-build-no-action"),
+        ("boot_candidate=false", "vendor-registration-build-not-candidate"),
+        ("cpu8_cpu9_admission=closed", "vendor-registration-build-no-admission"),
+    ):
+        require(vendor_writer_registration_build_result, needle, label)
 
     require(patch, "MT6797_DVFSP_I2C6_FW_ABI", "protocol-abi")
     require(patch, "MT6797_DVFSP_I2C6_FW_PAUSE_SOURCE\t0x2", "pause-source")

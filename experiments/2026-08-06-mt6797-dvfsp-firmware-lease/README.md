@@ -124,6 +124,7 @@ be copied directly into a mainline failure/PM path.
 - [Read-only runtime owner-registration review](results/runtime-owner-registration-review-20260810.txt)
 - [Vendor writer/mainline owner integration review](results/vendor-writer-mainline-owner-integration-review-20260810.txt)
 - [Vendor writer mainline-owner binding design](results/vendor-writer-mainline-owner-binding-design-20260811.txt)
+- [Vendor writer registration handoff Buildbox validation](results/vendor-writer-registration-handoff-buildbox-20260810.txt)
 
 Run from the repository root:
 
@@ -1238,3 +1239,10 @@ invalidation is still only a 0207/0208/0243 contract: notifier registration and
 the vendor-aware source callbacks are absent, so the cross-tree ABI is
 compile-validated but no runtime owner or hardware support is claimed. See the
 [vendor writer/mainline owner integration review](results/vendor-writer-mainline-owner-integration-review-20260810.txt).
+
+The default-off registration handoff in patch `0257` now passes the full
+246-patch Buildbox profile at pushed commit `c5e0bdd`; all 119 DTBs, package
+checksums, and the validated-package-only fetch passed. This is compile-only
+evidence: external register/unregister callbacks are not invoked, the vendor
+setter and provider remain dormant, and no device or CPU8/CPU9 action is
+authorized. See the [registration handoff Buildbox result](results/vendor-writer-registration-handoff-buildbox-20260810.txt).

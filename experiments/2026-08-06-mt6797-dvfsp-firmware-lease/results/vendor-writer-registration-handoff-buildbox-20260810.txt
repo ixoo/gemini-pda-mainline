@@ -1,0 +1,36 @@
+# MT6797 vendor writer registration handoff Buildbox validation
+
+date_utc=2026-08-10
+claim=COMPILE_ONLY_MT6797_VENDOR_WRITER_REGISTRATION_HANDOFF
+repository=https://github.com/ixoo/gemini-pda-mainline.git
+repository_commit=c5e0bdd36623ea2d3378d6f8e0467b0e4dd0d97f
+repository_dirty=false
+backend=buildbox
+build_profile=full
+buildbox_job=c5e0bdd36623ea2d3378d6f8e0467b0e4dd0d97f-full-m0
+artifact=linux-7.1.3-gemini-247f89de72e3
+kernel_release=7.1.3-gemini
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=247f89de72e37f64f3de6e3cb2eb49566e7477708699a0cd0b6330e6be74e80c
+config_sha256=d8a4d95723824a07bf50aab07795a05bb5b7244d88a969073b7629bc33dac24f
+patch_series=patches/series
+patch_count=246
+dtb_count=119
+image_gzip_sha256=2416c6ef01a15faad5cb728a98aa4b5ea700f4d277d086319cd8fe09c68887ae
+sha256sums=passed
+package_fetch=validated-package-only
+package_path=artifacts/buildbox/c5e0bdd36623ea2d3378d6f8e0467b0e4dd0d97f/linux-7.1.3-gemini-247f89de72e3
+patch_0257=ABI_1;explicit_external_register_unregister;bridge_context_pinned;owner_identity_pinned;teardown_guard;default_off
+vendor_setter_called=none
+provider_registration=none
+runtime_owner_registration=none
+hardware_write=none
+device_action=none
+boot_candidate=false
+runtime_evidence=none
+hardware_support_claim=NONE
+cpu8_cpu9_admission=closed
+observation=The repaired 0257 handoff applies after 0256, the full 246-patch project series compiles on Buildbox, all 119 DTBs and package checksums pass, and only the validated package is fetched.
+observation=The registration callback remains an explicit external action; the bridge is default-off and performs no vendor setter, provider, MMIO, firmware, or device operation.
+decision=vendor_writer_registration_handoff_compile_validated;runtime_owner_registration_and_invalidation_remain_separate_and_closed
+next=review_a_real_vendor_aware_caller_and_complete_runtime_invalidation_coverage_before_any_device_candidate
