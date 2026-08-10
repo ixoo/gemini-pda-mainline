@@ -2510,6 +2510,17 @@ remain closed. The next ordered implementation is still the real callback
 provider for efuse/PTP identity, all PPM/CCI rows and limits, live VPROC/VSRAM,
 and a single transition-lock generation source.
 
+Patch `0237` now adds the next narrowly bounded source layer: a read-only
+NVMEM cell for the vendor efuse identity words, the documented PTP identity
+decode, and pure CSPM VPROC/VSRAM code-to-microvolt converters. Buildbox
+validated clean revision `85e96f7` with 226 patches, 119 DTBs, package
+checksums, and the fetched package; see the [efuse/rail helper receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/efuse-rail-helper-buildbox-20260810.txt).
+This does not read efuse MMIO, write a rail, build an OPP table, register the
+provider, or admit CPU8/CPU9. The next ordered implementation remains the
+source-backed PPM/CCI rows and limits, live rail callbacks, and one shared
+transition generation/lock; only after those pass can provider registration,
+runtime validation, and device boot be reconsidered.
+
 Required evidence:
 
 - provider registration performs no register-data write;
