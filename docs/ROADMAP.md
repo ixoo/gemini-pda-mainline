@@ -2600,6 +2600,14 @@ DTBs passed checksums, and only the validated package was fetched. The exact
 records this compile-only rerun; it does not change the dormant owner/provider
 boundary or reopen CPU8/CPU9 admission.
 
+A bounded content scan of the named Gemian surfaces found no attributable
+generation, epoch, transition, owner, mutex, or atomic token. Generic clock
+debug output was the only source of `lock` matches and does not establish a
+DVFSP owner; the [token-content receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/runtime-owner-token-content-probe-20260810.txt)
+retains only bounded labels and scan metadata. The procfs/debugfs discovery branch is now
+closed; implementation must proceed through a real mainline callback/provider
+owner, not a scraped endpoint.
+
 Required evidence:
 
 - provider registration performs no register-data write;

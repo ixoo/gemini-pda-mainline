@@ -851,3 +851,10 @@ DTBs passed checksums, and only the validated package was fetched. The exact
 receipt is [recorded here](results/source-runtime-gates-buildbox-full-20260810.txt).
 This rerun changes no runtime or hardware boundary; the owner/provider remain
 dormant and CPU8/CPU9 admission remains closed.
+
+A bounded content scan of the same named Gemian surfaces found no attributable
+generation, epoch, transition, owner, mutex, or atomic token. The only `lock`
+matches came from generic clock-debug output and cannot establish a DVFSP
+transition owner; the [token-content receipt](results/runtime-owner-token-content-probe-20260810.txt)
+retains only bounded labels and scan metadata. This closes the procfs/debugfs discovery path;
+the next owner work must be a real mainline callback/provider boundary.

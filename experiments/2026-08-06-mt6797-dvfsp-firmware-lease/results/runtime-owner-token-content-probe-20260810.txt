@@ -1,0 +1,25 @@
+# Gemian runtime owner token-content probe
+
+generated_utc=2026-08-10T08:05:27Z
+claim=READ_ONLY_GEMIAN_DVFSP_RUNTIME_OWNER_TOKEN_CONTENT_V1
+target=gemini@192.168.1.50
+transport=ssh
+device_action=none
+hardware_write=none
+backup=none
+scan_limit=4096_bytes_per_surface
+scan_roots=/proc/ppm;/proc/cpufreq;/proc/eem;/sys/kernel/debug/clk
+sampled_file_count=36
+tokens_scanned=generation;epoch;transition;lock;owner;mutex;atomic
+procfs_token_hits=none
+generic_clock_lock_paths=/sys/kernel/debug/clk/clk_dump;/sys/kernel/debug/clk/clk_orphan_summary;/sys/kernel/debug/clk/clk_summary
+generic_clock_lock_attribution=none
+decision=no_authoritative_generation_epoch_transition_owner_mutex_or_atomic_token;generic_clock_lock_labels_unattributed
+provider=none
+cpu8_cpu9_admission=closed
+boot_candidate=false
+
+Only generic clock-debug surfaces matched the word `lock`; no PPM, cpufreq,
+or EEM surface exposed an attributable generation, epoch, transition, owner,
+mutex, or atomic token. Raw payloads were not retained. The generic matches do
+not establish a DVFSP transition lock or coherent state owner.
