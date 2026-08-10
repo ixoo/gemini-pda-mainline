@@ -302,7 +302,7 @@ index 147b673723d7fa417685a3c2b06cbe75100abaaf288663b08795efc04414f4bc..00000000
  #include <linux/types.h>
 +#include "mt6797-dvfsp-vendor-state.h"
  #include <linux/time.h>
-@@ -6572,6 +6572,55 @@
+@@ -6573,6 +6573,55 @@
  MODULE_DESCRIPTION("MediaTek EEM Driver v0.3");
  MODULE_LICENSE("GPL");
  #ifdef EARLY_PORTING
@@ -370,7 +370,7 @@ index 89e8e20c62b8c5d8b45a63563a7c22b1e927712744bb243d05ca6589496bb9c2..00000000
  
  
  #define PPM_TIMER_INTERVAL_MS		(1000)
-@@ -1594,5 +1594,68 @@
+@@ -1595,5 +1595,68 @@
  arch_initcall(ppm_main_init);
  module_exit(ppm_main_exit);
  
