@@ -991,3 +991,17 @@ sites are not wired, no owner/provider was registered, no device was booted or
 written, and CPU8/CPU9 admission remains closed. The next gate is the
 attributable writer integration that supplies the existing callbacks under this
 shared boundary, followed by a separate read-only runtime registration check.
+
+A bounded source-only audit at the pinned public Gemian revision now records the
+actual PTP-table, voltage, and PPM writer call sites and their single-slot
+callback behavior; see the [writer call-site audit](results/vendor-writer-callsite-audit-20260810.txt).
+It finds no shared transition-generation field or existing transition owner, so
+an observer-side bridge remains unsafe. Patch `0251` therefore binds the
+dormant writer contract to the resource owner's mutex and generation, composes
+it into the cooperative owner adapter, and refuses unbind while a writer
+transaction is held. This is still source/contract work only: no vendor payload
+was copied, no setter was called, no provider or runtime owner was registered,
+no device was booted or written, and CPU8/CPU9 admission remains closed. The
+next gate is Buildbox validation of the exact committed series, then an
+attributable vendor-aware writer integration and separate read-only runtime
+registration evidence.

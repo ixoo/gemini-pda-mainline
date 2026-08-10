@@ -1,0 +1,303 @@
+From 0000000000000000000000000000000000000251 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 10 Aug 2026 21:00:00 -0400
+Subject: [PATCH] soc: mediatek: bind vendor writer to shared owner generation
+
+Make the cooperative MT6797 writer borrow both the transition mutex and the
+generation storage from the existing resource owner. Compose that writer into
+the vendor-owner adapter so a future vendor integration cannot accidentally
+publish a second epoch. Extend hardware-free KUnit coverage to prove the shared
+generation, overflow refusal, and bind/unbind lifetime boundary.
+
+This remains an experiment-only cooperation contract. It does not implement a
+vendor driver, call a single-slot setter, perform MMIO, register a provider, or
+admit CPU8/CPU9.
+---
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c | 22 +++++++++++++++++
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c      | 17 ++++++++++++-
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-kunit-test.c | 28 +++++++++++++++-------
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c    | 14 ++++++-----
+ include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h |  4 ++++
+ include/linux/soc/mediatek/mt6797-dvfsp-vendor-writer.h |  3 ++-
+ 6 files changed, 67 insertions(+), 16 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
+index d2b12444763d3382cc8cb673afdef47f1e5d4201..417235229287146cc8e6263f09b26ca74dfa730b 100644
+--- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
+@@ -191,6 +191,19 @@ mt6797_dvfsp_vendor_test_provider_ops = {
+ 	.invalidate = mt6797_dvfsp_vendor_test_invalidate,
+ };
+ 
++static int mt6797_dvfsp_vendor_test_writer_provenance(
++	void *context, struct mt6797_dvfsp_state_provenance *provenance)
++{
++	mt6797_dvfsp_vendor_test_callbacks++;
++	return -EOPNOTSUPP;
++}
++
++static const struct mt6797_dvfsp_vendor_writer_ops
++mt6797_dvfsp_vendor_test_writer_ops = {
++	.abi = MT6797_DVFSP_VENDOR_WRITER_ABI,
++	.read_provenance = mt6797_dvfsp_vendor_test_writer_provenance,
++};
++
+ static const struct mt6797_dvfsp_vendor_owner_ops
+ mt6797_dvfsp_vendor_test_owner_ops = {
+ 	.abi = MT6797_DVFSP_VENDOR_OWNER_ABI,
+@@ -198,6 +211,7 @@ mt6797_dvfsp_vendor_test_owner_ops = {
+ 	.ppm_ops = &mt6797_dvfsp_vendor_test_ppm_ops,
+ 	.live_ops = &mt6797_dvfsp_vendor_test_live_ops,
+ 	.provider_ops = &mt6797_dvfsp_vendor_test_provider_ops,
++	.writer_ops = &mt6797_dvfsp_vendor_test_writer_ops,
+ };
+ 
+ static void mt6797_dvfsp_vendor_owner_rejects_incomplete(
+@@ -224,6 +238,7 @@ static void mt6797_dvfsp_vendor_owner_binds_and_unbinds(
+ 	struct mt6797_dvfsp_vendor_test_devices devices = { };
+ 	struct mt6797_dvfsp_state_source_devices tuple = { };
+ 	struct mt6797_dvfsp_state_owner_ops state_ops = { };
++	u64 generation;
+ 
+ 	mt6797_dvfsp_vendor_test_callbacks = 0;
+ 	mt6797_dvfsp_vendor_test_init_devices(&devices);
+@@ -238,6 +253,9 @@ static void mt6797_dvfsp_vendor_owner_binds_and_unbinds(
+ 			0x67970022), 0);
+ 	KUNIT_EXPECT_TRUE(test, owner.bound);
+ 	KUNIT_EXPECT_TRUE(test, owner.provider.initialized);
++	KUNIT_EXPECT_TRUE(test, owner.writer.initialized);
++	KUNIT_EXPECT_PTR_EQ(test, owner.writer.generation,
++		&resource_owner.generation);
+ 	KUNIT_EXPECT_PTR_EQ(test, owner.resource_owner, &resource_owner);
+ 	KUNIT_EXPECT_PTR_EQ(test, owner.provider.ppm_source.ops,
+ 			&mt6797_dvfsp_vendor_test_ppm_ops);
+@@ -245,6 +263,10 @@ static void mt6797_dvfsp_vendor_owner_binds_and_unbinds(
+ 		&owner, &state_ops), 0);
+ 	KUNIT_EXPECT_TRUE(test, !!state_ops.snapshot);
+ 	KUNIT_EXPECT_EQ(test, mt6797_dvfsp_vendor_test_callbacks, 0U);
++	KUNIT_ASSERT_EQ(test,
++		mt6797_dvfsp_vendor_writer_begin(&owner.writer, &generation), 0);
++	KUNIT_EXPECT_EQ(test, mt6797_dvfsp_vendor_owner_unbind(&owner), -EBUSY);
++	KUNIT_ASSERT_EQ(test, mt6797_dvfsp_vendor_writer_abort(&owner.writer), 0);
+ 	KUNIT_ASSERT_EQ(test, mt6797_dvfsp_vendor_owner_unbind(&owner), 0);
+ 	KUNIT_EXPECT_FALSE(test, owner.bound);
+ 	KUNIT_EXPECT_EQ(test, mt6797_dvfsp_vendor_test_callbacks, 1U);
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c
+index fad197cbab5b62656696c5a7bb591a8b915891b6..10134c6e2c462588822f0d2802ac1ad5f8769e40 100644
+--- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c
+@@ -37,7 +37,10 @@ static int mt6797_dvfsp_vendor_owner_ops_check(
+ 	    !ops->provider_ops ||
+ 	    ops->provider_ops->abi != MT6797_DVFSP_CALIBRATED_SOURCE_ABI ||
+ 	    !ops->provider_ops->fill_calibration ||
+-	    !ops->provider_ops->invalidate)
++	    !ops->provider_ops->invalidate ||
++	    !ops->writer_ops ||
++	    ops->writer_ops->abi != MT6797_DVFSP_VENDOR_WRITER_ABI ||
++	    !ops->writer_ops->read_provenance)
+ 		return -EINVAL;
+ 
+ 	return 0;
+@@ -74,6 +77,15 @@ int mt6797_dvfsp_vendor_owner_bind(
+ 	owner->ppm_source.ops = owner->ops.ppm_ops;
+ 	owner->ppm_source.context = owner->ops.ppm_context;
+ 
++	ret = mt6797_dvfsp_vendor_writer_init(&owner->writer,
++		&resource_owner->transition_lock, &resource_owner->generation,
++		owner->ops.writer_ops, owner->ops.writer_context, owner_handle,
++		transition_handle);
++	if (ret) {
++		memset(owner, 0, sizeof(*owner));
++		return ret;
++	}
++
+ 	ret = mt6797_dvfsp_calibrated_provider_bind_sources(
+ 		&owner->provider, resource_owner, &owner->identity_source,
+ 		&owner->live_source, &owner->ppm_source, owner->ops.provider_ops,
+@@ -95,6 +107,9 @@ int mt6797_dvfsp_vendor_owner_unbind(
+ 
+ 	if (!owner || !owner->bound)
+ 		return -EINVAL;
++	if (owner->writer.update_held)
++		return -EBUSY;
++
+ 	ret = mt6797_dvfsp_calibrated_provider_exit(&owner->provider);
+ 	if (ret)
+ 		return ret;
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-kunit-test.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-kunit-test.c
+index d46e0c8c83663e365ac2d46576af0a57489b35fd..69a94ff264374155475fc7171bf7bbd5f39df23b 100644
+--- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-kunit-test.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-kunit-test.c
+@@ -36,15 +36,15 @@ static void mt6797_dvfsp_vendor_writer_rejects_incomplete(
+ {
+ 	struct mt6797_dvfsp_vendor_writer writer = { };
+ 	struct mutex lock;
++	u64 shared_generation = 1;
+ 
+ 	mutex_init(&lock);
+ 	KUNIT_EXPECT_EQ(test,
+-		mt6797_dvfsp_vendor_writer_init(&writer, &lock, NULL, NULL, 1, 2),
+-		-EINVAL);
++		mt6797_dvfsp_vendor_writer_init(&writer, &lock, &shared_generation,
++			NULL, NULL, 1, 2), -EINVAL);
+ 	KUNIT_EXPECT_EQ(test,
+-		mt6797_dvfsp_vendor_writer_init(&writer, &lock,
+-			&mt6797_dvfsp_vendor_writer_test_ops, NULL, 0, 2),
+-		-EINVAL);
++		mt6797_dvfsp_vendor_writer_init(&writer, &lock, &shared_generation,
++			&mt6797_dvfsp_vendor_writer_test_ops, NULL, 0, 2), -EINVAL);
+ 	KUNIT_EXPECT_FALSE(test, writer.initialized);
+ }
+ 
+@@ -64,14 +64,15 @@ static void mt6797_dvfsp_vendor_writer_serializes_generation(
+ 	u64 owner_handle;
+ 	u64 transition_handle;
+ 	unsigned int calls = 0;
++	u64 shared_generation = 1;
+ 
+ 	mutex_init(&lock);
+ 	bad_ops.abi = 99;
+ 	KUNIT_EXPECT_EQ(test,
+-		mt6797_dvfsp_vendor_writer_init(&writer, &lock, &bad_ops,
+-			&calls, 1, 2), -EINVAL);
++		mt6797_dvfsp_vendor_writer_init(&writer, &lock, &shared_generation,
++			&bad_ops, &calls, 1, 2), -EINVAL);
+ 	KUNIT_ASSERT_EQ(test,
+-		mt6797_dvfsp_vendor_writer_init(&writer, &lock,
++		mt6797_dvfsp_vendor_writer_init(&writer, &lock, &shared_generation,
+ 			&mt6797_dvfsp_vendor_writer_test_ops, &calls, 1, 2), 0);
+ 	KUNIT_EXPECT_EQ(test,
+ 		mt6797_dvfsp_vendor_writer_read_generation(&writer, &clock,
+@@ -104,6 +105,17 @@ static void mt6797_dvfsp_vendor_writer_serializes_generation(
+ 			&calibration, &cspm, &ppm, &generation, &owner_handle,
+ 			&transition_handle, &provenance), 0);
+ 	KUNIT_EXPECT_EQ(test, generation, (u64)2);
++
++	shared_generation = ~0ULL;
++	KUNIT_ASSERT_EQ(test,
++		mt6797_dvfsp_vendor_writer_begin(&writer, &generation), 0);
++	KUNIT_EXPECT_EQ(test, generation, ~0ULL);
++	KUNIT_EXPECT_EQ(test,
++		mt6797_dvfsp_vendor_writer_commit(&writer), -EOVERFLOW);
++	KUNIT_EXPECT_TRUE(test, writer.update_held);
++	KUNIT_ASSERT_EQ(test,
++		mt6797_dvfsp_vendor_writer_abort(&writer), 0);
++	KUNIT_EXPECT_EQ(test, shared_generation, ~0ULL);
+ }
+ 
+ static struct kunit_case mt6797_dvfsp_vendor_writer_test_cases[] = {
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c
+index be8ec9335431589e8c4b5adba4df3622426d24f1..373c4b45f34887785b895c9a18e8999c878723a8 100644
+--- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c
+@@ -19,6 +19,7 @@ static int mt6797_dvfsp_vendor_writer_check(
+ 	const struct mt6797_dvfsp_vendor_writer *writer)
+ {
+ 	if (!writer || !writer->initialized || !writer->transition_lock ||
++	    !writer->generation ||
+ 	    writer->ops.abi != MT6797_DVFSP_VENDOR_WRITER_ABI ||
+ 	    !writer->ops.read_provenance || !writer->owner_handle ||
+ 	    !writer->transition_handle)
+@@ -30,10 +31,11 @@ static int mt6797_dvfsp_vendor_writer_check(
+ int mt6797_dvfsp_vendor_writer_init(
+ 	struct mt6797_dvfsp_vendor_writer *writer,
+ 	struct mutex *transition_lock,
++	u64 *generation,
+ 	const struct mt6797_dvfsp_vendor_writer_ops *ops,
+ 	void *context, u64 owner_handle, u64 transition_handle)
+ {
+-	if (!writer || !transition_lock || !ops ||
++	if (!writer || !transition_lock || !generation || !ops ||
+ 	    ops->abi != MT6797_DVFSP_VENDOR_WRITER_ABI ||
+ 	    !ops->read_provenance || !owner_handle || !transition_handle)
+ 		return -EINVAL;
+@@ -42,7 +44,7 @@ int mt6797_dvfsp_vendor_writer_init(
+ 	writer->transition_lock = transition_lock;
+ 	writer->ops = *ops;
+ 	writer->context = context;
+-	writer->generation = 1;
++	writer->generation = generation;
+ 	writer->owner_handle = owner_handle;
+ 	writer->transition_handle = transition_handle;
+ 	writer->initialized = true;
+@@ -67,7 +69,7 @@ int mt6797_dvfsp_vendor_writer_begin(
+ 	}
+ 
+ 	writer->update_held = true;
+-	*generation = writer->generation;
++	*generation = *writer->generation;
+ 	return 0;
+ }
+ EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_writer_begin);
+@@ -81,10 +83,10 @@ int mt6797_dvfsp_vendor_writer_commit(
+ 		return ret;
+ 	if (!writer->update_held)
+ 		return -EINVAL;
+-	if (writer->generation == ~0ULL)
++	if (*writer->generation == ~0ULL)
+ 		return -EOVERFLOW;
+ 
+-	writer->generation++;
++	(*writer->generation)++;
+ 	writer->update_held = false;
+ 	mutex_unlock(writer->transition_lock);
+ 	return 0;
+@@ -135,7 +137,7 @@ int mt6797_dvfsp_vendor_writer_read_generation(
+ 	    !provenance->calibration_handle)
+ 		return -EPROTO;
+ 
+-	*generation = READ_ONCE(writer->generation);
++	*generation = READ_ONCE(*writer->generation);
+ 	*owner_handle = writer->owner_handle;
+ 	*transition_handle = writer->transition_handle;
+ 	return 0;
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h
+index 0eeeecd0ec4cae595da504a0f647960f0de46435..3e0463696d66d16ba4bd2feec8380b20766b2f05 100644
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h
+@@ -5,6 +5,7 @@
+ #include <linux/types.h>
+ 
+ #include <linux/soc/mediatek/mt6797-dvfsp-calibrated-provider.h>
++#include <linux/soc/mediatek/mt6797-dvfsp-vendor-writer.h>
+ 
+ #define MT6797_DVFSP_VENDOR_OWNER_ABI	1
+ 
+@@ -23,6 +24,8 @@ struct mt6797_dvfsp_vendor_owner_ops {
+ 	void *live_context;
+ 	const struct mt6797_dvfsp_calibrated_provider_source_ops *provider_ops;
+ 	void *provider_context;
++	const struct mt6797_dvfsp_vendor_writer_ops *writer_ops;
++	void *writer_context;
+ };
+ 
+ /*
+@@ -36,6 +39,7 @@ struct mt6797_dvfsp_vendor_owner {
+ 	struct mt6797_dvfsp_live_source live_source;
+ 	struct mt6797_dvfsp_ppm_source ppm_source;
+ 	struct mt6797_dvfsp_calibrated_provider provider;
++	struct mt6797_dvfsp_vendor_writer writer;
+ 	u64 owner_handle;
+ 	u64 transition_handle;
+ 	bool bound;
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-writer.h b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-writer.h
+index c647a926514c6b381ea0a4a90a3be7a7fb98b176..19d9899d1053d7d001daf9c156647b0578dd708f 100644
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-writer.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-writer.h
+@@ -21,7 +21,7 @@ struct mt6797_dvfsp_vendor_writer {
+ 	struct mutex *transition_lock;
+ 	struct mt6797_dvfsp_vendor_writer_ops ops;
+ 	void *context;
+-	u64 generation;
++	u64 *generation;
+ 	u64 owner_handle;
+ 	u64 transition_handle;
+ 	bool initialized;
+@@ -31,6 +31,7 @@ struct mt6797_dvfsp_vendor_writer {
+ int mt6797_dvfsp_vendor_writer_init(
+ 	struct mt6797_dvfsp_vendor_writer *writer,
+ 	struct mutex *transition_lock,
++	u64 *generation,
+ 	const struct mt6797_dvfsp_vendor_writer_ops *ops,
+ 	void *context, u64 owner_handle, u64 transition_handle);
+ 

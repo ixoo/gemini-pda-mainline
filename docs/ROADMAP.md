@@ -2777,6 +2777,18 @@ the actual vendor-aware writer sites, followed by a separate read-only runtime
 registration check proving that those writers supply the callback table and
 share the transition generation.
 
+A bounded source-only audit at the pinned public Gemian revision records the
+actual PTP-table, voltage, and PPM writer call sites and confirms that the
+legacy setters are single callback slots with no shared transition-generation
+field or existing transition owner; see the [writer call-site audit](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-writer-callsite-audit-20260810.txt).
+Patch `0251` binds the dormant writer contract to the resource owner's mutex
+and generation, composes it into the cooperative owner adapter, and refuses
+unbind while a writer transaction is held. This remains source/contract work:
+there is no vendor payload, setter call, provider/runtime registration, device
+action, or CPU8/CPU9 admission. The next ordered action is Buildbox validation
+of the exact committed series; only then can attributable vendor-aware writer
+integration and separate read-only runtime registration evidence proceed.
+
 Required evidence:
 
 - provider registration performs no register-data write;
