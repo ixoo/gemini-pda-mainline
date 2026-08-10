@@ -1,0 +1,103 @@
+From 0000000000000000000000000000000000000005 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 10 Aug 2026 22:20:00 -0400
+Subject: [PATCH] power: require shared owner identity for vendor writer bridge
+
+Make the clean-room MT6797 vendor writer bridge require an explicit owner and
+transition identity from its registering callbacks. The bridge keeps those
+identities in each transaction and refuses a registration that cannot prove it
+is using the same shared generation domain as the read-only state adapter.
+
+This identity callback is metadata only: it performs no vendor setter, MMIO,
+provider registration, or device operation. The bridge remains unregistered
+by default, and the actual mainline owner still has to supply the callbacks.
+This is an experiment-only cooperation contract and not submission-ready.
+---
+ drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c | 18 ++++++++++++++++
+ drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h |  8 ++++++++
+ 2 files changed, 26 insertions(+)
+
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
+index b8dfff0b1..c4f3e6a21 100644
+--- a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
++++ b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
+@@ -22,7 +22,8 @@ static bool gemini_mt6797_dvfsp_vendor_writer_ops_valid(
+ 	const struct gemini_mt6797_dvfsp_vendor_writer_ops *ops)
+ {
+ 	return ops && ops->abi == GEMINI_MT6797_DVFSP_VENDOR_WRITER_ABI &&
+-		ops->begin && ops->commit && ops->abort;
++		ops->begin && ops->commit && ops->abort &&
++		ops->read_identity;
+ }
+@@ -74,6 +75,8 @@ int gemini_mt6797_dvfsp_vendor_writer_begin(
+ 	const struct gemini_mt6797_dvfsp_vendor_writer_ops *ops;
+ 	void *context;
+ 	int ret;
++	u64 owner_handle;
++	u64 transition_handle;
+ 
+ 	if (!transaction ||
+@@ -84,6 +87,8 @@ int gemini_mt6797_dvfsp_vendor_writer_begin(
+ 
+ 	transaction->site = GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_COUNT;
+ 	transaction->generation = 0;
++	transaction->owner_handle = 0;
++	transaction->transition_handle = 0;
+ 	transaction->active = false;
+ 
+ 	mutex_lock(&gemini_mt6797_dvfsp_vendor_writer_lock);
+@@ -93,6 +98,12 @@ int gemini_mt6797_dvfsp_vendor_writer_begin(
+ 		mutex_unlock(&gemini_mt6797_dvfsp_vendor_writer_lock);
+ 		return -ENODEV;
+ 	}
++	ret = ops->read_identity(context, &owner_handle, &transition_handle);
++	if (ret || !owner_handle || !transition_handle) {
++		mutex_unlock(&gemini_mt6797_dvfsp_vendor_writer_lock);
++		return ret ? ret : -EPROTO;
++	}
++
+ 	ret = ops->begin(context, site, &transaction->generation);
+ 	if (ret) {
+@@ -101,6 +112,8 @@ int gemini_mt6797_dvfsp_vendor_writer_begin(
+ 
+ 	transaction->site = site;
++	transaction->owner_handle = owner_handle;
++	transaction->transition_handle = transition_handle;
+ 	transaction->active = true;
+ 	return 0;
+@@ -138,6 +151,8 @@ int gemini_mt6797_dvfsp_vendor_writer_finish(
+ 
+ 	transaction->site = GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_COUNT;
+ 	transaction->generation = 0;
++	transaction->owner_handle = 0;
++	transaction->transition_handle = 0;
+ 	transaction->active = false;
+ 	mutex_unlock(&gemini_mt6797_dvfsp_vendor_writer_lock);
+ 	return ret;
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h
+index feca4ef32..f0a3b5c87 100644
+--- a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h
++++ b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h
+@@ -20,11 +20,13 @@ enum gemini_mt6797_dvfsp_vendor_writer_site {
+ 	GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_COUNT,
+ };
+ 
+-#define GEMINI_MT6797_DVFSP_VENDOR_WRITER_ABI	1
++#define GEMINI_MT6797_DVFSP_VENDOR_WRITER_ABI	2
+ 
+ struct gemini_mt6797_dvfsp_vendor_writer_transaction {
+ 	enum gemini_mt6797_dvfsp_vendor_writer_site site;
+ 	u64 generation;
++	u64 owner_handle;
++	u64 transition_handle;
+ 	bool active;
+ };
+@@ -36,6 +38,8 @@ struct gemini_mt6797_dvfsp_vendor_writer_ops {
+ 	int (*abort)(void *context,
+ 		     enum gemini_mt6797_dvfsp_vendor_writer_site site,
+ 		     u64 generation);
++	int (*read_identity)(void *context, u64 *owner_handle,
++			    u64 *transition_handle);
+ };
+-- 
+2.39.5

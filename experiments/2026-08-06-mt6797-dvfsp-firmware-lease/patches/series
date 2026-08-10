@@ -2,3 +2,4 @@
 0002-mt6797-voltage-observer-outer-boundary.patch
 0003-mt6797-lock-held-observer-contexts.patch
 0004-mt6797-source-backed-read-only-adapters.patch
+0005-mt6797-vendor-writer-shared-owner-identity.patch
