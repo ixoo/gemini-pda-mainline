@@ -3034,6 +3034,18 @@ closed. The next ordered gate is still a separate read-only runtime
 owner-registration review after the shared generation and every invalidation
 path are proven.
 
+The exact vendor-boundary candidate `ee98766` was then applied to the pinned
+vendor revision `d388d350` on Buildbox. All five experiment patches applied
+cleanly, the vendor `gemini_modular_defconfig` passed, and the writer bridge,
+cpufreq, hybrid CSPM, EEM, and PPM objects all compiled; see the [shared-owner
+identity Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-writer-shared-owner-identity-buildbox-20260810.txt).
+The new bridge requires explicit nonzero owner and transition handles before a
+vendor transaction begins, but remains unregistered and performs no setter,
+provider, or device action. This closes the identity-contract gap without
+claiming runtime ownership. The next ordered action is the actual reviewable
+owner callback binding, followed by separate read-only runtime owner evidence;
+CPU8/CPU9 admission remains closed.
+
 Required evidence:
 
 - provider registration performs no register-data write;

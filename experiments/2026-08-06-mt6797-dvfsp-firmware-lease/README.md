@@ -117,6 +117,7 @@ be copied directly into a mainline failure/PM path.
 - [PCM start contract result](results/pcm-start-contract-20260806.txt)
 - [Source-backed vendor state-adapter Buildbox validation](results/vendor-state-adapters-buildbox-20260810.txt)
 - [Current-head full-profile Buildbox resume](results/buildbox-resume-a463951-20260810.txt)
+- [Vendor writer shared-owner identity Buildbox validation](results/vendor-writer-shared-owner-identity-buildbox-20260810.txt)
 
 Run from the repository root:
 
