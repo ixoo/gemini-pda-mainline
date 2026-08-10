@@ -1101,3 +1101,11 @@ This commit records runtime symbol identity only, so the result adds no new
 hardware claim: vendor callers remain unbound, runtime owner registration is
 absent, no device was booted or written, and CPU8/CPU9 admission remains
 closed.
+
+The bounded Buildbox source search found no existing vendor-aware implementation
+of `mt6797_dvfsp_vendor_writer_run_site`, and the pinned public vendor revision
+is not present as a managed Buildbox checkout. The [integration handoff](results/vendor-writer-integration-handoff-20260810.txt)
+therefore records the exact external source/cooperation input and acceptance
+checks still required. This is an explicit integration gap, not runtime or
+hardware evidence: vendor source remains uncopied, no setter/provider was
+called, no device action occurred, and CPU8/CPU9 admission remains closed.
