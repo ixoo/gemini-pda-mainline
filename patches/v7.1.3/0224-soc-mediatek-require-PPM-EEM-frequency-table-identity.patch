@@ -1,0 +1,82 @@
+From 0000000000000000000000000000000000000224 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 10 Aug 2026 06:20:00 -0400
+Subject: [PATCH] soc: mediatek: require PPM/EEM frequency table identity
+
+The protected state source already verifies that a live physical-cluster
+frequency belongs to the current PPM table, but the EEM calibration callback
+can still supply a separately sampled 16-entry frequency table. Require the
+three physical calibration clusters to match the immutable PPM table exactly.
+The vendor PPM table is descending (index zero is the highest frequency),
+while the calibration builder stores the resulting state table in ascending
+order, so the comparison uses the builder's documented reversal.
+
+CCI remains outside this check because the vendor PPM snapshot has no CCI
+frequency table. This is a fail-closed source-validation boundary: it adds no
+PPM row limits, voltage conversion, generation source, provider registration,
+hardware operation, firmware action, device boot, or CPU8/CPU9 admission. It
+is experiment-only and not submission-ready.
+---
+ drivers/soc/mediatek/mt6797-dvfsp-state-source.c | 34 ++++++++++++++++++++++++
+ 1 file changed, 34 insertions(+)
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-source.c b/drivers/soc/mediatek/mt6797-dvfsp-state-source.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-state-source.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-state-source.c
+@@ -27,6 +27,38 @@ static int mt6797_dvfsp_state_source_check(
+ 	return 0;
+ }
+
++static int mt6797_dvfsp_state_source_ppm_calibration_match(
++	const struct mt6797_dvfsp_ppm_snapshot *ppm,
++	const struct mt6797_dvfsp_calibration_state *calibration)
++{
++	static const u32 cluster_map[MT6797_DVFSP_PPM_CLUSTER_COUNT] = {
++		MT6797_DVFSP_STATE_CLUSTER_LL,
++		MT6797_DVFSP_STATE_CLUSTER_L,
++		MT6797_DVFSP_STATE_CLUSTER_B,
++	};
++	unsigned int ppm_cluster;
++
++	if (!ppm || !calibration || calibration->abi !=
++	    MT6797_DVFSP_CALIBRATION_STATE_ABI)
++		return -EINVAL;
++
++	for (ppm_cluster = 0;
++	     ppm_cluster < MT6797_DVFSP_PPM_CLUSTER_COUNT; ppm_cluster++) {
++		const struct mt6797_dvfsp_calibration_cluster *cluster =
++			&calibration->cluster[cluster_map[ppm_cluster]];
++		unsigned int row;
++
++		if (cluster->table_count != MT6797_DVFSP_PPM_TABLE_ENTRIES)
++			return -EPROTO;
++		for (row = 0; row < MT6797_DVFSP_PPM_TABLE_ENTRIES; row++) {
++			const struct mt6797_dvfsp_calibration_table_entry *entry =
++				&cluster->table[MT6797_DVFSP_PPM_TABLE_ENTRIES - 1 - row];
++
++			if (entry->frequency_khz !=
++			    ppm->cluster[ppm_cluster].frequency_khz[row])
++				return -EAGAIN;
++		}
++	}
++
++	return 0;
++}
+
+ int mt6797_dvfsp_state_source_snapshot(
+ 	const struct mt6797_dvfsp_state_source_ops *ops, void *context,
+ 	struct mt6797_dvfsp_state_snapshot *snapshot)
+@@ -99,6 +131,9 @@ int mt6797_dvfsp_state_source_snapshot(
+ 	ret = mt6797_eem_calibration_build(&calibration_input,
+ 					   &calibration_state);
+ 	if (ret)
+ 		return ret;
++	ret = mt6797_dvfsp_state_source_ppm_calibration_match(
++		&ppm_snapshot, &calibration_state);
++	if (ret)
++		return ret;
+
+ 	memset(&live, 0, sizeof(live));
+ 	ret = ops->fill_live(context, &clock_state, &calibration_state,
+--
+2.43.0
