@@ -591,3 +591,15 @@ result](results/eem-temperature-readback-buildbox-20260810.txt). This is a
 compile-only provider prerequisite: no EEM/PTP/PPM or PMIC/clock provider,
 generation callback, hardware operation, device boot, or CPU8/CPU9 admission
 was added.
+
+Patch `0221` extends the disabled clock readback through the vendor-mapped CSPM
+hardware-semaphore transaction. It captures the three physical-cluster limit
+words and four current-state words, then decodes the vendor OPP reversal,
+pause/enable flags, and raw VPROC/VSRAM codes without inventing voltage units;
+the CCI current word is retained but has no physical limit word. Revision
+`4fada45` applied all 210 canonical series entries on Buildbox, produced 119
+DTBs, passed package checksums, and fetched only the validated package; see the
+[CSPM live-state readback Buildbox result](results/cspm-live-state-readback-buildbox-20260810.txt).
+This remains a compile-only source prerequisite: no PPM rows, real rail/clock
+generation, provider registration, hardware operation, device boot, or CPU8/CPU9
+admission was added.

@@ -2188,6 +2188,17 @@ The next ordered work remains source-only:
    callback, hardware operation, device boot, or CPU8/CPU9 admission was added.
    The next implementation must still bind real EEM/PTP/PPM, PMIC/clock rails,
    and transition generations under one authoritative owner.
+   Patch `0221` now extends the disabled clock readback through the vendor-
+   mapped CSPM hardware-semaphore transaction. It captures the three physical-
+   cluster limit words and four current-state words, and decodes the vendor OPP
+   reversal, pause/enable flags, and raw VPROC/VSRAM codes while retaining the
+   CCI current word without fabricating a CCI limit. Revision `4fada45` applies
+   all 210 canonical entries on Buildbox, produces 119 DTBs, passes package
+   checksums, and fetches only the validated package; see the
+   [CSPM live-state readback Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/cspm-live-state-readback-buildbox-20260810.txt).
+   This remains a compile-only source prerequisite: PPM rows, real rail/clock
+   generation, provider registration, hardware operation, device boot, and
+   CPU8/CPU9 admission remain closed.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and
