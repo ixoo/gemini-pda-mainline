@@ -62,7 +62,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-source.c b/drivers/soc/medi
 +
 +	return 0;
 +}
-+ 
++
  int mt6797_dvfsp_state_source_snapshot(
  	const struct mt6797_dvfsp_state_source_ops *ops, void *context,
  	struct mt6797_dvfsp_state_snapshot *snapshot)
