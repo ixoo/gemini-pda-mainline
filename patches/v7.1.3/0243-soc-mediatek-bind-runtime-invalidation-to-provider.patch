@@ -14,26 +14,23 @@ call, provider registration, device boot, or CPU8/CPU9 admission is added.
 This is experiment-only and not submission-ready.
 ---
  drivers/soc/mediatek/mt6797-dvfsp-calibrated-provider.c | 18 ++++++++++++++++++
- drivers/soc/mediatek/mt6797-dvfsp-runtime.c             | 33 +++++++++++++++++++++++++++++++
+ drivers/soc/mediatek/mt6797-dvfsp-runtime.c             | 36 ++++++++++++++++++++++++++++++++++++
  include/linux/soc/mediatek/mt6797-dvfsp-calibrated-provider.h |  6 ++++++
- include/linux/soc/mediatek/mt6797-dvfsp-runtime.h       |  7 +++++++
- 4 files changed, 64 insertions(+)
+ include/linux/soc/mediatek/mt6797-dvfsp-runtime.h       |  6 ++++++
+ 4 files changed, 66 insertions(+)
 
 diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-runtime.h b/include/linux/soc/mediatek/mt6797-dvfsp-runtime.h
 --- a/include/linux/soc/mediatek/mt6797-dvfsp-runtime.h
 +++ b/include/linux/soc/mediatek/mt6797-dvfsp-runtime.h
-@@ -39,5 +39,12 @@ int mt6797_dvfsp_runtime_event_apply(
- 	struct mt6797_dvfsp_handoff *handoff,
- 	const struct mt6797_dvfsp_runtime_event *event,
- 	struct mt6797_dvfsp_runtime_ledger *ledger);
-+
+@@ -66,3 +66,9 @@ int mt6797_dvfsp_runtime_binding_unregister(
+ 	struct mt6797_dvfsp_runtime_binding *binding);
+ 
 +int mt6797_dvfsp_runtime_event_apply_invalidator(
 +	const struct mt6797_dvfsp_runtime_event *event,
 +	struct mt6797_dvfsp_runtime_ledger *ledger,
 +	void (*invalidate)(void *context,
 +				enum mt6797_dvfsp_state_invalidation_reason reason),
 +	void *context);
- 
  #endif /* __LINUX_SOC_MEDIATEK_MT6797_DVFSP_RUNTIME_H */
 
 diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-calibrated-provider.h b/include/linux/soc/mediatek/mt6797-dvfsp-calibrated-provider.h
@@ -58,10 +55,9 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-calibrated-provider.h b/inc
 diff --git a/drivers/soc/mediatek/mt6797-dvfsp-runtime.c b/drivers/soc/mediatek/mt6797-dvfsp-runtime.c
 --- a/drivers/soc/mediatek/mt6797-dvfsp-runtime.c
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-runtime.c
-@@ -82,5 +82,38 @@ int mt6797_dvfsp_runtime_event_apply(
- }
+@@ -85,1 +85,37 @@ int mt6797_dvfsp_runtime_event_apply(
  EXPORT_SYMBOL_GPL(mt6797_dvfsp_runtime_event_apply);
- 
++
 +int mt6797_dvfsp_runtime_event_apply_invalidator(
 +	const struct mt6797_dvfsp_runtime_event *event,
 +	struct mt6797_dvfsp_runtime_ledger *ledger,
@@ -95,8 +91,8 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-runtime.c b/drivers/soc/mediatek/
 +}
 +EXPORT_SYMBOL_GPL(mt6797_dvfsp_runtime_event_apply_invalidator);
 +
- MODULE_DESCRIPTION("MT6797 DVFSP runtime invalidation conversion");
- MODULE_LICENSE("GPL");
++MODULE_DESCRIPTION("MT6797 DVFSP runtime invalidation conversion");
++MODULE_LICENSE("GPL");
 diff --git a/drivers/soc/mediatek/mt6797-dvfsp-calibrated-provider.c b/drivers/soc/mediatek/mt6797-dvfsp-calibrated-provider.c
 --- a/drivers/soc/mediatek/mt6797-dvfsp-calibrated-provider.c
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-calibrated-provider.c
