@@ -29,8 +29,7 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h b/include/li
 +#include <linux/soc/mediatek/mt6797-dvfsp-vendor-source.h>
  #include <linux/soc/mediatek/mt6797-dvfsp-vendor-writer.h>
  #include <linux/soc/mediatek/mt6797-dvfsp-vendor-writer-bridge.h>
-@@ -40,4 +41,4 @@ struct mt6797_dvfsp_vendor_owner_lifecycle_ops {
- 	void *context);
+@@ -39,3 +39,3 @@ struct mt6797_dvfsp_vendor_owner_lifecycle_ops {
  };
  
 -#define MT6797_DVFSP_VENDOR_INTEGRATION_ABI	1
@@ -191,7 +190,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c b/drivers/soc/medi
 -	runtime_context = owner->ops.writer_runtime_context;
 +	runtime_ops = &mt6797_dvfsp_vendor_owner_runtime_adapter_ops;
 +	runtime_context = owner;
-@@ -449,4 +482,5 @@ int mt6797_dvfsp_vendor_owner_unbind(
+@@ -449,5 +482,6 @@ int mt6797_dvfsp_vendor_owner_unbind(
  	if (!owner || !owner->bound)
  		return -EINVAL;
 -	if (owner->writer_registered)
