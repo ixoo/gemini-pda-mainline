@@ -18,9 +18,9 @@ live-rail, and clock callbacks before any owner registration can succeed.
 This patch is experiment-only and not submission-ready.
 ---
  drivers/soc/mediatek/Makefile                            |   1 +
- drivers/soc/mediatek/mt6797-dvfsp-resource-owner.c      | 218 ++++++++++++++++++
- include/linux/soc/mediatek/mt6797-dvfsp-resource-owner.h |  45 +++++
- 3 files changed, 264 insertions(+)
+ drivers/soc/mediatek/mt6797-dvfsp-resource-owner.c      | 262 +++++++++++++++++++++++++++++
+ include/linux/soc/mediatek/mt6797-dvfsp-resource-owner.h |  53 +++++++
+ 3 files changed, 316 insertions(+)
  create mode 100644 drivers/soc/mediatek/mt6797-dvfsp-resource-owner.c
  create mode 100644 include/linux/soc/mediatek/mt6797-dvfsp-resource-owner.h
 
@@ -39,7 +39,7 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-resource-owner.h b/include/
 new file mode 100644
 --- /dev/null
 +++ b/include/linux/soc/mediatek/mt6797-dvfsp-resource-owner.h
-@@ -0,0 +1,45 @@
+@@ -0,0 +1,53 @@
 +/* SPDX-License-Identifier: GPL-2.0-only */
 +#ifndef __LINUX_SOC_MEDIATEK_MT6797_DVFSP_RESOURCE_OWNER_H
 +#define __LINUX_SOC_MEDIATEK_MT6797_DVFSP_RESOURCE_OWNER_H
@@ -63,6 +63,7 @@ new file mode 100644
 +	u64 transition_handle;
 +	bool initialized;
 +	bool attached;
++	bool source_bound;
 +	bool writes_disabled;
 +};
 +
@@ -74,6 +75,13 @@ new file mode 100644
 +	const struct mt6797_dvfsp_state_source_devices *devices);
 +
 +int mt6797_dvfsp_resource_owner_detach(
++	struct mt6797_dvfsp_resource_owner *owner);
++
++/* Bind a calibrated source before borrowing the attached device tuple. */
++int mt6797_dvfsp_resource_owner_bind_source(
++	struct mt6797_dvfsp_resource_owner *owner);
++
++int mt6797_dvfsp_resource_owner_unbind_source(
 +	struct mt6797_dvfsp_resource_owner *owner);
 +
 +/* The caller must hold the owner transition lock while advancing the epoch. */
@@ -89,7 +97,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-resource-owner.c b/drivers/soc/me
 new file mode 100644
 --- /dev/null
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-resource-owner.c
-@@ -0,0 +1,218 @@
+@@ -0,0 +1,262 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/*
 + * MT6797 DVFSP resource-only owner.
@@ -223,6 +231,10 @@ new file mode 100644
 +		mutex_unlock(&owner->lifecycle_lock);
 +		return -ENOENT;
 +	}
++	if (owner->source_bound) {
++		mutex_unlock(&owner->lifecycle_lock);
++		return -EBUSY;
++	}
 +
 +	mutex_lock(&owner->transition_lock);
 +	owner->attached = false;
@@ -237,6 +249,46 @@ new file mode 100644
 +	return 0;
 +}
 +EXPORT_SYMBOL_GPL(mt6797_dvfsp_resource_owner_detach);
++
++int mt6797_dvfsp_resource_owner_bind_source(
++	struct mt6797_dvfsp_resource_owner *owner)
++{
++	if (!owner || !owner->initialized)
++		return -EINVAL;
++
++	mutex_lock(&owner->lifecycle_lock);
++	if (!owner->attached) {
++		mutex_unlock(&owner->lifecycle_lock);
++		return -ENODEV;
++	}
++	if (owner->source_bound) {
++		mutex_unlock(&owner->lifecycle_lock);
++		return -EBUSY;
++	}
++	owner->source_bound = true;
++	mutex_unlock(&owner->lifecycle_lock);
++	return 0;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_resource_owner_bind_source);
++
++int mt6797_dvfsp_resource_owner_unbind_source(
++	struct mt6797_dvfsp_resource_owner *owner)
++{
++	if (!owner || !owner->initialized)
++		return -EINVAL;
++
++	mutex_lock(&owner->lifecycle_lock);
++	if (!owner->source_bound) {
++		mutex_unlock(&owner->lifecycle_lock);
++		return -ENOENT;
++	}
++	mutex_lock(&owner->transition_lock);
++	owner->source_bound = false;
++	mutex_unlock(&owner->transition_lock);
++	mutex_unlock(&owner->lifecycle_lock);
++	return 0;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_resource_owner_unbind_source);
 +
 +int mt6797_dvfsp_resource_owner_advance_generation(
 +	struct mt6797_dvfsp_resource_owner *owner)
@@ -310,3 +362,11 @@ new file mode 100644
 +MODULE_LICENSE("GPL");
 --
 2.43.0
+	struct mt6797_dvfsp_state_source_devices devices;
+	u64 generation;
+	u64 transition_handle;
+	bool initialized;
+	bool attached;
+	bool writes_disabled;
+};
+ 
