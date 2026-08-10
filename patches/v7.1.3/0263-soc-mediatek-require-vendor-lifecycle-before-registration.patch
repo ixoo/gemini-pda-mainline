@@ -11,14 +11,14 @@ the owner KUnit contract to cover the fail-closed refusal.
 This remains an experiment-only lifecycle guard; it performs no provider
 registration, firmware operation, device action, or CPU admission.
 ---
- drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c | 17 +--------------
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c | 25 +-------------------
  drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c      |  2 ++
- 2 files changed, 5 insertions(+), 14 deletions(-)
+ 2 files changed, 5 insertions(+), 22 deletions(-)
 
 diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c
 --- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c
-@@ -426,6 +426,8 @@ int mt6797_dvfsp_vendor_owner_register_writer(
+@@ -356,5 +356,7 @@ int mt6797_dvfsp_vendor_owner_register_writer(
  	if (!owner || !owner->bound || owner->writer_registered)
  		return -EINVAL;
 +	if (!owner->writer_integration_bound)
@@ -30,7 +30,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c b/drivers/soc/medi
 diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
 --- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
-@@ -334,18 +334,7 @@ static void mt6797_dvfsp_vendor_owner_binds_and_unbinds(
+@@ -500,26 +500,7 @@ static void mt6797_dvfsp_vendor_owner_binds_and_unbinds(
  	KUNIT_EXPECT_EQ(test, mt6797_dvfsp_vendor_test_callbacks, 0U);
  	KUNIT_EXPECT_EQ(test,
 -		mt6797_dvfsp_vendor_owner_register_writer(&owner), 0);
@@ -40,6 +40,14 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c b/drivers/soc
 -		mt6797_dvfsp_vendor_writer_bridge_ops());
 -	KUNIT_EXPECT_EQ(test, registration.owner_handle, (u64)0x67970023);
 -	KUNIT_EXPECT_EQ(test, registration.transition_handle, (u64)0x67970022);
+-	KUNIT_EXPECT_PTR_EQ(test, registration.runtime_ops,
+-		&mt6797_dvfsp_vendor_test_runtime_ops);
+-	KUNIT_EXPECT_PTR_EQ(test, registration.runtime_context, &registration);
+-	KUNIT_ASSERT_EQ(test, registration.runtime_ops->event(
+-		registration.runtime_context,
+-		MT6797_DVFSP_VENDOR_RUNTIME_CPU_ONLINE,
+-		MT6797_DVFSP_VENDOR_RUNTIME_CPU_NONE), 0);
+-	KUNIT_EXPECT_EQ(test, registration.runtime_event_calls, 1U);
 -	KUNIT_EXPECT_EQ(test,
 -		mt6797_dvfsp_vendor_owner_register_writer(&owner), -EINVAL);
 -	KUNIT_EXPECT_EQ(test, mt6797_dvfsp_vendor_owner_unbind(&owner), -EBUSY);
