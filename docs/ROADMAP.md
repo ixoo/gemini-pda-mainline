@@ -2593,6 +2593,13 @@ therefore keeps the gate closed until one owner supplies a transition lock,
 before/after generation, and live frequency/VPROC/VSRAM/PPM membership. No
 provider or hardware path was enabled, and CPU8/CPU9 admission remains closed.
 
+The pushed head was then rebuilt with the explicit `full` Buildbox profile:
+all 232 canonical patches applied, the arm64 Image/Gemini DTB and 119 total
+DTBs passed checksums, and only the validated package was fetched. The exact
+[full-profile receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/source-runtime-gates-buildbox-full-20260810.txt)
+records this compile-only rerun; it does not change the dormant owner/provider
+boundary or reopen CPU8/CPU9 admission.
+
 Required evidence:
 
 - provider registration performs no register-data write;

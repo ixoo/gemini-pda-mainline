@@ -91,6 +91,7 @@ LIVE_DVFS_SOURCE_RESULT = Path(__file__).resolve().parents[1] / "results/live-dv
 LIVE_RESOURCE_OWNER_BOUNDARY_RESULT = Path(__file__).resolve().parents[1] / "results/live-resource-owner-boundary-probe-20260810.txt"
 RUNTIME_OWNER_BOUNDARY_V2_RESULT = Path(__file__).resolve().parents[1] / "results/runtime-owner-boundary-v2-20260810.txt"
 RUNTIME_OWNER_LIVE_HASH_REPEAT_RESULT = Path(__file__).resolve().parents[1] / "results/runtime-owner-live-hash-repeat-20260810.txt"
+SOURCE_RUNTIME_GATES_FULL_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/source-runtime-gates-buildbox-full-20260810.txt"
 VENDOR_PPM_OWNER_BOUNDARY_RESULT = Path(__file__).resolve().parents[1] / "results/vendor-ppm-owner-boundary-20260810.txt"
 STATE_OWNER_REGISTRATION_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-registration-buildbox-20260809.txt"
 STATE_OWNER_REGISTRATION_RERUN_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-registration-buildbox-rerun-20260809.txt"
@@ -199,6 +200,7 @@ def main() -> None:
     live_resource_owner_boundary_result = LIVE_RESOURCE_OWNER_BOUNDARY_RESULT.read_text()
     runtime_owner_boundary_v2_result = RUNTIME_OWNER_BOUNDARY_V2_RESULT.read_text()
     runtime_owner_live_hash_repeat_result = RUNTIME_OWNER_LIVE_HASH_REPEAT_RESULT.read_text()
+    source_runtime_gates_full_build_result = SOURCE_RUNTIME_GATES_FULL_BUILD_RESULT.read_text()
     vendor_ppm_owner_boundary_result = VENDOR_PPM_OWNER_BOUNDARY_RESULT.read_text()
     state_owner_registration_build_result = STATE_OWNER_REGISTRATION_BUILD_RESULT.read_text()
     state_owner_registration_rerun_build_result = STATE_OWNER_REGISTRATION_RERUN_BUILD_RESULT.read_text()
@@ -2195,6 +2197,24 @@ def main() -> None:
     ):
         require(runtime_owner_live_hash_repeat_result, needle, label)
     for needle, label in (
+        ("claim=COMPILE_ONLY_MT6797_DVFSP_SOURCE_RUNTIME_GATES_FULL_PROFILE", "source-runtime-gates-full-claim"),
+        ("repository_commit=8f869a19481945875690943530611d09f0a4a084", "source-runtime-gates-full-commit"),
+        ("build_backend=buildbox", "source-runtime-gates-full-backend"),
+        ("buildbox_status=validated", "source-runtime-gates-full-status"),
+        ("resolved_profile=full", "source-runtime-gates-full-profile"),
+        ("patch_count=232", "source-runtime-gates-full-patch-count"),
+        ("dtb_count=119", "source-runtime-gates-full-dtb-count"),
+        ("sha256sums=passed", "source-runtime-gates-full-checksums"),
+        ("package_fetch=success;validated_package_only", "source-runtime-gates-full-fetch"),
+        ("registered_owner=0", "source-runtime-gates-full-no-owner"),
+        ("provider=none", "source-runtime-gates-full-no-provider"),
+        ("hardware_write=none", "source-runtime-gates-full-no-write"),
+        ("device_action=none", "source-runtime-gates-full-no-action"),
+        ("boot_candidate=false", "source-runtime-gates-full-not-candidate"),
+        ("cpu8_cpu9_admission=closed", "source-runtime-gates-full-no-admission"),
+    ):
+        require(source_runtime_gates_full_build_result, needle, label)
+    for needle, label in (
         ("claim=SOURCE_ONLY_MT6797_VENDOR_PPM_OWNER_BOUNDARY", "vendor-ppm-owner-boundary-claim"),
         ("audit_scope=managed_vm_git_show_head;vendor_source_payload_not_copied", "vendor-ppm-owner-boundary-scope"),
         ("vendor_revision=8cfe6596a503612e3332d9c26e292a19525a7f07", "vendor-ppm-owner-boundary-revision"),
@@ -2447,6 +2467,7 @@ def main() -> None:
     print("live_resource_owner_boundary_probe=20260810;vendor_cspm_eem_ppm_cpufreq_idvfs_bound;mainline_owner_absent;generation_endpoint=not_found;transition_lock_endpoint=not_found;provider=none;cpu8_cpu9_admission=closed;boot_candidate=false")
     print("runtime_owner_boundary_v2=readback_surfaces_present;generation_or_transition_lock_surface=absent;mainline_state_owner=absent;provider=none;cpu8_cpu9_admission=closed;boot_candidate=false")
     print("runtime_owner_live_hash_repeat=frequency_voltage_oppidx_changed;ppm_eem_stable;atomicity_unproven;generation_and_single_transition_lock_required;provider=none;cpu8_cpu9_admission=closed;boot_candidate=false")
+    print("source_runtime_gates_buildbox_full=validated;commit=8f869a19481945875690943530611d09f0a4a084;profile=full;patch_count=232;dtb_count=119;sha256sums=passed;package_fetch=success;validated_package_only;provider=none;registered_owner=0;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("vendor_ppm_owner_boundary=20260810;vendor_revision=8cfe6596a503612e3332d9c26e292a19525a7f07;ppm_lock=ppm_main_info.lock;cpufreq_lock=dvfs_lock;eem_locks=independent;shared_generation=absent;single_transition_lock=absent;provider=none;cpu8_cpu9_admission=closed;boot_candidate=false")
     print("pcm_adapter_contract=source-only;bounded-admission-model;callback-registration-gated")
     print("clock_owner_inventory=generic_ccf_only;protected_owner_absent;A72_observer_read_only")

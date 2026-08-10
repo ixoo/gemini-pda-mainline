@@ -844,3 +844,10 @@ receipt](results/runtime-owner-live-hash-repeat-20260810.txt); the required
 contract remains one transition lock, before/after generation, and live
 frequency/VPROC/VSRAM/PPM membership from one owner. No provider was registered,
 no hardware action occurred, and CPU8/CPU9 admission remains closed.
+
+The pushed head was also rebuilt with the explicit `full` Buildbox profile:
+all 232 canonical patches applied, the arm64 Image/Gemini DTB and 119 total
+DTBs passed checksums, and only the validated package was fetched. The exact
+receipt is [recorded here](results/source-runtime-gates-buildbox-full-20260810.txt).
+This rerun changes no runtime or hardware boundary; the owner/provider remain
+dormant and CPU8/CPU9 admission remains closed.
