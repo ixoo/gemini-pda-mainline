@@ -1,0 +1,131 @@
+From 0000000000000000000000000000000000000236 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 10 Aug 2026 17:00:00 -0400
+Subject: [PATCH] soc: mediatek: bind CSPM sample to live provider
+
+The protected clock readback already captures CSPM current OPP, raw
+VPROC/VSRAM codes, and limit state inside the same semaphore transaction, but
+the live-state callback could not consume or attribute that sample. Thread the
+decoded CSPM object into the callback and require the provider to echo its
+backend-local sample generation explicitly.
+
+Keep that sample generation distinct from the provider-owned transition
+generation: the former identifies one protected readback, while the latter
+serializes the complete clock/rail transition owner. A missing or mismatched
+echo rejects the snapshot before publication. This remains a dormant,
+read-only callback boundary with no registration, MMIO write, regulator or
+clock transition, firmware operation, device action, or CPU8/CPU9 admission.
+It is experiment-only and not submission-ready.
+---
+ drivers/soc/mediatek/mt6797-dvfsp-state-owner-source.c |  8 +++++---
+ drivers/soc/mediatek/mt6797-dvfsp-state-source.c       | 13 +++++++++++--
+ include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h |  3 ++-
+ include/linux/soc/mediatek/mt6797-dvfsp-state-source.h |  6 +++++-
+ 4 files changed, 23 insertions(+), 7 deletions(-)
+
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-state-source.h b/include/linux/soc/mediatek/mt6797-dvfsp-state-source.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-state-source.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-state-source.h
+@@ -7,6 +7,7 @@
+ #include <linux/soc/mediatek/mt6797-bigidvfs-backend.h>
+ #include <linux/soc/mediatek/mt6797-dvfsp-clock-state.h>
++#include <linux/soc/mediatek/mt6797-dvfsp-cspm-state.h>
+ #include <linux/soc/mediatek/mt6797-dvfsp-ppm.h>
+ #include <linux/soc/mediatek/mt6797-dvfsp-ppm-policy.h>
+@@ -14,7 +15,7 @@
+ #include <linux/soc/mediatek/mt6797-eem-readback.h>
+ 
+-#define MT6797_DVFSP_STATE_SOURCE_ABI		5
++#define MT6797_DVFSP_STATE_SOURCE_ABI		6
+@@ -24,6 +25,7 @@ struct mt6797_dvfsp_state_source_live {
+ struct mt6797_dvfsp_state_source_live {
++	u64 cspm_sample_generation;
+ 	u64 generation;
+ 	u64 owner_handle;
+@@ -67,6 +69,7 @@ struct mt6797_dvfsp_state_source_ops {
+ 	int (*fill_live)(void *context,
+ 				const struct mt6797_dvfsp_clock_state *clock,
+ 				const struct mt6797_dvfsp_calibration_state *calibration,
+ 				const struct mt6797_dvfsp_ppm_snapshot *ppm,
++				const struct mt6797_dvfsp_cspm_state *cspm,
+ 				struct mt6797_dvfsp_state_source_live *live);
+ };
+
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h b/include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h
+@@ -15,7 +15,7 @@
+ struct mt6797_dvfsp_handoff;
+ 
+-#define MT6797_DVFSP_STATE_OWNER_SOURCE_ABI	4
++#define MT6797_DVFSP_STATE_OWNER_SOURCE_ABI	5
+@@ -41,6 +41,7 @@ struct mt6797_dvfsp_state_owner_source_ops {
+ 	int (*fill_live)(void *context,
+ 				const struct mt6797_dvfsp_clock_state *clock,
+ 				const struct mt6797_dvfsp_calibration_state *calibration,
+ 				const struct mt6797_dvfsp_ppm_snapshot *ppm,
++				const struct mt6797_dvfsp_cspm_state *cspm,
+ 				struct mt6797_dvfsp_state_source_live *live);
+ 	void (*invalidate)(void *context,
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-source.c b/drivers/soc/mediatek/mt6797-dvfsp-state-source.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-state-source.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-state-source.c
+@@ -34,6 +34,7 @@ int mt6797_dvfsp_state_source_snapshot(
+ 	struct mt6797_dvfsp_clock_readback clock_readback;
+ 	struct mt6797_bigidvfs_readback big_readback;
+ 	struct mt6797_eem_readback eem_readback;
++	struct mt6797_dvfsp_cspm_state cspm_state;
+ 	struct mt6797_dvfsp_ptp_handoff ptp_handoff;
+ 	struct mt6797_dvfsp_ptp_state ptp_state;
+@@ -58,6 +59,11 @@ int mt6797_dvfsp_state_source_snapshot(
+ 	if (ret)
+ 		return ret;
+ 
++	memset(&cspm_state, 0, sizeof(cspm_state));
++	ret = mt6797_dvfsp_cspm_state_decode(&clock_readback, &cspm_state);
++	if (ret)
++		return ret;
++
+ 	memset(&big_readback, 0, sizeof(big_readback));
+ 	ret = ops->read_big(context, &big_readback);
+@@ -151,9 +157,12 @@ int mt6797_dvfsp_state_source_snapshot(
+ 
+ 	memset(&live, 0, sizeof(live));
+ 	ret = ops->fill_live(context, &clock_state, &calibration_state,
+-				    &ppm_snapshot, &live);
++				    &ppm_snapshot, &cspm_state, &live);
+ 	if (ret)
+ 		return ret;
++	if (!live.cspm_sample_generation ||
++	    live.cspm_sample_generation != cspm_state.sample_generation)
++		return -EAGAIN;
+ 	if (ppm_snapshot.table_epoch != calibration_state.provenance.table_epoch ||
+ 	    ppm_snapshot.table_epoch != live.provenance.table_epoch)
+ 		return -EAGAIN;
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-owner-source.c b/drivers/soc/mediatek/mt6797-dvfsp-state-owner-source.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-state-owner-source.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-state-owner-source.c
+@@ -173,14 +173,16 @@ static int mt6797_dvfsp_owner_fill_live(
+ 	void *context, const struct mt6797_dvfsp_clock_state *clock,
+ 	const struct mt6797_dvfsp_calibration_state *calibration,
+ 	const struct mt6797_dvfsp_ppm_snapshot *ppm,
++	const struct mt6797_dvfsp_cspm_state *cspm,
+ 	struct mt6797_dvfsp_state_source_live *live)
+ {
+ 	struct mt6797_dvfsp_state_owner_source *owner = context;
+ 	int ret;
+ 
+-	if (!owner || !clock || !calibration || !ppm || !live ||
++	if (!owner || !clock || !calibration || !ppm || !cspm || !live ||
+ 	    !owner->source_ops || !owner->source_ops->fill_live)
+ 		return -EINVAL;
+ 
+ 	ret = owner->source_ops->fill_live(owner->source_context, clock,
+-					   calibration, ppm, live);
++					   calibration, ppm, cspm, live);
+ 	if (ret)
+ 		return ret;
+-- 
+2.43.0

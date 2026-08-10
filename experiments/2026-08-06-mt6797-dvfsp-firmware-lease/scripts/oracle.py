@@ -40,6 +40,7 @@ OWNER_ABI_REPAIR_PATCH = ROOT / "patches/v7.1.3/0232-soc-mediatek-repair-owner-a
 BUILD_BOUNDARY_REPAIR_PATCH = ROOT / "patches/v7.1.3/0233-soc-mediatek-repair-handoff-and-snapshot-build-boundaries.patch"
 STATE_OWNER_INIT_REPAIR_PATCH = ROOT / "patches/v7.1.3/0234-soc-mediatek-repair-state-owner-initialization-boundary.patch"
 CALIBRATED_PROVIDER_PATCH = ROOT / "patches/v7.1.3/0235-soc-mediatek-bind-calibrated-provider-to-resource-owner.patch"
+CSPM_LIVE_BINDING_PATCH = ROOT / "patches/v7.1.3/0236-soc-mediatek-bind-CSPM-sample-to-live-provider.patch"
 STATE_OWNER_SOURCE_PATCH = ROOT / "patches/v7.1.3/0215-soc-mediatek-add-calibrated-state-owner-source-binding.patch"
 STATE_OWNER_ARBITRATION_PATCH = ROOT / "patches/v7.1.3/0216-soc-mediatek-bind-state-owner-source-to-transition-generation.patch"
 STATE_OWNER_ARBITRATION_FAULT_PATCH = ROOT / "patches/v7.1.3/0217-soc-mediatek-latch-transition-arbitration-faults.patch"
@@ -133,6 +134,7 @@ def main() -> None:
     build_boundary_repair_patch = BUILD_BOUNDARY_REPAIR_PATCH.read_text()
     state_owner_init_repair_patch = STATE_OWNER_INIT_REPAIR_PATCH.read_text()
     calibrated_provider_patch = CALIBRATED_PROVIDER_PATCH.read_text()
+    cspm_live_binding_patch = CSPM_LIVE_BINDING_PATCH.read_text()
     state_owner_source_patch = STATE_OWNER_SOURCE_PATCH.read_text()
     state_owner_arbitration_patch = STATE_OWNER_ARBITRATION_PATCH.read_text()
     state_owner_arbitration_fault_patch = STATE_OWNER_ARBITRATION_FAULT_PATCH.read_text()
@@ -200,6 +202,7 @@ def main() -> None:
     resource_owner_source = resource_owner_patch[resource_owner_patch.index("diff --git"):]
     resource_provider_source = resource_provider_patch[resource_provider_patch.index("diff --git"):]
     calibrated_provider_source = calibrated_provider_patch[calibrated_provider_patch.index("diff --git"):]
+    cspm_live_binding_source = cspm_live_binding_patch[cspm_live_binding_patch.index("diff --git"):]
     state_owner_source_source = state_owner_source_patch[state_owner_source_patch.index("diff --git"):]
     state_owner_arbitration_source = state_owner_arbitration_patch[state_owner_arbitration_patch.index("diff --git"):]
     state_owner_arbitration_fault_source = state_owner_arbitration_fault_patch[state_owner_arbitration_fault_patch.index("diff --git"):]
@@ -716,6 +719,20 @@ def main() -> None:
                       "mt6797_dvfsp_handoff_state_owner_register"):
         if forbidden in calibrated_provider_source:
             raise AssertionError(f"unexpected calibrated-provider operation: {forbidden}")
+    for needle, label in (
+        ("MT6797_DVFSP_STATE_SOURCE_ABI\t\t6", "cspm-live-source-abi"),
+        ("MT6797_DVFSP_STATE_OWNER_SOURCE_ABI\t5", "cspm-live-owner-abi"),
+        ("struct mt6797_dvfsp_cspm_state", "cspm-live-callback-state"),
+        ("cspm_sample_generation", "cspm-live-sample-echo"),
+        ("mt6797_dvfsp_cspm_state_decode", "cspm-live-decoder"),
+        ("live.cspm_sample_generation != cspm_state.sample_generation", "cspm-live-generation-match"),
+        ("calibration, ppm, cspm, live", "cspm-live-owner-forward"),
+    ):
+        require(cspm_live_binding_patch, needle, label)
+    for forbidden in ("readl(", "writel(", "regulator_", "clk_", "i2c_transfer",
+                      "arm_smccc", "platform_driver", "cpu_up(", "secure_write"):
+        if forbidden in cspm_live_binding_source:
+            raise AssertionError(f"unexpected CSPM live binding operation: {forbidden}")
     for needle, label in (
         ("claim=COMPILE_ONLY_MT6797_DVFSP_CALIBRATED_PROVIDER_BINDING", "calibrated-provider-build-claim"),
         ("repository_commit=a28dd0f9d57b747258d2c70fbae7b14a9e3c010d", "calibrated-provider-build-commit"),
@@ -2044,6 +2061,7 @@ def main() -> None:
     print("resource_provider=0231;platform_driver;four_phandle_refs;explicit_bind_unbind;dt_node_disabled;writes_disabled;provider=none;registered_owner=0;hardware_write=none;device_action=none;boot_candidate=false")
     print("resource_provider_buildbox=validated;commit=3b18307e42cb0ce6daefd26cec2790bed570a5b5;profile=dvfsp-resource-owner-readonly;patch_count=223;artifact=linux-7.1.3-gemini-dvfsp-resource-owner-readonly-309e3bbe-c548d243;sha256sums=passed;package_fetch=success;validated_package_only;provider=none;registered_owner=0;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("calibrated_provider=0235;resource_owner_lifetime_bound;source_callbacks_required;ppm_owner_callbacks_required;arbitration_composed;owner_ops_dormant;registration_absent;writes_disabled;provider=none;registered_owner=0;hardware_write=none;device_action=none;boot_candidate=false")
+    print("cspm_live_binding=0236;decoded_cspm_callback;backend_sample_generation_echo;provider_transition_generation_distinct;fail_closed;registration_absent;hardware_write=none;device_action=none;boot_candidate=false")
     print("calibrated_provider_buildbox=validated;commit=a28dd0f9d57b747258d2c70fbae7b14a9e3c010d;profile=dvfsp-resource-owner-readonly;patch_count=224;artifact=linux-7.1.3-gemini-dvfsp-resource-owner-readonly-dede19ab-c548d243;sha256sums=passed;package_fetch=success;validated_package_only;provider=none;registered_owner=0;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("owner_abi_repair=0232;ppm_owner_header_restored;snapshot_handles_declared;compile_boundary_only")
     print("build_boundary_repairs=0233+0234;handoff_return_export;calibration_cluster_type;state_owner_mutex_probe_init;duplicate_tail_removed;compile_boundary_only")
