@@ -48,7 +48,7 @@ diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.
 +	const struct gemini_mt6797_dvfsp_vendor_writer_mainline_ops *ops,
 +	void *context, u64 owner_handle, u64 transition_handle);
 +
- #endif /* __MT6797_DVFSP_VENDOR_WRITER_H__ */
+ int gemini_mt6797_dvfsp_vendor_writer_register(
 diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
 --- a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
 +++ b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
