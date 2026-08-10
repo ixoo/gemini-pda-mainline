@@ -1,0 +1,143 @@
+From 0000000000000000000000000000000000000255 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 10 Aug 2026 23:55:00 -0400
+Subject: [PATCH] soc: mediatek: name vendor writer site descriptors
+
+Give each future vendor-aware writer call site an explicit descriptor for the
+PTP-table, voltage-sampler, or PPM path. The descriptor carries the callback
+and context through the existing pre-lock transaction, so a caller cannot
+silently lose which legacy writer it is adapting or pass an unsupported site.
+
+This is a source-independent integration contract. It does not install a
+single-slot vendor callback, register an owner or provider, perform MMIO, or
+admit CPU8/CPU9; the actual vendor-aware call sites remain external to the
+pinned mainline source and must still be wired separately.
+---
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-kunit-test.c | 48 ++++++++++++
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c            | 14 +++++
+ include/linux/soc/mediatek/mt6797-dvfsp-vendor-writer.h     | 19 ++++++
+ 3 files changed, 81 insertions(+)
+
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-writer.h b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-writer.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-writer.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-writer.h
+@@ -39,6 +39,22 @@ int mt6797_dvfsp_vendor_writer_begin(
+ 	struct mt6797_dvfsp_vendor_writer *writer, u64 *generation);
+ typedef int (*mt6797_dvfsp_vendor_writer_update_fn)(void *context,
+ 							   u64 generation);
++
++enum mt6797_dvfsp_vendor_writer_site_id {
++	MT6797_DVFSP_VENDOR_WRITER_SITE_PTP_TABLE = 0,
++	MT6797_DVFSP_VENDOR_WRITER_SITE_VOLTAGE,
++	MT6797_DVFSP_VENDOR_WRITER_SITE_PPM,
++	MT6797_DVFSP_VENDOR_WRITER_SITE_COUNT,
++};
++
++#define MT6797_DVFSP_VENDOR_WRITER_SITE_ABI	1
++
++struct mt6797_dvfsp_vendor_writer_site {
++	u32 abi;
++	enum mt6797_dvfsp_vendor_writer_site_id id;
++	mt6797_dvfsp_vendor_writer_update_fn update;
++	void *context;
++};
+ 
+ /* Acquire the owner before the caller enters its vendor critical section. */
+ int mt6797_dvfsp_vendor_writer_run(
+@@ -46,5 +62,8 @@ int mt6797_dvfsp_vendor_writer_run(
+ 	struct mt6797_dvfsp_vendor_writer *writer,
+ 	mt6797_dvfsp_vendor_writer_update_fn update, void *context);
++int mt6797_dvfsp_vendor_writer_run_site(
++	struct mt6797_dvfsp_vendor_writer *writer,
++	const struct mt6797_dvfsp_vendor_writer_site *site);
+ int mt6797_dvfsp_vendor_writer_commit(
+ 	struct mt6797_dvfsp_vendor_writer *writer);
+ int mt6797_dvfsp_vendor_writer_abort(
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c
+@@ -109,6 +109,20 @@ int mt6797_dvfsp_vendor_writer_run(
+ }
+ EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_writer_run);
+ 
++int mt6797_dvfsp_vendor_writer_run_site(
++	struct mt6797_dvfsp_vendor_writer *writer,
++	const struct mt6797_dvfsp_vendor_writer_site *site)
++{
++	if (!site || site->abi != MT6797_DVFSP_VENDOR_WRITER_SITE_ABI ||
++	    (unsigned int)site->id >= MT6797_DVFSP_VENDOR_WRITER_SITE_COUNT ||
++	    !site->update)
++		return -EINVAL;
++
++	return mt6797_dvfsp_vendor_writer_run(writer, site->update,
++					       site->context);
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_writer_run_site);
++
+ int mt6797_dvfsp_vendor_writer_commit(
+ 	struct mt6797_dvfsp_vendor_writer *writer)
+ {
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-kunit-test.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-kunit-test.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-kunit-test.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-kunit-test.c
+@@ -188,10 +188,58 @@ static void mt6797_dvfsp_vendor_writer_runs_prelock_chain(
+ 	KUNIT_EXPECT_FALSE(test, writer.update_held);
+ }
+ 
++static void mt6797_dvfsp_vendor_writer_runs_named_sites(
++	struct kunit *test)
++{
++	struct mt6797_dvfsp_vendor_writer writer = { };
++	struct mt6797_dvfsp_vendor_writer_test_update state = { };
++	struct mt6797_dvfsp_vendor_writer_site site = {
++		.abi = MT6797_DVFSP_VENDOR_WRITER_SITE_ABI,
++		.update = mt6797_dvfsp_vendor_writer_test_update,
++	};
++	struct mutex lock;
++	u64 shared_generation = 1;
++
++	mutex_init(&lock);
++	state.lock = &lock;
++	site.context = &state;
++	KUNIT_ASSERT_EQ(test,
++		mt6797_dvfsp_vendor_writer_init(&writer, &lock,
++			&shared_generation,
++			&mt6797_dvfsp_vendor_writer_test_ops, &state, 1, 2), 0);
++
++	site.id = MT6797_DVFSP_VENDOR_WRITER_SITE_PTP_TABLE;
++	KUNIT_EXPECT_EQ(test,
++		mt6797_dvfsp_vendor_writer_run_site(&writer, &site), 0);
++	site.id = MT6797_DVFSP_VENDOR_WRITER_SITE_VOLTAGE;
++	KUNIT_EXPECT_EQ(test,
++		mt6797_dvfsp_vendor_writer_run_site(&writer, &site), 0);
++	KUNIT_EXPECT_EQ(test, state.calls, 2U);
++	KUNIT_EXPECT_EQ(test, state.generation, (u64)2);
++	KUNIT_EXPECT_TRUE(test, state.owner_locked);
++	KUNIT_EXPECT_EQ(test, shared_generation, (u64)3);
++
++	state.result = -EIO;
++	site.id = MT6797_DVFSP_VENDOR_WRITER_SITE_PPM;
++	KUNIT_EXPECT_EQ(test,
++		mt6797_dvfsp_vendor_writer_run_site(&writer, &site), -EIO);
++	KUNIT_EXPECT_EQ(test, state.calls, 3U);
++	KUNIT_EXPECT_EQ(test, shared_generation, (u64)3);
++	KUNIT_EXPECT_FALSE(test, writer.update_held);
++
++	site.id = MT6797_DVFSP_VENDOR_WRITER_SITE_COUNT;
++	KUNIT_EXPECT_EQ(test,
++		mt6797_dvfsp_vendor_writer_run_site(&writer, &site), -EINVAL);
++	KUNIT_EXPECT_EQ(test, state.calls, 3U);
++	KUNIT_EXPECT_EQ(test,
++		mt6797_dvfsp_vendor_writer_run_site(&writer, NULL), -EINVAL);
++}
++
+ static struct kunit_case mt6797_dvfsp_vendor_writer_test_cases[] = {
+ 	KUNIT_CASE(mt6797_dvfsp_vendor_writer_rejects_incomplete),
+ 	KUNIT_CASE(mt6797_dvfsp_vendor_writer_serializes_generation),
+ 	KUNIT_CASE(mt6797_dvfsp_vendor_writer_runs_prelock_chain),
++	KUNIT_CASE(mt6797_dvfsp_vendor_writer_runs_named_sites),
+ 	{ }
+ };
+ 
+-- 
+2.43.0
