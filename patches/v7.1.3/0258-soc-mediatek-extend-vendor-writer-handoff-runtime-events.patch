@@ -1,0 +1,309 @@
+From 0000000000000000000000000000000000000258 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 11 Aug 2026 02:30:00 -0400
+Subject: [PATCH] soc: mediatek: extend vendor writer handoff with runtime events
+
+Carry the vendor lifecycle-event callback table through the explicit
+writer registration handoff. Registration now requires a validated
+runtime-event ABI and pins its exact table and context until unregister.
+The event IDs mirror the mainline runtime ledger while remaining a
+source-independent boundary for the vendor caller.
+
+The extension stays default-off and hardware-free: it performs no MMIO,
+provider registration, firmware operation, device action, or CPU
+admission. Missing or malformed runtime callbacks fail closed.
+---
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h
+@@ -8,20 +8,41 @@
+ #include <linux/soc/mediatek/mt6797-dvfsp-vendor-writer.h>
+ #include <linux/soc/mediatek/mt6797-dvfsp-vendor-writer-bridge.h>
+ 
+ #define MT6797_DVFSP_VENDOR_OWNER_ABI	1
+ #define MT6797_DVFSP_VENDOR_WRITER_REGISTRATION_ABI	1
++#define MT6797_DVFSP_VENDOR_RUNTIME_EVENT_ABI	1
++#define MT6797_DVFSP_VENDOR_RUNTIME_EVENT_COUNT	8
++#define MT6797_DVFSP_VENDOR_RUNTIME_CPU_NONE	(~0U)
++
++enum mt6797_dvfsp_vendor_runtime_event_type {
++	MT6797_DVFSP_VENDOR_RUNTIME_CPU_ONLINE,
++	MT6797_DVFSP_VENDOR_RUNTIME_CPU_DOWN_PREPARE,
++	MT6797_DVFSP_VENDOR_RUNTIME_CPU_DOWN_FAILED,
++	MT6797_DVFSP_VENDOR_RUNTIME_PM_SUSPEND_PREPARE,
++	MT6797_DVFSP_VENDOR_RUNTIME_PM_POST_SUSPEND,
++	MT6797_DVFSP_VENDOR_RUNTIME_CLOCK_TRANSITION,
++	MT6797_DVFSP_VENDOR_RUNTIME_RAIL_TRANSITION,
++	MT6797_DVFSP_VENDOR_RUNTIME_PCM_FAULT,
++};
++
++struct mt6797_dvfsp_vendor_runtime_ops {
++	u32 abi;
++	int (*event)(void *context, unsigned int type, unsigned int cpu);
++};
+ 
+ /* The external vendor-aware caller owns this registration lifetime. */
+ struct mt6797_dvfsp_vendor_writer_registration_ops {
+ 	u32 abi;
+ 	int (*register_owner)(void *context,
+ 		const struct mt6797_dvfsp_vendor_writer_bridge_ops *ops,
+-		void *bridge_context, u64 owner_handle,
+-		u64 transition_handle);
++		void *bridge_context,
++		const struct mt6797_dvfsp_vendor_runtime_ops *runtime_ops,
++		void *runtime_context, u64 owner_handle, u64 transition_handle);
+ 	int (*unregister_owner)(void *context,
+ 		const struct mt6797_dvfsp_vendor_writer_bridge_ops *ops,
+-		void *bridge_context, u64 owner_handle,
+-		u64 transition_handle);
++		void *bridge_context,
++		const struct mt6797_dvfsp_vendor_runtime_ops *runtime_ops,
++		void *runtime_context, u64 owner_handle, u64 transition_handle);
+ };
+ 
+ /*
+@@ -42,8 +63,10 @@
+ 	const struct mt6797_dvfsp_vendor_writer_ops *writer_ops;
+ 	void *writer_context;
+ 	const struct mt6797_dvfsp_vendor_writer_registration_ops
+ 		*writer_registration_ops;
+ 	void *writer_registration_context;
++	const struct mt6797_dvfsp_vendor_runtime_ops *writer_runtime_ops;
++	void *writer_runtime_context;
+ };
+ 
+ /*
+@@ -57,10 +80,12 @@
+ 	struct mt6797_dvfsp_live_source live_source;
+ 	struct mt6797_dvfsp_ppm_source ppm_source;
+ 	struct mt6797_dvfsp_calibrated_provider provider;
+ 	struct mt6797_dvfsp_vendor_writer writer;
+ 	struct mt6797_dvfsp_vendor_writer_bridge writer_bridge;
++	const struct mt6797_dvfsp_vendor_runtime_ops *writer_runtime_ops;
++	void *writer_runtime_context;
+ 	u64 owner_handle;
+ 	u64 transition_handle;
+ 	bool bound;
+ 	bool writer_registered;
+ };
+--- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c
+@@ -55,10 +55,21 @@
+ 	    !ops->register_owner || !ops->unregister_owner)
+ 		return -EINVAL;
+ 	return 0;
+ }
+ 
++static int mt6797_dvfsp_vendor_owner_runtime_ops_check(
++	const struct mt6797_dvfsp_vendor_runtime_ops *ops)
++{
++	if (!ops)
++		return -EOPNOTSUPP;
++	if (ops->abi != MT6797_DVFSP_VENDOR_RUNTIME_EVENT_ABI ||
++	    !ops->event)
++		return -EINVAL;
++	return 0;
++}
++
+ int mt6797_dvfsp_vendor_owner_bind(
+ 	struct mt6797_dvfsp_vendor_owner *owner,
+ 	struct mt6797_dvfsp_resource_owner *resource_owner,
+ 	const struct mt6797_dvfsp_vendor_owner_ops *ops,
+ 	u64 owner_handle, u64 transition_handle)
+@@ -117,55 +128,75 @@
+ 
+ int mt6797_dvfsp_vendor_owner_register_writer(
+ 	struct mt6797_dvfsp_vendor_owner *owner)
+ {
+ 	const struct mt6797_dvfsp_vendor_writer_registration_ops *ops;
++	const struct mt6797_dvfsp_vendor_runtime_ops *runtime_ops;
++	void *runtime_context;
+ 	int ret;
+ 
+ 	if (!owner || !owner->bound || owner->writer_registered)
+ 		return -EINVAL;
+ 	ops = owner->ops.writer_registration_ops;
+ 	if (!ops)
+ 		return -EOPNOTSUPP;
++	runtime_ops = owner->ops.writer_runtime_ops;
++	runtime_context = owner->ops.writer_runtime_context;
++	ret = mt6797_dvfsp_vendor_owner_runtime_ops_check(runtime_ops);
++	if (ret)
++		return ret;
+ 
+ 	ret = mt6797_dvfsp_vendor_writer_bridge_init(&owner->writer_bridge,
+ 		&owner->writer);
+ 	if (ret)
+ 		return ret;
+ 
+ 	ret = ops->register_owner(owner->ops.writer_registration_context,
+ 		mt6797_dvfsp_vendor_writer_bridge_ops(), &owner->writer_bridge,
+-		owner->owner_handle, owner->transition_handle);
++		runtime_ops, runtime_context, owner->owner_handle,
++		owner->transition_handle);
+ 	if (ret) {
+ 		memset(&owner->writer_bridge, 0, sizeof(owner->writer_bridge));
+ 		return ret;
+ 	}
+ 
++	owner->writer_runtime_ops = runtime_ops;
++	owner->writer_runtime_context = runtime_context;
+ 	owner->writer_registered = true;
+ 	return 0;
+ }
+ EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_owner_register_writer);
+ 
+ int mt6797_dvfsp_vendor_owner_unregister_writer(
+ 	struct mt6797_dvfsp_vendor_owner *owner)
+ {
+ 	const struct mt6797_dvfsp_vendor_writer_registration_ops *ops;
++	const struct mt6797_dvfsp_vendor_runtime_ops *runtime_ops;
++	void *runtime_context;
+ 	int ret;
+ 
+ 	if (!owner || !owner->bound || !owner->writer_registered)
+ 		return -EINVAL;
+ 	ops = owner->ops.writer_registration_ops;
+ 	if (!ops)
+ 		return -EINVAL;
++	runtime_ops = owner->writer_runtime_ops;
++	runtime_context = owner->writer_runtime_context;
++	ret = mt6797_dvfsp_vendor_owner_runtime_ops_check(runtime_ops);
++	if (ret)
++		return ret;
+ 
+ 	ret = ops->unregister_owner(owner->ops.writer_registration_context,
+ 		mt6797_dvfsp_vendor_writer_bridge_ops(), &owner->writer_bridge,
+-		owner->owner_handle, owner->transition_handle);
++		runtime_ops, runtime_context, owner->owner_handle,
++		owner->transition_handle);
+ 	if (ret)
+ 		return ret;
+ 
+ 	owner->writer_registered = false;
++	owner->writer_runtime_ops = NULL;
++	owner->writer_runtime_context = NULL;
+ 	memset(&owner->writer_bridge, 0, sizeof(owner->writer_bridge));
+ 	return 0;
+ }
+ EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_owner_unregister_writer);
+ 
+--- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
+@@ -17,14 +17,17 @@
+ };
+ 
+ struct mt6797_dvfsp_vendor_test_registration {
+ 	const struct mt6797_dvfsp_vendor_writer_bridge_ops *ops;
+ 	void *bridge_context;
++	const struct mt6797_dvfsp_vendor_runtime_ops *runtime_ops;
++	void *runtime_context;
+ 	u64 owner_handle;
+ 	u64 transition_handle;
+ 	unsigned int register_calls;
+ 	unsigned int unregister_calls;
++	unsigned int runtime_event_calls;
+ };
+ 
+ static unsigned int mt6797_dvfsp_vendor_test_callbacks;
+ 
+ static void mt6797_dvfsp_vendor_test_release(struct device *device)
+@@ -211,33 +214,62 @@
+ mt6797_dvfsp_vendor_test_writer_ops = {
+ 	.abi = MT6797_DVFSP_VENDOR_WRITER_ABI,
+ 	.read_provenance = mt6797_dvfsp_vendor_test_writer_provenance,
+ };
+ 
++static int mt6797_dvfsp_vendor_test_runtime_event(
++	void *context, unsigned int type, unsigned int cpu)
++{
++	struct mt6797_dvfsp_vendor_test_registration *state = context;
++
++	if (!state || type >= MT6797_DVFSP_VENDOR_RUNTIME_EVENT_COUNT ||
++	    (cpu != MT6797_DVFSP_VENDOR_RUNTIME_CPU_NONE && cpu >= 10))
++		return -EINVAL;
++	state->runtime_event_calls++;
++	return 0;
++}
++
++static const struct mt6797_dvfsp_vendor_runtime_ops
++mt6797_dvfsp_vendor_test_runtime_ops = {
++	.abi = MT6797_DVFSP_VENDOR_RUNTIME_EVENT_ABI,
++	.event = mt6797_dvfsp_vendor_test_runtime_event,
++};
++
+ static int mt6797_dvfsp_vendor_test_register_owner(
+ 	void *context, const struct mt6797_dvfsp_vendor_writer_bridge_ops *ops,
+-	void *bridge_context, u64 owner_handle, u64 transition_handle)
++	void *bridge_context,
++	const struct mt6797_dvfsp_vendor_runtime_ops *runtime_ops,
++	void *runtime_context, u64 owner_handle, u64 transition_handle)
+ {
+ 	struct mt6797_dvfsp_vendor_test_registration *state = context;
+ 
+-	if (!state || !ops || ops->abi != MT6797_DVFSP_VENDOR_WRITER_BRIDGE_ABI)
++	if (!state || !ops || ops->abi != MT6797_DVFSP_VENDOR_WRITER_BRIDGE_ABI ||
++	    !runtime_ops ||
++	    runtime_ops->abi != MT6797_DVFSP_VENDOR_RUNTIME_EVENT_ABI ||
++	    !runtime_ops->event)
+ 		return -EINVAL;
+ 	state->ops = ops;
+ 	state->bridge_context = bridge_context;
++	state->runtime_ops = runtime_ops;
++	state->runtime_context = runtime_context;
+ 	state->owner_handle = owner_handle;
+ 	state->transition_handle = transition_handle;
+ 	state->register_calls++;
+ 	return 0;
+ }
+ 
+ static int mt6797_dvfsp_vendor_test_unregister_owner(
+ 	void *context, const struct mt6797_dvfsp_vendor_writer_bridge_ops *ops,
+-	void *bridge_context, u64 owner_handle, u64 transition_handle)
++	void *bridge_context,
++	const struct mt6797_dvfsp_vendor_runtime_ops *runtime_ops,
++	void *runtime_context, u64 owner_handle, u64 transition_handle)
+ {
+ 	struct mt6797_dvfsp_vendor_test_registration *state = context;
+ 
+ 	if (!state || state->ops != ops || state->bridge_context != bridge_context ||
++	    state->runtime_ops != runtime_ops ||
++	    state->runtime_context != runtime_context ||
+ 	    state->owner_handle != owner_handle ||
+ 	    state->transition_handle != transition_handle)
+ 		return -EPROTO;
+ 	state->unregister_calls++;
+ 	return 0;
+@@ -297,10 +329,12 @@
+ 	KUNIT_ASSERT_EQ(test,
+ 		mt6797_dvfsp_resource_owner_attach(&resource_owner, &tuple), 0);
+ 	owner_ops.writer_registration_ops =
+ 		&mt6797_dvfsp_vendor_test_registration_ops;
+ 	owner_ops.writer_registration_context = &registration;
++	owner_ops.writer_runtime_ops = &mt6797_dvfsp_vendor_test_runtime_ops;
++	owner_ops.writer_runtime_context = &registration;
+ 	KUNIT_ASSERT_EQ(test,
+ 		mt6797_dvfsp_vendor_owner_bind(&owner, &resource_owner,
+ 			&owner_ops, 0x67970023,
+ 			0x67970022), 0);
+ 	KUNIT_EXPECT_TRUE(test, owner.bound);
+@@ -321,10 +355,18 @@
+ 	KUNIT_EXPECT_EQ(test, registration.register_calls, 1U);
+ 	KUNIT_EXPECT_PTR_EQ(test, registration.ops,
+ 		mt6797_dvfsp_vendor_writer_bridge_ops());
+ 	KUNIT_EXPECT_EQ(test, registration.owner_handle, (u64)0x67970023);
+ 	KUNIT_EXPECT_EQ(test, registration.transition_handle, (u64)0x67970022);
++	KUNIT_EXPECT_PTR_EQ(test, registration.runtime_ops,
++		&mt6797_dvfsp_vendor_test_runtime_ops);
++	KUNIT_EXPECT_PTR_EQ(test, registration.runtime_context, &registration);
++	KUNIT_ASSERT_EQ(test, registration.runtime_ops->event(
++		registration.runtime_context,
++		MT6797_DVFSP_VENDOR_RUNTIME_CPU_ONLINE,
++		MT6797_DVFSP_VENDOR_RUNTIME_CPU_NONE), 0);
++	KUNIT_EXPECT_EQ(test, registration.runtime_event_calls, 1U);
+ 	KUNIT_EXPECT_EQ(test,
+ 		mt6797_dvfsp_vendor_owner_register_writer(&owner), -EINVAL);
+ 	KUNIT_EXPECT_EQ(test, mt6797_dvfsp_vendor_owner_unbind(&owner), -EBUSY);
+ 	KUNIT_ASSERT_EQ(test,
+ 		mt6797_dvfsp_vendor_owner_unregister_writer(&owner), 0);
+-- 
+2.39.5
