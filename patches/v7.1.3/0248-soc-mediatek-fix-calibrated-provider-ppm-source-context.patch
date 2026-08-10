@@ -1,0 +1,45 @@
+From 0000000000000000000000000000000000000248 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 10 Aug 2026 16:00:00 -0400
+Subject: [PATCH] soc: mediatek: fix calibrated provider PPM source context
+
+The PPM source adapter's generated owner callbacks receive a
+struct mt6797_dvfsp_ppm_source context. The calibrated-provider binding was
+passing its enclosing provider instead, so the first lock or snapshot call
+could not reach the validated source contract. Pass the embedded source and
+exercise the callback context in the hardware-free provider test.
+
+This changes no hardware or registration behavior.
+
+---
+ drivers/soc/mediatek/mt6797-dvfsp-calibrated-provider.c      | 2 +-
+ drivers/soc/mediatek/mt6797-dvfsp-calibrated-provider-test.c | 4 ++++
+ 2 files changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-calibrated-provider.c b/drivers/soc/mediatek/mt6797-dvfsp-calibrated-provider.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-calibrated-provider.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-calibrated-provider.c
+@@ -192,7 +192,7 @@ int mt6797_dvfsp_calibrated_provider_bind_sources(
+ 	ret = mt6797_dvfsp_calibrated_provider_init(provider, resource_owner,
+ 			&provider->bound_source_ops, provider,
+-			&provider->bound_ppm_ops, provider,
++			&provider->bound_ppm_ops, &provider->ppm_source,
+ 			owner_handle, transition_handle);
+ 	if (ret)
+ 		return ret;
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-calibrated-provider-test.c b/drivers/soc/mediatek/mt6797-dvfsp-calibrated-provider-test.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-calibrated-provider-test.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-calibrated-provider-test.c
+@@ -252,6 +252,10 @@ static void mt6797_dvfsp_provider_binds_and_exits(
+ 	KUNIT_EXPECT_TRUE(test, !!owner_ops.snapshot);
+ 	KUNIT_EXPECT_TRUE(test, !!owner_ops.hold);
++	KUNIT_EXPECT_EQ(test,
++		provider.source.ppm_owner_ops->lock(
++			provider.source.ppm_owner_context), -EOPNOTSUPP);
++	KUNIT_EXPECT_PTR_EQ(test, provider.source.ppm_owner_context,
++			&provider.ppm_source);
+ 	KUNIT_EXPECT_EQ(test,
+ 		mt6797_dvfsp_calibrated_provider_exit(&provider), 0);
+ 	KUNIT_EXPECT_FALSE(test, owner.source_bound);
+ 	KUNIT_EXPECT_EQ(test, mt6797_dvfsp_resource_owner_detach(&owner), 0);

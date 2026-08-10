@@ -237,3 +237,4 @@ v7.1.3/0244-soc-mediatek-add-DVFSP-resource-owner-KUnit-contract-tests.patch
 v7.1.3/0245-soc-mediatek-add-calibrated-provider-KUnit-contract-tests.patch
 v7.1.3/0246-soc-mediatek-add-MT6797-source-backed-SB0119-table-family.patch
 v7.1.3/0247-soc-mediatek-bind-SB0119-table-epoch-to-identity-source.patch
+v7.1.3/0248-soc-mediatek-fix-calibrated-provider-ppm-source-context.patch
