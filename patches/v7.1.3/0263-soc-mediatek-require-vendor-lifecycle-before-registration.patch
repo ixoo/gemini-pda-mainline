@@ -1,0 +1,56 @@
+From 0000000000000000000000000000000000000263 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 10 Aug 2026 19:30:00 -0400
+Subject: [PATCH] soc: mediatek: require vendor lifecycle before registration
+
+The source-observation owner runtime adapter is valid only after the external
+vendor lifecycle has been bound. Refuse direct writer registration before that
+binding instead of publishing a callback that can only return -ENODEV. Update
+the owner KUnit contract to cover the fail-closed refusal.
+
+This remains an experiment-only lifecycle guard; it performs no provider
+registration, firmware operation, device action, or CPU admission.
+---
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c | 17 +--------------
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c      |  2 ++
+ 2 files changed, 5 insertions(+), 14 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c
+@@ -393,6 +393,8 @@ int mt6797_dvfsp_vendor_owner_register_writer(
+ 	if (!owner || !owner->bound || owner->writer_registered)
+ 		return -EINVAL;
++	if (!owner->writer_integration_bound)
++		return -ENODEV;
+ 	ops = owner->ops.writer_registration_ops;
+ 	if (!ops)
+ 		return -EOPNOTSUPP;
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
+@@ -331,18 +331,7 @@ static void mt6797_dvfsp_vendor_owner_binds_and_unbinds(
+ 	KUNIT_EXPECT_EQ(test, mt6797_dvfsp_vendor_test_callbacks, 0U);
+ 	KUNIT_EXPECT_EQ(test,
+-		mt6797_dvfsp_vendor_owner_register_writer(&owner), 0);
+-	KUNIT_EXPECT_TRUE(test, owner.writer_registered);
+-	KUNIT_EXPECT_EQ(test, registration.register_calls, 1U);
+-	KUNIT_EXPECT_PTR_EQ(test, registration.ops,
+-		mt6797_dvfsp_vendor_writer_bridge_ops());
+-	KUNIT_EXPECT_EQ(test, registration.owner_handle, (u64)0x67970023);
+-	KUNIT_EXPECT_EQ(test, registration.transition_handle, (u64)0x67970022);
+-	KUNIT_EXPECT_EQ(test,
+-		mt6797_dvfsp_vendor_owner_register_writer(&owner), -EINVAL);
+-	KUNIT_EXPECT_EQ(test, mt6797_dvfsp_vendor_owner_unbind(&owner), -EBUSY);
+-	KUNIT_ASSERT_EQ(test,
+-		mt6797_dvfsp_vendor_owner_unregister_writer(&owner), 0);
+-	KUNIT_EXPECT_FALSE(test, owner.writer_registered);
+-	KUNIT_EXPECT_EQ(test, registration.unregister_calls, 1U);
++		mt6797_dvfsp_vendor_owner_register_writer(&owner), -ENODEV);
++	KUNIT_EXPECT_FALSE(test, owner.writer_registered);
++	KUNIT_EXPECT_EQ(test, registration.register_calls, 0U);
+ 	KUNIT_ASSERT_EQ(test,
+ 		mt6797_dvfsp_vendor_writer_begin(&owner.writer, &generation), 0);
+-- 
+2.43.0

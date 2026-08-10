@@ -252,3 +252,4 @@ v7.1.3/0259-soc-mediatek-bind-vendor-writer-lifecycle-integration.patch
 v7.1.3/0260-soc-mediatek-add-cross-tree-vendor-source-observation.patch
 v7.1.3/0261-soc-mediatek-bind-vendor-source-observation-owner.patch
 v7.1.3/0262-soc-mediatek-validate-vendor-source-cspm-bounds.patch
+v7.1.3/0263-soc-mediatek-require-vendor-lifecycle-before-registration.patch
