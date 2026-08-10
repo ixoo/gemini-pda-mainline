@@ -1,0 +1,542 @@
+From 0000000000000000000000000000000000000249 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 10 Aug 2026 18:00:00 -0400
+Subject: [PATCH] soc: mediatek: add cooperative MT6797 vendor owner adapter
+
+Add a dormant vendor-aware owner adapter that composes the existing MT6797
+identity, PPM, live-state, and calibrated-provider callback contracts. The
+adapter validates each ABI, binds the callbacks to the resource owner, and
+constructs the existing state-owner callbacks without registering them.
+
+The adapter deliberately does not call the vendor PTP-table, voltage, or PPM
+client registration setters: those are single callback slots and must be
+chained by the vendor-aware driver integration itself. Hardware-free KUnit
+coverage proves incomplete contracts are refused, complete contracts bind and
+unbind, and lifecycle setup invokes no source callback.
+
+This is an experiment-only contract and not submission-ready.
+---
+ configs/gemini-dvfsp-owner-kunit.fragment                         |   2 +
+ drivers/soc/mediatek/Kconfig                                      |  17 +++
+ drivers/soc/mediatek/Makefile                                     |   2 +
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c             | 235 ++++++++++++++++++++
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c                  | 105 +++++++++
+ include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h            |  49 ++++
+ 6 files changed, 410 insertions(+)
+ create mode 100644 drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
+ create mode 100644 drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c
+ create mode 100644 include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h
+
+diff --git a/configs/gemini-dvfsp-owner-kunit.fragment b/configs/gemini-dvfsp-owner-kunit.fragment
+--- a/configs/gemini-dvfsp-owner-kunit.fragment
++++ b/configs/gemini-dvfsp-owner-kunit.fragment
+@@ -5,5 +5,7 @@
+ CONFIG_KUNIT=y
+ CONFIG_MTK_MT6797_DVFSP_OWNER_KUNIT_TEST=y
+ CONFIG_MTK_MT6797_DVFSP_PROVIDER_KUNIT_TEST=y
++CONFIG_MTK_MT6797_DVFSP_VENDOR_OWNER=y
++CONFIG_MTK_MT6797_DVFSP_VENDOR_OWNER_KUNIT_TEST=y
+ CONFIG_LOCALVERSION="-gemini-dvfsp-owner-kunit"
+diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
+--- a/drivers/soc/mediatek/Kconfig
++++ b/drivers/soc/mediatek/Kconfig
+@@ -114,6 +114,23 @@ config MTK_MT6797_DVFSP_PROVIDER_KUNIT_TEST
+ 	  Exercise the hardware-free source binding and exit contract of the
+ 	  dormant MT6797 calibrated provider.
+ 
++config MTK_MT6797_DVFSP_VENDOR_OWNER
++	bool "MediaTek MT6797 cooperative vendor owner adapter"
++	depends on ARM64 && ARCH_MEDIATEK && OF
++	depends on MTK_MT6797_DVFSP_RESOURCE_OWNER
++	help
++	  Compose explicit vendor identity, PPM, live-state, and calibration
++	  callbacks around the dormant calibrated provider. This adapter does
++	  not call single-slot vendor registration setters, register a handoff
++	  owner, perform hardware or firmware operations, or admit a CPU. The
++	  vendor-aware driver must supply callbacks that preserve existing
++	  policy writers and one transition generation.
++
++config MTK_MT6797_DVFSP_VENDOR_OWNER_KUNIT_TEST
++	bool "KUnit tests for the MT6797 cooperative vendor owner adapter"
++	depends on KUNIT=y
++	depends on MTK_MT6797_DVFSP_VENDOR_OWNER
++	help
++	  Exercise the hardware-free cooperative callback binding and unbind
++	  lifecycle. The fixture invokes no vendor callback or registration API.
++
+ config MTK_MT6797_DVFSP_CLOCK_BACKEND
+ 	bool "MediaTek MT6797 protected CPU clock readback transport"
+ 	depends on ARM64 && ARCH_MEDIATEK && OF && COMMON_CLK
+diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
+--- a/drivers/soc/mediatek/Makefile
++++ b/drivers/soc/mediatek/Makefile
+@@ -13,6 +13,8 @@ obj-$(CONFIG_MTK_MT6797_DVFSP_OWNER_KUNIT_TEST) += mt6797-dvfsp-resource-owner-test.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_PROVIDER_KUNIT_TEST) += mt6797-dvfsp-calibrated-provider-test.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_PROVIDER_KUNIT_TEST) += mt6797-dvfsp-table-source-test.o
++obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_OWNER) += mt6797-dvfsp-vendor-owner.o
++obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_OWNER_KUNIT_TEST) += mt6797-dvfsp-vendor-owner-test.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_RESOURCE_OWNER) += mt6797-dvfsp-calibrated-provider.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-state-snapshot.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-runtime-bind.o
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h
+new file mode 100644
+--- /dev/null
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h
+@@ -0,0 +1,49 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __LINUX_SOC_MEDIATEK_MT6797_DVFSP_VENDOR_OWNER_H
++#define __LINUX_SOC_MEDIATEK_MT6797_DVFSP_VENDOR_OWNER_H
++
++#include <linux/types.h>
++
++#include <linux/soc/mediatek/mt6797-dvfsp-calibrated-provider.h>
++
++#define MT6797_DVFSP_VENDOR_OWNER_ABI	1
++
++/*
++ * A vendor-aware driver supplies these callbacks while retaining ownership
++ * of its existing policy writers and transition lock. The adapter never
++ * installs or replaces a vendor callback through a single-slot setter.
++ */
++struct mt6797_dvfsp_vendor_owner_ops {
++	u32 abi;
++	const struct mt6797_dvfsp_identity_provenance_ops *identity_ops;
++	void *identity_context;
++	const struct mt6797_dvfsp_ppm_source_ops *ppm_ops;
++	void *ppm_context;
++	const struct mt6797_dvfsp_live_source_ops *live_ops;
++	void *live_context;
++	const struct mt6797_dvfsp_calibrated_provider_source_ops *provider_ops;
++	void *provider_context;
++};
++
++/*
++ * This object owns only callback composition and provider lifetime. It does
++ * not register a handoff owner or perform a state-changing operation.
++ */
++struct mt6797_dvfsp_vendor_owner {
++	struct mt6797_dvfsp_resource_owner *resource_owner;
++	struct mt6797_dvfsp_vendor_owner_ops ops;
++	struct mt6797_dvfsp_identity_source identity_source;
++	struct mt6797_dvfsp_live_source live_source;
++	struct mt6797_dvfsp_ppm_source ppm_source;
++	struct mt6797_dvfsp_calibrated_provider provider;
++	u64 owner_handle;
++	u64 transition_handle;
++	bool bound;
++};
++
++int mt6797_dvfsp_vendor_owner_bind(
++	struct mt6797_dvfsp_vendor_owner *owner,
++	struct mt6797_dvfsp_resource_owner *resource_owner,
++	const struct mt6797_dvfsp_vendor_owner_ops *ops,
++	u64 owner_handle, u64 transition_handle);
++
++int mt6797_dvfsp_vendor_owner_unbind(
++	struct mt6797_dvfsp_vendor_owner *owner);
++
++/* Populate dormant handoff callbacks; this does not register the owner. */
++int mt6797_dvfsp_vendor_owner_state_ops_init(
++	const struct mt6797_dvfsp_vendor_owner *owner,
++	struct mt6797_dvfsp_state_owner_ops *state_ops);
++
++#endif /* __LINUX_SOC_MEDIATEK_MT6797_DVFSP_VENDOR_OWNER_H */
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c
+new file mode 100644
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c
+@@ -0,0 +1,105 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Compose explicit vendor callbacks around the dormant MT6797 DVFSP owner.
++ *
++ * The vendor PTP-table, voltage, and PPM registration APIs are intentionally
++ * absent here: each is a single callback slot in the legacy driver. A real
++ * integration must chain those callbacks at their writer and then provide
++ * one coherent generation and transition owner through this contract.
++ */
++
++#include <linux/errno.h>
++#include <linux/module.h>
++#include <linux/string.h>
++#include <linux/types.h>
++
++#include <linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h>
++
++static int mt6797_dvfsp_vendor_owner_ops_check(
++	const struct mt6797_dvfsp_vendor_owner_ops *ops)
++{
++	if (!ops || ops->abi != MT6797_DVFSP_VENDOR_OWNER_ABI ||
++	    !ops->identity_ops ||
++	    ops->identity_ops->abi != MT6797_DVFSP_IDENTITY_SOURCE_ABI ||
++	    !ops->identity_ops->read_table_epoch ||
++	    !ops->identity_ops->read_calibration_handle ||
++	    !ops->ppm_ops ||
++	    ops->ppm_ops->abi != MT6797_DVFSP_PPM_SOURCE_ADAPTER_ABI ||
++	    !ops->ppm_ops->lock || !ops->ppm_ops->unlock ||
++	    !ops->ppm_ops->read_ppm_clusters ||
++	    !ops->ppm_ops->read_cci_frequency ||
++	    !ops->ppm_ops->read_policy_limits ||
++	    !ops->ppm_ops->read_table_epoch ||
++	    !ops->live_ops ||
++	    ops->live_ops->abi != MT6797_DVFSP_LIVE_SOURCE_ADAPTER_ABI ||
++	    !ops->live_ops->read_generation ||
++	    !ops->live_ops->read_cluster ||
++	    !ops->provider_ops ||
++	    ops->provider_ops->abi != MT6797_DVFSP_CALIBRATED_SOURCE_ABI ||
++	    !ops->provider_ops->fill_calibration ||
++	    !ops->provider_ops->invalidate)
++		return -EINVAL;
++
++	return 0;
++}
++
++int mt6797_dvfsp_vendor_owner_bind(
++	struct mt6797_dvfsp_vendor_owner *owner,
++	struct mt6797_dvfsp_resource_owner *resource_owner,
++	const struct mt6797_dvfsp_vendor_owner_ops *ops,
++	u64 owner_handle, u64 transition_handle)
++{
++	int ret;
++
++	if (!owner || !resource_owner || !resource_owner->initialized ||
++	    !resource_owner->attached || !owner_handle || !transition_handle ||
++	    resource_owner->transition_handle != transition_handle ||
++	    owner->bound || owner->provider.initialized)
++		return -EINVAL;
++	ret = mt6797_dvfsp_vendor_owner_ops_check(ops);
++	if (ret)
++		return ret;
++
++	memset(owner, 0, sizeof(*owner));
++	owner->resource_owner = resource_owner;
++	owner->ops = *ops;
++	owner->owner_handle = owner_handle;
++	owner->transition_handle = transition_handle;
++	owner->identity_source.devices = resource_owner->devices;
++	owner->identity_source.provenance_ops = owner->ops.identity_ops;
++	owner->identity_source.provenance_context =
++		owner->ops.identity_context;
++	owner->live_source.ops = owner->ops.live_ops;
++	owner->live_source.context = owner->ops.live_context;
++	owner->ppm_source.ops = owner->ops.ppm_ops;
++	owner->ppm_source.context = owner->ops.ppm_context;
++
++	ret = mt6797_dvfsp_calibrated_provider_bind_sources(
++		&owner->provider, resource_owner, &owner->identity_source,
++		&owner->live_source, &owner->ppm_source, owner->ops.provider_ops,
++		owner->ops.provider_context, owner_handle, transition_handle);
++	if (ret) {
++		memset(owner, 0, sizeof(*owner));
++		return ret;
++	}
++
++	owner->bound = true;
++	return 0;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_owner_bind);
++
++int mt6797_dvfsp_vendor_owner_unbind(
++	struct mt6797_dvfsp_vendor_owner *owner)
++{
++	int ret;
++
++	if (!owner || !owner->bound)
++		return -EINVAL;
++	ret = mt6797_dvfsp_calibrated_provider_exit(&owner->provider);
++	if (ret)
++		return ret;
++
++	memset(owner, 0, sizeof(*owner));
++	return 0;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_owner_unbind);
++
++int mt6797_dvfsp_vendor_owner_state_ops_init(
++	const struct mt6797_dvfsp_vendor_owner *owner,
++	struct mt6797_dvfsp_state_owner_ops *state_ops)
++{
++	if (!owner || !owner->bound || !state_ops)
++		return -EINVAL;
++
++	return mt6797_dvfsp_calibrated_provider_owner_ops_init(
++		&owner->provider, state_ops);
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_owner_state_ops_init);
++
++MODULE_DESCRIPTION("MT6797 cooperative vendor DVFSP owner adapter");
++MODULE_LICENSE("GPL");
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
+new file mode 100644
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
+@@ -0,0 +1,235 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/* Hardware-free KUnit coverage for the cooperative vendor owner adapter. */
++
++#include <kunit/test.h>
++#include <linux/device.h>
++#include <linux/errno.h>
++#include <linux/module.h>
++#include <linux/types.h>
++
++#include <linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h>
++
++struct mt6797_dvfsp_vendor_test_devices {
++	struct device clock_backend;
++	struct device bigidvfs_backend;
++	struct device thermal;
++	struct device calibration_source;
++};
++
++static unsigned int mt6797_dvfsp_vendor_test_callbacks;
++
++static void mt6797_dvfsp_vendor_test_release(struct device *device)
++{
++}
++
++static void mt6797_dvfsp_vendor_test_init_device(struct device *device)
++{
++	device_initialize(device);
++	device->release = mt6797_dvfsp_vendor_test_release;
++}
++
++static void mt6797_dvfsp_vendor_test_init_devices(
++	struct mt6797_dvfsp_vendor_test_devices *devices)
++{
++	mt6797_dvfsp_vendor_test_init_device(&devices->clock_backend);
++	mt6797_dvfsp_vendor_test_init_device(&devices->bigidvfs_backend);
++	mt6797_dvfsp_vendor_test_init_device(&devices->thermal);
++	mt6797_dvfsp_vendor_test_init_device(&devices->calibration_source);
++}
++
++static void mt6797_dvfsp_vendor_test_put_devices(
++	struct mt6797_dvfsp_vendor_test_devices *devices)
++{
++	put_device(&devices->calibration_source);
++	put_device(&devices->thermal);
++	put_device(&devices->bigidvfs_backend);
++	put_device(&devices->clock_backend);
++}
++
++static void mt6797_dvfsp_vendor_test_tuple(
++	struct mt6797_dvfsp_vendor_test_devices *devices,
++	struct mt6797_dvfsp_state_source_devices *tuple)
++{
++	tuple->clock_backend = &devices->clock_backend;
++	tuple->bigidvfs_backend = &devices->bigidvfs_backend;
++	tuple->thermal = &devices->thermal;
++	tuple->calibration_source = &devices->calibration_source;
++}
++
++static int mt6797_dvfsp_vendor_test_identity_epoch(
++	void *context, const struct mt6797_dvfsp_ptp_identity *identity,
++	u64 *epoch)
++{
++	mt6797_dvfsp_vendor_test_callbacks++;
++	return -EOPNOTSUPP;
++}
++
++static int mt6797_dvfsp_vendor_test_identity_handle(
++	void *context, const struct mt6797_dvfsp_ptp_identity *identity,
++	u64 *handle)
++{
++	mt6797_dvfsp_vendor_test_callbacks++;
++	return -EOPNOTSUPP;
++}
++
++static const struct mt6797_dvfsp_identity_provenance_ops
++mt6797_dvfsp_vendor_test_identity_ops = {
++	.abi = MT6797_DVFSP_IDENTITY_SOURCE_ABI,
++	.read_table_epoch = mt6797_dvfsp_vendor_test_identity_epoch,
++	.read_calibration_handle = mt6797_dvfsp_vendor_test_identity_handle,
++};
++
++static int mt6797_dvfsp_vendor_test_ppm_lock(void *context)
++{
++	mt6797_dvfsp_vendor_test_callbacks++;
++	return -EOPNOTSUPP;
++}
++
++static void mt6797_dvfsp_vendor_test_ppm_unlock(void *context)
++{
++	mt6797_dvfsp_vendor_test_callbacks++;
++}
++
++static int mt6797_dvfsp_vendor_test_ppm_clusters(
++	void *context, const struct mt6797_dvfsp_ptp_state *ptp_state,
++	struct mt6797_dvfsp_ppm_snapshot *snapshot)
++{
++	mt6797_dvfsp_vendor_test_callbacks++;
++	return -EOPNOTSUPP;
++}
++
++static int mt6797_dvfsp_vendor_test_ppm_cci(
++	void *context, const struct mt6797_dvfsp_ptp_state *ptp_state,
++	u32 frequency_khz[MT6797_DVFSP_PPM_POLICY_TABLE_ENTRIES])
++{
++	mt6797_dvfsp_vendor_test_callbacks++;
++	return -EOPNOTSUPP;
++}
++
++static int mt6797_dvfsp_vendor_test_ppm_limits(
++	void *context, const struct mt6797_dvfsp_ptp_state *ptp_state,
++	u32 limit_khz[MT6797_DVFSP_PPM_POLICY_BANK_COUNT]
++			[MT6797_DVFSP_PPM_POLICY_TABLE_ENTRIES])
++{
++	mt6797_dvfsp_vendor_test_callbacks++;
++	return -EOPNOTSUPP;
++}
++
++static int mt6797_dvfsp_vendor_test_ppm_epoch(
++	void *context, const struct mt6797_dvfsp_ptp_state *ptp_state,
++	u64 *epoch)
++{
++	mt6797_dvfsp_vendor_test_callbacks++;
++	return -EOPNOTSUPP;
++}
++
++static const struct mt6797_dvfsp_ppm_source_ops
++mt6797_dvfsp_vendor_test_ppm_ops = {
++	.abi = MT6797_DVFSP_PPM_SOURCE_ADAPTER_ABI,
++	.lock = mt6797_dvfsp_vendor_test_ppm_lock,
++	.unlock = mt6797_dvfsp_vendor_test_ppm_unlock,
++	.read_ppm_clusters = mt6797_dvfsp_vendor_test_ppm_clusters,
++	.read_cci_frequency = mt6797_dvfsp_vendor_test_ppm_cci,
++	.read_policy_limits = mt6797_dvfsp_vendor_test_ppm_limits,
++	.read_table_epoch = mt6797_dvfsp_vendor_test_ppm_epoch,
++};
++
++static int mt6797_dvfsp_vendor_test_live_generation(
++	void *context, const struct mt6797_dvfsp_clock_state *clock,
++	const struct mt6797_dvfsp_calibration_state *calibration,
++	const struct mt6797_dvfsp_cspm_state *cspm,
++	const struct mt6797_dvfsp_ppm_snapshot *ppm, u64 *generation,
++	u64 *owner_handle, u64 *transition_handle,
++	struct mt6797_dvfsp_state_provenance *provenance)
++{
++	mt6797_dvfsp_vendor_test_callbacks++;
++	return -EOPNOTSUPP;
++}
++
++static int mt6797_dvfsp_vendor_test_live_cluster(
++	void *context, unsigned int cluster,
++	const struct mt6797_dvfsp_clock_state *clock,
++	const struct mt6797_dvfsp_calibration_state *calibration,
++	const struct mt6797_dvfsp_cspm_state *cspm,
++	const struct mt6797_dvfsp_ppm_snapshot *ppm,
++	struct mt6797_dvfsp_live_source_cluster *state)
++{
++	mt6797_dvfsp_vendor_test_callbacks++;
++	return -EOPNOTSUPP;
++}
++
++static const struct mt6797_dvfsp_live_source_ops
++mt6797_dvfsp_vendor_test_live_ops = {
++	.abi = MT6797_DVFSP_LIVE_SOURCE_ADAPTER_ABI,
++	.read_generation = mt6797_dvfsp_vendor_test_live_generation,
++	.read_cluster = mt6797_dvfsp_vendor_test_live_cluster,
++};
++
++static int mt6797_dvfsp_vendor_test_fill_calibration(
++	void *context, const struct mt6797_dvfsp_ptp_handoff *handoff,
++	const struct mt6797_dvfsp_ptp_state *ptp_state,
++	const struct mt6797_dvfsp_ppm_snapshot *ppm,
++	struct mt6797_dvfsp_ppm_policy_snapshot *policy,
++	const struct mt6797_eem_readback *readback,
++	const struct mt6797_dvfsp_state_owner_source_identity *identity,
++	struct mt6797_eem_calibration_input *input)
++{
++	mt6797_dvfsp_vendor_test_callbacks++;
++	return -EOPNOTSUPP;
++}
++
++static void mt6797_dvfsp_vendor_test_invalidate(
++	void *context, enum mt6797_dvfsp_state_invalidation_reason reason)
++{
++	mt6797_dvfsp_vendor_test_callbacks++;
++}
++
++static const struct mt6797_dvfsp_calibrated_provider_source_ops
++mt6797_dvfsp_vendor_test_provider_ops = {
++	.abi = MT6797_DVFSP_CALIBRATED_SOURCE_ABI,
++	.fill_calibration = mt6797_dvfsp_vendor_test_fill_calibration,
++	.invalidate = mt6797_dvfsp_vendor_test_invalidate,
++};
++
++static const struct mt6797_dvfsp_vendor_owner_ops
++mt6797_dvfsp_vendor_test_owner_ops = {
++	.abi = MT6797_DVFSP_VENDOR_OWNER_ABI,
++	.identity_ops = &mt6797_dvfsp_vendor_test_identity_ops,
++	.ppm_ops = &mt6797_dvfsp_vendor_test_ppm_ops,
++	.live_ops = &mt6797_dvfsp_vendor_test_live_ops,
++	.provider_ops = &mt6797_dvfsp_vendor_test_provider_ops,
++};
++
++static void mt6797_dvfsp_vendor_owner_rejects_incomplete(
++	struct kunit *test)
++{
++	struct mt6797_dvfsp_vendor_owner owner = { };
++	struct mt6797_dvfsp_resource_owner resource_owner = { };
++	struct mt6797_dvfsp_vendor_owner_ops ops = { .abi =
++		MT6797_DVFSP_VENDOR_OWNER_ABI };
++
++	KUNIT_ASSERT_EQ(test,
++		mt6797_dvfsp_resource_owner_init(&resource_owner, 0x67970020), 0);
++	KUNIT_EXPECT_EQ(test,
++		mt6797_dvfsp_vendor_owner_bind(&owner, &resource_owner, &ops,
++			0x67970021, 0x67970020), -EINVAL);
++	KUNIT_EXPECT_FALSE(test, owner.bound);
++}
++
++static void mt6797_dvfsp_vendor_owner_binds_and_unbinds(
++	struct kunit *test)
++{
++	struct mt6797_dvfsp_vendor_owner owner = { };
++	struct mt6797_dvfsp_resource_owner resource_owner = { };
++	struct mt6797_dvfsp_vendor_test_devices devices = { };
++	struct mt6797_dvfsp_state_source_devices tuple = { };
++	struct mt6797_dvfsp_state_owner_ops state_ops = { };
++
++	mt6797_dvfsp_vendor_test_callbacks = 0;
++	mt6797_dvfsp_vendor_test_init_devices(&devices);
++	mt6797_dvfsp_vendor_test_tuple(&devices, &tuple);
++	KUNIT_ASSERT_EQ(test,
++		mt6797_dvfsp_resource_owner_init(&resource_owner, 0x67970022), 0);
++	KUNIT_ASSERT_EQ(test,
++		mt6797_dvfsp_resource_owner_attach(&resource_owner, &tuple), 0);
++	KUNIT_ASSERT_EQ(test,
++		mt6797_dvfsp_vendor_owner_bind(&owner, &resource_owner,
++			&mt6797_dvfsp_vendor_test_owner_ops, 0x67970023,
++			0x67970022), 0);
++	KUNIT_EXPECT_TRUE(test, owner.bound);
++	KUNIT_EXPECT_TRUE(test, owner.provider.initialized);
++	KUNIT_EXPECT_PTR_EQ(test, owner.resource_owner, &resource_owner);
++	KUNIT_EXPECT_PTR_EQ(test, owner.provider.ppm_source.ops,
++			&mt6797_dvfsp_vendor_test_ppm_ops);
++	KUNIT_EXPECT_EQ(test, mt6797_dvfsp_vendor_owner_state_ops_init(
++		&owner, &state_ops), 0);
++	KUNIT_EXPECT_TRUE(test, !!state_ops.snapshot);
++	KUNIT_EXPECT_EQ(test, mt6797_dvfsp_vendor_test_callbacks, 0U);
++	KUNIT_ASSERT_EQ(test, mt6797_dvfsp_vendor_owner_unbind(&owner), 0);
++	KUNIT_EXPECT_FALSE(test, owner.bound);
++	KUNIT_EXPECT_EQ(test, mt6797_dvfsp_vendor_test_callbacks, 1U);
++	KUNIT_ASSERT_EQ(test,
++		mt6797_dvfsp_resource_owner_detach(&resource_owner), 0);
++	mt6797_dvfsp_vendor_test_put_devices(&devices);
++}
++
++static struct kunit_case mt6797_dvfsp_vendor_owner_test_cases[] = {
++	KUNIT_CASE(mt6797_dvfsp_vendor_owner_rejects_incomplete),
++	KUNIT_CASE(mt6797_dvfsp_vendor_owner_binds_and_unbinds),
++	{ }
++};
++
++static struct kunit_suite mt6797_dvfsp_vendor_owner_test_suite = {
++	.name = "mt6797-dvfsp-vendor-owner",
++	.test_cases = mt6797_dvfsp_vendor_owner_test_cases,
++};
++
++kunit_test_suite(mt6797_dvfsp_vendor_owner_test_suite);
++
++MODULE_LICENSE("GPL");
