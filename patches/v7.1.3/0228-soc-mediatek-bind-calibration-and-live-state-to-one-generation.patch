@@ -1,0 +1,167 @@
+From 0000000000000000000000000000000000000228 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 10 Aug 2026 10:00:00 -0400
+Subject: [PATCH] soc: mediatek: bind calibration and live state to one generation
+
+The protected state source already carries an external transition generation,
+but calibrated state currently exposes only separate thermal, clock-owner, and
+rail-owner generations. Require the provider to publish one additional common
+sample epoch in calibration and make live state and final snapshot assembly
+echo that exact value. This binds the calibrated rows and live frequency/rail
+sample to one provider-owned transition snapshot without equating unrelated
+backend-local readback counters.
+
+Bump the affected dormant ABIs and reject missing or mismatched epochs in the
+calibration builder, owner wrapper, source adapter, handoff validator, and
+snapshot assembler. The provider remains default-off; this patch performs no
+hardware or firmware operation, registration, device action, or CPU8/CPU9
+admission. It is experiment-only and not submission-ready.
+---
+ drivers/soc/mediatek/mt6797-dvfsp-handoff.c       |  1 +
+ drivers/soc/mediatek/mt6797-dvfsp-state-owner-source.c |  2 ++
+ drivers/soc/mediatek/mt6797-dvfsp-state-snapshot.c |  2 ++
+ drivers/soc/mediatek/mt6797-dvfsp-state-source.c   |  3 +++
+ drivers/thermal/mediatek/auxadc_thermal.c         |  2 ++
+ include/linux/soc/mediatek/mt6797-dvfsp-handoff.h |  4 +++-
+ include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h |  2 +-
+ include/linux/soc/mediatek/mt6797-dvfsp-state-source.h |  2 +-
+ include/linux/soc/mediatek/mt6797-eem-calibration.h |  3 ++-
+ 9 files changed, 17 insertions(+), 5 deletions(-)
+
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
+@@ -80,7 +80,7 @@ struct mt6797_dvfsp_state_provenance {
+ 	u64 calibration_handle;
+ };
+ 
+-#define MT6797_DVFSP_CALIBRATION_STATE_ABI		1
++#define MT6797_DVFSP_CALIBRATION_STATE_ABI		2
+ #define MT6797_DVFSP_CALIBRATION_STATE_PHASE_INIT01	1
+ #define MT6797_DVFSP_CALIBRATION_STATE_PHASE_INIT02	2
+ #define MT6797_DVFSP_CALIBRATION_STATE_PHASE_MON		3
+@@ -115,6 +115,8 @@ struct mt6797_dvfsp_calibration_state {
+ 	s32 temperature_millic;
+ 	u64 thermal_generation;
+ 	u64 clock_owner_generation;
+ 	u64 rail_owner_generation;
++	/* Common provider epoch shared by calibration and live state. */
++	u64 source_generation;
+ 	struct mt6797_dvfsp_state_provenance provenance;
+ 	struct mt6797_dvfsp_calibration_cluster
+ 		cluster[MT6797_DVFSP_STATE_CLUSTER_COUNT];
+diff --git a/include/linux/soc/mediatek/mt6797-eem-calibration.h b/include/linux/soc/mediatek/mt6797-eem-calibration.h
+--- a/include/linux/soc/mediatek/mt6797-eem-calibration.h
++++ b/include/linux/soc/mediatek/mt6797-eem-calibration.h
+@@ -13,7 +13,7 @@
+ #include <linux/soc/mediatek/mt6797-dvfsp-ptp.h>
+ #include <linux/soc/mediatek/mt6797-eem-readback.h>
+ 
+-#define MT6797_EEM_CALIBRATION_ABI		1
++#define MT6797_EEM_CALIBRATION_ABI		2
+ #define MT6797_EEM_CALIBRATION_ROWS		16
+ #define MT6797_EEM_CALIBRATION_BANKS		4
+ #define MT6797_EEM_CALIBRATION_MON_ENABLE	0x2
+@@ -46,6 +46,7 @@ struct mt6797_eem_calibration_input {
+ 	s32 temperature_millic;
+ 	u64 thermal_generation;
+ 	u64 clock_owner_generation;
+ 	u64 rail_owner_generation;
++	u64 source_generation;
+ 	struct mt6797_dvfsp_state_provenance provenance;
+ };
+ 
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-state-source.h b/include/linux/soc/mediatek/mt6797-dvfsp-state-source.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-state-source.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-state-source.h
+@@ -14,7 +14,7 @@
+ #include <linux/soc/mediatek/mt6797-eem-calibration.h>
+ #include <linux/soc/mediatek/mt6797-eem-readback.h>
+ 
+-#define MT6797_DVFSP_STATE_SOURCE_ABI		4
++#define MT6797_DVFSP_STATE_SOURCE_ABI		5
+ 
+ /*
+  * The caller owns and holds the transition lock while this source is used.
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h b/include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h
+@@ -14,7 +14,7 @@
+ struct mt6797_dvfsp_handoff;
+ 
+-#define MT6797_DVFSP_STATE_OWNER_SOURCE_ABI	2
++#define MT6797_DVFSP_STATE_OWNER_SOURCE_ABI	3
+ 
+ /* This identity is read from the selected silicon/PTP source, never guessed. */
+ struct mt6797_dvfsp_state_owner_source_identity {
+diff --git a/drivers/thermal/mediatek/auxadc_thermal.c b/drivers/thermal/mediatek/auxadc_thermal.c
+--- a/drivers/thermal/mediatek/auxadc_thermal.c
++++ b/drivers/thermal/mediatek/auxadc_thermal.c
+@@ -1296,7 +1296,8 @@ int mt6797_eem_calibration_build(
+ 	    input->temperature_millic > 150000 ||
+ 	    !input->thermal_generation || !input->clock_owner_generation ||
+ 	    !input->rail_owner_generation ||
++	    !input->source_generation ||
+ 	    mt6797_eem_calibration_provenance_check(&input->provenance))
+ 		return -EPROTO;
+@@ -1318,6 +1319,7 @@ int mt6797_eem_calibration_build(
+ 	state->thermal_generation = input->thermal_generation;
+ 	state->clock_owner_generation = input->clock_owner_generation;
+ 	state->rail_owner_generation = input->rail_owner_generation;
++	state->source_generation = input->source_generation;
+ 	state->provenance = input->provenance;
+ 
+ 	for (bank_index = 0; bank_index < MT6797_EEM_CALIBRATION_BANKS;
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+@@ -1617,7 +1617,8 @@ mt6797_dvfsp_calibration_state_check(
+ 	    state->phase != MT6797_DVFSP_CALIBRATION_STATE_PHASE_MON ||
+ 	    state->bank_mask != MT6797_DVFSP_CALIBRATION_STATE_BANK_ALL ||
+ 	    !state->thermal_generation || !state->clock_owner_generation ||
+ 	    !state->rail_owner_generation ||
++	    !state->source_generation ||
+ 	    mt6797_dvfsp_state_provenance_check(&state->provenance))
+ 		return -EPROTO;
+ 
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-owner-source.c b/drivers/soc/mediatek/mt6797-dvfsp-state-owner-source.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-state-owner-source.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-state-owner-source.c
+@@ -182,6 +182,8 @@ static int mt6797_dvfsp_owner_fill_live(
+ 	if (ret)
+ 		return ret;
+ 	if (!live->generation || live->owner_handle != owner->owner_handle ||
++	    !calibration->source_generation ||
++	    live->generation != calibration->source_generation ||
+ 	    live->transition_handle != owner->transition_handle ||
+ 	    !mt6797_dvfsp_owner_provenance_equal(&live->provenance,
+ 						 &owner->provenance))
+ 		return -EPROTO;
+ 
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-source.c b/drivers/soc/mediatek/mt6797-dvfsp-state-source.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-state-source.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-state-source.c
+@@ -154,6 +154,9 @@ int mt6797_dvfsp_state_source_snapshot(
+ 	if (ret)
+ 		return ret;
++	if (!calibration_state.source_generation ||
++	    live.generation != calibration_state.source_generation)
++		return -EAGAIN;
+ 	if (ppm_snapshot.table_epoch != calibration_state.provenance.table_epoch ||
+ 	    ppm_snapshot.table_epoch != live.provenance.table_epoch)
+ 		return -EAGAIN;
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-snapshot.c b/drivers/soc/mediatek/mt6797-dvfsp-state-snapshot.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-state-snapshot.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-state-snapshot.c
+@@ -131,6 +131,8 @@ int mt6797_dvfsp_state_snapshot_assemble(
+ 	    !input->calibration->thermal_generation ||
+ 	    !input->calibration->clock_owner_generation ||
+ 	    !input->calibration->rail_owner_generation ||
++	    !input->calibration->source_generation ||
++	    input->generation != input->calibration->source_generation ||
+ 	    mt6797_dvfsp_snapshot_provenance_check(&input->provenance) ||
+ 	    !mt6797_dvfsp_snapshot_provenance_equal(&input->provenance,
+ 		&input->calibration->provenance))
+ 		return -EPROTO;
+-- 
+2.43.0

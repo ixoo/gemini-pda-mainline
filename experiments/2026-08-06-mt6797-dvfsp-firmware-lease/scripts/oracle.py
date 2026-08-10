@@ -32,6 +32,7 @@ PTP_CALIBRATION_PATCH = ROOT / "patches/v7.1.3/0214-soc-mediatek-bind-PTP-state-
 PPM_CALIBRATION_PATCH = ROOT / "patches/v7.1.3/0225-soc-mediatek-bind-PPM-snapshot-to-EEM-calibration.patch"
 LIVE_RAIL_BINDING_PATCH = ROOT / "patches/v7.1.3/0226-soc-mediatek-bind-live-rails-to-calibrated-row.patch"
 PPM_POLICY_PATCH = ROOT / "patches/v7.1.3/0227-soc-mediatek-bind-PPM-policy-rows-to-calibration.patch"
+GENERATION_COHERENCE_PATCH = ROOT / "patches/v7.1.3/0228-soc-mediatek-bind-calibration-and-live-state-to-one-generation.patch"
 STATE_OWNER_SOURCE_PATCH = ROOT / "patches/v7.1.3/0215-soc-mediatek-add-calibrated-state-owner-source-binding.patch"
 STATE_OWNER_ARBITRATION_PATCH = ROOT / "patches/v7.1.3/0216-soc-mediatek-bind-state-owner-source-to-transition-generation.patch"
 STATE_OWNER_ARBITRATION_FAULT_PATCH = ROOT / "patches/v7.1.3/0217-soc-mediatek-latch-transition-arbitration-faults.patch"
@@ -112,6 +113,7 @@ def main() -> None:
     ppm_calibration_patch = PPM_CALIBRATION_PATCH.read_text()
     live_rail_binding_patch = LIVE_RAIL_BINDING_PATCH.read_text()
     ppm_policy_patch = PPM_POLICY_PATCH.read_text()
+    generation_coherence_patch = GENERATION_COHERENCE_PATCH.read_text()
     state_owner_source_patch = STATE_OWNER_SOURCE_PATCH.read_text()
     state_owner_arbitration_patch = STATE_OWNER_ARBITRATION_PATCH.read_text()
     state_owner_arbitration_fault_patch = STATE_OWNER_ARBITRATION_FAULT_PATCH.read_text()
@@ -169,6 +171,7 @@ def main() -> None:
     ptp_state_source = ptp_state_patch[ptp_state_patch.index("diff --git"):]
     ptp_calibration_source = ptp_calibration_patch[ptp_calibration_patch.index("diff --git"):]
     ppm_policy_source = ppm_policy_patch[ppm_policy_patch.index("diff --git"):]
+    generation_coherence_source = generation_coherence_patch[generation_coherence_patch.index("diff --git"):]
     state_owner_source_source = state_owner_source_patch[state_owner_source_patch.index("diff --git"):]
     state_owner_arbitration_source = state_owner_arbitration_patch[state_owner_arbitration_patch.index("diff --git"):]
     state_owner_arbitration_fault_source = state_owner_arbitration_fault_patch[state_owner_arbitration_fault_patch.index("diff --git"):]
@@ -489,6 +492,20 @@ def main() -> None:
         require(ppm_policy_patch, needle, label)
     if "CCI bank" not in ppm_policy_patch or "no row, CCI limit, or" not in ppm_policy_patch or "generation is fabricated" not in ppm_policy_patch:
         raise AssertionError("PPM policy must make CCI and non-fabrication explicit")
+    for needle, label in (
+        ("MT6797_DVFSP_CALIBRATION_STATE_ABI\t\t2", "generation-calibration-state-abi-bump"),
+        ("MT6797_EEM_CALIBRATION_ABI\t\t2", "generation-eem-calibration-abi-bump"),
+        ("MT6797_DVFSP_STATE_SOURCE_ABI\t\t5", "generation-source-abi-bump"),
+        ("MT6797_DVFSP_STATE_OWNER_SOURCE_ABI\t3", "generation-owner-source-abi-bump"),
+        ("u64 source_generation", "generation-common-source-field"),
+        ("!input->source_generation", "generation-calibration-required"),
+        ("state->source_generation = input->source_generation", "generation-calibration-published"),
+        ("live.generation != calibration_state.source_generation", "generation-source-adapter-match"),
+        ("live->generation != calibration->source_generation", "generation-owner-match"),
+        ("input->generation != input->calibration->source_generation", "generation-snapshot-match"),
+        ("without equating unrelated", "generation-backend-counters-not-equated"),
+    ):
+        require(generation_coherence_patch, needle, label)
     for forbidden in ("readl(", "writel(", "regulator_", "clk_", "i2c_transfer",
                       "arm_smccc", "platform_driver", "cpu_up(", "secure_write"):
         if forbidden in ppm_policy_source:
@@ -1656,6 +1673,8 @@ def main() -> None:
         raise AssertionError("validated registration gate is not after state-owner registration")
     if names.index("0226-soc-mediatek-bind-live-rails-to-calibrated-row.patch") >= names.index("0227-soc-mediatek-bind-PPM-policy-rows-to-calibration.patch"):
         raise AssertionError("PPM policy binding is not after live rail binding")
+    if names.index("0227-soc-mediatek-bind-PPM-policy-rows-to-calibration.patch") >= names.index("0228-soc-mediatek-bind-calibration-and-live-state-to-one-generation.patch"):
+        raise AssertionError("generation coherence is not after PPM policy binding")
 
     for forbidden in ("readl(", "writel(", "i2c_transfer", "regulator_enable(",
                       "regulator_disable(", "psci_ops.cpu_on", "cpu_up("):
@@ -1687,6 +1706,8 @@ def main() -> None:
             raise AssertionError(f"unexpected clock-state hardware operation: {forbidden}")
         if forbidden in ppm_policy_source:
             raise AssertionError(f"unexpected PPM policy hardware operation: {forbidden}")
+        if forbidden in generation_coherence_source:
+            raise AssertionError(f"unexpected generation-coherence hardware operation: {forbidden}")
 
     for forbidden in ("readl(", "writel(", "regulator_", "clk_", "arm_smccc",
                       "i2c_transfer", "platform_driver", "cpu_up(", "secure_write"):
@@ -1754,6 +1775,7 @@ def main() -> None:
     print("ppm_calibration_binding=0225;ppm_snapshot_input;epoch_match;BIG_L_2L_frequency_identity;CCI_excluded;per_row_limits_provider_owned;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("live_rail_binding=0226;frequency_row_selected;VPROC_VSRAM_exact_calibration_row_match;generation_provider_still_required;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("ppm_policy_binding=0227;all_four_banks;CCI_included;limit_rows_exact;epoch_match;provider_owned;owner_ppm_argument_bound;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
+    print("generation_coherence=0228;common_source_generation;calibration_live_snapshot_exact_match;backend_local_counters_not_equated;provider_owned;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("clock_state_decoder=0206;raw_ll_l_b_cci_readbacks;vendor_26mhz_formula;pcw_posdiv_and_divider_decode;generation_tagged;inflight_change_rejected;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("runtime_invalidation=0207;vendor_cpu_online_cpu_down_prepare_cpu_down_failed_pm_suspend_prepare_pm_post_suspend;clock_rail_pcm_fault_mapping;monotonic_sequence;generation_epoch;replay_rejected;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("runtime_binding=0208;active_owner_required;cpuhp_online_down_prepare_down_failed;pm_suspend_resume_notifier;generation_tagged_source_callback;ledger_serialized;registration_atomic;disarm_before_unregistration;registered=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
