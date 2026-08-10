@@ -186,8 +186,8 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-owner-source.c b/drivers/so
  		return -EINVAL;
  
  	ret = owner->source_ops->fill_live(owner->source_context, clock,
--						   calibration, live);
-+						   calibration, ppm, live);
+-					   calibration, live);
++					   calibration, ppm, live);
 @@ -203,5 +216,6 @@ int mt6797_dvfsp_state_owner_source_init(
  	if (!owner || !devices || !source_ops || source_ops->abi !=
  	    MT6797_DVFSP_STATE_OWNER_SOURCE_ABI ||
