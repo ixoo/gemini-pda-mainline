@@ -26,11 +26,12 @@ This is an experiment-only cross-tree contract and is not submission-ready.
 diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
 --- a/drivers/soc/mediatek/Makefile
 +++ b/drivers/soc/mediatek/Makefile
-@@ -18,3 +18,4 @@ obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_WRITER_KUNIT_TEST) += mt6797-dvfsp-vendor-writer-kunit-test.o
+@@ -18,5 +18,6 @@ obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_WRITER) += mt6797-dvfsp-vendor-writer.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_WRITER_KUNIT_TEST) += mt6797-dvfsp-vendor-writer-kunit-test.o
  obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_WRITER_BRIDGE) += mt6797-dvfsp-vendor-writer-bridge.o
  obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_WRITER_BRIDGE_KUNIT_TEST) += mt6797-dvfsp-vendor-writer-bridge-kunit-test.o
 +obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_OWNER) += mt6797-dvfsp-vendor-source.o
- obj-$(CONFIG_MTK_MT6797_DVFSP_RESOURCE_OWNER) += mt6797-dvfsp-resource-owner.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_RESOURCE_OWNER) += mt6797-dvfsp-calibrated-provider.o
 
 diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-source.h b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-source.h
 new file mode 100644
