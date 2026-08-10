@@ -94,15 +94,18 @@ Buildbox result](experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/stat
 This is still compile-only and unregistered: the real efuse/EEM/PMIC/clock
 provider and protected owner registration remain open.
 
-The latest source-only gate adds hardware-free KUnit tests for the DVFSP
-resource-owner lifecycle and arbitration boundary. Revision `7bffe69` applies
-all 233 canonical patches on Buildbox, links the `dvfsp-owner-kunit` profile,
-validates 119 DTBs and package checksums, and fetches only the validated
-package; see the [KUnit Buildbox receipt](experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/owner-kunit-buildbox-20260810.txt).
-The tests use fake devices only. No provider is registered, no hardware or
-firmware operation occurs, and CPU8/CPU9 remain offline. The next source step
-is a reviewed owner/provider bridge for real identity, PPM/CCI, live rail/clock,
-and generation callbacks; runtime registration and device boot remain closed.
+The latest source-only gate adds hardware-free KUnit tests for the calibrated
+provider bridge. Revision `cbb162a` applies all 234 canonical patches on
+Buildbox, links the `dvfsp-owner-kunit` profile, validates 119 DTBs and package
+checksums, and fetches only the validated package; see the [provider-bridge
+KUnit Buildbox receipt](experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/provider-bridge-kunit-buildbox-20260810.txt).
+The tests use fake devices only: incomplete source contracts are rejected,
+complete callback tables bind and construct owner callbacks, and provider exit
+invalidates before unbinding. No callback is invoked, no provider is registered,
+no hardware or firmware operation occurs, and CPU8/CPU9 remain offline. The next
+source step is obtaining an attributable owner for the real identity, PPM/CCI,
+live rail/clock, and generation callbacks; runtime registration and device boot
+remain closed.
 
 The profile-series invariant is repaired. The immediate task is the zero-write
 legacy-family driver and binding contract, not another ad hoc A72 boot. The

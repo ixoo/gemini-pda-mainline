@@ -2633,6 +2633,25 @@ callbacks to this tested lifecycle boundary. Runtime registration, any
 writable operation, device boot, and CPU8/CPU9 admission remain blocked until
 that bridge has an attributable owner and separate runtime evidence.
 
+Patch `0245` adds hardware-free KUnit coverage for the calibrated-provider
+bridge. The exact pushed revision `cbb162a` was validated on Buildbox with the
+`dvfsp-owner-kunit` profile: all 234 canonical patches applied, 119 DTBs and
+package checksums passed, and only the validated package was fetched. The
+[provider-bridge KUnit receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/provider-bridge-kunit-buildbox-20260810.txt)
+records the provenance. The fixture rejects incomplete callback contracts,
+binds complete identity/live/PPM/calibration tables to the resource owner,
+constructs dormant owner callbacks, and verifies exit invalidation/unbind. It
+invokes no callback and performs no Device Tree, MMIO, firmware, clock, rail,
+provider-registration, device, or CPU operation. CPU8/CPU9 admission remains
+closed.
+
+The next ordered action is not another compile-only derivative: obtain and
+review an attributable implementation for the real identity, PPM/CCI, live
+rail/clock, and generation callbacks, then validate its read-only registration
+boundary separately. Until that owner and runtime evidence exist, provider
+registration, writable operation, device boot, and CPU8/CPU9 admission stay
+blocked.
+
 Required evidence:
 
 - provider registration performs no register-data write;
