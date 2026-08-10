@@ -3117,6 +3117,22 @@ failure/remove path, and forwards all lifecycle invalidations through the
 mainline owner contract; then validate that exact candidate on Buildbox. No
 device boot/write or CPU8/CPU9 admission is authorized.
 
+Patch `0258` now extends the explicit writer handoff with a source-independent
+ABI-1 runtime-event table covering CPU online/down, suspend/resume, clock, rail,
+and PCM-fault classes. Registration fails closed unless the event table and
+callback are valid, and the exact table/context remain pinned through
+unregister; the KUnit contract checks ABI and pointer/context identity without
+hardware access. The exact pushed commit `8387f7f` passed the full Buildbox
+profile with all 247 canonical patches, 119 DTBs, package/provenance
+checksums, and validated-package-only fetch; see the [runtime-event Buildbox
+receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-writer-runtime-event-handoff-buildbox-20260811.txt).
+This is compile-only evidence: the real vendor probe/remove caller is still
+not bound to the owner handoff and does not forward lifecycle events, so no
+runtime owner, device boot/write, or CPU8/CPU9 admission is claimed. The next
+ordered gate is the actual vendor-aware caller lifecycle integration with
+complete failure/remove unwinding and event forwarding, followed by separate
+read-only runtime evidence.
+
 Required evidence:
 
 - provider registration performs no register-data write;

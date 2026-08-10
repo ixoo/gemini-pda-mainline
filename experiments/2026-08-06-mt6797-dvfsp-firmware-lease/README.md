@@ -1261,3 +1261,18 @@ audit](results/vendor-caller-lifecycle-invalidation-audit-20260811.txt). The
 next action is a separate vendor-aware lifecycle candidate with shared-
 generation event forwarding, followed by exact Buildbox validation; no device
 boot/write or CPU8/CPU9 admission is authorized.
+
+Patch `0258` now extends that handoff with a source-independent, ABI-1 runtime
+event table matching the eight mainline ledger event classes. Writer
+registration fails closed unless the table and callback are valid, and the
+exact table/context are pinned through unregister; the KUnit contract exercises
+the ABI, pointer identity, context identity, and a CPU-online event without
+hardware access. Commit `8387f7f` passed the full Buildbox profile with all 247
+canonical patches, 119 DTBs, package/provenance checksums, and a
+validated-package-only fetch; see the [runtime-event Buildbox receipt](results/vendor-writer-runtime-event-handoff-buildbox-20260811.txt).
+This remains compile-only evidence: the real vendor probe/remove caller still
+does not register the owner or forward lifecycle events, no device was booted
+or written, and CPU8/CPU9 admission remains closed. The next ordered action is
+to bind the actual vendor caller lifecycle to this handoff, including complete
+failure/remove unwinding and event forwarding, before any runtime review or
+device experiment.

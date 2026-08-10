@@ -67,6 +67,8 @@ VENDOR_WRITER_INTEGRATION_REVIEW_RESULT = (Path(__file__).resolve().parents[1] /
                                            "results/vendor-writer-mainline-owner-integration-review-20260810.txt")
 VENDOR_WRITER_REGISTRATION_BUILD_RESULT = (Path(__file__).resolve().parents[1] /
                                            "results/vendor-writer-registration-handoff-buildbox-20260810.txt")
+VENDOR_WRITER_RUNTIME_EVENTS_BUILD_RESULT = (Path(__file__).resolve().parents[1] /
+                                             "results/vendor-writer-runtime-event-handoff-buildbox-20260811.txt")
 VENDOR_CALLER_LIFECYCLE_AUDIT_RESULT = (Path(__file__).resolve().parents[1] /
                                         "results/vendor-caller-lifecycle-invalidation-audit-20260811.txt")
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
@@ -242,6 +244,7 @@ def main() -> None:
     mainline_writer_runtime_events_patch = MAINLINE_WRITER_RUNTIME_EVENTS_PATCH.read_text()
     vendor_writer_integration_review_result = VENDOR_WRITER_INTEGRATION_REVIEW_RESULT.read_text()
     vendor_writer_registration_build_result = VENDOR_WRITER_REGISTRATION_BUILD_RESULT.read_text()
+    vendor_writer_runtime_events_build_result = VENDOR_WRITER_RUNTIME_EVENTS_BUILD_RESULT.read_text()
     vendor_caller_lifecycle_audit_result = VENDOR_CALLER_LIFECYCLE_AUDIT_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
@@ -428,6 +431,26 @@ def main() -> None:
         ("cpu8_cpu9_admission=closed", "vendor-registration-build-no-admission"),
     ):
         require(vendor_writer_registration_build_result, needle, label)
+
+    for needle, label in (
+        ("claim=COMPILE_ONLY_MT6797_VENDOR_WRITER_RUNTIME_EVENT_HANDOFF", "vendor-runtime-event-build-claim"),
+        ("repository_commit=8387f7fbf35bf86288cecd905dc7708c4f1e369d", "vendor-runtime-event-build-commit"),
+        ("backend=buildbox", "vendor-runtime-event-build-backend"),
+        ("build_profile=full", "vendor-runtime-event-build-profile"),
+        ("buildbox_job=8387f7fbf35bf86288cecd905dc7708c4f1e369d-full-m0", "vendor-runtime-event-build-job"),
+        ("patch_count=247", "vendor-runtime-event-build-patches"),
+        ("dtb_count=119", "vendor-runtime-event-build-dtbs"),
+        ("sha256sums=passed", "vendor-runtime-event-build-checksums"),
+        ("package_fetch=success;validated_package_only", "vendor-runtime-event-build-fetch"),
+        ("patch_0258=runtime_event_abi_1;eight_event_ids;cpu_none_sentinel;registration_requires_validated_runtime_callback;runtime_table_and_context_pinned;default_off", "vendor-runtime-event-build-handoff"),
+        ("registered_owner=0", "vendor-runtime-event-build-no-owner"),
+        ("hardware_write=none", "vendor-runtime-event-build-no-write"),
+        ("device_action=none", "vendor-runtime-event-build-no-action"),
+        ("boot_candidate=false", "vendor-runtime-event-build-not-candidate"),
+        ("cpu8_cpu9_admission=closed", "vendor-runtime-event-build-no-admission"),
+        ("actual_vendor_registration_and_runtime_forwarding_remain_open", "vendor-runtime-event-build-next-gate"),
+    ):
+        require(vendor_writer_runtime_events_build_result, needle, label)
 
     for needle, label in (
         ("claim=SOURCE_ONLY_MT6797_VENDOR_CALLER_LIFECYCLE_INVALIDATION_AUDIT", "vendor-caller-audit-claim"),
@@ -2714,7 +2737,7 @@ def main() -> None:
     print("vendor_writer_shared_owner_identity=0005;abi=2;read_identity_required;nonzero_owner_handle;nonzero_transition_handle;metadata_only;provider=none;registered_owner=0;hardware_write=none;device_action=none;cpu8_cpu9_admission=closed;boot_candidate=false")
     print("vendor_writer_mainline_binding=0006+0256;bridge_abi=1;exact_begin_commit_abort_identity_table;owner_handle_pinned;transition_handle_pinned;site_enum_translated;generation_and_site_mismatch_fail_closed;registration_external_default_off;provider=none;registered_owner=0;hardware_write=none;device_action=none;cpu8_cpu9_admission=closed;boot_candidate=false")
     print("vendor_writer_registration_handoff=0257;abi=1;explicit_external_register_unregister;bridge_context_pinned;owner_identity_pinned;teardown_guard;default_off;provider=none;registered_owner=0;hardware_write=none;device_action=none;cpu8_cpu9_admission=closed;boot_candidate=false")
-    print("vendor_writer_runtime_event_handoff=0258;runtime_event_abi=1;eight_event_ids;cpu_none_sentinel;runtime_table_and_context_pinned;registration_requires_validated_runtime_callback;default_off;provider=none;registered_owner=0;hardware_write=none;device_action=none;cpu8_cpu9_admission=closed;boot_candidate=false")
+    print("vendor_writer_runtime_event_handoff=0258;runtime_event_abi=1;eight_event_ids;cpu_none_sentinel;runtime_table_and_context_pinned;registration_requires_validated_runtime_callback;default_off;buildbox=validated;commit=8387f7fbf35bf86288cecd905dc7708c4f1e369d;patch_count=247;dtb_count=119;sha256sums=passed;package_fetch=success;validated_package_only;provider=none;registered_owner=0;hardware_write=none;device_action=none;cpu8_cpu9_admission=closed;boot_candidate=false")
     print("pcm_adapter_contract=source-only;bounded-admission-model;callback-registration-gated")
     print("clock_owner_inventory=generic_ccf_only;protected_owner_absent;A72_observer_read_only")
     print("pcm_start_contract=defined;residency_and_start_required_before_callback_registration")
