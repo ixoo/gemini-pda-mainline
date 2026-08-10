@@ -367,7 +367,7 @@ index 89e8e20c62b8c5d8b45a63563a7c22b1e927712744bb243d05ca6589496bb9c2..00000000
  #include <trace/events/mtk_events.h>
  
  #include "mt_ppm_internal.h"
-+#include "../../../mt6797/mt6797-dvfsp-vendor-state.h"
++#include "../../mt6797/mt6797-dvfsp-vendor-state.h"
  
  
  #define PPM_TIMER_INTERVAL_MS		(1000)
