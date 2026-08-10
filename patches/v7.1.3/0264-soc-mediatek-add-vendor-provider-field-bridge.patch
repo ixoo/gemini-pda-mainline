@@ -17,15 +17,14 @@ provider.  It is attached only during the explicit vendor lifecycle binding;
 it registers no provider, calls no setter, performs no hardware operation,
 and admits no CPU.
 ---
- drivers/soc/mediatek/Kconfig                    |  10 ++
- drivers/soc/mediatek/Makefile                   |   2 +
- drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c |  15 ++
- drivers/soc/mediatek/mt6797-dvfsp-vendor-provider-test.c | 180 ++++++++++++++++
- drivers/soc/mediatek/mt6797-dvfsp-vendor-provider.c | 203 ++++++++++++++++++
+ drivers/soc/mediatek/Kconfig                       |   9 +
+ drivers/soc/mediatek/Makefile                      |   2 +
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c  |  10 +
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-provider-test.c | 200 ++++++++++++++++
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-provider.c | 246 ++++++++++++++++++++
  include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h |  2 +
- include/linux/soc/mediatek/mt6797-dvfsp-vendor-provider.h |  78 +++++++
- configs/gemini-dvfsp-owner-kunit.fragment        |  1 +
- 8 files changed, 491 insertions(+)
+ include/linux/soc/mediatek/mt6797-dvfsp-vendor-provider.h |  89 ++++++++
+ 7 files changed, 558 insertions(+)
  create mode 100644 drivers/soc/mediatek/mt6797-dvfsp-vendor-provider-test.c
  create mode 100644 drivers/soc/mediatek/mt6797-dvfsp-vendor-provider.c
  create mode 100644 include/linux/soc/mediatek/mt6797-dvfsp-vendor-provider.h
@@ -52,22 +51,12 @@ diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
 diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
 --- a/drivers/soc/mediatek/Makefile
 +++ b/drivers/soc/mediatek/Makefile
-@@ -20,3 +20,5 @@ obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_WRITER_BRIDGE) += mt6797-dvfsp-vendor-writer-bridge.o
+@@ -22,3 +22,5 @@
  obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_OWNER) += mt6797-dvfsp-vendor-source.o
  obj-$(CONFIG_MTK_MT6797_DVFSP_RESOURCE_OWNER) += mt6797-dvfsp-calibrated-provider.o
 +obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_OWNER) += mt6797-dvfsp-vendor-provider.o
 +obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_PROVIDER_BRIDGE_KUNIT_TEST) += mt6797-dvfsp-vendor-provider-test.o
- 
-diff --git a/configs/gemini-dvfsp-owner-kunit.fragment b/configs/gemini-dvfsp-owner-kunit.fragment
---- a/configs/gemini-dvfsp-owner-kunit.fragment
-+++ b/configs/gemini-dvfsp-owner-kunit.fragment
-@@ -7,5 +7,6 @@ CONFIG_MTK_MT6797_DVFSP_PROVIDER_KUNIT_TEST=y
- CONFIG_MTK_MT6797_DVFSP_VENDOR_OWNER=y
- CONFIG_MTK_MT6797_DVFSP_VENDOR_OWNER_KUNIT_TEST=y
-+CONFIG_MTK_MT6797_DVFSP_VENDOR_PROVIDER_BRIDGE_KUNIT_TEST=y
- CONFIG_MTK_MT6797_DVFSP_VENDOR_WRITER=y
- CONFIG_MTK_MT6797_DVFSP_VENDOR_WRITER_KUNIT_TEST=y
- CONFIG_MTK_MT6797_DVFSP_VENDOR_WRITER_BRIDGE=y
+ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-state-snapshot.o
 
 diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-provider.h b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-provider.h
 new file mode 100644
@@ -168,7 +157,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-provider.c b/drivers/soc/m
 new file mode 100644
 --- /dev/null
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-provider.c
-@@ -0,0 +1,247 @@
+@@ -0,0 +1,246 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/*
 + * Map the bounded vendor observation ABI to an explicit provider review view.
@@ -273,8 +262,7 @@ new file mode 100644
 +		if (cluster->is_on > 1 || !cluster->volt || !cluster->vsram)
 +			return -EPROTO;
 +		if (i < MT6797_DVFSP_VENDOR_SOURCE_MAX_CLUSTER &&
-+		    (!cluster->ceiling || !cluster->floor ||
-+		     cluster->ceiling >= MT6797_DVFSP_VENDOR_SOURCE_MAX_OPP ||
++		    (cluster->ceiling >= MT6797_DVFSP_VENDOR_SOURCE_MAX_OPP ||
 +		     cluster->floor >= MT6797_DVFSP_VENDOR_SOURCE_MAX_OPP ||
 +		     cluster->floor > cluster->ceiling))
 +			return -EPROTO;
@@ -420,11 +408,10 @@ new file mode 100644
 diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h
 --- a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h
 +++ b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h
-@@ -7,3 +7,4 @@
- #include <linux/soc/mediatek/mt6797-dvfsp-vendor-source.h>
- #include <linux/soc/mediatek/mt6797-dvfsp-vendor-writer.h>
+@@ -10,2 +10,3 @@
  #include <linux/soc/mediatek/mt6797-dvfsp-vendor-writer-bridge.h>
 +#include <linux/soc/mediatek/mt6797-dvfsp-vendor-provider.h>
+ 
 @@ -114,5 +115,6 @@ struct mt6797_dvfsp_vendor_owner {
  	struct mt6797_dvfsp_vendor_writer writer;
  	struct mt6797_dvfsp_vendor_writer_bridge writer_bridge;
@@ -450,12 +437,16 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c b/drivers/soc/medi
 +	}
  
  	owner->writer_integration_ops = integration_ops;
-@@ -265,4 +271,5 @@ int mt6797_dvfsp_vendor_owner_bind_writer_integration(
- 	owner->ops.writer_registration_ops = NULL;
- 	owner->ops.writer_registration_context = NULL;
-+	mt6797_dvfsp_vendor_provider_bridge_exit(&owner->provider_bridge);
- 	mt6797_dvfsp_vendor_source_exit(&owner->source);
- 	memset(&owner->writer_bridge, 0, sizeof(owner->writer_bridge));
+@@ -243,8 +243,9 @@ int mt6797_dvfsp_vendor_owner_bind_writer_integration(
+ 	if (ret) {
+ 		owner->writer_integration_bound = false;
+ 		owner->writer_integration_ops = NULL;
+ 		owner->writer_integration_context = NULL;
+ 		owner->ops.writer_registration_ops = NULL;
+ 		owner->ops.writer_registration_context = NULL;
++		mt6797_dvfsp_vendor_provider_bridge_exit(&owner->provider_bridge);
+ 		mt6797_dvfsp_vendor_source_exit(&owner->source);
+ 		memset(&owner->writer_bridge, 0, sizeof(owner->writer_bridge));
 @@ -298,5 +305,6 @@ int mt6797_dvfsp_vendor_owner_unbind_writer_integration(
  	owner->ops.writer_registration_ops = NULL;
  	owner->ops.writer_registration_context = NULL;
