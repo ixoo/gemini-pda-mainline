@@ -945,3 +945,11 @@ unsafe standalone observer route; the next owner work must integrate at the
 vendor-aware driver boundary or add explicit cooperation from those writers.
 No vendor source was copied, no provider was registered, and CPU8/CPU9
 admission remains closed.
+
+The exact pushed head `75986f0` was then resumed on Buildbox with the named
+`dvfsp-owner-kunit` profile. All 236 canonical patches, 119 DTBs, package
+checksums, and the validated-package-only fetch passed; the [current-head
+Buildbox resume receipt](results/buildbox-resume-75986f0-20260810.txt) records
+the immutable provenance. This remains compile-only evidence: no owner/provider
+was registered, no device was booted or written, and CPU8/CPU9 admission remains
+closed.

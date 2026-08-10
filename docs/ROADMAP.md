@@ -2730,6 +2730,14 @@ be integrated at the vendor-aware driver boundary or introduce an explicit
 mainline owner contract with cooperation from those writers; no provider,
 hardware action, device boot, or CPU8/CPU9 admission is justified by this audit.
 
+The exact pushed head `75986f0` was then resumed on Buildbox with the named
+`dvfsp-owner-kunit` profile. All 236 canonical patches, 119 DTBs, package
+checksums, and the validated-package-only fetch passed; see the [current-head
+Buildbox resume receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/buildbox-resume-75986f0-20260810.txt).
+This confirms compile-only reproducibility for the callback-boundary audit;
+the vendor-aware owner/provider gate remains open, and no device action or
+CPU8/CPU9 admission occurred.
+
 Required evidence:
 
 - provider registration performs no register-data write;
