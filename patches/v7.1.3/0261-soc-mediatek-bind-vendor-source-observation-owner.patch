@@ -196,7 +196,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c b/drivers/soc/medi
 diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
 --- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
-@@ -8,6 +8,8 @@
+@@ -8,5 +8,8 @@
  #include <linux/types.h>
  
  #include <linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h>
