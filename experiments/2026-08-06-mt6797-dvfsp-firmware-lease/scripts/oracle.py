@@ -34,6 +34,7 @@ LIVE_RAIL_BINDING_PATCH = ROOT / "patches/v7.1.3/0226-soc-mediatek-bind-live-rai
 PPM_POLICY_PATCH = ROOT / "patches/v7.1.3/0227-soc-mediatek-bind-PPM-policy-rows-to-calibration.patch"
 GENERATION_COHERENCE_PATCH = ROOT / "patches/v7.1.3/0228-soc-mediatek-bind-calibration-and-live-state-to-one-generation.patch"
 PPM_OWNER_LOCK_PATCH = ROOT / "patches/v7.1.3/0229-soc-mediatek-bind-ppm-snapshot-to-owner-lock.patch"
+RESOURCE_OWNER_PATCH = ROOT / "patches/v7.1.3/0230-soc-mediatek-add-MT6797-resource-only-transition-owner.patch"
 STATE_OWNER_SOURCE_PATCH = ROOT / "patches/v7.1.3/0215-soc-mediatek-add-calibrated-state-owner-source-binding.patch"
 STATE_OWNER_ARBITRATION_PATCH = ROOT / "patches/v7.1.3/0216-soc-mediatek-bind-state-owner-source-to-transition-generation.patch"
 STATE_OWNER_ARBITRATION_FAULT_PATCH = ROOT / "patches/v7.1.3/0217-soc-mediatek-latch-transition-arbitration-faults.patch"
@@ -118,6 +119,7 @@ def main() -> None:
     ppm_policy_patch = PPM_POLICY_PATCH.read_text()
     generation_coherence_patch = GENERATION_COHERENCE_PATCH.read_text()
     ppm_owner_lock_patch = PPM_OWNER_LOCK_PATCH.read_text()
+    resource_owner_patch = RESOURCE_OWNER_PATCH.read_text()
     state_owner_source_patch = STATE_OWNER_SOURCE_PATCH.read_text()
     state_owner_arbitration_patch = STATE_OWNER_ARBITRATION_PATCH.read_text()
     state_owner_arbitration_fault_patch = STATE_OWNER_ARBITRATION_FAULT_PATCH.read_text()
@@ -179,6 +181,7 @@ def main() -> None:
     ppm_policy_source = ppm_policy_patch[ppm_policy_patch.index("diff --git"):]
     generation_coherence_source = generation_coherence_patch[generation_coherence_patch.index("diff --git"):]
     ppm_owner_lock_source = ppm_owner_lock_patch[ppm_owner_lock_patch.index("diff --git"):]
+    resource_owner_source = resource_owner_patch[resource_owner_patch.index("diff --git"):]
     state_owner_source_source = state_owner_source_patch[state_owner_source_patch.index("diff --git"):]
     state_owner_arbitration_source = state_owner_arbitration_patch[state_owner_arbitration_patch.index("diff --git"):]
     state_owner_arbitration_fault_source = state_owner_arbitration_fault_patch[state_owner_arbitration_fault_patch.index("diff --git"):]
@@ -533,6 +536,28 @@ def main() -> None:
     for forbidden in ("register_platform_driver", "ioremap", "writel", "boot_candidate=true"):
         if forbidden in ppm_owner_lock_source:
             raise AssertionError(f"unexpected PPM owner operation: {forbidden}")
+    for needle, label in (
+        ("MT6797_DVFSP_RESOURCE_OWNER_ABI", "resource-owner-abi"),
+        ("struct mt6797_dvfsp_resource_owner", "resource-owner-struct"),
+        ("struct mutex transition_lock", "resource-owner-transition-lock"),
+        ("u64 generation", "resource-owner-generation"),
+        ("get_device", "resource-owner-device-retain"),
+        ("put_device", "resource-owner-device-release"),
+        ("mt6797_dvfsp_resource_owner_attach", "resource-owner-attach"),
+        ("mt6797_dvfsp_resource_owner_detach", "resource-owner-detach"),
+        ("mt6797_dvfsp_resource_owner_advance_generation", "resource-owner-advance"),
+        ("mt6797_dvfsp_resource_owner_arbitration_ops_init", "resource-owner-arbitration-adapter"),
+        ("owner->writes_disabled = true", "resource-owner-writes-disabled"),
+        ("detach waits for an active", "resource-owner-detach-boundary"),
+        ("no handoff registration path", "resource-owner-no-registration"),
+    ):
+        require(resource_owner_patch, needle, label)
+    for forbidden in ("platform_driver", "register_platform_driver", "readl(",
+                      "writel(", "regulator_", "clk_", "i2c_transfer",
+                      "arm_smccc", "secure_write", "cpu_up(",
+                      "mt6797_dvfsp_handoff_state_owner_register"):
+        if forbidden in resource_owner_source:
+            raise AssertionError(f"unexpected resource-owner operation: {forbidden}")
     for needle, label in (
         ("claim=COMPILE_ONLY_MT6797_DVFSP_PPM_OWNER_LOCK_BOUNDARY", "ppm-owner-build-claim"),
         ("repository_commit=692a6a555a3ca65a47c46d199ef4b0f4ba2a2290", "ppm-owner-build-commit"),
@@ -1850,6 +1875,7 @@ def main() -> None:
     print("ppm_policy_binding=0227;all_four_banks;CCI_included;limit_rows_exact;epoch_match;provider_owned;owner_ppm_argument_bound;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("generation_coherence=0228;common_source_generation;calibration_live_snapshot_exact_match;backend_local_counters_not_equated;provider_owned;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("ppm_owner_lock_binding=0229;explicit_lock_unlock;atomic_ppm_policy_copy;four_bank_policy;shared_table_epoch;transition_lock_outer;provider=none;registered_owner=0;no_hardware_write;device_action=none;boot_candidate=false")
+    print("resource_owner=0230;device_refs_retained;explicit_attach_detach;single_transition_mutex;monotonic_generation;arbitration_ops_only;writes_disabled;provider=none;registered_owner=0;device_action=none;boot_candidate=false")
     print("clock_state_decoder=0206;raw_ll_l_b_cci_readbacks;vendor_26mhz_formula;pcw_posdiv_and_divider_decode;generation_tagged;inflight_change_rejected;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("runtime_invalidation=0207;vendor_cpu_online_cpu_down_prepare_cpu_down_failed_pm_suspend_prepare_pm_post_suspend;clock_rail_pcm_fault_mapping;monotonic_sequence;generation_epoch;replay_rejected;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("runtime_binding=0208;active_owner_required;cpuhp_online_down_prepare_down_failed;pm_suspend_resume_notifier;generation_tagged_source_callback;ledger_serialized;registration_atomic;disarm_before_unregistration;registered=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
