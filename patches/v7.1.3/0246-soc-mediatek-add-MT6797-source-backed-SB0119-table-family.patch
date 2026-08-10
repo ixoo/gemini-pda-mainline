@@ -38,9 +38,9 @@ diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
 @@ -11,7 +11,8 @@ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-resource-owner.o
  obj-$(CONFIG_MTK_MT6797_DVFSP_RESOURCE_OWNER) += mt6797-dvfsp-resource-provider.o
  obj-$(CONFIG_MTK_MT6797_DVFSP_OWNER_KUNIT_TEST) += mt6797-dvfsp-resource-owner-test.o
- obj-$(CONFIG_MTK_MT6797_DVFSP_RESOURCE_OWNER) += mt6797-dvfsp-calibrated-provider.o
  obj-$(CONFIG_MTK_MT6797_DVFSP_PROVIDER_KUNIT_TEST) += mt6797-dvfsp-calibrated-provider-test.o
 +obj-$(CONFIG_MTK_MT6797_DVFSP_PROVIDER_KUNIT_TEST) += mt6797-dvfsp-table-source-test.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_RESOURCE_OWNER) += mt6797-dvfsp-calibrated-provider.o
  obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-state-snapshot.o
  obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-runtime-bind.o
  obj-$(CONFIG_MTK_MT6797_DVFSP_CLOCK_BACKEND) += mt6797-dvfsp-clock-state.o
