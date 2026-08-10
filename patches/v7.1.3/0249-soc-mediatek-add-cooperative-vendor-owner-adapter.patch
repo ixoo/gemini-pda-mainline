@@ -16,27 +16,16 @@ unbind, and lifecycle setup invokes no source callback.
 
 This is an experiment-only contract and not submission-ready.
 ---
- configs/gemini-dvfsp-owner-kunit.fragment                         |   2 +
  drivers/soc/mediatek/Kconfig                                      |  20 ++++
  drivers/soc/mediatek/Makefile                                     |   2 +
  drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c             | 235 ++++++++++++++++++++
  drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c                  | 105 +++++++++
  include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h            |  49 ++++
- 6 files changed, 413 insertions(+)
+ 5 files changed, 411 insertions(+)
  create mode 100644 drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
  create mode 100644 drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c
  create mode 100644 include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h
 
-diff --git a/configs/gemini-dvfsp-owner-kunit.fragment b/configs/gemini-dvfsp-owner-kunit.fragment
---- a/configs/gemini-dvfsp-owner-kunit.fragment
-+++ b/configs/gemini-dvfsp-owner-kunit.fragment
-@@ -5,4 +5,6 @@
- CONFIG_KUNIT=y
- CONFIG_MTK_MT6797_DVFSP_OWNER_KUNIT_TEST=y
- CONFIG_MTK_MT6797_DVFSP_PROVIDER_KUNIT_TEST=y
-+CONFIG_MTK_MT6797_DVFSP_VENDOR_OWNER=y
-+CONFIG_MTK_MT6797_DVFSP_VENDOR_OWNER_KUNIT_TEST=y
- CONFIG_LOCALVERSION="-gemini-dvfsp-owner-kunit"
 diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
 --- a/drivers/soc/mediatek/Kconfig
 +++ b/drivers/soc/mediatek/Kconfig
