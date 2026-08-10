@@ -1120,3 +1120,11 @@ the validated package was fetched; see the [current-head Buildbox receipt](resul
 This compile-only rebuild does not change the integration gate or authorize a
 device boot/write; vendor callers remain unbound and CPU8/CPU9 admission stays
 closed.
+
+The exact current head `c53084b` was resumed on Buildbox with the same
+`dvfsp-owner-kunit` profile. All 244 canonical patches applied, the arm64
+kernel linked, all 119 DTBs and package/provenance checksums passed, and only
+the validated package was fetched; see the [current-head Buildbox receipt](results/buildbox-resume-c53084b-20260810.txt).
+This compile-only rebuild records the current artifact identity but does not
+change the integration gate or authorize a device boot/write: vendor callers
+remain unbound and CPU8/CPU9 admission stays closed.
