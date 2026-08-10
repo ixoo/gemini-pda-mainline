@@ -1,0 +1,671 @@
+From 0000000000000000000000000000000000000264 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 11 Aug 2026 01:00:00 -0400
+Subject: [PATCH] soc: mediatek: add vendor provider field bridge
+
+Add a source-only bridge that maps the fixed vendor observation records into
+an explicitly ordered provider review view.  PPM and cpufreq entries are
+reordered by their declared IDs, CSPM remains the fixed four-cluster raw-code
+view, and all six EEM detectors are retained while the four canonical bank
+IDs are named explicitly.  The real variant, table epoch, and calibration
+handle are copied without truncation or synthesis.
+
+The vendor observation ABI does not contain complete policy-limit rows, EEM
+voltage units, live clock ownership, or rail conversion.  The bridge records
+those omissions as unavailable fields and never presents them as a calibrated
+provider.  It is attached only during the explicit vendor lifecycle binding;
+it registers no provider, calls no setter, performs no hardware operation,
+and admits no CPU.
+---
+ drivers/soc/mediatek/Kconfig                    |  10 ++
+ drivers/soc/mediatek/Makefile                   |   2 +
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c |  15 ++
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-provider-test.c | 180 ++++++++++++++++
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-provider.c | 203 ++++++++++++++++++
+ include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h |  2 +
+ include/linux/soc/mediatek/mt6797-dvfsp-vendor-provider.h |  78 +++++++
+ configs/gemini-dvfsp-owner-kunit.fragment        |  1 +
+ 8 files changed, 491 insertions(+)
+ create mode 100644 drivers/soc/mediatek/mt6797-dvfsp-vendor-provider-test.c
+ create mode 100644 drivers/soc/mediatek/mt6797-dvfsp-vendor-provider.c
+ create mode 100644 include/linux/soc/mediatek/mt6797-dvfsp-vendor-provider.h
+
+diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
+--- a/drivers/soc/mediatek/Kconfig
++++ b/drivers/soc/mediatek/Kconfig
+@@ -136,6 +136,15 @@ config MTK_MT6797_DVFSP_VENDOR_OWNER_KUNIT_TEST
+ 	  Exercise the hardware-free cooperative callback binding and unbind
+ 	  lifecycle. The fixture invokes no vendor callback or registration API.
+ 
++config MTK_MT6797_DVFSP_VENDOR_PROVIDER_BRIDGE_KUNIT_TEST
++	bool "KUnit tests for the MT6797 vendor provider field bridge"
++	depends on KUNIT=y
++	depends on MTK_MT6797_DVFSP_VENDOR_OWNER
++	help
++	  Exercise the hardware-free vendor-to-provider field and identity mapping.
++	  The bridge retains raw EEM/CSPM values and reports unsupported provider
++	  conversions explicitly; it never registers a provider or touches hardware.
++
+ config MTK_MT6797_DVFSP_VENDOR_WRITER
+ 	bool "MediaTek MT6797 vendor writer transition owner"
+ 	depends on ARM64 && ARCH_MEDIATEK && OF
+diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
+--- a/drivers/soc/mediatek/Makefile
++++ b/drivers/soc/mediatek/Makefile
+@@ -20,3 +20,5 @@ obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_WRITER_BRIDGE) += mt6797-dvfsp-vendor-writer-bridge.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_OWNER) += mt6797-dvfsp-vendor-source.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_RESOURCE_OWNER) += mt6797-dvfsp-calibrated-provider.o
++obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_OWNER) += mt6797-dvfsp-vendor-provider.o
++obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_PROVIDER_BRIDGE_KUNIT_TEST) += mt6797-dvfsp-vendor-provider-test.o
+ 
+diff --git a/configs/gemini-dvfsp-owner-kunit.fragment b/configs/gemini-dvfsp-owner-kunit.fragment
+--- a/configs/gemini-dvfsp-owner-kunit.fragment
++++ b/configs/gemini-dvfsp-owner-kunit.fragment
+@@ -7,5 +7,6 @@ CONFIG_MTK_MT6797_DVFSP_PROVIDER_KUNIT_TEST=y
+ CONFIG_MTK_MT6797_DVFSP_VENDOR_OWNER=y
+ CONFIG_MTK_MT6797_DVFSP_VENDOR_OWNER_KUNIT_TEST=y
++CONFIG_MTK_MT6797_DVFSP_VENDOR_PROVIDER_BRIDGE_KUNIT_TEST=y
+ CONFIG_MTK_MT6797_DVFSP_VENDOR_WRITER=y
+ CONFIG_MTK_MT6797_DVFSP_VENDOR_WRITER_KUNIT_TEST=y
+ CONFIG_MTK_MT6797_DVFSP_VENDOR_WRITER_BRIDGE=y
+
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-provider.h b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-provider.h
+new file mode 100644
+--- /dev/null
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-provider.h
+@@ -0,0 +1,89 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __LINUX_SOC_MEDIATEK_MT6797_DVFSP_VENDOR_PROVIDER_H
++#define __LINUX_SOC_MEDIATEK_MT6797_DVFSP_VENDOR_PROVIDER_H
++
++#include <linux/bitops.h>
++#include <linux/types.h>
++
++#include <linux/soc/mediatek/mt6797-dvfsp-calibrated-provider.h>
++#include <linux/soc/mediatek/mt6797-dvfsp-vendor-source.h>
++
++#define MT6797_DVFSP_VENDOR_PROVIDER_ABI	1
++#define MT6797_DVFSP_VENDOR_PROVIDER_PPM	BIT(0)
++#define MT6797_DVFSP_VENDOR_PROVIDER_CPUFREQ	BIT(1)
++#define MT6797_DVFSP_VENDOR_PROVIDER_CSPM	BIT(2)
++#define MT6797_DVFSP_VENDOR_PROVIDER_EEM	BIT(3)
++#define MT6797_DVFSP_VENDOR_PROVIDER_IDENTITY	BIT(4)
++#define MT6797_DVFSP_VENDOR_PROVIDER_MAPPED_ALL	GENMASK(4, 0)
++
++/* These fields are intentionally not guessed from a partial vendor record. */
++#define MT6797_DVFSP_VENDOR_PROVIDER_UNAVAILABLE_POLICY_ROWS	BIT(0)
++#define MT6797_DVFSP_VENDOR_PROVIDER_UNAVAILABLE_EEM_UV	BIT(1)
++#define MT6797_DVFSP_VENDOR_PROVIDER_UNAVAILABLE_CLOCK	BIT(2)
++#define MT6797_DVFSP_VENDOR_PROVIDER_UNAVAILABLE_RAIL	BIT(3)
++#define MT6797_DVFSP_VENDOR_PROVIDER_UNAVAILABLE_REGISTRATION	BIT(4)
++#define MT6797_DVFSP_VENDOR_PROVIDER_UNAVAILABLE_ALL	GENMASK(4, 0)
++
++#define MT6797_DVFSP_VENDOR_PROVIDER_EEM_BANK_BIG	0
++#define MT6797_DVFSP_VENDOR_PROVIDER_EEM_BANK_L	1
++#define MT6797_DVFSP_VENDOR_PROVIDER_EEM_BANK_2L	2
++#define MT6797_DVFSP_VENDOR_PROVIDER_EEM_BANK_CCI	3
++
++/*
++ * This is a review view, not a replacement for the calibrated-provider
++ * callback ABI.  PPM/cpufreq arrays are ordered by ID; CSPM is the fixed
++ * LL/L/B/CCI order; EEM keeps every source detector and names the four
++ * canonical detector IDs separately.  Voltage values remain raw vendor data.
++ */
++struct mt6797_dvfsp_vendor_provider_snapshot {
++	u32 abi;
++	u32 mapped_mask;
++	u32 unavailable_mask;
++	u32 ppm_table_type;
++	u32 reserved;
++	u64 generation;
++	u64 owner_handle;
++	u64 transition_handle;
++	struct mt6797_dvfsp_vendor_source_identity identity;
++	struct mt6797_dvfsp_vendor_source_ppm_cluster
++		ppm[MT6797_DVFSP_VENDOR_SOURCE_MAX_CLUSTER];
++	struct mt6797_dvfsp_vendor_source_cpufreq_domain
++		cpufreq[MT6797_DVFSP_VENDOR_SOURCE_MAX_DOMAIN];
++	struct mt6797_dvfsp_vendor_source_cspm_cluster
++		cspm[MT6797_DVFSP_VENDOR_SOURCE_MAX_CLUSTER + 1];
++	struct mt6797_dvfsp_vendor_source_eem_detector
++		eem[MT6797_DVFSP_VENDOR_SOURCE_MAX_DETECTOR];
++	u32 ppm_source_index[MT6797_DVFSP_VENDOR_SOURCE_MAX_CLUSTER];
++	u32 cpufreq_source_index[MT6797_DVFSP_VENDOR_SOURCE_MAX_DOMAIN];
++	u32 eem_source_index[MT6797_DVFSP_VENDOR_SOURCE_MAX_DETECTOR];
++	u32 eem_provider_detector[4];
++};
++
++/* Pure field/identity mapping; no source callback or provider is invoked. */
++int mt6797_dvfsp_vendor_provider_map(
++	const struct mt6797_dvfsp_vendor_source_snapshot *source,
++	const struct mt6797_dvfsp_vendor_source_identity *identity,
++	u64 owner_handle, u64 transition_handle,
++	struct mt6797_dvfsp_vendor_provider_snapshot *mapped);
++
++/* Attach the read-only review view to an already dormant calibrated provider. */
++struct mt6797_dvfsp_vendor_provider_bridge {
++	struct mt6797_dvfsp_calibrated_provider *provider;
++	struct mt6797_dvfsp_vendor_source *source;
++	u64 owner_handle;
++	u64 transition_handle;
++	bool initialized;
++};
++
++int mt6797_dvfsp_vendor_provider_bridge_init(
++	struct mt6797_dvfsp_vendor_provider_bridge *bridge,
++	struct mt6797_dvfsp_calibrated_provider *provider,
++	struct mt6797_dvfsp_vendor_source *source,
++	u64 owner_handle, u64 transition_handle);
++int mt6797_dvfsp_vendor_provider_bridge_snapshot(
++	struct mt6797_dvfsp_vendor_provider_bridge *bridge,
++	struct mt6797_dvfsp_vendor_provider_snapshot *mapped);
++void mt6797_dvfsp_vendor_provider_bridge_exit(
++	struct mt6797_dvfsp_vendor_provider_bridge *bridge);
++
++#endif /* __LINUX_SOC_MEDIATEK_MT6797_DVFSP_VENDOR_PROVIDER_H */
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-provider.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-provider.c
+new file mode 100644
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-provider.c
+@@ -0,0 +1,247 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Map the bounded vendor observation ABI to an explicit provider review view.
++ * This file performs no I/O and never registers a provider or owner.
++ */
++
++#include <linux/errno.h>
++#include <linux/export.h>
++#include <linux/module.h>
++#include <linux/string.h>
++#include <linux/types.h>
++
++#include <linux/soc/mediatek/mt6797-dvfsp-vendor-provider.h>
++
++static int mt6797_dvfsp_vendor_provider_source_check(
++	const struct mt6797_dvfsp_vendor_source_snapshot *source,
++	const struct mt6797_dvfsp_vendor_source_identity *identity,
++	u64 owner_handle, u64 transition_handle)
++{
++	if (!source || !identity || source->abi !=
++	    MT6797_DVFSP_VENDOR_SOURCE_ABI || source->source_mask !=
++	    MT6797_DVFSP_VENDOR_SOURCE_ALL ||
++	    source->ppm_cluster_count != MT6797_DVFSP_VENDOR_SOURCE_MAX_CLUSTER ||
++	    source->cpufreq_domain_count != MT6797_DVFSP_VENDOR_SOURCE_MAX_DOMAIN ||
++	    source->cspm_cluster_count !=
++	    MT6797_DVFSP_VENDOR_SOURCE_MAX_CLUSTER + 1 ||
++	    source->eem_detector_count != MT6797_DVFSP_VENDOR_SOURCE_MAX_DETECTOR ||
++	    !source->generation || source->owner_handle != owner_handle ||
++	    source->transition_handle != transition_handle || !owner_handle ||
++	    !transition_handle || identity->abi != MT6797_DVFSP_VENDOR_SOURCE_ABI ||
++	    !identity->variant_id || !identity->table_epoch ||
++	    !identity->calibration_handle)
++		return -EPROTO;
++
++	return 0;
++}
++
++static int mt6797_dvfsp_vendor_provider_map_ppm(
++	const struct mt6797_dvfsp_vendor_source_snapshot *source,
++	struct mt6797_dvfsp_vendor_provider_snapshot *mapped)
++{
++	bool seen[MT6797_DVFSP_VENDOR_SOURCE_MAX_CLUSTER] = { 0 };
++	u32 i;
++
++	for (i = 0; i < source->ppm_cluster_count; i++) {
++		const struct mt6797_dvfsp_vendor_source_ppm_cluster *cluster =
++			&source->ppm[i];
++
++		if (cluster->cluster_id >=
++		    MT6797_DVFSP_VENDOR_SOURCE_MAX_CLUSTER ||
++		    seen[cluster->cluster_id])
++			return -EPROTO;
++		seen[cluster->cluster_id] = true;
++		mapped->ppm[cluster->cluster_id] = *cluster;
++		mapped->ppm_source_index[cluster->cluster_id] = i;
++	}
++
++	for (i = 0; i < MT6797_DVFSP_VENDOR_SOURCE_MAX_CLUSTER; i++)
++		if (!seen[i])
++			return -EPROTO;
++
++	return 0;
++}
++
++static int mt6797_dvfsp_vendor_provider_map_cpufreq(
++	const struct mt6797_dvfsp_vendor_source_snapshot *source,
++	struct mt6797_dvfsp_vendor_provider_snapshot *mapped)
++{
++	bool seen[MT6797_DVFSP_VENDOR_SOURCE_MAX_DOMAIN] = { 0 };
++	u32 i;
++
++	for (i = 0; i < source->cpufreq_domain_count; i++) {
++		const struct mt6797_dvfsp_vendor_source_cpufreq_domain *domain =
++			&source->cpufreq[i];
++
++		if (domain->id >= MT6797_DVFSP_VENDOR_SOURCE_MAX_DOMAIN ||
++		    seen[domain->id])
++			return -EPROTO;
++		seen[domain->id] = true;
++		mapped->cpufreq[domain->id] = *domain;
++		mapped->cpufreq_source_index[domain->id] = i;
++	}
++
++	for (i = 0; i < MT6797_DVFSP_VENDOR_SOURCE_MAX_DOMAIN; i++)
++		if (!seen[i])
++			return -EPROTO;
++
++	return 0;
++}
++
++static int mt6797_dvfsp_vendor_provider_map_cspm(
++	const struct mt6797_dvfsp_vendor_source_snapshot *source,
++	struct mt6797_dvfsp_vendor_provider_snapshot *mapped)
++{
++	u32 i;
++
++	/* The vendor record is already fixed LL/L/B/CCI order; do not infer IDs. */
++	for (i = 0; i < source->cspm_cluster_count; i++) {
++		const struct mt6797_dvfsp_vendor_source_cspm_cluster *cluster =
++			&source->cspm[i];
++
++		if (cluster->is_on > 1 || !cluster->volt || !cluster->vsram)
++			return -EPROTO;
++		if (i < MT6797_DVFSP_VENDOR_SOURCE_MAX_CLUSTER &&
++		    (!cluster->ceiling || !cluster->floor ||
++		     cluster->ceiling >= MT6797_DVFSP_VENDOR_SOURCE_MAX_OPP ||
++		     cluster->floor >= MT6797_DVFSP_VENDOR_SOURCE_MAX_OPP ||
++		     cluster->floor > cluster->ceiling))
++			return -EPROTO;
++		if (i == MT6797_DVFSP_VENDOR_SOURCE_MAX_CLUSTER &&
++		    (cluster->ceiling || cluster->floor))
++			return -EPROTO;
++		mapped->cspm[i] = *cluster;
++	}
++
++	return 0;
++}
++
++static int mt6797_dvfsp_vendor_provider_map_eem(
++	const struct mt6797_dvfsp_vendor_source_snapshot *source,
++	struct mt6797_dvfsp_vendor_provider_snapshot *mapped)
++{
++	static const u32 provider_ids[4] = { 0, 3, 4, 5 };
++	bool seen[MT6797_DVFSP_VENDOR_SOURCE_MAX_DETECTOR] = { 0 };
++	u32 i;
++
++	for (i = 0; i < source->eem_detector_count; i++) {
++		const struct mt6797_dvfsp_vendor_source_eem_detector *detector =
++			&source->eem[i];
++
++		if (detector->id >= MT6797_DVFSP_VENDOR_SOURCE_MAX_DETECTOR ||
++		    seen[detector->id])
++			return -EPROTO;
++		seen[detector->id] = true;
++		mapped->eem[detector->id] = *detector;
++		mapped->eem_source_index[detector->id] = i;
++	}
++
++	for (i = 0; i < MT6797_DVFSP_VENDOR_SOURCE_MAX_DETECTOR; i++)
++		if (!seen[i])
++			return -EPROTO;
++	for (i = 0; i < ARRAY_SIZE(provider_ids); i++) {
++		if (!mapped->eem[provider_ids[i]].num_freq ||
++		    mapped->eem[provider_ids[i]].num_freq >
++			MT6797_DVFSP_VENDOR_SOURCE_MAX_FREQ)
++			return -EPROTO;
++		mapped->eem_provider_detector[i] = provider_ids[i];
++	}
++
++	return 0;
++}
++
++int mt6797_dvfsp_vendor_provider_map(
++	const struct mt6797_dvfsp_vendor_source_snapshot *source,
++	const struct mt6797_dvfsp_vendor_source_identity *identity,
++	u64 owner_handle, u64 transition_handle,
++	struct mt6797_dvfsp_vendor_provider_snapshot *mapped)
++{
++	int ret;
++
++	if (!mapped)
++		return -EINVAL;
++	ret = mt6797_dvfsp_vendor_provider_source_check(source, identity,
++			owner_handle, transition_handle);
++	if (ret)
++		return ret;
++	memset(mapped, 0, sizeof(*mapped));
++	mapped->abi = MT6797_DVFSP_VENDOR_PROVIDER_ABI;
++	mapped->mapped_mask = MT6797_DVFSP_VENDOR_PROVIDER_MAPPED_ALL;
++	mapped->unavailable_mask =
++		MT6797_DVFSP_VENDOR_PROVIDER_UNAVAILABLE_ALL;
++	mapped->ppm_table_type = source->ppm_table_type;
++	mapped->generation = source->generation;
++	mapped->owner_handle = source->owner_handle;
++	mapped->transition_handle = source->transition_handle;
++	mapped->identity = *identity;
++
++	ret = mt6797_dvfsp_vendor_provider_map_ppm(source, mapped);
++	if (ret)
++		return ret;
++	ret = mt6797_dvfsp_vendor_provider_map_cpufreq(source, mapped);
++	if (ret)
++		return ret;
++	ret = mt6797_dvfsp_vendor_provider_map_cspm(source, mapped);
++	if (ret)
++		return ret;
++	return mt6797_dvfsp_vendor_provider_map_eem(source, mapped);
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_provider_map);
++
++int mt6797_dvfsp_vendor_provider_bridge_init(
++	struct mt6797_dvfsp_vendor_provider_bridge *bridge,
++	struct mt6797_dvfsp_calibrated_provider *provider,
++	struct mt6797_dvfsp_vendor_source *source,
++	u64 owner_handle, u64 transition_handle)
++{
++	if (!bridge || bridge->initialized || !provider ||
++	    !provider->initialized || !source || !source->initialized ||
++	    !owner_handle || !transition_handle ||
++	    source->owner_handle != owner_handle ||
++	    source->transition_handle != transition_handle)
++		return -EINVAL;
++
++	memset(bridge, 0, sizeof(*bridge));
++	bridge->provider = provider;
++	bridge->source = source;
++	bridge->owner_handle = owner_handle;
++	bridge->transition_handle = transition_handle;
++	bridge->initialized = true;
++	return 0;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_provider_bridge_init);
++
++int mt6797_dvfsp_vendor_provider_bridge_snapshot(
++	struct mt6797_dvfsp_vendor_provider_bridge *bridge,
++	struct mt6797_dvfsp_vendor_provider_snapshot *mapped)
++{
++	struct mt6797_dvfsp_vendor_source_snapshot source;
++	struct mt6797_dvfsp_vendor_source_identity identity;
++	int ret;
++
++	if (!bridge || !bridge->initialized || !bridge->provider ||
++	    !bridge->provider->initialized || !bridge->source || !mapped)
++		return -ENODEV;
++	memset(&source, 0, sizeof(source));
++	ret = mt6797_dvfsp_vendor_source_snapshot(bridge->source, &source);
++	if (ret)
++		return ret;
++	memset(&identity, 0, sizeof(identity));
++	ret = mt6797_dvfsp_vendor_source_identity(bridge->source, &identity);
++	if (ret)
++		return ret;
++	return mt6797_dvfsp_vendor_provider_map(&source, &identity,
++		bridge->owner_handle, bridge->transition_handle, mapped);
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_provider_bridge_snapshot);
++
++void mt6797_dvfsp_vendor_provider_bridge_exit(
++	struct mt6797_dvfsp_vendor_provider_bridge *bridge)
++{
++	if (bridge)
++		memset(bridge, 0, sizeof(*bridge));
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_provider_bridge_exit);
++
++MODULE_DESCRIPTION("MT6797 vendor source provider review bridge");
++MODULE_LICENSE("GPL");
+
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h
+@@ -7,3 +7,4 @@
+ #include <linux/soc/mediatek/mt6797-dvfsp-vendor-source.h>
+ #include <linux/soc/mediatek/mt6797-dvfsp-vendor-writer.h>
+ #include <linux/soc/mediatek/mt6797-dvfsp-vendor-writer-bridge.h>
++#include <linux/soc/mediatek/mt6797-dvfsp-vendor-provider.h>
+@@ -114,5 +115,6 @@ struct mt6797_dvfsp_vendor_owner {
+ 	struct mt6797_dvfsp_vendor_writer writer;
+ 	struct mt6797_dvfsp_vendor_writer_bridge writer_bridge;
+ 	struct mt6797_dvfsp_vendor_source source;
++	struct mt6797_dvfsp_vendor_provider_bridge provider_bridge;
+ 	const struct mt6797_dvfsp_vendor_runtime_ops *writer_runtime_ops;
+ 	void *writer_runtime_context;
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c
+@@ -230,5 +230,13 @@ int mt6797_dvfsp_vendor_owner_bind_writer_integration(
+ 		memset(&owner->writer_bridge, 0, sizeof(owner->writer_bridge));
+ 		return ret;
+ 	}
++	ret = mt6797_dvfsp_vendor_provider_bridge_init(&owner->provider_bridge,
++		&owner->provider, &owner->source, owner->owner_handle,
++		owner->transition_handle);
++	if (ret) {
++		mt6797_dvfsp_vendor_source_exit(&owner->source);
++		memset(&owner->writer_bridge, 0, sizeof(owner->writer_bridge));
++		return ret;
++	}
+ 
+ 	owner->writer_integration_ops = integration_ops;
+@@ -265,4 +271,5 @@ int mt6797_dvfsp_vendor_owner_bind_writer_integration(
+ 	owner->ops.writer_registration_ops = NULL;
+ 	owner->ops.writer_registration_context = NULL;
++	mt6797_dvfsp_vendor_provider_bridge_exit(&owner->provider_bridge);
+ 	mt6797_dvfsp_vendor_source_exit(&owner->source);
+ 	memset(&owner->writer_bridge, 0, sizeof(owner->writer_bridge));
+@@ -298,5 +305,6 @@ int mt6797_dvfsp_vendor_owner_unbind_writer_integration(
+ 	owner->ops.writer_registration_ops = NULL;
+ 	owner->ops.writer_registration_context = NULL;
++	mt6797_dvfsp_vendor_provider_bridge_exit(&owner->provider_bridge);
+ 	mt6797_dvfsp_vendor_source_exit(&owner->source);
+ 	memset(&owner->writer_bridge, 0, sizeof(owner->writer_bridge));
+ 	return 0;
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-provider-test.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-provider-test.c
+new file mode 100644
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-provider-test.c
+@@ -0,0 +1,200 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/* Hardware-free mapping and lifecycle tests for the vendor provider bridge. */
++
++#include <linux/errno.h>
++#include <linux/kunit/test.h>
++#include <linux/string.h>
++#include <linux/types.h>
++
++#include <linux/soc/mediatek/mt6797-dvfsp-vendor-provider.h>
++
++static struct mt6797_dvfsp_vendor_source_snapshot
++	mt6797_dvfsp_vendor_provider_test_snapshot;
++static struct mt6797_dvfsp_vendor_source_identity
++	mt6797_dvfsp_vendor_provider_test_identity;
++
++static int mt6797_dvfsp_vendor_provider_test_read_snapshot(
++	void *context, struct mt6797_dvfsp_vendor_source_snapshot *snapshot)
++{
++	*snapshot = mt6797_dvfsp_vendor_provider_test_snapshot;
++	return 0;
++}
++
++static int mt6797_dvfsp_vendor_provider_test_read_identity(
++	void *context, struct mt6797_dvfsp_vendor_source_identity *identity)
++{
++	*identity = mt6797_dvfsp_vendor_provider_test_identity;
++	return 0;
++}
++
++static const struct mt6797_dvfsp_vendor_source_ops
++mt6797_dvfsp_vendor_provider_test_source_ops = {
++	.abi = MT6797_DVFSP_VENDOR_SOURCE_ABI,
++	.snapshot = mt6797_dvfsp_vendor_provider_test_read_snapshot,
++	.read_identity = mt6797_dvfsp_vendor_provider_test_read_identity,
++};
++
++static void mt6797_dvfsp_vendor_provider_test_fill(void)
++{
++	struct mt6797_dvfsp_vendor_source_snapshot *snapshot =
++		&mt6797_dvfsp_vendor_provider_test_snapshot;
++	u32 i;
++
++	memset(snapshot, 0, sizeof(*snapshot));
++	snapshot->abi = MT6797_DVFSP_VENDOR_SOURCE_ABI;
++	snapshot->source_mask = MT6797_DVFSP_VENDOR_SOURCE_ALL;
++	snapshot->ppm_table_type = 1;
++	snapshot->ppm_cluster_count =
++		MT6797_DVFSP_VENDOR_SOURCE_MAX_CLUSTER;
++	snapshot->cpufreq_domain_count =
++		MT6797_DVFSP_VENDOR_SOURCE_MAX_DOMAIN;
++	snapshot->cspm_cluster_count =
++		MT6797_DVFSP_VENDOR_SOURCE_MAX_CLUSTER + 1;
++	snapshot->eem_detector_count =
++		MT6797_DVFSP_VENDOR_SOURCE_MAX_DETECTOR;
++	snapshot->generation = 9;
++	snapshot->owner_handle = 0x67970023;
++	snapshot->transition_handle = 0x67970022;
++	for (i = 0; i < snapshot->ppm_cluster_count; i++) {
++		struct mt6797_dvfsp_vendor_source_ppm_cluster *cluster =
++			&snapshot->ppm[i];
++		cluster->cluster_id = 2 - i;
++		cluster->core_num = i + 1;
++		cluster->cpu_id = i * 4;
++		cluster->opp_count = 2;
++		cluster->frequency_khz[0] = 100000 + i * 10000;
++		cluster->frequency_khz[1] = 50000 + i * 10000;
++	}
++	for (i = 0; i < snapshot->cpufreq_domain_count; i++) {
++		struct mt6797_dvfsp_vendor_source_cpufreq_domain *domain =
++			&snapshot->cpufreq[i];
++		domain->id = 3 - i;
++		domain->opp_count = 2;
++		domain->current_freq_khz = 100000 + i;
++		domain->current_volt = 800000 + i;
++		domain->current_vsram = 1000000 + i;
++		domain->frequency_khz[0] = 100000 + i;
++		domain->frequency_khz[1] = 50000 + i;
++		domain->voltage[0] = 800000 + i;
++		domain->voltage[1] = 810000 + i;
++		domain->voltage_original[0] = 800000 + i;
++		domain->voltage_original[1] = 810000 + i;
++	}
++	for (i = 0; i < snapshot->cspm_cluster_count; i++) {
++		snapshot->cspm[i].firmware_opp = i;
++		snapshot->cspm[i].opp = i + 1;
++		snapshot->cspm[i].volt = 10 + i;
++		snapshot->cspm[i].vsram = 20 + i;
++		if (i < MT6797_DVFSP_VENDOR_SOURCE_MAX_CLUSTER) {
++			snapshot->cspm[i].floor = 0;
++			snapshot->cspm[i].ceiling = 1;
++		}
++	}
++	for (i = 0; i < snapshot->eem_detector_count; i++) {
++		snapshot->eem[i].id = i;
++		snapshot->eem[i].num_freq = 2;
++		snapshot->eem[i].frequency_percent[0] = 100;
++		snapshot->eem[i].frequency_percent[1] = 50;
++		snapshot->eem[i].volt_tbl[0] = 10 + i;
++		snapshot->eem[i].volt_tbl[1] = 11 + i;
++	}
++	memset(&mt6797_dvfsp_vendor_provider_test_identity, 0,
++	       sizeof(mt6797_dvfsp_vendor_provider_test_identity));
++	mt6797_dvfsp_vendor_provider_test_identity.abi =
++		MT6797_DVFSP_VENDOR_SOURCE_ABI;
++	mt6797_dvfsp_vendor_provider_test_identity.variant_id = 7;
++	mt6797_dvfsp_vendor_provider_test_identity.table_epoch = 0x100000002ULL;
++	mt6797_dvfsp_vendor_provider_test_identity.calibration_handle =
++		0x6797abcdULL;
++}
++
++static void mt6797_dvfsp_vendor_provider_maps_fields(struct kunit *test)
++{
++	struct mt6797_dvfsp_vendor_provider_snapshot mapped;
++
++	mt6797_dvfsp_vendor_provider_test_fill();
++	KUNIT_ASSERT_EQ(test, mt6797_dvfsp_vendor_provider_map(
++		&mt6797_dvfsp_vendor_provider_test_snapshot,
++		&mt6797_dvfsp_vendor_provider_test_identity,
++		0x67970023, 0x67970022, &mapped), 0);
++	KUNIT_EXPECT_EQ(test, mapped.abi,
++		(u32)MT6797_DVFSP_VENDOR_PROVIDER_ABI);
++	KUNIT_EXPECT_EQ(test, mapped.mapped_mask,
++		(u32)MT6797_DVFSP_VENDOR_PROVIDER_MAPPED_ALL);
++	KUNIT_EXPECT_EQ(test, mapped.unavailable_mask,
++		(u32)MT6797_DVFSP_VENDOR_PROVIDER_UNAVAILABLE_ALL);
++	KUNIT_EXPECT_EQ(test, mapped.ppm[0].cluster_id, 0U);
++	KUNIT_EXPECT_EQ(test, mapped.ppm[2].cluster_id, 2U);
++	KUNIT_EXPECT_EQ(test, mapped.cpufreq[0].id, 0U);
++	KUNIT_EXPECT_EQ(test, mapped.cpufreq[3].id, 3U);
++	KUNIT_EXPECT_EQ(test, mapped.cspm[3].floor, 0U);
++	KUNIT_EXPECT_EQ(test, mapped.eem_provider_detector[0], 0U);
++	KUNIT_EXPECT_EQ(test, mapped.eem_provider_detector[1], 3U);
++	KUNIT_EXPECT_EQ(test, mapped.eem_provider_detector[2], 4U);
++	KUNIT_EXPECT_EQ(test, mapped.eem_provider_detector[3], 5U);
++	KUNIT_EXPECT_EQ(test, mapped.identity.table_epoch, 0x100000002ULL);
++	KUNIT_EXPECT_EQ(test, mapped.identity.calibration_handle,
++		0x6797abcdULL);
++}
++
++static void mt6797_dvfsp_vendor_provider_rejects_identity_or_ids(
++	struct kunit *test)
++{
++	struct mt6797_dvfsp_vendor_provider_snapshot mapped;
++
++	mt6797_dvfsp_vendor_provider_test_fill();
++	mt6797_dvfsp_vendor_provider_test_identity.variant_id = 0;
++	KUNIT_EXPECT_EQ(test, mt6797_dvfsp_vendor_provider_map(
++		&mt6797_dvfsp_vendor_provider_test_snapshot,
++		&mt6797_dvfsp_vendor_provider_test_identity,
++		0x67970023, 0x67970022, &mapped), -EPROTO);
++	mt6797_dvfsp_vendor_provider_test_fill();
++	mt6797_dvfsp_vendor_provider_test_snapshot.ppm[0].cluster_id = 3;
++	KUNIT_EXPECT_EQ(test, mt6797_dvfsp_vendor_provider_map(
++		&mt6797_dvfsp_vendor_provider_test_snapshot,
++		&mt6797_dvfsp_vendor_provider_test_identity,
++		0x67970023, 0x67970022, &mapped), -EPROTO);
++}
++
++static void mt6797_dvfsp_vendor_provider_bridge_lifecycle(struct kunit *test)
++{
++	struct mt6797_dvfsp_vendor_provider_bridge bridge;
++	struct mt6797_dvfsp_vendor_provider_snapshot mapped;
++	struct mt6797_dvfsp_vendor_source source;
++	struct mt6797_dvfsp_calibrated_provider provider;
++
++	mt6797_dvfsp_vendor_provider_test_fill();
++	memset(&source, 0, sizeof(source));
++	KUNIT_ASSERT_EQ(test, mt6797_dvfsp_vendor_source_init(&source,
++		&mt6797_dvfsp_vendor_provider_test_source_ops, &source,
++		0x67970023, 0x67970022), 0);
++	memset(&provider, 0, sizeof(provider));
++	provider.initialized = true;
++	memset(&bridge, 0, sizeof(bridge));
++	KUNIT_ASSERT_EQ(test, mt6797_dvfsp_vendor_provider_bridge_init(&bridge,
++		&provider, &source, 0x67970023, 0x67970022), 0);
++	KUNIT_ASSERT_EQ(test, mt6797_dvfsp_vendor_provider_bridge_snapshot(
++		&bridge, &mapped), 0);
++	KUNIT_EXPECT_EQ(test, mapped.generation, 9ULL);
++	mt6797_dvfsp_vendor_source_invalidate(&source);
++	KUNIT_EXPECT_EQ(test, mt6797_dvfsp_vendor_provider_bridge_snapshot(
++		&bridge, &mapped), -ENODEV);
++	mt6797_dvfsp_vendor_provider_bridge_exit(&bridge);
++	KUNIT_EXPECT_FALSE(test, bridge.initialized);
++	mt6797_dvfsp_vendor_source_exit(&source);
++}
++
++static struct kunit_case mt6797_dvfsp_vendor_provider_cases[] = {
++	KUNIT_CASE(mt6797_dvfsp_vendor_provider_maps_fields),
++	KUNIT_CASE(mt6797_dvfsp_vendor_provider_rejects_identity_or_ids),
++	KUNIT_CASE(mt6797_dvfsp_vendor_provider_bridge_lifecycle),
++	{}
++};
++
++static struct kunit_suite mt6797_dvfsp_vendor_provider_suite = {
++	.name = "mt6797-dvfsp-vendor-provider",
++	.test_cases = mt6797_dvfsp_vendor_provider_cases,
++};
++
++kunit_test_suite(mt6797_dvfsp_vendor_provider_suite);
++MODULE_LICENSE("GPL");
