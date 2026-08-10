@@ -18,12 +18,12 @@ hardware-free integration boundary rather than vendor source.
  drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-kunit-test.c | 49 ++++++++++++
  drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c            | 33 ++++++++
  include/linux/soc/mediatek/mt6797-dvfsp-vendor-writer.h     |  9 +++
- 3 files changed, 91 insertions(+)
+ 3 files changed, 89 insertions(+)
 
 diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-writer.h b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-writer.h
 --- a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-writer.h
 +++ b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-writer.h
-@@ -35,6 +35,12 @@ int mt6797_dvfsp_vendor_writer_init(
+@@ -35,7 +35,14 @@ int mt6797_dvfsp_vendor_writer_init(
  	void *context, u64 owner_handle, u64 transition_handle);
  
  int mt6797_dvfsp_vendor_writer_begin(
@@ -41,7 +41,7 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-writer.h b/include/l
 diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c
 --- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c
-@@ -73,6 +73,39 @@ int mt6797_dvfsp_vendor_writer_begin(
+@@ -78,6 +78,36 @@ int mt6797_dvfsp_vendor_writer_begin(
  }
  EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_writer_begin);
  
@@ -81,7 +81,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c b/drivers/soc/med
 diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-kunit-test.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-kunit-test.c
 --- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-kunit-test.c
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-kunit-test.c
-@@ -28,6 +28,19 @@ mt6797_dvfsp_vendor_writer_test_ops = {
+@@ -28,6 +28,25 @@ mt6797_dvfsp_vendor_writer_test_ops = {
  	.read_provenance = mt6797_dvfsp_vendor_writer_test_provenance,
  };
  
@@ -107,7 +107,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-kunit-test.c b/driv
  static void mt6797_dvfsp_vendor_writer_rejects_incomplete(
  	struct kunit *test)
  {
-@@ -119,6 +132,41 @@ static void mt6797_dvfsp_vendor_writer_serializes_generation(
+@@ -119,6 +151,43 @@ static void mt6797_dvfsp_vendor_writer_serializes_generation(
  	KUNIT_EXPECT_EQ(test, shared_generation, ~0ULL);
  }
  
