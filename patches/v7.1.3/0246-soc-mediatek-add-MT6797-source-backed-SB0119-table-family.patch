@@ -48,7 +48,7 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-table-source.h b/include/li
 new file mode 100644
 --- /dev/null
 +++ b/include/linux/soc/mediatek/mt6797-dvfsp-table-source.h
-@@ -0,0 +1,35 @@
+@@ -0,0 +1,33 @@
 +/* SPDX-License-Identifier: GPL-2.0-only */
 +#ifndef __LINUX_SOC_MEDIATEK_MT6797_DVFSP_TABLE_SOURCE_H
 +#define __LINUX_SOC_MEDIATEK_MT6797_DVFSP_TABLE_SOURCE_H
@@ -86,7 +86,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-table-source.c b/drivers/soc/medi
 new file mode 100644
 --- /dev/null
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-table-source.c
-@@ -0,0 +1,109 @@
+@@ -0,0 +1,88 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/*
 + * Source-backed MT6797 SB/0119 frequency-table identity.
@@ -179,7 +179,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-table-source-test.c b/drivers/soc
 new file mode 100644
 --- /dev/null
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-table-source-test.c
-@@ -0,0 +1,102 @@
+@@ -0,0 +1,83 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/* Hardware-free KUnit coverage for the source-backed table identity. */
 +
