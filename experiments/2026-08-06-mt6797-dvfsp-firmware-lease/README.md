@@ -644,3 +644,16 @@ Buildbox, produced 119 DTBs, passed package checksums, and fetched only the
 validated package; see the [PPM/EEM table-identity Buildbox result](results/ppm-eem-table-identity-buildbox-20260810.txt).
 This is compile-only and default-off: no real provider, generation callback,
 hardware operation, device boot, or CPU8/CPU9 admission was added.
+
+Patch `0225` binds the exact validated PPM snapshot into the EEM calibration
+builder. Calibration now receives the PPM snapshot directly, requires its
+nonzero table epoch to match the calibration provenance, and checks the
+descending PPM B/L/LL rows against the ascending EEM BIG/L/2L rows before
+constructing calibration state. CCI remains excluded because no vendor CCI PPM
+table is available; per-row PPM limits remain provider-owned and are not
+invented here. Clean revision `47339d7` applied all 214 canonical entries on
+Buildbox, produced 119 DTBs, passed package checksums, and fetched only the
+validated package; see the [PPM calibration binding Buildbox result](results/ppm-calibration-binding-buildbox-20260810.txt).
+This is compile-only and default-off: the real EEM/PTP/PPM and PMIC/clock
+provider, generation callbacks, device boot, and CPU8/CPU9 admission remain
+closed.

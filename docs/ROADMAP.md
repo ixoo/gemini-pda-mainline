@@ -2236,6 +2236,18 @@ The next ordered work remains source-only:
    This remains compile-only and default-off: a real EEM/PTP/PPM and PMIC/clock
    provider, generation callbacks, device boot, and CPU8/CPU9 admission remain
    closed.
+   Patch `0225` binds the exact validated PPM snapshot into the EEM calibration
+   builder. Calibration receives the PPM snapshot directly, requires its
+   nonzero table epoch to match calibration provenance, and checks the
+   descending PPM B/L/LL rows against the ascending EEM BIG/L/2L rows before
+   constructing calibration state. CCI remains excluded because no vendor CCI
+   PPM table is available; per-row PPM limits remain provider-owned and are not
+   invented here. Clean revision `47339d7` applies all 214 canonical entries on
+   Buildbox, produces 119 DTBs, passes package checksums, and fetches only the
+   validated package; see the [PPM calibration binding Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/ppm-calibration-binding-buildbox-20260810.txt).
+   This remains compile-only and default-off: the real EEM/PTP/PPM and PMIC/clock
+   provider, generation callbacks, device boot, and CPU8/CPU9 admission remain
+   closed.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and
