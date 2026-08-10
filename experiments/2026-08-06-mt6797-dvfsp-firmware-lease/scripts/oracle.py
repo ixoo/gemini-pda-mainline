@@ -90,6 +90,7 @@ STATE_OWNER_ARBITRATION_FAULT_BUILD_RESULT = Path(__file__).resolve().parents[1]
 LIVE_DVFS_SOURCE_RESULT = Path(__file__).resolve().parents[1] / "results/live-dvfs-owner-source-probe-20260809.txt"
 LIVE_RESOURCE_OWNER_BOUNDARY_RESULT = Path(__file__).resolve().parents[1] / "results/live-resource-owner-boundary-probe-20260810.txt"
 RUNTIME_OWNER_BOUNDARY_V2_RESULT = Path(__file__).resolve().parents[1] / "results/runtime-owner-boundary-v2-20260810.txt"
+RUNTIME_OWNER_LIVE_HASH_REPEAT_RESULT = Path(__file__).resolve().parents[1] / "results/runtime-owner-live-hash-repeat-20260810.txt"
 VENDOR_PPM_OWNER_BOUNDARY_RESULT = Path(__file__).resolve().parents[1] / "results/vendor-ppm-owner-boundary-20260810.txt"
 STATE_OWNER_REGISTRATION_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-registration-buildbox-20260809.txt"
 STATE_OWNER_REGISTRATION_RERUN_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-registration-buildbox-rerun-20260809.txt"
@@ -197,6 +198,7 @@ def main() -> None:
     live_dvfs_source_result = LIVE_DVFS_SOURCE_RESULT.read_text()
     live_resource_owner_boundary_result = LIVE_RESOURCE_OWNER_BOUNDARY_RESULT.read_text()
     runtime_owner_boundary_v2_result = RUNTIME_OWNER_BOUNDARY_V2_RESULT.read_text()
+    runtime_owner_live_hash_repeat_result = RUNTIME_OWNER_LIVE_HASH_REPEAT_RESULT.read_text()
     vendor_ppm_owner_boundary_result = VENDOR_PPM_OWNER_BOUNDARY_RESULT.read_text()
     state_owner_registration_build_result = STATE_OWNER_REGISTRATION_BUILD_RESULT.read_text()
     state_owner_registration_rerun_build_result = STATE_OWNER_REGISTRATION_RERUN_BUILD_RESULT.read_text()
@@ -2177,6 +2179,22 @@ def main() -> None:
     ):
         require(runtime_owner_boundary_v2_result, needle, label)
     for needle, label in (
+        ("claim=READ_ONLY_GEMIAN_DVFSP_LIVE_HASH_REPEAT_V1", "runtime-owner-hash-repeat-claim"),
+        ("target=gemini@192.168.1.50", "runtime-owner-hash-repeat-target"),
+        ("sample_spacing=one_second", "runtime-owner-hash-repeat-spacing"),
+        ("sample_1_freq_sha256=818facca39b67c2fba6bf57a5fb5bcf8884ee5dec718f030fc7fe449339f6e30", "runtime-owner-hash-repeat-sample1"),
+        ("sample_2_freq_sha256=43568c0843be4a789a019e0b63c1d0a330f08d52ce28852915643fcd0e4e61b3", "runtime-owner-hash-repeat-sample2"),
+        ("sample_3_freq_sha256=43568c0843be4a789a019e0b63c1d0a330f08d52ce28852915643fcd0e4e61b3", "runtime-owner-hash-repeat-sample3"),
+        ("sample_1_ppm0_sha256=500243df2746e948045a7e91ddfc84c93b453bf1ee0d272099b8173913c4f3c0", "runtime-owner-hash-repeat-ppm"),
+        ("sample_1_eem_sha256=ed52cfa4ec3030392a56672c262a5c87abf8e1505d67eec73063a6fd117349ff", "runtime-owner-hash-repeat-eem"),
+        ("decision=frequency_voltage_oppidx_changed_between_samples_1_and_2;ppm_and_eem_hashes_stayed_equal;hash_repeatability_does_not_establish_atomicity", "runtime-owner-hash-repeat-decision"),
+        ("required_owner_contract=single_transition_lock;generation_before_and_after;live_frequency_vproc_vsram_ppm_membership_from_one_owner", "runtime-owner-hash-repeat-contract"),
+        ("provider=none", "runtime-owner-hash-repeat-no-provider"),
+        ("cpu8_cpu9_admission=closed", "runtime-owner-hash-repeat-no-admission"),
+        ("boot_candidate=false", "runtime-owner-hash-repeat-not-candidate"),
+    ):
+        require(runtime_owner_live_hash_repeat_result, needle, label)
+    for needle, label in (
         ("claim=SOURCE_ONLY_MT6797_VENDOR_PPM_OWNER_BOUNDARY", "vendor-ppm-owner-boundary-claim"),
         ("audit_scope=managed_vm_git_show_head;vendor_source_payload_not_copied", "vendor-ppm-owner-boundary-scope"),
         ("vendor_revision=8cfe6596a503612e3332d9c26e292a19525a7f07", "vendor-ppm-owner-boundary-revision"),
@@ -2428,6 +2446,7 @@ def main() -> None:
     print("live_dvfs_source_probe=20260809;eem_handoff_readable;ppm_tables_readable;opp_rail_state_mutable;proc_reads_nonatomic;raw_payload_redacted;owner_lock_and_generation_required;provider=none;cpu8_cpu9_admission=closed;boot_candidate=false")
     print("live_resource_owner_boundary_probe=20260810;vendor_cspm_eem_ppm_cpufreq_idvfs_bound;mainline_owner_absent;generation_endpoint=not_found;transition_lock_endpoint=not_found;provider=none;cpu8_cpu9_admission=closed;boot_candidate=false")
     print("runtime_owner_boundary_v2=readback_surfaces_present;generation_or_transition_lock_surface=absent;mainline_state_owner=absent;provider=none;cpu8_cpu9_admission=closed;boot_candidate=false")
+    print("runtime_owner_live_hash_repeat=frequency_voltage_oppidx_changed;ppm_eem_stable;atomicity_unproven;generation_and_single_transition_lock_required;provider=none;cpu8_cpu9_admission=closed;boot_candidate=false")
     print("vendor_ppm_owner_boundary=20260810;vendor_revision=8cfe6596a503612e3332d9c26e292a19525a7f07;ppm_lock=ppm_main_info.lock;cpufreq_lock=dvfs_lock;eem_locks=independent;shared_generation=absent;single_transition_lock=absent;provider=none;cpu8_cpu9_admission=closed;boot_candidate=false")
     print("pcm_adapter_contract=source-only;bounded-admission-model;callback-registration-gated")
     print("clock_owner_inventory=generic_ccf_only;protected_owner_absent;A72_observer_read_only")

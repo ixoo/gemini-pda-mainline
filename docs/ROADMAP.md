@@ -2586,6 +2586,13 @@ This confirms availability of source data, not a coherent owner contract; the
 next implementation must introduce one dedicated generation/lock owner before
 registration validation or any device boot is considered.
 
+A three-sample, one-second read-only hash repeat observed frequency, voltage,
+and OPP changes while the PPM and EEM hashes stayed stable. This demonstrates
+mutable live state but not an atomic snapshot. The [live hash repeat receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/runtime-owner-live-hash-repeat-20260810.txt)
+therefore keeps the gate closed until one owner supplies a transition lock,
+before/after generation, and live frequency/VPROC/VSRAM/PPM membership. No
+provider or hardware path was enabled, and CPU8/CPU9 admission remains closed.
+
 Required evidence:
 
 - provider registration performs no register-data write;

@@ -835,3 +835,12 @@ boundary v2 receipt](results/runtime-owner-boundary-v2-20260810.txt). The next
 implementation must introduce one dedicated generation/transition-lock owner
 that can prove coherent source snapshots before provider registration or any
 CPU8/CPU9 action is reconsidered.
+
+A three-sample, one-second read-only hash repeat then observed frequency,
+voltage, and OPP changes while the PPM and EEM hashes remained stable. This
+confirms mutable live state but does not establish an atomic snapshot or a
+hardware-support claim. The bounded result is recorded in the [live hash repeat
+receipt](results/runtime-owner-live-hash-repeat-20260810.txt); the required
+contract remains one transition lock, before/after generation, and live
+frequency/VPROC/VSRAM/PPM membership from one owner. No provider was registered,
+no hardware action occurred, and CPU8/CPU9 admission remains closed.
