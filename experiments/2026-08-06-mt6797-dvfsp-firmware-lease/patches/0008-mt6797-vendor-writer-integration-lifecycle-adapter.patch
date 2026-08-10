@@ -1,0 +1,329 @@
+From 63088185bc0192f5d1e720a9e9812068f8bbc061 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 10 Aug 2026 19:19:40 +0000
+Subject: [PATCH] power: add vendor writer integration lifecycle adapter
+
+---
+ .../power/mt6797/mt6797-dvfsp-vendor-writer.c | 248 ++++++++++++++++++
+ .../power/mt6797/mt6797-dvfsp-vendor-writer.h |  31 +++
+ 2 files changed, 279 insertions(+)
+
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
+index 20d24697e..eba1ff657 100644
+--- a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
++++ b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
+@@ -9,6 +9,7 @@
+ #include <linux/interrupt.h>
+ #include <linux/mutex.h>
+ #include <linux/sched.h>
++#include <linux/string.h>
+ #include <linux/workqueue.h>
+ #include <linux/types.h>
+ 
+@@ -40,6 +41,24 @@ static bool gemini_mt6797_dvfsp_vendor_writer_lifecycle_registering;
+ static bool gemini_mt6797_dvfsp_vendor_writer_lifecycle_registered;
+ static bool gemini_mt6797_dvfsp_vendor_writer_lifecycle_unregistering;
+ 
++struct gemini_mt6797_dvfsp_vendor_writer_integration_binding {
++	const void *bridge_ops;
++	void *bridge_context;
++	const void *runtime_ops;
++	void *runtime_context;
++	const void *owner_lifecycle_ops;
++	void *owner_lifecycle_context;
++	void *integration_context;
++	u64 owner_handle;
++	u64 transition_handle;
++	bool bound;
++	bool mainline_registered;
++};
++
++static DEFINE_MUTEX(gemini_mt6797_dvfsp_vendor_writer_integration_lock);
++static struct gemini_mt6797_dvfsp_vendor_writer_integration_binding
++gemini_mt6797_dvfsp_vendor_writer_integration_binding;
++
+ static unsigned int gemini_mt6797_dvfsp_vendor_writer_deferred_type;
+ static unsigned int gemini_mt6797_dvfsp_vendor_writer_deferred_cpu;
+ static bool gemini_mt6797_dvfsp_vendor_writer_deferred_pending;
+@@ -158,6 +177,235 @@ gemini_mt6797_dvfsp_vendor_writer_mainline_writer_ops = {
+ 	.read_identity = gemini_mt6797_dvfsp_vendor_writer_mainline_read_identity,
+ };
+ 
++static bool gemini_mt6797_dvfsp_vendor_writer_integration_identity_matches(
++	const struct gemini_mt6797_dvfsp_vendor_writer_integration_binding *binding,
++	void *context, const void *bridge_ops, void *bridge_context,
++	const void *runtime_ops, void *runtime_context,
++	const void *owner_lifecycle_ops, void *owner_lifecycle_context,
++	u64 owner_handle, u64 transition_handle)
++{
++	return binding->bound && binding->integration_context == context &&
++		binding->bridge_ops == bridge_ops &&
++		binding->bridge_context == bridge_context &&
++		binding->runtime_ops == runtime_ops &&
++		binding->runtime_context == runtime_context &&
++		binding->owner_lifecycle_ops == owner_lifecycle_ops &&
++		binding->owner_lifecycle_context == owner_lifecycle_context &&
++		binding->owner_handle == owner_handle &&
++		binding->transition_handle == transition_handle;
++}
++
++static int gemini_mt6797_dvfsp_vendor_writer_integration_register_lifecycle(
++	void *context)
++{
++	struct gemini_mt6797_dvfsp_vendor_writer_integration_binding *binding =
++		&gemini_mt6797_dvfsp_vendor_writer_integration_binding;
++	const struct gemini_mt6797_dvfsp_vendor_owner_lifecycle_ops *ops;
++	void *ops_context;
++
++	if (context != binding)
++		return -EPROTO;
++	mutex_lock(&gemini_mt6797_dvfsp_vendor_writer_integration_lock);
++	if (!binding->bound || !binding->owner_lifecycle_ops) {
++		mutex_unlock(&gemini_mt6797_dvfsp_vendor_writer_integration_lock);
++		return -ENODEV;
++	}
++	ops = binding->owner_lifecycle_ops;
++	ops_context = binding->owner_lifecycle_context;
++	mutex_unlock(&gemini_mt6797_dvfsp_vendor_writer_integration_lock);
++	return ops->register_writer(ops_context);
++}
++
++static int gemini_mt6797_dvfsp_vendor_writer_integration_unregister_lifecycle(
++	void *context)
++{
++	struct gemini_mt6797_dvfsp_vendor_writer_integration_binding *binding =
++		&gemini_mt6797_dvfsp_vendor_writer_integration_binding;
++	const struct gemini_mt6797_dvfsp_vendor_owner_lifecycle_ops *ops;
++	void *ops_context;
++
++	if (context != binding)
++		return -EPROTO;
++	mutex_lock(&gemini_mt6797_dvfsp_vendor_writer_integration_lock);
++	if (!binding->bound || !binding->owner_lifecycle_ops) {
++		mutex_unlock(&gemini_mt6797_dvfsp_vendor_writer_integration_lock);
++		return -ENODEV;
++	}
++	ops = binding->owner_lifecycle_ops;
++	ops_context = binding->owner_lifecycle_context;
++	mutex_unlock(&gemini_mt6797_dvfsp_vendor_writer_integration_lock);
++	return ops->unregister_writer(ops_context);
++}
++
++static const struct gemini_mt6797_dvfsp_vendor_owner_lifecycle_ops
++gemini_mt6797_dvfsp_vendor_writer_integration_lifecycle_ops = {
++	.abi = GEMINI_MT6797_DVFSP_VENDOR_OWNER_LIFECYCLE_ABI,
++	.register_writer =
++		gemini_mt6797_dvfsp_vendor_writer_integration_register_lifecycle,
++	.unregister_writer =
++		gemini_mt6797_dvfsp_vendor_writer_integration_unregister_lifecycle,
++};
++
++static int gemini_mt6797_dvfsp_vendor_writer_integration_bind_lifecycle(
++	void *context, const void *bridge_ops, void *bridge_context,
++	const void *runtime_ops, void *runtime_context,
++	const void *owner_lifecycle_ops, void *owner_lifecycle_context,
++	u64 owner_handle, u64 transition_handle)
++{
++	struct gemini_mt6797_dvfsp_vendor_writer_integration_binding *binding =
++		&gemini_mt6797_dvfsp_vendor_writer_integration_binding;
++	const struct gemini_mt6797_dvfsp_vendor_writer_mainline_ops *bridge =
++		bridge_ops;
++	const struct gemini_mt6797_dvfsp_vendor_runtime_ops *runtime =
++		runtime_ops;
++	const struct gemini_mt6797_dvfsp_vendor_owner_lifecycle_ops *lifecycle =
++		owner_lifecycle_ops;
++	int ret;
++
++	if (!context || !gemini_mt6797_dvfsp_vendor_writer_mainline_ops_valid(
++		bridge) || !bridge_context ||
++	    !gemini_mt6797_dvfsp_vendor_runtime_ops_valid(runtime) ||
++	    !runtime_context ||
++	    !gemini_mt6797_dvfsp_vendor_writer_lifecycle_ops_valid(lifecycle) ||
++	    !owner_lifecycle_context || !owner_handle || !transition_handle)
++		return -EINVAL;
++	mutex_lock(&gemini_mt6797_dvfsp_vendor_writer_integration_lock);
++	if (binding->bound || binding->mainline_registered) {
++		mutex_unlock(&gemini_mt6797_dvfsp_vendor_writer_integration_lock);
++		return -EBUSY;
++	}
++	binding->bridge_ops = bridge_ops;
++	binding->bridge_context = bridge_context;
++	binding->runtime_ops = runtime_ops;
++	binding->runtime_context = runtime_context;
++	binding->owner_lifecycle_ops = owner_lifecycle_ops;
++	binding->owner_lifecycle_context = owner_lifecycle_context;
++	binding->integration_context = context;
++	binding->owner_handle = owner_handle;
++	binding->transition_handle = transition_handle;
++	binding->bound = true;
++	mutex_unlock(&gemini_mt6797_dvfsp_vendor_writer_integration_lock);
++
++	ret = gemini_mt6797_dvfsp_vendor_writer_set_owner_lifecycle_ops(
++		&gemini_mt6797_dvfsp_vendor_writer_integration_lifecycle_ops, binding);
++	if (ret) {
++		mutex_lock(&gemini_mt6797_dvfsp_vendor_writer_integration_lock);
++		memset(binding, 0, sizeof(*binding));
++		mutex_unlock(&gemini_mt6797_dvfsp_vendor_writer_integration_lock);
++	}
++	return ret;
++}
++
++static int gemini_mt6797_dvfsp_vendor_writer_integration_unbind_lifecycle(
++	void *context, const void *bridge_ops, void *bridge_context,
++	const void *runtime_ops, void *runtime_context,
++	const void *owner_lifecycle_ops, void *owner_lifecycle_context,
++	u64 owner_handle, u64 transition_handle)
++{
++	struct gemini_mt6797_dvfsp_vendor_writer_integration_binding *binding =
++		&gemini_mt6797_dvfsp_vendor_writer_integration_binding;
++	int ret;
++
++	mutex_lock(&gemini_mt6797_dvfsp_vendor_writer_integration_lock);
++	if (!gemini_mt6797_dvfsp_vendor_writer_integration_identity_matches(
++		binding, context, bridge_ops, bridge_context, runtime_ops,
++		runtime_context, owner_lifecycle_ops, owner_lifecycle_context,
++		owner_handle, transition_handle)) {
++		mutex_unlock(&gemini_mt6797_dvfsp_vendor_writer_integration_lock);
++		return -EPROTO;
++	}
++	if (binding->mainline_registered) {
++		mutex_unlock(&gemini_mt6797_dvfsp_vendor_writer_integration_lock);
++		return -EBUSY;
++	}
++	ret = gemini_mt6797_dvfsp_vendor_writer_clear_owner_lifecycle_ops(
++		&gemini_mt6797_dvfsp_vendor_writer_integration_lifecycle_ops, binding);
++	if (!ret)
++		memset(binding, 0, sizeof(*binding));
++	mutex_unlock(&gemini_mt6797_dvfsp_vendor_writer_integration_lock);
++	return ret;
++}
++
++static int gemini_mt6797_dvfsp_vendor_writer_integration_register_mainline(
++	void *context, const void *bridge_ops, void *bridge_context,
++	const void *runtime_ops, void *runtime_context,
++	u64 owner_handle, u64 transition_handle)
++{
++	struct gemini_mt6797_dvfsp_vendor_writer_integration_binding *binding =
++		&gemini_mt6797_dvfsp_vendor_writer_integration_binding;
++	int ret;
++
++	mutex_lock(&gemini_mt6797_dvfsp_vendor_writer_integration_lock);
++	if (!gemini_mt6797_dvfsp_vendor_writer_integration_identity_matches(
++		binding, context, bridge_ops, bridge_context, runtime_ops,
++		runtime_context, binding->owner_lifecycle_ops,
++		binding->owner_lifecycle_context, owner_handle, transition_handle)) {
++		mutex_unlock(&gemini_mt6797_dvfsp_vendor_writer_integration_lock);
++		return -EPROTO;
++	}
++	if (binding->mainline_registered) {
++		mutex_unlock(&gemini_mt6797_dvfsp_vendor_writer_integration_lock);
++		return -EBUSY;
++	}
++	ret = gemini_mt6797_dvfsp_vendor_writer_register_mainline_owner(
++		bridge_ops, bridge_context, runtime_ops, runtime_context,
++		owner_handle, transition_handle);
++	if (!ret)
++		binding->mainline_registered = true;
++	mutex_unlock(&gemini_mt6797_dvfsp_vendor_writer_integration_lock);
++	return ret;
++}
++
++static int gemini_mt6797_dvfsp_vendor_writer_integration_unregister_mainline(
++	void *context, const void *bridge_ops, void *bridge_context,
++	const void *runtime_ops, void *runtime_context,
++	u64 owner_handle, u64 transition_handle)
++{
++	struct gemini_mt6797_dvfsp_vendor_writer_integration_binding *binding =
++		&gemini_mt6797_dvfsp_vendor_writer_integration_binding;
++	int ret;
++
++	mutex_lock(&gemini_mt6797_dvfsp_vendor_writer_integration_lock);
++	if (!gemini_mt6797_dvfsp_vendor_writer_integration_identity_matches(
++		binding, context, bridge_ops, bridge_context, runtime_ops,
++		runtime_context, binding->owner_lifecycle_ops,
++		binding->owner_lifecycle_context, owner_handle, transition_handle)) {
++		mutex_unlock(&gemini_mt6797_dvfsp_vendor_writer_integration_lock);
++		return -EPROTO;
++	}
++	if (!binding->mainline_registered) {
++		mutex_unlock(&gemini_mt6797_dvfsp_vendor_writer_integration_lock);
++		return -EINVAL;
++	}
++	ret = gemini_mt6797_dvfsp_vendor_writer_unregister_mainline_owner(
++		bridge_ops, bridge_context, runtime_ops, runtime_context,
++		owner_handle, transition_handle);
++	if (!ret)
++		binding->mainline_registered = false;
++	mutex_unlock(&gemini_mt6797_dvfsp_vendor_writer_integration_lock);
++	return ret;
++}
++
++static const struct gemini_mt6797_dvfsp_vendor_integration_ops
++gemini_mt6797_dvfsp_vendor_writer_integration_callbacks = {
++	.abi = GEMINI_MT6797_DVFSP_VENDOR_INTEGRATION_ABI,
++	.bind_lifecycle =
++		gemini_mt6797_dvfsp_vendor_writer_integration_bind_lifecycle,
++	.unbind_lifecycle =
++		gemini_mt6797_dvfsp_vendor_writer_integration_unbind_lifecycle,
++	.register_mainline_owner =
++		gemini_mt6797_dvfsp_vendor_writer_integration_register_mainline,
++	.unregister_mainline_owner =
++		gemini_mt6797_dvfsp_vendor_writer_integration_unregister_mainline,
++};
++
++const struct gemini_mt6797_dvfsp_vendor_integration_ops *
++gemini_mt6797_dvfsp_vendor_writer_integration_ops(void)
++{
++	return &gemini_mt6797_dvfsp_vendor_writer_integration_callbacks;
++}
++EXPORT_SYMBOL_GPL(gemini_mt6797_dvfsp_vendor_writer_integration_ops);
++
+ static bool gemini_mt6797_dvfsp_vendor_writer_ops_valid(
+ 	const struct gemini_mt6797_dvfsp_vendor_writer_ops *ops)
+ {
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h
+index 737ee3fa5..bfabc6bb7 100644
+--- a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h
++++ b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h
+@@ -48,6 +48,37 @@ struct gemini_mt6797_dvfsp_vendor_owner_lifecycle_ops {
+ 	int (*unregister_writer)(void *context);
+ };
+ 
++#define GEMINI_MT6797_DVFSP_VENDOR_INTEGRATION_ABI	1
++
++/*
++ * Opaque, source-independent callbacks for the mainline owner adapter.
++ * The vendor side validates each local ABI and pins exact identities.
++ */
++struct gemini_mt6797_dvfsp_vendor_integration_ops {
++	u32 abi;
++	int (*bind_lifecycle)(void *context, const void *bridge_ops,
++		void *bridge_context, const void *runtime_ops,
++		void *runtime_context, const void *owner_lifecycle_ops,
++		void *owner_lifecycle_context, u64 owner_handle,
++		u64 transition_handle);
++	int (*unbind_lifecycle)(void *context, const void *bridge_ops,
++		void *bridge_context, const void *runtime_ops,
++		void *runtime_context, const void *owner_lifecycle_ops,
++		void *owner_lifecycle_context, u64 owner_handle,
++		u64 transition_handle);
++	int (*register_mainline_owner)(void *context, const void *bridge_ops,
++		void *bridge_context, const void *runtime_ops,
++		void *runtime_context, u64 owner_handle,
++		u64 transition_handle);
++	int (*unregister_mainline_owner)(void *context, const void *bridge_ops,
++		void *bridge_context, const void *runtime_ops,
++		void *runtime_context, u64 owner_handle,
++		u64 transition_handle);
++};
++
++const struct gemini_mt6797_dvfsp_vendor_integration_ops *
++gemini_mt6797_dvfsp_vendor_writer_integration_ops(void);
++
+ struct gemini_mt6797_dvfsp_vendor_writer_transaction {
+ 	enum gemini_mt6797_dvfsp_vendor_writer_site site;
+ 	u64 generation;
+-- 
+2.39.5
+
+

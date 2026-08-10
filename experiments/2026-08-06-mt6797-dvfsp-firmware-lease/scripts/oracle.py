@@ -62,9 +62,12 @@ VENDOR_WRITER_BINDING_PATCH = (Path(__file__).resolve().parents[1] /
                                "patches/0006-mt6797-vendor-writer-mainline-owner-binding.patch")
 VENDOR_WRITER_LIFECYCLE_PATCH = (Path(__file__).resolve().parents[1] /
                                  "patches/0007-mt6797-vendor-writer-lifecycle-runtime-events.patch")
+VENDOR_WRITER_LIFECYCLE_INTEGRATION_PATCH = (Path(__file__).resolve().parents[1] /
+                                             "patches/0008-mt6797-vendor-writer-integration-lifecycle-adapter.patch")
 MAINLINE_WRITER_BRIDGE_PATCH = ROOT / "patches/v7.1.3/0256-soc-mediatek-export-vendor-writer-owner-bridge.patch"
 MAINLINE_WRITER_REGISTRATION_PATCH = ROOT / "patches/v7.1.3/0257-soc-mediatek-add-explicit-vendor-writer-registration-handoff.patch"
 MAINLINE_WRITER_RUNTIME_EVENTS_PATCH = ROOT / "patches/v7.1.3/0258-soc-mediatek-extend-vendor-writer-handoff-runtime-events.patch"
+MAINLINE_WRITER_LIFECYCLE_INTEGRATION_PATCH = ROOT / "patches/v7.1.3/0259-soc-mediatek-bind-vendor-writer-lifecycle-integration.patch"
 VENDOR_WRITER_INTEGRATION_REVIEW_RESULT = (Path(__file__).resolve().parents[1] /
                                            "results/vendor-writer-mainline-owner-integration-review-20260810.txt")
 VENDOR_WRITER_REGISTRATION_BUILD_RESULT = (Path(__file__).resolve().parents[1] /
@@ -73,6 +76,8 @@ VENDOR_WRITER_RUNTIME_EVENTS_BUILD_RESULT = (Path(__file__).resolve().parents[1]
                                              "results/vendor-writer-runtime-event-handoff-buildbox-20260811.txt")
 VENDOR_WRITER_LIFECYCLE_BUILD_RESULT = (Path(__file__).resolve().parents[1] /
                                         "results/vendor-writer-lifecycle-runtime-events-buildbox-20260811.txt")
+VENDOR_WRITER_LIFECYCLE_INTEGRATION_BUILD_RESULT = (Path(__file__).resolve().parents[1] /
+                                                    "results/vendor-writer-lifecycle-integration-buildbox-20260811.txt")
 VENDOR_CALLER_LIFECYCLE_AUDIT_RESULT = (Path(__file__).resolve().parents[1] /
                                         "results/vendor-caller-lifecycle-invalidation-audit-20260811.txt")
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
@@ -244,13 +249,16 @@ def main() -> None:
     vendor_writer_identity_patch = VENDOR_WRITER_IDENTITY_PATCH.read_text()
     vendor_writer_binding_patch = VENDOR_WRITER_BINDING_PATCH.read_text()
     vendor_writer_lifecycle_patch = VENDOR_WRITER_LIFECYCLE_PATCH.read_text()
+    vendor_writer_lifecycle_integration_patch = VENDOR_WRITER_LIFECYCLE_INTEGRATION_PATCH.read_text()
     mainline_writer_bridge_patch = MAINLINE_WRITER_BRIDGE_PATCH.read_text()
     mainline_writer_registration_patch = MAINLINE_WRITER_REGISTRATION_PATCH.read_text()
     mainline_writer_runtime_events_patch = MAINLINE_WRITER_RUNTIME_EVENTS_PATCH.read_text()
+    mainline_writer_lifecycle_integration_patch = MAINLINE_WRITER_LIFECYCLE_INTEGRATION_PATCH.read_text()
     vendor_writer_integration_review_result = VENDOR_WRITER_INTEGRATION_REVIEW_RESULT.read_text()
     vendor_writer_registration_build_result = VENDOR_WRITER_REGISTRATION_BUILD_RESULT.read_text()
     vendor_writer_runtime_events_build_result = VENDOR_WRITER_RUNTIME_EVENTS_BUILD_RESULT.read_text()
     vendor_writer_lifecycle_build_result = VENDOR_WRITER_LIFECYCLE_BUILD_RESULT.read_text()
+    vendor_writer_lifecycle_integration_build_result = VENDOR_WRITER_LIFECYCLE_INTEGRATION_BUILD_RESULT.read_text()
     vendor_caller_lifecycle_audit_result = VENDOR_CALLER_LIFECYCLE_AUDIT_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
@@ -289,12 +297,14 @@ def main() -> None:
                                VENDOR_EXPERIMENT_SERIES.read_text().splitlines()
                                if line and not line.startswith("#")]
 
-    if vendor_experiment_names[-1] != "0007-mt6797-vendor-writer-lifecycle-runtime-events.patch":
-        raise AssertionError("vendor lifecycle/runtime patch is not last in its experiment series")
+    if vendor_experiment_names[-1] != "0008-mt6797-vendor-writer-integration-lifecycle-adapter.patch":
+        raise AssertionError("vendor lifecycle-integration patch is not last in its experiment series")
     if names.index("0256-soc-mediatek-export-vendor-writer-owner-bridge.patch") >= names.index("0257-soc-mediatek-add-explicit-vendor-writer-registration-handoff.patch"):
         raise AssertionError("vendor writer registration handoff is not after the bridge")
     if names.index("0257-soc-mediatek-add-explicit-vendor-writer-registration-handoff.patch") >= names.index("0258-soc-mediatek-extend-vendor-writer-handoff-runtime-events.patch"):
         raise AssertionError("vendor runtime-event handoff is not after writer registration")
+    if names.index("0258-soc-mediatek-extend-vendor-writer-handoff-runtime-events.patch") >= names.index("0259-soc-mediatek-bind-vendor-writer-lifecycle-integration.patch"):
+        raise AssertionError("vendor lifecycle integration is not after runtime-event handoff")
     for needle, label in (
         ("GEMINI_MT6797_DVFSP_VENDOR_WRITER_ABI\t2", "vendor-writer-identity-abi"),
         ("read_identity", "vendor-writer-identity-callback"),
@@ -363,6 +373,28 @@ def main() -> None:
         if forbidden in vendor_writer_lifecycle_source:
             raise AssertionError(f"unexpected vendor lifecycle operation: {forbidden}")
 
+    vendor_writer_lifecycle_integration_source = vendor_writer_lifecycle_integration_patch[
+        vendor_writer_lifecycle_integration_patch.index("diff --git"):]
+    for needle, label in (
+        ("GEMINI_MT6797_DVFSP_VENDOR_INTEGRATION_ABI\t1", "vendor-integration-abi"),
+        ("struct gemini_mt6797_dvfsp_vendor_integration_ops", "vendor-integration-ops"),
+        ("gemini_mt6797_dvfsp_vendor_writer_integration_ops(void)", "vendor-integration-export"),
+        ("gemini_mt6797_dvfsp_vendor_writer_integration_bind_lifecycle", "vendor-integration-bind"),
+        ("gemini_mt6797_dvfsp_vendor_writer_integration_unbind_lifecycle", "vendor-integration-unbind"),
+        ("gemini_mt6797_dvfsp_vendor_writer_integration_register_mainline", "vendor-integration-register"),
+        ("gemini_mt6797_dvfsp_vendor_writer_integration_unregister_mainline", "vendor-integration-unregister"),
+        ("GEMINI_MT6797_DVFSP_VENDOR_OWNER_LIFECYCLE_ABI", "vendor-integration-lifecycle-abi"),
+        ("mainline_registered", "vendor-integration-registration-state"),
+        ("memset(binding, 0, sizeof(*binding))", "vendor-integration-clear"),
+    ):
+        require(vendor_writer_lifecycle_integration_patch, needle, label)
+    for forbidden in (
+        "readl(", "writel(", "i2c_transfer", "regulator_", "clk_",
+        "platform_driver", "cpu_up(", "register_platform_driver",
+    ):
+        if forbidden in vendor_writer_lifecycle_integration_source:
+            raise AssertionError(f"unexpected vendor lifecycle integration operation: {forbidden}")
+
     mainline_writer_bridge_source = mainline_writer_bridge_patch[
         mainline_writer_bridge_patch.index("diff --git"):]
     for needle, label in (
@@ -427,6 +459,29 @@ def main() -> None:
     ):
         if forbidden in mainline_writer_runtime_events_source:
             raise AssertionError(f"unexpected mainline runtime-event operation: {forbidden}")
+
+    mainline_writer_lifecycle_integration_source = mainline_writer_lifecycle_integration_patch[
+        mainline_writer_lifecycle_integration_patch.index("diff --git"):]
+    for needle, label in (
+        ("MT6797_DVFSP_VENDOR_INTEGRATION_ABI\t1", "mainline-integration-abi"),
+        ("struct mt6797_dvfsp_vendor_integration_ops", "mainline-integration-ops"),
+        ("mt6797_dvfsp_vendor_owner_bind_writer_integration", "mainline-integration-bind"),
+        ("mt6797_dvfsp_vendor_owner_unbind_writer_integration", "mainline-integration-unbind"),
+        ("MT6797_DVFSP_VENDOR_OWNER_LIFECYCLE_ABI", "mainline-integration-lifecycle-abi"),
+        ("writer_integration_bound", "mainline-integration-state"),
+        ("register_mainline_owner", "mainline-integration-register-forward"),
+        ("unregister_mainline_owner", "mainline-integration-unregister-forward"),
+        ("return -EPROTO", "mainline-integration-identity-fail-closed"),
+        ("return -EBUSY", "mainline-integration-teardown-guard"),
+        ("mt6797_dvfsp_vendor_owner_integrates_lifecycle", "mainline-integration-kunit"),
+    ):
+        require(mainline_writer_lifecycle_integration_patch, needle, label)
+    for forbidden in (
+        "readl(", "writel(", "i2c_transfer", "regulator_", "clk_",
+        "platform_driver", "cpu_up(", "secure_write", "register_platform_driver",
+    ):
+        if forbidden in mainline_writer_lifecycle_integration_source:
+            raise AssertionError(f"unexpected mainline lifecycle integration operation: {forbidden}")
 
     for needle, label in (
         ("claim=SOURCE_ONLY_MT6797_VENDOR_WRITER_MAINLINE_OWNER_INTEGRATION_REVIEW", "vendor-integration-review-claim"),
@@ -510,6 +565,27 @@ def main() -> None:
         ("cross_tree_external_lifecycle_adapter_and_mainline_owner_registration_remain_required", "vendor-lifecycle-build-next-gate"),
     ):
         require(vendor_writer_lifecycle_build_result, needle, label)
+
+    for needle, label in (
+        ("claim=COMPILE_ONLY_MT6797_VENDOR_WRITER_LIFECYCLE_INTEGRATION", "vendor-lifecycle-integration-build-claim"),
+        ("backend=buildbox", "vendor-lifecycle-integration-build-backend"),
+        ("vendor_revision=d388d350cb2dda8f23b99be6fa5db9628896e87f", "vendor-lifecycle-integration-build-revision"),
+        ("vendor_series=0001..0008", "vendor-lifecycle-integration-build-series"),
+        ("mainline_patch=0259", "vendor-lifecycle-integration-build-mainline-patch"),
+        ("integration_abi=1", "vendor-lifecycle-integration-build-abi"),
+        ("lifecycle_bind_exact_identity=passed", "vendor-lifecycle-integration-build-bind-identity"),
+        ("probe_register_forward=passed", "vendor-lifecycle-integration-build-register-forward"),
+        ("remove_unregister_forward=passed", "vendor-lifecycle-integration-build-unregister-forward"),
+        ("teardown_clear_exact_identity=passed", "vendor-lifecycle-integration-build-teardown"),
+        ("affected_objects=passed", "vendor-lifecycle-integration-build-objects"),
+        ("diagnostics=none", "vendor-lifecycle-integration-build-diagnostics"),
+        ("runtime_owner_registration=none", "vendor-lifecycle-integration-build-no-owner"),
+        ("hardware_write=none", "vendor-lifecycle-integration-build-no-write"),
+        ("device_action=none", "vendor-lifecycle-integration-build-no-action"),
+        ("boot_candidate=false", "vendor-lifecycle-integration-build-not-candidate"),
+        ("cpu8_cpu9_admission=closed", "vendor-lifecycle-integration-build-no-admission"),
+    ):
+        require(vendor_writer_lifecycle_integration_build_result, needle, label)
 
     for needle, label in (
         ("claim=SOURCE_ONLY_MT6797_VENDOR_CALLER_LIFECYCLE_INVALIDATION_AUDIT", "vendor-caller-audit-claim"),
