@@ -616,3 +616,17 @@ entries on Buildbox, produced 119 DTBs, passed package checksums, and fetched
 only the validated package; see the [PPM snapshot contract Buildbox result](results/ppm-snapshot-contract-buildbox-20260810.txt).
 This is compile-only evidence: the real PPM/EEM/PTP and PMIC/clock owner,
 generation source, device boot, and CPU8/CPU9 admission remain closed.
+
+Patch `0223` binds the validated PPM snapshot into the protected state-source
+pipeline. The source now requires a PTP-bound PPM read, matches its nonzero
+table epoch to both calibrated and live provenance, verifies each LL/L/B live
+frequency against an exact vendor table row, and derives those physical
+clusters' floor/ceiling from the current client index interval. CCI remains
+without a fabricated PPM limit. The first pushed revision `dd89fbc` was
+rejected before compilation by one whitespace-only patch-context mismatch;
+corrected revision `7c4bd43` applied all 212 canonical entries on Buildbox,
+produced 119 DTBs, passed package checksums, and fetched only the validated
+package; see the [PPM state-source binding Buildbox result](results/ppm-state-source-binding-buildbox-20260810.txt).
+This remains compile-only and default-off: the real external PPM/EEM/PTP and
+PMIC/clock owner, generation callbacks, device boot, and CPU8/CPU9 admission
+remain closed.

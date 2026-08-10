@@ -2210,6 +2210,19 @@ The next ordered work remains source-only:
    see the [PPM snapshot contract Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/ppm-snapshot-contract-buildbox-20260810.txt).
    This remains compile-only: the real PPM/EEM/PTP and PMIC/clock owner,
    generation source, device boot, and CPU8/CPU9 admission remain closed.
+   Patch `0223` binds the validated PPM snapshot into the protected
+   state-source pipeline. A PTP-bound PPM read is mandatory; its nonzero epoch
+   must match calibrated and live provenance; every LL/L/B live frequency must
+   be an exact vendor-table row; and physical-cluster floor/ceiling values are
+   derived from the current client index interval. CCI still has no fabricated
+   PPM limit. The initial `dd89fbc` attempt was rejected before compilation by
+   a whitespace-only patch-context mismatch; corrected revision `7c4bd43`
+   applies all 212 canonical entries on Buildbox, produces 119 DTBs, passes
+   package checksums, and fetches only the validated package. See the [PPM
+   state-source binding Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/ppm-state-source-binding-buildbox-20260810.txt).
+   This remains compile-only and default-off: the real external PPM/EEM/PTP
+   and PMIC/clock owner, generation callbacks, device boot, and CPU8/CPU9
+   admission remain closed.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and
