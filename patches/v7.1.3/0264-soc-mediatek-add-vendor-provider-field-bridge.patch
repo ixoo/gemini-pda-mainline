@@ -464,7 +464,7 @@ new file mode 100644
 +/* Hardware-free mapping and lifecycle tests for the vendor provider bridge. */
 +
 +#include <linux/errno.h>
-+#include <linux/kunit/test.h>
++#include <kunit/test.h>
 +#include <linux/string.h>
 +#include <linux/types.h>
 +
