@@ -2545,6 +2545,18 @@ rail/clock operation, device boot, or CPU8/CPU9 admission was added. The next
 ordered implementation is the live VPROC/VSRAM and clock/rail callback layer
 plus one shared transition generation under the existing outer lock.
 
+Patch `0240` now supplies the dormant live-state callback adapter. It requires
+one explicit generation, owner handle, transition handle, and provenance plus
+per-cluster clock/rail samples; protected clock frequencies, the three physical
+PPM rows, and raw CSPM VPROC/VSRAM codes are compared before pure conversion
+and snapshot publication. Buildbox validated clean revision `84cfb27` with 229
+patches, 119 DTBs, package checksums, and the fetched package; see the
+[live-state source-adapter receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/live-state-source-adapter-buildbox-20260810.txt).
+This remains compile-only and dormant: no provider registration, MMIO or
+rail/clock operation, device boot, or CPU8/CPU9 admission was added. The next
+ordered implementation is binding the adapter to the calibrated provider,
+policy-derived CCI bounds, and runtime generation invalidation.
+
 Required evidence:
 
 - provider registration performs no register-data write;

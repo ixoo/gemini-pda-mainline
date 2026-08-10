@@ -44,6 +44,7 @@ CSPM_LIVE_BINDING_PATCH = ROOT / "patches/v7.1.3/0236-soc-mediatek-bind-CSPM-sam
 EFUSE_RAIL_PATCH = ROOT / "patches/v7.1.3/0237-soc-mediatek-add-MT6797-efuse-identity-and-rail-converters.patch"
 IDENTITY_SOURCE_BRIDGE_PATCH = ROOT / "patches/v7.1.3/0238-soc-mediatek-bind-efuse-identity-to-owner-source.patch"
 PPM_CCI_SOURCE_PATCH = ROOT / "patches/v7.1.3/0239-soc-mediatek-add-ppm-cci-source-adapter.patch"
+LIVE_STATE_SOURCE_PATCH = ROOT / "patches/v7.1.3/0240-soc-mediatek-add-live-state-source-adapter.patch"
 STATE_OWNER_SOURCE_PATCH = ROOT / "patches/v7.1.3/0215-soc-mediatek-add-calibrated-state-owner-source-binding.patch"
 STATE_OWNER_ARBITRATION_PATCH = ROOT / "patches/v7.1.3/0216-soc-mediatek-bind-state-owner-source-to-transition-generation.patch"
 STATE_OWNER_ARBITRATION_FAULT_PATCH = ROOT / "patches/v7.1.3/0217-soc-mediatek-latch-transition-arbitration-faults.patch"
@@ -98,6 +99,7 @@ CSPM_LIVE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/cspm-liv
 EFUSE_RAIL_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/efuse-rail-helper-buildbox-20260810.txt"
 IDENTITY_SOURCE_BRIDGE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/identity-source-bridge-buildbox-20260810.txt"
 PPM_CCI_SOURCE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/ppm-cci-source-adapter-buildbox-20260810.txt"
+LIVE_STATE_SOURCE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/live-state-source-adapter-buildbox-20260810.txt"
 
 
 def require(text: str, needle: str, label: str) -> None:
@@ -145,6 +147,7 @@ def main() -> None:
     efuse_rail_patch = EFUSE_RAIL_PATCH.read_text()
     identity_source_bridge_patch = IDENTITY_SOURCE_BRIDGE_PATCH.read_text()
     ppm_cci_source_patch = PPM_CCI_SOURCE_PATCH.read_text()
+    live_state_source_patch = LIVE_STATE_SOURCE_PATCH.read_text()
     state_owner_source_patch = STATE_OWNER_SOURCE_PATCH.read_text()
     state_owner_arbitration_patch = STATE_OWNER_ARBITRATION_PATCH.read_text()
     state_owner_arbitration_fault_patch = STATE_OWNER_ARBITRATION_FAULT_PATCH.read_text()
@@ -198,6 +201,7 @@ def main() -> None:
     efuse_rail_build_result = EFUSE_RAIL_BUILD_RESULT.read_text()
     identity_source_bridge_build_result = IDENTITY_SOURCE_BRIDGE_BUILD_RESULT.read_text()
     ppm_cci_source_build_result = PPM_CCI_SOURCE_BUILD_RESULT.read_text()
+    live_state_source_build_result = LIVE_STATE_SOURCE_BUILD_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     eem_calibration_source = eem_calibration_patch[eem_calibration_patch.index("diff --git"):]
@@ -220,6 +224,7 @@ def main() -> None:
     efuse_rail_source = efuse_rail_patch[efuse_rail_patch.index("diff --git"):]
     identity_source_bridge_source = identity_source_bridge_patch[identity_source_bridge_patch.index("diff --git"):]
     ppm_cci_source_source = ppm_cci_source_patch[ppm_cci_source_patch.index("diff --git"):]
+    live_state_source_source = live_state_source_patch[live_state_source_patch.index("diff --git"):]
     state_owner_source_source = state_owner_source_patch[state_owner_source_patch.index("diff --git"):]
     state_owner_arbitration_source = state_owner_arbitration_patch[state_owner_arbitration_patch.index("diff --git"):]
     state_owner_arbitration_fault_source = state_owner_arbitration_fault_patch[state_owner_arbitration_fault_patch.index("diff --git"):]
@@ -807,6 +812,33 @@ def main() -> None:
                       "nvmem_cell_write", "mt6797_dvfsp_handoff_state_owner_register"):
         if forbidden in ppm_cci_source_source:
             raise AssertionError(f"unexpected PPM/CCI source operation: {forbidden}")
+    for needle, label in (
+        ("MT6797_DVFSP_LIVE_SOURCE_ADAPTER_ABI", "live-source-abi"),
+        ("read_generation", "live-source-generation-callback"),
+        ("read_cluster", "live-source-cluster-callback"),
+        ("u64 *owner_handle", "live-source-owner-handle"),
+        ("u64 *transition_handle", "live-source-transition-handle"),
+        ("struct mt6797_dvfsp_state_provenance *provenance", "live-source-provenance"),
+        ("mt6797_dvfsp_live_source_fill", "live-source-fill"),
+        ("MT6797_DVFSP_STATE_FLAG_PRESENT", "live-source-present"),
+        ("MT6797_DVFSP_STATE_FLAG_ON", "live-source-on"),
+        ("mt6797_dvfsp_cspm_vproc_code_to_uv", "live-source-vproc-converter"),
+        ("mt6797_dvfsp_cspm_vsram_code_to_uv", "live-source-vsram-converter"),
+        ("frequency_khz != clock->cluster[cluster].frequency_khz", "live-source-clock-match"),
+        ("ppm->cluster[mt6797_dvfsp_live_ppm_cluster[cluster]]", "live-source-ppm-match"),
+        ("state->vproc_code != cspm->cluster[cluster].voltage_code", "live-source-vproc-match"),
+        ("state->vsram_code != cspm->cluster[cluster].vsram_code", "live-source-vsram-match"),
+        ("generation != calibration->source_generation", "live-source-generation-match"),
+        ("outer transition lock", "live-source-lock-contract"),
+        ("never registers it", "live-source-no-registration"),
+        ("CPU8/CPU9 admission", "live-source-no-admission"),
+    ):
+        require(live_state_source_patch, needle, label)
+    for forbidden in ("readl(", "writel(", "regulator_", "clk_", "i2c_transfer",
+                      "arm_smccc", "platform_driver", "cpu_up(", "secure_write",
+                      "nvmem_cell_write", "mt6797_dvfsp_handoff_state_owner_register"):
+        if forbidden in live_state_source_source:
+            raise AssertionError(f"unexpected live-state source operation: {forbidden}")
     for forbidden in ("readl(", "writel(", "regulator_", "clk_", "i2c_transfer",
                       "arm_smccc", "platform_driver", "cpu_up(", "secure_write"):
         if forbidden in cspm_live_binding_source:
@@ -921,6 +953,26 @@ def main() -> None:
         ("cpu8_cpu9_admission=closed", "ppm-cci-source-build-no-admission"),
     ):
         require(ppm_cci_source_build_result, needle, label)
+    for needle, label in (
+        ("repository_commit=84cfb2743fb15d1760945279eea0b7f1dc8f1c29", "live-source-build-commit"),
+        ("backend=buildbox", "live-source-build-backend"),
+        ("buildbox_job=84cfb2743fb15d1760945279eea0b7f1dc8f1c29-dvfsp-resource-owner-readonly-m0", "live-source-build-job"),
+        ("profile=dvfsp-resource-owner-readonly", "live-source-build-profile"),
+        ("patch_count=229", "live-source-build-patch-count"),
+        ("patchset_sha256=bbb207b5db5bf7ed6bf605bcbb017a3c4571eeb047ee7f5976e022c55d97bac5", "live-source-build-patchset"),
+        ("source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc", "live-source-build-source-hash"),
+        ("config_sha256=d3bab0cc2e45470b1138276919f9c10cd6371f6295e75a42fe998f34a418f156", "live-source-build-config-hash"),
+        ("artifact=linux-7.1.3-gemini-dvfsp-resource-owner-readonly-bbb207b5-c548d243", "live-source-build-artifact"),
+        ("image_gzip_sha256=1765077815c796dd4f69b932e519d2d2ef1a19a5eb0f2c45900062e5630a46cb", "live-source-build-image-hash"),
+        ("dtb_count=119", "live-source-build-dtb-count"),
+        ("package_validation=passed", "live-source-build-checksums"),
+        ("package_fetch=validated-package-only", "live-source-build-fetch"),
+        ("hardware_write=none", "live-source-build-no-write"),
+        ("device_boot=none", "live-source-build-no-boot"),
+        ("provider_registration=absent", "live-source-build-no-registration"),
+        ("cpu8_cpu9_admission=closed", "live-source-build-no-admission"),
+    ):
+        require(live_state_source_build_result, needle, label)
     for forbidden in ("readl(", "writel(", "regulator_", "clk_", "i2c_transfer",
                       "arm_smccc", "platform_driver", "cpu_up(", "secure_write"):
         if forbidden in ppm_policy_source:
@@ -2116,6 +2168,8 @@ def main() -> None:
         raise AssertionError("identity source bridge is not after efuse and rail helpers")
     if names.index("0238-soc-mediatek-bind-efuse-identity-to-owner-source.patch") >= names.index("0239-soc-mediatek-add-ppm-cci-source-adapter.patch"):
         raise AssertionError("PPM/CCI source adapter is not after the identity source bridge")
+    if names.index("0239-soc-mediatek-add-ppm-cci-source-adapter.patch") >= names.index("0240-soc-mediatek-add-live-state-source-adapter.patch"):
+        raise AssertionError("live state source adapter is not after the PPM/CCI source adapter")
 
     for forbidden in ("readl(", "writel(", "i2c_transfer", "regulator_enable(",
                       "regulator_disable(", "psci_ops.cpu_on", "cpu_up("):
@@ -2231,6 +2285,8 @@ def main() -> None:
     print("identity_source_bridge_buildbox=validated;commit=6ffe2836e06b5a76a3bfcf86a38b06d388793953;patch_count=227;artifact=linux-7.1.3-gemini-dvfsp-resource-owner-readonly-f0d6c5aa-c548d243;image_gzip_sha256=acf75cab0232619cedd5ba15c637f6ed24f0d9b1f802d46f45171b8880e885a7;package_validation=passed;package_fetch=validated-package-only;provider=none;registered_owner=0;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("ppm_cci_source_adapter=0239;locked_ppm_ll_l_b_rows;explicit_cci_frequency_rows;four_policy_limit_banks;shared_table_epoch;canonical_eem_mapping;owner_ops_dormant;registration_absent;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("ppm_cci_source_buildbox=validated;commit=51b3f30b4763b6d37eb61888f4dcdc6f1b1fa423;patch_count=228;artifact=linux-7.1.3-gemini-dvfsp-resource-owner-readonly-4231d9e2-c548d243;image_gzip_sha256=1327e462f90d0ae5587852dc199473c901ece903a63326e741cc6bcb179ad552;package_validation=passed;package_fetch=validated-package-only;provider=none;registered_owner=0;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
+    print("live_state_source_adapter=0240;explicit_generation_owner_transition_provenance;per_cluster_clock_rail_callbacks;protected_clock_frequency_match;physical_ppm_frequency_match;cspm_raw_rail_match;pure_rail_conversion;outer_transition_lock;registration_absent;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
+    print("live_state_source_buildbox=validated;commit=84cfb2743fb15d1760945279eea0b7f1dc8f1c29;patch_count=229;artifact=linux-7.1.3-gemini-dvfsp-resource-owner-readonly-bbb207b5-c548d243;image_gzip_sha256=1765077815c796dd4f69b932e519d2d2ef1a19a5eb0f2c45900062e5630a46cb;package_validation=passed;package_fetch=validated-package-only;provider=none;registered_owner=0;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("calibrated_provider_buildbox=validated;commit=a28dd0f9d57b747258d2c70fbae7b14a9e3c010d;profile=dvfsp-resource-owner-readonly;patch_count=224;artifact=linux-7.1.3-gemini-dvfsp-resource-owner-readonly-dede19ab-c548d243;sha256sums=passed;package_fetch=success;validated_package_only;provider=none;registered_owner=0;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("owner_abi_repair=0232;ppm_owner_header_restored;snapshot_handles_declared;compile_boundary_only")
     print("build_boundary_repairs=0233+0234;handoff_return_export;calibration_cluster_type;state_owner_mutex_probe_init;duplicate_tail_removed;compile_boundary_only")
