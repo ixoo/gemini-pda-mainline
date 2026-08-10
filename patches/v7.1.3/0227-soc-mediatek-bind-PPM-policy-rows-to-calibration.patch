@@ -269,7 +269,7 @@ diff --git a/drivers/thermal/mediatek/auxadc_thermal.c b/drivers/thermal/mediate
 +	if (!input || !input->ppm_snapshot || !input->ppm_policy)
  		return -EINVAL;
  	ret = mt6797_dvfsp_ppm_snapshot_validate(input->ppm_snapshot);
-@@ -1189,6 +1189,21 @@ static int mt6797_eem_calibration_ppm_check(
+@@ -1189,5 +1189,21 @@ static int mt6797_eem_calibration_ppm_check(
  	    input->ppm_snapshot->table_epoch)
  		return -EAGAIN;
 +	ret = mt6797_dvfsp_ppm_policy_validate(input->ppm_policy);
