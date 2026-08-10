@@ -193,7 +193,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c b/drivers/soc/medi
 @@ -449,1 +482,1 @@
 -	if (owner->writer_registered)
 +	if (owner->writer_registered || owner->writer_integration_bound)
-+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
 --- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
 @@ -377,3 +377,28 @@ static const struct mt6797_dvfsp_vendor_integration_ops
@@ -225,14 +225,6 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c b/drivers/soc/medi
 +	.ops = &mt6797_dvfsp_vendor_test_source_ops,
 +	.context = &mt6797_dvfsp_vendor_test_source_context,
 +};
-@@ -425,6 +443,7 @@ mt6797_dvfsp_vendor_test_integration_ops = {
- 	.unbind_lifecycle = mt6797_dvfsp_vendor_test_integration_unbind,
- 	.register_mainline_owner =
- 		mt6797_dvfsp_vendor_test_integration_register_mainline,
- 	.unregister_mainline_owner =
- 		mt6797_dvfsp_vendor_test_integration_unregister_mainline,
-+	.source_registration = &mt6797_dvfsp_vendor_test_source_registration,
- };
 @@ -544,6 +563,12 @@ static void mt6797_dvfsp_vendor_owner_integrates_lifecycle(
  	KUNIT_EXPECT_EQ(test, integration.register_calls, 1U);
  	KUNIT_EXPECT_PTR_EQ(test, integration.bridge_ops,
