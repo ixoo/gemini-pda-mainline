@@ -2850,7 +2850,7 @@ binding the pre-lock wrapper at attributable vendor writer sites, followed by
 separate read-only runtime registration evidence.
 
 Patch `0255` gives the pre-lock wrapper explicit descriptors for the PTP-table,
-voltage-sampler, and PPM writer boundaries. Invalid site identities and missing
+voltage-observer, and PPM callback boundaries. Invalid site identities and missing
 callbacks are rejected before the shared owner is acquired; valid descriptors
 all use the same generation transaction. The exact pushed head `87923a0`
 completed the named `dvfsp-owner-kunit` Buildbox job: all 244 canonical patches
