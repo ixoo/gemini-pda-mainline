@@ -1,0 +1,433 @@
+From 5e18da28665dfe2fd7e787a50cb1b185403c502d Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 10 Aug 2026 13:51:05 +0000
+Subject: [PATCH] power: add clean-room MT6797 vendor writer boundary
+
+
+diff --git a/drivers/misc/mediatek/base/power/mt6797/Makefile b/drivers/misc/mediatek/base/power/mt6797/Makefile
+index 661c90084..2cfe9f8c8 100644
+--- a/drivers/misc/mediatek/base/power/mt6797/Makefile
++++ b/drivers/misc/mediatek/base/power/mt6797/Makefile
+@@ -48,6 +48,7 @@ obj-y += mt_eem.o
+ obj-y += mt_otp.o
+ obj-y += mt_static_power.o
+ obj-y += mt_cpufreq.o
++obj-y += mt6797-dvfsp-vendor-writer.o
+ obj-y += mt_cpufreq_hybrid.o
+ obj-y += mt_idvfs.o
+ #obj-y += mt_udi.o
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
+new file mode 100644
+index 000000000..b8dfff0b1
+--- /dev/null
++++ b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
+@@ -0,0 +1,145 @@
++/*
++ * SPDX-License-Identifier: GPL-2.0
++ *
++ * Clean-room MT6797 DVFSP writer bridge.  It supplies only a fail-closed,
++ * serialized callback boundary; the registering owner remains external.
++ */
++#include <linux/errno.h>
++#include <linux/export.h>
++#include <linux/interrupt.h>
++#include <linux/mutex.h>
++#include <linux/sched.h>
++#include <linux/types.h>
++
++#include "mt6797-dvfsp-vendor-writer.h"
++
++static DEFINE_MUTEX(gemini_mt6797_dvfsp_vendor_writer_lock);
++static const struct gemini_mt6797_dvfsp_vendor_writer_ops
++	*gemini_mt6797_dvfsp_vendor_writer_ops;
++static void *gemini_mt6797_dvfsp_vendor_writer_context;
++
++static bool gemini_mt6797_dvfsp_vendor_writer_ops_valid(
++	const struct gemini_mt6797_dvfsp_vendor_writer_ops *ops)
++{
++	return ops && ops->abi == GEMINI_MT6797_DVFSP_VENDOR_WRITER_ABI &&
++		ops->begin && ops->commit && ops->abort;
++}
++
++int gemini_mt6797_dvfsp_vendor_writer_register(
++	const struct gemini_mt6797_dvfsp_vendor_writer_ops *ops,
++	void *context)
++{
++	int ret = 0;
++
++	if (!gemini_mt6797_dvfsp_vendor_writer_ops_valid(ops))
++		return -EINVAL;
++
++	mutex_lock(&gemini_mt6797_dvfsp_vendor_writer_lock);
++	if (gemini_mt6797_dvfsp_vendor_writer_ops) {
++		ret = -EBUSY;
++	} else {
++		gemini_mt6797_dvfsp_vendor_writer_ops = ops;
++		gemini_mt6797_dvfsp_vendor_writer_context = context;
++	}
++	mutex_unlock(&gemini_mt6797_dvfsp_vendor_writer_lock);
++
++	return ret;
++}
++EXPORT_SYMBOL_GPL(gemini_mt6797_dvfsp_vendor_writer_register);
++
++int gemini_mt6797_dvfsp_vendor_writer_unregister(
++	const struct gemini_mt6797_dvfsp_vendor_writer_ops *ops,
++	void *context)
++{
++	int ret = 0;
++
++	mutex_lock(&gemini_mt6797_dvfsp_vendor_writer_lock);
++	if (gemini_mt6797_dvfsp_vendor_writer_ops != ops ||
++	    gemini_mt6797_dvfsp_vendor_writer_context != context) {
++		ret = -ENOENT;
++	} else {
++		gemini_mt6797_dvfsp_vendor_writer_ops = NULL;
++		gemini_mt6797_dvfsp_vendor_writer_context = NULL;
++	}
++	mutex_unlock(&gemini_mt6797_dvfsp_vendor_writer_lock);
++
++	return ret;
++}
++EXPORT_SYMBOL_GPL(gemini_mt6797_dvfsp_vendor_writer_unregister);
++
++int gemini_mt6797_dvfsp_vendor_writer_begin(
++	struct gemini_mt6797_dvfsp_vendor_writer_transaction *transaction,
++	enum gemini_mt6797_dvfsp_vendor_writer_site site)
++{
++	const struct gemini_mt6797_dvfsp_vendor_writer_ops *ops;
++	void *context;
++	int ret;
++
++	if (!transaction ||
++	    (unsigned int)site >=
++		GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_COUNT)
++		return -EINVAL;
++	if (in_atomic() || irqs_disabled())
++		return -EWOULDBLOCK;
++
++	transaction->site = GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_COUNT;
++	transaction->generation = 0;
++	transaction->active = false;
++
++	mutex_lock(&gemini_mt6797_dvfsp_vendor_writer_lock);
++	ops = gemini_mt6797_dvfsp_vendor_writer_ops;
++	context = gemini_mt6797_dvfsp_vendor_writer_context;
++	if (!ops) {
++		mutex_unlock(&gemini_mt6797_dvfsp_vendor_writer_lock);
++		return -ENODEV;
++	}
++
++	ret = ops->begin(context, site, &transaction->generation);
++	if (ret) {
++		mutex_unlock(&gemini_mt6797_dvfsp_vendor_writer_lock);
++		return ret;
++	}
++
++	transaction->site = site;
++	transaction->active = true;
++	return 0;
++}
++EXPORT_SYMBOL_GPL(gemini_mt6797_dvfsp_vendor_writer_begin);
++
++int gemini_mt6797_dvfsp_vendor_writer_finish(
++	struct gemini_mt6797_dvfsp_vendor_writer_transaction *transaction,
++	int result)
++{
++	const struct gemini_mt6797_dvfsp_vendor_writer_ops *ops;
++	void *context;
++	int ret = result;
++	int abort_ret;
++
++	if (!transaction || !transaction->active)
++		return -EINVAL;
++
++	ops = gemini_mt6797_dvfsp_vendor_writer_ops;
++	context = gemini_mt6797_dvfsp_vendor_writer_context;
++	if (result) {
++		abort_ret = ops->abort(context, transaction->site,
++				       transaction->generation);
++		if (abort_ret)
++			ret = abort_ret;
++	} else {
++		ret = ops->commit(context, transaction->site,
++				  transaction->generation);
++		if (ret) {
++			abort_ret = ops->abort(context, transaction->site,
++					       transaction->generation);
++			if (abort_ret)
++				ret = abort_ret;
++		}
++	}
++
++	transaction->site = GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_COUNT;
++	transaction->generation = 0;
++	transaction->active = false;
++	mutex_unlock(&gemini_mt6797_dvfsp_vendor_writer_lock);
++	return ret;
++}
++EXPORT_SYMBOL_GPL(gemini_mt6797_dvfsp_vendor_writer_finish);
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h
+new file mode 100644
+index 000000000..feca4ef32
+--- /dev/null
++++ b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h
+@@ -0,0 +1,63 @@
++/*
++ * SPDX-License-Identifier: GPL-2.0
++ *
++ * Clean-room vendor writer boundary for the MT6797 DVFSP integration.
++ *
++ * The bridge is deliberately unregistered by default.  A separately reviewed
++ * owner/provider may register callbacks that serialize the legacy vendor
++ * writers with the mainline transition owner.  This file performs no device
++ * I/O and does not select an owner.
++ */
++#ifndef __MT6797_DVFSP_VENDOR_WRITER_H__
++#define __MT6797_DVFSP_VENDOR_WRITER_H__
++
++#include <linux/types.h>
++
++enum gemini_mt6797_dvfsp_vendor_writer_site {
++	GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_PTP_TABLE = 0,
++	GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_VOLTAGE,
++	GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_PPM,
++	GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_COUNT,
++};
++
++#define GEMINI_MT6797_DVFSP_VENDOR_WRITER_ABI	1
++
++struct gemini_mt6797_dvfsp_vendor_writer_transaction {
++	enum gemini_mt6797_dvfsp_vendor_writer_site site;
++	u64 generation;
++	bool active;
++};
++
++struct gemini_mt6797_dvfsp_vendor_writer_ops {
++	u32 abi;
++	int (*begin)(void *context,
++		     enum gemini_mt6797_dvfsp_vendor_writer_site site,
++		     u64 *generation);
++	int (*commit)(void *context,
++		      enum gemini_mt6797_dvfsp_vendor_writer_site site,
++		      u64 generation);
++	int (*abort)(void *context,
++		     enum gemini_mt6797_dvfsp_vendor_writer_site site,
++		     u64 generation);
++};
++
++int gemini_mt6797_dvfsp_vendor_writer_register(
++	const struct gemini_mt6797_dvfsp_vendor_writer_ops *ops,
++	void *context);
++int gemini_mt6797_dvfsp_vendor_writer_unregister(
++	const struct gemini_mt6797_dvfsp_vendor_writer_ops *ops,
++	void *context);
++
++int gemini_mt6797_dvfsp_vendor_writer_begin(
++	struct gemini_mt6797_dvfsp_vendor_writer_transaction *transaction,
++	enum gemini_mt6797_dvfsp_vendor_writer_site site);
++
++/*
++ * Finish the transaction while the shared bridge lock remains held.  A
++ * nonzero result aborts; a commit failure is followed by abort before unlock.
++ */
++int gemini_mt6797_dvfsp_vendor_writer_finish(
++	struct gemini_mt6797_dvfsp_vendor_writer_transaction *transaction,
++	int result);
++
++#endif /* __MT6797_DVFSP_VENDOR_WRITER_H__ */
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c b/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c
+index 2a3c757a8..9dace845c 100755
+--- a/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c
++++ b/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c
+@@ -68,6 +68,7 @@
+ #include "mt_cpufreq.h"
+ #include "mt_idvfs.h"
+ #include "mt_cpufreq_hybrid.h"
++#include "mt6797-dvfsp-vendor-writer.h"
+ #include "mt_ptp.h"
+ 
+ #define DCM_ENABLE 1
+@@ -2395,6 +2396,8 @@ static int _restore_default_volt_b(struct mt_cpu_dvfs *p, enum mt_cpu_dvfs_id id
+ 	unsigned int freq = 0;
+ 	unsigned int volt = 0;
+ 	int idx = 0;
++	int writer_ret;
++	struct gemini_mt6797_dvfsp_vendor_writer_transaction writer_transaction = { };
+ 
+ 	FUNC_ENTER(FUNC_LV_HELP);
+ 
+@@ -2405,6 +2408,14 @@ static int _restore_default_volt_b(struct mt_cpu_dvfs *p, enum mt_cpu_dvfs_id id
+ 		return 0;
+ 	}
+ 
++	writer_ret = gemini_mt6797_dvfsp_vendor_writer_begin(
++		&writer_transaction,
++		GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_PTP_TABLE);
++	if (writer_ret) {
++		FUNC_EXIT(FUNC_LV_HELP);
++		return writer_ret;
++	}
++
+ 	cpufreq_lock(flags);
+ 
+ 	/* restore to default volt */
+@@ -2429,6 +2440,11 @@ static int _restore_default_volt_b(struct mt_cpu_dvfs *p, enum mt_cpu_dvfs_id id
+ 
+ 	cpufreq_unlock(flags);
+ 
++	writer_ret = gemini_mt6797_dvfsp_vendor_writer_finish(
++		&writer_transaction, ret);
++	if (writer_ret)
++		ret = writer_ret;
++
+ 	FUNC_EXIT(FUNC_LV_HELP);
+ 
+ 	return ret;
+@@ -2442,6 +2458,8 @@ static int _restore_default_volt(struct mt_cpu_dvfs *p, enum mt_cpu_dvfs_id id)
+ 	unsigned int freq = 0;
+ 	unsigned int volt = 0;
+ 	int idx = 0;
++	int writer_ret;
++	struct gemini_mt6797_dvfsp_vendor_writer_transaction writer_transaction = { };
+ 	struct mt_cpu_dvfs *p_ll, *p_l, *p_cci;
+ 
+ 	p_ll = id_to_cpu_dvfs(MT_CPU_DVFS_LL);
+@@ -2455,6 +2473,14 @@ static int _restore_default_volt(struct mt_cpu_dvfs *p, enum mt_cpu_dvfs_id id)
+ 		return 0;
+ 	}
+ 
++	writer_ret = gemini_mt6797_dvfsp_vendor_writer_begin(
++		&writer_transaction,
++		GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_PTP_TABLE);
++	if (writer_ret) {
++		FUNC_EXIT(FUNC_LV_HELP);
++		return writer_ret;
++	}
++
+ 	cpufreq_lock(flags);
+ 
+ 	/* restore to default volt */
+@@ -2479,6 +2505,11 @@ static int _restore_default_volt(struct mt_cpu_dvfs *p, enum mt_cpu_dvfs_id id)
+ 
+ 	cpufreq_unlock(flags);
+ 
++	writer_ret = gemini_mt6797_dvfsp_vendor_writer_finish(
++		&writer_transaction, ret);
++	if (writer_ret)
++		ret = writer_ret;
++
+ 	FUNC_EXIT(FUNC_LV_HELP);
+ 
+ 	return ret;
+@@ -2514,6 +2545,8 @@ int mt_cpufreq_update_volt_b(enum mt_cpu_dvfs_id id, unsigned int *volt_tbl, int
+ 	unsigned int freq = 0;
+ 	unsigned int volt = 0;
+ 	int idx = 0;
++	int writer_ret;
++	struct gemini_mt6797_dvfsp_vendor_writer_transaction writer_transaction = { };
+ 
+ 	FUNC_ENTER(FUNC_LV_API);
+ 
+@@ -2529,6 +2562,14 @@ int mt_cpufreq_update_volt_b(enum mt_cpu_dvfs_id id, unsigned int *volt_tbl, int
+ 		BUG();
+ 	}
+ 
++	writer_ret = gemini_mt6797_dvfsp_vendor_writer_begin(
++		&writer_transaction,
++		GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_VOLTAGE);
++	if (writer_ret) {
++		FUNC_EXIT(FUNC_LV_API);
++		return writer_ret;
++	}
++
+ 	cpufreq_lock(flags);
+ 
+ 	/* update volt table */
+@@ -2553,6 +2594,11 @@ int mt_cpufreq_update_volt_b(enum mt_cpu_dvfs_id id, unsigned int *volt_tbl, int
+ 
+ 	cpufreq_unlock(flags);
+ 
++	writer_ret = gemini_mt6797_dvfsp_vendor_writer_finish(
++		&writer_transaction, ret);
++	if (writer_ret)
++		ret = writer_ret;
++
+ 	FUNC_EXIT(FUNC_LV_API);
+ 
+ 	return ret;
+@@ -2568,6 +2614,8 @@ int mt_cpufreq_update_volt(enum mt_cpu_dvfs_id id, unsigned int *volt_tbl, int n
+ 	unsigned int freq = 0;
+ 	unsigned int volt = 0;
+ 	int idx = 0;
++	int writer_ret;
++	struct gemini_mt6797_dvfsp_vendor_writer_transaction writer_transaction = { };
+ 	struct mt_cpu_dvfs *p_ll, *p_l, *p_cci;
+ 
+ 	p_ll = id_to_cpu_dvfs(MT_CPU_DVFS_LL);
+@@ -2585,6 +2633,14 @@ int mt_cpufreq_update_volt(enum mt_cpu_dvfs_id id, unsigned int *volt_tbl, int n
+ 		BUG();
+ 	}
+ 
++	writer_ret = gemini_mt6797_dvfsp_vendor_writer_begin(
++		&writer_transaction,
++		GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_VOLTAGE);
++	if (writer_ret) {
++		FUNC_EXIT(FUNC_LV_HELP);
++		return writer_ret;
++	}
++
+ 	cpufreq_lock(flags);
+ 
+ 	/* update volt table */
+@@ -2609,6 +2665,11 @@ int mt_cpufreq_update_volt(enum mt_cpu_dvfs_id id, unsigned int *volt_tbl, int n
+ 
+ 	cpufreq_unlock(flags);
+ 
++	writer_ret = gemini_mt6797_dvfsp_vendor_writer_finish(
++		&writer_transaction, ret);
++	if (writer_ret)
++		ret = writer_ret;
++
+ 	FUNC_EXIT(FUNC_LV_API);
+ 
+ 	return ret;
+@@ -4858,10 +4919,21 @@ static void ppm_limit_callback(struct ppm_client_req req)
+ 	int ignore_ppm[NR_MT_CPU_DVFS] = {0};
+ 	unsigned int i;
+ 	int kick = 0;
++	int writer_ret;
++	struct gemini_mt6797_dvfsp_vendor_writer_transaction writer_transaction = { };
+ 
+ 	if (dvfs_disable_flag)
+ 		return;
+ 
++	writer_ret = gemini_mt6797_dvfsp_vendor_writer_begin(
++		&writer_transaction,
++		GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_PPM);
++	if (writer_ret) {
++		cpufreq_err("DVFSP writer bridge refused PPM update: %d\n",
++			    writer_ret);
++		return;
++	}
++
+ 	cpufreq_ver("get feedback from PPM module\n");
+ 
+ 	ppm_main_start_hrtimer();
+@@ -4929,6 +5001,12 @@ static void ppm_limit_callback(struct ppm_client_req req)
+ 	if (!p->dvfs_disable_by_suspend && kick)
+ 		_kick_PBM_by_cpu(p);
+ #endif
++
++	writer_ret = gemini_mt6797_dvfsp_vendor_writer_finish(
++		&writer_transaction, 0);
++	if (writer_ret)
++		cpufreq_err("DVFSP writer bridge failed PPM commit: %d\n",
++			    writer_ret);
+ }
+ #endif
+ 
+-- 
+2.39.5
+
+
