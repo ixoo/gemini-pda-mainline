@@ -3224,6 +3224,17 @@ is claimed. The next ordered step is to complete source-backed policy-row, EEM
 voltage-unit, live clock-owner, and rail-conversion mappings under one shared
 generation before any provider registration or device boot.
 
+The Buildbox run was resumed at the exact pushed commit `1421893`. The
+`dvfsp-owner-kunit` profile reproduced the validated 253-patch package with
+all 119 DTBs and passing provenance checksums; see the [resume Buildbox
+receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-source-provider-field-bridge-resume-buildbox-20260810.txt).
+The fetched Image was rerun in isolated AArch64 QEMU and all six KUnit suites
+passed (17/17, no failures or skips), with the guest reaching `System halted`;
+see the [resume QEMU receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-source-provider-field-bridge-resume-qemu-20260810.txt).
+This is deterministic revalidation only: policy rows, EEM voltage units, live
+clock ownership, rail conversion, provider registration, and Gemini hardware
+support remain closed.
+
 Required evidence:
 
 - provider registration performs no register-data write;

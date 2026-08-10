@@ -1399,3 +1399,14 @@ The next ordered gate is completing source-backed policy-row, EEM voltage-unit,
 live clock-owner, and rail-conversion mappings under the same generation before
 any provider registration or device boot. Do not write or boot a device for
 this isolated result.
+
+The Buildbox run was resumed at the exact pushed commit `1421893`. The
+`dvfsp-owner-kunit` profile reproduced the validated 253-patch package with
+all 119 DTBs and provenance checksums passing; see the [resume Buildbox
+receipt](results/vendor-source-provider-field-bridge-resume-buildbox-20260810.txt).
+The fetched Image was then rerun in isolated AArch64 QEMU: all six KUnit
+suites passed (17/17, no failures or skips) and the guest reached `System
+halted`; see the [resume QEMU receipt](results/vendor-source-provider-field-bridge-resume-qemu-20260810.txt).
+This is deterministic revalidation only. Policy rows, EEM voltage units, live
+clock ownership, rail conversion, provider registration, and Gemini hardware
+support remain closed.

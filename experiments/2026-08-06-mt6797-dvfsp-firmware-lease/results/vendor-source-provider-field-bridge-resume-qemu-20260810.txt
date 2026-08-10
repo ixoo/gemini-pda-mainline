@@ -1,0 +1,44 @@
+# MT6797 vendor-source-to-provider field bridge resumed isolated KUnit QEMU runtime
+
+date_utc=2026-08-10T23:20:30Z
+claim=RUNTIME_ISOLATED_QEMU_MT6797_VENDOR_PROVIDER_FIELD_BRIDGE_RESUME_KUNIT
+repository=https://github.com/ixoo/gemini-pda-mainline.git
+repository_commit=142189360b4f059988311744fbc683728bc2e5a0
+repository_dirty=false
+build_backend=buildbox
+build_profile=dvfsp-owner-kunit
+artifact=linux-7.1.3-gemini-dvfsp-owner-kunit-fe7a7df0-97bc4cf1
+local_package=artifacts/buildbox/142189360b4f059988311744fbc683728bc2e5a0/linux-7.1.3-gemini-dvfsp-owner-kunit-fe7a7df0-97bc4cf1
+image=Image
+image_sha256=25c4c8d4b9433ca3ab12b50094663ba4afaa4e3442cab2ec119ba6d959f2759f
+runner=local_qemu_system_aarch64
+machine=virt
+cpu=cortex-a53
+memory_mb=1024
+smp=4
+kernel_commandline=console=ttyAMA0;earlycon=pl011,mmio,0x09000000;kunit.enable=1;kunit_shutdown=halt
+kunit_shutdown=kernel_halted
+ktap_suites=6
+ktap_tests_passed=17
+ktap_tests_failed=0
+ktap_tests_skipped=0
+suite_1=mt6797-dvfsp-resource-owner;pass=3;fail=0;skip=0
+suite_2=mt6797-dvfsp-calibrated-provider;pass=2;fail=0;skip=0
+suite_3=mt6797-dvfsp-table-source;pass=2;fail=0;skip=0
+suite_4=mt6797-dvfsp-vendor-owner;pass=3;fail=0;skip=0
+suite_5=mt6797-dvfsp-vendor-writer;pass=4;fail=0;skip=0
+suite_6=mt6797-dvfsp-vendor-provider;pass=3;fail=0;skip=0
+qemu_exit=124_timeout_after_kernel_halt
+hardware_scope=none;isolated_virtual_machine_only
+runtime_owner_registration=not_executed;provider_bridge_lifecycle_fixture_passed
+provider_registration=none
+vendor_setter_called=none
+hardware_write=none
+device_action=none
+hardware_support_claim=NONE
+boot_candidate=false
+cpu8_cpu9_admission=closed
+
+observation=The exact fetched Buildbox Image ran all six enabled KUnit suites after the resumed build. All 17 tests passed with no failures or skips, and the guest reached System halted; the bounded timeout only terminated QEMU after that halt.
+decision=isolated_runtime_provider_field_bridge_revalidated;not_gemini_hardware_support;policy_voltage_clock_rail_mapping_and_real_device_validation_remain_closed
+next=retain the explicit unavailable masks and complete source-backed policy-row, EEM-unit, clock-owner, and rail-conversion mappings before any provider registration or device boot
