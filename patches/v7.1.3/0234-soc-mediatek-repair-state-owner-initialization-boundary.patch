@@ -1,0 +1,36 @@
+From 0000000000000000000000000000000000000234 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 10 Aug 2026 13:45:00 -0400
+Subject: [PATCH] soc: mediatek: repair state-owner initialization boundary
+
+The enabled owner-profile compile shows that an earlier zero-context hunk
+placed the state-owner mutex initializer inside the snapshot validation branch
+instead of the handoff probe, and left a duplicate handoff error tail at
+end-of-file after the helper was repaired. Move the initializer to the probe
+setup and remove only the duplicate tail. No hardware operation or runtime
+policy is changed.
+
+This is an experiment-only build-repair patch and is not submission-ready.
+---
+ drivers/soc/mediatek/mt6797-dvfsp-handoff.c | 4 ----
+ drivers/soc/mediatek/mt6797-dvfsp-handoff.c | 1 +
+ 1 file changed, 1 insertion(+), 4 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+@@ -1680,1 +1680,0 @@
+-	mutex_init(&handoff->state_owner_lock);
+@@ -2964,3 +2964,0 @@
+-	return ERR_PTR(ret);
+-}
+-EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_get);
+@@ -2981,5 +2981,6 @@ static int mt6797_dvfsp_handoff_probe(struct platform_device *pdev)
+ 	handoff->initial_gate = MT6797_DVFSP_GATE_UNKNOWN;
+ 	handoff->reason = "resources-not-ready";
+ 	mutex_init(&handoff->lock);
++	mutex_init(&handoff->state_owner_lock);
+ 	mutex_init(&handoff->transfer_lock);
+ 	mutex_init(&handoff->fw_owner_lock);
+-- 
+2.43.0
