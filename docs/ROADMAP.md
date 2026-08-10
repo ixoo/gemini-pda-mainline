@@ -2199,6 +2199,17 @@ The next ordered work remains source-only:
    This remains a compile-only source prerequisite: PPM rows, real rail/clock
    generation, provider registration, hardware operation, device boot, and
    CPU8/CPU9 admission remain closed.
+   Patch `0222` adds a strict, disabled MT6797 PPM snapshot contract for the
+   vendor's LL/L/B physical clusters. It validates the exact 16-entry tables,
+   cluster topology, current client limits, advice fields, descending frequency
+   order, and explicit floor/ceiling index mapping. A caller-held vendor PPM
+   lock and nonzero table epoch are required; CCI limits, per-row PPM limits,
+   provider registration, and hardware actions are intentionally not supplied.
+   Revision `028c460` applies all 211 canonical entries on Buildbox, produces
+   119 DTBs, passes package checksums, and fetches only the validated package;
+   see the [PPM snapshot contract Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/ppm-snapshot-contract-buildbox-20260810.txt).
+   This remains compile-only: the real PPM/EEM/PTP and PMIC/clock owner,
+   generation source, device boot, and CPU8/CPU9 admission remain closed.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and

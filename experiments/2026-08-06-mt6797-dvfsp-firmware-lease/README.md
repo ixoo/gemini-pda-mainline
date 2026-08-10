@@ -603,3 +603,16 @@ DTBs, passed package checksums, and fetched only the validated package; see the
 This remains a compile-only source prerequisite: no PPM rows, real rail/clock
 generation, provider registration, hardware operation, device boot, or CPU8/CPU9
 admission was added.
+
+Patch `0222` adds a strict, disabled MT6797 PPM snapshot contract. It captures
+the vendor's three physical clusters (LL/L/B), their exact 16-entry frequency
+tables, current client limits, and advice fields, and validates the vendor
+index ordering and cluster shape. Current limit conversion is explicit
+(`min_cpufreq_idx` is the floor and `max_cpufreq_idx` is the ceiling); a caller
+must hold the vendor private PPM lock and provide a nonzero table epoch. The
+contract deliberately supplies no CCI limit, per-row PPM limit source, provider
+registration, or hardware action. Revision `028c460` applied all 211 canonical
+entries on Buildbox, produced 119 DTBs, passed package checksums, and fetched
+only the validated package; see the [PPM snapshot contract Buildbox result](results/ppm-snapshot-contract-buildbox-20260810.txt).
+This is compile-only evidence: the real PPM/EEM/PTP and PMIC/clock owner,
+generation source, device boot, and CPU8/CPU9 admission remain closed.
