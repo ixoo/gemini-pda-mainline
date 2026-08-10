@@ -65,7 +65,7 @@ diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.
  
  static DEFINE_MUTEX(gemini_mt6797_dvfsp_vendor_writer_lock);
  static const struct gemini_mt6797_dvfsp_vendor_writer_ops
-@@ -387,6 +387,8 @@
+@@ -387,5 +387,8 @@
  }
  
 +static const struct mt6797_dvfsp_vendor_source_registration
