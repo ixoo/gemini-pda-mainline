@@ -1,0 +1,54 @@
+# Pinned vendor voltage-observer outer-transition audit
+
+date_utc=2026-08-10
+vendor_origin=https://github.com/gemian/gemini-linux-kernel-3.18.git
+vendor_revision=d388d350cb2dda8f23b99be6fa5db9628896e87f
+source=drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c
+source_blob=2a3c757a85f6fb10679a9e929523fd9745f995a0
+
+The single-slot observer is `g_pCpuVoltSampler`, assigned by
+`mt_cpufreq_setvolt_registerCB()` at lines 1114-1120 and called by
+`notify_cpu_volt_sampler()` at lines 1574-1586.  The observer itself only
+converts the voltage and invokes the callback; it has no sleepable ownership
+boundary and must not acquire the shared writer mutex recursively.
+
+observer_call_1=set_cur_freq_hybrid:3321-3341
+observer_call_1_context=invoked through the cpufreq operation table; normal
+policy transitions reach it through `_mt_cpufreq_set(lock=1)`, while PPM uses
+`_mt_cpufreq_set(lock=0)` inside the already-bound PPM callback.
+
+observer_call_2=set_cur_volt_extbuck:3572-3764
+observer_call_2_context=invoked through `p->ops->set_cur_volt`; normal policy
+transitions reach it from `_cpufreq_set_locked`, PTP/voltage-table writers
+reach it from `_set_cur_volt_locked`, CPU-hotplug paths call the locked helper
+directly, and the public `mt_cpufreq_set_freq()` path calls `_cpufreq_set_locked`
+without first taking `cpufreq_lock`.
+
+observer_call_3=notify_cpuhvfs_change_cb:5192-5255
+observer_call_3_context=the callback takes `cpufreq_lock` at line 5200 before
+the observer call at line 5249; acquiring the bridge from the observer would
+sleep while that mutex is held and is therefore invalid.
+
+outer_callers=
+_mt_cpufreq_set:4049-4181 (normal policy lock=1 at 4980; PPM lock=0 at 4919),
+mt_cpufreq_set_opp_volt:5583-5595 (direct locked voltage helper),
+mt_cpufreq_set_freq:5598-5634 (direct unlocked transition),
+CPU-hotplug notifier direct locked transitions:4330-4537
+
+current_candidate_coverage=PTP_table_writers_and_PPM_callback
+current_candidate_observer_acquire=absent
+current_candidate_normal_policy_outer=unbound
+current_candidate_public_direct_outer=unbound
+current_candidate_cpuhvfs_outer=unbound
+current_candidate_cpu_hotplug_outer=unbound
+
+decision=do_not_add_an_observer_side_bridge_acquire
+next_ordered_mapping=bind_the_sleepable_normal-policy_and_public-direct
+outer_transitions_individually; keep PPM and already-held cpufreq-lock paths
+out of recursive acquisition; review CPU-hotplug and hardware-governor paths
+as separate contexts before any device boot.
+
+hardware_write=none
+device_action=none
+runtime_owner_registration=none
+cpu8_cpu9_admission=closed

@@ -2933,6 +2933,15 @@ setter was called, no device action occurred, and CPU8/CPU9 admission remains
 closed. The next ordered gate is mapping the sleepable outer voltage-observer
 transition, followed by separate read-only owner-registration evidence.
 
+The [voltage-observer outer audit](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-voltage-observer-outer-audit-20260810.txt)
+now maps all three observer call paths. Normal policy transitions have a
+sleepable `_mt_cpufreq_set(lock=1)` boundary, but PPM already owns the bridge,
+CPU-hotplug paths already hold `cpufreq_lock`, and the hardware-governor
+callback takes that mutex before notifying. The public direct voltage/frequency
+helpers also need their own outer mapping. The observer itself therefore
+remains intentionally unwrapped; the next candidate must bind those outer
+contexts independently and preserve the existing PPM/lock ordering.
+
 Required evidence:
 
 - provider registration performs no register-data write;
