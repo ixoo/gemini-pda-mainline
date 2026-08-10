@@ -61,6 +61,8 @@ VENDOR_WRITER_IDENTITY_PATCH = (Path(__file__).resolve().parents[1] /
 VENDOR_WRITER_BINDING_PATCH = (Path(__file__).resolve().parents[1] /
                                "patches/0006-mt6797-vendor-writer-mainline-owner-binding.patch")
 MAINLINE_WRITER_BRIDGE_PATCH = ROOT / "patches/v7.1.3/0256-soc-mediatek-export-vendor-writer-owner-bridge.patch"
+VENDOR_WRITER_INTEGRATION_REVIEW_RESULT = (Path(__file__).resolve().parents[1] /
+                                           "results/vendor-writer-mainline-owner-integration-review-20260810.txt")
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
 START_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-start-contract-20260806.txt"
 OWNER_RESULT = Path(__file__).resolve().parents[1] / "results/public-hybrid-owner-source-20260806.txt"
@@ -230,6 +232,7 @@ def main() -> None:
     vendor_writer_identity_patch = VENDOR_WRITER_IDENTITY_PATCH.read_text()
     vendor_writer_binding_patch = VENDOR_WRITER_BINDING_PATCH.read_text()
     mainline_writer_bridge_patch = MAINLINE_WRITER_BRIDGE_PATCH.read_text()
+    vendor_writer_integration_review_result = VENDOR_WRITER_INTEGRATION_REVIEW_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     eem_calibration_source = eem_calibration_patch[eem_calibration_patch.index("diff --git"):]
@@ -327,6 +330,28 @@ def main() -> None:
     ):
         if forbidden in mainline_writer_bridge_source:
             raise AssertionError(f"unexpected mainline owner-bridge operation: {forbidden}")
+
+    for needle, label in (
+        ("claim=SOURCE_ONLY_MT6797_VENDOR_WRITER_MAINLINE_OWNER_INTEGRATION_REVIEW", "vendor-integration-review-claim"),
+        ("vendor_revision=d388d350cb2dda8f23b99be6fa5db9628896e87f", "vendor-integration-review-revision"),
+        ("mainline_commit=6b8820648fd95a637fdd9f41dad9d7406fd1bf3b", "vendor-integration-review-mainline-commit"),
+        ("vendor_series=0001..0006", "vendor-integration-review-series"),
+        ("ptp_outer_functions=_restore_default_volt_b:2392;_restore_default_volt:2454;mt_cpufreq_update_volt_b:2540;mt_cpufreq_update_volt:2609", "vendor-integration-review-ptp"),
+        ("ptp_owner_boundary=shared_owner_before_active_cpufreq_mutex;finish_after_callback_and_publication", "vendor-integration-review-ptp-order"),
+        ("voltage_observer_recursive_owner=forbidden", "vendor-integration-review-observer"),
+        ("ppm_owner_lock_order=ppm_mutex_then_shared_owner_then_cpufreq_mutex", "vendor-integration-review-ppm-order"),
+        ("legacy_setter_policy=preserve_existing_callbacks;do_not_replace_from_separate_owner", "vendor-integration-review-setters"),
+        ("mainline_vendor_callers_bound=false", "vendor-integration-review-unbound"),
+        ("runtime_notifier_registration=absent", "vendor-integration-review-no-notifier"),
+        ("invalidation_coverage=contract_only;actual_external_registration_and_vendor_source_callbacks_absent", "vendor-integration-review-invalidation"),
+        ("provider_registration=none", "vendor-integration-review-no-provider"),
+        ("hardware_write=none", "vendor-integration-review-no-write"),
+        ("device_action=none", "vendor-integration-review-no-action"),
+        ("boot_candidate=false", "vendor-integration-review-not-candidate"),
+        ("cpu8_cpu9_admission=closed", "vendor-integration-review-no-admission"),
+        ("decision=exact_cross_tree_callback_binding_is_compile_validated_but_real_vendor_caller_integration_and_complete_runtime_invalidation_coverage_remain_unproven;do_not_claim_runtime_owner_or_hardware_support", "vendor-integration-review-decision"),
+    ):
+        require(vendor_writer_integration_review_result, needle, label)
 
     require(patch, "MT6797_DVFSP_I2C6_FW_ABI", "protocol-abi")
     require(patch, "MT6797_DVFSP_I2C6_FW_PAUSE_SOURCE\t0x2", "pause-source")

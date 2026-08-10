@@ -3075,6 +3075,20 @@ device write, boot, or CPU8/CPU9 admission is authorized. The next step is
 source-only integration review for a real shared owner and complete
 invalidation coverage.
 
+The source-only integration review is now recorded against the exact pinned
+vendor revision after all six experiment patches. It anchors the four PTP
+outer functions before the active cpufreq mutex, the non-recursive voltage
+observer boundary, and the PPM order `ppm_mutex -> owner -> cpufreq_mutex`;
+it also confirms that the legacy single-slot setters remain untouched. The
+mainline 0207/0208/0243 invalidation path is only a contract: notifier
+registration and vendor-aware source callbacks are still absent, so caller
+binding and complete invalidation coverage remain open. See the [integration
+review](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-writer-mainline-owner-integration-review-20260810.txt).
+The next ordered step is a separate reviewable vendor-aware caller candidate
+covering PTP, voltage outer, PPM, CPU-hotplug, and hardware-governor contexts,
+with fail-closed abort/rollback semantics, followed by exact Buildbox
+validation. No device boot/write or CPU8/CPU9 admission is authorized.
+
 Required evidence:
 
 - provider registration performs no register-data write;

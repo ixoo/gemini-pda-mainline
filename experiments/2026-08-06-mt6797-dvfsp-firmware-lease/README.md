@@ -122,6 +122,7 @@ be copied directly into a mainline failure/PM path.
 - [Mainline owner-bridge Buildbox resume](results/buildbox-resume-6b882064-20260811.txt)
 - [Vendor writer mainline-owner binding Buildbox validation](results/vendor-writer-mainline-owner-binding-buildbox-20260811.txt)
 - [Read-only runtime owner-registration review](results/runtime-owner-registration-review-20260810.txt)
+- [Vendor writer/mainline owner integration review](results/vendor-writer-mainline-owner-integration-review-20260810.txt)
 - [Vendor writer mainline-owner binding design](results/vendor-writer-mainline-owner-binding-design-20260811.txt)
 
 Run from the repository root:
@@ -1226,3 +1227,14 @@ in-file read-only adapter for those real states, then a separately reviewable
 owner/provider registration candidate once one shared generation lock and all
 invalidation paths are proven. No device boot/write or CPU8/CPU9 admission is
 authorized.
+
+The post-series vendor integration review now records the exact six-patch
+source identity and the real outer callsites: all four PTP table writers must
+acquire the shared owner before the active cpufreq mutex, the voltage observer
+must not acquire it recursively, and the PPM path must preserve
+`ppm_mutex -> owner -> cpufreq_mutex`. The legacy PTP, voltage, and PPM
+callback setters remain single-slot and are intentionally untouched. Mainline
+invalidation is still only a 0207/0208/0243 contract: notifier registration and
+the vendor-aware source callbacks are absent, so the cross-tree ABI is
+compile-validated but no runtime owner or hardware support is claimed. See the
+[vendor writer/mainline owner integration review](results/vendor-writer-mainline-owner-integration-review-20260810.txt).
