@@ -222,3 +222,4 @@ v7.1.3/0229-soc-mediatek-bind-ppm-snapshot-to-owner-lock.patch
 v7.1.3/0230-soc-mediatek-add-MT6797-resource-only-transition-owner.patch
 v7.1.3/0231-dt-soc-mediatek-add-MT6797-resource-only-provider.patch
 v7.1.3/0232-soc-mediatek-repair-owner-abi-declarations.patch
+v7.1.3/0233-soc-mediatek-repair-handoff-and-snapshot-build-boundaries.patch

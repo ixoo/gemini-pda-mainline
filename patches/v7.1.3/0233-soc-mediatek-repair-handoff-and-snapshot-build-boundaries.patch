@@ -1,0 +1,47 @@
+From 0000000000000000000000000000000000000233 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 10 Aug 2026 13:30:00 -0400
+Subject: [PATCH] soc: mediatek: repair handoff and snapshot build boundaries
+
+The first enabled owner-profile compile exposed two malformed declarations in
+the canonical series. The snapshot helper passes a calibration cluster to a
+calibration-table matcher but declares it as the unrelated state-cluster type.
+The handoff supplier helper also loses its error-return and closing export
+sequence when the series is applied. Restore those source boundaries without
+adding any hardware access, provider registration, or runtime action.
+
+This is a build-repair patch for the dormant owner profile. It is
+experiment-only and not submission-ready.
+---
+ drivers/soc/mediatek/mt6797-dvfsp-handoff.c        | 3 +++
+ drivers/soc/mediatek/mt6797-dvfsp-state-snapshot.c | 2 +-
+ 2 files changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+@@ -1580,7 +1580,10 @@
+ 
+ put_supplier:
+ 	put_device(&supplier->dev);
++	return ERR_PTR(ret);
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_get);
+ static int
+ mt6797_dvfsp_state_provenance_check(
+ 	const struct mt6797_dvfsp_state_provenance *provenance)
+ {
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-snapshot.c b/drivers/soc/mediatek/mt6797-dvfsp-state-snapshot.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-state-snapshot.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-state-snapshot.c
+@@ -76,7 +76,7 @@ static int mt6797_dvfsp_snapshot_cluster_check(
+ 	const struct mt6797_dvfsp_state_snapshot_input *input,
+ 	unsigned int cluster)
+ {
+-	const struct mt6797_dvfsp_state_cluster *calibration;
++	const struct mt6797_dvfsp_calibration_cluster *calibration;
+ 	const struct mt6797_dvfsp_clock_state_cluster *clock;
+ 	const struct mt6797_dvfsp_calibration_table_entry *matched_entry;
+ 	int ret;
+-- 
+2.43.0
