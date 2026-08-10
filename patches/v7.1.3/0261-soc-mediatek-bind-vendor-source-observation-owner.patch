@@ -190,12 +190,9 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c b/drivers/soc/medi
 -	runtime_context = owner->ops.writer_runtime_context;
 +	runtime_ops = &mt6797_dvfsp_vendor_owner_runtime_adapter_ops;
 +	runtime_context = owner;
-@@ -449,5 +482,6 @@ int mt6797_dvfsp_vendor_owner_unbind(
- 	if (!owner || !owner->bound)
- 		return -EINVAL;
+@@ -449,1 +482,1 @@
 -	if (owner->writer_registered)
 +	if (owner->writer_registered || owner->writer_integration_bound)
- 		return -EBUSY;
 +diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
 --- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
