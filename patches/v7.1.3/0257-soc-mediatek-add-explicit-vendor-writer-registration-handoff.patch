@@ -21,7 +21,7 @@ provider registration, firmware operation, device action, or CPU admission.
 diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h
 --- a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h
 +++ b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h
-@@ -5,9 +5,26 @@
+@@ -5,9 +5,24 @@
  #include <linux/types.h>
  
  #include <linux/soc/mediatek/mt6797-dvfsp-calibrated-provider.h>
@@ -46,7 +46,7 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h b/include/li
  
  /*
   * A vendor-aware driver supplies these callbacks while retaining ownership
-@@ -28,6 +45,8 @@ struct mt6797_dvfsp_vendor_owner_ops {
+@@ -28,6 +45,9 @@ struct mt6797_dvfsp_vendor_owner_ops {
  	void *provider_context;
  	const struct mt6797_dvfsp_vendor_writer_ops *writer_ops;
  	void *writer_context;
@@ -56,7 +56,7 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h b/include/li
  };
  
  /*
-@@ -42,6 +61,7 @@ struct mt6797_dvfsp_vendor_owner {
+@@ -42,7 +61,9 @@ struct mt6797_dvfsp_vendor_owner {
  	struct mt6797_dvfsp_ppm_source ppm_source;
  	struct mt6797_dvfsp_calibrated_provider provider;
  	struct mt6797_dvfsp_vendor_writer writer;
@@ -66,7 +66,7 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h b/include/li
  	bool bound;
 +	bool writer_registered;
  };
-@@ -53,6 +73,16 @@ int mt6797_dvfsp_vendor_owner_bind(
+@@ -53,5 +73,13 @@ int mt6797_dvfsp_vendor_owner_bind(
  	u64 owner_handle, u64 transition_handle);
  
 +/* Register the exact bridge table with an external vendor-aware caller. */
@@ -83,7 +83,7 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h b/include/li
 diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c
 --- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c
-@@ -43,6 +43,18 @@ static int mt6797_dvfsp_vendor_owner_ops_check(
+@@ -43,6 +43,17 @@ static int mt6797_dvfsp_vendor_owner_ops_check(
  	return 0;
  }
  
@@ -101,7 +101,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c b/drivers/soc/medi
  int mt6797_dvfsp_vendor_owner_bind(
  	struct mt6797_dvfsp_vendor_owner *owner,
  	struct mt6797_dvfsp_resource_owner *resource_owner,
-@@ -57,6 +69,10 @@ int mt6797_dvfsp_vendor_owner_bind(
+@@ -57,5 +69,9 @@ int mt6797_dvfsp_vendor_owner_bind(
  	ret = mt6797_dvfsp_vendor_owner_ops_check(ops);
  	if (ret)
  		return ret;
@@ -111,7 +111,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c b/drivers/soc/medi
 +		return ret;
  
  	memset(owner, 0, sizeof(*owner));
-@@ -111,6 +127,61 @@ int mt6797_dvfsp_vendor_owner_bind(
+@@ -111,5 +127,59 @@ int mt6797_dvfsp_vendor_owner_bind(
  }
  EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_owner_bind);
  
@@ -171,7 +171,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c b/drivers/soc/medi
 +
  int mt6797_dvfsp_vendor_owner_unbind(
  	struct mt6797_dvfsp_vendor_owner *owner)
-@@ -119,6 +190,8 @@ int mt6797_dvfsp_vendor_owner_unbind(
+@@ -119,5 +190,7 @@ int mt6797_dvfsp_vendor_owner_unbind(
  	if (!owner || !owner->bound)
  		return -EINVAL;
 +	if (owner->writer_registered)
@@ -182,7 +182,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c b/drivers/soc/medi
 diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
 --- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
-@@ -15,6 +15,48 @@ struct mt6797_dvfsp_vendor_test_devices {
+@@ -15,5 +15,14 @@ struct mt6797_dvfsp_vendor_test_devices {
  	struct device calibration_source;
  };
  
@@ -197,7 +197,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c b/drivers/soc
 +
  static unsigned int mt6797_dvfsp_vendor_test_callbacks;
  
-@@ -184,6 +226,43 @@ static const struct mt6797_dvfsp_vendor_writer_ops
+@@ -184,5 +226,42 @@ static const struct mt6797_dvfsp_vendor_writer_ops
  	.read_provenance = mt6797_dvfsp_vendor_test_writer_provenance,
  };
  
@@ -240,7 +240,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c b/drivers/soc
 +
  static const struct mt6797_dvfsp_vendor_owner_ops
  mt6797_dvfsp_vendor_test_owner_ops = {
-@@ -209,6 +290,9 @@ static void mt6797_dvfsp_vendor_owner_binds_and_unbinds(
+@@ -209,4 +290,7 @@ static void mt6797_dvfsp_vendor_owner_binds_and_unbinds(
  	struct mt6797_dvfsp_vendor_test_devices devices = { };
  	struct mt6797_dvfsp_state_source_devices tuple = { };
  	struct mt6797_dvfsp_state_owner_ops state_ops = { };
@@ -248,7 +248,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c b/drivers/soc
 +	struct mt6797_dvfsp_vendor_owner_ops owner_ops =
 +		mt6797_dvfsp_vendor_test_owner_ops;
  	u64 generation;
-@@ -224,8 +308,11 @@ static void mt6797_dvfsp_vendor_owner_binds_and_unbinds(
+@@ -224,6 +308,9 @@ static void mt6797_dvfsp_vendor_owner_binds_and_unbinds(
  	KUNIT_ASSERT_EQ(test,
  		mt6797_dvfsp_resource_owner_attach(&resource_owner, &tuple), 0);
 +	owner_ops.writer_registration_ops =
@@ -259,7 +259,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c b/drivers/soc
 -			&mt6797_dvfsp_vendor_test_owner_ops, 0x67970023,
 +			&owner_ops, 0x67970023,
  			0x67970022), 0);
-@@ -244,6 +331,19 @@ static void mt6797_dvfsp_vendor_owner_binds_and_unbinds(
+@@ -244,3 +331,18 @@ static void mt6797_dvfsp_vendor_owner_binds_and_unbinds(
  	KUNIT_EXPECT_EQ(test, mt6797_dvfsp_vendor_test_callbacks, 0U);
 +	KUNIT_EXPECT_EQ(test,
 +		mt6797_dvfsp_vendor_owner_register_writer(&owner), 0);
