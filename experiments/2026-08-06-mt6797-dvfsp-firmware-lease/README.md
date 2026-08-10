@@ -1276,3 +1276,20 @@ or written, and CPU8/CPU9 admission remains closed. The next ordered action is
 to bind the actual vendor caller lifecycle to this handoff, including complete
 failure/remove unwinding and event forwarding, before any runtime review or
 device experiment.
+
+The vendor-aware lifecycle candidate in patch `0007` now binds the real
+`_mt_cpufreq_pdrv_probe`/remove path to an explicit external owner-lifecycle
+adapter. Probe registration is ordered before wrapped paths become reachable;
+allocation and cpufreq-registration failures unwind it, and remove unregisters
+PM, PPM, hotplug, and cpufreq callbacks before requiring the external lifecycle
+unregister to succeed. CPU-hotplug, PM, clock/governor, and rail transitions
+forward the ABI-1 runtime event classes. The atomic PCM timeout path queues a
+bounded deferred fault event and flushes it during teardown. The exact seven
+patch series applied and the affected vendor objects compiled with the pinned
+GCC 6.3 toolchain on Buildbox at pushed commit `1eb8297`; see the [lifecycle
+runtime-event Buildbox result](results/vendor-writer-lifecycle-runtime-events-buildbox-20260811.txt).
+This is still compile-only: the external cross-tree adapter and mainline owner
+registration are not present, no vendor setter/provider is active, no device was
+booted or written, and CPU8/CPU9 admission remains closed. The next gate is to
+bind that adapter to the mainline owner registration and validate complete
+failure/remove/event delivery before any runtime or device experiment.

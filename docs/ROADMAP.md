@@ -2463,6 +2463,14 @@ CPU_OFF, suspend/resume, later power boundaries, a mainline provider write,
 and default-profile A72 consumers remain blocked until their separate ownership
 and rollback gates close.
 
+The vendor-side writer lifecycle candidate is now source-backed and object-
+compile validated on Buildbox: probe/remove ordering, PM/PPM/hotplug cleanup,
+CPU/PM/clock/rail event forwarding, and deferred PCM-fault delivery are all
+covered in the exact seven-patch experiment series. The cross-tree adapter that
+connects this lifecycle hook to the mainline owner registration is still absent;
+until it is bound and its failure/remove/event paths are independently validated,
+the owner remains unregistered and CPU8/CPU9 admission stays closed.
+
 Exit: observations and inference are separated, every required writer has one
 owner, every pre-irreversible failure has a bounded no-effect or rollback
 proof, and every post-irreversible uncertainty has an attributable terminal
