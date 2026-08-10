@@ -1,0 +1,36 @@
+# MT6797 vendor lifecycle-registration guard KUnit Buildbox validation
+
+date_utc=2026-08-10T22:25:41Z
+claim=COMPILE_ONLY_MT6797_VENDOR_LIFECYCLE_GUARD_KUNIT
+repository=https://github.com/ixoo/gemini-pda-mainline.git
+repository_commit=39b52843db61c7d5cc4c591077a97b124df74b4c
+repository_dirty=false
+build_backend=buildbox
+buildbox_status=validated
+buildbox_job=39b52843db61c7d5cc4c591077a97b124df74b4c-dvfsp-owner-kunit-m0
+build_profile=dvfsp-owner-kunit
+kernel_release=7.1.3-gemini-dvfsp-owner-kunit
+artifact=linux-7.1.3-gemini-dvfsp-owner-kunit-2d6d0932-570e7702
+package_fetch=success;validated_package_only
+local_package=artifacts/buildbox/39b52843db61c7d5cc4c591077a97b124df74b4c/linux-7.1.3-gemini-dvfsp-owner-kunit-2d6d0932-570e7702
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=2d6d0932f89c1ccf4f0fee0d648a48d612f49727d4c6914c65f7d555d748fb50
+config_sha256=28c2e03824763b990541cebe4d7fce625beed7c8669d9ae7bf15f905d5e124fa
+dtb_count=119
+patch_count=252
+sha256sums=passed
+
+patch_0263=direct_writer_registration_requires_writer_integration_bound;returns_-ENODEV_before_callback_publication
+kunit=compiled;not_executed_by_Buildbox
+runtime_owner_registration=default_off;direct_registration_refused_before_lifecycle_bind
+provider_registration=none
+vendor_setter_called=none
+hardware_write=none
+device_action=none
+hardware_support_claim=NONE
+boot_candidate=false
+cpu8_cpu9_admission=closed
+
+observation=The exact 252-patch dvfsp-owner-kunit Buildbox profile applies the lifecycle guard and validates the KUnit-enabled image. The guard refuses an external writer registration before lifecycle integration is bound, so the runtime adapter cannot be published in a state where every event would fail with -ENODEV.
+decision=lifecycle_guard_compile_validated;isolated_runtime_KUnit_required;provider_identity_mapping_and_hardware_support_closed
+next=run the exact fetched Image in an isolated KUnit runner and preserve suite-level results; do not write or boot a device

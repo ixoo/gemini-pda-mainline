@@ -127,6 +127,8 @@ be copied directly into a mainline failure/PM path.
 - [Vendor writer registration handoff Buildbox validation](results/vendor-writer-registration-handoff-buildbox-20260810.txt)
 - [Vendor caller lifecycle and runtime invalidation audit](results/vendor-caller-lifecycle-invalidation-audit-20260811.txt)
 - [Cross-tree vendor source observation ABI Buildbox validation](results/vendor-source-observation-buildbox-20260810.txt)
+- [Vendor lifecycle-guard KUnit Buildbox validation](results/vendor-source-lifecycle-guard-kunit-buildbox-20260810.txt)
+- [Vendor lifecycle-guard isolated QEMU KUnit runtime](results/vendor-source-lifecycle-guard-kunit-qemu-20260810.txt)
 
 Run from the repository root:
 
@@ -1355,3 +1357,22 @@ KUnit was not executed, no provider/setter or external runtime registration was
 performed, no device action occurred, and CPU8/CPU9 admission remains closed.
 The next step is source-to-provider field/identity mapping and an isolated
 runtime KUnit runner; do not boot or write a device for this compile result.
+
+Patch `0263` now closes the fail-open direct-registration path exposed by the
+first isolated run: writer registration returns `-ENODEV` until lifecycle
+integration is bound, so a callback that can only reject runtime events is never
+published. The exact 252-patch `dvfsp-owner-kunit` profile passed on Buildbox at
+pushed commit `39b5284`, with 119 DTBs, package/provenance checksums, and a
+validated-package-only fetch; see the [lifecycle-guard Buildbox result](results/vendor-source-lifecycle-guard-kunit-buildbox-20260810.txt).
+
+The fetched image then ran locally under AArch64 QEMU. All five KUnit suites
+passed (14 tests, zero failures or skips), including direct-registration
+refusal, lifecycle integration, and teardown. QEMU reached `System halted`
+after KUnit; its process timed out waiting for the halted guest, which does not
+alter the KTAP result. This is isolated virtual runtime evidence only: no
+Gemini device, provider registration, setter, hardware write, or CPU8/CPU9
+admission is claimed. See the [isolated QEMU result](results/vendor-source-lifecycle-guard-kunit-qemu-20260810.txt).
+
+The next ordered gate is the explicit source-to-provider field and identity
+bridge, kept registration-default-off and validated in Buildbox plus isolated
+KUnit before any device evidence.

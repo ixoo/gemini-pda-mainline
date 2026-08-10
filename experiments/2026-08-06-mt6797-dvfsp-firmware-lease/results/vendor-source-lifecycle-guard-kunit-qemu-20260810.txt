@@ -1,0 +1,42 @@
+# MT6797 vendor lifecycle-registration guard isolated KUnit QEMU runtime
+
+date_utc=2026-08-10T22:27:00Z
+claim=RUNTIME_ISOLATED_QEMU_MT6797_VENDOR_LIFECYCLE_GUARD_KUNIT
+repository=https://github.com/ixoo/gemini-pda-mainline.git
+repository_commit=39b52843db61c7d5cc4c591077a97b124df74b4c
+repository_dirty=false
+build_backend=buildbox
+build_profile=dvfsp-owner-kunit
+artifact=linux-7.1.3-gemini-dvfsp-owner-kunit-2d6d0932-570e7702
+local_package=artifacts/buildbox/39b52843db61c7d5cc4c591077a97b124df74b4c/linux-7.1.3-gemini-dvfsp-owner-kunit-2d6d0932-570e7702
+image=Image
+runner=local_qemu_system_aarch64
+machine=virt
+cpu=cortex-a53
+memory_mb=1024
+smp=4
+kernel_commandline=console=ttyAMA0;earlycon=pl011,mmio,0x09000000;kunit.enable=1;kunit_shutdown=halt
+kunit_shutdown=kernel_halted
+ktap_suites=5
+ktap_tests_passed=14
+ktap_tests_failed=0
+ktap_tests_skipped=0
+suite_1=mt6797-dvfsp-resource-owner;pass=3;fail=0;skip=0
+suite_2=mt6797-dvfsp-calibrated-provider;pass=2;fail=0;skip=0
+suite_3=mt6797-dvfsp-table-source;pass=2;fail=0;skip=0
+suite_4=mt6797-dvfsp-vendor-owner;pass=3;fail=0;skip=0
+suite_5=mt6797-dvfsp-vendor-writer;pass=4;fail=0;skip=0
+qemu_exit=124_timeout_after_kernel_halt
+hardware_scope=none;isolated_virtual_machine_only
+runtime_owner_registration=direct_path_refused_without_lifecycle_bind;integration_path_passed
+provider_registration=none
+vendor_setter_called=none
+hardware_write=none
+device_action=none
+hardware_support_claim=NONE
+boot_candidate=false
+cpu8_cpu9_admission=closed
+
+observation=The exact Buildbox-produced Image ran all five enabled KUnit suites in local QEMU. The corrected vendor-owner suite passed its direct-registration refusal, lifecycle integration, and teardown cases; the kernel reached "System halted" after KUnit completion. The QEMU process timed out while waiting for the halted guest to terminate, which does not change the KTAP result.
+decision=isolated_runtime_owner_contract_passed;not_gemini_hardware_support;provider_field_identity_mapping_and_real_device_validation_remain_closed
+next=complete the explicit vendor-source-to-provider field and identity bridge with registration still default-off, then rebuild and rerun isolated KUnit before considering any device evidence

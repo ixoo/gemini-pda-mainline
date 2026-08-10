@@ -73,6 +73,7 @@ MAINLINE_WRITER_LIFECYCLE_INTEGRATION_PATCH = ROOT / "patches/v7.1.3/0259-soc-me
 MAINLINE_SOURCE_OBSERVATION_PATCH = ROOT / "patches/v7.1.3/0260-soc-mediatek-add-cross-tree-vendor-source-observation.patch"
 MAINLINE_SOURCE_OWNER_PATCH = ROOT / "patches/v7.1.3/0261-soc-mediatek-bind-vendor-source-observation-owner.patch"
 MAINLINE_SOURCE_CSPM_BOUNDS_PATCH = ROOT / "patches/v7.1.3/0262-soc-mediatek-validate-vendor-source-cspm-bounds.patch"
+MAINLINE_SOURCE_LIFECYCLE_GUARD_PATCH = ROOT / "patches/v7.1.3/0263-soc-mediatek-require-vendor-lifecycle-before-registration.patch"
 VENDOR_WRITER_INTEGRATION_REVIEW_RESULT = (Path(__file__).resolve().parents[1] /
                                            "results/vendor-writer-mainline-owner-integration-review-20260810.txt")
 VENDOR_WRITER_REGISTRATION_BUILD_RESULT = (Path(__file__).resolve().parents[1] /
@@ -89,6 +90,10 @@ VENDOR_SOURCE_RUNTIME_KUNIT_BUILD_RESULT = (Path(__file__).resolve().parents[1] 
                                             "results/vendor-source-observation-runtime-registration-kunit-buildbox-20260810.txt")
 VENDOR_SOURCE_CSPM_BOUNDS_BUILD_RESULT = (Path(__file__).resolve().parents[1] /
                                           "results/vendor-source-observation-cspm-bounds-buildbox-20260810.txt")
+VENDOR_SOURCE_LIFECYCLE_GUARD_BUILD_RESULT = (Path(__file__).resolve().parents[1] /
+                                              "results/vendor-source-lifecycle-guard-kunit-buildbox-20260810.txt")
+VENDOR_SOURCE_LIFECYCLE_GUARD_QEMU_RESULT = (Path(__file__).resolve().parents[1] /
+                                             "results/vendor-source-lifecycle-guard-kunit-qemu-20260810.txt")
 VENDOR_CALLER_LIFECYCLE_AUDIT_RESULT = (Path(__file__).resolve().parents[1] /
                                         "results/vendor-caller-lifecycle-invalidation-audit-20260811.txt")
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
@@ -269,6 +274,7 @@ def main() -> None:
     mainline_source_observation_patch = MAINLINE_SOURCE_OBSERVATION_PATCH.read_text()
     mainline_source_owner_patch = MAINLINE_SOURCE_OWNER_PATCH.read_text()
     mainline_source_cspm_bounds_patch = MAINLINE_SOURCE_CSPM_BOUNDS_PATCH.read_text()
+    mainline_source_lifecycle_guard_patch = MAINLINE_SOURCE_LIFECYCLE_GUARD_PATCH.read_text()
     vendor_writer_integration_review_result = VENDOR_WRITER_INTEGRATION_REVIEW_RESULT.read_text()
     vendor_writer_registration_build_result = VENDOR_WRITER_REGISTRATION_BUILD_RESULT.read_text()
     vendor_writer_runtime_events_build_result = VENDOR_WRITER_RUNTIME_EVENTS_BUILD_RESULT.read_text()
@@ -277,6 +283,8 @@ def main() -> None:
     vendor_source_observation_build_result = VENDOR_SOURCE_OBSERVATION_BUILD_RESULT.read_text()
     vendor_source_runtime_kunit_build_result = VENDOR_SOURCE_RUNTIME_KUNIT_BUILD_RESULT.read_text()
     vendor_source_cspm_bounds_build_result = VENDOR_SOURCE_CSPM_BOUNDS_BUILD_RESULT.read_text()
+    vendor_source_lifecycle_guard_build_result = VENDOR_SOURCE_LIFECYCLE_GUARD_BUILD_RESULT.read_text()
+    vendor_source_lifecycle_guard_qemu_result = VENDOR_SOURCE_LIFECYCLE_GUARD_QEMU_RESULT.read_text()
     vendor_caller_lifecycle_audit_result = VENDOR_CALLER_LIFECYCLE_AUDIT_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
@@ -567,6 +575,24 @@ def main() -> None:
         if forbidden in mainline_source_cspm_bounds_source:
             raise AssertionError(f"unexpected mainline CSPM bounds operation: {forbidden}")
 
+    mainline_source_lifecycle_guard_source = mainline_source_lifecycle_guard_patch[
+        mainline_source_lifecycle_guard_patch.index("diff --git"):]
+    for needle, label in (
+        ("if (!owner->writer_integration_bound)", "mainline-lifecycle-guard-bound-check"),
+        ("return -ENODEV", "mainline-lifecycle-guard-refusal"),
+        ("mt6797_dvfsp_vendor_owner_register_writer(&owner), -ENODEV", "mainline-lifecycle-guard-kunit-refusal"),
+        ("registration.register_calls, 0U", "mainline-lifecycle-guard-no-callback"),
+    ):
+        require(mainline_source_lifecycle_guard_patch, needle, label)
+    for forbidden in (
+        "readl(", "writel(", "i2c_transfer", "regulator_", "clk_",
+        "platform_driver", "cpu_up(", "secure_write",
+        "mt_cpufreq_set_ptbl_registerCB", "mt_cpufreq_setvolt_registerCB",
+        "mt_ppm_register_client", "provider_registration", "hardware_write",
+    ):
+        if forbidden in mainline_source_lifecycle_guard_source:
+            raise AssertionError(f"unexpected mainline lifecycle-guard operation: {forbidden}")
+
     vendor_source_observation_source = vendor_source_observation_patch[
         vendor_source_observation_patch.index("diff --git"):]
     for needle, label in (
@@ -771,6 +797,51 @@ def main() -> None:
         ("decision=cspm_source_semantic_bound_compile_validated;provider_conversion_identity_and_runtime_execution_remain_unproven;hardware_support_closed", "vendor-source-cspm-bounds-decision"),
     ):
         require(vendor_source_cspm_bounds_build_result, needle, label)
+
+    for needle, label in (
+        ("claim=COMPILE_ONLY_MT6797_VENDOR_LIFECYCLE_GUARD_KUNIT", "vendor-lifecycle-guard-build-claim"),
+        ("repository_commit=39b52843db61c7d5cc4c591077a97b124df74b4c", "vendor-lifecycle-guard-build-commit"),
+        ("build_backend=buildbox", "vendor-lifecycle-guard-build-backend"),
+        ("buildbox_job=39b52843db61c7d5cc4c591077a97b124df74b4c-dvfsp-owner-kunit-m0", "vendor-lifecycle-guard-build-job"),
+        ("build_profile=dvfsp-owner-kunit", "vendor-lifecycle-guard-build-profile"),
+        ("patch_count=252", "vendor-lifecycle-guard-build-patches"),
+        ("dtb_count=119", "vendor-lifecycle-guard-build-dtbs"),
+        ("sha256sums=passed", "vendor-lifecycle-guard-build-checksums"),
+        ("package_fetch=success;validated_package_only", "vendor-lifecycle-guard-build-fetch"),
+        ("patch_0263=direct_writer_registration_requires_writer_integration_bound;returns_-ENODEV_before_callback_publication", "vendor-lifecycle-guard-build-contract"),
+        ("kunit=compiled;not_executed_by_Buildbox", "vendor-lifecycle-guard-build-not-executed"),
+        ("runtime_owner_registration=default_off;direct_registration_refused_before_lifecycle_bind", "vendor-lifecycle-guard-build-no-runtime-owner"),
+        ("provider_registration=none", "vendor-lifecycle-guard-build-no-provider"),
+        ("hardware_write=none", "vendor-lifecycle-guard-build-no-write"),
+        ("device_action=none", "vendor-lifecycle-guard-build-no-action"),
+        ("boot_candidate=false", "vendor-lifecycle-guard-build-not-candidate"),
+        ("cpu8_cpu9_admission=closed", "vendor-lifecycle-guard-build-no-admission"),
+        ("decision=lifecycle_guard_compile_validated", "vendor-lifecycle-guard-build-decision"),
+    ):
+        require(vendor_source_lifecycle_guard_build_result, needle, label)
+
+    for needle, label in (
+        ("claim=RUNTIME_ISOLATED_QEMU_MT6797_VENDOR_LIFECYCLE_GUARD_KUNIT", "vendor-lifecycle-guard-qemu-claim"),
+        ("repository_commit=39b52843db61c7d5cc4c591077a97b124df74b4c", "vendor-lifecycle-guard-qemu-commit"),
+        ("runner=local_qemu_system_aarch64", "vendor-lifecycle-guard-qemu-runner"),
+        ("machine=virt", "vendor-lifecycle-guard-qemu-machine"),
+        ("kunit_shutdown=kernel_halted", "vendor-lifecycle-guard-qemu-halt"),
+        ("ktap_suites=5", "vendor-lifecycle-guard-qemu-suites"),
+        ("ktap_tests_passed=14", "vendor-lifecycle-guard-qemu-pass"),
+        ("ktap_tests_failed=0", "vendor-lifecycle-guard-qemu-fail"),
+        ("ktap_tests_skipped=0", "vendor-lifecycle-guard-qemu-skip"),
+        ("suite_4=mt6797-dvfsp-vendor-owner;pass=3;fail=0;skip=0", "vendor-lifecycle-guard-qemu-owner-suite"),
+        ("qemu_exit=124_timeout_after_kernel_halt", "vendor-lifecycle-guard-qemu-exit"),
+        ("hardware_scope=none;isolated_virtual_machine_only", "vendor-lifecycle-guard-qemu-scope"),
+        ("runtime_owner_registration=direct_path_refused_without_lifecycle_bind;integration_path_passed", "vendor-lifecycle-guard-qemu-contract"),
+        ("provider_registration=none", "vendor-lifecycle-guard-qemu-no-provider"),
+        ("hardware_write=none", "vendor-lifecycle-guard-qemu-no-write"),
+        ("device_action=none", "vendor-lifecycle-guard-qemu-no-action"),
+        ("boot_candidate=false", "vendor-lifecycle-guard-qemu-not-candidate"),
+        ("cpu8_cpu9_admission=closed", "vendor-lifecycle-guard-qemu-no-admission"),
+        ("decision=isolated_runtime_owner_contract_passed", "vendor-lifecycle-guard-qemu-decision"),
+    ):
+        require(vendor_source_lifecycle_guard_qemu_result, needle, label)
 
     for needle, label in (
         ("claim=SOURCE_ONLY_MT6797_VENDOR_CALLER_LIFECYCLE_INVALIDATION_AUDIT", "vendor-caller-audit-claim"),
@@ -3062,6 +3133,8 @@ def main() -> None:
     print("vendor_source_observation=0009;source_abi=1;integration_abi=2;observe_transaction_abort;bounded_ppm_cpufreq_cspm_eem_snapshot;identity_fail_closed;buildbox=validated;commit=2c2035bc68bdd3ce0f6bef07359af07ba245b5a2;vendor_series=0001..0009;runtime_registration=none;provider=none;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("vendor_source_runtime_registration_kunit=validated;profile=dvfsp-owner-kunit;commit=435d151448a7facc961afbb6288d219cc81f717d;patch_count=250;dtb_count=119;sha256sums=passed;kunit=compiled_only;not_executed;source_registration_bound;owner_invalidation_contract;teardown_guard;runtime_registration=not_executed;provider=none;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("vendor_source_cspm_bounds=0262;validated;profile=dvfsp-owner-kunit;commit=254e5a51d0eff5a2f8c74037c24a4eb8fe4cb020;patch_count=251;dtb_count=119;sha256sums=passed;CSPM_physical_limit_zero_valid;physical_limits_bounded_0_to_15;CCI_limits_must_be_zero;kunit=compiled_only;not_executed;runtime_registration=not_executed;provider=none;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
+    print("vendor_source_lifecycle_guard_kunit_buildbox=0263;validated;profile=dvfsp-owner-kunit;commit=39b52843db61c7d5cc4c591077a97b124df74b4c;patch_count=252;dtb_count=119;sha256sums=passed;direct_registration_requires_lifecycle_bind;returns_ENODEV_before_callback_publication;kunit=compiled_only;runtime_registration=default_off;provider=none;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
+    print("vendor_source_lifecycle_guard_kunit_qemu=validated;commit=39b52843db61c7d5cc4c591077a97b124df74b4c;runner=local_qemu_system_aarch64;machine=virt;ktap_suites=5;ktap_tests_passed=14;ktap_tests_failed=0;ktap_tests_skipped=0;vendor_owner_suite=pass_3;kernel_halted;hardware_scope=none;provider=none;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("pcm_adapter_contract=source-only;bounded-admission-model;callback-registration-gated")
     print("clock_owner_inventory=generic_ccf_only;protected_owner_absent;A72_observer_read_only")
     print("pcm_start_contract=defined;residency_and_start_required_before_callback_registration")
