@@ -25,12 +25,13 @@ not submission-ready.
 diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
 --- a/drivers/soc/mediatek/Makefile
 +++ b/drivers/soc/mediatek/Makefile
-@@ -3,6 +3,7 @@ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-state-source-backends.o
+@@ -3,7 +3,8 @@ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-state-source-backends.o
  obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-ptp.o
  obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-state-owner-source.o
 +obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-identity-source.o
  obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-state-owner-arbitration.o
  obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-resource-owner.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_RESOURCE_OWNER) += mt6797-dvfsp-calibrated-provider.o
  obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-state-snapshot.o
 
 diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h b/include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h
