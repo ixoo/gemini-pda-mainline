@@ -1031,3 +1031,14 @@ KUnit covers the IRQ-disabled refusal. This prevents a future call-site adapter
 from sleeping on the shared mutex after entering the vendor cpufreq spinlock.
 It remains dormant contract work; no vendor callback slot, provider, device,
 or CPU8/CPU9 path is enabled.
+
+The exact pushed head `69f1638` then completed the named `dvfsp-owner-kunit`
+Buildbox job. All 241 canonical patches applied, the arm64 kernel linked, all
+119 DTBs and package/provenance checksums passed, and the validated package was
+fetched into the ignored Buildbox artifact tree; see the [resume receipt](results/buildbox-resume-69f1638-20260810.txt).
+This validates the fail-closed atomic/IRQ-disabled boundary and its KUnit test,
+but remains compile-only evidence: no vendor owner/provider or runtime
+registration occurred, no device was booted or written, and CPU8/CPU9
+admission remains closed. The next gate is still attributable integration at
+the vendor-aware writer boundary before the cpufreq spinlock, followed by
+separate read-only runtime registration evidence.
