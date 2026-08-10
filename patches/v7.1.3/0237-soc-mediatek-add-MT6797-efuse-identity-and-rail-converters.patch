@@ -259,8 +259,10 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-ptp.h b/include/linux/soc/m
 +};
  
  struct mt6797_dvfsp_ptp_handoff {
-@@ -35,3 +57,7 @@ int mt6797_dvfsp_ptp_decode(
- };
+@@ -42,5 +64,9 @@ int mt6797_dvfsp_ptp_decode(
+ int mt6797_dvfsp_ptp_decode(
+ 	const struct mt6797_dvfsp_ptp_handoff *handoff,
+ 	struct mt6797_dvfsp_ptp_state *state);
  
 +int mt6797_dvfsp_ptp_identity_decode(
 +	const struct mt6797_dvfsp_efuse_identity *raw,
