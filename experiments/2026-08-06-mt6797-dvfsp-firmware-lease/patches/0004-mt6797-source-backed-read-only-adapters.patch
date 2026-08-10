@@ -1,0 +1,438 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 10 Aug 2026 17:10:00 +0000
+Subject: [PATCH] power: expose bounded MT6797 vendor state snapshots
+
+Add source-local, read-only snapshot hooks for the vendor PPM, cpufreq,
+CSPM, and EEM state.  The hooks hold the vendor lock that protects each
+private state object, copy into fixed-size caller-owned records, and perform
+no setter, callback registration, or device write.  The vendor tree has no
+shared transition generation; callers must supply that arbitration outside
+these hooks before treating multiple snapshots as one state.
+
+This is an experiment-only clean-room boundary and is intentionally not a
+provider or owner registration.
+---
+ drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c          |  1 +
+ drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c          | 72 ++++++++++++
+ drivers/misc/mediatek/base/power/mt6797/mt_cpufreq_hybrid.c   | 43 +++++++
+ drivers/misc/mediatek/base/power/mt6797/mt_eem.c             | 36 ++++++
+ drivers/misc/mediatek/base/power/ppm_v1/src/mt_ppm_main.c     | 57 +++++++++
+ drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-state.h | 164 ++++++++++++++++++++
+ 6 files changed, 373 insertions(+)
+
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-state.h b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-state.h
+new file mode 100644
+index 000000000..000000000
+--- /dev/null
++++ b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-state.h
+@@ -0,0 +1,164 @@
++/*
++ * SPDX-License-Identifier: GPL-2.0
++ *
++ * Bounded, read-only source adapters for the experiment-only MT6797 DVFSP
++ * vendor boundary.  These records describe vendor state; they do not claim
++ * ownership, provide a transition generation, or perform hardware writes.
++ */
++#ifndef __MT6797_DVFSP_VENDOR_STATE_H__
++#define __MT6797_DVFSP_VENDOR_STATE_H__
++
++#include <linux/types.h>
++
++#define GEMINI_MT6797_DVFSP_VENDOR_STATE_ABI	1
++#define GEMINI_MT6797_DVFSP_VENDOR_MAX_CLUSTER	3
++#define GEMINI_MT6797_DVFSP_VENDOR_MAX_DOMAIN	4
++#define GEMINI_MT6797_DVFSP_VENDOR_MAX_OPP	16
++#define GEMINI_MT6797_DVFSP_VENDOR_MAX_DETECTOR	6
++#define GEMINI_MT6797_DVFSP_VENDOR_MAX_FREQ	16
++
++struct gemini_mt6797_dvfsp_vendor_ppm_limit {
++	s32 min_cpufreq_idx;
++	s32 max_cpufreq_idx;
++	u32 min_cpu_core;
++	u32 max_cpu_core;
++	u8 has_advise_freq;
++	u8 has_advise_core;
++	s32 advise_cpufreq_idx;
++	s32 advise_cpu_core;
++};
++
++struct gemini_mt6797_dvfsp_vendor_ppm_cluster {
++	u32 cluster_id;
++	u32 core_num;
++	u32 cpu_id;
++	u32 opp_count;
++	u32 frequency_khz[GEMINI_MT6797_DVFSP_VENDOR_MAX_OPP];
++};
++
++struct gemini_mt6797_dvfsp_vendor_ppm_snapshot {
++	u32 abi;
++	u32 cluster_count;
++	u32 table_type;
++	u32 cur_mode;
++	u32 cur_power_state;
++	s32 fixed_root_cluster;
++	u8 is_enabled;
++	u8 is_in_suspend;
++	u8 ptp_policy_active;
++	u8 reserved;
++	struct gemini_mt6797_dvfsp_vendor_ppm_cluster
++		cluster[GEMINI_MT6797_DVFSP_VENDOR_MAX_CLUSTER];
++	struct gemini_mt6797_dvfsp_vendor_ppm_limit
++		client_limit[GEMINI_MT6797_DVFSP_VENDOR_MAX_CLUSTER];
++};
++
++struct gemini_mt6797_dvfsp_vendor_cpufreq_domain {
++	u32 id;
++	s32 current_opp;
++	u32 opp_count;
++	s32 normal_max_opp;
++	s32 armpll_available;
++	u32 current_freq_khz;
++	u32 current_volt;
++	u32 current_vsram;
++	u32 frequency_khz[GEMINI_MT6797_DVFSP_VENDOR_MAX_OPP];
++	u32 voltage[GEMINI_MT6797_DVFSP_VENDOR_MAX_OPP];
++	u32 voltage_original[GEMINI_MT6797_DVFSP_VENDOR_MAX_OPP];
++};
++
++struct gemini_mt6797_dvfsp_vendor_cpufreq_snapshot {
++	u32 abi;
++	u32 domain_count;
++	struct gemini_mt6797_dvfsp_vendor_cpufreq_domain
++		domain[GEMINI_MT6797_DVFSP_VENDOR_MAX_DOMAIN];
++};
++
++struct gemini_mt6797_dvfsp_vendor_cspm_cluster {
++	u32 firmware_opp;
++	u32 opp;
++	u32 volt;
++	u32 vsram;
++	u32 ceiling;
++	u32 floor;
++	u8 is_on;
++	u8 reserved[3];
++};
++
++struct gemini_mt6797_dvfsp_vendor_cspm_snapshot {
++	u32 abi;
++	u32 cluster_count;
++	u32 init_done;
++	u32 hw_governor_enabled;
++	u32 pause_source_map;
++	struct gemini_mt6797_dvfsp_vendor_cspm_cluster
++		cluster[GEMINI_MT6797_DVFSP_VENDOR_MAX_CLUSTER + 1];
++};
++
++struct gemini_mt6797_dvfsp_vendor_eem_detector {
++	u32 id;
++	s32 status;
++	u32 features;
++	u32 num_freq;
++	u32 max_freq_khz;
++	u32 disabled;
++	u8 frequency_percent[GEMINI_MT6797_DVFSP_VENDOR_MAX_FREQ];
++	u32 volt_tbl[GEMINI_MT6797_DVFSP_VENDOR_MAX_FREQ];
++	u32 volt_tbl_init2[GEMINI_MT6797_DVFSP_VENDOR_MAX_FREQ];
++	u32 volt_tbl_pmic[GEMINI_MT6797_DVFSP_VENDOR_MAX_FREQ];
++};
++
++struct gemini_mt6797_dvfsp_vendor_eem_snapshot {
++	u32 abi;
++	u32 detector_count;
++	u32 info_idvfs;
++	u32 cpu_bin_level;
++	struct gemini_mt6797_dvfsp_vendor_eem_detector
++		detector[GEMINI_MT6797_DVFSP_VENDOR_MAX_DETECTOR];
++};
++
++int gemini_mt6797_dvfsp_vendor_ppm_snapshot(
++	struct gemini_mt6797_dvfsp_vendor_ppm_snapshot *snapshot);
++int gemini_mt6797_dvfsp_vendor_cpufreq_snapshot(
++	struct gemini_mt6797_dvfsp_vendor_cpufreq_snapshot *snapshot);
++int gemini_mt6797_dvfsp_vendor_cspm_snapshot(
++	struct gemini_mt6797_dvfsp_vendor_cspm_snapshot *snapshot);
++int gemini_mt6797_dvfsp_vendor_eem_snapshot(
++	struct gemini_mt6797_dvfsp_vendor_eem_snapshot *snapshot);
++
++#endif /* __MT6797_DVFSP_VENDOR_STATE_H__ */
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c b/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c
+index 4f561a79c..000000000 100755
+--- a/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c
++++ b/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c
+@@ -70,6 +70,7 @@
+ #include "mt_idvfs.h"
+ #include "mt_cpufreq_hybrid.h"
+ #include "mt6797-dvfsp-vendor-writer.h"
++#include "mt6797-dvfsp-vendor-state.h"
+ #include "mt_ptp.h"
+ 
+ #define DCM_ENABLE 1
+@@ -4327,3 +4328,74 @@ MODULE_DESCRIPTION("MediaTek CPU DVFS Driver v0.3");
+ MODULE_LICENSE("GPL");
++
++int gemini_mt6797_dvfsp_vendor_cpufreq_snapshot(
++	struct gemini_mt6797_dvfsp_vendor_cpufreq_snapshot *snapshot)
++{
++	unsigned long flags;
++	int i, j;
++	int ret = 0;
++
++	if (!snapshot)
++		return -EINVAL;
++
++	memset(snapshot, 0, sizeof(*snapshot));
++	cpufreq_lock(flags);
++	if (NR_MT_CPU_DVFS > GEMINI_MT6797_DVFSP_VENDOR_MAX_DOMAIN) {
++		ret = -EOVERFLOW;
++		goto out;
++	}
++
++	snapshot->abi = GEMINI_MT6797_DVFSP_VENDOR_STATE_ABI;
++	snapshot->domain_count = NR_MT_CPU_DVFS;
++	for (i = 0; i < NR_MT_CPU_DVFS; i++) {
++		struct mt_cpu_dvfs *p = &cpu_dvfs[i];
++		struct gemini_mt6797_dvfsp_vendor_cpufreq_domain *domain =
++			&snapshot->domain[i];
++
++		if (!p->opp_tbl || p->nr_opp_tbl <= 0 ||
++		    p->nr_opp_tbl > GEMINI_MT6797_DVFSP_VENDOR_MAX_OPP ||
++		    p->idx_opp_tbl < 0 || p->idx_opp_tbl >= p->nr_opp_tbl ||
++		    !p->ops || !p->ops->get_cur_phy_freq ||
++		    !p->ops->get_cur_volt || !p->ops->get_cur_vsram) {
++			ret = -ENODEV;
++			goto out;
++		}
++
++		domain->id = p->cpu_id;
++		domain->current_opp = p->idx_opp_tbl;
++		domain->opp_count = p->nr_opp_tbl;
++		domain->normal_max_opp = p->idx_normal_max_opp;
++		domain->armpll_available = p->armpll_is_available;
++		domain->current_freq_khz = p->ops->get_cur_phy_freq(p);
++		domain->current_volt = p->ops->get_cur_volt(p);
++		domain->current_vsram = p->ops->get_cur_vsram(p);
++		for (j = 0; j < p->nr_opp_tbl; j++) {
++			domain->frequency_khz[j] = p->opp_tbl[j].cpufreq_khz;
++			domain->voltage[j] = p->opp_tbl[j].cpufreq_volt;
++			domain->voltage_original[j] = p->opp_tbl[j].cpufreq_volt_org;
++		}
++	}
++
++out:
++	cpufreq_unlock(flags);
++	return ret;
++}
++EXPORT_SYMBOL_GPL(gemini_mt6797_dvfsp_vendor_cpufreq_snapshot);
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq_hybrid.c b/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq_hybrid.c
+index 6094e778fe3eb0f2c24ffb63bb404af2e40da519514ddbba608bea3b5500fb63..000000000 100644
+--- a/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq_hybrid.c
++++ b/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq_hybrid.c
+@@ -27,6 +27,7 @@
+ #include <mt-plat/mt_lpae.h>
+ #include "mt_cpufreq_hybrid.h"
++#include "mt6797-dvfsp-vendor-state.h"
+ 
+ 
+ /**************************************
+@@ -2470,3 +2471,44 @@ MODULE_DESCRIPTION("Hybrid CPU DVFS Driver v0.7");
+ MODULE_DESCRIPTION("Hybrid CPU DVFS Driver v0.7");
++
++#ifdef CONFIG_HYBRID_CPU_DVFS
++int gemini_mt6797_dvfsp_vendor_cspm_snapshot(
++	struct gemini_mt6797_dvfsp_vendor_cspm_snapshot *snapshot)
++{
++	unsigned long flags;
++	int i;
++
++	if (!snapshot)
++		return -EINVAL;
++
++	memset(snapshot, 0, sizeof(*snapshot));
++	spin_lock_irqsave(&dvfs_lock, flags);
++	if (NUM_CPU_CLUSTER > GEMINI_MT6797_DVFSP_VENDOR_MAX_CLUSTER + 1) {
++		spin_unlock_irqrestore(&dvfs_lock, flags);
++		return -EOVERFLOW;
++	}
++
++	snapshot->abi = GEMINI_MT6797_DVFSP_VENDOR_STATE_ABI;
++	snapshot->cluster_count = NUM_CPU_CLUSTER;
++	snapshot->init_done = g_dvfsp.init_done;
++	snapshot->hw_governor_enabled = g_dvfsp.hw_gov_en;
++	snapshot->pause_source_map = pause_src_map;
++	for (i = 0; i < NUM_CPU_CLUSTER; i++) {
++		struct gemini_mt6797_dvfsp_vendor_cspm_cluster *cluster =
++			&snapshot->cluster[i];
++		u32 hwsta;
++
++		if (!hwsta_reg[i] || (i < NUM_PHY_CLUSTER && !swctrl_reg[i])) {
++			spin_unlock_irqrestore(&dvfs_lock, flags);
++			return -ENODEV;
++		}
++
++		hwsta = cspm_read(hwsta_reg[i]);
++		cluster->firmware_opp = cspm_curr_freq(hwsta);
++		cluster->opp = opp_fw_to_sw(cluster->firmware_opp);
++		cluster->volt = cspm_curr_volt(hwsta);
++		cluster->vsram = cspm_curr_vsram(hwsta);
++		if (i < NUM_PHY_CLUSTER) {
++			u32 swctrl = cspm_read(swctrl_reg[i]);
++
++			cluster->ceiling = opp_fw_to_sw(cspm_max_freq(swctrl));
++			cluster->floor = opp_fw_to_sw(cspm_min_freq(swctrl));
++			cluster->is_on = !cspm_is_paused(swctrl);
++		} else {
++			cluster->ceiling = 0;
++			cluster->floor = NUM_CPU_OPP - 1;
++			cluster->is_on = 1;
++		}
++	}
++
++	spin_unlock_irqrestore(&dvfs_lock, flags);
++	return 0;
++}
++EXPORT_SYMBOL_GPL(gemini_mt6797_dvfsp_vendor_cspm_snapshot);
++#endif
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt_eem.c b/drivers/misc/mediatek/base/power/mt6797/mt_eem.c
+index 147b673723d7fa417685a3c2b06cbe75100abaaf288663b08795efc04414f4bc..000000000 100644
+--- a/drivers/misc/mediatek/base/power/mt6797/mt_eem.c
++++ b/drivers/misc/mediatek/base/power/mt6797/mt_eem.c
+@@ -1002,6 +1002,7 @@
+ #include <linux/file.h>
+ #include <linux/delay.h>
+ #include <linux/types.h>
++#include "mt6797-dvfsp-vendor-state.h"
+ #include <linux/time.h>
+ 
+ #include <linux/topology.h>
+@@ -5750,3 +5751,35 @@
+ #undef __MT_EEM_C__
++
++int gemini_mt6797_dvfsp_vendor_eem_snapshot(
++	struct gemini_mt6797_dvfsp_vendor_eem_snapshot *snapshot)
++{
++	unsigned long flags;
++	int i, j;
++
++	if (!snapshot)
++		return -EINVAL;
++
++	memset(snapshot, 0, sizeof(*snapshot));
++	spin_lock_irqsave(&eem_spinlock, flags);
++	if (NR_EEM_DET > GEMINI_MT6797_DVFSP_VENDOR_MAX_DETECTOR) {
++		spin_unlock_irqrestore(&eem_spinlock, flags);
++		return -EOVERFLOW;
++	}
++
++	snapshot->abi = GEMINI_MT6797_DVFSP_VENDOR_STATE_ABI;
++	snapshot->detector_count = NR_EEM_DET;
++	snapshot->info_idvfs = infoIdvfs;
++	snapshot->cpu_bin_level = cpuBinLevel;
++	for (i = 0; i < NR_EEM_DET; i++) {
++		struct eem_det *det = &eem_detectors[i];
++		struct gemini_mt6797_dvfsp_vendor_eem_detector *dst =
++			&snapshot->detector[i];
++
++		if (det->num_freq_tbl > GEMINI_MT6797_DVFSP_VENDOR_MAX_FREQ) {
++			spin_unlock_irqrestore(&eem_spinlock, flags);
++			return -EOVERFLOW;
++		}
++
++		dst->id = i;
++		dst->status = det->status;
++		dst->features = det->features;
++		dst->num_freq = det->num_freq_tbl;
++		dst->max_freq_khz = det->max_freq_khz;
++		dst->disabled = det->disabled;
++		for (j = 0; j < det->num_freq_tbl; j++) {
++			dst->frequency_percent[j] = det->freq_tbl[j];
++			dst->volt_tbl[j] = det->volt_tbl[j];
++			dst->volt_tbl_init2[j] = det->volt_tbl_init2[j];
++			dst->volt_tbl_pmic[j] = det->volt_tbl_pmic[j];
++		}
++	}
++
++	spin_unlock_irqrestore(&eem_spinlock, flags);
++	return 0;
++}
++EXPORT_SYMBOL_GPL(gemini_mt6797_dvfsp_vendor_eem_snapshot);
+diff --git a/drivers/misc/mediatek/base/power/ppm_v1/src/mt_ppm_main.c b/drivers/misc/mediatek/base/power/ppm_v1/src/mt_ppm_main.c
+index 89e8e20c62b8c5d8b45a63563a7c22b1e927712744bb243d05ca6589496bb9c2..000000000 100644
+--- a/drivers/misc/mediatek/base/power/ppm_v1/src/mt_ppm_main.c
++++ b/drivers/misc/mediatek/base/power/ppm_v1/src/mt_ppm_main.c
+@@ -28,6 +28,7 @@
+ #include <trace/events/mtk_events.h>
+ 
+ #include "mt_ppm_internal.h"
++#include "../../../mt6797/mt6797-dvfsp-vendor-state.h"
+ 
+ 
+ #define PPM_TIMER_INTERVAL_MS		(1000)
+@@ -1348,3 +1349,58 @@ MODULE_DESCRIPTION("MediaTek PPM Driver v0.1");
+ MODULE_DESCRIPTION("MediaTek PPM Driver v0.1");
+ MODULE_LICENSE("GPL");
++
++int gemini_mt6797_dvfsp_vendor_ppm_snapshot(
++	struct gemini_mt6797_dvfsp_vendor_ppm_snapshot *snapshot)
++{
++	int i, j;
++
++	if (!snapshot)
++		return -EINVAL;
++
++	memset(snapshot, 0, sizeof(*snapshot));
++	ppm_lock(&ppm_main_info.lock);
++	if (!ppm_main_info.cluster_info ||
++	    ppm_main_info.cluster_num > GEMINI_MT6797_DVFSP_VENDOR_MAX_CLUSTER ||
++	    ppm_main_info.client_req.cluster_num >
++		GEMINI_MT6797_DVFSP_VENDOR_MAX_CLUSTER ||
++	    !ppm_main_info.client_req.cpu_limit) {
++		ppm_unlock(&ppm_main_info.lock);
++		return -ENODEV;
++	}
++
++	snapshot->abi = GEMINI_MT6797_DVFSP_VENDOR_STATE_ABI;
++	snapshot->cluster_count = ppm_main_info.cluster_num;
++	snapshot->table_type = ppm_main_info.dvfs_tbl_type;
++	snapshot->cur_mode = ppm_main_info.cur_mode;
++	snapshot->cur_power_state = ppm_main_info.cur_power_state;
++	snapshot->fixed_root_cluster = ppm_main_info.fixed_root_cluster;
++	snapshot->is_enabled = ppm_main_info.is_enabled;
++	snapshot->is_in_suspend = ppm_main_info.is_in_suspend;
++	snapshot->ptp_policy_active = ppm_main_info.client_req.is_ptp_policy_activate;
++	for (i = 0; i < ppm_main_info.cluster_num; i++) {
++		struct ppm_cluster_info *source = &ppm_main_info.cluster_info[i];
++		struct gemini_mt6797_dvfsp_vendor_ppm_cluster *cluster =
++			&snapshot->cluster[i];
++		struct ppm_client_limit *limit =
++			&ppm_main_info.client_req.cpu_limit[i];
++
++		if (source->dvfs_opp_num > GEMINI_MT6797_DVFSP_VENDOR_MAX_OPP ||
++		    (source->dvfs_opp_num && !source->dvfs_tbl)) {
++			ppm_unlock(&ppm_main_info.lock);
++			return -EOVERFLOW;
++		}
++
++		cluster->cluster_id = source->cluster_id;
++		cluster->core_num = source->core_num;
++		cluster->cpu_id = source->cpu_id;
++		cluster->opp_count = source->dvfs_opp_num;
++		for (j = 0; j < source->dvfs_opp_num; j++)
++			cluster->frequency_khz[j] = source->dvfs_tbl[j].frequency;
++
++		snapshot->client_limit[i].min_cpufreq_idx = limit->min_cpufreq_idx;
++		snapshot->client_limit[i].max_cpufreq_idx = limit->max_cpufreq_idx;
++		snapshot->client_limit[i].min_cpu_core = limit->min_cpu_core;
++		snapshot->client_limit[i].max_cpu_core = limit->max_cpu_core;
++		snapshot->client_limit[i].has_advise_freq = limit->has_advise_freq;
++		snapshot->client_limit[i].has_advise_core = limit->has_advise_core;
++		snapshot->client_limit[i].advise_cpufreq_idx = limit->advise_cpufreq_idx;
++		snapshot->client_limit[i].advise_cpu_core = limit->advise_cpu_core;
++	}
++
++	ppm_unlock(&ppm_main_info.lock);
++	return 0;
++}
++EXPORT_SYMBOL_GPL(gemini_mt6797_dvfsp_vendor_ppm_snapshot);
+-- 
+2.39.5
