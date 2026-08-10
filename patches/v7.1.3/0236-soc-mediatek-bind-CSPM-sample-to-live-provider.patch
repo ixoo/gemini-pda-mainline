@@ -21,7 +21,7 @@ It is experiment-only and not submission-ready.
  drivers/soc/mediatek/mt6797-dvfsp-state-source.c       | 13 +++++++++++--
  include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h |  3 ++-
  include/linux/soc/mediatek/mt6797-dvfsp-state-source.h |  6 +++++-
- 4 files changed, 23 insertions(+), 7 deletions(-)
+ 4 files changed, 19 insertions(+), 5 deletions(-)
 
 diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-state-source.h b/include/linux/soc/mediatek/mt6797-dvfsp-state-source.h
 --- a/include/linux/soc/mediatek/mt6797-dvfsp-state-source.h
@@ -32,7 +32,7 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-state-source.h b/include/li
 +#include <linux/soc/mediatek/mt6797-dvfsp-cspm-state.h>
  #include <linux/soc/mediatek/mt6797-dvfsp-ppm.h>
  #include <linux/soc/mediatek/mt6797-dvfsp-ppm-policy.h>
-@@ -14,2 +14,2 @@
+@@ -14,3 +14,3 @@
  #include <linux/soc/mediatek/mt6797-eem-readback.h>
  
 -#define MT6797_DVFSP_STATE_SOURCE_ABI		5
@@ -42,7 +42,7 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-state-source.h b/include/li
 +	u64 cspm_sample_generation;
  	u64 generation;
  	u64 owner_handle;
-@@ -67,5 +69,6 @@ struct mt6797_dvfsp_state_source_ops {
+@@ -67,6 +69,7 @@ struct mt6797_dvfsp_state_source_ops {
  	int (*fill_live)(void *context,
  				const struct mt6797_dvfsp_clock_state *clock,
  				const struct mt6797_dvfsp_calibration_state *calibration,
@@ -54,7 +54,7 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-state-source.h b/include/li
 diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h b/include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h
 --- a/include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h
 +++ b/include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h
-@@ -15,2 +15,2 @@
+@@ -15,3 +15,3 @@
  struct mt6797_dvfsp_handoff;
  
 -#define MT6797_DVFSP_STATE_OWNER_SOURCE_ABI	4
