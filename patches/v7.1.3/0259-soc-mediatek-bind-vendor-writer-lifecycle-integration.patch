@@ -1,19 +1,19 @@
-From 7e2a64954a563d35083662a647ca89941032ee58 Mon Sep 17 00:00:00 2001
+From c3480eb8f4530936b072be9de3bb83a4a188b6c1 Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
 Date: Mon, 10 Aug 2026 19:19:40 +0000
 Subject: [PATCH] soc: add vendor writer lifecycle integration ABI
 
 ---
- .../mediatek/mt6797-dvfsp-vendor-owner-test.c | 183 +++++++++++++++++
+ .../mediatek/mt6797-dvfsp-vendor-owner-test.c | 181 +++++++++++++++++
  .../soc/mediatek/mt6797-dvfsp-vendor-owner.c  | 185 ++++++++++++++++++
  .../soc/mediatek/mt6797-dvfsp-vendor-owner.h  |  49 +++++
- 3 files changed, 417 insertions(+)
+ 3 files changed, 415 insertions(+)
 
 diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
-index bb4fe6e..4a8e42e 100644
+index bb4fe6e..2ac84a6 100644
 --- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
-@@ -30,6 +30,25 @@ struct mt6797_dvfsp_vendor_test_registration {
+@@ -30,6 +30,23 @@ struct mt6797_dvfsp_vendor_test_registration {
  
  static unsigned int mt6797_dvfsp_vendor_test_callbacks;
  
@@ -34,10 +34,10 @@ index bb4fe6e..4a8e42e 100644
 +	unsigned int unregister_calls;
 +};
 +
-static void mt6797_dvfsp_vendor_test_release(struct device *device)
+ static void mt6797_dvfsp_vendor_test_release(struct device *device)
  {
  }
-@@ -282,6 +301,113 @@ mt6797_dvfsp_vendor_test_registration_ops = {
+@@ -282,6 +299,113 @@ mt6797_dvfsp_vendor_test_registration_ops = {
  	.unregister_owner = mt6797_dvfsp_vendor_test_unregister_owner,
  };
  
@@ -151,7 +151,7 @@ static void mt6797_dvfsp_vendor_test_release(struct device *device)
  static const struct mt6797_dvfsp_vendor_owner_ops
  mt6797_dvfsp_vendor_test_owner_ops = {
  	.abi = MT6797_DVFSP_VENDOR_OWNER_ABI,
-@@ -384,9 +510,66 @@ static void mt6797_dvfsp_vendor_owner_binds_and_unbinds(
+@@ -384,9 +508,66 @@ static void mt6797_dvfsp_vendor_owner_binds_and_unbinds(
  	mt6797_dvfsp_vendor_test_put_devices(&devices);
  }
  
@@ -490,4 +490,5 @@ index 143a42c..200dfdf 100644
  
 -- 
 2.39.5
+
 
