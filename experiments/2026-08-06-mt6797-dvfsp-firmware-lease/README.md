@@ -669,3 +669,17 @@ DTBs, passed package checksums, and fetched only the validated package; see the
 [live-rail coherence Buildbox result](results/live-rail-coherence-buildbox-20260810.txt).
 This is compile-only and default-off: no provider registration, hardware
 operation, device boot, or CPU8/CPU9 admission was added.
+
+Patch `0227` closes the next source-contract gap by adding a provider-owned
+PPM policy snapshot for all four EEM banks (BIG/L/2L/CCI). Calibration now
+requires exact frequency and per-row limit matches, including a real CCI row
+set, under one table epoch; no CCI or limit value is inferred from the
+three-cluster vendor snapshot. The state-source ABI is bumped and the owner
+wrapper now receives both the PPM snapshot and policy object explicitly. The
+first revision `83880fb` was rejected before compilation by a thermal patch
+context mismatch; `0789c30` corrected its indentation, and final revision
+`31edbb9` corrected the hunk count and applied all 216 canonical entries on
+Buildbox. It produced 119 DTBs, passed package checksums, and fetched only the
+validated package; see the [PPM policy binding Buildbox result](results/ppm-policy-binding-buildbox-20260810.txt).
+This remains compile-only and default-off: no provider registration, hardware
+operation, device boot, or CPU8/CPU9 admission was added.

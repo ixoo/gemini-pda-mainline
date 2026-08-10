@@ -2259,6 +2259,16 @@ The next ordered work remains source-only:
    [live-rail coherence Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/live-rail-coherence-buildbox-20260810.txt).
    This remains compile-only and default-off: no provider registration,
    hardware operation, device boot, or CPU8/CPU9 admission was added.
+   Patch `0227` now makes the missing PPM policy source explicit. A provider
+   must supply exact frequency and per-row limit rows for all four EEM banks,
+   including CCI, with one epoch shared by calibration; the state-source ABI
+   and owner callback carry both the PPM snapshot and policy object. Final
+   revision `31edbb9` applies all 216 canonical entries on Buildbox, produces
+   119 DTBs, passes package checksums, and fetches only the validated package;
+   see the [PPM policy binding Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/ppm-policy-binding-buildbox-20260810.txt).
+   This closes only the source boundary. A real provider must still obtain
+   those rows and live rails under one transition lock, publish generations,
+   and remain the prerequisite for any CPU8/CPU9 admission.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and
