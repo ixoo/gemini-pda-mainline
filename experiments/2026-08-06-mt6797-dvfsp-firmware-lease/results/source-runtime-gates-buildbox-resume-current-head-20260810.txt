@@ -1,0 +1,51 @@
+# MT6797 source/runtime gate full-profile Buildbox resume at current head
+
+claim=COMPILE_ONLY_MT6797_DVFSP_SOURCE_RUNTIME_GATES_FULL_PROFILE_RESUME
+repository_commit=ea0b43cdbfa496f88ea21fb741f026a29ebff3fc
+origin=https://github.com/ixoo/gemini-pda-mainline.git
+repository_dirty=false
+build_backend=buildbox
+buildbox_status=validated
+buildbox_job=ea0b43cdbfa496f88ea21fb741f026a29ebff3fc-full-m0
+generated_utc=2026-08-10T08:11:23Z
+patch_series=patches/series
+patch_count=232
+resolved_profile=full
+artifact=linux-7.1.3-gemini-d84495d23747
+kernel_release=7.1.3-gemini
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=d84495d2374764466f7c8d820633be9cc9da78c47562ad5230533e219c531186
+config_inputs_sha256=501347b25c258f3e7f4070c7d83419e7d23357f496d80e30ea53d037ff456660
+config_sha256=d8a4d95723824a07bf50aab07795a05bb5b7244d88a969073b7629bc33dac24f
+image_sha256=98c2f14df28ab4ac5976f972385d7c5ab751124357b8ff7d89cd8ce8d736acc3
+image_gzip_sha256=2416c6ef01a15faad5cb728a98aa4b5ea700f4d277d086319cd8fe09c68887ae
+system_map_sha256=de0dae43267399692de9ff345470cb0eab73e4ff23c6dd4742e7534f7365a0de
+gemini_dtb_sha256=61ea34a4f780afe04da1257f8c3655be7f8490a7c3af2df727dd8592bb6e6285
+build_provenance_sha256=79c0abedbb5b1d356cb3d1d17e1bf1ffd0095738efad5a82365d521d5eb124b
+kernel_manifest_sha256=38b7630ef73725f1de77589774e7a2077f8d924e55d423efa778f715fba72a2f
+dtb_count=119
+config_fragment_count=1
+build_architecture=x86_64
+target_architecture=arm64
+toolchain_mode=cross
+compiler=aarch64-linux-gnu-gcc_(Debian_12.2.0-14)
+linker=GNU_ld_(GNU_Binutils_for_Debian)_2.40
+modules_built=false
+sha256sums=passed
+package_fetch=success;validated_package_only
+local_package=artifacts/buildbox/ea0b43cdbfa496f88ea21fb741f026a29ebff3fc/linux-7.1.3-gemini-d84495d23747
+registered_owner=0
+provider=none
+hardware_write=none
+device_action=none
+device_boot=none
+hardware_support_claim=NONE
+boot_candidate=false
+cpu8_cpu9_admission=closed
+
+The exact pushed documentation head was rebuilt with the explicit full
+Buildbox backend. The managed prepared Linux source was reused; all 232
+canonical patches applied, the arm64 Image, Gemini DTB, and 119 total DTBs
+passed validation, and only the validated package was fetched. The package is
+compile-only evidence: no owner or provider is registered, no hardware or
+firmware action occurred, and CPU8/CPU9 admission remains closed.

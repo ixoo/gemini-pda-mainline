@@ -2600,6 +2600,13 @@ DTBs passed checksums, and only the validated package was fetched. The exact
 records this compile-only rerun; it does not change the dormant owner/provider
 boundary or reopen CPU8/CPU9 admission.
 
+The exact current pushed head `ea0b43c` was then resumed on Buildbox with the
+managed prepared source and cache. It again applied all 232 canonical patches,
+produced the same content-addressed package, passed all package checksums, and
+fetched only the validated package. See the [current-head resume receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/source-runtime-gates-buildbox-resume-current-head-20260810.txt).
+This remains compile-only evidence: no owner or provider is registered, no
+hardware or firmware action occurred, and CPU8/CPU9 admission remains closed.
+
 A bounded content scan of the named Gemian surfaces found no attributable
 generation, epoch, transition, owner, mutex, or atomic token. Generic clock
 debug output was the only source of `lock` matches and does not establish a

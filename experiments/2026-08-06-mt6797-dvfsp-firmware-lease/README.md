@@ -852,6 +852,14 @@ receipt is [recorded here](results/source-runtime-gates-buildbox-full-20260810.t
 This rerun changes no runtime or hardware boundary; the owner/provider remain
 dormant and CPU8/CPU9 admission remains closed.
 
+At the owner's request, the exact current pushed head `ea0b43c` was resumed on
+Buildbox using the managed prepared source and cache. It again applied all 232
+canonical patches, produced the same content-addressed package, passed all
+checksums, and fetched only that validated package. The [current-head resume
+receipt](results/source-runtime-gates-buildbox-resume-current-head-20260810.txt)
+records the compile-only result; no device action occurred and CPU8/CPU9
+admission remains closed.
+
 A bounded content scan of the same named Gemian surfaces found no attributable
 generation, epoch, transition, owner, mutex, or atomic token. The only `lock`
 matches came from generic clock-debug output and cannot establish a DVFSP
