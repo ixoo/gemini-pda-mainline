@@ -17,35 +17,44 @@ CPU admission is performed.
 diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h
 --- a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h
 +++ b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h
-@@ -16,6 +16,7 @@
- enum gemini_mt6797_dvfsp_vendor_writer_site {
+@@ -17,6 +17,7 @@
  	GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_PTP_TABLE = 0,
  	GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_VOLTAGE,
  	GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_PPM,
 +	GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_OBSERVE,
  	GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_COUNT,
  };
-@@ -51,1 +52,1 @@
+ 
+@@ -48,7 +49,7 @@
+ 	int (*unregister_writer)(void *context);
+ };
+ 
 -#define GEMINI_MT6797_DVFSP_VENDOR_INTEGRATION_ABI	1
 +#define GEMINI_MT6797_DVFSP_VENDOR_INTEGRATION_ABI	2
-@@ -73,5 +74,6 @@ struct gemini_mt6797_dvfsp_vendor_integration_ops {
- 	int (*unregister_mainline_owner)(void *context, const void *bridge_ops,
+ 
+ /*
+  * Opaque, source-independent callbacks for the mainline owner adapter.
+@@ -74,6 +75,7 @@
  		void *bridge_context, const void *runtime_ops,
  		void *runtime_context, u64 owner_handle,
  		u64 transition_handle);
 +	const void *source_registration;
  };
-@@ -156,2 +158,4 @@
+ 
+ const struct gemini_mt6797_dvfsp_vendor_integration_ops *
+@@ -155,6 +157,8 @@
+ int gemini_mt6797_dvfsp_vendor_writer_finish(
  	struct gemini_mt6797_dvfsp_vendor_writer_transaction *transaction,
  	int result);
 +int gemini_mt6797_dvfsp_vendor_writer_abort_observation(
 +	struct gemini_mt6797_dvfsp_vendor_writer_transaction *transaction);
+ 
+ /* begin/finish hold the shared writer lock around these callbacks. */
+ int gemini_mt6797_dvfsp_vendor_writer_transaction_event(
 diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
 --- a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
 +++ b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
-@@ -11,6 +11,9 @@
- #include <linux/sched.h>
- #include <linux/string.h>
+@@ -13,7 +13,10 @@
  #include <linux/workqueue.h>
  #include <linux/types.h>
  
@@ -53,19 +62,27 @@ diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.
 +
  #include "mt6797-dvfsp-vendor-writer.h"
 +#include "mt6797-dvfsp-vendor-state.h"
-@@ -389,3 +392,5 @@
+ 
+ static DEFINE_MUTEX(gemini_mt6797_dvfsp_vendor_writer_lock);
+ static const struct gemini_mt6797_dvfsp_vendor_writer_ops
+@@ -387,6 +387,8 @@
+ }
  
  static const struct gemini_mt6797_dvfsp_vendor_integration_ops
 +static const struct mt6797_dvfsp_vendor_source_registration
 +gemini_mt6797_dvfsp_vendor_source_registration;
  gemini_mt6797_dvfsp_vendor_writer_integration_callbacks = {
-@@ -396,5 +401,6 @@
+ 	.abi = GEMINI_MT6797_DVFSP_VENDOR_INTEGRATION_ABI,
+ 	.bind_lifecycle =
+@@ -397,7 +399,8 @@
  	.register_mainline_owner =
  		gemini_mt6797_dvfsp_vendor_writer_integration_register_mainline,
  	.unregister_mainline_owner =
  		gemini_mt6797_dvfsp_vendor_writer_integration_unregister_mainline,
 +	.source_registration = &gemini_mt6797_dvfsp_vendor_source_registration,
  };
+ 
+ const struct gemini_mt6797_dvfsp_vendor_integration_ops *
 @@ -844,3 +850,206 @@
  }
  EXPORT_SYMBOL_GPL(gemini_mt6797_dvfsp_vendor_writer_finish);
