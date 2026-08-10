@@ -977,3 +977,17 @@ registered, no device was booted or written, and CPU8/CPU9 admission remains
 closed. The next gate is an attributable implementation of those callbacks at
 the vendor-aware writer boundary, followed by separate read-only runtime
 registration evidence.
+
+Patch `0250` adds the next dormant boundary: an ABI-stable writer-side
+transition-owner contract with an explicit provenance callback, a shared
+transition mutex, and a checked monotonic generation that advances only on
+commit. Abort preserves the generation, and the contract deliberately never
+calls the vendor's single-slot registration setters or performs MMIO. The exact
+pushed head `0708096` passed the full 239-patch `dvfsp-owner-kunit` Buildbox
+build, all 119 DTB checks, package/provenance checksums, and the
+validated-package-only fetch; see the [current-head Buildbox resume receipt](results/buildbox-resume-0708096-20260810.txt).
+This remains compile-only contract evidence: the actual vendor-aware writer
+sites are not wired, no owner/provider was registered, no device was booted or
+written, and CPU8/CPU9 admission remains closed. The next gate is the
+attributable writer integration that supplies the existing callbacks under this
+shared boundary, followed by a separate read-only runtime registration check.

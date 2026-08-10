@@ -2763,6 +2763,20 @@ vendor-aware writer integration that supplies these callbacks and one shared
 transition generation/lock, followed by a separate read-only runtime
 registration check.
 
+Patch `0250` adds that shared writer-side boundary as a dormant, ABI-stable
+contract. It requires an explicit provenance callback, serializes future PTP,
+PPM, and voltage writer updates with one supplied transition mutex, and advances
+a checked generation only after commit; abort leaves the generation unchanged.
+It does not call the vendor's single-slot setters, perform MMIO, or register an
+owner/provider. The exact pushed head `0708096` passed the full 239-patch
+`dvfsp-owner-kunit` Buildbox build, all 119 DTB checks, package/provenance
+checksums, and the validated-package-only fetch; see the [Buildbox receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/buildbox-resume-0708096-20260810.txt).
+This remains compile-only and does not advance hardware support or CPU8/CPU9
+admission. The next ordered implementation is an attributable integration at
+the actual vendor-aware writer sites, followed by a separate read-only runtime
+registration check proving that those writers supply the callback table and
+share the transition generation.
+
 Required evidence:
 
 - provider registration performs no register-data write;
