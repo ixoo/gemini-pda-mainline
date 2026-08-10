@@ -1,0 +1,106 @@
+From 4b8c6c6e14f7f8d8ef7d42c5b5d7b3e8f6e7f220 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 9 Aug 2026 21:10:00 -0400
+Subject: [PATCH] thermal: mediatek: bind MT6797 EEM temperature readback
+
+The MT6797 EEM bank readback already owns the thermal driver's bank lock,
+but its caller still had to provide a separate temperature value.  Collect
+the calibrated thermal-zone maximum while that same lock is held, preserve
+the selector word, and require the calibration builder to consume the exact
+value from the readback.  This removes one independently sampled input from
+the future provider without inventing a generation or adding a write path.
+
+The readback ABI changes because the temperature is part of the atomic
+readback object.  Invalid thermal samples fail closed.
+---
+ drivers/thermal/mediatek/auxadc_thermal.c       | 31 ++++++++++++++++++++++++
+ include/linux/soc/mediatek/mt6797-eem-readback.h |  3 ++-
+ 2 files changed, 33 insertions(+), 1 deletion(-)
+
+diff --git a/include/linux/soc/mediatek/mt6797-eem-readback.h b/include/linux/soc/mediatek/mt6797-eem-readback.h
+index 6e2d0d48d..f4c33b7f3 100644
+--- a/include/linux/soc/mediatek/mt6797-eem-readback.h
++++ b/include/linux/soc/mediatek/mt6797-eem-readback.h
+@@ -7,7 +7,7 @@
+ #include <linux/kconfig.h>
+ #include <linux/types.h>
+ 
+-#define MT6797_EEM_READBACK_ABI		1
++#define MT6797_EEM_READBACK_ABI		2
+ #define MT6797_EEM_READBACK_ANCHORS	8
+ #define MT6797_EEM_READBACK_BANK_COUNT	4
+ #define MT6797_EEM_READBACK_BANK_BIG	0
+@@ -34,6 +34,7 @@ struct mt6797_eem_readback {
+ 	u32 modulation_interrupt_status;
+ 	u32 selector_before;
+ 	u32 selector_after;
++	s32 temperature_millic;
+ 	struct mt6797_eem_readback_bank
+ 		bank[MT6797_EEM_READBACK_BANK_COUNT];
+ };
+diff --git a/drivers/thermal/mediatek/auxadc_thermal.c b/drivers/thermal/mediatek/auxadc_thermal.c
+index b9073d2fa..f88eb3b13 100644
+--- a/drivers/thermal/mediatek/auxadc_thermal.c
++++ b/drivers/thermal/mediatek/auxadc_thermal.c
+@@ -971,6 +971,27 @@ static void mt6797_eem_unpack_anchors(u32 packed, u8 *anchors)
+ 		anchors[i] = (packed >> (i * 8)) & 0xff;
+ }
+ 
++static int mt6797_thermal_temperature_locked(struct mtk_thermal *mt,
++						      u32 selector)
++{
++	int i;
++	int maximum = INT_MIN;
++
++	for (i = 0; i < mt->conf->num_banks; i++) {
++		struct mtk_thermal_bank *bank = &mt->banks[i];
++		u32 value;
++		int temperature;
++
++		value = (selector & ~GENMASK(3, 0)) |
++			(bank->id & GENMASK(3, 0));
++		writel(value, mt->thermal_base + PTPCORESEL);
++		readl(mt->thermal_base + PTPCORESEL);
++
++		temperature = mtk_thermal_bank_temperature(bank);
++		maximum = max(maximum, temperature);
++	}
++
++	return maximum;
++}
++
+ int mt6797_thermal_eem_readback(struct device *dev,
+ 				 struct mt6797_eem_readback *readback)
+ {
+@@ -1044,6 +1065,8 @@ int mt6797_thermal_eem_readback(struct device *dev,
+ 		readback->bank_mask |= BIT(bank_ids[i]);
+ 	}
+ 
++	readback->temperature_millic =
++		mt6797_thermal_temperature_locked(mt, selector);
++
+ 	/* Restore the exact selector word, including unrelated control bits. */
+ 	writel(selector, mt->thermal_base + PTPCORESEL);
+ 	readl(mt->thermal_base + PTPCORESEL);
+@@ -1056,6 +1079,14 @@ int mt6797_thermal_eem_readback(struct device *dev,
+ 					BIT(MT6797_EEM_READBACK_BANK_L) |
+ 					BIT(MT6797_EEM_READBACK_BANK_2L) |
+ 					BIT(MT6797_EEM_READBACK_BANK_CCI)))
+ 		return -EIO;
++	if (readback->temperature_millic == INT_MIN)
++		return -EAGAIN;
+ 
+ 	return 0;
+ }
+@@ -1219,7 +1250,8 @@ int mt6797_eem_calibration_build(
+ 		 BIT(MT6797_EEM_READBACK_BANK_L) |
+ 		 BIT(MT6797_EEM_READBACK_BANK_2L) |
+ 		 BIT(MT6797_EEM_READBACK_BANK_CCI)) ||
+-	    input->readback->selector_before != input->readback->selector_after)
++	    input->readback->selector_before != input->readback->selector_after ||
++	    input->temperature_millic != input->readback->temperature_millic)
+ 		return -EAGAIN;
+ 
+ 	memset(state, 0, sizeof(*state));
+-- 
+2.50.1 (Apple Git-155)

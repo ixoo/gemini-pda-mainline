@@ -101,24 +101,29 @@ def validate_profile() -> None:
             "provider fragment leaked into identification profile")
 
 
-def validate_series() -> None:
+def validate_series() -> int:
     subprocess.run([str(ROOT / "scripts/validate-manifest-series")],
                    cwd=ROOT, check=True)
     lines = [line.strip() for line in SERIES.read_text(encoding="utf-8").splitlines()
              if line.strip() and not line.lstrip().startswith("#")]
     expected = "v7.1.3/0170-regulator-add-legacy-DA921x-resource-only-provider.patch"
-    require(lines[-1] == expected, "provider patch is not last in canonical series")
+    require(expected in lines, "provider patch is absent from canonical series")
+    provider_index = lines.index(expected)
+    require(provider_index > 0,
+            "provider patch must follow the legacy identification boundary")
+    return provider_index
 
 
 def main() -> None:
     text = patch_text()
     validate_patch(text)
     validate_profile()
-    validate_series()
+    provider_index = validate_series()
     digest = hashlib.sha256(PATCH.read_bytes()).hexdigest()
     print("validation=resource-only-provider")
     print(f"patch_sha256={digest}")
     print(f"patch_bytes={PATCH.stat().st_size}")
+    print(f"provider_series_index={provider_index}")
     print("probe_identity_reads=14")
     print("provider_operations=3")
     print("writable_operations=0")
