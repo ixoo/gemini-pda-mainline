@@ -42,7 +42,7 @@ diff --git a/drivers/thermal/mediatek/auxadc_thermal.c b/drivers/thermal/mediate
 index b9073d2fa..f88eb3b13 100644
 --- a/drivers/thermal/mediatek/auxadc_thermal.c
 +++ b/drivers/thermal/mediatek/auxadc_thermal.c
-@@ -971,6 +971,27 @@ static void mt6797_eem_unpack_anchors(u32 packed, u8 *anchors)
+@@ -971,6 +971,29 @@ static void mt6797_eem_unpack_anchors(u32 packed, u8 *anchors)
  		anchors[i] = (packed >> (i * 8)) & 0xff;
  }
  
@@ -92,7 +92,7 @@ index b9073d2fa..f88eb3b13 100644
  
  	return 0;
  }
-@@ -1219,9 +1250,10 @@ int mt6797_eem_calibration_build(
+@@ -1219,7 +1250,8 @@ int mt6797_eem_calibration_build(
  		 BIT(MT6797_EEM_READBACK_BANK_L) |
  		 BIT(MT6797_EEM_READBACK_BANK_2L) |
  		 BIT(MT6797_EEM_READBACK_BANK_CCI)) ||
