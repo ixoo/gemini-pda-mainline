@@ -2661,6 +2661,13 @@ not stale-source drift. The next ordered action remains an attributable
 mainline owner implementation or new named runtime owner evidence, followed by
 a separate read-only registration check.
 
+The exact current pushed head `f7864e3` was subsequently resumed on Buildbox
+with the named `dvfsp-owner-kunit` profile. All 234 canonical patches and 119
+DTBs passed validation, and only the checksummed package was fetched; see the
+[current-head Buildbox resume receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/buildbox-resume-f7864e3-20260810.txt).
+This does not alter the owner boundary: registration, writable operation,
+device boot, and CPU8/CPU9 admission remain closed.
+
 Required evidence:
 
 - provider registration performs no register-data write;

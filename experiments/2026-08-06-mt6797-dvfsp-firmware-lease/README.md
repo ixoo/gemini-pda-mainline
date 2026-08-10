@@ -875,3 +875,10 @@ does not add an attributable callback source. The bounded source-only result is
 the [public-main owner-boundary receipt](results/vendor-public-main-owner-boundary-20260810.txt).
 No vendor source was copied and no device action occurred; provider registration
 and CPU8/CPU9 admission remain closed.
+
+The exact pushed current head `f7864e3` was then resumed on Buildbox with the
+`dvfsp-owner-kunit` profile. All 234 canonical patches, 119 DTBs, package
+checksums, and the validated-package-only fetch passed; the [resume receipt](results/buildbox-resume-f7864e3-20260810.txt)
+records the immutable provenance. This remains compile-only evidence: no owner
+or provider was registered, no hardware or firmware action occurred, and CPU8/
+CPU9 admission remains closed.
