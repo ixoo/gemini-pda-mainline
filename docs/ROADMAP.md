@@ -2533,6 +2533,18 @@ rail/clock write, mutable table read, device boot, or CPU8/CPU9 admission was
 added. The next ordered implementation is the source-backed PPM/CCI rows and
 limits, live rail callbacks, and one shared transition generation/lock.
 
+Patch `0239` now provides that PPM/CCI source boundary without claiming to be
+the provider. Under the vendor `ppm_main_info.lock` callback it requires
+explicit physical LL/L/B rows, the separate CCI frequency table, all four
+policy-limit banks, and one nonzero shared table epoch; it maps the physical
+rows into canonical EEM order and validates both snapshots. Buildbox validated
+clean revision `51b3f30` with 228 patches, 119 DTBs, package checksums, and the
+fetched package; see the [PPM/CCI source-adapter receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/ppm-cci-source-adapter-buildbox-20260810.txt).
+This remains compile-only and dormant: no provider registration, MMIO or
+rail/clock operation, device boot, or CPU8/CPU9 admission was added. The next
+ordered implementation is the live VPROC/VSRAM and clock/rail callback layer
+plus one shared transition generation under the existing outer lock.
+
 Required evidence:
 
 - provider registration performs no register-data write;
