@@ -1,0 +1,28 @@
+# Mainline full-profile Buildbox resume
+
+date_utc=2026-08-10
+claim=COMPILE_ONLY_MAINLINE_OWNER_BRIDGE_PATCH
+repository=https://github.com/ixoo/gemini-pda-mainline.git
+repository_commit=6b8820648fd95a637fdd9f41dad9d7406fd1bf3b
+repository_dirty=false
+backend=buildbox
+build_profile=full
+patch_count=245
+dtb_count=119
+artifact=linux-7.1.3-gemini-3bb3253ace66
+image_gzip_sha256=2416c6ef01a15faad5cb728a98aa4b5ea700f4d277d086319cd8fe09c68887ae
+sha256sums=passed
+buildbox_job=6b8820648fd95a637fdd9f41dad9d7406fd1bf3b-full-m0
+package_fetch=validated-package-only
+package_path=artifacts/buildbox/6b8820648fd95a637fdd9f41dad9d7406fd1bf3b/linux-7.1.3-gemini-3bb3253ace66
+mainline_bridge=0256;ABI_1;default_off;not_selected_in_full_profile
+vendor_setter_called=none
+provider_registration=none
+runtime_owner_registration=none
+hardware_write=none
+device_action=none
+boot_candidate=false
+cpu8_cpu9_admission=closed
+observation=The pushed project candidate applies all 245 canonical patches, links the arm64 kernel, validates all 119 DTBs and package checksums, and transfers only the validated package.
+decision=mainline_owner_bridge_patchset_buildbox_validated;dormant_bridge_not_hardware_support
+next=record_vendor_six_patch_compile_validation_then_perform_separate_read_only_runtime_owner_registration_review

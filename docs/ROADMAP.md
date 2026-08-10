@@ -3054,9 +3054,16 @@ finish. The vendor side accepts that exact table through an explicit
 `register_mainline_owner()` action, pins the expected owner and transition
 handles, translates the private site enum, and rejects identity mismatches.
 Neither side registers by default, calls a vendor setter, performs MMIO, or
-opens provider/runtime/CPU8/CPU9 admission. Buildbox validation of the pushed
-candidate and a separate read-only runtime owner-registration review are the
-next gates.
+opens provider/runtime/CPU8/CPU9 admission. The pushed candidate
+`6b882064` then passed the full Buildbox profile (245 canonical patches, 119
+DTBs, package checksums, and validated-package-only fetch); see the [mainline
+resume receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/buildbox-resume-6b882064-20260811.txt).
+The exact pinned vendor revision also accepted all six experiment patches and
+compiled the writer, cpufreq, hybrid CSPM, EEM, and PPM objects with the
+established include roots; see the [vendor binding Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-writer-mainline-owner-binding-buildbox-20260811.txt).
+This is compile-only evidence: runtime owner registration remains unproven and
+CPU8/CPU9 admission stays closed. The next gate is a separate read-only
+runtime owner-registration review, with no device boot or write.
 
 Required evidence:
 
