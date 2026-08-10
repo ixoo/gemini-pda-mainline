@@ -33,6 +33,7 @@ PPM_CALIBRATION_PATCH = ROOT / "patches/v7.1.3/0225-soc-mediatek-bind-PPM-snapsh
 LIVE_RAIL_BINDING_PATCH = ROOT / "patches/v7.1.3/0226-soc-mediatek-bind-live-rails-to-calibrated-row.patch"
 PPM_POLICY_PATCH = ROOT / "patches/v7.1.3/0227-soc-mediatek-bind-PPM-policy-rows-to-calibration.patch"
 GENERATION_COHERENCE_PATCH = ROOT / "patches/v7.1.3/0228-soc-mediatek-bind-calibration-and-live-state-to-one-generation.patch"
+PPM_OWNER_LOCK_PATCH = ROOT / "patches/v7.1.3/0229-soc-mediatek-bind-ppm-snapshot-to-owner-lock.patch"
 STATE_OWNER_SOURCE_PATCH = ROOT / "patches/v7.1.3/0215-soc-mediatek-add-calibrated-state-owner-source-binding.patch"
 STATE_OWNER_ARBITRATION_PATCH = ROOT / "patches/v7.1.3/0216-soc-mediatek-bind-state-owner-source-to-transition-generation.patch"
 STATE_OWNER_ARBITRATION_FAULT_PATCH = ROOT / "patches/v7.1.3/0217-soc-mediatek-latch-transition-arbitration-faults.patch"
@@ -78,6 +79,7 @@ STATE_OWNER_REGISTRATION_BUILD_RESULT = Path(__file__).resolve().parents[1] / "r
 STATE_OWNER_REGISTRATION_RERUN_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-registration-buildbox-rerun-20260809.txt"
 STATE_OWNER_REGISTRATION_GATE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-registration-gate-buildbox-20260809.txt"
 STATE_OWNER_REGISTRATION_GATE_RESUME_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-registration-gate-buildbox-resume-20260810.txt"
+PPM_OWNER_LOCK_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/ppm-owner-lock-buildbox-20260810.txt"
 
 
 def require(text: str, needle: str, label: str) -> None:
@@ -114,6 +116,7 @@ def main() -> None:
     live_rail_binding_patch = LIVE_RAIL_BINDING_PATCH.read_text()
     ppm_policy_patch = PPM_POLICY_PATCH.read_text()
     generation_coherence_patch = GENERATION_COHERENCE_PATCH.read_text()
+    ppm_owner_lock_patch = PPM_OWNER_LOCK_PATCH.read_text()
     state_owner_source_patch = STATE_OWNER_SOURCE_PATCH.read_text()
     state_owner_arbitration_patch = STATE_OWNER_ARBITRATION_PATCH.read_text()
     state_owner_arbitration_fault_patch = STATE_OWNER_ARBITRATION_FAULT_PATCH.read_text()
@@ -158,6 +161,7 @@ def main() -> None:
     state_owner_registration_rerun_build_result = STATE_OWNER_REGISTRATION_RERUN_BUILD_RESULT.read_text()
     state_owner_registration_gate_build_result = STATE_OWNER_REGISTRATION_GATE_BUILD_RESULT.read_text()
     state_owner_registration_gate_resume_build_result = STATE_OWNER_REGISTRATION_GATE_RESUME_BUILD_RESULT.read_text()
+    ppm_owner_lock_build_result = PPM_OWNER_LOCK_BUILD_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     eem_calibration_source = eem_calibration_patch[eem_calibration_patch.index("diff --git"):]
@@ -172,6 +176,7 @@ def main() -> None:
     ptp_calibration_source = ptp_calibration_patch[ptp_calibration_patch.index("diff --git"):]
     ppm_policy_source = ppm_policy_patch[ppm_policy_patch.index("diff --git"):]
     generation_coherence_source = generation_coherence_patch[generation_coherence_patch.index("diff --git"):]
+    ppm_owner_lock_source = ppm_owner_lock_patch[ppm_owner_lock_patch.index("diff --git"):]
     state_owner_source_source = state_owner_source_patch[state_owner_source_patch.index("diff --git"):]
     state_owner_arbitration_source = state_owner_arbitration_patch[state_owner_arbitration_patch.index("diff --git"):]
     state_owner_arbitration_fault_source = state_owner_arbitration_fault_patch[state_owner_arbitration_fault_patch.index("diff --git"):]
@@ -506,6 +511,52 @@ def main() -> None:
         ("without equating unrelated", "generation-backend-counters-not-equated"),
     ):
         require(generation_coherence_patch, needle, label)
+    for needle, label in (
+        ("MT6797_DVFSP_PPM_OWNER_ABI", "ppm-owner-abi"),
+        ("struct mt6797_dvfsp_ppm_owner_ops", "ppm-owner-ops"),
+        ("int (*lock)(void *context);", "ppm-owner-lock"),
+        ("void (*unlock)(void *context);", "ppm-owner-unlock"),
+        ("int (*snapshot)(void *context,", "ppm-owner-snapshot"),
+        ("transition lock before taking this", "ppm-owner-lock-order"),
+        ("owner->ppm_owner_ops->lock", "ppm-owner-lock-call"),
+        ("owner->ppm_owner_ops->snapshot", "ppm-owner-snapshot-call"),
+        ("owner->ppm_owner_ops->unlock", "ppm-owner-unlock-call"),
+        ("snapshot->table_epoch != owner->ppm_policy.table_epoch", "ppm-owner-epoch-match"),
+        ("memcmp(policy, &owner->ppm_policy, sizeof(*policy))", "ppm-owner-policy-copy-match"),
+        ("MT6797_DVFSP_STATE_OWNER_SOURCE_ABI\t4", "ppm-owner-source-abi-bump"),
+        ("!source_ops->read_identity || !ppm_owner_ops", "ppm-owner-constructor-requirement"),
+        ("This remains a dormant, default-off contract", "ppm-owner-default-off"),
+    ):
+        require(ppm_owner_lock_patch, needle, label)
+    for forbidden in ("register_platform_driver", "ioremap", "writel", "boot_candidate=true"):
+        if forbidden in ppm_owner_lock_source:
+            raise AssertionError(f"unexpected PPM owner operation: {forbidden}")
+    for needle, label in (
+        ("claim=COMPILE_ONLY_MT6797_DVFSP_PPM_OWNER_LOCK_BOUNDARY", "ppm-owner-build-claim"),
+        ("repository_commit=692a6a555a3ca65a47c46d199ef4b0f4ba2a2290", "ppm-owner-build-commit"),
+        ("origin=https://github.com/ixoo/gemini-pda-mainline.git", "ppm-owner-build-origin"),
+        ("repository_dirty=false", "ppm-owner-build-clean"),
+        ("build_backend=buildbox", "ppm-owner-build-backend"),
+        ("buildbox_status=validated", "ppm-owner-build-status"),
+        ("patch_count=218", "ppm-owner-build-patch-count"),
+        ("artifact=linux-7.1.3-gemini-42d3b0195df4", "ppm-owner-build-artifact"),
+        ("source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc", "ppm-owner-build-source-hash"),
+        ("patchset_sha256=42d3b0195df4c19106e36212e9ad8b37103349827be93ad16a654560a2a43f34", "ppm-owner-build-patchset-hash"),
+        ("config_sha256=d8a4d95723824a07bf50aab07795a05bb5b7244d88a969073b7629bc33dac24f", "ppm-owner-build-config-hash"),
+        ("image_gzip_sha256=ba1238db5b413af94359ed257acaf1548425df0b7582753d81491d2c2979bc5d", "ppm-owner-build-image-hash"),
+        ("gemini_dtb_sha256=4ca3765d3ed1a39751c59387456de861091725321cdd5b7ec4cf715008a9d356", "ppm-owner-build-dtb-hash"),
+        ("dtb_count=119", "ppm-owner-build-dtb-count"),
+        ("sha256sums=passed", "ppm-owner-build-checksums"),
+        ("package_fetch=success;validated_package_only", "ppm-owner-build-fetch"),
+        ("ppm_owner_contract=0229;explicit_lock_unlock;atomic_ppm_and_four_bank_policy_copy;shared_table_epoch;transition_lock_outer;default_off", "ppm-owner-build-contract"),
+        ("registered_owner=0", "ppm-owner-build-unregistered"),
+        ("provider=none", "ppm-owner-build-no-provider"),
+        ("hardware_write=none", "ppm-owner-build-no-write"),
+        ("device_action=none", "ppm-owner-build-no-device"),
+        ("boot_candidate=false", "ppm-owner-build-not-candidate"),
+        ("cpu8_cpu9_admission=closed", "ppm-owner-build-no-admission"),
+    ):
+        require(ppm_owner_lock_build_result, needle, label)
     for forbidden in ("readl(", "writel(", "regulator_", "clk_", "i2c_transfer",
                       "arm_smccc", "platform_driver", "cpu_up(", "secure_write"):
         if forbidden in ppm_policy_source:
@@ -1776,6 +1827,7 @@ def main() -> None:
     print("live_rail_binding=0226;frequency_row_selected;VPROC_VSRAM_exact_calibration_row_match;generation_provider_still_required;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("ppm_policy_binding=0227;all_four_banks;CCI_included;limit_rows_exact;epoch_match;provider_owned;owner_ppm_argument_bound;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("generation_coherence=0228;common_source_generation;calibration_live_snapshot_exact_match;backend_local_counters_not_equated;provider_owned;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
+    print("ppm_owner_lock_binding=0229;explicit_lock_unlock;atomic_ppm_policy_copy;four_bank_policy;shared_table_epoch;transition_lock_outer;provider=none;registered_owner=0;no_hardware_write;device_action=none;boot_candidate=false")
     print("clock_state_decoder=0206;raw_ll_l_b_cci_readbacks;vendor_26mhz_formula;pcw_posdiv_and_divider_decode;generation_tagged;inflight_change_rejected;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("runtime_invalidation=0207;vendor_cpu_online_cpu_down_prepare_cpu_down_failed_pm_suspend_prepare_pm_post_suspend;clock_rail_pcm_fault_mapping;monotonic_sequence;generation_epoch;replay_rejected;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
     print("runtime_binding=0208;active_owner_required;cpuhp_online_down_prepare_down_failed;pm_suspend_resume_notifier;generation_tagged_source_callback;ledger_serialized;registration_atomic;disarm_before_unregistration;registered=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")

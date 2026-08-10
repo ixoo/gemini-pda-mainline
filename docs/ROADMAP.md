@@ -2283,6 +2283,16 @@ The next ordered work remains source-only:
    This remains compile-only and default-off: the real EEM/PTP/PPM and
    PMIC/clock owner under one transition lock is still required, and device boot
    plus CPU8/CPU9 admission remain closed.
+   Patch `0229` now requires an explicit PPM owner lock boundary. The owner
+   copies the PPM snapshot and all four policy banks atomically, validates one
+   shared table epoch, and preserves that exact policy copy into calibration;
+   the outer transition lock remains the first lock. Clean revision `692a6a5`
+   applies all 218 canonical entries on Buildbox, produces 119 DTBs, passes
+   package checksums, and fetches only the validated package; see the
+   [PPM owner-lock Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/ppm-owner-lock-buildbox-20260810.txt).
+   This is still compile-only and default-off: a real EEM/PTP/PPM plus
+   PMIC/clock provider must implement the owner, and device boot plus CPU8/CPU9
+   admission remain closed.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and

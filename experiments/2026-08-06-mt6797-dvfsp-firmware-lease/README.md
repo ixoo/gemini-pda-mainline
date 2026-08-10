@@ -700,3 +700,15 @@ DTBs, passed package checksums, and fetched only the validated package; see the
 [shared-generation Buildbox receipt](results/generation-coherence-buildbox-20260810.txt).
 This remains compile-only and default-off: no real provider, hardware
 operation, device boot, or CPU8/CPU9 admission was added.
+
+Patch `0229` closes the next ownership boundary by requiring the dormant state
+owner to use an explicit PPM owner with lock, unlock, and snapshot operations.
+The PPM owner must copy the three-cluster snapshot and all four provider-owned
+policy banks under its lock; the owner then validates one shared table epoch and
+preserves the exact policy copy into calibration. The documented lock order is
+the outer transition lock first, then the PPM owner lock. Clean revision
+`692a6a5` applied all 218 canonical entries on Buildbox, produced 119 DTBs,
+passed package checksums, and fetched only the validated package; see the
+[PPM owner-lock Buildbox result](results/ppm-owner-lock-buildbox-20260810.txt).
+This remains compile-only and default-off: no real provider, hardware
+operation, device boot, or CPU8/CPU9 admission was added.
