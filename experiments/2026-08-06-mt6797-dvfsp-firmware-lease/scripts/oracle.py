@@ -42,6 +42,7 @@ STATE_OWNER_INIT_REPAIR_PATCH = ROOT / "patches/v7.1.3/0234-soc-mediatek-repair-
 CALIBRATED_PROVIDER_PATCH = ROOT / "patches/v7.1.3/0235-soc-mediatek-bind-calibrated-provider-to-resource-owner.patch"
 CSPM_LIVE_BINDING_PATCH = ROOT / "patches/v7.1.3/0236-soc-mediatek-bind-CSPM-sample-to-live-provider.patch"
 EFUSE_RAIL_PATCH = ROOT / "patches/v7.1.3/0237-soc-mediatek-add-MT6797-efuse-identity-and-rail-converters.patch"
+IDENTITY_SOURCE_BRIDGE_PATCH = ROOT / "patches/v7.1.3/0238-soc-mediatek-bind-efuse-identity-to-owner-source.patch"
 STATE_OWNER_SOURCE_PATCH = ROOT / "patches/v7.1.3/0215-soc-mediatek-add-calibrated-state-owner-source-binding.patch"
 STATE_OWNER_ARBITRATION_PATCH = ROOT / "patches/v7.1.3/0216-soc-mediatek-bind-state-owner-source-to-transition-generation.patch"
 STATE_OWNER_ARBITRATION_FAULT_PATCH = ROOT / "patches/v7.1.3/0217-soc-mediatek-latch-transition-arbitration-faults.patch"
@@ -94,6 +95,7 @@ RESOURCE_PROVIDER_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/
 CALIBRATED_PROVIDER_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/calibrated-provider-buildbox-20260810.txt"
 CSPM_LIVE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/cspm-live-binding-buildbox-20260810.txt"
 EFUSE_RAIL_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/efuse-rail-helper-buildbox-20260810.txt"
+IDENTITY_SOURCE_BRIDGE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/identity-source-bridge-buildbox-20260810.txt"
 
 
 def require(text: str, needle: str, label: str) -> None:
@@ -139,6 +141,7 @@ def main() -> None:
     calibrated_provider_patch = CALIBRATED_PROVIDER_PATCH.read_text()
     cspm_live_binding_patch = CSPM_LIVE_BINDING_PATCH.read_text()
     efuse_rail_patch = EFUSE_RAIL_PATCH.read_text()
+    identity_source_bridge_patch = IDENTITY_SOURCE_BRIDGE_PATCH.read_text()
     state_owner_source_patch = STATE_OWNER_SOURCE_PATCH.read_text()
     state_owner_arbitration_patch = STATE_OWNER_ARBITRATION_PATCH.read_text()
     state_owner_arbitration_fault_patch = STATE_OWNER_ARBITRATION_FAULT_PATCH.read_text()
@@ -190,6 +193,7 @@ def main() -> None:
     calibrated_provider_build_result = CALIBRATED_PROVIDER_BUILD_RESULT.read_text()
     cspm_live_build_result = CSPM_LIVE_BUILD_RESULT.read_text()
     efuse_rail_build_result = EFUSE_RAIL_BUILD_RESULT.read_text()
+    identity_source_bridge_build_result = IDENTITY_SOURCE_BRIDGE_BUILD_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     eem_calibration_source = eem_calibration_patch[eem_calibration_patch.index("diff --git"):]
@@ -210,6 +214,7 @@ def main() -> None:
     calibrated_provider_source = calibrated_provider_patch[calibrated_provider_patch.index("diff --git"):]
     cspm_live_binding_source = cspm_live_binding_patch[cspm_live_binding_patch.index("diff --git"):]
     efuse_rail_source = efuse_rail_patch[efuse_rail_patch.index("diff --git"):]
+    identity_source_bridge_source = identity_source_bridge_patch[identity_source_bridge_patch.index("diff --git"):]
     state_owner_source_source = state_owner_source_patch[state_owner_source_patch.index("diff --git"):]
     state_owner_arbitration_source = state_owner_arbitration_patch[state_owner_arbitration_patch.index("diff --git"):]
     state_owner_arbitration_fault_source = state_owner_arbitration_fault_patch[state_owner_arbitration_fault_patch.index("diff --git"):]
@@ -752,6 +757,24 @@ def main() -> None:
                       "arm_smccc", "platform_driver", "cpu_up(", "secure_write"):
         if forbidden in efuse_rail_source:
             raise AssertionError(f"unexpected efuse/rail helper operation: {forbidden}")
+    for needle, label in (
+        ("MT6797_DVFSP_IDENTITY_SOURCE_ABI", "identity-source-abi"),
+        ("read_table_epoch", "identity-source-epoch-callback"),
+        ("read_calibration_handle", "identity-source-calibration-callback"),
+        ("mt6797_dvfsp_state_source_backend_read_ptp_identity", "identity-source-efuse-read"),
+        ("mt6797_dvfsp_ptp_identity_decode", "identity-source-ptp-decode"),
+        ("identity->table_epoch = table_epoch", "identity-source-epoch-bind"),
+        ("identity->calibration_handle = calibration_handle", "identity-source-handle-bind"),
+        ("MT6797_DVFSP_STATE_OWNER_SOURCE_ABI\t6", "identity-source-owner-abi"),
+        ("does not register an owner", "identity-source-no-registration"),
+        ("or admit CPU8/CPU9", "identity-source-no-admission"),
+    ):
+        require(identity_source_bridge_patch, needle, label)
+    for forbidden in ("readl(", "writel(", "regulator_", "clk_", "i2c_transfer",
+                      "arm_smccc", "platform_driver", "cpu_up(", "secure_write",
+                      "nvmem_cell_write", "mt6797_dvfsp_handoff_state_owner_register"):
+        if forbidden in identity_source_bridge_source:
+            raise AssertionError(f"unexpected identity-source operation: {forbidden}")
     for forbidden in ("readl(", "writel(", "regulator_", "clk_", "i2c_transfer",
                       "arm_smccc", "platform_driver", "cpu_up(", "secure_write"):
         if forbidden in cspm_live_binding_source:
@@ -828,6 +851,24 @@ def main() -> None:
         ("cpu8_cpu9_admission=closed", "efuse-rail-build-no-admission"),
     ):
         require(efuse_rail_build_result, needle, label)
+    for needle, label in (
+        ("repository_commit=6ffe2836e06b5a76a3bfcf86a38b06d388793953", "identity-source-build-commit"),
+        ("backend=buildbox", "identity-source-build-backend"),
+        ("buildbox_job=6ffe2836e06b5a76a3bfcf86a38b06d388793953-dvfsp-resource-owner-readonly-m0", "identity-source-build-job"),
+        ("profile=dvfsp-resource-owner-readonly", "identity-source-build-profile"),
+        ("patch_count=227", "identity-source-build-patch-count"),
+        ("patchset_sha256=f0d6c5aaad0bca58bafd8c6a0d2dcb88fd39c4f4d67696b740347a151f7a3983", "identity-source-build-patchset"),
+        ("artifact=linux-7.1.3-gemini-dvfsp-resource-owner-readonly-f0d6c5aa-c548d243", "identity-source-build-artifact"),
+        ("image_gzip_sha256=acf75cab0232619cedd5ba15c637f6ed24f0d9b1f802d46f45171b8880e885a7", "identity-source-build-image-hash"),
+        ("dtb_count=119", "identity-source-build-dtb-count"),
+        ("package_validation=passed", "identity-source-build-checksums"),
+        ("package_fetch=validated-package-only", "identity-source-build-fetch"),
+        ("hardware_write=none", "identity-source-build-no-write"),
+        ("device_boot=none", "identity-source-build-no-boot"),
+        ("provider_registration=absent", "identity-source-build-no-registration"),
+        ("cpu8_cpu9_admission=closed", "identity-source-build-no-admission"),
+    ):
+        require(identity_source_bridge_build_result, needle, label)
     for forbidden in ("readl(", "writel(", "regulator_", "clk_", "i2c_transfer",
                       "arm_smccc", "platform_driver", "cpu_up(", "secure_write"):
         if forbidden in ppm_policy_source:
@@ -2019,6 +2060,8 @@ def main() -> None:
         raise AssertionError("generation coherence is not after PPM policy binding")
     if names.index("0236-soc-mediatek-bind-CSPM-sample-to-live-provider.patch") >= names.index("0237-soc-mediatek-add-MT6797-efuse-identity-and-rail-converters.patch"):
         raise AssertionError("efuse and rail helpers are not after CSPM live binding")
+    if names.index("0237-soc-mediatek-add-MT6797-efuse-identity-and-rail-converters.patch") >= names.index("0238-soc-mediatek-bind-efuse-identity-to-owner-source.patch"):
+        raise AssertionError("identity source bridge is not after efuse and rail helpers")
 
     for forbidden in ("readl(", "writel(", "i2c_transfer", "regulator_enable(",
                       "regulator_disable(", "psci_ops.cpu_on", "cpu_up("):
@@ -2130,6 +2173,8 @@ def main() -> None:
     print("cspm_live_buildbox=validated;commit=004431172ff16ef2efb775a8c50bd8942c1ed919;patch_count=225;artifact=linux-7.1.3-gemini-dvfsp-resource-owner-readonly-ad3cae89-c548d243;sha256sums=passed;package_fetch=success;validated_package_only;provider=none;registered_owner=0;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("efuse_rail_helpers=0237;read_only_identity_cell;vendor_function_date_decode;vproc_vsram_code_to_uv;provider_registration_absent;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("efuse_rail_buildbox=validated;commit=85e96f7603f9ba72e11c317932024555b05d77fb;patch_count=226;artifact=linux-7.1.3-gemini-dvfsp-resource-owner-readonly-e56c42be-c548d243;image_gzip_sha256=d3f5f2ceb8cfc09b2a9ba6926122a8c8fba7b756a2c557576c934fc85a73fbeb;package_validation=passed;package_fetch=validated-package-only;provider=none;registered_owner=0;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
+    print("identity_source_bridge=0238;read_only_efuse_ptp_identity;explicit_table_epoch_callback;explicit_calibration_handle_callback;owner_source_abi=6;registration_absent;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
+    print("identity_source_bridge_buildbox=validated;commit=6ffe2836e06b5a76a3bfcf86a38b06d388793953;patch_count=227;artifact=linux-7.1.3-gemini-dvfsp-resource-owner-readonly-f0d6c5aa-c548d243;image_gzip_sha256=acf75cab0232619cedd5ba15c637f6ed24f0d9b1f802d46f45171b8880e885a7;package_validation=passed;package_fetch=validated-package-only;provider=none;registered_owner=0;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("calibrated_provider_buildbox=validated;commit=a28dd0f9d57b747258d2c70fbae7b14a9e3c010d;profile=dvfsp-resource-owner-readonly;patch_count=224;artifact=linux-7.1.3-gemini-dvfsp-resource-owner-readonly-dede19ab-c548d243;sha256sums=passed;package_fetch=success;validated_package_only;provider=none;registered_owner=0;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("owner_abi_repair=0232;ppm_owner_header_restored;snapshot_handles_declared;compile_boundary_only")
     print("build_boundary_repairs=0233+0234;handoff_return_export;calibration_cluster_type;state_owner_mutex_probe_init;duplicate_tail_removed;compile_boundary_only")

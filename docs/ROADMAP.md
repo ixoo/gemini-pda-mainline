@@ -2521,6 +2521,18 @@ source-backed PPM/CCI rows and limits, live rail callbacks, and one shared
 transition generation/lock; only after those pass can provider registration,
 runtime validation, and device boot be reconsidered.
 
+Patch `0238` now binds that read-only identity cell to the dormant owner-source
+seam. It decodes the silicon-selected PTP variant and requires explicit
+provider callbacks for the u64 table epoch and calibration handle; neither
+provenance value is fabricated, and the owner-source ABI is widened to match
+the existing u64 PPM/generation contracts. Buildbox validated clean revision
+`6ffe283` with 227 patches, 119 DTBs, package checksums, and the fetched
+package; see the [identity-source bridge receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/identity-source-bridge-buildbox-20260810.txt).
+The bridge is read-only and dormant: no owner/provider registration, MMIO or
+rail/clock write, mutable table read, device boot, or CPU8/CPU9 admission was
+added. The next ordered implementation is the source-backed PPM/CCI rows and
+limits, live rail callbacks, and one shared transition generation/lock.
+
 Required evidence:
 
 - provider registration performs no register-data write;
