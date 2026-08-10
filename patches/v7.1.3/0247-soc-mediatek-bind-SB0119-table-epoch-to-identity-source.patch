@@ -1,0 +1,82 @@
+From 0000000000000000000000000000000000000247 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 10 Aug 2026 14:20:00 -0400
+Subject: [PATCH] soc: mediatek: bind SB/0119 table epoch to identity source
+
+The public MT6797 runtime and source-backed table reader identify the exact
+SB/0119 frequency family, including its source epoch. Reuse that identity for
+the existing provenance callback instead of making a second epoch provider.
+The calibration-handle callback remains mandatory and external; this patch
+does not invent a handle, policy limit, PPM lock, or transition generation.
+
+This is a source-backed, read-only bridge with hardware-free KUnit coverage.
+
+---
+ include/linux/soc/mediatek/mt6797-dvfsp-table-source.h |  6 ++++++
+ drivers/soc/mediatek/mt6797-dvfsp-table-source.c      | 20 ++++++++++++++++++++
+ drivers/soc/mediatek/mt6797-dvfsp-table-source-test.c |  3 +++
+ 3 files changed, 29 insertions(+)
+
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-table-source.h b/include/linux/soc/mediatek/mt6797-dvfsp-table-source.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-table-source.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-table-source.h
+@@ -27,7 +27,12 @@ struct mt6797_dvfsp_table_source_snapshot {
+ };
+ 
+ int mt6797_dvfsp_table_source_read(
+ 	const struct mt6797_dvfsp_ptp_identity *identity,
+ 	struct mt6797_dvfsp_table_source_snapshot *snapshot);
+ 
++int mt6797_dvfsp_table_source_read_epoch(
++	void *context,
++	const struct mt6797_dvfsp_ptp_identity *identity,
++	u64 *table_epoch);
++
+ #endif /* __LINUX_SOC_MEDIATEK_MT6797_DVFSP_TABLE_SOURCE_H */
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-table-source.c b/drivers/soc/mediatek/mt6797-dvfsp-table-source.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-table-source.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-table-source.c
+@@ -82,6 +82,26 @@ int mt6797_dvfsp_table_source_read(
+ 	return 0;
+ }
+ EXPORT_SYMBOL_GPL(mt6797_dvfsp_table_source_read);
+ 
++int mt6797_dvfsp_table_source_read_epoch(
++	void *context,
++	const struct mt6797_dvfsp_ptp_identity *identity,
++	u64 *table_epoch)
++{
++	struct mt6797_dvfsp_table_source_snapshot snapshot;
++	int ret;
++
++	(void)context;
++	if (!table_epoch)
++		return -EINVAL;
++	ret = mt6797_dvfsp_table_source_read(identity, &snapshot);
++	if (ret)
++		return ret;
++	*table_epoch = snapshot.source_epoch;
++
++	return 0;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_table_source_read_epoch);
++
+ MODULE_DESCRIPTION("MT6797 source-backed SB/0119 frequency-table identity");
+ MODULE_LICENSE("GPL");
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-table-source-test.c b/drivers/soc/mediatek/mt6797-dvfsp-table-source-test.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-table-source-test.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-table-source-test.c
+@@ -31,8 +31,13 @@ static void mt6797_dvfsp_table_source_exact_sb0119(struct kunit *test)
+ 	struct mt6797_dvfsp_table_source_snapshot snapshot;
+ 	unsigned int bank;
+ 	unsigned int row;
++	u64 epoch;
+ 
+ 	KUNIT_ASSERT_EQ(test,
+ 		mt6797_dvfsp_table_source_read(&identity, &snapshot), 0);
++	KUNIT_ASSERT_EQ(test,
++		mt6797_dvfsp_table_source_read_epoch(NULL, &identity, &epoch), 0);
++	KUNIT_EXPECT_EQ(test, epoch,
++		(u64)MT6797_DVFSP_TABLE_SOURCE_EPOCH_SB0119);
+ 	KUNIT_EXPECT_EQ(test, snapshot.abi,
+ 		MT6797_DVFSP_TABLE_SOURCE_ABI);
