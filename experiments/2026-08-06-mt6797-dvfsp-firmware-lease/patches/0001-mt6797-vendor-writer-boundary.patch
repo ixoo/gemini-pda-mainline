@@ -335,7 +335,7 @@ index 2a3c757a8..9dace845c 100755
  
 +	writer_ret = gemini_mt6797_dvfsp_vendor_writer_begin(
 +		&writer_transaction,
-+		GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_VOLTAGE);
++		GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_PTP_TABLE);
 +	if (writer_ret) {
 +		FUNC_EXIT(FUNC_LV_API);
 +		return writer_ret;
@@ -371,7 +371,7 @@ index 2a3c757a8..9dace845c 100755
  
 +	writer_ret = gemini_mt6797_dvfsp_vendor_writer_begin(
 +		&writer_transaction,
-+		GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_VOLTAGE);
++		GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_PTP_TABLE);
 +	if (writer_ret) {
 +		FUNC_EXIT(FUNC_LV_HELP);
 +		return writer_ret;
@@ -429,5 +429,4 @@ index 2a3c757a8..9dace845c 100755
  
 -- 
 2.39.5
-
 

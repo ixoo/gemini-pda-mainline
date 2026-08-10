@@ -7,7 +7,7 @@ vendor_origin=https://github.com/gemian/gemini-linux-kernel-3.18.git
 vendor_revision=d388d350cb2dda8f23b99be6fa5db9628896e87f
 vendor_mt_cpufreq_blob=2a3c757a85f6fb10679a9e929523fd9745f995a0
 candidate_patch=experiments/2026-08-06-mt6797-dvfsp-firmware-lease/patches/0001-mt6797-vendor-writer-boundary.patch
-candidate_patch_sha256=52b2343f86a9552dd965fe7d533310db60a5ae12e1856c013ef1005d4472c190
+candidate_patch_sha256=92d01a399827ea1b9edadabc43aba929d09d08f84d85f64410407b794da595bd
 candidate_series=experiments/2026-08-06-mt6797-dvfsp-firmware-lease/patches/series
 
 workflow=Buildbox_temporary_vendor_checkout_from_pinned_Git_inputs
@@ -18,8 +18,7 @@ gemini_modular_defconfig=passed
 bridge_object=drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.o;passed
 affected_object=drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.o;passed
 
-ptp_restore_sites=2;begin_before_cpufreq_lock;finish_after_cpufreq_lock
-voltage_table_sites=2;begin_before_cpufreq_lock;finish_after_cpufreq_lock
+ptp_table_writer_sites=4;begin_before_cpufreq_lock;finish_after_cpufreq_lock
 ppm_site=1;begin_before_cpufreq_lock;finish_after_cpufreq_lock
 voltage_observer_outer_site=unbound;no_recursive_bridge_acquire
 observer_begin_call=absent
