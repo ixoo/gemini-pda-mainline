@@ -1278,6 +1278,9 @@
                 "fragments": [
                     "configs/gemini.fragment",
                     "configs/gemini-dvfsp-handoff-owner.fragment",
+                    "configs/gemini-dvfsp-clock-backend.fragment",
+                    "configs/gemini-dvfsp-bigidvfs-readonly.fragment",
+                    "configs/gemini-dvfsp-eem-readback.fragment",
                     "configs/gemini-dvfsp-resource-owner.fragment"
                 ]
             }
