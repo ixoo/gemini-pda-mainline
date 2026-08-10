@@ -18,14 +18,9 @@ rail conversion, provider registration, and hardware actions remain closed.
 diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-state.h b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-state.h
 --- a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-state.h
 +++ b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-state.h
-@@ -17,2 +17,3 @@
- #define GEMINI_MT6797_DVFSP_VENDOR_MAX_DETECTOR	6
- #define GEMINI_MT6797_DVFSP_VENDOR_MAX_FREQ	16
+@@ -18,0 +19 @@
 +#define GEMINI_MT6797_DVFSP_VENDOR_EEM_VOLTAGE_UNIT_10UV	1
-@@ -106,4 +106,11 @@ struct gemini_mt6797_dvfsp_vendor_eem_detector {
- 	u32 volt_tbl[GEMINI_MT6797_DVFSP_VENDOR_MAX_FREQ];
- 	u32 volt_tbl_init2[GEMINI_MT6797_DVFSP_VENDOR_MAX_FREQ];
- 	u32 volt_tbl_pmic[GEMINI_MT6797_DVFSP_VENDOR_MAX_FREQ];
+@@ -108,0 +109,7 @@
 +	u32 voltage_unit;
 +	u32 eem_v_base;
 +	u32 eem_step;
@@ -33,16 +28,11 @@ diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-state.h
 +	u32 pmic_step;
 +	s32 volt_offset;
 +	s32 pi_offset;
- };
 
 diff --git a/drivers/misc/mediatek/base/power/mt6797/mt_eem.c b/drivers/misc/mediatek/base/power/mt6797/mt_eem.c
 --- a/drivers/misc/mediatek/base/power/mt6797/mt_eem.c
 +++ b/drivers/misc/mediatek/base/power/mt6797/mt_eem.c
-@@ -6618,5 +6618,12 @@ int gemini_mt6797_dvfsp_vendor_eem_snapshot(
- 			dst->volt_tbl[j] = det->volt_tbl[j];
- 			dst->volt_tbl_init2[j] = det->volt_tbl_init2[j];
- 			dst->volt_tbl_pmic[j] = det->volt_tbl_pmic[j];
- 		}
+@@ -6620,0 +6621,7 @@ int gemini_mt6797_dvfsp_vendor_eem_snapshot(
 +		dst->voltage_unit = GEMINI_MT6797_DVFSP_VENDOR_EEM_VOLTAGE_UNIT_10UV;
 +		dst->eem_v_base = det->eem_v_base;
 +		dst->eem_step = det->eem_step;
@@ -50,17 +40,11 @@ diff --git a/drivers/misc/mediatek/base/power/mt6797/mt_eem.c b/drivers/misc/med
 +		dst->pmic_step = det->pmic_step;
 +		dst->volt_offset = det->volt_offset;
 +		dst->pi_offset = det->pi_offset;
- 	}
 
 diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
 --- a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
 +++ b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
-@@ -1015,5 +1015,13 @@ static int gemini_mt6797_dvfsp_vendor_source_snapshot(
- 			dst->eem[i].volt_tbl_init2[j] =
- 				eem.detector[i].volt_tbl_init2[j];
- 			dst->eem[i].volt_tbl_pmic[j] =
- 				eem.detector[i].volt_tbl_pmic[j];
- 		}
+@@ -1018,0 +1019,8 @@ static int gemini_mt6797_dvfsp_vendor_source_snapshot(
 +		dst->eem[i].voltage_unit =
 +			GEMINI_MT6797_DVFSP_VENDOR_EEM_VOLTAGE_UNIT_10UV;
 +		dst->eem[i].eem_v_base = eem.detector[i].eem_v_base;
@@ -69,4 +53,3 @@ diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.
 +		dst->eem[i].pmic_step = eem.detector[i].pmic_step;
 +		dst->eem[i].volt_offset = eem.detector[i].volt_offset;
 +		dst->eem[i].pi_offset = eem.detector[i].pi_offset;
- 	}
