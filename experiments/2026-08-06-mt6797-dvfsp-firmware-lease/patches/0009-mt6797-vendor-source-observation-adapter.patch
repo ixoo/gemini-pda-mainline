@@ -26,8 +26,8 @@ diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.
  	GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_COUNT,
  };
 @@ -156,2 +156,4 @@
-	struct gemini_mt6797_dvfsp_vendor_writer_transaction *transaction,
-	int result);
+ 	struct gemini_mt6797_dvfsp_vendor_writer_transaction *transaction,
+ 	int result);
 +int gemini_mt6797_dvfsp_vendor_writer_abort_observation(
 +	struct gemini_mt6797_dvfsp_vendor_writer_transaction *transaction);
 @@ -51,1 +51,1 @@
