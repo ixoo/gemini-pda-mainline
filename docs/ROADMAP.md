@@ -3010,6 +3010,20 @@ separate owner/provider registration candidate only after one shared
 generation lock and all invalidation paths are proven. No device boot/write or
 CPU8/CPU9 admission is authorized.
 
+The exact pushed vendor-state adapter candidate `3200450` was then applied to
+the pinned vendor revision `d388d350` on Buildbox through a temporary Git
+checkout. All four experiment patches applied cleanly, the vendor
+`gemini_modular_defconfig` passed, and the writer bridge, cpufreq, hybrid CSPM,
+EEM, and PPM objects all compiled with the required vendor include roots; see
+the [vendor-state adapter Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-state-adapters-buildbox-20260810.txt).
+The wrapper's final checksum-printing line returned nonzero after those five
+objects completed, so this is recorded as compile evidence with that reporting
+limitation, not as a package or hardware result. The adapters remain
+read-only, unregistered, and source-backed; no setter/provider/device action
+occurred, and CPU8/CPU9 admission remains closed. The next ordered step is a
+separate read-only runtime owner-registration review only after a shared
+generation and every invalidation path are proven.
+
 Required evidence:
 
 - provider registration performs no register-data write;
