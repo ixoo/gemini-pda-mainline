@@ -23,10 +23,10 @@ is experiment-only and not submission-ready.
 diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-source.c b/drivers/soc/mediatek/mt6797-dvfsp-state-source.c
 --- a/drivers/soc/mediatek/mt6797-dvfsp-state-source.c
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-state-source.c
-@@ -27,6 +27,38 @@ static int mt6797_dvfsp_state_source_check(
+@@ -27,7 +27,42 @@ static int mt6797_dvfsp_state_source_check(
  	return 0;
  }
-
+ 
 +static int mt6797_dvfsp_state_source_ppm_calibration_match(
 +	const struct mt6797_dvfsp_ppm_snapshot *ppm,
 +	const struct mt6797_dvfsp_calibration_state *calibration)
@@ -66,7 +66,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-source.c b/drivers/soc/medi
  int mt6797_dvfsp_state_source_snapshot(
  	const struct mt6797_dvfsp_state_source_ops *ops, void *context,
  	struct mt6797_dvfsp_state_snapshot *snapshot)
-@@ -99,6 +131,9 @@ int mt6797_dvfsp_state_source_snapshot(
+@@ -99,7 +131,11 @@ int mt6797_dvfsp_state_source_snapshot(
  	ret = mt6797_eem_calibration_build(&calibration_input,
  					   &calibration_state);
  	if (ret)
@@ -76,7 +76,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-source.c b/drivers/soc/medi
 +	if (ret)
 +		return ret;
  
-	memset(&live, 0, sizeof(live));
+ 	memset(&live, 0, sizeof(live));
  	ret = ops->fill_live(context, &clock_state, &calibration_state,
 --
 2.43.0
