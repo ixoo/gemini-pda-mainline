@@ -920,6 +920,14 @@ and provenance checksums, and validated-package-only fetch; see the [Buildbox
 receipt](results/buildbox-resume-f9e8c58-20260810.txt). This remains compile-only
 evidence: no provider registration or device action occurred.
 
+Patch `0247` now reuses the validated SB/0119 source epoch as the existing
+identity-source table-epoch callback. The exact pushed head `979991b` passed the
+full 236-patch Buildbox build, all 119 DTB checks, package/provenance checksums,
+and validated-package-only fetch; see the [Buildbox receipt](results/buildbox-resume-979991b-20260810.txt).
+This closes only the table-epoch callback. The calibration handle, mutable PPM
+policy, vendor lock, and transition generation remain external prerequisites;
+no owner/provider registration or device action occurred.
+
 The current pushed head `96607a3` was then rebuilt with the explicit
 `dvfsp-owner-kunit` Buildbox profile. All 234 canonical patches, 119 DTBs,
 package checksums, and the validated-package-only fetch passed; the [current

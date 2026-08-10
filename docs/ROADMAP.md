@@ -2704,6 +2704,15 @@ the separately attributable runtime owner for mutable policy, calibration,
 transition lock, and generation; no device boot/write or CPU8/CPU9 admission
 occurred.
 
+Patch `0247` now binds the proven SB/0119 table epoch to the existing identity
+source callback without inventing a calibration handle. The exact pushed head
+`979991b` passed the full 236-patch `dvfsp-owner-kunit` Buildbox build, all 119
+DTBs, package/provenance checksums, and validated-package-only fetch; see the
+[Buildbox receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/buildbox-resume-979991b-20260810.txt).
+The next gate remains an attributable calibration, mutable-policy, PPM-lock,
+and transition-generation owner; no registration, device boot/write, or
+CPU8/CPU9 admission occurred.
+
 The exact pushed head `96607a3` was rebuilt on Buildbox with the
 `dvfsp-owner-kunit` profile after the current-head receipt was recorded; all
 234 canonical patches, 119 DTBs, package checksums, and the validated-package
