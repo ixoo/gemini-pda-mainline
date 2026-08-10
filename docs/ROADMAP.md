@@ -2834,6 +2834,21 @@ admission remains closed. The next ordered action remains attributable
 integration at the vendor-aware writer boundary before the cpufreq critical
 section, followed by separate read-only runtime registration evidence.
 
+Patch `0253` closes the terminal-generation edge case before any vendor callback
+can run: a writer transaction now refuses `~0ULL` with `-EOVERFLOW`, leaving the
+generation and held state unchanged. Patch `0254` adds the reusable pre-lock
+writer boundary, which acquires the shared owner, passes its captured generation
+through the existing vendor callback chain, and commits or aborts as one
+transaction. The exact pushed head `0d990f7` completed the named
+`dvfsp-owner-kunit` Buildbox job: all 243 canonical patches applied, the arm64
+kernel linked, all 119 DTBs and package/provenance checksums passed, and only the
+validated package was fetched; see the [Buildbox resume receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/buildbox-resume-0d990f7-20260810.txt).
+This is compile-only boundary evidence: no vendor source was copied, no actual
+vendor setter or provider/runtime registration was called, no device was booted
+or written, and CPU8/CPU9 admission remains closed. The next ordered action is
+binding the pre-lock wrapper at attributable vendor writer sites, followed by
+separate read-only runtime registration evidence.
+
 Required evidence:
 
 - provider registration performs no register-data write;
