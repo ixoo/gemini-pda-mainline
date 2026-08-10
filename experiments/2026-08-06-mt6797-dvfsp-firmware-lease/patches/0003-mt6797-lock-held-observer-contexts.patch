@@ -1,0 +1,88 @@
+From 34d3a944de36b30d6481427cd919ae9bfc75662e Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 10 Aug 2026 14:35:21 +0000
+Subject: [PATCH] power: bind lock-held vendor voltage observer contexts
+
+
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c b/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c
+index dd4f21865..4f561a79c 100755
+--- a/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c
++++ b/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c
+@@ -4364,10 +4364,21 @@ static int __cpuinit _mt_cpufreq_cpu_CB(struct notifier_block *nfb, unsigned lon
+ 	struct cpumask cpu_online_cpumask;
+ 	unsigned int cpus;
+ 	unsigned long flags;
++	int writer_ret;
++	struct gemini_mt6797_dvfsp_vendor_writer_transaction writer_transaction = { };
+ 
+ 	if (dvfs_disable_flag == 1)
+ 		return NOTIFY_OK;
+ 
++	writer_ret = gemini_mt6797_dvfsp_vendor_writer_begin(
++		&writer_transaction,
++		GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_VOLTAGE);
++	if (writer_ret) {
++		cpufreq_err("DVFSP writer bridge refused CPU-hotplug transition: %d\n",
++			    writer_ret);
++		return NOTIFY_OK;
++	}
++
+ 	p_cci = id_to_cpu_dvfs(MT_CPU_DVFS_CCI);
+ 	p_ll = id_to_cpu_dvfs(MT_CPU_DVFS_LL);
+ 	p_l = id_to_cpu_dvfs(MT_CPU_DVFS_L);
+@@ -4682,6 +4693,12 @@ UNLOCK_DD:
+ 
+ 	aee_record_cpu_dvfs_cb(0);
+ 
++	writer_ret = gemini_mt6797_dvfsp_vendor_writer_finish(
++		&writer_transaction, 0);
++	if (writer_ret)
++		cpufreq_err("DVFSP writer bridge failed CPU-hotplug commit: %d\n",
++			    writer_ret);
++
+ 	return NOTIFY_OK;
+ }
+ 
+@@ -5297,10 +5314,26 @@ static void notify_cpuhvfs_change_cb(struct dvfs_log *log_box, int num_log)
+ 	unsigned long flags;
+ 	struct mt_cpu_dvfs *p;
+ 	struct cpufreq_freqs freqs;
++	int writer_ret;
++	struct gemini_mt6797_dvfsp_vendor_writer_transaction writer_transaction = { };
++
++	writer_ret = gemini_mt6797_dvfsp_vendor_writer_begin(
++		&writer_transaction,
++		GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_VOLTAGE);
++	if (writer_ret) {
++		cpufreq_err("DVFSP writer bridge refused hardware-governor transition: %d\n",
++			    writer_ret);
++		return;
++	}
+ 
+ 	cpufreq_lock(flags);
+ 	if (!enable_hw_gov || num_log < 1) {
+ 		cpufreq_unlock(flags);
++		writer_ret = gemini_mt6797_dvfsp_vendor_writer_finish(
++			&writer_transaction, -ECANCELED);
++		if (writer_ret)
++			cpufreq_err("DVFSP writer bridge failed hardware-governor abort: %d\n",
++				    writer_ret);
+ 		return;
+ 	}
+ 
+@@ -5352,6 +5385,11 @@ static void notify_cpuhvfs_change_cb(struct dvfs_log *log_box, int num_log)
+ 		cpufreq_freq_transition_end(p->mt_policy, &freqs, 0);
+ 	}
+ 	cpufreq_unlock(flags);
++	writer_ret = gemini_mt6797_dvfsp_vendor_writer_finish(
++		&writer_transaction, 0);
++	if (writer_ret)
++		cpufreq_err("DVFSP writer bridge failed hardware-governor commit: %d\n",
++			    writer_ret);
+ }
+ #endif
+ 
+-- 
+2.39.5
+
+

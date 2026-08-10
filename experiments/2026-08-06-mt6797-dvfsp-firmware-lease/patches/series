@@ -1,2 +1,3 @@
 0001-mt6797-vendor-writer-boundary.patch
 0002-mt6797-voltage-observer-outer-boundary.patch
+0003-mt6797-lock-held-observer-contexts.patch
