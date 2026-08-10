@@ -1,0 +1,65 @@
+From 0000000000000000000000000000000000000232 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 10 Aug 2026 12:45:00 -0400
+Subject: [PATCH] soc: mediatek: repair owner ABI declarations
+
+Repair two declaration gaps exposed when the resource-only profile first
+compiled the owner-source chain. The PPM owner header introduced by the
+preceding patch was truncated to its SPDX line by an invalid one-line hunk,
+and the public state snapshot omitted the owner and transition handles that
+the source owner already validates.
+
+This restores declarations only. It adds no provider, readback, hardware
+operation, firmware call, registration, or CPU admission. This patch is
+experiment-only and not submission-ready.
+---
+ include/linux/soc/mediatek/mt6797-dvfsp-handoff.h    |  2 ++
+ include/linux/soc/mediatek/mt6797-dvfsp-ppm-owner.h  | 27 ++++++++++++++++++++
+ 2 files changed, 29 insertions(+)
+
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-ppm-owner.h b/include/linux/soc/mediatek/mt6797-dvfsp-ppm-owner.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-ppm-owner.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-ppm-owner.h
+@@ -1 +1,28 @@
+ /* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __LINUX_SOC_MEDIATEK_MT6797_DVFSP_PPM_OWNER_H
++#define __LINUX_SOC_MEDIATEK_MT6797_DVFSP_PPM_OWNER_H
++
++#include <linux/types.h>
++
++#include <linux/soc/mediatek/mt6797-dvfsp-ppm-policy.h>
++#include <linux/soc/mediatek/mt6797-dvfsp-ppm.h>
++#include <linux/soc/mediatek/mt6797-dvfsp-ptp.h>
++
++#define MT6797_DVFSP_PPM_OWNER_ABI		1
++
++/*
++ * The state owner holds its external transition lock before taking this
++ * owner lock. snapshot() must copy both objects while lock() is held and
++ * must not publish a table epoch unrelated to either object.
++ */
++struct mt6797_dvfsp_ppm_owner_ops {
++	u32 abi;
++	int (*lock)(void *context);
++	void (*unlock)(void *context);
++	int (*snapshot)(void *context,
++			const struct mt6797_dvfsp_ptp_state *ptp_state,
++			struct mt6797_dvfsp_ppm_snapshot *ppm,
++			struct mt6797_dvfsp_ppm_policy_snapshot *policy);
++};
++
++#endif /* __LINUX_SOC_MEDIATEK_MT6797_DVFSP_PPM_OWNER_H */
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
+@@ -126,6 +126,8 @@ struct mt6797_dvfsp_state_snapshot {
+ 	u32 abi;
+ 	u32 cluster_mask;
+ 	u64 generation;
++	u64 owner_handle;
++	u64 transition_handle;
+ 	struct mt6797_dvfsp_state_provenance provenance;
+ 	struct mt6797_dvfsp_state_cluster
+ 		cluster[MT6797_DVFSP_STATE_CLUSTER_COUNT];
+--
+2.43.0
