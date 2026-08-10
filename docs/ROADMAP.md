@@ -2918,6 +2918,21 @@ This compile-only rebuild records the current artifact identity but does not
 change the integration gate or authorize a device boot/write: vendor callers
 remain unbound and CPU8/CPU9 admission stays closed.
 
+The clean-room candidate at [0001-mt6797-vendor-writer-boundary.patch](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/patches/0001-mt6797-vendor-writer-boundary.patch)
+now binds the four pinned PTP/voltage-table writers and the PPM policy callback
+to one fail-closed, externally registered transaction bridge. Each hook begins
+before the vendor `cpufreq_lock` and finishes after it; atomic/IRQ-disabled
+entry is refused, and the voltage observer's sleepable outer transition is not
+wrapped recursively. The exact project commit `b671930` was applied to the
+pinned vendor revision on Buildbox through Git; `git apply --check`, the
+vendor defconfig, the bridge object, and the affected `mt_cpufreq.o` all passed;
+the [vendor-boundary Buildbox review](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-writer-boundary-buildbox-20260810.txt)
+records the exact inputs and static checks. This remains compile-only
+integration evidence: the bridge has no registered owner/provider, no vendor
+setter was called, no device action occurred, and CPU8/CPU9 admission remains
+closed. The next ordered gate is mapping the sleepable outer voltage-observer
+transition, followed by separate read-only owner-registration evidence.
+
 Required evidence:
 
 - provider registration performs no register-data write;
