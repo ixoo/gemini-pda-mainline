@@ -2178,6 +2178,16 @@ The next ordered work remains source-only:
    binding, snapshot assembler, and registration bridge are conversion and
    lifecycle seams, not hardware ownership proof. Until that provider exists,
    the protected backends and CPU8/CPU9 admission remain closed.
+   Patch `0220` now carries the calibrated thermal-zone maximum in the locked
+   MT6797 EEM readback and requires the calibration builder to consume that
+   exact value, restoring the selector before return. Revision `109aaf3` applies
+   all 209 canonical entries on Buildbox, produces 119 DTBs, passes package
+   checksums, and fetches only the validated package; see the [EEM temperature
+   readback Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/eem-temperature-readback-buildbox-20260810.txt).
+   This remains a compile-only prerequisite: no real provider, generation
+   callback, hardware operation, device boot, or CPU8/CPU9 admission was added.
+   The next implementation must still bind real EEM/PTP/PPM, PMIC/clock rails,
+   and transition generations under one authoritative owner.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and

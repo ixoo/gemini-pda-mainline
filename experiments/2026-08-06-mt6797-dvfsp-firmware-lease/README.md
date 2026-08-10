@@ -580,3 +580,14 @@ boundaries, but none is an owner and none can authorize a transition without
 the real callbacks. The protected owner still needs real EEM/PTP/rail state,
 transition-lock integration, generation-producing callbacks, and runtime
 proof; until then, the owner/provider and CPU8/CPU9 admission remain closed.
+
+Patch `0220` raises the locked EEM readback ABI to carry the calibrated thermal
+zone maximum collected while the existing thermal-driver lock is held. The
+calibration builder must consume that exact readback temperature and the
+selector is restored before returning. Revision `109aaf3` applied all 209
+canonical entries on Buildbox, produced 119 DTBs, passed package checksums, and
+fetched only the validated package; see the [EEM temperature readback Buildbox
+result](results/eem-temperature-readback-buildbox-20260810.txt). This is a
+compile-only provider prerequisite: no EEM/PTP/PPM or PMIC/clock provider,
+generation callback, hardware operation, device boot, or CPU8/CPU9 admission
+was added.
