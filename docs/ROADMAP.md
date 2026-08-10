@@ -3103,6 +3103,20 @@ hardware-governor contexts plus complete runtime invalidation coverage, then a
 separate read-only runtime review. See the [registration handoff Buildbox
 result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-writer-registration-handoff-buildbox-20260810.txt).
 
+The post-series caller/lifecycle audit now provides the attributable source
+check for that gate. All named writer contexts have fail-closed begin/finish
+wrappers, but the vendor probe/remove paths never invoke the owner registration
+handoff, PM registration has no matching removal, and the CPU-hotplug, PM,
+clock, rail, and fault paths do not forward 0207 invalidation events through a
+shared generation. Since an unregistered writer returns `-ENODEV`, the
+six-patch vendor series is not a boot candidate. See the [caller lifecycle and
+invalidation audit](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-caller-lifecycle-invalidation-audit-20260811.txt).
+The next ordered step is to prepare a separate vendor-aware lifecycle
+candidate that registers before any wrapped path is reachable, unwinds every
+failure/remove path, and forwards all lifecycle invalidations through the
+mainline owner contract; then validate that exact candidate on Buildbox. No
+device boot/write or CPU8/CPU9 admission is authorized.
+
 Required evidence:
 
 - provider registration performs no register-data write;

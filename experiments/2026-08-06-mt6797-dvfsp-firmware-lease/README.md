@@ -125,6 +125,7 @@ be copied directly into a mainline failure/PM path.
 - [Vendor writer/mainline owner integration review](results/vendor-writer-mainline-owner-integration-review-20260810.txt)
 - [Vendor writer mainline-owner binding design](results/vendor-writer-mainline-owner-binding-design-20260811.txt)
 - [Vendor writer registration handoff Buildbox validation](results/vendor-writer-registration-handoff-buildbox-20260810.txt)
+- [Vendor caller lifecycle and runtime invalidation audit](results/vendor-caller-lifecycle-invalidation-audit-20260811.txt)
 
 Run from the repository root:
 
@@ -1246,3 +1247,17 @@ checksums, and the validated-package-only fetch passed. This is compile-only
 evidence: external register/unregister callbacks are not invoked, the vendor
 setter and provider remain dormant, and no device or CPU8/CPU9 action is
 authorized. See the [registration handoff Buildbox result](results/vendor-writer-registration-handoff-buildbox-20260810.txt).
+
+The post-series caller/lifecycle audit now confirms that the six experiment
+patches place fail-closed begin/finish wrappers at every named PTP, voltage
+outer, PPM, CPU-hotplug, and hardware-governor context. It also finds the real
+remaining gap: probe/remove do not call the owner registration handoff, PM
+registration has no matching removal, and none of the vendor CPU, PM, clock,
+rail, or fault paths emits a 0207 invalidation event. Because an unregistered
+writer returns `-ENODEV`, this series is explicitly not a boot candidate until
+registration is ordered before wrapped paths become reachable and every
+failure/remove path is unwound. See the [caller lifecycle and invalidation
+audit](results/vendor-caller-lifecycle-invalidation-audit-20260811.txt). The
+next action is a separate vendor-aware lifecycle candidate with shared-
+generation event forwarding, followed by exact Buildbox validation; no device
+boot/write or CPU8/CPU9 admission is authorized.

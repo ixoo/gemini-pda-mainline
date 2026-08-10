@@ -66,6 +66,8 @@ VENDOR_WRITER_INTEGRATION_REVIEW_RESULT = (Path(__file__).resolve().parents[1] /
                                            "results/vendor-writer-mainline-owner-integration-review-20260810.txt")
 VENDOR_WRITER_REGISTRATION_BUILD_RESULT = (Path(__file__).resolve().parents[1] /
                                            "results/vendor-writer-registration-handoff-buildbox-20260810.txt")
+VENDOR_CALLER_LIFECYCLE_AUDIT_RESULT = (Path(__file__).resolve().parents[1] /
+                                        "results/vendor-caller-lifecycle-invalidation-audit-20260811.txt")
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
 START_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-start-contract-20260806.txt"
 OWNER_RESULT = Path(__file__).resolve().parents[1] / "results/public-hybrid-owner-source-20260806.txt"
@@ -238,6 +240,7 @@ def main() -> None:
     mainline_writer_registration_patch = MAINLINE_WRITER_REGISTRATION_PATCH.read_text()
     vendor_writer_integration_review_result = VENDOR_WRITER_INTEGRATION_REVIEW_RESULT.read_text()
     vendor_writer_registration_build_result = VENDOR_WRITER_REGISTRATION_BUILD_RESULT.read_text()
+    vendor_caller_lifecycle_audit_result = VENDOR_CALLER_LIFECYCLE_AUDIT_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     eem_calibration_source = eem_calibration_patch[eem_calibration_patch.index("diff --git"):]
@@ -396,6 +399,23 @@ def main() -> None:
         ("cpu8_cpu9_admission=closed", "vendor-registration-build-no-admission"),
     ):
         require(vendor_writer_registration_build_result, needle, label)
+
+    for needle, label in (
+        ("claim=SOURCE_ONLY_MT6797_VENDOR_CALLER_LIFECYCLE_INVALIDATION_AUDIT", "vendor-caller-audit-claim"),
+        ("mainline_commit=b414481ad0f7b56e5205f08ddd0e7e8ab0b3efa3", "vendor-caller-audit-mainline-commit"),
+        ("vendor_revision=d388d350cb2dda8f23b99be6fa5db9628896e87f", "vendor-caller-audit-revision"),
+        ("vendor_series=0001..0006", "vendor-caller-audit-series"),
+        ("writer_contexts=all_named_ptp_voltage_outer_ppm_cpu_hotplug_hardware_governor_contexts_have_fail_closed_begin_finish_wrappers", "vendor-caller-audit-wrappers"),
+        ("probe_registration=register_hotcpu_notifier:5643;mt_ppm_register_client:5644;pm_notifier:5651;writer_registration_call=absent", "vendor-caller-audit-probe-gap"),
+        ("remove_teardown=unregister_hotcpu_notifier:5665;cpufreq_unregister_driver:5668;writer_unregistration_call=absent;unregister_pm_notifier_call=absent", "vendor-caller-audit-remove-gap"),
+        ("runtime_event_bridge=absent_from_mt_cpufreq_mt_ppm_main_and_vendor_writer", "vendor-caller-audit-runtime-gap"),
+        ("unregistered_writer_behavior=begin_returns_-ENODEV_when_no_owner_is_registered", "vendor-caller-audit-fail-closed"),
+        ("boot_candidate=false", "vendor-caller-audit-not-candidate"),
+        ("hardware_write=none", "vendor-caller-audit-no-write"),
+        ("device_action=none", "vendor-caller-audit-no-action"),
+        ("cpu8_cpu9_admission=closed", "vendor-caller-audit-no-admission"),
+    ):
+        require(vendor_caller_lifecycle_audit_result, needle, label)
 
     require(patch, "MT6797_DVFSP_I2C6_FW_ABI", "protocol-abi")
     require(patch, "MT6797_DVFSP_I2C6_FW_PAUSE_SOURCE\t0x2", "pause-source")
