@@ -1,0 +1,48 @@
+# MT6797 DVFSP owner-KUnit Buildbox resume at current head
+
+date_utc=2026-08-10T09:42:15Z
+claim=COMPILE_ONLY_MT6797_DVFSP_OWNER_KUNIT_CURRENT_HEAD_RESUME
+repository_commit=96607a3e60862c21c46e134ec026f63b36d9a404
+origin=https://github.com/ixoo/gemini-pda-mainline.git
+repository_dirty=false
+build_backend=buildbox
+buildbox_status=validated
+buildbox_job=96607a3e60862c21c46e134ec026f63b36d9a404-dvfsp-owner-kunit-m0
+build_profile=dvfsp-owner-kunit
+kernel_release=7.1.3-gemini-dvfsp-owner-kunit
+artifact=linux-7.1.3-gemini-dvfsp-owner-kunit-7dde1df7-ff8be32b
+local_package=artifacts/buildbox/96607a3e60862c21c46e134ec026f63b36d9a404/linux-7.1.3-gemini-dvfsp-owner-kunit-7dde1df7-ff8be32b
+patch_series=patches/series
+patch_count=234
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=7dde1df7a60e75e60e9ee63802bd28da71636d6cd0027cd8b940410ff6934dd3
+config_inputs_sha256=ff8be32b4d1ba2c69b6ba81ddf41bf2a688b7ba1f85292e5ef4a5bfc6f6ec2f7
+config_sha256=fee2c50c11eea195569bf1f9a854b1cbcfd470d9934d829c60d3d2ba6e1f2638
+image_sha256=c89c91b0ae874f042325c75e70119a8003f8d4139cbaafa181d43c5a4da9145d
+image_gzip_sha256=d7ad478bd8e971f22a69419b5b941a69efd512d834ac09f30e6bd62fe569c7e3
+system_map_sha256=341cfd8a343851f5f896f4dbbe309fd5eee795bdedc862dcb815983ff8e83f78
+gemini_dtb_sha256=61ea34a4f780afe04da1257f8c3655be7f8490a7c3af2df727dd8592bb6e6285
+build_provenance_sha256=0a715da44140507e742617dd91720f28683d80613f5b897dfb52a19bdd46277d
+kernel_manifest_sha256=c4f7fd8886b0c4d71427d644b7c7ef56765ef31cc6e12db26d092331939adf4f
+series_sha256=99df40fa743bdc0f2e0d38585ef80e81976707194c6828483a9f1dc07a1690b3
+dtb_count=119
+modules_built=false
+sha256sums=passed
+package_fetch=success;validated_package_only
+test_scope=hardware_free;dvfsp-owner-kunit-contracts;current-head-reproducibility
+hardware_write=none
+firmware_action=none
+device_action=none
+owner=unregistered
+provider=none
+runtime_evidence=none
+hardware_support_claim=NONE
+boot_candidate=false
+cpu8_cpu9_admission=closed
+
+This resume rebuilt the exact pushed `origin/main` head using the managed
+prepared Linux source and Buildbox cache. It validated the arm64 Image,
+Gemini DTB, all 119 DTBs, package checksums, and provenance, then fetched only
+the validated package. The result is compile/provenance evidence only: no
+provider or callback was registered, no hardware or firmware action occurred,
+no device was booted, and CPU8/CPU9 admission remains closed.
