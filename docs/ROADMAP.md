@@ -2473,6 +2473,21 @@ recovery path.
 Register the provider with all consumers disconnected and writable operations
 disabled or unreachable.
 
+The resource-only provider lifecycle is now compile-validated on Buildbox at
+clean revision `3b18307e42cb0ce6daefd26cec2790bed570a5b5` with the named
+`dvfsp-resource-owner-readonly` profile. The profile applies 223 patches,
+builds 119 DTBs, passes package checksums, and fetches only the validated
+package; the receipt is in the
+[DVFSP provider experiment](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/resource-owner-provider-buildbox-20260810.txt).
+Patches 0232--0234 repair canonical ABI/source boundaries exposed by that
+compile. This is still compile-only: the provider and DT node remain disabled,
+the owner is unregistered, and no hardware or device action occurred.
+
+The next ordered action is the real calibrated provider contract: efuse/PTP
+identity, coherent PPM/CCI rows, live VPROC/VSRAM, clock/rail generation, and
+one transition lock, followed by source-backed registration and runtime
+validation. CPU8/CPU9 admission remains closed until those gates pass.
+
 Required evidence:
 
 - provider registration performs no register-data write;

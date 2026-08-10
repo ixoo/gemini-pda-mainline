@@ -741,3 +741,30 @@ This is a compile-only resource boundary, not hardware support: the real
 provider still must supply PPM/CCI rows, EEM/PTP identity, live VPROC/VSRAM,
 and clock/rail callbacks before any state-owner registration or CPU8/CPU9
 admission.
+
+Patch `0231` adds a platform provider for the resource-only owner lifecycle. It
+resolves the four backend phandles, retains the references through explicit
+bind/unbind, and keeps the node disabled by default. The provider contains no
+MMIO, secure, firmware, clock, rail, readback, registration, or CPU action.
+The named `dvfsp-resource-owner-readonly` profile also compiles the disabled
+clock, BigiDVFS, and EEM transport fragments so the owner source links
+completely; this is build completeness only, not runtime support.
+
+The first profile compile exposed two malformed ABI declarations from `0229`;
+patch `0232` restores the PPM-owner header and owner/transition handles in the
+snapshot ABI. The next compile exposed malformed historical source boundaries:
+`0233` repairs the handoff helper's lost return/export and the calibration
+cluster type, while `0234` restores state-owner mutex initialization to probe
+setup and removes its duplicate tail. These repairs are canonical build
+hygiene, not new hardware evidence.
+
+Clean revision `3b18307e42cb0ce6daefd26cec2790bed570a5b5` then passed the named
+Buildbox profile and package validation: 223 patches, six config fragments,
+119 DTBs, image/package checksums, and a validated package fetched locally.
+See the [resource-owner provider Buildbox receipt](results/resource-owner-provider-buildbox-20260810.txt).
+This remains compile-only evidence: the DT node and backend resources remain
+disabled, the owner is unregistered, no hardware action occurred, and CPU8/CPU9
+admission remains closed. The real calibrated provider still must supply
+efuse/PTP identity, coherent PPM/CCI rows, live VPROC/VSRAM, and
+clock/rail generation plus a single transition lock before any provider
+registration or CPU8/CPU9 experiment.
