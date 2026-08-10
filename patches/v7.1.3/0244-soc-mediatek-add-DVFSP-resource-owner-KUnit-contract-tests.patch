@@ -21,7 +21,7 @@ CPU. It is experiment-only and not submission-ready.
 diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
 --- a/drivers/soc/mediatek/Kconfig
 +++ b/drivers/soc/mediatek/Kconfig
-@@ -97,6 +97,17 @@ config MTK_MT6797_DVFSP_RESOURCE_OWNER
+@@ -97,6 +97,15 @@ config MTK_MT6797_DVFSP_RESOURCE_OWNER
  	  state-owner registration, or CPU admission. Keep its Device Tree node
  	  disabled until a calibrated provider contract exists.
  
@@ -40,7 +40,7 @@ diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
 diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
 --- a/drivers/soc/mediatek/Makefile
 +++ b/drivers/soc/mediatek/Makefile
-@@ -7,6 +7,7 @@ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-state-owner-source.o
+@@ -7,7 +7,8 @@ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-state-owner-source.o
  obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-state-owner-arbitration.o
  obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-resource-owner.o
  obj-$(CONFIG_MTK_MT6797_DVFSP_RESOURCE_OWNER) += mt6797-dvfsp-resource-provider.o
