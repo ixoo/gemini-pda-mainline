@@ -91,6 +91,7 @@ PPM_OWNER_LOCK_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/ppm
 RESOURCE_OWNER_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/resource-owner-buildbox-20260810.txt"
 RESOURCE_PROVIDER_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/resource-owner-provider-buildbox-20260810.txt"
 CALIBRATED_PROVIDER_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/calibrated-provider-buildbox-20260810.txt"
+CSPM_LIVE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/cspm-live-binding-buildbox-20260810.txt"
 
 
 def require(text: str, needle: str, label: str) -> None:
@@ -184,6 +185,7 @@ def main() -> None:
     resource_owner_build_result = RESOURCE_OWNER_BUILD_RESULT.read_text()
     resource_provider_build_result = RESOURCE_PROVIDER_BUILD_RESULT.read_text()
     calibrated_provider_build_result = CALIBRATED_PROVIDER_BUILD_RESULT.read_text()
+    cspm_live_build_result = CSPM_LIVE_BUILD_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     eem_calibration_source = eem_calibration_patch[eem_calibration_patch.index("diff --git"):]
@@ -765,6 +767,32 @@ def main() -> None:
         ("cpu8_cpu9_admission=closed", "calibrated-provider-build-no-admission"),
     ):
         require(calibrated_provider_build_result, needle, label)
+    for needle, label in (
+        ("claim=COMPILE_ONLY_MT6797_DVFSP_CSPM_LIVE_CALLBACK_BINDING", "cspm-live-build-claim"),
+        ("repository_commit=004431172ff16ef2efb775a8c50bd8942c1ed919", "cspm-live-build-commit"),
+        ("origin=https://github.com/ixoo/gemini-pda-mainline.git", "cspm-live-build-origin"),
+        ("repository_dirty=false", "cspm-live-build-clean"),
+        ("build_backend=buildbox", "cspm-live-build-backend"),
+        ("buildbox_status=validated", "cspm-live-build-status"),
+        ("buildbox_job=004431172ff16ef2efb775a8c50bd8942c1ed919-dvfsp-resource-owner-readonly-m0", "cspm-live-build-job"),
+        ("patch_count=225", "cspm-live-build-patch-count"),
+        ("artifact=linux-7.1.3-gemini-dvfsp-resource-owner-readonly-ad3cae89-c548d243", "cspm-live-build-artifact"),
+        ("patchset_sha256=ad3cae892c0b62af14803336854ecf5f63d2815f87bdbcff3683950c8fa3221d", "cspm-live-build-patchset-hash"),
+        ("image_gzip_sha256=f9954fc6d6d80b75b10582d2fefaddf55f95763659fd90c274e554996d4c72e9", "cspm-live-build-image-hash"),
+        ("dtb_count=119", "cspm-live-build-dtb-count"),
+        ("config_fragment_count=6", "cspm-live-build-config-count"),
+        ("sha256sums=passed", "cspm-live-build-checksums"),
+        ("package_fetch=success;validated_package_only", "cspm-live-build-fetch"),
+        ("cspm_live_binding=0236;decoded_cspm_callback;backend_sample_generation_echo;provider_transition_generation_distinct;fail_closed;registration_absent;writes_disabled", "cspm-live-build-contract"),
+        ("registered_owner=0", "cspm-live-build-unregistered"),
+        ("provider=none", "cspm-live-build-no-provider"),
+        ("hardware_write=none", "cspm-live-build-no-write"),
+        ("device_action=none", "cspm-live-build-no-device"),
+        ("hardware_support_claim=NONE", "cspm-live-build-no-support-claim"),
+        ("boot_candidate=false", "cspm-live-build-not-candidate"),
+        ("cpu8_cpu9_admission=closed", "cspm-live-build-no-admission"),
+    ):
+        require(cspm_live_build_result, needle, label)
     for forbidden in ("readl(", "writel(", "regulator_", "clk_", "i2c_transfer",
                       "arm_smccc", "platform_driver", "cpu_up(", "secure_write"):
         if forbidden in ppm_policy_source:
@@ -2062,6 +2090,7 @@ def main() -> None:
     print("resource_provider_buildbox=validated;commit=3b18307e42cb0ce6daefd26cec2790bed570a5b5;profile=dvfsp-resource-owner-readonly;patch_count=223;artifact=linux-7.1.3-gemini-dvfsp-resource-owner-readonly-309e3bbe-c548d243;sha256sums=passed;package_fetch=success;validated_package_only;provider=none;registered_owner=0;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("calibrated_provider=0235;resource_owner_lifetime_bound;source_callbacks_required;ppm_owner_callbacks_required;arbitration_composed;owner_ops_dormant;registration_absent;writes_disabled;provider=none;registered_owner=0;hardware_write=none;device_action=none;boot_candidate=false")
     print("cspm_live_binding=0236;decoded_cspm_callback;backend_sample_generation_echo;provider_transition_generation_distinct;fail_closed;registration_absent;hardware_write=none;device_action=none;boot_candidate=false")
+    print("cspm_live_buildbox=validated;commit=004431172ff16ef2efb775a8c50bd8942c1ed919;patch_count=225;artifact=linux-7.1.3-gemini-dvfsp-resource-owner-readonly-ad3cae89-c548d243;sha256sums=passed;package_fetch=success;validated_package_only;provider=none;registered_owner=0;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("calibrated_provider_buildbox=validated;commit=a28dd0f9d57b747258d2c70fbae7b14a9e3c010d;profile=dvfsp-resource-owner-readonly;patch_count=224;artifact=linux-7.1.3-gemini-dvfsp-resource-owner-readonly-dede19ab-c548d243;sha256sums=passed;package_fetch=success;validated_package_only;provider=none;registered_owner=0;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("owner_abi_repair=0232;ppm_owner_header_restored;snapshot_handles_declared;compile_boundary_only")
     print("build_boundary_repairs=0233+0234;handoff_return_export;calibration_cluster_type;state_owner_mutex_probe_init;duplicate_tail_removed;compile_boundary_only")

@@ -788,3 +788,14 @@ external, registration is absent, no hardware action occurred, and CPU8/CPU9
 admission remains closed. The next implementation must provide the actual
 efuse/PTP identity, coherent PPM/CCI rows and limits, live VPROC/VSRAM, and
 clock/rail generation callbacks under the introduced transition lock.
+
+Patch `0236` now threads the semaphore-protected CSPM live-state decoder into
+the source callback. The provider must consume the decoded raw OPP, limit, and
+rail-code sample and echo its backend-local `cspm_sample_generation`; that
+sample epoch is deliberately kept distinct from the provider-owned transition
+`source_generation`. A missing or mismatched echo fails closed before snapshot
+publication. The clean `0044311` revision applied all 225 canonical entries on
+Buildbox, produced 119 DTBs, passed package checksums, and fetched only the
+validated package; see the [CSPM live-binding Buildbox receipt](results/cspm-live-binding-buildbox-20260810.txt).
+This remains compile-only and default-off: no provider registration, hardware
+write, device action, runtime evidence, or CPU8/CPU9 admission was added.

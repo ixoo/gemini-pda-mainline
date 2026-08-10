@@ -2499,6 +2499,17 @@ hardware-support result. The next ordered implementation is the actual
 source-backed callback provider for efuse/PTP identity, PPM/CCI rows and
 limits, live VPROC/VSRAM, and clock/rail generation under that lock.
 
+Patch `0236` takes the first source-backed readback step without pretending to
+be that provider: it passes the decoded CSPM sample into the live callback and
+requires an exact backend sample-generation echo, while preserving the
+independent provider transition generation. The clean `0044311` Buildbox run
+applied 225 patches, produced 119 DTBs, passed checksums, and fetched the
+validated package; see the [CSPM live-binding receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/cspm-live-binding-buildbox-20260810.txt).
+Registration, hardware writes, runtime evidence, and CPU8/CPU9 admission
+remain closed. The next ordered implementation is still the real callback
+provider for efuse/PTP identity, all PPM/CCI rows and limits, live VPROC/VSRAM,
+and a single transition-lock generation source.
+
 Required evidence:
 
 - provider registration performs no register-data write;
