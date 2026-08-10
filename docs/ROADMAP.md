@@ -2293,6 +2293,18 @@ The next ordered work remains source-only:
    This is still compile-only and default-off: a real EEM/PTP/PPM plus
    PMIC/clock provider must implement the owner, and device boot plus CPU8/CPU9
    admission remain closed.
+   A source-only audit of the current managed vendor checkout now confirms why
+   that provider cannot be assembled by reusing one existing vendor lock:
+   PPM policy, CCI frequency rows, CSPM/PLL state, and EEM/PTP state have
+   separate authorities, and no shared generation or single transition lock
+   exists in the vendor structs. The exact revision, source hashes, and
+   sanitized field summary are recorded in the [vendor PPM owner-boundary
+   result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-ppm-owner-boundary-20260810.txt).
+   The next implementation gate is therefore a real mainline owner that
+   introduces one transition lock and generation and bridges PPM/CCI rows,
+   EEM/PTP identity, live VPROC/VSRAM, and clock state. Until that owner is
+   backed by named runtime evidence, provider registration and CPU8/CPU9
+   admission remain closed.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and

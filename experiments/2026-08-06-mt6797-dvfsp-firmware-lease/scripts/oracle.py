@@ -75,6 +75,7 @@ STATE_OWNER_ARBITRATION_BUILD_RESULT = Path(__file__).resolve().parents[1] / "re
 STATE_OWNER_ARBITRATION_FAULT_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-arbitration-fault-buildbox-20260809.txt"
 LIVE_DVFS_SOURCE_RESULT = Path(__file__).resolve().parents[1] / "results/live-dvfs-owner-source-probe-20260809.txt"
 LIVE_RESOURCE_OWNER_BOUNDARY_RESULT = Path(__file__).resolve().parents[1] / "results/live-resource-owner-boundary-probe-20260810.txt"
+VENDOR_PPM_OWNER_BOUNDARY_RESULT = Path(__file__).resolve().parents[1] / "results/vendor-ppm-owner-boundary-20260810.txt"
 STATE_OWNER_REGISTRATION_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-registration-buildbox-20260809.txt"
 STATE_OWNER_REGISTRATION_RERUN_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-registration-buildbox-rerun-20260809.txt"
 STATE_OWNER_REGISTRATION_GATE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/state-owner-registration-gate-buildbox-20260809.txt"
@@ -157,6 +158,7 @@ def main() -> None:
     state_owner_arbitration_fault_build_result = STATE_OWNER_ARBITRATION_FAULT_BUILD_RESULT.read_text()
     live_dvfs_source_result = LIVE_DVFS_SOURCE_RESULT.read_text()
     live_resource_owner_boundary_result = LIVE_RESOURCE_OWNER_BOUNDARY_RESULT.read_text()
+    vendor_ppm_owner_boundary_result = VENDOR_PPM_OWNER_BOUNDARY_RESULT.read_text()
     state_owner_registration_build_result = STATE_OWNER_REGISTRATION_BUILD_RESULT.read_text()
     state_owner_registration_rerun_build_result = STATE_OWNER_REGISTRATION_RERUN_BUILD_RESULT.read_text()
     state_owner_registration_gate_build_result = STATE_OWNER_REGISTRATION_GATE_BUILD_RESULT.read_text()
@@ -1649,6 +1651,26 @@ def main() -> None:
     ):
         require(live_resource_owner_boundary_result, needle, label)
     for needle, label in (
+        ("claim=SOURCE_ONLY_MT6797_VENDOR_PPM_OWNER_BOUNDARY", "vendor-ppm-owner-boundary-claim"),
+        ("audit_scope=managed_vm_git_show_head;vendor_source_payload_not_copied", "vendor-ppm-owner-boundary-scope"),
+        ("vendor_revision=8cfe6596a503612e3332d9c26e292a19525a7f07", "vendor-ppm-owner-boundary-revision"),
+        ("ppm_policy_lock=ppm_main_info.lock;type=mutex;scope=ppm_data", "vendor-ppm-owner-boundary-ppm-lock"),
+        ("ppm_cluster_table=ppm_main_info.cluster_info[].dvfs_tbl;clusters=3;entries=16;order=vendor-descending", "vendor-ppm-owner-boundary-ppm-table"),
+        ("ppm_policy_limits=ppm_main_info.client_req.cpu_limit[];fields=min_max_cpufreq_idx,min_max_cpu_core,advise_fields", "vendor-ppm-owner-boundary-ppm-limits"),
+        ("cci_frequency_table=cpu_dvfs[MT_CPU_DVFS_CCI].freq_tbl;fields=freq_tbl,freq_tbl_for_cpufreq;not_in_ppm_cluster_info", "vendor-ppm-owner-boundary-cci-table"),
+        ("cpufreq_owner_lock=dvfs_lock;type=spinlock;scope=cspm_dvfsp_and_pll_state", "vendor-ppm-owner-boundary-cpufreq-lock"),
+        ("eem_owner_locks=eem_spinlock;record_mutex;mt_ptp_lock;independent_from_ppm_and_dvfs", "vendor-ppm-owner-boundary-eem-locks"),
+        ("shared_generation_field=absent_in_vendor_ppm_cpufreq_eem_structs", "vendor-ppm-owner-boundary-generation"),
+        ("single_transition_lock=absent;mainline_owner_must_introduce_one", "vendor-ppm-owner-boundary-transition-lock"),
+        ("required_bridge=ppm_policy+cci_rows+eem_ptp+live_vproc_vsram+clock_state+generation", "vendor-ppm-owner-boundary-required-bridge"),
+        ("vendor_code_copied=none", "vendor-ppm-owner-boundary-no-copy"),
+        ("hardware_write=none", "vendor-ppm-owner-boundary-no-write"),
+        ("device_action=none", "vendor-ppm-owner-boundary-no-device"),
+        ("provider=none", "vendor-ppm-owner-boundary-no-provider"),
+        ("cpu8_cpu9_admission=closed;boot_candidate=false", "vendor-ppm-owner-boundary-no-admission"),
+    ):
+        require(vendor_ppm_owner_boundary_result, needle, label)
+    for needle, label in (
         ("repeat_run_repository_commit=6c3cb4fad5a4895f6a69d7913089553b6751e34c", "readback-repeat-commit"),
         ("repeat_run_buildbox_job=6c3cb4fad5a4895f6a69d7913089553b6751e34c-dvfsp-protected-readback-m0", "readback-repeat-job"),
         ("repeat_run_status=validated", "readback-repeat-status"),
@@ -1844,6 +1866,7 @@ def main() -> None:
     print("state_owner_registration_gate=0219;complete_snapshot_required;validated_before_publish;failure_clears_callbacks;default_off;registered_owner=0;provider=none;no_hardware_write;device_action=none;boot_candidate=false")
     print("live_dvfs_source_probe=20260809;eem_handoff_readable;ppm_tables_readable;opp_rail_state_mutable;proc_reads_nonatomic;raw_payload_redacted;owner_lock_and_generation_required;provider=none;cpu8_cpu9_admission=closed;boot_candidate=false")
     print("live_resource_owner_boundary_probe=20260810;vendor_cspm_eem_ppm_cpufreq_idvfs_bound;mainline_owner_absent;generation_endpoint=not_found;transition_lock_endpoint=not_found;provider=none;cpu8_cpu9_admission=closed;boot_candidate=false")
+    print("vendor_ppm_owner_boundary=20260810;vendor_revision=8cfe6596a503612e3332d9c26e292a19525a7f07;ppm_lock=ppm_main_info.lock;cpufreq_lock=dvfs_lock;eem_locks=independent;shared_generation=absent;single_transition_lock=absent;provider=none;cpu8_cpu9_admission=closed;boot_candidate=false")
     print("pcm_adapter_contract=source-only;bounded-admission-model;callback-registration-gated")
     print("clock_owner_inventory=generic_ccf_only;protected_owner_absent;A72_observer_read_only")
     print("pcm_start_contract=defined;residency_and_start_required_before_callback_registration")

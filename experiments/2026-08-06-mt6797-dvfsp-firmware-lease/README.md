@@ -701,6 +701,21 @@ DTBs, passed package checksums, and fetched only the validated package; see the
 This remains compile-only and default-off: no real provider, hardware
 operation, device boot, or CPU8/CPU9 admission was added.
 
+A source-only audit of the current managed vendor checkout (`HEAD`
+`8cfe6596a503612e3332d9c26e292a19525a7f07`) now fixes the historical owner
+boundary that the mainline provider must cross. PPM policy is protected by
+`ppm_main_info.lock` and exposes three 16-entry physical-cluster tables plus
+client limits; CCI uses a separate `cpu_dvfs[MT_CPU_DVFS_CCI]` table. CSPM/PLL
+state uses the independent `dvfs_lock`, while EEM/PTP use separate locks.
+The vendor structs contain no shared generation and no single transition lock.
+The exact source hashes and field-level summary are in the
+[vendor PPM owner-boundary result](results/vendor-ppm-owner-boundary-20260810.txt).
+No vendor code was copied and no hardware or device action occurred. The next
+implementation therefore has to introduce one mainline owner lock and
+generation while bridging the real PPM/CCI rows, EEM/PTP identity, live
+VPROC/VSRAM, and clock state; the provider and CPU8/CPU9 admission remain
+closed until that bridge is backed by named runtime evidence.
+
 Patch `0229` closes the next ownership boundary by requiring the dormant state
 owner to use an explicit PPM owner with lock, unlock, and snapshot operations.
 The PPM owner must copy the three-cluster snapshot and all four provider-owned
