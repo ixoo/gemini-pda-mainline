@@ -1,0 +1,45 @@
+# MT6797 vendor-source-to-provider field bridge Buildbox validation
+
+date_utc=2026-08-10T23:04:47Z
+claim=COMPILE_ONLY_MT6797_VENDOR_PROVIDER_FIELD_BRIDGE
+repository=https://github.com/ixoo/gemini-pda-mainline.git
+repository_commit=8dc7cf7b0f913ef753a4c97a00fc386b8c700cae
+repository_dirty=false
+build_backend=buildbox
+buildbox_status=validated
+buildbox_job=8dc7cf7b0f913ef753a4c97a00fc386b8c700cae-dvfsp-owner-kunit-m0
+build_profile=dvfsp-owner-kunit
+kernel_release=7.1.3-gemini-dvfsp-owner-kunit
+artifact=linux-7.1.3-gemini-dvfsp-owner-kunit-fe7a7df0-97bc4cf1
+package_fetch=success;validated_package_only
+local_package=artifacts/buildbox/8dc7cf7b0f913ef753a4c97a00fc386b8c700cae/linux-7.1.3-gemini-dvfsp-owner-kunit-fe7a7df0-97bc4cf1
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=fe7a7df001c7a8702bd3ba5296e2864912b0ada12e7f33228ecc705783bf891d
+config_sha256=6c345bd84af6f0fa18b9b83cc4cf5f003b5e5c7cce2f11383ccba4ed124bb002
+image_sha256=25c4c8d4b9433ca3ab12b50094663ba4afaa4e3442cab2ec119ba6d959f2759f
+image_gzip_sha256=14afaf318c3745dc966f6a9db5cf6861adb0beb0b8a63b4636f6c10729a10f09
+dtb_count=119
+patch_count=253
+sha256sums=passed
+compiler=aarch64-linux-gnu-gcc_12.2.0
+
+mapping_ppm=three_clusters_reordered_by_cluster_id;source_indices_retained
+mapping_cpufreq=four_domains_reordered_by_domain_id;source_indices_retained
+mapping_cspm=fixed_LL_L_B_CCI_order;raw_voltage_and_vsram_codes_retained;physical_floor_zero_valid;cci_limits_zero_required
+mapping_eem=six_detectors_reordered_by_detector_id;canonical_provider_banks=0,3,4,5;raw_voltage_tables_retained
+mapping_identity=variant_id;table_epoch_u64;calibration_handle_u64;nonzero_and_abi_checked
+unavailable_fields=policy_rows;eem_uv_conversion;live_clock_owner;rail_conversion;provider_registration
+generation_and_handles=source_generation;owner_handle;transition_handle;exact_match_required
+
+registration=default_off;bridge_attaches_only_during_explicit_vendor_lifecycle_binding
+provider_registration=none
+vendor_setter_called=none
+hardware_write=none
+device_action=none
+hardware_support_claim=NONE
+boot_candidate=false
+cpu8_cpu9_admission=closed
+
+observation=The exact 253-patch dvfsp-owner-kunit Buildbox profile applies and links the read-only vendor provider field bridge, validates the fetched package, and preserves explicit unavailable masks instead of synthesizing policy, voltage, clock, rail, or registration state.
+decision=provider_field_identity_bridge_compile_validated;isolated_runtime_KUnit_required;hardware_support_closed
+next=run the exact fetched Image in isolated KUnit QEMU and preserve suite-level results; do not write or boot a device

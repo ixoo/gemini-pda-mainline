@@ -1376,3 +1376,26 @@ admission is claimed. See the [isolated QEMU result](results/vendor-source-lifec
 The next ordered gate is the explicit source-to-provider field and identity
 bridge, kept registration-default-off and validated in Buildbox plus isolated
 KUnit before any device evidence.
+
+Patch `0264` now provides that review-only bridge. It reorders the bounded PPM
+and cpufreq records by declared IDs, preserves the fixed CSPM LL/L/B/CCI raw
+codes, retains all six EEM detectors while naming canonical banks 0/3/4/5,
+and copies the nonzero variant, table epoch, calibration handle, generation,
+and owner/transition handles without truncation. Policy rows, EEM voltage-unit
+conversion, live clock ownership, rail conversion, and provider registration
+are explicitly marked unavailable rather than inferred. The exact 253-patch
+`dvfsp-owner-kunit` Buildbox profile passed at pushed commit `8dc7cf7`, with
+119 DTBs, package/provenance checksums, and validated-package-only fetch; see
+the [provider field-bridge Buildbox result](results/vendor-source-provider-field-bridge-buildbox-20260810.txt).
+
+The fetched Image then ran locally under AArch64 QEMU. All six KUnit suites
+passed (17 tests, zero failures or skips), including the three new mapping,
+identity/ID rejection, and bridge lifecycle/invalidation tests. QEMU reached
+`System halted` after KUnit; this is isolated virtual runtime evidence only.
+No provider registration, setter, device action, or CPU8/CPU9 admission is
+claimed; see the [provider field-bridge QEMU result](results/vendor-source-provider-field-bridge-qemu-20260810.txt).
+
+The next ordered gate is completing source-backed policy-row, EEM voltage-unit,
+live clock-owner, and rail-conversion mappings under the same generation before
+any provider registration or device boot. Do not write or boot a device for
+this isolated result.

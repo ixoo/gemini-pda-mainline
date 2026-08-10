@@ -3196,6 +3196,34 @@ admission remains closed. The next ordered step is to complete the
 source-to-provider field/identity mapping review and locate or add an isolated
 runtime KUnit runner; do not boot or write a device.
 
+Patch `0263` closes the fail-open direct-registration path exposed by the first
+isolated run: writer registration now returns `-ENODEV` until lifecycle
+integration is bound, so a callback that can only reject runtime events is not
+published. The exact 252-patch `dvfsp-owner-kunit` profile passed on Buildbox
+with 119 DTBs, package/provenance checksums, and validated-package-only fetch;
+see the [lifecycle-guard Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-source-lifecycle-guard-kunit-buildbox-20260810.txt).
+The fetched Image then passed all five existing KUnit suites in isolated QEMU
+(14/14, no failures or skips), without device or provider action; see the
+[isolated lifecycle-guard result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-source-lifecycle-guard-kunit-qemu-20260810.txt).
+
+Patch `0264` now completes the source-to-provider field and identity review
+bridge while remaining registration-default-off. PPM and cpufreq records are
+reordered by declared ID; CSPM remains the fixed LL/L/B/CCI raw-code view; all
+six EEM detectors are retained with canonical provider banks 0/3/4/5; and the
+variant, table epoch, calibration handle, generation, and owner/transition
+handles are copied without truncation. Policy rows, EEM voltage units, live
+clock ownership, rail conversion, and provider registration are explicitly
+unavailable rather than inferred. The exact 253-patch `dvfsp-owner-kunit`
+profile passed on Buildbox at commit `8dc7cf7`, with 119 DTBs and passing
+package/provenance checksums; see the [field-bridge Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-source-provider-field-bridge-buildbox-20260810.txt).
+The fetched Image passed all six isolated QEMU KUnit suites (17/17, no
+failures or skips), including bridge mapping, rejection, invalidation, and
+teardown; see the [field-bridge QEMU result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-source-provider-field-bridge-qemu-20260810.txt).
+No provider registration, vendor setter, device action, or CPU8/CPU9 admission
+is claimed. The next ordered step is to complete source-backed policy-row, EEM
+voltage-unit, live clock-owner, and rail-conversion mappings under one shared
+generation before any provider registration or device boot.
+
 Required evidence:
 
 - provider registration performs no register-data write;

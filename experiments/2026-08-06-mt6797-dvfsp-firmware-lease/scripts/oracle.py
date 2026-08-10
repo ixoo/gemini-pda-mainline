@@ -74,6 +74,7 @@ MAINLINE_SOURCE_OBSERVATION_PATCH = ROOT / "patches/v7.1.3/0260-soc-mediatek-add
 MAINLINE_SOURCE_OWNER_PATCH = ROOT / "patches/v7.1.3/0261-soc-mediatek-bind-vendor-source-observation-owner.patch"
 MAINLINE_SOURCE_CSPM_BOUNDS_PATCH = ROOT / "patches/v7.1.3/0262-soc-mediatek-validate-vendor-source-cspm-bounds.patch"
 MAINLINE_SOURCE_LIFECYCLE_GUARD_PATCH = ROOT / "patches/v7.1.3/0263-soc-mediatek-require-vendor-lifecycle-before-registration.patch"
+MAINLINE_SOURCE_PROVIDER_BRIDGE_PATCH = ROOT / "patches/v7.1.3/0264-soc-mediatek-add-vendor-provider-field-bridge.patch"
 VENDOR_WRITER_INTEGRATION_REVIEW_RESULT = (Path(__file__).resolve().parents[1] /
                                            "results/vendor-writer-mainline-owner-integration-review-20260810.txt")
 VENDOR_WRITER_REGISTRATION_BUILD_RESULT = (Path(__file__).resolve().parents[1] /
@@ -94,6 +95,10 @@ VENDOR_SOURCE_LIFECYCLE_GUARD_BUILD_RESULT = (Path(__file__).resolve().parents[1
                                               "results/vendor-source-lifecycle-guard-kunit-buildbox-20260810.txt")
 VENDOR_SOURCE_LIFECYCLE_GUARD_QEMU_RESULT = (Path(__file__).resolve().parents[1] /
                                              "results/vendor-source-lifecycle-guard-kunit-qemu-20260810.txt")
+VENDOR_SOURCE_PROVIDER_BRIDGE_BUILD_RESULT = (Path(__file__).resolve().parents[1] /
+                                              "results/vendor-source-provider-field-bridge-buildbox-20260810.txt")
+VENDOR_SOURCE_PROVIDER_BRIDGE_QEMU_RESULT = (Path(__file__).resolve().parents[1] /
+                                             "results/vendor-source-provider-field-bridge-qemu-20260810.txt")
 VENDOR_CALLER_LIFECYCLE_AUDIT_RESULT = (Path(__file__).resolve().parents[1] /
                                         "results/vendor-caller-lifecycle-invalidation-audit-20260811.txt")
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
@@ -275,6 +280,7 @@ def main() -> None:
     mainline_source_owner_patch = MAINLINE_SOURCE_OWNER_PATCH.read_text()
     mainline_source_cspm_bounds_patch = MAINLINE_SOURCE_CSPM_BOUNDS_PATCH.read_text()
     mainline_source_lifecycle_guard_patch = MAINLINE_SOURCE_LIFECYCLE_GUARD_PATCH.read_text()
+    mainline_source_provider_bridge_patch = MAINLINE_SOURCE_PROVIDER_BRIDGE_PATCH.read_text()
     vendor_writer_integration_review_result = VENDOR_WRITER_INTEGRATION_REVIEW_RESULT.read_text()
     vendor_writer_registration_build_result = VENDOR_WRITER_REGISTRATION_BUILD_RESULT.read_text()
     vendor_writer_runtime_events_build_result = VENDOR_WRITER_RUNTIME_EVENTS_BUILD_RESULT.read_text()
@@ -285,6 +291,8 @@ def main() -> None:
     vendor_source_cspm_bounds_build_result = VENDOR_SOURCE_CSPM_BOUNDS_BUILD_RESULT.read_text()
     vendor_source_lifecycle_guard_build_result = VENDOR_SOURCE_LIFECYCLE_GUARD_BUILD_RESULT.read_text()
     vendor_source_lifecycle_guard_qemu_result = VENDOR_SOURCE_LIFECYCLE_GUARD_QEMU_RESULT.read_text()
+    vendor_source_provider_bridge_build_result = VENDOR_SOURCE_PROVIDER_BRIDGE_BUILD_RESULT.read_text()
+    vendor_source_provider_bridge_qemu_result = VENDOR_SOURCE_PROVIDER_BRIDGE_QEMU_RESULT.read_text()
     vendor_caller_lifecycle_audit_result = VENDOR_CALLER_LIFECYCLE_AUDIT_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
@@ -331,6 +339,8 @@ def main() -> None:
         raise AssertionError("vendor runtime-event handoff is not after writer registration")
     if names.index("0258-soc-mediatek-extend-vendor-writer-handoff-runtime-events.patch") >= names.index("0259-soc-mediatek-bind-vendor-writer-lifecycle-integration.patch"):
         raise AssertionError("vendor lifecycle integration is not after runtime-event handoff")
+    if names.index("0263-soc-mediatek-require-vendor-lifecycle-before-registration.patch") >= names.index("0264-soc-mediatek-add-vendor-provider-field-bridge.patch"):
+        raise AssertionError("vendor provider field bridge is not after lifecycle guard")
     for needle, label in (
         ("GEMINI_MT6797_DVFSP_VENDOR_WRITER_ABI\t2", "vendor-writer-identity-abi"),
         ("read_identity", "vendor-writer-identity-callback"),
@@ -593,6 +603,28 @@ def main() -> None:
         if forbidden in mainline_source_lifecycle_guard_source:
             raise AssertionError(f"unexpected mainline lifecycle-guard operation: {forbidden}")
 
+    mainline_source_provider_bridge_source = mainline_source_provider_bridge_patch[
+        mainline_source_provider_bridge_patch.index("diff --git"):]
+    for needle, label in (
+        ("MT6797_DVFSP_VENDOR_PROVIDER_ABI\t1", "mainline-provider-bridge-abi"),
+        ("MT6797_DVFSP_VENDOR_PROVIDER_BRIDGE_KUNIT_TEST", "mainline-provider-bridge-kunit-config"),
+        ("MT6797_DVFSP_VENDOR_PROVIDER_UNAVAILABLE_ALL", "mainline-provider-bridge-unavailable-mask"),
+        ("MT6797_DVFSP_VENDOR_PROVIDER_EEM_BANK_CCI", "mainline-provider-bridge-eem-bank-identity"),
+        ("mt6797_dvfsp_vendor_provider_map", "mainline-provider-bridge-map"),
+        ("mt6797_dvfsp_vendor_provider_bridge_init", "mainline-provider-bridge-init"),
+        ("mt6797_dvfsp_vendor_provider_bridge_exit", "mainline-provider-bridge-exit"),
+        ("mapped->unavailable_mask", "mainline-provider-bridge-unavailable-fields"),
+    ):
+        require(mainline_source_provider_bridge_patch, needle, label)
+    for forbidden in (
+        "readl(", "writel(", "i2c_transfer", "regulator_", "clk_",
+        "platform_driver", "cpu_up(", "secure_write",
+        "mt_cpufreq_set_ptbl_registerCB", "mt_cpufreq_setvolt_registerCB",
+        "mt_ppm_register_client", "provider_registration", "hardware_write",
+    ):
+        if forbidden in mainline_source_provider_bridge_source:
+            raise AssertionError(f"unexpected mainline provider bridge operation: {forbidden}")
+
     vendor_source_observation_source = vendor_source_observation_patch[
         vendor_source_observation_patch.index("diff --git"):]
     for needle, label in (
@@ -842,6 +874,56 @@ def main() -> None:
         ("decision=isolated_runtime_owner_contract_passed", "vendor-lifecycle-guard-qemu-decision"),
     ):
         require(vendor_source_lifecycle_guard_qemu_result, needle, label)
+
+    for needle, label in (
+        ("claim=COMPILE_ONLY_MT6797_VENDOR_PROVIDER_FIELD_BRIDGE", "vendor-provider-bridge-build-claim"),
+        ("repository_commit=8dc7cf7b0f913ef753a4c97a00fc386b8c700cae", "vendor-provider-bridge-build-commit"),
+        ("build_backend=buildbox", "vendor-provider-bridge-build-backend"),
+        ("buildbox_status=validated", "vendor-provider-bridge-build-status"),
+        ("buildbox_job=8dc7cf7b0f913ef753a4c97a00fc386b8c700cae-dvfsp-owner-kunit-m0", "vendor-provider-bridge-build-job"),
+        ("build_profile=dvfsp-owner-kunit", "vendor-provider-bridge-build-profile"),
+        ("package_fetch=success;validated_package_only", "vendor-provider-bridge-build-fetch"),
+        ("patch_count=253", "vendor-provider-bridge-build-patches"),
+        ("dtb_count=119", "vendor-provider-bridge-build-dtbs"),
+        ("sha256sums=passed", "vendor-provider-bridge-build-checksums"),
+        ("mapping_ppm=three_clusters_reordered_by_cluster_id;source_indices_retained", "vendor-provider-bridge-ppm-mapping"),
+        ("mapping_cpufreq=four_domains_reordered_by_domain_id;source_indices_retained", "vendor-provider-bridge-cpufreq-mapping"),
+        ("mapping_cspm=fixed_LL_L_B_CCI_order;raw_voltage_and_vsram_codes_retained;physical_floor_zero_valid;cci_limits_zero_required", "vendor-provider-bridge-cspm-mapping"),
+        ("mapping_eem=six_detectors_reordered_by_detector_id;canonical_provider_banks=0,3,4,5;raw_voltage_tables_retained", "vendor-provider-bridge-eem-mapping"),
+        ("mapping_identity=variant_id;table_epoch_u64;calibration_handle_u64;nonzero_and_abi_checked", "vendor-provider-bridge-identity-mapping"),
+        ("unavailable_fields=policy_rows;eem_uv_conversion;live_clock_owner;rail_conversion;provider_registration", "vendor-provider-bridge-unavailable-fields"),
+        ("registration=default_off;bridge_attaches_only_during_explicit_vendor_lifecycle_binding", "vendor-provider-bridge-registration"),
+        ("provider_registration=none", "vendor-provider-bridge-no-provider"),
+        ("hardware_write=none", "vendor-provider-bridge-no-write"),
+        ("device_action=none", "vendor-provider-bridge-no-action"),
+        ("boot_candidate=false", "vendor-provider-bridge-not-candidate"),
+        ("cpu8_cpu9_admission=closed", "vendor-provider-bridge-no-admission"),
+        ("decision=provider_field_identity_bridge_compile_validated;isolated_runtime_KUnit_required;hardware_support_closed", "vendor-provider-bridge-build-decision"),
+    ):
+        require(vendor_source_provider_bridge_build_result, needle, label)
+
+    for needle, label in (
+        ("claim=RUNTIME_ISOLATED_QEMU_MT6797_VENDOR_PROVIDER_FIELD_BRIDGE_KUNIT", "vendor-provider-bridge-qemu-claim"),
+        ("repository_commit=8dc7cf7b0f913ef753a4c97a00fc386b8c700cae", "vendor-provider-bridge-qemu-commit"),
+        ("runner=local_qemu_system_aarch64", "vendor-provider-bridge-qemu-runner"),
+        ("machine=virt", "vendor-provider-bridge-qemu-machine"),
+        ("kunit_shutdown=kernel_halted", "vendor-provider-bridge-qemu-halt"),
+        ("ktap_suites=6", "vendor-provider-bridge-qemu-suites"),
+        ("ktap_tests_passed=17", "vendor-provider-bridge-qemu-pass"),
+        ("ktap_tests_failed=0", "vendor-provider-bridge-qemu-fail"),
+        ("ktap_tests_skipped=0", "vendor-provider-bridge-qemu-skip"),
+        ("suite_6=mt6797-dvfsp-vendor-provider;pass=3;fail=0;skip=0", "vendor-provider-bridge-qemu-provider-suite"),
+        ("qemu_exit=124_timeout_after_kernel_halt", "vendor-provider-bridge-qemu-exit"),
+        ("hardware_scope=none;isolated_virtual_machine_only", "vendor-provider-bridge-qemu-scope"),
+        ("runtime_owner_registration=not_executed;provider_bridge_lifecycle_fixture_passed", "vendor-provider-bridge-qemu-lifecycle"),
+        ("provider_registration=none", "vendor-provider-bridge-qemu-no-provider"),
+        ("hardware_write=none", "vendor-provider-bridge-qemu-no-write"),
+        ("device_action=none", "vendor-provider-bridge-qemu-no-action"),
+        ("boot_candidate=false", "vendor-provider-bridge-qemu-not-candidate"),
+        ("cpu8_cpu9_admission=closed", "vendor-provider-bridge-qemu-no-admission"),
+        ("decision=isolated_runtime_provider_field_bridge_passed;not_gemini_hardware_support;policy_voltage_clock_rail_mapping_and_real_device_validation_remain_closed", "vendor-provider-bridge-qemu-decision"),
+    ):
+        require(vendor_source_provider_bridge_qemu_result, needle, label)
 
     for needle, label in (
         ("claim=SOURCE_ONLY_MT6797_VENDOR_CALLER_LIFECYCLE_INVALIDATION_AUDIT", "vendor-caller-audit-claim"),
@@ -3135,6 +3217,9 @@ def main() -> None:
     print("vendor_source_cspm_bounds=0262;validated;profile=dvfsp-owner-kunit;commit=254e5a51d0eff5a2f8c74037c24a4eb8fe4cb020;patch_count=251;dtb_count=119;sha256sums=passed;CSPM_physical_limit_zero_valid;physical_limits_bounded_0_to_15;CCI_limits_must_be_zero;kunit=compiled_only;not_executed;runtime_registration=not_executed;provider=none;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("vendor_source_lifecycle_guard_kunit_buildbox=0263;validated;profile=dvfsp-owner-kunit;commit=39b52843db61c7d5cc4c591077a97b124df74b4c;patch_count=252;dtb_count=119;sha256sums=passed;direct_registration_requires_lifecycle_bind;returns_ENODEV_before_callback_publication;kunit=compiled_only;runtime_registration=default_off;provider=none;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("vendor_source_lifecycle_guard_kunit_qemu=validated;commit=39b52843db61c7d5cc4c591077a97b124df74b4c;runner=local_qemu_system_aarch64;machine=virt;ktap_suites=5;ktap_tests_passed=14;ktap_tests_failed=0;ktap_tests_skipped=0;vendor_owner_suite=pass_3;kernel_halted;hardware_scope=none;provider=none;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
+    print("vendor_source_provider_field_bridge=0264;abi=1;ppm_cpufreq_reordered_by_id;cspm_fixed_LL_L_B_CCI_raw;eem_all_six_detectors;canonical_eem_banks_0_3_4_5;identity_variant_epoch_calibration_u64;unavailable_policy_rows_eem_uv_clock_rail_registration;registration_default_off;provider=none;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
+    print("vendor_source_provider_field_bridge_buildbox=validated;commit=8dc7cf7b0f913ef753a4c97a00fc386b8c700cae;profile=dvfsp-owner-kunit;patch_count=253;dtb_count=119;sha256sums=passed;package_fetch=success;validated_package_only;provider=none;registered_owner=0;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
+    print("vendor_source_provider_field_bridge_qemu=validated;commit=8dc7cf7b0f913ef753a4c97a00fc386b8c700cae;runner=local_qemu_system_aarch64;machine=virt;ktap_suites=6;ktap_tests_passed=17;ktap_tests_failed=0;ktap_tests_skipped=0;provider_suite=pass_3;kernel_halted;hardware_scope=none;provider=none;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("pcm_adapter_contract=source-only;bounded-admission-model;callback-registration-gated")
     print("clock_owner_inventory=generic_ccf_only;protected_owner_absent;A72_observer_read_only")
     print("pcm_start_contract=defined;residency_and_start_required_before_callback_registration")
