@@ -23,14 +23,17 @@ source_sha256=abf3f35cb59f4fe7bf0aa920a53db3e6bfd570bd084e24e018c5bd2ea827a951
 
 ptp_private_table_slot=mt_cpufreq_update_private_tbl
 ptp_private_table_setter=mt_cpufreq_set_ptbl_registerCB
-ptp_private_table_writer_calls=mt_cpufreq.c:2414;2464;2538;2594
+ptp_private_table_writer_calls=mt_cpufreq.c:2417;2467;2541;2597
 ptp_existing_callback=mt_eem_set_ptbl_callback->mt_cpufreq_set_ptbl_funcEEM
 voltage_sampler_slot=g_pCpuVoltSampler
 voltage_sampler_setter=mt_cpufreq_setvolt_registerCB
-voltage_sampler_writer_call=mt_cpufreq.c:1585
+voltage_sampler_callback_call=mt_cpufreq.c:1587
+voltage_sampler_transition_calls=mt_cpufreq.c:3342;3755;5254
+voltage_sampler_is_observer=true;not_a_mutable_writer
+voltage_table_writer_functions=mt_cpufreq.c:2392;2439;2510;2564
 ppm_dvfs_slot=ppm_main_info.client_info[PPM_CLIENT_DVFS].limit_cb
 ppm_dvfs_setter=mt_ppm_register_client
-ppm_existing_callback=mt_cpufreq.c:5504->ppm_limit_callback
+ppm_existing_callback=mt_cpufreq.c:5509->ppm_limit_callback
 ppm_dispatch_sites=mt_ppm_api.c:141;mt_ppm_main.c:728;mt_ppm_main.c:853
 dispatch_lock=ppm_main_info.lock
 

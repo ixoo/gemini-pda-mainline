@@ -1,0 +1,44 @@
+# MT6797 vendor writer site integration design
+
+date_utc=2026-08-10
+claim=SOURCE_ONLY_MT6797_VENDOR_WRITER_INTEGRATION_DESIGN
+origin=https://github.com/ixoo/gemini-pda-mainline.git
+vendor_repository=https://github.com/gemian/gemini-linux-kernel-3.18.git
+vendor_revision=d388d350cb2dda8f23b99be6fa5db9628896e87f
+source_scope=temporary_buildbox_checkout;read_only_context;vendor_source_not_copied
+
+ptp_table_callback=mt_cpufreq_set_ptbl_funcPTP(enum mt_cpu_dvfs_id,int)
+ptp_table_setter=mt_cpufreq_set_ptbl_registerCB
+ptp_table_calls=mt_cpufreq.c:2417;2467;2541;2597
+ptp_table_outer_functions=mt_cpufreq.c:_restore_default_volt_b;_restore_default_volt;mt_cpufreq_update_volt_b;mt_cpufreq_update_volt
+ptp_table_lock=active_cpufreq_mutex;each_call_is_inside_cpufreq_lock
+ptp_integration_shape=split_or_wrap_each_outer_function_before_cpufreq_lock;run_site(PTP_TABLE);invoke_existing_callback;commit_or_abort
+
+voltage_sampler_callback=cpuVoltsampler_func(enum mt_cpu_dvfs_id,unsigned int)
+voltage_sampler_setter=mt_cpufreq_setvolt_registerCB
+voltage_sampler_call=mt_cpufreq.c:1587
+voltage_sampler_transition_calls=mt_cpufreq.c:3342;3755;5254
+voltage_sampler_class=observer_callback;not_a_mutable_table_writer
+voltage_sampler_integration_shape=identify_each_sleepable_outer_transition;acquire_owner_before_any_cpufreq_lock;never_acquire_owner_from_notify_cpu_volt_sampler
+
+ppm_callback=void (*)(struct ppm_client_req)
+ppm_registration=mt_cpufreq.c:5509->ppm_limit_callback
+ppm_dispatch=mt_ppm_api.c:141;mt_ppm_main.c:728;mt_ppm_main.c:853
+ppm_lock=ppm_main_info.lock;mutex_lock
+ppm_integration_shape=run_site(PPM) from the sleepable callback entry before cpufreq_lock;preserve existing PPM mutex -> owner -> cpufreq mutex order
+
+shared_owner=mt6797_dvfsp_vendor_writer_run_site
+site_contract=0255;PTP_TABLE;VOLTAGE;PPM;invalid_site_or_callback_refused
+mainline_vendor_callers_bound=false
+vendor_source_copied=false
+single_slot_setter_replaced=false
+provider_registration=none
+runtime_owner_registration=none
+hardware_write=none
+device_action=none
+boot_candidate=false
+cpu8_cpu9_admission=closed
+
+decision=do_not_copy_vendor_sources_or_claim_callsite_binding_from_descriptors_alone
+remaining_gate=external_vendor_aware_callers_or_mainline_cooperation_must_supply_real_callbacks_and_outer_function_contexts
+next_action=obtain_reviewable_vendor_boundary_implementation_then_run_separate_read_only_runtime_registration_evidence

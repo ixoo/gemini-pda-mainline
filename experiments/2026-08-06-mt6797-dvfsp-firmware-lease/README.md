@@ -1074,3 +1074,12 @@ no external vendor caller is wired, no setter or provider/runtime registration
 was called, no device was booted or written, and CPU8/CPU9 admission remains
 closed. The next gate is binding these descriptors at the external vendor
 callers, then gathering separate read-only runtime registration evidence.
+
+The follow-up source-only design separates the mutable PTP/voltage-table
+writers from `g_pCpuVoltSampler`, which is an observer callback invoked from
+multiple transition paths. It records the exact outer-function and lock-order
+requirements for PTP, voltage, and PPM without copying vendor code; see the
+[site integration design](results/vendor-writer-site-integration-design-20260810.txt).
+The corrected [call-site audit](results/vendor-writer-callsite-audit-20260810.txt)
+and [lock-context audit](results/vendor-writer-lock-context-audit-20260810.txt)
+keep actual external caller binding and runtime registration as open gates.

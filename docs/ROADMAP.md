@@ -2864,6 +2864,15 @@ CPU8/CPU9 admission remains closed. The next ordered action is binding these
 descriptors at the external vendor callers, followed by separate read-only
 runtime registration evidence.
 
+The follow-up source-only design separates the mutable PTP/voltage-table
+writers from `g_pCpuVoltSampler`, which is an observer callback invoked from
+multiple transition paths. It records the exact outer-function and lock-order
+requirements for PTP, voltage, and PPM without copying vendor code; see the
+[site integration design](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-writer-site-integration-design-20260810.txt).
+The corrected [call-site audit](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-writer-callsite-audit-20260810.txt)
+and [lock-context audit](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-writer-lock-context-audit-20260810.txt)
+keep actual external caller binding and runtime registration as open gates.
+
 Required evidence:
 
 - provider registration performs no register-data write;

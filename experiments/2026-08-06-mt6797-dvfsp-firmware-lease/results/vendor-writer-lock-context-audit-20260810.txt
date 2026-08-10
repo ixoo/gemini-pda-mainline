@@ -20,14 +20,17 @@ source_file=drivers/misc/mediatek/base/power/ppm_v2/src/mt_ppm_main.c
 source_sha256=8a6fb7f276c4164d6830d41ea768d2bffbaa857ff13259d04e9d4a631b194a42
 
 ptp_callback_type=mt_cpufreq_set_ptbl_funcPTP(enum mt_cpu_dvfs_id,int)
-ptp_writer_sites=mt_cpufreq.c:2414;2464;2538;2594
+ptp_writer_sites=mt_cpufreq.c:2417;2467;2541;2597
 cpufreq_lock_definition=mt_cpufreq.c:963-983;spinlock_branch_is_under_if_0
 cpufreq_lock_active_at_pinned_revision=mt_cpufreq_mutex;mt_cpufreq.c:967-982=mutex_lock
 cpufreq_lock_alternate_branch=mt_cpufreq.c:963-966=spin_lock_irqsave;compile_time_disabled
-ptp_writer_lock=active_cpufreq_mutex;mt_cpufreq.c:2408-2430;2458-2480=mutex_lock
+ptp_writer_lock=active_cpufreq_mutex;mt_cpufreq.c:2410-2430;2460-2480=mutex_lock
 voltage_callback_type=cpuVoltsampler_func(enum mt_cpu_dvfs_id,unsigned int)
-voltage_writer_site=mt_cpufreq.c:1585
-voltage_writer_lock=active_cpufreq_mutex;mt_cpufreq.c:2532-2554;2588-2610=mutex_lock
+voltage_sampler_callback=mt_cpufreq.c:1587
+voltage_sampler_transition_calls=mt_cpufreq.c:3342;3755;5254
+voltage_sampler_is_observer=true;owner_must_not_be_acquired_from_callback
+voltage_table_writer_functions=mt_cpufreq.c:2392;2439;2510;2564
+voltage_table_writer_lock=active_cpufreq_mutex;mt_cpufreq.c:2534-2554;2590-2610=mutex_lock
 ppm_callback_type=void (*)(struct ppm_client_req)
 ppm_registration_site=mt_cpufreq.c:5504
 ppm_dispatch_sites=mt_ppm_api.c:141;mt_ppm_main.c:728;853
@@ -39,6 +42,7 @@ required_call_order=writer_begin;vendor_update_under_existing_vendor_locks;write
 required_failure_behavior=abort_and_preserve_generation;refuse_commit_on_overflow
 lock_order_decision=acquire_shared_owner_before_cpufreq_lock;active_order_ppm_mutex_then_owner_then_cpufreq_mutex;never_sleep_after_an_atomic_or_spinlock_boundary
 ppm_lock_note=PPM dispatch holds ppm_main_info.lock;its callback enters cpufreq_lock;the shared owner must be acquired before cpufreq_lock and while the caller is sleepable
+voltage_sampler_note=callback_only_observer;wrap_a_sleepable_outer_transition_if_generation_binding_is_required;never_sleep_from_inside_cpufreq_lock
 standalone_observer_safe=false
 vendor_source_copied=false
 hardware_write=none
