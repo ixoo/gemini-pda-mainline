@@ -18,7 +18,7 @@ registration, firmware operation, device action, or CPU admission.
 diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c
 --- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c
-@@ -393,6 +393,8 @@ int mt6797_dvfsp_vendor_owner_register_writer(
+@@ -426,6 +426,8 @@ int mt6797_dvfsp_vendor_owner_register_writer(
  	if (!owner || !owner->bound || owner->writer_registered)
  		return -EINVAL;
 +	if (!owner->writer_integration_bound)
@@ -30,7 +30,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c b/drivers/soc/medi
 diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
 --- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
-@@ -331,18 +331,7 @@ static void mt6797_dvfsp_vendor_owner_binds_and_unbinds(
+@@ -334,18 +334,7 @@ static void mt6797_dvfsp_vendor_owner_binds_and_unbinds(
  	KUNIT_EXPECT_EQ(test, mt6797_dvfsp_vendor_test_callbacks, 0U);
  	KUNIT_EXPECT_EQ(test,
 -		mt6797_dvfsp_vendor_owner_register_writer(&owner), 0);
