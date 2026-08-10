@@ -1,0 +1,195 @@
+From 0000000000000000000000000000000000000229 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 10 Aug 2026 11:00:00 -0400
+Subject: [PATCH] soc: mediatek: bind PPM snapshot to owner lock
+
+The PPM state-source callback previously had no required lock or atomic copy
+boundary. Make the dormant owner constructor require an explicit PPM owner
+with lock, unlock, and snapshot operations. The owner copies the vendor PPM
+snapshot and the provider-owned four-bank policy object while that lock is
+held, then validates that both objects share one table epoch before the
+outer transition-lock snapshot continues.
+
+The source callback may no longer supply an unrelated PPM snapshot. Its
+calibration callback must preserve the exact policy copy supplied by the PPM
+owner. Lock ordering is explicit: the state owner holds its external
+transition lock before taking the PPM owner lock, and a PPM owner must not
+invert that order. This remains a dormant, default-off contract: no provider
+registration, hardware or firmware operation, device action, or CPU8/CPU9
+admission is added. It is experiment-only and not submission-ready.
+---
+ drivers/soc/mediatek/mt6797-dvfsp-state-owner-source.c |  45 +++++++++++++++--
+ include/linux/soc/mediatek/mt6797-dvfsp-ppm-owner.h    |  28 ++++++++++
+ include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h |  20 +++++--
+ 3 files changed, 81 insertions(+), 10 deletions(-)
+ create mode 100644 include/linux/soc/mediatek/mt6797-dvfsp-ppm-owner.h
+
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-ppm-owner.h b/include/linux/soc/mediatek/mt6797-dvfsp-ppm-owner.h
+new file mode 100644
+--- /dev/null
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-ppm-owner.h
+@@ -0,0 +28 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __LINUX_SOC_MEDIATEK_MT6797_DVFSP_PPM_OWNER_H
++#define __LINUX_SOC_MEDIATEK_MT6797_DVFSP_PPM_OWNER_H
++
++#include <linux/types.h>
++
++#include <linux/soc/mediatek/mt6797-dvfsp-ppm-policy.h>
++#include <linux/soc/mediatek/mt6797-dvfsp-ppm.h>
++#include <linux/soc/mediatek/mt6797-dvfsp-ptp.h>
++
++#define MT6797_DVFSP_PPM_OWNER_ABI		1
++
++/*
++ * The state owner holds its external transition lock before taking this
++ * owner lock. snapshot() must copy both objects while lock() is held and
++ * must not publish a table epoch unrelated to either object.
++ */
++struct mt6797_dvfsp_ppm_owner_ops {
++	u32 abi;
++	int (*lock)(void *context);
++	void (*unlock)(void *context);
++	int (*snapshot)(void *context,
++			const struct mt6797_dvfsp_ptp_state *ptp_state,
++			struct mt6797_dvfsp_ppm_snapshot *ppm,
++			struct mt6797_dvfsp_ppm_policy_snapshot *policy);
++};
++
++#endif /* __LINUX_SOC_MEDIATEK_MT6797_DVFSP_PPM_OWNER_H */
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h b/include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h
+@@ -8,3 +8,4 @@
+ #include <linux/soc/mediatek/mt6797-dvfsp-handoff.h>
++#include <linux/soc/mediatek/mt6797-dvfsp-ppm-owner.h>
+ #include <linux/soc/mediatek/mt6797-dvfsp-state-source-backends.h>
+ #include <linux/soc/mediatek/mt6797-dvfsp-state-source.h>
+@@ -14,1 +15,1 @@
+-#define MT6797_DVFSP_STATE_OWNER_SOURCE_ABI	3
++#define MT6797_DVFSP_STATE_OWNER_SOURCE_ABI	4
+@@ -24,8 +24,5 @@ struct mt6797_dvfsp_state_owner_source_ops {
+ 	u32 abi;
+ 	int (*read_identity)(void *context,
+ 				const struct mt6797_dvfsp_ptp_state *ptp_state,
+ 				struct mt6797_dvfsp_state_owner_source_identity *identity);
+-	int (*read_ppm)(void *context,
+-				const struct mt6797_dvfsp_ptp_state *ptp_state,
+-				struct mt6797_dvfsp_ppm_snapshot *snapshot);
+ 	int (*fill_calibration)(void *context,
+@@ -50,12 +47,16 @@ struct mt6797_dvfsp_state_owner_source {
+ struct mt6797_dvfsp_state_owner_source {
+ 	struct mutex transition_lock;
+ 	struct mt6797_dvfsp_state_source_devices devices;
+ 	struct mt6797_dvfsp_state_source_ops adapter_ops;
+ 	const struct mt6797_dvfsp_state_owner_source_ops *source_ops;
+ 	void *source_context;
++	const struct mt6797_dvfsp_ppm_owner_ops *ppm_owner_ops;
++	void *ppm_owner_context;
++	struct mt6797_dvfsp_ppm_policy_snapshot ppm_policy;
+ 	struct mt6797_dvfsp_state_provenance provenance;
+ 	u64 owner_handle;
+ 	u64 transition_handle;
+ 	bool initialized;
+ 	bool invalidated;
++	bool ppm_policy_valid;
+ };
+@@ -63,5 +64,7 @@ int mt6797_dvfsp_state_owner_source_init(
+ int mt6797_dvfsp_state_owner_source_init(
+ 	struct mt6797_dvfsp_state_owner_source *owner,
+ 	const struct mt6797_dvfsp_state_source_devices *devices,
+ 	const struct mt6797_dvfsp_state_owner_source_ops *source_ops,
+-	void *source_context, u64 owner_handle, u64 transition_handle);
++	void *source_context,
++	const struct mt6797_dvfsp_ppm_owner_ops *ppm_owner_ops,
++	void *ppm_owner_context, u64 owner_handle, u64 transition_handle);
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-owner-source.c b/drivers/soc/mediatek/mt6797-dvfsp-state-owner-source.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-state-owner-source.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-state-owner-source.c
+@@ -101,11 +101,35 @@ static int mt6797_dvfsp_owner_read_ppm(
+ 	void *context, const struct mt6797_dvfsp_ptp_state *ptp_state,
+ 	struct mt6797_dvfsp_ppm_snapshot *snapshot)
+ {
+ 	struct mt6797_dvfsp_state_owner_source *owner = context;
++	int ret;
+ 
+-	if (!owner || !ptp_state || !snapshot || !owner->source_ops ||
+-	    !owner->source_ops->read_ppm)
++	if (!owner || !ptp_state || !snapshot || !owner->ppm_owner_ops ||
++	    owner->ppm_owner_ops->abi != MT6797_DVFSP_PPM_OWNER_ABI ||
++	    !owner->ppm_owner_ops->lock || !owner->ppm_owner_ops->unlock ||
++	    !owner->ppm_owner_ops->snapshot)
+ 		return -EINVAL;
+-	return owner->source_ops->read_ppm(owner->source_context, ptp_state,
+-					   snapshot);
++
++	owner->ppm_policy_valid = false;
++	memset(snapshot, 0, sizeof(*snapshot));
++	memset(&owner->ppm_policy, 0, sizeof(owner->ppm_policy));
++	ret = owner->ppm_owner_ops->lock(owner->ppm_owner_context);
++	if (ret)
++		return ret;
++	ret = owner->ppm_owner_ops->snapshot(owner->ppm_owner_context,
++						ptp_state, snapshot,
++						&owner->ppm_policy);
++	owner->ppm_owner_ops->unlock(owner->ppm_owner_context);
++	if (ret)
++		return ret;
++	ret = mt6797_dvfsp_ppm_snapshot_validate(snapshot);
++	if (ret)
++		return ret;
++	ret = mt6797_dvfsp_ppm_policy_validate(&owner->ppm_policy);
++	if (ret)
++		return ret;
++	if (snapshot->table_epoch != owner->ppm_policy.table_epoch)
++		return -EAGAIN;
++	owner->ppm_policy_valid = true;
++	return 0;
+ }
+@@ -126,5 +150,5 @@ static int mt6797_dvfsp_owner_fill_calibration(
+ 	if (!owner || !handoff || !ptp_state || !ppm || !policy ||
+ 	    !readback || !input ||
+ 	    !owner->source_ops || !owner->source_ops->read_identity ||
+-	    !owner->source_ops->fill_calibration)
++	    !owner->source_ops->fill_calibration || !owner->ppm_policy_valid)
+ 		return -EINVAL;
+@@ -151,3 +175,5 @@ static int mt6797_dvfsp_owner_fill_calibration(
+ 	ret = mt6797_dvfsp_ppm_policy_validate(policy);
+ 	if (ret)
+ 		return ret;
++	if (memcmp(policy, &owner->ppm_policy, sizeof(*policy)))
++		return -EAGAIN;
+@@ -217,8 +241,10 @@ int mt6797_dvfsp_state_owner_source_init(
+ int mt6797_dvfsp_state_owner_source_init(
+ 	struct mt6797_dvfsp_state_owner_source *owner,
+ 	const struct mt6797_dvfsp_state_source_devices *devices,
+ 	const struct mt6797_dvfsp_state_owner_source_ops *source_ops,
+-	void *source_context, u64 owner_handle, u64 transition_handle)
++	void *source_context,
++	const struct mt6797_dvfsp_ppm_owner_ops *ppm_owner_ops,
++	void *ppm_owner_context, u64 owner_handle, u64 transition_handle)
+ {
+ 	struct mt6797_dvfsp_state_source_ops backend_ops;
+ 	int ret;
+@@ -226,6 +252,9 @@ int mt6797_dvfsp_state_owner_source_init(
+ 	if (!owner || !devices || !source_ops || source_ops->abi !=
+ 	    MT6797_DVFSP_STATE_OWNER_SOURCE_ABI ||
+-	    !source_ops->read_identity || !source_ops->read_ppm ||
++	    !source_ops->read_identity || !ppm_owner_ops ||
++	    ppm_owner_ops->abi != MT6797_DVFSP_PPM_OWNER_ABI ||
++	    !ppm_owner_ops->lock || !ppm_owner_ops->unlock ||
++	    !ppm_owner_ops->snapshot ||
+ 	    !source_ops->fill_calibration ||
+ 	    !source_ops->fill_live || !source_ops->invalidate ||
+ 	    !owner_handle || !transition_handle)
+@@ -241,5 +270,7 @@ int mt6797_dvfsp_state_owner_source_init(
+ 	owner->devices = *devices;
+ 	owner->source_ops = source_ops;
+ 	owner->source_context = source_context;
++	owner->ppm_owner_ops = ppm_owner_ops;
++	owner->ppm_owner_context = ppm_owner_context;
+ 	owner->owner_handle = owner_handle;
+ 	owner->transition_handle = transition_handle;
+-- 
+2.43.0
+
