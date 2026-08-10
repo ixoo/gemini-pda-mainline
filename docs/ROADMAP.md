@@ -2918,6 +2918,14 @@ This compile-only rebuild records the current artifact identity but does not
 change the integration gate or authorize a device boot/write: vendor callers
 remain unbound and CPU8/CPU9 admission stays closed.
 
+The exact pushed current head `b2425cd` was resumed on Buildbox with the
+manifest's `full` profile. All 244 canonical patches applied, the arm64 kernel
+linked, all 119 DTBs and package/provenance checksums passed, and only the
+validated package was fetched; see the [current-head Buildbox receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/buildbox-resume-b2425cd-20260810.txt).
+This compile-only rebuild confirms the current mainline artifact but does not
+promote the experiment-only vendor candidate, register a runtime owner, or
+authorize a device boot/write; CPU8/CPU9 admission remains closed.
+
 The clean-room candidate at [0001-mt6797-vendor-writer-boundary.patch](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/patches/0001-mt6797-vendor-writer-boundary.patch)
 now binds the four pinned PTP/voltage-table writers and the PPM policy callback
 to one fail-closed, externally registered transaction bridge. Each hook begins
