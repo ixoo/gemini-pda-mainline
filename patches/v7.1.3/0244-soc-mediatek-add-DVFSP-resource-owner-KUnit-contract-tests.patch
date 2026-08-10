@@ -12,10 +12,10 @@ The fixture never probes Device Tree, accesses MMIO, toggles a clock or rail,
 calls firmware or secure monitor services, registers a provider, or requests a
 CPU. It is experiment-only and not submission-ready.
 ---
- drivers/soc/mediatek/Kconfig                    |  11 +++
+ drivers/soc/mediatek/Kconfig                    |   9 +++
  drivers/soc/mediatek/Makefile                   |   1 +
  drivers/soc/mediatek/mt6797-dvfsp-resource-owner-test.c | 186 ++++++++++++++++
- 3 files changed, 198 insertions(+)
+ 3 files changed, 196 insertions(+)
  create mode 100644 drivers/soc/mediatek/mt6797-dvfsp-resource-owner-test.c
 
 diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
@@ -40,7 +40,7 @@ diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
 diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
 --- a/drivers/soc/mediatek/Makefile
 +++ b/drivers/soc/mediatek/Makefile
-@@ -7,7 +7,8 @@ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-state-owner-source.o
+@@ -7,6 +7,7 @@ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-state-owner-source.o
  obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-state-owner-arbitration.o
  obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-resource-owner.o
  obj-$(CONFIG_MTK_MT6797_DVFSP_RESOURCE_OWNER) += mt6797-dvfsp-resource-provider.o
