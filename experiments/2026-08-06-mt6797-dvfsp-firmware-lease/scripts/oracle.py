@@ -84,6 +84,8 @@ VENDOR_WRITER_LIFECYCLE_INTEGRATION_BUILD_RESULT = (Path(__file__).resolve().par
                                                     "results/vendor-writer-lifecycle-integration-buildbox-20260811.txt")
 VENDOR_SOURCE_OBSERVATION_BUILD_RESULT = (Path(__file__).resolve().parents[1] /
                                           "results/vendor-source-observation-owner-buildbox-20260810.txt")
+VENDOR_SOURCE_RUNTIME_KUNIT_BUILD_RESULT = (Path(__file__).resolve().parents[1] /
+                                            "results/vendor-source-observation-runtime-registration-kunit-buildbox-20260810.txt")
 VENDOR_CALLER_LIFECYCLE_AUDIT_RESULT = (Path(__file__).resolve().parents[1] /
                                         "results/vendor-caller-lifecycle-invalidation-audit-20260811.txt")
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
@@ -269,6 +271,7 @@ def main() -> None:
     vendor_writer_lifecycle_build_result = VENDOR_WRITER_LIFECYCLE_BUILD_RESULT.read_text()
     vendor_writer_lifecycle_integration_build_result = VENDOR_WRITER_LIFECYCLE_INTEGRATION_BUILD_RESULT.read_text()
     vendor_source_observation_build_result = VENDOR_SOURCE_OBSERVATION_BUILD_RESULT.read_text()
+    vendor_source_runtime_kunit_build_result = VENDOR_SOURCE_RUNTIME_KUNIT_BUILD_RESULT.read_text()
     vendor_caller_lifecycle_audit_result = VENDOR_CALLER_LIFECYCLE_AUDIT_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
@@ -696,6 +699,31 @@ def main() -> None:
         ("cpu8_cpu9_admission=closed", "vendor-source-observation-build-no-admission"),
     ):
         require(vendor_source_observation_build_result, needle, label)
+
+    for needle, label in (
+        ("claim=COMPILE_ONLY_MT6797_VENDOR_SOURCE_OBSERVATION_RUNTIME_REGISTRATION_KUNIT", "vendor-source-runtime-kunit-claim"),
+        ("repository_commit=435d151448a7facc961afbb6288d219cc81f717d", "vendor-source-runtime-kunit-commit"),
+        ("build_backend=buildbox", "vendor-source-runtime-kunit-backend"),
+        ("buildbox_job=435d151448a7facc961afbb6288d219cc81f717d-dvfsp-owner-kunit-m0", "vendor-source-runtime-kunit-job"),
+        ("build_profile=dvfsp-owner-kunit", "vendor-source-runtime-kunit-profile"),
+        ("patch_count=250", "vendor-source-runtime-kunit-patches"),
+        ("config_bridge=CONFIG_MTK_MT6797_DVFSP_VENDOR_WRITER_BRIDGE=y", "vendor-source-runtime-kunit-bridge"),
+        ("dtb_count=119", "vendor-source-runtime-kunit-dtbs"),
+        ("sha256sums=passed", "vendor-source-runtime-kunit-checksums"),
+        ("package_fetch=success;validated_package_only", "vendor-source-runtime-kunit-fetch"),
+        ("kunit=compiled_only;not_executed", "vendor-source-runtime-kunit-not-executed"),
+        ("fixture_registration=source_registration_pointer_bound", "vendor-source-runtime-kunit-registration"),
+        ("owner_bind_contract=source_init_after_integration_bind", "vendor-source-runtime-kunit-owner-contract"),
+        ("runtime_owner_registration=not_executed;default_off", "vendor-source-runtime-kunit-no-runtime-owner"),
+        ("provider_registration=none", "vendor-source-runtime-kunit-no-provider"),
+        ("vendor_setter_called=none", "vendor-source-runtime-kunit-no-setter"),
+        ("hardware_write=none", "vendor-source-runtime-kunit-no-write"),
+        ("device_action=none", "vendor-source-runtime-kunit-no-action"),
+        ("boot_candidate=false", "vendor-source-runtime-kunit-not-candidate"),
+        ("cpu8_cpu9_admission=closed", "vendor-source-runtime-kunit-no-admission"),
+        ("decision=owner_source_runtime_registration_contract_compile_validated", "vendor-source-runtime-kunit-decision"),
+    ):
+        require(vendor_source_runtime_kunit_build_result, needle, label)
 
     for needle, label in (
         ("claim=SOURCE_ONLY_MT6797_VENDOR_CALLER_LIFECYCLE_INVALIDATION_AUDIT", "vendor-caller-audit-claim"),
@@ -2985,6 +3013,7 @@ def main() -> None:
     print("vendor_writer_runtime_event_handoff=0258;runtime_event_abi=1;eight_event_ids;cpu_none_sentinel;runtime_table_and_context_pinned;registration_requires_validated_runtime_callback;default_off;buildbox=validated;commit=8387f7fbf35bf86288cecd905dc7708c4f1e369d;patch_count=247;dtb_count=119;sha256sums=passed;package_fetch=success;validated_package_only;provider=none;registered_owner=0;hardware_write=none;device_action=none;cpu8_cpu9_admission=closed;boot_candidate=false")
     print("vendor_writer_lifecycle_runtime_events=0007;probe_remove_lifecycle_bound;failure_unwind;pm_ppm_hotcpu_cpufreq_cleanup;cpu_pm_clock_rail_events;deferred_pcm_fault;buildbox=validated;external_adapter_required;registered_owner=0;provider=none;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("vendor_source_observation=0009;source_abi=1;integration_abi=2;observe_transaction_abort;bounded_ppm_cpufreq_cspm_eem_snapshot;identity_fail_closed;buildbox=validated;commit=2c2035bc68bdd3ce0f6bef07359af07ba245b5a2;vendor_series=0001..0009;runtime_registration=none;provider=none;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
+    print("vendor_source_runtime_registration_kunit=validated;profile=dvfsp-owner-kunit;commit=435d151448a7facc961afbb6288d219cc81f717d;patch_count=250;dtb_count=119;sha256sums=passed;kunit=compiled_only;not_executed;source_registration_bound;owner_invalidation_contract;teardown_guard;runtime_registration=not_executed;provider=none;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("pcm_adapter_contract=source-only;bounded-admission-model;callback-registration-gated")
     print("clock_owner_inventory=generic_ccf_only;protected_owner_absent;A72_observer_read_only")
     print("pcm_start_contract=defined;residency_and_start_required_before_callback_registration")

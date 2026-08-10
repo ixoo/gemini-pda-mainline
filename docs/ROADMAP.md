@@ -3172,8 +3172,17 @@ compiled; see the [source-observation owner Buildbox result](../experiments/2026
 This remains compile-only evidence: the external adapter and provider are
 default-off, identity remains unsupported, no setter or device action occurred,
 and CPU8/CPU9 admission remains closed. The next ordered step is a separate
-source-snapshot contract review plus read-only runtime registration test; do
-not boot or write.
+source-snapshot contract review plus isolated read-only runtime registration
+test. The dedicated `dvfsp-owner-kunit` profile then compiled the source
+registration fixture and required writer bridge with all 250 canonical patches,
+119 DTBs, and passing package/provenance checksums; see the [owner-KUnit
+Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-source-observation-runtime-registration-kunit-buildbox-20260810.txt).
+The fixture covers source init/exit, invalidation-before-forwarding, exact
+callback/context identity, and teardown refusal while registered, but Buildbox
+does not execute KUnit. No real external registration, provider, setter, device
+action, or CPU8/CPU9 admission is claimed. The next ordered step is source
+snapshot semantic review and, only if an isolated runner exists, runtime test;
+do not boot or write.
 
 Required evidence:
 

@@ -1337,5 +1337,11 @@ profile and validated-package-only fetch also passed. See the [source-
 observation owner Buildbox result](results/vendor-source-observation-owner-buildbox-20260810.txt).
 This is compile-only evidence: no runtime owner/provider or setter is active,
 no device action occurred, and CPU8/CPU9 admission remains closed. The next
-ordered step is a separate source-snapshot contract review and read-only
-runtime registration test; do not boot or write a device for this result.
+ordered step is a separate source-snapshot contract review and isolated
+runtime-registration test if a runner is available. The dedicated
+`dvfsp-owner-kunit` profile subsequently compiled the source-registration
+fixture, owner invalidation ordering, exact callback/context identity, and
+teardown refusal while registered; see the [owner-KUnit Buildbox result](results/vendor-source-observation-runtime-registration-kunit-buildbox-20260810.txt).
+Buildbox does not execute KUnit, so this remains compile-only evidence: no real
+external registration, provider, setter, device action, or CPU8/CPU9 admission
+is claimed. Do not boot or write a device for this result.

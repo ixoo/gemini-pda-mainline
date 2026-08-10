@@ -1,0 +1,41 @@
+# MT6797 vendor source-observation owner runtime-registration KUnit Buildbox validation
+
+date_utc=2026-08-10T21:45:27Z
+claim=COMPILE_ONLY_MT6797_VENDOR_SOURCE_OBSERVATION_RUNTIME_REGISTRATION_KUNIT
+repository=https://github.com/ixoo/gemini-pda-mainline.git
+repository_commit=435d151448a7facc961afbb6288d219cc81f717d
+repository_dirty=false
+build_backend=buildbox
+buildbox_status=validated
+buildbox_job=435d151448a7facc961afbb6288d219cc81f717d-dvfsp-owner-kunit-m0
+build_profile=dvfsp-owner-kunit
+kernel_release=7.1.3-gemini-dvfsp-owner-kunit
+artifact=linux-7.1.3-gemini-dvfsp-owner-kunit-0d1901cc-570e7702
+package_fetch=success;validated_package_only
+local_package=artifacts/buildbox/435d151448a7facc961afbb6288d219cc81f717d/linux-7.1.3-gemini-dvfsp-owner-kunit-0d1901cc-570e7702
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=0d1901cc9a988e6823d8be816abf282f3d7697948e24a9da76c68154fe601ed1
+config_sha256=28c2e03824763b990541cebe4d7fce625beed7c8669d9ae7bf15f905d5e124fa
+dtb_count=119
+sha256sums=passed
+patch_count=250
+config_bridge=CONFIG_MTK_MT6797_DVFSP_VENDOR_WRITER_BRIDGE=y
+
+kunit=compiled_only;not_executed;Buildbox_has_no_runtime_KUnit_runner
+test_scope=hardware_free_fake_devices_source_registration_owner_bind_runtime_invalidation_teardown
+fixture_registration=source_registration_pointer_bound;source_ops_context_pinned;source_exit_on_unbind
+owner_bind_contract=source_init_after_integration_bind;runtime_event_invalidates_source_before_forwarding;unregister_refused_while_registered
+source_snapshot=read_only_bounded_OBSERVE_transaction;identity_fail_closed
+runtime_owner_registration=not_executed;default_off
+provider_registration=none
+vendor_setter_called=none
+hardware_write=none
+device_action=none
+hardware_support_claim=NONE
+boot_candidate=false
+runtime_evidence=none
+cpu8_cpu9_admission=closed
+
+observation=The dedicated owner-KUnit profile applies all 250 canonical patches, links the source-registration fixture and required writer bridge, and produces a validated package with 119 DTBs and passing checksums. The fixture compiles the read-only owner bind, source initialization and exit, runtime invalidation ordering, exact callback/context identity, teardown refusal while registered, and fake-device lifecycle paths.
+decision=owner_source_runtime_registration_contract_compile_validated;KUnit_execution_and_real_external_registration_remain_unproven;hardware_support_closed
+next=review source snapshot semantics against the provider contract and determine whether an isolated runtime KUnit runner is available; do not boot or write a device
