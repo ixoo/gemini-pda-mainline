@@ -17,12 +17,12 @@ unbind, and lifecycle setup invokes no source callback.
 This is an experiment-only contract and not submission-ready.
 ---
  configs/gemini-dvfsp-owner-kunit.fragment                         |   2 +
- drivers/soc/mediatek/Kconfig                                      |  17 +++
+ drivers/soc/mediatek/Kconfig                                      |  20 ++++
  drivers/soc/mediatek/Makefile                                     |   2 +
  drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c             | 235 ++++++++++++++++++++
  drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c                  | 105 +++++++++
  include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h            |  49 ++++
- 6 files changed, 410 insertions(+)
+ 6 files changed, 413 insertions(+)
  create mode 100644 drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
  create mode 100644 drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c
  create mode 100644 include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h
@@ -40,7 +40,7 @@ diff --git a/configs/gemini-dvfsp-owner-kunit.fragment b/configs/gemini-dvfsp-ow
 diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
 --- a/drivers/soc/mediatek/Kconfig
 +++ b/drivers/soc/mediatek/Kconfig
-@@ -114,6 +114,23 @@ config MTK_MT6797_DVFSP_PROVIDER_KUNIT_TEST
+@@ -114,6 +114,26 @@ config MTK_MT6797_DVFSP_PROVIDER_KUNIT_TEST
  	  Exercise the hardware-free source binding and exit contract of the
  	  dormant MT6797 calibrated provider.
  
