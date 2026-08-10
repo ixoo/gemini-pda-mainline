@@ -8,9 +8,12 @@ source_scope=bounded_read_only_buildbox_search;vendor_source_not_copied
 
 integration_status=unbound
 buildbox_managed_vendor_states=searched
+vendor_mirror_origin=https://github.com/gemian/gemini-linux-kernel-3.18.git
+vendor_mirror_revision_present=true
 run_site_symbol_found=false
 vendor_owner_bridge_found=false
-exact_pinned_vendor_revision_managed_checkout=false
+exact_pinned_vendor_revision_managed_checkout=true
+prepared_vendor_integration_checkout=false
 mainline_vendor_callers_bound=false
 vendor_setter_called=false
 provider_registration=none

@@ -1103,9 +1103,20 @@ absent, no device was booted or written, and CPU8/CPU9 admission remains
 closed.
 
 The bounded Buildbox source search found no existing vendor-aware implementation
-of `mt6797_dvfsp_vendor_writer_run_site`, and the pinned public vendor revision
-is not present as a managed Buildbox checkout. The [integration handoff](results/vendor-writer-integration-handoff-20260810.txt)
-therefore records the exact external source/cooperation input and acceptance
-checks still required. This is an explicit integration gap, not runtime or
-hardware evidence: vendor source remains uncopied, no setter/provider was
-called, no device action occurred, and CPU8/CPU9 admission remains closed.
+of `mt6797_dvfsp_vendor_writer_run_site` and no prepared caller-integration
+checkout or branch. The pinned vendor revision is present in Buildbox's managed
+Git mirror, so the source is available for a reviewable clean-room integration;
+it has not been copied into this repository or wired into the mainline caller
+sites. The [integration handoff](results/vendor-writer-integration-handoff-20260810.txt)
+records the exact external source/cooperation input and acceptance checks still
+required. This is an explicit integration gap, not runtime or hardware
+evidence: no setter/provider was called, no device action occurred, and CPU8/
+CPU9 admission remains closed.
+
+The exact current head `10439af` was resumed on Buildbox with the same
+`dvfsp-owner-kunit` profile. All 244 canonical patches applied, the arm64
+kernel linked, all 119 DTBs and package/provenance checksums passed, and only
+the validated package was fetched; see the [current-head Buildbox receipt](results/buildbox-resume-10439af-20260810.txt).
+This compile-only rebuild does not change the integration gate or authorize a
+device boot/write; vendor callers remain unbound and CPU8/CPU9 admission stays
+closed.
