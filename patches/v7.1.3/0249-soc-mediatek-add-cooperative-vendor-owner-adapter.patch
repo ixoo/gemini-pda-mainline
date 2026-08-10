@@ -30,7 +30,7 @@ This is an experiment-only contract and not submission-ready.
 diff --git a/configs/gemini-dvfsp-owner-kunit.fragment b/configs/gemini-dvfsp-owner-kunit.fragment
 --- a/configs/gemini-dvfsp-owner-kunit.fragment
 +++ b/configs/gemini-dvfsp-owner-kunit.fragment
-@@ -5,5 +5,7 @@
+@@ -5,4 +5,6 @@
  CONFIG_KUNIT=y
  CONFIG_MTK_MT6797_DVFSP_OWNER_KUNIT_TEST=y
  CONFIG_MTK_MT6797_DVFSP_PROVIDER_KUNIT_TEST=y
@@ -70,7 +70,7 @@ diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
 diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
 --- a/drivers/soc/mediatek/Makefile
 +++ b/drivers/soc/mediatek/Makefile
-@@ -13,6 +13,8 @@ obj-$(CONFIG_MTK_MT6797_DVFSP_OWNER_KUNIT_TEST) += mt6797-dvfsp-resource-owner-test.o
+@@ -13,5 +13,7 @@ obj-$(CONFIG_MTK_MT6797_DVFSP_OWNER_KUNIT_TEST) += mt6797-dvfsp-resource-owner-test.o
  obj-$(CONFIG_MTK_MT6797_DVFSP_PROVIDER_KUNIT_TEST) += mt6797-dvfsp-calibrated-provider-test.o
  obj-$(CONFIG_MTK_MT6797_DVFSP_PROVIDER_KUNIT_TEST) += mt6797-dvfsp-table-source-test.o
 +obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_OWNER) += mt6797-dvfsp-vendor-owner.o
