@@ -1,0 +1,270 @@
+From 0000000000000000000000000000000000000009 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 11 Aug 2026 01:20:00 -0400
+Subject: [PATCH] power: expose vendor source observation through owner binding
+
+Add the read-only source adapter for the pinned MT6797 vendor snapshots.
+The adapter acquires the shared observation transaction, copies PPM, cpufreq,
+CSPM, and EEM state into the source-independent mainline layout, and releases
+the transaction through abort so a read cannot advance the shared generation.
+No vendor setter, callback replacement, MMIO operation, identity invention, or
+CPU admission is performed.
+---
+ drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c | 142 +++++++++++++++++++++
+ drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h |  10 ++
+ 2 files changed, 152 insertions(+)
+
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h
+--- a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h
++++ b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h
+@@ -13,10 +13,11 @@
+ enum gemini_mt6797_dvfsp_vendor_writer_site {
+ 	GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_PTP_TABLE = 0,
+ 	GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_VOLTAGE,
+ 	GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_PPM,
++	GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_OBSERVE,
+ 	GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_COUNT,
+ };
+@@ -70,6 +71,10 @@ int gemini_mt6797_dvfsp_vendor_writer_finish(
+ 	struct gemini_mt6797_dvfsp_vendor_writer_transaction *transaction,
+ 	int result);
++int gemini_mt6797_dvfsp_vendor_writer_abort_observation(
++	struct gemini_mt6797_dvfsp_vendor_writer_transaction *transaction);
+@@ -72,7 +77,7 @@ struct gemini_mt6797_dvfsp_vendor_owner_lifecycle_ops {
+-#define GEMINI_MT6797_DVFSP_VENDOR_INTEGRATION_ABI	1
++#define GEMINI_MT6797_DVFSP_VENDOR_INTEGRATION_ABI	2
+@@ -99,6 +104,7 @@ struct gemini_mt6797_dvfsp_vendor_integration_ops {
+ 	int (*unregister_mainline_owner)(void *context, const void *bridge_ops,
+ 		void *bridge_context, const void *runtime_ops,
+ 		void *runtime_context, u64 owner_handle,
+ 		u64 transition_handle);
++	const void *source_registration;
+ };
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
+--- a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
++++ b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
+@@ -10,6 +10,8 @@
+ #include <linux/sched.h>
+ #include <linux/string.h>
+ #include <linux/workqueue.h>
+ #include <linux/types.h>
+ 
++#include <linux/soc/mediatek/mt6797-dvfsp-vendor-source.h>
++
+ #include "mt6797-dvfsp-vendor-writer.h"
++#include "mt6797-dvfsp-vendor-state.h"
+@@ -549,6 +551,39 @@ int gemini_mt6797_dvfsp_vendor_writer_finish(
+ }
+ EXPORT_SYMBOL_GPL(gemini_mt6797_dvfsp_vendor_writer_finish);
+ 
++int gemini_mt6797_dvfsp_vendor_writer_abort_observation(
++	struct gemini_mt6797_dvfsp_vendor_writer_transaction *transaction)
++{
++	const struct gemini_mt6797_dvfsp_vendor_writer_ops *ops;
++	void *context;
++	int ret;
++
++	if (!transaction || !transaction->active ||
++	    transaction->site != GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_OBSERVE)
++		return -EINVAL;
++	ops = gemini_mt6797_dvfsp_vendor_writer_ops;
++	context = gemini_mt6797_dvfsp_vendor_writer_context;
++	if (!ops || !ops->abort)
++		return -ENODEV;
++	ret = ops->abort(context, transaction->site, transaction->generation);
++	transaction->site = GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_COUNT;
++	transaction->generation = 0;
++	transaction->owner_handle = 0;
++	transaction->transition_handle = 0;
++	transaction->active = false;
++	mutex_unlock(&gemini_mt6797_dvfsp_vendor_writer_lock);
++	return ret;
++}
++EXPORT_SYMBOL_GPL(gemini_mt6797_dvfsp_vendor_writer_abort_observation);
++
++static int gemini_mt6797_dvfsp_vendor_source_snapshot(
++	void *context, struct mt6797_dvfsp_vendor_source_snapshot *dst)
++{
++	struct gemini_mt6797_dvfsp_vendor_writer_integration_binding *binding =
++		context;
++	struct gemini_mt6797_dvfsp_vendor_writer_transaction transaction = { };
++	struct gemini_mt6797_dvfsp_vendor_ppm_snapshot ppm = { };
++	struct gemini_mt6797_dvfsp_vendor_cpufreq_snapshot cpufreq = { };
++	struct gemini_mt6797_dvfsp_vendor_cspm_snapshot cspm = { };
++	struct gemini_mt6797_dvfsp_vendor_eem_snapshot eem = { };
++	int ret;
++	int abort_ret;
++	unsigned int i, j;
++
++	if (binding != &gemini_mt6797_dvfsp_vendor_writer_integration_binding ||
++	    !binding->bound || !binding->mainline_registered || !dst)
++		return -ENODEV;
++	ret = gemini_mt6797_dvfsp_vendor_writer_begin(&transaction,
++		GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_OBSERVE);
++	if (ret)
++		return ret;
++	ret = gemini_mt6797_dvfsp_vendor_ppm_snapshot(&ppm);
++	if (ret)
++		goto abort;
++	ret = gemini_mt6797_dvfsp_vendor_cpufreq_snapshot(&cpufreq);
++	if (ret)
++		goto abort;
++	ret = gemini_mt6797_dvfsp_vendor_cspm_snapshot(&cspm);
++	if (ret)
++		goto abort;
++	ret = gemini_mt6797_dvfsp_vendor_eem_snapshot(&eem);
++	if (ret)
++		goto abort;
++	if (ppm.abi != GEMINI_MT6797_DVFSP_VENDOR_STATE_ABI ||
++	    ppm.cluster_count != GEMINI_MT6797_DVFSP_VENDOR_MAX_CLUSTER ||
++	    cpufreq.abi != GEMINI_MT6797_DVFSP_VENDOR_STATE_ABI ||
++	    cpufreq.domain_count != GEMINI_MT6797_DVFSP_VENDOR_MAX_DOMAIN ||
++	    cspm.abi != GEMINI_MT6797_DVFSP_VENDOR_STATE_ABI ||
++	    cspm.cluster_count != GEMINI_MT6797_DVFSP_VENDOR_MAX_CLUSTER + 1 ||
++	    eem.abi != GEMINI_MT6797_DVFSP_VENDOR_STATE_ABI ||
++	    eem.detector_count != GEMINI_MT6797_DVFSP_VENDOR_MAX_DETECTOR) {
++		ret = -EPROTO;
++		goto abort;
++	}
++
++	memset(dst, 0, sizeof(*dst));
++	dst->abi = MT6797_DVFSP_VENDOR_SOURCE_ABI;
++	dst->source_mask = MT6797_DVFSP_VENDOR_SOURCE_ALL;
++	dst->ppm_table_type = ppm.table_type;
++	dst->ppm_cluster_count = ppm.cluster_count;
++	dst->cpufreq_domain_count = cpufreq.domain_count;
++	dst->cspm_cluster_count = cspm.cluster_count;
++	dst->eem_detector_count = eem.detector_count;
++	dst->init_done = cspm.init_done;
++	dst->hw_governor_enabled = cspm.hw_governor_enabled;
++	dst->info_idvfs = eem.info_idvfs;
++	dst->cpu_bin_level = eem.cpu_bin_level;
++	dst->generation = transaction.generation;
++	dst->owner_handle = transaction.owner_handle;
++	dst->transition_handle = transaction.transition_handle;
++	for (i = 0; i < ppm.cluster_count; i++) {
++		dst->ppm[i].cluster_id = ppm.cluster[i].cluster_id;
++		dst->ppm[i].core_num = ppm.cluster[i].core_num;
++		dst->ppm[i].cpu_id = ppm.cluster[i].cpu_id;
++		dst->ppm[i].opp_count = ppm.cluster[i].opp_count;
++		if (ppm.cluster[i].opp_count > MT6797_DVFSP_VENDOR_SOURCE_MAX_OPP) {
++			ret = -EOVERFLOW;
++			goto abort;
++		}
++		for (j = 0; j < ppm.cluster[i].opp_count; j++)
++			dst->ppm[i].frequency_khz[j] =
++				ppm.cluster[i].frequency_khz[j];
++		dst->ppm[i].min_cpufreq_idx =
++			ppm.client_limit[i].min_cpufreq_idx;
++		dst->ppm[i].max_cpufreq_idx =
++			ppm.client_limit[i].max_cpufreq_idx;
++		dst->ppm[i].min_cpu_core = ppm.client_limit[i].min_cpu_core;
++		dst->ppm[i].max_cpu_core = ppm.client_limit[i].max_cpu_core;
++		dst->ppm[i].has_advise_freq = ppm.client_limit[i].has_advise_freq;
++		dst->ppm[i].advise_cpufreq_idx =
++			ppm.client_limit[i].advise_cpufreq_idx;
++		dst->ppm[i].has_advise_core = ppm.client_limit[i].has_advise_core;
++		dst->ppm[i].advise_cpu_core = ppm.client_limit[i].advise_cpu_core;
++	}
++	for (i = 0; i < cpufreq.domain_count; i++) {
++		dst->cpufreq[i].id = cpufreq.domain[i].id;
++		dst->cpufreq[i].current_opp = cpufreq.domain[i].current_opp;
++		dst->cpufreq[i].opp_count = cpufreq.domain[i].opp_count;
++		dst->cpufreq[i].normal_max_opp = cpufreq.domain[i].normal_max_opp;
++		dst->cpufreq[i].armpll_available =
++			cpufreq.domain[i].armpll_available;
++		dst->cpufreq[i].current_freq_khz =
++			cpufreq.domain[i].current_freq_khz;
++		dst->cpufreq[i].current_volt = cpufreq.domain[i].current_volt;
++		dst->cpufreq[i].current_vsram = cpufreq.domain[i].current_vsram;
++		if (cpufreq.domain[i].opp_count >
++		    MT6797_DVFSP_VENDOR_SOURCE_MAX_OPP) {
++			ret = -EOVERFLOW;
++			goto abort;
++		}
++		for (j = 0; j < cpufreq.domain[i].opp_count; j++) {
++			dst->cpufreq[i].frequency_khz[j] =
++				cpufreq.domain[i].frequency_khz[j];
++			dst->cpufreq[i].voltage[j] = cpufreq.domain[i].voltage[j];
++			dst->cpufreq[i].voltage_original[j] =
++				cpufreq.domain[i].voltage_original[j];
++		}
++	}
++	for (i = 0; i < cspm.cluster_count; i++) {
++		dst->cspm[i].firmware_opp = cspm.cluster[i].firmware_opp;
++		dst->cspm[i].opp = cspm.cluster[i].opp;
++		dst->cspm[i].volt = cspm.cluster[i].volt;
++		dst->cspm[i].vsram = cspm.cluster[i].vsram;
++		if (i == GEMINI_MT6797_DVFSP_VENDOR_MAX_CLUSTER) {
++			dst->cspm[i].ceiling = 0;
++			dst->cspm[i].floor = 0;
++		} else {
++			dst->cspm[i].ceiling = cspm.cluster[i].ceiling;
++			dst->cspm[i].floor = cspm.cluster[i].floor;
++		}
++		dst->cspm[i].is_on = cspm.cluster[i].is_on;
++	}
++	for (i = 0; i < eem.detector_count; i++) {
++		dst->eem[i].id = eem.detector[i].id;
++		dst->eem[i].status = eem.detector[i].status;
++		dst->eem[i].features = eem.detector[i].features;
++		dst->eem[i].num_freq = eem.detector[i].num_freq;
++		dst->eem[i].max_freq_khz = eem.detector[i].max_freq_khz;
++		dst->eem[i].disabled = eem.detector[i].disabled;
++		if (eem.detector[i].num_freq >
++		    MT6797_DVFSP_VENDOR_SOURCE_MAX_FREQ) {
++			ret = -EOVERFLOW;
++			goto abort;
++		}
++		for (j = 0; j < eem.detector[i].num_freq; j++) {
++			dst->eem[i].frequency_percent[j] =
++				eem.detector[i].frequency_percent[j];
++			dst->eem[i].volt_tbl[j] = eem.detector[i].volt_tbl[j];
++			dst->eem[i].volt_tbl_init2[j] =
++				eem.detector[i].volt_tbl_init2[j];
++			dst->eem[i].volt_tbl_pmic[j] =
++				eem.detector[i].volt_tbl_pmic[j];
++		}
++	}
++	ret = gemini_mt6797_dvfsp_vendor_writer_abort_observation(&transaction);
++	return ret;
++
++abort:
++	abort_ret = gemini_mt6797_dvfsp_vendor_writer_abort_observation(
++		&transaction);
++	return abort_ret ? abort_ret : ret;
++}
++
++static int gemini_mt6797_dvfsp_vendor_source_identity(
++	void *context, struct mt6797_dvfsp_vendor_source_identity *identity)
++{
++	struct gemini_mt6797_dvfsp_vendor_writer_integration_binding *binding =
++		context;
++
++	if (binding !=
++		&gemini_mt6797_dvfsp_vendor_writer_integration_binding ||
++	    !binding->bound || !identity)
++		return -ENODEV;
++	return -EOPNOTSUPP;
++}
++
++static const struct mt6797_dvfsp_vendor_source_ops
++gemini_mt6797_dvfsp_vendor_source_ops = {
++	.abi = MT6797_DVFSP_VENDOR_SOURCE_ABI,
++	.snapshot = gemini_mt6797_dvfsp_vendor_source_snapshot,
++	.read_identity = gemini_mt6797_dvfsp_vendor_source_identity,
++};
++
++static const struct mt6797_dvfsp_vendor_source_registration
++gemini_mt6797_dvfsp_vendor_source_registration = {
++	.ops = &gemini_mt6797_dvfsp_vendor_source_ops,
++	.context = &gemini_mt6797_dvfsp_vendor_writer_integration_binding,
++};
+@@ -667,6 +810,7 @@ gemini_mt6797_dvfsp_vendor_writer_integration_callbacks = {
+ 	.register_mainline_owner =
+ 		gemini_mt6797_dvfsp_vendor_writer_integration_register_mainline,
+ 	.unregister_mainline_owner =
+ 		gemini_mt6797_dvfsp_vendor_writer_integration_unregister_mainline,
++	.source_registration = &gemini_mt6797_dvfsp_vendor_source_registration,
+ };
+
