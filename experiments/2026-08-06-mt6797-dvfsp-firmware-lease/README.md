@@ -1196,3 +1196,15 @@ vendor setter, authorize device access, or open CPU8/CPU9 admission. The next
 gate is separate read-only runtime owner-registration evidence, followed by a
 source-backed provider only when its callbacks are tied to real calibrated
 EEM/PTP/PPM state under the shared transition lock.
+
+A fresh read-only probe on the named Gemian device still finds only generic
+cpufreq/PPM surfaces and no attributable owner, generation, or transition-lock
+endpoint; see [runtime owner boundary v3](results/runtime-owner-boundary-v3-20260810.txt).
+The pinned vendor-source audit maps the actual static PPM, cpufreq/CSPM, and
+EEM/PTP state and their separate locks, with exact file hashes; see the
+[source-backed owner audit](results/vendor-source-owner-audit-20260810.txt).
+The endpoint-search branch is therefore closed. The next implementation is an
+in-file read-only adapter for those real states, then a separately reviewable
+owner/provider registration candidate once one shared generation lock and all
+invalidation paths are proven. No device boot/write or CPU8/CPU9 admission is
+authorized.

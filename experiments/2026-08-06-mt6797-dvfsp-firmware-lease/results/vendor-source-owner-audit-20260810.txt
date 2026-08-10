@@ -1,0 +1,55 @@
+# Pinned vendor source-backed owner audit
+
+date_utc=2026-08-10
+origin=https://github.com/gemian/gemini-linux-kernel-3.18.git
+vendor_revision=d388d350cb2dda8f23b99be6fa5db9628896e87f
+source_scope=read_only_buildbox_git_objects;vendor_source_not_copied
+device_action=none
+hardware_write=none
+provider_registration=none
+cpu8_cpu9_admission=closed
+
+source_mt_cpufreq=drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c;sha256=a420033f65c49bf509182388fcb803161e69e93cf7d334b723fe7a0c55b8c293
+source_mt_cpufreq_hybrid=drivers/misc/mediatek/base/power/mt6797/mt_cpufreq_hybrid.c;sha256=6094e778fe3eb0f2c24ffb63bb404af2e40da519514ddbba608bea3b5500fb63
+source_mt_eem=drivers/misc/mediatek/base/power/mt6797/mt_eem.c;sha256=147b673723d7fa417685a3c2b06cbe75100abaaf288663b08795efc04414f4bc
+source_mt_idvfs=drivers/misc/mediatek/base/power/mt6797/mt_idvfs.c;sha256=7232f5ba7347511d97da6947c6833811b439d3116f95a13e631be40d7033b2e7
+source_ppm_internal=drivers/misc/mediatek/base/power/ppm_v1/inc/mt_ppm_internal.h;sha256=54f1581c179e6b08b3b98c58002491e58d40c79ea77d882ab83de6e2123ec4ea
+source_ppm_main=drivers/misc/mediatek/base/power/ppm_v1/src/mt_ppm_main.c;sha256=89e8e20c62b8c5d8b45a63563a7c22b1e927712744bb243d05ca6589496bb9c2
+source_ppm_api=drivers/misc/mediatek/base/power/ppm_v1/src/mt_ppm_api.c;sha256=7d11f5b349ae9ac967e8c8c1394a4ff2e9d35bdf956f684555e92e0049d8a08c
+source_ppm_platform=drivers/misc/mediatek/base/power/ppm_v1/src/mach/mt6797/mt_ppm_platform.h;sha256=6d1b1a18bcfc0d85eb8c1b6b7608fba884d8b3e840a82926d07c130ca784033b
+source_ppm_api_header=drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/mt_ppm_api.h;sha256=abf3f35cb59f4fe7bf0aa920a53db3e6bfd570bd084e24e018c5bd2ea827a951
+
+cpufreq_transition_lock=cpufreq_mutex;active_mutex_branch=mt_cpufreq.c:970-982;spinlock_branch=mt_cpufreq.c:963-966;disabled_by_source_conditional=true
+cpufreq_live_state=cpu_dvfs[];get_cur_phy_freq;get_cur_volt;per-cluster_get_cur_vsram;table_and_opp_state_is_internal
+cpufreq_ptp_callback_slot=mt_cpufreq_set_ptbl_registerCB;single_slot=true
+cpufreq_voltage_callback_slot=mt_cpufreq_setvolt_registerCB;single_slot=true
+cpufreq_ppm_callback=ppm_limit_callback;callback_enters_cpufreq_lock
+hybrid_transition_lock=dvfs_lock;type=spinlock;mt_cpufreq_hybrid.c:636;protects_cspm_state_and_hw_governor_paths
+hybrid_live_state=cspm_curr_freq;cspm_curr_volt;cspm_curr_vsram;hwsta_reg[];read_requires_dvfs_lock
+hybrid_observer=fetch_dvfs_log_and_notify;dedicated_dvfs_nfy_kthread;notify_after_dvfs_lock_release
+ppm_transition_lock=ppm_main_info.lock;type=mutex;mt_ppm_internal.h:267;mt_ppm_main.c:49,86
+ppm_tables=ppm_main_info.cluster_info[].dvfs_tbl;three_physical_clusters;vendor_descending;static_translation_unit_state
+ppm_policy=ppm_main_info.client_req.cpu_limit[];mutable_policy_limits;static_translation_unit_state
+cci_table=cpu_dvfs[MT_CPU_DVFS_CCI].freq_tbl;separate_from_ppm_cluster_info
+eem_locks=eem_spinlock;record_mutex;mt_ptp_lock;independent_from_ppm_and_cpufreq
+eem_calibration_state=detector_tables_and_ptp_handoff;private_detector_state;read_and_update_paths_are_separate
+vendor_generation_field=absent
+vendor_shared_transition_lock=absent
+
+clean_room_candidate=0001-0003
+clean_room_candidate_status=compile_validated;experiment_only;not_a_mainline_or_boot_candidate
+writer_coverage=ptp_table_restore_update;ppm_policy;normal_policy_voltage;direct_voltage;direct_frequency;cpu_hotplug;hardware_governor
+observer_recursion=absent
+
+next_source_backed_work=
+1) add in-file read-only adapters for the static PPM tables/policy, cpufreq
+   cpu_dvfs state, CSPM live registers, and EEM/PTP provenance;
+2) make those adapters use the existing vendor locks while the clean-room
+   shared generation lock is held outside them;
+3) prove every asynchronous writer/observer path advances or invalidates the
+   generation before composing a mainline snapshot;
+4) only then add a separately reviewable owner/provider registration candidate.
+
+The current source is sufficient to identify callback placement and live
+fields, but not yet sufficient to claim a coherent runtime owner. No setter,
+provider, firmware, rail, clock, or CPU operation was invoked.

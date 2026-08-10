@@ -2987,6 +2987,20 @@ separate read-only runtime owner-registration evidence, followed by a
 source-backed provider only if its callbacks can be tied to real calibrated
 EEM/PTP/PPM state under the shared transition lock.
 
+A fresh read-only probe on the named Gemian device still reports the ordinary
+`3.18.41+` kernel with CPUs `0-1` online and `0-9` possible. Its bounded
+platform/procfs scan finds generic `mt-cpufreq`, `mt-ppm`, and `mt-scpdvfs`
+surfaces but no attributable owner, generation, or transition-lock endpoint;
+see the [runtime owner boundary v3 result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/runtime-owner-boundary-v3-20260810.txt).
+The pinned vendor-source audit then maps the static PPM policy/table state,
+cpufreq/CSPM live state, and EEM/PTP state to their separate internal locks and
+records the exact file identities; see the [source-backed owner audit](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-source-owner-audit-20260810.txt).
+This closes the endpoint-search branch. The next implementation is an
+in-file, read-only adapter for those real static states, followed by a
+separate owner/provider registration candidate only after one shared
+generation lock and all invalidation paths are proven. No device boot/write or
+CPU8/CPU9 admission is authorized.
+
 Required evidence:
 
 - provider registration performs no register-data write;

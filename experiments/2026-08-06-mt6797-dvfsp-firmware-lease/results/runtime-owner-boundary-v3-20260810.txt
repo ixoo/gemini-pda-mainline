@@ -1,0 +1,31 @@
+# Gemian runtime owner boundary probe v3
+
+generated_utc=2026-08-10T14:49:06Z
+claim=READ_ONLY_GEMIAN_DVFSP_RUNTIME_OWNER_BOUNDARY_V3
+target=gemini@192.168.1.50
+transport=ssh
+os=Gemian
+kernel=3.18.41+
+architecture=aarch64
+device_action=none
+hardware_write=none
+backup=none
+cpu_possible=0-9
+cpu_online=0-1
+scan_roots=/sys/devices/platform;/proc
+generic_dvfs_surfaces=mt-cpufreq;mt-ppm;mt-scpdvfs;/proc/cpufreq;/proc/ppm;/proc/eem
+owner_generation_transition_matches=none_attributable
+generic_match=mt-scpdvfs/driver_override;not_an_owner_endpoint
+provider_owner_endpoint=absent
+authoritative_generation=absent
+authoritative_transition_lock=absent
+mainline_state_owner=absent
+provider=none
+decision=the_named_device_is_running_gemian_with_only_generic_dvfs_readback_surfaces;no_runtime_owner_registration_boundary_is_present
+required_next_provider=source_backed_identity_ppm_cci_live_rail_clock_callbacks_under_one_shared_generation_lock
+cpu8_cpu9_admission=closed
+boot_candidate=false
+
+This bounded path-name probe confirms current runtime state only. Generic
+cpufreq/PPM/debug surfaces are not treated as an owner or generation source,
+and no payload or device state was changed.
