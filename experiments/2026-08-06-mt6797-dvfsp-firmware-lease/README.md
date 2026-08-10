@@ -657,3 +657,15 @@ validated package; see the [PPM calibration binding Buildbox result](results/ppm
 This is compile-only and default-off: the real EEM/PTP/PPM and PMIC/clock
 provider, generation callbacks, device boot, and CPU8/CPU9 admission remain
 closed.
+
+Patch `0226` tightens the protected snapshot assembler at the next coherence
+boundary. After the live frequency selects an exact calibrated row, live
+VPROC and VSRAM must equal that row's calibrated rail pair; a mixed-frequency
+rail sample is rejected. This directly closes the incoherent condition seen in
+the read-only Gemian source probe, while still leaving generation production,
+the PMIC/clock owner, and PPM policy ownership to the real provider. Clean
+revision `26341a4` applied all 215 canonical entries on Buildbox, produced 119
+DTBs, passed package checksums, and fetched only the validated package; see the
+[live-rail coherence Buildbox result](results/live-rail-coherence-buildbox-20260810.txt).
+This is compile-only and default-off: no provider registration, hardware
+operation, device boot, or CPU8/CPU9 admission was added.

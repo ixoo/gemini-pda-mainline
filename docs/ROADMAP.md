@@ -2248,6 +2248,17 @@ The next ordered work remains source-only:
    This remains compile-only and default-off: the real EEM/PTP/PPM and PMIC/clock
    provider, generation callbacks, device boot, and CPU8/CPU9 admission remain
    closed.
+   Patch `0226` tightens the protected snapshot assembler at the next coherence
+   boundary. After the live frequency selects an exact calibrated row, live
+   VPROC and VSRAM must equal that row's calibrated rail pair; a mixed-frequency
+   rail sample is rejected. This closes the incoherent condition seen in the
+   read-only Gemian source probe while leaving generation production, PMIC/clock
+   ownership, and PPM policy ownership to the real provider. Clean revision
+   `26341a4` applies all 215 canonical entries on Buildbox, produces 119 DTBs,
+   passes package checksums, and fetches only the validated package; see the
+   [live-rail coherence Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/live-rail-coherence-buildbox-20260810.txt).
+   This remains compile-only and default-off: no provider registration,
+   hardware operation, device boot, or CPU8/CPU9 admission was added.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and
