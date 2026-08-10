@@ -13,7 +13,7 @@ This changes no hardware or registration behavior.
 
 ---
  drivers/soc/mediatek/mt6797-dvfsp-calibrated-provider.c      | 2 +-
- drivers/soc/mediatek/mt6797-dvfsp-calibrated-provider-test.c | 4 ++++
+ drivers/soc/mediatek/mt6797-dvfsp-calibrated-provider-test.c | 5 +++++
  2 files changed, 5 insertions(+), 1 deletion(-)
 
 diff --git a/drivers/soc/mediatek/mt6797-dvfsp-calibrated-provider.c b/drivers/soc/mediatek/mt6797-dvfsp-calibrated-provider.c
@@ -31,7 +31,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-calibrated-provider.c b/drivers/s
 diff --git a/drivers/soc/mediatek/mt6797-dvfsp-calibrated-provider-test.c b/drivers/soc/mediatek/mt6797-dvfsp-calibrated-provider-test.c
 --- a/drivers/soc/mediatek/mt6797-dvfsp-calibrated-provider-test.c
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-calibrated-provider-test.c
-@@ -252,6 +252,10 @@ static void mt6797_dvfsp_provider_binds_and_exits(
+@@ -252,6 +252,11 @@ static void mt6797_dvfsp_provider_binds_and_exits(
  	KUNIT_EXPECT_TRUE(test, !!owner_ops.snapshot);
  	KUNIT_EXPECT_TRUE(test, !!owner_ops.hold);
 +	KUNIT_EXPECT_EQ(test,
