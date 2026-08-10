@@ -254,3 +254,4 @@ v7.1.3/0261-soc-mediatek-bind-vendor-source-observation-owner.patch
 v7.1.3/0262-soc-mediatek-validate-vendor-source-cspm-bounds.patch
 v7.1.3/0263-soc-mediatek-require-vendor-lifecycle-before-registration.patch
 v7.1.3/0264-soc-mediatek-add-vendor-provider-field-bridge.patch
+v7.1.3/0265-soc-mediatek-map-vendor-eem-voltage-units.patch

@@ -1,0 +1,207 @@
+From 0000000000000000000000000000000000000265 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 11 Aug 2026 02:00:00 -0400
+Subject: [PATCH] soc: mediatek: map vendor EEM voltage units
+
+Carry the pinned vendor EEM detector's explicit voltage-unit metadata across
+the read-only source ABI.  The vendor source documents detector voltage and
+PMIC conversion values in 10uV and provides per-detector bases and steps; the
+provider review bridge converts the source PMIC table with that exact formula
+to checked microvolt values while retaining every raw table.
+
+The policy rows, live clock owner, rail conversion, and provider registration
+remain unavailable.  This patch performs no source callback, setter, register
+write, firmware operation, device action, or CPU admission and is
+experiment-only, not submission-ready.
+---
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-provider-test.c |  26 ++++++++
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-provider.c      |  39 +++++++++++-
+ include/linux/soc/mediatek/mt6797-dvfsp-vendor-provider.h |  10 +++-
+ include/linux/soc/mediatek/mt6797-dvfsp-vendor-source.h   |  11 +++-
+ 4 files changed, 81 insertions(+), 5 deletions(-)
+
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-source.h b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-source.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-source.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-source.h
+@@ -8,7 +8,8 @@
+ #include <linux/types.h>
+ 
+-#define MT6797_DVFSP_VENDOR_SOURCE_ABI	1
++#define MT6797_DVFSP_VENDOR_SOURCE_ABI	2
+ #define MT6797_DVFSP_VENDOR_SOURCE_MAX_CLUSTER	3
+ #define MT6797_DVFSP_VENDOR_SOURCE_MAX_DOMAIN	4
+ #define MT6797_DVFSP_VENDOR_SOURCE_MAX_OPP	16
+@@ -16,6 +17,7 @@
+ #define MT6797_DVFSP_VENDOR_SOURCE_EEM		BIT(3)
+ #define MT6797_DVFSP_VENDOR_SOURCE_ALL		GENMASK(3, 0)
++#define MT6797_DVFSP_VENDOR_SOURCE_EEM_VOLTAGE_UNIT_10UV	1
+@@ -112,6 +114,14 @@ struct mt6797_dvfsp_vendor_source_eem_detector {
+ 	u32 volt_tbl[MT6797_DVFSP_VENDOR_SOURCE_MAX_FREQ];
+ 	u32 volt_tbl_init2[MT6797_DVFSP_VENDOR_SOURCE_MAX_FREQ];
+ 	u32 volt_tbl_pmic[MT6797_DVFSP_VENDOR_SOURCE_MAX_FREQ];
++	/* Vendor documents these values and conversion metadata in 10uV. */
++	u32 voltage_unit;
++	u32 eem_v_base;
++	u32 eem_step;
++	u32 pmic_base;
++	u32 pmic_step;
++	s32 volt_offset;
++	s32 pi_offset;
+ };
+
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-provider.h b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-provider.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-provider.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-provider.h
+@@ -8,7 +8,7 @@
+ #include <linux/soc/mediatek/mt6797-dvfsp-vendor-source.h>
+ 
+-#define MT6797_DVFSP_VENDOR_PROVIDER_ABI	1
++#define MT6797_DVFSP_VENDOR_PROVIDER_ABI	2
+ #define MT6797_DVFSP_VENDOR_PROVIDER_PPM	BIT(0)
+ #define MT6797_DVFSP_VENDOR_PROVIDER_CPUFREQ	BIT(1)
+ #define MT6797_DVFSP_VENDOR_PROVIDER_CSPM	BIT(2)
+@@ -16,7 +16,8 @@
+ #define MT6797_DVFSP_VENDOR_PROVIDER_EEM	BIT(3)
+ #define MT6797_DVFSP_VENDOR_PROVIDER_IDENTITY	BIT(4)
+-#define MT6797_DVFSP_VENDOR_PROVIDER_MAPPED_ALL	GENMASK(4, 0)
++#define MT6797_DVFSP_VENDOR_PROVIDER_MAPPED_EEM_UV	BIT(5)
++#define MT6797_DVFSP_VENDOR_PROVIDER_MAPPED_ALL	GENMASK(5, 0)
+@@ -60,6 +61,11 @@ struct mt6797_dvfsp_vendor_provider_snapshot {
+ 	u32 eem_source_index[MT6797_DVFSP_VENDOR_SOURCE_MAX_DETECTOR];
+ 	u32 eem_provider_detector[4];
++	/* Converted from the source PMIC table; unit is microvolts. */
++	u32 eem_voltage_uv[MT6797_DVFSP_VENDOR_SOURCE_MAX_DETECTOR]
++		[MT6797_DVFSP_VENDOR_SOURCE_MAX_FREQ];
++	u32 eem_voltage_count[MT6797_DVFSP_VENDOR_SOURCE_MAX_DETECTOR];
+ };
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-provider.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-provider.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-provider.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-provider.c
+@@ -5,6 +5,7 @@
+ 
+ #include <linux/errno.h>
+ #include <linux/export.h>
++#include <linux/limits.h>
+ #include <linux/module.h>
+ #include <linux/string.h>
+ #include <linux/types.h>
+@@ -314,6 +315,36 @@ static int mt6797_dvfsp_vendor_provider_map_eem(
+ 	return 0;
+ }
+ 
++static int mt6797_dvfsp_vendor_provider_map_eem_uv(
++	const struct mt6797_dvfsp_vendor_source_snapshot *source,
++	struct mt6797_dvfsp_vendor_provider_snapshot *mapped)
++{
++	u32 i, j;
++
++	for (i = 0; i < source->eem_detector_count; i++) {
++		const struct mt6797_dvfsp_vendor_source_eem_detector *detector =
++			&source->eem[i];
++
++		if (detector->voltage_unit !=
++			MT6797_DVFSP_VENDOR_SOURCE_EEM_VOLTAGE_UNIT_10UV ||
++			!detector->eem_step || !detector->pmic_step ||
++			detector->num_freq >
++			MT6797_DVFSP_VENDOR_SOURCE_MAX_FREQ)
++			return -EPROTO;
++
++		mapped->eem_voltage_count[i] = detector->num_freq;
++		for (j = 0; j < detector->num_freq; j++) {
++			u64 voltage_10uv = (u64)detector->pmic_base +
++				(u64)detector->volt_tbl_pmic[j] *
++				detector->pmic_step;
++
++			if (!voltage_10uv || voltage_10uv > U32_MAX / 10U)
++				return -EOVERFLOW;
++			mapped->eem_voltage_uv[i][j] =
++				(u32)(voltage_10uv * 10U);
++		}
++	}
++
++	return 0;
++}
++
+ int mt6797_dvfsp_vendor_provider_map(
+ 	const struct mt6797_dvfsp_vendor_source_snapshot *source,
+ 	const struct mt6797_dvfsp_vendor_source_identity *identity,
+@@ -332,7 +363,8 @@ int mt6797_dvfsp_vendor_provider_map(
+ 		return ret;
+ 	memset(mapped, 0, sizeof(*mapped));
+ 	mapped->abi = MT6797_DVFSP_VENDOR_PROVIDER_ABI;
+-	mapped->mapped_mask = MT6797_DVFSP_VENDOR_PROVIDER_MAPPED_ALL;
++	mapped->mapped_mask = MT6797_DVFSP_VENDOR_PROVIDER_MAPPED_ALL &
++		~MT6797_DVFSP_VENDOR_PROVIDER_MAPPED_EEM_UV;
+ 	mapped->unavailable_mask =
+ 		MT6797_DVFSP_VENDOR_PROVIDER_UNAVAILABLE_ALL;
+@@ -347,7 +379,12 @@ int mt6797_dvfsp_vendor_provider_map(
+ 	if (ret)
+ 		return ret;
+-	return mt6797_dvfsp_vendor_provider_map_eem(source, mapped);
++	ret = mt6797_dvfsp_vendor_provider_map_eem(source, mapped);
++	if (ret)
++		return ret;
++	ret = mt6797_dvfsp_vendor_provider_map_eem_uv(source, mapped);
++	if (ret)
++		return ret;
++	mapped->mapped_mask |= MT6797_DVFSP_VENDOR_PROVIDER_MAPPED_EEM_UV;
++	mapped->unavailable_mask &=
++		~MT6797_DVFSP_VENDOR_PROVIDER_UNAVAILABLE_EEM_UV;
++	return 0;
+ }
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-provider-test.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-provider-test.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-provider-test.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-provider-test.c
+@@ -93,10 +93,22 @@ static void mt6797_dvfsp_vendor_provider_test_fill(void)
+ 		snapshot->eem[i].frequency_percent[1] = 50;
+ 		snapshot->eem[i].volt_tbl[0] = 10 + i;
+ 		snapshot->eem[i].volt_tbl[1] = 11 + i;
++		snapshot->eem[i].volt_tbl_pmic[0] = 70 + i;
++		snapshot->eem[i].volt_tbl_pmic[1] = 71 + i;
++		snapshot->eem[i].voltage_unit =
++			MT6797_DVFSP_VENDOR_SOURCE_EEM_VOLTAGE_UNIT_10UV;
++		snapshot->eem[i].eem_v_base = 70000;
++		snapshot->eem[i].eem_step = 625;
++		snapshot->eem[i].pmic_base = 30000;
++		snapshot->eem[i].pmic_step = 1000;
+ 	}
+@@ -132,6 +144,8 @@ static void mt6797_dvfsp_vendor_provider_maps_fields(struct kunit *test)
+ 	KUNIT_EXPECT_EQ(test, mapped.mapped_mask,
+ 		(u32)MT6797_DVFSP_VENDOR_PROVIDER_MAPPED_ALL);
+ 	KUNIT_EXPECT_EQ(test, mapped.unavailable_mask,
+-		(u32)MT6797_DVFSP_VENDOR_PROVIDER_UNAVAILABLE_ALL);
++		(u32)(MT6797_DVFSP_VENDOR_PROVIDER_UNAVAILABLE_ALL &
++		~MT6797_DVFSP_VENDOR_PROVIDER_UNAVAILABLE_EEM_UV));
+@@ -143,6 +157,8 @@ static void mt6797_dvfsp_vendor_provider_maps_fields(struct kunit *test)
+ 	KUNIT_EXPECT_EQ(test, mapped.eem_provider_detector[2], 4U);
+ 	KUNIT_EXPECT_EQ(test, mapped.eem_provider_detector[3], 5U);
++	KUNIT_EXPECT_EQ(test, mapped.eem_voltage_count[0], 2U);
++	KUNIT_EXPECT_EQ(test, mapped.eem_voltage_uv[0][0], 1000000U);
+ 	KUNIT_EXPECT_EQ(test, mapped.identity.table_epoch, 0x100000002ULL);
+@@ -159,6 +175,16 @@ static void mt6797_dvfsp_vendor_provider_rejects_identity_or_ids(
+ 		0x67970023, 0x67970022, &mapped), -EPROTO);
+ }
+ 
++static void mt6797_dvfsp_vendor_provider_rejects_bad_eem_units(
++	struct kunit *test)
++{
++	struct mt6797_dvfsp_vendor_provider_snapshot mapped;
++
++	mt6797_dvfsp_vendor_provider_test_fill();
++	mt6797_dvfsp_vendor_provider_test_snapshot.eem[0].voltage_unit = 0;
++	KUNIT_EXPECT_EQ(test, mt6797_dvfsp_vendor_provider_map(
++		&mt6797_dvfsp_vendor_provider_test_snapshot,
++		&mt6797_dvfsp_vendor_provider_test_identity,
++		0x67970023, 0x67970022, &mapped), -EPROTO);
++}
++
+ static void mt6797_dvfsp_vendor_provider_bridge_lifecycle(struct kunit *test)
+@@ -181,6 +207,7 @@ static struct kunit_case mt6797_dvfsp_vendor_provider_cases[] = {
+ 	KUNIT_CASE(mt6797_dvfsp_vendor_provider_maps_fields),
+ 	KUNIT_CASE(mt6797_dvfsp_vendor_provider_rejects_identity_or_ids),
++	KUNIT_CASE(mt6797_dvfsp_vendor_provider_rejects_bad_eem_units),
+ 	KUNIT_CASE(mt6797_dvfsp_vendor_provider_bridge_lifecycle),
+ 	{}
+ };
