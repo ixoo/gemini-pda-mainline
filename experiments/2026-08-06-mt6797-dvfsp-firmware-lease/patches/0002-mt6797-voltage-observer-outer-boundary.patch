@@ -1,0 +1,145 @@
+From efbf2036109f8e08909a18ed747589ceb0b71a44 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 10 Aug 2026 14:21:23 +0000
+Subject: [PATCH] power: bind sleepable voltage observer outer transitions
+
+
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c b/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c
+index d8053884f..dd4f21865 100755
+--- a/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c
++++ b/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c
+@@ -4125,6 +4125,8 @@ static void _mt_cpufreq_set(struct cpufreq_policy *policy, enum mt_cpu_dvfs_id i
+ 	unsigned int target_volt_vpro1 = 0;
+ 	int log = 0;
+ 	int ignore_new_opp_idx = 0;
++	int writer_ret;
++	struct gemini_mt6797_dvfsp_vendor_writer_transaction writer_transaction = { };
+ 
+ 	FUNC_ENTER(FUNC_LV_LOCAL);
+ 
+@@ -4140,15 +4142,30 @@ static void _mt_cpufreq_set(struct cpufreq_policy *policy, enum mt_cpu_dvfs_id i
+ 	id_cci = MT_CPU_DVFS_CCI;
+ 	p_cci = id_to_cpu_dvfs(id_cci);
+ 
+-	if (lock)
++	if (lock) {
++		writer_ret = gemini_mt6797_dvfsp_vendor_writer_begin(
++			&writer_transaction,
++			GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_VOLTAGE);
++		if (writer_ret) {
++			cpufreq_err("DVFSP writer bridge refused policy voltage transition: %d\n",
++				    writer_ret);
++			return;
++		}
+ 		cpufreq_lock(flags);
++	}
+ 	if (p->dvfs_disable_by_suspend || p->armpll_is_available != 1
+ #if defined(CONFIG_HYBRID_CPU_DVFS) && defined(CPUHVFS_HW_GOVERNOR)
+ 	    || (enable_cpuhvfs && enable_hw_gov)
+ #endif
+ 	) {
+-		if (lock)
++		if (lock) {
+ 			cpufreq_unlock(flags);
++			writer_ret = gemini_mt6797_dvfsp_vendor_writer_finish(
++				&writer_transaction, -ECANCELED);
++			if (writer_ret)
++				cpufreq_err("DVFSP writer bridge failed policy abort: %d\n",
++					    writer_ret);
++		}
+ 		return;
+ 	}
+ 
+@@ -4230,8 +4247,14 @@ static void _mt_cpufreq_set(struct cpufreq_policy *policy, enum mt_cpu_dvfs_id i
+ 	aee_record_freq_idx(p_cci, p_cci->idx_opp_tbl);
+ #endif
+ 
+-	if (lock)
++	if (lock) {
+ 		cpufreq_unlock(flags);
++		writer_ret = gemini_mt6797_dvfsp_vendor_writer_finish(
++			&writer_transaction, ret);
++		if (writer_ret)
++			cpufreq_err("DVFSP writer bridge failed policy commit: %d\n",
++				    writer_ret);
++	}
+ 
+ #ifndef DISABLE_PBM_FEATURE
+ 	if (!ret && !p->dvfs_disable_by_suspend && lock)
+@@ -5663,13 +5686,27 @@ int mt_cpufreq_set_opp_volt(enum mt_cpu_dvfs_id id, int idx)
+ 	int ret = 0;
+ 	static struct opp_tbl_info *info;
+ 	struct mt_cpu_dvfs *p = id_to_cpu_dvfs(id);
++	int writer_ret;
++	struct gemini_mt6797_dvfsp_vendor_writer_transaction writer_transaction = { };
+ 
+ 	info = &opp_tbls[id][CPU_LV_TO_OPP_IDX(CPU_LEVEL_0)];
+ 
+ 	if (idx >= info->size)
+ 		return -1;
+ 
+-	return _set_cur_volt_locked(p, info->opp_tbl[idx].cpufreq_volt);
++	writer_ret = gemini_mt6797_dvfsp_vendor_writer_begin(
++		&writer_transaction,
++		GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_VOLTAGE);
++	if (writer_ret)
++		return writer_ret;
++
++	ret = _set_cur_volt_locked(p, info->opp_tbl[idx].cpufreq_volt);
++	writer_ret = gemini_mt6797_dvfsp_vendor_writer_finish(
++		&writer_transaction, ret);
++	if (writer_ret)
++		return writer_ret;
++
++	return ret;
+ 
+ }
+ 
+@@ -5686,11 +5723,19 @@ int mt_cpufreq_set_freq(enum mt_cpu_dvfs_id id, int idx)
+ 
+ 	enum mt_cpu_dvfs_id id_cci;
+ 	struct mt_cpu_dvfs *p_cci;
++	int writer_ret;
++	struct gemini_mt6797_dvfsp_vendor_writer_transaction writer_transaction = { };
+ 
+ 	/* This is for cci */
+ 	id_cci = MT_CPU_DVFS_CCI;
+ 	p_cci = id_to_cpu_dvfs(id_cci);
+ 
++	writer_ret = gemini_mt6797_dvfsp_vendor_writer_begin(
++		&writer_transaction,
++		GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_VOLTAGE);
++	if (writer_ret)
++		return writer_ret;
++
+ 	/* Get cci opp idx */
+ 	new_cci_opp_idx = _calc_new_cci_opp_idx(id_to_cpu_dvfs(id), idx);
+ 
+@@ -5702,12 +5747,22 @@ int mt_cpufreq_set_freq(enum mt_cpu_dvfs_id id, int idx)
+ 
+ 	ret = _cpufreq_set_locked(p, cur_freq, target_freq, NULL, cur_cci_freq, target_cci_freq);
+ 
+-	if (ret < 0)
++	if (ret < 0) {
++		writer_ret = gemini_mt6797_dvfsp_vendor_writer_finish(
++			&writer_transaction, ret);
++		if (writer_ret)
++			return writer_ret;
+ 		return ret;
++	}
+ 
+ 	p->idx_opp_tbl = idx;
+ 	p_cci->idx_opp_tbl = new_cci_opp_idx;
+ 
++	writer_ret = gemini_mt6797_dvfsp_vendor_writer_finish(
++		&writer_transaction, 0);
++	if (writer_ret)
++		return writer_ret;
++
+ 	return target_freq;
+ }
+ 
+-- 
+2.39.5
+
+
