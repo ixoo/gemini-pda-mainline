@@ -1,0 +1,74 @@
+From 0000000000000000000000000000000000000242 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 10 Aug 2026 19:30:00 -0400
+Subject: [PATCH] soc: mediatek: validate policy-derived CCI bounds
+
+Require each live frequency to resolve to the calibrated policy row for its
+cluster, and require its reported ceiling to stay within that row's provider-
+owned PPM limit. Apply the same check to CCI explicitly, where the vendor PPM
+snapshot has no physical cluster row and the CCI limit must come from the
+separate policy bank carried into calibration.
+
+This is fail-closed validation only. It performs no MMIO, regulator or clock
+operation, secure call, provider registration, device boot, or CPU8/CPU9
+admission. It is experiment-only and not submission-ready.
+---
+ drivers/soc/mediatek/mt6797-dvfsp-live-source.c | 38 ++++++++++++++++++++++++
+ 1 file changed, 38 insertions(+)
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-live-source.c b/drivers/soc/mediatek/mt6797-dvfsp-live-source.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-live-source.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-live-source.c
+@@ -46,5 +46,38 @@ static int mt6797_dvfsp_live_frequency_check(
+ 	return -EAGAIN;
+ }
+ 
++static int mt6797_dvfsp_live_policy_check(
++	const struct mt6797_dvfsp_calibration_state *calibration,
++	unsigned int cluster, u32 frequency_khz, u32 ceiling_khz)
++{
++	const struct mt6797_dvfsp_calibration_cluster *table;
++	unsigned int row;
++
++	if (!calibration || cluster >= MT6797_DVFSP_STATE_CLUSTER_COUNT ||
++	    !frequency_khz || !ceiling_khz)
++		return -EINVAL;
++	table = &calibration->cluster[cluster];
++	if (!table->table_count ||
++	    table->table_count > MT6797_DVFSP_CALIBRATION_TABLE_MAX)
++		return -EPROTO;
++
++	for (row = 0; row < table->table_count; row++) {
++		const struct mt6797_dvfsp_calibration_table_entry *entry =
++			&table->table[row];
++
++		if (entry->frequency_khz != frequency_khz)
++			continue;
++		if (!entry->ppm_limit_khz ||
++		    ceiling_khz > entry->ppm_limit_khz)
++			return -EAGAIN;
++		if (cluster == MT6797_DVFSP_STATE_CLUSTER_CCI &&
++		    frequency_khz > entry->ppm_limit_khz)
++			return -EAGAIN;
++		return 0;
++	}
++
++	return -EAGAIN;
++}
++
+ static int mt6797_dvfsp_live_cluster_check(
+ 	const struct mt6797_dvfsp_clock_state *clock,
+@@ -80,6 +111,11 @@ static int mt6797_dvfsp_live_cluster_check(
+ 	if (ret)
+ 		return ret;
+ 
++	ret = mt6797_dvfsp_live_policy_check(calibration, cluster,
++						state->frequency_khz, state->ceiling_khz);
++	if (ret)
++		return ret;
++
+ 	if (state->vproc_code != cspm->cluster[cluster].voltage_code ||
+ 	    state->vsram_code != cspm->cluster[cluster].vsram_code)
+ 		return -EAGAIN;
+-- 
+2.43.0

@@ -45,6 +45,9 @@ EFUSE_RAIL_PATCH = ROOT / "patches/v7.1.3/0237-soc-mediatek-add-MT6797-efuse-ide
 IDENTITY_SOURCE_BRIDGE_PATCH = ROOT / "patches/v7.1.3/0238-soc-mediatek-bind-efuse-identity-to-owner-source.patch"
 PPM_CCI_SOURCE_PATCH = ROOT / "patches/v7.1.3/0239-soc-mediatek-add-ppm-cci-source-adapter.patch"
 LIVE_STATE_SOURCE_PATCH = ROOT / "patches/v7.1.3/0240-soc-mediatek-add-live-state-source-adapter.patch"
+SOURCE_ADAPTER_BINDING_PATCH = ROOT / "patches/v7.1.3/0241-soc-mediatek-bind-source-adapters-to-calibrated-provider.patch"
+POLICY_CCI_PATCH = ROOT / "patches/v7.1.3/0242-soc-mediatek-validate-policy-derived-cci-bounds.patch"
+RUNTIME_PROVIDER_PATCH = ROOT / "patches/v7.1.3/0243-soc-mediatek-bind-runtime-invalidation-to-provider.patch"
 STATE_OWNER_SOURCE_PATCH = ROOT / "patches/v7.1.3/0215-soc-mediatek-add-calibrated-state-owner-source-binding.patch"
 STATE_OWNER_ARBITRATION_PATCH = ROOT / "patches/v7.1.3/0216-soc-mediatek-bind-state-owner-source-to-transition-generation.patch"
 STATE_OWNER_ARBITRATION_FAULT_PATCH = ROOT / "patches/v7.1.3/0217-soc-mediatek-latch-transition-arbitration-faults.patch"
@@ -148,6 +151,9 @@ def main() -> None:
     identity_source_bridge_patch = IDENTITY_SOURCE_BRIDGE_PATCH.read_text()
     ppm_cci_source_patch = PPM_CCI_SOURCE_PATCH.read_text()
     live_state_source_patch = LIVE_STATE_SOURCE_PATCH.read_text()
+    source_adapter_binding_patch = SOURCE_ADAPTER_BINDING_PATCH.read_text()
+    policy_cci_patch = POLICY_CCI_PATCH.read_text()
+    runtime_provider_patch = RUNTIME_PROVIDER_PATCH.read_text()
     state_owner_source_patch = STATE_OWNER_SOURCE_PATCH.read_text()
     state_owner_arbitration_patch = STATE_OWNER_ARBITRATION_PATCH.read_text()
     state_owner_arbitration_fault_patch = STATE_OWNER_ARBITRATION_FAULT_PATCH.read_text()
@@ -225,6 +231,9 @@ def main() -> None:
     identity_source_bridge_source = identity_source_bridge_patch[identity_source_bridge_patch.index("diff --git"):]
     ppm_cci_source_source = ppm_cci_source_patch[ppm_cci_source_patch.index("diff --git"):]
     live_state_source_source = live_state_source_patch[live_state_source_patch.index("diff --git"):]
+    source_adapter_binding_source = source_adapter_binding_patch[source_adapter_binding_patch.index("diff --git"):]
+    policy_cci_source = policy_cci_patch[policy_cci_patch.index("diff --git"):]
+    runtime_provider_source = runtime_provider_patch[runtime_provider_patch.index("diff --git"):]
     state_owner_source_source = state_owner_source_patch[state_owner_source_patch.index("diff --git"):]
     state_owner_arbitration_source = state_owner_arbitration_patch[state_owner_arbitration_patch.index("diff --git"):]
     state_owner_arbitration_fault_source = state_owner_arbitration_fault_patch[state_owner_arbitration_fault_patch.index("diff --git"):]
@@ -839,6 +848,51 @@ def main() -> None:
                       "nvmem_cell_write", "mt6797_dvfsp_handoff_state_owner_register"):
         if forbidden in live_state_source_source:
             raise AssertionError(f"unexpected live-state source operation: {forbidden}")
+    for needle, label in (
+        ("MT6797_DVFSP_CALIBRATED_SOURCE_ABI", "source-binding-abi"),
+        ("mt6797_dvfsp_calibrated_provider_bind_sources", "source-binding-entry"),
+        ("mt6797_dvfsp_identity_source_read", "source-binding-identity"),
+        ("mt6797_dvfsp_live_source_fill", "source-binding-live"),
+        ("mt6797_dvfsp_ppm_source_owner_ops_init", "source-binding-ppm"),
+        ("bound_source_ops", "source-binding-state-ops"),
+        ("bound_ppm_ops", "source-binding-ppm-ops"),
+        ("source_context", "source-binding-context"),
+        ("do not register an owner", "source-binding-no-registration"),
+    ):
+        require(source_adapter_binding_patch, needle, label)
+    for forbidden in ("readl(", "writel(", "regulator_", "clk_", "i2c_transfer",
+                      "arm_smccc", "platform_driver", "cpu_up(", "secure_write",
+                      "nvmem_cell_write", "mt6797_dvfsp_handoff_state_owner_register"):
+        if forbidden in source_adapter_binding_source:
+            raise AssertionError(f"unexpected source-binding operation: {forbidden}")
+    for needle, label in (
+        ("mt6797_dvfsp_live_policy_check", "policy-cci-check"),
+        ("MT6797_DVFSP_STATE_CLUSTER_CCI", "policy-cci-cluster"),
+        ("ppm_limit_khz", "policy-cci-limit"),
+        ("ceiling_khz > entry->ppm_limit_khz", "policy-cci-ceiling"),
+        ("separate policy bank", "policy-cci-separate-bank"),
+        ("fail-closed validation", "policy-cci-fail-closed"),
+    ):
+        require(policy_cci_patch, needle, label)
+    for forbidden in ("readl(", "writel(", "regulator_", "clk_", "i2c_transfer",
+                      "arm_smccc", "platform_driver", "cpu_up(", "secure_write"):
+        if forbidden in policy_cci_source:
+            raise AssertionError(f"unexpected policy-CCI operation: {forbidden}")
+    for needle, label in (
+        ("mt6797_dvfsp_runtime_event_apply_invalidator", "runtime-provider-invalidator"),
+        ("mt6797_dvfsp_calibrated_provider_apply_runtime_event", "runtime-provider-entry"),
+        ("mt6797_dvfsp_calibrated_provider_runtime_invalidate", "runtime-provider-callback"),
+        ("last_sequence", "runtime-provider-sequence"),
+        ("invalidated_generation", "runtime-provider-generation"),
+        ("without registering notifier hooks", "runtime-provider-no-notifier"),
+        ("CPU8/CPU9 admission", "runtime-provider-no-admission"),
+    ):
+        require(runtime_provider_patch, needle, label)
+    for forbidden in ("readl(", "writel(", "regulator_", "clk_", "i2c_transfer",
+                      "arm_smccc", "platform_driver", "cpu_up(", "secure_write",
+                      "register_pm_notifier", "cpuhp_setup_state"):
+        if forbidden in runtime_provider_source:
+            raise AssertionError(f"unexpected runtime-provider operation: {forbidden}")
     for forbidden in ("readl(", "writel(", "regulator_", "clk_", "i2c_transfer",
                       "arm_smccc", "platform_driver", "cpu_up(", "secure_write"):
         if forbidden in cspm_live_binding_source:
@@ -2170,6 +2224,12 @@ def main() -> None:
         raise AssertionError("PPM/CCI source adapter is not after the identity source bridge")
     if names.index("0239-soc-mediatek-add-ppm-cci-source-adapter.patch") >= names.index("0240-soc-mediatek-add-live-state-source-adapter.patch"):
         raise AssertionError("live state source adapter is not after the PPM/CCI source adapter")
+    if names.index("0240-soc-mediatek-add-live-state-source-adapter.patch") >= names.index("0241-soc-mediatek-bind-source-adapters-to-calibrated-provider.patch"):
+        raise AssertionError("source adapter binding is not after the live state source adapter")
+    if names.index("0241-soc-mediatek-bind-source-adapters-to-calibrated-provider.patch") >= names.index("0242-soc-mediatek-validate-policy-derived-cci-bounds.patch"):
+        raise AssertionError("policy-derived CCI validation is not after source adapter binding")
+    if names.index("0242-soc-mediatek-validate-policy-derived-cci-bounds.patch") >= names.index("0243-soc-mediatek-bind-runtime-invalidation-to-provider.patch"):
+        raise AssertionError("runtime invalidation binding is not after policy-derived CCI validation")
 
     for forbidden in ("readl(", "writel(", "i2c_transfer", "regulator_enable(",
                       "regulator_disable(", "psci_ops.cpu_on", "cpu_up("):
@@ -2287,6 +2347,9 @@ def main() -> None:
     print("ppm_cci_source_buildbox=validated;commit=51b3f30b4763b6d37eb61888f4dcdc6f1b1fa423;patch_count=228;artifact=linux-7.1.3-gemini-dvfsp-resource-owner-readonly-4231d9e2-c548d243;image_gzip_sha256=1327e462f90d0ae5587852dc199473c901ece903a63326e741cc6bcb179ad552;package_validation=passed;package_fetch=validated-package-only;provider=none;registered_owner=0;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("live_state_source_adapter=0240;explicit_generation_owner_transition_provenance;per_cluster_clock_rail_callbacks;protected_clock_frequency_match;physical_ppm_frequency_match;cspm_raw_rail_match;pure_rail_conversion;outer_transition_lock;registration_absent;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("live_state_source_buildbox=validated;commit=84cfb2743fb15d1760945279eea0b7f1dc8f1c29;patch_count=229;artifact=linux-7.1.3-gemini-dvfsp-resource-owner-readonly-bbb207b5-c548d243;image_gzip_sha256=1765077815c796dd4f69b932e519d2d2ef1a19a5eb0f2c45900062e5630a46cb;package_validation=passed;package_fetch=validated-package-only;provider=none;registered_owner=0;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
+    print("source_adapter_binding=0241;identity_source_bound;live_source_bound;ppm_source_bound;state_owner_ops_composed;ppm_owner_ops_composed;provider_dormant;registration_absent;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
+    print("policy_cci_validation=0242;calibration_row_match;provider_ppm_limit_ceiling_bound;cci_policy_bank_explicit;fail_closed;registration_absent;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
+    print("runtime_provider_invalidation=0243;runtime_event_ledger;sequence_monotonic;generation_monotonic;provider_invalidator_bound;notifier_registration_absent;registration_absent;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("calibrated_provider_buildbox=validated;commit=a28dd0f9d57b747258d2c70fbae7b14a9e3c010d;profile=dvfsp-resource-owner-readonly;patch_count=224;artifact=linux-7.1.3-gemini-dvfsp-resource-owner-readonly-dede19ab-c548d243;sha256sums=passed;package_fetch=success;validated_package_only;provider=none;registered_owner=0;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("owner_abi_repair=0232;ppm_owner_header_restored;snapshot_handles_declared;compile_boundary_only")
     print("build_boundary_repairs=0233+0234;handoff_return_export;calibration_cluster_type;state_owner_mutex_probe_init;duplicate_tail_removed;compile_boundary_only")

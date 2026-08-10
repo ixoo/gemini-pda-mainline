@@ -1,0 +1,210 @@
+From 0000000000000000000000000000000000000241 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 10 Aug 2026 19:00:00 -0400
+Subject: [PATCH] soc: mediatek: bind source adapters to calibrated provider
+
+Compose the reviewed efuse/PTP identity, PPM/CCI, and live clock/rail source
+adapters inside the dormant calibrated provider. The provider-owned bridge
+builds the exact state-owner and PPM-owner callback tables, forwards
+calibration-row and invalidation callbacks explicitly, and keeps all borrowed
+source contexts alive for the resource-owner binding lifetime.
+
+This is still a source composition boundary: no owner/provider registration,
+MMIO, regulator or clock operation, secure call, firmware operation, device
+boot, or CPU8/CPU9 admission is added. The provider remains default-off and
+the policy-derived CCI bounds and runtime lifecycle invalidation remain
+separate required gates. This is experiment-only and not submission-ready.
+---
+ drivers/soc/mediatek/mt6797-dvfsp-calibrated-provider.c | 110 ++++++++++++++++++++
+ include/linux/soc/mediatek/mt6797-dvfsp-calibrated-provider.h | 45 +++++++-
+ 2 files changed, 150 insertions(+), 5 deletions(-)
+
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-calibrated-provider.h b/include/linux/soc/mediatek/mt6797-dvfsp-calibrated-provider.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-calibrated-provider.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-calibrated-provider.h
+@@ -7,7 +7,25 @@
+ #include <linux/soc/mediatek/mt6797-dvfsp-ppm-owner.h>
+ #include <linux/soc/mediatek/mt6797-dvfsp-resource-owner.h>
+ #include <linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h>
++#include <linux/soc/mediatek/mt6797-dvfsp-identity-source.h>
++#include <linux/soc/mediatek/mt6797-dvfsp-live-source.h>
++#include <linux/soc/mediatek/mt6797-dvfsp-ppm-source.h>
+ 
+ #define MT6797_DVFSP_CALIBRATED_PROVIDER_ABI	1
++#define MT6797_DVFSP_CALIBRATED_SOURCE_ABI	1
++
++struct mt6797_dvfsp_calibrated_provider_source_ops {
++	u32 abi;
++	int (*fill_calibration)(void *context,
++				const struct mt6797_dvfsp_ptp_handoff *handoff,
++				const struct mt6797_dvfsp_ptp_state *ptp_state,
++				const struct mt6797_dvfsp_ppm_snapshot *ppm,
++				struct mt6797_dvfsp_ppm_policy_snapshot *policy,
++				const struct mt6797_eem_readback *readback,
++				const struct mt6797_dvfsp_state_owner_source_identity *identity,
++				struct mt6797_eem_calibration_input *input);
++	void (*invalidate)(void *context,
++				enum mt6797_dvfsp_state_invalidation_reason reason);
++};
+ 
+ /*
+@@ -17,5 +35,12 @@ struct mt6797_dvfsp_calibrated_provider {
+-	struct mt6797_dvfsp_state_owner_source source;
++	struct mt6797_dvfsp_state_owner_source source;
+-	struct mt6797_dvfsp_state_owner_arbitration arbitration;
++	struct mt6797_dvfsp_state_owner_arbitration arbitration;
+-	struct mt6797_dvfsp_state_owner_arbitration_ops arbitration_ops;
++	struct mt6797_dvfsp_state_owner_arbitration_ops arbitration_ops;
++	struct mt6797_dvfsp_identity_source identity_source;
++	struct mt6797_dvfsp_live_source live_source;
++	struct mt6797_dvfsp_ppm_source ppm_source;
++	struct mt6797_dvfsp_state_owner_source_ops bound_source_ops;
++	struct mt6797_dvfsp_ppm_owner_ops bound_ppm_ops;
++	const struct mt6797_dvfsp_calibrated_provider_source_ops *source_ops;
++	void *source_context;
+-	bool initialized;
++	bool initialized;
+-};
++};
+@@ -90,4 +121,14 @@ void mt6797_dvfsp_calibrated_provider_invalidate(
+ 	struct mt6797_dvfsp_calibrated_provider *provider,
+ 	enum mt6797_dvfsp_state_invalidation_reason reason);
++
++/* Compose the explicit source adapters, but do not register an owner. */
++int mt6797_dvfsp_calibrated_provider_bind_sources(
++	struct mt6797_dvfsp_calibrated_provider *provider,
++	struct mt6797_dvfsp_resource_owner *resource_owner,
++	const struct mt6797_dvfsp_identity_source *identity_source,
++	const struct mt6797_dvfsp_live_source *live_source,
++	const struct mt6797_dvfsp_ppm_source *ppm_source,
++	const struct mt6797_dvfsp_calibrated_provider_source_ops *source_ops,
++	void *source_context, u64 owner_handle, u64 transition_handle);
+ 
+ #endif /* __LINUX_SOC_MEDIATEK_MT6797_DVFSP_CALIBRATED_PROVIDER_H */
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-calibrated-provider.c b/drivers/soc/mediatek/mt6797-dvfsp-calibrated-provider.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-calibrated-provider.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-calibrated-provider.c
+@@ -10,4 +10,59 @@
+ #include <linux/soc/mediatek/mt6797-dvfsp-calibrated-provider.h>
+ 
++static int mt6797_dvfsp_calibrated_provider_read_identity(
++	void *context, const struct mt6797_dvfsp_ptp_state *ptp_state,
++	struct mt6797_dvfsp_state_owner_source_identity *identity)
++{
++	struct mt6797_dvfsp_calibrated_provider *provider = context;
++
++	if (!provider)
++		return -EINVAL;
++	return mt6797_dvfsp_identity_source_read(&provider->identity_source,
++						ptp_state, identity);
++}
++
++static int mt6797_dvfsp_calibrated_provider_fill_calibration(
++	void *context, const struct mt6797_dvfsp_ptp_handoff *handoff,
++	const struct mt6797_dvfsp_ptp_state *ptp_state,
++	const struct mt6797_dvfsp_ppm_snapshot *ppm,
++	struct mt6797_dvfsp_ppm_policy_snapshot *policy,
++	const struct mt6797_eem_readback *readback,
++	const struct mt6797_dvfsp_state_owner_source_identity *identity,
++	struct mt6797_eem_calibration_input *input)
++{
++	struct mt6797_dvfsp_calibrated_provider *provider = context;
++
++	if (!provider || !provider->source_ops ||
++	    provider->source_ops->abi != MT6797_DVFSP_CALIBRATED_SOURCE_ABI ||
++    !provider->source_ops->fill_calibration)
++		return -EINVAL;
++	return provider->source_ops->fill_calibration(provider->source_context,
++			handoff, ptp_state, ppm, policy, readback, identity, input);
++}
++
++static int mt6797_dvfsp_calibrated_provider_fill_live(
++	void *context, const struct mt6797_dvfsp_clock_state *clock,
++	const struct mt6797_dvfsp_calibration_state *calibration,
++	const struct mt6797_dvfsp_cspm_state *cspm,
++	const struct mt6797_dvfsp_ppm_snapshot *ppm,
++	struct mt6797_dvfsp_state_source_live *live)
++{
++	struct mt6797_dvfsp_calibrated_provider *provider = context;
++
++	if (!provider || !clock || !calibration || !cspm || !ppm || !live)
++		return -EINVAL;
++	return mt6797_dvfsp_live_source_fill(&provider->live_source, clock,
++						calibration, cspm, ppm, live);
++}
++
++static void mt6797_dvfsp_calibrated_provider_invalidate_cb(
++	void *context, enum mt6797_dvfsp_state_invalidation_reason reason)
++{
++	struct mt6797_dvfsp_calibrated_provider *provider = context;
++
++	if (provider && provider->source_ops && provider->source_ops->invalidate)
++		provider->source_ops->invalidate(provider->source_context, reason);
++}
++
+ static int mt6797_dvfsp_calibrated_provider_check(
+ 	const struct mt6797_dvfsp_calibrated_provider *provider)
+@@ -164,5 +233,60 @@ int mt6797_dvfsp_calibrated_provider_invalidate(
+ }
+ EXPORT_SYMBOL_GPL(mt6797_dvfsp_calibrated_provider_invalidate);
+ 
++int mt6797_dvfsp_calibrated_provider_bind_sources(
++	struct mt6797_dvfsp_calibrated_provider *provider,
++	struct mt6797_dvfsp_resource_owner *resource_owner,
++	const struct mt6797_dvfsp_identity_source *identity_source,
++	const struct mt6797_dvfsp_live_source *live_source,
++	const struct mt6797_dvfsp_ppm_source *ppm_source,
++	const struct mt6797_dvfsp_calibrated_provider_source_ops *source_ops,
++	void *source_context, u64 owner_handle, u64 transition_handle)
++{
++	int ret;
++
++	if (!provider || provider->initialized || !identity_source ||
++	    !live_source || !ppm_source || !source_ops ||
++	    source_ops->abi != MT6797_DVFSP_CALIBRATED_SOURCE_ABI ||
++    !source_ops->fill_calibration || !source_ops->invalidate)
++		return -EINVAL;
++
++	provider->identity_source = *identity_source;
++	provider->live_source = *live_source;
++	provider->ppm_source = *ppm_source;
++	provider->source_ops = source_ops;
++	provider->source_context = source_context;
++
++	ret = mt6797_dvfsp_ppm_source_owner_ops_init(&provider->ppm_source,
++						&provider->bound_ppm_ops);
++	if (ret)
++		goto err_clear;
++
++	memset(&provider->bound_source_ops, 0,
++		   sizeof(provider->bound_source_ops));
++	provider->bound_source_ops.abi = MT6797_DVFSP_STATE_OWNER_SOURCE_ABI;
++	provider->bound_source_ops.read_identity =
++		mt6797_dvfsp_calibrated_provider_read_identity;
++	provider->bound_source_ops.fill_calibration =
++		mt6797_dvfsp_calibrated_provider_fill_calibration;
++	provider->bound_source_ops.fill_live =
++		mt6797_dvfsp_calibrated_provider_fill_live;
++	provider->bound_source_ops.invalidate =
++		mt6797_dvfsp_calibrated_provider_invalidate_cb;
++
++	ret = mt6797_dvfsp_calibrated_provider_init(provider, resource_owner,
++			&provider->bound_source_ops, provider,
++			&provider->bound_ppm_ops, provider,
++			owner_handle, transition_handle);
++	if (ret)
++		return ret;
++
++	return 0;
++
++err_clear:
++	memset(provider, 0, sizeof(*provider));
++	return ret;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_calibrated_provider_bind_sources);
++
+ MODULE_DESCRIPTION("MT6797 DVFSP calibrated provider binding");
+ MODULE_LICENSE("GPL");
+-- 
+2.43.0
