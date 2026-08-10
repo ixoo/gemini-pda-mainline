@@ -227,3 +227,4 @@ v7.1.3/0234-soc-mediatek-repair-state-owner-initialization-boundary.patch
 v7.1.3/0235-soc-mediatek-bind-calibrated-provider-to-resource-owner.patch
 v7.1.3/0236-soc-mediatek-bind-CSPM-sample-to-live-provider.patch
 v7.1.3/0237-soc-mediatek-add-MT6797-efuse-identity-and-rail-converters.patch
+v7.1.3/0238-soc-mediatek-bind-efuse-identity-to-owner-source.patch
