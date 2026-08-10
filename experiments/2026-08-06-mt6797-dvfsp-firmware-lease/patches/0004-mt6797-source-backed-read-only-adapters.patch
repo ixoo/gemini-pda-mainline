@@ -296,14 +296,12 @@ diff --git a/drivers/misc/mediatek/base/power/mt6797/mt_eem.c b/drivers/misc/med
 index 147b673723d7fa417685a3c2b06cbe75100abaaf288663b08795efc04414f4bc..000000000 100644
 --- a/drivers/misc/mediatek/base/power/mt6797/mt_eem.c
 +++ b/drivers/misc/mediatek/base/power/mt6797/mt_eem.c
-@@ -1002,6 +1002,7 @@
+@@ -1002,4 +1002,5 @@
  #include <linux/file.h>
  #include <linux/delay.h>
  #include <linux/types.h>
 +#include "mt6797-dvfsp-vendor-state.h"
  #include <linux/time.h>
- 
- #include <linux/topology.h>
 @@ -6578,1 +6578,50 @@
  #undef __MT_EEM_C__
 +
@@ -367,8 +365,7 @@ index 89e8e20c62b8c5d8b45a63563a7c22b1e927712744bb243d05ca6589496bb9c2..00000000
  
  
  #define PPM_TIMER_INTERVAL_MS		(1000)
-@@ -1597,3 +1597,65 @@ MODULE_DESCRIPTION("MediaTek PPM Driver v0.1");
- MODULE_DESCRIPTION("MediaTek PPM Driver v0.1");
+@@ -1598,1 +1598,64 @@ MODULE_LICENSE("GPL");
  MODULE_LICENSE("GPL");
 +
 +int gemini_mt6797_dvfsp_vendor_ppm_snapshot(
