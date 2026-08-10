@@ -4,30 +4,30 @@ Date: Mon, 10 Aug 2026 01:20:00 -0400
 Subject: [PATCH] soc: mediatek: add MT6797 efuse identity and rail converters
 
 The vendor MT6797 cpufreq path selects its table family from devinfo word 61
-bits 7:4 and its CPU level from devinfo word 22 low bits.  It also reports
+bits 7:4 and its CPU level from devinfo word 22 low bits. It also reports
 VPROC and VSRAM in the vendor mV*100 unit through the extbuck and PMIC
 conversion macros.
 
 Expose the two efuse words through the existing read-only LK devinfo NVMEM
 provider, decode the documented identity fields, and provide pure converters
-from the CSPM raw rail codes to mainline microvolts.  These helpers do not
+from the CSPM raw rail codes to mainline microvolts. These helpers do not
 access efuse MMIO, write a regulator, construct an OPP table, or register a
-DVFSP owner.  The table epoch, calibration handle, PPM/CCI rows, and shared
+DVFSP owner. The table epoch, calibration handle, PPM/CCI rows, and shared
 transition generation therefore remain provider-owned and CPU8/CPU9 admission
 stays closed.
 
 This is experiment-only and not submission-ready.
 ---
- Documentation/devicetree/bindings/nvmem/mediatek,mt6797-atag.yaml | 14 ++++
- arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts                |  8 ++-
- drivers/nvmem/mediatek-atag-devinfo.c                             | 18 +++++-
- drivers/soc/mediatek/mt6797-dvfsp-cspm-state.c                    | 47 ++++++++++++
- drivers/soc/mediatek/mt6797-dvfsp-state-source-backends.c         | 40 ++++++++++
- include/linux/soc/mediatek/mt6797-dvfsp-cspm-state.h              |  5 ++
- include/linux/soc/mediatek/mt6797-dvfsp-ptp.h                     | 34 +++++++++
- include/linux/soc/mediatek/mt6797-dvfsp-state-source-backends.h   |  2 +
- drivers/soc/mediatek/mt6797-dvfsp-ptp.c                           | 64 +++++++++++++
- 9 files changed, 232 insertions(+), 4 deletions(-)
+ Documentation/devicetree/bindings/nvmem/mediatek,mt6797-atag.yaml | 13 +++++
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts                |  9 +++
+ drivers/nvmem/mediatek-atag-devinfo.c                             | 20 +++++++-
+ drivers/soc/mediatek/mt6797-dvfsp-cspm-state.c                    | 42 ++++++++++++++++
+ drivers/soc/mediatek/mt6797-dvfsp-state-source-backends.c         | 39 +++++++++++++++
+ include/linux/soc/mediatek/mt6797-dvfsp-cspm-state.h              |  3 +++
+ include/linux/soc/mediatek/mt6797-dvfsp-ptp.h                     | 26 ++++++++++
+ include/linux/soc/mediatek/mt6797-dvfsp-state-source-backends.h   |  2 ++
+ drivers/soc/mediatek/mt6797-dvfsp-ptp.c                           | 52 +++++++++++++++++++
+ 9 files changed, 206 insertions(+), 3 deletions(-)
 
 diff --git a/Documentation/devicetree/bindings/nvmem/mediatek,mt6797-atag.yaml b/Documentation/devicetree/bindings/nvmem/mediatek,mt6797-atag.yaml
 --- a/Documentation/devicetree/bindings/nvmem/mediatek,mt6797-atag.yaml
@@ -79,16 +79,15 @@ diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boo
 diff --git a/drivers/nvmem/mediatek-atag-devinfo.c b/drivers/nvmem/mediatek-atag-devinfo.c
 --- a/drivers/nvmem/mediatek-atag-devinfo.c
 +++ b/drivers/nvmem/mediatek-atag-devinfo.c
-@@ -15,6 +15,8 @@
+@@ -15,4 +15,6 @@
  #include <linux/slab.h>
  #include <linux/unaligned.h>
  
 +#include <linux/soc/mediatek/mt6797-dvfsp-ptp.h>
 +
  #define MT6797_ATAG_DEVINFO_TAG		0x41000804
- #define MT6797_ATAG_HEADER_WORDS	2
- #define MT6797_ATAG_PAYLOAD_WORDS	100
-@@ -25,5 +27,7 @@
+@@ -24,6 +26,8 @@
+ #define MT6797_THERMAL_CELL_BYTES	(3 * sizeof(u32))
  #define MT6797_PTP_FIRST_PAYLOAD_WORD	51
  #define MT6797_PTP_WORDS		19
  #define MT6797_PTP_CELL_BYTES		(MT6797_PTP_WORDS * sizeof(u32))
@@ -97,7 +96,7 @@ diff --git a/drivers/nvmem/mediatek-atag-devinfo.c b/drivers/nvmem/mediatek-atag
 -					 MT6797_PTP_CELL_BYTES)
 +					 MT6797_PTP_CELL_BYTES + \
 +					 MT6797_EFUSE_IDENTITY_CELL_BYTES)
-@@ -78,7 +83,21 @@ static int mt6797_atag_parse(struct mt6797_atag_devinfo *data)
+@@ -78,7 +82,21 @@ static int mt6797_atag_parse(struct mt6797_atag_devinfo *data)
  		put_unaligned_le32(value,
  				   &data->cells[MT6797_THERMAL_CELL_BYTES +
  						i * sizeof(u32)]);
@@ -118,7 +117,7 @@ diff --git a/drivers/nvmem/mediatek-atag-devinfo.c b/drivers/nvmem/mediatek-atag
 +						MT6797_PTP_CELL_BYTES + 2 * sizeof(u32)]);
  
  out:
- 	return ret;
+ 	of_node_put(chosen);
 diff --git a/drivers/soc/mediatek/mt6797-dvfsp-cspm-state.c b/drivers/soc/mediatek/mt6797-dvfsp-cspm-state.c
 --- a/drivers/soc/mediatek/mt6797-dvfsp-cspm-state.c
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-cspm-state.c
@@ -218,7 +217,6 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-source-backends.c b/drivers
  
  int mt6797_dvfsp_state_source_backend_ops_init(
  	const struct mt6797_dvfsp_state_source_devices *devices,
- 	struct mt6797_dvfsp_state_source_ops *ops)
 diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-cspm-state.h b/include/linux/soc/mediatek/mt6797-dvfsp-cspm-state.h
 --- a/include/linux/soc/mediatek/mt6797-dvfsp-cspm-state.h
 +++ b/include/linux/soc/mediatek/mt6797-dvfsp-cspm-state.h
@@ -234,9 +232,9 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-cspm-state.h b/include/linu
 diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-ptp.h b/include/linux/soc/mediatek/mt6797-dvfsp-ptp.h
 --- a/include/linux/soc/mediatek/mt6797-dvfsp-ptp.h
 +++ b/include/linux/soc/mediatek/mt6797-dvfsp-ptp.h
-@@ -7,5 +7,27 @@
- #define MT6797_DVFSP_PTP_HANDOFF_ABI		1
- #define MT6797_DVFSP_PTP_HANDOFF_WORDS		19
+@@ -20,4 +20,26 @@
+ #define MT6797_DVFSP_PTP_BANK_2L		4
+ #define MT6797_DVFSP_PTP_BANK_CCI		5
 +#define MT6797_DVFSP_EFUSE_IDENTITY_ABI		1
 +#define MT6797_DVFSP_EFUSE_FUNCTION_WORD_INDEX	22
 +#define MT6797_DVFSP_EFUSE_DATE_WORD_INDEX	61
@@ -261,15 +259,13 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-ptp.h b/include/linux/soc/m
 +};
  
  struct mt6797_dvfsp_ptp_handoff {
- 	u32 abi;
-@@ -14,4 +48,8 @@ struct mt6797_dvfsp_ptp_handoff {
- 	u32 m_hw_res[MT6797_DVFSP_PTP_HANDOFF_WORDS];
+@@ -35,3 +57,7 @@ int mt6797_dvfsp_ptp_decode(
  };
-+
+ 
 +int mt6797_dvfsp_ptp_identity_decode(
 +	const struct mt6797_dvfsp_efuse_identity *raw,
 +	struct mt6797_dvfsp_ptp_identity *identity);
- 
++
  #endif /* __LINUX_SOC_MEDIATEK_MT6797_DVFSP_PTP_H */
 diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-state-source-backends.h b/include/linux/soc/mediatek/mt6797-dvfsp-state-source-backends.h
 --- a/include/linux/soc/mediatek/mt6797-dvfsp-state-source-backends.h
