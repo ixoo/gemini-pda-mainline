@@ -234,3 +234,4 @@ v7.1.3/0241-soc-mediatek-bind-source-adapters-to-calibrated-provider.patch
 v7.1.3/0242-soc-mediatek-validate-policy-derived-cci-bounds.patch
 v7.1.3/0243-soc-mediatek-bind-runtime-invalidation-to-provider.patch
 v7.1.3/0244-soc-mediatek-add-DVFSP-resource-owner-KUnit-contract-tests.patch
+v7.1.3/0245-soc-mediatek-add-calibrated-provider-KUnit-contract-tests.patch

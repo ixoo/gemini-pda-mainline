@@ -4,4 +4,5 @@
 # only fake struct device references.
 CONFIG_KUNIT=y
 CONFIG_MTK_MT6797_DVFSP_OWNER_KUNIT_TEST=y
+CONFIG_MTK_MT6797_DVFSP_PROVIDER_KUNIT_TEST=y
 CONFIG_LOCALVERSION="-gemini-dvfsp-owner-kunit"
