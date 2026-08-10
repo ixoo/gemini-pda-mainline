@@ -1015,20 +1015,23 @@ or runtime registration occurred, no device was booted or written, and CPU8/CPU9
 admission remains closed. The next gate is still attributable integration at
 the actual vendor writer sites, followed by separate read-only runtime evidence.
 
-A follow-up lock-context audit shows that the PTP-table and voltage writer
-sites execute under the vendor `cpufreq_lock` spinlock, while PPM dispatch is
-mutex-protected and then enters the same cpufreq callback path; see the [lock-context audit](results/vendor-writer-lock-context-audit-20260810.txt).
+A corrected lock-context audit shows that the pinned public revision's active
+`cpufreq_lock` branch is a mutex; its `spin_lock_irqsave` alternative is under
+`#if 0`. PPM dispatch also holds its mutex before entering the cpufreq callback
+path; see the [lock-context audit](results/vendor-writer-lock-context-audit-20260810.txt).
 The shared owner must therefore be acquired before the cpufreq critical
 section, with every vendor callback chained under that one transaction and an
-abort on every failure. Taking the owner mutex from inside the spinlocked
-writer is explicitly rejected. This sharpens the integration boundary but is
-not runtime evidence: no vendor source was copied, no setter or provider was
-called, no device action occurred, and CPU8/CPU9 admission remains closed.
+abort on every failure. The atomic/IRQ-disabled refusal remains necessary for
+callers that are already non-sleepable and for a variant that enables the
+spinlock branch. This sharpens the integration boundary but is not runtime
+evidence: no vendor source was copied, no setter or provider was called, no
+device action occurred, and CPU8/CPU9 admission remains closed.
 
 Patch `0252` makes that safety boundary fail closed in code: writer acquisition
 returns `-EWOULDBLOCK` when interrupts are disabled or execution is atomic, and
 KUnit covers the IRQ-disabled refusal. This prevents a future call-site adapter
-from sleeping on the shared mutex after entering the vendor cpufreq spinlock.
+from sleeping on the shared mutex after entering a non-sleepable vendor
+critical section, including the disabled spinlock variant.
 It remains dormant contract work; no vendor callback slot, provider, device,
 or CPU8/CPU9 path is enabled.
 
@@ -1040,5 +1043,5 @@ This validates the fail-closed atomic/IRQ-disabled boundary and its KUnit test,
 but remains compile-only evidence: no vendor owner/provider or runtime
 registration occurred, no device was booted or written, and CPU8/CPU9
 admission remains closed. The next gate is still attributable integration at
-the vendor-aware writer boundary before the cpufreq spinlock, followed by
+the vendor-aware writer boundary before the cpufreq critical section, followed by
 separate read-only runtime registration evidence.

@@ -242,3 +242,5 @@ v7.1.3/0249-soc-mediatek-add-cooperative-vendor-owner-adapter.patch
 v7.1.3/0250-soc-mediatek-add-vendor-writer-transition-owner.patch
 v7.1.3/0251-soc-mediatek-bind-vendor-writer-to-shared-owner-generation.patch
 v7.1.3/0252-soc-mediatek-reject-atomic-vendor-writer-acquisition.patch
+v7.1.3/0253-soc-mediatek-refuse-vendor-writer-generation-overflow.patch
+v7.1.3/0254-soc-mediatek-add-prelock-vendor-writer-chain.patch

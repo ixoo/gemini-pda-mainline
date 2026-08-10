@@ -1,0 +1,155 @@
+From 0000000000000000000000000000000000000254 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 10 Aug 2026 23:45:00 -0400
+Subject: [PATCH] soc: mediatek: add pre-lock vendor writer chain
+
+Provide the attributable call-site boundary for a future MT6797 vendor
+integration. The wrapper acquires the shared owner first, invokes the existing
+vendor callback chain with the captured generation, and commits or aborts while
+the owner remains held. A caller's callback can then enter the vendor
+cpufreq/PPM critical section without sleeping on the shared owner from inside
+that section.
+
+Failure aborts preserve the generation, and an invalid callback or terminal
+generation is refused before the callback runs. This wrapper installs no
+single-slot callback, performs no MMIO, and remains default-off; it is a
+hardware-free integration boundary rather than vendor source.
+---
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-kunit-test.c | 49 ++++++++++++
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c            | 33 ++++++++
+ include/linux/soc/mediatek/mt6797-dvfsp-vendor-writer.h     |  9 +++
+ 3 files changed, 91 insertions(+)
+
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-writer.h b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-writer.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-writer.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-writer.h
+@@ -35,6 +35,12 @@ int mt6797_dvfsp_vendor_writer_init(
+ 	void *context, u64 owner_handle, u64 transition_handle);
+ 
+ int mt6797_dvfsp_vendor_writer_begin(
+ 	struct mt6797_dvfsp_vendor_writer *writer, u64 *generation);
++typedef int (*mt6797_dvfsp_vendor_writer_update_fn)(void *context,
++							   u64 generation);
++
++/* Acquire the owner before the caller enters its vendor critical section. */
++int mt6797_dvfsp_vendor_writer_run(
++	struct mt6797_dvfsp_vendor_writer *writer,
++	mt6797_dvfsp_vendor_writer_update_fn update, void *context);
+ int mt6797_dvfsp_vendor_writer_commit(
+ 	struct mt6797_dvfsp_vendor_writer *writer);
+ int mt6797_dvfsp_vendor_writer_abort(
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c
+@@ -73,6 +73,39 @@ int mt6797_dvfsp_vendor_writer_begin(
+ }
+ EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_writer_begin);
+ 
++int mt6797_dvfsp_vendor_writer_run(
++	struct mt6797_dvfsp_vendor_writer *writer,
++	mt6797_dvfsp_vendor_writer_update_fn update, void *context)
++{
++	u64 generation;
++	int ret;
++	int abort_ret;
++
++	if (!update)
++		return -EINVAL;
++
++	ret = mt6797_dvfsp_vendor_writer_begin(writer, &generation);
++	if (ret)
++		return ret;
++
++	ret = update(context, generation);
++	if (ret) {
++		abort_ret = mt6797_dvfsp_vendor_writer_abort(writer);
++		return abort_ret ? abort_ret : ret;
++	}
++
++	ret = mt6797_dvfsp_vendor_writer_commit(writer);
++	if (!ret)
++		return 0;
++
++	abort_ret = mt6797_dvfsp_vendor_writer_abort(writer);
++	return abort_ret ? abort_ret : ret;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_writer_run);
++
+ int mt6797_dvfsp_vendor_writer_commit(
+ 	struct mt6797_dvfsp_vendor_writer *writer)
+ {
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-kunit-test.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-kunit-test.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-kunit-test.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-kunit-test.c
+@@ -28,6 +28,19 @@ mt6797_dvfsp_vendor_writer_test_ops = {
+ 	.read_provenance = mt6797_dvfsp_vendor_writer_test_provenance,
+ };
+ 
++struct mt6797_dvfsp_vendor_writer_test_update {
++	struct mutex *lock;
++	int result;
++	u64 generation;
++	unsigned int calls;
++	bool owner_locked;
++};
++
++static int mt6797_dvfsp_vendor_writer_test_update(void *context,
++		u64 generation)
++{
++	struct mt6797_dvfsp_vendor_writer_test_update *state = context;
++
++	state->calls++;
++	state->generation = generation;
++	state->owner_locked = mutex_is_locked(state->lock);
++	return state->result;
++}
++
+ static void mt6797_dvfsp_vendor_writer_rejects_incomplete(
+ 	struct kunit *test)
+ {
+@@ -119,6 +132,41 @@ static void mt6797_dvfsp_vendor_writer_serializes_generation(
+ 	KUNIT_EXPECT_EQ(test, shared_generation, ~0ULL);
+ }
+ 
++static void mt6797_dvfsp_vendor_writer_runs_prelock_chain(
++	struct kunit *test)
++{
++	struct mt6797_dvfsp_vendor_writer writer = { };
++	struct mt6797_dvfsp_vendor_writer_test_update state = { };
++	struct mutex lock;
++	u64 shared_generation = 1;
++
++	mutex_init(&lock);
++	state.lock = &lock;
++	KUNIT_ASSERT_EQ(test,
++		mt6797_dvfsp_vendor_writer_init(&writer, &lock,
++			&shared_generation,
++			&mt6797_dvfsp_vendor_writer_test_ops, &state, 1, 2), 0);
++	KUNIT_EXPECT_EQ(test,
++		mt6797_dvfsp_vendor_writer_run(&writer,
++			mt6797_dvfsp_vendor_writer_test_update, &state), 0);
++	KUNIT_EXPECT_EQ(test, state.calls, 1U);
++	KUNIT_EXPECT_EQ(test, state.generation, (u64)1);
++	KUNIT_EXPECT_TRUE(test, state.owner_locked);
++	KUNIT_EXPECT_EQ(test, shared_generation, (u64)2);
++	KUNIT_EXPECT_FALSE(test, writer.update_held);
++
++	state.result = -EIO;
++	state.owner_locked = false;
++	KUNIT_EXPECT_EQ(test,
++		mt6797_dvfsp_vendor_writer_run(&writer,
++			mt6797_dvfsp_vendor_writer_test_update, &state), -EIO);
++	KUNIT_EXPECT_EQ(test, state.calls, 2U);
++	KUNIT_EXPECT_EQ(test, shared_generation, (u64)2);
++	KUNIT_EXPECT_FALSE(test, writer.update_held);
++}
++
+ static struct kunit_case mt6797_dvfsp_vendor_writer_test_cases[] = {
+ 	KUNIT_CASE(mt6797_dvfsp_vendor_writer_rejects_incomplete),
+ 	KUNIT_CASE(mt6797_dvfsp_vendor_writer_serializes_generation),
++	KUNIT_CASE(mt6797_dvfsp_vendor_writer_runs_prelock_chain),
+ 	{ }
+ };
+ 
+-- 
+2.43.0

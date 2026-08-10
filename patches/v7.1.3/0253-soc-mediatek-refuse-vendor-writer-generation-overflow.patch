@@ -1,0 +1,55 @@
+From 0000000000000000000000000000000000000253 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 10 Aug 2026 23:15:00 -0400
+Subject: [PATCH] soc: mediatek: refuse vendor writer generation overflow
+
+Refuse a vendor-writer transaction before the callback chain when the shared
+generation is exhausted. The earlier contract rejected overflow at commit,
+which could leave a completed vendor update without a publishable generation.
+Keep the transaction unheld and preserve the terminal generation instead.
+
+This is an experiment-only safety repair. It does not call a vendor setter,
+perform MMIO, register a provider, or admit CPU8/CPU9.
+---
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-kunit-test.c | 10 +++++-----
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c            |  5 +++++
+ 2 files changed, 9 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-kunit-test.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-kunit-test.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-kunit-test.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-kunit-test.c
+@@ -105,13 +105,13 @@ static void mt6797_dvfsp_vendor_writer_serializes_generation(
+ 	KUNIT_EXPECT_EQ(test, generation, (u64)2);
+ 
+ 	shared_generation = ~0ULL;
+-	KUNIT_ASSERT_EQ(test,
+-		mt6797_dvfsp_vendor_writer_begin(&writer, &generation), 0);
++	KUNIT_EXPECT_EQ(test,
++		mt6797_dvfsp_vendor_writer_begin(&writer, &generation),
++		-EOVERFLOW);
++	KUNIT_EXPECT_FALSE(test, writer.update_held);
+ 	KUNIT_EXPECT_EQ(test,
+-		mt6797_dvfsp_vendor_writer_commit(&writer), -EOVERFLOW);
+-	KUNIT_EXPECT_TRUE(test, writer.update_held);
+-	KUNIT_ASSERT_EQ(test,
+-		mt6797_dvfsp_vendor_writer_abort(&writer), 0);
++		mt6797_dvfsp_vendor_writer_commit(&writer), -EINVAL);
+ 	KUNIT_EXPECT_EQ(test, shared_generation, ~0ULL);
+ }
+ 
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c
+@@ -69,6 +69,11 @@ int mt6797_dvfsp_vendor_writer_begin(
+ 		mutex_unlock(writer->transition_lock);
+ 		return -EALREADY;
+ 	}
++	if (READ_ONCE(*writer->generation) == ~0ULL) {
++		mutex_unlock(writer->transition_lock);
++		return -EOVERFLOW;
++	}
+ 
+ 	writer->update_held = true;
+ 	*generation = *writer->generation;
+-- 
+2.43.0
