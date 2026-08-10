@@ -61,6 +61,7 @@ VENDOR_WRITER_IDENTITY_PATCH = (Path(__file__).resolve().parents[1] /
 VENDOR_WRITER_BINDING_PATCH = (Path(__file__).resolve().parents[1] /
                                "patches/0006-mt6797-vendor-writer-mainline-owner-binding.patch")
 MAINLINE_WRITER_BRIDGE_PATCH = ROOT / "patches/v7.1.3/0256-soc-mediatek-export-vendor-writer-owner-bridge.patch"
+MAINLINE_WRITER_REGISTRATION_PATCH = ROOT / "patches/v7.1.3/0257-soc-mediatek-add-explicit-vendor-writer-registration-handoff.patch"
 VENDOR_WRITER_INTEGRATION_REVIEW_RESULT = (Path(__file__).resolve().parents[1] /
                                            "results/vendor-writer-mainline-owner-integration-review-20260810.txt")
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
@@ -232,6 +233,7 @@ def main() -> None:
     vendor_writer_identity_patch = VENDOR_WRITER_IDENTITY_PATCH.read_text()
     vendor_writer_binding_patch = VENDOR_WRITER_BINDING_PATCH.read_text()
     mainline_writer_bridge_patch = MAINLINE_WRITER_BRIDGE_PATCH.read_text()
+    mainline_writer_registration_patch = MAINLINE_WRITER_REGISTRATION_PATCH.read_text()
     vendor_writer_integration_review_result = VENDOR_WRITER_INTEGRATION_REVIEW_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
@@ -272,6 +274,8 @@ def main() -> None:
 
     if vendor_experiment_names[-1] != "0006-mt6797-vendor-writer-mainline-owner-binding.patch":
         raise AssertionError("vendor owner-binding patch is not last in its experiment series")
+    if names.index("0256-soc-mediatek-export-vendor-writer-owner-bridge.patch") >= names.index("0257-soc-mediatek-add-explicit-vendor-writer-registration-handoff.patch"):
+        raise AssertionError("vendor writer registration handoff is not after the bridge")
     for needle, label in (
         ("GEMINI_MT6797_DVFSP_VENDOR_WRITER_ABI\t2", "vendor-writer-identity-abi"),
         ("read_identity", "vendor-writer-identity-callback"),
@@ -330,6 +334,25 @@ def main() -> None:
     ):
         if forbidden in mainline_writer_bridge_source:
             raise AssertionError(f"unexpected mainline owner-bridge operation: {forbidden}")
+
+    mainline_writer_registration_source = mainline_writer_registration_patch[
+        mainline_writer_registration_patch.index("diff --git"):]
+    for needle, label in (
+        ("MT6797_DVFSP_VENDOR_WRITER_REGISTRATION_ABI", "mainline-registration-abi"),
+        ("mt6797_dvfsp_vendor_owner_register_writer", "mainline-registration-register"),
+        ("mt6797_dvfsp_vendor_owner_unregister_writer", "mainline-registration-unregister"),
+        ("writer_registration_context", "mainline-registration-context"),
+        ("writer_registered", "mainline-registration-lifetime"),
+        ("return -EOPNOTSUPP", "mainline-registration-absent"),
+        ("return -EBUSY", "mainline-registration-teardown-guard"),
+    ):
+        require(mainline_writer_registration_patch, needle, label)
+    for forbidden in (
+        "readl(", "writel(", "i2c_transfer", "regulator_", "clk_",
+        "platform_driver", "cpu_up(", "secure_write",
+    ):
+        if forbidden in mainline_writer_registration_source:
+            raise AssertionError(f"unexpected mainline registration operation: {forbidden}")
 
     for needle, label in (
         ("claim=SOURCE_ONLY_MT6797_VENDOR_WRITER_MAINLINE_OWNER_INTEGRATION_REVIEW", "vendor-integration-review-claim"),
@@ -2620,6 +2643,7 @@ def main() -> None:
     print("vendor_ppm_owner_boundary=20260810;vendor_revision=8cfe6596a503612e3332d9c26e292a19525a7f07;ppm_lock=ppm_main_info.lock;cpufreq_lock=dvfs_lock;eem_locks=independent;shared_generation=absent;single_transition_lock=absent;provider=none;cpu8_cpu9_admission=closed;boot_candidate=false")
     print("vendor_writer_shared_owner_identity=0005;abi=2;read_identity_required;nonzero_owner_handle;nonzero_transition_handle;metadata_only;provider=none;registered_owner=0;hardware_write=none;device_action=none;cpu8_cpu9_admission=closed;boot_candidate=false")
     print("vendor_writer_mainline_binding=0006+0256;bridge_abi=1;exact_begin_commit_abort_identity_table;owner_handle_pinned;transition_handle_pinned;site_enum_translated;generation_and_site_mismatch_fail_closed;registration_external_default_off;provider=none;registered_owner=0;hardware_write=none;device_action=none;cpu8_cpu9_admission=closed;boot_candidate=false")
+    print("vendor_writer_registration_handoff=0257;abi=1;explicit_external_register_unregister;bridge_context_pinned;owner_identity_pinned;teardown_guard;default_off;provider=none;registered_owner=0;hardware_write=none;device_action=none;cpu8_cpu9_admission=closed;boot_candidate=false")
     print("pcm_adapter_contract=source-only;bounded-admission-model;callback-registration-gated")
     print("clock_owner_inventory=generic_ccf_only;protected_owner_absent;A72_observer_read_only")
     print("pcm_start_contract=defined;residency_and_start_required_before_callback_registration")

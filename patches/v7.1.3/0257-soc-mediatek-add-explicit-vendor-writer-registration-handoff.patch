@@ -1,0 +1,280 @@
+From 0000000000000000000000000000000000000257 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 11 Aug 2026 01:30:00 -0400
+Subject: [PATCH] soc: mediatek: add explicit vendor writer registration handoff
+
+Add a default-off, explicit registration handoff for the MT6797 vendor
+writer bridge. A vendor-aware caller supplies registration and unregistration
+callbacks; the adapter passes the exact source-independent bridge table and
+pins its context and owner identities for the lifetime of the registration.
+
+Binding the owner remains side-effect free. Registration is a separate action,
+refuses an absent or malformed external callback, and prevents owner teardown
+until the external caller has unregistered. The handoff performs no MMIO,
+provider registration, firmware operation, device action, or CPU admission.
+---
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c | 53 +++++++++++++++++++
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c      | 77 ++++++++++++++++++++
+ include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h | 39 +++++++++++
+ 3 files changed, 169 insertions(+)
+
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h
+@@ -5,9 +5,26 @@
+ #include <linux/types.h>
+ 
+ #include <linux/soc/mediatek/mt6797-dvfsp-calibrated-provider.h>
+ #include <linux/soc/mediatek/mt6797-dvfsp-vendor-writer.h>
++#include <linux/soc/mediatek/mt6797-dvfsp-vendor-writer-bridge.h>
+ 
+ #define MT6797_DVFSP_VENDOR_OWNER_ABI	1
++#define MT6797_DVFSP_VENDOR_WRITER_REGISTRATION_ABI	1
++
++/* The external vendor-aware caller owns this registration lifetime. */
++struct mt6797_dvfsp_vendor_writer_registration_ops {
++	u32 abi;
++	int (*register_owner)(void *context,
++		const struct mt6797_dvfsp_vendor_writer_bridge_ops *ops,
++		void *bridge_context, u64 owner_handle,
++		u64 transition_handle);
++	int (*unregister_owner)(void *context,
++		const struct mt6797_dvfsp_vendor_writer_bridge_ops *ops,
++		void *bridge_context, u64 owner_handle,
++		u64 transition_handle);
++};
+ 
+ /*
+  * A vendor-aware driver supplies these callbacks while retaining ownership
+@@ -28,6 +45,8 @@ struct mt6797_dvfsp_vendor_owner_ops {
+ 	void *provider_context;
+ 	const struct mt6797_dvfsp_vendor_writer_ops *writer_ops;
+ 	void *writer_context;
++	const struct mt6797_dvfsp_vendor_writer_registration_ops
++		*writer_registration_ops;
++	void *writer_registration_context;
+ };
+ 
+ /*
+@@ -42,6 +61,7 @@ struct mt6797_dvfsp_vendor_owner {
+ 	struct mt6797_dvfsp_ppm_source ppm_source;
+ 	struct mt6797_dvfsp_calibrated_provider provider;
+ 	struct mt6797_dvfsp_vendor_writer writer;
++	struct mt6797_dvfsp_vendor_writer_bridge writer_bridge;
+ 	u64 owner_handle;
+ 	u64 transition_handle;
+ 	bool bound;
++	bool writer_registered;
+ };
+@@ -53,6 +73,16 @@ int mt6797_dvfsp_vendor_owner_bind(
+ 	u64 owner_handle, u64 transition_handle);
+ 
++/* Register the exact bridge table with an external vendor-aware caller. */
++int mt6797_dvfsp_vendor_owner_register_writer(
++	struct mt6797_dvfsp_vendor_owner *owner);
++
++/* Unregister the external caller before owner teardown. */
++int mt6797_dvfsp_vendor_owner_unregister_writer(
++	struct mt6797_dvfsp_vendor_owner *owner);
++
+ int mt6797_dvfsp_vendor_owner_unbind(
+ 	struct mt6797_dvfsp_vendor_owner *owner);
+ 
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c
+@@ -43,6 +43,18 @@ static int mt6797_dvfsp_vendor_owner_ops_check(
+ 	return 0;
+ }
+ 
++static int mt6797_dvfsp_vendor_owner_registration_ops_check(
++	const struct mt6797_dvfsp_vendor_writer_registration_ops *ops)
++{
++	if (!ops)
++		return 0;
++	if (ops->abi != MT6797_DVFSP_VENDOR_WRITER_REGISTRATION_ABI ||
++	    !ops->register_owner || !ops->unregister_owner)
++		return -EINVAL;
++	return 0;
++}
++
+ int mt6797_dvfsp_vendor_owner_bind(
+ 	struct mt6797_dvfsp_vendor_owner *owner,
+ 	struct mt6797_dvfsp_resource_owner *resource_owner,
+@@ -57,6 +69,10 @@ int mt6797_dvfsp_vendor_owner_bind(
+ 	ret = mt6797_dvfsp_vendor_owner_ops_check(ops);
+ 	if (ret)
+ 		return ret;
++	ret = mt6797_dvfsp_vendor_owner_registration_ops_check(
++		ops->writer_registration_ops);
++	if (ret)
++		return ret;
+ 
+ 	memset(owner, 0, sizeof(*owner));
+@@ -111,6 +127,61 @@ int mt6797_dvfsp_vendor_owner_bind(
+ }
+ EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_owner_bind);
+ 
++int mt6797_dvfsp_vendor_owner_register_writer(
++	struct mt6797_dvfsp_vendor_owner *owner)
++{
++	const struct mt6797_dvfsp_vendor_writer_registration_ops *ops;
++	int ret;
++
++	if (!owner || !owner->bound || owner->writer_registered)
++		return -EINVAL;
++	ops = owner->ops.writer_registration_ops;
++	if (!ops)
++		return -EOPNOTSUPP;
++
++	ret = mt6797_dvfsp_vendor_writer_bridge_init(&owner->writer_bridge,
++		&owner->writer);
++	if (ret)
++		return ret;
++
++	ret = ops->register_owner(owner->ops.writer_registration_context,
++		mt6797_dvfsp_vendor_writer_bridge_ops(), &owner->writer_bridge,
++		owner->owner_handle, owner->transition_handle);
++	if (ret) {
++		memset(&owner->writer_bridge, 0, sizeof(owner->writer_bridge));
++		return ret;
++	}
++
++	owner->writer_registered = true;
++	return 0;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_owner_register_writer);
++
++int mt6797_dvfsp_vendor_owner_unregister_writer(
++	struct mt6797_dvfsp_vendor_owner *owner)
++{
++	const struct mt6797_dvfsp_vendor_writer_registration_ops *ops;
++	int ret;
++
++	if (!owner || !owner->bound || !owner->writer_registered)
++		return -EINVAL;
++	ops = owner->ops.writer_registration_ops;
++	if (!ops)
++		return -EINVAL;
++
++	ret = ops->unregister_owner(owner->ops.writer_registration_context,
++		mt6797_dvfsp_vendor_writer_bridge_ops(), &owner->writer_bridge,
++		owner->owner_handle, owner->transition_handle);
++	if (ret)
++		return ret;
++
++	owner->writer_registered = false;
++	memset(&owner->writer_bridge, 0, sizeof(owner->writer_bridge));
++	return 0;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_owner_unregister_writer);
++
+ int mt6797_dvfsp_vendor_owner_unbind(
+ 	struct mt6797_dvfsp_vendor_owner *owner)
+@@ -119,6 +190,8 @@ int mt6797_dvfsp_vendor_owner_unbind(
+ 	if (!owner || !owner->bound)
+ 		return -EINVAL;
++	if (owner->writer_registered)
++		return -EBUSY;
+ 	if (owner->writer.update_held)
+ 		return -EBUSY;
+ 
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
+@@ -15,6 +15,48 @@ struct mt6797_dvfsp_vendor_test_devices {
+ 	struct device calibration_source;
+ };
+ 
++struct mt6797_dvfsp_vendor_test_registration {
++	const struct mt6797_dvfsp_vendor_writer_bridge_ops *ops;
++	void *bridge_context;
++	u64 owner_handle;
++	u64 transition_handle;
++	unsigned int register_calls;
++	unsigned int unregister_calls;
++};
++
+ static unsigned int mt6797_dvfsp_vendor_test_callbacks;
+ 
+@@ -184,6 +226,43 @@ static const struct mt6797_dvfsp_vendor_writer_ops
+ 	.read_provenance = mt6797_dvfsp_vendor_test_writer_provenance,
+ };
+ 
++static int mt6797_dvfsp_vendor_test_register_owner(
++	void *context, const struct mt6797_dvfsp_vendor_writer_bridge_ops *ops,
++	void *bridge_context, u64 owner_handle, u64 transition_handle)
++{
++	struct mt6797_dvfsp_vendor_test_registration *state = context;
++
++	if (!state || !ops || ops->abi != MT6797_DVFSP_VENDOR_WRITER_BRIDGE_ABI)
++		return -EINVAL;
++	state->ops = ops;
++	state->bridge_context = bridge_context;
++	state->owner_handle = owner_handle;
++	state->transition_handle = transition_handle;
++	state->register_calls++;
++	return 0;
++}
++
++static int mt6797_dvfsp_vendor_test_unregister_owner(
++	void *context, const struct mt6797_dvfsp_vendor_writer_bridge_ops *ops,
++	void *bridge_context, u64 owner_handle, u64 transition_handle)
++{
++	struct mt6797_dvfsp_vendor_test_registration *state = context;
++
++	if (!state || state->ops != ops || state->bridge_context != bridge_context ||
++	    state->owner_handle != owner_handle ||
++	    state->transition_handle != transition_handle)
++		return -EPROTO;
++	state->unregister_calls++;
++	return 0;
++}
++
++static const struct mt6797_dvfsp_vendor_writer_registration_ops
++mt6797_dvfsp_vendor_test_registration_ops = {
++	.abi = MT6797_DVFSP_VENDOR_WRITER_REGISTRATION_ABI,
++	.register_owner = mt6797_dvfsp_vendor_test_register_owner,
++	.unregister_owner = mt6797_dvfsp_vendor_test_unregister_owner,
++};
++
+ static const struct mt6797_dvfsp_vendor_owner_ops
+ mt6797_dvfsp_vendor_test_owner_ops = {
+@@ -209,6 +290,9 @@ static void mt6797_dvfsp_vendor_owner_binds_and_unbinds(
+ 	struct mt6797_dvfsp_vendor_test_devices devices = { };
+ 	struct mt6797_dvfsp_state_source_devices tuple = { };
+ 	struct mt6797_dvfsp_state_owner_ops state_ops = { };
++	struct mt6797_dvfsp_vendor_test_registration registration = { };
++	struct mt6797_dvfsp_vendor_owner_ops owner_ops =
++		mt6797_dvfsp_vendor_test_owner_ops;
+ 	u64 generation;
+@@ -224,8 +308,11 @@ static void mt6797_dvfsp_vendor_owner_binds_and_unbinds(
+ 	KUNIT_ASSERT_EQ(test,
+ 		mt6797_dvfsp_resource_owner_attach(&resource_owner, &tuple), 0);
++	owner_ops.writer_registration_ops =
++		&mt6797_dvfsp_vendor_test_registration_ops;
++	owner_ops.writer_registration_context = &registration;
+ 	KUNIT_ASSERT_EQ(test,
+ 		mt6797_dvfsp_vendor_owner_bind(&owner, &resource_owner,
+-			&mt6797_dvfsp_vendor_test_owner_ops, 0x67970023,
++			&owner_ops, 0x67970023,
+ 			0x67970022), 0);
+@@ -244,6 +331,19 @@ static void mt6797_dvfsp_vendor_owner_binds_and_unbinds(
+ 	KUNIT_EXPECT_EQ(test, mt6797_dvfsp_vendor_test_callbacks, 0U);
++	KUNIT_EXPECT_EQ(test,
++		mt6797_dvfsp_vendor_owner_register_writer(&owner), 0);
++	KUNIT_EXPECT_TRUE(test, owner.writer_registered);
++	KUNIT_EXPECT_EQ(test, registration.register_calls, 1U);
++	KUNIT_EXPECT_PTR_EQ(test, registration.ops,
++		mt6797_dvfsp_vendor_writer_bridge_ops());
++	KUNIT_EXPECT_EQ(test, registration.owner_handle, (u64)0x67970023);
++	KUNIT_EXPECT_EQ(test, registration.transition_handle, (u64)0x67970022);
++	KUNIT_EXPECT_EQ(test,
++		mt6797_dvfsp_vendor_owner_register_writer(&owner), -EINVAL);
++	KUNIT_EXPECT_EQ(test, mt6797_dvfsp_vendor_owner_unbind(&owner), -EBUSY);
++	KUNIT_ASSERT_EQ(test,
++		mt6797_dvfsp_vendor_owner_unregister_writer(&owner), 0);
++	KUNIT_EXPECT_FALSE(test, owner.writer_registered);
++	KUNIT_EXPECT_EQ(test, registration.unregister_calls, 1U);
+ 	KUNIT_ASSERT_EQ(test,
+ 		mt6797_dvfsp_vendor_writer_begin(&owner.writer, &generation), 0);

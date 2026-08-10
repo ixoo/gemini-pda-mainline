@@ -246,3 +246,4 @@ v7.1.3/0253-soc-mediatek-refuse-vendor-writer-generation-overflow.patch
 v7.1.3/0254-soc-mediatek-add-prelock-vendor-writer-chain.patch
 v7.1.3/0255-soc-mediatek-name-vendor-writer-site-descriptors.patch
 v7.1.3/0256-soc-mediatek-export-vendor-writer-owner-bridge.patch
+v7.1.3/0257-soc-mediatek-add-explicit-vendor-writer-registration-handoff.patch
