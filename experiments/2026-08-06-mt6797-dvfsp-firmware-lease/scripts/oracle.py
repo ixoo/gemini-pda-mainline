@@ -726,7 +726,7 @@ def main() -> None:
         ("cspm_sample_generation", "cspm-live-sample-echo"),
         ("mt6797_dvfsp_cspm_state_decode", "cspm-live-decoder"),
         ("live.cspm_sample_generation != cspm_state.sample_generation", "cspm-live-generation-match"),
-        ("calibration, ppm, cspm, live", "cspm-live-owner-forward"),
+        ("calibration, cspm, ppm, live", "cspm-live-owner-forward"),
     ):
         require(cspm_live_binding_patch, needle, label)
     for forbidden in ("readl(", "writel(", "regulator_", "clk_", "i2c_transfer",

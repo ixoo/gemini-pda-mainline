@@ -18,10 +18,10 @@ clock transition, firmware operation, device action, or CPU8/CPU9 admission.
 It is experiment-only and not submission-ready.
 ---
  drivers/soc/mediatek/mt6797-dvfsp-state-owner-source.c |  5 +++--
- drivers/soc/mediatek/mt6797-dvfsp-state-source.c       | 10 +++++++++-
+ drivers/soc/mediatek/mt6797-dvfsp-state-source.c       | 11 +++++++++++
  include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h |  3 ++-
  include/linux/soc/mediatek/mt6797-dvfsp-state-source.h |  4 +++-
- 4 files changed, 19 insertions(+), 5 deletions(-)
+ 4 files changed, 19 insertions(+), 4 deletions(-)
 
 diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-state-source.h b/include/linux/soc/mediatek/mt6797-dvfsp-state-source.h
 --- a/include/linux/soc/mediatek/mt6797-dvfsp-state-source.h
@@ -46,8 +46,8 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-state-source.h b/include/li
  	int (*fill_live)(void *context,
  				const struct mt6797_dvfsp_clock_state *clock,
  				const struct mt6797_dvfsp_calibration_state *calibration,
- 				const struct mt6797_dvfsp_ppm_snapshot *ppm,
 +				const struct mt6797_dvfsp_cspm_state *cspm,
+ 				const struct mt6797_dvfsp_ppm_snapshot *ppm,
  				struct mt6797_dvfsp_state_source_live *live);
  };
 
@@ -63,8 +63,8 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-state-owner-source.h b/incl
  	int (*fill_live)(void *context,
  				const struct mt6797_dvfsp_clock_state *clock,
  				const struct mt6797_dvfsp_calibration_state *calibration,
- 				const struct mt6797_dvfsp_ppm_snapshot *ppm,
 +				const struct mt6797_dvfsp_cspm_state *cspm,
+ 				const struct mt6797_dvfsp_ppm_snapshot *ppm,
  				struct mt6797_dvfsp_state_source_live *live);
  	void (*invalidate)(void *context,
 
@@ -89,12 +89,11 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-source.c b/drivers/soc/medi
 +
  	memset(&big_readback, 0, sizeof(big_readback));
  	ret = ops->read_big(context, &big_readback);
-@@ -151,1 +151,1 @@
--				    &ppm_snapshot, &live);
-+				    &ppm_snapshot, &cspm_state, &live);
-@@ -1,5 +1,8 @@
- 	if (ret)
- 		return ret;
+@@ -1,2 +1,3 @@
+ 	ret = ops->fill_live(context, &clock_state, &calibration_state,
++				    &cspm_state,
+ 				    &ppm_snapshot, &live);
+@@ -1,3 +1,6 @@
 +	if (!live.cspm_sample_generation ||
 +	    live.cspm_sample_generation != cspm_state.sample_generation)
 +		return -EAGAIN;
@@ -107,14 +106,14 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-owner-source.c b/drivers/so
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-state-owner-source.c
 @@ -173,3 +173,4 @@
  	const struct mt6797_dvfsp_calibration_state *calibration,
- 	const struct mt6797_dvfsp_ppm_snapshot *ppm,
 +	const struct mt6797_dvfsp_cspm_state *cspm,
+ 	const struct mt6797_dvfsp_ppm_snapshot *ppm,
  	struct mt6797_dvfsp_state_source_live *live)
 @@ -1,1 +1,1 @@
 -	if (!owner || !clock || !calibration || !ppm || !live ||
-+	if (!owner || !clock || !calibration || !ppm || !cspm || !live ||
++	if (!owner || !clock || !calibration || !cspm || !ppm || !live ||
 @@ -1,1 +1,1 @@
 -					   calibration, ppm, live);
-+					   calibration, ppm, cspm, live);
++					   calibration, cspm, ppm, live);
 -- 
 2.43.0
