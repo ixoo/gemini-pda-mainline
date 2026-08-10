@@ -2557,6 +2557,24 @@ rail/clock operation, device boot, or CPU8/CPU9 admission was added. The next
 ordered implementation is binding the adapter to the calibrated provider,
 policy-derived CCI bounds, and runtime generation invalidation.
 
+Patch `0241` now binds the read-only identity, live-state, and PPM/CCI source
+adapters into the calibrated provider's existing callback seam, composing the
+state-owner and PPM-owner operations without registering a provider or calling
+hardware. Patch `0242` adds fail-closed policy-derived CCI validation: the live
+CCI frequency must match the calibrated row and remain below the provider-owned
+PPM ceiling. Patch `0243` adds a callback form of the generation-tagged runtime
+ledger and routes validated lifecycle events through the provider invalidator,
+without registering CPU-hotplug or PM notifier hooks. The preceding `eedafc7`
+submission stopped during 0243 patch application; corrected revision
+`da7cad7` applies all 232 canonical patches, builds the arm64 image and Gemini
+DTB plus 119 total DTBs on Buildbox, passes package checksums, and fetches only
+the validated package. See the [source/runtime gates Buildbox receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/source-runtime-gates-buildbox-20260810.txt).
+These are still compile-only, dormant contracts: no owner or provider is
+registered, no hardware or firmware action occurred, and CPU8/CPU9 admission
+remains closed. The next ordered gate is named-device runtime evidence for the
+real lock, generation, identity, PPM/CCI, and live rail/clock callbacks; only
+after that evidence can source-backed registration validation be reconsidered.
+
 Required evidence:
 
 - provider registration performs no register-data write;

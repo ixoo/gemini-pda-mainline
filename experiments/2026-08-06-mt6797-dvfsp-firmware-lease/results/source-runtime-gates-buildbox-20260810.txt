@@ -1,0 +1,55 @@
+# MT6797 source/runtime gate Buildbox validation
+
+claim=COMPILE_ONLY_MT6797_DVFSP_SOURCE_RUNTIME_GATES
+repository_commit=da7cad7c42d108faeae16235899871280dec3898
+origin=https://github.com/ixoo/gemini-pda-mainline.git
+repository_dirty=false
+build_backend=buildbox
+buildbox_status=validated
+buildbox_job=da7cad7c42d108faeae16235899871280dec3898-dvfsp-resource-owner-readonly-m0
+generated_utc=2026-08-10T07:02:01Z
+patch_series=patches/series
+patch_count=232
+resolved_profile=dvfsp-resource-owner-readonly
+artifact=linux-7.1.3-gemini-dvfsp-resource-owner-readonly-d84495d2-c548d243
+kernel_release=7.1.3-gemini
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=d84495d2374764466f7c8d820633be9cc9da78c47562ad5230533e219c531186
+config_inputs_sha256=c548d243d452b84559ab5b9595328da80dea823792fb8f1fc5520e9d1841ea3b
+config_sha256=d3bab0cc2e45470b1138276919f9c10cd6371f6295e75a42fe998f34a418f156
+image_sha256=9cf41fd897cef9471567be64807cd720ff4ef20d2acabe7f7e9be2065f07737f
+image_gzip_sha256=f4260a71e2be8b6b5b84920857e6f3fe11404d420d3bace660d3344f93cb435e
+system_map_sha256=513922fa0f9a34a80324fcff20476b5d8b27aaeadcf8cf3d4460c58c58181165
+gemini_dtb_sha256=61ea34a4f780afe04da1257f8c3655be7f8490a7c3af2df727dd8592bb6e6285
+build_provenance_sha256=0ead96f2f72408fd2bbdc3f454e32017c6240d87d6d5600167d23b6b1ef9fe6d
+kernel_manifest_sha256=38b7630ef73725f1de77589774e7a2077f8d924e55d423efa778f715fba72a2f
+dtb_count=119
+config_fragment_count=6
+build_architecture=x86_64
+target_architecture=arm64
+toolchain_mode=cross
+modules_built=false
+sha256sums=passed
+package_fetch=success;validated_package_only
+local_package=artifacts/buildbox/da7cad7c42d108faeae16235899871280dec3898/linux-7.1.3-gemini-dvfsp-resource-owner-readonly-d84495d2-c548d243
+source_adapter_binding=0241;identity_source_bound;live_source_bound;ppm_source_bound;state_owner_ops_composed;ppm_owner_ops_composed
+policy_cci_validation=0242;calibration_row_match;provider_ppm_limit_ceiling_bound;cci_policy_bank_explicit;fail_closed
+runtime_provider_binding=0243;sequence_monotonic;generation_monotonic;provider_invalidator_bound;notifier_registration_absent
+registered_owner=0
+provider=none
+hardware_write=none
+device_action=none
+device_boot=none
+hardware_support_claim=NONE
+boot_candidate=false
+cpu8_cpu9_admission=closed
+
+The repair commit applies the complete canonical patch series through 0243 and
+the arm64 kernel, Gemini DTB, and 119 total DTBs link and pass Buildbox artifact
+validation. The package was fetched only under the ignored buildbox artifact
+tree. This is compile-only evidence: the adapter, policy, and runtime
+invalidation contracts remain dormant, no owner or provider is registered, no
+hardware or firmware operation occurred, and CPU8/CPU9 admission remains
+closed. The preceding `eedafc7` submission stopped during 0243 patch
+application; `da7cad7` repairs those post-0208 runtime-file anchors and is the
+validated candidate recorded here.

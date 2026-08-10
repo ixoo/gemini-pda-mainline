@@ -103,6 +103,7 @@ EFUSE_RAIL_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/efuse-r
 IDENTITY_SOURCE_BRIDGE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/identity-source-bridge-buildbox-20260810.txt"
 PPM_CCI_SOURCE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/ppm-cci-source-adapter-buildbox-20260810.txt"
 LIVE_STATE_SOURCE_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/live-state-source-adapter-buildbox-20260810.txt"
+SOURCE_RUNTIME_GATES_BUILD_RESULT = Path(__file__).resolve().parents[1] / "results/source-runtime-gates-buildbox-20260810.txt"
 
 
 def require(text: str, needle: str, label: str) -> None:
@@ -208,6 +209,7 @@ def main() -> None:
     identity_source_bridge_build_result = IDENTITY_SOURCE_BRIDGE_BUILD_RESULT.read_text()
     ppm_cci_source_build_result = PPM_CCI_SOURCE_BUILD_RESULT.read_text()
     live_state_source_build_result = LIVE_STATE_SOURCE_BUILD_RESULT.read_text()
+    source_runtime_gates_build_result = SOURCE_RUNTIME_GATES_BUILD_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     eem_calibration_source = eem_calibration_patch[eem_calibration_patch.index("diff --git"):]
@@ -1027,6 +1029,37 @@ def main() -> None:
         ("cpu8_cpu9_admission=closed", "live-source-build-no-admission"),
     ):
         require(live_state_source_build_result, needle, label)
+    for needle, label in (
+        ("claim=COMPILE_ONLY_MT6797_DVFSP_SOURCE_RUNTIME_GATES", "source-runtime-gates-build-claim"),
+        ("repository_commit=da7cad7c42d108faeae16235899871280dec3898", "source-runtime-gates-build-commit"),
+        ("origin=https://github.com/ixoo/gemini-pda-mainline.git", "source-runtime-gates-build-origin"),
+        ("repository_dirty=false", "source-runtime-gates-build-clean"),
+        ("build_backend=buildbox", "source-runtime-gates-build-backend"),
+        ("buildbox_status=validated", "source-runtime-gates-build-status"),
+        ("buildbox_job=da7cad7c42d108faeae16235899871280dec3898-dvfsp-resource-owner-readonly-m0", "source-runtime-gates-build-job"),
+        ("patch_count=232", "source-runtime-gates-build-patch-count"),
+        ("artifact=linux-7.1.3-gemini-dvfsp-resource-owner-readonly-d84495d2-c548d243", "source-runtime-gates-build-artifact"),
+        ("source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc", "source-runtime-gates-build-source-hash"),
+        ("patchset_sha256=d84495d2374764466f7c8d820633be9cc9da78c47562ad5230533e219c531186", "source-runtime-gates-build-patchset-hash"),
+        ("config_sha256=d3bab0cc2e45470b1138276919f9c10cd6371f6295e75a42fe998f34a418f156", "source-runtime-gates-build-config-hash"),
+        ("image_gzip_sha256=f4260a71e2be8b6b5b84920857e6f3fe11404d420d3bace660d3344f93cb435e", "source-runtime-gates-build-image-hash"),
+        ("gemini_dtb_sha256=61ea34a4f780afe04da1257f8c3655be7f8490a7c3af2df727dd8592bb6e6285", "source-runtime-gates-build-dtb-hash"),
+        ("dtb_count=119", "source-runtime-gates-build-dtb-count"),
+        ("sha256sums=passed", "source-runtime-gates-build-checksums"),
+        ("package_fetch=success;validated_package_only", "source-runtime-gates-build-fetch"),
+        ("source_adapter_binding=0241;identity_source_bound;live_source_bound;ppm_source_bound;state_owner_ops_composed;ppm_owner_ops_composed", "source-runtime-gates-build-source-binding"),
+        ("policy_cci_validation=0242;calibration_row_match;provider_ppm_limit_ceiling_bound;cci_policy_bank_explicit;fail_closed", "source-runtime-gates-build-policy"),
+        ("runtime_provider_binding=0243;sequence_monotonic;generation_monotonic;provider_invalidator_bound;notifier_registration_absent", "source-runtime-gates-build-runtime"),
+        ("registered_owner=0", "source-runtime-gates-build-unregistered"),
+        ("provider=none", "source-runtime-gates-build-no-provider"),
+        ("hardware_write=none", "source-runtime-gates-build-no-write"),
+        ("device_action=none", "source-runtime-gates-build-no-device"),
+        ("device_boot=none", "source-runtime-gates-build-no-boot"),
+        ("hardware_support_claim=NONE", "source-runtime-gates-build-no-support-claim"),
+        ("boot_candidate=false", "source-runtime-gates-build-not-candidate"),
+        ("cpu8_cpu9_admission=closed", "source-runtime-gates-build-no-admission"),
+    ):
+        require(source_runtime_gates_build_result, needle, label)
     for forbidden in ("readl(", "writel(", "regulator_", "clk_", "i2c_transfer",
                       "arm_smccc", "platform_driver", "cpu_up(", "secure_write"):
         if forbidden in ppm_policy_source:
@@ -2350,7 +2383,7 @@ def main() -> None:
     print("source_adapter_binding=0241;identity_source_bound;live_source_bound;ppm_source_bound;state_owner_ops_composed;ppm_owner_ops_composed;provider_dormant;registration_absent;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("policy_cci_validation=0242;calibration_row_match;provider_ppm_limit_ceiling_bound;cci_policy_bank_explicit;fail_closed;registration_absent;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("runtime_provider_invalidation=0243;runtime_event_ledger;sequence_monotonic;generation_monotonic;provider_invalidator_bound;notifier_registration_absent;registration_absent;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
-    print("calibrated_provider_buildbox=validated;commit=a28dd0f9d57b747258d2c70fbae7b14a9e3c010d;profile=dvfsp-resource-owner-readonly;patch_count=224;artifact=linux-7.1.3-gemini-dvfsp-resource-owner-readonly-dede19ab-c548d243;sha256sums=passed;package_fetch=success;validated_package_only;provider=none;registered_owner=0;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
+    print("source_runtime_gates_buildbox=validated;commit=da7cad7c42d108faeae16235899871280dec3898;profile=dvfsp-resource-owner-readonly;patch_count=232;artifact=linux-7.1.3-gemini-dvfsp-resource-owner-readonly-d84495d2-c548d243;sha256sums=passed;package_fetch=success;validated_package_only;provider=none;registered_owner=0;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("owner_abi_repair=0232;ppm_owner_header_restored;snapshot_handles_declared;compile_boundary_only")
     print("build_boundary_repairs=0233+0234;handoff_return_export;calibration_cluster_type;state_owner_mutex_probe_init;duplicate_tail_removed;compile_boundary_only")
     print("clock_state_decoder=0206;raw_ll_l_b_cci_readbacks;vendor_26mhz_formula;pcw_posdiv_and_divider_decode;generation_tagged;inflight_change_rejected;registered_owner=0;no_provider;no_hardware_write;device_action=none;boot_candidate=false")
