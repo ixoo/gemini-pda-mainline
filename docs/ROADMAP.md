@@ -2975,6 +2975,18 @@ This remains compile-only evidence with no owner/provider registration, setter
 call, device action, or CPU8/CPU9 admission. The next ordered gate is separate
 read-only owner-registration evidence.
 
+The exact pushed current head `d6a9ff4` was then resumed on Buildbox with the
+manifest's `full` profile. All 244 canonical patches applied, the arm64 kernel
+linked, all 119 DTBs and package/provenance checksums passed, and only the
+validated package was fetched; see the [current-head Buildbox receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/buildbox-resume-d6a9ff4-20260810.txt).
+This is a compile-only rebuild of the mainline manifest: the three vendor
+boundary patches remain experiment-only and are not in the package, no
+owner/provider or vendor setter was registered or called, no device action
+occurred, and CPU8/CPU9 admission remains closed. The next ordered gate is
+separate read-only runtime owner-registration evidence, followed by a
+source-backed provider only if its callbacks can be tied to real calibrated
+EEM/PTP/PPM state under the shared transition lock.
+
 Required evidence:
 
 - provider registration performs no register-data write;

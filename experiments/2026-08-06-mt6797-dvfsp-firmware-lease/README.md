@@ -1185,3 +1185,14 @@ compiled on Buildbox; see the [lock-held Buildbox review](results/vendor-lock-he
 This remains compile-only evidence with no owner/provider registration, setter
 call, device action, or CPU8/CPU9 admission. The next gate is separate
 read-only owner-registration evidence.
+
+The exact pushed current head `d6a9ff4` was then resumed on Buildbox with the
+manifest's `full` profile. All 244 canonical patches applied, the arm64 kernel
+linked, all 119 DTBs and package/provenance checksums passed, and only the
+validated package was fetched; see the [current-head Buildbox receipt](results/buildbox-resume-d6a9ff4-20260810.txt).
+This compile-only rebuild confirms the current mainline artifact but does not
+promote the experiment-only vendor candidate, register a runtime owner, call a
+vendor setter, authorize device access, or open CPU8/CPU9 admission. The next
+gate is separate read-only runtime owner-registration evidence, followed by a
+source-backed provider only when its callbacks are tied to real calibrated
+EEM/PTP/PPM state under the shared transition lock.
