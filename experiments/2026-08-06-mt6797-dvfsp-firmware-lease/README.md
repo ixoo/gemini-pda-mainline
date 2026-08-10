@@ -900,3 +900,27 @@ head Buildbox resume receipt](results/buildbox-resume-a81b5e4-20260810.txt)
 records the immutable provenance. This remains compile-only evidence: no owner
 or provider was registered, no hardware or firmware action occurred, and CPU8/
 CPU9 admission remains closed.
+
+The named Gemini was queried read-only again and its three physical PPM tables
+matched the public SB/0119 arrays exactly, including the date-specific Big
+cluster table. The [runtime table-family receipt](results/runtime-ppm-table-family-20260810.txt)
+records the canonical values, hashes, active policy rows, and the absence of a
+runtime CCI table, shared lock, generation, or owner token. This closes table
+family identification for this device but does not make a copied static table
+authoritative: policy rows remain mutable vendor state and the atomic owner
+boundary is still missing. No provider, callback, boot, or hardware write was
+performed.
+
+Patch `0246` now captures only that source-backed SB/0119 frequency identity in
+a pure reader with hardware-free KUnit coverage. It rejects the other decoded
+PTP date family and intentionally exposes no active policy limits, vendor PPM
+lock, calibration handle, or transition generation. Buildbox validation of this
+new patch is pending; no provider registration or device action is authorized
+by the fixture.
+
+The current pushed head `96607a3` was then rebuilt with the explicit
+`dvfsp-owner-kunit` Buildbox profile. All 234 canonical patches, 119 DTBs,
+package checksums, and the validated-package-only fetch passed; the [current
+head resume receipt](results/buildbox-resume-96607a3-20260810.txt) records the
+result. This remains compile-only evidence: the owner/provider are unregistered
+and CPU8/CPU9 admission remains closed.

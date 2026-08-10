@@ -2684,6 +2684,22 @@ fetched; see the [current-head Buildbox resume receipt](../experiments/2026-08-0
 This compile-only rerun changes no owner boundary: no registration, writable
 operation, device boot, or CPU8/CPU9 admission occurred.
 
+The named Gemini's read-only PPM tables now match the public SB/0119 arrays
+exactly, including the date-specific Big-cluster table; the [table-family
+receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/runtime-ppm-table-family-20260810.txt)
+records the active policy rows and the missing CCI/owner-generation surface.
+Patch `0246` captures only that proven frequency identity in a fail-closed
+source reader with hardware-free KUnit coverage. It deliberately does not
+claim the mutable PPM policy, vendor lock, calibration handle, or transition
+generation. The next ordered implementation remains a separately supplied
+owner for those fields; no provider registration, device boot, write, or
+CPU8/CPU9 admission is authorized by this table fixture.
+
+The exact pushed head `96607a3` was rebuilt on Buildbox with the
+`dvfsp-owner-kunit` profile after the current-head receipt was recorded; all
+234 canonical patches, 119 DTBs, package checksums, and the validated-package
+fetch passed. See the [resume receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/buildbox-resume-96607a3-20260810.txt).
+
 Required evidence:
 
 - provider registration performs no register-data write;

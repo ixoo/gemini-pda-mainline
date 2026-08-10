@@ -1,0 +1,42 @@
+# Named Gemini runtime PPM table-family observation
+
+date_utc=2026-08-10T09:48:09Z
+claim=READ_ONLY_RUNTIME_PPM_TABLE_FAMILY_MATCH
+target=gemini@192.168.1.50
+kernel=3.18.41+
+cpu_possible=0-9
+cpu_present=0-9
+cpu_online=0-1
+public_source_ref=d388d350cb2dda8f23b99be6fa5db9628896e87f
+public_source_paths=drivers/misc/mediatek/base/power/mt_cpufreq.c;drivers/misc/mediatek/base/power/ppm_v2/src/mt_ppm_api.c
+observed_table_type=SB
+observed_big_variant=SB0119
+ll_table_sha256=20e011e4d2905cc4fb6693cbbfaf5cc8b88c2379f61f7bc08543094ddde7977e
+l_table_sha256=5803c48d2e1b09609141022af4e3a17ff0f7a4b1d8fe17c9f6179376a084d407
+big_table_sha256=7fd73060628f8a83717788e99016b0f4ca3ef8cf31db117feb51bab31c462ac5
+physical_tables_sha256=7e8e3a7f64583478488e965a186d8b0b46825b50e8389dcf62e863130a1dd521
+cluster_0_ll_khz=1547000,1495000,1443000,1391000,1339000,1274000,1222000,1118000,1014000,897000,806000,715000,624000,481000,338000,221000
+cluster_1_l_khz=2002000,1950000,1885000,1820000,1755000,1703000,1625000,1495000,1352000,1209000,1092000,962000,832000,650000,468000,325000
+cluster_2_big_khz=2522000,2392000,2327000,2262000,2223000,2158000,2093000,1885000,1677000,1495000,1378000,1131000,1001000,845000,676000,338000
+current_policy_state=LL_ONLY
+active_policy_hica=cluster0:(15)(0)(1)(4);cluster1:(15)(0)(0)(0);cluster2:(15)(0)(0)(0)
+active_policy_lcm_off=cluster0:(12)(0)(1)(4);cluster1:(13)(0)(0)(0);cluster2:(14)(0)(0)(0)
+active_policy_dlpt=cluster0:(15)(0)(1)(4);cluster1:(15)(0)(0)(0);cluster2:(15)(0)(0)(0)
+cci_table=not exposed by queried cpufreq endpoint
+runtime_owner_lock=not exposed
+runtime_generation=not exposed
+runtime_owner_token=not exposed
+device_action=read_only_runtime_probe
+hardware_write=none
+provider=none
+boot_candidate=false
+cpu8_cpu9_admission=closed
+hardware_support_claim=NONE
+
+The three live physical-cluster tables match the public SB/0119 frequency
+arrays exactly, including the date-specific Big-cluster table. This identifies
+the table family for the named device; it does not establish that a static
+table is an authoritative runtime source. The active policy rows are mutable
+vendor state, the CCI table was not exposed by the queried endpoint, and no
+shared lock, generation, or owner token was visible. No vendor payload was
+retained and no provider, callback, boot, or hardware write was performed.

@@ -1,0 +1,265 @@
+From 0000000000000000000000000000000000000246 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 10 Aug 2026 13:50:00 -0400
+Subject: [PATCH] soc: mediatek: add source-backed MT6797 SB0119 table family
+
+Add a pure source-backed table-family reader for the MT6797 SB/0119
+frequency arrays identified in the public Gemini kernel and matched by a
+read-only probe on the named device. The reader requires the decoded PTP
+date identity and rejects other date families; it returns the three physical
+cluster arrays, the separate CCI array, and a stable source epoch.
+
+This is deliberately not a PPM owner: it does not claim the vendor PPM lock,
+active policy limits, mutable table generation, calibration handle, clock or
+rail state, or a transition owner. KUnit coverage proves the exact arrays and
+fail-closed identity check without a platform probe or hardware access. This
+patch is experiment-only and not submission-ready.
+---
+ drivers/soc/mediatek/Makefile                         |   2 +
+ drivers/soc/mediatek/mt6797-dvfsp-table-source-test.c | 102 ++++++++++++
+ drivers/soc/mediatek/mt6797-dvfsp-table-source.c      | 109 +++++++++++++
+ include/linux/soc/mediatek/mt6797-dvfsp-table-source.h |  35 ++++
+ 4 files changed, 248 insertions(+)
+ create mode 100644 drivers/soc/mediatek/mt6797-dvfsp-table-source-test.c
+ create mode 100644 drivers/soc/mediatek/mt6797-dvfsp-table-source.c
+ create mode 100644 include/linux/soc/mediatek/mt6797-dvfsp-table-source.h
+
+diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
+--- a/drivers/soc/mediatek/Makefile
++++ b/drivers/soc/mediatek/Makefile
+@@ -4,6 +4,8 @@ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-state-source-backends.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-ptp.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-state-owner-source.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-identity-source.o
++obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-table-source.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-ppm-source.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-state-owner-arbitration.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-resource-owner.o
+@@ -10,6 +12,7 @@ obj-$(CONFIG_MTK_MT6797_DVFSP_OWNER_KUNIT_TEST) += mt6797-dvfsp-resource-owner-test.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_RESOURCE_OWNER) += mt6797-dvfsp-calibrated-provider.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_PROVIDER_KUNIT_TEST) += mt6797-dvfsp-calibrated-provider-test.o
++obj-$(CONFIG_MTK_MT6797_DVFSP_PROVIDER_KUNIT_TEST) += mt6797-dvfsp-table-source-test.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-state-snapshot.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-runtime-bind.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_CLOCK_BACKEND) += mt6797-dvfsp-clock-state.o
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-table-source.h b/include/linux/soc/mediatek/mt6797-dvfsp-table-source.h
+new file mode 100644
+--- /dev/null
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-table-source.h
+@@ -0,0 +1,35 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __LINUX_SOC_MEDIATEK_MT6797_DVFSP_TABLE_SOURCE_H
++#define __LINUX_SOC_MEDIATEK_MT6797_DVFSP_TABLE_SOURCE_H
++
++#include <linux/types.h>
++
++#include <linux/soc/mediatek/mt6797-dvfsp-ptp.h>
++
++#define MT6797_DVFSP_TABLE_SOURCE_ABI		1
++#define MT6797_DVFSP_TABLE_SOURCE_FAMILY_SB	1
++#define MT6797_DVFSP_TABLE_SOURCE_EPOCH_SB0119	0x53420119ULL
++#define MT6797_DVFSP_TABLE_SOURCE_ROWS		16
++#define MT6797_DVFSP_TABLE_SOURCE_PHYSICAL	3
++
++/*
++ * This object contains frequency identity only. It intentionally has no
++ * policy-limit, voltage, lock, generation, calibration, or owner fields.
++ */
++struct mt6797_dvfsp_table_source_snapshot {
++	u32 abi;
++	u32 table_family;
++	u32 date_code;
++	u64 source_epoch;
++	u32 physical_khz[MT6797_DVFSP_TABLE_SOURCE_PHYSICAL]
++		[MT6797_DVFSP_TABLE_SOURCE_ROWS];
++	u32 cci_khz[MT6797_DVFSP_TABLE_SOURCE_ROWS];
++};
++
++int mt6797_dvfsp_table_source_read(
++	const struct mt6797_dvfsp_ptp_identity *identity,
++	struct mt6797_dvfsp_table_source_snapshot *snapshot);
++
++#endif /* __LINUX_SOC_MEDIATEK_MT6797_DVFSP_TABLE_SOURCE_H */
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-table-source.c b/drivers/soc/mediatek/mt6797-dvfsp-table-source.c
+new file mode 100644
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-dvfsp-table-source.c
+@@ -0,0 +1,109 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Source-backed MT6797 SB/0119 frequency-table identity.
++ *
++ * The arrays are transcribed from the public MT6797 cpufreq source and are
++ * selected only after the caller has decoded the PTP date identity. This
++ * file is a pure data reader: it performs no I/O and does not claim a live
++ * PPM policy or transition-owner lock.
++ */
++
++#include <linux/errno.h>
++#include <linux/module.h>
++#include <linux/string.h>
++#include <linux/types.h>
++
++#include <linux/soc/mediatek/mt6797-dvfsp-table-source.h>
++
++static const u32 mt6797_dvfsp_table_ll_sb[MT6797_DVFSP_TABLE_SOURCE_ROWS] = {
++	1547000, 1495000, 1443000, 1391000,
++	1339000, 1274000, 1222000, 1118000,
++	1014000, 897000, 806000, 715000,
++	624000, 481000, 338000, 221000,
++};
++
++static const u32 mt6797_dvfsp_table_l_sb[MT6797_DVFSP_TABLE_SOURCE_ROWS] = {
++	2002000, 1950000, 1885000, 1820000,
++	1755000, 1703000, 1625000, 1495000,
++	1352000, 1209000, 1092000, 962000,
++	832000, 650000, 468000, 325000,
++};
++
++static const u32 mt6797_dvfsp_table_cci_sb[MT6797_DVFSP_TABLE_SOURCE_ROWS] = {
++	988000, 975000, 936000, 910000,
++	884000, 845000, 819000, 754000,
++	676000, 611000, 533000, 481000,
++	416000, 325000, 234000, 169000,
++};
++
++static const u32 mt6797_dvfsp_table_b_sb0119[MT6797_DVFSP_TABLE_SOURCE_ROWS] = {
++	2522000, 2392000, 2327000, 2262000,
++	2223000, 2158000, 2093000, 1885000,
++	1677000, 1495000, 1378000, 1131000,
++	1001000, 845000, 676000, 338000,
++};
++
++static int mt6797_dvfsp_table_source_identity_check(
++	const struct mt6797_dvfsp_ptp_identity *identity)
++{
++	if (!identity || identity->abi != MT6797_DVFSP_PTP_IDENTITY_ABI)
++		return -EINVAL;
++	if (identity->date_code != MT6797_DVFSP_PTP_DATE_0119 ||
++	    !identity->variant_id)
++		return -EOPNOTSUPP;
++	return 0;
++}
++
++int mt6797_dvfsp_table_source_read(
++	const struct mt6797_dvfsp_ptp_identity *identity,
++	struct mt6797_dvfsp_table_source_snapshot *snapshot)
++{
++	int ret;
++
++	if (!snapshot)
++		return -EINVAL;
++	ret = mt6797_dvfsp_table_source_identity_check(identity);
++	if (ret)
++		return ret;
++
++	memset(snapshot, 0, sizeof(*snapshot));
++	snapshot->abi = MT6797_DVFSP_TABLE_SOURCE_ABI;
++	snapshot->table_family = MT6797_DVFSP_TABLE_SOURCE_FAMILY_SB;
++	snapshot->date_code = identity->date_code;
++	snapshot->source_epoch = MT6797_DVFSP_TABLE_SOURCE_EPOCH_SB0119;
++	memcpy(snapshot->physical_khz[0], mt6797_dvfsp_table_ll_sb,
++	       sizeof(mt6797_dvfsp_table_ll_sb));
++	memcpy(snapshot->physical_khz[1], mt6797_dvfsp_table_l_sb,
++	       sizeof(mt6797_dvfsp_table_l_sb));
++	memcpy(snapshot->physical_khz[2], mt6797_dvfsp_table_b_sb0119,
++	       sizeof(mt6797_dvfsp_table_b_sb0119));
++	memcpy(snapshot->cci_khz, mt6797_dvfsp_table_cci_sb,
++	       sizeof(mt6797_dvfsp_table_cci_sb));
++
++	return 0;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_table_source_read);
++
++MODULE_DESCRIPTION("MT6797 source-backed SB/0119 frequency-table identity");
++MODULE_LICENSE("GPL");
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-table-source-test.c b/drivers/soc/mediatek/mt6797-dvfsp-table-source-test.c
+new file mode 100644
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-dvfsp-table-source-test.c
+@@ -0,0 +1,102 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/* Hardware-free KUnit coverage for the source-backed table identity. */
++
++#include <kunit/test.h>
++#include <linux/errno.h>
++#include <linux/module.h>
++#include <linux/types.h>
++
++#include <linux/soc/mediatek/mt6797-dvfsp-table-source.h>
++
++static const u32 mt6797_dvfsp_table_test_expected[4][16] = {
++	{ 1547000, 1495000, 1443000, 1391000, 1339000, 1274000,
++	  1222000, 1118000, 1014000, 897000, 806000, 715000,
++	  624000, 481000, 338000, 221000 },
++	{ 2002000, 1950000, 1885000, 1820000, 1755000, 1703000,
++	  1625000, 1495000, 1352000, 1209000, 1092000, 962000,
++	  832000, 650000, 468000, 325000 },
++	{ 2522000, 2392000, 2327000, 2262000, 2223000, 2158000,
++	  2093000, 1885000, 1677000, 1495000, 1378000, 1131000,
++	  1001000, 845000, 676000, 338000 },
++	{ 988000, 975000, 936000, 910000, 884000, 845000,
++	  819000, 754000, 676000, 611000, 533000, 481000,
++	  416000, 325000, 234000, 169000 },
++};
++
++static void mt6797_dvfsp_table_source_exact_sb0119(struct kunit *test)
++{
++	struct mt6797_dvfsp_ptp_identity identity = {
++		.abi = MT6797_DVFSP_PTP_IDENTITY_ABI,
++		.variant_id = 0x101,
++		.date_code = MT6797_DVFSP_PTP_DATE_0119,
++	};
++	struct mt6797_dvfsp_table_source_snapshot snapshot;
++	unsigned int bank;
++	unsigned int row;
++
++	KUNIT_ASSERT_EQ(test,
++		mt6797_dvfsp_table_source_read(&identity, &snapshot), 0);
++	KUNIT_EXPECT_EQ(test, snapshot.abi,
++		MT6797_DVFSP_TABLE_SOURCE_ABI);
++	KUNIT_EXPECT_EQ(test, snapshot.table_family,
++		MT6797_DVFSP_TABLE_SOURCE_FAMILY_SB);
++	KUNIT_EXPECT_EQ(test, snapshot.source_epoch,
++		(u64)MT6797_DVFSP_TABLE_SOURCE_EPOCH_SB0119);
++	for (bank = 0; bank < ARRAY_SIZE(mt6797_dvfsp_table_test_expected);
++	     bank++)
++		for (row = 0; row < MT6797_DVFSP_TABLE_SOURCE_ROWS; row++)
++			KUNIT_EXPECT_EQ(test,
++				bank < MT6797_DVFSP_TABLE_SOURCE_PHYSICAL ?
++				snapshot.physical_khz[bank][row] :
++				snapshot.cci_khz[row],
++				mt6797_dvfsp_table_test_expected[bank][row]);
++}
++
++static void mt6797_dvfsp_table_source_rejects_other_date(
++	struct kunit *test)
++{
++	struct mt6797_dvfsp_ptp_identity identity = {
++		.abi = MT6797_DVFSP_PTP_IDENTITY_ABI,
++		.variant_id = 1,
++		.date_code = MT6797_DVFSP_PTP_DATE_1221,
++	};
++	struct mt6797_dvfsp_table_source_snapshot snapshot;
++
++	KUNIT_EXPECT_EQ(test,
++		mt6797_dvfsp_table_source_read(&identity, &snapshot),
++		-EOPNOTSUPP);
++}
++
++static struct kunit_case mt6797_dvfsp_table_source_test_cases[] = {
++	KUNIT_CASE(mt6797_dvfsp_table_source_exact_sb0119),
++	KUNIT_CASE(mt6797_dvfsp_table_source_rejects_other_date),
++	{ }
++};
++
++static struct kunit_suite mt6797_dvfsp_table_source_test_suite = {
++	.name = "mt6797-dvfsp-table-source",
++	.test_cases = mt6797_dvfsp_table_source_test_cases,
++};
++
++kunit_test_suite(mt6797_dvfsp_table_source_test_suite);
++
++MODULE_LICENSE("GPL");
+--
+2.43.0
