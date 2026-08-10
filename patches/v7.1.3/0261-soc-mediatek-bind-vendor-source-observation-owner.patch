@@ -22,27 +22,27 @@ having no physical limit word, matching the existing mainline decoder.
 diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h
 --- a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h
 +++ b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h
-@@ -4,6 +4,7 @@
+@@ -4,5 +4,6 @@
  #include <linux/types.h>
  
  #include <linux/soc/mediatek/mt6797-dvfsp-calibrated-provider.h>
 +#include <linux/soc/mediatek/mt6797-dvfsp-vendor-source.h>
  #include <linux/soc/mediatek/mt6797-dvfsp-vendor-writer.h>
  #include <linux/soc/mediatek/mt6797-dvfsp-vendor-writer-bridge.h>
-@@ -40,7 +41,7 @@ struct mt6797_dvfsp_vendor_owner_lifecycle_ops {
+@@ -40,4 +41,4 @@ struct mt6797_dvfsp_vendor_owner_lifecycle_ops {
  	void *context);
  };
  
 -#define MT6797_DVFSP_VENDOR_INTEGRATION_ABI	1
 +#define MT6797_DVFSP_VENDOR_INTEGRATION_ABI	2
-@@ -61,6 +62,7 @@ struct mt6797_dvfsp_vendor_integration_ops {
+@@ -61,5 +62,6 @@ struct mt6797_dvfsp_vendor_integration_ops {
  	int (*unregister_mainline_owner)(void *context, const void *bridge_ops,
  		void *bridge_context, const void *runtime_ops,
  		void *runtime_context, u64 owner_handle,
  		u64 transition_handle);
 +	const void *source_registration;
  };
-@@ -111,6 +113,7 @@ struct mt6797_dvfsp_vendor_owner {
+@@ -111,3 +113,4 @@ struct mt6797_dvfsp_vendor_owner {
  	struct mt6797_dvfsp_vendor_writer writer;
  	struct mt6797_dvfsp_vendor_writer_bridge writer_bridge;
 +	struct mt6797_dvfsp_vendor_source source;
@@ -50,7 +50,7 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h b/include/li
 diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-writer.h b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-writer.h
 --- a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-writer.h
 +++ b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-writer.h
-@@ -45,6 +45,7 @@ enum mt6797_dvfsp_vendor_writer_site_id {
+@@ -45,5 +45,6 @@ enum mt6797_dvfsp_vendor_writer_site_id {
  	MT6797_DVFSP_VENDOR_WRITER_SITE_PTP_TABLE = 0,
  	MT6797_DVFSP_VENDOR_WRITER_SITE_VOLTAGE,
  	MT6797_DVFSP_VENDOR_WRITER_SITE_PPM,
@@ -60,7 +60,7 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-writer.h b/include/l
 diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-source.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-source.c
 --- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-source.c
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-source.c
-@@ -263,11 +263,18 @@ static int mt6797_dvfsp_vendor_source_table_check(
+@@ -263,8 +263,13 @@ static int mt6797_dvfsp_vendor_source_table_check(
  		const struct mt6797_dvfsp_vendor_source_cspm_cluster *cluster =
  			&snapshot->cspm[i];
  
@@ -80,7 +80,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-source.c b/drivers/soc/med
 diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c
 --- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c
-@@ -73,7 +73,8 @@ static int mt6797_dvfsp_vendor_owner_integration_ops_check(
+@@ -73,7 +73,7 @@ static int mt6797_dvfsp_vendor_owner_integration_ops_check(
  	if (!ops || ops->abi != MT6797_DVFSP_VENDOR_INTEGRATION_ABI ||
  	    !ops->bind_lifecycle || !ops->unbind_lifecycle ||
  	    !ops->register_mainline_owner ||
@@ -89,7 +89,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c b/drivers/soc/medi
  		return -EINVAL;
  	return 0;
  }
-@@ -84,6 +85,24 @@ static const struct mt6797_dvfsp_vendor_writer_registration_ops
+@@ -84,3 +85,23 @@ static const struct mt6797_dvfsp_vendor_writer_registration_ops
  static const struct mt6797_dvfsp_vendor_owner_lifecycle_ops
  	mt6797_dvfsp_vendor_owner_integration_lifecycle_ops;
  
@@ -135,7 +135,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c b/drivers/soc/medi
 +	    runtime_context != owner ||
  	    owner_handle != owner->owner_handle ||
  	    transition_handle != owner->transition_handle)
-@@ -185,6 +204,7 @@ int mt6797_dvfsp_vendor_owner_bind_writer_integration(
+@@ -185,4 +204,5 @@ int mt6797_dvfsp_vendor_owner_bind_writer_integration(
  	const struct mt6797_dvfsp_vendor_integration_ops *integration_ops,
  	void *integration_context)
  {
@@ -159,31 +159,31 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c b/drivers/soc/medi
 +		memset(&owner->writer_bridge, 0, sizeof(owner->writer_bridge));
 +		return ret;
 +	}
-@@ -220,7 +251,7 @@ int mt6797_dvfsp_vendor_owner_bind_writer_integration(
+@@ -220,5 +251,5 @@ int mt6797_dvfsp_vendor_owner_bind_writer_integration(
  	ret = integration_ops->bind_lifecycle(integration_context,
  		mt6797_dvfsp_vendor_writer_bridge_ops(), &owner->writer_bridge,
 -		owner->ops.writer_runtime_ops, owner->ops.writer_runtime_context,
 +		&mt6797_dvfsp_vendor_owner_runtime_adapter_ops, owner,
  		&mt6797_dvfsp_vendor_owner_integration_lifecycle_ops, owner,
  		owner->owner_handle, owner->transition_handle);
-@@ -226,6 +257,7 @@ int mt6797_dvfsp_vendor_owner_bind_writer_integration(
+@@ -226,3 +257,4 @@ int mt6797_dvfsp_vendor_owner_bind_writer_integration(
  		owner->ops.writer_registration_ops = NULL;
  		owner->ops.writer_registration_context = NULL;
 +		mt6797_dvfsp_vendor_source_exit(&owner->source);
  		memset(&owner->writer_bridge, 0, sizeof(owner->writer_bridge));
-@@ -250,7 +282,7 @@ int mt6797_dvfsp_vendor_owner_unbind_writer_integration(
+@@ -250,5 +282,5 @@ int mt6797_dvfsp_vendor_owner_unbind_writer_integration(
  	ret = integration_ops->unbind_lifecycle(owner->writer_integration_context,
  		mt6797_dvfsp_vendor_writer_bridge_ops(), &owner->writer_bridge,
 -		owner->ops.writer_runtime_ops, owner->ops.writer_runtime_context,
 +		&mt6797_dvfsp_vendor_owner_runtime_adapter_ops, owner,
  		&mt6797_dvfsp_vendor_owner_integration_lifecycle_ops, owner,
  		owner->owner_handle, owner->transition_handle);
-@@ -265,6 +297,7 @@ int mt6797_dvfsp_vendor_owner_unbind_writer_integration(
+@@ -265,3 +297,4 @@ int mt6797_dvfsp_vendor_owner_unbind_writer_integration(
  	owner->ops.writer_registration_ops = NULL;
  	owner->ops.writer_registration_context = NULL;
 +	mt6797_dvfsp_vendor_source_exit(&owner->source);
  	memset(&owner->writer_bridge, 0, sizeof(owner->writer_bridge));
-@@ -393,8 +426,8 @@ int mt6797_dvfsp_vendor_owner_register_writer(
+@@ -393,5 +426,5 @@ int mt6797_dvfsp_vendor_owner_register_writer(
  	ops = owner->ops.writer_registration_ops;
  	if (!ops)
  		return -EOPNOTSUPP;
@@ -191,7 +191,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c b/drivers/soc/medi
 -	runtime_context = owner->ops.writer_runtime_context;
 +	runtime_ops = &mt6797_dvfsp_vendor_owner_runtime_adapter_ops;
 +	runtime_context = owner;
-@@ -449,7 +482,7 @@ int mt6797_dvfsp_vendor_owner_unbind(
+@@ -449,4 +482,5 @@ int mt6797_dvfsp_vendor_owner_unbind(
  	if (!owner || !owner->bound)
  		return -EINVAL;
 -	if (owner->writer_registered)
@@ -200,7 +200,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c b/drivers/soc/medi
 +diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
 --- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
-@@ -377,6 +377,24 @@ static const struct mt6797_dvfsp_vendor_integration_ops
+@@ -377,3 +377,28 @@ static const struct mt6797_dvfsp_vendor_integration_ops
  	.unregister_mainline_owner =
  		mt6797_dvfsp_vendor_test_integration_unregister_mainline,
  };
@@ -237,7 +237,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c b/drivers/soc/medi
  		mt6797_dvfsp_vendor_test_integration_unregister_mainline,
 +	.source_registration = &mt6797_dvfsp_vendor_test_source_registration,
  };
-@@ -544,10 +563,13 @@ static void mt6797_dvfsp_vendor_owner_integrates_lifecycle(
+@@ -544,6 +563,12 @@ static void mt6797_dvfsp_vendor_owner_integrates_lifecycle(
  	KUNIT_EXPECT_EQ(test, integration.register_calls, 1U);
  	KUNIT_EXPECT_PTR_EQ(test, integration.bridge_ops,
  		mt6797_dvfsp_vendor_writer_bridge_ops());
@@ -253,7 +253,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c b/drivers/soc/medi
 +		 MT6797_DVFSP_VENDOR_RUNTIME_CPU_NONE), 0);
 +	KUNIT_EXPECT_TRUE(test, owner.source.invalidated);
 +	KUNIT_EXPECT_EQ(test, registration.runtime_event_calls, 1U);
-@@ -569,6 +591,7 @@ static void mt6797_dvfsp_vendor_owner_integrates_lifecycle(
+@@ -569,3 +591,4 @@ static void mt6797_dvfsp_vendor_owner_integrates_lifecycle(
  	KUNIT_EXPECT_FALSE(test, integration.bound);
  	KUNIT_EXPECT_EQ(test, integration.unbind_calls, 1U);
 +	KUNIT_EXPECT_FALSE(test, owner.source.initialized);
