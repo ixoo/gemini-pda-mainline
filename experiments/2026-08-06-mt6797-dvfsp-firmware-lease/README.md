@@ -634,3 +634,13 @@ remain closed.
 The clean pushed documentation commit `3f07c40` was then rebuilt on Buildbox;
 it reproduced the same content-addressed package and passed the same 119-DTB
 and package checks. The receipt records both Buildbox job identities.
+
+Patch `0224` now requires the exact three physical PPM frequency tables to
+match the EEM-derived calibration rows. PPM rows are descending while the
+calibration state is ascending, so validation compares `table[15 - row]` with
+`frequency[row]`; CCI remains excluded because no vendor CCI PPM table is
+available. Clean revision `04e7ad0` applied all 213 canonical entries on
+Buildbox, produced 119 DTBs, passed package checksums, and fetched only the
+validated package; see the [PPM/EEM table-identity Buildbox result](results/ppm-eem-table-identity-buildbox-20260810.txt).
+This is compile-only and default-off: no real provider, generation callback,
+hardware operation, device boot, or CPU8/CPU9 admission was added.

@@ -2226,6 +2226,16 @@ The next ordered work remains source-only:
    The clean pushed documentation commit `3f07c40` was subsequently rebuilt
    on Buildbox and reproduced the same content-addressed package; the receipt
    records both validated job identities.
+   Patch `0224` now requires the exact 16-row LL/L/B PPM frequency tables to
+   match the EEM-derived calibration rows, accounting for PPM's descending
+   order versus the calibration state's ascending order. CCI remains excluded
+   because no vendor CCI PPM table is available. Clean revision `04e7ad0`
+   applies all 213 canonical entries on Buildbox, produces 119 DTBs, passes
+   package checksums, and fetches only the validated package; see the
+   [PPM/EEM table-identity Buildbox result](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/ppm-eem-table-identity-buildbox-20260810.txt).
+   This remains compile-only and default-off: a real EEM/PTP/PPM and PMIC/clock
+   provider, generation callbacks, device boot, and CPU8/CPU9 admission remain
+   closed.
    Before any preflight may return success, add the paired lifecycle closures: clean abort only when
    CPU_ON is proven unissued, exact arming at the platform CPU_ON boundary,
    timeout cancellation/publication arbitration, bounded publication and
