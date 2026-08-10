@@ -2615,6 +2615,24 @@ retains only bounded labels and scan metadata. The procfs/debugfs discovery bran
 closed; implementation must proceed through a real mainline callback/provider
 owner, not a scraped endpoint.
 
+Patch `0244` adds hardware-free KUnit coverage for the dedicated resource-owner
+boundary: invalid initialization and absent-source refusal, single-owner lock
+admission, monotonic generation under the lock, duplicate attach/bind refusal,
+and detach refusal while a source is bound. The exact pushed revision `7bffe69`
+was validated on Buildbox with the named `dvfsp-owner-kunit` profile: all 233
+canonical patches applied, 119 DTBs and package checksums passed, and only the
+validated package was fetched. The [KUnit Buildbox receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/owner-kunit-buildbox-20260810.txt)
+records the provenance. This is still compile-only contract evidence: the
+fixture uses fake devices, no DT node is enabled, no provider is registered,
+no hardware or firmware operation occurs, and CPU8/CPU9 admission remains
+closed.
+
+The next ordered implementation is a reviewed source-backed owner/provider
+bridge that can bind real identity, PPM/CCI, live rail/clock, and generation
+callbacks to this tested lifecycle boundary. Runtime registration, any
+writable operation, device boot, and CPU8/CPU9 admission remain blocked until
+that bridge has an attributable owner and separate runtime evidence.
+
 Required evidence:
 
 - provider registration performs no register-data write;
