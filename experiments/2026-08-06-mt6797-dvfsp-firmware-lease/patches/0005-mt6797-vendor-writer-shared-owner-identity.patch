@@ -42,7 +42,7 @@ index b8dfff0b1..c4f3e6a21 100644
 +	transaction->owner_handle = 0;
 +	transaction->transition_handle = 0;
  	transaction->active = false;
-@@ -93,6 +98,12 @@ int gemini_mt6797_dvfsp_vendor_writer_begin(
+@@ -93,5 +98,11 @@ int gemini_mt6797_dvfsp_vendor_writer_begin(
  		mutex_unlock(&gemini_mt6797_dvfsp_vendor_writer_lock);
  		return -ENODEV;
  	}
@@ -54,7 +54,7 @@ index b8dfff0b1..c4f3e6a21 100644
 +
  	ret = ops->begin(context, site, &transaction->generation);
  	if (ret) {
-@@ -101,4 +112,6 @@ int gemini_mt6797_dvfsp_vendor_writer_begin(
+@@ -103,4 +114,6 @@ int gemini_mt6797_dvfsp_vendor_writer_begin(
  
  	transaction->site = site;
 +	transaction->owner_handle = owner_handle;
