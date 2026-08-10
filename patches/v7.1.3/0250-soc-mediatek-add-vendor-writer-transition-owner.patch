@@ -61,7 +61,7 @@ diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
 diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
 --- a/drivers/soc/mediatek/Makefile
 +++ b/drivers/soc/mediatek/Makefile
-@@ -15,6 +15,8 @@ obj-$(CONFIG_MTK_MT6797_DVFSP_PROVIDER_KUNIT_TEST) += mt6797-dvfsp-table-source-test.o
+@@ -15,5 +15,7 @@ obj-$(CONFIG_MTK_MT6797_DVFSP_PROVIDER_KUNIT_TEST) += mt6797-dvfsp-table-source-test.o
  obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_OWNER) += mt6797-dvfsp-vendor-owner.o
  obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_OWNER_KUNIT_TEST) += mt6797-dvfsp-vendor-owner-test.o
 +obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_WRITER) += mt6797-dvfsp-vendor-writer.o
