@@ -1005,3 +1005,12 @@ no device was booted or written, and CPU8/CPU9 admission remains closed. The
 next gate is Buildbox validation of the exact committed series, then an
 attributable vendor-aware writer integration and separate read-only runtime
 registration evidence.
+
+The exact pushed head `af5a289` then completed the named `dvfsp-owner-kunit`
+Buildbox job. All 240 canonical patches applied, the arm64 kernel linked, all
+119 DTBs and package/provenance checksums passed, and the validated package was
+fetched into the ignored Buildbox artifact tree; see the [resume receipt](results/buildbox-resume-af5a289-20260810.txt).
+This advances compile and provenance confidence only. No vendor owner/provider
+or runtime registration occurred, no device was booted or written, and CPU8/CPU9
+admission remains closed. The next gate is still attributable integration at
+the actual vendor writer sites, followed by separate read-only runtime evidence.

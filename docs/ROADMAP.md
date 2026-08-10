@@ -2789,6 +2789,16 @@ action, or CPU8/CPU9 admission. The next ordered action is Buildbox validation
 of the exact committed series; only then can attributable vendor-aware writer
 integration and separate read-only runtime registration evidence proceed.
 
+The exact pushed head `af5a289` completed the named `dvfsp-owner-kunit` Buildbox
+job: all 240 canonical patches applied, the arm64 kernel linked, all 119 DTBs
+and package/provenance checksums passed, and the validated package was fetched;
+see the [Buildbox receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/buildbox-resume-af5a289-20260810.txt).
+This advances compile and provenance confidence only. No vendor owner/provider
+or runtime registration occurred, no device was booted or written, and CPU8/
+CPU9 admission remains closed. The next ordered action is attributable
+integration at the actual vendor writer sites, followed by separate read-only
+runtime registration evidence.
+
 Required evidence:
 
 - provider registration performs no register-data write;
