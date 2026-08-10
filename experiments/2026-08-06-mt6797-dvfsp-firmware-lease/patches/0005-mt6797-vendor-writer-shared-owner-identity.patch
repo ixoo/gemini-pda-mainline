@@ -29,7 +29,7 @@ index b8dfff0b1..c4f3e6a21 100644
 +		ops->begin && ops->commit && ops->abort &&
 +		ops->read_identity;
  }
-@@ -74,3 +75,5 @@ int gemini_mt6797_dvfsp_vendor_writer_begin(
+@@ -74,4 +75,6 @@ int gemini_mt6797_dvfsp_vendor_writer_begin(
  	const struct gemini_mt6797_dvfsp_vendor_writer_ops *ops;
  	void *context;
  	int ret;
@@ -42,7 +42,7 @@ index b8dfff0b1..c4f3e6a21 100644
 +	transaction->owner_handle = 0;
 +	transaction->transition_handle = 0;
  	transaction->active = false;
-@@ -93,5 +98,11 @@ int gemini_mt6797_dvfsp_vendor_writer_begin(
+@@ -93,5 +98,10 @@ int gemini_mt6797_dvfsp_vendor_writer_begin(
  		mutex_unlock(&gemini_mt6797_dvfsp_vendor_writer_lock);
  		return -ENODEV;
  	}
@@ -51,17 +51,17 @@ index b8dfff0b1..c4f3e6a21 100644
 +		mutex_unlock(&gemini_mt6797_dvfsp_vendor_writer_lock);
 +		return ret ? ret : -EPROTO;
 +	}
-+
+ 
  	ret = ops->begin(context, site, &transaction->generation);
  	if (ret) {
-@@ -103,4 +114,6 @@ int gemini_mt6797_dvfsp_vendor_writer_begin(
+@@ -103,4 +113,6 @@ int gemini_mt6797_dvfsp_vendor_writer_begin(
  
  	transaction->site = site;
 +	transaction->owner_handle = owner_handle;
 +	transaction->transition_handle = transition_handle;
  	transaction->active = true;
  	return 0;
-@@ -138,6 +151,8 @@ int gemini_mt6797_dvfsp_vendor_writer_finish(
+@@ -138,6 +150,8 @@ int gemini_mt6797_dvfsp_vendor_writer_finish(
  
  	transaction->site = GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_COUNT;
  	transaction->generation = 0;
@@ -74,7 +74,7 @@ diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.
 index feca4ef32..f0a3b5c87 100644
 --- a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h
 +++ b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h
-@@ -24,1 +24,1 @@
+@@ -23,1 +23,1 @@
 -#define GEMINI_MT6797_DVFSP_VENDOR_WRITER_ABI	1
 +#define GEMINI_MT6797_DVFSP_VENDOR_WRITER_ABI	2
 @@ -26,5 +26,7 @@
