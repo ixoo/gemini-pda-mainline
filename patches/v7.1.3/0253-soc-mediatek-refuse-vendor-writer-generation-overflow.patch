@@ -13,30 +13,30 @@ perform MMIO, register a provider, or admit CPU8/CPU9.
 ---
  drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-kunit-test.c | 10 +++++-----
  drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c            |  5 +++++
- 2 files changed, 9 insertions(+), 6 deletions(-)
+ 2 files changed, 10 insertions(+), 8 deletions(-)
 
 diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-kunit-test.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-kunit-test.c
 --- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-kunit-test.c
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-kunit-test.c
-@@ -105,13 +105,12 @@ static void mt6797_dvfsp_vendor_writer_serializes_generation(
- 	KUNIT_EXPECT_EQ(test, generation, (u64)2);
- 
+@@ -115,11 +115,9 @@ static void mt6797_dvfsp_vendor_writer_serializes_generation(
  	shared_generation = ~0ULL;
 -	KUNIT_ASSERT_EQ(test,
 -		mt6797_dvfsp_vendor_writer_begin(&writer, &generation), 0);
-+	KUNIT_EXPECT_EQ(test,
-+		mt6797_dvfsp_vendor_writer_begin(&writer, &generation),
-+		-EOVERFLOW);
-+	KUNIT_EXPECT_FALSE(test, writer.update_held);
- 	KUNIT_EXPECT_EQ(test,
+-	KUNIT_EXPECT_EQ(test, generation, ~0ULL);
+-	KUNIT_EXPECT_EQ(test,
 -		mt6797_dvfsp_vendor_writer_commit(&writer), -EOVERFLOW);
 -	KUNIT_EXPECT_TRUE(test, writer.update_held);
 -	KUNIT_ASSERT_EQ(test,
 -		mt6797_dvfsp_vendor_writer_abort(&writer), 0);
++	KUNIT_EXPECT_EQ(test,
++		mt6797_dvfsp_vendor_writer_begin(&writer, &generation),
++		-EOVERFLOW);
++	KUNIT_EXPECT_FALSE(test, writer.update_held);
++	KUNIT_EXPECT_EQ(test,
 +		mt6797_dvfsp_vendor_writer_commit(&writer), -EINVAL);
  	KUNIT_EXPECT_EQ(test, shared_generation, ~0ULL);
  }
- 
+
 diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c
 --- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer.c

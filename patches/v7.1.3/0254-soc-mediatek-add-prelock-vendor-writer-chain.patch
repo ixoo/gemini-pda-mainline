@@ -107,7 +107,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-kunit-test.c b/driv
  static void mt6797_dvfsp_vendor_writer_rejects_incomplete(
  	struct kunit *test)
  {
-@@ -119,6 +151,43 @@ static void mt6797_dvfsp_vendor_writer_serializes_generation(
+@@ -119,9 +151,43 @@ static void mt6797_dvfsp_vendor_writer_serializes_generation(
  	KUNIT_EXPECT_EQ(test, shared_generation, ~0ULL);
  }
  
