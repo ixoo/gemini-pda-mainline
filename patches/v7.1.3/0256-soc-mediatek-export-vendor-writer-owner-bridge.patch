@@ -14,12 +14,12 @@ callback by itself.  It performs no MMIO, provider registration, firmware
 operation, device action, or CPU8/CPU9 admission; a separately reviewed
 vendor-side registration may consume its exact callback table.
 ---
- drivers/soc/mediatek/Kconfig                                      |  11 ++++
+ drivers/soc/mediatek/Kconfig                                      |  15 ++++
  drivers/soc/mediatek/Makefile                                     |   2 +
- drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-bridge-kunit-test.c | 103 ++++++++++++
- drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-bridge.c          | 125 +++++++++++++
- include/linux/soc/mediatek/mt6797-dvfsp-vendor-writer-bridge.h    |  56 ++++++
- 5 files changed, 297 insertions(+)
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-bridge-kunit-test.c |  89 +++++++++
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-bridge.c          | 132 ++++++++++++++
+ include/linux/soc/mediatek/mt6797-dvfsp-vendor-writer-bridge.h    |  38 ++++
+ 5 files changed, 276 insertions(+)
  create mode 100644 drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-bridge-kunit-test.c
  create mode 100644 drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-bridge.c
  create mode 100644 include/linux/soc/mediatek/mt6797-dvfsp-vendor-writer-bridge.h
@@ -27,7 +27,7 @@ vendor-side registration may consume its exact callback table.
 diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
 --- a/drivers/soc/mediatek/Kconfig
 +++ b/drivers/soc/mediatek/Kconfig
-@@ -153,6 +153,17 @@ config MTK_MT6797_DVFSP_VENDOR_WRITER_KUNIT_TEST
+@@ -153,7 +153,22 @@ config MTK_MT6797_DVFSP_VENDOR_WRITER_KUNIT_TEST
  	  Exercise generation, abort, overflow, and provenance validation using
  	  fake callbacks and a fake mutex. No vendor callback or registration API
  	  is invoked.
@@ -53,7 +53,7 @@ diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
 diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
 --- a/drivers/soc/mediatek/Makefile
 +++ b/drivers/soc/mediatek/Makefile
-@@ -17,6 +17,8 @@ obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_OWNER_KUNIT_TEST) += mt6797-dvfsp-vendor-owner-test.o
+@@ -17,5 +17,7 @@ obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_OWNER_KUNIT_TEST) += mt6797-dvfsp-vendor-owner-test.o
  obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_WRITER) += mt6797-dvfsp-vendor-writer.o
  obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_WRITER_KUNIT_TEST) += mt6797-dvfsp-vendor-writer-kunit-test.o
 +obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_WRITER_BRIDGE) += mt6797-dvfsp-vendor-writer-bridge.o
@@ -65,7 +65,7 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-writer-bridge.h b/in
 new file mode 100644
 --- /dev/null
 +++ b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-writer-bridge.h
-@@ -0,0 +1,56 @@
+@@ -0,0 +1,38 @@
 +/* SPDX-License-Identifier: GPL-2.0-only */
 +#ifndef __LINUX_SOC_MEDIATEK_MT6797_DVFSP_VENDOR_WRITER_BRIDGE_H
 +#define __LINUX_SOC_MEDIATEK_MT6797_DVFSP_VENDOR_WRITER_BRIDGE_H
@@ -108,7 +108,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-bridge.c b/drivers/
 new file mode 100644
 --- /dev/null
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-bridge.c
-@@ -0,0 +1,125 @@
+@@ -0,0 +1,132 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/*
 + * Source-independent owner bridge for the MT6797 vendor writer.
@@ -245,7 +245,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-bridge-kunit-test.c
 new file mode 100644
 --- /dev/null
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-writer-bridge-kunit-test.c
-@@ -0,0 +1,103 @@
+@@ -0,0 +1,89 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/* Hardware-free coverage for the source-independent writer owner bridge. */
 +

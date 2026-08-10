@@ -14,14 +14,14 @@ The binding performs no vendor setter, MMIO, provider registration, firmware
 operation, or device action; it only connects the already reviewed callback
 contract to the existing writer call sites.
 ---
- drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c | 104 ++++++++++++++++++++
- drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h |  30 ++++++
- 2 files changed, 134 insertions(+)
+ drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c | 157 ++++++++++++++++++++
+ drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h |  22 +++++
+ 2 files changed, 179 insertions(+)
 
 diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h
 --- a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h
 +++ b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h
-@@ -40,6 +40,30 @@ struct gemini_mt6797_dvfsp_vendor_writer_ops {
+@@ -40,5 +40,27 @@ struct gemini_mt6797_dvfsp_vendor_writer_ops {
  	int (*read_identity)(void *context, u64 *owner_handle,
  			    u64 *transition_handle);
  };
@@ -52,7 +52,7 @@ diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.
 diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
 --- a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
 +++ b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
-@@ -18,6 +18,88 @@ static const struct gemini_mt6797_dvfsp_vendor_writer_ops
+@@ -18,6 +18,103 @@ static const struct gemini_mt6797_dvfsp_vendor_writer_ops
  	*gemini_mt6797_dvfsp_vendor_writer_ops;
  static void *gemini_mt6797_dvfsp_vendor_writer_context;
  
@@ -156,7 +156,7 @@ diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.
  static bool gemini_mt6797_dvfsp_vendor_writer_ops_valid(
  	const struct gemini_mt6797_dvfsp_vendor_writer_ops *ops)
  {
-@@ -72,6 +154,75 @@ int gemini_mt6797_dvfsp_vendor_writer_unregister(
+@@ -72,6 +154,67 @@ int gemini_mt6797_dvfsp_vendor_writer_unregister(
  }
  EXPORT_SYMBOL_GPL(gemini_mt6797_dvfsp_vendor_writer_unregister);
  
