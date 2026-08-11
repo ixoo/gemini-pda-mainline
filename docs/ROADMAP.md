@@ -3275,6 +3275,20 @@ validated-package-only fetch; see the [resume receipt](../experiments/2026-08-06
 This is provenance-only revalidation and does not advance provider, runtime,
 hardware, or CPU8/CPU9 admission.
 
+Patch `0270` now exposes a separate, raw source-observation ABI for the vendor
+function/date words, EEM CPU bin and ATE version, and PPM table selection while
+keeping calibrated identity fail-closed. The exact pushed commit `2255b72`
+passed the `dvfsp-owner-kunit` Buildbox profile with 259 canonical patches,
+119 DTBs, passing package/provenance checksums, and validated-package-only
+fetch. The pinned vendor revision then applied experiment patches `0001` through
+`0014` sequentially and compiled the vendor writer, cpufreq, hybrid CSPM, EEM,
+and PPM objects with GCC 6.3; see the [identity-observation Buildbox receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-identity-observation-buildbox-20260811.txt).
+This is still compile-only evidence: no provider registration, mutable epoch or
+calibration handle, device action, hardware write, or CPU8/CPU9 admission is
+claimed. The next ordered gate is a read-only runtime observation that obtains
+an explicit mutable table epoch and calibration handle before any provider
+registration review or device boot.
+
 The repaired anchored vendor series was then resumed at exact pushed commit
 `628bb5c`. Buildbox applied all twelve selected patches sequentially, passed
 `gemini_modular_defconfig`, `prepare`, and `modules_prepare`, and compiled the
