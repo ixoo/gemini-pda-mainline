@@ -48,13 +48,16 @@ diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
 diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
 --- a/drivers/soc/mediatek/Makefile
 +++ b/drivers/soc/mediatek/Makefile
-@@ -17,7 +17,8 @@ obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_OWNER_KUNIT_TEST) += mt6797-dvfsp-vendor-owner-test.o
+@@ -17,10 +17,11 @@ obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_OWNER_KUNIT_TEST) += mt6797-dvfsp-vendor-owner-test.o
  obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_WRITER) += mt6797-dvfsp-vendor-writer.o
  obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_WRITER_KUNIT_TEST) += mt6797-dvfsp-vendor-writer-kunit-test.o
  obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_WRITER_BRIDGE) += mt6797-dvfsp-vendor-writer-bridge.o
  obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_WRITER_BRIDGE_KUNIT_TEST) += mt6797-dvfsp-vendor-writer-bridge-kunit-test.o
 +obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_WRITER_COORDINATOR) += mt6797-dvfsp-vendor-coordinator.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_OWNER) += mt6797-dvfsp-vendor-source.o
  obj-$(CONFIG_MTK_MT6797_DVFSP_RESOURCE_OWNER) += mt6797-dvfsp-calibrated-provider.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_OWNER) += mt6797-dvfsp-vendor-provider.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_PROVIDER_BRIDGE_KUNIT_TEST) += mt6797-dvfsp-vendor-provider-test.o
  obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-state-snapshot.o
  obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-runtime-bind.o
 diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-coordinator.h b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-coordinator.h
@@ -185,11 +188,9 @@ new file mode 100644
 diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
 --- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
-@@ -10,3 +10,4 @@
+@@ -10,1 +10,2 @@
  #include <linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h>
 +#include <linux/soc/mediatek/mt6797-dvfsp-vendor-coordinator.h>
- 
- struct mt6797_dvfsp_vendor_test_devices {
 @@ -566,10 +567,66 @@ static void mt6797_dvfsp_vendor_owner_integrates_lifecycle(
  	mt6797_dvfsp_vendor_test_put_devices(&devices);
  }
