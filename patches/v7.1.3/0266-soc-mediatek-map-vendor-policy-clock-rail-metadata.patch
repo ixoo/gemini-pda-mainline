@@ -440,8 +440,9 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-provider-test.c b/drivers/
 +	KUNIT_EXPECT_EQ(test, mapped.policy[0].cluster, 0U);
 +	KUNIT_EXPECT_EQ(test, mapped.cpufreq[0].clock_owner_id, 0U);
 +	KUNIT_EXPECT_EQ(test, mapped.cpufreq[0].clock_mux, 3U);
-+	KUNIT_EXPECT_EQ(test, mapped.cpufreq_voltage_uv[0][0], 8000000U);
-+	KUNIT_EXPECT_EQ(test, mapped.cpufreq_current_vsram_uv[0], 10000000U);
++	/* Source domain id 0 is the fourth fixture entry (i == 3). */
++	KUNIT_EXPECT_EQ(test, mapped.cpufreq_voltage_uv[0][0], 8000030U);
++	KUNIT_EXPECT_EQ(test, mapped.cpufreq_current_vsram_uv[0], 10000030U);
 @@ -170,5 +217,19 @@ static void mt6797_dvfsp_vendor_provider_rejects_bad_eem_units(
  	KUNIT_EXPECT_EQ(test, mt6797_dvfsp_vendor_provider_map(
  		&mt6797_dvfsp_vendor_provider_test_snapshot,
