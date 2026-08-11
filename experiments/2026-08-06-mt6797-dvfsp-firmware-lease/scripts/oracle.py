@@ -89,6 +89,7 @@ MAINLINE_EEM_UNIT_PATCH = ROOT / "patches/v7.1.3/0265-soc-mediatek-map-vendor-ee
 MAINLINE_POLICY_CLOCK_RAIL_PATCH = ROOT / "patches/v7.1.3/0266-soc-mediatek-map-vendor-policy-clock-rail-metadata.patch"
 MAINLINE_VENDOR_COORDINATOR_PATCH = ROOT / "patches/v7.1.3/0267-soc-mediatek-add-vendor-writer-coordinator.patch"
 MAINLINE_VENDOR_RUNTIME_FORWARD_PATCH = ROOT / "patches/v7.1.3/0268-soc-mediatek-forward-vendor-caller-runtime-events.patch"
+MAINLINE_VENDOR_CALLER_LIFECYCLE_PATCH = ROOT / "patches/v7.1.3/0269-soc-mediatek-add-vendor-caller-lifecycle-gate.patch"
 VENDOR_WRITER_INTEGRATION_REVIEW_RESULT = (Path(__file__).resolve().parents[1] /
                                            "results/vendor-writer-mainline-owner-integration-review-20260810.txt")
 VENDOR_WRITER_REGISTRATION_BUILD_RESULT = (Path(__file__).resolve().parents[1] /
@@ -135,6 +136,10 @@ VENDOR_COORDINATOR_BUILD_RESULT = (Path(__file__).resolve().parents[1] /
                                    "results/vendor-writer-coordinator-buildbox-20260811.txt")
 VENDOR_RUNTIME_FORWARD_BUILD_RESULT = (Path(__file__).resolve().parents[1] /
                                        "results/vendor-writer-runtime-event-forward-buildbox-20260811.txt")
+VENDOR_CALLER_LIFECYCLE_PATCH = (Path(__file__).resolve().parents[1] /
+                                 "patches/0013-mt6797-vendor-caller-mainline-coordinator-gate.patch")
+VENDOR_CALLER_LIFECYCLE_BUILD_RESULT = (Path(__file__).resolve().parents[1] /
+                                         "results/vendor-caller-lifecycle-gate-buildbox-20260811.txt")
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
 START_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-start-contract-20260806.txt"
 OWNER_RESULT = Path(__file__).resolve().parents[1] / "results/public-hybrid-owner-source-20260806.txt"
@@ -321,6 +326,7 @@ def main() -> None:
     mainline_policy_clock_rail_patch = MAINLINE_POLICY_CLOCK_RAIL_PATCH.read_text()
     mainline_vendor_coordinator_patch = MAINLINE_VENDOR_COORDINATOR_PATCH.read_text()
     mainline_vendor_runtime_forward_patch = MAINLINE_VENDOR_RUNTIME_FORWARD_PATCH.read_text()
+    mainline_vendor_caller_lifecycle_patch = MAINLINE_VENDOR_CALLER_LIFECYCLE_PATCH.read_text()
     vendor_writer_integration_review_result = VENDOR_WRITER_INTEGRATION_REVIEW_RESULT.read_text()
     vendor_writer_registration_build_result = VENDOR_WRITER_REGISTRATION_BUILD_RESULT.read_text()
     vendor_writer_runtime_events_build_result = VENDOR_WRITER_RUNTIME_EVENTS_BUILD_RESULT.read_text()
@@ -343,6 +349,8 @@ def main() -> None:
     vendor_caller_lifecycle_audit_result = VENDOR_CALLER_LIFECYCLE_AUDIT_RESULT.read_text()
     vendor_coordinator_build_result = VENDOR_COORDINATOR_BUILD_RESULT.read_text()
     vendor_runtime_forward_build_result = VENDOR_RUNTIME_FORWARD_BUILD_RESULT.read_text()
+    vendor_caller_lifecycle_patch = VENDOR_CALLER_LIFECYCLE_PATCH.read_text()
+    vendor_caller_lifecycle_build_result = VENDOR_CALLER_LIFECYCLE_BUILD_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     eem_calibration_source = eem_calibration_patch[eem_calibration_patch.index("diff --git"):]
@@ -380,12 +388,13 @@ def main() -> None:
                                VENDOR_EXPERIMENT_SERIES.read_text().splitlines()
                                if line and not line.startswith("#")]
 
-    if vendor_experiment_names[-3:] != [
+    if vendor_experiment_names[-4:] != [
             "0010a-mt6797-source-eem-voltage-unit-metadata-anchored.patch",
             "0011a-mt6797-source-policy-clock-rail-metadata-anchored.patch",
             "0012-mt6797-vendor-writer-integration-context-accessor.patch",
+            "0013-mt6797-vendor-caller-mainline-coordinator-gate.patch",
     ]:
-        raise AssertionError("vendor integration-context series does not end with the audited anchored metadata and accessor patches")
+        raise AssertionError("vendor caller lifecycle series does not end with the audited anchored metadata, accessor, and lifecycle gate patches")
     if names.index("0256-soc-mediatek-export-vendor-writer-owner-bridge.patch") >= names.index("0257-soc-mediatek-add-explicit-vendor-writer-registration-handoff.patch"):
         raise AssertionError("vendor writer registration handoff is not after the bridge")
     if names.index("0257-soc-mediatek-add-explicit-vendor-writer-registration-handoff.patch") >= names.index("0258-soc-mediatek-extend-vendor-writer-handoff-runtime-events.patch"):
@@ -402,6 +411,44 @@ def main() -> None:
         raise AssertionError("vendor writer coordinator is not after policy/clock/rail mapping")
     if names.index("0267-soc-mediatek-add-vendor-writer-coordinator.patch") >= names.index("0268-soc-mediatek-forward-vendor-caller-runtime-events.patch"):
         raise AssertionError("vendor caller runtime forwarding is not after the writer coordinator")
+    if names.index("0268-soc-mediatek-forward-vendor-caller-runtime-events.patch") >= names.index("0269-soc-mediatek-add-vendor-caller-lifecycle-gate.patch"):
+        raise AssertionError("vendor caller lifecycle gate is not after runtime-event forwarding")
+    mainline_vendor_caller_lifecycle_source = mainline_vendor_caller_lifecycle_patch[
+        mainline_vendor_caller_lifecycle_patch.index("diff --git"):]
+    for needle, label in (
+        ("mt6797_dvfsp_vendor_coordinator_bind_caller", "mainline-caller-bind"),
+        ("mt6797_dvfsp_vendor_coordinator_unbind_caller", "mainline-caller-unbind"),
+        ("mt6797_dvfsp_vendor_coordinator_caller_probe", "mainline-caller-probe"),
+        ("mt6797_dvfsp_vendor_coordinator_caller_remove", "mainline-caller-remove"),
+        ("mt6797_dvfsp_vendor_coordinator_vendor_probe", "mainline-vendor-probe"),
+        ("mt6797_dvfsp_vendor_coordinator_vendor_remove", "mainline-vendor-remove"),
+        ("caller_bound", "mainline-caller-identity-state"),
+        ("-EPROTO", "mainline-caller-identity-refusal"),
+        ("-EBUSY", "mainline-caller-teardown-refusal"),
+        ("EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_coordinator_vendor_probe)", "mainline-vendor-probe-export"),
+        ("EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_coordinator_vendor_remove)", "mainline-vendor-remove-export"),
+    ):
+        require(mainline_vendor_caller_lifecycle_source, needle, label)
+    for forbidden in (
+        "readl(", "writel(", "i2c_transfer", "regulator_", "clk_",
+        "platform_driver", "cpu_up(", "secure_write", "mt_ppm_register_client",
+        "register_provider", "provider_registration", "hardware_write",
+    ):
+        if forbidden in mainline_vendor_caller_lifecycle_source:
+            raise AssertionError(f"unexpected mainline caller lifecycle operation: {forbidden}")
+
+    vendor_caller_lifecycle_source = vendor_caller_lifecycle_patch[
+        vendor_caller_lifecycle_patch.index("diff --git"):]
+    for needle, label in (
+        ("mt6797_dvfsp_vendor_coordinator_vendor_probe", "vendor-caller-probe"),
+        ("mt6797_dvfsp_vendor_coordinator_vendor_remove", "vendor-caller-remove"),
+        ("lifecycle_registered", "vendor-caller-lifecycle-state"),
+        ("register_hotcpu_notifier", "vendor-caller-probe-registration"),
+        ("vendor_writer_owner_lifecycle_register", "vendor-caller-owner-register"),
+        ("vendor_writer_owner_lifecycle_unregister", "vendor-caller-owner-unregister"),
+    ):
+        require(vendor_caller_lifecycle_source, needle, label)
+
     for needle, label in (
         ("GEMINI_MT6797_DVFSP_VENDOR_STATE_ABI\t2", "vendor-policy-clock-rail-state-abi"),
         ("GEMINI_MT6797_DVFSP_VENDOR_MAX_POLICY_ROW", "vendor-policy-row-bound"),
@@ -1225,6 +1272,7 @@ def main() -> None:
 0010a-mt6797-source-eem-voltage-unit-metadata-anchored.patch
 0011a-mt6797-source-policy-clock-rail-metadata-anchored.patch
 0012-mt6797-vendor-writer-integration-context-accessor.patch
+0013-mt6797-vendor-caller-mainline-coordinator-gate.patch
 """
     if VENDOR_EXPERIMENT_SERIES.read_text() != expected_vendor_series:
         raise AssertionError("vendor integration-context series is not the audited canonical sequence")
@@ -1328,6 +1376,56 @@ def main() -> None:
         ("decision=vendor_caller_runtime_forward_compile_validated;actual_vendor_probe_remove_binding_and_runtime_identity_evidence_remain_closed", "vendor-runtime-forward-build-decision"),
     ):
         require(vendor_runtime_forward_build_result, needle, label)
+
+    for needle, label in (
+        ("claim=COMPILE_ONLY_MT6797_VENDOR_CALLER_LIFECYCLE_GATE", "vendor-caller-lifecycle-build-claim"),
+        ("repository_commit=995c99819713cb231f37bf59fb8e8fb13fc1df70", "vendor-caller-lifecycle-build-commit"),
+        ("mainline_build_commit=646746a60d34a1d8c129b54017308bc70240ebdd", "vendor-caller-lifecycle-mainline-commit"),
+        ("backend=buildbox", "vendor-caller-lifecycle-build-backend"),
+        ("build_profile=dvfsp-owner-kunit", "vendor-caller-lifecycle-build-profile"),
+        ("buildbox_job=646746a60d34a1d8c129b54017308bc70240ebdd-dvfsp-owner-kunit-m0", "vendor-caller-lifecycle-build-job"),
+        ("canonical_series_entries=258", "vendor-caller-lifecycle-build-series"),
+        ("package_provenance_patch_count=258", "vendor-caller-lifecycle-build-package-series"),
+        ("package=linux-7.1.3-gemini-dvfsp-owner-kunit-4324db96-bc80c7fa", "vendor-caller-lifecycle-build-package"),
+        ("package_fetch=validated-package-only", "vendor-caller-lifecycle-build-fetch"),
+        ("patch_0269=caller_identity_binding;global_fail_closed_vendor_probe_remove;probe_before_owner_registration;remove_after_writer_unregistration;teardown_guard", "vendor-caller-lifecycle-build-contract"),
+        ("coordinator_object=compiled", "vendor-caller-lifecycle-build-coordinator-object"),
+        ("owner_kunit_object=compiled", "vendor-caller-lifecycle-build-owner-test-object"),
+        ("kunit=compiled_only;not_executed_by_Buildbox", "vendor-caller-lifecycle-build-kunit"),
+        ("dtb_count=119", "vendor-caller-lifecycle-build-dtbs"),
+        ("sha256sums=passed", "vendor-caller-lifecycle-build-checksums"),
+        ("patchset_sha256=4324db965247a7246f2348fd884dbac39266d9fb1832e7ad0b1dfae52ccc791e", "vendor-caller-lifecycle-build-patchset"),
+        ("config_sha256=b50b9b13b20872f889ace2e673f6c4086c73f621d51f111fa0bf9a9005499c2e", "vendor-caller-lifecycle-build-config"),
+        ("image_gzip_sha256=cb1c89bf81d4b55c34603dc8862c9aa815601b7c9bbc5df514dec38dc360ae8f", "vendor-caller-lifecycle-build-image"),
+        ("vendor_revision=d388d350cb2dda8f23b99be6fa5db9628896e87f", "vendor-caller-lifecycle-vendor-revision"),
+        ("vendor_series=0001..0013", "vendor-caller-lifecycle-vendor-series"),
+        ("vendor_series_sha256=0aeec357d20c6513a5d45f29a748ff7269f3b5581db54029928b9b90ce9dedb8", "vendor-caller-lifecycle-vendor-series-sha"),
+        ("vendor_patch_count=13", "vendor-caller-lifecycle-vendor-patches"),
+        ("git_apply_check=passed;sequential;unidiff_zero", "vendor-caller-lifecycle-vendor-apply-check"),
+        ("git_apply=passed;sequential;unidiff_zero", "vendor-caller-lifecycle-vendor-apply"),
+        ("git_diff_check=passed", "vendor-caller-lifecycle-vendor-diff-check"),
+        ("defconfig=gemini_modular_defconfig;passed", "vendor-caller-lifecycle-vendor-defconfig"),
+        ("prepare=passed", "vendor-caller-lifecycle-vendor-prepare"),
+        ("modules_prepare=passed", "vendor-caller-lifecycle-vendor-modules-prepare"),
+        ("compiler=aarch64-linux-gnu-gcc-6 (Debian 6.3.0-18) 6.3.0 20170516", "vendor-caller-lifecycle-vendor-compiler"),
+        ("affected_objects=passed", "vendor-caller-lifecycle-vendor-objects"),
+        ("object_1=drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.o;sha256=0503f9544eb726150bf31aab8ee1673fd3af3a84440bf3628d79bae5879d9f73", "vendor-caller-lifecycle-writer-hash"),
+        ("object_2=drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.o;sha256=40d4bdd7cc627107a850f64235701a83d6108a1f719309c7f9f257c6900bd125", "vendor-caller-lifecycle-cpufreq-hash"),
+        ("object_3=drivers/misc/mediatek/base/power/mt6797/mt_cpufreq_hybrid.o;sha256=6190bdc6bb7d39725aab11e8965d1c4acf3c60586905acbe7000cc712192668c", "vendor-caller-lifecycle-hybrid-hash"),
+        ("object_4=drivers/misc/mediatek/base/power/mt6797/mt_eem.o;sha256=46db1ec21a9e43ff1461da48e0146780026925550479c8659aac259f80b04392", "vendor-caller-lifecycle-eem-hash"),
+        ("object_5=drivers/misc/mediatek/base/power/ppm_v1/src/mt_ppm_main.o;sha256=6d8eaedf80641d7dc143834fe406a8022d9f6604b5b31967f20a6584cee11787", "vendor-caller-lifecycle-ppm-hash"),
+        ("provider=none", "vendor-caller-lifecycle-no-provider"),
+        ("runtime_owner_registration=none", "vendor-caller-lifecycle-no-runtime-owner"),
+        ("vendor_setter=none", "vendor-caller-lifecycle-no-setter"),
+        ("hardware_write=none", "vendor-caller-lifecycle-no-write"),
+        ("device_action=none", "vendor-caller-lifecycle-no-action"),
+        ("boot_candidate=false", "vendor-caller-lifecycle-not-candidate"),
+        ("runtime_evidence=none", "vendor-caller-lifecycle-no-runtime-evidence"),
+        ("hardware_support_claim=NONE", "vendor-caller-lifecycle-no-support"),
+        ("cpu8_cpu9_admission=closed", "vendor-caller-lifecycle-no-admission"),
+        ("decision=vendor_caller_lifecycle_compile_validated;runtime_owner_binding_and_identity_evidence_remain_closed", "vendor-caller-lifecycle-decision"),
+    ):
+        require(vendor_caller_lifecycle_build_result, needle, label)
 
     for needle, label in (
         ("claim=KUNIT_ISOLATED_MT6797_VENDOR_POLICY_CLOCK_RAIL_MAPPING", "mainline-policy-clock-rail-qemu-claim"),
@@ -3713,6 +3811,7 @@ def main() -> None:
     print("image_variant=unproven;firmware_redistribution=unproven")
     print("vendor_writer_coordinator_buildbox=validated;commit=ba6dfdd51839612ac55ff7458c93e3f9d6acd325;profile=dvfsp-owner-kunit;canonical_series_entries=256;package_provenance_patch_count=256;coordinator_object=compiled;owner_kunit_object=compiled;sha256sums=passed;package_fetch=validated-package-only;runtime_owner_registration=none;provider=none;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("vendor_caller_runtime_forward_buildbox=validated;commit=7926d1ef60d646ad438479429c2a354880866763;profile=dvfsp-owner-kunit;canonical_series_entries=257;package_provenance_patch_count=257;coordinator_event_object=compiled;owner_kunit_object=compiled;sha256sums=passed;package_fetch=validated-package-only;actual_vendor_callsite_binding=none;runtime_owner_registration=none;provider=none;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
+    print("vendor_caller_lifecycle_gate_buildbox=validated;mainline_build_commit=646746a60d34a1d8c129b54017308bc70240ebdd;repository_commit=995c99819713cb231f37bf59fb8e8fb13fc1df70;profile=dvfsp-owner-kunit;canonical_series_entries=258;package=linux-7.1.3-gemini-dvfsp-owner-kunit-4324db96-bc80c7fa;package_fetch=validated-package-only;vendor_series=0001..0013;vendor_revision=d388d350cb2dda8f23b99be6fa5db9628896e87f;vendor_patch_count=13;vendor_affected_objects=passed;coordinator_object=compiled;owner_kunit_object=compiled;actual_probe_remove_binding=compiled_only;runtime_owner_registration=none;provider=none;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("status=PASS_STATIC")
 
 

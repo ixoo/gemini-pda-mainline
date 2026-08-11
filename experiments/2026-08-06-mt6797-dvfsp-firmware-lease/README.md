@@ -1493,3 +1493,13 @@ caller is bound, no runtime owner/provider/setter or hardware action occurred,
 and CPU8/CPU9 admission remains closed. The next gate is binding those exact
 vendor probe/remove callsites and collecting read-only runtime identity and
 invalidation evidence; do not boot or write a device.
+
+Patch `0269` and vendor patch `0013` now bind those exact probe/remove callsites
+to the coordinator lifecycle gate. The mainline candidate built on Buildbox at
+`646746a`, and the pinned vendor tree applied all thirteen experiment patches
+and compiled the five affected objects at `995c998`; see the [caller lifecycle
+gate Buildbox receipt](results/vendor-caller-lifecycle-gate-buildbox-20260811.txt).
+This closes the cross-tree compile gate only: no real owner is bound, no runtime
+identity or invalidation evidence exists, and CPU8/CPU9 admission remains
+closed. The next ordered gate is read-only runtime identity and invalidation
+evidence for a real owner; do not boot or write a device.

@@ -3313,6 +3313,16 @@ hardware action, device boot/write, or CPU8/CPU9 admission is claimed. The next
 ordered gate is binding those exact vendor probe/remove callsites and collecting
 read-only runtime identity and invalidation evidence.
 
+Patch `0269` and vendor patch `0013` now bind those exact probe/remove callsites
+to the coordinator lifecycle gate. The mainline candidate built on Buildbox at
+`646746a` with 258 canonical patches, while the pinned vendor tree applied all
+thirteen experiment patches and compiled the five affected objects at
+`995c998`; see the [caller lifecycle gate Buildbox receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-caller-lifecycle-gate-buildbox-20260811.txt).
+This closes the cross-tree compile gate only: no real owner is bound, runtime
+identity/invalidation evidence is absent, and CPU8/CPU9 admission remains
+closed. The next ordered gate is read-only runtime identity and invalidation
+evidence for a real owner; do not boot or write a device.
+
 Required evidence:
 
 - provider registration performs no register-data write;
