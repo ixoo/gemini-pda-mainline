@@ -74,7 +74,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-source.c b/drivers/soc/med
  		return -EINVAL;
  	return 0;
  }
-@@ -240,5 +241,35 @@
+@@ -240,6 +241,36 @@
  EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_source_identity_observation);
  
 +int mt6797_dvfsp_vendor_source_provenance(
@@ -108,7 +108,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-source.c b/drivers/soc/med
 +EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_source_provenance);
 +
  void mt6797_dvfsp_vendor_source_invalidate(
-	struct mt6797_dvfsp_vendor_source *source)
+ 	struct mt6797_dvfsp_vendor_source *source)
  {
  
 diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
