@@ -1,0 +1,272 @@
+From 0000000000000000000000000000000000000011 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 11 Aug 2026 04:05:00 -0400
+Subject: [PATCH] power: expose source policy clock rail metadata
+
+Carry the pinned vendor PPM power-state rows, live cpu_dvfs clock mux
+selection, and documented VPROC/VSRAM conversion metadata through the
+read-only observation adapter. Vendor voltage values remain in their
+documented 10uV unit; no setter, clock switch, regulator write, or firmware
+operation is introduced.
+
+This anchored replacement supersedes the historical zero-context patch with
+the same logical change. Provider registration and CPU admission remain
+outside this experiment-only boundary.
+---
+ drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-state.h | 50 +++++++++
+ drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c | 36 ++++++
+ drivers/misc/mediatek/base/power/ppm_v1/src/mt_ppm_main.c | 39 +++++++
+ drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c | 46 +++++++
+ 4 files changed, 171 insertions(+)
+
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-state.h b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-state.h
+--- a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-state.h
++++ b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-state.h
+@@ -11,10 +11,27 @@
+ #define __MT6797_DVFSP_VENDOR_STATE_H__
+ 
+ #include <linux/types.h>
+ 
+-#define GEMINI_MT6797_DVFSP_VENDOR_STATE_ABI	1
++#define GEMINI_MT6797_DVFSP_VENDOR_STATE_ABI	2
+ #define GEMINI_MT6797_DVFSP_VENDOR_MAX_CLUSTER	3
+ #define GEMINI_MT6797_DVFSP_VENDOR_MAX_DOMAIN	4
+ #define GEMINI_MT6797_DVFSP_VENDOR_MAX_OPP	16
+ #define GEMINI_MT6797_DVFSP_VENDOR_MAX_DETECTOR	6
+ #define GEMINI_MT6797_DVFSP_VENDOR_MAX_FREQ	16
++#define GEMINI_MT6797_DVFSP_VENDOR_MAX_POLICY_STATE	4
++#define GEMINI_MT6797_DVFSP_VENDOR_MAX_POLICY_ROW	\
++	(GEMINI_MT6797_DVFSP_VENDOR_MAX_POLICY_STATE * \
++	 GEMINI_MT6797_DVFSP_VENDOR_MAX_CLUSTER)
++#define GEMINI_MT6797_DVFSP_VENDOR_CLOCK_OWNER_CPU_DVFS	1
++#define GEMINI_MT6797_DVFSP_VENDOR_MAX_CLOCK_MUX	4
++#define GEMINI_MT6797_DVFSP_VENDOR_VOLTAGE_UNIT_10UV	1
++#define GEMINI_MT6797_DVFSP_VENDOR_VPROC_EXTBUCK	1
++#define GEMINI_MT6797_DVFSP_VENDOR_VSRAM_PMIC	1
++#define GEMINI_MT6797_DVFSP_VENDOR_VSRAM_BIGIDVFS	2
++#define GEMINI_MT6797_DVFSP_VENDOR_MAX_VSRAM_SPECIAL	3
++#define GEMINI_MT6797_DVFSP_VENDOR_VPROC_BASE_10UV	30000
++#define GEMINI_MT6797_DVFSP_VENDOR_VPROC_STEP_10UV	1000
++#define GEMINI_MT6797_DVFSP_VENDOR_VPROC_CODE_MASK	0x7f
++#define GEMINI_MT6797_DVFSP_VENDOR_VSRAM_BASE_10UV	90000
++#define GEMINI_MT6797_DVFSP_VENDOR_VSRAM_STEP_10UV	2500
++#define GEMINI_MT6797_DVFSP_VENDOR_VSRAM_CODE_OFFSET	3
+ 
+ struct gemini_mt6797_dvfsp_vendor_ppm_limit {
+@@ -33,7 +50,16 @@ struct gemini_mt6797_dvfsp_vendor_ppm_cluster {
+ 	u32 frequency_khz[GEMINI_MT6797_DVFSP_VENDOR_MAX_OPP];
+ };
+ 
++struct gemini_mt6797_dvfsp_vendor_policy_row {
++	u32 state;
++	u32 cluster;
++	s32 min_cpufreq_idx;
++	s32 max_cpufreq_idx;
++	u32 min_cpu_core;
++	u32 max_cpu_core;
++};
++
+ struct gemini_mt6797_dvfsp_vendor_ppm_snapshot {
+ 	u32 abi;
+ 	u32 cluster_count;
+@@ -48,8 +74,11 @@ struct gemini_mt6797_dvfsp_vendor_ppm_snapshot {
+ 	struct gemini_mt6797_dvfsp_vendor_ppm_limit
+ 		client_limit[GEMINI_MT6797_DVFSP_VENDOR_MAX_CLUSTER];
++	u32 policy_row_count;
++	struct gemini_mt6797_dvfsp_vendor_policy_row
++		policy[GEMINI_MT6797_DVFSP_VENDOR_MAX_POLICY_ROW];
+ };
+ 
+ struct gemini_mt6797_dvfsp_vendor_cpufreq_domain {
+@@ -67,6 +96,23 @@ struct gemini_mt6797_dvfsp_vendor_cpufreq_domain {
+ 	u32 frequency_khz[GEMINI_MT6797_DVFSP_VENDOR_MAX_OPP];
+ 	u32 voltage[GEMINI_MT6797_DVFSP_VENDOR_MAX_OPP];
+ 	u32 voltage_original[GEMINI_MT6797_DVFSP_VENDOR_MAX_OPP];
++	u32 clock_owner_kind;
++	u32 clock_owner_id;
++	u32 clock_mux;
++	u32 clock_valid;
++	u32 voltage_unit;
++	u32 vproc_mode;
++	u32 vproc_base_10uv;
++	u32 vproc_step_10uv;
++	u32 vproc_code_mask;
++	u32 vsram_mode;
++	u32 vsram_base_10uv;
++	u32 vsram_step_10uv;
++	s32 vsram_code_offset;
++	u32 vsram_code_mask;
++	u32 vsram_special_count;
++	u32 vsram_special_code[GEMINI_MT6797_DVFSP_VENDOR_MAX_VSRAM_SPECIAL];
++	u32 vsram_special_10uv[GEMINI_MT6797_DVFSP_VENDOR_MAX_VSRAM_SPECIAL];
+ };
+
+ struct gemini_mt6797_dvfsp_vendor_cpufreq_snapshot {
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c b/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c
+--- a/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c
++++ b/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c
+@@ -242,6 +242,42 @@ int gemini_mt6797_dvfsp_vendor_cpufreq_snapshot(
+ 			domain->frequency_khz[j] = p->opp_tbl[j].cpufreq_khz;
+ 			domain->voltage[j] = p->opp_tbl[j].cpufreq_volt;
+ 			domain->voltage_original[j] = p->opp_tbl[j].cpufreq_volt_org;
+ 		}
++		domain->clock_owner_kind =
++			GEMINI_MT6797_DVFSP_VENDOR_CLOCK_OWNER_CPU_DVFS;
++		domain->clock_owner_id = p->cpu_id;
++		domain->clock_mux = _get_cpu_clock_switch(p);
++		domain->clock_valid = 1;
++		domain->voltage_unit =
++			GEMINI_MT6797_DVFSP_VENDOR_VOLTAGE_UNIT_10UV;
++		domain->vproc_mode =
++			GEMINI_MT6797_DVFSP_VENDOR_VPROC_EXTBUCK;
++		domain->vproc_base_10uv =
++			GEMINI_MT6797_DVFSP_VENDOR_VPROC_BASE_10UV;
++		domain->vproc_step_10uv =
++			GEMINI_MT6797_DVFSP_VENDOR_VPROC_STEP_10UV;
++		domain->vproc_code_mask =
++			GEMINI_MT6797_DVFSP_VENDOR_VPROC_CODE_MASK;
++		if (p->cpu_id == MT_CPU_DVFS_B) {
++			domain->vsram_mode =
++				GEMINI_MT6797_DVFSP_VENDOR_VSRAM_BIGIDVFS;
++		} else {
++			domain->vsram_mode =
++				GEMINI_MT6797_DVFSP_VENDOR_VSRAM_PMIC;
++			domain->vsram_base_10uv =
++				GEMINI_MT6797_DVFSP_VENDOR_VSRAM_BASE_10UV;
++			domain->vsram_step_10uv =
++				GEMINI_MT6797_DVFSP_VENDOR_VSRAM_STEP_10UV;
++			domain->vsram_code_offset =
++				GEMINI_MT6797_DVFSP_VENDOR_VSRAM_CODE_OFFSET;
++			domain->vsram_code_mask = 0xf;
++			domain->vsram_special_count =
++				GEMINI_MT6797_DVFSP_VENDOR_MAX_VSRAM_SPECIAL;
++			domain->vsram_special_code[0] = 0;
++			domain->vsram_special_code[1] = 1;
++			domain->vsram_special_code[2] = 2;
++			domain->vsram_special_10uv[0] = 105000;
++			domain->vsram_special_10uv[1] = 60000;
++			domain->vsram_special_10uv[2] = 70000;
+ 	}
+ 
+ out:
+diff --git a/drivers/misc/mediatek/base/power/ppm_v1/src/mt_ppm_main.c b/drivers/misc/mediatek/base/power/ppm_v1/src/mt_ppm_main.c
+--- a/drivers/misc/mediatek/base/power/ppm_v1/src/mt_ppm_main.c
++++ b/drivers/misc/mediatek/base/power/ppm_v1/src/mt_ppm_main.c
+@@ -389,7 +389,8 @@ int gemini_mt6797_dvfsp_vendor_ppm_snapshot(
+ {
+ 	int i, j;
++	struct ppm_power_state_data *state_info;
+ 
+ 	if (!snapshot)
+ 		return -EINVAL;
+@@ -401,6 +402,16 @@ int gemini_mt6797_dvfsp_vendor_ppm_snapshot(
+ 		ppm_main_info.client_req.cluster_num >
+ 		GEMINI_MT6797_DVFSP_VENDOR_MAX_CLUSTER ||
+ 		!ppm_main_info.client_req.cpu_limit) {
+ 		ppm_unlock(&ppm_main_info.lock);
+ 		return -ENODEV;
+ 	}
++	state_info = ppm_get_power_state_info();
++	if (!state_info)
++		goto policy_error;
++	for (i = 0; i < GEMINI_MT6797_DVFSP_VENDOR_MAX_POLICY_STATE; i++)
++		if (!state_info[i].cluster_limit ||
++			state_info[i].cluster_limit->size !=
++			GEMINI_MT6797_DVFSP_VENDOR_MAX_CLUSTER)
++			goto policy_error;
+ 
+ 	snapshot->abi = GEMINI_MT6797_DVFSP_VENDOR_STATE_ABI;
+@@ -414,4 +425,6 @@ int gemini_mt6797_dvfsp_vendor_ppm_snapshot(
+ 	snapshot->is_in_suspend = ppm_main_info.is_in_suspend;
+ 	snapshot->ptp_policy_active = ppm_main_info.client_req.is_ptp_policy_activate;
++	snapshot->policy_row_count =
++		GEMINI_MT6797_DVFSP_VENDOR_MAX_POLICY_ROW;
+ 	for (i = 0; i < ppm_main_info.cluster_num; i++) {
+ 		struct ppm_cluster_info *source = &ppm_main_info.cluster_info[i];
+@@ -451,6 +464,27 @@ int gemini_mt6797_dvfsp_vendor_ppm_snapshot(
+ 		snapshot->client_limit[i].advise_cpufreq_idx = limit->advise_cpufreq_idx;
+ 		snapshot->client_limit[i].advise_cpu_core = limit->advise_cpu_core;
+ 	}
++	for (i = 0; i < GEMINI_MT6797_DVFSP_VENDOR_MAX_POLICY_STATE; i++) {
++		for (j = 0; j < GEMINI_MT6797_DVFSP_VENDOR_MAX_CLUSTER; j++) {
++			const struct ppm_cluster_limit *limit =
++				&state_info[i].cluster_limit->state_limit[j];
++			struct gemini_mt6797_dvfsp_vendor_policy_row *row =
++				&snapshot->policy[i *
++					GEMINI_MT6797_DVFSP_VENDOR_MAX_CLUSTER + j];
++
++			row->state = state_info[i].state;
++			row->cluster = j;
++			row->min_cpufreq_idx = limit->min_cpufreq_idx;
++			row->max_cpufreq_idx = limit->max_cpufreq_idx;
++			row->min_cpu_core = limit->min_cpu_core;
++			row->max_cpu_core = limit->max_cpu_core;
++		}
++	}
+ 
+ 	ppm_unlock(&ppm_main_info.lock);
+ 	return 0;
++policy_error:
++	ppm_unlock(&ppm_main_info.lock);
++	return -EPROTO;
+ }
+ EXPORT_SYMBOL_GPL(gemini_mt6797_dvfsp_vendor_ppm_snapshot);
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
+--- a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
++++ b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
+@@ -92,6 +92,7 @@ static int gemini_mt6797_dvfsp_vendor_source_snapshot(
+ 	    cpufreq.abi != GEMINI_MT6797_DVFSP_VENDOR_STATE_ABI ||
+ 	    cpufreq.domain_count != GEMINI_MT6797_DVFSP_VENDOR_MAX_DOMAIN ||
++	    ppm.policy_row_count != GEMINI_MT6797_DVFSP_VENDOR_MAX_POLICY_ROW ||
+ 	    cspm.abi != GEMINI_MT6797_DVFSP_VENDOR_STATE_ABI ||
+ 	    cspm.cluster_count != GEMINI_MT6797_DVFSP_VENDOR_MAX_CLUSTER + 1 ||
+@@ -149,6 +150,17 @@ static int gemini_mt6797_dvfsp_vendor_source_snapshot(
+ 		dst->ppm[i].advise_cpu_core = ppm.client_limit[i].advise_cpu_core;
+ 	}
++	dst->policy_row_count = ppm.policy_row_count;
++	for (i = 0; i < ppm.policy_row_count; i++) {
++		dst->policy[i].state = ppm.policy[i].state;
++		dst->policy[i].cluster = ppm.policy[i].cluster;
++		dst->policy[i].min_cpufreq_idx =
++			ppm.policy[i].min_cpufreq_idx;
++		dst->policy[i].max_cpufreq_idx =
++			ppm.policy[i].max_cpufreq_idx;
++		dst->policy[i].min_cpu_core = ppm.policy[i].min_cpu_core;
++		dst->policy[i].max_cpu_core = ppm.policy[i].max_cpu_core;
++	}
+ 	for (i = 0; i < cpufreq.domain_count; i++) {
+@@ -186,4 +198,33 @@ static int gemini_mt6797_dvfsp_vendor_source_snapshot(
+ 		dst->cpufreq[i].current_vsram = cpufreq.domain[i].current_vsram;
++		dst->cpufreq[i].clock_owner_kind =
++			cpufreq.domain[i].clock_owner_kind;
++		dst->cpufreq[i].clock_owner_id = cpufreq.domain[i].clock_owner_id;
++		dst->cpufreq[i].clock_mux = cpufreq.domain[i].clock_mux;
++		dst->cpufreq[i].clock_valid = cpufreq.domain[i].clock_valid;
++		dst->cpufreq[i].voltage_unit = cpufreq.domain[i].voltage_unit;
++		dst->cpufreq[i].vproc_mode = cpufreq.domain[i].vproc_mode;
++		dst->cpufreq[i].vproc_base_10uv =
++			cpufreq.domain[i].vproc_base_10uv;
++		dst->cpufreq[i].vproc_step_10uv =
++			cpufreq.domain[i].vproc_step_10uv;
++		dst->cpufreq[i].vproc_code_mask =
++			cpufreq.domain[i].vproc_code_mask;
++		dst->cpufreq[i].vsram_mode = cpufreq.domain[i].vsram_mode;
++		dst->cpufreq[i].vsram_base_10uv =
++			cpufreq.domain[i].vsram_base_10uv;
++		dst->cpufreq[i].vsram_step_10uv =
++			cpufreq.domain[i].vsram_step_10uv;
++		dst->cpufreq[i].vsram_code_offset =
++			cpufreq.domain[i].vsram_code_offset;
++		dst->cpufreq[i].vsram_code_mask = cpufreq.domain[i].vsram_code_mask;
++		dst->cpufreq[i].vsram_special_count =
++			cpufreq.domain[i].vsram_special_count;
++		for (j = 0; j < GEMINI_MT6797_DVFSP_VENDOR_MAX_VSRAM_SPECIAL; j++) {
++			dst->cpufreq[i].vsram_special_code[j] =
++				cpufreq.domain[i].vsram_special_code[j];
++			dst->cpufreq[i].vsram_special_10uv[j] =
++				cpufreq.domain[i].vsram_special_10uv[j];
++		}
+ 		if (cpufreq.domain[i].opp_count >
+ 		    MT6797_DVFSP_VENDOR_SOURCE_MAX_OPP) {
+-- 
+2.39.5

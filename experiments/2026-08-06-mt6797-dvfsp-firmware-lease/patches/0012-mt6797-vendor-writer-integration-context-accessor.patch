@@ -16,7 +16,7 @@ an owner, register a provider, replace a vendor callback, or access hardware.
 diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
 --- a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
 +++ b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
-@@ -397,6 +397,13 @@ gemini_mt6797_dvfsp_vendor_writer_integration_ops(void)
+@@ -397,5 +397,11 @@ gemini_mt6797_dvfsp_vendor_writer_integration_ops(void)
  }
  EXPORT_SYMBOL_GPL(gemini_mt6797_dvfsp_vendor_writer_integration_ops);
 +

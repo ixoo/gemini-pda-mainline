@@ -1,0 +1,75 @@
+From 0000000000000000000000000000000000000010 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 11 Aug 2026 04:00:00 -0400
+Subject: [PATCH] power: expose source-backed EEM voltage-unit metadata
+
+Carry the pinned vendor EEM detector's documented 10uV unit and per-detector
+base/step conversion metadata through the read-only source observation path.
+The adapter retains the raw tables and performs no conversion or write.
+
+This anchored replacement supersedes the historical zero-context patch with
+the same logical change; policy rows, clock ownership, provider registration,
+and hardware actions remain closed.
+---
+ drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-state.h | 8 ++++++++
+ drivers/misc/mediatek/base/power/mt6797/mt_eem.c | 7 +++++++
+ drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c | 8 ++++++++
+ 3 files changed, 23 insertions(+)
+
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-state.h b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-state.h
+--- a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-state.h
++++ b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-state.h
+@@ -19,3 +19,4 @@
+ #define GEMINI_MT6797_DVFSP_VENDOR_MAX_DETECTOR	6
+ #define GEMINI_MT6797_DVFSP_VENDOR_MAX_FREQ	16
++#define GEMINI_MT6797_DVFSP_VENDOR_EEM_VOLTAGE_UNIT_10UV	1
+ 
+ struct gemini_mt6797_dvfsp_vendor_ppm_limit {
+@@ -96,8 +97,15 @@ struct gemini_mt6797_dvfsp_vendor_eem_detector {
+ 	u32 features;
+ 	u32 num_freq;
+ 	u32 max_freq_khz;
+ 	u32 disabled;
++	u32 voltage_unit;
++	u32 eem_v_base;
++	u32 eem_step;
++	u32 pmic_base;
++	u32 pmic_step;
++	s32 volt_offset;
++	s32 pi_offset;
+ 	u8 frequency_percent[GEMINI_MT6797_DVFSP_VENDOR_MAX_FREQ];
+ 	u32 volt_tbl[GEMINI_MT6797_DVFSP_VENDOR_MAX_FREQ];
+ 	u32 volt_tbl_init2[GEMINI_MT6797_DVFSP_VENDOR_MAX_FREQ];
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt_eem.c b/drivers/misc/mediatek/base/power/mt6797/mt_eem.c
+--- a/drivers/misc/mediatek/base/power/mt6797/mt_eem.c
++++ b/drivers/misc/mediatek/base/power/mt6797/mt_eem.c
+@@ -6645,4 +6645,11 @@ int gemini_mt6797_dvfsp_vendor_eem_snapshot(
+ 		dst->max_freq_khz = det->max_freq_khz;
+ 		dst->disabled = det->disabled;
++		dst->voltage_unit = GEMINI_MT6797_DVFSP_VENDOR_EEM_VOLTAGE_UNIT_10UV;
++		dst->eem_v_base = det->eem_v_base;
++		dst->eem_step = det->eem_step;
++		dst->pmic_base = det->pmic_base;
++		dst->pmic_step = det->pmic_step;
++		dst->volt_offset = det->volt_offset;
++		dst->pi_offset = det->pi_offset;
+ 		for (j = 0; j < det->num_freq_tbl; j++) {
+ 			dst->frequency_percent[j] = det->freq_tbl[j];
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
+--- a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
++++ b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
+@@ -1033,4 +1033,12 @@ static int gemini_mt6797_dvfsp_vendor_source_snapshot(
+ 		dst->eem[i].max_freq_khz = eem.detector[i].max_freq_khz;
+ 		dst->eem[i].disabled = eem.detector[i].disabled;
++		dst->eem[i].voltage_unit =
++			GEMINI_MT6797_DVFSP_VENDOR_EEM_VOLTAGE_UNIT_10UV;
++		dst->eem[i].eem_v_base = eem.detector[i].eem_v_base;
++		dst->eem[i].eem_step = eem.detector[i].eem_step;
++		dst->eem[i].pmic_base = eem.detector[i].pmic_base;
++		dst->eem[i].pmic_step = eem.detector[i].pmic_step;
++		dst->eem[i].volt_offset = eem.detector[i].volt_offset;
++		dst->eem[i].pi_offset = eem.detector[i].pi_offset;
+ 		if (eem.detector[i].num_freq >
+ 		    MT6797_DVFSP_VENDOR_SOURCE_MAX_FREQ) {
+-- 
+2.39.5
