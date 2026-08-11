@@ -1512,3 +1512,14 @@ This is provenance/build evidence only: no device action, hardware write,
 runtime-owner registration, provider registration, or CPU8/CPU9 admission is
 claimed. The next ordered gate remains explicit read-only runtime epoch and
 calibration-handle evidence.
+
+The next distinct read-only census searched bounded debugfs, sysfs, device-tree,
+and vendor `/proc` identity surfaces on boot `6d50bdf0-7a85-4083-9917-4591a4aca32d`.
+It found the expected `cpuhvfs` debugfs endpoints and active PPM/EEM/cpufreq
+surfaces, but no attributable epoch, generation, calibration handle, owner
+token, or shared transition lock in either endpoint names or the first 4096
+bytes of each candidate. CPU0 was the only online CPU in this sample; CPUs
+0–9 remained present/possible. See the [runtime identity-surface census](results/runtime-identity-surface-census-20260811.txt).
+This remains read-only evidence: provider registration, boot/write, and CPU8/
+CPU9 admission stay closed. The next implementation is an explicit vendor
+epoch/calibration-handle owner contract, followed by a new read-only validation.

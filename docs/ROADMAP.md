@@ -3370,6 +3370,19 @@ vendor-series compile, followed by read-only runtime observation plus explicit
 mutable epoch and calibration-handle evidence; no provider registration,
 device boot/write, or CPU8/CPU9 admission follows from this build.
 
+The distinct follow-up read-only census searched bounded debugfs, sysfs,
+device-tree, and vendor `/proc` identity surfaces on boot
+`6d50bdf0-7a85-4083-9917-4591a4aca32d`. It found the expected `cpuhvfs`
+debugfs endpoints and active PPM/EEM/cpufreq surfaces, but no attributable
+epoch, generation, calibration handle, owner token, or shared transition lock
+in endpoint names or the first 4096 bytes of each candidate; see the [runtime
+identity-surface census](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/runtime-identity-surface-census-20260811.txt).
+CPU0 was the only online CPU in this sample while CPUs 0–9 remained
+present/possible. This keeps the runtime-owner gate closed and is not CPU8/CPU9
+support evidence. The next ordered implementation is an explicit vendor
+epoch/calibration-handle owner contract, followed by new read-only validation;
+do not boot or write a device.
+
 Required evidence:
 
 - provider registration performs no register-data write;
