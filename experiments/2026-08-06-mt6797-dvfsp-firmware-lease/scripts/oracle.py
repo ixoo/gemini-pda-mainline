@@ -115,6 +115,8 @@ VENDOR_SOURCE_POLICY_CLOCK_RAIL_BUILD_RESULT = (Path(__file__).resolve().parents
                                                 "results/vendor-policy-clock-rail-buildbox-20260811.txt")
 MAINLINE_POLICY_CLOCK_RAIL_QEMU_RESULT = (Path(__file__).resolve().parents[1] /
                                           "results/mainline-policy-clock-rail-qemu-20260811.txt")
+MAINLINE_RESUME_BUILD_RESULT = (Path(__file__).resolve().parents[1] /
+                                "results/buildbox-resume-b52925d-20260811.txt")
 VENDOR_LIFECYCLE_CANDIDATE_AUDIT_RESULT = (Path(__file__).resolve().parents[1] /
                                            "results/vendor-lifecycle-candidate-audit-buildbox-20260811.txt")
 VENDOR_CALLER_LIFECYCLE_AUDIT_RESULT = (Path(__file__).resolve().parents[1] /
@@ -320,6 +322,7 @@ def main() -> None:
     vendor_source_eem_unit_qemu_result = VENDOR_SOURCE_EEM_UNIT_QEMU_RESULT.read_text()
     vendor_source_policy_clock_rail_build_result = VENDOR_SOURCE_POLICY_CLOCK_RAIL_BUILD_RESULT.read_text()
     mainline_policy_clock_rail_qemu_result = MAINLINE_POLICY_CLOCK_RAIL_QEMU_RESULT.read_text()
+    mainline_resume_build_result = MAINLINE_RESUME_BUILD_RESULT.read_text()
     vendor_lifecycle_candidate_audit_result = VENDOR_LIFECYCLE_CANDIDATE_AUDIT_RESULT.read_text()
     vendor_caller_lifecycle_audit_result = VENDOR_CALLER_LIFECYCLE_AUDIT_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
@@ -1164,6 +1167,30 @@ def main() -> None:
         ("decision=isolated_policy_clock_rail_mapping_passed;no_device_claim", "mainline-policy-clock-rail-qemu-decision"),
     ):
         require(mainline_policy_clock_rail_qemu_result, needle, label)
+
+    for needle, label in (
+        ("claim=COMPILE_ONLY_MAINLINE_POLICY_CLOCK_RAIL_REBUILD", "mainline-resume-build-claim"),
+        ("repository_commit=b52925ddb9d4f733766fb128c332846d701f3f9a", "mainline-resume-build-commit"),
+        ("backend=buildbox", "mainline-resume-build-backend"),
+        ("build_profile=full", "mainline-resume-build-profile"),
+        ("buildbox_job=b52925ddb9d4f733766fb128c332846d701f3f9a-full-m0", "mainline-resume-build-job"),
+        ("artifact=linux-7.1.3-gemini-2116a01f0495", "mainline-resume-build-artifact"),
+        ("patch_count=255", "mainline-resume-build-patches"),
+        ("dtb_count=119", "mainline-resume-build-dtbs"),
+        ("patchset_sha256=2116a01f04958455098799fe2b53ae1889d119f1e5921557bf14d9fd5e4c0fe5", "mainline-resume-build-patchset"),
+        ("config_sha256=d8a4d95723824a07bf50aab07795a05bb5b7244d88a969073b7629bc33dac24f", "mainline-resume-build-config"),
+        ("image_gzip_sha256=2416c6ef01a15faad5cb728a98aa4b5ea700f4d277d086319cd8fe09c68887ae", "mainline-resume-build-image"),
+        ("sha256sums=passed", "mainline-resume-build-checksums"),
+        ("package_fetch=validated-package-only", "mainline-resume-build-fetch"),
+        ("hardware_write=none", "mainline-resume-build-no-write"),
+        ("device_action=none", "mainline-resume-build-no-action"),
+        ("boot_candidate=false", "mainline-resume-build-not-candidate"),
+        ("provider_registration=none", "mainline-resume-build-no-provider"),
+        ("runtime_owner_registration=none", "mainline-resume-build-no-runtime-owner"),
+        ("cpu8_cpu9_admission=closed", "mainline-resume-build-no-admission"),
+        ("decision=mainline_policy_clock_rail_rebuild_validated;vendor_lifecycle_runtime_candidate_remains_next;no_device_claim", "mainline-resume-build-decision"),
+    ):
+        require(mainline_resume_build_result, needle, label)
 
     for needle, label in (
         ("claim=SOURCE_ONLY_MT6797_VENDOR_LIFECYCLE_CANDIDATE_AUDIT", "vendor-lifecycle-audit-claim"),

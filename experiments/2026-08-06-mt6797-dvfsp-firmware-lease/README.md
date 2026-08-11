@@ -1449,3 +1449,8 @@ support, and CPU8/CPU9 admission remain closed; the next gate is a separate
 vendor-aware caller lifecycle/runtime candidate with read-only device evidence.
 The exact current probe/remove sites and missing event-forwarding paths are
 recorded in the [lifecycle candidate audit](results/vendor-lifecycle-candidate-audit-buildbox-20260811.txt).
+The same full profile was then rebuilt from the pushed documentation/oracle
+commit `b52925d`; Buildbox again validated 255 patches, 119 DTBs, package
+checksums, and the fetched artifact. See the [resume receipt](results/buildbox-resume-b52925d-20260811.txt).
+This is a provenance rebuild only; it does not change the closed provider,
+runtime-owner, hardware, or CPU8/CPU9 gates.

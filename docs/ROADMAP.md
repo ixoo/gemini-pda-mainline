@@ -3269,6 +3269,11 @@ identity on Gemian, and keeps provider registration default-off until those
 checks pass. No device boot/write or CPU8/CPU9 admission follows from this
 mapping result. The exact current vendor probe/remove sites and missing
 event-forwarding paths are recorded in the [lifecycle candidate audit](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-lifecycle-candidate-audit-buildbox-20260811.txt).
+The full profile was subsequently rebuilt from the pushed commit `b52925d` on
+Buildbox, again validating 255 patches, 119 DTBs, package checksums, and a
+validated-package-only fetch; see the [resume receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/buildbox-resume-b52925d-20260811.txt).
+This is provenance-only revalidation and does not advance provider, runtime,
+hardware, or CPU8/CPU9 admission.
 
 Required evidence:
 
