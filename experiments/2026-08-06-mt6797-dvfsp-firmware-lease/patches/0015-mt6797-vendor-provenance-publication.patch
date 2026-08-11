@@ -143,19 +143,13 @@ diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.
  int gemini_mt6797_dvfsp_vendor_writer_transaction_event(
  	struct gemini_mt6797_dvfsp_vendor_writer_transaction *transaction,
  	unsigned int type, unsigned int cpu)
-@@ -849,11 +939,18 @@ int gemini_mt6797_dvfsp_vendor_writer_finish(
- 				if (abort_ret)
- 					ret = abort_ret;
- 			}
- 		}
- 	}
+@@ -850,5 +940,12 @@ int gemini_mt6797_dvfsp_vendor_writer_finish(
 +	if (!ret && transaction->table_update) {
 +		if (gemini_mt6797_dvfsp_vendor_writer_table_epoch == ~0ULL)
 +			ret = -EOVERFLOW;
 +		else
 +			gemini_mt6797_dvfsp_vendor_writer_table_epoch++;
 +	}
- 
  	transaction->site = GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_COUNT;
  	transaction->generation = 0;
  	transaction->owner_handle = 0;
@@ -305,27 +299,19 @@ diff --git a/drivers/misc/mediatek/base/power/mt6797/mt_eem.c b/drivers/misc/med
 +	}
  
  	#if (defined(__KERNEL__) && !defined(EARLY_PORTING))
-@@ -5133,4 +5141,5 @@
+@@ -5135,2 +5143,3 @@ static int eem_resume(struct platform_device *pdev)
  static int eem_resume(struct platform_device *pdev)
  {
 +	int ret;
- 	/*
- 	kthread_stop(eem_volt_thread);
-@@ -5145,5 +5154,9 @@
- 	#endif
- 	mt_cpufreq_eem_resume();
- 	#endif
+@@ -5148,1 +5158,5 @@
 +	gemini_mt6797_dvfsp_vendor_writer_invalidate_calibration_handle();
  	eem_init02();
 +	ret = gemini_mt6797_dvfsp_vendor_writer_publish_calibration_handle();
 +	if (ret)
 +		return ret;
- 	FUNC_EXIT(FUNC_LV_MODULE);
-@@ -6560,3 +6577,4 @@
+@@ -6561,1 +6578,2 @@ static void __exit eem_exit(void)
  	FUNC_ENTER(FUNC_LV_MODULE);
- 	eem_debug("eem de-initialization\\n");
 +	gemini_mt6797_dvfsp_vendor_writer_invalidate_calibration_handle();
- 	FUNC_EXIT(FUNC_LV_MODULE);
 diff --git a/drivers/misc/mediatek/base/power/ppm_v1/src/mt_ppm_api.c b/drivers/misc/mediatek/base/power/ppm_v1/src/mt_ppm_api.c
 --- a/drivers/misc/mediatek/base/power/ppm_v1/src/mt_ppm_api.c
 +++ b/drivers/misc/mediatek/base/power/ppm_v1/src/mt_ppm_api.c
@@ -361,17 +347,12 @@ diff --git a/drivers/misc/mediatek/base/power/ppm_v1/src/mt_ppm_api.c b/drivers/
 +			}
 +
  			ppm_lock(&ppm_main_info.lock);
-@@ -52,6 +68,11 @@ void mt_ppm_set_dvfs_table(unsigned int cpu, struct cpufreq_frequency_table *tbl,
- 				}
- 
- 				ppm_unlock(&ppm_main_info.lock);
-+				writer_ret = gemini_mt6797_dvfsp_vendor_writer_finish(
-+					&writer_transaction, 0);
-+				if (writer_ret)
-+					ppm_err("DVFSP writer bridge failed PPM table commit: %d\\n",
-+						writer_ret);
- 
- 				FUNC_EXIT(FUNC_LV_API);
- 				return;
+@@ -54,1 +64,6 @@ void mt_ppm_set_dvfs_table(unsigned int cpu, struct cpufreq_frequency_table *tbl,
+ 			ppm_unlock(&ppm_main_info.lock);
++			writer_ret = gemini_mt6797_dvfsp_vendor_writer_finish(
++				&writer_transaction, 0);
++			if (writer_ret)
++				ppm_err("DVFSP writer bridge failed PPM table commit: %d\\n",
++					writer_ret);
 -- 
 2.39.5
