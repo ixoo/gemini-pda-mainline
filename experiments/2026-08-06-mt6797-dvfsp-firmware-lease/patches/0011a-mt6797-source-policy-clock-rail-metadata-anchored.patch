@@ -22,16 +22,7 @@ outside this experiment-only boundary.
 diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-state.h b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-state.h
 --- a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-state.h
 +++ b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-state.h
-@@ -11,11 +11,28 @@
- #define __MT6797_DVFSP_VENDOR_STATE_H__
- 
- #include <linux/types.h>
- 
--#define GEMINI_MT6797_DVFSP_VENDOR_STATE_ABI	1
-+#define GEMINI_MT6797_DVFSP_VENDOR_STATE_ABI	2
- #define GEMINI_MT6797_DVFSP_VENDOR_MAX_CLUSTER	3
- #define GEMINI_MT6797_DVFSP_VENDOR_MAX_DOMAIN	4
- #define GEMINI_MT6797_DVFSP_VENDOR_MAX_OPP	16
+@@ -17,3 +17,20 @@
  #define GEMINI_MT6797_DVFSP_VENDOR_MAX_DETECTOR	6
  #define GEMINI_MT6797_DVFSP_VENDOR_MAX_FREQ	16
  #define GEMINI_MT6797_DVFSP_VENDOR_EEM_VOLTAGE_UNIT_10UV	1
