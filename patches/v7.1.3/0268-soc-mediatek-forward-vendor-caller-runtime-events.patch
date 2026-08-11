@@ -11,18 +11,18 @@ it does not discover vendor symbols, register a provider, touch hardware, or
 admit CPUs 8/9.
 ---
  drivers/soc/mediatek/mt6797-dvfsp-vendor-coordinator.c | 13 +++++++++++++
- drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c  | 12 ++++++++++++
- drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c       | 26 +++++++++++++++++++++++---
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c  | 10 ++++++++++
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c       | 17 ++++++++++++++---
  include/linux/soc/mediatek/mt6797-dvfsp-vendor-coordinator.h | 4 ++++
  include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h | 5 +++++
- 5 files changed, 56 insertions(+), 4 deletions(-)
+ 5 files changed, 46 insertions(+), 3 deletions(-)
 
 diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h
 --- a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h
 +++ b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h
-@@ -143,6 +143,11 @@ int mt6797_dvfsp_vendor_owner_unbind_writer_integration(
+@@ -143,5 +143,10 @@ int mt6797_dvfsp_vendor_owner_unbind_writer_integration(
  	struct mt6797_dvfsp_vendor_owner *owner);
-
+ 
 +/* Invalidate the shared source, then forward one vendor lifecycle event. */
 +int mt6797_dvfsp_vendor_owner_forward_runtime_event(
 +	struct mt6797_dvfsp_vendor_owner *owner, unsigned int type,
@@ -34,9 +34,9 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h b/include/li
 diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c
 --- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c
-@@ -92,19 +92,39 @@ static const struct mt6797_dvfsp_vendor_owner_lifecycle_ops
+@@ -92,19 +92,30 @@ static const struct mt6797_dvfsp_vendor_owner_lifecycle_ops
  	mt6797_dvfsp_vendor_owner_integration_lifecycle_ops;
-
+ 
 -static int mt6797_dvfsp_vendor_owner_runtime_event(
 -	void *context, unsigned int type, unsigned int cpu)
 +int mt6797_dvfsp_vendor_owner_forward_runtime_event(
@@ -44,7 +44,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c b/drivers/soc/medi
 +	unsigned int cpu)
  {
 -	struct mt6797_dvfsp_vendor_owner *owner = context;
-
+ 
  	if (!owner || !owner->writer_integration_bound ||
  	    !owner->source.initialized || !owner->ops.writer_runtime_ops ||
  	    !owner->ops.writer_runtime_ops->event)
@@ -57,7 +57,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c b/drivers/soc/medi
  		owner->ops.writer_runtime_context, type, cpu);
  }
 +EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_owner_forward_runtime_event);
-
++
 +static int mt6797_dvfsp_vendor_owner_runtime_event(
 +	void *context, unsigned int type, unsigned int cpu)
 +{
@@ -88,7 +88,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-coordinator.c b/drivers/so
 @@ -47,6 +47,19 @@ int mt6797_dvfsp_vendor_coordinator_start(
  }
  EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_coordinator_start);
-
+ 
 +int mt6797_dvfsp_vendor_coordinator_forward_runtime_event(
 +	struct mt6797_dvfsp_vendor_coordinator *coordinator,
 +	unsigned int type, unsigned int cpu)
@@ -108,7 +108,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-coordinator.c b/drivers/so
 diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
 --- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
-@@ -604,6 +604,12 @@ static void mt6797_dvfsp_vendor_owner_coordinator_stages_lifecycle(
+@@ -604,7 +604,13 @@ static void mt6797_dvfsp_vendor_owner_coordinator_stages_lifecycle(
  	KUNIT_EXPECT_TRUE(test, integration.mainline_registered);
  	KUNIT_EXPECT_TRUE(test, owner.writer_registered);
  	KUNIT_EXPECT_EQ(test, integration.bind_calls, 1U);
@@ -122,7 +122,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c b/drivers/soc
  	KUNIT_EXPECT_EQ(test,
  		mt6797_dvfsp_vendor_coordinator_start(&coordinator, &owner,
  			&mt6797_dvfsp_vendor_test_integration_ops, &integration), -EBUSY);
-@@ -621,6 +627,12 @@ static void mt6797_dvfsp_vendor_owner_coordinator_stages_lifecycle(
+@@ -621,7 +627,11 @@ static void mt6797_dvfsp_vendor_owner_coordinator_stages_lifecycle(
  	KUNIT_ASSERT_EQ(test,
  		mt6797_dvfsp_vendor_coordinator_stop(&coordinator), 0);
  	KUNIT_EXPECT_FALSE(test,
