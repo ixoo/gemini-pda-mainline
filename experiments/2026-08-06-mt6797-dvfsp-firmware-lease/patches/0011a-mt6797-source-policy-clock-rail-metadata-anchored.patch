@@ -95,7 +95,7 @@ diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-state.h
 diff --git a/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c b/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c
 --- a/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c
 +++ b/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c
-@@ -242,7 +242,43 @@ int gemini_mt6797_dvfsp_vendor_cpufreq_snapshot(
+@@ -242,7 +242,44 @@ int gemini_mt6797_dvfsp_vendor_cpufreq_snapshot(
  			domain->frequency_khz[j] = p->opp_tbl[j].cpufreq_khz;
  			domain->voltage[j] = p->opp_tbl[j].cpufreq_volt;
  			domain->voltage_original[j] = p->opp_tbl[j].cpufreq_volt_org;
@@ -137,7 +137,7 @@ diff --git a/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c b/drivers/misc
 +			domain->vsram_special_10uv[1] = 60000;
 +			domain->vsram_special_10uv[2] = 70000;
 +		}
-	}
+ 	}
  
  out:
 diff --git a/drivers/misc/mediatek/base/power/ppm_v1/src/mt_ppm_main.c b/drivers/misc/mediatek/base/power/ppm_v1/src/mt_ppm_main.c
