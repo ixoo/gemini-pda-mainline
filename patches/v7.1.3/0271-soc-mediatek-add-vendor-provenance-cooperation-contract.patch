@@ -18,19 +18,19 @@ fail-closed.
  drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c | 13 ++++++++++++
  drivers/soc/mediatek/mt6797-dvfsp-vendor-source.c      | 36 ++++++++++++++++++++
  include/linux/soc/mediatek/mt6797-dvfsp-vendor-source.h | 24 ++++++++++++++++
- 3 files changed, 73 insertions(+)
+ 3 files changed, 64 insertions(+)
 
 diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-source.h b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-source.h
 --- a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-source.h
 +++ b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-source.h
-@@ -18,6 +18,7 @@
+@@ -18,5 +18,6 @@
  #define MT6797_DVFSP_VENDOR_SOURCE_ALL		GENMASK(3, 0)
  #define MT6797_DVFSP_VENDOR_SOURCE_IDENTITY_OBSERVATION_ABI	1
 +#define MT6797_DVFSP_VENDOR_SOURCE_PROVENANCE_ABI	1
  #define MT6797_DVFSP_VENDOR_SOURCE_IDENTITY_FUNCTION_WORD	BIT(0)
  #define MT6797_DVFSP_VENDOR_SOURCE_IDENTITY_DATE_WORD	BIT(1)
  #define MT6797_DVFSP_VENDOR_SOURCE_IDENTITY_CPU_BIN	BIT(2)
-@@ -170,6 +171,16 @@
+@@ -170,5 +171,15 @@
  	u32 ppm_table_type;
  };
 +/* The vendor must prove these fields against one source snapshot. */
@@ -46,14 +46,14 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-source.h b/include/l
  
  struct mt6797_dvfsp_vendor_source_ops {
  	u32 abi;
-@@ -180,6 +191,9 @@
+@@ -180,3 +191,6 @@
  	int (*read_identity_observation)(void *context,
  			struct mt6797_dvfsp_vendor_source_identity_observation *observation);
 +	int (*read_provenance)(void *context,
 +			const struct mt6797_dvfsp_vendor_source_snapshot *snapshot,
 +			struct mt6797_dvfsp_vendor_source_provenance *provenance);
  };
-@@ -216,6 +230,10 @@
+@@ -216,5 +230,9 @@
  int mt6797_dvfsp_vendor_source_identity_observation(
  	struct mt6797_dvfsp_vendor_source *source,
  	struct mt6797_dvfsp_vendor_source_identity_observation *observation);
@@ -63,11 +63,10 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-source.h b/include/l
 +	struct mt6797_dvfsp_vendor_source_provenance *provenance);
  void mt6797_dvfsp_vendor_source_invalidate(
  	struct mt6797_dvfsp_vendor_source *source);
-
 diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-source.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-source.c
 --- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-source.c
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-source.c
-@@ -21,7 +21,8 @@ static int mt6797_dvfsp_vendor_source_ops_check(
+@@ -21,6 +21,6 @@ static int mt6797_dvfsp_vendor_source_ops_check(
  	if (!ops || ops->abi != MT6797_DVFSP_VENDOR_SOURCE_ABI ||
  		!ops->snapshot || !ops->read_identity ||
 -		!ops->read_identity_observation)
@@ -75,7 +74,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-source.c b/drivers/soc/med
  		return -EINVAL;
  	return 0;
  }
-@@ -240,6 +241,41 @@
+@@ -240,5 +241,35 @@
  EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_source_identity_observation);
  
 +int mt6797_dvfsp_vendor_source_provenance(
@@ -109,13 +108,13 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-source.c b/drivers/soc/med
 +EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_source_provenance);
 +
  void mt6797_dvfsp_vendor_source_invalidate(
- 	struct mt6797_dvfsp_vendor_source *source)
+	struct mt6797_dvfsp_vendor_source *source)
  {
-
+ 
 diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
 --- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
-@@ -438,6 +438,18 @@ static int mt6797_dvfsp_vendor_test_source_identity_observation(
+@@ -438,5 +438,23 @@ static int mt6797_dvfsp_vendor_test_source_identity_observation(
  	return 0;
  }
  
@@ -139,7 +138,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c b/drivers/soc
 +
  static const struct mt6797_dvfsp_vendor_source_ops
  mt6797_dvfsp_vendor_test_source_ops = {
-@@ -447,6 +459,7 @@ static const struct mt6797_dvfsp_vendor_source_ops
+@@ -447,4 +459,5 @@ static const struct mt6797_dvfsp_vendor_source_ops
  	.read_identity = mt6797_dvfsp_vendor_test_source_identity,
  	.read_identity_observation =
  		mt6797_dvfsp_vendor_test_source_identity_observation,
