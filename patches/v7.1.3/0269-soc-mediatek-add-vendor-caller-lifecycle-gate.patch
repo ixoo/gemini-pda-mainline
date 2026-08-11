@@ -21,7 +21,7 @@ admission.
 diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-coordinator.h b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-coordinator.h
 --- a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-coordinator.h
 +++ b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-coordinator.h
-@@ -17,5 +17,9 @@ struct mt6797_dvfsp_vendor_coordinator {
+@@ -17,4 +17,8 @@ struct mt6797_dvfsp_vendor_coordinator {
  	struct mt6797_dvfsp_vendor_owner *owner;
  	const struct mt6797_dvfsp_vendor_integration_ops *integration_ops;
  	void *integration_context;
@@ -30,7 +30,6 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-coordinator.h b/incl
 +	const struct mt6797_dvfsp_vendor_integration_ops *caller_integration_ops;
 +	void *caller_integration_context;
 +	bool caller_bound;
- };
 @@ -22,1 +26,17 @@ struct mt6797_dvfsp_vendor_coordinator {
  };
 +
