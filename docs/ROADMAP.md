@@ -3323,6 +3323,18 @@ identity/invalidation evidence is absent, and CPU8/CPU9 admission remains
 closed. The next ordered gate is read-only runtime identity and invalidation
 evidence for a real owner; do not boot or write a device.
 
+A fresh bounded read-only probe of the named Gemian runtime found active
+vendor PPM/EEM state and nonzero EEM calibration records, while CPU1 was
+offline in three consecutive samples and CPUs 0-9 remained present/possible.
+The exported surfaces still contain no attributable owner, mutable-table
+epoch, transition lock, or calibration handle; see the [EEM/PPM identity
+surface review](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/runtime-eem-ppm-identity-review-20260811.txt).
+This distinguishes available vendor calibration payload from an owner
+identity and does not open provider, boot, write, or CPU8/CPU9 admission. The
+next implementation is a source-owned identity-observation handoff, followed
+by explicit epoch and calibration-handle evidence before any runtime owner
+registration.
+
 Required evidence:
 
 - provider registration performs no register-data write;

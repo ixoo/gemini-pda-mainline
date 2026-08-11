@@ -1,0 +1,44 @@
+# Gemian read-only EEM/PPM identity-surface review
+
+generated_utc=2026-08-11T04:48:18Z
+claim=READ_ONLY_GEMIAN_DVFSP_EEM_PPM_IDENTITY_SURFACE_REVIEW
+target=gemini@192.168.1.50
+transport=ssh
+os=Gemian
+kernel=3.18.41+
+architecture=aarch64
+device_action=none
+hardware_write=none
+backup=none
+cpu_possible=0-9
+cpu_present=0-9
+cpu_online=0;three_samples_one_second_apart
+ppm_enabled=1
+ppm_mode=Performance
+ppm_root_cluster=-1
+ppm_current_state=LL_ONLY
+ppm_policy_entries=11_enabled
+ppm_table_family=SB0119;matches_prior_read_only_frequency_observation
+eem_surface=/proc/eem/eem_dump
+eem_bank=0
+eem_mode=init1
+eem_calibration_records=nonzero_M_HW_RES_records_observed;raw_payload_not_retained
+cpufreq_current=1547000_khz
+cpufreq_oppidx=0
+cpufreq_vproc=1170_mv
+cpufreq_vsram=1200_mv
+owner_endpoint=absent
+authoritative_generation=absent
+authoritative_epoch=absent
+authoritative_transition_lock=absent
+owner_token=absent
+runtime_owner_registration=none
+provider=none
+hardware_support_claim=NONE
+boot_candidate=false
+cpu8_cpu9_admission=closed
+
+observation=The ordinary Gemian runtime exposes active vendor PPM policy and EEM calibration readback, but the bounded surfaces do not publish an attributable mainline owner, mutable-table epoch, transition lock, or calibration handle.
+observation=CPU1 was offline for all three samples while CPUs 0-9 remained present and possible; this is a vendor-runtime state observation, not evidence that the mainline CPU8/CPU9 path is safe.
+decision=vendor_calibration_payload_present_but_owner_identity_unbound;do_not_register_provider_or_write_device
+next=keep_provider_default_off;add_source-owned_identity_observation_handoff;require_explicit_epoch_and_calibration_handle_before_runtime_owner_registration
