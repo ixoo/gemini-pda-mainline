@@ -1503,3 +1503,12 @@ This closes the cross-tree compile gate only: no real owner is bound, no runtime
 identity or invalidation evidence exists, and CPU8/CPU9 admission remains
 closed. The next ordered gate is read-only runtime identity and invalidation
 evidence for a real owner; do not boot or write a device.
+
+The full profile was resumed from the exact pushed documentation commit
+`4403dc0`. Buildbox applied all 259 selected canonical entries, produced 119
+DTBs, passed source/patch/config/package checksums, and the validated package
+was fetched locally; see the [Buildbox resume receipt](results/buildbox-resume-4403dc0-20260811.txt).
+This is provenance/build evidence only: no device action, hardware write,
+runtime-owner registration, provider registration, or CPU8/CPU9 admission is
+claimed. The next ordered gate remains explicit read-only runtime epoch and
+calibration-handle evidence.

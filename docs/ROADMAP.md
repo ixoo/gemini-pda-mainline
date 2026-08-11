@@ -3337,6 +3337,14 @@ identity/invalidation evidence is absent, and CPU8/CPU9 admission remains
 closed. The next ordered gate is read-only runtime identity and invalidation
 evidence for a real owner; do not boot or write a device.
 
+The full profile was resumed from exact pushed commit `4403dc0`. Buildbox
+applied all 259 selected canonical entries, produced 119 DTBs, passed
+source/patch/config/package checksums, and the validated package was fetched;
+see the [Buildbox resume receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/buildbox-resume-4403dc0-20260811.txt).
+This is provenance/build evidence only and does not advance provider, runtime,
+hardware, or CPU8/CPU9 admission. The next ordered gate remains explicit
+read-only runtime epoch and calibration-handle evidence before provider review.
+
 A fresh bounded read-only probe of the named Gemian runtime found active
 vendor PPM/EEM state and nonzero EEM calibration records, while CPU1 was
 offline in three consecutive samples and CPUs 0-9 remained present/possible.
