@@ -136,7 +136,8 @@ diff --git a/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c b/drivers/misc
 +			domain->vsram_special_10uv[0] = 105000;
 +			domain->vsram_special_10uv[1] = 60000;
 +			domain->vsram_special_10uv[2] = 70000;
- 	}
++		}
+	}
  
  out:
 diff --git a/drivers/misc/mediatek/base/power/ppm_v1/src/mt_ppm_main.c b/drivers/misc/mediatek/base/power/ppm_v1/src/mt_ppm_main.c
