@@ -20,7 +20,7 @@ admit CPU8/CPU9.
 diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h
 --- a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h
 +++ b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h
-@@ -76,6 +76,9 @@ const struct gemini_mt6797_dvfsp_vendor_integration_ops *
+@@ -76,5 +76,8 @@ const struct gemini_mt6797_dvfsp_vendor_integration_ops *
  gemini_mt6797_dvfsp_vendor_writer_integration_ops(void);
  void *gemini_mt6797_dvfsp_vendor_writer_integration_context(void);
 +/* Implemented by the mainline coordinator when the trees are linked. */
