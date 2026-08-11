@@ -3414,6 +3414,23 @@ Only after that compile review and a new read-only runtime identity/invalidation
 sample may owner/provider registration be reconsidered; device boot, writes, and
 CPU8/CPU9 admission remain closed.
 
+Patch `0015` now implements the explicit vendor cooperation boundary in the
+pinned tree: EEM publishes and invalidates a calibration-lifecycle handle, the
+shared writer advances a separate mutable table epoch for committed PTP/PPM
+table updates, and the source adapter returns both values with exact generation
+and owner/transition-handle echoes. The corrected mainline candidate was rebuilt
+at pushed commit `2f46dea`; Buildbox validated all 260 canonical entries, 119
+DTBs, package checksums, and the validated-package-only fetch (see the [mainline
+receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/buildbox-resume-2f46dea-20260811.txt)).
+The pinned vendor revision accepted all fifteen selected patches and compiled
+the five affected objects with the managed GCC 6.3 toolchain against the
+prepared patched Linux headers (see the [vendor receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-provenance-publication-buildbox-20260811.txt)).
+This closes the cross-tree compile gate only. Runtime owner identity and
+invalidation evidence remain absent; provider registration, setters, hardware
+writes, device boot, and CPU8/CPU9 admission remain closed. The next ordered
+gate is a new read-only runtime sample that can attribute the epoch and
+calibration handle, followed by a separate provider-registration review.
+
 Required evidence:
 
 - provider registration performs no register-data write;

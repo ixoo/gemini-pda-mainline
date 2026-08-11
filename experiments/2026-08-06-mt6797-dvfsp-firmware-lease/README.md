@@ -1551,3 +1551,20 @@ vendor boundary: publish a calibration-lifecycle handle and mutable table epoch,
 invoke the callback under one writer transaction, echo generation/owner handles,
 and preserve the existing callback owners. No provider, setter, hardware action,
 device boot, or CPU8/CPU9 admission follows from this audit.
+
+Patch `0015` now implements that vendor-side cooperation boundary in the pinned
+tree: EEM publishes and invalidates an explicit calibration-lifecycle handle,
+the shared writer advances a separate mutable table epoch on committed PTP/PPM
+updates, and the source adapter returns both values with exact generation and
+owner-handle echoes. The corrected mainline candidate was rebuilt at pushed
+commit `2f46dea` with 260 canonical patches, 119 DTBs, passing package checksums,
+and validated-package-only fetch; see the [mainline resume receipt](results/buildbox-resume-2f46dea-20260811.txt).
+The pinned vendor revision accepted all fifteen selected experiment patches and
+the five affected objects compiled with the managed GCC 6.3 toolchain against
+the prepared patched Linux headers; see the [vendor provenance-publication
+receipt](results/vendor-provenance-publication-buildbox-20260811.txt).
+This closes the cross-tree compile gate only. The callback remains default-off:
+no runtime owner, provider, setter, hardware write, device action, or CPU8/CPU9
+admission is claimed. The next ordered gate is a new read-only runtime sample
+that can attribute the epoch and calibration handle, followed by a separate
+provider-registration review; do not boot or write a device.

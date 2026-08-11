@@ -107,6 +107,16 @@ source step is obtaining an attributable owner for the real identity, PPM/CCI,
 live rail/clock, and generation callbacks; runtime registration and device boot
 remain closed.
 
+The latest vendor-cooperation step is now cross-tree validated. Mainline commit
+`2f46dea` rebuilt the 260-entry `dvfsp-owner-kunit` profile on Buildbox with 119
+DTBs and passing package checksums, while the pinned Gemian 3.18 revision
+accepted all fifteen selected vendor patches and compiled the five affected
+MT6797 objects with GCC 6.3. The vendor side now publishes an explicit
+calibration-lifecycle handle and mutable table epoch, but the bridge remains
+default-off: no runtime owner/provider, setter, hardware write, device action,
+or CPU8/CPU9 admission is claimed. See the [mainline receipt](experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/buildbox-resume-2f46dea-20260811.txt)
+and [vendor receipt](experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-provenance-publication-buildbox-20260811.txt).
+
 The profile-series invariant is repaired. The immediate task is the zero-write
 legacy-family driver and binding contract, not another ad hoc A72 boot. The
 exact sequence and exit criteria through isolated probe/bind/unbind and
