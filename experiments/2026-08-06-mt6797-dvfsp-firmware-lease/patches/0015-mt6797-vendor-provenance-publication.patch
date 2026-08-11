@@ -294,7 +294,7 @@ diff --git a/drivers/misc/mediatek/base/power/mt6797/mt_eem.c b/drivers/misc/med
  	ptp_data[0] = 0;
 +	ret = gemini_mt6797_dvfsp_vendor_writer_publish_calibration_handle();
 +	if (ret) {
-+		eem_error("calibration handle publication failed: %d\\n", ret);
++		eem_error("calibration handle publication failed: %d\n", ret);
 +		return ret;
 +	}
  
@@ -352,7 +352,7 @@ diff --git a/drivers/misc/mediatek/base/power/ppm_v1/src/mt_ppm_api.c b/drivers/
 +			writer_ret = gemini_mt6797_dvfsp_vendor_writer_finish(
 +				&writer_transaction, 0);
 +			if (writer_ret)
-+				ppm_err("DVFSP writer bridge failed PPM table commit: %d\\n",
++				ppm_err("DVFSP writer bridge failed PPM table commit: %d\n",
 +					writer_ret);
 -- 
 2.39.5
