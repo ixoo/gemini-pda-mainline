@@ -10,3 +10,4 @@
 0010a-mt6797-source-eem-voltage-unit-metadata-anchored.patch
 0011a-mt6797-source-policy-clock-rail-metadata-anchored.patch
 0012-mt6797-vendor-writer-integration-context-accessor.patch
+0013-mt6797-vendor-caller-mainline-coordinator-gate.patch

@@ -1,0 +1,273 @@
+From 0000000000000000000000000000000000000269 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 11 Aug 2026 05:00:00 +0000
+Subject: [PATCH] soc: mediatek: add vendor caller lifecycle gate
+
+Add the explicit cross-tree probe/remove gate consumed by the pinned vendor
+caller. A platform owner binds the exact vendor integration identities before
+probe; the vendor probe hook starts the coordinator, and the remove hook stops
+it before the caller binding can be released. All hooks fail closed when no
+owner has been supplied or when teardown is still active.
+
+This is a source-only, default-off boundary. It performs no hardware I/O,
+provider registration, firmware operation, device write, or CPU8/CPU9
+admission.
+---
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-coordinator.c | 111 +++++++++++++++++++
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c  | 56 ++++++++++++++
+ include/linux/soc/mediatek/mt6797-dvfsp-vendor-coordinator.h | 28 ++++++++
+ 3 files changed, 195 insertions(+)
+
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-coordinator.h b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-coordinator.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-coordinator.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-coordinator.h
+@@ -17,16 +17,44 @@ struct mt6797_dvfsp_vendor_coordinator {
+ 	struct mt6797_dvfsp_vendor_owner *owner;
+ 	const struct mt6797_dvfsp_vendor_integration_ops *integration_ops;
+ 	void *integration_context;
+ 	bool started;
++	struct mt6797_dvfsp_vendor_owner *caller_owner;
++	const struct mt6797_dvfsp_vendor_integration_ops *caller_integration_ops;
++	void *caller_integration_context;
++	bool caller_bound;
+ };
+ 
++/* Bind the exact identities that the vendor probe/remove hooks will use. */
++int mt6797_dvfsp_vendor_coordinator_bind_caller(
++	struct mt6797_dvfsp_vendor_coordinator *coordinator,
++	struct mt6797_dvfsp_vendor_owner *owner,
++	const struct mt6797_dvfsp_vendor_integration_ops *integration_ops,
++	void *integration_context);
++int mt6797_dvfsp_vendor_coordinator_unbind_caller(
++	struct mt6797_dvfsp_vendor_coordinator *coordinator);
++int mt6797_dvfsp_vendor_coordinator_vendor_bind(
++	struct mt6797_dvfsp_vendor_owner *owner,
++	const struct mt6797_dvfsp_vendor_integration_ops *integration_ops,
++	void *integration_context);
++int mt6797_dvfsp_vendor_coordinator_vendor_unbind(void);
++int mt6797_dvfsp_vendor_coordinator_vendor_probe(void);
++int mt6797_dvfsp_vendor_coordinator_vendor_remove(void);
++
+ int mt6797_dvfsp_vendor_coordinator_start(
+ 	struct mt6797_dvfsp_vendor_coordinator *coordinator,
+ 	struct mt6797_dvfsp_vendor_owner *owner,
+ 	const struct mt6797_dvfsp_vendor_integration_ops *integration_ops,
+ 	void *integration_context);
+ 
++int mt6797_dvfsp_vendor_coordinator_caller_probe(
++	struct mt6797_dvfsp_vendor_coordinator *coordinator);
++int mt6797_dvfsp_vendor_coordinator_caller_remove(
++	struct mt6797_dvfsp_vendor_coordinator *coordinator);
++
+ int mt6797_dvfsp_vendor_coordinator_stop(
+ 	struct mt6797_dvfsp_vendor_coordinator *coordinator);
+ 
++bool mt6797_dvfsp_vendor_coordinator_caller_bound(
++	const struct mt6797_dvfsp_vendor_coordinator *coordinator);
++
+ #endif /* __LINUX_SOC_MEDIATEK_MT6797_DVFSP_VENDOR_COORDINATOR_H */
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-coordinator.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-coordinator.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-coordinator.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-coordinator.c
+@@ -14,5 +14,45 @@
+ #include <linux/soc/mediatek/mt6797-dvfsp-vendor-coordinator.h>
+ 
++static struct mt6797_dvfsp_vendor_coordinator
++mt6797_dvfsp_vendor_global_coordinator;
++
++int mt6797_dvfsp_vendor_coordinator_bind_caller(
++	struct mt6797_dvfsp_vendor_coordinator *coordinator,
++	struct mt6797_dvfsp_vendor_owner *owner,
++	const struct mt6797_dvfsp_vendor_integration_ops *integration_ops,
++	void *integration_context)
++{
++	if (!coordinator || coordinator->started || coordinator->caller_bound ||
++	    coordinator->owner || coordinator->integration_ops ||
++	    coordinator->integration_context)
++		return -EBUSY;
++	if (!owner || !integration_ops || !integration_context)
++		return -EINVAL;
++
++	coordinator->caller_owner = owner;
++	coordinator->caller_integration_ops = integration_ops;
++	coordinator->caller_integration_context = integration_context;
++	coordinator->caller_bound = true;
++	return 0;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_coordinator_bind_caller);
++
++int mt6797_dvfsp_vendor_coordinator_unbind_caller(
++	struct mt6797_dvfsp_vendor_coordinator *coordinator)
++{
++	if (!coordinator || !coordinator->caller_bound)
++		return -EINVAL;
++	if (coordinator->started)
++		return -EBUSY;
++
++	coordinator->caller_owner = NULL;
++	coordinator->caller_integration_ops = NULL;
++	coordinator->caller_integration_context = NULL;
++	coordinator->caller_bound = false;
++	return 0;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_coordinator_unbind_caller);
++
+ int mt6797_dvfsp_vendor_coordinator_start(
+ 	struct mt6797_dvfsp_vendor_coordinator *coordinator,
+ 	struct mt6797_dvfsp_vendor_owner *owner,
+@@ -28,5 +68,10 @@ int mt6797_dvfsp_vendor_coordinator_start(
+ 	if (!owner || !integration_ops || !integration_context)
+ 		return -EINVAL;
++	if (coordinator->caller_bound &&
++	    (coordinator->caller_owner != owner ||
++	     coordinator->caller_integration_ops != integration_ops ||
++	     coordinator->caller_integration_context != integration_context))
++		return -EPROTO;
+ 
+ 	ret = mt6797_dvfsp_vendor_owner_bind_writer_integration(owner,
+ 		integration_ops, integration_context);
+@@ -45,5 +85,64 @@ int mt6797_dvfsp_vendor_coordinator_start(
+ }
+ EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_coordinator_start);
+ 
++int mt6797_dvfsp_vendor_coordinator_caller_probe(
++	struct mt6797_dvfsp_vendor_coordinator *coordinator)
++{
++	if (!coordinator || !coordinator->caller_bound ||
++	    !coordinator->caller_owner ||
++	    !coordinator->caller_integration_ops ||
++	    !coordinator->caller_integration_context)
++		return -ENODEV;
++
++	return mt6797_dvfsp_vendor_coordinator_start(coordinator,
++		coordinator->caller_owner, coordinator->caller_integration_ops,
++		coordinator->caller_integration_context);
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_coordinator_caller_probe);
++
++int mt6797_dvfsp_vendor_coordinator_caller_remove(
++	struct mt6797_dvfsp_vendor_coordinator *coordinator)
++{
++	if (!coordinator || !coordinator->caller_bound)
++		return -ENODEV;
++	if (!coordinator->started)
++		return -EINVAL;
++
++	return mt6797_dvfsp_vendor_coordinator_stop(coordinator);
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_coordinator_caller_remove);
++
++int mt6797_dvfsp_vendor_coordinator_vendor_bind(
++	struct mt6797_dvfsp_vendor_owner *owner,
++	const struct mt6797_dvfsp_vendor_integration_ops *integration_ops,
++	void *integration_context)
++{
++	return mt6797_dvfsp_vendor_coordinator_bind_caller(
++		&mt6797_dvfsp_vendor_global_coordinator, owner, integration_ops,
++		integration_context);
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_coordinator_vendor_bind);
++
++int mt6797_dvfsp_vendor_coordinator_vendor_unbind(void)
++{
++	return mt6797_dvfsp_vendor_coordinator_unbind_caller(
++		&mt6797_dvfsp_vendor_global_coordinator);
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_coordinator_vendor_unbind);
++
++int mt6797_dvfsp_vendor_coordinator_vendor_probe(void)
++{
++	return mt6797_dvfsp_vendor_coordinator_caller_probe(
++		&mt6797_dvfsp_vendor_global_coordinator);
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_coordinator_vendor_probe);
++
++int mt6797_dvfsp_vendor_coordinator_vendor_remove(void)
++{
++	return mt6797_dvfsp_vendor_coordinator_caller_remove(
++		&mt6797_dvfsp_vendor_global_coordinator);
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_coordinator_vendor_remove);
++
+ int mt6797_dvfsp_vendor_coordinator_stop(
+ 	struct mt6797_dvfsp_vendor_coordinator *coordinator)
+@@ -81,5 +216,12 @@ bool mt6797_dvfsp_vendor_coordinator_started(
+ }
+ EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_coordinator_started);
+ 
++bool mt6797_dvfsp_vendor_coordinator_caller_bound(
++	const struct mt6797_dvfsp_vendor_coordinator *coordinator)
++{
++	return coordinator && coordinator->caller_bound;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_coordinator_caller_bound);
++
+ MODULE_DESCRIPTION("MT6797 vendor writer coordinator");
+ MODULE_LICENSE("GPL");
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
+@@ -1,1 +1,56 @@
++static void mt6797_dvfsp_vendor_owner_vendor_caller_lifecycle(
++	struct kunit *test)
++{
++	struct mt6797_dvfsp_vendor_owner owner = { };
++	struct mt6797_dvfsp_resource_owner resource_owner = { };
++	struct mt6797_dvfsp_vendor_test_devices devices = { };
++	struct mt6797_dvfsp_state_source_devices tuple = { };
++	struct mt6797_dvfsp_vendor_test_registration registration = { };
++	struct mt6797_dvfsp_vendor_test_integration integration = { };
++	struct mt6797_dvfsp_vendor_coordinator coordinator = { };
++	struct mt6797_dvfsp_vendor_owner_ops owner_ops =
++		mt6797_dvfsp_vendor_test_owner_ops;
++
++	KUNIT_EXPECT_EQ(test,
++		mt6797_dvfsp_vendor_coordinator_vendor_probe(), -ENODEV);
++	mt6797_dvfsp_vendor_test_init_devices(&devices);
++	mt6797_dvfsp_vendor_test_tuple(&devices, &tuple);
++	KUNIT_ASSERT_EQ(test,
++		mt6797_dvfsp_resource_owner_init(&resource_owner, 0x67970050), 0);
++	KUNIT_ASSERT_EQ(test,
++		mt6797_dvfsp_resource_owner_attach(&resource_owner, &tuple), 0);
++	owner_ops.writer_runtime_ops = &mt6797_dvfsp_vendor_test_runtime_ops;
++	owner_ops.writer_runtime_context = &registration;
++	KUNIT_ASSERT_EQ(test,
++		mt6797_dvfsp_vendor_owner_bind(&owner, &resource_owner,
++			&owner_ops, 0x67970051, 0x67970050), 0);
++	KUNIT_ASSERT_EQ(test,
++		mt6797_dvfsp_vendor_coordinator_bind_caller(&coordinator, &owner,
++			&mt6797_dvfsp_vendor_test_integration_ops, &integration), 0);
++	KUNIT_EXPECT_TRUE(test,
++		mt6797_dvfsp_vendor_coordinator_caller_bound(&coordinator));
++	KUNIT_ASSERT_EQ(test,
++		mt6797_dvfsp_vendor_coordinator_caller_probe(&coordinator), 0);
++	KUNIT_EXPECT_TRUE(test,
++		mt6797_dvfsp_vendor_coordinator_started(&coordinator));
++	KUNIT_EXPECT_EQ(test,
++		mt6797_dvfsp_vendor_coordinator_caller_probe(&coordinator), -EBUSY);
++	KUNIT_EXPECT_EQ(test,
++		mt6797_dvfsp_vendor_coordinator_caller_remove(&coordinator), -EBUSY);
++	KUNIT_ASSERT_EQ(test,
++		((const struct mt6797_dvfsp_vendor_owner_lifecycle_ops *)
++		 integration.lifecycle_ops)->unregister_writer(
++		 integration.lifecycle_context), 0);
++	KUNIT_ASSERT_EQ(test,
++		mt6797_dvfsp_vendor_coordinator_caller_remove(&coordinator), 0);
++	KUNIT_ASSERT_EQ(test,
++		mt6797_dvfsp_vendor_coordinator_unbind_caller(&coordinator), 0);
++	KUNIT_EXPECT_FALSE(test,
++		mt6797_dvfsp_vendor_coordinator_caller_bound(&coordinator));
++	KUNIT_ASSERT_EQ(test, mt6797_dvfsp_vendor_owner_unbind(&owner), 0);
++	KUNIT_ASSERT_EQ(test,
++		mt6797_dvfsp_resource_owner_detach(&resource_owner), 0);
++	mt6797_dvfsp_vendor_test_put_devices(&devices);
++}
++
+ static struct kunit_case mt6797_dvfsp_vendor_owner_test_cases[] = {
+@@ -1,1 +1,2 @@
+ 	KUNIT_CASE(mt6797_dvfsp_vendor_owner_coordinator_stages_lifecycle),
++	KUNIT_CASE(mt6797_dvfsp_vendor_owner_vendor_caller_lifecycle),
+-- 
+2.39.5

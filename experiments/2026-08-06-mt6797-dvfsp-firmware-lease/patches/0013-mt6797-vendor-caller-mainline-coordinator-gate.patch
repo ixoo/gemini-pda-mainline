@@ -1,0 +1,84 @@
+From 0000000000000000000000000000000000000013 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 11 Aug 2026 05:15:00 +0000
+Subject: [PATCH] power: bind vendor caller to mainline coordinator gate
+
+Make the exact vendor cpufreq probe/remove path enter and leave the
+source-independent mainline coordinator gate.  Probe starts the caller gate
+before owner registration and unwinds it on every later failure; remove first
+unregisters the writer and then stops the gate.  Runtime CPU, PM, clock, rail,
+and deferred PCM-fault forwarding remains in the preceding lifecycle patch.
+
+The cross-tree hook is fail-closed when no mainline owner has been bound.  It
+does not replace vendor setters, register a provider, perform hardware I/O, or
+admit CPU8/CPU9.
+---
+ drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c          | 21 ++++++++++++++++++--
+ drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h | 3 +++
+ 2 files changed, 22 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h
+--- a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h
++++ b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h
+@@ -76,6 +76,9 @@ const struct gemini_mt6797_dvfsp_vendor_integration_ops *
+ gemini_mt6797_dvfsp_vendor_writer_integration_ops(void);
+ void *gemini_mt6797_dvfsp_vendor_writer_integration_context(void);
++/* Implemented by the mainline coordinator when the trees are linked. */
++int mt6797_dvfsp_vendor_coordinator_vendor_probe(void);
++int mt6797_dvfsp_vendor_coordinator_vendor_remove(void);
+ 
+ struct gemini_mt6797_dvfsp_vendor_writer_transaction {
+ 	enum gemini_mt6797_dvfsp_vendor_writer_site site;
+
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c b/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c
+--- a/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c
++++ b/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c
+@@ -5631,9 +5631,16 @@ static int _mt_cpufreq_pdrv_probe(struct platform_device *pdev)
+ 	struct opp_tbl_info *opp_tbl_info;
+ 	struct cpufreq_frequency_table *table;
+ 	int writer_ret;
++	bool lifecycle_registered = false;
+ 
+ 	FUNC_ENTER(FUNC_LV_MODULE);
+ 
++	writer_ret = mt6797_dvfsp_vendor_coordinator_vendor_probe();
++	if (writer_ret) {
++		cpufreq_err("DVFSP mainline caller gate refused probe: %d\n",
++			    writer_ret);
++		return writer_ret;
++	}
+ 	writer_ret = gemini_mt6797_dvfsp_vendor_writer_owner_lifecycle_register();
+ 	if (writer_ret) {
+ 		cpufreq_err("DVFSP owner lifecycle registration refused: %d\n",
+@@ -5725,4 +5732,5 @@ static int _mt_cpufreq_pdrv_probe(struct platform_device *pdev)
+ 	if (writer_ret)
+ 		goto lifecycle_fail;
++	lifecycle_registered = true;
+ 	register_hotcpu_notifier(&_mt_cpufreq_cpu_notifier);
+ 	mt_ppm_register_client(PPM_CLIENT_DVFS, &ppm_limit_callback);
+@@ -5739,7 +5747,10 @@ static int _mt_cpufreq_pdrv_probe(struct platform_device *pdev)
+ 	return 0;
+ 
+ lifecycle_fail:
+-	if (gemini_mt6797_dvfsp_vendor_writer_owner_lifecycle_unregister())
+-		cpufreq_err("DVFSP owner lifecycle unregister failed after probe error\n");
++	if (lifecycle_registered &&
++	    gemini_mt6797_dvfsp_vendor_writer_owner_lifecycle_unregister())
++		cpufreq_err("DVFSP owner lifecycle unregister failed after probe error\n");
++	if (mt6797_dvfsp_vendor_coordinator_vendor_remove())
++		cpufreq_err("DVFSP mainline caller gate remove failed after probe error\n");
+ 	FUNC_EXIT(FUNC_LV_MODULE);
+ 	return writer_ret;
+@@ -5770,6 +5782,12 @@ static int _mt_cpufreq_pdrv_remove(struct platform_device *pdev)
+ 		cpufreq_err("DVFSP owner lifecycle unregister refused: %d\n",
+ 			    writer_ret);
+ 		return writer_ret;
+ 	}
++	writer_ret = mt6797_dvfsp_vendor_coordinator_vendor_remove();
++	if (writer_ret) {
++		cpufreq_err("DVFSP mainline caller gate remove refused: %d\n",
++			    writer_ret);
++		return writer_ret;
++	}
+ 
+ 	FUNC_EXIT(FUNC_LV_MODULE);
