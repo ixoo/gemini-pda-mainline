@@ -157,7 +157,9 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c b/drivers/soc
 +	.read_identity_observation =
 +		mt6797_dvfsp_vendor_test_source_identity_observation,
  };
-@@ -533,0 +552,1 @@
+@@ -532,2 +551,3 @@
+ 	struct mt6797_dvfsp_vendor_owner_ops owner_ops =
+ 		mt6797_dvfsp_vendor_test_owner_ops;
 +	struct mt6797_dvfsp_vendor_source_identity_observation observation;
 @@ -558,0 +578,5 @@
 +	KUNIT_ASSERT_EQ(test,
