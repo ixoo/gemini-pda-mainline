@@ -1,0 +1,172 @@
+From 0000000000000000000000000000000000000270 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 11 Aug 2026 01:00:00 -0400
+Subject: [PATCH] soc: mediatek: expose vendor identity observation contract
+
+Add a separate, source-backed observation ABI for the vendor's raw efuse and
+table-selection fields.  The observation records the function/date words,
+the EEM-selected bin and ATE version, and the PPM table type while keeping the
+actual calibrated-owner identity callback fail-closed.
+
+This distinction prevents a raw devinfo word, an EEM error marker, or a static
+table family from being relabeled as a mutable epoch or calibration handle.
+The source remains default-off and performs no provider registration, setter,
+MMIO, firmware, device, or CPU8/CPU9 operation.
+---
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c  | 22 ++++++++++++++++++
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-source.c      | 32 ++++++++++++++++++++
+ include/linux/soc/mediatek/mt6797-dvfsp-vendor-source.h | 25 +++++++++++++++-
+ 3 files changed, 78 insertions(+), 1 deletion(-)
+
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-source.h b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-source.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-source.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-source.h
+@@ -5,9 +5,9 @@
+ #include <linux/bitops.h>
+ #include <linux/types.h>
+ 
+-#define MT6797_DVFSP_VENDOR_SOURCE_ABI	1
++#define MT6797_DVFSP_VENDOR_SOURCE_ABI	2
+ #define MT6797_DVFSP_VENDOR_SOURCE_MAX_CLUSTER	3
+ #define MT6797_DVFSP_VENDOR_SOURCE_MAX_DOMAIN	4
+ #define MT6797_DVFSP_VENDOR_SOURCE_MAX_OPP	16
+ #define MT6797_DVFSP_VENDOR_SOURCE_MAX_DETECTOR	6
+ #define MT6797_DVFSP_VENDOR_SOURCE_MAX_FREQ	16
+@@ -21,3 +21,10 @@
+ #define MT6797_DVFSP_VENDOR_SOURCE_CSPM		BIT(2)
+ #define MT6797_DVFSP_VENDOR_SOURCE_EEM		BIT(3)
+ #define MT6797_DVFSP_VENDOR_SOURCE_ALL		GENMASK(3, 0)
++#define MT6797_DVFSP_VENDOR_SOURCE_IDENTITY_OBSERVATION_ABI	1
++#define MT6797_DVFSP_VENDOR_SOURCE_IDENTITY_FUNCTION_WORD	BIT(0)
++#define MT6797_DVFSP_VENDOR_SOURCE_IDENTITY_DATE_WORD	BIT(1)
++#define MT6797_DVFSP_VENDOR_SOURCE_IDENTITY_CPU_BIN	BIT(2)
++#define MT6797_DVFSP_VENDOR_SOURCE_IDENTITY_EEM_ATE	BIT(3)
++#define MT6797_DVFSP_VENDOR_SOURCE_IDENTITY_PPM_TABLE	BIT(4)
++#define MT6797_DVFSP_VENDOR_SOURCE_IDENTITY_ALL	GENMASK(4, 0)
+@@ -112,10 +119,23 @@ struct mt6797_dvfsp_vendor_source_identity {
+ 	u64 calibration_handle;
+ };
+ 
++/* Raw source observation; this is not calibrated-owner identity. */
++struct mt6797_dvfsp_vendor_source_identity_observation {
++	u32 abi;
++	u32 source_mask;
++	u32 function_word;
++	u32 date_word;
++	u32 cpu_bin_level;
++	u32 eem_ate_version;
++	u32 ppm_table_type;
++};
++
+ struct mt6797_dvfsp_vendor_source_ops {
+ 	u32 abi;
+ 	int (*snapshot)(void *context,
+ 			struct mt6797_dvfsp_vendor_source_snapshot *snapshot);
+ 	int (*read_identity)(void *context,
+ 			struct mt6797_dvfsp_vendor_source_identity *identity);
++	int (*read_identity_observation)(void *context,
++			struct mt6797_dvfsp_vendor_source_identity_observation *observation);
+ };
+@@ -141,3 +161,6 @@ int mt6797_dvfsp_vendor_source_identity(
+ 	struct mt6797_dvfsp_vendor_source_identity *identity);
++int mt6797_dvfsp_vendor_source_identity_observation(
++	struct mt6797_dvfsp_vendor_source *source,
++	struct mt6797_dvfsp_vendor_source_identity_observation *observation);
+ void mt6797_dvfsp_vendor_source_invalidate(
+ 	struct mt6797_dvfsp_vendor_source *source);
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-source.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-source.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-source.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-source.c
+@@ -20,5 +20,6 @@ static int mt6797_dvfsp_vendor_source_ops_check(
+ 	if (!ops || ops->abi != MT6797_DVFSP_VENDOR_SOURCE_ABI ||
+-		!ops->snapshot || !ops->read_identity)
++		!ops->snapshot || !ops->read_identity ||
++		!ops->read_identity_observation)
+ 		return -EINVAL;
+ 	return 0;
+ }
+@@ -159,5 +160,30 @@ int mt6797_dvfsp_vendor_source_identity(
+ }
+ EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_source_identity);
+ 
++int mt6797_dvfsp_vendor_source_identity_observation(
++	struct mt6797_dvfsp_vendor_source *source,
++	struct mt6797_dvfsp_vendor_source_identity_observation *observation)
++{
++	int ret;
++
++	if (!source || !source->initialized || source->invalidated ||
++		!observation)
++		return -ENODEV;
++	memset(observation, 0, sizeof(*observation));
++	ret = source->ops->read_identity_observation(source->context,
++		observation);
++	if (ret)
++		return ret;
++	if (observation->abi !=
++		MT6797_DVFSP_VENDOR_SOURCE_IDENTITY_OBSERVATION_ABI ||
++		observation->source_mask !=
++		MT6797_DVFSP_VENDOR_SOURCE_IDENTITY_ALL ||
++		observation->eem_ate_version > 0xf ||
++		observation->cpu_bin_level > 0xf)
++		return -EPROTO;
++	return 0;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_source_identity_observation);
++
+ void mt6797_dvfsp_vendor_source_invalidate(
+ 	struct mt6797_dvfsp_vendor_source *source)
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
+@@ -219,9 +219,28 @@ static int mt6797_dvfsp_vendor_test_source_identity(
+ 	return -EOPNOTSUPP;
+ }
+ 
++static int mt6797_dvfsp_vendor_test_source_identity_observation(
++	void *context,
++	struct mt6797_dvfsp_vendor_source_identity_observation *observation)
++{
++	if (!observation)
++		return -EINVAL;
++	observation->abi =
++		MT6797_DVFSP_VENDOR_SOURCE_IDENTITY_OBSERVATION_ABI;
++	observation->source_mask = MT6797_DVFSP_VENDOR_SOURCE_IDENTITY_ALL;
++	observation->function_word = 0x22;
++	observation->date_word = 0x70;
++	observation->cpu_bin_level = 1;
++	observation->eem_ate_version = 6;
++	observation->ppm_table_type = 1;
++	return 0;
++}
++
+ static const struct mt6797_dvfsp_vendor_source_ops
+ mt6797_dvfsp_vendor_test_source_ops = {
+ 	.abi = MT6797_DVFSP_VENDOR_SOURCE_ABI,
+ 	.snapshot = mt6797_dvfsp_vendor_test_source_snapshot,
+ 	.read_identity = mt6797_dvfsp_vendor_test_source_identity,
++	.read_identity_observation =
++		mt6797_dvfsp_vendor_test_source_identity_observation,
+ };
+@@ -511,3 +530,4 @@ static void mt6797_dvfsp_vendor_owner_integrates_lifecycle(
+ 	struct mt6797_dvfsp_vendor_owner_ops owner_ops =
+ 		mt6797_dvfsp_vendor_test_owner_ops;
++	struct mt6797_dvfsp_vendor_source_identity_observation observation;
+ 	mt6797_dvfsp_vendor_test_init_devices(&devices);
+@@ -564,9 +584,14 @@ static void mt6797_dvfsp_vendor_owner_integrates_lifecycle(
+ 	KUNIT_EXPECT_EQ(test, integration.register_calls, 1U);
+ 	KUNIT_EXPECT_PTR_EQ(test, integration.bridge_ops,
+ 		mt6797_dvfsp_vendor_writer_bridge_ops());
+ 	KUNIT_EXPECT_PTR_EQ(test, integration.runtime_context, &owner);
+ 	KUNIT_EXPECT_TRUE(test, owner.source.initialized);
++	KUNIT_ASSERT_EQ(test,
++		mt6797_dvfsp_vendor_source_identity_observation(&owner.source,
++			&observation), 0);
++	KUNIT_EXPECT_EQ(test, observation.function_word, 0x22U);
++	KUNIT_EXPECT_EQ(test, observation.date_word, 0x70U);
++	KUNIT_EXPECT_EQ(test, observation.cpu_bin_level, 1U);
+ 	KUNIT_ASSERT_EQ(test,
+ 		((const struct mt6797_dvfsp_vendor_runtime_ops *)
+ 		 integration.runtime_ops)->event(integration.runtime_context,
+-- 
+2.39.5

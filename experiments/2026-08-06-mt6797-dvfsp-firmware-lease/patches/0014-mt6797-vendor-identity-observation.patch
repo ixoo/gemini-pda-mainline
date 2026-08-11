@@ -1,0 +1,121 @@
+From 0000000000000000000000000000000000000014 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 11 Aug 2026 01:30:00 -0400
+Subject: [PATCH] power: expose vendor identity observation fields
+
+Expose the source-backed efuse words and table-selection metadata needed to
+identify the pinned vendor runtime without pretending that those values are a
+mutable epoch or calibration handle.  The observation is serialized under
+the existing read-only transaction and returns the EEM ATE version, CPU bin,
+and PPM table type from their owning vendor state.
+
+The calibrated-owner identity callback remains fail-closed.  This patch adds
+no provider registration, setter, MMIO operation, firmware operation, or CPU
+admission.
+---
+ drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-state.h | 1 +
+ drivers/misc/mediatek/base/power/mt6797/mt_eem.c | 1 +
+ drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c | 58 ++++++++++++++++++++++
+ 3 files changed, 60 insertions(+)
+
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-state.h b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-state.h
+--- a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-state.h
++++ b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-state.h
+@@ -139,6 +139,7 @@ struct gemini_mt6797_dvfsp_vendor_eem_snapshot {
+ 	u32 detector_count;
+ 	u32 info_idvfs;
+ 	u32 cpu_bin_level;
++	u32 ate_version;
+ 	struct gemini_mt6797_dvfsp_vendor_eem_detector
+ 		detector[GEMINI_MT6797_DVFSP_VENDOR_MAX_DETECTOR];
+ };
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt_eem.c b/drivers/misc/mediatek/base/power/mt6797/mt_eem.c
+--- a/drivers/misc/mediatek/base/power/mt6797/mt_eem.c
++++ b/drivers/misc/mediatek/base/power/mt6797/mt_eem.c
+@@ -6645,6 +6645,7 @@ int gemini_mt6797_dvfsp_vendor_eem_snapshot(
+ 	snapshot->detector_count = NR_EEM_DET;
+ 	snapshot->info_idvfs = infoIdvfs;
+ 	snapshot->cpu_bin_level = cpuBinLevel;
++	snapshot->ate_version = ateVer;
+ 	for (i = 0; i < NR_EEM_DET; i++) {
+ 		struct eem_det *det = &eem_detectors[i];
+ 		struct gemini_mt6797_dvfsp_vendor_eem_detector *dst =
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
+--- a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
++++ b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
+@@ -20,6 +20,7 @@
+ 
+ #include "mt6797-dvfsp-vendor-writer.h"
+ #include "mt6797-dvfsp-vendor-state.h"
++#include "mt_cpufreq.h"
+ 
+ static DEFINE_MUTEX(gemini_mt6797_dvfsp_vendor_writer_lock);
+ static const struct gemini_mt6797_dvfsp_vendor_writer_ops
+@@ -281,12 +282,65 @@ static int gemini_mt6797_dvfsp_vendor_source_identity(
+ 	return -EOPNOTSUPP;
+ }
+ 
++static int gemini_mt6797_dvfsp_vendor_source_identity_observation(
++	void *context,
++	struct mt6797_dvfsp_vendor_source_identity_observation *observation)
++{
++	struct gemini_mt6797_dvfsp_vendor_writer_integration_binding *binding =
++		context;
++	struct gemini_mt6797_dvfsp_vendor_writer_transaction transaction = { };
++	struct gemini_mt6797_dvfsp_vendor_ppm_snapshot ppm = { };
++	struct gemini_mt6797_dvfsp_vendor_eem_snapshot eem = { };
++	int ret;
++	int abort_ret;
++
++	if (binding !=
++		&gemini_mt6797_dvfsp_vendor_writer_integration_binding ||
++	    !binding->bound || !binding->mainline_registered || !observation)
++		return -ENODEV;
++	ret = gemini_mt6797_dvfsp_vendor_writer_begin(&transaction,
++		GEMINI_MT6797_DVFSP_VENDOR_WRITER_SITE_OBSERVE);
++	if (ret)
++		return ret;
++	ret = gemini_mt6797_dvfsp_vendor_ppm_snapshot(&ppm);
++	if (ret)
++		goto abort;
++	ret = gemini_mt6797_dvfsp_vendor_eem_snapshot(&eem);
++	if (ret)
++		goto abort;
++	if (ppm.abi != GEMINI_MT6797_DVFSP_VENDOR_STATE_ABI ||
++	    ppm.cluster_count != GEMINI_MT6797_DVFSP_VENDOR_MAX_CLUSTER ||
++	    eem.abi != GEMINI_MT6797_DVFSP_VENDOR_STATE_ABI ||
++	    eem.detector_count != GEMINI_MT6797_DVFSP_VENDOR_MAX_DETECTOR) {
++		ret = -EPROTO;
++		goto abort;
++	}
++
++	memset(observation, 0, sizeof(*observation));
++	observation->abi =
++		MT6797_DVFSP_VENDOR_SOURCE_IDENTITY_OBSERVATION_ABI;
++	observation->source_mask = MT6797_DVFSP_VENDOR_SOURCE_IDENTITY_ALL;
++	observation->function_word = get_devinfo_with_index(22);
++	observation->date_word = get_devinfo_with_index(61);
++	observation->cpu_bin_level = eem.cpu_bin_level;
++	observation->eem_ate_version = eem.ate_version;
++	observation->ppm_table_type = ppm.table_type;
++	ret = gemini_mt6797_dvfsp_vendor_writer_abort_observation(&transaction);
++	return ret;
++
++abort:
++	abort_ret = gemini_mt6797_dvfsp_vendor_writer_abort_observation(
++		&transaction);
++	return abort_ret ? abort_ret : ret;
++}
++
+ static const struct mt6797_dvfsp_vendor_source_ops
+ gemini_mt6797_dvfsp_vendor_source_ops = {
+ 	.abi = MT6797_DVFSP_VENDOR_SOURCE_ABI,
+ 	.snapshot = gemini_mt6797_dvfsp_vendor_source_snapshot,
+ 	.read_identity = gemini_mt6797_dvfsp_vendor_source_identity,
++	.read_identity_observation =
++		gemini_mt6797_dvfsp_vendor_source_identity_observation,
+ };
+ 
+ static const struct mt6797_dvfsp_vendor_source_registration
+-- 
+2.39.5

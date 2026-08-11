@@ -138,6 +138,8 @@ VENDOR_RUNTIME_FORWARD_BUILD_RESULT = (Path(__file__).resolve().parents[1] /
                                        "results/vendor-writer-runtime-event-forward-buildbox-20260811.txt")
 VENDOR_CALLER_LIFECYCLE_PATCH = (Path(__file__).resolve().parents[1] /
                                  "patches/0013-mt6797-vendor-caller-mainline-coordinator-gate.patch")
+VENDOR_IDENTITY_OBSERVATION_PATCH = (Path(__file__).resolve().parents[1] /
+                                     "patches/0014-mt6797-vendor-identity-observation.patch")
 VENDOR_CALLER_LIFECYCLE_BUILD_RESULT = (Path(__file__).resolve().parents[1] /
                                          "results/vendor-caller-lifecycle-gate-buildbox-20260811.txt")
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
@@ -350,6 +352,7 @@ def main() -> None:
     vendor_coordinator_build_result = VENDOR_COORDINATOR_BUILD_RESULT.read_text()
     vendor_runtime_forward_build_result = VENDOR_RUNTIME_FORWARD_BUILD_RESULT.read_text()
     vendor_caller_lifecycle_patch = VENDOR_CALLER_LIFECYCLE_PATCH.read_text()
+    vendor_identity_observation_patch = VENDOR_IDENTITY_OBSERVATION_PATCH.read_text()
     vendor_caller_lifecycle_build_result = VENDOR_CALLER_LIFECYCLE_BUILD_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
@@ -388,13 +391,14 @@ def main() -> None:
                                VENDOR_EXPERIMENT_SERIES.read_text().splitlines()
                                if line and not line.startswith("#")]
 
-    if vendor_experiment_names[-4:] != [
+    if vendor_experiment_names[-5:] != [
             "0010a-mt6797-source-eem-voltage-unit-metadata-anchored.patch",
             "0011a-mt6797-source-policy-clock-rail-metadata-anchored.patch",
             "0012-mt6797-vendor-writer-integration-context-accessor.patch",
             "0013-mt6797-vendor-caller-mainline-coordinator-gate.patch",
+            "0014-mt6797-vendor-identity-observation.patch",
     ]:
-        raise AssertionError("vendor caller lifecycle series does not end with the audited anchored metadata, accessor, and lifecycle gate patches")
+        raise AssertionError("vendor identity observation series does not end with the audited anchored metadata, accessor, lifecycle gate, and observation patches")
     if names.index("0256-soc-mediatek-export-vendor-writer-owner-bridge.patch") >= names.index("0257-soc-mediatek-add-explicit-vendor-writer-registration-handoff.patch"):
         raise AssertionError("vendor writer registration handoff is not after the bridge")
     if names.index("0257-soc-mediatek-add-explicit-vendor-writer-registration-handoff.patch") >= names.index("0258-soc-mediatek-extend-vendor-writer-handoff-runtime-events.patch"):
@@ -413,6 +417,14 @@ def main() -> None:
         raise AssertionError("vendor caller runtime forwarding is not after the writer coordinator")
     if names.index("0268-soc-mediatek-forward-vendor-caller-runtime-events.patch") >= names.index("0269-soc-mediatek-add-vendor-caller-lifecycle-gate.patch"):
         raise AssertionError("vendor caller lifecycle gate is not after runtime-event forwarding")
+    for needle, label in (
+        ("MT6797_DVFSP_VENDOR_SOURCE_IDENTITY_OBSERVATION_ABI", "vendor-identity-observation-abi"),
+        ("get_devinfo_with_index(22)", "vendor-identity-observation-function-word"),
+        ("get_devinfo_with_index(61)", "vendor-identity-observation-date-word"),
+        ("observation->eem_ate_version = eem.ate_version", "vendor-identity-observation-ate"),
+        ("return -EOPNOTSUPP", "vendor-identity-observation-identity-fail-closed"),
+    ):
+        require(vendor_identity_observation_patch, needle, label)
     mainline_vendor_caller_lifecycle_source = mainline_vendor_caller_lifecycle_patch[
         mainline_vendor_caller_lifecycle_patch.index("diff --git"):]
     for needle, label in (
@@ -1273,6 +1285,7 @@ def main() -> None:
 0011a-mt6797-source-policy-clock-rail-metadata-anchored.patch
 0012-mt6797-vendor-writer-integration-context-accessor.patch
 0013-mt6797-vendor-caller-mainline-coordinator-gate.patch
+0014-mt6797-vendor-identity-observation.patch
 """
     if VENDOR_EXPERIMENT_SERIES.read_text() != expected_vendor_series:
         raise AssertionError("vendor integration-context series is not the audited canonical sequence")
