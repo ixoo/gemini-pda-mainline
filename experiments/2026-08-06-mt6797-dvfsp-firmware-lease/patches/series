@@ -8,3 +8,4 @@
 0008-mt6797-vendor-writer-integration-lifecycle-adapter.patch
 0009-mt6797-vendor-source-observation-adapter.patch
 0010-mt6797-source-eem-voltage-unit-metadata.patch
+0011-mt6797-source-policy-clock-rail-metadata.patch

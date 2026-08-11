@@ -68,6 +68,8 @@ VENDOR_SOURCE_OBSERVATION_PATCH = (Path(__file__).resolve().parents[1] /
                                    "patches/0009-mt6797-vendor-source-observation-adapter.patch")
 VENDOR_SOURCE_EEM_METADATA_PATCH = (Path(__file__).resolve().parents[1] /
                                     "patches/0010-mt6797-source-eem-voltage-unit-metadata.patch")
+VENDOR_SOURCE_POLICY_CLOCK_RAIL_PATCH = (Path(__file__).resolve().parents[1] /
+                                         "patches/0011-mt6797-source-policy-clock-rail-metadata.patch")
 MAINLINE_WRITER_BRIDGE_PATCH = ROOT / "patches/v7.1.3/0256-soc-mediatek-export-vendor-writer-owner-bridge.patch"
 MAINLINE_WRITER_REGISTRATION_PATCH = ROOT / "patches/v7.1.3/0257-soc-mediatek-add-explicit-vendor-writer-registration-handoff.patch"
 MAINLINE_WRITER_RUNTIME_EVENTS_PATCH = ROOT / "patches/v7.1.3/0258-soc-mediatek-extend-vendor-writer-handoff-runtime-events.patch"
@@ -78,6 +80,7 @@ MAINLINE_SOURCE_CSPM_BOUNDS_PATCH = ROOT / "patches/v7.1.3/0262-soc-mediatek-val
 MAINLINE_SOURCE_LIFECYCLE_GUARD_PATCH = ROOT / "patches/v7.1.3/0263-soc-mediatek-require-vendor-lifecycle-before-registration.patch"
 MAINLINE_SOURCE_PROVIDER_BRIDGE_PATCH = ROOT / "patches/v7.1.3/0264-soc-mediatek-add-vendor-provider-field-bridge.patch"
 MAINLINE_EEM_UNIT_PATCH = ROOT / "patches/v7.1.3/0265-soc-mediatek-map-vendor-eem-voltage-units.patch"
+MAINLINE_POLICY_CLOCK_RAIL_PATCH = ROOT / "patches/v7.1.3/0266-soc-mediatek-map-vendor-policy-clock-rail-metadata.patch"
 VENDOR_WRITER_INTEGRATION_REVIEW_RESULT = (Path(__file__).resolve().parents[1] /
                                            "results/vendor-writer-mainline-owner-integration-review-20260810.txt")
 VENDOR_WRITER_REGISTRATION_BUILD_RESULT = (Path(__file__).resolve().parents[1] /
@@ -282,6 +285,7 @@ def main() -> None:
     vendor_writer_lifecycle_integration_patch = VENDOR_WRITER_LIFECYCLE_INTEGRATION_PATCH.read_text()
     vendor_source_observation_patch = VENDOR_SOURCE_OBSERVATION_PATCH.read_text()
     vendor_source_eem_metadata_patch = VENDOR_SOURCE_EEM_METADATA_PATCH.read_text()
+    vendor_source_policy_clock_rail_patch = VENDOR_SOURCE_POLICY_CLOCK_RAIL_PATCH.read_text()
     mainline_writer_bridge_patch = MAINLINE_WRITER_BRIDGE_PATCH.read_text()
     mainline_writer_registration_patch = MAINLINE_WRITER_REGISTRATION_PATCH.read_text()
     mainline_writer_runtime_events_patch = MAINLINE_WRITER_RUNTIME_EVENTS_PATCH.read_text()
@@ -292,6 +296,7 @@ def main() -> None:
     mainline_source_lifecycle_guard_patch = MAINLINE_SOURCE_LIFECYCLE_GUARD_PATCH.read_text()
     mainline_source_provider_bridge_patch = MAINLINE_SOURCE_PROVIDER_BRIDGE_PATCH.read_text()
     mainline_eem_unit_patch = MAINLINE_EEM_UNIT_PATCH.read_text()
+    mainline_policy_clock_rail_patch = MAINLINE_POLICY_CLOCK_RAIL_PATCH.read_text()
     vendor_writer_integration_review_result = VENDOR_WRITER_INTEGRATION_REVIEW_RESULT.read_text()
     vendor_writer_registration_build_result = VENDOR_WRITER_REGISTRATION_BUILD_RESULT.read_text()
     vendor_writer_runtime_events_build_result = VENDOR_WRITER_RUNTIME_EVENTS_BUILD_RESULT.read_text()
@@ -345,8 +350,8 @@ def main() -> None:
                                VENDOR_EXPERIMENT_SERIES.read_text().splitlines()
                                if line and not line.startswith("#")]
 
-    if vendor_experiment_names[-1] != "0010-mt6797-source-eem-voltage-unit-metadata.patch":
-        raise AssertionError("vendor EEM metadata patch is not last in its experiment series")
+    if vendor_experiment_names[-1] != "0011-mt6797-source-policy-clock-rail-metadata.patch":
+        raise AssertionError("vendor policy/clock/rail metadata patch is not last in its experiment series")
     if names.index("0256-soc-mediatek-export-vendor-writer-owner-bridge.patch") >= names.index("0257-soc-mediatek-add-explicit-vendor-writer-registration-handoff.patch"):
         raise AssertionError("vendor writer registration handoff is not after the bridge")
     if names.index("0257-soc-mediatek-add-explicit-vendor-writer-registration-handoff.patch") >= names.index("0258-soc-mediatek-extend-vendor-writer-handoff-runtime-events.patch"):
@@ -357,6 +362,47 @@ def main() -> None:
         raise AssertionError("vendor provider field bridge is not after lifecycle guard")
     if names.index("0264-soc-mediatek-add-vendor-provider-field-bridge.patch") >= names.index("0265-soc-mediatek-map-vendor-eem-voltage-units.patch"):
         raise AssertionError("vendor EEM unit mapping is not after provider field bridge")
+    if names.index("0265-soc-mediatek-map-vendor-eem-voltage-units.patch") >= names.index("0266-soc-mediatek-map-vendor-policy-clock-rail-metadata.patch"):
+        raise AssertionError("policy/clock/rail mapping is not after EEM unit mapping")
+    for needle, label in (
+        ("GEMINI_MT6797_DVFSP_VENDOR_STATE_ABI\t2", "vendor-policy-clock-rail-state-abi"),
+        ("GEMINI_MT6797_DVFSP_VENDOR_MAX_POLICY_ROW", "vendor-policy-row-bound"),
+        ("GEMINI_MT6797_DVFSP_VENDOR_CLOCK_OWNER_CPU_DVFS", "vendor-clock-owner-kind"),
+        ("GEMINI_MT6797_DVFSP_VENDOR_VPROC_BASE_10UV\t30000", "vendor-vproc-base"),
+        ("GEMINI_MT6797_DVFSP_VENDOR_VPROC_STEP_10UV\t1000", "vendor-vproc-step"),
+        ("GEMINI_MT6797_DVFSP_VENDOR_VSRAM_CODE_OFFSET\t3", "vendor-vsram-offset"),
+        ("GEMINI_MT6797_DVFSP_VENDOR_VSRAM_BIGIDVFS", "vendor-bigidvfs-vsram-mode"),
+        ("ppm_get_power_state_info", "vendor-policy-source"),
+        ("_get_cpu_clock_switch(p)", "vendor-clock-source"),
+        ("GEMINI_MT6797_DVFSP_VENDOR_MAX_VSRAM_SPECIAL", "vendor-vsram-specials"),
+    ):
+        require(vendor_source_policy_clock_rail_patch, needle, label)
+    for forbidden in (
+        "set_cur_freq(", "set_cur_volt(", "set_cur_vsram(",
+        "mt_cpufreq_clock_switch(", "writel(", "i2c_transfer",
+    ):
+        if forbidden in vendor_source_policy_clock_rail_patch:
+            raise AssertionError(f"unexpected vendor policy/clock/rail operation: {forbidden}")
+    for needle, label in (
+        ("MT6797_DVFSP_VENDOR_SOURCE_ABI\t3", "mainline-source-abi-3"),
+        ("MT6797_DVFSP_VENDOR_PROVIDER_ABI\t3", "mainline-provider-abi-3"),
+        ("MT6797_DVFSP_VENDOR_SOURCE_MAX_POLICY_ROW", "mainline-policy-row-bound"),
+        ("MT6797_DVFSP_VENDOR_SOURCE_CLOCK_OWNER_CPU_DVFS", "mainline-clock-owner-kind"),
+        ("MT6797_DVFSP_VENDOR_SOURCE_VPROC_BASE_10UV\t30000", "mainline-vproc-base"),
+        ("MT6797_DVFSP_VENDOR_SOURCE_VSRAM_CODE_OFFSET\t3", "mainline-vsram-offset"),
+        ("MT6797_DVFSP_VENDOR_PROVIDER_MAPPED_POLICY_ROWS", "mainline-policy-mask"),
+        ("MT6797_DVFSP_VENDOR_PROVIDER_MAPPED_CLOCK", "mainline-clock-mask"),
+        ("MT6797_DVFSP_VENDOR_PROVIDER_MAPPED_RAIL", "mainline-rail-mask"),
+        ("* 10U", "mainline-10uv-to-uv"),
+        ("provider registration", "mainline-registration-closed"),
+    ):
+        require(mainline_policy_clock_rail_patch, needle, label)
+    for forbidden in (
+        "register_provider", "mt_cpufreq_clock_switch(", "set_cur_volt(",
+        "writel(", "i2c_transfer", "cpu_up(",
+    ):
+        if forbidden in mainline_policy_clock_rail_patch:
+            raise AssertionError(f"unexpected mainline policy/clock/rail operation: {forbidden}")
     for needle, label in (
         ("GEMINI_MT6797_DVFSP_VENDOR_WRITER_ABI\t2", "vendor-writer-identity-abi"),
         ("read_identity", "vendor-writer-identity-callback"),
@@ -3359,6 +3405,7 @@ def main() -> None:
     print("vendor_source_eem_unit_buildbox=validated;commit=20fd59f8cb5fb649fc093709e59f081a6b412e86;profile=dvfsp-owner-kunit;patch_count=254;dtb_count=119;sha256sums=passed;package_fetch=success;validated_package_only;provider=none;registered_owner=0;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("vendor_source_eem_unit_vendor_buildbox=validated;commit=20fd59f8cb5fb649fc093709e59f081a6b412e86;vendor_revision=d388d350cb2dda8f23b99be6fa5db9628896e87f;vendor_series=0001..0010;compiler=gcc-6.3;affected_objects=passed;provider=none;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("vendor_source_eem_unit_qemu=validated;commit=20fd59f8cb5fb649fc093709e59f081a6b412e86;runner=local_qemu_system_aarch64;machine=virt;ktap_suites=6;ktap_tests_passed=18;ktap_tests_failed=0;ktap_tests_skipped=0;kernel_halted;hardware_scope=none;provider=none;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
+    print("vendor_source_policy_clock_rail=0266+0011;source_abi=3;provider_abi=3;four_ppm_states_x_three_clusters;cpu_dvfs_clock_mux_observation;vproc_extbuck_30000_plus_code_times_1000_10uV;vsram_pmic_special_codes_0_1_2;bigidvfs_vsram_mode;physical_10uV_to_microvolt_mapping;provider_registration_closed;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("pcm_adapter_contract=source-only;bounded-admission-model;callback-registration-gated")
     print("clock_owner_inventory=generic_ccf_only;protected_owner_absent;A72_observer_read_only")
     print("pcm_start_contract=defined;residency_and_start_required_before_callback_registration")
