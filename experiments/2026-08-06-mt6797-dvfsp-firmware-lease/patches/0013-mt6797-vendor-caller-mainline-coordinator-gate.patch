@@ -50,9 +50,10 @@ diff --git a/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c b/drivers/misc
  	writer_ret = gemini_mt6797_dvfsp_vendor_writer_owner_lifecycle_register();
  	if (writer_ret) {
  		cpufreq_err("DVFSP owner lifecycle registration refused: %d\n",
-@@ -5725,4 +5732,5 @@ static int _mt_cpufreq_pdrv_probe(struct platform_device *pdev)
+@@ -5725,5 +5732,6 @@ static int _mt_cpufreq_pdrv_probe(struct platform_device *pdev)
  	if (writer_ret)
  		goto lifecycle_fail;
+ #endif
 +	lifecycle_registered = true;
  	register_hotcpu_notifier(&_mt_cpufreq_cpu_notifier);
  	mt_ppm_register_client(PPM_CLIENT_DVFS, &ppm_limit_callback);
