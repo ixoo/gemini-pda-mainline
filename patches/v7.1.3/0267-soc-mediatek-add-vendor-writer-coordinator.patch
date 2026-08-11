@@ -185,7 +185,7 @@ new file mode 100644
 diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
 --- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
-@@ -10,6 +10,7 @@
+@@ -10,3 +10,4 @@
  #include <linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h>
 +#include <linux/soc/mediatek/mt6797-dvfsp-vendor-coordinator.h>
  
