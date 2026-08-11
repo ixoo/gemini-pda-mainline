@@ -391,14 +391,15 @@ def main() -> None:
                                VENDOR_EXPERIMENT_SERIES.read_text().splitlines()
                                if line and not line.startswith("#")]
 
-    if vendor_experiment_names[-5:] != [
+    if vendor_experiment_names[-6:] != [
             "0010a-mt6797-source-eem-voltage-unit-metadata-anchored.patch",
             "0011a-mt6797-source-policy-clock-rail-metadata-anchored.patch",
             "0012-mt6797-vendor-writer-integration-context-accessor.patch",
             "0013-mt6797-vendor-caller-mainline-coordinator-gate.patch",
             "0014-mt6797-vendor-identity-observation.patch",
+            "0015-mt6797-vendor-provenance-publication.patch",
     ]:
-        raise AssertionError("vendor identity observation series does not end with the audited anchored metadata, accessor, lifecycle gate, and observation patches")
+        raise AssertionError("vendor provenance series does not end with the audited anchored metadata, accessor, lifecycle, identity, and provenance patches")
     if names.index("0256-soc-mediatek-export-vendor-writer-owner-bridge.patch") >= names.index("0257-soc-mediatek-add-explicit-vendor-writer-registration-handoff.patch"):
         raise AssertionError("vendor writer registration handoff is not after the bridge")
     if names.index("0257-soc-mediatek-add-explicit-vendor-writer-registration-handoff.patch") >= names.index("0258-soc-mediatek-extend-vendor-writer-handoff-runtime-events.patch"):
@@ -1286,6 +1287,7 @@ def main() -> None:
 0012-mt6797-vendor-writer-integration-context-accessor.patch
 0013-mt6797-vendor-caller-mainline-coordinator-gate.patch
 0014-mt6797-vendor-identity-observation.patch
+0015-mt6797-vendor-provenance-publication.patch
 """
     if VENDOR_EXPERIMENT_SERIES.read_text() != expected_vendor_series:
         raise AssertionError("vendor integration-context series is not the audited canonical sequence")
