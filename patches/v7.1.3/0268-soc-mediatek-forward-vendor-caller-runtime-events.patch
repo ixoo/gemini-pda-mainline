@@ -1,0 +1,138 @@
+From 0000000000000000000000000000000000000268 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 11 Aug 2026 04:00:00 +0000
+Subject: [PATCH] soc: mediatek: forward vendor caller runtime events safely
+
+Expose the guarded mainline-side runtime-event entry point needed by the
+vendor-aware caller.  Validate the coordinator lifetime and event tuple,
+invalidate the shared read-only source before forwarding, and preserve the
+coordinator teardown guard.  This remains a source-only, default-off boundary:
+it does not discover vendor symbols, register a provider, touch hardware, or
+admit CPUs 8/9.
+---
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-coordinator.c | 13 +++++++++++++
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c  | 12 ++++++++++++
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c       | 26 +++++++++++++++++++++++---
+ include/linux/soc/mediatek/mt6797-dvfsp-vendor-coordinator.h | 4 ++++
+ include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h | 5 +++++
+ 5 files changed, 56 insertions(+), 4 deletions(-)
+
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h
+@@ -143,6 +143,11 @@ int mt6797_dvfsp_vendor_owner_unbind_writer_integration(
+ 	struct mt6797_dvfsp_vendor_owner *owner);
+
++/* Invalidate the shared source, then forward one vendor lifecycle event. */
++int mt6797_dvfsp_vendor_owner_forward_runtime_event(
++	struct mt6797_dvfsp_vendor_owner *owner, unsigned int type,
++	unsigned int cpu);
++
+ int mt6797_dvfsp_vendor_owner_unbind(
+ 	struct mt6797_dvfsp_vendor_owner *owner);
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c
+@@ -92,19 +92,39 @@ static const struct mt6797_dvfsp_vendor_owner_lifecycle_ops
+ 	mt6797_dvfsp_vendor_owner_integration_lifecycle_ops;
+
+-static int mt6797_dvfsp_vendor_owner_runtime_event(
+-	void *context, unsigned int type, unsigned int cpu)
++int mt6797_dvfsp_vendor_owner_forward_runtime_event(
++	struct mt6797_dvfsp_vendor_owner *owner, unsigned int type,
++	unsigned int cpu)
+ {
+-	struct mt6797_dvfsp_vendor_owner *owner = context;
+
+ 	if (!owner || !owner->writer_integration_bound ||
+ 	    !owner->source.initialized || !owner->ops.writer_runtime_ops ||
+ 	    !owner->ops.writer_runtime_ops->event)
+ 		return -ENODEV;
++	if (type >= MT6797_DVFSP_VENDOR_RUNTIME_EVENT_COUNT ||
++	    (cpu != MT6797_DVFSP_VENDOR_RUNTIME_CPU_NONE && cpu >= 10))
++		return -EINVAL;
+ 	mt6797_dvfsp_vendor_source_invalidate(&owner->source);
+ 	return owner->ops.writer_runtime_ops->event(
+ 		owner->ops.writer_runtime_context, type, cpu);
+ }
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_owner_forward_runtime_event);
+
++static int mt6797_dvfsp_vendor_owner_runtime_event(
++	void *context, unsigned int type, unsigned int cpu)
++{
++	return mt6797_dvfsp_vendor_owner_forward_runtime_event(context, type,
++		cpu);
++}
+
+ static const struct mt6797_dvfsp_vendor_runtime_ops
+ mt6797_dvfsp_vendor_owner_runtime_adapter_ops = {
+ 	.abi = MT6797_DVFSP_VENDOR_RUNTIME_EVENT_ABI,
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-coordinator.h b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-coordinator.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-coordinator.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-coordinator.h
+@@ -26,6 +26,10 @@ int mt6797_dvfsp_vendor_coordinator_start(
+ 	const struct mt6797_dvfsp_vendor_integration_ops *integration_ops,
+ 	void *integration_context);
+
++int mt6797_dvfsp_vendor_coordinator_forward_runtime_event(
++	struct mt6797_dvfsp_vendor_coordinator *coordinator,
++	unsigned int type, unsigned int cpu);
++
+ int mt6797_dvfsp_vendor_coordinator_stop(
+ 	struct mt6797_dvfsp_vendor_coordinator *coordinator);
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-coordinator.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-coordinator.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-coordinator.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-coordinator.c
+@@ -47,6 +47,19 @@ int mt6797_dvfsp_vendor_coordinator_start(
+ }
+ EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_coordinator_start);
+
++int mt6797_dvfsp_vendor_coordinator_forward_runtime_event(
++	struct mt6797_dvfsp_vendor_coordinator *coordinator,
++	unsigned int type, unsigned int cpu)
++{
++	if (!coordinator || !coordinator->started || !coordinator->owner ||
++	    !coordinator->integration_ops || !coordinator->integration_context)
++		return -ENODEV;
++
++	return mt6797_dvfsp_vendor_owner_forward_runtime_event(
++		coordinator->owner, type, cpu);
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_coordinator_forward_runtime_event);
++
+ int mt6797_dvfsp_vendor_coordinator_stop(
+ 	struct mt6797_dvfsp_vendor_coordinator *coordinator)
+ {
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
+@@ -604,6 +604,12 @@ static void mt6797_dvfsp_vendor_owner_coordinator_stages_lifecycle(
+ 	KUNIT_EXPECT_TRUE(test, integration.mainline_registered);
+ 	KUNIT_EXPECT_TRUE(test, owner.writer_registered);
+ 	KUNIT_EXPECT_EQ(test, integration.bind_calls, 1U);
+ 	KUNIT_EXPECT_EQ(test, integration.register_calls, 1U);
++	KUNIT_ASSERT_EQ(test,
++		mt6797_dvfsp_vendor_coordinator_forward_runtime_event(&coordinator,
++			MT6797_DVFSP_VENDOR_RUNTIME_CPU_ONLINE,
++			MT6797_DVFSP_VENDOR_RUNTIME_CPU_NONE), 0);
++	KUNIT_EXPECT_TRUE(test, owner.source.invalidated);
++	KUNIT_EXPECT_EQ(test, registration.runtime_event_calls, 1U);
+ 	KUNIT_EXPECT_EQ(test,
+ 		mt6797_dvfsp_vendor_coordinator_start(&coordinator, &owner,
+ 			&mt6797_dvfsp_vendor_test_integration_ops, &integration), -EBUSY);
+@@ -621,6 +627,12 @@ static void mt6797_dvfsp_vendor_owner_coordinator_stages_lifecycle(
+ 	KUNIT_ASSERT_EQ(test,
+ 		mt6797_dvfsp_vendor_coordinator_stop(&coordinator), 0);
+ 	KUNIT_EXPECT_FALSE(test,
+ 		mt6797_dvfsp_vendor_coordinator_started(&coordinator));
++	KUNIT_EXPECT_EQ(test,
++		mt6797_dvfsp_vendor_coordinator_forward_runtime_event(&coordinator,
++			MT6797_DVFSP_VENDOR_RUNTIME_CPU_ONLINE,
++			MT6797_DVFSP_VENDOR_RUNTIME_CPU_NONE), -ENODEV);
+ 	KUNIT_EXPECT_FALSE(test, integration.bound);
+ 	KUNIT_EXPECT_EQ(test, integration.unbind_calls, 1U);
+ 	KUNIT_ASSERT_EQ(test, mt6797_dvfsp_vendor_owner_unbind(&owner), 0);
+-- 
+2.39.5

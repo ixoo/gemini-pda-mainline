@@ -257,3 +257,4 @@ v7.1.3/0264-soc-mediatek-add-vendor-provider-field-bridge.patch
 v7.1.3/0265-soc-mediatek-map-vendor-eem-voltage-units.patch
 v7.1.3/0266-soc-mediatek-map-vendor-policy-clock-rail-metadata.patch
 v7.1.3/0267-soc-mediatek-add-vendor-writer-coordinator.patch
+v7.1.3/0268-soc-mediatek-forward-vendor-caller-runtime-events.patch
