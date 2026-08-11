@@ -21,7 +21,7 @@ admission.
 diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-coordinator.h b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-coordinator.h
 --- a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-coordinator.h
 +++ b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-coordinator.h
-@@ -17,16 +17,44 @@ struct mt6797_dvfsp_vendor_coordinator {
+@@ -17,5 +17,9 @@ struct mt6797_dvfsp_vendor_coordinator {
  	struct mt6797_dvfsp_vendor_owner *owner;
  	const struct mt6797_dvfsp_vendor_integration_ops *integration_ops;
  	void *integration_context;
@@ -31,7 +31,9 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-coordinator.h b/incl
 +	void *caller_integration_context;
 +	bool caller_bound;
  };
- 
+@@ -22,1 +26,17 @@ struct mt6797_dvfsp_vendor_coordinator {
+ };
++
 +/* Bind the exact identities that the vendor probe/remove hooks will use. */
 +int mt6797_dvfsp_vendor_coordinator_bind_caller(
 +	struct mt6797_dvfsp_vendor_coordinator *coordinator,
@@ -47,32 +49,27 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-coordinator.h b/incl
 +int mt6797_dvfsp_vendor_coordinator_vendor_unbind(void);
 +int mt6797_dvfsp_vendor_coordinator_vendor_probe(void);
 +int mt6797_dvfsp_vendor_coordinator_vendor_remove(void);
-+
- int mt6797_dvfsp_vendor_coordinator_start(
- 	struct mt6797_dvfsp_vendor_coordinator *coordinator,
+@@ -28,3 +51,8 @@ int mt6797_dvfsp_vendor_coordinator_start(
  	struct mt6797_dvfsp_vendor_owner *owner,
  	const struct mt6797_dvfsp_vendor_integration_ops *integration_ops,
  	void *integration_context);
- 
++
 +int mt6797_dvfsp_vendor_coordinator_caller_probe(
 +	struct mt6797_dvfsp_vendor_coordinator *coordinator);
 +int mt6797_dvfsp_vendor_coordinator_caller_remove(
 +	struct mt6797_dvfsp_vendor_coordinator *coordinator);
+@@ -39,1 +67,4 @@ bool mt6797_dvfsp_vendor_coordinator_started(
+ 	const struct mt6797_dvfsp_vendor_coordinator *coordinator);
 +
- int mt6797_dvfsp_vendor_coordinator_stop(
- 	struct mt6797_dvfsp_vendor_coordinator *coordinator);
- 
 +bool mt6797_dvfsp_vendor_coordinator_caller_bound(
 +	const struct mt6797_dvfsp_vendor_coordinator *coordinator);
-+
- #endif /* __LINUX_SOC_MEDIATEK_MT6797_DVFSP_VENDOR_COORDINATOR_H */
 
 diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-coordinator.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-coordinator.c
 --- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-coordinator.c
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-coordinator.c
-@@ -14,5 +14,45 @@
+@@ -14,1 +14,41 @@
  #include <linux/soc/mediatek/mt6797-dvfsp-vendor-coordinator.h>
- 
++
 +static struct mt6797_dvfsp_vendor_coordinator
 +mt6797_dvfsp_vendor_global_coordinator;
 +
@@ -112,11 +109,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-coordinator.c b/drivers/so
 +	return 0;
 +}
 +EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_coordinator_unbind_caller);
-+
- int mt6797_dvfsp_vendor_coordinator_start(
- 	struct mt6797_dvfsp_vendor_coordinator *coordinator,
- 	struct mt6797_dvfsp_vendor_owner *owner,
-@@ -28,5 +68,10 @@ int mt6797_dvfsp_vendor_coordinator_start(
+@@ -28,4 +71,9 @@ int mt6797_dvfsp_vendor_coordinator_start(
  	if (!owner || !integration_ops || !integration_context)
  		return -EINVAL;
 +	if (coordinator->caller_bound &&
@@ -126,11 +119,9 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-coordinator.c b/drivers/so
 +		return -EPROTO;
  
  	ret = mt6797_dvfsp_vendor_owner_bind_writer_integration(owner,
- 		integration_ops, integration_context);
-@@ -45,5 +85,64 @@ int mt6797_dvfsp_vendor_coordinator_start(
- }
- EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_coordinator_start);
- 
+@@ -60,1 +109,60 @@ EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_coordinator_forward_runtime_event);
+ EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_coordinator_forward_runtime_event);
++
 +int mt6797_dvfsp_vendor_coordinator_caller_probe(
 +	struct mt6797_dvfsp_vendor_coordinator *coordinator)
 +{
@@ -189,22 +180,16 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-coordinator.c b/drivers/so
 +		&mt6797_dvfsp_vendor_global_coordinator);
 +}
 +EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_coordinator_vendor_remove);
-+
- int mt6797_dvfsp_vendor_coordinator_stop(
- 	struct mt6797_dvfsp_vendor_coordinator *coordinator)
-@@ -81,5 +216,12 @@ bool mt6797_dvfsp_vendor_coordinator_started(
+@@ -81,2 +182,9 @@ bool mt6797_dvfsp_vendor_coordinator_started(
  }
  EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_coordinator_started);
- 
++
 +bool mt6797_dvfsp_vendor_coordinator_caller_bound(
 +	const struct mt6797_dvfsp_vendor_coordinator *coordinator)
 +{
 +	return coordinator && coordinator->caller_bound;
 +}
 +EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_coordinator_caller_bound);
-+
- MODULE_DESCRIPTION("MT6797 vendor writer coordinator");
- MODULE_LICENSE("GPL");
 
 diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
 --- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
