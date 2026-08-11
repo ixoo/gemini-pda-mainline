@@ -1,0 +1,23 @@
+# Read-only runtime identity transport availability check
+generated_utc=2026-08-11T07:46:01Z
+claim=READ_ONLY_RUNTIME_IDENTITY_TRANSPORT_AVAILABILITY_CHECK_V1
+usb_transport=direct-netcat
+usb_host_mac_expected=42:00:15:19:82:00
+usb_host_address_expected=10.15.19.1
+usb_device_address_expected=10.15.19.82
+usb_device_port=2323
+usb_interface_state=not_present
+usb_probe=not_run;required_interface_absent
+lan_probe_target=192.168.1.50:2323
+lan_probe=response_absent
+identity_sample=not_collected
+raw_payload_retained=none
+device_action=none
+hardware_write=none
+backup=none
+boot_candidate=none
+provider=none
+runtime_owner_registration=none
+cpu8_cpu9_admission=closed
+decision=no_new_runtime_identity_evidence;runtime_gate_remains_closed
+next=rerun_runtime_identity_surface_census_nc_when_expected_usb_link_is_present;require_attributable_epoch_and_calibration_handle_before_provider_review

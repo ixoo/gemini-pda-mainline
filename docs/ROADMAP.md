@@ -3441,6 +3441,17 @@ written, and CPU8/CPU9 admission remains closed. The next ordered gate is still
 the read-only runtime epoch/calibration-handle sample, followed by provider
 registration review.
 
+The direct USB netcat census helper is now prepared and syntax-checked at
+[`runtime-identity-surface-census-nc.sh`](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/scripts/runtime-identity-surface-census-nc.sh).
+It validates the expected Gemini USB interface and route before sending a
+bounded, label-only read-only census. The follow-up availability check found no
+expected USB interface, and the known LAN netcat port did not answer; no runtime
+sample or device action occurred. See the
+[transport availability receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/runtime-identity-nc-transport-20260811.txt).
+The next ordered gate is unchanged: run this helper when the USB link is
+present, then require attributable epoch and calibration-handle evidence before
+provider review.
+
 Required evidence:
 
 - provider registration performs no register-data write;

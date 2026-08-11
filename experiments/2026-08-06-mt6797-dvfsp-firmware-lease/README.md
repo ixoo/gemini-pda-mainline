@@ -1577,3 +1577,13 @@ compile/reproducibility evidence only: no provider, runtime owner, setter,
 device action, or hardware write occurred, and CPU8/CPU9 admission remains
 closed. The next gate remains a new read-only epoch/calibration-handle sample,
 then a separate provider-registration review.
+
+The direct USB netcat census helper is now available at
+[`scripts/runtime-identity-surface-census-nc.sh`](scripts/runtime-identity-surface-census-nc.sh).
+It validates the Gemini USB interface and route, bounds the remote search to
+known identity surfaces, and retains labels/counts only. On the follow-up
+attempt the expected USB interface was absent and the known LAN netcat port did
+not answer, so no runtime sample was collected; see the
+[transport availability receipt](results/runtime-identity-nc-transport-20260811.txt).
+The runtime gate remains closed until the helper obtains attributable epoch and
+calibration-handle evidence.
