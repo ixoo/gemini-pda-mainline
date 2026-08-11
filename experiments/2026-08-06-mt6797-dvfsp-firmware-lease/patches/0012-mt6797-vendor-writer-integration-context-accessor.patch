@@ -1,0 +1,43 @@
+From 0000000000000000000000000000000000000012 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 11 Aug 2026 03:30:00 -0400
+Subject: [PATCH] power: expose vendor writer integration context accessor
+
+The vendor integration callbacks validate an opaque binding context so that
+an external mainline caller cannot substitute a look-alike identity. Export a
+read-only accessor for that exact context alongside the callback table. This
+only makes the already-defined lifecycle boundary reachable; it does not bind
+an owner, register a provider, replace a vendor callback, or access hardware.
+---
+ drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c | 7 +++++++
+ drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h | 1 +
+ 2 files changed, 8 insertions(+)
+
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
+--- a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
++++ b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
+@@ -397,6 +397,13 @@ gemini_mt6797_dvfsp_vendor_writer_integration_ops(void)
+ }
+ EXPORT_SYMBOL_GPL(gemini_mt6797_dvfsp_vendor_writer_integration_ops);
++
++void *gemini_mt6797_dvfsp_vendor_writer_integration_context(void)
++{
++	return &gemini_mt6797_dvfsp_vendor_writer_integration_binding;
++}
++EXPORT_SYMBOL_GPL(gemini_mt6797_dvfsp_vendor_writer_integration_context);
+ 
+ static bool gemini_mt6797_dvfsp_vendor_writer_ops_valid(
+ 	const struct gemini_mt6797_dvfsp_vendor_writer_ops *ops)
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h
+--- a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h
++++ b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.h
+@@ -76,6 +76,7 @@
+ 
+ const struct gemini_mt6797_dvfsp_vendor_integration_ops *
+ gemini_mt6797_dvfsp_vendor_writer_integration_ops(void);
++void *gemini_mt6797_dvfsp_vendor_writer_integration_context(void);
+ 
+ struct gemini_mt6797_dvfsp_vendor_writer_transaction {
+ 	enum gemini_mt6797_dvfsp_vendor_writer_site site;
+-- 
+2.39.5
