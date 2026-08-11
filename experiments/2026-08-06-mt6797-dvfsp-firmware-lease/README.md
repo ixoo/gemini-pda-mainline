@@ -1523,3 +1523,17 @@ bytes of each candidate. CPU0 was the only online CPU in this sample; CPUs
 This remains read-only evidence: provider registration, boot/write, and CPU8/
 CPU9 admission stay closed. The next implementation is an explicit vendor
 epoch/calibration-handle owner contract, followed by a new read-only validation.
+
+Patch `0271` now defines that explicit default-off cooperation boundary. A vendor
+adapter must return nonzero variant, mutable table epoch, and calibration handle
+values together with exact source-generation, owner, and transition-handle echoes
+for one source snapshot; the mainline side rejects zero or mismatched values and
+never relabels the bridge transition generation as a table epoch. Buildbox applied
+the selected 260-patch `dvfsp-owner-kunit` profile at exact pushed commit
+`42df64a`, produced 119 DTBs, passed all package/provenance checksums, and the
+validated package was fetched; see the [provenance cooperation Buildbox receipt](results/vendor-provenance-cooperation-buildbox-20260811.txt).
+This is compile/package evidence only: no real vendor callback, runtime owner,
+provider, setter, hardware write, device action, or CPU8/CPU9 admission exists.
+The next gate is implementing the real vendor callback from pinned source
+evidence and collecting new read-only runtime validation; do not boot or write a
+device.
