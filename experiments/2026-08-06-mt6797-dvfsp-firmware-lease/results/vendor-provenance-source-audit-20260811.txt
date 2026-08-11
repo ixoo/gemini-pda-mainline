@@ -1,0 +1,39 @@
+# Pinned vendor provenance source audit
+
+date_utc=2026-08-11
+origin=https://github.com/gemian/gemini-linux-kernel-3.18.git
+vendor_revision=d388d350cb2dda8f23b99be6fa5db9628896e87f
+audit_scope=managed_buildbox_git_show_metadata_only;vendor_source_payload_not_copied
+device_action=none
+hardware_write=none
+provider_registration=none
+boot_candidate=false
+cpu8_cpu9_admission=closed
+
+source_mt_cpufreq=drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c;sha256=a420033f65c49bf509182388fcb803161e69e93cf7d334b723fe7a0c55b8c293
+source_mt_eem=drivers/misc/mediatek/base/power/mt6797/mt_eem.c;sha256=147b673723d7fa417685a3c2b06cbe75100abaaf288663b08795efc04414f4bc
+source_ppm_internal=drivers/misc/mediatek/base/power/ppm_v1/inc/mt_ppm_internal.h;sha256=54f1581c179e6b08b3b98c58002491e58d40c79ea77d882ab83de6e2123ec4ea
+source_ppm_api=drivers/misc/mediatek/base/power/ppm_v1/src/mt_ppm_api.c;sha256=7d11f5b349ae9ac967e8c8c1394a4ff2e9d35bdf956f684555e92e0049d8a08c
+
+eem_selection_fields=mt_eem.c:1077-1084;checkEfuse;ateVer;infoIdvfs;cpuBinLevel
+eem_calibration=mt_eem.c:6131;eem_efuse_calibration mutates eem_devinfo;no calibration handle or lifecycle epoch
+eem_ate_source=mt_eem.c:6507-6512;ateVer derives from efuse/devinfo and gates calibration;not a mutable table epoch
+eem_status_fields=mt_eem.c:4316,4967;infoIdvfs receives 0xff or 0x55 status values;not a calibration identity
+cpufreq_state=mt_cpufreq.c:1170-1210;cpu_dvfs[] owns tables and current indices;no generation, epoch, owner, or transition handle
+ptp_callback_slot=mt_cpufreq.c:2361-2368;mt_cpufreq_set_ptbl_registerCB stores one callback;separate registration would replace EEM ownership
+voltage_callback_slot=mt_cpufreq.c:1114-1120;mt_cpufreq_setvolt_registerCB stores one callback;separate registration would replace the vendor observer
+ppm_state=mt_ppm_internal.h:238-276;ppm_main_info.lock protects mutable cluster tables and policy;no shared generation field
+ppm_table_registration=mt_ppm_api.c:18-51;mt_ppm_set_dvfs_table stores table pointer/type once under ppm_main_info.lock and has no epoch publication
+ppm_callback_slot=mt_ppm_api.c:67-87;mt_ppm_register_client stores one limit_cb;separate registration would replace cpufreq policy ownership
+
+searched_symbols=table_epoch;calibration_handle;source_generation;owner_handle;transition_handle;shared_generation;shared_transition_lock
+searched_symbol_result=absent_in_pinned_vendor_revision
+independent_locks=cpufreq_mutex;dvfs_lock;ppm_main_info.lock;eem_spinlock;record_mutex;mt_ptp_lock
+shared_vendor_owner=absent
+
+mainline_static_epoch=MT6797_DVFSP_TABLE_SOURCE_EPOCH_SB0119;source-backed table-family identity only;does_not_prove_vendor_mutable_epoch
+mainline_static_epoch_decision=not_suitable_as_vendor_provenance_table_epoch_without_explicit_vendor_publication
+
+decision=real_vendor_read_provenance_callback_not_implementable_from_existing_fields
+required_vendor_cooperation=publish_calibration_handle_at_EEM_calibration_lifecycle;publish_mutable_table_epoch_at_PTP_PPM_commit;invoke_callback_under_one_shared_writer_transaction;echo_source_generation_owner_handle_transition_handle;chain_existing_single_slot_callbacks
+next_gate=implement_and_compile_review_explicit_vendor_provenance_publication_then_collect_new_read_only_runtime_identity_and_invalidation_evidence

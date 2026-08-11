@@ -1537,3 +1537,17 @@ provider, setter, hardware write, device action, or CPU8/CPU9 admission exists.
 The next gate is implementing the real vendor callback from pinned source
 evidence and collecting new read-only runtime validation; do not boot or write a
 device.
+
+The follow-up source audit now closes the tempting field-reuse route. At the
+pinned vendor revision, `ateVer`, `cpuBinLevel`, and `infoIdvfs` are selection or
+status values, not a mutable epoch or calibration handle. EEM calibration keeps
+private detector state, while PPM and cpufreq expose separate locks, no shared
+generation/owner fields, and single callback slots. The mainline SB/0119
+source epoch is table-family identity only and is not evidence of a vendor
+mutable epoch. The exact line anchors, hashes, and decision are recorded in the
+[vendor provenance source audit](results/vendor-provenance-source-audit-20260811.txt).
+The next vendor experiment must therefore add explicit cooperation at the
+vendor boundary: publish a calibration-lifecycle handle and mutable table epoch,
+invoke the callback under one writer transaction, echo generation/owner handles,
+and preserve the existing callback owners. No provider, setter, hardware action,
+device boot, or CPU8/CPU9 admission follows from this audit.

@@ -3398,6 +3398,22 @@ The next ordered gate is implementing the real vendor callback from pinned sourc
 evidence and collecting new read-only runtime validation; do not boot or write a
 device.
 
+A follow-up read-only audit of the pinned vendor revision confirms that the
+remaining callback cannot be filled from existing fields. `ateVer`,
+`cpuBinLevel`, and `infoIdvfs` are efuse selection/status values; EEM calibration
+mutates private detector state without publishing a handle. The vendor PPM and
+cpufreq paths have separate locks, no shared generation/owner/transition fields,
+and single-slot callback registration. The source-backed SB/0119 epoch already
+in mainline identifies a table family, but does not prove a vendor mutable epoch.
+See the [vendor provenance source audit](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-provenance-source-audit-20260811.txt).
+The next ordered implementation is explicit vendor cooperation: publish a
+calibration-lifecycle handle and mutable table epoch at the vendor commit points,
+invoke the provenance callback inside the shared writer transaction, echo its
+generation and owner handles, and chain the existing single-slot callbacks.
+Only after that compile review and a new read-only runtime identity/invalidation
+sample may owner/provider registration be reconsidered; device boot, writes, and
+CPU8/CPU9 admission remain closed.
+
 Required evidence:
 
 - provider registration performs no register-data write;
