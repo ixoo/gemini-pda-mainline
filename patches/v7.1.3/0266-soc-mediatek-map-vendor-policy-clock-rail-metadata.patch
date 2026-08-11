@@ -333,10 +333,11 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-provider.c b/drivers/soc/m
 +	return 0;
 +}
 +
-@@ -350,3 +384,7 @@ int mt6797_dvfsp_vendor_provider_map(
+@@ -350,4 +384,8 @@ int mt6797_dvfsp_vendor_provider_map(
  	memset(mapped, 0, sizeof(*mapped));
  	mapped->abi = MT6797_DVFSP_VENDOR_PROVIDER_ABI;
- 	mapped->mapped_mask = MT6797_DVFSP_VENDOR_PROVIDER_MAPPED_ALL;
+ 	mapped->mapped_mask = MT6797_DVFSP_VENDOR_PROVIDER_MAPPED_ALL &
+ 		~MT6797_DVFSP_VENDOR_PROVIDER_MAPPED_EEM_UV;
 +	mapped->mapped_mask &=
 +		~(MT6797_DVFSP_VENDOR_PROVIDER_MAPPED_POLICY_ROWS |
 +		  MT6797_DVFSP_VENDOR_PROVIDER_MAPPED_CLOCK |
