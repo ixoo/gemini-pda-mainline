@@ -3335,6 +3335,19 @@ next implementation is a source-owned identity-observation handoff, followed
 by explicit epoch and calibration-handle evidence before any runtime owner
 registration.
 
+The source-owned observation handoff is now implemented in mainline patch
+`0270` and validated on Buildbox at exact commit `09bd32b`; the
+`dvfsp-owner-kunit` profile applied 259 canonical patches, compiled the source
+and KUnit fixture, produced 119 DTBs, and passed package checksums. The
+observation exposes raw function/date words, CPU bin, EEM ATE version, and PPM
+table selection without relabeling them as owner identity; see the
+[identity-observation Buildbox receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-identity-observation-buildbox-20260811.txt).
+The pinned vendor adapter patch `0014` is not yet GCC-6.3-compiled, and the
+calibrated identity callback remains fail-closed. The next ordered gate is the
+vendor-series compile, followed by read-only runtime observation plus explicit
+mutable epoch and calibration-handle evidence; no provider registration,
+device boot/write, or CPU8/CPU9 admission follows from this build.
+
 Required evidence:
 
 - provider registration performs no register-data write;
