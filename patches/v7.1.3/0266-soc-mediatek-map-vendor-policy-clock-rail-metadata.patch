@@ -1,0 +1,474 @@
+From 0000000000000000000000000000000000000266 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 11 Aug 2026 03:00:00 -0400
+Subject: [PATCH] soc: mediatek: map vendor policy clock rail metadata
+
+Carry the pinned vendor's bounded PPM power-state rows, per-domain clock
+mux observation, and exact VPROC/VSRAM conversion metadata through the
+read-only source ABI. Physical vendor voltage values are documented in
+10uV and are converted to checked microvolt values in the provider review
+view; raw values and source ordering remain available for audit.
+
+The clock field identifies the vendor cpu_dvfs record that supplied the
+observation, not a registered mainline clock owner. The bridge remains a
+source-only review view: provider registration, setter callbacks, firmware
+operations, device actions, and CPU admission remain closed.
+---
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-provider-test.c |  49 ++++++++++
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-provider.c      | 125 +++++++++++++++++++++++-
+ include/linux/soc/mediatek/mt6797-dvfsp-vendor-provider.h |  20 +++-
+ include/linux/soc/mediatek/mt6797-dvfsp-vendor-source.h   |  44 +++++++-
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-source.c         |  57 ++++++++++
+ 5 files changed, 284 insertions(+), 11 deletions(-)
+
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-source.h b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-source.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-source.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-source.h
+@@ -8,6 +8,6 @@
+ #include <linux/types.h>
+ 
+-#define MT6797_DVFSP_VENDOR_SOURCE_ABI	2
++#define MT6797_DVFSP_VENDOR_SOURCE_ABI	3
+ #define MT6797_DVFSP_VENDOR_SOURCE_MAX_CLUSTER	3
+ #define MT6797_DVFSP_VENDOR_SOURCE_MAX_DOMAIN	4
+ #define MT6797_DVFSP_VENDOR_SOURCE_MAX_OPP	16
+@@ -17,2 +17,19 @@
+ #define MT6797_DVFSP_VENDOR_SOURCE_EEM_VOLTAGE_UNIT_10UV	1
++#define MT6797_DVFSP_VENDOR_SOURCE_MAX_POLICY_STATE	4
++#define MT6797_DVFSP_VENDOR_SOURCE_MAX_POLICY_ROW	\
++	(MT6797_DVFSP_VENDOR_SOURCE_MAX_POLICY_STATE * \
++	 MT6797_DVFSP_VENDOR_SOURCE_MAX_CLUSTER)
++#define MT6797_DVFSP_VENDOR_SOURCE_CLOCK_OWNER_CPU_DVFS	1
++#define MT6797_DVFSP_VENDOR_SOURCE_MAX_CLOCK_MUX	4
++#define MT6797_DVFSP_VENDOR_SOURCE_VPROC_EXTBUCK	1
++#define MT6797_DVFSP_VENDOR_SOURCE_VSRAM_PMIC	1
++#define MT6797_DVFSP_VENDOR_SOURCE_VSRAM_BIGIDVFS	2
++#define MT6797_DVFSP_VENDOR_SOURCE_MAX_VSRAM_SPECIAL	3
++#define MT6797_DVFSP_VENDOR_SOURCE_VOLTAGE_UNIT_10UV	1
++#define MT6797_DVFSP_VENDOR_SOURCE_VPROC_BASE_10UV	30000
++#define MT6797_DVFSP_VENDOR_SOURCE_VPROC_STEP_10UV	1000
++#define MT6797_DVFSP_VENDOR_SOURCE_VPROC_CODE_MASK	0x7f
++#define MT6797_DVFSP_VENDOR_SOURCE_VSRAM_BASE_10UV	90000
++#define MT6797_DVFSP_VENDOR_SOURCE_VSRAM_STEP_10UV	2500
++#define MT6797_DVFSP_VENDOR_SOURCE_VSRAM_CODE_OFFSET	3
+ 
+@@ -74,5 +91,14 @@ struct mt6797_dvfsp_vendor_source_ppm_cluster {
+ 	u32 has_advise_core;
+ 	s32 advise_cpu_core;
+ };
++
++struct mt6797_dvfsp_vendor_source_policy_row {
++	u32 state;
++	u32 cluster;
++	s32 min_cpufreq_idx;
++	s32 max_cpufreq_idx;
++	u32 min_cpu_core;
++	u32 max_cpu_core;
++};
+ 
+ struct mt6797_dvfsp_vendor_source_cpufreq_domain {
+@@ -90,4 +117,21 @@ struct mt6797_dvfsp_vendor_source_cpufreq_domain {
+ 	u32 frequency_khz[MT6797_DVFSP_VENDOR_SOURCE_MAX_OPP];
+ 	u32 voltage[MT6797_DVFSP_VENDOR_SOURCE_MAX_OPP];
+ 	u32 voltage_original[MT6797_DVFSP_VENDOR_SOURCE_MAX_OPP];
++	u32 clock_owner_kind;
++	u32 clock_owner_id;
++	u32 clock_mux;
++	u32 clock_valid;
++	u32 voltage_unit;
++	u32 vproc_mode;
++	u32 vproc_base_10uv;
++	u32 vproc_step_10uv;
++	u32 vproc_code_mask;
++	u32 vsram_mode;
++	u32 vsram_base_10uv;
++	u32 vsram_step_10uv;
++	s32 vsram_code_offset;
++	u32 vsram_code_mask;
++	u32 vsram_special_count;
++	u32 vsram_special_code[MT6797_DVFSP_VENDOR_SOURCE_MAX_VSRAM_SPECIAL];
++	u32 vsram_special_10uv[MT6797_DVFSP_VENDOR_SOURCE_MAX_VSRAM_SPECIAL];
+ };
+@@ -119,6 +164,9 @@ struct mt6797_dvfsp_vendor_source_snapshot {
+ 	u32 cpufreq_domain_count;
+ 	u32 cspm_cluster_count;
+ 	u32 eem_detector_count;
++	u32 policy_row_count;
++	struct mt6797_dvfsp_vendor_source_policy_row
++		policy[MT6797_DVFSP_VENDOR_SOURCE_MAX_POLICY_ROW];
+ 	u32 init_done;
+ 	u32 hw_governor_enabled;
+ 	u32 info_idvfs;
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-source.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-source.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-source.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-source.c
+@@ -5,4 +5,5 @@
+ #include <linux/errno.h>
+ #include <linux/export.h>
++#include <linux/limits.h>
+ #include <linux/module.h>
+ #include <linux/string.h>
+@@ -28,6 +29,23 @@ static int mt6797_dvfsp_vendor_source_table_check(
+ 		snapshot->cspm_cluster_count !=
+ 			MT6797_DVFSP_VENDOR_SOURCE_MAX_CLUSTER + 1 ||
+ 		snapshot->eem_detector_count != MT6797_DVFSP_VENDOR_SOURCE_MAX_DETECTOR ||
++		snapshot->policy_row_count != MT6797_DVFSP_VENDOR_SOURCE_MAX_POLICY_ROW ||
+ 		!snapshot->generation || !snapshot->owner_handle ||
+ 		!snapshot->transition_handle)
+ 		return -EPROTO;
++
++	for (i = 0; i < snapshot->policy_row_count; i++) {
++		const struct mt6797_dvfsp_vendor_source_policy_row *row =
++			&snapshot->policy[i];
++
++		if (row->state >= MT6797_DVFSP_VENDOR_SOURCE_MAX_POLICY_STATE ||
++			row->cluster >= MT6797_DVFSP_VENDOR_SOURCE_MAX_CLUSTER ||
++			row->min_cpufreq_idx < -1 ||
++			row->max_cpufreq_idx < -1 ||
++			row->min_cpufreq_idx >=
++			MT6797_DVFSP_VENDOR_SOURCE_MAX_OPP ||
++			row->max_cpufreq_idx >=
++			MT6797_DVFSP_VENDOR_SOURCE_MAX_OPP ||
++			row->min_cpu_core > row->max_cpu_core)
++			return -EPROTO;
++	}
+@@ -51,14 +71,57 @@ static int mt6797_dvfsp_vendor_source_table_check(
+ 		const struct mt6797_dvfsp_vendor_source_cpufreq_domain *domain =
+ 			&snapshot->cpufreq[i];
+ 		unsigned int row;
+ 
+-		if (!domain->opp_count ||
++		if (domain->id >= MT6797_DVFSP_VENDOR_SOURCE_MAX_DOMAIN ||
++			domain->clock_owner_kind !=
++			MT6797_DVFSP_VENDOR_SOURCE_CLOCK_OWNER_CPU_DVFS ||
++			domain->clock_owner_id != domain->id ||
++			domain->clock_mux >= MT6797_DVFSP_VENDOR_SOURCE_MAX_CLOCK_MUX ||
++			domain->clock_valid != 1 ||
++			domain->voltage_unit !=
++			MT6797_DVFSP_VENDOR_SOURCE_VOLTAGE_UNIT_10UV ||
++			domain->vproc_mode != MT6797_DVFSP_VENDOR_SOURCE_VPROC_EXTBUCK ||
++			domain->vproc_base_10uv !=
++			MT6797_DVFSP_VENDOR_SOURCE_VPROC_BASE_10UV ||
++			domain->vproc_step_10uv !=
++			MT6797_DVFSP_VENDOR_SOURCE_VPROC_STEP_10UV ||
++			domain->vproc_code_mask !=
++			MT6797_DVFSP_VENDOR_SOURCE_VPROC_CODE_MASK ||
++			(domain->vsram_mode != MT6797_DVFSP_VENDOR_SOURCE_VSRAM_PMIC &&
++			 domain->vsram_mode != MT6797_DVFSP_VENDOR_SOURCE_VSRAM_BIGIDVFS) ||
++			(domain->vsram_mode == MT6797_DVFSP_VENDOR_SOURCE_VSRAM_PMIC &&
++			 (domain->vsram_base_10uv !=
++			  MT6797_DVFSP_VENDOR_SOURCE_VSRAM_BASE_10UV ||
++			  domain->vsram_step_10uv !=
++			  MT6797_DVFSP_VENDOR_SOURCE_VSRAM_STEP_10UV ||
++			  domain->vsram_code_offset !=
++			  MT6797_DVFSP_VENDOR_SOURCE_VSRAM_CODE_OFFSET ||
++			  domain->vsram_code_mask != 0xf ||
++			  domain->vsram_special_count !=
++			  MT6797_DVFSP_VENDOR_SOURCE_MAX_VSRAM_SPECIAL)) ||
++			(domain->vsram_mode == MT6797_DVFSP_VENDOR_SOURCE_VSRAM_BIGIDVFS &&
++			 (domain->vsram_base_10uv || domain->vsram_step_10uv ||
++			  domain->vsram_code_offset || domain->vsram_code_mask ||
++			  domain->vsram_special_count)) ||
++			!domain->opp_count ||
+ 			domain->opp_count > MT6797_DVFSP_VENDOR_SOURCE_MAX_OPP ||
+ 			!domain->current_freq_khz || !domain->current_volt ||
+-			!domain->current_vsram)
++			!domain->current_vsram ||
++			domain->current_volt > U32_MAX / 10U ||
++			domain->current_vsram > U32_MAX / 10U)
+ 			return -EPROTO;
+ 		for (row = 0; row < domain->opp_count; row++)
+ 			if (!domain->frequency_khz[row] || !domain->voltage[row] ||
+-				!domain->voltage_original[row])
++				!domain->voltage_original[row] ||
++				domain->voltage[row] > U32_MAX / 10U ||
++				domain->voltage_original[row] > U32_MAX / 10U)
+ 				return -EPROTO;
++		if (domain->vsram_mode == MT6797_DVFSP_VENDOR_SOURCE_VSRAM_PMIC &&
++			(domain->vsram_special_code[0] != 0 ||
++			 domain->vsram_special_code[1] != 1 ||
++			 domain->vsram_special_code[2] != 2 ||
++			 domain->vsram_special_10uv[0] != 105000 ||
++			 domain->vsram_special_10uv[1] != 60000 ||
++			 domain->vsram_special_10uv[2] != 70000))
++			return -EPROTO;
+ 	}
+
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-provider.h b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-provider.h
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-provider.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-provider.h
+@@ -8,3 +8,3 @@
+ #include <linux/soc/mediatek/mt6797-dvfsp-vendor-source.h>
+ 
+-#define MT6797_DVFSP_VENDOR_PROVIDER_ABI	2
++#define MT6797_DVFSP_VENDOR_PROVIDER_ABI	3
+@@ -20,2 +20,5 @@
+ #define MT6797_DVFSP_VENDOR_PROVIDER_MAPPED_EEM_UV	BIT(5)
+-#define MT6797_DVFSP_VENDOR_PROVIDER_MAPPED_ALL	GENMASK(5, 0)
++#define MT6797_DVFSP_VENDOR_PROVIDER_MAPPED_POLICY_ROWS	BIT(6)
++#define MT6797_DVFSP_VENDOR_PROVIDER_MAPPED_CLOCK	BIT(7)
++#define MT6797_DVFSP_VENDOR_PROVIDER_MAPPED_RAIL	BIT(8)
++#define MT6797_DVFSP_VENDOR_PROVIDER_MAPPED_ALL	GENMASK(8, 0)
+@@ -38,2 +41,6 @@ struct mt6797_dvfsp_vendor_provider_snapshot {
+ 	struct mt6797_dvfsp_vendor_source_identity identity;
++	u32 policy_row_count;
++	struct mt6797_dvfsp_vendor_source_policy_row
++		policy[MT6797_DVFSP_VENDOR_SOURCE_MAX_POLICY_ROW];
++	u32 policy_source_index[MT6797_DVFSP_VENDOR_SOURCE_MAX_POLICY_ROW];
+ 	struct mt6797_dvfsp_vendor_source_ppm_cluster
+@@ -64,2 +71,9 @@ struct mt6797_dvfsp_vendor_provider_snapshot {
+ 	u32 eem_voltage_count[MT6797_DVFSP_VENDOR_SOURCE_MAX_DETECTOR];
++	/* Converted from source 10uV values; unit is microvolts. */
++	u32 cpufreq_current_volt_uv[MT6797_DVFSP_VENDOR_SOURCE_MAX_DOMAIN];
++	u32 cpufreq_current_vsram_uv[MT6797_DVFSP_VENDOR_SOURCE_MAX_DOMAIN];
++	u32 cpufreq_voltage_uv[MT6797_DVFSP_VENDOR_SOURCE_MAX_DOMAIN]
++		[MT6797_DVFSP_VENDOR_SOURCE_MAX_OPP];
++	u32 cpufreq_voltage_original_uv[MT6797_DVFSP_VENDOR_SOURCE_MAX_DOMAIN]
++		[MT6797_DVFSP_VENDOR_SOURCE_MAX_OPP];
+ };
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-provider.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-provider.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-provider.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-provider.c
+@@ -136,2 +136,102 @@ static int mt6797_dvfsp_vendor_provider_map_ppm(
+ 	return 0;
+ }
++
++static int mt6797_dvfsp_vendor_provider_map_policy(
++	const struct mt6797_dvfsp_vendor_source_snapshot *source,
++	struct mt6797_dvfsp_vendor_provider_snapshot *mapped)
++{
++	bool seen[MT6797_DVFSP_VENDOR_SOURCE_MAX_POLICY_ROW] = { 0 };
++	u32 i;
++
++	for (i = 0; i < source->policy_row_count; i++) {
++		const struct mt6797_dvfsp_vendor_source_policy_row *row =
++			&source->policy[i];
++		u32 index;
++
++		if (row->state >= MT6797_DVFSP_VENDOR_SOURCE_MAX_POLICY_STATE ||
++			row->cluster >= MT6797_DVFSP_VENDOR_SOURCE_MAX_CLUSTER)
++			return -EPROTO;
++		index = row->state * MT6797_DVFSP_VENDOR_SOURCE_MAX_CLUSTER +
++			row->cluster;
++		if (seen[index])
++			return -EPROTO;
++		seen[index] = true;
++		mapped->policy[index] = *row;
++		mapped->policy_source_index[index] = i;
++	}
++	for (i = 0; i < MT6797_DVFSP_VENDOR_SOURCE_MAX_POLICY_ROW; i++)
++		if (!seen[i])
++			return -EPROTO;
++	mapped->policy_row_count = source->policy_row_count;
++	return 0;
++}
++
++static int mt6797_dvfsp_vendor_provider_map_clock_rail(
++	const struct mt6797_dvfsp_vendor_source_snapshot *source,
++	struct mt6797_dvfsp_vendor_provider_snapshot *mapped)
++{
++	u32 i, j;
++
++	for (i = 0; i < source->cpufreq_domain_count; i++) {
++		const struct mt6797_dvfsp_vendor_source_cpufreq_domain *domain =
++			&source->cpufreq[i];
++		struct mt6797_dvfsp_vendor_source_cpufreq_domain *ordered =
++			&mapped->cpufreq[domain->id];
++
++		if (domain->clock_owner_kind !=
++			MT6797_DVFSP_VENDOR_SOURCE_CLOCK_OWNER_CPU_DVFS ||
++			domain->clock_owner_id != domain->id ||
++			domain->clock_mux >= MT6797_DVFSP_VENDOR_SOURCE_MAX_CLOCK_MUX ||
++			domain->clock_valid != 1 ||
++			domain->voltage_unit !=
++			MT6797_DVFSP_VENDOR_SOURCE_VOLTAGE_UNIT_10UV ||
++			domain->vproc_mode != MT6797_DVFSP_VENDOR_SOURCE_VPROC_EXTBUCK ||
++			domain->vproc_base_10uv !=
++			MT6797_DVFSP_VENDOR_SOURCE_VPROC_BASE_10UV ||
++			domain->vproc_step_10uv !=
++			MT6797_DVFSP_VENDOR_SOURCE_VPROC_STEP_10UV ||
++			domain->vproc_code_mask !=
++			MT6797_DVFSP_VENDOR_SOURCE_VPROC_CODE_MASK ||
++			(domain->vsram_mode != MT6797_DVFSP_VENDOR_SOURCE_VSRAM_PMIC &&
++			 domain->vsram_mode != MT6797_DVFSP_VENDOR_SOURCE_VSRAM_BIGIDVFS))
++			return -EPROTO;
++		if (domain->vsram_mode == MT6797_DVFSP_VENDOR_SOURCE_VSRAM_PMIC &&
++			(domain->vsram_base_10uv !=
++			 MT6797_DVFSP_VENDOR_SOURCE_VSRAM_BASE_10UV ||
++			 domain->vsram_step_10uv !=
++			 MT6797_DVFSP_VENDOR_SOURCE_VSRAM_STEP_10UV ||
++			 domain->vsram_code_offset !=
++			 MT6797_DVFSP_VENDOR_SOURCE_VSRAM_CODE_OFFSET ||
++			 domain->vsram_code_mask != 0xf ||
++			 domain->vsram_special_count !=
++			 MT6797_DVFSP_VENDOR_SOURCE_MAX_VSRAM_SPECIAL))
++			return -EPROTO;
++		if (domain->vsram_mode == MT6797_DVFSP_VENDOR_SOURCE_VSRAM_BIGIDVFS &&
++			(domain->vsram_base_10uv || domain->vsram_step_10uv ||
++			 domain->vsram_code_offset || domain->vsram_code_mask ||
++			 domain->vsram_special_count))
++			return -EPROTO;
++		if (domain->current_volt > U32_MAX / 10U ||
++			domain->current_vsram > U32_MAX / 10U)
++			return -EOVERFLOW;
++		ordered->clock_owner_kind = domain->clock_owner_kind;
++		ordered->clock_owner_id = domain->clock_owner_id;
++		ordered->clock_mux = domain->clock_mux;
++		ordered->clock_valid = domain->clock_valid;
++		for (j = 0; j < domain->opp_count; j++) {
++			if (domain->voltage[j] > U32_MAX / 10U ||
++				domain->voltage_original[j] > U32_MAX / 10U)
++				return -EOVERFLOW;
++			mapped->cpufreq_voltage_uv[domain->id][j] =
++				domain->voltage[j] * 10U;
++			mapped->cpufreq_voltage_original_uv[domain->id][j] =
++				domain->voltage_original[j] * 10U;
++		}
++		mapped->cpufreq_current_volt_uv[domain->id] =
++			domain->current_volt * 10U;
++		mapped->cpufreq_current_vsram_uv[domain->id] =
++			domain->current_vsram * 10U;
++	}
++	return 0;
++}
++
+@@ -350,3 +384,3 @@ int mt6797_dvfsp_vendor_provider_map(
+ 	memset(mapped, 0, sizeof(*mapped));
+ 	mapped->abi = MT6797_DVFSP_VENDOR_PROVIDER_ABI;
+ 	mapped->mapped_mask = MT6797_DVFSP_VENDOR_PROVIDER_MAPPED_ALL;
+@@ -350,0 +387,4 @@ int mt6797_dvfsp_vendor_provider_map(
++	mapped->mapped_mask &=
++		~(MT6797_DVFSP_VENDOR_PROVIDER_MAPPED_POLICY_ROWS |
++		  MT6797_DVFSP_VENDOR_PROVIDER_MAPPED_CLOCK |
++		  MT6797_DVFSP_VENDOR_PROVIDER_MAPPED_RAIL);
+@@ -368,7 +408,21 @@ int mt6797_dvfsp_vendor_provider_map(
+ 	ret = mt6797_dvfsp_vendor_provider_map_ppm(source, mapped);
+ 	if (ret)
+ 		return ret;
++	ret = mt6797_dvfsp_vendor_provider_map_policy(source, mapped);
++	if (ret)
++		return ret;
++	mapped->mapped_mask |= MT6797_DVFSP_VENDOR_PROVIDER_MAPPED_POLICY_ROWS;
++	mapped->unavailable_mask &=
++		~MT6797_DVFSP_VENDOR_PROVIDER_UNAVAILABLE_POLICY_ROWS;
+ 	ret = mt6797_dvfsp_vendor_provider_map_cpufreq(source, mapped);
+ 	if (ret)
+ 		return ret;
++	ret = mt6797_dvfsp_vendor_provider_map_clock_rail(source, mapped);
++	if (ret)
++		return ret;
++	mapped->mapped_mask |= MT6797_DVFSP_VENDOR_PROVIDER_MAPPED_CLOCK |
++		MT6797_DVFSP_VENDOR_PROVIDER_MAPPED_RAIL;
++	mapped->unavailable_mask &=
++		~(MT6797_DVFSP_VENDOR_PROVIDER_UNAVAILABLE_CLOCK |
++		  MT6797_DVFSP_VENDOR_PROVIDER_UNAVAILABLE_RAIL);
+ 	ret = mt6797_dvfsp_vendor_provider_map_cspm(source, mapped);
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-provider-test.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-provider-test.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-provider-test.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-provider-test.c
+@@ -52,3 +52,13 @@ static void mt6797_dvfsp_vendor_provider_test_fill(void)
+ 	snapshot->eem_detector_count =
+ 		MT6797_DVFSP_VENDOR_SOURCE_MAX_DETECTOR;
++	snapshot->policy_row_count =
++		MT6797_DVFSP_VENDOR_SOURCE_MAX_POLICY_ROW;
++	for (i = 0; i < snapshot->policy_row_count; i++) {
++		snapshot->policy[i].state =
++			i / MT6797_DVFSP_VENDOR_SOURCE_MAX_CLUSTER;
++		snapshot->policy[i].cluster =
++			i % MT6797_DVFSP_VENDOR_SOURCE_MAX_CLUSTER;
++		snapshot->policy[i].max_cpufreq_idx = 15;
++		snapshot->policy[i].max_cpu_core = 4;
++	}
+ 	snapshot->generation = 9;
+@@ -74,3 +84,40 @@ static void mt6797_dvfsp_vendor_provider_test_fill(void)
+ 		domain->voltage_original[0] = 800000 + i;
+ 		domain->voltage_original[1] = 810000 + i;
++		domain->clock_owner_kind =
++			MT6797_DVFSP_VENDOR_SOURCE_CLOCK_OWNER_CPU_DVFS;
++		domain->clock_owner_id = domain->id;
++		domain->clock_mux = i;
++		domain->clock_valid = 1;
++		domain->voltage_unit =
++			MT6797_DVFSP_VENDOR_SOURCE_VOLTAGE_UNIT_10UV;
++		domain->vproc_mode =
++			MT6797_DVFSP_VENDOR_SOURCE_VPROC_EXTBUCK;
++		domain->vproc_base_10uv =
++			MT6797_DVFSP_VENDOR_SOURCE_VPROC_BASE_10UV;
++		domain->vproc_step_10uv =
++			MT6797_DVFSP_VENDOR_SOURCE_VPROC_STEP_10UV;
++		domain->vproc_code_mask =
++			MT6797_DVFSP_VENDOR_SOURCE_VPROC_CODE_MASK;
++		if (domain->id == 2) {
++			domain->vsram_mode =
++				MT6797_DVFSP_VENDOR_SOURCE_VSRAM_BIGIDVFS;
++		} else {
++			domain->vsram_mode =
++				MT6797_DVFSP_VENDOR_SOURCE_VSRAM_PMIC;
++			domain->vsram_base_10uv =
++				MT6797_DVFSP_VENDOR_SOURCE_VSRAM_BASE_10UV;
++			domain->vsram_step_10uv =
++				MT6797_DVFSP_VENDOR_SOURCE_VSRAM_STEP_10UV;
++			domain->vsram_code_offset =
++				MT6797_DVFSP_VENDOR_SOURCE_VSRAM_CODE_OFFSET;
++			domain->vsram_code_mask = 0xf;
++			domain->vsram_special_count =
++				MT6797_DVFSP_VENDOR_SOURCE_MAX_VSRAM_SPECIAL;
++			domain->vsram_special_code[0] = 0;
++			domain->vsram_special_code[1] = 1;
++			domain->vsram_special_code[2] = 2;
++			domain->vsram_special_10uv[0] = 105000;
++			domain->vsram_special_10uv[1] = 60000;
++			domain->vsram_special_10uv[2] = 70000;
++		}
+ 	}
+@@ -142,7 +179,18 @@ static void mt6797_dvfsp_vendor_provider_maps_fields(struct kunit *test)
+ 	KUNIT_EXPECT_EQ(test, mapped.unavailable_mask,
+ 		(u32)(MT6797_DVFSP_VENDOR_PROVIDER_UNAVAILABLE_ALL &
+-		~MT6797_DVFSP_VENDOR_PROVIDER_UNAVAILABLE_EEM_UV));
++		~(MT6797_DVFSP_VENDOR_PROVIDER_UNAVAILABLE_EEM_UV |
++		  MT6797_DVFSP_VENDOR_PROVIDER_UNAVAILABLE_POLICY_ROWS |
++		  MT6797_DVFSP_VENDOR_PROVIDER_UNAVAILABLE_CLOCK |
++		  MT6797_DVFSP_VENDOR_PROVIDER_UNAVAILABLE_RAIL)));
+ 	KUNIT_EXPECT_EQ(test, mapped.ppm[0].cluster_id, 0U);
+ 	KUNIT_EXPECT_EQ(test, mapped.ppm[2].cluster_id, 2U);
+ 	KUNIT_EXPECT_EQ(test, mapped.cpufreq[0].id, 0U);
+ 	KUNIT_EXPECT_EQ(test, mapped.cpufreq[3].id, 3U);
++	KUNIT_EXPECT_EQ(test, mapped.policy_row_count,
++		(u32)MT6797_DVFSP_VENDOR_SOURCE_MAX_POLICY_ROW);
++	KUNIT_EXPECT_EQ(test, mapped.policy[0].state, 0U);
++	KUNIT_EXPECT_EQ(test, mapped.policy[0].cluster, 0U);
++	KUNIT_EXPECT_EQ(test, mapped.cpufreq[0].clock_owner_id, 0U);
++	KUNIT_EXPECT_EQ(test, mapped.cpufreq[0].clock_mux, 3U);
++	KUNIT_EXPECT_EQ(test, mapped.cpufreq_voltage_uv[0][0], 8000000U);
++	KUNIT_EXPECT_EQ(test, mapped.cpufreq_current_vsram_uv[0], 10000000U);
+@@ -170,5 +217,19 @@ static void mt6797_dvfsp_vendor_provider_rejects_bad_eem_units(
+ 	KUNIT_EXPECT_EQ(test, mt6797_dvfsp_vendor_provider_map(
+ 		&mt6797_dvfsp_vendor_provider_test_snapshot,
+ 		&mt6797_dvfsp_vendor_provider_test_identity,
+ 		0x67970023, 0x67970022, &mapped), -EPROTO);
+ }
++
++static void mt6797_dvfsp_vendor_provider_rejects_bad_clock_or_rail(
++	struct kunit *test)
++{
++	struct mt6797_dvfsp_vendor_provider_snapshot mapped;
++
++	mt6797_dvfsp_vendor_provider_test_fill();
++	mt6797_dvfsp_vendor_provider_test_snapshot.cpufreq[0].clock_mux =
++		MT6797_DVFSP_VENDOR_SOURCE_MAX_CLOCK_MUX;
++	KUNIT_EXPECT_EQ(test, mt6797_dvfsp_vendor_provider_map(
++		&mt6797_dvfsp_vendor_provider_test_snapshot,
++		&mt6797_dvfsp_vendor_provider_test_identity,
++		0x67970023, 0x67970022, &mapped), -EPROTO);
++}
+@@ -205,6 +262,7 @@ static struct kunit_case mt6797_dvfsp_vendor_provider_cases[] = {
+ 	KUNIT_CASE(mt6797_dvfsp_vendor_provider_maps_fields),
+ 	KUNIT_CASE(mt6797_dvfsp_vendor_provider_rejects_identity_or_ids),
+ 	KUNIT_CASE(mt6797_dvfsp_vendor_provider_rejects_bad_eem_units),
++	KUNIT_CASE(mt6797_dvfsp_vendor_provider_rejects_bad_clock_or_rail),
+ 	KUNIT_CASE(mt6797_dvfsp_vendor_provider_bridge_lifecycle),
+ 	{}
+ };
+
+2.39.5
