@@ -93,9 +93,9 @@ diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-state.h
 +	u32 vsram_special_10uv[GEMINI_MT6797_DVFSP_VENDOR_MAX_VSRAM_SPECIAL];
  };
 
-diff --git a/drivers/misc/mediatek/base/power/mt_cpufreq.c b/drivers/misc/mediatek/base/power/mt_cpufreq.c
---- a/drivers/misc/mediatek/base/power/mt_cpufreq.c
-+++ b/drivers/misc/mediatek/base/power/mt_cpufreq.c
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c b/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c
+--- a/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c
++++ b/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c
 @@ -211,6 +211,43 @@
  		for (j = 0; j < p->nr_opp_tbl; j++) {
  			domain->frequency_khz[j] = p->opp_tbl[j].cpufreq_khz;
