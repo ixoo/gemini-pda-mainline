@@ -1,0 +1,259 @@
+From 0000000000000000000000000000000000000267 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 11 Aug 2026 02:00:00 +0000
+Subject: [PATCH] soc: mediatek: add explicit vendor writer coordinator
+
+Add the explicit mainline caller boundary that binds a vendor integration
+adapter to the already-bound MT6797 DVFSP owner.  The coordinator retains the
+exact owner, callback table, and context identities and refuses teardown while
+the vendor lifecycle still owns the writer.
+
+The API is source-only and default-off.  It does not discover vendor symbols,
+register a platform device, touch MMIO, register a provider, perform a firmware
+operation, write the device, or admit CPU8/CPU9.  A platform-specific caller
+must invoke start before the vendor probe and stop after its remove path.
+---
+ drivers/soc/mediatek/Kconfig                         | 11 ++++
+ drivers/soc/mediatek/Makefile                        |  2 +
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c | 67 +++++++++++++
+ drivers/soc/mediatek/mt6797-dvfsp-vendor-coordinator.c | 83 ++++++++++++++++
+ include/linux/soc/mediatek/mt6797-dvfsp-vendor-coordinator.h | 42 +++++++
+ 5 files changed, 205 insertions(+)
+ create mode 100644 drivers/soc/mediatek/mt6797-dvfsp-vendor-coordinator.c
+ create mode 100644 include/linux/soc/mediatek/mt6797-dvfsp-vendor-coordinator.h
+
+diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
+--- a/drivers/soc/mediatek/Kconfig
++++ b/drivers/soc/mediatek/Kconfig
+@@ -153,6 +153,17 @@ config MTK_MT6797_DVFSP_VENDOR_WRITER_BRIDGE_KUNIT_TEST
+ 	bool "KUnit tests for the MT6797 vendor writer owner bridge"
+ 	depends on KUNIT=y
+ 	depends on MTK_MT6797_DVFSP_VENDOR_WRITER_BRIDGE
+ 	default n
+ 
++config MTK_MT6797_DVFSP_VENDOR_WRITER_COORDINATOR
++	bool "MediaTek MT6797 vendor writer coordinator"
++	depends on ARM64 && ARCH_MEDIATEK && OF
++	depends on MTK_MT6797_DVFSP_VENDOR_OWNER
++	depends on MTK_MT6797_DVFSP_VENDOR_WRITER_BRIDGE
++	default n
++	help
++	  Provide the explicit mainline caller boundary for a vendor writer
++	  integration.  The caller must start it before vendor probe and stop it
++	  after vendor remove; this option performs no hardware operation.
++
+ config MTK_MT6797_DVFSP_CLOCK_BACKEND
+ 	bool "MediaTek MT6797 protected CPU clock readback transport"
+ 	depends on ARM64 && ARCH_MEDIATEK && OF && COMMON_CLK
+diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
+--- a/drivers/soc/mediatek/Makefile
++++ b/drivers/soc/mediatek/Makefile
+@@ -17,5 +17,7 @@ obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_OWNER_KUNIT_TEST) += mt6797-dvfsp-vendor-owner-test.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_WRITER) += mt6797-dvfsp-vendor-writer.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_WRITER_KUNIT_TEST) += mt6797-dvfsp-vendor-writer-kunit-test.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_WRITER_BRIDGE) += mt6797-dvfsp-vendor-writer-bridge.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_WRITER_BRIDGE_KUNIT_TEST) += mt6797-dvfsp-vendor-writer-bridge-kunit-test.o
++obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_WRITER_COORDINATOR) += mt6797-dvfsp-vendor-coordinator.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_RESOURCE_OWNER) += mt6797-dvfsp-calibrated-provider.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-state-snapshot.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-runtime-bind.o
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-coordinator.h b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-coordinator.h
+new file mode 100644
+--- /dev/null
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-coordinator.h
+@@ -0,0 +1,42 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __LINUX_SOC_MEDIATEK_MT6797_DVFSP_VENDOR_COORDINATOR_H
++#define __LINUX_SOC_MEDIATEK_MT6797_DVFSP_VENDOR_COORDINATOR_H
++
++#include <linux/types.h>
++
++#include <linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h>
++
++#define MT6797_DVFSP_VENDOR_COORDINATOR_ABI	1
++
++/*
++ * This object is owned by the explicit platform caller.  It records the
++ * exact identities passed to the owner so teardown cannot target another
++ * vendor adapter accidentally.
++ */
++struct mt6797_dvfsp_vendor_coordinator {
++	struct mt6797_dvfsp_vendor_owner *owner;
++	const struct mt6797_dvfsp_vendor_integration_ops *integration_ops;
++	void *integration_context;
++	bool started;
++};
++
++int mt6797_dvfsp_vendor_coordinator_start(
++	struct mt6797_dvfsp_vendor_coordinator *coordinator,
++	struct mt6797_dvfsp_vendor_owner *owner,
++	const struct mt6797_dvfsp_vendor_integration_ops *integration_ops,
++	void *integration_context);
++
++int mt6797_dvfsp_vendor_coordinator_stop(
++	struct mt6797_dvfsp_vendor_coordinator *coordinator);
++
++bool mt6797_dvfsp_vendor_coordinator_started(
++	const struct mt6797_dvfsp_vendor_coordinator *coordinator);
++
++#endif /* __LINUX_SOC_MEDIATEK_MT6797_DVFSP_VENDOR_COORDINATOR_H */
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-coordinator.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-coordinator.c
+new file mode 100644
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-coordinator.c
+@@ -0,0 +1,83 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Explicit mainline caller boundary for the MT6797 vendor writer.
++ *
++ * A platform-specific integration owns the ordering around this object:
++ * start before the vendor probe and stop after the vendor remove path.  The
++ * coordinator itself only binds and unbinds the source-independent owner ABI.
++ */
++
++#include <linux/errno.h>
++#include <linux/export.h>
++#include <linux/module.h>
++#include <linux/string.h>
++
++#include <linux/soc/mediatek/mt6797-dvfsp-vendor-coordinator.h>
++
++int mt6797_dvfsp_vendor_coordinator_start(
++	struct mt6797_dvfsp_vendor_coordinator *coordinator,
++	struct mt6797_dvfsp_vendor_owner *owner,
++	const struct mt6797_dvfsp_vendor_integration_ops *integration_ops,
++	void *integration_context)
++{
++	int ret;
++
++	if (!coordinator || coordinator->started || coordinator->owner ||
++	    coordinator->integration_ops || coordinator->integration_context)
++		return -EBUSY;
++	if (!owner || !integration_ops || !integration_context)
++		return -EINVAL;
++
++	ret = mt6797_dvfsp_vendor_owner_bind_writer_integration(owner,
++		integration_ops, integration_context);
++	if (ret)
++		return ret;
++
++	coordinator->owner = owner;
++	coordinator->integration_ops = integration_ops;
++	coordinator->integration_context = integration_context;
++	coordinator->started = true;
++	return 0;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_coordinator_start);
++
++int mt6797_dvfsp_vendor_coordinator_stop(
++	struct mt6797_dvfsp_vendor_coordinator *coordinator)
++{
++	int ret;
++
++	if (!coordinator || !coordinator->started || !coordinator->owner ||
++	    !coordinator->integration_ops || !coordinator->integration_context)
++		return -EINVAL;
++	if (!coordinator->owner->writer_integration_bound ||
++	    coordinator->owner->writer_integration_ops !=
++		coordinator->integration_ops ||
++	    coordinator->owner->writer_integration_context !=
++		coordinator->integration_context)
++		return -EPROTO;
++
++	ret = mt6797_dvfsp_vendor_owner_unbind_writer_integration(
++		coordinator->owner);
++	if (ret)
++		return ret;
++
++	coordinator->owner = NULL;
++	coordinator->integration_ops = NULL;
++	coordinator->integration_context = NULL;
++	coordinator->started = false;
++	return 0;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_coordinator_stop);
++
++bool mt6797_dvfsp_vendor_coordinator_started(
++	const struct mt6797_dvfsp_vendor_coordinator *coordinator)
++{
++	return coordinator && coordinator->started;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_coordinator_started);
++
++MODULE_DESCRIPTION("MT6797 vendor writer coordinator");
++MODULE_LICENSE("GPL");
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
+--- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
+@@ -10,6 +10,7 @@
+ #include <linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h>
++#include <linux/soc/mediatek/mt6797-dvfsp-vendor-coordinator.h>
+ 
+ struct mt6797_dvfsp_vendor_test_devices {
+@@ -566,6 +567,67 @@ static void mt6797_dvfsp_vendor_owner_integrates_lifecycle(
+ 	mt6797_dvfsp_vendor_test_put_devices(&devices);
+ }
+ 
++static void mt6797_dvfsp_vendor_owner_coordinator_stages_lifecycle(
++	struct kunit *test)
++{
++	struct mt6797_dvfsp_vendor_owner owner = { };
++	struct mt6797_dvfsp_resource_owner resource_owner = { };
++	struct mt6797_dvfsp_vendor_test_devices devices = { };
++	struct mt6797_dvfsp_state_source_devices tuple = { };
++	struct mt6797_dvfsp_vendor_test_registration registration = { };
++	struct mt6797_dvfsp_vendor_test_integration integration = { };
++	struct mt6797_dvfsp_vendor_coordinator coordinator = { };
++	struct mt6797_dvfsp_vendor_owner_ops owner_ops =
++		mt6797_dvfsp_vendor_test_owner_ops;
++
++	mt6797_dvfsp_vendor_test_init_devices(&devices);
++	mt6797_dvfsp_vendor_test_tuple(&devices, &tuple);
++	KUNIT_ASSERT_EQ(test,
++		mt6797_dvfsp_resource_owner_init(&resource_owner, 0x67970040), 0);
++	KUNIT_ASSERT_EQ(test,
++		mt6797_dvfsp_resource_owner_attach(&resource_owner, &tuple), 0);
++	owner_ops.writer_runtime_ops = &mt6797_dvfsp_vendor_test_runtime_ops;
++	owner_ops.writer_runtime_context = &registration;
++	KUNIT_ASSERT_EQ(test,
++		mt6797_dvfsp_vendor_owner_bind(&owner, &resource_owner,
++			&owner_ops, 0x67970041, 0x67970040), 0);
++	KUNIT_ASSERT_EQ(test,
++		mt6797_dvfsp_vendor_coordinator_start(&coordinator, &owner,
++			&mt6797_dvfsp_vendor_test_integration_ops, &integration), 0);
++	KUNIT_EXPECT_TRUE(test,
++		mt6797_dvfsp_vendor_coordinator_started(&coordinator));
++	KUNIT_EXPECT_TRUE(test, integration.bound);
++	KUNIT_EXPECT_TRUE(test, integration.mainline_registered);
++	KUNIT_EXPECT_TRUE(test, owner.writer_registered);
++	KUNIT_EXPECT_EQ(test, integration.bind_calls, 1U);
++	KUNIT_EXPECT_EQ(test, integration.register_calls, 1U);
++	KUNIT_EXPECT_EQ(test,
++		mt6797_dvfsp_vendor_coordinator_start(&coordinator, &owner,
++			&mt6797_dvfsp_vendor_test_integration_ops, &integration), -EBUSY);
++	KUNIT_EXPECT_EQ(test,
++		mt6797_dvfsp_vendor_coordinator_stop(&coordinator), -EBUSY);
++	KUNIT_ASSERT_EQ(test,
++		((const struct mt6797_dvfsp_vendor_owner_lifecycle_ops *)
++		 integration.lifecycle_ops)->unregister_writer(
++		 integration.lifecycle_context), 0);
++	KUNIT_ASSERT_EQ(test,
++		mt6797_dvfsp_vendor_coordinator_stop(&coordinator), 0);
++	KUNIT_EXPECT_FALSE(test,
++		mt6797_dvfsp_vendor_coordinator_started(&coordinator));
++	KUNIT_EXPECT_FALSE(test, integration.bound);
++	KUNIT_EXPECT_EQ(test, integration.unbind_calls, 1U);
++	KUNIT_ASSERT_EQ(test, mt6797_dvfsp_vendor_owner_unbind(&owner), 0);
++	KUNIT_ASSERT_EQ(test,
++		mt6797_dvfsp_resource_owner_detach(&resource_owner), 0);
++	mt6797_dvfsp_vendor_test_put_devices(&devices);
++}
++
+ static struct kunit_case mt6797_dvfsp_vendor_owner_test_cases[] = {
+ 	KUNIT_CASE(mt6797_dvfsp_vendor_owner_rejects_incomplete),
+ 	KUNIT_CASE(mt6797_dvfsp_vendor_owner_binds_and_unbinds),
+ 	KUNIT_CASE(mt6797_dvfsp_vendor_owner_integrates_lifecycle),
++	KUNIT_CASE(mt6797_dvfsp_vendor_owner_coordinator_stages_lifecycle),
+ 	{ }
+ };
+ 
