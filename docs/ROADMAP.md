@@ -3267,7 +3267,8 @@ separate vendor-aware caller lifecycle/runtime candidate that binds the real
 registration and invalidation paths, proves one-generation read-only runtime
 identity on Gemian, and keeps provider registration default-off until those
 checks pass. No device boot/write or CPU8/CPU9 admission follows from this
-mapping result.
+mapping result. The exact current vendor probe/remove sites and missing
+event-forwarding paths are recorded in the [lifecycle candidate audit](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-lifecycle-candidate-audit-buildbox-20260811.txt).
 
 Required evidence:
 

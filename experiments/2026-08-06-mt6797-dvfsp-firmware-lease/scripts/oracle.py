@@ -115,6 +115,8 @@ VENDOR_SOURCE_POLICY_CLOCK_RAIL_BUILD_RESULT = (Path(__file__).resolve().parents
                                                 "results/vendor-policy-clock-rail-buildbox-20260811.txt")
 MAINLINE_POLICY_CLOCK_RAIL_QEMU_RESULT = (Path(__file__).resolve().parents[1] /
                                           "results/mainline-policy-clock-rail-qemu-20260811.txt")
+VENDOR_LIFECYCLE_CANDIDATE_AUDIT_RESULT = (Path(__file__).resolve().parents[1] /
+                                           "results/vendor-lifecycle-candidate-audit-buildbox-20260811.txt")
 VENDOR_CALLER_LIFECYCLE_AUDIT_RESULT = (Path(__file__).resolve().parents[1] /
                                         "results/vendor-caller-lifecycle-invalidation-audit-20260811.txt")
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
@@ -318,6 +320,7 @@ def main() -> None:
     vendor_source_eem_unit_qemu_result = VENDOR_SOURCE_EEM_UNIT_QEMU_RESULT.read_text()
     vendor_source_policy_clock_rail_build_result = VENDOR_SOURCE_POLICY_CLOCK_RAIL_BUILD_RESULT.read_text()
     mainline_policy_clock_rail_qemu_result = MAINLINE_POLICY_CLOCK_RAIL_QEMU_RESULT.read_text()
+    vendor_lifecycle_candidate_audit_result = VENDOR_LIFECYCLE_CANDIDATE_AUDIT_RESULT.read_text()
     vendor_caller_lifecycle_audit_result = VENDOR_CALLER_LIFECYCLE_AUDIT_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
@@ -1161,6 +1164,29 @@ def main() -> None:
         ("decision=isolated_policy_clock_rail_mapping_passed;no_device_claim", "mainline-policy-clock-rail-qemu-decision"),
     ):
         require(mainline_policy_clock_rail_qemu_result, needle, label)
+
+    for needle, label in (
+        ("claim=SOURCE_ONLY_MT6797_VENDOR_LIFECYCLE_CANDIDATE_AUDIT", "vendor-lifecycle-audit-claim"),
+        ("mainline_commit=c7ce05d", "vendor-lifecycle-audit-mainline-commit"),
+        ("vendor_revision=d388d350cb2dda8f23b99be6fa5db9628896e87f", "vendor-lifecycle-audit-revision"),
+        ("vendor_series=0001..0011", "vendor-lifecycle-audit-series"),
+        ("vendor_patch_count=11", "vendor-lifecycle-audit-patches"),
+        ("git_apply_check=passed;sequential_check_then_apply;unidiff_zero", "vendor-lifecycle-audit-apply-check"),
+        ("git_diff_check=passed", "vendor-lifecycle-audit-diff-check"),
+        ("writer_path=drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c", "vendor-lifecycle-audit-writer-path"),
+        ("probe_sites=register_hotcpu_notifier:5728;mt_ppm_register_client:5729,5759", "vendor-lifecycle-audit-probe-sites"),
+        ("remove_teardown=unregister_hotcpu_notifier:5760;cpufreq_unregister_driver:5763;writer_unregistration_call=absent", "vendor-lifecycle-audit-remove-gap"),
+        ("runtime_event_symbols=vendor_writer_exported;cpufreq_forwarding:5529,5548;ppm_pm_clock_rail_fault_forwarding=absent", "vendor-lifecycle-audit-runtime-gap"),
+        ("vendor_setter_called=none", "vendor-lifecycle-audit-no-setter"),
+        ("provider_registration=none", "vendor-lifecycle-audit-no-provider"),
+        ("runtime_owner_registration=none", "vendor-lifecycle-audit-no-runtime-owner"),
+        ("hardware_write=none", "vendor-lifecycle-audit-no-write"),
+        ("device_action=none", "vendor-lifecycle-audit-no-action"),
+        ("boot_candidate=false", "vendor-lifecycle-audit-not-candidate"),
+        ("cpu8_cpu9_admission=closed", "vendor-lifecycle-audit-no-admission"),
+        ("decision=exact_current_vendor_callers_identified;registration_teardown_and_lifecycle_event_forwarding_remain_unimplemented", "vendor-lifecycle-audit-decision"),
+    ):
+        require(vendor_lifecycle_candidate_audit_result, needle, label)
 
     for needle, label in (
         ("claim=SOURCE_ONLY_MT6797_VENDOR_CALLER_LIFECYCLE_INVALIDATION_AUDIT", "vendor-caller-audit-claim"),

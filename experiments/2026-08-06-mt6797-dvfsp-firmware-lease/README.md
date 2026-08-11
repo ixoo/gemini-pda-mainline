@@ -1447,3 +1447,5 @@ This closes the compile/virtual mapping gate only. Provider registration,
 vendor setters, real runtime owner/generation evidence, Gemini hardware
 support, and CPU8/CPU9 admission remain closed; the next gate is a separate
 vendor-aware caller lifecycle/runtime candidate with read-only device evidence.
+The exact current probe/remove sites and missing event-forwarding paths are
+recorded in the [lifecycle candidate audit](results/vendor-lifecycle-candidate-audit-buildbox-20260811.txt).
