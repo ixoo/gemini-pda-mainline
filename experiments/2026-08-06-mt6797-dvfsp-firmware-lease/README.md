@@ -1433,3 +1433,17 @@ This is isolated virtual/compile evidence only: no provider registration,
 vendor setter, device action, or CPU8/CPU9 admission is claimed. The next
 ordered gate remains source-backed policy-row, live clock-owner, and
 rail-conversion evidence under one generation; do not boot or write a device.
+
+Patch `0266` and experiment patch `0011` now carry the four policy states ×
+three clusters, CPU-DVFS clock-mux ownership, and the documented VPROC/VSRAM
+conversion metadata through the source-backed read-only bridge. The corrected
+`dvfsp-owner-kunit` Buildbox package at commit `c7ce05d` passed 255 patches,
+119 DTBs, package/provenance checksums, and isolated QEMU validation; all six
+KUnit suites passed (19/19, zero failures or skips) and the guest reached
+`System halted`. The pinned vendor revision accepted all 11 experiment
+patches and the five affected objects compiled with GCC 6.3; see the [policy/clock/rail vendor receipt](results/vendor-policy-clock-rail-buildbox-20260811.txt)
+and [mainline QEMU receipt](results/mainline-policy-clock-rail-qemu-20260811.txt).
+This closes the compile/virtual mapping gate only. Provider registration,
+vendor setters, real runtime owner/generation evidence, Gemini hardware
+support, and CPU8/CPU9 admission remain closed; the next gate is a separate
+vendor-aware caller lifecycle/runtime candidate with read-only device evidence.

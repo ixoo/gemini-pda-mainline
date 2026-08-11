@@ -111,6 +111,10 @@ VENDOR_SOURCE_EEM_VENDOR_BUILD_RESULT = (Path(__file__).resolve().parents[1] /
                                          "results/vendor-source-eem-unit-vendor-buildbox-20260811.txt")
 VENDOR_SOURCE_EEM_UNIT_QEMU_RESULT = (Path(__file__).resolve().parents[1] /
                                       "results/vendor-source-eem-unit-qemu-20260811.txt")
+VENDOR_SOURCE_POLICY_CLOCK_RAIL_BUILD_RESULT = (Path(__file__).resolve().parents[1] /
+                                                "results/vendor-policy-clock-rail-buildbox-20260811.txt")
+MAINLINE_POLICY_CLOCK_RAIL_QEMU_RESULT = (Path(__file__).resolve().parents[1] /
+                                          "results/mainline-policy-clock-rail-qemu-20260811.txt")
 VENDOR_CALLER_LIFECYCLE_AUDIT_RESULT = (Path(__file__).resolve().parents[1] /
                                         "results/vendor-caller-lifecycle-invalidation-audit-20260811.txt")
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
@@ -312,6 +316,8 @@ def main() -> None:
     vendor_source_eem_unit_build_result = VENDOR_SOURCE_EEM_UNIT_BUILD_RESULT.read_text()
     vendor_source_eem_vendor_build_result = VENDOR_SOURCE_EEM_VENDOR_BUILD_RESULT.read_text()
     vendor_source_eem_unit_qemu_result = VENDOR_SOURCE_EEM_UNIT_QEMU_RESULT.read_text()
+    vendor_source_policy_clock_rail_build_result = VENDOR_SOURCE_POLICY_CLOCK_RAIL_BUILD_RESULT.read_text()
+    mainline_policy_clock_rail_qemu_result = MAINLINE_POLICY_CLOCK_RAIL_QEMU_RESULT.read_text()
     vendor_caller_lifecycle_audit_result = VENDOR_CALLER_LIFECYCLE_AUDIT_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
@@ -1103,6 +1109,58 @@ def main() -> None:
         ("decision=isolated_runtime_eem_unit_bridge_passed;not_gemini_hardware_support;policy_clock_rail_mapping_and_device_validation_remain_closed", "vendor-eem-unit-qemu-decision"),
     ):
         require(vendor_source_eem_unit_qemu_result, needle, label)
+
+    for needle, label in (
+        ("claim=COMPILE_ONLY_MT6797_VENDOR_POLICY_CLOCK_RAIL_METADATA", "vendor-policy-clock-rail-build-claim"),
+        ("repository_commit=29de019", "vendor-policy-clock-rail-build-commit"),
+        ("backend=buildbox", "vendor-policy-clock-rail-build-backend"),
+        ("vendor_revision=d388d350cb2dda8f23b99be6fa5db9628896e87f", "vendor-policy-clock-rail-build-revision"),
+        ("vendor_series=0001..0011", "vendor-policy-clock-rail-build-series"),
+        ("vendor_patch_count=11", "vendor-policy-clock-rail-build-patches"),
+        ("git_apply_check=passed;sequential_check_then_apply;unidiff_zero", "vendor-policy-clock-rail-build-apply-check"),
+        ("git_apply=passed;all_eleven_patches", "vendor-policy-clock-rail-build-apply"),
+        ("defconfig=gemini_modular_defconfig;passed", "vendor-policy-clock-rail-build-defconfig"),
+        ("prepare=passed", "vendor-policy-clock-rail-build-prepare"),
+        ("modules_prepare=passed", "vendor-policy-clock-rail-build-modules-prepare"),
+        ("compiler=aarch64-linux-gnu-gcc-6_(Debian_6.3.0-18)_6.3.0_20170516", "vendor-policy-clock-rail-build-compiler"),
+        ("affected_objects=passed", "vendor-policy-clock-rail-build-objects"),
+        ("object_1=drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.o;sha256=ee673ad8116ee3dc52ad921d5d36c0baa84e12880e6c11f89396f3efc15a8b53", "vendor-policy-clock-rail-build-writer-hash"),
+        ("object_5=drivers/misc/mediatek/base/power/ppm_v1/src/mt_ppm_main.o;sha256=b17ead45c5cf83a57354140f7f3e7dfb064a5ec614b48a29aaeba7b420991bbc", "vendor-policy-clock-rail-build-ppm-hash"),
+        ("source_adapter=0011;source_abi=2;vendor_integration_abi=2", "vendor-policy-clock-rail-build-abi"),
+        ("vendor_setter_called=none", "vendor-policy-clock-rail-build-no-setter"),
+        ("provider_registration=none", "vendor-policy-clock-rail-build-no-provider"),
+        ("hardware_write=none", "vendor-policy-clock-rail-build-no-write"),
+        ("device_action=none", "vendor-policy-clock-rail-build-no-action"),
+        ("hardware_support_claim=NONE", "vendor-policy-clock-rail-build-no-support"),
+        ("cpu8_cpu9_admission=closed", "vendor-policy-clock-rail-build-no-admission"),
+        ("decision=vendor_policy_clock_rail_metadata_compile_validated;provider_registration_and_hardware_support_closed", "vendor-policy-clock-rail-build-decision"),
+    ):
+        require(vendor_source_policy_clock_rail_build_result, needle, label)
+
+    for needle, label in (
+        ("claim=KUNIT_ISOLATED_MT6797_VENDOR_POLICY_CLOCK_RAIL_MAPPING", "mainline-policy-clock-rail-qemu-claim"),
+        ("repository_commit=c7ce05d", "mainline-policy-clock-rail-qemu-commit"),
+        ("buildbox_job=c7ce05d7d115c2013aabe8c930b8206dc33eac82-dvfsp-owner-kunit-m0", "mainline-policy-clock-rail-qemu-buildbox-job"),
+        ("artifact=linux-7.1.3-gemini-dvfsp-owner-kunit-2116a01f-97bc4cf1", "mainline-policy-clock-rail-qemu-artifact"),
+        ("patch_count=255", "mainline-policy-clock-rail-qemu-patches"),
+        ("dtb_count=119", "mainline-policy-clock-rail-qemu-dtbs"),
+        ("sha256sums=passed", "mainline-policy-clock-rail-qemu-checksums"),
+        ("qemu_machine=virt", "mainline-policy-clock-rail-qemu-machine"),
+        ("qemu_cpu=cortex-a53", "mainline-policy-clock-rail-qemu-cpu"),
+        ("qemu_smp=4", "mainline-policy-clock-rail-qemu-smp"),
+        ("kunit_suites=6", "mainline-policy-clock-rail-qemu-suites"),
+        ("kunit_tests=19", "mainline-policy-clock-rail-qemu-tests"),
+        ("kunit_pass=19", "mainline-policy-clock-rail-qemu-pass"),
+        ("kunit_fail=0", "mainline-policy-clock-rail-qemu-fail"),
+        ("kunit_skip=0", "mainline-policy-clock-rail-qemu-skip"),
+        ("system_halted=true", "mainline-policy-clock-rail-qemu-halt"),
+        ("hardware_write=none", "mainline-policy-clock-rail-qemu-no-write"),
+        ("device_action=none", "mainline-policy-clock-rail-qemu-no-action"),
+        ("hardware_support_claim=NONE", "mainline-policy-clock-rail-qemu-no-support"),
+        ("cpu8_cpu9_admission=closed", "mainline-policy-clock-rail-qemu-no-admission"),
+        ("decision=isolated_policy_clock_rail_mapping_passed;no_device_claim", "mainline-policy-clock-rail-qemu-decision"),
+    ):
+        require(mainline_policy_clock_rail_qemu_result, needle, label)
 
     for needle, label in (
         ("claim=SOURCE_ONLY_MT6797_VENDOR_CALLER_LIFECYCLE_INVALIDATION_AUDIT", "vendor-caller-audit-claim"),

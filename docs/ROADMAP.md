@@ -3251,6 +3251,24 @@ admission remain closed. The next ordered gate is source-backed policy-row,
 live clock-owner, and rail-conversion evidence under one generation before any
 provider registration or device boot.
 
+Patch `0266` and experiment patch `0011` now complete the source-backed
+policy/clock/rail mapping gate: four policy states across three clusters,
+CPU-DVFS clock-mux ownership, and the documented VPROC/VSRAM conversion
+metadata are validated without setters or hardware writes. The corrected
+`dvfsp-owner-kunit` Buildbox package at commit `c7ce05d` passed 255 patches,
+119 DTBs, and package/provenance checksums. Its fetched Image passed all six
+isolated QEMU KUnit suites (19/19, zero failures or skips) and reached
+`System halted`; the pinned vendor revision accepted all 11 experiment patches
+and the five affected objects compiled with GCC 6.3. See the [vendor compile
+receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-policy-clock-rail-buildbox-20260811.txt)
+and [QEMU receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/mainline-policy-clock-rail-qemu-20260811.txt).
+This is still compile/virtual evidence only. The next ordered gate is a
+separate vendor-aware caller lifecycle/runtime candidate that binds the real
+registration and invalidation paths, proves one-generation read-only runtime
+identity on Gemian, and keeps provider registration default-off until those
+checks pass. No device boot/write or CPU8/CPU9 admission follows from this
+mapping result.
+
 Required evidence:
 
 - provider registration performs no register-data write;

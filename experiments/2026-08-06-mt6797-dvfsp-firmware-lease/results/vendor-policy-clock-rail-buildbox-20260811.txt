@@ -25,8 +25,7 @@ object_2=drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.o;sha256=cddc5fa4e9b
 object_3=drivers/misc/mediatek/base/power/mt6797/mt_cpufreq_hybrid.o;sha256=d8e4255427aa68becc0dd26ae3c0756b365254c45f06de1bbde48b26e0b324ce
 object_4=drivers/misc/mediatek/base/power/mt6797/mt_eem.o;sha256=d27846321874ff17befcafaae52d369415fe28f906e7a600b9ef19736ae5f1af
 object_5=drivers/misc/mediatek/base/power/ppm_v1/src/mt_ppm_main.o;sha256=b17ead45c5cf83a57354140f7f3e7dfb064a5ec614b48a29aaeba7b420991bbc
-source_abi=3
-provider_abi=3
+source_adapter=0011;source_abi=2;vendor_integration_abi=2
 vendor_setter_called=none
 provider_registration=none
 hardware_write=none
