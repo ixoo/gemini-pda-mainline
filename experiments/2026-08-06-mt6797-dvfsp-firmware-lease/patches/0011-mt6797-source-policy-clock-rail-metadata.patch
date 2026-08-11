@@ -218,7 +218,7 @@ diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.
 +		dst->policy[i].min_cpu_core = ppm.policy[i].min_cpu_core;
 +		dst->policy[i].max_cpu_core = ppm.policy[i].max_cpu_core;
 +	}
-@@ -159,3 +178,34 @@
+@@ -159,2 +178,33 @@
  		dst->cpufreq[i].current_volt = cpufreq.domain[i].current_volt;
  		dst->cpufreq[i].current_vsram = cpufreq.domain[i].current_vsram;
 +		dst->cpufreq[i].clock_owner_kind =
@@ -252,7 +252,6 @@ diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.
 +			dst->cpufreq[i].vsram_special_10uv[j] =
 +				cpufreq.domain[i].vsram_special_10uv[j];
 +		}
- 	}
 
 -- 
 2.39.5
