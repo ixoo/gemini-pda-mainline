@@ -87,6 +87,7 @@ MAINLINE_SOURCE_LIFECYCLE_GUARD_PATCH = ROOT / "patches/v7.1.3/0263-soc-mediatek
 MAINLINE_SOURCE_PROVIDER_BRIDGE_PATCH = ROOT / "patches/v7.1.3/0264-soc-mediatek-add-vendor-provider-field-bridge.patch"
 MAINLINE_EEM_UNIT_PATCH = ROOT / "patches/v7.1.3/0265-soc-mediatek-map-vendor-eem-voltage-units.patch"
 MAINLINE_POLICY_CLOCK_RAIL_PATCH = ROOT / "patches/v7.1.3/0266-soc-mediatek-map-vendor-policy-clock-rail-metadata.patch"
+MAINLINE_VENDOR_COORDINATOR_PATCH = ROOT / "patches/v7.1.3/0267-soc-mediatek-add-vendor-writer-coordinator.patch"
 VENDOR_WRITER_INTEGRATION_REVIEW_RESULT = (Path(__file__).resolve().parents[1] /
                                            "results/vendor-writer-mainline-owner-integration-review-20260810.txt")
 VENDOR_WRITER_REGISTRATION_BUILD_RESULT = (Path(__file__).resolve().parents[1] /
@@ -129,6 +130,8 @@ VENDOR_CALLER_LIFECYCLE_AUDIT_RESULT = (Path(__file__).resolve().parents[1] /
                                         "results/vendor-caller-lifecycle-invalidation-audit-20260811.txt")
 VENDOR_INTEGRATION_CONTEXT_BUILD_RESULT = (Path(__file__).resolve().parents[1] /
                                            "results/vendor-integration-context-buildbox-20260811.txt")
+VENDOR_COORDINATOR_BUILD_RESULT = (Path(__file__).resolve().parents[1] /
+                                   "results/vendor-writer-coordinator-buildbox-20260811.txt")
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
 START_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-start-contract-20260806.txt"
 OWNER_RESULT = Path(__file__).resolve().parents[1] / "results/public-hybrid-owner-source-20260806.txt"
@@ -313,6 +316,7 @@ def main() -> None:
     mainline_source_provider_bridge_patch = MAINLINE_SOURCE_PROVIDER_BRIDGE_PATCH.read_text()
     mainline_eem_unit_patch = MAINLINE_EEM_UNIT_PATCH.read_text()
     mainline_policy_clock_rail_patch = MAINLINE_POLICY_CLOCK_RAIL_PATCH.read_text()
+    mainline_vendor_coordinator_patch = MAINLINE_VENDOR_COORDINATOR_PATCH.read_text()
     vendor_writer_integration_review_result = VENDOR_WRITER_INTEGRATION_REVIEW_RESULT.read_text()
     vendor_writer_registration_build_result = VENDOR_WRITER_REGISTRATION_BUILD_RESULT.read_text()
     vendor_writer_runtime_events_build_result = VENDOR_WRITER_RUNTIME_EVENTS_BUILD_RESULT.read_text()
@@ -333,6 +337,7 @@ def main() -> None:
     mainline_resume_build_result = MAINLINE_RESUME_BUILD_RESULT.read_text()
     vendor_lifecycle_candidate_audit_result = VENDOR_LIFECYCLE_CANDIDATE_AUDIT_RESULT.read_text()
     vendor_caller_lifecycle_audit_result = VENDOR_CALLER_LIFECYCLE_AUDIT_RESULT.read_text()
+    vendor_coordinator_build_result = VENDOR_COORDINATOR_BUILD_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     eem_calibration_source = eem_calibration_patch[eem_calibration_patch.index("diff --git"):]
@@ -388,6 +393,8 @@ def main() -> None:
         raise AssertionError("vendor EEM unit mapping is not after provider field bridge")
     if names.index("0265-soc-mediatek-map-vendor-eem-voltage-units.patch") >= names.index("0266-soc-mediatek-map-vendor-policy-clock-rail-metadata.patch"):
         raise AssertionError("policy/clock/rail mapping is not after EEM unit mapping")
+    if names.index("0266-soc-mediatek-map-vendor-policy-clock-rail-metadata.patch") >= names.index("0267-soc-mediatek-add-vendor-writer-coordinator.patch"):
+        raise AssertionError("vendor writer coordinator is not after policy/clock/rail mapping")
     for needle, label in (
         ("GEMINI_MT6797_DVFSP_VENDOR_STATE_ABI\t2", "vendor-policy-clock-rail-state-abi"),
         ("GEMINI_MT6797_DVFSP_VENDOR_MAX_POLICY_ROW", "vendor-policy-row-bound"),
@@ -427,6 +434,27 @@ def main() -> None:
     ):
         if forbidden in mainline_policy_clock_rail_patch:
             raise AssertionError(f"unexpected mainline policy/clock/rail operation: {forbidden}")
+
+    mainline_vendor_coordinator_source = mainline_vendor_coordinator_patch[
+        mainline_vendor_coordinator_patch.index("diff --git"):]
+    for needle, label in (
+        ("MTK_MT6797_DVFSP_VENDOR_WRITER_COORDINATOR", "mainline-coordinator-kconfig"),
+        ("MT6797_DVFSP_VENDOR_COORDINATOR_ABI\t1", "mainline-coordinator-abi"),
+        ("mt6797_dvfsp_vendor_coordinator_start(", "mainline-coordinator-start"),
+        ("mt6797_dvfsp_vendor_coordinator_stop(", "mainline-coordinator-stop"),
+        ("writer_integration_ops !=", "mainline-coordinator-identity"),
+        ("return -EBUSY", "mainline-coordinator-teardown"),
+    ):
+        require(mainline_vendor_coordinator_source, needle, label)
+    for forbidden in (
+        "readl(", "writel(", "i2c_transfer", "regulator_", "clk_",
+        "platform_driver", "cpu_up(", "secure_write",
+        "mt_cpufreq_set_ptbl_registerCB", "mt_cpufreq_setvolt_registerCB",
+        "mt_ppm_register_client", "register_provider", "provider_registration",
+        "hardware_write",
+    ):
+        if forbidden in mainline_vendor_coordinator_source:
+            raise AssertionError(f"unexpected mainline vendor coordinator operation: {forbidden}")
     for needle, label in (
         ("GEMINI_MT6797_DVFSP_VENDOR_WRITER_ABI\t2", "vendor-writer-identity-abi"),
         ("read_identity", "vendor-writer-identity-callback"),
@@ -1209,6 +1237,35 @@ def main() -> None:
         ("decision=vendor_integration_context_compile_validated;external_caller_and_runtime_registration_remain_closed", "vendor-integration-context-build-decision"),
     ):
         require(VENDOR_INTEGRATION_CONTEXT_BUILD_RESULT.read_text(), needle, label)
+
+    for needle, label in (
+        ("claim=COMPILE_ONLY_MT6797_VENDOR_WRITER_COORDINATOR", "vendor-coordinator-build-claim"),
+        ("repository_commit=ba6dfdd51839612ac55ff7458c93e3f9d6acd325", "vendor-coordinator-build-commit"),
+        ("backend=buildbox", "vendor-coordinator-build-backend"),
+        ("build_profile=dvfsp-owner-kunit", "vendor-coordinator-build-profile"),
+        ("buildbox_job=ba6dfdd51839612ac55ff7458c93e3f9d6acd325-dvfsp-owner-kunit-m0", "vendor-coordinator-build-job"),
+        ("canonical_series_entries=256", "vendor-coordinator-build-series"),
+        ("package_provenance_patch_count=256", "vendor-coordinator-build-package-series"),
+        ("package=linux-7.1.3-gemini-dvfsp-owner-kunit-610236eb-bc80c7fa", "vendor-coordinator-build-package"),
+        ("package_fetch=validated-package-only", "vendor-coordinator-build-fetch"),
+        ("patch_0267=explicit_coordinator_start_stop;exact_owner_ops_context_identity;duplicate_start_rejected;teardown_guard", "vendor-coordinator-build-contract"),
+        ("coordinator_object=compiled", "vendor-coordinator-build-coordinator-object"),
+        ("owner_kunit_object=compiled", "vendor-coordinator-build-owner-test-object"),
+        ("dtb_count=119", "vendor-coordinator-build-dtbs"),
+        ("sha256sums=passed", "vendor-coordinator-build-checksums"),
+        ("patchset_sha256=610236ebec0840dd72ebcac50dab99f61e791775970a6d72164078170b1b70af", "vendor-coordinator-build-patchset"),
+        ("config_sha256=b50b9b13b20872f889ace2e673f6c4086c73f621d51f111fa0bf9a9005499c2e", "vendor-coordinator-build-config"),
+        ("image_gzip_sha256=ea80c55e51f965d929d1efed4937b864e3447d8ecd227e5e69451de35c03a29", "vendor-coordinator-build-image"),
+        ("provider=none", "vendor-coordinator-build-no-provider"),
+        ("runtime_owner_registration=none", "vendor-coordinator-build-no-runtime-owner"),
+        ("vendor_setter=none", "vendor-coordinator-build-no-setter"),
+        ("hardware_write=none", "vendor-coordinator-build-no-write"),
+        ("device_action=none", "vendor-coordinator-build-no-action"),
+        ("boot_candidate=false", "vendor-coordinator-build-not-candidate"),
+        ("cpu8_cpu9_admission=closed", "vendor-coordinator-build-no-admission"),
+        ("decision=vendor_writer_coordinator_compile_validated;runtime_external_binding_and_identity_evidence_remain_closed", "vendor-coordinator-build-decision"),
+    ):
+        require(vendor_coordinator_build_result, needle, label)
 
     for needle, label in (
         ("claim=KUNIT_ISOLATED_MT6797_VENDOR_POLICY_CLOCK_RAIL_MAPPING", "mainline-policy-clock-rail-qemu-claim"),
@@ -3592,6 +3649,7 @@ def main() -> None:
     print("protected_owner_protocol=identified;BigiDVFS_FIDs_and_MCUMIXED_semaphore;authoritative_state_owner_missing")
     print("mainline_owner=unimplemented;provider=blocked")
     print("image_variant=unproven;firmware_redistribution=unproven")
+    print("vendor_writer_coordinator_buildbox=validated;commit=ba6dfdd51839612ac55ff7458c93e3f9d6acd325;profile=dvfsp-owner-kunit;canonical_series_entries=256;package_provenance_patch_count=256;coordinator_object=compiled;owner_kunit_object=compiled;sha256sums=passed;package_fetch=validated-package-only;runtime_owner_registration=none;provider=none;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("status=PASS_STATIC")
 
 

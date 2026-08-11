@@ -1,0 +1,36 @@
+# MT6797 vendor writer coordinator mainline Buildbox validation
+
+date_utc=2026-08-11T03:01:25Z
+claim=COMPILE_ONLY_MT6797_VENDOR_WRITER_COORDINATOR
+repository=https://github.com/ixoo/gemini-pda-mainline.git
+repository_commit=ba6dfdd51839612ac55ff7458c93e3f9d6acd325
+repository_dirty=false
+backend=buildbox
+build_profile=dvfsp-owner-kunit
+buildbox_job=ba6dfdd51839612ac55ff7458c93e3f9d6acd325-dvfsp-owner-kunit-m0
+patch_series=patches/series
+canonical_series_entries=256
+package_provenance_patch_count=256
+package=linux-7.1.3-gemini-dvfsp-owner-kunit-610236eb-bc80c7fa
+package_fetch=validated-package-only
+patch_0267=explicit_coordinator_start_stop;exact_owner_ops_context_identity;duplicate_start_rejected;teardown_guard
+coordinator_object=compiled
+owner_kunit_object=compiled
+dtb_count=119
+sha256sums=passed
+patchset_sha256=610236ebec0840dd72ebcac50dab99f61e791775970a6d72164078170b1b70af
+config_sha256=b50b9b13b20872f889ace2e673f6c4086c73f621d51f111fa0bf9a9005499c2e
+image_gzip_sha256=ea80c55e51f965d929d1efed4937b864e3447d8ecd227e5e69451de35c03a29
+provider=none
+runtime_owner_registration=none
+vendor_setter=none
+hardware_write=none
+device_action=none
+boot_candidate=false
+runtime_evidence=none
+hardware_support_claim=NONE
+cpu8_cpu9_admission=closed
+
+observation=The pushed 0267 coordinator compiles in the dedicated owner-KUnit profile after the 256 canonical series entries apply. It provides the explicit mainline caller API that must bind the vendor integration ops/context before probe and stop after remove; Buildbox does not execute KUnit and no real vendor symbol is registered.
+decision=vendor_writer_coordinator_compile_validated;runtime_external_binding_and_identity_evidence_remain_closed
+next=review_real_vendor_caller_invocation_and_collect_read_only_runtime_identity;do_not_boot_or_write

@@ -3288,6 +3288,18 @@ a separate reviewable external caller/coordinator that registers only after
 complete lifecycle and invalidation coverage, followed by read-only runtime
 identity evidence; do not boot or write a device for this compile result.
 
+Patch `0267` now adds that explicit default-off coordinator at exact pushed
+commit `ba6dfdd51839612ac55ff7458c93e3f9d6acd325`. Buildbox applied all 256
+canonical series entries in the `dvfsp-owner-kunit` profile, compiled the
+coordinator and owner-KUnit objects, produced 119 DTBs, passed package
+checksums, and fetched only the validated package; see the [coordinator
+Buildbox receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-writer-coordinator-buildbox-20260811.txt).
+This closes the source/build coordinator contract only: it does not invoke the
+real vendor exported ops/context, register an owner/provider/setter, touch
+hardware, or admit CPU8/CPU9. The next ordered gate is source-level review of
+the actual external caller invocation plus read-only runtime identity and
+invalidation evidence. Do not boot or write a device for this compile result.
+
 Required evidence:
 
 - provider registration performs no register-data write;

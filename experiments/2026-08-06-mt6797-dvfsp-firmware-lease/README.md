@@ -127,6 +127,7 @@ be copied directly into a mainline failure/PM path.
 - [Vendor writer registration handoff Buildbox validation](results/vendor-writer-registration-handoff-buildbox-20260810.txt)
 - [Vendor caller lifecycle and runtime invalidation audit](results/vendor-caller-lifecycle-invalidation-audit-20260811.txt)
 - [Vendor integration-context accessor Buildbox validation](results/vendor-integration-context-buildbox-20260811.txt)
+- [Vendor writer coordinator Buildbox validation](results/vendor-writer-coordinator-buildbox-20260811.txt)
 - [Cross-tree vendor source observation ABI Buildbox validation](results/vendor-source-observation-buildbox-20260810.txt)
 - [Vendor lifecycle-guard KUnit Buildbox validation](results/vendor-source-lifecycle-guard-kunit-buildbox-20260810.txt)
 - [Vendor lifecycle-guard isolated QEMU KUnit runtime](results/vendor-source-lifecycle-guard-kunit-qemu-20260810.txt)
@@ -1467,3 +1468,14 @@ register an owner, call a setter, or perform hardware I/O. The next gate is a
 separate reviewable external caller/coordinator with complete lifecycle and
 invalidation coverage, followed by read-only runtime identity evidence; no
 device boot/write or CPU8/CPU9 admission is authorized.
+
+Patch `0267` now adds the explicit default-off coordinator at exact pushed
+commit `ba6dfdd51839612ac55ff7458c93e3f9d6acd325`. The dedicated
+`dvfsp-owner-kunit` Buildbox run applied all 256 canonical series entries,
+compiled both the coordinator and owner-KUnit objects, produced 119 DTBs, and
+passed package checksums; only the validated package was fetched. This is
+compile-only evidence: it does not invoke a real vendor caller, register a
+runtime owner/provider/setter, touch hardware, or admit CPU8/CPU9. The next
+gate is source review of the actual external caller invocation plus read-only
+runtime identity and invalidation evidence; do not boot or write a device.
+See the [coordinator Buildbox receipt](results/vendor-writer-coordinator-buildbox-20260811.txt).
