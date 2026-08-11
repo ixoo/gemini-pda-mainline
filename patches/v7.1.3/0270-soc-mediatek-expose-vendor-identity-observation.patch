@@ -32,11 +32,7 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-source.h b/include/l
  #define MT6797_DVFSP_VENDOR_SOURCE_MAX_OPP	16
  #define MT6797_DVFSP_VENDOR_SOURCE_MAX_DETECTOR	6
  #define MT6797_DVFSP_VENDOR_SOURCE_MAX_FREQ	16
-@@ -14,5 +14,12 @@
- #define MT6797_DVFSP_VENDOR_SOURCE_PPM		BIT(0)
- #define MT6797_DVFSP_VENDOR_SOURCE_CPUFREQ	BIT(1)
- #define MT6797_DVFSP_VENDOR_SOURCE_CSPM		BIT(2)
- #define MT6797_DVFSP_VENDOR_SOURCE_EEM		BIT(3)
+@@ -18,1 +18,8 @@
  #define MT6797_DVFSP_VENDOR_SOURCE_ALL		GENMASK(3, 0)
 +#define MT6797_DVFSP_VENDOR_SOURCE_IDENTITY_OBSERVATION_ABI	1
 +#define MT6797_DVFSP_VENDOR_SOURCE_IDENTITY_FUNCTION_WORD	BIT(0)
@@ -161,23 +157,13 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c b/drivers/soc
 +	.read_identity_observation =
 +		mt6797_dvfsp_vendor_test_source_identity_observation,
  };
-@@ -532,2 +551,3 @@
- 	struct mt6797_dvfsp_vendor_owner_ops owner_ops =
- 		mt6797_dvfsp_vendor_test_owner_ops;
+@@ -533,0 +552,1 @@
 +	struct mt6797_dvfsp_vendor_source_identity_observation observation;
-@@ -554,8 +574,13 @@
- 	KUNIT_EXPECT_PTR_EQ(test, integration.bridge_ops,
- 		mt6797_dvfsp_vendor_writer_bridge_ops());
- 	KUNIT_EXPECT_PTR_EQ(test, integration.runtime_context, &owner);
- 	KUNIT_EXPECT_TRUE(test, owner.source.initialized);
+@@ -558,0 +578,5 @@
 +	KUNIT_ASSERT_EQ(test,
 +		mt6797_dvfsp_vendor_source_identity_observation(&owner.source,
 +			&observation), 0);
 +	KUNIT_EXPECT_EQ(test, observation.function_word, 0x22U);
 +	KUNIT_EXPECT_EQ(test, observation.date_word, 0x70U);
-+	KUNIT_EXPECT_EQ(test, observation.cpu_bin_level, 1U);
- 	KUNIT_ASSERT_EQ(test,
- 		((const struct mt6797_dvfsp_vendor_runtime_ops *)
- 		 integration.runtime_ops)->event(integration.runtime_context,
 -- 
 2.39.5
