@@ -149,10 +149,7 @@ diff --git a/drivers/misc/mediatek/base/power/ppm_v1/src/mt_ppm_main.c b/drivers
  
  	if (!snapshot)
  		return -EINVAL;
-@@ -401,8 +402,16 @@ int gemini_mt6797_dvfsp_vendor_ppm_snapshot(
- 		ppm_main_info.client_req.cluster_num >
- 		GEMINI_MT6797_DVFSP_VENDOR_MAX_CLUSTER ||
- 		!ppm_main_info.client_req.cpu_limit) {
+@@ -405,5 +406,13 @@ int gemini_mt6797_dvfsp_vendor_ppm_snapshot(
  		ppm_unlock(&ppm_main_info.lock);
  		return -ENODEV;
  	}
