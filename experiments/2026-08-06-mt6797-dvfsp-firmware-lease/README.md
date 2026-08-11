@@ -1479,3 +1479,17 @@ runtime owner/provider/setter, touch hardware, or admit CPU8/CPU9. The next
 gate is source review of the actual external caller invocation plus read-only
 runtime identity and invalidation evidence; do not boot or write a device.
 See the [coordinator Buildbox receipt](results/vendor-writer-coordinator-buildbox-20260811.txt).
+
+Patch `0268` now adds a guarded mainline-side runtime-event forwarder at exact
+pushed commit `7926d1ef60d646ad438479429c2a354880866763`. The `dvfsp-owner-kunit`
+Buildbox run applied all 257 canonical series entries, compiled the coordinator
+and owner-KUnit objects, produced 119 DTBs, passed package/provenance checksums,
+and fetched only the validated package; see the [runtime-event forward
+Buildbox receipt](results/vendor-writer-runtime-event-forward-buildbox-20260811.txt).
+The forwarder validates the coordinator lifetime and event tuple, invalidates
+the shared source before forwarding, and refuses calls after stop. This remains
+compile-only: Buildbox did not execute KUnit, no actual vendor probe/remove
+caller is bound, no runtime owner/provider/setter or hardware action occurred,
+and CPU8/CPU9 admission remains closed. The next gate is binding those exact
+vendor probe/remove callsites and collecting read-only runtime identity and
+invalidation evidence; do not boot or write a device.

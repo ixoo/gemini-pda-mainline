@@ -88,6 +88,7 @@ MAINLINE_SOURCE_PROVIDER_BRIDGE_PATCH = ROOT / "patches/v7.1.3/0264-soc-mediatek
 MAINLINE_EEM_UNIT_PATCH = ROOT / "patches/v7.1.3/0265-soc-mediatek-map-vendor-eem-voltage-units.patch"
 MAINLINE_POLICY_CLOCK_RAIL_PATCH = ROOT / "patches/v7.1.3/0266-soc-mediatek-map-vendor-policy-clock-rail-metadata.patch"
 MAINLINE_VENDOR_COORDINATOR_PATCH = ROOT / "patches/v7.1.3/0267-soc-mediatek-add-vendor-writer-coordinator.patch"
+MAINLINE_VENDOR_RUNTIME_FORWARD_PATCH = ROOT / "patches/v7.1.3/0268-soc-mediatek-forward-vendor-caller-runtime-events.patch"
 VENDOR_WRITER_INTEGRATION_REVIEW_RESULT = (Path(__file__).resolve().parents[1] /
                                            "results/vendor-writer-mainline-owner-integration-review-20260810.txt")
 VENDOR_WRITER_REGISTRATION_BUILD_RESULT = (Path(__file__).resolve().parents[1] /
@@ -132,6 +133,8 @@ VENDOR_INTEGRATION_CONTEXT_BUILD_RESULT = (Path(__file__).resolve().parents[1] /
                                            "results/vendor-integration-context-buildbox-20260811.txt")
 VENDOR_COORDINATOR_BUILD_RESULT = (Path(__file__).resolve().parents[1] /
                                    "results/vendor-writer-coordinator-buildbox-20260811.txt")
+VENDOR_RUNTIME_FORWARD_BUILD_RESULT = (Path(__file__).resolve().parents[1] /
+                                       "results/vendor-writer-runtime-event-forward-buildbox-20260811.txt")
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
 START_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-start-contract-20260806.txt"
 OWNER_RESULT = Path(__file__).resolve().parents[1] / "results/public-hybrid-owner-source-20260806.txt"
@@ -317,6 +320,7 @@ def main() -> None:
     mainline_eem_unit_patch = MAINLINE_EEM_UNIT_PATCH.read_text()
     mainline_policy_clock_rail_patch = MAINLINE_POLICY_CLOCK_RAIL_PATCH.read_text()
     mainline_vendor_coordinator_patch = MAINLINE_VENDOR_COORDINATOR_PATCH.read_text()
+    mainline_vendor_runtime_forward_patch = MAINLINE_VENDOR_RUNTIME_FORWARD_PATCH.read_text()
     vendor_writer_integration_review_result = VENDOR_WRITER_INTEGRATION_REVIEW_RESULT.read_text()
     vendor_writer_registration_build_result = VENDOR_WRITER_REGISTRATION_BUILD_RESULT.read_text()
     vendor_writer_runtime_events_build_result = VENDOR_WRITER_RUNTIME_EVENTS_BUILD_RESULT.read_text()
@@ -338,6 +342,7 @@ def main() -> None:
     vendor_lifecycle_candidate_audit_result = VENDOR_LIFECYCLE_CANDIDATE_AUDIT_RESULT.read_text()
     vendor_caller_lifecycle_audit_result = VENDOR_CALLER_LIFECYCLE_AUDIT_RESULT.read_text()
     vendor_coordinator_build_result = VENDOR_COORDINATOR_BUILD_RESULT.read_text()
+    vendor_runtime_forward_build_result = VENDOR_RUNTIME_FORWARD_BUILD_RESULT.read_text()
     source = patch[patch.index("diff --git"):]
     state_owner_source = state_owner_patch[state_owner_patch.index("diff --git"):]
     eem_calibration_source = eem_calibration_patch[eem_calibration_patch.index("diff --git"):]
@@ -395,6 +400,8 @@ def main() -> None:
         raise AssertionError("policy/clock/rail mapping is not after EEM unit mapping")
     if names.index("0266-soc-mediatek-map-vendor-policy-clock-rail-metadata.patch") >= names.index("0267-soc-mediatek-add-vendor-writer-coordinator.patch"):
         raise AssertionError("vendor writer coordinator is not after policy/clock/rail mapping")
+    if names.index("0267-soc-mediatek-add-vendor-writer-coordinator.patch") >= names.index("0268-soc-mediatek-forward-vendor-caller-runtime-events.patch"):
+        raise AssertionError("vendor caller runtime forwarding is not after the writer coordinator")
     for needle, label in (
         ("GEMINI_MT6797_DVFSP_VENDOR_STATE_ABI\t2", "vendor-policy-clock-rail-state-abi"),
         ("GEMINI_MT6797_DVFSP_VENDOR_MAX_POLICY_ROW", "vendor-policy-row-bound"),
@@ -455,6 +462,29 @@ def main() -> None:
     ):
         if forbidden in mainline_vendor_coordinator_source:
             raise AssertionError(f"unexpected mainline vendor coordinator operation: {forbidden}")
+
+    mainline_vendor_runtime_forward_source = mainline_vendor_runtime_forward_patch[
+        mainline_vendor_runtime_forward_patch.index("diff --git"):]
+    for needle, label in (
+        ("mt6797_dvfsp_vendor_owner_forward_runtime_event", "mainline-runtime-forward-owner-entry"),
+        ("mt6797_dvfsp_vendor_coordinator_forward_runtime_event", "mainline-runtime-forward-coordinator-entry"),
+        ("MT6797_DVFSP_VENDOR_RUNTIME_EVENT_COUNT", "mainline-runtime-forward-event-bound"),
+        ("MT6797_DVFSP_VENDOR_RUNTIME_CPU_NONE", "mainline-runtime-forward-cpu-sentinel"),
+        ("mt6797_dvfsp_vendor_source_invalidate", "mainline-runtime-forward-invalidation"),
+        ("EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_coordinator_forward_runtime_event)", "mainline-runtime-forward-export"),
+        ("MT6797_DVFSP_VENDOR_RUNTIME_CPU_ONLINE", "mainline-runtime-forward-kunit-event"),
+        ("-ENODEV", "mainline-runtime-forward-lifetime-refusal"),
+    ):
+        require(mainline_vendor_runtime_forward_source, needle, label)
+    for forbidden in (
+        "readl(", "writel(", "i2c_transfer", "regulator_", "clk_",
+        "platform_driver", "cpu_up(", "secure_write",
+        "mt_cpufreq_set_ptbl_registerCB", "mt_cpufreq_setvolt_registerCB",
+        "mt_ppm_register_client", "register_provider", "provider_registration",
+        "hardware_write",
+    ):
+        if forbidden in mainline_vendor_runtime_forward_source:
+            raise AssertionError(f"unexpected mainline runtime-forward operation: {forbidden}")
     for needle, label in (
         ("GEMINI_MT6797_DVFSP_VENDOR_WRITER_ABI\t2", "vendor-writer-identity-abi"),
         ("read_identity", "vendor-writer-identity-callback"),
@@ -1266,6 +1296,38 @@ def main() -> None:
         ("decision=vendor_writer_coordinator_compile_validated;runtime_external_binding_and_identity_evidence_remain_closed", "vendor-coordinator-build-decision"),
     ):
         require(vendor_coordinator_build_result, needle, label)
+
+    for needle, label in (
+        ("claim=COMPILE_ONLY_MT6797_VENDOR_CALLER_RUNTIME_EVENT_FORWARD", "vendor-runtime-forward-build-claim"),
+        ("repository_commit=7926d1ef60d646ad438479429c2a354880866763", "vendor-runtime-forward-build-commit"),
+        ("backend=buildbox", "vendor-runtime-forward-build-backend"),
+        ("build_profile=dvfsp-owner-kunit", "vendor-runtime-forward-build-profile"),
+        ("buildbox_job=7926d1ef60d646ad438479429c2a354880866763-dvfsp-owner-kunit-m0", "vendor-runtime-forward-build-job"),
+        ("canonical_series_entries=257", "vendor-runtime-forward-build-series"),
+        ("package_provenance_patch_count=257", "vendor-runtime-forward-build-package-series"),
+        ("package=linux-7.1.3-gemini-dvfsp-owner-kunit-28f41ecc-bc80c7fa", "vendor-runtime-forward-build-package"),
+        ("package_fetch=validated-package-only", "vendor-runtime-forward-build-fetch"),
+        ("patch_0268=owner_event_forwarder;event_tuple_validation;source_invalidation_before_forward;post_stop_refusal", "vendor-runtime-forward-build-contract"),
+        ("coordinator_event_object=compiled", "vendor-runtime-forward-build-coordinator-object"),
+        ("owner_kunit_object=compiled", "vendor-runtime-forward-build-owner-test-object"),
+        ("kunit=compiled_only;not_executed_by_Buildbox", "vendor-runtime-forward-build-kunit"),
+        ("dtb_count=119", "vendor-runtime-forward-build-dtbs"),
+        ("sha256sums=passed", "vendor-runtime-forward-build-checksums"),
+        ("patchset_sha256=28f41ecc52dc19a118ff8565ed907da5073d64b90a9572498a16726a26fcfab9", "vendor-runtime-forward-build-patchset"),
+        ("config_sha256=b50b9b13b20872f889ace2e673f6c4086c73f621d51f111fa0bf9a9005499c2e", "vendor-runtime-forward-build-config"),
+        ("image_gzip_sha256=4d7c57bd57c6b406fba77732e8de94d86a2eb3eb44f4d83509ff30bfd5a0c409", "vendor-runtime-forward-build-image"),
+        ("compiler=aarch64-linux-gnu-gcc_(Debian_12.2.0-14)_12.2.0", "vendor-runtime-forward-build-compiler"),
+        ("provider=none", "vendor-runtime-forward-build-no-provider"),
+        ("runtime_owner_registration=none", "vendor-runtime-forward-build-no-runtime-owner"),
+        ("vendor_setter=none", "vendor-runtime-forward-build-no-setter"),
+        ("hardware_write=none", "vendor-runtime-forward-build-no-write"),
+        ("device_action=none", "vendor-runtime-forward-build-no-action"),
+        ("boot_candidate=false", "vendor-runtime-forward-build-not-candidate"),
+        ("runtime_evidence=none", "vendor-runtime-forward-build-no-runtime-evidence"),
+        ("cpu8_cpu9_admission=closed", "vendor-runtime-forward-build-no-admission"),
+        ("decision=vendor_caller_runtime_forward_compile_validated;actual_vendor_probe_remove_binding_and_runtime_identity_evidence_remain_closed", "vendor-runtime-forward-build-decision"),
+    ):
+        require(vendor_runtime_forward_build_result, needle, label)
 
     for needle, label in (
         ("claim=KUNIT_ISOLATED_MT6797_VENDOR_POLICY_CLOCK_RAIL_MAPPING", "mainline-policy-clock-rail-qemu-claim"),
@@ -3650,6 +3712,7 @@ def main() -> None:
     print("mainline_owner=unimplemented;provider=blocked")
     print("image_variant=unproven;firmware_redistribution=unproven")
     print("vendor_writer_coordinator_buildbox=validated;commit=ba6dfdd51839612ac55ff7458c93e3f9d6acd325;profile=dvfsp-owner-kunit;canonical_series_entries=256;package_provenance_patch_count=256;coordinator_object=compiled;owner_kunit_object=compiled;sha256sums=passed;package_fetch=validated-package-only;runtime_owner_registration=none;provider=none;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
+    print("vendor_caller_runtime_forward_buildbox=validated;commit=7926d1ef60d646ad438479429c2a354880866763;profile=dvfsp-owner-kunit;canonical_series_entries=257;package_provenance_patch_count=257;coordinator_event_object=compiled;owner_kunit_object=compiled;sha256sums=passed;package_fetch=validated-package-only;actual_vendor_callsite_binding=none;runtime_owner_registration=none;provider=none;hardware_write=none;device_action=none;boot_candidate=false;cpu8_cpu9_admission=closed")
     print("status=PASS_STATIC")
 
 
