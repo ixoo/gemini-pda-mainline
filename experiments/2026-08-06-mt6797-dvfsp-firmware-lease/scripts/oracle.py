@@ -70,6 +70,12 @@ VENDOR_SOURCE_EEM_METADATA_PATCH = (Path(__file__).resolve().parents[1] /
                                     "patches/0010-mt6797-source-eem-voltage-unit-metadata.patch")
 VENDOR_SOURCE_POLICY_CLOCK_RAIL_PATCH = (Path(__file__).resolve().parents[1] /
                                          "patches/0011-mt6797-source-policy-clock-rail-metadata.patch")
+VENDOR_SOURCE_EEM_METADATA_ANCHORED_PATCH = (Path(__file__).resolve().parents[1] /
+                                            "patches/0010a-mt6797-source-eem-voltage-unit-metadata-anchored.patch")
+VENDOR_SOURCE_POLICY_CLOCK_RAIL_ANCHORED_PATCH = (Path(__file__).resolve().parents[1] /
+                                                   "patches/0011a-mt6797-source-policy-clock-rail-metadata-anchored.patch")
+VENDOR_WRITER_INTEGRATION_CONTEXT_PATCH = (Path(__file__).resolve().parents[1] /
+                                           "patches/0012-mt6797-vendor-writer-integration-context-accessor.patch")
 MAINLINE_WRITER_BRIDGE_PATCH = ROOT / "patches/v7.1.3/0256-soc-mediatek-export-vendor-writer-owner-bridge.patch"
 MAINLINE_WRITER_REGISTRATION_PATCH = ROOT / "patches/v7.1.3/0257-soc-mediatek-add-explicit-vendor-writer-registration-handoff.patch"
 MAINLINE_WRITER_RUNTIME_EVENTS_PATCH = ROOT / "patches/v7.1.3/0258-soc-mediatek-extend-vendor-writer-handoff-runtime-events.patch"
@@ -121,6 +127,8 @@ VENDOR_LIFECYCLE_CANDIDATE_AUDIT_RESULT = (Path(__file__).resolve().parents[1] /
                                            "results/vendor-lifecycle-candidate-audit-buildbox-20260811.txt")
 VENDOR_CALLER_LIFECYCLE_AUDIT_RESULT = (Path(__file__).resolve().parents[1] /
                                         "results/vendor-caller-lifecycle-invalidation-audit-20260811.txt")
+VENDOR_INTEGRATION_CONTEXT_BUILD_RESULT = (Path(__file__).resolve().parents[1] /
+                                           "results/vendor-integration-context-buildbox-20260811.txt")
 DESIGN = Path(__file__).resolve().parents[1] / "DESIGN.md"
 START_RESULT = Path(__file__).resolve().parents[1] / "results/pcm-start-contract-20260806.txt"
 OWNER_RESULT = Path(__file__).resolve().parents[1] / "results/public-hybrid-owner-source-20260806.txt"
@@ -362,8 +370,12 @@ def main() -> None:
                                VENDOR_EXPERIMENT_SERIES.read_text().splitlines()
                                if line and not line.startswith("#")]
 
-    if vendor_experiment_names[-1] != "0011-mt6797-source-policy-clock-rail-metadata.patch":
-        raise AssertionError("vendor policy/clock/rail metadata patch is not last in its experiment series")
+    if vendor_experiment_names[-3:] != [
+            "0010a-mt6797-source-eem-voltage-unit-metadata-anchored.patch",
+            "0011a-mt6797-source-policy-clock-rail-metadata-anchored.patch",
+            "0012-mt6797-vendor-writer-integration-context-accessor.patch",
+    ]:
+        raise AssertionError("vendor integration-context series does not end with the audited anchored metadata and accessor patches")
     if names.index("0256-soc-mediatek-export-vendor-writer-owner-bridge.patch") >= names.index("0257-soc-mediatek-add-explicit-vendor-writer-registration-handoff.patch"):
         raise AssertionError("vendor writer registration handoff is not after the bridge")
     if names.index("0257-soc-mediatek-add-explicit-vendor-writer-registration-handoff.patch") >= names.index("0258-soc-mediatek-extend-vendor-writer-handoff-runtime-events.patch"):
@@ -1142,6 +1154,61 @@ def main() -> None:
         ("decision=vendor_policy_clock_rail_metadata_compile_validated;provider_registration_and_hardware_support_closed", "vendor-policy-clock-rail-build-decision"),
     ):
         require(vendor_source_policy_clock_rail_build_result, needle, label)
+
+    expected_vendor_series = """0001-mt6797-vendor-writer-boundary.patch
+0002-mt6797-voltage-observer-outer-boundary.patch
+0003-mt6797-lock-held-observer-contexts.patch
+0004-mt6797-source-backed-read-only-adapters.patch
+0005-mt6797-vendor-writer-shared-owner-identity.patch
+0006-mt6797-vendor-writer-mainline-owner-binding.patch
+0007-mt6797-vendor-writer-lifecycle-runtime-events.patch
+0008-mt6797-vendor-writer-integration-lifecycle-adapter.patch
+0009-mt6797-vendor-source-observation-adapter.patch
+0010a-mt6797-source-eem-voltage-unit-metadata-anchored.patch
+0011a-mt6797-source-policy-clock-rail-metadata-anchored.patch
+0012-mt6797-vendor-writer-integration-context-accessor.patch
+"""
+    if VENDOR_EXPERIMENT_SERIES.read_text() != expected_vendor_series:
+        raise AssertionError("vendor integration-context series is not the audited canonical sequence")
+    require(VENDOR_SOURCE_EEM_METADATA_ANCHORED_PATCH.read_text(),
+            "GEMINI_MT6797_DVFSP_VENDOR_EEM_VOLTAGE_UNIT_10UV",
+            "vendor-eem-unit-anchored-patch")
+    require(VENDOR_SOURCE_POLICY_CLOCK_RAIL_ANCHORED_PATCH.read_text(),
+            "domain->vsram_special_10uv[2] = 70000;\n+\t\t}\n \t}\n \n out:",
+            "vendor-policy-clock-rail-anchored-loop-closure")
+    require(VENDOR_WRITER_INTEGRATION_CONTEXT_PATCH.read_text(),
+            "gemini_mt6797_dvfsp_vendor_writer_integration_context",
+            "vendor-integration-context-accessor")
+    for needle, label in (
+        ("claim=COMPILE_ONLY_MT6797_VENDOR_INTEGRATION_CONTEXT", "vendor-integration-context-build-claim"),
+        ("repository_commit=628bb5c2f6d2ab9b5cce467697374f194607661e", "vendor-integration-context-build-commit"),
+        ("vendor_revision=d388d350cb2dda8f23b99be6fa5db9628896e87f", "vendor-integration-context-build-revision"),
+        ("vendor_series=0001..0012", "vendor-integration-context-build-series"),
+        ("vendor_series_sha256=a27f0572ba209ffd549814fdcece11220ba05d6d2d57faba306001b86c876ed6", "vendor-integration-context-build-series-sha"),
+        ("patch_count=12", "vendor-integration-context-build-patches"),
+        ("git_apply_check=passed;sequential;unidiff_zero", "vendor-integration-context-build-apply-check"),
+        ("git_apply=passed;sequential;unidiff_zero", "vendor-integration-context-build-apply"),
+        ("git_diff_check=passed", "vendor-integration-context-build-diff-check"),
+        ("defconfig=gemini_modular_defconfig;passed", "vendor-integration-context-build-defconfig"),
+        ("prepare=passed", "vendor-integration-context-build-prepare"),
+        ("modules_prepare=passed", "vendor-integration-context-build-modules-prepare"),
+        ("compiler=aarch64-linux-gnu-gcc-6 (Debian 6.3.0-18) 6.3.0 20170516", "vendor-integration-context-build-compiler"),
+        ("affected_objects=passed", "vendor-integration-context-build-objects"),
+        ("object_1=drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.o;sha256=59fd060b47eed0c47f3a934a7f645cce2fb6b5bf162776b2b913fae0989bb8e9", "vendor-integration-context-build-writer-hash"),
+        ("object_2=drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.o;sha256=b38348e30a74c1905c75ed540f726010c8588888cebe57dda3ee7aa9fbf4db7d", "vendor-integration-context-build-cpufreq-hash"),
+        ("object_3=drivers/misc/mediatek/base/power/mt6797/mt_cpufreq_hybrid.o;sha256=7a50484ea677c62cc8bb976cdf67dc690a11ea704c5c438c0216820cd2303f7e", "vendor-integration-context-build-hybrid-hash"),
+        ("object_4=drivers/misc/mediatek/base/power/mt6797/mt_eem.o;sha256=26f6e7368c7ecb220abcbc26639d44559077f2643d177843bf5459d96ae27379", "vendor-integration-context-build-eem-hash"),
+        ("object_5=drivers/misc/mediatek/base/power/ppm_v1/src/mt_ppm_main.o;sha256=acbea0eb354f97951811bd776772d4befa592aa09cb8a077d6987ad306b72ce3", "vendor-integration-context-build-ppm-hash"),
+        ("provider=none", "vendor-integration-context-build-no-provider"),
+        ("runtime_owner_registration=none", "vendor-integration-context-build-no-runtime-owner"),
+        ("vendor_setter=none", "vendor-integration-context-build-no-setter"),
+        ("hardware_write=none", "vendor-integration-context-build-no-write"),
+        ("device_action=none", "vendor-integration-context-build-no-action"),
+        ("boot_candidate=false", "vendor-integration-context-build-not-candidate"),
+        ("cpu8_cpu9_admission=closed", "vendor-integration-context-build-no-admission"),
+        ("decision=vendor_integration_context_compile_validated;external_caller_and_runtime_registration_remain_closed", "vendor-integration-context-build-decision"),
+    ):
+        require(VENDOR_INTEGRATION_CONTEXT_BUILD_RESULT.read_text(), needle, label)
 
     for needle, label in (
         ("claim=KUNIT_ISOLATED_MT6797_VENDOR_POLICY_CLOCK_RAIL_MAPPING", "mainline-policy-clock-rail-qemu-claim"),

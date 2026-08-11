@@ -3275,6 +3275,19 @@ validated-package-only fetch; see the [resume receipt](../experiments/2026-08-06
 This is provenance-only revalidation and does not advance provider, runtime,
 hardware, or CPU8/CPU9 admission.
 
+The repaired anchored vendor series was then resumed at exact pushed commit
+`628bb5c`. Buildbox applied all twelve selected patches sequentially, passed
+`gemini_modular_defconfig`, `prepare`, and `modules_prepare`, and compiled the
+writer, cpufreq, hybrid CSPM, EEM, and PPM objects with the managed GCC 6.3
+toolchain; see the [integration-context Buildbox receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-integration-context-buildbox-20260811.txt).
+This closes the repaired patch-application and object-compilation gate only.
+The accessor makes the opaque vendor integration context reachable, but no
+real caller/coordinator is bound, no owner is registered, no setter or device
+I/O occurs, and CPU8/CPU9 admission remains closed. The next ordered step is
+a separate reviewable external caller/coordinator that registers only after
+complete lifecycle and invalidation coverage, followed by read-only runtime
+identity evidence; do not boot or write a device for this compile result.
+
 Required evidence:
 
 - provider registration performs no register-data write;

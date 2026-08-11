@@ -126,6 +126,7 @@ be copied directly into a mainline failure/PM path.
 - [Vendor writer mainline-owner binding design](results/vendor-writer-mainline-owner-binding-design-20260811.txt)
 - [Vendor writer registration handoff Buildbox validation](results/vendor-writer-registration-handoff-buildbox-20260810.txt)
 - [Vendor caller lifecycle and runtime invalidation audit](results/vendor-caller-lifecycle-invalidation-audit-20260811.txt)
+- [Vendor integration-context accessor Buildbox validation](results/vendor-integration-context-buildbox-20260811.txt)
 - [Cross-tree vendor source observation ABI Buildbox validation](results/vendor-source-observation-buildbox-20260810.txt)
 - [Vendor lifecycle-guard KUnit Buildbox validation](results/vendor-source-lifecycle-guard-kunit-buildbox-20260810.txt)
 - [Vendor lifecycle-guard isolated QEMU KUnit runtime](results/vendor-source-lifecycle-guard-kunit-qemu-20260810.txt)
@@ -1454,3 +1455,15 @@ commit `b52925d`; Buildbox again validated 255 patches, 119 DTBs, package
 checksums, and the fetched artifact. See the [resume receipt](results/buildbox-resume-b52925d-20260811.txt).
 This is a provenance rebuild only; it does not change the closed provider,
 runtime-owner, hardware, or CPU8/CPU9 gates.
+
+The repaired anchored vendor series was then resumed at exact pushed commit
+`628bb5c`. Buildbox applied all twelve selected patches sequentially, passed
+`gemini_modular_defconfig`, `prepare`, and `modules_prepare`, and compiled the
+writer, cpufreq, hybrid CSPM, EEM, and PPM objects with the managed GCC 6.3
+toolchain; see the [integration-context Buildbox receipt](results/vendor-integration-context-buildbox-20260811.txt).
+This validates patch application and object compilation only. The accessor
+exposes the opaque vendor integration context but does not bind a real caller,
+register an owner, call a setter, or perform hardware I/O. The next gate is a
+separate reviewable external caller/coordinator with complete lifecycle and
+invalidation coverage, followed by read-only runtime identity evidence; no
+device boot/write or CPU8/CPU9 admission is authorized.
