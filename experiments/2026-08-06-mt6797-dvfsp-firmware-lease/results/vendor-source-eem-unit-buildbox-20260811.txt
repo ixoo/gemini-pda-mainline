@@ -1,0 +1,37 @@
+# MT6797 source-backed EEM voltage-unit vendor Buildbox validation
+
+date_utc=2026-08-11T00:00:00Z
+claim=COMPILE_ONLY_MT6797_VENDOR_EEM_VOLTAGE_UNIT_METADATA
+repository=https://github.com/ixoo/gemini-pda-mainline.git
+repository_commit=20fd59f8cb5fb649fc093709e59f081a6b412e86
+repository_dirty=false
+build_backend=buildbox
+buildbox_status=validated
+buildbox_job=20fd59f8cb5fb649fc093709e59f081a6b412e86-dvfsp-owner-kunit-m0
+build_profile=dvfsp-owner-kunit
+artifact=linux-7.1.3-gemini-dvfsp-owner-kunit-0bac99c2-97bc4cf1
+package_fetch=success;validated_package_only
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=0bac99c28227c78aa46bb1222982c00e323a5d39ff2f59ac4fb3ea871aba7987
+config_sha256=6c345bd84af6f0fa18b9b83cc4cf5f003b5e5c7cce2f11383ccba4ed124bb002
+image_sha256=5d72c8c490bb5ea3e9f98892b4683aecb85d2606068a1ca83d72d1a3f208a158
+image_gzip_sha256=19c59abf2d5cb60778f8150f5dcb49ce3bb47c2ad3a19b9e8f6569ae81dee17c
+dtb_count=119
+patch_count=254
+sha256sums=passed
+
+mainline_patch=0265;source_abi=2;provider_abi=2
+eem_unit=vendor_10uV;pmic_base_plus_code_times_pmic_step;mapped_microvolt_output
+unavailable_fields=policy_rows;live_clock_owner;rail_conversion;provider_registration
+registration=default_off
+provider_registration=none
+vendor_setter_called=none
+hardware_write=none
+device_action=none
+hardware_support_claim=NONE
+boot_candidate=false
+cpu8_cpu9_admission=closed
+
+observation=The exact pushed 254-patch dvfsp-owner-kunit Buildbox profile applied and linked the source-backed EEM unit bridge, validated all 119 DTBs and package/provenance checksums, and fetched only the validated package. This is compile/package evidence; no vendor checkout or device image was written.
+decision=eem_unit_bridge_compile_validated;policy_clock_rail_registration_remain_closed
+next=retain the 10uV mapping and separately source policy rows, live clock ownership, and rail conversion before provider registration or device boot

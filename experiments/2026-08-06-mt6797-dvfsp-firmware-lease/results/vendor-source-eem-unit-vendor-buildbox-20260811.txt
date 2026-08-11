@@ -1,0 +1,48 @@
+# MT6797 source-backed EEM voltage-unit vendor object Buildbox validation
+
+date_utc=2026-08-11T00:00:00Z
+claim=COMPILE_ONLY_MT6797_VENDOR_EEM_VOLTAGE_UNIT_METADATA
+repository=https://github.com/ixoo/gemini-pda-mainline.git
+repository_commit=20fd59f8cb5fb649fc093709e59f081a6b412e86
+repository_dirty=false
+vendor_origin=https://github.com/gemian/gemini-linux-kernel-3.18.git
+vendor_revision=d388d350cb2dda8f23b99be6fa5db9628896e87f
+workflow=Buildbox_temporary_vendor_checkout_from_pinned_Git_inputs
+temporary_checkout=removed
+vendor_source_copied_into_repository=false
+vendor_series=0001..0010
+vendor_series_sha256=44d1a2c0fe09a4d6886cdcacd62c6ac85bcbac1702a27a2422c1ee102a0b9e00
+patch_count=10
+git_apply_check=passed;sequential_check_then_apply;all_ten_patches;unidiff_zero
+git_apply=passed;all_ten_patches;unidiff_zero
+git_diff_check=passed
+defconfig=gemini_modular_defconfig;passed
+prepare=passed
+modules_prepare=passed
+architecture=arm64
+cross_compile=aarch64-linux-gnu-
+compiler=aarch64-linux-gnu-gcc-6 (Debian 6.3.0-18) 6.3.0 20170516
+host_compatibility_flag=HOST_EXTRACFLAGS=-fcommon
+vendor_include_roots=drivers/misc/mediatek/include:drivers/misc/mediatek/include/mt-plat/mt6797/include:drivers/misc/mediatek/include/mt-plat:drivers/misc/mediatek/base/power/ppm_v1/inc:drivers/misc/mediatek/base/power/ppm_v1/src:drivers/misc/mediatek/base/power/ppm_v1/src/mach/mt6797:mainline/include:mainline/build/include
+affected_objects=passed
+object_1=drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.o;sha256=ca7c152bbfbaec5b9ce506bd716bbcdae52d173487e34805cf76daeba14d0f26
+object_2=drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.o;sha256=bcdcaeace454a6f5c2f9114604cea904de070be4cf6dfe5a91444cbaf4dd68ff
+object_3=drivers/misc/mediatek/base/power/mt6797/mt_cpufreq_hybrid.o;sha256=f9cb12fd250b09d8f520c1a1695cf8c1266a536e9cd262014e87267db4a4157d
+object_4=drivers/misc/mediatek/base/power/mt6797/mt_eem.o;sha256=960f360ce851a79d0678aa9accea580a50b6219a13c264d0b135cacb0047ac71
+object_5=drivers/misc/mediatek/base/power/ppm_v1/src/mt_ppm_main.o;sha256=4c1c14cbd55275a9fc8ba55533dc78e80dff5e4d8b0ed65239c276bfca1adb90
+
+source_adapter=0010;source_abi=2;vendor_integration_abi=2
+eem_unit=vendor_10uV;metadata_copied;raw_tables_retained
+observation_transaction=OBSERVE;held_writer_lock;abort_release;generation_unchanged_by_read
+source_registration=provided_in_integration_callbacks;runtime_registration=none
+vendor_setter_called=none
+provider_registration=none
+hardware_write=none
+device_action=none
+hardware_support_claim=NONE
+boot_candidate=false
+cpu8_cpu9_admission=closed
+
+observation=The pinned vendor revision accepted the ten-patch experiment series and the writer, cpufreq, hybrid CSPM, EEM, and PPM objects compiled against the prepared mainline headers with the pinned GCC 6.3 toolchain. The EEM metadata bridge carries the documented 10uV unit and base/step fields but performs no hardware action.
+decision=vendor_eem_unit_metadata_compile_validated;provider_registration_and_hardware_support_closed
+next=source policy-row, live clock-owner, and rail-conversion evidence remain required before any provider or device experiment

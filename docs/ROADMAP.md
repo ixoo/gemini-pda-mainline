@@ -3235,6 +3235,22 @@ This is deterministic revalidation only: policy rows, EEM voltage units, live
 clock ownership, rail conversion, provider registration, and Gemini hardware
 support remain closed.
 
+Patch `0265` now maps the pinned vendor EEM detector's documented 10uV unit
+and per-detector PMIC base/step metadata into a checked microvolt view while
+retaining the raw tables. The exact 254-patch `dvfsp-owner-kunit` Buildbox
+profile passed at commit `20fd59f` with 119 DTBs and validated package and
+provenance checksums; the pinned vendor revision accepted experiment patches
+0001–0010 and all five affected objects compiled with GCC 6.3. The fetched
+Image passed all six isolated QEMU KUnit suites (18/18, no failures or skips)
+and reached `System halted`; see the [EEM-unit mainline Buildbox receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-source-eem-unit-buildbox-20260811.txt),
+[vendor compile receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-source-eem-unit-vendor-buildbox-20260811.txt),
+and [isolated QEMU receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-source-eem-unit-qemu-20260811.txt).
+This remains compile/virtual evidence only: policy rows, live clock ownership,
+rail conversion, provider registration, Gemini hardware support, and CPU8/CPU9
+admission remain closed. The next ordered gate is source-backed policy-row,
+live clock-owner, and rail-conversion evidence under one generation before any
+provider registration or device boot.
+
 Required evidence:
 
 - provider registration performs no register-data write;

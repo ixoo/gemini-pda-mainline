@@ -1410,3 +1410,26 @@ halted`; see the [resume QEMU receipt](results/vendor-source-provider-field-brid
 This is deterministic revalidation only. Policy rows, EEM voltage units, live
 clock ownership, rail conversion, provider registration, and Gemini hardware
 support remain closed.
+
+Patch `0265` now carries the pinned vendor EEM detector's documented 10uV
+unit and per-detector PMIC base/step metadata through the source ABI. The
+mainline bridge converts each retained PMIC table code with
+`pmic_base + code * pmic_step` and exposes a checked microvolt view; policy
+rows, live clock ownership, rail conversion, and provider registration remain
+fail-closed. The exact 254-patch `dvfsp-owner-kunit` profile passed on
+Buildbox at pushed commit `20fd59f`, with 119 DTBs, package/provenance
+checksums, and a validated-package-only fetch; see the [EEM-unit mainline
+Buildbox receipt](results/vendor-source-eem-unit-buildbox-20260811.txt).
+
+The pinned vendor revision accepted experiment patches 0001–0010 and the
+writer, cpufreq, hybrid CSPM, EEM, and PPM objects compiled with the validated
+GCC 6.3 toolchain and prepared mainline headers. The temporary checkout and
+build were removed; see the [vendor EEM-unit Buildbox receipt](results/vendor-source-eem-unit-vendor-buildbox-20260811.txt).
+
+The fetched Image passed all six isolated QEMU KUnit suites (18/18, zero
+failures or skips), including EEM unit conversion and invalid-unit rejection,
+then reached `System halted`; see the [EEM-unit QEMU receipt](results/vendor-source-eem-unit-qemu-20260811.txt).
+This is isolated virtual/compile evidence only: no provider registration,
+vendor setter, device action, or CPU8/CPU9 admission is claimed. The next
+ordered gate remains source-backed policy-row, live clock-owner, and
+rail-conversion evidence under one generation; do not boot or write a device.
