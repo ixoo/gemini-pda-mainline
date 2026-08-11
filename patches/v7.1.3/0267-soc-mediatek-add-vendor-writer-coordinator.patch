@@ -25,7 +25,7 @@ must invoke start before the vendor probe and stop after its remove path.
 diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
 --- a/drivers/soc/mediatek/Kconfig
 +++ b/drivers/soc/mediatek/Kconfig
-@@ -153,6 +153,17 @@ config MTK_MT6797_DVFSP_VENDOR_WRITER_BRIDGE_KUNIT_TEST
+@@ -153,8 +153,19 @@ config MTK_MT6797_DVFSP_VENDOR_WRITER_BRIDGE_KUNIT_TEST
  	bool "KUnit tests for the MT6797 vendor writer owner bridge"
  	depends on KUNIT=y
  	depends on MTK_MT6797_DVFSP_VENDOR_WRITER_BRIDGE
@@ -48,7 +48,7 @@ diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
 diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
 --- a/drivers/soc/mediatek/Makefile
 +++ b/drivers/soc/mediatek/Makefile
-@@ -17,5 +17,7 @@ obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_OWNER_KUNIT_TEST) += mt6797-dvfsp-vendor-owner-test.o
+@@ -17,7 +17,8 @@ obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_OWNER_KUNIT_TEST) += mt6797-dvfsp-vendor-owner-test.o
  obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_WRITER) += mt6797-dvfsp-vendor-writer.o
  obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_WRITER_KUNIT_TEST) += mt6797-dvfsp-vendor-writer-kunit-test.o
  obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_WRITER_BRIDGE) += mt6797-dvfsp-vendor-writer-bridge.o
@@ -61,7 +61,7 @@ diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-coordinator.h b/incl
 new file mode 100644
 --- /dev/null
 +++ b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-coordinator.h
-@@ -0,0 +1,42 @@
+@@ -0,0 +1,35 @@
 +/* SPDX-License-Identifier: GPL-2.0-only */
 +#ifndef __LINUX_SOC_MEDIATEK_MT6797_DVFSP_VENDOR_COORDINATOR_H
 +#define __LINUX_SOC_MEDIATEK_MT6797_DVFSP_VENDOR_COORDINATOR_H
@@ -101,7 +101,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-coordinator.c b/drivers/so
 new file mode 100644
 --- /dev/null
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-coordinator.c
-@@ -0,0 +1,83 @@
+@@ -0,0 +1,80 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/*
 + * Explicit mainline caller boundary for the MT6797 vendor writer.
@@ -190,7 +190,7 @@ diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c b/drivers/soc
 +#include <linux/soc/mediatek/mt6797-dvfsp-vendor-coordinator.h>
  
  struct mt6797_dvfsp_vendor_test_devices {
-@@ -566,6 +567,67 @@ static void mt6797_dvfsp_vendor_owner_integrates_lifecycle(
+@@ -566,10 +567,66 @@ static void mt6797_dvfsp_vendor_owner_integrates_lifecycle(
  	mt6797_dvfsp_vendor_test_put_devices(&devices);
  }
  
