@@ -197,7 +197,7 @@ diff --git a/drivers/misc/mediatek/base/power/ppm_v1/src/mt_ppm_main.c b/drivers
 
 diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
 --- a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
-+++ b/drivers/misc/mediatek/base/power/mt6797-dvfsp-vendor-writer.c
++++ b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-vendor-writer.c
 @@ -83,4 +83,5 @@
  	    ppm.cluster_count != GEMINI_MT6797_DVFSP_VENDOR_MAX_CLUSTER ||
  	    cpufreq.abi != GEMINI_MT6797_DVFSP_VENDOR_STATE_ABI ||
