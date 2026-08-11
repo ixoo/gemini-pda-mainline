@@ -117,10 +117,18 @@ default-off: no runtime owner/provider, setter, hardware write, device action,
 or CPU8/CPU9 admission is claimed. See the [mainline receipt](experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/buildbox-resume-2f46dea-20260811.txt)
 and [vendor receipt](experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/vendor-provenance-publication-buildbox-20260811.txt).
 
-The profile-series invariant is repaired. The immediate task is the zero-write
-legacy-family driver and binding contract, not another ad hoc A72 boot. The
-exact sequence and exit criteria through isolated probe/bind/unbind and
-provider safety are maintained in the [roadmap](docs/ROADMAP.md#ordered-gates).
+The exact pushed head `78f478f` was subsequently resumed on Buildbox with the
+same named profile. All 260 canonical entries, 119 DTBs, and package/provenance
+checksums passed, and only the validated package was fetched; see the [resume
+receipt](experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/buildbox-resume-78f478f-20260811.txt).
+This confirms reproducibility only. The next gate remains read-only runtime
+epoch/calibration-handle evidence before any provider review; no device boot or
+write is authorized by this build.
+
+The profile-series invariant is repaired. The immediate task is a new bounded
+read-only runtime sample that can attribute the vendor table epoch and
+calibration handle, not another ad hoc A72 boot. The exact sequence and exit
+criteria through provider safety are maintained in the [roadmap](docs/ROADMAP.md#ordered-gates).
 
 See:
 

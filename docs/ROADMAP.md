@@ -3431,6 +3431,16 @@ writes, device boot, and CPU8/CPU9 admission remain closed. The next ordered
 gate is a new read-only runtime sample that can attribute the epoch and
 calibration handle, followed by a separate provider-registration review.
 
+The exact pushed documentation head `78f478f` was then resumed on Buildbox with
+the named `dvfsp-owner-kunit` profile. All 260 canonical entries, 119 DTBs, and
+package/provenance checksums passed, and only the validated package was fetched
+locally; see the [Buildbox resume receipt](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/buildbox-resume-78f478f-20260811.txt).
+This is a reproducibility confirmation, not new hardware evidence: no provider
+was registered, no runtime owner or setter was called, no device was booted or
+written, and CPU8/CPU9 admission remains closed. The next ordered gate is still
+the read-only runtime epoch/calibration-handle sample, followed by provider
+registration review.
+
 Required evidence:
 
 - provider registration performs no register-data write;
