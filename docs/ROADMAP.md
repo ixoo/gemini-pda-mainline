@@ -3452,6 +3452,19 @@ The next ordered gate is unchanged: run this helper when the USB link is
 present, then require attributable epoch and calibration-handle evidence before
 provider review.
 
+The owner-confirmed SSH path supplied a fresh bounded census on 2026-08-14.
+It again found no attributable epoch, calibration handle, owner, transition,
+or shared-lock field in the running stock Gemian kernel. The linked
+[source/build audit](../experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/runtime-provenance-link-gap-20260814.txt)
+shows why: the vendor caller and Linux 7.1 coordinator are only separately
+object-compiled, and the successful provenance path requires them to be linked
+and lifecycle-bound in one runtime kernel. Repeating the unchanged census is
+therefore not an ordered gate. The next ordered implementation is a
+default-off, read-only vendor-aware observation candidate with a complete
+kernel link and bounded provenance/invalidation surface. It must pass
+Buildbox and boot-container review before any device boot; provider
+registration, setters, hardware writes, and CPU8/CPU9 admission remain closed.
+
 Required evidence:
 
 - provider registration performs no register-data write;

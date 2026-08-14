@@ -1587,3 +1587,25 @@ not answer, so no runtime sample was collected; see the
 [transport availability receipt](results/runtime-identity-nc-transport-20260811.txt).
 The runtime gate remains closed until the helper obtains attributable epoch and
 calibration-handle evidence.
+
+The owner-confirmed SSH path was then used for a fresh bounded census on
+2026-08-14. The running Gemian kernel again exposed active cpufreq, PPM, EEM,
+and cpuhvfs surfaces but no attributable epoch, generation, calibration
+handle, owner, transition, or shared-lock field. CPU4 and CPU5 happened to be
+online in this single sample while CPUs 0–9 remained present/possible; that is
+dynamic vendor-runtime state, not mainline CPU8/CPU9 support. See the
+[read-only census](results/runtime-identity-surface-census-20260814.txt).
+
+A source/build audit then identified the missing prerequisite behind that
+negative result. Vendor patch `0013` calls coordinator symbols implemented
+only by Linux 7.1 patch `0269`, while patch `0015` refuses provenance unless
+that lifecycle is linked and registered. The validated vendor lane compiled
+the affected objects but did not link a runnable combined kernel or construct
+a boot candidate. See the
+[runtime provenance link-gap audit](results/runtime-provenance-link-gap-20260814.txt).
+Another unchanged census or compile-only derivative cannot close this gate.
+The next ordered work is a separately reviewed, default-off, read-only
+vendor-aware observation candidate with a complete final kernel link and an
+explicit provenance/invalidation surface. Provider registration, setters,
+hardware writes, device boot, and CPU8/CPU9 admission remain closed until that
+candidate passes Buildbox and boot-container review.

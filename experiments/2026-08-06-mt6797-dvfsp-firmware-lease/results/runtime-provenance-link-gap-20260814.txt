@@ -1,0 +1,64 @@
+# MT6797 vendor provenance runtime link-gap audit
+
+generated_utc=2026-08-14T23:44:39Z
+claim=SOURCE_AND_BUILD_EVIDENCE_MT6797_VENDOR_PROVENANCE_RUNTIME_LINK_GAP
+repository_commit=c6801c2
+device_action=none
+hardware_write=none
+provider=none
+boot_candidate=false
+cpu8_cpu9_admission=closed
+
+## Exact inputs
+
+- Vendor origin: `https://github.com/gemian/gemini-linux-kernel-3.18.git`.
+- Vendor revision: `d388d350cb2dda8f23b99be6fa5db9628896e87f`.
+- Vendor series file SHA-256:
+  `1d762cecbf36baf3c36971d761b1ebc8af80773cb8dfc82d8ea733ba142aa6ba`.
+- Vendor provenance-publication patch SHA-256:
+  `637ab503620ad3bdd3a06fb8ecc6f3b55b2594a386f85b86e7b574c93df27f7c`.
+- Vendor caller-gate patch SHA-256:
+  `42e92d130c3c60ebe19bd412fcaf55ddd33ad1f2a914ce52f104020bb28056ec`.
+- Linux 7.1 caller-lifecycle patch SHA-256:
+  `67edff483e641a7c73ebade139a304220237ae3ef90596f8ac4607fc5805280c`.
+- Validated vendor compile receipt SHA-256:
+  `3268f6d35f26f24fb183f0bf1ab61a0fab6b8d333231ff96c39db87a8fc07240`.
+
+## Observations
+
+1. Vendor patch `0013` declares and calls
+   `mt6797_dvfsp_vendor_coordinator_vendor_probe()` and
+   `mt6797_dvfsp_vendor_coordinator_vendor_remove()` from the vendor cpufreq
+   probe/remove lifecycle.
+2. No patch in the 15-entry vendor experiment series defines either symbol.
+   Their implementations exist in the separate Linux 7.1 patch `0269`.
+3. Vendor patch `0015` makes provenance observation require a bound lifecycle
+   and `mainline_registered=true`; it cannot publish a successful table epoch
+   or calibration handle through the stock Gemian runtime by itself.
+4. The Buildbox vendor receipt compiled five affected objects against prepared
+   Linux 7.1 headers. It did not perform a final vendor-kernel link, construct a
+   boot image, or mark the output as a boot candidate. The temporary checkout
+   and objects were removed as recorded.
+5. The 2026-08-14 bounded SSH census of the running stock Gemian kernel found
+   no epoch, generation, calibration handle, owner, transition, or shared-lock
+   publication surface.
+
+## Decision
+
+The cross-tree object-compile gate is valid, but it is not a runnable runtime
+candidate. A repeated census of the unchanged stock Gemian kernel cannot close
+the missing provenance gate. Before another device boot, the project needs a
+separately reviewed, default-off observation candidate that:
+
+- links the exact coordinator implementations and vendor call sites in one
+  kernel image and proves the final link has no unresolved experiment symbols;
+- publishes only a bounded read-only provenance record after lifecycle binding;
+- requires nonzero variant, mutable table epoch, calibration handle, source
+  generation, owner handle, and transition handle from one locked snapshot;
+- exposes explicit invalidated/unavailable states and refuses stale identity;
+- registers no regulator provider, replaces no vendor setter, performs no
+  experiment-triggered hardware write, and leaves CPU8/CPU9 admission closed;
+- passes a full Buildbox kernel link and boot-container review before it can be
+  considered for guarded logical-boot2 deployment.
+
+next=implement_and_full_link_the_read_only_vendor_aware_runtime_observation_candidate;do_not_repeat_unchanged_census_or_boot_compile_only_artifacts
