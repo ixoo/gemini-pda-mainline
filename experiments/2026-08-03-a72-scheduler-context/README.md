@@ -547,6 +547,12 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   unmounted state, healthy battery, matching full readback, temporary cleanup,
   and clean shutdown before physical selection. See
   [`results/deployment-unpark-repeat-20260805.txt`](results/deployment-unpark-repeat-20260805.txt).
+- A later SSH preflight against known-good Gemian again resolved live-GPT
+  `boot2` as `/dev/mmcblk0p30`, found the exact accepted successor already
+  present, verified an independent full readback, and cleanly shut the device
+  down without creating a fresh backup or requesting a reboot. This confirms
+  deployment state only; it adds no runtime classification. See
+  [`results/deployment-unpark-repeat-20260814.txt`](results/deployment-unpark-repeat-20260814.txt).
 - Unpark runtime attempt 2 passes the same fixed map and closes bounded
   scheduler-context repeatability. Its fresh changed-cycle pstore contains the
   complete 39-record trace and adjacent exact pair-v6/pair-v7 PASS terminals.

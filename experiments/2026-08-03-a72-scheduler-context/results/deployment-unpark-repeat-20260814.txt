@@ -1,0 +1,39 @@
+CPU8/CPU9 scheduler-unpark boot2 deployment verification
+===========================================================
+
+Date: 2026-08-14 23:06 UTC
+Transport: SSH to the known-good Gemian system
+Result: skipped-already-matching-full-readback-verified
+
+Exact candidate
+--------------
+
+The newest Buildbox package remains explicitly compile-only
+(`boot_candidate=false`). This action therefore used the latest separately
+validated and deployment-approved scheduler-unpark candidate:
+
+- Artifact: `gemian-a72-scheduler-unpark-f3e235f3c196`
+- Candidate manifest SHA-256:
+  `9928d416e8ad50a35652ab58721c6a3747b1e8f00ff5fa4883e3100550c634f5`
+- Full 16 MiB boot2 image SHA-256:
+  `5b38e542586cf70f3fcf3de049f351671f96fab985e0d93fa79f90e2d04012c5`
+
+Guarded live-device verification
+---------------------------------
+
+- The helper resolved logical `boot2` from the live GPT as
+  `/dev/mmcblk0p30`; the active Gemian root was `/dev/mmcblk0p29`.
+- The target was inactive, unmounted, exactly 16 MiB, writable, and not the
+  active root, a holder, or swap.
+- Power was present at 100 percent with health `Good`.
+- The predecessor full-partition SHA-256 was
+  `2268e23559e8d36e4339a4fd912d0108721ed818e628dfc857cab2ab8e8049a8`.
+- The live target already matched the exact candidate checksum, so no write
+  was performed and no fresh partition backup was created.
+- Independent full-partition readback matched the candidate SHA-256 exactly.
+- Evidence was flushed and the device was cleanly shut down; SSH became
+  unreachable afterward. No reboot was requested.
+
+This receipt records deployment state only. Runtime classification and any
+CPU8/CPU9 admission decision remain separate and are not inferred from a
+matching boot2 checksum.
