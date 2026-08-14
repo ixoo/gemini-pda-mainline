@@ -1,0 +1,69 @@
+CPU8/CPU9 scheduler-unpark post-cycle runtime observation
+===========================================================
+
+Date: 2026-08-14 UTC
+Transport: read-only SSH after the owner reported boot2 and return to Gemian
+Decision: OBSERVATION-ONLY — not a new changed-cycle classifier PASS
+
+Attribution boundary
+---------------------
+
+The owner reported that boot2 started and then returned to Gemian. The
+changed-cycle pstore helper was started after that return, so it recorded
+`wait_for_cycle=no` and did not observe a disconnect or boot-ID transition.
+The retained pstore is therefore useful runtime evidence, but this record does
+not promote the cycle to a new fixed-decision-map PASS.
+
+Exact candidate and recovery state
+----------------------------------
+
+- Full 16 MiB boot2 SHA-256:
+  `5b38e542586cf70f3fcf3de049f351671f96fab985e0d93fa79f90e2d04012c5`.
+- Recovery kernel: `3.18.41+`, architecture `aarch64`.
+- Captured Gemian boot-ID SHA-256:
+  `9dc88ff1622e5f137ed07133cf1ee8b27813fd88ed107be699653ab30e98e57a`.
+- Gemian root: `/dev/mmcblk0p29`.
+- Live-GPT boot2: `/dev/mmcblk0p30`.
+- Post-recovery CPUs: present `0-9`, online `0-1`; CPU8 and CPU9 each report
+  `online=0`.
+- Read-only boot reason: `wdt_by_pass_pwk`. Its relationship to this exact
+  cycle is an inference because the cycle observer was not prearmed.
+- No device writes or reboot requests were issued during collection.
+
+Recovered scheduler evidence
+-----------------------------
+
+- `console-ramoops` contains exactly 39 phase records, with timestamp-stripped
+  sequence SHA-256
+  `060c9fb30dc56d948cc40db7b15162e61e105c2a7bbd27ffb4c6d736e15f44fa`.
+- The adjacent pair-v6 terminal reports `result=pass`, CPUs 8/9 online for
+  the test, 1,024 coherency rounds, 64 multi-cacheline rounds, 128
+  parallel/disjoint rounds, and zero reported errors or mismatch sentinels.
+  The permitted HPS-veto count is 84.
+- The adjacent pair-v7 terminal reports `result=pass parent_pass=1`,
+  `sc_iterations=262144`, `sc_rescheds=64`, exact CPU8/CPU9 start and end
+  identities, one task per CPU, zero error/stop fields, `sc_done8=262144`,
+  `sc_done9=262144`, and `sc_finished=2`. Task hashes are
+  `f678147669874ecd` and `c2274327e9c8104c`.
+- No retained NULL-pointer, BUG, Internal error, Call trace, panic, SError,
+  lockup, watchdog-pretimeout, or pair-v6/pair-v7 fault marker was found.
+
+Evidence integrity
+------------------
+
+- Private console SHA-256:
+  `4e8c30a5bfa5bc041c7fa509fedb59dce32b42fe25c47bef357885a5b3f61f59`.
+- Private pmsg SHA-256:
+  `229e1d44159e6a8be0dfa85004a8fba3dac2aea63b3090884c26b93e94dc9c19`.
+- Private pstore archive SHA-256:
+  `afb3910f7cd18b16f53603859a0dde66b4bc71b8ad262d19173f85f1af938f22`.
+- Cycle record SHA-256:
+  `19d6cf41ba2fcc1f2b059618785d347573423c23851090d49e424434229558b8`.
+- Metadata record SHA-256:
+  `72082db8c599cbd3731d42a8704ffb23f847590a185f148197c8606f03e464d8`.
+- Every entry in the ignored pstore checksum manifest verified.
+
+This observation matches the already established bounded scheduler-context
+repeatability. It does not authorize CPU_OFF, remove the HPS veto, prove
+production scheduling or sustained userspace load, validate OPP/cpufreq,
+thermal, suspend/resume, or enable CPUs 8/9 in the default profile.

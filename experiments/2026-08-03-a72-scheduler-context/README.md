@@ -553,6 +553,13 @@ terminal fault. The retained watchdog remains the independent recovery bound.
   down without creating a fresh backup or requesting a reboot. This confirms
   deployment state only; it adds no runtime classification. See
   [`results/deployment-unpark-repeat-20260814.txt`](results/deployment-unpark-repeat-20260814.txt).
+- The owner then selected boot2 and reported its automatic return to Gemian.
+  A post-cycle SSH pstore capture recovered the complete 39-record trace and
+  adjacent pair-v6/pair-v7 PASS terminals with the same normalized phase
+  sequence as the established repeatability result. Because collection began
+  after the return, it is retained as observation-only and does not create a
+  new fixed-map cycle or alter the admission decision. See
+  [`results/runtime-unpark-posthoc-20260814.txt`](results/runtime-unpark-posthoc-20260814.txt).
 - Unpark runtime attempt 2 passes the same fixed map and closes bounded
   scheduler-context repeatability. Its fresh changed-cycle pstore contains the
   complete 39-record trace and adjacent exact pair-v6/pair-v7 PASS terminals.
