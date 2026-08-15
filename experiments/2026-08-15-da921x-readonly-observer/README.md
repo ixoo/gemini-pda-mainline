@@ -134,6 +134,15 @@ revalidated after the tooling was frozen. The
 [tool validation receipt](results/runtime-tool-validation-20260815.txt) sets
 the device-write gate only for this exact candidate.
 
+The guarded deployment at tooling commit `d99f51e` resolved the sole live-GPT
+logical `boot2` as inactive, unmounted, writable `/dev/mmcblk0p30`, recorded its
+dynamic predecessor, and created no fresh backup. The exact padded candidate
+was written, synced, flushed, full-partition hashed, independently streamed
+back, and byte-compared successfully. Ordinary Gemian then powered off and was
+confirmed unreachable. The [deployment receipt](results/deployment-20260815.txt)
+records the sanitized result. The read-only USB/netcat collector is armed;
+provider runtime remains untested until one owner-selected boot2 start.
+
 ## Analysis
 
 The smallest decision-changing runtime evidence is a one-shot record after
@@ -151,13 +160,13 @@ the read-only USB/netcat collector, is required for that claim.
 ## Conclusion
 
 Source, mutation, KUnit, runtime Buildbox, package, container, runtime-tool, and
-installer validation pass. No runtime hardware claim is made. The exact
-candidate earns one guarded boot2 test after this evidence is committed and
-pushed.
+installer validation pass. Exact boot2 deployment and shutdown also pass. No
+runtime hardware claim is made; one owner-selected boot2 start is pending while
+the collector waits.
 
 ## Follow-up
 
-Validate and push the frozen runtime/deployment tools, then perform one guarded
-boot2 deployment and arm the read-only collector before the owner selects
-boot2. Provider setters, hardware writes, transition ownership, and CPU8/CPU9
-admission remain closed.
+Select boot2 once while the read-only collector waits. Classify only the exact
+kernel record; an automatic return or screen color without retained evidence is
+inconclusive. Provider setters, hardware writes, transition ownership, and
+CPU8/CPU9 admission remain closed.
