@@ -1,0 +1,64 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 15 Aug 2026 15:20:00 -0400
+Subject: [PATCH] soc: mediatek: build MT6797 state decoders for handoff
+
+The handoff state-source and live-source adapters call the pure clock and
+CSPM state decoders unconditionally, but the decoder objects are currently
+owned only by the optional protected-clock transport.  A handoff profile
+which intentionally leaves that hardware transport disabled therefore fails
+the final link with four unresolved decoder symbols.
+
+Add an internal decoder gate enabled by either user and build the two pure
+conversion objects behind it.  This preserves standalone transport builds,
+allows transport-free handoff profiles to link, and does not enable the
+MMIO-backed transport or add any runtime registration.
+
+This patch is experiment-only and not submission-ready.
+---
+ drivers/soc/mediatek/Kconfig  |  9 +++++++++
+ drivers/soc/mediatek/Makefile |  4 ++--
+ 2 files changed, 11 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
+--- a/drivers/soc/mediatek/Kconfig
++++ b/drivers/soc/mediatek/Kconfig
+@@ -187,6 +187,15 @@ config MTK_MT6797_DVFSP_VENDOR_WRITER_COORDINATOR
+ 	  integration.  The caller must start it before vendor probe and stop it
+ 	  after vendor remove; this option performs no hardware operation.
+ 
++config MTK_MT6797_DVFSP_STATE_DECODERS
++	bool
++	default y if MTK_MT6797_DVFSP_HANDOFF || MTK_MT6797_DVFSP_CLOCK_BACKEND
++	help
++	  Build the pure MT6797 clock and CSPM state conversion helpers when
++	  either the handoff source pipeline or the protected-clock transport
++	  needs them. This internal gate performs no I/O and does not enable the
++	  optional hardware transport.
++
+ config MTK_MT6797_DVFSP_CLOCK_BACKEND
+ 	bool "MediaTek MT6797 protected CPU clock readback transport"
+ 	depends on ARM64 && ARCH_MEDIATEK && OF && COMMON_CLK
+diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
+--- a/drivers/soc/mediatek/Makefile
++++ b/drivers/soc/mediatek/Makefile
+@@ -26,13 +26,13 @@ obj-$(CONFIG_MTK_MT6797_DVFSP_VENDOR_PROVIDER_BRIDGE_KUNIT_TEST) += mt6797-dvfs
+ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-state-snapshot.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-runtime-bind.o
+-obj-$(CONFIG_MTK_MT6797_DVFSP_CLOCK_BACKEND) += mt6797-dvfsp-clock-state.o
++obj-$(CONFIG_MTK_MT6797_DVFSP_STATE_DECODERS) += mt6797-dvfsp-clock-state.o
+ # SPDX-License-Identifier: GPL-2.0-only
+ obj-$(CONFIG_MTK_CMDQ) += mtk-cmdq-helper.o
+ obj-$(CONFIG_MTK_DEVAPC) += mtk-devapc.o
+ obj-$(CONFIG_MTK_DVFSRC) += mtk-dvfsrc.o
+ obj-$(CONFIG_MTK_INFRACFG) += mtk-infracfg.o
+ obj-$(CONFIG_MTK_MT6797_A72_POWER) += mt6797-a72-power.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-handoff.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_CLOCK_BACKEND) += mt6797-dvfsp-clock-backend.o
+-obj-$(CONFIG_MTK_MT6797_DVFSP_CLOCK_BACKEND) += mt6797-dvfsp-cspm-state.o
++obj-$(CONFIG_MTK_MT6797_DVFSP_STATE_DECODERS) += mt6797-dvfsp-cspm-state.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-ppm.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-ppm-policy.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_BIGIDVFS_BACKEND) += mt6797-bigidvfs-backend.o
+-- 
+2.51.0
