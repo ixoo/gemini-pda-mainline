@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-14-mt6797-runtime-provenance-observer` |
-| Status | `pre-init runtime tools validated; read-only Gemian preflight next` |
+| Status | `pre-init Gemian preflight passed; guarded deployment next` |
 | Subsystem | MT6797 EEM/PPM DVFSP provenance |
 | Device variant | Planet Gemini PDA, MT6797; corrected boot2 installed |
 | Date | 2026-08-14 America/New_York |
@@ -353,6 +353,15 @@ device was accessed in this tool review. See the
 [`decision map`](results/preinit-runtime-decision-map-20260815.txt), and
 [`runtime-tool review`](results/preinit-runtime-tool-review-20260815.txt).
 
+The final read-only Gemian preflight found the expected `3.18.41+` recovery OS,
+root `/dev/mmcblk0p29`, unique inactive 16 MiB boot2 at `/dev/mmcblk0p30`, no
+mount, holder, or swap use, stable 100% battery with external power, and
+passwordless sudo/systemd readiness. Boot2 still matches the exact corrected
+attempt-2 image `ea603c1b1a64...`, so the changed candidate is not already
+installed. The preflight did not write a partition, create a backup, or change
+power state. See the
+[`pre-init Gemian preflight`](results/preinit-gemian-preflight-20260815.txt).
+
 ## Analysis
 
 This observer intentionally does not port the Linux 7.1 experimental
@@ -379,11 +388,9 @@ to identical repetition.
 
 ## Follow-up
 
-Run one read-only Gemian preflight for exact OS/root/live-GPT boot2 identity,
-stable power, SSH key, and passwordless sudo. If it passes, arm the pstore-cycle
-and direct RNDIS collectors before the guarded boot2 write, require the exact
-full readback and clean shutdown, then give the owner the frozen one-cycle
-expectation. Runtime success would still require two
+Arm the pstore-cycle and direct RNDIS collectors before the guarded boot2 write,
+require the exact full readback and clean shutdown, then give the owner the
+frozen one-cycle expectation. Runtime success would still require two
 stable reads with `observation_complete=1`, complete PPM and EEM masks, and
 nonzero variant, table epoch, and calibration handle while owner/transition
 handles remain zero. That would confirm publication only. The upstream path

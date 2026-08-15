@@ -3524,9 +3524,11 @@ to this exact candidate and its expected single restart near 120 seconds. That
 offline review now passes both positive paths, distinguishes fourteen direct
 and retained-evidence mutations, keeps RNDIS as the fast path, and requires the
 independent pstore/recovery cycle. The next ordered action is one read-only
-Gemian OS/root/live-GPT/power/sudo preflight. Only after it passes may the exact
-guarded boot2 write, full readback, and clean shutdown run with both collectors
-armed; no device write has occurred for this changed kernel.
+Gemian OS/root/live-GPT/power/sudo preflight. That preflight now passes with
+unique inactive `/dev/mmcblk0p30`, stable full battery plus external power, and
+the prior corrected image still present. The next ordered action is the exact
+guarded boot2 write, full readback, and clean shutdown with both collectors
+armed; no device write has yet occurred for this changed kernel.
 The subsequent upstream implementation remains one native transition owner
 spanning the DVFSP/I2C6/DA921x operation and rollback boundary. Provider
 registration, setters, hardware writes, and CPU8/CPU9 admission remain closed.
