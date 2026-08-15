@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-14-mt6797-runtime-provenance-observer` |
-| Status | `pre-init recovery full link validated; container construction next` |
+| Status | `pre-init container independently validated; runtime-tool review next` |
 | Subsystem | MT6797 EEM/PPM DVFSP provenance |
 | Device variant | Planet Gemini PDA, MT6797; corrected boot2 installed |
 | Date | 2026-08-14 America/New_York |
@@ -117,6 +117,14 @@ read-only, performs no storage or DVFSP write, and requests no reboot.
   [`scripts/test_preinit_patch_validator.py`](scripts/test_preinit_patch_validator.py)
   pin the generated commit, patch, isolated series, exact three-path delta, and
   recovery semantics and reject thirteen patch mutations.
+- [`scripts/assemble-preinit.py`](scripts/assemble-preinit.py) preserves the
+  corrected observation ramdisk, appended DTB, header, and vendor address
+  contract while replacing only the validated kernel and canonical image ID.
+- [`scripts/build-preinit-candidate.sh`](scripts/build-preinit-candidate.sh)
+  performs two raw assemblies and two independent exact-size padding paths.
+- [`scripts/test_preinit_candidate.py`](scripts/test_preinit_candidate.py)
+  independently pins the complete container and rejects six structural
+  mutations.
 - [`DESIGN.md`](DESIGN.md) defines the observation and decision contract.
 
 ## Procedure
@@ -306,6 +314,18 @@ recovery worker. The resulting 8,287,380-byte `Image.gz-dtb` has SHA-256
 closed, and no device action occurred. See the
 [`pre-init full-link receipt`](results/preinit-full-link-buildbox-20260815.txt).
 
+Two independent output roots then used the exact pinned inputs and current
+builder. Each root performed two raw assemblies and two different 16 MiB
+padding constructions; all files are byte-identical across roots. The new raw
+image SHA-256 is `455a85907827...` and the exact padded boot2 SHA-256 is
+`99414cdecc4e...`. The corrected diagnostic ramdisk and appended DTB are
+byte-identical to attempt 2; only the validated kernel and canonical Android
+image ID changed. Both independent validators pass and reject six mutations
+each. The generic LK analyzer passes 29 of 32 gates and reports exactly the
+same three inherited vendor address/relocatability differences as the corrected
+reference. No device was accessed. See the
+[`pre-init offline-container review`](results/preinit-offline-container-review-20260815.txt).
+
 ## Analysis
 
 This observer intentionally does not port the Linux 7.1 experimental
@@ -319,7 +339,8 @@ gate rather than hiding it.
 
 The original observer compile/link, offline container, and runtime-tool gates
 pass. The changed pre-init recovery child now also passes its separate
-Buildbox-only full-link gate. This
+Buildbox-only full-link gate and its independently reproduced container passes
+offline structural review. This
 establishes source integration, exact configuration scope, DCT reproducibility,
 linked observer presence, symbol closure, one reproducible LK-compatible
 container, and a fixed deployment/measurement contract. It does not establish
@@ -331,12 +352,12 @@ to identical repetition.
 
 ## Follow-up
 
-Construct a new Android-v0 container that changes only the validated kernel
-field and canonical image ID while preserving the corrected diagnostic
-initramfs, appended DTB, and vendor address contract. Require byte-identical
-outputs from two independent roots, independent structural validation, and
-negative mutation rejection before admitting it to pre-boot runtime review.
-Runtime success would still require two
+Freeze the new pre-boot hypothesis and exact result map, then update the
+collector, classifier, pstore recovery path, and guarded boot2 installer to the
+exact padded candidate. The runtime-tool review must encode the expected
+pre-init marker and one restart near 120 seconds, while retaining RNDIS as the
+fast path and Gemian pstore recovery as the independent path. Runtime success
+would still require two
 stable reads with `observation_complete=1`, complete PPM and EEM masks, and
 nonzero variant, table epoch, and calibration handle while owner/transition
 handles remain zero. That would confirm publication only. The upstream path

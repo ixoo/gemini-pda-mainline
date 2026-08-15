@@ -3514,9 +3514,14 @@ observer/kicker/recovery initcall ordering, bounded disassembly, and direct
 admission closed. The next ordered action is a new Android-v0 container that
 preserves the corrected diagnostic initramfs, appended DTB, and vendor address
 contract while changing only the validated kernel and canonical image ID.
-Require byte-identical independent builds, structural validation, and negative
-mutation rejection before runtime-tool review; no device write is yet
-authorized for this changed kernel.
+Two independent roots now produce byte-identical raw and exact-size images;
+both independent validators pass and reject all six structural mutations, and
+the generic LK analyzer retains only the same three inherited vendor differences
+as the corrected reference. The exact padded SHA-256 is `99414cdecc4e...`.
+The next ordered action is to freeze the pre-boot hypothesis and result map,
+then pin the collector, pstore recovery path, classifier, and guarded installer
+to this exact candidate and its expected single restart near 120 seconds. No
+device write is yet authorized for this changed kernel.
 The subsequent upstream implementation remains one native transition owner
 spanning the DVFSP/I2C6/DA921x operation and rollback boundary. Provider
 registration, setters, hardware writes, and CPU8/CPU9 admission remain closed.
