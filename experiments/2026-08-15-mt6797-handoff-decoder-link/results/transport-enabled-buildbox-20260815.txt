@@ -1,0 +1,51 @@
+MT6797 handoff decoder link: transport-enabled Buildbox result
+Date: 2026-08-15 America/New_York
+Result: PASS
+
+Command:
+  KERNEL_PROFILE=dvfsp-owner-kunit ./scripts/build-kernel --backend buildbox
+
+Repository commit:
+  ede1f47909ed582d6db0dcdd2fb672607da540f0
+Repository dirty:
+  false
+Buildbox job:
+  ede1f47909ed582d6db0dcdd2fb672607da540f0-dvfsp-owner-kunit-m0
+Artifact:
+  linux-7.1.3-gemini-dvfsp-owner-kunit-a1f4f4b3-bc80c7fa
+Kernel release:
+  7.1.3-gemini-dvfsp-owner-kunit
+Generated UTC:
+  2026-08-15T19:23:44Z
+Patches applied:
+  266
+DTBs built:
+  119
+
+Exact configuration:
+  CONFIG_MTK_MT6797_DVFSP_HANDOFF=y
+  CONFIG_MTK_MT6797_DVFSP_STATE_DECODERS=y
+  CONFIG_MTK_MT6797_DVFSP_CLOCK_BACKEND=y
+
+Exact System.map symbol counts:
+  mt6797_dvfsp_clock_state_decode=1
+  mt6797_dvfsp_cspm_state_decode=1
+  mt6797_dvfsp_cspm_vproc_code_to_uv=1
+  mt6797_dvfsp_cspm_vsram_code_to_uv=1
+
+SHA-256:
+  source: be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+  patchset: a1f4f4b3098fd2d01f44ac85e9708a5410f7d3ab42c4b19597996dd6e5bfd62f
+  config inputs: bc80c7fa27bb40f048b5f5ba5906d3e7c28b9f923952c83484ac8845e0ef3694
+  kernel config: 000ce07bf24a09bbaec6c6384153a2de56bfa3488f52bd825d65834333b99c22
+  Image: d9ff6bf4fb6ed0c7aa8d38043e35d59b6958d7478b1b427060fdca4268898039
+  Image.gz: af95abe3749783e2373f3ae87cef82d0d11799c5d8e82224fe92bb4af6923bf2
+  System.map: 48a996e7cd686b740cd4f9a1e8506c985a30257eebf67fae672419100750dc0d
+  mt6797-gemini-pda.dtb: 61ea34a4f780afe04da1257f8c3655be7f8490a7c3af2df727dd8592bb6e6285
+  SHA256SUMS: f2e42d6be30868ef5ce4a88611053fee957600a49f48151d66a8385539dd4bd6
+
+Buildbox package validation passed. The one-copy symbol counts prove that the
+shared decoder gate does not duplicate linkage when the protected-clock
+transport is also enabled. Only the validated package was fetched to the
+ignored artifacts/buildbox/<commit>/ tree. No device action was taken and this
+compile result is not a boot candidate.

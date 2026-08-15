@@ -1,0 +1,51 @@
+MT6797 handoff decoder link: transport-free Buildbox result
+Date: 2026-08-15 America/New_York
+Result: PASS
+
+Command:
+  KERNEL_PROFILE=da921x-resource-only-provider ./scripts/build-kernel --backend buildbox
+
+Repository commit:
+  ede1f47909ed582d6db0dcdd2fb672607da540f0
+Repository dirty:
+  false
+Buildbox job:
+  ede1f47909ed582d6db0dcdd2fb672607da540f0-da921x-resource-only-provider-m0
+Artifact:
+  linux-7.1.3-gemini-da921x-resource-only-provider-a1f4f4b3-b97f02a7
+Kernel release:
+  7.1.3-gemini-da921x-resource
+Generated UTC:
+  2026-08-15T19:19:44Z
+Patches applied:
+  266
+DTBs built:
+  119
+
+Exact configuration:
+  CONFIG_REGULATOR_DA9213_LEGACY=y
+  CONFIG_REGULATOR_DA9213_LEGACY_PROVIDER=y
+  CONFIG_MTK_MT6797_DVFSP_HANDOFF=y
+  CONFIG_MTK_MT6797_DVFSP_STATE_DECODERS=y
+  # CONFIG_MTK_MT6797_DVFSP_CLOCK_BACKEND is not set
+
+Exact System.map symbol counts:
+  mt6797_dvfsp_clock_state_decode=1
+  mt6797_dvfsp_cspm_state_decode=1
+  mt6797_dvfsp_cspm_vproc_code_to_uv=1
+  mt6797_dvfsp_cspm_vsram_code_to_uv=1
+
+SHA-256:
+  source: be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+  patchset: a1f4f4b3098fd2d01f44ac85e9708a5410f7d3ab42c4b19597996dd6e5bfd62f
+  config inputs: b97f02a71c698b1bdce0cf083544041e981c7751bc80983b426beb78395443e4
+  kernel config: 626de6b34d7fd0e2821b22b82f8cad7001ed2945eea43d57240e8e5720a4a2dc
+  Image: fbcc12c290c56c7336da2377475c8a50d68f80405eb83f7604e4ec00f0b93289
+  Image.gz: 9063687c23b123c9c3ae98cc4e62b45a505ffa5b7db895606f45f643bf17c6bf
+  System.map: 1a66f3f1ddca7753fac01a665b67426c03e0e26f586181e1a8def3c605e5f8e5
+  mt6797-gemini-pda.dtb: 61ea34a4f780afe04da1257f8c3655be7f8490a7c3af2df727dd8592bb6e6285
+  SHA256SUMS: 25b8a9292fa2c798d8034c15558b6f57bd59bd94cd22287118073947fe5019f6
+
+Buildbox package validation passed. Only the validated package was fetched to
+the ignored artifacts/buildbox/<commit>/ tree. No device action was taken and
+this compile result is not a boot candidate.

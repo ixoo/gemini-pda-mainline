@@ -3560,17 +3560,33 @@ No physical device was accessed, and this does not claim a live owner: the last
 Gemini sample's owner and transition handles are both zero and must fail the new
 gate.
 
-The single next ordered implementation is the default-off lifecycle integration
-at the actual external vendor caller/coordinator boundary. It must create one
-native transition owner spanning the DVFSP/I2C6/DA921x operation and rollback
-boundary, publish the same nonzero owner and transition handles through every
-source/provenance/calibrated view, call the new state-registration entry point
-only after writer binding, and unregister before invalidation or teardown. Add
-a read-only observation surface for exact registered identity, refusal reason,
-and invalidation. First require source review, focused KUnit, the pinned vendor
-caller compile, and normal full Buildbox validation. Only then may one new,
-separately attributable read-only runtime candidate be considered. Provider
-setters, hardware writes, and CPU8/CPU9 admission remain closed.
+The subsequent complete-tree call-site audit found no production Linux 7.1
+caller for either experimental registration entry point. The only external
+caller is retained in the separate vendor/Gemian 3.18 patch, so an "actual
+external vendor caller/coordinator boundary" does not exist in the upstream
+runtime tree. Do not create another synthetic caller or port the Linux 7.1
+coordinator back into the vendor tree merely to satisfy that design. The same
+audit exposed a broad profile-link defect: handoff sources called four pure
+clock/CSPM decoders whose objects were owned only by the optional protected-
+clock transport. Patch `0277` moves those two pure decoder objects behind a
+hidden union gate while leaving transport default-off. Exact pushed commit
+`ede1f47` passes the previously failing transport-free DA921x profile and the
+paired transport-enabled profile on Buildbox; all four helpers occur exactly
+once in each linked image. See the
+[decoder-link experiment](../experiments/2026-08-15-mt6797-handoff-decoder-link/README.md).
+This is build closure only, not live provider or owner evidence.
+
+The single next ordered implementation is a default-off, attributable,
+read-only observation of the native Linux 7.1 DA921x resource-only provider.
+It must uniquely report successful chip identification and registration of
+both regulator descriptors, bounded current selector/voltage/enable samples
+for both rails, bind/unbind and failed-probe cleanup, and an exact zero
+register-data-write count. First require source review, focused fault-path tests,
+and normal full Buildbox validation. Only then may one new runtime candidate be
+considered. The result decides whether this native provider can become the
+resource boundary for the later transition owner; it does not itself create an
+owner. Provider setters, hardware writes, and CPU8/CPU9 admission remain
+closed.
 
 Required evidence:
 
