@@ -41,7 +41,7 @@ def main() -> None:
         ("mt6797_dvfsp_vendor_source_provenance(bridge->source", "provenance callback"),
         ("provenance->source_generation != source->generation", "generation equality"),
         ("provenance->table_epoch != identity->table_epoch", "epoch equality"),
-        ("source = kzalloc(sizeof(*source), GFP_KERNEL);", "bounded bridge storage"),
+        ("source = kzalloc_obj(*source);", "bounded bridge storage"),
         ("mt6797_dvfsp_vendor_provider_match_state", "cross-view matcher"),
         ("MT6797_DVFSP_VENDOR_OWNER_ABI\t2", "owner registration ABI"),
         ("mt6797_dvfsp_vendor_owner_register_state", "state registration"),
