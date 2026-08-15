@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-15-da921x-readonly-observer` |
-| Status | running |
+| Status | runtime attempt 1 inconclusive; one collector-corrected repeat pending |
 | Subsystem | legacy DA9213/DA9214/DA9215 regulator provider |
 | Device variant | Planet Gemini PDA, MT6797; device remains on ordinary Gemian |
 | Date(s) | 2026-08-15 America/New_York |
@@ -143,6 +143,18 @@ confirmed unreachable. The [deployment receipt](results/deployment-20260815.txt)
 records the sanitized result. The read-only USB/netcat collector is armed;
 provider runtime remains untested until one owner-selected boot2 start.
 
+On runtime attempt 1, the owner selected boot2 and observed an automatic return
+to ordinary Gemian. The recovery boot ID changed, confirming a cycle. The
+original USB/netcat collector had expired before selection; the replacement
+started only after the owner reported boot2 running and saw no exact Gemini USB
+interface before return. Immediate read-only recovery found an empty pstore and
+only the generic 74-byte ram-console header in `/proc/last_kmsg`, with no exact
+candidate release or DA921x marker. The
+[attempt result](results/runtime-attempt-1-inconclusive-20260815.txt) is therefore
+`inconclusive-cycle-only`: it establishes neither candidate kernel entry nor a
+provider result, and it does not reinterpret the automatic reboot as a kernel
+fault.
+
 ## Analysis
 
 The smallest decision-changing runtime evidence is a one-shot record after
@@ -161,12 +173,13 @@ the read-only USB/netcat collector, is required for that claim.
 
 Source, mutation, KUnit, runtime Buildbox, package, container, runtime-tool, and
 installer validation pass. Exact boot2 deployment and shutdown also pass. No
-runtime hardware claim is made; one owner-selected boot2 start is pending while
-the collector waits.
+runtime hardware claim is made. Attempt 1 did not exercise the intended
+pre-armed USB path and retained no exact-candidate evidence.
 
 ## Follow-up
 
-Select boot2 once while the read-only collector waits. Classify only the exact
-kernel record; an automatic return or screen color without retained evidence is
-inconclusive. Provider setters, hardware writes, transition ownership, and
-CPU8/CPU9 admission remain closed.
+See the ordered next action in [`docs/ROADMAP.md`](../../docs/ROADMAP.md). One
+same-artifact repeat is permitted only with the collector confirmed waiting
+immediately before selection; it supplies the independent observation path
+missing from attempt 1. Provider setters, hardware writes, transition
+ownership, and CPU8/CPU9 admission remain closed.

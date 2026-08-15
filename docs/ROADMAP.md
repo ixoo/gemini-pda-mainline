@@ -3588,6 +3588,28 @@ resource boundary for the later transition owner; it does not itself create an
 owner. Provider setters, hardware writes, and CPU8/CPU9 admission remain
 closed.
 
+That implementation and every offline gate now pass at exact kernel commit
+`d0d511e`: five focused arm64 KUnit cases, the normal Buildbox profile, fetched
+package checksums, two independent Android-v0/LK output roots, all 32 LK gates,
+and twelve structural mutation rejections. Exact padded candidate
+`7a3ce120de99...` was installed to live-GPT logical boot2, independently read
+back, and followed by clean shutdown. Runtime attempt 1 automatically returned
+to ordinary Gemian with a changed boot ID, but the pre-armed collector had
+expired before physical selection and its replacement started after boot2.
+No direct USB interface appeared before return; pstore was empty and the
+74-byte last-kmsg held only its generic header. This is cycle evidence only,
+not a kernel or provider result. See the
+[attempt record](../experiments/2026-08-15-da921x-readonly-observer/results/runtime-attempt-1-inconclusive-20260815.txt).
+
+The single next ordered action is one same-artifact repeat with the read-only
+USB/netcat collector confirmed waiting immediately before physical boot2
+selection. This repeat is earned solely because that independent observation
+path was absent from attempt 1. Verify that boot2 already has the exact full
+checksum, do not rewrite it, shut ordinary Gemian down cleanly, arm a fresh
+collector, and select boot2 immediately. If direct USB and retained pstore are
+again absent, stop identical repeats and change the durable observation path.
+Screen color and automatic return remain non-attributable.
+
 Required evidence:
 
 - provider registration performs no register-data write;
