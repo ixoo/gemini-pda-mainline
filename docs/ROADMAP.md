@@ -3468,10 +3468,14 @@ it instruments the real EEM calibration and PPM table-commit lifecycle, but
 permanently reports zero owner and transition handles. Its exact Buildbox job
 now passes normal patch application, the complete kernel link, zero unresolved
 symbols, linked-marker validation, and the compile-review-only package gate.
-The next ordered gate is separate LK boot-container construction and validation;
-the current package remains `boot_candidate=false`. Only after that review may
-a read-only runtime observation be considered. That observation can close the
-lifecycle-publication evidence gap; it cannot satisfy the coherent-owner gate.
+The separate LK boot-container construction and validation gate now passes with
+the known-good Gemian header and ramdisk, exact replacement kernel, independent
+assembly and padding paths, and negative mutation checks. The next ordered gate
+is the pre-boot hypothesis, exact runtime decision map, read-only collection
+path, and guarded installer review. Only after those pass may the accepted
+container be written to boot2 for one read-only runtime observation. That
+observation can close the lifecycle-publication evidence gap; it cannot satisfy
+the coherent-owner gate.
 The subsequent upstream implementation remains one native transition owner
 spanning the DVFSP/I2C6/DA921x operation and rollback boundary. Provider
 registration, setters, hardware writes, and CPU8/CPU9 admission remain closed.

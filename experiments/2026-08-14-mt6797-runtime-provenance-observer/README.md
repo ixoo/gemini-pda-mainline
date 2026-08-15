@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-14-mt6797-runtime-provenance-observer` |
-| Status | `full-link validated; boot-container review pending` |
+| Status | `offline container validated; runtime-tool review pending` |
 | Subsystem | MT6797 EEM/PPM DVFSP provenance |
 | Device variant | Planet Gemini PDA, MT6797; no live-device action yet |
 | Date | 2026-08-14 America/New_York |
@@ -34,8 +34,9 @@ A compile result cannot establish runtime publication or hardware support.
   `LOCALVERSION=-gemini-provenance-observer` added
 - Build backend: Buildbox only, using the pinned Debian Stretch GCC 6.3
   toolchain manifest already used by the Gemian full-link experiments
-- Boot path: none; the first package is compile-review-only and must record
-  `boot_candidate=false`
+- Boot path: the exact Android-v0 container is accepted offline only; no device
+  deployment is permitted until the pre-boot contract, runtime classifier, and
+  guarded installer pass their separate review
 
 The synthetic patch author is experiment-only and non-certifying. The patch
 contains no synthetic `Signed-off-by` and is not submission-ready.
@@ -50,9 +51,11 @@ policy, or admit CPU8/CPU9. The output permanently reports zero owner and
 transition handles, `provider=none`, `hardware_write=none`, and closed CPU
 admission.
 
-The current phase is host/build-only. It performs no device access and creates
-no boot container. A successful full link advances only to separate package
-and boot-container review.
+The current phase is host/offline-only. It performs no device access. The exact
+container preserves the known-good Gemian header and ramdisk, changes only the
+validated kernel field and canonical image ID, and is padded to exactly 16 MiB
+by two independent methods. Container acceptance does not itself authorize a
+device write.
 
 ## Associated code
 
@@ -61,6 +64,13 @@ and boot-container review.
   selection, read-only output, and the explicit nonclaims.
 - [`scripts/build-on-buildbox`](scripts/build-on-buildbox) reconstructs and
   fully links the exact vendor source on Buildbox.
+- [`scripts/assemble.py`](scripts/assemble.py) pins the retained Android-v0/LK
+  serializer and exact replacement kernel.
+- [`scripts/build-candidate.sh`](scripts/build-candidate.sh) performs two raw
+  assemblies and two independent exact-size padding constructions offline.
+- [`scripts/test_candidate.py`](scripts/test_candidate.py) independently pins
+  the package, Android header, kernel, DTB, ramdisk, image ID, padding,
+  provenance, and negative mutations.
 - [`DESIGN.md`](DESIGN.md) defines the observation and decision contract.
 
 ## Procedure
@@ -76,6 +86,9 @@ and boot-container review.
    `./scripts/buildbox fetch-gemian-provenance-observer`.
 6. Review the package and boot-container boundary separately before deciding
    whether a device boot is justified.
+7. Require two independent candidate roots, exact file equality, independent
+   structural validation, and negative mutation rejection before admitting the
+   container to runtime-tool review.
 
 ## Observations
 
@@ -120,6 +133,17 @@ package remains compile-review-only with `boot_candidate=false`; no container,
 device access, or device write occurred. See the
 [`3556a9b` full-link receipt](results/buildbox-full-link-3556a9b-20260815.txt).
 
+Two independent offline builder roots each performed two Android-v0 assemblies
+and two different 16 MiB padding constructions. Every resulting file is
+byte-identical. Both roots pass the independent structural validator, and each
+run rejects five negative mutations. The generic LK analyzer passes all gates
+except three mainline-specific address/relocatability expectations; the exact
+same three differences are present in the retained, known-good Gemian boot
+image. The experiment-specific validator therefore pins the inherited vendor
+address, flags, aligned placement, header, ramdisk, and LK structure rather
+than weakening them. No device was accessed. See the
+[`e354ee4b` offline-container review](results/offline-container-review-20260815.txt).
+
 ## Analysis
 
 This observer intentionally does not port the Linux 7.1 experimental
@@ -131,17 +155,18 @@ gate rather than hiding it.
 
 ## Conclusion
 
-The compile and link gate passes. This establishes source integration, exact
-configuration scope, DCT reproducibility, linked observer presence, and symbol
-closure. It does not establish runtime lifecycle publication or hardware
-support; the package remains explicitly ineligible for deployment until the
-separate boot-container review succeeds.
+The compile/link and offline container gates pass. This establishes source
+integration, exact configuration scope, DCT reproducibility, linked observer
+presence, symbol closure, and one reproducible LK-compatible container. It does
+not establish runtime lifecycle publication or hardware support. Deployment
+remains closed until the pre-boot hypothesis, runtime decision map, collection
+path, and guarded installer pass static review.
 
 ## Follow-up
 
-Review the LK boot-container construction and validation boundary next. Only a
-separately validated read-only container may be admitted as a boot candidate.
-Runtime success would require two stable reads with
+Define the pre-boot hypothesis, exact runtime decision map, read-only collection
+path, and guarded boot2 installer next. Runtime success requires two stable
+reads with
 `observation_complete=1`, all reported PPM cluster bits present, EEM bank masks
 equal to `0x0000003b`, and nonzero variant, table epoch, and calibration handle,
 while owner/transition handles remain zero. That would confirm table and
