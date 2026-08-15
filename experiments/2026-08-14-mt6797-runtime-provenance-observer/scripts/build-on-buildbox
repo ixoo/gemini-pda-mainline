@@ -184,7 +184,7 @@ for name in sorted(set(before) | set(after)):
 for change in changes:
     print("{}\t{}\t{}".format(*change))
 expected = [
-    ("CONFIG_GEMINI_MT6797_DVFSP_PROVENANCE_OBSERVER", "missing", "y"),
+    ("CONFIG_GEMINI_MT6797_DVFSP_PROVENANCE_OBSERVER", "n", "y"),
     ("CONFIG_LOCALVERSION", '\"\"', '\"-gemini-provenance-observer\"'),
 ]
 if changes != expected:

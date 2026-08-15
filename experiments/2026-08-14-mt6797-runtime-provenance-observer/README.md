@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-14-mt6797-runtime-provenance-observer` |
-| Status | `source generated; full-link Buildbox validation pending` |
+| Status | `first Buildbox config gate corrected; full-link pending` |
 | Subsystem | MT6797 EEM/PPM DVFSP provenance |
 | Device variant | Planet Gemini PDA, MT6797; no live-device action yet |
 | Date | 2026-08-14 America/New_York |
@@ -87,6 +87,16 @@ zero, completes the PPM epoch only after every reported cluster table is
 present, publishes a calibration handle only after the exact five non-SOC EEM
 INIT02 banks (`0x3b`) have completed, and uses an IRQ-safe spinlock. No build or
 device observation is recorded yet.
+
+The first exact pushed Buildbox job at `b6e088b` passed static validation,
+normal `git am`, generated-commit identity, and changed-path validation. It
+then stopped before kernel compilation because the exact config oracle expected
+the newly introduced symbol to be absent, while `olddefconfig` correctly
+materialized its default-off state as `n`. The bounded follow-up reproduced
+only two actual deltas: observer `n -> y` and the local-version string. The
+oracle now pins that exact result; it was not relaxed. No package or device
+action occurred. See the
+[`b6e088b` config-gate receipt](results/buildbox-config-gate-b6e088b-20260815.txt).
 
 ## Analysis
 
