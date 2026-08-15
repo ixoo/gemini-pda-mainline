@@ -1,0 +1,45 @@
+MT6797 runtime provenance observer: pre-init recovery decision map
+Date: 2026-08-15 America/New_York
+
+success-runtime-publication
+- exact retained checkpoint and execution markers
+- changed recovery boot ID on ordinary Gemian
+- exact direct candidate identity and kernel release
+- two stable complete mode-0444 observer snapshots
+- all lifecycle masks/counters complete and all nonclaims closed
+Decision: accept vendor lifecycle publication and late-init recovery attribution
+only. Do not enable CPU8/CPU9.
+
+success-preinit-recovery
+- exact retained checkpoint and execution markers in order
+- exact recovery=armed, deadline_seconds=120, and reset=emergency-restart fields
+- storage, DVFSP-write, and CPU-admission nonclaims unchanged
+- confirmed disconnect, ordinary-Gemian reconnect, and changed boot ID
+- direct RNDIS sample absent, unavailable, or not complete
+Decision: establish recovery-worker reachability and attributable automatic
+restart. Runtime EEM/PPM publication remains unobserved or inconclusive.
+
+inconclusive
+- exact retained checkpoint exists but the execution marker does not
+Decision: localize the kernel through late init, but do not attribute the reset
+or claim delayed-worker execution.
+
+service-failure
+- pstore console is absent, or neither exact retained marker exists
+Decision: retained evidence failed. Display state alone does not localize the
+kernel; do not repeat without a changed observation path.
+
+rejected-attribution
+- recovery cycle, candidate kernel, marker uniqueness/order, direct candidate
+identity, or ABI identity is wrong or malformed
+Decision: reject the sample as not attributable.
+
+rejected-safety
+- either marker changes storage_access=none, dvfsp_hardware_write=none, or
+cpu8_cpu9_admission=closed; or the direct observer reports a fault, write,
+owner/provider claim, or online CPU8/CPU9
+Decision: reject the candidate and remain on ordinary Gemian.
+
+All classifications keep cpu8_cpu9_admission=closed. A successful pre-init
+recovery result improves failure localization; it does not itself establish a
+DVFSP transition owner or advance CPU admission.

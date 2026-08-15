@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-14-mt6797-runtime-provenance-observer` |
-| Status | `pre-init container independently validated; runtime-tool review next` |
+| Status | `pre-init runtime tools validated; read-only Gemian preflight next` |
 | Subsystem | MT6797 EEM/PPM DVFSP provenance |
 | Device variant | Planet Gemini PDA, MT6797; corrected boot2 installed |
 | Date | 2026-08-14 America/New_York |
@@ -125,6 +125,19 @@ read-only, performs no storage or DVFSP write, and requests no reboot.
 - [`scripts/test_preinit_candidate.py`](scripts/test_preinit_candidate.py)
   independently pins the complete container and rejects six structural
   mutations.
+- [`scripts/remote-preinit-runtime-probe.sh`](scripts/remote-preinit-runtime-probe.sh),
+  [`scripts/validate-preinit-runtime.py`](scripts/validate-preinit-runtime.py),
+  and [`scripts/collect-preinit-runtime.sh`](scripts/collect-preinit-runtime.sh)
+  retain the exact read-only RNDIS/netcat fast path for the changed candidate.
+- [`scripts/classify-preinit-cycle.py`](scripts/classify-preinit-cycle.py)
+  combines the retained checkpoint/execution markers and recovery cycle with
+  the optional direct sample.
+- [`scripts/install-preinit-boot2.sh`](scripts/install-preinit-boot2.sh)
+  pins the exact accepted container while preserving live-GPT resolution,
+  inactive-root, power, full-readback, no-fresh-backup, and clean-shutdown
+  gates.
+- [`scripts/test_preinit_runtime_tools.py`](scripts/test_preinit_runtime_tools.py)
+  exercises both positive paths and fourteen decision-changing mutations.
 - [`DESIGN.md`](DESIGN.md) defines the observation and decision contract.
 
 ## Procedure
@@ -326,6 +339,20 @@ same three inherited vendor address/relocatability differences as the corrected
 reference. No device was accessed. See the
 [`pre-init offline-container review`](results/preinit-offline-container-review-20260815.txt).
 
+The pre-boot hypothesis now tells the owner exactly what to expect: after the
+verified installation shuts Gemian down, one boot2 selection may expose RNDIS,
+then should automatically restart near 120 seconds after late init, followed by
+an ordinary Gemian boot. The direct classifier retains the exact two-read
+lifecycle decision map. The independent retained-cycle classifier requires an
+ordered checkpoint and execution marker plus a changed recovery boot ID. Two
+positive paths and fourteen direct/retained mutations pass offline review. The
+guarded installer pins exact padded SHA-256 `99414cdecc4e...`, creates no fresh
+backup, and still powers off without reboot after a verified full readback. No
+device was accessed in this tool review. See the
+[`predeployment hypothesis`](results/preinit-predeployment-hypothesis-20260815.txt),
+[`decision map`](results/preinit-runtime-decision-map-20260815.txt), and
+[`runtime-tool review`](results/preinit-runtime-tool-review-20260815.txt).
+
 ## Analysis
 
 This observer intentionally does not port the Linux 7.1 experimental
@@ -352,12 +379,11 @@ to identical repetition.
 
 ## Follow-up
 
-Freeze the new pre-boot hypothesis and exact result map, then update the
-collector, classifier, pstore recovery path, and guarded boot2 installer to the
-exact padded candidate. The runtime-tool review must encode the expected
-pre-init marker and one restart near 120 seconds, while retaining RNDIS as the
-fast path and Gemian pstore recovery as the independent path. Runtime success
-would still require two
+Run one read-only Gemian preflight for exact OS/root/live-GPT boot2 identity,
+stable power, SSH key, and passwordless sudo. If it passes, arm the pstore-cycle
+and direct RNDIS collectors before the guarded boot2 write, require the exact
+full readback and clean shutdown, then give the owner the frozen one-cycle
+expectation. Runtime success would still require two
 stable reads with `observation_complete=1`, complete PPM and EEM masks, and
 nonzero variant, table epoch, and calibration handle while owner/transition
 handles remain zero. That would confirm publication only. The upstream path

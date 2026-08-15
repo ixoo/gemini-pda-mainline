@@ -1,0 +1,58 @@
+MT6797 runtime provenance observer: pre-init recovery predeployment hypothesis
+Date: 2026-08-15 America/New_York
+
+Exact candidate
+- raw Android-v0 SHA-256: 455a85907827e823fea039a721b55f092783aa30130361ebfebef0d07c7eed11
+- full 16 MiB boot2 SHA-256: 99414cdecc4e031b12b93114b355fb3d44366d6e7b5092cb4f5f9132755d61c7
+- kernel field SHA-256: 5a8db7fba3b4eb83932042e1105039157d4c8bb70c5794c00b03f9ac46526725
+- expected kernel release: 3.18.79-gemini-provenance-preinit+
+- corrected diagnostic ramdisk SHA-256: 86a112ef29fecdb8f47b003cbfb08b77b478c4f511cba46acd987af09c921358
+- appended DTB SHA-256: d70cb5f679ca1135280b80cfc0308e9c4c74bf6a5b8b1a0a8c281a50d4a3d787
+
+Kernel/DT/configuration hypothesis
+The changed kernel reaches its late-init-sync recovery companion after ramoops,
+the MT6797 reset handler, the read-only provenance observer, and the vendor
+watchdog kicker. It emits one attributable checkpoint to the registered pstore
+console, schedules one 120-second delayed worker, emits one execution marker,
+and calls emergency_restart() through the already registered MT6797 handler.
+The corrected diagnostic ramdisk and appended DTB are byte-identical to the
+previous attempt. RNDIS is a fast observation path, not the sole evidence path.
+
+Unique attributable evidence
+- the guarded full-partition write and readback bind boot2 to the exact padded
+  candidate
+- direct RNDIS/netcat, if available before reset, returns two mode-0444 observer
+  snapshots with the exact candidate assertion and kernel release
+- retained pstore contains the exact marker
+  GEMINI_DVFSP_PROVENANCE_PREINIT_RECOVERY_20260815
+- the checkpoint line must include recovery=armed and deadline_seconds=120
+- the execution line must include reset=emergency-restart
+- both marker lines must retain storage_access=none,
+  dvfsp_hardware_write=none, and cpu8_cpu9_admission=closed
+- ordinary Gemian recovery must have a changed boot ID after a confirmed
+  disconnect/reconnect cycle
+
+Owner-visible expectation
+1. A verified boot2 installation ends with Gemian fully powered off.
+2. Start boot2 once. The diagnostic ramdisk does not launch the stock Gemian
+   splash, so its absence is expected and is not a failure signal.
+3. RNDIS may appear briefly; no owner action is needed if it does not.
+4. Near 120 seconds after late init, the candidate should automatically restart.
+5. Allow ordinary Gemian additional time to boot. Do not manually restart during
+   the first six-minute observation window unless the device is clearly unsafe.
+
+Decision effect
+- checkpoint + execution + changed recovery boot: kernel reached the recovery
+  worker and the automatic restart is attributable; this localizes the prior
+  failure beyond late init even if RNDIS remains absent
+- checkpoint only: late init is localized, but delayed-worker execution is not
+  established
+- complete stable direct observer reads: accept vendor PPM/EEM lifecycle
+  publication only
+- no retained marker: retention/localization service failure; do not infer a
+  kernel stop from display behavior alone
+- any conflicting identity, write, owner/provider, fault, or CPU8/9 admission:
+  reject and remain on ordinary Gemian
+
+No outcome enables CPU8 or CPU9. No identical artifact is repeated unless a
+new independent measurement is explicitly required.

@@ -3520,8 +3520,13 @@ the generic LK analyzer retains only the same three inherited vendor differences
 as the corrected reference. The exact padded SHA-256 is `99414cdecc4e...`.
 The next ordered action is to freeze the pre-boot hypothesis and result map,
 then pin the collector, pstore recovery path, classifier, and guarded installer
-to this exact candidate and its expected single restart near 120 seconds. No
-device write is yet authorized for this changed kernel.
+to this exact candidate and its expected single restart near 120 seconds. That
+offline review now passes both positive paths, distinguishes fourteen direct
+and retained-evidence mutations, keeps RNDIS as the fast path, and requires the
+independent pstore/recovery cycle. The next ordered action is one read-only
+Gemian OS/root/live-GPT/power/sudo preflight. Only after it passes may the exact
+guarded boot2 write, full readback, and clean shutdown run with both collectors
+armed; no device write has occurred for this changed kernel.
 The subsequent upstream implementation remains one native transition owner
 spanning the DVFSP/I2C6/DA921x operation and rollback boundary. Provider
 registration, setters, hardware writes, and CPU8/CPU9 admission remain closed.
