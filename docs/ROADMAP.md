@@ -3601,14 +3601,27 @@ No direct USB interface appeared before return; pstore was empty and the
 not a kernel or provider result. See the
 [attempt record](../experiments/2026-08-15-da921x-readonly-observer/results/runtime-attempt-1-inconclusive-20260815.txt).
 
-The single next ordered action is one same-artifact repeat with the read-only
-USB/netcat collector confirmed waiting immediately before physical boot2
-selection. This repeat is earned solely because that independent observation
-path was absent from attempt 1. Verify that boot2 already has the exact full
-checksum, do not rewrite it, shut ordinary Gemian down cleanly, arm a fresh
-collector, and select boot2 immediately. If direct USB and retained pstore are
-again absent, stop identical repeats and change the durable observation path.
-Screen color and automatic return remain non-attributable.
+The one permitted same-artifact repeat is complete. Boot2 already had the exact
+full checksum and was not rewritten; independent readback and clean shutdown
+passed. A fresh read-only USB/netcat collector was confirmed waiting before
+physical selection. The candidate again returned automatically to a changed
+ordinary-Gemian boot, but no USB interface appeared, pstore was empty, and
+last-kmsg was the same generic 74-byte header. This is a repeated pre-transport
+service failure, not provider or kernel-fault attribution. Do not repeat the
+observer image. See the
+[repeat record](../experiments/2026-08-15-da921x-readonly-observer/results/runtime-attempt-2-pretransport-20260815.txt).
+
+The single next ordered discriminator is a matched current-tree
+`da921x-resource-only-provider` control with the observer disabled. Hold the
+patch series, DT, serviceability ramdisk, LK addresses and command line,
+provider registration, CPU0--7 baseline, and recovery policy fixed; change only
+the observer configuration, four live observer reads, unique kernel release,
+and resulting container identity. Build through Buildbox and independently
+review the container before any device action. Attributable control USB or
+retained pstore implicates the observer path; the same pre-transport failure
+instead moves localization to the current base/container boundary against the
+last retained-pstore baseline. Screen color and automatic return remain
+non-attributable.
 
 Required evidence:
 

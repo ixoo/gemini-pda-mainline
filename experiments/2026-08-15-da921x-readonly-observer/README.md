@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-15-da921x-readonly-observer` |
-| Status | runtime attempt 1 inconclusive; one collector-corrected repeat pending |
+| Status | repeated pre-transport service failure; identical observer candidate stopped |
 | Subsystem | legacy DA9213/DA9214/DA9215 regulator provider |
 | Device variant | Planet Gemini PDA, MT6797; device remains on ordinary Gemian |
 | Date(s) | 2026-08-15 America/New_York |
@@ -155,6 +155,16 @@ candidate release or DA921x marker. The
 provider result, and it does not reinterpret the automatic reboot as a kernel
 fault.
 
+The one permitted repeat then verified that boot2 was already exact without a
+rewrite, independently read it back, shut Gemian down, and confirmed a fresh
+collector waiting before the owner selected boot2. The candidate again returned
+automatically, but the collector saw no USB interface or netcat endpoint.
+Immediate recovery again found empty pstore and the identical generic 74-byte
+last-kmsg header. The [attempt 2 result](results/runtime-attempt-2-pretransport-20260815.txt)
+is `service-failure-pre-transport`. It still does not establish candidate
+kernel entry or implicate the provider, but it closes identical observer-image
+repetition.
+
 ## Analysis
 
 The smallest decision-changing runtime evidence is a one-shot record after
@@ -174,12 +184,13 @@ the read-only USB/netcat collector, is required for that claim.
 Source, mutation, KUnit, runtime Buildbox, package, container, runtime-tool, and
 installer validation pass. Exact boot2 deployment and shutdown also pass. No
 runtime hardware claim is made. Attempt 1 did not exercise the intended
-pre-armed USB path and retained no exact-candidate evidence.
+pre-armed USB path; attempt 2 did and still retained no exact-candidate
+evidence. The failure boundary is before the available runtime transports.
 
 ## Follow-up
 
-See the ordered next action in [`docs/ROADMAP.md`](../../docs/ROADMAP.md). One
-same-artifact repeat is permitted only with the collector confirmed waiting
-immediately before selection; it supplies the independent observation path
-missing from attempt 1. Provider setters, hardware writes, transition
-ownership, and CPU8/CPU9 admission remain closed.
+See the ordered next action in [`docs/ROADMAP.md`](../../docs/ROADMAP.md). Do not
+repeat the observer image. Use one matched current-tree provider-only control
+with the observer disabled to distinguish the added four live reads from a
+pre-existing current-kernel/container regression. Provider setters, hardware
+writes, transition ownership, and CPU8/CPU9 admission remain closed.
