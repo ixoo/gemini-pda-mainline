@@ -3657,6 +3657,27 @@ layout, CPU0--7 policy, and recovery path. That marker must be the independent
 decision-changing observation path; do not add regulator reads, writes, an
 owner, or CPU8/CPU9 admission.
 
+That audit has isolated an earlier broad configuration boundary before new
+checkpoint code is justified. The last serviceable mainline Stage-27 image and
+failed current control have the exact same module-free serviceability ramdisk,
+LK addresses and command line, pstore/console configuration, ramoops DT region,
+and ramoops-before-DA921x initcall order. Stage 27, however, restored
+`CONFIG_MODULES=y`; the failed current profile inherits module support disabled.
+The resolved configs contain 302 changed add/remove lines as defconfig module
+selections become built-ins, and the current decompressed Image is 1,816,576
+bytes larger. See the
+[baseline localization](../experiments/2026-08-15-mainline-module-policy-control/results/baseline-localization-20260815.txt).
+
+The single next ordered discriminator is the configuration-only
+`da921x-resource-only-provider-modules-control` profile. It exactly extends the
+failed provider-only profile with `CONFIG_MODULES=y` and a unique local version;
+the external initramfs remains module-free, while the DA921x driver/provider
+remain built-in, read-only, and observer-free. Build it through Buildbox and
+independently compare the resolved config and container. If serviceability
+returns, localize the regression to disabled-module built-in expansion. If it
+fails at the same boundary, stop it and proceed to the earliest post-ramoops
+checkpoint already defined above.
+
 Required evidence:
 
 - provider registration performs no register-data write;

@@ -1,0 +1,6 @@
+# Matched serviceability control for the current read-only DA921x provider.
+# Keep defconfig module selections as modules instead of promoting every `m`
+# to built-in when the handoff fragment disables module support. The external
+# initramfs is module-free and cannot load any of these modules.
+CONFIG_MODULES=y
+CONFIG_LOCALVERSION="-gemini-da921x-modctl"
