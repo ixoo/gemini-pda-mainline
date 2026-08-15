@@ -1,0 +1,42 @@
+MT6797 runtime provenance observer: predeployment hypothesis
+Date: 2026-08-15 America/New_York
+
+Exact candidate
+- Android-v0 raw SHA-256: e354ee4b8265d2226e49d2c9376ec3e6e39eee83fd413490de29de1c1500b72b
+- Full 16 MiB boot2 SHA-256: b17400c59f0a68db602c66cb5d83ec1c6161e98dcbd3e5d3ffece0b5c69f23a9
+- Expected runtime release: 3.18.79-gemini-provenance-observer+
+- Expected ABI path: /sys/kernel/debug/gemini_dvfsp_provenance/state
+- Expected ABI mode: 0444
+
+Kernel/DT/configuration hypothesis
+The default-off observer is the only configuration feature added to the exact
+Gemian full-link baseline. On this Gemini, the existing vendor PPM and EEM
+lifecycle should commit all three cluster tables and publish all five required
+non-SOC INIT02 banks. If those real hooks execute, two reads two seconds apart
+will be identical and report a nonzero variant, generation, table epoch, and
+calibration handle; PPM mask 0x00000007; and EEM masks 0x0000003b.
+
+Unique attributable evidence
+The exact kernel release plus the new mode-0444 ABI and its complete field
+inventory do not exist in stock Gemian. The deployment full-partition readback
+binds that runtime identity to the exact accepted container. Two stable reads
+distinguish a completed lifecycle publication from a transient snapshot.
+
+Safety/nonclaim hypothesis
+Both reads must retain owner_handle=0, transition_handle=0,
+coherent_transition_owner=0, provider=none, hardware_write=none, and
+cpu8_cpu9_admission=closed. CPU possible/present must remain 0-9 and online must
+remain 0-7. Collection performs no partition read, storage write, mount, reboot,
+or power-state request.
+
+Decision effect
+- Stable complete publication: close only the vendor PPM/EEM lifecycle-
+  provenance gap, then design the upstream coherent transition owner.
+- Correct but incomplete or unstable publication: classify inconclusive; do not
+  repeat the identical image without a new decision-changing observation path.
+- Wrong identity, ABI, mode, field inventory, fault, ownership/write claim, or
+  CPU regression: reject the candidate and recover ordinary Gemian.
+- No direct USB shell or unreadable ABI: service failure; do not infer a kernel
+  failure from an automatic reboot alone.
+
+No possible result enables CPU8 or CPU9.

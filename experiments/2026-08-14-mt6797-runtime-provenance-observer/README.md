@@ -5,9 +5,9 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-14-mt6797-runtime-provenance-observer` |
-| Status | `offline container validated; runtime-tool review pending` |
+| Status | `runtime tools accepted; guarded boot2 deployment pending` |
 | Subsystem | MT6797 EEM/PPM DVFSP provenance |
-| Device variant | Planet Gemini PDA, MT6797; no live-device action yet |
+| Device variant | Planet Gemini PDA, MT6797; read-only Gemian preflight only |
 | Date | 2026-08-14 America/New_York |
 | Investigator | Gemini mainline project |
 
@@ -34,9 +34,9 @@ A compile result cannot establish runtime publication or hardware support.
   `LOCALVERSION=-gemini-provenance-observer` added
 - Build backend: Buildbox only, using the pinned Debian Stretch GCC 6.3
   toolchain manifest already used by the Gemian full-link experiments
-- Boot path: the exact Android-v0 container is accepted offline only; no device
-  deployment is permitted until the pre-boot contract, runtime classifier, and
-  guarded installer pass their separate review
+- Boot path: the exact Android-v0 container, pre-boot contract, runtime
+  classifier, and guarded installer pass their separate offline reviews;
+  guarded boot2 deployment is the next ordered action
 
 The synthetic patch author is experiment-only and non-certifying. The patch
 contains no synthetic `Signed-off-by` and is not submission-ready.
@@ -51,11 +51,12 @@ policy, or admit CPU8/CPU9. The output permanently reports zero owner and
 transition handles, `provider=none`, `hardware_write=none`, and closed CPU
 admission.
 
-The current phase is host/offline-only. It performs no device access. The exact
-container preserves the known-good Gemian header and ramdisk, changes only the
-validated kernel field and canonical image ID, and is padded to exactly 16 MiB
-by two independent methods. Container acceptance does not itself authorize a
-device write.
+Container construction and runtime-tool validation are host/offline-only. The
+exact container preserves the known-good Gemian header and ramdisk, changes only
+the validated kernel field and canonical image ID, and is padded to exactly
+16 MiB by two independent methods. A later read-only Gemian preflight checked
+only OS, root, GPT identity, power, and sudo readiness; it did not read boot2.
+No device write or candidate boot has occurred in this experiment yet.
 
 ## Associated code
 
@@ -71,6 +72,17 @@ device write.
 - [`scripts/test_candidate.py`](scripts/test_candidate.py) independently pins
   the package, Android header, kernel, DTB, ramdisk, image ID, padding,
   provenance, and negative mutations.
+- [`scripts/remote-runtime-probe.sh`](scripts/remote-runtime-probe.sh) reads the
+  exact mode-0444 ABI twice without mounting, writing, or changing power state.
+- [`scripts/collect-runtime.sh`](scripts/collect-runtime.sh) waits for the exact
+  direct USB/netcat path and retains one private, checksummed capture.
+- [`scripts/validate-runtime.py`](scripts/validate-runtime.py) applies the fixed
+  attribution, lifecycle, nonclaim, and serviceability decision map.
+- [`scripts/install-boot2.sh`](scripts/install-boot2.sh) resolves live-GPT boot2,
+  records but does not back up its predecessor, verifies a full write and
+  independent readback, and powers off without rebooting.
+- [`scripts/test_runtime_tools.py`](scripts/test_runtime_tools.py) exercises the
+  accepted runtime outcome and seven decision-changing mutations offline.
 - [`DESIGN.md`](DESIGN.md) defines the observation and decision contract.
 
 ## Procedure
@@ -89,6 +101,9 @@ device write.
 7. Require two independent candidate roots, exact file equality, independent
    structural validation, and negative mutation rejection before admitting the
    container to runtime-tool review.
+8. Freeze the pre-boot hypothesis and decision map; require the collector,
+   classifier, and guarded installer to pass syntax, ShellCheck, offline
+   positive/negative classification, and static safety review before deployment.
 
 ## Observations
 
@@ -144,6 +159,21 @@ address, flags, aligned placement, header, ramdisk, and LK structure rather
 than weakening them. No device was accessed. See the
 [`e354ee4b` offline-container review](results/offline-container-review-20260815.txt).
 
+The fixed runtime path now streams one read-only probe directly to the existing
+USB/netcat shell, requires the exact kernel release and candidate identity, and
+reads the observer twice two seconds apart. The classifier distinguishes a
+complete stable lifecycle publication from unavailable, incomplete, unstable,
+misattributed, faulted, ownership-claiming, or serviceability-regressing
+outcomes. The guarded installer dynamically records the predecessor rather than
+requiring a stale checksum, creates no fresh partition backup, and preserves the
+project's live-GPT, inactive-root, stable-power, full-readback, and clean-shutdown
+gates. A read-only Gemian preflight found the expected `3.18.41+` OS, root
+`/dev/mmcblk0p29`, unique inactive 16 MiB boot2, healthy 69% battery with AC
+online, and passwordless sudo. It did not read or write boot2. See the
+[`2026-08-15` predeployment hypothesis](results/predeployment-hypothesis-20260815.txt),
+[`runtime decision map`](results/runtime-decision-map-20260815.txt), and
+[`runtime-tool review`](results/runtime-tool-review-20260815.txt).
+
 ## Analysis
 
 This observer intentionally does not port the Linux 7.1 experimental
@@ -155,18 +185,19 @@ gate rather than hiding it.
 
 ## Conclusion
 
-The compile/link and offline container gates pass. This establishes source
-integration, exact configuration scope, DCT reproducibility, linked observer
-presence, symbol closure, and one reproducible LK-compatible container. It does
-not establish runtime lifecycle publication or hardware support. Deployment
-remains closed until the pre-boot hypothesis, runtime decision map, collection
-path, and guarded installer pass static review.
+The compile/link, offline container, and runtime-tool gates pass. This
+establishes source integration, exact configuration scope, DCT reproducibility,
+linked observer presence, symbol closure, one reproducible LK-compatible
+container, and a fixed deployment/measurement contract. It does not establish
+runtime lifecycle publication or hardware support. The next ordered action is
+one guarded boot2 deployment followed by one read-only runtime observation.
 
 ## Follow-up
 
-Define the pre-boot hypothesis, exact runtime decision map, read-only collection
-path, and guarded boot2 installer next. Runtime success requires two stable
-reads with
+Install the exact accepted candidate to live-GPT-resolved inactive boot2,
+require a matching full-partition readback and clean shutdown, arm the direct
+USB/netcat collector, and physically select boot2 once. Runtime success requires
+two stable reads with
 `observation_complete=1`, all reported PPM cluster bits present, EEM bank masks
 equal to `0x0000003b`, and nonzero variant, table epoch, and calibration handle,
 while owner/transition handles remain zero. That would confirm table and

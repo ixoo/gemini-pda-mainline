@@ -1,0 +1,52 @@
+MT6797 runtime provenance observer: runtime-tool review
+Date: 2026-08-15 America/New_York
+
+Accepted tool identities
+- remote-runtime-probe.sh: ea084cf5a3ff1f2a226b2b481bab526863fb68dc911c81138cfec3453b21ef98
+- validate-runtime.py: b73a274db18d01a3538f02635be732e427a098575974a268d585ae28d71de2bf
+- collect-runtime.sh: e521385c8656a39d008ff9ab7e5207b3b6a07202724388d43779177561d998a7
+- install-boot2.sh: 8c40f5f50bc579fa040bfee483755302a474e80291e157e608588bd878efeb42
+- test_runtime_tools.py: b026fc19ab85d7231f7b7e0dbc32105f2dc8a03f2dbb703269832367f9347f78
+
+Validation
+- bash -n: pass
+- POSIX sh -n: pass
+- Python compilation: pass
+- ShellCheck at warning-or-higher severity: pass
+- full ShellCheck: no warning/error; one informational trap-callback
+  reachability note only
+- git diff --check: pass
+- accepted complete/stable runtime fixture: pass
+- decision-changing mutations distinguished: 7
+  wrong kernel; absent observer; incomplete lifecycle; unstable snapshots;
+  owner claim; observer fault; CPU8/CPU9 serviceability regression
+- guarded installer static contract: pass
+
+Installer contract
+- exact candidate and manifest identities pinned
+- exact known-good Gemian SSH target/release/root pinned
+- live GPT resolves one 16 MiB writable boot2 each run
+- boot2 must be inactive, unmounted, holder-free, nonswap, and on mmcblk0
+- two identical stable-power samples required: healthy >=80% battery, or healthy
+  >=40% battery with external power online
+- predecessor checksum is dynamically recorded and rechecked before write
+- no predecessor allowlist and no fresh partition backup
+- write, sync, block flush, remote full checksum, independent full readback,
+  byte comparison, and temporary-readback removal required
+- success requests clean shutdown, confirms SSH unreachable, and never reboots
+
+Read-only live preflight
+- Gemian release: 3.18.41+
+- architecture: aarch64
+- active root: /dev/mmcblk0p29
+- live GPT boot2: /dev/mmcblk0p30, 16777216 bytes, writable, unmounted
+- battery: present, 69%, Good
+- AC online: yes
+- passwordless sudo: ready
+- boot2 content read: no
+- device write: no
+
+Conclusion
+The fixed runtime and installer gates pass review. This is not runtime evidence
+and not CPU8/CPU9 support. One guarded deployment and one read-only boot2 cycle
+are now justified.

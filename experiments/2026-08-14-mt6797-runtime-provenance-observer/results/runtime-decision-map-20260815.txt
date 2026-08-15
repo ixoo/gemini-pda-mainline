@@ -1,0 +1,41 @@
+MT6797 runtime provenance observer: fixed runtime decision map
+Date: 2026-08-15 America/New_York
+
+success
+- exact full candidate identity and kernel release
+- exact mode-0444 ABI and field inventory
+- two byte-equivalent snapshots two seconds apart
+- state=available and observation_complete=1
+- nonzero variant, generation, table epoch, and calibration handle
+- cluster count 3, PPM mask 0x00000007
+- required and observed EEM masks 0x0000003b
+- at least three table commits, five bank publications, and one calibration
+  publication
+- every owner/provider/write/admission nonclaim remains closed
+- CPUs possible/present 0-9 and online 0-7
+Decision: accept vendor lifecycle publication only. Do not enable CPU8/CPU9.
+
+inconclusive
+- correct attribution and nonclaims, but publication is unavailable/incomplete;
+  or the two snapshots differ
+Decision: record the missing/unstable field. Do not repeat an identical image
+without an independent decision-changing observation path.
+
+service-failure
+- exact USB/netcat session is absent, or the ABI is absent/unreadable
+Decision: record transport/service failure. An automatic return to Gemian is
+not enough to classify the kernel.
+
+rejected-attribution
+- wrong candidate assertion, kernel release, architecture, boot ID, ABI path,
+  ABI version, snapshot inventory, or malformed/duplicate field
+Decision: reject the observation as not attributable.
+
+rejected-safety
+- ABI is not mode 0444; observer reports a fault; an owner, provider, write, or
+  admission nonclaim changes; or CPUs 8/9 appear online
+Decision: reject the candidate, use ordinary Gemian, and investigate before any
+new device image.
+
+All classifications keep cpu8_cpu9_admission=closed. This experiment cannot
+claim asynchronous setter completion or coherent transition ownership.

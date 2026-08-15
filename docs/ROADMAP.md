@@ -3471,11 +3471,14 @@ symbols, linked-marker validation, and the compile-review-only package gate.
 The separate LK boot-container construction and validation gate now passes with
 the known-good Gemian header and ramdisk, exact replacement kernel, independent
 assembly and padding paths, and negative mutation checks. The next ordered gate
-is the pre-boot hypothesis, exact runtime decision map, read-only collection
-path, and guarded installer review. Only after those pass may the accepted
-container be written to boot2 for one read-only runtime observation. That
-observation can close the lifecycle-publication evidence gap; it cannot satisfy
-the coherent-owner gate.
+also passes: the frozen pre-boot hypothesis, exact runtime decision map,
+read-only direct-USB/netcat collector, mutation-tested classifier, and guarded
+installer preserve attribution, inactive live-GPT boot2, stable power, full
+readback, no-fresh-backup, and clean-shutdown invariants. The next ordered action
+is one guarded write of the exact accepted container to boot2, shutdown, and one
+physically selected boot2 cycle with the collector armed. That observation can
+close the lifecycle-publication evidence gap; it cannot satisfy the
+coherent-owner gate.
 The subsequent upstream implementation remains one native transition owner
 spanning the DVFSP/I2C6/DA921x operation and rollback boundary. Provider
 registration, setters, hardware writes, and CPU8/CPU9 admission remain closed.
