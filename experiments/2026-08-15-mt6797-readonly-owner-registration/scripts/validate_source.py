@@ -52,6 +52,7 @@ def main() -> None:
         ("owner->state_registered", "registered lifetime guard"),
         ("mt6797_dvfsp_vendor_provider_rejects_provenance_mismatch", "mismatch KUnit"),
         ("mt6797_dvfsp_vendor_provider_matches_state_identity", "cross-view KUnit"),
+        ("handoff = kunit_kzalloc(test, 1, GFP_KERNEL);", "opaque negative-path token"),
         ("mt6797_dvfsp_provider_snapshot_keeps_attribution", "attribution KUnit"),
     ):
         require(text, needle, label)

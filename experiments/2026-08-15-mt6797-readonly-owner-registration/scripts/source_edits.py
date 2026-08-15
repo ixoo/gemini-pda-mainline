@@ -850,7 +850,8 @@ def register_validated_owner(root: Path) -> None:
         "\tKUNIT_ASSERT_EQ(test,\n"
         "\t\tmt6797_dvfsp_vendor_source_identity_observation(&owner.source,\n",
         "\tKUNIT_EXPECT_TRUE(test, owner.source.initialized);\n"
-        "\thandoff = kunit_kzalloc(test, sizeof(*handoff), GFP_KERNEL);\n"
+        "\t/* Opaque non-NULL token; the unsupported source must reject first. */\n"
+        "\thandoff = kunit_kzalloc(test, 1, GFP_KERNEL);\n"
         "\tKUNIT_ASSERT_NOT_NULL(test, handoff);\n"
         "\tKUNIT_EXPECT_EQ(test, mt6797_dvfsp_vendor_owner_register_state(\n"
         "\t\t&owner, handoff), -EOPNOTSUPP);\n"
