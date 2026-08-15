@@ -1,0 +1,46 @@
+DA921x read-only provider observer: runtime decision map
+Date: 2026-08-15 America/New_York
+
+success-read-only-provider
+- exact padded candidate and kernel release
+- CPU online=0-7 and offline=8-9
+- exactly one bound record
+- valid=1, identity_reads=14, providers=2
+- provider_read_attempts=4 and provider_read_completed=4
+- register_data_writes=0
+- both selector/voltage/enable triples are internally valid
+- no cleanup or sampling-failure record
+Decision: accept the native provider's bounded read-only observation. Preserve
+zero writes and closed CPU admission; next design a separate read-only handoff
+observation.
+
+provider-failure
+- exact candidate kernel is running
+- failed-probe cleanup or read-only observation failure is present
+Decision: the native provider did not complete the observer contract. Diagnose
+the exact failure; do not add handoff or active operations.
+
+service-failure
+- exact candidate kernel is running over direct USB/netcat
+- no bound, cleanup, or sampling-failure record is retained
+Decision: the observation path is absent or incomplete. Inspect full dmesg and
+pstore; do not repeat without a new independent observation path.
+
+rejected-attribution
+- candidate assertion, kernel release, architecture, boot ID, marker count, or
+marker schema is wrong or malformed
+Decision: reject the sample as not attributable.
+
+rejected-safety
+- register_data_writes is nonzero, CPU8 or CPU9 is online, or a record conflicts
+with the closed hardware-write/admission contract
+Decision: reject the candidate and remain on ordinary Gemian.
+
+inconclusive-cycle-only
+- boot2 display behavior or an automatic return to ordinary Gemian is observed
+without retained exact-candidate evidence
+Decision: record only the cycle. White/grey screens and automatic return are
+not provider evidence and may reflect reboot behavior.
+
+All classifications keep regulator writes, transition ownership, and CPU8/CPU9
+admission closed.
