@@ -24,6 +24,9 @@ MUTATIONS = (
      "KUNIT_CASE(da9213_legacy_observer_records_both_bucks)"),
     ("selector reuse", "da9213_legacy_get_voltage_sel(chip->rdev[buck])", "return 0"),
     ("enable reuse", "da9213_legacy_is_enabled(chip->rdev[buck])", "return 0"),
+    ("live cleanup count", "unsigned int providers = chip->provider_count;",
+     "unsigned int providers = chip->observation.provider_count;"),
+    ("provider cleanup", "&chip->provider_count", "NULL"),
 )
 
 

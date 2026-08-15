@@ -116,7 +116,8 @@ def observer_header() -> str:
     \tunsigned int identity_reads, unsigned int provider_count,
     \tstruct da9213_legacy_observation *observation);
     void da9213_legacy_observer_cleanup_state(
-    \tstruct da9213_legacy_observation *observation);
+    \tstruct da9213_legacy_observation *observation,
+    \tunsigned int *provider_count);
 
     #endif /* __DA9213_LEGACY_OBSERVER_H */
     """)
@@ -273,13 +274,15 @@ def observer_test() -> str:
     \tstruct da9213_legacy_observer_fake fake =
     \t\tda9213_legacy_observer_valid_fake();
     \tstruct da9213_legacy_observation observation;
+    \tunsigned int provider_count = 2;
 
     \tKUNIT_ASSERT_EQ(test, da9213_legacy_observer_collect(
     \t\tda9213_legacy_observer_fake_read, &fake, 14, 2,
     \t\t&observation), 0);
-    \tda9213_legacy_observer_cleanup_state(&observation);
+    \tda9213_legacy_observer_cleanup_state(&observation, &provider_count);
     \tKUNIT_EXPECT_FALSE(test, observation.valid);
     \tKUNIT_EXPECT_EQ(test, observation.provider_count, 0U);
+    \tKUNIT_EXPECT_EQ(test, provider_count, 0U);
     \tKUNIT_EXPECT_EQ(test, observation.register_data_writes, 0U);
     }
 
@@ -401,13 +404,15 @@ def edit_driver(root: Path) -> None:
     }
 
     void da9213_legacy_observer_cleanup_state(
-    \tstruct da9213_legacy_observation *observation)
+    \tstruct da9213_legacy_observation *observation,
+    \tunsigned int *provider_count)
     {
-    \tif (!observation)
+    \tif (!observation || !provider_count)
     \t\treturn;
 
     \tobservation->valid = false;
     \tobservation->provider_count = 0;
+    \t*provider_count = 0;
     }
 
     static int da9213_legacy_observer_read(
@@ -440,9 +445,10 @@ def edit_driver(root: Path) -> None:
     static void da9213_legacy_observer_cleanup(void *context)
     {
     \tstruct da9213_legacy *chip = context;
-    \tunsigned int providers = chip->observation.provider_count;
+    \tunsigned int providers = chip->provider_count;
 
-    \tda9213_legacy_observer_cleanup_state(&chip->observation);
+    \tda9213_legacy_observer_cleanup_state(&chip->observation,
+    \t\t\t\t      &chip->provider_count);
     \tdev_info(chip->dev,
     \t\t "da921x-observer-v1 event=%s providers_released=%u "
     \t\t "register_data_writes=%u\\n",

@@ -44,6 +44,8 @@ def main() -> None:
         ("da921x-observer-v1 event=bound", "attributable success record"),
         ("event=%s providers_released=%u", "cleanup record"),
         ("devm_add_action(chip->dev, da9213_legacy_observer_cleanup", "cleanup ordering"),
+        ("unsigned int providers = chip->provider_count;", "live cleanup count"),
+        ("&chip->provider_count", "live provider-count cleanup"),
         ("KUNIT_CASE(da9213_legacy_observer_bounds_read_failures)", "failure KUnit"),
         ("KUNIT_CASE(da9213_legacy_observer_invalidates_on_cleanup)", "cleanup KUnit"),
     ):

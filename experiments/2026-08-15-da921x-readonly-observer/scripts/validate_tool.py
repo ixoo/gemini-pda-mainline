@@ -14,6 +14,8 @@ REQUIRED = (
     "KUNIT_CASE(da9213_legacy_observer_invalidates_on_cleanup)",
     "da9213_legacy_get_voltage_sel(chip->rdev[buck])",
     "da9213_legacy_is_enabled(chip->rdev[buck])",
+    "unsigned int providers = chip->provider_count;",
+    "&chip->provider_count",
 )
 
 
@@ -34,7 +36,7 @@ def main() -> None:
         if forbidden in text:
             raise SystemExit(f"source editor adds state-changing operation: {forbidden}")
     print("source_editor=passed")
-    print("required_contracts=8")
+    print("required_contracts=10")
     print("hardware_write=none")
 
 
