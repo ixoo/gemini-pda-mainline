@@ -101,6 +101,15 @@ read-only, performs no storage or DVFSP write, and requests no reboot.
   performs two initramfs/container assemblies and independent padding paths.
 - [`scripts/test_diagnostic_candidate.py`](scripts/test_diagnostic_candidate.py)
   independently pins the delta and rejects five container mutations.
+- [`scripts/preinit_source_edits.py`](scripts/preinit_source_edits.py) applies
+  the deterministic isolated recovery companion to the exact observer parent.
+- [`scripts/validate_preinit_source.py`](scripts/validate_preinit_source.py) and
+  [`scripts/test_preinit_source_tools.py`](scripts/test_preinit_source_tools.py)
+  enforce the default-off, late-init-sync, bounded-reset, no-storage, no-DVFSP,
+  and closed-CPU contract and reject decision-changing mutations.
+- [`scripts/generate-preinit-on-buildbox`](scripts/generate-preinit-on-buildbox)
+  creates a normal `git format-patch` review from the exact vendor parent in a
+  disposable Buildbox clone; it does not compile a kernel or access a device.
 - [`DESIGN.md`](DESIGN.md) defines the observation and decision contract.
 
 ## Procedure
@@ -258,6 +267,14 @@ the existing MT6797 reset handler. The corrected initramfs and DTB remain exact;
 RNDIS becomes the fast live path rather than the only evidence path. See the
 [`pre-init recovery boundary audit`](results/preinit-recovery-boundary-audit-20260815.txt).
 
+The deterministic source editor and validator now pass one positive fixture,
+reject a second application, and reject all thirteen default-on, dependency,
+gating, deadline, marker, scheduling, restart, initcall, cancellation,
+watchdog-ownership, storage, and CPU mutations. Bash syntax, Python compilation,
+ShellCheck warning-or-higher, and whitespace checks pass. This is tooling only:
+no vendor patch, kernel build, container, or device action exists yet. See the
+[`pre-init source-tool review`](results/preinit-source-tool-review-20260815.txt).
+
 ## Analysis
 
 This observer intentionally does not port the Linux 7.1 experimental
@@ -281,9 +298,9 @@ to identical repetition.
 
 ## Follow-up
 
-Create and mutation-test source-generation tooling for the separately gated
-pre-`/init` recovery companion, then commit and push it before any Buildbox
-generation. Buildbox must prove the exact parent, isolated default-off
+Commit and push the separately gated pre-`/init` recovery source tooling, then
+generate its normal format patch on Buildbox. Buildbox must prove the exact
+parent, isolated default-off
 configuration, initcall order, marker and delayed-work boundaries, and final
 link before any container review. Runtime success would still require two
 stable reads with `observation_complete=1`, complete PPM and EEM masks, and

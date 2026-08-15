@@ -1,0 +1,70 @@
+MT6797 provenance observer: pre-init recovery source-tool review
+Date: 2026-08-15 America/New_York
+Scope: local deterministic fixtures and static tooling only
+Kernel build: none
+Device access: none
+
+Selected parent
+- vendor source commit: d388d350cb2dda8f23b99be6fa5db9628896e87f
+- exact observer parent commit: f3d2a14bd1b8355c68e59e8bd4be6bc1525f9c24
+- historical observer patch SHA-256: 3520538de1c31ea592c2f0c76af7deef10f5c1ee00689d74bdac17def48dbb11
+- historical observer patch rewrite: prohibited
+
+Tool identities
+- generate-preinit-on-buildbox: 947550b49839e6b81569e77b2c0cfb6a9b8c8540d84d7aa19028fa814a83a2a9
+- preinit_source_edits.py: 6445b0d6db617242bdc46682867da1fe6e0a578827eb0916bf579d62485b4d6e
+- validate_preinit_source.py: 10ce998075c710822fa82d163d27f54b79c8e9a51f99e575df73c519d475cf9f
+- test_preinit_source_tools.py: 94ec6b745bef3e939126d947a71b14685422d67581f109afe46d7100f0eead5b
+
+Generated source contract
+- separate default-off Kconfig symbol
+- depends on the exact observer and PSTORE_CONSOLE
+- separate gated object and source file
+- one late_initcall_sync checkpoint
+- one unique pre-/init/recovery marker
+- one 120-second delayed-work deadline
+- one emergency_restart() call in the delayed worker
+- no cancellation path
+- no /dev access or storage operation
+- no watchdog API or register ownership
+- no DVFSP, regulator, or CPU admission operation
+- existing corrected initramfs and DTB held exact for later container review
+
+Validation
+- Bash syntax: pass
+- ShellCheck warning-or-higher: pass
+- Python compilation: pass
+- positive deterministic source fixture: pass
+- second source-editor application: rejected
+- decision-changing mutations rejected: 13/13
+- whitespace check: pass
+
+Rejected mutations
+- default-on configuration
+- missing pstore dependency
+- Kconfig select
+- ungated object
+- changed recovery deadline
+- changed marker
+- missing delayed-work schedule
+- missing emergency restart
+- wrong initcall section
+- cancellable recovery
+- direct watchdog API ownership
+- device/storage access
+- CPU8 admission
+
+Classification
+source_tooling=pass
+patch_generated=false
+kernel_compiled=false
+boot_candidate=false
+device_action=none
+native_vm_kernel_build=no
+cpu8_cpu9_admission=closed
+
+Next action
+Commit and push these exact clean tools, then run the generator against the
+exact parent on Buildbox. Require normal git-am reproduction, exact changed
+paths, a clean generated tree, and a checksummed patch-review package before
+adding any generated patch to the repository.

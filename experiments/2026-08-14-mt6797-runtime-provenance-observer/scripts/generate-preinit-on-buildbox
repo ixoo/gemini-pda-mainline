@@ -1,0 +1,156 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+export LC_ALL=C
+
+readonly SOURCE_COMMIT=d388d350cb2dda8f23b99be6fa5db9628896e87f
+readonly PARENT_COMMIT=f3d2a14bd1b8355c68e59e8bd4be6bc1525f9c24
+readonly SOURCE_URL=https://github.com/gemian/gemini-linux-kernel-3.18.git
+readonly PARENT_PATCH_SHA256=3520538de1c31ea592c2f0c76af7deef10f5c1ee00689d74bdac17def48dbb11
+
+die() { printf 'error: %s\n' "$*" >&2; exit 1; }
+[[ "$#" -eq 3 ]] || die 'expected PROJECT_COMMIT SOURCE_ROOT OUTPUT_ROOT'
+readonly project_commit=$1
+readonly source_root=$2
+readonly output_root=$3
+[[ "$project_commit" =~ ^[0-9a-f]{40}$ ]] || die 'invalid project commit'
+[[ "$source_root" == /workspace/gemini-pda/* ]] || die 'unsafe source root'
+[[ "$output_root" == /workspace/gemini-pda/* ]] || die 'unsafe output root'
+
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+experiment_dir="$(cd -- "$script_dir/.." && pwd -P)"
+repository_dir="$(cd -- "$experiment_dir/../.." && pwd -P)"
+readonly script_dir experiment_dir repository_dir
+[[ "$(git -C "$repository_dir" rev-parse HEAD)" == "$project_commit" ]] ||
+	die 'project checkout does not match requested commit'
+[[ -z "$(git -C "$repository_dir" status --porcelain)" ]] ||
+	die 'project checkout is dirty'
+for command in git python3 sha256sum; do
+	command -v "$command" >/dev/null 2>&1 || die "missing command: $command"
+done
+
+readonly parent_patch="$experiment_dir/patches/0001-power-add-read-only-DVFSP-provenance-observer.patch"
+[[ "$(sha256sum "$parent_patch" | awk '{print $1}')" == "$PARENT_PATCH_SHA256" ]] ||
+	die 'historical observer patch changed'
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate.py"
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/test_preinit_source_tools.py"
+
+readonly mirror="$source_root/gemian-linux-kernel-3.18.git"
+readonly work_root=/workspace/gemini-pda/provenance-preinit-work
+readonly package="$output_root/gemian-provenance-preinit-patch-${project_commit:0:12}"
+readonly partial="${package}.partial.$$"
+mkdir -p "$source_root" "$work_root" "$output_root"
+[[ ! -e "$partial" ]] || die 'stale output partial exists'
+
+if [[ -d "$package" && ! -L "$package" ]]; then
+	grep -Fx "repository_commit=$project_commit" \
+		"$package/provenance/generation.txt" >/dev/null ||
+		die 'existing package commit mismatch'
+	(cd "$package" && sha256sum --check --strict SHA256SUMS >/dev/null)
+	printf 'Generated provenance pre-init patch review at %s\n' "$package"
+	exit 0
+fi
+[[ ! -e "$package" ]] || die 'unsafe existing package path'
+
+if [[ ! -d "$mirror" ]]; then
+	git clone --mirror "$SOURCE_URL" "${mirror}.partial"
+	mv "${mirror}.partial" "$mirror"
+fi
+[[ "$(git --git-dir="$mirror" remote get-url origin)" == "$SOURCE_URL" ]] ||
+	die 'vendor mirror origin mismatch'
+git --git-dir="$mirror" fetch origin "$SOURCE_COMMIT"
+[[ "$(git --git-dir="$mirror" rev-parse FETCH_HEAD)" == "$SOURCE_COMMIT" ]] ||
+	die 'vendor source fetch mismatch'
+
+work="$(mktemp -d "$work_root/preinit.XXXXXX")"
+readonly work
+cleanup() {
+	[[ ! -d "$work" || "$work" != "$work_root"/preinit.* ]] || rm -rf -- "$work"
+	[[ ! -d "$partial" || "$partial" != "$output_root"/*.partial.* ]] || rm -rf -- "$partial"
+}
+trap cleanup EXIT
+
+git clone --no-checkout "$mirror" "$work/source"
+git -C "$work/source" checkout --detach "$SOURCE_COMMIT"
+git -C "$work/source" config user.name 'Gemini Mainline Experiment'
+git -C "$work/source" config user.email gemini-mainline@example.invalid
+git -C "$work/source" am --committer-date-is-author-date "$parent_patch"
+[[ "$(git -C "$work/source" rev-parse HEAD)" == "$PARENT_COMMIT" ]] ||
+	die 'exact observer parent commit did not reproduce'
+
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/preinit_source_edits.py" \
+	--source "$work/source"
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_preinit_source.py" \
+	--source "$work/source"
+git -C "$work/source" diff --check
+git -C "$work/source" add -- \
+	drivers/misc/mediatek/base/power/Kconfig \
+	drivers/misc/mediatek/base/power/mt6797/Makefile \
+	drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-provenance-preinit-recovery.c
+git -C "$work/source" diff --cached --check
+GIT_AUTHOR_NAME='Gemini Mainline Experiment' \
+GIT_AUTHOR_EMAIL=gemini-mainline@example.invalid \
+GIT_COMMITTER_NAME='Gemini Mainline Experiment' \
+GIT_COMMITTER_EMAIL=gemini-mainline@example.invalid \
+GIT_AUTHOR_DATE=2026-08-15T15:30:00Z \
+GIT_COMMITTER_DATE=2026-08-15T15:30:00Z \
+	git -C "$work/source" commit --no-gpg-sign \
+		-m 'power: add provenance pre-init recovery companion' \
+		-m 'Emit one retained late-init checkpoint before external init.' \
+		-m 'Request one bounded emergency restart through the existing handler.' \
+		-m 'Keep storage, DVFSP, regulator, and CPU admission unchanged.'
+child_commit="$(git -C "$work/source" rev-parse HEAD)"
+readonly child_commit
+
+mkdir -p "$partial/patches" "$partial/provenance"
+readonly patch=0002-power-add-provenance-pre-init-recovery-companion.patch
+git -C "$work/source" format-patch -1 --no-signature --stdout HEAD \
+	>"$partial/patches/$patch"
+printf '%s\n' "$patch" >"$partial/patches/series"
+git -C "$work/source" diff-tree --no-commit-id --name-only -r HEAD \
+	>"$partial/provenance/changed-paths.txt"
+diff -u <(printf '%s\n' \
+	drivers/misc/mediatek/base/power/Kconfig \
+	drivers/misc/mediatek/base/power/mt6797/Makefile \
+	drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-provenance-preinit-recovery.c) \
+	"$partial/provenance/changed-paths.txt" >/dev/null ||
+	die 'generated patch path inventory changed'
+[[ -z "$(git -C "$work/source" status --porcelain)" ]] ||
+	die 'generated source is dirty'
+
+git clone --no-checkout "$mirror" "$work/verify"
+git -C "$work/verify" checkout --detach "$SOURCE_COMMIT"
+git -C "$work/verify" config user.name 'Gemini Mainline Experiment'
+git -C "$work/verify" config user.email gemini-mainline@example.invalid
+git -C "$work/verify" am --committer-date-is-author-date "$parent_patch"
+git -C "$work/verify" am --committer-date-is-author-date "$partial/patches/$patch"
+[[ "$(git -C "$work/verify" rev-parse HEAD)" == "$child_commit" ]] ||
+	die 'normal child patch application did not reproduce generated commit'
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_preinit_source.py" \
+	--source "$work/verify"
+[[ -z "$(git -C "$work/verify" status --porcelain)" ]] ||
+	die 'verification source is dirty'
+
+cat >"$partial/provenance/generation.txt" <<EOF
+purpose=experiment-only-provenance-preinit-recovery-source-review
+boot_candidate=false
+device_action=none
+repository_commit=$project_commit
+source_url=$SOURCE_URL
+source_commit=$SOURCE_COMMIT
+exact_parent_commit=$PARENT_COMMIT
+generated_child_commit=$child_commit
+parent_patch_sha256=$PARENT_PATCH_SHA256
+generated_patch_count=1
+generator=experiments/2026-08-14-mt6797-runtime-provenance-observer/scripts/generate-preinit-on-buildbox
+native_vm_kernel_build=no
+EOF
+(
+	cd "$partial"
+	find patches provenance -type f -print0 | sort -z | xargs -0 sha256sum >SHA256SUMS
+	sha256sum --check --strict SHA256SUMS >/dev/null
+)
+mv "$partial" "$package"
+trap - EXIT
+rm -rf -- "$work"
+printf 'Generated provenance pre-init patch review at %s\n' "$package"
