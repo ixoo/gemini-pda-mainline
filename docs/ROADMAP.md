@@ -3474,13 +3474,19 @@ assembly and padding paths, and negative mutation checks. The next ordered gate
 also passes: the frozen pre-boot hypothesis, exact runtime decision map,
 read-only direct-USB/netcat collector, mutation-tested classifier, and guarded
 installer preserve attribution, inactive live-GPT boot2, stable power, full
-readback, no-fresh-backup, and clean-shutdown invariants. That guarded write has
-now resolved inactive live-GPT boot2, recorded its predecessor, written the
-accepted container, passed full-partition and independent byte readback, and
-left the device cleanly shut down without reboot. The direct USB/netcat
-collector is armed. The next ordered action is one physically selected boot2
-cycle. Its observation can close the lifecycle-publication evidence gap; it
-cannot satisfy the coherent-owner gate.
+readback, no-fresh-backup, and clean-shutdown invariants. The first guarded write
+and readback passed, but its one selected cycle stuck at the splash and exposed
+no runtime interface. Recovery showed a manual power-key reason, empty pstore,
+offline CPU8/CPU9, and unchanged boot2. Offline inspection then proved the
+container retained the stock Gemian ramdisk and therefore could not provide the
+expected project USB/netcat shell. Do not repeat it. A kernel/DT/config-identical
+derivative now passes independent construction and mutation review with a new
+early debugfs record and the live-verified legacy Android RNDIS observation
+path. This is the independent decision-changing path required for an otherwise
+identical kernel. The next ordered action is its guarded boot2 write, shutdown,
+and one physically selected cycle with the corrected collector armed. Its
+observation can close the lifecycle-publication evidence gap; it cannot satisfy
+the coherent-owner gate.
 The subsequent upstream implementation remains one native transition owner
 spanning the DVFSP/I2C6/DA921x operation and rollback boundary. Provider
 registration, setters, hardware writes, and CPU8/CPU9 admission remain closed.

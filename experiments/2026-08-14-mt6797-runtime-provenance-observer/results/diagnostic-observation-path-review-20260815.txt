@@ -1,0 +1,60 @@
+MT6797 runtime provenance observer: corrected observation-path review
+Date: 2026-08-15 America/New_York
+
+Lineage
+- exact Candidate AC initramfs SHA-256: 166c0f03ab9ca1062f36d55132141b4be5f06187380d17ab2f6e9e7db75d1dd3
+- diagnostic initramfs SHA-256: 86a112ef29fecdb8f47b003cbfb08b77b478c4f511cba46acd987af09c921358
+- attempt-1 and derivative kernel/DT/config identity: byte-exact
+- kernel field SHA-256: d49d03911837af1519efc3089018e505e2a213f4682dd7cb25a751e65f8cdb7d
+- active header source SHA-256: 1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513
+
+Exact initramfs delta
+- changed: init
+- changed: bin/usb-net
+- added: bin/provenance-record
+- every other Candidate AC member: byte-and-metadata-identical
+- storage access: none
+- DVFSP/regulator/CPU/watchdog/reboot control: none
+- USB transport: legacy Android RNDIS configuration only
+- sysfs: temporary read-write window, restored read-only before listener
+
+Live contract source
+Known-good Gemian read-only inspection confirmed CONFIG_USB_G_ANDROID runtime
+surfaces at /sys/class/android_usb/android0, functions=rndis, interface=rndis0,
+and UDC musb-hdrc. No serial or personal identifier is retained here.
+
+Container
+- raw size: 10108928
+- raw SHA-256: 1d303dda10b47248f51a1fb2c8f3b1a7b8098522536f4f54ff763c17e75ff310
+- padded size: 16777216
+- padded SHA-256: ea603c1b1a64d4f1aa9cac3e53957a3e858a7ce04127f1aef36d4b0e8173cb02
+- manifest SHA-256: ad92d496dfb4fd183c35e6e0f32ce626b2045528657fb2567d8561dd02540f1a
+- independent complete build roots: 2, recursively identical
+- independent padding methods: 2, identical
+- independent candidate validators: pass in both roots
+- negative container mutations rejected: 5
+- generic LK gates: same three inherited vendor differences as attempt 1
+  (recovered kernel address, relocatability, exact handoff flags)
+
+Current tool SHA-256
+- assemble-diagnostic.py: 66b5617e1aee8befdaf3d064b0966a6d2cebe256e0e8092e19fb10b34c2fa0f2
+- build-diagnostic-candidate.sh: b426337ecb44fe7ba21b710763baa71bd7757173f953a420a0b8d78d44b055bd
+- build-diagnostic-initramfs.py: 0abe8a8b02ec3767c21fc018c69cc7e2db5ddb475a00e443247474a582f29f38
+- collect-runtime.sh: d8e9474037126049d35e7b67fde18105c449687b2de3b82474f2d0de9b75cb7a
+- install-boot2.sh: deaa0e886a881132dd49ee1e3d5b0e6f776400f51fa86a8d0b7c791e979d12a8
+- remote-runtime-probe.sh: 81ba9606e482c85fb9ba5ba8e5c0b79b3dd6112267a56f1acfa2c726db61653c
+- test_diagnostic_candidate.py: 5749bdf867a0b7f890e64e693d774e897f0236c788ea11ea5f4fe319d267637f
+- test_runtime_tools.py: 2ce8b9ed4dc0aefef77075df8d426dd62bd5e5eea494333a807bd4d5852143d0
+- validate-runtime.py: ab754807135d3c9ab05d63cacbd35870c0ca18d0235b7b6ad20431c8d9b402fe
+
+Validation
+- shell syntax, Python compilation, ShellCheck warning-or-higher: pass
+- runtime classifier positive fixture and seven mutations: pass
+- installer static contract: pass
+- complete initramfs/container reproducibility: pass
+- exact attempt-1 kernel/DT equality: pass
+
+Conclusion
+This derivative is justified only as a durable independent observation path.
+It is not new kernel functionality, runtime evidence, or CPU8/CPU9 support. One
+guarded deployment and one physical selection are the next ordered action.

@@ -1,0 +1,50 @@
+#!/bin/busybox sh
+# shellcheck shell=dash
+
+export PATH=/bin
+readonly MARKER='GEMINI_DVFSP_PROVENANCE_DIAGNOSTIC_20260815'
+readonly STATE=/sys/kernel/debug/gemini_dvfsp_provenance/state
+readonly OUTPUT=/run/provenance-early.txt
+
+if ! mount -t debugfs -o ro,nosuid,nodev,noexec debugfs /sys/kernel/debug 2>/dev/null; then
+	result=debugfs-mount-failed
+else
+	result=debugfs-mounted-read-only
+fi
+
+{
+	printf '%s\n' '__GEMINI_PROVENANCE_EARLY_BEGIN__'
+	printf 'marker=%s\n' "$MARKER"
+	printf 'kernel_release=%s\n' "$(uname -r)"
+	printf 'architecture=%s\n' "$(uname -m)"
+	printf 'debugfs=%s\n' "$result"
+	printf 'state_path=%s\n' "$STATE"
+	if [ -f "$STATE" ] && [ -r "$STATE" ]; then
+		printf 'state_access=readable\nstate_mode=%s\n' "$(stat -c '%a' "$STATE" 2>/dev/null || printf unavailable)"
+		printf '%s\n' '__GEMINI_PROVENANCE_EARLY_SNAPSHOT_1_BEGIN__'
+		cat "$STATE"
+		printf '%s\n' '__GEMINI_PROVENANCE_EARLY_SNAPSHOT_1_END__'
+		sleep 2
+		printf '%s\n' '__GEMINI_PROVENANCE_EARLY_SNAPSHOT_2_BEGIN__'
+		cat "$STATE"
+		printf '%s\n' '__GEMINI_PROVENANCE_EARLY_SNAPSHOT_2_END__'
+	else
+		printf '%s\n' 'state_access=absent-or-unreadable'
+	fi
+	printf '%s\n' 'device_partition_reads=none'
+	printf '%s\n' 'device_storage_writes=none'
+	printf '%s\n' 'dvfsp_hardware_write=none'
+	printf '%s\n' 'reboot_request=none'
+	printf '%s\n' '__GEMINI_PROVENANCE_EARLY_END__'
+} >"$OUTPUT"
+
+while IFS= read -r line; do
+	printf '<6>%s %s\n' "$MARKER" "$line" >/dev/kmsg 2>/dev/null || true
+	if [ -c /dev/ttyS0 ]; then
+		printf '%s %s\n' "$MARKER" "$line" >/dev/ttyS0 2>/dev/null || true
+	fi
+done <"$OUTPUT"
+if [ -c /dev/tty1 ]; then
+	printf '%s early_provenance=%s kernel=%s\n' "$MARKER" "$result" "$(uname -r)" >/dev/tty1 2>/dev/null || true
+fi
+exit 0

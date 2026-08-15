@@ -1,0 +1,48 @@
+MT6797 runtime provenance observer: attempt 1 service failure
+Date: 2026-08-15 America/New_York
+Device: named project Gemini PDA, MT6797
+
+Deployed identity
+- full boot2 SHA-256: b17400c59f0a68db602c66cb5d83ec1c6161e98dcbd3e5d3ffece0b5c69f23a9
+- kernel release expected: 3.18.79-gemini-provenance-observer+
+- ramdisk SHA-256: a1ee05445e9a2bd8fbc1f75d7cda326b9ca7a6d3b644cbb1d5fc0ac167835be4
+
+Owner-visible observation
+- boot2 was physically selected once
+- the Gemian splash appeared and remained stuck
+- no automatic reboot occurred
+- no expected USB interface or netcat shell appeared
+- the owner manually restarted into ordinary Gemian
+
+Recovered evidence
+- recovery kernel: 3.18.41+
+- recovery boot ID: fb5b0390-4629-4815-989e-6897d3dc317d
+- boot_reason: 0
+- androidboot.bootreason: power_key
+- pstore directory: present
+- pstore file count: 0
+- last_kmsg size: 74
+- last_kmsg SHA-256: 4fcbab4427a8c10a4824e715d9e4b8904b8152eb03c827b1065fcd4a65868652
+- last_kmsg content class: generic ram-console header, hw_status 0, fiq step 0
+- CPU possible/present: 0-9 / 0-9
+- CPU online at recovery sample: 4-5; therefore CPU8/CPU9 offline
+- inactive boot2: /dev/mmcblk0p30, unmounted, 16777216 bytes
+- recovered boot2 SHA-256: b17400c59f0a68db602c66cb5d83ec1c6161e98dcbd3e5d3ffece0b5c69f23a9
+
+Posthoc observation-path audit
+- the embedded ramdisk is byte-identical to the retained stock Gemian ramdisk
+- it contains neither bin/usb-shell nor bin/usb-net
+- it contains no GEMINI_USB_GADGET_ETHERNET_20260721_AC marker
+- the direct USB/netcat collector was therefore not reachable by construction
+
+Classification
+runtime_classification=service-failure-observation-path-invalid
+kernel_hang_localization=not-established
+ppm_eem_publication=not-observed
+cpu8_cpu9_admission=closed
+repeat_identical_candidate=no
+
+Next decision
+Use one kernel/DT/config-identical derivative only because it adds a durable,
+independent early record and a live-verified vendor-RNDIS collection path. Do
+not infer a kernel crash or lifecycle failure from the stuck splash alone.

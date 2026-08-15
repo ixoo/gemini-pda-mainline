@@ -9,9 +9,9 @@ umask 077
 
 readonly EXPECTED_TARGET=gemini@192.168.1.50
 readonly BOOT2_SIZE=16777216
-readonly CANDIDATE_SHA256=b17400c59f0a68db602c66cb5d83ec1c6161e98dcbd3e5d3ffece0b5c69f23a9
-readonly ARTIFACT_MANIFEST_SHA256=0f08d020ab6a9c8020a9bf70baba3dcecd863905529a4e0b773f78c3cab2ac04
-readonly ARTIFACT_NAME=gemian-runtime-provenance-observer-e354ee4b8265
+readonly CANDIDATE_SHA256=ea603c1b1a64d4f1aa9cac3e53957a3e858a7ce04127f1aef36d4b0e8173cb02
+readonly ARTIFACT_MANIFEST_SHA256=ad92d496dfb4fd183c35e6e0f32ce626b2045528657fb2567d8561dd02540f1a
+readonly ARTIFACT_NAME=gemian-runtime-provenance-observer-rndis-1d303dda10b4
 
 die() { printf 'error: %s\n' "$*" >&2; exit 2; }
 usage() {

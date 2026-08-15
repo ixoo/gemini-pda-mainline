@@ -5,9 +5,9 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-14-mt6797-runtime-provenance-observer` |
-| Status | `exact boot2 deployment verified; runtime collector armed` |
+| Status | `attempt 1 service failure; corrected RNDIS derivative validated` |
 | Subsystem | MT6797 EEM/PPM DVFSP provenance |
-| Device variant | Planet Gemini PDA, MT6797; exact boot2 candidate installed |
+| Device variant | Planet Gemini PDA, MT6797; recovered to known-good Gemian |
 | Date | 2026-08-14 America/New_York |
 | Investigator | Gemini mainline project |
 
@@ -34,9 +34,10 @@ A compile result cannot establish runtime publication or hardware support.
   `LOCALVERSION=-gemini-provenance-observer` added
 - Build backend: Buildbox only, using the pinned Debian Stretch GCC 6.3
   toolchain manifest already used by the Gemian full-link experiments
-- Boot path: the exact Android-v0 container, pre-boot contract, runtime
-  classifier, and guarded installer pass their separate offline reviews; the
-  exact candidate is now installed and the runtime collector is armed
+- Boot path: attempt 1 installed and read back exactly but used the stock
+  ramdisk, so its USB/netcat expectation was invalid. A kernel/DT/config-
+  identical derivative with a vendor-RNDIS observation ramdisk now passes
+  independent offline review.
 
 The synthetic patch author is experiment-only and non-certifying. The patch
 contains no synthetic `Signed-off-by` and is not submission-ready.
@@ -57,7 +58,11 @@ the validated kernel field and canonical image ID, and is padded to exactly
 16 MiB by two independent methods. A later read-only Gemian preflight checked
 only OS, root, GPT identity, power, and sudo readiness; it did not read boot2.
 The later guarded deployment wrote only inactive boot2 and then shut the device
-down; no candidate boot has occurred in this experiment yet.
+down. Attempt 1 was manually recovered after a stuck splash and never exposed
+the expected runtime interface. The corrected derivative changes only the
+RAM-resident observation path. It temporarily remounts sysfs read-write only to
+configure the live-verified legacy Android RNDIS gadget, restores sysfs
+read-only, performs no storage or DVFSP write, and requests no reboot.
 
 ## Associated code
 
@@ -84,6 +89,17 @@ down; no candidate boot has occurred in this experiment yet.
   independent readback, and powers off without rebooting.
 - [`scripts/test_runtime_tools.py`](scripts/test_runtime_tools.py) exercises the
   accepted runtime outcome and seven decision-changing mutations offline.
+- [`initramfs/`](initramfs/) contains the minimal early observer recorder and
+  legacy Android RNDIS transport for the corrected derivative.
+- [`scripts/build-diagnostic-initramfs.py`](scripts/build-diagnostic-initramfs.py)
+  makes the exact three-member delta from validated Candidate AC.
+- [`scripts/assemble-diagnostic.py`](scripts/assemble-diagnostic.py) preserves
+  the attempt-1 kernel, DTB, vendor address contract, and header strings while
+  replacing only the ramdisk field and canonical image ID.
+- [`scripts/build-diagnostic-candidate.sh`](scripts/build-diagnostic-candidate.sh)
+  performs two initramfs/container assemblies and independent padding paths.
+- [`scripts/test_diagnostic_candidate.py`](scripts/test_diagnostic_candidate.py)
+  independently pins the delta and rejects five container mutations.
 - [`DESIGN.md`](DESIGN.md) defines the observation and decision contract.
 
 ## Procedure
@@ -184,6 +200,31 @@ became unreachable, and was not rebooted. The direct USB/netcat collector is
 armed for one physical boot2 selection. See the
 [`2026-08-15` deployment receipt](results/deployment-20260815.txt).
 
+On the one physical attempt-1 selection, the display reached the Gemian splash
+and remained stuck. No matching USB interface, netcat shell, or SSH service
+appeared. The owner manually returned to ordinary Gemian; its boot reason was
+`power_key`, pstore was empty, `/proc/last_kmsg` contained only the generic
+74-byte ram-console header, CPU8/CPU9 were offline, and inactive boot2 still
+matched the exact deployed candidate. Offline inspection then proved that the
+attempt-1 ramdisk was stock Gemian: it contains no `usb-shell`, `usb-net`, or
+project USB marker. The runtime transport expectation was therefore impossible
+for that container, independent of the still-unlocalized splash hang. Do not
+repeat attempt 1. See the
+[`attempt-1 service-failure record`](results/runtime-attempt-1-service-failure-20260815.txt).
+
+The corrected derivative uses the exact validated Candidate AC initramfs as a
+base, changes only `init` and `bin/usb-net`, and adds one early read-only
+provenance recorder. The RNDIS helper follows the legacy Android gadget contract
+observed on known-good Gemian, restores sysfs read-only before exposing the
+shell, and records both an early snapshot and a fresh live snapshot path. Two
+independent build roots are byte-identical. The full boot2 SHA-256 is
+`ea603c1b1a64...`; the kernel, appended DTB, and configuration bytes are exactly
+the attempt-1 bytes. Both independent validators pass and five mutations are
+rejected. The generic LK analyzer retains only the same three inherited vendor
+address/relocatability differences already accepted for attempt 1. See the
+[`corrected observation-path review`](results/diagnostic-observation-path-review-20260815.txt)
+and [`predeployment hypothesis`](results/predeployment-hypothesis-rndis-20260815.txt).
+
 ## Analysis
 
 This observer intentionally does not port the Linux 7.1 experimental
@@ -199,13 +240,16 @@ The compile/link, offline container, and runtime-tool gates pass. This
 establishes source integration, exact configuration scope, DCT reproducibility,
 linked observer presence, symbol closure, one reproducible LK-compatible
 container, and a fixed deployment/measurement contract. It does not establish
-runtime lifecycle publication or hardware support. The guarded deployment now
-passes; the next ordered action is one read-only runtime observation.
+runtime lifecycle publication or hardware support. Attempt 1 did not produce a
+valid observation. The corrected, independently observable derivative now
+passes offline review; its separate guarded deployment is the next action.
 
 ## Follow-up
 
-With the direct USB/netcat collector armed, physically select boot2 once.
-Runtime success requires two stable reads with
+Install exact corrected candidate `ea603c1b1a64...` to live-GPT-resolved
+inactive boot2, verify the full readback, and shut down. Then arm the corrected
+USB/netcat collector and physically select boot2 once. Runtime success requires
+two stable reads with
 `observation_complete=1`, all reported PPM cluster bits present, EEM bank masks
 equal to `0x0000003b`, and nonzero variant, table epoch, and calibration handle,
 while owner/transition handles remain zero. That would confirm table and

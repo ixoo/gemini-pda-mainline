@@ -13,7 +13,7 @@ VALIDATOR = SCRIPT_DIR / "validate-runtime.py"
 PROBE = SCRIPT_DIR / "remote-runtime-probe.sh"
 COLLECTOR = SCRIPT_DIR / "collect-runtime.sh"
 INSTALLER = SCRIPT_DIR / "install-boot2.sh"
-CANDIDATE = "b17400c59f0a68db602c66cb5d83ec1c6161e98dcbd3e5d3ffece0b5c69f23a9"
+CANDIDATE = "ea603c1b1a64d4f1aa9cac3e53957a3e858a7ce04127f1aef36d4b0e8173cb02"
 
 spec = importlib.util.spec_from_file_location("runtime_validator", VALIDATOR)
 assert spec and spec.loader

@@ -10,8 +10,8 @@ readonly HOST_ADDRESS=10.15.19.1
 readonly DEVICE_ADDRESS=10.15.19.82
 readonly DEVICE_PORT=2323
 readonly WAIT_SECONDS=900
-readonly PROBE_SHA256=ea084cf5a3ff1f2a226b2b481bab526863fb68dc911c81138cfec3453b21ef98
-readonly CANDIDATE_SHA256=b17400c59f0a68db602c66cb5d83ec1c6161e98dcbd3e5d3ffece0b5c69f23a9
+readonly PROBE_SHA256=81ba9606e482c85fb9ba5ba8e5c0b79b3dd6112267a56f1acfa2c726db61653c
+readonly CANDIDATE_SHA256=ea603c1b1a64d4f1aa9cac3e53957a3e858a7ce04127f1aef36d4b0e8173cb02
 
 die() { printf 'error: %s\n' "$*" >&2; exit 2; }
 usage() {

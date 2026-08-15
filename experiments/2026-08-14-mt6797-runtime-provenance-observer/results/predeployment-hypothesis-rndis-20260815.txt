@@ -1,0 +1,38 @@
+MT6797 runtime provenance observer: corrected derivative predeployment hypothesis
+Date: 2026-08-15 America/New_York
+
+Exact candidate
+- raw Android-v0 SHA-256: 1d303dda10b47248f51a1fb2c8f3b1a7b8098522536f4f54ff763c17e75ff310
+- full 16 MiB boot2 SHA-256: ea603c1b1a64d4f1aa9cac3e53957a3e858a7ce04127f1aef36d4b0e8173cb02
+- diagnostic ramdisk SHA-256: 86a112ef29fecdb8f47b003cbfb08b77b478c4f511cba46acd987af09c921358
+- kernel field SHA-256: d49d03911837af1519efc3089018e505e2a213f4682dd7cb25a751e65f8cdb7d
+- kernel release: 3.18.79-gemini-provenance-observer+
+
+Kernel/DT/configuration hypothesis
+Kernel, appended DTB, and configuration bytes are exactly attempt 1. The only
+decision-relevant change is the initramfs observation path. It mounts debugfs
+read-only, records the observer twice before starting services, then configures
+the exact legacy Android RNDIS interface observed on known-good Gemian and
+restores sysfs read-only before starting netcat.
+
+Unique attributable evidence
+- early observer output is retained in RAM and emitted to kmsg/primary consoles
+- the direct RNDIS/netcat shell permits a fresh two-read capture
+- the exact full-partition deployment readback binds both paths to this image
+- the derivative marker is GEMINI_DVFSP_PROVENANCE_DIAGNOSTIC_20260815
+
+Safety and deliberate transport effect
+- storage and device partitions are not accessed by the initramfs
+- no CPU-online, DVFSP, regulator, watchdog, or reboot control is used
+- sysfs is writable only for the bounded Android RNDIS configuration and is
+  restored read-only before the shell listens
+- observer owner/provider/write/admission fields must remain closed
+
+Decision effect
+- stable complete live reads: close vendor PPM/EEM lifecycle publication only
+- early record exists but live RNDIS fails: transport-specific service failure;
+  recover the early record if retained, without changing kernel/DT/config
+- neither early nor live record: localize failure before /init or debugfs
+- any fault, DVFSP owner/write claim, or CPU8/9 admission: reject and recover
+
+No outcome enables CPU8 or CPU9.

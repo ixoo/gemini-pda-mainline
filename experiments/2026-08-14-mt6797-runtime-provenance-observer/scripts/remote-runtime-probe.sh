@@ -6,7 +6,7 @@ set -eu
 export LC_ALL=C
 
 readonly STATE=/sys/kernel/debug/gemini_dvfsp_provenance/state
-readonly INSTALLED_FULL_SHA256=b17400c59f0a68db602c66cb5d83ec1c6161e98dcbd3e5d3ffece0b5c69f23a9
+readonly INSTALLED_FULL_SHA256=ea603c1b1a64d4f1aa9cac3e53957a3e858a7ce04127f1aef36d4b0e8173cb02
 
 printf '%s\n' '__GEMINI_PROVENANCE_RUNTIME_BEGIN__'
 printf 'installed_full_sha256=%s\n' "$INSTALLED_FULL_SHA256"

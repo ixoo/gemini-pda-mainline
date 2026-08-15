@@ -1,0 +1,57 @@
+#!/bin/busybox sh
+# shellcheck shell=dash
+
+export PATH=/bin
+readonly ANDROID=/sys/class/android_usb/android0
+readonly INTERFACE=rndis0
+readonly WAIT_SECONDS=30
+
+if [ ! -d "$ANDROID" ]; then
+	/bin/ac-record 'android_usb=absent worker=exit'
+	exit 1
+fi
+if ! mount -o remount,rw /sys 2>/run/ac-sysfs-rw.status; then
+	/bin/ac-record 'sysfs=remount-rw-failed worker=exit'
+	exit 1
+fi
+configuration=failed
+if printf '0\n' >"$ANDROID/enable" &&
+	printf '0fce\n' >"$ANDROID/idVendor" &&
+	printf '7169\n' >"$ANDROID/idProduct" &&
+	printf '42:00:15:19:84:00\n' >"$ANDROID/f_rndis/ethaddr" &&
+	printf '1\n' >"$ANDROID/f_rndis/wceis" &&
+	printf 'rndis\n' >"$ANDROID/functions" &&
+	printf '1\n' >"$ANDROID/enable"; then
+	configuration=legacy-android-rndis-enabled
+fi
+if ! mount -o remount,ro /sys 2>/run/ac-sysfs-ro.status; then
+	/bin/ac-record 'sysfs=remount-ro-failed worker=exit'
+	exit 1
+fi
+if [ "$configuration" != legacy-android-rndis-enabled ]; then
+	/bin/ac-record 'android_usb=configuration-failed sysfs=restored-ro worker=exit'
+	exit 1
+fi
+/bin/ac-record 'android_usb=legacy-rndis-enabled host_mac=42:00:15:19:84:00 sysfs=restored-ro'
+
+waited=0
+while [ ! -d "/sys/class/net/$INTERFACE" ] && [ "$waited" -lt "$WAIT_SECONDS" ]; do
+	sleep 1
+	waited=$((waited + 1))
+done
+if [ ! -d "/sys/class/net/$INTERFACE" ]; then
+	/bin/ac-record 'rndis0=timeout wait_seconds=30 worker=exit'
+	exit 1
+fi
+if ! ip link set "$INTERFACE" up >/run/ac-ip-link.status 2>&1 ||
+	! ip address add 10.15.19.82/24 dev "$INTERFACE" >/run/ac-ip-address.status 2>&1; then
+	/bin/ac-record 'rndis0=network-configuration-failed worker=exit'
+	exit 1
+fi
+
+/bin/ac-record "rndis0=configured address=10.15.19.82/24 wait_seconds=$waited"
+/bin/ac-record 'service=nc status=listening address=10.15.19.82 port=2323 shell=/bin/usb-shell authentication=none encryption=none direct_link_only=yes'
+nc -ll -p 2323 -e /bin/usb-shell 2>/run/ac-nc.status
+status=$?
+/bin/ac-record "service=nc status=exited code=$status worker=exit"
+exit "$status"
