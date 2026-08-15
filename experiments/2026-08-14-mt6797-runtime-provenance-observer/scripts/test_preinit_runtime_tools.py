@@ -17,6 +17,7 @@ INSTALLER = SCRIPT_DIR / "install-preinit-boot2.sh"
 PSTORE_COLLECTOR = SCRIPT_DIR.parents[2] / "scripts" / "collect-device-pstore"
 CANDIDATE = "99414cdecc4e031b12b93114b355fb3d44366d6e7b5092cb4f5f9132755d61c7"
 MARKER = "GEMINI_DVFSP_PROVENANCE_PREINIT_RECOVERY_20260815"
+DIAGNOSTIC_MARKER = "GEMINI_DVFSP_PROVENANCE_DIAGNOSTIC_20260815"
 
 
 def load(name: str, path: Path):
@@ -125,7 +126,10 @@ def make_pstore_capture(root: Path, console: str, **cycle_changes: str) -> Path:
         "\n".join(f"{key}={value}" for key, value in cycle.items()) + "\n"
     )
     (capture / "metadata.txt").write_text(
-        "kernel=3.18.41+\narchitecture=aarch64\npstore_directory=present\n"
+        "kernel=3.18.41+\n"
+        "architecture=aarch64\n"
+        f"boot_id_sha256={'2' * 64}\n"
+        "pstore_directory=present\n"
     )
     (pstore / "console-ramoops").write_text(console)
     return capture
@@ -143,7 +147,68 @@ def good_console() -> str:
     )
 
 
-def cycle_outcome(console: str, runtime: str | None = None, **cycle_changes: str):
+def retained_runtime_console(
+    first: list[str] | None = None,
+    second: list[str] | None = None,
+    **outer_changes: str,
+) -> str:
+    outer = {
+        "marker": DIAGNOSTIC_MARKER,
+        "kernel_release": "3.18.79-gemini-provenance-preinit+",
+        "architecture": "aarch64",
+        "debugfs": "debugfs-mounted-read-only",
+        "state_path": "/sys/kernel/debug/gemini_dvfsp_provenance/state",
+        "state_access": "readable",
+        "state_mode": "444",
+    }
+    outer.update(outer_changes)
+    first = snapshot() if first is None else first
+    second = list(first) if second is None else second
+    payloads = ["__GEMINI_PROVENANCE_EARLY_BEGIN__"]
+    payloads.extend(f"{key}={value}" for key, value in outer.items())
+    payloads.append("__GEMINI_PROVENANCE_EARLY_SNAPSHOT_1_BEGIN__")
+    payloads.extend(first)
+    payloads.append("__GEMINI_PROVENANCE_EARLY_SNAPSHOT_1_END__")
+    payloads.append("__GEMINI_PROVENANCE_EARLY_SNAPSHOT_2_BEGIN__")
+    payloads.extend(second)
+    payloads.append("__GEMINI_PROVENANCE_EARLY_SNAPSHOT_2_END__")
+    payloads.extend(
+        (
+            "device_partition_reads=none",
+            "device_storage_writes=none",
+            "dvfsp_hardware_write=none",
+            "reboot_request=none",
+            "__GEMINI_PROVENANCE_EARLY_END__",
+        )
+    )
+    return "".join(
+        f"[    4.000000] {DIAGNOSTIC_MARKER} {payload}\n" for payload in payloads
+    )
+
+
+def manual_cycle_record(**changes: str) -> dict[str, str]:
+    values = {
+        "wait_for_cycle": "no",
+        "cycle_evidence": "owner-observed-automatic-restart",
+        "automatic_restart_observed": "yes",
+        "boot_id_changed": "yes",
+        "initial_boot_id_sha256": "1" * 64,
+        "final_boot_id_sha256": "2" * 64,
+        "installed_full_sha256": CANDIDATE,
+        "capture_kernel": "3.18.41+",
+        "capture_arch": "aarch64",
+        "expected_kernel": "3.18.41+",
+    }
+    values.update(changes)
+    return values
+
+
+def cycle_outcome(
+    console: str,
+    runtime: str | None = None,
+    cycle_record: dict[str, str] | None = None,
+    **cycle_changes: str,
+):
     with tempfile.TemporaryDirectory() as root:
         root_path = Path(root)
         capture = make_pstore_capture(root_path, console, **cycle_changes)
@@ -151,8 +216,15 @@ def cycle_outcome(console: str, runtime: str | None = None, **cycle_changes: str
         if runtime is not None:
             runtime_path = root_path / "runtime.txt"
             runtime_path.write_text(runtime)
+        cycle_path = None
+        if cycle_record is not None:
+            cycle_path = root_path / "cycle-record.txt"
+            cycle_path.write_text(
+                "\n".join(f"{key}={value}" for key, value in cycle_record.items())
+                + "\n"
+            )
         try:
-            result = cycle_classifier.classify(capture, runtime_path)
+            result = cycle_classifier.classify(capture, runtime_path, cycle_path)
             return result["runtime_classification"], result["runtime_reason"]
         except cycle_classifier.Classification as outcome:
             return outcome.result, outcome.reason
@@ -176,6 +248,11 @@ def test_runtime_classifier() -> None:
 def test_cycle_classifier() -> None:
     assert cycle_outcome(good_console())[0] == "success-preinit-recovery"
     assert cycle_outcome(good_console(), runtime_capture())[0] == "success-runtime-publication"
+    retained = good_console() + retained_runtime_console()
+    assert cycle_outcome(retained)[0] == "success-runtime-publication"
+    assert cycle_outcome(
+        retained, cycle_record=manual_cycle_record()
+    )[0] == "success-runtime-publication"
     checkpoint = good_console().splitlines()[1] + "\n"
     execution = good_console().splitlines()[2] + "\n"
     cases = (
@@ -189,6 +266,24 @@ def test_cycle_classifier() -> None:
     )
     for console, changes, expected in cases:
         assert cycle_outcome(console, **changes)[0] == expected
+    retained_cases = (
+        (
+            retained_runtime_console(second=snapshot(observer_generation="10")),
+            "success-preinit-recovery",
+        ),
+        (retained_runtime_console(first=snapshot(owner_handle="1")), "rejected-safety"),
+        (retained_runtime_console(state_mode="644"), "rejected-attribution"),
+    )
+    for retained_console, expected in retained_cases:
+        assert cycle_outcome(good_console() + retained_console)[0] == expected
+    manual_cases = (
+        (manual_cycle_record(automatic_restart_observed="no"), "rejected-attribution"),
+        (manual_cycle_record(final_boot_id_sha256="1" * 64), "rejected-attribution"),
+        (manual_cycle_record(final_boot_id_sha256="3" * 64), "rejected-attribution"),
+        (manual_cycle_record(installed_full_sha256="0" * 64), "rejected-attribution"),
+    )
+    for cycle_record, expected in manual_cases:
+        assert cycle_outcome(retained, cycle_record=cycle_record)[0] == expected
 
 
 def test_tool_contracts() -> None:
@@ -233,8 +328,8 @@ def main() -> None:
     print("validation=preinit-runtime-tools-offline")
     print("direct_runtime_positive=pass")
     print("direct_runtime_mutations_distinguished=7")
-    print("retained_cycle_positive_paths=2")
-    print("retained_cycle_mutations_distinguished=7")
+    print("retained_cycle_positive_paths=4")
+    print("retained_cycle_mutations_distinguished=14")
     print("installer_static_contract=pass")
     print("cpu8_cpu9_admission=closed")
 

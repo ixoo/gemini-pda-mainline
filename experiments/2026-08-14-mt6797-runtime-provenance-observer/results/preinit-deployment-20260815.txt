@@ -1,0 +1,27 @@
+experiment=2026-08-14-mt6797-runtime-provenance-observer
+date=2026-08-15
+operation=guarded-preinit-candidate-boot2-deployment
+authorization=AGENTS.md-standing-boot2-opt-in
+target_logical_name=boot2
+target_resolution=live-gpt-/dev/disk/by-partlabel/boot2
+target=/dev/mmcblk0p30
+target_size=16777216
+active_root=/dev/mmcblk0p29
+target_active_root=no
+target_mounted=no
+target_holders=none
+target_swap=no
+predecessor_sha256=ea603c1b1a64d4f1aa9cac3e53957a3e858a7ce04127f1aef36d4b0e8173cb02
+fresh_predecessor_backup=no
+recovery_basis=verified-project-wide-device-backup-captured-at-project-start
+candidate_sha256=99414cdecc4e031b12b93114b355fb3d44366d6e7b5092cb4f5f9132755d61c7
+post_flush_full_partition_sha256=99414cdecc4e031b12b93114b355fb3d44366d6e7b5092cb4f5f9132755d61c7
+independent_full_readback=byte-identical
+temporary_readback_removed=yes
+shutdown=requested-after-evidence-flush
+shutdown=confirmed-unreachable
+automatic_reboot_request=no
+result=write-synced-flushed-full-readback-verified-and-cleanly-powered-off
+
+This receipt contains only sanitized deployment facts. The private installer
+transcript remains below the ignored artifacts/device-install-evidence tree.

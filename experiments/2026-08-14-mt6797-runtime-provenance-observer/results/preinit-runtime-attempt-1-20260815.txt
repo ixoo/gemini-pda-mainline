@@ -1,0 +1,74 @@
+experiment=2026-08-14-mt6797-runtime-provenance-observer
+date=2026-08-15
+attempt=preinit-recovery-1
+selected_boot=live-gpt-logical-boot2
+candidate_full_sha256=99414cdecc4e031b12b93114b355fb3d44366d6e7b5092cb4f5f9132755d61c7
+candidate_kernel=3.18.79-gemini-provenance-preinit+
+recovery_kernel=3.18.41+
+owner_display_observation=boot-screen-with-no-visible-progress
+owner_recovery_observation=automatic-restart-to-ordinary-gemian
+predeployment_boot_id_sha256=a6e1a2447a1ca3a7eb7bf7fad6d9e6c5aae64774f28e5a26760357dffaf40884
+recovery_boot_id_sha256=1c57cd2bafe1bfd8a567097a3c775ddb047c36d0c6aef4323f2e28efede390ae
+boot_id_changed=yes
+pstore_console_sha256=53f13e226f722dc30c32b9f50507363dd1fc3994e0a94a6d2617fc36548183e5
+pstore_console_bytes=65524
+pstore_candidate_kernel_identity=present
+preinit_checkpoint_time_seconds=1.992499
+preinit_checkpoint=observed
+early_record_begin_time_seconds=4.030727
+early_record_end_time_seconds=4.059375
+observer_state_access=readable
+observer_state_mode=444
+snapshot_count=2
+snapshot_spacing_seconds=2
+snapshots_byte_values_identical=yes
+observation_complete=1
+variant_id=274
+observer_generation=9
+table_epoch=1
+calibration_handle=1
+ppm_expected_cluster_count=3
+ppm_cluster_mask=0x00000007
+eem_required_bank_mask=0x0000003b
+eem_calibration_bank_mask=0x0000003b
+table_commit_count=3
+calibration_bank_publish_count=5
+calibration_publish_count=1
+calibration_invalidate_count=0
+owner_handle=0
+transition_handle=0
+coherent_transition_owner=0
+provider=none
+hardware_write=none
+cpu8_cpu9_admission=closed
+diagnostic_services_launch_time_seconds=4.063639
+recovery_execution_time_seconds=122.072509
+restart_path=emergency_restart-machine_restart-mtk_arch_reset_handle-arch_reset
+restart_worker=gemini_mt6797_preinit_recovery_workfn
+runtime_classification=success-runtime-publication
+runtime_reason=retained-recovery-and-stable-complete-retained-publication
+kernel_hang_localization=recovery-worker-reached
+automatic_restart=attributed
+restart_attribution=owner-observed-restart-with-changed-boot-id
+direct_rndis_capture=not-attributably-captured
+direct_rndis_negative_claim=none
+post_return_boot2_target=/dev/mmcblk0p30
+post_return_boot2_size=16777216
+post_return_boot2_sha256=99414cdecc4e031b12b93114b355fb3d44366d6e7b5092cb4f5f9132755d61c7
+post_return_boot2_unchanged=yes
+repeat_exact_candidate=no
+claim_scope=preinit-localization-and-vendor-ppm-eem-lifecycle-publication-only
+
+The pre-armed collectors expired before they could attribute the owner's later
+physical cycle, so their timeouts are not negative USB or recovery evidence for
+this attempt. Attribution instead comes from the exact candidate kernel and
+markers retained in pstore, the platform restart call trace at 122.07 seconds,
+the owner-observed automatic return to Gemian, the changed recovery boot ID,
+and the unchanged exact full boot2 checksum after return.
+
+The display observation is not a hang localization. The retained console proves
+that the kernel continued through the observer, initramfs recorder, diagnostic
+service launch, delayed recovery worker, and registered MT6797 restart path.
+This closes the runtime publication measurement only. It does not establish a
+transition owner, provider, hardware write, regulator control, or CPU8/CPU9
+admission.

@@ -3526,12 +3526,26 @@ and retained-evidence mutations, keeps RNDIS as the fast path, and requires the
 independent pstore/recovery cycle. The next ordered action is one read-only
 Gemian OS/root/live-GPT/power/sudo preflight. That preflight now passes with
 unique inactive `/dev/mmcblk0p30`, stable full battery plus external power, and
-the prior corrected image still present. The next ordered action is the exact
-guarded boot2 write, full readback, and clean shutdown with both collectors
-armed; no device write has yet occurred for this changed kernel.
-The subsequent upstream implementation remains one native transition owner
+the prior corrected image still present. The guarded deployment then resolved
+that same inactive live-GPT boot2, wrote and independently read back exact full
+image `99414cdecc4e...`, created no fresh backup, and shut the device down
+cleanly. Its one physical selection appeared static at the boot screen but
+automatically returned to ordinary Gemian. Retained pstore proves the candidate
+reached its checkpoint at 1.99 seconds, recorded two stable complete read-only
+observer snapshots, launched the diagnostic services, and invoked the
+registered MT6797 restart path at 122.07 seconds. The recovery boot ID changed,
+and boot2 still matched the exact candidate after return. The snapshots publish
+variant 274, generation 9, table epoch 1, calibration handle 1, all three PPM
+clusters, all five required EEM banks, three table commits, five bank
+publications, and one calibration publication, while owner and transition
+handles remain zero and provider, hardware-write, and CPU-admission claims stay
+closed. See the [pre-init runtime result](../experiments/2026-08-14-mt6797-runtime-provenance-observer/results/preinit-runtime-attempt-1-20260815.txt).
+This closes the runtime provenance-publication measurement; do not repeat the
+candidate. The next ordered implementation is one native transition owner
 spanning the DVFSP/I2C6/DA921x operation and rollback boundary. Provider
-registration, setters, hardware writes, and CPU8/CPU9 admission remain closed.
+registration must first remain read-only and fail closed. Setters, hardware
+writes, and CPU8/CPU9 admission remain closed until their later dedicated
+gates.
 
 Required evidence:
 

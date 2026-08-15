@@ -5,9 +5,9 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-14-mt6797-runtime-provenance-observer` |
-| Status | `pre-init Gemian preflight passed; guarded deployment next` |
+| Status | `runtime publication accepted; native transition-owner review next` |
 | Subsystem | MT6797 EEM/PPM DVFSP provenance |
-| Device variant | Planet Gemini PDA, MT6797; corrected boot2 installed |
+| Device variant | Planet Gemini PDA, MT6797; pre-init recovery boot2 installed |
 | Date | 2026-08-14 America/New_York |
 | Investigator | Gemini mainline project |
 
@@ -42,6 +42,11 @@ A compile result cannot establish runtime publication or hardware support.
   identical derivative with a vendor-RNDIS observation ramdisk passed
   independent offline review and deployment, but its selected cycle exposed
   neither USB transport nor retained candidate evidence.
+- Pre-init recovery path: exact full boot2 image
+  `99414cdecc4e031b12b93114b355fb3d44366d6e7b5092cb4f5f9132755d61c7`;
+  one selected cycle retained the complete observer publication and invoked
+  the registered MT6797 restart path at kernel time 122.07 seconds before
+  returning automatically to ordinary Gemian.
 
 The synthetic patch author is experiment-only and non-certifying. The patch
 contains no synthetic `Signed-off-by` and is not submission-ready.
@@ -131,7 +136,8 @@ read-only, performs no storage or DVFSP write, and requests no reboot.
   retain the exact read-only RNDIS/netcat fast path for the changed candidate.
 - [`scripts/classify-preinit-cycle.py`](scripts/classify-preinit-cycle.py)
   combines the retained checkpoint/execution markers and recovery cycle with
-  the optional direct sample.
+  either the two retained early observer snapshots or the optional direct
+  sample.
 - [`scripts/install-preinit-boot2.sh`](scripts/install-preinit-boot2.sh)
   pins the exact accepted container while preserving live-GPT resolution,
   inactive-root, power, full-readback, no-fresh-backup, and clean-shutdown
@@ -362,6 +368,35 @@ installed. The preflight did not write a partition, create a backup, or change
 power state. See the
 [`pre-init Gemian preflight`](results/preinit-gemian-preflight-20260815.txt).
 
+The guarded deployment then resolved the same unique inactive live-GPT boot2,
+recorded corrected attempt 2 as its predecessor, wrote exact full image
+`99414cdecc4e...`, and passed the post-flush checksum plus independent full
+readback. It created no fresh backup, requested a clean poweroff only after the
+evidence flush, and confirmed the device unreachable without rebooting it. See
+the [`pre-init deployment receipt`](results/preinit-deployment-20260815.txt).
+
+On its one physical selection, the display remained on the boot screen with no
+visible progress, then the device automatically returned to ordinary Gemian.
+The pre-armed collectors had expired before they could attribute this later
+physical cycle, so their timeouts are not negative transport evidence. The
+immediate recovery capture nevertheless retained the exact candidate release
+and unique checkpoint at 1.99 seconds, two identical observer snapshots taken
+two seconds apart, diagnostic service launch, and the recovery worker entering
+the registered MT6797 restart path at 122.07 seconds. The recovery boot ID
+changed, and live-GPT boot2 still matched exact full checksum `99414cdecc4e...`
+after return.
+
+Both retained snapshots report `observation_complete=1`, variant 274,
+generation 9, table epoch 1, calibration handle 1, complete PPM cluster mask
+`0x00000007`, complete EEM calibration mask `0x0000003b`, three table commits,
+five bank publications, and one calibration publication. Both also retain zero
+owner and transition handles, `provider=none`, `hardware_write=none`, and
+closed CPU8/CPU9 admission. The strengthened classifier accepts this as stable,
+complete read-only lifecycle publication and still rejects missing, unstable,
+misattributed, or safety-violating retained evidence. See the
+[`runtime attempt`](results/preinit-runtime-attempt-1-20260815.txt) and
+[`retained-classifier review`](results/preinit-retained-classifier-review-20260815.txt).
+
 ## Analysis
 
 This observer intentionally does not port the Linux 7.1 experimental
@@ -369,30 +404,29 @@ coordinator into Linux 3.18. Such a port would create a large vendor-only owner
 implementation without advancing the upstream kernel. Instead, this candidate
 tests whether the real vendor EEM/PPM lifecycle can provide the missing runtime
 provenance evidence. Its zero owner fields preserve the unresolved production
-gate rather than hiding it.
+gate rather than hiding it. The retained attempt answers the publication
+question positively: the vendor commit points produced one stable, complete
+epoch/calibration snapshot. It also confirms the next gap rather than solving
+it: no coherent transition owner or regulator provider exists yet.
 
 ## Conclusion
 
-The original observer compile/link, offline container, and runtime-tool gates
-pass. The changed pre-init recovery child now also passes its separate
-Buildbox-only full-link gate and its independently reproduced container passes
-offline structural review. This
-establishes source integration, exact configuration scope, DCT reproducibility,
-linked observer presence, symbol closure, one reproducible LK-compatible
-container, and a fixed deployment/measurement contract. It does not establish
-runtime lifecycle publication or hardware support. Attempt 1 had an invalid
-transport expectation. Corrected attempt 2 had a valid transport design but
-never made that transport serviceable and retained no candidate marker. EEM/PPM
-runtime publication remains unobserved, and both deployed artifacts are closed
-to identical repetition.
+The original observer and changed pre-init recovery child pass their separate
+Buildbox-only full-link, offline container, deployment, and measurement gates.
+The retained attempt now establishes runtime EEM/PPM lifecycle publication on
+the named Gemini: two stable complete read-only snapshots, exact candidate and
+restart attribution, and automatic recovery to ordinary Gemian. This closes
+the provenance-publication measurement that the earlier transport-only attempts
+could not answer. It does not establish a coherent transition owner, regulator
+provider, setter, hardware write, or CPU8/CPU9 support. All three deployed
+artifacts are closed to identical repetition.
 
 ## Follow-up
 
-Arm the pstore-cycle and direct RNDIS collectors before the guarded boot2 write,
-require the exact full readback and clean shutdown, then give the owner the
-frozen one-cycle expectation. Runtime success would still require two
-stable reads with `observation_complete=1`, complete PPM and EEM masks, and
-nonzero variant, table epoch, and calibration handle while owner/transition
-handles remain zero. That would confirm publication only. The upstream path
-still requires one coherent transition owner for the DVFSP/I2C6/DA921x
-operation and rollback boundary before CPU8/CPU9 admission.
+Do not repeat this candidate. The next ordered work is the upstream transition-
+owner review: use the now-proven epoch/calibration publication contract while
+designing one native owner for the complete DVFSP/I2C6/DA921x operation and
+rollback boundary. Provider registration must first remain read-only and fail
+closed; a later, separate gate must prove one bounded write/readback/rollback
+while CPU8/CPU9 remain disconnected. Only after those gates may the first
+single-CPU8 request be considered.
