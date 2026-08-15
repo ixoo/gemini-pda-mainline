@@ -1,0 +1,61 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 15 Aug 2026 09:05:00 -0400
+Subject: [PATCH] soc: mediatek: widen state provenance table epoch
+
+Every producer and policy source uses a 64-bit table epoch, but the shared state-provenance object narrowed it to 32 bits. Widen the private field and bump its ABI so a long-lived or externally assigned epoch cannot alias after truncation. Add a hardware-free KUnit assertion for the full-width value. This remains default-off and performs no hardware operation or CPU admission.
+---
+ .../mt6797-dvfsp-calibrated-provider-test.c        | 14 ++++++++++++++
+ include/linux/soc/mediatek/mt6797-dvfsp-handoff.h  |  4 ++--
+ 2 files changed, 16 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-calibrated-provider-test.c b/drivers/soc/mediatek/mt6797-dvfsp-calibrated-provider-test.c
+index 6f6bdd2..76b4635 100644
+--- a/drivers/soc/mediatek/mt6797-dvfsp-calibrated-provider-test.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-calibrated-provider-test.c
+@@ -254,9 +254,23 @@ static void mt6797_dvfsp_provider_binds_and_exits(
+ 	mt6797_dvfsp_provider_test_put_devices(devices);
+ }
+ 
++static void mt6797_dvfsp_provider_preserves_wide_epoch(
++	struct kunit *test)
++{
++	struct mt6797_dvfsp_state_provenance provenance = {
++		.abi = MT6797_DVFSP_STATE_PROVENANCE_ABI,
++		.table_epoch = 0x100000002ULL,
++	};
++
++	KUNIT_EXPECT_EQ(test, provenance.table_epoch, 0x100000002ULL);
++	KUNIT_EXPECT_EQ(test, sizeof(provenance.table_epoch),
++		sizeof(u64));
++}
++
+ static struct kunit_case mt6797_dvfsp_provider_test_cases[] = {
+ 	KUNIT_CASE(mt6797_dvfsp_provider_rejects_incomplete_source),
+ 	KUNIT_CASE(mt6797_dvfsp_provider_binds_and_exits),
++	KUNIT_CASE(mt6797_dvfsp_provider_preserves_wide_epoch),
+ 	{ }
+ };
+ 
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
+index 2609e6b..85891b8 100644
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
+@@ -62,7 +62,7 @@ struct mt6797_dvfsp_state_cluster {
+ 	u32 clock_state;
+ 	u32 rail_state;
+ };
+-#define MT6797_DVFSP_STATE_PROVENANCE_ABI		1
++#define MT6797_DVFSP_STATE_PROVENANCE_ABI		2
+ #define MT6797_DVFSP_STATE_PROVENANCE_EFUSE_VARIANT	BIT(0)
+ #define MT6797_DVFSP_STATE_PROVENANCE_EEM_PTP		BIT(1)
+ #define MT6797_DVFSP_STATE_PROVENANCE_PPM_LIMIT	BIT(2)
+@@ -76,7 +76,7 @@ struct mt6797_dvfsp_state_provenance {
+ 	u32 abi;
+ 	u32 source_mask;
+ 	u32 variant_id;
+-	u32 table_epoch;
++	u64 table_epoch;
+ 	u64 calibration_handle;
+ };
+ 

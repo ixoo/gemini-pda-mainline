@@ -1,0 +1,116 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 15 Aug 2026 09:10:00 -0400
+Subject: [PATCH] soc: mediatek: preserve state snapshot attribution
+
+The snapshot assembler validates generation, owner, transition, and provenance inputs but previously returned only the generation and cluster data. Copy the already-validated attribution into the result and add a hardware-free KUnit case that exercises a complete four-cluster snapshot. Without this repair the downstream owner source always fails closed. No provider is registered and no hardware operation or CPU admission is added.
+---
+ .../mt6797-dvfsp-calibrated-provider-test.c   | 69 +++++++++++++++++++
+ .../mediatek/mt6797-dvfsp-state-snapshot.c    |  3 +
+ 2 files changed, 72 insertions(+)
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-calibrated-provider-test.c b/drivers/soc/mediatek/mt6797-dvfsp-calibrated-provider-test.c
+index 76b4635..6ee6996 100644
+--- a/drivers/soc/mediatek/mt6797-dvfsp-calibrated-provider-test.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-calibrated-provider-test.c
+@@ -11,6 +11,7 @@
+ #include <linux/types.h>
+ 
+ #include <linux/soc/mediatek/mt6797-dvfsp-calibrated-provider.h>
++#include <linux/soc/mediatek/mt6797-dvfsp-state-snapshot.h>
+ 
+ struct mt6797_dvfsp_provider_test_devices {
+ 	struct device clock_backend;
+@@ -267,10 +268,78 @@ static void mt6797_dvfsp_provider_preserves_wide_epoch(
+ 		sizeof(u64));
+ }
+ 
++static void mt6797_dvfsp_provider_snapshot_keeps_attribution(
++	struct kunit *test)
++{
++	struct mt6797_dvfsp_clock_state clock = {
++		.abi = MT6797_DVFSP_CLOCK_STATE_ABI,
++		.clock_sample_generation = 1,
++		.big_sample_generation = 1,
++	};
++	struct mt6797_dvfsp_calibration_state calibration = {
++		.abi = MT6797_DVFSP_CALIBRATION_STATE_ABI,
++		.phase = MT6797_DVFSP_CALIBRATION_STATE_PHASE_MON,
++		.bank_mask = MT6797_DVFSP_CALIBRATION_STATE_BANK_ALL,
++		.thermal_generation = 1,
++		.clock_owner_generation = 1,
++		.rail_owner_generation = 1,
++		.source_generation = 9,
++	};
++	struct mt6797_dvfsp_state_snapshot_input input = {
++		.abi = MT6797_DVFSP_STATE_SNAPSHOT_ABI,
++		.generation = 9,
++		.owner_handle = 0x67970031,
++		.transition_handle = 0x67970030,
++		.clock = &clock,
++		.calibration = &calibration,
++		.provenance = {
++			.abi = MT6797_DVFSP_STATE_PROVENANCE_ABI,
++			.source_mask = MT6797_DVFSP_STATE_PROVENANCE_SOURCE_ALL,
++			.variant_id = 274,
++			.table_epoch = 0x100000002ULL,
++			.calibration_handle = 0x6797abcdULL,
++		},
++	};
++	struct mt6797_dvfsp_state_snapshot snapshot;
++	unsigned int i;
++
++	calibration.provenance = input.provenance;
++	for (i = 0; i < MT6797_DVFSP_STATE_CLUSTER_COUNT; i++) {
++		struct mt6797_dvfsp_calibration_table_entry *entry =
++			&calibration.cluster[i].table[0];
++
++		calibration.cluster[i].table_count = 1;
++		entry->frequency_khz = 100000 + i;
++		entry->vproc_uv = 800000;
++		entry->vsram_uv = 820000;
++		entry->ppm_limit_khz = 200000;
++		clock.cluster[i].frequency_khz = entry->frequency_khz;
++		input.state_flags[i] = MT6797_DVFSP_STATE_FLAG_PRESENT |
++			MT6797_DVFSP_STATE_FLAG_ON;
++		input.frequency_khz[i] = entry->frequency_khz;
++		input.voltage_uv[i] = entry->vproc_uv;
++		input.vsram_uv[i] = entry->vsram_uv;
++		input.ceiling_khz[i] = 200000;
++		input.floor_khz[i] = 50000;
++	}
++
++	KUNIT_ASSERT_EQ(test, mt6797_dvfsp_state_snapshot_assemble(
++		&input, &snapshot), 0);
++	KUNIT_EXPECT_EQ(test, snapshot.generation, input.generation);
++	KUNIT_EXPECT_EQ(test, snapshot.owner_handle, input.owner_handle);
++	KUNIT_EXPECT_EQ(test, snapshot.transition_handle,
++		input.transition_handle);
++	KUNIT_EXPECT_EQ(test, snapshot.provenance.table_epoch,
++		input.provenance.table_epoch);
++	KUNIT_EXPECT_EQ(test, snapshot.provenance.calibration_handle,
++		input.provenance.calibration_handle);
++}
++
+ static struct kunit_case mt6797_dvfsp_provider_test_cases[] = {
+ 	KUNIT_CASE(mt6797_dvfsp_provider_rejects_incomplete_source),
+ 	KUNIT_CASE(mt6797_dvfsp_provider_binds_and_exits),
+ 	KUNIT_CASE(mt6797_dvfsp_provider_preserves_wide_epoch),
++	KUNIT_CASE(mt6797_dvfsp_provider_snapshot_keeps_attribution),
+ 	{ }
+ };
+ 
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-state-snapshot.c b/drivers/soc/mediatek/mt6797-dvfsp-state-snapshot.c
+index 389f6ce..6484e89 100644
+--- a/drivers/soc/mediatek/mt6797-dvfsp-state-snapshot.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-state-snapshot.c
+@@ -148,6 +148,9 @@ int mt6797_dvfsp_state_snapshot_assemble(
+ 	snapshot->abi = MT6797_DVFSP_STATE_OWNER_ABI;
+ 	snapshot->cluster_mask = MT6797_DVFSP_STATE_CLUSTER_MASK;
+ 	snapshot->generation = input->generation;
++	snapshot->owner_handle = input->owner_handle;
++	snapshot->transition_handle = input->transition_handle;
++	snapshot->provenance = input->provenance;
+ 
+ 	for (i = 0; i < MT6797_DVFSP_STATE_CLUSTER_COUNT; i++) {
+ 		struct mt6797_dvfsp_state_cluster *cluster =

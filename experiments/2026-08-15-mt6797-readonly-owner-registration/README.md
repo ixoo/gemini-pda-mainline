@@ -83,6 +83,15 @@ The initial source audit found three prerequisites before registration:
 
 These are compile-review findings. No hardware-support claim follows.
 
+Buildbox then fetched exact pushed generator commit `967f5e4036fb...`, verified
+the managed prepared-source state, and emitted three zero-commit
+`git format-patch` files from a bounded six-file temporary repository. Their
+full SHA-256 identities are recorded in the
+[`patch-generation receipt`](results/prerequisite-patch-generation-buildbox-20260815.txt).
+All format, synthetic-signoff, composed-source, and no-write checks pass. One
+initial request named a nonexistent full commit and was rejected before edits;
+its exact temporary directory was removed before the successful retry.
+
 ## Analysis
 
 Registering the owner before these repairs would either truncate a legitimate

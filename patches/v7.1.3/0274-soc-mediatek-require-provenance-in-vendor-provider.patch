@@ -1,0 +1,276 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 15 Aug 2026 09:15:00 -0400
+Subject: [PATCH] soc: mediatek: require provenance in vendor provider
+
+Consume the vendor provenance callback for the exact sampled source before producing the provider review view. Require its variant, full-width table epoch, calibration handle, generation, owner handle, and transition handle to match the independent source snapshot and identity, then retain the validated provenance in the mapped result. Repair the provider KUnit fixture for the now-mandatory observation callbacks and cover mismatched epoch and generation. This is still a read-only review bridge: it registers no owner or provider and performs no hardware operation or CPU admission.
+---
+ .../mt6797-dvfsp-vendor-provider-test.c       | 77 +++++++++++++++++++
+ .../mediatek/mt6797-dvfsp-vendor-provider.c   | 24 +++++-
+ .../mediatek/mt6797-dvfsp-vendor-provider.h   |  4 +-
+ 3 files changed, 101 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-provider-test.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-provider-test.c
+index e11b389..387b74d 100644
+--- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-provider-test.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-provider-test.c
+@@ -12,6 +12,8 @@ static struct mt6797_dvfsp_vendor_source_snapshot
+ 	mt6797_dvfsp_vendor_provider_test_snapshot;
+ static struct mt6797_dvfsp_vendor_source_identity
+ 	mt6797_dvfsp_vendor_provider_test_identity;
++static struct mt6797_dvfsp_vendor_source_provenance
++	mt6797_dvfsp_vendor_provider_test_provenance;
+ 
+ static int mt6797_dvfsp_vendor_provider_test_read_snapshot(
+ 	void *context, struct mt6797_dvfsp_vendor_source_snapshot *snapshot)
+@@ -27,11 +29,40 @@ static int mt6797_dvfsp_vendor_provider_test_read_identity(
+ 	return 0;
+ }
+ 
++static int mt6797_dvfsp_vendor_provider_test_read_observation(
++	void *context,
++	struct mt6797_dvfsp_vendor_source_identity_observation *observation)
++{
++	memset(observation, 0, sizeof(*observation));
++	observation->abi =
++		MT6797_DVFSP_VENDOR_SOURCE_IDENTITY_OBSERVATION_ABI;
++	observation->source_mask = MT6797_DVFSP_VENDOR_SOURCE_IDENTITY_ALL;
++	observation->function_word = 0x22;
++	observation->date_word = 0x70;
++	observation->cpu_bin_level = 1;
++	observation->eem_ate_version = 6;
++	observation->ppm_table_type = 1;
++	return 0;
++}
++
++static int mt6797_dvfsp_vendor_provider_test_read_provenance(
++	void *context,
++	const struct mt6797_dvfsp_vendor_source_snapshot *snapshot,
++	struct mt6797_dvfsp_vendor_source_provenance *provenance)
++{
++	*provenance = mt6797_dvfsp_vendor_provider_test_provenance;
++	return 0;
++}
++
+ static const struct mt6797_dvfsp_vendor_source_ops
+ mt6797_dvfsp_vendor_provider_test_source_ops = {
+ 	.abi = MT6797_DVFSP_VENDOR_SOURCE_ABI,
+ 	.snapshot = mt6797_dvfsp_vendor_provider_test_read_snapshot,
+ 	.read_identity = mt6797_dvfsp_vendor_provider_test_read_identity,
++	.read_identity_observation =
++		mt6797_dvfsp_vendor_provider_test_read_observation,
++	.read_provenance =
++		mt6797_dvfsp_vendor_provider_test_read_provenance,
+ };
+ 
+ static void mt6797_dvfsp_vendor_provider_test_fill(void)
+@@ -161,6 +192,20 @@ static void mt6797_dvfsp_vendor_provider_test_fill(void)
+ 	mt6797_dvfsp_vendor_provider_test_identity.table_epoch = 0x100000002ULL;
+ 	mt6797_dvfsp_vendor_provider_test_identity.calibration_handle =
+ 		0x6797abcdULL;
++	memset(&mt6797_dvfsp_vendor_provider_test_provenance, 0,
++	       sizeof(mt6797_dvfsp_vendor_provider_test_provenance));
++	mt6797_dvfsp_vendor_provider_test_provenance.abi =
++		MT6797_DVFSP_VENDOR_SOURCE_PROVENANCE_ABI;
++	mt6797_dvfsp_vendor_provider_test_provenance.variant_id = 7;
++	mt6797_dvfsp_vendor_provider_test_provenance.table_epoch =
++		0x100000002ULL;
++	mt6797_dvfsp_vendor_provider_test_provenance.calibration_handle =
++		0x6797abcdULL;
++	mt6797_dvfsp_vendor_provider_test_provenance.source_generation = 9;
++	mt6797_dvfsp_vendor_provider_test_provenance.owner_handle =
++		0x67970023;
++	mt6797_dvfsp_vendor_provider_test_provenance.transition_handle =
++		0x67970022;
+ }
+ 
+ static void mt6797_dvfsp_vendor_provider_maps_fields(struct kunit *test)
+@@ -171,6 +216,7 @@ static void mt6797_dvfsp_vendor_provider_maps_fields(struct kunit *test)
+ 	KUNIT_ASSERT_EQ(test, mt6797_dvfsp_vendor_provider_map(
+ 		&mt6797_dvfsp_vendor_provider_test_snapshot,
+ 		&mt6797_dvfsp_vendor_provider_test_identity,
++		&mt6797_dvfsp_vendor_provider_test_provenance,
+ 		0x67970023, 0x67970022, &mapped), 0);
+ 	KUNIT_EXPECT_EQ(test, mapped.abi,
+ 		(u32)MT6797_DVFSP_VENDOR_PROVIDER_ABI);
+@@ -204,6 +250,11 @@ static void mt6797_dvfsp_vendor_provider_maps_fields(struct kunit *test)
+ 	KUNIT_EXPECT_EQ(test, mapped.identity.table_epoch, 0x100000002ULL);
+ 	KUNIT_EXPECT_EQ(test, mapped.identity.calibration_handle,
+ 		0x6797abcdULL);
++	KUNIT_EXPECT_EQ(test, mapped.provenance.source_generation, 9ULL);
++	KUNIT_EXPECT_EQ(test, mapped.provenance.table_epoch,
++		0x100000002ULL);
++	KUNIT_EXPECT_EQ(test, mapped.provenance.calibration_handle,
++		0x6797abcdULL);
+ }
+ 
+ static void mt6797_dvfsp_vendor_provider_rejects_identity_or_ids(
+@@ -216,12 +267,35 @@ static void mt6797_dvfsp_vendor_provider_rejects_identity_or_ids(
+ 	KUNIT_EXPECT_EQ(test, mt6797_dvfsp_vendor_provider_map(
+ 		&mt6797_dvfsp_vendor_provider_test_snapshot,
+ 		&mt6797_dvfsp_vendor_provider_test_identity,
++		&mt6797_dvfsp_vendor_provider_test_provenance,
+ 		0x67970023, 0x67970022, &mapped), -EPROTO);
+ 	mt6797_dvfsp_vendor_provider_test_fill();
+ 	mt6797_dvfsp_vendor_provider_test_snapshot.ppm[0].cluster_id = 3;
+ 	KUNIT_EXPECT_EQ(test, mt6797_dvfsp_vendor_provider_map(
+ 		&mt6797_dvfsp_vendor_provider_test_snapshot,
+ 		&mt6797_dvfsp_vendor_provider_test_identity,
++		&mt6797_dvfsp_vendor_provider_test_provenance,
++		0x67970023, 0x67970022, &mapped), -EPROTO);
++}
++
++static void mt6797_dvfsp_vendor_provider_rejects_provenance_mismatch(
++	struct kunit *test)
++{
++	struct mt6797_dvfsp_vendor_provider_snapshot mapped;
++
++	mt6797_dvfsp_vendor_provider_test_fill();
++	mt6797_dvfsp_vendor_provider_test_provenance.table_epoch++;
++	KUNIT_EXPECT_EQ(test, mt6797_dvfsp_vendor_provider_map(
++		&mt6797_dvfsp_vendor_provider_test_snapshot,
++		&mt6797_dvfsp_vendor_provider_test_identity,
++		&mt6797_dvfsp_vendor_provider_test_provenance,
++		0x67970023, 0x67970022, &mapped), -EPROTO);
++	mt6797_dvfsp_vendor_provider_test_fill();
++	mt6797_dvfsp_vendor_provider_test_provenance.source_generation++;
++	KUNIT_EXPECT_EQ(test, mt6797_dvfsp_vendor_provider_map(
++		&mt6797_dvfsp_vendor_provider_test_snapshot,
++		&mt6797_dvfsp_vendor_provider_test_identity,
++		&mt6797_dvfsp_vendor_provider_test_provenance,
+ 		0x67970023, 0x67970022, &mapped), -EPROTO);
+ }
+ 
+@@ -236,6 +310,7 @@ static void mt6797_dvfsp_vendor_provider_rejects_bad_clock_or_rail(
+ 	KUNIT_EXPECT_EQ(test, mt6797_dvfsp_vendor_provider_map(
+ 		&mt6797_dvfsp_vendor_provider_test_snapshot,
+ 		&mt6797_dvfsp_vendor_provider_test_identity,
++		&mt6797_dvfsp_vendor_provider_test_provenance,
+ 		0x67970023, 0x67970022, &mapped), -EPROTO);
+ }
+ 
+@@ -249,6 +324,7 @@ static void mt6797_dvfsp_vendor_provider_rejects_bad_eem_units(
+ 	KUNIT_EXPECT_EQ(test, mt6797_dvfsp_vendor_provider_map(
+ 		&mt6797_dvfsp_vendor_provider_test_snapshot,
+ 		&mt6797_dvfsp_vendor_provider_test_identity,
++		&mt6797_dvfsp_vendor_provider_test_provenance,
+ 		0x67970023, 0x67970022, &mapped), -EPROTO);
+ }
+ 
+@@ -283,6 +359,7 @@ static void mt6797_dvfsp_vendor_provider_bridge_lifecycle(struct kunit *test)
+ static struct kunit_case mt6797_dvfsp_vendor_provider_cases[] = {
+ 	KUNIT_CASE(mt6797_dvfsp_vendor_provider_maps_fields),
+ 	KUNIT_CASE(mt6797_dvfsp_vendor_provider_rejects_identity_or_ids),
++	KUNIT_CASE(mt6797_dvfsp_vendor_provider_rejects_provenance_mismatch),
+ 	KUNIT_CASE(mt6797_dvfsp_vendor_provider_rejects_bad_eem_units),
+ 	KUNIT_CASE(mt6797_dvfsp_vendor_provider_rejects_bad_clock_or_rail),
+ 	KUNIT_CASE(mt6797_dvfsp_vendor_provider_bridge_lifecycle),
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-provider.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-provider.c
+index 44a1a0a..1676ecd 100644
+--- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-provider.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-provider.c
+@@ -16,6 +16,7 @@
+ static int mt6797_dvfsp_vendor_provider_source_check(
+ 	const struct mt6797_dvfsp_vendor_source_snapshot *source,
+ 	const struct mt6797_dvfsp_vendor_source_identity *identity,
++	const struct mt6797_dvfsp_vendor_source_provenance *provenance,
+ 	u64 owner_handle, u64 transition_handle)
+ {
+ 	if (!source || !identity || source->abi !=
+@@ -30,7 +31,15 @@ static int mt6797_dvfsp_vendor_provider_source_check(
+ 	    source->transition_handle != transition_handle || !owner_handle ||
+ 	    !transition_handle || identity->abi != MT6797_DVFSP_VENDOR_SOURCE_ABI ||
+ 	    !identity->variant_id || !identity->table_epoch ||
+-	    !identity->calibration_handle)
++	    !identity->calibration_handle || !provenance ||
++	    provenance->abi != MT6797_DVFSP_VENDOR_SOURCE_PROVENANCE_ABI ||
++	    provenance->variant_id != identity->variant_id ||
++	    provenance->table_epoch != identity->table_epoch ||
++	    provenance->calibration_handle !=
++		identity->calibration_handle ||
++	    provenance->source_generation != source->generation ||
++	    provenance->owner_handle != source->owner_handle ||
++	    provenance->transition_handle != source->transition_handle)
+ 		return -EPROTO;
+ 
+ 	return 0;
+@@ -286,6 +295,7 @@ static int mt6797_dvfsp_vendor_provider_map_eem_uv(
+ int mt6797_dvfsp_vendor_provider_map(
+ 	const struct mt6797_dvfsp_vendor_source_snapshot *source,
+ 	const struct mt6797_dvfsp_vendor_source_identity *identity,
++	const struct mt6797_dvfsp_vendor_source_provenance *provenance,
+ 	u64 owner_handle, u64 transition_handle,
+ 	struct mt6797_dvfsp_vendor_provider_snapshot *mapped)
+ {
+@@ -294,7 +304,7 @@ int mt6797_dvfsp_vendor_provider_map(
+ 	if (!mapped)
+ 		return -EINVAL;
+ 	ret = mt6797_dvfsp_vendor_provider_source_check(source, identity,
+-			owner_handle, transition_handle);
++			provenance, owner_handle, transition_handle);
+ 	if (ret)
+ 		return ret;
+ 	memset(mapped, 0, sizeof(*mapped));
+@@ -312,6 +322,7 @@ int mt6797_dvfsp_vendor_provider_map(
+ 	mapped->owner_handle = source->owner_handle;
+ 	mapped->transition_handle = source->transition_handle;
+ 	mapped->identity = *identity;
++	mapped->provenance = *provenance;
+ 
+ 	ret = mt6797_dvfsp_vendor_provider_map_ppm(source, mapped);
+ 	if (ret)
+@@ -378,6 +389,7 @@ int mt6797_dvfsp_vendor_provider_bridge_snapshot(
+ {
+ 	struct mt6797_dvfsp_vendor_source_snapshot source;
+ 	struct mt6797_dvfsp_vendor_source_identity identity;
++	struct mt6797_dvfsp_vendor_source_provenance provenance;
+ 	int ret;
+ 
+ 	if (!bridge || !bridge->initialized || !bridge->provider ||
+@@ -389,10 +401,16 @@ int mt6797_dvfsp_vendor_provider_bridge_snapshot(
+ 		return ret;
+ 	memset(&identity, 0, sizeof(identity));
+ 	ret = mt6797_dvfsp_vendor_source_identity(bridge->source, &identity);
++	if (ret)
++		return ret;
++	memset(&provenance, 0, sizeof(provenance));
++	ret = mt6797_dvfsp_vendor_source_provenance(bridge->source,
++		&source, &provenance);
+ 	if (ret)
+ 		return ret;
+ 	return mt6797_dvfsp_vendor_provider_map(&source, &identity,
+-		bridge->owner_handle, bridge->transition_handle, mapped);
++		&provenance, bridge->owner_handle,
++		bridge->transition_handle, mapped);
+ }
+ EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_provider_bridge_snapshot);
+ 
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-provider.h b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-provider.h
+index 7438739..119249f 100644
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-vendor-provider.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-vendor-provider.h
+@@ -8,7 +8,7 @@
+ #include <linux/soc/mediatek/mt6797-dvfsp-calibrated-provider.h>
+ #include <linux/soc/mediatek/mt6797-dvfsp-vendor-source.h>
+ 
+-#define MT6797_DVFSP_VENDOR_PROVIDER_ABI	3
++#define MT6797_DVFSP_VENDOR_PROVIDER_ABI	4
+ #define MT6797_DVFSP_VENDOR_PROVIDER_PPM	BIT(0)
+ #define MT6797_DVFSP_VENDOR_PROVIDER_CPUFREQ	BIT(1)
+ #define MT6797_DVFSP_VENDOR_PROVIDER_CSPM	BIT(2)
+@@ -49,6 +49,7 @@ struct mt6797_dvfsp_vendor_provider_snapshot {
+ 	u64 owner_handle;
+ 	u64 transition_handle;
+ 	struct mt6797_dvfsp_vendor_source_identity identity;
++	struct mt6797_dvfsp_vendor_source_provenance provenance;
+ 	u32 policy_row_count;
+ 	struct mt6797_dvfsp_vendor_source_policy_row
+ 		policy[MT6797_DVFSP_VENDOR_SOURCE_MAX_POLICY_ROW];
+@@ -82,6 +83,7 @@ struct mt6797_dvfsp_vendor_provider_snapshot {
+ int mt6797_dvfsp_vendor_provider_map(
+ 	const struct mt6797_dvfsp_vendor_source_snapshot *source,
+ 	const struct mt6797_dvfsp_vendor_source_identity *identity,
++	const struct mt6797_dvfsp_vendor_source_provenance *provenance,
+ 	u64 owner_handle, u64 transition_handle,
+ 	struct mt6797_dvfsp_vendor_provider_snapshot *mapped);
+ 
