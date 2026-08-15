@@ -47,6 +47,7 @@ def main() -> None:
         ("mt6797_dvfsp_vendor_owner_register_state", "state registration"),
         ("mt6797_dvfsp_vendor_owner_unregister_state", "state teardown"),
         ("mt6797_dvfsp_state_owner_arbitration_register(handoff", "arbitration registration"),
+        ("mt6797_dvfsp_handoff_state_owner_identity(handoff", "registered identity recheck"),
         ("memcmp(before_mapped, after_mapped", "post-registration vendor recheck"),
         ("owner->state_registered", "registered lifetime guard"),
         ("mt6797_dvfsp_vendor_provider_rejects_provenance_mismatch", "mismatch KUnit"),
