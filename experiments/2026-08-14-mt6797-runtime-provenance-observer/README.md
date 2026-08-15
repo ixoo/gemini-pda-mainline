@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-14-mt6797-runtime-provenance-observer` |
-| Status | `corrected runtime attempt inconclusive before transport; identical repeats closed` |
+| Status | `pre-init recovery boundary selected; source tooling next` |
 | Subsystem | MT6797 EEM/PPM DVFSP provenance |
 | Device variant | Planet Gemini PDA, MT6797; corrected boot2 installed |
 | Date | 2026-08-14 America/New_York |
@@ -246,6 +246,18 @@ failure before Android USB service. Do not repeat the exact corrected artifact.
 See the
 [`corrected attempt-2 record`](results/runtime-attempt-2-pre-transport-20260815.txt).
 
+The follow-up offline audit confirms that the exact linked vendor kernel
+registers its ramoops console and MT6797 restart handler before the observer's
+late initcall. It also rejects an initramfs-only watchdog design: the generic
+watchdog core is absent and the vendor late-init kicker remains an independent
+kernel owner. The selected successor is therefore a separate default-off
+kernel companion. A late-init-sync checkpoint will run after the existing
+observer and kicker, emit one pre-`/init` marker into the already registered
+pstore console, and schedule one 120-second `emergency_restart()` worker through
+the existing MT6797 reset handler. The corrected initramfs and DTB remain exact;
+RNDIS becomes the fast live path rather than the only evidence path. See the
+[`pre-init recovery boundary audit`](results/preinit-recovery-boundary-audit-20260815.txt).
+
 ## Analysis
 
 This observer intentionally does not port the Linux 7.1 experimental
@@ -269,11 +281,11 @@ to identical repetition.
 
 ## Follow-up
 
-Before building or booting a successor, perform an offline boundary audit
-against the known-working ramoops/watchdog and UART foundations. A successor
-must add a decision-changing, attributable checkpoint before `/init` plus
-bounded automatic recovery, or use verified live UART capture; RNDIS alone is
-not sufficient after this result. Runtime success would still require two
+Create and mutation-test source-generation tooling for the separately gated
+pre-`/init` recovery companion, then commit and push it before any Buildbox
+generation. Buildbox must prove the exact parent, isolated default-off
+configuration, initcall order, marker and delayed-work boundaries, and final
+link before any container review. Runtime success would still require two
 stable reads with `observation_complete=1`, complete PPM and EEM masks, and
 nonzero variant, table epoch, and calibration handle while owner/transition
 handles remain zero. That would confirm publication only. The upstream path

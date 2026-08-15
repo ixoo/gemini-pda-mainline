@@ -1,0 +1,93 @@
+MT6797 provenance observer: pre-init recovery boundary audit
+Date: 2026-08-15 America/New_York
+Scope: offline host and read-only Buildbox source/binary inspection
+Device access: none
+Kernel build: none
+
+Exact inspected inputs
+- vendor source commit: d388d350cb2dda8f23b99be6fa5db9628896e87f
+- patched vendor commit: f3d2a14bd1b8355c68e59e8bd4be6bc1525f9c24
+- project build commit: 3556a9b07b841cc3ba99f0a5a5e9c2a03575e009
+- vmlinux SHA-256: 5a3d008883c6ec237c73f21dd0a5472c4c9c78075b4fd9805420eed262807834
+- System.map SHA-256: 9a213034e2e78dc3f2306de1c078e49e9e9d1d8ea9aa6b8599b7e0813803734d
+- resolved config SHA-256: e20b00704dbc886f55f059c2996bbc59b720e21f0f00d9e341430f96e05c1f24
+- appended DTB SHA-256: d70cb5f679ca1135280b80cfc0308e9c4c74bf6a5b8b1a0a8c281a50d4a3d787
+
+Persistent-console boundary
+- CONFIG_PSTORE=y
+- CONFIG_PSTORE_CONSOLE=y
+- CONFIG_PSTORE_PMSG=y
+- CONFIG_PSTORE_RAM=y
+- CONFIG_PSTORE_MEM_ADDR=0x44410000
+- CONFIG_PSTORE_MEM_SIZE=0x000e0000
+- DT reservation: 0x44410000 + 0x000e0000, compatible mediatek,pstore
+- __initcall_ramoops_init2: 0xffffffc001117eb8
+- __initcall_gemini_mt6797_dvfsp_provenance_init7: 0xffffffc0011195a0
+- pstore_register() registers the console backend during ramoops probe
+- conclusion: a marker emitted by a later initcall is after the exact pstore
+  console registration in the linked image and before external /init
+
+Reset and watchdog boundary
+- CONFIG_WATCHDOG=y
+- CONFIG_WATCHDOG_CORE=n
+- CONFIG_MTK_WATCHDOG=y
+- CONFIG_MTK_WD_KICKER=y
+- toprgu DT node: mediatek,mt6797-toprgu at 0x10007000
+- __initcall_mtk_wdt_init2: 0xffffffc001117f40
+- MT6797 restart handler registration: pure_initcall
+- __initcall_init_wk7: 0xffffffc001119678
+- the vendor late watchdog kicker runs independently in kernel threads
+- conclusion: an initramfs-only /dev/watchdog ownership design is invalid for
+  this image; the generic watchdog core is absent and the vendor kicker remains
+  a concurrent owner
+
+Exact bounded restart path
+- emergency_restart() calls kmsg_dump(KMSG_DUMP_EMERG)
+- machine_emergency_restart() calls machine_restart(NULL)
+- MT6797 leaves arm_pm_restart unset and uses do_kernel_restart(NULL)
+- the pure-initcall MT6797 handler invokes wd_api->wd_sw_reset(reboot=1)
+- wd_sw_reset() invokes wdt_arch_reset()
+- conclusion: a delayed worker can use the already registered architecture
+  reset path without taking ownership away from the vendor watchdog kicker
+
+Selected successor contract
+- preserve the exact corrected diagnostic initramfs and appended DTB
+- do not rewrite or replace the historical observer patch
+- add one separate, default-off experiment patch and configuration symbol
+- register one late_initcall_sync companion after ramoops, the MT6797 reset
+  handler, the observer, and the watchdog kicker have initialized
+- emit one unique pre-`/init` marker through printk
+- schedule one delayed worker with an exact 120-second deadline
+- emit one unique recovery marker and call emergency_restart() once
+- no storage access, partition access, regulator/DVFSP write, CPU admission,
+  watchdog-register programming, watchdog-kicker modification, generic reboot
+  command, or userspace watchdog ownership
+- keep RNDIS as a live fast path, but no longer as the sole observation path
+- build only on Buildbox after exact-source, configuration-delta, initcall-order,
+  symbol, marker, and negative-mutation validation passes
+
+Runtime decision map
+- valid RNDIS capture before 120 seconds: classify the observer snapshots, then
+  allow the bounded automatic return to ordinary Gemian
+- retained pre-/init marker but no initramfs marker: kernel late init passed;
+  external /init entry remains unobserved
+- retained pre-/init and initramfs markers but no USB: kernel and /init passed;
+  localize next work to legacy Android gadget configuration/service
+- retained recovery marker: the bounded restart worker executed
+- no retained marker and no automatic return: stop; do not repeat; require a
+  verified live UART capture or an earlier independently reviewed mechanism
+
+Classification
+audit_result=pass
+successor_type=changed-kernel-preinit-recovery-companion
+initramfs_only_watchdog=reject
+rndis_only_observation=reject
+native_vm_build=prohibited
+device_action=not-authorized-by-this-audit
+cpu8_cpu9_admission=closed
+
+Next action
+Create source-generation and mutation-validation tooling for the separate
+default-off companion. Commit and push the exact tooling before Buildbox patch
+generation. Do not construct or deploy a candidate until Buildbox compile,
+binary, initcall-order, container, and independent validation gates pass.

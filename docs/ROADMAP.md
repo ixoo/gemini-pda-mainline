@@ -3490,11 +3490,18 @@ boot2. The missing stock splash is not an early-kernel discriminator because
 the diagnostic ramdisk does not launch it. No retained evidence distinguishes
 kernel entry, initramfs entry, or failure before Android USB service; runtime
 EEM/PPM publication therefore remains unobserved. Do not repeat either
-artifact. The next ordered action is an offline observation-boundary audit
-against the known-working ramoops/watchdog and UART foundations, followed only
-by a changed candidate with an attributable pre-`/init` checkpoint and bounded
-automatic recovery or a verified live UART capture. RNDIS alone is no longer a
-sufficient observation path.
+artifact. The subsequent offline audit confirms that the linked vendor image
+registers ramoops and the MT6797 reset handler before the observer late initcall,
+while the vendor watchdog kicker remains a separate late-init kernel owner. An
+initramfs-only watchdog takeover is therefore rejected. The selected successor
+is a separate default-off kernel companion that emits an attributable
+pre-`/init` pstore-console checkpoint after the existing observer and kicker,
+then schedules one 120-second `emergency_restart()` through the registered
+MT6797 handler. It preserves the exact corrected initramfs and DTB, performs no
+storage, DVFSP, regulator, or CPU action, and makes RNDIS a fast path rather than
+the sole observation path. The next ordered action is source-generation and
+mutation-validation tooling for that companion, committed and pushed before a
+Buildbox-only patch generation. No container or device action is authorized.
 The subsequent upstream implementation remains one native transition owner
 spanning the DVFSP/I2C6/DA921x operation and rollback boundary. Provider
 registration, setters, hardware writes, and CPU8/CPU9 admission remain closed.
