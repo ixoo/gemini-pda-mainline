@@ -228,7 +228,7 @@ for change in changes:
     print("{}\t{}\t{}".format(*change))
 expected = [
     ("CONFIG_GEMINI_MT6797_DVFSP_PROVENANCE_OBSERVER", "n", "y"),
-    ("CONFIG_GEMINI_MT6797_DVFSP_PROVENANCE_PREINIT_RECOVERY", "n", "y"),
+    ("CONFIG_GEMINI_MT6797_DVFSP_PROVENANCE_PREINIT_RECOVERY", "missing", "y"),
     ("CONFIG_LOCALVERSION", '\"\"', '\"-gemini-provenance-preinit\"'),
 ]
 if changes != expected:
