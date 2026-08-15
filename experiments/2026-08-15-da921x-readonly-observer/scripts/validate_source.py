@@ -72,7 +72,9 @@ def main() -> None:
         if forbidden in combined:
             raise SystemExit(f"unexpected state-changing operation: {forbidden}")
 
-    assignments = re.findall(r"register_data_writes\s*=\s*([^;]+);", combined)
+    assignments = re.findall(
+        r"(?:->|\.)register_data_writes\s*=\s*([^;]+);", combined
+    )
     if assignments:
         raise SystemExit(f"write counter must remain zero-initialized: {assignments}")
 
