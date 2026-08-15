@@ -1,0 +1,46 @@
+experiment=2026-08-15-mt6797-readonly-owner-registration
+phase=registration-patch-generation
+observed_utc=2026-08-15T18:34:28Z
+repository_commit=6e7d36fdb24a38f345cdc6b89ddfe68cfbfe3269
+prepared_source=/workspace/gemini-pda/src/linux-7.1.3
+prepared_source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+prepared_patchset_sha256=5d261c9a96b0bd2d085f946faf42587d7ab899374f30975016f512d7b5056483
+prepared_patch_count=263
+prepared_source_modified=no
+generation_workspace=bounded-nine-file-temporary-git-repository
+generation_workspaces_cleanup=verified;all-review-drafts-and-final-temporary-repositories-removed
+source_tree_transfer=none
+patch_count=2
+patch_0275=0275-soc-mediatek-bound-vendor-provider-bridge-storage.patch
+patch_0275_lines=74
+patch_0275_sha256=d3e102e16f966683c8286a2d460d3aaf489dcd01c1eeb0297e2a44f735d1439d
+patch_0276=0276-soc-mediatek-register-validated-vendor-state-owner.patch
+patch_0276_lines=477
+patch_0276_sha256=5abfe944b2956603e2ae27de53871728add1b880431b07730b06cebd5a0b3b06
+format_patch=passed
+synthetic_signoff=absent
+source_contract=passed
+manifest_profiles_checked=73
+manifest_series_invariant=passed
+firmware_lease_oracle=PASS_STATIC
+checkpatch_mode=non-strict
+checkpatch_warnings=0
+checkpatch_expected_errors=2;missing-signed-off-by
+checkpatch_interpretation=expected because the synthetic experiment author cannot truthfully make a DCO certification
+bridge_storage=heap-bounded;kzalloc_obj
+registration=explicit;default-off;read-only
+pre_registration_check=vendor-mapped+calibrated-snapshot+calibrated-identity
+registry_identity_recheck=required
+post_registration_check=second-complete-observation;exact-byte-match
+rollback=required-on-any-post-registration-mismatch
+teardown_guard=state-before-writer-before-source
+hardware_write=none
+device_action=none
+boot_candidate=false
+cpu8_cpu9_admission=closed
+
+Earlier generated review drafts were not imported. Review first added malformed
+identity rejection and comparison with the identity actually stored by the
+handoff registry, then adopted the kernel object-allocation helper and wrapped
+the patch descriptions. The final hashes above are the only accepted patch
+identities.

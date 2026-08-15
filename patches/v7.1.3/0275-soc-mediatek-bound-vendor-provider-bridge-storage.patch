@@ -1,0 +1,74 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 15 Aug 2026 18:32:43 +0000
+Subject: [PATCH] soc: mediatek: bound vendor provider bridge storage
+
+Move the large source snapshot to dynamically allocated storage.
+
+This keeps the runtime bridge below the kernel stack warning limit.
+
+Mapping and lifecycle behavior stay unchanged.
+---
+ .../mediatek/mt6797-dvfsp-vendor-provider.c   | 23 ++++++++++++-------
+ 1 file changed, 15 insertions(+), 8 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-provider.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-provider.c
+index 1676ecd..851e239 100644
+--- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-provider.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-provider.c
+@@ -8,6 +8,7 @@
+ #include <linux/export.h>
+ #include <linux/limits.h>
+ #include <linux/module.h>
++#include <linux/slab.h>
+ #include <linux/string.h>
+ #include <linux/types.h>
+ 
+@@ -387,7 +388,7 @@ int mt6797_dvfsp_vendor_provider_bridge_snapshot(
+ 	struct mt6797_dvfsp_vendor_provider_bridge *bridge,
+ 	struct mt6797_dvfsp_vendor_provider_snapshot *mapped)
+ {
+-	struct mt6797_dvfsp_vendor_source_snapshot source;
++	struct mt6797_dvfsp_vendor_source_snapshot *source;
+ 	struct mt6797_dvfsp_vendor_source_identity identity;
+ 	struct mt6797_dvfsp_vendor_source_provenance provenance;
+ 	int ret;
+@@ -395,22 +396,28 @@ int mt6797_dvfsp_vendor_provider_bridge_snapshot(
+ 	if (!bridge || !bridge->initialized || !bridge->provider ||
+ 	    !bridge->provider->initialized || !bridge->source || !mapped)
+ 		return -ENODEV;
+-	memset(&source, 0, sizeof(source));
+-	ret = mt6797_dvfsp_vendor_source_snapshot(bridge->source, &source);
++	source = kzalloc_obj(*source);
++	if (!source)
++		return -ENOMEM;
++	ret = mt6797_dvfsp_vendor_source_snapshot(bridge->source, source);
+ 	if (ret)
+-		return ret;
++		goto out_free;
+ 	memset(&identity, 0, sizeof(identity));
+ 	ret = mt6797_dvfsp_vendor_source_identity(bridge->source, &identity);
+ 	if (ret)
+-		return ret;
++		goto out_free;
+ 	memset(&provenance, 0, sizeof(provenance));
+ 	ret = mt6797_dvfsp_vendor_source_provenance(bridge->source,
+-		&source, &provenance);
++		source, &provenance);
+ 	if (ret)
+-		return ret;
+-	return mt6797_dvfsp_vendor_provider_map(&source, &identity,
++		goto out_free;
++	ret = mt6797_dvfsp_vendor_provider_map(source, &identity,
+ 		&provenance, bridge->owner_handle,
+ 		bridge->transition_handle, mapped);
++
++out_free:
++	kfree(source);
++	return ret;
+ }
+ EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_provider_bridge_snapshot);
+ 
+-- 
+2.39.5
+

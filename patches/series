@@ -264,3 +264,5 @@ v7.1.3/0271-soc-mediatek-add-vendor-provenance-cooperation-contract.patch
 v7.1.3/0272-soc-mediatek-widen-state-provenance-table-epoch.patch
 v7.1.3/0273-soc-mediatek-preserve-state-snapshot-attribution.patch
 v7.1.3/0274-soc-mediatek-require-provenance-in-vendor-provider.patch
+v7.1.3/0275-soc-mediatek-bound-vendor-provider-bridge-storage.patch
+v7.1.3/0276-soc-mediatek-register-validated-vendor-state-owner.patch

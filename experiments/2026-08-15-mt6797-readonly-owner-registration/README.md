@@ -114,6 +114,23 @@ package checksum passed, and only the validated package was fetched. The
 [`full-build receipt`](results/prerequisite-full-buildbox-20260815.txt) records
 the exact source, patchset, configuration, image, and Gemini DTB identities.
 
+Buildbox then used exact pushed generator commit `6e7d36fdb24a...` and the
+validated 263-patch prepared source to produce two further zero-commit patches
+from a bounded nine-file temporary Git repository. Patch 0275 moves the large
+bridge-local vendor snapshot to bounded object storage. Patch 0276 adds the
+explicit registration lifecycle, a pure cross-view matcher, registry-identity
+and second-observation checks, rollback, and teardown ordering. Their exact
+hashes and generation provenance are in the
+[`registration generation receipt`](results/registration-patch-generation-buildbox-20260815.txt).
+
+Review rejected earlier generated drafts before import, first strengthening
+malformed-identity and stored-registry checks, then adopting the kernel object
+allocation helper and clean descriptions. The final patches pass format,
+composed-source, no-write, all 73 manifest-profile order checks, and the broad
+firmware-lease static oracle. Normal checkpatch reports zero warnings; its sole
+error per patch is the intentionally absent synthetic DCO sign-off required by
+repository policy.
+
 ## Analysis
 
 Registering the owner before these repairs would either truncate a legitimate
@@ -125,12 +142,11 @@ carried into its lifetime path.
 
 ## Conclusion
 
-`inconclusive`: every prerequisite gate passes; read-only owner registration
-remains open.
+`inconclusive`: every prerequisite gate passes and the registration series is
+statically accepted; focused runtime and full-profile compile gates remain.
 
 ## Follow-up
 
-Add a separate read-only registration change that reduces bridge stack use and
-cross-checks the vendor and calibrated views before calling the existing
-arbitration registry. Setters, hardware writes, and CPU8/CPU9 admission remain
-closed for later gates.
+Commit and push the exact registration series, then run focused Buildbox/KUnit
+and normal full-profile Buildbox validation. Setters, hardware writes, and
+CPU8/CPU9 admission remain closed for later gates.
