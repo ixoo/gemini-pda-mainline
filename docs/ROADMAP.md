@@ -3506,10 +3506,17 @@ generated one normal format patch on Buildbox from the exact observer parent;
 an independent clean clone reapplied both patches, reproduced child commit
 `2dbf7be`, passed the source validator, and remained clean. The fetched package
 and repository patch are byte-identical, and thirteen semantic patch mutations
-are rejected. The next ordered action is to commit and push the generated patch,
-isolated series, validators, and receipt, then run the exact child through a
-Buildbox-only full-link, binary-marker, initcall-order, and symbol-closure gate.
-No container or device action is yet authorized.
+are rejected. Exact pushed job `b2d638f` then passes the Buildbox-only full
+kernel link, exact three-entry configuration delta, binary marker and symbol
+checks, zero-unresolved-symbol closure, strict restart/ramoops/watchdog/
+observer/kicker/recovery initcall ordering, bounded disassembly, and direct
+`emergency_restart()` call. It remains compile-review-only with CPU8/CPU9
+admission closed. The next ordered action is a new Android-v0 container that
+preserves the corrected diagnostic initramfs, appended DTB, and vendor address
+contract while changing only the validated kernel and canonical image ID.
+Require byte-identical independent builds, structural validation, and negative
+mutation rejection before runtime-tool review; no device write is yet
+authorized for this changed kernel.
 The subsequent upstream implementation remains one native transition owner
 spanning the DVFSP/I2C6/DA921x operation and rollback boundary. Provider
 registration, setters, hardware writes, and CPU8/CPU9 admission remain closed.

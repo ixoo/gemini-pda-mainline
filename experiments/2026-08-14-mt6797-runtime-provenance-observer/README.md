@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-14-mt6797-runtime-provenance-observer` |
-| Status | `pre-init recovery patch generated and validated; Buildbox compile next` |
+| Status | `pre-init recovery full link validated; container construction next` |
 | Subsystem | MT6797 EEM/PPM DVFSP provenance |
 | Device variant | Planet Gemini PDA, MT6797; corrected boot2 installed |
 | Date | 2026-08-14 America/New_York |
@@ -27,11 +27,14 @@ A compile result cannot establish runtime publication or hardware support.
 
 - Vendor source: `https://github.com/gemian/gemini-linux-kernel-3.18.git`
 - Vendor source commit: `d388d350cb2dda8f23b99be6fa5db9628896e87f`
-- Generated vendor commit: `f3d2a14bd1b8355c68e59e8bd4be6bc1525f9c24`
-- Patch SHA-256: `3520538de1c31ea592c2f0c76af7deef10f5c1ee00689d74bdac17def48dbb11`
+- Observer parent commit: `f3d2a14bd1b8355c68e59e8bd4be6bc1525f9c24`
+- Recovery child commit: `2dbf7be3999120f297aedb9842bce320d759d26e`
+- Observer patch SHA-256: `3520538de1c31ea592c2f0c76af7deef10f5c1ee00689d74bdac17def48dbb11`
+- Recovery patch SHA-256: `0ddf2b5b28bb0957a467d38bfece553b89bf6b81c85c365f293d00b94efbd3d1`
 - Configuration source: vendor `gemini_modular_defconfig`, with only
-  `CONFIG_GEMINI_MT6797_DVFSP_PROVENANCE_OBSERVER=y` and
-  `LOCALVERSION=-gemini-provenance-observer` added
+  `CONFIG_GEMINI_MT6797_DVFSP_PROVENANCE_OBSERVER=y`,
+  `CONFIG_GEMINI_MT6797_DVFSP_PROVENANCE_PREINIT_RECOVERY=y`, and
+  `LOCALVERSION=-gemini-provenance-preinit` added
 - Build backend: Buildbox only, using the pinned Debian Stretch GCC 6.3
   toolchain manifest already used by the Gemian full-link experiments
 - Boot path: attempt 1 installed and read back exactly but used the stock
@@ -289,6 +292,20 @@ to the repository copy; the patch validator passes and rejects thirteen
 mutations. No kernel build or device action occurred. See the
 [`Buildbox patch-generation receipt`](results/preinit-patch-generation-buildbox-20260815.txt).
 
+The exact pushed full-link lane then reproduced both generated commits on
+Buildbox. Its first run stopped before compilation because the new default-off
+symbol is absent, rather than explicit `n`, in the baseline config. The second
+run completed the kernel link but stopped when pinned Binutils 2.28 rejected a
+newer named-disassembly interface. The final exact job at `b2d638f` uses a
+`System.map`-bounded address range and passes the exact three-entry config
+delta, complete kernel link, zero unresolved symbols, required strings and
+symbols, checksummed package, strict restart-handler/ramoops/watchdog/observer/
+kicker/recovery initcall order, and a direct `emergency_restart()` call from the
+recovery worker. The resulting 8,287,380-byte `Image.gz-dtb` has SHA-256
+`5a8db7fba3b4...`. It remains compile-review-only with CPU8/CPU9 admission
+closed, and no device action occurred. See the
+[`pre-init full-link receipt`](results/preinit-full-link-buildbox-20260815.txt).
+
 ## Analysis
 
 This observer intentionally does not port the Linux 7.1 experimental
@@ -300,7 +317,9 @@ gate rather than hiding it.
 
 ## Conclusion
 
-The compile/link, offline container, and runtime-tool gates pass. This
+The original observer compile/link, offline container, and runtime-tool gates
+pass. The changed pre-init recovery child now also passes its separate
+Buildbox-only full-link gate. This
 establishes source integration, exact configuration scope, DCT reproducibility,
 linked observer presence, symbol closure, one reproducible LK-compatible
 container, and a fixed deployment/measurement contract. It does not establish
@@ -312,11 +331,12 @@ to identical repetition.
 
 ## Follow-up
 
-Commit and push the generated patch, isolated series, and validators, then run
-the exact child through the Buildbox full-link lane. The build must prove the
-exact parent, isolated default-off configuration, initcall order, marker and
-delayed-work boundaries, and final link before any container review. Runtime
-success would still require two
+Construct a new Android-v0 container that changes only the validated kernel
+field and canonical image ID while preserving the corrected diagnostic
+initramfs, appended DTB, and vendor address contract. Require byte-identical
+outputs from two independent roots, independent structural validation, and
+negative mutation rejection before admitting it to pre-boot runtime review.
+Runtime success would still require two
 stable reads with `observation_complete=1`, complete PPM and EEM masks, and
 nonzero variant, table epoch, and calibration handle while owner/transition
 handles remain zero. That would confirm publication only. The upstream path
