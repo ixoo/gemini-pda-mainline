@@ -1,0 +1,46 @@
+DA921x provider-only matched control: Buildbox receipt
+Date: 2026-08-15 America/New_York
+
+repository_commit=1ab09cd9ef39a9c99c82e639dcbc15cb6040c74c
+repository_dirty=false
+origin=https://github.com/ixoo/gemini-pda-mainline.git
+backend=buildbox
+native_vm_build=none
+build_profile=da921x-resource-only-provider
+job=1ab09cd9ef39a9c99c82e639dcbc15cb6040c74c-da921x-resource-only-provider-m0
+package=linux-7.1.3-gemini-da921x-resource-only-provider-eacf5b0f-b97f02a7
+generated_utc=2026-08-15T22:31:53Z
+kernel_release=7.1.3-gemini-da921x-resource
+patch_count=267
+dtb_count=119
+modules_built=false
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=eacf5b0f279ee8f9eababa1b191bfb4ba2b00efce87a0674981cc78097b49ef0
+config_sha256=56a08dd0f2f4400044f15c2b597e23bbaeb1bd806658670c2d5facf3152d6ac6
+config_inputs_sha256=b97f02a71c698b1bdce0cf083544041e981c7751bc80983b426beb78395443e4
+image_sha256=7c32d659dd9eabef33800e2e5aa16e3f609d3cddf0c7efb8e7dc22159ad8cab5
+image_gzip_sha256=e9ad785fc00d96584ad7c29abc671864c8f03d1c7272610f8b64768b171b27c7
+gemini_dtb_sha256=61ea34a4f780afe04da1257f8c3655be7f8490a7c3af2df727dd8592bb6e6285
+system_map_sha256=4dedb128f7a7e25d627b0f7191486e67b4cbde6f1df2e3692e9b971991e8a298
+build_json_sha256=a614f5f8368758e6c24c9a497c5feb3c9243f362aa574aaf4cdd0135660c5e7d
+package_manifest_sha256=5a2665fc4f478a4e9699fa7f6271908bf1ca453afd50eb08ff02281d3153e56f
+package_manifest_check=pass
+
+Matched-control comparison against exact observer package
+observer_repository_commit=d0d511e60af343bdcc880b41b50acd2be877fa2b
+observer_profile=da921x-readonly-observer
+patch_series=byte-identical
+gemini_dtb=byte-identical
+config_diff_lines=2
+config_diff_1=CONFIG_LOCALVERSION observer -> resource
+config_diff_2=CONFIG_REGULATOR_DA9213_LEGACY_OBSERVER y -> not-set
+observer_and_control_decompressed_image_size=13762568
+observer_and_control_effective_arm64_image_size=14352384
+provider_built_in=yes
+observer_built_in=no
+kunit_payload=absent
+observer_marker=absent
+
+validation=pass
+device_access=none
+hardware_write=none

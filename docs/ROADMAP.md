@@ -3623,6 +3623,19 @@ instead moves localization to the current base/container boundary against the
 last retained-pstore baseline. Screen color and automatic return remain
 non-attributable.
 
+That matched control is now built and independently validated at exact pushed
+commit `1ab09cd`. The patch series and Gemini DTB are byte-identical to the
+observer package; its configuration differs on exactly the unique local
+version and observer-disabled lines, and both decompressed Images have the same
+size and effective arm64 layout. Exact padded candidate `3188d474f5d6...`
+passes its fetched-package manifest, two independent construction paths, all
+32 LK gates, six structural mutations, and the frozen read-only runtime-tool
+suite. See the
+[matched-control experiment](../experiments/2026-08-15-da921x-provider-control/README.md).
+The single next action is to install only this candidate to live-GPT logical
+boot2, require full readback and clean shutdown, pre-arm its collector, and run
+one owner-selected control boot. Runtime evidence is still pending.
+
 Required evidence:
 
 - provider registration performs no register-data write;

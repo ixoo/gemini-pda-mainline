@@ -1,0 +1,42 @@
+DA921x provider-only matched control: runtime decision map
+Date: 2026-08-15 America/New_York
+
+success-provider-only-control
+- exact padded candidate and kernel release
+- CPU online=0-7 and offline=8-9
+- exactly one DA9214 provider-is-read-only identity record
+- exact I2C driver binding 1-0068
+- exact read-only regulator pair BUCK0 and BUCK1
+- no provider failure or observer marker
+Decision: accept current-base serviceability without the observer and localize
+the repeated failure to the observer-enabled delta.
+
+provider-control-failure
+- exact candidate kernel is running over direct USB/netcat
+- identity record, binding, or regulator pair is absent/non-unique, or a
+  provider failure is present
+Decision: diagnose the exact provider-only runtime boundary; do not add an
+observer, transition owner, setter, or CPU admission.
+
+rejected-control
+- any da921x-observer-v1 record is present
+Decision: reject the sample because it is not the frozen provider-only control.
+
+rejected-attribution
+- candidate assertion, kernel release, architecture, boot ID, counter, or
+  record schema is wrong or malformed
+Decision: reject the sample as not attributable.
+
+rejected-safety
+- CPU8 or CPU9 is online or another closed safety assertion differs
+Decision: reject the candidate and remain on ordinary Gemian.
+
+pretransport-control-failure
+- boot2 cycles to Gemian without exact USB/netcat or retained pstore evidence
+Decision: the observer is not distinguished. Move localization to the current
+base/container boundary against the last retained-pstore baseline. Do not
+repeat this exact control without a new independent observation path.
+
+Screen color and automatic return are not kernel or provider evidence. All
+classifications keep hardware writes, transition ownership, and CPU8/CPU9
+admission closed.

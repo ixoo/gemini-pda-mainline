@@ -1,0 +1,58 @@
+DA921x provider-only matched control: predeployment hypothesis
+Date: 2026-08-15 America/New_York
+
+Exact candidate
+- raw Android-v0 SHA-256: 76d32c74a8ffb714bd10ee7b2e6d1483e4c87e5fa62f0f1ec47d121ea8b95fa9
+- full 16 MiB boot2 SHA-256: 3188d474f5d6989a0eb0782cdfac781efaf43dd42a0bd11481277050e735f8a2
+- expected kernel release: 7.1.3-gemini-da921x-resource
+- Image SHA-256: 7c32d659dd9eabef33800e2e5aa16e3f609d3cddf0c7efb8e7dc22159ad8cab5
+- Image.gz SHA-256: e9ad785fc00d96584ad7c29abc671864c8f03d1c7272610f8b64768b171b27c7
+- appended DTB SHA-256: 61ea34a4f780afe04da1257f8c3655be7f8490a7c3af2df727dd8592bb6e6285
+- configuration SHA-256: 56a08dd0f2f4400044f15c2b597e23bbaeb1bd806658670c2d5facf3152d6ac6
+- serviceability ramdisk SHA-256: e0dffa04a621f60903cf4cf7280d773ec1c89c43ea63ec0f8b3a0879e7cebc0f
+- LK name: gemini-dactl
+- LK command line: bootopt=64S3,32N2,64N2
+
+Kernel/DT/configuration hypothesis
+The exact current Linux 7.1 provider-only profile reaches the existing
+USB/netcat serviceability boundary, matches the DA9214 identity transcript,
+binds the legacy driver at I2C path 1-0068, registers exactly the two read-only
+regulator descriptors, emits no observer marker, and leaves CPUs 8 and 9
+offline. The observer's four added live reads are absent.
+
+Unique attributable evidence
+- guarded full-partition write and independent readback bind logical boot2 to
+  the exact padded candidate
+- direct USB/netcat reports the exact candidate assertion, kernel release,
+  boot ID, CPU sets, filtered provider log, driver binding, and regulator names
+- exactly one DA9214 provider-is-read-only identity record
+- bound path is exactly 1-0068 and regulator names are exactly
+  DA9213-legacy-BUCK0 and DA9213-legacy-BUCK1
+- no identity/provider failure or da921x-observer-v1 record
+- CPU online remains 0-7 and offline remains 8-9
+
+Owner-visible expectation
+1. A verified boot2 installation ends with ordinary Gemian fully powered off.
+2. The read-only USB/netcat collector is armed before boot2 is selected.
+3. Start boot2 once. Console or USB can be delayed; screen color is not an
+   evidence signal.
+4. If USB/netcat becomes available, no owner action is needed; the host reads
+   the bounded control record without changing storage, driver binding, power,
+   or CPU state.
+5. An automatic return to Gemian confirms a cycle only. If it happens before
+   USB, recovery immediately checks pstore for exact-candidate evidence.
+
+Decision effect
+- exact control USB record: the current base/container is serviceable without
+  the observer; localize the observer-enabled delta before any new provider work
+- exact retained control pstore but no USB: localize the failure after kernel
+  entry using the retained log
+- exact candidate USB with missing provider evidence: provider-only runtime
+  failure; diagnose the identity/registration boundary
+- same no-USB, empty-pstore pre-transport failure: observer is not
+  distinguished; compare the current base/container with the last retained-
+  pstore baseline
+- any observer marker or CPU8/CPU9 online state: reject the control/safety claim
+
+No result authorizes register writes, a transition owner, or CPU8/CPU9
+admission. This exact control is run once.
