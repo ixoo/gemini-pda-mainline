@@ -108,24 +108,29 @@ reported the kernel halted before the outer runner's expected timeout. See the
 [`KUnit receipt`](results/prerequisite-qemu-kunit-20260815.txt). No Gemini or
 other physical device was accessed.
 
+The exact evidence commit `5fe5fa7f4261...` also passed the normal full
+Buildbox profile: the same 263-patch identity compiled into 119 DTBs, every
+package checksum passed, and only the validated package was fetched. The
+[`full-build receipt`](results/prerequisite-full-buildbox-20260815.txt) records
+the exact source, patchset, configuration, image, and Gemini DTB identities.
+
 ## Analysis
 
 Registering the owner before these repairs would either truncate a legitimate
 epoch, publish an unattributed snapshot, or accept an identity not tied to the
-sampled generation. The three repairs now pass their focused compile and
-hardware-free runtime gate. A full-profile compile remains required before the
-registration patch, and the bridge stack warning should be removed as part of
-the next bounded implementation rather than carried into its lifetime path.
+sampled generation. The three repairs now pass their focused compile,
+hardware-free runtime, and full-profile compile gates. The bridge stack warning
+should be removed as part of the next bounded implementation rather than
+carried into its lifetime path.
 
 ## Conclusion
 
-`inconclusive`: the focused prerequisite gate passes; full-profile validation
-and read-only owner registration remain open.
+`inconclusive`: every prerequisite gate passes; read-only owner registration
+remains open.
 
 ## Follow-up
 
-Run the normal full Buildbox profile for the exact prerequisite commit. Then
-add a separate read-only registration change that reduces bridge stack use and
+Add a separate read-only registration change that reduces bridge stack use and
 cross-checks the vendor and calibrated views before calling the existing
 arbitration registry. Setters, hardware writes, and CPU8/CPU9 admission remain
 closed for later gates.
