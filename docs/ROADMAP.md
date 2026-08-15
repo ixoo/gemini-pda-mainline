@@ -3480,14 +3480,21 @@ no runtime interface. Recovery showed a manual power-key reason, empty pstore,
 offline CPU8/CPU9, and unchanged boot2. Offline inspection then proved the
 container retained the stock Gemian ramdisk and therefore could not provide the
 expected project USB/netcat shell. Do not repeat it. A kernel/DT/config-identical
-derivative now passes independent construction and mutation review with a new
+derivative then passed independent construction and mutation review with a new
 early debugfs record and the live-verified legacy Android RNDIS observation
-path. This is the independent decision-changing path required for an otherwise
-identical kernel. Its guarded boot2 write and independent readback now pass, the
-device is cleanly shut down, and the corrected collector is armed. The next
-ordered action is one physically selected boot2 cycle. Its observation can
-close the lifecycle-publication evidence gap; it cannot satisfy the
-coherent-owner gate.
+path. Its guarded boot2 write and independent readback passed. On its one
+physical selection, however, no Gemini USB device or RNDIS path appeared within
+the complete 900-second window. Manual power-key recovery found empty pstore,
+only the generic 74-byte last-kmsg header, CPUs 8/9 offline, and unchanged exact
+boot2. The missing stock splash is not an early-kernel discriminator because
+the diagnostic ramdisk does not launch it. No retained evidence distinguishes
+kernel entry, initramfs entry, or failure before Android USB service; runtime
+EEM/PPM publication therefore remains unobserved. Do not repeat either
+artifact. The next ordered action is an offline observation-boundary audit
+against the known-working ramoops/watchdog and UART foundations, followed only
+by a changed candidate with an attributable pre-`/init` checkpoint and bounded
+automatic recovery or a verified live UART capture. RNDIS alone is no longer a
+sufficient observation path.
 The subsequent upstream implementation remains one native transition owner
 spanning the DVFSP/I2C6/DA921x operation and rollback boundary. Provider
 registration, setters, hardware writes, and CPU8/CPU9 admission remain closed.

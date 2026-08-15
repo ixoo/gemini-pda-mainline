@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-14-mt6797-runtime-provenance-observer` |
-| Status | `corrected RNDIS derivative deployed; runtime collector armed` |
+| Status | `corrected runtime attempt inconclusive before transport; identical repeats closed` |
 | Subsystem | MT6797 EEM/PPM DVFSP provenance |
 | Device variant | Planet Gemini PDA, MT6797; corrected boot2 installed |
 | Date | 2026-08-14 America/New_York |
@@ -36,8 +36,9 @@ A compile result cannot establish runtime publication or hardware support.
   toolchain manifest already used by the Gemian full-link experiments
 - Boot path: attempt 1 installed and read back exactly but used the stock
   ramdisk, so its USB/netcat expectation was invalid. A kernel/DT/config-
-  identical derivative with a vendor-RNDIS observation ramdisk now passes
-  independent offline review.
+  identical derivative with a vendor-RNDIS observation ramdisk passed
+  independent offline review and deployment, but its selected cycle exposed
+  neither USB transport nor retained candidate evidence.
 
 The synthetic patch author is experiment-only and non-certifying. The patch
 contains no synthetic `Signed-off-by` and is not submission-ready.
@@ -229,8 +230,21 @@ The second guarded deployment resolved the same inactive live-GPT boot2,
 recorded the exact attempt-1 image as predecessor, wrote corrected full image
 `ea603c1b1a64...`, and passed post-flush and independent byte readback. No fresh
 backup was created. The device shut down cleanly without a reboot request, and
-the corrected direct RNDIS/netcat collector is armed. See the
+the corrected direct RNDIS/netcat collector was armed. See the
 [`corrected deployment receipt`](results/deployment-rndis-20260815.txt).
+
+On the one corrected selection, the owner observed the boot screen without the
+stock Gemian splash and no automatic reboot. The exact RNDIS collector expired
+after 900 seconds, and the host's post-deadline USB inventory contained no
+Gemini device. The owner then returned to ordinary Gemian with the power key.
+Recovery found configured but empty pstore, the same generic 74-byte last-kmsg
+header as attempt 1, CPUs 8/9 offline, and inactive boot2 still matching exact
+corrected checksum `ea603c1b1a64...`. Because the diagnostic ramdisk does not
+launch the stock splash, its absence is not itself evidence of an earlier
+kernel stop. No retained marker distinguishes kernel entry, initramfs entry, or
+failure before Android USB service. Do not repeat the exact corrected artifact.
+See the
+[`corrected attempt-2 record`](results/runtime-attempt-2-pre-transport-20260815.txt).
 
 ## Analysis
 
@@ -247,17 +261,21 @@ The compile/link, offline container, and runtime-tool gates pass. This
 establishes source integration, exact configuration scope, DCT reproducibility,
 linked observer presence, symbol closure, one reproducible LK-compatible
 container, and a fixed deployment/measurement contract. It does not establish
-runtime lifecycle publication or hardware support. Attempt 1 did not produce a
-valid observation. The corrected derivative now passes offline review and its
-guarded deployment; one corrected read-only runtime cycle is next.
+runtime lifecycle publication or hardware support. Attempt 1 had an invalid
+transport expectation. Corrected attempt 2 had a valid transport design but
+never made that transport serviceable and retained no candidate marker. EEM/PPM
+runtime publication remains unobserved, and both deployed artifacts are closed
+to identical repetition.
 
 ## Follow-up
 
-With the corrected USB/netcat collector armed, physically select boot2 once.
-Runtime success requires two stable reads with
-`observation_complete=1`, all reported PPM cluster bits present, EEM bank masks
-equal to `0x0000003b`, and nonzero variant, table epoch, and calibration handle,
-while owner/transition handles remain zero. That would confirm table and
-calibration publication—not asynchronous voltage-setter completion. The
-upstream path would still require one coherent transition owner for the
-DVFSP/I2C6/DA921x operation and rollback boundary before CPU8/CPU9 admission.
+Before building or booting a successor, perform an offline boundary audit
+against the known-working ramoops/watchdog and UART foundations. A successor
+must add a decision-changing, attributable checkpoint before `/init` plus
+bounded automatic recovery, or use verified live UART capture; RNDIS alone is
+not sufficient after this result. Runtime success would still require two
+stable reads with `observation_complete=1`, complete PPM and EEM masks, and
+nonzero variant, table epoch, and calibration handle while owner/transition
+handles remain zero. That would confirm publication only. The upstream path
+still requires one coherent transition owner for the DVFSP/I2C6/DA921x
+operation and rollback boundary before CPU8/CPU9 admission.

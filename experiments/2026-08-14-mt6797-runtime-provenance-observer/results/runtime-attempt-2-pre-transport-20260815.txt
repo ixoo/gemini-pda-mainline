@@ -1,0 +1,73 @@
+MT6797 runtime provenance observer: corrected attempt 2 pre-transport failure
+Date: 2026-08-15 America/New_York
+Device: named project Gemini PDA, MT6797
+
+Deployed identity
+- full boot2 SHA-256: ea603c1b1a64d4f1aa9cac3e53957a3e858a7ce04127f1aef36d4b0e8173cb02
+- expected kernel release: 3.18.79-gemini-provenance-observer+
+- diagnostic ramdisk SHA-256: 86a112ef29fecdb8f47b003cbfb08b77b478c4f511cba46acd987af09c921358
+- kernel, appended DTB, and configuration: byte-identical to attempt 1
+
+Predeclared observation path
+- initramfs marker: GEMINI_DVFSP_PROVENANCE_DIAGNOSTIC_20260815
+- early record: /run/provenance-early.txt plus /dev/kmsg, ttyS0, and tty1
+- live transport: legacy Android RNDIS at 10.15.19.82:2323
+- collector deadline: 900 seconds
+- storage writes: none
+- automatic reboot: none
+
+Owner-visible observation
+- boot2 was physically selected once
+- the device remained at the boot screen
+- the Gemian splash did not appear
+- no automatic reboot occurred
+- the owner manually restarted into ordinary Gemian
+
+Host observation before manual recovery
+- exact Gemini RNDIS interface: absent for the complete 900-second deadline
+- Gemini USB device enumeration: absent in the post-deadline host inventory
+- ordinary Gemian SSH: absent while the device remained at the boot screen
+
+Recovered evidence
+- recovery kernel: 3.18.41+
+- recovery boot ID: b1df2f1c-79a3-4e19-ad47-4b967aa6d364
+- androidboot.bootreason: power_key
+- platform boot_reason path: unavailable
+- pstore directory: present
+- pstore file count: 0
+- retained panic, console, or observer marker: none
+- last_kmsg size: 74
+- last_kmsg SHA-256: 4fcbab4427a8c10a4824e715d9e4b8904b8152eb03c827b1065fcd4a65868652
+- last_kmsg content class: generic ram-console header, hw_status 0, no panic signature
+- CPU possible/present: 0-9 / 0-9
+- CPU online at recovery sample: 4-5; therefore CPU8/CPU9 offline
+- inactive boot2: /dev/mmcblk0p30, unmounted, 16777216 bytes
+- recovered boot2 SHA-256: ea603c1b1a64d4f1aa9cac3e53957a3e858a7ce04127f1aef36d4b0e8173cb02
+
+Observation versus inference
+- The missing Gemian splash distinguishes the owner-visible display state from
+  attempt 1, but the diagnostic ramdisk does not launch the stock splash. The
+  display difference therefore does not establish an earlier kernel failure.
+- The absent host USB enumeration establishes that the corrected live
+  observation transport never became serviceable.
+- Empty pstore and the generic last_kmsg header establish that no retained
+  panic or candidate marker was recovered. They do not prove that the kernel
+  or initramfs was never entered, especially across a manual power-key cycle.
+- No runtime observer state was captured, so EEM/PPM publication remains
+  untested and kernel-versus-early-userspace localization remains open.
+
+Classification
+runtime_classification=service-failure-pre-transport
+kernel_hang_localization=not-established
+initramfs_entry=not-observed
+ppm_eem_publication=not-observed
+cpu8_cpu9_admission=closed
+repeat_identical_candidate=no
+
+Next decision
+Do not repeat this exact artifact. Before another candidate, audit the earliest
+durable observation boundary against the known-working ramoops/watchdog and
+UART foundations. Any successor must add an attributable pre-`/init` kernel
+checkpoint and bounded automatic recovery, or use a verified live UART capture,
+so absence of RNDIS cannot erase the decision-changing evidence. Keep provider
+registration, setters, hardware writes, and CPU8/CPU9 admission closed.
