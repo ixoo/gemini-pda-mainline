@@ -20,8 +20,11 @@ def main() -> None:
         root / "drivers/soc/mediatek/mt6797-dvfsp-state-snapshot.c",
         root / "include/linux/soc/mediatek/mt6797-dvfsp-vendor-provider.h",
         root / "drivers/soc/mediatek/mt6797-dvfsp-vendor-provider.c",
+        root / "include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h",
+        root / "drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c",
         root / "drivers/soc/mediatek/mt6797-dvfsp-calibrated-provider-test.c",
         root / "drivers/soc/mediatek/mt6797-dvfsp-vendor-provider-test.c",
+        root / "drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c",
     ]
     for path in paths:
         if not path.is_file():
@@ -33,12 +36,21 @@ def main() -> None:
         ("snapshot->owner_handle = input->owner_handle;", "owner attribution"),
         ("snapshot->transition_handle = input->transition_handle;", "transition attribution"),
         ("snapshot->provenance = input->provenance;", "snapshot provenance"),
-        ("MT6797_DVFSP_VENDOR_PROVIDER_ABI\t4", "provider ABI"),
+        ("MT6797_DVFSP_VENDOR_PROVIDER_ABI\t5", "provider ABI"),
         ("struct mt6797_dvfsp_vendor_source_provenance provenance;", "mapped provenance"),
         ("mt6797_dvfsp_vendor_source_provenance(bridge->source", "provenance callback"),
         ("provenance->source_generation != source->generation", "generation equality"),
         ("provenance->table_epoch != identity->table_epoch", "epoch equality"),
+        ("source = kzalloc(sizeof(*source), GFP_KERNEL);", "bounded bridge storage"),
+        ("mt6797_dvfsp_vendor_provider_match_state", "cross-view matcher"),
+        ("MT6797_DVFSP_VENDOR_OWNER_ABI\t2", "owner registration ABI"),
+        ("mt6797_dvfsp_vendor_owner_register_state", "state registration"),
+        ("mt6797_dvfsp_vendor_owner_unregister_state", "state teardown"),
+        ("mt6797_dvfsp_state_owner_arbitration_register(handoff", "arbitration registration"),
+        ("memcmp(before_mapped, after_mapped", "post-registration vendor recheck"),
+        ("owner->state_registered", "registered lifetime guard"),
         ("mt6797_dvfsp_vendor_provider_rejects_provenance_mismatch", "mismatch KUnit"),
+        ("mt6797_dvfsp_vendor_provider_matches_state_identity", "cross-view KUnit"),
         ("mt6797_dvfsp_provider_snapshot_keeps_attribution", "attribution KUnit"),
     ):
         require(text, needle, label)

@@ -387,10 +387,469 @@ def require_vendor_provenance(root: Path) -> None:
     )
 
 
+def bound_vendor_bridge_storage(root: Path) -> None:
+    source = root / "drivers/soc/mediatek/mt6797-dvfsp-vendor-provider.c"
+
+    replace_once(
+        source,
+        "#include <linux/module.h>\n#include <linux/string.h>\n",
+        "#include <linux/module.h>\n#include <linux/slab.h>\n"
+        "#include <linux/string.h>\n",
+    )
+    replace_once(
+        source,
+        "int mt6797_dvfsp_vendor_provider_bridge_snapshot(\n"
+        "\tstruct mt6797_dvfsp_vendor_provider_bridge *bridge,\n"
+        "\tstruct mt6797_dvfsp_vendor_provider_snapshot *mapped)\n"
+        "{\n"
+        "\tstruct mt6797_dvfsp_vendor_source_snapshot source;\n"
+        "\tstruct mt6797_dvfsp_vendor_source_identity identity;\n"
+        "\tstruct mt6797_dvfsp_vendor_source_provenance provenance;\n"
+        "\tint ret;\n\n"
+        "\tif (!bridge || !bridge->initialized || !bridge->provider ||\n"
+        "\t    !bridge->provider->initialized || !bridge->source || !mapped)\n"
+        "\t\treturn -ENODEV;\n"
+        "\tmemset(&source, 0, sizeof(source));\n"
+        "\tret = mt6797_dvfsp_vendor_source_snapshot(bridge->source, &source);\n"
+        "\tif (ret)\n\t\treturn ret;\n"
+        "\tmemset(&identity, 0, sizeof(identity));\n"
+        "\tret = mt6797_dvfsp_vendor_source_identity(bridge->source, &identity);\n"
+        "\tif (ret)\n\t\treturn ret;\n"
+        "\tmemset(&provenance, 0, sizeof(provenance));\n"
+        "\tret = mt6797_dvfsp_vendor_source_provenance(bridge->source,\n"
+        "\t\t&source, &provenance);\n"
+        "\tif (ret)\n\t\treturn ret;\n"
+        "\treturn mt6797_dvfsp_vendor_provider_map(&source, &identity,\n"
+        "\t\t&provenance, bridge->owner_handle,\n"
+        "\t\tbridge->transition_handle, mapped);\n"
+        "}\n",
+        "int mt6797_dvfsp_vendor_provider_bridge_snapshot(\n"
+        "\tstruct mt6797_dvfsp_vendor_provider_bridge *bridge,\n"
+        "\tstruct mt6797_dvfsp_vendor_provider_snapshot *mapped)\n"
+        "{\n"
+        "\tstruct mt6797_dvfsp_vendor_source_snapshot *source;\n"
+        "\tstruct mt6797_dvfsp_vendor_source_identity identity;\n"
+        "\tstruct mt6797_dvfsp_vendor_source_provenance provenance;\n"
+        "\tint ret;\n\n"
+        "\tif (!bridge || !bridge->initialized || !bridge->provider ||\n"
+        "\t    !bridge->provider->initialized || !bridge->source || !mapped)\n"
+        "\t\treturn -ENODEV;\n"
+        "\tsource = kzalloc(sizeof(*source), GFP_KERNEL);\n"
+        "\tif (!source)\n\t\treturn -ENOMEM;\n"
+        "\tret = mt6797_dvfsp_vendor_source_snapshot(bridge->source, source);\n"
+        "\tif (ret)\n\t\tgoto out_free;\n"
+        "\tmemset(&identity, 0, sizeof(identity));\n"
+        "\tret = mt6797_dvfsp_vendor_source_identity(bridge->source, &identity);\n"
+        "\tif (ret)\n\t\tgoto out_free;\n"
+        "\tmemset(&provenance, 0, sizeof(provenance));\n"
+        "\tret = mt6797_dvfsp_vendor_source_provenance(bridge->source,\n"
+        "\t\tsource, &provenance);\n"
+        "\tif (ret)\n\t\tgoto out_free;\n"
+        "\tret = mt6797_dvfsp_vendor_provider_map(source, &identity,\n"
+        "\t\t&provenance, bridge->owner_handle,\n"
+        "\t\tbridge->transition_handle, mapped);\n\n"
+        "out_free:\n"
+        "\tkfree(source);\n"
+        "\treturn ret;\n"
+        "}\n",
+    )
+
+
+def register_validated_owner(root: Path) -> None:
+    provider_header = (
+        root / "include/linux/soc/mediatek/mt6797-dvfsp-vendor-provider.h"
+    )
+    provider_source = (
+        root / "drivers/soc/mediatek/mt6797-dvfsp-vendor-provider.c"
+    )
+    provider_test = (
+        root / "drivers/soc/mediatek/mt6797-dvfsp-vendor-provider-test.c"
+    )
+    owner_header = (
+        root / "include/linux/soc/mediatek/mt6797-dvfsp-vendor-owner.h"
+    )
+    owner_source = root / "drivers/soc/mediatek/mt6797-dvfsp-vendor-owner.c"
+    owner_test = (
+        root / "drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c"
+    )
+
+    replace_once(
+        provider_header,
+        "#define MT6797_DVFSP_VENDOR_PROVIDER_ABI\t4\n",
+        "#define MT6797_DVFSP_VENDOR_PROVIDER_ABI\t5\n",
+    )
+    replace_once(
+        provider_header,
+        "\tstruct mt6797_dvfsp_vendor_provider_snapshot *mapped);\n\n"
+        "/* Attach the read-only review view to an already dormant calibrated provider. */\n",
+        "\tstruct mt6797_dvfsp_vendor_provider_snapshot *mapped);\n\n"
+        "/* Require one exact vendor, calibrated-state, and owner identity view. */\n"
+        "int mt6797_dvfsp_vendor_provider_match_state(\n"
+        "\tconst struct mt6797_dvfsp_vendor_provider_snapshot *mapped,\n"
+        "\tconst struct mt6797_dvfsp_state_snapshot *snapshot,\n"
+        "\tconst struct mt6797_dvfsp_state_owner_identity *identity);\n\n"
+        "/* Attach the read-only review view to an already dormant calibrated provider. */\n",
+    )
+    replace_once(
+        provider_source,
+        "EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_provider_map);\n\n"
+        "int mt6797_dvfsp_vendor_provider_bridge_init(\n",
+        "EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_provider_map);\n\n"
+        "static bool mt6797_dvfsp_vendor_provider_state_provenance_equal(\n"
+        "\tconst struct mt6797_dvfsp_state_provenance *left,\n"
+        "\tconst struct mt6797_dvfsp_state_provenance *right)\n"
+        "{\n"
+        "\treturn left->abi == right->abi &&\n"
+        "\t\tleft->source_mask == right->source_mask &&\n"
+        "\t\tleft->variant_id == right->variant_id &&\n"
+        "\t\tleft->table_epoch == right->table_epoch &&\n"
+        "\t\tleft->calibration_handle == right->calibration_handle;\n"
+        "}\n\n"
+        "static bool mt6797_dvfsp_vendor_provider_provenance_matches(\n"
+        "\tconst struct mt6797_dvfsp_vendor_provider_snapshot *mapped,\n"
+        "\tconst struct mt6797_dvfsp_state_provenance *provenance)\n"
+        "{\n"
+        "\treturn provenance->variant_id == mapped->identity.variant_id &&\n"
+        "\t\tprovenance->variant_id == mapped->provenance.variant_id &&\n"
+        "\t\tprovenance->table_epoch == mapped->identity.table_epoch &&\n"
+        "\t\tprovenance->table_epoch == mapped->provenance.table_epoch &&\n"
+        "\t\tprovenance->calibration_handle ==\n"
+        "\t\t\tmapped->identity.calibration_handle &&\n"
+        "\t\tprovenance->calibration_handle ==\n"
+        "\t\t\tmapped->provenance.calibration_handle;\n"
+        "}\n\n"
+        "int mt6797_dvfsp_vendor_provider_match_state(\n"
+        "\tconst struct mt6797_dvfsp_vendor_provider_snapshot *mapped,\n"
+        "\tconst struct mt6797_dvfsp_state_snapshot *snapshot,\n"
+        "\tconst struct mt6797_dvfsp_state_owner_identity *identity)\n"
+        "{\n"
+        "\tif (!mapped || !snapshot || !identity)\n"
+        "\t\treturn -EINVAL;\n"
+        "\tif (mapped->abi != MT6797_DVFSP_VENDOR_PROVIDER_ABI ||\n"
+        "\t    mapped->mapped_mask != MT6797_DVFSP_VENDOR_PROVIDER_MAPPED_ALL ||\n"
+        "\t    mapped->unavailable_mask !=\n"
+        "\t\tMT6797_DVFSP_VENDOR_PROVIDER_UNAVAILABLE_REGISTRATION ||\n"
+        "\t    !mapped->generation || !mapped->owner_handle ||\n"
+        "\t    !mapped->transition_handle ||\n"
+        "\t    mapped->identity.abi != MT6797_DVFSP_VENDOR_SOURCE_ABI ||\n"
+        "\t    mapped->provenance.abi !=\n"
+        "\t\tMT6797_DVFSP_VENDOR_SOURCE_PROVENANCE_ABI ||\n"
+        "\t    snapshot->abi != MT6797_DVFSP_STATE_OWNER_ABI ||\n"
+        "\t    !snapshot->generation || !snapshot->owner_handle ||\n"
+        "\t    !snapshot->transition_handle ||\n"
+        "\t    snapshot->provenance.abi !=\n"
+        "\t\tMT6797_DVFSP_STATE_PROVENANCE_ABI ||\n"
+        "\t    snapshot->provenance.source_mask !=\n"
+        "\t\tMT6797_DVFSP_STATE_PROVENANCE_SOURCE_ALL ||\n"
+        "\t    identity->abi != MT6797_DVFSP_STATE_OWNER_IDENTITY_ABI ||\n"
+        "\t    identity->resource_mask !=\n"
+        "\t\tMT6797_DVFSP_STATE_OWNER_RESOURCE_ALL ||\n"
+        "\t    identity->cpu_pll_backend !=\n"
+        "\t\tMT6797_DVFSP_STATE_OWNER_BACKEND_MCUMIXED_DVFSP ||\n"
+        "\t    identity->big_cluster_backend !=\n"
+        "\t\tMT6797_DVFSP_STATE_OWNER_BACKEND_BIGIDVFS_SMCCC ||\n"
+        "\t    identity->reserved || !identity->owner_handle ||\n"
+        "\t    !identity->transition_handle ||\n"
+        "\t    identity->provenance.abi !=\n"
+        "\t\tMT6797_DVFSP_STATE_PROVENANCE_ABI ||\n"
+        "\t    identity->provenance.source_mask !=\n"
+        "\t\tMT6797_DVFSP_STATE_PROVENANCE_SOURCE_ALL)\n"
+        "\t\treturn -EPROTO;\n"
+        "\tif (mapped->generation != snapshot->generation ||\n"
+        "\t    mapped->provenance.source_generation != mapped->generation ||\n"
+        "\t    mapped->owner_handle != snapshot->owner_handle ||\n"
+        "\t    mapped->owner_handle != identity->owner_handle ||\n"
+        "\t    mapped->owner_handle != mapped->provenance.owner_handle ||\n"
+        "\t    mapped->transition_handle != snapshot->transition_handle ||\n"
+        "\t    mapped->transition_handle != identity->transition_handle ||\n"
+        "\t    mapped->transition_handle !=\n"
+        "\t\tmapped->provenance.transition_handle ||\n"
+        "\t    !mt6797_dvfsp_vendor_provider_state_provenance_equal(\n"
+        "\t\t&snapshot->provenance, &identity->provenance) ||\n"
+        "\t    !mt6797_dvfsp_vendor_provider_provenance_matches(mapped,\n"
+        "\t\t&snapshot->provenance))\n"
+        "\t\treturn -EAGAIN;\n"
+        "\treturn 0;\n"
+        "}\n"
+        "EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_provider_match_state);\n\n"
+        "int mt6797_dvfsp_vendor_provider_bridge_init(\n",
+    )
+
+    replace_once(
+        provider_test,
+        "static void mt6797_dvfsp_vendor_provider_rejects_identity_or_ids(\n",
+        "static void mt6797_dvfsp_vendor_provider_matches_state_identity(\n"
+        "\tstruct kunit *test)\n"
+        "{\n"
+        "\tstruct mt6797_dvfsp_vendor_provider_snapshot *mapped;\n"
+        "\tstruct mt6797_dvfsp_state_snapshot snapshot = {\n"
+        "\t\t.abi = MT6797_DVFSP_STATE_OWNER_ABI,\n"
+        "\t\t.generation = 9,\n"
+        "\t\t.owner_handle = 0x67970023,\n"
+        "\t\t.transition_handle = 0x67970022,\n"
+        "\t\t.provenance = {\n"
+        "\t\t\t.abi = MT6797_DVFSP_STATE_PROVENANCE_ABI,\n"
+        "\t\t\t.source_mask =\n"
+        "\t\t\t\tMT6797_DVFSP_STATE_PROVENANCE_SOURCE_ALL,\n"
+        "\t\t\t.variant_id = 7,\n"
+        "\t\t\t.table_epoch = 0x100000002ULL,\n"
+        "\t\t\t.calibration_handle = 0x6797abcdULL,\n"
+        "\t\t},\n"
+        "\t};\n"
+        "\tstruct mt6797_dvfsp_state_owner_identity identity = {\n"
+        "\t\t.abi = MT6797_DVFSP_STATE_OWNER_IDENTITY_ABI,\n"
+        "\t\t.resource_mask = MT6797_DVFSP_STATE_OWNER_RESOURCE_ALL,\n"
+        "\t\t.cpu_pll_backend =\n"
+        "\t\t\tMT6797_DVFSP_STATE_OWNER_BACKEND_MCUMIXED_DVFSP,\n"
+        "\t\t.big_cluster_backend =\n"
+        "\t\t\tMT6797_DVFSP_STATE_OWNER_BACKEND_BIGIDVFS_SMCCC,\n"
+        "\t\t.owner_handle = 0x67970023,\n"
+        "\t\t.transition_handle = 0x67970022,\n"
+        "\t};\n\n"
+        "\tmapped = kunit_kzalloc(test, sizeof(*mapped), GFP_KERNEL);\n"
+        "\tKUNIT_ASSERT_NOT_NULL(test, mapped);\n"
+        "\tmt6797_dvfsp_vendor_provider_test_fill();\n"
+        "\tKUNIT_ASSERT_EQ(test, mt6797_dvfsp_vendor_provider_map(\n"
+        "\t\t&mt6797_dvfsp_vendor_provider_test_snapshot,\n"
+        "\t\t&mt6797_dvfsp_vendor_provider_test_identity,\n"
+        "\t\t&mt6797_dvfsp_vendor_provider_test_provenance,\n"
+        "\t\t0x67970023, 0x67970022, mapped), 0);\n"
+        "\tidentity.provenance = snapshot.provenance;\n"
+        "\tKUNIT_EXPECT_EQ(test, mt6797_dvfsp_vendor_provider_match_state(\n"
+        "\t\tmapped, &snapshot, &identity), 0);\n"
+        "\tsnapshot.generation++;\n"
+        "\tKUNIT_EXPECT_EQ(test, mt6797_dvfsp_vendor_provider_match_state(\n"
+        "\t\tmapped, &snapshot, &identity), -EAGAIN);\n"
+        "\tsnapshot.generation--;\n"
+        "\tidentity.provenance.table_epoch++;\n"
+        "\tKUNIT_EXPECT_EQ(test, mt6797_dvfsp_vendor_provider_match_state(\n"
+        "\t\tmapped, &snapshot, &identity), -EAGAIN);\n"
+        "}\n\n"
+        "static void mt6797_dvfsp_vendor_provider_rejects_identity_or_ids(\n",
+    )
+    replace_once(
+        provider_test,
+        "\tKUNIT_CASE(mt6797_dvfsp_vendor_provider_maps_fields),\n"
+        "\tKUNIT_CASE(mt6797_dvfsp_vendor_provider_rejects_identity_or_ids),\n",
+        "\tKUNIT_CASE(mt6797_dvfsp_vendor_provider_maps_fields),\n"
+        "\tKUNIT_CASE(mt6797_dvfsp_vendor_provider_matches_state_identity),\n"
+        "\tKUNIT_CASE(mt6797_dvfsp_vendor_provider_rejects_identity_or_ids),\n",
+    )
+
+    replace_once(
+        owner_header,
+        "#define MT6797_DVFSP_VENDOR_OWNER_ABI\t1\n",
+        "#define MT6797_DVFSP_VENDOR_OWNER_ABI\t2\n",
+    )
+    replace_once(
+        owner_header,
+        " * This object owns only callback composition and provider lifetime. It does\n"
+        " * not register a handoff owner or perform a state-changing operation.\n",
+        " * This object owns callback composition, provider lifetime, and explicit\n"
+        " * read-only handoff registration. It performs no state-changing operation.\n",
+    )
+    replace_once(
+        owner_header,
+        "\tstruct mt6797_dvfsp_vendor_provider_bridge provider_bridge;\n"
+        "\tconst struct mt6797_dvfsp_vendor_runtime_ops *writer_runtime_ops;\n",
+        "\tstruct mt6797_dvfsp_vendor_provider_bridge provider_bridge;\n"
+        "\tstruct mt6797_dvfsp_handoff *state_handoff;\n"
+        "\tconst struct mt6797_dvfsp_vendor_runtime_ops *writer_runtime_ops;\n",
+    )
+    replace_once(
+        owner_header,
+        "\tbool bound;\n\tbool writer_registered;\n};\n",
+        "\tbool bound;\n\tbool writer_registered;\n"
+        "\tbool state_registered;\n};\n",
+    )
+    replace_once(
+        owner_header,
+        "int mt6797_dvfsp_vendor_owner_unregister_writer(\n"
+        "\tstruct mt6797_dvfsp_vendor_owner *owner);\n\n"
+        "/* Bind the external vendor lifecycle adapter before its probe can run. */\n",
+        "int mt6797_dvfsp_vendor_owner_unregister_writer(\n"
+        "\tstruct mt6797_dvfsp_vendor_owner *owner);\n\n"
+        "/* Register only a complete, matching read-only state view. */\n"
+        "int mt6797_dvfsp_vendor_owner_register_state(\n"
+        "\tstruct mt6797_dvfsp_vendor_owner *owner,\n"
+        "\tstruct mt6797_dvfsp_handoff *handoff);\n\n"
+        "/* Remove the state owner before the writer or source lifecycle. */\n"
+        "int mt6797_dvfsp_vendor_owner_unregister_state(\n"
+        "\tstruct mt6797_dvfsp_vendor_owner *owner);\n\n"
+        "/* Bind the external vendor lifecycle adapter before its probe can run. */\n",
+    )
+
+    replace_once(
+        owner_source,
+        "#include <linux/module.h>\n#include <linux/string.h>\n",
+        "#include <linux/module.h>\n#include <linux/slab.h>\n"
+        "#include <linux/string.h>\n",
+    )
+    replace_once(
+        owner_source,
+        "EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_owner_register_writer);\n\n"
+        "int mt6797_dvfsp_vendor_owner_unregister_writer(\n",
+        "EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_owner_register_writer);\n\n"
+        "static int mt6797_dvfsp_vendor_owner_read_state(\n"
+        "\tstruct mt6797_dvfsp_vendor_owner *owner,\n"
+        "\tstruct mt6797_dvfsp_vendor_provider_snapshot *mapped,\n"
+        "\tstruct mt6797_dvfsp_state_snapshot *snapshot,\n"
+        "\tstruct mt6797_dvfsp_state_owner_identity *identity)\n"
+        "{\n"
+        "\tint ret;\n\n"
+        "\tmemset(mapped, 0, sizeof(*mapped));\n"
+        "\tret = mt6797_dvfsp_vendor_provider_bridge_snapshot(\n"
+        "\t\t&owner->provider_bridge, mapped);\n"
+        "\tif (ret)\n\t\treturn ret;\n"
+        "\tmemset(snapshot, 0, sizeof(*snapshot));\n"
+        "\tret = mt6797_dvfsp_calibrated_provider_snapshot(\n"
+        "\t\t&owner->provider, snapshot);\n"
+        "\tif (ret)\n\t\treturn ret;\n"
+        "\tret = mt6797_dvfsp_calibrated_provider_validate(\n"
+        "\t\t&owner->provider, snapshot);\n"
+        "\tif (ret)\n\t\treturn ret;\n"
+        "\tmemset(identity, 0, sizeof(*identity));\n"
+        "\tret = mt6797_dvfsp_calibrated_provider_identify(\n"
+        "\t\t&owner->provider, identity);\n"
+        "\tif (ret)\n\t\treturn ret;\n"
+        "\treturn mt6797_dvfsp_vendor_provider_match_state(mapped, snapshot,\n"
+        "\t\tidentity);\n"
+        "}\n\n"
+        "int mt6797_dvfsp_vendor_owner_register_state(\n"
+        "\tstruct mt6797_dvfsp_vendor_owner *owner,\n"
+        "\tstruct mt6797_dvfsp_handoff *handoff)\n"
+        "{\n"
+        "\tstruct mt6797_dvfsp_vendor_provider_snapshot *before_mapped;\n"
+        "\tstruct mt6797_dvfsp_vendor_provider_snapshot *after_mapped;\n"
+        "\tstruct mt6797_dvfsp_state_snapshot *before_snapshot;\n"
+        "\tstruct mt6797_dvfsp_state_snapshot *after_snapshot;\n"
+        "\tstruct mt6797_dvfsp_state_owner_identity before_identity;\n"
+        "\tstruct mt6797_dvfsp_state_owner_identity after_identity;\n"
+        "\tint rollback_ret;\n"
+        "\tint ret;\n\n"
+        "\tif (!owner || !handoff)\n\t\treturn -EINVAL;\n"
+        "\tif (!owner->bound || !owner->writer_integration_bound ||\n"
+        "\t    !owner->writer_registered || !owner->provider_bridge.initialized)\n"
+        "\t\treturn -ENODEV;\n"
+        "\tif (owner->state_registered)\n\t\treturn -EBUSY;\n"
+        "\tbefore_mapped = kzalloc(sizeof(*before_mapped), GFP_KERNEL);\n"
+        "\tafter_mapped = kzalloc(sizeof(*after_mapped), GFP_KERNEL);\n"
+        "\tbefore_snapshot = kzalloc(sizeof(*before_snapshot), GFP_KERNEL);\n"
+        "\tafter_snapshot = kzalloc(sizeof(*after_snapshot), GFP_KERNEL);\n"
+        "\tif (!before_mapped || !after_mapped || !before_snapshot ||\n"
+        "\t    !after_snapshot) {\n"
+        "\t\tret = -ENOMEM;\n"
+        "\t\tgoto out_free;\n"
+        "\t}\n"
+        "\tret = mt6797_dvfsp_vendor_owner_read_state(owner, before_mapped,\n"
+        "\t\tbefore_snapshot, &before_identity);\n"
+        "\tif (ret)\n\t\tgoto out_free;\n"
+        "\tret = mt6797_dvfsp_state_owner_arbitration_register(handoff,\n"
+        "\t\t&owner->provider.arbitration);\n"
+        "\tif (ret)\n\t\tgoto out_free;\n"
+        "\towner->state_handoff = handoff;\n"
+        "\towner->state_registered = true;\n"
+        "\tret = mt6797_dvfsp_vendor_owner_read_state(owner, after_mapped,\n"
+        "\t\tafter_snapshot, &after_identity);\n"
+        "\tif (!ret && (memcmp(before_mapped, after_mapped,\n"
+        "\t\t\t    sizeof(*before_mapped)) ||\n"
+        "\t\t    memcmp(before_snapshot, after_snapshot,\n"
+        "\t\t\t    sizeof(*before_snapshot)) ||\n"
+        "\t\t    memcmp(&before_identity, &after_identity,\n"
+        "\t\t\t    sizeof(before_identity))))\n"
+        "\t\tret = -EAGAIN;\n"
+        "\tif (!ret)\n\t\tgoto out_free;\n"
+        "\trollback_ret = mt6797_dvfsp_state_owner_arbitration_unregister(\n"
+        "\t\thandoff, &owner->provider.arbitration);\n"
+        "\tif (rollback_ret) {\n"
+        "\t\tret = rollback_ret;\n"
+        "\t\tgoto out_free;\n"
+        "\t}\n"
+        "\towner->state_handoff = NULL;\n"
+        "\towner->state_registered = false;\n\n"
+        "out_free:\n"
+        "\tkfree(after_snapshot);\n"
+        "\tkfree(before_snapshot);\n"
+        "\tkfree(after_mapped);\n"
+        "\tkfree(before_mapped);\n"
+        "\treturn ret;\n"
+        "}\n"
+        "EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_owner_register_state);\n\n"
+        "int mt6797_dvfsp_vendor_owner_unregister_state(\n"
+        "\tstruct mt6797_dvfsp_vendor_owner *owner)\n"
+        "{\n"
+        "\tint ret;\n\n"
+        "\tif (!owner || !owner->bound)\n\t\treturn -EINVAL;\n"
+        "\tif (!owner->state_registered || !owner->state_handoff)\n"
+        "\t\treturn -ENOENT;\n"
+        "\tret = mt6797_dvfsp_state_owner_arbitration_unregister(\n"
+        "\t\towner->state_handoff, &owner->provider.arbitration);\n"
+        "\tif (ret)\n\t\treturn ret;\n"
+        "\towner->state_handoff = NULL;\n"
+        "\towner->state_registered = false;\n"
+        "\treturn 0;\n"
+        "}\n"
+        "EXPORT_SYMBOL_GPL(mt6797_dvfsp_vendor_owner_unregister_state);\n\n"
+        "int mt6797_dvfsp_vendor_owner_unregister_writer(\n",
+    )
+    replace_once(
+        owner_source,
+        "\tif (!owner || !owner->bound || !owner->writer_registered)\n"
+        "\t\treturn -EINVAL;\n"
+        "\tops = owner->ops.writer_registration_ops;\n",
+        "\tif (!owner || !owner->bound || !owner->writer_registered)\n"
+        "\t\treturn -EINVAL;\n"
+        "\tif (owner->state_registered)\n\t\treturn -EBUSY;\n"
+        "\tops = owner->ops.writer_registration_ops;\n",
+    )
+    replace_once(
+        owner_source,
+        "\tif (owner->writer_registered || owner->ops.writer_registration_ops !=\n"
+        "\t\t&mt6797_dvfsp_vendor_owner_integration_registration_ops ||\n",
+        "\tif (owner->writer_registered || owner->state_registered ||\n"
+        "\t    owner->ops.writer_registration_ops !=\n"
+        "\t\t&mt6797_dvfsp_vendor_owner_integration_registration_ops ||\n",
+    )
+    replace_once(
+        owner_source,
+        "\tif (owner->writer_registered || owner->writer_integration_bound)\n"
+        "\t\treturn -EBUSY;\n",
+        "\tif (owner->writer_registered || owner->writer_integration_bound ||\n"
+        "\t    owner->state_registered)\n"
+        "\t\treturn -EBUSY;\n",
+    )
+
+    replace_once(
+        owner_test,
+        "\tstruct mt6797_dvfsp_vendor_source_identity_observation observation;\n\n"
+        "\tmt6797_dvfsp_vendor_test_init_devices(&devices);\n",
+        "\tstruct mt6797_dvfsp_vendor_source_identity_observation observation;\n"
+        "\tstruct mt6797_dvfsp_handoff *handoff;\n\n"
+        "\tmt6797_dvfsp_vendor_test_init_devices(&devices);\n",
+    )
+    replace_once(
+        owner_test,
+        "\tKUNIT_EXPECT_TRUE(test, owner.source.initialized);\n"
+        "\tKUNIT_ASSERT_EQ(test,\n"
+        "\t\tmt6797_dvfsp_vendor_source_identity_observation(&owner.source,\n",
+        "\tKUNIT_EXPECT_TRUE(test, owner.source.initialized);\n"
+        "\thandoff = kunit_kzalloc(test, sizeof(*handoff), GFP_KERNEL);\n"
+        "\tKUNIT_ASSERT_NOT_NULL(test, handoff);\n"
+        "\tKUNIT_EXPECT_EQ(test, mt6797_dvfsp_vendor_owner_register_state(\n"
+        "\t\t&owner, handoff), -EOPNOTSUPP);\n"
+        "\tKUNIT_EXPECT_FALSE(test, owner.state_registered);\n"
+        "\tKUNIT_EXPECT_PTR_EQ(test, owner.state_handoff, NULL);\n"
+        "\tKUNIT_ASSERT_EQ(test,\n"
+        "\t\tmt6797_dvfsp_vendor_source_identity_observation(&owner.source,\n",
+    )
+
+
 PHASES = {
     "widen-epoch": widen_epoch,
     "preserve-snapshot-attribution": preserve_snapshot_attribution,
     "require-vendor-provenance": require_vendor_provenance,
+    "bound-vendor-bridge-storage": bound_vendor_bridge_storage,
+    "register-validated-owner": register_validated_owner,
 }
 
 

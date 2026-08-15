@@ -22,7 +22,9 @@ Every prerequisite is a separate logical patch.
 
 ## Registration gate
 
-A later registration entry point may proceed only when:
+Registration is split into two logical changes: first bound the provider
+bridge's large temporary source snapshot on the heap, then add the lifecycle
+entry points. The registration entry point may proceed only when:
 
 - the vendor lifecycle is bound and its mainline writer owner is registered;
 - the vendor provider bridge returns a complete, provenance-validated review
@@ -32,11 +34,15 @@ A later registration entry point may proceed only when:
 - generation, owner handle, transition handle, variant, table epoch, and
   calibration handle match across all views;
 - the handoff registry is empty and the arbitration object has no active hold
-  or latched fault.
+  or latched fault;
+- a second complete vendor/calibrated comparison still matches the same
+  generation and provenance after the arbitration registry accepts the owner.
 
-Any failure returns without registering. Teardown must unregister the state
-owner before writer removal, source invalidation, provider exit, or resource
-owner detach.
+Any pre-registration failure returns without registering. Any post-registration
+failure immediately unregisters; if that rollback itself is refused, the owner
+retains its registered bookkeeping so teardown remains fail closed. Teardown
+must unregister the state owner before writer removal, source invalidation,
+provider exit, or resource owner detach.
 
 ## Explicit non-goals
 
