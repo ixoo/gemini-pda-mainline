@@ -92,20 +92,40 @@ All format, synthetic-signoff, composed-source, and no-write checks pass. One
 initial request named a nonexistent full commit and was rejected before edits;
 its exact temporary directory was removed before the successful retry.
 
+The exact prerequisite commit `c93ebabea3be...` then passed the focused
+Buildbox profile: 263 patches applied, 119 DTBs built, package checksums passed,
+and only the validated package was fetched. The
+[`focused-build receipt`](results/prerequisite-focused-buildbox-20260815.txt)
+records the artifact and input identities. The build exposed no compiler or API
+error. It did preserve pre-existing test stack warnings and added a warning for
+the vendor-provider bridge's large automatic snapshot; reduce that frame before
+adding registration state.
+
+The fetched image booted under isolated arm64 QEMU and all six focused KUnit
+suites passed: 24 tests, zero failures, and zero skips. This includes the new
+wide-epoch, assembled-attribution, and vendor-provenance-mismatch cases. QEMU
+reported the kernel halted before the outer runner's expected timeout. See the
+[`KUnit receipt`](results/prerequisite-qemu-kunit-20260815.txt). No Gemini or
+other physical device was accessed.
+
 ## Analysis
 
 Registering the owner before these repairs would either truncate a legitimate
 epoch, publish an unattributed snapshot, or accept an identity not tied to the
-sampled generation. Therefore registration is not yet the next safe code
-change; the three attribution repairs are ordered prerequisites.
+sampled generation. The three repairs now pass their focused compile and
+hardware-free runtime gate. A full-profile compile remains required before the
+registration patch, and the bridge stack warning should be removed as part of
+the next bounded implementation rather than carried into its lifetime path.
 
 ## Conclusion
 
-`inconclusive` until the prerequisite patches and Buildbox validation complete.
+`inconclusive`: the focused prerequisite gate passes; full-profile validation
+and read-only owner registration remain open.
 
 ## Follow-up
 
-After the prerequisite series passes, add one separate read-only registration
-patch that cross-checks the vendor and calibrated views before calling the
-existing arbitration registry. Setters, hardware writes, and CPU8/CPU9
-admission remain closed for later gates.
+Run the normal full Buildbox profile for the exact prerequisite commit. Then
+add a separate read-only registration change that reduces bridge stack use and
+cross-checks the vendor and calibrated views before calling the existing
+arbitration registry. Setters, hardware writes, and CPU8/CPU9 admission remain
+closed for later gates.
