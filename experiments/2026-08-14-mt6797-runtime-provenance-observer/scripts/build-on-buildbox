@@ -314,8 +314,30 @@ if any(left[1] >= right[1] for left, right in zip(ordered, ordered[1:])):
 for label, address, name in ordered:
     print("{}\t{:016x}\t{}".format(label, address, name))
 PY
+python3 - "${output}/System.map" > "${output}/recovery-workfn-range.txt" <<'PY'
+import pathlib
+import sys
+
+symbols = []
+for line in pathlib.Path(sys.argv[1]).read_text().splitlines():
+    fields = line.split()
+    if len(fields) == 3:
+        symbols.append((int(fields[0], 16), fields[2]))
+matches = [address for address, name in symbols
+           if name == "gemini_mt6797_preinit_recovery_workfn"]
+if len(matches) != 1:
+    raise SystemExit("recovery work function symbol is not unique")
+start = matches[0]
+following = sorted({address for address, _ in symbols if address > start})
+if not following:
+    raise SystemExit("recovery work function has no bounded stop address")
+print("0x{:x}\t0x{:x}".format(start, following[0]))
+PY
+IFS=$'\t' read -r recovery_start recovery_stop < \
+  "${output}/recovery-workfn-range.txt"
+readonly recovery_start recovery_stop
 "${cross_prefix}objdump" -d \
-  --disassemble=gemini_mt6797_preinit_recovery_workfn \
+  --start-address="${recovery_start}" --stop-address="${recovery_stop}" \
   "${output}/vmlinux" > "${output}/recovery-workfn-disassembly.txt"
 grep -E 'bl[[:space:]]+.*<emergency_restart>' \
   "${output}/recovery-workfn-disassembly.txt" >/dev/null || \
@@ -333,6 +355,8 @@ cp "${output}/build.log" "${package_partial}/outputs/build.log"
 cp "${output}/diagnostics.txt" "${package_partial}/outputs/diagnostics.txt"
 cp "${output}/undefined-symbols.txt" "${package_partial}/outputs/undefined-symbols.txt"
 cp "${output}/initcall-order.txt" "${package_partial}/outputs/initcall-order.txt"
+cp "${output}/recovery-workfn-range.txt" \
+  "${package_partial}/outputs/recovery-workfn-range.txt"
 cp "${output}/recovery-workfn-disassembly.txt" \
   "${package_partial}/outputs/recovery-workfn-disassembly.txt"
 cp "${image}" "${package_partial}/outputs/Image.gz-dtb"

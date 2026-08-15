@@ -657,7 +657,8 @@ jq -e --arg commit "${commit}" '
 for required in outputs/Image.gz-dtb outputs/System.map outputs/vmlinux \
   outputs/config outputs/baseline.config outputs/config.diff \
   outputs/cust.dtsi outputs/dct.log outputs/build.log \
-  outputs/initcall-order.txt outputs/recovery-workfn-disassembly.txt \
+  outputs/initcall-order.txt outputs/recovery-workfn-range.txt \
+  outputs/recovery-workfn-disassembly.txt \
   provenance/changed-paths.txt \
   provenance/source-commits.txt; do
   [[ -s "${package}/${required}" ]]
