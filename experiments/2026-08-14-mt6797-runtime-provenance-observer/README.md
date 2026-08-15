@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-14-mt6797-runtime-provenance-observer` |
-| Status | `full-vendor DCT contract corrected; full-link pending` |
+| Status | `full-link validated; boot-container review pending` |
 | Subsystem | MT6797 EEM/PPM DVFSP provenance |
 | Device variant | Planet Gemini PDA, MT6797; no live-device action yet |
 | Date | 2026-08-14 America/New_York |
@@ -86,7 +86,7 @@ from an interrupt path. The regenerated patch starts with epoch and handle
 zero, completes the PPM epoch only after every reported cluster table is
 present, publishes a calibration handle only after the exact five non-SOC EEM
 INIT02 banks (`0x3b`) have completed, and uses an IRQ-safe spinlock. No build or
-device observation is recorded yet.
+device observation was recorded in that source-generation phase.
 
 The first exact pushed Buildbox job at `b6e088b` passed static validation,
 normal `git am`, generated-commit identity, and changed-path validation. It
@@ -108,6 +108,18 @@ lane now enforces that complete full-vendor DCT contract. No package or device
 action occurred. See the
 [`27f3d74` DCT-gate receipt](results/buildbox-dct-gate-27f3d74-20260815.txt).
 
+The exact `3556a9b` Buildbox job passed normal patch application, the two-symbol
+configuration oracle, the pinned full-vendor DCT contract, the complete
+`Image.gz-dtb`/`vmlinux` link, package checksums, linked-symbol and marker
+checks, and zero-unresolved-symbol closure. Its only summarized diagnostic was
+the vendor tree's six section mismatches. A disposable same-source diagnostic
+link with detailed section checking attributed all six to existing battery
+meter/OF and USB-host references and found no observer mention. The diagnostic
+output directory was removed after the result was recorded. The validated
+package remains compile-review-only with `boot_candidate=false`; no container,
+device access, or device write occurred. See the
+[`3556a9b` full-link receipt](results/buildbox-full-link-3556a9b-20260815.txt).
+
 ## Analysis
 
 This observer intentionally does not port the Linux 7.1 experimental
@@ -119,13 +131,17 @@ gate rather than hiding it.
 
 ## Conclusion
 
-Inconclusive pending the complete Buildbox link. Even a successful link remains
-compile-only evidence.
+The compile and link gate passes. This establishes source integration, exact
+configuration scope, DCT reproducibility, linked observer presence, and symbol
+closure. It does not establish runtime lifecycle publication or hardware
+support; the package remains explicitly ineligible for deployment until the
+separate boot-container review succeeds.
 
 ## Follow-up
 
-After successful full-link and package review, a separate decision may admit a
-read-only boot candidate. Runtime success would require two stable reads with
+Review the LK boot-container construction and validation boundary next. Only a
+separately validated read-only container may be admitted as a boot candidate.
+Runtime success would require two stable reads with
 `observation_complete=1`, all reported PPM cluster bits present, EEM bank masks
 equal to `0x0000003b`, and nonzero variant, table epoch, and calibration handle,
 while owner/transition handles remain zero. That would confirm table and
