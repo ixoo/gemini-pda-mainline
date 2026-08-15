@@ -31,9 +31,9 @@ Commands:
   build-gemian-observer Fetch pushed HEAD and compile the fixed Gemian observer
   fetch-gemian-observer Fetch its validated compile-review bundle for HEAD
   build-gemian-provenance-observer
-                        Fully link the read-only vendor provenance observer
+                        Link the observer plus pre-init recovery companion
   fetch-gemian-provenance-observer
-                        Fetch its validated full-link bundle for HEAD
+                        Fetch its validated pre-init full-link bundle for HEAD
   build-gemian-rollback-compile
                         Compare rollback and parent observer on Buildbox
   fetch-gemian-rollback-compile
@@ -524,7 +524,7 @@ build_gemian_provenance_observer() {
   printf -v remote_command 'bash -s -- %q %q %q' \
     "${sha}" "${branch}" "${jobs}"
 
-  printf 'Submitting Gemian provenance observer full-link review %s to %s\n' \
+  printf 'Submitting Gemian provenance pre-init full-link review %s to %s\n' \
     "${sha}" "${BUILDBOX_HOST}"
   ssh_buildbox "${remote_command}" <<'REMOTE'
 set -euo pipefail
@@ -543,8 +543,8 @@ readonly build_root="${workspace_root}/build"
 readonly artifact_root="${workspace_root}/gemian-provenance-artifacts"
 readonly toolchain_root="${workspace_root}/gemian-toolchains"
 readonly job_root="${workspace_root}/jobs"
-readonly job_key="${commit}-gemian-provenance-observer"
-readonly job_purpose=vendor-runtime-provenance-full-link-compile-review
+readonly job_key="${commit}-gemian-provenance-preinit"
+readonly job_purpose=vendor-runtime-provenance-preinit-full-link-compile-review
 readonly job_log="${job_root}/${job_key}.log"
 readonly job_record="${job_root}/${job_key}.json"
 readonly build_script=experiments/2026-08-14-mt6797-runtime-provenance-observer/scripts/build-on-buildbox
@@ -603,7 +603,7 @@ set -o pipefail
   "${commit}" "${source_root}" "${build_root}" "${artifact_root}" \
   "${toolchain_root}" "${jobs}" 2>&1 | tee "${job_log}"
 package="$(sed -n \
-  's/^Packaged Gemian provenance observer compile review at //p' \
+  's/^Packaged Gemian provenance pre-init compile review at //p' \
   "${job_log}" | tail -n 1)"
 case "${package}" in
   "${artifact_root}"/*) ;;
@@ -616,14 +616,20 @@ esac
 )
 jq -e --arg commit "${commit}" '
   .repository_commit == $commit and .repository_dirty == false and
-  .purpose == "vendor-runtime-provenance-full-link-compile-review-only" and
-  .build_mode == "provenance-observer" and
+  .purpose == "vendor-runtime-provenance-preinit-full-link-compile-review-only" and
+  .build_mode == "provenance-preinit-recovery" and
   .source_commit == "d388d350cb2dda8f23b99be6fa5db9628896e87f" and
-  .patched_commit == "f3d2a14bd1b8355c68e59e8bd4be6bc1525f9c24" and
-  .patch_sha256 ==
+  .parent_commit == "f3d2a14bd1b8355c68e59e8bd4be6bc1525f9c24" and
+  .patched_commit == "2dbf7be3999120f297aedb9842bce320d759d26e" and
+  .parent_patch_sha256 ==
     "3520538de1c31ea592c2f0c76af7deef10f5c1ee00689d74bdac17def48dbb11" and
+  .recovery_patch_sha256 ==
+    "0ddf2b5b28bb0957a467d38bfece553b89bf6b81c85c365f293d00b94efbd3d1" and
   .normal_patch_application == true and .config_delta_exact == true and
-  .observer_config_enabled == true and .full_kernel_link == true and
+  .observer_config_enabled == true and
+  .preinit_recovery_config_enabled == true and
+  .localversion == "-gemini-provenance-preinit" and
+  .full_kernel_link == true and
   .dct_project == "k97v1_64_bsp" and
   .dct_project_matches_config == true and
   .dct_python == "Python 3.11.2" and
@@ -641,12 +647,17 @@ jq -e --arg commit "${commit}" '
   .eem_required_bank_mask == "0x0000003b" and
   .coherent_transition_owner == false and .owner_handle == 0 and
   .transition_handle == 0 and .provider == "none" and
-  .hardware_write == "none" and .cpu8_cpu9_admission == "closed" and
+  .recovery_deadline_seconds == 120 and
+  .initcall_order_valid == true and
+  .reset_action == "bounded-emergency-restart" and
+  .dvfsp_hardware_write == "none" and .hardware_write == "reset-only" and
+  .cpu8_cpu9_admission == "closed" and
   .boot_candidate == false
 ' "${package}/provenance/build.json" >/dev/null
 for required in outputs/Image.gz-dtb outputs/System.map outputs/vmlinux \
   outputs/config outputs/baseline.config outputs/config.diff \
   outputs/cust.dtsi outputs/dct.log outputs/build.log \
+  outputs/initcall-order.txt outputs/recovery-workfn-disassembly.txt \
   provenance/changed-paths.txt \
   provenance/source-commits.txt; do
   [[ -s "${package}/${required}" ]]
@@ -656,7 +667,9 @@ done
 for symbol in gemini_mt6797_dvfsp_provenance_calibration_bank_publish \
   gemini_mt6797_dvfsp_provenance_calibration_invalidate \
   gemini_mt6797_dvfsp_provenance_table_commit \
-  gemini_mt6797_dvfsp_provenance_init; do
+  gemini_mt6797_dvfsp_provenance_init \
+  gemini_mt6797_preinit_recovery_init \
+  gemini_mt6797_preinit_recovery_workfn; do
   grep -q " ${symbol}$" "${package}/outputs/System.map"
 done
 jq -n \
@@ -691,7 +704,7 @@ fetch_gemian_provenance_observer() {
   require_command tar
   sha="$(git -C "${REPO_DIR}" rev-parse HEAD)"
   [[ "${sha}" =~ ^[0-9a-f]{40}$ ]] || die "invalid HEAD commit"
-  job_key="${sha}-gemian-provenance-observer"
+  job_key="${sha}-gemian-provenance-preinit"
   printf -v remote_command 'test -f %q && cat %q' \
     "/workspace/gemini-pda/jobs/${job_key}.json" \
     "/workspace/gemini-pda/jobs/${job_key}.json"
@@ -699,7 +712,7 @@ fetch_gemian_provenance_observer() {
     die "no completed Gemian provenance Buildbox job for ${sha}"
   printf '%s' "${job_info}" | jq -e --arg commit "${sha}" '
     .status == "validated" and .repository_commit == $commit and
-    .purpose == "vendor-runtime-provenance-full-link-compile-review" and
+    .purpose == "vendor-runtime-provenance-preinit-full-link-compile-review" and
     (.package_name | test("^[A-Za-z0-9_.+-]+$"))
   ' >/dev/null || die "Gemian provenance Buildbox job record is invalid"
   package_name="$(printf '%s' "${job_info}" | jq -er '.package_name')"
@@ -719,19 +732,25 @@ readonly record="/workspace/gemini-pda/jobs/${job_key}.json"
 [[ -f "${record}" && ! -L "${record}" ]]
 package="$(jq -er --arg commit "${commit}" '
   select(.status == "validated" and .repository_commit == $commit and
-    .purpose == "vendor-runtime-provenance-full-link-compile-review") |
+    .purpose == "vendor-runtime-provenance-preinit-full-link-compile-review") |
     .package
 ' "${record}")"
 case "${package}" in "${artifact_root}"/*) ;; *) exit 1 ;; esac
 [[ -d "${package}" && ! -L "${package}" ]]
 jq -e --arg commit "${commit}" '
   .repository_commit == $commit and .repository_dirty == false and
-  .purpose == "vendor-runtime-provenance-full-link-compile-review-only" and
+  .purpose == "vendor-runtime-provenance-preinit-full-link-compile-review-only" and
+  .build_mode == "provenance-preinit-recovery" and
   .full_kernel_link == true and .unresolved_symbol_count == 0 and
   .normal_patch_application == true and .config_delta_exact == true and
+  .observer_config_enabled == true and
+  .preinit_recovery_config_enabled == true and
   .interrupt_safe_observer == true and
   .lifecycle_completion_fail_closed == true and
-  .provider == "none" and .hardware_write == "none" and
+  .provider == "none" and .recovery_deadline_seconds == 120 and
+  .initcall_order_valid == true and
+  .reset_action == "bounded-emergency-restart" and
+  .dvfsp_hardware_write == "none" and .hardware_write == "reset-only" and
   .cpu8_cpu9_admission == "closed" and .boot_candidate == false
 ' "${package}/provenance/build.json" >/dev/null
 tar -C "$(dirname "${package}")" -cf - -- "$(basename "${package}")"

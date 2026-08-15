@@ -9,9 +9,11 @@ trap 'rc=$?; trap - ERR; printf "error: provenance full-link line %s status %s\n
   "${LINENO}" "${rc}" >&2; exit "${rc}"' ERR
 
 readonly SOURCE_COMMIT=d388d350cb2dda8f23b99be6fa5db9628896e87f
-readonly PATCHED_COMMIT=f3d2a14bd1b8355c68e59e8bd4be6bc1525f9c24
+readonly PARENT_COMMIT=f3d2a14bd1b8355c68e59e8bd4be6bc1525f9c24
+readonly PATCHED_COMMIT=2dbf7be3999120f297aedb9842bce320d759d26e
 readonly SOURCE_URL=https://github.com/gemian/gemini-linux-kernel-3.18.git
-readonly PATCH_SHA256=3520538de1c31ea592c2f0c76af7deef10f5c1ee00689d74bdac17def48dbb11
+readonly PARENT_PATCH_SHA256=3520538de1c31ea592c2f0c76af7deef10f5c1ee00689d74bdac17def48dbb11
+readonly RECOVERY_PATCH_SHA256=0ddf2b5b28bb0957a467d38bfece553b89bf6b81c85c365f293d00b94efbd3d1
 readonly EXPECTED_GCC='aarch64-linux-gnu-gcc-6 (Debian 6.3.0-18) 6.3.0 20170516'
 readonly EXPECTED_LD='GNU ld (GNU Binutils for Debian) 2.28'
 readonly EXPECTED_PYTHON='Python 2.7.13'
@@ -65,8 +67,9 @@ readonly repository_dir
 [[ -z "$(git -C "${repository_dir}" status --porcelain)" ]] || \
   die "project checkout is dirty"
 
-readonly patch="${experiment_dir}/patches/0001-power-add-read-only-DVFSP-provenance-observer.patch"
-readonly series="${experiment_dir}/patches/series"
+readonly parent_patch="${experiment_dir}/patches/0001-power-add-read-only-DVFSP-provenance-observer.patch"
+readonly recovery_patch="${experiment_dir}/patches/0002-power-add-provenance-pre-init-recovery-companion.patch"
+readonly series="${experiment_dir}/patches/series-preinit-recovery"
 readonly manifest="${repository_dir}/experiments/2026-07-23-gemian-a72-owner-observer/inputs/stretch-cross-toolchain.tsv"
 manifest_sha="$(sha256sum "${manifest}" | awk '{print $1}')"
 readonly manifest_sha
@@ -75,23 +78,29 @@ readonly cross_prefix="${toolchain}/wrappers/aarch64-linux-gnu-"
 readonly dct_python=/usr/bin/python3
 readonly source_mirror="${source_root}/gemian-linux-kernel-3.18.git"
 readonly prepared_source="${source_root}/prepared-${SOURCE_COMMIT:0:12}-${PATCHED_COMMIT:0:12}"
-readonly output="${build_root}/gemian-provenance-observer/${project_commit}"
-readonly package="${artifact_root}/gemian-provenance-observer-${project_commit:0:12}"
+readonly output="${build_root}/gemian-provenance-preinit/${project_commit}"
+readonly package="${artifact_root}/gemian-provenance-preinit-${project_commit:0:12}"
 readonly package_partial="${package}.partial.$$"
 
 for command in file git jq make nm python3 sha256sum tar; do
   command -v "${command}" >/dev/null 2>&1 || die "missing Buildbox command: ${command}"
 done
 PYTHONDONTWRITEBYTECODE=1 python3 "${script_dir}/validate.py"
-[[ "$(sha256sum "${patch}" | awk '{print $1}')" == "${PATCH_SHA256}" ]] || \
-  die "observer patch checksum mismatch"
-[[ "$(<"${series}")" == "$(basename "${patch}")" ]] || \
-  die "observer patch series mismatch"
+PYTHONDONTWRITEBYTECODE=1 python3 "${script_dir}/validate_preinit_patch.py"
+PYTHONDONTWRITEBYTECODE=1 python3 "${script_dir}/test_preinit_patch_validator.py"
+[[ "$(sha256sum "${parent_patch}" | awk '{print $1}')" == \
+   "${PARENT_PATCH_SHA256}" ]] || die "observer parent patch checksum mismatch"
+[[ "$(sha256sum "${recovery_patch}" | awk '{print $1}')" == \
+   "${RECOVERY_PATCH_SHA256}" ]] || die "pre-init recovery patch checksum mismatch"
+[[ "$(<"${series}")" == "$(basename "${parent_patch}")"$'\n'"$(basename "${recovery_patch}")" ]] || \
+  die "pre-init recovery patch series mismatch"
 
 [[ -f "${toolchain}/validated" && ! -L "${toolchain}" ]] || \
   die "pinned Gemian toolchain cache is unavailable"
 [[ "$(<"${toolchain}/validated")" == "${manifest_sha}" ]] || \
   die "cached toolchain validation identity mismatch"
+[[ -x "${cross_prefix}objdump" && -x "${cross_prefix}strings" ]] || \
+  die "pinned inspection tools are unavailable"
 export LD_LIBRARY_PATH="${toolchain}/root/usr/lib/x86_64-linux-gnu"
 [[ "$("${cross_prefix}gcc" --version | head -n 1)" == "${EXPECTED_GCC}" ]] || \
   die "pinned compiler identity mismatch"
@@ -131,9 +140,14 @@ else
   git -C "${partial}" checkout --detach "${SOURCE_COMMIT}"
   git -C "${partial}" -c user.name='Gemini Mainline Experiment' \
     -c user.email=gemini-mainline@example.invalid \
-    am --committer-date-is-author-date "${patch}"
+    am --committer-date-is-author-date "${parent_patch}"
+  [[ "$(git -C "${partial}" rev-parse HEAD)" == "${PARENT_COMMIT}" ]] || \
+    die "observer parent patch did not reproduce its generated commit"
+  git -C "${partial}" -c user.name='Gemini Mainline Experiment' \
+    -c user.email=gemini-mainline@example.invalid \
+    am --committer-date-is-author-date "${recovery_patch}"
   [[ "$(git -C "${partial}" rev-parse HEAD)" == "${PATCHED_COMMIT}" ]] || \
-    die "normal patch application did not reproduce generated commit"
+    die "pre-init recovery patch did not reproduce its generated commit"
   [[ -z "$(git -C "${partial}" status --porcelain)" ]] || \
     die "prepared source is dirty"
   mv "${partial}" "${prepared_source}"
@@ -157,21 +171,18 @@ import sys
 expected = [
     "drivers/misc/mediatek/base/power/Kconfig",
     "drivers/misc/mediatek/base/power/mt6797/Makefile",
-    "drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-provenance-observer.c",
-    "drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-provenance-observer.h",
-    "drivers/misc/mediatek/base/power/mt6797/mt_eem.c",
-    "drivers/misc/mediatek/base/power/ppm_v1/src/mt_ppm_api.c",
+    "drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-provenance-preinit-recovery.c",
 ]
 actual = pathlib.Path(sys.argv[1]).read_text().splitlines()
 if actual != expected:
-    raise SystemExit("applied patch changed-path set is not exact")
+    raise SystemExit("pre-init recovery child changed-path set is not exact")
 PY
 
 [[ ! -e "${package}" ]] || die "refusing to overwrite package: ${package}"
 [[ ! -e "${package_partial}" ]] || die "stale package partial exists"
 if [[ -e "${output}" ]]; then
   [[ -d "${output}" && ! -L "${output}" && \
-     "${output}" == /workspace/gemini-pda/build/gemian-provenance-observer/* ]] || \
+     "${output}" == /workspace/gemini-pda/build/gemian-provenance-preinit/* ]] || \
     die "unsafe stale build directory"
   rm -rf -- "${output}"
 fi
@@ -184,7 +195,8 @@ make -C "${prepared_source}" O="${output}" ARCH=arm64 \
 cp "${output}/.config" "${output}/baseline.config"
 "${prepared_source}/scripts/config" --file "${output}/.config" \
   --enable GEMINI_MT6797_DVFSP_PROVENANCE_OBSERVER \
-  --set-str LOCALVERSION "-gemini-provenance-observer"
+  --enable GEMINI_MT6797_DVFSP_PROVENANCE_PREINIT_RECOVERY \
+  --set-str LOCALVERSION "-gemini-provenance-preinit"
 make -C "${prepared_source}" O="${output}" ARCH=arm64 \
   CROSS_COMPILE="${cross_prefix}" olddefconfig
 grep -qx 'CONFIG_ARCH_MTK_PROJECT="k97v1_64_bsp"' "${output}/.config" || \
@@ -216,10 +228,11 @@ for change in changes:
     print("{}\t{}\t{}".format(*change))
 expected = [
     ("CONFIG_GEMINI_MT6797_DVFSP_PROVENANCE_OBSERVER", "n", "y"),
-    ("CONFIG_LOCALVERSION", '\"\"', '\"-gemini-provenance-observer\"'),
+    ("CONFIG_GEMINI_MT6797_DVFSP_PROVENANCE_PREINIT_RECOVERY", "n", "y"),
+    ("CONFIG_LOCALVERSION", '\"\"', '\"-gemini-provenance-preinit\"'),
 ]
 if changes != expected:
-    raise SystemExit("observer configuration delta is not exact")
+    raise SystemExit("pre-init recovery configuration delta is not exact")
 PY
 
 readonly dct_root="${output}/arch/arm64/boot/dts"
@@ -237,7 +250,7 @@ if ! make -C "${prepared_source}" O="${output}" ARCH=arm64 \
   CROSS_COMPILE="${cross_prefix}" python="${dct_python}" \
   -j"${jobs}" V=1 Image.gz-dtb > "${output}/build.log" 2>&1; then
   tail -n 160 "${output}/build.log" >&2
-  die "provenance observer full kernel link failed"
+  die "provenance pre-init recovery full kernel link failed"
 fi
 normalize_dct
 readonly image="${output}/arch/arm64/boot/Image.gz-dtb"
@@ -251,7 +264,9 @@ readonly unresolved_count
 for symbol in gemini_mt6797_dvfsp_provenance_calibration_bank_publish \
   gemini_mt6797_dvfsp_provenance_calibration_invalidate \
   gemini_mt6797_dvfsp_provenance_table_commit \
-  gemini_mt6797_dvfsp_provenance_init; do
+  gemini_mt6797_dvfsp_provenance_init \
+  gemini_mt6797_preinit_recovery_init \
+  gemini_mt6797_preinit_recovery_workfn; do
   grep -q " ${symbol}$" "${output}/System.map" || \
     die "linked observer symbol is absent: ${symbol}"
 done
@@ -260,10 +275,51 @@ for marker in 'gemini_dvfsp_provenance' 'observation_complete=' \
   'eem_required_bank_mask=0x' 'eem_calibration_bank_mask=0x' \
   'owner_handle=0' \
   'transition_handle=0' 'coherent_transition_owner=0' 'provider=none' \
-  'hardware_write=none' 'cpu8_cpu9_admission=closed'; do
+  'hardware_write=none' 'cpu8_cpu9_admission=closed' \
+  'GEMINI_DVFSP_PROVENANCE_PREINIT_RECOVERY_20260815' \
+  'checkpoint=pre-init' 'recovery=executing' 'deadline_seconds=%u' \
+  'reset=emergency-restart'; do
   "${cross_prefix}strings" "${output}/vmlinux" | grep -F "${marker}" >/dev/null || \
     die "linked observer marker is absent: ${marker}"
 done
+python3 - "${output}/System.map" > "${output}/initcall-order.txt" <<'PY'
+import pathlib
+import re
+import sys
+
+expected = [
+    ("restart-handler", re.compile(r"^__initcall_mtk_arch_reset_init0$")),
+    ("ramoops", re.compile(r"^__initcall_ramoops_init2$")),
+    ("vendor-watchdog", re.compile(r"^__initcall_mtk_wdt_init2$")),
+    ("provenance-observer", re.compile(
+        r"^__initcall_gemini_mt6797_dvfsp_provenance_init7$")),
+    ("vendor-watchdog-kicker", re.compile(r"^__initcall_init_wk7$")),
+    ("preinit-recovery", re.compile(
+        r"^__initcall_gemini_mt6797_preinit_recovery_init7s$")),
+]
+symbols = []
+for line in pathlib.Path(sys.argv[1]).read_text().splitlines():
+    fields = line.split()
+    if len(fields) == 3:
+        symbols.append((int(fields[0], 16), fields[2]))
+
+ordered = []
+for label, pattern in expected:
+    matches = [(address, name) for address, name in symbols if pattern.match(name)]
+    if len(matches) != 1:
+        raise SystemExit("initcall symbol is not unique: {}".format(label))
+    ordered.append((label, matches[0][0], matches[0][1]))
+if any(left[1] >= right[1] for left, right in zip(ordered, ordered[1:])):
+    raise SystemExit("required initcall order is not strictly increasing")
+for label, address, name in ordered:
+    print("{}\t{:016x}\t{}".format(label, address, name))
+PY
+"${cross_prefix}objdump" -d \
+  --disassemble=gemini_mt6797_preinit_recovery_workfn \
+  "${output}/vmlinux" > "${output}/recovery-workfn-disassembly.txt"
+grep -E 'bl[[:space:]]+.*<emergency_restart>' \
+  "${output}/recovery-workfn-disassembly.txt" >/dev/null || \
+  die "pre-init recovery work function does not call emergency_restart directly"
 grep -E -i '(^|[^[:alpha:]])(warning|error):' "${output}/build.log" > \
   "${output}/diagnostics.txt" || :
 
@@ -276,6 +332,9 @@ cp "${output}/dct.log" "${package_partial}/outputs/dct.log"
 cp "${output}/build.log" "${package_partial}/outputs/build.log"
 cp "${output}/diagnostics.txt" "${package_partial}/outputs/diagnostics.txt"
 cp "${output}/undefined-symbols.txt" "${package_partial}/outputs/undefined-symbols.txt"
+cp "${output}/initcall-order.txt" "${package_partial}/outputs/initcall-order.txt"
+cp "${output}/recovery-workfn-disassembly.txt" \
+  "${package_partial}/outputs/recovery-workfn-disassembly.txt"
 cp "${image}" "${package_partial}/outputs/Image.gz-dtb"
 cp "${output}/System.map" "${package_partial}/outputs/System.map"
 cp "${output}/vmlinux" "${package_partial}/outputs/vmlinux"
@@ -292,8 +351,10 @@ jq -n \
   --arg repository_commit "${project_commit}" \
   --arg source_url "${SOURCE_URL}" \
   --arg source_commit "${SOURCE_COMMIT}" \
+  --arg parent_commit "${PARENT_COMMIT}" \
   --arg patched_commit "${PATCHED_COMMIT}" \
-  --arg patch_sha256 "${PATCH_SHA256}" \
+  --arg parent_patch_sha256 "${PARENT_PATCH_SHA256}" \
+  --arg recovery_patch_sha256 "${RECOVERY_PATCH_SHA256}" \
   --arg baseline_config_sha256 "${baseline_config_sha}" \
   --arg toolchain_manifest_sha256 "${manifest_sha}" \
   --arg dct_project "${DCT_PROJECT}" \
@@ -305,15 +366,18 @@ jq -n \
   --arg completed_utc "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
   --argjson unresolved_symbol_count "${unresolved_count}" \
   '{repository_commit: $repository_commit, repository_dirty: false,
-    purpose: "vendor-runtime-provenance-full-link-compile-review-only",
-    build_mode: "provenance-observer", source_url: $source_url,
-    source_commit: $source_commit, patched_commit: $patched_commit,
-    patch_sha256: $patch_sha256,
+    purpose: "vendor-runtime-provenance-preinit-full-link-compile-review-only",
+    build_mode: "provenance-preinit-recovery", source_url: $source_url,
+    source_commit: $source_commit, parent_commit: $parent_commit,
+    patched_commit: $patched_commit,
+    parent_patch_sha256: $parent_patch_sha256,
+    recovery_patch_sha256: $recovery_patch_sha256,
     patch_application: "git-am", normal_patch_application: true,
     baseline_configuration: "gemini_modular_defconfig",
     baseline_config_sha256: $baseline_config_sha256,
     observer_config_enabled: true,
-    localversion: "-gemini-provenance-observer",
+    preinit_recovery_config_enabled: true,
+    localversion: "-gemini-provenance-preinit",
     config_delta_exact: true,
     toolchain_manifest_sha256: $toolchain_manifest_sha256,
     dct_project: $dct_project, dct_python: $dct_python,
@@ -329,7 +393,10 @@ jq -n \
     eem_required_bank_mask: "0x0000003b",
     coherent_transition_owner: false,
     owner_handle: 0, transition_handle: 0, provider: "none",
-    hardware_write: "none", cpu8_cpu9_admission: "closed",
+    recovery_deadline_seconds: 120, initcall_order_valid: true,
+    reset_action: "bounded-emergency-restart",
+    dvfsp_hardware_write: "none", hardware_write: "reset-only",
+    cpu8_cpu9_admission: "closed",
     boot_candidate: false, completed_utc: $completed_utc}' > \
   "${package_partial}/provenance/build.json"
 (
@@ -340,4 +407,4 @@ jq -n \
 rm -rf -- "${output}"
 mv "${package_partial}" "${package}"
 trap - EXIT
-printf 'Packaged Gemian provenance observer compile review at %s\n' "${package}"
+printf 'Packaged Gemian provenance pre-init compile review at %s\n' "${package}"
