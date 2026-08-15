@@ -51,7 +51,9 @@ def edit_kconfig(root: Path) -> None:
     \tdepends on REGULATOR_DA9213_LEGACY_OBSERVER
     \thelp
     \t  Exercise the hardware-free observer success, bounded failure, semantic
-    \t  validation, and cleanup contracts with a fake read callback.
+    \t  validation, and cleanup contracts with a fake read callback. The tests
+    \t  create no device, adapter, regulator, firmware, or CPU object and
+    \t  perform no hardware operation.
 
     config REGULATOR_DBX500_PRCMU
     """)
