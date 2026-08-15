@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-15-mt6797-readonly-owner-registration` |
-| Status | `running` |
+| Status | completed (source, KUnit, focused/full Buildbox validation) |
 | Subsystem | MT6797 DVFSP state/provenance ownership |
 | Device variant | Planet Gemini PDA, MT6797; no live-device action |
 | Date(s) | 2026-08-15 America/New_York |
@@ -160,22 +160,44 @@ halted guest stopped producing output. See the
 [`KUnit receipt`](results/registration-qemu-kunit-20260815.txt). No physical
 device was accessed.
 
+The exact focused-evidence commit `5a28b6281ec...` then passed the normal full
+Buildbox profile: all 265 canonical patches applied, 119 DTBs built, package
+and provenance checksums passed, and only the validated package was fetched.
+See the
+[`full-build receipt`](results/registration-full-buildbox-20260815.txt).
+The normal configuration does not select the dormant focused KUnit owner stack,
+so its unchanged Image, configuration, and Gemini DTB identities prove the
+canonical series does not disturb the normal build; the focused compile and
+QEMU run remain the direct evidence for the registration code itself.
+
 ## Analysis
 
 Registering the owner before these repairs would either truncate a legitimate
 epoch, publish an unattributed snapshot, or accept an identity not tied to the
-sampled generation. The three repairs now pass their focused compile,
-hardware-free runtime, and full-profile compile gates. The bridge stack warning
-should be removed as part of the next bounded implementation rather than
-carried into its lifetime path.
+sampled generation. The prerequisites and explicit registration boundary now
+pass source-contract, focused compile, hardware-free KUnit runtime, and normal
+full-profile gates. The production bridge stack warning was removed by bounded
+object allocation before registration was added.
+
+This does not establish a live owner. The last named Gemini observation still
+reports generation 9, table epoch 1, and calibration handle 1 with zero owner
+and transition handles. Those values correctly fail the new registration gate.
+An actual lifecycle caller must first create and publish one nonzero native
+owner/transition identity and invoke the explicit entry point; that is separate
+future work owned by the roadmap.
 
 ## Conclusion
 
-`inconclusive`: every prerequisite and focused runtime gate passes for the
-corrected registration series; normal full-profile compile validation remains.
+`confirmed-readonly-registration-contract`: the corrected series preserves the
+complete identity, rejects incomplete or cross-view-mismatched state, registers
+only through an explicit default-off entry point, rechecks the accepted
+registry identity and a second observation, and fails closed on rollback or
+teardown. This is source and hardware-free runtime evidence, not live Gemini
+registration, a provider, a boot candidate, or CPU8/CPU9 support.
 
 ## Follow-up
 
-Commit and push the focused evidence, then run normal full-profile Buildbox
-validation. Setters, hardware writes, and CPU8/CPU9 admission remain closed for
-later gates.
+Continue from the single ordered next gate in
+[`docs/ROADMAP.md`](../../docs/ROADMAP.md). Do not repeat the completed
+provenance observer or treat this compile/KUnit result as authorization for a
+device boot. Setters, hardware writes, and CPU8/CPU9 admission remain closed.

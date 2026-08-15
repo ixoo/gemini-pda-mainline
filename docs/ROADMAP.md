@@ -3547,6 +3547,31 @@ registration must first remain read-only and fail closed. Setters, hardware
 writes, and CPU8/CPU9 admission remain closed until their later dedicated
 gates.
 
+The intervening read-only registration contract is now complete. Patches
+`0272` through `0276` preserve the 64-bit epoch and assembled attribution,
+cross-check the exact vendor provenance view, bound the bridge snapshot, and
+add one explicit default-off registration entry point with registry-identity
+recheck, a second stable observation, rollback, and guarded teardown. Exact
+focused Buildbox compile and isolated arm64 QEMU validation pass all 25 tests;
+the normal full profile also applies all 265 patches and builds 119 DTBs at
+exact pushed commit `5a28b62`. See the
+[registration experiment](../experiments/2026-08-15-mt6797-readonly-owner-registration/README.md).
+No physical device was accessed, and this does not claim a live owner: the last
+Gemini sample's owner and transition handles are both zero and must fail the new
+gate.
+
+The single next ordered implementation is the default-off lifecycle integration
+at the actual external vendor caller/coordinator boundary. It must create one
+native transition owner spanning the DVFSP/I2C6/DA921x operation and rollback
+boundary, publish the same nonzero owner and transition handles through every
+source/provenance/calibrated view, call the new state-registration entry point
+only after writer binding, and unregister before invalidation or teardown. Add
+a read-only observation surface for exact registered identity, refusal reason,
+and invalidation. First require source review, focused KUnit, the pinned vendor
+caller compile, and normal full Buildbox validation. Only then may one new,
+separately attributable read-only runtime candidate be considered. Provider
+setters, hardware writes, and CPU8/CPU9 admission remain closed.
+
 Required evidence:
 
 - provider registration performs no register-data write;
