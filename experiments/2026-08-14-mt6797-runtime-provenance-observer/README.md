@@ -5,9 +5,9 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-14-mt6797-runtime-provenance-observer` |
-| Status | `attempt 1 service failure; corrected RNDIS derivative validated` |
+| Status | `corrected RNDIS derivative deployed; runtime collector armed` |
 | Subsystem | MT6797 EEM/PPM DVFSP provenance |
-| Device variant | Planet Gemini PDA, MT6797; recovered to known-good Gemian |
+| Device variant | Planet Gemini PDA, MT6797; corrected boot2 installed |
 | Date | 2026-08-14 America/New_York |
 | Investigator | Gemini mainline project |
 
@@ -225,6 +225,13 @@ address/relocatability differences already accepted for attempt 1. See the
 [`corrected observation-path review`](results/diagnostic-observation-path-review-20260815.txt)
 and [`predeployment hypothesis`](results/predeployment-hypothesis-rndis-20260815.txt).
 
+The second guarded deployment resolved the same inactive live-GPT boot2,
+recorded the exact attempt-1 image as predecessor, wrote corrected full image
+`ea603c1b1a64...`, and passed post-flush and independent byte readback. No fresh
+backup was created. The device shut down cleanly without a reboot request, and
+the corrected direct RNDIS/netcat collector is armed. See the
+[`corrected deployment receipt`](results/deployment-rndis-20260815.txt).
+
 ## Analysis
 
 This observer intentionally does not port the Linux 7.1 experimental
@@ -241,15 +248,13 @@ establishes source integration, exact configuration scope, DCT reproducibility,
 linked observer presence, symbol closure, one reproducible LK-compatible
 container, and a fixed deployment/measurement contract. It does not establish
 runtime lifecycle publication or hardware support. Attempt 1 did not produce a
-valid observation. The corrected, independently observable derivative now
-passes offline review; its separate guarded deployment is the next action.
+valid observation. The corrected derivative now passes offline review and its
+guarded deployment; one corrected read-only runtime cycle is next.
 
 ## Follow-up
 
-Install exact corrected candidate `ea603c1b1a64...` to live-GPT-resolved
-inactive boot2, verify the full readback, and shut down. Then arm the corrected
-USB/netcat collector and physically select boot2 once. Runtime success requires
-two stable reads with
+With the corrected USB/netcat collector armed, physically select boot2 once.
+Runtime success requires two stable reads with
 `observation_complete=1`, all reported PPM cluster bits present, EEM bank masks
 equal to `0x0000003b`, and nonzero variant, table epoch, and calibration handle,
 while owner/transition handles remain zero. That would confirm table and

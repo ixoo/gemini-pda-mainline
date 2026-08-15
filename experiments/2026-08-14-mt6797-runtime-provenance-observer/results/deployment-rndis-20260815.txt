@@ -1,0 +1,31 @@
+MT6797 runtime provenance observer: corrected RNDIS boot2 deployment
+Date: 2026-08-15 America/New_York
+Device: named project Gemini PDA, MT6797
+
+result=write-synced-flushed-full-readback-verified
+known_good_os=3.18.41+
+known_good_boot_id=fb5b0390-4629-4815-989e-6897d3dc317d
+active_root=/dev/mmcblk0p29
+target_logical_name=boot2
+target_live_gpt=/dev/mmcblk0p30
+target_size=16777216
+target_inactive=yes
+target_mounted=no
+target_writable=yes
+power_first=1|98|Good|1
+power_second=1|98|Good|1
+predecessor_sha256=b17400c59f0a68db602c66cb5d83ec1c6161e98dcbd3e5d3ffece0b5c69f23a9
+fresh_predecessor_backup=no
+candidate_sha256=ea603c1b1a64d4f1aa9cac3e53957a3e858a7ce04127f1aef36d4b0e8173cb02
+post_flush_full_partition_sha256=ea603c1b1a64d4f1aa9cac3e53957a3e858a7ce04127f1aef36d4b0e8173cb02
+independent_readback_sha256=ea603c1b1a64d4f1aa9cac3e53957a3e858a7ce04127f1aef36d4b0e8173cb02
+independent_byte_comparison=identical
+temporary_stage_removed=yes
+temporary_readback_removed=yes
+shutdown_request=clean-systemd-poweroff
+post_shutdown_reachability=unreachable
+reboot_request=no
+next_action=one-physical-boot2-selection-with-corrected-collector-armed
+
+The deployment establishes only exact installation and readback. It is not a
+runtime publication result and does not enable CPU8 or CPU9.

@@ -3483,10 +3483,11 @@ expected project USB/netcat shell. Do not repeat it. A kernel/DT/config-identica
 derivative now passes independent construction and mutation review with a new
 early debugfs record and the live-verified legacy Android RNDIS observation
 path. This is the independent decision-changing path required for an otherwise
-identical kernel. The next ordered action is its guarded boot2 write, shutdown,
-and one physically selected cycle with the corrected collector armed. Its
-observation can close the lifecycle-publication evidence gap; it cannot satisfy
-the coherent-owner gate.
+identical kernel. Its guarded boot2 write and independent readback now pass, the
+device is cleanly shut down, and the corrected collector is armed. The next
+ordered action is one physically selected boot2 cycle. Its observation can
+close the lifecycle-publication evidence gap; it cannot satisfy the
+coherent-owner gate.
 The subsequent upstream implementation remains one native transition owner
 spanning the DVFSP/I2C6/DA921x operation and rollback boundary. Provider
 registration, setters, hardware writes, and CPU8/CPU9 admission remain closed.
