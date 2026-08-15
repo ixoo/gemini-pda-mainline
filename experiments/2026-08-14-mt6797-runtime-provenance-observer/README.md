@@ -5,9 +5,9 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-14-mt6797-runtime-provenance-observer` |
-| Status | `runtime tools accepted; guarded boot2 deployment pending` |
+| Status | `exact boot2 deployment verified; runtime collector armed` |
 | Subsystem | MT6797 EEM/PPM DVFSP provenance |
-| Device variant | Planet Gemini PDA, MT6797; read-only Gemian preflight only |
+| Device variant | Planet Gemini PDA, MT6797; exact boot2 candidate installed |
 | Date | 2026-08-14 America/New_York |
 | Investigator | Gemini mainline project |
 
@@ -35,8 +35,8 @@ A compile result cannot establish runtime publication or hardware support.
 - Build backend: Buildbox only, using the pinned Debian Stretch GCC 6.3
   toolchain manifest already used by the Gemian full-link experiments
 - Boot path: the exact Android-v0 container, pre-boot contract, runtime
-  classifier, and guarded installer pass their separate offline reviews;
-  guarded boot2 deployment is the next ordered action
+  classifier, and guarded installer pass their separate offline reviews; the
+  exact candidate is now installed and the runtime collector is armed
 
 The synthetic patch author is experiment-only and non-certifying. The patch
 contains no synthetic `Signed-off-by` and is not submission-ready.
@@ -56,7 +56,8 @@ exact container preserves the known-good Gemian header and ramdisk, changes only
 the validated kernel field and canonical image ID, and is padded to exactly
 16 MiB by two independent methods. A later read-only Gemian preflight checked
 only OS, root, GPT identity, power, and sudo readiness; it did not read boot2.
-No device write or candidate boot has occurred in this experiment yet.
+The later guarded deployment wrote only inactive boot2 and then shut the device
+down; no candidate boot has occurred in this experiment yet.
 
 ## Associated code
 
@@ -174,6 +175,15 @@ online, and passwordless sudo. It did not read or write boot2. See the
 [`runtime decision map`](results/runtime-decision-map-20260815.txt), and
 [`runtime-tool review`](results/runtime-tool-review-20260815.txt).
 
+The guarded deployment then resolved the unique inactive, unmounted 16 MiB
+boot2 as `/dev/mmcblk0p30`, recorded predecessor `5b38e542586c...`, wrote the
+exact `b17400c59f0a...` candidate, and passed both the post-flush full-partition
+checksum and an independent byte comparison. It created no fresh partition
+backup and removed the temporary readback. The device then shut down cleanly,
+became unreachable, and was not rebooted. The direct USB/netcat collector is
+armed for one physical boot2 selection. See the
+[`2026-08-15` deployment receipt](results/deployment-20260815.txt).
+
 ## Analysis
 
 This observer intentionally does not port the Linux 7.1 experimental
@@ -189,15 +199,13 @@ The compile/link, offline container, and runtime-tool gates pass. This
 establishes source integration, exact configuration scope, DCT reproducibility,
 linked observer presence, symbol closure, one reproducible LK-compatible
 container, and a fixed deployment/measurement contract. It does not establish
-runtime lifecycle publication or hardware support. The next ordered action is
-one guarded boot2 deployment followed by one read-only runtime observation.
+runtime lifecycle publication or hardware support. The guarded deployment now
+passes; the next ordered action is one read-only runtime observation.
 
 ## Follow-up
 
-Install the exact accepted candidate to live-GPT-resolved inactive boot2,
-require a matching full-partition readback and clean shutdown, arm the direct
-USB/netcat collector, and physically select boot2 once. Runtime success requires
-two stable reads with
+With the direct USB/netcat collector armed, physically select boot2 once.
+Runtime success requires two stable reads with
 `observation_complete=1`, all reported PPM cluster bits present, EEM bank masks
 equal to `0x0000003b`, and nonzero variant, table epoch, and calibration handle,
 while owner/transition handles remain zero. That would confirm table and
