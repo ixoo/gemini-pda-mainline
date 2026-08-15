@@ -624,6 +624,17 @@ jq -e --arg commit "${commit}" '
     "3520538de1c31ea592c2f0c76af7deef10f5c1ee00689d74bdac17def48dbb11" and
   .normal_patch_application == true and .config_delta_exact == true and
   .observer_config_enabled == true and .full_kernel_link == true and
+  .dct_project == "k97v1_64_bsp" and
+  .dct_project_matches_config == true and
+  .dct_python == "Python 3.11.2" and
+  .dct_python_sha256 ==
+    "6d972cf21be56fe3c947ab6ba257ff8d08c342dd2714442986791bd9a6dfabfe" and
+  .dct_tool_sha256 ==
+    "05ea43ff25ae7127197ff3a0121ab5731dfc1482d13ca988e987d84e6e5a78a4" and
+  .dws_sha256 ==
+    "181c963bc71b5462d0cbc9a45c52fc272918454f66455c416a95bd99ac3aa94f" and
+  .cust_dtsi_sha256 ==
+    "0a061c5d462a3cfc294d347c3c765e2a6e3868ad82fa2c4b07cb72beb6e8588a" and
   .unresolved_symbol_count == 0 and .debugfs_mode == "0444" and
   .interrupt_safe_observer == true and
   .lifecycle_completion_fail_closed == true and
@@ -635,7 +646,8 @@ jq -e --arg commit "${commit}" '
 ' "${package}/provenance/build.json" >/dev/null
 for required in outputs/Image.gz-dtb outputs/System.map outputs/vmlinux \
   outputs/config outputs/baseline.config outputs/config.diff \
-  outputs/build.log provenance/changed-paths.txt \
+  outputs/cust.dtsi outputs/dct.log outputs/build.log \
+  provenance/changed-paths.txt \
   provenance/source-commits.txt; do
   [[ -s "${package}/${required}" ]]
 done

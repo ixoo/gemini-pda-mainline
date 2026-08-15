@@ -10,6 +10,7 @@ import re
 EXPERIMENT = Path(__file__).resolve().parents[1]
 PATCH = EXPERIMENT / "patches/0001-power-add-read-only-DVFSP-provenance-observer.patch"
 SERIES = EXPERIMENT / "patches/series"
+BUILD_SCRIPT = EXPERIMENT / "scripts/build-on-buildbox"
 EXPECTED_PATCH_SHA256 = (
     "3520538de1c31ea592c2f0c76af7deef10f5c1ee00689d74bdac17def48dbb11"
 )
@@ -39,6 +40,7 @@ def diff_section(patch: str, path: str) -> str:
 def main() -> None:
     patch_bytes = PATCH.read_bytes()
     patch = patch_bytes.decode()
+    build_script = BUILD_SCRIPT.read_text()
     assert SERIES.read_text() == PATCH.name + "\n"
     assert hashlib.sha256(patch_bytes).hexdigest() == EXPECTED_PATCH_SHA256
     assert patch.startswith(f"From {EXPECTED_COMMIT} Mon Sep 17 00:00:00 2001\n")
@@ -119,6 +121,48 @@ def main() -> None:
     for call in forbidden_calls:
         if call in patch:
             raise AssertionError(f"forbidden operation present: {call}")
+
+    for needle, label in (
+        ("readonly DCT_PROJECT=k97v1_64_bsp", "full-vendor DCT project"),
+        ("readonly EXPECTED_DCT_PYTHON='Python 3.11.2'", "DCT Python version"),
+        (
+            "readonly DCT_PYTHON_SHA256="
+            "6d972cf21be56fe3c947ab6ba257ff8d08c342dd2714442986791bd9a6dfabfe",
+            "DCT Python checksum",
+        ),
+        (
+            "readonly DCT_TOOL_SHA256="
+            "05ea43ff25ae7127197ff3a0121ab5731dfc1482d13ca988e987d84e6e5a78a4",
+            "DCT tool checksum",
+        ),
+        (
+            "readonly DWS_SHA256="
+            "181c963bc71b5462d0cbc9a45c52fc272918454f66455c416a95bd99ac3aa94f",
+            "DWS checksum",
+        ),
+        (
+            "readonly CUST_DTSI_SHA256="
+            "0a061c5d462a3cfc294d347c3c765e2a6e3868ad82fa2c4b07cb72beb6e8588a",
+            "normalized full-vendor cust.dtsi checksum",
+        ),
+        ('readonly dct_python=/usr/bin/python3', "pinned DCT interpreter path"),
+        ('readonly dct_output="${dct_root}/${DCT_PROJECT}"', "project DCT output"),
+        ('"${dct_python}" DrvGen.py', "full-vendor DCT invocation"),
+        ('CROSS_COMPILE="${cross_prefix}" python="${dct_python}"', "kernel DCT Python"),
+        (
+            'CONFIG_ARCH_MTK_PROJECT="k97v1_64_bsp"',
+            "DCT project configuration gate",
+        ),
+        (
+            'CONFIG_BUILD_ARM64_APPENDED_DTB_IMAGE_NAMES="k97v1_64_bsp"',
+            "DTB project configuration gate",
+        ),
+    ):
+        require(build_script, needle, label)
+    if "aeon6797_6m_n.dws" in build_script:
+        raise AssertionError("stale pre-full-vendor DWS input remains")
+    if build_script.count("normalize_dct") != 3:
+        raise AssertionError("DCT must be normalized before and after the full link")
 
     # Deterministic model: neither provenance value is nonzero before every
     # constituent lifecycle hook has completed.

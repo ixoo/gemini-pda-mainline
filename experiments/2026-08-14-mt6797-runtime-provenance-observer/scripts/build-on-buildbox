@@ -15,11 +15,27 @@ readonly PATCH_SHA256=3520538de1c31ea592c2f0c76af7deef10f5c1ee00689d74bdac17def4
 readonly EXPECTED_GCC='aarch64-linux-gnu-gcc-6 (Debian 6.3.0-18) 6.3.0 20170516'
 readonly EXPECTED_LD='GNU ld (GNU Binutils for Debian) 2.28'
 readonly EXPECTED_PYTHON='Python 2.7.13'
-readonly CUST_DTSI_SHA256=7a7eb416499346afff30c15f967ccb9cf79323c076204b6a953515db74811632
+readonly DCT_PROJECT=k97v1_64_bsp
+readonly EXPECTED_DCT_PYTHON='Python 3.11.2'
+readonly DCT_PYTHON_SHA256=6d972cf21be56fe3c947ab6ba257ff8d08c342dd2714442986791bd9a6dfabfe
+readonly DCT_TOOL_SHA256=05ea43ff25ae7127197ff3a0121ab5731dfc1482d13ca988e987d84e6e5a78a4
+readonly DWS_SHA256=181c963bc71b5462d0cbc9a45c52fc272918454f66455c416a95bd99ac3aa94f
+readonly CUST_DTSI_SHA256=0a061c5d462a3cfc294d347c3c765e2a6e3868ad82fa2c4b07cb72beb6e8588a
 
 die() {
   echo "error: $*" >&2
   exit 1
+}
+
+normalize_dct() {
+  [[ "$(sed -n '3{/^ \* [0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\} [0-9]\{2\}:[0-9]\{2\}:[0-9]\{2\}$/p;}' \
+    "${dct_output}/cust.dtsi" | wc -l)" -eq 1 ]] || \
+    die "generated cust.dtsi timestamp contract changed"
+  sed '3s/^ \* [0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\} [0-9]\{2\}:[0-9]\{2\}:[0-9]\{2\}$/ * 1970-01-01 00:00:00/' \
+    "${dct_output}/cust.dtsi" > "${dct_output}/cust.dtsi.normalized"
+  mv "${dct_output}/cust.dtsi.normalized" "${dct_output}/cust.dtsi"
+  [[ "$(sha256sum "${dct_output}/cust.dtsi" | awk '{print $1}')" == \
+     "${CUST_DTSI_SHA256}" ]] || die "generated cust.dtsi checksum mismatch"
 }
 
 [[ "$#" -eq 6 ]] || \
@@ -56,6 +72,7 @@ manifest_sha="$(sha256sum "${manifest}" | awk '{print $1}')"
 readonly manifest_sha
 readonly toolchain="${toolchain_root}/${manifest_sha}"
 readonly cross_prefix="${toolchain}/wrappers/aarch64-linux-gnu-"
+readonly dct_python=/usr/bin/python3
 readonly source_mirror="${source_root}/gemian-linux-kernel-3.18.git"
 readonly prepared_source="${source_root}/prepared-${SOURCE_COMMIT:0:12}-${PATCHED_COMMIT:0:12}"
 readonly output="${build_root}/gemian-provenance-observer/${project_commit}"
@@ -82,6 +99,10 @@ export LD_LIBRARY_PATH="${toolchain}/root/usr/lib/x86_64-linux-gnu"
   die "pinned linker identity mismatch"
 [[ "$("${toolchain}/wrappers/python2.7" --version 2>&1)" == "${EXPECTED_PYTHON}" ]] || \
   die "pinned Python identity mismatch"
+[[ -x "${dct_python}" && \
+   "$("${dct_python}" --version 2>&1)" == "${EXPECTED_DCT_PYTHON}" && \
+   "$(sha256sum "${dct_python}" | awk '{print $1}')" == "${DCT_PYTHON_SHA256}" ]] || \
+  die "pinned full-vendor DCT Python identity mismatch"
 
 mkdir -p "${source_root}"
 if [[ ! -d "${source_mirror}" ]]; then
@@ -121,6 +142,12 @@ else
 fi
 
 git -C "${prepared_source}" show --check --oneline --no-renames HEAD >/dev/null
+readonly dct_tool="${prepared_source}/tools/dct/DrvGen.py"
+readonly dws="${prepared_source}/drivers/misc/mediatek/dws/mt6797/${DCT_PROJECT}.dws"
+[[ "$(sha256sum "${dct_tool}" | awk '{print $1}')" == "${DCT_TOOL_SHA256}" ]] || \
+  die "full-vendor DCT tool checksum mismatch"
+[[ "$(sha256sum "${dws}" | awk '{print $1}')" == "${DWS_SHA256}" ]] || \
+  die "full-vendor DWS checksum mismatch"
 git -C "${prepared_source}" diff-tree --no-commit-id --name-only -r HEAD > \
   "${prepared_source}/.git/gemini-changed-paths"
 python3 - "${prepared_source}/.git/gemini-changed-paths" <<'PY'
@@ -160,6 +187,10 @@ cp "${output}/.config" "${output}/baseline.config"
   --set-str LOCALVERSION "-gemini-provenance-observer"
 make -C "${prepared_source}" O="${output}" ARCH=arm64 \
   CROSS_COMPILE="${cross_prefix}" olddefconfig
+grep -qx 'CONFIG_ARCH_MTK_PROJECT="k97v1_64_bsp"' "${output}/.config" || \
+  die "full-vendor DCT project does not match kernel configuration"
+grep -qx 'CONFIG_BUILD_ARM64_APPENDED_DTB_IMAGE_NAMES="k97v1_64_bsp"' \
+  "${output}/.config" || die "full-vendor DTB project does not match configuration"
 python3 - "${output}/baseline.config" "${output}/.config" > \
   "${output}/config.diff" <<'PY'
 import pathlib
@@ -191,29 +222,24 @@ if changes != expected:
     raise SystemExit("observer configuration delta is not exact")
 PY
 
-readonly dct_output="${output}/arch/arm64/boot/dts"
+readonly dct_root="${output}/arch/arm64/boot/dts"
+readonly dct_output="${dct_root}/${DCT_PROJECT}"
 mkdir -p "${dct_output}"
 (
   cd "${prepared_source}/tools/dct"
-  "${toolchain}/wrappers/python2.7" DrvGen.py \
-    "${prepared_source}/drivers/misc/mediatek/dws/mt6797/aeon6797_6m_n.dws" \
+  "${dct_python}" DrvGen.py \
+    "${dws}" \
     "${dct_output}/" "${dct_output}/" cust_dtsi
 ) > "${output}/dct.log" 2>&1
-[[ "$(sed -n '3{/^ \* [0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\} [0-9]\{2\}:[0-9]\{2\}:[0-9]\{2\}$/p;}' \
-  "${dct_output}/cust.dtsi" | wc -l)" -eq 1 ]] || \
-  die "generated cust.dtsi timestamp contract changed"
-sed '3s/^ \* [0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\} [0-9]\{2\}:[0-9]\{2\}:[0-9]\{2\}$/ * 1970-01-01 00:00:00/' \
-  "${dct_output}/cust.dtsi" > "${dct_output}/cust.dtsi.normalized"
-mv "${dct_output}/cust.dtsi.normalized" "${dct_output}/cust.dtsi"
-[[ "$(sha256sum "${dct_output}/cust.dtsi" | awk '{print $1}')" == \
-   "${CUST_DTSI_SHA256}" ]] || die "generated cust.dtsi checksum mismatch"
+normalize_dct
 
 if ! make -C "${prepared_source}" O="${output}" ARCH=arm64 \
-  CROSS_COMPILE="${cross_prefix}" python="${toolchain}/wrappers/python2.7" \
+  CROSS_COMPILE="${cross_prefix}" python="${dct_python}" \
   -j"${jobs}" V=1 Image.gz-dtb > "${output}/build.log" 2>&1; then
   tail -n 160 "${output}/build.log" >&2
   die "provenance observer full kernel link failed"
 fi
+normalize_dct
 readonly image="${output}/arch/arm64/boot/Image.gz-dtb"
 [[ -s "${image}" && -s "${output}/vmlinux" && -s "${output}/System.map" ]] || \
   die "full-link outputs are incomplete"
@@ -270,6 +296,11 @@ jq -n \
   --arg patch_sha256 "${PATCH_SHA256}" \
   --arg baseline_config_sha256 "${baseline_config_sha}" \
   --arg toolchain_manifest_sha256 "${manifest_sha}" \
+  --arg dct_project "${DCT_PROJECT}" \
+  --arg dct_python "${EXPECTED_DCT_PYTHON}" \
+  --arg dct_python_sha256 "${DCT_PYTHON_SHA256}" \
+  --arg dct_tool_sha256 "${DCT_TOOL_SHA256}" \
+  --arg dws_sha256 "${DWS_SHA256}" \
   --arg cust_dtsi_sha256 "${CUST_DTSI_SHA256}" \
   --arg completed_utc "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
   --argjson unresolved_symbol_count "${unresolved_count}" \
@@ -285,6 +316,10 @@ jq -n \
     localversion: "-gemini-provenance-observer",
     config_delta_exact: true,
     toolchain_manifest_sha256: $toolchain_manifest_sha256,
+    dct_project: $dct_project, dct_python: $dct_python,
+    dct_project_matches_config: true,
+    dct_python_sha256: $dct_python_sha256,
+    dct_tool_sha256: $dct_tool_sha256, dws_sha256: $dws_sha256,
     cust_dtsi_sha256: $cust_dtsi_sha256,
     build_architecture: "x86_64", target_architecture: "arm64",
     host_extra_cflags: "-fcommon", full_kernel_link: true,

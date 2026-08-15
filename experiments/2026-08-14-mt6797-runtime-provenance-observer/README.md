@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-14-mt6797-runtime-provenance-observer` |
-| Status | `first Buildbox config gate corrected; full-link pending` |
+| Status | `full-vendor DCT contract corrected; full-link pending` |
 | Subsystem | MT6797 EEM/PPM DVFSP provenance |
 | Device variant | Planet Gemini PDA, MT6797; no live-device action yet |
 | Date | 2026-08-14 America/New_York |
@@ -97,6 +97,16 @@ only two actual deltas: observer `n -> y` and the local-version string. The
 oracle now pins that exact result; it was not relaxed. No package or device
 action occurred. See the
 [`b6e088b` config-gate receipt](results/buildbox-config-gate-b6e088b-20260815.txt).
+
+The next exact job at `27f3d74` passed that configuration gate, then stopped
+before kernel compilation in DCT generation. The full vendor revision differs
+from the earlier fixed source: `gemini_modular_defconfig` selects
+`k97v1_64_bsp`, and its tracked DCT generator is Python 3-compatible. A bounded
+disposable Buildbox reproduction pinned the exact DCT tool, tracked DWS,
+Python binary, project output path, and normalized `cust.dtsi` checksum. The
+lane now enforces that complete full-vendor DCT contract. No package or device
+action occurred. See the
+[`27f3d74` DCT-gate receipt](results/buildbox-dct-gate-27f3d74-20260815.txt).
 
 ## Analysis
 
