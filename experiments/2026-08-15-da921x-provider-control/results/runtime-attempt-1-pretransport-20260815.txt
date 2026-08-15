@@ -1,0 +1,54 @@
+DA921x provider-only matched control: runtime attempt 1
+Date: 2026-08-15 America/New_York
+
+classification=pretransport-control-failure-timing-limited
+tooling_commit=648ba07ded22db2d334a1ed28c1a0a1a22694983
+deployment_evidence_commit=04ab420a7f9e74b0732e8af1a2844e7223fbe7b7
+installed_full_sha256=3188d474f5d6989a0eb0782cdfac781efaf43dd42a0bd11481277050e735f8a2
+expected_kernel_release=7.1.3-gemini-da921x-resource
+observer_built_in=no
+owner_action=physical-boot2-selection
+owner_report=boot2-on
+
+collector_original_state=expired-after-900-seconds-before-owner-selection
+collector_replacement_state=started-immediately-after-owner-report
+collector_replacement_result=no-exact-usb-interface-before-gemian-return
+collector_timing_limit=not-prearmed-before-physical-selection
+exact_usb_netcat_capture=absent
+
+predeployment_gemian_boot_id=7b0c3d25-fd68-45f3-abb8-0a6b8fba5531
+returned_gemian_boot_id=bfcc0214-0ce9-410c-9410-1575785bd25a
+returned_gemian_boot_id_sha256=610c7808637d4e397ead3bb1a7ef702e3bd1d85965e982d37de78285d726d5c0
+boot_id_changed=yes
+returned_kernel=3.18.41+
+automatic_return_to_gemian=yes
+
+pstore_capture=artifacts/device-pstore/da921x-provider-control-attempt-1
+pstore_capture_private=yes
+pstore_wait_for_cycle=no
+pstore_capture_timing=immediate-after-independently-confirmed-new-gemian-boot
+pstore_files=none
+pstore_metadata_sha256=5123903f210ad3368f9921c7472dd5d087333ba3511833ba0313f5aaa8b689bf
+pstore_tar_sha256=a9aa2249d161002b21027320452eed254225ab019d546f8207c9e1612fa4c543
+pstore_manifest_sha256=2bee155b777890ea494d28a732873f2b218a876f59e6d0a6ac609ddda69503d3
+pstore_candidate_identity=absent
+
+last_kmsg_size=74
+last_kmsg_sha256=8964100f947293ded847b8ca1a9313b43624ccd5c72d120aa84234c4998e0f53
+last_kmsg_line_1=ram console header, hw_status: 5, fiq step 0.
+last_kmsg_line_2=Not Clear, old status is 5.
+last_kmsg_candidate_identity=absent
+last_kmsg_provider_identity=absent
+
+exact_control_kernel_entry=not-established
+provider_identity_transcript=not-observed
+provider_registration=not-observed
+observer_path_implicated=no-evidence
+screen_color_evidence=none
+register_data_write_result=not-observed
+cpu8_cpu9_admission=closed-by-candidate-contract-not-runtime-observed
+
+decision=stop-exact-control-and-localize-shared-current-base-container
+next_action=offline-compare-current-control-with-last-serviceable-and-retained-pstore-mainline-baselines-then-add-one-earliest-durable-checkpoint
+unchanged_control_repeat=forbidden
+unchanged_observer_repeat=forbidden

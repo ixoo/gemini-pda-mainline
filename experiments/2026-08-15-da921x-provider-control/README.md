@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-15-da921x-provider-control` |
-| Status | exact boot2 deployment complete; collector armed; runtime pending |
+| Status | one timing-limited pre-transport control failure; exact control stopped |
 | Subsystem | legacy DA9213/DA9214/DA9215 regulator provider and boot serviceability |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-15 America/New_York |
@@ -102,7 +102,7 @@ source-pinned derivation, and static no-write checks. See the
 [offline review](results/offline-validation-20260815.txt).
 
 The [predeployment hypothesis](results/predeployment-hypothesis-20260815.txt)
-and [decision map](results/runtime-decision-map-20260815.txt) freeze the control
+and [decision map](results/runtime-decision-map-20260815.txt) froze the control
 result before device action.
 
 The guarded deployment resolved the sole live-GPT logical `boot2` as inactive,
@@ -112,31 +112,45 @@ flushed it, and required both a full-partition checksum and an independent
 byte-for-byte readback. Ordinary Gemian then powered off and was confirmed
 unreachable. The [deployment receipt](results/deployment-20260815.txt) records
 the sanitized result. The exact read-only collector was armed while the device
-remained off. Runtime remains pending one owner-selected boot2 start.
+remained off.
+
+The owner selected boot2 only after that collector's 900-second window had
+expired. An identical replacement began immediately after the owner reported
+boot2 running, but the device had already returned automatically to a new
+ordinary-Gemian boot before any exact USB interface appeared. Immediate
+read-only recovery found empty pstore and the same generic 74-byte last-kmsg
+header as both observer attempts. No exact control kernel identity or provider
+record survived. The
+[runtime result](results/runtime-attempt-1-pretransport-20260815.txt) is a
+timing-limited pre-transport control failure. It does not establish control
+kernel entry, but it supplies no evidence implicating the observer-only reads.
 
 ## Analysis
 
-This is the smallest current-tree discriminator available after two identical
-observer boots failed before USB and retained pstore. It holds the patch series,
+This was the smallest current-tree discriminator available after two identical
+observer boots failed before USB and retained pstore. It held the patch series,
 DTB, ramdisk, LK layout, provider registration, CPU baseline, and recovery
 policy fixed while removing the observer and its four live reads. The unique
-release and container identity provide attribution; they are not evidence by
-themselves.
+release and container identity provided attribution only if retained at
+runtime; neither was retained.
 
-If the exact control reaches USB or leaves attributable pstore, the failure is
-localized to the observer-enabled delta. If it fails at the same pre-transport
-boundary with no attributable pstore, the observer is not distinguished and
-localization moves to the current base/container boundary against the last
-known retained-pstore baseline.
+The control followed the same automatic-return, no-USB, empty-pstore boundary.
+The expired pre-armed window limits the USB observation, but the immediate
+replacement and recovery still found no exact control evidence. The observer
+is therefore not implicated. Localization moves to the shared current
+base/container boundary against the last serviceable and retained-pstore
+baselines.
 
 ## Conclusion
 
-The matched control is a validated boot candidate offline. No runtime hardware
-claim is made yet. Provider setters, transition ownership, hardware writes,
-and CPU8/CPU9 admission remain closed.
+The matched control is validated offline but remains runtime-unattributable and
+must not be repeated unchanged. No provider hardware claim is made. Provider
+setters, transition ownership, hardware writes, and CPU8/CPU9 admission remain
+closed.
 
 ## Follow-up
 
 Follow the single ordered action in [`docs/ROADMAP.md`](../../docs/ROADMAP.md):
-with the exact collector already armed, perform one control boot. Do not repeat
-the observer candidate.
+audit the shared current kernel/container against the last serviceable and
+retained-pstore baselines, then add one earliest durable checkpoint before any
+further boot. Do not repeat either observer or control candidate.

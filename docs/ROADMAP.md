@@ -3632,13 +3632,30 @@ passes its fetched-package manifest, two independent construction paths, all
 32 LK gates, six structural mutations, and the frozen read-only runtime-tool
 suite. See the
 [matched-control experiment](../experiments/2026-08-15-da921x-provider-control/README.md).
-The guarded installer has now resolved live-GPT logical boot2 as inactive and
+The guarded installer then resolved live-GPT logical boot2 as inactive and
 unmounted `/dev/mmcblk0p30`, replaced the exact observer predecessor, verified
 the exact control by full-partition hash and independent byte comparison, and
-confirmed ordinary Gemian powered off. No fresh backup was created. The exact
-read-only collector is armed. The single next action is one owner-selected
-control boot; runtime evidence is still pending. See the
-[deployment receipt](../experiments/2026-08-15-da921x-provider-control/results/deployment-20260815.txt).
+confirmed ordinary Gemian powered off. No fresh backup was created. The owner
+selected boot2 after the original collector's 900-second window expired; an
+identical replacement started immediately after the report but saw no exact USB
+interface before the device had automatically returned to a changed ordinary-
+Gemian boot. Immediate recovery found empty pstore and the identical generic
+74-byte last-kmsg header. This timing-limited control does not establish kernel
+entry, but it supplies no evidence implicating the observer-only reads. Stop
+both exact candidates. See the
+[deployment receipt](../experiments/2026-08-15-da921x-provider-control/results/deployment-20260815.txt)
+and [runtime result](../experiments/2026-08-15-da921x-provider-control/results/runtime-attempt-1-pretransport-20260815.txt).
+
+The single next ordered action is offline localization of the shared current
+kernel/container against the last serviceable mainline container and last
+retained-pstore mainline baseline. Pin the exact first changed boundary in
+patch series, configuration, DT, Image header, and ramoops registration. If
+those checks do not already isolate a defect, add one default-off, exact
+candidate marker at the earliest proven post-ramoops point, before DA921x
+provider probe, with the same provider-only configuration, DT, ramdisk, LK
+layout, CPU0--7 policy, and recovery path. That marker must be the independent
+decision-changing observation path; do not add regulator reads, writes, an
+owner, or CPU8/CPU9 admission.
 
 Required evidence:
 
