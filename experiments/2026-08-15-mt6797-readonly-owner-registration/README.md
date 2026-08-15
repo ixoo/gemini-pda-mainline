@@ -145,6 +145,21 @@ before the opaque pointer can be consumed. The regenerated format-patch matches
 the imported canonical file byte for byte, and its source, no-write,
 manifest-series, and checkpatch gates pass. Patch 0275 is unchanged.
 
+The exact corrected commit `f3f6ac217b65...` passed the focused Buildbox
+profile: all 265 canonical patches applied, 119 DTBs built, every package and
+provenance checksum passed, and only the validated package was fetched. The
+production vendor-provider bridge no longer emits the large-frame warning;
+the remaining stack warnings are inherited source or KUnit-test debt. See the
+[`focused-build receipt`](results/registration-focused-buildbox-20260815.txt).
+
+That fetched image then booted under isolated arm64 QEMU. All six KUnit suites
+passed—25 tests, zero failures, and zero skips—including the new cross-view
+identity match and the negative registration refusal. The kernel reached
+`System halted`; the outer runner's exit 124 is the expected timeout after the
+halted guest stopped producing output. See the
+[`KUnit receipt`](results/registration-qemu-kunit-20260815.txt). No physical
+device was accessed.
+
 ## Analysis
 
 Registering the owner before these repairs would either truncate a legitimate
@@ -156,12 +171,11 @@ carried into its lifetime path.
 
 ## Conclusion
 
-`inconclusive`: every prerequisite gate passes and the corrected registration
-series is statically accepted; focused runtime and full-profile compile gates
-remain.
+`inconclusive`: every prerequisite and focused runtime gate passes for the
+corrected registration series; normal full-profile compile validation remains.
 
 ## Follow-up
 
-Commit and push the corrected patch identity, then rerun focused Buildbox/KUnit
-and normal full-profile Buildbox validation. Setters, hardware writes, and
-CPU8/CPU9 admission remain closed for later gates.
+Commit and push the focused evidence, then run normal full-profile Buildbox
+validation. Setters, hardware writes, and CPU8/CPU9 admission remain closed for
+later gates.
