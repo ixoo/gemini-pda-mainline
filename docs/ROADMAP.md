@@ -3459,10 +3459,19 @@ or shared-lock field in the running stock Gemian kernel. The linked
 shows why: the vendor caller and Linux 7.1 coordinator are only separately
 object-compiled, and the successful provenance path requires them to be linked
 and lifecycle-bound in one runtime kernel. Repeating the unchanged census is
-therefore not an ordered gate. The next ordered implementation is a
-default-off, read-only vendor-aware observation candidate with a complete
-kernel link and bounded provenance/invalidation surface. It must pass
-Buildbox and boot-container review before any device boot; provider
+therefore not an ordered gate. The full-source reconstruction also shows that
+porting the Linux 7.1 experimental coordinator into vendor Linux 3.18 would
+create a large vendor-only owner stack without advancing the upstream kernel.
+The next ordered implementation is instead the
+[default-off vendor provenance observer](../experiments/2026-08-14-mt6797-runtime-provenance-observer/README.md):
+it instruments the real EEM calibration and PPM table-commit lifecycle, but
+permanently reports zero owner and transition handles. First require normal
+patch application, a complete Buildbox kernel link, zero unresolved symbols,
+and a compile-review-only package. Only after a separate boot-container review
+may a read-only runtime observation be considered. That observation can close
+the lifecycle-publication evidence gap; it cannot satisfy the coherent-owner
+gate. The subsequent upstream implementation remains one native transition
+owner spanning the DVFSP/I2C6/DA921x operation and rollback boundary. Provider
 registration, setters, hardware writes, and CPU8/CPU9 admission remain closed.
 
 Required evidence:

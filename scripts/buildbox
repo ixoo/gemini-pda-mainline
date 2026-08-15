@@ -30,6 +30,10 @@ Commands:
   fetch-package         Fetch the validated package for HEAD and the profile
   build-gemian-observer Fetch pushed HEAD and compile the fixed Gemian observer
   fetch-gemian-observer Fetch its validated compile-review bundle for HEAD
+  build-gemian-provenance-observer
+                        Fully link the read-only vendor provenance observer
+  fetch-gemian-provenance-observer
+                        Fetch its validated full-link bundle for HEAD
   build-gemian-rollback-compile
                         Compare rollback and parent observer on Buildbox
   fetch-gemian-rollback-compile
@@ -497,6 +501,233 @@ REMOTE
   (
     cd "${temporary}/${package_name}"
     sha256sum --check --strict SHA256SUMS
+  )
+  mv "${temporary}/${package_name}" "${destination}"
+  rmdir "${temporary}"
+  trap - EXIT
+  printf 'Artifact fetched to %s\n' "${destination}"
+}
+
+build_gemian_provenance_observer() {
+  local branch
+  local identity
+  local jobs
+  local remote_command
+  local sha
+
+  require_command git
+  require_command jq
+  require_command ssh
+  identity="$(require_clean_pushed_head)"
+  IFS=$'\t' read -r sha branch <<< "${identity}"
+  jobs="$(job_count)"
+  printf -v remote_command 'bash -s -- %q %q %q' \
+    "${sha}" "${branch}" "${jobs}"
+
+  printf 'Submitting Gemian provenance observer full-link review %s to %s\n' \
+    "${sha}" "${BUILDBOX_HOST}"
+  ssh_buildbox "${remote_command}" <<'REMOTE'
+set -euo pipefail
+
+readonly commit="$1"
+readonly branch="$2"
+readonly jobs="$3"
+readonly remote_url=https://github.com/ixoo/gemini-pda-mainline.git
+readonly persistent_root="${HOME}/gemini-pda-buildbox"
+readonly mirror="${persistent_root}/repo.git"
+readonly workspace_root=/workspace/gemini-pda
+readonly checkout_root="${workspace_root}/checkouts"
+readonly checkout="${checkout_root}/${commit}"
+readonly source_root="${workspace_root}/gemian-source"
+readonly build_root="${workspace_root}/build"
+readonly artifact_root="${workspace_root}/gemian-provenance-artifacts"
+readonly toolchain_root="${workspace_root}/gemian-toolchains"
+readonly job_root="${workspace_root}/jobs"
+readonly job_key="${commit}-gemian-provenance-observer"
+readonly job_purpose=vendor-runtime-provenance-full-link-compile-review
+readonly job_log="${job_root}/${job_key}.log"
+readonly job_record="${job_root}/${job_key}.json"
+readonly build_script=experiments/2026-08-14-mt6797-runtime-provenance-observer/scripts/build-on-buildbox
+
+mkdir -p "${persistent_root}" "${checkout_root}" "${source_root}" \
+  "${build_root}" "${artifact_root}" "${toolchain_root}" "${job_root}"
+exec 9>"${persistent_root}/build.lock"
+flock 9
+
+if [[ ! -d "${mirror}" ]]; then
+  if [[ -e "${mirror}.partial" ]]; then
+    [[ -d "${mirror}.partial" && ! -L "${mirror}.partial" ]]
+    rm -rf -- "${mirror}.partial"
+  fi
+  git clone --mirror "${remote_url}" "${mirror}.partial"
+  mv "${mirror}.partial" "${mirror}"
+fi
+[[ "$(git --git-dir="${mirror}" remote get-url origin)" == "${remote_url}" ]]
+git --git-dir="${mirror}" fetch --prune origin \
+  "refs/heads/${branch}:refs/remotes/origin/${branch}"
+[[ "$(git --git-dir="${mirror}" rev-parse "refs/remotes/origin/${branch}")" == \
+   "${commit}" ]]
+
+if [[ ! -d "${checkout}" ]]; then
+  for stale in "${checkout}.partial."*; do
+    [[ -d "${stale}" && ! -L "${stale}" ]] || continue
+    rm -rf -- "${stale}"
+  done
+  partial="${checkout}.partial.$$"
+  trap 'test -n "${partial:-}" && test -d "${partial}" && rm -rf -- "${partial}"' EXIT
+  git clone --no-checkout "${mirror}" "${partial}"
+  git -C "${partial}" checkout --detach "${commit}"
+  [[ -z "$(git -C "${partial}" status --porcelain)" ]]
+  mv "${partial}" "${checkout}"
+  partial=""
+  trap - EXIT
+fi
+[[ "$(git -C "${checkout}" rev-parse HEAD)" == "${commit}" ]]
+[[ -z "$(git -C "${checkout}" status --porcelain)" ]]
+
+if [[ -f "${job_record}" ]] && jq -e \
+  --arg commit "${commit}" --arg purpose "${job_purpose}" '
+    .status == "validated" and .repository_commit == $commit and
+    .purpose == $purpose
+  ' "${job_record}" >/dev/null; then
+  package="$(jq -er '.package' "${job_record}")"
+  [[ -d "${package}" && ! -L "${package}" ]]
+  printf 'buildbox_job=%s\n' "${job_key}"
+  printf 'buildbox_package=%s\n' "${package}"
+  exit 0
+fi
+
+rm -f "${job_record}.partial"
+set -o pipefail
+"${checkout}/${build_script}" \
+  "${commit}" "${source_root}" "${build_root}" "${artifact_root}" \
+  "${toolchain_root}" "${jobs}" 2>&1 | tee "${job_log}"
+package="$(sed -n \
+  's/^Packaged Gemian provenance observer compile review at //p' \
+  "${job_log}" | tail -n 1)"
+case "${package}" in
+  "${artifact_root}"/*) ;;
+  *) echo "error: provenance build did not report a safe package path" >&2; exit 1 ;;
+esac
+[[ -d "${package}" && ! -L "${package}" ]]
+(
+  cd "${package}"
+  sha256sum --check --strict SHA256SUMS
+)
+jq -e --arg commit "${commit}" '
+  .repository_commit == $commit and .repository_dirty == false and
+  .purpose == "vendor-runtime-provenance-full-link-compile-review-only" and
+  .build_mode == "provenance-observer" and
+  .source_commit == "d388d350cb2dda8f23b99be6fa5db9628896e87f" and
+  .patched_commit == "f3d2a14bd1b8355c68e59e8bd4be6bc1525f9c24" and
+  .patch_sha256 ==
+    "3520538de1c31ea592c2f0c76af7deef10f5c1ee00689d74bdac17def48dbb11" and
+  .normal_patch_application == true and .config_delta_exact == true and
+  .observer_config_enabled == true and .full_kernel_link == true and
+  .unresolved_symbol_count == 0 and .debugfs_mode == "0444" and
+  .interrupt_safe_observer == true and
+  .lifecycle_completion_fail_closed == true and
+  .eem_required_bank_mask == "0x0000003b" and
+  .coherent_transition_owner == false and .owner_handle == 0 and
+  .transition_handle == 0 and .provider == "none" and
+  .hardware_write == "none" and .cpu8_cpu9_admission == "closed" and
+  .boot_candidate == false
+' "${package}/provenance/build.json" >/dev/null
+for required in outputs/Image.gz-dtb outputs/System.map outputs/vmlinux \
+  outputs/config outputs/baseline.config outputs/config.diff \
+  outputs/build.log provenance/changed-paths.txt \
+  provenance/source-commits.txt; do
+  [[ -s "${package}/${required}" ]]
+done
+[[ -f "${package}/outputs/undefined-symbols.txt" && \
+   ! -s "${package}/outputs/undefined-symbols.txt" ]]
+for symbol in gemini_mt6797_dvfsp_provenance_calibration_bank_publish \
+  gemini_mt6797_dvfsp_provenance_calibration_invalidate \
+  gemini_mt6797_dvfsp_provenance_table_commit \
+  gemini_mt6797_dvfsp_provenance_init; do
+  grep -q " ${symbol}$" "${package}/outputs/System.map"
+done
+jq -n \
+  --arg status validated \
+  --arg repository_commit "${commit}" \
+  --arg purpose "${job_purpose}" \
+  --arg package "${package}" \
+  --arg package_name "$(basename "${package}")" \
+  --arg completed_utc "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  '{status: $status, repository_commit: $repository_commit, purpose: $purpose,
+    package: $package, package_name: $package_name,
+    completed_utc: $completed_utc}' > "${job_record}.partial"
+mv "${job_record}.partial" "${job_record}"
+printf 'buildbox_job=%s\n' "${job_key}"
+printf 'buildbox_package=%s\n' "${package}"
+REMOTE
+}
+
+fetch_gemian_provenance_observer() {
+  local destination
+  local job_info
+  local job_key
+  local package_name
+  local remote_command
+  local sha
+  local temporary
+
+  require_command git
+  require_command jq
+  require_command sha256sum
+  require_command ssh
+  require_command tar
+  sha="$(git -C "${REPO_DIR}" rev-parse HEAD)"
+  [[ "${sha}" =~ ^[0-9a-f]{40}$ ]] || die "invalid HEAD commit"
+  job_key="${sha}-gemian-provenance-observer"
+  printf -v remote_command 'test -f %q && cat %q' \
+    "/workspace/gemini-pda/jobs/${job_key}.json" \
+    "/workspace/gemini-pda/jobs/${job_key}.json"
+  job_info="$(ssh_buildbox "${remote_command}")" || \
+    die "no completed Gemian provenance Buildbox job for ${sha}"
+  printf '%s' "${job_info}" | jq -e --arg commit "${sha}" '
+    .status == "validated" and .repository_commit == $commit and
+    .purpose == "vendor-runtime-provenance-full-link-compile-review" and
+    (.package_name | test("^[A-Za-z0-9_.+-]+$"))
+  ' >/dev/null || die "Gemian provenance Buildbox job record is invalid"
+  package_name="$(printf '%s' "${job_info}" | jq -er '.package_name')"
+  destination="${REPO_DIR}/artifacts/buildbox/${sha}/${package_name}"
+  [[ ! -e "${destination}" ]] || die "refusing to overwrite ${destination}"
+  mkdir -p "$(dirname "${destination}")"
+  temporary="$(mktemp -d "$(dirname "${destination}")/.fetch.XXXXXX")"
+  trap 'test -n "${temporary:-}" && test -d "${temporary}" && rm -rf -- "${temporary}"' EXIT
+
+  printf -v remote_command 'bash -s -- %q %q' "${job_key}" "${sha}"
+  ssh_buildbox "${remote_command}" <<'REMOTE' | tar -C "${temporary}" -xf -
+set -euo pipefail
+readonly job_key="$1"
+readonly commit="$2"
+readonly artifact_root=/workspace/gemini-pda/gemian-provenance-artifacts
+readonly record="/workspace/gemini-pda/jobs/${job_key}.json"
+[[ -f "${record}" && ! -L "${record}" ]]
+package="$(jq -er --arg commit "${commit}" '
+  select(.status == "validated" and .repository_commit == $commit and
+    .purpose == "vendor-runtime-provenance-full-link-compile-review") |
+    .package
+' "${record}")"
+case "${package}" in "${artifact_root}"/*) ;; *) exit 1 ;; esac
+[[ -d "${package}" && ! -L "${package}" ]]
+jq -e --arg commit "${commit}" '
+  .repository_commit == $commit and .repository_dirty == false and
+  .purpose == "vendor-runtime-provenance-full-link-compile-review-only" and
+  .full_kernel_link == true and .unresolved_symbol_count == 0 and
+  .normal_patch_application == true and .config_delta_exact == true and
+  .interrupt_safe_observer == true and
+  .lifecycle_completion_fail_closed == true and
+  .provider == "none" and .hardware_write == "none" and
+  .cpu8_cpu9_admission == "closed" and .boot_candidate == false
+' "${package}/provenance/build.json" >/dev/null
+tar -C "$(dirname "${package}")" -cf - -- "$(basename "${package}")"
+REMOTE
+  [[ -d "${temporary}/${package_name}" ]]
+  (
+    cd "${temporary}/${package_name}"
+    sha256sum --check --strict SHA256SUMS >/dev/null
   )
   mv "${temporary}/${package_name}" "${destination}"
   rmdir "${temporary}"
@@ -2964,6 +3195,8 @@ case "${COMMAND}" in
   fetch-package) fetch_package ;;
   build-gemian-observer) build_gemian_observer ;;
   fetch-gemian-observer) fetch_gemian_observer ;;
+  build-gemian-provenance-observer) build_gemian_provenance_observer ;;
+  fetch-gemian-provenance-observer) fetch_gemian_provenance_observer ;;
   build-gemian-rollback-compile) build_gemian_observer rollback ;;
   fetch-gemian-rollback-compile) fetch_gemian_observer rollback ;;
   generate-gemian-rollback-patches) generate_gemian_rollback_patches ;;
