@@ -1,0 +1,65 @@
+MT6797 provenance observer: pre-init companion patch generation
+Date: 2026-08-15 America/New_York
+Backend: Buildbox
+Kernel build: none
+Device access: none
+
+Buildbox job
+- repository commit: fdd511efa102c462cc068c1150452631bc965ed3
+- job: fdd511efa102c462cc068c1150452631bc965ed3-gemian-provenance-preinit-patchgen
+- package: gemian-provenance-preinit-patch-fdd511efa102
+- package SHA256SUMS SHA-256: fdf8fa1f28906a93679e4e2f3576f2cf598cada20959691ddc472e2cb0145d65
+
+Exact lineage
+- vendor source commit: d388d350cb2dda8f23b99be6fa5db9628896e87f
+- historical observer parent commit: f3d2a14bd1b8355c68e59e8bd4be6bc1525f9c24
+- historical observer patch SHA-256: 3520538de1c31ea592c2f0c76af7deef10f5c1ee00689d74bdac17def48dbb11
+- generated child commit: 2dbf7be3999120f297aedb9842bce320d759d26e
+- generated patch SHA-256: 0ddf2b5b28bb0957a467d38bfece553b89bf6b81c85c365f293d00b94efbd3d1
+- repository pre-init series SHA-256: c1f711235476c6a0639b277553afae682efd681288964f4a2164c0f502788655
+
+Changed paths
+- drivers/misc/mediatek/base/power/Kconfig
+- drivers/misc/mediatek/base/power/mt6797/Makefile
+- drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-provenance-preinit-recovery.c
+
+Buildbox validation
+- exact clean pushed project commit: pass
+- exact vendor-source fetch: pass
+- normal historical observer git-am: pass
+- exact parent commit reproduction: pass
+- deterministic child source edit: pass
+- source contract validation: pass
+- source whitespace check: pass
+- normal git format-patch generation: pass
+- exact changed-path inventory: pass
+- independent clean clone and two-patch git-am: pass
+- independent child commit reproduction: pass
+- independent source validation: pass
+- clean generated and verification trees: pass
+- checksummed package: pass
+
+Local fetched-package review
+- remote package checksum verification: pass
+- local package checksum verification: pass
+- repository patch byte-identical to package: pass
+- patch validator: pass
+- patch-validator mutations rejected: 13/13
+- synthetic Signed-off-by: absent
+- submission readiness: no; experiment-only synthetic author
+
+Classification
+patch_generation=pass
+normal_format_patch=yes
+patch_compiled=false
+boot_candidate=false
+device_action=none
+native_vm_kernel_build=no
+cpu8_cpu9_admission=closed
+
+Next action
+Commit and push the generated patch, isolated two-patch series, validator, and
+receipt. Then extend the Buildbox full-link lane for the exact child commit and
+three-symbol configuration delta. Require compile, binary marker, initcall
+ordering, symbol closure, and validated-package-only fetch before any container
+construction.

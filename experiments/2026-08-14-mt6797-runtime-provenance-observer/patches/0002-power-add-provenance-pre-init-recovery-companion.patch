@@ -1,0 +1,104 @@
+From 2dbf7be3999120f297aedb9842bce320d759d26e Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 15 Aug 2026 15:30:00 +0000
+Subject: [PATCH] power: add provenance pre-init recovery companion
+
+Emit one retained late-init checkpoint before external init.
+
+Request one bounded emergency restart through the existing handler.
+
+Keep storage, DVFSP, regulator, and CPU admission unchanged.
+---
+ drivers/misc/mediatek/base/power/Kconfig      | 11 ++++
+ .../misc/mediatek/base/power/mt6797/Makefile  |  1 +
+ ...mt6797-dvfsp-provenance-preinit-recovery.c | 50 +++++++++++++++++++
+ 3 files changed, 62 insertions(+)
+ create mode 100644 drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-provenance-preinit-recovery.c
+
+diff --git a/drivers/misc/mediatek/base/power/Kconfig b/drivers/misc/mediatek/base/power/Kconfig
+index b64b51b88..12917d3f8 100644
+--- a/drivers/misc/mediatek/base/power/Kconfig
++++ b/drivers/misc/mediatek/base/power/Kconfig
+@@ -103,3 +103,14 @@ config GEMINI_MT6797_DVFSP_PROVENANCE_OBSERVER
+ 	  does not register a regulator provider, replace a setter, write
+ 	  hardware, or admit CPUs.  Its zero owner and transition handles make
+ 	  the missing coherent transition owner explicit.
++
++config GEMINI_MT6797_DVFSP_PROVENANCE_PREINIT_RECOVERY
++	bool "Gemini MT6797 provenance pre-init recovery companion"
++	depends on GEMINI_MT6797_DVFSP_PROVENANCE_OBSERVER && PSTORE_CONSOLE
++	default n
++	help
++	  Emit an attributable late-init checkpoint after the pstore console
++	  is registered, then request one emergency restart after 120 seconds.
++	  This experiment-only diagnostic does not access storage, change a
++	  DVFSP or regulator state, alter CPU admission, or take watchdog
++	  ownership away from the vendor kernel kicker.
+diff --git a/drivers/misc/mediatek/base/power/mt6797/Makefile b/drivers/misc/mediatek/base/power/mt6797/Makefile
+index ce343dc98..21410608e 100644
+--- a/drivers/misc/mediatek/base/power/mt6797/Makefile
++++ b/drivers/misc/mediatek/base/power/mt6797/Makefile
+@@ -49,6 +49,7 @@ obj-y += mt_otp.o
+ obj-y += mt_static_power.o
+ obj-y += mt_cpufreq.o
+ obj-$(CONFIG_GEMINI_MT6797_DVFSP_PROVENANCE_OBSERVER) += mt6797-dvfsp-provenance-observer.o
++obj-$(CONFIG_GEMINI_MT6797_DVFSP_PROVENANCE_PREINIT_RECOVERY) += mt6797-dvfsp-provenance-preinit-recovery.o
+ obj-y += mt_cpufreq_hybrid.o
+ obj-y += mt_idvfs.o
+ #obj-y += mt_udi.o
+diff --git a/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-provenance-preinit-recovery.c b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-provenance-preinit-recovery.c
+new file mode 100644
+index 000000000..f8a98ded2
+--- /dev/null
++++ b/drivers/misc/mediatek/base/power/mt6797/mt6797-dvfsp-provenance-preinit-recovery.c
+@@ -0,0 +1,50 @@
++/*
++ * SPDX-License-Identifier: GPL-2.0
++ *
++ * Pre-init retained checkpoint and bounded recovery for the Gemini
++ * MT6797 provenance experiment.
++ */
++#include <linux/errno.h>
++#include <linux/init.h>
++#include <linux/jiffies.h>
++#include <linux/kernel.h>
++#include <linux/module.h>
++#include <linux/reboot.h>
++#include <linux/workqueue.h>
++
++#define GEMINI_MT6797_PREINIT_RECOVERY_MARKER \
++	"GEMINI_DVFSP_PROVENANCE_PREINIT_RECOVERY_20260815"
++#define GEMINI_MT6797_PREINIT_RECOVERY_SECONDS	120
++
++static void gemini_mt6797_preinit_recovery_workfn(struct work_struct *work)
++{
++	(void)work;
++	pr_emerg("%s recovery=executing reset=emergency-restart "
++		  "storage_access=none dvfsp_hardware_write=none "
++		  "cpu8_cpu9_admission=closed\n",
++		 GEMINI_MT6797_PREINIT_RECOVERY_MARKER);
++	emergency_restart();
++}
++
++static DECLARE_DELAYED_WORK(gemini_mt6797_preinit_recovery_work,
++	gemini_mt6797_preinit_recovery_workfn);
++
++static int __init gemini_mt6797_preinit_recovery_init(void)
++{
++	bool scheduled;
++
++	scheduled = schedule_delayed_work(
++		&gemini_mt6797_preinit_recovery_work,
++		GEMINI_MT6797_PREINIT_RECOVERY_SECONDS * HZ);
++	pr_emerg("%s checkpoint=pre-init recovery=%s deadline_seconds=%u "
++		  "pstore_console=required storage_access=none "
++		  "dvfsp_hardware_write=none cpu8_cpu9_admission=closed\n",
++		 GEMINI_MT6797_PREINIT_RECOVERY_MARKER,
++		 scheduled ? "armed" : "schedule-failed",
++		 GEMINI_MT6797_PREINIT_RECOVERY_SECONDS);
++	return scheduled ? 0 : -EBUSY;
++}
++late_initcall_sync(gemini_mt6797_preinit_recovery_init);
++
++MODULE_DESCRIPTION("Gemini MT6797 provenance pre-init recovery companion");
++MODULE_LICENSE("GPL");

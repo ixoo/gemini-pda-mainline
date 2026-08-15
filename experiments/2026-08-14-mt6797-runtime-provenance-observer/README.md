@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-14-mt6797-runtime-provenance-observer` |
-| Status | `pre-init recovery boundary selected; source tooling next` |
+| Status | `pre-init recovery patch generated and validated; Buildbox compile next` |
 | Subsystem | MT6797 EEM/PPM DVFSP provenance |
 | Device variant | Planet Gemini PDA, MT6797; corrected boot2 installed |
 | Date | 2026-08-14 America/New_York |
@@ -110,6 +110,10 @@ read-only, performs no storage or DVFSP write, and requests no reboot.
 - [`scripts/generate-preinit-on-buildbox`](scripts/generate-preinit-on-buildbox)
   creates a normal `git format-patch` review from the exact vendor parent in a
   disposable Buildbox clone; it does not compile a kernel or access a device.
+- [`scripts/validate_preinit_patch.py`](scripts/validate_preinit_patch.py) and
+  [`scripts/test_preinit_patch_validator.py`](scripts/test_preinit_patch_validator.py)
+  pin the generated commit, patch, isolated series, exact three-path delta, and
+  recovery semantics and reject thirteen patch mutations.
 - [`DESIGN.md`](DESIGN.md) defines the observation and decision contract.
 
 ## Procedure
@@ -275,6 +279,16 @@ ShellCheck warning-or-higher, and whitespace checks pass. This is tooling only:
 no vendor patch, kernel build, container, or device action exists yet. See the
 [`pre-init source-tool review`](results/preinit-source-tool-review-20260815.txt).
 
+The exact pushed tooling commit `fdd511e` then ran on Buildbox. A disposable
+clone reproduced historical observer parent `f3d2a14...`, generated one normal
+format patch with child commit `2dbf7be...`, and changed only Kconfig, the
+MT6797 Makefile, and the new companion source. An independent clean clone
+reapplied both patches, reproduced the child commit, passed the source
+validator, and remained clean. The fetched checksummed patch is byte-identical
+to the repository copy; the patch validator passes and rejects thirteen
+mutations. No kernel build or device action occurred. See the
+[`Buildbox patch-generation receipt`](results/preinit-patch-generation-buildbox-20260815.txt).
+
 ## Analysis
 
 This observer intentionally does not port the Linux 7.1 experimental
@@ -298,11 +312,11 @@ to identical repetition.
 
 ## Follow-up
 
-Commit and push the separately gated pre-`/init` recovery source tooling, then
-generate its normal format patch on Buildbox. Buildbox must prove the exact
-parent, isolated default-off
-configuration, initcall order, marker and delayed-work boundaries, and final
-link before any container review. Runtime success would still require two
+Commit and push the generated patch, isolated series, and validators, then run
+the exact child through the Buildbox full-link lane. The build must prove the
+exact parent, isolated default-off configuration, initcall order, marker and
+delayed-work boundaries, and final link before any container review. Runtime
+success would still require two
 stable reads with `observation_complete=1`, complete PPM and EEM masks, and
 nonzero variant, table epoch, and calibration handle while owner/transition
 handles remain zero. That would confirm publication only. The upstream path

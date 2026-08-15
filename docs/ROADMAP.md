@@ -3501,10 +3501,15 @@ MT6797 handler. It preserves the exact corrected initramfs and DTB, performs no
 storage, DVFSP, regulator, or CPU action, and makes RNDIS a fast path rather than
 the sole observation path. Its deterministic source editor and validator now
 pass local syntax and static checks, reject a second application, and reject all
-thirteen decision-changing mutations. The next ordered action is to commit and
-push those exact tools, then generate and independently reapply one normal
-format patch on Buildbox. No kernel compile, container, or device action is yet
-authorized.
+thirteen decision-changing mutations. Exact pushed commit `fdd511e` then
+generated one normal format patch on Buildbox from the exact observer parent;
+an independent clean clone reapplied both patches, reproduced child commit
+`2dbf7be`, passed the source validator, and remained clean. The fetched package
+and repository patch are byte-identical, and thirteen semantic patch mutations
+are rejected. The next ordered action is to commit and push the generated patch,
+isolated series, validators, and receipt, then run the exact child through a
+Buildbox-only full-link, binary-marker, initcall-order, and symbol-closure gate.
+No container or device action is yet authorized.
 The subsequent upstream implementation remains one native transition owner
 spanning the DVFSP/I2C6/DA921x operation and rollback boundary. Provider
 registration, setters, hardware writes, and CPU8/CPU9 admission remain closed.
