@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-15-da921x-provider-control` |
-| Status | offline validation complete; runtime pending |
+| Status | exact boot2 deployment complete; collector armed; runtime pending |
 | Subsystem | legacy DA9213/DA9214/DA9215 regulator provider and boot serviceability |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-15 America/New_York |
@@ -103,7 +103,16 @@ source-pinned derivation, and static no-write checks. See the
 
 The [predeployment hypothesis](results/predeployment-hypothesis-20260815.txt)
 and [decision map](results/runtime-decision-map-20260815.txt) freeze the control
-result before device action. Runtime remains pending.
+result before device action.
+
+The guarded deployment resolved the sole live-GPT logical `boot2` as inactive,
+unmounted, writable `/dev/mmcblk0p30`. It recorded the exact observer candidate
+as predecessor, created no fresh backup, wrote the exact control, synced and
+flushed it, and required both a full-partition checksum and an independent
+byte-for-byte readback. Ordinary Gemian then powered off and was confirmed
+unreachable. The [deployment receipt](results/deployment-20260815.txt) records
+the sanitized result. The exact read-only collector was armed while the device
+remained off. Runtime remains pending one owner-selected boot2 start.
 
 ## Analysis
 
@@ -129,5 +138,5 @@ and CPU8/CPU9 admission remain closed.
 ## Follow-up
 
 Follow the single ordered action in [`docs/ROADMAP.md`](../../docs/ROADMAP.md):
-deploy this exact candidate, shut down, pre-arm the collector, and perform one
-control boot. Do not repeat the observer candidate.
+with the exact collector already armed, perform one control boot. Do not repeat
+the observer candidate.

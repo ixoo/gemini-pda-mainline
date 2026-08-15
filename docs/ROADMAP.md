@@ -3632,9 +3632,13 @@ passes its fetched-package manifest, two independent construction paths, all
 32 LK gates, six structural mutations, and the frozen read-only runtime-tool
 suite. See the
 [matched-control experiment](../experiments/2026-08-15-da921x-provider-control/README.md).
-The single next action is to install only this candidate to live-GPT logical
-boot2, require full readback and clean shutdown, pre-arm its collector, and run
-one owner-selected control boot. Runtime evidence is still pending.
+The guarded installer has now resolved live-GPT logical boot2 as inactive and
+unmounted `/dev/mmcblk0p30`, replaced the exact observer predecessor, verified
+the exact control by full-partition hash and independent byte comparison, and
+confirmed ordinary Gemian powered off. No fresh backup was created. The exact
+read-only collector is armed. The single next action is one owner-selected
+control boot; runtime evidence is still pending. See the
+[deployment receipt](../experiments/2026-08-15-da921x-provider-control/results/deployment-20260815.txt).
 
 Required evidence:
 
