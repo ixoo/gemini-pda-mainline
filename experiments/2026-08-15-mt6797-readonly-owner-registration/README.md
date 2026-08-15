@@ -131,6 +131,20 @@ firmware-lease static oracle. Normal checkpatch reports zero warnings; its sole
 error per patch is the intentionally absent synthetic DCO sign-off required by
 repository policy.
 
+The first focused Buildbox compile of commit `75a8e77e92cd...` applied all 265
+patches but correctly failed in a KUnit-only line: the negative registration
+test attempted `sizeof(*handoff)` even though the public API intentionally keeps
+that type opaque. The exact failure is retained in the
+[`failed focused-build receipt`](results/registration-focused-build-attempt-20260815.txt).
+No production registration result follows from that attempt.
+
+Patch 0276 was then regenerated on Buildbox from exact pushed correction commit
+`5c762c2e5ee8...`. The negative test now allocates a bounded one-byte non-NULL
+token and documents that the expected unsupported-source path must reject it
+before the opaque pointer can be consumed. The regenerated format-patch matches
+the imported canonical file byte for byte, and its source, no-write,
+manifest-series, and checkpatch gates pass. Patch 0275 is unchanged.
+
 ## Analysis
 
 Registering the owner before these repairs would either truncate a legitimate
@@ -142,11 +156,12 @@ carried into its lifetime path.
 
 ## Conclusion
 
-`inconclusive`: every prerequisite gate passes and the registration series is
-statically accepted; focused runtime and full-profile compile gates remain.
+`inconclusive`: every prerequisite gate passes and the corrected registration
+series is statically accepted; focused runtime and full-profile compile gates
+remain.
 
 ## Follow-up
 
-Commit and push the exact registration series, then run focused Buildbox/KUnit
+Commit and push the corrected patch identity, then rerun focused Buildbox/KUnit
 and normal full-profile Buildbox validation. Setters, hardware writes, and
 CPU8/CPU9 admission remain closed for later gates.

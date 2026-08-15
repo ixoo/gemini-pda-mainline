@@ -13,16 +13,16 @@ Roll back mismatches and block teardown while registered.
 
 No setter or hardware operation is added.
 ---
- .../mediatek/mt6797-dvfsp-vendor-owner-test.c |   7 +
+ .../mediatek/mt6797-dvfsp-vendor-owner-test.c |   8 +
  .../soc/mediatek/mt6797-dvfsp-vendor-owner.c  | 138 +++++++++++++++++-
  .../mt6797-dvfsp-vendor-provider-test.c       |  51 +++++++
  .../mediatek/mt6797-dvfsp-vendor-provider.c   |  87 +++++++++++
  .../soc/mediatek/mt6797-dvfsp-vendor-owner.h  |  17 ++-
  .../mediatek/mt6797-dvfsp-vendor-provider.h   |   8 +-
- 6 files changed, 302 insertions(+), 6 deletions(-)
+ 6 files changed, 303 insertions(+), 6 deletions(-)
 
 diff --git a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
-index afbb992..4699bf5 100644
+index afbb992..bf56620 100644
 --- a/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
 +++ b/drivers/soc/mediatek/mt6797-dvfsp-vendor-owner-test.c
 @@ -570,6 +570,7 @@ static void mt6797_dvfsp_vendor_owner_integrates_lifecycle(
@@ -33,11 +33,12 @@ index afbb992..4699bf5 100644
  
  	mt6797_dvfsp_vendor_test_init_devices(&devices);
  	mt6797_dvfsp_vendor_test_tuple(&devices, &tuple);
-@@ -594,6 +595,12 @@ static void mt6797_dvfsp_vendor_owner_integrates_lifecycle(
+@@ -594,6 +595,13 @@ static void mt6797_dvfsp_vendor_owner_integrates_lifecycle(
  		mt6797_dvfsp_vendor_writer_bridge_ops());
  	KUNIT_EXPECT_PTR_EQ(test, integration.runtime_context, &owner);
  	KUNIT_EXPECT_TRUE(test, owner.source.initialized);
-+	handoff = kunit_kzalloc(test, sizeof(*handoff), GFP_KERNEL);
++	/* Opaque non-NULL token; the unsupported source must reject first. */
++	handoff = kunit_kzalloc(test, 1, GFP_KERNEL);
 +	KUNIT_ASSERT_NOT_NULL(test, handoff);
 +	KUNIT_EXPECT_EQ(test, mt6797_dvfsp_vendor_owner_register_state(
 +		&owner, handoff), -EOPNOTSUPP);

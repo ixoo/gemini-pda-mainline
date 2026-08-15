@@ -1,7 +1,8 @@
 experiment=2026-08-15-mt6797-readonly-owner-registration
 phase=registration-patch-generation
-observed_utc=2026-08-15T18:34:28Z
-repository_commit=6e7d36fdb24a38f345cdc6b89ddfe68cfbfe3269
+observed_utc=2026-08-15T18:43:18Z
+repository_commit=5c762c2e5ee8b467238565937e3965c8eacfce38
+initial_repository_commit=6e7d36fdb24a38f345cdc6b89ddfe68cfbfe3269
 prepared_source=/workspace/gemini-pda/src/linux-7.1.3
 prepared_source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
 prepared_patchset_sha256=5d261c9a96b0bd2d085f946faf42587d7ab899374f30975016f512d7b5056483
@@ -15,8 +16,8 @@ patch_0275=0275-soc-mediatek-bound-vendor-provider-bridge-storage.patch
 patch_0275_lines=74
 patch_0275_sha256=d3e102e16f966683c8286a2d460d3aaf489dcd01c1eeb0297e2a44f735d1439d
 patch_0276=0276-soc-mediatek-register-validated-vendor-state-owner.patch
-patch_0276_lines=477
-patch_0276_sha256=5abfe944b2956603e2ae27de53871728add1b880431b07730b06cebd5a0b3b06
+patch_0276_lines=478
+patch_0276_sha256=a31b82839982f62647a60d9a9dfb9f489e89547dd63073d7ceac634cfc93dd2d
 format_patch=passed
 synthetic_signoff=absent
 source_contract=passed
@@ -38,9 +39,15 @@ hardware_write=none
 device_action=none
 boot_candidate=false
 cpu8_cpu9_admission=closed
+regeneration_reason=focused-compile-rejected-sizeof-on-opaque-handoff-type
+regeneration_scope=patch-0276-only;opaque-negative-path-token-allocation
+regenerated_patch_matches_buildbox_output=yes
 
 Earlier generated review drafts were not imported. Review first added malformed
 identity rejection and comparison with the identity actually stored by the
 handoff registry, then adopted the kernel object-allocation helper and wrapped
-the patch descriptions. The final hashes above are the only accepted patch
-identities.
+the patch descriptions. The first focused compile then found that a negative
+KUnit path used `sizeof` on the intentionally opaque handoff type. Patch 0276
+was regenerated from the exact pushed fix with a one-byte non-NULL token that
+must never be dereferenced on the expected unsupported-source path. The final
+hashes above are the only accepted patch identities.
