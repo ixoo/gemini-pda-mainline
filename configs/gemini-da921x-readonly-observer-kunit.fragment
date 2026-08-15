@@ -1,0 +1,5 @@
+# Hardware-free failure and cleanup coverage for the DA921x observer. The fake
+# semantic-read callback creates no I2C adapter or hardware-facing object.
+CONFIG_KUNIT=y
+CONFIG_REGULATOR_DA9213_LEGACY_OBSERVER_KUNIT_TEST=y
+CONFIG_LOCALVERSION="-gemini-da921x-observer-kunit"

@@ -44,6 +44,8 @@ package, and container validation pass, no boot candidate exists.
   and no-write validation.
 - [`scripts/validate_tool.py`](scripts/validate_tool.py): deterministic editor
   contract validation.
+- [`scripts/validate.py`](scripts/validate.py): canonical patch, profile, and
+  no-write integration validation.
 - [`scripts/validate_patch.py`](scripts/validate_patch.py): generated
   format-patch validation.
 - [`scripts/test_mutations.py`](scripts/test_mutations.py): decision-changing
@@ -70,6 +72,15 @@ transcript before registering two descriptors. Each descriptor exposes only
 `__i2c_transfer()` call sites, both combined reads; it has no register-data
 write helper or writable regulator operation. The Gemini Device Tree node has
 the exact primary and page2 addresses and no regulator child.
+
+Exact pushed tooling commit `3320d44` generated one normal five-path
+format-patch from a bounded temporary Git repository on Buildbox. Source
+validation and clean application to the full prepared tree passed. Focused
+checkpatch passed with zero errors and warnings after excluding only the
+synthetic DCO, experiment-file, single-record string, and generated commit-body
+notice classes. The repository patch is byte-identical to the Buildbox output:
+SHA-256 `6225f78584357a1b59dbe4b210c9cab7271175ebbe3d07b719429d503cad3696`.
+See the [patch-generation receipt](results/patch-generation-buildbox-20260815.txt).
 
 ## Analysis
 

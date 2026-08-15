@@ -1,0 +1,554 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 15 Aug 2026 16:45:00 -0400
+Subject: [PATCH] regulator: observe legacy DA921x read-only provider
+
+Add a default-off one-shot observation after the fixed legacy identity transcript and both read-only provider registrations. Reuse the exact selector, linear-voltage, and enable operations for both bucks, publish bounded read accounting and zero register-data writes, and invalidate the record after provider devres cleanup.
+
+Add hardware-free KUnit coverage for success, each partial-read failure, incomplete lifecycle state, invalid semantic values, and cleanup. This experiment adds no setter, consumer, hardware write, transition owner, or CPU operation and is not submission-ready.
+---
+ drivers/regulator/Kconfig                     |  22 +++
+ drivers/regulator/Makefile                    |   1 +
+ .../regulator/da9213-legacy-observer-test.c   | 178 +++++++++++++++++
+ drivers/regulator/da9213-legacy-observer.h    |  47 +++++
+ drivers/regulator/da9213-legacy-regulator.c   | 186 +++++++++++++++++-
+ 5 files changed, 427 insertions(+), 7 deletions(-)
+ create mode 100644 drivers/regulator/da9213-legacy-observer-test.c
+ create mode 100644 drivers/regulator/da9213-legacy-observer.h
+
+diff --git a/drivers/regulator/Kconfig b/drivers/regulator/Kconfig
+index 520b77a..a9cde05 100644
+--- a/drivers/regulator/Kconfig
++++ b/drivers/regulator/Kconfig
+@@ -434,6 +434,28 @@ config REGULATOR_DA9213_LEGACY_PROVIDER
+ 	  This is an offline/provider-boundary experiment. It does not establish
+ 	  rail ownership, constraints, rollback, suspend/resume, or CPU bring-up.
+ 
++config REGULATOR_DA9213_LEGACY_OBSERVER
++	bool "Dialog legacy DA921x read-only provider observer"
++	depends on REGULATOR_DA9213_LEGACY_PROVIDER
++	help
++	  Emit one attributable record after the fixed identity transcript and
++	  both read-only regulator descriptors are registered. The observation
++	  samples only selector, linear voltage, and enable state and fails probe
++	  rather than publishing a partial result.
++
++	  This default-off diagnostic adds no writable regulator operation,
++	  consumer, register-data write, transition owner, or CPU action.
++
++config REGULATOR_DA9213_LEGACY_OBSERVER_KUNIT_TEST
++	bool "KUnit tests for the legacy DA921x read-only observer"
++	depends on KUNIT=y
++	depends on REGULATOR_DA9213_LEGACY_OBSERVER
++	help
++	  Exercise the hardware-free observer success, bounded failure, semantic
++	  validation, and cleanup contracts with a fake read callback. The tests
++	  create no device, adapter, regulator, firmware, or CPU object and
++	  perform no hardware operation.
++
+ config REGULATOR_DBX500_PRCMU
+ 	bool
+ 
+diff --git a/drivers/regulator/Makefile b/drivers/regulator/Makefile
+index be821f5..08fc546 100644
+--- a/drivers/regulator/Makefile
++++ b/drivers/regulator/Makefile
+@@ -49,6 +49,7 @@ obj-$(CONFIG_REGULATOR_DA9121) += da9121-regulator.o
+ obj-$(CONFIG_REGULATOR_DA9210) += da9210-regulator.o
+ obj-$(CONFIG_REGULATOR_DA9211) += da9211-regulator.o
+ obj-$(CONFIG_REGULATOR_DA9213_LEGACY) += da9213-legacy-regulator.o
++obj-$(CONFIG_REGULATOR_DA9213_LEGACY_OBSERVER_KUNIT_TEST) += da9213-legacy-observer-test.o
+ obj-$(CONFIG_REGULATOR_DBX500_PRCMU) += dbx500-prcmu.o
+ obj-$(CONFIG_REGULATOR_DB8500_PRCMU) += db8500-prcmu.o
+ obj-$(CONFIG_REGULATOR_FAN53555) += fan53555.o
+diff --git a/drivers/regulator/da9213-legacy-observer-test.c b/drivers/regulator/da9213-legacy-observer-test.c
+new file mode 100644
+index 0000000..9ccaf3d
+--- /dev/null
++++ b/drivers/regulator/da9213-legacy-observer-test.c
+@@ -0,0 +1,178 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/* Hardware-free tests for the legacy DA921x read-only observer. */
++
++#include <kunit/test.h>
++#include <linux/errno.h>
++#include <linux/module.h>
++
++#include "da9213-legacy-observer.h"
++
++struct da9213_legacy_observer_fake {
++	int fail_at;
++	unsigned int calls;
++	unsigned int values[4];
++};
++
++static int da9213_legacy_observer_fake_read(
++	void *context, unsigned int buck,
++	enum da9213_legacy_observer_field field, unsigned int *value)
++{
++	struct da9213_legacy_observer_fake *fake = context;
++	unsigned int expected_buck = fake->calls / 2;
++	enum da9213_legacy_observer_field expected_field =
++		fake->calls % 2 ? DA9213_LEGACY_OBSERVER_ENABLED :
++				  DA9213_LEGACY_OBSERVER_SELECTOR;
++	unsigned int call = fake->calls++;
++
++	if (buck != expected_buck || field != expected_field)
++		return -EINVAL;
++	if (call == fake->fail_at)
++		return -EIO;
++
++	*value = fake->values[call];
++	return 0;
++}
++
++static struct da9213_legacy_observer_fake
++da9213_legacy_observer_valid_fake(void)
++{
++	struct da9213_legacy_observer_fake fake = {
++		.fail_at = -1,
++		.values = { 42, 1, 70, 0 },
++	};
++
++	return fake;
++}
++
++static void da9213_legacy_observer_records_both_bucks(struct kunit *test)
++{
++	struct da9213_legacy_observer_fake fake =
++		da9213_legacy_observer_valid_fake();
++	struct da9213_legacy_observation observation;
++	int ret;
++
++	ret = da9213_legacy_observer_collect(
++		da9213_legacy_observer_fake_read, &fake, 14, 2,
++		&observation);
++
++	KUNIT_EXPECT_EQ(test, ret, 0);
++	KUNIT_EXPECT_TRUE(test, observation.valid);
++	KUNIT_EXPECT_EQ(test, observation.identity_reads, 14U);
++	KUNIT_EXPECT_EQ(test, observation.provider_count, 2U);
++	KUNIT_EXPECT_EQ(test, observation.provider_read_attempts, 4U);
++	KUNIT_EXPECT_EQ(test, observation.provider_read_completed, 4U);
++	KUNIT_EXPECT_EQ(test, observation.register_data_writes, 0U);
++	KUNIT_EXPECT_EQ(test, observation.buck[0].selector, 42U);
++	KUNIT_EXPECT_EQ(test, observation.buck[0].microvolts, 720000U);
++	KUNIT_EXPECT_EQ(test, observation.buck[0].enabled, 1U);
++	KUNIT_EXPECT_EQ(test, observation.buck[1].selector, 70U);
++	KUNIT_EXPECT_EQ(test, observation.buck[1].microvolts, 1000000U);
++	KUNIT_EXPECT_EQ(test, observation.buck[1].enabled, 0U);
++}
++
++static void da9213_legacy_observer_bounds_read_failures(struct kunit *test)
++{
++	unsigned int fail_at;
++
++	for (fail_at = 0; fail_at < 4; fail_at++) {
++		struct da9213_legacy_observer_fake fake =
++			da9213_legacy_observer_valid_fake();
++		struct da9213_legacy_observation observation;
++		int ret;
++
++		fake.fail_at = fail_at;
++		ret = da9213_legacy_observer_collect(
++			da9213_legacy_observer_fake_read, &fake, 14, 2,
++			&observation);
++
++		KUNIT_EXPECT_EQ(test, ret, -EIO);
++		KUNIT_EXPECT_FALSE(test, observation.valid);
++		KUNIT_EXPECT_EQ(test, observation.provider_read_attempts,
++				fail_at + 1);
++		KUNIT_EXPECT_EQ(test, observation.provider_read_completed,
++				fail_at);
++		KUNIT_EXPECT_EQ(test, observation.register_data_writes, 0U);
++	}
++}
++
++static void da9213_legacy_observer_rejects_incomplete_state(
++	struct kunit *test)
++{
++	struct da9213_legacy_observer_fake fake =
++		da9213_legacy_observer_valid_fake();
++	struct da9213_legacy_observation observation;
++
++	KUNIT_EXPECT_EQ(test, da9213_legacy_observer_collect(
++		da9213_legacy_observer_fake_read, &fake, 13, 2,
++		&observation), -EINVAL);
++	KUNIT_EXPECT_EQ(test, fake.calls, 0U);
++	KUNIT_EXPECT_FALSE(test, observation.valid);
++
++	KUNIT_EXPECT_EQ(test, da9213_legacy_observer_collect(
++		da9213_legacy_observer_fake_read, &fake, 14, 1,
++		&observation), -EINVAL);
++	KUNIT_EXPECT_EQ(test, fake.calls, 0U);
++	KUNIT_EXPECT_FALSE(test, observation.valid);
++}
++
++static void da9213_legacy_observer_rejects_invalid_values(
++	struct kunit *test)
++{
++	struct da9213_legacy_observer_fake fake =
++		da9213_legacy_observer_valid_fake();
++	struct da9213_legacy_observation observation;
++
++	fake.values[0] = DA9213_LEGACY_VSEL_MASK + 1;
++	KUNIT_EXPECT_EQ(test, da9213_legacy_observer_collect(
++		da9213_legacy_observer_fake_read, &fake, 14, 2,
++		&observation), -ERANGE);
++	KUNIT_EXPECT_FALSE(test, observation.valid);
++	KUNIT_EXPECT_EQ(test, observation.provider_read_attempts, 1U);
++	KUNIT_EXPECT_EQ(test, observation.provider_read_completed, 1U);
++
++	fake = da9213_legacy_observer_valid_fake();
++	fake.values[1] = 2;
++	KUNIT_EXPECT_EQ(test, da9213_legacy_observer_collect(
++		da9213_legacy_observer_fake_read, &fake, 14, 2,
++		&observation), -ERANGE);
++	KUNIT_EXPECT_FALSE(test, observation.valid);
++	KUNIT_EXPECT_EQ(test, observation.provider_read_attempts, 2U);
++	KUNIT_EXPECT_EQ(test, observation.provider_read_completed, 2U);
++	KUNIT_EXPECT_EQ(test, observation.register_data_writes, 0U);
++}
++
++static void da9213_legacy_observer_invalidates_on_cleanup(
++	struct kunit *test)
++{
++	struct da9213_legacy_observer_fake fake =
++		da9213_legacy_observer_valid_fake();
++	struct da9213_legacy_observation observation;
++	unsigned int provider_count = 2;
++
++	KUNIT_ASSERT_EQ(test, da9213_legacy_observer_collect(
++		da9213_legacy_observer_fake_read, &fake, 14, 2,
++		&observation), 0);
++	da9213_legacy_observer_cleanup_state(&observation, &provider_count);
++	KUNIT_EXPECT_FALSE(test, observation.valid);
++	KUNIT_EXPECT_EQ(test, observation.provider_count, 0U);
++	KUNIT_EXPECT_EQ(test, provider_count, 0U);
++	KUNIT_EXPECT_EQ(test, observation.register_data_writes, 0U);
++}
++
++static struct kunit_case da9213_legacy_observer_test_cases[] = {
++	KUNIT_CASE(da9213_legacy_observer_records_both_bucks),
++	KUNIT_CASE(da9213_legacy_observer_bounds_read_failures),
++	KUNIT_CASE(da9213_legacy_observer_rejects_incomplete_state),
++	KUNIT_CASE(da9213_legacy_observer_rejects_invalid_values),
++	KUNIT_CASE(da9213_legacy_observer_invalidates_on_cleanup),
++	{ }
++};
++
++static struct kunit_suite da9213_legacy_observer_test_suite = {
++	.name = "da9213-legacy-observer",
++	.test_cases = da9213_legacy_observer_test_cases,
++};
++
++kunit_test_suite(da9213_legacy_observer_test_suite);
++
++MODULE_LICENSE("GPL");
+diff --git a/drivers/regulator/da9213-legacy-observer.h b/drivers/regulator/da9213-legacy-observer.h
+new file mode 100644
+index 0000000..ec2ffd0
+--- /dev/null
++++ b/drivers/regulator/da9213-legacy-observer.h
+@@ -0,0 +1,47 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __DA9213_LEGACY_OBSERVER_H
++#define __DA9213_LEGACY_OBSERVER_H
++
++#include <linux/types.h>
++
++#define DA9213_LEGACY_BUCK_COUNT	2
++#define DA9213_LEGACY_MIN_UV		300000
++#define DA9213_LEGACY_MAX_UV		1570000
++#define DA9213_LEGACY_STEP_UV		10000
++#define DA9213_LEGACY_VSEL_MASK	0x7f
++#define DA9213_LEGACY_ENABLE_MASK	0x01
++
++enum da9213_legacy_observer_field {
++	DA9213_LEGACY_OBSERVER_SELECTOR,
++	DA9213_LEGACY_OBSERVER_ENABLED,
++};
++
++struct da9213_legacy_observer_buck {
++	unsigned int selector;
++	unsigned int microvolts;
++	unsigned int enabled;
++};
++
++struct da9213_legacy_observation {
++	bool valid;
++	unsigned int identity_reads;
++	unsigned int provider_count;
++	unsigned int provider_read_attempts;
++	unsigned int provider_read_completed;
++	unsigned int register_data_writes;
++	struct da9213_legacy_observer_buck buck[DA9213_LEGACY_BUCK_COUNT];
++};
++
++typedef int (*da9213_legacy_observer_read_fn)(
++	void *context, unsigned int buck,
++	enum da9213_legacy_observer_field field, unsigned int *value);
++
++int da9213_legacy_observer_collect(
++	da9213_legacy_observer_read_fn read, void *context,
++	unsigned int identity_reads, unsigned int provider_count,
++	struct da9213_legacy_observation *observation);
++void da9213_legacy_observer_cleanup_state(
++	struct da9213_legacy_observation *observation,
++	unsigned int *provider_count);
++
++#endif /* __DA9213_LEGACY_OBSERVER_H */
+diff --git a/drivers/regulator/da9213-legacy-regulator.c b/drivers/regulator/da9213-legacy-regulator.c
+index dff3068..709cde6 100644
+--- a/drivers/regulator/da9213-legacy-regulator.c
++++ b/drivers/regulator/da9213-legacy-regulator.c
+@@ -11,6 +11,8 @@
+ #include <linux/module.h>
+ #include <linux/of.h>
+ #include <linux/regulator/driver.h>
++
++#include "da9213-legacy-observer.h"
+ #if IS_ENABLED(CONFIG_ARM64_MT6797_A72_PROVIDER_OWNER)
+ #include <linux/mt6797-a72-provider.h>
+ #endif
+@@ -41,6 +43,11 @@ struct da9213_legacy {
+ 	const struct da9213_legacy_variant *variant;
+ #if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_PROVIDER)
+ 	struct regulator_dev *rdev[2];
++#if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_OBSERVER)
++	unsigned int provider_count;
++	bool observer_bound;
++	struct da9213_legacy_observation observation;
++#endif
+ #endif
+ };
+ 
+@@ -68,13 +75,6 @@ static const struct da9213_legacy_sample da9213_legacy_samples[] = {
+ 
+ #if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_PROVIDER)
+ 
+-#define DA9213_LEGACY_BUCK_COUNT	2
+-#define DA9213_LEGACY_MIN_UV		300000
+-#define DA9213_LEGACY_MAX_UV		1570000
+-#define DA9213_LEGACY_STEP_UV		10000
+-#define DA9213_LEGACY_VSEL_MASK		0x7f
+-#define DA9213_LEGACY_ENABLE_MASK	0x01
+-
+ static const u8 da9213_legacy_vsel_reg[DA9213_LEGACY_BUCK_COUNT] = {
+ 	0xd7, 0xd9,
+ };
+@@ -178,11 +178,162 @@ static int da9213_legacy_register_provider(struct da9213_legacy *chip)
+ 						&da9213_legacy_regulators[i], &config);
+ 		if (IS_ERR(chip->rdev[i]))
+ 			return PTR_ERR(chip->rdev[i]);
++#if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_OBSERVER)
++		chip->provider_count++;
++#endif
++	}
++
++	return 0;
++}
++
++#if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_OBSERVER)
++
++int da9213_legacy_observer_collect(
++	da9213_legacy_observer_read_fn read, void *context,
++	unsigned int identity_reads, unsigned int provider_count,
++	struct da9213_legacy_observation *observation)
++{
++	unsigned int buck;
++
++	if (!observation)
++		return -EINVAL;
++
++	memset(observation, 0, sizeof(*observation));
++	observation->identity_reads = identity_reads;
++	observation->provider_count = provider_count;
++	if (!read || identity_reads != DA9213_LEGACY_PASSES *
++					 ARRAY_SIZE(da9213_legacy_samples) ||
++	    provider_count != DA9213_LEGACY_BUCK_COUNT)
++		return -EINVAL;
++
++	for (buck = 0; buck < DA9213_LEGACY_BUCK_COUNT; buck++) {
++		unsigned int value;
++		int ret;
++
++		observation->provider_read_attempts++;
++		ret = read(context, buck, DA9213_LEGACY_OBSERVER_SELECTOR,
++			   &value);
++		if (ret)
++			return ret;
++		observation->provider_read_completed++;
++		if (value > DA9213_LEGACY_VSEL_MASK)
++			return -ERANGE;
++		observation->buck[buck].selector = value;
++		observation->buck[buck].microvolts =
++			DA9213_LEGACY_MIN_UV + value * DA9213_LEGACY_STEP_UV;
++		if (observation->buck[buck].microvolts >
++		    DA9213_LEGACY_MAX_UV)
++			return -ERANGE;
++
++		observation->provider_read_attempts++;
++		ret = read(context, buck, DA9213_LEGACY_OBSERVER_ENABLED,
++			   &value);
++		if (ret)
++			return ret;
++		observation->provider_read_completed++;
++		if (value > 1)
++			return -ERANGE;
++		observation->buck[buck].enabled = value;
++	}
++
++	observation->valid = true;
++	return 0;
++}
++
++void da9213_legacy_observer_cleanup_state(
++	struct da9213_legacy_observation *observation,
++	unsigned int *provider_count)
++{
++	if (!observation || !provider_count)
++		return;
++
++	observation->valid = false;
++	observation->provider_count = 0;
++	*provider_count = 0;
++}
++
++static int da9213_legacy_observer_read(
++	void *context, unsigned int buck,
++	enum da9213_legacy_observer_field field, unsigned int *value)
++{
++	struct da9213_legacy *chip = context;
++	int ret;
++
++	if (!chip || !value || buck >= chip->provider_count)
++		return -EINVAL;
++
++	switch (field) {
++	case DA9213_LEGACY_OBSERVER_SELECTOR:
++		ret = da9213_legacy_get_voltage_sel(chip->rdev[buck]);
++		break;
++	case DA9213_LEGACY_OBSERVER_ENABLED:
++		ret = da9213_legacy_is_enabled(chip->rdev[buck]);
++		break;
++	default:
++		return -EINVAL;
+ 	}
++	if (ret < 0)
++		return ret;
+ 
++	*value = ret;
+ 	return 0;
+ }
+ 
++static void da9213_legacy_observer_cleanup(void *context)
++{
++	struct da9213_legacy *chip = context;
++	unsigned int providers = chip->provider_count;
++
++	da9213_legacy_observer_cleanup_state(&chip->observation,
++				      &chip->provider_count);
++	dev_info(chip->dev,
++		 "da921x-observer-v1 event=%s providers_released=%u "
++		 "register_data_writes=%u\n",
++		 chip->observer_bound ? "unbind" : "failed-probe",
++		 providers, chip->observation.register_data_writes);
++}
++
++static int da9213_legacy_observer_prepare(struct da9213_legacy *chip)
++{
++	return devm_add_action(chip->dev, da9213_legacy_observer_cleanup,
++			       chip);
++}
++
++static int da9213_legacy_observer_sample(struct da9213_legacy *chip,
++				     unsigned int identity_reads)
++{
++	return da9213_legacy_observer_collect(
++		da9213_legacy_observer_read, chip, identity_reads,
++		chip->provider_count, &chip->observation);
++}
++
++static void da9213_legacy_observer_publish(struct da9213_legacy *chip)
++{
++	const struct da9213_legacy_observation *observation =
++		&chip->observation;
++
++	chip->observer_bound = true;
++	dev_info(chip->dev,
++		 "da921x-observer-v1 event=bound valid=%u identity_reads=%u "
++		 "providers=%u provider_read_attempts=%u "
++		 "provider_read_completed=%u register_data_writes=%u "
++		 "buck0_selector=%u buck0_uv=%u buck0_enabled=%u "
++		 "buck1_selector=%u buck1_uv=%u buck1_enabled=%u\n",
++		 observation->valid, observation->identity_reads,
++		 observation->provider_count,
++		 observation->provider_read_attempts,
++		 observation->provider_read_completed,
++		 observation->register_data_writes,
++		 observation->buck[0].selector,
++		 observation->buck[0].microvolts,
++		 observation->buck[0].enabled,
++		 observation->buck[1].selector,
++		 observation->buck[1].microvolts,
++		 observation->buck[1].enabled);
++}
++
++#endif
++
+ #if IS_ENABLED(CONFIG_ARM64_MT6797_A72_PROVIDER_OWNER)
+ 
+ static int da9213_legacy_provider_acquire(void *context,
+@@ -332,6 +483,9 @@ static int da9213_legacy_probe(struct i2c_client *client)
+ 	const struct da9213_legacy_variant *variant;
+ 	int pass;
+ 	unsigned int sample;
++#if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_OBSERVER)
++	unsigned int identity_reads = 0;
++#endif
+ 	int ret = 0;
+ 
+ 	variant = i2c_get_match_data(client);
+@@ -369,6 +523,9 @@ static int da9213_legacy_probe(struct i2c_client *client)
+ 							&da9213_legacy_samples[sample]);
+ 			if (ret)
+ 				goto out_unlock;
++#if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_OBSERVER)
++			identity_reads++;
++#endif
+ 		}
+ 	}
+ out_unlock:
+@@ -378,16 +535,31 @@ out_unlock:
+ 				     "read-only identity transcript failed\n");
+ 
+ #if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_PROVIDER)
++#if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_OBSERVER)
++	ret = da9213_legacy_observer_prepare(chip);
++	if (ret)
++		return dev_err_probe(&client->dev, ret,
++				     "failed to prepare read-only observer\n");
++#endif
+ 	ret = da9213_legacy_register_provider(chip);
+ 	if (ret)
+ 		return dev_err_probe(&client->dev, ret,
+ 				     "failed to register read-only provider\n");
++#if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_OBSERVER)
++	ret = da9213_legacy_observer_sample(chip, identity_reads);
++	if (ret)
++		return dev_err_probe(&client->dev, ret,
++				     "read-only provider observation failed\n");
++#endif
+ #if IS_ENABLED(CONFIG_ARM64_MT6797_A72_PROVIDER_OWNER)
+ 	ret = da9213_legacy_register_owner(chip);
+ 	if (ret)
+ 		return dev_err_probe(&client->dev, ret,
+ 				     "failed to register provider-owner boundary\n");
+ #endif
++#endif
++#if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_OBSERVER)
++	da9213_legacy_observer_publish(chip);
+ #endif
+ 
+ 	dev_info(&client->dev,

@@ -1,0 +1,44 @@
+experiment=2026-08-15-da921x-readonly-observer
+phase=patch-generation-buildbox
+observed_date=2026-08-15 America/New_York
+result=pass
+
+repository_tooling_commit=3320d446d62f3f2affd9bb877d3a7eb22a5aee2a
+prepared_kernel=Linux 7.1.3 plus canonical patches through 0277
+prepared_source_state=33fd1e9e4aac6a359fa4725a3152fdfd2cb2038cdcd07c189c1361d041e61398
+generation_method=bounded temporary Git repository with five source paths
+generated_patch=0278-regulator-observe-legacy-DA921x-read-only-provider.patch
+generated_patch_lines=554
+generated_patch_bytes=19008
+generated_patch_sha256=6225f78584357a1b59dbe4b210c9cab7271175ebbe3d07b719429d503cad3696
+changed_paths=5
+synthetic_signoff=absent
+
+source_editor=pass
+source_contract=pass
+identity_reads=14
+provider_descriptors=2
+bounded_provider_reads=4
+kunit_cases=5
+register_data_writes=0
+git_diff_check=pass
+full_prepared_source_git_apply_check=pass
+format_patch_validator=pass
+checkpatch_errors=0
+checkpatch_warnings=0
+checkpatch_ignored=MISSING_SIGN_OFF,FILE_PATH_CHANGES,SPLIT_STRING,COMMIT_LOG_LONG_LINE
+
+The ignored DCO notice is required by the synthetic non-certifying experiment
+identity. FILE_PATH_CHANGES covers the two experiment-only internal test files.
+SPLIT_STRING preserves one grep-stable attributable runtime record.
+COMMIT_LOG_LONG_LINE covers only the generated experimental commit body. No
+other checkpatch class was ignored.
+
+Only the five bounded source paths were copied into the temporary Git
+repository. The managed prepared kernel source remained read-only, and no
+kernel source tree was transferred to or from Buildbox.
+
+hardware_write=none
+device_action=none
+boot_candidate=false
+cpu8_cpu9_admission=closed

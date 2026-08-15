@@ -671,6 +671,49 @@
                     "configs/gemini-da921x-resource-only-provider.fragment"
                 ]
             },
+            "da921x-readonly-observer": {
+                "base": "defconfig",
+                "fragments": [
+                    "configs/gemini-handoff.fragment",
+                    "configs/gemini-usbdiag.fragment",
+                    "configs/gemini-clk-ignore-unused.fragment",
+                    "configs/gemini-observability.fragment",
+                    "configs/gemini-fbcon-rotation.fragment",
+                    "configs/gemini-keyboard.fragment",
+                    "configs/gemini-keyboard-wrrd.fragment",
+                    "configs/gemini-keyboard-manual-reboot.fragment",
+                    "configs/gemini-smp8.fragment",
+                    "configs/gemini-a72-observer.fragment",
+                    "configs/gemini-a72-observer-initcall-blacklist.fragment",
+                    "configs/gemini-dvfsp-handoff-owner.fragment",
+                    "configs/gemini-dvfsp-i2c6-consumer.fragment",
+                    "configs/gemini-da921x-legacy-bind.fragment",
+                    "configs/gemini-da921x-resource-only-provider.fragment",
+                    "configs/gemini-da921x-readonly-observer.fragment"
+                ]
+            },
+            "da921x-readonly-observer-kunit": {
+                "base": "defconfig",
+                "fragments": [
+                    "configs/gemini-handoff.fragment",
+                    "configs/gemini-usbdiag.fragment",
+                    "configs/gemini-clk-ignore-unused.fragment",
+                    "configs/gemini-observability.fragment",
+                    "configs/gemini-fbcon-rotation.fragment",
+                    "configs/gemini-keyboard.fragment",
+                    "configs/gemini-keyboard-wrrd.fragment",
+                    "configs/gemini-keyboard-manual-reboot.fragment",
+                    "configs/gemini-smp8.fragment",
+                    "configs/gemini-a72-observer.fragment",
+                    "configs/gemini-a72-observer-initcall-blacklist.fragment",
+                    "configs/gemini-dvfsp-handoff-owner.fragment",
+                    "configs/gemini-dvfsp-i2c6-consumer.fragment",
+                    "configs/gemini-da921x-legacy-bind.fragment",
+                    "configs/gemini-da921x-resource-only-provider.fragment",
+                    "configs/gemini-da921x-readonly-observer.fragment",
+                    "configs/gemini-da921x-readonly-observer-kunit.fragment"
+                ]
+            },
             "a72-p24-provider-owner-refusal": {
                 "base": "defconfig",
                 "fragments": [

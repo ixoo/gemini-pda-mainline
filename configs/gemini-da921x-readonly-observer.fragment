@@ -1,0 +1,6 @@
+# Default-off, one-shot observation of the native legacy DA921x read-only
+# provider. The parent profile supplies the identification and provider gates;
+# this fragment adds no setter, consumer, register-data write, or CPU action.
+CONFIG_REGULATOR_DA9213_LEGACY_OBSERVER=y
+# CONFIG_REGULATOR_DA9213_LEGACY_OBSERVER_KUNIT_TEST is not set
+CONFIG_LOCALVERSION="-gemini-da921x-observer"
