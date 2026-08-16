@@ -19,12 +19,18 @@ spec.loader.exec_module(oracle)
 FRAME = b"====0.000000-D\n"
 HEADER_SIZE = 12
 PAYLOAD_CAPACITY = oracle.ZONE_SIZE - HEADER_SIZE
+STAGE_CODES = {
+    "primary-entry": "E0",
+    "pre-primary-switch": "E1",
+    "post-mmu": "E2",
+    "post-reserved-scan": "E3",
+}
 
 
 def record(stage) -> bytes:
     marker = (
-        f"{oracle.PREFIX} token={oracle.TOKEN} stage={stage.name} "
-        f"slot={stage.slot} crc32={stage.crc}\n"
+        f"{oracle.PREFIX} {oracle.TOKEN} {STAGE_CODES[stage.name]} "
+        f"{stage.slot} {stage.crc}\n"
     ).encode("ascii")
     return FRAME + marker
 

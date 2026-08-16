@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-16-mainline-arm64-entry-ledger` |
-| Status | implementation and offline validation passed; Buildbox package pending |
+| Status | first full link rejected oversized idmap; compact-record revision validated; Buildbox rebuild pending |
 | Subsystem | arm64 primary entry, MMU transition, setup_arch, pstore/ramoops |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-16 America/New_York |
@@ -36,6 +36,11 @@ regulator, CPU-admission, or hardware-support experiment.
 - Recovery path: ordinary known-good Gemian and changed-cycle pstore/raw-zone
   capture.
 - Exact build, package, container, partition, and boot identities are pending.
+- The first full Buildbox link of commit `d126eebf32ca0a4746e5060fb4c4e66479b3300a`
+  failed closed before packaging: `.idmap.text` was `0x1124` bytes and violated
+  arm64's one-page identity-map assertion. No candidate or device action
+  occurred. The successor revision preserves every decision and safety field
+  in a 76-byte positional wire record to reduce the entry-code footprint.
 
 ## Safety assessment
 
@@ -106,17 +111,21 @@ decision-changing evidence.
 ## Observations
 
 Canonical patch 0281 applies to the exact managed source through patch 0280.
-The exact MMU-off `head.S` and later-stage C translation units compile without
-diagnostics under the Buildbox cross-toolchain. The implementation validator
-matches both assembly records byte-for-byte with the frozen generator, confirms
-the exact hooks and refusal rules, and rejects all 16 unsafe mutations. All 79
+The initial MMU-off `head.S` and later-stage C translation units compiled
+without diagnostics under the Buildbox cross-toolchain, but the first complete
+Buildbox link correctly rejected an identity-mapped section of `0x1124` bytes
+against arm64's 4 KiB bound. That compile-only evidence is not treated as a
+build result. The revised implementation uses the same prefix, token, stage,
+slot, and CRC in a compact positional wire encoding. Its validator matches the
+assembly records byte-for-byte with the revised frozen generator, confirms the
+exact hooks and refusal rules, and rejects all 16 unsafe mutations. All 79
 manifest profiles preserve the canonical-series invariant.
 
-Strict checkpatch has zero checks. Its five warnings are the expected
-experiment-only new-file/MAINTAINERS question and four intentionally split
-exact record strings. Its sole error is the deliberately absent sign-off on a
-synthetic, non-certifying, explicitly non-submission patch. No full kernel
-build, package, candidate, partition write, shutdown, or boot has occurred yet.
+The initial strict checkpatch review had zero checks, five expected warnings,
+and the deliberately absent synthetic-author sign-off. The revised patch needs
+the same publication checks before its exact replacement commit. No successful
+full kernel build, package, candidate, partition write, shutdown, or boot has
+occurred yet.
 
 ## Analysis
 

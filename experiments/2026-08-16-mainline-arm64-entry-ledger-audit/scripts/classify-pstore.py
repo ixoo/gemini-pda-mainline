@@ -13,13 +13,13 @@ import zlib
 TOKEN = "GAEL-20260816-A"
 PREFIX = "GEMINI_ARM64_ENTRY_LEDGER_V1"
 STAGES = (
-    ("primary-entry", 171),
-    ("pre-primary-switch", 172),
-    ("post-mmu", 173),
-    ("post-reserved-scan", 174),
+    ("primary-entry", "E0", 171),
+    ("pre-primary-switch", "E1", 172),
+    ("post-mmu", "E2", 173),
+    ("post-reserved-scan", "E3", 174),
 )
 LINE = re.compile(
-    rf"^{PREFIX} token={TOKEN} stage=([a-z-]+) slot=([0-9]+) crc32=([0-9a-f]{{8}})$"
+    rf"^{PREFIX} {TOKEN} (E[0-3]) ([0-9]+) ([0-9a-f]{{8}})$"
 )
 
 
@@ -45,7 +45,7 @@ def files(path: Path) -> list[Path]:
 
 
 def classify(path: Path) -> Classification:
-    expected = {slot: stage for stage, slot in STAGES}
+    expected = {slot: (stage, code) for stage, code, slot in STAGES}
     found: dict[int, tuple[str, Path]] = {}
     suspicious: list[str] = []
     for item in files(path):
@@ -58,16 +58,18 @@ def classify(path: Path) -> Classification:
             if not match:
                 suspicious.append(f"malformed:{item.name}")
                 continue
-            stage = match.group(1)
+            code = match.group(1)
             slot = int(match.group(2))
             crc = match.group(3)
-            if expected.get(slot) != stage or integrity(stage, slot) != crc:
+            stage_and_code = expected.get(slot)
+            if (stage_and_code is None or stage_and_code[1] != code or
+                    integrity(stage_and_code[0], slot) != crc):
                 suspicious.append(f"integrity-or-stage:{item.name}")
                 continue
             if slot in found:
                 suspicious.append(f"duplicate-slot:{slot}")
                 continue
-            found[slot] = (stage, item)
+            found[slot] = (stage_and_code[0], item)
 
     present = tuple(sorted(found))
     if suspicious:
@@ -83,7 +85,7 @@ def classify(path: Path) -> Classification:
         )
 
     highest = present[-1]
-    missing = tuple(slot for _, slot in STAGES if slot < highest and slot not in found)
+    missing = tuple(slot for _, _, slot in STAGES if slot < highest and slot not in found)
     reasons = {
         171: "primary-entry-reached-with-mmu-and-dcache-off",
         172: "pre-primary-switch-reached-with-mmu-and-dcache-off",

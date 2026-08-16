@@ -6,6 +6,7 @@ build=none
 device_access=none
 token=GAEL-20260816-A
 marker_prefix=GEMINI_ARM64_ENTRY_LEDGER_V1
+wire_format=PREFIX_TOKEN_STAGECODE_SLOT_CRC
 record_frame=====0.000000-D\n
 payload_offset=12
 store_width=32-bit-or-narrower
@@ -14,33 +15,34 @@ start_equals_size_equals_exact_record_length=yes
 slot=171
 stage=primary-entry
 crc32=990b22bb
-record_length=110
-record_sha256=8eba442e2fc340524d9e54541a6a7d6d5aba5478ed37c4fd851f005bb81ef297
-aligned_word_count=28
+record_length=76
+record_sha256=8de1dde47888c5b820d5aa2150ee409a647e423eb1fce30ca09a5c48e83473b7
+aligned_word_count=19
 
 slot=172
 stage=pre-primary-switch
 crc32=c00e5ee2
-record_length=115
-record_sha256=11ffcedf158dca5bea2478c65595bf498209b88bc3c2747833c5187db912c031
-aligned_word_count=29
+record_length=76
+record_sha256=7a849a403f44f2d1618375b7d15466bbae4060a38a319658764d8e3fbc1f8773
+aligned_word_count=19
 
 slot=173
 stage=post-mmu
 crc32=1297491b
-record_length=105
-record_sha256=f4046f5df3ec2ac2b6512f1323252977ce393dab5ee8e3114e9bcfa27c0e78d8
-aligned_word_count=27
+record_length=76
+record_sha256=b60db4d07c13d6fbd7a4bcd04150877b875156e7c2668ab4097de902000c3abe
+aligned_word_count=19
 
 slot=174
 stage=post-reserved-scan
 crc32=88a58bc9
-record_length=115
-record_sha256=fc597229049971fb8c68b2ba3411bfb40eeec4082a1d23dbd9c8020e7c465ede
-aligned_word_count=29
+record_length=76
+record_sha256=9ea178eeb04189d6755d2be4b81b1da5cfbb8d663c8b1a1626191f69157966ef
+aligned_word_count=19
 
 provisional_crc_correction_slot172=6590798d-to-c00e5ee2
 provisional_crc_correction_slot173=f78ab8ae-to-1297491b
+verbose_wire_encoding_disposition=superseded-after-full-link-idmap-overflow
 independent_stage_subsets_accepted=16
 invalid_captures_rejected=7
 missing_earlier_slot_policy=accept-empty-as-safe-writer-refusal

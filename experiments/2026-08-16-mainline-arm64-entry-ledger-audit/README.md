@@ -90,8 +90,8 @@ contract. The authorization record belongs to the successor experiment.
 - `DESIGN.md`: exact stage, register, memory, record, and decision contract.
 - `scripts/oracle.py`: independent structural and outcome oracle.
 - `scripts/test-oracle.py`: unsafe-design negative mutations.
-- `scripts/record-layout.py`: exact framed record bytes, lengths, padding, and
-  aligned little-endian assembly-word generator.
+- `scripts/record-layout.py`: exact compact positional wire records, lengths,
+  padding, and aligned little-endian assembly-word generator.
 - `scripts/classify-pstore.py`: independent-stage returned-Gemian classifier.
 - `scripts/test-classify-pstore.py`: all-subset fixtures and malformed-record
   rejection tests.
@@ -149,10 +149,13 @@ rather than assuming it.
 The oracle accepts the exact four-stage contract, enumerates every monotonic
 reach/refusal combination, and rejects the unsafe mutations recorded by its
 test suite. Exact record freezing corrected two provisional CRC values before
-any kernel implementation existed. The generator now fixes every framed byte,
-length, 32-bit assembly word, and zero-padding boundary. The classifier accepts
-all 16 intentional independent-stage subsets and rejects malformed, duplicate,
-wrong-stage, wrong-slot, wrong-CRC, and foreign-identity records.
+any kernel implementation existed. The initial verbose encoding later exceeded
+arm64's single-page identity-map link bound when implemented. The frozen wire
+encoding is therefore the compact positional form `PREFIX TOKEN E# SLOT CRC`,
+retaining the same long prefix, token, stage identity, slot, and CRC while
+fixing every framed byte to 76 bytes and 19 aligned words. The classifier
+accepts all 16 intentional independent-stage subsets and rejects malformed,
+duplicate, wrong-stage, wrong-slot, wrong-CRC, and foreign-identity records.
 
 ## Analysis
 

@@ -18,12 +18,9 @@ sys.modules[spec.name] = classifier
 spec.loader.exec_module(classifier)
 
 
-def record(stage: str, slot: int, crc: str | None = None) -> str:
+def record(stage: str, code: str, slot: int, crc: str | None = None) -> str:
     value = crc if crc is not None else classifier.integrity(stage, slot)
-    return (
-        f"{classifier.PREFIX} token={classifier.TOKEN} "
-        f"stage={stage} slot={slot} crc32={value}\n"
-    )
+    return f"{classifier.PREFIX} {classifier.TOKEN} {code} {slot} {value}\n"
 
 
 def run_case(lines: list[str]):
@@ -48,9 +45,9 @@ def main() -> None:
             raise AssertionError(f"subset {mask}: {result.result} != {wanted}")
         expected_missing = tuple(
             slot
-            for _, slot in stages
+            for _, _, slot in stages
             if selected
-            and slot < selected[-1][1]
+            and slot < selected[-1][2]
             and stage_missing(slot, selected)
         )
         if result.missing_before_highest != expected_missing:
@@ -59,11 +56,11 @@ def main() -> None:
 
     rejected = (
         [record(*stages[0]), record(*stages[0])],
-        [record("primary-entry", 171, "00000000")],
-        [record("post-mmu", 171)],
-        [f"{classifier.PREFIX} token={classifier.TOKEN} truncated\n"],
-        [f"{classifier.PREFIX} token=FOREIGN stage=post-mmu slot=173 crc32=00000000\n"],
-        [f"FOREIGN_PREFIX token={classifier.TOKEN} stage=post-mmu slot=173 crc32=00000000\n"],
+        [record("primary-entry", "E0", 171, "00000000")],
+        [record("post-mmu", "E2", 171)],
+        [f"{classifier.PREFIX} {classifier.TOKEN} truncated\n"],
+        [f"{classifier.PREFIX} FOREIGN E2 173 00000000\n"],
+        [f"FOREIGN_PREFIX {classifier.TOKEN} E2 173 00000000\n"],
         [record(*stages[2]), f"{classifier.PREFIX} malformed\n"],
     )
     count = sum(run_case(list(case)).result == "rejected-attribution" for case in rejected)
@@ -75,8 +72,8 @@ def main() -> None:
     print("result=pass")
 
 
-def stage_missing(slot: int, selected: list[tuple[str, int]]) -> bool:
-    return all(selected_slot != slot for _, selected_slot in selected)
+def stage_missing(slot: int, selected: list[tuple[str, str, int]]) -> bool:
+    return all(selected_slot != slot for _, _, selected_slot in selected)
 
 
 if __name__ == "__main__":

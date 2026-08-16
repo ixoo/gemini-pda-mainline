@@ -1,0 +1,33 @@
+Arm64 entry-ledger first full-link result and bounded revision
+Date: 2026-08-16 America/New_York
+
+repository_commit=d126eebf32ca0a4746e5060fb4c4e66479b3300a
+profile=da921x-modules-arm64-entry-ledger
+backend=buildbox
+native_vm_build=not-run
+buildbox_job_record=absent
+package=none
+candidate=none
+device_access=none
+partition_write=none
+
+translation_units=compiled
+full_link=failed
+linker_error=ID_map_text_too_big_or_misaligned
+generated_head_idmap_text_size=0x1124
+linker_bound=single_4KiB_page_including_alignment
+failure_scope=compile-time-only
+
+revision=compact-positional-wire-records
+wire_format=GEMINI_ARM64_ENTRY_LEDGER_V1_GAEL-20260816-A_E#_SLOT_CRC
+record_length_each=76
+aligned_words_each=19
+prefix_preserved=yes
+token_preserved=yes
+stage_slot_crc_preserved=yes
+hooks_and_decision_map=unchanged
+mmu_cache_and_header_gates=unchanged
+write_order_and_full_readback=unchanged
+runtime_effects=retained-RAM-record-only
+cpu8_cpu9_admission=closed
+rebuild=pending
