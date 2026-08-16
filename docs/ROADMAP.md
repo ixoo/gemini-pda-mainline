@@ -3681,15 +3681,20 @@ padding agree byte-for-byte, all 32 LK gates pass, and six container mutations
 are rejected. See the
 [offline review](../experiments/2026-08-15-mainline-module-policy-control/results/offline-validation-20260815.txt).
 
-The single next ordered action is one exact runtime discriminator. Commit and
-push the frozen candidate/tooling record, install full boot2 SHA-256
-`044461e57d207f5ddd6e68cc463ea3ee1dd65260c27afe5fd00730137d13a2ff` to
-live-GPT logical boot2, require full readback, and shut Gemian down. Arm the
-one-hour read-only collector before one owner-selected boot. Exact serviceable
-USB evidence localizes the regression to disabled-module built-in expansion;
-the same no-USB/empty-pstore boundary stops this candidate and advances to the
-earliest post-ramoops checkpoint already defined above. Screen color and
-automatic return alone remain non-attributable.
+The exact candidate/tooling record is pushed and full boot2 SHA-256
+`044461e57d207f5ddd6e68cc463ea3ee1dd65260c27afe5fd00730137d13a2ff` is
+installed on live-GPT logical boot2. The write, sync, flush, full-partition
+checksum, independent readback, and byte comparison passed; no fresh backup
+was created. Gemian then shut down and is confirmed unreachable. See the
+[deployment receipt](../experiments/2026-08-15-mainline-module-policy-control/results/deployment-20260815.txt).
+
+The single next ordered action is one exact runtime discriminator. Push the
+sanitized deployment receipt, arm the one-hour read-only collector, then have
+the owner select boot2 once. Exact serviceable USB evidence localizes the
+regression to disabled-module built-in expansion; the same no-USB/empty-pstore
+boundary stops this candidate and advances to the earliest post-ramoops
+checkpoint already defined above. Screen color and automatic return alone
+remain non-attributable.
 
 Required evidence:
 

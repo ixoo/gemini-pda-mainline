@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-15-mainline-module-policy-control` |
-| Status | exact candidate validated offline; deployment pending |
+| Status | exact boot2 deployment verified and powered off; one runtime boot pending |
 | Subsystem | kernel configuration, boot serviceability, DA921x read-only provider |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-15 America/New_York |
@@ -125,6 +125,14 @@ ShellCheck, the guarded no-backup/full-readback/shutdown contract, and a
 one-hour collector window. See the
 [offline review](results/offline-validation-20260815.txt).
 
+The guarded installer resolved the sole live-GPT logical `boot2` as inactive,
+unmounted, writable `/dev/mmcblk0p30`. It recorded the exact provider-only
+control as predecessor, created no fresh backup, wrote the exact module-policy
+candidate, synced and flushed it, and required both a matching full-partition
+checksum and independent byte-for-byte readback. Gemian then powered off and
+was confirmed unreachable. The sanitized
+[deployment receipt](results/deployment-20260815.txt) records the result.
+
 ## Analysis
 
 The unchanged pstore map, initcall order, ramdisk, and LK layout do not isolate
@@ -143,13 +151,12 @@ discriminator.
 
 ## Conclusion
 
-The exact candidate is accepted for one boot2 deployment and one runtime boot.
-No hardware-support or provider-runtime claim exists yet. Register writes,
+The exact candidate is installed and accepted for one runtime boot. No
+hardware-support or provider-runtime claim exists yet. Register writes,
 transition ownership, and CPU8/CPU9 admission remain closed.
 
 ## Follow-up
 
-Follow the ordered action in [`docs/ROADMAP.md`](../../docs/ROADMAP.md): commit
-and push the frozen candidate/tooling record, install the exact image to
-live-GPT logical boot2, shut Gemian down, arm the collector, and observe one
+Follow the ordered action in [`docs/ROADMAP.md`](../../docs/ROADMAP.md): push
+the sanitized deployment receipt, arm the one-hour collector, and observe one
 owner-selected boot. Do not repeat the candidate unchanged.
