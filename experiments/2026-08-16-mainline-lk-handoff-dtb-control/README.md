@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-16-mainline-lk-handoff-dtb-control` |
-| Status | one exact attempt serviceable; positive control confirmed and stopped |
+| Status | one exact attempt serviceable; later missed-window follow-up non-attributable; positive control confirmed and stopped |
 | Subsystem | Planet LK Android-v0 handoff, appended DTB, arm64 primary entry |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-16 America/New_York |
@@ -101,6 +101,10 @@ reboot behavior is not attributable evidence.
 - `results/runtime-attempt-1-serviceable-20260816.txt`: exact USB runtime,
   dmesg, CPU policy, native reboot, changed return, pstore, returned-ledger,
   and post-cycle candidate identity evidence.
+- `results/runtime-followup-2-missed-window-20260816.txt`: sanitized record of
+  a later owner-reported selection whose USB observation window was missed;
+  only a new returned-Gemian identity, empty pstore, and unchanged boot2
+  payload were attributable.
 - `results/executed-native-reboot-request-20260816.txt`: non-executable exact
   source sent after the live identity gates; it requested one native reboot.
 
@@ -180,6 +184,16 @@ one warm return with zero block mounts. USB disconnected, the long observer
 captured changed-identity Gemian, and an immediate bounded raw-zone read found
 the same four empty headers as before deployment. Boot2 still matched the
 exact installed payload.
+
+A later owner-reported boot2 selection began without the USB cable attached.
+When the cable became available, the host enumerated Gemian's RNDIS gadget but
+did not create the established mainline USB network interface. The direct
+netcat endpoint was unreachable, while authenticated Wi-Fi SSH proved a new
+ordinary Gemian boot running `3.18.41+`. Pstore was empty and the live-GPT
+resolved, unmounted boot2 partition still matched the exact control payload.
+Because no boot2 kernel identity or mainline USB observation was captured, this
+follow-up is neither a repeat success nor a failure; it is a missed runtime
+window and does not alter the positive control conclusion.
 
 ## Analysis
 
