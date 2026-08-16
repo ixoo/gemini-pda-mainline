@@ -36,6 +36,7 @@ def main() -> None:
     oracle.validate(design)
     cases = (
         replace(design, stages=design.stages[:3]),
+        stage_mutation(design, 0, name="entry"),
         stage_mutation(design, 0, slot=170),
         replace(design, reservation=(0x44410000, 0x444BE000)),
         stage_mutation(design, 0, require_mmu_off=False),

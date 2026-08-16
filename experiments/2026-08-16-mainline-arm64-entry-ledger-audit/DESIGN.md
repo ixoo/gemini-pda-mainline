@@ -10,6 +10,7 @@ authorization or patch.
 ## Fixed identity
 
 - token: `GAEL-20260816-A`
+- marker prefix: `GEMINI_ARM64_ENTRY_LEDGER_V1`
 - reservation: `[0x44410000,0x444f0000)`
 - zones: slots 171--174, each 4 KiB, at
   `[0x444bb000,0x444bf000)`
@@ -18,8 +19,8 @@ authorization or patch.
 - record framing: `====0.000000-D\n`, one unique marker line, final newline
 - records:
   - slot 171: `stage=primary-entry`, CRC32 `990b22bb`
-  - slot 172: `stage=pre-primary-switch`, CRC32 `6590798d`
-  - slot 173: `stage=post-mmu`, CRC32 `f78ab8ae`
+  - slot 172: `stage=pre-primary-switch`, CRC32 `c00e5ee2`
+  - slot 173: `stage=post-mmu`, CRC32 `1297491b`
   - slot 174: `stage=post-reserved-scan`, CRC32 `88a58bc9`
 
 Each CRC is over `token=<token>|stage=<stage>|slot=<slot>`.

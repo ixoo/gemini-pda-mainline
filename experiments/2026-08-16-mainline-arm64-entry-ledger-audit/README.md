@@ -88,8 +88,15 @@ so it requires a new explicit owner authorization after review.
 - `DESIGN.md`: exact stage, register, memory, record, and decision contract.
 - `scripts/oracle.py`: independent structural and outcome oracle.
 - `scripts/test-oracle.py`: unsafe-design negative mutations.
+- `scripts/record-layout.py`: exact framed record bytes, lengths, padding, and
+  aligned little-endian assembly-word generator.
+- `scripts/classify-pstore.py`: independent-stage returned-Gemian classifier.
+- `scripts/test-classify-pstore.py`: all-subset fixtures and malformed-record
+  rejection tests.
 - `results/source-and-safety-audit-20260816.txt`: pinned source and placement
   audit.
+- `results/record-and-recovery-validation-20260816.txt`: frozen record
+  identities and independent-stage classifier validation.
 
 Run from the repository root:
 
@@ -98,9 +105,13 @@ PYTHONDONTWRITEBYTECODE=1 python3 \
   experiments/2026-08-16-mainline-arm64-entry-ledger-audit/scripts/oracle.py
 PYTHONDONTWRITEBYTECODE=1 python3 \
   experiments/2026-08-16-mainline-arm64-entry-ledger-audit/scripts/test-oracle.py
+PYTHONDONTWRITEBYTECODE=1 python3 \
+  experiments/2026-08-16-mainline-arm64-entry-ledger-audit/scripts/record-layout.py
+PYTHONDONTWRITEBYTECODE=1 python3 \
+  experiments/2026-08-16-mainline-arm64-entry-ledger-audit/scripts/test-classify-pstore.py
 ```
 
-Both commands are offline and perform no build or device access.
+All commands are offline and perform no build or device access.
 
 ## Procedure
 
@@ -135,7 +146,11 @@ rather than assuming it.
 
 The oracle accepts the exact four-stage contract, enumerates every monotonic
 reach/refusal combination, and rejects the unsafe mutations recorded by its
-test suite.
+test suite. Exact record freezing corrected two provisional CRC values before
+any kernel implementation existed. The generator now fixes every framed byte,
+length, 32-bit assembly word, and zero-padding boundary. The classifier accepts
+all 16 intentional independent-stage subsets and rejects malformed, duplicate,
+wrong-stage, wrong-slot, wrong-CRC, and foreign-identity records.
 
 ## Analysis
 

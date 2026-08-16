@@ -9,6 +9,7 @@ import zlib
 
 
 TOKEN = "GAEL-20260816-A"
+PREFIX = "GEMINI_ARM64_ENTRY_LEDGER_V1"
 RESERVATION = (0x44410000, 0x444F0000)
 ZONE_BASE = 0x444BB000
 ZONE_SIZE = 0x1000
@@ -17,6 +18,12 @@ PROTECTED_REGISTERS = frozenset(
     {"x0", "x1", "x2", "x3", "x19", "x20", "x21", "x30", "sp"}
 )
 ALLOWED_ASSEMBLY_CLOBBERS = frozenset(f"x{number}" for number in range(9, 16))
+EXPECTED_STAGES = (
+    ("primary-entry", 171, "990b22bb"),
+    ("pre-primary-switch", 172, "c00e5ee2"),
+    ("post-mmu", 173, "1297491b"),
+    ("post-reserved-scan", 174, "88a58bc9"),
+)
 
 
 @dataclass(frozen=True)
@@ -92,6 +99,10 @@ def require(condition: bool, message: str) -> None:
 def validate(design: Design) -> None:
     stages = design.stages
     require(len(stages) == 4, "stage count changed")
+    require(
+        [(stage.name, stage.slot, stage.crc) for stage in stages] == list(EXPECTED_STAGES),
+        "stage identity or CRC changed",
+    )
     require([stage.slot for stage in stages] == [171, 172, 173, 174], "slot order changed")
     require(
         [stage.address for stage in stages]

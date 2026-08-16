@@ -14,5 +14,5 @@ device_access=none
 result=pass
 
 validation=arm64-entry-ledger-design-mutations
-negative_mutations_rejected=19
+negative_mutations_rejected=20
 result=pass
