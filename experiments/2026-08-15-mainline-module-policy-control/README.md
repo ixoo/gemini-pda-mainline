@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-15-mainline-module-policy-control` |
-| Status | exact boot2 deployment verified and powered off; one runtime boot pending |
+| Status | one pre-transport runtime failure; exact candidate stopped |
 | Subsystem | kernel configuration, boot serviceability, DA921x read-only provider |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-15 America/New_York |
@@ -133,6 +133,15 @@ checksum and independent byte-for-byte readback. Gemian then powered off and
 was confirmed unreachable. The sanitized
 [deployment receipt](results/deployment-20260815.txt) records the result.
 
+The one-hour read-only collector was armed before the owner selected boot2 and
+remained active through the reported automatic return. No exact Gemini USB
+interface appeared. Ordinary Gemian returned with a changed boot ID; immediate
+read-only recovery found empty pstore and the same generic 74-byte last-kmsg
+header as the observer and provider-only control attempts. The full boot2
+checksum still matched the deployed module-policy candidate. No exact control
+kernel identity or provider record survived. See the
+[runtime result](results/runtime-attempt-1-pretransport-20260815.txt).
+
 ## Analysis
 
 The unchanged pstore map, initcall order, ramdisk, and LK layout do not isolate
@@ -149,14 +158,23 @@ candidate evidence can do that. The unchanged DTB, ramdisk, LK layout,
 provider/observer policy, and CPU gate make serviceability the single runtime
 discriminator.
 
+The exact runtime discriminator failed at the same pre-transport, empty-pstore
+boundary despite the Stage-27-sized Image. The complete pre-armed observation
+window removes the prior provider-control timing limitation. This does not
+establish kernel entry or attribute the reset to a specific subsystem, but it
+does show that restoring module policy alone is insufficient. The disabled-
+module built-in expansion hypothesis is not accepted as the localized cause.
+
 ## Conclusion
 
-The exact candidate is installed and accepted for one runtime boot. No
-hardware-support or provider-runtime claim exists yet. Register writes,
-transition ownership, and CPU8/CPU9 admission remain closed.
+The exact candidate is stopped after its single pre-transport runtime failure
+and must not be repeated unchanged. No hardware-support or provider-runtime
+claim exists. Register writes, transition ownership, and CPU8/CPU9 admission
+remain closed.
 
 ## Follow-up
 
-Follow the ordered action in [`docs/ROADMAP.md`](../../docs/ROADMAP.md): push
-the sanitized deployment receipt, arm the one-hour collector, and observe one
-owner-selected boot. Do not repeat the candidate unchanged.
+Follow the ordered action in [`docs/ROADMAP.md`](../../docs/ROADMAP.md): add one
+default-off checkpoint at the earliest proven point after ramoops registration
+and before the DA921x provider probe. Its retained record must distinguish
+kernel entry from an earlier failure. Do not repeat this candidate unchanged.

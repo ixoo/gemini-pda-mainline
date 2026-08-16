@@ -3688,12 +3688,23 @@ checksum, independent readback, and byte comparison passed; no fresh backup
 was created. Gemian then shut down and is confirmed unreachable. See the
 [deployment receipt](../experiments/2026-08-15-mainline-module-policy-control/results/deployment-20260815.txt).
 
-The single next ordered action is one exact runtime discriminator. Push the
-sanitized deployment receipt, arm the one-hour read-only collector, then have
-the owner select boot2 once. Exact serviceable USB evidence localizes the
-regression to disabled-module built-in expansion; the same no-USB/empty-pstore
-boundary stops this candidate and advances to the earliest post-ramoops
-checkpoint already defined above. Screen color and automatic return alone
+The single exact runtime discriminator is complete and stopped. The one-hour
+read-only collector was armed before selection and remained active through the
+reported automatic return, but no exact USB interface appeared. Ordinary
+Gemian returned with a changed boot ID; immediate recovery found empty pstore
+and the same generic 74-byte last-kmsg header as the observer and provider-only
+attempts. Boot2 still matched the exact deployed candidate. No exact kernel or
+provider identity survived. See the
+[runtime result](../experiments/2026-08-15-mainline-module-policy-control/results/runtime-attempt-1-pretransport-20260815.txt).
+
+Restoring module policy is therefore not sufficient and is not accepted as the
+localized cause. The exact candidate must not be repeated. The single next
+ordered action is one default-off earliest post-ramoops checkpoint on the same
+module-policy/provider-only base. It must record a unique exact-candidate token
+after ramoops registration and before DA921x provider probe, without regulator
+reads, writes, transition ownership, or CPU8/CPU9 admission. Retained token
+evidence localizes failure after kernel entry; another empty-pstore cycle moves
+the boundary before that checkpoint. Screen color and automatic return alone
 remain non-attributable.
 
 Required evidence:
