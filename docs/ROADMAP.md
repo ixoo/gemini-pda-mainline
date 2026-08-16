@@ -3668,15 +3668,28 @@ selections become built-ins, and the current decompressed Image is 1,816,576
 bytes larger. See the
 [baseline localization](../experiments/2026-08-15-mainline-module-policy-control/results/baseline-localization-20260815.txt).
 
-The single next ordered discriminator is the configuration-only
-`da921x-resource-only-provider-modules-control` profile. It exactly extends the
-failed provider-only profile with `CONFIG_MODULES=y` and a unique local version;
-the external initramfs remains module-free, while the DA921x driver/provider
-remain built-in, read-only, and observer-free. Build it through Buildbox and
-independently compare the resolved config and container. If serviceability
-returns, localize the regression to disabled-module built-in expansion. If it
-fails at the same boundary, stop it and proceed to the earliest post-ramoops
-checkpoint already defined above.
+The configuration-only `da921x-resource-only-provider-modules-control` profile
+is now built at exact pushed commit `09ba93d`. It exactly extends the failed
+provider-only profile with `CONFIG_MODULES=y` and a unique local version; the
+external initramfs remains module-free, while the DA921x driver/provider remain
+built-in, read-only, and observer-free. The fetched package passes its complete
+manifest, keeps the exact parent Gemini DTB and 267-patch series, and produces
+no external module package. Its decompressed Image shrank by 1,818,624 bytes
+from the failed parent and is only 2,048 bytes smaller than serviceable Stage
+27, with the same 12,517,376-byte effective size. Independent assembly and
+padding agree byte-for-byte, all 32 LK gates pass, and six container mutations
+are rejected. See the
+[offline review](../experiments/2026-08-15-mainline-module-policy-control/results/offline-validation-20260815.txt).
+
+The single next ordered action is one exact runtime discriminator. Commit and
+push the frozen candidate/tooling record, install full boot2 SHA-256
+`044461e57d207f5ddd6e68cc463ea3ee1dd65260c27afe5fd00730137d13a2ff` to
+live-GPT logical boot2, require full readback, and shut Gemian down. Arm the
+one-hour read-only collector before one owner-selected boot. Exact serviceable
+USB evidence localizes the regression to disabled-module built-in expansion;
+the same no-USB/empty-pstore boundary stops this candidate and advances to the
+earliest post-ramoops checkpoint already defined above. Screen color and
+automatic return alone remain non-attributable.
 
 Required evidence:
 

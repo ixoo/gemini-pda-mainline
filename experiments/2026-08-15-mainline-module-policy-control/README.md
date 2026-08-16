@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-15-mainline-module-policy-control` |
-| Status | static input validated; Buildbox pending |
+| Status | exact candidate validated offline; deployment pending |
 | Subsystem | kernel configuration, boot serviceability, DA921x read-only provider |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-15 America/New_York |
@@ -49,6 +49,16 @@ CPU8/CPU9 admission change is introduced.
   safety validation.
 - [`scripts/test-validate.py`](scripts/test-validate.py): six negative
   mutations.
+- [`scripts/build-candidate.sh`](scripts/build-candidate.sh): source-pinned,
+  deterministic Android-v0/LK builder.
+- [`scripts/test-candidate.py`](scripts/test-candidate.py): independent
+  container parser and structural-mutation validator.
+- [`scripts/install-boot2.sh`](scripts/install-boot2.sh): exact live-GPT boot2
+  installer with full readback and shutdown.
+- [`scripts/remote-runtime-probe.sh`](scripts/remote-runtime-probe.sh),
+  [`scripts/collect-runtime.sh`](scripts/collect-runtime.sh), and
+  [`scripts/validate-runtime.py`](scripts/validate-runtime.py): bounded
+  read-only USB/netcat observation and frozen classifier.
 - [`results/baseline-localization-20260815.txt`](results/baseline-localization-20260815.txt):
   offline Stage-27/current comparison.
 
@@ -66,6 +76,10 @@ CPU8/CPU9 admission change is introduced.
    its validated package.
 6. Compare the resolved control configuration and container before deciding
    whether one boot is justified.
+7. Freeze the exact candidate, hypothesis, decision map, guarded installer,
+   and one-hour collector; commit and push before device action.
+8. Install only to live-GPT logical boot2, require a full readback, shut Gemian
+   down, and arm the collector before one owner-selected boot.
 
 ## Observations
 
@@ -88,6 +102,29 @@ fragment selects `CONFIG_MODULES=y` and the attributable local version
 `-gemini-da921x-modctl`; it does not reuse the historical fragment's command
 line or DA921x module setting. Static validation and all six mutations pass.
 
+Buildbox completed exact pushed commit
+`09ba93dbe1aa462795f1a1f4f0e82e31f5392989`. The fetched package passes its
+complete manifest. The Gemini DTB and 267-patch series are unchanged from the
+failed provider-only parent; the provider remains built in and the observer
+remains disabled. The build produced no external module package, matching the
+module-free initramfs. The compressed Image is 881,288 bytes smaller than the
+failed parent, the decompressed Image is 1,818,624 bytes smaller, and its
+12,517,376-byte arm64 effective size is exact to serviceable Stage 27. The
+compressed image is only 11,635 bytes larger than Stage 27 and the decompressed
+Image is 2,048 bytes smaller. See the
+[Buildbox receipt](results/buildbox-20260815.txt).
+
+Independent assemblies produced the exact 6,881,280-byte raw container
+`782850c4854e9454fc5c0ac22243b25233f7b4e6ebb5cecdf4d2872fd45ae040`
+and exact 16 MiB boot2 image
+`044461e57d207f5ddd6e68cc463ea3ee1dd65260c27afe5fd00730137d13a2ff`.
+Both assembly paths are byte-identical, all 32 LK gates pass, and the
+independent parser rejects all six structural mutations. Runtime tools pass
+positive and six negative classifications, static no-write checks, syntax,
+ShellCheck, the guarded no-backup/full-readback/shutdown contract, and a
+one-hour collector window. See the
+[offline review](results/offline-validation-20260815.txt).
+
 ## Analysis
 
 The unchanged pstore map, initcall order, ramdisk, and LK layout do not isolate
@@ -97,13 +134,22 @@ selections into built-ins, changes link/initcall inventory, and materially
 inflates the image. Restoring it is a smaller and more informative discriminator
 than immediately adding new checkpoint code.
 
+The resulting image-size collapse is the predicted mechanical effect and
+makes one boot decision-changing. It does not prove that built-in expansion
+caused the pre-transport failures; only exact runtime identity or retained
+candidate evidence can do that. The unchanged DTB, ramdisk, LK layout,
+provider/observer policy, and CPU gate make serviceability the single runtime
+discriminator.
+
 ## Conclusion
 
-Static input is accepted for one Buildbox-only matched build. No boot candidate
-or runtime claim exists yet.
+The exact candidate is accepted for one boot2 deployment and one runtime boot.
+No hardware-support or provider-runtime claim exists yet. Register writes,
+transition ownership, and CPU8/CPU9 admission remain closed.
 
 ## Follow-up
 
-Follow the ordered action in [`docs/ROADMAP.md`](../../docs/ROADMAP.md): build
-and independently compare this profile. Only an exact validated container may
-advance to one device boot.
+Follow the ordered action in [`docs/ROADMAP.md`](../../docs/ROADMAP.md): commit
+and push the frozen candidate/tooling record, install the exact image to
+live-GPT logical boot2, shut Gemian down, arm the collector, and observe one
+owner-selected boot. Do not repeat the candidate unchanged.

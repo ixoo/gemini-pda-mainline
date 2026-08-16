@@ -1,0 +1,55 @@
+Current-mainline module-policy control: predeployment hypothesis
+Date: 2026-08-15 America/New_York
+
+Exact candidate
+- raw Android-v0 SHA-256: 782850c4854e9454fc5c0ac22243b25233f7b4e6ebb5cecdf4d2872fd45ae040
+- full 16 MiB boot2 SHA-256: 044461e57d207f5ddd6e68cc463ea3ee1dd65260c27afe5fd00730137d13a2ff
+- expected kernel release: 7.1.3-gemini-da921x-modctl
+- Image SHA-256: ca9d18d721916efa994a8e5623adc52f08a105b3676ada960077236f78e101df
+- Image.gz SHA-256: 86cdcb5bec92aa8cd6d292e27f44df06e3cca78305862bbb5026b6c094174b7e
+- appended DTB SHA-256: 61ea34a4f780afe04da1257f8c3655be7f8490a7c3af2df727dd8592bb6e6285
+- configuration SHA-256: f65d2cf39070e8ba0427e8745bd8aa615869abf048698a18251c6c07a69d26b2
+- serviceability ramdisk SHA-256: e0dffa04a621f60903cf4cf7280d773ec1c89c43ea63ec0f8b3a0879e7cebc0f
+- LK name: gemini-modctl
+- LK command line: bootopt=64S3,32N2,64N2
+
+Kernel/DT/configuration hypothesis
+Restoring CONFIG_MODULES=y prevents unrelated defconfig module selections from
+being promoted into the built-in current-mainline image and restores the
+existing USB/netcat serviceability boundary. The DA921x driver and provider
+remain built in and read-only; the observer remains disabled. CPU8 and CPU9
+remain offline.
+
+Unique attributable evidence
+- guarded full-partition write and independent readback bind logical boot2 to
+  the exact padded candidate
+- direct USB/netcat reports the exact candidate assertion, unique kernel
+  release, boot ID, CPU sets, filtered provider log, binding, and regulator
+  names
+- exactly one read-only DA9214 identity record, exact 1-0068 binding, and the
+  exact two passive regulator descriptors
+- no provider failure, observer marker, module load, or CPU8/CPU9 admission
+
+Owner-visible expectation
+1. A verified boot2 installation ends with ordinary Gemian fully powered off.
+2. The read-only collector waits for up to one hour before boot2 is selected.
+3. Start boot2 once. Console or USB can be delayed; screen color alone is not
+   an evidence signal.
+4. If USB/netcat becomes available, no owner action is needed; the host reads
+   one bounded record without changing storage, binding, power, or CPU state.
+5. An automatic return to Gemian confirms only a cycle. If it happens before
+   USB, recovery immediately checks pstore for exact-candidate evidence.
+
+Decision effect
+- exact serviceable USB record: disabled-module built-in expansion is the
+  localized serviceability regression; preserve module policy and resume the
+  passive provider gate
+- exact retained pstore without USB: localize after kernel entry from that log
+- exact USB with missing provider evidence: module-policy serviceability is
+  recovered but provider registration remains a separate failure
+- same no-USB, empty-pstore boundary: module policy is not sufficient; stop
+  this candidate and add the earliest post-ramoops checkpoint
+- any observer marker or CPU8/CPU9 online state: reject the control/safety claim
+
+No result authorizes a register write, transition owner, or CPU8/CPU9 admission.
+This exact candidate receives one boot.
