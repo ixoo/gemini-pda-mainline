@@ -3815,6 +3815,13 @@ observer plus immediate boot-ID-bounded pstore and raw-zone recovery; do not
 repeat either exact predecessor artifact. See the
 [DTB-control experiment](../experiments/2026-08-16-mainline-lk-handoff-dtb-control/README.md).
 
+The exact control is now installed on inactive live-GPT `boot2`. Its predecessor
+was the stopped GAEL payload; stable-power, complete device checksum,
+independent full-byte readback, clean shutdown, and long-observer disconnect
+gates all passed. The next action is the one physical boot2 selection followed
+by the already-armed changed-cycle recovery. No second selection is authorized
+without first classifying this result.
+
 Required evidence:
 
 - provider registration performs no register-data write;

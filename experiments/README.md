@@ -30,8 +30,9 @@ the loop. Positive identity-gated observations are unaffected.
   the appended DTB before disabling cache/MMU and branching. The selected
   decision-changing candidate keeps the exact GAEL kernel and crosses it with
   the exact runtime-proven Stage-27 DTB. Two assemblies, independent padding,
-  all 32 LK gates, and six negative mutations pass; one boot2 attempt is
-  pending.
+  all 32 LK gates, and six negative mutations pass. Guarded boot2 deployment,
+  complete readback, clean shutdown, and a long pre-armed observer passed; one
+  physical selection and changed-cycle recovery remain pending.
 - [2026-08-16 arm64 entry-ledger implementation](2026-08-16-mainline-arm64-entry-ledger/README.md)
   — implements the authorized `GAEL-20260816-A` four-stage lower-boundary
   discriminator as canonical patch 0281 and one isolated Buildbox profile.

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-16-mainline-lk-handoff-dtb-control` |
-| Status | exact candidate validated offline; one boot2 attempt pending |
+| Status | exact candidate deployed and powered off; one boot2 selection pending |
 | Subsystem | Planet LK Android-v0 handoff, appended DTB, arm64 primary entry |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-16 America/New_York |
@@ -92,6 +92,8 @@ reboot behavior is not attributable evidence.
   independent validation identities.
 - `results/predeployment-hypothesis-20260816.txt`: frozen one-attempt
   hypothesis, refusal gates, and decision map.
+- `results/deployment-20260816.txt`: sanitized live-GPT, empty-ledger,
+  predecessor, full-readback, observer, power, and shutdown receipt.
 
 The ignored candidate and private runtime captures remain below `artifacts/`.
 
@@ -144,6 +146,15 @@ constructions were byte-identical. All 32 LK container gates passed and all six
 independent structural mutations were rejected. Device access and hardware
 writes were absent during construction and validation.
 
+Before deployment, a 12-hour changed-cycle observer was armed on known-good
+Gemian. A bounded read-only 16 KiB capture kept the same boot identity and
+found all four headers exact and empty. The guarded installer resolved the one
+inactive, unmounted live-GPT `boot2`, recorded the stopped GAEL predecessor,
+wrote the exact control, synchronized and flushed it, and matched both its
+complete device checksum and an independent full-byte readback. It then
+cleanly powered Gemian off. The observer independently confirmed the
+disconnect and remains armed for the physical selection and changed return.
+
 ## Analysis
 
 This is not a marker-only or kernel/config-identical repeat. The DTB is changed
@@ -157,10 +168,10 @@ or the retained E0 observation gate.
 
 ## Conclusion
 
-Offline result: the lower audit selected one safe, falsifiable discriminator,
-and the exact candidate passed construction and independent validation. No
-runtime conclusion or hardware-support change exists until the one boot2
-attempt is recovered.
+Deployment result: the lower audit selected one safe, falsifiable
+discriminator, the exact candidate passed construction and independent
+validation, and guarded deployment plus shutdown passed. No runtime conclusion
+or hardware-support change exists until the one boot2 attempt is recovered.
 
 ## Follow-up
 
