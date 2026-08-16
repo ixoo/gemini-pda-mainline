@@ -23,14 +23,19 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-16 arm64 entry-ledger safety audit](2026-08-16-mainline-arm64-entry-ledger-audit/README.md)
+  — audits the lower observation boundary selected after the pre-ramoops
+  candidate retained no stage. It defines four independent checkpoints from
+  `primary_entry` through the reserved-memory scan, exact register and
+  MMU/cache guards for the two physical-mode stages, the four-header runtime
+  fingerprint, and an offline oracle. This is read-only design work: no patch,
+  build, candidate, authorization, device write, or boot exists yet.
 - [2026-08-16 pre-ramoops four-stage retained ledger](2026-08-16-mainline-pre-ramoops-ledger/README.md)
-  — implements the approved next discriminator after the exact post-ramoops
-  candidate returned with empty pstore. A default-off isolated profile writes
-  four short, integrity-tagged records only to validated-empty final dmesg
-  slots after the reserved-memory scan and at early/core/postcore initcalls.
-  Normal ramoops is bypassed for this profile so returned Gemian can recover
-  completed stages. Offline validation and Buildbox construction are in
-  progress; no runtime result or hardware-support claim exists yet.
+  — completed its one approved attempt after the exact post-ramoops candidate
+  returned with empty pstore. Buildbox validation, guarded boot2 deployment,
+  shutdown, and changed-cycle capture passed, but pstore and the bounded raw-
+  zone follow-up retained no stage. The candidate is stopped; arm64 Image
+  entry remains unestablished and no hardware-support claim exists.
 - [2026-08-05 P30 generation arbitration model](2026-08-05-a72-p30-generation-protocol/README.md)
   — adds canonical patch 0158 and a dormant, raw-lock-serialized C model for
   exact CPU8/CPU9 startup arbitration, sticky quarantine, indivisible success
