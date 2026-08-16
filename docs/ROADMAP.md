@@ -3707,6 +3707,25 @@ evidence localizes failure after kernel entry; another empty-pstore cycle moves
 the boundary before that checkpoint. Screen color and automatic return alone
 remain non-attributable.
 
+That checkpoint is now built and independently validated at exact pushed
+commit `cac458c1`. The package retains the module-policy/provider-only base,
+read-only built-in provider, observer-disabled policy, exact Gemini DTB, and
+unchanged serviceability ramdisk/LK layout. The marker
+`GEMINI_MAINLINE_POST_RAMOOPS_20260815_A` occurs exactly once after successful
+pstore registration. Two independent construction paths agree on full boot2
+SHA-256 `ae6b354d51a9...`; all 32 LK gates pass and six structural mutations
+are rejected. The one-hour USB collector and guarded no-backup/full-readback/
+shutdown installer are frozen. See the
+[checkpoint experiment](../experiments/2026-08-15-mainline-post-ramoops-checkpoint/README.md).
+
+The single ordered action is to install that exact candidate to live-GPT
+logical boot2, require a matching full readback, shut Gemian down, and arm the
+collector before one selected boot. Recover pstore immediately after any
+return. A retained exact marker moves localization after successful ramoops
+registration; another empty-pstore confirmed cycle moves the boundary before
+that point without claiming that the kernel never entered. Do not repeat the
+exact candidate after its one attempt.
+
 Required evidence:
 
 - provider registration performs no register-data write;

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-15-mainline-post-ramoops-checkpoint` |
-| Status | static input validated; Buildbox pending |
+| Status | exact candidate validated; deployment pending |
 | Subsystem | pstore/ramoops, early boot serviceability, DA921x boundary |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-15 America/New_York |
@@ -55,6 +55,15 @@ synthetic author identity is non-certifying and it has no DCO sign-off.
   attribution, and safety validator.
 - [`scripts/test-validate.py`](scripts/test-validate.py): eight unsafe or
   non-attributable mutations.
+- [`scripts/build-candidate.sh`](scripts/build-candidate.sh) and
+  [`scripts/test-candidate.py`](scripts/test-candidate.py): deterministic
+  Android-v0/LK construction and independent structural validation.
+- [`scripts/install-boot2.sh`](scripts/install-boot2.sh): live-GPT boot2
+  resolution, full readback, and clean-shutdown installer.
+- [`scripts/remote-runtime-probe.sh`](scripts/remote-runtime-probe.sh),
+  [`scripts/collect-runtime.sh`](scripts/collect-runtime.sh), and
+  [`scripts/validate-runtime.py`](scripts/validate-runtime.py): one-hour,
+  read-only USB observation and frozen exact-identity classifier.
 - [`results/initcall-placement-audit-20260815.txt`](results/initcall-placement-audit-20260815.txt):
   exact-source ordering audit.
 
@@ -72,6 +81,8 @@ synthetic author identity is non-certifying and it has no DCO sign-off.
 6. Commit and push a clean worktree, then build only on Buildbox.
 7. Independently validate the fetched package and exact Android-v0/LK
    container before deciding whether one boot is justified.
+8. Freeze the exact candidate, runtime decision map, no-write collector, and
+   guarded installer; commit and push before device action.
 
 ## Observations
 
@@ -89,6 +100,27 @@ The marker token is
 regulator access, and closed CPU8/CPU9 admission. The patch does not introduce
 any timer or reset path.
 
+Buildbox completed exact pushed commit
+`cac458c1cbd228390b94f2ae7154db34160adac2`. The fetched package passes its
+complete manifest. It selects release `7.1.3-gemini-postram-a`, retains the
+built-in read-only provider, leaves the observer and KUnit disabled, and
+contains the unique checkpoint token exactly once. Its Gemini DTB is
+byte-identical to the stopped module-policy control. The decompressed Image has
+the same 11,943,944-byte size and 12,517,376-byte effective arm64 extent as
+that control, but a different hash attributable to the checkpoint. See the
+[Buildbox receipt](results/buildbox-20260815.txt).
+
+Two independent assemblies produced the exact 6,881,280-byte raw container
+`e16405f0a9061e98898f7fac5312033d56b1ab2aec162673fbebac564672e788`
+and exact 16 MiB boot2 image
+`ae6b354d51a9e5096b9f6f74ee9037c47ba026e00895e6f4c8028f15bc9bd348`.
+The known serviceability ramdisk, Gemini DTB, LK addresses, page size, and
+command line are unchanged. All 32 LK gates pass, independent padding agrees,
+and the independent parser rejects six structural mutations. The runtime tool
+suite accepts the exact positive record and rejects or distinguishes five
+attribution, checkpoint, control, and CPU-safety mutations. See the
+[offline review](results/offline-validation-20260815.txt).
+
 ## Analysis
 
 This is the earliest durable observation point available without adding a
@@ -100,13 +132,15 @@ does not prove the kernel never entered.
 
 ## Conclusion
 
-Static input is accepted for one Buildbox build. No boot candidate, device
-action, or runtime claim exists yet. Provider setters, transition ownership,
-and CPU8/CPU9 admission remain closed.
+Exact full boot2 SHA-256
+`ae6b354d51a9e5096b9f6f74ee9037c47ba026e00895e6f4c8028f15bc9bd348`
+is accepted for one installation and one selected boot. No runtime claim
+exists yet. Provider setters, transition ownership, and CPU8/CPU9 admission
+remain closed.
 
 ## Follow-up
 
-Follow [`docs/ROADMAP.md`](../../docs/ROADMAP.md): commit and push this exact
-input, build it on Buildbox, and independently review the package and container.
-Only a unique exact candidate with a decision-changing retained marker may
-advance to one boot.
+Follow [`docs/ROADMAP.md`](../../docs/ROADMAP.md): commit and push the frozen
+candidate/tooling record, install only to live-GPT logical boot2 with full
+readback, shut Gemian down, and arm the one-hour collector before the one
+owner-selected boot. Recover pstore immediately after any return to Gemian.
