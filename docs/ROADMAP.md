@@ -3783,15 +3783,25 @@ exact four-header physical fingerprint. Later stages accept an earlier slot
 only when empty or byte-exact. See the
 [entry-ledger audit](../experiments/2026-08-16-mainline-arm64-entry-ledger-audit/README.md).
 
-The single next ordered action is to validate canonical patch 0281 and its
-isolated profile, commit and push the exact input, build only on Buildbox,
-construct one candidate, freeze its decision map, deploy only to guarded
-live-GPT `boot2`, shut down, and spend one physical selection. Returned Gemian
-must recover and independently classify all four slots. No valid stage means
-Image entry remains unestablished or an entry writer refused. Slot 171 proves
-primary entry; slot 172 proves pre-switch CPU setup; slot 173 proves post-MMU
-early setup; and slot 174 proves completion of the reserved-memory scan. Any
-malformed or foreign record rejects attribution. CPU8 and CPU9 remain closed.
+The exact entry-ledger attempt is complete and stopped; see the
+[runtime result](../experiments/2026-08-16-mainline-arm64-entry-ledger/results/runtime-attempt-1-no-stage-20260816.txt).
+The changed return to Gemian, empty pstore, four exact empty retained-zone
+headers, and unchanged post-cycle boot2 identity produced `no-stage`. Image
+entry remains unestablished, or the entry writers refused and execution did
+not reach the independent post-MMU observer. This moves the useful boundary
+below DA921x/provider, initcall, and CPU-admission work.
+
+The single next ordered action is an offline lower-boot-boundary audit. Compare
+the exact stopped candidate with the last serviceable mainline container and
+the retained Planet LK source contract at every decision before the arm64
+entry point: Android-v0 fields, gzip stream and output sizing, appended-DTB
+scan, load/overlap ranges, cache/MMU/EL handoff requirements, Image header, and
+final branch address. Reconcile the E0 refusal conditions with that bootloader
+contract. Only after the audit identifies one decision-changing observation
+may a new artifact be selected. It must distinguish LK decompression/handoff
+from Linux entry-writer refusal, use the existing retained-RAM recovery path,
+and keep DA921x writes plus CPU8/CPU9 admission closed. Do not repeat the exact
+entry-ledger image.
 
 Required evidence:
 

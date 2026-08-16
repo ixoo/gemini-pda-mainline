@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-16-mainline-arm64-entry-ledger` |
-| Status | bounded revision fully built; exact candidate independently validated; deployment pending |
+| Status | one exact attempt completed with no valid stage; artifact stopped |
 | Subsystem | arm64 primary entry, MMU transition, setup_arch, pstore/ramoops |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-16 America/New_York |
@@ -43,7 +43,12 @@ regulator, CPU-admission, or hardware-support experiment.
   `1249d907795ab80c5a290887847e497bf672e5bdf2c7617096a1209db464341c`,
   6,879,232 bytes. Exact 16 MiB boot2 payload: SHA-256
   `a81939b41a64a362744580bec559baecb3fe13938187f34b3f1b9ad5f09527f2`.
-- Partition and changed-cycle boot identities remain pending deployment.
+- Deployment resolved inactive logical `boot2` as `/dev/mmcblk0p30`, recorded
+  predecessor SHA-256 `ac849d9aca9454d5d6a29d25a67b5d27fcef94e16bb881f4d14db09d0d29d75f`,
+  and verified the exact 16 MiB payload by full readback before clean shutdown.
+- Returned Gemian had a changed boot ID. Immediate pstore and bounded raw-zone
+  recovery found no valid GAEL stage; post-cycle boot2 still matched the exact
+  deployed payload.
 - The first full Buildbox link of commit `d126eebf32ca0a4746e5060fb4c4e66479b3300a`
   failed closed before packaging: `.idmap.text` was `0x1124` bytes and violated
   arm64's one-page identity-map assertion. No candidate or device action
@@ -102,6 +107,10 @@ diagnostics within the same documented fail-closed retained-RAM policy. See
   and independent validation evidence.
 - `results/predeployment-hypothesis-20260816.txt`: frozen hypothesis, unique
   evidence, refusal gates, and decision map for the single physical selection.
+- `results/deployment-20260816.txt`: sanitized live-GPT, predecessor, full
+  readback, power, and clean-shutdown receipt.
+- `results/runtime-attempt-1-no-stage-20260816.txt`: changed-cycle, pstore,
+  raw-zone, classifier, and post-cycle candidate-identity evidence.
 - The audit's `scripts/record-layout.py` freezes the exact bytes and assembly
   words; its classifier and fixtures own returned-Gemian interpretation.
 
@@ -152,28 +161,48 @@ revision passed the complete Buildbox link with an identity section of `0xfb8`
 bytes, leaving 72 bytes below arm64's 4 KiB hard bound. Its validated fetched
 package produced two byte-identical raw containers and two byte-identical 16
 MiB payloads using independent padding methods. Independent validation passed
-all 32 LK gates and rejected all six container mutations. No partition write,
-shutdown, or physical boot has occurred yet.
+all 32 LK gates and rejected all six container mutations.
+
+The guarded installer resolved inactive, unmounted logical `boot2`, recorded
+the predecessor without a fresh backup, wrote the exact candidate, synced and
+flushed it, and passed both the remote full checksum and an independent local
+full-byte comparison. It then cleanly powered Gemian off. The pre-armed helper
+confirmed that disconnect but expired during the long powered-off interval
+before physical selection. After the owner reported the one boot2 selection,
+the first SSH probe timed out and ordinary Gemian then returned with a boot ID
+different from the deployment boot. A replacement read-only capture remained
+bound to that returned boot throughout pstore and raw-zone recovery.
+
+Pstore contained no files. The exact 16 KiB read of slots 171--174 had stable
+pre/post boot identity, all four headers remained `DBGC` with zero start and
+size, and no GAEL token existed. The frozen classifier returned `no-stage`.
+Live GPT still resolved boot2 as `/dev/mmcblk0p30`, and its complete post-cycle
+checksum remained the exact deployed payload. The one-attempt artifact is
+stopped and must not be repeated unchanged.
 
 ## Analysis
 
 The previous C-only checkpoint could not distinguish absence of Image entry
-from refusal before its post-memblock write. The new independent post-MMU stage
-can prove Image entry even if either physical writer refuses. Conversely, an
-exact slot 171 or 172 record directly establishes progress inside the arm64
-MMU-off primary path. Empty earlier slots are therefore not treated as a
-chronology gap when a valid later record exists.
+from refusal before its post-memblock write. This result adds that distinction
+but takes the negative branch: neither of the MMU-off entry records nor either
+independent mapped record survived. Because the headers were exact and empty
+both before and after the changed cycle, this is not a malformed-record,
+duplicate-slot, stale-payload, classifier-only, or wrong-candidate result.
+
+The attributable boundary is now: Image entry remains unestablished, or both
+entry writers safely refused and execution stopped before the independent
+post-MMU stage. It does not prove an LK defect, because E0 deliberately refuses
+unexpected incoming EL/MMU/cache state and retained physical access itself is
+part of that observation. It does rule out treating any later DA921x/provider,
+initcall, regulator, or CPU-admission code as the next useful boundary.
 
 ## Conclusion
 
-Runtime result pending. The successful full build and exact candidate close the
-offline artifact question but do not establish Image entry or hardware
-support.
+The exact candidate produced an attributable `no-stage` result. Image entry is
+not established, no DA921x/provider lifecycle evidence exists, and no hardware
+support claim changes. CPU8 and CPU9 remain closed.
 
 ## Follow-up
 
-Pre-arm changed-cycle recovery, check the live four-zone headers, deploy the
-exact payload only if every device gate passes, shut down, and spend the single
-physical boot2 selection. Let its highest valid independent stage choose the
-next observation boundary. The ordered project path remains in
-[`docs/ROADMAP.md`](../../docs/ROADMAP.md).
+Do not repeat this artifact. Follow the lower boot-boundary audit and selected
+next observation owned by [`docs/ROADMAP.md`](../../docs/ROADMAP.md).
