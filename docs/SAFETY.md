@@ -36,6 +36,31 @@ Any future proposal to touch one of these areas requires a separate design and e
 - Keep power stable during writes.
 - Change one boot-critical variable at a time.
 
+## Standing retained-RAM diagnostic authorization
+
+The device owner gives standing authorization for isolated, default-off early
+boot diagnostics to write short attributable records only within an existing,
+DT-reserved persistent-RAM range when all of the following are true:
+
+- the exact physical range, record bytes, maximum write count, and recovery
+  reader are documented and validated before build;
+- any pre-DT access has an exact physical fingerprint, proves the required
+  exception level and MMU/cache state, preserves the boot ABI, and refuses on
+  every mismatch before its first write;
+- every writer owns one bounded slot, commits data before metadata, performs a
+  full ordered readback, and never clears, repairs, retries, or overwrites a
+  nonempty slot;
+- the diagnostic performs no storage, firmware, I2C, regulator, clock, CPU
+  admission, timer, watchdog, reset, or power operation at runtime; and
+- Buildbox provenance, guarded live-GPT `boot2` deployment, full-partition
+  readback, one physical selection, known-good recovery, and clean shutdown
+  remain mandatory.
+
+This standing authorization removes a repeated approval prompt; it does not
+relax any gate above and does not cover a new physical range or effect class.
+Primary `boot`, `boot3`, preloader, NVRAM, GPT, firmware, and whole-device
+writes remain outside it and require separate review.
+
 ## Clocks, regulators, and thermals
 
 Incorrect values can corrupt memory, overheat components, or damage hardware.

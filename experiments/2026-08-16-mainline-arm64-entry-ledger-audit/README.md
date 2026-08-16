@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-16-mainline-arm64-entry-ledger-audit` |
-| Status | read-only design audit complete; owner authorization pending |
+| Status | read-only design audit complete; successor implementation authorized |
 | Subsystem | arm64 primary entry, MMU transition, setup_arch, pstore/ramoops |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-16 America/New_York |
@@ -44,10 +44,11 @@ Exact source hashes and insertion-point observations are recorded in
 
 ## Safety assessment
 
-The design is not yet authorized for implementation, build, or device use.
-Its exceptional boundary is explicit: the first two stages would write
-physical retained RAM before ordinary DT parsing. They may do so only when an
-isolated default-off configuration is selected and all of these gates pass:
+The owner authorized the exact successor implementation and one boot2 attempt
+on 2026-08-16. Its exceptional boundary remains explicit: the first two stages
+write physical retained RAM before ordinary DT parsing. They may do so only
+when an isolated default-off configuration is selected and all of these gates
+pass:
 
 - execution is at EL1 or EL2 after `record_mmu_state`;
 - direct reads prove both the MMU bit and data-cache bit are zero;
@@ -77,11 +78,12 @@ returned Gemian can recover the records. A guarded deployment would retain the
 existing live-GPT `boot2` checks, no-fresh-backup policy, full readback, and
 clean shutdown.
 
-The key remaining risk is that the first two stages intentionally cannot parse
+The key retained risk is that the first two stages intentionally cannot parse
 the DT. Their replacement runtime identity is the exact four-header physical
 fingerprint plus the exact candidate/container/deployment chain. That is a
 materially earlier and more privileged write boundary than the prior ledger,
-so it requires a new explicit owner authorization after review.
+so implementation remains bound to the exact audited fingerprint and refusal
+contract. The authorization record belongs to the successor experiment.
 
 ## Associated code
 
@@ -189,9 +191,8 @@ patch, Buildbox package, boot candidate, device write, or boot.
 
 ## Follow-up
 
-Obtain explicit owner authorization for the pre-DT physical-write boundary.
-Only then add one default-off patch/profile, validate it and its negative
-mutations, commit and push the exact input, build on Buildbox, construct one
-candidate, restate the hypothesis and decision map, deploy only to `boot2`,
-shut down, and spend one physical selection. The ordered project path remains
-in [`docs/ROADMAP.md`](../../docs/ROADMAP.md).
+Continue in the authorized successor experiment: validate its default-off
+patch/profile and negative mutations, commit and push the exact input, build on
+Buildbox, construct one candidate, restate the hypothesis and decision map,
+deploy only to `boot2`, shut down, and spend one physical selection. The
+ordered project path remains in [`docs/ROADMAP.md`](../../docs/ROADMAP.md).

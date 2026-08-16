@@ -3774,15 +3774,24 @@ boundary before successful completion of the post-`arm64_memblock_init()`
 checkpoint or inside that checkpoint's fail-closed gates; it does not prove
 that LK entered the arm64 Image.
 
-The single next ordered action is an offline audit of a lower observation
-boundary at arm64 `primary_entry`, before page-table creation and before the
-current C checkpoint. The audit must prove how it preserves boot registers,
-handles the incoming MMU/cache state, validates or safely narrows the exact
-reserved-RAM write, and remains recoverable by Gemian. It must compare a true
-entry marker with a later post-MMU marker so one boot distinguishes no Image
-entry from a failure during early arm64 setup. Do not build or boot that more
-privileged writer until its exact write boundary and new owner authorization
-are recorded.
+The lower-boundary audit is complete and the owner authorized its exact
+`GAEL-20260816-A` successor plus one boot2 attempt. The design uses independent
+records after `record_mmu_state`, after `__cpu_setup`, after early-ioremap
+initialization, and after `arm64_memblock_init`. The two MMU-off stages preserve
+the boot ABI, accept only EL1/EL2 with MMU and data cache off, and require the
+exact four-header physical fingerprint. Later stages accept an earlier slot
+only when empty or byte-exact. See the
+[entry-ledger audit](../experiments/2026-08-16-mainline-arm64-entry-ledger-audit/README.md).
+
+The single next ordered action is to validate canonical patch 0281 and its
+isolated profile, commit and push the exact input, build only on Buildbox,
+construct one candidate, freeze its decision map, deploy only to guarded
+live-GPT `boot2`, shut down, and spend one physical selection. Returned Gemian
+must recover and independently classify all four slots. No valid stage means
+Image entry remains unestablished or an entry writer refused. Slot 171 proves
+primary entry; slot 172 proves pre-switch CPU setup; slot 173 proves post-MMU
+early setup; and slot 174 proves completion of the reserved-memory scan. Any
+malformed or foreign record rejects attribution. CPU8 and CPU9 remain closed.
 
 Required evidence:
 

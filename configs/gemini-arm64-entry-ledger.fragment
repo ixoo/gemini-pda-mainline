@@ -1,0 +1,5 @@
+# Experiment-only four-slot arm64 entry ledger with two MMU-off checkpoints.
+# The exact module-policy control and CPU8/CPU9 veto remain unchanged.
+# CONFIG_PSTORE_GEMINI_PRE_RAMOOPS_LEDGER is not set
+CONFIG_PSTORE_GEMINI_ARM64_ENTRY_LEDGER=y
+CONFIG_LOCALVERSION="-gemini-entryled-a"

@@ -1,0 +1,622 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 16 Aug 2026 17:00:00 -0400
+Subject: [PATCH] arm64: add Gemini entry stage ledger
+
+The prior post-reserved-memory Gemini ledger retained no record after a
+confirmed boot cycle.  That leaves arm64 Image entry and the MMU transition
+unestablished.
+
+Add one default-off, experiment-only ledger with four independent records.
+The first two are emitted from the primary entry path while the MMU and
+data cache are proven off.  They use no call, stack, literal pool, or
+boot-register clobber.  All four exact persistent-RAM headers are required
+before writing.  The later checkpoints use early ioremap before FDT setup
+and after the reserved-memory scan.  Every stage accepts an earlier slot
+only when it is empty or byte-exact and writes only its own slot with
+ordered full readback.
+
+Skip normal ramoops registration on the Gemini only while this isolated
+diagnostic is selected, leaving known-good Gemian as the recovery reader.
+The patch does not access storage, regulators, clocks, I2C, CPU admission,
+timers, watchdogs, or restart controls.  It uses a synthetic,
+non-certifying author identity, carries no sign-off, and is not
+submission-ready.
+---
+ arch/arm64/kernel/gemini-entry-ledger-head.S | 268 ++++++++++++++++++++
+ arch/arm64/kernel/head.S                     |  10 +
+ arch/arm64/kernel/setup.c                    |   2 +
+ fs/pstore/Kconfig                            |  25 ++
+ fs/pstore/Makefile                           |   1 +
+ fs/pstore/gemini_entry_ledger.c              | 174 +++++++++++++
+ fs/pstore/ram.c                              |   4 +
+ include/linux/pstore_ram.h                   |  10 +
+ 8 files changed, 493 insertions(+)
+ create mode 100644 arch/arm64/kernel/gemini-entry-ledger-head.S
+ create mode 100644 fs/pstore/gemini_entry_ledger.c
+
+diff --git a/arch/arm64/kernel/gemini-entry-ledger-head.S b/arch/arm64/kernel/gemini-entry-ledger-head.S
+new file mode 100644
+--- /dev/null
++++ b/arch/arm64/kernel/gemini-entry-ledger-head.S
+@@ -0,0 +1,268 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Experiment-only Gemini arm64 entry ledger.
++ *
++ * These macros execute before ordinary virtual mappings exist.  They use
++ * only x9-x15, issue aligned 32-bit or narrower accesses, and never call,
++ * touch the stack, or use a literal pool.
++ */
++
++	.macro	gemini_entry_ledger_store_word base, offset, low, high
++	movz	w10, #\low
++	movk	w10, #\high, lsl #16
++	str	w10, [\base, #\offset]
++	.endm
++
++	.macro	gemini_entry_ledger_verify_word base, offset, low, high, fail
++	movz	w10, #\low
++	movk	w10, #\high, lsl #16
++	ldr	w11, [\base, #\offset]
++	cmp	w11, w10
++	b.ne	\fail
++	.endm
++
++	.macro	gemini_entry_ledger_require_empty base, fail
++	ldr	w10, [\base]
++	cmp	w10, w12
++	b.ne	\fail
++	ldr	w10, [\base, #4]
++	cbnz	w10, \fail
++	ldr	w10, [\base, #8]
++	cbnz	w10, \fail
++	.endm
++
++	.macro	gemini_entry_ledger_primary_store base
++	gemini_entry_ledger_store_word \base, 12, 0x3d3d, 0x3d3d
++	gemini_entry_ledger_store_word \base, 16, 0x2e30, 0x3030
++	gemini_entry_ledger_store_word \base, 20, 0x3030, 0x3030
++	gemini_entry_ledger_store_word \base, 24, 0x442d, 0x470a
++	gemini_entry_ledger_store_word \base, 28, 0x4d45, 0x4e49
++	gemini_entry_ledger_store_word \base, 32, 0x5f49, 0x5241
++	gemini_entry_ledger_store_word \base, 36, 0x364d, 0x5f34
++	gemini_entry_ledger_store_word \base, 40, 0x4e45, 0x5254
++	gemini_entry_ledger_store_word \base, 44, 0x5f59, 0x454c
++	gemini_entry_ledger_store_word \base, 48, 0x4744, 0x5245
++	gemini_entry_ledger_store_word \base, 52, 0x565f, 0x2031
++	gemini_entry_ledger_store_word \base, 56, 0x6f74, 0x656b
++	gemini_entry_ledger_store_word \base, 60, 0x3d6e, 0x4147
++	gemini_entry_ledger_store_word \base, 64, 0x4c45, 0x322d
++	gemini_entry_ledger_store_word \base, 68, 0x3230, 0x3036
++	gemini_entry_ledger_store_word \base, 72, 0x3138, 0x2d36
++	gemini_entry_ledger_store_word \base, 76, 0x2041, 0x7473
++	gemini_entry_ledger_store_word \base, 80, 0x6761, 0x3d65
++	gemini_entry_ledger_store_word \base, 84, 0x7270, 0x6d69
++	gemini_entry_ledger_store_word \base, 88, 0x7261, 0x2d79
++	gemini_entry_ledger_store_word \base, 92, 0x6e65, 0x7274
++	gemini_entry_ledger_store_word \base, 96, 0x2079, 0x6c73
++	gemini_entry_ledger_store_word \base, 100, 0x746f, 0x313d
++	gemini_entry_ledger_store_word \base, 104, 0x3137, 0x6320
++	gemini_entry_ledger_store_word \base, 108, 0x6372, 0x3233
++	gemini_entry_ledger_store_word \base, 112, 0x393d, 0x3039
++	gemini_entry_ledger_store_word \base, 116, 0x3262, 0x6232
++	gemini_entry_ledger_store_word \base, 120, 0x0a62, 0x0000
++	.endm
++
++	.macro	gemini_entry_ledger_primary_verify base, fail
++	gemini_entry_ledger_verify_word \base, 12, 0x3d3d, 0x3d3d, \fail
++	gemini_entry_ledger_verify_word \base, 16, 0x2e30, 0x3030, \fail
++	gemini_entry_ledger_verify_word \base, 20, 0x3030, 0x3030, \fail
++	gemini_entry_ledger_verify_word \base, 24, 0x442d, 0x470a, \fail
++	gemini_entry_ledger_verify_word \base, 28, 0x4d45, 0x4e49, \fail
++	gemini_entry_ledger_verify_word \base, 32, 0x5f49, 0x5241, \fail
++	gemini_entry_ledger_verify_word \base, 36, 0x364d, 0x5f34, \fail
++	gemini_entry_ledger_verify_word \base, 40, 0x4e45, 0x5254, \fail
++	gemini_entry_ledger_verify_word \base, 44, 0x5f59, 0x454c, \fail
++	gemini_entry_ledger_verify_word \base, 48, 0x4744, 0x5245, \fail
++	gemini_entry_ledger_verify_word \base, 52, 0x565f, 0x2031, \fail
++	gemini_entry_ledger_verify_word \base, 56, 0x6f74, 0x656b, \fail
++	gemini_entry_ledger_verify_word \base, 60, 0x3d6e, 0x4147, \fail
++	gemini_entry_ledger_verify_word \base, 64, 0x4c45, 0x322d, \fail
++	gemini_entry_ledger_verify_word \base, 68, 0x3230, 0x3036, \fail
++	gemini_entry_ledger_verify_word \base, 72, 0x3138, 0x2d36, \fail
++	gemini_entry_ledger_verify_word \base, 76, 0x2041, 0x7473, \fail
++	gemini_entry_ledger_verify_word \base, 80, 0x6761, 0x3d65, \fail
++	gemini_entry_ledger_verify_word \base, 84, 0x7270, 0x6d69, \fail
++	gemini_entry_ledger_verify_word \base, 88, 0x7261, 0x2d79, \fail
++	gemini_entry_ledger_verify_word \base, 92, 0x6e65, 0x7274, \fail
++	gemini_entry_ledger_verify_word \base, 96, 0x2079, 0x6c73, \fail
++	gemini_entry_ledger_verify_word \base, 100, 0x746f, 0x313d, \fail
++	gemini_entry_ledger_verify_word \base, 104, 0x3137, 0x6320, \fail
++	gemini_entry_ledger_verify_word \base, 108, 0x6372, 0x3233, \fail
++	gemini_entry_ledger_verify_word \base, 112, 0x393d, 0x3039, \fail
++	gemini_entry_ledger_verify_word \base, 116, 0x3262, 0x6232, \fail
++	gemini_entry_ledger_verify_word \base, 120, 0x0a62, 0x0000, \fail
++	.endm
++
++	.macro	gemini_entry_ledger_switch_store base
++	gemini_entry_ledger_store_word \base, 12, 0x3d3d, 0x3d3d
++	gemini_entry_ledger_store_word \base, 16, 0x2e30, 0x3030
++	gemini_entry_ledger_store_word \base, 20, 0x3030, 0x3030
++	gemini_entry_ledger_store_word \base, 24, 0x442d, 0x470a
++	gemini_entry_ledger_store_word \base, 28, 0x4d45, 0x4e49
++	gemini_entry_ledger_store_word \base, 32, 0x5f49, 0x5241
++	gemini_entry_ledger_store_word \base, 36, 0x364d, 0x5f34
++	gemini_entry_ledger_store_word \base, 40, 0x4e45, 0x5254
++	gemini_entry_ledger_store_word \base, 44, 0x5f59, 0x454c
++	gemini_entry_ledger_store_word \base, 48, 0x4744, 0x5245
++	gemini_entry_ledger_store_word \base, 52, 0x565f, 0x2031
++	gemini_entry_ledger_store_word \base, 56, 0x6f74, 0x656b
++	gemini_entry_ledger_store_word \base, 60, 0x3d6e, 0x4147
++	gemini_entry_ledger_store_word \base, 64, 0x4c45, 0x322d
++	gemini_entry_ledger_store_word \base, 68, 0x3230, 0x3036
++	gemini_entry_ledger_store_word \base, 72, 0x3138, 0x2d36
++	gemini_entry_ledger_store_word \base, 76, 0x2041, 0x7473
++	gemini_entry_ledger_store_word \base, 80, 0x6761, 0x3d65
++	gemini_entry_ledger_store_word \base, 84, 0x7270, 0x2d65
++	gemini_entry_ledger_store_word \base, 88, 0x7270, 0x6d69
++	gemini_entry_ledger_store_word \base, 92, 0x7261, 0x2d79
++	gemini_entry_ledger_store_word \base, 96, 0x7773, 0x7469
++	gemini_entry_ledger_store_word \base, 100, 0x6863, 0x7320
++	gemini_entry_ledger_store_word \base, 104, 0x6f6c, 0x3d74
++	gemini_entry_ledger_store_word \base, 108, 0x3731, 0x2032
++	gemini_entry_ledger_store_word \base, 112, 0x7263, 0x3363
++	gemini_entry_ledger_store_word \base, 116, 0x3d32, 0x3063
++	gemini_entry_ledger_store_word \base, 120, 0x6530, 0x6535
++	gemini_entry_ledger_store_word \base, 124, 0x3265, 0x000a
++	.endm
++
++	.macro	gemini_entry_ledger_switch_verify base, fail
++	gemini_entry_ledger_verify_word \base, 12, 0x3d3d, 0x3d3d, \fail
++	gemini_entry_ledger_verify_word \base, 16, 0x2e30, 0x3030, \fail
++	gemini_entry_ledger_verify_word \base, 20, 0x3030, 0x3030, \fail
++	gemini_entry_ledger_verify_word \base, 24, 0x442d, 0x470a, \fail
++	gemini_entry_ledger_verify_word \base, 28, 0x4d45, 0x4e49, \fail
++	gemini_entry_ledger_verify_word \base, 32, 0x5f49, 0x5241, \fail
++	gemini_entry_ledger_verify_word \base, 36, 0x364d, 0x5f34, \fail
++	gemini_entry_ledger_verify_word \base, 40, 0x4e45, 0x5254, \fail
++	gemini_entry_ledger_verify_word \base, 44, 0x5f59, 0x454c, \fail
++	gemini_entry_ledger_verify_word \base, 48, 0x4744, 0x5245, \fail
++	gemini_entry_ledger_verify_word \base, 52, 0x565f, 0x2031, \fail
++	gemini_entry_ledger_verify_word \base, 56, 0x6f74, 0x656b, \fail
++	gemini_entry_ledger_verify_word \base, 60, 0x3d6e, 0x4147, \fail
++	gemini_entry_ledger_verify_word \base, 64, 0x4c45, 0x322d, \fail
++	gemini_entry_ledger_verify_word \base, 68, 0x3230, 0x3036, \fail
++	gemini_entry_ledger_verify_word \base, 72, 0x3138, 0x2d36, \fail
++	gemini_entry_ledger_verify_word \base, 76, 0x2041, 0x7473, \fail
++	gemini_entry_ledger_verify_word \base, 80, 0x6761, 0x3d65, \fail
++	gemini_entry_ledger_verify_word \base, 84, 0x7270, 0x2d65, \fail
++	gemini_entry_ledger_verify_word \base, 88, 0x7270, 0x6d69, \fail
++	gemini_entry_ledger_verify_word \base, 92, 0x7261, 0x2d79, \fail
++	gemini_entry_ledger_verify_word \base, 96, 0x7773, 0x7469, \fail
++	gemini_entry_ledger_verify_word \base, 100, 0x6863, 0x7320, \fail
++	gemini_entry_ledger_verify_word \base, 104, 0x6f6c, 0x3d74, \fail
++	gemini_entry_ledger_verify_word \base, 108, 0x3731, 0x2032, \fail
++	gemini_entry_ledger_verify_word \base, 112, 0x7263, 0x3363, \fail
++	gemini_entry_ledger_verify_word \base, 116, 0x3d32, 0x3063, \fail
++	gemini_entry_ledger_verify_word \base, 120, 0x6530, 0x6535, \fail
++	gemini_entry_ledger_verify_word \base, 124, 0x3265, 0x000a, \fail
++	.endm
++
++	.macro	gemini_entry_ledger_require_primary_or_empty base, fail
++	ldr	w10, [\base]
++	cmp	w10, w12
++	b.ne	\fail
++	ldr	w10, [\base, #4]
++	cbz	w10, .Lgemini_primary_empty_\@
++	cmp	w10, #110
++	b.ne	\fail
++	ldr	w11, [\base, #8]
++	cmp	w11, w10
++	b.ne	\fail
++	gemini_entry_ledger_primary_verify \base, \fail
++	b	.Lgemini_primary_valid_\@
++.Lgemini_primary_empty_\@:
++	ldr	w10, [\base, #8]
++	cbnz	w10, \fail
++.Lgemini_primary_valid_\@:
++	.endm
++
++	.macro	gemini_arm64_entry_ledger_primary
++	mrs	x10, CurrentEL
++	cmp	x10, #CurrentEL_EL1
++	b.eq	.Lgemini_primary_el1_\@
++	cmp	x10, #CurrentEL_EL2
++	b.ne	.Lgemini_primary_done_\@
++	mrs	x10, sctlr_el2
++	b	.Lgemini_primary_state_\@
++.Lgemini_primary_el1_\@:
++	mrs	x10, sctlr_el1
++.Lgemini_primary_state_\@:
++	tbnz	x10, #0, .Lgemini_primary_done_\@
++	tbnz	x10, #2, .Lgemini_primary_done_\@
++	movz	x9, #0xb000
++	movk	x9, #0x444b, lsl #16
++	movz	w12, #0x4244
++	movk	w12, #0x4347, lsl #16
++	mov	x14, x9
++	gemini_entry_ledger_require_empty x14, .Lgemini_primary_done_\@
++	add	x14, x9, #1, lsl #12
++	gemini_entry_ledger_require_empty x14, .Lgemini_primary_done_\@
++	add	x14, x9, #2, lsl #12
++	gemini_entry_ledger_require_empty x14, .Lgemini_primary_done_\@
++	add	x14, x9, #3, lsl #12
++	gemini_entry_ledger_require_empty x14, .Lgemini_primary_done_\@
++	gemini_entry_ledger_primary_store x9
++	dsb	sy
++	movz	w13, #110
++	str	w13, [x9, #4]
++	dsb	sy
++	str	w13, [x9, #8]
++	dsb	sy
++	ldr	w10, [x9]
++	cmp	w10, w12
++	b.ne	.Lgemini_primary_done_\@
++	ldr	w10, [x9, #4]
++	cmp	w10, w13
++	b.ne	.Lgemini_primary_done_\@
++	ldr	w10, [x9, #8]
++	cmp	w10, w13
++	b.ne	.Lgemini_primary_done_\@
++	gemini_entry_ledger_primary_verify x9, .Lgemini_primary_done_\@
++.Lgemini_primary_done_\@:
++	.endm
++
++	.macro	gemini_arm64_entry_ledger_pre_switch
++	mrs	x10, CurrentEL
++	cmp	x10, #CurrentEL_EL1
++	b.eq	.Lgemini_switch_el1_\@
++	cmp	x10, #CurrentEL_EL2
++	b.ne	.Lgemini_switch_done_\@
++	mrs	x10, sctlr_el2
++	b	.Lgemini_switch_state_\@
++.Lgemini_switch_el1_\@:
++	mrs	x10, sctlr_el1
++.Lgemini_switch_state_\@:
++	tbnz	x10, #0, .Lgemini_switch_done_\@
++	tbnz	x10, #2, .Lgemini_switch_done_\@
++	movz	x9, #0xb000
++	movk	x9, #0x444b, lsl #16
++	movz	w12, #0x4244
++	movk	w12, #0x4347, lsl #16
++	mov	x14, x9
++	gemini_entry_ledger_require_primary_or_empty x14, .Lgemini_switch_done_\@
++	add	x14, x9, #1, lsl #12
++	gemini_entry_ledger_require_empty x14, .Lgemini_switch_done_\@
++	add	x14, x9, #2, lsl #12
++	gemini_entry_ledger_require_empty x14, .Lgemini_switch_done_\@
++	add	x14, x9, #3, lsl #12
++	gemini_entry_ledger_require_empty x14, .Lgemini_switch_done_\@
++	add	x14, x9, #1, lsl #12
++	gemini_entry_ledger_switch_store x14
++	dsb	sy
++	movz	w13, #115
++	str	w13, [x14, #4]
++	dsb	sy
++	str	w13, [x14, #8]
++	dsb	sy
++	ldr	w10, [x14]
++	cmp	w10, w12
++	b.ne	.Lgemini_switch_done_\@
++	ldr	w10, [x14, #4]
++	cmp	w10, w13
++	b.ne	.Lgemini_switch_done_\@
++	ldr	w10, [x14, #8]
++	cmp	w10, w13
++	b.ne	.Lgemini_switch_done_\@
++	gemini_entry_ledger_switch_verify x14, .Lgemini_switch_done_\@
++.Lgemini_switch_done_\@:
++	.endm
+diff --git a/arch/arm64/kernel/head.S b/arch/arm64/kernel/head.S
+--- a/arch/arm64/kernel/head.S
++++ b/arch/arm64/kernel/head.S
+@@ -38,8 +38,11 @@
+ #include "efi-header.S"
+ #ifdef CONFIG_ARM64_MT6797_A72_P30E_WIRE
+ #include <asm/errno.h>
+ #include <asm/mt6797_a72_p30e.h>
+ #endif
++#ifdef CONFIG_PSTORE_GEMINI_ARM64_ENTRY_LEDGER
++#include "gemini-entry-ledger-head.S"
++#endif
+ 
+ #if (PAGE_OFFSET & 0x1fffff) != 0
+ #error PAGE_OFFSET must be at least 2MB aligned
+@@ -91,5 +94,8 @@
+ SYM_CODE_START(primary_entry)
+ 	bl	record_mmu_state
++#ifdef CONFIG_PSTORE_GEMINI_ARM64_ENTRY_LEDGER
++	gemini_arm64_entry_ledger_primary
++#endif
+ 	bl	preserve_boot_args
+ 
+ 	adrp	x1, early_init_stack
+@@ -130,6 +137,9 @@ SYM_CODE_START(primary_entry)
+ 	 * the TCR will have been set.
+ 	 */
+ 	bl	__cpu_setup			// initialise processor
++#ifdef CONFIG_PSTORE_GEMINI_ARM64_ENTRY_LEDGER
++	gemini_arm64_entry_ledger_pre_switch
++#endif
+ 	b	__primary_switch
+ SYM_CODE_END(primary_entry)
+ 
+diff --git a/arch/arm64/kernel/setup.c b/arch/arm64/kernel/setup.c
+--- a/arch/arm64/kernel/setup.c
++++ b/arch/arm64/kernel/setup.c
+@@ -287,6 +287,7 @@ void __init __no_sanitize_address setup_arch(char **cmdline_p)
+ 
+ 	early_fixmap_init();
+ 	early_ioremap_init();
++	gemini_arm64_entry_ledger_post_mmu_checkpoint();
+ 
+ 	setup_machine_fdt(__fdt_pointer);
+ 
+@@ -328,6 +329,7 @@ void __init __no_sanitize_address setup_arch(char **cmdline_p)
+ 
+ 	arm64_memblock_init();
+ 	gemini_pre_ramoops_ledger_setup_checkpoint();
++	gemini_arm64_entry_ledger_post_reserved_checkpoint();
+ 
+ 	paging_init();
+ 
+diff --git a/fs/pstore/Kconfig b/fs/pstore/Kconfig
+--- a/fs/pstore/Kconfig
++++ b/fs/pstore/Kconfig
+@@ -100,7 +100,32 @@ config PSTORE_GEMINI_PRE_RAMOOPS_LEDGER
+ 
+ 	  This experiment-only option does not access device storage, regulators,
+ 	  CPU admission, timers, or restart controls.  If unsure, say N.
+ 
++config PSTORE_GEMINI_ARM64_ENTRY_LEDGER
++	bool "Gemini arm64 entry retained stage ledger"
++	depends on PSTORE_RAM=y
++	depends on ARM64 && ARCH_MEDIATEK && OF
++	depends on !PSTORE_GEMINI_PRE_RAMOOPS_LEDGER
++	default n
++	help
++	  Write four short experiment records into exact dmesg zones in the
++	  existing Gemini ramoops reservation.  Two call-free checkpoints run
++	  in the arm64 primary path before the MMU is enabled, followed by one
++	  after early ioremap setup and one after the reserved-memory scan.
++
++	  The MMU-off checkpoints accept only EL1 or EL2 with both translation
++	  and data caching disabled.  They require the exact four persistent-RAM
++	  headers and preserve every boot-path register outside x9 through x15.
++	  Later checkpoints accept each earlier slot only when empty or byte-
++	  exact.  Every writer commits data before length fields and performs a
++	  complete ordered readback.
++
++	  Normal ramoops registration is skipped only on the Gemini while this
++	  isolated diagnostic is selected, so a subsequent known-good boot can
++	  recover the records.  This option does not access storage, regulators,
++	  clocks, I2C, CPU admission, timers, watchdogs, or restart controls.
++	  If unsure, say N.
++
+ config PSTORE_GEMINI_POST_RAMOOPS_CHECKPOINT
+ 	bool "Gemini post-ramoops retained checkpoint"
+ 	depends on PSTORE_RAM=y
+diff --git a/fs/pstore/Makefile b/fs/pstore/Makefile
+--- a/fs/pstore/Makefile
++++ b/fs/pstore/Makefile
+@@ -12,6 +12,7 @@ pstore-$(CONFIG_PSTORE_PMSG)	+= pmsg.o
+ 
+ ramoops-objs += ram.o ram_core.o
+ obj-$(CONFIG_PSTORE_RAM)	+= ramoops.o
++obj-$(CONFIG_PSTORE_GEMINI_ARM64_ENTRY_LEDGER) += gemini_entry_ledger.o
+ 
+ pstore_zone-objs += zone.o
+ obj-$(CONFIG_PSTORE_ZONE)	+= pstore_zone.o
+diff --git a/fs/pstore/gemini_entry_ledger.c b/fs/pstore/gemini_entry_ledger.c
+new file mode 100644
+--- /dev/null
++++ b/fs/pstore/gemini_entry_ledger.c
+@@ -0,0 +1,174 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/* Experiment-only retained entry ledger for the Planet Gemini PDA. */
++
++#include <linux/init.h>
++#include <linux/io.h>
++#include <linux/memblock.h>
++#include <linux/of_fdt.h>
++#include <linux/pstore_ram.h>
++#include <linux/string.h>
++
++#include <asm/barrier.h>
++
++#define GEMINI_ENTRY_RESERVE_BASE	0x44410000ULL
++#define GEMINI_ENTRY_RESERVE_SIZE	0x000e0000ULL
++#define GEMINI_ENTRY_BASE		0x444bb000ULL
++#define GEMINI_ENTRY_SLOT_SIZE		0x00001000UL
++#define GEMINI_ENTRY_SLOT_COUNT		4
++#define GEMINI_ENTRY_HEADER_SIZE	12
++#define GEMINI_ENTRY_SIGNATURE		0x43474244
++
++static const char * const gemini_entry_records[] __initconst = {
++	"====0.000000-D\n"
++	"GEMINI_ARM64_ENTRY_LEDGER_V1 token=GAEL-20260816-A "
++	"stage=primary-entry slot=171 crc32=990b22bb\n",
++	"====0.000000-D\n"
++	"GEMINI_ARM64_ENTRY_LEDGER_V1 token=GAEL-20260816-A "
++	"stage=pre-primary-switch slot=172 crc32=c00e5ee2\n",
++	"====0.000000-D\n"
++	"GEMINI_ARM64_ENTRY_LEDGER_V1 token=GAEL-20260816-A "
++	"stage=post-mmu slot=173 crc32=1297491b\n",
++	"====0.000000-D\n"
++	"GEMINI_ARM64_ENTRY_LEDGER_V1 token=GAEL-20260816-A "
++	"stage=post-reserved-scan slot=174 crc32=88a58bc9\n",
++};
++
++static bool __init gemini_entry_slot_empty(void __iomem *slot)
++{
++	return readl(slot) == GEMINI_ENTRY_SIGNATURE &&
++	       readl((u8 __iomem *)slot + 4) == 0 &&
++	       readl((u8 __iomem *)slot + 8) == 0;
++}
++
++static bool __init gemini_entry_slot_exact(void __iomem *slot,
++					   const char *record)
++{
++	size_t i;
++	size_t len = strlen(record);
++
++	if (readl(slot) != GEMINI_ENTRY_SIGNATURE ||
++	    readl((u8 __iomem *)slot + 4) != len ||
++	    readl((u8 __iomem *)slot + 8) != len)
++		return false;
++	for (i = 0; i < len; i++)
++		if (readb((u8 __iomem *)slot + GEMINI_ENTRY_HEADER_SIZE + i) !=
++		    record[i])
++			return false;
++
++	return true;
++}
++
++static bool __init gemini_entry_prefix_valid(void __iomem *ledger,
++					     unsigned int stage)
++{
++	unsigned int i;
++
++	for (i = 0; i < GEMINI_ENTRY_SLOT_COUNT; i++) {
++		void __iomem *slot = (u8 __iomem *)ledger +
++				       i * GEMINI_ENTRY_SLOT_SIZE;
++
++		if (i < stage) {
++			if (!gemini_entry_slot_empty(slot) &&
++			    !gemini_entry_slot_exact(slot, gemini_entry_records[i]))
++				return false;
++		} else if (!gemini_entry_slot_empty(slot)) {
++			return false;
++		}
++	}
++
++	return true;
++}
++
++static bool __init gemini_entry_write(void __iomem *slot,
++				      const char *record)
++{
++	size_t i;
++	size_t len = strlen(record);
++
++	if (!gemini_entry_slot_empty(slot) ||
++	    len > GEMINI_ENTRY_SLOT_SIZE - GEMINI_ENTRY_HEADER_SIZE)
++		return false;
++
++	memcpy_toio((u8 __iomem *)slot + GEMINI_ENTRY_HEADER_SIZE, record, len);
++	dsb(sy);
++	writel(len, (u8 __iomem *)slot + 4);
++	dsb(sy);
++	writel(len, (u8 __iomem *)slot + 8);
++	dsb(sy);
++
++	if (readl(slot) != GEMINI_ENTRY_SIGNATURE ||
++	    readl((u8 __iomem *)slot + 4) != len ||
++	    readl((u8 __iomem *)slot + 8) != len)
++		return false;
++	for (i = 0; i < len; i++)
++		if (readb((u8 __iomem *)slot + GEMINI_ENTRY_HEADER_SIZE + i) !=
++		    record[i])
++			return false;
++
++	return true;
++}
++
++static bool __init gemini_entry_exact_flat_dt(void)
++{
++	u64 addr;
++	u64 size;
++	unsigned long root = of_get_flat_dt_root();
++	const void *no_map;
++	int no_map_len;
++	int reserved;
++	int ramoops;
++
++	if (!of_flat_dt_is_compatible(root, "planet,gemini-pda"))
++		return false;
++	reserved = of_get_flat_dt_subnode_by_name(root, "reserved-memory");
++	if (reserved < 0)
++		return false;
++	ramoops = of_get_flat_dt_subnode_by_name(reserved,
++						 "ramoops@44410000");
++	if (ramoops < 0 ||
++	    !of_flat_dt_is_compatible(ramoops, "ramoops") ||
++	    !of_flat_dt_get_addr_size(ramoops, "reg", &addr, &size))
++		return false;
++	no_map = of_get_flat_dt_prop(ramoops, "no-map", &no_map_len);
++	if (!no_map || no_map_len != 0 ||
++	    addr != GEMINI_ENTRY_RESERVE_BASE ||
++	    size != GEMINI_ENTRY_RESERVE_SIZE)
++		return false;
++
++	return memblock_is_region_reserved(addr, size);
++}
++
++static void __init gemini_entry_checkpoint(unsigned int stage,
++					   bool require_reservation)
++{
++	void __iomem *ledger;
++	void __iomem *slot;
++
++	if (stage < 2 || stage >= GEMINI_ENTRY_SLOT_COUNT)
++		return;
++	if (require_reservation && !gemini_entry_exact_flat_dt())
++		return;
++
++	ledger = early_ioremap(GEMINI_ENTRY_BASE,
++			       GEMINI_ENTRY_SLOT_COUNT * GEMINI_ENTRY_SLOT_SIZE);
++	if (!ledger)
++		return;
++
++	if (!gemini_entry_prefix_valid(ledger, stage))
++		goto out;
++	slot = (u8 __iomem *)ledger + stage * GEMINI_ENTRY_SLOT_SIZE;
++	gemini_entry_write(slot, gemini_entry_records[stage]);
++out:
++	early_iounmap(ledger,
++		      GEMINI_ENTRY_SLOT_COUNT * GEMINI_ENTRY_SLOT_SIZE);
++}
++
++void __init gemini_arm64_entry_ledger_post_mmu_checkpoint(void)
++{
++	gemini_entry_checkpoint(2, false);
++}
++
++void __init gemini_arm64_entry_ledger_post_reserved_checkpoint(void)
++{
++	gemini_entry_checkpoint(3, true);
++}
+diff --git a/fs/pstore/ram.c b/fs/pstore/ram.c
+--- a/fs/pstore/ram.c
++++ b/fs/pstore/ram.c
+@@ -1126,6 +1126,10 @@ static int __init ramoops_init(void)
+ 	if (of_machine_is_compatible("planet,gemini-pda"))
+ 		return 0;
+ #endif
++#ifdef CONFIG_PSTORE_GEMINI_ARM64_ENTRY_LEDGER
++	if (of_machine_is_compatible("planet,gemini-pda"))
++		return 0;
++#endif
+ 	ramoops_register_dummy();
+ 	ret = platform_driver_register(&ramoops_driver);
+ 	if (ret != 0)
+diff --git a/include/linux/pstore_ram.h b/include/linux/pstore_ram.h
+--- a/include/linux/pstore_ram.h
++++ b/include/linux/pstore_ram.h
+@@ -41,3 +41,13 @@ static inline void gemini_pre_ramoops_ledger_setup_checkpoint(void) { }
+ #endif
+ 
++#ifdef CONFIG_PSTORE_GEMINI_ARM64_ENTRY_LEDGER
++void gemini_arm64_entry_ledger_post_mmu_checkpoint(void);
++void gemini_arm64_entry_ledger_post_reserved_checkpoint(void);
++#else
++static inline void gemini_arm64_entry_ledger_post_mmu_checkpoint(void) { }
++static inline void gemini_arm64_entry_ledger_post_reserved_checkpoint(void)
++{
++}
++#endif
++
+ #endif
+-- 
+2.50.1 (Apple Git-155)

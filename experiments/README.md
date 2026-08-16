@@ -23,13 +23,19 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-16 arm64 entry-ledger implementation](2026-08-16-mainline-arm64-entry-ledger/README.md)
+  — implements the authorized `GAEL-20260816-A` four-stage lower-boundary
+  discriminator as canonical patch 0281 and one isolated Buildbox profile.
+  Two call-free checkpoints run with MMU/data-cache-off refusal before the
+  primary switch; two independent early-mapped checkpoints retain later proof.
+  Build and the single boot2 attempt remain pending.
 - [2026-08-16 arm64 entry-ledger safety audit](2026-08-16-mainline-arm64-entry-ledger-audit/README.md)
   — audits the lower observation boundary selected after the pre-ramoops
   candidate retained no stage. It defines four independent checkpoints from
   `primary_entry` through the reserved-memory scan, exact register and
   MMU/cache guards for the two physical-mode stages, the four-header runtime
-  fingerprint, and an offline oracle. This is read-only design work: no patch,
-  build, candidate, authorization, device write, or boot exists yet.
+  fingerprint, and an offline oracle. The audit remains read-only design work;
+  its exact successor implementation and one boot2 attempt are now authorized.
 - [2026-08-16 pre-ramoops four-stage retained ledger](2026-08-16-mainline-pre-ramoops-ledger/README.md)
   — completed its one approved attempt after the exact post-ramoops candidate
   returned with empty pstore. Buildbox validation, guarded boot2 deployment,

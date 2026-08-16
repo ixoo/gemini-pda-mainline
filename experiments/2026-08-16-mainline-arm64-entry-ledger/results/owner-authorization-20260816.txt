@@ -1,0 +1,22 @@
+Arm64 entry-ledger owner authorization
+Date: 2026-08-16 America/New_York
+
+experiment=2026-08-16-mainline-arm64-entry-ledger
+token=GAEL-20260816-A
+authorized_actions=implementation,Buildbox-build,one-boot2-attempt
+authorized_pre_dt_writes=up-to-two-short-retained-RAM-records
+required_contract=documented-safety-gates
+future_equivalent_policy=standing-authorization-no-repeated-prompt
+scope_limit=same-fail-closed-documented-retained-RAM-policy
+primary_boot=forbidden
+boot3=forbidden
+preloader_nvram_gpt_firmware_whole_device=forbidden
+cpu8_cpu9_admission=closed
+owner_statement_recorded=yes
+
+Owner statement:
+I approve implementing, building, and making one boot2 attempt of the
+GAEL-20260816-A arm64 entry ledger, including up to two short retained-RAM
+writes before DT validation, subject to its documented safety gates.
+
+You don't need my authorization for such things going forward, just do it!
