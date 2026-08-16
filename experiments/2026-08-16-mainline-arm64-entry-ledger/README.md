@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-16-mainline-arm64-entry-ledger` |
-| Status | two full links rejected oversized idmap; bounded stage-tag revision validated; Buildbox rebuild pending |
+| Status | bounded revision fully built; exact candidate independently validated; deployment pending |
 | Subsystem | arm64 primary entry, MMU transition, setup_arch, pstore/ramoops |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-16 America/New_York |
@@ -35,7 +35,15 @@ regulator, CPU-admission, or hardware-support experiment.
 - Boot path: retained LK Android-v0 container on inactive logical `boot2`.
 - Recovery path: ordinary known-good Gemian and changed-cycle pstore/raw-zone
   capture.
-- Exact build, package, container, partition, and boot identities are pending.
+- Exact build and package input: commit
+  `98996fdfbf09f8de2a6b86e488defef22fcc7968`, Buildbox job
+  `98996fdfbf09f8de2a6b86e488defef22fcc7968-da921x-modules-arm64-entry-ledger-m0`,
+  release `7.1.3-gemini-entryled-a`.
+- Exact raw container: SHA-256
+  `1249d907795ab80c5a290887847e497bf672e5bdf2c7617096a1209db464341c`,
+  6,879,232 bytes. Exact 16 MiB boot2 payload: SHA-256
+  `a81939b41a64a362744580bec559baecb3fe13938187f34b3f1b9ad5f09527f2`.
+- Partition and changed-cycle boot identities remain pending deployment.
 - The first full Buildbox link of commit `d126eebf32ca0a4746e5060fb4c4e66479b3300a`
   failed closed before packaging: `.idmap.text` was `0x1124` bytes and violated
   arm64's one-page identity-map assertion. No candidate or device action
@@ -80,13 +88,22 @@ diagnostics within the same documented fail-closed retained-RAM policy. See
 
 - `scripts/validate.py`: exact patch/profile/assembly/C safety validator.
 - `scripts/test-validate.py`: unsafe mutation rejection suite.
+- `scripts/build-candidate.sh`: source-pinned, two-construction exact candidate
+  builder.
+- `scripts/test-candidate.py`: independent package, ledger, idmap, LK layout,
+  and mutation validator.
+- `scripts/install-boot2.sh`: source-pinned live-GPT installer with predecessor
+  checksum, no new backup, full readback, and shutdown on success.
 - `results/offline-implementation-validation-20260816.txt`: patch application,
   compiler-smoke, oracle, manifest, mutation, and checkpatch evidence.
+- `results/buildbox-success-20260816.txt`: exact successful full-link and
+  fetched-package evidence.
+- `results/offline-candidate-validation-20260816.txt`: exact container identity
+  and independent validation evidence.
+- `results/predeployment-hypothesis-20260816.txt`: frozen hypothesis, unique
+  evidence, refusal gates, and decision map for the single physical selection.
 - The audit's `scripts/record-layout.py` freezes the exact bytes and assembly
   words; its classifier and fixtures own returned-Gemian interpretation.
-- Candidate construction, independent validation, guarded installation, and
-  exact invocations will be recorded after the validated Buildbox package
-  exists.
 
 ## Procedure
 
@@ -130,10 +147,13 @@ confirms the exact hooks and refusal rules, and rejects all 16 unsafe mutations.
 All 79 manifest profiles preserve the canonical-series invariant.
 
 The initial strict checkpatch review had zero checks, five expected warnings,
-and the deliberately absent synthetic-author sign-off. The revised patch needs
-the same publication checks before its exact replacement commit. No successful
-full kernel build, package, candidate, partition write, shutdown, or boot has
-occurred yet.
+and the deliberately absent synthetic-author sign-off. The final bounded
+revision passed the complete Buildbox link with an identity section of `0xfb8`
+bytes, leaving 72 bytes below arm64's 4 KiB hard bound. Its validated fetched
+package produced two byte-identical raw containers and two byte-identical 16
+MiB payloads using independent padding methods. Independent validation passed
+all 32 LK gates and rejected all six container mutations. No partition write,
+shutdown, or physical boot has occurred yet.
 
 ## Analysis
 
@@ -146,11 +166,14 @@ chronology gap when a valid later record exists.
 
 ## Conclusion
 
-Runtime result pending. A compile or validated candidate will not establish
-Image entry or hardware support.
+Runtime result pending. The successful full build and exact candidate close the
+offline artifact question but do not establish Image entry or hardware
+support.
 
 ## Follow-up
 
-Complete the single Buildbox-to-boot2 attempt and let its highest valid
-independent stage choose the next observation boundary. The ordered project
-path remains in [`docs/ROADMAP.md`](../../docs/ROADMAP.md).
+Pre-arm changed-cycle recovery, check the live four-zone headers, deploy the
+exact payload only if every device gate passes, shut down, and spend the single
+physical boot2 selection. Let its highest valid independent stage choose the
+next observation boundary. The ordered project path remains in
+[`docs/ROADMAP.md`](../../docs/ROADMAP.md).
