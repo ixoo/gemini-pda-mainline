@@ -1,0 +1,25 @@
+Pre-ramoops stage ledger: frozen predeployment hypothesis
+Date: 2026-08-16 America/New_York
+
+full_boot2_sha256=ac849d9aca9454d5d6a29d25a67b5d27fcef94e16bb881f4d14db09d0d29d75f
+kernel_release=7.1.3-gemini-preledger-a
+boot_attempt_limit=1
+
+hypothesis=the-current-kernel-completes-at-least-one-of-four-boundaries-between-arm64-reserved-memory-scan-and-postcore-initcalls-before-returning-to-Gemian
+unique_evidence=contiguous-valid-GPRL-20260816-A-records-in-returned-Gemian-pstore-slots-171-through-174
+
+fixed_inputs=module-policy-control-base,provider-only-policy,gemini-dtb,serviceability-ramdisk,lk-layout,cmdline,cpu0-7-policy,recovery-path
+changed_inputs=default-off-four-slot-ledger,normal-ramoops-bypass-for-isolated-profile,unique-local-version,kernel-and-container-identity
+storage_runtime_access_added=none
+regulator_reads_added=none
+regulator_writes_added=none
+cpu8_cpu9_admission=closed
+automatic_reboot_request=none
+
+no_valid_stage_effect=boundary-before-reserved-scan-checkpoint-or-runtime-precondition-refusal
+slot171_only_effect=boundary-after-reserved-memory-scan-before-early-initcall-checkpoint
+slots171_172_effect=boundary-after-early-initcalls-before-core-initcall-checkpoint
+slots171_173_effect=boundary-after-core-initcalls-before-postcore-initcall-checkpoint
+slots171_174_effect=move-next-observation-boundary-later-without-repeating-this-artifact
+gap_duplicate_bad_crc_or_partial_effect=reject-invalid-record-and-retain-earlier-contiguous-valid-prefix
+visual-screen-or-automatic-return-alone=non-attributable

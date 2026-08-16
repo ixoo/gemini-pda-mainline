@@ -1,0 +1,19 @@
+Pre-ramoops stage ledger: live predeployment read-only gate
+Date: 2026-08-16 America/New_York
+
+target=gemini@192.168.1.50
+known_good_kernel=3.18.41+
+boot_id=2f308b03-2e2e-42a4-840a-03f43fd48014
+read_operation=12-bytes-per-slot-read-only-devmem
+slot_171_address=0x444bb000
+slot_171_header=444247430000000000000000
+slot_172_address=0x444bc000
+slot_172_header=444247430000000000000000
+slot_173_address=0x444bd000
+slot_173_header=444247430000000000000000
+slot_174_address=0x444be000
+slot_174_header=444247430000000000000000
+decoded_header_each=DBGC-start0-size0
+payload_read=none
+hardware_write=none
+result=pass

@@ -35,9 +35,9 @@ invalid_runtime_captures_rejected=5
 manifest_profiles_checked=78
 manifest_invariant_mutations_rejected=8
 git_diff_check=pass
-compile=not-yet-run
-package=not-yet-built
-candidate=not-yet-constructed
+compile=Buildbox-pass
+package=validated
+candidate=validated
 device_access=none
 
 [prohibited-actions]
@@ -49,5 +49,5 @@ reboot_action=none
 cpu8_cpu9_admission=closed
 
 [result]
-offline_design=pass-pending-Buildbox-compile-and-package-validation
+offline_design=pass
 hardware_claim=none

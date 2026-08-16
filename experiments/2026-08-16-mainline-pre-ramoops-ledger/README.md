@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-16-mainline-pre-ramoops-ledger` |
-| Status | offline implementation and validation in progress |
+| Status | exact candidate validated; device deployment pending |
 | Subsystem | arm64 early boot, initcalls, pstore/ramoops |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-16 America/New_York |
@@ -34,8 +34,16 @@ memory. It is not a DA921x provider, CPU, or serviceability experiment.
 - Build backend: explicit Buildbox only; no native VM build is authorized.
 - Boot path: retained LK Android-v0 container on inactive logical `boot2`.
 - Recovery path: ordinary known-good Gemian boot and read-only pstore capture.
-- Exact package, configuration, candidate, and partition identities will be
-  added after their corresponding gates complete.
+- Buildbox package: repository commit
+  `ca56f0161f6d67900d0fc58719e9190e7d1bb4a3`, profile
+  `da921x-modules-pre-ramoops-ledger`, release
+  `7.1.3-gemini-preledger-a`.
+- Raw Android-v0 candidate SHA-256:
+  `00455398cf1ffa3f57ad5083322e5541b0a58dbdec9ff63883b1427990cff8c3`.
+- Exact 16 MiB `boot2` image SHA-256:
+  `ac849d9aca9454d5d6a29d25a67b5d27fcef94e16bb881f4d14db09d0d29d75f`.
+- Partition identity and predecessor checksum remain live deployment facts and
+  will be recorded only after the guarded installer resolves them.
 
 ## Safety assessment
 
@@ -81,9 +89,12 @@ mismatch. Visual screen state is not attributable evidence.
 - `scripts/test-validate.py`: negative mutation suite.
 - `scripts/classify-pstore.py`: returned-Gemian four-slot classifier.
 - `scripts/test-classify-pstore.py`: classifier fixtures and rejection tests.
-- Candidate builder, container validator, guarded installer, and changed-cycle
-  recovery wrapper will be source-pinned only after exact package and image
-  identities exist.
+- `scripts/build-candidate.sh`: source-pinned exact candidate builder.
+- `scripts/test-candidate.py`: source-pinned independent package/container
+  validator with structural negative mutations.
+- `scripts/install-boot2.sh`: source-pinned live-GPT guarded `boot2` installer.
+- Changed-cycle recovery uses the repository collector; capture review is
+  recorded before the single physical boot.
 
 ## Procedure
 
@@ -109,7 +120,25 @@ One device boot is planned. The exact artifact must not be repeated unchanged.
 
 ## Observations
 
-Offline implementation is in progress. No new device boot has occurred.
+The exact pushed commit built successfully on Buildbox. The fetched package
+manifest, resolved config, Image, DTB, System.map, and embedded marker set all
+validated. The official candidate and an independent exploratory construction
+were byte-identical before the exploratory copy was discarded. All 32 LK
+container gates passed and six structural corruptions were rejected.
+
+Buildbox checkpatch review reported the deliberately absent synthetic-author
+sign-off, seven style warnings, and one alignment check. The missing sign-off
+is required for this explicitly non-submission experiment archive; the style
+findings do not change the compiled operation and are recorded rather than
+silently treated as an upstream-ready result. No native VM build ran.
+
+No new device boot has occurred yet.
+
+Immediately before deployment preparation, known-good Gemian was reachable as
+kernel `3.18.41+`, boot ID `2f308b03-2e2e-42a4-840a-03f43fd48014`. A read-only
+12-byte `/dev/mem` read at each exact slot returned little-endian `DBGC`, start
+zero, size zero. The first-write all-four-empty runtime precondition therefore
+still matches the live state.
 
 ## Analysis
 
@@ -133,8 +162,9 @@ Decision map:
 
 ## Conclusion
 
-Pending offline validation, Buildbox build, exact candidate construction, and
-one approved device boot. No hardware-support or DA921x provider claim exists.
+Offline validation, the Buildbox build, and exact candidate construction pass.
+One approved device boot and returned-Gemian ledger recovery remain. No
+hardware-support or DA921x provider claim exists.
 
 ## Follow-up
 
