@@ -1,0 +1,21 @@
+Post-ramoops checkpoint: sanitized boot2 deployment receipt
+Date: 2026-08-15 America/New_York
+
+experiment=2026-08-15-mainline-post-ramoops-checkpoint
+result=write-synced-flushed-full-readback-verified
+target_logical_name=boot2
+target=/dev/mmcblk0p30
+root=/dev/mmcblk0p29
+predecessor_sha256=044461e57d207f5ddd6e68cc463ea3ee1dd65260c27afe5fd00730137d13a2ff
+fresh_predecessor_backup=no
+candidate_sha256=ae6b354d51a9e5096b9f6f74ee9037c47ba026e00895e6f4c8028f15bc9bd348
+readback_sha256=ae6b354d51a9e5096b9f6f74ee9037c47ba026e00895e6f4c8028f15bc9bd348
+boot_id=4d035507-4a24-46c8-ab2e-b99da3842bef
+power=1|100|Good|1
+temporary_readback_removed=yes
+shutdown_requested_after_evidence_flush=yes
+poweroff_ssh_rc=0
+post_shutdown_reachability=unreachable
+reboot=no
+next_action=owner-physically-selects-boot2-after-collector-armed
+private_deployment_summary_sha256=114dd54850219e45c3afc5230855a7a9239d3376c3f72bd7c8743be551f6964a

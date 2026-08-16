@@ -3726,6 +3726,14 @@ registration; another empty-pstore confirmed cycle moves the boundary before
 that point without claiming that the kernel never entered. Do not repeat the
 exact candidate after its one attempt.
 
+The guarded deployment is complete. Live GPT resolved inactive, unmounted
+`boot2` as `/dev/mmcblk0p30`; its predecessor was recorded without making a
+fresh backup. The exact candidate was written, synced, flushed, and verified
+by matching full-partition checksum and independent byte comparison. Gemian
+then shut down and is confirmed unreachable. The remaining ordered action is
+to arm the one-hour collector before the owner selects boot2 once. See the
+[deployment receipt](../experiments/2026-08-15-mainline-post-ramoops-checkpoint/results/deployment-20260815.txt).
+
 Required evidence:
 
 - provider registration performs no register-data write;

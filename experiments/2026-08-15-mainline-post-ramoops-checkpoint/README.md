@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-15-mainline-post-ramoops-checkpoint` |
-| Status | exact candidate validated; deployment pending |
+| Status | exact candidate deployed; runtime attempt pending |
 | Subsystem | pstore/ramoops, early boot serviceability, DA921x boundary |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-15 America/New_York |
@@ -121,6 +121,14 @@ suite accepts the exact positive record and rejects or distinguishes five
 attribution, checkpoint, control, and CPU-safety mutations. See the
 [offline review](results/offline-validation-20260815.txt).
 
+The guarded installer resolved the sole live-GPT logical `boot2` as inactive,
+unmounted, writable `/dev/mmcblk0p30`. It recorded the stopped module-policy
+control as predecessor, made no fresh backup, wrote the exact checkpoint
+candidate, synced and flushed it, and required both a matching full-partition
+checksum and independent byte-for-byte readback. Gemian then powered off and
+was confirmed unreachable. See the sanitized
+[deployment receipt](results/deployment-20260815.txt).
+
 ## Analysis
 
 This is the earliest durable observation point available without adding a
@@ -140,7 +148,6 @@ remain closed.
 
 ## Follow-up
 
-Follow [`docs/ROADMAP.md`](../../docs/ROADMAP.md): commit and push the frozen
-candidate/tooling record, install only to live-GPT logical boot2 with full
-readback, shut Gemian down, and arm the one-hour collector before the one
-owner-selected boot. Recover pstore immediately after any return to Gemian.
+Follow [`docs/ROADMAP.md`](../../docs/ROADMAP.md): arm the one-hour collector
+before the one owner-selected boot. Recover pstore immediately after any
+return to Gemian.
