@@ -23,12 +23,23 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-16 LK handoff DTB control](2026-08-16-mainline-lk-handoff-dtb-control/README.md)
+  — the offline lower-boundary audit found that stopped GAEL and the last
+  serviceable Stage-27 container both satisfy their Android-v0, gzip, load,
+  Image-header, and entry-branch contracts. Planet LK source actively rewrites
+  the appended DTB before disabling cache/MMU and branching. The selected
+  decision-changing candidate keeps the exact GAEL kernel and crosses it with
+  the exact runtime-proven Stage-27 DTB. Two assemblies, independent padding,
+  all 32 LK gates, and six negative mutations pass; one boot2 attempt is
+  pending.
 - [2026-08-16 arm64 entry-ledger implementation](2026-08-16-mainline-arm64-entry-ledger/README.md)
   — implements the authorized `GAEL-20260816-A` four-stage lower-boundary
   discriminator as canonical patch 0281 and one isolated Buildbox profile.
   Two call-free checkpoints run with MMU/data-cache-off refusal before the
   primary switch; two independent early-mapped checkpoints retain later proof.
-  Build and the single boot2 attempt remain pending.
+  Its exact one boot2 attempt completed with a changed return to Gemian but no
+  valid retained stage. The artifact is stopped; Image entry remains
+  unestablished or the writers refused before the post-MMU observer.
 - [2026-08-16 arm64 entry-ledger safety audit](2026-08-16-mainline-arm64-entry-ledger-audit/README.md)
   — audits the lower observation boundary selected after the pre-ramoops
   candidate retained no stage. It defines four independent checkpoints from

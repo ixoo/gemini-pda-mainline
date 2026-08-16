@@ -3791,17 +3791,29 @@ entry remains unestablished, or the entry writers refused and execution did
 not reach the independent post-MMU observer. This moves the useful boundary
 below DA921x/provider, initcall, and CPU-admission work.
 
-The single next ordered action is an offline lower-boot-boundary audit. Compare
-the exact stopped candidate with the last serviceable mainline container and
-the retained Planet LK source contract at every decision before the arm64
-entry point: Android-v0 fields, gzip stream and output sizing, appended-DTB
-scan, load/overlap ranges, cache/MMU/EL handoff requirements, Image header, and
-final branch address. Reconcile the E0 refusal conditions with that bootloader
-contract. Only after the audit identifies one decision-changing observation
-may a new artifact be selected. It must distinguish LK decompression/handoff
-from Linux entry-writer refusal, use the existing retained-RAM recovery path,
-and keep DA921x writes plus CPU8/CPU9 admission closed. Do not repeat the exact
-entry-ledger image.
+The lower-boot-boundary audit is complete. The stopped GAEL and runtime-proven
+Stage-27 containers both satisfy their Android-v0, gzip, decompression, Image
+header/branch, load-range, and overlap contracts. Pinned public Planet LK source
+disables unified cache and the MMU before its final arm64 branch, matching E0's
+normal state gate, and actively opens, merges, and mutates the appended DTB
+before that branch. The two DTBs retain the exact board, memory, and GAEL
+ramoops reservation contract but differ structurally across `/chosen` and
+multiple loader handoff/overlay targets. Static analysis cannot prove that the
+installed loader accepts the exact current DTB. See the
+[lower-boundary audit](../experiments/2026-08-16-mainline-lk-handoff-dtb-control/results/lower-boundary-audit-20260816.txt).
+
+The single next ordered action is one boot of the exact GAEL kernel crossed
+with the exact runtime-proven Stage-27 DTB. This changes no kernel,
+configuration, initramfs, address, command line, ledger, DA921x-write, or CPU
+admission policy. Any valid E0 or later record proves current Image entry and
+implicates current-DTB processing in the stopped result. Another exact
+`no-stage` result exonerates the current DTB as the sole cause and keeps the
+boundary at current gzip/Image/final handoff or E0 refusal. The candidate has
+passed two byte-identical assemblies, two independent 16 MiB constructions,
+all 32 LK gates, and six negative mutations. Use a long pre-armed changed-cycle
+observer plus immediate boot-ID-bounded pstore and raw-zone recovery; do not
+repeat either exact predecessor artifact. See the
+[DTB-control experiment](../experiments/2026-08-16-mainline-lk-handoff-dtb-control/README.md).
 
 Required evidence:
 
