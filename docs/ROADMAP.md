@@ -3734,6 +3734,42 @@ then shut down and is confirmed unreachable. The remaining ordered action is
 to arm the one-hour collector before the owner selects boot2 once. See the
 [deployment receipt](../experiments/2026-08-15-mainline-post-ramoops-checkpoint/results/deployment-20260815.txt).
 
+The checkpoint's single selected boot is now complete and the exact candidate
+is stopped. The original collector expired before selection; an identical
+late-window replacement started immediately after the boot report and saw no
+exact USB interface before the automatic return. The disconnect was confirmed,
+ordinary Gemian returned with a changed boot ID, and immediate recovery found
+empty pstore plus the same generic 74-byte last-kmsg header. Boot2 still
+matched the exact candidate. No exact checkpoint token or kernel identity
+survived. See the
+[runtime result](../experiments/2026-08-15-mainline-post-ramoops-checkpoint/results/runtime-attempt-1-pre-ramoops-20260816.txt).
+
+The boundary therefore moves before successful ramoops registration, without
+claiming that the kernel never entered. A capture-method review explains why
+the recent wave was low-yield: USB depends on late userspace/gadget progress,
+and the attempted token depended on the same successful ramoops registration
+being tested. Visual return remains non-attributable, while the vendor
+last-kmsg SRAM path lacks a proven mainline-to-Gemian preservation contract.
+
+The selected next discriminator reuses the already proven cross-version
+persistent-RAM format without requiring normal ramoops registration. The final
+four dmesg slots (indices 171--174, `[0x444bb000, 0x444bf000)`) have exact
+shared addresses and were read-only verified as `DBGC` with zero start/size.
+An isolated profile will keep the reservation but disable the normal ramoops
+probe, then write one short unique record per stage: after reserved-memory
+scan, early initcall, core initcall, and postcore initcall. Each slot is
+independent, so a partial later write cannot destroy the last completed stage.
+Returned Gemian will archive the slots; USB is secondary and screen color is
+ignored. See the
+[capture-method review](../experiments/2026-08-15-mainline-post-ramoops-checkpoint/results/capture-method-review-20260816.txt).
+
+The ordered action remains offline: implement the default-off ledger, exact
+address/empty-slot fail-closed checks, parser, mutations, and recovery contract;
+commit and build through Buildbox only. Do not spend another device boot until
+that review passes. The resulting bounded reserved-RAM writes are not covered
+by standing boot2-install authorization and require explicit owner approval
+before runtime.
+
 Required evidence:
 
 - provider registration performs no register-data write;

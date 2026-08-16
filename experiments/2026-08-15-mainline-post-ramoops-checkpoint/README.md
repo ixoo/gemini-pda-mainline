@@ -5,10 +5,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-15-mainline-post-ramoops-checkpoint` |
-| Status | exact candidate deployed; runtime attempt pending |
+| Status | one empty-pstore runtime result; exact candidate stopped |
 | Subsystem | pstore/ramoops, early boot serviceability, DA921x boundary |
 | Device variant | Planet Gemini PDA, MT6797 |
-| Date(s) | 2026-08-15 America/New_York |
+| Date(s) | 2026-08-15 to 2026-08-16 America/New_York |
 | Investigator(s) | repository owner and Codex |
 | Tracking issue | current-mainline pre-transport localization |
 
@@ -129,25 +129,55 @@ checksum and independent byte-for-byte readback. Gemian then powered off and
 was confirmed unreachable. See the sanitized
 [deployment receipt](results/deployment-20260815.txt).
 
+The original pre-armed one-hour collector expired before the owner selected
+boot2. An identical replacement started immediately after the boot report and
+observed no exact Gemini USB interface before the reported automatic return.
+The disconnect was confirmed across two probes. Ordinary Gemian returned on
+`3.18.41+` with boot ID `2f308b03-2e2e-42a4-840a-03f43fd48014`, different
+from the pre-deployment ordinary-Gemian boot ID. Immediate read-only recovery
+found an empty pstore directory: no `console-ramoops`, exact marker, candidate
+kernel identity, or initramfs entry record survived. Last-kmsg remained the
+same generic 74-byte reset header seen in the preceding failures, and full
+boot2 SHA-256 still matched the deployed candidate. See the
+[runtime result](results/runtime-attempt-1-pre-ramoops-20260816.txt).
+
+A bounded read-only audit then checked the reserved ramoops layout through
+returned Gemian `/dev/mem` without saving payload contents. The final four
+4 KiB dmesg zones, indices 171--174 at `[0x444bb000, 0x444bf000)`, each have
+the expected `DBGC` signature and zero start/size. The exact live Gemian binary
+and prior Candidate-L runtime evidence already establish that all 175 dmesg
+zones share addresses and persistent-RAM headers across the two kernels. See
+the [capture-method review](results/capture-method-review-20260816.txt).
+
 ## Analysis
 
-This is the earliest durable observation point available without adding a
-second storage backend or writing outside the already configured ramoops
-console region. A retained marker proves kernel entry, DT-backed ramoops probe,
-and pstore console registration before the later failure. An empty pstore after
-another confirmed cycle moves the boundary before successful registration; it
-does not prove the kernel never entered.
+This was the earliest durable observation point available through the normal
+pstore console path. A retained marker would have proved kernel entry,
+DT-backed ramoops probe, and pstore console registration before the later
+failure. The confirmed empty-pstore cycle instead supplies no evidence of
+successful registration and moves the localization boundary before that
+checkpoint. It does not prove the kernel never entered, nor does it establish
+whether LK handoff, decompression, early arm64 setup, DT unflattening,
+postcore initcall dispatch, or ramoops probe failed.
 
 ## Conclusion
 
 Exact full boot2 SHA-256
 `ae6b354d51a9e5096b9f6f74ee9037c47ba026e00895e6f4c8028f15bc9bd348`
-is accepted for one installation and one selected boot. No runtime claim
-exists yet. Provider setters, transition ownership, and CPU8/CPU9 admission
-remain closed.
+is stopped after its one selected boot and must not be repeated unchanged. The
+only accepted runtime claim is the pre-successful-ramoops-registration
+localization boundary. No provider or hardware-support claim exists. Provider
+setters, transition ownership, and CPU8/CPU9 admission remain closed.
 
 ## Follow-up
 
-Follow [`docs/ROADMAP.md`](../../docs/ROADMAP.md): arm the one-hour collector
-before the one owner-selected boot. Recover pstore immediately after any
-return to Gemian.
+Follow [`docs/ROADMAP.md`](../../docs/ROADMAP.md): design one isolated
+pre-ramoops stage-ledger profile. Keep the pstore reservation but prevent the
+normal ramoops driver from probing, then write four unique records only to the
+four validated-empty final dmesg slots: after reserved-memory scan, at early
+initcall, at core initcall, and at postcore initcall. Returned Gemian must
+recover all completed slots read-only; USB remains secondary. The writer must
+fail closed on any nonempty or structurally unexpected slot and remain CPU-,
+regulator-, partition-, timer-, and reboot-inert. A device boot will require
+explicit owner approval for these bounded reserved-RAM writes after offline
+review.
