@@ -10,20 +10,24 @@ authorization or patch.
 ## Fixed identity
 
 - token: `GAEL-20260816-A`
-- marker prefix: `GEMINI_ARM64_ENTRY_LEDGER_V1`
 - reservation: `[0x44410000,0x444f0000)`
 - zones: slots 171--174, each 4 KiB, at
   `[0x444bb000,0x444bf000)`
 - persistent header: little-endian `DBGC` (`0x43474244`), 32-bit start, 32-bit
   size
-- record framing: `====0.000000-D\n`, one unique marker line, final newline
+- record framing: `====0.000000-D\n`, followed by the exact line
+  `GAEL-20260816-A E#\n`; the fixed stage-to-zone mapping supplies the slot
+  identity and the complete payload is 34 bytes
 - records:
-  - slot 171: `stage=primary-entry`, CRC32 `990b22bb`
-  - slot 172: `stage=pre-primary-switch`, CRC32 `c00e5ee2`
-  - slot 173: `stage=post-mmu`, CRC32 `1297491b`
-  - slot 174: `stage=post-reserved-scan`, CRC32 `88a58bc9`
+  - slot 171: `E0`, stage `primary-entry`
+  - slot 172: `E1`, stage `pre-primary-switch`
+  - slot 173: `E2`, stage `post-mmu`
+  - slot 174: `E3`, stage `post-reserved-scan`
 
-Each CRC is over `token=<token>|stage=<stage>|slot=<slot>`.
+The design oracle retains its derived stage CRCs as an offline mutation guard;
+they are not duplicated in the wire record. Runtime integrity is byte-exact
+matching of the frozen payload in its stage-owned zone, bounded by the exact
+candidate/container/deployment checksum chain.
 
 ## Stage contract
 
@@ -109,5 +113,7 @@ accept an earlier empty slot, but never a malformed or foreign nonempty slot.
 The exceptional act is a maximum of four short retained-RAM record writes,
 including up to two before DT validation. Physical fingerprint, incoming
 MMU/cache refusal, exact candidate identity, guarded `boot2` deployment, full
-readback, and clean shutdown are mandatory. This requires a new, explicit
-owner authorization before implementation/build/device use advances.
+readback, and clean shutdown are mandatory. The owner supplied explicit
+authorization on 2026-08-16 and made equivalent future fail-closed retained-RAM
+diagnostics standing authorization. The successor experiment records the exact
+statement and remains subject to every gate in this contract.

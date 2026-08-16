@@ -1,4 +1,4 @@
-Arm64 entry-ledger first full-link result and bounded revision
+Arm64 entry-ledger full-link failures and bounded revisions
 Date: 2026-08-16 America/New_York
 
 repository_commit=d126eebf32ca0a4746e5060fb4c4e66479b3300a
@@ -18,16 +18,29 @@ generated_head_idmap_text_size=0x1124
 linker_bound=single_4KiB_page_including_alignment
 failure_scope=compile-time-only
 
-revision=compact-positional-wire-records
-wire_format=GEMINI_ARM64_ENTRY_LEDGER_V1_GAEL-20260816-A_E#_SLOT_CRC
-record_length_each=76
-aligned_words_each=19
-prefix_preserved=yes
+first_revision=compact-positional-wire-records
+first_revision_commit=a6777c3b8882a8aa39d65f42f7cd2233e45b0ab7
+first_revision_full_link=failed
+first_revision_generated_head_idmap_text_size=0x0e0c
+successful_control_head_idmap_text_size=0x05cc
+successful_control_total_idmap_text_size=0x0b40
+available_total_idmap_growth=0x04c0
+first_revision_head_growth=0x0840
+first_revision_package=none
+
+current_revision=compact-token-stage-wire-records-and-bounded-header-loops
+wire_format=GAEL-20260816-A_E#
+record_length_each=34
+aligned_words_each=9
 token_preserved=yes
-stage_slot_crc_preserved=yes
+stage_identity_preserved=yes
+slot_identity=fixed-stage-owned-zone
+integrity=byte-exact-record-plus-candidate-and-deployment-checksums
+derived_crc=offline-oracle-only
+empty_header_checks=fixed-count-four-and-three-zone-loops
 hooks_and_decision_map=unchanged
 mmu_cache_and_header_gates=unchanged
 write_order_and_full_readback=unchanged
 runtime_effects=retained-RAM-record-only
 cpu8_cpu9_admission=closed
-rebuild=pending
+third_full_link=pending

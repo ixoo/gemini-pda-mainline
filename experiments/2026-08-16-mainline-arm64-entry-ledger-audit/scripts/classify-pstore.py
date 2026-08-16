@@ -7,20 +7,16 @@ import argparse
 from dataclasses import dataclass
 from pathlib import Path
 import re
-import zlib
 
 
 TOKEN = "GAEL-20260816-A"
-PREFIX = "GEMINI_ARM64_ENTRY_LEDGER_V1"
 STAGES = (
     ("primary-entry", "E0", 171),
     ("pre-primary-switch", "E1", 172),
     ("post-mmu", "E2", 173),
     ("post-reserved-scan", "E3", 174),
 )
-LINE = re.compile(
-    rf"^{PREFIX} {TOKEN} (E[0-3]) ([0-9]+) ([0-9a-f]{{8}})$"
-)
+LINE = re.compile(rf"^{TOKEN} (E[0-3])$")
 
 
 @dataclass(frozen=True)
@@ -29,11 +25,6 @@ class Classification:
     reason: str
     present: tuple[int, ...]
     missing_before_highest: tuple[int, ...]
-
-
-def integrity(stage: str, slot: int) -> str:
-    source = f"token={TOKEN}|stage={stage}|slot={slot}".encode()
-    return f"{zlib.crc32(source):08x}"
 
 
 def files(path: Path) -> list[Path]:
@@ -45,31 +36,29 @@ def files(path: Path) -> list[Path]:
 
 
 def classify(path: Path) -> Classification:
-    expected = {slot: (stage, code) for stage, code, slot in STAGES}
+    expected = {code: (stage, slot) for stage, code, slot in STAGES}
     found: dict[int, tuple[str, Path]] = {}
     suspicious: list[str] = []
     for item in files(path):
         text = item.read_text(encoding="utf-8", errors="replace").replace("\r", "")
         for raw in text.splitlines():
             line = raw.strip()
-            if PREFIX not in line and TOKEN not in line:
+            if TOKEN not in line:
                 continue
             match = LINE.fullmatch(line)
             if not match:
                 suspicious.append(f"malformed:{item.name}")
                 continue
             code = match.group(1)
-            slot = int(match.group(2))
-            crc = match.group(3)
-            stage_and_code = expected.get(slot)
-            if (stage_and_code is None or stage_and_code[1] != code or
-                    integrity(stage_and_code[0], slot) != crc):
+            stage_and_slot = expected.get(code)
+            if stage_and_slot is None:
                 suspicious.append(f"integrity-or-stage:{item.name}")
                 continue
+            stage, slot = stage_and_slot
             if slot in found:
                 suspicious.append(f"duplicate-slot:{slot}")
                 continue
-            found[slot] = (stage_and_code[0], item)
+            found[slot] = (stage, item)
 
     present = tuple(sorted(found))
     if suspicious:

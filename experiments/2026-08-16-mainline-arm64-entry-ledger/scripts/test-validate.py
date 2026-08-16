@@ -50,7 +50,7 @@ def main() -> None:
     cases.append((replace_once(patch, "tbnz\tx10, #2, .Lgemini_primary_done_\\@", "nop"), series, manifest, fragment))
     cases.append((replace_first(patch, "mov\tx14, x9", "mov\tx0, x9"), series, manifest, fragment))
     cases.append((replace_first(
-        patch, "gemini_entry_ledger_require_empty x14, .Lgemini_primary_done_\\@",
+        patch, "gemini_entry_ledger_require_empty_range x14, 4, .Lgemini_primary_done_\\@",
         "nop",
     ), series, manifest, fragment))
     cases.append((replace_first(patch, "dsb\tsy", "dmb\tsy"), series, manifest, fragment))

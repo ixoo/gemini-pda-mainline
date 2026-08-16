@@ -18,9 +18,8 @@ sys.modules[spec.name] = classifier
 spec.loader.exec_module(classifier)
 
 
-def record(stage: str, code: str, slot: int, crc: str | None = None) -> str:
-    value = crc if crc is not None else classifier.integrity(stage, slot)
-    return f"{classifier.PREFIX} {classifier.TOKEN} {code} {slot} {value}\n"
+def record(code: str) -> str:
+    return f"{classifier.TOKEN} {code}\n"
 
 
 def run_case(lines: list[str]):
@@ -36,7 +35,7 @@ def main() -> None:
     accepted = 0
     for mask in itertools.product((False, True), repeat=len(stages)):
         selected = [stage for stage, include in zip(stages, mask, strict=True) if include]
-        result = run_case([record(*stage) for stage in selected])
+        result = run_case([record(code) for _, code, _ in selected])
         if not selected:
             wanted = "no-stage"
         else:
@@ -55,13 +54,13 @@ def main() -> None:
         accepted += 1
 
     rejected = (
-        [record(*stages[0]), record(*stages[0])],
-        [record("primary-entry", "E0", 171, "00000000")],
-        [record("post-mmu", "E2", 171)],
-        [f"{classifier.PREFIX} {classifier.TOKEN} truncated\n"],
-        [f"{classifier.PREFIX} FOREIGN E2 173 00000000\n"],
-        [f"FOREIGN_PREFIX {classifier.TOKEN} E2 173 00000000\n"],
-        [record(*stages[2]), f"{classifier.PREFIX} malformed\n"],
+        [record("E0"), record("E0")],
+        [f"{classifier.TOKEN} E4\n"],
+        [f"{classifier.TOKEN} E1 171\n"],
+        [f"{classifier.TOKEN} truncated\n"],
+        [f"{classifier.TOKEN}-FOREIGN E2\n"],
+        [f"FOREIGN_PREFIX {classifier.TOKEN} E2\n"],
+        [record("E2"), f"{classifier.TOKEN} malformed\n"],
     )
     count = sum(run_case(list(case)).result == "rejected-attribution" for case in rejected)
     if count != len(rejected):

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-16-mainline-arm64-entry-ledger` |
-| Status | first full link rejected oversized idmap; compact-record revision validated; Buildbox rebuild pending |
+| Status | two full links rejected oversized idmap; bounded stage-tag revision validated; Buildbox rebuild pending |
 | Subsystem | arm64 primary entry, MMU transition, setup_arch, pstore/ramoops |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-16 America/New_York |
@@ -39,8 +39,12 @@ regulator, CPU-admission, or hardware-support experiment.
 - The first full Buildbox link of commit `d126eebf32ca0a4746e5060fb4c4e66479b3300a`
   failed closed before packaging: `.idmap.text` was `0x1124` bytes and violated
   arm64's one-page identity-map assertion. No candidate or device action
-  occurred. The successor revision preserves every decision and safety field
-  in a 76-byte positional wire record to reduce the entry-code footprint.
+  occurred. A 76-byte successor at commit
+  `a6777c3b8882a8aa39d65f42f7cd2233e45b0ab7` reduced the generated head
+  identity section to `0xe0c`, but the full identity section still exceeded the
+  page after other arm64 entry objects were included. The current 34-byte
+  token/stage record and bounded header loops preserve the decision and safety
+  contract while removing the remaining unrolled entry code.
 
 ## Safety assessment
 
@@ -115,11 +119,15 @@ The initial MMU-off `head.S` and later-stage C translation units compiled
 without diagnostics under the Buildbox cross-toolchain, but the first complete
 Buildbox link correctly rejected an identity-mapped section of `0x1124` bytes
 against arm64's 4 KiB bound. That compile-only evidence is not treated as a
-build result. The revised implementation uses the same prefix, token, stage,
-slot, and CRC in a compact positional wire encoding. Its validator matches the
-assembly records byte-for-byte with the revised frozen generator, confirms the
-exact hooks and refusal rules, and rejects all 16 unsafe mutations. All 79
-manifest profiles preserve the canonical-series invariant.
+build result. The first compact revision reduced the generated head identity
+section from `0x1124` to `0xe0c`, but the complete link still exceeded the one
+page bound. The current implementation writes only the exact token and stage
+tag; the stage-owned physical zone supplies slot identity, and byte-exact
+matching plus the candidate/deployment checksum chain supplies integrity. It
+also checks the four and three empty-header ranges with fixed-count loops. Its
+validator matches the assembly records byte-for-byte with the frozen generator,
+confirms the exact hooks and refusal rules, and rejects all 16 unsafe mutations.
+All 79 manifest profiles preserve the canonical-series invariant.
 
 The initial strict checkpatch review had zero checks, five expected warnings,
 and the deliberately absent synthetic-author sign-off. The revised patch needs

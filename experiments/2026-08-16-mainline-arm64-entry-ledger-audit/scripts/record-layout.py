@@ -28,10 +28,7 @@ STAGE_CODES = {
 
 
 def record(stage) -> bytes:
-    marker = (
-        f"{oracle.PREFIX} {oracle.TOKEN} {STAGE_CODES[stage.name]} "
-        f"{stage.slot} {stage.crc}\n"
-    ).encode("ascii")
+    marker = f"{oracle.TOKEN} {STAGE_CODES[stage.name]}\n".encode("ascii")
     return FRAME + marker
 
 

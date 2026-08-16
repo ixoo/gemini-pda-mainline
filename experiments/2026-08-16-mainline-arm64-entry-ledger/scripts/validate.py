@@ -112,6 +112,12 @@ def validate_assembly(source: str) -> None:
     require(clean.count("dsb\tsy") == 6, "full-system write ordering changed")
 
     expected = record_layout.validate()
+    require(len(expected[0][1]) == len(expected[1][1]) == 34,
+            "assembly record length changed")
+    require(clean.count("cmp\tw10, #34") == 1,
+            "prior-record length gate changed")
+    require(clean.count("movz\tw13, #34") == 2,
+            "record commit lengths changed")
     for index, (stage, payload, words) in enumerate(expected[:2]):
         stem = "primary" if index == 0 else "switch"
         stores = word_rows(macro_body(source, f"gemini_entry_ledger_{stem}_store"), "store")
@@ -122,12 +128,30 @@ def validate_assembly(source: str) -> None:
         rebuilt = b"".join(word.to_bytes(4, "little") for _, word in stores)[: len(payload)]
         require(rebuilt == payload, f"{stage.name} assembly bytes do not roundtrip")
 
+    empty_range = macro_body(source, "gemini_entry_ledger_require_empty_range")
+    for needle in (
+        "mov\tw13, #\\count",
+        "ldr\tw10, [\\base]",
+        "cmp\tw10, w12",
+        "ldr\tw10, [\\base, #4]",
+        "ldr\tw10, [\\base, #8]",
+        "add\t\\base, \\base, #1, lsl #12",
+        "subs\tw13, w13, #1",
+    ):
+        require(needle in empty_range, f"bounded empty-header loop changed: {needle}")
+    require(empty_range.count("cbnz\tw10, \\fail") == 2,
+            "empty-header loop length fields changed")
+    require(empty_range.count("b.ne") == 2,
+            "empty-header loop branch structure changed")
+
     primary = macro_body(source, "gemini_arm64_entry_ledger_primary")
     switch = macro_body(source, "gemini_arm64_entry_ledger_pre_switch")
-    require(primary.count("gemini_entry_ledger_require_empty") == 4,
-            "primary four-header fingerprint changed")
-    require(switch.count("gemini_entry_ledger_require_empty") == 3,
-            "pre-switch target/later empty checks changed")
+    require(primary.count("gemini_entry_ledger_require_empty_range") == 1 and
+            "gemini_entry_ledger_require_empty_range x14, 4" in primary,
+            "primary four-header bounded fingerprint changed")
+    require(switch.count("gemini_entry_ledger_require_empty_range") == 1 and
+            "gemini_entry_ledger_require_empty_range x14, 3" in switch,
+            "pre-switch target/later bounded empty checks changed")
     require(switch.count("gemini_entry_ledger_require_primary_or_empty") == 1,
             "pre-switch independent earlier-slot policy changed")
     require(primary.index("gemini_entry_ledger_primary_store") < primary.index("str\tw13, [x9, #4]") <

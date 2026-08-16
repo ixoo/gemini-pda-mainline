@@ -18,9 +18,14 @@ initial_full_build=failed-idmap-text-too-big-or-misaligned
 initial_generated_idmap_text_size=0x1124
 initial_package=none
 
-current_revision=compact-positional-wire-records
-current_record_length_each=76
-current_aligned_word_count_each=19
+second_repository_commit=a6777c3b8882a8aa39d65f42f7cd2233e45b0ab7
+second_full_build=failed-idmap-text-too-big-or-misaligned
+second_generated_head_idmap_text_size=0x0e0c
+second_package=none
+
+current_revision=compact-token-stage-wire-records-and-bounded-header-loops
+current_record_length_each=34
+current_aligned_word_count_each=9
 current_translation_unit_compile=pending-exact-replacement-commit
 current_full_build=pending
 

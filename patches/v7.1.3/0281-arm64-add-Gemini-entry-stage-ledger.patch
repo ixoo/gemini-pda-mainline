@@ -23,7 +23,7 @@ timers, watchdogs, or restart controls.  It uses a synthetic,
 non-certifying author identity, carries no sign-off, and is not
 submission-ready.
 ---
- arch/arm64/kernel/gemini-entry-ledger-head.S | 230 ++++++++++++++++++++
+ arch/arm64/kernel/gemini-entry-ledger-head.S | 185 ++++++++++++++++++++
  arch/arm64/kernel/head.S                     |   9 +
  arch/arm64/kernel/setup.c                    |   2 +
  fs/pstore/Kconfig                            |  25 ++
@@ -31,7 +31,7 @@ submission-ready.
  fs/pstore/gemini_entry_ledger.c              | 170 +++++++++++++
  fs/pstore/ram.c                              |   4 +
  include/linux/pstore_ram.h                   |  10 +
- 8 files changed, 451 insertions(+)
+ 8 files changed, 406 insertions(+)
  create mode 100644 arch/arm64/kernel/gemini-entry-ledger-head.S
  create mode 100644 fs/pstore/gemini_entry_ledger.c
 
@@ -39,7 +39,7 @@ diff --git a/arch/arm64/kernel/gemini-entry-ledger-head.S b/arch/arm64/kernel/ge
 new file mode 100644
 --- /dev/null
 +++ b/arch/arm64/kernel/gemini-entry-ledger-head.S
-@@ -0,0 +1,230 @@
+@@ -0,0 +1,185 @@
 +/* SPDX-License-Identifier: GPL-2.0-only */
 +/*
 + * Experiment-only Gemini arm64 entry ledger.
@@ -63,7 +63,9 @@ new file mode 100644
 +	b.ne	\fail
 +	.endm
 +
-+	.macro	gemini_entry_ledger_require_empty base, fail
++	.macro	gemini_entry_ledger_require_empty_range base, count, fail
++	mov	w13, #\count
++.Lgemini_empty_range_\@:
 +	ldr	w10, [\base]
 +	cmp	w10, w12
 +	b.ne	\fail
@@ -71,6 +73,9 @@ new file mode 100644
 +	cbnz	w10, \fail
 +	ldr	w10, [\base, #8]
 +	cbnz	w10, \fail
++	add	\base, \base, #1, lsl #12
++	subs	w13, w13, #1
++	b.ne	.Lgemini_empty_range_\@
 +	.endm
 +
 +	.macro	gemini_entry_ledger_primary_store base
@@ -78,21 +83,11 @@ new file mode 100644
 +	gemini_entry_ledger_store_word \base, 16, 0x2e30, 0x3030
 +	gemini_entry_ledger_store_word \base, 20, 0x3030, 0x3030
 +	gemini_entry_ledger_store_word \base, 24, 0x442d, 0x470a
-+	gemini_entry_ledger_store_word \base, 28, 0x4d45, 0x4e49
-+	gemini_entry_ledger_store_word \base, 32, 0x5f49, 0x5241
-+	gemini_entry_ledger_store_word \base, 36, 0x364d, 0x5f34
-+	gemini_entry_ledger_store_word \base, 40, 0x4e45, 0x5254
-+	gemini_entry_ledger_store_word \base, 44, 0x5f59, 0x454c
-+	gemini_entry_ledger_store_word \base, 48, 0x4744, 0x5245
-+	gemini_entry_ledger_store_word \base, 52, 0x565f, 0x2031
-+	gemini_entry_ledger_store_word \base, 56, 0x4147, 0x4c45
-+	gemini_entry_ledger_store_word \base, 60, 0x322d, 0x3230
-+	gemini_entry_ledger_store_word \base, 64, 0x3036, 0x3138
-+	gemini_entry_ledger_store_word \base, 68, 0x2d36, 0x2041
-+	gemini_entry_ledger_store_word \base, 72, 0x3045, 0x3120
-+	gemini_entry_ledger_store_word \base, 76, 0x3137, 0x3920
-+	gemini_entry_ledger_store_word \base, 80, 0x3039, 0x3262
-+	gemini_entry_ledger_store_word \base, 84, 0x6232, 0x0a62
++	gemini_entry_ledger_store_word \base, 28, 0x4541, 0x2d4c
++	gemini_entry_ledger_store_word \base, 32, 0x3032, 0x3632
++	gemini_entry_ledger_store_word \base, 36, 0x3830, 0x3631
++	gemini_entry_ledger_store_word \base, 40, 0x412d, 0x4520
++	gemini_entry_ledger_store_word \base, 44, 0x0a30, 0x0000
 +	.endm
 +
 +	.macro	gemini_entry_ledger_primary_verify base, fail
@@ -100,21 +95,11 @@ new file mode 100644
 +	gemini_entry_ledger_verify_word \base, 16, 0x2e30, 0x3030, \fail
 +	gemini_entry_ledger_verify_word \base, 20, 0x3030, 0x3030, \fail
 +	gemini_entry_ledger_verify_word \base, 24, 0x442d, 0x470a, \fail
-+	gemini_entry_ledger_verify_word \base, 28, 0x4d45, 0x4e49, \fail
-+	gemini_entry_ledger_verify_word \base, 32, 0x5f49, 0x5241, \fail
-+	gemini_entry_ledger_verify_word \base, 36, 0x364d, 0x5f34, \fail
-+	gemini_entry_ledger_verify_word \base, 40, 0x4e45, 0x5254, \fail
-+	gemini_entry_ledger_verify_word \base, 44, 0x5f59, 0x454c, \fail
-+	gemini_entry_ledger_verify_word \base, 48, 0x4744, 0x5245, \fail
-+	gemini_entry_ledger_verify_word \base, 52, 0x565f, 0x2031, \fail
-+	gemini_entry_ledger_verify_word \base, 56, 0x4147, 0x4c45, \fail
-+	gemini_entry_ledger_verify_word \base, 60, 0x322d, 0x3230, \fail
-+	gemini_entry_ledger_verify_word \base, 64, 0x3036, 0x3138, \fail
-+	gemini_entry_ledger_verify_word \base, 68, 0x2d36, 0x2041, \fail
-+	gemini_entry_ledger_verify_word \base, 72, 0x3045, 0x3120, \fail
-+	gemini_entry_ledger_verify_word \base, 76, 0x3137, 0x3920, \fail
-+	gemini_entry_ledger_verify_word \base, 80, 0x3039, 0x3262, \fail
-+	gemini_entry_ledger_verify_word \base, 84, 0x6232, 0x0a62, \fail
++	gemini_entry_ledger_verify_word \base, 28, 0x4541, 0x2d4c, \fail
++	gemini_entry_ledger_verify_word \base, 32, 0x3032, 0x3632, \fail
++	gemini_entry_ledger_verify_word \base, 36, 0x3830, 0x3631, \fail
++	gemini_entry_ledger_verify_word \base, 40, 0x412d, 0x4520, \fail
++	gemini_entry_ledger_verify_word \base, 44, 0x0a30, 0x0000, \fail
 +	.endm
 +
 +	.macro	gemini_entry_ledger_switch_store base
@@ -122,21 +107,11 @@ new file mode 100644
 +	gemini_entry_ledger_store_word \base, 16, 0x2e30, 0x3030
 +	gemini_entry_ledger_store_word \base, 20, 0x3030, 0x3030
 +	gemini_entry_ledger_store_word \base, 24, 0x442d, 0x470a
-+	gemini_entry_ledger_store_word \base, 28, 0x4d45, 0x4e49
-+	gemini_entry_ledger_store_word \base, 32, 0x5f49, 0x5241
-+	gemini_entry_ledger_store_word \base, 36, 0x364d, 0x5f34
-+	gemini_entry_ledger_store_word \base, 40, 0x4e45, 0x5254
-+	gemini_entry_ledger_store_word \base, 44, 0x5f59, 0x454c
-+	gemini_entry_ledger_store_word \base, 48, 0x4744, 0x5245
-+	gemini_entry_ledger_store_word \base, 52, 0x565f, 0x2031
-+	gemini_entry_ledger_store_word \base, 56, 0x4147, 0x4c45
-+	gemini_entry_ledger_store_word \base, 60, 0x322d, 0x3230
-+	gemini_entry_ledger_store_word \base, 64, 0x3036, 0x3138
-+	gemini_entry_ledger_store_word \base, 68, 0x2d36, 0x2041
-+	gemini_entry_ledger_store_word \base, 72, 0x3145, 0x3120
-+	gemini_entry_ledger_store_word \base, 76, 0x3237, 0x6320
-+	gemini_entry_ledger_store_word \base, 80, 0x3030, 0x3565
-+	gemini_entry_ledger_store_word \base, 84, 0x6565, 0x0a32
++	gemini_entry_ledger_store_word \base, 28, 0x4541, 0x2d4c
++	gemini_entry_ledger_store_word \base, 32, 0x3032, 0x3632
++	gemini_entry_ledger_store_word \base, 36, 0x3830, 0x3631
++	gemini_entry_ledger_store_word \base, 40, 0x412d, 0x4520
++	gemini_entry_ledger_store_word \base, 44, 0x0a31, 0x0000
 +	.endm
 +
 +	.macro	gemini_entry_ledger_switch_verify base, fail
@@ -144,21 +119,11 @@ new file mode 100644
 +	gemini_entry_ledger_verify_word \base, 16, 0x2e30, 0x3030, \fail
 +	gemini_entry_ledger_verify_word \base, 20, 0x3030, 0x3030, \fail
 +	gemini_entry_ledger_verify_word \base, 24, 0x442d, 0x470a, \fail
-+	gemini_entry_ledger_verify_word \base, 28, 0x4d45, 0x4e49, \fail
-+	gemini_entry_ledger_verify_word \base, 32, 0x5f49, 0x5241, \fail
-+	gemini_entry_ledger_verify_word \base, 36, 0x364d, 0x5f34, \fail
-+	gemini_entry_ledger_verify_word \base, 40, 0x4e45, 0x5254, \fail
-+	gemini_entry_ledger_verify_word \base, 44, 0x5f59, 0x454c, \fail
-+	gemini_entry_ledger_verify_word \base, 48, 0x4744, 0x5245, \fail
-+	gemini_entry_ledger_verify_word \base, 52, 0x565f, 0x2031, \fail
-+	gemini_entry_ledger_verify_word \base, 56, 0x4147, 0x4c45, \fail
-+	gemini_entry_ledger_verify_word \base, 60, 0x322d, 0x3230, \fail
-+	gemini_entry_ledger_verify_word \base, 64, 0x3036, 0x3138, \fail
-+	gemini_entry_ledger_verify_word \base, 68, 0x2d36, 0x2041, \fail
-+	gemini_entry_ledger_verify_word \base, 72, 0x3145, 0x3120, \fail
-+	gemini_entry_ledger_verify_word \base, 76, 0x3237, 0x6320, \fail
-+	gemini_entry_ledger_verify_word \base, 80, 0x3030, 0x3565, \fail
-+	gemini_entry_ledger_verify_word \base, 84, 0x6565, 0x0a32, \fail
++	gemini_entry_ledger_verify_word \base, 28, 0x4541, 0x2d4c, \fail
++	gemini_entry_ledger_verify_word \base, 32, 0x3032, 0x3632, \fail
++	gemini_entry_ledger_verify_word \base, 36, 0x3830, 0x3631, \fail
++	gemini_entry_ledger_verify_word \base, 40, 0x412d, 0x4520, \fail
++	gemini_entry_ledger_verify_word \base, 44, 0x0a31, 0x0000, \fail
 +	.endm
 +
 +	.macro	gemini_entry_ledger_require_primary_or_empty base, fail
@@ -167,7 +132,7 @@ new file mode 100644
 +	b.ne	\fail
 +	ldr	w10, [\base, #4]
 +	cbz	w10, .Lgemini_primary_empty_\@
-+	cmp	w10, #76
++	cmp	w10, #34
 +	b.ne	\fail
 +	ldr	w11, [\base, #8]
 +	cmp	w11, w10
@@ -198,16 +163,10 @@ new file mode 100644
 +	movz	w12, #0x4244
 +	movk	w12, #0x4347, lsl #16
 +	mov	x14, x9
-+	gemini_entry_ledger_require_empty x14, .Lgemini_primary_done_\@
-+	add	x14, x9, #1, lsl #12
-+	gemini_entry_ledger_require_empty x14, .Lgemini_primary_done_\@
-+	add	x14, x9, #2, lsl #12
-+	gemini_entry_ledger_require_empty x14, .Lgemini_primary_done_\@
-+	add	x14, x9, #3, lsl #12
-+	gemini_entry_ledger_require_empty x14, .Lgemini_primary_done_\@
++	gemini_entry_ledger_require_empty_range x14, 4, .Lgemini_primary_done_\@
 +	gemini_entry_ledger_primary_store x9
 +	dsb	sy
-+	movz	w13, #76
++	movz	w13, #34
 +	str	w13, [x9, #4]
 +	dsb	sy
 +	str	w13, [x9, #8]
@@ -245,15 +204,11 @@ new file mode 100644
 +	mov	x14, x9
 +	gemini_entry_ledger_require_primary_or_empty x14, .Lgemini_switch_done_\@
 +	add	x14, x9, #1, lsl #12
-+	gemini_entry_ledger_require_empty x14, .Lgemini_switch_done_\@
-+	add	x14, x9, #2, lsl #12
-+	gemini_entry_ledger_require_empty x14, .Lgemini_switch_done_\@
-+	add	x14, x9, #3, lsl #12
-+	gemini_entry_ledger_require_empty x14, .Lgemini_switch_done_\@
++	gemini_entry_ledger_require_empty_range x14, 3, .Lgemini_switch_done_\@
 +	add	x14, x9, #1, lsl #12
 +	gemini_entry_ledger_switch_store x14
 +	dsb	sy
-+	movz	w13, #76
++	movz	w13, #34
 +	str	w13, [x14, #4]
 +	dsb	sy
 +	str	w13, [x14, #8]
@@ -397,13 +352,13 @@ new file mode 100644
 +
 +static const char * const gemini_entry_records[] __initconst = {
 +	"====0.000000-D\n"
-+	"GEMINI_ARM64_ENTRY_LEDGER_V1 GAEL-20260816-A E0 171 990b22bb\n",
++	"GAEL-20260816-A E0\n",
 +	"====0.000000-D\n"
-+	"GEMINI_ARM64_ENTRY_LEDGER_V1 GAEL-20260816-A E1 172 c00e5ee2\n",
++	"GAEL-20260816-A E1\n",
 +	"====0.000000-D\n"
-+	"GEMINI_ARM64_ENTRY_LEDGER_V1 GAEL-20260816-A E2 173 1297491b\n",
++	"GAEL-20260816-A E2\n",
 +	"====0.000000-D\n"
-+	"GEMINI_ARM64_ENTRY_LEDGER_V1 GAEL-20260816-A E3 174 88a58bc9\n",
++	"GAEL-20260816-A E3\n",
 +};
 +
 +static bool __init gemini_entry_slot_empty(void __iomem *slot)
