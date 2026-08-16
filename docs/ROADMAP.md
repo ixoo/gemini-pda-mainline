@@ -3763,17 +3763,26 @@ Returned Gemian will archive the slots; USB is secondary and screen color is
 ignored. See the
 [capture-method review](../experiments/2026-08-15-mainline-post-ramoops-checkpoint/results/capture-method-review-20260816.txt).
 
-The selected ledger is now under offline implementation in the
+The selected ledger's one permitted boot is now complete; see the
 [pre-ramoops experiment](../experiments/2026-08-16-mainline-pre-ramoops-ledger/README.md).
-Canonical patch 0280 and the isolated profile add exact DT/reservation checks,
-an all-four-empty precondition before the first write, data-before-header
-commit order, per-stage readback, permanent disarm on mismatch, and a returned-
-Gemian parser with negative mutations. The owner explicitly approved this
-bounded reserved-RAM diagnostic on 2026-08-16. The ordered action is to finish
-offline review, commit and build through Buildbox only, construct and validate
-one exact container, pre-arm changed-cycle recovery, and then spend one boot.
-No boot occurs until every offline and deployment precondition passes, and the
-exact artifact must not be repeated unchanged.
+Its Buildbox package and exact container passed offline gates, all four live
+headers were empty before deployment, boot2 write/readback and shutdown
+completed, and a pre-armed observer proved a changed return to Gemian.
+Immediate pstore recovery and the bounded raw-zone follow-up found no valid
+stage or exact payload. The artifact is stopped. This localizes the useful
+boundary before successful completion of the post-`arm64_memblock_init()`
+checkpoint or inside that checkpoint's fail-closed gates; it does not prove
+that LK entered the arm64 Image.
+
+The single next ordered action is an offline audit of a lower observation
+boundary at arm64 `primary_entry`, before page-table creation and before the
+current C checkpoint. The audit must prove how it preserves boot registers,
+handles the incoming MMU/cache state, validates or safely narrows the exact
+reserved-RAM write, and remains recoverable by Gemian. It must compare a true
+entry marker with a later post-MMU marker so one boot distinguishes no Image
+entry from a failure during early arm64 setup. Do not build or boot that more
+privileged writer until its exact write boundary and new owner authorization
+are recorded.
 
 Required evidence:
 

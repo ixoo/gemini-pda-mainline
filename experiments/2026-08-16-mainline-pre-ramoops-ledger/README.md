@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-16-mainline-pre-ramoops-ledger` |
-| Status | exact candidate validated; device deployment pending |
+| Status | single device attempt complete; no stage retained |
 | Subsystem | arm64 early boot, initcalls, pstore/ramoops |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-16 America/New_York |
@@ -42,8 +42,9 @@ memory. It is not a DA921x provider, CPU, or serviceability experiment.
   `00455398cf1ffa3f57ad5083322e5541b0a58dbdec9ff63883b1427990cff8c3`.
 - Exact 16 MiB `boot2` image SHA-256:
   `ac849d9aca9454d5d6a29d25a67b5d27fcef94e16bb881f4d14db09d0d29d75f`.
-- Partition identity and predecessor checksum remain live deployment facts and
-  will be recorded only after the guarded installer resolves them.
+- Live GPT resolved inactive `boot2` as `/dev/mmcblk0p30`. Its predecessor
+  full-partition SHA-256 was
+  `ae6b354d51a9e5096b9f6f74ee9037c47ba026e00895e6f4c8028f15bc9bd348`.
 
 ## Safety assessment
 
@@ -132,13 +133,25 @@ is required for this explicitly non-submission experiment archive; the style
 findings do not change the compiled operation and are recorded rather than
 silently treated as an upstream-ready result. No native VM build ran.
 
-No new device boot has occurred yet.
-
 Immediately before deployment preparation, known-good Gemian was reachable as
 kernel `3.18.41+`, boot ID `2f308b03-2e2e-42a4-840a-03f43fd48014`. A read-only
 12-byte `/dev/mem` read at each exact slot returned little-endian `DBGC`, start
 zero, size zero. The first-write all-four-empty runtime precondition therefore
 still matches the live state.
+
+The guarded installer resolved inactive, unmounted logical `boot2`, recorded
+the predecessor without a fresh backup, wrote the exact candidate, synced and
+flushed it, and matched both the full-partition checksum and an independent
+byte comparison. It then powered Gemian off and confirmed the target was
+unreachable.
+
+The pre-armed collector observed that disconnect, then a returned known-good
+Gemian boot with a changed boot ID. Immediate pstore recovery exposed no
+files. The exact classifier therefore returned `no-stage`, with no valid slot
+and no highest valid slot. A bounded post-return `/dev/mem` follow-up found all
+four headers reset or retained as `DBGC`, start zero, size zero, and found zero
+exact ledger payloads in all four complete 4 KiB zones. A read-only
+post-cycle checksum still matched the installed candidate.
 
 ## Analysis
 
@@ -147,6 +160,14 @@ partial write can destroy an earlier completed boundary. Returned Gemian
 accepts the ordinary ramoops dmesg framing and can expose every completed slot.
 USB remains useful only as secondary live evidence because it depends on much
 later initramfs and gadget setup.
+
+The post-return raw-zone check rules out a classifier-only or pstore-file-name
+miss: no exact candidate payload remained in the selected zones. It does not
+distinguish failure before the slot-171 hook from refusal by one of that hook's
+exact DT, reservation, mapping, or header gates. Source re-audit confirms
+arm64 calls `early_fixmap_init()` and `early_ioremap_init()` before
+`arm64_memblock_init()`, so simple early-ioremap API initialization is not the
+explanation. The exact artifact is stopped and must not be repeated.
 
 Decision map:
 
@@ -162,12 +183,15 @@ Decision map:
 
 ## Conclusion
 
-Offline validation, the Buildbox build, and exact candidate construction pass.
-One approved device boot and returned-Gemian ledger recovery remain. No
-hardware-support or DA921x provider claim exists.
+Offline validation, Buildbox construction, deployment, shutdown, changed-cycle
+recovery, classification, raw-zone follow-up, and post-cycle image identity all
+completed. No stage was retained. The attributable boundary is before
+successful completion of the reserved-scan checkpoint or inside its
+fail-closed preconditions; this result does not establish whether LK entered
+the arm64 Image. No hardware-support or DA921x provider claim exists.
 
 ## Follow-up
 
-Record exact build and candidate identities here, then follow only the branch
-selected by the returned-Gemian ledger. The ordered project path remains in
+Do not repeat this candidate. The ordered project path and the next lower
+observation-boundary audit remain in
 [`docs/ROADMAP.md`](../../docs/ROADMAP.md).
