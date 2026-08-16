@@ -1,0 +1,36 @@
+Current-DT USB-observation predeployment hypothesis and decision map
+Date: 2026-08-16 America/New_York
+
+[candidate]
+artifact_name=candidate-current-dtb-usb-observation-a9d4f951
+kernel_release=7.1.3-gemini-entryled-a
+raw_sha256=a9d4f9516d761bfb30faf95e8b3d3f9e9d19282bc67d508fbc5ff308e84954be
+boot2_padded_sha256=fa107a988d860f017905c61a4b52110bc8dc3cc1ce5f407424fa3dd47c9b8b87
+dtb_sha256=e93264b32e0a42098fa6556e454abc99b75373e92e1e3b6eef50285542251331
+kernel_delta_from_stopped_GAEL=none
+dtb_delta_from_stopped_GAEL=three-USB-status-properties-only
+
+[hypothesis]
+The stopped current-DTB GAEL attempt dropped the established USB observation
+DT. Enabling only the T-PHY, USB2 PHY port, and MTU3 peripheral controller in
+the exact package DT will restore the direct gadget observation path without
+restoring the unrelated Stage-27 DT differences.
+
+[preconditions]
+USB_cable=attached-before-boot2-selection
+host_observation=USB-enumeration-and-netcat
+attempt_limit=one
+CPU8_CPU9=remain-offline
+device_write_scope=guarded-logical-boot2-installation-only
+
+[decision-map]
+exact_netcat_release_7.1.3-gemini-entryled-a=current-base-DT-serviceable-with-three-status-repair;prior-no-USB-was-observation-loss
+mainline_USB_enumeration_without_netcat=kernel-reached-USB;init-or-service-path-incomplete
+no_mainline_USB_then_changed_Gemian=bounded-negative-at-or-before-USB-observation-path;do-not-repeat-identical-artifact
+screen_color=not-an-oracle
+returned_empty_entry_ledger=not-a-negative-oracle
+
+[next-action]
+Install only the exact candidate to live-GPT-resolved inactive boot2, require a
+matching full-partition readback, and shut down. The owner then physically
+selects boot2 once while the USB cable is already attached.

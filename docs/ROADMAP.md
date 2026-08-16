@@ -3812,15 +3812,36 @@ serviceability. With every container input except the DTB unchanged, the
 current DTB path is strongly implicated. See the
 [positive runtime result](../experiments/2026-08-16-mainline-lk-handoff-dtb-control/results/runtime-attempt-1-serviceable-20260816.txt).
 
-The single next ordered action is an offline LK-sensitive DTB repair audit.
-Map each semantic delta between Stage 27 and the current DTB to its exact source
-patch and to the pinned LK fixup that can observe it, including `/chosen`,
-framebuffer children, overlay targets, reserved-memory compatibility, and
-handoff-owner nodes. Select one minimal DTB derivative that tests one loader
-contract while keeping the exact serviceable kernel, initramfs, addresses,
-command line, DA921x-write closure, and CPU8/9 closure. Do not rebuild the
-kernel and do not spend another boot until the derivative has a unique live
-USB decision map. Do not use returned empty ledger slots as negative evidence.
+The LK-sensitive DTB repair audit is complete and corrects the experiment
+lineage. The serviceable Stage-27 candidates reused a frozen Gate-3
+USB-enabled observation DT; the stopped current-DTB GAEL attempt instead used
+its package base DT, where the USB T-PHY, USB2 PHY port, and MTU3 peripheral
+controller were disabled. No audited `/chosen`, CPU, reserved-memory, overlay,
+or handoff delta isolates a strict stop in the pinned public LK contract. The
+prior absence of USB therefore did not cleanly establish an LK or Image-entry
+failure. See the
+[current-DT USB audit](../experiments/2026-08-16-mainline-current-dtb-usb-observation/results/lk-sensitive-dtb-audit-20260816.txt).
+
+The minimal derivative changes only those three existing `status` properties
+to `okay`; xHCI remains disabled, the role remains peripheral, and every other
+decompiled property remains equal to the package DT. The exact derived DTB is
+`e93264b32e0a42098fa6556e454abc99b75373e92e1e3b6eef50285542251331`.
+The exact raw container is
+`a9d4f9516d761bfb30faf95e8b3d3f9e9d19282bc67d508fbc5ff308e84954be`
+and the exact 16 MiB boot2 payload is
+`fa107a988d860f017905c61a4b52110bc8dc3cc1ce5f407424fa3dd47c9b8b87`.
+Two assemblies, independent padding, all 32 LK gates, the exact manifest, and
+six negative mutations pass without rebuilding the kernel.
+
+The single next ordered action is its one guarded USB-attached attempt. Install
+only that exact payload to live-GPT-resolved inactive boot2, require a matching
+full readback and clean shutdown, then physically select boot2 once with USB
+already attached. Exact netcat kernel identity proves the three-property
+current DT is serviceable; mainline USB without netcat localizes after USB
+initialization; no mainline USB followed by changed Gemian is only a bounded
+negative at or before this observation path. Do not repeat this identical
+artifact and do not use screen color or returned empty ledger slots as a
+negative oracle. CPU8 and CPU9 remain closed.
 
 Required evidence:
 

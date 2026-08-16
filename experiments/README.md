@@ -23,6 +23,14 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-16 current-DT USB observation restoration](2026-08-16-mainline-current-dtb-usb-observation/README.md)
+  — corrects the prior DT lineage comparison: the serviceable Stage-27 line
+  reused a frozen USB-enabled observation DT, while the stopped current-DT
+  GAEL attempt used a package DT with those nodes disabled. The selected
+  candidate changes exactly three existing USB `status` properties and leaves
+  xHCI disabled, peripheral-only policy intact, and CPU8/9 closed. Its two
+  assemblies, independent padding, 32 LK gates, exact manifest, and six
+  negative mutations pass. One USB-attached guarded attempt is pending.
 - [2026-08-16 LK handoff DTB control](2026-08-16-mainline-lk-handoff-dtb-control/README.md)
   — the offline lower-boundary audit found that stopped GAEL and the last
   serviceable Stage-27 container both satisfy their Android-v0, gzip, load,
