@@ -30,17 +30,20 @@ the loop. Positive identity-gated observations are unaffected.
   the appended DTB before disabling cache/MMU and branching. The selected
   decision-changing candidate keeps the exact GAEL kernel and crosses it with
   the exact runtime-proven Stage-27 DTB. Two assemblies, independent padding,
-  all 32 LK gates, and six negative mutations pass. Guarded boot2 deployment,
-  complete readback, clean shutdown, and a long pre-armed observer passed; one
-  physical selection and changed-cycle recovery remain pending.
+  all 32 LK gates, six negative mutations, guarded deployment, and full
+  readback passed. Its one runtime reached `/init`, exact USB/netcat, CPU0--7,
+  and native reboot with CPU8/9 closed. This proves current Image entry and
+  strongly implicates current-DTB processing. Empty returned slots also reject
+  the ledger's negative post-return stage oracle.
 - [2026-08-16 arm64 entry-ledger implementation](2026-08-16-mainline-arm64-entry-ledger/README.md)
   — implements the authorized `GAEL-20260816-A` four-stage lower-boundary
   discriminator as canonical patch 0281 and one isolated Buildbox profile.
   Two call-free checkpoints run with MMU/data-cache-off refusal before the
   primary switch; two independent early-mapped checkpoints retain later proof.
   Its exact one boot2 attempt completed with a changed return to Gemian but no
-  valid retained stage. The artifact is stopped; Image entry remains
-  unestablished or the writers refused before the post-MMU observer.
+  valid retained stage. The later serviceable DTB control retained the same
+  empty returned headers, so this establishes no surviving record, not absent
+  Image entry. The artifact and negative causal interpretation are stopped.
 - [2026-08-16 arm64 entry-ledger safety audit](2026-08-16-mainline-arm64-entry-ledger-audit/README.md)
   — audits the lower observation boundary selected after the pre-ramoops
   candidate retained no stage. It defines four independent checkpoints from

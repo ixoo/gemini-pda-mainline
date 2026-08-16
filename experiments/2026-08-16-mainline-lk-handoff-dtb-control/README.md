@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-16-mainline-lk-handoff-dtb-control` |
-| Status | exact candidate deployed and powered off; one boot2 selection pending |
+| Status | one exact attempt serviceable; positive control confirmed and stopped |
 | Subsystem | Planet LK Android-v0 handoff, appended DTB, arm64 primary entry |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-16 America/New_York |
@@ -86,6 +86,10 @@ reboot behavior is not attributable evidence.
   serialization, LK-gate, and negative-mutation validator.
 - `scripts/install-boot2.sh`: source-pinned guarded installer with live GPT
   resolution, no new backup, full readback, and clean shutdown.
+- `scripts/remote-live-identity-probe.sh`: exact executed read-only identity,
+  CPU-policy, DT-compatible, and attempted live-ledger probe.
+- `scripts/remote-service-probe.sh`: exact executed read-only uptime, storage,
+  pstore, reboot-wrapper, and dmesg probe.
 - `results/lower-boundary-audit-20260816.txt`: stopped/control container,
   Image-entry, public-LK, load-range, and DTB comparison.
 - `results/offline-candidate-validation-20260816.txt`: exact construction and
@@ -94,6 +98,11 @@ reboot behavior is not attributable evidence.
   hypothesis, refusal gates, and decision map.
 - `results/deployment-20260816.txt`: sanitized live-GPT, empty-ledger,
   predecessor, full-readback, observer, power, and shutdown receipt.
+- `results/runtime-attempt-1-serviceable-20260816.txt`: exact USB runtime,
+  dmesg, CPU policy, native reboot, changed return, pstore, returned-ledger,
+  and post-cycle candidate identity evidence.
+- `results/executed-native-reboot-request-20260816.txt`: non-executable exact
+  source sent after the live identity gates; it requested one native reboot.
 
 The ignored candidate and private runtime captures remain below `artifacts/`.
 
@@ -155,25 +164,55 @@ complete device checksum and an independent full-byte readback. It then
 cleanly powered Gemian off. The observer independently confirmed the
 disconnect and remains armed for the physical selection and changed return.
 
+After physical selection, the owner reported that boot2 appeared healthy but
+that USB had initially been unplugged. Connecting it exposed the exact
+established USB interface and netcat endpoint. A bounded read-only probe proved
+release `7.1.3-gemini-entryled-a`, arm64, the Gemini compatibles, CPU0--7
+online, CPU8/9 offline, and a stable boot identity. Dmesg independently showed
+the exact release, ramoops reservation, `/init` at 46.093 seconds, the USB
+gadget ready, and no kernel panic, BUG, call trace, or unable-to-handle record.
+No block storage was mounted.
+
+The exact kernel has `CONFIG_DEVMEM` disabled, `/dev/mem` was absent, and no
+live pstore record existed, so the planned live physical ledger read was not
+available. The identity-gated native reboot wrapper was exact and requested
+one warm return with zero block mounts. USB disconnected, the long observer
+captured changed-identity Gemian, and an immediate bounded raw-zone read found
+the same four empty headers as before deployment. Boot2 still matched the
+exact installed payload.
+
 ## Analysis
 
-This is not a marker-only or kernel/config-identical repeat. The DTB is changed
+This was not a marker-only or kernel/config-identical repeat. The DTB was changed
 to a runtime-proven control specifically at the only unresolved input that LK
-actively processes before the arm64 branch. A valid E0 is sufficient to close
-the LK-to-Image handoff for the current kernel. A later stage adds localization
-but is not required for the primary decision. Another `no-stage` result is also
-useful: it rejects the current DTB as the sole cause and focuses the next audit
-on current gzip/Image acceptance, the actual installed loader's final handoff,
-or the retained E0 observation gate.
+actively processes before the arm64 branch. Independent USB runtime evidence
+is stronger than an E0 record: it proves LK decompression and final branch,
+current Image entry, all initialization through `/init`, and the serviceability
+path. Because the exact kernel/configuration and all container inputs except
+the appended DTB were unchanged, the current DTB path is strongly implicated
+in the prior nonserviceability. The exact responsible node or property is not
+yet isolated.
+
+The empty returned zones cannot be interpreted as `no-stage`: this same
+negative snapshot followed a boot independently proven to pass E0--E3 and
+reach `/init`. Either the writers refused while execution continued or the
+warm return/Gemian ramoops initialization erased their payload. Consequently,
+the earlier GAEL result remains an exact observation of no retained record but
+no longer establishes absent Image entry. Future success/failure attribution
+must use live USB identity or another observation path whose negative state is
+validated across a positive control.
 
 ## Conclusion
 
-Deployment result: the lower audit selected one safe, falsifiable
-discriminator, the exact candidate passed construction and independent
-validation, and guarded deployment plus shutdown passed. No runtime conclusion
-or hardware-support change exists until the one boot2 attempt is recovered.
+Confirmed on the named unit and exact revisions: the current GAEL Image is
+serviceable with the runtime-proven Stage-27 DTB. LK-to-Image handoff and
+current-kernel execution through `/init` are established. The current DTB path
+is the remaining source of the prior serviceability regression, but its exact
+node/property is unresolved. CPU8 and CPU9 remain closed. The returned-ledger
+negative oracle is rejected.
 
 ## Follow-up
 
-Deploy and recover the one frozen attempt. The ordered action after its exact
-stage classification belongs in [`docs/ROADMAP.md`](../../docs/ROADMAP.md).
+Stop this exact artifact. Audit the LK-sensitive DTB delta and select one
+minimal semantic DT repair using the live USB identity path. The ordered action
+belongs in [`docs/ROADMAP.md`](../../docs/ROADMAP.md).

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-16-mainline-arm64-entry-ledger` |
-| Status | one exact attempt completed with no valid stage; artifact stopped |
+| Status | no retained stage; entry-absence interpretation superseded by positive control |
 | Subsystem | arm64 primary entry, MMU transition, setup_arch, pstore/ramoops |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-16 America/New_York |
@@ -111,6 +111,9 @@ diagnostics within the same documented fail-closed retained-RAM policy. See
   readback, power, and clean-shutdown receipt.
 - `results/runtime-attempt-1-no-stage-20260816.txt`: changed-cycle, pstore,
   raw-zone, classifier, and post-cycle candidate-identity evidence.
+- The later [DTB-control runtime](../2026-08-16-mainline-lk-handoff-dtb-control/results/runtime-attempt-1-serviceable-20260816.txt)
+  is the positive control for interpreting this experiment's empty returned
+  zones.
 - The audit's `scripts/record-layout.py` freezes the exact bytes and assembly
   words; its classifier and fixtures own returned-Gemian interpretation.
 
@@ -180,29 +183,33 @@ Live GPT still resolved boot2 as `/dev/mmcblk0p30`, and its complete post-cycle
 checksum remained the exact deployed payload. The one-attempt artifact is
 stopped and must not be repeated unchanged.
 
+The later DTB-control candidate used this exact kernel, configuration,
+initramfs, addresses, command line, and ledger implementation, changing only
+the appended DTB. It reached `/init`, provided the established USB shell, kept
+CPU0--7 online and CPU8/9 offline, and completed a native reboot. Its immediate
+returned-Gemian raw-zone capture nevertheless had the same four exact empty
+headers. That positive control supersedes the negative stage interpretation,
+not the original capture or chronology.
+
 ## Analysis
 
-The previous C-only checkpoint could not distinguish absence of Image entry
-from refusal before its post-memblock write. This result adds that distinction
-but takes the negative branch: neither of the MMU-off entry records nor either
-independent mapped record survived. Because the headers were exact and empty
-both before and after the changed cycle, this is not a malformed-record,
-duplicate-slot, stale-payload, classifier-only, or wrong-candidate result.
-
-The attributable boundary is now: Image entry remains unestablished, or both
-entry writers safely refused and execution stopped before the independent
-post-MMU stage. It does not prove an LK defect, because E0 deliberately refuses
-unexpected incoming EL/MMU/cache state and retained physical access itself is
-part of that observation. It does rule out treating any later DA921x/provider,
-initcall, regulator, or CPU-admission code as the next useful boundary.
+The exact attempt established only that no GAEL payload survived into the
+returned-Gemian capture. The later positive control proves that the same empty
+post-return state can follow execution through `/init`. Therefore empty
+returned slots do not distinguish absent Image entry from writer refusal or
+payload clearing during warm return/Gemian ramoops initialization. The frozen
+classifier correctly described the bytes but its `no-stage` causal mapping was
+not validated against a positive control and is now rejected.
 
 ## Conclusion
 
-The exact candidate produced an attributable `no-stage` result. Image entry is
-not established, no DA921x/provider lifecycle evidence exists, and no hardware
-support claim changes. CPU8 and CPU9 remain closed.
+The exact candidate produced no retained GAEL stage. It does not establish
+whether Image entry occurred. No DA921x/provider lifecycle evidence exists and
+CPU8/9 remain closed. The later DTB control establishes that this exact current
+Image is serviceable with the Stage-27 DTB.
 
 ## Follow-up
 
-Do not repeat this artifact. Follow the lower boot-boundary audit and selected
-next observation owned by [`docs/ROADMAP.md`](../../docs/ROADMAP.md).
+Do not repeat this artifact or reuse returned empty slots as a negative entry
+oracle. Follow the DTB repair action owned by
+[`docs/ROADMAP.md`](../../docs/ROADMAP.md).

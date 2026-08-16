@@ -5,7 +5,7 @@ Detailed investigation narratives, candidate identities, hashes, raw samples,
 and rejected branches belong in [`experiments/`](../experiments/README.md).
 Durable hardware facts belong in [`docs/hardware/`](hardware/README.md).
 
-Last reviewed: **2026-08-05**.
+Last reviewed: **2026-08-16**.
 
 Unless a row says otherwise, runtime evidence applies to the named development
 Gemini PDA unit and the local Linux 7.1.3 integration series. A successful
@@ -50,7 +50,7 @@ Firmware boundary:
 
 | Subsystem | Runtime | Upstream | Firmware | Current boundary and remaining gaps |
 | --- | --- | --- | --- | --- |
-| Non-primary development boot | `working` | `local` | `required-nonfree` | Validated Android-v0 containers can boot Linux 7.1.3 from owner-selected logical `boot2` while the known-good path remains available. Standard bootloader ownership and a repeated cold-boot protocol remain open. See the [boot contract](../experiments/2026-07-12-boot-contract-recovery/README.md). |
+| Non-primary development boot | `working` | `local` | `required-nonfree` | An exact current Linux 7.1.3 Image reached `/init`, USB/netcat, CPU0--7, and native reboot from owner-selected logical `boot2` when paired with the runtime-proven Stage-27 DTB; CPU8/9 remained offline and known-good Gemian returned. The current DTB path is regressed and its exact LK-sensitive node/property remains open, as do standard bootloader ownership and repeated cold boots. See the [DTB control](../experiments/2026-08-16-mainline-lk-handoff-dtb-control/README.md). |
 | Loader-retained console | `partial` | `local` | `required-nonfree` | A readable, rotated fbcon shell works and the selected font is usable. Appearance may be delayed; kernel logs can share the interactive console. Stable log separation and native DRM/panel/backlight ownership remain open. |
 | Built-in keyboard | `partial` | `local` | `none` | AW9523 plus generic matrix polling provides working keyboard input and the current physical map. F1–F10, Page Up/Page Down, modifiers, rollover, wake, and complete event coverage still need explicit tests. See the [keyboard facts](hardware/keyboard.md). |
 | USB gadget Ethernet and development shell | `working` | `local` | `none` | Peripheral-mode Ethernet, addressing, ping, and a bounded no-authentication development shell work on the USB-only link. Host mode, role switching, charging, both physical ports, and hotplug regression remain open. See the [USB gadget experiment](../experiments/2026-07-21-usb-gadget-ethernet/README.md). |

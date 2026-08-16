@@ -3783,13 +3783,13 @@ exact four-header physical fingerprint. Later stages accept an earlier slot
 only when empty or byte-exact. See the
 [entry-ledger audit](../experiments/2026-08-16-mainline-arm64-entry-ledger-audit/README.md).
 
-The exact entry-ledger attempt is complete and stopped; see the
+The exact entry-ledger attempt retained no stage and remains stopped; see the
 [runtime result](../experiments/2026-08-16-mainline-arm64-entry-ledger/results/runtime-attempt-1-no-stage-20260816.txt).
-The changed return to Gemian, empty pstore, four exact empty retained-zone
-headers, and unchanged post-cycle boot2 identity produced `no-stage`. Image
-entry remains unestablished, or the entry writers refused and execution did
-not reach the independent post-MMU observer. This moves the useful boundary
-below DA921x/provider, initcall, and CPU-admission work.
+Its original absent-entry interpretation is superseded: the later positive DTB
+control reached `/init` and USB with the same kernel and ledger, yet its
+returned-Gemian raw zones were also empty. Returned empty slots therefore do
+not establish absent Image entry; they may reflect writer refusal or payload
+clearing during the warm return/Gemian ramoops initialization.
 
 The lower-boot-boundary audit is complete. The stopped GAEL and runtime-proven
 Stage-27 containers both satisfy their Android-v0, gzip, decompression, Image
@@ -3802,25 +3802,25 @@ multiple loader handoff/overlay targets. Static analysis cannot prove that the
 installed loader accepts the exact current DTB. See the
 [lower-boundary audit](../experiments/2026-08-16-mainline-lk-handoff-dtb-control/results/lower-boundary-audit-20260816.txt).
 
-The single next ordered action is one boot of the exact GAEL kernel crossed
-with the exact runtime-proven Stage-27 DTB. This changes no kernel,
-configuration, initramfs, address, command line, ledger, DA921x-write, or CPU
-admission policy. Any valid E0 or later record proves current Image entry and
-implicates current-DTB processing in the stopped result. Another exact
-`no-stage` result exonerates the current DTB as the sole cause and keeps the
-boundary at current gzip/Image/final handoff or E0 refusal. The candidate has
-passed two byte-identical assemblies, two independent 16 MiB constructions,
-all 32 LK gates, and six negative mutations. Use a long pre-armed changed-cycle
-observer plus immediate boot-ID-bounded pstore and raw-zone recovery; do not
-repeat either exact predecessor artifact. See the
-[DTB-control experiment](../experiments/2026-08-16-mainline-lk-handoff-dtb-control/README.md).
+The exact GAEL kernel crossed with the runtime-proven Stage-27 DTB completed its
+one attempt. Exact USB identity proved release `7.1.3-gemini-entryled-a`, arm64,
+execution through `/init`, CPU0--7 online, CPU8/9 offline, and the established
+netcat shell; dmesg had no panic, BUG, call trace, or unable-to-handle record.
+The identity-gated native reboot returned to changed-identity Gemian and boot2
+remained exact. This proves LK decompression/final branch and current Image
+serviceability. With every container input except the DTB unchanged, the
+current DTB path is strongly implicated. See the
+[positive runtime result](../experiments/2026-08-16-mainline-lk-handoff-dtb-control/results/runtime-attempt-1-serviceable-20260816.txt).
 
-The exact control is now installed on inactive live-GPT `boot2`. Its predecessor
-was the stopped GAEL payload; stable-power, complete device checksum,
-independent full-byte readback, clean shutdown, and long-observer disconnect
-gates all passed. The next action is the one physical boot2 selection followed
-by the already-armed changed-cycle recovery. No second selection is authorized
-without first classifying this result.
+The single next ordered action is an offline LK-sensitive DTB repair audit.
+Map each semantic delta between Stage 27 and the current DTB to its exact source
+patch and to the pinned LK fixup that can observe it, including `/chosen`,
+framebuffer children, overlay targets, reserved-memory compatibility, and
+handoff-owner nodes. Select one minimal DTB derivative that tests one loader
+contract while keeping the exact serviceable kernel, initramfs, addresses,
+command line, DA921x-write closure, and CPU8/9 closure. Do not rebuild the
+kernel and do not spend another boot until the derivative has a unique live
+USB decision map. Do not use returned empty ledger slots as negative evidence.
 
 Required evidence:
 

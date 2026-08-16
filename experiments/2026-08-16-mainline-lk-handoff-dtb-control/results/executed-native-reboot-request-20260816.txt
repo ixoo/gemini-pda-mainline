@@ -1,0 +1,16 @@
+BB=/bin/busybox
+live_kernel=$($BB uname -r) || exit 91
+live_boot_hash=$($BB sha256sum /proc/sys/kernel/random/boot_id | $BB cut -d " " -f 1) || exit 92
+live_reboot_hash=$($BB sha256sum /bin/reboot | $BB cut -d " " -f 1) || exit 93
+block_mounts=$($BB grep -Ec "^/dev/(mmc|sd|nvme)" /proc/mounts || true)
+$BB printf "%s\\n" __GAEL_NATIVE_REBOOT_BEGIN__
+$BB printf "kernel_release=%s\\nboot_id_sha256=%s\\nreboot_sha256=%s\\nblock_mounts=%s\\n" "$live_kernel" "$live_boot_hash" "$live_reboot_hash" "$block_mounts"
+if [ "$live_kernel" = 7.1.3-gemini-entryled-a ] && [ "$live_boot_hash" = d7c981a8c467b8af84992c709843c32c27f480c24d91648d3689785d36d9bd03 ] && [ "$live_reboot_hash" = 3f439dbb0572b0f6f463c168d5b795dc93c9f41efd096f2154bd7f6b8524a2f7 ] && [ "$block_mounts" = 0 ]; then
+  $BB printf "%s\\n" request_authorized=yes storage_sync=not-required-no-block-mounts request_count=1
+else
+  $BB printf "%s\\n" request_authorized=no
+  exit 94
+fi
+$BB printf "%s\\n" __GAEL_NATIVE_REBOOT_END__
+/bin/reboot
+$BB printf "%s\\n" __GAEL_NATIVE_REBOOT_RETURNED__
