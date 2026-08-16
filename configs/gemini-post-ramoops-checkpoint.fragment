@@ -1,0 +1,5 @@
+# Experiment-only retained checkpoint after ramoops console registration and
+# before the built-in DA921x device initcall. The module-policy control,
+# read-only provider, observer-off state, and CPU8/CPU9 veto remain unchanged.
+CONFIG_PSTORE_GEMINI_POST_RAMOOPS_CHECKPOINT=y
+CONFIG_LOCALVERSION="-gemini-postram-a"

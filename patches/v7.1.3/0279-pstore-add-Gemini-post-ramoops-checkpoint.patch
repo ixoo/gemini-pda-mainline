@@ -1,0 +1,66 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 15 Aug 2026 20:35:00 -0400
+Subject: [PATCH] pstore: add Gemini post-ramoops checkpoint
+
+Add one default-off, experiment-only marker immediately after a ramoops
+backend with console storage registers successfully. The marker runs in the
+postcore ramoops probe. It precedes built-in DA921x device registration and
+gives warm-reset recovery one attributable boundary after kernel entry and
+pstore-console availability.
+
+The diagnostic appends one line to the reserved persistent-RAM console. It
+performs no device-storage or regulator access. It changes no owner.
+CPU8 and CPU9 admission remains closed. This patch uses a synthetic,
+non-certifying author identity, carries no sign-off, and is not
+submission-ready.
+---
+ fs/pstore/Kconfig | 13 +++++++++++++
+ fs/pstore/ram.c   |  8 ++++++++
+ 2 files changed, 21 insertions(+)
+
+diff --git a/fs/pstore/Kconfig b/fs/pstore/Kconfig
+--- a/fs/pstore/Kconfig
++++ b/fs/pstore/Kconfig
+@@ -80,6 +80,19 @@ config PSTORE_RAM
+ 	  "ramoops.ko".
+ 
+ 	  For more information, see Documentation/admin-guide/ramoops.rst.
++
++config PSTORE_GEMINI_POST_RAMOOPS_CHECKPOINT
++	bool "Gemini post-ramoops retained checkpoint"
++	depends on PSTORE_RAM=y
++	depends on PSTORE_CONSOLE && ARM64 && ARCH_MEDIATEK
++	default n
++	help
++	  Emit one attributable persistent-console marker immediately after a
++	  built-in ramoops backend with console storage registers successfully.
++	  This experiment-only diagnostic does not access device storage, read or
++	  write a regulator, change a transition owner, or admit CPU8 or CPU9.
++
++	  If unsure, say N.
+ 
+ config PSTORE_ZONE
+ 	tristate
+diff --git a/fs/pstore/ram.c b/fs/pstore/ram.c
+--- a/fs/pstore/ram.c
++++ b/fs/pstore/ram.c
+@@ -849,8 +849,16 @@ static int ramoops_probe(struct platform_device *pdev)
+ 	err = pstore_register(&cxt->pstore);
+ 	if (err) {
+ 		pr_err("registering with pstore failed\n");
+ 		goto fail_buf;
+ 	}
++#ifdef CONFIG_PSTORE_GEMINI_POST_RAMOOPS_CHECKPOINT
++	if (cxt->pstore.flags & PSTORE_FLAGS_CONSOLE)
++		pr_emerg("%s %s %s %s\n",
++			 "GEMINI_MAINLINE_POST_RAMOOPS_20260815_A",
++			 "checkpoint=ramoops-registered pstore_console=active",
++			 "storage_access=none regulator_reads=none",
++			 "regulator_writes=none cpu8_cpu9_admission=closed");
++#endif
+ 
+ 	/*
+ 	 * Update the module parameter variables as well so they are visible
+-- 
+2.50.1 (Apple Git-155)
