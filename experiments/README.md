@@ -23,6 +23,14 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-16 pre-ramoops four-stage retained ledger](2026-08-16-mainline-pre-ramoops-ledger/README.md)
+  — implements the approved next discriminator after the exact post-ramoops
+  candidate returned with empty pstore. A default-off isolated profile writes
+  four short, integrity-tagged records only to validated-empty final dmesg
+  slots after the reserved-memory scan and at early/core/postcore initcalls.
+  Normal ramoops is bypassed for this profile so returned Gemian can recover
+  completed stages. Offline validation and Buildbox construction are in
+  progress; no runtime result or hardware-support claim exists yet.
 - [2026-08-05 P30 generation arbitration model](2026-08-05-a72-p30-generation-protocol/README.md)
   — adds canonical patch 0158 and a dormant, raw-lock-serialized C model for
   exact CPU8/CPU9 startup arbitration, sticky quarantine, indivisible success

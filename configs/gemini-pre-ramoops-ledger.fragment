@@ -1,0 +1,4 @@
+# Experiment-only four-slot retained stage ledger before normal ramoops probe.
+# The exact module-policy control and CPU8/CPU9 veto remain unchanged.
+CONFIG_PSTORE_GEMINI_PRE_RAMOOPS_LEDGER=y
+CONFIG_LOCALVERSION="-gemini-preledger-a"

@@ -1,0 +1,15 @@
+Pre-ramoops ledger owner authorization
+Date: 2026-08-16 America/New_York
+
+design_presented=four short records in exact validated-empty pstore dmesg slots 171-174
+runtime_write_range=[0x444bb000,0x444bf000)
+normal_ramoops=disabled-for-isolated-candidate-only
+partition_or_filesystem_runtime_access=none
+regulator_or_i2c_access=none
+cpu8_cpu9_admission=closed
+timer_or_reboot_action=none
+recovery=returned-Gemian-read-only-pstore-capture
+fresh_device_backup=not-required-project-wide-starting-backup-is-recovery-basis
+owner_response=let's do it!
+authorization_interpretation=proceed-with-offline-implementation-validation-build-and-one-exact-bounded-ledger-boot
+authorization_does_not_cover=any-other-reserved-memory-region-or-partition-or-regulator-or-cpu-action

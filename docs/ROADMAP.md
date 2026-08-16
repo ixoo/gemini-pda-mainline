@@ -3763,12 +3763,17 @@ Returned Gemian will archive the slots; USB is secondary and screen color is
 ignored. See the
 [capture-method review](../experiments/2026-08-15-mainline-post-ramoops-checkpoint/results/capture-method-review-20260816.txt).
 
-The ordered action remains offline: implement the default-off ledger, exact
-address/empty-slot fail-closed checks, parser, mutations, and recovery contract;
-commit and build through Buildbox only. Do not spend another device boot until
-that review passes. The resulting bounded reserved-RAM writes are not covered
-by standing boot2-install authorization and require explicit owner approval
-before runtime.
+The selected ledger is now under offline implementation in the
+[pre-ramoops experiment](../experiments/2026-08-16-mainline-pre-ramoops-ledger/README.md).
+Canonical patch 0280 and the isolated profile add exact DT/reservation checks,
+an all-four-empty precondition before the first write, data-before-header
+commit order, per-stage readback, permanent disarm on mismatch, and a returned-
+Gemian parser with negative mutations. The owner explicitly approved this
+bounded reserved-RAM diagnostic on 2026-08-16. The ordered action is to finish
+offline review, commit and build through Buildbox only, construct and validate
+one exact container, pre-arm changed-cycle recovery, and then spend one boot.
+No boot occurs until every offline and deployment precondition passes, and the
+exact artifact must not be repeated unchanged.
 
 Required evidence:
 
