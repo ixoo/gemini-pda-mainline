@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-17-mainline-i2c5-serviceability-restoration` |
-| Status | exact candidate installed and device shut down; awaiting observed boot |
+| Status | one attempt returned preloader-only before changed Gemian; candidate stopped |
 | Subsystem | MT6797 I2C5/AP-DMA, AW9523 pinctrl/GPIO, polling matrix keyboard |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-17 America/New_York |
@@ -76,6 +76,11 @@ full readback, and clean shutdown.
   decision map for the single candidate attempt.
 - `results/deployment-1-20260817.txt`: live-GPT target, predecessor, exact
   write/readback identity, and confirmed shutdown receipt.
+- `results/observer-window-1-no-attempt-20260817.txt`: the first armed window's
+  retained identities and explicit no-attempt classification.
+- `results/runtime-attempt-1-no-mainline-usb-20260817.txt`: live observer,
+  exact USB sequence, changed-Gemian recovery, reset class, empty pstore, and
+  post-cycle boot2 identity.
 
 Generated candidates remain below the ignored `artifacts/` tree.
 
@@ -132,6 +137,21 @@ watchdog candidate as predecessor, made no fresh backup, wrote and flushed the
 exact payload, and fully read back the same SHA-256. It then requested clean
 poweroff and confirmed the device unreachable without an automatic reboot.
 
+The first post-deployment observer window was armed against the exact payload
+and deployment Gemian boot ID, but no USB topology transition, exact mainline
+interface, changed Gemian return, or physical-selection report occurred. It was
+stopped and archived as a no-attempt window. This is not kernel evidence, does
+not consume the candidate's single attempt, and does not change its installed,
+untested disposition.
+
+The fresh second observer window covered the physical attempt itself.
+Preloader enumerated at 19:01:58.831 local and detached 2.612 seconds later.
+No USB identity appeared before Gemian enumerated at 19:02:12.397 and RNDIS
+started. The collector detected a changed Gemian boot ID; authenticated
+recovery proved empty pstore, watchdog-block-class reset tokens, active root
+p29, and the exact candidate still installed and unmounted on live-GPT boot2
+p30.
+
 ## Analysis
 
 Enabling only the I2C controller would be an incomplete substitute: it would
@@ -140,14 +160,26 @@ bind, or polling-keyboard baseline. Restoring only `status` would also retain
 an IRQ contract absent from the positive control. The selected coherent group
 is broader but more attributable to the actual serviceability milestone.
 
+The runtime result rejects the complete group as sufficient. Because I2C5,
+AW9523, and the keyboard all probe after MTU3 in the positive control, their
+absence was already unable to explain a failure before MTU3. Restoring them
+also produced no earlier mainline identity. The watchdog-class Gemian token is
+consistent with the bounded fallback timing but is not unique to watchdog
+expiry, and no mainline probe or pstore evidence identifies the exact reset
+source. Incremental DT-property chipping has now exhausted the selected active
+groups without crossing the observation boundary.
+
 ## Conclusion
 
-The exact candidate is installed and the device is safely powered off.
-Hardware behavior of this derivative is untested. CPU8 and CPU9 remain closed.
+Restoring the complete I2C5/AW9523/polling-keyboard group is not sufficient for
+current-mainline serviceability. The attempt showed preloader but no mainline
+USB identity before a changed Gemian return; pstore was empty and boot2
+remained exact. This candidate is stopped. CPU8 and CPU9 remain closed.
 
 ## Follow-up
 
-Arm a fresh observer only immediately before one physical `boot2` selection,
-then classify the exact USB/network or changed-Gemian result against the
-predeclared decision map. The ordered action is maintained in
+Stop incremental DT-property derivatives. Reassess the post-LK final-DTB and
+pre-mainline-USB observation boundary offline, then choose an independent
+decision-changing path that distinguishes loader handoff, Image entry, and
+early watchdog expiry. The ordered action is maintained in
 [`docs/ROADMAP.md`](../../docs/ROADMAP.md).

@@ -3951,12 +3951,22 @@ write, sync, flush, full readback, and clean shutdown all passed without a fresh
 backup or automatic reboot. See the
 [deployment receipt](../experiments/2026-08-17-mainline-i2c5-serviceability-restoration/results/deployment-1-20260817.txt).
 
-The single next ordered action is to arm a fresh USB/netcat observer and then
-make one physical boot2 selection before it expires. Exact mainline USB or
-network identity is positive; preloader-only before a changed Gemian return is
-negative; timing or screen color without mainline identity remains supporting
-or non-attributable only. Do not repeat the candidate without a new independent
-observation path.
+The single observed attempt is complete. Preloader enumerated and detached;
+no intervening USB identity appeared before Gemian/RNDIS returned with a
+changed boot ID. Authenticated recovery proved empty pstore, watchdog-block-
+class reset tokens, active root p29, and the exact candidate still installed
+and unmounted on boot2 p30. The complete I2C5/AW9523/polling-keyboard group is
+therefore not sufficient. Timing remains supporting only and does not identify
+the reset source. See the
+[runtime result](../experiments/2026-08-17-mainline-i2c5-serviceability-restoration/results/runtime-attempt-1-no-mainline-usb-20260817.txt).
+
+The single next ordered action is offline: stop incremental DT-property
+derivatives and reassess the post-LK final-DTB plus pre-mainline-USB observation
+boundary. Select one independent discriminator that can distinguish loader
+handoff, Image entry, and early watchdog expiry without treating screen color,
+timing, or empty retained slots as a negative oracle. Preserve the exact
+serviceable Stage-27 control, exact current kernel/container, recovery path,
+DA921x-write closure, and CPU8/9 closure.
 
 Required evidence:
 

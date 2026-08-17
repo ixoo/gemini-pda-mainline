@@ -1,0 +1,30 @@
+MT6797 I2C5/AW9523 serviceability observer window 1
+Date: 2026-08-17 America/New_York
+
+[binding]
+candidate_sha256=8d04c2c7e9c67dcd17189422d1968e416eb9eec304e2b9300b83f48dc9e0ebb5
+deployment_boot_id=669f7fa0-04df-4bc7-b0ff-260ebc74d362
+observer_source_commit=4bdeed5
+armed_utc=2026-08-17T22:26:23Z
+
+[observation]
+baseline_usb_topology_sha256=ccd999f98fbb43411c222804d06f019dc30cc44e62e60faeb27f4d992b1e530b
+usb_topology_change=none-observed
+exact_mainline_interface=none-observed
+changed_Gemian_return=none-observed
+physical_boot2_selection=not-reported
+observer_exit=manually-stopped-after-no-cycle
+
+[private-capture]
+path=artifacts/runtime-captures/mainline-i2c5-serviceability-no-attempt-window-1
+observer_events_sha256=e9afc6a2c9fe01b648e7898f0bde160902baaffe80ead828e8234fb4e292c169
+usb_topology_sha256=10b30a6db2cdb86112c24bc83fd1ee9563462b68ccf0c902cc09c56e4a3c88ad
+raw_capture_committed=no
+
+[classification]
+runtime_attempt=no
+kernel_result=none
+candidate_disposition=installed-and-untested
+repeat_candidate=not-applicable-because-no-attempt-occurred
+next_action=arm-a-fresh-window-only-after-owner-ready-signal-then-select-boot2-once
+result=no-attempt

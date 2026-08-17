@@ -34,8 +34,12 @@ the loop. Positive identity-gated observations are unaffected.
   provenance, SCP/watchdog contracts, the serviceability contract, five
   independent mutations, and the guarded installer's offline gates pass.
   Guarded live-GPT boot2 installation, full readback, and clean shutdown also
-  passed without a fresh backup or automatic reboot. The exact candidate is
-  installed and awaiting one freshly observed run.
+  passed without a fresh backup or automatic reboot. Its one freshly observed
+  attempt showed preloader only before a changed Gemian return; no mainline USB
+  identity appeared, pstore stayed empty, reset tokens were watchdog-block
+  class, and boot2 remained exact. The coherent serviceability group is
+  insufficient by itself and this candidate is stopped. Incremental DT
+  property changes now give way to a post-LK/earlier-observation reassessment.
 - [2026-08-16 MT6797 watchdog IRQ isolation](2026-08-16-mainline-wdt-irq-isolation/README.md)
   — re-ranks the remaining Stage-27/current DT groups by their earliest built
   kernel consumer. The selected candidate deletes only the optional watchdog
