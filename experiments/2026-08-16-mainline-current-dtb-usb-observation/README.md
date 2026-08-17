@@ -70,6 +70,8 @@ boot2 automatically. Stop on every identity, target, power, or readback error.
   Android-v0, gzip, initramfs, identity-map, and mutation validator.
 - `scripts/install-boot2.sh`: source-pinned guarded boot2 installer with exact
   candidate and manifest identities, full readback, and clean shutdown.
+- `scripts/collect-runtime.sh`: pre-armed USB/interface observer with
+  source-pinned read-only identity/service probes and changed-Gemian fallback.
 - `results/lk-sensitive-dtb-audit-20260816.txt`: LK callback, DT lineage, and
   minimal-repair selection evidence.
 - `results/offline-candidate-validation-20260816.txt`: exact candidate
