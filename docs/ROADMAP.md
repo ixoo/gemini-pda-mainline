@@ -3913,12 +3913,21 @@ stable external power, the full write/readback comparison, and clean shutdown
 all passed without a fresh backup or automatic reboot. See the
 [deployment receipt](../experiments/2026-08-16-mainline-wdt-irq-isolation/results/deployment-1-20260817.txt).
 
-The single next ordered action is to arm the USB/netcat observer and then make
-one physical boot2 selection. A serviceable exact mainline identity promotes
-the current-DT serviceability foundation; preloader-only before a changed
-Gemian return rejects this watchdog property as sufficient. A timing change
-without mainline identity is supporting evidence only. Do not repeat either
-stopped predecessor.
+The single attempt is complete. The observer had expired before physical
+selection, but immediate bounded Mac-log recovery captured preloader, no
+intervening USB identity, and then Gemian/RNDIS. Authenticated recovery proved
+a changed Gemian boot ID, empty pstore, and the exact candidate still on
+live-GPT p30. Removing the watchdog IRQ is therefore not sufficient. The small
+fallback-timing change is supporting only and does not identify the reset
+source. See the
+[runtime result](../experiments/2026-08-16-mainline-wdt-irq-isolation/results/runtime-attempt-1-no-mainline-usb-20260817.txt).
+
+The single next ordered action is offline: recompute the remaining
+Stage-27/current semantic partition after the tested USB, SCP, and watchdog
+deltas, map every remaining property group to its earliest actual consumer,
+and select one decision-changing derivative. Preserve the exact kernel,
+initramfs, container, proven observation inputs, DA921x-write closure, and
+CPU8/9 closure. Do not repeat any of the three stopped derivatives.
 
 Required evidence:
 

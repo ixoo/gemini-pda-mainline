@@ -1,0 +1,80 @@
+MT6797 watchdog IRQ isolation runtime attempt 1
+Date: 2026-08-17 America/New_York
+
+[candidate]
+repository_definition_commit=4a8b3b6
+kernel_release_expected=7.1.3-gemini-entryled-a
+full_boot2_sha256=b103dd6dbe46caba7a635efb744885b66bfde7c0ef7ea538e93644dc6bf1169d
+derived_dtb_sha256=49d8189b3801c2e95345857ff704ab0b819001c55101f16dd1949cfa5106d3aa
+attempt=1-of-1
+
+[observer-coverage]
+observer_armed_local=2026-08-17T05:57:41-04:00
+observer_timeout_local=2026-08-17T06:16:46-04:00
+physical_attempt_after_live_observer_timeout=yes
+bounded_Mac_USB_log_recovered_immediately=yes
+changed_Gemian_probed_immediately=yes
+USB_cable=attached
+private_timeout_events_sha256=45cb311fed7a0b988d7cad3bda776fbaf40e9a3f404365ad4b9c7bc21e516eab
+private_baseline_topology_sha256=ef7960c72935ed816fe3beeb6159fbbea6f5afc3d8fa200e9cf9110d961f84ed
+
+[recovered-host-USB-timeline]
+pre_attempt_unknown_0e8d_20ff_detached_local=2026-08-17T17:59:11.188-04:00
+USB_port_powered_on_local=2026-08-17T17:59:29.170-04:00
+preloader_enumerated_local=2026-08-17T17:59:40.075-04:00
+preloader_identity=0x0e8d:0x2000,MT65xx-Preloader,480-Mbps
+preloader_detached_local=2026-08-17T17:59:42.689-04:00
+mainline_Linux_USB_between_preloader_and_Gemian=none
+Gemian_USB_enumerated_local=2026-08-17T17:59:53.069-04:00
+Gemian_USB_identity=0x0fce:0x7169,480-Mbps
+Gemian_RNDIS_started_local=2026-08-17T17:59:53.096-04:00
+private_recovered_USB_timeline_sha256=b03a5961971b06787b781cb7afe8cf6407711a431c798367365f11d4be57287c
+
+[mainline-observation]
+mainline_USB_enumeration=not-observed
+exact_fixed_MAC_interface=not-observed
+netcat_10.15.19.82_2323=not-reached
+exact_mainline_kernel_identity=not-observed
+screen_state=not-used
+returned_empty_ledger=not-used-as-negative-oracle
+
+[changed-return]
+returned_kernel=3.18.41+
+returned_architecture=aarch64
+returned_boot_id_sha256=ba10b5c8611271c4658190e9ef2389c765b9a2b2f35e3e449e9a259301958e3d
+boot_id_changed_from_deployment_Gemian=yes
+pstore_file_count=0
+active_root=/dev/mmcblk0p29
+live_GPT_boot2=/dev/mmcblk0p30
+postcycle_boot2_sha256=b103dd6dbe46caba7a635efb744885b66bfde7c0ef7ea538e93644dc6bf1169d
+exact_candidate_remained_installed=yes
+private_postcycle_sha256=28dfce632511ec154c33fc5288845c99d9b51fd8d9e46918df5e20a74a9dcba2
+private_recovery_manifest_sha256=f53a6110802da9564eac032874f4d3652de6b9ac6b163f4b7dcf6733c2c599fd
+
+[timing]
+preloader_duration_seconds=2.614
+preloader_detach_to_Gemian_seconds=10.380
+SCP_predecessor_detach_to_Gemian_seconds=11.536
+delta_from_SCP_predecessor_seconds=-1.156
+timing_is_reset_source_evidence=no
+
+[interpretation]
+preloader_enumeration_is_mainline_evidence=no
+runtime_classification=preloader-only-before-changed-Gemian-return
+watchdog_IRQ_removal_sufficient_for_serviceability=no
+watchdog_probe_observed=no
+reset_source=not-established
+current_Image_entry=not-observed_by_this_attempt
+absent_Image_entry=not-proven
+specific_failure_boundary=before_or_inside_mainline_USB_observation_path
+remaining_Stage27_DTB_deltas=still-causal-set
+CPU8_CPU9=remain-offline
+identical_artifact_repeat=forbidden
+result=bounded-negative-candidate-stopped
+
+[next]
+Retire this exact candidate. Recompute the remaining Stage-27/current semantic
+partition after the tested USB, SCP, and watchdog deltas, then select one
+earliest-consumed attributable DT-only derivative offline. Preserve the exact
+kernel, initramfs, container, proven observation inputs, DA921x-write closure,
+and CPU8/9 closure.

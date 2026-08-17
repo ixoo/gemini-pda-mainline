@@ -32,8 +32,11 @@ the loop. Positive identity-gated observations are unaffected.
   fixed. Deterministic DT/container reproduction, inherited LK and entry-ledger
   gates, the exact manifest, SCP contract checks, and independent watchdog
   mutations pass. Guarded live-GPT boot2 installation, full readback, and clean
-  shutdown passed without a fresh backup or automatic reboot. Hardware
-  behavior remains untested; one pre-armed physical selection is next.
+  shutdown passed without a fresh backup or automatic reboot. Its one attempt
+  showed preloader only before a changed Gemian return; no mainline USB
+  identity appeared, pstore stayed empty, and boot2 remained exact. The
+  watchdog IRQ deletion is insufficient by itself and this candidate is
+  stopped.
 - [2026-08-16 MT6797 LK SCP handoff node](2026-08-16-mainline-scp-handoff-node/README.md)
   — partitions the remaining stopped-current versus runtime-proven Stage-27 DT
   delta and isolates a strict public MT6797 LK contract: absent

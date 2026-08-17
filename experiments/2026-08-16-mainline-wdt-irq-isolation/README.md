@@ -5,10 +5,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-16-mainline-wdt-irq-isolation` |
-| Status | exact candidate deployed with full readback; device shut down; one attempt pending |
+| Status | one attempt returned preloader-only before changed Gemian; candidate stopped |
 | Subsystem | MT6797 TOPRGU watchdog, early platform probe, USB observation |
 | Device variant | Planet Gemini PDA, MT6797 |
-| Date(s) | 2026-08-16 America/New_York |
+| Date(s) | 2026-08-16--17 America/New_York |
 | Investigator(s) | repository owner and Codex |
 | Tracking issue | current-mainline serviceability prerequisite to CPU8 work |
 
@@ -80,6 +80,8 @@ flush only the exact payload, verify a full readback, and shut down cleanly.
   decision map for the single authorized attempt.
 - `results/deployment-1-20260817.txt`: live-GPT target, predecessor, exact
   write/readback identity, and confirmed shutdown receipt.
+- `results/runtime-attempt-1-no-mainline-usb-20260817.txt`: recovered host USB
+  sequence, changed Gemian identity, empty pstore, and exact post-cycle boot2.
 
 Generated candidates remain below the ignored `artifacts/` tree.
 
@@ -130,6 +132,14 @@ SCP predecessor, made no fresh backup, wrote and flushed the exact payload,
 and fully read back the same SHA-256. It then requested clean poweroff and
 confirmed the device unreachable without an automatic reboot.
 
+The pre-armed observer expired about twelve hours before physical selection,
+so its timeout is not runtime evidence. Immediate bounded recovery from the Mac
+unified log retained the attempt itself. Preloader enumerated at 17:59:40.075
+local and detached 2.614 seconds later. No USB identity appeared before Gemian
+enumerated at 17:59:53.069 and RNDIS started. Authenticated recovery proved a
+changed Gemian boot ID, empty pstore, active root p29, and the exact candidate
+still installed on live-GPT boot2 p30.
+
 ## Analysis
 
 The DVFSP handoff node is enabled in both DTs and uses the same built driver;
@@ -138,18 +148,23 @@ differences are later serviceability inputs. The watchdog IRQ is the remaining
 property that introduces a distinct, potentially failing branch before the
 positive control's proven watchdog takeover.
 
+The attempt rejects that property as sufficient. Preloader detach to Gemian
+enumeration was 10.380 seconds, versus 11.536 seconds for the SCP predecessor.
+The 1.156-second reduction is supporting timing only: neither attempt exposed
+a mainline USB identity, and neither identifies the reset source.
+
 ## Conclusion
 
-Selected, validated, and deployed: remove only the watchdog interrupt description
-to reproduce the positive control's early watchdog probe path without
-restoring unrelated Stage-27 serviceability properties. Exact padded candidate
-SHA-256 is
-`b103dd6dbe46caba7a635efb744885b66bfde7c0ef7ea538e93644dc6bf1169d`.
-Hardware behavior remains untested until the one physical selection. CPU8 and
-CPU9 remain closed.
+Removing only the watchdog interrupt description is not sufficient for
+serviceability. The one attempt showed preloader but no mainline USB identity
+before a changed Gemian return; pstore was empty and boot2 remained exact. The
+source-level early-branch distinction remains valid, but this run provides no
+watchdog probe or reset-source evidence. This exact candidate is stopped. CPU8
+and CPU9 remain closed.
 
 ## Follow-up
 
-Arm the host observer before physical selection and classify only changed
-boot-ID/USB/runtime evidence. The ordered project action remains in
+Recompute the remaining Stage-27/current semantic partition after the tested
+USB, SCP, and watchdog deltas, then select the next earliest actually consumed
+property group offline. The ordered project action remains in
 [`docs/ROADMAP.md`](../../docs/ROADMAP.md).
