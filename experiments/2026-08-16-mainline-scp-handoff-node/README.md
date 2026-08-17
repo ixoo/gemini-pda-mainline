@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-16-mainline-scp-handoff-node` |
-| Status | strict LK stop isolated; exact one-node DT candidate validated offline |
+| Status | exact one-node candidate installed and verified; runtime attempt pending |
 | Subsystem | Planet LK DT fixup, MT6797 SCP handoff, USB observation |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-16 America/New_York |
@@ -64,12 +64,16 @@ flush only the exact payload, verify a full readback, and shut down cleanly.
   and negative-mutation validation.
 - `scripts/install-boot2.sh`: exact-identity guarded boot2 deployment and clean
   shutdown wrapper.
+- `scripts/collect-runtime.sh`: pre-armed fixed-interface/netcat observer with a
+  sanitized exact USB topology journal and changed-Gemian fallback.
 - `results/strict-lk-scp-boundary-20260816.txt`: exact public LK call chain,
   remaining semantic partition, and candidate selection.
 - `results/offline-candidate-validation-20260816.txt`: fixed candidate
   identities and completed independent gates.
 - `results/predeployment-hypothesis-20260816.txt`: one-attempt evidence and
   decision map frozen before device deployment.
+- `results/deployment-1-20260816.txt`: live target, predecessor, full write and
+  readback identity, and confirmed shutdown receipt.
 
 Generated candidates remain below the ignored `artifacts/` tree.
 
@@ -106,6 +110,13 @@ Two assemblies and two padding methods are byte-identical. All 32 LK gates,
 the complete candidate manifest, four entry-ledger markers, exact SCP closure,
 and six independent corruption tests pass.
 
+Guarded deployment 1 resolved logical `boot2` as `/dev/mmcblk0p30`, distinct
+from the active Gemian root on `/dev/mmcblk0p29`. Stable external power and
+100% capacity passed. The installer recorded predecessor `fa107a...`, created
+no fresh backup, wrote and flushed all 16 MiB, and independently read back
+exact candidate `73be76...`. It then shut down cleanly and confirmed the device
+unreachable without an automatic reboot.
+
 ## Analysis
 
 This is a stronger boundary than a broad DT bisection: the source contract
@@ -123,6 +134,6 @@ CPU8 and CPU9 remain closed.
 
 ## Follow-up
 
-Publish the exact candidate definition, then perform one guarded boot2 write,
-clean shutdown, and pre-armed attempt. The ordered project action remains in
+Publish the deployment receipt, pre-arm the exact USB observer, then perform
+the one physical boot2 selection. The ordered project action remains in
 [`docs/ROADMAP.md`](../../docs/ROADMAP.md).

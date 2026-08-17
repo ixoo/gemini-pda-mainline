@@ -3877,6 +3877,19 @@ contract as causal; mainline USB without netcat localizes later; preloader-only
 or no mainline USB before changed Gemian stops this derivative without repeat.
 Screen color and returned empty ledger slots remain non-oracles.
 
+The guarded install is complete. Live GPT resolved inactive, unmounted
+`boot2` as p30 while Gemian used p29; stable external power and 100% capacity
+passed. The exact 16 MiB payload was written, synchronized, flushed, and fully
+read back with SHA-256
+`73be76fd4eb26d6d1d718bb4c0a77653839ca40e00267a5a35defb5b8a45b0f7`.
+No fresh backup was created. Clean shutdown was requested and the device was
+confirmed unreachable without an automatic reboot. See the
+[deployment receipt](../experiments/2026-08-16-mainline-scp-handoff-node/results/deployment-1-20260816.txt).
+
+The remaining ordered action is the one pre-armed physical boot2 selection and
+the predeclared classification above. Do not start another derivative until
+that result is recorded.
+
 Required evidence:
 
 - provider registration performs no register-data write;
