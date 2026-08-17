@@ -33,8 +33,12 @@ the loop. Positive identity-gated observations are unaffected.
   six container mutations, five serviceability mutations, five CPU-clock
   mutations, exact provenance, CPU8/9 closure, and the guarded installer's
   offline gates pass. Guarded live-GPT boot2 installation, exact full readback,
-  and clean shutdown passed without a fresh backup or automatic reboot. One
-  published, freshly observed boot2 attempt is pending.
+  and clean shutdown passed without a fresh backup or automatic reboot. Its
+  one observed attempt produced the exact mainline USB identity, kernel and
+  netcat serviceability, all ten final-DT clock values, CPUs 0–7 online with
+  8–9 closed, the expected I2C5/AW9523/keyboard/watchdog path, and a successful
+  native return to Gemian. This confirms the LK iterator diagnosis and promotes
+  the repaired DT as the next serviceability baseline.
 - [2026-08-17 MT6797 I2C5 serviceability restoration](2026-08-17-mainline-i2c5-serviceability-restoration/README.md)
   — recomputes the remaining Stage-27/current DT partition after the stopped
   USB, SCP, and watchdog derivatives. The selected candidate restores the full

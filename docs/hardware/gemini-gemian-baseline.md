@@ -183,6 +183,21 @@ pre-LK dynamic CCCI/CONSYS/SCP-share/SPM reservations but does not duplicate
 post-LK addresses observed in one live handoff. See the [LK FDT fixup
 audit](../../experiments/2026-07-13-lk-fdt-fixup-recovery/README.md).
 
+The same handoff has a strict CPU-node progress prerequisite. In pinned Planet
+LK commit `f4988d74bb70a0a15d7f362f412afba7e7fcda46`,
+`target_fdt_cpus()` runs before kernel decompression and advances its subnode
+iterator only after an active CPU supplies `clock-frequency`. A missing value
+on the first retained CPU takes a `continue` path without advancing and selects
+the first subnode again. Live `lk` and `lk2` match the project-start loader
+capture and contain the corresponding diagnostic strings; exact source/binary
+control-flow equivalence is high-confidence rather than symbolized proof. A
+single-input runtime test confirmed the practical contract: adding the exact
+Stage-27 values to all ten CPU nodes let the unchanged Linux 7.1.3 Image reach
+`/init`, USB/netcat, CPU0–7, I2C5/AW9523/keyboard, watchdog takeover, and native
+reboot while CPU8/9 remained closed. The current loader-compatible board DT
+must retain that coherent ten-property group. See the
+[LK iterator repair](../../experiments/2026-08-17-mainline-lk-cpu-clock-iterator-repair/README.md).
+
 The live UART console is downstream-specific: `/proc/consoles` names
 `ttyMT0` (major 204, minor 209), while `ttyMT1`–`ttyMT3` are auxiliary ports.
 The pinned mainline board description deliberately uses the standard

@@ -3988,13 +3988,26 @@ sync, flush, full readback, and clean shutdown all passed without a fresh
 backup or automatic reboot. See the
 [deployment receipt](../experiments/2026-08-17-mainline-lk-cpu-clock-iterator-repair/results/deployment-1-20260817.txt).
 
-The single next ordered action is to arm the published fresh USB/netcat
-observer, then have the owner physically select `boot2` within that live
-window. Mainline identity confirms the loader-iterator boundary and opens
-runtime collection; preloader-only before a changed Gemian return challenges
-installed-source equivalence or locates a later LK boundary. Do not repeat an
-identical artifact, and do not use screen color, timing, or empty retained
-slots as a negative oracle.
+The single observed attempt is a confirmed positive. The physical observer
+captured the exact mainline USB product; a host sandbox restriction blocked
+only the first route probe, not the device. Without another reboot, the same
+published observer completed exact identity and service probes on its first
+permission-corrected try. Runtime proved the expected kernel, arm64, CPUs 0–7
+online with 8–9 closed, all ten exact Stage-27 clock values in the final DT,
+`/init`, USB/netcat, I2C5, watchdog takeover, AW9523, and the polling keyboard.
+One authorized native reboot returned to changed-ID Gemian with empty pstore
+and the exact candidate still on unmounted live-GPT boot2 p30. See the
+[runtime result](../experiments/2026-08-17-mainline-lk-cpu-clock-iterator-repair/results/runtime-attempt-1-serviceable-20260817.txt).
+
+This confirms the LK CPU-iterator non-progress diagnosis and promotes the
+ten-property repair as the current serviceability prerequisite. Do not repeat
+the artifact. The next ordered action resumes gate 5: freeze this exact DT
+prerequisite into a named runtime baseline, enable the resource-only provider
+with every consumer disconnected and register-data writes disabled or
+unreachable, and build only on buildbox after committing and pushing the exact
+source change. Runtime must preserve CPU0–7, USB, console, keyboard,
+I2C5/AP-DMA, watchdog takeover, cleanup, and native reboot while CPU8/9 remain
+closed. Only that read-only provider result can open the bounded-write gate.
 
 Required evidence:
 

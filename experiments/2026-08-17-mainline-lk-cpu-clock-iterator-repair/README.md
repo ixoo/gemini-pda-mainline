@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-17-mainline-lk-cpu-clock-iterator-repair` |
-| Status | exact candidate installed with full readback and shutdown; one observed attempt pending |
+| Status | one exact attempt serviceable; LK iterator diagnosis confirmed and candidate promoted |
 | Subsystem | Planet/MediaTek LK final-DTB CPU filtering before Linux entry |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-17 America/New_York |
@@ -79,6 +79,9 @@ partition backup is made.
   decision map for the one candidate attempt.
 - `results/deployment-1-20260817.txt`: live-GPT target, predecessor, exact
   write/readback identity, and confirmed shutdown receipt.
+- `results/runtime-attempt-1-serviceable-20260817.txt`: physical USB transition,
+  exact kernel identity, final DT values, serviceability, and native-reboot
+  recovery evidence.
 
 Generated candidates remain below the ignored `artifacts/` tree.
 
@@ -120,6 +123,24 @@ predecessor, made no fresh backup, wrote and flushed the exact payload, and
 fully read back the same SHA-256. It then requested clean poweroff and
 confirmed the device unreachable without an automatic reboot.
 
+The one physical attempt crossed the previously missing boundary. The first
+observer captured the exact mainline USB product 48 seconds after arming. Its
+host route check was sandbox-denied, so that journal was preserved and the
+same published observer was re-entered with local-network permission without
+rebooting the device. Both exact netcat probes then completed on their first
+try against the same mainline boot.
+
+Runtime proved kernel `7.1.3-gemini-entryled-a`, arm64, CPUs 0–7 online, CPUs
+8–9 offline, `/init` reached at 1.098374 seconds, and no mounted block device.
+The live final DT exposes all ten exact Stage-27 CPU clock values. MTU3, the USB
+gadget, I2C5, watchdog takeover, AW9523, and the polling keyboard all reached
+their expected serviceable states. The apparent static screen was not used as
+a negative oracle.
+
+After collection, one previously authorized native reboot was issued through
+the USB shell. Gemian returned with a changed boot ID and empty pstore. Live
+GPT again resolved boot2 as p30, unmounted, with the exact candidate checksum.
+
 ## Analysis
 
 This boundary supersedes the earlier conclusion that the CPU clock
@@ -135,16 +156,18 @@ positive control rather than an inferred frequency policy.
 
 ## Conclusion
 
-The exact stopped candidates have a credible loader-side infinite-loop
-mechanism before Image entry. The clocks-only repair is the first candidate
-that directly removes that mechanism while holding the kernel, initramfs,
-serviceability baseline, and CPU8/9 closure fixed. Offline validation and
-guarded deployment pass; runtime classification remains pending.
+The single-input positive result confirms the loader-side non-progress
+diagnosis: the clocks-only repair let LK reach the unchanged Image while the
+stopped predecessor did not. Image entry, `/init`, USB/netcat serviceability,
+the I2C5/AW9523/keyboard/watchdog baseline, and native reboot are now proven on
+the repaired current-DT line. CPU8 and CPU9 remained closed as declared.
 
 ## Follow-up
 
-Arm the published fresh USB/netcat observer immediately before the owner
-selects `boot2`, then classify the one physical attempt against the decision
-map.
+Freeze the ten-property LK prerequisite into the next named runtime baseline.
+Resume Roadmap gate 5 with the resource-only provider enabled, all consumers
+disconnected, and register-data writes disabled or unreachable. Build only on
+buildbox, then validate registration, read-only state reporting, cleanup, and
+the full serviceability baseline before considering any bounded write.
 The ordered action is maintained in
 [`docs/ROADMAP.md`](../../docs/ROADMAP.md).
