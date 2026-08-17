@@ -23,6 +23,16 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-17 LK CPU clock-frequency iterator repair](2026-08-17-mainline-lk-cpu-clock-iterator-repair/README.md)
+  — audits the pinned Planet LK path before Linux entry and identifies a
+  concrete non-progress loop: the current DT's first CPU lacks
+  `clock-frequency`, while LK advances its CPU iterator only after reading
+  that property. The selected DT-only candidate adds the ten exact Stage-27
+  values and changes nothing else from the stopped I2C5 predecessor. Two DT
+  derivations and two container assemblies agree; all 32 inherited LK gates,
+  six container mutations, five serviceability mutations, five CPU-clock
+  mutations, exact provenance, CPU8/9 closure, and the guarded installer's
+  offline gates pass. One published, freshly observed boot2 attempt is pending.
 - [2026-08-17 MT6797 I2C5 serviceability restoration](2026-08-17-mainline-i2c5-serviceability-restoration/README.md)
   — recomputes the remaining Stage-27/current DT partition after the stopped
   USB, SCP, and watchdog derivatives. The selected candidate restores the full

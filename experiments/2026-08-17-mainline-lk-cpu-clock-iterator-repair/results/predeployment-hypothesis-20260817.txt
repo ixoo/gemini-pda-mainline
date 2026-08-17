@@ -1,0 +1,37 @@
+MT6797 LK CPU clock-frequency iterator repair predeployment decision map
+Date: 2026-08-17 America/New_York
+
+[exact-candidate]
+raw_sha256=fe22ae352abcaf72ed2f456e6946b462c4a343589698685244ef9b3b6333e9f1
+boot2_padded_sha256=b478b79a983889514b2b8d122fb6d5ff5057e52c332882b186b82698d1de62b8
+DT_sha256=a87558efd982007798b1c706b4df9e8048b71954423d45bbaf5fbe32515e2f14
+semantic_delta=add-exact-Stage27-clock-frequency-to-all-10-CPU-nodes
+
+[hypothesis]
+claim=stopped-current-DT-candidates-loop-in-LK-before-Image-entry
+mechanism=missing-cpu0-clock-frequency-takes-continue-before-last_node-update-and-reselects-first-subnode
+positive_control=Stage27-supplies-all-10-values-and-reached-serviceable-mainline
+causal_limit=installed-binary-control-flow-equivalence-is-high-confidence-not-symbolized-byte-proof
+scope=current-mainline-serviceability-only;CPU8-and-CPU9-remain-closed
+
+[unique-observation]
+observer=freshly-armed-Mac-USB-topology-plus-bounded-mainline-network-and-returned-Gemian-boot-ID
+positive=mainline-exact-USB-or-network-runtime-evidence-between-preloader-and-any-changed-Gemian-return
+partial=mainline-USB-without-network;collect-exact-stage-and-do-not-change-another-property
+negative=preloader-only-then-changed-Gemian-with-no-intervening-mainline-identity
+screen_colour=non-attributable-and-not-used-for-classification
+
+[decision-map]
+mainline_serviceable=confirm-LK-iterator-repair;collect-exact-kernel-entry-ledger-I2C5-keyboard-watchdog-USB-and-CPU-state
+mainline_USB_only=collect-over-USB-and-classify-earliest-reached-stage-before-changing-any-other-input
+preloader_only_changed_Gemian=challenge-installed-source-control-flow-equivalence-or-identify-a-later-LK-boundary;do-not-repeat
+no_confirmed_cycle=do-not-classify;retain-candidate-until-a-fresh-observer-covers-selection
+
+[safety]
+runtime_register_data_writes=unchanged-AW9523-serviceability-probe-and-keyboard-only
+install_target=live-GPT-logical-boot2-only
+fresh_partition_backup=no;project-start-backup-is-recovery-source
+full_partition_readback=required
+post_write_action=clean-shutdown
+automatic_reboot=forbidden
+result=ready-for-one-guarded-attempt-after-publication

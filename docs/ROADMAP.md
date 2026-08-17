@@ -3960,13 +3960,35 @@ therefore not sufficient. Timing remains supporting only and does not identify
 the reset source. See the
 [runtime result](../experiments/2026-08-17-mainline-i2c5-serviceability-restoration/results/runtime-attempt-1-no-mainline-usb-20260817.txt).
 
-The single next ordered action is offline: stop incremental DT-property
-derivatives and reassess the post-LK final-DTB plus pre-mainline-USB observation
-boundary. Select one independent discriminator that can distinguish loader
-handoff, Image entry, and early watchdog expiry without treating screen color,
-timing, or empty retained slots as a negative oracle. Preserve the exact
-serviceable Stage-27 control, exact current kernel/container, recovery path,
-DA921x-write closure, and CPU8/9 closure.
+The offline reassessment found a concrete loader-side boundary. Pinned Planet
+LK calls `target_fdt_cpus()` before kernel decompression and final handoff. Its
+CPU loop advances `last_node` only after an active node supplies
+`clock-frequency`; the stopped DT's first child, `cpu@0`, lacks that property,
+so the missing-property `continue` selects the first child again. All ten
+current CPU nodes lack the property, whereas the runtime-proven Stage-27
+control supplies exact values for all ten. Live `lk` and `lk2` match the
+project-start loader capture and carry the corresponding diagnostic and final-
+jump strings; installed-source control-flow equivalence remains a
+high-confidence inference rather than a symbolized byte-level proof. See the
+[LK CPU-clock iterator experiment](../experiments/2026-08-17-mainline-lk-cpu-clock-iterator-repair/README.md).
+
+The selected candidate adds only the ten exact Stage-27 CPU clock properties
+to the stopped I2C5 predecessor. CPU8/9 admission remains closed; the exact
+kernel, initramfs, peripheral USB path, disabled SCP input, no-watchdog-IRQ
+path, I2C5/AW9523 polling serviceability group, DA921x closure, and recovery
+path remain fixed. Two DT derivations and two container assemblies agree. All
+32 inherited LK/container gates, six container mutations, five serviceability
+mutations, five CPU-clock mutations, provenance, manifest, syntax, ShellCheck,
+and guarded-installer gates pass without a kernel rebuild or native VM build.
+
+The single next ordered action is to publish this exact definition, install
+the exact 16 MiB payload once to live-GPT-resolved inactive `boot2`, require a
+matching full-partition readback and clean shutdown, then arm a fresh USB/
+netcat observer immediately before physical selection. Mainline identity
+confirms the loader-iterator boundary and opens runtime collection; preloader-
+only before a changed Gemian return challenges installed-source equivalence or
+locates a later LK boundary. Do not repeat an identical artifact, and do not
+use screen color, timing, or empty retained slots as a negative oracle.
 
 Required evidence:
 
