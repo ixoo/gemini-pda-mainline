@@ -3833,10 +3833,14 @@ and the exact 16 MiB boot2 payload is
 Two assemblies, independent padding, all 32 LK gates, the exact manifest, and
 six negative mutations pass without rebuilding the kernel.
 
-The single next ordered action is its one guarded USB-attached attempt. Install
-only that exact payload to live-GPT-resolved inactive boot2, require a matching
-full readback and clean shutdown, then physically select boot2 once with USB
-already attached. Exact netcat kernel identity proves the three-property
+The exact payload has now been installed to live-GPT-resolved inactive boot2.
+Its predecessor matched the Stage-27 control, and the guarded write, sync,
+flush, independent full readback, and clean shutdown all passed. No fresh
+backup was made and no automatic reboot occurred. See the
+[deployment receipt](../experiments/2026-08-16-mainline-current-dtb-usb-observation/results/deployment-1-20260816.txt).
+
+The single next ordered action is its one physical USB-attached boot2
+selection. Exact netcat kernel identity proves the three-property
 current DT is serviceable; mainline USB without netcat localizes after USB
 initialization; no mainline USB followed by changed Gemian is only a bounded
 negative at or before this observation path. Do not repeat this identical

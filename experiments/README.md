@@ -30,7 +30,8 @@ the loop. Positive identity-gated observations are unaffected.
   candidate changes exactly three existing USB `status` properties and leaves
   xHCI disabled, peripheral-only policy intact, and CPU8/9 closed. Its two
   assemblies, independent padding, 32 LK gates, exact manifest, and six
-  negative mutations pass. One USB-attached guarded attempt is pending.
+  negative mutations pass. Its exact guarded boot2 write, independent full
+  readback, and clean shutdown passed; one USB-attached selection is pending.
 - [2026-08-16 LK handoff DTB control](2026-08-16-mainline-lk-handoff-dtb-control/README.md)
   — the offline lower-boundary audit found that stopped GAEL and the last
   serviceable Stage-27 container both satisfy their Android-v0, gzip, load,

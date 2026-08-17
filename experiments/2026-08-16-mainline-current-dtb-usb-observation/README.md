@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-16-mainline-current-dtb-usb-observation` |
-| Status | offline candidate validated; guarded deployment pending |
+| Status | exact candidate installed and fully read back; device shut down for one attempt |
 | Subsystem | MT6797 USB gadget, Device Tree, Planet LK handoff |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-16 America/New_York |
@@ -76,6 +76,8 @@ boot2 automatically. Stop on every identity, target, power, or readback error.
   identities and independent validation results.
 - `results/predeployment-hypothesis-20260816.txt`: unique USB-attached live
   decision map declared before deployment.
+- `results/deployment-1-20260816.txt`: live GPT, predecessor, exact write,
+  independent full readback, and confirmed clean-shutdown evidence.
 
 The exact generated candidate remains under the ignored `artifacts/` tree.
 
@@ -123,6 +125,15 @@ Two assemblies and two padding constructions are byte-identical. All 32 LK
 gates pass, all four entry-ledger markers remain present, the extended manifest
 passes, and six independent structural mutations are rejected.
 
+Guarded deployment 1 resolved the sole live GPT `boot2` as
+`/dev/mmcblk0p30`, distinct from the active Gemian root on
+`/dev/mmcblk0p29`. The inactive partition's predecessor matched the exact
+Stage-27 control payload. With stable 100% battery and external power, the
+installer wrote, synchronized, flushed, and independently read back all 16 MiB.
+The readback matched the candidate byte-for-byte and by SHA-256. No fresh
+partition backup was created. The device then powered off cleanly and remained
+unreachable; it was not rebooted automatically.
+
 ## Analysis
 
 The positive Stage-27-DTB control remains valid, but it proved the current
@@ -133,15 +144,15 @@ difference on the current side.
 
 ## Conclusion
 
-Confirmed offline and ready for one guarded attempt: the stopped GAEL attempt
+Confirmed offline and installed for one guarded attempt: the stopped GAEL attempt
 omitted the candidate-time USB observation DT used by the serviceable lineage.
 Its missing USB was therefore not a clean boot-failure result. The exact
 three-property derivative passes every declared offline candidate gate;
-hardware behavior remains untested. CPU8 and CPU9 remain closed.
+hardware behavior remains untested. The exact boot2 write and full readback are
+verified, and the device is shut down. CPU8 and CPU9 remain closed.
 
 ## Follow-up
 
-Install the exact validated candidate to guarded logical boot2, require a full
-readback, and shut down. Then perform its single selection with USB already
-attached and classify it using the predeclared decision map. The ordered
-project action remains in [`docs/ROADMAP.md`](../../docs/ROADMAP.md).
+Physically select boot2 once with USB already attached and classify it using
+the predeclared decision map. The ordered project action remains in
+[`docs/ROADMAP.md`](../../docs/ROADMAP.md).
