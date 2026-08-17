@@ -23,6 +23,15 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-16 MT6797 LK SCP handoff node](2026-08-16-mainline-scp-handoff-node/README.md)
+  — partitions the remaining stopped-current versus runtime-proven Stage-27 DT
+  delta and isolates a strict public MT6797 LK contract: absent
+  `mediatek,scp` makes `platform_fdt_scp()` fail through
+  `platform_atag_append()` before Linux handoff. The selected derivative adds
+  only the exact input-disabled SCP node, keeping Linux SCP probe, xHCI,
+  CPU8/9, and hardware writes closed. Its exact candidate passes two
+  assemblies, two padding methods, 32 LK gates, the complete manifest, and six
+  negative mutations. Hardware behavior remains untested.
 - [2026-08-16 current-DT USB observation restoration](2026-08-16-mainline-current-dtb-usb-observation/README.md)
   — corrects the prior DT lineage comparison: the serviceable Stage-27 line
   reused a frozen USB-enabled observation DT, while the stopped current-DT

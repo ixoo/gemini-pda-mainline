@@ -1,0 +1,37 @@
+MT6797 LK SCP handoff-node predeployment hypothesis and decision map
+Date: 2026-08-16 America/New_York
+
+[candidate]
+artifact_name=candidate-mainline-scp-handoff-node-d13f110a
+kernel_release=7.1.3-gemini-entryled-a
+raw_sha256=d13f110ad38e3a515d2f339619f32d529c76612543e89d3fe2df45689141c3a4
+boot2_padded_sha256=73be76fd4eb26d6d1d718bb4c0a77653839ca40e00267a5a35defb5b8a45b0f7
+dtb_sha256=53ceeaddcae13ff10ddc219441ac46a300324e5490e436626601f0d928c1558b
+kernel_delta_from_stopped_predecessor=none
+dtb_delta_from_stopped_predecessor=one-disabled-mediatek-scp-node
+
+[hypothesis]
+The stopped current-DT USB candidate violates the public MT6797 LK
+platform_fdt_scp input contract. Adding the exact input-disabled SCP node will
+allow platform_atag_append to complete while preserving Linux SCP probe
+closure and every other candidate input.
+
+[unique-evidence]
+USB_cable=attached-before-boot2-selection
+host_observation=exact-USB-topology,fixed-MAC-interface,netcat,changed-Gemian
+attempt_limit=one
+CPU8_CPU9=remain-offline
+device_write_scope=guarded-logical-boot2-installation-only
+
+[decision-map]
+exact_netcat_release_7.1.3-gemini-entryled-a=SCP-node-is-sufficient-for-current-DT-serviceability-and-supports-the-public-LK-causal-chain
+mainline_USB_enumeration_without_netcat=loader-handoff-passed;localize-init-or-service-endpoint
+preloader_only_then_changed_Gemian=SCP-node-not-sufficient-or-installed-loader-contract-differs;do-not-repeat
+no_USB_activity_then_changed_Gemian=bounded-negative-before-observation-path;do-not-repeat
+screen_color=not-an-oracle
+returned_empty_entry_ledger=not-a-negative-oracle
+
+[next-action]
+Install only the exact candidate to live-GPT-resolved inactive boot2, require a
+matching full-partition readback, and shut down. Pre-arm observation before the
+owner physically selects boot2 once.

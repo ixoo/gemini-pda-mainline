@@ -3848,15 +3848,34 @@ for serviceability. The result remains bounded before or inside the mainline
 USB observation path and does not prove absent Image entry. See the
 [runtime result](../experiments/2026-08-16-mainline-current-dtb-usb-observation/results/runtime-attempt-1-no-mainline-usb-20260816.txt).
 
-The single next ordered action is an offline semantic partition of every
-remaining difference between the stopped three-property DT and the
-runtime-proven Stage-27 DT. Group each delta by exact source and consumer,
-prioritizing LK fixups and early kernel handoff over unrelated peripheral
-serviceability. Select one attributable DT-only derivative while preserving the
-exact kernel, initramfs, Android-v0 layout, USB observation properties,
-DA921x-write closure, and CPU8/9 closure. Do not repeat the stopped artifact or
-spend another boot before the selected group has an exact generated identity,
-independent validation, and the same pre-armed decision map.
+The remaining semantic partition is complete. In pinned public Planet LK,
+`platform_fdt_scp()` returns failure when no `mediatek,scp` node exists;
+`platform_atag_append()` propagates it and the caller returns before Linux
+handoff. The stopped DT lacks that node while the runtime-proven Stage-27 DT
+contains it. Other remaining loader-group differences either log and continue,
+write properties to an already-present `/chosen`, or retain identical reserved
+ranges. Later ownership and keyboard/I2C groups are not loader prerequisites.
+See the
+[strict-boundary result](../experiments/2026-08-16-mainline-scp-handoff-node/results/strict-lk-scp-boundary-20260816.txt).
+
+The selected derivative adds only the exact input-disabled SCP node. Linux SCP
+probe remains closed, USB remains peripheral-only, xHCI remains disabled, and
+CPU8/9 remain offline. Its exact DTB is
+`53ceeaddcae13ff10ddc219441ac46a300324e5490e436626601f0d928c1558b`;
+the exact raw container is
+`d13f110ad38e3a515d2f339619f32d529c76612543e89d3fe2df45689141c3a4`;
+the exact 16 MiB payload is
+`73be76fd4eb26d6d1d718bb4c0a77653839ca40e00267a5a35defb5b8a45b0f7`.
+Two assemblies, two padding paths, all 32 LK gates, the exact manifest, and six
+negative mutations pass without a kernel rebuild. See the
+[offline validation](../experiments/2026-08-16-mainline-scp-handoff-node/results/offline-candidate-validation-20260816.txt).
+
+The single next ordered action is one guarded install of that exact payload to
+live-GPT-resolved inactive boot2, full readback, clean shutdown, and one
+pre-armed USB/netcat attempt. Exact mainline USB identity would support the SCP
+contract as causal; mainline USB without netcat localizes later; preloader-only
+or no mainline USB before changed Gemian stops this derivative without repeat.
+Screen color and returned empty ledger slots remain non-oracles.
 
 Required evidence:
 
