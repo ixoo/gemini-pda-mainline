@@ -1,0 +1,72 @@
+MT6797 LK SCP handoff-node runtime attempt 1
+Date: 2026-08-16 America/New_York
+
+[candidate]
+repository_definition_commit=e84ac3f
+kernel_release_expected=7.1.3-gemini-entryled-a
+full_boot2_sha256=73be76fd4eb26d6d1d718bb4c0a77653839ca40e00267a5a35defb5b8a45b0f7
+derived_dtb_sha256=53ceeaddcae13ff10ddc219441ac46a300324e5490e436626601f0d928c1558b
+attempt=1-of-1
+
+[observer-coverage]
+observer_armed_local=2026-08-16T20:44:29-04:00
+observer_timeout_local=2026-08-16T21:03:20-04:00
+physical_attempt_after_live_observer_timeout=yes
+bounded_Mac_USB_log_recovered_immediately=yes
+changed_Gemian_probed_immediately=yes
+USB_cable=attached
+private_timeout_events_sha256=70d03a3a0d183e6fd7788dc467a423900619e7254ac31a3dcc0a3253bef46fd0
+private_baseline_topology_sha256=fcc1eb204cf9e823c4dffe3f84d46b1fff899eb199d3c55f21e8241d79876bfe
+
+[recovered-host-USB-timeline]
+pre_attempt_unknown_0e8d_20ff_detached_local=2026-08-16T21:04:30.591-04:00
+USB_port_powered_on_local=2026-08-16T21:04:53.408-04:00
+preloader_enumerated_local=2026-08-16T21:05:01.425-04:00
+preloader_identity=0x0e8d:0x2000,MT65xx-Preloader,480-Mbps
+preloader_detached_local=2026-08-16T21:05:04.038-04:00
+mainline_Linux_USB_between_preloader_and_Gemian=none
+Gemian_USB_enumerated_local=2026-08-16T21:05:15.574-04:00
+Gemian_USB_identity=0x0fce:0x7169,480-Mbps
+Gemian_RNDIS_started_local=2026-08-16T21:05:15.607-04:00
+private_recovered_USB_timeline_sha256=3edf2afcadc2c33e2c055a5f9e3b0f239f4cc4994a40c493b70cf2f6ac7b4441
+
+[mainline-observation]
+mainline_USB_enumeration=not-observed
+exact_fixed_MAC_interface=not-observed
+netcat_10.15.19.82_2323=not-reached
+exact_mainline_kernel_identity=not-observed
+screen_state=not-used
+returned_empty_ledger=not-used-as-negative-oracle
+
+[changed-return]
+returned_kernel=3.18.41+
+returned_architecture=aarch64
+returned_boot_id_sha256=9ff5aa8bc3988232307164e12c0f0a5a8bb4473816910e6009dd4cfc11e5100c
+boot_id_changed_from_deployment_Gemian=yes
+pstore_file_count=0
+active_root=/dev/mmcblk0p29
+live_GPT_boot2=/dev/mmcblk0p30
+postcycle_boot2_sha256=73be76fd4eb26d6d1d718bb4c0a77653839ca40e00267a5a35defb5b8a45b0f7
+exact_candidate_remained_installed=yes
+private_postcycle_sha256=ea5baf3e4662986e4e7f294a595034ef619f0e0a6ed26c25d4cf220682a7aa44
+private_recovery_manifest_sha256=9bac5738ccef5ab5a15b3a0f4f4076f329419b8c46247cb3f07999cf9629b7f2
+
+[interpretation]
+preloader_enumeration_is_mainline_evidence=no
+runtime_classification=preloader-only-before-changed-Gemian-return
+disabled_SCP_node_sufficient_for_serviceability=no
+strict_public_LK_contract_removed_if_feature_enabled=yes
+installed_loader_causal_identity=not-established
+current_Image_entry=not-observed_by_this_attempt
+absent_Image_entry=not-proven
+specific_failure_boundary=before_or_inside_mainline_USB_observation_path
+remaining_Stage27_DTB_deltas=still-causal-set
+CPU8_CPU9=remain-offline
+identical_artifact_repeat=forbidden
+result=bounded-negative-candidate-stopped
+
+[next]
+Retire this exact candidate. Re-rank the remaining Stage-27/current semantic
+groups by the earliest actual kernel consumer and select one attributable
+DT-only derivative. Preserve the exact kernel, initramfs, container, USB
+properties, disabled SCP input, DA921x-write closure, and CPU8/9 closure.

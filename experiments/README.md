@@ -32,7 +32,9 @@ the loop. Positive identity-gated observations are unaffected.
   CPU8/9, and hardware writes closed. Its exact candidate passes two
   assemblies, two padding methods, 32 LK gates, the complete manifest, and six
   negative mutations. Guarded boot2 write, full readback, and clean shutdown
-  passed; its single pre-armed runtime attempt is pending.
+  passed. Its one attempt showed preloader only before a changed Gemian return;
+  no mainline USB identity appeared, pstore stayed empty, and boot2 remained
+  exact. The SCP node is insufficient by itself and this candidate is stopped.
 - [2026-08-16 current-DT USB observation restoration](2026-08-16-mainline-current-dtb-usb-observation/README.md)
   — corrects the prior DT lineage comparison: the serviceable Stage-27 line
   reused a frozen USB-enabled observation DT, while the stopped current-DT

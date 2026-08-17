@@ -3886,9 +3886,21 @@ No fresh backup was created. Clean shutdown was requested and the device was
 confirmed unreachable without an automatic reboot. See the
 [deployment receipt](../experiments/2026-08-16-mainline-scp-handoff-node/results/deployment-1-20260816.txt).
 
-The remaining ordered action is the one pre-armed physical boot2 selection and
-the predeclared classification above. Do not start another derivative until
-that result is recorded.
+The single attempt is complete. The live observer timed out shortly before the
+physical selection, but immediate bounded Mac-log recovery retained the exact
+USB sequence: MT65xx preloader enumerated and detached, no USB device appeared
+between it and Gemian, then Gemian enumerated with RNDIS. Authenticated recovery
+proved a changed Gemian boot ID, empty pstore, and the exact candidate still on
+live-GPT p30. The disabled SCP node is therefore not sufficient for
+serviceability; installed-loader causality remains unestablished. The candidate
+is stopped. See the
+[runtime result](../experiments/2026-08-16-mainline-scp-handoff-node/results/runtime-attempt-1-no-mainline-usb-20260816.txt).
+
+The single next ordered action is offline: re-rank the remaining semantic
+groups by the earliest actual kernel consumer, then select one attributable
+DT-only derivative. Preserve the exact kernel, initramfs, Android-v0 layout,
+USB observation properties, disabled SCP input, DA921x-write closure, and
+CPU8/9 closure. Do not repeat this artifact.
 
 Required evidence:
 

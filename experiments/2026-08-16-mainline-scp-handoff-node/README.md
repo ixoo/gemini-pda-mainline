@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-16-mainline-scp-handoff-node` |
-| Status | exact one-node candidate installed and verified; runtime attempt pending |
+| Status | one attempt complete; preloader only before changed Gemian return; candidate stopped |
 | Subsystem | Planet LK DT fixup, MT6797 SCP handoff, USB observation |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-16 America/New_York |
@@ -74,6 +74,8 @@ flush only the exact payload, verify a full readback, and shut down cleanly.
   decision map frozen before device deployment.
 - `results/deployment-1-20260816.txt`: live target, predecessor, full write and
   readback identity, and confirmed shutdown receipt.
+- `results/runtime-attempt-1-no-mainline-usb-20260816.txt`: recovered exact host
+  USB sequence, changed Gemian identity, empty pstore, and post-cycle boot2.
 
 Generated candidates remain below the ignored `artifacts/` tree.
 
@@ -117,23 +119,37 @@ no fresh backup, wrote and flushed all 16 MiB, and independently read back
 exact candidate `73be76...`. It then shut down cleanly and confirmed the device
 unreachable without an automatic reboot.
 
+The live observer was armed before the requested attempt but reached its
+15-minute timeout at 21:03:20 local; the physical selection happened shortly
+afterward. Immediate bounded recovery from the Mac unified log retained the
+decision-relevant USB sequence. An unknown MediaTek `0x0e8d:0x20ff` device
+detached before the attempt window, the port powered on, MT65xx preloader
+`0x0e8d:0x2000` enumerated for 2.613 seconds, and then only Gemian
+`0x0fce:0x7169` enumerated. No USB device appeared between preloader and
+Gemian. The changed Gemian boot ID, empty pstore, live GPT p30 identity, and
+exact post-cycle candidate checksum close the cycle despite the expired live
+loop.
+
 ## Analysis
 
-This is a stronger boundary than a broad DT bisection: the source contract
+This was a stronger boundary than a broad DT bisection: the source contract
 contains a direct success/failure branch on precisely the missing node, and the
-working DT contains the required node. A positive runtime would attribute the
-repair to the LK SCP handoff contract. A negative remains useful because it
-removes that strict stop while leaving all other current-DT differences intact.
+working DT contains the required node. The negative result shows that satisfying
+that contract alone is not sufficient. It does not prove whether the installed
+loader has that exact feature enabled or whether this gate passed and a later
+DT-dependent stop remained.
 
 ## Conclusion
 
-Confirmed offline: the current DT violates one strict public MT6797 LK input
-contract that the runtime-proven Stage-27 DT satisfies, and the exact one-node
-repair is a validated boot candidate. Hardware behavior remains untested.
-CPU8 and CPU9 remain closed.
+The input-disabled SCP node is not sufficient for serviceability. Its only
+attempt showed preloader but no mainline USB identity before a changed Gemian
+return; pstore was empty and boot2 still matched the exact candidate. The
+public-source contract finding remains valid but installed-loader causality is
+unestablished. This exact candidate is stopped. CPU8 and CPU9 remain closed.
 
 ## Follow-up
 
-Publish the deployment receipt, pre-arm the exact USB observer, then perform
-the one physical boot2 selection. The ordered project action remains in
+Re-rank the remaining Stage-27/current semantic groups by their earliest actual
+kernel consumers and select one attributable DT-only derivative. The ordered
+project action remains in
 [`docs/ROADMAP.md`](../../docs/ROADMAP.md).
