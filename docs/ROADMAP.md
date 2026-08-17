@@ -3922,12 +3922,27 @@ fallback-timing change is supporting only and does not identify the reset
 source. See the
 [runtime result](../experiments/2026-08-16-mainline-wdt-irq-isolation/results/runtime-attempt-1-no-mainline-usb-20260817.txt).
 
-The single next ordered action is offline: recompute the remaining
-Stage-27/current semantic partition after the tested USB, SCP, and watchdog
-deltas, map every remaining property group to its earliest actual consumer,
-and select one decision-changing derivative. Preserve the exact kernel,
-initramfs, container, proven observation inputs, DA921x-write closure, and
-CPU8/9 closure. Do not repeat any of the three stopped derivatives.
+The remaining partition is now recomputed. Passive differences do not add a
+unique failing branch in their exact built consumers. The selected active
+boundary restores the complete runtime-proven I2C5/AW9523/polling-keyboard
+group, including I2C5's shared AP_DMA clock role and the positive control's
+polling/no-parent-IRQ contract. This group probes after MTU3, so it tests the
+missing established serviceability foundation and does not claim to explain an
+earlier MTU3 failure. The exact kernel, initramfs, container, peripheral USB,
+disabled SCP, no-watchdog-IRQ path, xHCI closure, DA921x/I2C6 closure, and
+CPU8/9 closure remain fixed. See the
+[I2C5 serviceability experiment](../experiments/2026-08-17-mainline-i2c5-serviceability-restoration/README.md).
+
+The exact candidate passes deterministic DT and container reproduction, all
+32 inherited LK/container gates, package and manifest provenance, SCP and
+watchdog closure, the complete serviceability contract, five independent
+negative mutations, and guarded-installer checks without a kernel rebuild.
+The single next ordered action is to publish that definition, install the exact
+payload once to live-GPT-resolved inactive boot2, require full readback and
+clean shutdown, then arm a fresh USB/netcat observer immediately before the
+physical selection. Mainline identity promotes the current-DT serviceability
+foundation; preloader-only before a changed Gemian return stops this derivative
+and triggers a reassessment of LK DT mutation or the observation boundary.
 
 Required evidence:
 
