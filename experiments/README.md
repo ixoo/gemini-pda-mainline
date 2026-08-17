@@ -23,6 +23,16 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-16 MT6797 watchdog IRQ isolation](2026-08-16-mainline-wdt-irq-isolation/README.md)
+  — re-ranks the remaining Stage-27/current DT groups by their earliest built
+  kernel consumer. The selected candidate deletes only the optional watchdog
+  `interrupts` property so probe follows the runtime-proven no-IRQ takeover
+  path; the exact kernel, initramfs, USB observation properties, disabled SCP
+  node, watchdog reset-provider property, xHCI closure, and CPU8/9 closure stay
+  fixed. Deterministic DT/container reproduction, inherited LK and entry-ledger
+  gates, the exact manifest, SCP contract checks, and independent watchdog
+  mutations pass. Hardware behavior remains untested; one published, guarded,
+  pre-armed attempt is next.
 - [2026-08-16 MT6797 LK SCP handoff node](2026-08-16-mainline-scp-handoff-node/README.md)
   — partitions the remaining stopped-current versus runtime-proven Stage-27 DT
   delta and isolates a strict public MT6797 LK contract: absent

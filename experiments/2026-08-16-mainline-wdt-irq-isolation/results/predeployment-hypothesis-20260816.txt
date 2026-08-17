@@ -1,0 +1,35 @@
+MT6797 watchdog IRQ isolation predeployment decision map
+Date: 2026-08-16 America/New_York
+
+[exact-candidate]
+raw_sha256=21cd418951922852c0628d451e52d3a8df032c304e03037195738c41232676d2
+boot2_padded_sha256=b103dd6dbe46caba7a635efb744885b66bfde7c0ef7ea538e93644dc6bf1169d
+DT_sha256=49d8189b3801c2e95345857ff704ab0b819001c55101f16dd1949cfa5106d3aa
+one_property_delta=delete-/watchdog@10007000/interrupts
+
+[hypothesis]
+claim=the-current-DT-watchdog-IRQ-branch-prevents-early-running-watchdog-takeover
+mechanism=removing-the-IRQ-bypasses-IRQ-mapping-and-request-before-mtk_wdt_init
+positive_control=Stage27-no-IRQ-probed-watchdog-at-0.967423-seconds-and-remained-serviceable
+scope=current-mainline-serviceability-only;CPU8-and-CPU9-remain-closed
+
+[unique-observation]
+observer=armed-Mac-USB-topology-plus-bounded-mainline-network-and-returned-Gemian-boot-ID
+positive=mainline-USB-or-network-runtime-evidence-between-preloader-and-any-changed-Gemian-return
+negative=preloader-only-then-changed-Gemian-with-no-intervening-mainline-identity
+screen_colour=non-attributable-and-not-used-for-classification
+
+[decision-map]
+mainline_serviceable=collect-exact-kernel-entry-ledger-watchdog-USB-and-CPU-state;promote-current-DT-serviceability-foundation
+mainline_USB_only=collect-over-USB-and-classify-earliest-reached-stage-before-changing-any-other-property
+preloader_only_same_fallback=reject-watchdog-IRQ-as-sufficient;select-next-earliest-consumed-Stage27-current-boundary
+different_bounded_timing_without_mainline_identity=record-as-supporting-only;do-not-repeat-identical-candidate
+no_confirmed_cycle=do-not-classify;retain-candidate-without-spending-another-boot-unless-observation-can-change
+
+[safety]
+install_target=live-GPT-logical-boot2-only
+fresh_partition_backup=no;project-start-backup-is-recovery-source
+full_partition_readback=required
+post_write_action=clean-shutdown
+automatic_reboot=forbidden
+result=ready-for-one-guarded-attempt-after-publication

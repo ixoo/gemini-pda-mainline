@@ -3896,11 +3896,24 @@ serviceability; installed-loader causality remains unestablished. The candidate
 is stopped. See the
 [runtime result](../experiments/2026-08-16-mainline-scp-handoff-node/results/runtime-attempt-1-no-mainline-usb-20260816.txt).
 
-The single next ordered action is offline: re-rank the remaining semantic
-groups by the earliest actual kernel consumer, then select one attributable
-DT-only derivative. Preserve the exact kernel, initramfs, Android-v0 layout,
-USB observation properties, disabled SCP input, DA921x-write closure, and
-CPU8/9 closure. Do not repeat this artifact.
+The offline re-ranking is complete. The working Stage-27 DT has no watchdog
+IRQ and its runtime proved that the built-in MT6797 watchdog driver took over a
+bootloader-running timer before one second. The stopped current DT supplies an
+optional IRQ whose mapping and request occur before that takeover. The next
+candidate therefore deletes only the watchdog `interrupts` property while
+preserving the exact kernel, initramfs, Android-v0 layout, USB observation
+properties, disabled SCP input, watchdog reset-provider input, DA921x-write
+closure, and CPU8/9 closure. Its deterministic assembly, independent semantic
+validation, and guarded installer checks pass. See the
+[watchdog IRQ isolation experiment](../experiments/2026-08-16-mainline-wdt-irq-isolation/README.md).
+
+The single next ordered action is to publish that exact candidate, install it
+once to live-GPT-resolved inactive boot2, require full readback and clean
+shutdown, and arm the USB/netcat observer before physical selection. A
+serviceable exact mainline identity promotes the current-DT serviceability
+foundation; preloader-only before a changed Gemian return rejects this
+watchdog property as sufficient. A timing change without mainline identity is
+supporting evidence only. Do not repeat either stopped predecessor.
 
 Required evidence:
 
