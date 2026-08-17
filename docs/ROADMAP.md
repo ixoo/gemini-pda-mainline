@@ -3981,14 +3981,20 @@ path remain fixed. Two DT derivations and two container assemblies agree. All
 mutations, five CPU-clock mutations, provenance, manifest, syntax, ShellCheck,
 and guarded-installer gates pass without a kernel rebuild or native VM build.
 
-The single next ordered action is to publish this exact definition, install
-the exact 16 MiB payload once to live-GPT-resolved inactive `boot2`, require a
-matching full-partition readback and clean shutdown, then arm a fresh USB/
-netcat observer immediately before physical selection. Mainline identity
-confirms the loader-iterator boundary and opens runtime collection; preloader-
-only before a changed Gemian return challenges installed-source equivalence or
-locates a later LK boundary. Do not repeat an identical artifact, and do not
-use screen color, timing, or empty retained slots as a negative oracle.
+The candidate definition is published and guarded deployment is complete.
+Live GPT resolved inactive, unmounted boot2 as p30 while Gemian used p29; the
+predecessor was the stopped I2C5 candidate. Stable external power, exact write,
+sync, flush, full readback, and clean shutdown all passed without a fresh
+backup or automatic reboot. See the
+[deployment receipt](../experiments/2026-08-17-mainline-lk-cpu-clock-iterator-repair/results/deployment-1-20260817.txt).
+
+The single next ordered action is to arm the published fresh USB/netcat
+observer, then have the owner physically select `boot2` within that live
+window. Mainline identity confirms the loader-iterator boundary and opens
+runtime collection; preloader-only before a changed Gemian return challenges
+installed-source equivalence or locates a later LK boundary. Do not repeat an
+identical artifact, and do not use screen color, timing, or empty retained
+slots as a negative oracle.
 
 Required evidence:
 

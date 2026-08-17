@@ -32,7 +32,9 @@ the loop. Positive identity-gated observations are unaffected.
   derivations and two container assemblies agree; all 32 inherited LK gates,
   six container mutations, five serviceability mutations, five CPU-clock
   mutations, exact provenance, CPU8/9 closure, and the guarded installer's
-  offline gates pass. One published, freshly observed boot2 attempt is pending.
+  offline gates pass. Guarded live-GPT boot2 installation, exact full readback,
+  and clean shutdown passed without a fresh backup or automatic reboot. One
+  published, freshly observed boot2 attempt is pending.
 - [2026-08-17 MT6797 I2C5 serviceability restoration](2026-08-17-mainline-i2c5-serviceability-restoration/README.md)
   — recomputes the remaining Stage-27/current DT partition after the stopped
   USB, SCP, and watchdog derivatives. The selected candidate restores the full

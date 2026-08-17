@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-17-mainline-lk-cpu-clock-iterator-repair` |
-| Status | exact candidate validated offline; one guarded attempt pending |
+| Status | exact candidate installed with full readback and shutdown; one observed attempt pending |
 | Subsystem | Planet/MediaTek LK final-DTB CPU filtering before Linux entry |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-17 America/New_York |
@@ -69,12 +69,16 @@ partition backup is made.
 - `scripts/test-candidate.py`: independent container, serviceability, CPU
   metadata, provenance, and negative-mutation validation.
 - `scripts/install-boot2.sh`: source-pinned guarded logical-`boot2` installer.
+- `scripts/collect-runtime.sh`: source-pinned pre-armed USB/netcat observer
+  bound to the exact deployment boot ID and payload checksum.
 - `results/lk-cpu-clock-iterator-boundary-20260817.txt`: loader flow, exact
   non-progress mechanism, installed-loader correlation, and selection.
 - `results/offline-candidate-validation-20260817.txt`: immutable identities and
   completed offline gates.
 - `results/predeployment-hypothesis-20260817.txt`: unique observation and
   decision map for the one candidate attempt.
+- `results/deployment-1-20260817.txt`: live-GPT target, predecessor, exact
+  write/readback identity, and confirmed shutdown receipt.
 
 Generated candidates remain below the ignored `artifacts/` tree.
 
@@ -109,6 +113,13 @@ Two independent assemblies produced raw SHA-256
 and the exact 16 MiB boot2 payload SHA-256
 `b478b79a983889514b2b8d122fb6d5ff5057e52c332882b186b82698d1de62b8`.
 
+Guarded deployment resolved logical `boot2` as `/dev/mmcblk0p30`, inactive
+and unmounted while Gemian used `/dev/mmcblk0p29`. Stable external power and
+100% capacity passed. The installer recorded the stopped I2C5 candidate as
+predecessor, made no fresh backup, wrote and flushed the exact payload, and
+fully read back the same SHA-256. It then requested clean poweroff and
+confirmed the device unreachable without an automatic reboot.
+
 ## Analysis
 
 This boundary supersedes the earlier conclusion that the CPU clock
@@ -127,13 +138,13 @@ positive control rather than an inferred frequency policy.
 The exact stopped candidates have a credible loader-side infinite-loop
 mechanism before Image entry. The clocks-only repair is the first candidate
 that directly removes that mechanism while holding the kernel, initramfs,
-serviceability baseline, and CPU8/9 closure fixed. Offline validation passes;
-runtime classification remains pending.
+serviceability baseline, and CPU8/9 closure fixed. Offline validation and
+guarded deployment pass; runtime classification remains pending.
 
 ## Follow-up
 
-Publish the definition, install the exact payload once to live-GPT-resolved
-inactive `boot2`, require matching full readback and clean shutdown, then arm
-a fresh USB/netcat observer immediately before the owner selects `boot2`.
+Arm the published fresh USB/netcat observer immediately before the owner
+selects `boot2`, then classify the one physical attempt against the decision
+map.
 The ordered action is maintained in
 [`docs/ROADMAP.md`](../../docs/ROADMAP.md).
