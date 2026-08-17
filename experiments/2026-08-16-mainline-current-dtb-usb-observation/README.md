@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-16-mainline-current-dtb-usb-observation` |
-| Status | exact candidate installed and fully read back; device shut down for one attempt |
+| Status | one attempt complete; no mainline USB before changed Gemian return; candidate stopped |
 | Subsystem | MT6797 USB gadget, Device Tree, Planet LK handoff |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-16 America/New_York |
@@ -80,6 +80,8 @@ boot2 automatically. Stop on every identity, target, power, or readback error.
   decision map declared before deployment.
 - `results/deployment-1-20260816.txt`: live GPT, predecessor, exact write,
   independent full readback, and confirmed clean-shutdown evidence.
+- `results/runtime-attempt-1-no-mainline-usb-20260816.txt`: pre-armed host USB
+  timeline, changed Gemian return, pstore count, and exact post-cycle boot2.
 
 The exact generated candidate remains under the ignored `artifacts/` tree.
 
@@ -136,6 +138,15 @@ The readback matched the candidate byte-for-byte and by SHA-256. No fresh
 partition backup was created. The device then powered off cleanly and remained
 unreachable; it was not rebooted automatically.
 
+The one physical attempt was observed before boot2 selection. The Mac saw the
+MT65xx preloader (`0x0e8d:0x2000`) enumerate at 20:21:24.456 local and detach at
+20:21:27.033. It saw no Linux USB device or exact fixed-MAC network interface
+after that. Gemian then enumerated separately as `0x0fce:0x7169` at
+20:21:37.695, with RNDIS starting 34 ms later. Authenticated SSH proved a new
+Gemian boot ID, pstore remained empty, and boot2 still matched the exact
+candidate. Thus the transient topology change was preloader activity, not the
+mainline observation path.
+
 ## Analysis
 
 The positive Stage-27-DTB control remains valid, but it proved the current
@@ -146,15 +157,17 @@ difference on the current side.
 
 ## Conclusion
 
-Confirmed offline and installed for one guarded attempt: the stopped GAEL attempt
-omitted the candidate-time USB observation DT used by the serviceable lineage.
-Its missing USB was therefore not a clean boot-failure result. The exact
-three-property derivative passes every declared offline candidate gate;
-hardware behavior remains untested. The exact boot2 write and full readback are
-verified, and the device is shut down. CPU8 and CPU9 remain closed.
+The three-property USB repair is not sufficient for serviceability. Its exact
+attempt returned to Gemian without any mainline Linux USB identity, interface,
+or netcat endpoint. This does not prove absent Image entry because the observer
+begins later and the empty ledger is not a negative oracle. It does prove that
+at least one remaining semantic difference from the runtime-proven Stage-27 DT
+is still in the causal set. This exact artifact is stopped. CPU8 and CPU9 remain
+closed.
 
 ## Follow-up
 
-Physically select boot2 once with USB already attached and classify it using
-the predeclared decision map. The ordered project action remains in
-[`docs/ROADMAP.md`](../../docs/ROADMAP.md).
+Partition the remaining Stage-27/current semantic DT differences offline and
+select one attributable LK/early-kernel handoff group while keeping the exact
+kernel, initramfs, USB properties, container, and CPU closure. The ordered
+project action remains in [`docs/ROADMAP.md`](../../docs/ROADMAP.md).

@@ -3839,13 +3839,24 @@ flush, independent full readback, and clean shutdown all passed. No fresh
 backup was made and no automatic reboot occurred. See the
 [deployment receipt](../experiments/2026-08-16-mainline-current-dtb-usb-observation/results/deployment-1-20260816.txt).
 
-The single next ordered action is its one physical USB-attached boot2
-selection. Exact netcat kernel identity proves the three-property
-current DT is serviceable; mainline USB without netcat localizes after USB
-initialization; no mainline USB followed by changed Gemian is only a bounded
-negative at or before this observation path. Do not repeat this identical
-artifact and do not use screen color or returned empty ledger slots as a
-negative oracle. CPU8 and CPU9 remain closed.
+The one pre-armed attempt is complete. The host saw only MT65xx preloader
+enumeration, followed by its detach; no Linux USB device, exact fixed-MAC
+interface, or netcat endpoint appeared before Gemian enumerated separately and
+returned with a changed boot ID. Pstore remained empty and boot2 still matched
+the exact payload. The three USB `status` properties are therefore insufficient
+for serviceability. The result remains bounded before or inside the mainline
+USB observation path and does not prove absent Image entry. See the
+[runtime result](../experiments/2026-08-16-mainline-current-dtb-usb-observation/results/runtime-attempt-1-no-mainline-usb-20260816.txt).
+
+The single next ordered action is an offline semantic partition of every
+remaining difference between the stopped three-property DT and the
+runtime-proven Stage-27 DT. Group each delta by exact source and consumer,
+prioritizing LK fixups and early kernel handoff over unrelated peripheral
+serviceability. Select one attributable DT-only derivative while preserving the
+exact kernel, initramfs, Android-v0 layout, USB observation properties,
+DA921x-write closure, and CPU8/9 closure. Do not repeat the stopped artifact or
+spend another boot before the selected group has an exact generated identity,
+independent validation, and the same pre-armed decision map.
 
 Required evidence:
 
