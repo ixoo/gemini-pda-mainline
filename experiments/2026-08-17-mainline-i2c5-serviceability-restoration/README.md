@@ -66,6 +66,8 @@ full readback, and clean shutdown.
   serviceability-contract, provenance, and negative-mutation validation.
 - `scripts/install-boot2.sh`: source-pinned guarded logical-`boot2` installer
   with full readback and clean shutdown.
+- `scripts/collect-runtime.sh`: source-pinned pre-armed USB/netcat observer
+  bound to the deployment Gemian boot ID and exact candidate checksum.
 - `results/serviceability-boundary-20260817.txt`: exact DT partition, built
   initcall/runtime order, shared AP_DMA evidence, write scope, and selection.
 - `results/offline-candidate-validation-20260817.txt`: immutable inputs,
