@@ -32,8 +32,10 @@ the loop. Positive identity-gated observations are unaffected.
   no-watchdog-IRQ path, xHCI closure, and CPU8/9 closure fixed. Two DT
   derivations and two container assemblies agree; all 32 LK gates, exact
   provenance, SCP/watchdog contracts, the serviceability contract, five
-  independent mutations, and the guarded installer's offline gates pass. The
-  exact candidate is awaiting one guarded boot2 deployment and observed run.
+  independent mutations, and the guarded installer's offline gates pass.
+  Guarded live-GPT boot2 installation, full readback, and clean shutdown also
+  passed without a fresh backup or automatic reboot. The exact candidate is
+  installed and awaiting one freshly observed run.
 - [2026-08-16 MT6797 watchdog IRQ isolation](2026-08-16-mainline-wdt-irq-isolation/README.md)
   — re-ranks the remaining Stage-27/current DT groups by their earliest built
   kernel consumer. The selected candidate deletes only the optional watchdog

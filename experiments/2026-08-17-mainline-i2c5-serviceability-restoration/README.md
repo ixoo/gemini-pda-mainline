@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-17-mainline-i2c5-serviceability-restoration` |
-| Status | exact candidate passes offline gates; awaiting guarded deployment |
+| Status | exact candidate installed and device shut down; awaiting observed boot |
 | Subsystem | MT6797 I2C5/AP-DMA, AW9523 pinctrl/GPIO, polling matrix keyboard |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-17 America/New_York |
@@ -72,6 +72,8 @@ full readback, and clean shutdown.
   candidate identities, reproducible tooling, and completed offline gates.
 - `results/predeployment-hypothesis-20260817.txt`: unique observation and
   decision map for the single candidate attempt.
+- `results/deployment-1-20260817.txt`: live-GPT target, predecessor, exact
+  write/readback identity, and confirmed shutdown receipt.
 
 Generated candidates remain below the ignored `artifacts/` tree.
 
@@ -121,6 +123,13 @@ I2C5/AW9523/polling-keyboard contract. Five separate serviceability mutations
 were rejected. The guarded installer also passed syntax, ShellCheck, and its
 derived help gate without device access.
 
+Guarded deployment resolved logical `boot2` as `/dev/mmcblk0p30`, inactive and
+unmounted while Gemian used `/dev/mmcblk0p29`. External power, 100% capacity,
+and writable 16 MiB target gates passed. The installer recorded the stopped
+watchdog candidate as predecessor, made no fresh backup, wrote and flushed the
+exact payload, and fully read back the same SHA-256. It then requested clean
+poweroff and confirmed the device unreachable without an automatic reboot.
+
 ## Analysis
 
 Enabling only the I2C controller would be an incomplete substitute: it would
@@ -131,12 +140,12 @@ is broader but more attributable to the actual serviceability milestone.
 
 ## Conclusion
 
-The exact candidate is offline-valid and publishable. Hardware behavior of
-this derivative is untested. CPU8 and CPU9 remain closed.
+The exact candidate is installed and the device is safely powered off.
+Hardware behavior of this derivative is untested. CPU8 and CPU9 remain closed.
 
 ## Follow-up
 
-Publish the candidate definition, then perform one guarded logical-`boot2`
-installation with full readback and clean shutdown. Arm a fresh observer only
-immediately before the physical selection. The ordered action is maintained in
+Arm a fresh observer only immediately before one physical `boot2` selection,
+then classify the exact USB/network or changed-Gemian result against the
+predeclared decision map. The ordered action is maintained in
 [`docs/ROADMAP.md`](../../docs/ROADMAP.md).

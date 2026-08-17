@@ -3944,6 +3944,20 @@ physical selection. Mainline identity promotes the current-DT serviceability
 foundation; preloader-only before a changed Gemian return stops this derivative
 and triggers a reassessment of LK DT mutation or the observation boundary.
 
+The candidate definition is published and guarded deployment is complete.
+Live GPT resolved inactive, unmounted boot2 as p30 while Gemian used p29; the
+predecessor was the stopped watchdog candidate. Stable external power, exact
+write, sync, flush, full readback, and clean shutdown all passed without a fresh
+backup or automatic reboot. See the
+[deployment receipt](../experiments/2026-08-17-mainline-i2c5-serviceability-restoration/results/deployment-1-20260817.txt).
+
+The single next ordered action is to arm a fresh USB/netcat observer and then
+make one physical boot2 selection before it expires. Exact mainline USB or
+network identity is positive; preloader-only before a changed Gemian return is
+negative; timing or screen color without mainline identity remains supporting
+or non-attributable only. Do not repeat the candidate without a new independent
+observation path.
+
 Required evidence:
 
 - provider registration performs no register-data write;
