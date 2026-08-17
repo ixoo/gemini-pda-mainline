@@ -3907,13 +3907,18 @@ closure, and CPU8/9 closure. Its deterministic assembly, independent semantic
 validation, and guarded installer checks pass. See the
 [watchdog IRQ isolation experiment](../experiments/2026-08-16-mainline-wdt-irq-isolation/README.md).
 
-The single next ordered action is to publish that exact candidate, install it
-once to live-GPT-resolved inactive boot2, require full readback and clean
-shutdown, and arm the USB/netcat observer before physical selection. A
-serviceable exact mainline identity promotes the current-DT serviceability
-foundation; preloader-only before a changed Gemian return rejects this
-watchdog property as sufficient. A timing change without mainline identity is
-supporting evidence only. Do not repeat either stopped predecessor.
+The exact candidate is published and its guarded installation is complete.
+Live GPT resolved inactive, unmounted boot2 as p30 while Gemian used p29;
+stable external power, the full write/readback comparison, and clean shutdown
+all passed without a fresh backup or automatic reboot. See the
+[deployment receipt](../experiments/2026-08-16-mainline-wdt-irq-isolation/results/deployment-1-20260817.txt).
+
+The single next ordered action is to arm the USB/netcat observer and then make
+one physical boot2 selection. A serviceable exact mainline identity promotes
+the current-DT serviceability foundation; preloader-only before a changed
+Gemian return rejects this watchdog property as sufficient. A timing change
+without mainline identity is supporting evidence only. Do not repeat either
+stopped predecessor.
 
 Required evidence:
 

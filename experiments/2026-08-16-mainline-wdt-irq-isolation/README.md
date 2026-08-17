@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-16-mainline-wdt-irq-isolation` |
-| Status | exact one-property candidate independently validated; deployment pending |
+| Status | exact candidate deployed with full readback; device shut down; one attempt pending |
 | Subsystem | MT6797 TOPRGU watchdog, early platform probe, USB observation |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-16 America/New_York |
@@ -78,6 +78,8 @@ flush only the exact payload, verify a full readback, and shut down cleanly.
   identities and completed offline gates.
 - `results/predeployment-hypothesis-20260816.txt`: unique observation and
   decision map for the single authorized attempt.
+- `results/deployment-1-20260817.txt`: live-GPT target, predecessor, exact
+  write/readback identity, and confirmed shutdown receipt.
 
 Generated candidates remain below the ignored `artifacts/` tree.
 
@@ -121,6 +123,13 @@ the arm64 entry-ledger checks, the disabled-SCP contract, the candidate
 manifest, and the watchdog contract. Restoring the IRQ or changing
 `#reset-cells` was rejected by separate semantic mutation tests.
 
+Guarded deployment resolved logical `boot2` as `/dev/mmcblk0p30`, inactive and
+unmounted while Gemian used `/dev/mmcblk0p29`. External power, 100% capacity,
+and writable 16 MiB target gates passed. The installer recorded the stopped
+SCP predecessor, made no fresh backup, wrote and flushed the exact payload,
+and fully read back the same SHA-256. It then requested clean poweroff and
+confirmed the device unreachable without an automatic reboot.
+
 ## Analysis
 
 The DVFSP handoff node is enabled in both DTs and uses the same built driver;
@@ -131,16 +140,16 @@ positive control's proven watchdog takeover.
 
 ## Conclusion
 
-Selected and validated offline: remove only the watchdog interrupt description
+Selected, validated, and deployed: remove only the watchdog interrupt description
 to reproduce the positive control's early watchdog probe path without
 restoring unrelated Stage-27 serviceability properties. Exact padded candidate
 SHA-256 is
 `b103dd6dbe46caba7a635efb744885b66bfde7c0ef7ea538e93644dc6bf1169d`.
-Hardware behavior remains untested. CPU8 and CPU9 remain closed.
+Hardware behavior remains untested until the one physical selection. CPU8 and
+CPU9 remain closed.
 
 ## Follow-up
 
-Publish the exact identity, install it once through the guarded logical
-`boot2` workflow, arm the host observer before physical selection, and classify
-only changed boot-ID/USB/runtime evidence. The ordered project action remains in
+Arm the host observer before physical selection and classify only changed
+boot-ID/USB/runtime evidence. The ordered project action remains in
 [`docs/ROADMAP.md`](../../docs/ROADMAP.md).

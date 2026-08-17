@@ -31,8 +31,9 @@ the loop. Positive identity-gated observations are unaffected.
   node, watchdog reset-provider property, xHCI closure, and CPU8/9 closure stay
   fixed. Deterministic DT/container reproduction, inherited LK and entry-ledger
   gates, the exact manifest, SCP contract checks, and independent watchdog
-  mutations pass. Hardware behavior remains untested; one published, guarded,
-  pre-armed attempt is next.
+  mutations pass. Guarded live-GPT boot2 installation, full readback, and clean
+  shutdown passed without a fresh backup or automatic reboot. Hardware
+  behavior remains untested; one pre-armed physical selection is next.
 - [2026-08-16 MT6797 LK SCP handoff node](2026-08-16-mainline-scp-handoff-node/README.md)
   — partitions the remaining stopped-current versus runtime-proven Stage-27 DT
   delta and isolates a strict public MT6797 LK contract: absent
