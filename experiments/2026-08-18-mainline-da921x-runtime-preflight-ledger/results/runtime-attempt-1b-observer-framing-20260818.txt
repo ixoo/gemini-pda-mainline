@@ -1,0 +1,37 @@
+MT6797 DA921x runtime-triggered preflight attempt 1b observer framing boundary
+Local date: 2026-08-18 America/New_York
+
+candidate_padded_sha256=af560eaad69b61239db7980995776b47b1194bb26fe5c8a24d8f1462008ab296
+kernel_release=7.1.3-gemini-da921x-preflight-rt
+mainline_boot_id_sha256=521da491690ddc4b220ed456a4bc3ad2c6765dbcc4b8b6e38e8acbbfaad57b97
+collector_armed_utc=2026-08-18T22:01:24Z
+exact_interface_ready_utc=2026-08-18T22:01:24Z
+pretrigger_probe_attempts=6
+pretrigger_payloads_complete=6
+
+runtime_preflight_state=idle
+runtime_preflight_attempts=0
+registration_reads=2
+observer_reads=4
+preflight_reads=0
+i2c6_handoff=ready
+i2c6_transfer_attempts=20
+i2c6_entry_ledger_count=20
+i2c6_entry_ledger_overflow=0
+i2c6_register_data_write_messages=0
+trigger_command_started=no
+trigger_attempts=0
+native_reboot_command_sent=no
+
+observer_failure=interactive-prompt-prefixed-opening-marker
+observed_opening_line_suffix=__DA921X_RUNTIME_PRETRIGGER_BEGIN__
+required_opening_line=__DA921X_RUNTIME_PRETRIGGER_BEGIN__
+closing_marker=exact-line
+host_gate=correctly-rejected-nonexact-framing
+private_observer_events_sha256=a99e3e49856eae356f55e9467e61a96c96ab2d1aa22c2ccb7a09bb167a95929f
+private_pretrigger_try_1_sha256=22368c269d24b98b6a8fa5b545536c9119209a580d878f024237d80b7b65a8b3
+private_usb_topology_sha256=e913e680edc2e5402d9f763dd5c7adde3601590869b98a5afb85fba8b8766d3d
+private_capture_retained=yes
+decision=prefix-both-opening-markers-with-newline-and-resume-same-live-boot-as-attempt-1c
+CPU8_CPU9_admission=closed
+result=stopped-before-trigger

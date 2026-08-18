@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-18-mainline-da921x-runtime-preflight-ledger` |
-| Status | `running` (candidate live; corrected attempt `1b` pending) |
+| Status | `running` (candidate live; corrected attempt `1c` pending) |
 | Subsystem | MT6797 I2C6 transfer attribution and DA921x Gate-6 preflight |
 | Device variant | Planet Gemini PDA, MT6797 named development unit |
 | Date(s) | 2026-08-18 America/New_York |
@@ -122,12 +122,15 @@ python3 experiments/2026-08-18-mainline-da921x-runtime-preflight-ledger/scripts/
 - A bounded read-only diagnostic resolved the single client as
   `/sys/bus/i2c/devices/1-0068`, confirmed `readonly_preflight` readable and
   still `idle`, with zero attempts, zero preflight reads, and zero register-data
-  writes. Both probes now resolve the exact client directly; checksum pins,
-  syntax, ShellCheck, ordering, and eleven unsafe classifier mutations pass for
-  continuation attempt `1b`. See
+  writes. Attempt `1b` used the repaired direct resolver and captured the full
+  idle state plus exact 20-entry ledger six times, but the interactive shell
+  prompt prefixed the opening marker. The exact-line host gate correctly
+  stopped before the trigger. Both probes now end the prompt line before their
+  opening marker; checksum pins, syntax, ShellCheck, ordering, and eleven unsafe
+  classifier mutations pass for continuation attempt `1c`. See
   [`results/runtime-attempt-1-observer-path-20260818.txt`](results/runtime-attempt-1-observer-path-20260818.txt)
-  and
-  [`results/collector-attempt-1b-validation-20260818.txt`](results/collector-attempt-1b-validation-20260818.txt).
+  [`results/runtime-attempt-1b-observer-framing-20260818.txt`](results/runtime-attempt-1b-observer-framing-20260818.txt),
+  and [`results/collector-attempt-1c-validation-20260818.txt`](results/collector-attempt-1c-validation-20260818.txt).
 
 ## Analysis
 
@@ -141,12 +144,13 @@ them with boot success.
 
 The source, build, candidate, deployment, mainline serviceability, and repaired
 collector boundaries are `confirmed`. The runtime-preflight hardware result
-remains `inconclusive` because attempt 1 stopped in the host observer before
-issuing the token. Gate-6 blockers B1--B4 and CPU8/9 admission remain closed.
+remains `inconclusive` because attempts `1` and `1b` stopped in the host observer
+before issuing the token. Gate-6 blockers B1--B4 and CPU8/9 admission remain
+closed.
 
 ## Follow-up
 
-Commit and push the checksum-pinned observer repair, then run exact continuation
-attempt `1b` against the still-live candidate. Retain and classify the exact
+Commit and push the checksum-pinned framing repair, then run exact continuation
+attempt `1c` against the still-live candidate. Retain and classify the exact
 20-entry pre-trigger ledger before the sole token attempt. The authoritative
 ordered runtime and decision boundary remains [Roadmap Gate 6](../../docs/ROADMAP.md#6-prove-one-bounded-writable-operation).

@@ -5,7 +5,8 @@ set -eu
 export LC_ALL=C
 BB=/bin/busybox
 
-$BB printf '%s\n' __DA921X_RUNTIME_PRETRIGGER_BEGIN__
+# End the interactive shell prompt line before the exact framing marker.
+$BB printf '\n%s\n' __DA921X_RUNTIME_PRETRIGGER_BEGIN__
 $BB printf 'kernel_release='; $BB uname -r
 $BB printf 'architecture='; $BB uname -m
 $BB printf 'boot_id_sha256='; $BB sha256sum /proc/sys/kernel/random/boot_id | $BB cut -d ' ' -f 1

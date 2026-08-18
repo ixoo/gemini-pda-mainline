@@ -6,7 +6,8 @@ export LC_ALL=C
 BB=/bin/busybox
 TOKEN=run-readonly-preflight-20260818-a
 
-$BB printf '%s\n' __DA921X_RUNTIME_TRIGGER_BEGIN__
+# End the interactive shell prompt line before the exact framing marker.
+$BB printf '\n%s\n' __DA921X_RUNTIME_TRIGGER_BEGIN__
 $BB printf 'kernel_release='; $BB uname -r
 $BB printf 'architecture='; $BB uname -m
 $BB printf 'boot_id_sha256='; $BB sha256sum /proc/sys/kernel/random/boot_id | $BB cut -d ' ' -f 1

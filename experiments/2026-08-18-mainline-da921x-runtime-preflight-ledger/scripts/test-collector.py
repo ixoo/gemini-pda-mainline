@@ -39,6 +39,10 @@ def main() -> None:
                 f"non-symlink-following attribute lookup returned: {name}")
         require(probe.count("preflight=$1/readonly_preflight") == 1,
                 f"exact runtime attribute path changed: {name}")
+        begin = ("__DA921X_RUNTIME_PRETRIGGER_BEGIN__" if "pretrigger" in name
+                 else "__DA921X_RUNTIME_TRIGGER_BEGIN__")
+        require(probe.count(f"$BB printf '\\n%s\\n' {begin}") == 1,
+                f"prompt-separated opening marker changed: {name}")
 
     anchors = (
         'python3 "$classifier" --pretrigger "$pretrigger" >"$pretrigger_classification"',
@@ -59,7 +63,7 @@ def main() -> None:
             "non-pass reboot closures changed")
     require('CANDIDATE_SHA256=af560eaad69b61239db7980995776b47b1194bb26fe5c8a24d8f1462008ab296'
             in text, "candidate identity changed")
-    require('mainline-da921x-runtime-preflight-attempt-1b' in text,
+    require('mainline-da921x-runtime-preflight-attempt-1c' in text,
             "private capture identity changed")
 
     print("validation=mainline-da921x-runtime-preflight-collector")
