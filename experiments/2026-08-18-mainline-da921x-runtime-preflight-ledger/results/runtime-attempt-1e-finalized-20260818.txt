@@ -1,0 +1,92 @@
+Experiment: 2026-08-18-mainline-da921x-runtime-preflight-ledger
+Result: runtime attempt 1e passed and native-return finalization passed
+Date: 2026-08-18 America/New_York
+Device: named Gemini PDA development unit
+
+Exact candidate
+---------------
+profile=da921x-runtime-preflight-ledger
+kernel_release=7.1.3-gemini-da921x-preflight-rt
+build_source_commit=a3679cd38937bf9a7c9e25d19385e8f992506370
+finalizer_repository_commit=5a676c274d71826685c71b55a5055b5aa78b65af
+padded_boot2_sha256=af560eaad69b61239db7980995776b47b1194bb26fe5c8a24d8f1462008ab296
+source_capture_manifest_sha256=e55c548836444b115ecf8bfc39462c3212c8b5fc38a74f7635b6aa25099add5a
+finalization_capture_manifest_sha256=ce69781d9059c0319e6b494a3fae4d02855b5438480ea426d255fe30f01d3a92
+
+Retained runtime classification
+-------------------------------
+classification=success-runtime-preflight-ledger
+kernel_release=7.1.3-gemini-da921x-preflight-rt
+mainline_boot_id_sha256=521da491690ddc4b220ed456a4bc3ad2c6765dbcc4b8b6e38e8acbbfaad57b97
+cpu_online=0-7
+cpu_offline=8-9
+runtime_preflight_state=passed
+runtime_preflight_attempts=1
+runtime_preflight_last_error=0
+runtime_preflight_valid=1
+runtime_preflight_passes=2
+runtime_preflight_stable=1
+registration_reads=2
+observer_reads=4
+preflight_reads=10
+control_a=0x7b
+control_a_v_lock_mask=0x80
+control_a_v_lock_clear=1
+status_b=0xc1
+buckb_cont=0x00
+vbuckb_a=0x46
+vbuckb_b=0x46
+safe_prestate=1
+i2c6_ledger_count=30
+i2c6_ledger_capacity=32
+i2c6_ledger_overflow=0
+i2c6_combined_pointer_reads=30
+i2c6_primary_pointer_reads=24
+i2c6_page2_pointer_reads=6
+i2c6_write_only_messages=0
+i2c6_register_data_write_messages=0
+i2c6_other_transfers=0
+i2c6_other_address_transfers=0
+sysfs_mount_after_trigger=ro
+accepted_trigger_requests=1
+second_trigger_requests=0
+retained_classification_sha256=7fa11c82c2212c35345b8eadb513bdf3401bc724724064dd98e2aa7ef3985d02
+
+Exact attributable ledger
+-------------------------
+pretrigger_count=20
+pretrigger_sequence=69:05,69:06,69:47,68:d3,68:5e,68:d9,68:da,69:05,69:06,69:47,68:d3,68:5e,68:d9,68:da,68:d7,68:d9,68:d7,68:5d,68:d9,68:5e
+trigger_count=10
+trigger_sequence=68:56,68:51,68:5e,68:d9,68:da,68:56,68:51,68:5e,68:d9,68:da
+posttrigger_count=30
+all_entries_message_shape=two-message one-byte-pointer plus one-byte-read
+all_entries_completed=1
+
+Native-return finalization
+--------------------------
+armed_utc=2026-08-18T22:37:44Z
+live_confirmation_utc=2026-08-18T22:37:45Z
+live_confirmation=passed-state exact-30 zero-writes sysfs-ro
+native_reboot_gate=passed
+native_reboot_command_utc=2026-08-18T22:37:45Z
+native_reboot_commands_sent=1
+changed_gemian_return_utc=2026-08-18T22:38:24Z
+returned_boot_id_sha256=1a1b43d1e6f07739369e7559c225baf99fd4dc58c268cc86feaad32fe52205d5
+finalization_classification_sha256=175d5421113a26d02ba219e60b5d152fa8aa57859063d46d491d8dc9fa331907
+posttrigger_confirmation_sha256=03a548bc239e43c3dbbeb382775c33d7d26b7442c4c10546e5d31a365b808e93
+finalization_events_sha256=a30c26d2e6f7eb76ac48c1f72be78337ba3d7cc781d64ba63167667ddb1da316
+
+Decision
+--------
+Gate6_B3=closed-by-exact-transfer-attribution
+Gate6_B4=closed-by-stable-safe-read-only-preflight
+Gate6_B1=blocking-firmware-writer-exclusion
+Gate6_B2=blocking-native-one-message-two-byte-write-transport
+Gate6_write=not-authorized
+CPU8_CPU9_admission=closed
+result=pass
+
+This result establishes only the named read-only runtime and native-return
+boundary. It performed no register-data write, provider setter, rail change,
+consumer request, firmware-owner claim, or CPU8/CPU9 request. Private raw
+captures remain ignored; this file contains the sanitized attributable result.

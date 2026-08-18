@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-18-mainline-da921x-runtime-preflight-ledger` |
-| Status | `running` (runtime passed; native-return finalization pending) |
+| Status | `completed` (runtime and native-return finalization passed) |
 | Subsystem | MT6797 I2C6 transfer attribution and DA921x Gate-6 preflight |
 | Device variant | Planet Gemini PDA, MT6797 named development unit |
 | Date(s) | 2026-08-18 America/New_York |
@@ -162,6 +162,13 @@ python3 experiments/2026-08-18-mainline-da921x-runtime-preflight-ledger/scripts/
   then permits the planned native return to Gemian. See
   [`results/runtime-attempt-1e-success-classifier-correction-20260818.txt`](results/runtime-attempt-1e-success-classifier-correction-20260818.txt)
   and [`results/finalizer-prearm-validation-20260818.txt`](results/finalizer-prearm-validation-20260818.txt).
+- Finalization reclassified the immutable attempt-`1e` capture, then confirmed
+  the same live release, passed state, single attempt, exact 30-entry ledger,
+  zero write-shaped transfers, read-only sysfs, and CPUs 8--9 offline. It sent
+  no second trigger. Those gates permitted exactly one native reboot at
+  2026-08-18T22:37:45Z; changed-identity Gemian returned 39 seconds later.
+  The sanitized hashes and decision record are in
+  [`results/runtime-attempt-1e-finalized-20260818.txt`](results/runtime-attempt-1e-finalized-20260818.txt).
 
 ## Analysis
 
@@ -173,17 +180,16 @@ them with boot success.
 
 ## Conclusion
 
-The source, build, candidate, deployment, mainline serviceability, and repaired
-collector boundaries are `confirmed`. The runtime-preflight hardware result
-is `confirmed`: attempt `1e` closes Gate-6 blockers B3 and B4 with exact
-transfer attribution and stable safe prestate. B1 firmware-writer exclusion
-and B2 native two-byte write transport remain blocking, so Gate-6 writing and
-CPU8/CPU9 admission remain closed. The operational native-return confirmation
-is still pending.
+The source, build, candidate, deployment, mainline serviceability, read-only
+runtime preflight, and native return are `confirmed`. Attempt `1e` closes
+Gate-6 blockers B3 and B4 with exact transfer attribution and stable safe
+prestate. B1 firmware-writer exclusion and B2 native two-byte write transport
+remain blocking, so Gate-6 writing and CPU8/CPU9 admission remain closed.
 
 ## Follow-up
 
-Commit and push the mask-correct classifier and no-retrigger finalizer. Confirm
-the surviving passed state read-only, then request one native reboot and require
-a changed Gemian return. The authoritative ordered runtime and decision
-boundary remains [Roadmap Gate 6](../../docs/ROADMAP.md#6-prove-one-bounded-writable-operation).
+Close B1 by proving an exact transaction-window exclusion contract for every
+firmware-side I2C6 writer, then close B2 for the native one-message two-byte
+write shape without opening the DA921x hardware-write gate prematurely. The
+authoritative ordered runtime and decision boundary remains
+[Roadmap Gate 6](../../docs/ROADMAP.md#6-prove-one-bounded-writable-operation).

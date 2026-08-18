@@ -83,7 +83,7 @@ def validate_patch_hunks(text: str) -> None:
 
 def validate_contract(contract: dict) -> None:
     require(
-        contract["status"] == "runtime-trigger-observed-finalization-pending",
+        contract["status"] == "runtime-success-finalized",
         "wrong status",
     )
     require(contract["profile"] == PROFILE, "profile changed")

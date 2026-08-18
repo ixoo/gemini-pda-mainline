@@ -4107,10 +4107,10 @@ The [initial Gate-6 design review](../experiments/2026-08-17-mainline-da921x-bou
 selects the least-invasive future transaction: one no-retry same-value write
 of `0x46` to disabled Buck B's unselected `VBUCKB_B` register `0xda`, followed
 by immediate/delayed readback and full pre/post comparison. It explicitly
-performs no build or hardware action. Implementation remains blocked because
-the stopped-receiver handoff cannot yet exclude every firmware writer, the
-native one-message two-byte write shape is unproved, two of Gate 5's 20 I2C6
-transfers are unattributed, and live `V_LOCK`/status preflight is absent.
+performs no build or hardware action. At review time, implementation was
+blocked by firmware-writer exclusion, the native one-message two-byte write
+shape, two unattributed Gate-5 transfers, and absent live `V_LOCK`/status
+preflight.
 
 The read-only I2C6 entry-ledger and DA921x direct-register-preflight candidate
 was frozen offline. Buildbox built exact clean commit `f2837f05083b...` as
@@ -4128,30 +4128,40 @@ passed without a fresh backup or automatic reboot. The checksum-pinned
 read-only collector and classifier were validated against one complete
 30-entry fixture and eight unsafe mutations.
 
-Its one permitted runtime attempt is complete and stopped. A collector
+The automatic-preflight candidate's one permitted runtime attempt is complete
+and stopped. A collector
 published and armed before selection observed MT65xx preloader attach/detach,
 but no exact mainline USB gadget, fixed-MAC interface, or netcat endpoint. The
 later `0fce:7169` device was changed-identity Gemian returning; no collector
 command was sent. Pstore was empty, and inactive, unmounted live-GPT p30 still
 matched exact payload `41c652225d36...`. No I2C6 ledger or preflight value was
-captured, so B3 and B4 remain open alongside B1 and B2. See the
+captured, so that candidate closed none of B1--B4. See the
 [runtime result](../experiments/2026-08-17-mainline-da921x-readonly-preflight-ledger/results/runtime-attempt-1-no-mainline-usb-20260818.txt),
 [deployment receipt](../experiments/2026-08-17-mainline-da921x-readonly-preflight-ledger/results/deployment-1-20260818.txt),
 [collector pre-arm receipt](../experiments/2026-08-17-mainline-da921x-readonly-preflight-ledger/results/collector-prearm-validation-20260818.txt), and
 [offline candidate record](../experiments/2026-08-17-mainline-da921x-readonly-preflight-ledger/results/offline-candidate-validation-20260818.txt).
 
-Do not repeat the exact artifact. The single next ordered discriminator is a
-runtime-triggered read-only successor: preserve the runtime-proven Gate-5
-kernel/DT/serviceability boundary and bounded I2C6 ledger, remove the ten
-automatic preflight transfers from probe, and expose one checksum-pinned,
-one-shot trigger through the existing USB/netcat shell. Capture and classify
-the exact 20-entry startup ledger before triggering. An exact post-trigger
-30-entry ledger can close B3/B4; an immediate transport loss localizes the
-failure to the read sequence while retaining the pre-trigger evidence. The
-trigger must add no retry, `PAGE_CON` access, register-data write, consumer,
-firmware-owner claim, or CPU8/CPU9 request. The isolated source implementation
-and two-stage contract are tracked in the
-[runtime-triggered preflight experiment](../experiments/2026-08-18-mainline-da921x-runtime-preflight-ledger/README.md).
+Do not repeat either exact artifact. The runtime-triggered read-only successor
+reached the inherited serviceability boundary, durably classified the exact
+20-entry startup ledger, accepted one checksum-pinned trigger, and added the
+expected ten reads. Two stable samples observed `CONTROL_A=0x7b` with
+`V_LOCK` clear, record-only `STATUS_B=0xc1`, disabled Buck B, and both selector
+bytes at `0x46`. The final 30-entry ledger had zero overflow and zero
+write-only, register-data-write, other-shape, or other-address transfers.
+Read-only sysfs restoration, CPUs 8--9 offline, and one native return to
+changed-identity Gemian also passed. This closes B3 exact transfer attribution
+and B4 stable safe prestate only; see the
+[finalized runtime result](../experiments/2026-08-18-mainline-da921x-runtime-preflight-ledger/results/runtime-attempt-1e-finalized-20260818.txt).
+
+The single next ordered discriminator is B1: reconcile the historical
+`SEMA_I2C_DRV` pause lease and the current stopped-receiver/Linux lease into a
+reviewable transaction-window proof that excludes every firmware-side I2C6
+writer. Do not build or boot a writable provider while B1 is open. Once B1 is
+closed, B2 must independently establish the native one-message two-byte write
+shape and its exact completion/failure accounting without yet requesting a
+DA921x state change. Only after both blockers close may the reviewed one-shot
+same-value `0xda:0x46 -> 0x46` candidate return for an explicit pre-write
+review. Gate-6 writing and CPU8/CPU9 admission remain closed.
 
 The first writable test must:
 
