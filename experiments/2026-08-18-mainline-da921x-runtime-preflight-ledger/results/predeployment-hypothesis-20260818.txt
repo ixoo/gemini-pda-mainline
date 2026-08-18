@@ -1,0 +1,60 @@
+MT6797 DA921x runtime-triggered preflight predeployment decision map
+Local date: 2026-08-18 America/New_York
+
+Exact candidate
+- kernel release: 7.1.3-gemini-da921x-preflight-rt
+- kernel package commit: a3679cd38937bf9a7c9e25d19385e8f992506370
+- final DT SHA-256: d7dba05efa272c8264c8ea15c776fb88c21a0012603214b49dfd9e2893e87d48
+- raw Android-v0 SHA-256: 5f1ce652cee1fe77a4d963849dd047a9fbed6b0a25ef8fb48bcde74cb30b665d
+- padded boot2 SHA-256: af560eaad69b61239db7980995776b47b1194bb26fe5c8a24d8f1462008ab296
+- CPU policy: maxcpus=8; CPU8 and CPU9 admission closed
+- DA921x policy: fixed identity/provider reads at boot, then ten fixed
+  read-only transfers behind one exact runtime token; no consumer, setter,
+  enable/disable operation, PAGE_CON access, owner claim, retry, or
+  register-data write
+
+Kernel/DT/configuration hypothesis
+The kernel and final DT preserve the exact successful Gate-5 serviceability
+path and add only the bounded I2C6 ledger plus a dormant runtime trigger. It
+must first reach USB/netcat with the parent's exact 20 completed reads and an
+idle trigger. Only after the host classifies and durably retains that capture
+may it send token run-readonly-preflight-20260818-a once. A surviving kernel
+must then expose the exact 30-entry ledger and passed safe prestate.
+
+Unique attributable evidence
+- exact kernel release, final DT, Android-v0 container, and full boot2 identity;
+- before trigger: exactly 20 completed combined pointer/read I2C6 entries in
+  fixed order, ledger overflow 0, all write counters 0, provider 2/4/0 phase
+  accounting, runtime state idle, CPU0-7 online, CPU8-9 offline, USB/netcat,
+  polling keyboard, and no mounted block device;
+- durable pre-trigger hashes recorded before the token-attempt event;
+- exactly one trigger netcat attempt and no retry;
+- after survival: ten exact additional reads, full 30-entry ledger, state
+  passed, two stable full-byte samples with V_LOCK clear, BUCKB_CONT=0x00,
+  VBUCKB_A=0x46, VBUCKB_B=0x46, and every register-data-write counter 0; and
+- changed-boot-ID Gemian recovery only after an exact post-trigger pass.
+
+Decision map
+- Exact pre-trigger 20 and exact safe post-trigger 30: close Gate-6 blockers B3
+  and B4 only. Publish the sanitized record; B1 firmware-writer exclusion and
+  B2 native two-byte write shape remain blocking. Do not write DA921x or admit
+  CPU8/CPU9.
+- Pre-trigger mismatch: send no token, retain evidence, and stop.
+- Transport loss during the one trigger attempt: retain the already durable
+  pre-trigger evidence, record whether the remote trigger began, do not retry,
+  do not claim B3/B4 closure, and stop.
+- Surviving post-trigger mismatch, unsafe state, overflow, failed transfer, any
+  register-data write, or CPU8/CPU9 request: reject and stop without native
+  reboot.
+- No exact mainline identity before changed Gemian return: classify the boot
+  boundary; do not use screen colour as a kernel oracle and do not repeat the
+  identical artifact.
+
+Expected owner-visible sequence
+1. The guarded installer writes only inactive logical boot2 and shuts Gemian
+   down after exact full readback.
+2. Codex arms the checksum-pinned two-stage collector and says it is ready.
+3. The owner physically selects boot2 once.
+4. On an exact pass, Codex requests native reboot and the device returns to
+   ordinary Gemian automatically. On trigger-time loss or mismatch, it does
+   not retry or request reboot.

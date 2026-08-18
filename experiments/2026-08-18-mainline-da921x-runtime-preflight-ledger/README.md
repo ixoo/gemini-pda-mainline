@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-18-mainline-da921x-runtime-preflight-ledger` |
-| Status | `running` (source validated; Buildbox build pending) |
+| Status | `running` (candidate validated; deployment pending) |
 | Subsystem | MT6797 I2C6 transfer attribution and DA921x Gate-6 preflight |
 | Device variant | Planet Gemini PDA, MT6797 named development unit |
 | Date(s) | 2026-08-18 America/New_York |
@@ -44,8 +44,9 @@ zero I2C operations.
 The ten accepted transfers use the existing combined one-byte-pointer/one-byte
 read path. There is no register-data write, writable provider operation,
 `PAGE_CON` access, consumer, firmware-owner claim, or CPU request. CPU8 and CPU9
-remain excluded with `maxcpus=8`. No build, candidate construction, device
-write, or device boot is authorized merely by this source record.
+remain excluded with `maxcpus=8`. Candidate construction performed no device
+access or hardware write; deployment remains governed by the live-GPT `boot2`
+installer and its full-readback/shutdown gates.
 
 ## Associated code
 
@@ -58,8 +59,17 @@ write, or device boot is authorized merely by this source record.
   `configs/gemini-da921x-runtime-preflight-ledger.fragment`.
 - [`scripts/validate.py`](scripts/validate.py) validates patch/profile/contract
   structure and rejects representative unsafe mutations.
+- [`scripts/build-candidate.sh`](scripts/build-candidate.sh) and
+  [`scripts/test-candidate.py`](scripts/test-candidate.py) assemble and
+  independently validate the exact Android-v0 candidate.
+- [`scripts/collect-runtime.sh`](scripts/collect-runtime.sh) persists the exact
+  pre-trigger capture before one non-retriable trigger attempt.
 - [`results/prebuild-source-validation-20260818.txt`](results/prebuild-source-validation-20260818.txt)
   records the exact-source apply check, validators, and checkpatch boundary.
+- [`results/buildbox-package-20260818.txt`](results/buildbox-package-20260818.txt),
+  [`results/offline-candidate-validation-20260818.txt`](results/offline-candidate-validation-20260818.txt),
+  and [`results/collector-prearm-validation-20260818.txt`](results/collector-prearm-validation-20260818.txt)
+  freeze the build, candidate, and observation path.
 
 Run from the repository root:
 
@@ -91,8 +101,18 @@ python3 experiments/2026-08-18-mainline-da921x-runtime-preflight-ledger/scripts/
   series invariants pass. Strict checkpatch reports zero checks, two expected
   quoted-status-string warnings, and the deliberately absent synthetic DCO
   sign-off. This experiment-only patch is not submission-ready.
-- No kernel build, candidate, device access, partition write, I2C operation, or
-  CPU8/CPU9 request has occurred for this experiment.
+- Buildbox compiled exact clean pushed commit `a3679cd38937bf9a7c9e25d19385e8f992506370`
+  as release `7.1.3-gemini-da921x-preflight-rt`; package provenance and all
+  packaged checksums passed. No native VM build ran.
+- The independently reproduced candidate has raw SHA-256 `5f1ce652cee1fe77a4d963849dd047a9fbed6b0a25ef8fb48bcde74cb30b665d`
+  and exact 16 MiB padded SHA-256
+  `af560eaad69b61239db7980995776b47b1194bb26fe5c8a24d8f1462008ab296`.
+  All 32 LK gates and twelve negative DT mutations passed.
+- The collector/classifier tests reject eleven unsafe runtime mutations and
+  enforce a durable exact-20 capture, one trigger attempt, zero trigger retry,
+  and native reboot only after an exact post-trigger pass.
+- No device access, partition write, runtime I2C operation, or CPU8/CPU9 request
+  has occurred for this experiment yet.
 
 ## Analysis
 
@@ -104,12 +124,13 @@ them with boot success.
 
 ## Conclusion
 
-The source boundary is `confirmed`; the hardware result remains `inconclusive`
-pending Buildbox output, candidate validation, and one exact runtime. Gate-6
+The source, build, candidate, and collector boundaries are `confirmed`; the
+hardware result remains `inconclusive` pending one exact runtime. Gate-6
 blockers B1--B4 and CPU8/9 admission remain closed.
 
 ## Follow-up
 
-Complete source validation and Buildbox compilation. The authoritative ordered
-runtime and decision boundary remains
+Deploy the exact candidate to inactive logical `boot2`, require full readback
+and clean shutdown, then arm the collector before one physical boot selection.
+The authoritative ordered runtime and decision boundary remains
 [Roadmap Gate 6](../../docs/ROADMAP.md#6-prove-one-bounded-writable-operation).

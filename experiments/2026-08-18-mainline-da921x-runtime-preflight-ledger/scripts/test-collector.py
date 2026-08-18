@@ -1,0 +1,67 @@
+#!/usr/bin/env python3
+"""Validate the checksum pins and one-shot ordering of the runtime collector."""
+
+from __future__ import annotations
+
+import hashlib
+from pathlib import Path
+import re
+
+
+def digest(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def require(condition: bool, message: str) -> None:
+    if not condition:
+        raise AssertionError(message)
+
+
+def main() -> None:
+    script_dir = Path(__file__).resolve().parent
+    collector = script_dir / "collect-runtime.sh"
+    text = collector.read_text(encoding="utf-8")
+    pins = {
+        "PRETRIGGER_PROBE_SHA256": script_dir / "remote-pretrigger-probe.sh",
+        "TRIGGER_PROBE_SHA256": script_dir / "remote-trigger-probe.sh",
+        "CLASSIFIER_SHA256": script_dir / "classify-runtime.py",
+    }
+    for name, path in pins.items():
+        match = re.search(rf"^readonly {name}=([0-9a-f]{{64}})$", text, re.MULTILINE)
+        require(match is not None, f"collector pin missing: {name}")
+        require(match.group(1) == digest(path), f"collector pin changed: {name}")
+
+    anchors = (
+        'python3 "$classifier" --pretrigger "$pretrigger" >"$pretrigger_classification"',
+        "printf 'pretrigger_durable_before_trigger=yes\\n'",
+        'make_command "$trigger_probe"',
+        'printf \'trigger_token_attempt_utc=%s\\ntrigger_retry_policy=none\\n\'',
+        'python3 "$classifier" --pretrigger "$pretrigger" --trigger "$trigger_capture"',
+        'printf \'/bin/reboot\\n\' >"$command_file"',
+    )
+    positions = []
+    for anchor in anchors:
+        require(text.count(anchor) == 1, f"collector anchor count changed: {anchor}")
+        positions.append(text.index(anchor))
+    require(positions == sorted(positions), "collector safety ordering changed")
+    require(text.count('trigger_netcat_attempts=1') == 1, "trigger attempt count changed")
+    require(text.count('trigger_retry_policy=none') == 1, "trigger retry closure changed")
+    require(text.count('native_reboot_command_sent=no') == 2,
+            "non-pass reboot closures changed")
+    require('CANDIDATE_SHA256=af560eaad69b61239db7980995776b47b1194bb26fe5c8a24d8f1462008ab296'
+            in text, "candidate identity changed")
+    require('mainline-da921x-runtime-preflight-attempt-1' in text,
+            "private capture identity changed")
+
+    print("validation=mainline-da921x-runtime-preflight-collector")
+    print("pretrigger_durable_before_trigger=yes")
+    print("trigger_attempts=1")
+    print("trigger_retries=0")
+    print("native_reboot_requires_posttrigger_pass=yes")
+    print("device_access=none")
+    print("hardware_write=none")
+    print("result=pass")
+
+
+if __name__ == "__main__":
+    main()

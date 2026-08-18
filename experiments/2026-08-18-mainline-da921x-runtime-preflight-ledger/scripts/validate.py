@@ -82,7 +82,7 @@ def validate_patch_hunks(text: str) -> None:
 
 
 def validate_contract(contract: dict) -> None:
-    require(contract["status"] == "source-implemented-build-pending", "wrong status")
+    require(contract["status"] == "candidate-validated-deployment-pending", "wrong status")
     require(contract["profile"] == PROFILE, "profile changed")
     require(contract["parent_profile"] == PARENT, "parent changed")
     require(
