@@ -1,6 +1,6 @@
 {
   "schema": "gemini-da921x-runtime-preflight-ledger-v1",
-  "status": "runtime-pretrigger-observed-trigger-pending",
+  "status": "runtime-pretrigger-observed-mount-window-pending",
   "parent_profile": "da921x-lk-clock-readonly-provider",
   "stopped_predecessor_profile": "da921x-readonly-preflight-ledger",
   "profile": "da921x-runtime-preflight-ledger",
@@ -20,6 +20,15 @@
     "required_state": "idle",
     "success_state": "passed",
     "failure_state": "failed"
+  },
+  "runtime_mount": {
+    "target": "/sys",
+    "filesystem": "sysfs",
+    "required_before": "ro",
+    "required_during": "rw",
+    "required_after": "ro",
+    "restore_trap": true,
+    "persistent_storage_writes": 0
   },
   "ledger": {
     "version": 1,

@@ -221,8 +221,13 @@ def main() -> None:
     require(exact_field(lines, "architecture") == "aarch64", "trigger architecture mismatch")
     require(exact_field(lines, "boot_id_sha256") == boot_hash, "boot changed before trigger")
     require(exact_field(lines, "post_trigger_boot_id_sha256") == boot_hash, "boot changed during trigger")
+    require(exact_field(lines, "sysfs_mount_before") == "ro", "sysfs was not initially read-only")
+    require(exact_field(lines, "sysfs_remount_rw_status") == "0", "sysfs writable remount failed")
+    require(exact_field(lines, "sysfs_mount_during") == "rw", "sysfs writable window absent")
     require(exact_field(lines, "trigger_command_started") == "yes", "trigger did not start")
     require(exact_field(lines, "trigger_command_status") == "0", "trigger command failed")
+    require(exact_field(lines, "sysfs_remount_ro_status") == "0", "sysfs read-only restore failed")
+    require(exact_field(lines, "sysfs_mount_after") == "ro", "sysfs was not restored read-only")
     validate_state(block(lines, "__RUNTIME_PREFLIGHT_BEFORE_BEGIN__",
                          "__RUNTIME_PREFLIGHT_BEFORE_END__"), passed=False)
     validate_state(block(lines, "__RUNTIME_PREFLIGHT_AFTER_BEGIN__",

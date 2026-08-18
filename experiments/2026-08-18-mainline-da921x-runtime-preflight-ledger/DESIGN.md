@@ -58,6 +58,21 @@ The corrected classifier accepts the retained attempt-`1c` capture and adds a
 negative mutation for the old entry-14 value. This correction changes no
 kernel, DT, configuration, I2C operation, or post-trigger expectation.
 
+## Runtime sysfs mount window
+
+Attempt `1d` reached the token command but the initramfs's read-only sysfs mount
+rejected the shell redirection before the driver store callback. The retained
+state remained `idle` with zero attempts, zero preflight reads, and the same
+20-entry ledger.
+
+The corrected trigger probe follows the repository's established virtual-sysfs
+window: require `/sys` read-only, install exit and signal restore traps, remount
+only `/sys` writable, verify that state, issue the exact token once, restore
+`/sys` read-only immediately, and verify the final state. A remount or restore
+failure invalidates the capture. This creates no persistent-storage write and
+does not relax the driver's one-shot, phase-accounting, or zero-register-write
+guards.
+
 ## Safety and decision boundary
 
 The trigger reuses only the already reviewed combined one-byte-pointer/one-byte

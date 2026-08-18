@@ -82,7 +82,10 @@ def validate_patch_hunks(text: str) -> None:
 
 
 def validate_contract(contract: dict) -> None:
-    require(contract["status"] == "runtime-pretrigger-observed-trigger-pending", "wrong status")
+    require(
+        contract["status"] == "runtime-pretrigger-observed-mount-window-pending",
+        "wrong status",
+    )
     require(contract["profile"] == PROFILE, "profile changed")
     require(contract["parent_profile"] == PARENT, "parent changed")
     require(
@@ -103,6 +106,15 @@ def validate_contract(contract: dict) -> None:
         },
         "trigger contract changed",
     )
+    require(contract["runtime_mount"] == {
+        "target": "/sys",
+        "filesystem": "sysfs",
+        "required_before": "ro",
+        "required_during": "rw",
+        "required_after": "ro",
+        "restore_trap": True,
+        "persistent_storage_writes": 0,
+    }, "runtime mount contract changed")
     ledger = contract["ledger"]
     require(ledger["capacity"] == 32, "ledger capacity changed")
     require(ledger["pretrigger_count"] == 20, "pre-trigger count changed")

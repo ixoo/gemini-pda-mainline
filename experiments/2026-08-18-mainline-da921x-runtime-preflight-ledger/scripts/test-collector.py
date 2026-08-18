@@ -44,6 +44,25 @@ def main() -> None:
         require(probe.count(f"$BB printf '\\n%s\\n' {begin}") == 1,
                 f"prompt-separated opening marker changed: {name}")
 
+    trigger_probe = (script_dir / "remote-trigger-probe.sh").read_text(encoding="utf-8")
+    mount_anchors = (
+        'require_mount_option "$mount_options" ro || exit 1\n'
+        "$BB printf '%s\\n' sysfs_mount_before=ro",
+        '$BB mount -o remount,rw /sys',
+        '$BB printf \'%s\\n\' "$TOKEN" >"$preflight"',
+        'set +e\n$BB mount -o remount,ro /sys\nremount_ro_status=$?',
+        '$BB printf \'%s\\n\' sysfs_mount_after=ro',
+    )
+    positions = []
+    for anchor in mount_anchors:
+        require(trigger_probe.count(anchor) == 1, f"trigger mount anchor changed: {anchor}")
+        positions.append(trigger_probe.index(anchor))
+    require(positions == sorted(positions), "trigger mount-window ordering changed")
+    require(trigger_probe.count("trap restore_sysfs EXIT") == 1,
+            "sysfs restore exit trap changed")
+    require(trigger_probe.count("trap handle_signal HUP INT TERM") == 1,
+            "sysfs restore signal traps changed")
+
     anchors = (
         'python3 "$classifier" --pretrigger "$pretrigger" >"$pretrigger_classification"',
         "printf 'pretrigger_durable_before_trigger=yes\\n'",
@@ -63,7 +82,7 @@ def main() -> None:
             "non-pass reboot closures changed")
     require('CANDIDATE_SHA256=af560eaad69b61239db7980995776b47b1194bb26fe5c8a24d8f1462008ab296'
             in text, "candidate identity changed")
-    require('mainline-da921x-runtime-preflight-attempt-1d' in text,
+    require('mainline-da921x-runtime-preflight-attempt-1e' in text,
             "private capture identity changed")
 
     print("validation=mainline-da921x-runtime-preflight-collector")

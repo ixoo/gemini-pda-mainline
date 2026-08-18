@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-18-mainline-da921x-runtime-preflight-ledger` |
-| Status | `running` (candidate live; corrected attempt `1d` pending) |
+| Status | `running` (candidate live; corrected attempt `1e` pending) |
 | Subsystem | MT6797 I2C6 transfer attribution and DA921x Gate-6 preflight |
 | Device variant | Planet Gemini PDA, MT6797 named development unit |
 | Date(s) | 2026-08-18 America/New_York |
@@ -140,6 +140,16 @@ python3 experiments/2026-08-18-mainline-da921x-runtime-preflight-ledger/scripts/
   capture and rejects the old entry-14 inference as an unsafe mutation. See
   [`results/runtime-attempt-1c-pretrigger-contract-correction-20260818.txt`](results/runtime-attempt-1c-pretrigger-contract-correction-20260818.txt)
   and [`results/collector-attempt-1d-validation-20260818.txt`](results/collector-attempt-1d-validation-20260818.txt).
+- Attempt `1d` durably classified the corrected exact-20 pre-trigger ledger and
+  issued one shell token command, but the initramfs's read-only sysfs mount
+  rejected the redirection before the driver callback. The runtime state
+  remained `idle` with zero attempts and zero preflight reads; the ledger stayed
+  at 20 with zero writes, and no reboot occurred. The corrected probe now uses
+  the repository's established trapped temporary writable virtual-sysfs window
+  and requires read-only restoration. Its classifier rejects an un-restored
+  mount among thirteen unsafe runtime mutations. See
+  [`results/runtime-attempt-1d-readonly-sysfs-20260818.txt`](results/runtime-attempt-1d-readonly-sysfs-20260818.txt)
+  and [`results/collector-attempt-1e-validation-20260818.txt`](results/collector-attempt-1e-validation-20260818.txt).
 
 ## Analysis
 
@@ -153,14 +163,15 @@ them with boot success.
 
 The source, build, candidate, deployment, mainline serviceability, and repaired
 collector boundaries are `confirmed`. The runtime-preflight hardware result
-remains `inconclusive` because attempts `1`, `1b`, and `1c` stopped in the host
-observer or classifier before issuing the token. Attempt `1c` nevertheless
-confirmed the corrected exact pre-trigger ledger. Gate-6 blockers B1--B4 and
-CPU8/9 admission remain closed.
+remains `inconclusive` because attempts `1` through `1d` stopped before the
+driver accepted the token. Attempt `1c` confirmed the corrected exact
+pre-trigger ledger, and attempt `1d` localized the remaining boundary to the
+read-only sysfs mount. Gate-6 blockers B1--B4 and CPU8/9 admission remain
+closed.
 
 ## Follow-up
 
-Commit and push the runtime-corrected ledger contract, then run exact
-continuation attempt `1d` against the still-live candidate. Retain and classify the exact
+Commit and push the trapped sysfs-mount window, then run exact continuation
+attempt `1e` against the still-live candidate. Retain and classify the exact
 20-entry pre-trigger ledger before the sole token attempt. The authoritative
 ordered runtime and decision boundary remains [Roadmap Gate 6](../../docs/ROADMAP.md#6-prove-one-bounded-writable-operation).

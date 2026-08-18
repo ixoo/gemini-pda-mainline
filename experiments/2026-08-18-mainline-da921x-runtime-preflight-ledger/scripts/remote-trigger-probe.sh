@@ -5,6 +5,38 @@ set -eu
 export LC_ALL=C
 BB=/bin/busybox
 TOKEN=run-readonly-preflight-20260818-a
+sysfs_restore_required=0
+
+restore_sysfs()
+{
+	[ "$sysfs_restore_required" = 1 ] || return 0
+	$BB mount -o remount,ro /sys >/dev/null 2>&1 || true
+}
+
+handle_signal()
+{
+	restore_sysfs
+	exit 1
+}
+
+sysfs_options()
+{
+	# shellcheck disable=SC2016 # The single-quoted program is interpreted by awk.
+	$BB awk '$2 == "/sys" && $3 == "sysfs" {
+		print $4; found++
+	} END { if (found != 1) exit 1 }' /proc/mounts
+}
+
+require_mount_option()
+{
+	case ",$1," in
+	*,"$2",*) ;;
+	*) return 1 ;;
+	esac
+}
+
+trap restore_sysfs EXIT
+trap handle_signal HUP INT TERM
 
 # End the interactive shell prompt line before the exact framing marker.
 $BB printf '\n%s\n' __DA921X_RUNTIME_TRIGGER_BEGIN__
@@ -27,12 +59,39 @@ preflight=$1/readonly_preflight
 $BB printf '%s\n' __RUNTIME_PREFLIGHT_BEFORE_BEGIN__
 $BB cat "$preflight"
 $BB printf '%s\n' __RUNTIME_PREFLIGHT_BEFORE_END__
+
+mount_options="$(sysfs_options)" || exit 1
+require_mount_option "$mount_options" ro || exit 1
+$BB printf '%s\n' sysfs_mount_before=ro
+set +e
+$BB mount -o remount,rw /sys
+remount_rw_status=$?
+set -e
+$BB printf 'sysfs_remount_rw_status=%s\n' "$remount_rw_status"
+[ "$remount_rw_status" -eq 0 ] || exit 1
+sysfs_restore_required=1
+mount_options="$(sysfs_options)" || exit 1
+require_mount_option "$mount_options" rw || exit 1
+$BB printf '%s\n' sysfs_mount_during=rw
+
 $BB printf 'trigger_command_started=yes\n'
 set +e
 $BB printf '%s\n' "$TOKEN" >"$preflight"
 trigger_status=$?
 set -e
 $BB printf 'trigger_command_status=%s\n' "$trigger_status"
+
+set +e
+$BB mount -o remount,ro /sys
+remount_ro_status=$?
+set -e
+$BB printf 'sysfs_remount_ro_status=%s\n' "$remount_ro_status"
+[ "$remount_ro_status" -eq 0 ] || exit 1
+mount_options="$(sysfs_options)" || exit 1
+require_mount_option "$mount_options" ro || exit 1
+sysfs_restore_required=0
+$BB printf '%s\n' sysfs_mount_after=ro
+
 $BB printf '%s\n' __RUNTIME_PREFLIGHT_AFTER_BEGIN__
 $BB cat "$preflight"
 $BB printf '%s\n' __RUNTIME_PREFLIGHT_AFTER_END__
