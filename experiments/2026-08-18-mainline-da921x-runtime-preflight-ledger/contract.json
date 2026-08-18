@@ -1,6 +1,6 @@
 {
   "schema": "gemini-da921x-runtime-preflight-ledger-v1",
-  "status": "runtime-pretrigger-observed-mount-window-pending",
+  "status": "runtime-trigger-observed-finalization-pending",
   "parent_profile": "da921x-lk-clock-readonly-provider",
   "stopped_predecessor_profile": "da921x-readonly-preflight-ledger",
   "profile": "da921x-runtime-preflight-ledger",

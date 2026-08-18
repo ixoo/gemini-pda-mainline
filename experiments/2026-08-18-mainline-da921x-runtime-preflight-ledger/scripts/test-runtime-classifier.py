@@ -61,8 +61,8 @@ def provider_dmesg(*, passed: bool) -> str:
     if passed:
         lines.append(
             "da921x-preflight-v1 valid=1 passes=2 stable=1 registration_reads=2 "
-            "observer_reads=4 preflight_reads=10 control_a=0x00 v_lock_clear=1 "
-            "status_b=0x00 buckb_cont=0x00 vbuckb_a=0x46 vbuckb_b=0x46 "
+            "observer_reads=4 preflight_reads=10 control_a=0x7b v_lock_clear=1 "
+            "status_b=0xc1 buckb_cont=0x00 vbuckb_a=0x46 vbuckb_b=0x46 "
             "safe_prestate=1 register_data_writes=0"
         )
     return "\n".join(lines) + "\n"
@@ -78,7 +78,7 @@ def state(*, passed: bool) -> list[str]:
             "runtime_preflight=v1 state=passed attempts=1 last_error=0",
             f"trigger_token={TOKEN}",
             "valid=1 passes=2 stable=1 registration_reads=2 observer_reads=4 preflight_reads=10",
-            "control_a=0x00 v_lock_clear=1 status_b=0x00 "
+            "control_a=0x7b v_lock_clear=1 status_b=0xc1 "
             "buckb_cont=0x00 vbuckb_a=0x46 vbuckb_b=0x46",
             "safe_prestate=1 register_data_writes=0",
         ]
@@ -212,6 +212,8 @@ def main() -> None:
              "oracle_register_data_write_messages=1"),
             ("unsafe-prestate", "trigger", "safe_prestate=1 register_data_writes=0",
              "safe_prestate=0 register_data_writes=0"),
+            ("v-lock-set", "trigger", "control_a=0x7b v_lock_clear=1",
+             "control_a=0xfb v_lock_clear=1"),
             ("changed-boot", "trigger", f"post_trigger_boot_id_sha256={BOOT_HASH}",
              f"post_trigger_boot_id_sha256={'3' * 64}"),
         )

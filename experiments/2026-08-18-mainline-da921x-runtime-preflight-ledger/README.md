@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-18-mainline-da921x-runtime-preflight-ledger` |
-| Status | `running` (candidate live; corrected attempt `1e` pending) |
+| Status | `running` (runtime passed; native-return finalization pending) |
 | Subsystem | MT6797 I2C6 transfer attribution and DA921x Gate-6 preflight |
 | Device variant | Planet Gemini PDA, MT6797 named development unit |
 | Date(s) | 2026-08-18 America/New_York |
@@ -150,6 +150,18 @@ python3 experiments/2026-08-18-mainline-da921x-runtime-preflight-ledger/scripts/
   mount among thirteen unsafe runtime mutations. See
   [`results/runtime-attempt-1d-readonly-sysfs-20260818.txt`](results/runtime-attempt-1d-readonly-sysfs-20260818.txt)
   and [`results/collector-attempt-1e-validation-20260818.txt`](results/collector-attempt-1e-validation-20260818.txt).
+- Attempt `1e` is the successful hardware discriminator. It accepted the token
+  exactly once, restored sysfs read-only, reached state `passed`, completed the
+  exact ten additional reads and 30-entry ledger, observed stable safe Buck B
+  prestate, and retained zero register-data writes. The initial classifier
+  rejected `CONTROL_A=0x7b` because it had incorrectly required a full-byte
+  value of zero; the actual contract requires only `V_LOCK` mask `0x80` clear.
+  The corrected classifier passes the immutable capture and rejects a lock-set
+  `0xfb` mutation. Finalization pins that capture, sends no second trigger,
+  requires the same live passed/30/zero-write/read-only-sysfs state, and only
+  then permits the planned native return to Gemian. See
+  [`results/runtime-attempt-1e-success-classifier-correction-20260818.txt`](results/runtime-attempt-1e-success-classifier-correction-20260818.txt)
+  and [`results/finalizer-prearm-validation-20260818.txt`](results/finalizer-prearm-validation-20260818.txt).
 
 ## Analysis
 
@@ -163,15 +175,15 @@ them with boot success.
 
 The source, build, candidate, deployment, mainline serviceability, and repaired
 collector boundaries are `confirmed`. The runtime-preflight hardware result
-remains `inconclusive` because attempts `1` through `1d` stopped before the
-driver accepted the token. Attempt `1c` confirmed the corrected exact
-pre-trigger ledger, and attempt `1d` localized the remaining boundary to the
-read-only sysfs mount. Gate-6 blockers B1--B4 and CPU8/9 admission remain
-closed.
+is `confirmed`: attempt `1e` closes Gate-6 blockers B3 and B4 with exact
+transfer attribution and stable safe prestate. B1 firmware-writer exclusion
+and B2 native two-byte write transport remain blocking, so Gate-6 writing and
+CPU8/CPU9 admission remain closed. The operational native-return confirmation
+is still pending.
 
 ## Follow-up
 
-Commit and push the trapped sysfs-mount window, then run exact continuation
-attempt `1e` against the still-live candidate. Retain and classify the exact
-20-entry pre-trigger ledger before the sole token attempt. The authoritative
-ordered runtime and decision boundary remains [Roadmap Gate 6](../../docs/ROADMAP.md#6-prove-one-bounded-writable-operation).
+Commit and push the mask-correct classifier and no-retrigger finalizer. Confirm
+the surviving passed state read-only, then request one native reboot and require
+a changed Gemian return. The authoritative ordered runtime and decision
+boundary remains [Roadmap Gate 6](../../docs/ROADMAP.md#6-prove-one-bounded-writable-operation).

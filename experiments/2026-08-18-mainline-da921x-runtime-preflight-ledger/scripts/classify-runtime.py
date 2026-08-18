@@ -90,9 +90,13 @@ def validate_state(lines: list[str], *, passed: bool) -> None:
     )
     require("register_data_writes=0" in text, "DA921x register-data write observed")
     if passed:
-        require("control_a=0x00 v_lock_clear=1" in text, "V_LOCK prestate changed")
-        require("buckb_cont=0x00 vbuckb_a=0x46 vbuckb_b=0x46" in text,
-                "Buck B prestate changed")
+        samples = re.findall(
+            r"control_a=0x([0-9a-f]{2}) v_lock_clear=1 status_b=0x([0-9a-f]{2}) "
+            r"buckb_cont=0x00 vbuckb_a=0x46 vbuckb_b=0x46",
+            text,
+        )
+        require(len(samples) == 1, "complete Buck B prestate changed")
+        require(int(samples[0][0], 16) & 0x80 == 0, "V_LOCK prestate changed")
         require("safe_prestate=1" in text, "safe prestate rejected")
     else:
         require("safe_prestate=0" in text, "idle state unexpectedly valid")
@@ -158,7 +162,7 @@ def validate_dmesg(dmesg: str, *, passed: bool) -> None:
             "valid": 1, "passes": 2, "stable": 1, "registration": 2,
             "observer": 4, "preflight": 10, "v_lock": 1, "safe": 1, "writes": 0,
         }, "published preflight accounting changed")
-        require(values["control_a"] == "00" and values["buckb"] == "00",
+        require(int(values["control_a"], 16) & 0x80 == 0 and values["buckb"] == "00",
                 "published lock/control prestate changed")
         require(values["vbuckb_a"] == "46" and values["vbuckb_b"] == "46",
                 "published selector prestate changed")

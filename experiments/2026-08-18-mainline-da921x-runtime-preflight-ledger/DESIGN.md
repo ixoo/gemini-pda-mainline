@@ -73,6 +73,22 @@ failure invalidates the capture. This creates no persistent-storage write and
 does not relax the driver's one-shot, phase-accounting, or zero-register-write
 guards.
 
+## Retained success and finalization
+
+Attempt `1e` passed the driver state machine and retained the exact 30-entry
+ledger, but the host classifier incorrectly required the full `CONTROL_A` byte
+to equal zero. The contract only requires mask `0x80` (`V_LOCK`) clear. The
+observed `CONTROL_A=0x7b` satisfies that rule; `STATUS_B=0xc1` remains a
+recorded full byte without an equality policy. The corrected classifier checks
+the mask and rejects a synthetic `0xfb` lock-set value.
+
+The driver one-shot is consumed and must not be invoked again. Finalization
+therefore pins and reclassifies the immutable attempt-`1e` capture, performs a
+read-only live confirmation of state `passed`, ledger count 30, zero writes,
+CPUs 0--7 only, and read-only sysfs, then permits one native reboot request and
+requires a changed Gemian boot. It contains no trigger token or writable sysfs
+window.
+
 ## Safety and decision boundary
 
 The trigger reuses only the already reviewed combined one-byte-pointer/one-byte
