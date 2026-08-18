@@ -63,7 +63,7 @@ def main() -> None:
             "non-pass reboot closures changed")
     require('CANDIDATE_SHA256=af560eaad69b61239db7980995776b47b1194bb26fe5c8a24d8f1462008ab296'
             in text, "candidate identity changed")
-    require('mainline-da921x-runtime-preflight-attempt-1c' in text,
+    require('mainline-da921x-runtime-preflight-attempt-1d' in text,
             "private capture identity changed")
 
     print("validation=mainline-da921x-runtime-preflight-collector")

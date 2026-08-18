@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-18-mainline-da921x-runtime-preflight-ledger` |
-| Status | `running` (candidate live; corrected attempt `1c` pending) |
+| Status | `running` (candidate live; corrected attempt `1d` pending) |
 | Subsystem | MT6797 I2C6 transfer attribution and DA921x Gate-6 preflight |
 | Device variant | Planet Gemini PDA, MT6797 named development unit |
 | Date(s) | 2026-08-18 America/New_York |
@@ -131,6 +131,15 @@ python3 experiments/2026-08-18-mainline-da921x-runtime-preflight-ledger/scripts/
   [`results/runtime-attempt-1-observer-path-20260818.txt`](results/runtime-attempt-1-observer-path-20260818.txt)
   [`results/runtime-attempt-1b-observer-framing-20260818.txt`](results/runtime-attempt-1b-observer-framing-20260818.txt),
   and [`results/collector-attempt-1c-validation-20260818.txt`](results/collector-attempt-1c-validation-20260818.txt).
+- Attempt `1c` produced an exactly framed, durable pre-trigger capture. The
+  fail-closed classifier then exposed an incorrect offline inference in the
+  frozen contract: registration entries 14--15 are repeatably `68:d7,68:d9`,
+  not `68:5d,68:5e`; the following four observer entries remain
+  `68:d7,68:5d,68:d9,68:5e`. All counts, message shapes, completions, and
+  zero-write invariants passed. The corrected classifier accepts the retained
+  capture and rejects the old entry-14 inference as an unsafe mutation. See
+  [`results/runtime-attempt-1c-pretrigger-contract-correction-20260818.txt`](results/runtime-attempt-1c-pretrigger-contract-correction-20260818.txt)
+  and [`results/collector-attempt-1d-validation-20260818.txt`](results/collector-attempt-1d-validation-20260818.txt).
 
 ## Analysis
 
@@ -144,13 +153,14 @@ them with boot success.
 
 The source, build, candidate, deployment, mainline serviceability, and repaired
 collector boundaries are `confirmed`. The runtime-preflight hardware result
-remains `inconclusive` because attempts `1` and `1b` stopped in the host observer
-before issuing the token. Gate-6 blockers B1--B4 and CPU8/9 admission remain
-closed.
+remains `inconclusive` because attempts `1`, `1b`, and `1c` stopped in the host
+observer or classifier before issuing the token. Attempt `1c` nevertheless
+confirmed the corrected exact pre-trigger ledger. Gate-6 blockers B1--B4 and
+CPU8/9 admission remain closed.
 
 ## Follow-up
 
-Commit and push the checksum-pinned framing repair, then run exact continuation
-attempt `1c` against the still-live candidate. Retain and classify the exact
+Commit and push the runtime-corrected ledger contract, then run exact
+continuation attempt `1d` against the still-live candidate. Retain and classify the exact
 20-entry pre-trigger ledger before the sole token attempt. The authoritative
 ordered runtime and decision boundary remains [Roadmap Gate 6](../../docs/ROADMAP.md#6-prove-one-bounded-writable-operation).

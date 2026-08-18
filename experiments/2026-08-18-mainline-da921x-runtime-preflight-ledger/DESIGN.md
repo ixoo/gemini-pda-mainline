@@ -45,6 +45,19 @@ The host must retain two independent captures:
 4. If transport disappears during the trigger, retain the completed pre-trigger
    capture and classify only the trigger sequence as the new failure boundary.
 
+## Observed pre-trigger contract correction
+
+Attempts `1b` and `1c` retained the same complete 20-entry startup ledger on
+the live candidate. They showed that the two registration-phase reads are
+`68:d7,68:d9`, followed by the observer reads
+`68:d7,68:5d,68:d9,68:5e`. The original offline contract had inferred the
+registration pair as `68:5d,68:5e`; that inference was rejected before the
+token and is superseded by the retained runtime evidence.
+
+The corrected classifier accepts the retained attempt-`1c` capture and adds a
+negative mutation for the old entry-14 value. This correction changes no
+kernel, DT, configuration, I2C operation, or post-trigger expectation.
+
 ## Safety and decision boundary
 
 The trigger reuses only the already reviewed combined one-byte-pointer/one-byte

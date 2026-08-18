@@ -82,7 +82,7 @@ def validate_patch_hunks(text: str) -> None:
 
 
 def validate_contract(contract: dict) -> None:
-    require(contract["status"] == "candidate-validated-deployment-pending", "wrong status")
+    require(contract["status"] == "runtime-pretrigger-observed-trigger-pending", "wrong status")
     require(contract["profile"] == PROFILE, "profile changed")
     require(contract["parent_profile"] == PARENT, "parent changed")
     require(
@@ -113,7 +113,7 @@ def validate_contract(contract: dict) -> None:
     require(ledger["pretrigger_sequence"] == [
         "69:05", "69:06", "69:47", "68:d3", "68:5e", "68:d9", "68:da",
         "69:05", "69:06", "69:47", "68:d3", "68:5e", "68:d9", "68:da",
-        "68:5d", "68:5e", "68:d7", "68:5d", "68:d9", "68:5e",
+        "68:d7", "68:d9", "68:d7", "68:5d", "68:d9", "68:5e",
     ], "pre-trigger sequence changed")
     require(ledger["trigger_sequence"] == [
         "68:56", "68:51", "68:5e", "68:d9", "68:da",

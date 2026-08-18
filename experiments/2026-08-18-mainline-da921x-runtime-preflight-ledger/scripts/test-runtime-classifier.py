@@ -15,7 +15,7 @@ PRE_SEQUENCE = (
     (0x68, 0x5E), (0x68, 0xD9), (0x68, 0xDA),
     (0x69, 0x05), (0x69, 0x06), (0x69, 0x47), (0x68, 0xD3),
     (0x68, 0x5E), (0x68, 0xD9), (0x68, 0xDA),
-    (0x68, 0x5D), (0x68, 0x5E), (0x68, 0xD7), (0x68, 0x5D),
+    (0x68, 0xD7), (0x68, 0xD9), (0x68, 0xD7), (0x68, 0x5D),
     (0x68, 0xD9), (0x68, 0x5E),
 )
 TRIGGER_SEQUENCE = (
@@ -192,6 +192,8 @@ def main() -> None:
 
         mutations = (
             ("pre-count", "pre", "entry_ledger=v1 count=20", "entry_ledger=v1 count=19"),
+            ("pre-old-inference", "pre", "entry14 n=2 a0=68 f0=0000 l0=1 p0=d7",
+             "entry14 n=2 a0=68 f0=0000 l0=1 p0=5d"),
             ("pre-write", "pre", "oracle_register_data_write_messages=0",
              "oracle_register_data_write_messages=1"),
             ("pre-state", "pre", "state=idle attempts=0", "state=passed attempts=0"),

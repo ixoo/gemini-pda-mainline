@@ -15,11 +15,11 @@ readonly RETURN_SECONDS=600
 readonly CANDIDATE_SHA256=af560eaad69b61239db7980995776b47b1194bb26fe5c8a24d8f1462008ab296
 readonly PRETRIGGER_PROBE_SHA256=f8220774f4689f655bc2b5f8993ded11da04dd6c966d7b32da8a8bfe07b5825b
 readonly TRIGGER_PROBE_SHA256=23ef1bb790e5ec301bc15cf7ddf7b23bc3953cd67266f2f988e5870edeabd08c
-readonly CLASSIFIER_SHA256=6428f3e67b0308258476c4865aee4bdec1fe9bafd5b1f34d81822f72c06e61d7
+readonly CLASSIFIER_SHA256=865c911afbe755e9abb8bd4c7273ce7fda54972d88b64202375e9abafa00920b
 
 die() { printf 'error: %s\n' "$*" >&2; exit 2; }
 usage() {
-	printf 'usage: %s --deployment-boot-id UUID --output artifacts/runtime-captures/mainline-da921x-runtime-preflight-attempt-1c\n' "$0" >&2
+	printf 'usage: %s --deployment-boot-id UUID --output artifacts/runtime-captures/mainline-da921x-runtime-preflight-attempt-1d\n' "$0" >&2
 }
 
 deployment_boot_id=
@@ -71,8 +71,8 @@ done
 private_root="$(cd -- "$private_root" && pwd -P)"
 case "$output" in /*) ;; *) output="$repo_root/${output#./}" ;; esac
 [[ "$(dirname -- "$output")" == "$private_root" &&
-	"$(basename -- "$output")" == mainline-da921x-runtime-preflight-attempt-1c ]] ||
-	die 'output must be the exact private attempt-1c child'
+	"$(basename -- "$output")" == mainline-da921x-runtime-preflight-attempt-1d ]] ||
+	die 'output must be the exact private attempt-1d child'
 [[ ! -e "$output" && ! -L "$output" ]] || die 'output already exists'
 git -C "$repo_root" check-ignore -q "$output" || die 'output is not ignored by Git'
 

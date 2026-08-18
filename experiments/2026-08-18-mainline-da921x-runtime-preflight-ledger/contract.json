@@ -1,6 +1,6 @@
 {
   "schema": "gemini-da921x-runtime-preflight-ledger-v1",
-  "status": "candidate-validated-deployment-pending",
+  "status": "runtime-pretrigger-observed-trigger-pending",
   "parent_profile": "da921x-lk-clock-readonly-provider",
   "stopped_predecessor_profile": "da921x-readonly-preflight-ledger",
   "profile": "da921x-runtime-preflight-ledger",
@@ -40,7 +40,7 @@
     "pretrigger_sequence": [
       "69:05", "69:06", "69:47", "68:d3", "68:5e", "68:d9", "68:da",
       "69:05", "69:06", "69:47", "68:d3", "68:5e", "68:d9", "68:da",
-      "68:5d", "68:5e",
+      "68:d7", "68:d9",
       "68:d7", "68:5d", "68:d9", "68:5e"
     ],
     "trigger_sequence": [
