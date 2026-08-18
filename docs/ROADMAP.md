@@ -4113,7 +4113,7 @@ native one-message two-byte write shape is unproved, two of Gate 5's 20 I2C6
 transfers are unattributed, and live `V_LOCK`/status preflight is absent.
 
 The read-only I2C6 entry-ledger and DA921x direct-register-preflight candidate
-is now frozen offline. Buildbox built exact clean commit `f2837f05083b...` as
+was frozen offline. Buildbox built exact clean commit `f2837f05083b...` as
 `7.1.3-gemini-da921x-preflight`; package checksums pass and no native VM build
 ran. Two independent Android-v0 constructions and padding paths are
 byte-identical, all 32 LK/container gates pass, and twelve independent DT
@@ -4124,15 +4124,32 @@ read-only preflight passes; it adds no register-data write, writable provider
 operation, consumer, firmware-owner claim, or CPU8/CPU9 request. Guarded
 deployment then resolved inactive, unmounted live-GPT `boot2` as p30 while
 Gemian used p29. The exact write, sync, flush, full readback, and clean shutdown
-passed without a fresh backup or automatic reboot; the device is confirmed
-unreachable. The checksum-pinned read-only collector and classifier are now
-validated against one complete 30-entry fixture and eight unsafe mutations.
-The next ordered action is to pre-arm that collector and physically select
-`boot2` once. Only an exact pass can close blockers B3 and B4; B1
-firmware-writer exclusion and B2 native two-byte write shape remain blocking.
-See the [deployment receipt](../experiments/2026-08-17-mainline-da921x-readonly-preflight-ledger/results/deployment-1-20260818.txt),
+passed without a fresh backup or automatic reboot. The checksum-pinned
+read-only collector and classifier were validated against one complete
+30-entry fixture and eight unsafe mutations.
+
+Its one permitted runtime attempt is complete and stopped. A collector
+published and armed before selection observed MT65xx preloader attach/detach,
+but no exact mainline USB gadget, fixed-MAC interface, or netcat endpoint. The
+later `0fce:7169` device was changed-identity Gemian returning; no collector
+command was sent. Pstore was empty, and inactive, unmounted live-GPT p30 still
+matched exact payload `41c652225d36...`. No I2C6 ledger or preflight value was
+captured, so B3 and B4 remain open alongside B1 and B2. See the
+[runtime result](../experiments/2026-08-17-mainline-da921x-readonly-preflight-ledger/results/runtime-attempt-1-no-mainline-usb-20260818.txt),
+[deployment receipt](../experiments/2026-08-17-mainline-da921x-readonly-preflight-ledger/results/deployment-1-20260818.txt),
 [collector pre-arm receipt](../experiments/2026-08-17-mainline-da921x-readonly-preflight-ledger/results/collector-prearm-validation-20260818.txt), and
 [offline candidate record](../experiments/2026-08-17-mainline-da921x-readonly-preflight-ledger/results/offline-candidate-validation-20260818.txt).
+
+Do not repeat the exact artifact. The single next ordered discriminator is a
+runtime-triggered read-only successor: preserve the runtime-proven Gate-5
+kernel/DT/serviceability boundary and bounded I2C6 ledger, remove the ten
+automatic preflight transfers from probe, and expose one checksum-pinned,
+one-shot trigger through the existing USB/netcat shell. Capture and classify
+the exact 20-entry startup ledger before triggering. An exact post-trigger
+30-entry ledger can close B3/B4; an immediate transport loss localizes the
+failure to the read sequence while retaining the pre-trigger evidence. The
+trigger must add no retry, `PAGE_CON` access, register-data write, consumer,
+firmware-owner claim, or CPU8/CPU9 request.
 
 The first writable test must:
 

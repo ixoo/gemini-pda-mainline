@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-17-mainline-da921x-readonly-preflight-ledger` |
-| Status | `running` (exact boot2 deployment verified; one runtime observation pending) |
+| Status | `stopped` (attempt 1 returned before mainline USB; no ledger captured) |
 | Subsystem | MT6797 I2C6 transfer attribution and DA921x Gate-6 preflight |
 | Device variant | Planet Gemini PDA, MT6797 named development unit |
 | Date(s) | 2026-08-17 America/New_York |
@@ -129,6 +129,14 @@ python3 experiments/2026-08-17-mainline-da921x-readonly-preflight-ledger/scripts
   syntax/source-identity checks. A complete synthetic 30-entry fixture passes;
   eight unsafe mutations are rejected. See the
   [collector pre-arm receipt](results/collector-prearm-validation-20260818.txt).
+- The collector was published and armed before one physical `boot2` selection.
+  It observed MT65xx preloader attach/detach, but no candidate USB gadget,
+  fixed-MAC network interface, or netcat endpoint. The later `0fce:7169`
+  device was ordinary Gemian returning with a changed boot ID. The collector
+  therefore sent no command and captured no runtime payload. Returned Gemian
+  had empty pstore, and live-GPT-resolved inactive, unmounted p30 still matched
+  the exact candidate checksum. See the
+  [runtime result](results/runtime-attempt-1-no-mainline-usb-20260818.txt).
 
 ## Analysis
 
@@ -136,7 +144,11 @@ The phase counter makes the prior two-transfer explanation directly testable
 instead of relying on a regulator-core inference. The controller ledger then
 cross-checks the exact addresses and registers independently. Two complete
 preflight passes add ten known reads, bringing the expected total to 30 while
-remaining below the fixed 32-entry bound.
+remaining below the fixed 32-entry bound. Attempt 1 did not reach that
+observation boundary: unlike the exact Gate-5 parent, it never enumerated a
+mainline USB gadget. Because the candidate couples the new ledger and ten
+automatic reads into the boot path, the failed transport observation cannot
+separate those deltas or identify which read completed.
 
 Even a complete pass cannot authorize a regulator write. It can close only
 the transfer-attribution and live-preflight blockers; firmware-writer exclusion
@@ -144,14 +156,19 @@ and the native two-byte write shape remain separate gates.
 
 ## Conclusion
 
-The offline candidate boundary is `confirmed`; the hardware conclusion remains
-`inconclusive` pending one exact runtime observation. The raw Android-v0 image
-is `4a0c440604ac4ebd82a1fa139020f02ae4d758cc9b89bc6509a782434d8e62e7`.
+The offline candidate boundary remains `confirmed`, but the one permitted
+runtime attempt is stopped before mainline USB observation. No I2C6 ledger or
+preflight state was captured, so blockers B3 and B4 remain open. The raw
+Android-v0 image is
+`4a0c440604ac4ebd82a1fa139020f02ae4d758cc9b89bc6509a782434d8e62e7`.
 Nothing in this result opens a writable regulator or A72 boundary.
 
 ## Follow-up
 
-Publish the deployment and pre-arm receipts, start the checksum-pinned
-collector, and only then physically select `boot2` once. See
-[Roadmap Gate 6](../../docs/ROADMAP.md#6-prove-one-bounded-writable-operation)
-for the authoritative exit criteria.
+Do not repeat this exact artifact. Preserve the runtime-proven Gate-5 parent,
+retain the bounded controller ledger, and move the ten read-only preflight
+transfers behind a one-shot runtime trigger. The successor must first capture
+the exact 20-entry startup ledger and serviceability, then either capture the
+exact 30-entry post-trigger ledger or attribute an immediate transport loss to
+the trigger. See [Roadmap Gate 6](../../docs/ROADMAP.md#6-prove-one-bounded-writable-operation)
+for the authoritative ordered action and exit criteria.
