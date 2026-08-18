@@ -13,7 +13,7 @@ $BB printf 'cpu_present='; $BB cat /sys/devices/system/cpu/present
 $BB printf 'cpu_online='; $BB cat /sys/devices/system/cpu/online
 $BB printf 'cpu_offline='; $BB cat /sys/devices/system/cpu/offline
 $BB printf 'udc_devices='; $BB find /sys/class/udc -mindepth 1 -maxdepth 1 2>/dev/null | $BB wc -l
-$BB printf 'gpio_matrix_keyboards='; $BB grep -c 'Name="gpio-matrix-keypad"' /proc/bus/input/devices || true
+$BB printf 'keyboard_matrix_inputs='; $BB grep -c 'Name="keyboard-matrix"' /proc/bus/input/devices || true
 $BB printf 'da921x_i2c_clients='; $BB find /sys/bus/i2c/devices -maxdepth 1 -name '*-0068' 2>/dev/null | $BB wc -l
 $BB printf 'block_mounts='; $BB grep -Ec '^/dev/(mmc|sd|nvme)' /proc/mounts || true
 $BB printf 'pstore_files='; $BB find /sys/fs/pstore -maxdepth 1 -type f 2>/dev/null | $BB wc -l

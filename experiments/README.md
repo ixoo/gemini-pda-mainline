@@ -25,14 +25,17 @@ the loop. Positive identity-gated observations are unaffected.
 
 - [2026-08-17 LK-repaired DA921x read-only provider baseline](2026-08-17-mainline-da921x-readonly-provider-baseline/README.md)
   — freezes the ten runtime-proven CPU clock properties into the kernel-built
-  Gemini DT and identifies the exact still-open provider boundary: the
-  successful predecessor compiled the DA921x provider, but its disabled NVMEM
-  configuration left the DVFSP handoff and I2C6 deferred before the client
-  could probe. The new named profile preserves the proven kernel and service
-  stack while enabling only the read-only LK-devinfo NVMEM provider and the
-  existing DA921x observer. It adds no consumer, setter, owner, register-data
-  write, or CPU8/CPU9 request. Source/profile and all-profile series validation
-  pass; the Buildbox package and any runtime result remain pending.
+  Gemini DT and enables only the read-only LK-devinfo NVMEM supplier and
+  existing DA921x observer. Buildbox, container, guarded boot2 deployment, and
+  one exact runtime attempt pass. The handoff and I2C6 reached ready; the
+  DA921x provider bound with 14 identity reads, two providers, four completed
+  provider reads, internally consistent buck states, and zero register-data
+  writes. CPUs 0--7, USB/netcat, I2C5/AW9523, polling keyboard, tty1,
+  watchdog, and native reboot remained serviceable while CPUs 8--9 stayed
+  closed. Changed-ID Gemian recovery found empty pstore and the exact candidate
+  still unmounted on boot2. This closes Roadmap gate 5 for the named unit and
+  opens only the bounded-write design review; it is not writable-provider,
+  rollback, resume, or A72 support.
 - [2026-08-17 LK CPU clock-frequency iterator repair](2026-08-17-mainline-lk-cpu-clock-iterator-repair/README.md)
   — audits the pinned Planet LK path before Linux entry and identifies a
   concrete non-progress loop: the current DT's first CPU lacks

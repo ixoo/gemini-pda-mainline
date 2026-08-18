@@ -41,8 +41,13 @@ def main() -> None:
 
     text = args.capture.read_text(encoding="ascii", errors="strict")
     lines = text.splitlines()
-    require(lines.count("__DA921X_LKRO_BEGIN__") == 1, "probe begin marker changed")
-    require(lines.count("__DA921X_LKRO_END__") == 1, "probe end marker changed")
+    # The USB shell can print its prompt on the same line as the first probe
+    # marker.  Preserve uniqueness and exact marker spelling without assuming
+    # that the transport inserted a newline before the payload began.
+    probe_begins = [line for line in lines if line.endswith("__DA921X_LKRO_BEGIN__")]
+    probe_ends = [line for line in lines if line.endswith("__DA921X_LKRO_END__")]
+    require(len(probe_begins) == 1, "probe begin marker changed")
+    require(len(probe_ends) == 1, "probe end marker changed")
     require(lines.count(BEGIN) == 1 and lines.count(END) == 1, "dmesg markers changed")
     begin = lines.index(BEGIN)
     end = lines.index(END)
@@ -62,7 +67,21 @@ def main() -> None:
     require(re.fullmatch(r"[0-9a-f]{64}", boot_hash) is not None, "boot hash malformed")
     require(exact_field(lines, "post_probe_boot_id_sha256") == boot_hash, "boot changed during probe")
     require(int(exact_field(lines, "udc_devices")) >= 1, "USB gadget controller is absent")
-    require(int(exact_field(lines, "gpio_matrix_keyboards")) >= 1, "polling keyboard is absent")
+    keyboard_fields = [
+        (name, line.removeprefix(f"{name}="))
+        for name in ("keyboard_matrix_inputs", "gpio_matrix_keyboards")
+        for line in lines
+        if line.startswith(f"{name}=")
+    ]
+    require(len(keyboard_fields) == 1, "keyboard probe field count changed")
+    keyboard_field, keyboard_count = keyboard_fields[0]
+    if keyboard_field == "keyboard_matrix_inputs":
+        require(int(keyboard_count) >= 1, "keyboard-matrix input is absent")
+    else:
+        # Attempt 1 used the driver-like string gpio-matrix-keypad, while this
+        # board's input device is named keyboard-matrix.  Keep that miss
+        # attributable and require independent exact dmesg proof below.
+        require(keyboard_count == "0", "legacy keyboard probe result changed")
     require(int(exact_field(lines, "da921x_i2c_clients")) == 1, "DA921x client count changed")
     require(int(exact_field(lines, "block_mounts")) == 0, "block device unexpectedly mounted")
 
@@ -86,6 +105,14 @@ def main() -> None:
         require(enabled in (0, 1), f"buck{buck} enable state is invalid")
     require("da921x-observer-v1 event=failed-probe" not in dmesg, "provider failed-probe event found")
     require("da921x-observer-v1 event=unbind" not in dmesg, "provider unbound during capture")
+    require(dmesg.count("input: keyboard-matrix as ") == 1,
+            "keyboard-matrix input registration changed")
+    require(dmesg.count("matrix-keypad keyboard-matrix: polling mode, interval 20 ms") == 1,
+            "polling keyboard evidence changed")
+    require(dmesg.count("matrix_platform_device=keyboard-matrix driver=matrix-keypad") == 1,
+            "keyboard driver binding evidence changed")
+    require(dmesg.count("matrix_input_name=keyboard-matrix event_node=/dev/input/event0") == 1,
+            "keyboard input-node evidence changed")
     for fatal in ("Kernel panic", "Internal error:", "Oops:"):
         require(fatal not in dmesg, f"kernel fault marker found: {fatal}")
 
@@ -111,7 +138,9 @@ def main() -> None:
         print(f"buck{buck}_enabled={values[f'e{buck}']}")
     print("USB_gadget=present")
     print("netcat_probe=passed")
-    print("polling_keyboard=present")
+    print("polling_keyboard=present-by-exact-dmesg")
+    print(f"keyboard_probe_field={keyboard_field}")
+    print(f"keyboard_probe_count={keyboard_count}")
     print("block_mounts=0")
     print("kernel_fault_markers=absent")
     print("CPU8_CPU9_admission=closed")

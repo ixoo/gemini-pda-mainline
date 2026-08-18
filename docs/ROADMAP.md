@@ -29,7 +29,7 @@ Cortex-A72 pair.
 | DVFSP/PCM firmware lease | The historical receiver is positively attributed to the embedded MT6797 hybrid PCM, but mainline has only a read-only stopped-state handoff. | The selected handoff maps CSPM only: no CSRAM mapping, firmware request, PCM residency, start/kick sequence, or callable `SEMA_I2C_DRV` path. Keep I2C6 provider writes blocked. |
 | I2C6 transfer | Native packed/FIFO one-byte pointer plus one-byte read is proven for the fixed diagnostic shape. | Do not generalize this to arbitrary transfers or writes. |
 | Legacy board contract | The fixed `0x68`/`0x69` tuple is stable and DA9213/DA9214/DA9215-compatible. | The read-only board-contract gate is closed; unique silicon identity remains open. |
-| Linux regulator provider | The upstream DA9211/A-family probe is incompatible and no suitable legacy provider is active. | Implement a genuine legacy-family contract instead of emulating it in the A-family probe. |
+| Linux regulator provider | The dedicated legacy-family driver now registers two read-only providers in one isolated, runtime-proven mainline profile with zero register-data writes. | Gate 5 is closed; keep consumers and writes disconnected while gate 6 reviews one bounded write/readback/rollback contract. |
 | Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. An experiment-only retained-cluster path now provides repeatable bounded execution and scheduler-context cleanup on both CPUs, but safe offlining, rail ownership, rollback, resume, and production integration remain unproved. | Keep both CPUs disconnected from the default profile until the provider and safe-off gates below pass. |
 
 The durable technical boundary is in
@@ -70,7 +70,7 @@ Work on eMMC, logging, keyboard coverage, USB roles, display/touch, and other
 independent subsystems may proceed in parallel only when it preserves the
 fixed DA921x/A72 experiment baseline. The immediate critical chain is:
 
-`safe-off/rollback ownership -> passive provider -> bounded write -> production CPU8 -> production CPU9`
+`bounded-write review -> bounded write -> production CPU8 -> production CPU9`
 
 ## Ordered gates
 
@@ -2476,7 +2476,7 @@ owner, every pre-irreversible failure has a bounded no-effect or rollback
 proof, and every post-irreversible uncertainty has an attributable terminal
 recovery path.
 
-### 5. Register a resource-only provider
+### 5. Register a resource-only provider — complete
 
 Register the provider with all consumers disconnected and writable operations
 disabled or unreachable.
@@ -4048,8 +4048,32 @@ without a fresh backup; stable external power, exact write, sync, flush,
 full-partition readback, temporary-readback cleanup, and clean shutdown all
 passed. The device was not rebooted and is confirmed unreachable. See the
 [deployment receipt](../experiments/2026-08-17-mainline-da921x-readonly-provider-baseline/results/deployment-1-20260817.txt).
-The single next ordered action is to publish this receipt, pre-arm the exact
-USB/netcat provider collector, and only then ask the owner to select boot2 once.
+
+The single observed attempt is a confirmed positive. Exact
+`7.1.3-gemini-da921x-lkro` reached the pre-armed USB/netcat collector with
+CPUs 0--7 online and CPUs 8--9 closed. The LK-devinfo handoff passed late
+validation, I2C6 reached ready through its existing access-controller edge,
+and one DA921x bound record reported 14 identity reads, two providers, four
+completed provider reads, internally consistent selector/voltage/enable
+tuples, and zero register-data writes. USB, I2C5/AP-DMA, AW9523, the polling
+keyboard, tty1, watchdog, and native reboot remained serviceable. Changed-ID
+Gemian recovery found empty pstore and the exact candidate still unmounted on
+boot2. See the [runtime result](../experiments/2026-08-17-mainline-da921x-readonly-provider-baseline/results/runtime-attempt-1-success-20260817.txt).
+
+The initial host classification stop was a false negative after the complete
+capture: the USB prompt shared the begin-marker line and the procfs keyboard
+probe used a driver-like name instead of the exact `keyboard-matrix` input
+name. The repaired classifier preserves unique marker spelling and requires
+the exact dmesg registration, polling, binding, and event-node records; the
+immutable capture passes. This correction does not change or repeat the device
+observation.
+
+Combined with the already-passing five-case observer KUnit suite and the prior
+natural zero-transaction identification unbind/rebind lifecycle, the required
+read-only bind, failure/cleanup, no-write, and serviceability evidence is
+closed. The provider-enabled runtime itself ended through native reboot rather
+than a provider unbind, so it establishes no provider-enabled lifecycle
+repeatability claim.
 
 Required evidence:
 
@@ -4063,10 +4087,21 @@ resume ownership.
 
 Exit: a provider can exist without changing hardware state.
 
+Exit met on the named unit and exact revision. Do not repeat this artifact.
+The next ordered action is gate 6 design review; CPU8/CPU9 admission remains
+closed.
+
 ### 6. Prove one bounded writable operation
 
 Do not reach this gate until the register-write transport, constraints, and
 rollback sequence have been reviewed.
+
+Gate 6 is now open for design review only. The first task is to reconcile the
+public legacy-family register contract, the observed direct-address I2C6
+transport, the current selector/enable snapshot, firmware and rail ownership,
+and the existing rollback/terminal-recovery audits into one exact no-op or
+bounded transition. No kernel build, device write, regulator write, or CPU8/9
+request is authorized by the gate-5 result itself.
 
 The first writable test must:
 

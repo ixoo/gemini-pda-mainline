@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-17-mainline-da921x-readonly-provider-baseline` |
-| Status | `boot2 deployment verified and shut down; one observed attempt pending` |
+| Status | `complete; one attributable runtime pass closes Roadmap gate 5` |
 | Subsystem | retained LK DT handoff, MT6797 DVFSP/I2C6, legacy DA921x regulator provider |
 | Device variant | Planet Gemini PDA, named development unit |
 | Date(s) | 2026-08-17 America/New_York |
@@ -80,7 +80,8 @@ requires full-partition readback, and shuts Gemian down without rebooting.
 - [Buildbox package](results/buildbox-package-20260817.txt),
   [offline candidate validation](results/offline-candidate-validation-20260817.txt),
   [predeployment decision map](results/predeployment-hypothesis-20260817.txt),
-  and [deployment receipt](results/deployment-1-20260817.txt).
+  [deployment receipt](results/deployment-1-20260817.txt), and
+  [runtime result](results/runtime-attempt-1-success-20260817.txt).
 
 The existing DA921x KUnit suite remains the offline failure/cleanup oracle.
 The runtime collector accepts only the exact complete bound record and retains
@@ -157,6 +158,33 @@ cleanup, and clean shutdown all passed. The predecessor checksum was recorded
 without creating a fresh backup. The device was not rebooted and is confirmed
 unreachable after shutdown.
 
+The single runtime attempt then reached the exact
+`7.1.3-gemini-da921x-lkro` kernel. CPUs 0--7 were online while CPUs 8--9 and all
+A72 admission remained closed. The LK-devinfo handoff passed late validation,
+released I2C6 through the existing access-controller edge, and preserved the
+shared AP-DMA boundary. The DA921x client emitted one complete bound record:
+14 identity reads, two providers, four completed provider reads, and zero
+register-data writes. Both buck tuples were internally consistent: selector 70
+mapped to 1,000,000 uV for each buck, with buck 0 enabled and buck 1 disabled
+at the observation point.
+
+USB/netcat, I2C5, AW9523, the 20 ms polling keyboard, tty1 shell, watchdog, and
+native reboot all passed; no block device was mounted and no kernel fault
+marker appeared. The initial host classifier stopped after the complete raw
+capture because the USB prompt prefixed the begin marker and its procfs probe
+searched for `gpio-matrix-keypad` instead of the actual `keyboard-matrix`
+input name. The repaired classifier preserves unique exact marker spelling and
+requires the exact dmesg registration, polling, driver-binding, and event-node
+records. It classifies the same immutable capture as a pass; the remote probe
+now uses the correct input name for future experiments.
+
+One authorized native reboot returned the unit to changed-boot-ID Gemian.
+Immediate recovery found empty pstore, active root `/dev/mmcblk0p29`, and the
+exact candidate still unmounted on live-GPT boot2 `/dev/mmcblk0p30`. The full
+partition checksum still matched. The sanitized details are in the
+[runtime result](results/runtime-attempt-1-success-20260817.txt); the complete
+capture remains private under the ignored `artifacts/` tree.
+
 ## Analysis
 
 The previous apparent provider failure was not a regulator result. The DA921x
@@ -171,19 +199,28 @@ depend on a post-build CPU-clock edit merely to reach Linux; the package DT is
 itself a valid input to the retained LK iterator. Linux CPU admission is
 unchanged because `clock-frequency` is descriptive and `maxcpus=8` remains.
 
+The positive runtime distinguishes the prior deferred path from a regulator
+failure: the read-only NVMEM supplier, DVFSP handoff, I2C6 client, and DA921x
+provider now complete in order without a DA921x register-data write. Together
+with the five-case hardware-free observer KUnit suite and the earlier natural
+zero-transaction identification-driver unbind/rebind lifecycle, this satisfies
+the resource-only provider exit without claiming writable ownership, resume,
+or rail-change safety.
+
 ## Conclusion
 
-The offline candidate boundary is `confirmed`. The exact raw candidate is
+The runtime boundary is `success-read-only-provider`. The exact raw candidate is
 `ab86ce3950a335cc863f4d0a5921b17348cb1c184fcc69f3efa326f8ed22a321`;
 its exact 16 MiB boot2 payload is
 `eeee7adea53134c8146e10591708725649a8331bdef7ad418a847b5d04c8e854`.
-The exact payload is now verified on inactive boot2 and the device is shut
-down. This is deployment evidence, not a runtime provider result. Runtime
-registration, both buck observations, zero-write accounting, and native reboot
-remain pending one attributable attempt.
+The one attributable boot proves that the provider can exist, report both
+bucks, and preserve the inherited serviceability/native-reboot baseline with
+zero DA921x register-data writes. Roadmap gate 5 is complete for this named
+unit and exact revision. This is not write, rollback, resume, or CPU8/CPU9
+support.
 
 ## Follow-up
 
-Publish the deployment receipt, then pre-arm the exact collector before the
-owner selects boot2 once. CPU8/CPU9 admission and every writable-provider
-operation remain closed regardless of the result.
+Do not repeat this artifact. Open Roadmap gate 6 as a design review for one
+predeclared bounded write/readback/rollback operation. CPU8/CPU9 admission and
+every unreviewed writable-provider operation remain closed.
