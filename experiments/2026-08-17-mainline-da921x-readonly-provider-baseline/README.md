@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-17-mainline-da921x-readonly-provider-baseline` |
-| Status | `prebuild source and profile validation passed` |
+| Status | `Buildbox package and boot candidate validated; deployment pending` |
 | Subsystem | retained LK DT handoff, MT6797 DVFSP/I2C6, legacy DA921x regulator provider |
 | Device variant | Planet Gemini PDA, named development unit |
 | Date(s) | 2026-08-17 America/New_York |
@@ -66,12 +66,25 @@ requires full-partition readback, and shuts Gemian down without rebooting.
   decision map.
 - [Static validator](scripts/validate.py): canonical patch, profile ancestry,
   no-write, CPU-clock, and consumer-closure checks.
+- [DT builder](scripts/build-provider-dtb.sh): exact package-DT serviceability
+  derivation with no second CPU-clock mutation.
+- [Candidate builder](scripts/build-candidate.sh) and
+  [independent validator](scripts/test-candidate.py): package, configuration,
+  DT, Android-v0/LK, padding, no-write, and negative-mutation gates.
+- [Guarded installer](scripts/install-boot2.sh): live-GPT boot2 resolution,
+  exact full write/readback, and clean shutdown without a fresh backup.
+- [Pre-armed collector](scripts/collect-runtime.sh): exact USB/netcat provider
+  probe, sanitized classifier, native reboot request, and changed-Gemian return.
 - [Prebuild boundary](results/prebuild-boundary-20260817.txt): sanitized live
   prerequisite and predecessor-runtime findings.
+- [Buildbox package](results/buildbox-package-20260817.txt),
+  [offline candidate validation](results/offline-candidate-validation-20260817.txt),
+  and [predeployment decision map](results/predeployment-hypothesis-20260817.txt).
 
-The existing DA921x KUnit suite remains the offline failure/cleanup oracle. A
-new runtime collector and candidate builder will be derived only after the
-Buildbox package fixes the exact Image, configuration, and DT identities.
+The existing DA921x KUnit suite remains the offline failure/cleanup oracle.
+The runtime collector accepts only the exact complete bound record and retains
+the full private dmesg below ignored `artifacts/`; its committed result will
+contain only bounded, sanitized fields.
 
 ## Procedure
 
@@ -119,6 +132,23 @@ profile and adds only the read-only NVMEM and DA921x observer gates plus a
 unique local version. The whole-manifest canonical-series audit still passes
 for all 80 profiles.
 
+Buildbox built exact clean commit `7199e8229c6a...` as
+`7.1.3-gemini-da921x-lkro`. Package checksums pass and the built Gemini DT
+contains all ten exact clock values. Compared with the runtime-proven
+predecessor configuration, the substantive delta is the unique release,
+DA921x observer, read-only LK-devinfo NVMEM provider, and their expected
+framework dependencies. The A72 power driver, resource owner, A72 capability
+profile, and KUnit runtime remain disabled; `maxcpus=8` remains forced.
+
+The final DT is derived directly from that package. It adds no CPU-clock
+property post-build and restores only the exact proven serviceability group:
+peripheral USB, disabled xHCI, disabled SCP input, no watchdog IRQ, I2C5,
+AW9523, and the polling keyboard. It preserves the I2C6 access-controller,
+read-only LK-devinfo cells, childless DA921x client, and zero-consumer boundary.
+The independent candidate validator passes all 32 LK/container gates and
+rejects twelve CPU-clock, ownership, consumer, read-only, provider-identity,
+and serviceability mutations.
+
 ## Analysis
 
 The previous apparent provider failure was not a regulator result. The DA921x
@@ -135,13 +165,17 @@ unchanged because `clock-frequency` is descriptive and `maxcpus=8` remains.
 
 ## Conclusion
 
-The source/profile boundary is `confirmed` for prebuild validation only. No new
-kernel package or hardware result exists yet. DA921x runtime registration,
-selector/enable observations, cleanup, and zero-write evidence remain pending
-the exact Buildbox package and one later attributable boot.
+The offline candidate boundary is `confirmed`. The exact raw candidate is
+`ab86ce3950a335cc863f4d0a5921b17348cb1c184fcc69f3efa326f8ed22a321`;
+its exact 16 MiB boot2 payload is
+`eeee7adea53134c8146e10591708725649a8331bdef7ad418a847b5d04c8e854`.
+No device write or new hardware result has occurred yet. Runtime registration,
+both buck observations, zero-write accounting, and native reboot remain
+pending one attributable attempt.
 
 ## Follow-up
 
-Commit and push this exact definition, build the named profile on Buildbox, and
-use the fetched package to freeze the final DT/container and runtime decision
-map. CPU8/CPU9 admission and every writable-provider operation remain closed.
+Publish the exact candidate definition, then use the guarded installer once on
+live-GPT-resolved inactive boot2. After its required clean shutdown, pre-arm
+the exact collector before the owner selects boot2. CPU8/CPU9 admission and
+every writable-provider operation remain closed regardless of the result.

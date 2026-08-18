@@ -1,0 +1,57 @@
+MT6797 read-only DA921x provider predeployment decision map
+Local date: 2026-08-17 America/New_York
+
+Exact candidate
+- kernel release: 7.1.3-gemini-da921x-lkro
+- kernel package commit: 7199e8229c6a805a941e33a6862956949dfebd3a
+- final DT SHA-256: d7dba05efa272c8264c8ea15c776fb88c21a0012603214b49dfd9e2893e87d48
+- raw Android-v0 SHA-256: ab86ce3950a335cc863f4d0a5921b17348cb1c184fcc69f3efa326f8ed22a321
+- padded boot2 SHA-256: eeee7adea53134c8146e10591708725649a8331bdef7ad418a847b5d04c8e854
+- CPU policy: maxcpus=8; CPU8 and CPU9 admission closed
+- DA921x policy: get_voltage_sel, list_voltage, and is_enabled only; no consumer;
+  no setter, enable/disable operation, owner, IRQ, or register-data write
+
+Kernel/DT/configuration hypothesis
+The package-built ten-clock DT first lets retained Planet LK finish its CPU
+iterator. The enabled read-only LK-devinfo NVMEM provider then satisfies the
+existing DVFSP handoff supplier edge; the handoff releases exact I2C6 access;
+and the childless legacy DA921x client completes its fixed identity transcript,
+registers two read-only providers, and emits exactly one complete observer
+record without changing a DA921x register. The exact proven USB, I2C5, AW9523,
+polling-keyboard, watchdog, CPU0-7, and native-reboot serviceability path must
+remain intact.
+
+Unique attributable evidence
+- exact kernel release and exact final DT/container identity;
+- one observer line with event=bound, valid=1, identity_reads=14, providers=2,
+  provider_read_attempts=4, provider_read_completed=4, and
+  register_data_writes=0;
+- two selector/voltage/enable tuples whose voltages equal
+  300000 + selector * 10000 and whose enable values are Boolean;
+- CPU0-7 online, CPU8-9 offline, USB gadget/netcat and polling keyboard present;
+- no mounted block device or kernel fault marker; and
+- one native reboot request followed by changed-boot-ID Gemian return.
+
+Decision map
+- Exact complete record and all serviceability/native-reboot gates pass:
+  success-read-only-provider. Publish the sanitized result and open only the
+  review for Roadmap gate 6; do not enable CPU8 or add a write yet.
+- Missing or malformed LK devinfo, denied handoff, deferred I2C6, identity or
+  provider-read failure, or absent unique bound record while serviceable:
+  provider-prerequisite-or-read-failure. Stop and localize; do not retry an
+  unchanged artifact.
+- Any nonzero DA921x register-data-write count, writable operation/consumer,
+  owner activity, CPU8/CPU9 request, or online A72: safety-rejection. Stop.
+- No exact mainline identity before changed Gemian return:
+  pre-transport-inconclusive. Recover retained evidence once; screen state is
+  not an oracle.
+- Kernel fault or automatic reboot after exact identity but before the complete
+  record: runtime-failure. Recover evidence and stop without causal overclaim.
+
+Expected owner-visible sequence
+1. The guarded installer writes only inactive logical boot2 and shuts Gemian
+   down after exact full readback.
+2. Codex arms the observer and explicitly says it is ready.
+3. The owner physically selects boot2 once.
+4. On success, Codex collects the bounded record and requests a native reboot;
+   the device then returns to ordinary Gemian automatically.

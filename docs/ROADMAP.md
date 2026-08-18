@@ -4022,11 +4022,25 @@ no regulator consumer, setter, owner, register-data write, or CPU8/CPU9 request
 is added. Static source/profile validation and the all-profile canonical-series
 audit pass; see the
 [LK-repaired provider experiment](../experiments/2026-08-17-mainline-da921x-readonly-provider-baseline/README.md).
-This remains prebuild evidence only. The single next ordered action is to
-commit and push the exact definition, build that named profile only on
-Buildbox, fetch its validated package, and require its resolved configuration
-and built Gemini DT to match the frozen boundary before any container or device
-action.
+Buildbox has now built exact clean commit `7199e8229c6a...` as
+`7.1.3-gemini-da921x-lkro`. Package checksums pass; the built board DT contains
+all ten exact LK CPU clocks; and the resolved configuration retains
+`maxcpus=8` while enabling only the read-only LK-devinfo supplier and DA921x
+observer path plus expected framework dependencies. The final DT adds no
+second CPU-clock mutation and restores only the exact proven USB, disabled-SCP,
+no-watchdog-IRQ, I2C5/AW9523, and polling-keyboard serviceability group. Its
+I2C6 access-controller edge and childless DA921x client remain intact.
+
+The exact Android-v0 candidate and two independent padding constructions are
+byte-identical. All 32 LK/container gates pass, and an independent validator
+rejects twelve CPU-clock, provider-identity, read-only, ownership, consumer,
+and serviceability mutations. The exact 16 MiB boot2 payload is
+`eeee7adea53134c8146e10591708725649a8331bdef7ad418a847b5d04c8e854`.
+No native VM build or device write occurred. The single next ordered action is
+to publish this frozen candidate, install it once to live-GPT-resolved inactive
+boot2 with full readback and clean shutdown, then pre-arm the exact provider
+collector before one physical selection. See the
+[offline validation](../experiments/2026-08-17-mainline-da921x-readonly-provider-baseline/results/offline-candidate-validation-20260817.txt).
 
 Required evidence:
 
