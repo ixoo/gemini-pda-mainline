@@ -13,13 +13,13 @@ readonly GEMIAN_ADDRESS=192.168.1.50
 readonly WAIT_SECONDS=900
 readonly RETURN_SECONDS=600
 readonly CANDIDATE_SHA256=af560eaad69b61239db7980995776b47b1194bb26fe5c8a24d8f1462008ab296
-readonly PRETRIGGER_PROBE_SHA256=26824f1958b51cb7525af7ca138962e671bac363506b19a7599203809dcebef8
-readonly TRIGGER_PROBE_SHA256=ec205339264158f6ef8b54ae8416aad12584f9e21e27130730c7b58cddb2fe92
+readonly PRETRIGGER_PROBE_SHA256=c7c176a8a863f43bd2838c35fd40a22ce47ca26e341274f76ce829025e603f16
+readonly TRIGGER_PROBE_SHA256=49d99110cb830a9759161cfb4b54493fd7ba9d20f22d7e0543569a24ba01dc7e
 readonly CLASSIFIER_SHA256=6428f3e67b0308258476c4865aee4bdec1fe9bafd5b1f34d81822f72c06e61d7
 
 die() { printf 'error: %s\n' "$*" >&2; exit 2; }
 usage() {
-	printf 'usage: %s --deployment-boot-id UUID --output artifacts/runtime-captures/mainline-da921x-runtime-preflight-attempt-1\n' "$0" >&2
+	printf 'usage: %s --deployment-boot-id UUID --output artifacts/runtime-captures/mainline-da921x-runtime-preflight-attempt-1b\n' "$0" >&2
 }
 
 deployment_boot_id=
@@ -71,8 +71,8 @@ done
 private_root="$(cd -- "$private_root" && pwd -P)"
 case "$output" in /*) ;; *) output="$repo_root/${output#./}" ;; esac
 [[ "$(dirname -- "$output")" == "$private_root" &&
-	"$(basename -- "$output")" == mainline-da921x-runtime-preflight-attempt-1 ]] ||
-	die 'output must be the exact private attempt-1 child'
+	"$(basename -- "$output")" == mainline-da921x-runtime-preflight-attempt-1b ]] ||
+	die 'output must be the exact private attempt-1b child'
 [[ ! -e "$output" && ! -L "$output" ]] || die 'output already exists'
 git -C "$repo_root" check-ignore -q "$output" || die 'output is not ignored by Git'
 

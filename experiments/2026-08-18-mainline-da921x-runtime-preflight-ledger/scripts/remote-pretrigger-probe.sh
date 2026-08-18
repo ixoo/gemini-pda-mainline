@@ -21,13 +21,20 @@ $BB printf 'block_mounts='; $BB grep -Ec '^/dev/(mmc|sd|nvme)' /proc/mounts || t
 $BB printf 'pstore_files='; $BB find /sys/fs/pstore -maxdepth 1 -type f 2>/dev/null | $BB wc -l
 $BB printf 'reboot_sha256='; $BB sha256sum /bin/reboot | $BB cut -d ' ' -f 1
 
-# shellcheck disable=SC2046 # Exact path inventory is intentionally split into arguments.
-set -- $($BB find /sys/bus/i2c/devices -maxdepth 2 -name readonly_preflight 2>/dev/null)
-[ "$#" -eq 1 ] || {
-	$BB printf 'readonly_preflight_attribute_count=%s\n' "$#"
+# The entries below /sys/bus/i2c/devices are symlinks. BusyBox find does not
+# descend through them by default, so resolve the one exact DA921x client via
+# the shell glob and then address its attribute directly.
+set -- /sys/bus/i2c/devices/*-0068
+if [ "$#" -ne 1 ] || [ ! -e "$1" ]; then
+	[ -e "$1" ] || set --
+	$BB printf 'da921x_i2c_client_count=%s\n' "$#"
+	exit 1
+fi
+preflight=$1/readonly_preflight
+[ -r "$preflight" ] || {
+	$BB printf '%s\n' readonly_preflight_attribute_count=0
 	exit 1
 }
-preflight=$1
 $BB printf '%s\n' __RUNTIME_PREFLIGHT_STATE_BEGIN__
 $BB cat "$preflight"
 $BB printf '%s\n' __RUNTIME_PREFLIGHT_STATE_END__

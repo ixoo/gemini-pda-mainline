@@ -31,6 +31,15 @@ def main() -> None:
         require(match is not None, f"collector pin missing: {name}")
         require(match.group(1) == digest(path), f"collector pin changed: {name}")
 
+    for name in ("remote-pretrigger-probe.sh", "remote-trigger-probe.sh"):
+        probe = (script_dir / name).read_text(encoding="utf-8")
+        require(probe.count("set -- /sys/bus/i2c/devices/*-0068") == 1,
+                f"exact symlinked client resolver changed: {name}")
+        require("find /sys/bus/i2c/devices -maxdepth 2 -name readonly_preflight" not in probe,
+                f"non-symlink-following attribute lookup returned: {name}")
+        require(probe.count("preflight=$1/readonly_preflight") == 1,
+                f"exact runtime attribute path changed: {name}")
+
     anchors = (
         'python3 "$classifier" --pretrigger "$pretrigger" >"$pretrigger_classification"',
         "printf 'pretrigger_durable_before_trigger=yes\\n'",
@@ -50,7 +59,7 @@ def main() -> None:
             "non-pass reboot closures changed")
     require('CANDIDATE_SHA256=af560eaad69b61239db7980995776b47b1194bb26fe5c8a24d8f1462008ab296'
             in text, "candidate identity changed")
-    require('mainline-da921x-runtime-preflight-attempt-1' in text,
+    require('mainline-da921x-runtime-preflight-attempt-1b' in text,
             "private capture identity changed")
 
     print("validation=mainline-da921x-runtime-preflight-collector")

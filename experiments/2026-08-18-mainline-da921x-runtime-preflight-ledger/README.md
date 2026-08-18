@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-18-mainline-da921x-runtime-preflight-ledger` |
-| Status | `running` (candidate validated; deployment pending) |
+| Status | `running` (candidate live; corrected attempt `1b` pending) |
 | Subsystem | MT6797 I2C6 transfer attribution and DA921x Gate-6 preflight |
 | Device variant | Planet Gemini PDA, MT6797 named development unit |
 | Date(s) | 2026-08-18 America/New_York |
@@ -111,8 +111,23 @@ python3 experiments/2026-08-18-mainline-da921x-runtime-preflight-ledger/scripts/
 - The collector/classifier tests reject eleven unsafe runtime mutations and
   enforce a durable exact-20 capture, one trigger attempt, zero trigger retry,
   and native reboot only after an exact post-trigger pass.
-- No device access, partition write, runtime I2C operation, or CPU8/CPU9 request
-  has occurred for this experiment yet.
+- The installer resolved inactive logical `boot2` as `/dev/mmcblk0p30`, wrote
+  and read back exact padded SHA-256 `af560eaad69b61239db7980995776b47b1194bb26fe5c8a24d8f1462008ab296`,
+  then confirmed the device unreachable after a clean shutdown. It made no new
+  partition backup under the standing project recovery policy.
+- Attempt 1 reached release `7.1.3-gemini-da921x-preflight-rt`, the direct USB
+  shell, keyboard, DA921x I2C client, and CPUs 0--7 online with CPUs 8--9
+  offline. Its pre-trigger probe stopped before the trigger because BusyBox
+  `find` did not descend the symlinked I2C device directory.
+- A bounded read-only diagnostic resolved the single client as
+  `/sys/bus/i2c/devices/1-0068`, confirmed `readonly_preflight` readable and
+  still `idle`, with zero attempts, zero preflight reads, and zero register-data
+  writes. Both probes now resolve the exact client directly; checksum pins,
+  syntax, ShellCheck, ordering, and eleven unsafe classifier mutations pass for
+  continuation attempt `1b`. See
+  [`results/runtime-attempt-1-observer-path-20260818.txt`](results/runtime-attempt-1-observer-path-20260818.txt)
+  and
+  [`results/collector-attempt-1b-validation-20260818.txt`](results/collector-attempt-1b-validation-20260818.txt).
 
 ## Analysis
 
@@ -124,13 +139,14 @@ them with boot success.
 
 ## Conclusion
 
-The source, build, candidate, and collector boundaries are `confirmed`; the
-hardware result remains `inconclusive` pending one exact runtime. Gate-6
-blockers B1--B4 and CPU8/9 admission remain closed.
+The source, build, candidate, deployment, mainline serviceability, and repaired
+collector boundaries are `confirmed`. The runtime-preflight hardware result
+remains `inconclusive` because attempt 1 stopped in the host observer before
+issuing the token. Gate-6 blockers B1--B4 and CPU8/9 admission remain closed.
 
 ## Follow-up
 
-Deploy the exact candidate to inactive logical `boot2`, require full readback
-and clean shutdown, then arm the collector before one physical boot selection.
-The authoritative ordered runtime and decision boundary remains
-[Roadmap Gate 6](../../docs/ROADMAP.md#6-prove-one-bounded-writable-operation).
+Commit and push the checksum-pinned observer repair, then run exact continuation
+attempt `1b` against the still-live candidate. Retain and classify the exact
+20-entry pre-trigger ledger before the sole token attempt. The authoritative
+ordered runtime and decision boundary remains [Roadmap Gate 6](../../docs/ROADMAP.md#6-prove-one-bounded-writable-operation).
