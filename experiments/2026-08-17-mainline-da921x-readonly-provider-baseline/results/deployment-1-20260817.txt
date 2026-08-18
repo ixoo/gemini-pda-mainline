@@ -1,0 +1,22 @@
+MT6797 read-only DA921x provider deployment receipt
+Local date: 2026-08-17 America/New_York
+
+experiment=2026-08-17-mainline-da921x-readonly-provider-baseline
+result=write-synced-flushed-full-readback-verified
+target_logical_name=boot2
+target=/dev/mmcblk0p30
+root=/dev/mmcblk0p29
+predecessor_sha256=b478b79a983889514b2b8d122fb6d5ff5057e52c332882b186b82698d1de62b8
+fresh_predecessor_backup=no
+candidate_sha256=eeee7adea53134c8146e10591708725649a8331bdef7ad418a847b5d04c8e854
+readback_sha256=eeee7adea53134c8146e10591708725649a8331bdef7ad418a847b5d04c8e854
+boot_id=bdffa693-3567-4ea5-9466-a692f116e307
+power_external=present
+battery_capacity_percent=100
+battery_health=Good
+temporary_readback_removed=yes
+shutdown=requested-after-evidence-flush
+poweroff_ssh_rc=0
+post_shutdown_reachability=unreachable
+reboot=no
+next_action=prearm-observer-then-owner-physically-selects-boot2-once

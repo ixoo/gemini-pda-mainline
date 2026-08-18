@@ -4042,6 +4042,15 @@ boot2 with full readback and clean shutdown, then pre-arm the exact provider
 collector before one physical selection. See the
 [offline validation](../experiments/2026-08-17-mainline-da921x-readonly-provider-baseline/results/offline-candidate-validation-20260817.txt).
 
+Guarded deployment is now complete. Live GPT resolved inactive, unmounted
+boot2 as p30 while Gemian used p29. The predecessor checksum was recorded
+without a fresh backup; stable external power, exact write, sync, flush,
+full-partition readback, temporary-readback cleanup, and clean shutdown all
+passed. The device was not rebooted and is confirmed unreachable. See the
+[deployment receipt](../experiments/2026-08-17-mainline-da921x-readonly-provider-baseline/results/deployment-1-20260817.txt).
+The single next ordered action is to publish this receipt, pre-arm the exact
+USB/netcat provider collector, and only then ask the owner to select boot2 once.
+
 Required evidence:
 
 - provider registration performs no register-data write;

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-17-mainline-da921x-readonly-provider-baseline` |
-| Status | `Buildbox package and boot candidate validated; deployment pending` |
+| Status | `boot2 deployment verified and shut down; one observed attempt pending` |
 | Subsystem | retained LK DT handoff, MT6797 DVFSP/I2C6, legacy DA921x regulator provider |
 | Device variant | Planet Gemini PDA, named development unit |
 | Date(s) | 2026-08-17 America/New_York |
@@ -79,7 +79,8 @@ requires full-partition readback, and shuts Gemian down without rebooting.
   prerequisite and predecessor-runtime findings.
 - [Buildbox package](results/buildbox-package-20260817.txt),
   [offline candidate validation](results/offline-candidate-validation-20260817.txt),
-  and [predeployment decision map](results/predeployment-hypothesis-20260817.txt).
+  [predeployment decision map](results/predeployment-hypothesis-20260817.txt),
+  and [deployment receipt](results/deployment-1-20260817.txt).
 
 The existing DA921x KUnit suite remains the offline failure/cleanup oracle.
 The runtime collector accepts only the exact complete bound record and retains
@@ -149,6 +150,13 @@ The independent candidate validator passes all 32 LK/container gates and
 rejects twelve CPU-clock, ownership, consumer, read-only, provider-identity,
 and serviceability mutations.
 
+Guarded deployment then resolved logical `boot2` from the live GPT as inactive,
+unmounted `/dev/mmcblk0p30` while Gemian used `/dev/mmcblk0p29`. Stable external
+power, exact write, sync, flush, full-partition readback, temporary-readback
+cleanup, and clean shutdown all passed. The predecessor checksum was recorded
+without creating a fresh backup. The device was not rebooted and is confirmed
+unreachable after shutdown.
+
 ## Analysis
 
 The previous apparent provider failure was not a regulator result. The DA921x
@@ -169,13 +177,13 @@ The offline candidate boundary is `confirmed`. The exact raw candidate is
 `ab86ce3950a335cc863f4d0a5921b17348cb1c184fcc69f3efa326f8ed22a321`;
 its exact 16 MiB boot2 payload is
 `eeee7adea53134c8146e10591708725649a8331bdef7ad418a847b5d04c8e854`.
-No device write or new hardware result has occurred yet. Runtime registration,
-both buck observations, zero-write accounting, and native reboot remain
-pending one attributable attempt.
+The exact payload is now verified on inactive boot2 and the device is shut
+down. This is deployment evidence, not a runtime provider result. Runtime
+registration, both buck observations, zero-write accounting, and native reboot
+remain pending one attributable attempt.
 
 ## Follow-up
 
-Publish the exact candidate definition, then use the guarded installer once on
-live-GPT-resolved inactive boot2. After its required clean shutdown, pre-arm
-the exact collector before the owner selects boot2. CPU8/CPU9 admission and
-every writable-provider operation remain closed regardless of the result.
+Publish the deployment receipt, then pre-arm the exact collector before the
+owner selects boot2 once. CPU8/CPU9 admission and every writable-provider
+operation remain closed regardless of the result.
