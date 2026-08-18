@@ -4103,6 +4103,22 @@ and the existing rollback/terminal-recovery audits into one exact no-op or
 bounded transition. No kernel build, device write, regulator write, or CPU8/9
 request is authorized by the gate-5 result itself.
 
+The [initial Gate-6 design review](../experiments/2026-08-17-mainline-da921x-bounded-noop-write-review/README.md)
+selects the least-invasive future transaction: one no-retry same-value write
+of `0x46` to disabled Buck B's unselected `VBUCKB_B` register `0xda`, followed
+by immediate/delayed readback and full pre/post comparison. It explicitly
+performs no build or hardware action. Implementation remains blocked because
+the stopped-receiver handoff cannot yet exclude every firmware writer, the
+native one-message two-byte write shape is unproved, two of Gate 5's 20 I2C6
+transfers are unattributed, and live `V_LOCK`/status preflight is absent.
+
+The next ordered action is one read-only I2C6 entry ledger and DA921x
+direct-register preflight. It must attribute all startup transfers, record
+`CONTROL_A`, `STATUS_B`, `BUCKB_CONT`, `VBUCKB_A`, and `VBUCKB_B`, preserve the
+Gate-5 serviceability baseline, and add no register-data write, writable
+provider operation, consumer, or CPU8/CPU9 request. Build it on Buildbox only
+after its exact source contract is reviewed, committed, and pushed.
+
 The first writable test must:
 
 - keep CPU8 and CPU9 disconnected;

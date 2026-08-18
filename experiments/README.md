@@ -23,6 +23,15 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-17 mainline DA921x bounded no-op write review](2026-08-17-mainline-da921x-bounded-noop-write-review/README.md)
+  — reconciles the Gate-5 runtime, the official legacy register map, prior
+  firmware-owner audit, and rollback evidence into one exact least-invasive
+  Gate-6 candidate: a same-value `0x46 -> 0x46` write to disabled Buck B's
+  unselected `VBUCKB_B` register. The review performs no build or hardware
+  action and keeps implementation blocked on firmware-writer exclusion, the
+  unproved native two-byte write shape, two unattributed Gate-5 transfers, and
+  the absent live V_LOCK/status preflight. CPU8/CPU9 remain closed; Roadmap
+  gate 6 owns the ordered follow-up.
 - [2026-08-17 LK-repaired DA921x read-only provider baseline](2026-08-17-mainline-da921x-readonly-provider-baseline/README.md)
   — freezes the ten runtime-proven CPU clock properties into the kernel-built
   Gemini DT and enables only the read-only LK-devinfo NVMEM supplier and

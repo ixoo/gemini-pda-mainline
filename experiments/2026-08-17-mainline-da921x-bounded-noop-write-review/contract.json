@@ -1,0 +1,100 @@
+{
+  "schema": "gemini-da921x-bounded-noop-write-review-v1",
+  "status": "blocked-design-only",
+  "device_variant": "Planet Gemini PDA MT6797 named development unit",
+  "fixed_parent": {
+    "kernel_release": "7.1.3-gemini-da921x-lkro",
+    "boot2_sha256": "eeee7adea53134c8146e10591708725649a8331bdef7ad418a847b5d04c8e854",
+    "runtime_result": "../2026-08-17-mainline-da921x-readonly-provider-baseline/results/runtime-attempt-1-success-20260817.txt",
+    "cpu_online": "0-7",
+    "cpu_offline": "8-9",
+    "register_data_writes": 0
+  },
+  "proposed_transaction": {
+    "classification": "same-value-no-op",
+    "i2c_address": "0x68",
+    "register": "0xda",
+    "register_name": "VBUCKB_B",
+    "pre_value": "0x46",
+    "write_value": "0x46",
+    "post_value": "0x46",
+    "messages": 1,
+    "message_bytes": [
+      "0xda",
+      "0x46"
+    ],
+    "expected_transfer_return": 1,
+    "retries": 0,
+    "page_con_accesses": 0,
+    "consumer_requests": 0,
+    "cpu_requests": 0,
+    "second_or_rollback_write": false
+  },
+  "required_preflight": {
+    "buckb_cont_0x5e": "0x00",
+    "buckb_enabled": false,
+    "selected_voltage_register": "VBUCKB_A",
+    "gpi_enable_control": false,
+    "gpi_voltage_select": false,
+    "vbuckb_a_0xd9": "0x46",
+    "vbuckb_b_0xda": "0x46",
+    "control_a_0x56_v_lock_mask": "0x80",
+    "control_a_0x56_v_lock_expected": "0x00",
+    "status_b_0x51_policy": "record-full-byte-and-require-identical-poststate",
+    "provider_consumers": 0,
+    "root_adapter_lock": true,
+    "linux_generation_cookie_lease": true,
+    "firmware_writer_exclusion": "required-but-unproven",
+    "power_stable": true,
+    "independent_native_reboot_recovery": true
+  },
+  "postconditions": {
+    "immediate_vbuckb_b_0xda": "0x46",
+    "delayed_vbuckb_b_0xda": "0x46",
+    "buckb_cont_0x5e": "0x00",
+    "vbuckb_a_0xd9": "0x46",
+    "control_a_full_byte": "unchanged",
+    "status_b_full_byte": "unchanged",
+    "page_con_accesses": 0,
+    "cpu_online": "0-7",
+    "cpu_offline": "8-9",
+    "native_reboot_to_changed_gemian": true
+  },
+  "failure_policy": {
+    "retry": false,
+    "attempt_inverse_after_uncertain_transfer": false,
+    "enable_buckb": false,
+    "select_vbuckb_b": false,
+    "request_cpu8_or_cpu9": false,
+    "disposition": "stop-publish-fault-preserve-recovery-path"
+  },
+  "blockers": [
+    {
+      "id": "B1-firmware-owner",
+      "status": "blocking",
+      "requirement": "Prove exclusion of every firmware or secure I2C6 writer for the complete transaction window, or implement a reviewed replacement for the historical SEMA_I2C_DRV lease."
+    },
+    {
+      "id": "B2-write-transport",
+      "status": "blocking",
+      "requirement": "Validate the exact one-message two-byte native MT6797 I2C6 write shape and its no-retry failure semantics without performing a device write."
+    },
+    {
+      "id": "B3-transfer-attribution",
+      "status": "blocking",
+      "requirement": "Attribute the gate-5 total of 20 I2C6 transfers against 14 identity reads and four explicit provider-observer reads; reject any unowned or write-shaped transfer."
+    },
+    {
+      "id": "B4-live-preflight",
+      "status": "blocking",
+      "requirement": "Obtain a read-only exact preflight for CONTROL_A V_LOCK, STATUS_B, BUCKB_CONT, VBUCKB_A, and VBUCKB_B while preserving the serviceability baseline."
+    }
+  ],
+  "decision": {
+    "implementation_eligible": false,
+    "kernel_build_authorized": false,
+    "device_write_authorized": false,
+    "cpu8_cpu9_admission": "closed",
+    "ordered_follow_up_owner": "docs/ROADMAP.md#6-prove-one-bounded-writable-operation"
+  }
+}

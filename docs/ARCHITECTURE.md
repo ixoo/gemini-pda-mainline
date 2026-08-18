@@ -180,7 +180,7 @@ retained BootROM / preloader / ATF / LK
   -> DVFSP handoff and shared AP-DMA preservation
   -> MT6797 I2C6 native packed/FIFO short-read contract
   -> legacy DA921x read-only board contract
-  -> unimplemented legacy-family driver/provider boundary
+  -> runtime-proven legacy-family read-only regulator provider
   -> unimplemented bounded regulator write and rollback
   -> unavailable Cortex-A72 CPUs 8 and 9
 ```
@@ -194,7 +194,7 @@ retained BootROM / preloader / ATF / LK
 | Restart | Native MT6797 TOPRGU restart | Full power-off, suspend, and every reset source |
 | CPU | Eight Cortex-A53 CPUs online on the diagnostic baseline | A72, OPP/cpufreq, idle, thermal, suspend, scheduler policy |
 | I2C6 | Exact native packed/FIFO one-byte pointer plus one-byte read | Arbitrary messages, writes, stress, and resume |
-| External regulator | Read-only legacy-family board tuple | Provider registration, writes, rail ownership, rollback, resume |
+| External regulator | Read-only legacy-family board tuple and two-provider registration with zero register-data writes | Writes, rail ownership, rollback, consumers, resume |
 
 This table is an implementation map, not an experiment ledger. Exact runtime
 evidence and negative results remain in the linked experiment directories.
