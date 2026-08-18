@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-17-mainline-da921x-readonly-preflight-ledger` |
-| Status | `running` (Buildbox package and exact candidate validated; deployment pending) |
+| Status | `running` (exact boot2 deployment verified; one runtime observation pending) |
 | Subsystem | MT6797 I2C6 transfer attribution and DA921x Gate-6 preflight |
 | Device variant | Planet Gemini PDA, MT6797 named development unit |
 | Date(s) | 2026-08-17 America/New_York |
@@ -63,6 +63,12 @@ that checksum-pinned payload to live-GPT-resolved inactive `boot2`.
 - [`scripts/install-boot2.sh`](scripts/install-boot2.sh) inherits live-GPT
   resolution, inactive/unmounted target checks, no-fresh-backup policy, full
   readback, and clean shutdown.
+- [`scripts/collect-runtime.sh`](scripts/collect-runtime.sh), its read-only
+  [remote probe](scripts/remote-runtime-probe.sh), and the fail-closed
+  [classifier](scripts/classify-runtime.py) bind one USB/netcat observation to
+  the exact payload and immutable decision map. The
+  [classifier test](scripts/test-runtime-classifier.py) rejects eight unsafe
+  transfer, preflight, CPU, and identity mutations.
 - [`results/buildbox-package-20260818.txt`](results/buildbox-package-20260818.txt),
   [`results/offline-candidate-validation-20260818.txt`](results/offline-candidate-validation-20260818.txt),
   and [`results/predeployment-hypothesis-20260818.txt`](results/predeployment-hypothesis-20260818.txt)
@@ -112,7 +118,17 @@ python3 experiments/2026-08-17-mainline-da921x-readonly-preflight-ledger/scripts
   mutations. The exact 16 MiB payload is
   `41c652225d3627f5aaaba2272e29a58171008e17b0f7c936116842e7ab0166e3`.
 - No device access, boot2 write, regulator write, or CPU8/CPU9 request has
-  occurred in this experiment yet.
+  occurred during candidate construction.
+- Guarded deployment resolved live-GPT logical `boot2` as inactive, unmounted
+  p30 while Gemian used p29. Stable external power, exact write, synchronization,
+  flush, independent full readback, temporary-readback cleanup, and clean
+  shutdown passed without a fresh backup or automatic reboot. The device is
+  confirmed unreachable. See the
+  [deployment receipt](results/deployment-1-20260818.txt).
+- The checksum-pinned collector, read-only remote probe, and classifier pass
+  syntax/source-identity checks. A complete synthetic 30-entry fixture passes;
+  eight unsafe mutations are rejected. See the
+  [collector pre-arm receipt](results/collector-prearm-validation-20260818.txt).
 
 ## Analysis
 
@@ -135,8 +151,7 @@ Nothing in this result opens a writable regulator or A72 boundary.
 
 ## Follow-up
 
-Publish this exact frozen candidate, install it once to live-GPT-resolved
-inactive `boot2` with a full readback and clean shutdown, then pre-arm the
-checksum-pinned one-boot collector before physical selection. See
+Publish the deployment and pre-arm receipts, start the checksum-pinned
+collector, and only then physically select `boot2` once. See
 [Roadmap Gate 6](../../docs/ROADMAP.md#6-prove-one-bounded-writable-operation)
 for the authoritative exit criteria.

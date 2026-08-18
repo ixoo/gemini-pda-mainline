@@ -4121,11 +4121,17 @@ mutations are rejected. The exact 16 MiB boot2 payload is
 `41c652225d3627f5aaaba2272e29a58171008e17b0f7c936116842e7ab0166e3`.
 It can only attribute the 30 expected startup reads and test two stable
 read-only preflight passes; it adds no register-data write, writable provider
-operation, consumer, firmware-owner claim, or CPU8/CPU9 request. The next
-ordered action is guarded live-GPT `boot2` deployment with full readback and
-clean shutdown, followed by one checksum-pinned USB/netcat observation. Only
-an exact pass can close blockers B3 and B4; B1 firmware-writer exclusion and B2
-native two-byte write shape remain blocking. See the
+operation, consumer, firmware-owner claim, or CPU8/CPU9 request. Guarded
+deployment then resolved inactive, unmounted live-GPT `boot2` as p30 while
+Gemian used p29. The exact write, sync, flush, full readback, and clean shutdown
+passed without a fresh backup or automatic reboot; the device is confirmed
+unreachable. The checksum-pinned read-only collector and classifier are now
+validated against one complete 30-entry fixture and eight unsafe mutations.
+The next ordered action is to pre-arm that collector and physically select
+`boot2` once. Only an exact pass can close blockers B3 and B4; B1
+firmware-writer exclusion and B2 native two-byte write shape remain blocking.
+See the [deployment receipt](../experiments/2026-08-17-mainline-da921x-readonly-preflight-ledger/results/deployment-1-20260818.txt),
+[collector pre-arm receipt](../experiments/2026-08-17-mainline-da921x-readonly-preflight-ledger/results/collector-prearm-validation-20260818.txt), and
 [offline candidate record](../experiments/2026-08-17-mainline-da921x-readonly-preflight-ledger/results/offline-candidate-validation-20260818.txt).
 
 The first writable test must:

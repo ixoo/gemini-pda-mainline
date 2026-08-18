@@ -1,0 +1,22 @@
+MT6797 DA921x read-only preflight ledger deployment receipt
+Local date: 2026-08-18 America/New_York
+
+experiment=2026-08-17-mainline-da921x-readonly-preflight-ledger
+result=write-synced-flushed-full-readback-verified
+target_logical_name=boot2
+target=/dev/mmcblk0p30
+root=/dev/mmcblk0p29
+predecessor_sha256=eeee7adea53134c8146e10591708725649a8331bdef7ad418a847b5d04c8e854
+fresh_predecessor_backup=no
+candidate_sha256=41c652225d3627f5aaaba2272e29a58171008e17b0f7c936116842e7ab0166e3
+readback_sha256=41c652225d3627f5aaaba2272e29a58171008e17b0f7c936116842e7ab0166e3
+deployment_boot_id=f8f09f5c-c29f-498b-8455-cccd1635f33c
+power_external=present
+battery_capacity_percent=100
+battery_health=Good
+temporary_readback_removed=yes
+shutdown=requested-after-evidence-flush
+poweroff_ssh_rc=255-connection-closed-by-remote-host
+post_shutdown_reachability=unreachable
+reboot=no
+next_action=prearm-exact-observer-then-owner-physically-selects-boot2-once
