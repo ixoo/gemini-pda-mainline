@@ -23,6 +23,14 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-17 mainline DA921x read-only preflight ledger](2026-08-17-mainline-da921x-readonly-preflight-ledger/README.md)
+  — implements the source-only child that can attribute all 20 Gate-5 I2C6
+  transfers and add two fixed five-register preflight passes. A 32-entry
+  controller ledger records only message shape, pointer, and final result; the
+  provider records registration/observer/preflight read counts plus full-byte
+  `CONTROL_A`, `STATUS_B`, `BUCKB_CONT`, `VBUCKB_A`, and `VBUCKB_B` state. It
+  adds no hardware write, consumer, firmware-owner claim, or CPU request.
+  Buildbox and hardware evidence are pending.
 - [2026-08-17 mainline DA921x bounded no-op write review](2026-08-17-mainline-da921x-bounded-noop-write-review/README.md)
   — reconciles the Gate-5 runtime, the official legacy register map, prior
   firmware-owner audit, and rollback evidence into one exact least-invasive

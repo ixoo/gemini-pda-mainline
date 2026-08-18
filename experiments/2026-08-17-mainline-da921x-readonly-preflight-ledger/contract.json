@@ -1,0 +1,85 @@
+{
+  "schema": "gemini-da921x-readonly-preflight-ledger-v1",
+  "status": "source-implemented-build-pending",
+  "parent_profile": "da921x-lk-clock-readonly-provider",
+  "profile": "da921x-readonly-preflight-ledger",
+  "kernel_release": "7.1.3-gemini-da921x-preflight",
+  "cpu_policy": {
+    "online": "0-7",
+    "offline": "8-9",
+    "maxcpus": 8,
+    "cpu_requests": 0
+  },
+  "ledger": {
+    "version": 1,
+    "capacity": 32,
+    "expected_count": 30,
+    "expected_overflow": 0,
+    "recorded_payload_bytes_per_entry": 1,
+    "first_byte_semantics": "register-pointer-only",
+    "expected_message_shape": {
+      "num": 2,
+      "flags0": "0x0000",
+      "length0": 1,
+      "flags1": "0x0001",
+      "length1": 1,
+      "return": 2
+    },
+    "expected_sequence": [
+      "69:05", "69:06", "69:47", "68:d3", "68:5e", "68:d9", "68:da",
+      "69:05", "69:06", "69:47", "68:d3", "68:5e", "68:d9", "68:da",
+      "68:5d", "68:5e",
+      "68:d7", "68:5d", "68:d9", "68:5e",
+      "68:56", "68:51", "68:5e", "68:d9", "68:da",
+      "68:56", "68:51", "68:5e", "68:d9", "68:da"
+    ]
+  },
+  "phase_accounting": {
+    "identity_reads": 14,
+    "registration_reads": 2,
+    "registration_inferred_registers": ["0x5d", "0x5e"],
+    "observer_reads": 4,
+    "preflight_reads": 10,
+    "register_data_writes": 0
+  },
+  "oracle": {
+    "combined_pointer_reads": 30,
+    "primary_pointer_reads": 24,
+    "page2_pointer_reads": 6,
+    "write_only_messages": 0,
+    "register_data_write_messages": 0,
+    "other_transfers": 0,
+    "other_address_transfers": 0
+  },
+  "preflight": {
+    "passes": 2,
+    "registers": ["0x56", "0x51", "0x5e", "0xd9", "0xda"],
+    "stable_required": true,
+    "control_a_v_lock_mask": "0x80",
+    "control_a_v_lock_expected": "0x00",
+    "status_b_policy": "record-full-byte",
+    "buckb_cont_expected": "0x00",
+    "vbuckb_a_expected": "0x46",
+    "vbuckb_b_expected": "0x46",
+    "page_con_accesses": 0
+  },
+  "forbidden": {
+    "register_data_writes": 0,
+    "writable_provider_operations": 0,
+    "consumer_requests": 0,
+    "retries_added": 0,
+    "firmware_owner_claims": 0,
+    "cpu8_cpu9_requests": 0
+  },
+  "decision_map": {
+    "exact_pass": "close-only-B3-transfer-attribution-and-B4-live-preflight",
+    "ledger_or_phase_mismatch": "stop-and-keep-B3-B4-blocking",
+    "v_lock_set_or_unstable_preflight": "stop-and-keep-B4-blocking",
+    "any_write_or_cpu_request": "reject-candidate",
+    "B1_firmware_owner": "remains-blocking",
+    "B2_write_transport": "remains-blocking",
+    "gate6_write": "not-authorized",
+    "cpu8_cpu9_admission": "closed",
+    "ordered_follow_up_owner": "docs/ROADMAP.md#6-prove-one-bounded-writable-operation"
+  }
+}

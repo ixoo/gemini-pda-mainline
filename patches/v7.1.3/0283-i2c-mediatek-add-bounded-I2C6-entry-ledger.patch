@@ -1,0 +1,257 @@
+From 937bf9fe501c58d00d997088032b128823db1359 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 17 Aug 2026 21:18:00 -0400
+Subject: [PATCH] i2c: mediatek: add bounded I2C6 entry ledger
+
+The read-only DA921x provider boot completed 20 native I2C6 transfers.  The
+fixed identity and explicit observer paths account for only 18.  Aggregate
+counters cannot attribute the remaining two calls.
+
+Add a default-off, fixed 32-entry ledger to the access-controlled MT6797
+I2C instance.  Record message count, both bounded message shapes, the first
+pointer byte, and the final adapter result.  The ledger cannot trigger a
+transfer and exposes no payload beyond the first register pointer.  Preserve
+the existing aggregate lifecycle oracle and report overflow explicitly.
+
+This is experiment-only attribution, not a write transport or writable
+provider.  The synthetic From identity is non-certifying; this patch is not
+submission-ready.
+
+---
+ drivers/i2c/busses/Kconfig      |  13 +++
+ drivers/i2c/busses/i2c-mt65xx.c | 134 +++++++++++++++++++++++++++++++-
+ 2 files changed, 145 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/i2c/busses/Kconfig b/drivers/i2c/busses/Kconfig
+--- a/drivers/i2c/busses/Kconfig
++++ b/drivers/i2c/busses/Kconfig
+@@ -959,6 +959,19 @@ config I2C_MT65XX_GEMINI_LIFECYCLE_ORACLE
+ 
+ 	  Say N outside the named Gemini legacy-driver lifecycle experiment.
+ 
++config I2C_MT65XX_GEMINI_ENTRY_LEDGER
++	bool "MT6797 I2C6 bounded transfer-entry ledger"
++	depends on I2C_MT65XX_GEMINI_LIFECYCLE_ORACLE
++	help
++	  Retain the first 32 message shapes submitted to the access-controlled
++	  MT6797 iDVFS I2C instance. The read-only status includes message count,
++	  address, flags, length, first pointer byte, and final adapter result.
++	  Overflow is explicit and no transfer can be triggered through the ABI.
++
++	  The ledger records no register-data byte, adds no retry, write, reset,
++	  regulator consumer, or CPU action, and is intended only for the named
++	  Gemini Gate-6 attribution experiment. Say N otherwise.
++
+ config I2C_MT7621
+ 	tristate "MT7621/MT7628 I2C Controller"
+ 	depends on (RALINK && (SOC_MT7620 || SOC_MT7621)) || ARCH_AIROHA || COMPILE_TEST
+diff --git a/drivers/i2c/busses/i2c-mt65xx.c b/drivers/i2c/busses/i2c-mt65xx.c
+--- a/drivers/i2c/busses/i2c-mt65xx.c
++++ b/drivers/i2c/busses/i2c-mt65xx.c
+@@ -24,6 +24,7 @@
+ #include <linux/scatterlist.h>
+ #include <linux/sched.h>
+ #include <linux/slab.h>
++#include <linux/spinlock.h>
+ #include <linux/soc/mediatek/mt6797-dvfsp-handoff.h>
+ #include <linux/units.h>
+ #include <linux/uaccess.h>
+@@ -450,6 +451,22 @@ struct mtk_i2c_ac_timing {
+ 	u16 sda_timing;
+ };
+ 
++#ifdef CONFIG_I2C_MT65XX_GEMINI_ENTRY_LEDGER
++#define MTK_I2C_ENTRY_LEDGER_CAPACITY	32
++#define MTK_I2C_ENTRY_LEDGER_MESSAGES	2
++
++struct mtk_i2c_entry_record {
++	u16 addr[MTK_I2C_ENTRY_LEDGER_MESSAGES];
++	u16 flags[MTK_I2C_ENTRY_LEDGER_MESSAGES];
++	u16 len[MTK_I2C_ENTRY_LEDGER_MESSAGES];
++	u8 num;
++	u8 first_byte;
++	bool first_byte_valid;
++	bool complete;
++	int result;
++};
++#endif
++
+ struct mtk_i2c {
+ 	struct i2c_adapter adap;	/* i2c host adapter */
+ 	struct device *dev;
+@@ -478,6 +495,13 @@ struct mtk_i2c {
+ 	atomic_t oracle_other_transfers;
+ 	atomic_t oracle_other_address_transfers;
+ #endif
++#ifdef CONFIG_I2C_MT65XX_GEMINI_ENTRY_LEDGER
++	spinlock_t entry_ledger_lock; /* Protects the bounded entry ledger. */
++	struct mtk_i2c_entry_record
++		entry_ledger[MTK_I2C_ENTRY_LEDGER_CAPACITY];
++	unsigned int entry_ledger_count;
++	unsigned int entry_ledger_overflow;
++#endif
+ 
+ 	/* set in i2c probe */
+ 	void __iomem *base;		/* i2c base addr */
+@@ -1800,6 +1824,73 @@ static int mtk_i2c_do_transfer(struct mtk_i2c *i2c, struct i2c_msg *msgs,
+ 	return 0;
+ }
+ 
++#ifdef CONFIG_I2C_MT65XX_GEMINI_ENTRY_LEDGER
++static int mtk_i2c_entry_ledger_begin(struct mtk_i2c *i2c,
++				      struct i2c_msg *msgs, int num)
++{
++	struct mtk_i2c_entry_record *record;
++	unsigned long flags;
++	unsigned int bounded_num;
++	unsigned int i;
++	int slot = -1;
++
++	if (!i2c->dvfsp_handoff)
++		return slot;
++
++	spin_lock_irqsave(&i2c->entry_ledger_lock, flags);
++	if (i2c->entry_ledger_count >= MTK_I2C_ENTRY_LEDGER_CAPACITY) {
++		i2c->entry_ledger_overflow++;
++		goto out_unlock;
++	}
++
++	slot = i2c->entry_ledger_count++;
++	record = &i2c->entry_ledger[slot];
++	memset(record, 0, sizeof(*record));
++	bounded_num = num > 0 ? min_t(int, num, U8_MAX) : 0;
++	record->num = bounded_num;
++	bounded_num = min_t(unsigned int, bounded_num,
++			    MTK_I2C_ENTRY_LEDGER_MESSAGES);
++	for (i = 0; i < bounded_num; i++) {
++		record->addr[i] = msgs[i].addr;
++		record->flags[i] = msgs[i].flags;
++		record->len[i] = msgs[i].len;
++	}
++	if (num > 0 && msgs[0].buf && msgs[0].len) {
++		record->first_byte = msgs[0].buf[0];
++		record->first_byte_valid = true;
++	}
++
++out_unlock:
++	spin_unlock_irqrestore(&i2c->entry_ledger_lock, flags);
++	return slot;
++}
++
++static void mtk_i2c_entry_ledger_finish(struct mtk_i2c *i2c, int slot,
++					int result)
++{
++	unsigned long flags;
++
++	if (slot < 0 || slot >= MTK_I2C_ENTRY_LEDGER_CAPACITY)
++		return;
++
++	spin_lock_irqsave(&i2c->entry_ledger_lock, flags);
++	i2c->entry_ledger[slot].result = result;
++	i2c->entry_ledger[slot].complete = true;
++	spin_unlock_irqrestore(&i2c->entry_ledger_lock, flags);
++}
++#else
++static int mtk_i2c_entry_ledger_begin(struct mtk_i2c *i2c,
++				      struct i2c_msg *msgs, int num)
++{
++	return -1;
++}
++
++static void mtk_i2c_entry_ledger_finish(struct mtk_i2c *i2c, int slot,
++					int result)
++{
++}
++#endif
++
+ #ifdef CONFIG_I2C_MT65XX_GEMINI_LIFECYCLE_ORACLE
+ static void
+ mtk_i2c_record_lifecycle_oracle(struct mtk_i2c *i2c,
+@@ -1854,6 +1945,7 @@ static int mtk_i2c_transfer(struct i2c_adapter *adap,
+ 	int ret;
+ 	int lease_ret;
+ 	int left_num = num;
++	int ledger_slot;
+ 	bool write_then_read_en = false;
+ 	bool lease_active = false;
+ 	struct mtk_i2c *i2c = i2c_get_adapdata(adap);
+@@ -1862,15 +1954,16 @@ static int mtk_i2c_transfer(struct i2c_adapter *adap,
+ 	struct mt6797_dvfsp_i2c6_lease lease = { };
+ 
+ 	mtk_i2c_record_lifecycle_oracle(i2c, msgs, num);
++	ledger_slot = mtk_i2c_entry_ledger_begin(i2c, msgs, num);
+ 	if (i2c->dvfsp_handoff) {
+ 		atomic_inc(&i2c->transfer_attempts);
+ 		ret = mt6797_dvfsp_handoff_require_ready(
+ 			i2c->dvfsp_handoff);
+ 		if (ret)
+-			return ret;
++			goto out_ledger;
+ 		ret = mt6797_dvfsp_handoff_begin_i2c6_transfer(
+ 			i2c->dvfsp_handoff, &lease);
+ 		if (ret)
+-			return ret;
++			goto out_ledger;
+ 		lease_active = true;
+ 	}
+@@ -1957,6 +2050,8 @@ err_lease:
+ 			ret = lease_ret;
+ 	}
+ 
++out_ledger:
++	mtk_i2c_entry_ledger_finish(i2c, ledger_slot, ret);
+ 	return ret;
+ }
+ 
+@@ -2078,7 +2173,37 @@ static ssize_t handoff_status_show(struct device *dev,
+ 	len += sysfs_emit_at(buf, len,
+ 			     "oracle_other_address_transfers=%d\n",
+ 			     atomic_read(&i2c->oracle_other_address_transfers));
+ #endif
++#ifdef CONFIG_I2C_MT65XX_GEMINI_ENTRY_LEDGER
++	{
++		unsigned long flags;
++		unsigned int i;
++
++		spin_lock_irqsave(&i2c->entry_ledger_lock, flags);
++		len += sysfs_emit_at(buf, len,
++				     "entry_ledger=v1 count=%u capacity=%u overflow=%u\n",
++				     i2c->entry_ledger_count,
++				     MTK_I2C_ENTRY_LEDGER_CAPACITY,
++				     i2c->entry_ledger_overflow);
++		for (i = 0; i < i2c->entry_ledger_count; i++) {
++			const struct mtk_i2c_entry_record *record =
++				&i2c->entry_ledger[i];
++
++			len += sysfs_emit_at(buf, len,
++				"entry%u n=%u a0=%02x f0=%04x l0=%u "
++				"p0=%02x pv=%u a1=%02x f1=%04x l1=%u "
++				"ret=%d done=%u\n",
++				i, record->num, record->addr[0],
++				record->flags[0], record->len[0],
++				record->first_byte,
++				(unsigned int)record->first_byte_valid,
++				record->addr[1], record->flags[1],
++				record->len[1], record->result,
++				(unsigned int)record->complete);
++		}
++		spin_unlock_irqrestore(&i2c->entry_ledger_lock, flags);
++	}
++#endif
+ 	return len;
+ }
+ static DEVICE_ATTR_RO(handoff_status);
+@@ -3041,6 +3166,11 @@ static int mtk_i2c_probe(struct platform_device *pdev)
+ 		atomic_set(&i2c->suspend_checks, 0);
+ 		atomic_set(&i2c->resume_checks, 0);
+ 		atomic_set(&i2c->resume_failures, 0);
++#ifdef CONFIG_I2C_MT65XX_GEMINI_ENTRY_LEDGER
++		spin_lock_init(&i2c->entry_ledger_lock);
++		i2c->entry_ledger_count = 0;
++		i2c->entry_ledger_overflow = 0;
++#endif
+ #ifdef CONFIG_I2C_MT65XX_GEMINI_LIFECYCLE_ORACLE
+ 		atomic_set(&i2c->oracle_combined_pointer_reads, 0);
+ 		atomic_set(&i2c->oracle_primary_pointer_reads, 0);
+-- 
+2.50.1 (Apple Git-155)

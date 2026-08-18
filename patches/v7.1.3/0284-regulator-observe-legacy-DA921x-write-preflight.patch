@@ -1,0 +1,234 @@
+From b47a7d378e774c84fe92303f53554ea9fe999f63 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 17 Aug 2026 21:42:00 -0400
+Subject: [PATCH] regulator: observe legacy DA921x write preflight
+
+Gate 6 needs the full CONTROL_A, STATUS_B, BUCKB_CONT, VBUCKB_A, and
+VBUCKB_B prestate before it can review a same-value write.  The review also
+needs to attribute two provider-time reads outside the explicit observer.
+
+Add a default-off read-only preflight after provider registration and the
+existing observer.  Count completed reads by registration, observer, and
+preflight phase.  Read the five fixed registers twice, require no value
+change between passes for the safe-prestate flag, and publish the complete
+bytes plus V_LOCK and disabled/unselected-B classification.  A transport
+failure still fails probe rather than publishing partial state.
+
+The option adds no regulator setter, register-data write, PAGE_CON access,
+consumer, retry, firmware-owner claim, or CPU request.  The synthetic From
+identity is non-certifying; this patch is not submission-ready.
+
+---
+ drivers/regulator/Kconfig                   |  13 +++
+ drivers/regulator/da9213-legacy-regulator.c | 128 +++++++++++++++++++++
+ 2 files changed, 141 insertions(+)
+
+diff --git a/drivers/regulator/Kconfig b/drivers/regulator/Kconfig
+--- a/drivers/regulator/Kconfig
++++ b/drivers/regulator/Kconfig
+@@ -446,6 +446,19 @@ config REGULATOR_DA9213_LEGACY_OBSERVER
+ 	  This default-off diagnostic adds no writable regulator operation,
+ 	  consumer, register-data write, transition owner, or CPU action.
+ 
++config REGULATOR_DA9213_LEGACY_PREFLIGHT
++	bool "Dialog legacy DA921x bounded-write read-only preflight"
++	depends on REGULATOR_DA9213_LEGACY_OBSERVER
++	help
++	  Read CONTROL_A, STATUS_B, BUCKB_CONT, VBUCKB_A, and VBUCKB_B
++	  twice after the existing provider observation. Publish exact full-byte
++	  state, stability, V_LOCK, disabled/unselected-B classification, and
++	  completed-read attribution for provider registration and observation.
++
++	  This is a fixed read-only Gate-6 preflight. It adds no setter,
++	  register-data write, PAGE_CON access, consumer, retry, firmware-owner
++	  claim, or CPU action. Say N outside the named Gemini experiment.
++
+ config REGULATOR_DA9213_LEGACY_OBSERVER_KUNIT_TEST
+ 	bool "KUnit tests for the legacy DA921x read-only observer"
+ 	depends on KUNIT=y
+diff --git a/drivers/regulator/da9213-legacy-regulator.c b/drivers/regulator/da9213-legacy-regulator.c
+--- a/drivers/regulator/da9213-legacy-regulator.c
++++ b/drivers/regulator/da9213-legacy-regulator.c
+@@ -28,6 +28,33 @@ struct da9213_legacy_sample {
+ 	u8 expected;
+ };
+ 
++#if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_PREFLIGHT)
++#define DA9213_LEGACY_PREFLIGHT_PASSES	2
++
++enum da9213_legacy_read_phase {
++	DA9213_LEGACY_READ_REGISTRATION,
++	DA9213_LEGACY_READ_OBSERVER,
++	DA9213_LEGACY_READ_PREFLIGHT,
++	DA9213_LEGACY_READ_PHASE_COUNT,
++};
++
++enum da9213_legacy_preflight_register {
++	DA9213_LEGACY_PREFLIGHT_CONTROL_A,
++	DA9213_LEGACY_PREFLIGHT_STATUS_B,
++	DA9213_LEGACY_PREFLIGHT_BUCKB_CONT,
++	DA9213_LEGACY_PREFLIGHT_VBUCKB_A,
++	DA9213_LEGACY_PREFLIGHT_VBUCKB_B,
++	DA9213_LEGACY_PREFLIGHT_REGISTER_COUNT,
++};
++
++struct da9213_legacy_preflight {
++	bool valid;
++	bool stable;
++	u8 values[DA9213_LEGACY_PREFLIGHT_PASSES]
++		 [DA9213_LEGACY_PREFLIGHT_REGISTER_COUNT];
++};
++#endif
++
+ struct da9213_legacy {
+ 	struct device *dev;
+ 	struct i2c_client *client;
+@@ -42,6 +69,11 @@ struct da9213_legacy {
+ 	bool observer_bound;
+ 	struct da9213_legacy_observation observation;
+ #endif
++#if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_PREFLIGHT)
++	enum da9213_legacy_read_phase read_phase;
++	unsigned int phase_reads[DA9213_LEGACY_READ_PHASE_COUNT];
++	struct da9213_legacy_preflight preflight;
++#endif
+ #endif
+ };
+ 
+@@ -70,6 +102,16 @@ static const struct da9213_legacy_sample da9213_legacy_samples[] = {
+ 	{ DA9213_LEGACY_PRIMARY, 0xda, 0x46 },
+ };
+ 
++#if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_PREFLIGHT)
++static const u8 da9213_legacy_preflight_regs[] = {
++	[DA9213_LEGACY_PREFLIGHT_CONTROL_A] = 0x56,
++	[DA9213_LEGACY_PREFLIGHT_STATUS_B] = 0x51,
++	[DA9213_LEGACY_PREFLIGHT_BUCKB_CONT] = 0x5e,
++	[DA9213_LEGACY_PREFLIGHT_VBUCKB_A] = 0xd9,
++	[DA9213_LEGACY_PREFLIGHT_VBUCKB_B] = 0xda,
++};
++#endif
++
+ #if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_PROVIDER)
+ 
+ static const u8 da9213_legacy_vsel_reg[DA9213_LEGACY_BUCK_COUNT] = {
+@@ -113,6 +155,11 @@ static int da9213_legacy_read_reg(struct da9213_legacy *chip, u8 reg,
+ 	if (ret != ARRAY_SIZE(msgs))
+ 		return -EIO;
+ 
++#if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_PREFLIGHT)
++	if (chip->read_phase < DA9213_LEGACY_READ_PHASE_COUNT)
++		chip->phase_reads[chip->read_phase]++;
++#endif
++
+ 	*value = data;
+ 	return 0;
+ }
+@@ -332,6 +379,69 @@ static void da9213_legacy_observer_publish(struct da9213_legacy *chip)
+ 		 observation->buck[1].enabled);
+ }
+ 
++#if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_PREFLIGHT)
++static int da9213_legacy_preflight_sample(struct da9213_legacy *chip)
++{
++	struct da9213_legacy_preflight *preflight = &chip->preflight;
++	unsigned int pass;
++	unsigned int reg;
++
++	memset(preflight, 0, sizeof(*preflight));
++	preflight->stable = true;
++	for (pass = 0; pass < DA9213_LEGACY_PREFLIGHT_PASSES; pass++) {
++		for (reg = 0; reg < DA9213_LEGACY_PREFLIGHT_REGISTER_COUNT;
++		     reg++) {
++			unsigned int value;
++			u8 pointer = da9213_legacy_preflight_regs[reg];
++			int ret;
++
++			ret = da9213_legacy_read_reg(chip, pointer, &value);
++			if (ret)
++				return ret;
++			preflight->values[pass][reg] = value;
++			if (pass && value != preflight->values[0][reg])
++				preflight->stable = false;
++		}
++	}
++	preflight->valid = true;
++	return 0;
++}
++
++static void da9213_legacy_preflight_publish(struct da9213_legacy *chip)
++{
++	const struct da9213_legacy_preflight *preflight = &chip->preflight;
++	const u8 *first = preflight->values[0];
++	bool v_lock_clear;
++	bool safe_prestate;
++
++	v_lock_clear = !(first[DA9213_LEGACY_PREFLIGHT_CONTROL_A] & 0x80);
++	safe_prestate = preflight->valid && preflight->stable &&
++		v_lock_clear &&
++		first[DA9213_LEGACY_PREFLIGHT_BUCKB_CONT] == 0x00 &&
++		first[DA9213_LEGACY_PREFLIGHT_VBUCKB_A] == 0x46 &&
++		first[DA9213_LEGACY_PREFLIGHT_VBUCKB_B] == 0x46;
++
++	dev_info(chip->dev,
++		 "da921x-preflight-v1 valid=%u passes=2 stable=%u "
++		 "registration_reads=%u observer_reads=%u preflight_reads=%u "
++		 "control_a=0x%02x v_lock_clear=%u status_b=0x%02x "
++		 "buckb_cont=0x%02x vbuckb_a=0x%02x vbuckb_b=0x%02x "
++		 "safe_prestate=%u register_data_writes=0\n",
++		 (unsigned int)preflight->valid,
++		 (unsigned int)preflight->stable,
++		 chip->phase_reads[DA9213_LEGACY_READ_REGISTRATION],
++		 chip->phase_reads[DA9213_LEGACY_READ_OBSERVER],
++		 chip->phase_reads[DA9213_LEGACY_READ_PREFLIGHT],
++		 first[DA9213_LEGACY_PREFLIGHT_CONTROL_A],
++		 (unsigned int)v_lock_clear,
++		 first[DA9213_LEGACY_PREFLIGHT_STATUS_B],
++		 first[DA9213_LEGACY_PREFLIGHT_BUCKB_CONT],
++		 first[DA9213_LEGACY_PREFLIGHT_VBUCKB_A],
++		 first[DA9213_LEGACY_PREFLIGHT_VBUCKB_B],
++		 (unsigned int)safe_prestate);
++}
++#endif
++
+ #endif
+ 
+ #if IS_ENABLED(CONFIG_ARM64_MT6797_A72_PROVIDER_OWNER)
+@@ -537,17 +647,35 @@ out_unlock:
+ #if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_PROVIDER)
+ #if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_OBSERVER)
+ 	ret = da9213_legacy_observer_prepare(chip);
+ 	if (ret)
+ 		return dev_err_probe(&client->dev, ret,
+ 				     "failed to prepare read-only observer\n");
+ #endif
++#if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_PREFLIGHT)
++	chip->read_phase = DA9213_LEGACY_READ_REGISTRATION;
++#endif
+ 	ret = da9213_legacy_register_provider(chip);
+ 	if (ret)
+ 		return dev_err_probe(&client->dev, ret,
+ 				     "failed to register read-only provider\n");
+ #if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_OBSERVER)
++#if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_PREFLIGHT)
++	chip->read_phase = DA9213_LEGACY_READ_OBSERVER;
++#endif
+ 	ret = da9213_legacy_observer_sample(chip, identity_reads);
+ 	if (ret)
+ 		return dev_err_probe(&client->dev, ret,
+ 				     "read-only provider observation failed\n");
+ #endif
++#if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_PREFLIGHT)
++	chip->read_phase = DA9213_LEGACY_READ_PREFLIGHT;
++	ret = da9213_legacy_preflight_sample(chip);
++	if (ret)
++		return dev_err_probe(&client->dev, ret,
++				     "read-only register preflight failed\n");
++	if (chip->phase_reads[DA9213_LEGACY_READ_PREFLIGHT] !=
++	    DA9213_LEGACY_PREFLIGHT_PASSES *
++	    DA9213_LEGACY_PREFLIGHT_REGISTER_COUNT)
++		return -EPROTO;
++	da9213_legacy_preflight_publish(chip);
++#endif
+-- 
+2.50.1 (Apple Git-155)
