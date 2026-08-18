@@ -1,0 +1,9 @@
+# Gate-6 successor that preserves the runtime-proven 20-read boot boundary,
+# records those transfers, and exposes exactly one runtime trigger for the ten
+# fixed read-only preflight transfers. It adds no register-data write or CPU
+# request.
+CONFIG_I2C_MT65XX_GEMINI_LIFECYCLE_ORACLE=y
+CONFIG_I2C_MT65XX_GEMINI_ENTRY_LEDGER=y
+# CONFIG_REGULATOR_DA9213_LEGACY_PREFLIGHT is not set
+CONFIG_REGULATOR_DA9213_LEGACY_RUNTIME_PREFLIGHT=y
+CONFIG_LOCALVERSION="-gemini-da921x-preflight-rt"

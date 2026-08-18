@@ -23,14 +23,26 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-18 mainline DA921x runtime-triggered read-only preflight](2026-08-18-mainline-da921x-runtime-preflight-ledger/README.md)
+  — preserves the runtime-proven Gate-5 boot path and bounded I2C6 ledger while
+  moving the ten fixed preflight reads behind one exact one-shot token. The
+  host must retain and classify the exact 20-entry startup ledger before it can
+  trigger; a surviving shell can then provide the exact 30-entry result, while
+  a trigger-time reset still leaves the full pre-trigger boundary. Invalid,
+  repeated, and precondition-failing requests perform no I2C operation. The
+  source/profile boundary is under validation; no build or hardware action has
+  occurred, and regulator writes plus CPU8/CPU9 remain closed.
 - [2026-08-17 mainline DA921x read-only preflight ledger](2026-08-17-mainline-da921x-readonly-preflight-ledger/README.md)
-  — implements the source-only child that can attribute all 20 Gate-5 I2C6
+  — implemented the automatic child intended to attribute all 20 Gate-5 I2C6
   transfers and add two fixed five-register preflight passes. A 32-entry
   controller ledger records only message shape, pointer, and final result; the
   provider records registration/observer/preflight read counts plus full-byte
   `CONTROL_A`, `STATUS_B`, `BUCKB_CONT`, `VBUCKB_A`, and `VBUCKB_B` state. It
-  adds no hardware write, consumer, firmware-owner claim, or CPU request.
-  Buildbox and hardware evidence are pending.
+  added no hardware write, consumer, firmware-owner claim, or CPU request.
+  Buildbox, candidate validation, guarded deployment, and full readback passed,
+  but its one pre-armed attempt saw preloader and then changed-identity Gemian
+  without mainline USB. No ledger survived, boot2 remained exact, and the
+  automatic artifact is stopped without closing B3 or B4.
 - [2026-08-17 mainline DA921x bounded no-op write review](2026-08-17-mainline-da921x-bounded-noop-write-review/README.md)
   — reconciles the Gate-5 runtime, the official legacy register map, prior
   firmware-owner audit, and rollback evidence into one exact least-invasive

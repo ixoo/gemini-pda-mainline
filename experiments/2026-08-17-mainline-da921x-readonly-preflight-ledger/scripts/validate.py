@@ -214,10 +214,13 @@ def main() -> None:
 
     series = [line.strip() for line in (ROOT / "patches/series").read_text().splitlines()
               if line.strip() and not line.startswith("#")]
-    require(series[-2:] == [
+    attribution = [
         "v7.1.3/0283-i2c-mediatek-add-bounded-I2C6-entry-ledger.patch",
         "v7.1.3/0284-regulator-observe-legacy-DA921x-write-preflight.patch",
-    ], "attribution patches are not the canonical tail")
+    ]
+    start = series.index(attribution[0])
+    require(series[start:start + len(attribution)] == attribution,
+            "attribution patches are not canonically adjacent")
 
     manifest = json.loads((ROOT / "kernel/manifest.json").read_text())
     profiles = manifest["config"]["profiles"]

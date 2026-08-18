@@ -274,3 +274,4 @@ v7.1.3/0281-arm64-add-Gemini-entry-stage-ledger.patch
 v7.1.3/0282-arm64-dts-mediatek-add-Gemini-LK-CPU-clock-rates.patch
 v7.1.3/0283-i2c-mediatek-add-bounded-I2C6-entry-ledger.patch
 v7.1.3/0284-regulator-observe-legacy-DA921x-write-preflight.patch
+v7.1.3/0285-regulator-trigger-legacy-DA921x-read-only-preflight.patch

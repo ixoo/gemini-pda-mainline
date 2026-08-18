@@ -4149,7 +4149,9 @@ the exact 20-entry startup ledger before triggering. An exact post-trigger
 30-entry ledger can close B3/B4; an immediate transport loss localizes the
 failure to the read sequence while retaining the pre-trigger evidence. The
 trigger must add no retry, `PAGE_CON` access, register-data write, consumer,
-firmware-owner claim, or CPU8/CPU9 request.
+firmware-owner claim, or CPU8/CPU9 request. The isolated source implementation
+and two-stage contract are tracked in the
+[runtime-triggered preflight experiment](../experiments/2026-08-18-mainline-da921x-runtime-preflight-ledger/README.md).
 
 The first writable test must:
 
