@@ -4112,12 +4112,21 @@ the stopped-receiver handoff cannot yet exclude every firmware writer, the
 native one-message two-byte write shape is unproved, two of Gate 5's 20 I2C6
 transfers are unattributed, and live `V_LOCK`/status preflight is absent.
 
-The next ordered action is one read-only I2C6 entry ledger and DA921x
-direct-register preflight. It must attribute all startup transfers, record
-`CONTROL_A`, `STATUS_B`, `BUCKB_CONT`, `VBUCKB_A`, and `VBUCKB_B`, preserve the
-Gate-5 serviceability baseline, and add no register-data write, writable
-provider operation, consumer, or CPU8/CPU9 request. Build it on Buildbox only
-after its exact source contract is reviewed, committed, and pushed.
+The read-only I2C6 entry-ledger and DA921x direct-register-preflight candidate
+is now frozen offline. Buildbox built exact clean commit `f2837f05083b...` as
+`7.1.3-gemini-da921x-preflight`; package checksums pass and no native VM build
+ran. Two independent Android-v0 constructions and padding paths are
+byte-identical, all 32 LK/container gates pass, and twelve independent DT
+mutations are rejected. The exact 16 MiB boot2 payload is
+`41c652225d3627f5aaaba2272e29a58171008e17b0f7c936116842e7ab0166e3`.
+It can only attribute the 30 expected startup reads and test two stable
+read-only preflight passes; it adds no register-data write, writable provider
+operation, consumer, firmware-owner claim, or CPU8/CPU9 request. The next
+ordered action is guarded live-GPT `boot2` deployment with full readback and
+clean shutdown, followed by one checksum-pinned USB/netcat observation. Only
+an exact pass can close blockers B3 and B4; B1 firmware-writer exclusion and B2
+native two-byte write shape remain blocking. See the
+[offline candidate record](../experiments/2026-08-17-mainline-da921x-readonly-preflight-ledger/results/offline-candidate-validation-20260818.txt).
 
 The first writable test must:
 

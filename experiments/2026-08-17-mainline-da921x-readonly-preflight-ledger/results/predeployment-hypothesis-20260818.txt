@@ -1,0 +1,58 @@
+MT6797 DA921x read-only preflight ledger predeployment decision map
+Local date: 2026-08-18 America/New_York
+
+Exact candidate
+- kernel release: 7.1.3-gemini-da921x-preflight
+- kernel package commit: f2837f05083bf2ee5e3caa28b3415d529ecd104b
+- final DT SHA-256: d7dba05efa272c8264c8ea15c776fb88c21a0012603214b49dfd9e2893e87d48
+- raw Android-v0 SHA-256: 4a0c440604ac4ebd82a1fa139020f02ae4d758cc9b89bc6509a782434d8e62e7
+- padded boot2 SHA-256: 41c652225d3627f5aaaba2272e29a58171008e17b0f7c936116842e7ab0166e3
+- CPU policy: maxcpus=8; CPU8 and CPU9 admission closed
+- DA921x policy: fixed identity/provider/preflight reads only; no consumer,
+  setter, enable/disable operation, PAGE_CON access, owner claim, retry, or
+  register-data write
+
+Kernel/DT/configuration hypothesis
+The kernel and final DT preserve the exact successful Gate-5 boot and
+serviceability path. The controller ledger independently records every I2C6
+transfer shape while the provider attributes registration and observer reads,
+then performs two fixed read-only passes over CONTROL_A 0x56, STATUS_B 0x51,
+BUCKB_CONT 0x5e, VBUCKB_A 0xd9, and VBUCKB_B 0xda. The complete execution must
+produce exactly the immutable 30-entry sequence in contract.json, with no
+overflow and no register-data write.
+
+Unique attributable evidence
+- exact kernel release and exact final DT/container identity;
+- exactly 30 completed combined pointer/read I2C6 entries in the fixed order:
+  14 identity, 2 provider-registration, 4 observer, and 10 preflight reads;
+- controller capacity 32, entry overflow 0, lifecycle combined count 30,
+  primary-address count 24, PAGE2-address count 6, and every write counter 0;
+- two identical full-byte preflight passes with V_LOCK clear,
+  BUCKB_CONT=0x00, VBUCKB_A=0x46, and VBUCKB_B=0x46;
+- CPU0-7 online, CPU8-9 offline, USB/netcat, I2C5/AW9523/polling keyboard,
+  tty1, watchdog, and native reboot intact; and
+- changed-boot-ID Gemian recovery with exact boot2 checksum preserved.
+
+Decision map
+- Exact sequence, stable safe preflight, zero writes, and all serviceability /
+  recovery gates pass: close Gate-6 blockers B3 and B4 only. Publish the
+  sanitized record; B1 firmware-writer exclusion and B2 native two-byte write
+  shape remain blocking. Do not perform a DA921x write or request CPU8.
+- Exact ledger but unstable/locked/unsafe preflight: close B3 only; reject the
+  proposed same-value transaction and localize the preflight mismatch.
+- Safe preflight but sequence/phase mismatch, overflow, or failed transfer:
+  keep B3 open and localize the first divergent entry; do not retry unchanged.
+- Any write-only/register-data-write entry, PAGE_CON access, consumer/owner
+  activity, CPU8/CPU9 request, or online A72: safety rejection and stop.
+- No exact mainline identity before changed Gemian return: recover retained
+  evidence once; screen state is not a kernel oracle.
+- Fault or automatic reboot after exact identity but before the complete
+  record: runtime failure; recover evidence and stop without causal overclaim.
+
+Expected owner-visible sequence
+1. The guarded installer writes only inactive logical boot2 and shuts Gemian
+   down after exact full readback.
+2. Codex arms the checksum-pinned USB/netcat collector and says it is ready.
+3. The owner physically selects boot2 once.
+4. On success, Codex captures the bounded record and requests native reboot;
+   the device then returns to ordinary Gemian automatically.

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-17-mainline-da921x-readonly-preflight-ledger` |
-| Status | `running` (source implemented; Buildbox and hardware not yet run) |
+| Status | `running` (Buildbox package and exact candidate validated; deployment pending) |
 | Subsystem | MT6797 I2C6 transfer attribution and DA921x Gate-6 preflight |
 | Device variant | Planet Gemini PDA, MT6797 named development unit |
 | Date(s) | 2026-08-17 America/New_York |
@@ -43,10 +43,11 @@ firmware-owner claim, CPU request, or DT change. The ledger records at most one
 pointer byte per entry and fails visibly on overflow. The preflight reuses only
 the already-proven combined pointer/read shape.
 
-The candidate is not yet built or eligible for boot2. Before a device boot, it
-must pass Buildbox compilation, exact profile/config validation, candidate and
-container checks, and the complete inherited serviceability gates. CPU8 and
-CPU9 remain excluded with `maxcpus=8`.
+The exact candidate has passed Buildbox compilation, profile/config validation,
+two deterministic container constructions, independent candidate validation,
+and the complete inherited serviceability gates. CPU8 and CPU9 remain excluded
+with `maxcpus=8`. The only permitted hardware action is the guarded write of
+that checksum-pinned payload to live-GPT-resolved inactive `boot2`.
 
 ## Associated code
 
@@ -55,6 +56,17 @@ CPU9 remain excluded with `maxcpus=8`.
   preflight, aggregate counters, and decision map.
 - [`scripts/validate.py`](scripts/validate.py) validates source, profile,
   checksums, patch syntax, and six unsafe mutations.
+- [`scripts/build-candidate.sh`](scripts/build-candidate.sh) and
+  [`scripts/test-candidate.py`](scripts/test-candidate.py) source-pin the exact
+  package, inherited serviceability DT/initramfs, Android-v0 construction, and
+  independent container/DT/configuration gates.
+- [`scripts/install-boot2.sh`](scripts/install-boot2.sh) inherits live-GPT
+  resolution, inactive/unmounted target checks, no-fresh-backup policy, full
+  readback, and clean shutdown.
+- [`results/buildbox-package-20260818.txt`](results/buildbox-package-20260818.txt),
+  [`results/offline-candidate-validation-20260818.txt`](results/offline-candidate-validation-20260818.txt),
+  and [`results/predeployment-hypothesis-20260818.txt`](results/predeployment-hypothesis-20260818.txt)
+  freeze the exact package, candidate, and one-boot decision map.
 
 Run from the repository root:
 
@@ -87,8 +99,20 @@ python3 experiments/2026-08-17-mainline-da921x-readonly-preflight-ledger/scripts
   pass. Checkpatch reports zero code checks for both patches; quoted-string
   warnings and the deliberately absent synthetic DCO sign-off remain recorded
   in the [prebuild receipt](results/prebuild-source-validation-20260817.txt).
-- No kernel build, candidate construction, device access, or hardware action
-  has occurred in this experiment yet.
+- Buildbox built exact clean commit `f2837f05083b...` as
+  `7.1.3-gemini-da921x-preflight`. Package checksums pass, the exact profile
+  gates are present, and no native VM build ran.
+- The package-built Gemini DT is byte-identical to the Gate-5 package DT. The
+  final DT therefore reuses only the exact inherited serviceability derivation;
+  the new attributable delta is the kernel/configuration that adds the bounded
+  ledger and ten read-only preflight reads.
+- Two independent Android-v0 constructions and two independent padding paths
+  are byte-identical. All 32 LK/container gates pass, and the independent
+  validator rejects twelve CPU-clock, ownership, provider, and serviceability
+  mutations. The exact 16 MiB payload is
+  `41c652225d3627f5aaaba2272e29a58171008e17b0f7c936116842e7ab0166e3`.
+- No device access, boot2 write, regulator write, or CPU8/CPU9 request has
+  occurred in this experiment yet.
 
 ## Analysis
 
@@ -104,10 +128,15 @@ and the native two-byte write shape remain separate gates.
 
 ## Conclusion
 
-`inconclusive` pending Buildbox and one exact runtime observation. The source
-contract is implemented without opening a writable or A72 boundary.
+The offline candidate boundary is `confirmed`; the hardware conclusion remains
+`inconclusive` pending one exact runtime observation. The raw Android-v0 image
+is `4a0c440604ac4ebd82a1fa139020f02ae4d758cc9b89bc6509a782434d8e62e7`.
+Nothing in this result opens a writable regulator or A72 boundary.
 
 ## Follow-up
 
-See [Roadmap Gate 6](../../docs/ROADMAP.md#6-prove-one-bounded-writable-operation)
-for the authoritative ordered follow-up and exit criteria.
+Publish this exact frozen candidate, install it once to live-GPT-resolved
+inactive `boot2` with a full readback and clean shutdown, then pre-arm the
+checksum-pinned one-boot collector before physical selection. See
+[Roadmap Gate 6](../../docs/ROADMAP.md#6-prove-one-bounded-writable-operation)
+for the authoritative exit criteria.
