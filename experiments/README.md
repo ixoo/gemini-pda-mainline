@@ -23,6 +23,16 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-17 LK-repaired DA921x read-only provider baseline](2026-08-17-mainline-da921x-readonly-provider-baseline/README.md)
+  — freezes the ten runtime-proven CPU clock properties into the kernel-built
+  Gemini DT and identifies the exact still-open provider boundary: the
+  successful predecessor compiled the DA921x provider, but its disabled NVMEM
+  configuration left the DVFSP handoff and I2C6 deferred before the client
+  could probe. The new named profile preserves the proven kernel and service
+  stack while enabling only the read-only LK-devinfo NVMEM provider and the
+  existing DA921x observer. It adds no consumer, setter, owner, register-data
+  write, or CPU8/CPU9 request. Source/profile and all-profile series validation
+  pass; the Buildbox package and any runtime result remain pending.
 - [2026-08-17 LK CPU clock-frequency iterator repair](2026-08-17-mainline-lk-cpu-clock-iterator-repair/README.md)
   — audits the pinned Planet LK path before Linux entry and identifies a
   concrete non-progress loop: the current DT's first CPU lacks

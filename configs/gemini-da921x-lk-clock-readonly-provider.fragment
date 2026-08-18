@@ -1,0 +1,10 @@
+# Runtime gate 5 child of the LK-repaired, module-policy serviceability
+# baseline.  LK devinfo is exposed through its read-only NVMEM provider so the
+# existing DVFSP handoff supplier and I2C6 read path can bind.  The DA921x
+# observer reuses only the provider's read-only operations and records the two
+# selector/enable pairs plus an exact zero register-data-write count.
+CONFIG_NVMEM=y
+CONFIG_NVMEM_MTK_ATAG_DEVINFO=y
+CONFIG_REGULATOR_DA9213_LEGACY_OBSERVER=y
+# CONFIG_REGULATOR_DA9213_LEGACY_OBSERVER_KUNIT_TEST is not set
+CONFIG_LOCALVERSION="-gemini-da921x-lkro"

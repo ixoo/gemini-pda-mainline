@@ -1,0 +1,70 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 17 Aug 2026 23:55:00 -0400
+Subject: [PATCH] arm64: dts: mediatek: add Gemini LK CPU clock rates
+
+Planet's retained MT6797 LK walks every enabled CPU node before Image
+decompression.  Its iterator advances only after reading clock-frequency,
+so a missing property on the first CPU makes the loader select that same
+node forever.
+
+Add the exact rates from the runtime-proven Gemini Stage-27 device tree.
+These properties describe the loader input and do not enable a CPU, add a
+clock consumer, or change Linux CPU admission.  The board continues to
+boot with maxcpus=8 while the two Cortex-A72 CPUs remain closed.
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts | 40 ++++++++++++++++++++++
+ 1 file changed, 40 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -142,6 +142,46 @@
+ 	};
+ };
+ 
++&cpu0 {
++	clock-frequency = <1391000000>;
++};
++
++&cpu1 {
++	clock-frequency = <1391000000>;
++};
++
++&cpu2 {
++	clock-frequency = <1391000000>;
++};
++
++&cpu3 {
++	clock-frequency = <1391000000>;
++};
++
++&cpu4 {
++	clock-frequency = <1950000000>;
++};
++
++&cpu5 {
++	clock-frequency = <1950000000>;
++};
++
++&cpu6 {
++	clock-frequency = <1950000000>;
++};
++
++&cpu7 {
++	clock-frequency = <1950000000>;
++};
++
++&cpu8 {
++	clock-frequency = <2288000000>;
++};
++
++&cpu9 {
++	clock-frequency = <2288000000>;
++};
++
+ &mt6351regulator {
+ 	mt6351_vemc_reg: ldo-vemc {
+ 		regulator-name = "vemc_3v3";
+-- 
+2.50.1 (Apple Git-155)

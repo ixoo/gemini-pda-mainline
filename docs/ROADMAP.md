@@ -4009,6 +4009,25 @@ source change. Runtime must preserve CPU0–7, USB, console, keyboard,
 I2C5/AP-DMA, watchdog takeover, cleanup, and native reboot while CPU8/9 remain
 closed. Only that read-only provider result can open the bounded-write gate.
 
+The gate-5 prebuild definition now does exactly that at the source/profile
+boundary. Canonical patch `0282` places the ten runtime-proven Stage-27 clock
+rates in the kernel-built Gemini DT. The named
+`da921x-lk-clock-readonly-provider` profile extends the exact serviceable
+entry-ledger configuration with only the read-only LK-devinfo NVMEM provider,
+the existing DA921x observer, and a unique release. This addresses the precise
+positive-predecessor runtime boundary: the DVFSP handoff waited for the
+disabled NVMEM supplier, I2C6 waited for the handoff, and the DA921x client was
+therefore never probed. The existing access-controller edge remains intact;
+no regulator consumer, setter, owner, register-data write, or CPU8/CPU9 request
+is added. Static source/profile validation and the all-profile canonical-series
+audit pass; see the
+[LK-repaired provider experiment](../experiments/2026-08-17-mainline-da921x-readonly-provider-baseline/README.md).
+This remains prebuild evidence only. The single next ordered action is to
+commit and push the exact definition, build that named profile only on
+Buildbox, fetch its validated package, and require its resolved configuration
+and built Gemini DT to match the frozen boundary before any container or device
+action.
+
 Required evidence:
 
 - provider registration performs no register-data write;
