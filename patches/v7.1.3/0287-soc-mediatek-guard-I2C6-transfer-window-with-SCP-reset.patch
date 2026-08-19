@@ -1,0 +1,199 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 18 Aug 2026 22:00:00 -0400
+Subject: [PATCH] soc: mediatek: guard I2C6 transfer window with SCP reset
+
+Add an isolated successor to the read-only I2C6 firmware-writer
+attestation. The first runtime showed that SCP reset control remains zero,
+while the debug-PC reset value and the AP-visible Device-APC view do not
+match the original compound predicate.
+
+For the successor only, make the two stable reset-control zero samples the
+pre-handoff gate and retain the PC and Device-APC words as diagnostics.
+Require reset control to remain zero at both edges of every admitted I2C6
+transfer lease. A nonzero value faults the handoff before a transfer
+starts, or immediately after the current read-only transfer ends.
+
+The original option retains its frozen behavior unless the new transaction
+window option is selected. This patch writes no SCP, Device-APC, I2C, or
+regulator register and does not admit CPU8 or CPU9.
+---
+ drivers/soc/mediatek/Kconfig                | 16 ++++++
+ drivers/soc/mediatek/mt6797-dvfsp-handoff.c | 85 ++++++++++++++++++++++++++---
+ 2 files changed, 95 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
+index 444444444444..777777777777 100644
+--- a/drivers/soc/mediatek/Kconfig
++++ b/drivers/soc/mediatek/Kconfig
+@@ -104,6 +104,22 @@ config MTK_MT6797_I2C6_FW_WRITER_ATTESTATION
+ 
+ 	  This option is for a bounded Gemini PDA experiment only.
+ 
++config MTK_MT6797_I2C6_FW_WRITER_TRANSACTION_WINDOW
++	bool "Guard MT6797 I2C6 transfers with SCP reset attestation"
++	depends on MTK_MT6797_I2C6_FW_WRITER_ATTESTATION
++	help
++	  Use the source-backed SCP reset-control value as the read-only
++	  pre-handoff predicate, while retaining debug-PC and Device-APC values
++	  as diagnostics. Recheck reset control at entry and exit of every I2C6
++	  transfer lease and fault the handoff on a nonzero observation.
++
++	  This option changes only the isolated successor experiment. The
++	  original attestation keeps its frozen compound predicate when this is
++	  disabled. It never writes an SCP, Device-APC, I2C, or regulator
++	  register and does not authorize a CPU request.
++
++	  This option is for a bounded Gemini PDA experiment only.
++
+ config MTK_MT6797_DVFSP_RESOURCE_OWNER
+ 	bool "MediaTek MT6797 DVFSP resource-only owner"
+ 	depends on ARM64 && ARCH_MEDIATEK && OF
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+index 666666666666..888888888888 100644
+--- a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+@@ -151,6 +151,12 @@ struct mt6797_i2c6_fw_attestation {
+ 	u32 devapc_permission[2][DEVAPC_DOMAIN_COUNT];
+ 	u32 devapc_master_domain[2][DEVAPC_MASTER_REG_COUNT];
+ 	u32 devapc_control[2];
++	u64 transfer_entry_checks;
++	u64 transfer_exit_checks;
++	u32 transfer_last_entry_reset_control;
++	u32 transfer_last_exit_reset_control;
++	u32 transfer_reset_failures;
++	bool probe_reset_passed;
+ 	bool captured;
+ 	bool register_state_stable;
+ 	bool passed;
+@@ -631,8 +637,14 @@ mt6797_dvfsp_capture_fw_attestation(struct mt6797_dvfsp_handoff *handoff)
+ 			att->devapc_master_domain[1],
+ 			sizeof(att->devapc_master_domain[0])) &&
+ 		att->devapc_control[0] == att->devapc_control[1];
+-	att->passed = !att->scp_reset_control[0] &&
+-		!att->scp_reset_control[1] && !att->scp_debug_pc[0] &&
++	att->probe_reset_passed = !att->scp_reset_control[0] &&
++		!att->scp_reset_control[1];
++	if (IS_ENABLED(CONFIG_MTK_MT6797_I2C6_FW_WRITER_TRANSACTION_WINDOW)) {
++		att->passed = att->probe_reset_passed;
++		att->captured = true;
++		return;
++	}
++	att->passed = att->probe_reset_passed && !att->scp_debug_pc[0] &&
+ 		!att->scp_debug_pc[1] && att->register_state_stable &&
+ 		mt6797_dvfsp_i2c6_permission(att->devapc_permission[0][0]) ==
+ 			DEVAPC_PERMISSION_NO_SEC &&
+@@ -642,6 +654,38 @@ mt6797_dvfsp_capture_fw_attestation(struct mt6797_dvfsp_handoff *handoff)
+ 	att->captured = true;
+ }
+ 
++static int
++mt6797_dvfsp_check_scp_reset_locked(struct mt6797_dvfsp_handoff *handoff,
++				    bool entry)
++{
++	struct mt6797_i2c6_fw_attestation *att = &handoff->fw_attestation;
++	u32 value;
++
++	lockdep_assert_held(&handoff->lock);
++	if (!IS_ENABLED(CONFIG_MTK_MT6797_I2C6_FW_WRITER_TRANSACTION_WINDOW))
++		return 0;
++
++	value = readl(handoff->scp_cfg + SCP_CFG_RESET_CONTROL);
++	if (entry) {
++		att->transfer_entry_checks++;
++		att->transfer_last_entry_reset_control = value;
++	} else {
++		att->transfer_exit_checks++;
++		att->transfer_last_exit_reset_control = value;
++	}
++	if (!value)
++		return 0;
++
++	att->transfer_reset_failures++;
++	if (entry)
++		mt6797_dvfsp_fault_locked(handoff,
++					  "i2c6-scp-reset-entry-failed");
++	else
++		mt6797_dvfsp_fault_locked(handoff,
++					  "i2c6-scp-reset-exit-failed");
++	return -EHOSTDOWN;
++}
++
+ static void mt6797_dvfsp_late_work(struct work_struct *work)
+ {
+ 	struct mt6797_dvfsp_handoff *handoff =
+@@ -1049,6 +1093,8 @@ static ssize_t firmware_writer_attestation_show(struct device *dev,
+ 	struct mt6797_dvfsp_handoff *handoff = dev_get_drvdata(dev);
+ 	struct mt6797_i2c6_fw_attestation *att = &handoff->fw_attestation;
+ 	ssize_t length;
++	bool transaction_window_enabled;
++	bool transaction_window_passed;
+ 	unsigned int domain;
+ 	unsigned int master;
+ 	unsigned int sample;
+@@ -1056,11 +1102,23 @@ static ssize_t firmware_writer_attestation_show(struct device *dev,
+ 	mutex_lock(&handoff->lock);
++	transaction_window_enabled =
++		IS_ENABLED(CONFIG_MTK_MT6797_I2C6_FW_WRITER_TRANSACTION_WINDOW);
++	transaction_window_passed = att->passed &&
++		att->transfer_entry_checks &&
++		att->transfer_entry_checks == att->transfer_exit_checks &&
++		!att->transfer_reset_failures;
+ 	length = sysfs_emit(buf,
+-			    "enabled=%u captured=%u decision=%s register_state_stable=%u "
+-			    "sample_delay_us=10000..11000 register_writes=0 i2c6_transfers=0\n",
++			    "enabled=%u transaction_window_enabled=%u captured=%u "
++			    "decision=%s probe_reset_decision=%s register_state_stable=%u "
++			    "sample_delay_us=10000..11000 register_writes=0 i2c6_attestation_transfers=0\n",
+ 		IS_ENABLED(CONFIG_MTK_MT6797_I2C6_FW_WRITER_ATTESTATION),
++		transaction_window_enabled,
+ 		att->captured,
+-		att->captured ? (att->passed ? "passed" : "failed") :
++		att->captured ?
++			((transaction_window_enabled ? transaction_window_passed :
++			  att->passed) ? "passed" : "failed") :
+ 			"not-captured",
++		att->captured ? (att->probe_reset_passed ? "passed" : "failed") :
++			"not-captured",
+ 		att->register_state_stable);
+ 
+ 	if (!att->captured)
+@@ -1091,5 +1149,15 @@ static ssize_t firmware_writer_attestation_show(struct device *dev,
+ 		DEVAPC_PERMISSION_NO_SEC, DEVAPC_PERMISSION_FORBID);
+ 
++	length += sysfs_emit_at(buf, length,
++		"transaction_entry_checks=%llu transaction_exit_checks=%llu "
++		"transaction_last_entry_reset_control=%08x "
++		"transaction_last_exit_reset_control=%08x "
++		"transaction_reset_failures=%u\n",
++		(unsigned long long)att->transfer_entry_checks,
++		(unsigned long long)att->transfer_exit_checks,
++		att->transfer_last_entry_reset_control,
++		att->transfer_last_exit_reset_control,
++		att->transfer_reset_failures);
+ unlock:
+ 	mutex_unlock(&handoff->lock);
+ 	return length;
+@@ -1132,6 +1200,9 @@ mt6797_dvfsp_handoff_begin_i2c6_transfer(
+ 		ret = -EBUSY;
+ 		goto out_unlock;
+ 	}
++	ret = mt6797_dvfsp_check_scp_reset_locked(handoff, true);
++	if (ret)
++		goto out_unlock;
+ 
+ 	handoff->transfer_generation++;
+ 	if (!handoff->transfer_generation) {
+@@ -1172,7 +1243,9 @@ mt6797_dvfsp_handoff_end_i2c6_transfer(
+ 					  "i2c6-transfer-lease-mismatch");
+ 		ret = -EPERM;
+ 	} else {
+-		handoff->last_transfer_result = transfer_result;
++		ret = mt6797_dvfsp_check_scp_reset_locked(handoff, false);
++		if (!ret)
++			handoff->last_transfer_result = transfer_result;
+ 		handoff->transfer_active = false;
+ 		handoff->transfer_cookie = 0;
+ 	}
+-- 
+2.51.0

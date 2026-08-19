@@ -1,0 +1,9 @@
+# Corrected Gate-6 B1 read-only discriminator. Preserve the two probe-time
+# samples, require the source-backed SCP reset value, and check it at both
+# edges of every admitted provider-read transaction. The bounded entry ledger
+# attributes the exact read-only transfer set. No register-data write or CPU
+# request is enabled.
+CONFIG_MTK_MT6797_I2C6_FW_WRITER_ATTESTATION=y
+CONFIG_MTK_MT6797_I2C6_FW_WRITER_TRANSACTION_WINDOW=y
+CONFIG_I2C_MT65XX_GEMINI_ENTRY_LEDGER=y
+CONFIG_LOCALVERSION="-gemini-i2c6-fwtxn"

@@ -1,0 +1,41 @@
+{
+  "id": "2026-08-18-mainline-i2c6-firmware-writer-transaction-window",
+  "status": "source-designed-awaiting-build",
+  "profile": "da921x-i2c6-firmware-writer-transaction-window",
+  "functional_parent_profile": "da921x-lk-clock-readonly-provider",
+  "attestation_parent_profile": "da921x-i2c6-firmware-writer-attestation",
+  "kernel_release": "7.1.3-gemini-i2c6-fwtxn",
+  "probe": {
+    "samples": 2,
+    "sample_delay_us": {"minimum": 10000, "maximum": 11000},
+    "required_scp_reset_control": ["0x00000000", "0x00000000"],
+    "scp_debug_pc": "record-only",
+    "devapc_ao": "record-only-non-authoritative"
+  },
+  "same_boot": {
+    "stopped_dvfsp_handoff": "ready",
+    "i2c6_transactions": 20,
+    "transaction_entry_reset_checks": 20,
+    "transaction_exit_reset_checks": 20,
+    "required_transaction_reset_value": "0x00000000",
+    "entry_ledger_entries": 20,
+    "entry_ledger_overflow": 0,
+    "entry_ledger_shape": "two-message-one-byte-pointer-plus-one-byte-read",
+    "entry_ledger_addresses": ["0x68", "0x69"]
+  },
+  "forbidden": {
+    "scp_register_writes": 0,
+    "devapc_register_writes": 0,
+    "attestation_i2c6_transfers": 0,
+    "da921x_register_data_writes": 0,
+    "firmware_start_or_reset": 0,
+    "cpu_requests": 0
+  },
+  "decision_map": {
+    "complete_pass": "close-B1-and-proceed-to-B2-design",
+    "any_reset_mismatch": "fault-and-keep-B1-open",
+    "any_ledger_or_handoff_mismatch": "keep-B1-open",
+    "gate6_write": "not-authorized",
+    "cpu8_cpu9_admission": "closed"
+  }
+}
