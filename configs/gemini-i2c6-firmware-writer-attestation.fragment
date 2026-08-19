@@ -1,0 +1,5 @@
+# Isolated read-only Gate-6 B1 discriminator. The handoff remains fail-closed
+# unless SCP is observed held in reset and the exact ATF I2C6 Device-APC policy
+# is stable. This option performs no SCP, Device-APC, or I2C write.
+CONFIG_MTK_MT6797_I2C6_FW_WRITER_ATTESTATION=y
+CONFIG_LOCALVERSION="-gemini-i2c6-fwatt"

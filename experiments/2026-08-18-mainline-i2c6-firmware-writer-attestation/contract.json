@@ -1,0 +1,51 @@
+{
+  "id": "2026-08-18-mainline-i2c6-firmware-writer-attestation",
+  "status": "planned",
+  "profile": "da921x-i2c6-firmware-writer-attestation",
+  "parent_profile": "da921x-lk-clock-readonly-provider",
+  "kernel_release": "7.1.3-gemini-i2c6-fwatt",
+  "samples": 2,
+  "sample_delay_us": {
+    "minimum": 10000,
+    "maximum": 11000
+  },
+  "resources": {
+    "scp_cfg": {
+      "base": "0x100a0000",
+      "size": "0x1000",
+      "reset_control_offset": "0x000",
+      "debug_pc_offset": "0x0b4"
+    },
+    "devapc_ao": {
+      "base": "0x1000e000",
+      "size": "0x1000",
+      "i2c6_module": 98,
+      "permission_offset": "0x018",
+      "domain_stride": "0x100",
+      "master_domain_offsets": ["0xa00", "0xa04", "0xa08", "0xa0c"],
+      "control_offset": "0xf00"
+    }
+  },
+  "pass_condition": {
+    "scp_reset_control_samples": ["0x00000000", "0x00000000"],
+    "scp_debug_pc_samples": ["0x00000000", "0x00000000"],
+    "devapc_samples_stable": true,
+    "i2c6_domain0_permission": 0,
+    "i2c6_domain1_permission": 3
+  },
+  "forbidden": {
+    "scp_register_writes": 0,
+    "devapc_register_writes": 0,
+    "i2c6_attestation_transfers": 0,
+    "da921x_register_data_writes": 0,
+    "firmware_start_or_reset": 0,
+    "cpu_requests": 0
+  },
+  "decision_map": {
+    "pass": "close-scp-writer-branch-and-proceed-to-B2",
+    "nonzero_scp_control_or_pc": "B1-open-classify-active-or-ambiguous-scp",
+    "unstable_or_unexpected_devapc": "B1-open-classify-firmware-policy-mismatch",
+    "gate6_write": "not-authorized",
+    "cpu8_cpu9_admission": "closed"
+  }
+}

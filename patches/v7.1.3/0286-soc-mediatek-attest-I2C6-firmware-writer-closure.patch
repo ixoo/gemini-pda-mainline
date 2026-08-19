@@ -1,0 +1,304 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 18 Aug 2026 14:00:00 -0400
+Subject: [PATCH] soc: mediatek: attest I2C6 firmware-writer closure
+
+Add an experiment-only, read-only attestation before the MT6797 DVFSP
+handoff can authorize I2C6.  Two samples cover the SCP reset-control and
+debug-PC registers, the I2C6 Device-APC permissions for all eight domains,
+the master-domain registers, and the Device-APC control register.
+
+When the option is selected, require the SCP control and PC observations to
+be exactly zero, the Device-APC observations to remain stable, and the ATF
+domain-0/domain-1 I2C6 permissions to remain unrestricted/forbidden.  A
+mismatch faults the handoff before it can grant I2C6 access.  Publish both
+raw samples through a read-only sysfs attribute.
+
+This patch performs no SCP, Device-APC, or I2C register write. It is kept as
+an isolated bring-up experiment rather than an upstream-ready interface.
+---
+ .../mediatek,mt6797-dvfsp-handoff.yaml        |  18 +-
+ drivers/soc/mediatek/Kconfig                  |  16 ++
+ drivers/soc/mediatek/mt6797-dvfsp-handoff.c   | 163 ++++++++++++++++++
+ 3 files changed, 196 insertions(+), 2 deletions(-)
+
+diff --git a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-dvfsp-handoff.yaml b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-dvfsp-handoff.yaml
+index 111111111111..222222222222 100644
+--- a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-dvfsp-handoff.yaml
++++ b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-dvfsp-handoff.yaml
+@@ -31,8 +31,23 @@ properties:
+     const: mediatek,mt6797-dvfsp-handoff
+ 
+   reg:
+-    maxItems: 1
+-    description: CSPM register window used for read-only validation.
++    minItems: 1
++    maxItems: 3
++    items:
++      - description: CSPM register window used for read-only validation.
++      - description: SCP configuration window used for read-only attestation.
++      - description: Device-APC AO window used for read-only attestation.
++
++  reg-names:
++    minItems: 1
++    maxItems: 3
++    items:
++      - const: cspm
++      - const: scp-cfg
++      - const: devapc-ao
++    description:
++      The final two windows are required only by the isolated firmware-writer
++      attestation experiment.
+ 
+   clocks:
+     maxItems: 1
+diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
+index 333333333333..444444444444 100644
+--- a/drivers/soc/mediatek/Kconfig
++++ b/drivers/soc/mediatek/Kconfig
+@@ -84,6 +84,22 @@ config MTK_MT6797_DVFSP_HANDOFF
+ 
+ 	  This option is for bounded Gemini PDA bring-up experiments only.
+ 
++config MTK_MT6797_I2C6_FW_WRITER_ATTESTATION
++	bool "MediaTek MT6797 I2C6 firmware-writer read-only attestation"
++	depends on MTK_MT6797_DVFSP_HANDOFF
++	help
++	  Before the stopped-DVFSP handoff can authorize I2C6, take two
++	  read-only samples of the SCP reset control and debug PC plus the
++	  I2C6 Device-APC permissions and master-domain assignment registers.
++	  A mismatch or an observation compatible with a running SCP faults
++	  the handoff closed and remains visible through read-only sysfs.
++
++	  The Device Tree must provide named SCP configuration and Device-APC
++	  AO register windows after the existing CSPM window. This option never
++	  writes those windows and never performs an I2C transfer.
++
++	  This option is for a bounded Gemini PDA experiment only.
++
+ config MTK_MT6797_DVFSP_RESOURCE_OWNER
+ 	bool "MediaTek MT6797 DVFSP resource-only owner"
+ 	depends on ARM64 && ARCH_MEDIATEK && OF
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+index 555555555555..666666666666 100644
+--- a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+@@ -54,6 +54,20 @@
+ #define INFRA_AP_DMA_GATED		BIT(18)
+ #define INFRA_I2C_APPM_GATED		BIT(1)
+ 
++#define SCP_CFG_RESET_CONTROL		0x000
++#define SCP_CFG_DEBUG_PC		0x0b4
++
++#define DEVAPC_DOMAIN_COUNT		8
++#define DEVAPC_MASTER_REG_COUNT		4
++#define DEVAPC_DOMAIN_STRIDE		0x100
++#define DEVAPC_I2C6_PERMISSION		0x018
++#define DEVAPC_I2C6_SHIFT		4
++#define DEVAPC_PERMISSION_MASK		0x3
++#define DEVAPC_PERMISSION_NO_SEC	0x0
++#define DEVAPC_PERMISSION_FORBID	0x3
++#define DEVAPC_MAS_DOM_0		0xa00
++#define DEVAPC_APC_CON			0xf00
++
+ #define MT6797_DVFSP_SAMPLE_COUNT	10
+ #define MT6797_DVFSP_CONSUMER_POST_COUNT	32
+ #define MT6797_DVFSP_POST_DELAY_MIN_US	1000
+@@ -130,11 +144,25 @@ struct mt6797_dvfsp_snapshot {
+ 	bool infra2_pdn_sta_valid;
+ };
+ 
++struct mt6797_i2c6_fw_attestation {
++	u32 scp_reset_control[2];
++	u32 scp_debug_pc[2];
++	u32 devapc_permission[2][DEVAPC_DOMAIN_COUNT];
++	u32 devapc_master_domain[2][DEVAPC_MASTER_REG_COUNT];
++	u32 devapc_control[2];
++	bool captured;
++	bool register_state_stable;
++	bool passed;
++};
++
+ struct mt6797_dvfsp_handoff {
+ 	struct device *dev;
+ 	void __iomem *cspm;
++	void __iomem *scp_cfg;
++	void __iomem *devapc_ao;
+ 	struct regmap *infracfg;
+ 	struct clk *i2c_clk;
++	struct mt6797_i2c6_fw_attestation fw_attestation;
+ 	/* Protects state, samples, non-atomic counters, and late work. */
+ 	struct mutex lock;
+ 	/* Held from I2C6 transfer admission through clock cleanup. */
+@@ -561,6 +589,57 @@ mt6797_dvfsp_fault_locked(struct mt6797_dvfsp_handoff *handoff,
+ 	__mt6797_dvfsp_fault_locked(handoff, reason, true);
+ }
+ 
++static u32 mt6797_dvfsp_i2c6_permission(u32 value)
++{
++	return (value >> DEVAPC_I2C6_SHIFT) & DEVAPC_PERMISSION_MASK;
++}
++
++static void
++mt6797_dvfsp_capture_fw_attestation(struct mt6797_dvfsp_handoff *handoff)
++{
++	struct mt6797_i2c6_fw_attestation *att = &handoff->fw_attestation;
++	unsigned int domain;
++	unsigned int master;
++	unsigned int sample;
++
++	for (sample = 0; sample < 2; sample++) {
++		att->scp_reset_control[sample] =
++			readl(handoff->scp_cfg + SCP_CFG_RESET_CONTROL);
++		att->scp_debug_pc[sample] =
++			readl(handoff->scp_cfg + SCP_CFG_DEBUG_PC);
++		for (domain = 0; domain < DEVAPC_DOMAIN_COUNT; domain++)
++			att->devapc_permission[sample][domain] =
++				readl(handoff->devapc_ao +
++				      domain * DEVAPC_DOMAIN_STRIDE +
++				      DEVAPC_I2C6_PERMISSION);
++		for (master = 0; master < DEVAPC_MASTER_REG_COUNT; master++)
++			att->devapc_master_domain[sample][master] =
++				readl(handoff->devapc_ao + DEVAPC_MAS_DOM_0 +
++				      master * sizeof(u32));
++		att->devapc_control[sample] =
++			readl(handoff->devapc_ao + DEVAPC_APC_CON);
++
++		if (!sample)
++			usleep_range(10000, 11000);
++	}
++
++	att->register_state_stable =
++		!memcmp(att->devapc_permission[0], att->devapc_permission[1],
++			sizeof(att->devapc_permission[0])) &&
++		!memcmp(att->devapc_master_domain[0],
++			att->devapc_master_domain[1],
++			sizeof(att->devapc_master_domain[0])) &&
++		att->devapc_control[0] == att->devapc_control[1];
++	att->passed = !att->scp_reset_control[0] &&
++		!att->scp_reset_control[1] && !att->scp_debug_pc[0] &&
++		!att->scp_debug_pc[1] && att->register_state_stable &&
++		mt6797_dvfsp_i2c6_permission(att->devapc_permission[0][0]) ==
++			DEVAPC_PERMISSION_NO_SEC &&
++		mt6797_dvfsp_i2c6_permission(att->devapc_permission[0][1]) ==
++			DEVAPC_PERMISSION_FORBID;
++	att->captured = true;
++}
++
+ static void mt6797_dvfsp_late_work(struct work_struct *work)
+ {
+ 	struct mt6797_dvfsp_handoff *handoff =
+@@ -959,11 +1038,68 @@ static ssize_t consumer_cleanup_show(struct device *dev,
+ }
+ static DEVICE_ATTR_RO(consumer_cleanup);
+ 
++static ssize_t firmware_writer_attestation_show(struct device *dev,
++						struct device_attribute *attr,
++						char *buf)
++{
++	struct mt6797_dvfsp_handoff *handoff = dev_get_drvdata(dev);
++	struct mt6797_i2c6_fw_attestation *att = &handoff->fw_attestation;
++	ssize_t length;
++	unsigned int domain;
++	unsigned int master;
++	unsigned int sample;
++
++	mutex_lock(&handoff->lock);
++	length = sysfs_emit(buf,
++			    "enabled=%u captured=%u decision=%s register_state_stable=%u "
++			    "sample_delay_us=10000..11000 register_writes=0 i2c6_transfers=0\n",
++		IS_ENABLED(CONFIG_MTK_MT6797_I2C6_FW_WRITER_ATTESTATION),
++		att->captured,
++		att->captured ? (att->passed ? "passed" : "failed") :
++			"not-captured",
++		att->register_state_stable);
++
++	if (!att->captured)
++		goto unlock;
++
++	for (sample = 0; sample < 2; sample++) {
++		length += sysfs_emit_at(buf, length,
++			"sample=%u scp_reset_control=%08x scp_debug_pc=%08x "
++			"devapc_i2c6_permission_raw=",
++			sample, att->scp_reset_control[sample],
++			att->scp_debug_pc[sample]);
++		for (domain = 0; domain < DEVAPC_DOMAIN_COUNT; domain++)
++			length += sysfs_emit_at(buf, length, "%s%08x",
++				domain ? "," : "",
++				att->devapc_permission[sample][domain]);
++		length += sysfs_emit_at(buf, length, " master_domain_raw=");
++		for (master = 0; master < DEVAPC_MASTER_REG_COUNT; master++)
++			length += sysfs_emit_at(buf, length, "%s%08x",
++				master ? "," : "",
++				att->devapc_master_domain[sample][master]);
++		length += sysfs_emit_at(buf, length,
++			" devapc_control=%08x\n", att->devapc_control[sample]);
++	}
++
++	length += sysfs_emit_at(buf, length,
++		"decoded_domain0=%u decoded_domain1=%u "
++		"required_domain0=%u required_domain1=%u\n",
++		mt6797_dvfsp_i2c6_permission(att->devapc_permission[0][0]),
++		mt6797_dvfsp_i2c6_permission(att->devapc_permission[0][1]),
++		DEVAPC_PERMISSION_NO_SEC, DEVAPC_PERMISSION_FORBID);
++
++unlock:
++	mutex_unlock(&handoff->lock);
++	return length;
++}
++static DEVICE_ATTR_RO(firmware_writer_attestation);
++
+ static struct attribute *mt6797_dvfsp_handoff_attrs[] = {
+ 	&dev_attr_state.attr,
+ 	&dev_attr_status.attr,
+ 	&dev_attr_snapshots.attr,
+ 	&dev_attr_consumer_cleanup.attr,
++	&dev_attr_firmware_writer_attestation.attr,
+ 	NULL,
+ };
+ 
+@@ -3010,6 +3146,22 @@ static int mt6797_dvfsp_handoff_probe(struct platform_device *pdev)
+ 		return dev_err_probe(&pdev->dev, PTR_ERR(handoff->cspm),
+ 				     "cannot map CSPM validation window\n");
+ 
++	if (IS_ENABLED(CONFIG_MTK_MT6797_I2C6_FW_WRITER_ATTESTATION)) {
++		handoff->scp_cfg =
++			devm_platform_ioremap_resource_byname(pdev, "scp-cfg");
++		if (IS_ERR(handoff->scp_cfg))
++			return dev_err_probe(&pdev->dev, PTR_ERR(handoff->scp_cfg),
++					     "cannot map SCP attestation window\n");
++
++		handoff->devapc_ao =
++			devm_platform_ioremap_resource_byname(pdev, "devapc-ao");
++		if (IS_ERR(handoff->devapc_ao))
++			return dev_err_probe(&pdev->dev, PTR_ERR(handoff->devapc_ao),
++					     "cannot map Device-APC attestation window\n");
++
++		mt6797_dvfsp_capture_fw_attestation(handoff);
++	}
++
+ 	ret = devm_delayed_work_autocancel(&pdev->dev, &handoff->late_work,
+ 					   mt6797_dvfsp_late_work);
+ 	if (ret)
+@@ -3023,7 +3175,18 @@ static int mt6797_dvfsp_handoff_probe(struct platform_device *pdev)
+ 		return dev_err_probe(&pdev->dev, ret,
+ 				     "cannot publish read-only handoff state\n");
+ 
+-	mt6797_dvfsp_run_handoff(handoff);
++	if (IS_ENABLED(CONFIG_MTK_MT6797_I2C6_FW_WRITER_ATTESTATION) &&
++	    !handoff->fw_attestation.passed) {
++		mutex_lock(&handoff->lock);
++		mt6797_dvfsp_fault_locked(handoff,
++					  "i2c6-fw-writer-attestation-failed");
++		mutex_unlock(&handoff->lock);
++	} else {
++		if (handoff->fw_attestation.captured)
++			dev_info(&pdev->dev,
++				 "i2c6_fw_writer_attestation=passed writes=0 transfers=0\n");
++		mt6797_dvfsp_run_handoff(handoff);
++	}
+ 	if (!completion_done(&handoff->terminal)) {
+ 		timeout = wait_for_completion_timeout(
+ 			&handoff->terminal,
+-- 
+2.51.0
