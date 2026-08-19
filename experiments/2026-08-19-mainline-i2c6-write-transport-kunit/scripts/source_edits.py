@@ -62,7 +62,7 @@ def contract_header() -> str:
     int mtk_i2c_idvfs_result_after_lease(int transport_result,
     \t\t\t\t\tint lease_result);
     int mtk_i2c_idvfs_transfer_once(struct i2c_adapter *adap,
-\t\t\t\t    struct i2c_msg *msgs, int num);
+    \t\t\t\t    struct i2c_msg *msgs, int num);
 
     #endif /* __I2C_MT65XX_GEMINI_WRITE_CONTRACT_H */
     """)
@@ -127,21 +127,21 @@ def production_helpers() -> str:
     }
 
     int mtk_i2c_idvfs_transfer_once(struct i2c_adapter *adap,
-\t\t\t\t    struct i2c_msg *msgs, int num)
+    \t\t\t\t    struct i2c_msg *msgs, int num)
     {
     \tunsigned int retries;
     \tint ret;
 
-\tif (!adap || !msgs || num != 1 || !adap->lock_ops ||
-\t    !adap->lock_ops->lock_bus || !adap->lock_ops->unlock_bus)
+    \tif (!adap || !msgs || num != 1 || !adap->lock_ops ||
+    \t    !adap->lock_ops->lock_bus || !adap->lock_ops->unlock_bus)
     \t\treturn -EINVAL;
 
-\ti2c_lock_bus(adap, I2C_LOCK_ROOT_ADAPTER);
+    \ti2c_lock_bus(adap, I2C_LOCK_ROOT_ADAPTER);
     \tretries = adap->retries;
     \tadap->retries = 0;
     \tret = __i2c_transfer(adap, msgs, num);
     \tadap->retries = retries;
-\ti2c_unlock_bus(adap, I2C_LOCK_ROOT_ADAPTER);
+    \ti2c_unlock_bus(adap, I2C_LOCK_ROOT_ADAPTER);
 
     \treturn ret;
     }
@@ -372,16 +372,16 @@ def kunit_source() -> str:
     struct mtk_i2c_idvfs_transfer_fake {
     \tstruct i2c_adapter adap;
     \tstruct i2c_algorithm algo;
-\tstruct i2c_lock_operations lock_ops;
+    \tstruct i2c_lock_operations lock_ops;
     \tint result;
     \tunsigned int calls;
-\tunsigned int lock_calls;
-\tunsigned int unlock_calls;
-\tunsigned int lock_flags;
-\tunsigned int unlock_flags;
-\tunsigned int retries_during;
-\tbool locked;
-\tbool locked_during;
+    \tunsigned int lock_calls;
+    \tunsigned int unlock_calls;
+    \tunsigned int lock_flags;
+    \tunsigned int unlock_flags;
+    \tunsigned int retries_during;
+    \tbool locked;
+    \tbool locked_during;
     \tu16 address;
     \tu16 flags;
     \tu16 length;
@@ -416,8 +416,8 @@ def kunit_source() -> str:
     \t\tcontainer_of(adap, struct mtk_i2c_idvfs_transfer_fake, adap);
 
     \tfake->calls++;
-\tfake->retries_during = adap->retries;
-\tfake->locked_during = fake->locked;
+    \tfake->retries_during = adap->retries;
+    \tfake->locked_during = fake->locked;
     \tif (num == 1 && msgs && msgs[0].buf && msgs[0].len == 2) {
     \t\tfake->address = msgs[0].addr;
     \t\tfake->flags = msgs[0].flags;
@@ -429,25 +429,25 @@ def kunit_source() -> str:
     }
 
     static void mtk_i2c_idvfs_transfer_fake_lock(
-\tstruct i2c_adapter *adap, unsigned int flags)
+    \tstruct i2c_adapter *adap, unsigned int flags)
     {
-\tstruct mtk_i2c_idvfs_transfer_fake *fake =
-\t\tcontainer_of(adap, struct mtk_i2c_idvfs_transfer_fake, adap);
+    \tstruct mtk_i2c_idvfs_transfer_fake *fake =
+    \t\tcontainer_of(adap, struct mtk_i2c_idvfs_transfer_fake, adap);
 
-\tfake->lock_calls++;
-\tfake->lock_flags = flags;
-\tfake->locked = true;
+    \tfake->lock_calls++;
+    \tfake->lock_flags = flags;
+    \tfake->locked = true;
     }
 
     static void mtk_i2c_idvfs_transfer_fake_unlock(
-\tstruct i2c_adapter *adap, unsigned int flags)
+    \tstruct i2c_adapter *adap, unsigned int flags)
     {
-\tstruct mtk_i2c_idvfs_transfer_fake *fake =
-\t\tcontainer_of(adap, struct mtk_i2c_idvfs_transfer_fake, adap);
+    \tstruct mtk_i2c_idvfs_transfer_fake *fake =
+    \t\tcontainer_of(adap, struct mtk_i2c_idvfs_transfer_fake, adap);
 
-\tfake->unlock_calls++;
-\tfake->unlock_flags = flags;
-\tfake->locked = false;
+    \tfake->unlock_calls++;
+    \tfake->unlock_flags = flags;
+    \tfake->locked = false;
     }
 
     static void mtk_i2c_idvfs_transfer_fake_init(
@@ -456,9 +456,9 @@ def kunit_source() -> str:
     \tmemset(fake, 0, sizeof(*fake));
     \tfake->algo.master_xfer = mtk_i2c_idvfs_transfer_fake_xfer;
     \tfake->adap.algo = &fake->algo;
-\tfake->lock_ops.lock_bus = mtk_i2c_idvfs_transfer_fake_lock;
-\tfake->lock_ops.unlock_bus = mtk_i2c_idvfs_transfer_fake_unlock;
-\tfake->adap.lock_ops = &fake->lock_ops;
+    \tfake->lock_ops.lock_bus = mtk_i2c_idvfs_transfer_fake_lock;
+    \tfake->lock_ops.unlock_bus = mtk_i2c_idvfs_transfer_fake_unlock;
+    \tfake->adap.lock_ops = &fake->lock_ops;
     \tfake->adap.retries = 1;
     \tfake->result = result;
     }
@@ -563,18 +563,18 @@ def kunit_source() -> str:
 
     \tmtk_i2c_idvfs_transfer_fake_init(&fake, -EAGAIN);
 
-\tKUNIT_EXPECT_EQ(test, mtk_i2c_idvfs_transfer_once(
+    \tKUNIT_EXPECT_EQ(test, mtk_i2c_idvfs_transfer_once(
     \t\t&fake.adap, &msg, 1), -EAGAIN);
     \tKUNIT_EXPECT_EQ(test, fake.calls, 1U);
-\tKUNIT_EXPECT_EQ(test, fake.lock_calls, 1U);
-\tKUNIT_EXPECT_EQ(test, fake.unlock_calls, 1U);
-\tKUNIT_EXPECT_EQ(test, fake.lock_flags,
-\t\t\tI2C_LOCK_ROOT_ADAPTER);
-\tKUNIT_EXPECT_EQ(test, fake.unlock_flags,
-\t\t\tI2C_LOCK_ROOT_ADAPTER);
-\tKUNIT_EXPECT_TRUE(test, fake.locked_during);
-\tKUNIT_EXPECT_FALSE(test, fake.locked);
-\tKUNIT_EXPECT_EQ(test, fake.retries_during, 0U);
+    \tKUNIT_EXPECT_EQ(test, fake.lock_calls, 1U);
+    \tKUNIT_EXPECT_EQ(test, fake.unlock_calls, 1U);
+    \tKUNIT_EXPECT_EQ(test, fake.lock_flags,
+    \t\t\tI2C_LOCK_ROOT_ADAPTER);
+    \tKUNIT_EXPECT_EQ(test, fake.unlock_flags,
+    \t\t\tI2C_LOCK_ROOT_ADAPTER);
+    \tKUNIT_EXPECT_TRUE(test, fake.locked_during);
+    \tKUNIT_EXPECT_FALSE(test, fake.locked);
+    \tKUNIT_EXPECT_EQ(test, fake.retries_during, 0U);
     \tKUNIT_EXPECT_EQ(test, fake.adap.retries, 1U);
     \tKUNIT_EXPECT_EQ(test, fake.address, (u16)MTK_I2C_TEST_ADDR);
     \tKUNIT_EXPECT_EQ(test, fake.flags, (u16)0);
@@ -591,14 +591,14 @@ def kunit_source() -> str:
 
     \tmtk_i2c_idvfs_transfer_fake_init(&fake, 1);
 
-\tKUNIT_EXPECT_EQ(test, mtk_i2c_idvfs_transfer_once(
+    \tKUNIT_EXPECT_EQ(test, mtk_i2c_idvfs_transfer_once(
     \t\t&fake.adap, &msg, 1), 1);
     \tKUNIT_EXPECT_EQ(test, fake.calls, 1U);
-\tKUNIT_EXPECT_EQ(test, fake.lock_calls, 1U);
-\tKUNIT_EXPECT_EQ(test, fake.unlock_calls, 1U);
-\tKUNIT_EXPECT_TRUE(test, fake.locked_during);
-\tKUNIT_EXPECT_FALSE(test, fake.locked);
-\tKUNIT_EXPECT_EQ(test, fake.retries_during, 0U);
+    \tKUNIT_EXPECT_EQ(test, fake.lock_calls, 1U);
+    \tKUNIT_EXPECT_EQ(test, fake.unlock_calls, 1U);
+    \tKUNIT_EXPECT_TRUE(test, fake.locked_during);
+    \tKUNIT_EXPECT_FALSE(test, fake.locked);
+    \tKUNIT_EXPECT_EQ(test, fake.retries_during, 0U);
     \tKUNIT_EXPECT_EQ(test, fake.adap.retries, 1U);
     }
 
@@ -610,14 +610,14 @@ def kunit_source() -> str:
 
     \tmtk_i2c_idvfs_transfer_fake_init(&fake, -EIO);
 
-\tKUNIT_EXPECT_EQ(test, mtk_i2c_idvfs_transfer_once(
+    \tKUNIT_EXPECT_EQ(test, mtk_i2c_idvfs_transfer_once(
     \t\t&fake.adap, &msg, 1), -EIO);
     \tKUNIT_EXPECT_EQ(test, fake.calls, 1U);
-\tKUNIT_EXPECT_EQ(test, fake.lock_calls, 1U);
-\tKUNIT_EXPECT_EQ(test, fake.unlock_calls, 1U);
-\tKUNIT_EXPECT_TRUE(test, fake.locked_during);
-\tKUNIT_EXPECT_FALSE(test, fake.locked);
-\tKUNIT_EXPECT_EQ(test, fake.retries_during, 0U);
+    \tKUNIT_EXPECT_EQ(test, fake.lock_calls, 1U);
+    \tKUNIT_EXPECT_EQ(test, fake.unlock_calls, 1U);
+    \tKUNIT_EXPECT_TRUE(test, fake.locked_during);
+    \tKUNIT_EXPECT_FALSE(test, fake.locked);
+    \tKUNIT_EXPECT_EQ(test, fake.retries_during, 0U);
     \tKUNIT_EXPECT_EQ(test, fake.adap.retries, 1U);
     }
 

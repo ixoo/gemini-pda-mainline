@@ -36,9 +36,19 @@ def require_tokens(text: str, tokens: tuple[str, ...], label: str) -> None:
         require(token in text, f"{label} missing token: {token}")
 
 
+def require_kernel_indent(text: str, label: str) -> None:
+    for number, line in enumerate(text.splitlines(), start=1):
+        require(not (line.startswith(" ") and
+                     line.lstrip(" ").startswith("\t")),
+                f"{label} line {number} has spaces before a tab")
+
+
 def validate_fragments(header: str, helpers: str, test: str, tool: str,
                        generator: str, patch_validator: str, runner: str,
                        classifier: str, buildbox: str) -> None:
+    require_kernel_indent(header, "contract header")
+    require_kernel_indent(helpers, "production helpers")
+    require_kernel_indent(test, "KUnit source")
     require_tokens(header, (
         "struct mtk_i2c_idvfs_short_write_plan",
         "MTK_I2C_IDVFS_SHORT_WRITE_BYTES\t2",
@@ -215,6 +225,9 @@ def test_mutations(header: str, helpers: str, test: str, tool: str,
          "ret = __i2c_transfer(adap, msgs, num);",
          "ret = __i2c_transfer(adap, msgs, num);\n"
          "\tret = __i2c_transfer(adap, msgs, num);"),
+        ("spaces-before-tab", "helpers",
+         "\tconst struct i2c_msg *msgs, int num,",
+         "    \tconst struct i2c_msg *msgs, int num,"),
         ("real-address", "test", "#define MTK_I2C_TEST_ADDR\t0x2a",
          "#define MTK_I2C_TEST_ADDR\t0x68"),
         ("drop-case", "test",

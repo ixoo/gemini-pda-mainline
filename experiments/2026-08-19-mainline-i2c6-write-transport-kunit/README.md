@@ -82,6 +82,8 @@ focused test option is disabled.
   records the deterministic editor/profile validation before patch generation.
 - [`results/patch-generation-attempt-1-20260819.txt`](results/patch-generation-attempt-1-20260819.txt)
   records the first fail-closed Buildbox anchor mismatch and correction.
+- [`results/patch-generation-attempt-2-20260819.txt`](results/patch-generation-attempt-2-20260819.txt)
+  records the second fail-closed Buildbox indentation check and correction.
 
 Run the design validator from the repository root:
 
@@ -126,7 +128,7 @@ The deterministic two-phase source editor, exact KUnit-only profile extension,
 generated production/helper bodies, and 12-case suite contract also pass their
 tool validator, which also covers the first-class Buildbox generate/fetch
 transport, generator, patch validator, QEMU runner, and classifier and rejects
-twenty-two source/tool/workflow mutations; the patch validator independently
+twenty-three source/tool/workflow mutations; the patch validator independently
 rejects nine patch mutations. No kernel source, build, QEMU run, device, or
 hardware state has yet been changed by this experiment.
 
@@ -136,6 +138,14 @@ matched zero times. The exact source was unchanged; review showed Python
 `textwrap.dedent()` had consumed the block's required outer function tab.
 Both the anchor and replacement now explicitly re-indent the dedented block,
 and two new source-tool mutations reject either side becoming outdented.
+
+The second Buildbox generation attempt at repository commit
+`a60837e704bd2a7d` reached the post-edit `git diff --check` and stopped because
+the generated production C had spaces before tabs. The temporary source was
+removed and no patches were produced. The escaped-tab lines now have uniform
+physical indentation before `textwrap.dedent()`, and the source-tool validator
+checks every emitted kernel-source line and rejects a representative
+space-before-tab mutation.
 
 ## Analysis
 
