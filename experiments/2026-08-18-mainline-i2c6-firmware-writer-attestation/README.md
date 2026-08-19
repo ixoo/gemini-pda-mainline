@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-18-mainline-i2c6-firmware-writer-attestation` |
-| Status | `planned` |
+| Status | `candidate-validated-awaiting-runtime` |
 | Subsystem | MT6797 SCP, Device-APC, and I2C6 ownership |
 | Device variant | Planet Gemini PDA, MT6797 named development unit |
 | Date(s) | 2026-08-18 America/New_York |
@@ -21,7 +21,7 @@ SCP still held inert while the exact ATF I2C6 Device-APC policy remains stable?
 
 - Runtime-proven parent: `da921x-lk-clock-readonly-provider`.
 - New profile: `da921x-i2c6-firmware-writer-attestation`.
-- Planned release: `7.1.3-gemini-i2c6-fwatt`.
+- Built release: `7.1.3-gemini-i2c6-fwatt`.
 - Canonical source delta: patch `0286`.
 - Exact retained LK, ATF, SCP, and TEE images remain private evidence; only
   sanitized register contracts and derived observations are recorded here.
@@ -53,8 +53,22 @@ policy.
 - [`scripts/build-attestation-dtb.sh`](scripts/build-attestation-dtb.sh)
   derives the exact DT from the proven provider DT and adds only the two named
   read-only register windows.
-- `scripts/validate.py` validates the source/profile/contract boundary and
+- [`scripts/validate.py`](scripts/validate.py) validates the
+  source/profile/contract boundary and
   representative unsafe mutations.
+- [`scripts/build-candidate.sh`](scripts/build-candidate.sh) and
+  [`scripts/test-candidate.py`](scripts/test-candidate.py) assemble and
+  independently validate the exact Android-v0 candidate.
+- [`scripts/install-boot2.sh`](scripts/install-boot2.sh) derives the guarded
+  live-GPT installer for only this exact candidate.
+- [`scripts/collect-runtime.sh`](scripts/collect-runtime.sh),
+  [`scripts/remote-attestation-probe.sh`](scripts/remote-attestation-probe.sh),
+  and [`scripts/classify-runtime.py`](scripts/classify-runtime.py) freeze the
+  first-boot observation and both decision branches before deployment.
+- [`results/prebuild-source-validation-20260818.txt`](results/prebuild-source-validation-20260818.txt),
+  [`results/buildbox-package-20260818.txt`](results/buildbox-package-20260818.txt),
+  and [`results/offline-candidate-validation-20260818.txt`](results/offline-candidate-validation-20260818.txt)
+  record the exact source, package, and candidate boundaries.
 
 ## Procedure
 
@@ -71,8 +85,23 @@ policy.
 
 ## Observations
 
-Pending source validation, Buildbox build, candidate validation, and one device
-attempt.
+- Patch `0286` applies cleanly against Buildbox's exact prepared source. The
+  source/profile/contract validator rejects ten unsafe mutations and the
+  canonical manifest-series audit passes all 83 profiles.
+- Buildbox compiled exact clean pushed commit
+  `9ed564adac77042d9d0dff9dabc98b6caa646aca` as release
+  `7.1.3-gemini-i2c6-fwatt`. Package provenance and every packaged checksum
+  passed; no native VM build ran.
+- The independently reproduced Android-v0 candidate has raw SHA-256
+  `7d8efed2f932e0a61e9417ae062fbb8b72b0baddc21c3857fb15093e0446c22b`
+  and exact 16 MiB padded SHA-256
+  `4bdaef917acd477839cdc3129b2fa4a63591e29c6fa912afd214bc9a1f5d0972`.
+  All 32 LK gates, twelve inherited negative DT mutations, and two new
+  attestation-window mutations passed.
+- The runtime classifier accepts both structurally valid decision branches,
+  rejects six unsafe mutations, exposes the immutable raw samples, and permits
+  native return only after a complete capture. Device deployment and runtime
+  evidence remain pending.
 
 ## Analysis
 
@@ -83,7 +112,8 @@ unstable or unexpected Device-APC policy.
 
 ## Conclusion
 
-`planned`. Gate-6 writing and CPU8/CPU9 admission remain closed.
+The exact candidate is `validated-awaiting-runtime`. Gate-6 writing and
+CPU8/CPU9 admission remain closed.
 
 ## Follow-up
 

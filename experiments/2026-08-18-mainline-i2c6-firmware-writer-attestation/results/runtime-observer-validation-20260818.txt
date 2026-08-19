@@ -1,0 +1,20 @@
+MT6797 I2C6 firmware-writer attestation runtime observer validation
+Local date: 2026-08-18 America/New_York
+
+candidate_padded_sha256=4bdaef917acd477839cdc3129b2fa4a63591e29c6fa912afd214bc9a1f5d0972
+collector_sha256=b264285548c9d3dc375c85896e623a1d0e34ce52b28d48e66f298023a8145028
+remote_probe_sha256=1062f4f4a193f8f34b9e905a4ca856ee6275a3e2b16abfe4f17224ceeead04f1
+classifier_sha256=7172ab947ca60d14a968427b2700e3fbb66e35af4e1584f1434b5e74ea9b7a9c
+classifier_test_sha256=7dc146971e688ddf64d4ac244cddfff96f599d273fa75cb9aea934e57723961a
+runtime_transport=direct-usb-netcat-10.15.19.82:2323
+collector_derivation=pass
+shell_syntax=pass
+shellcheck=pass
+python_syntax=pass
+runtime_classifier_pass_fixture=accepted
+runtime_classifier_failure_fixture=accepted-and-B1-kept-open
+unsafe_runtime_mutations_rejected=6
+device_access=none
+hardware_write=none
+native_reboot=only-after-complete-structurally-valid-capture
+result=pass

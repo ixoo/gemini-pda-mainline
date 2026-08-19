@@ -80,7 +80,10 @@ def validate_patch_hunks(text: str) -> None:
 
 
 def validate_contract(contract: dict) -> None:
-    require(contract["status"] == "planned", "contract status changed")
+    require(
+        contract["status"] == "candidate-validated-awaiting-runtime",
+        "contract status changed",
+    )
     require(contract["profile"] == PROFILE, "profile changed")
     require(contract["parent_profile"] == PARENT, "parent changed")
     require(contract["kernel_release"] == "7.1.3-gemini-i2c6-fwatt",

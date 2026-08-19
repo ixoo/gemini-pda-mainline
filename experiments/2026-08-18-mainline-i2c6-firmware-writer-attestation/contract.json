@@ -1,6 +1,6 @@
 {
   "id": "2026-08-18-mainline-i2c6-firmware-writer-attestation",
-  "status": "planned",
+  "status": "candidate-validated-awaiting-runtime",
   "profile": "da921x-i2c6-firmware-writer-attestation",
   "parent_profile": "da921x-lk-clock-readonly-provider",
   "kernel_release": "7.1.3-gemini-i2c6-fwatt",
