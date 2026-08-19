@@ -1,0 +1,20 @@
+Runtime observer pre-arm validation: pass
+
+candidate_padded_sha256=fd6680d6e0ab3fbd61cc4f46b517a4672dd115eed92f2bbc0ae788b6e263c760
+probe_sha256=df605b3941ee1dffdf6d5afa33bd3c48169c9ea974a9cc0bacb8e1cceb29f459
+classifier_sha256=a80aa71544263f9a74634e45791aea32fd2b3879e74c83b68dbb3cc3cdb59908
+capture_output=artifacts/runtime-captures/mainline-i2c6-fwtxn-attempt-1
+transport=exact-Gemini-USB-interface-plus-netcat-10.15.19.82:2323
+gemian_return=changed-boot-id-required
+native_reboot=only-after-complete-classification
+runtime_classifier_baseline=accepted
+unsafe_runtime_mutations_rejected=16
+
+Rejected mutations cover wrong release, CPU8 online, nonzero probe reset,
+wrong probe decision, missing entry or exit edge, nonzero exit reset, reset
+failure, non-ready handoff, ledger count or overflow mismatch, write-shaped
+traffic, wrong pointer, failed entry, changed boot identity, and truncation.
+
+device_access=none
+hardware_write=none
+result=pass

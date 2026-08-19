@@ -1,0 +1,32 @@
+Predeployment hypothesis and decision boundary
+
+Exact candidate:
+- repository_commit=21728a382e771d7e11b4b9bf0392037002ffd572
+- kernel_release=7.1.3-gemini-i2c6-fwtxn
+- candidate_sha256=db828e1a6295167f8b370f04e87e675dba9bc08b6c0908283c3b11fe2cca7549
+- padded_boot2_sha256=fd6680d6e0ab3fbd61cc4f46b517a4672dd115eed92f2bbc0ae788b6e263c760
+- dtb_sha256=80972fc24406d5be8818c891d06fb8ed4d40f2332bd1eda2d8263597029ea683
+
+Hypothesis:
+The source-backed SCP reset-control value remains zero at both edges of all
+20 exact, read-only DA921x provider transactions after the stopped-DVFSP
+handoff reaches ready in the same boot.
+
+Unique attributable evidence required:
+- two pre-handoff reset-control samples equal zero;
+- handoff ready with late validation passed and zero faults;
+- exactly 20 entry and 20 exit reset checks, all zero, with zero failures;
+- exact 20-entry pointer-read ledger, capacity 32, overflow zero;
+- lifecycle-oracle counts 20/14/6 with no write-only, register-data-write,
+  foreign-address, other, failed, or incomplete transaction;
+- one provider record with 14 identity reads, four provider reads, and zero
+  register-data writes;
+- CPUs 8 and 9 offline, USB and polling keyboard present, no block mounts or
+  kernel fault markers; and
+- changed-identity Gemian return only after the complete capture classifies.
+
+Decision:
+- complete pass closes B1 and moves to B2 transport-proof design;
+- any missing edge, nonzero reset, ledger/hand-off mismatch, unexpected
+  transfer, serviceability loss, or incomplete capture keeps B1 open;
+- this boot does not authorize B2, a DA921x write, or CPU8/CPU9 admission.

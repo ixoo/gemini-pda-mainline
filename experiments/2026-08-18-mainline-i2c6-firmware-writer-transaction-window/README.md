@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-18-mainline-i2c6-firmware-writer-transaction-window` |
-| Status | `source-designed-awaiting-build` |
+| Status | `candidate-validated-awaiting-install` |
 | Subsystem | MT6797 SCP, stopped DVFSP, and I2C6 ownership |
 | Device variant | Planet Gemini PDA, MT6797 named development unit |
 | Date(s) | 2026-08-18 America/New_York |
@@ -93,7 +93,21 @@ oracle dependency. No package, native VM build, device access, or hardware
 action occurred. The isolated fragment now selects that dependency explicitly;
 see the [failed-closed build record](results/buildbox-attempt-1-config-dependency-20260819.txt).
 
+Buildbox attempt 2 compiled exact clean commit `21728a382e771...` with the
+corrected dependency selected and produced release
+`7.1.3-gemini-i2c6-fwtxn`. The fetched package passed its complete checksum
+manifest; see the [package record](results/buildbox-package-20260819.txt).
+No native VM build occurred.
+
+The deterministic Android-v0 candidate then reproduced byte-for-byte from the
+fetched package, unchanged attestation DT, and retained serviceability
+ramdisk. All 32 LK container gates passed. The independent validator rejected
+14 DT mutations, and the runtime classifier rejected 16 unsafe or incomplete
+capture mutations. See the [offline candidate validation](results/offline-candidate-validation-20260819.txt)
+and [collector pre-arm validation](results/collector-prearm-validation-20260819.txt).
+
 ## Current conclusion
 
-Source design only. B1 remains open. B2, every Gate-6 write, and CPU8/CPU9
-admission remain closed.
+The exact boot candidate is independently validated and awaiting guarded
+installation to logical `boot2`. B1 remains open until its one attributable
+runtime result. B2, every Gate-6 write, and CPU8/CPU9 admission remain closed.

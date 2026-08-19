@@ -27,8 +27,13 @@ def require(condition: bool, message: str) -> None:
 
 
 def validate_contract(contract: dict) -> None:
-    require(contract["status"] == "source-designed-awaiting-build",
-            "contract status changed")
+    require(contract["status"] in {
+        "source-designed-awaiting-build",
+        "buildbox-validated-awaiting-candidate",
+        "candidate-validated-awaiting-install",
+        "deployed-awaiting-runtime",
+        "runtime-complete",
+    }, "contract status is not a recognized experiment lifecycle state")
     require(contract["profile"] == PROFILE, "profile changed")
     require(contract["kernel_release"] == "7.1.3-gemini-i2c6-fwtxn",
             "release changed")
