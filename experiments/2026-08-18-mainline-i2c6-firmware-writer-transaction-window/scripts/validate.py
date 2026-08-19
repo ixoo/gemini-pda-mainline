@@ -73,6 +73,9 @@ def validate_sources(patch: str, fragment: str, manifest: dict,
     require(fragment.count(
         "CONFIG_MTK_MT6797_I2C6_FW_WRITER_TRANSACTION_WINDOW=y") == 1,
         "transaction-window option missing")
+    require(fragment.count(
+        "CONFIG_I2C_MT65XX_GEMINI_LIFECYCLE_ORACLE=y") == 1,
+        "entry-ledger lifecycle oracle missing")
     require(fragment.count("CONFIG_I2C_MT65XX_GEMINI_ENTRY_LEDGER=y") == 1,
             "entry ledger missing")
     require(fragment.count(
@@ -128,6 +131,9 @@ def main() -> None:
                       fragment, manifest, series))
     mutations.append((contract, patch, fragment.replace(
         "CONFIG_I2C_MT65XX_GEMINI_ENTRY_LEDGER=y", "", 1),
+        manifest, series))
+    mutations.append((contract, patch, fragment.replace(
+        "CONFIG_I2C_MT65XX_GEMINI_LIFECYCLE_ORACLE=y", "", 1),
         manifest, series))
     mutations.append((contract, patch, fragment, manifest, series[:-1]))
     require(all(mutation_rejected(*mutation) for mutation in mutations),

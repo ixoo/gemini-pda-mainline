@@ -84,6 +84,15 @@ B1 open. It does not authorize B2, a DA921x write, or CPU8/CPU9.
    the full contract, and return natively only after a structurally valid
    observation.
 
+## Build observations
+
+Buildbox attempt 1 fetched exact clean commit `2ec13e750776...`, applied the
+complete canonical series through patch `0287`, and then stopped before
+compilation because the entry-ledger request lacked its read-only lifecycle-
+oracle dependency. No package, native VM build, device access, or hardware
+action occurred. The isolated fragment now selects that dependency explicitly;
+see the [failed-closed build record](results/buildbox-attempt-1-config-dependency-20260819.txt).
+
 ## Current conclusion
 
 Source design only. B1 remains open. B2, every Gate-6 write, and CPU8/CPU9

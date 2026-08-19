@@ -1,0 +1,21 @@
+Experiment: 2026-08-18-mainline-i2c6-firmware-writer-transaction-window
+Result: Buildbox attempt 1 stopped at configuration retention
+Date: 2026-08-19 UTC
+
+repository_commit=2ec13e750776e5605f4ba802c103c7aab3e0f591
+profile=da921x-i2c6-firmware-writer-transaction-window
+backend=buildbox
+source_fetch=passed
+canonical_patch_application=passed-through-0287
+configuration_merge=stopped
+rejected_request=CONFIG_I2C_MT65XX_GEMINI_ENTRY_LEDGER=y
+cause=required-lifecycle-oracle-option-not-selected
+kernel_compile=not-started
+package=none
+native_VM_build=not-run
+device_access=none
+hardware_write=none
+correction=select-read-only-CONFIG_I2C_MT65XX_GEMINI_LIFECYCLE_ORACLE
+Gate6_write=not-authorized
+CPU8_CPU9_admission=closed
+result=expected-fail-closed-build-configuration-check
