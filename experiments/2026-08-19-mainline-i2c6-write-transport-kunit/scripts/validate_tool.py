@@ -41,6 +41,10 @@ def require_kernel_indent(text: str, label: str) -> None:
         require(not (line.startswith(" ") and
                      line.lstrip(" ").startswith("\t")),
                 f"{label} line {number} has spaces before a tab")
+        require(not line.rstrip().endswith("("),
+                f"{label} line {number} ends with an open parenthesis")
+        require(len(line.expandtabs(8)) <= 100,
+                f"{label} line {number} exceeds 100 columns")
 
 
 def validate_fragments(header: str, helpers: str, test: str, tool: str,
@@ -132,6 +136,7 @@ def validate_fragments(header: str, helpers: str, test: str, tool: str,
         "validate_patches.py",
         "git -C \"$work/verify\" am --quiet --committer-date-is-author-date",
         "checkpatch.pl\" --no-tree --strict",
+        "strict checkpatch rejected generated patches",
         "synthetic_signoff=absent",
         "hardware_action=none",
         "device_action=none",
@@ -195,6 +200,7 @@ def validate_fragments(header: str, helpers: str, test: str, tool: str,
         "2026-08-19-mainline-i2c6-write-transport-kunit/scripts/generate-on-buildbox",
         "repository_commit=${commit}",
         "generated_patch_count=2",
+        "I2C6 write-transport patch generator failed for %s",
         "generate_i2c6_write_transport_patches ;;",
         "fetch_i2c6_write_transport_patches ;;",
     ), "Buildbox transport")
@@ -226,8 +232,12 @@ def test_mutations(header: str, helpers: str, test: str, tool: str,
          "ret = __i2c_transfer(adap, msgs, num);\n"
          "\tret = __i2c_transfer(adap, msgs, num);"),
         ("spaces-before-tab", "helpers",
-         "\tconst struct i2c_msg *msgs, int num,",
-         "    \tconst struct i2c_msg *msgs, int num,"),
+         "\tif (!msgs || !plan || num != 1 || !msgs[0].buf ||",
+         "    \tif (!msgs || !plan || num != 1 || !msgs[0].buf ||"),
+        ("open-ended-kernel-line", "helpers",
+         "int mtk_i2c_idvfs_plan_short_write(const struct i2c_msg *msgs,",
+         "int mtk_i2c_idvfs_plan_short_write(\n"
+         "\tconst struct i2c_msg *msgs,"),
         ("real-address", "test", "#define MTK_I2C_TEST_ADDR\t0x2a",
          "#define MTK_I2C_TEST_ADDR\t0x68"),
         ("drop-case", "test",

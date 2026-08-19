@@ -3303,8 +3303,13 @@ if [[ -f "${job_record}" ]] && jq -e \
 fi
 
 rm -f "${job_record}.partial"
-output="$("${checkout}/${generator}" \
-  "${commit}" "${source_root}" "${artifact_root}")"
+if ! output="$("${checkout}/${generator}" \
+  "${commit}" "${source_root}" "${artifact_root}")"; then
+  printf '%s\n' "${output}" >&2
+  printf 'error: I2C6 write-transport patch generator failed for %s\n' \
+    "${commit}" >&2
+  exit 1
+fi
 printf '%s\n' "${output}"
 package="$(printf '%s\n' "${output}" | sed -n \
   's/^Generated I2C6 write-transport patch review at //p' | tail -n 1)"

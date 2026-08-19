@@ -84,6 +84,8 @@ focused test option is disabled.
   records the first fail-closed Buildbox anchor mismatch and correction.
 - [`results/patch-generation-attempt-2-20260819.txt`](results/patch-generation-attempt-2-20260819.txt)
   records the second fail-closed Buildbox indentation check and correction.
+- [`results/patch-generation-attempt-3-20260819.txt`](results/patch-generation-attempt-3-20260819.txt)
+  records the third fail-closed strict-style check and correction.
 
 Run the design validator from the repository root:
 
@@ -128,7 +130,7 @@ The deterministic two-phase source editor, exact KUnit-only profile extension,
 generated production/helper bodies, and 12-case suite contract also pass their
 tool validator, which also covers the first-class Buildbox generate/fetch
 transport, generator, patch validator, QEMU runner, and classifier and rejects
-twenty-three source/tool/workflow mutations; the patch validator independently
+twenty-four source/tool/workflow mutations; the patch validator independently
 rejects nine patch mutations. No kernel source, build, QEMU run, device, or
 hardware state has yet been changed by this experiment.
 
@@ -146,6 +148,17 @@ removed and no patches were produced. The escaped-tab lines now have uniform
 physical indentation before `textwrap.dedent()`, and the source-tool validator
 checks every emitted kernel-source line and rejects a representative
 space-before-tab mutation.
+
+The third Buildbox generation attempt at repository commit
+`82262bb065f4a10e` generated both normal patches, validated their exact five
+changed paths, reapplied them to reproduce the generated commits, and passed
+the 12-case edited-source contract. Strict checkpatch then stopped the package
+on 45 style checks (zero errors and zero warnings): open-ended lines and
+continuation alignment. The pinned checkpatch auto-fixer supplied the exact
+continuation columns; the deterministic source now uses those alignments,
+contains no line ending in `(` or exceeding 100 columns, and emits future
+generator diagnostics directly. The temporary source and partial package were
+removed and no validated package was published.
 
 ## Analysis
 

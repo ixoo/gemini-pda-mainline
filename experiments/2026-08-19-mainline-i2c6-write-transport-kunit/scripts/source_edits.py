@@ -51,18 +51,17 @@ def contract_header() -> str:
 
     typedef void (*mtk_i2c_idvfs_fifo_write_fn)(void *context, u8 value);
 
-    int mtk_i2c_idvfs_plan_short_write(
-    \tconst struct i2c_msg *msgs, int num,
-    \tstruct mtk_i2c_idvfs_short_write_plan *plan);
-    void mtk_i2c_idvfs_emit_short_write(
-    \tconst struct mtk_i2c_idvfs_short_write_plan *plan,
-    \tmtk_i2c_idvfs_fifo_write_fn write, void *context);
+    int mtk_i2c_idvfs_plan_short_write(const struct i2c_msg *msgs, int num,
+    \t\t\t\t   struct mtk_i2c_idvfs_short_write_plan *plan);
+    void mtk_i2c_idvfs_emit_short_write(const struct mtk_i2c_idvfs_short_write_plan *plan,
+    \t\t\t\t    mtk_i2c_idvfs_fifo_write_fn write,
+    \t\t\t\t    void *context);
     int mtk_i2c_idvfs_completion_result(unsigned long wait_result,
-    \t\t\t\t\tu16 irq_stat);
+    \t\t\t\t    u16 irq_stat);
     int mtk_i2c_idvfs_result_after_lease(int transport_result,
-    \t\t\t\t\tint lease_result);
+    \t\t\t\t     int lease_result);
     int mtk_i2c_idvfs_transfer_once(struct i2c_adapter *adap,
-    \t\t\t\t    struct i2c_msg *msgs, int num);
+    \t\t\t\tstruct i2c_msg *msgs, int num);
 
     #endif /* __I2C_MT65XX_GEMINI_WRITE_CONTRACT_H */
     """)
@@ -70,9 +69,8 @@ def contract_header() -> str:
 
 def production_helpers() -> str:
     return dedent("""\
-    int mtk_i2c_idvfs_plan_short_write(
-    \tconst struct i2c_msg *msgs, int num,
-    \tstruct mtk_i2c_idvfs_short_write_plan *plan)
+    int mtk_i2c_idvfs_plan_short_write(const struct i2c_msg *msgs, int num,
+    \t\t\t\t   struct mtk_i2c_idvfs_short_write_plan *plan)
     {
     \tif (!msgs || !plan || num != 1 || !msgs[0].buf ||
     \t    msgs[0].flags || msgs[0].addr > 0x7f ||
@@ -88,9 +86,9 @@ def production_helpers() -> str:
     \treturn 0;
     }
 
-    void mtk_i2c_idvfs_emit_short_write(
-    \tconst struct mtk_i2c_idvfs_short_write_plan *plan,
-    \tmtk_i2c_idvfs_fifo_write_fn write, void *context)
+    void mtk_i2c_idvfs_emit_short_write(const struct mtk_i2c_idvfs_short_write_plan *plan,
+    \t\t\t\t    mtk_i2c_idvfs_fifo_write_fn write,
+    \t\t\t\t    void *context)
     {
     \tunsigned int i;
 
@@ -102,7 +100,7 @@ def production_helpers() -> str:
     }
 
     int mtk_i2c_idvfs_completion_result(unsigned long wait_result,
-    \t\t\t\t\tu16 irq_stat)
+    \t\t\t\t    u16 irq_stat)
     {
     \tif (irq_stat & MTK_I2C_IDVFS_IRQ_ARB_LOST)
     \t\treturn -EAGAIN;
@@ -118,7 +116,7 @@ def production_helpers() -> str:
     }
 
     int mtk_i2c_idvfs_result_after_lease(int transport_result,
-    \t\t\t\t\tint lease_result)
+    \t\t\t\t     int lease_result)
     {
     \tif (transport_result >= 0 && lease_result < 0)
     \t\treturn lease_result;
@@ -127,7 +125,7 @@ def production_helpers() -> str:
     }
 
     int mtk_i2c_idvfs_transfer_once(struct i2c_adapter *adap,
-    \t\t\t\t    struct i2c_msg *msgs, int num)
+    \t\t\t\tstruct i2c_msg *msgs, int num)
     {
     \tunsigned int retries;
     \tint ret;
@@ -221,7 +219,7 @@ def edit_production_driver(root: Path) -> None:
         "\t\ti2c->op == I2C_MASTER_WR && num == 1 && msgs->len == 2;\n"
         "\tif (idvfs_short_write) {\n"
         "\t\tret = mtk_i2c_idvfs_plan_short_write(msgs, num,\n"
-        "\t\t\t\t\t\t&short_write);\n"
+        "\t\t\t\t\t\t     &short_write);\n"
         "\t\tif (ret)\n\t\t\treturn ret;\n"
         "\t\tuse_dma = short_write.use_dma;\n"
         "\t} else {\n"
@@ -243,9 +241,9 @@ def edit_production_driver(root: Path) -> None:
         "\tif (i2c->dev_comp->apdma_sync) {\n",
         "\t} else if (idvfs_short_write) {\n"
         "\t\tmtk_i2c_writew(i2c, short_write.transfer_len,\n"
-        "\t\t\t\tOFFSET_TRANSFER_LEN);\n"
+        "\t\t\t       OFFSET_TRANSFER_LEN);\n"
         "\t\tmtk_i2c_writew(i2c, short_write.transac_len,\n"
-        "\t\t\t\tOFFSET_TRANSAC_LEN);\n"
+        "\t\t\t       OFFSET_TRANSAC_LEN);\n"
         "\t} else {\n"
         "\t\tmtk_i2c_writew(i2c, msgs->len, OFFSET_TRANSFER_LEN);\n"
         "\t\tmtk_i2c_writew(i2c, num, OFFSET_TRANSAC_LEN);\n"
@@ -259,9 +257,9 @@ def edit_production_driver(root: Path) -> None:
         "\t} else if (i2c->op == I2C_MASTER_RD) {\n",
         "\tif (!use_dma) {\n"
         "\t\tif (idvfs_short_write)\n"
-        "\t\t\tmtk_i2c_idvfs_emit_short_write(\n"
-        "\t\t\t\t&short_write, mtk_i2c_idvfs_write_data_port,\n"
-        "\t\t\t\ti2c);\n"
+        "\t\t\tmtk_i2c_idvfs_emit_short_write(&short_write,\n"
+        "\t\t\t\t\t\t       mtk_i2c_idvfs_write_data_port,\n"
+        "\t\t\t\t\t\t       i2c);\n"
         "\t\telse\n"
         "\t\t\tmtk_i2c_prepare_pio(i2c, msgs);\n"
         "\t} else if (i2c->op == I2C_MASTER_RD) {\n",
@@ -409,7 +407,7 @@ def kunit_source() -> str:
     }
 
     static int mtk_i2c_idvfs_transfer_fake_xfer(struct i2c_adapter *adap,
-    \t\t\t\t\t\t struct i2c_msg *msgs,
+    \t\t\t\t\t    struct i2c_msg *msgs,
     \t\t\t\t\t\t int num)
     {
     \tstruct mtk_i2c_idvfs_transfer_fake *fake =
@@ -428,8 +426,8 @@ def kunit_source() -> str:
     \treturn fake->result;
     }
 
-    static void mtk_i2c_idvfs_transfer_fake_lock(
-    \tstruct i2c_adapter *adap, unsigned int flags)
+    static void mtk_i2c_idvfs_transfer_fake_lock(struct i2c_adapter *adap,
+    \t\t\t\t\t     unsigned int flags)
     {
     \tstruct mtk_i2c_idvfs_transfer_fake *fake =
     \t\tcontainer_of(adap, struct mtk_i2c_idvfs_transfer_fake, adap);
@@ -439,8 +437,8 @@ def kunit_source() -> str:
     \tfake->locked = true;
     }
 
-    static void mtk_i2c_idvfs_transfer_fake_unlock(
-    \tstruct i2c_adapter *adap, unsigned int flags)
+    static void mtk_i2c_idvfs_transfer_fake_unlock(struct i2c_adapter *adap,
+    \t\t\t\t\t       unsigned int flags)
     {
     \tstruct mtk_i2c_idvfs_transfer_fake *fake =
     \t\tcontainer_of(adap, struct mtk_i2c_idvfs_transfer_fake, adap);
@@ -450,8 +448,8 @@ def kunit_source() -> str:
     \tfake->locked = false;
     }
 
-    static void mtk_i2c_idvfs_transfer_fake_init(
-    \tstruct mtk_i2c_idvfs_transfer_fake *fake, int result)
+    static void mtk_i2c_idvfs_transfer_fake_init(struct mtk_i2c_idvfs_transfer_fake *fake,
+    \t\t\t\t\t     int result)
     {
     \tmemset(fake, 0, sizeof(*fake));
     \tfake->algo.master_xfer = mtk_i2c_idvfs_transfer_fake_xfer;
@@ -469,16 +467,17 @@ def kunit_source() -> str:
     \tstruct i2c_msg msg = mtk_i2c_idvfs_test_message(payload);
     \tstruct mtk_i2c_idvfs_short_write_plan plan;
     \tstruct mtk_i2c_idvfs_fifo_fake fake = { };
+    \tint result;
 
-    \tKUNIT_ASSERT_EQ(test,
-    \t\tmtk_i2c_idvfs_plan_short_write(&msg, 1, &plan), 0);
+    \tresult = mtk_i2c_idvfs_plan_short_write(&msg, 1, &plan);
+    \tKUNIT_ASSERT_EQ(test, result, 0);
     \tKUNIT_EXPECT_EQ(test, plan.slave_addr, (u16)0x54);
     \tKUNIT_EXPECT_EQ(test, plan.transfer_len, (u16)2);
     \tKUNIT_EXPECT_EQ(test, plan.transac_len, (u16)1);
     \tKUNIT_EXPECT_FALSE(test, plan.use_dma);
     \tKUNIT_EXPECT_FALSE(test, plan.direction_change);
-    \tmtk_i2c_idvfs_emit_short_write(
-    \t\t&plan, mtk_i2c_idvfs_fifo_fake_write, &fake);
+    \tmtk_i2c_idvfs_emit_short_write(&plan, mtk_i2c_idvfs_fifo_fake_write,
+    \t\t\t\t\t&fake);
     \tKUNIT_EXPECT_EQ(test, fake.calls, 2U);
     \tKUNIT_EXPECT_EQ(test, fake.values[0], (u8)MTK_I2C_TEST_BYTE0);
     \tKUNIT_EXPECT_EQ(test, fake.values[1], (u8)MTK_I2C_TEST_BYTE1);
@@ -489,70 +488,85 @@ def kunit_source() -> str:
     \tu8 payload[3] = { MTK_I2C_TEST_BYTE0, MTK_I2C_TEST_BYTE1, 0 };
     \tstruct mtk_i2c_idvfs_short_write_plan plan;
     \tstruct i2c_msg msg = mtk_i2c_idvfs_test_message(payload);
+    \tint result;
 
-    \tKUNIT_EXPECT_EQ(test,
-    \t\tmtk_i2c_idvfs_plan_short_write(NULL, 1, &plan), -EINVAL);
-    \tKUNIT_EXPECT_EQ(test,
-    \t\tmtk_i2c_idvfs_plan_short_write(&msg, 0, &plan), -EINVAL);
+    \tresult = mtk_i2c_idvfs_plan_short_write(NULL, 1, &plan);
+    \tKUNIT_EXPECT_EQ(test, result, -EINVAL);
+    \tresult = mtk_i2c_idvfs_plan_short_write(&msg, 0, &plan);
+    \tKUNIT_EXPECT_EQ(test, result, -EINVAL);
     \tmsg.buf = NULL;
-    \tKUNIT_EXPECT_EQ(test,
-    \t\tmtk_i2c_idvfs_plan_short_write(&msg, 1, &plan), -EINVAL);
+    \tresult = mtk_i2c_idvfs_plan_short_write(&msg, 1, &plan);
+    \tKUNIT_EXPECT_EQ(test, result, -EINVAL);
     \tmsg.buf = payload;
     \tmsg.flags = I2C_M_RD;
-    \tKUNIT_EXPECT_EQ(test,
-    \t\tmtk_i2c_idvfs_plan_short_write(&msg, 1, &plan), -EINVAL);
+    \tresult = mtk_i2c_idvfs_plan_short_write(&msg, 1, &plan);
+    \tKUNIT_EXPECT_EQ(test, result, -EINVAL);
     \tmsg.flags = 0;
     \tmsg.len = 1;
-    \tKUNIT_EXPECT_EQ(test,
-    \t\tmtk_i2c_idvfs_plan_short_write(&msg, 1, &plan), -EINVAL);
+    \tresult = mtk_i2c_idvfs_plan_short_write(&msg, 1, &plan);
+    \tKUNIT_EXPECT_EQ(test, result, -EINVAL);
     \tmsg.len = 3;
-    \tKUNIT_EXPECT_EQ(test,
-    \t\tmtk_i2c_idvfs_plan_short_write(&msg, 1, &plan), -EINVAL);
+    \tresult = mtk_i2c_idvfs_plan_short_write(&msg, 1, &plan);
+    \tKUNIT_EXPECT_EQ(test, result, -EINVAL);
     \tmsg.len = 2;
     \tmsg.addr = 0x80;
-    \tKUNIT_EXPECT_EQ(test,
-    \t\tmtk_i2c_idvfs_plan_short_write(&msg, 1, &plan), -EINVAL);
+    \tresult = mtk_i2c_idvfs_plan_short_write(&msg, 1, &plan);
+    \tKUNIT_EXPECT_EQ(test, result, -EINVAL);
     }
 
     static void mtk_i2c_idvfs_exact_completion_success(struct kunit *test)
     {
-    \tKUNIT_EXPECT_EQ(test, mtk_i2c_idvfs_completion_result(
-    \t\t1, MTK_I2C_IDVFS_IRQ_TRANSAC_COMP), 0);
-    \tKUNIT_EXPECT_EQ(test,
-    \t\tmtk_i2c_idvfs_result_after_lease(1, 0), 1);
+    \tint result;
+
+    \tresult = mtk_i2c_idvfs_completion_result(1,
+    \t\t\t\t\t\t MTK_I2C_IDVFS_IRQ_TRANSAC_COMP);
+    \tKUNIT_EXPECT_EQ(test, result, 0);
+    \tresult = mtk_i2c_idvfs_result_after_lease(1, 0);
+    \tKUNIT_EXPECT_EQ(test, result, 1);
     }
 
     static void mtk_i2c_idvfs_timeout_classification(struct kunit *test)
     {
-    \tKUNIT_EXPECT_EQ(test,
-    \t\tmtk_i2c_idvfs_completion_result(0, 0), -ETIMEDOUT);
+    \tint result = mtk_i2c_idvfs_completion_result(0, 0);
+
+    \tKUNIT_EXPECT_EQ(test, result, -ETIMEDOUT);
     }
 
     static void mtk_i2c_idvfs_nack_classification(struct kunit *test)
     {
-    \tKUNIT_EXPECT_EQ(test, mtk_i2c_idvfs_completion_result(
-    \t\t1, MTK_I2C_IDVFS_IRQ_ACKERR), -ENXIO);
-    \tKUNIT_EXPECT_EQ(test, mtk_i2c_idvfs_completion_result(
-    \t\t1, MTK_I2C_IDVFS_IRQ_HS_NACKERR), -ENXIO);
+    \tint result;
+
+    \tresult = mtk_i2c_idvfs_completion_result(1,
+    \t\t\t\t\t\t MTK_I2C_IDVFS_IRQ_ACKERR);
+    \tKUNIT_EXPECT_EQ(test, result, -ENXIO);
+    \tresult = mtk_i2c_idvfs_completion_result(1,
+    \t\t\t\t\t\t MTK_I2C_IDVFS_IRQ_HS_NACKERR);
+    \tKUNIT_EXPECT_EQ(test, result, -ENXIO);
     }
 
-    static void mtk_i2c_idvfs_arbitration_loss_classification(
-    \tstruct kunit *test)
+    static void mtk_i2c_idvfs_arbitration_loss_classification(struct kunit *test)
     {
-    \tKUNIT_EXPECT_EQ(test, mtk_i2c_idvfs_completion_result(
-    \t\t0, MTK_I2C_IDVFS_IRQ_ARB_LOST), -EAGAIN);
+    \tint result = mtk_i2c_idvfs_completion_result(0,
+    \t\t\t\t\t\t      MTK_I2C_IDVFS_IRQ_ARB_LOST);
+
+    \tKUNIT_EXPECT_EQ(test, result, -EAGAIN);
     }
 
     static void mtk_i2c_idvfs_unexpected_irq_refusal(struct kunit *test)
     {
-    \tKUNIT_EXPECT_EQ(test,
-    \t\tmtk_i2c_idvfs_completion_result(1, 0), -EIO);
-    \tKUNIT_EXPECT_EQ(test, mtk_i2c_idvfs_completion_result(
-    \t\t1, MTK_I2C_IDVFS_IRQ_TRANSAC_COMP |
-    \t\t   MTK_I2C_IDVFS_IRQ_ACKERR), -ENXIO);
-    \tKUNIT_EXPECT_EQ(test, mtk_i2c_idvfs_completion_result(
-    \t\t1, MTK_I2C_IDVFS_IRQ_TRANSAC_COMP |
-    \t\t   MTK_I2C_IDVFS_IRQ_ARB_LOST), -EAGAIN);
+    \tu16 irq_stat;
+    \tint result;
+
+    \tresult = mtk_i2c_idvfs_completion_result(1, 0);
+    \tKUNIT_EXPECT_EQ(test, result, -EIO);
+    \tirq_stat = MTK_I2C_IDVFS_IRQ_TRANSAC_COMP |
+    \t\t   MTK_I2C_IDVFS_IRQ_ACKERR;
+    \tresult = mtk_i2c_idvfs_completion_result(1, irq_stat);
+    \tKUNIT_EXPECT_EQ(test, result, -ENXIO);
+    \tirq_stat = MTK_I2C_IDVFS_IRQ_TRANSAC_COMP |
+    \t\t   MTK_I2C_IDVFS_IRQ_ARB_LOST;
+    \tresult = mtk_i2c_idvfs_completion_result(1, irq_stat);
+    \tKUNIT_EXPECT_EQ(test, result, -EAGAIN);
     }
 
     static void mtk_i2c_idvfs_no_retry_eagain(struct kunit *test)
@@ -560,11 +574,12 @@ def kunit_source() -> str:
     \tu8 payload[2] = { MTK_I2C_TEST_BYTE0, MTK_I2C_TEST_BYTE1 };
     \tstruct i2c_msg msg = mtk_i2c_idvfs_test_message(payload);
     \tstruct mtk_i2c_idvfs_transfer_fake fake;
+    \tint result;
 
     \tmtk_i2c_idvfs_transfer_fake_init(&fake, -EAGAIN);
 
-    \tKUNIT_EXPECT_EQ(test, mtk_i2c_idvfs_transfer_once(
-    \t\t&fake.adap, &msg, 1), -EAGAIN);
+    \tresult = mtk_i2c_idvfs_transfer_once(&fake.adap, &msg, 1);
+    \tKUNIT_EXPECT_EQ(test, result, -EAGAIN);
     \tKUNIT_EXPECT_EQ(test, fake.calls, 1U);
     \tKUNIT_EXPECT_EQ(test, fake.lock_calls, 1U);
     \tKUNIT_EXPECT_EQ(test, fake.unlock_calls, 1U);
@@ -588,11 +603,12 @@ def kunit_source() -> str:
     \tu8 payload[2] = { MTK_I2C_TEST_BYTE0, MTK_I2C_TEST_BYTE1 };
     \tstruct i2c_msg msg = mtk_i2c_idvfs_test_message(payload);
     \tstruct mtk_i2c_idvfs_transfer_fake fake;
+    \tint result;
 
     \tmtk_i2c_idvfs_transfer_fake_init(&fake, 1);
 
-    \tKUNIT_EXPECT_EQ(test, mtk_i2c_idvfs_transfer_once(
-    \t\t&fake.adap, &msg, 1), 1);
+    \tresult = mtk_i2c_idvfs_transfer_once(&fake.adap, &msg, 1);
+    \tKUNIT_EXPECT_EQ(test, result, 1);
     \tKUNIT_EXPECT_EQ(test, fake.calls, 1U);
     \tKUNIT_EXPECT_EQ(test, fake.lock_calls, 1U);
     \tKUNIT_EXPECT_EQ(test, fake.unlock_calls, 1U);
@@ -607,11 +623,12 @@ def kunit_source() -> str:
     \tu8 payload[2] = { MTK_I2C_TEST_BYTE0, MTK_I2C_TEST_BYTE1 };
     \tstruct i2c_msg msg = mtk_i2c_idvfs_test_message(payload);
     \tstruct mtk_i2c_idvfs_transfer_fake fake;
+    \tint result;
 
     \tmtk_i2c_idvfs_transfer_fake_init(&fake, -EIO);
 
-    \tKUNIT_EXPECT_EQ(test, mtk_i2c_idvfs_transfer_once(
-    \t\t&fake.adap, &msg, 1), -EIO);
+    \tresult = mtk_i2c_idvfs_transfer_once(&fake.adap, &msg, 1);
+    \tKUNIT_EXPECT_EQ(test, result, -EIO);
     \tKUNIT_EXPECT_EQ(test, fake.calls, 1U);
     \tKUNIT_EXPECT_EQ(test, fake.lock_calls, 1U);
     \tKUNIT_EXPECT_EQ(test, fake.unlock_calls, 1U);
@@ -621,22 +638,21 @@ def kunit_source() -> str:
     \tKUNIT_EXPECT_EQ(test, fake.adap.retries, 1U);
     }
 
-    static void mtk_i2c_idvfs_lease_failure_overrides_success(
-    \tstruct kunit *test)
+    static void mtk_i2c_idvfs_lease_failure_overrides_success(struct kunit *test)
     {
-    \tKUNIT_EXPECT_EQ(test,
-    \t\tmtk_i2c_idvfs_result_after_lease(1, -EHOSTDOWN),
-    \t\t-EHOSTDOWN);
+    \tint result = mtk_i2c_idvfs_result_after_lease(1, -EHOSTDOWN);
+
+    \tKUNIT_EXPECT_EQ(test, result, -EHOSTDOWN);
     }
 
-    static void mtk_i2c_idvfs_transport_failure_retains_precedence(
-    \tstruct kunit *test)
+    static void mtk_i2c_idvfs_transport_failure_retains_precedence(struct kunit *test)
     {
-    \tKUNIT_EXPECT_EQ(test,
-    \t\tmtk_i2c_idvfs_result_after_lease(-ENXIO, 0), -ENXIO);
-    \tKUNIT_EXPECT_EQ(test,
-    \t\tmtk_i2c_idvfs_result_after_lease(-ENXIO, -EHOSTDOWN),
-    \t\t-ENXIO);
+    \tint result;
+
+    \tresult = mtk_i2c_idvfs_result_after_lease(-ENXIO, 0);
+    \tKUNIT_EXPECT_EQ(test, result, -ENXIO);
+    \tresult = mtk_i2c_idvfs_result_after_lease(-ENXIO, -EHOSTDOWN);
+    \tKUNIT_EXPECT_EQ(test, result, -ENXIO);
     }
 
     static struct kunit_case mtk_i2c_idvfs_write_contract_cases[] = {

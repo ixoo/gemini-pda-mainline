@@ -157,10 +157,13 @@ PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_source.py" \
 [[ -z "$(git -C "$work/verify" status --porcelain)" ]] ||
 	die 'verification source is dirty'
 
-perl "$source_root/scripts/checkpatch.pl" --no-tree --strict \
+if ! perl "$source_root/scripts/checkpatch.pl" --no-tree --strict \
 	--ignore MISSING_SIGN_OFF,FILE_PATH_CHANGES,COMMIT_LOG_LONG_LINE \
 	"$partial/patches/$patch1" "$partial/patches/$patch2" \
-	>"$partial/provenance/checkpatch.txt"
+	>"$partial/provenance/checkpatch.txt"; then
+	cat "$partial/provenance/checkpatch.txt" >&2
+	die 'strict checkpatch rejected generated patches'
+fi
 
 git -C "$work/source" diff-tree --no-commit-id --name-only -r \
 	"$production_commit" >"$partial/provenance/production-paths.txt"
