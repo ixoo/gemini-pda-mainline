@@ -80,6 +80,8 @@ focused test option is disabled.
   records the initial design validation.
 - [`results/source-tool-validation-20260819.txt`](results/source-tool-validation-20260819.txt)
   records the deterministic editor/profile validation before patch generation.
+- [`results/patch-generation-attempt-1-20260819.txt`](results/patch-generation-attempt-1-20260819.txt)
+  records the first fail-closed Buildbox anchor mismatch and correction.
 
 Run the design validator from the repository root:
 
@@ -124,9 +126,16 @@ The deterministic two-phase source editor, exact KUnit-only profile extension,
 generated production/helper bodies, and 12-case suite contract also pass their
 tool validator, which also covers the first-class Buildbox generate/fetch
 transport, generator, patch validator, QEMU runner, and classifier and rejects
-twenty source/tool/workflow mutations; the patch validator independently
+twenty-two source/tool/workflow mutations; the patch validator independently
 rejects nine patch mutations. No kernel source, build, QEMU run, device, or
 hardware state has yet been changed by this experiment.
+
+The first Buildbox generation attempt at repository commit `d8983a39751c2227`
+stopped before producing a patch because the completion-result source anchor
+matched zero times. The exact source was unchanged; review showed Python
+`textwrap.dedent()` had consumed the block's required outer function tab.
+Both the anchor and replacement now explicitly re-indent the dedented block,
+and two new source-tool mutations reject either side becoming outdented.
 
 ## Analysis
 

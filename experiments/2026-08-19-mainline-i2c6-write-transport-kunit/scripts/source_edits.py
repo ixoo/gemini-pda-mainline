@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
-from textwrap import dedent
+from textwrap import dedent, indent
 
 
 def replace_once(path: Path, old: str, new: str) -> None:
@@ -267,7 +267,7 @@ def edit_production_driver(root: Path) -> None:
         "\t} else if (i2c->op == I2C_MASTER_RD) {\n",
     )
 
-    result_anchor = dedent("""\
+    result_anchor = indent(dedent("""\
     \tif (i2c->dev_comp == &mt6797_idvfs_compat &&
     \t    i2c->irq_stat & I2C_ARB_LOST) {
     \t\tdev_dbg(i2c->dev, "addr: %x, arbitration lost\\n", msgs->addr);
@@ -296,8 +296,8 @@ def edit_production_driver(root: Path) -> None:
     \t\treturn -EIO;
     \t}
 
-    """)
-    result_replacement = dedent("""\
+    """), "\t")
+    result_replacement = indent(dedent("""\
     \tif (i2c->dev_comp == &mt6797_idvfs_compat) {
     \t\tint result = mtk_i2c_idvfs_completion_result(ret,
     \t\t\t\t\t\t\t      i2c->irq_stat);
@@ -328,7 +328,7 @@ def edit_production_driver(root: Path) -> None:
     \t\t}
     \t}
 
-    """)
+    """), "\t")
     replace_once(path, result_anchor, result_replacement)
 
     replace_once(
