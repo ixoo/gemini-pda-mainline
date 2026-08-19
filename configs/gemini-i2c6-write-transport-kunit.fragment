@@ -1,0 +1,5 @@
+# Hardware-free KUnit coverage for the MT6797 I2C6 short-write contract.
+# The suite uses only in-memory messages and a fake unregistered adapter.
+CONFIG_KUNIT=y
+CONFIG_I2C_MT65XX_GEMINI_WRITE_TRANSPORT_KUNIT_TEST=y
+CONFIG_LOCALVERSION="-gemini-i2c6-write-kunit"

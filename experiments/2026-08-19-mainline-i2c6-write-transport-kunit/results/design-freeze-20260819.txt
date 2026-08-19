@@ -1,0 +1,45 @@
+Gate-6 B2 hardware-free transport design freeze
+Local date: 2026-08-19 America/New_York
+
+scope=repository-only design and exact parent-source review
+parent_repository_commit=21728a382e771d7e11b4b9bf0392037002ffd572
+parent_kernel_release=7.1.3-gemini-i2c6-fwtxn
+parent_patchset_sha256=64c9e7cbd5bd292f4f0b02f8cf06f3713724c67bdb1451485aed2c46dbbf5d45
+
+fixture_address=0x2a
+fixture_messages=1
+fixture_payload=0xa5,0x5a
+fixture_adapter=in-memory-fake
+hardware_transfers=0
+device_access=none
+kernel_build=none
+qemu_run=none
+boot_candidate=false
+
+parent_fifo_size=8
+expected_operation=I2C_MASTER_WR
+expected_slave_addr=0x54
+expected_use_dma=0
+expected_transfer_len=2
+expected_transac_len=1
+expected_fifo_writes=0xa5,0x5a
+
+parent_adapter_retries=1
+required_retries_during=0
+required_fake_transfer_calls=1
+required_retry_restoration=1
+required_root_lock_calls=1
+required_root_lock_held_during_transfer=1
+required_root_unlock_calls=1
+parent_lease_result_condition=if-not-ret-and-lease-ret
+parent_success_result=positive-message-count
+required_lease_fix=negative-exit-overrides-nonnegative-transport
+
+required_kunit_cases=12
+unsafe_mutations_rejected=12
+hardware_action=none
+gate6_B2=open
+gate6_write=not-authorized
+cpu8_cpu9_admission=closed
+decision=IMPLEMENT_AND_RUN_HARDWARE_FREE_KUNIT
+result=pass

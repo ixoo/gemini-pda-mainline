@@ -1,0 +1,34 @@
+Gate-6 B2 deterministic source-tool validation
+Local date: 2026-08-19 America/New_York
+
+source_editor=two-phase-production-then-kunit
+buildbox_generator=pinned-bounded-normal-format-patches
+buildbox_transport=first-class-generate-and-fetch-commands
+patch_validator=exact-inventory-paths-and-prohibitions
+qemu_runner=bounded-network-free-arm64-virt
+qemu_classifier=exact-12-case-KTAP-pass
+production_helpers=plan,emit,completion,lease,root-locked-once
+production_driver_coupling=required
+kunit_profile=i2c6-write-transport-kunit
+kunit_profile_parent=da921x-i2c6-firmware-writer-transaction-window
+kunit_profile_delta=configs/gemini-i2c6-write-transport-kunit.fragment
+kunit_cases=12
+contract_mutations_rejected=10
+source_tool_mutations_rejected=20
+patch_validator_mutations_rejected=9
+runtime_classifier_mutations_rejected=8
+manifest_profiles_checked=85
+manifest_series_invariant=passed
+manifest_series_mutations_rejected=8
+
+kernel_source_edit=not-yet-executed
+kernel_build=none
+qemu_run=none
+device_access=none
+hardware_action=none
+boot_candidate=false
+gate6_B2=open
+gate6_write=not-authorized
+cpu8_cpu9_admission=closed
+decision=GENERATE_NORMAL_PATCHES_ON_BUILDBOX_AFTER_B1_PUBLICATION
+result=pass

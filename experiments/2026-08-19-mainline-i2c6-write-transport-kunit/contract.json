@@ -1,0 +1,105 @@
+{
+  "schema": "gemini-i2c6-write-transport-kunit-v1",
+  "status": "design-frozen-implementation-pending",
+  "roadmap_gate": "Gate-6-B2",
+  "hardware_scope": "none",
+  "parent": {
+    "repository_commit": "21728a382e771d7e11b4b9bf0392037002ffd572",
+    "kernel_release": "7.1.3-gemini-i2c6-fwtxn",
+    "patchset_sha256": "64c9e7cbd5bd292f4f0b02f8cf06f3713724c67bdb1451485aed2c46dbbf5d45",
+    "gate6_B1": "closed",
+    "gate6_B3": "closed",
+    "gate6_B4": "closed"
+  },
+  "fixture": {
+    "adapter": "in-memory-fake",
+    "address": "0x2a",
+    "messages": 1,
+    "flags": 0,
+    "length": 2,
+    "payload": [
+      "0xa5",
+      "0x5a"
+    ],
+    "physical_adapter_registrations": 0,
+    "start_writes": 0,
+    "hardware_transfers": 0
+  },
+  "expected_plan": {
+    "operation": "I2C_MASTER_WR",
+    "slave_addr": "0x54",
+    "use_dma": false,
+    "control_dma_en": false,
+    "control_dir_change": false,
+    "transfer_len": 2,
+    "transac_len": 1,
+    "fifo_writes": [
+      "0xa5",
+      "0x5a"
+    ]
+  },
+  "completion_results": {
+    "exact_completion": 0,
+    "arbitration_loss": "-EAGAIN",
+    "timeout": "-ETIMEDOUT",
+    "ack_or_hs_nack": "-ENXIO",
+    "unexpected_irq": "-EIO",
+    "mixed_completion_and_error": "error",
+    "successful_adapter_result": 1
+  },
+  "retry_contract": {
+    "retries_before": 1,
+    "retries_during": 0,
+    "retries_after": 1,
+    "root_lock_calls": 1,
+    "root_unlock_calls": 1,
+    "root_lock_held_during_transfer": true,
+    "max_fake_transfer_calls": 1,
+    "restore_on_every_exit": true
+  },
+  "lease_result_precedence": {
+    "positive_transport_negative_lease": "lease",
+    "negative_transport_zero_lease": "transport",
+    "negative_transport_negative_lease": "transport",
+    "positive_transport_zero_lease": "transport",
+    "ledger_finishes": 1
+  },
+  "required_kunit_cases": [
+    "exact-two-byte-fifo-plan",
+    "malformed-message-refusals",
+    "exact-completion-success",
+    "timeout-classification",
+    "nack-classification",
+    "arbitration-loss-classification",
+    "unexpected-irq-refusal",
+    "no-retry-eagain",
+    "retry-restoration-success",
+    "retry-restoration-failure",
+    "lease-failure-overrides-success",
+    "transport-failure-retains-precedence"
+  ],
+  "prohibited": {
+    "da921x_addresses_in_executable_test": true,
+    "da921x_register_value_in_executable_test": true,
+    "runtime_trigger": true,
+    "physical_mmio": true,
+    "physical_i2c": true,
+    "device_boot": true,
+    "boot_candidate": true,
+    "boot2_write": true,
+    "regulator_write": true,
+    "cpu8_cpu9_request": true,
+    "native_vm_kernel_build": true
+  },
+  "exit_criteria": {
+    "production_helpers_exercised": true,
+    "canonical_series_valid": true,
+    "focused_buildbox_package_valid": true,
+    "qemu_kunit_failed": 0,
+    "qemu_kunit_skipped": 0,
+    "implementation_complete": false,
+    "gate6_B2": "open",
+    "gate6_write": "not-authorized",
+    "cpu8_cpu9_admission": "closed"
+  }
+}
