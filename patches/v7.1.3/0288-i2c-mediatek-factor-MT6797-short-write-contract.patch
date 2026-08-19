@@ -1,0 +1,303 @@
+From 6093a75064d931cce1eac6c9b9698e172bf4543c Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Wed, 19 Aug 2026 12:01:00 +0000
+Subject: [PATCH 1/2] i2c: mediatek: factor MT6797 short-write contract
+
+Factor the exact one-message two-byte FIFO plan and emission path.
+
+Classify every iDVFS completion and preserve transfer failure precedence.
+
+Propagate a failed transfer-window exit over a nonnegative result.
+
+Add a dormant root-locked one-shot helper; no runtime caller exists.
+---
+ .../busses/i2c-mt65xx-gemini-write-contract.h |  39 ++++
+ drivers/i2c/busses/i2c-mt65xx.c               | 167 +++++++++++++++---
+ 2 files changed, 177 insertions(+), 29 deletions(-)
+ create mode 100644 drivers/i2c/busses/i2c-mt65xx-gemini-write-contract.h
+
+diff --git a/drivers/i2c/busses/i2c-mt65xx-gemini-write-contract.h b/drivers/i2c/busses/i2c-mt65xx-gemini-write-contract.h
+new file mode 100644
+index 0000000..058c8b3
+--- /dev/null
++++ b/drivers/i2c/busses/i2c-mt65xx-gemini-write-contract.h
+@@ -0,0 +1,39 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __I2C_MT65XX_GEMINI_WRITE_CONTRACT_H
++#define __I2C_MT65XX_GEMINI_WRITE_CONTRACT_H
++
++#include <linux/bits.h>
++#include <linux/i2c.h>
++#include <linux/types.h>
++
++#define MTK_I2C_IDVFS_IRQ_TRANSAC_COMP	BIT(0)
++#define MTK_I2C_IDVFS_IRQ_ACKERR		BIT(1)
++#define MTK_I2C_IDVFS_IRQ_HS_NACKERR	BIT(2)
++#define MTK_I2C_IDVFS_IRQ_ARB_LOST		BIT(3)
++#define MTK_I2C_IDVFS_SHORT_WRITE_BYTES	2
++
++struct mtk_i2c_idvfs_short_write_plan {
++	u16 slave_addr;
++	u16 transfer_len;
++	u16 transac_len;
++	u8 fifo[MTK_I2C_IDVFS_SHORT_WRITE_BYTES];
++	u8 fifo_count;
++	bool use_dma;
++	bool direction_change;
++};
++
++typedef void (*mtk_i2c_idvfs_fifo_write_fn)(void *context, u8 value);
++
++int mtk_i2c_idvfs_plan_short_write(const struct i2c_msg *msgs, int num,
++				   struct mtk_i2c_idvfs_short_write_plan *plan);
++void mtk_i2c_idvfs_emit_short_write(const struct mtk_i2c_idvfs_short_write_plan *plan,
++				    mtk_i2c_idvfs_fifo_write_fn write,
++				    void *context);
++int mtk_i2c_idvfs_completion_result(unsigned long wait_result,
++				    u16 irq_stat);
++int mtk_i2c_idvfs_result_after_lease(int transport_result,
++				     int lease_result);
++int mtk_i2c_idvfs_transfer_once(struct i2c_adapter *adap,
++				struct i2c_msg *msgs, int num);
++
++#endif /* __I2C_MT65XX_GEMINI_WRITE_CONTRACT_H */
+diff --git a/drivers/i2c/busses/i2c-mt65xx.c b/drivers/i2c/busses/i2c-mt65xx.c
+index 1a08899..0eaa90b 100644
+--- a/drivers/i2c/busses/i2c-mt65xx.c
++++ b/drivers/i2c/busses/i2c-mt65xx.c
+@@ -34,6 +34,8 @@
+ #include <linux/units.h>
+ #include <linux/uaccess.h>
+ 
++#include "i2c-mt65xx-gemini-write-contract.h"
++
+ #define I2C_RS_TRANSFER			(1 << 4)
+ #define I2C_ARB_LOST			(1 << 3)
+ #define I2C_HS_NACKERR			(1 << 2)
+@@ -1312,6 +1314,81 @@ static bool mtk_i2c_should_use_dma(struct mtk_i2c *i2c,
+ 	       (msgs + 1)->len > i2c->dev_comp->fifo_size;
+ }
+ 
++int mtk_i2c_idvfs_plan_short_write(const struct i2c_msg *msgs, int num,
++				   struct mtk_i2c_idvfs_short_write_plan *plan)
++{
++	if (!msgs || !plan || num != 1 || !msgs[0].buf ||
++	    msgs[0].flags || msgs[0].addr > 0x7f ||
++	    msgs[0].len != MTK_I2C_IDVFS_SHORT_WRITE_BYTES)
++		return -EINVAL;
++
++	memset(plan, 0, sizeof(*plan));
++	plan->slave_addr = msgs[0].addr << 1;
++	plan->transfer_len = MTK_I2C_IDVFS_SHORT_WRITE_BYTES;
++	plan->transac_len = 1;
++	plan->fifo_count = MTK_I2C_IDVFS_SHORT_WRITE_BYTES;
++	memcpy(plan->fifo, msgs[0].buf, sizeof(plan->fifo));
++	return 0;
++}
++
++void mtk_i2c_idvfs_emit_short_write(const struct mtk_i2c_idvfs_short_write_plan *plan,
++				    mtk_i2c_idvfs_fifo_write_fn write,
++				    void *context)
++{
++	unsigned int i;
++
++	if (!plan || !write || plan->fifo_count != sizeof(plan->fifo))
++		return;
++
++	for (i = 0; i < plan->fifo_count; i++)
++		write(context, plan->fifo[i]);
++}
++
++int mtk_i2c_idvfs_completion_result(unsigned long wait_result,
++				    u16 irq_stat)
++{
++	if (irq_stat & MTK_I2C_IDVFS_IRQ_ARB_LOST)
++		return -EAGAIN;
++	if (!wait_result)
++		return -ETIMEDOUT;
++	if (irq_stat & (MTK_I2C_IDVFS_IRQ_HS_NACKERR |
++			MTK_I2C_IDVFS_IRQ_ACKERR))
++		return -ENXIO;
++	if (irq_stat != MTK_I2C_IDVFS_IRQ_TRANSAC_COMP)
++		return -EIO;
++
++	return 0;
++}
++
++int mtk_i2c_idvfs_result_after_lease(int transport_result,
++				     int lease_result)
++{
++	if (transport_result >= 0 && lease_result < 0)
++		return lease_result;
++
++	return transport_result;
++}
++
++int mtk_i2c_idvfs_transfer_once(struct i2c_adapter *adap,
++				struct i2c_msg *msgs, int num)
++{
++	unsigned int retries;
++	int ret;
++
++	if (!adap || !msgs || num != 1 || !adap->lock_ops ||
++	    !adap->lock_ops->lock_bus || !adap->lock_ops->unlock_bus)
++		return -EINVAL;
++
++	i2c_lock_bus(adap, I2C_LOCK_ROOT_ADAPTER);
++	retries = adap->retries;
++	adap->retries = 0;
++	ret = __i2c_transfer(adap, msgs, num);
++	adap->retries = retries;
++	i2c_unlock_bus(adap, I2C_LOCK_ROOT_ADAPTER);
++
++	return ret;
++}
++
+ #ifdef CONFIG_I2C_MT65XX_ORION_DIAGNOSTIC
+ static void mtk_i2c_orion_record_programmed(struct mtk_i2c *i2c,
+ 					    bool use_dma)
+@@ -1513,6 +1590,14 @@ static void mtk_i2c_prepare_pio(struct mtk_i2c *i2c,
+ 		       i2c->base + i2c->dev_comp->regs[OFFSET_DATA_PORT]);
+ }
+ 
++static void mtk_i2c_idvfs_write_data_port(void *context, u8 value)
++{
++	struct mtk_i2c *i2c = context;
++
++	writel(value, i2c->base +
++	       i2c->dev_comp->regs[OFFSET_DATA_PORT]);
++}
++
+ static int mtk_i2c_complete_pio(struct mtk_i2c *i2c,
+ 				struct i2c_msg *msgs)
+ {
+@@ -1559,11 +1644,23 @@ static int mtk_i2c_do_transfer(struct mtk_i2c *i2c, struct i2c_msg *msgs,
+ 	u8 *dma_wr_buf = NULL;
+ 	dma_addr_t rpaddr = 0;
+ 	dma_addr_t wpaddr = 0;
++	struct mtk_i2c_idvfs_short_write_plan short_write = { };
++	bool idvfs_short_write;
+ 	bool use_dma;
+ 	int ret;
+ 
+ 	i2c->irq_stat = 0;
+-	use_dma = mtk_i2c_should_use_dma(i2c, msgs);
++	idvfs_short_write = i2c->dev_comp == &mt6797_idvfs_compat &&
++		i2c->op == I2C_MASTER_WR && num == 1 && msgs->len == 2;
++	if (idvfs_short_write) {
++		ret = mtk_i2c_idvfs_plan_short_write(msgs, num,
++						     &short_write);
++		if (ret)
++			return ret;
++		use_dma = short_write.use_dma;
++	} else {
++		use_dma = mtk_i2c_should_use_dma(i2c, msgs);
++	}
+ 
+ 	if (i2c->auto_restart)
+ 		restart_flag = I2C_RS_TRANSFER;
+@@ -1605,7 +1702,8 @@ static int mtk_i2c_do_transfer(struct mtk_i2c *i2c, struct i2c_msg *msgs,
+ 
+ 	mtk_i2c_writew(i2c, control_reg, OFFSET_CONTROL);
+ 
+-	addr_reg = i2c_8bit_addr_from_msg(msgs);
++	addr_reg = idvfs_short_write ? short_write.slave_addr :
++		i2c_8bit_addr_from_msg(msgs);
+ 	mtk_i2c_writew(i2c, addr_reg, OFFSET_SLAVE_ADDR);
+ 
+ 	/* Clear interrupt status */
+@@ -1624,6 +1722,11 @@ static int mtk_i2c_do_transfer(struct mtk_i2c *i2c, struct i2c_msg *msgs,
+ 		if (ret)
+ 			return ret;
+ 		mtk_i2c_writew(i2c, I2C_WRRD_TRANAC_VALUE, OFFSET_TRANSAC_LEN);
++	} else if (idvfs_short_write) {
++		mtk_i2c_writew(i2c, short_write.transfer_len,
++			       OFFSET_TRANSFER_LEN);
++		mtk_i2c_writew(i2c, short_write.transac_len,
++			       OFFSET_TRANSAC_LEN);
+ 	} else {
+ 		mtk_i2c_writew(i2c, msgs->len, OFFSET_TRANSFER_LEN);
+ 		mtk_i2c_writew(i2c, num, OFFSET_TRANSAC_LEN);
+@@ -1637,7 +1740,12 @@ static int mtk_i2c_do_transfer(struct mtk_i2c *i2c, struct i2c_msg *msgs,
+ 
+ 	/* Prepare buffer data to start transfer */
+ 	if (!use_dma) {
+-		mtk_i2c_prepare_pio(i2c, msgs);
++		if (idvfs_short_write)
++			mtk_i2c_idvfs_emit_short_write(&short_write,
++						       mtk_i2c_idvfs_write_data_port,
++						       i2c);
++		else
++			mtk_i2c_prepare_pio(i2c, msgs);
+ 	} else if (i2c->op == I2C_MASTER_RD) {
+ 		writel(I2C_DMA_INT_FLAG_NONE, i2c->pdmabase + OFFSET_INT_FLAG);
+ 		writel(I2C_DMA_CON_RX | dma_sync, i2c->pdmabase + OFFSET_CON);
+@@ -1785,32 +1893,34 @@ static int mtk_i2c_do_transfer(struct mtk_i2c *i2c, struct i2c_msg *msgs,
+ 		i2c_put_dma_safe_msg_buf(dma_rd_buf, (msgs + 1), true);
+ 	}
+ 
+-	if (i2c->dev_comp == &mt6797_idvfs_compat &&
+-	    i2c->irq_stat & I2C_ARB_LOST) {
+-		dev_dbg(i2c->dev, "addr: %x, arbitration lost\n", msgs->addr);
+-		mtk_i2c_init_hw(i2c);
+-		return -EAGAIN;
+-	}
++	if (i2c->dev_comp == &mt6797_idvfs_compat) {
++		int result = mtk_i2c_idvfs_completion_result(ret,
++							      i2c->irq_stat);
+ 
+-	if (ret == 0) {
+-		dev_dbg(i2c->dev, "addr: %x, transfer timeout\n", msgs->addr);
+-		i2c_dump_register(i2c);
+-		mtk_i2c_init_hw(i2c);
+-		return -ETIMEDOUT;
+-	}
+-
+-	if (i2c->irq_stat & (I2C_HS_NACKERR | I2C_ACKERR)) {
+-		dev_dbg(i2c->dev, "addr: %x, transfer ACK error\n", msgs->addr);
+-		mtk_i2c_init_hw(i2c);
+-		return -ENXIO;
+-	}
++		if (result) {
++			dev_dbg(i2c->dev,
++				"addr: %x, iDVFS transfer result %d irq 0x%x\n",
++				msgs->addr, result, i2c->irq_stat);
++			if (result == -ETIMEDOUT)
++				i2c_dump_register(i2c);
++			mtk_i2c_init_hw(i2c);
++			return result;
++		}
++	} else {
++		if (ret == 0) {
++			dev_dbg(i2c->dev, "addr: %x, transfer timeout\n",
++				msgs->addr);
++			i2c_dump_register(i2c);
++			mtk_i2c_init_hw(i2c);
++			return -ETIMEDOUT;
++		}
+ 
+-	if (i2c->dev_comp == &mt6797_idvfs_compat &&
+-	    i2c->irq_stat != I2C_TRANSAC_COMP) {
+-		dev_dbg(i2c->dev, "addr: %x, incomplete transaction: 0x%x\n",
+-			msgs->addr, i2c->irq_stat);
+-		mtk_i2c_init_hw(i2c);
+-		return -EIO;
++		if (i2c->irq_stat & (I2C_HS_NACKERR | I2C_ACKERR)) {
++			dev_dbg(i2c->dev, "addr: %x, transfer ACK error\n",
++				msgs->addr);
++			mtk_i2c_init_hw(i2c);
++			return -ENXIO;
++		}
+ 	}
+ 
+ 	if (!use_dma) {
+@@ -2047,8 +2157,7 @@ err_lease:
+ 	if (lease_active) {
+ 		lease_ret = mt6797_dvfsp_handoff_end_i2c6_transfer(
+ 			i2c->dvfsp_handoff, &lease, ret);
+-		if (!ret && lease_ret)
+-			ret = lease_ret;
++		ret = mtk_i2c_idvfs_result_after_lease(ret, lease_ret);
+ 	}
+ 
+ out_ledger:

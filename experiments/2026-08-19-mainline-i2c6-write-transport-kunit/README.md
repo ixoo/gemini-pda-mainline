@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-19-mainline-i2c6-write-transport-kunit` |
-| Status | `running` design frozen; implementation not yet built |
+| Status | `running` patches validated/imported; focused build pending |
 | Subsystem | MT6797 iDVFS I2C6 native FIFO transport |
 | Device variant | Hardware-free arm64 QEMU; no Gemini device action |
 | Date(s) | 2026-08-19 America/New_York |
@@ -37,6 +37,10 @@ same-value write is safe to execute.
   only the fetched Buildbox `Image`.
 - Boot path and target slot: none; this experiment must not construct or
   install a boot candidate.
+- The generated archive patches use the synthetic, non-certifying
+  `Gemini Mainline Experiment` identity without a sign-off. They are not
+  upstream-submission-ready; actual author metadata and a truthful DCO
+  certification are required before any submission.
 
 ## Safety assessment
 
@@ -88,6 +92,9 @@ focused test option is disabled.
   records the third fail-closed strict-style check and correction.
 - [`results/patch-generation-attempt-4-20260819.txt`](results/patch-generation-attempt-4-20260819.txt)
   records the fourth fail-closed final continuation alignment and correction.
+- [`results/patch-generation-attempt-5-success-20260819.txt`](results/patch-generation-attempt-5-success-20260819.txt)
+  records the validated package, exact imported patch identities, and clean
+  canonical-series audit.
 
 Run the design validator from the repository root:
 
@@ -170,6 +177,15 @@ argument began one column right of the call's opening parenthesis. It now uses
 the pinned checkpatch column, and the source-tool validator rejects that exact
 misalignment. Again the temporary source and partial package were removed and
 no validated package was published.
+
+The fifth Buildbox attempt at repository commit `a35beaddb0fbe431` completed.
+Both normal patches passed exact replay, edited-source validation, and strict
+checkpatch with zero errors, warnings, or checks. The fetched package passed
+its SHA-256 manifest; tracked patches 0288 and 0289 exactly match the validated
+package at SHA-256 `ecdd0091f43fc1871c1d17521d4aaae759da254a14cbd2ed82ccfa90a9d31f3c`
+and `85a4f78184793207f5a10ce8cb7bb12d9f5d7d5065bdd468cdaa7076a33945c5`.
+They are now the canonical series tail, and all 85 manifest profiles pass the
+series invariant. No kernel build or QEMU execution has occurred yet.
 
 ## Analysis
 

@@ -1,0 +1,392 @@
+From b0c1e3c4f0ac5ebb59aaf8a7ae1ac379e18c9c19 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Wed, 19 Aug 2026 12:02:00 +0000
+Subject: [PATCH 2/2] i2c: mediatek: add MT6797 short-write contract KUnit
+
+Execute the production helpers with sentinel bytes and fake state.
+
+Cover exact completion, every failure class, and one-call EAGAIN.
+
+Register no adapter, client, MMIO range, runtime trigger, or device.
+---
+ drivers/i2c/busses/Kconfig                    |  13 +
+ drivers/i2c/busses/Makefile                   |   1 +
+ .../i2c/busses/i2c-mt65xx-gemini-write-test.c | 333 ++++++++++++++++++
+ 3 files changed, 347 insertions(+)
+ create mode 100644 drivers/i2c/busses/i2c-mt65xx-gemini-write-test.c
+
+diff --git a/drivers/i2c/busses/Kconfig b/drivers/i2c/busses/Kconfig
+index d87aa01..3f0c26d 100644
+--- a/drivers/i2c/busses/Kconfig
++++ b/drivers/i2c/busses/Kconfig
+@@ -972,6 +972,19 @@ config I2C_MT65XX_GEMINI_ENTRY_LEDGER
+ 	  regulator consumer, or CPU action, and is intended only for the named
+ 	  Gemini Gate-6 attribution experiment. Say N otherwise.
+ 
++config I2C_MT65XX_GEMINI_WRITE_TRANSPORT_KUNIT_TEST
++	bool "KUnit tests for the MT6797 I2C6 short-write contract"
++	depends on KUNIT=y
++	depends on I2C_MT65XX=y
++	help
++	  Exercise the production-coupled MT6797 iDVFS one-message two-byte
++	  FIFO plan, completion classes, no-retry wrapper, and transfer-lease
++	  result precedence with an in-memory fake adapter.
++
++	  The suite registers no adapter or client, maps no MMIO, writes no
++	  START register, performs no physical transfer, and is only for the
++	  hardware-free Gemini Gate-6 B2 experiment. Say N otherwise.
++
+ config I2C_MT7621
+ 	tristate "MT7621/MT7628 I2C Controller"
+ 	depends on (RALINK && (SOC_MT7620 || SOC_MT7621)) || ARCH_AIROHA || COMPILE_TEST
+diff --git a/drivers/i2c/busses/Makefile b/drivers/i2c/busses/Makefile
+index 547123a..e983c17 100644
+--- a/drivers/i2c/busses/Makefile
++++ b/drivers/i2c/busses/Makefile
+@@ -84,6 +84,7 @@ obj-$(CONFIG_I2C_MESON)		+= i2c-meson.o
+ obj-$(CONFIG_I2C_MICROCHIP_CORE)	+= i2c-microchip-corei2c.o
+ obj-$(CONFIG_I2C_MPC)		+= i2c-mpc.o
+ obj-$(CONFIG_I2C_MT65XX)	+= i2c-mt65xx.o
++obj-$(CONFIG_I2C_MT65XX_GEMINI_WRITE_TRANSPORT_KUNIT_TEST) += i2c-mt65xx-gemini-write-test.o
+ obj-$(CONFIG_I2C_MT7621)	+= i2c-mt7621.o
+ obj-$(CONFIG_I2C_MV64XXX)	+= i2c-mv64xxx.o
+ obj-$(CONFIG_I2C_MXS)		+= i2c-mxs.o
+diff --git a/drivers/i2c/busses/i2c-mt65xx-gemini-write-test.c b/drivers/i2c/busses/i2c-mt65xx-gemini-write-test.c
+new file mode 100644
+index 0000000..b40a309
+--- /dev/null
++++ b/drivers/i2c/busses/i2c-mt65xx-gemini-write-test.c
+@@ -0,0 +1,333 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/* Hardware-free coverage for the MT6797 iDVFS short-write contract. */
++
++#include <kunit/test.h>
++#include <linux/errno.h>
++#include <linux/i2c.h>
++#include <linux/kernel.h>
++#include <linux/module.h>
++#include <linux/string.h>
++
++#include "i2c-mt65xx-gemini-write-contract.h"
++
++#define MTK_I2C_TEST_ADDR	0x2a
++#define MTK_I2C_TEST_BYTE0	0xa5
++#define MTK_I2C_TEST_BYTE1	0x5a
++
++struct mtk_i2c_idvfs_fifo_fake {
++	u8 values[MTK_I2C_IDVFS_SHORT_WRITE_BYTES];
++	unsigned int calls;
++};
++
++struct mtk_i2c_idvfs_transfer_fake {
++	struct i2c_adapter adap;
++	struct i2c_algorithm algo;
++	struct i2c_lock_operations lock_ops;
++	int result;
++	unsigned int calls;
++	unsigned int lock_calls;
++	unsigned int unlock_calls;
++	unsigned int lock_flags;
++	unsigned int unlock_flags;
++	unsigned int retries_during;
++	bool locked;
++	bool locked_during;
++	u16 address;
++	u16 flags;
++	u16 length;
++	u8 payload[MTK_I2C_IDVFS_SHORT_WRITE_BYTES];
++};
++
++static struct i2c_msg mtk_i2c_idvfs_test_message(u8 payload[2])
++{
++	struct i2c_msg msg = {
++		.addr = MTK_I2C_TEST_ADDR,
++		.len = MTK_I2C_IDVFS_SHORT_WRITE_BYTES,
++		.buf = payload,
++	};
++
++	return msg;
++}
++
++static void mtk_i2c_idvfs_fifo_fake_write(void *context, u8 value)
++{
++	struct mtk_i2c_idvfs_fifo_fake *fake = context;
++
++	if (fake->calls < ARRAY_SIZE(fake->values))
++		fake->values[fake->calls] = value;
++	fake->calls++;
++}
++
++static int mtk_i2c_idvfs_transfer_fake_xfer(struct i2c_adapter *adap,
++					    struct i2c_msg *msgs,
++						 int num)
++{
++	struct mtk_i2c_idvfs_transfer_fake *fake =
++		container_of(adap, struct mtk_i2c_idvfs_transfer_fake, adap);
++
++	fake->calls++;
++	fake->retries_during = adap->retries;
++	fake->locked_during = fake->locked;
++	if (num == 1 && msgs && msgs[0].buf && msgs[0].len == 2) {
++		fake->address = msgs[0].addr;
++		fake->flags = msgs[0].flags;
++		fake->length = msgs[0].len;
++		memcpy(fake->payload, msgs[0].buf, sizeof(fake->payload));
++	}
++
++	return fake->result;
++}
++
++static void mtk_i2c_idvfs_transfer_fake_lock(struct i2c_adapter *adap,
++					     unsigned int flags)
++{
++	struct mtk_i2c_idvfs_transfer_fake *fake =
++		container_of(adap, struct mtk_i2c_idvfs_transfer_fake, adap);
++
++	fake->lock_calls++;
++	fake->lock_flags = flags;
++	fake->locked = true;
++}
++
++static void mtk_i2c_idvfs_transfer_fake_unlock(struct i2c_adapter *adap,
++					       unsigned int flags)
++{
++	struct mtk_i2c_idvfs_transfer_fake *fake =
++		container_of(adap, struct mtk_i2c_idvfs_transfer_fake, adap);
++
++	fake->unlock_calls++;
++	fake->unlock_flags = flags;
++	fake->locked = false;
++}
++
++static void mtk_i2c_idvfs_transfer_fake_init(struct mtk_i2c_idvfs_transfer_fake *fake,
++					     int result)
++{
++	memset(fake, 0, sizeof(*fake));
++	fake->algo.master_xfer = mtk_i2c_idvfs_transfer_fake_xfer;
++	fake->adap.algo = &fake->algo;
++	fake->lock_ops.lock_bus = mtk_i2c_idvfs_transfer_fake_lock;
++	fake->lock_ops.unlock_bus = mtk_i2c_idvfs_transfer_fake_unlock;
++	fake->adap.lock_ops = &fake->lock_ops;
++	fake->adap.retries = 1;
++	fake->result = result;
++}
++
++static void mtk_i2c_idvfs_exact_two_byte_fifo_plan(struct kunit *test)
++{
++	u8 payload[2] = { MTK_I2C_TEST_BYTE0, MTK_I2C_TEST_BYTE1 };
++	struct i2c_msg msg = mtk_i2c_idvfs_test_message(payload);
++	struct mtk_i2c_idvfs_short_write_plan plan;
++	struct mtk_i2c_idvfs_fifo_fake fake = { };
++	int result;
++
++	result = mtk_i2c_idvfs_plan_short_write(&msg, 1, &plan);
++	KUNIT_ASSERT_EQ(test, result, 0);
++	KUNIT_EXPECT_EQ(test, plan.slave_addr, (u16)0x54);
++	KUNIT_EXPECT_EQ(test, plan.transfer_len, (u16)2);
++	KUNIT_EXPECT_EQ(test, plan.transac_len, (u16)1);
++	KUNIT_EXPECT_FALSE(test, plan.use_dma);
++	KUNIT_EXPECT_FALSE(test, plan.direction_change);
++	mtk_i2c_idvfs_emit_short_write(&plan, mtk_i2c_idvfs_fifo_fake_write,
++				       &fake);
++	KUNIT_EXPECT_EQ(test, fake.calls, 2U);
++	KUNIT_EXPECT_EQ(test, fake.values[0], (u8)MTK_I2C_TEST_BYTE0);
++	KUNIT_EXPECT_EQ(test, fake.values[1], (u8)MTK_I2C_TEST_BYTE1);
++}
++
++static void mtk_i2c_idvfs_malformed_message_refusals(struct kunit *test)
++{
++	u8 payload[3] = { MTK_I2C_TEST_BYTE0, MTK_I2C_TEST_BYTE1, 0 };
++	struct mtk_i2c_idvfs_short_write_plan plan;
++	struct i2c_msg msg = mtk_i2c_idvfs_test_message(payload);
++	int result;
++
++	result = mtk_i2c_idvfs_plan_short_write(NULL, 1, &plan);
++	KUNIT_EXPECT_EQ(test, result, -EINVAL);
++	result = mtk_i2c_idvfs_plan_short_write(&msg, 0, &plan);
++	KUNIT_EXPECT_EQ(test, result, -EINVAL);
++	msg.buf = NULL;
++	result = mtk_i2c_idvfs_plan_short_write(&msg, 1, &plan);
++	KUNIT_EXPECT_EQ(test, result, -EINVAL);
++	msg.buf = payload;
++	msg.flags = I2C_M_RD;
++	result = mtk_i2c_idvfs_plan_short_write(&msg, 1, &plan);
++	KUNIT_EXPECT_EQ(test, result, -EINVAL);
++	msg.flags = 0;
++	msg.len = 1;
++	result = mtk_i2c_idvfs_plan_short_write(&msg, 1, &plan);
++	KUNIT_EXPECT_EQ(test, result, -EINVAL);
++	msg.len = 3;
++	result = mtk_i2c_idvfs_plan_short_write(&msg, 1, &plan);
++	KUNIT_EXPECT_EQ(test, result, -EINVAL);
++	msg.len = 2;
++	msg.addr = 0x80;
++	result = mtk_i2c_idvfs_plan_short_write(&msg, 1, &plan);
++	KUNIT_EXPECT_EQ(test, result, -EINVAL);
++}
++
++static void mtk_i2c_idvfs_exact_completion_success(struct kunit *test)
++{
++	int result;
++
++	result = mtk_i2c_idvfs_completion_result(1,
++						 MTK_I2C_IDVFS_IRQ_TRANSAC_COMP);
++	KUNIT_EXPECT_EQ(test, result, 0);
++	result = mtk_i2c_idvfs_result_after_lease(1, 0);
++	KUNIT_EXPECT_EQ(test, result, 1);
++}
++
++static void mtk_i2c_idvfs_timeout_classification(struct kunit *test)
++{
++	int result = mtk_i2c_idvfs_completion_result(0, 0);
++
++	KUNIT_EXPECT_EQ(test, result, -ETIMEDOUT);
++}
++
++static void mtk_i2c_idvfs_nack_classification(struct kunit *test)
++{
++	int result;
++
++	result = mtk_i2c_idvfs_completion_result(1,
++						 MTK_I2C_IDVFS_IRQ_ACKERR);
++	KUNIT_EXPECT_EQ(test, result, -ENXIO);
++	result = mtk_i2c_idvfs_completion_result(1,
++						 MTK_I2C_IDVFS_IRQ_HS_NACKERR);
++	KUNIT_EXPECT_EQ(test, result, -ENXIO);
++}
++
++static void mtk_i2c_idvfs_arbitration_loss_classification(struct kunit *test)
++{
++	int result = mtk_i2c_idvfs_completion_result(0,
++						      MTK_I2C_IDVFS_IRQ_ARB_LOST);
++
++	KUNIT_EXPECT_EQ(test, result, -EAGAIN);
++}
++
++static void mtk_i2c_idvfs_unexpected_irq_refusal(struct kunit *test)
++{
++	u16 irq_stat;
++	int result;
++
++	result = mtk_i2c_idvfs_completion_result(1, 0);
++	KUNIT_EXPECT_EQ(test, result, -EIO);
++	irq_stat = MTK_I2C_IDVFS_IRQ_TRANSAC_COMP |
++		   MTK_I2C_IDVFS_IRQ_ACKERR;
++	result = mtk_i2c_idvfs_completion_result(1, irq_stat);
++	KUNIT_EXPECT_EQ(test, result, -ENXIO);
++	irq_stat = MTK_I2C_IDVFS_IRQ_TRANSAC_COMP |
++		   MTK_I2C_IDVFS_IRQ_ARB_LOST;
++	result = mtk_i2c_idvfs_completion_result(1, irq_stat);
++	KUNIT_EXPECT_EQ(test, result, -EAGAIN);
++}
++
++static void mtk_i2c_idvfs_no_retry_eagain(struct kunit *test)
++{
++	u8 payload[2] = { MTK_I2C_TEST_BYTE0, MTK_I2C_TEST_BYTE1 };
++	struct i2c_msg msg = mtk_i2c_idvfs_test_message(payload);
++	struct mtk_i2c_idvfs_transfer_fake fake;
++	int result;
++
++	mtk_i2c_idvfs_transfer_fake_init(&fake, -EAGAIN);
++
++	result = mtk_i2c_idvfs_transfer_once(&fake.adap, &msg, 1);
++	KUNIT_EXPECT_EQ(test, result, -EAGAIN);
++	KUNIT_EXPECT_EQ(test, fake.calls, 1U);
++	KUNIT_EXPECT_EQ(test, fake.lock_calls, 1U);
++	KUNIT_EXPECT_EQ(test, fake.unlock_calls, 1U);
++	KUNIT_EXPECT_EQ(test, fake.lock_flags,
++			I2C_LOCK_ROOT_ADAPTER);
++	KUNIT_EXPECT_EQ(test, fake.unlock_flags,
++			I2C_LOCK_ROOT_ADAPTER);
++	KUNIT_EXPECT_TRUE(test, fake.locked_during);
++	KUNIT_EXPECT_FALSE(test, fake.locked);
++	KUNIT_EXPECT_EQ(test, fake.retries_during, 0U);
++	KUNIT_EXPECT_EQ(test, fake.adap.retries, 1U);
++	KUNIT_EXPECT_EQ(test, fake.address, (u16)MTK_I2C_TEST_ADDR);
++	KUNIT_EXPECT_EQ(test, fake.flags, (u16)0);
++	KUNIT_EXPECT_EQ(test, fake.length, (u16)2);
++	KUNIT_EXPECT_EQ(test, fake.payload[0], (u8)MTK_I2C_TEST_BYTE0);
++	KUNIT_EXPECT_EQ(test, fake.payload[1], (u8)MTK_I2C_TEST_BYTE1);
++}
++
++static void mtk_i2c_idvfs_retry_restoration_success(struct kunit *test)
++{
++	u8 payload[2] = { MTK_I2C_TEST_BYTE0, MTK_I2C_TEST_BYTE1 };
++	struct i2c_msg msg = mtk_i2c_idvfs_test_message(payload);
++	struct mtk_i2c_idvfs_transfer_fake fake;
++	int result;
++
++	mtk_i2c_idvfs_transfer_fake_init(&fake, 1);
++
++	result = mtk_i2c_idvfs_transfer_once(&fake.adap, &msg, 1);
++	KUNIT_EXPECT_EQ(test, result, 1);
++	KUNIT_EXPECT_EQ(test, fake.calls, 1U);
++	KUNIT_EXPECT_EQ(test, fake.lock_calls, 1U);
++	KUNIT_EXPECT_EQ(test, fake.unlock_calls, 1U);
++	KUNIT_EXPECT_TRUE(test, fake.locked_during);
++	KUNIT_EXPECT_FALSE(test, fake.locked);
++	KUNIT_EXPECT_EQ(test, fake.retries_during, 0U);
++	KUNIT_EXPECT_EQ(test, fake.adap.retries, 1U);
++}
++
++static void mtk_i2c_idvfs_retry_restoration_failure(struct kunit *test)
++{
++	u8 payload[2] = { MTK_I2C_TEST_BYTE0, MTK_I2C_TEST_BYTE1 };
++	struct i2c_msg msg = mtk_i2c_idvfs_test_message(payload);
++	struct mtk_i2c_idvfs_transfer_fake fake;
++	int result;
++
++	mtk_i2c_idvfs_transfer_fake_init(&fake, -EIO);
++
++	result = mtk_i2c_idvfs_transfer_once(&fake.adap, &msg, 1);
++	KUNIT_EXPECT_EQ(test, result, -EIO);
++	KUNIT_EXPECT_EQ(test, fake.calls, 1U);
++	KUNIT_EXPECT_EQ(test, fake.lock_calls, 1U);
++	KUNIT_EXPECT_EQ(test, fake.unlock_calls, 1U);
++	KUNIT_EXPECT_TRUE(test, fake.locked_during);
++	KUNIT_EXPECT_FALSE(test, fake.locked);
++	KUNIT_EXPECT_EQ(test, fake.retries_during, 0U);
++	KUNIT_EXPECT_EQ(test, fake.adap.retries, 1U);
++}
++
++static void mtk_i2c_idvfs_lease_failure_overrides_success(struct kunit *test)
++{
++	int result = mtk_i2c_idvfs_result_after_lease(1, -EHOSTDOWN);
++
++	KUNIT_EXPECT_EQ(test, result, -EHOSTDOWN);
++}
++
++static void mtk_i2c_idvfs_transport_failure_retains_precedence(struct kunit *test)
++{
++	int result;
++
++	result = mtk_i2c_idvfs_result_after_lease(-ENXIO, 0);
++	KUNIT_EXPECT_EQ(test, result, -ENXIO);
++	result = mtk_i2c_idvfs_result_after_lease(-ENXIO, -EHOSTDOWN);
++	KUNIT_EXPECT_EQ(test, result, -ENXIO);
++}
++
++static struct kunit_case mtk_i2c_idvfs_write_contract_cases[] = {
++	KUNIT_CASE(mtk_i2c_idvfs_exact_two_byte_fifo_plan),
++	KUNIT_CASE(mtk_i2c_idvfs_malformed_message_refusals),
++	KUNIT_CASE(mtk_i2c_idvfs_exact_completion_success),
++	KUNIT_CASE(mtk_i2c_idvfs_timeout_classification),
++	KUNIT_CASE(mtk_i2c_idvfs_nack_classification),
++	KUNIT_CASE(mtk_i2c_idvfs_arbitration_loss_classification),
++	KUNIT_CASE(mtk_i2c_idvfs_unexpected_irq_refusal),
++	KUNIT_CASE(mtk_i2c_idvfs_no_retry_eagain),
++	KUNIT_CASE(mtk_i2c_idvfs_retry_restoration_success),
++	KUNIT_CASE(mtk_i2c_idvfs_retry_restoration_failure),
++	KUNIT_CASE(mtk_i2c_idvfs_lease_failure_overrides_success),
++	KUNIT_CASE(mtk_i2c_idvfs_transport_failure_retains_precedence),
++	{ }
++};
++
++static struct kunit_suite mtk_i2c_idvfs_write_contract_suite = {
++	.name = "mtk-i2c-idvfs-write-contract",
++	.test_cases = mtk_i2c_idvfs_write_contract_cases,
++};
++
++kunit_test_suite(mtk_i2c_idvfs_write_contract_suite);
++
++MODULE_LICENSE("GPL");
