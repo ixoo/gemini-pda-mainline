@@ -1,0 +1,70 @@
+Experiment: 2026-08-18-mainline-i2c6-firmware-writer-attestation
+Result: runtime attempt 1 captured successfully and the planned contract failed closed
+Local date: 2026-08-18 America/New_York
+Capture date: 2026-08-19 UTC
+Device: named Gemini PDA development unit
+
+Exact candidate
+---------------
+profile=da921x-i2c6-firmware-writer-attestation
+kernel_release=7.1.3-gemini-i2c6-fwatt
+build_source_commit=9ed564adac77042d9d0dff9dabc98b6caa646aca
+candidate_raw_sha256=7d8efed2f932e0a61e9417ae062fbb8b72b0baddc21c3857fb15093e0446c22b
+padded_boot2_sha256=4bdaef917acd477839cdc3129b2fa4a63591e29c6fa912afd214bc9a1f5d0972
+mainline_boot_id_sha256=01ee8ca67f982038b83014ac784792a282c44cd431f190d7e4c0dc73aa78e75b
+
+Runtime classification
+----------------------
+runtime_classification=success-firmware-writer-attestation
+planned_attestation_decision=failed
+planned_roadmap_decision=keep-B1-open
+cpu_online=0-7
+cpu_offline=8-9
+register_writes=0
+i2c6_attestation_transfers=0
+register_state_stable=1
+sample0_scp_reset_control=00000000
+sample0_scp_debug_pc=fffffffe
+sample0_devapc_i2c6_permission_raw=00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000
+sample0_master_domain_raw=00000000,00000000,00000000,00000000
+sample0_devapc_control=00000001
+sample1_scp_reset_control=00000000
+sample1_scp_debug_pc=fffffffe
+sample1_devapc_i2c6_permission_raw=00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000
+sample1_master_domain_raw=00000000,00000000,00000000,00000000
+sample1_devapc_control=00000001
+decoded_domain0=0
+decoded_domain1=0
+da921x_i2c_clients=0
+handoff_state=faulted
+handoff_fault_reason=i2c6-fw-writer-attestation-failed
+CPU8_CPU9_admission=closed
+
+Native return
+-------------
+native_reboot_command_sent=yes
+native_reboot_to_changed_gemian=passed
+returned_boot_id_sha256=17a969d198130fd7243138ed75d527d0022cb368f273d8ff2940b1ed682dafbd
+
+Private capture integrity
+-------------------------
+classification_txt_sha256=150f6babb86299da8af00b0c9eac67439c2d79798626f2819c557b8f56e3d8b7
+observer_events_txt_sha256=a7f481741b644c26c64e8df82a22beed679cd6b93929fcaad2d9cd66fcf9811e
+runtime_txt_sha256=b3f806feff8a0bc1374dbf7f543e300e13fae10caa867903ea3521894d08373d
+usb_topology_txt_sha256=5461cb9d40f34fc5e6b3b2f6f564f53e483f629e22b9f58e568505eec98c0e25
+
+Decision
+--------
+planned_contract=failed-closed-as-designed
+firmware_writer_exclusion=B1-remains-open
+Gate6_B2=not-started
+Gate6_write=not-authorized
+CPU8_CPU9_admission=closed
+result=pass-valid-failed-closed-observation
+
+The quick native reboot was the predeclared action after a structurally valid
+capture, not an unexplained kernel reset. No I2C6 transfer, DA921x register-data
+write, firmware register write, regulator action, or CPU request occurred. The
+separate contract-correction record explains why the observed reset-control
+value is useful even though the original compound pass condition rejected the
+boot.

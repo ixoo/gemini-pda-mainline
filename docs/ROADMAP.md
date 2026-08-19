@@ -4153,15 +4153,35 @@ changed-identity Gemian also passed. This closes B3 exact transfer attribution
 and B4 stable safe prestate only; see the
 [finalized runtime result](../experiments/2026-08-18-mainline-da921x-runtime-preflight-ledger/results/runtime-attempt-1e-finalized-20260818.txt).
 
-The single next ordered discriminator is B1: reconcile the historical
-`SEMA_I2C_DRV` pause lease and the current stopped-receiver/Linux lease into a
-reviewable transaction-window proof that excludes every firmware-side I2C6
-writer. Do not build or boot a writable provider while B1 is open. Once B1 is
-closed, B2 must independently establish the native one-message two-byte write
-shape and its exact completion/failure accounting without yet requesting a
-DA921x state change. Only after both blockers close may the reviewed one-shot
-same-value `0xda:0x46 -> 0x46` candidate return for an explicit pre-write
-review. Gate-6 writing and CPU8/CPU9 admission remain closed.
+The first B1 read-only attestation candidate completed one attributable
+runtime attempt and failed its frozen compound gate closed. It observed SCP
+reset control `0` twice and debug PC `0xfffffffe` twice; the stable AP-visible
+Device-APC AO permission/master words were all zero and control was `1`.
+Because the original predicate also required PC zero and decoded domain 1
+permission `3`, it faulted before stopped-DVFSP validation, created no DA921x
+client, made zero I2C6 transfers and register writes, then performed its
+predeclared native return to changed-identity Gemian. Pinned public source
+shows reset-control zero is the asserted-reset state and one releases SCP;
+the source names the PC register but does not support zero as its reset value.
+The AP-visible all-zero AO view is retained as a diagnostic, not promoted to a
+secure-policy observation. Preserve this result and do not repeat the exact
+artifact; see the
+[runtime record](../experiments/2026-08-18-mainline-i2c6-firmware-writer-attestation/results/runtime-attempt-1-failed-closed-20260819.txt)
+and [contract correction](../experiments/2026-08-18-mainline-i2c6-firmware-writer-attestation/results/runtime-attempt-1-contract-correction-20260819.txt).
+
+The single next ordered discriminator remains B1: a corrected read-only
+successor must require reset control zero, record PC and Device-APC without
+using them as pass predicates, complete the existing stopped-DVFSP handoff in
+the same boot, and require reset control zero at both edges of every admitted
+provider-read transaction. Combined with the exact retained firmware audits
+and disabled mainline SCP driver/node, that produces the missing reviewable
+transaction-window proof. Do not build or boot a writable provider while B1
+is open. Once B1 is closed, B2 must independently establish the native
+one-message two-byte write shape and its exact completion/failure accounting
+without yet requesting a DA921x state change. Only after both blockers close
+may the reviewed one-shot same-value `0xda:0x46 -> 0x46` candidate return for
+an explicit pre-write review. Gate-6 writing and CPU8/CPU9 admission remain
+closed.
 
 The first writable test must:
 

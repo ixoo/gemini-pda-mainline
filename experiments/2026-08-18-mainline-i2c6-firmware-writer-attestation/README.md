@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-18-mainline-i2c6-firmware-writer-attestation` |
-| Status | `candidate-validated-awaiting-runtime` |
+| Status | `completed-failed-closed` |
 | Subsystem | MT6797 SCP, Device-APC, and I2C6 ownership |
 | Device variant | Planet Gemini PDA, MT6797 named development unit |
 | Date(s) | 2026-08-18 America/New_York |
@@ -100,24 +100,50 @@ policy.
   attestation-window mutations passed.
 - The runtime classifier accepts both structurally valid decision branches,
   rejects six unsafe mutations, exposes the immutable raw samples, and permits
-  native return only after a complete capture. Device deployment and runtime
-  evidence remain pending.
+  native return only after a complete capture.
+- Guarded deployment resolved inactive live-GPT `boot2` as p30 while Gemian
+  used p29. The exact write, sync, flush, full readback, and clean shutdown
+  passed without a fresh backup or automatic reboot.
+- The one permitted runtime attempt captured both samples. SCP reset control
+  was `0x00000000` twice and debug PC was `0xfffffffe` twice. Every AP-visible
+  Device-APC permission and master-domain word was zero, while control was
+  `0x00000001`; all values were stable. The planned compound predicate failed,
+  so the handoff faulted before creating an I2C6 client or transfer. CPUs 8--9
+  stayed offline and no register write occurred.
+- The collector sent its predeclared native reboot only after the complete
+  capture, and a changed-identity Gemian boot returned. The quick reboot was
+  therefore expected experiment behavior rather than unattributed failure.
 
 ## Analysis
 
-Pending. A pass closes only the SCP-writer branch when combined with the
-exact-image audit and the existing stopped-PCM runtime evidence. A failure is
-still useful because the raw samples distinguish nonzero SCP state from an
-unstable or unexpected Device-APC policy.
+The candidate correctly failed its frozen contract, but the observation also
+exposed two defects in that contract. Pinned public Gemian source defines SCP
+configuration offset `0x000` as reset control: zero asserts reset and one
+releases/starts SCP. The stable zero observations are therefore positive
+evidence that SCP remained reset. Offset `0x0b4` is the debug-PC register, but
+the source does not justify requiring it to read zero while reset; its stable
+`0xfffffffe` value remains diagnostic. Likewise, the stable all-zero AP view
+of Device-APC AO cannot be treated as proof of the secure policy installed by
+ATF.
+
+This run did not execute the inherited stopped-DVFSP validation because the
+compound gate faulted first. B1 therefore remains open. The corrected
+successor must require reset control zero, record PC and Device-APC without
+using them as pass predicates, run the stopped-DVFSP validation in the same
+boot, and recheck reset control at both edges of every admitted read-only I2C6
+transfer. See the
+[`runtime result`](results/runtime-attempt-1-failed-closed-20260819.txt) and
+[`contract correction`](results/runtime-attempt-1-contract-correction-20260819.txt).
 
 ## Conclusion
 
-The exact candidate is `validated-awaiting-runtime`. Gate-6 writing and
-CPU8/CPU9 admission remain closed.
+The exact candidate is complete and must not be repeated. It produced a valid,
+failed-closed B1 observation with zero I2C6 transfers and zero writes. Gate-6
+writing and CPU8/CPU9 admission remain closed.
 
 ## Follow-up
 
-On a pass, proceed to Gate-6 blocker B2: prove the native MT6797 I2C controller
-can issue exactly one two-byte message without enabling any DA921x write path.
-On a failure, keep B1 open and design the next read-only discriminator from the
-captured raw register state.
+Implement one corrected read-only successor that combines live SCP reset hold,
+same-boot stopped-DVFSP validation, and per-transfer reset checks around only
+the already-proven provider reads. Advance to B2 only if that exact proof chain
+passes. Do not enable a writable provider, DA921x write, or CPU request.

@@ -1,0 +1,34 @@
+Experiment: 2026-08-18-mainline-i2c6-firmware-writer-attestation
+Result: guarded boot2 deployment passed
+Date: 2026-08-18 America/New_York
+Device: named Gemini PDA development unit
+
+repository_commit=9ed564adac77042d9d0dff9dabc98b6caa646aca
+profile=da921x-i2c6-firmware-writer-attestation
+kernel_release=7.1.3-gemini-i2c6-fwatt
+candidate_raw_sha256=7d8efed2f932e0a61e9417ae062fbb8b72b0baddc21c3857fb15093e0446c22b
+candidate_raw_size=6893568
+candidate_padded_sha256=4bdaef917acd477839cdc3129b2fa4a63591e29c6fa912afd214bc9a1f5d0972
+candidate_padded_size=16777216
+target_logical_name=boot2
+target_live_gpt=/dev/mmcblk0p30
+active_root=/dev/mmcblk0p29
+target_active_or_mounted=no
+predecessor_sha256=af560eaad69b61239db7980995776b47b1194bb26fe5c8a24d8f1462008ab296
+fresh_predecessor_backup=no
+recovery_basis=verified-project-wide-device-backup-captured-at-project-start
+power_capacity_percent=100
+power_health=Good
+write=completed
+sync_and_flush=completed
+full_partition_readback_sha256=4bdaef917acd477839cdc3129b2fa4a63591e29c6fa912afd214bc9a1f5d0972
+full_partition_readback=matched
+temporary_readback_removed=yes
+clean_shutdown=requested
+post_shutdown_reachability=unreachable
+automatic_reboot=no
+result=pass
+
+This is a sanitized deployment receipt. The ignored private record retains the
+exact boot identity; no raw partition content, credential, serial, calibration
+data, or personal identifier is published here.

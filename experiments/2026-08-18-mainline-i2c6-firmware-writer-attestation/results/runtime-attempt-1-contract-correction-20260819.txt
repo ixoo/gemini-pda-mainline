@@ -1,0 +1,67 @@
+Experiment: 2026-08-18-mainline-i2c6-firmware-writer-attestation
+Result: source-backed correction of the failed runtime contract
+Date: 2026-08-19 UTC
+Scope: read-only analysis; no build; no device action
+
+Original result preserved
+-------------------------
+original_contract=contract.json
+original_decision=failed
+original_failure_1=scp_debug_pc expected 00000000 observed fffffffe twice
+original_failure_2=domain1 permission expected 3 observed AP-visible 0 twice
+original_handoff_result=faulted-before-stopped-PCM-validation
+original_I2C6_transfers=0
+
+Pinned public source
+--------------------
+repository=https://github.com/gemian/gemini-linux-kernel-3.18
+commit=d388d350cb2dda8f23b99be6fa5db9628896e87f
+dts=arch/arm64/boot/dts/mt6797.dts
+scp_helper=drivers/misc/mediatek/scp/mt6797/scp_helper.c
+scp_helper_sha256=fa5778ab866b48da9fc83ff5e8a415eb9f21ca8604d285d0d4080e5182f3bbed
+scp_register_header=drivers/misc/mediatek/scp/mt6797/scp_ipi.h
+scp_register_header_sha256=92f0234c81ad69f19c911b816e8657c576027944f9245616c4507f1ceffdd0ea
+
+Source-backed observations
+--------------------------
+scp_cfg_resource=DT SCP resource 1 at 0x100a0000
+scp_reset_control=cfg+0x000
+scp_reset_assertion=reset_scp writes 0 when reset is requested
+scp_reset_release=reset_scp then writes 1 to release/start SCP
+scp_initialization=initialization calls reset_scp(0), which writes 1
+scp_debug_pc=cfg+0x0b4 is named SCP_DEBUG_PC_REG
+mainline_profile_scp_driver=disabled
+mainline_DT_scp_node=disabled
+runtime_reset_control=00000000 twice, stable across 10--11 ms
+runtime_debug_pc=fffffffe twice, stable diagnostic only
+
+Device-APC interpretation
+-------------------------
+devapc_ao_resource=0x1000e000
+devapc_pd_violation_controller_resource=0x10207000
+runtime_AO_permissions=all-zero twice
+runtime_AO_master_domains=all-zero twice
+runtime_AO_control=00000001 twice
+interpretation=the AP-visible all-zero AO view is stable but cannot be promoted to the secure policy installed by ATF
+successor_use=record-only diagnostic; not a pass predicate
+
+Correction and next discriminator
+---------------------------------
+authoritative_live_predicate=SCP reset-control must be exactly 0
+debug_pc_predicate=remove; retain as immutable diagnostic
+devapc_live_policy_predicate=remove; retain as immutable non-authoritative diagnostic
+same_boot_requirement=run the existing stopped-DVFSP handoff after the corrected reset predicate passes
+transaction_window_requirement=require SCP reset-control 0 at every I2C6 transfer admission and again before lease release
+static_chain=combine exact retained LK/ATF/TEE/SCP audits, disabled mainline SCP driver/node, stopped-DVFSP validation, and live per-transfer reset hold
+successor_actions=read-only provider reads only; zero register-data writes; CPUs 8-9 offline
+Gate6_B1=remains-open-until-corrected-same-boot-discriminator
+Gate6_B2=not-started
+Gate6_write=not-authorized
+CPU8_CPU9_admission=closed
+result=pass-contract-correction
+
+This correction does not reinterpret the original candidate as a pass. It
+identifies two invalid predicates after observing the hardware, preserves the
+failed-closed result, and defines a decision-changing successor that combines
+the live reset hold with stopped-PCM validation and the actual I2C6 transfer
+window in one boot.
