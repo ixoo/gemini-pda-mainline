@@ -5,10 +5,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-18-mainline-i2c6-firmware-writer-transaction-window` |
-| Status | `candidate-validated-awaiting-install` |
+| Status | `runtime-complete` |
 | Subsystem | MT6797 SCP, stopped DVFSP, and I2C6 ownership |
 | Device variant | Planet Gemini PDA, MT6797 named development unit |
-| Date(s) | 2026-08-18 America/New_York |
+| Date(s) | 2026-08-18 through 2026-08-19 America/New_York |
 | Investigator(s) | Project maintainers |
 | Tracking issue | Roadmap Gate 6 blocker B1 |
 
@@ -108,6 +108,21 @@ and [collector pre-arm validation](results/collector-prearm-validation-20260819.
 
 ## Current conclusion
 
-The exact boot candidate is independently validated and awaiting guarded
-installation to logical `boot2`. B1 remains open until its one attributable
-runtime result. B2, every Gate-6 write, and CPU8/CPU9 admission remain closed.
+Guarded deployment resolved inactive live-GPT logical `boot2` as p30 while
+Gemian used p29, wrote the exact padded candidate, required a matching full
+readback, and shut the device down. The one owner-selected boot then passed
+the complete contract: both pre-handoff reset samples were zero, stopped-DVFSP
+reached ready, all 20 transaction-entry and 20 transaction-exit reset checks
+were zero, the exact 20-entry read-only ledger completed without overflow or
+unexpected traffic, and DA921x register-data writes remained zero. CPUs 8--9,
+USB, polling keyboard, block-mount closure, kernel-fault closure, and the
+planned native return to changed-identity Gemian also passed.
+
+This closes B1 on the named unit and exact revision when combined with the
+retained firmware audits and disabled mainline SCP path. See the
+[deployment record](results/deployment-1-20260819.txt) and
+[runtime result](results/runtime-attempt-1-success-20260819.txt). Do not repeat
+this artifact. B2 is now the sole next ordered Gate-6 discriminator: prove the
+native one-message two-byte write shape and completion/failure accounting
+without requesting a DA921x state change. Every DA921x write and CPU8/CPU9
+admission remains closed.

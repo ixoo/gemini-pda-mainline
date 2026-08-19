@@ -1,6 +1,6 @@
 {
   "id": "2026-08-18-mainline-i2c6-firmware-writer-transaction-window",
-  "status": "candidate-validated-awaiting-install",
+  "status": "runtime-complete",
   "profile": "da921x-i2c6-firmware-writer-transaction-window",
   "functional_parent_profile": "da921x-lk-clock-readonly-provider",
   "attestation_parent_profile": "da921x-i2c6-firmware-writer-attestation",

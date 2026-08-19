@@ -1,0 +1,20 @@
+Deployment result: write-synced-flushed-full-readback-verified
+
+experiment=2026-08-18-mainline-i2c6-firmware-writer-transaction-window
+deployment_boot_id=8212066f-490c-4b83-9f6e-fa90764b2f05
+target_logical_name=boot2
+target=/dev/mmcblk0p30
+active_root=/dev/mmcblk0p29
+power_external=1
+power_capacity_percent=100
+power_health=Good
+target_writable=1
+predecessor_sha256=4bdaef917acd477839cdc3129b2fa4a63591e29c6fa912afd214bc9a1f5d0972
+fresh_predecessor_backup=no
+candidate_sha256=fd6680d6e0ab3fbd61cc4f46b517a4672dd115eed92f2bbc0ae788b6e263c760
+readback_sha256=fd6680d6e0ab3fbd61cc4f46b517a4672dd115eed92f2bbc0ae788b6e263c760
+temporary_readback_removed=yes
+shutdown=requested-after-evidence-flush
+post_shutdown_reachability=unreachable
+reboot=no
+result=pass
