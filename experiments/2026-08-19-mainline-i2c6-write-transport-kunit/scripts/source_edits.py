@@ -477,7 +477,7 @@ def kunit_source() -> str:
     \tKUNIT_EXPECT_FALSE(test, plan.use_dma);
     \tKUNIT_EXPECT_FALSE(test, plan.direction_change);
     \tmtk_i2c_idvfs_emit_short_write(&plan, mtk_i2c_idvfs_fifo_fake_write,
-    \t\t\t\t\t&fake);
+    \t\t\t\t       &fake);
     \tKUNIT_EXPECT_EQ(test, fake.calls, 2U);
     \tKUNIT_EXPECT_EQ(test, fake.values[0], (u8)MTK_I2C_TEST_BYTE0);
     \tKUNIT_EXPECT_EQ(test, fake.values[1], (u8)MTK_I2C_TEST_BYTE1);

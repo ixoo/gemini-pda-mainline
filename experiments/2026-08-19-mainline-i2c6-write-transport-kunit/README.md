@@ -86,6 +86,8 @@ focused test option is disabled.
   records the second fail-closed Buildbox indentation check and correction.
 - [`results/patch-generation-attempt-3-20260819.txt`](results/patch-generation-attempt-3-20260819.txt)
   records the third fail-closed strict-style check and correction.
+- [`results/patch-generation-attempt-4-20260819.txt`](results/patch-generation-attempt-4-20260819.txt)
+  records the fourth fail-closed final continuation alignment and correction.
 
 Run the design validator from the repository root:
 
@@ -130,7 +132,7 @@ The deterministic two-phase source editor, exact KUnit-only profile extension,
 generated production/helper bodies, and 12-case suite contract also pass their
 tool validator, which also covers the first-class Buildbox generate/fetch
 transport, generator, patch validator, QEMU runner, and classifier and rejects
-twenty-four source/tool/workflow mutations; the patch validator independently
+twenty-five source/tool/workflow mutations; the patch validator independently
 rejects nine patch mutations. No kernel source, build, QEMU run, device, or
 hardware state has yet been changed by this experiment.
 
@@ -159,6 +161,15 @@ continuation columns; the deterministic source now uses those alignments,
 contains no line ending in `(` or exceeding 100 columns, and emits future
 generator diagnostics directly. The temporary source and partial package were
 removed and no validated package was published.
+
+The fourth Buildbox generation attempt at repository commit
+`d8eda21e9d38ec65` made production patch 0288 strict-clean with zero errors,
+warnings, or checks. KUnit patch 0289 had zero errors and warnings but one
+remaining continuation-alignment check: the FIFO fake's final `&fake`
+argument began one column right of the call's opening parenthesis. It now uses
+the pinned checkpatch column, and the source-tool validator rejects that exact
+misalignment. Again the temporary source and partial package were removed and
+no validated package was published.
 
 ## Analysis
 
