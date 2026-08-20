@@ -4203,12 +4203,26 @@ on every exit. Because the old ledger records only the register pointer, the
 successor must attribute both `0xda` and data byte `0x46` in its sole
 write-shaped entry.
 
-The review permits only a default-off implementation and hardware-free
-validation. The sole next ordered action is to implement that exact contract,
-test success and every failure/mismatch stage, audit the complete patch/profile
-series, and build the exact clean pushed commit through Buildbox. No boot
-candidate or physical DA921x write exists yet. Gate-6 hardware writing and
-CPU8/CPU9 admission remain closed.
+The default-off implementation and its hardware-free proof now pass. Canonical
+patches 0290--0292 build from exact clean pushed commit `7c012d736f78...` as
+production release `7.1.3-gemini-da921x-same-write`; the focused six-case QEMU
+suite covers every transfer and value-mismatch ordinal. The production package
+has KUnit disabled. Two independent Android-v0 constructions and two 16 MiB
+padding paths are byte-identical at raw `b84f3ba8d86e...` and padded
+`b81813d13acc...`; all 32 LK gates pass and eight semantic DT mutations are
+rejected. The checksum-pinned collector preserves the exact 20-entry pretrigger
+ledger before one token, permits no retry or second write, accepts success and
+both bounded terminal failure families, and requests native reboot only after
+durable terminal classification. Its classifier rejects thirteen runtime
+mutations, including moving attribute writability outside the bounded
+read-write sysfs window.
+
+No device or physical I2C transaction was involved in those production,
+candidate, or collector validations. The sole next ordered action is to publish
+their exact predeployment evidence, then pass the known-good-OS read-only
+serviceability and guarded boot2 deployment gates. A verified boot2 install
+must end in clean shutdown. CPU8/CPU9 admission remains closed regardless of
+the Gate-6 runtime result; Gate 7 is a separate decision.
 
 The first writable test must:
 

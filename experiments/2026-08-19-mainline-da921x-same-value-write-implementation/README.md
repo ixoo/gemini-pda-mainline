@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-19-mainline-da921x-same-value-write-implementation` |
-| Status | `running`; hardware-free implementation passed, production build pending, no candidate |
+| Status | `running`; production candidate and collector pass offline, publication pending |
 | Subsystem | DA921x regulator, MT6797 I2C6 ledger and transaction window |
 | Device variant | Planet Gemini PDA named unit; current work hardware-free |
 | Date(s) | 2026-08-19--20 America/New_York |
@@ -34,6 +34,10 @@ controller must independently attribute both write bytes.
   [`scripts/generate-on-buildbox`](scripts/generate-on-buildbox).
 - Focused Buildbox commit: `169d86ef5bc961a30bf07d2da4cb39234c9914cd`.
 - Focused release: `7.1.3-gemini-da921x-same-write-kunit`.
+- Production Buildbox commit: `7c012d736f78898be08bfd8430a25c8708a62e1d`.
+- Production release: `7.1.3-gemini-da921x-same-write`.
+- Exact padded boot2 candidate: SHA-256
+  `b81813d13acc970c7b9203b89ec034921ef6f7e1017539a0c228754619af7b22`.
 - No native VM build is permitted. The focused Buildbox compile and isolated
   network-free QEMU run passed; no device action occurred.
 
@@ -44,19 +48,21 @@ unregistered fake adapter and networking disabled. It performed no physical
 I2C transaction, device access, boot image construction, partition write,
 regulator action, or CPU request.
 
-Patch 0291 will contain a real register-write path, but it is default-off and
+Patch 0291 contains a real register-write path, but it is default-off and
 reachable only through one exact-token device attribute in the isolated
 profile. A source patch, compile result, or KUnit pass does not authorize that
-path on hardware. Physical writing remains closed until every later package,
-candidate, collector, predeployment, evidence-publication, and serviceability
-gate passes. CPU8 and CPU9 remain offline and unrequested.
+path on hardware. Package, candidate, collector, and predeployment gates now
+pass offline; physical writing remains closed until this evidence is published
+and the live known-good-OS serviceability gates pass. Candidate construction
+contacted no device and wrote no hardware. CPU8 and CPU9 remain offline and
+unrequested.
 
 ## Associated code
 
 - [`contract.json`](contract.json) freezes the three-patch plan and workflow.
 - [`DESIGN.md`](DESIGN.md) describes the production and test seams.
 - [`scripts/validate.py`](scripts/validate.py) validates the implementation
-  contract and 16 unsafe mutations.
+  contract and its unsafe-mutation matrix.
 - [`scripts/source_edits.py`](scripts/source_edits.py) applies the three
   deterministic logical source phases.
 - [`scripts/validate_source.py`](scripts/validate_source.py) validates the
@@ -77,6 +83,21 @@ gate passes. CPU8 and CPU9 remain offline and unrequested.
   rejects decision-changing runtime and package-manifest mutations.
 - [`scripts/generate-on-buildbox`](scripts/generate-on-buildbox) generates,
   replays, source-validates, and strict-style-checks the patches on Buildbox.
+- [`scripts/build-candidate.sh`](scripts/build-candidate.sh) assembles the exact
+  Android-v0/LK candidate twice from pinned package, ramdisk, and DTB inputs.
+- [`scripts/test-candidate.py`](scripts/test-candidate.py) independently checks
+  package provenance, container layout, DT semantics, and eight mutations.
+- [`scripts/install-boot2.sh`](scripts/install-boot2.sh) source-pins the guarded
+  live-GPT boot2 installer and clean-shutdown policy.
+- [`scripts/collect-runtime.sh`](scripts/collect-runtime.sh) preserves the exact
+  pre-trigger state, sends one token with no retry, and reboots only after a
+  durable terminal classification.
+- [`scripts/classify-runtime.py`](scripts/classify-runtime.py) accepts exact
+  success and both bounded terminal failure families.
+- [`scripts/test-runtime-classifier.py`](scripts/test-runtime-classifier.py)
+  rejects 13 payload, accounting, sysfs, CPU, and transaction mutations.
+- [`scripts/test-collector.py`](scripts/test-collector.py) checks checksum pins
+  and host-side one-shot ordering without contacting the device.
 - [`results/source-tool-validation-20260819.txt`](results/source-tool-validation-20260819.txt)
   records the pre-generation validations.
 - [`results/patch-generation-attempt-73fb7a3-20260819.txt`](results/patch-generation-attempt-73fb7a3-20260819.txt)
@@ -87,6 +108,12 @@ gate passes. CPU8 and CPU9 remain offline and unrequested.
   records the hardware-free runner and classifier validation.
 - [`results/kunit-build-runtime-success-20260820.txt`](results/kunit-build-runtime-success-20260820.txt)
   records the exact focused Buildbox package and single QEMU 6/6 pass.
+- [`results/production-candidate-validation-20260820.txt`](results/production-candidate-validation-20260820.txt)
+  records the production Buildbox package and independent LK candidate proof.
+- [`results/collector-prearm-validation-20260820.txt`](results/collector-prearm-validation-20260820.txt)
+  records the hardware-free runtime-tool validation.
+- [`results/predeployment-hypothesis-20260820.txt`](results/predeployment-hypothesis-20260820.txt)
+  freezes the one-attempt observation and decision map.
 
 ## Procedure
 
@@ -102,6 +129,12 @@ gate passes. CPU8 and CPU9 remain offline and unrequested.
    KUnit profiles, and audit every manifest profile.
 7. Build the exact clean pushed KUnit profile through Buildbox and run the
    hardware-free suite before constructing any boot candidate.
+8. Build the exact production profile through Buildbox; fetch only its
+   checksum-validated package.
+9. Assemble the LK container twice, validate it independently, and validate
+   the one-shot collector and all terminal runtime classifications.
+10. Publish the offline evidence before read-only live serviceability or boot2
+    deployment.
 
 ## Observations
 
@@ -138,7 +171,24 @@ gate passes. CPU8 and CPU9 remain offline and unrequested.
 - The one planned network-free QEMU run passed the exact ordered six-case
   suite with zero failures and zero skips. Its grouped cases exercised all 12
   transfer-failure ordinals and all 11 read-value mismatch ordinals.
-- No boot candidate or device action exists.
+- The production profile built at exact clean pushed commit `7c012d736f78`.
+  Its arm64 release, package manifest, configuration, and image hashes pass;
+  KUnit is disabled while the default-off same-value path is enabled.
+- Two independent raw assemblies are byte-identical at `b84f3ba8d86e...`;
+  two independent 16 MiB padding paths are byte-identical at
+  `b81813d13acc...`. All 32 LK gates pass.
+- The independent candidate validator checks the Android-v0 fields,
+  kernel/DT/ramdisk placement, canonical ID, serviceability DT, CPU closure,
+  and rejects eight semantic DT mutations.
+- Runtime fixtures pass the exact 20-entry pre-trigger state, 12-action
+  success, a pre-write terminal failure, and a post-write terminal failure.
+  Thirteen decision-changing mutations are rejected.
+- The collector pins the candidate, probes, and classifier; makes the
+  pre-trigger capture durable before the token; permits one token, zero
+  retries, and zero second writes; and sends native reboot only after a
+  durable terminal classification.
+- No device contact, partition write, or physical I2C transaction occurred in
+  this production/candidate/tooling phase.
 
 ## Analysis
 
@@ -162,15 +212,16 @@ the production sequence passes its exact 6/6 KUnit suite with every required
 failure and mismatch ordinal covered. The superseded formal attempt at
 `73fb7a3` remains rejected.
 
-The physical experiment is not yet authorized. A production-profile Buildbox
-package, candidate/collector tooling, predeployment audit, evidence publication,
-and serviceability checks remain outstanding. CPU8/CPU9 admission remains
-closed.
+The exact production package, offline boot candidate, collector, and
+predeployment decision map now pass. The physical experiment is not yet
+armed: publication of this evidence and live read-only serviceability remain
+outstanding. CPU8/CPU9 admission remains closed.
 
 ## Follow-up
 
-Build the exact clean pushed `da921x-same-value-write` production profile on
-Buildbox, then validate its package and prepare fail-closed candidate,
-collector, and predeployment tooling without contacting the device.
+Publish this exact offline evidence, then run the read-only known-good-OS
+serviceability and boot2 deployment gates. A successful verified install must
+end in clean shutdown so the owner can select boot2. Before that boot, state
+the exact hypothesis and one-attempt decision map below.
 The authoritative ordered exit remains
 [Roadmap Gate 6](../../docs/ROADMAP.md#6-prove-one-bounded-writable-operation).

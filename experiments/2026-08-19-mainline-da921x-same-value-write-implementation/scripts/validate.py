@@ -27,7 +27,7 @@ def validate(contract: dict, review_sha256: str) -> None:
     require(contract["schema"] == "gemini-da921x-same-value-write-implementation-v1",
             "schema changed")
     require(contract["status"] ==
-            "hardware-free-implementation-pass-production-build-pending",
+            "predeployment-tools-pass-evidence-publication-pending",
             "status changed")
     parent = contract["review_parent"]
     require(parent["repository_commit"] ==
@@ -81,15 +81,54 @@ def validate(contract: dict, review_sha256: str) -> None:
             workflow["canonical_series_audit"] is True and
             workflow["all_profiles_audit"] is True, "workflow boundary changed")
 
+    package = contract["production_package"]
+    require(package["repository_commit"] ==
+            "7c012d736f78898be08bfd8430a25c8708a62e1d" and
+            package["profile"] == "da921x-same-value-write" and
+            package["kernel_release"] == "7.1.3-gemini-da921x-same-write",
+            "production package identity changed")
+    require(package["config_sha256"] ==
+            "61590965540ad27624b64c8906a58f87d36ed15821e769f5ec93871f39695614" and
+            package["image_sha256"] ==
+            "595056ac4cee9ff0a5b79287dca18bdc24f48374ffa7a3ef2647a0255cf1773c" and
+            package["repository_dirty"] is False and
+            package["target_architecture"] == "arm64" and
+            package["kunit_enabled"] is False, "production package boundary changed")
+
+    candidate = contract["boot_candidate"]
+    require(candidate["raw_size"] == 6895616 and candidate["raw_sha256"] ==
+            "b84f3ba8d86ea9f1b34234794e71be786853da7d1942ce755b175f6c7289509d",
+            "raw candidate identity changed")
+    require(candidate["padded_size"] == 16777216 and candidate["padded_sha256"] ==
+            "b81813d13acc970c7b9203b89ec034921ef6f7e1017539a0c228754619af7b22",
+            "padded candidate identity changed")
+    require(candidate["lk_gates"] == 32 and
+            candidate["independent_assemblies_identical"] is True and
+            candidate["independent_padding_identical"] is True and
+            candidate["negative_dtb_mutations_rejected"] == 8 and
+            candidate["device_access"] == candidate["hardware_write"] == "none",
+            "candidate validation boundary changed")
+
+    tooling = contract["runtime_tooling"]
+    require(tooling["pretrigger_capture_before_token"] is True and
+            tooling["pretrigger_required_count"] == 20 and
+            tooling["trigger_attempts"] == 1 and tooling["trigger_retries"] == 0 and
+            tooling["second_writes"] == 0, "runtime one-shot boundary changed")
+    require(tooling["terminal_states"] == [
+        "passed", "failed-no-write", "faulted-no-further-i2c"
+    ] and tooling["native_reboot_requires_terminal_classification"] is True and
+            tooling["runtime_classifier_mutations_rejected"] == 13 and
+            tooling["collector_validation"] == "passed", "runtime tooling changed")
+
     decision = contract["decision"]
     require(decision["implementation_in_progress"] is False and
             decision["hardware_free_implementation_complete"] is True and
-            decision["boot_candidate_exists"] is False and
+            decision["boot_candidate_exists"] is True and
             decision["physical_da921x_write_authorized"] is False and
             decision["device_action"] == "none", "premature hardware decision")
     require(decision["cpu8_cpu9_admission"] == "closed", "CPU admission changed")
     require(decision["next_success_gate"] ==
-            "production-buildbox-package-and-predeployment-tools",
+            "publish-predeployment-evidence-then-live-serviceability",
             "next success gate changed")
 
 
@@ -115,7 +154,14 @@ def test_mutations(contract: dict, review_sha256: str) -> int:
         (("hardware_free_tests", "physical_transfers"), 1),
         (("hardware_free_tests", "transfer_failure_ordinals"), 11),
         (("workflow", "kernel_build_backend"), "vm"),
-        (("decision", "boot_candidate_exists"), True),
+        (("production_package", "repository_dirty"), True),
+        (("production_package", "kunit_enabled"), True),
+        (("boot_candidate", "padded_size"), 16777215),
+        (("boot_candidate", "lk_gates"), 31),
+        (("runtime_tooling", "trigger_attempts"), 2),
+        (("runtime_tooling", "trigger_retries"), 1),
+        (("runtime_tooling", "second_writes"), 1),
+        (("decision", "boot_candidate_exists"), False),
         (("decision", "physical_da921x_write_authorized"), True),
         (("decision", "cpu8_cpu9_admission"), "open"),
         (("decision", "implementation_in_progress"), True),
@@ -147,7 +193,8 @@ def main() -> None:
     print("write_attempts=1")
     print("hardware_free_implementation=pass")
     print("hardware_action=none")
-    print("boot_candidate=false")
+    print("boot_candidate=true")
+    print("physical_da921x_write_authorized=false")
     print("cpu8_cpu9_admission=closed")
     print(f"unsafe_mutations_rejected={rejected}")
     print("result=pass")
