@@ -1,0 +1,16 @@
+id	boundary	current_state	evidence_class	gate7_consequence
+I01	positive-provider-transaction	isolated-acquire-release-6-of-6-pass	hardware-free-qemu	provider-internal-contract-closed
+I02	provider-release-registration	repaired-and-compiled	canonical-source	callback-table-complete
+I03	owner-positive-acquire	can-publish-exact-handle-held	compiled-source	positive-r02-present
+I04	returned-acquire-fault	raw-error-leaves-acquire-inflight	missing-terminal	fail-stop-edge-required
+I05	pre-p28-positive-abort	no-membership-release-owner	missing	first-source-boundary
+I06	p29-positive-retirement	accepts-before-vote-refusal-only	compiled-source	positive-abort-proof-missing
+I07	p27-preprovider-effects	attestation-ledger-only	compiled-source	hardware-executor-and-inverse-missing
+I08	p28-postprovider-effects	attestation-ledger-only	compiled-source	do-not-enter
+I09	provider-registry	acquire-and-release-callable-no-production-caller	compiled-source	fake-registry-integration-test-eligible
+I10	owner-lifecycle	closed-test-seed-only	compiled-source	production-reachability-closed
+I11	a41-capability	partial-no-ready	compiled-source	boot-admission-blocked
+I12	p24-p30-cpu-on	models-no-production-caller	compiled-source	cpu-on-veto-required
+I13	cpu8-boot-veto	returns-eagain-before-cpu-on	compiled-source	retain-a26
+I14	cpu-off	disable-false-safe-off-open	contract-and-compiled-source	retain-a14
+I15	prepared-source-reuse	marker-only-drift-found-integrity-fix-pushed	tooling	corrected-buildbox-validation-deferred

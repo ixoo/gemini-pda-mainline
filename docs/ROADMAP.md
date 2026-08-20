@@ -4321,16 +4321,27 @@ zero failures or skips. This closes the hardware-free positive-provider
 implementation proof only; no physical transition, CPU request, boot image, or
 device action occurred.
 
-The next ordered action is a separate offline Gate-7 integration review. It
-must compose the exact generation-bound provider handle with the still-dormant
-P24/P30 caller, P28 post-provider effects, A41 checkpoints, the proven
-pre-isolation inverse, and reset-only recovery after isolation. It must freeze
-source owners, ordering, timeouts, terminal states, and the exact point at
-which the A26 boot veto could eventually be narrowed while retaining the A14
-CPU_OFF veto. The review must select the smallest default-off, hardware-free
-production-integration slice before any new Buildbox implementation. Physical
-DA921x execution, CPU_ON, a boot candidate, and device access remain closed
-until that separate review explicitly admits them.
+The separate
+[Gate-7 integration review](../experiments/2026-08-20-mainline-cpu8-gate7-integration-review/README.md)
+is complete and rejects direct P28 or CPU8 integration. Current source can
+publish a successful positive acquire as `HELD`, but any other returned
+positive acquire outcome lacks an explicit owner fault terminal. More
+importantly, CPU8-up has no membership-owned exact release for a successful
+vote when the transaction stops before P28, and P29 can retire only the old
+before-vote refusal. P27/P28 remain attestation ledgers, A41 cannot publish
+READY, P24/P30 still have no production caller, and A26/A14 remain required.
+
+The next ordered implementation is the smallest default-off, hardware-free
+production-seam slice: map every returned non-refusal acquire error or invalid
+success to `FAULT_UNKNOWN`/transaction `FAULT`; add one CPU8-up-only pre-P28
+abort budget; publish `RELEASE_INFLIGHT` before exact-handle release; accept
+only the complete positive release response; and let P29 retire the P27 prefix
+only after either the existing refusal or the new exact positive-abort proof.
+Its focused KUnit test must traverse the production provider registry and
+positive DA921x transaction on an unregistered fake adapter. The lifecycle
+owner stays closed with no production caller. P27/P28 hardware effects,
+physical DA921x execution, CPU_ON/OFF, boot images, and device access remain
+closed.
 
 The candidate must have a single CPU8 request, strict checkpoints before and
 after each power step, a bounded timeout, and a fail-closed rollback. CPU9

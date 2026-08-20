@@ -1,0 +1,10 @@
+validation=mainline-cpu8-gate7-integration-review
+matrix_rows=15
+positive_provider_proof=passed
+direct_p28_integration=rejected
+next=hardware-free-pre-p28-positive-provider-abort-and-fault-terminal
+buildbox_reconstruction_validation=deferred-dns-unavailable
+hardware_action=none
+device_action=none
+cpu8_cpu9_admission=closed
+result=pass

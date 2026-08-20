@@ -23,6 +23,15 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-20 mainline CPU8 Gate-7 integration review](2026-08-20-mainline-cpu8-gate7-integration-review/README.md)
+  — reconciles the completed positive-provider proof with the current closed
+  owner, P27/P28 ledgers, A41, P24/P30, and CPU vetoes. It rejects direct P28
+  or CPU8 integration: returned positive acquire errors lack an explicit owner
+  fault terminal, and a successful `HELD` vote has no membership-owned exact
+  pre-P28 release/P29 retirement path. The next source slice is default-off
+  and hardware-free: add that positive abort and fail-stop mapping through the
+  production registry on a fake adapter. P27/P28 effects, CPU_ON/OFF, a boot
+  candidate, and device action remain closed.
 - [2026-08-20 mainline positive DA921x provider transaction](2026-08-20-mainline-da921x-positive-provider-transaction/README.md)
   — freezes the first Gate-7 implementation as two separate 11-transfer
   acquire/release operations with zero retries, one root lock per operation,
