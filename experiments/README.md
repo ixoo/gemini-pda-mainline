@@ -23,6 +23,15 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-20 mainline DA921x same-value DT contract repair](2026-08-20-mainline-da921x-same-value-dt-contract-repair/README.md)
+  — repairs the missing named handoff windows without changing the kernel,
+  ramdisk, or LK contract. Exact deployment and one selected boot passed the
+  corrected 20-entry pretrigger, issued one `0xda: 0x46 -> 0x46` write, and
+  retained the complete 32-entry ledger with immediate/delayed `0x46`
+  readback, unchanged full-byte poststate, zero retry/second write, and CPUs
+  8--9 closed. A source-backed host-classifier correction accounts for the
+  write as the sole non-combined transfer; the immutable capture passes. This
+  closes the Gate-6 bounded no-op write and is closed to repetition.
 - [2026-08-19 mainline DA921x same-value-write implementation](2026-08-19-mainline-da921x-same-value-write-implementation/README.md)
   — implements the admitted Gate-6 contract as three deterministic logical
   source phases: controller ledger v2/prefix verification, the one-shot

@@ -178,10 +178,11 @@ retained BootROM / preloader / ATF / LK
   -> loader-retained console, keyboard, USB gadget shell, restart
   -> CPU0-7 serviceability baseline
   -> DVFSP handoff and shared AP-DMA preservation
-  -> MT6797 I2C6 native packed/FIFO short-read contract
+  -> MT6797 I2C6 native packed/FIFO short-read and exact short-write contract
   -> legacy DA921x read-only board contract
   -> runtime-proven legacy-family read-only regulator provider
-  -> unimplemented bounded regulator write and rollback
+  -> one runtime-proven default-off same-value write/readback
+  -> unimplemented production rail ownership and active rollback
   -> unavailable Cortex-A72 CPUs 8 and 9
 ```
 
@@ -193,8 +194,8 @@ retained BootROM / preloader / ATF / LK
 | USB | Peripheral gadget Ethernet and development shell | Host mode, role switching, charging, both-port mapping |
 | Restart | Native MT6797 TOPRGU restart | Full power-off, suspend, and every reset source |
 | CPU | Eight Cortex-A53 CPUs online on the diagnostic baseline | A72, OPP/cpufreq, idle, thermal, suspend, scheduler policy |
-| I2C6 | Exact native packed/FIFO one-byte pointer plus one-byte read | Arbitrary messages, writes, stress, and resume |
-| External regulator | Read-only legacy-family board tuple and two-provider registration with zero register-data writes | Writes, rail ownership, rollback, consumers, resume |
+| I2C6 | Exact native packed/FIFO one-byte pointer plus one-byte read and one reviewed two-byte same-value write | Arbitrary messages or writes, failure recovery, stress, and resume |
+| External regulator | Read-only legacy-family board tuple, two-provider registration, and one default-off same-value write/readback | Active rail transitions, production ownership, rollback, consumers, resume |
 
 This table is an implementation map, not an experiment ledger. Exact runtime
 evidence and negative results remain in the linked experiment directories.

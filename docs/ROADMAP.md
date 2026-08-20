@@ -26,10 +26,10 @@ Cortex-A72 pair.
 | Recoverable development boot | Linux 7.1.3 candidates boot from non-primary `boot2`; console, keyboard, USB gadget shell, and native reboot are available. | Preserve this serviceability set as a mandatory gate. |
 | Cortex-A53 cluster | CPU0–7 can be online together. | Keep this baseline fixed while regulator work proceeds. |
 | I2C6 ownership | DVFSP handoff and shared AP-DMA ownership are understood well enough for the fixed native path. | Do not disturb the working I2C5/AP-DMA owner. |
-| DVFSP/PCM firmware lease | The historical receiver is positively attributed to the embedded MT6797 hybrid PCM, but mainline has only a read-only stopped-state handoff. | The selected handoff maps CSPM only: no CSRAM mapping, firmware request, PCM residency, start/kick sequence, or callable `SEMA_I2C_DRV` path. Keep I2C6 provider writes blocked. |
-| I2C6 transfer | Native packed/FIFO pointer-read is runtime proven; the production-coupled one-message two-byte FIFO write plan and completion/no-retry accounting pass isolated KUnit. | Treat the write result as a software-contract proof only; no physical DA921x write has passed. |
+| DVFSP/PCM firmware lease | The historical receiver is positively attributed to the embedded MT6797 hybrid PCM. Mainline's stopped-state handoff maps the CSPM, SCP-configuration, and Device-APC AO windows and held SCP reset asserted across all 32 entries/exits of the successful bounded transaction. | No firmware request, PCM residency, start/kick sequence, or callable `SEMA_I2C_DRV` path exists. Keep general or concurrent I2C6 writes blocked. |
+| I2C6 transfer | Native packed/FIFO pointer-read and one exact one-message two-byte FIFO write are runtime proven. The write completed once with payload `[0xda, 0x46]`, exact no-retry accounting, and stable readback. | This closes only the reviewed same-value shape; arbitrary writes, failure recovery, stress, and resume remain open. |
 | Legacy board contract | The fixed `0x68`/`0x69` tuple is stable and DA9213/DA9214/DA9215-compatible. | The read-only board-contract gate is closed; unique silicon identity remains open. |
-| Linux regulator provider | The dedicated legacy-family driver now registers two read-only providers in one isolated, runtime-proven mainline profile with zero register-data writes. | Gate 5 is closed; keep consumers and writes disconnected while gate 6 reviews one bounded write/readback/rollback contract. |
+| Linux regulator provider | The dedicated legacy-family driver registers two read-only providers. A default-off experiment completed one exact same-value write/readback while the target buck was disabled and unselected, without a consumer or rail transition. | Gate 6 is closed for the reviewed no-op only. Keep writable consumers and active rail transitions disconnected until Gate 7 reconciles ownership and rollback. |
 | Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. An experiment-only retained-cluster path now provides repeatable bounded execution and scheduler-context cleanup on both CPUs, but safe offlining, rail ownership, rollback, resume, and production integration remain unproved. | Keep both CPUs disconnected from the default profile until the provider and safe-off gates below pass. |
 
 The durable technical boundary is in
@@ -70,7 +70,7 @@ Work on eMMC, logging, keyboard coverage, USB roles, display/touch, and other
 independent subsystems may proceed in parallel only when it preserves the
 fixed DA921x/A72 experiment baseline. The immediate critical chain is:
 
-`bounded-write review -> bounded write -> production CPU8 -> production CPU9`
+`Gate-7 ownership/admission contract -> production CPU8 -> production CPU9`
 
 ## Ordered gates
 
@@ -4088,20 +4088,14 @@ resume ownership.
 Exit: a provider can exist without changing hardware state.
 
 Exit met on the named unit and exact revision. Do not repeat this artifact.
-The next ordered action is gate 6 design review; CPU8/CPU9 admission remains
-closed.
+Gate 6 below records the later bounded no-op completion; CPU8/CPU9 admission
+remains closed until Gate 7.
 
-### 6. Prove one bounded writable operation
+### 6. Prove one bounded writable operation — complete
 
-Do not reach this gate until the register-write transport, constraints, and
-rollback sequence have been reviewed.
-
-Gate 6 is now open for design review only. The first task is to reconcile the
-public legacy-family register contract, the observed direct-address I2C6
-transport, the current selector/enable snapshot, firmware and rail ownership,
-and the existing rollback/terminal-recovery audits into one exact no-op or
-bounded transition. No kernel build, device write, regulator write, or CPU8/9
-request is authorized by the gate-5 result itself.
+Gate 6 closed on 2026-08-20 for the reviewed no-op operation. This does not
+authorize a changed-value transition, writable consumer, rail enable/disable,
+or CPU8/9 request.
 
 The [initial Gate-6 design review](../experiments/2026-08-17-mainline-da921x-bounded-noop-write-review/README.md)
 selects the least-invasive future transaction: one no-retry same-value write
@@ -4235,11 +4229,29 @@ stopped before an action attribute, accepted pretrigger ledger, or trigger
 token. Thus no physical DA921x write was attempted. A native USB-shell reboot
 returned to changed-identity Gemian; pstore was empty, CPU8/9 remained offline,
 and live-GPT boot2 still matched the exact candidate. Preserve this
-failed-closed result and do not repeat the artifact. The sole next ordered
-action is offline localization of the missing client across the ledger-v2,
-same-value driver-integration, and profile boundaries, followed by a new
-candidate with durable bounded lifecycle/dmesg evidence before the client gate.
-Gate 7 remains separate and CPU8/CPU9 admission remains closed.
+failed-closed result and do not repeat the artifact. Offline localization found
+a DT/kernel resource-contract mismatch: that candidate had only the CSPM
+handoff window, while the selected kernel required named `scp-cfg` and
+`devapc-ao` windows before it could release I2C6 and instantiate the DA921x
+client.
+
+The DT-only repaired successor restored those already proven windows without
+changing the kernel, ramdisk, configuration, or LK contract. Its guarded
+deployment passed full boot2 readback. On one selected boot, the exact
+20-entry idle ledger and firmware-writer transaction window passed; one token
+then produced the exact 12-action suffix. Ledger entry 25 was the sole
+one-message write to address `0x68`, with payload `[0xda, 0x46]`, return value
+one, and completion set. Preflight was `7b,c1,00,46,46`, immediate and delayed
+target readback were `46`, and poststate was `7b,c1,00,46`. The final ledger
+was 32/32 with zero overflow, failure, foreign address, retry, second write,
+`PAGE_CON` access, consumer request, or CPU request; transaction entry and exit
+checks were both 32 with reset failures zero. CPUs 0--7 remained online and
+8--9 remained offline. A source-backed host-classifier correction recognized
+that the legacy oracle counts the sole write as its sole non-combined transfer;
+the immutable capture then passed, and native return reached changed-identity
+Gemian with empty pstore and boot2 unchanged. See the
+[runtime result](../experiments/2026-08-20-mainline-da921x-same-value-dt-contract-repair/results/runtime-attempt-2-success-20260820.txt)
+and [classifier correction](../experiments/2026-08-20-mainline-da921x-same-value-dt-contract-repair/results/classifier-oracle-correction-20260820.txt).
 
 The first writable test must:
 
@@ -4250,13 +4262,22 @@ The first writable test must:
 - stop immediately on any mismatch;
 - retain an independent reboot/recovery path.
 
-Exit: one exact write/readback/rollback protocol passes. This is not yet A72
-support.
+Exit met: one exact same-value write/readback protocol retained the starting
+state by construction and observation. This is not yet an active rail
+transition or A72 support. Preserve it and do not repeat it.
 
 ### 7. Bring up CPU8
 
 Request CPU8 only after the external provider, SPM/SRAM, clocks, CCI, PSCI,
 error handling, and recovery sequence are all represented.
+
+The immediate next action is an offline Gate-7 admission audit. Reconcile the
+newly closed I2C6/DA921x no-op boundary with the retained natural-owner cycle,
+pre-isolation rollback, one-way CPU8 startup, held-online execution, secure
+CPU-off attribution, and safe-off contract. Freeze which production-mainline
+owners, state predicates, checkpoints, timeouts, and inverse operations already
+have evidence and identify any still-missing prerequisite before changing the
+kernel or spending another device boot.
 
 The candidate must have a single CPU8 request, strict checkpoints before and
 after each power step, a bounded timeout, and a fail-closed rollback. CPU9

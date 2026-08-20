@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-20-mainline-da921x-same-value-dt-contract-repair` |
-| Status | `running` |
+| Status | `completed` runtime success; closed to repetition |
 | Subsystem | MT6797 DVFSP handoff, I2C6, DA921x |
 | Device variant | Gemini PDA, named project device |
 | Date(s) | 2026-08-20 |
@@ -89,23 +89,58 @@ idle ledger was retained with zero writes. The token remained withheld because
 the new lifecycle probe renamed a classifier field and both inherited
 same-value probes omitted the supplier transaction-window attribute. This is a
 collector contract error, not a candidate failure. The probes now retain both
-the legacy client field and the supplier counters; continuation uses the same
-still-idle boot.
+the legacy client field and the supplier counters.
+
+The corrected continuation on that same still-idle boot passed every
+pretrigger gate and issued the exact token once. The driver completed its 12
+bounded actions and reached `state=passed`, `attempts=1`, `last_error=0`. The
+sole write was ledger entry 25, a completed one-message transfer to address
+`0x68` with payload `[0xda, 0x46]`. Five preflight bytes were
+`7b,c1,00,46,46`; immediate and delayed target readback were both `46`; and
+the four poststate bytes were `7b,c1,00,46`. The final ledger was exactly
+32/32 with no overflow, foreign address, reset failure, retry, second write,
+consumer request, CPU request, or `PAGE_CON` access. CPUs 0--7 remained online
+and CPUs 8--9 remained offline.
+
+The inherited classifier initially rejected `oracle_other_transfers=1` while
+expecting zero. The pinned lifecycle-oracle source increments that counter for
+every transfer not shaped as a combined pointer read, including the sole
+write, independently of the write-only and register-data counters. A
+source-pinned one-line classifier correction therefore expects the value to
+equal the write count. The immutable capture then classifies
+`success-same-value-write`; its updated regression suite passes the pretrigger,
+success, and both terminal failure fixtures and rejects 14 unsafe mutations.
+This correction changes no device observation.
+
+After the corrected result and checksums were durable, one native USB-shell
+reboot returned to changed-identity Gemian. The returned live GPT still
+resolved boot2 as p30 and root as p29, the full boot2 checksum remained
+`85dbd8d0...`, pstore was empty, and external power remained present at 100%
+with Good battery health. The reported `wdt_by_pass_pwk` reason is retained as
+a nondiscriminating return class, not attributed to the regulator action.
 
 ## Analysis
 
-This is a DT-only contract correction. A different runtime outcome is
-attributable to the restored supplier resources; kernel code and configuration
-are unchanged.
+This is a DT-only contract correction. The restored supplier resources explain
+the client/bind difference while kernel code and configuration remain
+unchanged. The terminal ledger independently attributes the one physical
+register-data write and every surrounding read. The stable full-byte prestate,
+same-value payload, immediate/delayed target readback, and unchanged full-byte
+poststate establish the reviewed no-op write/readback contract; they do not
+establish an active rail transition, writable consumer, resume behavior, or
+CPU8/CPU9 readiness.
 
 ## Conclusion
 
 The DT-only candidate is independently validated, deployed, and runtime-proven
-through the exact idle 20-entry pretrigger state. The single physical token is
-still unused; a corrected same-boot continuation is pending.
+through the exact one-token terminal result. The physical same-value write
+passed once with exact payload attribution and stable readback while all rail
+and A72 requests remained closed. Preserve the result and do not repeat the
+candidate or token.
 
 ## Follow-up
 
-If the repaired boot still lacks the client, retain supplier/I2C6 lifecycle and
-dmesg evidence and stop before the token. If the pretrigger gates pass, consume
-the one token and classify the exact 32-entry terminal ledger.
+Advance to Roadmap Gate 7 by reconciling the already retained external-provider,
+SPM/SRAM, clock, CCI, PSCI, safe-off, and recovery evidence into one production
+CPU8 admission contract. CPU9 remains closed. No further same-value write or
+identical boot is required.
