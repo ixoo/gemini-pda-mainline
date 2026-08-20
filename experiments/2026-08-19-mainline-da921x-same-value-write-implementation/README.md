@@ -5,10 +5,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-19-mainline-da921x-same-value-write-implementation` |
-| Status | `running`; canonical patches admitted, focused KUnit build pending, no candidate |
+| Status | `running`; hardware-free implementation passed, production build pending, no candidate |
 | Subsystem | DA921x regulator, MT6797 I2C6 ledger and transaction window |
 | Device variant | Planet Gemini PDA named unit; current work hardware-free |
-| Date(s) | 2026-08-19 America/New_York |
+| Date(s) | 2026-08-19--20 America/New_York |
 | Investigator(s) | Project maintainers |
 | Tracking issue | Roadmap Gate 6 |
 
@@ -32,14 +32,17 @@ controller must independently attribute both write bytes.
   `3cd27f8d5432e8de0a495d2b9f9c266f8de9cb78077f9091bcc35a2548edcdfc`.
 - The exact five parent file checksums are pinned in
   [`scripts/generate-on-buildbox`](scripts/generate-on-buildbox).
-- No native VM build is permitted. No kernel compile or device action has yet
-  occurred in this experiment.
+- Focused Buildbox commit: `169d86ef5bc961a30bf07d2da4cb39234c9914cd`.
+- Focused release: `7.1.3-gemini-da921x-same-write-kunit`.
+- No native VM build is permitted. The focused Buildbox compile and isolated
+  network-free QEMU run passed; no device action occurred.
 
 ## Safety assessment
 
-The current phase edits bounded temporary source views on Buildbox and creates
-normal patches. It performs no kernel boot, I2C transaction, device access,
-boot image construction, partition write, regulator action, or CPU request.
+The hardware-free phase compiled on Buildbox and ran under arm64 QEMU with an
+unregistered fake adapter and networking disabled. It performed no physical
+I2C transaction, device access, boot image construction, partition write,
+regulator action, or CPU request.
 
 Patch 0291 will contain a real register-write path, but it is default-off and
 reachable only through one exact-token device attribute in the isolated
@@ -82,6 +85,8 @@ gate passes. CPU8 and CPU9 remain offline and unrequested.
   records the validated package, exact canonical imports, and profile audit.
 - [`results/kunit-harness-validation-20260819.txt`](results/kunit-harness-validation-20260819.txt)
   records the hardware-free runner and classifier validation.
+- [`results/kunit-build-runtime-success-20260820.txt`](results/kunit-build-runtime-success-20260820.txt)
+  records the exact focused Buildbox package and single QEMU 6/6 pass.
 
 ## Procedure
 
@@ -127,7 +132,13 @@ gate passes. CPU8 and CPU9 remain offline and unrequested.
   profile identity, one focused KUnit symbol, and the expected bounded exit.
 - The KUnit fixture uses address `0x2a`, registers no adapter or client, maps no
   MMIO, and performs no physical transfer.
-- No kernel was compiled and no boot candidate or device action exists.
+- The focused Buildbox build at signed commit `169d86ef5bc9` compiled both
+  `da9213-legacy-regulator.o` and `da9213-legacy-write-test.o`, linked release
+  `7.1.3-gemini-da921x-same-write-kunit`, and passed package checksums.
+- The one planned network-free QEMU run passed the exact ordered six-case
+  suite with zero failures and zero skips. Its grouped cases exercised all 12
+  transfer-failure ordinals and all 11 read-value mismatch ordinals.
+- No boot candidate or device action exists.
 
 ## Analysis
 
@@ -145,18 +156,21 @@ sequence to an unregistered fake.
 
 ## Conclusion
 
-`confirmed` for patch generation and canonical admission: the exact three
-patches replay, pass semantic and strict-style validation, match their fetched
-package, and preserve every manifest-series invariant. The superseded formal
-attempt at `73fb7a3` remains rejected.
+`confirmed` for the complete hardware-free implementation proof: the exact
+three patches replay, compile, pass semantic and strict-style validation, and
+the production sequence passes its exact 6/6 KUnit suite with every required
+failure and mismatch ordinal covered. The superseded formal attempt at
+`73fb7a3` remains rejected.
 
-Implementation is not complete. The focused Buildbox compile and network-free
-KUnit execution remain outstanding. No physical DA921x write is authorized and
-CPU8/CPU9 admission remains closed.
+The physical experiment is not yet authorized. A production-profile Buildbox
+package, candidate/collector tooling, predeployment audit, evidence publication,
+and serviceability checks remain outstanding. CPU8/CPU9 admission remains
+closed.
 
 ## Follow-up
 
-Build the exact clean pushed `da921x-same-value-write-kunit` profile on
-Buildbox, fetch its validated package, and run only the in-memory KUnit suite.
+Build the exact clean pushed `da921x-same-value-write` production profile on
+Buildbox, then validate its package and prepare fail-closed candidate,
+collector, and predeployment tooling without contacting the device.
 The authoritative ordered exit remains
 [Roadmap Gate 6](../../docs/ROADMAP.md#6-prove-one-bounded-writable-operation).

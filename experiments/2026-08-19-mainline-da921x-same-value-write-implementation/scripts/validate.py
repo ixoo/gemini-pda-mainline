@@ -26,7 +26,8 @@ def require(condition: bool, message: str) -> None:
 def validate(contract: dict, review_sha256: str) -> None:
     require(contract["schema"] == "gemini-da921x-same-value-write-implementation-v1",
             "schema changed")
-    require(contract["status"] == "canonical-patches-admitted-build-pending",
+    require(contract["status"] ==
+            "hardware-free-implementation-pass-production-build-pending",
             "status changed")
     parent = contract["review_parent"]
     require(parent["repository_commit"] ==
@@ -81,13 +82,14 @@ def validate(contract: dict, review_sha256: str) -> None:
             workflow["all_profiles_audit"] is True, "workflow boundary changed")
 
     decision = contract["decision"]
-    require(decision["implementation_in_progress"] is True and
+    require(decision["implementation_in_progress"] is False and
+            decision["hardware_free_implementation_complete"] is True and
             decision["boot_candidate_exists"] is False and
             decision["physical_da921x_write_authorized"] is False and
             decision["device_action"] == "none", "premature hardware decision")
     require(decision["cpu8_cpu9_admission"] == "closed", "CPU admission changed")
     require(decision["next_success_gate"] ==
-            "focused-buildbox-kunit-build-and-network-free-qemu-pass",
+            "production-buildbox-package-and-predeployment-tools",
             "next success gate changed")
 
 
@@ -116,6 +118,8 @@ def test_mutations(contract: dict, review_sha256: str) -> int:
         (("decision", "boot_candidate_exists"), True),
         (("decision", "physical_da921x_write_authorized"), True),
         (("decision", "cpu8_cpu9_admission"), "open"),
+        (("decision", "implementation_in_progress"), True),
+        (("decision", "hardware_free_implementation_complete"), False),
     ]
     rejected = 0
     for path, value in mutations:
@@ -141,6 +145,7 @@ def main() -> None:
     print("patches_planned=3")
     print("action_transfers=12")
     print("write_attempts=1")
+    print("hardware_free_implementation=pass")
     print("hardware_action=none")
     print("boot_candidate=false")
     print("cpu8_cpu9_admission=closed")

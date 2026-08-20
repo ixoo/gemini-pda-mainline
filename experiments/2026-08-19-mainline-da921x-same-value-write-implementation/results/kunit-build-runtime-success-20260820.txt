@@ -1,0 +1,52 @@
+Gate-6 same-value-write focused Buildbox and QEMU KUnit result
+Local date: 2026-08-20 America/New_York
+
+repository_commit=169d86ef5bc961a30bf07d2da4cb39234c9914cd
+buildbox_job=169d86ef5bc961a30bf07d2da4cb39234c9914cd-da921x-same-value-write-kunit-m0
+build_profile=da921x-same-value-write-kunit
+kernel_release=7.1.3-gemini-da921x-same-write-kunit
+package=linux-7.1.3-gemini-da921x-same-value-write-kunit-66765f87-fb143e40
+source_sha256=be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+patchset_sha256=66765f879a9c65647e6b002582554fd87a75571bc615bdf051ff48c281801c55
+config_sha256=986d611c4d18c0ef0e6985428e4ae200bffd10438f5a3a52047506d13e4ba88a
+image_sha256=39f760d1b9fb4370b0fe8e1bb9d3c340f55e3b4b2e21050d8650acc36b019213
+package_sha256s_manifest=845c4afad5080362f0a673359240d8a8c77592bcd18b63b9e5307918cee95e16
+build_provenance_sha256=53e2c4070b6ffad4145f8ceb92cdcb9dd73772f94da5318ff53e43a037eec65a
+focused_objects=da9213-legacy-regulator.o,da9213-legacy-write-test.o
+modules_built=false
+package_checksums=pass
+raw_log_sha256=0377591678074364a5d3cc9dda46463fa5a6822a7af74109fba678526762225b
+raw_log_bytes=82851
+qemu_version=11.0.2
+qemu_machine=virt
+qemu_cpu=cortex-a53
+qemu_vcpus=4
+qemu_network=none
+qemu_exit=124
+suites=1
+tests=6
+failed=0
+skipped=0
+da9213_same_value_success=pass
+da9213_same_value_admission=pass
+da9213_same_value_ledger_refusal=pass
+da9213_same_value_transfer_failures=pass-12-ordinals
+da9213_same_value_mismatches=pass-11-ordinals
+da9213_same_value_invalid_execute=pass
+tap_summary=pass:6_fail:0_skip:0_total:6
+post_test_state=expected-vm-rootfs-panic
+native_vm_build=false
+physical_adapters=0
+physical_i2c_transfers=0
+hardware_action=none
+device_action=none
+boot_candidate=false
+physical_da921x_write_authorized=false
+cpu8_cpu9_admission=closed
+result=pass-hardware-free-implementation
+
+The package passed its complete SHA-256 manifest and contained exactly one
+enabled KUnit test symbol. The single bounded arm64 QEMU run completed the
+ordered six-case suite before the expected rootfs panic boundary. The exit 124
+is the runner timeout after complete KTAP success, not a test timeout. No
+Gemini device, physical adapter, register, partition, or CPU request was used.
