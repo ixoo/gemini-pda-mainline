@@ -9,10 +9,10 @@ edited_source_validation=pass
 kunit_cases=6
 transfer_failure_ordinals=12
 value_mismatch_ordinals=11
-strict_checkpatch_errors=0
-strict_checkpatch_warnings=0
-strict_checkpatch_checks=0
-strict_checkpatch_changed_lines=533
+prototype_combined_delta_checkpatch_errors=0
+prototype_combined_delta_checkpatch_warnings=0
+prototype_combined_delta_checkpatch_checks=0
+prototype_combined_delta_changed_lines=533
 contract_unsafe_mutations_rejected=16
 native_vm_build=false
 kernel_compile=none
@@ -23,6 +23,8 @@ physical_da921x_write_authorized=false
 cpu8_cpu9_admission=closed
 result=pass-pre-generation
 
-The style and semantic runs used automatically removed bounded temporary copies
-of the exact managed Buildbox parent files. They did not submit a build, create
-a candidate, contact the Gemini, or perform an I2C transaction.
+This prototype result predates formal per-patch generation. The first formal
+attempt is recorded separately and supersedes its style-readiness claim. The
+style and semantic runs used automatically removed bounded temporary copies of
+the exact managed Buildbox parent files. They did not submit a build, create a
+candidate, contact the Gemini, or perform an I2C transaction.

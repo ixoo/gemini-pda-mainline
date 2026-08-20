@@ -765,14 +765,12 @@ def kunit_source() -> str:
     \tfake->locked = true;
     }
 
-    static int da9213_test_trylock(struct i2c_adapter *adapter,
-    \t\t\t\tunsigned int flags)
+    static int da9213_test_trylock(struct i2c_adapter *adapter, unsigned int flags)
     {
     \treturn 0;
     }
 
-    static void da9213_test_unlock(struct i2c_adapter *adapter,
-    \t\t\t\tunsigned int flags)
+    static void da9213_test_unlock(struct i2c_adapter *adapter, unsigned int flags)
     {
     \tstruct da9213_test_fake *fake = active_fake;
 
@@ -796,7 +794,7 @@ def kunit_source() -> str:
     }
 
     static int da9213_test_transfer(struct i2c_adapter *adapter,
-    \t\t\t\t struct i2c_msg *messages, int count)
+    \t\t\t\tstruct i2c_msg *messages, int count)
     {
     \tstruct da9213_test_fake *fake = active_fake;
     \tunsigned int ordinal = ++fake->transfer_calls;
@@ -853,8 +851,7 @@ def kunit_source() -> str:
     \tactive_fake = fake;
     }
 
-    static void da9213_test_init_result(
-    \tstruct da9213_legacy_same_value_result *result)
+    static void da9213_test_init_result(struct da9213_legacy_same_value_result *result)
     {
     \tmemset(result, 0, sizeof(*result));
     \tresult->attempts = 1;
@@ -871,7 +868,7 @@ def kunit_source() -> str:
     \tda9213_test_init_fake(&fake);
     \tda9213_test_init_result(&result);
     \tret = da9213_legacy_same_value_execute(&fake.adapter,
-    \t\tDA9213_TEST_ADDRESS, &da9213_test_ops, &result);
+    \t\t\t\t\t       DA9213_TEST_ADDRESS, &da9213_test_ops, &result);
 
     \tKUNIT_EXPECT_EQ(test, ret, 0);
     \tKUNIT_EXPECT_EQ(test, result.state, DA9213_LEGACY_SAME_VALUE_PASSED);
@@ -884,8 +881,7 @@ def kunit_source() -> str:
     \tKUNIT_EXPECT_TRUE(test, fake.delay_locked);
     \tKUNIT_EXPECT_EQ(test, fake.delay_calls, 1U);
     \tKUNIT_EXPECT_EQ(test, fake.adapter.retries, 1);
-    \tKUNIT_EXPECT_MEMEQ(test, fake.registers, da9213_test_registers,
-    \t\t\t    sizeof(fake.registers));
+    \tKUNIT_EXPECT_MEMEQ(test, fake.registers, da9213_test_registers, sizeof(fake.registers));
     \tKUNIT_EXPECT_EQ(test, fake.write_payload[0], (u8)0xda);
     \tKUNIT_EXPECT_EQ(test, fake.write_payload[1], (u8)0x46);
     \tfor (i = 0; i < DA9213_TEST_ACTIONS; i++)
@@ -902,8 +898,7 @@ def kunit_source() -> str:
     \tKUNIT_EXPECT_EQ(test, result.state, DA9213_LEGACY_SAME_VALUE_IDLE);
     \tret = da9213_legacy_same_value_admit(&result, true, false);
     \tKUNIT_EXPECT_EQ(test, ret, -EPROTO);
-    \tKUNIT_EXPECT_EQ(test, result.state,
-    \t\t\tDA9213_LEGACY_SAME_VALUE_FAILED_NO_WRITE);
+    \tKUNIT_EXPECT_EQ(test, result.state, DA9213_LEGACY_SAME_VALUE_FAILED_NO_WRITE);
     \tret = da9213_legacy_same_value_admit(&result, true, true);
     \tKUNIT_EXPECT_EQ(test, ret, -EALREADY);
     }
@@ -918,7 +913,7 @@ def kunit_source() -> str:
     \tda9213_test_init_result(&result);
     \tfake.ledger_error = -EPROTO;
     \tret = da9213_legacy_same_value_execute(&fake.adapter,
-    \t\tDA9213_TEST_ADDRESS, &da9213_test_ops, &result);
+    \t\t\t\t\t       DA9213_TEST_ADDRESS, &da9213_test_ops, &result);
     \tKUNIT_EXPECT_EQ(test, ret, -EPROTO);
     \tKUNIT_EXPECT_EQ(test, result.state,
     \t\t\tDA9213_LEGACY_SAME_VALUE_FAILED_NO_WRITE);
@@ -943,7 +938,8 @@ def kunit_source() -> str:
     \t\tda9213_test_init_result(&result);
     \t\tfake.fail_ordinal = ordinal;
     \t\tret = da9213_legacy_same_value_execute(&fake.adapter,
-    \t\t\tDA9213_TEST_ADDRESS, &da9213_test_ops, &result);
+    \t\t\t\t\t\t       DA9213_TEST_ADDRESS,
+    \t\t\t\t\t\t       &da9213_test_ops, &result);
     \t\tKUNIT_EXPECT_EQ_MSG(test, ret, -EAGAIN, "ordinal=%u", ordinal);
     \t\tKUNIT_EXPECT_EQ_MSG(test, result.action_transfers, ordinal,
     \t\t\t\t    "ordinal=%u", ordinal);
@@ -954,11 +950,10 @@ def kunit_source() -> str:
     \t\tif (ordinal < 6) {
     \t\t\tKUNIT_EXPECT_EQ(test, result.write_attempts, 0U);
     \t\t\tKUNIT_EXPECT_EQ(test, result.state,
-    \t\t\t\tDA9213_LEGACY_SAME_VALUE_FAILED_NO_WRITE);
+    \t\t\t\t\tDA9213_LEGACY_SAME_VALUE_FAILED_NO_WRITE);
     \t\t} else {
     \t\t\tKUNIT_EXPECT_EQ(test, result.write_attempts, 1U);
-    \t\t\tKUNIT_EXPECT_EQ(test, result.state,
-    \t\t\t\tDA9213_LEGACY_SAME_VALUE_FAULTED);
+    \t\t\tKUNIT_EXPECT_EQ(test, result.state, DA9213_LEGACY_SAME_VALUE_FAULTED);
     \t\t}
     \t}
     }
@@ -978,7 +973,8 @@ def kunit_source() -> str:
     \t\tda9213_test_init_result(&result);
     \t\tfake.mismatch_ordinal = ordinal;
     \t\tret = da9213_legacy_same_value_execute(&fake.adapter,
-    \t\t\tDA9213_TEST_ADDRESS, &da9213_test_ops, &result);
+    \t\t\t\t\t\t       DA9213_TEST_ADDRESS,
+    \t\t\t\t\t\t       &da9213_test_ops, &result);
     \t\tKUNIT_EXPECT_EQ_MSG(test, ret, -ERANGE, "ordinal=%u", ordinal);
     \t\tKUNIT_EXPECT_EQ_MSG(test, result.action_transfers, ordinal,
     \t\t\t\t    "ordinal=%u", ordinal);
@@ -986,10 +982,9 @@ def kunit_source() -> str:
     \t\t\t\t    "ordinal=%u", ordinal);
     \t\tif (ordinal < 6)
     \t\t\tKUNIT_EXPECT_EQ(test, result.state,
-    \t\t\t\tDA9213_LEGACY_SAME_VALUE_FAILED_NO_WRITE);
+    \t\t\t\t\tDA9213_LEGACY_SAME_VALUE_FAILED_NO_WRITE);
     \t\telse
-    \t\t\tKUNIT_EXPECT_EQ(test, result.state,
-    \t\t\t\tDA9213_LEGACY_SAME_VALUE_FAULTED);
+    \t\t\tKUNIT_EXPECT_EQ(test, result.state, DA9213_LEGACY_SAME_VALUE_FAULTED);
     \t}
     }
 
@@ -1001,7 +996,7 @@ def kunit_source() -> str:
 
     \tda9213_test_init_fake(&fake);
     \tret = da9213_legacy_same_value_execute(&fake.adapter,
-    \t\tDA9213_TEST_ADDRESS, &da9213_test_ops, &result);
+    \t\t\t\t\t       DA9213_TEST_ADDRESS, &da9213_test_ops, &result);
     \tKUNIT_EXPECT_EQ(test, ret, -EINVAL);
     \tKUNIT_EXPECT_EQ(test, fake.lock_calls, 0U);
     \tKUNIT_EXPECT_EQ(test, fake.transfer_calls, 0U);

@@ -1,0 +1,40 @@
+Gate-6 same-value-write formal patch-generation attempt
+Local date: 2026-08-19 America/New_York
+
+repository_commit=73fb7a38f78f8c0ecab5b368e4fcdb1dd8a7f9b6
+buildbox_job=73fb7a38f78f8c0ecab5b368e4fcdb1dd8a7f9b6-da921x-same-value-write-patchgen
+formal_generation=failed
+patch_0290_checkpatch_errors=0
+patch_0290_checkpatch_warnings=0
+patch_0290_checkpatch_checks=0
+patch_0291_checkpatch_errors=0
+patch_0291_checkpatch_warnings=0
+patch_0291_checkpatch_checks=0
+patch_0292_checkpatch_errors=0
+patch_0292_checkpatch_warnings=0
+patch_0292_checkpatch_checks=14
+failure_scope=generated-kunit-indentation-only
+edited_source_validation=pass
+formatted_patch_validation=pass
+kernel_compile=none
+hardware_action=none
+device_action=none
+boot_candidate=false
+physical_da921x_write_authorized=false
+cpu8_cpu9_admission=closed
+result=rejected
+
+The per-patch gate rejected patch 0292 for 14 strict indentation checks. The
+controller and production write patches were strict-clean. No package or job
+record was published and no compile or physical action occurred.
+
+The deterministic generator was then corrected only for those formatting
+findings. Before the correction was committed, a bounded Buildbox file check
+of its newly generated 309-line KUnit source reported:
+
+corrected_kunit_file_checkpatch_errors=0
+corrected_kunit_file_checkpatch_warnings=0
+corrected_kunit_file_checkpatch_checks=0
+
+That bounded check used an automatically removed temporary source view. It is
+not a substitute for a formal generation rerun at the corrected commit.

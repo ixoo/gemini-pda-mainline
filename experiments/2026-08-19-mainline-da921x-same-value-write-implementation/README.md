@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-19-mainline-da921x-same-value-write-implementation` |
-| Status | `running`; source generation prepared, no candidate |
+| Status | `running`; first formal patch generation style-rejected, corrected, no candidate |
 | Subsystem | DA921x regulator, MT6797 I2C6 ledger and transaction window |
 | Device variant | Planet Gemini PDA named unit; current work hardware-free |
 | Date(s) | 2026-08-19 America/New_York |
@@ -64,6 +64,8 @@ gate passes. CPU8 and CPU9 remain offline and unrequested.
   replays, source-validates, and strict-style-checks the patches on Buildbox.
 - [`results/source-tool-validation-20260819.txt`](results/source-tool-validation-20260819.txt)
   records the pre-generation validations.
+- [`results/patch-generation-attempt-73fb7a3-20260819.txt`](results/patch-generation-attempt-73fb7a3-20260819.txt)
+  records the first formal Buildbox rejection and bounded correction check.
 
 ## Procedure
 
@@ -85,8 +87,14 @@ gate passes. CPU8 and CPU9 remain offline and unrequested.
 - The deterministic editor applies cleanly to the exact managed parent.
 - The edited-source validator passes the three logical patches, six KUnit
   cases, all 12 transfer-failure ordinals, and all 11 read-value mismatches.
-- Strict checkpatch reports zero errors, zero warnings, and zero checks across
-  the 533-line temporary delta.
+- The prototype combined-delta check reported zero errors, zero warnings, and
+  zero checks across 533 changed lines. Formal per-patch checking then exposed
+  14 KUnit-only indentation checks in patch 0292; patches 0290 and 0291 were
+  clean.
+- After correcting only those generated-source formatting defects, a bounded
+  Buildbox file check reports zero errors, zero warnings, and zero checks
+  across the 309-line generated KUnit source. Formal generation must still be
+  rerun at the corrected immutable project commit.
 - The KUnit fixture uses address `0x2a`, registers no adapter or client, maps no
   MMIO, and performs no physical transfer.
 - No kernel was compiled and no boot candidate or device action exists.
@@ -107,8 +115,10 @@ sequence to an unregistered fake.
 
 ## Conclusion
 
-`confirmed` only for pre-generation source readiness: the exact deterministic
-delta applies, passes semantic validation, and is strict-style clean.
+`confirmed` only for corrected pre-generation source readiness: the exact
+deterministic delta applies, passes semantic validation, and the corrected
+generated KUnit file is strict-style clean. The superseded formal attempt at
+`73fb7a3` remains rejected.
 
 Implementation is not complete. Normal patch generation, canonical admission,
 the focused Buildbox compile, and KUnit execution remain outstanding. No
