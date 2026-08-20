@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+# Preserve every inherited SSH option except extending the silent-stream
+# liveness allowance from 30 seconds to three minutes for the old Gemian host.
+set -euo pipefail
+
+real_ssh=/usr/bin/ssh
+[[ -x "$real_ssh" ]] || { printf 'error: system ssh is unavailable\n' >&2; exit 2; }
+
+arguments=()
+while (($#)); do
+	if [[ "$1" == -o && "${2:-}" == ServerAliveCountMax=6 ]]; then
+		arguments+=(-o ServerAliveCountMax=36)
+		shift 2
+		continue
+	fi
+	arguments+=("$1")
+	shift
+done
+exec "$real_ssh" "${arguments[@]}"

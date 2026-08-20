@@ -6,6 +6,7 @@ export LC_ALL=C
 umask 077
 
 readonly SOURCE_SHA256=78be6ee06d4b562bf91a6a6ced6ddf78d5ab601079050688fad6666087d62d3f
+readonly SLOW_TRANSPORT_SHA256=1859f2658ce4b097f312ac1db5019f37a2420383b0db6702edc2a819c235a797
 
 die() { printf 'error: %s\n' "$*" >&2; exit 2; }
 for command in awk chmod dirname mktemp python3 rm sha256sum; do
@@ -14,10 +15,16 @@ done
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 repo_root="$(cd -- "$script_dir/../../.." && pwd -P)"
+slow_transport="$script_dir/slow-transport-bin/ssh"
 source_installer="$repo_root/experiments/2026-08-19-mainline-da921x-same-value-write-implementation/scripts/install-boot2.sh"
 [[ -f "$source_installer" && ! -L "$source_installer" ]] || die 'source installer is unsafe'
+[[ -x "$slow_transport" && ! -L "$slow_transport" ]] || die 'slow transport wrapper is unsafe'
 [[ "$(sha256sum "$source_installer" | awk '{print $1}')" == "$SOURCE_SHA256" ]] ||
 	die 'source installer identity changed'
+[[ "$(sha256sum "$slow_transport" | awk '{print $1}')" == "$SLOW_TRANSPORT_SHA256" ]] ||
+	die 'slow transport wrapper identity changed'
+transport_bin="$(dirname -- "$slow_transport")"
+export PATH="$transport_bin:$PATH"
 
 derived="$(mktemp "$script_dir/.derived-install-boot2.XXXXXXXX")"
 cleanup() { [[ ! -e "${derived:-}" ]] || rm -f -- "$derived"; }
