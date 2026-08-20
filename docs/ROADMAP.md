@@ -29,7 +29,7 @@ Cortex-A72 pair.
 | DVFSP/PCM firmware lease | The historical receiver is positively attributed to the embedded MT6797 hybrid PCM. Mainline's stopped-state handoff maps the CSPM, SCP-configuration, and Device-APC AO windows and held SCP reset asserted across all 32 entries/exits of the successful bounded transaction. | No firmware request, PCM residency, start/kick sequence, or callable `SEMA_I2C_DRV` path exists. Keep general or concurrent I2C6 writes blocked. |
 | I2C6 transfer | Native packed/FIFO pointer-read and one exact one-message two-byte FIFO write are runtime proven. The write completed once with payload `[0xda, 0x46]`, exact no-retry accounting, and stable readback. | This closes only the reviewed same-value shape; arbitrary writes, failure recovery, stress, and resume remain open. |
 | Legacy board contract | The fixed `0x68`/`0x69` tuple is stable and DA9213/DA9214/DA9215-compatible. | The read-only board-contract gate is closed; unique silicon identity remains open. |
-| Linux regulator provider | The dedicated legacy-family driver registers two read-only providers. A default-off experiment completed one exact same-value write/readback while the target buck was disabled and unselected, without a consumer or rail transition. | Gate 6 is closed for the reviewed no-op only. Gate 7 now identifies a default-off positive Buck-B acquire/release state machine as the first missing implementation; consumers and CPU requests remain disconnected. |
+| Linux regulator provider | The dedicated legacy-family driver registers two read-only providers. A default-off experiment completed one exact same-value write/readback while the target buck was disabled and unselected. A separate hardware-free implementation now models exact positive Buck-B acquire/release and passes all six focused fake-adapter cases. | Gate 6 is closed for the reviewed no-op, and the first Gate-7 provider source boundary is complete offline. Physical transition, production integration, consumers, and CPU requests remain disconnected. |
 | Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. An experiment-only retained-cluster path now provides repeatable bounded execution and scheduler-context cleanup on both CPUs, but safe offlining, rail ownership, rollback, resume, and production integration remain unproved. | Keep both CPUs disconnected from the default profile until the provider and safe-off gates below pass. |
 
 The durable technical boundary is in
@@ -70,7 +70,7 @@ Work on eMMC, logging, keyboard coverage, USB roles, display/touch, and other
 independent subsystems may proceed in parallel only when it preserves the
 fixed DA921x/A72 experiment baseline. The immediate critical chain is:
 
-`positive Buck-B provider transaction -> Gate-7 integration -> production CPU8 -> production CPU9`
+`positive-provider proof -> Gate-7 integration review -> production CPU8 -> production CPU9`
 
 ## Ordered gates
 
@@ -4314,8 +4314,23 @@ first patch restores that intended registration before the positive change.
 Buildbox semantic, patch, replay, and strict style validation pass with zero
 findings; isolated source and KUnit profiles retain the stopped-firmware window
 and disconnect every CPU caller. The exact KUnit profile also compiles and
-links on Buildbox. The next ordered action is the bounded, network-free
-fake-adapter KUnit run. No device action is admitted by this source work.
+links on Buildbox. One bounded, network-free fake-adapter QEMU run at exact
+repository revision
+`43099ac1dcfa5da1fa0bb3bd4a8b9de71f033f50` passes all six focused cases with
+zero failures or skips. This closes the hardware-free positive-provider
+implementation proof only; no physical transition, CPU request, boot image, or
+device action occurred.
+
+The next ordered action is a separate offline Gate-7 integration review. It
+must compose the exact generation-bound provider handle with the still-dormant
+P24/P30 caller, P28 post-provider effects, A41 checkpoints, the proven
+pre-isolation inverse, and reset-only recovery after isolation. It must freeze
+source owners, ordering, timeouts, terminal states, and the exact point at
+which the A26 boot veto could eventually be narrowed while retaining the A14
+CPU_OFF veto. The review must select the smallest default-off, hardware-free
+production-integration slice before any new Buildbox implementation. Physical
+DA921x execution, CPU_ON, a boot candidate, and device access remain closed
+until that separate review explicitly admits them.
 
 The candidate must have a single CPU8 request, strict checkpoints before and
 after each power step, a bounded timeout, and a fail-closed rollback. CPU9

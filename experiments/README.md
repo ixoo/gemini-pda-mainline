@@ -31,9 +31,11 @@ the loop. Positive identity-gated observations are unaffected.
   but was dropped from the final ops initializer. Three deterministic patches
   now pass Buildbox semantic, replay, and strict style validation and are
   admitted as canonical patches 0293--0295 with isolated source and KUnit
-  profiles. The exact KUnit profile now compiles and links on Buildbox; the
-  bounded fake-adapter QEMU run remains. This phase has no build candidate,
-  device access, CPU request, or physical I2C action.
+  profiles. The exact KUnit profile compiles and links on Buildbox, and its one
+  bounded network-free fake-adapter QEMU run passes all six focused cases with
+  no failures or skips. This completes only the hardware-free provider proof;
+  there is no boot candidate, device access, CPU request, or physical I2C
+  action.
 - [2026-08-20 mainline CPU8 Gate-7 admission audit](2026-08-20-mainline-cpu8-gate7-admission-audit/README.md)
   — reconciles the completed mainline same-value write with the retained Buck-B
   rollback, CPU8 startup/execution, A41, P24/P28/P30, and safe-off evidence.

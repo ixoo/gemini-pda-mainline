@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-20-mainline-da921x-positive-provider-transaction` |
-| Status | `in progress`; canonical hardware-free patches compile on Buildbox, focused KUnit execution pending |
+| Status | `completed` hardware-free implementation proof; canonical patches compile and focused KUnit passes 6/6 |
 | Subsystem | legacy DA921x regulator, private MT6797 A72 provider seam |
 | Device variant | Planet Gemini PDA named unit |
 | Date | 2026-08-20 America/New_York |
@@ -38,7 +38,7 @@ terminal failure states, and forbidden effects. The important distinction is
 that the root-adapter lock covers each complete acquire or release; it is not
 held across the handle lifetime.
 
-## Planned validation
+## Validation procedure
 
 1. Apply three deterministic source phases to checksum-pinned copies of the
    managed Buildbox source.
@@ -75,6 +75,31 @@ The exact KUnit profile then compiled and linked on Buildbox at signed revision
 object and focused provider-test object built, and the fetched package passed
 its full checksum manifest. Exact identities are in
 [`results/buildbox-compile-20260820.txt`](results/buildbox-compile-20260820.txt).
-The next action is the bounded, network-free arm64 QEMU run through
-[`scripts/run-kunit-qemu`](scripts/run-kunit-qemu). This build creates no boot
-candidate and authorizes no device action.
+
+The same Image and resolved configuration reproduced after the QEMU harness
+was committed at exact revision
+`43099ac1dcfa5da1fa0bb3bd4a8b9de71f033f50`. The Gemini DTB differs only in
+its two repository-commit provenance fields, as designed. The exact comparison
+is recorded in
+[`results/buildbox-reproduction-20260820.txt`](results/buildbox-reproduction-20260820.txt).
+
+## KUnit result and conclusion
+
+One bounded, network-free arm64 QEMU run of the exact fetched Buildbox Image
+passed the sole `da9213-legacy-positive-provider` suite: all six declared cases
+passed with zero failures or skips. The cases cover successful lifecycle,
+one-shot admission, every negative and short acquire/release transfer ordinal,
+and every owned-state mismatch ordinal. The later root-filesystem panic is the
+declared end boundary for this kernel-without-rootfs lane; QEMU was terminated
+by the expected 45-second timeout only after complete KTAP success.
+
+The sanitized receipt is
+[`results/kunit-qemu-20260820.txt`](results/kunit-qemu-20260820.txt). The raw
+log remains ignored below `artifacts/qemu/` and is identified by checksum in
+that receipt.
+
+This completes the hardware-free positive-provider implementation proof. It
+does not prove a physical `BUCKB_CONT` transition, connect P24/P28/P30, lift
+either CPU veto, create a boot candidate, or authorize device execution. The
+authoritative next boundary remains in
+[Roadmap Gate 7](../../docs/ROADMAP.md#7-bring-up-cpu8).

@@ -52,7 +52,7 @@ def main() -> None:
 
     require(
         contract["status"]
-        == "hardware-free-buildbox-compile-passed-kunit-pending",
+        == "hardware-free-implementation-proof-complete",
         "experiment status changed",
     )
     series = tuple(
