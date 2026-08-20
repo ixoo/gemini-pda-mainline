@@ -6,7 +6,7 @@ export LC_ALL=C
 umask 077
 
 readonly SOURCE_SHA256=78be6ee06d4b562bf91a6a6ced6ddf78d5ab601079050688fad6666087d62d3f
-readonly SLOW_TRANSPORT_SHA256=1859f2658ce4b097f312ac1db5019f37a2420383b0db6702edc2a819c235a797
+readonly SLOW_TRANSPORT_SHA256=6fb1088ef1849ecc1165cb78fe81da2535d89712345e6aabbc82478e32bac53d
 
 die() { printf 'error: %s\n' "$*" >&2; exit 2; }
 for command in awk chmod dirname mktemp python3 rm sha256sum; do

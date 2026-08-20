@@ -6,15 +6,34 @@ set -euo pipefail
 
 real_ssh=/usr/bin/ssh
 [[ -x "$real_ssh" ]] || { printf 'error: system ssh is unavailable\n' >&2; exit 2; }
+readonly RAW_SIZE=6895616
+readonly PADDED_SIZE=16777216
 
 arguments=()
+sparse_candidate_upload=no
 while (($#)); do
 	if [[ "$1" == -o && "${2:-}" == ServerAliveCountMax=6 ]]; then
 		arguments+=(-o ServerAliveCountMax=36)
 		shift 2
 		continue
 	fi
-	arguments+=("$1")
+	argument=$1
+	if [[ "$argument" == *"cat >'/home/gemini/.gemini-mainline-da921x-same-value-dt-repair."* &&
+		"$argument" == *"chmod 600"* ]]; then
+		stage=${argument#*cat \>\'}
+		stage=${stage%%\'*}
+		[[ "$stage" =~ ^/home/gemini/\.gemini-mainline-da921x-same-value-dt-repair\.[A-Za-z0-9]+$ ]] || {
+			printf 'error: unsafe sparse staging path\n' >&2
+			exit 2
+		}
+		argument="$argument && truncate -s $PADDED_SIZE '$stage'"
+		sparse_candidate_upload=yes
+	fi
+	arguments+=("$argument")
 	shift
 done
+if [[ "$sparse_candidate_upload" == yes ]]; then
+	dd bs="$RAW_SIZE" count=1 2>/dev/null | "$real_ssh" "${arguments[@]}"
+	exit $?
+fi
 exec "$real_ssh" "${arguments[@]}"
