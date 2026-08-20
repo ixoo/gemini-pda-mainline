@@ -23,6 +23,13 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-19 mainline DA921x same-value-write implementation](2026-08-19-mainline-da921x-same-value-write-implementation/README.md)
+  — implements the admitted Gate-6 contract as three deterministic logical
+  source phases: controller ledger v2/prefix verification, the one-shot
+  12-transfer regulator action, and hardware-free KUnit. The exact temporary
+  Buildbox delta passes semantic validation and strict style with zero errors,
+  warnings, or checks. Normal patch generation, canonical admission, compile,
+  and KUnit execution remain pending; no candidate or device action exists.
 - [2026-08-19 mainline DA921x same-value-write preflight review](2026-08-19-mainline-da921x-same-value-write-preflight-review/README.md)
   — reconciles the exact B1--B4 closure receipts into the only eligible Gate-6
   implementation: five full-byte preflight reads, one `0xda: 0x46 -> 0x46`

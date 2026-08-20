@@ -1,0 +1,73 @@
+{
+  "schema": "gemini-da921x-same-value-write-implementation-v1",
+  "status": "source-generation-in-progress",
+  "review_parent": {
+    "repository_commit": "ca3caa3e3c814da61a0ca113c69fc87e3bc1140e",
+    "contract": "../2026-08-19-mainline-da921x-same-value-write-preflight-review/contract.json",
+    "contract_sha256": "3f851743de01404a728327a9763aadf6c6dc4ab30024a9be7912841500a5850b"
+  },
+  "patch_plan": [
+    {
+      "number": "0290",
+      "subject": "i2c: mediatek: extend Gemini entry ledger attribution",
+      "scope": "ledger-v2-and-read-only-locked-prefix-verifier"
+    },
+    {
+      "number": "0291",
+      "subject": "regulator: add bounded DA921x same-value write",
+      "scope": "one-shot-production-sequence"
+    },
+    {
+      "number": "0292",
+      "subject": "regulator: test bounded DA921x same-value write",
+      "scope": "hardware-free-kunit"
+    }
+  ],
+  "production": {
+    "token": "run-same-value-write-20260819-a",
+    "pretrigger_entries": 20,
+    "ledger_capacity": 32,
+    "action_transfers": 12,
+    "write_ordinal": 6,
+    "write_address": "0x68",
+    "write_payload": ["0xda", "0x46"],
+    "root_lock_calls": 1,
+    "root_unlock_calls": 1,
+    "retries_during": 0,
+    "delay_us": {"minimum": 10000, "maximum": 11000},
+    "automatic_retry": false,
+    "second_or_inverse_write": false,
+    "page_con_accesses": 0,
+    "consumer_requests": 0,
+    "cpu_requests": 0
+  },
+  "hardware_free_tests": {
+    "registered_adapters": 0,
+    "registered_clients": 0,
+    "physical_mmio": false,
+    "physical_transfers": 0,
+    "success_path": true,
+    "admission_refusals": true,
+    "ledger_refusal": true,
+    "transfer_failure_ordinals": 12,
+    "value_mismatch_ordinals": 11,
+    "retry_restoration_every_exit": true,
+    "payload_bytes_checked": 2
+  },
+  "workflow": {
+    "patch_generation_backend": "buildbox",
+    "kernel_build_backend": "buildbox",
+    "native_vm_build": false,
+    "clean_pushed_commit_required": true,
+    "canonical_series_audit": true,
+    "all_profiles_audit": true
+  },
+  "decision": {
+    "implementation_in_progress": true,
+    "boot_candidate_exists": false,
+    "physical_da921x_write_authorized": false,
+    "device_action": "none",
+    "cpu8_cpu9_admission": "closed",
+    "next_success_gate": "three-generated-patches-pass-source-style-replay-and-mutation-validation"
+  }
+}

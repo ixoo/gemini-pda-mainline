@@ -1,0 +1,225 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+export LC_ALL=C
+
+readonly PARENT_SOURCE_STATE=3cd27f8d5432e8de0a495d2b9f9c266f8de9cb78077f9091bcc35a2548edcdfc
+readonly I2C_DRIVER_SHA256=bad6ef5c86bf10c806943c2097977b519962901a490803f28bd80d627a23400d
+readonly I2C_KCONFIG_SHA256=f3acb69e2ec7698ea8641a29e57bd06ee1f81b1dc45d434beb79be2a88d67acf
+readonly REGULATOR_DRIVER_SHA256=a7ed1907b9e5772f80ed317c8788c886eaff7a86379f955cc857b3574ddc380f
+readonly REGULATOR_KCONFIG_SHA256=aa8d3256e92fc3a52c8109048729a6eeb359088883bf9c42ddc625735f2f2e65
+readonly REGULATOR_MAKEFILE_SHA256=6234f2997b70562efb45d584675e61ba167333521ee6568e35baf85ae13e4b14
+
+die() { printf 'error: %s\n' "$*" >&2; exit 1; }
+
+[[ "$#" -eq 3 ]] || die 'expected PROJECT_COMMIT SOURCE_ROOT OUTPUT_ROOT'
+readonly project_commit=$1
+readonly source_root=$2
+readonly output_root=$3
+[[ "$project_commit" =~ ^[0-9a-f]{40}$ ]] || die 'invalid project commit'
+[[ "$source_root" == /workspace/gemini-pda/src/linux-7.1.3 ]] ||
+	die 'unexpected managed source root'
+[[ "$output_root" == /workspace/gemini-pda/* ]] || die 'unsafe output root'
+[[ -f "$source_root/.gemini-source-state" && ! -L "$source_root/.gemini-source-state" ]] ||
+	die 'prepared source state marker absent or unsafe'
+[[ "$(<"$source_root/.gemini-source-state")" == "$PARENT_SOURCE_STATE" ]] ||
+	die 'prepared parent source state changed'
+
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+experiment_dir="$(cd -- "$script_dir/.." && pwd -P)"
+repository_dir="$(cd -- "$experiment_dir/../.." && pwd -P)"
+readonly script_dir experiment_dir repository_dir
+[[ "$(git -C "$repository_dir" rev-parse HEAD)" == "$project_commit" ]] ||
+	die 'project checkout does not match requested commit'
+[[ -z "$(git -C "$repository_dir" status --porcelain)" ]] ||
+	die 'project checkout is dirty'
+for command in git perl python3 sha256sum; do
+	command -v "$command" >/dev/null 2>&1 || die "missing command: $command"
+done
+
+printf '%s  %s\n' "$I2C_DRIVER_SHA256" "$source_root/drivers/i2c/busses/i2c-mt65xx.c" |
+	sha256sum --check --status || die 'parent i2c driver changed'
+printf '%s  %s\n' "$I2C_KCONFIG_SHA256" "$source_root/drivers/i2c/busses/Kconfig" |
+	sha256sum --check --status || die 'parent i2c Kconfig changed'
+printf '%s  %s\n' "$REGULATOR_DRIVER_SHA256" \
+	"$source_root/drivers/regulator/da9213-legacy-regulator.c" |
+	sha256sum --check --status || die 'parent regulator driver changed'
+printf '%s  %s\n' "$REGULATOR_KCONFIG_SHA256" "$source_root/drivers/regulator/Kconfig" |
+	sha256sum --check --status || die 'parent regulator Kconfig changed'
+printf '%s  %s\n' "$REGULATOR_MAKEFILE_SHA256" "$source_root/drivers/regulator/Makefile" |
+	sha256sum --check --status || die 'parent regulator Makefile changed'
+
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate.py"
+
+readonly work_root=/workspace/gemini-pda/da921x-same-value-write-work
+readonly package="$output_root/da921x-same-value-write-patches-${project_commit:0:12}"
+readonly partial="${package}.partial.$$"
+mkdir -p "$work_root" "$output_root"
+[[ ! -e "$partial" ]] || die 'stale output partial exists'
+
+if [[ -d "$package" && ! -L "$package" ]]; then
+	grep -Fx "repository_commit=$project_commit" \
+		"$package/provenance/generation.txt" >/dev/null ||
+		die 'existing package commit mismatch'
+	(cd "$package" && sha256sum --check --strict SHA256SUMS >/dev/null)
+	printf 'Generated DA921x same-value-write patch review at %s\n' "$package"
+	exit 0
+fi
+[[ ! -e "$package" ]] || die 'unsafe existing package path'
+
+work="$(mktemp -d "$work_root/generation.XXXXXX")"
+readonly work
+cleanup() {
+	[[ ! -d "$work" || "$work" != "$work_root"/generation.* ]] || rm -rf -- "$work"
+	[[ ! -d "$partial" || "$partial" != "$output_root"/*.partial.* ]] || rm -rf -- "$partial"
+}
+trap cleanup EXIT
+
+mkdir -p "$work/source/drivers/i2c/busses" "$work/source/drivers/regulator" \
+	"$work/source/include/linux"
+cp -- "$source_root/drivers/i2c/busses/i2c-mt65xx.c" \
+	"$source_root/drivers/i2c/busses/Kconfig" "$work/source/drivers/i2c/busses/"
+cp -- "$source_root/drivers/regulator/da9213-legacy-regulator.c" \
+	"$source_root/drivers/regulator/Kconfig" \
+	"$source_root/drivers/regulator/Makefile" "$work/source/drivers/regulator/"
+
+git -C "$work/source" init --quiet
+git -C "$work/source" config user.name 'Gemini Mainline Experiment'
+git -C "$work/source" config user.email gemini-mainline@example.invalid
+git -C "$work/source" add -- drivers include
+GIT_AUTHOR_DATE=2026-08-20T00:00:00Z \
+GIT_COMMITTER_DATE=2026-08-20T00:00:00Z \
+	git -C "$work/source" commit --quiet --no-gpg-sign \
+		-m 'Gate 6 same-value-write source parent'
+baseline_commit="$(git -C "$work/source" rev-parse HEAD)"
+readonly baseline_commit
+
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/source_edits.py" \
+	--source-root "$work/source" --phase ledger
+git -C "$work/source" diff --check
+git -C "$work/source" add -- drivers/i2c/busses/Kconfig \
+	drivers/i2c/busses/i2c-mt65xx.c include/linux/i2c-mt65xx-gemini-ledger.h
+git -C "$work/source" diff --cached --check
+GIT_AUTHOR_NAME='Gemini Mainline Experiment' \
+GIT_AUTHOR_EMAIL=gemini-mainline@example.invalid \
+GIT_COMMITTER_NAME='Gemini Mainline Experiment' \
+GIT_COMMITTER_EMAIL=gemini-mainline@example.invalid \
+GIT_AUTHOR_DATE=2026-08-20T00:01:00Z \
+GIT_COMMITTER_DATE=2026-08-20T00:01:00Z \
+	git -C "$work/source" commit --no-gpg-sign \
+		-m 'i2c: mediatek: extend Gemini entry ledger attribution' \
+		-m 'Record the bounded second byte of length-two writes in ledger v2.' \
+		-m 'Expose a read-only exact-prefix verifier for callers holding the root lock.'
+ledger_commit="$(git -C "$work/source" rev-parse HEAD)"
+readonly ledger_commit
+
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/source_edits.py" \
+	--source-root "$work/source" --phase write
+git -C "$work/source" diff --check
+git -C "$work/source" add -- drivers/regulator/Kconfig \
+	drivers/regulator/da9213-legacy-regulator.c \
+	drivers/regulator/da9213-legacy-write-contract.h
+git -C "$work/source" diff --cached --check
+GIT_AUTHOR_NAME='Gemini Mainline Experiment' \
+GIT_AUTHOR_EMAIL=gemini-mainline@example.invalid \
+GIT_COMMITTER_NAME='Gemini Mainline Experiment' \
+GIT_COMMITTER_EMAIL=gemini-mainline@example.invalid \
+GIT_AUTHOR_DATE=2026-08-20T00:02:00Z \
+GIT_COMMITTER_DATE=2026-08-20T00:02:00Z \
+	git -C "$work/source" commit --no-gpg-sign \
+		-m 'regulator: add bounded DA921x same-value write' \
+		-m 'Run the exact twelve-transfer Gate-6 action under one root lock.' \
+		-m 'Stop without retry or inverse write on every error or mismatch.'
+write_commit="$(git -C "$work/source" rev-parse HEAD)"
+readonly write_commit
+
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/source_edits.py" \
+	--source-root "$work/source" --phase kunit
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_source.py" \
+	--source-root "$work/source"
+git -C "$work/source" diff --check
+git -C "$work/source" add -- drivers/regulator/Kconfig \
+	drivers/regulator/Makefile drivers/regulator/da9213-legacy-write-test.c
+git -C "$work/source" diff --cached --check
+GIT_AUTHOR_NAME='Gemini Mainline Experiment' \
+GIT_AUTHOR_EMAIL=gemini-mainline@example.invalid \
+GIT_COMMITTER_NAME='Gemini Mainline Experiment' \
+GIT_COMMITTER_EMAIL=gemini-mainline@example.invalid \
+GIT_AUTHOR_DATE=2026-08-20T00:03:00Z \
+GIT_COMMITTER_DATE=2026-08-20T00:03:00Z \
+	git -C "$work/source" commit --no-gpg-sign \
+		-m 'regulator: test bounded DA921x same-value write' \
+		-m 'Cover exact success, refusals, all failures, and all mismatches.' \
+		-m 'Use only an unregistered in-memory fake adapter.'
+kunit_commit="$(git -C "$work/source" rev-parse HEAD)"
+readonly kunit_commit
+
+mkdir -p "$partial/patches" "$partial/provenance"
+readonly patch1=0290-i2c-mediatek-extend-Gemini-entry-ledger-attribution.patch
+readonly patch2=0291-regulator-add-bounded-DA921x-same-value-write.patch
+readonly patch3=0292-regulator-test-bounded-DA921x-same-value-write.patch
+git -C "$work/source" format-patch -3 --no-signature --numbered \
+	--start-number 1 --output-directory "$partial/patches" >/dev/null
+generated1="$(find "$partial/patches" -maxdepth 1 -type f -name '0001-*.patch' -print)"
+generated2="$(find "$partial/patches" -maxdepth 1 -type f -name '0002-*.patch' -print)"
+generated3="$(find "$partial/patches" -maxdepth 1 -type f -name '0003-*.patch' -print)"
+[[ -n "$generated1" && -n "$generated2" && -n "$generated3" ]] ||
+	die 'normal patch output absent'
+mv -- "$generated1" "$partial/patches/$patch1"
+mv -- "$generated2" "$partial/patches/$patch2"
+mv -- "$generated3" "$partial/patches/$patch3"
+printf '%s\n' "$patch1" "$patch2" "$patch3" >"$partial/patches/series"
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_patches.py" \
+	--patch-dir "$partial/patches"
+
+git clone --quiet "$work/source" "$work/verify"
+git -C "$work/verify" checkout --quiet --detach "$baseline_commit"
+git -C "$work/verify" config user.name 'Gemini Mainline Experiment'
+git -C "$work/verify" config user.email gemini-mainline@example.invalid
+git -C "$work/verify" am --quiet --committer-date-is-author-date \
+	"$partial/patches/$patch1" "$partial/patches/$patch2" \
+	"$partial/patches/$patch3"
+[[ "$(git -C "$work/verify" rev-parse HEAD)" == "$kunit_commit" ]] ||
+	die 'normal patch replay did not reproduce generated commits'
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_source.py" \
+	--source-root "$work/verify"
+[[ -z "$(git -C "$work/verify" status --porcelain)" ]] ||
+	die 'verification source is dirty'
+
+if ! perl "$source_root/scripts/checkpatch.pl" --no-tree --strict \
+	--ignore MISSING_SIGN_OFF,FILE_PATH_CHANGES,COMMIT_LOG_LONG_LINE \
+	"$partial/patches/$patch1" "$partial/patches/$patch2" \
+	"$partial/patches/$patch3" >"$partial/provenance/checkpatch.txt"; then
+	cat "$partial/provenance/checkpatch.txt" >&2
+	die 'strict checkpatch rejected generated patches'
+fi
+
+cat >"$partial/provenance/generation.txt" <<EOF
+purpose=experiment-only-da921x-same-value-write-implementation
+repository_commit=$project_commit
+parent_source_state=$PARENT_SOURCE_STATE
+baseline_commit=$baseline_commit
+ledger_commit=$ledger_commit
+write_commit=$write_commit
+kunit_commit=$kunit_commit
+generated_patch_count=3
+changed_path_count=9
+kunit_case_count=6
+transfer_failure_ordinals=12
+value_mismatch_ordinals=11
+hardware_action=none
+device_action=none
+boot_candidate=false
+physical_da921x_write_authorized=false
+cpu8_cpu9_admission=closed
+EOF
+printf '%s\n' "$patch1" "$patch2" "$patch3" \
+	>"$partial/provenance/patches.txt"
+(
+	cd "$partial"
+	find patches provenance -type f -print0 | sort -z |
+		xargs -0 sha256sum >SHA256SUMS
+	sha256sum --check --strict SHA256SUMS >/dev/null
+)
+mv -- "$partial" "$package"
+printf 'Generated DA921x same-value-write patch review at %s\n' "$package"

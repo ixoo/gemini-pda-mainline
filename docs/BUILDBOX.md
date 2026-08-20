@@ -112,6 +112,25 @@ readable member manifests so case-distinct filenames survive extraction on a
 case-insensitive host. These are compiler and timing-review inputs only;
 neither output is a boot candidate.
 
+## Mainline Gate-6 patch-generation lanes
+
+The mainline I2C6 short-write transport and DA921x same-value-write experiments
+have separate patch-review lanes:
+
+```sh
+./scripts/buildbox generate-i2c6-write-transport-patches
+./scripts/buildbox fetch-i2c6-write-transport-patches
+./scripts/buildbox generate-da921x-same-value-write-patches
+./scripts/buildbox fetch-da921x-same-value-write-patches
+```
+
+Each lane requires an exact clean pushed project commit, validates the managed
+Linux source state and parent-file checksums, generates normal format-patches
+with a synthetic non-certifying identity, replays them, and runs source and
+strict style gates. Fetch transfers only the checksum-covered patch review and
+provenance. These lanes do not compile a kernel, create a boot candidate,
+access the Gemini, or authorize a physical I2C transaction.
+
 ## Gemian pre-isolation rollback patch-generation lane
 
 The first Gate 4 rollback discriminator has a separate source-preparation lane:
