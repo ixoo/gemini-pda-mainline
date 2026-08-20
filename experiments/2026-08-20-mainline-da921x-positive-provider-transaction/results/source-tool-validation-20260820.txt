@@ -20,3 +20,6 @@ native_vm_build=none
 boot_candidate=false
 cpu8_cpu9_admission=closed
 result=ready-for-clean-pushed-buildbox-generation
+buildbox_generation_attempt_1=validator-only-stop
+buildbox_generation_attempt_1_reason=kconfig-declaration-was-checked-with-runtime-CONFIG-prefix
+buildbox_generation_attempt_1_hardware_action=none

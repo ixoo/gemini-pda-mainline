@@ -71,7 +71,7 @@ def main() -> None:
             "production delay seam changed")
     require("provider_transaction_lock" in driver,
             "provider state lock missing")
-    require("CONFIG_REGULATOR_DA9213_LEGACY_POSITIVE_PROVIDER_TRANSACTION" in kconfig,
+    require("config REGULATOR_DA9213_LEGACY_POSITIVE_PROVIDER_TRANSACTION" in kconfig,
             "positive Kconfig missing")
     require("depends on MTK_MT6797_I2C6_FW_WRITER_TRANSACTION_WINDOW" in kconfig,
             "firmware transaction-window dependency missing")
