@@ -31,6 +31,13 @@ def additions(text: str) -> str:
     )
 
 
+def additions_for_path(text: str, path: str) -> str:
+    marker = f"diff --git a/{path} b/{path}\n"
+    require(text.count(marker) == 1, f"patch path boundary changed: {path}")
+    section = text.split(marker, 1)[1].split("\ndiff --git ", 1)[0]
+    return additions(section)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--patch-dir", type=Path, required=True)
@@ -68,6 +75,9 @@ def main() -> None:
 
     repair = additions(texts[0])
     transaction = additions(texts[1])
+    transaction_driver = additions_for_path(
+        texts[1], "drivers/regulator/da9213-legacy-regulator.c"
+    )
     test = additions(texts[2])
     require(repair.strip() == ".release = da9213_legacy_provider_release,",
             "repair patch must add only release registration")
@@ -96,7 +106,7 @@ def main() -> None:
         "psci_ops.cpu_off",
         "writel(",
     ):
-        require(forbidden not in transaction,
+        require(forbidden not in transaction_driver,
                 f"forbidden transaction token: {forbidden}")
     require(test.count("KUNIT_CASE(") == 6, "KUnit case count changed")
     for token in (

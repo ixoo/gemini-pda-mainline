@@ -26,3 +26,6 @@ buildbox_generation_attempt_1_hardware_action=none
 buildbox_generation_attempt_2=validator-only-stop-after-edited-source-pass
 buildbox_generation_attempt_2_reason=strip-removed-indent-before-single-line-repair-comparison
 buildbox_generation_attempt_2_hardware_action=none
+buildbox_generation_attempt_3=validator-only-stop-after-edited-source-pass
+buildbox_generation_attempt_3_reason=forbidden-code-scan-included-negated-Kconfig-help-text
+buildbox_generation_attempt_3_hardware_action=none
