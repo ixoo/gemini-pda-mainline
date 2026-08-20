@@ -74,6 +74,14 @@ Offline assembly produced raw image `87b38fc4...` and exact 16 MiB boot2
 image `85dbd8d0...`. All 32 LK gates passed. The original eight DT mutations
 and three new handoff-resource mutations were rejected.
 
+The first two normal transfers and one extended-liveness transfer stopped
+before the device write gate because Gemian's SSH stream became unresponsive.
+The successful attempt sent only the raw 6,895,616-byte prefix and sparsely
+extended the staging file to 16 MiB. The unchanged remote gate verified the
+full staged SHA-256 before writing. Live GPT resolved `boot2` to p30 and the
+active root to p29; power was present at 100% with Good health. The full write,
+flush, post gate, independent 16 MiB readback, and clean shutdown all passed.
+
 ## Analysis
 
 This is a DT-only contract correction. A different runtime outcome is
@@ -82,8 +90,8 @@ are unchanged.
 
 ## Conclusion
 
-The DT-only candidate is independently validated. Device deployment and one
-selected-device boot remain pending.
+The DT-only candidate is independently validated and deployed to logical
+`boot2`. The device is shut down. One selected-device boot remains pending.
 
 ## Follow-up
 

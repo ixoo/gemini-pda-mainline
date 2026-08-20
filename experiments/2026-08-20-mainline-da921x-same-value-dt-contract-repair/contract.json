@@ -1,6 +1,6 @@
 {
   "schema": "gemini-da921x-same-value-dt-contract-repair-v1",
-  "status": "offline-candidate-validated",
+  "status": "deployed-shut-down-awaiting-selected-boot",
   "parent_experiment": "../2026-08-19-mainline-da921x-same-value-write-implementation",
   "root_cause": {
     "classification": "kernel-dt-resource-contract-mismatch",
@@ -40,9 +40,34 @@
     "negative_dtb_mutations_rejected": 11,
     "boot_candidate": true
   },
+  "deployment": {
+    "known_good_os": "3.18.41+",
+    "target_logical_name": "boot2",
+    "target": "/dev/mmcblk0p30",
+    "active_root": "/dev/mmcblk0p29",
+    "predecessor_sha256": "b81813d13acc970c7b9203b89ec034921ef6f7e1017539a0c228754619af7b22",
+    "fresh_predecessor_backup": false,
+    "candidate_sha256": "85dbd8d020cc6d3527743f05d4a1071a8f573407a5519ae1584127e55e33bae9",
+    "full_partition_readback_sha256": "85dbd8d020cc6d3527743f05d4a1071a8f573407a5519ae1584127e55e33bae9",
+    "power": "present-100-Good-external-online",
+    "write_synced_flushed": true,
+    "clean_shutdown_confirmed": true,
+    "automatic_reboot": false
+  },
+  "runtime_tooling": {
+    "candidate_sha256": "85dbd8d020cc6d3527743f05d4a1071a8f573407a5519ae1584127e55e33bae9",
+    "lifecycle_capture_before_client_gate": true,
+    "dmesg_capture_before_client_gate": true,
+    "bounded_usb_topology_log": true,
+    "pretrigger_required_count": 20,
+    "trigger_attempts": 1,
+    "trigger_retries": 0,
+    "second_writes": 0,
+    "token_requires_classifier_pass": true
+  },
   "decision": {
     "repeat_rejected_candidate": false,
     "kernel_rebuild_required": false,
-    "next_gate": "guarded-boot2-install-and-clean-shutdown"
+    "next_gate": "one-selected-boot-with-pretrigger-lifecycle-capture"
   }
 }
