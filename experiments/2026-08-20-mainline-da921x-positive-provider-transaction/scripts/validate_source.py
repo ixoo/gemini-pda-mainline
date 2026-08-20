@@ -36,12 +36,12 @@ def main() -> None:
     )
     acquire = between(
         driver,
-        "int da9213_legacy_provider_transaction_acquire(",
+        "da9213_legacy_provider_transaction_acquire(",
         "static bool da9213_provider_handle_matches(",
     )
     release = between(
         driver,
-        "int da9213_legacy_provider_transaction_release(",
+        "da9213_legacy_provider_transaction_release(",
         "static const struct da9213_legacy_provider_transport_ops",
     )
     for operation in (acquire, release):

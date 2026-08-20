@@ -32,3 +32,6 @@ buildbox_generation_attempt_3_hardware_action=none
 buildbox_generation_attempt_4=style-only-stop-after-all-semantic-validators-pass
 buildbox_generation_attempt_4_result=zero-errors-zero-warnings-45-strict-checks
 buildbox_generation_attempt_4_hardware_action=none
+buildbox_generation_attempt_5=validator-boundary-stop
+buildbox_generation_attempt_5_reason=function-return-style-split-required-updated-source-anchor
+buildbox_generation_attempt_5_hardware_action=none
