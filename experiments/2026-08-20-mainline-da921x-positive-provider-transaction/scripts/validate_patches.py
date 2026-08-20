@@ -69,7 +69,7 @@ def main() -> None:
     repair = additions(texts[0])
     transaction = additions(texts[1])
     test = additions(texts[2])
-    require(repair.strip() == "\t.release = da9213_legacy_provider_release,",
+    require(repair.strip() == ".release = da9213_legacy_provider_release,",
             "repair patch must add only release registration")
     for token in (
         "REGULATOR_DA9213_LEGACY_POSITIVE_PROVIDER_TRANSACTION",
