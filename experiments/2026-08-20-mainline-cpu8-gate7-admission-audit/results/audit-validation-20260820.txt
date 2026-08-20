@@ -1,0 +1,12 @@
+validation=mainline-cpu8-gate7-admission-audit
+source_and_evidence_hashes=13-of-13
+admission_matrix=12-of-12
+gate6_same_value_write=passed
+historical_cpu8_startup=confirmed
+current_positive_provider=missing
+a26_boot_veto=required
+a14_disable_veto=required
+next=hardware-free-positive-provider-acquire-release
+device_access=none
+hardware_write=none
+result=pass

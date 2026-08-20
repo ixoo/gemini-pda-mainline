@@ -1,0 +1,13 @@
+id	boundary	current_state	evidence_class	gate7_consequence
+G01	mainline-serviceability	passed-current-mainline	runtime	preserve
+G02	i2c6-exact-two-byte-write	passed-same-value-only	runtime	transport-shape-closed
+G03	provider-owner-callback	structured-acquire-and-release-refusal	compiled-source	positive-path-missing
+G04	buckb-positive-acquire-release	not-implemented-current-mainline	missing	first-source-boundary
+G05	buckb-pre-isolation-inverse	passed-gemian-derived-path	portable-hardware-behavior	must-be-reimplemented-current-mainline
+G06	p28-postprovider-effects	dormant-ledger-only	compiled-source	hardware-owner-integration-missing
+G07	a41-late-cpu-capability	partial-source-model	compiled-source	ready-binding-missing
+G08	p24-p30-positive-cpu-on	no-production-caller	missing	cpu-on-veto-required
+G09	cpu8-online-checkpoint	passed-gemian-derived-path	runtime-feasibility	startup-hardware-feasible
+G10	cpu8-bounded-execution	repeatable-gemian-derived-path	runtime-feasibility	execution-hardware-feasible
+G11	first-cpu8-reset-recovery	passed-historical-experiment	runtime-recovery	must-bind-current-transaction
+G12	normal-cpu-off	blocked-safe-off-contract	contract	a14-veto-required

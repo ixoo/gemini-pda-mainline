@@ -1,0 +1,94 @@
+{
+  "schema": "gemini-mainline-cpu8-gate7-admission-audit-v1",
+  "status": "completed-not-ready-for-cpu8",
+  "repository_parent": "10afe6ce0e985f4294309b3e488a819e1e02327c",
+  "kernel_release": "7.1.3",
+  "safety": {
+    "repository_only": true,
+    "device_access": false,
+    "hardware_write": false,
+    "kernel_build": false,
+    "boot_candidate": false,
+    "cpu8_cpu9_admission": "closed",
+    "a26_boot_veto": "required",
+    "a14_disable_veto": "required"
+  },
+  "evidence": {
+    "manifest_sha256": "3423e7ffc1740f62d4a4575499de069d446afbb4336617e94e92f966e7172375",
+    "canonical_series_sha256": "c3623c3fabd29b851977a80f451e728d663a8f6cea578f388d6372d92260e87c",
+    "cpu_veto_patch_sha256": "cbd54d048e2233ffcb268174037248ade9ab8716f9816481d926b20b4bd3bba5",
+    "p28_model_patch_sha256": "2361e3e308bb1cd19079fb5de8699acd544d269bcf93ec986f24a2780d3f7c92",
+    "provider_acquire_refusal_patch_sha256": "becd82625a362af8bf46e91cfb6bfe439fc72b6fec612fcbd3c2eaf9d7b1ce87",
+    "provider_release_refusal_patch_sha256": "39d499200d82cd7debbd0ad2e9591f0a4f98005b7844cee0531e10ef823a7647",
+    "mainline_same_value_runtime_sha256": "d73f98a383a2442f66a5d604f855ba1a6aab88b25fb7b8f924352ffe81a8bd1c",
+    "pre_isolation_rollback_runtime_sha256": "1295291982ae539681fc817cebc894a6f7abb13484f000500e542caa861adaa4",
+    "cpu8_online_runtime_sha256": "481d85375ff9a2bdd14f0704c5e4ac33eb557114239d11b97eee1202f3055f95",
+    "cpu8_execution_repeatability_sha256": "aebdff16e9c98086114796b9b091d46e05261bf0fcdd01536be7499c57fd536f",
+    "safe_off_contract_sha256": "8451fbc2910a0d4776efe2d51b84f0bcb3e95ac77310ff425c506bbb59d6af26",
+    "admission_lock_contract_sha256": "d3c10bf62bb89df8301fb2c06145b06ebbdbe8be29437a555a27c33a8ffd0ae5",
+    "capability_admission_sha256": "d1dbfe5873deb9f5f4df1bb235593f9fcaf025debfb3cbc4c4711b352dac8008"
+  },
+  "decision": {
+    "gate_6_exact_same_value_write": "passed",
+    "current_mainline_cpu8_ready": false,
+    "historical_cpu8_startup_feasibility": "confirmed",
+    "historical_pre_isolation_rollback": "confirmed",
+    "positive_mainline_provider_acquire_release": "missing",
+    "p28_hardware_effects": "model-only",
+    "p24_p30_positive_integration": "missing",
+    "a41_capability_ready": false,
+    "normal_cpu_off": "blocked",
+    "first_missing_implementation": "default-off-positive-da921x-buckb-provider-acquire-release"
+  },
+  "next_implementation": {
+    "hardware_free": true,
+    "profile": "new-isolated-default-off-profile",
+    "target_cpu": 8,
+    "cpu9_closed": true,
+    "prestate": {
+      "control_a": "0x7b",
+      "v_lock": "clear",
+      "status_b": "0xc1-record-only",
+      "buckb_cont": "0x00",
+      "vbuckb_a": "0x46",
+      "vbuckb_b": "0x46"
+    },
+    "acquire": {
+      "address": "0x68",
+      "register": "0x5e",
+      "transition": "0x00-to-0x01",
+      "settle_us": 1000,
+      "readback": "0x01",
+      "selectors_unchanged": true,
+      "page_con_accesses": 0
+    },
+    "release": {
+      "requires_generation_bound_handle": true,
+      "transition": "0x01-to-0x00",
+      "readback": "0x00",
+      "full_prestate_restored": true,
+      "page_con_accesses": 0
+    },
+    "transport": {
+      "root_adapter_lock": "single-complete-transaction",
+      "adapter_retries": 0,
+      "firmware_writer_edge_checks": "every-transfer-entry-and-exit",
+      "automatic_retry": false
+    },
+    "failure": {
+      "stop_on_first_mismatch": true,
+      "inverse_only_when_owned_state_exact": true,
+      "unproved_inverse": "terminal-fault-retain-reset-only",
+      "second_acquire": false
+    },
+    "forbidden": [
+      "device-action",
+      "page-con-access",
+      "selector-write",
+      "regulator-consumer",
+      "p28-effect",
+      "cpu-on",
+      "cpu-off"
+    ]
+  }
+}

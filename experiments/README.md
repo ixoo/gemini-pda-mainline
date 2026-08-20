@@ -23,6 +23,15 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-20 mainline CPU8 Gate-7 admission audit](2026-08-20-mainline-cpu8-gate7-admission-audit/README.md)
+  — reconciles the completed mainline same-value write with the retained Buck-B
+  rollback, CPU8 startup/execution, A41, P24/P28/P30, and safe-off evidence.
+  The pinned 12-row audit rejects immediate current-mainline CPU8 admission:
+  the existing provider-owner acquire/release seam still returns structured
+  refusal. It selects a hardware-free, default-off positive Buck-B
+  acquire/release state machine as the first missing implementation while
+  retaining the A26/A14 vetoes and prohibiting a build candidate or device
+  action.
 - [2026-08-20 mainline DA921x same-value DT contract repair](2026-08-20-mainline-da921x-same-value-dt-contract-repair/README.md)
   — repairs the missing named handoff windows without changing the kernel,
   ramdisk, or LK contract. Exact deployment and one selected boot passed the

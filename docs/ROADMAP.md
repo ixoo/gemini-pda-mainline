@@ -29,7 +29,7 @@ Cortex-A72 pair.
 | DVFSP/PCM firmware lease | The historical receiver is positively attributed to the embedded MT6797 hybrid PCM. Mainline's stopped-state handoff maps the CSPM, SCP-configuration, and Device-APC AO windows and held SCP reset asserted across all 32 entries/exits of the successful bounded transaction. | No firmware request, PCM residency, start/kick sequence, or callable `SEMA_I2C_DRV` path exists. Keep general or concurrent I2C6 writes blocked. |
 | I2C6 transfer | Native packed/FIFO pointer-read and one exact one-message two-byte FIFO write are runtime proven. The write completed once with payload `[0xda, 0x46]`, exact no-retry accounting, and stable readback. | This closes only the reviewed same-value shape; arbitrary writes, failure recovery, stress, and resume remain open. |
 | Legacy board contract | The fixed `0x68`/`0x69` tuple is stable and DA9213/DA9214/DA9215-compatible. | The read-only board-contract gate is closed; unique silicon identity remains open. |
-| Linux regulator provider | The dedicated legacy-family driver registers two read-only providers. A default-off experiment completed one exact same-value write/readback while the target buck was disabled and unselected, without a consumer or rail transition. | Gate 6 is closed for the reviewed no-op only. Keep writable consumers and active rail transitions disconnected until Gate 7 reconciles ownership and rollback. |
+| Linux regulator provider | The dedicated legacy-family driver registers two read-only providers. A default-off experiment completed one exact same-value write/readback while the target buck was disabled and unselected, without a consumer or rail transition. | Gate 6 is closed for the reviewed no-op only. Gate 7 now identifies a default-off positive Buck-B acquire/release state machine as the first missing implementation; consumers and CPU requests remain disconnected. |
 | Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. An experiment-only retained-cluster path now provides repeatable bounded execution and scheduler-context cleanup on both CPUs, but safe offlining, rail ownership, rollback, resume, and production integration remain unproved. | Keep both CPUs disconnected from the default profile until the provider and safe-off gates below pass. |
 
 The durable technical boundary is in
@@ -70,7 +70,7 @@ Work on eMMC, logging, keyboard coverage, USB roles, display/touch, and other
 independent subsystems may proceed in parallel only when it preserves the
 fixed DA921x/A72 experiment baseline. The immediate critical chain is:
 
-`Gate-7 ownership/admission contract -> production CPU8 -> production CPU9`
+`positive Buck-B provider transaction -> Gate-7 integration -> production CPU8 -> production CPU9`
 
 ## Ordered gates
 
@@ -4278,6 +4278,29 @@ CPU-off attribution, and safe-off contract. Freeze which production-mainline
 owners, state predicates, checkpoints, timeouts, and inverse operations already
 have evidence and identify any still-missing prerequisite before changing the
 kernel or spending another device boot.
+
+That [Gate-7 admission audit](../experiments/2026-08-20-mainline-cpu8-gate7-admission-audit/README.md)
+is complete. It separates twelve boundaries and rejects immediate current-
+mainline CPU8 admission. The mainline same-value runtime closes the exact I2C6
+short-write shape, while the isolated A72 provider acquire and release
+callbacks still deliberately return structured `-EOPNOTSUPP` before any vote
+or mutation. Historical named-unit evidence confirms Buck B can enable,
+settle, and restore before isolation and that CPU8 can reach online and bounded
+execution, but those Gemian-derived implementations are not current Linux 7.1
+owners. P28 remains a dormant effect ledger, A41 is partial, no positive
+P24/P30 production caller exists, and the A26/A14 vetoes remain required.
+
+The next ordered implementation is hardware-free: add one isolated,
+default-off positive DA921x Buck-B acquire/release state machine behind the
+existing provider-owner seam. It must freeze the exact full-byte prestate,
+hold one root-adapter lock, force zero retries, retain the stopped-firmware
+edge checks, perform the exact `BUCKB_CONT 0x00 -> 0x01` transition and 1 ms
+settled readback, return a generation-bound handle, and admit the exact owned
+`0x01 -> 0x00` inverse with full-state restoration. Every transfer/failure
+ordinal requires hardware-free coverage. `PAGE_CON`, selector writes,
+consumers, P28, CPU_ON, CPU_OFF, boot images, and device actions remain closed.
+Commit and push the reviewable source before the required Buildbox-only compile
+and focused test run.
 
 The candidate must have a single CPU8 request, strict checkpoints before and
 after each power step, a bounded timeout, and a fail-closed rollback. CPU9
