@@ -1,0 +1,79 @@
+{
+  "schema": "gemini-mainline-da921x-positive-provider-transaction-v1",
+  "status": "hardware-free-source-implementation",
+  "parent_repository_commit": "feb1767011da40e28679e0f9293ddcb195646c7a",
+  "parent_source_state": "c9e5f2fbef9f2a25a7b6772ad122ca0f000d57f0c23789040f70f669e022c698",
+  "logical_patches": [
+    "restore-provider-release-registration",
+    "add-positive-buckb-provider-transaction",
+    "test-positive-buckb-provider-transaction"
+  ],
+  "safety": {
+    "default_off": true,
+    "hardware_free": true,
+    "device_access": false,
+    "physical_i2c": false,
+    "boot_candidate": false,
+    "cpu8_cpu9_admission": "closed",
+    "p28_effect": false,
+    "cpu_on": false,
+    "cpu_off": false,
+    "page_con_accesses": 0,
+    "selector_writes": 0,
+    "regulator_consumers": 0
+  },
+  "prestate": {
+    "address": "0x68",
+    "control_a": "0x7b",
+    "v_lock": "clear",
+    "status_b": "record-only",
+    "observed_status_b": "0xc1",
+    "buckb_cont": "0x00",
+    "vbuckb_a": "0x46",
+    "vbuckb_b": "0x46"
+  },
+  "acquire": {
+    "target_cpu": 8,
+    "cpu9": "rejected",
+    "transition": "BUCKB_CONT 0x00-to-0x01",
+    "settle_us": 1000,
+    "full_byte_readback": "0x01",
+    "full_owned_state_recheck": true,
+    "handle": "exact-transaction-generation-and-cookie",
+    "automatic_retry": false,
+    "second_acquire": false
+  },
+  "release": {
+    "requires_exact_handle": true,
+    "requires_exact_held_state": true,
+    "transition": "BUCKB_CONT 0x01-to-0x00",
+    "full_byte_readback": "0x00",
+    "full_owned_prestate_restored": true,
+    "automatic_retry": false
+  },
+  "transport": {
+    "root_adapter_lock": "one-per-complete-acquire-or-release",
+    "lock_spans_handle_lifetime": false,
+    "adapter_retries": 0,
+    "firmware_writer_checks": "controller-enforced-at-every-transfer-entry-and-exit",
+    "transfers_per_successful_acquire": 11,
+    "transfers_per_successful_release": 11
+  },
+  "failure": {
+    "stop_first_error_or_owned-state-mismatch": true,
+    "inverse_only_after_exact-held-preflight": true,
+    "unproved_inverse": "terminal-fault-retain-reset-only",
+    "write_retry": false,
+    "automatic_rollback": false
+  },
+  "test": {
+    "unregistered_fake_adapter": true,
+    "fake_address": "0x2a",
+    "negative_error_every_acquire_transfer": true,
+    "short_result_every_acquire_transfer": true,
+    "negative_error_every_release_transfer": true,
+    "short_result_every_release_transfer": true,
+    "owned_value_mismatch_ordinals_per_operation": 8,
+    "status_b_variation_is_record_only": true
+  }
+}

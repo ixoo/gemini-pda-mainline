@@ -4293,14 +4293,27 @@ P24/P30 production caller exists, and the A26/A14 vetoes remain required.
 The next ordered implementation is hardware-free: add one isolated,
 default-off positive DA921x Buck-B acquire/release state machine behind the
 existing provider-owner seam. It must freeze the exact full-byte prestate,
-hold one root-adapter lock, force zero retries, retain the stopped-firmware
-edge checks, perform the exact `BUCKB_CONT 0x00 -> 0x01` transition and 1 ms
-settled readback, return a generation-bound handle, and admit the exact owned
-`0x01 -> 0x00` inverse with full-state restoration. Every transfer/failure
-ordinal requires hardware-free coverage. `PAGE_CON`, selector writes,
-consumers, P28, CPU_ON, CPU_OFF, boot images, and device actions remain closed.
-Commit and push the reviewable source before the required Buildbox-only compile
-and focused test run.
+hold one root-adapter lock per complete acquire or release, force zero retries,
+retain the stopped-firmware edge checks, perform the exact `BUCKB_CONT 0x00 ->
+0x01` transition and 1 ms settled readback, return a generation-bound handle,
+and admit the exact owned `0x01 -> 0x00` inverse with full-state restoration.
+The lock must not span the handle lifetime. Every transfer/failure ordinal
+requires hardware-free coverage. `PAGE_CON`, selector writes, consumers, P28,
+CPU_ON, CPU_OFF, boot images, and device actions remain closed. Commit and push
+the reviewable source before the required Buildbox-only compile and focused
+test run.
+
+That [positive-provider implementation](../experiments/2026-08-20-mainline-da921x-positive-provider-transaction/README.md)
+is now in its hardware-free source phase. The frozen design uses eleven
+transfers for acquire and eleven for release, binds the handle to the exact
+transaction generation and cookie, treats `STATUS_B` as record-only, and
+stops ambiguous write outcomes in a terminal fault-retain/reset-only state.
+The cumulative source review also found that the release-refusal function is
+present but its ops-table member was lost by a later patch; an independent
+first patch restores that intended registration before the positive change.
+Patch generation, canonical admission, Buildbox compile, and the fake-adapter
+KUnit run remain the next actions. No device action is admitted by this source
+work.
 
 The candidate must have a single CPU8 request, strict checkpoints before and
 after each power step, a bounded timeout, and a fail-closed rollback. CPU9
