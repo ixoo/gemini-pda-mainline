@@ -1,0 +1,246 @@
+{
+  "schema": "gemini-da921x-same-value-write-preflight-review-v1",
+  "status": "completed-hardware-free-implementation-eligible",
+  "roadmap_gate": "Gate-6-pre-write-review",
+  "hardware_scope": "none",
+  "review_parent": {
+    "repository_commit": "60b8de7e0d3dbf15e36071a7a9ae9aade5e1d931",
+    "cpu_online": "0-7",
+    "cpu_offline": "8-9",
+    "maxcpus": 8
+  },
+  "closure_receipts": [
+    {
+      "blockers": ["B1-firmware-owner"],
+      "status": "closed",
+      "path": "../2026-08-18-mainline-i2c6-firmware-writer-transaction-window/results/runtime-attempt-1-success-20260819.txt",
+      "sha256": "4df19155b07334da33fe4fabbb4789879cadd7a61dbcd52f61fe220a57f76ffe",
+      "required_markers": [
+        "Gate6_B1=closed-on-named-unit-and-exact-revision",
+        "transaction_entry_checks=20",
+        "transaction_exit_checks=20",
+        "transaction_reset_failures=0"
+      ]
+    },
+    {
+      "blockers": ["B2-write-transport"],
+      "status": "closed",
+      "path": "../2026-08-19-mainline-i2c6-write-transport-kunit/results/qemu-attempt-1-success-20260819.txt",
+      "sha256": "48bb5834fc11aee4c7189cd0e285c2bf87d6106ab7d617d81d132638a95745df",
+      "required_markers": [
+        "tests=12",
+        "failed=0",
+        "skipped=0",
+        "gate6_B2=closed"
+      ]
+    },
+    {
+      "blockers": ["B3-transfer-attribution", "B4-live-preflight"],
+      "status": "closed",
+      "path": "../2026-08-18-mainline-da921x-runtime-preflight-ledger/results/runtime-attempt-1e-finalized-20260818.txt",
+      "sha256": "42ba653f1c19f96131c64e4abd1410f09d8faa157d6b8707b8f594813ec97e0e",
+      "required_markers": [
+        "Gate6_B3=closed-by-exact-transfer-attribution",
+        "Gate6_B4=closed-by-stable-safe-read-only-preflight",
+        "pretrigger_count=20",
+        "control_a=0x7b",
+        "status_b=0xc1",
+        "buckb_cont=0x00",
+        "vbuckb_a=0x46",
+        "vbuckb_b=0x46"
+      ]
+    }
+  ],
+  "pretrigger_ledger": {
+    "schema": "v1",
+    "capacity": 32,
+    "required_count": 20,
+    "required_overflow": 0,
+    "required_sequence": [
+      "69:05", "69:06", "69:47", "68:d3", "68:5e", "68:d9", "68:da",
+      "69:05", "69:06", "69:47", "68:d3", "68:5e", "68:d9", "68:da",
+      "68:d7", "68:d9", "68:d7", "68:5d", "68:d9", "68:5e"
+    ],
+    "required_shape": "two-message-one-byte-pointer-plus-one-byte-read",
+    "required_result": 2,
+    "required_complete": true,
+    "host_capture_before_token": true,
+    "verify_again_under_root_lock_before_first_action_transfer": true
+  },
+  "one_shot": {
+    "token": "run-same-value-write-20260819-a",
+    "accepted_requests": 1,
+    "state_lock": "da9213-legacy-device-mutex",
+    "initial_state": "idle",
+    "success_state": "passed",
+    "prewrite_failure_state": "failed-no-write",
+    "postwrite_failure_state": "faulted-no-further-i2c",
+    "wrong_token_transfers": 0,
+    "repeated_token_transfers": 0,
+    "precondition_failure_transfers": 0
+  },
+  "preconditions": {
+    "i2c_address": "0x68",
+    "control_a_0x56": "0x7b",
+    "control_a_v_lock_mask": "0x80",
+    "control_a_v_lock_expected": "0x00",
+    "status_b_0x51": "0xc1",
+    "buckb_cont_0x5e": "0x00",
+    "buckb_enabled": false,
+    "selected_voltage_register": "VBUCKB_A",
+    "vbuckb_a_0xd9": "0x46",
+    "vbuckb_b_0xda": "0x46",
+    "provider_consumers": 0,
+    "cpu_online": "0-7",
+    "cpu_offline": "8-9",
+    "maxcpus": 8,
+    "power_stable": true,
+    "handoff_state": "ready",
+    "scp_reset_control": "0x00000000",
+    "transaction_reset_failures": 0
+  },
+  "bus_window": {
+    "root_adapter_lock_calls": 1,
+    "root_adapter_unlock_calls": 1,
+    "lock_scope": "pretrigger-ledger-verification-through-final-poststate-or-first-failure",
+    "adapter_retries_saved": true,
+    "adapter_retries_during": 0,
+    "adapter_retries_restored_on_every_exit": true,
+    "transfer_api_under_lock": "__i2c_transfer",
+    "forbidden_transfer_api_under_lock": "i2c_transfer",
+    "private_controller_header_import": false,
+    "controller_ledger_verifier": "read-only-public-experiment-api-no-transfer",
+    "max_action_transfers": 12,
+    "automatic_retry": false
+  },
+  "action_sequence": [
+    {"ordinal": 1, "kind": "read", "register": "0x56", "expected": "0x7b", "ledger_count_after": 21},
+    {"ordinal": 2, "kind": "read", "register": "0x51", "expected": "0xc1", "ledger_count_after": 22},
+    {"ordinal": 3, "kind": "read", "register": "0x5e", "expected": "0x00", "ledger_count_after": 23},
+    {"ordinal": 4, "kind": "read", "register": "0xd9", "expected": "0x46", "ledger_count_after": 24},
+    {"ordinal": 5, "kind": "read", "register": "0xda", "expected": "0x46", "ledger_count_after": 25},
+    {"ordinal": 6, "kind": "write", "register": "0xda", "value": "0x46", "expected_transfer_return": 1, "ledger_count_after": 26},
+    {"ordinal": 7, "kind": "read", "register": "0xda", "expected": "0x46", "phase": "immediate-readback", "ledger_count_after": 27},
+    {"ordinal": 8, "kind": "read", "register": "0xda", "expected": "0x46", "phase": "delayed-readback", "delay_before_us": {"minimum": 10000, "maximum": 11000}, "ledger_count_after": 28},
+    {"ordinal": 9, "kind": "read", "register": "0x56", "expected": "0x7b", "phase": "poststate", "ledger_count_after": 29},
+    {"ordinal": 10, "kind": "read", "register": "0x51", "expected": "0xc1", "phase": "poststate", "ledger_count_after": 30},
+    {"ordinal": 11, "kind": "read", "register": "0x5e", "expected": "0x00", "phase": "poststate", "ledger_count_after": 31},
+    {"ordinal": 12, "kind": "read", "register": "0xd9", "expected": "0x46", "phase": "poststate", "ledger_count_after": 32}
+  ],
+  "write_contract": {
+    "classification": "same-value-no-op",
+    "i2c_address": "0x68",
+    "register": "0xda",
+    "register_name": "VBUCKB_B",
+    "pre_value": "0x46",
+    "write_value": "0x46",
+    "post_value": "0x46",
+    "messages": 1,
+    "message_bytes": ["0xda", "0x46"],
+    "expected_transfer_return": 1,
+    "write_attempts": 1,
+    "second_or_inverse_write": false,
+    "page_con_accesses": 0,
+    "consumer_requests": 0,
+    "cpu_requests": 0
+  },
+  "payload_attribution": {
+    "required_ledger_schema": "v2",
+    "recorded_payload_bytes_for_write": 2,
+    "required_write_entry": {
+      "address": "0x68",
+      "messages": 1,
+      "flags": "0x0000",
+      "length": 2,
+      "payload": ["0xda", "0x46"],
+      "result": 1,
+      "complete": true
+    },
+    "write_shaped_entries": 1,
+    "register_data_write_entries": 1,
+    "other_transfers": 0,
+    "other_address_transfers": 0,
+    "overflow": 0
+  },
+  "success_postconditions": {
+    "ledger_count": 32,
+    "ledger_spare_entries": 0,
+    "transaction_entry_checks": 32,
+    "transaction_exit_checks": 32,
+    "transaction_reset_failures": 0,
+    "control_a_0x56": "0x7b",
+    "status_b_0x51": "0xc1",
+    "buckb_cont_0x5e": "0x00",
+    "vbuckb_a_0xd9": "0x46",
+    "immediate_vbuckb_b_0xda": "0x46",
+    "delayed_vbuckb_b_0xda": "0x46",
+    "cpu_online": "0-7",
+    "cpu_offline": "8-9",
+    "sysfs_mount_after_collection": "ro"
+  },
+  "failure_policy": {
+    "stop_after_first_transfer_error_or_value_mismatch": true,
+    "automatic_retry": false,
+    "second_or_inverse_write": false,
+    "further_i2c_after_write_attempt_failure": 0,
+    "enable_buckb": false,
+    "select_vbuckb_b": false,
+    "request_cpu8_or_cpu9": false,
+    "preserve_partial_ledger": true,
+    "preserve_kernel_result": true,
+    "failure_stages": [
+      {"ordinal": 1, "ledger_count": 21, "write_attempts": 0, "state": "failed-no-write"},
+      {"ordinal": 2, "ledger_count": 22, "write_attempts": 0, "state": "failed-no-write"},
+      {"ordinal": 3, "ledger_count": 23, "write_attempts": 0, "state": "failed-no-write"},
+      {"ordinal": 4, "ledger_count": 24, "write_attempts": 0, "state": "failed-no-write"},
+      {"ordinal": 5, "ledger_count": 25, "write_attempts": 0, "state": "failed-no-write"},
+      {"ordinal": 6, "ledger_count": 26, "write_attempts": 1, "state": "faulted-no-further-i2c"},
+      {"ordinal": 7, "ledger_count": 27, "write_attempts": 1, "state": "faulted-no-further-i2c"},
+      {"ordinal": 8, "ledger_count": 28, "write_attempts": 1, "state": "faulted-no-further-i2c"},
+      {"ordinal": 9, "ledger_count": 29, "write_attempts": 1, "state": "faulted-no-further-i2c"},
+      {"ordinal": 10, "ledger_count": 30, "write_attempts": 1, "state": "faulted-no-further-i2c"},
+      {"ordinal": 11, "ledger_count": 31, "write_attempts": 1, "state": "faulted-no-further-i2c"},
+      {"ordinal": 12, "ledger_count": 32, "write_attempts": 1, "state": "faulted-no-further-i2c"}
+    ]
+  },
+  "host_observation": {
+    "collector_must_be_validated_before_candidate": true,
+    "pretrigger_capture_must_precede_token": true,
+    "copy_immutable_result_before_recovery": true,
+    "native_reboot_only_after_classification": true,
+    "changed_boot_id_gemian_required": true,
+    "boot2_checksum_reconfirmation_required": true,
+    "automatic_second_trigger": false,
+    "automatic_second_write": false
+  },
+  "implementation_gates": {
+    "source_validator": "required",
+    "hardware_free_sequence_kunit": "required",
+    "all_failure_stage_kunit": "required",
+    "payload_attribution_mutation_tests": "required",
+    "canonical_series_audit": "required",
+    "all_manifest_profiles_audit": "required",
+    "build_backend": "buildbox",
+    "exact_clean_pushed_commit": true,
+    "candidate_validation": "required",
+    "collector_validation": "required",
+    "predeployment_hypothesis": "required",
+    "deployment_evidence_pushed_before_boot": true
+  },
+  "decision": {
+    "original_blockers_closed": [
+      "B1-firmware-owner",
+      "B2-write-transport",
+      "B3-transfer-attribution",
+      "B4-live-preflight"
+    ],
+    "implementation_eligible": true,
+    "buildbox_kernel_build_eligible": true,
+    "physical_da921x_write_authorized": false,
+    "boot_candidate_exists": false,
+    "device_action": "none",
+    "cpu8_cpu9_admission": "closed",
+    "next_action": "implement-and-hardware-free-validate-exact-contract",
+    "ordered_follow_up_owner": "docs/ROADMAP.md#6-prove-one-bounded-writable-operation"
+  }
+}

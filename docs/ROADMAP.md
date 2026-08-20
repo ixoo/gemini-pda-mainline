@@ -4191,14 +4191,24 @@ and lease-result precedence compiled on Buildbox and passed all 12 focused
 arm64 QEMU cases with no failure or skip. No Gemini device, DA921x address, or
 physical I2C transaction was involved. This closes B2 only.
 
-B1--B4 now each have named closure evidence, but the initial same-value-write
-review remains a historical design-only decision. The sole next ordered action
-is a fresh explicit pre-write review that reconciles those four exact receipts,
-refreshes the blocker ledger, and freezes the one-shot implementation,
-preflight, immediate/delayed readback, failure, terminal-recovery, and host
-observation contracts. Only that review may decide whether implementation and
-a Buildbox candidate are eligible. Gate-6 hardware writing and CPU8/CPU9
-admission remain closed.
+B1--B4 now each have named closure evidence. The fresh explicit
+[same-value-write preflight review](../experiments/2026-08-19-mainline-da921x-same-value-write-preflight-review/README.md)
+reconciles their exact receipts and closes the historical design-only hold. It
+freezes five exact preflight reads, one `0xda: 0x46 -> 0x46` write,
+immediate/delayed target readback, and four full-byte poststate reads. Those 12
+actions exactly consume the remaining 32-entry ledger capacity. One root-
+adapter lock must cover an under-lock recheck of the retained 20-entry prefix
+through the last action or first failure; retries remain zero and are restored
+on every exit. Because the old ledger records only the register pointer, the
+successor must attribute both `0xda` and data byte `0x46` in its sole
+write-shaped entry.
+
+The review permits only a default-off implementation and hardware-free
+validation. The sole next ordered action is to implement that exact contract,
+test success and every failure/mismatch stage, audit the complete patch/profile
+series, and build the exact clean pushed commit through Buildbox. No boot
+candidate or physical DA921x write exists yet. Gate-6 hardware writing and
+CPU8/CPU9 admission remain closed.
 
 The first writable test must:
 

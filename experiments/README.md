@@ -23,6 +23,16 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-19 mainline DA921x same-value-write preflight review](2026-08-19-mainline-da921x-same-value-write-preflight-review/README.md)
+  — reconciles the exact B1--B4 closure receipts into the only eligible Gate-6
+  implementation: five full-byte preflight reads, one `0xda: 0x46 -> 0x46`
+  write, immediate/delayed target readback, and four full-byte poststate reads
+  under one root-adapter lock with zero retries. The 12 actions exactly fill
+  the 32-entry ledger, so the implementation must verify the retained
+  20-entry prefix under lock and extend attribution to both write bytes. The
+  review is hardware-free and permits only default-off implementation and
+  Buildbox validation; no candidate or physical write exists and CPU8/CPU9
+  remain closed.
 - [2026-08-19 mainline I2C6 write-transport KUnit proof](2026-08-19-mainline-i2c6-write-transport-kunit/README.md)
   — closes Gate-6 blocker B2 without device access. Two canonical patches
   factor the production MT6797 FIFO plan, completion accounting, no-retry
