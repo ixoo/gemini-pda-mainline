@@ -35,8 +35,8 @@ def validate(contract: dict, readme: str, design: str) -> None:
 
     require(contract["schema"] == "gemini-i2c6-write-transport-kunit-v1",
             "unexpected schema")
-    require(contract["status"] == "design-frozen-implementation-pending",
-            "design must not claim implementation")
+    require(contract["status"] == "completed-hardware-free",
+            "completed hardware-free status changed")
     require(contract["roadmap_gate"] == "Gate-6-B2", "wrong roadmap gate")
     require(contract["hardware_scope"] == "none", "hardware scope escaped")
     require(parent["gate6_B1"] == parent["gate6_B3"] ==
@@ -109,10 +109,10 @@ def validate(contract: dict, readme: str, design: str) -> None:
     require(exit_criteria["qemu_kunit_failed"] == 0 and
             exit_criteria["qemu_kunit_skipped"] == 0,
             "KUnit failure/skip allowance changed")
-    require(exit_criteria["implementation_complete"] is False,
-            "design validator cannot claim implementation")
-    require(exit_criteria["gate6_B2"] == "open",
-            "B2 must remain open before executed KUnit")
+    require(exit_criteria["implementation_complete"] is True,
+            "completed production-coupled implementation proof is required")
+    require(exit_criteria["gate6_B2"] == "closed",
+            "B2 closure must remain explicit")
     require(exit_criteria["gate6_write"] == "not-authorized",
             "Gate-6 write must remain unauthorized")
     require(exit_criteria["cpu8_cpu9_admission"] == "closed",
@@ -128,10 +128,11 @@ def validate(contract: dict, readme: str, design: str) -> None:
         require(token in design, f"design token missing: {token}")
     for token in (
         "Buildbox only",
-        "No kernel source",
-        "QEMU run",
-        "hardware state",
-        "Every DA921x write and CPU8/CPU9 admission remains closed",
+        "hardware-free",
+        "No Gemini device",
+        "hardware register was touched",
+        "Every DA921x write",
+        "CPU8/CPU9 admission remains closed",
     ):
         require(token in readme, f"README token missing: {token}")
 
@@ -155,8 +156,8 @@ def test_fail_closed(contract: dict, readme: str, design: str) -> int:
             qemu_kunit_skipped=1)),
         ("authorize-write", lambda c: c["exit_criteria"].update(
             gate6_write="authorized")),
-        ("claim-complete", lambda c: c["exit_criteria"].update(
-            implementation_complete=True)),
+        ("drop-completion", lambda c: c["exit_criteria"].update(
+            implementation_complete=False)),
         ("drop-prohibition", lambda c: c["prohibited"].update(
             physical_i2c=False)),
     ]
@@ -184,12 +185,14 @@ def main() -> None:
     print("fixture=one-message-two-byte-in-memory-write")
     print("production_contract=fifo-plan,root-locked-once,result-precedence")
     print("hardware_action=none")
-    print("kernel_build=none")
+    print("kernel_build=buildbox-pass")
+    print("qemu_kunit=pass-12-fail-0-skip-0")
     print("device_boot=none")
+    print("gate6_B2=closed")
     print("gate6_write=not-authorized")
     print("cpu8_cpu9_admission=closed")
     print(f"unsafe_mutations_rejected={rejected}")
-    print("decision=IMPLEMENT_AND_RUN_HARDWARE_FREE_KUNIT")
+    print("decision=CLOSE_B2_REFRESH_PREWRITE_REVIEW")
     print("result=pass")
 
 

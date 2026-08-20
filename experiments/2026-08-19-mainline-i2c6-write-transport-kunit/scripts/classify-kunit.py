@@ -14,6 +14,8 @@ from pathlib import Path
 
 PROFILE = "i2c6-write-transport-kunit"
 SUITE = "mtk-i2c-idvfs-write-contract"
+PANIC_PREFIX = "Kernel panic - not syncing: VFS: Unable to mount root fs"
+PANIC_END_PREFIX = f"---[ end {PANIC_PREFIX}"
 EXPECTED_CASES = (
     "mtk_i2c_idvfs_exact_two_byte_fifo_plan",
     "mtk_i2c_idvfs_malformed_message_refusals",
@@ -45,6 +47,14 @@ def sha256(path: Path) -> str:
         for chunk in iter(lambda: stream.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def manifest_checksum(path: Path, entry: str) -> str:
+    pattern = rf"^([0-9a-f]{{64}})  {re.escape(entry)}$"
+    matches = re.findall(pattern, path.read_text(encoding="utf-8"), re.MULTILINE)
+    require(len(matches) == 1,
+            f"checksum manifest entry absent or duplicated: {entry}")
+    return matches[0]
 
 
 def clean_lines(raw: str) -> list[str]:
@@ -93,10 +103,14 @@ def classify_runtime(raw: str, expected_release: str, qemu_exit: int) -> None:
     require(ktap.count(suite_result) == 1, "top-level suite result absent")
     result_index = ktap.index(suite_result)
     panic_indices = [index for index, line in enumerate(ktap)
-                     if "Kernel panic - not syncing: VFS: Unable to mount root"
-                     in line]
+                     if line.startswith(PANIC_PREFIX)]
     require(len(panic_indices) == 1 and panic_indices[0] > result_index,
             "expected post-test rootfs panic boundary absent or reordered")
+    end_panic_indices = [index for index, line in enumerate(ktap)
+                         if line.startswith(PANIC_END_PREFIX)]
+    require(len(end_panic_indices) == 1 and
+            end_panic_indices[0] > panic_indices[0],
+            "expected terminal panic marker absent or reordered")
     require(not any("System halted" in line for line in ktap),
             "runtime termination model changed")
 
@@ -116,7 +130,8 @@ def main() -> None:
     build_path = package / "provenance/build.json"
     image = package / "Image"
     config = package / "kernel.config"
-    for path in (build_path, image, config, raw_log):
+    sums = package / "SHA256SUMS"
+    for path in (build_path, image, config, sums, raw_log):
         require(path.is_file() and not path.is_symlink(),
                 f"required regular file absent or unsafe: {path.name}")
     build = json.loads(build_path.read_text(encoding="utf-8"))
@@ -129,7 +144,10 @@ def main() -> None:
     require(build["modules_built"] is False, "unexpected module build")
     image_sha256 = sha256(image)
     config_sha256 = sha256(config)
-    require(image_sha256 == build["image_sha256"], "Image checksum mismatch")
+    require(image_sha256 == manifest_checksum(sums, "./Image"),
+            "Image checksum mismatch")
+    require(config_sha256 == manifest_checksum(sums, "./kernel.config"),
+            "configuration manifest checksum mismatch")
     require(config_sha256 == build["config_sha256"],
             "configuration checksum mismatch")
 

@@ -23,15 +23,27 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-19 mainline I2C6 write-transport KUnit proof](2026-08-19-mainline-i2c6-write-transport-kunit/README.md)
+  — closes Gate-6 blocker B2 without device access. Two canonical patches
+  factor the production MT6797 FIFO plan, completion accounting, no-retry
+  root-lock wrapper, and lease-result precedence into a focused default-off
+  KUnit profile. Buildbox compiled the exact clean source and the original
+  isolated arm64 QEMU log passes all 12 ordered cases with no failure or skip.
+  This proves only the controller/software contract; the physical same-value
+  write and CPU8/CPU9 remain closed pending a fresh explicit pre-write review.
+- [2026-08-18 mainline I2C6 firmware-writer transaction window](2026-08-18-mainline-i2c6-firmware-writer-transaction-window/README.md)
+  — closes Gate-6 blocker B1 on the named unit and exact revision. One
+  attributable mainline boot held the stopped-DVFSP/reset-control exclusion at
+  every transfer entry and exit, retained the exact read-only ledger with no
+  write-shaped or foreign traffic, preserved CPU0--7 and serviceability, and
+  returned natively to changed-identity Gemian. The exact artifact is closed
+  to repetition and does not itself authorize a DA921x write.
 - [2026-08-18 mainline DA921x runtime-triggered read-only preflight](2026-08-18-mainline-da921x-runtime-preflight-ledger/README.md)
-  — preserves the runtime-proven Gate-5 boot path and bounded I2C6 ledger while
-  moving the ten fixed preflight reads behind one exact one-shot token. The
-  host must retain and classify the exact 20-entry startup ledger before it can
-  trigger; a surviving shell can then provide the exact 30-entry result, while
-  a trigger-time reset still leaves the full pre-trigger boundary. Invalid,
-  repeated, and precondition-failing requests perform no I2C operation. The
-  source/profile boundary is under validation; no build or hardware action has
-  occurred, and regulator writes plus CPU8/CPU9 remain closed.
+  — closes Gate-6 blockers B3 and B4. Its exact one-shot read-only runtime
+  attributed every startup and preflight transfer, observed stable disabled
+  Buck B with clear `V_LOCK` and both selectors at `0x46`, retained zero
+  register-data writes, restored sysfs read-only, and returned natively to
+  changed-identity Gemian with CPUs 8--9 offline.
 - [2026-08-17 mainline DA921x read-only preflight ledger](2026-08-17-mainline-da921x-readonly-preflight-ledger/README.md)
   — implemented the automatic child intended to attribute all 20 Gate-5 I2C6
   transfers and add two fixed five-register preflight passes. A 32-entry
@@ -48,10 +60,10 @@ the loop. Positive identity-gated observations are unaffected.
   firmware-owner audit, and rollback evidence into one exact least-invasive
   Gate-6 candidate: a same-value `0x46 -> 0x46` write to disabled Buck B's
   unselected `VBUCKB_B` register. The review performs no build or hardware
-  action and keeps implementation blocked on firmware-writer exclusion, the
-  unproved native two-byte write shape, two unattributed Gate-5 transfers, and
-  the absent live V_LOCK/status preflight. CPU8/CPU9 remain closed; Roadmap
-  gate 6 owns the ordered follow-up.
+  action. Its four original evidence blockers are now closed by later named
+  experiments, but the historical design-only decision remains unchanged
+  until a fresh explicit pre-write review reconciles those receipts. CPU8/CPU9
+  remain closed; Roadmap gate 6 owns the ordered follow-up.
 - [2026-08-17 LK-repaired DA921x read-only provider baseline](2026-08-17-mainline-da921x-readonly-provider-baseline/README.md)
   — freezes the ten runtime-proven CPU clock properties into the kernel-built
   Gemini DT and enables only the read-only LK-devinfo NVMEM supplier and

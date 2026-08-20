@@ -156,5 +156,9 @@ B2 remains open until all of these exist for the same clean pushed commit:
 - isolated arm64 QEMU reports every required KUnit case passed, with zero
   failure and zero skip.
 
+All criteria are satisfied by the exact retained-log classification in
+[`results/qemu-attempt-1-success-20260819.txt`](results/qemu-attempt-1-success-20260819.txt),
+so B2 is closed for the named repository commit and package.
+
 This closes only the software transport blocker. It does not authorize the
 bounded no-op write or admit CPU8/CPU9.

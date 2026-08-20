@@ -27,7 +27,7 @@ Cortex-A72 pair.
 | Cortex-A53 cluster | CPU0–7 can be online together. | Keep this baseline fixed while regulator work proceeds. |
 | I2C6 ownership | DVFSP handoff and shared AP-DMA ownership are understood well enough for the fixed native path. | Do not disturb the working I2C5/AP-DMA owner. |
 | DVFSP/PCM firmware lease | The historical receiver is positively attributed to the embedded MT6797 hybrid PCM, but mainline has only a read-only stopped-state handoff. | The selected handoff maps CSPM only: no CSRAM mapping, firmware request, PCM residency, start/kick sequence, or callable `SEMA_I2C_DRV` path. Keep I2C6 provider writes blocked. |
-| I2C6 transfer | Native packed/FIFO one-byte pointer plus one-byte read is proven for the fixed diagnostic shape. | Do not generalize this to arbitrary transfers or writes. |
+| I2C6 transfer | Native packed/FIFO pointer-read is runtime proven; the production-coupled one-message two-byte FIFO write plan and completion/no-retry accounting pass isolated KUnit. | Treat the write result as a software-contract proof only; no physical DA921x write has passed. |
 | Legacy board contract | The fixed `0x68`/`0x69` tuple is stable and DA9213/DA9214/DA9215-compatible. | The read-only board-contract gate is closed; unique silicon identity remains open. |
 | Linux regulator provider | The dedicated legacy-family driver now registers two read-only providers in one isolated, runtime-proven mainline profile with zero register-data writes. | Gate 5 is closed; keep consumers and writes disconnected while gate 6 reviews one bounded write/readback/rollback contract. |
 | Cortex-A72 | CPU8 and CPU9 remain offline in the default profile. An experiment-only retained-cluster path now provides repeatable bounded execution and scheduler-context cleanup on both CPUs, but safe offlining, rail ownership, rollback, resume, and production integration remain unproved. | Keep both CPUs disconnected from the default profile until the provider and safe-off gates below pass. |
@@ -4183,12 +4183,22 @@ audits and disabled mainline SCP driver/node, this closes B1 on the named unit
 and exact revision. Preserve and do not repeat the artifact; see the
 [runtime result](../experiments/2026-08-18-mainline-i2c6-firmware-writer-transaction-window/results/runtime-attempt-1-success-20260819.txt).
 
-The sole next ordered discriminator is B2. It must independently establish the
-native one-message two-byte write shape and its exact completion/failure
-accounting without targeting a DA921x device or requesting any regulator state
-change. Only after B2 closes may the reviewed one-shot same-value
-`0xda:0x46 -> 0x46` candidate return for an explicit pre-write review. Gate-6
-writing and CPU8/CPU9 admission remain closed.
+The hardware-free
+[B2 write-transport proof](../experiments/2026-08-19-mainline-i2c6-write-transport-kunit/README.md)
+now passes. The exact production-coupled one-message two-byte FIFO plan,
+completion and error classes, no-retry root-lock wrapper, retry restoration,
+and lease-result precedence compiled on Buildbox and passed all 12 focused
+arm64 QEMU cases with no failure or skip. No Gemini device, DA921x address, or
+physical I2C transaction was involved. This closes B2 only.
+
+B1--B4 now each have named closure evidence, but the initial same-value-write
+review remains a historical design-only decision. The sole next ordered action
+is a fresh explicit pre-write review that reconciles those four exact receipts,
+refreshes the blocker ledger, and freezes the one-shot implementation,
+preflight, immediate/delayed readback, failure, terminal-recovery, and host
+observation contracts. Only that review may decide whether implementation and
+a Buildbox candidate are eligible. Gate-6 hardware writing and CPU8/CPU9
+admission remain closed.
 
 The first writable test must:
 

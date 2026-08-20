@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-19-mainline-i2c6-write-transport-kunit` |
-| Status | `running` patches validated/imported; focused build pending |
+| Status | `completed` B2 closed by exact hardware-free 12/12 KUnit pass |
 | Subsystem | MT6797 iDVFS I2C6 native FIFO transport |
 | Device variant | Hardware-free arm64 QEMU; no Gemini device action |
 | Date(s) | 2026-08-19 America/New_York |
@@ -79,7 +79,7 @@ focused test option is disabled.
 - [`scripts/classify-kunit.py`](scripts/classify-kunit.py) requires the exact
   12-case KTAP pass before the later runtime evidence can close B2.
 - [`scripts/test-kunit-classifier.py`](scripts/test-kunit-classifier.py)
-  exercises the classifier against eight decision-changing log mutations.
+  exercises the classifier against eleven decision-changing log mutations.
 - [`results/design-freeze-20260819.txt`](results/design-freeze-20260819.txt)
   records the initial design validation.
 - [`results/source-tool-validation-20260819.txt`](results/source-tool-validation-20260819.txt)
@@ -95,6 +95,16 @@ focused test option is disabled.
 - [`results/patch-generation-attempt-5-success-20260819.txt`](results/patch-generation-attempt-5-success-20260819.txt)
   records the validated package, exact imported patch identities, and clean
   canonical-series audit.
+- [`results/qemu-attempt-1-classifier-schema-failure-20260819.txt`](results/qemu-attempt-1-classifier-schema-failure-20260819.txt)
+  records the successful focused build, retained QEMU log identity, and
+  fail-closed package-schema mismatch before KTAP classification.
+- [`results/qemu-attempt-1-classifier-panic-boundary-failure-20260819.txt`](results/qemu-attempt-1-classifier-panic-boundary-failure-20260819.txt)
+  records the retained log's second fail-closed classification: the terminal
+  panic marker repeated the real panic reason and was counted as a second
+  boundary.
+- [`results/qemu-attempt-1-success-20260819.txt`](results/qemu-attempt-1-success-20260819.txt)
+  records the exact retained-log reclassification that passes all 12 cases and
+  closes B2 without another QEMU run.
 
 Run the design validator from the repository root:
 
@@ -139,9 +149,9 @@ The deterministic two-phase source editor, exact KUnit-only profile extension,
 generated production/helper bodies, and 12-case suite contract also pass their
 tool validator, which also covers the first-class Buildbox generate/fetch
 transport, generator, patch validator, QEMU runner, and classifier and rejects
-twenty-five source/tool/workflow mutations; the patch validator independently
-rejects nine patch mutations. No kernel source, build, QEMU run, device, or
-hardware state has yet been changed by this experiment.
+twenty-seven source/tool/workflow mutations; the patch validator independently
+rejects nine patch mutations. Those validation commands do not edit kernel
+source, launch a build or QEMU, or touch the device or hardware state.
 
 The first Buildbox generation attempt at repository commit `d8983a39751c2227`
 stopped before producing a patch because the completion-result source anchor
@@ -185,7 +195,35 @@ its SHA-256 manifest; tracked patches 0288 and 0289 exactly match the validated
 package at SHA-256 `ecdd0091f43fc1871c1d17521d4aaae759da254a14cbd2ed82ccfa90a9d31f3c`
 and `85a4f78184793207f5a10ce8cb7bb12d9f5d7d5065bdd468cdaa7076a33945c5`.
 They are now the canonical series tail, and all 85 manifest profiles pass the
-series invariant. No kernel build or QEMU execution has occurred yet.
+series invariant. The focused build and runtime results follow below.
+
+The focused Buildbox build at repository commit `af92232ca995cc1` passed and
+produced release `7.1.3-gemini-i2c6-write-kunit`; both the production driver
+and focused KUnit object compiled and linked. The first bounded network-free
+QEMU run retained an 83,264-byte raw log, but the classifier initially stopped
+before KTAP evaluation because schema-1 `build.json` does not contain the
+expected `image_sha256` key. The retained log visibly contains the exact 12
+passing cases and totals. At that point B2 remained open pending corrected
+classifier validation. An identical QEMU rerun would add no independent evidence,
+so the correction validates `Image` and `kernel.config` against the package's
+already checksum-covered `SHA256SUMS` manifest and adds three manifest
+mutation tests.
+
+The first corrected classifier then reached the post-KTAP boundary and stopped
+because its substring match counted both the real rootfs panic line and the
+kernel's later `end Kernel panic` marker. The parser now distinguishes those
+two required lines, requires the marker to follow the real panic, and rejects
+missing, duplicated, or reordered boundary lines. This is another classifier
+correction against the same retained evidence, not a second QEMU run.
+
+The final corrected classifier validates the exact package commit, profile,
+release, `Image`, configuration, one focused suite, ordered 12-case inventory,
+zero failures, zero skips, exact totals, and post-test rootfs-panic boundary.
+It passes the immutable original log and reports `gate6_B2=closed`. The
+classifier tests reject eleven decision-changing runtime mutations and three
+package-manifest mutations; the source/tool validator rejects twenty-seven
+workflow mutations. No Gemini device, physical adapter, DA921x address, or
+hardware register was touched.
 
 ## Analysis
 
@@ -205,17 +243,19 @@ nonnegative transport results.
 
 ## Conclusion
 
-`confirmed` for the design gap: B2 requires exact FIFO-plan, no-retry, and
-lease-result accounting proof, not another Gemini boot.
+`confirmed` for B2 on repository commit
+`af92232ca995cc1d41a632b57b4e8cc301d79bc0`: the production-coupled FIFO plan,
+no-retry root-lock wrapper, completion classes, retry restoration, and lease
+result precedence compiled on Buildbox and passed all 12 focused arm64 QEMU
+cases with no failure or skip.
 
-`inconclusive` for B2 itself until the production-coupled patches compile on
-Buildbox and every focused KUnit case executes successfully in isolated QEMU.
-Every DA921x write and CPU8/CPU9 admission remains closed.
+This is controller/software-contract evidence only. Every DA921x write and
+CPU8/CPU9 admission remains closed.
 
 ## Follow-up
 
-The authoritative next action remains
+The authoritative next action is
 [Roadmap Gate 6](../../docs/ROADMAP.md#6-prove-one-bounded-writable-operation).
-After B2 closes, update the bounded no-op review's blocker ledger and perform a
-fresh explicit pre-write review. Do not infer permission to execute the
-same-value write from this hardware-free transport proof.
+Refresh the bounded no-op review's blocker ledger against the exact B1--B4
+receipts and perform a fresh explicit pre-write review. Do not infer permission
+to execute the same-value write from this hardware-free transport proof.

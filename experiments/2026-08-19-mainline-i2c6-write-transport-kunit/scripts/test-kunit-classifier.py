@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import importlib.util
+import tempfile
 from pathlib import Path
 
 
@@ -33,12 +34,35 @@ def fixture() -> str:
 [    1.0] # {CLASSIFIER.SUITE}: pass:12 fail:0 skip:0 total:12
 [    1.0] # Totals: pass:12 fail:0 skip:0 total:12
 [    1.0] ok 1 {CLASSIFIER.SUITE}
-[    1.1] Kernel panic - not syncing: VFS: Unable to mount root fs
+[    1.1] {CLASSIFIER.PANIC_PREFIX} on unknown-block(0,0)
+[    1.2] {CLASSIFIER.PANIC_END_PREFIX} on unknown-block(0,0) ]---
 qemu-system-aarch64: terminating on signal 15
 """
 
 
 def main() -> None:
+    digest = "a" * 64
+    manifest = f"{digest}  ./Image\n{'b' * 64}  ./kernel.config\n"
+    with tempfile.TemporaryDirectory(prefix="gemini-b2-manifest-") as temporary:
+        manifest_path = Path(temporary) / "SHA256SUMS"
+        manifest_path.write_text(manifest, encoding="utf-8")
+        if CLASSIFIER.manifest_checksum(manifest_path, "./Image") != digest:
+            raise SystemExit("positive checksum-manifest fixture changed")
+        manifest_mutations = (
+            manifest.replace(f"{digest}  ./Image\n", "", 1),
+            manifest + f"{digest}  ./Image\n",
+            manifest.replace(digest, "g" * 64, 1),
+        )
+        manifest_rejected = 0
+        for candidate in manifest_mutations:
+            manifest_path.write_text(candidate, encoding="utf-8")
+            try:
+                CLASSIFIER.manifest_checksum(manifest_path, "./Image")
+            except CLASSIFIER.ClassificationError:
+                manifest_rejected += 1
+            else:
+                raise SystemExit("unsafe checksum-manifest mutation accepted")
+
     raw = fixture()
     CLASSIFIER.classify_runtime(raw, RELEASE, 124)
     mutations = (
@@ -52,8 +76,27 @@ def main() -> None:
         raw.replace("ok 1 mtk_i2c_idvfs_exact_two_byte_fifo_plan",
                     "ok 1 wrong_case", 1),
         raw.replace(RELEASE, "7.1.3-wrong", 1),
-        raw.replace("Kernel panic - not syncing: VFS: Unable to mount root fs",
+        raw.replace(CLASSIFIER.PANIC_PREFIX,
                     "System halted", 1),
+        raw.replace(
+            f"[    1.2] {CLASSIFIER.PANIC_END_PREFIX} "
+            "on unknown-block(0,0) ]---\n", "", 1),
+        raw.replace(
+            f"[    1.1] {CLASSIFIER.PANIC_PREFIX} "
+            "on unknown-block(0,0)\n",
+            f"[    1.1] {CLASSIFIER.PANIC_PREFIX} "
+            "on unknown-block(0,0)\n"
+            f"[    1.1] {CLASSIFIER.PANIC_PREFIX} "
+            "on unknown-block(0,0)\n", 1),
+        raw.replace(
+            f"[    1.1] {CLASSIFIER.PANIC_PREFIX} "
+            "on unknown-block(0,0)\n"
+            f"[    1.2] {CLASSIFIER.PANIC_END_PREFIX} "
+            "on unknown-block(0,0) ]---",
+            f"[    1.1] {CLASSIFIER.PANIC_END_PREFIX} "
+            "on unknown-block(0,0) ]---\n"
+            f"[    1.2] {CLASSIFIER.PANIC_PREFIX} "
+            "on unknown-block(0,0)", 1),
     )
     rejected = 0
     for candidate in mutations:
@@ -72,6 +115,7 @@ def main() -> None:
     print("validation=mainline-i2c6-write-transport-kunit-classifier")
     print("positive_cases=1")
     print(f"unsafe_runtime_mutations_rejected={rejected}")
+    print(f"unsafe_package_manifest_mutations_rejected={manifest_rejected}")
     print("hardware_action=none")
     print("result=pass")
 

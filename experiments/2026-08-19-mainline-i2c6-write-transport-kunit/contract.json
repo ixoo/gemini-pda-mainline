@@ -1,6 +1,6 @@
 {
   "schema": "gemini-i2c6-write-transport-kunit-v1",
-  "status": "design-frozen-implementation-pending",
+  "status": "completed-hardware-free",
   "roadmap_gate": "Gate-6-B2",
   "hardware_scope": "none",
   "parent": {
@@ -97,8 +97,8 @@
     "focused_buildbox_package_valid": true,
     "qemu_kunit_failed": 0,
     "qemu_kunit_skipped": 0,
-    "implementation_complete": false,
-    "gate6_B2": "open",
+    "implementation_complete": true,
+    "gate6_B2": "closed",
     "gate6_write": "not-authorized",
     "cpu8_cpu9_admission": "closed"
   }
