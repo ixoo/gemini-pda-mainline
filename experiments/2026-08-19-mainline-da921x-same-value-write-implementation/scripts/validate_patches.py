@@ -66,7 +66,7 @@ def validate(patch_dir: Path) -> None:
     ), "patch 0292 paths changed")
 
     ledger, production, kunit = map(additions, texts)
-    for token in ("entry_ledger=v2", "second_byte_valid",
+    for token in ("entry_ledger=v2", "u8 second_byte;", "second_byte_valid",
                   "mtk_i2c_gemini_verify_read_ledger",
                   "lockdep_assert_held(&adapter->bus_lock)"):
         require(token in ledger, f"0290 missing: {token}")

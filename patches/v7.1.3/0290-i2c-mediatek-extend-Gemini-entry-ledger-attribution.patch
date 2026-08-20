@@ -1,0 +1,182 @@
+From 9ed2a90ab8721314feb8ff4a3b2e805d7562857e Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 20 Aug 2026 00:01:00 +0000
+Subject: [PATCH 1/3] i2c: mediatek: extend Gemini entry ledger attribution
+
+Record the bounded second byte of length-two writes in ledger v2.
+
+Expose a read-only exact-prefix verifier for callers holding the root lock.
+---
+ drivers/i2c/busses/Kconfig               | 15 +++---
+ drivers/i2c/busses/i2c-mt65xx.c          | 67 ++++++++++++++++++++++--
+ include/linux/i2c-mt65xx-gemini-ledger.h | 18 +++++++
+ 3 files changed, 88 insertions(+), 12 deletions(-)
+ create mode 100644 include/linux/i2c-mt65xx-gemini-ledger.h
+
+diff --git a/drivers/i2c/busses/Kconfig b/drivers/i2c/busses/Kconfig
+index 3f0c26d..34b6660 100644
+--- a/drivers/i2c/busses/Kconfig
++++ b/drivers/i2c/busses/Kconfig
+@@ -964,13 +964,14 @@ config I2C_MT65XX_GEMINI_ENTRY_LEDGER
+ 	depends on I2C_MT65XX_GEMINI_LIFECYCLE_ORACLE
+ 	help
+ 	  Retain the first 32 message shapes submitted to the access-controlled
+-	  MT6797 iDVFS I2C instance. The read-only status includes message count,
+-	  address, flags, length, first pointer byte, and final adapter result.
+-	  Overflow is explicit and no transfer can be triggered through the ABI.
+-
+-	  The ledger records no register-data byte, adds no retry, write, reset,
+-	  regulator consumer, or CPU action, and is intended only for the named
+-	  Gemini Gate-6 attribution experiment. Say N otherwise.
++	  MT6797 iDVFS I2C instance. The v2 read-only status includes message
++	  count, address, flags, length, the first byte, a bounded second byte
++	  only for length-two writes, and the final adapter result.
++
++	  A read-only verifier can match an exact completed pointer-read prefix
++	  while its caller already holds the root-adapter lock. It cannot trigger
++	  a transfer. This default-off Gate-6 ledger adds no retry, reset,
++	  regulator consumer, or CPU action. Say N otherwise.
+ 
+ config I2C_MT65XX_GEMINI_WRITE_TRANSPORT_KUNIT_TEST
+ 	bool "KUnit tests for the MT6797 I2C6 short-write contract"
+diff --git a/drivers/i2c/busses/i2c-mt65xx.c b/drivers/i2c/busses/i2c-mt65xx.c
+index 0eaa90b..c76ef75 100644
+--- a/drivers/i2c/busses/i2c-mt65xx.c
++++ b/drivers/i2c/busses/i2c-mt65xx.c
+@@ -14,6 +14,7 @@
+ #include <linux/err.h>
+ #include <linux/errno.h>
+ #include <linux/i2c.h>
++#include <linux/i2c-mt65xx-gemini-ledger.h>
+ #include <linux/init.h>
+ #include <linux/interrupt.h>
+ #include <linux/io.h>
+@@ -463,7 +464,9 @@ struct mtk_i2c_entry_record {
+ 	u16 len[MTK_I2C_ENTRY_LEDGER_MESSAGES];
+ 	u8 num;
+ 	u8 first_byte;
++	u8 second_byte;
+ 	bool first_byte_valid;
++	bool second_byte_valid;
+ 	bool complete;
+ 	int result;
+ };
+@@ -1935,6 +1938,54 @@ static int mtk_i2c_do_transfer(struct mtk_i2c *i2c, struct i2c_msg *msgs,
+ }
+ 
+ #ifdef CONFIG_I2C_MT65XX_GEMINI_ENTRY_LEDGER
++int mtk_i2c_gemini_verify_read_ledger(struct i2c_adapter *adapter,
++				      const struct mtk_i2c_gemini_read_expectation *expected,
++	unsigned int count)
++{
++	struct mtk_i2c *i2c;
++	unsigned long flags;
++	unsigned int i;
++	int ret = 0;
++
++	if (!adapter || !expected || count > MTK_I2C_ENTRY_LEDGER_CAPACITY)
++		return -EINVAL;
++
++	lockdep_assert_held(&adapter->bus_lock);
++	i2c = i2c_get_adapdata(adapter);
++	if (!i2c || &i2c->adap != adapter ||
++	    i2c->dev_comp != &mt6797_idvfs_compat || !i2c->dvfsp_handoff)
++		return -ENODEV;
++
++	spin_lock_irqsave(&i2c->entry_ledger_lock, flags);
++	if (i2c->entry_ledger_count != count || i2c->entry_ledger_overflow) {
++		ret = -EPROTO;
++		goto out_unlock;
++	}
++
++	for (i = 0; i < count; i++) {
++		const struct mtk_i2c_entry_record *record =
++			&i2c->entry_ledger[i];
++
++		if (record->num != 2 ||
++		    record->addr[0] != expected[i].address ||
++		    record->addr[1] != expected[i].address ||
++		    record->flags[0] || record->flags[1] != I2C_M_RD ||
++		    record->len[0] != 1 || record->len[1] != 1 ||
++		    !record->first_byte_valid ||
++		    record->first_byte != expected[i].register_pointer ||
++		    record->second_byte_valid || !record->complete ||
++		    record->result != 2) {
++			ret = -EPROTO;
++			goto out_unlock;
++		}
++	}
++
++out_unlock:
++	spin_unlock_irqrestore(&i2c->entry_ledger_lock, flags);
++	return ret;
++}
++EXPORT_SYMBOL_GPL(mtk_i2c_gemini_verify_read_ledger);
++
+ static int mtk_i2c_entry_ledger_begin(struct mtk_i2c *i2c,
+ 				      struct i2c_msg *msgs, int num)
+ {
+@@ -1968,6 +2019,10 @@ static int mtk_i2c_entry_ledger_begin(struct mtk_i2c *i2c,
+ 	if (num > 0 && msgs[0].buf && msgs[0].len) {
+ 		record->first_byte = msgs[0].buf[0];
+ 		record->first_byte_valid = true;
++		if (msgs[0].len == 2) {
++			record->second_byte = msgs[0].buf[1];
++			record->second_byte_valid = true;
++		}
+ 	}
+ 
+ out_unlock:
+@@ -2296,7 +2351,7 @@ static ssize_t handoff_status_show(struct device *dev,
+ 
+ 		spin_lock_irqsave(&i2c->entry_ledger_lock, flags);
+ 		len += sysfs_emit_at(buf, len,
+-				     "entry_ledger=v1 count=%u capacity=%u overflow=%u\n",
++				     "entry_ledger=v2 count=%u capacity=%u overflow=%u\n",
+ 				     i2c->entry_ledger_count,
+ 				     MTK_I2C_ENTRY_LEDGER_CAPACITY,
+ 				     i2c->entry_ledger_overflow);
+@@ -2305,13 +2360,15 @@ static ssize_t handoff_status_show(struct device *dev,
+ 				&i2c->entry_ledger[i];
+ 
+ 			len += sysfs_emit_at(buf, len,
+-				"entry%u n=%u a0=%02x f0=%04x l0=%u "
+-				"p0=%02x pv=%u a1=%02x f1=%04x l1=%u "
+-				"ret=%d done=%u\n",
++				"entry%u n=%u a0=%02x f0=%04x l0=%u p0=%02x pv=%u ",
+ 				i, record->num, record->addr[0],
+ 				record->flags[0], record->len[0],
+ 				record->first_byte,
+-				(unsigned int)record->first_byte_valid,
++				(unsigned int)record->first_byte_valid);
++			len += sysfs_emit_at(buf, len,
++				"p1=%02x p1v=%u a1=%02x f1=%04x l1=%u ret=%d done=%u\n",
++				record->second_byte,
++				(unsigned int)record->second_byte_valid,
+ 				record->addr[1], record->flags[1],
+ 				record->len[1], record->result,
+ 				(unsigned int)record->complete);
+diff --git a/include/linux/i2c-mt65xx-gemini-ledger.h b/include/linux/i2c-mt65xx-gemini-ledger.h
+new file mode 100644
+index 0000000..7f4493a
+--- /dev/null
++++ b/include/linux/i2c-mt65xx-gemini-ledger.h
+@@ -0,0 +1,18 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __LINUX_I2C_MT65XX_GEMINI_LEDGER_H
++#define __LINUX_I2C_MT65XX_GEMINI_LEDGER_H
++
++#include <linux/types.h>
++
++struct i2c_adapter;
++
++struct mtk_i2c_gemini_read_expectation {
++	u16 address;
++	u8 register_pointer;
++};
++
++int mtk_i2c_gemini_verify_read_ledger(struct i2c_adapter *adapter,
++				      const struct mtk_i2c_gemini_read_expectation *expected,
++	unsigned int count);
++
++#endif /* __LINUX_I2C_MT65XX_GEMINI_LEDGER_H */

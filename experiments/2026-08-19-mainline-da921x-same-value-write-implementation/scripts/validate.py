@@ -26,7 +26,8 @@ def require(condition: bool, message: str) -> None:
 def validate(contract: dict, review_sha256: str) -> None:
     require(contract["schema"] == "gemini-da921x-same-value-write-implementation-v1",
             "schema changed")
-    require(contract["status"] == "source-generation-in-progress", "status changed")
+    require(contract["status"] == "canonical-patches-admitted-build-pending",
+            "status changed")
     parent = contract["review_parent"]
     require(parent["repository_commit"] ==
             "ca3caa3e3c814da61a0ca113c69fc87e3bc1140e", "parent changed")
@@ -85,6 +86,9 @@ def validate(contract: dict, review_sha256: str) -> None:
             decision["physical_da921x_write_authorized"] is False and
             decision["device_action"] == "none", "premature hardware decision")
     require(decision["cpu8_cpu9_admission"] == "closed", "CPU admission changed")
+    require(decision["next_success_gate"] ==
+            "focused-buildbox-kunit-build-and-network-free-qemu-pass",
+            "next success gate changed")
 
 
 def mutate(candidate: dict, path: tuple, value: object) -> None:

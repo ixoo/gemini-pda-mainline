@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-19-mainline-da921x-same-value-write-implementation` |
-| Status | `running`; first formal patch generation style-rejected, corrected, no candidate |
+| Status | `running`; canonical patches admitted, focused KUnit build pending, no candidate |
 | Subsystem | DA921x regulator, MT6797 I2C6 ledger and transaction window |
 | Device variant | Planet Gemini PDA named unit; current work hardware-free |
 | Date(s) | 2026-08-19 America/New_York |
@@ -60,12 +60,28 @@ gate passes. CPU8 and CPU9 remain offline and unrequested.
   complete edited-source semantics.
 - [`scripts/validate_patches.py`](scripts/validate_patches.py) validates the
   normal patch inventory, logical path boundaries, and hardware-free test.
+- [`scripts/test-patch-validator.py`](scripts/test-patch-validator.py) rejects
+  13 decision-changing identity, path, payload, ordering, and hardware-escape
+  mutations of the normal patch set.
+- [`scripts/validate_admission.py`](scripts/validate_admission.py) pins the
+  imported patch hashes, focused profile ancestry, fragments, and 87-profile
+  canonical-series audit.
+- [`scripts/run-kunit-qemu`](scripts/run-kunit-qemu) verifies the exact fetched
+  Buildbox package and launches one bounded, network-free arm64 virtual boot.
+- [`scripts/classify-kunit.py`](scripts/classify-kunit.py) requires the exact
+  six-case suite and its post-test boundary before reporting a pass.
+- [`scripts/test-kunit-classifier.py`](scripts/test-kunit-classifier.py)
+  rejects decision-changing runtime and package-manifest mutations.
 - [`scripts/generate-on-buildbox`](scripts/generate-on-buildbox) generates,
   replays, source-validates, and strict-style-checks the patches on Buildbox.
 - [`results/source-tool-validation-20260819.txt`](results/source-tool-validation-20260819.txt)
   records the pre-generation validations.
 - [`results/patch-generation-attempt-73fb7a3-20260819.txt`](results/patch-generation-attempt-73fb7a3-20260819.txt)
   records the first formal Buildbox rejection and bounded correction check.
+- [`results/patch-generation-success-2759b83-20260819.txt`](results/patch-generation-success-2759b83-20260819.txt)
+  records the validated package, exact canonical imports, and profile audit.
+- [`results/kunit-harness-validation-20260819.txt`](results/kunit-harness-validation-20260819.txt)
+  records the hardware-free runner and classifier validation.
 
 ## Procedure
 
@@ -93,8 +109,22 @@ gate passes. CPU8 and CPU9 remain offline and unrequested.
   clean.
 - After correcting only those generated-source formatting defects, a bounded
   Buildbox file check reports zero errors, zero warnings, and zero checks
-  across the 309-line generated KUnit source. Formal generation must still be
-  rerun at the corrected immutable project commit.
+  across the 309-line generated KUnit source. That check preceded the formal
+  rerun recorded next.
+- Formal generation at corrected commit `2759b83ce522` passed exact replay,
+  source semantics, inventory, and strict style for all three patches. The
+  fetched package passed its SHA-256 manifest.
+- Canonical patches 0290--0292 exactly match the package. The two focused
+  profiles extend the proven transaction-window profile, and the manifest
+  series audit passes all 87 profiles; its self-test rejects eight mutations.
+- The normal-patch validator accepts the exact imported set and rejects all 13
+  mutations covering identity, subject order, synthetic sign-off, ledger
+  attribution, payload, lock, call count, transfer seam, test count/address,
+  physical-adapter escape, changed paths, and extra patch inventory.
+- The focused QEMU harness passes Bash syntax and ShellCheck. Its classifier
+  accepts the exact six-case fixture and rejects 11 runtime mutations plus
+  three package-manifest mutations. It requires `-nic none`, exact package and
+  profile identity, one focused KUnit symbol, and the expected bounded exit.
 - The KUnit fixture uses address `0x2a`, registers no adapter or client, maps no
   MMIO, and performs no physical transfer.
 - No kernel was compiled and no boot candidate or device action exists.
@@ -115,17 +145,18 @@ sequence to an unregistered fake.
 
 ## Conclusion
 
-`confirmed` only for corrected pre-generation source readiness: the exact
-deterministic delta applies, passes semantic validation, and the corrected
-generated KUnit file is strict-style clean. The superseded formal attempt at
-`73fb7a3` remains rejected.
+`confirmed` for patch generation and canonical admission: the exact three
+patches replay, pass semantic and strict-style validation, match their fetched
+package, and preserve every manifest-series invariant. The superseded formal
+attempt at `73fb7a3` remains rejected.
 
-Implementation is not complete. Normal patch generation, canonical admission,
-the focused Buildbox compile, and KUnit execution remain outstanding. No
-physical DA921x write is authorized and CPU8/CPU9 admission remains closed.
+Implementation is not complete. The focused Buildbox compile and network-free
+KUnit execution remain outstanding. No physical DA921x write is authorized and
+CPU8/CPU9 admission remains closed.
 
 ## Follow-up
 
-Generate and fetch the exact three-patch review from the clean pushed commit.
+Build the exact clean pushed `da921x-same-value-write-kunit` profile on
+Buildbox, fetch its validated package, and run only the in-memory KUnit suite.
 The authoritative ordered exit remains
 [Roadmap Gate 6](../../docs/ROADMAP.md#6-prove-one-bounded-writable-operation).

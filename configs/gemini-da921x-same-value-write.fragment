@@ -1,0 +1,10 @@
+# Isolated Gate-6 one-shot same-value-write profile. Preserve the runtime
+# preflight contract and enable the exact-token [0xda, 0x46] path. The path
+# remains dormant until explicitly triggered after all runtime gates pass.
+# It adds no regulator consumer or CPU request.
+CONFIG_I2C_MT65XX_GEMINI_LIFECYCLE_ORACLE=y
+CONFIG_I2C_MT65XX_GEMINI_ENTRY_LEDGER=y
+# CONFIG_REGULATOR_DA9213_LEGACY_PREFLIGHT is not set
+CONFIG_REGULATOR_DA9213_LEGACY_RUNTIME_PREFLIGHT=y
+CONFIG_REGULATOR_DA9213_LEGACY_SAME_VALUE_WRITE=y
+CONFIG_LOCALVERSION="-gemini-da921x-same-write"

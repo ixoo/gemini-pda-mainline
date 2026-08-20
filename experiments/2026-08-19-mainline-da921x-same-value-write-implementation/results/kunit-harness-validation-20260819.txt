@@ -1,0 +1,33 @@
+Gate-6 same-value-write KUnit harness validation
+Local date: 2026-08-19 America/New_York
+
+expected_profile=da921x-same-value-write-kunit
+expected_release=7.1.3-gemini-da921x-same-write-kunit
+expected_suite=da9213-legacy-same-value-write
+expected_cases=6
+runner=qemu-system-aarch64
+machine=virt
+cpu=cortex-a53
+vcpus=4
+network=none
+timeout_seconds=45
+runner_bash_syntax=pass
+runner_shellcheck=pass
+classifier_positive_fixtures=1
+classifier_runtime_mutations_rejected=11
+classifier_package_manifest_mutations_rejected=3
+physical_adapters=0
+physical_i2c_transfers=0
+kernel_compile=none
+qemu_boot=none
+hardware_action=none
+device_action=none
+boot_candidate=false
+physical_da921x_write_authorized=false
+cpu8_cpu9_admission=closed
+result=pass-pre-runtime-harness
+
+The classifier requires the exact ordered six-case KTAP inventory, zero fail,
+zero skip, exact package commit/profile/configuration identity, checksum-bound
+Image and configuration, the post-test rootfs panic boundary, and the bounded
+timeout exit. The runner disables networking and cannot contact the Gemini.

@@ -902,6 +902,57 @@
                     "configs/gemini-i2c6-write-transport-kunit.fragment"
                 ]
             },
+            "da921x-same-value-write": {
+                "base": "defconfig",
+                "fragments": [
+                    "configs/gemini-handoff.fragment",
+                    "configs/gemini-usbdiag.fragment",
+                    "configs/gemini-clk-ignore-unused.fragment",
+                    "configs/gemini-observability.fragment",
+                    "configs/gemini-fbcon-rotation.fragment",
+                    "configs/gemini-keyboard.fragment",
+                    "configs/gemini-keyboard-wrrd.fragment",
+                    "configs/gemini-keyboard-manual-reboot.fragment",
+                    "configs/gemini-smp8.fragment",
+                    "configs/gemini-a72-observer.fragment",
+                    "configs/gemini-a72-observer-initcall-blacklist.fragment",
+                    "configs/gemini-dvfsp-handoff-owner.fragment",
+                    "configs/gemini-dvfsp-i2c6-consumer.fragment",
+                    "configs/gemini-da921x-legacy-bind.fragment",
+                    "configs/gemini-da921x-resource-only-provider.fragment",
+                    "configs/gemini-da921x-provider-modules-control.fragment",
+                    "configs/gemini-arm64-entry-ledger.fragment",
+                    "configs/gemini-da921x-lk-clock-readonly-provider.fragment",
+                    "configs/gemini-i2c6-firmware-writer-transaction-window.fragment",
+                    "configs/gemini-da921x-same-value-write.fragment"
+                ]
+            },
+            "da921x-same-value-write-kunit": {
+                "base": "defconfig",
+                "fragments": [
+                    "configs/gemini-handoff.fragment",
+                    "configs/gemini-usbdiag.fragment",
+                    "configs/gemini-clk-ignore-unused.fragment",
+                    "configs/gemini-observability.fragment",
+                    "configs/gemini-fbcon-rotation.fragment",
+                    "configs/gemini-keyboard.fragment",
+                    "configs/gemini-keyboard-wrrd.fragment",
+                    "configs/gemini-keyboard-manual-reboot.fragment",
+                    "configs/gemini-smp8.fragment",
+                    "configs/gemini-a72-observer.fragment",
+                    "configs/gemini-a72-observer-initcall-blacklist.fragment",
+                    "configs/gemini-dvfsp-handoff-owner.fragment",
+                    "configs/gemini-dvfsp-i2c6-consumer.fragment",
+                    "configs/gemini-da921x-legacy-bind.fragment",
+                    "configs/gemini-da921x-resource-only-provider.fragment",
+                    "configs/gemini-da921x-provider-modules-control.fragment",
+                    "configs/gemini-arm64-entry-ledger.fragment",
+                    "configs/gemini-da921x-lk-clock-readonly-provider.fragment",
+                    "configs/gemini-i2c6-firmware-writer-transaction-window.fragment",
+                    "configs/gemini-da921x-same-value-write.fragment",
+                    "configs/gemini-da921x-same-value-write-kunit.fragment"
+                ]
+            },
             "da921x-readonly-observer": {
                 "base": "defconfig",
                 "fragments": [

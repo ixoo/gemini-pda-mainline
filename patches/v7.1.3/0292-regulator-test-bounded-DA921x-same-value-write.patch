@@ -1,0 +1,368 @@
+From 6750c6464682355e3f42fdbcdcf738b717805be2 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 20 Aug 2026 00:03:00 +0000
+Subject: [PATCH 3/3] regulator: test bounded DA921x same-value write
+
+Cover exact success, refusals, all failures, and all mismatches.
+
+Use only an unregistered in-memory fake adapter.
+---
+ drivers/regulator/Kconfig                    |  15 +
+ drivers/regulator/Makefile                   |   1 +
+ drivers/regulator/da9213-legacy-write-test.c | 309 +++++++++++++++++++
+ 3 files changed, 325 insertions(+)
+ create mode 100644 drivers/regulator/da9213-legacy-write-test.c
+
+diff --git a/drivers/regulator/Kconfig b/drivers/regulator/Kconfig
+index 60e140b..2330453 100644
+--- a/drivers/regulator/Kconfig
++++ b/drivers/regulator/Kconfig
+@@ -488,6 +488,21 @@ config REGULATOR_DA9213_LEGACY_SAME_VALUE_WRITE
+ 	  regulator consumer, or CPU request. This option is only for the named
+ 	  Gemini same-value-write experiment and must remain N otherwise.
+ 
++config REGULATOR_DA9213_LEGACY_SAME_VALUE_WRITE_KUNIT_TEST
++	bool "KUnit tests for the legacy DA921x same-value write"
++	depends on KUNIT=y
++	depends on REGULATOR_DA9213_LEGACY=y
++	depends on REGULATOR_DA9213_LEGACY_SAME_VALUE_WRITE
++	help
++	  Exercise the production sequence helper with an in-memory fake
++	  adapter. Cover the exact 12 actions, both payload bytes, one lock,
++	  zero retries, admission refusals, every transfer failure, every
++	  readback mismatch, and restoration on every exit.
++
++	  The suite registers no adapter or client, maps no MMIO, performs no
++	  physical transfer, and exists only for the hardware-free Gate-6
++	  implementation proof. Say N otherwise.
++
+ config REGULATOR_DA9213_LEGACY_OBSERVER_KUNIT_TEST
+ 	bool "KUnit tests for the legacy DA921x read-only observer"
+ 	depends on KUNIT=y
+diff --git a/drivers/regulator/Makefile b/drivers/regulator/Makefile
+index 08fc546..462b577 100644
+--- a/drivers/regulator/Makefile
++++ b/drivers/regulator/Makefile
+@@ -50,6 +50,7 @@ obj-$(CONFIG_REGULATOR_DA9210) += da9210-regulator.o
+ obj-$(CONFIG_REGULATOR_DA9211) += da9211-regulator.o
+ obj-$(CONFIG_REGULATOR_DA9213_LEGACY) += da9213-legacy-regulator.o
+ obj-$(CONFIG_REGULATOR_DA9213_LEGACY_OBSERVER_KUNIT_TEST) += da9213-legacy-observer-test.o
++obj-$(CONFIG_REGULATOR_DA9213_LEGACY_SAME_VALUE_WRITE_KUNIT_TEST) += da9213-legacy-write-test.o
+ obj-$(CONFIG_REGULATOR_DBX500_PRCMU) += dbx500-prcmu.o
+ obj-$(CONFIG_REGULATOR_DB8500_PRCMU) += db8500-prcmu.o
+ obj-$(CONFIG_REGULATOR_FAN53555) += fan53555.o
+diff --git a/drivers/regulator/da9213-legacy-write-test.c b/drivers/regulator/da9213-legacy-write-test.c
+new file mode 100644
+index 0000000..71bd95e
+--- /dev/null
++++ b/drivers/regulator/da9213-legacy-write-test.c
+@@ -0,0 +1,309 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/* Hardware-free coverage for the DA921x same-value-write sequence. */
++
++#include <kunit/test.h>
++#include <linux/errno.h>
++#include <linux/i2c.h>
++#include <linux/kernel.h>
++#include <linux/module.h>
++#include <linux/string.h>
++
++#include "da9213-legacy-write-contract.h"
++
++#define DA9213_TEST_ADDRESS	0x2a
++#define DA9213_TEST_ACTIONS	12
++
++struct da9213_test_fake {
++	struct i2c_adapter adapter;
++	unsigned int lock_calls;
++	unsigned int unlock_calls;
++	unsigned int transfer_calls;
++	unsigned int verify_calls;
++	unsigned int delay_calls;
++	unsigned int fail_ordinal;
++	unsigned int mismatch_ordinal;
++	int ledger_error;
++	unsigned int retries_during[DA9213_TEST_ACTIONS];
++	u8 registers[DA9213_TEST_ACTIONS];
++	u8 write_payload[2];
++	bool locked;
++	bool verify_locked;
++	bool unlocked_transfer;
++	bool delay_locked;
++};
++
++static struct da9213_test_fake *active_fake;
++
++static const u8 da9213_test_registers[DA9213_TEST_ACTIONS] = {
++	0x56, 0x51, 0x5e, 0xd9, 0xda, 0xda,
++	0xda, 0xda, 0x56, 0x51, 0x5e, 0xd9,
++};
++
++static const u8 da9213_test_values[DA9213_TEST_ACTIONS] = {
++	0x7b, 0xc1, 0x00, 0x46, 0x46, 0x46,
++	0x46, 0x46, 0x7b, 0xc1, 0x00, 0x46,
++};
++
++static void da9213_test_lock(struct i2c_adapter *adapter, unsigned int flags)
++{
++	struct da9213_test_fake *fake = active_fake;
++
++	fake->lock_calls++;
++	fake->locked = true;
++}
++
++static int da9213_test_trylock(struct i2c_adapter *adapter, unsigned int flags)
++{
++	return 0;
++}
++
++static void da9213_test_unlock(struct i2c_adapter *adapter, unsigned int flags)
++{
++	struct da9213_test_fake *fake = active_fake;
++
++	fake->unlock_calls++;
++	fake->locked = false;
++}
++
++static const struct i2c_lock_operations da9213_test_lock_ops = {
++	.lock_bus = da9213_test_lock,
++	.trylock_bus = da9213_test_trylock,
++	.unlock_bus = da9213_test_unlock,
++};
++
++static int da9213_test_verify(struct i2c_adapter *adapter)
++{
++	struct da9213_test_fake *fake = active_fake;
++
++	fake->verify_calls++;
++	fake->verify_locked = fake->locked;
++	return fake->ledger_error;
++}
++
++static int da9213_test_transfer(struct i2c_adapter *adapter,
++				struct i2c_msg *messages, int count)
++{
++	struct da9213_test_fake *fake = active_fake;
++	unsigned int ordinal = ++fake->transfer_calls;
++	u8 value;
++
++	fake->unlocked_transfer |= !fake->locked;
++	fake->retries_during[ordinal - 1] = adapter->retries;
++	if (ordinal == fake->fail_ordinal)
++		return -EAGAIN;
++
++	if (ordinal == 6) {
++		if (count != 1 || messages[0].addr != DA9213_TEST_ADDRESS ||
++		    messages[0].flags || messages[0].len != 2)
++			return -EPROTO;
++		fake->registers[ordinal - 1] = messages[0].buf[0];
++		memcpy(fake->write_payload, messages[0].buf,
++		       sizeof(fake->write_payload));
++		return 1;
++	}
++
++	if (count != 2 || messages[0].addr != DA9213_TEST_ADDRESS ||
++	    messages[1].addr != DA9213_TEST_ADDRESS ||
++	    messages[0].flags || messages[0].len != 1 ||
++	    messages[1].len != 1 || messages[1].flags != I2C_M_RD)
++		return -EPROTO;
++	fake->registers[ordinal - 1] = messages[0].buf[0];
++	value = da9213_test_values[ordinal - 1];
++	if (ordinal == fake->mismatch_ordinal)
++		value ^= 1;
++	messages[1].buf[0] = value;
++	return 2;
++}
++
++static void da9213_test_delay(unsigned long minimum, unsigned long maximum)
++{
++	struct da9213_test_fake *fake = active_fake;
++
++	if (minimum == 10000 && maximum == 11000)
++		fake->delay_calls++;
++	fake->delay_locked = fake->locked;
++}
++
++static const struct da9213_legacy_same_value_ops da9213_test_ops = {
++	.verify_ledger = da9213_test_verify,
++	.transfer = da9213_test_transfer,
++	.delay = da9213_test_delay,
++};
++
++static void da9213_test_init_fake(struct da9213_test_fake *fake)
++{
++	memset(fake, 0, sizeof(*fake));
++	fake->adapter.lock_ops = &da9213_test_lock_ops;
++	fake->adapter.retries = 1;
++	active_fake = fake;
++}
++
++static void da9213_test_init_result(struct da9213_legacy_same_value_result *result)
++{
++	memset(result, 0, sizeof(*result));
++	result->attempts = 1;
++	result->state = DA9213_LEGACY_SAME_VALUE_RUNNING;
++}
++
++static void da9213_same_value_success(struct kunit *test)
++{
++	struct da9213_legacy_same_value_result result;
++	struct da9213_test_fake fake;
++	unsigned int i;
++	int ret;
++
++	da9213_test_init_fake(&fake);
++	da9213_test_init_result(&result);
++	ret = da9213_legacy_same_value_execute(&fake.adapter,
++					       DA9213_TEST_ADDRESS, &da9213_test_ops, &result);
++
++	KUNIT_EXPECT_EQ(test, ret, 0);
++	KUNIT_EXPECT_EQ(test, result.state, DA9213_LEGACY_SAME_VALUE_PASSED);
++	KUNIT_EXPECT_EQ(test, result.action_transfers, 12U);
++	KUNIT_EXPECT_EQ(test, result.write_attempts, 1U);
++	KUNIT_EXPECT_EQ(test, fake.lock_calls, 1U);
++	KUNIT_EXPECT_EQ(test, fake.unlock_calls, 1U);
++	KUNIT_EXPECT_TRUE(test, fake.verify_locked);
++	KUNIT_EXPECT_FALSE(test, fake.unlocked_transfer);
++	KUNIT_EXPECT_TRUE(test, fake.delay_locked);
++	KUNIT_EXPECT_EQ(test, fake.delay_calls, 1U);
++	KUNIT_EXPECT_EQ(test, fake.adapter.retries, 1);
++	KUNIT_EXPECT_MEMEQ(test, fake.registers, da9213_test_registers, sizeof(fake.registers));
++	KUNIT_EXPECT_EQ(test, fake.write_payload[0], (u8)0xda);
++	KUNIT_EXPECT_EQ(test, fake.write_payload[1], (u8)0x46);
++	for (i = 0; i < DA9213_TEST_ACTIONS; i++)
++		KUNIT_EXPECT_EQ(test, fake.retries_during[i], 0U);
++}
++
++static void da9213_same_value_admission(struct kunit *test)
++{
++	struct da9213_legacy_same_value_result result = { };
++	int ret;
++
++	ret = da9213_legacy_same_value_admit(&result, false, true);
++	KUNIT_EXPECT_EQ(test, ret, -EINVAL);
++	KUNIT_EXPECT_EQ(test, result.state, DA9213_LEGACY_SAME_VALUE_IDLE);
++	ret = da9213_legacy_same_value_admit(&result, true, false);
++	KUNIT_EXPECT_EQ(test, ret, -EPROTO);
++	KUNIT_EXPECT_EQ(test, result.state, DA9213_LEGACY_SAME_VALUE_FAILED_NO_WRITE);
++	ret = da9213_legacy_same_value_admit(&result, true, true);
++	KUNIT_EXPECT_EQ(test, ret, -EALREADY);
++}
++
++static void da9213_same_value_ledger_refusal(struct kunit *test)
++{
++	struct da9213_legacy_same_value_result result;
++	struct da9213_test_fake fake;
++	int ret;
++
++	da9213_test_init_fake(&fake);
++	da9213_test_init_result(&result);
++	fake.ledger_error = -EPROTO;
++	ret = da9213_legacy_same_value_execute(&fake.adapter,
++					       DA9213_TEST_ADDRESS, &da9213_test_ops, &result);
++	KUNIT_EXPECT_EQ(test, ret, -EPROTO);
++	KUNIT_EXPECT_EQ(test, result.state,
++			DA9213_LEGACY_SAME_VALUE_FAILED_NO_WRITE);
++	KUNIT_EXPECT_EQ(test, fake.verify_calls, 1U);
++	KUNIT_EXPECT_TRUE(test, fake.verify_locked);
++	KUNIT_EXPECT_EQ(test, fake.transfer_calls, 0U);
++	KUNIT_EXPECT_EQ(test, fake.lock_calls, 1U);
++	KUNIT_EXPECT_EQ(test, fake.unlock_calls, 1U);
++	KUNIT_EXPECT_EQ(test, fake.adapter.retries, 1);
++}
++
++static void da9213_same_value_transfer_failures(struct kunit *test)
++{
++	unsigned int ordinal;
++
++	for (ordinal = 1; ordinal <= DA9213_TEST_ACTIONS; ordinal++) {
++		struct da9213_legacy_same_value_result result;
++		struct da9213_test_fake fake;
++		int ret;
++
++		da9213_test_init_fake(&fake);
++		da9213_test_init_result(&result);
++		fake.fail_ordinal = ordinal;
++		ret = da9213_legacy_same_value_execute(&fake.adapter,
++						       DA9213_TEST_ADDRESS,
++						       &da9213_test_ops, &result);
++		KUNIT_EXPECT_EQ_MSG(test, ret, -EAGAIN, "ordinal=%u", ordinal);
++		KUNIT_EXPECT_EQ_MSG(test, result.action_transfers, ordinal,
++				    "ordinal=%u", ordinal);
++		KUNIT_EXPECT_EQ_MSG(test, fake.adapter.retries, 1,
++				    "ordinal=%u", ordinal);
++		KUNIT_EXPECT_EQ_MSG(test, fake.unlock_calls, 1U,
++				    "ordinal=%u", ordinal);
++		if (ordinal < 6) {
++			KUNIT_EXPECT_EQ(test, result.write_attempts, 0U);
++			KUNIT_EXPECT_EQ(test, result.state,
++					DA9213_LEGACY_SAME_VALUE_FAILED_NO_WRITE);
++		} else {
++			KUNIT_EXPECT_EQ(test, result.write_attempts, 1U);
++			KUNIT_EXPECT_EQ(test, result.state, DA9213_LEGACY_SAME_VALUE_FAULTED);
++		}
++	}
++}
++
++static void da9213_same_value_mismatches(struct kunit *test)
++{
++	unsigned int ordinal;
++
++	for (ordinal = 1; ordinal <= DA9213_TEST_ACTIONS; ordinal++) {
++		struct da9213_legacy_same_value_result result;
++		struct da9213_test_fake fake;
++		int ret;
++
++		if (ordinal == 6)
++			continue;
++		da9213_test_init_fake(&fake);
++		da9213_test_init_result(&result);
++		fake.mismatch_ordinal = ordinal;
++		ret = da9213_legacy_same_value_execute(&fake.adapter,
++						       DA9213_TEST_ADDRESS,
++						       &da9213_test_ops, &result);
++		KUNIT_EXPECT_EQ_MSG(test, ret, -ERANGE, "ordinal=%u", ordinal);
++		KUNIT_EXPECT_EQ_MSG(test, result.action_transfers, ordinal,
++				    "ordinal=%u", ordinal);
++		KUNIT_EXPECT_EQ_MSG(test, fake.adapter.retries, 1,
++				    "ordinal=%u", ordinal);
++		if (ordinal < 6)
++			KUNIT_EXPECT_EQ(test, result.state,
++					DA9213_LEGACY_SAME_VALUE_FAILED_NO_WRITE);
++		else
++			KUNIT_EXPECT_EQ(test, result.state, DA9213_LEGACY_SAME_VALUE_FAULTED);
++	}
++}
++
++static void da9213_same_value_invalid_execute(struct kunit *test)
++{
++	struct da9213_legacy_same_value_result result = { };
++	struct da9213_test_fake fake;
++	int ret;
++
++	da9213_test_init_fake(&fake);
++	ret = da9213_legacy_same_value_execute(&fake.adapter,
++					       DA9213_TEST_ADDRESS, &da9213_test_ops, &result);
++	KUNIT_EXPECT_EQ(test, ret, -EINVAL);
++	KUNIT_EXPECT_EQ(test, fake.lock_calls, 0U);
++	KUNIT_EXPECT_EQ(test, fake.transfer_calls, 0U);
++}
++
++static struct kunit_case da9213_same_value_cases[] = {
++	KUNIT_CASE(da9213_same_value_success),
++	KUNIT_CASE(da9213_same_value_admission),
++	KUNIT_CASE(da9213_same_value_ledger_refusal),
++	KUNIT_CASE(da9213_same_value_transfer_failures),
++	KUNIT_CASE(da9213_same_value_mismatches),
++	KUNIT_CASE(da9213_same_value_invalid_execute),
++	{ }
++};
++
++static struct kunit_suite da9213_same_value_suite = {
++	.name = "da9213-legacy-same-value-write",
++	.test_cases = da9213_same_value_cases,
++};
++
++kunit_test_suite(da9213_same_value_suite);
++
++MODULE_LICENSE("GPL");

@@ -1,0 +1,40 @@
+Gate-6 same-value-write formal patch generation and canonical admission
+Local date: 2026-08-19 America/New_York
+
+repository_commit=2759b83ce522b2984f903f25222fc16f20fcbc15
+buildbox_job=2759b83ce522b2984f903f25222fc16f20fcbc15-da921x-same-value-write-patchgen
+buildbox_package=da921x-same-value-write-patches-2759b83ce522
+package_sha256s_manifest=e8af349cf8ede838b58674639d24d296c3df5190ace1e1b9af2cd1a5c0cbcbe5
+generation_provenance_sha256=bdb907beb091be574c1beaa229079a27eb710d7a3c40c9bee34c3019b21d52d3
+parent_source_state=3cd27f8d5432e8de0a495d2b9f9c266f8de9cb78077f9091bcc35a2548edcdfc
+generated_patch_count=3
+changed_path_count=9
+kunit_case_count=6
+transfer_failure_ordinals=12
+value_mismatch_ordinals=11
+patch_0290_sha256=b95d13d3f9210be7988a5f705f2e53739ed86548fd4552a1c564848a101d1a83
+patch_0291_sha256=e4e89bfcfc2857e1ae31c7f4440e4ad795a308d08d5feddfe27964e76c2b531c
+patch_0292_sha256=a1b51131595b4f836e089e1a88c5031431477fe46a3db7a12770b98249b8a686
+strict_checkpatch_errors=0
+strict_checkpatch_warnings=0
+strict_checkpatch_checks=0
+synthetic_signoff=absent
+canonical_series_tail=0290,0291,0292
+profiles_checked=87
+focused_profiles=da921x-same-value-write,da921x-same-value-write-kunit
+manifest_invariant_mutations_rejected=8
+patch_validator_mutations_rejected=13
+native_vm_build=false
+kernel_compile=none
+hardware_action=none
+device_action=none
+boot_candidate=false
+physical_da921x_write_authorized=false
+cpu8_cpu9_admission=closed
+result=pass-patch-generation-and-canonical-admission
+
+The fetched package passed its SHA-256 manifest. The tracked patches match the
+package byte for byte, occupy the canonical tail, and retain the synthetic
+non-certifying experiment identity without a sign-off. Both focused profiles
+are isolated descendants of the runtime-proven I2C6 transaction-window
+profile. No kernel was compiled and no device or physical I2C action occurred.

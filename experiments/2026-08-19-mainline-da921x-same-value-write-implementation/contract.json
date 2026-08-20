@@ -1,6 +1,6 @@
 {
   "schema": "gemini-da921x-same-value-write-implementation-v1",
-  "status": "source-generation-in-progress",
+  "status": "canonical-patches-admitted-build-pending",
   "review_parent": {
     "repository_commit": "ca3caa3e3c814da61a0ca113c69fc87e3bc1140e",
     "contract": "../2026-08-19-mainline-da921x-same-value-write-preflight-review/contract.json",
@@ -68,6 +68,6 @@
     "physical_da921x_write_authorized": false,
     "device_action": "none",
     "cpu8_cpu9_admission": "closed",
-    "next_success_gate": "three-generated-patches-pass-source-style-replay-and-mutation-validation"
+    "next_success_gate": "focused-buildbox-kunit-build-and-network-free-qemu-pass"
   }
 }

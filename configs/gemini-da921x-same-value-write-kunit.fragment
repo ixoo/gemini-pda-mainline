@@ -1,0 +1,5 @@
+# Hardware-free KUnit coverage for the bounded DA921x same-value-write path.
+# The suite uses an unregistered in-memory adapter and performs no I2C access.
+CONFIG_KUNIT=y
+CONFIG_REGULATOR_DA9213_LEGACY_SAME_VALUE_WRITE_KUNIT_TEST=y
+CONFIG_LOCALVERSION="-gemini-da921x-same-write-kunit"
