@@ -1,0 +1,172 @@
+#!/usr/bin/env python3
+"""Write or verify a deterministic prepared-kernel source-tree digest."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import os
+import re
+import stat
+import struct
+import sys
+import tempfile
+from pathlib import Path
+from typing import Protocol
+
+
+MARKER_NAME = ".gemini-source-integrity"
+EXCLUDED_ROOT_NAMES = {".git", ".gemini-source-state", MARKER_NAME}
+DIGEST_RE = re.compile(r"^[0-9a-f]{64}$")
+
+
+class IntegrityError(RuntimeError):
+    """The source tree or its integrity marker is unsafe or inconsistent."""
+
+
+class Digest(Protocol):
+    """The hash operation used while walking the source tree."""
+
+    def update(self, value: bytes) -> None:
+        """Add bytes to the digest."""
+
+
+def add_field(digest: Digest, value: bytes) -> None:
+    digest.update(struct.pack(">Q", len(value)))
+    digest.update(value)
+
+
+def file_digest(path: Path, expected: os.stat_result) -> bytes:
+    digest = hashlib.sha256()
+    with path.open("rb") as source:
+        opened = os.fstat(source.fileno())
+        if (opened.st_dev, opened.st_ino, opened.st_size) != (
+            expected.st_dev,
+            expected.st_ino,
+            expected.st_size,
+        ):
+            raise IntegrityError(f"source file changed before hashing: {path}")
+        while chunk := source.read(1024 * 1024):
+            digest.update(chunk)
+        finished = os.fstat(source.fileno())
+    if (opened.st_size, opened.st_mtime_ns) != (
+        finished.st_size,
+        finished.st_mtime_ns,
+    ):
+        raise IntegrityError(f"source file changed while hashing: {path}")
+    return digest.digest()
+
+
+def hash_entry(root: Path, relative: Path, digest: Digest) -> None:
+    path = root / relative
+    metadata = path.lstat()
+    mode = stat.S_IMODE(metadata.st_mode)
+    relative_bytes = os.fsencode(relative.as_posix())
+
+    if stat.S_ISREG(metadata.st_mode):
+        kind = b"file"
+    elif stat.S_ISDIR(metadata.st_mode):
+        kind = b"directory"
+    elif stat.S_ISLNK(metadata.st_mode):
+        kind = b"symlink"
+    else:
+        raise IntegrityError(f"unsupported source-tree entry: {path}")
+
+    add_field(digest, kind)
+    add_field(digest, relative_bytes)
+    add_field(digest, f"{mode:04o}".encode("ascii"))
+
+    if kind == b"file":
+        add_field(digest, str(metadata.st_size).encode("ascii"))
+        add_field(digest, file_digest(path, metadata))
+    elif kind == b"symlink":
+        add_field(digest, os.fsencode(os.readlink(path)))
+    else:
+        with os.scandir(path) as scanner:
+            entries = sorted(scanner, key=lambda entry: os.fsencode(entry.name))
+        for entry in entries:
+            if relative == Path(".") and entry.name in EXCLUDED_ROOT_NAMES:
+                continue
+            child = Path(entry.name) if relative == Path(".") else relative / entry.name
+            hash_entry(root, child, digest)
+
+
+def tree_digest(root: Path) -> str:
+    if not root.is_absolute():
+        raise IntegrityError("source root must be absolute")
+    metadata = root.lstat()
+    if not stat.S_ISDIR(metadata.st_mode) or stat.S_ISLNK(metadata.st_mode):
+        raise IntegrityError("source root must be a real directory")
+    digest = hashlib.sha256()
+    hash_entry(root, Path("."), digest)
+    return digest.hexdigest()
+
+
+def marker_path(root: Path) -> Path:
+    return root / MARKER_NAME
+
+
+def write_marker(root: Path) -> str:
+    digest = tree_digest(root)
+    marker = marker_path(root)
+    if marker.is_symlink():
+        raise IntegrityError("source integrity marker must not be a symlink")
+    descriptor, temporary_name = tempfile.mkstemp(
+        dir=root, prefix=f"{MARKER_NAME}.partial."
+    )
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "w", encoding="ascii") as output:
+            output.write(f"{digest}\n")
+            output.flush()
+            os.fsync(output.fileno())
+        temporary.chmod(0o644)
+        os.replace(temporary, marker)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+    return digest
+
+
+def read_marker(root: Path) -> str:
+    marker = marker_path(root)
+    metadata = marker.lstat()
+    if not stat.S_ISREG(metadata.st_mode) or stat.S_ISLNK(metadata.st_mode):
+        raise IntegrityError("source integrity marker must be a regular file")
+    value = marker.read_text(encoding="ascii").strip()
+    if not DIGEST_RE.fullmatch(value):
+        raise IntegrityError("source integrity marker is malformed")
+    return value
+
+
+def verify_marker(root: Path) -> str:
+    expected = read_marker(root)
+    observed = tree_digest(root)
+    if observed != expected:
+        raise IntegrityError(
+            f"source integrity mismatch: expected {expected}, observed {observed}"
+        )
+    return observed
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("action", choices=("write", "verify", "digest"))
+    parser.add_argument("root", type=Path)
+    arguments = parser.parse_args()
+    root = arguments.root
+    if arguments.action == "write":
+        digest = write_marker(root)
+    elif arguments.action == "verify":
+        digest = verify_marker(root)
+    else:
+        digest = tree_digest(root)
+    print(f"source_tree_integrity={digest}")
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (IntegrityError, OSError, UnicodeError) as error:
+        print(f"error: {error}", file=sys.stderr)
+        raise SystemExit(1) from error

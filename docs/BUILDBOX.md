@@ -169,8 +169,12 @@ requires exact configuration deltas, byte-identical extracted diagnostics,
 rollback-symbol presence only in the changed tree, and checksum-covered
 case-preserving stack archives for both builds.
 
-Prepared source trees are keyed by their recorded patchset identities and
-reused only when their source, patchset, and complete diff checksums match.
+Prepared source trees are keyed by their recorded patchset identities. Reuse
+requires both the input-identity marker and a recursively computed source-tree
+integrity digest to match. The latter covers paths, file and directory modes,
+regular-file contents, additions/removals, and symbolic-link targets while
+excluding only the private Git metadata and the two root markers. Any mismatch
+reconstructs the prepared tree from the pinned archive and ordered patches.
 Out-of-tree build directories are removed after packaging. Provenance marks
 the result `rollback-compile-review-only` and `boot_candidate=false`; neither
 compiled output is a deployment artifact or permission to access the device.

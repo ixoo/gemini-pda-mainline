@@ -8,6 +8,7 @@ REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd -P)"
 readonly REPO_DIR
 readonly MANIFEST="${REPO_DIR}/kernel/manifest.json"
 readonly MANIFEST_SERIES_VALIDATOR="${SCRIPT_DIR}/validate-manifest-series"
+readonly SOURCE_INTEGRITY_HELPER="${SCRIPT_DIR}/source-tree-integrity"
 
 die() {
   echo "error: $*" >&2
@@ -106,6 +107,9 @@ manifest_value() {
 
 [[ -x "${MANIFEST_SERIES_VALIDATOR}" ]] || \
   die "manifest-series validator is missing or not executable: ${MANIFEST_SERIES_VALIDATOR}"
+[[ -f "${SOURCE_INTEGRITY_HELPER}" && ! -L "${SOURCE_INTEGRITY_HELPER}" ]] || \
+  die "source-integrity helper is missing or unsafe: ${SOURCE_INTEGRITY_HELPER}"
+require_command python3
 "${MANIFEST_SERIES_VALIDATOR}" "${MANIFEST}" >/dev/null
 
 VERSION="$(manifest_value '.kernel.version')"
@@ -299,6 +303,12 @@ source_state_hash() {
     | sha256sum | awk '{print $1}'
 }
 
+source_integrity_valid() {
+  [[ -f "${SOURCE_DIR}/.gemini-source-integrity" && \
+     ! -L "${SOURCE_DIR}/.gemini-source-integrity" ]] && \
+    python3 "${SOURCE_INTEGRITY_HELPER}" verify "${SOURCE_DIR}" >/dev/null 2>&1
+}
+
 build_state_hash() {
   {
     source_state_hash
@@ -351,8 +361,11 @@ prepare_kernel() {
 
   if [[ -f "${SOURCE_DIR}/.gemini-source-state" ]] && \
      [[ "$(< "${SOURCE_DIR}/.gemini-source-state")" == "${expected_state}" ]]; then
-    echo "Linux ${VERSION} source is already prepared at ${SOURCE_DIR}"
-    return
+    if source_integrity_valid; then
+      echo "Linux ${VERSION} source is already prepared at ${SOURCE_DIR}"
+      return
+    fi
+    echo "Prepared Linux ${VERSION} source content drifted; reconstructing" >&2
   fi
 
   download_source
@@ -373,6 +386,7 @@ prepare_kernel() {
   git -C "${PREPARED_TREE}" init --quiet
   for_each_patch apply_patch_file
   printf '%s\n' "${expected_state}" > "${PREPARED_TREE}/.gemini-source-state"
+  python3 "${SOURCE_INTEGRITY_HELPER}" write "${PREPARED_TREE}" >/dev/null
 
   case "${SOURCE_DIR}" in
     "${SOURCE_ROOT}"/linux-*) ;;
@@ -490,6 +504,9 @@ assert_build_inputs_unchanged() {
 
   [[ -f "${SOURCE_DIR}/.gemini-source-state" ]] || \
     die "prepared source state disappeared during build"
+  [[ -f "${SOURCE_DIR}/.gemini-source-integrity" && \
+     ! -L "${SOURCE_DIR}/.gemini-source-integrity" ]] || \
+    die "prepared source integrity marker disappeared during build"
   [[ -f "${BUILD_DIR}/.gemini-build-state" ]] || \
     die "configured build state disappeared during build"
   [[ "$(< "${SOURCE_DIR}/.gemini-source-state")" == "${expected_source_state}" ]] || \
@@ -498,6 +515,8 @@ assert_build_inputs_unchanged() {
     die "configured build was replaced during build; rerun the build"
   [[ "$(source_state_hash)" == "${expected_source_state}" ]] || \
     die "kernel or patch inputs changed during build; rerun the build"
+  python3 "${SOURCE_INTEGRITY_HELPER}" verify "${SOURCE_DIR}" >/dev/null || \
+    die "prepared source content changed during build; rerun the build"
   [[ "$(build_state_hash)" == "${expected_build_state}" ]] || \
     die "configuration or toolchain inputs changed during build; rerun the build"
 }
@@ -732,7 +751,8 @@ show_status() {
   echo "Patch count:          ${count}"
   echo "Patchset SHA-256:     $(patchset_hash)"
   if [[ -f "${SOURCE_DIR}/.gemini-source-state" ]] && \
-     [[ "$(< "${SOURCE_DIR}/.gemini-source-state")" == "$(source_state_hash)" ]]; then
+     [[ "$(< "${SOURCE_DIR}/.gemini-source-state")" == "$(source_state_hash)" ]] && \
+     source_integrity_valid; then
     echo "Prepared source:      current"
   else
     echo "Prepared source:      absent or stale"

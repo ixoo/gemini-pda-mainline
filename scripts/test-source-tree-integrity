@@ -1,0 +1,99 @@
+#!/usr/bin/env python3
+"""Exercise prepared-source integrity checks and unsafe mutations."""
+
+from __future__ import annotations
+
+import shutil
+import subprocess
+import tempfile
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parent.parent
+HELPER = ROOT / "scripts/source-tree-integrity"
+
+
+def run(action: str, tree: Path, succeeds: bool) -> None:
+    result = subprocess.run(
+        ["python3", str(HELPER), action, str(tree)],
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    if (result.returncode == 0) != succeeds:
+        raise SystemExit(
+            f"{action} {'failed' if succeeds else 'accepted mutation'}: "
+            f"{result.stdout}{result.stderr}"
+        )
+
+
+def main() -> None:
+    with tempfile.TemporaryDirectory(prefix="gemini-source-integrity-") as temporary:
+        temporary_root = Path(temporary)
+        base = temporary_root / "base"
+        (base / "arch").mkdir(parents=True)
+        (base / ".git").mkdir()
+        (base / "arch/source.c").write_text("int source;\n", encoding="utf-8")
+        (base / "Makefile").write_text("all:\n\t@true\n", encoding="utf-8")
+        (base / "Makefile").chmod(0o755)
+        (base / "source-link").symlink_to("arch/source.c")
+        (base / ".git/private").write_text("ignored\n", encoding="utf-8")
+        (base / ".gemini-source-state").write_text(
+            "input-state\n", encoding="utf-8"
+        )
+
+        run("write", base, True)
+        run("verify", base, True)
+
+        (base / ".git/private").write_text("still ignored\n", encoding="utf-8")
+        (base / ".gemini-source-state").write_text(
+            "new-input-state\n", encoding="utf-8"
+        )
+        run("verify", base, True)
+
+        def content(tree: Path) -> None:
+            (tree / "arch/source.c").write_text("int changed;\n", encoding="utf-8")
+
+        def addition(tree: Path) -> None:
+            (tree / "added.c").write_text("int added;\n", encoding="utf-8")
+
+        def removal(tree: Path) -> None:
+            (tree / "arch/source.c").unlink()
+
+        def mode(tree: Path) -> None:
+            (tree / "Makefile").chmod(0o644)
+
+        def link_target(tree: Path) -> None:
+            (tree / "source-link").unlink()
+            (tree / "source-link").symlink_to("Makefile")
+
+        def directory_mode(tree: Path) -> None:
+            (tree / "arch").chmod(0o700)
+
+        def marker(tree: Path) -> None:
+            (tree / ".gemini-source-integrity").write_text("invalid\n", encoding="ascii")
+
+        mutations = {
+            "content": content,
+            "addition": addition,
+            "removal": removal,
+            "mode": mode,
+            "link-target": link_target,
+            "directory-mode": directory_mode,
+            "marker": marker,
+        }
+        for name, mutate in mutations.items():
+            case = temporary_root / name
+            shutil.copytree(base, case, symlinks=True)
+            mutate(case)
+            run("verify", case, False)
+
+    print("validation=prepared-source-tree-integrity")
+    print("positive_cases=3")
+    print(f"unsafe_mutations_rejected={len(mutations)}")
+    print("result=pass")
+
+
+if __name__ == "__main__":
+    main()
