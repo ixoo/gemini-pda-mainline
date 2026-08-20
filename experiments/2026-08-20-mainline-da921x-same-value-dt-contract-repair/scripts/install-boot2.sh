@@ -30,7 +30,7 @@ source = Path(sys.argv[1])
 output = Path(sys.argv[2])
 text = source.read_text(encoding="utf-8")
 replacements = (
-    ("same-value-write candidate", "same-value-write DT-contract-repaired candidate", 1),
+    ("same-value-write candidate", "same-value-write DT-contract-repaired candidate", 2),
     ("b81813d13acc970c7b9203b89ec034921ef6f7e1017539a0c228754619af7b22",
      "85dbd8d020cc6d3527743f05d4a1071a8f573407a5519ae1584127e55e33bae9", 1),
     ("e5e5ff3e0a1828e59381117d33ee539d2be19c7c234c5150fadea888e705b068",
