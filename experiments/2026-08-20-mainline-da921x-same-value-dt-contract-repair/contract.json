@@ -1,6 +1,6 @@
 {
   "schema": "gemini-da921x-same-value-dt-contract-repair-v1",
-  "status": "deployed-shut-down-awaiting-selected-boot",
+  "status": "runtime-attempt-1-tooling-stop-same-boot-continuation",
   "parent_experiment": "../2026-08-19-mainline-da921x-same-value-write-implementation",
   "root_cause": {
     "classification": "kernel-dt-resource-contract-mismatch",
@@ -65,9 +65,23 @@
     "second_writes": 0,
     "token_requires_classifier_pass": true
   },
+  "runtime_result": {
+    "selected_boots": 1,
+    "kernel_release": "7.1.3-gemini-da921x-same-write",
+    "corrected_dt_reg_names_present": true,
+    "handoff_ready": true,
+    "i2c6_bound": true,
+    "da921x_i2c_clients": 1,
+    "same_value_write_state": "idle",
+    "pretrigger_ledger_entries": 20,
+    "register_data_writes": 0,
+    "physical_trigger_attempts": 0,
+    "tooling_stop": "probe-omitted-legacy-client-field-and-supplier-transaction-status",
+    "same_boot_continuation_permitted": true
+  },
   "decision": {
     "repeat_rejected_candidate": false,
     "kernel_rebuild_required": false,
-    "next_gate": "one-selected-boot-with-pretrigger-lifecycle-capture"
+    "next_gate": "corrected-pretrigger-on-same-idle-boot-before-single-token"
   }
 }

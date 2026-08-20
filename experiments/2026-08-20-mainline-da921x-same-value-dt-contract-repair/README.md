@@ -82,6 +82,16 @@ full staged SHA-256 before writing. Live GPT resolved `boot2` to p30 and the
 active root to p29; power was present at 100% with Good health. The full write,
 flush, post gate, independent 16 MiB readback, and clean shutdown all passed.
 
+The first selected boot proved the DT repair: the three named windows were
+present, the handoff became ready after late validation, I2C6 bound, one
+DA921x client and the same-value attribute existed, and the exact 20-entry
+idle ledger was retained with zero writes. The token remained withheld because
+the new lifecycle probe renamed a classifier field and both inherited
+same-value probes omitted the supplier transaction-window attribute. This is a
+collector contract error, not a candidate failure. The probes now retain both
+the legacy client field and the supplier counters; continuation uses the same
+still-idle boot.
+
 ## Analysis
 
 This is a DT-only contract correction. A different runtime outcome is
@@ -90,8 +100,9 @@ are unchanged.
 
 ## Conclusion
 
-The DT-only candidate is independently validated and deployed to logical
-`boot2`. The device is shut down. One selected-device boot remains pending.
+The DT-only candidate is independently validated, deployed, and runtime-proven
+through the exact idle 20-entry pretrigger state. The single physical token is
+still unused; a corrected same-boot continuation is pending.
 
 ## Follow-up
 

@@ -39,10 +39,12 @@ $BB printf '%s\n' __DA921X_SAME_VALUE_DMESG_BASE64_END__
 set -- /sys/bus/i2c/devices/*-0068
 if [ "$#" -ne 1 ] || [ ! -e "$1" ]; then
 	[ -e "$1" ] || set --
+	$BB printf 'da921x_i2c_clients=%s\n' "$#"
 	$BB printf 'da921x_i2c_client_count=%s\n' "$#"
 	$BB printf '%s\n' pretrigger_gate=da921x-client-count
 	exit 0
 fi
+$BB printf '%s\n' da921x_i2c_clients=1
 $BB printf '%s\n' da921x_i2c_client_count=1
 action=$1/same_value_write
 if [ ! -r "$action" ]; then
@@ -63,6 +65,12 @@ if [ ! -r "$i2c6/handoff_status" ]; then
 fi
 $BB printf '%s\n' __I2C6_STATUS_BEGIN__
 $BB cat "$i2c6/handoff_status"
+attestation=/sys/bus/platform/devices/11015000.dvfsp-handoff/firmware_writer_attestation
+if [ ! -r "$attestation" ]; then
+	$BB printf '%s\n' firmware_writer_attestation=absent
+	exit 0
+fi
+$BB cat "$attestation"
 $BB printf '%s\n' __I2C6_STATUS_END__
 $BB printf 'post_probe_boot_id_sha256='; $BB sha256sum /proc/sys/kernel/random/boot_id | $BB cut -d ' ' -f 1
 $BB printf '%s\n' pretrigger_gate=complete
