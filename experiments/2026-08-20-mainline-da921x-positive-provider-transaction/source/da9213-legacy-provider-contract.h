@@ -56,15 +56,15 @@ const char *
 da9213_legacy_provider_state_name(enum da9213_legacy_provider_state state);
 int da9213_legacy_provider_transaction_acquire(struct i2c_adapter *adapter,
 					       u16 address,
-					       const struct
-					       da9213_legacy_provider_transport_ops *ops,
+					       const struct da9213_legacy_provider_transport_ops
+					       *ops,
 					       const struct mt6797_a72_provider_request *request,
 					       struct da9213_legacy_provider_result *result,
 					       struct mt6797_a72_provider_response *response);
 int da9213_legacy_provider_transaction_release(struct i2c_adapter *adapter,
 					       u16 address,
-					       const struct
-					       da9213_legacy_provider_transport_ops *ops,
+					       const struct da9213_legacy_provider_transport_ops
+					       *ops,
 					       const struct mt6797_a72_provider_handle *handle,
 					       struct da9213_legacy_provider_result *result,
 					       struct mt6797_a72_provider_response *response);

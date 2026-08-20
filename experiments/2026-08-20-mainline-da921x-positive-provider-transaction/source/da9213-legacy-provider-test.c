@@ -214,7 +214,7 @@ static void da9213_provider_lifecycle_success(struct kunit *test)
 
 	fake.operation_calls = 0;
 	ret = da9213_provider_test_release(&fake, &acquire_response.held_handle,
-		&result, &release_response);
+					   &result, &release_response);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	KUNIT_EXPECT_EQ(test, result.state, DA9213_LEGACY_PROVIDER_RELEASED);
 	KUNIT_EXPECT_EQ(test, result.operation_transfers, 11U);
@@ -272,11 +272,11 @@ static void da9213_provider_admission_one_shot(struct kunit *test)
 
 	fake.operation_calls = 0;
 	ret = da9213_provider_test_release(&fake, &result.held_handle, &result,
-		&response);
+					   &response);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	calls = fake.total_calls;
 	ret = da9213_provider_test_release(&fake, &result.held_handle, &result,
-		&response);
+					   &response);
 	KUNIT_EXPECT_EQ(test, ret, -EALREADY);
 	ret = da9213_provider_test_acquire(&fake, &result, &response);
 	KUNIT_EXPECT_EQ(test, ret, -EALREADY);
@@ -383,7 +383,7 @@ static void da9213_provider_release_failures(struct kunit *test)
 			else
 				fake.fail_ordinal = ordinal;
 			ret = da9213_provider_test_release(&fake, &result.held_handle,
-				&result, &response);
+							   &result, &response);
 			KUNIT_EXPECT_LT(test, ret, 0);
 			KUNIT_EXPECT_EQ(test, result.state,
 					DA9213_LEGACY_PROVIDER_FAULT_RETAINED);
@@ -418,7 +418,7 @@ static void da9213_provider_release_mismatches(struct kunit *test)
 		fake.operation_calls = 0;
 		fake.mismatch_ordinal = ordinal;
 		ret = da9213_provider_test_release(&fake, &result.held_handle,
-			&result, &response);
+						   &result, &response);
 		KUNIT_EXPECT_EQ_MSG(test, ret, -ERANGE, "ordinal=%u", ordinal);
 		KUNIT_EXPECT_EQ(test, result.state,
 				DA9213_LEGACY_PROVIDER_FAULT_RETAINED);
@@ -438,7 +438,7 @@ static void da9213_provider_release_mismatches(struct kunit *test)
 		fake.operation_calls = 0;
 		fake.mismatch_ordinal = 2;
 		ret = da9213_provider_test_release(&fake, &result.held_handle,
-			&result, &response);
+						   &result, &response);
 		KUNIT_EXPECT_EQ(test, ret, 0);
 		KUNIT_EXPECT_NE(test, result.release_prestate.status_b,
 				result.final_state.status_b);
