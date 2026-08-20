@@ -51,7 +51,7 @@ def main() -> None:
                 "each operation needs success and failure unlocks")
         require("adapter->retries = 0" in operation,
                 "zero-retry transport missing")
-        require("da9213_legacy_provider_restore_retries" in operation,
+        require("da9213_provider_restore_retries" in operation,
                 "retry restoration missing")
     require("0x01, false" in acquire, "enable write changed")
     require("0x00, true" in release, "owned inverse changed")

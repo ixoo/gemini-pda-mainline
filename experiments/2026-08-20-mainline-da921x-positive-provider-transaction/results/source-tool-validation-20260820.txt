@@ -41,3 +41,6 @@ buildbox_generation_attempt_6_hardware_action=none
 buildbox_generation_attempt_7=validator-boundary-stop
 buildbox_generation_attempt_7_reason=static-helper-anchor-retained-pre-format-return-style
 buildbox_generation_attempt_7_hardware_action=none
+buildbox_generation_attempt_8=stale-helper-name-validator-stop
+buildbox_generation_attempt_8_reason=retry-helper-was-shortened-by-style-fix
+buildbox_generation_attempt_8_hardware_action=none
