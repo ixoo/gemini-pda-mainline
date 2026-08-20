@@ -4224,10 +4224,22 @@ passed exact known-good-OS, stable-power, inactive-target, predecessor, write,
 sync, flush, remote checksum, independent 16 MiB readback, and byte-comparison
 gates. Live GPT resolved unmounted `boot2` as p30 while Gemian root remained
 p29; the predecessor was recorded without a fresh backup, and the device shut
-down cleanly without rebooting. The sole next ordered action is to arm the
-checksum-pinned collector and select boot2 once for the frozen one-token
-experiment. CPU8/CPU9 admission remains closed regardless of the Gate-6
-runtime result; Gate 7 is a separate decision.
+down cleanly without rebooting.
+
+The exact candidate was selected once and reached its named release, USB shell,
+keyboard, and CPU0--7 serviceability baseline. The original collector had
+expired before physical selection and contained no pretrigger or token entry;
+the unchanged collector was therefore re-armed on the same live boot. Six
+retained read-only probes consistently found zero `*-0068` I2C clients and
+stopped before an action attribute, accepted pretrigger ledger, or trigger
+token. Thus no physical DA921x write was attempted. A native USB-shell reboot
+returned to changed-identity Gemian; pstore was empty, CPU8/9 remained offline,
+and live-GPT boot2 still matched the exact candidate. Preserve this
+failed-closed result and do not repeat the artifact. The sole next ordered
+action is offline localization of the missing client across the ledger-v2,
+same-value driver-integration, and profile boundaries, followed by a new
+candidate with durable bounded lifecycle/dmesg evidence before the client gate.
+Gate 7 remains separate and CPU8/CPU9 admission remains closed.
 
 The first writable test must:
 

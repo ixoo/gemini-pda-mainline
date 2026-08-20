@@ -1,6 +1,6 @@
 {
   "schema": "gemini-da921x-same-value-write-implementation-v1",
-  "status": "boot2-deployment-pass-runtime-attempt-pending",
+  "status": "runtime-attempt-1-pretrigger-mismatch-no-write",
   "review_parent": {
     "repository_commit": "ca3caa3e3c814da61a0ca113c69fc87e3bc1140e",
     "contract": "../2026-08-19-mainline-da921x-same-value-write-preflight-review/contract.json",
@@ -125,13 +125,40 @@
     "runtime_classifier_mutations_rejected": 13,
     "collector_validation": "passed"
   },
+  "runtime_result": {
+    "selected_boots": 1,
+    "initial_collector_expired_before_selection": true,
+    "rearm_on_same_selected_boot": true,
+    "kernel_release": "7.1.3-gemini-da921x-same-write",
+    "architecture": "aarch64",
+    "mainline_boot_id_sha256": "5e7b53a8ada2d54590237c50b7741c6b4191cfb3fe7dd490b828ae70393b5853",
+    "usb_interface": "en7",
+    "usb_mac": "42:00:15:19:82:00",
+    "cpu_online": "0-7",
+    "cpu_offline": "8-9",
+    "pretrigger_probe_attempts": 6,
+    "da921x_i2c_client_counts": [0, 0, 0, 0, 0, 0],
+    "pretrigger_complete": false,
+    "trigger_token_attempts": 0,
+    "trigger_retries": 0,
+    "physical_da921x_write_attempts": 0,
+    "classification": "pretrigger-mismatch-no-da921x-client",
+    "native_reboot_commands": 1,
+    "returned_kernel_release": "3.18.41+",
+    "returned_boot_id_sha256": "303ba3df5445d69843cdc80d295d487ef2a7a25eaf2fcbc04ca64899c72b2585",
+    "changed_gemian_return": true,
+    "boot2_sha256_after_return": "b81813d13acc970c7b9203b89ec034921ef6f7e1017539a0c228754619af7b22",
+    "pstore_files_after_return": 0,
+    "reset_reason_class": "nondiscriminating-watchdog-block",
+    "repeat_exact_candidate": false
+  },
   "decision": {
     "implementation_in_progress": false,
     "hardware_free_implementation_complete": true,
     "boot_candidate_exists": true,
-    "physical_da921x_write_authorized": true,
-    "device_action": "exact-boot2-deployed-and-device-shut-down",
+    "physical_da921x_write_authorized": false,
+    "device_action": "selected-boot-closed-without-token-native-return",
     "cpu8_cpu9_admission": "closed",
-    "next_success_gate": "one-selected-boot2-runtime-attempt"
+    "next_success_gate": "offline-localize-missing-da921x-client-before-new-candidate"
   }
 }

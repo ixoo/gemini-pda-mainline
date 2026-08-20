@@ -27,7 +27,7 @@ def validate(contract: dict, review_sha256: str) -> None:
     require(contract["schema"] == "gemini-da921x-same-value-write-implementation-v1",
             "schema changed")
     require(contract["status"] ==
-            "boot2-deployment-pass-runtime-attempt-pending",
+            "runtime-attempt-1-pretrigger-mismatch-no-write",
             "status changed")
     parent = contract["review_parent"]
     require(parent["repository_commit"] ==
@@ -146,17 +146,53 @@ def validate(contract: dict, review_sha256: str) -> None:
             tooling["runtime_classifier_mutations_rejected"] == 13 and
             tooling["collector_validation"] == "passed", "runtime tooling changed")
 
+    runtime = contract["runtime_result"]
+    require(runtime["selected_boots"] == 1 and
+            runtime["initial_collector_expired_before_selection"] is True and
+            runtime["rearm_on_same_selected_boot"] is True,
+            "runtime boot accounting changed")
+    require(runtime["kernel_release"] ==
+            "7.1.3-gemini-da921x-same-write" and
+            runtime["architecture"] == "aarch64" and
+            runtime["mainline_boot_id_sha256"] ==
+            "5e7b53a8ada2d54590237c50b7741c6b4191cfb3fe7dd490b828ae70393b5853",
+            "runtime identity changed")
+    require(runtime["usb_interface"] == "en7" and
+            runtime["usb_mac"] == "42:00:15:19:82:00" and
+            runtime["cpu_online"] == "0-7" and runtime["cpu_offline"] == "8-9",
+            "runtime serviceability or CPU boundary changed")
+    require(runtime["pretrigger_probe_attempts"] == 6 and
+            runtime["da921x_i2c_client_counts"] == [0, 0, 0, 0, 0, 0] and
+            runtime["pretrigger_complete"] is False,
+            "pretrigger mismatch changed")
+    require(runtime["trigger_token_attempts"] == 0 and
+            runtime["trigger_retries"] == 0 and
+            runtime["physical_da921x_write_attempts"] == 0 and
+            runtime["classification"] == "pretrigger-mismatch-no-da921x-client",
+            "failed-closed classification changed")
+    require(runtime["native_reboot_commands"] == 1 and
+            runtime["returned_kernel_release"] == "3.18.41+" and
+            runtime["returned_boot_id_sha256"] ==
+            "303ba3df5445d69843cdc80d295d487ef2a7a25eaf2fcbc04ca64899c72b2585" and
+            runtime["changed_gemian_return"] is True,
+            "native return evidence changed")
+    require(runtime["boot2_sha256_after_return"] == candidate["padded_sha256"] and
+            runtime["pstore_files_after_return"] == 0 and
+            runtime["reset_reason_class"] == "nondiscriminating-watchdog-block" and
+            runtime["repeat_exact_candidate"] is False,
+            "post-return or no-repeat boundary changed")
+
     decision = contract["decision"]
     require(decision["implementation_in_progress"] is False and
             decision["hardware_free_implementation_complete"] is True and
             decision["boot_candidate_exists"] is True and
-            decision["physical_da921x_write_authorized"] is True and
+            decision["physical_da921x_write_authorized"] is False and
             decision["device_action"] ==
-            "exact-boot2-deployed-and-device-shut-down",
-            "post-deployment decision changed")
+            "selected-boot-closed-without-token-native-return",
+            "post-runtime decision changed")
     require(decision["cpu8_cpu9_admission"] == "closed", "CPU admission changed")
     require(decision["next_success_gate"] ==
-            "one-selected-boot2-runtime-attempt",
+            "offline-localize-missing-da921x-client-before-new-candidate",
             "next success gate changed")
 
 
@@ -197,8 +233,19 @@ def test_mutations(contract: dict, review_sha256: str) -> int:
         (("runtime_tooling", "trigger_attempts"), 2),
         (("runtime_tooling", "trigger_retries"), 1),
         (("runtime_tooling", "second_writes"), 1),
+        (("runtime_result", "selected_boots"), 2),
+        (("runtime_result", "kernel_release"), "3.18.41+"),
+        (("runtime_result", "cpu_offline"), "9"),
+        (("runtime_result", "pretrigger_probe_attempts"), 5),
+        (("runtime_result", "da921x_i2c_client_counts", 0), 1),
+        (("runtime_result", "pretrigger_complete"), True),
+        (("runtime_result", "trigger_token_attempts"), 1),
+        (("runtime_result", "physical_da921x_write_attempts"), 1),
+        (("runtime_result", "changed_gemian_return"), False),
+        (("runtime_result", "boot2_sha256_after_return"), "0" * 64),
+        (("runtime_result", "repeat_exact_candidate"), True),
         (("decision", "boot_candidate_exists"), False),
-        (("decision", "physical_da921x_write_authorized"), False),
+        (("decision", "physical_da921x_write_authorized"), True),
         (("decision", "cpu8_cpu9_admission"), "open"),
         (("decision", "implementation_in_progress"), True),
         (("decision", "hardware_free_implementation_complete"), False),
@@ -228,10 +275,13 @@ def main() -> None:
     print("action_transfers=12")
     print("write_attempts=1")
     print("hardware_free_implementation=pass")
-    print("hardware_action=boot2-deployment-only")
+    print("hardware_action=boot2-deployment-and-one-selected-boot")
     print("boot_candidate=true")
-    print("physical_da921x_write_authorized=true")
-    print("runtime_attempt=pending")
+    print("physical_da921x_write_authorized=false")
+    print("runtime_classification=pretrigger-mismatch-no-da921x-client")
+    print("trigger_token_attempts=0")
+    print("physical_da921x_write_attempts=0")
+    print("changed_gemian_return=true")
     print("cpu8_cpu9_admission=closed")
     print(f"unsafe_mutations_rejected={rejected}")
     print("result=pass")

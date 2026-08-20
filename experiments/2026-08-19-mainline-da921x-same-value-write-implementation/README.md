@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-19-mainline-da921x-same-value-write-implementation` |
-| Status | `running`; exact boot2 deployment and shutdown pass, one runtime attempt pending |
+| Status | `stopped`; selected boot failed closed before token because the DA921x client was absent |
 | Subsystem | DA921x regulator, MT6797 I2C6 ledger and transaction window |
 | Device variant | Planet Gemini PDA named unit |
 | Date(s) | 2026-08-19--20 America/New_York |
@@ -50,12 +50,12 @@ regulator action, or CPU request.
 
 Patch 0291 contains a real register-write path, but it is default-off and
 reachable only through one exact-token device attribute in the isolated
-profile. A source patch, compile result, or KUnit pass does not authorize that
-path on hardware. Package, candidate, collector, and predeployment gates now
-pass offline; physical writing remains closed until this evidence is published
-and the live known-good-OS serviceability gates pass. Candidate construction
-contacted no device and wrote no hardware. CPU8 and CPU9 remain offline and
-unrequested.
+profile. The selected candidate reached its exact mainline identity and USB
+shell, but all six read-only pretrigger probes found zero `*-0068` I2C clients.
+The collector therefore sent no token, the dormant path attempted no DA921x
+register-data write, and native recovery returned to changed-identity Gemian.
+CPU8 and CPU9 remained offline and unrequested. The exact candidate is closed
+and must not be repeated.
 
 ## Associated code
 
@@ -116,6 +116,8 @@ unrequested.
   freezes the one-attempt observation and decision map.
 - [`results/deployment-1-20260820.txt`](results/deployment-1-20260820.txt)
   records the live-GPT target, predecessor, exact readback, and clean shutdown.
+- [`results/runtime-attempt-1-pretrigger-mismatch-20260820.txt`](results/runtime-attempt-1-pretrigger-mismatch-20260820.txt)
+  records the selected boot, missing DA921x client, zero-token stop, and native return.
 
 ## Procedure
 
@@ -220,14 +222,26 @@ published at signed commit `b1d251abc081`. Known-good Gemian then resolved
 inactive, unmounted live-GPT `boot2` as `/dev/mmcblk0p30` while root remained
 `/dev/mmcblk0p29`; stable power, exact predecessor, synchronized write, flush,
 and two independent full-partition checks passed. The device shut down cleanly
-without an automatic reboot. The single selected-boot runtime attempt is now
-next. CPU8/CPU9 admission remains closed regardless of its result.
+without an automatic reboot.
+
+The exact candidate was then selected once and reached release
+`7.1.3-gemini-da921x-same-write`, USB/netcat serviceability, and the CPU0--7
+baseline. The initial collector had expired before selection and contained no
+pretrigger or token evidence, so the same boot was re-armed without repeating
+the boot. Six retained read-only probes consistently reported
+`da921x_i2c_clients=0` and exited before the action attribute or I2C6 ledger
+could be accepted. No trigger token or physical DA921x write was attempted.
+After the capture was durably checksummed, one native USB-shell reboot returned
+to changed-identity Gemian. Pstore was empty, CPU8/9 remained offline, and the
+full live-GPT boot2 checksum was unchanged. This is a failed-closed pretrigger
+result, not evidence for or against the same-value write itself.
 
 ## Follow-up
 
-Arm the checksum-pinned collector, then select boot2 exactly once. It must
-retain the accepted pretrigger capture before sending the sole token, preserve
-the terminal classification before requesting native reboot, and observe a
-changed-identity Gemian return. Do not retry the token or repeat the candidate.
+Do not repeat this candidate. Offline-localize why the new Gate-6 delta lost
+the previously proven `/sys/bus/i2c/devices/1-0068` client. The next candidate
+must add a durable, bounded lifecycle/dmesg observation path that survives a
+missing client and distinguishes ledger-v2, driver-integration, and profile
+causes before any token can become reachable.
 The authoritative ordered exit remains
 [Roadmap Gate 6](../../docs/ROADMAP.md#6-prove-one-bounded-writable-operation).
