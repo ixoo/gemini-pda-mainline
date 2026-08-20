@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the bounded implementation plan without touching hardware."""
+"""Validate the exact implementation and recorded deployment contract."""
 
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ def validate(contract: dict, review_sha256: str) -> None:
     require(contract["schema"] == "gemini-da921x-same-value-write-implementation-v1",
             "schema changed")
     require(contract["status"] ==
-            "predeployment-tools-pass-evidence-publication-pending",
+            "boot2-deployment-pass-runtime-attempt-pending",
             "status changed")
     parent = contract["review_parent"]
     require(parent["repository_commit"] ==
@@ -109,6 +109,32 @@ def validate(contract: dict, review_sha256: str) -> None:
             candidate["device_access"] == candidate["hardware_write"] == "none",
             "candidate validation boundary changed")
 
+    deployment = contract["deployment"]
+    require(deployment["repository_commit"] ==
+            "b1d251abc08113e1a75079ca53012a53d19d036c" and
+            deployment["known_good_os"] == "3.18.41+",
+            "deployment source identity changed")
+    require(deployment["target_logical_name"] == "boot2" and
+            deployment["target"] == "/dev/mmcblk0p30" and
+            deployment["active_root"] == "/dev/mmcblk0p29" and
+            deployment["boot_id"] == "6585b668-db35-4a10-95ea-8c64a273b2e3" and
+            deployment["target_inactive_unmounted"] is True,
+            "deployment target identity changed")
+    require(deployment["predecessor_sha256"] ==
+            "fd6680d6e0ab3fbd61cc4f46b517a4672dd115eed92f2bbc0ae788b6e263c760" and
+            deployment["fresh_predecessor_backup"] is False,
+            "deployment predecessor boundary changed")
+    require(deployment["candidate_sha256"] == candidate["padded_sha256"] and
+            deployment["full_partition_readback_sha256"] ==
+            candidate["padded_sha256"] and
+            deployment["stable_power"] == "present-100-Good-external-online",
+            "deployment payload or power evidence changed")
+    require(deployment["write_synced_flushed"] is True and
+            deployment["independent_full_readback_identical"] is True and
+            deployment["clean_shutdown_confirmed"] is True and
+            deployment["automatic_reboot"] is False,
+            "deployment completion boundary changed")
+
     tooling = contract["runtime_tooling"]
     require(tooling["pretrigger_capture_before_token"] is True and
             tooling["pretrigger_required_count"] == 20 and
@@ -124,11 +150,13 @@ def validate(contract: dict, review_sha256: str) -> None:
     require(decision["implementation_in_progress"] is False and
             decision["hardware_free_implementation_complete"] is True and
             decision["boot_candidate_exists"] is True and
-            decision["physical_da921x_write_authorized"] is False and
-            decision["device_action"] == "none", "premature hardware decision")
+            decision["physical_da921x_write_authorized"] is True and
+            decision["device_action"] ==
+            "exact-boot2-deployed-and-device-shut-down",
+            "post-deployment decision changed")
     require(decision["cpu8_cpu9_admission"] == "closed", "CPU admission changed")
     require(decision["next_success_gate"] ==
-            "publish-predeployment-evidence-then-live-serviceability",
+            "one-selected-boot2-runtime-attempt",
             "next success gate changed")
 
 
@@ -158,11 +186,19 @@ def test_mutations(contract: dict, review_sha256: str) -> int:
         (("production_package", "kunit_enabled"), True),
         (("boot_candidate", "padded_size"), 16777215),
         (("boot_candidate", "lk_gates"), 31),
+        (("deployment", "target"), "/dev/mmcblk0p29"),
+        (("deployment", "boot_id"), "00000000-0000-0000-0000-000000000000"),
+        (("deployment", "fresh_predecessor_backup"), True),
+        (("deployment", "candidate_sha256"), "0" * 64),
+        (("deployment", "write_synced_flushed"), False),
+        (("deployment", "independent_full_readback_identical"), False),
+        (("deployment", "clean_shutdown_confirmed"), False),
+        (("deployment", "automatic_reboot"), True),
         (("runtime_tooling", "trigger_attempts"), 2),
         (("runtime_tooling", "trigger_retries"), 1),
         (("runtime_tooling", "second_writes"), 1),
         (("decision", "boot_candidate_exists"), False),
-        (("decision", "physical_da921x_write_authorized"), True),
+        (("decision", "physical_da921x_write_authorized"), False),
         (("decision", "cpu8_cpu9_admission"), "open"),
         (("decision", "implementation_in_progress"), True),
         (("decision", "hardware_free_implementation_complete"), False),
@@ -192,9 +228,10 @@ def main() -> None:
     print("action_transfers=12")
     print("write_attempts=1")
     print("hardware_free_implementation=pass")
-    print("hardware_action=none")
+    print("hardware_action=boot2-deployment-only")
     print("boot_candidate=true")
-    print("physical_da921x_write_authorized=false")
+    print("physical_da921x_write_authorized=true")
+    print("runtime_attempt=pending")
     print("cpu8_cpu9_admission=closed")
     print(f"unsafe_mutations_rejected={rejected}")
     print("result=pass")

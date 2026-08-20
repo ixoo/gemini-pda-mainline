@@ -1,6 +1,6 @@
 {
   "schema": "gemini-da921x-same-value-write-implementation-v1",
-  "status": "predeployment-tools-pass-evidence-publication-pending",
+  "status": "boot2-deployment-pass-runtime-attempt-pending",
   "review_parent": {
     "repository_commit": "ca3caa3e3c814da61a0ca113c69fc87e3bc1140e",
     "contract": "../2026-08-19-mainline-da921x-same-value-write-preflight-review/contract.json",
@@ -92,6 +92,24 @@
     "device_access": "none",
     "hardware_write": "none"
   },
+  "deployment": {
+    "repository_commit": "b1d251abc08113e1a75079ca53012a53d19d036c",
+    "known_good_os": "3.18.41+",
+    "target_logical_name": "boot2",
+    "target": "/dev/mmcblk0p30",
+    "active_root": "/dev/mmcblk0p29",
+    "boot_id": "6585b668-db35-4a10-95ea-8c64a273b2e3",
+    "target_inactive_unmounted": true,
+    "predecessor_sha256": "fd6680d6e0ab3fbd61cc4f46b517a4672dd115eed92f2bbc0ae788b6e263c760",
+    "fresh_predecessor_backup": false,
+    "candidate_sha256": "b81813d13acc970c7b9203b89ec034921ef6f7e1017539a0c228754619af7b22",
+    "full_partition_readback_sha256": "b81813d13acc970c7b9203b89ec034921ef6f7e1017539a0c228754619af7b22",
+    "stable_power": "present-100-Good-external-online",
+    "write_synced_flushed": true,
+    "independent_full_readback_identical": true,
+    "clean_shutdown_confirmed": true,
+    "automatic_reboot": false
+  },
   "runtime_tooling": {
     "pretrigger_capture_before_token": true,
     "pretrigger_required_count": 20,
@@ -111,9 +129,9 @@
     "implementation_in_progress": false,
     "hardware_free_implementation_complete": true,
     "boot_candidate_exists": true,
-    "physical_da921x_write_authorized": false,
-    "device_action": "none",
+    "physical_da921x_write_authorized": true,
+    "device_action": "exact-boot2-deployed-and-device-shut-down",
     "cpu8_cpu9_admission": "closed",
-    "next_success_gate": "publish-predeployment-evidence-then-live-serviceability"
+    "next_success_gate": "one-selected-boot2-runtime-attempt"
   }
 }

@@ -4218,11 +4218,16 @@ mutations, including moving attribute writability outside the bounded
 read-write sysfs window.
 
 No device or physical I2C transaction was involved in those production,
-candidate, or collector validations. The sole next ordered action is to publish
-their exact predeployment evidence, then pass the known-good-OS read-only
-serviceability and guarded boot2 deployment gates. A verified boot2 install
-must end in clean shutdown. CPU8/CPU9 admission remains closed regardless of
-the Gate-6 runtime result; Gate 7 is a separate decision.
+candidate, or collector validations. Their sanitized predeployment evidence
+was published at signed commit `b1d251abc081`. The guarded deployment then
+passed exact known-good-OS, stable-power, inactive-target, predecessor, write,
+sync, flush, remote checksum, independent 16 MiB readback, and byte-comparison
+gates. Live GPT resolved unmounted `boot2` as p30 while Gemian root remained
+p29; the predecessor was recorded without a fresh backup, and the device shut
+down cleanly without rebooting. The sole next ordered action is to arm the
+checksum-pinned collector and select boot2 once for the frozen one-token
+experiment. CPU8/CPU9 admission remains closed regardless of the Gate-6
+runtime result; Gate 7 is a separate decision.
 
 The first writable test must:
 

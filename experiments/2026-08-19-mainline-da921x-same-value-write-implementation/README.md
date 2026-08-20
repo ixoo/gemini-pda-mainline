@@ -5,9 +5,9 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-19-mainline-da921x-same-value-write-implementation` |
-| Status | `running`; production candidate and collector pass offline, publication pending |
+| Status | `running`; exact boot2 deployment and shutdown pass, one runtime attempt pending |
 | Subsystem | DA921x regulator, MT6797 I2C6 ledger and transaction window |
-| Device variant | Planet Gemini PDA named unit; current work hardware-free |
+| Device variant | Planet Gemini PDA named unit |
 | Date(s) | 2026-08-19--20 America/New_York |
 | Investigator(s) | Project maintainers |
 | Tracking issue | Roadmap Gate 6 |
@@ -114,6 +114,8 @@ unrequested.
   records the hardware-free runtime-tool validation.
 - [`results/predeployment-hypothesis-20260820.txt`](results/predeployment-hypothesis-20260820.txt)
   freezes the one-attempt observation and decision map.
+- [`results/deployment-1-20260820.txt`](results/deployment-1-20260820.txt)
+  records the live-GPT target, predecessor, exact readback, and clean shutdown.
 
 ## Procedure
 
@@ -213,15 +215,19 @@ failure and mismatch ordinal covered. The superseded formal attempt at
 `73fb7a3` remains rejected.
 
 The exact production package, offline boot candidate, collector, and
-predeployment decision map now pass. The physical experiment is not yet
-armed: publication of this evidence and live read-only serviceability remain
-outstanding. CPU8/CPU9 admission remains closed.
+predeployment decision map pass. The sanitized predeployment evidence was
+published at signed commit `b1d251abc081`. Known-good Gemian then resolved
+inactive, unmounted live-GPT `boot2` as `/dev/mmcblk0p30` while root remained
+`/dev/mmcblk0p29`; stable power, exact predecessor, synchronized write, flush,
+and two independent full-partition checks passed. The device shut down cleanly
+without an automatic reboot. The single selected-boot runtime attempt is now
+next. CPU8/CPU9 admission remains closed regardless of its result.
 
 ## Follow-up
 
-Publish this exact offline evidence, then run the read-only known-good-OS
-serviceability and boot2 deployment gates. A successful verified install must
-end in clean shutdown so the owner can select boot2. Before that boot, state
-the exact hypothesis and one-attempt decision map below.
+Arm the checksum-pinned collector, then select boot2 exactly once. It must
+retain the accepted pretrigger capture before sending the sole token, preserve
+the terminal classification before requesting native reboot, and observe a
+changed-identity Gemian return. Do not retry the token or repeat the candidate.
 The authoritative ordered exit remains
 [Roadmap Gate 6](../../docs/ROADMAP.md#6-prove-one-bounded-writable-operation).
