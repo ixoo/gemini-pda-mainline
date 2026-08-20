@@ -37,7 +37,7 @@ def main() -> None:
     acquire = between(
         driver,
         "int\nda9213_legacy_provider_transaction_acquire(",
-        "static bool da9213_provider_handle_matches(",
+        "static bool\nda9213_provider_handle_matches(",
     )
     release = between(
         driver,

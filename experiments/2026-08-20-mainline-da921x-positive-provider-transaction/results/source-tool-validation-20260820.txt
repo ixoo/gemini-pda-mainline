@@ -38,3 +38,6 @@ buildbox_generation_attempt_5_hardware_action=none
 buildbox_generation_attempt_6=validator-boundary-stop
 buildbox_generation_attempt_6_reason=short-function-anchor-also-matched-callback-call
 buildbox_generation_attempt_6_hardware_action=none
+buildbox_generation_attempt_7=validator-boundary-stop
+buildbox_generation_attempt_7_reason=static-helper-anchor-retained-pre-format-return-style
+buildbox_generation_attempt_7_hardware_action=none
