@@ -62,8 +62,8 @@ def positive_callbacks() -> str:
 
     #if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_POSITIVE_PROVIDER_TRANSACTION)
     \tmutex_lock(&chip->provider_transaction_lock);
-    \tret = da9213_legacy_provider_transaction_acquire(
-    \t\tchip->client->adapter, chip->client->addr,
+    \tret = da9213_legacy_provider_transaction_acquire(chip->client->adapter,
+    \t\tchip->client->addr,
     \t\t&da9213_legacy_positive_provider_ops, request,
     \t\t&chip->provider_transaction, response);
     \tmutex_unlock(&chip->provider_transaction_lock);
@@ -100,8 +100,8 @@ def positive_callbacks() -> str:
 
     #if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_POSITIVE_PROVIDER_TRANSACTION)
     \tmutex_lock(&chip->provider_transaction_lock);
-    \tret = da9213_legacy_provider_transaction_release(
-    \t\tchip->client->adapter, chip->client->addr,
+    \tret = da9213_legacy_provider_transaction_release(chip->client->adapter,
+    \t\tchip->client->addr,
     \t\t&da9213_legacy_positive_provider_ops, handle,
     \t\t&chip->provider_transaction, response);
     \tmutex_unlock(&chip->provider_transaction_lock);
@@ -155,7 +155,7 @@ def add_positive_transaction(root: Path, source_dir: Path) -> None:
         "#endif\n"
         "#endif\n"
         "#if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_POSITIVE_PROVIDER_TRANSACTION)\n"
-        "\tstruct mutex provider_transaction_lock;\n"
+        "\tstruct mutex provider_transaction_lock; /* Serializes lifecycle. */\n"
         "\tstruct da9213_legacy_provider_result provider_transaction;\n"
         "#endif\n"
         "#endif\n"

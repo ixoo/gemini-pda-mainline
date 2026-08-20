@@ -29,3 +29,6 @@ buildbox_generation_attempt_2_hardware_action=none
 buildbox_generation_attempt_3=validator-only-stop-after-edited-source-pass
 buildbox_generation_attempt_3_reason=forbidden-code-scan-included-negated-Kconfig-help-text
 buildbox_generation_attempt_3_hardware_action=none
+buildbox_generation_attempt_4=style-only-stop-after-all-semantic-validators-pass
+buildbox_generation_attempt_4_result=zero-errors-zero-warnings-45-strict-checks
+buildbox_generation_attempt_4_hardware_action=none

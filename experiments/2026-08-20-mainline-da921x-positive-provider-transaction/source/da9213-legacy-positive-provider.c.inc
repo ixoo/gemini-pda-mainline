@@ -4,8 +4,8 @@ static const u8 da9213_legacy_provider_snapshot_regs[] = {
 	0x56, 0x51, 0x5e, 0xd9, 0xda,
 };
 
-const char *da9213_legacy_provider_state_name(
-	enum da9213_legacy_provider_state state)
+const char *
+da9213_legacy_provider_state_name(enum da9213_legacy_provider_state state)
 {
 	switch (state) {
 	case DA9213_LEGACY_PROVIDER_IDLE:
@@ -27,8 +27,9 @@ const char *da9213_legacy_provider_state_name(
 	}
 }
 
-static int da9213_legacy_provider_read(
-	struct i2c_adapter *adapter, u16 address, u8 reg, u8 *value,
+static int
+da9213_legacy_provider_read(struct i2c_adapter *adapter, u16 address, u8 reg,
+	u8 *value,
 	const struct da9213_legacy_provider_transport_ops *ops,
 	struct da9213_legacy_provider_result *result)
 {
@@ -56,8 +57,8 @@ static int da9213_legacy_provider_read(
 	return 0;
 }
 
-static int da9213_legacy_provider_snapshot(
-	struct i2c_adapter *adapter, u16 address,
+static int
+da9213_legacy_provider_snapshot(struct i2c_adapter *adapter, u16 address,
 	const struct da9213_legacy_provider_transport_ops *ops,
 	struct da9213_legacy_provider_result *result,
 	struct da9213_legacy_provider_snapshot *snapshot)
@@ -69,8 +70,7 @@ static int da9213_legacy_provider_snapshot(
 	BUILD_BUG_ON(sizeof(*snapshot) !=
 		     ARRAY_SIZE(da9213_legacy_provider_snapshot_regs));
 	for (i = 0; i < ARRAY_SIZE(da9213_legacy_provider_snapshot_regs); i++) {
-		ret = da9213_legacy_provider_read(
-			adapter, address,
+		ret = da9213_legacy_provider_read(adapter, address,
 			da9213_legacy_provider_snapshot_regs[i], &values[i],
 			ops, result);
 		if (ret)
@@ -80,8 +80,9 @@ static int da9213_legacy_provider_snapshot(
 	return 0;
 }
 
-static int da9213_legacy_provider_write_cont(
-	struct i2c_adapter *adapter, u16 address, u8 value, bool inverse,
+static int
+da9213_legacy_provider_write_cont(struct i2c_adapter *adapter, u16 address,
+	u8 value, bool inverse,
 	const struct da9213_legacy_provider_transport_ops *ops,
 	struct da9213_legacy_provider_result *result)
 {
@@ -108,8 +109,8 @@ static int da9213_legacy_provider_write_cont(
 	return 0;
 }
 
-static bool da9213_legacy_provider_request_valid(
-	const struct mt6797_a72_provider_request *request)
+static bool
+da9213_provider_request_valid(const struct mt6797_a72_provider_request *request)
 {
 	return request &&
 		request->abi == MT6797_A72_PROVIDER_CALL_ABI &&
@@ -122,8 +123,8 @@ static bool da9213_legacy_provider_request_valid(
 		request->transaction_cookie && request->transaction_cookie != ~0ULL;
 }
 
-static bool da9213_legacy_provider_initial_state_valid(
-	const struct da9213_legacy_provider_snapshot *snapshot)
+static bool
+da9213_provider_initial_state_valid(const struct da9213_legacy_provider_snapshot *snapshot)
 {
 	return snapshot->control_a == 0x7b &&
 		!(snapshot->control_a & 0x80) &&
@@ -132,8 +133,8 @@ static bool da9213_legacy_provider_initial_state_valid(
 		snapshot->vbuckb_b == MT6797_A72_PROVIDER_CALL_BUCKB_VSEL;
 }
 
-static bool da9213_legacy_provider_owned_state_matches(
-	const struct da9213_legacy_provider_snapshot *snapshot,
+static bool
+da9213_provider_owned_state_matches(const struct da9213_legacy_provider_snapshot *snapshot,
 	const struct da9213_legacy_provider_snapshot *prestate, u8 buckb_cont)
 {
 	return snapshot->control_a == prestate->control_a &&
@@ -143,8 +144,7 @@ static bool da9213_legacy_provider_owned_state_matches(
 		snapshot->vbuckb_b == prestate->vbuckb_b;
 }
 
-static bool da9213_legacy_provider_transport_valid(
-	struct i2c_adapter *adapter,
+static bool da9213_provider_transport_valid(struct i2c_adapter *adapter,
 	const struct da9213_legacy_provider_transport_ops *ops)
 {
 	return adapter && ops && ops->transfer && ops->delay &&
@@ -152,14 +152,14 @@ static bool da9213_legacy_provider_transport_valid(
 		adapter->lock_ops->unlock_bus;
 }
 
-static void da9213_legacy_provider_restore_retries(
-	struct i2c_adapter *adapter, unsigned int saved_retries)
+static void da9213_provider_restore_retries(struct i2c_adapter *adapter,
+	unsigned int saved_retries)
 {
 	adapter->retries = saved_retries;
 }
 
-static void da9213_legacy_provider_acquire_response(
-	const struct mt6797_a72_provider_request *request,
+static void
+da9213_provider_acquire_response(const struct mt6797_a72_provider_request *request,
 	struct da9213_legacy_provider_result *result,
 	struct mt6797_a72_provider_response *response)
 {
@@ -177,8 +177,9 @@ static void da9213_legacy_provider_acquire_response(
 	response->held_handle = result->held_handle;
 }
 
-int da9213_legacy_provider_transaction_acquire(
-	struct i2c_adapter *adapter, u16 address,
+int
+da9213_legacy_provider_transaction_acquire(struct i2c_adapter *adapter,
+	u16 address,
 	const struct da9213_legacy_provider_transport_ops *ops,
 	const struct mt6797_a72_provider_request *request,
 	struct da9213_legacy_provider_result *result,
@@ -188,8 +189,8 @@ int da9213_legacy_provider_transaction_acquire(
 	int ret;
 
 	if (!result || !response ||
-	    !da9213_legacy_provider_transport_valid(adapter, ops) ||
-	    !da9213_legacy_provider_request_valid(request))
+	    !da9213_provider_transport_valid(adapter, ops) ||
+	    !da9213_provider_request_valid(request))
 		return -EINVAL;
 	memset(response, 0, sizeof(*response));
 	if (result->state != DA9213_LEGACY_PROVIDER_IDLE)
@@ -207,7 +208,7 @@ int da9213_legacy_provider_transaction_acquire(
 					      &result->prestate);
 	if (ret)
 		goto out_failed;
-	if (!da9213_legacy_provider_initial_state_valid(&result->prestate)) {
+	if (!da9213_provider_initial_state_valid(&result->prestate)) {
 		ret = -ERANGE;
 		goto out_failed;
 	}
@@ -222,8 +223,8 @@ int da9213_legacy_provider_transaction_acquire(
 					      &result->held_state);
 	if (ret)
 		goto out_failed;
-	if (!da9213_legacy_provider_owned_state_matches(
-			&result->held_state, &result->prestate, 0x01)) {
+	if (!da9213_provider_owned_state_matches(&result->held_state,
+			&result->prestate, 0x01)) {
 		ret = -ERANGE;
 		goto out_failed;
 	}
@@ -232,8 +233,8 @@ int da9213_legacy_provider_transaction_acquire(
 	result->held_handle.cookie = request->transaction_cookie;
 	result->state = DA9213_LEGACY_PROVIDER_HELD;
 	result->error = 0;
-	da9213_legacy_provider_acquire_response(request, result, response);
-	da9213_legacy_provider_restore_retries(adapter, saved_retries);
+	da9213_provider_acquire_response(request, result, response);
+	da9213_provider_restore_retries(adapter, saved_retries);
 	i2c_unlock_bus(adapter, I2C_LOCK_ROOT_ADAPTER);
 	return 0;
 
@@ -243,21 +244,21 @@ out_failed:
 		result->state = DA9213_LEGACY_PROVIDER_FAULT_RETAINED;
 	else
 		result->state = DA9213_LEGACY_PROVIDER_FAILED_NO_MUTATION;
-	da9213_legacy_provider_restore_retries(adapter, saved_retries);
+	da9213_provider_restore_retries(adapter, saved_retries);
 	i2c_unlock_bus(adapter, I2C_LOCK_ROOT_ADAPTER);
 	return ret;
 }
 
-static bool da9213_legacy_provider_handle_matches(
-	const struct mt6797_a72_provider_handle *left,
+static bool
+da9213_provider_handle_matches(const struct mt6797_a72_provider_handle *left,
 	const struct mt6797_a72_provider_handle *right)
 {
 	return left && right && left->generation == right->generation &&
 		left->cookie == right->cookie;
 }
 
-static void da9213_legacy_provider_release_response(
-	struct da9213_legacy_provider_result *result,
+static void
+da9213_provider_release_response(struct da9213_legacy_provider_result *result,
 	struct mt6797_a72_provider_response *response)
 {
 	response->abi = MT6797_A72_PROVIDER_CALL_ABI;
@@ -274,8 +275,9 @@ static void da9213_legacy_provider_release_response(
 	response->held_handle = result->held_handle;
 }
 
-int da9213_legacy_provider_transaction_release(
-	struct i2c_adapter *adapter, u16 address,
+int
+da9213_legacy_provider_transaction_release(struct i2c_adapter *adapter,
+	u16 address,
 	const struct da9213_legacy_provider_transport_ops *ops,
 	const struct mt6797_a72_provider_handle *handle,
 	struct da9213_legacy_provider_result *result,
@@ -285,12 +287,12 @@ int da9213_legacy_provider_transaction_release(
 	int ret;
 
 	if (!result || !response ||
-	    !da9213_legacy_provider_transport_valid(adapter, ops) || !handle)
+	    !da9213_provider_transport_valid(adapter, ops) || !handle)
 		return -EINVAL;
 	memset(response, 0, sizeof(*response));
 	if (result->state != DA9213_LEGACY_PROVIDER_HELD)
 		return -EALREADY;
-	if (!da9213_legacy_provider_handle_matches(handle,
+	if (!da9213_provider_handle_matches(handle,
 						   &result->held_handle))
 		return -EPERM;
 
@@ -306,8 +308,8 @@ int da9213_legacy_provider_transaction_release(
 					      &result->release_prestate);
 	if (ret)
 		goto out_fault;
-	if (!da9213_legacy_provider_owned_state_matches(
-			&result->release_prestate, &result->prestate, 0x01)) {
+	if (!da9213_provider_owned_state_matches(&result->release_prestate,
+			&result->prestate, 0x01)) {
 		ret = -ERANGE;
 		goto out_fault;
 	}
@@ -320,23 +322,23 @@ int da9213_legacy_provider_transaction_release(
 					      &result->final_state);
 	if (ret)
 		goto out_fault;
-	if (!da9213_legacy_provider_owned_state_matches(
-			&result->final_state, &result->prestate, 0x00)) {
+	if (!da9213_provider_owned_state_matches(&result->final_state,
+			&result->prestate, 0x00)) {
 		ret = -ERANGE;
 		goto out_fault;
 	}
 
 	result->state = DA9213_LEGACY_PROVIDER_RELEASED;
 	result->error = 0;
-	da9213_legacy_provider_release_response(result, response);
-	da9213_legacy_provider_restore_retries(adapter, saved_retries);
+	da9213_provider_release_response(result, response);
+	da9213_provider_restore_retries(adapter, saved_retries);
 	i2c_unlock_bus(adapter, I2C_LOCK_ROOT_ADAPTER);
 	return 0;
 
 out_fault:
 	result->error = ret;
 	result->state = DA9213_LEGACY_PROVIDER_FAULT_RETAINED;
-	da9213_legacy_provider_restore_retries(adapter, saved_retries);
+	da9213_provider_restore_retries(adapter, saved_retries);
 	i2c_unlock_bus(adapter, I2C_LOCK_ROOT_ADAPTER);
 	return ret;
 }

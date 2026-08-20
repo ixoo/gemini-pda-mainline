@@ -37,8 +37,8 @@ struct da9213_provider_test_fake {
 
 static struct da9213_provider_test_fake *active_fake;
 
-static void da9213_provider_test_lock(struct i2c_adapter *adapter,
-				       unsigned int flags)
+static void
+da9213_provider_test_lock(struct i2c_adapter *adapter, unsigned int flags)
 {
 	struct da9213_provider_test_fake *fake = active_fake;
 
@@ -48,16 +48,16 @@ static void da9213_provider_test_lock(struct i2c_adapter *adapter,
 	fake->locked = true;
 }
 
-static int da9213_provider_test_trylock(struct i2c_adapter *adapter,
-					unsigned int flags)
+static int
+da9213_provider_test_trylock(struct i2c_adapter *adapter, unsigned int flags)
 {
 	(void)adapter;
 	(void)flags;
 	return 0;
 }
 
-static void da9213_provider_test_unlock(struct i2c_adapter *adapter,
-					 unsigned int flags)
+static void
+da9213_provider_test_unlock(struct i2c_adapter *adapter, unsigned int flags)
 {
 	struct da9213_provider_test_fake *fake = active_fake;
 
@@ -73,8 +73,9 @@ static const struct i2c_lock_operations da9213_provider_test_lock_ops = {
 	.unlock_bus = da9213_provider_test_unlock,
 };
 
-static int da9213_provider_test_transfer(struct i2c_adapter *adapter,
-					  struct i2c_msg *messages, int count)
+static int
+da9213_provider_test_transfer(struct i2c_adapter *adapter,
+	struct i2c_msg *messages, int count)
 {
 	struct da9213_provider_test_fake *fake = active_fake;
 	u8 reg;
@@ -119,8 +120,8 @@ static int da9213_provider_test_transfer(struct i2c_adapter *adapter,
 	return -EPROTO;
 }
 
-static void da9213_provider_test_delay(unsigned long minimum,
-					unsigned long maximum)
+static void
+da9213_provider_test_delay(unsigned long minimum, unsigned long maximum)
 {
 	struct da9213_provider_test_fake *fake = active_fake;
 
@@ -137,8 +138,8 @@ da9213_provider_test_ops = {
 	.delay = da9213_provider_test_delay,
 };
 
-static void da9213_provider_test_init(
-	struct da9213_provider_test_fake *fake,
+static void
+da9213_provider_test_init(struct da9213_provider_test_fake *fake,
 	struct da9213_legacy_provider_result *result)
 {
 	memset(fake, 0, sizeof(*fake));
@@ -166,16 +167,16 @@ static struct mt6797_a72_provider_request da9213_provider_test_request(void)
 	};
 }
 
-static int da9213_provider_test_acquire(
-	struct da9213_provider_test_fake *fake,
+static int
+da9213_provider_test_acquire(struct da9213_provider_test_fake *fake,
 	struct da9213_legacy_provider_result *result,
 	struct mt6797_a72_provider_response *response)
 {
 	struct mt6797_a72_provider_request request =
 		da9213_provider_test_request();
 
-	return da9213_legacy_provider_transaction_acquire(
-		&fake->adapter, DA9213_PROVIDER_TEST_ADDRESS,
+	return da9213_legacy_provider_transaction_acquire(&fake->adapter,
+		DA9213_PROVIDER_TEST_ADDRESS,
 		&da9213_provider_test_ops, &request, result, response);
 }
 
@@ -201,8 +202,8 @@ static void da9213_provider_lifecycle_success(struct kunit *test)
 	KUNIT_EXPECT_EQ(test, acquire_response.buckb_enabled, 1U);
 
 	fake.operation_calls = 0;
-	ret = da9213_legacy_provider_transaction_release(
-		&fake.adapter, DA9213_PROVIDER_TEST_ADDRESS,
+	ret = da9213_legacy_provider_transaction_release(&fake.adapter,
+		DA9213_PROVIDER_TEST_ADDRESS,
 		&da9213_provider_test_ops, &acquire_response.held_handle,
 		&result, &release_response);
 	KUNIT_ASSERT_EQ(test, ret, 0);
@@ -241,8 +242,8 @@ static void da9213_provider_admission_one_shot(struct kunit *test)
 
 	da9213_provider_test_init(&fake, &result);
 	request.operation = MT6797_A72_PROVIDER_OPERATION_CPU8_UP + 1;
-	ret = da9213_legacy_provider_transaction_acquire(
-		&fake.adapter, DA9213_PROVIDER_TEST_ADDRESS,
+	ret = da9213_legacy_provider_transaction_acquire(&fake.adapter,
+		DA9213_PROVIDER_TEST_ADDRESS,
 		&da9213_provider_test_ops, &request, &result, &response);
 	KUNIT_EXPECT_EQ(test, ret, -EINVAL);
 	KUNIT_EXPECT_EQ(test, result.state, DA9213_LEGACY_PROVIDER_IDLE);
@@ -254,22 +255,22 @@ static void da9213_provider_admission_one_shot(struct kunit *test)
 	ret = da9213_provider_test_acquire(&fake, &result, &response);
 	KUNIT_EXPECT_EQ(test, ret, -EALREADY);
 	KUNIT_EXPECT_EQ(test, fake.total_calls, calls);
-	ret = da9213_legacy_provider_transaction_release(
-		&fake.adapter, DA9213_PROVIDER_TEST_ADDRESS,
+	ret = da9213_legacy_provider_transaction_release(&fake.adapter,
+		DA9213_PROVIDER_TEST_ADDRESS,
 		&da9213_provider_test_ops, &stale, &result, &response);
 	KUNIT_EXPECT_EQ(test, ret, -EPERM);
 	KUNIT_EXPECT_EQ(test, result.state, DA9213_LEGACY_PROVIDER_HELD);
 	KUNIT_EXPECT_EQ(test, fake.total_calls, calls);
 
 	fake.operation_calls = 0;
-	ret = da9213_legacy_provider_transaction_release(
-		&fake.adapter, DA9213_PROVIDER_TEST_ADDRESS,
+	ret = da9213_legacy_provider_transaction_release(&fake.adapter,
+		DA9213_PROVIDER_TEST_ADDRESS,
 		&da9213_provider_test_ops, &result.held_handle, &result,
 		&response);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	calls = fake.total_calls;
-	ret = da9213_legacy_provider_transaction_release(
-		&fake.adapter, DA9213_PROVIDER_TEST_ADDRESS,
+	ret = da9213_legacy_provider_transaction_release(&fake.adapter,
+		DA9213_PROVIDER_TEST_ADDRESS,
 		&da9213_provider_test_ops, &result.held_handle, &result,
 		&response);
 	KUNIT_EXPECT_EQ(test, ret, -EALREADY);
@@ -289,6 +290,7 @@ static void da9213_provider_acquire_failures(struct kunit *test)
 			struct da9213_provider_test_fake fake;
 			struct da9213_legacy_provider_result result;
 			struct mt6797_a72_provider_response response;
+			enum da9213_legacy_provider_state expected;
 			int ret;
 
 			da9213_provider_test_init(&fake, &result);
@@ -296,15 +298,12 @@ static void da9213_provider_acquire_failures(struct kunit *test)
 				fake.short_ordinal = ordinal;
 			else
 				fake.fail_ordinal = ordinal;
-			ret = da9213_provider_test_acquire(&fake, &result,
-							    &response);
-			KUNIT_EXPECT_LT_MSG(test, ret, 0,
-				"mode=%u ordinal=%u", mode, ordinal);
-			KUNIT_EXPECT_EQ_MSG(test, result.state,
-				ordinal <= 5 ?
-					DA9213_LEGACY_PROVIDER_FAILED_NO_MUTATION :
-					DA9213_LEGACY_PROVIDER_FAULT_RETAINED,
-				"mode=%u ordinal=%u", mode, ordinal);
+			expected = ordinal <= 5 ?
+				DA9213_LEGACY_PROVIDER_FAILED_NO_MUTATION :
+				DA9213_LEGACY_PROVIDER_FAULT_RETAINED;
+			ret = da9213_provider_test_acquire(&fake, &result, &response);
+			KUNIT_EXPECT_LT(test, ret, 0);
+			KUNIT_EXPECT_EQ(test, result.state, expected);
 			KUNIT_EXPECT_EQ(test, result.write_attempts,
 					ordinal >= 6 ? 1U : 0U);
 			KUNIT_EXPECT_EQ(test, result.inverse_write_attempts, 0U);
@@ -328,18 +327,18 @@ static void da9213_provider_acquire_mismatches(struct kunit *test)
 		struct da9213_provider_test_fake fake;
 		struct da9213_legacy_provider_result result;
 		struct mt6797_a72_provider_response response;
+		enum da9213_legacy_provider_state expected;
 		unsigned int ordinal = mismatch_ordinals[i];
 		int ret;
 
 		da9213_provider_test_init(&fake, &result);
 		fake.mismatch_ordinal = ordinal;
+		expected = ordinal <= 5 ?
+			DA9213_LEGACY_PROVIDER_FAILED_NO_MUTATION :
+			DA9213_LEGACY_PROVIDER_FAULT_RETAINED;
 		ret = da9213_provider_test_acquire(&fake, &result, &response);
 		KUNIT_EXPECT_EQ_MSG(test, ret, -ERANGE, "ordinal=%u", ordinal);
-		KUNIT_EXPECT_EQ_MSG(test, result.state,
-			ordinal <= 5 ?
-				DA9213_LEGACY_PROVIDER_FAILED_NO_MUTATION :
-				DA9213_LEGACY_PROVIDER_FAULT_RETAINED,
-			"ordinal=%u", ordinal);
+		KUNIT_EXPECT_EQ(test, result.state, expected);
 		KUNIT_EXPECT_EQ(test, result.inverse_write_attempts, 0U);
 	}
 
@@ -372,20 +371,18 @@ static void da9213_provider_release_failures(struct kunit *test)
 			int ret;
 
 			da9213_provider_test_init(&fake, &result);
-			ret = da9213_provider_test_acquire(&fake, &result,
-							    &response);
+			ret = da9213_provider_test_acquire(&fake, &result, &response);
 			KUNIT_ASSERT_EQ(test, ret, 0);
 			fake.operation_calls = 0;
 			if (mode)
 				fake.short_ordinal = ordinal;
 			else
 				fake.fail_ordinal = ordinal;
-			ret = da9213_legacy_provider_transaction_release(
-				&fake.adapter, DA9213_PROVIDER_TEST_ADDRESS,
+			ret = da9213_legacy_provider_transaction_release(&fake.adapter,
+				DA9213_PROVIDER_TEST_ADDRESS,
 				&da9213_provider_test_ops, &result.held_handle,
 				&result, &response);
-			KUNIT_EXPECT_LT_MSG(test, ret, 0,
-				"mode=%u ordinal=%u", mode, ordinal);
+			KUNIT_EXPECT_LT(test, ret, 0);
 			KUNIT_EXPECT_EQ(test, result.state,
 					DA9213_LEGACY_PROVIDER_FAULT_RETAINED);
 			KUNIT_EXPECT_EQ(test, result.inverse_write_attempts,
@@ -418,8 +415,8 @@ static void da9213_provider_release_mismatches(struct kunit *test)
 		KUNIT_ASSERT_EQ(test, ret, 0);
 		fake.operation_calls = 0;
 		fake.mismatch_ordinal = ordinal;
-		ret = da9213_legacy_provider_transaction_release(
-			&fake.adapter, DA9213_PROVIDER_TEST_ADDRESS,
+		ret = da9213_legacy_provider_transaction_release(&fake.adapter,
+			DA9213_PROVIDER_TEST_ADDRESS,
 			&da9213_provider_test_ops, &result.held_handle,
 			&result, &response);
 		KUNIT_EXPECT_EQ_MSG(test, ret, -ERANGE, "ordinal=%u", ordinal);
@@ -440,8 +437,8 @@ static void da9213_provider_release_mismatches(struct kunit *test)
 		KUNIT_ASSERT_EQ(test, ret, 0);
 		fake.operation_calls = 0;
 		fake.mismatch_ordinal = 2;
-		ret = da9213_legacy_provider_transaction_release(
-			&fake.adapter, DA9213_PROVIDER_TEST_ADDRESS,
+		ret = da9213_legacy_provider_transaction_release(&fake.adapter,
+			DA9213_PROVIDER_TEST_ADDRESS,
 			&da9213_provider_test_ops, &result.held_handle,
 			&result, &response);
 		KUNIT_EXPECT_EQ(test, ret, 0);

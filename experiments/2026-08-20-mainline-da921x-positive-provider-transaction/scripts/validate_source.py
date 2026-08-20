@@ -37,7 +37,7 @@ def main() -> None:
     acquire = between(
         driver,
         "int da9213_legacy_provider_transaction_acquire(",
-        "static bool da9213_legacy_provider_handle_matches(",
+        "static bool da9213_provider_handle_matches(",
     )
     release = between(
         driver,
@@ -63,7 +63,7 @@ def main() -> None:
             "release terminal state missing")
     require("result->state != DA9213_LEGACY_PROVIDER_IDLE" in acquire,
             "second acquire guard missing")
-    require("da9213_legacy_provider_handle_matches" in release,
+    require("da9213_provider_handle_matches" in release,
             "release handle guard missing")
     require(".transfer = __i2c_transfer" in driver,
             "production transfer seam changed")
