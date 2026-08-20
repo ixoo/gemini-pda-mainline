@@ -1,6 +1,6 @@
 {
   "schema": "gemini-mainline-da921x-positive-provider-transaction-v1",
-  "status": "canonical-hardware-free-patches-admitted-build-pending",
+  "status": "hardware-free-buildbox-compile-passed-kunit-pending",
   "parent_repository_commit": "feb1767011da40e28679e0f9293ddcb195646c7a",
   "parent_source_state": "c9e5f2fbef9f2a25a7b6772ad122ca0f000d57f0c23789040f70f669e022c698",
   "logical_patches": [
@@ -14,6 +14,13 @@
     "semantic_validation": "pass",
     "replay_validation": "pass",
     "strict_checkpatch": "zero-errors-warnings-checks"
+  },
+  "compile": {
+    "repository_commit": "bfca1a05066a1619e074ea73ad01e736cb72aace",
+    "buildbox_job": "bfca1a05066a1619e074ea73ad01e736cb72aace-da921x-positive-provider-kunit-m0",
+    "profile": "da921x-positive-provider-kunit",
+    "kernel_release": "7.1.3-gemini-da921x-positive-provider-kunit",
+    "result": "pass"
   },
   "profiles": [
     "da921x-positive-provider",

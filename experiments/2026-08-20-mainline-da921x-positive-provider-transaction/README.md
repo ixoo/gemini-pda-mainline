@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-20-mainline-da921x-positive-provider-transaction` |
-| Status | `in progress`; canonical hardware-free patches generated and admitted, Buildbox compile pending |
+| Status | `in progress`; canonical hardware-free patches compile on Buildbox, focused KUnit execution pending |
 | Subsystem | legacy DA921x regulator, private MT6797 A72 provider seam |
 | Device variant | Planet Gemini PDA named unit |
 | Date | 2026-08-20 America/New_York |
@@ -68,6 +68,13 @@ Canonical patches 0293--0295 now preserve the prerequisite registration
 repair, positive transaction, and hardware-free KUnit coverage as separate
 logical changes. The isolated `da921x-positive-provider` and
 `da921x-positive-provider-kunit` profiles select the stopped-firmware window
-and owner seam without connecting a CPU caller. The next action is the required
-Buildbox-only compile, followed by the bounded fake-adapter KUnit run. This
-admission creates no boot candidate and authorizes no device action.
+and owner seam without connecting a CPU caller.
+
+The exact KUnit profile then compiled and linked on Buildbox at signed revision
+`bfca1a05066a1619e074ea73ad01e736cb72aace`. Both the production regulator
+object and focused provider-test object built, and the fetched package passed
+its full checksum manifest. Exact identities are in
+[`results/buildbox-compile-20260820.txt`](results/buildbox-compile-20260820.txt).
+The next action is the bounded, network-free arm64 QEMU run through
+[`scripts/run-kunit-qemu`](scripts/run-kunit-qemu). This build creates no boot
+candidate and authorizes no device action.

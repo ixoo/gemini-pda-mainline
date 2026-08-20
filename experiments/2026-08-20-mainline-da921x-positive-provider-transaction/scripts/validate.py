@@ -47,10 +47,12 @@ def main() -> None:
     test = (ROOT / "source/da9213-legacy-provider-test.c").read_text(
         encoding="utf-8"
     )
+    runner = (ROOT / "scripts/run-kunit-qemu").read_text(encoding="utf-8")
+    classifier = (ROOT / "scripts/classify-kunit.py").read_text(encoding="utf-8")
 
     require(
         contract["status"]
-        == "canonical-hardware-free-patches-admitted-build-pending",
+        == "hardware-free-buildbox-compile-passed-kunit-pending",
         "experiment status changed",
     )
     series = tuple(
@@ -85,6 +87,23 @@ def main() -> None:
             in positive_fragment, "same-value path not closed")
     require("CONFIG_REGULATOR_DA9213_LEGACY_POSITIVE_PROVIDER_KUNIT_TEST=y"
             in kunit_fragment, "KUnit config missing")
+    for token in (
+        "EXPECTED_PROFILE=da921x-positive-provider-kunit",
+        "timeout --signal=TERM 45 qemu-system-aarch64",
+        "-nographic -no-reboot -nic none",
+        "focused KUnit test inventory changed",
+        "package commit differs from repository HEAD",
+    ):
+        require(token in runner, f"QEMU runner token missing: {token}")
+    for token in (
+        'SUITE = "da9213-legacy-positive-provider"',
+        '"da9213_provider_lifecycle_success"',
+        '"da9213_provider_release_mismatches"',
+        'require(qemu_exit == 124,',
+        'print("network=none")',
+        'print("cpu8_cpu9_admission=closed")',
+    ):
+        require(token in classifier, f"KUnit classifier token missing: {token}")
 
     require(contract["safety"]["default_off"], "positive path must be default-off")
     require(contract["safety"]["hardware_free"], "phase must be hardware-free")

@@ -4313,9 +4313,9 @@ present but its ops-table member was lost by a later patch; an independent
 first patch restores that intended registration before the positive change.
 Buildbox semantic, patch, replay, and strict style validation pass with zero
 findings; isolated source and KUnit profiles retain the stopped-firmware window
-and disconnect every CPU caller. The next ordered actions are the required
-Buildbox-only compile and bounded fake-adapter KUnit run. No device action is
-admitted by this source work.
+and disconnect every CPU caller. The exact KUnit profile also compiles and
+links on Buildbox. The next ordered action is the bounded, network-free
+fake-adapter KUnit run. No device action is admitted by this source work.
 
 The candidate must have a single CPU8 request, strict checkpoints before and
 after each power step, a bounded timeout, and a fail-closed rollback. CPU9
