@@ -63,9 +63,10 @@ def positive_callbacks() -> str:
     #if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_POSITIVE_PROVIDER_TRANSACTION)
     \tmutex_lock(&chip->provider_transaction_lock);
     \tret = da9213_legacy_provider_transaction_acquire(chip->client->adapter,
-    \t\tchip->client->addr,
-    \t\t&da9213_legacy_positive_provider_ops, request,
-    \t\t&chip->provider_transaction, response);
+    \t\t\t\t\t\t\t chip->client->addr,
+    \t\t\t\t\t\t\t &da9213_legacy_positive_provider_ops,
+    \t\t\t\t\t\t\t request, &chip->provider_transaction,
+    \t\t\t\t\t\t\t response);
     \tmutex_unlock(&chip->provider_transaction_lock);
     \treturn ret;
     #else
@@ -101,9 +102,10 @@ def positive_callbacks() -> str:
     #if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_POSITIVE_PROVIDER_TRANSACTION)
     \tmutex_lock(&chip->provider_transaction_lock);
     \tret = da9213_legacy_provider_transaction_release(chip->client->adapter,
-    \t\tchip->client->addr,
-    \t\t&da9213_legacy_positive_provider_ops, handle,
-    \t\t&chip->provider_transaction, response);
+    \t\t\t\t\t\t\t chip->client->addr,
+    \t\t\t\t\t\t\t &da9213_legacy_positive_provider_ops,
+    \t\t\t\t\t\t\t handle, &chip->provider_transaction,
+    \t\t\t\t\t\t\t response);
     \tmutex_unlock(&chip->provider_transaction_lock);
     \treturn ret;
     #else
