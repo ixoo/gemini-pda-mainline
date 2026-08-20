@@ -1,0 +1,625 @@
+From 3abf8f913aadd923a67858b23e67aae87f3349cb Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Thu, 20 Aug 2026 00:12:00 +0000
+Subject: [PATCH 2/3] regulator: add positive DA921x Buck-B provider
+ transaction
+
+Add one default-off acquire and exact-handle release state machine.
+
+Use zero retries, full-byte proofs, and terminal fault-retain semantics.
+---
+ arch/arm64/Kconfig                            |   7 +-
+ drivers/regulator/Kconfig                     |  16 +
+ .../da9213-legacy-provider-contract.h         |  72 +++
+ drivers/regulator/da9213-legacy-regulator.c   | 412 +++++++++++++++++-
+ 4 files changed, 496 insertions(+), 11 deletions(-)
+ create mode 100644 drivers/regulator/da9213-legacy-provider-contract.h
+
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 2f4c4ce..b09b429 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -2567,9 +2567,10 @@ config ARM64_MT6797_A72_PROVIDER_OWNER
+ 	depends on REGULATOR_DA9213_LEGACY_PROVIDER
+ 	help
+ 	  Enable the explicitly isolated provider-owner callback boundary for the
+-	  dormant MT6797 A72 transaction. The current legacy provider is
+-	  read-only and therefore returns a clean pre-vote refusal; this option
+-	  does not connect CPU_ON or authorize regulator writes.
++	  dormant MT6797 A72 transaction. Without the separately default-off
++	  positive provider transaction, the legacy provider returns a clean
++	  pre-vote refusal. This option alone does not connect CPU_ON or
++	  authorize regulator writes.
+ 
+ config ARM64_MT6797_A72_P30E_WIRE
+ 	bool "Build the dormant MT6797 A72 P30E MMU-off wire object"
+diff --git a/drivers/regulator/Kconfig b/drivers/regulator/Kconfig
+index 2330453..871ad03 100644
+--- a/drivers/regulator/Kconfig
++++ b/drivers/regulator/Kconfig
+@@ -488,6 +488,22 @@ config REGULATOR_DA9213_LEGACY_SAME_VALUE_WRITE
+ 	  regulator consumer, or CPU request. This option is only for the named
+ 	  Gemini same-value-write experiment and must remain N otherwise.
+ 
++config REGULATOR_DA9213_LEGACY_POSITIVE_PROVIDER_TRANSACTION
++	bool "Dialog legacy DA921x positive Buck-B provider transaction"
++	depends on ARM64_MT6797_A72_PROVIDER_OWNER
++	depends on MTK_MT6797_I2C6_FW_WRITER_TRANSACTION_WINDOW
++	help
++	  Enable one default-off, one-shot positive Buck-B provider state
++	  machine behind the private MT6797 A72 owner seam. Acquire and
++	  release each use one complete root-adapter lock, zero retries,
++	  exact full-byte state checks, and a generation-bound handle.
++
++	  The only writes are BUCKB_CONT 0x00 to 0x01 and its exactly owned
++	  inverse. Any incomplete ownership proof is terminal and receives
++	  no retry or speculative rollback. This option exposes no consumer,
++	  PAGE_CON or selector write, P28 effect, CPU_ON, or CPU_OFF. Say N
++	  outside the named Gemini Gate-7 experiment.
++
+ config REGULATOR_DA9213_LEGACY_SAME_VALUE_WRITE_KUNIT_TEST
+ 	bool "KUnit tests for the legacy DA921x same-value write"
+ 	depends on KUNIT=y
+diff --git a/drivers/regulator/da9213-legacy-provider-contract.h b/drivers/regulator/da9213-legacy-provider-contract.h
+new file mode 100644
+index 0000000..5f0e788
+--- /dev/null
++++ b/drivers/regulator/da9213-legacy-provider-contract.h
+@@ -0,0 +1,72 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __DA9213_LEGACY_PROVIDER_CONTRACT_H
++#define __DA9213_LEGACY_PROVIDER_CONTRACT_H
++
++#include <linux/mt6797-a72-provider.h>
++#include <linux/types.h>
++
++struct i2c_adapter;
++struct i2c_msg;
++
++#define DA9213_LEGACY_PROVIDER_ADDRESS		0x68
++#define DA9213_LEGACY_PROVIDER_ACTIONS		11
++#define DA9213_LEGACY_PROVIDER_SETTLE_US		1000
++
++enum da9213_legacy_provider_state {
++	DA9213_LEGACY_PROVIDER_IDLE,
++	DA9213_LEGACY_PROVIDER_ACQUIRING,
++	DA9213_LEGACY_PROVIDER_HELD,
++	DA9213_LEGACY_PROVIDER_RELEASING,
++	DA9213_LEGACY_PROVIDER_RELEASED,
++	DA9213_LEGACY_PROVIDER_FAILED_NO_MUTATION,
++	DA9213_LEGACY_PROVIDER_FAULT_RETAINED,
++};
++
++struct da9213_legacy_provider_snapshot {
++	u8 control_a;
++	u8 status_b;
++	u8 buckb_cont;
++	u8 vbuckb_a;
++	u8 vbuckb_b;
++};
++
++struct da9213_legacy_provider_result {
++	enum da9213_legacy_provider_state state;
++	unsigned int acquire_attempts;
++	unsigned int release_attempts;
++	unsigned int operation_transfers;
++	unsigned int total_transfers;
++	unsigned int write_attempts;
++	unsigned int inverse_write_attempts;
++	int error;
++	struct mt6797_a72_provider_handle held_handle;
++	struct da9213_legacy_provider_snapshot prestate;
++	struct da9213_legacy_provider_snapshot held_state;
++	struct da9213_legacy_provider_snapshot release_prestate;
++	struct da9213_legacy_provider_snapshot final_state;
++};
++
++struct da9213_legacy_provider_transport_ops {
++	int (*transfer)(struct i2c_adapter *adapter,
++			struct i2c_msg *messages, int count);
++	void (*delay)(unsigned long minimum, unsigned long maximum);
++};
++
++const char *
++da9213_legacy_provider_state_name(enum da9213_legacy_provider_state state);
++int da9213_legacy_provider_transaction_acquire(struct i2c_adapter *adapter,
++					       u16 address,
++					       const struct da9213_legacy_provider_transport_ops
++					       *ops,
++					       const struct mt6797_a72_provider_request *request,
++					       struct da9213_legacy_provider_result *result,
++					       struct mt6797_a72_provider_response *response);
++int da9213_legacy_provider_transaction_release(struct i2c_adapter *adapter,
++					       u16 address,
++					       const struct da9213_legacy_provider_transport_ops
++					       *ops,
++					       const struct mt6797_a72_provider_handle *handle,
++					       struct da9213_legacy_provider_result *result,
++					       struct mt6797_a72_provider_response *response);
++
++#endif /* __DA9213_LEGACY_PROVIDER_CONTRACT_H */
+diff --git a/drivers/regulator/da9213-legacy-regulator.c b/drivers/regulator/da9213-legacy-regulator.c
+index 3f28137..1240817 100644
+--- a/drivers/regulator/da9213-legacy-regulator.c
++++ b/drivers/regulator/da9213-legacy-regulator.c
+@@ -18,6 +18,9 @@
+ 
+ #include "da9213-legacy-observer.h"
+ #include "da9213-legacy-write-contract.h"
++#if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_POSITIVE_PROVIDER_TRANSACTION)
++#include "da9213-legacy-provider-contract.h"
++#endif
+ #if IS_ENABLED(CONFIG_ARM64_MT6797_A72_PROVIDER_OWNER)
+ #include <linux/mt6797-a72-provider.h>
+ #endif
+@@ -105,6 +108,10 @@ struct da9213_legacy {
+ #endif
+ #endif
+ #endif
++#if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_POSITIVE_PROVIDER_TRANSACTION)
++	struct mutex provider_transaction_lock; /* Serializes lifecycle. */
++	struct da9213_legacy_provider_result provider_transaction;
++#endif
+ #endif
+ };
+ 
+@@ -929,15 +936,382 @@ da9213_legacy_runtime_preflight_group = {
+ 
+ #if IS_ENABLED(CONFIG_ARM64_MT6797_A72_PROVIDER_OWNER)
+ 
++#if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_POSITIVE_PROVIDER_TRANSACTION)
++
++static const u8 da9213_legacy_provider_snapshot_regs[] = {
++	0x56, 0x51, 0x5e, 0xd9, 0xda,
++};
++
++const char *
++da9213_legacy_provider_state_name(enum da9213_legacy_provider_state state)
++{
++	switch (state) {
++	case DA9213_LEGACY_PROVIDER_IDLE:
++		return "idle";
++	case DA9213_LEGACY_PROVIDER_ACQUIRING:
++		return "acquiring";
++	case DA9213_LEGACY_PROVIDER_HELD:
++		return "held";
++	case DA9213_LEGACY_PROVIDER_RELEASING:
++		return "releasing";
++	case DA9213_LEGACY_PROVIDER_RELEASED:
++		return "released";
++	case DA9213_LEGACY_PROVIDER_FAILED_NO_MUTATION:
++		return "failed-no-mutation";
++	case DA9213_LEGACY_PROVIDER_FAULT_RETAINED:
++		return "fault-retained-reset-only";
++	default:
++		return "invalid";
++	}
++}
++
++static int
++da9213_legacy_provider_read(struct i2c_adapter *adapter, u16 address, u8 reg,
++			    u8 *value,
++			    const struct da9213_legacy_provider_transport_ops *ops,
++			    struct da9213_legacy_provider_result *result)
++{
++	struct i2c_msg messages[2] = { };
++	u8 data = 0;
++	int ret;
++
++	messages[0].addr = address;
++	messages[0].len = 1;
++	messages[0].buf = &reg;
++	messages[1].addr = address;
++	messages[1].flags = I2C_M_RD;
++	messages[1].len = 1;
++	messages[1].buf = &data;
++
++	ret = ops->transfer(adapter, messages, ARRAY_SIZE(messages));
++	result->operation_transfers++;
++	result->total_transfers++;
++	if (ret < 0)
++		return ret;
++	if (ret != ARRAY_SIZE(messages))
++		return -EIO;
++
++	*value = data;
++	return 0;
++}
++
++static int
++da9213_legacy_provider_snapshot(struct i2c_adapter *adapter, u16 address,
++				const struct da9213_legacy_provider_transport_ops *ops,
++				struct da9213_legacy_provider_result *result,
++				struct da9213_legacy_provider_snapshot *snapshot)
++{
++	u8 *values = (u8 *)snapshot;
++	unsigned int i;
++	int ret;
++
++	BUILD_BUG_ON(sizeof(*snapshot) !=
++		     ARRAY_SIZE(da9213_legacy_provider_snapshot_regs));
++	for (i = 0; i < ARRAY_SIZE(da9213_legacy_provider_snapshot_regs); i++) {
++		ret = da9213_legacy_provider_read(adapter, address,
++						  da9213_legacy_provider_snapshot_regs[i],
++						  &values[i], ops, result);
++		if (ret)
++			return ret;
++	}
++
++	return 0;
++}
++
++static int
++da9213_legacy_provider_write_cont(struct i2c_adapter *adapter, u16 address,
++				  u8 value, bool inverse,
++				  const struct da9213_legacy_provider_transport_ops *ops,
++				  struct da9213_legacy_provider_result *result)
++{
++	u8 payload[2] = { 0x5e, value };
++	struct i2c_msg message = {
++		.addr = address,
++		.len = ARRAY_SIZE(payload),
++		.buf = payload,
++	};
++	int ret;
++
++	if (inverse)
++		result->inverse_write_attempts++;
++	else
++		result->write_attempts++;
++	ret = ops->transfer(adapter, &message, 1);
++	result->operation_transfers++;
++	result->total_transfers++;
++	if (ret < 0)
++		return ret;
++	if (ret != 1)
++		return -EIO;
++
++	return 0;
++}
++
++static bool
++da9213_provider_request_valid(const struct mt6797_a72_provider_request *request)
++{
++	return request &&
++		request->abi == MT6797_A72_PROVIDER_CALL_ABI &&
++		request->operation == MT6797_A72_PROVIDER_OPERATION_CPU8_UP &&
++		request->settle_us == DA9213_LEGACY_PROVIDER_SETTLE_US &&
++		request->da921x_page == MT6797_A72_PROVIDER_CALL_DA921X_PAGE &&
++		request->buckb_vsel == MT6797_A72_PROVIDER_CALL_BUCKB_VSEL &&
++		!request->reserved && request->transaction_generation &&
++		request->transaction_generation != ~0ULL &&
++		request->transaction_cookie && request->transaction_cookie != ~0ULL;
++}
++
++static bool
++da9213_provider_initial_state_valid(const struct da9213_legacy_provider_snapshot *snapshot)
++{
++	return snapshot->control_a == 0x7b &&
++		!(snapshot->control_a & 0x80) &&
++		snapshot->buckb_cont == 0x00 &&
++		snapshot->vbuckb_a == MT6797_A72_PROVIDER_CALL_BUCKB_VSEL &&
++		snapshot->vbuckb_b == MT6797_A72_PROVIDER_CALL_BUCKB_VSEL;
++}
++
++static bool
++da9213_provider_owned_state_matches(const struct da9213_legacy_provider_snapshot *snapshot,
++				    const struct da9213_legacy_provider_snapshot *prestate,
++				    u8 buckb_cont)
++{
++	return snapshot->control_a == prestate->control_a &&
++		!(snapshot->control_a & 0x80) &&
++		snapshot->buckb_cont == buckb_cont &&
++		snapshot->vbuckb_a == prestate->vbuckb_a &&
++		snapshot->vbuckb_b == prestate->vbuckb_b;
++}
++
++static bool da9213_provider_transport_valid(struct i2c_adapter *adapter,
++					    const struct da9213_legacy_provider_transport_ops *ops)
++{
++	return adapter && ops && ops->transfer && ops->delay &&
++		adapter->lock_ops && adapter->lock_ops->lock_bus &&
++		adapter->lock_ops->unlock_bus;
++}
++
++static void da9213_provider_restore_retries(struct i2c_adapter *adapter,
++					    unsigned int saved_retries)
++{
++	adapter->retries = saved_retries;
++}
++
++static void
++da9213_provider_acquire_response(const struct mt6797_a72_provider_request *request,
++				 struct da9213_legacy_provider_result *result,
++				 struct mt6797_a72_provider_response *response)
++{
++	response->abi = MT6797_A72_PROVIDER_CALL_ABI;
++	response->returned = 1;
++	response->vote_requested = 1;
++	response->provider_mutated = 1;
++	response->rail_mutated = 1;
++	response->settle_us = DA9213_LEGACY_PROVIDER_SETTLE_US;
++	response->da921x_page = MT6797_A72_PROVIDER_CALL_DA921X_PAGE;
++	response->buckb_enabled = 1;
++	response->buckb_vsel = result->held_state.vbuckb_a;
++	response->origin = 1;
++	response->origin_generation = request->transaction_generation;
++	response->held_handle = result->held_handle;
++}
++
++int
++da9213_legacy_provider_transaction_acquire(struct i2c_adapter *adapter,
++					   u16 address,
++					   const struct da9213_legacy_provider_transport_ops *ops,
++					   const struct mt6797_a72_provider_request *request,
++					   struct da9213_legacy_provider_result *result,
++					   struct mt6797_a72_provider_response *response)
++{
++	unsigned int saved_retries;
++	int ret;
++
++	if (!result || !response ||
++	    !da9213_provider_transport_valid(adapter, ops) ||
++	    !da9213_provider_request_valid(request))
++		return -EINVAL;
++	memset(response, 0, sizeof(*response));
++	if (result->state != DA9213_LEGACY_PROVIDER_IDLE)
++		return -EALREADY;
++
++	result->state = DA9213_LEGACY_PROVIDER_ACQUIRING;
++	result->acquire_attempts = 1;
++	result->operation_transfers = 0;
++	result->error = 0;
++	i2c_lock_bus(adapter, I2C_LOCK_ROOT_ADAPTER);
++	saved_retries = adapter->retries;
++	adapter->retries = 0;
++
++	ret = da9213_legacy_provider_snapshot(adapter, address, ops, result,
++					      &result->prestate);
++	if (ret)
++		goto out_failed;
++	if (!da9213_provider_initial_state_valid(&result->prestate)) {
++		ret = -ERANGE;
++		goto out_failed;
++	}
++
++	ret = da9213_legacy_provider_write_cont(adapter, address, 0x01, false,
++						ops, result);
++	if (ret)
++		goto out_failed;
++	ops->delay(DA9213_LEGACY_PROVIDER_SETTLE_US,
++		   DA9213_LEGACY_PROVIDER_SETTLE_US + 100);
++	ret = da9213_legacy_provider_snapshot(adapter, address, ops, result,
++					      &result->held_state);
++	if (ret)
++		goto out_failed;
++	if (!da9213_provider_owned_state_matches(&result->held_state,
++						 &result->prestate, 0x01)) {
++		ret = -ERANGE;
++		goto out_failed;
++	}
++
++	result->held_handle.generation = request->transaction_generation;
++	result->held_handle.cookie = request->transaction_cookie;
++	result->state = DA9213_LEGACY_PROVIDER_HELD;
++	result->error = 0;
++	da9213_provider_acquire_response(request, result, response);
++	da9213_provider_restore_retries(adapter, saved_retries);
++	i2c_unlock_bus(adapter, I2C_LOCK_ROOT_ADAPTER);
++	return 0;
++
++out_failed:
++	result->error = ret;
++	if (result->write_attempts)
++		result->state = DA9213_LEGACY_PROVIDER_FAULT_RETAINED;
++	else
++		result->state = DA9213_LEGACY_PROVIDER_FAILED_NO_MUTATION;
++	da9213_provider_restore_retries(adapter, saved_retries);
++	i2c_unlock_bus(adapter, I2C_LOCK_ROOT_ADAPTER);
++	return ret;
++}
++
++static bool
++da9213_provider_handle_matches(const struct mt6797_a72_provider_handle *left,
++			       const struct mt6797_a72_provider_handle *right)
++{
++	return left && right && left->generation == right->generation &&
++		left->cookie == right->cookie;
++}
++
++static void
++da9213_provider_release_response(struct da9213_legacy_provider_result *result,
++				 struct mt6797_a72_provider_response *response)
++{
++	response->abi = MT6797_A72_PROVIDER_CALL_ABI;
++	response->returned = 1;
++	response->vote_requested = 1;
++	response->provider_mutated = 1;
++	response->rail_mutated = 1;
++	response->settle_us = DA9213_LEGACY_PROVIDER_SETTLE_US;
++	response->da921x_page = MT6797_A72_PROVIDER_CALL_DA921X_PAGE;
++	response->buckb_enabled = 0;
++	response->buckb_vsel = result->final_state.vbuckb_a;
++	response->origin = 1;
++	response->origin_generation = result->held_handle.generation;
++	response->held_handle = result->held_handle;
++}
++
++int
++da9213_legacy_provider_transaction_release(struct i2c_adapter *adapter,
++					   u16 address,
++					   const struct da9213_legacy_provider_transport_ops *ops,
++					   const struct mt6797_a72_provider_handle *handle,
++					   struct da9213_legacy_provider_result *result,
++					   struct mt6797_a72_provider_response *response)
++{
++	unsigned int saved_retries;
++	int ret;
++
++	if (!result || !response ||
++	    !da9213_provider_transport_valid(adapter, ops) || !handle)
++		return -EINVAL;
++	memset(response, 0, sizeof(*response));
++	if (result->state != DA9213_LEGACY_PROVIDER_HELD)
++		return -EALREADY;
++	if (!da9213_provider_handle_matches(handle,
++					    &result->held_handle))
++		return -EPERM;
++
++	result->state = DA9213_LEGACY_PROVIDER_RELEASING;
++	result->release_attempts = 1;
++	result->operation_transfers = 0;
++	result->error = 0;
++	i2c_lock_bus(adapter, I2C_LOCK_ROOT_ADAPTER);
++	saved_retries = adapter->retries;
++	adapter->retries = 0;
++
++	ret = da9213_legacy_provider_snapshot(adapter, address, ops, result,
++					      &result->release_prestate);
++	if (ret)
++		goto out_fault;
++	if (!da9213_provider_owned_state_matches(&result->release_prestate,
++						 &result->prestate, 0x01)) {
++		ret = -ERANGE;
++		goto out_fault;
++	}
++
++	ret = da9213_legacy_provider_write_cont(adapter, address, 0x00, true,
++						ops, result);
++	if (ret)
++		goto out_fault;
++	ret = da9213_legacy_provider_snapshot(adapter, address, ops, result,
++					      &result->final_state);
++	if (ret)
++		goto out_fault;
++	if (!da9213_provider_owned_state_matches(&result->final_state,
++						 &result->prestate, 0x00)) {
++		ret = -ERANGE;
++		goto out_fault;
++	}
++
++	result->state = DA9213_LEGACY_PROVIDER_RELEASED;
++	result->error = 0;
++	da9213_provider_release_response(result, response);
++	da9213_provider_restore_retries(adapter, saved_retries);
++	i2c_unlock_bus(adapter, I2C_LOCK_ROOT_ADAPTER);
++	return 0;
++
++out_fault:
++	result->error = ret;
++	result->state = DA9213_LEGACY_PROVIDER_FAULT_RETAINED;
++	da9213_provider_restore_retries(adapter, saved_retries);
++	i2c_unlock_bus(adapter, I2C_LOCK_ROOT_ADAPTER);
++	return ret;
++}
++
++static const struct da9213_legacy_provider_transport_ops
++da9213_legacy_positive_provider_ops = {
++	.transfer = __i2c_transfer,
++	.delay = usleep_range,
++};
++
++#endif
++
+ static int da9213_legacy_provider_acquire(void *context,
+ 	const struct mt6797_a72_provider_request *request,
+ 	struct mt6797_a72_provider_response *response)
+ {
+ 	struct da9213_legacy *chip = context;
++#if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_POSITIVE_PROVIDER_TRANSACTION)
++	int ret;
++#endif
+ 
+ 	if (!chip || !request || !response)
+ 		return -EINVAL;
+ 
++#if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_POSITIVE_PROVIDER_TRANSACTION)
++	mutex_lock(&chip->provider_transaction_lock);
++	ret = da9213_legacy_provider_transaction_acquire(chip->client->adapter,
++							 chip->client->addr,
++							 &da9213_legacy_positive_provider_ops,
++							 request, &chip->provider_transaction,
++							 response);
++	mutex_unlock(&chip->provider_transaction_lock);
++	return ret;
++#else
+ 	memset(response, 0, sizeof(*response));
+ 	response->abi = MT6797_A72_PROVIDER_CALL_ABI;
+ 	response->returned = 1;
+@@ -949,29 +1323,43 @@ static int da9213_legacy_provider_acquire(void *context,
+ 	    request->reserved)
+ 		return -EINVAL;
+ 
+-	/* The current provider is deliberately read-only: no vote or rail write. */
+ 	dev_dbg(chip->dev,
+ 		"provider-owner acquire refused: read-only resource boundary\n");
+ 	return -EOPNOTSUPP;
++#endif
+ }
+ 
+ static int da9213_legacy_provider_release(void *context,
+ 	const struct mt6797_a72_provider_handle *handle,
+ 	struct mt6797_a72_provider_response *response)
+ {
+-	if (!context || !handle || !response)
++	struct da9213_legacy *chip = context;
++#if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_POSITIVE_PROVIDER_TRANSACTION)
++	int ret;
++#endif
++
++	if (!chip || !handle || !response)
+ 		return -EINVAL;
+ 
++#if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_POSITIVE_PROVIDER_TRANSACTION)
++	mutex_lock(&chip->provider_transaction_lock);
++	ret = da9213_legacy_provider_transaction_release(chip->client->adapter,
++							 chip->client->addr,
++							 &da9213_legacy_positive_provider_ops,
++							 handle, &chip->provider_transaction,
++							 response);
++	mutex_unlock(&chip->provider_transaction_lock);
++	return ret;
++#else
+ 	memset(response, 0, sizeof(*response));
+ 	response->abi = MT6797_A72_PROVIDER_CALL_ABI;
+ 	response->returned = 1;
+ 	response->origin = 1;
+-	response->reserved = 0;
+ 
+-	/* Page ownership, write readback, and inverse proof are still open. */
+-	dev_dbg(((struct da9213_legacy *)context)->dev,
++	dev_dbg(chip->dev,
+ 		"provider-owner release refused: no rollback owner\n");
+ 	return -EOPNOTSUPP;
++#endif
+ }
+ 
+ static const struct mt6797_a72_provider_ops da9213_legacy_provider_ops = {
+@@ -988,6 +1376,9 @@ static int da9213_legacy_register_owner(struct da9213_legacy *chip)
+ {
+ 	int ret;
+ 
++#if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_POSITIVE_PROVIDER_TRANSACTION)
++	mutex_init(&chip->provider_transaction_lock);
++#endif
+ 	ret = mt6797_a72_provider_register(&da9213_legacy_provider_ops, chip);
+ 	if (ret)
+ 		return ret;
+@@ -1194,9 +1585,14 @@ out_unlock:
+ 	da9213_legacy_observer_publish(chip);
+ #endif
+ 
+-	dev_info(&client->dev,
+-		 "%s legacy direct-address identity matched; provider is read-only\n",
+-		 variant->name);
++	if (IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_POSITIVE_PROVIDER_TRANSACTION))
++		dev_info(&client->dev,
++			 "%s positive provider armed; CPU admission remains closed\n",
++			 variant->name);
++	else
++		dev_info(&client->dev,
++			 "%s legacy direct-address identity matched; provider is read-only\n",
++			 variant->name);
+ 
+ 	return 0;
+ }

@@ -282,3 +282,6 @@ v7.1.3/0289-i2c-mediatek-add-MT6797-short-write-contract-KUnit.patch
 v7.1.3/0290-i2c-mediatek-extend-Gemini-entry-ledger-attribution.patch
 v7.1.3/0291-regulator-add-bounded-DA921x-same-value-write.patch
 v7.1.3/0292-regulator-test-bounded-DA921x-same-value-write.patch
+v7.1.3/0293-regulator-restore-DA921x-provider-release-registration.patch
+v7.1.3/0294-regulator-add-positive-DA921x-Buck-B-provider-transaction.patch
+v7.1.3/0295-regulator-test-positive-DA921x-Buck-B-provider-transaction.patch

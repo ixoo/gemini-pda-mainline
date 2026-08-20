@@ -4304,16 +4304,18 @@ the reviewable source before the required Buildbox-only compile and focused
 test run.
 
 That [positive-provider implementation](../experiments/2026-08-20-mainline-da921x-positive-provider-transaction/README.md)
-is now in its hardware-free source phase. The frozen design uses eleven
+has now produced canonical hardware-free patches 0293--0295. The frozen design uses eleven
 transfers for acquire and eleven for release, binds the handle to the exact
 transaction generation and cookie, treats `STATUS_B` as record-only, and
 stops ambiguous write outcomes in a terminal fault-retain/reset-only state.
 The cumulative source review also found that the release-refusal function is
 present but its ops-table member was lost by a later patch; an independent
 first patch restores that intended registration before the positive change.
-Patch generation, canonical admission, Buildbox compile, and the fake-adapter
-KUnit run remain the next actions. No device action is admitted by this source
-work.
+Buildbox semantic, patch, replay, and strict style validation pass with zero
+findings; isolated source and KUnit profiles retain the stopped-firmware window
+and disconnect every CPU caller. The next ordered actions are the required
+Buildbox-only compile and bounded fake-adapter KUnit run. No device action is
+admitted by this source work.
 
 The candidate must have a single CPU8 request, strict checkpoints before and
 after each power step, a bounded timeout, and a fail-closed rollback. CPU9

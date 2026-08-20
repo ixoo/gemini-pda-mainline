@@ -41,9 +41,19 @@ def additions_for_path(text: str, path: str) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--patch-dir", type=Path, required=True)
-    patch_dir = parser.parse_args().patch_dir.resolve()
+    parser.add_argument(
+        "--canonical-import",
+        action="store_true",
+        help="validate the three named patches inside the canonical patch directory",
+    )
+    args = parser.parse_args()
+    patch_dir = args.patch_dir.resolve()
     actual = tuple(sorted(path.name for path in patch_dir.glob("*.patch")))
-    require(actual == PATCHES, f"unexpected patch inventory: {actual}")
+    if args.canonical_import:
+        require(all(name in actual for name in PATCHES),
+                f"canonical patch inventory is incomplete: {actual}")
+    else:
+        require(actual == PATCHES, f"unexpected patch inventory: {actual}")
     texts = [(patch_dir / name).read_text(encoding="utf-8") for name in PATCHES]
 
     for name, text in zip(PATCHES, texts, strict=True):

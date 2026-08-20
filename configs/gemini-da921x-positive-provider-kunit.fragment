@@ -1,0 +1,5 @@
+# Hardware-free coverage for the Gate-7 positive provider transaction. The
+# suite uses an unregistered in-memory I2C adapter and performs no device I/O.
+CONFIG_KUNIT=y
+CONFIG_REGULATOR_DA9213_LEGACY_POSITIVE_PROVIDER_KUNIT_TEST=y
+CONFIG_LOCALVERSION="-gemini-da921x-positive-provider-kunit"

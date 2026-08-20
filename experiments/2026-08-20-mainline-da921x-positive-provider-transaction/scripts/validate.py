@@ -3,11 +3,27 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parent.parent
+REPO = ROOT.parents[1]
+PATCHES = (
+    (
+        "v7.1.3/0293-regulator-restore-DA921x-provider-release-registration.patch",
+        "3d483bb5551ee25677204a5c08fdd06f19cb1c89326d9eb8b73467bc4e3a5443",
+    ),
+    (
+        "v7.1.3/0294-regulator-add-positive-DA921x-Buck-B-provider-transaction.patch",
+        "4dc1bf5d42aaed8b1d63dbfaf6726d4c20d37ac757b74db38f6df1cf1f59462f",
+    ),
+    (
+        "v7.1.3/0295-regulator-test-positive-DA921x-Buck-B-provider-transaction.patch",
+        "1b5cdbdb417176b8488a95994db3df1a6ae95f4b5ab1b17c198dd81c7ddb6a39",
+    ),
+)
 
 
 def require(condition: bool, message: str) -> None:
@@ -15,8 +31,13 @@ def require(condition: bool, message: str) -> None:
         raise SystemExit(message)
 
 
+def sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
 def main() -> None:
     contract = json.loads((ROOT / "contract.json").read_text(encoding="utf-8"))
+    manifest = json.loads((REPO / "kernel/manifest.json").read_text(encoding="utf-8"))
     implementation = (
         ROOT / "source/da9213-legacy-positive-provider.c.inc"
     ).read_text(encoding="utf-8")
@@ -26,6 +47,44 @@ def main() -> None:
     test = (ROOT / "source/da9213-legacy-provider-test.c").read_text(
         encoding="utf-8"
     )
+
+    require(
+        contract["status"]
+        == "canonical-hardware-free-patches-admitted-build-pending",
+        "experiment status changed",
+    )
+    series = tuple(
+        line for line in (REPO / "patches/series").read_text().splitlines()
+        if line and not line.startswith("#")
+    )
+    require(series[-3:] == tuple(path for path, _ in PATCHES),
+            "canonical patch order changed")
+    for relative, expected in PATCHES:
+        require(sha256(REPO / "patches" / relative) == expected,
+                f"imported patch identity changed: {relative}")
+
+    profiles = manifest["config"]["profiles"]
+    positive = profiles["da921x-positive-provider"]["fragments"]
+    kunit = profiles["da921x-positive-provider-kunit"]["fragments"]
+    require(positive[-2:] == [
+        "configs/gemini-i2c6-firmware-writer-transaction-window.fragment",
+        "configs/gemini-da921x-positive-provider.fragment",
+    ], "positive profile boundary changed")
+    require(kunit[:-1] == positive and kunit[-1]
+            == "configs/gemini-da921x-positive-provider-kunit.fragment",
+            "KUnit profile boundary changed")
+    positive_fragment = (
+        REPO / "configs/gemini-da921x-positive-provider.fragment"
+    ).read_text()
+    kunit_fragment = (
+        REPO / "configs/gemini-da921x-positive-provider-kunit.fragment"
+    ).read_text()
+    require("CONFIG_REGULATOR_DA9213_LEGACY_POSITIVE_PROVIDER_TRANSACTION=y"
+            in positive_fragment, "positive config missing")
+    require("# CONFIG_REGULATOR_DA9213_LEGACY_SAME_VALUE_WRITE is not set"
+            in positive_fragment, "same-value path not closed")
+    require("CONFIG_REGULATOR_DA9213_LEGACY_POSITIVE_PROVIDER_KUNIT_TEST=y"
+            in kunit_fragment, "KUnit config missing")
 
     require(contract["safety"]["default_off"], "positive path must be default-off")
     require(contract["safety"]["hardware_free"], "phase must be hardware-free")

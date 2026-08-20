@@ -1,0 +1,7 @@
+# Isolated Gate-7 positive provider transaction. The inherited owner seam and
+# stopped-firmware transaction window remain required. This enables only the
+# one-shot Buck-B acquire/release state machine; CPU_ON, CPU_OFF, P28, PAGE_CON,
+# selector writes, and regulator consumers remain disconnected.
+# CONFIG_REGULATOR_DA9213_LEGACY_SAME_VALUE_WRITE is not set
+CONFIG_REGULATOR_DA9213_LEGACY_POSITIVE_PROVIDER_TRANSACTION=y
+CONFIG_LOCALVERSION="-gemini-da921x-positive-provider"

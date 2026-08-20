@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-20-mainline-da921x-positive-provider-transaction` |
-| Status | `in progress`; hardware-free source implementation |
+| Status | `in progress`; canonical hardware-free patches generated and admitted, Buildbox compile pending |
 | Subsystem | legacy DA921x regulator, private MT6797 A72 provider seam |
 | Device variant | Planet Gemini PDA named unit |
 | Date | 2026-08-20 America/New_York |
@@ -53,3 +53,21 @@ held across the handle lifetime.
 No native VM build, device access, boot image, partition write, physical I2C
 operation, CPU request, or authorization for a later physical transition is
 part of this phase.
+
+## Patch-generation result
+
+Exact pushed repository revision
+`2d621af80ecb1090bb4f2201a8d8e46157189978` generated three ordinary patches
+on Buildbox. Contract, edited-source, patch, replay, and strict checkpatch
+validation all passed; checkpatch reported zero errors, warnings, or checks.
+The fetched package checksum manifest verified before import. The exact patch
+hashes and Buildbox job are recorded in
+[`results/buildbox-patch-generation-20260820.txt`](results/buildbox-patch-generation-20260820.txt).
+
+Canonical patches 0293--0295 now preserve the prerequisite registration
+repair, positive transaction, and hardware-free KUnit coverage as separate
+logical changes. The isolated `da921x-positive-provider` and
+`da921x-positive-provider-kunit` profiles select the stopped-firmware window
+and owner seam without connecting a CPU caller. The next action is the required
+Buildbox-only compile, followed by the bounded fake-adapter KUnit run. This
+admission creates no boot candidate and authorizes no device action.

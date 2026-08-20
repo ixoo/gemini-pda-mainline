@@ -29,8 +29,10 @@ the loop. Positive identity-gated observations are unaffected.
   an exact generation-bound handle, and terminal fault-retain behavior. It
   also isolates a cumulative-series defect where the release callback exists
   but was dropped from the final ops initializer. Three deterministic patches
-  and exhaustive fake-adapter coverage are in progress; this phase has no
-  build candidate, device access, CPU request, or physical I2C action.
+  now pass Buildbox semantic, replay, and strict style validation and are
+  admitted as canonical patches 0293--0295 with isolated source and KUnit
+  profiles. Buildbox compile and the fake-adapter KUnit run remain; this phase
+  has no build candidate, device access, CPU request, or physical I2C action.
 - [2026-08-20 mainline CPU8 Gate-7 admission audit](2026-08-20-mainline-cpu8-gate7-admission-audit/README.md)
   — reconciles the completed mainline same-value write with the retained Buck-B
   rollback, CPU8 startup/execution, A41, P24/P28/P30, and safe-off evidence.

@@ -1,12 +1,23 @@
 {
   "schema": "gemini-mainline-da921x-positive-provider-transaction-v1",
-  "status": "hardware-free-source-implementation",
+  "status": "canonical-hardware-free-patches-admitted-build-pending",
   "parent_repository_commit": "feb1767011da40e28679e0f9293ddcb195646c7a",
   "parent_source_state": "c9e5f2fbef9f2a25a7b6772ad122ca0f000d57f0c23789040f70f669e022c698",
   "logical_patches": [
     "restore-provider-release-registration",
     "add-positive-buckb-provider-transaction",
     "test-positive-buckb-provider-transaction"
+  ],
+  "patch_generation": {
+    "repository_commit": "2d621af80ecb1090bb4f2201a8d8e46157189978",
+    "buildbox_job": "2d621af80ecb1090bb4f2201a8d8e46157189978-da921x-positive-provider-patchgen",
+    "semantic_validation": "pass",
+    "replay_validation": "pass",
+    "strict_checkpatch": "zero-errors-warnings-checks"
+  },
+  "profiles": [
+    "da921x-positive-provider",
+    "da921x-positive-provider-kunit"
   ],
   "safety": {
     "default_off": true,
