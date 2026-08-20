@@ -35,3 +35,6 @@ buildbox_generation_attempt_4_hardware_action=none
 buildbox_generation_attempt_5=validator-boundary-stop
 buildbox_generation_attempt_5_reason=function-return-style-split-required-updated-source-anchor
 buildbox_generation_attempt_5_hardware_action=none
+buildbox_generation_attempt_6=validator-boundary-stop
+buildbox_generation_attempt_6_reason=short-function-anchor-also-matched-callback-call
+buildbox_generation_attempt_6_hardware_action=none
