@@ -112,29 +112,25 @@ def apply_platform(root: Path, experiment: Path) -> None:
     )
     replace_once(
         dtsi,
-        dedent("""\
-        \ta72_power: a72-power@10222000 {
-        \t\tcompatible = "mediatek,mt6797-a72-power";
-        \t\treg = <0 0x10222000 0 0x1000>;
-        \t\tmediatek,spm = <&scpsys>;
-        \t\tcpus = <&cpu8>, <&cpu9>;
-        \t\tresets = <&watchdog MT6797_TOPRGU_PWRAP_SPI_CTL_RST>;
-        \t\treset-names = "pwrap";
-        \t\tstatus = "disabled";
-        \t};
-        """),
-        dedent("""\
-        \ta72_platform_state: a72-platform-state@10222000 {
-        \t\tcompatible = "mediatek,mt6797-a72-platform-state";
-        \t\treg = <0 0x10222000 0 0x1000>,
-        \t\t      <0 0x10390000 0 0x10000>;
-        \t\treg-names = "mcucfg", "cci";
-        \t\tmediatek,spm = <&scpsys>;
-        \t\tresets = <&watchdog MT6797_TOPRGU_PWRAP_SPI_CTL_RST>;
-        \t\treset-names = "pwrap";
-        \t\tstatus = "disabled";
-        \t};
-        """),
+        "\ta72_power: a72-power@10222000 {\n"
+        "\t\tcompatible = \"mediatek,mt6797-a72-power\";\n"
+        "\t\treg = <0 0x10222000 0 0x1000>;\n"
+        "\t\tmediatek,spm = <&scpsys>;\n"
+        "\t\tcpus = <&cpu8>, <&cpu9>;\n"
+        "\t\tresets = <&watchdog MT6797_TOPRGU_PWRAP_SPI_CTL_RST>;\n"
+        "\t\treset-names = \"pwrap\";\n"
+        "\t\tstatus = \"disabled\";\n"
+        "\t};\n",
+        "\ta72_platform_state: a72-platform-state@10222000 {\n"
+        "\t\tcompatible = \"mediatek,mt6797-a72-platform-state\";\n"
+        "\t\treg = <0 0x10222000 0 0x1000>,\n"
+        "\t\t      <0 0x10390000 0 0x10000>;\n"
+        "\t\treg-names = \"mcucfg\", \"cci\";\n"
+        "\t\tmediatek,spm = <&scpsys>;\n"
+        "\t\tresets = <&watchdog MT6797_TOPRGU_PWRAP_SPI_CTL_RST>;\n"
+        "\t\treset-names = \"pwrap\";\n"
+        "\t\tstatus = \"disabled\";\n"
+        "\t};\n",
     )
     replace_once(gemini, "\n/delete-node/ &a72_power;\n", "\n")
 

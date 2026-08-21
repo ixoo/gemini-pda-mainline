@@ -57,6 +57,8 @@ def main() -> None:
     design = (HERE / "DESIGN.md").read_text()
     for token in (
         "deterministic Buildbox generation input; patches pending",
+        "strict one-match guard correctly rejected the",
+        "explicit tab-preserving string",
         "two immediate bounded samples with no loop or retry",
         "destination that remains all-zero on error",
         "DT node stays disabled",
@@ -75,6 +77,7 @@ def main() -> None:
     driver = (HERE / "source/mt6797-a72-platform-state.c").read_text()
     header = (HERE / "source/mt6797-a72-platform-state.h").read_text()
     binding = (HERE / "source/mediatek,mt6797-a72-platform-state.yaml").read_text()
+    source_edits = (HERE / "scripts/source_edits.py").read_text()
     for token in (
         "MT6797_CCI_MP2_PORT_CONTROL\t\t0x6000",
         "MT6797_CCI_STATUS\t\t\t0x000c",
@@ -95,6 +98,20 @@ def main() -> None:
     require("additionalProperties: false" in binding and
             "- const: cci" in binding,
             "strict named-resource binding")
+    require('"\\ta72_power: a72-power@10222000 {\\n"' in source_edits and
+            '"\\ta72_platform_state: a72-platform-state@10222000 {\\n"'
+            in source_edits,
+            "tab-preserving exact DTS edit anchors")
+
+    failed_attempt = (HERE / "results/buildbox-generation-attempt-cfb17745.txt").read_text()
+    for token in (
+        "repository_commit=cfb17745c9a1d4dd7b8e8ce13b08642ec0bd78e3",
+        "parent_integrity=pass",
+        "failure=dtsi-edit-anchor-zero-match",
+        "patch_package=none",
+        "device_action=none",
+    ):
+        require(token in failed_attempt, f"failed attempt receipt: {token}")
 
     buildbox = (ROOT / "scripts/buildbox").read_text()
     for command in (

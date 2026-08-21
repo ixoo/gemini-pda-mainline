@@ -37,6 +37,19 @@ write.
 The passing repository-side syntax and scope receipt is
 [`results/design-validation-20260821.txt`](results/design-validation-20260821.txt).
 
+## Generation attempts
+
+The first Buildbox generation attempt used repository commit `cfb17745c9a1d4dd7b8e8ce13b08642ec0bd78e3`.
+All parent source-state and file-hash gates passed. Generation then stopped
+before patch export because Python `dedent()` removed the leading tab from the
+exact DTS node edit anchor. The strict one-match guard correctly rejected the
+zero-match edit; no patch package, build, or device action resulted. The
+sanitized receipt is
+[`results/buildbox-generation-attempt-cfb17745.txt`](results/buildbox-generation-attempt-cfb17745.txt).
+
+The edit now expresses both DTS node bodies as explicit tab-preserving string
+literals while retaining the exact one-match guard.
+
 ## Selected change
 
 Patch `0308` adds the standard reset-controller `.status` callback to

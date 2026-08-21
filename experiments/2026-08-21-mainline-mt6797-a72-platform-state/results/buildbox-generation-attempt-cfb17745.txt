@@ -1,0 +1,15 @@
+attempt=1
+date=2026-08-21
+backend=buildbox
+repository_commit=cfb17745c9a1d4dd7b8e8ce13b08642ec0bd78e3
+parent_source_state=905fb7f5ead29cbe65eaf7f66e41433aea417c2ee15d751ebda6ddf79f19ad8e
+parent_integrity=pass
+parent_file_hashes=pass
+failure=dtsi-edit-anchor-zero-match
+cause=python-dedent-removed-leading-tab
+guard=exact-one-match
+patch_package=none
+build=not-run
+hardware_write=none
+device_action=none
+result=rejected-before-patch-export
