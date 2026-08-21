@@ -50,7 +50,7 @@ int mt6797_a72_platform_state_snapshot(struct device *dev,
 				       struct mt6797_a72_platform_state *snapshot);
 #else
 static inline int mt6797_a72_platform_state_snapshot(struct device *dev,
-					      struct mt6797_a72_platform_state *snapshot)
+						     struct mt6797_a72_platform_state *snapshot)
 {
 	(void)dev;
 	if (snapshot)

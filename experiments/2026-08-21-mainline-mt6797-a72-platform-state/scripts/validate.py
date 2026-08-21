@@ -135,6 +135,22 @@ def main() -> None:
     ):
         require(token in style_attempt, f"style attempt receipt: {token}")
 
+    alignment_attempt = (HERE / "results/buildbox-generation-attempt-1669a6b3.txt").read_text()
+    for token in (
+        "repository_commit=1669a6b3c9f2c1b44b6633181c961d868802b2ef",
+        "source_validation=pass",
+        "patch_replay=pass",
+        "generated_patch_count=4",
+        "failure=strict-checkpatch",
+        "errors=0",
+        "warnings=0",
+        "checks=3",
+        "patch_package=none",
+        "device_action=none",
+    ):
+        require(token in alignment_attempt,
+                f"alignment attempt receipt: {token}")
+
     buildbox = (ROOT / "scripts/buildbox").read_text()
     for command in (
         "generate-mt6797-a72-platform-state-patches",

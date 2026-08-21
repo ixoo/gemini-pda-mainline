@@ -43,7 +43,7 @@ struct mt6797_a72_platform_state_source {
 };
 
 static int mt6797_state_read_spm(struct mt6797_a72_platform_state_source *source,
-				  struct mt6797_a72_platform_state *sample)
+				 struct mt6797_a72_platform_state *sample)
 {
 	int ret;
 
@@ -84,7 +84,7 @@ static int mt6797_state_read_spm(struct mt6797_a72_platform_state_source *source
 }
 
 static int mt6797_state_read_once(struct mt6797_a72_platform_state_source *source,
-				   struct mt6797_a72_platform_state *sample)
+				  struct mt6797_a72_platform_state *sample)
 {
 	int reset_state;
 	int ret;

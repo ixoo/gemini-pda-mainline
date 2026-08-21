@@ -62,6 +62,14 @@ The series is therefore split into four logical patches—watchdog accessor,
 binding, source driver, and DT description—and every reported style check is
 fixed in the source rather than ignored.
 
+The third Buildbox attempt used repository commit
+`1669a6b3c9f2c1b44b6633181c961d868802b2ef`. The four logical patches again
+generated, replayed, and passed semantic validation. The binding split removed
+the warning and six original checks; strict checkpatch identified three final
+continuation-column checks in the source/header declarations. Those exact
+columns are corrected. No package, build, or device action resulted. See
+[`results/buildbox-generation-attempt-1669a6b3.txt`](results/buildbox-generation-attempt-1669a6b3.txt).
+
 ## Selected change
 
 Patch `0308` adds the standard reset-controller `.status` callback to
