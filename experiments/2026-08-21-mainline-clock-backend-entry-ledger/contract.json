@@ -41,6 +41,20 @@
     "both_without_serviceability": "clock_probe_entered_failure_at_or_after_entry",
     "both_with_serviceability": "read_free_clock_probe_completed"
   },
+  "generation": {
+    "result": "canonical_patch_admitted",
+    "repository_commit": "178fb2fd0f39c017a6dfb660bd558d870bb322ab",
+    "job": "178fb2fd0f39c017a6dfb660bd558d870bb322ab-clock-backend-entry-ledger-patchgen",
+    "package": "clock-backend-entry-ledger-178fb2fd0f39",
+    "generated_parent_commit": "fdf6eeae8cbb40926e59fe627b8888aa6b09ec96",
+    "generated_result_commit": "894132255716046a21fb63c2f9188525639650b6",
+    "sha256sums_sha256": "78cfad432ec54022421d6bc57b8e2d7517c43ca46030986a121e0e66fbea79ed",
+    "patch_sha256": "344b1181d0e164e61495a51a6bdf5053e9283c6ef5c486b00ca97e433af71f95",
+    "strict_checkpatch": "0 errors, 0 warnings, 0 checks",
+    "profiles_checked": 106,
+    "invariant_mutations_rejected": 8,
+    "hardware_evidence": false
+  },
   "scope": {
     "protected_clock_reads": 0,
     "bigidvfs_reads": 0,

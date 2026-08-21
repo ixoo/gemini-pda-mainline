@@ -5,7 +5,9 @@
 The predecessor probe/gate candidate produced an exact changed-cycle
 `neither`: neither observer record survived and neither protected transport
 was reached. The linked initcall order is clock backend, BigiDVFS backend, then
-observer. This non-identical, zero-protected-call successor is in generation.
+observer. This non-identical, zero-protected-call successor is generated,
+manually reviewed, and admitted canonically as patch `0325`. Build validation
+is next.
 
 ## Question
 
@@ -56,7 +58,19 @@ metadata, and full-readback gates. There is no clear, overwrite, or retry.
 
 ## Next action
 
-Generate, review, and canonically admit one patch and isolated profile. Then
-build and independently validate an exact Android-v0/16 MiB candidate before
-any device action. Repository-wide ordering remains in
+Build the isolated profile on Buildbox and independently validate an exact
+Android-v0/16 MiB candidate before any device action. Repository-wide ordering
+remains in
 [`docs/ROADMAP.md`](../../docs/ROADMAP.md).
+
+## Generation and admission
+
+The first generation attempt failed closed on an exact include-order anchor;
+the second passed semantic validation and byte-identical replay but strict
+checkpatch rejected formatting. Both rejected attempts produced no admitted
+patch. Exact pushed commit `178fb2f` then passed parent integrity, semantic and
+patch validation, byte-identical replay, and strict checkpatch with 0 errors,
+0 warnings, and 0 checks. Manual review confirmed one existing writer, two
+call sites, one clock-only DT node, and no protected/secure call. The fetched
+and admitted patch bytes are identical. See
+[`results/generation-178fb2f.txt`](results/generation-178fb2f.txt).

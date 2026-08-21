@@ -1,0 +1,62 @@
+clock-backend entry-ledger generation and admission
+===================================================
+
+Repository commit: 178fb2fd0f39c017a6dfb660bd558d870bb322ab
+Buildbox job: 178fb2fd0f39c017a6dfb660bd558d870bb322ab-clock-backend-entry-ledger-patchgen
+Buildbox package: clock-backend-entry-ledger-178fb2fd0f39
+Prepared source state: 867173ceba818abbefb6010cb02ca1be33852e917608ed1082a8683b428bb16f
+Canonical parent patch: 0324-pstore-add-Gemini-protected-readback-probe-gate-mode.patch
+Canonical parent patch SHA-256: fe19fb59c86339cd1aa5cd3a6eb8f317fda9ed8f719a8aac3d062716111acfb5
+Generated parent commit: fdf6eeae8cbb40926e59fe627b8888aa6b09ec96
+Generated result commit: 894132255716046a21fb63c2f9188525639650b6
+Generated patch: 0325-soc-mediatek-add-Gemini-clock-backend-entry-ledger.patch
+Patch SHA-256: 344b1181d0e164e61495a51a6bdf5053e9283c6ef5c486b00ca97e433af71f95
+SHA256SUMS SHA-256: 78cfad432ec54022421d6bc57b8e2d7517c43ca46030986a121e0e66fbea79ed
+Provenance SHA-256: 3e3db8d5c94cbcc37a49cca5ca2ed1b71a15663d932db17c19e1352d770696a1
+
+Validation
+----------
+
+parent_source_integrity=pass
+parent_source_validation=pass
+result_source_validation=pass
+patch_shape_validation=pass
+byte_identical_replay=pass
+strict_checkpatch=0-errors,0-warnings,0-checks
+fetched_vs_admitted_patch=byte-identical
+profiles_checked=106
+invariant_mutations_rejected=8
+hardware_access=none
+native_vm_build=none
+
+Reviewed runtime delta
+----------------------
+
+candidate_dtb=mt6797-gemini-pda-clock-backend-entry.dtb
+enabled_runtime_node=clock-backend-only
+observer=disabled
+bigidvfs_backend=disabled
+retained_slots=173,174
+retained_checkpoints=driver-init,probe-enter
+retained_maximum_writes=2
+new_retained_writer=0
+payload_before_metadata=yes
+full_readback=yes
+protected_clock_reads=0
+bigidvfs_reads=0
+secure_calls=0
+clock_enable=0
+mmio_accesses=0
+automatic_retry=no
+owner_registration=0
+cpu_on=false
+cpu_off=false
+device_action=none
+boot_candidate=false
+
+Authorship
+----------
+
+The generated experiment patch retains the explicit synthetic
+`Gemini Mainline Experiment <gemini-mainline@example.invalid>` author, has no
+synthetic Signed-off-by, and is not submission-ready.

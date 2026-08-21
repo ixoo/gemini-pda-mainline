@@ -1,0 +1,173 @@
+From 894132255716046a21fb63c2f9188525639650b6 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 22 Aug 2026 01:11:00 +0000
+Subject: [PATCH] soc: mediatek: add Gemini clock-backend entry ledger
+
+Record the clock-backend driver init and first probe operation while enabling only its read-free DT node, so one recovery separates pre-init, registration/binding, and entered-probe outcomes.
+
+Make no protected call, secure call, MMIO access, clock enable, CPU request, owner registration, retry, reset, or power operation.
+---
+ arch/arm64/boot/dts/mediatek/Makefile         |  1 +
+ .../mt6797-gemini-pda-clock-backend-entry.dts | 14 +++++++++++
+ .../soc/mediatek/mt6797-dvfsp-clock-backend.c | 25 +++++++++++++++++++
+ fs/pstore/Kconfig                             | 18 +++++++++++++
+ fs/pstore/gemini_protected_readback_ledger.c  | 19 +++++++++++---
+ 5 files changed, 74 insertions(+), 3 deletions(-)
+ create mode 100644 arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-clock-backend-entry.dts
+
+diff --git a/arch/arm64/boot/dts/mediatek/Makefile b/arch/arm64/boot/dts/mediatek/Makefile
+index c18cdbc..edd249e 100644
+--- a/arch/arm64/boot/dts/mediatek/Makefile
++++ b/arch/arm64/boot/dts/mediatek/Makefile
+@@ -6,6 +6,7 @@ dtb-$(CONFIG_ARCH_MEDIATEK) += mt6795-evb.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt6795-sony-xperia-m5.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt6797-evb.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt6797-gemini-pda.dtb
++dtb-$(CONFIG_ARCH_MEDIATEK) += mt6797-gemini-pda-clock-backend-entry.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt6797-gemini-pda-protected-readback.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt6797-x20-dev.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt7622-rfb1.dtb
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-clock-backend-entry.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-clock-backend-entry.dts
+new file mode 100644
+index 0000000..d86d1e0
+--- /dev/null
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-clock-backend-entry.dts
+@@ -0,0 +1,14 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Copyright (c) 2026 Julien Etienne
++ */
++
++#include "mt6797-gemini-pda.dts"
++
++/ {
++	model = "Planet Computers Gemini PDA (clock backend entry ledger)";
++};
++
++&dvfsp_clock_backend {
++	status = "okay";
++};
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-clock-backend.c b/drivers/soc/mediatek/mt6797-dvfsp-clock-backend.c
+index a9164c2..f2ce2e9 100644
+--- a/drivers/soc/mediatek/mt6797-dvfsp-clock-backend.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-clock-backend.c
+@@ -14,6 +14,7 @@
+ #include <linux/io.h>
+ #include <linux/kernel.h>
+ #include <linux/module.h>
++#include <linux/pstore_ram.h>
+ #include <linux/mutex.h>
+ #include <linux/of.h>
+ #include <linux/platform_device.h>
+@@ -261,6 +262,12 @@ static int mt6797_dvfsp_clock_backend_probe(struct platform_device *pdev)
+ 	struct mt6797_dvfsp_clock_backend *backend;
+ 	int ret;
+ 
++#ifdef CONFIG_PSTORE_GEMINI_CLOCK_BACKEND_ENTRY_LEDGER
++	if (!gemini_protected_readback_ledger_checkpoint(1))
++		return dev_err_probe(&pdev->dev, -EIO,
++				     "probe-enter ledger checkpoint failed\n");
++#endif
++
+ 	backend = devm_kzalloc(&pdev->dev, sizeof(*backend), GFP_KERNEL);
+ 	if (!backend)
+ 		return -ENOMEM;
+@@ -300,7 +307,25 @@ static struct platform_driver mt6797_dvfsp_clock_backend_driver = {
+ 		.of_match_table = mt6797_dvfsp_clock_backend_of_match,
+ 	},
+ };
++
++#ifdef CONFIG_PSTORE_GEMINI_CLOCK_BACKEND_ENTRY_LEDGER
++static int __init mt6797_dvfsp_clock_backend_driver_init(void)
++{
++	if (!gemini_protected_readback_ledger_checkpoint(0))
++		return -EIO;
++
++	return platform_driver_register(&mt6797_dvfsp_clock_backend_driver);
++}
++module_init(mt6797_dvfsp_clock_backend_driver_init);
++
++static void __exit mt6797_dvfsp_clock_backend_driver_exit(void)
++{
++	platform_driver_unregister(&mt6797_dvfsp_clock_backend_driver);
++}
++module_exit(mt6797_dvfsp_clock_backend_driver_exit);
++#else
+ module_platform_driver(mt6797_dvfsp_clock_backend_driver);
++#endif
+ 
+ MODULE_DESCRIPTION("MT6797 protected CPU clock readback transport");
+ MODULE_LICENSE("GPL");
+diff --git a/fs/pstore/Kconfig b/fs/pstore/Kconfig
+index 3a98725..0c1bde6 100644
+--- a/fs/pstore/Kconfig
++++ b/fs/pstore/Kconfig
+@@ -164,6 +164,24 @@ config PSTORE_GEMINI_PROTECTED_READBACK_PROBE_GATE_LEDGER
+ 	  owner, CPU, storage, firmware-write, reset, or power operation. The base
+ 	  call-ledger behavior is unchanged when this mode is disabled.
+ 
++config PSTORE_GEMINI_CLOCK_BACKEND_ENTRY_LEDGER
++	bool "Gemini clock-backend init/probe entry ledger"
++	depends on PSTORE_GEMINI_PROTECTED_READBACK_LEDGER=y
++	depends on MTK_MT6797_DVFSP_CLOCK_BACKEND=y
++	depends on !PSTORE_GEMINI_PROTECTED_READBACK_PROBE_GATE_LEDGER
++	default n
++	help
++	  Move the isolated retained records before clock-backend platform-driver
++	  registration and to the first clock-backend probe operation. The mode
++	  is intended for a derivative DT that enables only that read-free probe;
++	  it does not instantiate the observer or BigiDVFS backend and makes no
++	  protected call.
++
++	  Both records retain the exact Gemini reservation and empty-prefix gates,
++	  the existing payload-before-metadata writer, complete readback, two-write
++	  ceiling, and no-clear/no-retry policy. The historical call-ledger and
++	  probe/gate modes are unchanged when this mode is disabled.
++
+ config PSTORE_GEMINI_POST_RAMOOPS_CHECKPOINT
+ 	bool "Gemini post-ramoops retained checkpoint"
+ 	depends on PSTORE_RAM=y
+diff --git a/fs/pstore/gemini_protected_readback_ledger.c b/fs/pstore/gemini_protected_readback_ledger.c
+index 38868e6..9aeff03 100644
+--- a/fs/pstore/gemini_protected_readback_ledger.c
++++ b/fs/pstore/gemini_protected_readback_ledger.c
+@@ -18,7 +18,16 @@
+ 
+ static bool gemini_prb_armed;
+ 
+-#ifdef CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_PROBE_GATE_LEDGER
++#ifdef CONFIG_PSTORE_GEMINI_CLOCK_BACKEND_ENTRY_LEDGER
++static const char * const gemini_prb_records[] = {
++	"====0.000000-D\n"
++	"GEMINI_CLOCK_BACKEND_ENTRY_LEDGER_V1 token=GCBE-20260821-A "
++	"checkpoint=driver-init slot=173 crc32=cda5d04d\n",
++	"====0.000000-D\n"
++	"GEMINI_CLOCK_BACKEND_ENTRY_LEDGER_V1 token=GCBE-20260821-A "
++	"checkpoint=probe-enter slot=174 crc32=a3662888\n",
++};
++#elif defined(CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_PROBE_GATE_LEDGER)
+ static const char * const gemini_prb_records[] = {
+ 	"====0.000000-D\n"
+ 	"GEMINI_PROTECTED_READBACK_LEDGER_V2 token=GPRB-20260821-B "
+@@ -90,7 +99,8 @@ static bool gemini_prb_write(void __iomem *slot, const char *record)
+ 	return true;
+ }
+ 
+-#ifdef CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_PROBE_GATE_LEDGER
++#if defined(CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_PROBE_GATE_LEDGER) || \
++	defined(CONFIG_PSTORE_GEMINI_CLOCK_BACKEND_ENTRY_LEDGER)
+ static bool gemini_prb_minimal_dt(void)
+ {
+ 	struct device_node *node;
+@@ -187,7 +197,10 @@ bool gemini_protected_readback_ledger_checkpoint(unsigned int checkpoint)
+ 	if (checkpoint > 1 || (checkpoint == 0 && gemini_prb_armed) ||
+ 	    (checkpoint == 1 && !gemini_prb_armed))
+ 		return false;
+-#ifdef CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_PROBE_GATE_LEDGER
++#ifdef CONFIG_PSTORE_GEMINI_CLOCK_BACKEND_ENTRY_LEDGER
++	if (!gemini_prb_minimal_dt())
++		return false;
++#elif defined(CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_PROBE_GATE_LEDGER)
+ 	if (checkpoint == 0) {
+ 		if (!gemini_prb_minimal_dt())
+ 			return false;
