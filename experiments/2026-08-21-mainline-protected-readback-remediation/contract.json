@@ -73,6 +73,19 @@
       "kernel_behavior_changed_by_fix": false,
       "compile_started": false,
       "device_action": false
+    },
+    {
+      "repository_commit": "be07b88fc45dfc6585ee429fa9472797dd068729",
+      "failure": "strict-checkpatch-rejected-patch-0318-help-and-alignment",
+      "source_validation": "pass",
+      "generated_patch_count": 3,
+      "patch_replay": "pass",
+      "patch_0316_strict_checkpatch": "0-errors-0-warnings-0-checks",
+      "patch_0317_strict_checkpatch": "0-errors-0-warnings-0-checks",
+      "patch_0318_strict_checkpatch": "0-errors-1-warning-2-checks",
+      "kernel_behavior_changed_by_fix": false,
+      "compile_started": false,
+      "device_action": false
     }
   ],
   "scope": {

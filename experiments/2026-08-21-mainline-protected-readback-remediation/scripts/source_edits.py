@@ -709,8 +709,7 @@ static int mt6797_bigidvfs_test_read(void *context, u32 address, u32 *value)
 	return 0;
 }
 
-static const struct mt6797_bigidvfs_transport_ops
-mt6797_bigidvfs_test_ops = {
+static const struct mt6797_bigidvfs_transport_ops big_test_ops = {
 	.read = mt6797_bigidvfs_test_read,
 };
 
@@ -823,8 +822,7 @@ static void mt6797_bigidvfs_snapshot_order_test(struct kunit *test)
 	int ret;
 
 	memset(&readback, 0xa5, sizeof(readback));
-	ret = mt6797_bigidvfs_snapshot(&mt6797_bigidvfs_test_ops, &state,
-					&readback);
+	ret = mt6797_bigidvfs_snapshot(&big_test_ops, &state, &readback);
 	KUNIT_ASSERT_EQ(test, ret, 0);
 	KUNIT_EXPECT_EQ(test, state.calls, 8U);
 	KUNIT_EXPECT_EQ(test, memcmp(state.addresses, expected,
@@ -846,8 +844,7 @@ static void mt6797_bigidvfs_faults_test(struct kunit *test)
 		memset(&state, 0, sizeof(state));
 		state.fault_call = fault;
 		memset(&readback, 0xa5, sizeof(readback));
-		ret = mt6797_bigidvfs_snapshot(&mt6797_bigidvfs_test_ops,
-					       &state, &readback);
+		ret = mt6797_bigidvfs_snapshot(&big_test_ops, &state, &readback);
 		KUNIT_EXPECT_EQ(test, ret, -EIO);
 		KUNIT_EXPECT_EQ(test, state.calls, fault);
 		mt6797_expect_bigidvfs_zero(test, &readback);
@@ -863,8 +860,7 @@ static void mt6797_bigidvfs_unstable_test(struct kunit *test)
 	int ret;
 
 	memset(&readback, 0xa5, sizeof(readback));
-	ret = mt6797_bigidvfs_snapshot(&mt6797_bigidvfs_test_ops, &state,
-					&readback);
+	ret = mt6797_bigidvfs_snapshot(&big_test_ops, &state, &readback);
 	KUNIT_EXPECT_EQ(test, ret, -EAGAIN);
 	KUNIT_EXPECT_EQ(test, state.calls, 8U);
 	mt6797_expect_bigidvfs_zero(test, &readback);
@@ -929,8 +925,10 @@ def apply_tests(root: Path) -> None:
         \tdepends on MTK_MT6797_DVFSP_BIGIDVFS_BACKEND
         \thelp
         \t  Exercise the protocol-exact clock ordering and two-sample secure
-        \t  readback rules with in-memory transports. No MMIO, secure call,
-        \t  state-owner registration, or CPU operation is performed.
+        \t  readback rules with in-memory transports. It covers acquisition
+        \t  and release timeouts, every secure-read fault, and instability.
+        \t  No MMIO, secure call, state-owner registration, or CPU operation
+        \t  is performed.
 
         config MTK_RAM_CONSOLE_PARSER
         """),

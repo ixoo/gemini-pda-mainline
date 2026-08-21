@@ -47,6 +47,14 @@ one alignment check at a wrapped private-helper call. The bounded receipt is in
 The private ops object now has a shorter name so the call fits on one line; no
 generated behavior changes.
 
+Generation from `be07b88fc45d` made patches `0316` and `0317` fully
+strict-clean and reached patch `0318`'s first style pass. The test patch had
+zero errors, one warning, and two checks: Kconfig requested one more help line
+and two fake-ops calls were wrapped. The bounded receipt is in
+[`results/buildbox-generation-attempt-be07b88f.txt`](results/buildbox-generation-attempt-be07b88f.txt).
+The help now names the covered fault classes and the shorter test-only ops name
+keeps both calls on one line; test semantics are unchanged.
+
 No device kernel, boot image, partition, firmware service, or hardware
 semaphore has been used by this experiment.
 
