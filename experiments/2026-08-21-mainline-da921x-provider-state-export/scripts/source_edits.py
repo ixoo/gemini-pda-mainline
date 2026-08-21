@@ -148,8 +148,8 @@ def apply_provider(root: Path) -> None:
     """)
     implementation = dedent("""\
     static int
-    da9213_legacy_provider_state_snapshot(void *context,
-    \t\t\t\t\t struct mt6797_a72_provider_state *state)
+    da9213_legacy_provider_state_snapshot(
+    \tvoid *context, struct mt6797_a72_provider_state *state)
     {
     \tstruct da9213_legacy_provider_endpoint *endpoint = context;
     \tstruct da9213_legacy_provider_snapshot first = { };

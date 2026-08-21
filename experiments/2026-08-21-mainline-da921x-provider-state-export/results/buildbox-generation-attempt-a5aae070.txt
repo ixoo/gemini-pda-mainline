@@ -1,0 +1,17 @@
+repository_commit=a5aae070142ef6301c917866e91a3d65bb033e8f
+buildbox_job=a5aae070142ef6301c917866e91a3d65bb033e8f-da921x-provider-state-patchgen
+parent_integrity=pass
+parent_file_hashes=pass
+source_validation=pass
+generated_patch_count=3
+patch_replay=pass
+failure=strict-checkpatch
+rejected_patch=0313-regulator-export-stable-DA921x-provider-state.patch
+errors=0
+warnings=0
+checks=1
+check=long-prototype-continuation-alignment
+generated_patch_package=none
+compile=not-run
+device_action=none
+boot_candidate=false

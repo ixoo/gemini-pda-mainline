@@ -20,6 +20,15 @@ is in
 That one anchor now uses explicit tab-preserving strings; no proposed kernel
 behavior changed.
 
+Generation from `a5aae070142e` then passed source validation, generated the
+three intended patches, and reproduced the edited commit by exact replay.
+Strict checkpatch stopped on one long-prototype continuation-alignment check
+in production patch `0313`, with zero errors and zero warnings. The bounded
+receipt is in
+[`results/buildbox-generation-attempt-a5aae070.txt`](results/buildbox-generation-attempt-a5aae070.txt).
+The declaration now uses the standard break before its arguments; semantics
+are unchanged.
+
 ## Question
 
 Can the already registered DA921x A72 provider export one fresh, stable,
