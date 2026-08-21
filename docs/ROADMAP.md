@@ -4731,6 +4731,18 @@ tree and proven DT as a trustworthy serviceability foundation while localizing
 the stopped clock-entry lineage to its experimental writer/configuration
 boundary. It does not validate the cross-version retained checkpoint path.
 
+The selected next discriminator is the default-off
+`da921x-manual-checkpoint-control` profile. On that exact serviceability-proven
+base, canonical patch `0327` reuses the existing retained writer from one
+isolated late initcall and permits at most two short records, each with a full
+local readback. Its unique live result distinguishes local writer success from
+later cross-version recovery; the clock backend, observer, BigiDVFS, protected
+transports, DA921x action, and CPU8/CPU9 requests all remain absent. The
+prebuild definition passes its exact contract and 12 negative source/config
+mutations. It is not a boot candidate until Buildbox, package, DT, container,
+and experiment-specific validation all pass. See the
+[manual checkpoint control](../experiments/2026-08-21-mainline-manual-checkpoint-control/README.md).
+
 The next ordered work is:
 
 1. Isolate the manual checkpoint mechanism independently on the exact

@@ -1,0 +1,42 @@
+Manual retained-checkpoint control prebuild definition
+======================================================
+
+Result: selected for offline validation and Buildbox
+Parent profile: da921x-current-service-control
+New profile: da921x-manual-checkpoint-control
+Expected release: 7.1.3-gemini-checkpoint-ctl
+Canonical patch: 0327-pstore-add-Gemini-manual-checkpoint-control.patch
+
+Changed boundary
+----------------
+
+- Disable the prior arm64 entry ledger.
+- Enable the existing exact two-record protected-readback writer.
+- Enable one new default-off manual late-initcall control.
+- Call checkpoint zero and checkpoint one directly and once each.
+- Emit one live result only after each call returns.
+
+Retained boundary
+-----------------
+
+- Exact runtime-proven current-tree serviceability profile and DT contract
+- Clock backend disabled
+- BigiDVFS backend disabled
+- Protected-readback observer disabled
+- Same-value DA921x action disabled
+- CPU0--7 serviceability and CPU8/CPU9 veto
+- Exact two owned persistent-RAM slots, payload-before-metadata ordering, full
+  local readback, no overwrite, no clear, and no retry
+
+Decision value
+--------------
+
+An exact live `first=1 second=1 retained_writes=2` result proves the shared
+writer's mapping, four-slot prefix, two commits, and complete local readbacks
+without any clock or protected-transport dependency. Changed-ID Gemian then
+tests record recovery independently. A local refusal or loss of serviceability
+stops clock-node work and requires writer repair on the proven base.
+
+No kernel build, device access, protected call, regulator-data write, CPU
+request, boot2 write, reboot, or power action occurred while selecting this
+definition.

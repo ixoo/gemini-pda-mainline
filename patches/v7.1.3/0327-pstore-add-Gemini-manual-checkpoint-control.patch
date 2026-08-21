@@ -1,0 +1,106 @@
+From 4cd989764d4c33c80c30d359f6001fa9a2072905 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 22 Aug 2026 03:15:00 +0000
+Subject: [PATCH] pstore: add Gemini manual checkpoint control
+
+Call the existing two-record retained writer from an isolated late initcall so
+its mapping, prefix, write, and full-readback path can be tested without the
+clock backend, observer, or either protected transport.
+
+Keep the mode default off.  Report the local result in dmesg, preserve
+serviceability on refusal, and make no device, regulator, CPU, storage, reset,
+or power operation.
+---
+ fs/pstore/Kconfig                            | 25 ++++++++++++++++++-
+ fs/pstore/gemini_protected_readback_ledger.c | 37 +++++++++++++++++++++++++++-
+ 2 files changed, 60 insertions(+), 2 deletions(-)
+
+diff --git a/fs/pstore/Kconfig b/fs/pstore/Kconfig
+--- a/fs/pstore/Kconfig
++++ b/fs/pstore/Kconfig
+@@ -126,10 +126,33 @@ config PSTORE_GEMINI_ARM64_ENTRY_LEDGER
+ 	  If unsure, say N.
+ 
++config PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_CONTROL
++	bool "Gemini protected-readback writer manual control"
++	depends on PSTORE_RAM=y
++	depends on ARM64 && ARCH_MEDIATEK && OF
++	depends on !MTK_MT6797_DVFSP_CLOCK_BACKEND
++	depends on !MTK_MT6797_PROTECTED_READBACK_OBSERVER
++	depends on !PSTORE_GEMINI_PRE_RAMOOPS_LEDGER
++	depends on !PSTORE_GEMINI_ARM64_ENTRY_LEDGER
++	default n
++	help
++	  Call the exact two-record retained writer once from an isolated late
++	  initcall, then report both local full-readback results in dmesg.  This
++	  separates the writer from clock-backend registration, platform-device
++	  population, and both protected readback transports.
++
++	  The experiment writes at most two short records to its existing owned
++	  persistent-RAM slots.  It never retries, clears, or overwrites a
++	  nonempty slot and performs no storage, firmware, I2C, regulator, clock,
++	  owner, CPU, timer, watchdog, reset, or power operation.  If unsure,
++	  say N.
++
+ config PSTORE_GEMINI_PROTECTED_READBACK_LEDGER
+ 	bool "Gemini protected-readback retained call ledger"
+ 	depends on PSTORE_RAM=y
+ 	depends on ARM64 && ARCH_MEDIATEK && OF
+-	depends on MTK_MT6797_PROTECTED_READBACK_OBSERVER=y || MTK_MT6797_DVFSP_CLOCK_BACKEND=y
++	depends on MTK_MT6797_PROTECTED_READBACK_OBSERVER=y || MTK_MT6797_DVFSP_CLOCK_BACKEND=y || PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_CONTROL=y
+ 	depends on !PSTORE_GEMINI_PRE_RAMOOPS_LEDGER
+ 	depends on !PSTORE_GEMINI_ARM64_ENTRY_LEDGER
+ 	default n
+diff --git a/fs/pstore/gemini_protected_readback_ledger.c b/fs/pstore/gemini_protected_readback_ledger.c
+--- a/fs/pstore/gemini_protected_readback_ledger.c
++++ b/fs/pstore/gemini_protected_readback_ledger.c
+@@ -2,6 +2,7 @@
+ /* Experiment-only retained ledger around the first protected readback. */
+ 
++#include <linux/init.h>
+ #include <linux/io.h>
+ #include <linux/of.h>
+ #include <linux/of_address.h>
+@@ -18,7 +19,16 @@
+ 
+ static bool gemini_prb_armed;
+ 
+-#ifdef CONFIG_PSTORE_GEMINI_CLOCK_BACKEND_ENTRY_LEDGER
++#ifdef CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_CONTROL
++static const char * const gemini_prb_records[] = {
++	"====0.000000-D\n"
++	"GEMINI_MANUAL_CHECKPOINT_CONTROL_V1 token=GMCP-20260821-A "
++	"checkpoint=manual-first slot=173 crc32=9576f05d\n",
++	"====0.000000-D\n"
++	"GEMINI_MANUAL_CHECKPOINT_CONTROL_V1 token=GMCP-20260821-A "
++	"checkpoint=manual-second slot=174 crc32=c90b9e18\n",
++};
++#elif defined(CONFIG_PSTORE_GEMINI_CLOCK_BACKEND_ENTRY_LEDGER)
+ static const char * const gemini_prb_records[] = {
+ 	"====0.000000-D\n"
+ 	"GEMINI_CLOCK_BACKEND_ENTRY_LEDGER_V1 token=GCBE-20260821-A "
+@@ -218,3 +228,28 @@ bool gemini_protected_readback_ledger_checkpoint(unsigned int checkpoint)
+ 
+ 	return written;
+ }
++
++#ifdef CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_CONTROL
++static int __init gemini_protected_readback_manual_control_init(void)
++{
++	bool first;
++	bool second;
++
++	first = gemini_protected_readback_ledger_checkpoint(0);
++	second = first && gemini_protected_readback_ledger_checkpoint(1);
++	pr_info("GEMINI_MANUAL_CHECKPOINT_CONTROL_LIVE_V1 "
++		"first=%u second=%u retained_writes=%u protected_calls=0 "
++		"cpu_requests=0\n",
++		first, second, first + second);
++
++	return 0;
++}
++late_initcall(gemini_protected_readback_manual_control_init);
++#endif
+-- 
+2.39.5
+

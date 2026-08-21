@@ -1,0 +1,13 @@
+# Isolated manual exercise of the exact retained checkpoint writer on the
+# runtime-proven current-tree serviceability base. The clock backend, observer,
+# protected transports, DA921x action, and CPU8/CPU9 admission remain absent.
+# CONFIG_PSTORE_GEMINI_ARM64_ENTRY_LEDGER is not set
+CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_MANUAL_CONTROL=y
+CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_LEDGER=y
+# CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_PROBE_GATE_LEDGER is not set
+# CONFIG_PSTORE_GEMINI_CLOCK_BACKEND_ENTRY_LEDGER is not set
+# CONFIG_MTK_MT6797_DVFSP_CLOCK_BACKEND is not set
+# CONFIG_MTK_MT6797_DVFSP_BIGIDVFS_BACKEND is not set
+# CONFIG_MTK_MT6797_PROTECTED_READBACK_OBSERVER is not set
+# CONFIG_REGULATOR_DA9213_LEGACY_SAME_VALUE_WRITE is not set
+CONFIG_LOCALVERSION="-gemini-checkpoint-ctl"
