@@ -49,16 +49,21 @@ provider transition, P28 effect, CPU request, or CPU8 support claim.
 - [`DESIGN.md`](DESIGN.md): exact immutable input, result, and non-scope.
 - [`results/test-matrix.tsv`](results/test-matrix.tsv): implementation and evidence matrix.
 - [`results/design-validation-20260820.txt`](results/design-validation-20260820.txt): repository-side design and generator validation.
-- Patch-generation, source-validation, focused KUnit, and Buildbox receipts
-  will be added only after their exact results exist.
+- [`results/patch-generation-attempt-1-checkpatch-20260821.txt`](results/patch-generation-attempt-1-checkpatch-20260821.txt): strict Buildbox style rejection and cleanup proof.
+- Successful patch-generation, focused KUnit, and Buildbox build receipts will
+  be added only after their exact results exist.
 
 ## Current result
 
 The corrected decision and source design are complete, and the required audit
 is signed and published. The Git-pinned Buildbox patch-generation lane is
-ready; no kernel patch, build, or device work has been attempted. The
-read-only provenance audit also confirms that the existing watchdog-class boot
-reason is nondiscriminating and cannot be wired into this evaluator as a
+ready. The first exact-commit generation passed source and patch validation but
+was correctly rejected by strict checkpatch for one short Kconfig help block
+and four function-line breaks. It admitted no package or job record and its
+partial output was removed. Those style-only defects are corrected for the
+next exact-commit attempt; no kernel build or device work has been attempted.
+The read-only provenance audit also confirms that the existing watchdog-class
+boot reason is nondiscriminating and cannot be wired into this evaluator as a
 substitute for the unresolved reset owner. Vendor source does expose a finer
 TOPRGU `WDT_STATUS` latch, and current mainline does not read it. A
 pre-initialization read is now recorded as a candidate, not as proof, pending

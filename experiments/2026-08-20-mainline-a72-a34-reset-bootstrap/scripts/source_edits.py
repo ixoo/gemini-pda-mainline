@@ -65,7 +65,8 @@ def apply(root: Path, experiment: Path) -> None:
         \thelp
         \t  Exercise both accepted reset-provenance values, null input, every
         \t  byte mutation, explicit missing provenance, and unchanged CLOSED
-        \t  admission without hardware or CPU operations.
+        \t  admission without hardware or CPU operations. The suite has no
+        \t  production hook.
 
         config ARM64_MT6797_A72_PROVIDER_OWNER
         """),
@@ -148,11 +149,13 @@ def apply(root: Path, experiment: Path) -> None:
         };
 
         #ifdef CONFIG_ARM64_MT6797_A72_A34_ELIGIBILITY_EVALUATOR
-        int mt6797_a72_a34_evaluate(
-        \tconst struct mt6797_a72_a34_observation *observation);
+        int
+        mt6797_a72_a34_evaluate(const struct mt6797_a72_a34_observation
+        \t\t\t      *observation);
         #else
-        static inline int mt6797_a72_a34_evaluate(
-        \tconst struct mt6797_a72_a34_observation *observation)
+        static inline int
+        mt6797_a72_a34_evaluate(const struct mt6797_a72_a34_observation
+        \t\t\t      *observation)
         {
         \t(void)observation;
         \treturn -EOPNOTSUPP;
@@ -197,8 +200,9 @@ def apply(root: Path, experiment: Path) -> None:
         \t.first_cookie = MT6797_A72_A34_FIRST_COOKIE,
         };
 
-        int mt6797_a72_a34_evaluate(
-        \tconst struct mt6797_a72_a34_observation *observation)
+        int
+        mt6797_a72_a34_evaluate(const struct mt6797_a72_a34_observation
+        \t\t\t      *observation)
         {
         \tsize_t tail = offsetof(struct mt6797_a72_a34_observation,
         \t\t\t       private_replay_proof);

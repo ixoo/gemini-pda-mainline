@@ -73,8 +73,10 @@ static void mt6797_a34_test_exit(struct kunit *test)
 	mt6797_a72_membership_test_reset();
 }
 
-static void mt6797_a34_expect_result_unchanged(
-	struct kunit *test, struct mt6797_a34_test_state *state, int expected)
+static void
+mt6797_a34_expect_result_unchanged(struct kunit *test,
+				   struct mt6797_a34_test_state *state,
+				   int expected)
 {
 	int ret;
 
