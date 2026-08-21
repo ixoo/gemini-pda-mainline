@@ -146,6 +146,15 @@ through SPM, and RMW-sets bit 1 at `0x10006290`. Public register evidence names
 that bit `B_EXT_BUCK_ISO`; its physical writer is therefore attributed to the
 secure last-core path.
 
+**2026-08-21 correction:** bounded re-analysis of the same pinned payload,
+cross-checked against the vendor CCI definitions, found that EF24 polls the
+global CCI change-pending word at `0x1039000c`. The earlier
+`0x1039600c` target incorrectly added the global status offset to the MP2 port
+base. The adjacent MP2 control accesses remain `0x10396000`; only the status
+address and its scope are corrected. The original 2026-08-05 validation
+transcript remains preserved as chronology, while the validator now pins the
+corrected inventory.
+
 The audited direct last-core callgraph contains no write to MP2 DCM
 `0x10222274` and no write to the B-cluster SRAM-LDO registers `0x102222b0` or
 `0x102222b4`. Their final off-state writers remain outside this secure

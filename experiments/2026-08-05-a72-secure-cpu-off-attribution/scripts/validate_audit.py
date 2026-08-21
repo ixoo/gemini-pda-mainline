@@ -16,7 +16,7 @@ EFFECTS = EXPERIMENT / "results" / "effect-inventory.tsv"
 TRANSCRIPT = EXPERIMENT / "results" / "audit-validation-20260805.txt"
 PAYLOAD_SHA256 = "2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3"
 CALLGRAPH_SHA256 = "0007ba7868cbd68bb2a4ef6ad66240c7e00715e08934ca5d05ca482dfd464354"
-EFFECTS_SHA256 = "deaa6686582e6e3f2e3453ff626f14b2ec555d9be468ac2f67fb350e6eead8bc"
+EFFECTS_SHA256 = "85a877ca698a609ce3373c4dd829b027a3f6b6c52e4dfb3ba784a1011ab2fb67"
 TRANSCRIPT_SHA256 = "6da8ad1883362b32fe7b8e2332f262ec8ebf195db09c91872a0ce59eda429af6"
 
 CALLGRAPH_FIELDS = (
@@ -177,6 +177,10 @@ def validate_effects(rows: list[dict[str, str]]) -> None:
     require(by_id["EF20"]["function"] == "cci_disable" and
             by_id["EF21"]["wait"] == "unbounded-no-timeout",
             "last-core CCI withdrawal changed")
+    require(by_id["EF24"]["target"] == "0x1039000c" and
+            by_id["EF24"]["condition"] == "cci-change-pending" and
+            by_id["EF24"]["scope"] == "cluster-cci-global-status-source-corroborated",
+            "MP2 CCI global change-pending poll changed")
     require(by_id["EF22"]["target"] == "0x1022220c" and
             by_id["EF26"]["target"] == "0x1022220c" and
             by_id["EF22"]["action"] == by_id["EF26"]["action"] == "rmw-or-0x00000011",
@@ -243,6 +247,9 @@ def validate_readme(text: str) -> None:
             "audit text grants authorization")
     require("not a passive observation" in text,
             "active AFFINITY_INFO conclusion missing")
+    require("2026-08-21 correction" in text and
+            "`0x1039000c`" in text and "`0x1039600c`" in text,
+            "CCI address correction missing")
     require("Only the intended off target may be queried" in text and
             "Querying retained online CPU8" in text,
             "retained CPU8 observer prohibition missing")

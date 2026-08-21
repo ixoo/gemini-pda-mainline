@@ -118,6 +118,9 @@ def main() -> int:
         lambda: check_rows(
             "bounded-last-core-wait", "last-core unbounded-wait inventory changed", effects,
             VALIDATOR.validate_effects, "EF38", wait="bounded"),
+        lambda: check_rows(
+            "local-mp2-status-address", "MP2 CCI global change-pending poll changed", effects,
+            VALIDATOR.validate_effects, "EF24", target="0x1039600c"),
         lambda: expect_rejected(
             "payload-identity", "private payload identity changed",
             lambda: VALIDATOR.validate_readme(readme.replace(VALIDATOR.PAYLOAD_SHA256, "0" * 64))),

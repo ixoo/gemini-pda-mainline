@@ -331,6 +331,28 @@ disabled, the DA921x fresh snapshot is private to its provider transaction,
 and no MT6797 A72 CCI state source or atomic compositor exists. See the
 [direct recovery-state audit](../../experiments/2026-08-21-mainline-a34-direct-recovery-state-audit/README.md).
 
+The follow-on source audit identifies the MT6797 A72 CCI boundary without
+promoting the generic ARM CCI driver. The vendor DT's physical window is
+`0x10390000`--`0x1039ffff`; the exact secure MP2 path selects port control
+`0x10396000`, where bits 1:0 request DVM and snoop participation, and polls the
+global change-pending bit at `0x1039000c`. An earlier effect-inventory row
+incorrectly used `0x1039600c`; bounded re-analysis of the same payload and the
+vendor global-status definition correct that address while retaining the
+adjacent MP2 control accesses. Mainline's generic CCI-400 control model has
+only five ports through `+0x5000`, has no typed read-only getter, and cannot
+honestly own the source-proven MT6797 MP2 port.
+
+The same audit pins the A72 platform read set: SPM CPU status at
+`+0x188/+0x18c` (CPU8 bit 7 and CPU9 bit 6, with vendor on-state derived from
+their intersection), MP2 cluster/core controls at `+0x218/+0x240/+0x244`,
+`B_EXT_BUCK_ISO` at `+0x290` bit 1, TOPRGU PWRAP reset at `WDT_SWSYSRST` bit
+11, and MP2 synchronous DCM at `0x10222274` bits 6:0. The general SPM
+`+0x180/+0x184` pair is context for non-CPU domains, not a full-word A72
+predicate. A default-off read-only source can capture these fields, but only
+the later A72 transition/hotplug owner can exclude an in-flight secure PSCI
+writer through publication. See the [CCI/platform-state owner
+audit](../../experiments/2026-08-21-mainline-a72-cci-platform-state-owner-audit/README.md).
+
 The IRQ-bearing watchdog description did not register a watchdog device,
 while the otherwise equivalent no-IRQ description bound `10007000.watchdog`
 to `mtk-wdt`, exposed `/dev/watchdog0`, and reported a 31-second timeout with

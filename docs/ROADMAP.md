@@ -4557,23 +4557,31 @@ MT6797 has no A72 CCI description or state source. The current A34 ABI also
 contains no hardware tuple or production collector. Do not use the old
 caller-supplied A36 constants as observations.
 
+The
+[A72 CCI and platform-state ownership audit](../experiments/2026-08-21-mainline-a72-cci-platform-state-owner-audit/README.md)
+is now complete. It identifies MP2 CCI port control at `0x10396000` and the
+sole global change-pending word at `0x1039000c` bit 0. It explicitly corrects
+the older `0x1039600c` effect row, rejects the generic five-port ARM CCI-400
+driver as MT6797's owner, and pins the A72-relevant SPM, TOPRGU PWRAP, and MP2
+DCM fields. The selected source is read-only and default-off. Its local lock
+cannot serialize secure PSCI; that exclusion remains the later transition
+owner's responsibility.
+
 The next ordered work is:
 
-1. Audit the exact MT6797 A72 CCI and platform-state ownership boundary. Name
-   the CCI port/control and status registers, complete SPM field semantics,
-   TOPRGU bit-state accessor, safe read paths, and writer serialization. Do
-   not add a magic physical mapping or CCI write.
-2. Implement one default-off, capture-only platform-state source for the
+1. Implement one default-off, capture-only platform-state source for the
    source-backed SPM physical/control, TOPRGU PWRAP, MP2 DCM, and CCI fields.
-   It must publish a typed immutable record and have no A34 caller.
-3. Export fresh read-only DA921x state from its existing root-adapter-locked
+   It must publish a typed immutable record, add the locked TOPRGU reset-state
+   accessor, use named DT resources, perform no writes or polling, and have no
+   A34 caller.
+2. Export fresh read-only DA921x state from its existing root-adapter-locked
    owner, validate the disabled protected clock/BigiDVFS readers on the named
    firmware, then compose every source under one transition/hotplug owner.
-4. Revise A34 to accept only the complete direct-state ABI and applicable
+3. Revise A34 to accept only the complete direct-state ABI and applicable
    BL31 replay-clear contract, prove the atomic `CLOSED / UNINITIALIZED` to
    `AVAILABLE / IDLE` publication, and keep both CPU vetoes closed until that
    proof passes.
-5. Only then build one decision-bearing CPU8 candidate with one request,
+4. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
 The eventual CPU8 candidate must have a single CPU8 request, strict

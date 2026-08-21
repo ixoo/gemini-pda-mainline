@@ -23,6 +23,14 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-21 A72 CCI and platform-state owner audit](2026-08-21-mainline-a72-cci-platform-state-owner-audit/README.md)
+  — identifies the source-backed MP2 CCI port at `0x10396000` and the sole
+  global change-pending word at `0x1039000c`, explicitly correcting an older
+  local-status address error. It rejects the generic five-port CCI-400 driver
+  as MT6797's owner, pins the relevant SPM, TOPRGU PWRAP, and MP2 DCM fields,
+  and selects a default-off typed capture source plus locked reset-status
+  accessor. Cross-PSCI atomicity still belongs to the later A72 transition
+  owner; A34 and CPU8 remain closed.
 - [2026-08-21 mainline A34 direct recovery-state audit](2026-08-21-mainline-a34-direct-recovery-state-audit/README.md)
   — proves that the exact historical first CPU8 cycle returned its DA921x,
   six-word SPM, twelve-word secure, protected-clock, and DCM tuple to the

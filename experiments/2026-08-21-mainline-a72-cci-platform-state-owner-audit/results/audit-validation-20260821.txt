@@ -1,0 +1,45 @@
+Validation date: 2026-08-21 America/New_York
+Repository action: offline sanitized ownership audit and prior-address correction
+Kernel build: not run
+Device action: none
+
+Command:
+  python3 experiments/2026-08-21-mainline-a72-cci-platform-state-owner-audit/scripts/validate.py
+
+audit=pass
+ownership_rows=12
+cci_mp2_port=0x10396000
+cci_global_status=0x1039000c
+generic_arm_cci_owner=rejected
+selected_next=default-off-capture-only-platform-state-source
+a34_owner=closed
+device_write=none
+
+Command:
+  python3 experiments/2026-08-05-a72-secure-cpu-off-attribution/scripts/validate_audit.py
+
+validation=a72-secure-cpu-off-attribution
+result=PASS
+payload_sha256=2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3
+callgraph_rows=16
+callgraph_sha256=0007ba7868cbd68bb2a4ef6ad66240c7e00715e08934ca5d05ca482dfd464354
+effect_rows=45
+effect_inventory_sha256=85a877ca698a609ce3373c4dd829b027a3f6b6c52e4dfb3ba784a1011ab2fb67
+last_core_unbounded_waits=8
+cpu9_unbounded_waits=2
+affinity_info=active-unbounded-target-only-not-independent-observer
+cpu9_cluster_resource_effects=empty
+cpu_off_authorized=no
+build_authorized=no
+device_action_authorized=no
+
+Command:
+  python3 experiments/2026-08-05-a72-secure-cpu-off-attribution/scripts/test_audit.py
+
+validation=a72-secure-cpu-off-attribution-mutations
+result=PASS
+mutations_rejected=23
+retained_cpu_affinity_info=forbidden
+cpu_off_authorized=no
+build_authorized=no
+device_action_authorized=no

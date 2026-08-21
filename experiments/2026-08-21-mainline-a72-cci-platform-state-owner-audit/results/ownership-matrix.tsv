@@ -1,0 +1,13 @@
+id	surface	address_or_api	source_semantic	current_owner	safe_read	writer_serialization	decision
+O01	CCI-window	0x10390000+0x10000	vendor-DT-window	absent-in-mainline-MT6797	DT-named-resource	A72-transition-owner	exact-window
+O02	CCI-MP2-port	0x10396000	bits1-0-snoop-DVM-request	secure-firmware	readl-only	A72-transition-owner-and-no-PSCI	capture
+O03	CCI-global-status	0x1039000c	bit0-change-pending	secure-firmware	pre-and-post-readl	A72-transition-owner-and-no-PSCI	capture-no-poll
+O04	generic-ARM-CCI	arm,cci-400	2-ACE-plus-3-ACE-lite-no-MP2-port	generic-driver	no-typed-read-getter	BSP-lock-required-for-writes	reject-as-owner
+O05	SPM-general-status	0x10006180;0x10006184	general-domain-status-pair	mtk-scpsys	syscon-regmap-raw-context	not-an-A72-acceptance-word	context-only
+O06	SPM-CPU-status	0x10006188;0x1000618c	CPU8-bit7-CPU9-bit6-on-by-intersection	secure-firmware-SPM	syscon-regmap	A72-transition-owner-and-no-PSCI	capture-both-raw
+O07	SPM-MP2-cluster-control	0x10006218	reset-isolation-power-clock-SRAM-fields	secure-firmware-SPM	syscon-regmap	A72-transition-owner-and-no-PSCI	capture-defined-mask
+O08	SPM-MP2-core-control	0x10006240;0x10006244	CPU8-CPU9-reset-isolation-power-clock-SRAM-fields	secure-firmware-SPM	syscon-regmap	A72-transition-owner-and-no-PSCI	capture-defined-mask
+O09	SPM-external-isolation	0x10006290	bit1-B_EXT_BUCK_ISO	secure-firmware-SPM	syscon-regmap	A72-transition-owner-and-no-PSCI	capture
+O10	MP2-synchronous-DCM	0x10222274	bit0-enable-bit1-toggle-bits6-2-divider	no-current-mainline-writer	DT-named-MCUCFG-resource	A72-transition-owner	capture-mask-0x7f
+O11	TOPRGU-PWRAP-reset	reset_control_status	WDT_SWSYSRST-bit11	mtk-wdt-reset-controller	locked-status-callback	existing-WDT-spinlock	add-accessor
+O12	platform-tuple	typed-snapshot-call	one-bounded-double-sample	new-default-off-source	zero-on-error-no-write	A72-transition-owner-required	next-implementation
