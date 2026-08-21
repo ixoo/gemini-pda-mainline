@@ -1,0 +1,6 @@
+# Preserve the isolated base writer while selecting the probe/gate record mode.
+# CONFIG_PSTORE_GEMINI_PRE_RAMOOPS_LEDGER is not set
+# CONFIG_PSTORE_GEMINI_ARM64_ENTRY_LEDGER is not set
+CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_LEDGER=y
+CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_PROBE_GATE_LEDGER=y
+CONFIG_LOCALVERSION="-gemini-protected-readback-probe-gate"

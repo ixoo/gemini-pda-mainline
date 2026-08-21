@@ -4658,10 +4658,13 @@ The next ordered work is:
 1. Build and run one non-identical two-checkpoint successor. Preserve every
    candidate input and the two-write maximum, but record `probe-enter` under a
    minimal exact board/reservation/empty-slot safety gate and `gate-passed`
-   after the complete current ledger gate immediately before the clock call.
-   Use the recovered prefix to distinguish probe-not-entered, gate-refused,
-   and clock-nonreturn; do not infer a result from screen state or the generic
-   boot-reason token.
+   after backend acquisition and the complete current ledger gate immediately
+   before the clock call. Use the recovered prefix to distinguish probe not
+   entered, pre-call setup/gate refusal, and reaching the first protected call;
+   two records without USB do not alone prove clock nonreturn because the
+   unchanged BigiDVFS call still follows. Do not infer a result from screen
+   state or the generic boot-reason token. See the
+   [probe/gate ledger experiment](../experiments/2026-08-21-mainline-protected-readback-probe-gate-ledger/README.md).
 2. Compose the validated readers, DA921x, and the platform-state source under
    one transition/hotplug owner.
 3. Revise A34 to accept only the complete direct-state ABI and applicable
