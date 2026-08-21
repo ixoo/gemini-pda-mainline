@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "experiment": "2026-08-21-mainline-mtk-wdt-boot-status-capture",
+  "repository_parent": "6be86b582a1fcb40d79126a6c83ad24f0e7ad65c",
+  "decision": {
+    "readme": "experiments/2026-08-21-mainline-a72-a34-provenance-owner-audit/README.md",
+    "readme_sha256": "6753af7e0109b5b01417219191f120a3698c927f1ab8e9a5bf853167d5c5760d",
+    "design": "experiments/2026-08-21-mainline-a72-a34-provenance-owner-audit/DESIGN.md",
+    "design_sha256": "ec0a2e61691c054a53749ee8d8609fc774c6ae730245b495495ac34d9679058e",
+    "matrix": "experiments/2026-08-21-mainline-a72-a34-provenance-owner-audit/results/authority-matrix.tsv",
+    "matrix_sha256": "985b3489a4830b1d6f856c8e96d3ed5664d76ff3d8d93cd89fdee7b356ff8e03",
+    "selected_boundary": "TOPRGU_CAPTURE_ONLY"
+  },
+  "parent": {
+    "source_state": "efc26dede64ec019c074d29f5cd625767f11fb5a16db376b1549f72a4614a735",
+    "last_patch": "patches/v7.1.3/0302-arm64-add-A72-A34-eligibility-evaluator.patch",
+    "last_patch_sha256": "f07b490279cedf9ee7c4f9d294c4b4e966db72715a78b2d25c2abd64b3fd861b",
+    "watchdog_kconfig_sha256": "1e93a140ca95c1e70e6a499bc8cb9e6b3c691b5649b455bf940e90cdf3bed0c3",
+    "mtk_wdt_source_sha256": "08c7e94770ad4ccbf299beca17fe43de473167a1dde12fa0bd4d8dd159c4714d"
+  },
+  "expected_patch": "patches/v7.1.3/0303-watchdog-mtk-capture-raw-boot-status.patch",
+  "tests": {
+    "cases": ["invalid", "exact", "every-bit", "immutable"],
+    "mmio": false,
+    "kunit_case_count": 4
+  },
+  "scope": {
+    "default_off": true,
+    "status_read_count": 1,
+    "reset_classifier": false,
+    "ram_console_mapping": false,
+    "a34_caller": false,
+    "opens_owner": false,
+    "hardware_write": false,
+    "provider_call": false,
+    "p30_mutation": false,
+    "cpu_on": false,
+    "cpu_off": false,
+    "boot_veto_change": false,
+    "device_action": false,
+    "boot_candidate": false
+  }
+}

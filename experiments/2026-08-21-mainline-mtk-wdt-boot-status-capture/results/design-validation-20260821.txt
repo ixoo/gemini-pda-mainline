@@ -1,0 +1,17 @@
+command=python3 experiments/2026-08-21-mainline-mtk-wdt-boot-status-capture/scripts/validate.py
+shell_syntax=bash-n-pass
+shellcheck=pass
+diff_check=pass
+experiment=2026-08-21-mainline-mtk-wdt-boot-status-capture
+parent_source_state=efc26dede64ec019c074d29f5cd625767f11fb5a16db376b1549f72a4614a735
+selected_boundary=TOPRGU_CAPTURE_ONLY
+expected_patch=0303
+status_read_count=1
+kunit_cases=4
+reset_classifier=none
+a34_caller=none
+hardware_write=none
+device_action=none
+boot_candidate=false
+buildbox_generation_lane=ready
+result=pass

@@ -1,0 +1,9 @@
+id	claim	fixture	expected	phase
+T01	unsupported-store-invalid	zero-store-prefilled-output	-ENODATA-and-zero-output	kunit
+T02	exact-word-round-trip	0xa5c33ca5	exact-valid-copy	kunit
+T03	every-bit-round-trip	BIT(0)-through-BIT(31)	each-exact-valid-copy	kunit
+T04	first-capture-immutable	0x13579bdf-then-0xeca86420	first-value-retained	kunit
+S01	exactly-one-production-read	MT6797-probe	one-read-after-map-before-init	source
+S02	unreviewed-variants-not-read	match-data-without-capability	invalid-snapshot	source
+S03	no-reset-classifier	complete-added-source	no-provenance-conclusion	source
+S04	no-lifecycle-or-effect	complete-added-source	no-A34-caller-or-write	source

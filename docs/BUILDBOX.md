@@ -141,6 +141,17 @@ clean, pushed project commit:
 ./scripts/buildbox fetch-a72-a34-eligibility-patch
 ```
 
+The raw MediaTek watchdog boot-status capture uses the same clean, pushed,
+Git-pinned generation contract:
+
+```sh
+./scripts/buildbox generate-mtk-wdt-boot-status-patch
+./scripts/buildbox fetch-mtk-wdt-boot-status-patch
+```
+
+It returns one checksum-validated patch review and never copies a kernel source
+tree between the host and Buildbox.
+
 The lane verifies the managed Linux source state and every edited parent file,
 generates one normal `git format-patch` with an explicitly synthetic,
 non-certifying experiment author, replays it, runs source and strict style
