@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-21-mainline-current-tree-serviceability-control` |
-| Status | running; exact candidate installed and device shut down |
+| Status | complete; exact current-tree serviceability control passed |
 | Subsystem | arm64 boot, USB/netcat serviceability, DA921x read-only path |
 | Device variant | Gemini PDA x27, named project unit |
 | Date(s) | 2026-08-21 |
@@ -128,26 +128,45 @@ Gemian used `/dev/mmcblk0p29`. It replaced predecessor
 readback to `7084f2ee...d52a3`, and confirmed clean shutdown. No fresh backup,
 reboot request, or write to another partition occurred.
 
+The observer was armed before the single physical selection and detected the
+exact USB interface. Its first read-only probe captured the exact release and
+all required serviceability values, but the DT model property lacked a newline
+and merged with the following field. The validator returned
+`rejected-attribution=model-mismatch` and correctly sent no reboot. An
+offline-tested newline correction then reran the same read-only probe on the
+same mainline boot ID; this was not a second boot selection. It classified
+`serviceable-control-pass`: CPUs 0--7 were online, CPUs 8--9 offline, USB,
+keyboard, and one DA921x client were present, the same-value attribute and all
+three experimental backend-device classes were absent, no block filesystem was
+mounted, and every action request remained `none`.
+
+Only after that exact pass, the collector sent one native reboot. Gemian
+returned with a changed boot ID and exact boot2 remained
+`7084f2ee...d52a3`.
+
 ## Analysis
 
 The predecessor changed DT node population but retained the clock-entry Image
-and shared checkpoint. It therefore could not distinguish the current
-Image/configuration path from the experimental writer. This control removes
-that writer and returns to the latest complete serviceability contract with a
-new current-tree Image. A pass restores a trustworthy foundation for an
-independent checkpoint-mechanism test. A failure prevents further clock or
-CPU8 work until the current-tree delta is localized offline.
+and shared checkpoint, so it could not distinguish the current
+Image/configuration path from the experimental writer. This control removed
+that writer and restored the complete serviceability DT contract with a new
+current-tree Image. Its pass proves the canonical current tree, Android-v0
+container, serviceability DT, read-only DA921x provider, USB, and keyboard are
+viable together. It localizes the stopped clock-entry lineage to its
+experimental writer/configuration boundary rather than to a generic current-
+tree or boot-container regression. It does not prove why returned retained-RAM
+slots were empty.
 
 ## Conclusion
 
-Exact candidate `7084f2ee...d52a3` is installed and admitted for one physical
-selection after the observer is armed. Runtime serviceability remains unproved;
-a compile, offline validation, and verified installation are not device-support
-claims.
+Exact candidate `7084f2ee...d52a3` passed its one physical selection and
+read-only serviceability oracle. The current-tree CPU0--7 foundation is
+restored. CPU8/9 remain deliberately closed, and no clock-entry checkpoint,
+protected transport, regulator-data write, or CPU admission claim is made.
 
 ## Follow-up
 
-If serviceable, isolate the manual checkpoint mechanism without enabling the
-clock node or either protected transport. Only after that independent control
-passes may clock-backend population/probe entry resume. CPU8 and CPU9 remain
-closed throughout.
+Isolate the manual checkpoint mechanism on this exact serviceable base without
+enabling the clock node or either protected transport. Only after that
+independent control passes may clock-backend population/probe entry resume.
+CPU8 and CPU9 remain closed throughout.

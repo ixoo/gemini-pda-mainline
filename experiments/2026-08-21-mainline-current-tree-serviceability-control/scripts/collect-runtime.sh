@@ -14,12 +14,12 @@ readonly GEMIAN_ADDRESS=192.168.1.50
 readonly WAIT_SECONDS=900
 readonly RETURN_SECONDS=600
 readonly CANDIDATE_SHA256=7084f2ee87af103dfcf1dfad9956f54c2a9df8d37b5f6d0388ba45464d8d52a3
-readonly PROBE_SHA256=120bc5c9d0b0b6588260c311f092b654b5c501dad74c5495ab8ed78c1a189837
+readonly PROBE_SHA256=8ecc847e75e1e9e6b7634a16bd6714b3373cfa4996b9c6910087f4e34eabffab
 readonly VALIDATOR_SHA256=dda8ed943e27996f767f50899a5c5e56334d9f8d04ea8659563a8ac637631e7d
 
 die() { printf 'error: %s\n' "$*" >&2; exit 2; }
 usage() {
-	printf 'usage: %s --deployment-boot-id UUID --output artifacts/runtime-captures/current-tree-service-control-attempt-1\n' "$0" >&2
+	printf 'usage: %s --deployment-boot-id UUID --output artifacts/runtime-captures/current-tree-service-control-attempt-1[-format-correction]\n' "$0" >&2
 }
 
 deployment_boot_id=
@@ -66,9 +66,12 @@ done
 [[ -d "$private_root" && ! -L "$private_root" ]] || die 'runtime-capture root is unsafe'
 private_root="$(cd -- "$private_root" && pwd -P)"
 case "$output" in /*) ;; *) output="$repo_root/${output#./}" ;; esac
-[[ "$(dirname -- "$output")" == "$private_root" &&
-	"$(basename -- "$output")" == current-tree-service-control-attempt-1 ]] ||
-	die 'output must be the exact private attempt-1 child'
+case "$(basename -- "$output")" in
+current-tree-service-control-attempt-1|current-tree-service-control-attempt-1-format-correction) ;;
+*) die 'output must be the exact private attempt-1 or format-correction child' ;;
+esac
+[[ "$(dirname -- "$output")" == "$private_root" ]] ||
+	die 'output must remain in the private runtime-capture root'
 [[ ! -e "$output" && ! -L "$output" ]] || die 'output already exists'
 git -C "$repo_root" check-ignore -q "$output" || die 'output is not ignored by Git'
 

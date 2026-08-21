@@ -127,6 +127,10 @@ def main() -> None:
     require("/bin/reboot" not in probe, "remote read-only probe gained a reboot action")
     require("same_value_write_attributes=" in probe, "probe lost action-path absence check")
     require("device_storage_writes=none" in probe, "probe lost storage closure")
+    require(
+        "$BB tr '\\000' ' ' </sys/firmware/devicetree/base/model; $BB printf '\\n'" in probe,
+        "DT model field is not explicitly newline-terminated",
+    )
     collector = (SCRIPT_DIR / "collect-runtime.sh").read_text(encoding="utf-8")
     classify_at = collector.index('python3 "$validator" "$runtime"')
     reboot_at = collector.index("printf '/bin/reboot")

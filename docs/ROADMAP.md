@@ -4717,31 +4717,35 @@ mutations. This admits one guarded installation and one runtime attempt; it
 does not yet establish serviceability. Guarded deployment has now replaced
 the exact stopped predecessor on inactive live-GPT boot2, matched the full
 16 MiB readback to `7084f2ee...d52a3`, and confirmed clean shutdown. The next
-action is to arm the exact observer before the one physical selection.
+action was to arm the exact observer before the one physical selection.
+
+That single selection passed. Exact USB appeared with release
+`7.1.3-gemini-service-ctl`, CPUs 0--7 online, CPUs 8--9 offline, keyboard and
+one DA921x client present, and the same-value attribute plus clock, BigiDVFS,
+and protected-readback devices absent. A missing newline after the DT model
+field caused the first classifier invocation to reject attribution and withhold
+reboot. The offline-tested formatting correction reran on the same mainline
+boot, passed the exact oracle, and only then sent one native reboot. Changed-ID
+Gemian returned and boot2 remained exact. This restores the current canonical
+tree and proven DT as a trustworthy serviceability foundation while localizing
+the stopped clock-entry lineage to its experimental writer/configuration
+boundary. It does not validate the cross-version retained checkpoint path.
 
 The next ordered work is:
 
-1. Install and run the admitted current-tree serviceability control derived
-   from the last
-   runtime-proven `da921x-same-value-write` Image/DT contract. Disable the
-   clock-entry writer, retain exact DT resources `cspm`, `scp-cfg`, and
-   `devapc-ao`, and send no action token. Require exact USB/netcat, CPU0--7,
-   keyboard, and one boot-ID-gated native return; CPU8/9 and all writes remain
-   closed. Do not repeat the old successful artifact or either stopped
-   clock-entry artifact unchanged.
-2. Only after that serviceability control passes, isolate the manual checkpoint
-   mechanism independently before enabled clock-node population. Do not rely on
-   empty returned RAM as proof that a checkpoint call did not execute.
-3. Only after the checkpoint control passes, isolate enabled clock-node population and
+1. Isolate the manual checkpoint mechanism independently on the exact
+   serviceability-proven base before enabled clock-node population. Do not rely
+   on empty returned RAM as proof that a checkpoint call did not execute.
+2. Only after the checkpoint control passes, isolate enabled clock-node population and
    read-free probe entry. Do not enable or sample BigiDVFS until clock-backend
    registration and probe entry are positively established.
-4. Compose the validated readers, DA921x, and the platform-state source under
+3. Compose the validated readers, DA921x, and the platform-state source under
    one transition/hotplug owner.
-5. Revise A34 to accept only the complete direct-state ABI and applicable
+4. Revise A34 to accept only the complete direct-state ABI and applicable
    BL31 replay-clear contract, prove the atomic `CLOSED / UNINITIALIZED` to
    `AVAILABLE / IDLE` publication, and keep both CPU vetoes closed until that
    proof passes.
-6. Only then build one decision-bearing CPU8 candidate with one request,
+5. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
 The eventual CPU8 candidate must have a single CPU8 request, strict

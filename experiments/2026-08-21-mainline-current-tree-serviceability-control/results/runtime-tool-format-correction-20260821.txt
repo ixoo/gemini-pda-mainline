@@ -1,0 +1,40 @@
+Current-tree serviceability runtime probe format correction
+===========================================================
+
+Scope: observation tooling only; same device boot and candidate
+Initial classification: rejected-attribution
+Initial reason: model-mismatch
+Initial reboot command sent: no
+Initial mainline boot ID: c924ec72-69cb-4c2e-8495-b7993fd75d36
+
+The DT model property contained a trailing NUL but no newline. The read-only
+probe translated the NUL to a space and immediately printed `cpu_possible`, so
+the two fields appeared on one line. All captured hardware values were already
+consistent with the serviceability oracle, but the strict parser correctly
+refused to infer or send a reboot.
+
+Correction: append one explicit newline after the model-property translation.
+The collector additionally admits a uniquely named same-boot format-correction
+capture. No kernel, DTB, initramfs, boot2 image, device state, safety gate, or
+runtime expectation changed.
+
+Initial private classification SHA-256:
+70a4d24e20d8cbf3c68c511f1d3620fdadcac036ec8ff0a72a0e290e019e92fb
+Initial private observer-events SHA-256:
+7adac779d1864fa87e5b18232cee627f513abe090ff48ddedf226e439f0a8f80
+Initial private runtime SHA-256:
+3697a6e83e29acc545678eb56028f515afea36b400909af586c1a95094359f91
+Initial private USB-topology SHA-256:
+5e1c53d9d1f18d13ab5adbf4c9481b42b410ce69270804a59237b41354271745
+
+Corrected collector SHA-256:
+b7db700f2797e444294e4dad1b46aa1da85ea4dfbc55869f0698165a441685ad
+Corrected remote probe SHA-256:
+8ecc847e75e1e9e6b7634a16bd6714b3373cfa4996b9c6910087f4e34eabffab
+Runtime validator SHA-256:
+dda8ed943e27996f767f50899a5c5e56334d9f8d04ea8659563a8ac637631e7d
+Corrected offline tests SHA-256:
+bd5ba9f3871c983a5ee7a09cd28150c76f360d2ff337d9f00477484adb32c034
+
+Offline result: 15 safety and 16 attribution mutations rejected; native
+reboot remains reachable only after an exact pass.

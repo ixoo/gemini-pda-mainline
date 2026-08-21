@@ -64,6 +64,11 @@ Validation
 - Runtime safety mutations rejected: 15
 - Runtime attribution mutations rejected: 16
 
+These are the admission-time runtime-tool identities. The model-field newline
+correction made during the one live boot supersedes only the collector, remote
+probe, and offline-test identities; the exact correction and hashes are in
+`runtime-tool-format-correction-20260821.txt`. No candidate input changed.
+
 Runtime hypothesis
 ------------------
 

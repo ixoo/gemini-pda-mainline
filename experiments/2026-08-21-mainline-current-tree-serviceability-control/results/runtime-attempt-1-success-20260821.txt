@@ -1,0 +1,61 @@
+Current-tree serviceability control runtime attempt 1
+=====================================================
+
+Result: serviceable-control-pass
+Physical boot2 selections: 1
+Exact candidate full SHA-256:
+7084f2ee87af103dfcf1dfad9956f54c2a9df8d37b5f6d0388ba45464d8d52a3
+Mainline boot ID: c924ec72-69cb-4c2e-8495-b7993fd75d36
+Kernel release: 7.1.3-gemini-service-ctl
+Architecture: aarch64
+Runtime model: MT6797X
+CPU possible: 0-9
+CPU present: 0-9
+CPU online: 0-7
+CPU offline: 8-9
+UDC devices: 1
+Keyboard-matrix inputs: 1
+DA921x I2C clients: 1
+Same-value-write attributes: 0
+Clock-backend devices: 0
+BigiDVFS-backend devices: 0
+Protected-readback devices: 0
+Block-device mounts: 0
+Pstore files in mainline: 0
+Device partition reads from mainline: none
+Device storage writes from mainline: none
+Same-value action requests: none
+Protected-read requests: none
+Secure-call requests: none
+Owner-registration requests: none
+CPU-admission requests: none
+
+The initial strict classification rejected a model-field formatting defect and
+sent no reboot. The corrected read-only probe ran on the same mainline boot,
+passed the exact oracle, and then sent one native reboot through USB/netcat.
+
+Native reboot command: sent only after exact pass
+Native reboot netcat status: 0
+Changed-ID Gemian return: passed
+Returned Gemian boot ID: 95420439-c958-4eca-8c4d-9db2342755bf
+Returned kernel: 3.18.41+ aarch64
+Returned root: /dev/mmcblk0p29
+Post-return boot2 full SHA-256:
+7084f2ee87af103dfcf1dfad9956f54c2a9df8d37b5f6d0388ba45464d8d52a3
+
+Corrected private classification SHA-256:
+e62fa3d852431d0301aec25030a6e00f340f73cf064a13526529cead1c68abc8
+Corrected private observer-events SHA-256:
+65a857b71b3139389385e6d4a34479932d6a037d571ca6dd9d2ee0ac5451367b
+Corrected private runtime SHA-256:
+ed7e188e3dbb9e7f165cac0bb2a93ed6c0059c94b11f1f06770277aed9c9fd26
+Corrected private USB-topology SHA-256:
+6f4bdda5d9920a57bbe1b2d5c6b534fb77b8b0e14f0a6bcf4d8ec35a11b184f3
+Corrected private manifest SHA-256:
+332b8f657874db5c51034acfdb84675a265260f71bbce090ac50a94767b367fa
+
+Conclusion: the current canonical tree and proven serviceability DT contract
+are viable when the clock-entry/shared writer and same-value action are absent.
+This restores the CPU0--7 serviceability foundation and localizes the stopped
+clock-entry lineage to its experimental writer/configuration boundary. CPU8
+and CPU9 remain closed; no checkpoint-survival or CPU-admission claim follows.

@@ -72,6 +72,15 @@ def main() -> None:
             "DT CPU-node count changed")
     require(contract["candidate"]["negative_dtb_mutations_rejected"] == 15,
             "candidate mutation gate changed")
+    require(contract["runtime"]["physical_selections"] == 1,
+            "physical-selection count changed")
+    require(contract["runtime"]["classification"] == "serviceable-control-pass",
+            "runtime result changed")
+    require(contract["runtime"]["cpu_online"] == "0-7" and
+            contract["runtime"]["cpu_offline"] == "8-9",
+            "runtime CPU closure changed")
+    require(contract["runtime"]["action_requests"] == 0,
+            "runtime action scope changed")
 
     print("validation=current-tree-serviceability-control")
     print(f"profile={PROFILE}")
@@ -84,6 +93,7 @@ def main() -> None:
     print("device_access=none")
     print("hardware_write=none")
     print("boot_candidate=true")
+    print("runtime=serviceable-control-pass")
     print("result=pass")
 
 
