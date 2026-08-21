@@ -1,0 +1,287 @@
+From 74dfe36901692119a949973af6ea52fa9367a8f0 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 21 Aug 2026 16:01:00 +0000
+Subject: [PATCH] watchdog: mtk: capture raw boot status
+
+Capture one complete MT6797 status word before watchdog initialization and expose only an immutable typed snapshot.
+
+Add no reset classifier, lifecycle caller, hardware write, CPU operation, boot candidate, or device action.
+---
+ drivers/watchdog/Kconfig   |  21 ++++++
+ drivers/watchdog/mtk_wdt.c | 138 +++++++++++++++++++++++++++++++++++++
+ include/linux/mtk_wdt.h    |  30 ++++++++
+ 3 files changed, 189 insertions(+)
+ create mode 100644 include/linux/mtk_wdt.h
+
+diff --git a/drivers/watchdog/Kconfig b/drivers/watchdog/Kconfig
+index dc78729..5423cdb 100644
+--- a/drivers/watchdog/Kconfig
++++ b/drivers/watchdog/Kconfig
+@@ -926,6 +926,27 @@ config MEDIATEK_WATCHDOG
+ 	  To compile this driver as a module, choose M here: the
+ 	  module will be called mtk_wdt.
+ 
++config MEDIATEK_WATCHDOG_BOOT_STATUS_CAPTURE
++	bool "Capture raw MediaTek watchdog boot status"
++	depends on MEDIATEK_WATCHDOG=y
++	help
++	  Capture the complete raw boot-status word once, before watchdog
++	  initialization, on MediaTek variants with an audited status
++	  register. Expose only an immutable typed snapshot; this option
++	  does not classify reset provenance.
++
++config MEDIATEK_WATCHDOG_BOOT_STATUS_KUNIT_TEST
++	bool "KUnit tests for MediaTek watchdog boot-status capture"
++	depends on KUNIT=y
++	depends on MEDIATEK_WATCHDOG=y
++	select MEDIATEK_WATCHDOG_BOOT_STATUS_CAPTURE
++	help
++	  Test invalid, exact, every-bit, and immutable snapshot behavior
++	  without MMIO or watchdog operations. The suite has no production
++	  hook and does not interpret the raw status as reset provenance.
++
++	  If unsure, say N.
++
+ config DIGICOLOR_WATCHDOG
+ 	tristate "Conexant Digicolor SoCs watchdog support"
+ 	depends on ARCH_DIGICOLOR || COMPILE_TEST
+diff --git a/drivers/watchdog/mtk_wdt.c b/drivers/watchdog/mtk_wdt.c
+index c20f921..450f50e 100644
+--- a/drivers/watchdog/mtk_wdt.c
++++ b/drivers/watchdog/mtk_wdt.c
+@@ -26,6 +26,7 @@
+ #include <linux/kernel.h>
+ #include <linux/module.h>
+ #include <linux/moduleparam.h>
++#include <linux/mtk_wdt.h>
+ #include <linux/of.h>
+ #include <linux/platform_device.h>
+ #include <linux/reset-controller.h>
+@@ -33,6 +34,10 @@
+ #include <linux/watchdog.h>
+ #include <linux/interrupt.h>
+ 
++#if IS_ENABLED(CONFIG_MEDIATEK_WATCHDOG_BOOT_STATUS_KUNIT_TEST)
++#include <kunit/test.h>
++#endif
++
+ #define WDT_MAX_TIMEOUT		31
+ #define WDT_MIN_TIMEOUT		2
+ #define WDT_LENGTH_TIMEOUT(n)	((n) << 5)
+@@ -41,6 +46,7 @@
+ #define WDT_LENGTH_KEY		0x8
+ 
+ #define WDT_RST			0x08
++#define WDT_STATUS		0x0c
+ #define WDT_RST_RELOAD		0x1971
+ 
+ #define WDT_MODE		0x00
+@@ -79,12 +85,16 @@ struct mtk_wdt_dev {
+ 	bool reset_by_toprgu;
+ 	bool has_swsysrst_en;
+ 	bool use_auto_restart;
++#ifdef CONFIG_MEDIATEK_WATCHDOG_BOOT_STATUS_CAPTURE
++	struct mtk_wdt_boot_status boot_status;
++#endif
+ };
+ 
+ struct mtk_wdt_data {
+ 	int toprgu_sw_rst_num;
+ 	bool has_swsysrst_en;
+ 	bool use_auto_restart;
++	bool has_boot_status;
+ 	unsigned int restart_priority;
+ };
+ 
+@@ -102,6 +112,7 @@ static const struct mtk_wdt_data mt6795_data = {
+ 
+ static const struct mtk_wdt_data mt6797_data = {
+ 	.toprgu_sw_rst_num = MT6797_TOPRGU_SW_RST_NUM,
++	.has_boot_status = true,
+ 	.use_auto_restart = true,
+ 	.restart_priority = 255,
+ };
+@@ -135,6 +146,55 @@ static const struct mtk_wdt_data mt8195_data = {
+ 	.toprgu_sw_rst_num = MT8195_TOPRGU_SW_RST_NUM,
+ };
+ 
++#ifdef CONFIG_MEDIATEK_WATCHDOG_BOOT_STATUS_CAPTURE
++static void
++mtk_wdt_capture_boot_status(struct mtk_wdt_boot_status *status, u32 raw)
++{
++	if (READ_ONCE(status->valid))
++		return;
++
++	WRITE_ONCE(status->raw, raw);
++	/* Publish the complete raw word before marking it valid. */
++	smp_store_release(&status->valid, true);
++}
++
++static int
++mtk_wdt_copy_boot_status(const struct mtk_wdt_boot_status *status,
++			 struct mtk_wdt_boot_status *snapshot)
++{
++	if (!snapshot)
++		return -EINVAL;
++
++	*snapshot = (struct mtk_wdt_boot_status){};
++	/* Pair with capture so a valid snapshot observes the raw word. */
++	if (!smp_load_acquire(&status->valid))
++		return -ENODATA;
++
++	snapshot->raw = READ_ONCE(status->raw);
++	snapshot->valid = true;
++	return 0;
++}
++
++int mtk_wdt_boot_status_snapshot(struct device *dev,
++				 struct mtk_wdt_boot_status *snapshot)
++{
++	struct mtk_wdt_dev *mtk_wdt;
++
++	if (!snapshot)
++		return -EINVAL;
++	*snapshot = (struct mtk_wdt_boot_status){};
++	if (!dev)
++		return -EINVAL;
++
++	mtk_wdt = dev_get_drvdata(dev);
++	if (!mtk_wdt)
++		return -ENODEV;
++
++	return mtk_wdt_copy_boot_status(&mtk_wdt->boot_status, snapshot);
++}
++EXPORT_SYMBOL_GPL(mtk_wdt_boot_status_snapshot);
++#endif
++
+ /**
+  * toprgu_reset_sw_en_unlocked() - enable/disable software control for reset bit
+  * @data: Pointer to instance of driver data.
+@@ -440,6 +500,12 @@ static int mtk_wdt_probe(struct platform_device *pdev)
+ 	if (IS_ERR(mtk_wdt->wdt_base))
+ 		return PTR_ERR(mtk_wdt->wdt_base);
+ 
++#ifdef CONFIG_MEDIATEK_WATCHDOG_BOOT_STATUS_CAPTURE
++	if (wdt_data && wdt_data->has_boot_status)
++		mtk_wdt_capture_boot_status(&mtk_wdt->boot_status,
++					    readl(mtk_wdt->wdt_base + WDT_STATUS));
++#endif
++
+ 	irq = platform_get_irq_optional(pdev, 0);
+ 	if (irq > 0) {
+ 		err = devm_request_irq(&pdev->dev, irq, mtk_wdt_isr, 0, "wdt_bark",
+@@ -551,6 +617,78 @@ static struct platform_driver mtk_wdt_driver = {
+ 
+ module_platform_driver(mtk_wdt_driver);
+ 
++#if IS_ENABLED(CONFIG_MEDIATEK_WATCHDOG_BOOT_STATUS_KUNIT_TEST)
++static void mtk_wdt_boot_status_invalid_test(struct kunit *test)
++{
++	struct mtk_wdt_boot_status snapshot = {
++		.raw = U32_MAX,
++		.valid = true,
++	};
++	struct mtk_wdt_boot_status stored = {};
++
++	KUNIT_EXPECT_EQ(test, -ENODATA,
++			mtk_wdt_copy_boot_status(&stored, &snapshot));
++	KUNIT_EXPECT_EQ(test, 0U, snapshot.raw);
++	KUNIT_EXPECT_FALSE(test, snapshot.valid);
++}
++
++static void mtk_wdt_boot_status_exact_test(struct kunit *test)
++{
++	struct mtk_wdt_boot_status snapshot = {};
++	struct mtk_wdt_boot_status stored = {};
++
++	mtk_wdt_capture_boot_status(&stored, 0xa5c33ca5);
++	KUNIT_ASSERT_EQ(test, 0,
++			mtk_wdt_copy_boot_status(&stored, &snapshot));
++	KUNIT_EXPECT_EQ(test, 0xa5c33ca5U, snapshot.raw);
++	KUNIT_EXPECT_TRUE(test, snapshot.valid);
++}
++
++static void mtk_wdt_boot_status_every_bit_test(struct kunit *test)
++{
++	unsigned int bit;
++
++	for (bit = 0; bit < 32; bit++) {
++		struct mtk_wdt_boot_status snapshot = {};
++		struct mtk_wdt_boot_status stored = {};
++
++		mtk_wdt_capture_boot_status(&stored, BIT(bit));
++		KUNIT_ASSERT_EQ(test, 0,
++				mtk_wdt_copy_boot_status(&stored, &snapshot));
++		KUNIT_EXPECT_EQ(test, BIT(bit), snapshot.raw);
++		KUNIT_EXPECT_TRUE(test, snapshot.valid);
++	}
++}
++
++static void mtk_wdt_boot_status_immutable_test(struct kunit *test)
++{
++	struct mtk_wdt_boot_status snapshot = {};
++	struct mtk_wdt_boot_status stored = {};
++
++	mtk_wdt_capture_boot_status(&stored, 0x13579bdf);
++	mtk_wdt_capture_boot_status(&stored, 0xeca86420);
++	KUNIT_ASSERT_EQ(test, 0,
++			mtk_wdt_copy_boot_status(&stored, &snapshot));
++	KUNIT_EXPECT_EQ(test, 0x13579bdfU, snapshot.raw);
++	KUNIT_EXPECT_TRUE(test, snapshot.valid);
++}
++
++static struct kunit_case mtk_wdt_boot_status_cases[] = {
++	KUNIT_CASE(mtk_wdt_boot_status_invalid_test),
++	KUNIT_CASE(mtk_wdt_boot_status_exact_test),
++	KUNIT_CASE(mtk_wdt_boot_status_every_bit_test),
++	KUNIT_CASE(mtk_wdt_boot_status_immutable_test),
++	{}
++};
++
++static struct kunit_suite mtk_wdt_boot_status_suite = {
++	.name = "mtk-wdt-boot-status",
++	.test_cases = mtk_wdt_boot_status_cases,
++};
++
++kunit_test_suite(mtk_wdt_boot_status_suite);
++#endif
++
+ module_param(timeout, uint, 0);
+ MODULE_PARM_DESC(timeout, "Watchdog heartbeat in seconds");
+ 
+diff --git a/include/linux/mtk_wdt.h b/include/linux/mtk_wdt.h
+new file mode 100644
+index 0000000..17129d0
+--- /dev/null
++++ b/include/linux/mtk_wdt.h
+@@ -0,0 +1,30 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef _LINUX_MTK_WDT_H
++#define _LINUX_MTK_WDT_H
++
++#include <linux/errno.h>
++#include <linux/types.h>
++
++struct device;
++
++struct mtk_wdt_boot_status {
++	u32 raw;
++	bool valid;
++};
++
++#ifdef CONFIG_MEDIATEK_WATCHDOG_BOOT_STATUS_CAPTURE
++int mtk_wdt_boot_status_snapshot(struct device *dev,
++				 struct mtk_wdt_boot_status *snapshot);
++#else
++static inline int
++mtk_wdt_boot_status_snapshot(struct device *dev,
++			     struct mtk_wdt_boot_status *snapshot)
++{
++	(void)dev;
++	if (snapshot)
++		*snapshot = (struct mtk_wdt_boot_status){};
++	return -EOPNOTSUPP;
++}
++#endif
++
++#endif

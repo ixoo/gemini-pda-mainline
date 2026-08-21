@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-21-mainline-mtk-wdt-boot-status-capture` |
-| Status | implementation and Git-pinned Buildbox generation lane prepared |
+| Status | canonical patch generated and strictly validated; Buildbox proof pending |
 | Subsystem | MediaTek TOPRGU watchdog reset-status observation |
 | Device variant | MT6797/Gemini contract; hardware-free implementation phase |
 | Date(s) | 2026-08-21 America/New_York |
@@ -59,6 +59,8 @@ reboot, or shut down hardware.
   records the passing repository and generation-lane validation.
 - [`results/patch-generation-attempt-1-checkpatch-20260821.txt`](results/patch-generation-attempt-1-checkpatch-20260821.txt)
   records the first attempt's strict style rejection and cleanup boundary.
+- [`results/patch-generation-validated-20260821.txt`](results/patch-generation-validated-20260821.txt)
+  records the corrected patch's exact Buildbox identity and safety result.
 - [`source/mtk_wdt.h`](source/mtk_wdt.h) is the deterministic new-header input.
 - [`scripts/source_edits.py`](scripts/source_edits.py) applies the source delta.
 - [`scripts/validate_source.py`](scripts/validate_source.py) enforces ordering,
@@ -67,6 +69,12 @@ reboot, or shut down hardware.
   generated patch.
 - [`scripts/generate-on-buildbox`](scripts/generate-on-buildbox) generates,
   replays, and strictly checks the patch from the exact managed source.
+- [`scripts/run-kunit-qemu`](scripts/run-kunit-qemu) accepts only the exact
+  checksum-covered focused profile and runs it without networking.
+- [`scripts/classify-kunit.py`](scripts/classify-kunit.py) requires the exact
+  four-case KTAP inventory and terminal post-test rootfs panic.
+- [`scripts/test-kunit-classifier.py`](scripts/test-kunit-classifier.py) rejects
+  mutated plans, cases, failures, and terminal state.
 - [`scripts/validate.py`](scripts/validate.py) validates the repository-side
   design and generation lane.
 
@@ -101,13 +109,17 @@ After committing and pushing a clean input:
 
 ## Observations
 
-The source design and generation lane are prepared. Repository validation,
+The source design and generation lane are validated. Repository validation,
 `bash -n`, ShellCheck, and whitespace validation pass. The first exact
 Buildbox generation passed source and patch-semantic validation, then strict
 checkpatch rejected one short Kconfig help block and three uncommented memory
 barriers. Its partial package was removed and no job was admitted. Those
-review findings are corrected for a distinct second attempt. No validated
-patch, compile, QEMU, boot, or device result is claimed yet.
+review findings were corrected for a distinct second attempt. Buildbox
+generated canonical patch `0303`, replayed it byte-for-byte, passed exact
+source validation, and passed strict checkpatch with zero errors, warnings, or
+checks. The checksum-validated review package was fetched and its exact patch
+is admitted with isolated source and KUnit profiles. Compile and QEMU proof
+remain pending; no boot or device result is claimed.
 
 ## Analysis
 
@@ -125,9 +137,9 @@ not add device discovery or a production consumer.
 
 ## Conclusion
 
-`inconclusive` until corrected Buildbox generation, strict patch validation,
-compile, and focused KUnit pass. The source design is ready for that hardware-
-free proof and authorizes no device work.
+`confirmed` for deterministic patch generation, replay, semantic validation,
+and strict style at the exact revisions. `Inconclusive` for compile and focused
+KUnit until the isolated Buildbox proof passes. This authorizes no device work.
 
 ## Follow-up
 

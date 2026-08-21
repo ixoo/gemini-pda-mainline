@@ -292,3 +292,4 @@ v7.1.3/0299-regulator-test-DA921x-pre-P28-membership-abort.patch
 v7.1.3/0300-regulator-move-DA921x-membership-test-state-off-stack.patch
 v7.1.3/0301-arm64-reject-malformed-A72-provider-release-ABI.patch
 v7.1.3/0302-arm64-add-A72-A34-eligibility-evaluator.patch
+v7.1.3/0303-watchdog-mtk-capture-raw-boot-status.patch

@@ -1,0 +1,4 @@
+# Default-off raw MT6797 TOPRGU status capture. This records one immutable
+# observation and does not classify reset provenance or call the A34 owner.
+CONFIG_MEDIATEK_WATCHDOG_BOOT_STATUS_CAPTURE=y
+CONFIG_LOCALVERSION="-gemini-mtk-wdt-boot-status"

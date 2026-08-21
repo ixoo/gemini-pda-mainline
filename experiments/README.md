@@ -24,11 +24,12 @@ the loop. Positive identity-gated observations are unaffected.
 ### Current DA921x, I2C6, and A72 line
 
 - [2026-08-21 mainline MTK watchdog boot-status capture](2026-08-21-mainline-mtk-wdt-boot-status-capture/README.md)
-  — prepares the default-off implementation selected by the A34 authority
-  audit: one MT6797-only raw status read before watchdog initialization, an
-  immutable typed snapshot, and four MMIO-free KUnit cases. The Git-pinned
-  Buildbox generation lane is ready; no classifier, lifecycle caller, boot
-  candidate, or device action exists.
+  — implements the default-off boundary selected by the A34 authority audit:
+  one MT6797-only raw status read before watchdog initialization, an immutable
+  typed snapshot, and four MMIO-free KUnit cases. Canonical patch `0303`
+  passed deterministic Buildbox generation, replay, semantic validation, and
+  strict style; compile and QEMU proof remain pending. No classifier,
+  lifecycle caller, boot candidate, or device action exists.
 - [2026-08-21 mainline A72 A34 provenance-owner audit](2026-08-21-mainline-a72-a34-provenance-owner-audit/README.md)
   — proves that pinned LK preserves raw TOPRGU `WDT_STATUS` and selects a
   one-read capture before mainline watchdog initialization. It separately

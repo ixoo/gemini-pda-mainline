@@ -19,6 +19,15 @@
     "mtk_wdt_source_sha256": "08c7e94770ad4ccbf299beca17fe43de473167a1dde12fa0bd4d8dd159c4714d"
   },
   "expected_patch": "patches/v7.1.3/0303-watchdog-mtk-capture-raw-boot-status.patch",
+  "expected_patch_sha256": "29fbdb0190d3dd3931839bbb6f0ea936cf4e0c4219f44b4e183422a343cae97a",
+  "validated_generation": {
+    "repository_commit": "0058cefd4ad9c85904ba9e7dda839bb26055ed33",
+    "package": "mtk-wdt-boot-status-patch-0058cefd4ad9",
+    "sha256_manifest": "27de0b1e1947229bb573a48dfc8d67c288d033fc260aced96ec84cad5b5f31aa",
+    "generation_provenance_sha256": "276debe72b2ad8d6dd97f77d9347acd5a1c54b85c4a193274464831200570b81",
+    "checkpatch_sha256": "baf2114408b6d89419b4f34245abbeda084d1e93c249a47d678d7cefe1ed33d5",
+    "result_commit": "74dfe36901692119a949973af6ea52fa9367a8f0"
+  },
   "tests": {
     "cases": ["invalid", "exact", "every-bit", "immutable"],
     "mmio": false,

@@ -1,0 +1,4 @@
+# Hardware-free invalid, exact, every-bit, and immutable snapshot coverage.
+CONFIG_KUNIT=y
+CONFIG_MEDIATEK_WATCHDOG_BOOT_STATUS_KUNIT_TEST=y
+CONFIG_LOCALVERSION="-gemini-mtk-wdt-boot-status-kunit"

@@ -152,6 +152,13 @@ Git-pinned generation contract:
 It returns one checksum-validated patch review and never copies a kernel source
 tree between the host and Buildbox.
 
+After canonical admission, compile and fetch the isolated focused profile with:
+
+```sh
+KERNEL_PROFILE=mtk-wdt-boot-status-kunit ./scripts/build-kernel --backend buildbox
+KERNEL_PROFILE=mtk-wdt-boot-status-kunit ./scripts/buildbox fetch-package
+```
+
 The lane verifies the managed Linux source state and every edited parent file,
 generates one normal `git format-patch` with an explicitly synthetic,
 non-certifying experiment author, replays it, runs source and strict style
