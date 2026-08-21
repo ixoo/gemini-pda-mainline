@@ -5,9 +5,18 @@
 Buildbox generation, canonical admission, the exact isolated kernel build, and
 offline boot-image validation are complete. The package, merged configuration,
 linked symbols, candidate DTB, and Android-v0/LK container pass their exact
-gates. Live TEE identity validation and guarded deployment are pending. No
-secure read, hardware semaphore access, or device action has yet occurred in
-this experiment.
+gates. The live TEE identity gate also passes; guarded deployment is deferred
+only by the power gate. No protected firmware API read, hardware semaphore
+access, `boot2` write, or boot has yet occurred in this experiment.
+
+One guarded deployment attempt reached the exact known-good Gemian system. An
+independent live-GPT check then confirmed that both unmounted 5 MiB `tee1` and
+`tee2` partitions match the required audited payload. The installer stopped
+before staging or writing because the battery was 38% and no external source
+was online; its gate requires at least 40% with external power or 80% without
+it. The device was deliberately left running because no successful write had
+occurred. See
+[`results/deployment-attempt-1-power-gate.txt`](results/deployment-attempt-1-power-gate.txt).
 
 ## Question
 

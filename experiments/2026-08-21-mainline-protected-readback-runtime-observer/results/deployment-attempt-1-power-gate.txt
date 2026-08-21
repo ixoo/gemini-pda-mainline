@@ -1,0 +1,51 @@
+Protected-readback candidate deployment attempt 1
+=================================================
+
+Result: deferred before staging or write
+Power recheck UTC: 2026-08-21T17:46:35Z
+Live kernel: 3.18.41+
+Live architecture: aarch64
+Live system state: running
+Passwordless sudo: available
+
+Named firmware gate
+-------------------
+
+tee1 target: /dev/mmcblk0p24
+tee1 size: 5242880
+tee1 SHA-256: 2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3
+tee2 target: /dev/mmcblk0p25
+tee2 size: 5242880
+tee2 SHA-256: 2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3
+Distinct targets: yes
+Live GPT and by-partlabel agreement: yes
+Mounted: no
+Expected audited SHA-256: 2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3
+Firmware gate: pass
+Partition copies made: no
+
+Power gate
+----------
+
+Battery present: 1
+Battery capacity: 38
+Battery health: Good
+AC online: 0
+USB online: 0
+Wireless online: 0
+Required: capacity at least 80, or capacity at least 40 with external power
+Power gate: fail
+
+Effects and disposition
+-----------------------
+
+Candidate staged: no
+boot2 write attempted: no
+boot2 predecessor checksum recorded: no
+Device storage write: no
+Shutdown requested: no
+Device remained in known-good Gemian: yes
+
+The firmware prerequisite is now confirmed on the live named device. Retry the
+same exact guarded installer only after the documented power threshold passes;
+no build or candidate change is indicated by this refusal.

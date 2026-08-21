@@ -100,6 +100,26 @@
     "live_tee_identity_gate": true,
     "probe_device_actions": false
   },
+  "deployment": {
+    "result": "deferred_power_gate",
+    "attempts": 1,
+    "live_os": "3.18.41+",
+    "live_architecture": "aarch64",
+    "tee1_target": "/dev/mmcblk0p24",
+    "tee2_target": "/dev/mmcblk0p25",
+    "tee_partition_size": 5242880,
+    "tee1_sha256": "2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3",
+    "tee2_sha256": "2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3",
+    "power_recheck_utc": "2026-08-21T17:46:35Z",
+    "battery_present": true,
+    "battery_capacity_percent": 38,
+    "battery_health": "Good",
+    "external_power_online": false,
+    "candidate_staged": false,
+    "boot2_written": false,
+    "shutdown_requested": false,
+    "next_action": "retry after the documented power threshold passes"
+  },
   "runtime": null,
   "named_firmware_gate": {
     "logical_partitions": ["tee1", "tee2"],
@@ -121,7 +141,9 @@
     "cpu_on": false,
     "cpu_off": false,
     "cpu8_cpu9_admission": "closed",
-    "device_action": false,
+    "device_access": true,
+    "device_partition_reads": ["tee1", "tee2"],
+    "device_storage_write": false,
     "boot_candidate": true
   }
 }
