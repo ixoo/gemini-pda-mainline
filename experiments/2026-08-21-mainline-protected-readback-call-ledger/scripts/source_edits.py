@@ -111,8 +111,7 @@ static bool gemini_prb_exact_dt(void)
 
 	if (!of_machine_is_compatible("planet,gemini-pda") ||
 	    of_property_read_string(of_root, "model", &model) ||
-	    strcmp(model, "Planet Computers Gemini PDA "
-		   "(protected readback observer)"))
+	    strcmp(model, "MT6797X"))
 		return false;
 
 	node = of_find_node_by_path("/reserved-memory/ramoops@44410000");

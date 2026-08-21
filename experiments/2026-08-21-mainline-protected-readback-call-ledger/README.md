@@ -28,8 +28,9 @@ the final two dmesg zones of the existing Gemini persistent-RAM reservation:
 2. slot 174 at `0x444be000`, only after that call returns and immediately
    before BigiDVFS.
 
-The first call validates the exact Gemini model, the full DT ramoops contract,
-and valid empty headers in all four final zones before writing anything. The
+The first call validates the proven post-LK `MT6797X` model together with the
+retained `planet,gemini-pda` compatibility, the full DT ramoops contract, and
+valid empty headers in all four final zones before writing anything. The
 second accepts only the exact first record plus the other three valid empty
 headers. Each writer copies the fixed payload before metadata, orders every
 commit, performs a full header-and-payload readback, never retries, never
@@ -64,6 +65,12 @@ the candidate's own fail-closed DT/header validation.
 - No native VM kernel build is permitted.
 - The patch uses a synthetic, non-certifying experiment author with no DCO
   sign-off and is not submission-ready.
+
+The first fully generated review bundle passed its automated source, replay,
+and strict-style gates but was rejected during manual admission review: it
+required the pre-LK derivative model string even though pinned LK rewrites the
+runtime root model to `MT6797X`. It was not admitted, compiled, or used on the
+device. The generator now pins the proven post-LK fingerprint instead.
 
 ## Scope and safety
 

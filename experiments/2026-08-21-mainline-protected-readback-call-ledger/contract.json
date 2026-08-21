@@ -20,6 +20,8 @@
     "candidate_slot_count": 4,
     "slot_size": 4096,
     "signature": "0x43474244",
+    "post_lk_model": "MT6797X",
+    "retained_machine_compatible": "planet,gemini-pda",
     "owned_slots": [173, 174],
     "owned_addresses": ["0x444bd000", "0x444be000"],
     "maximum_writes": 2,
