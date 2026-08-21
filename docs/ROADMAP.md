@@ -4493,13 +4493,31 @@ remains unexecuted because the consumer is disabled. The targeted binding
 schema check is explicitly not run because Buildbox lacks `dtschema`; its
 structural experiment validator and strict checkpatch passed.
 
-This closes the immutable copy transport only. The next ordered boundary is a
-fresh audit for an independent secure-platform epoch attestation source. It
-must not promote or combine correlated reset-history fields (ram-console,
-TOPRGU status, or LK boot reason) into authority. Until that audit identifies
-an owner-safe input with an independently testable lifecycle, the reset
-combiner, production A34 caller, lifecycle opener, CPU8 request, boot image,
-and device attempt remain closed.
+This closes the immutable copy transport only.
+
+The
+[secure replay epoch audit](../experiments/2026-08-21-mainline-secure-replay-epoch-audit/README.md)
+then closes the private replay initialization half of A34. Both retained
+preloader boot regions are byte-identical, both retained TEE slots contain the
+same exact secure payload, and the regular preloader path loads `tee1` with a
+`tee2` fallback before ATF handoff. Most importantly, primary BL31 entry calls
+an explicit zero helper over `[0x11d340, 0x122acc)`, which contains the private
+A72 replay ledger at analysis address `0x11ea24`. The helper performs paired
+zero stores plus a byte tail; the result does not depend on image padding,
+DRAM loss, Linux zero state, or preserved ATF logs. A26 prevents the only
+pre-A34 set writer.
+
+This proof is conditional on separately established platform/external-reset
+provenance. It does not accept ordinary Linux reboot, add a kernel-visible
+secure-image measurement, or promote correlated ram-console, TOPRGU, and LK
+boot-reason fields into authority. The next ordered boundary is therefore a
+strict platform/external reset-classifier audit using the already implemented
+immutable TOPRGU and retained ram-console snapshots. It must prove reset to
+the regular preloader/primary-BL31 path and sufficient recovery of every A34
+hardware/cross-owner prefix, reject unknown or contradictory values, and add
+no production caller. Until that classifier is frozen and proven, the
+production A34 owner, lifecycle opener, CPU8 request, boot image, and device
+attempt remain closed.
 
 The eventual CPU8 candidate must have a single CPU8 request, strict
 checkpoints before and after each power step, a bounded timeout, and a

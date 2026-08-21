@@ -1,0 +1,14 @@
+id	owner	address_or_identity	observation	decision
+S01	preloader-storage	sha256-25319ce877bd17b204fa264645aebf4583ec10ae2f05f6d8a7fff5efe4c06246	two-boot-region-images-byte-identical	confirm
+S02	secure-storage	sha256-2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3	tee1-and-tee2-byte-identical	confirm
+S03	regular-preloader	0x20e4d2	primary-authenticated-tee1-load-call	confirm
+S04	regular-preloader	0x20e4fc	tee2-load-call-only-after-tee1-failure	confirm
+S05	preloader-header-parser	0x2134a8	requires-MediaTek-magic-0x58881688	confirm
+S06	regular-preloader	0x20e540	ATF-handoff-call-reached-from-success-join	confirm
+S07	BL31-primary-entry	0x1000f4	calls-zero-helper-with-start-0x11d340-size-0x578c	confirm
+S08	BL31-zero-helper	0x11053c	aligned-paired-zero-stores-plus-byte-tail	confirm
+S09	BL31-private-replay	0x11ea24	inside-cleared-range-0x11d340-through-0x122acc-exclusive	confirm-owner-safe-zero-after-primary-entry
+S10	BL31-writer-inventory	prior-frozen-xrefs	CPU_ON-sets-and-deferred-teardown-clears;A26-vetoes-set-before-A34	confirm-preservation
+N01	ATF-log	retained-control-buffer	can-preserve-abnormal-boot-content-and-has-no-unique-secure-generation	reject-as-attestation
+N02	reset-history	TOPRGU-plus-ram-console-plus-LK-reason	correlated-reset-observations-do-not-classify-platform-strength-by-themselves	defer-to-reset-classifier
+N03	production-A34	current-mainline	separate-platform-or-external-reset-and-complete-Linux-tuple-still-missing	keep-closed

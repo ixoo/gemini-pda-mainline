@@ -23,6 +23,14 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-21 mainline secure replay epoch audit](2026-08-21-mainline-secure-replay-epoch-audit/README.md)
+  — confirms from the exact duplicate preloader and `tee1`/`tee2` images that
+  the regular secure handoff reaches a BL31 primary entry which explicitly
+  zeroes the complete BSS range containing the private A72 replay ledger. This
+  closes the private replay-zero prerequisite only after separately proven
+  platform/external-reset provenance. Preserved ATF logs and the known reset-
+  history fields remain rejected as standalone authority; ordinary Linux
+  reboot, the production A34 owner, CPU8, and device action remain closed.
 - [2026-08-21 mainline MediaTek retained ram-console copy owner](2026-08-21-mainline-mtk-ram-console-copy-owner/README.md)
   — admits canonical patches `0305`--`0307`: a closed binding, one-shot
   transient `MEMREMAP_WB`/full-copy/unmap owner, immutable typed publication,
@@ -30,9 +38,9 @@ the loop. Positive identity-gated observations are unaffected.
   links the kernel and Gemini DTB, and its sole network-free QEMU suite passes
   all seven injected-memory cases with zero failures or skips. The targeted
   binding check is explicitly unrun because Buildbox lacks `dtschema`; the
-  production physical mapping remains unexecuted. No classifier, secure-epoch
-  authority, A34 caller, boot candidate, hardware write, or device action was
-  added.
+  production physical mapping remains unexecuted. No classifier, A34 caller,
+  boot candidate, hardware write, or device action was added; the follow-on
+  secure replay audit owns the refined epoch result.
 - [2026-08-21 retained ram-console copy-owner audit](2026-08-21-mainline-retained-ram-console-copy-owner-audit/README.md)
   — selects a normal default-off platform consumer with one
   `memory-region` reference to the exact 64 KiB `no-map` reservation. The
@@ -40,8 +48,9 @@ the loop. Positive identity-gated observations are unaffected.
   before parsing, and publishes only the immutable typed snapshot. Pinned LK
   writers finish before Linux handoff and current mainline has no physical
   writer; generic NVMEM, a magic address, persistent mapping, and direct
-  physical parsing are rejected. Independent secure-epoch attestation remains
-  unresolved, so A34 and CPU8/CPU9 stay closed.
+  physical parsing are rejected. Secure-epoch attestation was unresolved
+  within this audit and is refined by the follow-on secure replay audit; A34
+  and CPU8/CPU9 stay closed.
 - [2026-08-21 mainline MediaTek retained ram-console parser](2026-08-21-mainline-mtk-ram-console-parser/README.md)
   — admits canonical patch `0304`, a default-off parser for a caller-owned
   retained-header copy. The fourth exact Buildbox generation passed source

@@ -1,0 +1,11 @@
+audit=pass
+repository_input=b597ea85c3069b477ae41ad62f025b498e62cf17
+control_flow_rows=13
+tee_slots=byte-identical
+secure_bss_range=0x11d340-0x122acc-exclusive
+private_replay_ledger=0x11ea24
+private_replay_owner_safe_zero=confirmed-after-primary-entry
+ordinary_linux_reboot_provenance=still-rejected
+next=strict-platform-external-reset-classifier-audit
+a34_owner=closed
+device_action=none
