@@ -102,3 +102,10 @@ Kconfig hash but mistakenly compared the marker with the separate full-tree
 integrity digest. Exact commit `c9eff26` failed closed before creating an
 artifact. The generator now pins both values independently; see
 [`results/fix-generation-attempt-2-integrity-rejected.txt`](results/fix-generation-attempt-2-integrity-rejected.txt).
+
+Exact commit `985f475` then passed the parent integrity, parent Kconfig, source
+edit, and corrected Kconfig gates. Its patch-shape validator rejected the
+generated subject because the validator accidentally omitted the word `make`
+from the exact expected subject. No patch was admitted; the exact string check
+is corrected in
+[`results/fix-generation-attempt-3-subject-rejected.txt`](results/fix-generation-attempt-3-subject-rejected.txt).

@@ -1,0 +1,29 @@
+clock-backend entry-ledger correction generation attempt 3
+===========================================================
+
+Repository commit: 985f475de54afb5b72316a76c1ee08708be14bf6
+Backend: buildbox
+
+Result
+------
+
+parent_source_integrity=pass
+parent_kconfig_validation=pass
+source_edit=pass
+corrected_kconfig_validation=pass
+stage=generated-patch-shape-validation
+result=rejected
+reason=validator_subject_literal_omitted_make
+artifact_produced=false
+boot_candidate=false
+device_action=none
+native_vm_build=none
+
+Correction
+----------
+
+The generated commit subject is `pstore: make protected-readback base writer
+usable by clock entry ledger`. The patch validator expected the same subject
+without `make`, so its literal substring could not match. Correct only that
+expected literal and retain every source, patch-scope, replay, and checkpatch
+gate.
