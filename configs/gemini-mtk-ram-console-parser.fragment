@@ -1,0 +1,4 @@
+# Default-off strict parser for a caller-owned retained-header copy. This does
+# not locate or map physical memory and does not classify reset provenance.
+CONFIG_MTK_RAM_CONSOLE_PARSER=y
+CONFIG_LOCALVERSION="-gemini-mtk-ram-console-parser"

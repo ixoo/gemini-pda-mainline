@@ -1186,6 +1186,37 @@
                     "configs/gemini-mtk-wdt-boot-status-kunit.fragment"
                 ]
             },
+            "mtk-ram-console-parser": {
+                "base": "defconfig",
+                "fragments": [
+                    "configs/gemini-handoff.fragment",
+                    "configs/gemini-usbdiag.fragment",
+                    "configs/gemini-clk-ignore-unused.fragment",
+                    "configs/gemini-observability.fragment",
+                    "configs/gemini-fbcon-rotation.fragment",
+                    "configs/gemini-keyboard.fragment",
+                    "configs/gemini-keyboard-wrrd.fragment",
+                    "configs/gemini-keyboard-manual-reboot.fragment",
+                    "configs/gemini-smp8.fragment",
+                    "configs/gemini-mtk-ram-console-parser.fragment"
+                ]
+            },
+            "mtk-ram-console-parser-kunit": {
+                "base": "defconfig",
+                "fragments": [
+                    "configs/gemini-handoff.fragment",
+                    "configs/gemini-usbdiag.fragment",
+                    "configs/gemini-clk-ignore-unused.fragment",
+                    "configs/gemini-observability.fragment",
+                    "configs/gemini-fbcon-rotation.fragment",
+                    "configs/gemini-keyboard.fragment",
+                    "configs/gemini-keyboard-wrrd.fragment",
+                    "configs/gemini-keyboard-manual-reboot.fragment",
+                    "configs/gemini-smp8.fragment",
+                    "configs/gemini-mtk-ram-console-parser.fragment",
+                    "configs/gemini-mtk-ram-console-parser-kunit.fragment"
+                ]
+            },
             "da921x-legacy-lifecycle": {
                 "base": "defconfig",
                 "fragments": [

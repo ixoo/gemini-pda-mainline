@@ -149,6 +149,14 @@ Git-pinned generation contract:
 ./scripts/buildbox fetch-mtk-wdt-boot-status-patch
 ```
 
+The pure retained ram-console parser also uses that contract and produces one
+parser-only patch review:
+
+```sh
+./scripts/buildbox generate-mtk-ram-console-parser-patch
+./scripts/buildbox fetch-mtk-ram-console-parser-patch
+```
+
 It returns one checksum-validated patch review and never copies a kernel source
 tree between the host and Buildbox.
 
@@ -159,12 +167,20 @@ KERNEL_PROFILE=mtk-wdt-boot-status-kunit ./scripts/build-kernel --backend buildb
 KERNEL_PROFILE=mtk-wdt-boot-status-kunit ./scripts/buildbox fetch-package
 ```
 
-The lane verifies the managed Linux source state and every edited parent file,
+The corresponding parser-only compile and fetch commands are:
+
+```sh
+KERNEL_PROFILE=mtk-ram-console-parser-kunit ./scripts/build-kernel --backend buildbox
+KERNEL_PROFILE=mtk-ram-console-parser-kunit ./scripts/buildbox fetch-package
+```
+
+Each lane verifies the managed Linux source state and every edited parent file,
 generates one normal `git format-patch` with an explicitly synthetic,
 non-certifying experiment author, replays it, runs source and strict style
 validation, and exports only its checksum-covered patch review and provenance.
-It does not compile a kernel, install a boot candidate, access the Gemini, open
-the A72 lifecycle owner, perform a hardware action, or issue `CPU_ON`/`CPU_OFF`.
+The generation lanes do not compile a kernel, install a boot candidate, access
+the Gemini, open the A72 lifecycle owner, perform a hardware action, or issue
+`CPU_ON`/`CPU_OFF`.
 
 ## Gemian pre-isolation rollback patch-generation lane
 

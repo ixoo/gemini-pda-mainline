@@ -23,6 +23,20 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-21 mainline MediaTek retained ram-console parser](2026-08-21-mainline-mtk-ram-console-parser/README.md)
+  — admits canonical patch `0304`, a default-off parser for a caller-owned
+  retained-header copy. The fourth exact Buildbox generation passed source
+  semantics, byte-for-byte replay, and strict style after three preserved
+  alignment-only rejections. It returns all 32 raw preloader-status bits plus
+  validity and adds no mapping, classifier, A34 caller, hardware action, boot
+  candidate, or device action. Exact Buildbox compile and focused eight-case
+  QEMU proof remain pending.
+- [2026-08-21 retained ram-console authority audit](2026-08-21-mainline-retained-ram-console-authority-audit/README.md)
+  — freezes the common 64-byte header, exact PL/LK record chains, current
+  preloader raw-status location, and strict corruption behavior from pinned
+  public sources. It selects only a caller-buffer parser and rejects the known
+  reset-history fields, separately or combined, as proof of a fresh secure
+  payload epoch.
 - [2026-08-21 mainline MTK watchdog boot-status capture](2026-08-21-mainline-mtk-wdt-boot-status-capture/README.md)
   — implements the default-off boundary selected by the A34 authority audit:
   one MT6797-only raw status read before watchdog initialization, an immutable

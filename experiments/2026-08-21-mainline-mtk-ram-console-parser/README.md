@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-21-mainline-mtk-ram-console-parser` |
-| Status | three strict alignment rejections recorded; corrected generation lane prepared |
+| Status | canonical patch `0304` generated, replayed, and admitted; compile and QEMU pending |
 | Subsystem | MediaTek retained preloader/LK ram-console wire format |
 | Device variant | MT6797/Gemini contract; hardware-free implementation phase |
 | Date(s) | 2026-08-21 America/New_York |
@@ -55,6 +55,9 @@ reboot, or shut down hardware.
   records the second exact generation's narrower alignment rejection.
 - [`results/patch-generation-attempt-3-checkpatch-20260821.txt`](results/patch-generation-attempt-3-checkpatch-20260821.txt)
   records the third exact generation's prototype-only alignment rejection.
+- [`results/patch-generation-validated-20260821.txt`](results/patch-generation-validated-20260821.txt)
+  records the fourth exact generation's package, patch, replay, and clean
+  strict-check identities.
 - [`source/mtk-ram-console.c`](source/mtk-ram-console.c) and
   [`source/mtk-ram-console.h`](source/mtk-ram-console.h) are deterministic
   source inputs.
@@ -65,6 +68,11 @@ reboot, or shut down hardware.
   generated one-patch review.
 - [`scripts/generate-on-buildbox`](scripts/generate-on-buildbox) generates,
   replays, and strictly checks the patch from the managed source.
+- [`scripts/run-kunit-qemu`](scripts/run-kunit-qemu) and
+  [`scripts/classify-kunit.py`](scripts/classify-kunit.py) require the exact
+  checksum-validated KUnit package and classify only the eight-case suite.
+- [`scripts/test-kunit-classifier.py`](scripts/test-kunit-classifier.py)
+  exercises the evidence classifier without a kernel build.
 - [`scripts/validate.py`](scripts/validate.py) validates the repository-side
   design and generation lane.
 
@@ -74,11 +82,21 @@ Repository validation:
 python3 experiments/2026-08-21-mainline-mtk-ram-console-parser/scripts/validate.py
 ```
 
-After committing and pushing a clean input:
+The completed generation used:
 
 ```sh
 ./scripts/buildbox generate-mtk-ram-console-parser-patch
 ./scripts/buildbox fetch-mtk-ram-console-parser-patch
+```
+
+After canonical admission is committed and pushed, compile and fetch only the
+focused profile:
+
+```sh
+KERNEL_PROFILE=mtk-ram-console-parser-kunit \
+  ./scripts/build-kernel --backend buildbox
+KERNEL_PROFILE=mtk-ram-console-parser-kunit \
+  ./scripts/buildbox fetch-package
 ```
 
 ## Procedure
@@ -108,10 +126,15 @@ second exact Buildbox attempt rejected that remaining check. Correcting both
 continuations then made the split definition pass, while the one-line `int`
 prototype required its original four-column offset; the third exact attempt
 rejected only that prototype. All three partial packages were removed and no
-patch was admitted. Definition and prototype now each align with their own
-opening parenthesis for a distinct fourth attempt. No validated generated
-patch, compile result, QEMU result, physical capture, reset interpretation,
-boot candidate, or device result is claimed yet.
+patch was admitted from them. Definition and prototype were then aligned with
+their respective opening parentheses. The fourth exact Buildbox generation
+passed source semantics, one-patch inventory, byte-for-byte replay, and strict
+checkpatch with zero errors, warnings, or checks across 397 lines. Its generated
+patch SHA-256 is
+`5d0f76141311b3036eddeca5672ef090d36b1fd040038a2bd011373ac9a1fc99`;
+canonical patch `0304` is byte-identical and isolated source and KUnit profiles
+are admitted. No compile result, QEMU result, physical capture, reset
+interpretation, boot candidate, or device result is claimed yet.
 
 ## Analysis
 
@@ -123,13 +146,14 @@ owner; it does not make them safe.
 
 ## Conclusion
 
-`inconclusive` pending exact Buildbox generation, replay, strict style review,
-cross-compile, and focused KUnit execution. No production A34 authority or
-hardware behavior follows from the current source design.
+`inconclusive` pending exact Buildbox cross-compile and focused KUnit execution.
+Generation, replay, strict style review, and canonical admission pass. No
+production A34 authority or hardware behavior follows from this parser.
 
 ## Follow-up
 
-Generate and review the one parser patch on Buildbox. If it passes, admit and
-prove only that patch. Keep physical mapping, reset classification, secure-
-epoch authority, A34 evaluation, lifecycle publication, and device work out of
-this boundary.
+Build the admitted KUnit profile on Buildbox and run one bounded, network-free
+QEMU proof. If all eight exact cases pass, close only the pure parser boundary,
+then audit immutable physical copy ownership and independent secure-epoch
+attestation. Keep reset classification, A34 evaluation, lifecycle publication,
+and device work out of this boundary.

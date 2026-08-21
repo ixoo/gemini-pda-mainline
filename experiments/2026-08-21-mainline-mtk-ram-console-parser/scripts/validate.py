@@ -57,9 +57,52 @@ def main() -> None:
         require(sha256(ROOT / source[key]) == source[f"{key}_sha256"],
                 f"source {key} identity")
 
+    expected_patch = contract["expected_patch"]
+    patch_path = ROOT / expected_patch["path"]
+    require(patch_path.name == expected_patch["filename"],
+            "canonical patch filename")
+    require(sha256(patch_path) == expected_patch["sha256"],
+            "canonical patch identity")
+    series = (ROOT / "patches/series").read_text().splitlines()
+    require(series[-1] == "v7.1.3/" + expected_patch["filename"],
+            "canonical patch is series tail")
+
+    generation = contract["validated_generation"]
+    receipt_path = ROOT / generation["receipt"]
+    require(sha256(receipt_path) == generation["receipt_sha256"],
+            "validated generation receipt identity")
+    receipt = receipt_path.read_text()
+    for key in (
+        "repository_commit", "baseline_commit", "result_commit",
+        "package_sha256s_sha256", "generation_sha256",
+        "checkpatch_sha256",
+    ):
+        require(f"{key}={generation[key]}" in receipt,
+                f"validated generation {key}")
+    for token in (
+        f"generated_patch_sha256={expected_patch['sha256']}",
+        f"canonical_patch={expected_patch['path']}",
+        f"canonical_patch_sha256={expected_patch['sha256']}",
+        "generated_patch_count=1", "status_extraction_count=1",
+        "kunit_case_count=8", "replay=pass", "checkpatch_errors=0",
+        "checkpatch_warnings=0", "checkpatch_checks=0",
+        "physical_mapping=none", "reset_classifier=none",
+        "a34_caller=none", "hardware_action=none", "device_action=none",
+        "boot_candidate=false", "compile=not-run", "qemu=not-run",
+        "result=pass",
+    ):
+        require(token in receipt, f"validated generation token: {token}")
+    require(generation["replay"] == "pass" and
+            generation["checkpatch_errors"] == 0 and
+            generation["checkpatch_warnings"] == 0 and
+            generation["checkpatch_checks"] == 0 and
+            generation["compile"] == "not-run" and
+            generation["qemu"] == "not-run",
+            "generation result contract")
+
     for script in (
         "source_edits.py", "validate_source.py", "validate_patches.py",
-        "validate.py",
+        "validate.py", "classify-kunit.py", "test-kunit-classifier.py",
     ):
         ast.parse((HERE / "scripts" / script).read_text(), filename=script)
 
@@ -123,15 +166,63 @@ def main() -> None:
     ):
         require(token in buildbox, f"Buildbox lane token: {token}")
 
+    manifest = json.loads((ROOT / "kernel/manifest.json").read_text())
+    profiles = manifest["config"]["profiles"]
+    require(profiles["mtk-ram-console-parser"]["fragments"][-1:] == [
+        "configs/gemini-mtk-ram-console-parser.fragment",
+    ], "source profile fragment")
+    require(profiles["mtk-ram-console-parser-kunit"]["fragments"][-2:] == [
+        "configs/gemini-mtk-ram-console-parser.fragment",
+        "configs/gemini-mtk-ram-console-parser-kunit.fragment",
+    ], "KUnit profile fragments")
+    require((ROOT / "configs/gemini-mtk-ram-console-parser.fragment").read_text().count(
+        "CONFIG_MTK_RAM_CONSOLE_PARSER=y") == 1,
+        "source configuration")
+    kunit_fragment = (
+        ROOT / "configs/gemini-mtk-ram-console-parser-kunit.fragment"
+    ).read_text()
+    require("CONFIG_KUNIT=y" in kunit_fragment and
+            "CONFIG_MTK_RAM_CONSOLE_PARSER_KUNIT_TEST=y" in kunit_fragment,
+            "KUnit configuration")
+
+    classifier = (HERE / "scripts/classify-kunit.py").read_text()
+    runner = (HERE / "scripts/run-kunit-qemu").read_text()
+    classifier_test = (HERE / "scripts/test-kunit-classifier.py").read_text()
+    for token in (
+        'PROFILE = "mtk-ram-console-parser-kunit"',
+        'SUITE = "mtk-ram-console-parser"', "1..8", "pass:8",
+        "physical_mapping=not-executed-parser-only",
+        "reset_classifier=none", "a34_caller=none",
+        "boot_candidate=false",
+    ):
+        require(token in classifier, f"classifier token: {token}")
+    for case in (
+        "invalid_arguments", "truncated", "signature", "buffer_size",
+        "preloader_layout", "lk_layout", "exact", "every_bit",
+    ):
+        require(classifier.count(f"mtk_ram_console_{case}_test") == 1,
+                f"classifier exact case: {case}")
+    for token in (
+        "EXPECTED_PROFILE=mtk-ram-console-parser-kunit",
+        "CONFIG_MTK_RAM_CONSOLE_PARSER=y",
+        "CONFIG_MTK_RAM_CONSOLE_PARSER_KUNIT_TEST=y",
+        "-nic none", "--qemu-exit",
+    ):
+        require(token in runner, f"QEMU runner token: {token}")
+    require("pass:8 fail:0 skip:0 total:8" in classifier_test,
+            "classifier self-test exact summary")
+
     readme = (HERE / "README.md").read_text()
     design = (HERE / "DESIGN.md").read_text()
-    require("three strict alignment rejections recorded" in readme and
+    require("canonical patch `0304` generated, replayed, and admitted" in
+            readme and
             "checkpatch rejected one continuation-line" in readme and
             "third exact attempt" in readme and
             "rejected only that prototype" in readme and
-            "No validated generated" in readme and
-            "patch, compile result" in readme and
-            "`inconclusive` pending exact Buildbox generation" in readme,
+            "fourth exact Buildbox generation" in readme and
+            "zero errors, warnings, or checks across 397 lines" in readme and
+            "No compile result, QEMU result" in readme and
+            "`inconclusive` pending exact Buildbox cross-compile" in readme,
             "status is not overstated")
     for token in (
         "caller-owned byte buffer",
@@ -143,7 +234,8 @@ def main() -> None:
 
     private_tokens = ("/" + "Users/", "/" + "home/", "mmc" + "blk")
     for path in HERE.rglob("*"):
-        if path.is_file():
+        if path.is_file() and "__pycache__" not in path.parts and \
+                path.suffix != ".pyc":
             text = path.read_text()
             for token in private_tokens:
                 require(token not in text,
@@ -161,7 +253,10 @@ def main() -> None:
     print("hardware_action=none")
     print("device_action=none")
     print("boot_candidate=false")
-    print("generation_lane=ready")
+    print(f"canonical_patch_sha256={expected_patch['sha256']}")
+    print("generation=pass")
+    print("compile=not-run")
+    print("qemu=not-run")
     print("result=pass")
 
 

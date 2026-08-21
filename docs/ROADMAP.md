@@ -4440,16 +4440,22 @@ fresh secure-platform epoch. The complete public preloader enum/writer is
 unavailable, zero means only LK's normal-boot category, and the optional
 full-PMIC bit is not enabled by the public target configuration.
 
-The next ordered boundary is therefore one default-off, hardware-free retained
-ram-console parser. It must validate all prefix arithmetic and exact current/
-prior preloader and LK chaining, return only the complete raw current-
-preloader status plus validity, reject the legacy fixed-offset fallback, and
-prove corrupt, exact, and every-bit behavior in focused KUnit. It must add no
-reserved-memory lookup, physical mapping, reset classifier, A34 caller,
-lifecycle publication, provider action, P30 arm, PSCI call, CPU veto change,
-boot image, or device action. After that parser is proven, audit the separate
-immutable mapping/copy owner and an independent secure-epoch attestation; do
-not manufacture authority by combining correlated reset-history fields.
+Canonical patch `0304` now implements that default-off, hardware-free retained
+ram-console parser. Its fourth exact Buildbox generation passed source
+semantics, one-patch inventory, byte-for-byte replay, and strict style after
+three preserved alignment-only rejections. It validates all prefix arithmetic
+and exact current/prior preloader and LK chaining, returns only the complete raw
+current-preloader status plus validity, rejects the legacy fixed-offset
+fallback, and contains eight focused corrupt, exact, and every-bit KUnit cases.
+It adds no reserved-memory lookup, physical mapping, reset classifier, A34
+caller, lifecycle publication, provider action, P30 arm, PSCI call, CPU veto
+change, boot image, or device action.
+
+The next ordered action is to cross-build exact patch `0304` on Buildbox and
+run its sole eight-case suite in bounded network-free QEMU. Only after that
+pure parser proof passes should work audit the separate immutable mapping/copy
+owner and an independent secure-epoch attestation; do not manufacture authority
+by combining correlated reset-history fields.
 
 The eventual CPU8 candidate must have a single CPU8 request, strict
 checkpoints before and after each power step, a bounded timeout, and a

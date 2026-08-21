@@ -1,0 +1,4 @@
+# Hardware-free corrupt, exact, and every-bit retained-header coverage.
+CONFIG_KUNIT=y
+CONFIG_MTK_RAM_CONSOLE_PARSER_KUNIT_TEST=y
+CONFIG_LOCALVERSION="-gemini-mtk-ram-console-parser-kunit"
