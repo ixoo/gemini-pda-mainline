@@ -1,0 +1,17 @@
+experiment=2026-08-21-mainline-protected-readback-remediation
+observed_utc=2026-08-21
+repository_commit=b2f0bcddddb1aaed73926313b2d0f36618fa2fb6
+buildbox_job=b2f0bcddddb1aaed73926313b2d0f36618fa2fb6-protected-readback-remediation-patchgen
+managed_source_state=905fb7f5ead29cbe65eaf7f66e41433aea417c2ee15d751ebda6ddf79f19ad8e
+repository_checkout=pass
+managed_source_integrity=pass
+pinned_source_identities=pass
+failure_stage=source-validation
+failure=clock-acquire-settle-read-release-publish-order
+root_cause=validator-selected-ops-settle_ns-required-callback-check-before-actual-call
+remediation=match-ops-settle_ns-context-call-expression
+kernel_behavior_changed=false
+patch_created=false
+compile_started=false
+device_action=none
+boot_candidate=false

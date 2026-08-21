@@ -2,9 +2,18 @@
 
 ## Status
 
-Implementation and exact Buildbox patch generation are in progress. No device
-kernel, boot image, partition, firmware service, or hardware semaphore has been
-used by this experiment.
+Implementation and exact Buildbox patch generation are in progress. The first
+generation attempt from `b2f0bcddddb1` passed repository checkout, managed
+source integrity, and all six pinned source-file identities, then failed closed
+in source validation before patch creation. The validator compared the
+transport operation against the required-callback check rather than the actual
+settle call. The bounded receipt is in
+[`results/buildbox-generation-attempt-b2f0bcdd.txt`](results/buildbox-generation-attempt-b2f0bcdd.txt).
+The check now selects the call expression explicitly; generated kernel behavior
+is unchanged.
+
+No device kernel, boot image, partition, firmware service, or hardware
+semaphore has been used by this experiment.
 
 ## Question
 

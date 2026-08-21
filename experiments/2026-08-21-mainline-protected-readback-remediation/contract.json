@@ -19,6 +19,17 @@
   ],
   "validated_generation": null,
   "validated_build": null,
+  "failed_generation": [
+    {
+      "repository_commit": "b2f0bcddddb1aaed73926313b2d0f36618fa2fb6",
+      "failure": "validator-selected-required-callback-check-before-actual-settle-call",
+      "managed_source_integrity": "pass",
+      "pinned_source_identities": "pass",
+      "patch_created": false,
+      "kernel_behavior_changed_by_fix": false,
+      "device_action": false
+    }
+  ],
   "scope": {
     "clock_settle_ns": 200,
     "clock_settle_count": 1,

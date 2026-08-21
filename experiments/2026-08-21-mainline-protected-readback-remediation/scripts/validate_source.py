@@ -50,7 +50,7 @@ def main() -> None:
     )
     require(
         clock_snapshot.index("mt6797_dvfsp_clock_semaphore_acquire")
-        < clock_snapshot.index("ops->settle_ns")
+        < clock_snapshot.index("ops->settle_ns(context")
         < clock_snapshot.index("observed.armplldiv_muxsel")
         < clock_snapshot.index("mt6797_dvfsp_clock_semaphore_release")
         < clock_snapshot.index("*readback = observed"),
