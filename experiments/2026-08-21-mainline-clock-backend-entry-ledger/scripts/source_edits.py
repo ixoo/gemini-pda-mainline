@@ -146,8 +146,8 @@ config PSTORE_GEMINI_CLOCK_BACKEND_ENTRY_LEDGER
     backend = root / "drivers/soc/mediatek/mt6797-dvfsp-clock-backend.c"
     replace_once(
         backend,
-        "#include <linux/io.h>\n#include <linux/module.h>\n",
-        "#include <linux/io.h>\n#include <linux/module.h>\n"
+        "#include <linux/kernel.h>\n#include <linux/module.h>\n",
+        "#include <linux/kernel.h>\n#include <linux/module.h>\n"
         "#include <linux/pstore_ram.h>\n",
     )
     replace_once(
