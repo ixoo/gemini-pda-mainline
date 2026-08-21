@@ -1,0 +1,13 @@
+id	phase	input	expected	production_claim
+T01	kunit	invalid-arguments	EINVAL-and-zero-invalid-output	no
+T02	kunit	63-byte-header	EMSGSIZE-and-invalid	no
+T03	kunit	bad-signature	EBADMSG-and-invalid	no
+T04	kunit	mismatched-sz_buffer	EBADMSG-and-invalid	no
+T05	kunit	corrupt-or-overflowing-preloader-chain	reject-all-and-invalid	no
+T06	kunit	corrupt-lk-linux-console-chain	reject-all-and-invalid	no
+T07	kunit	exact-a5c33ca5	complete-word-valid	no
+T08	kunit	every-individual-bit	complete-word-valid	no
+D01	deferred	physical-no-map-reservation	separate-owner-audit-required	no
+D02	deferred	status-semantics	pinned-preloader-writer-required	no
+D03	deferred	fresh-secure-epoch	independent-attestation-required	no
+D04	deferred	A34-lifecycle-publication	complete-authority-tuple-required	no

@@ -1,0 +1,11 @@
+id	observation	owner	strictly_parseable	proves_fresh_secure_epoch	decision
+R01	ram-console-signature-and-offset-chain	preloader-lk-linux	yes	no	pure-parser-selected
+R02	preloader-wdt-status-raw-word	preloader	yes	no	preserve-all-bits-no-classifier
+R03	status-zero-normal-boot	preloader-lk	yes	no	reject-as-authority
+R04	status-two-software-watchdog	preloader-lk	yes	no	reject-as-authority
+R05	status-eint-or-sysrst-bits	preloader-lk	yes	no	reject-as-authority
+R06	optional-full-pmic-bit-0x800	conditional-preloader-lk	structurally-yes	no-public-target-enable-or-writer-proof	reject-as-authority
+R07	LK-command-line-boot-reason	preloader-lk	yes	no	secondary-correlated-input-only
+R08	raw-TOPRGU-WDT_STATUS	mtk-wdt	yes	no	independent-capture-not-epoch-proof
+R09	private-secure-big_on-image-zero	secure-payload	static-image-only	only-with-proven-fresh-load	defer-to-secure-epoch-owner
+R10	combined-R02-R07-R08	correlated-reset-path	possible	no	reject-combiner-without-independent-epoch

@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "repository_parent": "97d9a02ab58dc967d0683380dbe3da481ccf8885",
+  "decision": {
+    "selected_boundary": "PURE_RETAINED_HEADER_PARSER",
+    "audit_readme": "experiments/2026-08-21-mainline-retained-ram-console-authority-audit/README.md",
+    "audit_readme_sha256": "40392b1ba5c116ba8b6d36491649f5664d3846814b8822d9ff9a9210ad1f8051",
+    "audit_design": "experiments/2026-08-21-mainline-retained-ram-console-authority-audit/DESIGN.md",
+    "audit_design_sha256": "43b49460748314d8493385f6084da144a9b5ffa7f0fd4f4b945deb1cb57eb8c2",
+    "audit_matrix": "experiments/2026-08-21-mainline-retained-ram-console-authority-audit/results/authority-matrix.tsv",
+    "audit_matrix_sha256": "de14ad7eb6d0892980cc30cb19b065fa670a6652a8080cff6547fbcd4df7fd26"
+  },
+  "parent": {
+    "source_state": "2719c3b91f238e83b32f22e19bc94c15a4b4aeb6a886a6548e8952b28497da9e",
+    "mtk_soc_kconfig_sha256": "0b224095b1536e85bcfa42a65b45f7cd5b6133e5fb82cb248984a0369f2571b5",
+    "mtk_soc_makefile_sha256": "7a6c466b723b79806fdb6feb7b44bfc150f3e2df122ec80430e3fe683cbfbbd7",
+    "last_patch": "patches/v7.1.3/0303-watchdog-mtk-capture-raw-boot-status.patch",
+    "last_patch_sha256": "29fbdb0190d3dd3931839bbb6f0ea936cf4e0c4219f44b4e183422a343cae97a"
+  },
+  "source": {
+    "c": "experiments/2026-08-21-mainline-mtk-ram-console-parser/source/mtk-ram-console.c",
+    "c_sha256": "e173ecad2ed9eaf016a496b84ca411c22ba6d14d2273c55a2a5c40b2d62f80a7",
+    "header": "experiments/2026-08-21-mainline-mtk-ram-console-parser/source/mtk-ram-console.h",
+    "header_sha256": "e4b5d4bab1330d9e7c592c5f16fb3faa2dbb3e3e1bf2882f2ddbb22fde466588",
+    "matrix": "experiments/2026-08-21-mainline-mtk-ram-console-parser/results/test-matrix.tsv",
+    "matrix_sha256": "6c62e188608dfaa8d05334933094c2a98e73d1e610d29c5268e12627bc31e00f"
+  },
+  "expected_patch": "0304-soc-mediatek-add-retained-ram-console-parser.patch",
+  "expected_kunit_cases": 8,
+  "physical_mapping": false,
+  "reset_classifier": false,
+  "a34_caller": false,
+  "hardware_action": false,
+  "device_action": false,
+  "boot_candidate": false
+}

@@ -4430,13 +4430,26 @@ cross-compile, and link checks pass. The sole network-free QEMU suite passes
 invalid, exact, every-bit, and second-capture immutability with zero failures
 or skips and without a production MT6797 device or MMIO access.
 
-The next ordered boundary is a strict read-only retained-ram-console and cold-
-platform-epoch combiner audit. First freeze the preloader header bounds,
-signature, record offsets, exact status values, and corruption behavior from
-the pinned LK/vendor layouts; then determine which independently observable
-tuple proves a fresh secure-platform epoch. Do not map the retained region,
-classify raw TOPRGU status, call the A34 evaluator, or publish the lifecycle
-until that audit selects a smallest separately testable implementation.
+The
+[retained-ram-console authority audit](../experiments/2026-08-21-mainline-retained-ram-console-authority-audit/README.md)
+now freezes the common 64-byte header, exact record chaining, raw preloader
+status location, and strict corruption behavior. It confirms that a pure
+caller-buffer parser is separable, but rejects the currently known preloader
+status, LK boot reason, raw TOPRGU status, or their combination as proof of a
+fresh secure-platform epoch. The complete public preloader enum/writer is
+unavailable, zero means only LK's normal-boot category, and the optional
+full-PMIC bit is not enabled by the public target configuration.
+
+The next ordered boundary is therefore one default-off, hardware-free retained
+ram-console parser. It must validate all prefix arithmetic and exact current/
+prior preloader and LK chaining, return only the complete raw current-
+preloader status plus validity, reject the legacy fixed-offset fallback, and
+prove corrupt, exact, and every-bit behavior in focused KUnit. It must add no
+reserved-memory lookup, physical mapping, reset classifier, A34 caller,
+lifecycle publication, provider action, P30 arm, PSCI call, CPU veto change,
+boot image, or device action. After that parser is proven, audit the separate
+immutable mapping/copy owner and an independent secure-epoch attestation; do
+not manufacture authority by combining correlated reset-history fields.
 
 The eventual CPU8 candidate must have a single CPU8 request, strict
 checkpoints before and after each power step, a bounded timeout, and a

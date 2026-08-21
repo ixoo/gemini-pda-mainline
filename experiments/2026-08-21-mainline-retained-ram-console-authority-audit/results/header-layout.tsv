@@ -1,0 +1,17 @@
+word_index	byte_offset	lk_name	gemian_name	strict_parser_use
+0	0	sig	sig	require-0x43474244
+1	4	off_pl	off_pl	require-64
+2	8	off_lpl	off_lpl	require-current-pl-plus-aligned-size
+3	12	sz_pl	sz_pl	require-at-least-4-and-safe-alignment
+4	16	off_lk	off_lk	require-two-aligned-pl-records
+5	20	off_llk	off_llk	require-current-lk-plus-64
+6	24	sz_lk	sz_lk	require-64
+7	28	padding[0]	padding[0]	ignore
+8	32	padding[1]	padding[1]	ignore
+9	36	dump_step	padding[2]	ignore-semantic-name-layout-identical
+10	40	sz_buffer	sz_buffer	require-supplied-buffer-size
+11	44	off_linux	off_linux	require-two-aligned-lk-records
+12	48	off_console	off_console	require-between-linux-and-buffer-end
+13	52	padding2[0]	log_start	ignore
+14	56	padding2[1]	log_size	ignore
+15	60	padding2[2]	sz_console	ignore
