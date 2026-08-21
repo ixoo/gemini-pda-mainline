@@ -51,6 +51,15 @@ def main() -> None:
     stack_generator = (
         ROOT / "scripts/generate-stack-fix-on-buildbox"
     ).read_text(encoding="utf-8")
+    release_abi_source_validator = (
+        ROOT / "scripts/validate_release_abi_fix_source.py"
+    ).read_text(encoding="utf-8")
+    release_abi_patch_validator = (
+        ROOT / "scripts/validate_release_abi_fix_patch.py"
+    ).read_text(encoding="utf-8")
+    release_abi_generator = (
+        ROOT / "scripts/generate-release-abi-fix-on-buildbox"
+    ).read_text(encoding="utf-8")
     runner = (ROOT / "scripts/run-kunit-qemu").read_text(encoding="utf-8")
     classifier = (ROOT / "scripts/classify-kunit.py").read_text(
         encoding="utf-8"
@@ -65,7 +74,7 @@ def main() -> None:
 
     require(
         contract["status"]
-        == "canonical-stack-fix-imported-build-pending",
+        == "release-abi-fix-generation-pending",
             "experiment status changed")
     safety = contract["safety"]
     require(safety["default_off"] and safety["hardware_free"],
@@ -83,7 +92,7 @@ def main() -> None:
         require(not safety[field], f"unsafe contract permission: {field}")
     require(contract["implementation"]["production_reachability"] is False,
             "production reachability changed")
-    require(contract["implementation"]["logical_patches"] == 5,
+    require(contract["implementation"]["logical_patches"] == 6,
             "logical patch count changed")
     require(contract["proof"]["cases"] == 6, "KUnit case count changed")
     require(contract["generated_patches"]["sha256"] == EXPECTED_PATCHES,
@@ -93,6 +102,16 @@ def main() -> None:
             "stack-fix canonical name changed")
     require(contract["stack_fix_patch"]["sha256"] == stack_sha256,
             "stack-fix patch contract changed")
+    release_abi = contract["release_abi_fix"]
+    require(
+        release_abi["canonical_name"]
+        == "0301-arm64-reject-malformed-A72-provider-release-ABI.patch",
+        "release-ABI canonical name changed",
+    )
+    require(release_abi["generation"] == "pending",
+            "release-ABI generation status changed")
+    require(release_abi["production_reachability_changed"] is False,
+            "release-ABI fix changed production reachability")
 
     canonical = [
         line.strip() for line in (REPO / "patches/series").read_text().splitlines()
@@ -211,6 +230,25 @@ def main() -> None:
         require(token in stack_generator,
                 f"stack-fix generator token missing: {token}")
     for token in (
+        "response->abi != MT6797_A72_PROVIDER_CALL_ABI",
+        "ret = -EPROTO;",
+        "goto out_fault;",
+    ):
+        require(token in release_abi_source_validator,
+                f"release-ABI source validator token missing: {token}")
+        require(token in release_abi_patch_validator,
+                f"release-ABI patch validator token missing: {token}")
+    for token in (
+        "PARENT_SOURCE_STATE=292db59582fe1842fa3e94960bcf1ea508fa9ee126b88c8de289bfa223517079",
+        "PARENT_INTEGRITY=8af2140b302516d30df7845745de98df644a63d3eef856a8efc392b94946d0a6",
+        "PARENT_MEMBERSHIP_SHA256=8f13777e4dc4a6c9a693f81d10ee133cce61db59172fe4f09cdfb1d2f7aa5c73",
+        "generated_patch_count=1",
+        "production_reachability_changed=false",
+        "physical_da921x_write_authorized=false",
+    ):
+        require(token in release_abi_generator,
+                f"release-ABI generator token missing: {token}")
+    for token in (
         "EXPECTED_PROFILE=da921x-pre-p28-provider-abort-kunit",
         "CONFIG_ARM64_MT6797_A72_P24_OWNER_TEST_SEED=y",
         "focused KUnit test inventory changed",
@@ -237,13 +275,15 @@ def main() -> None:
         "generated_patch_count=4",
         "generate-da921x-pre-p28-provider-abort-stack-fix",
         "fetch-da921x-pre-p28-provider-abort-stack-fix",
+        "generate-da921x-pre-p28-provider-abort-release-abi-fix",
+        "fetch-da921x-pre-p28-provider-abort-release-abi-fix",
     ):
         require(token in buildbox, f"Buildbox command token missing: {token}")
 
     print("validation=da921x-pre-p28-provider-abort-contract")
-    print("status=canonical-stack-fix-imported-build-pending")
+    print("status=release-abi-fix-generation-pending")
     print("canonical_patch_count=5")
-    print("logical_patches=5")
+    print("logical_patches=6")
     print("kunit_cases=6")
     print("hardware_action=none")
     print("device_action=none")

@@ -1,6 +1,6 @@
 {
   "schema": "gemini-mainline-da921x-pre-p28-provider-abort-v1",
-  "status": "canonical-stack-fix-imported-build-pending",
+  "status": "release-abi-fix-generation-pending",
   "parent": {
     "kernel_release": "7.1.3",
     "source_state_sha256": "2e804ec33835f0e14b050773c52d1d39acf573e6e71eee8257f8c282b54c8f2a",
@@ -13,7 +13,7 @@
     "provider_header_sha256": "681b3076ff8b214868a31a5f0ab87c3eb0bfb4adc351c1dc3007adc2518e0cac"
   },
   "implementation": {
-    "logical_patches": 5,
+    "logical_patches": 6,
     "transaction_abi": 2,
     "target_cpu": 8,
     "abort_budget": "one-shot-distinct-pre-p28",
@@ -75,6 +75,26 @@
     "strict_checkpatch": "0-errors-0-warnings-0-checks",
     "production_code_changed": false,
     "generation": "pass"
+  },
+  "runtime_attempt_2": {
+    "repository_commit": "1f8eae375ae8458a495b7236b18ef647e7af5b7d",
+    "buildbox_artifact": "linux-7.1.3-gemini-da921x-pre-p28-provider-abort-kunit-8e269613-740ca55b",
+    "build": "pass",
+    "qemu": "semantic-failure",
+    "suite_result": "5-pass-1-fail-0-skip",
+    "failure": "malformed-release-response-abi-accepted",
+    "raw_log_sha256": "3f184b90edb9cf4d567ba1ea90c48e074442b64ab39babb2fa95a63815c58eaa",
+    "hardware_action": "none",
+    "device_action": "none"
+  },
+  "release_abi_fix": {
+    "canonical_name": "0301-arm64-reject-malformed-A72-provider-release-ABI.patch",
+    "parent_source_state": "292db59582fe1842fa3e94960bcf1ea508fa9ee126b88c8de289bfa223517079",
+    "parent_source_integrity": "8af2140b302516d30df7845745de98df644a63d3eef856a8efc392b94946d0a6",
+    "parent_membership_sha256": "8f13777e4dc4a6c9a693f81d10ee133cce61db59172fe4f09cdfb1d2f7aa5c73",
+    "mismatch_terminal": "eproto-provider-fault-unknown",
+    "production_reachability_changed": false,
+    "generation": "pending"
   },
   "safety": {
     "default_off": true,

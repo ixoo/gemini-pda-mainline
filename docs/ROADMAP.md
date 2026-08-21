@@ -4353,9 +4353,13 @@ first QEMU run stopped before provider semantics because large automatic test
 state overflowed the arm64 kernel stack. Separate one-file follow-up patch
 `0300` now strictly validates and is pinned at the end of the canonical series;
 it moves that state to KUnit-managed heap storage without changing production
-code. The next ordered action is the focused Buildbox rebuild, followed only on
-success by one distinct isolated QEMU proof. That proof must pass before this
-roadmap advances.
+code. The distinct stack-safe Buildbox/QEMU attempt reached all six families:
+five passed, while malformed release-response mutation 1 showed that the abort
+wrapper did not validate the provider callback ABI before constructing its
+internal proof. Mutations 2--14 were rejected. The next ordered action is one
+pinned fail-closed patch requiring the canonical provider-call ABI before
+confirmation, followed by a distinct focused Buildbox/QEMU proof. That proof
+must pass before this roadmap advances.
 
 The candidate must have a single CPU8 request, strict checkpoints before and
 after each power step, a bounded timeout, and a fail-closed rollback. CPU9

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-20-mainline-da921x-pre-p28-provider-abort` |
-| Status | canonical patch `0300` imported; stack-safe Buildbox rebuild pending |
+| Status | stack-safe QEMU reached semantics; release-response ABI fix pending generation |
 | Subsystem | MT6797 CPU8 membership owner and DA921x Buck B provider |
 | Device variant | Planet Gemini PDA named development unit |
 | Date(s) | 2026-08-20 America/New_York |
@@ -73,6 +73,20 @@ and zero errors, warnings, or checks. The exact patch is now at the end of the
 canonical series. The bounded result is in
 [`results/stack-fix-generation-attempt-3-success-20260820.txt`](results/stack-fix-generation-attempt-3-success-20260820.txt).
 
+The stack-safe Buildbox rebuild from exact signed commit
+`1f8eae375ae8458a495b7236b18ef647e7af5b7d` passed, and QEMU attempt 2
+reached all six test families. Five passed. The malformed-release family
+failed only mutation 1: changing the provider callback response ABI was
+accepted as a successful release, while mutations 2--14 were rejected. The
+abort wrapper copied the remaining response fields into an independently
+versioned proof without first checking `response->abi`. The classifier
+rejected the five-pass/one-fail KTAP. The bounded failure is in
+[`results/qemu-attempt-2-release-abi-gap-20260820.txt`](results/qemu-attempt-2-release-abi-gap-20260820.txt).
+The remediation is one fail-closed production condition before proof
+construction: a noncanonical provider-call ABI becomes `-EPROTO` and follows
+the existing terminal provider-fault path. It adds no caller, hardware action,
+or production reachability.
+
 ## Question or hypothesis
 
 Can the current closed membership owner consume exactly one successful DA921x
@@ -92,6 +106,9 @@ only with an exact positive-abort proof.
 - [`contract.json`](contract.json) pins all edited parent file identities.
 - Stack-fix parent: the verified canonical tree through `0299`, source-state
   `a44f45709ef40655d871ff81d0829906781febbd9c3eafc62725e71216f543a0`.
+- Release-ABI-fix parent: the verified canonical tree through `0300`,
+  source-state
+  `292db59582fe1842fa3e94960bcf1ea508fa9ee126b88c8de289bfa223517079`.
 - Patch generation and kernel builds run only on Buildbox from a clean pushed
   repository commit. No native VM build is permitted.
 - The focused proof uses an unregistered in-memory I2C adapter. It registers
@@ -115,6 +132,9 @@ connection. A26 and A14 remain unchanged; CPU8 and CPU9 admission stays closed.
   strict checkpatch.
 - [`scripts/generate-stack-fix-on-buildbox`](scripts/generate-stack-fix-on-buildbox)
   creates only follow-up `0300` from the separately pinned `0299` parent.
+- [`scripts/generate-release-abi-fix-on-buildbox`](scripts/generate-release-abi-fix-on-buildbox)
+  creates only proposed follow-up `0301` from the separately pinned `0300`
+  parent.
 - [`source/da9213-legacy-membership-test.c`](source/da9213-legacy-membership-test.c)
   is the hardware-free integration KUnit source.
 - [`scripts/validate.py`](scripts/validate.py),
@@ -124,6 +144,10 @@ connection. A26 and A14 remain unchanged; CPU8 and CPU9 admission stays closed.
 - [`scripts/validate_stack_fix_source.py`](scripts/validate_stack_fix_source.py)
   and [`scripts/validate_stack_fix_patch.py`](scripts/validate_stack_fix_patch.py)
   require the six heap allocations and the one-file remediation boundary.
+- [`scripts/validate_release_abi_fix_source.py`](scripts/validate_release_abi_fix_source.py)
+  and [`scripts/validate_release_abi_fix_patch.py`](scripts/validate_release_abi_fix_patch.py)
+  require the single pre-confirmation ABI check and terminal protocol-error
+  path.
 - [`scripts/run-kunit-qemu`](scripts/run-kunit-qemu) accepts only the exact
   published Buildbox package and one focused KUnit suite; its separate
   [`scripts/classify-kunit.py`](scripts/classify-kunit.py) requires exact KTAP
@@ -140,12 +164,13 @@ connection. A26 and A14 remain unchanged; CPU8 and CPU9 admission stays closed.
 3. Fetch only the validated patch package, review it, and import it at the end
    of canonical `patches/series`. Complete.
 4. Generate and import follow-up `0300`, then rebuild the exact integration
-   KUnit profile on Buildbox. Patch generation and import are complete; the
-   stack-safe rebuild is pending.
-5. Run the focused suite under QEMU with no network and classify the KTAP. The
-   first run failed before provider semantics; a distinct stack-safe run is
-   pending.
-6. Record exact package, config, Image, QEMU, and suite identities.
+   KUnit profile on Buildbox. Complete.
+5. Run the focused suite under QEMU with no network and classify the KTAP.
+   Attempt 2 reached semantics and exposed the missing release-response ABI
+   check: five cases passed and one failed.
+6. Generate and import the one-condition `0301` remediation from the exact
+   canonical `0300` parent, then rebuild and run one distinct QEMU proof.
+7. Record exact package, config, Image, QEMU, and suite identities.
 
 ## Decision rule
 
