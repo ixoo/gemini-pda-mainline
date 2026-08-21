@@ -4687,18 +4687,26 @@ established, or the shared exact-DT/reservation/prefix/map/write path refused.
 Do not repeat it. See the
 [clock-backend entry result](../experiments/2026-08-21-mainline-clock-backend-entry-ledger/results/runtime-attempt-1-neither-20260821.txt).
 
+The observation-path audit is complete. The exact DT predicates and linked
+initcall are present, and arm64 permits the selected mapping because the
+reservation is `no-map`. What remains unproved is the manual checkpoint's live
+success and cross-version recovery. The selected control reuses the exact
+Image, configuration, and initramfs while switching only to the package's base
+DT, which disables the clock node. Exact USB plus the live platform-driver
+directory positively proves the first checkpoint and registration without
+depending on returned empty RAM. See the
+[clock-entry observation control](../experiments/2026-08-21-mainline-clock-entry-observation-control/README.md).
+
 The next ordered work is:
 
-1. Audit the shared retained-checkpoint preconditions and the last independent
-   positively attributable stage. Select one durable observation path that can
-   distinguish failure to reach clock-driver init from exact-DT, reservation,
-   prefix, mapping, or first-write refusal. Do not build or boot another
-   candidate until that path has a decision-changing positive control; retain
-   zero protected calls and all CPU/owner closures.
-2. Once that audit identifies a valid observation boundary, run at most one
-   non-identical successor that splits the selected refusal from clock-driver
-   init. Do not enable or sample BigiDVFS until clock-backend registration and
-   read-free probe entry are positively established.
+1. Run the one validated base-DTB control. If exact USB and the driver directory
+   appear, issue one boot-ID-gated native reboot through the USB shell and
+   require Gemian to recover `driver-init` only. If USB appears without the
+   driver, split the checkpoint gates. If USB never appears, return to the last
+   runtime-proven Image/DT baseline. Do not repeat any branch unchanged.
+2. Only after the control passes, isolate enabled clock-node population and
+   read-free probe entry. Do not enable or sample BigiDVFS until clock-backend
+   registration and probe entry are positively established.
 3. Compose the validated readers, DA921x, and the platform-state source under
    one transition/hotplug owner.
 4. Revise A34 to accept only the complete direct-state ABI and applicable

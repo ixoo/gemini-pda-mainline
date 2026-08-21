@@ -1,0 +1,68 @@
+Clock-entry observation-control candidate
+=========================================
+
+Result: pass
+Boot candidate: yes
+Device access: none
+Hardware write: none
+Native VM build: none
+New kernel build: none
+
+Exact inputs
+------------
+
+Repository build commit: c3fd5d983ff07926837f8f95cb15da2ea9fd607c
+Build profile: clock-backend-entry-ledger
+Kernel release: 7.1.3-gemini-clock-backend-entry-ledger
+Image SHA-256: 380c487f0cdd81cf96fdd48412a287493eed81f7afa68bd14fcf8cef85ae04f5
+Image.gz SHA-256: ecde52ac44e79249389d1877f5b0530e9263f6e7506f262614391aad83cce268
+Control DTB SHA-256: dad6997c565d10dcacab23dea46166ac45f6594da2aab697b105b3fb2dcc474e
+Configuration SHA-256: c9bef81037aa6f41f3fbef50158870d3bfe5b814254609d93543e2e042ce5243
+System.map SHA-256: 5109aeb63c1bc21577759970da77d2adcf009a320e27fe2fb2aa3bf48b1f4db9
+Serviceability ramdisk SHA-256: e0dffa04a621f60903cf4cf7280d773ec1c89c43ea63ec0f8b3a0879e7cebc0f
+
+Candidate identities
+--------------------
+
+Raw Android-v0 file: gemini-mt6797-clock-entry-control.boot.img
+Raw size: 7,636,992
+Raw SHA-256: a36425f3e9cec23ff9281d9151e54ce780ff5abc8d98aa8df190a300a786eb4e
+Padded size: 16,777,216
+Padded SHA-256: fc2a9a1a53de1373cf75d14f163a5b9921219996882f58e0b5395595872230bf
+Candidate SHA256SUMS SHA-256: 5932e3dd90903b48342126131ddd433107ed8d6b10c9d49b285cc9ccc383e9c3
+
+Validation
+----------
+
+- Complete fetched-package checksum inventory: pass
+- Two independent raw assemblies: byte-identical
+- Two independent padding constructions: byte-identical
+- LK Android-v0 gates: 32 of 32
+- Negative container mutations rejected: 6
+- Decompiled DT semantic delta: exactly model label and clock node
+  `okay` to `disabled`
+- Linked checkpoint, clock-probe, and clock-driver-init symbols: present
+- BigiDVFS, observer, A72 power, platform-state, DA9211, and KUnit closures:
+  retained
+- Builder SHA-256:
+  `3f219037d34b9a4bb16099a1b190b94b3a6e62871a55e86da893b061a20f7904`
+- Independent validator SHA-256:
+  `23595a1f737f20cb870cac0870549d68311c376aed4a1d4b1a5e7dc2375fbe64`
+- Runtime collector SHA-256:
+  `5dadd0addfc636bbb1ac6472ee01a5afd444cd5e126f4f33f8def6b903b1825a`
+- Runtime validator SHA-256:
+  `a1126e410ac04c1ccb39c2f9d2896fd518caffc1cc633b1eaa5698a322375e80`
+- Runtime offline tests SHA-256:
+  `42d80fd8bac2b370a3e87d3915cf39fa976cfc967a278a92d5c94fbf3c284219`
+- Guarded installer SHA-256:
+  `a64c85f35443cc4247df3023e61c50f8de4a71181d45621f0701c7f18ba99eb2`
+
+Runtime hypothesis
+------------------
+
+With the clock node disabled, the built-in clock driver's init function still
+runs but no matching platform device or probe can occur. Exact USB plus the
+platform-driver directory proves that the `driver-init` retained checkpoint
+wrote, fully read back, and allowed registration. After one native USB-shell
+reboot, Gemian should recover `driver-init` only. No protected transport or CPU
+admission path is enabled.
