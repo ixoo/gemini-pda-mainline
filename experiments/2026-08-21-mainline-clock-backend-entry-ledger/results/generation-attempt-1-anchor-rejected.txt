@@ -1,0 +1,17 @@
+clock-backend entry-ledger generation attempt 1
+================================================
+
+repository_commit=e2ac3a07398b6c0ca47880f53960b566d63776ce
+result=rejected-before-edit
+reason=clock-backend-include-anchor-mismatch
+prepared_source_state=867173ceba818abbefb6010cb02ca1be33852e917608ed1082a8683b428bb16f
+parent_source_validation=pass
+generated_patch=none
+canonical_admission=none
+hardware_access=none
+native_vm_build=none
+
+The exact parent-file hash and managed-source integrity gate passed. The
+deterministic editor expected `linux/io.h` immediately before `linux/module.h`,
+but remediation patch `0316` had inserted `linux/kernel.h` between them. The
+one-occurrence anchor failed closed before any source edit or patch export.

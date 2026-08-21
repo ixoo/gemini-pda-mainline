@@ -81,7 +81,8 @@ static const char * const gemini_prb_records[] = {
     replace_once(
         ledger,
         f"#ifdef {PROBE_GATE}\nstatic bool gemini_prb_minimal_dt(void)\n",
-        f"#if defined({PROBE_GATE}) || defined({MODE})\n"
+        f"#if defined({PROBE_GATE}) || \\\n"
+        f"\tdefined({MODE})\n"
         "static bool gemini_prb_minimal_dt(void)\n",
     )
 
@@ -164,13 +165,13 @@ config PSTORE_GEMINI_CLOCK_BACKEND_ENTRY_LEDGER
     replace_once(
         backend,
         "module_platform_driver(mt6797_dvfsp_clock_backend_driver);\n",
+        "\n"
         f"#ifdef {MODE}\n"
         "static int __init mt6797_dvfsp_clock_backend_driver_init(void)\n"
         "{\n"
         "\tif (!gemini_protected_readback_ledger_checkpoint(0))\n"
         "\t\treturn -EIO;\n\n"
-        "\treturn platform_driver_register(\n"
-        "\t\t&mt6797_dvfsp_clock_backend_driver);\n"
+        "\treturn platform_driver_register(&mt6797_dvfsp_clock_backend_driver);\n"
         "}\n"
         "module_init(mt6797_dvfsp_clock_backend_driver_init);\n\n"
         "static void __exit mt6797_dvfsp_clock_backend_driver_exit(void)\n"
@@ -196,22 +197,20 @@ config PSTORE_GEMINI_CLOCK_BACKEND_ENTRY_LEDGER
     if candidate_dts.exists():
         raise SystemExit(f"refusing to overwrite {candidate_dts}")
     candidate_dts.write_text(
-        dedent(r'''
-        // SPDX-License-Identifier: GPL-2.0-only
-        /*
-         * Copyright (c) 2026 Julien Etienne
-         */
-
-        #include "mt6797-gemini-pda.dts"
-
-        / {
-	        model = "Planet Computers Gemini PDA (clock backend entry ledger)";
-        };
-
-        &dvfsp_clock_backend {
-	        status = "okay";
-        };
-        ''').lstrip("\n"),
+        "// SPDX-License-Identifier: GPL-2.0-only\n"
+        "/*\n"
+        " * Copyright (c) 2026 Julien Etienne\n"
+        " */\n"
+        "\n"
+        '#include "mt6797-gemini-pda.dts"\n'
+        "\n"
+        "/ {\n"
+        '\tmodel = "Planet Computers Gemini PDA (clock backend entry ledger)";\n'
+        "};\n"
+        "\n"
+        "&dvfsp_clock_backend {\n"
+        '\tstatus = "okay";\n'
+        "};\n",
         encoding="utf-8",
     )
 

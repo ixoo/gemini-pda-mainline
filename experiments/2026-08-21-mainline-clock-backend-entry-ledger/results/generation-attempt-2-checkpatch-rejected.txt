@@ -1,0 +1,20 @@
+clock-backend entry-ledger generation attempt 2
+================================================
+
+repository_commit=6441c1538b010e3fae935430f159abacea9d52e9
+result=rejected-by-strict-checkpatch
+prepared_source_state=867173ceba818abbefb6010cb02ca1be33852e917608ed1082a8683b428bb16f
+parent_source_validation=pass
+result_source_validation=pass
+patch_shape_validation=pass
+byte_identical_replay=pass
+strict_checkpatch=11-errors,6-warnings,2-checks
+canonical_admission=none
+hardware_access=none
+native_vm_build=none
+
+The semantic result retained two fixed records, zero protected-clock reads,
+zero BigiDVFS reads, zero secure calls, disabled observer, and no CPU or owner
+request. Strict style rejected leading DTS indentation, one missing blank line,
+one split function call, and one overlong preprocessor condition. The partial
+package was removed by the generator cleanup trap and no patch was admitted.
