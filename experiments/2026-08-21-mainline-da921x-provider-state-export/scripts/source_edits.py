@@ -148,8 +148,8 @@ def apply_provider(root: Path) -> None:
     """)
     implementation = dedent("""\
     static int
-    da9213_legacy_provider_state_snapshot(
-    \tvoid *context, struct mt6797_a72_provider_state *state)
+    da9213_provider_snapshot(void *context,
+    \t\t\t struct mt6797_a72_provider_state *state)
     {
     \tstruct da9213_legacy_provider_endpoint *endpoint = context;
     \tstruct da9213_legacy_provider_snapshot first = { };
@@ -223,7 +223,7 @@ def apply_provider(root: Path) -> None:
         \t.acquire = da9213_legacy_provider_acquire,
         \t.release = da9213_legacy_provider_release,
         #if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_POSITIVE_PROVIDER_TRANSACTION)
-        \t.snapshot = da9213_legacy_provider_state_snapshot,
+        \t.snapshot = da9213_provider_snapshot,
         #endif
         };
         """),

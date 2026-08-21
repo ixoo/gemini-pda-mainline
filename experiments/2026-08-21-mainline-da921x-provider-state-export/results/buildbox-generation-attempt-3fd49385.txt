@@ -1,0 +1,17 @@
+repository_commit=3fd493852c942b5c8c62823f1bd8d9e941389c95
+buildbox_job=3fd493852c942b5c8c62823f1bd8d9e941389c95-da921x-provider-state-patchgen
+parent_integrity=pass
+parent_file_hashes=pass
+source_validation=pass
+generated_patch_count=3
+patch_replay=pass
+failure=strict-checkpatch
+rejected_patch=0313-regulator-export-stable-DA921x-provider-state.patch
+errors=0
+warnings=0
+checks=1
+check=prototype-line-ends-with-open-parenthesis
+generated_patch_package=none
+compile=not-run
+device_action=none
+boot_candidate=false

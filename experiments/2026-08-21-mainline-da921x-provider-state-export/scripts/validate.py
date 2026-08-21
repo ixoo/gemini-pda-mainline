@@ -69,7 +69,7 @@ def main() -> None:
     for token in (
         "MT6797_A72_PROVIDER_STATE_ABI",
         "mt6797_a72_provider_snapshot",
-        "da9213_legacy_provider_state_snapshot",
+        "da9213_provider_snapshot",
         "I2C_LOCK_ROOT_ADAPTER",
         "DA9213_PROVIDER_SNAPSHOT_ACTIONS",
         "da9213_provider_snapshot_transport_faults",

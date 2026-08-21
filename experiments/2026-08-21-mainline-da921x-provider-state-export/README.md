@@ -29,6 +29,13 @@ receipt is in
 The declaration now uses the standard break before its arguments; semantics
 are unchanged.
 
+Strict mode on `3fd493852c94` rejected that wrap because the declaration line
+ended with an opening parenthesis. The bounded receipt is in
+[`results/buildbox-generation-attempt-3fd49385.txt`](results/buildbox-generation-attempt-3fd49385.txt).
+The private callback now has a shorter name, allowing conventional aligned
+continuation without exceeding the line limit; its signature and behavior are
+unchanged.
+
 ## Question
 
 Can the already registered DA921x A72 provider export one fresh, stable,

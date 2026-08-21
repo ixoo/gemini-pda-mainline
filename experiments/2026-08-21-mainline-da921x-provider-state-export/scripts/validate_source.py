@@ -48,7 +48,7 @@ def main() -> None:
             registry.index("mutex_lock(&a72_provider_registry_lock)"),
             "destination cleared before registry lookup")
 
-    start = driver.index("da9213_legacy_provider_state_snapshot")
+    start = driver.index("da9213_provider_snapshot")
     end = driver.index(
         "static const struct da9213_legacy_provider_transport_ops", start)
     snapshot = driver[start:end]
