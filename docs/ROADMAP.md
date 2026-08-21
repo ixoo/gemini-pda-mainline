@@ -4569,15 +4569,16 @@ owner's responsibility.
 
 The default-off capture-only source is now generated as four logical patches
 and admitted canonically through `0311`; exact Buildbox replay, semantic
-validation, and strict checkpatch passed. This closes source construction, not
-compilation or runtime ownership. The next ordered work is:
+validation, strict checkpatch, isolated arm64 compilation, Gemini DTB
+generation, and package checks passed at commit `aa7dc4f`. The node remains
+disabled. This closes capture-source construction, not runtime ownership. The
+next ordered work is:
 
-1. Compile the isolated platform-state profile on Buildbox, verify the symbol
-   and Gemini DTB in the checksum-covered package, and retain compile-only
-   evidence. Do not enable the DT node or create a boot candidate.
-2. Export fresh read-only DA921x state from its existing root-adapter-locked
-   owner, validate the disabled protected clock/BigiDVFS readers on the named
-   firmware, then compose every source under one transition/hotplug owner.
+1. Export fresh read-only DA921x state from its existing root-adapter-locked
+   owner. Keep the export transaction-local and add no writer or consumer.
+2. Validate the disabled protected clock/BigiDVFS readers on the named
+   firmware, then compose them, DA921x, and the platform-state source under one
+   transition/hotplug owner.
 3. Revise A34 to accept only the complete direct-state ABI and applicable
    BL31 replay-clear contract, prove the atomic `CLOSED / UNINITIALIZED` to
    `AVAILABLE / IDLE` publication, and keep both CPU vetoes closed until that

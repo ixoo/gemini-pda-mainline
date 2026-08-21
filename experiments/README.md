@@ -28,7 +28,8 @@ the loop. Positive identity-gated observations are unaffected.
   selected default-off source: a locked read-only TOPRGU reset-status callback,
   binding, typed two-sample SPM/PWRAP/DCM/CCI record, and disabled DT node. The
   source has no polling, hardware write, DT enablement, A34 caller, or CPU
-  operation. Generation passed; the isolated Buildbox compile remains pending.
+  operation. Exact canonical commit `aa7dc4f` passed the isolated Buildbox
+  compile and package checks; DA921x/protected-state composition remains next.
 - [2026-08-21 A72 CCI and platform-state owner audit](2026-08-21-mainline-a72-cci-platform-state-owner-audit/README.md)
   — identifies the source-backed MP2 CCI port at `0x10396000` and the sole
   global change-pending word at `0x1039000c`, explicitly correcting an older

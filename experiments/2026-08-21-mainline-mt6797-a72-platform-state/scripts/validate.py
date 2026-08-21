@@ -69,8 +69,41 @@ def main() -> None:
         "patch_replay": "pass",
         "strict_checkpatch": "0-errors-0-warnings-0-checks",
     }, "validated Buildbox generation identity")
-    require(contract["validated_build"] is None,
-            "unperformed compile remains null")
+    require(contract["validated_build"] == {
+        "repository_commit": "aa7dc4ffe71ce7884e577ec572ec6f03304ce77f",
+        "buildbox_job": (
+            "aa7dc4ffe71ce7884e577ec572ec6f03304ce77f-"
+            "mt6797-a72-platform-state-source-m0"
+        ),
+        "package": (
+            "linux-7.1.3-gemini-mt6797-a72-platform-state-source-"
+            "49c30e65-43b552e2"
+        ),
+        "kernel_release": "7.1.3-gemini-a72-platform-state",
+        "profile": "mt6797-a72-platform-state-source",
+        "source_sha256": (
+            "be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc"
+        ),
+        "patchset_sha256": (
+            "49c30e6544406c6093aa6b5683894419aa07839a298467a97db29e8600d4d211"
+        ),
+        "config_sha256": (
+            "15c58ba5b0e3ef89e854b068968730730bff8f1c15f5a79e3ab99144bd03441c"
+        ),
+        "image_gzip_sha256": (
+            "f8c9e3fe49b359eac1565be42c80dfa08ec8ee22ebbce92634dc129f6effc512"
+        ),
+        "gemini_dtb_sha256": (
+            "dad6997c565d10dcacab23dea46166ac45f6594da2aab697b105b3fb2dcc474e"
+        ),
+        "sha256sums_sha256": (
+            "a567ddc606fc9d53c950b7239bc62af3062e62f6b5b358b1c865586c84c45887"
+        ),
+        "dtb_count": 119,
+        "package_validation": "pass",
+        "source_symbols": "present",
+        "dt_node_status": "disabled",
+    }, "validated Buildbox compile identity")
     require(patch_hashes == contract["validated_generation"]["patch_sha256"],
             "canonical patch hashes match Buildbox package")
     require(contract["scope"] == {
@@ -90,7 +123,7 @@ def main() -> None:
     readme = (HERE / "README.md").read_text()
     design = (HERE / "DESIGN.md").read_text()
     for token in (
-        "generated and canonically admitted; Buildbox compile pending",
+        "generated, canonically admitted, and Buildbox compile-validated",
         "strict one-match guard correctly rejected the",
         "explicit tab-preserving string",
         "series is therefore split into four logical patches",
@@ -191,6 +224,20 @@ def main() -> None:
         "device_action=none",
     ):
         require(token in generation, f"generation receipt: {token}")
+
+    build = (HERE / "results/buildbox-aa7dc4ff.txt").read_text()
+    for token in (
+        "repository_commit=aa7dc4ffe71ce7884e577ec572ec6f03304ce77f",
+        "kernel_release=7.1.3-gemini-a72-platform-state",
+        "patch_count=300",
+        "config_symbol=CONFIG_MTK_MT6797_A72_PLATFORM_STATE=y",
+        "source_symbols=present",
+        "dt_node_status=disabled",
+        "package_validation=pass",
+        "hardware_write=none",
+        "device_action=none",
+    ):
+        require(token in build, f"Buildbox compile receipt: {token}")
 
     buildbox = (ROOT / "scripts/buildbox").read_text()
     for command in (

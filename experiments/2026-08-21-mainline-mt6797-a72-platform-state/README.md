@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-21-mainline-mt6797-a72-platform-state` |
-| Status | generated and canonically admitted; Buildbox compile pending |
+| Status | generated, canonically admitted, and Buildbox compile-validated |
 | Subsystem | MT6797 A72 CCI/SPM/TOPRGU/DCM observation |
 | Device variant | Gemini PDA contract; hardware-free implementation phase |
 | Date | 2026-08-21 America/New_York |
@@ -127,9 +127,24 @@ Git tree, produces four normal `git format-patch` files under a clearly
 synthetic non-certifying experiment identity, replays them byte-for-byte, and
 runs strict checkpatch. It exports only a checksum-covered patch review.
 
+## Buildbox compile
+
+Exact canonical commit `aa7dc4ffe71ce7884e577ec572ec6f03304ce77f`
+applied all 300 selected canonical patches and compiled profile
+`mt6797-a72-platform-state-source` on Buildbox. The validated package has
+kernel release `7.1.3-gemini-a72-platform-state`, 119 DTBs, built-in
+`CONFIG_MTK_MT6797_A72_PLATFORM_STATE=y`, and the snapshot, probe, driver-init,
+and driver symbols in `System.map`.
+
+The fetched Gemini DTB contains `a72-platform-state@10222000` with the exact
+`mcucfg` and `cci` resources, SPM phandle, PWRAP reset, and
+`status = "disabled"`. Package checksums passed. The complete sanitized receipt
+is [`results/buildbox-aa7dc4ff.txt`](results/buildbox-aa7dc4ff.txt).
+
 ## Current conclusion
 
 The deterministic source and four-patch generation boundary passed Buildbox
-review and the byte-exact patches are canonically admitted. The isolated
-compile remains pending. No runtime, hardware, or device claim is made yet.
-A34 and CPU8/CPU9 remain closed.
+review, the byte-exact patches are canonically admitted, and the isolated
+compile is validated. This closes only the capture-source construction gate.
+Fresh DA921x export and protected-state composition remain next. No runtime,
+hardware, or device claim is made. A34 and CPU8/CPU9 remain closed.
