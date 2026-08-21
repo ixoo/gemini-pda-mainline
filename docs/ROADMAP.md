@@ -4481,13 +4481,25 @@ boot observations remain reset-path evidence, not attestation that the exact
 secure payload initialized private replay state in the current epoch. The
 combiner and production A34 owner remain closed.
 
-The next ordered implementation is therefore only the selected default-off
-mapping/copy owner, binding, and Gemini DT consumer. Its hardware-free proof
-must inject ordinary bytes to establish exactly one copy/publication, failure
-invalidation, second-capture refusal, source independence, every-bit
-preservation, and absence of a classifier or A34 call. The real reserved-memory
-mapping path remains compile/source-reviewed until a separately justified
-device observation. No boot image or device attempt follows from the audit.
+Canonical patches `0305`--`0307` now implement that selected default-off
+mapping/copy owner, binding, and disabled Gemini DT consumer. The exact
+Buildbox profile compiles and links the kernel and Gemini DTB, packages all 119
+DTBs with validated checksums, and exposes the expected typed getter and seven
+test cases. Its sole bounded, network-free QEMU suite passes all seven
+injected-memory cases with zero failures or skips, including exactly one
+copy/publication, failure invalidation, second-capture refusal, source
+independence, and every-bit preservation. The production physical mapping
+remains unexecuted because the consumer is disabled. The targeted binding
+schema check is explicitly not run because Buildbox lacks `dtschema`; its
+structural experiment validator and strict checkpatch passed.
+
+This closes the immutable copy transport only. The next ordered boundary is a
+fresh audit for an independent secure-platform epoch attestation source. It
+must not promote or combine correlated reset-history fields (ram-console,
+TOPRGU status, or LK boot reason) into authority. Until that audit identifies
+an owner-safe input with an independently testable lifecycle, the reset
+combiner, production A34 caller, lifecycle opener, CPU8 request, boot image,
+and device attempt remain closed.
 
 The eventual CPU8 candidate must have a single CPU8 request, strict
 checkpoints before and after each power step, a bounded timeout, and a

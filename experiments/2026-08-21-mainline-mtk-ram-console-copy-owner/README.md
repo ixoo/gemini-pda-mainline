@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-21-mainline-mtk-ram-console-copy-owner` |
-| Status | deterministic patches validated; canonical admission pending compile and KUnit |
+| Status | canonical implementation compiled; focused KUnit passes 7/7 |
 | Subsystem | MediaTek retained ram-console and reserved memory |
 | Device variant | Planet Gemini PDA, MT6797 |
 | Date(s) | 2026-08-21 America/New_York |
@@ -84,8 +84,22 @@ warnings, or checks. The validated review contains:
 - `0307`: the exact Gemini reservation label and disabled consumer.
 
 The three canonical files are byte-identical to the fetched validated review.
-All 99 manifest profiles retain the canonical-subsequence invariant. Compile
-and QEMU execution remain pending the signed admission commit.
+All 99 manifest profiles retain the canonical-subsequence invariant. The exact
+signed and pushed admission commit `deb3ccc` then built on Buildbox as profile
+`mtk-ram-console-reader-kunit`: all 296 patches applied, the kernel and Gemini
+DTB compiled and linked, all 119 DTBs and packaged files passed checksum
+validation, and the expected getter plus seven test symbols were present.
+
+The targeted `dt_binding_check` could not start because Buildbox does not have
+the `dtschema` command `dt-doc-validate`; this is recorded as not run rather
+than a pass. The schema had already passed the experiment's structural
+validator and all three patches passed strict checkpatch with zero findings.
+
+The validated package's sole bounded, network-free QEMU suite passed all seven
+cases with zero failures or skips. The classifier itself accepted the exact
+fixture and rejected four failed or structurally incomplete mutations before
+the real run. Because the production Gemini consumer remains disabled, QEMU
+did not execute the physical mapping branch.
 
 ## Analysis
 
@@ -98,10 +112,11 @@ evidence only.
 ## Conclusion
 
 `confirmed` for deterministic source generation, exact patch replay, strict
-style, and repository-side admission semantics. Compile and KUnit remain
-pending. Even after those pass, this closes only the immutable copy transport;
-it does not establish a fresh secure epoch, open A34, admit CPU8 or CPU9, or
-justify a device attempt.
+style, cross-compile/link, Gemini DT compilation, package integrity, and the
+seven injected-memory copy-owner cases. The targeted binding-schema check
+remains unrun because its Buildbox dependency is absent. This closes only the
+immutable copy transport; it does not establish a fresh secure epoch, open
+A34, admit CPU8 or CPU9, or justify a device attempt.
 
 ## Follow-up
 

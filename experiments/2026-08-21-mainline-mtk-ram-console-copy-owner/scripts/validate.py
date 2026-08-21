@@ -89,6 +89,62 @@ def main() -> None:
     ):
         require(token in receipt_text, f"generation token: {token}")
 
+    build = contract["validated_build"]
+    build_receipt = ROOT / build["receipt"]
+    require(sha256(build_receipt) == build["receipt_sha256"],
+            "build receipt identity")
+    build_text = build_receipt.read_text()
+    for key in (
+        "repository_commit", "profile", "kernel_release", "package",
+        "package_sha256s_sha256", "build_provenance_sha256",
+        "source_sha256", "patchset_sha256", "config_sha256", "image_sha256",
+    ):
+        require(f"{key}={build[key]}" in build_text, f"build receipt: {key}")
+    for token in (
+        "patch_count=296", "fragment_count=11", "dtb_count=119",
+        "target_architecture=arm64", "modules_built=false",
+        "config_parser=y", "config_reader=y", "config_reader_kunit_test=y",
+        "snapshot_getter_symbol_count=1", "kunit_test_symbol_count=7",
+        "gemini_dtb_compile=pass", "package_checksums=pass",
+        "compile=pass", "link=pass", "dt_binding_check=not-run",
+        "dt_binding_check_reason=dtschema-absent-on-buildbox",
+        "hardware_write=none", "device_action=none", "boot_candidate=false",
+        "result=pass",
+    ):
+        require(token in build_text, f"build token: {token}")
+
+    qemu = contract["validated_qemu"]
+    qemu_receipt = ROOT / qemu["receipt"]
+    require(sha256(qemu_receipt) == qemu["receipt_sha256"],
+            "QEMU receipt identity")
+    qemu_text = qemu_receipt.read_text()
+    for key in (
+        "repository_commit", "profile", "image_sha256", "config_sha256",
+        "raw_log_sha256",
+    ):
+        require(f"{key}={qemu[key]}" in qemu_text, f"QEMU receipt: {key}")
+    for token in (
+        "network=none", "physical_mapping=not-executed-dt-consumer-disabled",
+        "suites=1", "tests=7", "failed=0", "skipped=0",
+        "tap_summary=pass:7_fail:0_skip:0_total:7",
+        "post_test_state=expected_vm_rootfs_panic", "qemu_exit=124",
+        "classifier_self_test=pass",
+        "dt_binding_check=not-run-dtschema-absent-on-buildbox",
+        "reset_classifier=none", "secure_epoch_authority=none",
+        "a34_caller=none", "hardware_write=none", "device_action=none",
+        "boot_candidate=false", "result=pass",
+    ):
+        require(token in qemu_text, f"QEMU token: {token}")
+    for case in (
+        "invalid_arguments", "exact_copy", "copy_failure", "parser_failure",
+        "second_capture", "source_independence", "every_bit",
+    ):
+        require(f"mtk_ram_console_reader_{case}_test=pass" in qemu_text,
+                f"QEMU case: {case}")
+    require(qemu["tests"] == 7 and qemu["failed"] == 0 and
+            qemu["skipped"] == 0 and qemu["result"] == "pass",
+            "QEMU result contract")
+
     with (ROOT / source["matrix"]).open(newline="") as stream:
         rows = {row["id"]: row for row in csv.DictReader(stream, delimiter="\t")}
     require(set(rows) == {
@@ -125,7 +181,8 @@ def main() -> None:
     ], "reader KUnit profile")
 
     for script in ("source_edits.py", "validate_source.py",
-                   "validate_patches.py", "validate.py"):
+                   "validate_patches.py", "validate.py", "classify-kunit.py",
+                   "test-kunit-classifier.py"):
         ast.parse((HERE / "scripts" / script).read_text(), filename=script)
     generator = (HERE / "scripts/generate-on-buildbox").read_text()
     for token in (
@@ -144,6 +201,14 @@ def main() -> None:
         "mainline-mtk-ram-console-copy-owner-patch-generation",
     ):
         require(token in buildbox, f"Buildbox wrapper token: {token}")
+
+    runner = (HERE / "scripts/run-kunit-qemu").read_text()
+    for token in (
+        "mtk-ram-console-reader-kunit", "CONFIG_MTK_RAM_CONSOLE_READER=y",
+        "CONFIG_MTK_RAM_CONSOLE_READER_KUNIT_TEST=y", "-nic none",
+        "timeout --signal=TERM 45", "refusing to overwrite a raw log",
+    ):
+        require(token in runner, f"QEMU runner token: {token}")
 
     require(contract["expected_kunit_cases"] == 7, "KUnit case contract")
     require(contract["physical_map_calls"] == 1, "map-call contract")
@@ -178,8 +243,10 @@ def main() -> None:
     print("hardware_write=none")
     print("device_action=none")
     print("boot_candidate=false")
-    print("compile=pending")
-    print("qemu=pending")
+    print("compile=pass")
+    print("gemini_dtb_compile=pass")
+    print("dt_binding_check=not-run-dtschema-absent-on-buildbox")
+    print("qemu=pass")
 
 
 if __name__ == "__main__":

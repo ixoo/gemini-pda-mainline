@@ -23,6 +23,16 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-21 mainline MediaTek retained ram-console copy owner](2026-08-21-mainline-mtk-ram-console-copy-owner/README.md)
+  — admits canonical patches `0305`--`0307`: a closed binding, one-shot
+  transient `MEMREMAP_WB`/full-copy/unmap owner, immutable typed publication,
+  and a disabled Gemini consumer. The exact Buildbox profile compiles and
+  links the kernel and Gemini DTB, and its sole network-free QEMU suite passes
+  all seven injected-memory cases with zero failures or skips. The targeted
+  binding check is explicitly unrun because Buildbox lacks `dtschema`; the
+  production physical mapping remains unexecuted. No classifier, secure-epoch
+  authority, A34 caller, boot candidate, hardware write, or device action was
+  added.
 - [2026-08-21 retained ram-console copy-owner audit](2026-08-21-mainline-retained-ram-console-copy-owner-audit/README.md)
   — selects a normal default-off platform consumer with one
   `memory-region` reference to the exact 64 KiB `no-map` reservation. The
