@@ -1920,6 +1920,23 @@
                     "configs/gemini-protected-readback-probe-gate-ledger.fragment"
                 ]
             },
+            "clock-backend-entry-ledger": {
+                "base": "defconfig",
+                "patch_series": "patches/series",
+                "fragments": [
+                    "configs/gemini-handoff.fragment",
+                    "configs/gemini-usbdiag.fragment",
+                    "configs/gemini-clk-ignore-unused.fragment",
+                    "configs/gemini-observability.fragment",
+                    "configs/gemini-fbcon-rotation.fragment",
+                    "configs/gemini-keyboard.fragment",
+                    "configs/gemini-keyboard-wrrd.fragment",
+                    "configs/gemini-keyboard-manual-reboot.fragment",
+                    "configs/gemini-smp8.fragment",
+                    "configs/gemini-dvfsp-clock-backend.fragment",
+                    "configs/gemini-clock-backend-entry-ledger.fragment"
+                ]
+            },
             "dvfsp-resource-owner-readonly": {
                 "base": "defconfig",
                 "patch_series": "patches/series",

@@ -1,0 +1,12 @@
+# Candidate-only clock-backend driver-init/probe-entry discriminator. Apply
+# after the exact eight-A53 serviceability profile and clock-backend fragment.
+# The derivative DT enables only the read-free clock backend; the observer and
+# BigiDVFS backend remain disabled and no protected read is made.
+# CONFIG_MTK_MT6797_DVFSP_BIGIDVFS_BACKEND is not set
+# CONFIG_MTK_MT6797_PROTECTED_READBACK_OBSERVER is not set
+# CONFIG_PSTORE_GEMINI_PRE_RAMOOPS_LEDGER is not set
+# CONFIG_PSTORE_GEMINI_ARM64_ENTRY_LEDGER is not set
+CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_LEDGER=y
+# CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_PROBE_GATE_LEDGER is not set
+CONFIG_PSTORE_GEMINI_CLOCK_BACKEND_ENTRY_LEDGER=y
+CONFIG_LOCALVERSION="-gemini-clock-backend-entry-ledger"

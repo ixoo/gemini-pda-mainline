@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "experiment": "2026-08-21-mainline-clock-backend-entry-ledger",
+  "predecessor_result": "neither",
+  "parent": {
+    "canonical_last_patch": "patches/v7.1.3/0324-pstore-add-Gemini-protected-readback-probe-gate-mode.patch",
+    "canonical_last_patch_sha256": "fe19fb59c86339cd1aa5cd3a6eb8f317fda9ed8f719a8aac3d062716111acfb5",
+    "source_state": "867173ceba818abbefb6010cb02ca1be33852e917608ed1082a8683b428bb16f",
+    "pstore_kconfig_sha256": "4a8fab0f96bb718f61ba3b5250959e0e73655e778c18162ffcea8df208b14877",
+    "pstore_makefile_sha256": "cc4f78cdff34d4bc5ea0fdc2246c82966bac77983f9bf22bf4025e46713f386f",
+    "pstore_ram_sha256": "e02ac9017852cf4b64298937be7eccc9b9ba0dcd4bc5e4376c40160c39f67688",
+    "pstore_header_sha256": "251a8945c3294f4f4ba76d3eb8685a4d1993a1add9b832577a02e32480669837",
+    "ledger_sha256": "cb38d6fce66ca63d4612e01ff27b52704ed86f5e79347a650879ec4075d9e247",
+    "clock_backend_sha256": "0cb3f449b1b755e4c12e45a7f8ea39e40e034008d8c35b17dc824a4832cf03b1",
+    "soc_makefile_sha256": "d24018e5561312249ef0743b3471d184588a504329b39fa7580bdefc4b398e0d",
+    "dts_makefile_sha256": "4a991bbd3c4979b0f473111a8b3253fa891f29cf5768a75ed63f091088c06ec3",
+    "base_dts_sha256": "08f8b007379e52daa441d8b48731f8cd4a0549a3c1d887791762db68320fdbd8"
+  },
+  "expected_patch": "patches/v7.1.3/0325-soc-mediatek-add-Gemini-clock-backend-entry-ledger.patch",
+  "build_profile": "clock-backend-entry-ledger",
+  "candidate_dtb": "mt6797-gemini-pda-clock-backend-entry.dtb",
+  "ledger": {
+    "mode_symbol": "PSTORE_GEMINI_CLOCK_BACKEND_ENTRY_LEDGER",
+    "reservation_base": "0x44410000",
+    "reservation_size": "0x000e0000",
+    "candidate_slot_base": "0x444bb000",
+    "candidate_slot_count": 4,
+    "slot_size": 4096,
+    "signature": "0x43474244",
+    "owned_slots": [173, 174],
+    "owned_addresses": ["0x444bd000", "0x444be000"],
+    "records": ["driver-init", "probe-enter"],
+    "maximum_writes": 2,
+    "new_writer": false,
+    "normal_mainline_ramoops_registration": false,
+    "recovery_reader": "known-good Gemian pstore"
+  },
+  "decision_boundary": {
+    "neither": "before_clock_driver_init_or_shared_checkpoint_refused",
+    "driver_init_only": "registration_matching_or_probe_entry_not_established",
+    "both_without_serviceability": "clock_probe_entered_failure_at_or_after_entry",
+    "both_with_serviceability": "read_free_clock_probe_completed"
+  },
+  "scope": {
+    "protected_clock_reads": 0,
+    "bigidvfs_reads": 0,
+    "secure_calls": 0,
+    "mmio_accesses": 0,
+    "clock_enable": false,
+    "storage_write": false,
+    "firmware_write": false,
+    "cpu_on": false,
+    "cpu_off": false,
+    "owner_registration": false,
+    "automatic_retry": false,
+    "boot_candidate": false
+  }
+}
