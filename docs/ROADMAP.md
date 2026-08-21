@@ -4602,11 +4602,20 @@ stable records, the recovered 200 ns clock settle is enforced, and the exact
 six-case hardware-free suite passes with no failures or skips. Both device
 nodes remain disabled and no owner or CPU admission is opened.
 
+The isolated protected-readback observer now has an exact Buildbox kernel and
+candidate DTB at commit `1bd49d9`. Package provenance, configuration, linked
+symbols, and a decompiled DTB comparison pass offline: the derivative changes
+only the model label, enables the two read-only backends, and adds the one-shot
+observer. This is build evidence, not runtime evidence, and no device action
+has occurred for it.
+
 The next ordered work is:
 
-1. Build one exact read-only validation candidate. Enable only the two
-   transports and a bounded one-shot observer; require the named TEE identity,
-   exact raw records, no CPU request, and ordinary A53/USB/console
+1. Assemble that exact kernel and candidate DTB with the pinned serviceability
+   initramfs into an independently reproduced and validated Android-v0/LK
+   candidate. Require the exact live `tee1` and `tee2` identities, guarded
+   `boot2` installation with full readback and shutdown, then one physical boot
+   yielding exact raw records, no CPU request, and ordinary A53/USB/console
    serviceability before interpreting the result.
 2. Compose the validated readers, DA921x, and the platform-state source under
    one transition/hotplug owner.

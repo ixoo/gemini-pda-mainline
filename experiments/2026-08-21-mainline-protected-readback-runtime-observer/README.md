@@ -2,11 +2,11 @@
 
 ## Status
 
-Buildbox generation is complete and the exact three-patch bundle is admitted to
-the canonical series. The isolated `protected-readback-observer` kernel profile
-is prepared; Buildbox link validation is still pending. No kernel build, boot
-image, secure read, hardware semaphore access, or device action has yet occurred
-in this experiment.
+Buildbox generation, canonical admission, and the exact isolated kernel build
+are complete. The package, merged configuration, linked symbols, and candidate
+DTB pass offline validation. Boot-image assembly is pending. No boot image,
+secure read, hardware semaphore access, or device action has yet occurred in
+this experiment.
 
 ## Question
 
@@ -86,6 +86,25 @@ the candidate and keeps composition closed.
    audit plus its eight mutation tests pass. See
    [`results/generation-181ed445.txt`](results/generation-181ed445.txt).
 
+### Validated build
+
+At `2026-08-21T17:31:35Z`, exact clean pushed commit `1bd49d97673731509f0e2c7dcadbb2f03ed343ca`
+produced Buildbox job
+`1bd49d97673731509f0e2c7dcadbb2f03ed343ca-protected-readback-observer-m0`
+and package
+`linux-7.1.3-gemini-protected-readback-observer-e90eb76f-50826861`.
+The complete package inventory validates, and its kernel release is
+`7.1.3-gemini-protected-readback-ro`.
+
+The resolved configuration selects the two protected readback backends and the
+one-shot observer as built-ins, retains the SMP-8 serviceability profile, and
+leaves both A72 power and A72 platform-state support disabled. The linked image
+contains both backend read entry points and the observer probe/init path. A
+decompiled base-versus-candidate DTB comparison finds only the model label,
+the two backend status changes from `disabled` to `okay`, and the new observer
+node with its two phandles. It contains no CPU or owner change. See
+[`results/build-1bd49d9.txt`](results/build-1bd49d9.txt).
+
 The firmware prerequisite is the
 [protected-readback firmware audit](../2026-08-21-mainline-protected-readback-firmware-audit/README.md),
 and the transport prerequisite is the
@@ -112,9 +131,10 @@ protected-state/resource owner, a DA921x provider path, or a CPU transition.
 
 ## Decision rule
 
-First generate three exact patches, replay them, and require strict checkpatch.
-Then admit them canonically, add one isolated profile, and require a successful
-Buildbox link plus exact candidate DTB validation. Only that validated package
-may be assembled into one boot2 candidate. Composition under the transition
-owner remains the next gate and cannot begin from compile-only or partial
-runtime evidence.
+The generation, canonical admission, Buildbox link, and exact candidate-DTB
+validation gates now pass. Assemble only that package with the pinned
+serviceability initramfs into one independently reproduced and validated
+Android-v0/LK candidate. Require the named live TEE identities before guarded
+deployment, then spend one physical `boot2` selection on the stated runtime
+classifier. Composition under the transition owner remains the next gate and
+cannot begin from compile-only or partial runtime evidence.

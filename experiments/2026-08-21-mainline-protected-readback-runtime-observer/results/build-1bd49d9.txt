@@ -1,0 +1,73 @@
+Protected-readback observer exact Buildbox result
+=================================================
+
+Result: validated offline; not runtime evidence and not yet a boot candidate
+Generated UTC: 2026-08-21T17:31:35Z
+Repository commit: 1bd49d97673731509f0e2c7dcadbb2f03ed343ca
+Repository dirty: false
+Buildbox job: 1bd49d97673731509f0e2c7dcadbb2f03ed343ca-protected-readback-observer-m0
+Package: linux-7.1.3-gemini-protected-readback-observer-e90eb76f-50826861
+Kernel release: 7.1.3-gemini-protected-readback-ro
+Build profile: protected-readback-observer
+Build architecture: x86_64
+Target architecture: arm64
+Compiler: aarch64-linux-gnu-gcc (Debian 12.2.0-14) 12.2.0
+Linker: GNU ld (GNU Binutils for Debian) 2.40
+Modules built: false
+
+Package and input identities
+----------------------------
+
+SHA256SUMS: 31031b9a5b43d8d913e8d0e00a7bb92c9555fed016ba7355a26a2e10e6dc48b5
+Source: be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+Patch set: e90eb76fd21f8f1290cf349ad444e4e948e34211ec11d9388c784f519330150b
+Patch count: 311
+Resolved config: 6b47a8d9014044ff7a9769304d2bb02cf2c56bcf6407a316f8c6068a51af89f0
+Config inputs: 50826861a30c14b54aba6b27bfc09ddee6526250bf99b7390c735532713cd4bc
+Image: 670d963560c654df75f7282959141a0170d04eb2babf26a9ea56869e321b36e3
+Image.gz: 95d11ee7f26cba1085d24af60f6d60b029fcaf8dfca3e93df5e9bbf55dc013e5
+System.map: 71db0783b2504fd6dfaac567b7ca0020e1610ad7ec2a23b3f0d49f569fd5990a
+Base Gemini DTB: dad6997c565d10dcacab23dea46166ac45f6594da2aab697b105b3fb2dcc474e
+Candidate Gemini DTB: 34f24e49600e16e9b00f25ecba1d0806c4ce325944e176acccc6751a236b8998
+
+Sizes
+-----
+
+Image: 13293576 bytes
+Image.gz: 5532493 bytes
+Effective appended-DTB payload: 13893632 bytes
+Base Gemini DTB: 27506 bytes
+Candidate Gemini DTB: 27674 bytes
+
+Offline gates
+-------------
+
+- The complete package checksum inventory passes.
+- The provenance names the exact clean pushed commit, profile, 12 fragments,
+  compiler, linker, source, patch set, config, and no modules.
+- The resolved config has all three intended components built in:
+  MTK_MT6797_DVFSP_CLOCK_BACKEND, MTK_MT6797_DVFSP_BIGIDVFS_BACKEND, and
+  MTK_MT6797_PROTECTED_READBACK_OBSERVER.
+- The resolved config retains SMP and the profile's max-CPUs boot policy. The
+  generic NR_CPUS build ceiling remains 512; runtime admission remains governed
+  by the command line and DT.
+- MTK_MT6797_A72_POWER, MTK_MT6797_A72_PLATFORM_STATE, and REGULATOR_DA9211
+  are not selected.
+- System.map contains mt6797_dvfsp_clock_backend_read,
+  mt6797_bigidvfs_backend_read, mt6797_readback_observer_probe, and the
+  observer initcall.
+- Decompiled DTB comparison changes only the model string, changes the clock
+  and BigiDVFS backend status from disabled to okay, and adds the observer node
+  with its two backend phandles. No CPU, owner, regulator, or other board node
+  changes.
+- The ordinary Gemini DTB remains byte-identical to its package identity.
+
+Interpretation
+--------------
+
+The candidate source path compiles and links exactly as designed, and the DTB
+activates only the read-only observation boundary. This does not establish
+that either protected firmware transaction succeeds on hardware, that the
+observer runs exactly once, or that serviceability survives. Those claims
+remain closed until one exact boot candidate passes the live TEE identity gate,
+guarded boot2 deployment, and the experiment's physical runtime classifier.
