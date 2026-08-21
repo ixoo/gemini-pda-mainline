@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "experiment": "2026-08-21-mainline-protected-readback-runtime-observer",
+  "repository_parent": "8163f5964cff3b7176d872ef16d221f07e506932",
+  "parent": {
+    "source_state": "0f91989ff1d1a929c16aabf492e341adfa4fe302fdbf5f95ce27fe9ef65a6685",
+    "canonical_last_patch": "patches/v7.1.3/0319-soc-mediatek-fix-protected-readback-test-settle-name.patch",
+    "kconfig_sha256": "89a285c126d6e9cd531955c320e686ea16900ded82fb6fefc31108c677e2a4e5",
+    "makefile_sha256": "5c274637746948c9b89df1616e4f3f54c7969b17452358840a6843540ded99b9",
+    "clock_header_sha256": "f13b88cd262f476e8ac0e55fda3cdf115041dabefa69a5ff5e3ca8c1dcc8bcf5",
+    "bigidvfs_header_sha256": "ba3430ec9e3fe54448d1c93ed744ae06e4b5c6113f800de03226105fc26f3329",
+    "dts_makefile_sha256": "a712121f7f926245c0f09e68bd0a284cf9416ef3921f9d0b6cf334808fda117f",
+    "gemini_dts_sha256": "08f8b007379e52daa441d8b48731f8cd4a0549a3c1d887791762db68320fdbd8",
+    "mt6797_dtsi_sha256": "548426810a4ece2b41a26070280b0ad8243c51690956defa9e10e47ab6356a7d"
+  },
+  "expected_patches": [
+    "patches/v7.1.3/0320-soc-mediatek-add-one-shot-protected-readback-observer.patch",
+    "patches/v7.1.3/0321-arm64-dts-mediatek-add-Gemini-protected-readback-candidate.patch"
+  ],
+  "generation": null,
+  "validated_build": null,
+  "candidate": null,
+  "runtime": null,
+  "named_firmware_gate": {
+    "logical_partitions": ["tee1", "tee2"],
+    "expected_sha256": "2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3",
+    "required_before_deployment": true,
+    "partition_copy": false
+  },
+  "scope": {
+    "observer_calls": {
+      "clock": 1,
+      "bigidvfs": 1
+    },
+    "defer_before_hardware_access": true,
+    "automatic_retry_after_access": false,
+    "base_gemini_dtb_changed": false,
+    "candidate_dtb_enables": ["clock", "bigidvfs", "observer"],
+    "secure_write": false,
+    "owner_registration": false,
+    "cpu_on": false,
+    "cpu_off": false,
+    "cpu8_cpu9_admission": "closed",
+    "device_action": false,
+    "boot_candidate": false
+  }
+}
