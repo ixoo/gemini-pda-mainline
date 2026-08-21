@@ -1,0 +1,25 @@
+From b233ad5798d5f329e88842154cbc855eeaf80e68 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 22 Aug 2026 02:11:00 +0000
+Subject: [PATCH] pstore: allow clock entry ledger without observer
+
+Allow the opt-in base retained-RAM writer when either its historical observer or the built-in clock backend containing the new entry-ledger call sites is selected.
+
+Keep the writer default off and make no runtime code change.
+---
+ fs/pstore/Kconfig | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/fs/pstore/Kconfig b/fs/pstore/Kconfig
+index 0c1bde6..0dcfe6b 100644
+--- a/fs/pstore/Kconfig
++++ b/fs/pstore/Kconfig
+@@ -130,7 +130,7 @@ config PSTORE_GEMINI_PROTECTED_READBACK_LEDGER
+ 	bool "Gemini protected-readback retained call ledger"
+ 	depends on PSTORE_RAM=y
+ 	depends on ARM64 && ARCH_MEDIATEK && OF
+-	depends on MTK_MT6797_PROTECTED_READBACK_OBSERVER=y
++	depends on MTK_MT6797_PROTECTED_READBACK_OBSERVER=y || MTK_MT6797_DVFSP_CLOCK_BACKEND=y
+ 	depends on !PSTORE_GEMINI_PRE_RAMOOPS_LEDGER
+ 	depends on !PSTORE_GEMINI_ARM64_ENTRY_LEDGER
+ 	default n

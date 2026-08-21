@@ -11,8 +11,9 @@ Buildbox build failed closed before compilation because the base writer still
 depended only on the disabled observer. Because the managed Buildbox source
 correctly advanced through admitted patch `0325`, the correction is a narrow
 follow-up `0326` against that exact source state. It broadens the hidden
-dependency only to the clock backend that owns the new call sites; no artifact
-from either rejection is a boot candidate.
+dependency only to the clock backend that owns the new call sites. That
+follow-up is now generated, manually reviewed, and admitted canonically; no
+artifact from any rejected attempt is a boot candidate.
 
 ## Question
 
@@ -65,9 +66,9 @@ metadata, and full-readback gates. There is no clear, overwrite, or retry.
 
 ## Next action
 
-Generate and admit follow-up patch `0326`, then build the isolated profile on
-Buildbox and independently validate an exact Android-v0/16 MiB candidate before
-any device action. Repository-wide ordering remains in
+Build the corrected isolated profile on Buildbox, then independently validate
+an exact Android-v0/16 MiB candidate before any device action. Repository-wide
+ordering remains in
 [`docs/ROADMAP.md`](../../docs/ROADMAP.md).
 
 ## Generation and admission
@@ -116,3 +117,11 @@ Exact commit `395b1ed` repeated only that patch-shape rejection because
 short exact subject `pstore: allow clock entry ledger without observer`, which
 cannot fold under the formatter; see
 [`results/fix-generation-attempt-4-folded-subject-rejected.txt`](results/fix-generation-attempt-4-folded-subject-rejected.txt).
+
+Exact pushed commit `7bcdaa4` generated the one-file follow-up from source
+state `ad988125...`. Parent and corrected Kconfig semantics, patch shape,
+byte-identical replay, and strict checkpatch all passed. Manual review confirmed
+one dependency-line replacement, no runtime-code delta, and byte-identical
+fetched/admitted bytes. All 106 manifest profiles preserve canonical ordering;
+the invariant self-test rejected all 8 mutations. See
+[`results/fix-generation-7bcdaa4.txt`](results/fix-generation-7bcdaa4.txt).

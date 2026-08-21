@@ -65,6 +65,7 @@
     "native_vm_build": false
   },
   "kconfig_follow_up": {
+    "result": "canonical_patch_admitted",
     "expected_patch": "patches/v7.1.3/0326-pstore-make-protected-readback-base-writer-usable-by-clock.patch",
     "parent_source_state": "ad9881253accb9494d305ac9f8175989a0141658d890a46a674f9db39d20c777",
     "parent_source_integrity": "5dfae10467a6c9aa4ac0f49f77562b16e416f359a0e6eb22ec2bbf423d0df834",
@@ -75,6 +76,17 @@
     "base_writer_default": "n",
     "historical_observer_dependency": "retained",
     "clock_backend_dependency": "added_as_alternative",
+    "repository_commit": "7bcdaa4f92e9d0adbeda121d60ef82394fe2c73f",
+    "job": "7bcdaa4f92e9d0adbeda121d60ef82394fe2c73f-clock-backend-entry-ledger-fix-patchgen",
+    "package": "clock-backend-entry-ledger-fix-7bcdaa4f92e9",
+    "generated_parent_commit": "db1b8c8056ffe42797ae97e9b626a75ac2d2bbc5",
+    "generated_result_commit": "b233ad5798d5f329e88842154cbc855eeaf80e68",
+    "patch_sha256": "ba712e22179e6995d33642e5a62c28ee2a3ceee2b4e81814b1726b50f9c773f7",
+    "sha256sums_sha256": "be9f17066a18e8e840e51578b979555f3a2a061b2178cf62f446b334c374b6d6",
+    "provenance_sha256": "4344f9310aba9f22f63d1fa8623e88dc0f20c7d296210775674d788ca77e602e",
+    "strict_checkpatch": "0 errors, 0 warnings, 0 checks",
+    "profiles_checked": 106,
+    "invariant_mutations_rejected": 8,
     "hardware_evidence": false
   },
   "scope": {

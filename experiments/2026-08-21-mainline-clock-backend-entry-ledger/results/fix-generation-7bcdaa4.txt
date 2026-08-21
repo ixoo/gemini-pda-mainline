@@ -1,0 +1,59 @@
+clock-backend entry-ledger Kconfig follow-up generation and admission
+====================================================================
+
+Repository commit: 7bcdaa4f92e9d0adbeda121d60ef82394fe2c73f
+Buildbox job: 7bcdaa4f92e9d0adbeda121d60ef82394fe2c73f-clock-backend-entry-ledger-fix-patchgen
+Buildbox package: clock-backend-entry-ledger-fix-7bcdaa4f92e9
+Prepared source state: ad9881253accb9494d305ac9f8175989a0141658d890a46a674f9db39d20c777
+Prepared source integrity: 5dfae10467a6c9aa4ac0f49f77562b16e416f359a0e6eb22ec2bbf423d0df834
+Canonical parent patch: 0325-soc-mediatek-add-Gemini-clock-backend-entry-ledger.patch
+Canonical parent patch SHA-256: 344b1181d0e164e61495a51a6bdf5053e9283c6ef5c486b00ca97e433af71f95
+Generated parent commit: db1b8c8056ffe42797ae97e9b626a75ac2d2bbc5
+Generated result commit: b233ad5798d5f329e88842154cbc855eeaf80e68
+Generated patch: 0326-pstore-make-protected-readback-base-writer-usable-by-clock.patch
+Patch SHA-256: ba712e22179e6995d33642e5a62c28ee2a3ceee2b4e81814b1726b50f9c773f7
+SHA256SUMS SHA-256: be9f17066a18e8e840e51578b979555f3a2a061b2178cf62f446b334c374b6d6
+Provenance SHA-256: 4344f9310aba9f22f63d1fa8623e88dc0f20c7d296210775674d788ca77e602e
+
+Validation
+----------
+
+parent_source_state=pass
+parent_source_integrity=pass
+parent_kconfig_validation=pass
+corrected_kconfig_validation=pass
+patch_shape_validation=pass
+changed_files=1
+runtime_code_changes=0
+byte_identical_replay=pass
+strict_checkpatch=0-errors,0-warnings,0-checks
+fetched_vs_admitted_patch=byte-identical
+profiles_checked=106
+invariant_mutations_rejected=8
+hardware_access=none
+native_vm_build=none
+
+Reviewed delta
+--------------
+
+changed_file=fs/pstore/Kconfig
+base_writer_default=n
+historical_observer_dependency=retained
+clock_backend_dependency=added_as_alternative
+observer_profile_behavior=unchanged
+protected_clock_reads=0
+bigidvfs_reads=0
+secure_calls=0
+mmio_accesses=0
+clock_enable=0
+cpu_on=false
+cpu_off=false
+device_action=none
+boot_candidate=false
+
+Authorship
+----------
+
+The generated experiment patch retains the explicit synthetic,
+non-certifying `Gemini Mainline Experiment <gemini-mainline@example.invalid>`
+author, has no synthetic Signed-off-by, and is not submission-ready.
