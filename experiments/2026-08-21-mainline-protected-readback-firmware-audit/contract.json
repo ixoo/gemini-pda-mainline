@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "experiment": "2026-08-21-mainline-protected-readback-firmware-audit",
+  "repository_parent": "741e1052f143b624b9a1200ead426887a921aa7a",
+  "inputs": {
+    "clock_patch": {
+      "path": "patches/v7.1.3/0197-soc-mediatek-add-disabled-MT6797-protected-clock-readback.patch",
+      "sha256": "bd6389ec6c63fa587504fff95980d3deefb1c9162a7151eb51cf0b544e2496de"
+    },
+    "bigidvfs_patch": {
+      "path": "patches/v7.1.3/0198-soc-mediatek-add-disabled-MT6797-BigiDVFS-readback.patch",
+      "sha256": "e417a5a0006dcbf0325b035352a99c380d11d88f370c20fe029b2dffb2d705bd"
+    },
+    "public_protocol": {
+      "path": "experiments/2026-08-06-mt6797-dvfsp-firmware-lease/results/protected-owner-protocol-20260806.txt",
+      "sha256": "1e8c5d8e6f6394261b4edec20be71ca9fdd5f4f97eb50f165b744bfed8fb5980"
+    },
+    "named_firmware_contract": {
+      "path": "experiments/2026-07-22-a72-firmware-power-contract/results/a72-firmware-power-contract-prerequisites-20260722.md",
+      "sha256": "0ce33cb344876363b9c35e3c12e9adef9fc4357071cc3d35f667da9d76b6cd97"
+    },
+    "live_tee_identity": {
+      "path": "experiments/2026-07-22-a72-firmware-power-contract/results/live-tee-identity-20260723.txt",
+      "sha256": "3f2753800637a9650ce210b57f2d531f62b62daeef095262deff86c4a1f25b55"
+    },
+    "public_clock_owner": {
+      "path": "experiments/2026-07-12-mt6797-clock-power-reset-recovery/results/public-gemian-cpu-clock-backend-20260806.txt",
+      "sha256": "10a6e40c2ef6e7c52db599bb1ffc2099b8f3483e4e58665beee903efd066eccd"
+    },
+    "tee_owner": {
+      "path": "experiments/2026-08-06-da921x-page-owner-audit/results/tee-owner-disassembly-20260806.txt",
+      "sha256": "d7b3b7848dc6e0df9e11845193a3e77e72d2fd64034454b194c9f9e340ccd5a2"
+    }
+  },
+  "decision": {
+    "combined_runtime_enablement": "rejected",
+    "bigidvfs_named_firmware_abi": "confirmed",
+    "bigidvfs_stable_all_or_zero_snapshot": "unproven",
+    "clock_resource_and_semaphore_identity": "confirmed",
+    "clock_successful_acquire_ordering": "rejected-missing-200ns-settle",
+    "next_device_boot": "blocked-pending-remediation-and-hardware-free-tests",
+    "cpu8_cpu9_admission": "closed"
+  },
+  "scope": {
+    "hardware_write": false,
+    "device_action": false,
+    "secure_call": false,
+    "semaphore_access": false,
+    "boot_candidate": false,
+    "cpu_on": false,
+    "cpu_off": false
+  }
+}

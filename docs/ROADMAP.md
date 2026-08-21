@@ -4586,15 +4586,29 @@ veto. See the
 This closes the provider-export prerequisite, not runtime ownership. The next
 ordered work is:
 
-1. Validate the disabled protected clock/BigiDVFS readers on the named
-   firmware.
-2. Compose those readers, DA921x, and the platform-state source under one
-   transition/hotplug owner.
-3. Revise A34 to accept only the complete direct-state ABI and applicable
+The
+[protected-readback firmware audit](../experiments/2026-08-21-mainline-protected-readback-firmware-audit/README.md)
+now confirms that the BigiDVFS read FID, address window, four selected words,
+and return convention match the exact live TEE payload. It also rejects a
+device run with the two current transports: patch `0197` omits the recovered
+200 ns settle between successful semaphore acquisition and the first
+MCUMIXED read, while patch `0198` can leave a partial caller record and does
+not reject a four-call sample that changes mid-observation.
+
+1. Repair the protected-clock settle boundary and make both readbacks publish
+   all-zero on failure. Add a stable two-sample rule for BigiDVFS and focused
+   hardware-free ordering, fault, and instability tests.
+2. Build one exact read-only validation candidate. Enable only the two
+   transports and a bounded one-shot observer; require the named TEE identity,
+   exact raw records, no CPU request, and ordinary A53/USB/console
+   serviceability before interpreting the result.
+3. Compose the validated readers, DA921x, and the platform-state source under
+   one transition/hotplug owner.
+4. Revise A34 to accept only the complete direct-state ABI and applicable
    BL31 replay-clear contract, prove the atomic `CLOSED / UNINITIALIZED` to
    `AVAILABLE / IDLE` publication, and keep both CPU vetoes closed until that
    proof passes.
-4. Only then build one decision-bearing CPU8 candidate with one request,
+5. Only then build one decision-bearing CPU8 candidate with one request,
    strict per-stage checkpoints, bounded timeout, and fail-closed rollback.
 
 The eventual CPU8 candidate must have a single CPU8 request, strict
