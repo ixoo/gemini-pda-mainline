@@ -47,7 +47,10 @@ def apply(root: Path, experiment: Path) -> None:
         \tselect MEDIATEK_WATCHDOG_BOOT_STATUS_CAPTURE
         \thelp
         \t  Test invalid, exact, every-bit, and immutable snapshot behavior
-        \t  without MMIO or watchdog operations.
+        \t  without MMIO or watchdog operations. The suite has no production
+        \t  hook and does not interpret the raw status as reset provenance.
+
+        \t  If unsure, say N.
 
         config DIGICOLOR_WATCHDOG
         """),
@@ -109,10 +112,11 @@ def apply(root: Path, experiment: Path) -> None:
         static void
         mtk_wdt_capture_boot_status(struct mtk_wdt_boot_status *status, u32 raw)
         {
-        \tif (smp_load_acquire(&status->valid))
+        \tif (READ_ONCE(status->valid))
         \t\treturn;
 
         \tWRITE_ONCE(status->raw, raw);
+        \t/* Publish the complete raw word before marking it valid. */
         \tsmp_store_release(&status->valid, true);
         }
 
@@ -124,6 +128,7 @@ def apply(root: Path, experiment: Path) -> None:
         \t\treturn -EINVAL;
 
         \t*snapshot = (struct mtk_wdt_boot_status){};
+        \t/* Pair with capture so a valid snapshot observes the raw word. */
         \tif (!smp_load_acquire(&status->valid))
         \t\treturn -ENODATA;
 

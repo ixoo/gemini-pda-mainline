@@ -57,6 +57,8 @@ reboot, or shut down hardware.
   runtime claims.
 - [`results/design-validation-20260821.txt`](results/design-validation-20260821.txt)
   records the passing repository and generation-lane validation.
+- [`results/patch-generation-attempt-1-checkpatch-20260821.txt`](results/patch-generation-attempt-1-checkpatch-20260821.txt)
+  records the first attempt's strict style rejection and cleanup boundary.
 - [`source/mtk_wdt.h`](source/mtk_wdt.h) is the deterministic new-header input.
 - [`scripts/source_edits.py`](scripts/source_edits.py) applies the source delta.
 - [`scripts/validate_source.py`](scripts/validate_source.py) enforces ordering,
@@ -100,8 +102,12 @@ After committing and pushing a clean input:
 ## Observations
 
 The source design and generation lane are prepared. Repository validation,
-`bash -n`, ShellCheck, and whitespace validation pass. No patch-generation,
-compile, QEMU, boot, or device result is claimed yet.
+`bash -n`, ShellCheck, and whitespace validation pass. The first exact
+Buildbox generation passed source and patch-semantic validation, then strict
+checkpatch rejected one short Kconfig help block and three uncommented memory
+barriers. Its partial package was removed and no job was admitted. Those
+review findings are corrected for a distinct second attempt. No validated
+patch, compile, QEMU, boot, or device result is claimed yet.
 
 ## Analysis
 
@@ -119,9 +125,9 @@ not add device discovery or a production consumer.
 
 ## Conclusion
 
-`inconclusive` until Buildbox generation, strict patch validation, compile,
-and focused KUnit pass. The source design is ready for that hardware-free
-proof and authorizes no device work.
+`inconclusive` until corrected Buildbox generation, strict patch validation,
+compile, and focused KUnit pass. The source design is ready for that hardware-
+free proof and authorizes no device work.
 
 ## Follow-up
 

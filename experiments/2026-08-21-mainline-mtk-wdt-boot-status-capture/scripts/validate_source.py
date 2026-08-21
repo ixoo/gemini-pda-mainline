@@ -61,6 +61,7 @@ def main() -> None:
         "#endif\n\n/**\n * toprgu_reset_sw_en_unlocked()",
     )
     for token in (
+        "READ_ONCE(status->valid)",
         "smp_load_acquire(&status->valid)",
         "WRITE_ONCE(status->raw, raw)",
         "smp_store_release(&status->valid, true)",

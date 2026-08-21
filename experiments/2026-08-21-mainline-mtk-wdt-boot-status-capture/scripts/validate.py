@@ -93,8 +93,8 @@ def main() -> None:
     ):
         require(token in design, f"design token: {token}")
     require("authorizes no device work" in readme and
-            "No patch-generation," in readme and
-            "compile, QEMU, boot, or device result" in readme,
+            "No validated" in readme and
+            "patch, compile, QEMU, boot, or device result" in readme,
             "current status is not overstated")
 
     generator = (HERE / "scripts/generate-on-buildbox").read_text()
