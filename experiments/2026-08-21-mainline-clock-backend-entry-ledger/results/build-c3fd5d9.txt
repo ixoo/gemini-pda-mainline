@@ -1,0 +1,46 @@
+Clock-backend entry-ledger Buildbox kernel
+==========================================
+
+Result: PASS.
+Hardware evidence: no.
+Device action: none.
+Native VM build: no.
+
+Repository commit: c3fd5d983ff07926837f8f95cb15da2ea9fd607c
+Buildbox job: c3fd5d983ff07926837f8f95cb15da2ea9fd607c-clock-backend-entry-ledger-m0
+Package: linux-7.1.3-gemini-clock-backend-entry-ledger-04248ac9-68c2caf9
+Generated UTC: 2026-08-21T21:25:49Z
+Build profile: clock-backend-entry-ledger
+Kernel release: 7.1.3-gemini-clock-backend-entry-ledger
+Source SHA256: be41c068e88f5242a19bccdbffbe077b18c47b45f627e2325504b4fab79dd1dc
+Patchset SHA256: 04248ac93831930e9960b11ce9bff4d23180ff65f0162eee85cc066b536abfb8
+Config inputs SHA256: 68c2caf9bc76b273368a971ef316d76b2310874b721eb0cd6c5f80d5ee8d557a
+Config SHA256: c9bef81037aa6f41f3fbef50158870d3bfe5b814254609d93543e2e042ce5243
+Package manifest SHA256: a9a09dbd072e5b82f5a86abbff67d34de896b33efa113aa1dd5cae3d538a4af6
+Build JSON SHA256: 60df6a05d60ed71dc58c8e5bbf0cbb0283a411dac76d6d92780aaf9d38cb8f33
+Image SHA256: 380c487f0cdd81cf96fdd48412a287493eed81f7afa68bd14fcf8cef85ae04f5
+Image.gz SHA256: ecde52ac44e79249389d1877f5b0530e9263f6e7506f262614391aad83cce268
+Candidate DTB SHA256: d93cba886584ebf3f9b30a9341f4dbea8f90fb35745200464265449a7811c920
+System.map SHA256: 5109aeb63c1bc21577759970da77d2adcf009a320e27fe2fb2aa3bf48b1f4db9
+Canonical patch count: 315
+Config fragment count: 11
+Modules built: no
+
+Validated configuration and linkage
+-----------------------------------
+
+- base protected-readback ledger built in;
+- clock-backend entry mode built in;
+- protected-clock backend built in;
+- BigiDVFS backend disabled;
+- protected-readback observer absent/disabled;
+- probe/gate, pre-ramoops, arm64-entry, and post-ramoops modes off;
+- CPU8/CPU9 admission and A72 power paths off;
+- exact checkpoint, clock probe, and explicit clock driver-init symbols linked;
+- only the driver-init and probe-enter records occur in the Image;
+- derivative DT enables the clock backend, keeps BigiDVFS and owner disabled,
+  contains no observer, and retains the exact no-map ramoops reservation;
+- package checksum inventory passed.
+
+The build was submitted only through `./scripts/build-kernel --backend
+buildbox`. No native VM build or automatic fallback occurred.

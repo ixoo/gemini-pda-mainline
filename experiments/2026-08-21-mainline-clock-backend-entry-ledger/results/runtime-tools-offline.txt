@@ -1,0 +1,28 @@
+Clock-backend entry-ledger runtime tools
+========================================
+
+Result: PASS offline.
+Device access: none.
+Hardware write: none.
+
+Installer SHA256: 1b56a3ec721c94d97f9f70e3b7eafd6e30677911ef1a20d9d6c94a35dbed0b9e
+Retained classifier SHA256: 3829b17c46ca9f707921af59c7835c420f26b7f3e8adac2cbcc63918e242d484
+Remote serviceability probe SHA256: 6c66c5633d57235601d5a8900c674551c2c387e0dff3f4909b9a1c6111b53936
+USB/netcat collector SHA256: ebd8e928cc7c239db7bcf6276037630b745ae98d345b9b2ea8083434a1be10db
+USB validator SHA256: e1c249db56f3aef797a955071dae3b89c2b257adbe65bfcca5cd6d31330c2f09
+Offline test SHA256: 9e940a59ba1bb2b8ad70671164b38877b44878c4b4718f35794948a5919f32fc
+
+Validation
+----------
+
+- bash syntax and ShellCheck pass for all experiment shell scripts;
+- Python syntax passes without writing bytecode;
+- installer and collector source-pin derivations pass their help path;
+- retained classifier accepts exact neither, driver-init-only, and both-record
+  outcomes;
+- malformed order, duplicate, and foreign retained records are rejected;
+- exact serviceability capture is accepted;
+- CPU8-online serviceability mutation is rejected as a safety failure;
+- retained classification remains independent of USB availability;
+- all tools are read-only until the guarded installer delegates the already
+  authorized exact `boot2` write and clean shutdown.

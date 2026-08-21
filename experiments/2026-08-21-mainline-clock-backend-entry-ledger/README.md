@@ -12,8 +12,10 @@ depended only on the disabled observer. Because the managed Buildbox source
 correctly advanced through admitted patch `0325`, the correction is a narrow
 follow-up `0326` against that exact source state. It broadens the hidden
 dependency only to the clock backend that owns the new call sites. That
-follow-up is now generated, manually reviewed, and admitted canonically; no
-artifact from any rejected attempt is a boot candidate.
+follow-up is now generated, manually reviewed, and admitted canonically. The
+corrected Buildbox kernel and independently validated Android-v0/16 MiB
+candidate are ready for one guarded deployment; no artifact from any rejected
+attempt is a boot candidate.
 
 ## Question
 
@@ -66,9 +68,11 @@ metadata, and full-readback gates. There is no clear, overwrite, or retry.
 
 ## Next action
 
-Build the corrected isolated profile on Buildbox, then independently validate
-an exact Android-v0/16 MiB candidate before any device action. Repository-wide
-ordering remains in
+Commit and push the exact build, candidate, and runtime-tool evidence, then
+install the validated 16 MiB image to live-resolved inactive `boot2` under the
+standing guarded workflow and shut down. Arm the USB collector before the owner
+selects `boot2`; after its return to changed-ID Gemian, recover and classify the
+two retained records. Repository-wide ordering remains in
 [`docs/ROADMAP.md`](../../docs/ROADMAP.md).
 
 ## Generation and admission
@@ -125,3 +129,23 @@ one dependency-line replacement, no runtime-code delta, and byte-identical
 fetched/admitted bytes. All 106 manifest profiles preserve canonical ordering;
 the invariant self-test rejected all 8 mutations. See
 [`results/fix-generation-7bcdaa4.txt`](results/fix-generation-7bcdaa4.txt).
+
+Exact pushed commit `c3fd5d9` built successfully on Buildbox as
+`7.1.3-gemini-clock-backend-entry-ledger`. The intended base writer, new mode,
+and clock backend are built in; BigiDVFS and all older ledgers are off, and the
+observer is absent. The derivative DT enables only the clock backend and keeps
+BigiDVFS and the resource owner disabled. See
+[`results/build-c3fd5d9.txt`](results/build-c3fd5d9.txt).
+
+The exact raw candidate is `1c5a410b...1768`; its independently reproduced
+16 MiB `boot2` image is `444ffc4a...278de`. The unchanged serviceability
+ramdisk is `e0dffa04...bc0f`. Both independent assemblies, all 32 LK gates, and
+all 6 negative container mutations pass. See
+[`results/candidate-1c5a410b.txt`](results/candidate-1c5a410b.txt).
+
+The deployment wrapper retains live GPT, inactive/unmounted target, power,
+exact readback, shutdown, TEE identity, and four-slot-empty gates. The USB
+collector claims only serviceability; the changed-cycle Gemian recovery and
+retained classifier own the driver-init/probe boundary. Offline positive and
+negative tests pass; see
+[`results/runtime-tools-offline.txt`](results/runtime-tools-offline.txt).
