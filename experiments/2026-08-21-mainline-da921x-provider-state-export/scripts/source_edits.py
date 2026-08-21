@@ -259,8 +259,8 @@ def apply_tests(root: Path) -> None:
     anchor = "static void da9213_membership_positive_abort_success(struct kunit *test)\n"
     tests = dedent("""\
     static void
-    da9213_provider_snapshot_expect_zero(struct kunit *test,
-    \t\t\t\t\tconst struct mt6797_a72_provider_state *state)
+    expect_snapshot_zero(struct kunit *test,
+    \t\t     const struct mt6797_a72_provider_state *state)
     {
     \tstruct mt6797_a72_provider_state zero = { };
 
@@ -332,7 +332,7 @@ def apply_tests(root: Path) -> None:
     \t\t\tKUNIT_EXPECT_LT_MSG(test, ret, 0,
     \t\t\t\t\t    "mode=%u ordinal=%u", mode,
     \t\t\t\t\t    ordinal);
-    \t\t\tda9213_provider_snapshot_expect_zero(test, &observed);
+    \t\t\texpect_snapshot_zero(test, &observed);
     \t\t\tKUNIT_EXPECT_EQ(test, state->fake.operation_calls,
     \t\t\t\t\tordinal);
     \t\t\tKUNIT_EXPECT_EQ(test, state->fake.lock_calls, 1U);
@@ -363,7 +363,7 @@ def apply_tests(root: Path) -> None:
     \tmemset(&observed, 0xa5, sizeof(observed));
     \tret = mt6797_a72_provider_snapshot(&observed);
     \tKUNIT_EXPECT_EQ(test, ret, -EAGAIN);
-    \tda9213_provider_snapshot_expect_zero(test, &observed);
+    \texpect_snapshot_zero(test, &observed);
     \tKUNIT_EXPECT_EQ(test, state->fake.operation_calls,
     \t\t\tDA9213_PROVIDER_SNAPSHOT_ACTIONS);
     \tKUNIT_EXPECT_EQ(test, state->fake.lock_calls, 1U);
@@ -386,14 +386,14 @@ def apply_tests(root: Path) -> None:
     \tmemset(&observed, 0xa5, sizeof(observed));
     \tret = mt6797_a72_provider_snapshot(&observed);
     \tKUNIT_EXPECT_EQ(test, ret, -ENODEV);
-    \tda9213_provider_snapshot_expect_zero(test, &observed);
+    \texpect_snapshot_zero(test, &observed);
 
     \tret = da9213_membership_register_synthetic(&state->synthetic);
     \tKUNIT_ASSERT_EQ(test, ret, 0);
     \tmemset(&observed, 0xa5, sizeof(observed));
     \tret = mt6797_a72_provider_snapshot(&observed);
     \tKUNIT_EXPECT_EQ(test, ret, -EOPNOTSUPP);
-    \tda9213_provider_snapshot_expect_zero(test, &observed);
+    \texpect_snapshot_zero(test, &observed);
     \tda9213_membership_unregister_synthetic();
     }
 
