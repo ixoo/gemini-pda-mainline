@@ -5,6 +5,14 @@
 Implementation input is prepared for Buildbox generation. No kernel patch has
 yet been admitted, compiled, or used on the Gemini.
 
+The first generation attempt from exact commit `9346a72ebfc1` passed the
+managed-source integrity and all pinned parent-file checks, then stopped before
+patch creation because one membership-test edit anchor had no exact match. The
+fail-closed receipt is in
+[`results/buildbox-generation-attempt-9346a72e.txt`](results/buildbox-generation-attempt-9346a72e.txt).
+The guard now reports the rejected anchor's first line so the next retry can
+correct only the attributable mismatch.
+
 ## Question
 
 Can the already registered DA921x A72 provider export one fresh, stable,

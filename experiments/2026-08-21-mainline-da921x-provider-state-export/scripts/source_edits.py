@@ -12,7 +12,11 @@ def replace_once(path: Path, old: str, new: str) -> None:
     text = path.read_text(encoding="utf-8")
     count = text.count(old)
     if count != 1:
-        raise SystemExit(f"{path}: expected one edit anchor, found {count}")
+        first_line = old.splitlines()[0] if old.splitlines() else "<empty>"
+        raise SystemExit(
+            f"{path}: expected one edit anchor beginning {first_line!r}, "
+            f"found {count}"
+        )
     path.write_text(text.replace(old, new, 1), encoding="utf-8")
 
 

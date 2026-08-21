@@ -1,0 +1,11 @@
+repository_commit=9346a72ebfc146311dd2dd6282ab3e8aea0ea8dd
+buildbox_job=9346a72ebfc146311dd2dd6282ab3e8aea0ea8dd-da921x-provider-state-patchgen
+parent_integrity=pass
+parent_file_hashes=pass
+registry_edit=pass
+provider_edit=pass
+failure=membership-test-edit-anchor-zero-match
+generated_patch_package=none
+compile=not-run
+device_action=none
+boot_candidate=false
