@@ -2,11 +2,10 @@
 
 ## Status
 
-Implementation is prepared for exact Buildbox generation. Three generation
-attempts passed source validation and stopped fail-closed at successively later
-review gates. No patch package was admitted, and no kernel build, boot image,
-secure read, hardware semaphore access, or device action has yet occurred in
-this experiment.
+Buildbox generation is complete and the exact three-patch bundle is admitted to
+the canonical series. The isolated kernel profile and Buildbox link validation
+are still pending. No kernel build, boot image, secure read, hardware semaphore
+access, or device action has yet occurred in this experiment.
 
 ## Question
 
@@ -78,6 +77,13 @@ the candidate and keeps composition closed.
    pinned checker's internal `SPLIT_STRING` type. The partial package was
    cleaned and no job record was promoted. Reading the pinned checker confirmed
    the exact narrow type; no generated implementation change is required.
+4. At `2026-08-21T17:26:49Z`, Buildbox job
+   `181ed445f7afc264b53553498526ba1f1701437f-protected-readback-observer-patchgen`
+   generated, replayed, and validated the three exact patches. Every retained
+   strict-checkpatch report has zero errors, warnings, and checks. The fetched
+   bundle and admitted patch bytes match, and the 102-profile canonical-series
+   audit plus its eight mutation tests pass. See
+   [`results/generation-181ed445.txt`](results/generation-181ed445.txt).
 
 The firmware prerequisite is the
 [protected-readback firmware audit](../2026-08-21-mainline-protected-readback-firmware-audit/README.md),

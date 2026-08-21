@@ -18,7 +18,22 @@
     "patches/v7.1.3/0321-soc-mediatek-add-one-shot-protected-readback-observer.patch",
     "patches/v7.1.3/0322-arm64-dts-mediatek-add-Gemini-protected-readback-candidate.patch"
   ],
-  "generation": null,
+  "generation": {
+    "result": "validated",
+    "recorded_utc": "2026-08-21T17:26:49Z",
+    "repository_commit": "181ed445f7afc264b53553498526ba1f1701437f",
+    "job": "181ed445f7afc264b53553498526ba1f1701437f-protected-readback-observer-patchgen",
+    "package": "protected-readback-observer-181ed445f7af",
+    "sha256sums_sha256": "159b47570f63213b1a7b21f487b991d2d314c512ee2caa893ad058df826ea6bf",
+    "patch_sha256": {
+      "0320": "cc4e2f8adbee34456fe822f7257c575bf28d7291fa7cdc9b340a09b624e8aafd",
+      "0321": "2fcba8c57a282195e18bafced73969e96910bc2db59361b63deae81c0d1cde37",
+      "0322": "cc0f812899f83703d64f38cbb6377ad2c171e43408d023a0d03b153bb20a1c11"
+    },
+    "strict_checkpatch": "0 errors, 0 warnings, 0 checks",
+    "profiles_checked": 102,
+    "invariant_mutations_rejected": 8
+  },
   "validated_build": null,
   "candidate": null,
   "runtime": null,
