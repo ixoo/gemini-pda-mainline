@@ -1,0 +1,11 @@
+# Current-tree serviceability control derived from the last runtime-proven
+# DA921x same-value profile. Keep its read-only provider and observation path,
+# but make the action path and all protected-readback/clock-entry paths absent.
+# CONFIG_REGULATOR_DA9213_LEGACY_SAME_VALUE_WRITE is not set
+# CONFIG_MTK_MT6797_DVFSP_CLOCK_BACKEND is not set
+# CONFIG_MTK_MT6797_DVFSP_BIGIDVFS_BACKEND is not set
+# CONFIG_MTK_MT6797_PROTECTED_READBACK_OBSERVER is not set
+# CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_LEDGER is not set
+# CONFIG_PSTORE_GEMINI_PROTECTED_READBACK_PROBE_GATE_LEDGER is not set
+# CONFIG_PSTORE_GEMINI_CLOCK_BACKEND_ENTRY_LEDGER is not set
+CONFIG_LOCALVERSION="-gemini-service-ctl"

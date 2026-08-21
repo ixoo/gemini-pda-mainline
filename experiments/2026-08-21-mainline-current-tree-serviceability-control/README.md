@@ -1,0 +1,119 @@
+# Current-tree serviceability control
+
+## Record
+
+| Field | Value |
+| --- | --- |
+| ID | `2026-08-21-mainline-current-tree-serviceability-control` |
+| Status | running; prebuild definition selected |
+| Subsystem | arm64 boot, USB/netcat serviceability, DA921x read-only path |
+| Device variant | Gemini PDA x27, named project unit |
+| Date(s) | 2026-08-21 |
+| Investigator(s) | Julien Etienne, Codex |
+| Tracking issue | Gate 7 / CPU8 prerequisite localization |
+
+## Question or hypothesis
+
+Does the current canonical Linux 7.1.3 tree remain serviceable when built from
+the last runtime-proven `da921x-same-value-write` configuration lineage, with
+the action path and every protected-readback/clock-entry path explicitly
+disabled, and paired with the exact successful three-window DT resource
+contract?
+
+This is not a repeat of padded candidate `85dbd8d0...`: the current tree adds
+later canonical patches and the control has a unique release while compiling
+out the old same-value trigger. It is also not a clock-entry retry: the clock
+backend and its shared retained writer are absent from the resolved
+configuration.
+
+## Provenance and environment
+
+- Kernel release: expected `7.1.3-gemini-service-ctl`
+- Kernel source: manifest-pinned Linux 7.1.3 plus canonical `patches/series`
+  through patch `0326`
+- Build profile: `da921x-current-service-control`
+- Build backend: Buildbox only, from an exact clean pushed commit
+- Configuration foundation: exact manifest fragment sequence of
+  `da921x-same-value-write` plus the final control fragment
+- DT contract: retain named `cspm`, `scp-cfg`, and `devapc-ao` windows from
+  successful candidate `85dbd8d0...`
+- Boot path: guarded live-GPT logical `boot2` only
+
+Exact package, configuration, DTB, container, and commit hashes remain pending
+until the clean definition commit is built and independently validated.
+
+## Safety assessment
+
+The profile explicitly compiles out the same-value action, protected-clock
+backend, BigiDVFS backend, protected-readback observer, shared protected
+retained writer, and both of its experiment modes. It retains the previously
+successful read-only provider/preflight, I2C6 observation, USB/netcat,
+keyboard, CPU0--7, and CPU8/9 veto paths. Runtime tooling must send no action
+token. There is no protected call, regulator-data write, CPU request, retry,
+owner transition, reset, or automatic power action in the tested path.
+
+Any candidate installation must use the standing guarded `boot2` workflow:
+resolve the live GPT, require inactive/unmounted exact target and stable power,
+record the predecessor without a new backup, fit and pad exactly, write,
+sync/flush, match a full readback, and shut down cleanly without rebooting.
+
+## Associated code
+
+- `configs/gemini-current-service-control.fragment`: final explicit closures
+  and unique release
+- `kernel/manifest.json`: named Buildbox profile
+- `scripts/validate.py`: exact profile, fragment, and canonical-series audit
+- `contract.json`: frozen question, safety gates, and decision table
+
+Candidate assembly, independent container validation, guarded installation,
+and exact USB runtime tooling will be added only after the Buildbox package is
+available and its identities can be pinned.
+
+## Procedure
+
+1. Validate the exact manifest/profile definition and all manifest-selected
+   series invariants.
+2. Commit and sign the definition, push it to the exact project origin, and
+   leave the worktree clean.
+3. Build that exact commit only with
+   `KERNEL_PROFILE=da921x-current-service-control ./scripts/build-kernel --backend buildbox`.
+4. Fetch only the validated package, pin every package identity, and construct
+   the exact three-window DT derivative and Android-v0 candidate twice.
+5. Independently reject identity, DT-resource, closure, CPU, and container
+   mutations before admitting one boot candidate.
+6. Install once to guarded inactive logical `boot2`, verify the full readback,
+   and shut down.
+7. Arm the exact collector before one physical selection. If exact mainline
+   USB/netcat appears, verify release, model, CPU masks, keyboard, read-only
+   provider state, zero action path, and one native return to changed-ID
+   Gemian. If no exact interface appears before automatic return, stop without
+   repetition and localize within the current tree/config boundary.
+
+## Observations
+
+The clock-node-disabled predecessor returned automatically without exact USB.
+Changed-ID Gemian recovered empty pstore, four exact empty retained slots, the
+known generic `last_kmsg`, and unchanged boot2. That result is `neither` and is
+not repeated here.
+
+## Analysis
+
+The predecessor changed DT node population but retained the clock-entry Image
+and shared checkpoint. It therefore could not distinguish the current
+Image/configuration path from the experimental writer. This control removes
+that writer and returns to the latest complete serviceability contract with a
+new current-tree Image. A pass restores a trustworthy foundation for an
+independent checkpoint-mechanism test. A failure prevents further clock or
+CPU8 work until the current-tree delta is localized offline.
+
+## Conclusion
+
+Pending Buildbox and runtime evidence. No compile or device-support claim has
+yet been made.
+
+## Follow-up
+
+If serviceable, isolate the manual checkpoint mechanism without enabling the
+clock node or either protected transport. Only after that independent control
+passes may clock-backend population/probe entry resume. CPU8 and CPU9 remain
+closed throughout.

@@ -1,0 +1,43 @@
+Current-tree serviceability control prebuild definition
+=======================================================
+
+Result: selected for Buildbox validation
+Build profile: da921x-current-service-control
+Expected release: 7.1.3-gemini-service-ctl
+Canonical source: Linux 7.1.3 plus patches/series through patch 0326
+Profile derivation: exact da921x-same-value-write fragments plus one final
+control fragment
+
+Changed configuration boundary
+------------------------------
+
+- Compile out the old same-value action path.
+- Compile out the protected-clock backend.
+- Compile out the BigiDVFS backend.
+- Compile out the protected-readback observer.
+- Compile out the shared protected-readback retained writer and both modes.
+- Assign one unique local release.
+
+Retained runtime boundary
+-------------------------
+
+- Current canonical source and patch ordering
+- Last runtime-proven read-only DA921x provider/preflight lineage
+- I2C6 stopped-firmware transaction observation
+- USB/netcat serviceability initramfs
+- CPU0--7 baseline and CPU8/9 veto
+- Exact successful DT handoff resources: cspm, scp-cfg, devapc-ao
+- Keyboard and native USB-shell recovery path
+
+Decision
+--------
+
+Exact USB/netcat with the named release, CPU masks, keyboard, absent action
+path, and one boot-ID-gated native return promotes the current-tree
+serviceability foundation. No exact USB before an automatic changed-ID Gemian
+return stops the artifact and requires offline localization. Identity or safety
+mismatch is rejected without inference. The attempt budget is one.
+
+No kernel build, device access, protected call, regulator-data write, CPU
+request, boot2 write, reboot, or power action occurred while selecting this
+definition.
