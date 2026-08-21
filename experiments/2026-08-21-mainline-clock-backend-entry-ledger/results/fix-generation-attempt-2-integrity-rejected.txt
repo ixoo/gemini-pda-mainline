@@ -1,0 +1,27 @@
+clock-backend entry-ledger correction generation attempt 2
+===========================================================
+
+Repository commit: c9eff2640917e05dd853ad1aa48956c043c65891
+Backend: buildbox
+
+Result
+------
+
+stage=prepared-parent-source-integrity-gate
+result=rejected
+source_state=ad9881253accb9494d305ac9f8175989a0141658d890a46a674f9db39d20c777
+source_tree_integrity=5dfae10467a6c9aa4ac0f49f77562b16e416f359a0e6eb22ec2bbf423d0df834
+artifact_produced=false
+boot_candidate=false
+device_action=none
+native_vm_build=none
+
+Diagnosis and correction
+------------------------
+
+The generator correctly matched the source-state marker and exact pstore
+Kconfig hash, then incorrectly required the full-tree integrity digest to equal
+the source-state marker. Those are independent attestations. The gate rejected
+the job before source editing.
+
+Pin and check both exact values independently. Do not relax either check.

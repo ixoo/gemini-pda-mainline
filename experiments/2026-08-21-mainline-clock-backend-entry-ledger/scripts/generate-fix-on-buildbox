@@ -4,6 +4,7 @@ set -euo pipefail
 export LC_ALL=C
 
 readonly PARENT_SOURCE_STATE=ad9881253accb9494d305ac9f8175989a0141658d890a46a674f9db39d20c777
+readonly PARENT_SOURCE_INTEGRITY=5dfae10467a6c9aa4ac0f49f77562b16e416f359a0e6eb22ec2bbf423d0df834
 readonly PSTORE_KCONFIG_SHA256=fc6bbf4406e200aea05d7fa032b29f3a7331ab28e25b9712c42163a8d9133df6
 readonly PARENT_PATCH=0325-soc-mediatek-add-Gemini-clock-backend-entry-ledger.patch
 readonly PARENT_PATCH_SHA256=344b1181d0e164e61495a51a6bdf5053e9283c6ef5c486b00ca97e433af71f95
@@ -36,7 +37,7 @@ for command in git perl python3 sha256sum; do
 	command -v "$command" >/dev/null 2>&1 || die "missing command: $command"
 done
 python3 "$repository_dir/scripts/source-tree-integrity" verify "$source_root" |
-	grep -Fx "source_tree_integrity=$PARENT_SOURCE_STATE" >/dev/null ||
+	grep -Fx "source_tree_integrity=$PARENT_SOURCE_INTEGRITY" >/dev/null ||
 	die 'prepared source integrity verification failed'
 printf '%s  %s\n' "$PSTORE_KCONFIG_SHA256" "$source_root/fs/pstore/Kconfig" |
 	sha256sum --check --status || die 'parent pstore Kconfig changed'
@@ -144,6 +145,7 @@ cat >"$partial/provenance/generation.txt" <<EOF
 purpose=experiment-only-clock-backend-entry-ledger-kconfig-fix
 repository_commit=$project_commit
 parent_source_state=$PARENT_SOURCE_STATE
+parent_source_integrity=$PARENT_SOURCE_INTEGRITY
 canonical_parent_patch=$PARENT_PATCH
 canonical_parent_patch_sha256=$PARENT_PATCH_SHA256
 parent_commit=$parent_commit

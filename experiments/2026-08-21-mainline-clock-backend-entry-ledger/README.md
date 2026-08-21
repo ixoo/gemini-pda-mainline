@@ -96,3 +96,9 @@ the rejected build. Rather than reconstruct or copy a second source tree, the
 correction is now generated as patch `0326` from exact source state
 `ad988125...`. See
 [`results/fix-generation-attempt-1-parent-state-rejected.txt`](results/fix-generation-attempt-1-parent-state-rejected.txt).
+
+The next generator revision correctly matched that source-state marker and
+Kconfig hash but mistakenly compared the marker with the separate full-tree
+integrity digest. Exact commit `c9eff26` failed closed before creating an
+artifact. The generator now pins both values independently; see
+[`results/fix-generation-attempt-2-integrity-rejected.txt`](results/fix-generation-attempt-2-integrity-rejected.txt).

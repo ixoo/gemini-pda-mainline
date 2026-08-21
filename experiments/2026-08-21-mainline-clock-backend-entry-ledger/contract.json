@@ -67,6 +67,7 @@
   "kconfig_follow_up": {
     "expected_patch": "patches/v7.1.3/0326-pstore-make-protected-readback-base-writer-usable-by-clock.patch",
     "parent_source_state": "ad9881253accb9494d305ac9f8175989a0141658d890a46a674f9db39d20c777",
+    "parent_source_integrity": "5dfae10467a6c9aa4ac0f49f77562b16e416f359a0e6eb22ec2bbf423d0df834",
     "parent_patch": "patches/v7.1.3/0325-soc-mediatek-add-Gemini-clock-backend-entry-ledger.patch",
     "parent_patch_sha256": "344b1181d0e164e61495a51a6bdf5053e9283c6ef5c486b00ca97e433af71f95",
     "changed_file": "fs/pstore/Kconfig",
