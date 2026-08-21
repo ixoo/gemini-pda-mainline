@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-21-mainline-mtk-ram-console-parser` |
-| Status | canonical patch `0304` generated, replayed, and admitted; compile and QEMU pending |
+| Status | canonical patch `0304` proven by Buildbox compile and focused QEMU KUnit |
 | Subsystem | MediaTek retained preloader/LK ram-console wire format |
 | Device variant | MT6797/Gemini contract; hardware-free implementation phase |
 | Date(s) | 2026-08-21 America/New_York |
@@ -58,6 +58,11 @@ reboot, or shut down hardware.
 - [`results/patch-generation-validated-20260821.txt`](results/patch-generation-validated-20260821.txt)
   records the fourth exact generation's package, patch, replay, and clean
   strict-check identities.
+- [`results/buildbox-build-validated-20260821.txt`](results/buildbox-build-validated-20260821.txt)
+  records the exact clean Buildbox package, configuration, image, and linked
+  parser/test identities.
+- [`results/qemu-kunit-validated-20260821.txt`](results/qemu-kunit-validated-20260821.txt)
+  records the checksum-bound eight-case network-free runtime proof.
 - [`source/mtk-ram-console.c`](source/mtk-ram-console.c) and
   [`source/mtk-ram-console.h`](source/mtk-ram-console.h) are deterministic
   source inputs.
@@ -133,8 +138,23 @@ checkpatch with zero errors, warnings, or checks across 397 lines. Its generated
 patch SHA-256 is
 `5d0f76141311b3036eddeca5672ef090d36b1fd040038a2bd011373ac9a1fc99`;
 canonical patch `0304` is byte-identical and isolated source and KUnit profiles
-are admitted. No compile result, QEMU result, physical capture, reset
-interpretation, boot candidate, or device result is claimed yet.
+are admitted.
+
+Buildbox then fetched exact clean repository commit
+`5b129a7b4af899a444f8b3bccf583de03f431227`, applied all 293 canonical
+patches, merged the 11 fragments in profile
+`mtk-ram-console-parser-kunit`, and compiled and linked release
+`7.1.3-gemini-mtk-ram-console-parser-kunit`. The checksum-validated package
+contains one exported parser symbol and all eight focused test symbols. Its
+image SHA-256 is
+`8afa5cd434cdf77a7113b9f05470ceb33411e7cc6c82c9f3e69682db2f61fa0f`.
+
+One bounded QEMU 11.0.2 run used that exact image on `virt`, four Cortex-A53
+vCPUs, and no network. The sole `mtk-ram-console-parser` suite ran exactly the
+eight declared cases; all passed with zero failures or skips. The later VFS
+rootfs panic and timeout were the predeclared terminal VM state. No physical
+mapping, reset interpretation, A34 caller, boot candidate, or device action
+was executed or inferred.
 
 ## Analysis
 
@@ -146,14 +166,15 @@ owner; it does not make them safe.
 
 ## Conclusion
 
-`inconclusive` pending exact Buildbox cross-compile and focused KUnit execution.
-Generation, replay, strict style review, and canonical admission pass. No
-production A34 authority or hardware behavior follows from this parser.
+`pass` for the pure retained-header parser boundary. Exact Buildbox generation,
+replay, strict style review, canonical admission, cross-compile, link, and all
+eight focused KUnit cases pass. This does not prove a physical mapping owner,
+reset classification, a fresh secure epoch, production A34 authority, or any
+hardware behavior.
 
 ## Follow-up
 
-Build the admitted KUnit profile on Buildbox and run one bounded, network-free
-QEMU proof. If all eight exact cases pass, close only the pure parser boundary,
-then audit immutable physical copy ownership and independent secure-epoch
-attestation. Keep reset classification, A34 evaluation, lifecycle publication,
-and device work out of this boundary.
+Audit immutable physical copy ownership and independent secure-epoch
+attestation as separate boundaries. Keep reset classification, A34 evaluation,
+lifecycle publication, and device work out until both authority paths are
+honestly resolved.

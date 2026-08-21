@@ -100,6 +100,67 @@ def main() -> None:
             generation["qemu"] == "not-run",
             "generation result contract")
 
+    build = contract["validated_build"]
+    build_receipt_path = ROOT / build["receipt"]
+    require(sha256(build_receipt_path) == build["receipt_sha256"],
+            "validated build receipt identity")
+    build_receipt = build_receipt_path.read_text()
+    for key in (
+        "repository_commit", "profile", "kernel_release", "package",
+        "package_sha256s_sha256", "build_provenance_sha256",
+        "source_sha256", "patchset_sha256", "config_sha256",
+        "image_sha256", "image_gzip_sha256",
+    ):
+        require(f"{key}={build[key]}" in build_receipt,
+                f"validated build {key}")
+    for token in (
+        "repository_dirty=false", "patch_count=293", "fragment_count=11",
+        "target_architecture=arm64", "modules_built=false",
+        "config_parser=y", "config_parser_kunit_test=y", "config_kunit=y",
+        "parser_symbol_count=1", "kunit_test_symbol_count=8",
+        "package_checksums=pass", "compile=pass", "link=pass",
+        "hardware_write=none", "device_action=none", "boot_candidate=false",
+        "result=pass",
+    ):
+        require(token in build_receipt, f"validated build token: {token}")
+    require(build["result"] == "pass", "validated build result")
+
+    qemu = contract["validated_qemu"]
+    qemu_receipt_path = ROOT / qemu["receipt"]
+    require(sha256(qemu_receipt_path) == qemu["receipt_sha256"],
+            "validated QEMU receipt identity")
+    qemu_receipt = qemu_receipt_path.read_text()
+    for key in ("observed_utc", "runner_version", "raw_log_sha256"):
+        require(f"{key}={qemu[key]}" in qemu_receipt,
+                f"validated QEMU {key}")
+    for key in ("suites", "tests", "failed", "skipped"):
+        require(f"{key}={qemu[key]}" in qemu_receipt,
+                f"validated QEMU {key}")
+    for token in (
+        f"repository_commit={build['repository_commit']}",
+        f"profile={build['profile']}",
+        f"kernel_release={build['kernel_release']}",
+        f"image_sha256={build['image_sha256']}",
+        f"config_sha256={build['config_sha256']}",
+        "runner=qemu-system-aarch64", "machine=virt", "cpu=cortex-a53",
+        "vcpus=4", "network=none",
+        "physical_mapping=not-executed-parser-only",
+        "tap_summary=pass:8_fail:0_skip:0_total:8",
+        "post_test_state=expected_vm_rootfs_panic", "qemu_exit=124",
+        "reset_classifier=none", "a34_caller=none", "hardware_write=none",
+        "device_action=none", "boot_candidate=false", "result=pass",
+    ):
+        require(token in qemu_receipt, f"validated QEMU token: {token}")
+    for case in (
+        "invalid_arguments", "truncated", "signature", "buffer_size",
+        "preloader_layout", "lk_layout", "exact", "every_bit",
+    ):
+        require(f"mtk_ram_console_{case}_test=pass" in qemu_receipt,
+                f"validated QEMU case: {case}")
+    require(qemu["suites"] == 1 and qemu["tests"] == 8 and
+            qemu["failed"] == 0 and qemu["skipped"] == 0 and
+            qemu["result"] == "pass", "validated QEMU result")
+
     for script in (
         "source_edits.py", "validate_source.py", "validate_patches.py",
         "validate.py", "classify-kunit.py", "test-kunit-classifier.py",
@@ -214,15 +275,17 @@ def main() -> None:
 
     readme = (HERE / "README.md").read_text()
     design = (HERE / "DESIGN.md").read_text()
-    require("canonical patch `0304` generated, replayed, and admitted" in
-            readme and
+    require(
+            "canonical patch `0304` proven by Buildbox compile and focused QEMU KUnit"
+            in readme and
             "checkpatch rejected one continuation-line" in readme and
             "third exact attempt" in readme and
             "rejected only that prototype" in readme and
             "fourth exact Buildbox generation" in readme and
             "zero errors, warnings, or checks across 397 lines" in readme and
-            "No compile result, QEMU result" in readme and
-            "`inconclusive` pending exact Buildbox cross-compile" in readme,
+            "all passed with zero failures or skips" in readme and
+            "`pass` for the pure retained-header parser boundary" in readme and
+            "This does not prove a physical mapping owner" in readme,
             "status is not overstated")
     for token in (
         "caller-owned byte buffer",
@@ -255,8 +318,12 @@ def main() -> None:
     print("boot_candidate=false")
     print(f"canonical_patch_sha256={expected_patch['sha256']}")
     print("generation=pass")
-    print("compile=not-run")
-    print("qemu=not-run")
+    print("compile=pass")
+    print("qemu_suites=1")
+    print("qemu_tests=8")
+    print("qemu_failed=0")
+    print("qemu_skipped=0")
+    print("qemu=pass")
     print("result=pass")
 
 

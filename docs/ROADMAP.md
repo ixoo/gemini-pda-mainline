@@ -4451,11 +4451,16 @@ It adds no reserved-memory lookup, physical mapping, reset classifier, A34
 caller, lifecycle publication, provider action, P30 arm, PSCI call, CPU veto
 change, boot image, or device action.
 
-The next ordered action is to cross-build exact patch `0304` on Buildbox and
-run its sole eight-case suite in bounded network-free QEMU. Only after that
-pure parser proof passes should work audit the separate immutable mapping/copy
-owner and an independent secure-epoch attestation; do not manufacture authority
-by combining correlated reset-history fields.
+The exact patch `0304` Buildbox profile now compiles and links. Its sole bounded,
+network-free QEMU suite passes all eight cases with zero failures or skips and
+the exact corrupt, chaining, raw-word, and every-bit inventory. This closes
+only the pure caller-buffer parser boundary.
+
+The next ordered boundary is an audit of the immutable physical mapping/copy
+owner and, separately, independent secure-epoch attestation. Do not implement a
+mapping, classifier, or production A34 caller until those authority contracts
+are frozen, and do not manufacture authority by combining correlated reset-
+history fields.
 
 The eventual CPU8 candidate must have a single CPU8 request, strict
 checkpoints before and after each power step, a bounded timeout, and a

@@ -28,9 +28,10 @@ the loop. Positive identity-gated observations are unaffected.
   retained-header copy. The fourth exact Buildbox generation passed source
   semantics, byte-for-byte replay, and strict style after three preserved
   alignment-only rejections. It returns all 32 raw preloader-status bits plus
-  validity and adds no mapping, classifier, A34 caller, hardware action, boot
-  candidate, or device action. Exact Buildbox compile and focused eight-case
-  QEMU proof remain pending.
+  validity. The exact Buildbox profile compiled and linked, and its sole
+  network-free QEMU suite passed all eight cases with zero failures or skips.
+  It adds no mapping, classifier, A34 caller, hardware action, boot candidate,
+  or device action.
 - [2026-08-21 retained ram-console authority audit](2026-08-21-mainline-retained-ram-console-authority-audit/README.md)
   — freezes the common 64-byte header, exact PL/LK record chains, current
   preloader raw-status location, and strict corruption behavior from pinned
