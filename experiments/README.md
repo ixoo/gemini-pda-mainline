@@ -23,6 +23,15 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-21 retained ram-console copy-owner audit](2026-08-21-mainline-retained-ram-console-copy-owner-audit/README.md)
+  — selects a normal default-off platform consumer with one
+  `memory-region` reference to the exact 64 KiB `no-map` reservation. The
+  future owner maps it once with `MEMREMAP_WB`, copies it completely, unmaps
+  before parsing, and publishes only the immutable typed snapshot. Pinned LK
+  writers finish before Linux handoff and current mainline has no physical
+  writer; generic NVMEM, a magic address, persistent mapping, and direct
+  physical parsing are rejected. Independent secure-epoch attestation remains
+  unresolved, so A34 and CPU8/CPU9 stay closed.
 - [2026-08-21 mainline MediaTek retained ram-console parser](2026-08-21-mainline-mtk-ram-console-parser/README.md)
   — admits canonical patch `0304`, a default-off parser for a caller-owned
   retained-header copy. The fourth exact Buildbox generation passed source

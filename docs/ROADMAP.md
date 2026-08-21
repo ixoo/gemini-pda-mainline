@@ -4462,6 +4462,33 @@ mapping, classifier, or production A34 caller until those authority contracts
 are frozen, and do not manufacture authority by combining correlated reset-
 history fields.
 
+That
+[copy-owner audit](../experiments/2026-08-21-mainline-retained-ram-console-copy-owner-audit/README.md)
+is now complete. Linux 7.1.3 `no-map` handling, arm64 `memremap()` semantics,
+OF platform population, and pinned LK/vendor writer ordering select one normal
+default-off platform consumer with a sole `memory-region` reference. It must
+require the exact 64 KiB `no-map` reservation, make one transient
+`MEMREMAP_WB` mapping, copy the entire region once, unmap before parsing, and
+publish only the immutable typed raw snapshot. Current mainline through `0304`
+has no physical writer; any future writer invalidates that ordering unless it
+is explicitly sequenced behind the copy. A direct reserved-memory child,
+generic NVMEM provider, magic physical address, persistent mapping, direct
+physical parse, retry, and raw export are rejected.
+
+The same audit found no new independent secure-epoch input. LK completion and
+all known ram-console, TOPRGU, boot-reason, or manually described cold-looking
+boot observations remain reset-path evidence, not attestation that the exact
+secure payload initialized private replay state in the current epoch. The
+combiner and production A34 owner remain closed.
+
+The next ordered implementation is therefore only the selected default-off
+mapping/copy owner, binding, and Gemini DT consumer. Its hardware-free proof
+must inject ordinary bytes to establish exactly one copy/publication, failure
+invalidation, second-capture refusal, source independence, every-bit
+preservation, and absence of a classifier or A34 call. The real reserved-memory
+mapping path remains compile/source-reviewed until a separately justified
+device observation. No boot image or device attempt follows from the audit.
+
 The eventual CPU8 candidate must have a single CPU8 request, strict
 checkpoints before and after each power step, a bounded timeout, and a
 fail-closed rollback. CPU9

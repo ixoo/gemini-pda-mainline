@@ -1,0 +1,13 @@
+command=python3 experiments/2026-08-21-mainline-retained-ram-console-copy-owner-audit/scripts/validate.py
+result=pass
+audit=pass
+repository_input=1d0b3c55d8743d0fa2983dda0a228e5a61e6d41b
+decision_rows=18
+copy_owner=selected
+mapping=transient-MEMREMAP_WB
+copy_count=1
+unmap_before_parse=yes
+secure_epoch_attestation=unresolved
+reset_history_combiner=forbidden
+a34_owner=closed
+device_action=none
