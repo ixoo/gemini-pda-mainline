@@ -342,8 +342,7 @@ static void mtk_ram_console_reader_second_capture_test(struct kunit *test)
 			mtk_ram_console_capture(&state, mtk_ram_console_test_copy,
 						&copy,
 						MTK_RAM_CONSOLE_READER_SIZE));
-	put_unaligned_le32(BIT(4),
-			     copy.source + MTK_RAM_CONSOLE_STATUS_OFFSET);
+	put_unaligned_le32(BIT(4), copy.source + MTK_RAM_CONSOLE_STATUS_OFFSET);
 	KUNIT_EXPECT_EQ(test, -EALREADY,
 			mtk_ram_console_capture(&state, mtk_ram_console_test_copy,
 						&copy,
@@ -386,12 +385,13 @@ static void mtk_ram_console_reader_every_bit_test(struct kunit *test)
 		struct mtk_ram_console_test_copy copy = {
 			.source = source,
 		};
+		int ret;
 
 		mtk_ram_console_test_fixture(source, BIT(bit));
-		KUNIT_ASSERT_EQ(test, 0,
-				mtk_ram_console_capture(
-					&state, mtk_ram_console_test_copy, &copy,
-					MTK_RAM_CONSOLE_READER_SIZE));
+		ret = mtk_ram_console_capture(&state, mtk_ram_console_test_copy,
+					      &copy,
+					      MTK_RAM_CONSOLE_READER_SIZE);
+		KUNIT_ASSERT_EQ(test, 0, ret);
 		KUNIT_ASSERT_EQ(test, 0,
 				mtk_ram_console_state_get(&state, &snapshot));
 		KUNIT_EXPECT_EQ(test, BIT(bit), snapshot.preloader_status);
