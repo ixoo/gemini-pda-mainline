@@ -31,7 +31,7 @@ def main() -> None:
     require(text.count(OLD) == 1 and text.count(NEW) == 1,
             "exact dependency replacement")
     require("Signed-off-by:" not in text, "no synthetic certification")
-    require("make protected-readback base writer usable by clock entry ledger" in text,
+    require("Subject: [PATCH] pstore: allow clock entry ledger without observer" in text,
             "exact experiment-only subject")
     require("+++ b/fs/pstore/Kconfig" in text, "expected result path")
     for forbidden in (

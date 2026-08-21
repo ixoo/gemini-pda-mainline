@@ -109,3 +109,10 @@ generated subject because the validator accidentally omitted the word `make`
 from the exact expected subject. No patch was admitted; the exact string check
 is corrected in
 [`results/fix-generation-attempt-3-subject-rejected.txt`](results/fix-generation-attempt-3-subject-rejected.txt).
+
+Exact commit `395b1ed` repeated only that patch-shape rejection because
+`git format-patch` folded the long RFC 2822 Subject header between `clock` and
+`entry`. The semantic validators again passed. The generator now uses the
+short exact subject `pstore: allow clock entry ledger without observer`, which
+cannot fold under the formatter; see
+[`results/fix-generation-attempt-4-folded-subject-rejected.txt`](results/fix-generation-attempt-4-folded-subject-rejected.txt).

@@ -1,0 +1,28 @@
+clock-backend entry-ledger correction generation attempt 4
+===========================================================
+
+Repository commit: 395b1ed019d29cf890ac11df8ecf48b6dd70b365
+Backend: buildbox
+
+Result
+------
+
+parent_source_integrity=pass
+parent_kconfig_validation=pass
+source_edit=pass
+corrected_kconfig_validation=pass
+stage=generated-patch-shape-validation
+result=rejected
+reason=format_patch_folded_long_subject_header
+artifact_produced=false
+boot_candidate=false
+device_action=none
+native_vm_build=none
+
+Correction
+----------
+
+The previous literal was semantically correct, but `git format-patch` folded
+the long RFC 2822 Subject header between `clock` and `entry`. Replace the commit
+subject with the short exact text `pstore: allow clock entry ledger without
+observer` and retain all source, scope, replay, and checkpatch gates.

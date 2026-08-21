@@ -103,7 +103,7 @@ GIT_COMMITTER_EMAIL=gemini-mainline@example.invalid \
 GIT_AUTHOR_DATE=2026-08-22T02:11:00Z \
 GIT_COMMITTER_DATE=2026-08-22T02:11:00Z \
 	git -C "$work/source" commit --quiet --no-gpg-sign \
-		-m 'pstore: make protected-readback base writer usable by clock entry ledger' \
+		-m 'pstore: allow clock entry ledger without observer' \
 		-m 'Allow the opt-in base retained-RAM writer when either its historical observer or the built-in clock backend containing the new entry-ledger call sites is selected.' \
 		-m 'Keep the writer default off and make no runtime code change.'
 result_commit="$(git -C "$work/source" rev-parse HEAD)"
