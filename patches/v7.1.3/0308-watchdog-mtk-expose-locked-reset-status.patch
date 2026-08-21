@@ -1,0 +1,46 @@
+From 787d803c8a61eea70a7e97a622e8535744a0f2de Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 21 Aug 2026 18:01:00 +0000
+Subject: [PATCH 1/4] watchdog: mtk: expose locked reset status
+
+Read WDT_SWSYSRST under the reset controller existing spinlock and expose the logical bit through the standard reset status callback.
+
+Add no watchdog write, reset action, polling loop, lifecycle caller, CPU operation, boot candidate, or device action.
+---
+ drivers/watchdog/mtk_wdt.c | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
+diff --git a/drivers/watchdog/mtk_wdt.c b/drivers/watchdog/mtk_wdt.c
+index 450f50e..21c47b9 100644
+--- a/drivers/watchdog/mtk_wdt.c
++++ b/drivers/watchdog/mtk_wdt.c
+@@ -246,6 +246,21 @@ static int toprgu_reset_update(struct reset_controller_dev *rcdev,
+ 	return 0;
+ }
+ 
++static int toprgu_reset_status(struct reset_controller_dev *rcdev,
++			       unsigned long id)
++{
++	struct mtk_wdt_dev *data =
++		container_of(rcdev, struct mtk_wdt_dev, rcdev);
++	unsigned long flags;
++	u32 value;
++
++	spin_lock_irqsave(&data->lock, flags);
++	value = readl(data->wdt_base + WDT_SWSYSRST);
++	spin_unlock_irqrestore(&data->lock, flags);
++
++	return !!(value & BIT(id));
++}
++
+ static int toprgu_reset_assert(struct reset_controller_dev *rcdev,
+ 			       unsigned long id)
+ {
+@@ -274,6 +289,7 @@ static const struct reset_control_ops toprgu_reset_ops = {
+ 	.assert = toprgu_reset_assert,
+ 	.deassert = toprgu_reset_deassert,
+ 	.reset = toprgu_reset,
++	.status = toprgu_reset_status,
+ };
+ 
+ static int toprgu_register_reset_controller(struct platform_device *pdev,

@@ -1,0 +1,44 @@
+From 69cc6582c8b46f8b74e2bb7cbbcb28cc2e695b05 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 21 Aug 2026 18:04:00 +0000
+Subject: [PATCH 4/4] arm64: dts: mediatek: add MT6797 A72 state source
+
+Replace the old disabled probe-time observer node with the complete named-resource source node, and keep it disabled.
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts | 1 -
+ arch/arm64/boot/dts/mediatek/mt6797.dtsi           | 9 +++++----
+ 2 files changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+index 59d4f73..16cf297 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -291,7 +291,6 @@
+ 	};
+ };
+ 
+-/delete-node/ &a72_power;
+ 
+ &dvfsp_handoff {
+ 	#access-controller-cells = <0>;
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+index ab0b8f6..d08df84 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797.dtsi
++++ b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+@@ -323,11 +323,12 @@
+ 		infracfg = <&infrasys>;
+ 	};
+ 
+-	a72_power: a72-power@10222000 {
+-		compatible = "mediatek,mt6797-a72-power";
+-		reg = <0 0x10222000 0 0x1000>;
++	a72_platform_state: a72-platform-state@10222000 {
++		compatible = "mediatek,mt6797-a72-platform-state";
++		reg = <0 0x10222000 0 0x1000>,
++		      <0 0x10390000 0 0x10000>;
++		reg-names = "mcucfg", "cci";
+ 		mediatek,spm = <&scpsys>;
+-		cpus = <&cpu8>, <&cpu9>;
+ 		resets = <&watchdog MT6797_TOPRGU_PWRAP_SPI_CTL_RST>;
+ 		reset-names = "pwrap";
+ 		status = "disabled";

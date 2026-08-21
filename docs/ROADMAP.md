@@ -4567,13 +4567,14 @@ DCM fields. The selected source is read-only and default-off. Its local lock
 cannot serialize secure PSCI; that exclusion remains the later transition
 owner's responsibility.
 
-The next ordered work is:
+The default-off capture-only source is now generated as four logical patches
+and admitted canonically through `0311`; exact Buildbox replay, semantic
+validation, and strict checkpatch passed. This closes source construction, not
+compilation or runtime ownership. The next ordered work is:
 
-1. Implement one default-off, capture-only platform-state source for the
-   source-backed SPM physical/control, TOPRGU PWRAP, MP2 DCM, and CCI fields.
-   It must publish a typed immutable record, add the locked TOPRGU reset-state
-   accessor, use named DT resources, perform no writes or polling, and have no
-   A34 caller.
+1. Compile the isolated platform-state profile on Buildbox, verify the symbol
+   and Gemini DTB in the checksum-covered package, and retain compile-only
+   evidence. Do not enable the DT node or create a boot candidate.
 2. Export fresh read-only DA921x state from its existing root-adapter-locked
    owner, validate the disabled protected clock/BigiDVFS readers on the named
    firmware, then compose every source under one transition/hotplug owner.

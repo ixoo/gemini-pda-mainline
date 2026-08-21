@@ -24,11 +24,11 @@ the loop. Positive identity-gated observations are unaffected.
 ### Current DA921x, I2C6, and A72 line
 
 - [2026-08-21 mainline MT6797 A72 platform-state source](2026-08-21-mainline-mt6797-a72-platform-state/README.md)
-  — prepares a deterministic Buildbox-only two-patch generation lane for the
-  selected default-off source: a locked read-only TOPRGU reset-status callback
-  and a typed two-sample SPM/PWRAP/DCM/CCI record. The source has no polling,
-  hardware write, DT enablement, A34 caller, lifecycle publication, or CPU
-  operation. Patch generation and compilation remain pending.
+  — generated, replayed, and strictly checked four logical patches for the
+  selected default-off source: a locked read-only TOPRGU reset-status callback,
+  binding, typed two-sample SPM/PWRAP/DCM/CCI record, and disabled DT node. The
+  source has no polling, hardware write, DT enablement, A34 caller, or CPU
+  operation. Generation passed; the isolated Buildbox compile remains pending.
 - [2026-08-21 A72 CCI and platform-state owner audit](2026-08-21-mainline-a72-cci-platform-state-owner-audit/README.md)
   — identifies the source-backed MP2 CCI port at `0x10396000` and the sole
   global change-pending word at `0x1039000c`, explicitly correcting an older

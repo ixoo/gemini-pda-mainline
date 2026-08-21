@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-21-mainline-mt6797-a72-platform-state` |
-| Status | deterministic Buildbox generation input; patches pending |
+| Status | generated and canonically admitted; Buildbox compile pending |
 | Subsystem | MT6797 A72 CCI/SPM/TOPRGU/DCM observation |
 | Device variant | Gemini PDA contract; hardware-free implementation phase |
 | Date | 2026-08-21 America/New_York |
@@ -70,6 +70,15 @@ continuation-column checks in the source/header declarations. Those exact
 columns are corrected. No package, build, or device action resulted. See
 [`results/buildbox-generation-attempt-1669a6b3.txt`](results/buildbox-generation-attempt-1669a6b3.txt).
 
+The fourth attempt used exact pushed commit
+`31f73570ad039a9004b91a1a6762aeeafd4f8e0f` and passed every generation gate.
+Buildbox produced four patches, replayed them to exact result commit
+`69cc6582c8b46f8b74e2bb7cbbcb28cc2e695b05`, repeated semantic validation,
+and reported zero errors, warnings, or checks for each strict-checkpatch run.
+Only the checksum-covered package was fetched. Its exact patches are now the
+canonical `0308` through `0311` entries. See
+[`results/buildbox-generation-31f73570.txt`](results/buildbox-generation-31f73570.txt).
+
 ## Selected change
 
 Patch `0308` adds the standard reset-controller `.status` callback to
@@ -120,6 +129,7 @@ runs strict checkpatch. It exports only a checksum-covered patch review.
 
 ## Current conclusion
 
-The deterministic source and generation boundary are ready for Buildbox
-review. No compile, runtime, hardware, or device claim is made yet. A34 and
-CPU8/CPU9 remain closed.
+The deterministic source and four-patch generation boundary passed Buildbox
+review and the byte-exact patches are canonically admitted. The isolated
+compile remains pending. No runtime, hardware, or device claim is made yet.
+A34 and CPU8/CPU9 remain closed.

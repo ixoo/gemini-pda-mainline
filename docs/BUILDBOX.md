@@ -176,8 +176,8 @@ operations, and DT enablement.
 After canonical admission, compile and fetch the isolated focused profile with:
 
 ```sh
-KERNEL_PROFILE=mtk-wdt-boot-status-kunit ./scripts/build-kernel --backend buildbox
-KERNEL_PROFILE=mtk-wdt-boot-status-kunit ./scripts/buildbox fetch-package
+KERNEL_PROFILE=mt6797-a72-platform-state-source ./scripts/build-kernel --backend buildbox
+KERNEL_PROFILE=mt6797-a72-platform-state-source ./scripts/buildbox fetch-package
 ```
 
 The corresponding parser-only compile and fetch commands are:

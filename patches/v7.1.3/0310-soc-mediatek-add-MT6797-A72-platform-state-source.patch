@@ -1,0 +1,356 @@
+From 39922ee0f3829a1e4e04af09799f8c887f985abd Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Fri, 21 Aug 2026 18:03:00 +0000
+Subject: [PATCH 3/4] soc: mediatek: add MT6797 A72 state source
+
+Capture two immediate read-only samples of the source-backed SPM, PWRAP reset, MP2 DCM, and MP2 CCI state and publish a typed record only when the A72 fields are stable.
+
+Add no polling, register write, A34 caller, lifecycle publication, CPU operation, boot candidate, or device action.
+---
+ drivers/soc/mediatek/Kconfig                  |  13 +
+ drivers/soc/mediatek/Makefile                 |   1 +
+ .../soc/mediatek/mt6797-a72-platform-state.c  | 229 ++++++++++++++++++
+ .../soc/mediatek/mt6797-a72-platform-state.h  |  62 +++++
+ 4 files changed, 305 insertions(+)
+ create mode 100644 drivers/soc/mediatek/mt6797-a72-platform-state.c
+ create mode 100644 include/linux/soc/mediatek/mt6797-a72-platform-state.h
+
+diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
+index ad86b7d..1a92a6e 100644
+--- a/drivers/soc/mediatek/Kconfig
++++ b/drivers/soc/mediatek/Kconfig
+@@ -60,6 +60,19 @@ config MTK_MT6797_A72_POWER
+ 	  authorizes CPU_ON.  It is groundwork for a later provider that can
+ 	  reproduce the hardware power sequence.
+ 
++config MTK_MT6797_A72_PLATFORM_STATE
++	bool "MediaTek MT6797 Cortex-A72 platform-state source"
++	depends on ARM64 && ARCH_MEDIATEK && OF
++	depends on RESET_CONTROLLER
++	select MFD_SYSCON
++	help
++	  Build the default-off read-only source for the MT6797 Cortex-A72
++	  SPM, TOPRGU PWRAP reset, MP2 DCM, and MP2 CCI state. It publishes
++	  only a typed snapshot and performs no register write or polling.
++
++	  A later transition owner must serialize snapshots against PSCI.
++	  This source does not authorize CPU_ON or lifecycle publication.
++
+ config MTK_MT6797_DVFSP_HANDOFF
+ 	bool "MediaTek MT6797 stopped DVFSP firmware handoff"
+ 	depends on ARM64 && ARCH_MEDIATEK && OF && COMMON_CLK
+diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
+index 67bae28..12eae7a 100644
+--- a/drivers/soc/mediatek/Makefile
++++ b/drivers/soc/mediatek/Makefile
+@@ -33,6 +33,7 @@ obj-$(CONFIG_MTK_DEVAPC) += mtk-devapc.o
+ obj-$(CONFIG_MTK_DVFSRC) += mtk-dvfsrc.o
+ obj-$(CONFIG_MTK_INFRACFG) += mtk-infracfg.o
+ obj-$(CONFIG_MTK_MT6797_A72_POWER) += mt6797-a72-power.o
++obj-$(CONFIG_MTK_MT6797_A72_PLATFORM_STATE) += mt6797-a72-platform-state.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_HANDOFF) += mt6797-dvfsp-handoff.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_CLOCK_BACKEND) += mt6797-dvfsp-clock-backend.o
+ obj-$(CONFIG_MTK_MT6797_DVFSP_STATE_DECODERS) += mt6797-dvfsp-cspm-state.o
+diff --git a/drivers/soc/mediatek/mt6797-a72-platform-state.c b/drivers/soc/mediatek/mt6797-a72-platform-state.c
+new file mode 100644
+index 0000000..0730519
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-a72-platform-state.c
+@@ -0,0 +1,229 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Read-only MediaTek MT6797 Cortex-A72 platform-state source
++ *
++ * Copyright (c) 2026 Julien Etienne
++ */
++
++#include <linux/bitops.h>
++#include <linux/device.h>
++#include <linux/io.h>
++#include <linux/mfd/syscon.h>
++#include <linux/module.h>
++#include <linux/mutex.h>
++#include <linux/of.h>
++#include <linux/platform_device.h>
++#include <linux/regmap.h>
++#include <linux/reset.h>
++#include <linux/soc/mediatek/mt6797-a72-platform-state.h>
++
++#define MT6797_SPM_PWR_STATUS			0x180
++#define MT6797_SPM_PWR_STATUS_2ND		0x184
++#define MT6797_SPM_CPU_PWR_STATUS		0x188
++#define MT6797_SPM_CPU_PWR_STATUS_2ND		0x18c
++#define MT6797_SPM_MP2_CPUSYS_PWR_CON		0x218
++#define MT6797_SPM_MP2_CPU0_PWR_CON		0x240
++#define MT6797_SPM_MP2_CPU1_PWR_CON		0x244
++#define MT6797_SPM_CPU_EXT_BUCK_ISO		0x290
++
++#define MT6797_MCUCFG_MP2_SYNC_DCM		0x274
++#define MT6797_MCUCFG_MP2_SYNC_DCM_MASK		GENMASK(6, 0)
++
++#define MT6797_CCI_STATUS			0x000c
++#define MT6797_CCI_CHANGE_PENDING		BIT(0)
++#define MT6797_CCI_MP2_PORT_CONTROL		0x6000
++#define MT6797_CCI_MP2_REQUEST_MASK		GENMASK(1, 0)
++
++struct mt6797_a72_platform_state_source {
++	struct regmap *spm;
++	struct reset_control *pwrap_reset;
++	void __iomem *mcucfg;
++	void __iomem *cci;
++	struct mutex lock; /* Serializes the two-sample transaction. */
++};
++
++static int mt6797_state_read_spm(struct mt6797_a72_platform_state_source *source,
++				 struct mt6797_a72_platform_state *sample)
++{
++	int ret;
++
++	ret = regmap_read(source->spm, MT6797_SPM_PWR_STATUS,
++			  &sample->spm_pwr_status);
++	if (ret)
++		return ret;
++	ret = regmap_read(source->spm, MT6797_SPM_PWR_STATUS_2ND,
++			  &sample->spm_pwr_status_2nd);
++	if (ret)
++		return ret;
++	ret = regmap_read(source->spm, MT6797_SPM_CPU_PWR_STATUS,
++			  &sample->spm_cpu_pwr_status);
++	if (ret)
++		return ret;
++	ret = regmap_read(source->spm, MT6797_SPM_CPU_PWR_STATUS_2ND,
++			  &sample->spm_cpu_pwr_status_2nd);
++	if (ret)
++		return ret;
++	ret = regmap_read(source->spm, MT6797_SPM_MP2_CPUSYS_PWR_CON,
++			  &sample->spm_mp2_cpusys_pwr_con);
++	if (ret)
++		return ret;
++	ret = regmap_read(source->spm, MT6797_SPM_MP2_CPU0_PWR_CON,
++			  &sample->spm_mp2_cpu0_pwr_con);
++	if (ret)
++		return ret;
++	ret = regmap_read(source->spm, MT6797_SPM_MP2_CPU1_PWR_CON,
++			  &sample->spm_mp2_cpu1_pwr_con);
++	if (ret)
++		return ret;
++	ret = regmap_read(source->spm, MT6797_SPM_CPU_EXT_BUCK_ISO,
++			  &sample->spm_cpu_ext_buck_iso);
++	if (ret)
++		return ret;
++
++	return 0;
++}
++
++static int mt6797_state_read_once(struct mt6797_a72_platform_state_source *source,
++				  struct mt6797_a72_platform_state *sample)
++{
++	int reset_state;
++	int ret;
++
++	*sample = (struct mt6797_a72_platform_state){};
++	ret = mt6797_state_read_spm(source, sample);
++	if (ret)
++		return ret;
++
++	reset_state = reset_control_status(source->pwrap_reset);
++	if (reset_state < 0)
++		return reset_state;
++	sample->pwrap_reset_asserted = reset_state;
++
++	sample->mp2_sync_dcm = readl(source->mcucfg +
++				       MT6797_MCUCFG_MP2_SYNC_DCM);
++	sample->cci_status_before = readl(source->cci + MT6797_CCI_STATUS);
++	sample->cci_mp2_port_control = readl(source->cci +
++					      MT6797_CCI_MP2_PORT_CONTROL);
++	sample->cci_status_after = readl(source->cci + MT6797_CCI_STATUS);
++
++	return 0;
++}
++
++static bool mt6797_state_moved(const struct mt6797_a72_platform_state *first,
++			       const struct mt6797_a72_platform_state *second)
++{
++	return first->spm_cpu_pwr_status != second->spm_cpu_pwr_status ||
++		first->spm_cpu_pwr_status_2nd !=
++			second->spm_cpu_pwr_status_2nd ||
++		first->spm_mp2_cpusys_pwr_con !=
++			second->spm_mp2_cpusys_pwr_con ||
++		first->spm_mp2_cpu0_pwr_con != second->spm_mp2_cpu0_pwr_con ||
++		first->spm_mp2_cpu1_pwr_con != second->spm_mp2_cpu1_pwr_con ||
++		first->spm_cpu_ext_buck_iso != second->spm_cpu_ext_buck_iso ||
++		((first->mp2_sync_dcm ^ second->mp2_sync_dcm) &
++		 MT6797_MCUCFG_MP2_SYNC_DCM_MASK) ||
++		((first->cci_mp2_port_control ^
++		  second->cci_mp2_port_control) & MT6797_CCI_MP2_REQUEST_MASK) ||
++		first->pwrap_reset_asserted != second->pwrap_reset_asserted;
++}
++
++static bool mt6797_state_cci_busy(const struct mt6797_a72_platform_state *sample)
++{
++	return (sample->cci_status_before | sample->cci_status_after) &
++		MT6797_CCI_CHANGE_PENDING;
++}
++
++int mt6797_a72_platform_state_snapshot(struct device *dev,
++				       struct mt6797_a72_platform_state *snapshot)
++{
++	struct mt6797_a72_platform_state_source *source;
++	struct mt6797_a72_platform_state first;
++	struct mt6797_a72_platform_state second;
++	int ret;
++
++	if (!snapshot)
++		return -EINVAL;
++	*snapshot = (struct mt6797_a72_platform_state){};
++	if (!dev)
++		return -EINVAL;
++
++	source = dev_get_drvdata(dev);
++	if (!source)
++		return -ENODEV;
++
++	mutex_lock(&source->lock);
++	ret = mt6797_state_read_once(source, &first);
++	if (ret)
++		goto out;
++	ret = mt6797_state_read_once(source, &second);
++	if (ret)
++		goto out;
++	if (mt6797_state_cci_busy(&first) ||
++	    mt6797_state_cci_busy(&second)) {
++		ret = -EBUSY;
++		goto out;
++	}
++	if (mt6797_state_moved(&first, &second)) {
++		ret = -EAGAIN;
++		goto out;
++	}
++
++	*snapshot = second;
++	snapshot->valid = true;
++out:
++	mutex_unlock(&source->lock);
++	return ret;
++}
++EXPORT_SYMBOL_GPL(mt6797_a72_platform_state_snapshot);
++
++static int mt6797_a72_platform_state_probe(struct platform_device *pdev)
++{
++	struct mt6797_a72_platform_state_source *source;
++	struct device *dev = &pdev->dev;
++
++	source = devm_kzalloc(dev, sizeof(*source), GFP_KERNEL);
++	if (!source)
++		return -ENOMEM;
++
++	source->spm = syscon_regmap_lookup_by_phandle(dev->of_node, "mediatek,spm");
++	if (IS_ERR(source->spm))
++		return dev_err_probe(dev, PTR_ERR(source->spm),
++				     "failed to get SPM syscon\n");
++
++	source->pwrap_reset = devm_reset_control_get_exclusive(dev, "pwrap");
++	if (IS_ERR(source->pwrap_reset))
++		return dev_err_probe(dev, PTR_ERR(source->pwrap_reset),
++				     "failed to get PWRAP reset\n");
++
++	source->mcucfg = devm_platform_ioremap_resource_byname(pdev, "mcucfg");
++	if (IS_ERR(source->mcucfg))
++		return PTR_ERR(source->mcucfg);
++	source->cci = devm_platform_ioremap_resource_byname(pdev, "cci");
++	if (IS_ERR(source->cci))
++		return PTR_ERR(source->cci);
++
++	mutex_init(&source->lock);
++	platform_set_drvdata(pdev, source);
++	dev_info(dev, "read-only capture source ready; no lifecycle caller\n");
++
++	return 0;
++}
++
++static const struct of_device_id mt6797_a72_platform_state_of_match[] = {
++	{ .compatible = "mediatek,mt6797-a72-platform-state" },
++	{ }
++};
++MODULE_DEVICE_TABLE(of, mt6797_a72_platform_state_of_match);
++
++static struct platform_driver mt6797_a72_platform_state_driver = {
++	.probe = mt6797_a72_platform_state_probe,
++	.driver = {
++		.name = "mt6797-a72-platform-state",
++		.of_match_table = mt6797_a72_platform_state_of_match,
++		.suppress_bind_attrs = true,
++	},
++};
++builtin_platform_driver(mt6797_a72_platform_state_driver);
++
++MODULE_DESCRIPTION("MediaTek MT6797 Cortex-A72 platform-state source");
++MODULE_LICENSE("GPL");
+diff --git a/include/linux/soc/mediatek/mt6797-a72-platform-state.h b/include/linux/soc/mediatek/mt6797-a72-platform-state.h
+new file mode 100644
+index 0000000..44b1dfe
+--- /dev/null
++++ b/include/linux/soc/mediatek/mt6797-a72-platform-state.h
+@@ -0,0 +1,62 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __LINUX_SOC_MEDIATEK_MT6797_A72_PLATFORM_STATE_H
++#define __LINUX_SOC_MEDIATEK_MT6797_A72_PLATFORM_STATE_H
++
++#include <linux/errno.h>
++#include <linux/kconfig.h>
++#include <linux/types.h>
++
++struct device;
++
++/**
++ * struct mt6797_a72_platform_state - one immutable raw platform sample
++ * @spm_pwr_status: general SPM power-domain status
++ * @spm_pwr_status_2nd: second general SPM power-domain status
++ * @spm_cpu_pwr_status: first SPM CPU power-status word
++ * @spm_cpu_pwr_status_2nd: second SPM CPU power-status word
++ * @spm_mp2_cpusys_pwr_con: MP2 cluster power-control word
++ * @spm_mp2_cpu0_pwr_con: CPU8 power-control word
++ * @spm_mp2_cpu1_pwr_con: CPU9 power-control word
++ * @spm_cpu_ext_buck_iso: external CPU-buck isolation word
++ * @mp2_sync_dcm: MP2 synchronous DCM word
++ * @cci_mp2_port_control: MP2 CCI port-control word
++ * @cci_status_before: global CCI status before the port read
++ * @cci_status_after: global CCI status after the port read
++ * @pwrap_reset_asserted: logical TOPRGU PWRAP reset state
++ * @valid: all fields were captured in one stable bounded transaction
++ *
++ * This record carries raw observation only. It does not classify recovery,
++ * authorize an A72 transition, or provide cross-PSCI serialization.
++ */
++struct mt6797_a72_platform_state {
++	u32 spm_pwr_status;
++	u32 spm_pwr_status_2nd;
++	u32 spm_cpu_pwr_status;
++	u32 spm_cpu_pwr_status_2nd;
++	u32 spm_mp2_cpusys_pwr_con;
++	u32 spm_mp2_cpu0_pwr_con;
++	u32 spm_mp2_cpu1_pwr_con;
++	u32 spm_cpu_ext_buck_iso;
++	u32 mp2_sync_dcm;
++	u32 cci_mp2_port_control;
++	u32 cci_status_before;
++	u32 cci_status_after;
++	bool pwrap_reset_asserted;
++	bool valid;
++};
++
++#if IS_ENABLED(CONFIG_MTK_MT6797_A72_PLATFORM_STATE)
++int mt6797_a72_platform_state_snapshot(struct device *dev,
++				       struct mt6797_a72_platform_state *snapshot);
++#else
++static inline int mt6797_a72_platform_state_snapshot(struct device *dev,
++						     struct mt6797_a72_platform_state *snapshot)
++{
++	(void)dev;
++	if (snapshot)
++		*snapshot = (struct mt6797_a72_platform_state){};
++	return -EOPNOTSUPP;
++}
++#endif
++
++#endif

@@ -42,9 +42,37 @@ def main() -> None:
         "patches/v7.1.3/0310-soc-mediatek-add-MT6797-A72-platform-state-source.patch",
         "patches/v7.1.3/0311-arm64-dts-mediatek-add-MT6797-A72-platform-state-source.patch",
     ], "four logical patch identities")
-    require(contract["validated_generation"] is None and
-            contract["validated_build"] is None,
-            "unperformed results remain null")
+    patch_hashes = []
+    for relative in contract["expected_patches"]:
+        patch = ROOT / relative
+        require(patch.is_file(), f"canonical patch exists: {relative}")
+        patch_hashes.append(sha256(patch))
+    require(contract["validated_generation"] == {
+        "repository_commit": "31f73570ad039a9004b91a1a6762aeeafd4f8e0f",
+        "buildbox_job": (
+            "31f73570ad039a9004b91a1a6762aeeafd4f8e0f-"
+            "mt6797-a72-platform-state-patchgen"
+        ),
+        "package": "mt6797-a72-platform-state-patches-31f73570ad03",
+        "baseline_commit": "96eba93ec8a24a9068f325695ee05aec78ebc682",
+        "result_commit": "69cc6582c8b46f8b74e2bb7cbbcb28cc2e695b05",
+        "sha256sums_sha256": (
+            "7020f72e18ba5dafedb1884003e3e1ce49df9515062a85458c80b5bcf36fb5e7"
+        ),
+        "patch_sha256": [
+            "917182820800180aaa45d555c9e73f43847ded4c2e23b0a875e8071613aa5c33",
+            "69b41c42cdf240fed2c76b94eff521c549ba717ff8cf39498d2f6589217bca79",
+            "9f9475cd4402b76d48fe9f736371711e626b107a8eb0fe5165f1c69491dc888d",
+            "2775da6b8fa59447db9df85574f616fe4f35cc11342f79f8873f829460ae51d2",
+        ],
+        "source_validation": "pass",
+        "patch_replay": "pass",
+        "strict_checkpatch": "0-errors-0-warnings-0-checks",
+    }, "validated Buildbox generation identity")
+    require(contract["validated_build"] is None,
+            "unperformed compile remains null")
+    require(patch_hashes == contract["validated_generation"]["patch_sha256"],
+            "canonical patch hashes match Buildbox package")
     require(contract["scope"] == {
         "default_off": True,
         "toprgu_status_read": True,
@@ -62,7 +90,7 @@ def main() -> None:
     readme = (HERE / "README.md").read_text()
     design = (HERE / "DESIGN.md").read_text()
     for token in (
-        "deterministic Buildbox generation input; patches pending",
+        "generated and canonically admitted; Buildbox compile pending",
         "strict one-match guard correctly rejected the",
         "explicit tab-preserving string",
         "series is therefore split into four logical patches",
@@ -151,12 +179,49 @@ def main() -> None:
         require(token in alignment_attempt,
                 f"alignment attempt receipt: {token}")
 
+    generation = (HERE / "results/buildbox-generation-31f73570.txt").read_text()
+    for token in (
+        "repository_commit=31f73570ad039a9004b91a1a6762aeeafd4f8e0f",
+        "generated_patch_count=4",
+        "source_validation=pass",
+        "patch_replay=pass",
+        "strict_checkpatch=0-errors-0-warnings-0-checks",
+        "canonical_admission=0308-0311",
+        "build=pending",
+        "device_action=none",
+    ):
+        require(token in generation, f"generation receipt: {token}")
+
     buildbox = (ROOT / "scripts/buildbox").read_text()
     for command in (
         "generate-mt6797-a72-platform-state-patches",
         "fetch-mt6797-a72-platform-state-patches",
     ):
         require(buildbox.count(command) >= 2, f"Buildbox command: {command}")
+
+    series = (ROOT / "patches/series").read_text().splitlines()
+    require(series[-4:] == [
+        path.removeprefix("patches/")
+        for path in contract["expected_patches"]
+    ], "canonical series tail")
+    fragment = (ROOT / "configs/gemini-mt6797-a72-platform-state.fragment").read_text()
+    for token in (
+        "CONFIG_RESET_CONTROLLER=y",
+        "CONFIG_MTK_MT6797_A72_PLATFORM_STATE=y",
+        'CONFIG_LOCALVERSION="-gemini-a72-platform-state"',
+    ):
+        require(token in fragment, f"compile profile fragment: {token}")
+    manifest = json.loads((ROOT / "kernel/manifest.json").read_text())
+    require(manifest["config"]["profiles"][
+        "mt6797-a72-platform-state-source"
+    ] == {
+        "base": "defconfig",
+        "patch_series": "patches/series",
+        "fragments": [
+            "configs/gemini-handoff.fragment",
+            "configs/gemini-mt6797-a72-platform-state.fragment",
+        ],
+    }, "isolated Buildbox compile profile")
 
     print("validation=mt6797-a72-platform-state-generation-input")
     print("result=pass")

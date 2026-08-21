@@ -1851,6 +1851,14 @@
                     "configs/gemini-dvfsp-resource-owner.fragment",
                     "configs/gemini-dvfsp-owner-kunit.fragment"
                 ]
+            },
+            "mt6797-a72-platform-state-source": {
+                "base": "defconfig",
+                "patch_series": "patches/series",
+                "fragments": [
+                    "configs/gemini-handoff.fragment",
+                    "configs/gemini-mt6797-a72-platform-state.fragment"
+                ]
             }
     }
   }

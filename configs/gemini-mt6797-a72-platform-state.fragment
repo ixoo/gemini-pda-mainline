@@ -1,0 +1,5 @@
+# Compile-only default-off MT6797 A72 platform-state source. The DT node
+# remains disabled, and this profile adds no A34 caller or hardware action.
+CONFIG_RESET_CONTROLLER=y
+CONFIG_MTK_MT6797_A72_PLATFORM_STATE=y
+CONFIG_LOCALVERSION="-gemini-a72-platform-state"
