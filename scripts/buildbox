@@ -101,9 +101,9 @@ Commands:
   fetch-protected-readback-probe-gate-ledger
                         Fetch only that validated one-patch review
   generate-clock-backend-entry-ledger
-                        Generate the zero-read clock init/probe ledger review
+                        Generate its zero-runtime-code Kconfig follow-up review
   fetch-clock-backend-entry-ledger
-                        Fetch only that validated one-patch review
+                        Fetch only that validated Kconfig follow-up review
   build-gemian-observer Fetch pushed HEAD and compile the fixed Gemian observer
   fetch-gemian-observer Fetch its validated compile-review bundle for HEAD
   build-gemian-provenance-observer
@@ -6609,12 +6609,12 @@ readonly workspace_root=/workspace/gemini-pda
 readonly checkout_root="${workspace_root}/checkouts"
 readonly checkout="${checkout_root}/${commit}"
 readonly source_root="${workspace_root}/src/linux-7.1.3-series-source"
-readonly artifact_root="${workspace_root}/clock-backend-entry-ledger-artifacts"
+readonly artifact_root="${workspace_root}/clock-backend-entry-ledger-fix-artifacts"
 readonly job_root="${workspace_root}/jobs"
-readonly job_key="${commit}-clock-backend-entry-ledger-patchgen"
+readonly job_key="${commit}-clock-backend-entry-ledger-fix-patchgen"
 readonly job_record="${job_root}/${job_key}.json"
-readonly purpose=mainline-clock-backend-entry-ledger-patch-generation
-readonly generator=experiments/2026-08-21-mainline-clock-backend-entry-ledger/scripts/generate-on-buildbox
+readonly purpose=mainline-clock-backend-entry-ledger-kconfig-fix-generation
+readonly generator=experiments/2026-08-21-mainline-clock-backend-entry-ledger/scripts/generate-fix-on-buildbox
 
 mkdir -p "${persistent_root}" "${checkout_root}" "${artifact_root}" \
   "${job_root}"
@@ -6672,26 +6672,24 @@ rm -f "${job_record}.partial"
 if ! output="$("${checkout}/${generator}" \
   "${commit}" "${source_root}" "${artifact_root}")"; then
   printf '%s\n' "${output}" >&2
-  printf 'error: clock-backend entry-ledger generator failed for %s\n' \
+  printf 'error: clock-backend entry-ledger fix generator failed for %s\n' \
     "${commit}" >&2
   exit 1
 fi
 printf '%s\n' "${output}"
 package="$(printf '%s\n' "${output}" | sed -n \
-  's/^Generated clock-backend entry ledger at //p' | tail -n 1)"
+  's/^Generated clock-backend entry ledger Kconfig fix at //p' | tail -n 1)"
 case "${package}" in "${artifact_root}"/*) ;; *) exit 1 ;; esac
 [[ -d "${package}" && ! -L "${package}" ]]
 (cd "${package}" && sha256sum --check --strict SHA256SUMS >/dev/null)
 grep -Fx "repository_commit=${commit}" \
   "${package}/provenance/generation.txt" >/dev/null
-for marker in generated_patch_count=1 \
-  candidate_dtb=mt6797-gemini-pda-clock-backend-entry.dtb \
-  enabled_runtime_node=clock-backend-only observer=disabled \
-  bigidvfs_backend=disabled retained_slots=173,174 \
-  retained_checkpoints=driver-init,probe-enter retained_maximum_writes=2 \
-  new_retained_writer=0 payload_before_metadata=yes full_readback=yes \
-  protected_clock_reads=0 bigidvfs_reads=0 secure_calls=0 clock_enable=0 \
-  mmio_accesses=0 automatic_retry=no owner_registration=0 cpu_on=false \
+for marker in generated_patch_count=1 changed_file=fs/pstore/Kconfig \
+  runtime_code_changes=0 base_writer_default=n \
+  historical_observer_dependency=retained \
+  clock_backend_dependency=added_as_alternative \
+  observer_profile_behavior=unchanged protected_clock_reads=0 \
+  bigidvfs_reads=0 secure_calls=0 mmio_accesses=0 clock_enable=0 cpu_on=false \
   cpu_off=false device_action=none boot_candidate=false; do
   grep -Fx "${marker}" "${package}/provenance/generation.txt" >/dev/null
 done
@@ -6726,7 +6724,7 @@ fetch_clock_backend_entry_ledger() {
   require_command tar
   sha="$(git -C "${REPO_DIR}" rev-parse HEAD)"
   [[ "${sha}" =~ ^[0-9a-f]{40}$ ]] || die "invalid HEAD commit"
-  job_key="${sha}-clock-backend-entry-ledger-patchgen"
+  job_key="${sha}-clock-backend-entry-ledger-fix-patchgen"
   printf -v remote_command 'test -f %q && cat %q' \
     "/workspace/gemini-pda/jobs/${job_key}.json" \
     "/workspace/gemini-pda/jobs/${job_key}.json"
@@ -6734,7 +6732,7 @@ fetch_clock_backend_entry_ledger() {
     die "no completed clock-backend entry ledger for ${sha}"
   printf '%s' "${job_info}" | jq -e --arg commit "${sha}" '
     .status == "validated" and .repository_commit == $commit and
-    .purpose == "mainline-clock-backend-entry-ledger-patch-generation" and
+    .purpose == "mainline-clock-backend-entry-ledger-kconfig-fix-generation" and
     (.package_name | test("^[A-Za-z0-9_.+-]+$"))
   ' >/dev/null || die "clock-backend entry-ledger record is invalid"
   package_name="$(printf '%s' "${job_info}" | jq -er '.package_name')"
@@ -6749,12 +6747,12 @@ fetch_clock_backend_entry_ledger() {
 set -euo pipefail
 readonly job_key="$1"
 readonly commit="$2"
-readonly artifact_root=/workspace/gemini-pda/clock-backend-entry-ledger-artifacts
+readonly artifact_root=/workspace/gemini-pda/clock-backend-entry-ledger-fix-artifacts
 readonly record="/workspace/gemini-pda/jobs/${job_key}.json"
 [[ -f "${record}" && ! -L "${record}" ]]
 package="$(jq -er --arg commit "${commit}" '
   select(.status == "validated" and .repository_commit == $commit and
-    .purpose == "mainline-clock-backend-entry-ledger-patch-generation") |
+    .purpose == "mainline-clock-backend-entry-ledger-kconfig-fix-generation") |
     .package
 ' "${record}")"
 case "${package}" in "${artifact_root}"/*) ;; *) exit 1 ;; esac

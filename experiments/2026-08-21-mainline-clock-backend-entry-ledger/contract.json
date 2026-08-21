@@ -56,13 +56,25 @@
     "hardware_evidence": false
   },
   "build_validation": {
-    "result": "regeneration_required",
+    "result": "follow_up_patch_generation_pending",
     "attempt_1_repository_commit": "922c0dd2322236bc40df959b23063036bcaafd1b",
     "attempt_1_stage": "post-merge-config-retention",
     "attempt_1_failure": "PSTORE_GEMINI_PROTECTED_READBACK_LEDGER_not_retained",
     "attempt_1_compilation_started": false,
     "attempt_1_artifact_produced": false,
     "native_vm_build": false
+  },
+  "kconfig_follow_up": {
+    "expected_patch": "patches/v7.1.3/0326-pstore-make-protected-readback-base-writer-usable-by-clock.patch",
+    "parent_source_state": "ad9881253accb9494d305ac9f8175989a0141658d890a46a674f9db39d20c777",
+    "parent_patch": "patches/v7.1.3/0325-soc-mediatek-add-Gemini-clock-backend-entry-ledger.patch",
+    "parent_patch_sha256": "344b1181d0e164e61495a51a6bdf5053e9283c6ef5c486b00ca97e433af71f95",
+    "changed_file": "fs/pstore/Kconfig",
+    "runtime_code_changes": 0,
+    "base_writer_default": "n",
+    "historical_observer_dependency": "retained",
+    "clock_backend_dependency": "added_as_alternative",
+    "hardware_evidence": false
   },
   "scope": {
     "protected_clock_reads": 0,

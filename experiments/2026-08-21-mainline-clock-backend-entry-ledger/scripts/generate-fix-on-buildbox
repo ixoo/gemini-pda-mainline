@@ -1,0 +1,176 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+export LC_ALL=C
+
+readonly PARENT_SOURCE_STATE=ad9881253accb9494d305ac9f8175989a0141658d890a46a674f9db39d20c777
+readonly PSTORE_KCONFIG_SHA256=fc6bbf4406e200aea05d7fa032b29f3a7331ab28e25b9712c42163a8d9133df6
+readonly PARENT_PATCH=0325-soc-mediatek-add-Gemini-clock-backend-entry-ledger.patch
+readonly PARENT_PATCH_SHA256=344b1181d0e164e61495a51a6bdf5053e9283c6ef5c486b00ca97e433af71f95
+
+die() { printf 'error: %s\n' "$*" >&2; exit 1; }
+
+[[ "$#" -eq 3 ]] || die 'expected PROJECT_COMMIT SOURCE_ROOT OUTPUT_ROOT'
+readonly project_commit=$1
+readonly source_root=$2
+readonly output_root=$3
+[[ "$project_commit" =~ ^[0-9a-f]{40}$ ]] || die 'invalid project commit'
+[[ "$source_root" == /workspace/gemini-pda/src/linux-7.1.3-series-source ]] ||
+	die 'unexpected managed source root'
+[[ "$output_root" == /workspace/gemini-pda/* ]] || die 'unsafe output root'
+[[ -f "$source_root/.gemini-source-state" &&
+	! -L "$source_root/.gemini-source-state" ]] ||
+	die 'prepared source state marker absent or unsafe'
+[[ "$(<"$source_root/.gemini-source-state")" == "$PARENT_SOURCE_STATE" ]] ||
+	die 'prepared parent source state changed'
+
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+experiment_dir="$(cd -- "$script_dir/.." && pwd -P)"
+repository_dir="$(cd -- "$experiment_dir/../.." && pwd -P)"
+readonly script_dir experiment_dir repository_dir
+[[ "$(git -C "$repository_dir" rev-parse HEAD)" == "$project_commit" ]] ||
+	die 'project checkout does not match requested commit'
+[[ -z "$(git -C "$repository_dir" status --porcelain)" ]] ||
+	die 'project checkout is dirty'
+for command in git perl python3 sha256sum; do
+	command -v "$command" >/dev/null 2>&1 || die "missing command: $command"
+done
+python3 "$repository_dir/scripts/source-tree-integrity" verify "$source_root" |
+	grep -Fx "source_tree_integrity=$PARENT_SOURCE_STATE" >/dev/null ||
+	die 'prepared source integrity verification failed'
+printf '%s  %s\n' "$PSTORE_KCONFIG_SHA256" "$source_root/fs/pstore/Kconfig" |
+	sha256sum --check --status || die 'parent pstore Kconfig changed'
+
+readonly parent_patch_path="$repository_dir/patches/v7.1.3/$PARENT_PATCH"
+[[ -f "$parent_patch_path" && ! -L "$parent_patch_path" ]] ||
+	die 'canonical parent patch absent or unsafe'
+printf '%s  %s\n' "$PARENT_PATCH_SHA256" "$parent_patch_path" |
+	sha256sum --check --status || die 'canonical parent patch changed'
+
+readonly work_root=/workspace/gemini-pda/clock-backend-entry-ledger-fix-work
+readonly package="$output_root/clock-backend-entry-ledger-fix-${project_commit:0:12}"
+readonly partial="${package}.partial.$$"
+mkdir -p "$work_root" "$output_root"
+[[ ! -e "$partial" ]] || die 'stale output partial exists'
+
+if [[ -d "$package" && ! -L "$package" ]]; then
+	grep -Fx "repository_commit=$project_commit" \
+		"$package/provenance/generation.txt" >/dev/null ||
+		die 'existing package commit mismatch'
+	(cd "$package" && sha256sum --check --strict SHA256SUMS >/dev/null)
+	printf 'Generated clock-backend entry ledger Kconfig fix at %s\n' "$package"
+	exit 0
+fi
+[[ ! -e "$package" ]] || die 'unsafe existing package path'
+
+work="$(mktemp -d "$work_root/generation.XXXXXX")"
+readonly work
+cleanup() {
+	[[ ! -d "$work" || "$work" != "$work_root"/generation.* ]] ||
+		rm -rf -- "$work"
+	[[ ! -d "$partial" || "$partial" != "$output_root"/*.partial.* ]] ||
+		rm -rf -- "$partial"
+}
+trap cleanup EXIT
+
+mkdir -p "$work/source/fs/pstore"
+cp -- "$source_root/fs/pstore/Kconfig" "$work/source/fs/pstore/Kconfig"
+git -C "$work/source" init --quiet
+git -C "$work/source" config user.name 'Gemini Mainline Experiment'
+git -C "$work/source" config user.email gemini-mainline@example.invalid
+git -C "$work/source" add -- fs/pstore/Kconfig
+GIT_AUTHOR_DATE=2026-08-22T02:10:00Z \
+GIT_COMMITTER_DATE=2026-08-22T02:10:00Z \
+	git -C "$work/source" commit --quiet --no-gpg-sign \
+		-m 'clock-backend entry-ledger fix canonical parent'
+parent_commit="$(git -C "$work/source" rev-parse HEAD)"
+readonly parent_commit
+
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_kconfig_fix.py" \
+	--source-root "$work/source" --state parent
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/kconfig_fix.py" \
+	--source-root "$work/source"
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_kconfig_fix.py" \
+	--source-root "$work/source" --state corrected
+git -C "$work/source" diff --check
+git -C "$work/source" add -- fs/pstore/Kconfig
+git -C "$work/source" diff --cached --check
+GIT_AUTHOR_NAME='Gemini Mainline Experiment' \
+GIT_AUTHOR_EMAIL=gemini-mainline@example.invalid \
+GIT_COMMITTER_NAME='Gemini Mainline Experiment' \
+GIT_COMMITTER_EMAIL=gemini-mainline@example.invalid \
+GIT_AUTHOR_DATE=2026-08-22T02:11:00Z \
+GIT_COMMITTER_DATE=2026-08-22T02:11:00Z \
+	git -C "$work/source" commit --quiet --no-gpg-sign \
+		-m 'pstore: make protected-readback base writer usable by clock entry ledger' \
+		-m 'Allow the opt-in base retained-RAM writer when either its historical observer or the built-in clock backend containing the new entry-ledger call sites is selected.' \
+		-m 'Keep the writer default off and make no runtime code change.'
+result_commit="$(git -C "$work/source" rev-parse HEAD)"
+readonly result_commit
+
+mkdir -p "$partial/patches" "$partial/provenance"
+mapfile -t generated < <(git -C "$work/source" format-patch \
+	--no-signature --output-directory "$partial/patches" \
+	"${parent_commit}..${result_commit}")
+[[ "${#generated[@]}" -eq 1 ]] || die 'generated patch count changed'
+readonly patch=0326-pstore-make-protected-readback-base-writer-usable-by-clock.patch
+mv -- "${generated[0]}" "$partial/patches/$patch"
+printf '%s\n' "$patch" >"$partial/patches/series"
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_kconfig_fix_patch.py" \
+	--patch "$partial/patches/$patch"
+
+git clone --quiet "$work/source" "$work/verify"
+git -C "$work/verify" checkout --quiet --detach "$parent_commit"
+git -C "$work/verify" config user.name 'Gemini Mainline Experiment'
+git -C "$work/verify" config user.email gemini-mainline@example.invalid
+git -C "$work/verify" am --quiet --committer-date-is-author-date \
+	"$partial/patches/$patch"
+[[ "$(git -C "$work/verify" rev-parse HEAD)" == "$result_commit" ]] ||
+	die 'patch replay did not reproduce generated commit'
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_kconfig_fix.py" \
+	--source-root "$work/verify" --state corrected
+[[ -z "$(git -C "$work/verify" status --porcelain)" ]] ||
+	die 'verification source is dirty'
+
+if ! perl "$source_root/scripts/checkpatch.pl" --no-tree --strict \
+	--ignore MISSING_SIGN_OFF,FILE_PATH_CHANGES,COMMIT_LOG_LONG_LINE \
+	"$partial/patches/$patch" \
+	>"$partial/provenance/checkpatch-${patch%.patch}.txt"; then
+	cat "$partial/provenance/checkpatch-${patch%.patch}.txt" >&2
+	die "strict checkpatch rejected $patch"
+fi
+
+cat >"$partial/provenance/generation.txt" <<EOF
+purpose=experiment-only-clock-backend-entry-ledger-kconfig-fix
+repository_commit=$project_commit
+parent_source_state=$PARENT_SOURCE_STATE
+canonical_parent_patch=$PARENT_PATCH
+canonical_parent_patch_sha256=$PARENT_PATCH_SHA256
+parent_commit=$parent_commit
+result_commit=$result_commit
+generated_patch_count=1
+changed_file=fs/pstore/Kconfig
+runtime_code_changes=0
+base_writer_default=n
+historical_observer_dependency=retained
+clock_backend_dependency=added_as_alternative
+observer_profile_behavior=unchanged
+protected_clock_reads=0
+bigidvfs_reads=0
+secure_calls=0
+mmio_accesses=0
+clock_enable=0
+cpu_on=false
+cpu_off=false
+device_action=none
+boot_candidate=false
+EOF
+printf '%s\n' "$patch" >"$partial/provenance/patches.txt"
+(
+	cd "$partial"
+	find patches provenance -type f -print0 | sort -z |
+		xargs -0 sha256sum >SHA256SUMS
+	sha256sum --check --strict SHA256SUMS >/dev/null
+)
+mv -- "$partial" "$package"
+printf 'Generated clock-backend entry ledger Kconfig fix at %s\n' "$package"

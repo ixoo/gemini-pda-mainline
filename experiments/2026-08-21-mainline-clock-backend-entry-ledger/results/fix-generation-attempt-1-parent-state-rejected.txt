@@ -1,0 +1,29 @@
+clock-backend entry-ledger correction generation attempt 1
+===========================================================
+
+Repository commit: 94e295d4168f2b492a9271b0878d36caeaec7076
+Backend: buildbox
+
+Result
+------
+
+stage=prepared-parent-source-state-gate
+result=rejected
+expected_parent_source_state=867173ceba818abbefb6010cb02ca1be33852e917608ed1082a8683b428bb16f
+actual_parent_source_state=ad9881253accb9494d305ac9f8175989a0141658d890a46a674f9db39d20c777
+artifact_produced=false
+boot_candidate=false
+device_action=none
+native_vm_build=none
+
+Decision
+--------
+
+The expected state ended at canonical patch 0324. The actual managed state
+legitimately ended at admitted patch 0325 because Buildbox prepared that state
+before the subsequent profile-retention rejection. The generator correctly
+refused to treat the advanced tree as its old parent.
+
+Do not reconstruct or duplicate the managed source merely to rewrite admitted
+history. Generate a one-file Kconfig follow-up as patch 0326 against exact
+state ad9881253accb9494d305ac9f8175989a0141658d890a46a674f9db39d20c777.

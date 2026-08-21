@@ -103,21 +103,6 @@ def main() -> None:
     require("#else\n\tif (!gemini_prb_exact_dt())" in checkpoint,
             "historical call ledger keeps exact gate")
 
-    base_config = body(
-        kconfig,
-        "config PSTORE_GEMINI_PROTECTED_READBACK_LEDGER",
-        "config PSTORE_GEMINI_PROTECTED_READBACK_PROBE_GATE_LEDGER",
-    )
-    require(
-        "depends on MTK_MT6797_PROTECTED_READBACK_OBSERVER=y || "
-        "MTK_MT6797_DVFSP_CLOCK_BACKEND=y" in base_config,
-        "base writer permits the isolated clock-backend call site",
-    )
-    require(
-        base_config.count("MTK_MT6797_DVFSP_CLOCK_BACKEND") == 1,
-        "one explicit clock-backend alternative dependency",
-    )
-
     mode_config = body(
         kconfig,
         "config PSTORE_GEMINI_CLOCK_BACKEND_ENTRY_LEDGER",

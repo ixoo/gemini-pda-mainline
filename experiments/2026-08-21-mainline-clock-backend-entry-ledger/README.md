@@ -8,9 +8,11 @@ was reached. The linked initcall order is clock backend, BigiDVFS backend, then
 observer. This non-identical, zero-protected-call successor was generated,
 manually reviewed, and admitted canonically as patch `0325`. Its first
 Buildbox build failed closed before compilation because the base writer still
-depended only on the disabled observer. Patch regeneration now broadens that
-hidden dependency only to the clock backend that owns the new call sites; no
-artifact from the rejected build is a boot candidate.
+depended only on the disabled observer. Because the managed Buildbox source
+correctly advanced through admitted patch `0325`, the correction is a narrow
+follow-up `0326` against that exact source state. It broadens the hidden
+dependency only to the clock backend that owns the new call sites; no artifact
+from either rejection is a boot candidate.
 
 ## Question
 
@@ -63,7 +65,7 @@ metadata, and full-readback gates. There is no clear, overwrite, or retry.
 
 ## Next action
 
-Regenerate and re-admit patch `0325`, then build the isolated profile on
+Generate and admit follow-up patch `0326`, then build the isolated profile on
 Buildbox and independently validate an exact Android-v0/16 MiB candidate before
 any device action. Repository-wide ordering remains in
 [`docs/ROADMAP.md`](../../docs/ROADMAP.md).
@@ -86,3 +88,11 @@ because the experiment intentionally disables the observer required by patch
 `0323`. This exposed a Kconfig dependency omitted from the original design,
 not a source compile or hardware result. See
 [`results/build-attempt-1-kconfig-rejected.txt`](results/build-attempt-1-kconfig-rejected.txt).
+
+The first correction generator at exact commit `94e295d` also failed closed:
+it expected the historical source state through `0324`, while the managed
+Buildbox source had legitimately advanced through admitted patch `0325` during
+the rejected build. Rather than reconstruct or copy a second source tree, the
+correction is now generated as patch `0326` from exact source state
+`ad988125...`. See
+[`results/fix-generation-attempt-1-parent-state-rejected.txt`](results/fix-generation-attempt-1-parent-state-rejected.txt).
