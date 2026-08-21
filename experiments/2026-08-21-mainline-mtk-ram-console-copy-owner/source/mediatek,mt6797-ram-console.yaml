@@ -1,0 +1,54 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/soc/mediatek/mediatek,mt6797-ram-console.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: MediaTek MT6797 retained ram-console reader
+
+maintainers:
+  - Gemini Mainline Experiment <gemini-mainline@example.invalid>
+
+description: |
+  The retained MediaTek preloader and LK ram-console occupies a reserved DRAM
+  range. This optional consumer takes one private copy after firmware handoff
+  and exposes only a typed, bounds-checked snapshot to other kernel code. It
+  never writes the reservation and must remain disabled unless the exact
+  firmware layout and writer ordering have been audited.
+
+properties:
+  compatible:
+    const: mediatek,mt6797-ram-console
+
+  memory-region:
+    maxItems: 1
+    description: Phandle to the exact no-map retained ram-console reservation.
+
+  status:
+    enum: [ disabled, okay ]
+
+required:
+  - compatible
+  - memory-region
+
+additionalProperties: false
+
+examples:
+  - |
+    reserved-memory {
+        #address-cells = <2>;
+        #size-cells = <2>;
+        ranges;
+
+        ram_console_reserved: memory@44400000 {
+            reg = <0 0x44400000 0 0x10000>;
+            no-map;
+        };
+    };
+
+    ram-console {
+        compatible = "mediatek,mt6797-ram-console";
+        memory-region = <&ram_console_reserved>;
+        status = "disabled";
+    };
+...

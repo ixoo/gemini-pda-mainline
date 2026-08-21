@@ -1,0 +1,4 @@
+# Default-off one-shot reader for the exact no-map retained ram-console range.
+# The Gemini DT consumer remains disabled and no reset classifier is present.
+CONFIG_MTK_RAM_CONSOLE_READER=y
+CONFIG_LOCALVERSION="-gemini-mtk-ram-console-reader"

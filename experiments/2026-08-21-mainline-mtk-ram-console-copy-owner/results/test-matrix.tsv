@@ -1,0 +1,13 @@
+id	case	expected
+T01	invalid-arguments	no-attempt-no-publication
+T02	exact-copy	one-copy-valid-exact-status
+T03	copy-failure	one-attempt-invalid-no-retry
+T04	parser-failure	one-copy-invalid-no-publication
+T05	second-capture	EALREADY-one-copy-original-snapshot
+T06	source-independence	post-copy-source-mutation-does-not-change-snapshot
+T07	every-bit	all-32-status-bits-preserved
+D01	memory-region-count	exactly-one
+D02	reservation-contract	available-no-map-page-aligned-64KiB
+D03	mapping-lifetime	one-MEMREMAP_WB-copy-immediate-unmap
+D04	device-tree	consumer-disabled-exact-Gemini-phandle
+D05	authority	no-classifier-no-secure-epoch-no-A34-caller
