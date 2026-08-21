@@ -4642,15 +4642,26 @@ full checksum but a changing final power sample stopped the run before the
 independent readback and shutdown. A resumed pass found the exact candidate,
 skipped rewriting it, repeated all gates, independently streamed and compared
 the full 16 MiB, and confirmed clean shutdown. Runtime attribution remains
-pending.
+limited to the retained decision prefix.
+
+On its one physical selection, mainline USB never appeared and changed-boot-ID
+Gemian recovered automatically. Pstore, `last_kmsg`, both fixed records, and
+all sampled retained payload bytes were empty; the four headers remained valid
+and zero-length, and inactive `boot2` still matched exactly. This is a strict
+`neither` result: neither protected transport was reached, so no transport
+failure may be inferred. Reject this artifact without repetition. The first
+remaining boundary is observer probe entry versus refusal by the exact ledger
+gate.
 
 The next ordered work is:
 
-1. Run the two-checkpoint retained-RAM successor once. Require exact
-   reserved-memory and empty-slot gates, one write per owned slot with ordered
-   readback, and known-good Gemian recovery. Use the recovered prefix to split
-   the first protected-clock call from the later BigiDVFS call; do not infer a
-   transport result from screen state or the boot-reason token alone.
+1. Build and run one non-identical two-checkpoint successor. Preserve every
+   candidate input and the two-write maximum, but record `probe-enter` under a
+   minimal exact board/reservation/empty-slot safety gate and `gate-passed`
+   after the complete current ledger gate immediately before the clock call.
+   Use the recovered prefix to distinguish probe-not-entered, gate-refused,
+   and clock-nonreturn; do not infer a result from screen state or the generic
+   boot-reason token.
 2. Compose the validated readers, DA921x, and the platform-state source under
    one transition/hotplug owner.
 3. Revise A34 to accept only the complete direct-state ABI and applicable

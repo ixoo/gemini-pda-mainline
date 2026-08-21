@@ -5,8 +5,9 @@
 Design, live read-only slot preflight, deterministic Buildbox patch generation,
 strict review, canonical admission through patch `0323`, the exact Buildbox
 kernel, reproducible Android-v0 candidate construction, guarded deployment,
-full readback, and clean shutdown are complete. The single device attempt
-remains pending. No native VM build occurred.
+full readback, clean shutdown, and the single device attempt are complete. The
+exact artifact is rejected as `neither` and must not be repeated. No native VM
+build occurred.
 
 The rejected predecessor returned to changed-boot-ID Gemian before exposing
 mainline USB and left no pstore, `last_kmsg`, or observer record. Its two reads
@@ -115,6 +116,16 @@ offline positive and mutation tests. The USB probe is read-only and makes no
 partition, driver, CPU, reboot, or power request. See
 [`results/runtime-tools-offline.txt`](results/runtime-tools-offline.txt).
 
+On the one physical selection, mainline USB never appeared and the device
+returned automatically to changed-boot-ID Gemian. Read-only recovery found no
+pstore file and the retained classifier reported neither fixed record. A
+direct bounded read confirmed all four final-slot headers remained valid-empty
+and every sampled payload byte remained erased. `last_kmsg` was empty and the
+full inactive `boot2` checksum still matched exactly. Therefore neither
+protected transport was reached or tested; the remaining boundary is observer
+probe entry versus refusal by the exact ledger gate. See
+[`results/runtime-attempt-1-neither-20260821.txt`](results/runtime-attempt-1-neither-20260821.txt).
+
 ## Scope and safety
 
 The only new runtime effects are at most two short writes to already reserved
@@ -131,8 +142,10 @@ device down without rebooting. No fresh partition backup is required.
 
 ## Decision rule
 
-Arm both exact observation paths, then physically select `boot2` once. Accept
-either a strict USB completion record or changed-boot-ID Gemian recovery with
-the retained prefix. Recover the two slots before any second candidate or
-composition work. Do not infer a kernel result from screen state or the generic
-watchdog-class boot-reason token.
+Do not repeat this artifact. Preserve the kernel, DTB, initramfs, protected-read
+budget, and all CPU/owner closures, but move the same two retained records to
+`probe-enter` and `gate-passed`. The first must use only the minimum exact board,
+reservation, and empty-slot safety gate; the second follows the complete
+current ledger gate and immediately precedes the clock call. One successor
+cycle must distinguish probe-not-entered, exact-gate-refused, and clock
+nonreturn before any transport or composition claim is reopened.

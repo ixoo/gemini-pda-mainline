@@ -1,0 +1,68 @@
+Protected-readback call-ledger runtime attempt 1
+================================================
+
+Result: neither
+Reason: observer entry or exact ledger gate was not established
+Artifact disposition: rejected; do not repeat
+Clock transport result: not reached
+BigiDVFS transport result: not reached
+CPU8/CPU9 admission: closed
+
+Exact candidate
+---------------
+
+Repository build commit: 36027e9e5381cae6223ad64abe2a9e2368f0aba9
+Kernel release: 7.1.3-gemini-protected-readback-ledger
+Raw Android-v0 SHA-256: 199e618af834d140746c367f7789407da39ce61dd2b1f9bab40fe63150285c17
+Full boot2 SHA-256: 3ce494c971c24c9edab73aac592d0ba8dd0bbd25f06051245f7846f95d0c715a
+Candidate DTB SHA-256: 34f24e49600e16e9b00f25ecba1d0806c4ce325944e176acccc6751a236b8998
+Serviceability initramfs SHA-256: e0dffa04a621f60903cf4cf7280d773ec1c89c43ea63ec0f8b3a0879e7cebc0f
+
+Cycle attribution
+-----------------
+
+The exact candidate had passed guarded deployment, independent full-partition
+readback, and clean shutdown. Both observation paths were armed before the
+owner physically selected boot2 once. Mainline USB/netcat did not appear. The
+device returned automatically to known-good Gemian with boot ID changed from
+`3846422e-5a1a-4bf6-8603-c22446fe208c` to
+`af5d0971-8e9d-495c-b527-14d93b147947`.
+
+Read-only recovery
+------------------
+
+- Recovery kernel: 3.18.41+ on aarch64
+- Pstore directory: present
+- Pstore file count: 0
+- `before-clock` record count: 0
+- `after-clock` record count: 0
+- Retained classification: neither
+- `/proc/last_kmsg` size: 0
+- Post-cycle full boot2 SHA-256:
+  3ce494c971c24c9edab73aac592d0ba8dd0bbd25f06051245f7846f95d0c715a
+- Generic recovery reason: `boot_reason=4`, `wdt_by_pass_pwk`; this token is
+  nondiscriminating and is not used to locate the kernel boundary.
+- Private pstore-capture manifest SHA-256:
+  54c640df9f5ce3ad738be1026e45898625e46c4c04bfa73d03fbe80f00f1eb54
+
+A separate bounded read-only `/dev/mem` check found slots 171--174 at
+`0x444bb000`--`0x444be000` all with raw header
+`444247430000000000000000`: valid little-endian signature `0x43474244`, zero
+start, and zero size. Every sampled payload byte remained erased. No pstore
+entry was removed and no device write or reboot request was made during
+collection.
+
+Interpretation and next action
+------------------------------
+
+The absence of `before-clock` proves that this attempt cannot attribute a
+failure to either protected firmware transport. It closed the transport branch
+earlier than the predecessor could: observer probe entry or the exact ledger
+gate remains the first unknown boundary.
+
+The next candidate must preserve every other input and the same maximum of two
+short retained writes. Its records move to `probe-enter` under a minimal exact
+board/reservation/empty-slot safety gate and `gate-passed` immediately after
+the complete current ledger gate and before the clock call. The resulting
+prefix distinguishes probe-not-entered, gate-refused, and clock-nonreturn in
+one non-identical successor cycle.

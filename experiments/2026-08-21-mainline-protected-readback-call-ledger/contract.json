@@ -132,7 +132,35 @@
       "deployment_summary_sha256": "fc182f6061156ea768a1d450d71ee23e684f2600106f327bcb2a0cebb532e39a"
     }
   },
-  "runtime": null,
+  "runtime": {
+    "attempt": 1,
+    "result": "neither",
+    "reason": "observer_entry_or_exact_ledger_gate_not_established",
+    "candidate_sha256": "3ce494c971c24c9edab73aac592d0ba8dd0bbd25f06051245f7846f95d0c715a",
+    "previous_gemian_boot_id": "3846422e-5a1a-4bf6-8603-c22446fe208c",
+    "recovery_gemian_boot_id": "af5d0971-8e9d-495c-b527-14d93b147947",
+    "boot_id_changed": true,
+    "mainline_usb_observed": false,
+    "pstore_file_count": 0,
+    "before_clock_record_count": 0,
+    "after_clock_record_count": 0,
+    "retained_slot_headers": {
+      "171": "444247430000000000000000",
+      "172": "444247430000000000000000",
+      "173": "444247430000000000000000",
+      "174": "444247430000000000000000"
+    },
+    "sampled_payload_state": "erased",
+    "last_kmsg_size": 0,
+    "post_cycle_boot2_sha256": "3ce494c971c24c9edab73aac592d0ba8dd0bbd25f06051245f7846f95d0c715a",
+    "boot_reason": "4_wdt_by_pass_pwk_nondiscriminating",
+    "private_pstore_manifest_sha256": "54c640df9f5ce3ad738be1026e45898625e46c4c04bfa73d03fbe80f00f1eb54",
+    "clock_transport_result": "not_reached",
+    "bigidvfs_transport_result": "not_reached",
+    "cpu8_cpu9_admission": "closed",
+    "artifact_disposition": "rejected_do_not_repeat",
+    "next_discriminator": "probe_enter_then_exact_gate_passed"
+  },
   "scope": {
     "new_protected_reads": 0,
     "total_clock_reads": 1,
