@@ -34,6 +34,20 @@
     "strict_checkpatch": "0-errors-0-warnings-0-checks"
   },
   "validated_build": null,
+  "failed_builds": [
+    {
+      "repository_commit": "2aa38a008b34264c3bbe6d12bb1864acb0ee1c6d",
+      "profile": "protected-readback-kunit",
+      "parent_source_state": "33b226bfb71a697e982ed2fc93f8988675932fa6c41ecd94105fcef03b355400",
+      "patch_count": 307,
+      "log_sha256": "b535a14db05781e70f8d851ab31200102575ddfd2648412d8bb29fb56ec13547",
+      "clock_production_object_compiled": true,
+      "bigidvfs_production_object_compiled": true,
+      "failure": "numeric-settle-macro-collides-with-test-event-enum",
+      "runtime": false,
+      "device_action": false
+    }
+  ],
   "failed_generation": [
     {
       "repository_commit": "b2f0bcddddb1aaed73926313b2d0f36618fa2fb6",

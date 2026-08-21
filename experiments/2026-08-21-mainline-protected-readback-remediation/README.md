@@ -68,6 +68,15 @@ identities are recorded in
 and [`contract.json`](contract.json). Those exact bytes are canonical patches
 `0316`--`0318`.
 
+The first isolated compile from exact clean commit `2aa38a008b34` applied all
+307 canonical patches and compiled both production transport objects. The
+focused KUnit object then failed during preprocessing because numeric macro
+`MT6797_CLOCK_TEST_SETTLE_NS` collided with the event enum member of the same
+name. The exact job-log identity and bounded diagnosis are in
+[`results/buildbox-compile-attempt-2aa38a00.txt`](results/buildbox-compile-attempt-2aa38a00.txt).
+A generated one-patch follow-up renames only the numeric test expectation;
+production code, event ordering, and all six cases remain unchanged.
+
 No device kernel, boot image, partition, firmware service, or hardware
 semaphore has been used by this experiment.
 
