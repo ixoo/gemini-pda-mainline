@@ -4609,18 +4609,31 @@ only the model label, enables the two read-only backends, and adds the one-shot
 observer. This is build evidence, not runtime evidence, and no device action
 was justified by it alone.
 
-The exact Android-v0/LK candidate is now assembled and independently validated,
-both live TEE identities match the audited payload, and guarded logical
-`boot2` deployment has a matching full-partition readback followed by confirmed
-shutdown. The remaining action in this gate is one physical `boot2` selection
-and its strict runtime classification; deployment alone is not runtime evidence.
+The exact Android-v0/LK candidate was assembled and independently validated,
+both live TEE identities matched the audited payload, and guarded logical
+`boot2` deployment had a matching full-partition readback followed by confirmed
+shutdown. Its one physical selection returned to changed-boot-ID Gemian before
+the pre-armed collector saw mainline USB. No reboot command was sent, pstore and
+`last_kmsg` were empty, and post-cycle `boot2` still matched exactly. The
+watchdog-block boot-reason token does not distinguish expiry from a direct
+TOPRGU reset. Therefore neither protected reader is yet attributed; the exact
+artifact is rejected as `inconclusive-pre-transport` and must not be repeated.
+See the [runtime result](../experiments/2026-08-21-mainline-protected-readback-runtime-observer/results/runtime-attempt-1-inconclusive-pre-transport-20260821.txt).
+
+Read-only Gemian recovery found the four final retained dmesg-zone headers at
+`0x444bb000`--`0x444be000` valid and empty. The next candidate may therefore
+add exactly two independently recoverable records: one immediately before the
+protected-clock read and one after it returns but before BigiDVFS. That prefix
+separates observer-not-entered, clock-read-nonreturn, and later failure without
+adding another protected read or repeating a measurement-identical artifact.
 
 The next ordered work is:
 
-1. Physically select the exact installed `boot2` candidate once. Require one
-   clock record, one BigiDVFS record, the terminal completion receipt, no CPU
-   request, CPUs 0--7 online with 8--9 offline, and ordinary USB/console
-   serviceability before interpreting the result.
+1. Build and run the two-checkpoint retained-RAM successor once. Require exact
+   reserved-memory and empty-slot gates, one write per owned slot with ordered
+   readback, and known-good Gemian recovery. Use the recovered prefix to split
+   the first protected-clock call from the later BigiDVFS call; do not infer a
+   transport result from screen state or the boot-reason token alone.
 2. Compose the validated readers, DA921x, and the platform-state source under
    one transition/hotplug owner.
 3. Revise A34 to accept only the complete direct-state ABI and applicable

@@ -2,13 +2,14 @@
 
 ## Status
 
-Buildbox generation, canonical admission, the exact isolated kernel build, and
-offline boot-image validation are complete. The package, merged configuration,
-linked symbols, candidate DTB, and Android-v0/LK container pass their exact
-gates. The live TEE identity gate and guarded `boot2` deployment now pass, and
-the device is shut down awaiting one physical `boot2` selection. No protected
-firmware API read, hardware semaphore access, or candidate boot has yet occurred
-in this experiment.
+Buildbox generation, canonical admission, the exact isolated kernel build,
+offline boot-image validation, live TEE identity, guarded `boot2` deployment,
+and one physical selection are complete. The candidate returned to Gemian
+without ever exposing its exact USB identity. A changed Gemian boot ID confirms
+a cycle, and the installed `boot2` still matches exactly, but pstore,
+`last_kmsg`, and the pre-armed collector contain no candidate identity or
+observer record. The result is therefore `inconclusive-pre-transport`, not a
+protected-read failure or success. The exact artifact must not be repeated.
 
 One guarded deployment attempt reached the exact known-good Gemian system. An
 independent live-GPT check then confirmed that both unmounted 5 MiB `tee1` and
@@ -26,6 +27,15 @@ flushed it, and obtained matching device-side and independently streamed
 full-partition readback checksums. The temporary readback was removed and the
 device cleanly powered off; it was confirmed unreachable and was not rebooted.
 See [`results/deployment-attempt-2-success.txt`](results/deployment-attempt-2-success.txt).
+
+The one permitted runtime attempt was pre-armed before physical selection. No
+mainline USB interface appeared and no netcat command, including reboot, was
+sent. The owner reported an automatic return to Gemian. Recovery found a
+changed boot ID, empty pstore and `last_kmsg`, a nondiscriminating watchdog-
+block reset token, and the exact candidate unchanged on inactive, unmounted
+`boot2`. A read-only check also found the four final persistent-RAM headers
+valid and empty. See
+[`results/runtime-attempt-1-inconclusive-pre-transport-20260821.txt`](results/runtime-attempt-1-inconclusive-pre-transport-20260821.txt).
 
 ## Question
 
@@ -184,7 +194,9 @@ protected-state/resource owner, a DA921x provider path, or a CPU transition.
 ## Decision rule
 
 The generation, canonical admission, Buildbox link, candidate-DTB, container,
-live TEE, guarded deployment, full-readback, and shutdown gates now pass. Spend
-one physical `boot2` selection on the stated runtime classifier. Composition
-under the transition owner remains the next gate and cannot begin from
-compile-only, deployment-only, or partial runtime evidence.
+live TEE, guarded deployment, full-readback, and shutdown gates passed. The
+single runtime attempt did not reach an attributable transport record or the
+serviceability boundary, so composition remains closed. Do not repeat the
+exact artifact. The next discriminator must add two independently recoverable
+retained checkpoints around the first protected-clock call while preserving
+the same two read operations and every CPU/owner closure.

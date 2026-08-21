@@ -1,0 +1,99 @@
+Protected-readback runtime observer attempt 1
+Date: 2026-08-21 America/New_York
+
+[candidate]
+repository_build_commit=1bd49d97673731509f0e2c7dcadbb2f03ed343ca
+kernel_release=7.1.3-gemini-protected-readback-ro
+raw_candidate_sha256=a3cb0e1c79447345d700fefc5eb68f3d136c893db8a87ecf0ebf54d0ffc0189c
+full_boot2_sha256=30ec9c56d6be78635f0ccf3ea626727763d71590c23778774c5c6366e4a5e75a
+candidate_dtb_sha256=34f24e49600e16e9b00f25ecba1d0806c4ce325944e176acccc6751a236b8998
+serviceability_ramdisk_sha256=e0dffa04a621f60903cf4cf7280d773ec1c89c43ea63ec0f8b3a0879e7cebc0f
+attempt=1-of-1
+
+[physical-observation]
+collector_armed_before_selection=yes
+physical_boot2_selection_reported=yes
+USB_cable=attached
+owner_report=automatic-return-to-Gemian
+screen_used_as_kernel_oracle=no
+mainline_USB_identity_observed=no
+mainline_netcat_probe_sent=no
+mainline_reboot_request_sent=no
+runtime_capture_directory_created=no
+
+[changed-Gemian-return]
+kernel_release=3.18.41+
+architecture=aarch64
+deployment_Gemian_boot_id_sha256=d3dceb9cc091aa2d5ac7a518d31585ad7713bfb7911a0d41765addc310cca8f2
+returned_Gemian_boot_id_sha256=b289912e29d23801daeee9a28603986e23dc271a6ac3f1ce10065ee002ba0f1d
+boot_id_changed=yes
+boot_reason=4
+android_bootreason=wdt_by_pass_pwk
+powerup_reason=reboot
+reset_reason_interpretation=nondiscriminating-watchdog-block-class
+active_root=/dev/mmcblk0p29
+live_GPT_boot2=/dev/mmcblk0p30
+boot2_mounted=no
+postcycle_boot2_size=16777216
+postcycle_boot2_sha256=30ec9c56d6be78635f0ccf3ea626727763d71590c23778774c5c6366e4a5e75a
+exact_candidate_still_installed=yes
+returned_Gemian_cpu_possible=0-9
+returned_Gemian_cpu_present=0-9
+returned_Gemian_cpu_online=0-1,4-8
+returned_Gemian_cpu_offline=2-3,9
+battery_present=1
+battery_capacity_percent=59
+battery_health=Good
+USB_power_online=1
+
+[recovery-evidence]
+pstore_directory=present
+pstore_file_count=0
+console_ramoops=absent
+candidate_kernel_identity=absent
+candidate_initramfs_identity=absent
+candidate_observer_record=absent
+last_kmsg=present-empty-zero-bytes
+private_pstore_archive_sha256=a9aa2249d161002b21027320452eed254225ab019d546f8207c9e1612fa4c543
+private_pstore_manifest_sha256=b91cfa23d496e04d36e5f95a0822d2996f10994d0ea388bdbbef75e78cb37075
+private_evidence_committed=no
+
+[post-return-retained-slot-preflight]
+method=read-only-/dev/mem-header-read-from-known-Gemian
+reservation=0x44410000+0x000e0000
+slot_171_address=0x444bb000
+slot_172_address=0x444bc000
+slot_173_address=0x444bd000
+slot_174_address=0x444be000
+slot_171_header=434742440000000000000000
+slot_172_header=434742440000000000000000
+slot_173_header=434742440000000000000000
+slot_174_header=434742440000000000000000
+all_four_headers=valid-and-empty
+device_memory_write=no
+
+[interpretation]
+runtime_classification=inconclusive-pre-transport
+candidate_boot_cycle=confirmed-by-changed-Gemian-boot-ID
+candidate_kernel_entry=not-established
+protected_clock_call=not-attributable
+protected_bigidvfs_call=not-attributable
+observer_completion=not-observed
+serviceability=failed-before-observable-USB
+candidate_write_integrity=passed-postcycle
+reset_token_as_sole_cause=forbidden
+CPU8_CPU9_conclusion=none-from-candidate
+identical_artifact_repeat=forbidden
+composition_under_transition_owner=closed
+
+[next]
+Do not repeat the exact artifact. Add exactly two independent retained-RAM
+checkpoints to a successor: one immediately before the protected-clock call
+and one only after that call returns, before BigiDVFS. Require the exact
+reserved-memory contract and all candidate slots to have valid empty headers;
+write each slot once with payload-before-metadata ordering and full readback;
+skip normal mainline ramoops registration; recover only through known-good
+Gemian. No additional protected read, CPU request, storage write, reset, or
+automatic retry is added. The recovered prefix distinguishes observer-not-
+entered, protected-clock-call-did-not-return, and protected-clock-returned-
+before-the-later-failure.
