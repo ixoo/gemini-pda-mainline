@@ -1,0 +1,253 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+export LC_ALL=C
+
+readonly PARENT_SOURCE_STATE=2e804ec33835f0e14b050773c52d1d39acf573e6e71eee8257f8c282b54c8f2a
+readonly ARM64_KCONFIG_SHA256=081194dcf382f0fd5e09b3e65488afe14075c80002f7c8ff5ce42a6e9131da46
+readonly MEMBERSHIP_HEADER_SHA256=a7324f2d179597cf070f82ca4473efdced60aa6e5ae8f04d97b6be85683e0582
+readonly MEMBERSHIP_SOURCE_SHA256=d86a1d1076219d624332cdb7d65a0e13b05f1f60a2931944e99743c9ff6c0468
+readonly REGULATOR_KCONFIG_SHA256=ef861003ebbdef73d6df94299f9116723e7971d9ef4a5a2a3d9f6327ae6aca5a
+readonly REGULATOR_MAKEFILE_SHA256=3b55721ffe27367178fbc57047e6770d6ec6d7b26690e5ea65657a00df840904
+readonly REGULATOR_DRIVER_SHA256=fe8a602c04747e6a96c30a347d599f77adfd5260ecca42ee4f50263a4518fbc1
+readonly PROVIDER_HEADER_SHA256=681b3076ff8b214868a31a5f0ab87c3eb0bfb4adc351c1dc3007adc2518e0cac
+
+die() { printf 'error: %s\n' "$*" >&2; exit 1; }
+
+[[ "$#" -eq 3 ]] || die 'expected PROJECT_COMMIT SOURCE_ROOT OUTPUT_ROOT'
+readonly project_commit=$1
+readonly source_root=$2
+readonly output_root=$3
+[[ "$project_commit" =~ ^[0-9a-f]{40}$ ]] || die 'invalid project commit'
+[[ "$source_root" == /workspace/gemini-pda/src/linux-7.1.3 ]] ||
+	die 'unexpected managed source root'
+[[ "$output_root" == /workspace/gemini-pda/* ]] || die 'unsafe output root'
+[[ -f "$source_root/.gemini-source-state" && ! -L "$source_root/.gemini-source-state" ]] ||
+	die 'prepared source state marker absent or unsafe'
+[[ "$(<"$source_root/.gemini-source-state")" == "$PARENT_SOURCE_STATE" ]] ||
+	die 'prepared parent source state changed'
+
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+experiment_dir="$(cd -- "$script_dir/.." && pwd -P)"
+repository_dir="$(cd -- "$experiment_dir/../.." && pwd -P)"
+readonly script_dir experiment_dir repository_dir
+[[ "$(git -C "$repository_dir" rev-parse HEAD)" == "$project_commit" ]] ||
+	die 'project checkout does not match requested commit'
+[[ -z "$(git -C "$repository_dir" status --porcelain)" ]] ||
+	die 'project checkout is dirty'
+for command in git perl python3 sha256sum; do
+	command -v "$command" >/dev/null 2>&1 || die "missing command: $command"
+done
+python3 "$repository_dir/scripts/source-tree-integrity" verify "$source_root" |
+	grep -E '^source_tree_integrity=[0-9a-f]{64}$' >/dev/null ||
+	die 'prepared source integrity verification failed'
+
+check_file() {
+	local expected=$1
+	local relative=$2
+	printf '%s  %s\n' "$expected" "$source_root/$relative" |
+		sha256sum --check --status || die "parent source changed: $relative"
+}
+check_file "$ARM64_KCONFIG_SHA256" arch/arm64/Kconfig
+check_file "$MEMBERSHIP_HEADER_SHA256" arch/arm64/include/asm/mt6797_a72_membership.h
+check_file "$MEMBERSHIP_SOURCE_SHA256" arch/arm64/kernel/mt6797_a72_membership.c
+check_file "$REGULATOR_KCONFIG_SHA256" drivers/regulator/Kconfig
+check_file "$REGULATOR_MAKEFILE_SHA256" drivers/regulator/Makefile
+check_file "$REGULATOR_DRIVER_SHA256" drivers/regulator/da9213-legacy-regulator.c
+check_file "$PROVIDER_HEADER_SHA256" drivers/regulator/da9213-legacy-provider-contract.h
+
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate.py"
+
+readonly work_root=/workspace/gemini-pda/da921x-pre-p28-provider-abort-work
+readonly package="$output_root/da921x-pre-p28-provider-abort-patches-${project_commit:0:12}"
+readonly partial="${package}.partial.$$"
+mkdir -p "$work_root" "$output_root"
+[[ ! -e "$partial" ]] || die 'stale output partial exists'
+
+if [[ -d "$package" && ! -L "$package" ]]; then
+	grep -Fx "repository_commit=$project_commit" \
+		"$package/provenance/generation.txt" >/dev/null ||
+		die 'existing package commit mismatch'
+	(cd "$package" && sha256sum --check --strict SHA256SUMS >/dev/null)
+	printf 'Generated DA921x pre-P28 provider-abort patch review at %s\n' "$package"
+	exit 0
+fi
+[[ ! -e "$package" ]] || die 'unsafe existing package path'
+
+work="$(mktemp -d "$work_root/generation.XXXXXX")"
+readonly work
+cleanup() {
+	[[ ! -d "$work" || "$work" != "$work_root"/generation.* ]] || rm -rf -- "$work"
+	[[ ! -d "$partial" || "$partial" != "$output_root"/*.partial.* ]] || rm -rf -- "$partial"
+}
+trap cleanup EXIT
+
+mkdir -p "$work/source/arch/arm64/include/asm" \
+	"$work/source/arch/arm64/kernel" "$work/source/drivers/regulator"
+cp -- "$source_root/arch/arm64/Kconfig" "$work/source/arch/arm64/"
+cp -- "$source_root/arch/arm64/include/asm/mt6797_a72_membership.h" \
+	"$work/source/arch/arm64/include/asm/"
+cp -- "$source_root/arch/arm64/kernel/mt6797_a72_membership.c" \
+	"$work/source/arch/arm64/kernel/"
+cp -- "$source_root/drivers/regulator/Kconfig" \
+	"$source_root/drivers/regulator/Makefile" \
+	"$source_root/drivers/regulator/da9213-legacy-regulator.c" \
+	"$source_root/drivers/regulator/da9213-legacy-provider-contract.h" \
+	"$work/source/drivers/regulator/"
+
+git -C "$work/source" init --quiet
+git -C "$work/source" config user.name 'Gemini Mainline Experiment'
+git -C "$work/source" config user.email gemini-mainline@example.invalid
+git -C "$work/source" add -- arch drivers
+GIT_AUTHOR_DATE=2026-08-20T20:00:00Z \
+GIT_COMMITTER_DATE=2026-08-20T20:00:00Z \
+	git -C "$work/source" commit --quiet --no-gpg-sign \
+		-m 'Gate 7 pre-P28 provider-abort source parent'
+baseline_commit="$(git -C "$work/source" rev-parse HEAD)"
+readonly baseline_commit
+
+commit_phase() {
+	local date=$1
+	local subject=$2
+	local body1=$3
+	local body2=$4
+	shift 4
+	git -C "$work/source" diff --check
+	git -C "$work/source" add -- "$@"
+	git -C "$work/source" diff --cached --check
+	GIT_AUTHOR_NAME='Gemini Mainline Experiment' \
+	GIT_AUTHOR_EMAIL=gemini-mainline@example.invalid \
+	GIT_COMMITTER_NAME='Gemini Mainline Experiment' \
+	GIT_COMMITTER_EMAIL=gemini-mainline@example.invalid \
+	GIT_AUTHOR_DATE="$date" GIT_COMMITTER_DATE="$date" \
+		git -C "$work/source" commit --quiet --no-gpg-sign \
+			-m "$subject" -m "$body1" -m "$body2"
+}
+
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/source_edits.py" \
+	--source-root "$work/source" --phase failstop
+commit_phase 2026-08-20T20:01:00Z \
+	'arm64: fail-stop ambiguous A72 provider acquire returns' \
+	'Validate every positive response field and retain unknown ownership.' \
+	'Publish one reset-only terminal with no retry or speculative release.' \
+	arch/arm64/include/asm/mt6797_a72_membership.h \
+	arch/arm64/kernel/mt6797_a72_membership.c
+failstop_commit="$(git -C "$work/source" rev-parse HEAD)"
+readonly failstop_commit
+
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/source_edits.py" \
+	--source-root "$work/source" --phase abort
+commit_phase 2026-08-20T20:02:00Z \
+	'arm64: add exact pre-P28 A72 provider abort' \
+	'Consume one CPU8-up abort budget before exact-handle provider release.' \
+	'Admit P29 only after complete refusal or positive-abort ownership proof.' \
+	arch/arm64/Kconfig arch/arm64/include/asm/mt6797_a72_membership.h \
+	arch/arm64/kernel/mt6797_a72_membership.c
+abort_commit="$(git -C "$work/source" rev-parse HEAD)"
+readonly abort_commit
+
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/source_edits.py" \
+	--source-root "$work/source" --phase endpoint
+commit_phase 2026-08-20T20:03:00Z \
+	'regulator: make the DA921x provider endpoint injectable' \
+	'Use one endpoint shape for the production client and hardware-free test.' \
+	'Keep the same registry callbacks and positive transaction implementation.' \
+	drivers/regulator/da9213-legacy-provider-contract.h \
+	drivers/regulator/da9213-legacy-regulator.c
+endpoint_commit="$(git -C "$work/source" rev-parse HEAD)"
+readonly endpoint_commit
+
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/source_edits.py" \
+	--source-root "$work/source" --phase kunit
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_source.py" \
+	--source-root "$work/source"
+commit_phase 2026-08-20T20:04:00Z \
+	'regulator: test the DA921x pre-P28 membership abort' \
+	'Traverse the production registry and transaction on a fake adapter.' \
+	'Cover exact retirement, all returned failures, malformed proofs, and guards.' \
+	arch/arm64/Kconfig arch/arm64/include/asm/mt6797_a72_membership.h \
+	arch/arm64/kernel/mt6797_a72_membership.c \
+	drivers/regulator/Kconfig drivers/regulator/Makefile \
+	drivers/regulator/da9213-legacy-membership-test.c
+kunit_commit="$(git -C "$work/source" rev-parse HEAD)"
+readonly kunit_commit
+
+mkdir -p "$partial/patches" "$partial/provenance"
+readonly patch1=0296-arm64-fail-stop-ambiguous-A72-provider-acquire.patch
+readonly patch2=0297-arm64-add-exact-pre-P28-A72-provider-abort.patch
+readonly patch3=0298-regulator-make-DA921x-provider-endpoint-injectable.patch
+readonly patch4=0299-regulator-test-DA921x-pre-P28-membership-abort.patch
+git -C "$work/source" format-patch -4 --no-signature --numbered \
+	--start-number 1 --output-directory "$partial/patches" >/dev/null
+for number in 1 2 3 4; do
+	generated="$(find "$partial/patches" -maxdepth 1 -type f \
+		-name "000${number}-*.patch" -print)"
+	[[ -n "$generated" ]] || die "normal patch $number absent"
+	case "$number" in
+	1) target=$patch1 ;; 2) target=$patch2 ;; 3) target=$patch3 ;; 4) target=$patch4 ;;
+	esac
+	mv -- "$generated" "$partial/patches/$target"
+done
+printf '%s\n' "$patch1" "$patch2" "$patch3" "$patch4" \
+	>"$partial/patches/series"
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_patches.py" \
+	--patch-dir "$partial/patches"
+
+git clone --quiet "$work/source" "$work/verify"
+git -C "$work/verify" checkout --quiet --detach "$baseline_commit"
+git -C "$work/verify" config user.name 'Gemini Mainline Experiment'
+git -C "$work/verify" config user.email gemini-mainline@example.invalid
+git -C "$work/verify" am --quiet --committer-date-is-author-date \
+	"$partial/patches/$patch1" "$partial/patches/$patch2" \
+	"$partial/patches/$patch3" "$partial/patches/$patch4"
+[[ "$(git -C "$work/verify" rev-parse HEAD)" == "$kunit_commit" ]] ||
+	die 'normal patch replay did not reproduce generated commits'
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_source.py" \
+	--source-root "$work/verify"
+[[ -z "$(git -C "$work/verify" status --porcelain)" ]] ||
+	die 'verification source is dirty'
+
+if ! perl "$source_root/scripts/checkpatch.pl" --no-tree --strict \
+	--ignore MISSING_SIGN_OFF,FILE_PATH_CHANGES,COMMIT_LOG_LONG_LINE \
+	"$partial/patches/$patch1" "$partial/patches/$patch2" \
+	"$partial/patches/$patch3" "$partial/patches/$patch4" \
+	>"$partial/provenance/checkpatch.txt"; then
+	cat "$partial/provenance/checkpatch.txt" >&2
+	die 'strict checkpatch rejected generated patches'
+fi
+
+cat >"$partial/provenance/generation.txt" <<EOF
+purpose=experiment-only-da921x-pre-p28-provider-abort
+repository_commit=$project_commit
+parent_source_state=$PARENT_SOURCE_STATE
+baseline_commit=$baseline_commit
+failstop_commit=$failstop_commit
+abort_commit=$abort_commit
+endpoint_commit=$endpoint_commit
+kunit_commit=$kunit_commit
+generated_patch_count=4
+kunit_case_count=6
+acquire_failure_ordinals=22
+release_failure_ordinals=22
+malformed_acquire_responses=14
+malformed_release_responses=14
+p29_mutations=9
+hardware_action=none
+device_action=none
+boot_candidate=false
+physical_da921x_write_authorized=false
+p28_effect=false
+cpu_on=false
+cpu_off=false
+cpu8_cpu9_admission=closed
+EOF
+printf '%s\n' "$patch1" "$patch2" "$patch3" "$patch4" \
+	>"$partial/provenance/patches.txt"
+(
+	cd "$partial"
+	find patches provenance -type f -print0 | sort -z |
+		xargs -0 sha256sum >SHA256SUMS
+	sha256sum --check --strict SHA256SUMS >/dev/null
+)
+mv -- "$partial" "$package"
+printf 'Generated DA921x pre-P28 provider-abort patch review at %s\n' "$package"

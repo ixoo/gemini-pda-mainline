@@ -4343,6 +4343,14 @@ owner stays closed with no production caller. P27/P28 hardware effects,
 physical DA921x execution, CPU_ON/OFF, boot images, and device access remain
 closed.
 
+The
+[pre-P28 provider-abort experiment](../experiments/2026-08-20-mainline-da921x-pre-p28-provider-abort/README.md)
+owns that implementation. Its deterministic Buildbox tooling freezes four
+logical patches: acquire fail-stop mapping, exact positive abort/P29 admission,
+an injectable instance of the production DA921x callback endpoint, and the
+focused registry integration KUnit suite. Patch generation, canonical import,
+Buildbox compile, and QEMU proof must pass before this roadmap advances.
+
 The candidate must have a single CPU8 request, strict checkpoints before and
 after each power step, a bounded timeout, and a fail-closed rollback. CPU9
 remains offline and is tested later as a separate hypothesis.

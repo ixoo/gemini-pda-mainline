@@ -23,6 +23,13 @@ the loop. Positive identity-gated observations are unaffected.
 
 ### Current DA921x, I2C6, and A72 line
 
+- [2026-08-20 mainline DA921x pre-P28 provider abort](2026-08-20-mainline-da921x-pre-p28-provider-abort/README.md)
+  — implements the next default-off production seam selected by the Gate-7
+  review: ambiguous acquire/release returns become reset-only faults, while
+  one exact CPU8-up abort can release the generation-bound vote and admit P29.
+  Its focused proof traverses the production owner, registry, and positive
+  DA921x callbacks on an unregistered fake adapter. P28, CPU_ON/OFF, a boot
+  candidate, and device action remain closed.
 - [2026-08-20 mainline CPU8 Gate-7 integration review](2026-08-20-mainline-cpu8-gate7-integration-review/README.md)
   — reconciles the completed positive-provider proof with the current closed
   owner, P27/P28 ledgers, A41, P24/P30, and CPU vetoes. It rejects direct P28

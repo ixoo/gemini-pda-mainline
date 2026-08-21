@@ -1,0 +1,5 @@
+# Hardware-free integration coverage through the production owner, registry,
+# and positive provider callbacks on an unregistered in-memory I2C adapter.
+CONFIG_KUNIT=y
+CONFIG_REGULATOR_DA9213_LEGACY_MEMBERSHIP_KUNIT_TEST=y
+CONFIG_LOCALVERSION="-gemini-da921x-pre-p28-provider-abort-kunit"

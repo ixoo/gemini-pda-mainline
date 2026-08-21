@@ -1,0 +1,60 @@
+{
+  "schema": "gemini-mainline-da921x-pre-p28-provider-abort-v1",
+  "status": "source-tooling-ready",
+  "parent": {
+    "kernel_release": "7.1.3",
+    "source_state_sha256": "2e804ec33835f0e14b050773c52d1d39acf573e6e71eee8257f8c282b54c8f2a",
+    "arch_kconfig_sha256": "081194dcf382f0fd5e09b3e65488afe14075c80002f7c8ff5ce42a6e9131da46",
+    "membership_header_sha256": "a7324f2d179597cf070f82ca4473efdced60aa6e5ae8f04d97b6be85683e0582",
+    "membership_source_sha256": "d86a1d1076219d624332cdb7d65a0e13b05f1f60a2931944e99743c9ff6c0468",
+    "regulator_kconfig_sha256": "ef861003ebbdef73d6df94299f9116723e7971d9ef4a5a2a3d9f6327ae6aca5a",
+    "regulator_makefile_sha256": "3b55721ffe27367178fbc57047e6770d6ec6d7b26690e5ea65657a00df840904",
+    "regulator_driver_sha256": "fe8a602c04747e6a96c30a347d599f77adfd5260ecca42ee4f50263a4518fbc1",
+    "provider_header_sha256": "681b3076ff8b214868a31a5f0ab87c3eb0bfb4adc351c1dc3007adc2518e0cac"
+  },
+  "implementation": {
+    "logical_patches": 4,
+    "transaction_abi": 2,
+    "target_cpu": 8,
+    "abort_budget": "one-shot-distinct-pre-p28",
+    "acquire_fault": "provider-fault-unknown-owner-fault-reset-only",
+    "release_entry": "publish-release-inflight-before-registry-call",
+    "release_success": "exact-complete-response-clear-durable-identity",
+    "release_fault": "retain-held-identity-reset-only",
+    "p29_predecessors": [
+      "exact-before-vote-refusal",
+      "exact-positive-pre-p28-abort"
+    ],
+    "production_reachability": false
+  },
+  "proof": {
+    "suite": "da9213-legacy-membership-provider",
+    "cases": 6,
+    "acquire_failure_ordinals": 22,
+    "release_failure_ordinals": 22,
+    "malformed_acquire_responses": 14,
+    "malformed_release_responses": 14,
+    "p29_mutations": 9,
+    "adapter": "unregistered-in-memory",
+    "registry": "production",
+    "provider_callbacks": "production-da921x-positive",
+    "qemu_profile": "da921x-pre-p28-provider-abort-kunit",
+    "qemu_machine": "virt-cortex-a53-four-vcpu-no-network",
+    "qemu_exit": "bounded-timeout-after-complete-KTAP-pass"
+  },
+  "safety": {
+    "default_off": true,
+    "hardware_free": true,
+    "device_access": false,
+    "native_vm_build": false,
+    "physical_provider_call": false,
+    "p27_hardware_effect": false,
+    "p28_effect": false,
+    "cpu_on": false,
+    "cpu_off": false,
+    "boot_candidate": false,
+    "cpu8_cpu9_admission": "closed",
+    "a26_boot_veto": "required",
+    "a14_disable_veto": "required"
+  }
+}

@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+export LC_ALL=C
+
+readonly EXPECTED_REMOTE=https://github.com/ixoo/gemini-pda-mainline.git
+readonly EXPECTED_PROFILE=da921x-pre-p28-provider-abort-kunit
+
+die() { printf 'error: %s\n' "$*" >&2; exit 1; }
+
+[[ "$#" -eq 2 ]] || die 'expected PACKAGE_DIR RAW_LOG'
+package_dir=$(cd -- "$1" 2>/dev/null && pwd -P) || die 'package absent'
+readonly package_dir
+raw_log=$2
+script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+experiment_dir=$(cd -- "$script_dir/.." && pwd -P)
+repository_dir=$(cd -- "$experiment_dir/../.." && pwd -P)
+readonly script_dir experiment_dir repository_dir
+[[ "$raw_log" == /* ]] || raw_log="$repository_dir/$raw_log"
+readonly raw_log
+
+for command in git jq python3 qemu-system-aarch64 sha256sum timeout; do
+	command -v "$command" >/dev/null 2>&1 || die "missing command: $command"
+done
+readonly build_json="$package_dir/provenance/build.json"
+readonly image="$package_dir/Image"
+readonly config="$package_dir/kernel.config"
+readonly sums="$package_dir/SHA256SUMS"
+for path in "$build_json" "$image" "$config" "$sums"; do
+	[[ -f "$path" && ! -L "$path" ]] || die "unsafe package file: $path"
+done
+
+repository_commit=$(git -C "$repository_dir" rev-parse HEAD)
+readonly repository_commit
+[[ "$repository_commit" =~ ^[0-9a-f]{40}$ ]] || die 'invalid repository HEAD'
+[[ "$(git -C "$repository_dir" rev-parse origin/main)" == "$repository_commit" ]] ||
+	die 'repository HEAD is not published at origin/main'
+[[ "$(git -C "$repository_dir" remote get-url origin)" == "$EXPECTED_REMOTE" ]] ||
+	die 'unexpected origin URL'
+[[ "$(jq -er '.repository_commit' "$build_json")" == "$repository_commit" ]] ||
+	die 'package commit differs from repository HEAD'
+[[ "$(jq -er '.repository_dirty' "$build_json")" == false ]] ||
+	die 'package was built from a dirty repository'
+[[ "$(jq -er '.build_profile' "$build_json")" == "$EXPECTED_PROFILE" ]] ||
+	die 'unexpected package profile'
+[[ "$(jq -er '.target_architecture' "$build_json")" == arm64 ]] ||
+	die 'unexpected package architecture'
+case "$package_dir" in
+	"$repository_dir/artifacts/buildbox/$repository_commit/"*) ;;
+	*) die 'package is outside the exact ignored Buildbox commit root' ;;
+esac
+(
+	cd "$package_dir"
+	sha256sum --check --strict SHA256SUMS >/dev/null
+) || die 'package checksum validation failed'
+
+for token in \
+	'CONFIG_KUNIT=y' \
+	'CONFIG_KUNIT_DEFAULT_ENABLED=y' \
+	'CONFIG_KUNIT_AUTORUN_ENABLED=y' \
+	'CONFIG_CMDLINE_FORCE=y' \
+	'CONFIG_ARM64_MT6797_A72_PROVIDER_OWNER=y' \
+	'CONFIG_MTK_MT6797_I2C6_FW_WRITER_TRANSACTION_WINDOW=y' \
+	'CONFIG_REGULATOR_DA9213_LEGACY_POSITIVE_PROVIDER_TRANSACTION=y' \
+	'CONFIG_ARM64_MT6797_A72_PRE_P28_PROVIDER_ABORT=y' \
+	'CONFIG_ARM64_MT6797_A72_P24_OWNER_TEST_SEED=y' \
+	'CONFIG_REGULATOR_DA9213_LEGACY_MEMBERSHIP_KUNIT_TEST=y'; do
+	grep -Fx "$token" "$config" >/dev/null || die "configuration missing: $token"
+done
+for token in \
+	'CONFIG_ARM64_MT6797_A72_P24_OWNER_KUNIT_TEST=y' \
+	'CONFIG_REGULATOR_DA9213_LEGACY_POSITIVE_PROVIDER_KUNIT_TEST=y' \
+	'CONFIG_REGULATOR_DA9213_LEGACY_SAME_VALUE_WRITE_KUNIT_TEST=y' \
+	'CONFIG_REGULATOR_DA9213_LEGACY_SAME_VALUE_WRITE=y'; do
+	! grep -Fx "$token" "$config" >/dev/null ||
+		die "unrelated or superseded path leaked into profile: $token"
+done
+focused_test_count=$(grep -Ec '^CONFIG_.*_KUNIT_TEST=y$' "$config")
+focused_test=$(grep -E '^CONFIG_.*_KUNIT_TEST=y$' "$config")
+readonly focused_test_count focused_test
+[[ "$focused_test_count" -eq 1 && "$focused_test" == \
+	'CONFIG_REGULATOR_DA9213_LEGACY_MEMBERSHIP_KUNIT_TEST=y' ]] ||
+	die 'focused KUnit test inventory changed'
+
+mkdir -p "$repository_dir/artifacts/qemu"
+raw_parent=$(cd -- "$(dirname -- "$raw_log")" 2>/dev/null && pwd -P) ||
+	die 'raw-log parent absent'
+readonly raw_parent
+[[ "$raw_parent" == "$repository_dir/artifacts/qemu" ]] ||
+	die 'raw log must be directly below ignored artifacts/qemu'
+[[ ! -L "$raw_parent" ]] || die 'raw-log parent is a symlink'
+[[ "$raw_log" == "$raw_parent/"[a-z0-9._-]*.log ]] ||
+	die 'unsafe raw-log name'
+[[ ! -e "$raw_log" ]] || die 'refusing to overwrite a raw log'
+
+set +e
+timeout --signal=TERM 45 qemu-system-aarch64 \
+	-machine virt -cpu cortex-a53 -smp 4 -m 1024 \
+	-nographic -no-reboot -nic none -kernel "$image" \
+	>"$raw_log" 2>&1
+qemu_exit=$?
+set -e
+readonly qemu_exit
+
+PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/classify-kunit.py" \
+	--package "$package_dir" \
+	--raw-log "$raw_log" \
+	--qemu-exit "$qemu_exit" \
+	--repository-commit "$repository_commit"

@@ -1,0 +1,5 @@
+# Default-off, closed-lifecycle Gate-7 provider-owner seam. This consumes one
+# CPU8-up-only abort budget after exact acquire and before P28. It adds no
+# production caller, P27/P28 executor, CPU_ON, CPU_OFF, or device action.
+CONFIG_ARM64_MT6797_A72_PRE_P28_PROVIDER_ABORT=y
+CONFIG_LOCALVERSION="-gemini-da921x-pre-p28-provider-abort"
