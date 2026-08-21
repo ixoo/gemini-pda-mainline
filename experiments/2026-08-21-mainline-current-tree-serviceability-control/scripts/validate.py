@@ -60,13 +60,20 @@ def main() -> None:
     require(contract["profile"]["name"] == PROFILE, "contract profile changed")
     require(contract["profile"]["expected_release"] == "7.1.3-gemini-service-ctl",
             "contract release changed")
-    require(contract["scope"]["boot_candidate"] is False,
-            "prebuild definition promoted to boot candidate")
+    require(contract["scope"]["boot_candidate"] is True,
+            "independently validated candidate is not admitted")
     require(contract["scope"]["regulator_data_writes"] == 0,
             "prebuild scope permits a regulator-data write")
     require(contract["decision"]["repetitions"] == 1, "repetition budget changed")
 
-    print("validation=current-tree-serviceability-control-prebuild")
+    require(contract["required_configuration"]["NR_CPUS"] == 512,
+            "resolved NR_CPUS changed")
+    require(contract["required_configuration"]["dt_cpu_nodes"] == 10,
+            "DT CPU-node count changed")
+    require(contract["candidate"]["negative_dtb_mutations_rejected"] == 15,
+            "candidate mutation gate changed")
+
+    print("validation=current-tree-serviceability-control")
     print(f"profile={PROFILE}")
     print(f"profile_fragments={len(control['fragments'])}")
     print(f"canonical_patch_count={len(series)}")
@@ -76,6 +83,7 @@ def main() -> None:
     print("cpu8_cpu9_admission=closed")
     print("device_access=none")
     print("hardware_write=none")
+    print("boot_candidate=true")
     print("result=pass")
 
 

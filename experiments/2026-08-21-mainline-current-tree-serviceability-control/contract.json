@@ -28,7 +28,8 @@
     "PSTORE_GEMINI_PROTECTED_READBACK_LEDGER": "n",
     "PSTORE_GEMINI_PROTECTED_READBACK_PROBE_GATE_LEDGER": "n",
     "PSTORE_GEMINI_CLOCK_BACKEND_ENTRY_LEDGER": "n",
-    "NR_CPUS": 10,
+    "NR_CPUS": 512,
+    "dt_cpu_nodes": 10,
     "command_line_cpu_limit": "maxcpus=8"
   },
   "required_dtb": {
@@ -50,6 +51,25 @@
     "protected_backends": "absent",
     "native_reboot": "one_boot_id_gated_after_all_checks"
   },
+  "build": {
+    "repository_commit": "27622dfea13e042bd82f036c50664d3b978aee11",
+    "patchset_sha256": "04248ac93831930e9960b11ce9bff4d23180ff65f0162eee85cc066b536abfb8",
+    "image_sha256": "cae4361ad7cd4b2515526ff2b11863e4ff1eb8ea788a23cb24409795049c5483",
+    "image_gzip_sha256": "9aa5c9ae497314b7ab089ccf6aa7d2cf1bb2ae9239145456603f08439829a9d6",
+    "config_sha256": "fdba1a02f7592febcbf18fc4c32f7edfe8da48d355241109d79901e37a4dd21b",
+    "system_map_sha256": "39db10ecee35252b5f81fcb52b730f39a30268f6574bed12f55a45e77b92d090",
+    "base_dtb_sha256": "dad6997c565d10dcacab23dea46166ac45f6594da2aab697b105b3fb2dcc474e"
+  },
+  "candidate": {
+    "dtb_sha256": "b638674b9be209219d51b7dd02538f7a0bc8b402bab7336188cb95011cd912dd",
+    "ramdisk_sha256": "e0dffa04a621f60903cf4cf7280d773ec1c89c43ea63ec0f8b3a0879e7cebc0f",
+    "raw_size": 6895616,
+    "raw_sha256": "691ff883f05158c9a62d6629befef93f54ba14e51ff4ed5d8ea97678f2fa5094",
+    "padded_size": 16777216,
+    "padded_sha256": "7084f2ee87af103dfcf1dfad9956f54c2a9df8d37b5f6d0388ba45464d8d52a3",
+    "lk_gates": "32-of-32",
+    "negative_dtb_mutations_rejected": 15
+  },
   "decision": {
     "serviceable": "admit_independent_checkpoint_mechanism_control",
     "no_exact_usb_before_return": "stop_and_localize_current_tree_profile_delta",
@@ -64,6 +84,6 @@
     "cpu_on": false,
     "cpu_off": false,
     "automatic_retry": false,
-    "boot_candidate": false
+    "boot_candidate": true
   }
 }

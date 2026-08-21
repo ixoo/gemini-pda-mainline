@@ -4708,9 +4708,18 @@ boundary moves back to a non-identical current-tree serviceability control with
 the experimental clock-entry writer disabled and the last successful DA921x
 same-value DT resource contract retained.
 
+That control is now built from exact clean pushed commit `27622df` on
+Buildbox and independently validated offline. Its Image omits the clock-entry
+writer and same-value action, while its DT restores the proven three-window
+handoff and USB/keyboard serviceability contract. Candidate
+`7084f2ee...d52a3` passed all 32 LK gates and rejected 15 negative DT
+mutations. This admits one guarded installation and one runtime attempt; it
+does not yet establish serviceability.
+
 The next ordered work is:
 
-1. Build and run one current-tree serviceability control derived from the last
+1. Install and run the admitted current-tree serviceability control derived
+   from the last
    runtime-proven `da921x-same-value-write` Image/DT contract. Disable the
    clock-entry writer, retain exact DT resources `cspm`, `scp-cfg`, and
    `devapc-ao`, and send no action token. Require exact USB/netcat, CPU0--7,

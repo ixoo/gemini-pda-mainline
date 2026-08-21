@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-08-21-mainline-current-tree-serviceability-control` |
-| Status | running; prebuild definition selected |
+| Status | running; exact boot candidate independently validated |
 | Subsystem | arm64 boot, USB/netcat serviceability, DA921x read-only path |
 | Device variant | Gemini PDA x27, named project unit |
 | Date(s) | 2026-08-21 |
@@ -28,7 +28,8 @@ configuration.
 
 ## Provenance and environment
 
-- Kernel release: expected `7.1.3-gemini-service-ctl`
+- Kernel release: `7.1.3-gemini-service-ctl`
+- Repository build commit: `27622dfea13e042bd82f036c50664d3b978aee11`
 - Kernel source: manifest-pinned Linux 7.1.3 plus canonical `patches/series`
   through patch `0326`
 - Build profile: `da921x-current-service-control`
@@ -39,8 +40,14 @@ configuration.
   successful candidate `85dbd8d0...`
 - Boot path: guarded live-GPT logical `boot2` only
 
-Exact package, configuration, DTB, container, and commit hashes remain pending
-until the clean definition commit is built and independently validated.
+Buildbox produced Image.gz
+`9aa5c9ae497314b7ab089ccf6aa7d2cf1bb2ae9239145456603f08439829a9d6`.
+The exact derived DTB is
+`b638674b9be209219d51b7dd02538f7a0bc8b402bab7336188cb95011cd912dd`.
+The admitted raw Android-v0 candidate is
+`691ff883f05158c9a62d6629befef93f54ba14e51ff4ed5d8ea97678f2fa5094`;
+its exact 16 MiB boot2 image is
+`7084f2ee87af103dfcf1dfad9956f54c2a9df8d37b5f6d0388ba45464d8d52a3`.
 
 ## Safety assessment
 
@@ -63,11 +70,20 @@ sync/flush, match a full readback, and shut down cleanly without rebooting.
   and unique release
 - `kernel/manifest.json`: named Buildbox profile
 - `scripts/validate.py`: exact profile, fragment, and canonical-series audit
+- `scripts/build-serviceability-dtb.sh`: pinned current-package DT derivative
+- `scripts/build-candidate.sh`: pinned candidate construction and replay
+- `scripts/test-candidate.py`: independent package, DT, container, and mutation
+  validator
+- `scripts/install-boot2.sh`: guarded live-GPT boot2 installation and shutdown
+- `scripts/collect-runtime.sh`: pre-armed exact USB observer, read-only probe,
+  pass-gated native reboot, and changed-ID Gemian return
+- `scripts/validate-runtime.py`: exact serviceability classifier
+- `scripts/test-runtime-tools.py`: offline safety and attribution mutations
 - `contract.json`: frozen question, safety gates, and decision table
 
-Candidate assembly, independent container validation, guarded installation,
-and exact USB runtime tooling will be added only after the Buildbox package is
-available and its identities can be pinned.
+The Buildbox package and candidate passed offline validation. Guarded
+installation and the exact USB runtime attempt remain pending. The runtime
+collector must be armed before the one physical selection.
 
 ## Procedure
 
@@ -96,6 +112,15 @@ Changed-ID Gemian recovered empty pstore, four exact empty retained slots, the
 known generic `last_kmsg`, and unchanged boot2. That result is `neither` and is
 not repeated here.
 
+The exact clean pushed definition commit built successfully on x86_64
+Buildbox. The package resolved `CONFIG_NR_CPUS=512`, contains ten DT CPU nodes,
+and forces `maxcpus=8`; those are separate limits. Two DT constructions, two
+raw assemblies, and two padding constructions were byte-identical. Independent
+validation passed all 32 LK gates and rejected 15 deliberate DT mutations.
+The clock-entry/shared writer, protected-readback paths, BigiDVFS backend, and
+same-value action are not enabled. No device access occurred during this
+validation.
+
 ## Analysis
 
 The predecessor changed DT node population but retained the clock-entry Image
@@ -108,8 +133,9 @@ CPU8 work until the current-tree delta is localized offline.
 
 ## Conclusion
 
-Pending Buildbox and runtime evidence. No compile or device-support claim has
-yet been made.
+Exact candidate `7084f2ee...d52a3` is admitted for one guarded boot2
+installation and one physical selection. Runtime serviceability remains
+unproved; a compile and offline-valid candidate are not device-support claims.
 
 ## Follow-up
 

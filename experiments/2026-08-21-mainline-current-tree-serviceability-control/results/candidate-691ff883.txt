@@ -1,0 +1,76 @@
+Current-tree serviceability control candidate
+=============================================
+
+Result: pass
+Boot candidate: yes
+Device access: none
+Hardware write: none
+Native VM build: none
+
+Exact inputs
+------------
+
+Repository build commit: 27622dfea13e042bd82f036c50664d3b978aee11
+Build profile: da921x-current-service-control
+Kernel release: 7.1.3-gemini-service-ctl
+Image SHA-256: cae4361ad7cd4b2515526ff2b11863e4ff1eb8ea788a23cb24409795049c5483
+Image.gz SHA-256: 9aa5c9ae497314b7ab089ccf6aa7d2cf1bb2ae9239145456603f08439829a9d6
+Control DTB SHA-256: b638674b9be209219d51b7dd02538f7a0bc8b402bab7336188cb95011cd912dd
+Configuration SHA-256: fdba1a02f7592febcbf18fc4c32f7edfe8da48d355241109d79901e37a4dd21b
+System.map SHA-256: 39db10ecee35252b5f81fcb52b730f39a30268f6574bed12f55a45e77b92d090
+Serviceability ramdisk SHA-256: e0dffa04a621f60903cf4cf7280d773ec1c89c43ea63ec0f8b3a0879e7cebc0f
+
+Candidate identities
+--------------------
+
+Raw Android-v0 file: gemini-mt6797-current-service-control.boot.img
+Raw size: 6,895,616
+Raw SHA-256: 691ff883f05158c9a62d6629befef93f54ba14e51ff4ed5d8ea97678f2fa5094
+Padded size: 16,777,216
+Padded SHA-256: 7084f2ee87af103dfcf1dfad9956f54c2a9df8d37b5f6d0388ba45464d8d52a3
+Candidate SHA256SUMS SHA-256: 22ce8bd6947018aac619614eca5e933b5fe6ce14f393651b0ce92ffebbce9632
+
+Validation
+----------
+
+- Complete fetched-package checksum inventory: pass
+- Two independent DT constructions: byte-identical
+- Two independent raw assemblies: byte-identical
+- Two independent padding constructions: byte-identical
+- LK Android-v0 gates: 32 of 32
+- Independent negative DT mutations rejected: 15
+- GAEL arm64 entry markers E0 through E3: exact once each
+- Clock-entry and same-value tokens: absent
+- Clock, BigiDVFS, protected-readback, and same-value symbols: absent
+- DA921x register-data writes: zero
+- Serviceability writes: AW9523 probe and polling keyboard only
+- CPU8/CPU9 admission: closed
+- DT builder SHA-256:
+  550527d86331bd5eb037ba60e787dc7f132a136f005c89e8864c58721ed9dc7d
+- Candidate builder SHA-256:
+  a4b063354893c896687b5f9b37dde1dcd1a4e03eb69e6a4a801bba056e7e73ba
+- Independent validator SHA-256:
+  332aa7baf063f817552c3394ef55c6448aa19c9703703fc6148475d9520b355a
+- Guarded installer SHA-256:
+  5c4ba5e4fe517375272297e73189e5d4d772b75705bb3bf242ff76d2b9b43c98
+- Runtime collector SHA-256:
+  251b7f8c7ff65be51e8383c10748e2516e73b4a237e70e18a5e8b96b176ee454
+- Remote read-only probe SHA-256:
+  120bc5c9d0b0b6588260c311f092b654b5c501dad74c5495ab8ed78c1a189837
+- Runtime validator SHA-256:
+  dda8ed943e27996f767f50899a5c5e56334d9f8d04ea8659563a8ac637631e7d
+- Runtime offline tests SHA-256:
+  8731e155c466a93f1d71fbd720d575627b9bbff9fbc6f704753fb6ebdac1e4c1
+- Runtime safety mutations rejected: 15
+- Runtime attribution mutations rejected: 16
+
+Runtime hypothesis
+------------------
+
+If the current canonical Image and last proven serviceability DT contract are
+still viable with the experimental writers absent, exact USB/netcat will
+appear with release 7.1.3-gemini-service-ctl, CPUs 0--7 online, CPUs 8--9
+offline, and the polling keyboard present. No action token will be sent. A
+successful observation permits one boot-ID-gated native return to Gemian. No
+exact USB before automatic return stops the candidate after one attempt and
+localizes the failure to the current-tree/profile boundary.
