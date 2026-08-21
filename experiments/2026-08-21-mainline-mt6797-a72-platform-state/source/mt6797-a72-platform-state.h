@@ -46,11 +46,11 @@ struct mt6797_a72_platform_state {
 };
 
 #if IS_ENABLED(CONFIG_MTK_MT6797_A72_PLATFORM_STATE)
-int mt6797_a72_platform_state_snapshot(
-	struct device *dev, struct mt6797_a72_platform_state *snapshot);
+int mt6797_a72_platform_state_snapshot(struct device *dev,
+				       struct mt6797_a72_platform_state *snapshot);
 #else
-static inline int mt6797_a72_platform_state_snapshot(
-	struct device *dev, struct mt6797_a72_platform_state *snapshot)
+static inline int mt6797_a72_platform_state_snapshot(struct device *dev,
+					      struct mt6797_a72_platform_state *snapshot)
 {
 	(void)dev;
 	if (snapshot)

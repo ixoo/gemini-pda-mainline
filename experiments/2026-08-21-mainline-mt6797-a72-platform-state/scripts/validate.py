@@ -36,6 +36,12 @@ def main() -> None:
     require(contract["parent"]["source_state"] ==
             "905fb7f5ead29cbe65eaf7f66e41433aea417c2ee15d751ebda6ddf79f19ad8e",
             "parent source state")
+    require(contract["expected_patches"] == [
+        "patches/v7.1.3/0308-watchdog-mtk-expose-locked-reset-status.patch",
+        "patches/v7.1.3/0309-dt-bindings-soc-mediatek-add-MT6797-A72-platform-state.patch",
+        "patches/v7.1.3/0310-soc-mediatek-add-MT6797-A72-platform-state-source.patch",
+        "patches/v7.1.3/0311-arm64-dts-mediatek-add-MT6797-A72-platform-state-source.patch",
+    ], "four logical patch identities")
     require(contract["validated_generation"] is None and
             contract["validated_build"] is None,
             "unperformed results remain null")
@@ -59,6 +65,8 @@ def main() -> None:
         "deterministic Buildbox generation input; patches pending",
         "strict one-match guard correctly rejected the",
         "explicit tab-preserving string",
+        "series is therefore split into four logical patches",
+        "every reported style check is",
         "two immediate bounded samples with no loop or retry",
         "destination that remains all-zero on error",
         "DT node stays disabled",
@@ -113,6 +121,20 @@ def main() -> None:
     ):
         require(token in failed_attempt, f"failed attempt receipt: {token}")
 
+    style_attempt = (HERE / "results/buildbox-generation-attempt-5866aeff.txt").read_text()
+    for token in (
+        "repository_commit=5866aeff5039c253780771039fb88405b0d50b59",
+        "source_validation=pass",
+        "patch_replay=pass",
+        "failure=strict-checkpatch",
+        "errors=0",
+        "warnings=1",
+        "checks=9",
+        "patch_package=none",
+        "device_action=none",
+    ):
+        require(token in style_attempt, f"style attempt receipt: {token}")
+
     buildbox = (ROOT / "scripts/buildbox").read_text()
     for command in (
         "generate-mt6797-a72-platform-state-patches",
@@ -122,7 +144,7 @@ def main() -> None:
 
     print("validation=mt6797-a72-platform-state-generation-input")
     print("result=pass")
-    print("expected_patches=2")
+    print("expected_patches=4")
     print("platform_samples=2-no-loop")
     print("hardware_write=none")
     print("a34_caller=none")

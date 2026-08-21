@@ -22,7 +22,9 @@
   },
   "expected_patches": [
     "patches/v7.1.3/0308-watchdog-mtk-expose-locked-reset-status.patch",
-    "patches/v7.1.3/0309-soc-mediatek-add-MT6797-A72-platform-state-source.patch"
+    "patches/v7.1.3/0309-dt-bindings-soc-mediatek-add-MT6797-A72-platform-state.patch",
+    "patches/v7.1.3/0310-soc-mediatek-add-MT6797-A72-platform-state-source.patch",
+    "patches/v7.1.3/0311-arm64-dts-mediatek-add-MT6797-A72-platform-state-source.patch"
   ],
   "validated_generation": null,
   "validated_build": null,

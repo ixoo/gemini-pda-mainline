@@ -160,9 +160,9 @@ parser-only patch review:
 It returns one checksum-validated patch review and never copies a kernel source
 tree between the host and Buildbox.
 
-The MT6797 A72 platform-state source uses the same contract and generates two
-logically separated patches: one locked TOPRGU reset-status accessor and one
-default-off capture source:
+The MT6797 A72 platform-state source uses the same contract and generates four
+logically separated patches: the locked TOPRGU reset-status accessor, binding,
+default-off capture source, and disabled DT description:
 
 ```sh
 ./scripts/buildbox generate-mt6797-a72-platform-state-patches
@@ -170,7 +170,7 @@ default-off capture source:
 ```
 
 The lane verifies the exact canonical source through patch `0307`, replays the
-two generated patches, and rejects polling, hardware writes, A34 callers, CPU
+four generated patches, and rejects polling, hardware writes, A34 callers, CPU
 operations, and DT enablement.
 
 After canonical admission, compile and fetch the isolated focused profile with:

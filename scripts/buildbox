@@ -5297,7 +5297,7 @@ case "${package}" in "${artifact_root}"/*) ;; *) exit 1 ;; esac
 (cd "${package}" && sha256sum --check --strict SHA256SUMS >/dev/null)
 grep -Fx "repository_commit=${commit}" \
   "${package}/provenance/generation.txt" >/dev/null
-for marker in generated_patch_count=2 toprgu_status=locked-read-only \
+for marker in generated_patch_count=4 toprgu_status=locked-read-only \
   platform_samples=2-no-loop cci_mp2_port_offset=0x6000 \
   cci_global_status_offset=0x000c hardware_write=none a34_caller=none \
   opens_owner=false boot_candidate=false cpu_on=false cpu_off=false; do
@@ -5369,7 +5369,7 @@ case "${package}" in "${artifact_root}"/*) ;; *) exit 1 ;; esac
 (cd "${package}" && sha256sum --check --strict SHA256SUMS >/dev/null)
 grep -Fx "repository_commit=${commit}" \
   "${package}/provenance/generation.txt" >/dev/null
-grep -Fx 'generated_patch_count=2' \
+grep -Fx 'generated_patch_count=4' \
   "${package}/provenance/generation.txt" >/dev/null
 tar -C "$(dirname "${package}")" -cf - -- "$(basename "${package}")"
 REMOTE
@@ -5378,7 +5378,7 @@ REMOTE
     cd "${temporary}/${package_name}"
     sha256sum --check --strict SHA256SUMS >/dev/null
     grep -Fx "repository_commit=${sha}" provenance/generation.txt >/dev/null
-    grep -Fx 'generated_patch_count=2' provenance/generation.txt >/dev/null
+    grep -Fx 'generated_patch_count=4' provenance/generation.txt >/dev/null
   )
   mv "${temporary}/${package_name}" "${destination}"
   rmdir "${temporary}"

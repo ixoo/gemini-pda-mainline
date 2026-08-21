@@ -71,8 +71,8 @@ def main() -> None:
         "#define MT6797_CCI_STATUS\t\t\t0x000c",
         "#define MT6797_CCI_MP2_PORT_CONTROL\t\t0x6000",
         "reset_control_status(source->pwrap_reset)",
-        "mt6797_a72_platform_state_read_once(source, &first)",
-        "mt6797_a72_platform_state_read_once(source, &second)",
+        "mt6797_state_read_once(source, &first)",
+        "mt6797_state_read_once(source, &second)",
         "ret = -EBUSY",
         "ret = -EAGAIN",
         "*snapshot = second",
@@ -80,9 +80,9 @@ def main() -> None:
         "EXPORT_SYMBOL_GPL(mt6797_a72_platform_state_snapshot)",
     ):
         require(token in driver, f"driver token: {token}")
-    require(driver.count("mt6797_a72_platform_state_read_once(source, &first)") == 1,
+    require(driver.count("mt6797_state_read_once(source, &first)") == 1,
             "single first sample")
-    require(driver.count("mt6797_a72_platform_state_read_once(source, &second)") == 1,
+    require(driver.count("mt6797_state_read_once(source, &second)") == 1,
             "single second sample")
     require(driver.index("*snapshot = (struct mt6797_a72_platform_state){}") <
             driver.index("dev_get_drvdata(dev)"),

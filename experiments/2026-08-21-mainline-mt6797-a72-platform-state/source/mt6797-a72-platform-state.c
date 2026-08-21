@@ -39,12 +39,11 @@ struct mt6797_a72_platform_state_source {
 	struct reset_control *pwrap_reset;
 	void __iomem *mcucfg;
 	void __iomem *cci;
-	struct mutex lock;
+	struct mutex lock; /* Serializes the two-sample transaction. */
 };
 
-static int mt6797_a72_platform_state_read_spm(
-	struct mt6797_a72_platform_state_source *source,
-	struct mt6797_a72_platform_state *sample)
+static int mt6797_state_read_spm(struct mt6797_a72_platform_state_source *source,
+				  struct mt6797_a72_platform_state *sample)
 {
 	int ret;
 
@@ -84,15 +83,14 @@ static int mt6797_a72_platform_state_read_spm(
 	return 0;
 }
 
-static int mt6797_a72_platform_state_read_once(
-	struct mt6797_a72_platform_state_source *source,
-	struct mt6797_a72_platform_state *sample)
+static int mt6797_state_read_once(struct mt6797_a72_platform_state_source *source,
+				   struct mt6797_a72_platform_state *sample)
 {
 	int reset_state;
 	int ret;
 
 	*sample = (struct mt6797_a72_platform_state){};
-	ret = mt6797_a72_platform_state_read_spm(source, sample);
+	ret = mt6797_state_read_spm(source, sample);
 	if (ret)
 		return ret;
 
@@ -111,9 +109,8 @@ static int mt6797_a72_platform_state_read_once(
 	return 0;
 }
 
-static bool mt6797_a72_platform_state_moved(
-	const struct mt6797_a72_platform_state *first,
-	const struct mt6797_a72_platform_state *second)
+static bool mt6797_state_moved(const struct mt6797_a72_platform_state *first,
+			       const struct mt6797_a72_platform_state *second)
 {
 	return first->spm_cpu_pwr_status != second->spm_cpu_pwr_status ||
 		first->spm_cpu_pwr_status_2nd !=
@@ -130,15 +127,14 @@ static bool mt6797_a72_platform_state_moved(
 		first->pwrap_reset_asserted != second->pwrap_reset_asserted;
 }
 
-static bool mt6797_a72_platform_state_cci_busy(
-	const struct mt6797_a72_platform_state *sample)
+static bool mt6797_state_cci_busy(const struct mt6797_a72_platform_state *sample)
 {
 	return (sample->cci_status_before | sample->cci_status_after) &
 		MT6797_CCI_CHANGE_PENDING;
 }
 
-int mt6797_a72_platform_state_snapshot(
-	struct device *dev, struct mt6797_a72_platform_state *snapshot)
+int mt6797_a72_platform_state_snapshot(struct device *dev,
+				       struct mt6797_a72_platform_state *snapshot)
 {
 	struct mt6797_a72_platform_state_source *source;
 	struct mt6797_a72_platform_state first;
@@ -156,18 +152,18 @@ int mt6797_a72_platform_state_snapshot(
 		return -ENODEV;
 
 	mutex_lock(&source->lock);
-	ret = mt6797_a72_platform_state_read_once(source, &first);
+	ret = mt6797_state_read_once(source, &first);
 	if (ret)
 		goto out;
-	ret = mt6797_a72_platform_state_read_once(source, &second);
+	ret = mt6797_state_read_once(source, &second);
 	if (ret)
 		goto out;
-	if (mt6797_a72_platform_state_cci_busy(&first) ||
-	    mt6797_a72_platform_state_cci_busy(&second)) {
+	if (mt6797_state_cci_busy(&first) ||
+	    mt6797_state_cci_busy(&second)) {
 		ret = -EBUSY;
 		goto out;
 	}
-	if (mt6797_a72_platform_state_moved(&first, &second)) {
+	if (mt6797_state_moved(&first, &second)) {
 		ret = -EAGAIN;
 		goto out;
 	}
@@ -189,8 +185,7 @@ static int mt6797_a72_platform_state_probe(struct platform_device *pdev)
 	if (!source)
 		return -ENOMEM;
 
-	source->spm = syscon_regmap_lookup_by_phandle(dev->of_node,
-						   "mediatek,spm");
+	source->spm = syscon_regmap_lookup_by_phandle(dev->of_node, "mediatek,spm");
 	if (IS_ERR(source->spm))
 		return dev_err_probe(dev, PTR_ERR(source->spm),
 				     "failed to get SPM syscon\n");

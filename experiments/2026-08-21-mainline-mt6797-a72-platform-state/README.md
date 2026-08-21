@@ -50,13 +50,27 @@ sanitized receipt is
 The edit now expresses both DTS node bodies as explicit tab-preserving string
 literals while retaining the exact one-match guard.
 
+The second Buildbox attempt used repository commit
+`5866aeff5039c253780771039fb88405b0d50b59`. It generated and replayed the
+two initially planned patches, and the semantic source and patch validators
+passed. Strict checkpatch then rejected the combined platform patch because
+the DT binding was not isolated and because of nine style checks. No package
+was exported and no build or device action occurred. The sanitized receipt is
+[`results/buildbox-generation-attempt-5866aeff.txt`](results/buildbox-generation-attempt-5866aeff.txt).
+
+The series is therefore split into four logical patches—watchdog accessor,
+binding, source driver, and DT description—and every reported style check is
+fixed in the source rather than ignored.
+
 ## Selected change
 
 Patch `0308` adds the standard reset-controller `.status` callback to
 `mtk_wdt`. It reads `WDT_SWSYSRST` under the same spinlock used by assert and
 deassert and returns the selected logical bit. It performs no reset action.
 
-Patch `0309` adds a default-off MT6797-specific source with:
+Patch `0309` adds the binding, patch `0310` adds the default-off
+MT6797-specific source, and patch `0311` adds its still-disabled DT node. The
+source provides:
 
 - named `mcucfg` and `cci` DT resources;
 - the existing SPM syscon and TOPRGU PWRAP reset owner;
@@ -92,7 +106,7 @@ After committing and pushing a clean input:
 ```
 
 The generator verifies exact parent source hashes, uses a temporary reduced
-Git tree, produces two normal `git format-patch` files under a clearly
+Git tree, produces four normal `git format-patch` files under a clearly
 synthetic non-certifying experiment identity, replays them byte-for-byte, and
 runs strict checkpatch. It exports only a checksum-covered patch review.
 

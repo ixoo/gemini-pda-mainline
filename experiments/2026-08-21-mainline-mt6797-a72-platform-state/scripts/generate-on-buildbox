@@ -123,7 +123,8 @@ PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/source_edits.py" \
 PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_source.py" \
 	--source-root "$work/source"
 git -C "$work/source" diff --check
-git -C "$work/source" add -- .
+git -C "$work/source" add -- \
+	Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-a72-platform-state.yaml
 git -C "$work/source" diff --cached --check
 GIT_AUTHOR_NAME='Gemini Mainline Experiment' \
 GIT_AUTHOR_EMAIL=gemini-mainline@example.invalid \
@@ -132,9 +133,39 @@ GIT_COMMITTER_EMAIL=gemini-mainline@example.invalid \
 GIT_AUTHOR_DATE=2026-08-21T18:02:00Z \
 GIT_COMMITTER_DATE=2026-08-21T18:02:00Z \
 	git -C "$work/source" commit --quiet --no-gpg-sign \
-		-m 'soc: mediatek: add MT6797 A72 platform-state source' \
+		-m 'dt-bindings: mediatek: add MT6797 A72 state source' \
+		-m 'Describe the named MCUCFG and CCI resources, SPM syscon, and TOPRGU PWRAP reset consumed by the default-off read-only source.'
+
+git -C "$work/source" add -- \
+	drivers/soc/mediatek/Kconfig \
+	drivers/soc/mediatek/Makefile \
+	drivers/soc/mediatek/mt6797-a72-platform-state.c \
+	include/linux/soc/mediatek/mt6797-a72-platform-state.h
+git -C "$work/source" diff --cached --check
+GIT_AUTHOR_NAME='Gemini Mainline Experiment' \
+GIT_AUTHOR_EMAIL=gemini-mainline@example.invalid \
+GIT_COMMITTER_NAME='Gemini Mainline Experiment' \
+GIT_COMMITTER_EMAIL=gemini-mainline@example.invalid \
+GIT_AUTHOR_DATE=2026-08-21T18:03:00Z \
+GIT_COMMITTER_DATE=2026-08-21T18:03:00Z \
+	git -C "$work/source" commit --quiet --no-gpg-sign \
+		-m 'soc: mediatek: add MT6797 A72 state source' \
 		-m 'Capture two immediate read-only samples of the source-backed SPM, PWRAP reset, MP2 DCM, and MP2 CCI state and publish a typed record only when the A72 fields are stable.' \
-		-m 'Keep the DT node disabled and add no polling, register write, A34 caller, lifecycle publication, CPU operation, boot candidate, or device action.'
+		-m 'Add no polling, register write, A34 caller, lifecycle publication, CPU operation, boot candidate, or device action.'
+
+git -C "$work/source" add -- \
+	arch/arm64/boot/dts/mediatek/mt6797.dtsi \
+	arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+git -C "$work/source" diff --cached --check
+GIT_AUTHOR_NAME='Gemini Mainline Experiment' \
+GIT_AUTHOR_EMAIL=gemini-mainline@example.invalid \
+GIT_COMMITTER_NAME='Gemini Mainline Experiment' \
+GIT_COMMITTER_EMAIL=gemini-mainline@example.invalid \
+GIT_AUTHOR_DATE=2026-08-21T18:04:00Z \
+GIT_COMMITTER_DATE=2026-08-21T18:04:00Z \
+	git -C "$work/source" commit --quiet --no-gpg-sign \
+		-m 'arm64: dts: mediatek: add MT6797 A72 state source' \
+		-m 'Replace the old disabled probe-time observer node with the complete named-resource source node, and keep it disabled.'
 result_commit="$(git -C "$work/source" rev-parse HEAD)"
 readonly result_commit
 
@@ -142,12 +173,17 @@ mkdir -p "$partial/patches" "$partial/provenance"
 mapfile -t generated < <(git -C "$work/source" format-patch \
 	--no-signature --output-directory "$partial/patches" \
 	"${baseline_commit}..${result_commit}")
-[[ "${#generated[@]}" -eq 2 ]] || die 'generated patch count changed'
+[[ "${#generated[@]}" -eq 4 ]] || die 'generated patch count changed'
 readonly patch_1=0308-watchdog-mtk-expose-locked-reset-status.patch
-readonly patch_2=0309-soc-mediatek-add-MT6797-A72-platform-state-source.patch
+readonly patch_2=0309-dt-bindings-soc-mediatek-add-MT6797-A72-platform-state.patch
+readonly patch_3=0310-soc-mediatek-add-MT6797-A72-platform-state-source.patch
+readonly patch_4=0311-arm64-dts-mediatek-add-MT6797-A72-platform-state-source.patch
 mv -- "${generated[0]}" "$partial/patches/$patch_1"
 mv -- "${generated[1]}" "$partial/patches/$patch_2"
-printf '%s\n%s\n' "$patch_1" "$patch_2" >"$partial/patches/series"
+mv -- "${generated[2]}" "$partial/patches/$patch_3"
+mv -- "${generated[3]}" "$partial/patches/$patch_4"
+printf '%s\n%s\n%s\n%s\n' \
+	"$patch_1" "$patch_2" "$patch_3" "$patch_4" >"$partial/patches/series"
 PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_patches.py" \
 	--patch-dir "$partial/patches"
 
@@ -156,7 +192,8 @@ git -C "$work/verify" checkout --quiet --detach "$baseline_commit"
 git -C "$work/verify" config user.name 'Gemini Mainline Experiment'
 git -C "$work/verify" config user.email gemini-mainline@example.invalid
 git -C "$work/verify" am --quiet --committer-date-is-author-date \
-	"$partial/patches/$patch_1" "$partial/patches/$patch_2"
+	"$partial/patches/$patch_1" "$partial/patches/$patch_2" \
+	"$partial/patches/$patch_3" "$partial/patches/$patch_4"
 [[ "$(git -C "$work/verify" rev-parse HEAD)" == "$result_commit" ]] ||
 	die 'patch replay did not reproduce generated commit'
 PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_source.py" \
@@ -164,7 +201,7 @@ PYTHONDONTWRITEBYTECODE=1 python3 "$script_dir/validate_source.py" \
 [[ -z "$(git -C "$work/verify" status --porcelain)" ]] ||
 	die 'verification source is dirty'
 
-for patch in "$patch_1" "$patch_2"; do
+for patch in "$patch_1" "$patch_2" "$patch_3" "$patch_4"; do
 	if ! perl "$source_root/scripts/checkpatch.pl" --no-tree --strict \
 		--ignore MISSING_SIGN_OFF,FILE_PATH_CHANGES,COMMIT_LOG_LONG_LINE \
 		"$partial/patches/$patch" >"$partial/provenance/checkpatch-${patch%.patch}.txt"; then
@@ -179,7 +216,7 @@ repository_commit=$project_commit
 parent_source_state=$PARENT_SOURCE_STATE
 baseline_commit=$baseline_commit
 result_commit=$result_commit
-generated_patch_count=2
+generated_patch_count=4
 toprgu_status=locked-read-only
 platform_samples=2-no-loop
 cci_mp2_port_offset=0x6000
@@ -192,7 +229,9 @@ cpu_off=false
 device_action=none
 boot_candidate=false
 EOF
-printf '%s\n%s\n' "$patch_1" "$patch_2" >"$partial/provenance/patches.txt"
+printf '%s\n%s\n%s\n%s\n' \
+	"$patch_1" "$patch_2" "$patch_3" "$patch_4" \
+	>"$partial/provenance/patches.txt"
 (
 	cd "$partial"
 	find patches provenance -type f -print0 | sort -z |
